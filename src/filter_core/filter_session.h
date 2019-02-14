@@ -236,8 +236,9 @@ struct __gf_filter_pck
 
 	//for allocated memory packets
 	u32 alloc_size;
-	//for shared memory packets
-	Bool filter_owns_mem;
+	//for shared memory packets: 0: cloned mem, 1: read/write mem from source filter, 2: read-only mem from filter
+	//note that packets with hwframe are always considered as read-only memory
+	u32 filter_owns_mem;
 	gf_fsess_packet_destructor destructor;
 	//for packet reference  packets (sharing data from other packets)
 	struct __gf_filter_pck *reference;

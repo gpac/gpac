@@ -52,7 +52,7 @@ GLDECL(void, glCompileShader, (GLuint shader) )
 GLDECL(void, glAttachShader, (GLuint program, GLuint shader) )
 GLDECL(void, glDetachShader, (GLuint program, GLuint shader) )
 GLDECL(void, glGetShaderiv, (GLuint shader, GLenum type, GLint *res) )
-GLDECL(void, glGetInfoLogARB, (GLuint shader, GLint size, GLsizei *rsize, const char *logs) )
+GLDECL(void, glGetInfoLogARB, (GLuint shader, GLint wsize, GLsizei *rsize, const char *logs) )
 GLDECL(GLint, glGetUniformLocation, (GLuint prog, const char *name) )
 GLDECL(void, glUniform1f, (GLint location, GLfloat v0) )
 GLDECL(void, glUniform1i, (GLint location, GLint v0) )
@@ -69,8 +69,8 @@ GLDECL(GLint, glGetAttribLocation, (GLuint prog, const char *name))
 #ifndef GPAC_CONFIG_ANDROID
 GLDECL(void, glEnableVertexAttribArray, (GLuint index))
 GLDECL(void, glDisableVertexAttribArray, (GLuint index))
-GLDECL(void, glVertexAttribPointer, (GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const GLvoid *  pointer))
-GLDECL(void, glVertexAttribIPointer, (GLuint  index, GLint  size, GLenum  type, GLsizei  stride, const GLvoid *  pointer))
+GLDECL(void, glVertexAttribPointer, (GLuint  index, GLint  wsize, GLenum  type, GLboolean  normalized, GLsizei  stride, const GLvoid *  pointer))
+GLDECL(void, glVertexAttribIPointer, (GLuint  index, GLint  wsize, GLenum  type, GLsizei  stride, const GLvoid *  pointer))
 #endif
 #endif
 
@@ -219,8 +219,7 @@ static char *glsl_nv21_shader = "#version 120\n"\
 		vec3 yuv, rgb;\
 		texc = TexCoord.st;\
 		yuv.x = texture2D(y_plane, texc).r; \
-		yuv.y = texture2D(u_plane, texc).a; \
-		yuv.z = texture2D(u_plane, texc).r; \
+		yuv.yz = texture2D(u_plane, texc).ar; \
 		yuv += offset; \
 	    rgb.r = dot(yuv, R_mul); \
 	    rgb.g = dot(yuv, G_mul); \
@@ -351,8 +350,8 @@ typedef struct
 	GF_Fraction dur;
 	Double speed, hold;
 	u32 back;
-	GF_PropVec2i size;
-	GF_PropVec2i pos;
+	GF_PropVec2i wsize;
+	GF_PropVec2i wpos;
 	Double start;
 	u32 buffer;
 	GF_Fraction delay;
@@ -524,31 +523,39 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		gf_filter_pid_init_play_event(pid, &fevt, ctx->start, ctx->speed, "VideoOut");
 		gf_filter_pid_send_event(pid, &fevt);
-		ctx->speed = fevt.play.speed;
+
 		ctx->start = fevt.play.start_range;
+		if ((ctx->speed<0) && (fevt.play.speed>=0))
+			ctx->speed = fevt.play.speed;
 
 		ctx->pid = pid;
-
-		vout_set_caption(ctx);
 	}
-
-	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) ) return GF_OK;
+	vout_set_caption(ctx);
 
 	//pid not yet ready
 	if (!pfmt || !w || !h) return GF_OK;
+
+	if (ctx->first_cts && ctx->timescale && (ctx->timescale != timescale) ) {
+		ctx->first_cts-=1;
+		ctx->first_cts *= timescale;
+		ctx->first_cts /= ctx->timescale;
+		ctx->first_cts+=1;
+	}
+	ctx->timescale = timescale;
+	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) ) return GF_OK;
 
 	dw = w;
 	dh = h;
 	if (ctx->sar.den != ctx->sar.num) {
 		dw = dw * ctx->sar.num / ctx->sar.den;
 	}
-	if (ctx->size.x==0) ctx->size.x = w;
-	if (ctx->size.y==0) ctx->size.y = h;
-	if ((ctx->size.x>0) && (ctx->size.y>0)) {
-		dw = ctx->size.x;
-		dh = ctx->size.y;
+	if (ctx->wsize.x==0) ctx->wsize.x = w;
+	if (ctx->wsize.y==0) ctx->wsize.y = h;
+	if ((ctx->wsize.x>0) && (ctx->wsize.y>0)) {
+		dw = ctx->wsize.x;
+		dh = ctx->wsize.y;
 	}
-	//in 2D mode we need to send a setup event to resize backbuffer to the video source size
+	//in 2D mode we need to send a setup event to resize backbuffer to the video source wsize
 	if (ctx->disp>=MODE_2D) {
 		dw = w;
 		dh = h;
@@ -600,21 +607,21 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			evt.size.height = dh;
 			ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 		}
-	} else if ((ctx->size.x>0) && (ctx->size.y>0)) {
-		ctx->display_width = ctx->size.x;
-		ctx->display_height = ctx->size.y;
+	} else if ((ctx->wsize.x>0) && (ctx->wsize.y>0)) {
+		ctx->display_width = ctx->wsize.x;
+		ctx->display_height = ctx->wsize.y;
 		ctx->display_changed = GF_TRUE;
 	}
 	if (ctx->fullscreen) {
 		u32 nw=ctx->display_width, nh=ctx->display_height;
 		ctx->video_out->SetFullScreen(ctx->video_out, GF_TRUE, &nw, &nh);
 		ctx->in_fullscreen = GF_TRUE;
-	} else if ((ctx->pos.x!=-1) && (ctx->pos.y!=-1)) {
+	} else if ((ctx->wpos.x!=-1) && (ctx->wpos.y!=-1)) {
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_MOVE;
 		evt.move.relative = 0;
-		evt.move.x = ctx->pos.x;
-		evt.move.y = ctx->pos.y;
+		evt.move.x = ctx->wpos.x;
+		evt.move.y = ctx->wpos.y;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 	}
 
@@ -800,6 +807,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 		switch (ctx->pfmt) {
 		case GF_PIXEL_NV21:
+		case GF_PIXEL_NV21_10:
 			ctx->num_textures = 2;
 			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_nv21_shader);
 			break;
@@ -839,9 +847,17 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 			if (ctx->is_yuv && ctx->bit_depth>8) {
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
-				if (ctx->num_textures!=2) {
-					glPixelTransferi(GL_RED_SCALE, 64);
+				//we use x bits but GL will normalise using 16 bits, so we need to multiply the normalized result by 2^(16-x)
+				u32 nb_bits = (16 - ctx->bit_depth);
+				u32 scale = 1;
+				while (nb_bits) {
+					scale*=2;
+					nb_bits--;
 				}
+				glPixelTransferi(GL_RED_SCALE, scale);
+				if ((ctx->num_textures==2) && (i==1))
+					glPixelTransferi(GL_ALPHA_SCALE, scale);
+
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
 #endif
 				ctx->memory_format = GL_UNSIGNED_SHORT;
@@ -850,6 +866,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 				ctx->memory_format = GL_UNSIGNED_BYTE;
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 				glPixelTransferi(GL_RED_SCALE, 1);
+				glPixelTransferi(GL_ALPHA_SCALE, 1);
+				glPixelStorei(GL_UNPACK_LSB_FIRST, 0);
 #endif
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 			}
@@ -984,7 +1002,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			ctx->num_textures = 1;
 		}
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] Reconfig input size %d x %d, %d textures\n", ctx->width, ctx->height, ctx->num_textures));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] Reconfig input wsize %d x %d, %d textures\n", ctx->width, ctx->height, ctx->num_textures));
 	return GF_OK;
 }
 
@@ -1244,7 +1262,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	Bool use_stride = GF_FALSE;
 	char *data;
 	GF_Event evt;
-	u32 size, stride_luma, stride_chroma;
+	u32 wsize, stride_luma, stride_chroma;
 	char *pY=NULL, *pU=NULL, *pV=NULL;
 
 	if (!ctx->glsl_program) return;
@@ -1305,7 +1323,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	stride_luma = ctx->stride;
 	stride_chroma = ctx->uv_stride;
 
-	data = (char*) gf_filter_pck_get_data(pck, &size);
+	data = (char*) gf_filter_pck_get_data(pck, &wsize);
 	if (!data) {
 		GF_Err e;
 		GF_FilterHWFrame *hw_frame = gf_filter_pck_get_hw_frame(pck);
@@ -1481,7 +1499,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		use_stride = GF_FALSE;
 		if (stride_luma > 2*ctx->width) {
 			//stride is given in bytes for packed formats, so divide by 2 to get the number of pixels
-			//for YUYV, and we upload as a texture with half the size so rdevide again by two
+			//for YUYV, and we upload as a texture with half the wsize so rdevide again by two
 			//since GL_UNPACK_ROW_LENGTH counts in component and we moved the set 2 bytes per comp on 10 bits
 			//no need to further divide
 			uv_stride = stride_luma/4;
@@ -1567,7 +1585,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 {
 	char *data;
-	u32 size;
+	u32 wsize;
 	GF_Err e;
 	GF_VideoSurface src_surf;
 	GF_Window dst_wnd, src_wnd;
@@ -1580,7 +1598,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	src_surf.pixel_format = ctx->pfmt;
 	src_surf.global_alpha = 0xFF;
 
-	data = (char *) gf_filter_pck_get_data(pck, &size);
+	data = (char *) gf_filter_pck_get_data(pck, &wsize);
 	if (!data) {
 		GF_Err e;
 		u32 stride_luma;
@@ -1761,7 +1779,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		return GF_OK;
 	}
 	if (!ctx->width || !ctx->height) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] pid display size unknown, discarding packet\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] pid display wsize unknown, discarding packet\n"));
 		gf_filter_pid_drop_packet(ctx->pid);
 		return GF_OK;
 	}
@@ -1797,15 +1815,20 @@ static GF_Err vout_process(GF_Filter *filter)
 	}
 
 	if (ctx->buffer) {
-		u32 max_units, nb_pck, max_dur, dur=0;
-		Bool buf_ok = gf_filter_pid_get_buffer_occupancy(ctx->pid, &max_units, &nb_pck, &max_dur, &dur);
+		GF_FilterHWFrame *hwframe = gf_filter_pck_get_hw_frame(pck);
+		if (hwframe && hwframe->reset_pending) {
+			ctx->buffer = GF_TRUE;
+		} else {
+			u32 max_units, nb_pck, max_dur, dur=0;
+			Bool buf_ok = gf_filter_pid_get_buffer_occupancy(ctx->pid, &max_units, &nb_pck, &max_dur, &dur);
 
-		if (!ctx->buffer_done) {
-			if (buf_ok && (dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid))
-				return GF_OK;
-			ctx->buffer_done = GF_TRUE;
+			if (!ctx->buffer_done) {
+				if (buf_ok && (dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid))
+					return GF_OK;
+				ctx->buffer_done = GF_TRUE;
+			}
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
 	}
 
 	if (ctx->vsync || ctx->drop) {
@@ -1958,7 +1981,10 @@ static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 			vout_draw_2d(ctx, ctx->last_pck);
 		}
 	}
-	if (ctx->no_buffering) ctx->force_release = GF_TRUE;
+	if (ctx->no_buffering)
+		ctx->force_release = GF_TRUE;
+	else if (ctx->last_pck && gf_filter_pck_is_blocking_ref(ctx->last_pck) )
+		ctx->force_release = GF_TRUE;
 
 	if (ctx->force_release && ctx->last_pck && !ctx->dump_f_idx) {
 		gf_filter_pck_unref(ctx->last_pck);
@@ -1992,8 +2018,8 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(linear), "uses linear filtering instead of nearest pixel for GL mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(back), "specifies back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(size), "default init size, 0x0 holds the size of the first frame. Default is video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(pos), "default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(wsize), "default init wsize, 0x0 holds the wsize of the first frame. Default is video media wsize", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(wpos), "default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(delay), "sets delay, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(hide), "hide output window", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(fullscreen), "use fullcreen", GF_PROP_BOOL, "false", NULL, 0},

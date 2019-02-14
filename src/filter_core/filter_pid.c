@@ -3800,15 +3800,17 @@ GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid)
 
 }
 
-GF_EXPORT
-GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid)
+static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_FilterPid *src_pid, gf_filter_prop_filter filter_prop, void *cbk, Bool do_copy)
 {
-	GF_PropertyMap *dst_props, *src_props;
+	GF_PropertyMap *dst_props, *src_props, *old_dst_props=NULL;
 
 	if (PID_IS_INPUT(dst_pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to reset all properties on input PID in filter %s - ignoring\n", dst_pid->filter->name));
 		return GF_BAD_PARAM;
 	}
+	if (do_copy)
+		old_dst_props = gf_list_last(dst_pid->properties);
+
 	//don't merge properties with old state we merge with source pid
 	dst_props = check_new_pid_props(dst_pid, GF_FALSE);
 
@@ -3816,16 +3818,33 @@ GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pi
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for destination pid in filter %s, ignoring reset\n", dst_pid->filter->name));
 		return GF_OUT_OF_MEM;
 	}
+
 	src_pid = src_pid->pid;
 	src_props = gf_list_last(src_pid->properties);
 	if (!src_props) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for source pid in filter %s, ignoring merge\n", src_pid->filter->name));
 		return GF_OK;
 	}
-	if (src_pid->name) gf_filter_pid_set_name(dst_pid, src_pid->name);
+	if (src_pid->name && !old_dst_props)
+		gf_filter_pid_set_name(dst_pid, src_pid->name);
 	
 	gf_props_reset(dst_props);
-	return gf_props_merge_property(dst_props, src_props, NULL, NULL);
+	if (old_dst_props) {
+		GF_Err e = gf_props_merge_property(dst_props, old_dst_props, NULL, NULL);
+		if (e) return e;
+	}
+	return gf_props_merge_property(dst_props, src_props, filter_prop, cbk);
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_merge_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid, gf_filter_prop_filter filter_prop, void *cbk )
+{
+	return gf_filter_pid_merge_properties_internal(dst_pid, src_pid, filter_prop, cbk, GF_TRUE);
+}
+GF_EXPORT
+GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid)
+{
+	return gf_filter_pid_merge_properties_internal(dst_pid, src_pid, NULL, NULL, GF_FALSE);
 }
 
 GF_EXPORT
@@ -4527,6 +4546,9 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_STOP) && !evt->base.on_pid->pid->is_playing) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is not playing, discarding\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", gf_filter_event_name(evt->base.type)));
 		gf_free(evt);
+		if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
+			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);
+		}
 		return;
 	} else if (f->freg->process_event) {
 		FSESS_CHECK_THREAD(f)

@@ -38,7 +38,7 @@ extern "C" {
 #include <gpac/term_info.h>
 
 /*raster2D API*/
-#include <gpac/modules/raster2d.h>
+#include <gpac/evg.h>
 /*font engine API*/
 #include <gpac/modules/font.h>
 /*AV hardware API*/
@@ -148,14 +148,6 @@ typedef struct
 
 #endif
 
-#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
-# define OPENGL_RASTER
-#else
-# ifdef OPENGL_RASTER
-# undef OPENGL_RASTER
-# endif
-#endif
-
 #define DOUBLECLICK_TIME_MS		250
 
 
@@ -192,8 +184,15 @@ enum
 	GF_SC_GLMODE_AUTO=0,
 	GF_SC_GLMODE_OFF,
 	GF_SC_GLMODE_HYBRID,
-	GF_SC_GLMODE_ON,
-	GF_SC_GLMODE_RASTER
+	GF_SC_GLMODE_ON
+};
+
+
+enum
+{
+	GF_SC_DRV_OFF=0,
+	GF_SC_DRV_ON,
+	GF_SC_DRV_AUTO,
 };
 
 struct __tag_compositor
@@ -204,12 +203,13 @@ struct __tag_compositor
 	u32 init_flags;
 	void *os_wnd;
 
+	u32 drv;
+	GF_Err last_error;
+
 	/*audio renderer*/
 	struct _audio_render *audio_renderer;
 	/*video out*/
 	GF_VideoOutput *video_out;
-	/*2D rasterizer*/
-	GF_Raster2D *rasterizer;
 
 	/*video listeners (old API, should get rid of this)*/
 	GF_List *video_listeners;
@@ -252,16 +252,26 @@ struct __tag_compositor
 
 	Bool video_setup_failed;
 
-	//fps config option
-	Double fps;
+	Bool player_mode;
 
-	/*simulation frame rate*/
-	Double frame_rate;
+	//dur config option
+	Double dur;
+	//simulation frame rate option
+	GF_Fraction fps;
+	//timescale option
+	u32 timescale;
+	//autofps option
+	Bool autofps;
+	//autofps option
+	Bool vfr;
+
+	//frame duration in ms, used to match closest frame in input video streams
+	u32 frame_duration;
+
 	Bool bench_mode;
 	//0: no frame pending, 1: frame pending, needs clock increase, 2: frames are pending but one frame has been decoded, do not increase clock
 	u32 force_bench_frame;
 
-	u32 frame_duration;
 	u32 frame_time[GF_SR_FPS_COMPUTE_SIZE];
 	u32 frame_dur[GF_SR_FPS_COMPUTE_SIZE];
 	u32 current_frame;
@@ -270,6 +280,8 @@ struct __tag_compositor
 	Bool text_edit_changed;
 	//sampled value of audio clock used in bench mode only
 	u32 scene_sampled_clock;
+	u32 last_frame_ts;
+
 	u32 last_click_time;
 	s32 ms_until_next_frame;
 	s32 frame_delay;
@@ -308,6 +320,17 @@ struct __tag_compositor
 	/*freeze_display prevents any screen updates - needed when output driver uses direct video memory access*/
 	Bool is_hidden, freeze_display;
 
+	u32 opfmt;
+	char *framebuffer;
+	u32 framebuffer_size;
+
+	struct _gf_sc_texture_handler *passthrough_txh;
+	char *passthrough_data;
+	u32 last_pfmt, passthrough_timescale;
+	GF_FilterPacket *passthrough_pck;
+	//set if matching size and pixel format for input packet and output framebuffer
+	Bool passthrough_inplace;
+
 	//debug non-immediate mode ny erasing the parts that would have been drawn
 	Bool debug_defer;
 
@@ -317,6 +340,8 @@ struct __tag_compositor
 	u32 frame_number;
 	/*count number of initialized sensors*/
 	u32 interaction_sensors;
+
+	u32 check_eos_state;
 
 	/*set whenever 3D HW ctx changes (need to rebuild dlists/textures if any used)*/
 	u32 reset_graphics;
@@ -334,9 +359,6 @@ struct __tag_compositor
 	Bool is_opengl;
 	Bool autoconfig_opengl;
 	u32 force_opengl_2d;
-#ifdef OPENGL_RASTER
-	Bool opengl_raster;
-#endif
 	
 	//in this mode all 2D raster is done through and RGBA canvas except background IO and textures which are done by the GPU. The canvas is then flushed to GPU.
 	//the mode supports defer and immediate rendering
@@ -388,7 +410,7 @@ struct __tag_compositor
 	Bool rview;
 	Fixed dispdist;
 
-	GF_PropVec2i defsz, dpi;
+	GF_PropVec2i size, dpi;
 
 	Bool zoom_changed;
 
@@ -434,7 +456,6 @@ struct __tag_compositor
 	Bool request_video_memory, was_system_memory;
 	/*indicate if overlays were prezsent in the previous frame*/
 	Bool last_had_overlays;
-	GF_RasterCallback raster_callbacks;
 
 	/*options*/
 	Bool sz;
@@ -601,7 +622,7 @@ struct __tag_compositor
 	GF_Mesh *hybgl_mesh_background;
 
 	Bool force_type_3d;
-	char *screen_buffer;
+	char *screen_buffer, *line_buffer;
 	u32 screen_buffer_alloc_size;
 
 	u32 tvtn, tvtt;
@@ -723,6 +744,9 @@ enum
 
 	/*special flag indicating the underlying media directly handled by the hardware (decoding and composition)*/
 	GF_SR_TEXTURE_PRIVATE_MEDIA = (1<<6),
+
+	/*texture blit is disabled, must go through rasterizer*/
+	GF_SR_TEXTURE_DISABLE_BLIT = (1<<7),
 };
 
 typedef struct _gf_sc_texture_handler
@@ -776,6 +800,7 @@ typedef struct _gf_sc_texture_handler
 	GF_Node *matteTexture;
 #endif
 
+	u32 probe_time_ms;
 	/*user data for video output module, if needed*/
 	void *vout_udta;
 } GF_TextureHandler;
@@ -1305,10 +1330,10 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *sr);
 void compositor_2d_set_user_transform(GF_Compositor *sr, Fixed zoom, Fixed tx, Fixed ty, Bool is_resize) ;
 GF_Err compositor_2d_get_video_access(GF_VisualManager *surf);
 void compositor_2d_release_video_access(GF_VisualManager *surf);
-void compositor_2d_init_callbacks(GF_Compositor *compositor);
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
 Bool compositor_2d_check_attached(GF_VisualManager *visual);
 void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 is_offscreen);
+void compositor_2d_init_callbacks(GF_Compositor *compositor);
 
 #ifndef GPAC_DISABLE_3D
 void compositor_2d_reset_gl_auto(GF_Compositor *compositor);
@@ -1985,6 +2010,9 @@ enum
 
 	/*flag set when ODM is setup*/
 	GF_ODM_PAUSE_QUEUED = (1<<14),
+
+	/*flag indicates the odm is a target passthrough*/
+	GF_ODM_PASSTHROUGH = (1<<15),
 };
 
 enum
@@ -2272,6 +2300,8 @@ struct _mediaobj
 	u32 nb_layers;
 	u32 view_min_x, view_max_x, view_min_y, view_max_y;
 	GF_FilterHWFrame *hw_frame;
+
+	Bool connect_failure;
 };
 
 GF_MediaObject *gf_mo_new();

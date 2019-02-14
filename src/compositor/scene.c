@@ -998,6 +998,15 @@ restart:
 			gf_mo_del(obj);
 			return NULL;
 		}
+	} else {
+		u32 j;
+		for (j=0; j<gf_list_count(scene->resources); j++) {
+			GF_ObjectManager *odm = gf_list_get(scene->resources, j);
+			if (odm->ID == obj->OD_ID) {
+				obj->odm = odm;
+				break;
+			}
+		}
 	}
 	return obj;
 }
@@ -1006,6 +1015,26 @@ GF_MediaObject *gf_scene_get_media_object(GF_Scene *scene, MFURL *url, u32 obj_t
 {
 	return gf_scene_get_media_object_ex(scene, url, obj_type_hint, lock_timelines, NULL, GF_FALSE, NULL);
 }
+
+
+static void gf_scene_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
+{
+	u32 pixel_ar;
+	if (!gf_mo_get_visual_info(mo, w, h, NULL, &pixel_ar, NULL, NULL)) return;
+	if (pixel_ar) {
+		u32 n, d;
+		n = (pixel_ar>>16) & 0x0000FFFF;
+		d = (pixel_ar) & 0x0000FFFF;
+		*w = (*w * n) / d;
+	}
+#ifndef GPAC_DISABLE_3D
+	if (mo->odm) {
+		if (mo->odm->parentscene->compositor->fpack==GF_3D_STEREO_TOP) *h /= 2;
+		else if (mo->odm->parentscene->compositor->fpack==GF_3D_STEREO_SIDE) *w /= 2;
+	}
+#endif
+}
+
 
 GF_EXPORT
 void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm)
@@ -1062,6 +1091,11 @@ existing:
 	}
 	if ((odm->mo->type==GF_MEDIA_OBJECT_VIDEO) && scene->is_dynamic_scene && !odm->parentscene->root_od->addon) {
 		gf_scene_force_size_to_video(scene, odm->mo);
+	}
+	else if (!odm->scene_ns->source_filter && (odm->flags & GF_ODM_PASSTHROUGH))  {
+		u32 w, h;
+		gf_scene_get_video_size(odm->mo, &w, &h);
+		gf_sc_set_size(scene->compositor, w, h);
 	}
 	/*invalidate scene for all nodes using the OD*/
 	gf_sc_invalidate(odm->parentscene->compositor, NULL);
@@ -1184,25 +1218,6 @@ void gf_scene_register_extra_graph(GF_Scene *scene, GF_SceneGraph *extra_scene, 
 			gf_sc_register_extra_graph(scene->compositor, extra_scene, 0);
 		}
 	}
-}
-
-
-static void gf_scene_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
-{
-	u32 pixel_ar;
-	if (!gf_mo_get_visual_info(mo, w, h, NULL, &pixel_ar, NULL, NULL)) return;
-	if (pixel_ar) {
-		u32 n, d;
-		n = (pixel_ar>>16) & 0x0000FFFF;
-		d = (pixel_ar) & 0x0000FFFF;
-		*w = (*w * n) / d;
-	}
-#ifndef GPAC_DISABLE_3D
-	if (mo->odm) {
-		if (mo->odm->parentscene->compositor->fpack==GF_3D_STEREO_TOP) *h /= 2;
-		else if (mo->odm->parentscene->compositor->fpack==GF_3D_STEREO_SIDE) *w /= 2;
-	}
-#endif
 }
 
 void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo)
@@ -2544,7 +2559,7 @@ Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_bu
 	if (!check_buffering && scene) {
 		if (scene->root_od->ID) {
 			initialized = GF_TRUE;
-			if (scene->root_od->state != GF_ODM_STATE_STOP) return 0;
+			if (scene->root_od->parentscene && (scene->root_od->state != GF_ODM_STATE_STOP)) return 0;
 		}
 	}
 	if (!initialized) return 0;

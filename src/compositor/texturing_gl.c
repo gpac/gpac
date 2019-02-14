@@ -70,7 +70,7 @@ struct __texture_wrapper
 	u32 flags;
 
 	/*2D texturing*/
-	GF_STENCIL tx_raster;
+	GF_EVGStencil * tx_raster;
 	//0: not paused, 1: paused, 2: initial pause has been done
 	u32 init_pause_status;
 	Bool conv_to_8bit;
@@ -185,7 +185,7 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 		gf_sc_lock(txh->compositor, 1);
 
 		if (txh->tx_io->tx_raster) {
-			txh->compositor->rasterizer->stencil_delete(txh->tx_io->tx_raster);
+			gf_evg_stencil_delete(txh->tx_io->tx_raster);
 			txh->tx_io->tx_raster = NULL;
 		}
 
@@ -747,7 +747,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 			//FIXME - allow 10bit support in GLES2
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
-			//we use 10 bits but GL will normalise using 16 bits, so we need to multiply the nomralized result by 2^6
+			//we use 10 bits but GL will normalise using 16 bits, so we need to multiply the normalized result by 2^6
 			glPixelTransferi(GL_RED_SCALE, 64);
 #endif
 		} else {
@@ -1084,7 +1084,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		Bool load_tx = 0;
 		if (!txh->data) return 0;
 		if (!txh->tx_io->tx_raster) {
-			txh->tx_io->tx_raster = txh->compositor->rasterizer->stencil_new(txh->compositor->rasterizer, GF_STENCIL_TEXTURE);
+			txh->tx_io->tx_raster = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
 			if (!txh->tx_io->tx_raster) return 0;
 			load_tx = 1;
 		}
@@ -1093,8 +1093,13 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			txh->tx_io->flags &= ~TX_NEEDS_RASTER_LOAD;
 		}
 		if (load_tx) {
-			if (txh->compositor->rasterizer->stencil_set_texture(txh->tx_io->tx_raster, txh->data, txh->width, txh->height, txh->stride, (GF_PixelFormat) txh->pixelformat, (GF_PixelFormat) txh->compositor->video_out->pixel_format, 0) != GF_OK)
+			GF_Err e = gf_evg_stencil_set_texture(txh->tx_io->tx_raster, txh->data, txh->width, txh->height, txh->stride, (GF_PixelFormat) txh->pixelformat, (GF_PixelFormat) txh->compositor->video_out->pixel_format, 0);
+			if (e != GF_OK) {
+				if (!txh->compositor->last_error)
+					txh->compositor->last_error = e;
 				return 0;
+			}
+			txh->compositor->last_error = GF_OK;
 		}
 		return 1;
 	}
@@ -2138,12 +2143,12 @@ Bool gf_sc_texture_needs_reload(GF_TextureHandler *txh)
 }
 
 
-GF_STENCIL gf_sc_texture_get_stencil(GF_TextureHandler *txh)
+GF_EVGStencil * gf_sc_texture_get_stencil(GF_TextureHandler *txh)
 {
 	return txh->tx_io->tx_raster;
 }
 
-void gf_sc_texture_set_stencil(GF_TextureHandler *txh, GF_STENCIL stencil)
+void gf_sc_texture_set_stencil(GF_TextureHandler *txh, GF_EVGStencil * stencil)
 {
 	txh->tx_io->tx_raster = stencil;
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;

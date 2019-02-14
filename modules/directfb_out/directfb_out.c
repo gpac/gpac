@@ -33,51 +33,6 @@
 #define DirectFBVID() DirectFBVidCtx *ctx = (DirectFBVidCtx *)driv->opaque
 
 /**
- *	function DirectFBVid_DrawHLine
- *	- using hardware accelerator to a draw horizontal line
- **/
-static void DirectFBVid_DrawHLine(GF_VideoOutput *driv, u32 x, u32 y, u32 length, GF_Color color)
-{
-	u8 r = GF_COL_R(color);
-	u8 g = GF_COL_G(color);
-	u8 b = GF_COL_B(color);
-	DirectFBVID();
-
-	DirectFBVid_DrawHLineWrapper(ctx, x, y, length, r, g, b);
-}
-
-
-/**
- *	function DirectFBVid_DrawHLineAlpha
- *	- using hardware accelerator to draw a horizontal line with alpha
- **/
-static void DirectFBVid_DrawHLineAlpha(GF_VideoOutput *driv, u32 x, u32 y, u32 length, GF_Color color, u8 alpha)
-{
-	u8 r = GF_COL_R(color);
-	u8 g = GF_COL_G(color);
-	u8 b = GF_COL_B(color);
-	DirectFBVID();
-
-	DirectFBVid_DrawHLineAlphaWrapper(ctx, x, y, length, r, g, b, alpha);
-}
-
-
-/**
- *	function DirectFBVid_DrawRectangle
- *	- using hardware accelerator to fill a rectangle
- **/
-static void DirectFBVid_DrawRectangle(GF_VideoOutput *driv, u32 x, u32 y, u32 width, u32 height, GF_Color color)
-{
-	u8 r = GF_COL_R(color);
-	u8 g = GF_COL_G(color);
-	u8 b = GF_COL_B(color);
-	u8 a = GF_COL_A(color);
-	DirectFBVID();
-
-	DirectFBVid_DrawRectangleWrapper(ctx, x, y, width, height, r, g, b, a);
-}
-
-/**
  *	function DirectFBVid_Setup
  * 	- DirectFB setup
  **/
@@ -134,18 +89,6 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 	else if (opt && !strcmp(opt, "yuv")) driv->hw_caps &= ~GF_VIDEO_HW_HAS_YUV;
 	else if (opt && !strcmp(opt, "rgb")) driv->hw_caps &= ~GF_VIDEO_HW_HAS_RGB;
 	else if (opt && !strcmp(opt, "rgba")) driv->hw_caps &= ~GF_VIDEO_HW_HAS_RGBA;
-
-	if (!DirectFBVid_CtxGetDisableAcceleration(ctx)) {
-		// check for functions that are hardware accelerated
-		DirectFBVid_CtxPrimaryProcessGetAccelerationMask(ctx);
-
-		driv->hw_caps |= GF_VIDEO_HW_HAS_LINE_BLIT;
-		driv->DrawHLine = DirectFBVid_DrawHLine;
-		driv->DrawHLineAlpha = DirectFBVid_DrawHLineAlpha;
-		driv->DrawRectangle = DirectFBVid_DrawRectangle;
-
-		//GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DirectFB] hardware acceleration mask %08x - Line: %d Rectangle: %d\n", mask, ctx->accel_drawline, ctx->accel_fillrect));
-	}
 
 	// end of initialization
 	DirectFBVid_CtxSetIsInit(ctx, 1);

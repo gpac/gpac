@@ -444,6 +444,14 @@ DrawableContext *b2d_get_context(M_Background2D *node, GF_List *from_stack)
 static void UpdateBackgroundTexture(GF_TextureHandler *txh)
 {
 	gf_sc_texture_update_frame(txh, 0);
+
+	if (!txh->compositor->player_mode && !txh->compositor->passthrough_txh && txh->stream && (txh->stream->odm->flags & GF_ODM_PASSTHROUGH)) {
+		if (!txh->width || ((txh->width==txh->compositor->display_width) && (txh->height==txh->compositor->display_height)))
+			txh->compositor->passthrough_txh = txh;
+		else
+			txh->compositor->passthrough_txh = NULL;
+	}
+
 	/*restart texture if needed (movie background controled by MediaControl)*/
 	if (txh->stream_finished && gf_mo_get_loop(txh->stream, 0))
 		gf_sc_texture_restart(txh);

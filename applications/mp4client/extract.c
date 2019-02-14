@@ -465,7 +465,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	prev = gf_file_ext_start(szOutPath);
 	if (prev) *prev = 0;
 
-	gf_term_set_simulation_frame_rate(term, (Double) fps);
+//	gf_term_set_simulation_frame_rate(term, (Double) fps);
 	
 	if (mode==DUMP_AVI) {
 		sprintf(szPath, "avimx:dst=%s.avi", szOutPath);

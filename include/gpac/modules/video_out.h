@@ -77,8 +77,6 @@ enum
 
 	/*HW supports line blitting*/
 	GF_VIDEO_HW_HAS_LINE_BLIT = (1<<15),
-	/*HW supports locking a surface by device context (Win32 only)*/
-	GF_VIDEO_HW_HAS_HWND_HDC	= (1<<16),
 	/*HW only supports direct rendering mode*/
 	GF_VIDEO_HW_DIRECT_ONLY	= (1<<17),
 };

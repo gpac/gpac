@@ -170,6 +170,7 @@ static u32 get_sws_mode(u32 mode, u32 *has_param)
 	case 10: return SWS_SPLINE;
 	default: break;
 	}
+	*has_param = 2;
 	return SWS_BICUBIC;
 }
 

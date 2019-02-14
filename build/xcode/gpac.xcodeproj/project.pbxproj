@@ -216,8 +216,16 @@
 		925730822056A610009DB328 /* rewrite_mp4v.c in Sources */ = {isa = PBXBuildFile; fileRef = 925730812056A610009DB328 /* rewrite_mp4v.c */; };
 		92586A721EA7665D00A0838A /* ft_font.h in Headers */ = {isa = PBXBuildFile; fileRef = 92586A701EA7665D00A0838A /* ft_font.h */; };
 		92586A731EA7669200A0838A /* ft_font.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A6F1EA7665D00A0838A /* ft_font.c */; };
-		92586A7B1EAA26CC00A0838A /* raw_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A7A1EAA26CC00A0838A /* raw_out.c */; };
 		92586A7F1EAA5A4300A0838A /* validator.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A7E1EAA5A4300A0838A /* validator.c */; };
+		925974FE2215BA3A0007E02B /* raster_rgb.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974F52215BA3A0007E02B /* raster_rgb.c */; };
+		925974FF2215BA3A0007E02B /* raster_argb.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974F62215BA3A0007E02B /* raster_argb.c */; };
+		925975002215BA3A0007E02B /* raster_565.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974F72215BA3A0007E02B /* raster_565.c */; };
+		925975012215BA3A0007E02B /* stencil.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974F82215BA3A0007E02B /* stencil.c */; };
+		925975022215BA3A0007E02B /* ftgrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974F92215BA3A0007E02B /* ftgrays.c */; };
+		925975032215BA3A0007E02B /* surface.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974FA2215BA3A0007E02B /* surface.c */; };
+		925975042215BA3A0007E02B /* rast_soft.h in Headers */ = {isa = PBXBuildFile; fileRef = 925974FB2215BA3A0007E02B /* rast_soft.h */; };
+		925975052215BA3A0007E02B /* raster_yuv.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974FC2215BA3A0007E02B /* raster_yuv.c */; };
+		925975082215BAC30007E02B /* evg.h in Headers */ = {isa = PBXBuildFile; fileRef = 925975072215BAC30007E02B /* evg.h */; };
 		925CE3451FA2E642004EC6F5 /* decrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 925CE3441FA2E641004EC6F5 /* decrypt_cenc_isma.c */; };
 		926245981FD691A000184072 /* ff_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 926245971FD691A000184072 /* ff_common.h */; };
 		926656C41F7D3DF700299CC6 /* dec_theora.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C31F7D3DF700299CC6 /* dec_theora.c */; };
@@ -468,14 +476,6 @@
 		92BE50D518D6D66C00AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92BE50D618D6D6C100AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92C0F37E21EC7BB0002961C8 /* out_rtp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C0F37D21EC7BB0002961C8 /* out_rtp.c */; };
-		92C1FF541E7C42DF0093B61E /* ftgrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF4C1E7C42DF0093B61E /* ftgrays.c */; };
-		92C1FF551E7C42DF0093B61E /* rast_soft.h in Headers */ = {isa = PBXBuildFile; fileRef = 92C1FF4D1E7C42DF0093B61E /* rast_soft.h */; };
-		92C1FF561E7C42DF0093B61E /* raster_565.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF4E1E7C42DF0093B61E /* raster_565.c */; };
-		92C1FF571E7C42DF0093B61E /* raster_argb.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF4F1E7C42DF0093B61E /* raster_argb.c */; };
-		92C1FF581E7C42DF0093B61E /* raster_load.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF501E7C42DF0093B61E /* raster_load.c */; };
-		92C1FF591E7C42DF0093B61E /* raster_rgb.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF511E7C42DF0093B61E /* raster_rgb.c */; };
-		92C1FF5A1E7C42DF0093B61E /* stencil.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF521E7C42DF0093B61E /* stencil.c */; };
-		92C1FF5B1E7C42DF0093B61E /* surface.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF531E7C42DF0093B61E /* surface.c */; };
 		92C403DD2181F17E00331F39 /* dec_openhevc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C403DC2181F17E00331F39 /* dec_openhevc.c */; };
 		92C403EA2181F57600331F39 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92CDAEE81FBD9D0C0007C1C0 /* reframe_nalu.c in Sources */ = {isa = PBXBuildFile; fileRef = 92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */; };
@@ -1091,8 +1091,16 @@
 		925730812056A610009DB328 /* rewrite_mp4v.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_mp4v.c; path = filters/rewrite_mp4v.c; sourceTree = "<group>"; };
 		92586A6F1EA7665D00A0838A /* ft_font.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ft_font.c; path = ../../modules/ft_font/ft_font.c; sourceTree = "<group>"; };
 		92586A701EA7665D00A0838A /* ft_font.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ft_font.h; path = ../../modules/ft_font/ft_font.h; sourceTree = "<group>"; };
-		92586A7A1EAA26CC00A0838A /* raw_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raw_out.c; path = ../modules/raw_out/raw_out.c; sourceTree = "<group>"; };
 		92586A7E1EAA5A4300A0838A /* validator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = validator.c; path = ../modules/validator/validator.c; sourceTree = "<group>"; };
+		925974F52215BA3A0007E02B /* raster_rgb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_rgb.c; path = evg/raster_rgb.c; sourceTree = "<group>"; };
+		925974F62215BA3A0007E02B /* raster_argb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_argb.c; path = evg/raster_argb.c; sourceTree = "<group>"; };
+		925974F72215BA3A0007E02B /* raster_565.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_565.c; path = evg/raster_565.c; sourceTree = "<group>"; };
+		925974F82215BA3A0007E02B /* stencil.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = stencil.c; path = evg/stencil.c; sourceTree = "<group>"; };
+		925974F92215BA3A0007E02B /* ftgrays.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgrays.c; path = evg/ftgrays.c; sourceTree = "<group>"; };
+		925974FA2215BA3A0007E02B /* surface.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = surface.c; path = evg/surface.c; sourceTree = "<group>"; };
+		925974FB2215BA3A0007E02B /* rast_soft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rast_soft.h; path = evg/rast_soft.h; sourceTree = "<group>"; };
+		925974FC2215BA3A0007E02B /* raster_yuv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_yuv.c; path = evg/raster_yuv.c; sourceTree = "<group>"; };
+		925975072215BAC30007E02B /* evg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = evg.h; path = ../include/gpac/evg.h; sourceTree = "<group>"; };
 		925CE3441FA2E641004EC6F5 /* decrypt_cenc_isma.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = decrypt_cenc_isma.c; path = filters/decrypt_cenc_isma.c; sourceTree = "<group>"; };
 		926245971FD691A000184072 /* ff_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ff_common.h; path = filters/ff_common.h; sourceTree = "<group>"; };
 		926656C11F7D10F400299CC6 /* dec_vorbis.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_vorbis.c; path = filters/dec_vorbis.c; sourceTree = "<group>"; };
@@ -1345,14 +1353,6 @@
 		92BE50C118D6D5DC00AA59D8 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/mp42ts/main.c; sourceTree = SOURCE_ROOT; };
 		92BE50C718D6D60100AA59D8 /* MP4Client */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MP4Client; sourceTree = BUILT_PRODUCTS_DIR; };
 		92C0F37D21EC7BB0002961C8 /* out_rtp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtp.c; path = filters/out_rtp.c; sourceTree = "<group>"; };
-		92C1FF4C1E7C42DF0093B61E /* ftgrays.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgrays.c; path = ../modules/soft_raster/ftgrays.c; sourceTree = "<group>"; };
-		92C1FF4D1E7C42DF0093B61E /* rast_soft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rast_soft.h; path = ../modules/soft_raster/rast_soft.h; sourceTree = "<group>"; };
-		92C1FF4E1E7C42DF0093B61E /* raster_565.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_565.c; path = ../modules/soft_raster/raster_565.c; sourceTree = "<group>"; };
-		92C1FF4F1E7C42DF0093B61E /* raster_argb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_argb.c; path = ../modules/soft_raster/raster_argb.c; sourceTree = "<group>"; };
-		92C1FF501E7C42DF0093B61E /* raster_load.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_load.c; path = ../modules/soft_raster/raster_load.c; sourceTree = "<group>"; };
-		92C1FF511E7C42DF0093B61E /* raster_rgb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_rgb.c; path = ../modules/soft_raster/raster_rgb.c; sourceTree = "<group>"; };
-		92C1FF521E7C42DF0093B61E /* stencil.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = stencil.c; path = ../modules/soft_raster/stencil.c; sourceTree = "<group>"; };
-		92C1FF531E7C42DF0093B61E /* surface.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = surface.c; path = ../modules/soft_raster/surface.c; sourceTree = "<group>"; };
 		92C403D72181F10500331F39 /* gf_openhevc_dec.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gf_openhevc_dec.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92C403DC2181F17E00331F39 /* dec_openhevc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_openhevc.c; path = ../../src/filters/dec_openhevc.c; sourceTree = "<group>"; };
 		92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_nalu.c; path = filters/reframe_nalu.c; sourceTree = "<group>"; };
@@ -1668,6 +1668,7 @@
 				9201FF8918D5A444003D1ACA /* bifs */,
 				9201FF9A18D5A444003D1ACA /* compositor */,
 				929CB5C120B6F02800849696 /* crypto */,
+				925974F42215BA270007E02B /* evg */,
 				92F8D46F1F71641E00616F7C /* filter_core */,
 				92F8D47E1F71643600616F7C /* filters */,
 				9201FFE318D5A444003D1ACA /* ietf */,
@@ -2215,6 +2216,21 @@
 			name = ft_font;
 			sourceTree = "<group>";
 		};
+		925974F42215BA270007E02B /* evg */ = {
+			isa = PBXGroup;
+			children = (
+				925974F92215BA3A0007E02B /* ftgrays.c */,
+				925974FB2215BA3A0007E02B /* rast_soft.h */,
+				925974F72215BA3A0007E02B /* raster_565.c */,
+				925974F62215BA3A0007E02B /* raster_argb.c */,
+				925974F52215BA3A0007E02B /* raster_rgb.c */,
+				925974FC2215BA3A0007E02B /* raster_yuv.c */,
+				925974F82215BA3A0007E02B /* stencil.c */,
+				925974FA2215BA3A0007E02B /* surface.c */,
+			);
+			name = evg;
+			sourceTree = "<group>";
+		};
 		926C7E632018B86800E90AF6 /* Recovered References */ = {
 			isa = PBXGroup;
 			children = (
@@ -2271,6 +2287,7 @@
 		92BBFC471A71228A006A7735 /* include */ = {
 			isa = PBXGroup;
 			children = (
+				925975072215BAC30007E02B /* evg.h */,
 				92DB148B1E4F05B500382A81 /* filters.h */,
 				92DB148C1E4F05B500382A81 /* main.h */,
 				92D3C6282031E98600BA1735 /* atsc.h */,
@@ -2437,25 +2454,8 @@
 			children = (
 				92A5CBE41F66ED2A005D2A6A /* gpac_js.c */,
 				92586A7E1EAA5A4300A0838A /* validator.c */,
-				92586A7A1EAA26CC00A0838A /* raw_out.c */,
-				92C1FF4B1E7C42BF0093B61E /* soft_raster */,
 			);
 			name = builtin_modules;
-			sourceTree = "<group>";
-		};
-		92C1FF4B1E7C42BF0093B61E /* soft_raster */ = {
-			isa = PBXGroup;
-			children = (
-				92C1FF4C1E7C42DF0093B61E /* ftgrays.c */,
-				92C1FF4D1E7C42DF0093B61E /* rast_soft.h */,
-				92C1FF4E1E7C42DF0093B61E /* raster_565.c */,
-				92C1FF4F1E7C42DF0093B61E /* raster_argb.c */,
-				92C1FF501E7C42DF0093B61E /* raster_load.c */,
-				92C1FF511E7C42DF0093B61E /* raster_rgb.c */,
-				92C1FF521E7C42DF0093B61E /* stencil.c */,
-				92C1FF531E7C42DF0093B61E /* surface.c */,
-			);
-			name = soft_raster;
 			sourceTree = "<group>";
 		};
 		92C403DB2181F15A00331F39 /* dec_openhevc */ = {
@@ -2681,6 +2681,7 @@
 				92BBFCE51A7122AD006A7735 /* font.h in Headers */,
 				92BBFCD61A7122AD006A7735 /* swf_dev.h in Headers */,
 				92BBFCC31A7122AD006A7735 /* bifs_dev.h in Headers */,
+				925975042215BA3A0007E02B /* rast_soft.h in Headers */,
 				92493D8220E2A81700203C2C /* crypt_tools.h in Headers */,
 				92BBFCF81A7122AD006A7735 /* rtp_streamer.h in Headers */,
 				92BBFD071A7122AD006A7735 /* user.h in Headers */,
@@ -2729,9 +2730,9 @@
 				92BBFCD21A7122AD006A7735 /* ogg.h in Headers */,
 				92BBFCF31A7122AD006A7735 /* nodes_xbl.h in Headers */,
 				92BBFCDD1A7122AD006A7735 /* list.h in Headers */,
-				92C1FF551E7C42DF0093B61E /* rast_soft.h in Headers */,
 				92BBFCB81A7122AD006A7735 /* download.h in Headers */,
 				92B9A5A21F8660D700A24FE4 /* mpeg4_grouping.h in Headers */,
+				925975082215BAC30007E02B /* evg.h in Headers */,
 				92BBFCB41A7122AD006A7735 /* configuration.h in Headers */,
 				92BBFCEF1A7122AD006A7735 /* network.h in Headers */,
 				92BBFCCF1A7122AD006A7735 /* mpd.h in Headers */,
@@ -2982,7 +2983,6 @@
 				923E89D020B6F2D300F299B2 /* filter_props.c in Sources */,
 				9202FEB32048411D000EE9B1 /* dec_vorbis.c in Sources */,
 				9202FEB2204840FB000EE9B1 /* load_svg.c in Sources */,
-				92C1FF5B1E7C42DF0093B61E /* surface.c in Sources */,
 				92B9A5981F8660D700A24FE4 /* media_object.c in Sources */,
 				92F930821A5ADB870072A85C /* os_divers.c in Sources */,
 				92F930831A5ADB870072A85C /* os_file.c in Sources */,
@@ -3049,7 +3049,6 @@
 				9201010918D5A444003D1ACA /* rtp_depacketizer.c in Sources */,
 				92B9A5901F8660D700A24FE4 /* mpeg4_layer_2d.c in Sources */,
 				9201010A18D5A444003D1ACA /* rtp_packetizer.c in Sources */,
-				92C1FF541E7C42DF0093B61E /* ftgrays.c in Sources */,
 				9201010B18D5A444003D1ACA /* rtp_pck_3gpp.c in Sources */,
 				92061A851FE0484600B5C464 /* reframer.c in Sources */,
 				9201010C18D5A444003D1ACA /* rtp_pck_mpeg12.c in Sources */,
@@ -3064,10 +3063,10 @@
 				92B9A56F1F8660D700A24FE4 /* mpeg4_lighting.c in Sources */,
 				92B9A57D1F8660D700A24FE4 /* svg_external.c in Sources */,
 				9201011118D5A444003D1ACA /* rtsp_response.c in Sources */,
-				92C1FF571E7C42DF0093B61E /* raster_argb.c in Sources */,
 				9201011218D5A444003D1ACA /* rtsp_session.c in Sources */,
 				92B9A5711F8660D700A24FE4 /* drawable.c in Sources */,
 				9201011318D5A444003D1ACA /* sdp.c in Sources */,
+				925975032215BA3A0007E02B /* surface.c in Sources */,
 				924FEE821BA6C63A003F77A6 /* iff.c in Sources */,
 				9201011418D5A444003D1ACA /* avc_ext.c in Sources */,
 				9201011518D5A444003D1ACA /* box_code_3gpp.c in Sources */,
@@ -3104,7 +3103,6 @@
 				92B9A5AE1F8660D700A24FE4 /* mpeg4_viewport.c in Sources */,
 				92B9A56E1F8660D700A24FE4 /* mpeg4_geometry_ils2d.c in Sources */,
 				9201012C18D5A444003D1ACA /* stbl_write.c in Sources */,
-				92586A7B1EAA26CC00A0838A /* raw_out.c in Sources */,
 				926656C61F7D45F700299CC6 /* dmx_ogg.c in Sources */,
 				9201012D18D5A444003D1ACA /* track.c in Sources */,
 				9201012E18D5A444003D1ACA /* ttml.c in Sources */,
@@ -3132,6 +3130,7 @@
 				92B9A57C1F8660D700A24FE4 /* svg_filters.c in Sources */,
 				92B9A5A01F8660D700A24FE4 /* mpeg4_sensors.c in Sources */,
 				9201014518D5A445003D1ACA /* dash_client.c in Sources */,
+				925975052215BA3A0007E02B /* raster_yuv.c in Sources */,
 				92E318D120651834007BE021 /* vcrop.c in Sources */,
 				92B9A5971F8660D700A24FE4 /* audio_render.c in Sources */,
 				9201014618D5A445003D1ACA /* dash_segmenter.c in Sources */,
@@ -3177,7 +3176,6 @@
 				928E7AC51FB9F2B800D2470E /* dmx_nhnt.c in Sources */,
 				92BB856B1F7BFB63009BC9C8 /* dec_faad.c in Sources */,
 				92BB857B1F7BFB63009BC9C8 /* isoffin_read.c in Sources */,
-				92C1FF5A1E7C42DF0093B61E /* stencil.c in Sources */,
 				92EB479120F50C4200E1F2DD /* reframe_av1.c in Sources */,
 				92B9A5851F8660D700A24FE4 /* mesh_tesselate.c in Sources */,
 				923E89CF20B6F04600F299B2 /* g_crypt_tinyaes.c in Sources */,
@@ -3196,11 +3194,13 @@
 				9201016918D5A445003D1ACA /* qos.c in Sources */,
 				9206822E20EA69680041169F /* out_pipe.c in Sources */,
 				92493D8020E2A64000203C2C /* crypt_tools.c in Sources */,
+				925974FE2215BA3A0007E02B /* raster_rgb.c in Sources */,
 				9201016A18D5A445003D1ACA /* slc.c in Sources */,
 				92586A7F1EAA5A4300A0838A /* validator.c in Sources */,
 				92BB85751F7BFB63009BC9C8 /* inspect.c in Sources */,
 				92B9A5721F8660D700A24FE4 /* mpeg4_animstream.c in Sources */,
 				9201016B18D5A445003D1ACA /* encode_isom.c in Sources */,
+				925975022215BA3A0007E02B /* ftgrays.c in Sources */,
 				92BB85851F7C606A009BC9C8 /* reframe_amr.c in Sources */,
 				926F15551FE964D000C40779 /* write_nhnt.c in Sources */,
 				9201016C18D5A445003D1ACA /* loader_bt.c in Sources */,
@@ -3221,13 +3221,12 @@
 				928A7F812059372C00E02E89 /* out_video.c in Sources */,
 				9201017318D5A445003D1ACA /* scene_manager.c in Sources */,
 				926CE14F1FE81865002B3CF6 /* constants.c in Sources */,
-				92C1FF581E7C42DF0093B61E /* raster_load.c in Sources */,
 				9201017418D5A445003D1ACA /* scene_stats.c in Sources */,
 				9201017518D5A445003D1ACA /* swf_bifs.c in Sources */,
 				923E89CB20B6F04600F299B2 /* g_crypt_openssl.c in Sources */,
 				92B9A57F1F8660D700A24FE4 /* offscreen_cache.c in Sources */,
 				92B9A59E1F8660D700A24FE4 /* mesh.c in Sources */,
-				92C1FF561E7C42DF0093B61E /* raster_565.c in Sources */,
+				925974FF2215BA3A0007E02B /* raster_argb.c in Sources */,
 				928E7AC71FB9FCDD00D2470E /* dmx_nhml.c in Sources */,
 				9201017618D5A445003D1ACA /* swf_parse.c in Sources */,
 				9201017718D5A445003D1ACA /* swf_svg.c in Sources */,
@@ -3239,13 +3238,14 @@
 				92E318CF20645036007BE021 /* ff_rescale.c in Sources */,
 				9201017818D5A445003D1ACA /* text_to_bifs.c in Sources */,
 				9201017918D5A445003D1ACA /* base_scenegraph.c in Sources */,
-				92C1FF591E7C42DF0093B61E /* raster_rgb.c in Sources */,
+				925975012215BA3A0007E02B /* stencil.c in Sources */,
 				9201017A18D5A445003D1ACA /* commands.c in Sources */,
 				9201017B18D5A445003D1ACA /* dom_events.c in Sources */,
 				92B9A56A1F8660D700A24FE4 /* svg_grouping.c in Sources */,
 				92D3C6272031E94F00BA1735 /* atsc_dmx.c in Sources */,
 				9201017C18D5A445003D1ACA /* dom_smjs.c in Sources */,
 				9201017D18D5A445003D1ACA /* html5_media_smjs.c in Sources */,
+				925975002215BA3A0007E02B /* raster_565.c in Sources */,
 				9201017E18D5A445003D1ACA /* html5_mse_smjs.c in Sources */,
 				9234CF391FD6A6E400CCDFA1 /* dec_ttxt.c in Sources */,
 				92B9A56C1F8660D700A24FE4 /* svg_base.c in Sources */,

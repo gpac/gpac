@@ -365,6 +365,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 					gf_odm_on_eos(mo->odm, mo->odm->pid);
 					gf_odm_signal_eos_reached(mo->odm);
 				}
+			} else {
+				mo->odm->ck->has_seen_eos = GF_FALSE;
 			}
 			*eos = mo->is_eos;
 			return NULL;
@@ -375,6 +377,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	}
 	*eos = mo->is_eos;
 	assert(mo->pck);
+	
 
 	/*data = */gf_filter_pck_get_data(mo->pck, size);
 	timescale = gf_filter_pck_get_timescale(mo->pck);
@@ -490,13 +493,15 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	}
 
 	if (skip_resync) {
+		Bool is_passthrough = GF_FALSE;
 		resync=GF_MO_FETCH; //prevent resync code below
 		if (mo->odm->parentscene->compositor->use_step_mode) upload_time_ms=0;
+//		if ((mo->odm->flags&GF_ODM_PASSTHROUGH) && !mo->odm->parentscene->compositor->player_mode) is_passthrough = GF_TRUE;
 		//we are in no resync mode, drop current frame once played and object time just matured
 		//do it only if clock is started or if compositor step mode is set
 		//the time threshold for fecthing is given by the caller
-		if ( (gf_clock_is_started(mo->odm->ck) || mo->odm->parentscene->compositor->use_step_mode)
-			&& (mo->timestamp==pck_ts) && next_ts && ( (next_ts <= 1 + obj_time + upload_time_ms) || (next_ts <= 1 + obj_time_orig + upload_time_ms) ) )
+		if ( (gf_clock_is_started(mo->odm->ck) || mo->odm->parentscene->compositor->use_step_mode || is_passthrough)
+			&& (mo->timestamp==pck_ts) && next_ts && ( (next_ts <= 1 + obj_time + upload_time_ms) || (next_ts <= 1 + obj_time_orig + upload_time_ms)  || is_passthrough) )
 		{
 			//drop current and go to next - we use the same loop as regular resync below
 			resync = GF_MO_FETCH_RESYNC;
@@ -582,6 +587,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	} else {
 		diff = next_ts ? next_ts : (pck_ts + 1000*gf_filter_pck_get_duration(mo->pck) / timescale);
 		diff = (s32) ( (mo->speed >= 0) ? ( (s64) diff - (s64) obj_time) : ( (s64) obj_time - (s64) diff) );
+
+		mo->odm->ck->has_seen_eos = GF_FALSE;
 	}
 	mo->ms_until_next = FIX2INT(diff * mo->speed);
 	if (mo->ms_until_next < 0)
@@ -695,18 +702,16 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 	/*discard frame*/
 	if (mo->RenderedLength >= mo->size) {
 		mo->RenderedLength = 0;
-		if (/*mo->is_eos ||*/ drop_mode) {
+		if (gf_filter_pck_is_blocking_ref(mo->pck))
+			drop_mode = 1;
+
+		if (drop_mode) {
 			gf_filter_pck_unref(mo->pck);
 			mo->pck=NULL;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u released frame TS %u\n", mo->odm->ID,gf_clock_time(mo->odm->ck), mo->timestamp));
 		} else {
 			/*we cannot drop since we don't know the speed of the playback (which can even be frame by frame)*/
 		}
-	}
-	//release frame asap if producer is waiting for the release to be able to process
-	if (mo->pck && mo->hw_frame && mo->hw_frame->reset_pending) {
-		gf_filter_pck_unref(mo->pck);
-		mo->pck = NULL;
 	}
 }
 
@@ -957,8 +962,11 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 		for (i=0; i<an_url->count; i++) {
 			if (an_url->vals[i].url && !stricmp(szURL1, an_url->vals[i].url)) return GF_TRUE;
 		}
+		if (obj->odm && (obj->odm->flags & GF_ODM_PASSTHROUGH) && an_url->count && an_url->vals[0].url && !strncmp(an_url->vals[0].url, "gpid://", 7))
+			return GF_TRUE;
 		/*not same resource, we will have to check fragment as URL might point to a sub-service or single stream of a mux*/
 		if (keep_fragment) *keep_fragment = GF_TRUE;
+
 		return GF_FALSE;
 	}
 	ext = strrchr(szURL1, '#');

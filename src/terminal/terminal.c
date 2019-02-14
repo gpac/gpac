@@ -31,6 +31,7 @@
 #include <gpac/options.h>
 #include <gpac/network.h>
 #include <gpac/xml.h>
+#include <gpac/avparse.h>
 #include <gpac/nodes_svg.h>
 
 #include "../utils/module_wrap.h"
@@ -324,6 +325,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	gf_sys_init(GF_MemTrackerNone, NULL);
 
 	tmp->user = user;
+	user->init_flags |= GF_TERM_INIT_VIDEO;
 
 	//for now we store the init_flags in the global config (used by compositor and AV output modules)
 	//cleaning this would need futher API rework and getting rid of the GF_User strcuture
@@ -345,9 +347,12 @@ GF_Terminal *gf_term_new(GF_User *user)
 	def_h = opt ? atoi(opt) : 0;
 
 	if (def_w && def_h) {
-		sprintf(szArgs, "compositor:FID=compose:def_size=%dx%d", def_w, def_h);
+		sprintf(szArgs, "compositor:FID=compose:size=%dx%d", def_w, def_h);
 	} else {
 		strcpy(szArgs, "compositor:FID=compose");
+	}
+	if (! (user->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
+		strcpy(szArgs, ":aout=false");
 	}
 
 	comp_filter = gf_fs_load_filter(tmp->fsess, szArgs);
@@ -361,7 +366,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 	gf_filter_make_sticky(comp_filter);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] compositor loaded\n"));
-	gf_sc_set_fps(tmp->compositor, 30.0);
 
 	//load audio filter chain
 	if (! (user->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
@@ -520,19 +524,14 @@ GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
 }
 
 GF_EXPORT
-GF_Err gf_term_set_simulation_frame_rate(GF_Terminal * term, Double frame_rate)
-{
-	if (!term) return GF_BAD_PARAM;
-	gf_sc_set_fps(term->compositor, frame_rate);
-	return GF_OK;
-}
-
-GF_EXPORT
 Double gf_term_get_simulation_frame_rate(GF_Terminal *term, u32 *nb_frames_drawn)
 {
+	Double fps;
 	if (!term) return 0.0;
 	if (nb_frames_drawn) *nb_frames_drawn = term->compositor->frame_number;
-	return term->compositor->frame_rate;
+	fps = term->compositor->fps.num;
+	fps /= term->compositor->fps.den;
+	return fps;
 }
 
 
@@ -1063,7 +1062,7 @@ static void set_clocks_speed(GF_Compositor *compositor, Fixed ratio)
 GF_EXPORT
 GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)
 {
-	Double fps;
+	GF_Fraction fps;
 	u32 i, j;
 	GF_SceneNamespace *ns;
 	Bool restart = 0;
@@ -1123,8 +1122,9 @@ GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)
 		speed = -speed;
 
 	fps = term->compositor->fps;
-	fps *= FIX2FLT(speed);
-	if (fps>100) fps = 1000;
+	fps.num = (u32) fps.num * 1000 * FIX2FLT(speed);
+	fps.den *= 1000;
+	gf_media_get_reduced_frame_rate(&fps.num, &fps.den);
 	gf_sc_set_fps(term->compositor, fps);
 	return GF_OK;
 }

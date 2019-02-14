@@ -6,7 +6,7 @@ LOCAL_CFLAGS := -O3
 APP_OPTIM := release
 
 
-APP_MODULES := gpac gm_ft_font gm_soft_raster gm_gpac_js libjavaenv gm_droid_out gm_droid_audio gm_droid_mpegv gpacWrapper
+APP_MODULES := gpac gm_ft_font gm_gpac_js libjavaenv gm_droid_out gm_droid_audio gm_droid_mpegv gpacWrapper
 
 #old modules to reintegrate or drop
 #APP_MODULES := gm_osd gm_droid_cam gm_widgetman gm_mediacodec_dec.mk

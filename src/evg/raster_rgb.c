@@ -74,7 +74,7 @@ static void overmask_rgb_const_run(u32 src, char *dst, s32 dst_pitch_x, u32 coun
 	}
 }
 
-void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
@@ -107,7 +107,7 @@ void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	}
 }
 
-void evg_rgb_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_rgb_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	char *dst = surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
@@ -123,7 +123,7 @@ void evg_rgb_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 }
 
 
-void evg_rgb_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_rgb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	char *dst = surf->pixels + y * surf->pitch_y;
 	u8 spanalpha, col_a;
@@ -155,12 +155,12 @@ void evg_rgb_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	}
 }
 
-GF_Err evg_surface_clear_rgb(GF_SURFACE surf, GF_IRect rc, GF_Color col)
+GF_Err evg_surface_clear_rgb(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 {
 	u32 x, y, w, h, sx, sy;
 	s32 st;
 	u8 r, g, b;
-	EVGSurface *_this = (EVGSurface *)surf;
+	GF_EVGSurface *_this = (GF_EVGSurface *)surf;
 	st = _this->pitch_y;
 
 	h = rc.height;
@@ -226,7 +226,7 @@ static void overmask_bgr_const_run(u32 src, char *dst, s32 dst_pitch_x, u32 coun
 	}
 }
 
-void evg_bgr_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_bgr_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
@@ -259,7 +259,7 @@ void evg_bgr_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	}
 }
 
-void evg_bgr_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_bgr_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	char *dst = surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
@@ -276,7 +276,7 @@ void evg_bgr_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 }
 
 
-void evg_bgr_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_bgr_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	char *dst = surf->pixels + y * surf->pitch_y;
 	u8 spanalpha, col_a;
@@ -309,12 +309,12 @@ void evg_bgr_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	}
 }
 
-GF_Err evg_surface_clear_bgr(GF_SURFACE surf, GF_IRect rc, GF_Color col)
+GF_Err evg_surface_clear_bgr(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 {
 	u32 x, y, w, h, sx, sy;
 	s32 st;
 	u8 r, g, b;
-	EVGSurface *_this = (EVGSurface *)surf;
+	GF_EVGSurface *_this = (GF_EVGSurface *)surf;
 	st = _this->pitch_y;
 
 	h = rc.height;
@@ -338,65 +338,4 @@ GF_Err evg_surface_clear_bgr(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 	return GF_OK;
 }
 
-
-/*
-	user-defined callbacks
-*/
-
-void evg_user_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
-{
-	u32 col_no_a;
-	s32 i;
-
-	col_no_a = surf->fill_col;
-	for (i=0; i<count; i++) {
-		if (spans[i].coverage != 0xFF) {
-			u32 a = mul255(0xFF, spans[i].coverage);
-			surf->raster_fill_run_alpha(surf->raster_cbk, spans[i].x, y, spans[i].len, col_no_a, a);
-		} else {
-			surf->raster_fill_run_no_alpha(surf->raster_cbk, spans[i].x, y, spans[i].len, col_no_a);
-		}
-	}
-}
-
-void evg_user_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
-{
-	u32 col, a, col_no_a;
-	s32 i;
-	a = (surf->fill_col>>24)&0xFF;
-	col_no_a = surf->fill_col | 0xFF000000;
-	for (i=0; i<count; i++) {
-		col = mul255(a, spans[i].coverage);
-		surf->raster_fill_run_alpha(surf->raster_cbk, spans[i].x, y, spans[i].len, col_no_a, col);
-	}
-}
-
-void evg_user_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
-{
-	u8 spanalpha, col_a, a;
-	s32 i;
-	u32 x, len;
-	u32 *col;
-
-	for (i=0; i<count; i++) {
-		len = spans[i].len;
-		x = spans[i].x;
-		spanalpha = spans[i].coverage;
-		surf->sten->fill_run(surf->sten, surf, x, y, len);
-		col = surf->stencil_pix_run;
-		while (len--) {
-			col_a = GF_COL_A(*col);
-			if (col_a) {
-				if ((spanalpha!=0xFF) || (col_a != 0xFF)) {
-					a = mul255(col_a, spans[i].coverage);
-					surf->raster_fill_run_alpha(surf->raster_cbk, x, y, 1, *col, a);
-				} else {
-					surf->raster_fill_run_no_alpha(surf->raster_cbk, x, y, 1, *col);
-				}
-			}
-			col++;
-			x ++;
-		}
-	}
-}
 

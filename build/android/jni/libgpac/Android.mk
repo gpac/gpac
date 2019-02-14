@@ -135,6 +135,13 @@ LOCAL_SRC_FILES := \
 	../../../../src/crypto/g_crypt_openssl.c \
 	../../../../src/crypto/g_crypt_tinyaes.c \
 	../../../../src/crypto/tiny_aes.c \
+	../../../../src/evg/ftgrays.c \
+	../../../../src/evg/raster_565.c \
+	../../../../src/evg/raster_argb.c\
+	../../../../src/evg/raster_rgb.c \
+	../../../../src/evg/raster_yuv.c \
+	../../../../src/evg/stencil.c \
+	../../../../src/evg/surface.c \
 	../../../../src/filter_core/filter.c \
 	../../../../src/filter_core/filter_pck.c \
 	../../../../src/filter_core/filter_pid.c \

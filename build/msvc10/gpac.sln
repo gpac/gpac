@@ -22,8 +22,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "osmozilla", "osmozilla.vcxp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdl_out", "sdl_out.vcxproj", "{F346A9A7-CF8D-4409-8776-1D4244F96EF8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "soft_raster", "soft_raster.vcxproj", "{71071F01-C813-4384-BE38-0F4020BCC0EE}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wav_out", "wav_out.vcxproj", "{01183543-B182-4E32-9FD6-FC15C847316C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gpac_js", "gpac_js.vcxproj", "{27F7FDF4-479B-47B5-BFEA-12E9EA41F663}"

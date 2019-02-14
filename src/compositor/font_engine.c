@@ -646,12 +646,10 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	Fixed cx, cy, sx, sy, max, min;
 	u32 tw, th;
 	GF_Matrix2D mx;
-	GF_STENCIL stencil, brush;
-	GF_SURFACE surface;
+	GF_EVGStencil *stencil, *brush;
+	GF_EVGSurface *surface;
 	u32 width, height;
 	Fixed scale;
-	GF_Raster2D *raster = compositor->rasterizer;
-
 	span_alloc_extensions(span);
 
 	/*something failed*/
@@ -721,7 +719,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	gf_sc_texture_setup(span->ext->txh, compositor, NULL);
 	gf_sc_texture_allocate(span->ext->txh);
 	stencil = gf_sc_texture_get_stencil(span->ext->txh);
-	if (!stencil) stencil = raster->stencil_new(raster, GF_STENCIL_TEXTURE);
+	if (!stencil) stencil = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
 
 	/*FIXME - make it work with alphagrey...*/
 	span->ext->txh->width = width;
@@ -731,7 +729,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	span->ext->txh->transparent = 1;
 	span->ext->txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 
-	surface = raster->surface_new(raster, 1);
+	surface = gf_evg_surface_new(1);
 	if (!surface) {
 		gf_sc_texture_release(span->ext->txh);
 		return 0;
@@ -739,11 +737,11 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	span->ext->txh->data = (char *) gf_malloc(sizeof(char)*span->ext->txh->stride*span->ext->txh->height);
 	memset(span->ext->txh->data, 0, sizeof(char)*span->ext->txh->stride*span->ext->txh->height);
 
-	raster->stencil_set_texture(stencil, span->ext->txh->data, span->ext->txh->width, span->ext->txh->height, span->ext->txh->stride, span->ext->txh->pixelformat, span->ext->txh->pixelformat, 1);
-	raster->surface_attach_to_texture(surface, stencil);
+	gf_evg_stencil_set_texture(stencil, span->ext->txh->data, span->ext->txh->width, span->ext->txh->height, span->ext->txh->stride, span->ext->txh->pixelformat, span->ext->txh->pixelformat, 1);
+	gf_evg_surface_attach_to_texture(surface, stencil);
 
-	brush = raster->stencil_new(raster, GF_STENCIL_SOLID);
-	raster->stencil_set_brush_color(brush, 0xFF000000);
+	brush = gf_evg_stencil_new(GF_STENCIL_SOLID);
+	gf_evg_stencil_set_brush_color(brush, 0xFF000000);
 
 	cx = bounds.x + bounds.width/2;
 	cy = bounds.y - bounds.height/2;
@@ -753,14 +751,14 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	gf_mx2d_add_scale(&mx, sx, sy);
 //	gf_mx2d_add_scale(&mx, 99*FIX_ONE/100, 99*FIX_ONE/100);
 
-	raster->surface_set_matrix(surface, &mx);
-	raster->surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
+	gf_evg_surface_set_matrix(surface, &mx);
+	gf_evg_surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
 	span_path = gf_font_span_create_path(span);
-	raster->surface_set_path(surface, span_path);
+	gf_evg_surface_set_path(surface, span_path);
 
-	raster->surface_fill(surface, brush);
-	raster->stencil_delete(brush);
-	raster->surface_delete(surface);
+	gf_evg_surface_fill(surface, brush);
+	gf_evg_stencil_delete(brush);
+	gf_evg_surface_delete(surface);
 	gf_path_del(span_path);
 
 	if (span->font->baseline) {

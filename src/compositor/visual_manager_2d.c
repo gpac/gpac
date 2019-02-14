@@ -258,12 +258,16 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	M_Background2D *bck;
 #endif
 	u32 mode2d;
+	void gf_sc_setup_passthrough(GF_Compositor *compositor);
+
 
 	/*reset display list*/
 	visual->cur_context = visual->context;
 	if (visual->context) visual->context->drawable = NULL;
 	visual->has_modif = 0;
 	visual->has_overlays = 0;
+	if (visual->compositor->passthrough_txh)
+		gf_sc_setup_passthrough(visual->compositor);
 
 	visual_2d_setup_projection(visual, tr_state);
 	if (!visual->top_clipper.width || !visual->top_clipper.height)

@@ -133,7 +133,7 @@ static void l3d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 
 u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *tr_state, Fixed width, Fixed height)
 {
-	GF_STENCIL stencil;
+	GF_EVGStencil * stencil;
 	u32 new_pixel_format, w, h;
 	GF_Compositor *compositor = (GF_Compositor *)st->visual->compositor;
 
@@ -231,7 +231,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 	st->visual->height = h;
 
 
-	stencil = compositor->rasterizer->stencil_new(compositor->rasterizer, GF_STENCIL_TEXTURE);
+	stencil = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
 
 #ifndef GPAC_USE_TINYGL
 	/*create an offscreen window for OpenGL rendering*/
@@ -264,7 +264,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 
 	/*set stencil texture - we don't check error as an image could not be supported by the rasterizer
 	but still supported by the blitter (case of RGBD/RGBDS)*/
-	compositor->rasterizer->stencil_set_texture(stencil, st->txh.data, st->txh.width, st->txh.height, st->txh.stride, st->txh.pixelformat, st->txh.pixelformat, 0);
+	gf_evg_stencil_set_texture(stencil, st->txh.data, st->txh.width, st->txh.height, st->txh.stride, st->txh.pixelformat, st->txh.pixelformat, 0);
 
 #ifdef GPAC_USE_TINYGL
 	/*create TinyGL offscreen context*/
@@ -559,8 +559,6 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 				gf_get_tinygl_depth(&st->txh);
 #endif
 
-			if (tr_state->visual->compositor->rasterizer->stencil_texture_modified)
-				tr_state->visual->compositor->rasterizer->stencil_texture_modified(gf_sc_texture_get_stencil(&st->txh) );
 			gf_sc_texture_set_stencil(&st->txh, gf_sc_texture_get_stencil(&st->txh) );
 			changed = 1;
 

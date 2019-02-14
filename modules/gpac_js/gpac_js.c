@@ -387,7 +387,7 @@ case GJS_GPAC_PROP_FPS:
 	break;
 
 case GJS_GPAC_PROP_SIM_FPS:
-	*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, compositor->frame_rate) );
+	*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, ((Double)compositor->fps.den)/compositor->fps.num) );
 	break;
 
 case GJS_GPAC_PROP_HAS_OPENGL:

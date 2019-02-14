@@ -188,6 +188,7 @@ typedef enum
 	GF_PIXEL_NV12_10	=	GF_4CC('N','1','2','0'),
 	GF_PIXEL_YUV422		=	GF_4CC('Y','4','4','2'),
 	GF_PIXEL_YUV422_10	=	GF_4CC('Y','2','1','0'),
+	GF_PIXEL_YUVA444	=	GF_4CC('Y','A','4','4'),
 	GF_PIXEL_YUV444		=	GF_4CC('Y','4','4','4'),
 	GF_PIXEL_YUV444_10	=	GF_4CC('Y','4','1','0')
 

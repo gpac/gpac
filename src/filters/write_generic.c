@@ -590,6 +590,7 @@ GF_Err writegen_process(GF_Filter *filter)
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
 		ctx->first = GF_FALSE;
+		gf_filter_pck_set_readonly(dst_pck);
 		gf_filter_pck_send(dst_pck);
 		if ((ctx->decinfo==DECINFO_FIRST) && !ctx->split) {
 			ctx->dcfg_size = 0;

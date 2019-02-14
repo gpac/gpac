@@ -144,8 +144,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		u32 prev_flags;
 		Bool prev_hybgl, visual_attached, for_3d=GF_FALSE;
 		GF_Rect cache_bounds;
-		GF_SURFACE offscreen_surface, old_surf;
-		GF_Raster2D *r2d = tr_state->visual->compositor->rasterizer;
+		GF_EVGSurface *offscreen_surface, *old_surf;
 		DrawableContext *child_ctx;
 		Fixed temp_x, temp_y, scale_x, scale_y;
 #ifndef GPAC_DISABLE_3D
@@ -214,7 +213,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 			setup top clipers
 		*/
 		old_surf = tr_state->visual->raster_surface;
-		offscreen_surface = r2d->surface_new(r2d, tr_state->visual->center_coords);	/*a new temp raster visual*/
+		offscreen_surface = gf_evg_surface_new(tr_state->visual->center_coords);	/*a new temp raster visual*/
 		tr_state->visual->raster_surface = offscreen_surface;
 #ifndef GPAC_DISABLE_3D
 		if (type_3d) {
@@ -256,7 +255,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 
 		/*attach the buffer to visual*/
-		r2d->surface_attach_to_buffer(offscreen_surface, cache->txh.data,
+		gf_evg_surface_attach_to_buffer(offscreen_surface, cache->txh.data,
 		                              cache->txh.width,
 		                              cache->txh.height,
 		                              0,
@@ -327,7 +326,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		tr_state->visual->compositor->hybrid_opengl = prev_hybgl;
 		tr_state->visual->is_attached = visual_attached;
 
-		r2d->surface_delete(offscreen_surface);
+		gf_evg_surface_delete(offscreen_surface);
 		tr_state->visual->raster_surface = old_surf;
 		tr_state->traversing_mode = TRAVERSE_SORT;
 

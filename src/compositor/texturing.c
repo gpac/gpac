@@ -252,14 +252,24 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 			gf_sc_texture_release(txh);
 			txh->needs_refresh = 1;
 		}
+		txh->flags &= ~GF_SR_TEXTURE_DISABLE_BLIT;
+
 	}
 
 	/*if no frame or muted don't draw*/
 	if (!txh->data && !txh->hw_frame) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Visual Texture] No output frame available \n"));
+		GF_LOG(txh->stream->connect_failure ? GF_LOG_DEBUG : GF_LOG_INFO, GF_LOG_COMPOSE, ("[Texture %p] No output frame available \n", txh));
 
-		if (txh->compositor->use_step_mode) {
-			txh->compositor->ms_until_next_frame = -1;
+		if (txh->compositor->use_step_mode || !txh->compositor->player_mode) {
+			if (!txh->stream->connect_failure && !txh->last_frame_time) {
+				if (!txh->probe_time_ms) txh->probe_time_ms = gf_sys_clock();
+				else if (gf_sys_clock() - txh->probe_time_ms > txh->compositor->timeout / 2) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Texture %p] No output frame in %d ms, considering stream not available\n", txh, txh->compositor->timeout / 2));
+					txh->stream->connect_failure = GF_TRUE;
+					gf_sc_texture_stop(txh);
+				}
+				txh->compositor->ms_until_next_frame = -1;
+			}
 		}
 		/*TODO - check if this is needed */
 		else if (txh->flags & GF_SR_TEXTURE_PRIVATE_MEDIA) {
@@ -277,17 +287,17 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
 		if (!txh->stream_finished) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual Texture] Same frame fetched (TS %u)\n", ts));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Texture %p] Same frame fetched (TS %u)\n", txh, ts));
 			if (txh->compositor->ms_until_next_frame > ms_until_next)
 				txh->compositor->ms_until_next_frame = ms_until_next;
 		}
 		return;
 	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Texture %p] Updated new frame time TS %u\n", txh, ts));
 	txh->stream_finished = 0;
 	txh->needs_release = 1;
 	txh->last_frame_time = ts;
 	txh->size = size;
-
 	if (gf_mo_is_muted(txh->stream)) return;
 
 

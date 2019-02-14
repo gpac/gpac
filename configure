@@ -3446,7 +3446,7 @@ echo "GPAC_ENST_INC=$GPAC_ENST" >> config.mak
 if test "$source_path_used" = "yes" ; then
 
     echo "Creating compilation tree image"
-    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/filter_core src/filters src/terminal src/crypto src/media_tools src/scene_manager src/compositor src/laser" 
+    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/filter_core src/filters src/terminal src/crypto src/media_tools src/scene_manager src/compositor src/laser src/evg" 
 
     APP_DIRS="applications/gpac applications/mp4box applications/mp4client applications/mp42ts"
 

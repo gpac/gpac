@@ -319,7 +319,10 @@ void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent
 		parent_url = NULL;
 
 	//make sure we don't have an ID before attempting to connect
-	if (odm->ID == GF_MEDIA_EXTERNAL_ID) odm->ID = 0;
+	if (odm->ID == GF_MEDIA_EXTERNAL_ID) {
+		odm->ID = 0;
+	}
+	odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
 	odm->ServiceID = 0;
 	gf_scene_ns_connect_object(odm->subscene ? odm->subscene : odm->parentscene, odm, remote_url, parent_url);
 }
@@ -1383,6 +1386,11 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 
 		time = gf_filter_pck_get_cts(pck);
 		if (time==GF_FILTER_NO_TS) time = gf_filter_pck_get_dts(pck);
+		if (time==GF_FILTER_NO_TS) {
+			//this usually happens with BT/XMT playback
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("No timestamp on first packet, using 0\n"));
+			time = 0;
+		}
 		time *= 1000;
 		time /= timescale;
 		gf_clock_set_time(odm->ck, (u32) time);

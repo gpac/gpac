@@ -157,7 +157,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #else
 	const char *ext = NULL;
 
-	if (compositor->visual->type_3d || compositor->hybrid_opengl)
+	if (has_gl_context && (compositor->visual->type_3d || compositor->hybrid_opengl))
 		ext = (const char *) glGetString(GL_EXTENSIONS);
 
 	if (!ext) ext = gf_opts_get_key("core", "glext");
@@ -3797,6 +3797,8 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		if (compositor->screen_buffer_alloc_size < size) {
 			compositor->screen_buffer_alloc_size = size;
 			compositor->screen_buffer = gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
+			compositor->line_buffer = gf_realloc(compositor->line_buffer, fb->pitch_y);
+
 		}
 
 		fb->video_buffer = compositor->screen_buffer;
@@ -3814,17 +3816,14 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		*/
 	}
 
-#if 0
-//#ifndef GPAC_USE_TINYGL
+#ifndef GPAC_USE_TINYGL
 	/*flip image (openGL always handle image data bottom to top) */
-	tmp = (char*)gf_malloc(sizeof(char)*fb->pitch_y);
-	hy = fb->height/2;
+	u32 hy = fb->height/2;
 	for (i=0; i<hy; i++) {
-		memcpy(tmp, fb->video_buffer+ i*fb->pitch_y, fb->pitch_y);
+		memcpy(compositor->line_buffer, fb->video_buffer+ i*fb->pitch_y, fb->pitch_y);
 		memcpy(fb->video_buffer + i*fb->pitch_y, fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, fb->pitch_y);
-		memcpy(fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, tmp, fb->pitch_y);
+		memcpy(fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, compositor->line_buffer, fb->pitch_y);
 	}
-	gf_free(tmp);
 #endif
 	return GF_OK;
 }
