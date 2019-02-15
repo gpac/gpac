@@ -129,6 +129,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	if (args && dst_striped) {
 		char *all_args;
+		char *localarg_marker;
 		Bool insert_escape = GF_FALSE;
 		u32 len = 2 + (u32) strlen(args) + (u32) strlen(dst_striped);
 		if ((strstr(args, "src=") || strstr(args, "dst=")) && strstr(args, "://")){
@@ -144,6 +145,12 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 			sprintf(all_args, "%s%cgpac%c%s", args, fsess->sep_args, fsess->sep_args, dst_striped);
 		} else {
 			sprintf(all_args, "%s%c%s", args, fsess->sep_args, dst_striped);
+		}
+		localarg_marker = strstr(all_args, "locarg");
+		if (localarg_marker) {
+			localarg_marker[0]=0;
+			if (strlen(all_args) && (localarg_marker[-1]==fsess->sep_args))
+				localarg_marker[-1]=0;
 		}
 		e = gf_filter_new_finalize(filter, all_args, arg_type);
 		filter->orig_args = all_args;
