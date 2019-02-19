@@ -1767,7 +1767,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_connect_from_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_add_object) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_is_supported_url) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_set_simulation_frame_rate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_simulation_frame_rate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_step_clocks) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_process_flush) )

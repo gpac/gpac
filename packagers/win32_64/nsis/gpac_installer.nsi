@@ -308,33 +308,25 @@ Section "GPAC Player" SecOsmo4
 
   ;copy scripts
   SetOutPath $INSTDIR\share\scripts
-  File "${GPAC_ROOT}\share\scripts\webvtt-renderer.js"
+  File /r /x .git ${GPAC_ROOT}\share\scripts\*
 
   ;copy shaders
   SetOutPath $INSTDIR\share\shaders
-  File "${GPAC_ROOT}\share\shaders\vertex.glsl"
-  File "${GPAC_ROOT}\share\shaders\fragment.glsl"
+  File /r /x .git ${GPAC_ROOT}\share\shaders\*
+
+  ;copy lang
+  SetOutPath $INSTDIR\share\lang
+  File /r /x .git ${GPAC_ROOT}\share\lang\*
+
+  ;copy vis
+  SetOutPath $INSTDIR\share\vis
+  File /r /x .git ${GPAC_ROOT}\share\vis\*
 
   SetOutPath $INSTDIR
 SectionEnd
 
 SubSection "GPAC Plugins" SecPlugins
 
-
-;
-;	2 install modes, normal one and full one
-
-
-
-Section "GDI+" SecGDIP
-  SectionIn 1
-  call InsertGDIPLUS
-SectionEnd
-
-Section "GPAC 2D Raster" SecG2DS
-  SectionIn 1
-  File "${GPAC_BIN}\gm_soft_raster.dll"
-SectionEnd
 
 Section "FreeType" SecFT
   SectionIn 1
@@ -463,49 +455,15 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAC} "GPAC Core"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOsmo4} "GPAC Player"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecPlugins} "GPAC Plugins"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecBIFS} "MPEG-4 BIFS Scene Decoder"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecODF} "MPEG-4 Object Descriptor Decoder"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecLASeR} "MPEG-4 LASeR Scene Decoder"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecTextLoad} "Support for uncompressed MPEG-4 (BT and XMT), VRML and X3D textual formats"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecSAF} "MPEG-4 SAF Demultiplexer"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecIMG} "Support for PNG, JPEG, BMP and JPEG2000 images"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecAAC} "Support for MPEG-4 Audio HE-AAC decoder and web radios"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP3} "Support for MPEG-1/2 Audio (inc. MP3) decoder and web radios"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecAC3} "Support for Dolby AC3 decoder and web radios"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecFFMPEG} "Support for FFMPEG libraries for various format decoding and demultiplexing"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecXVID} "Support for XVID library for MPEG-4 Video Part 2 decoding"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecAMRFT} "Support for AMR and AMR WideBand decoder and web radios"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecSUBS} "Subtitle support include SRT, SUB, 3GPP and MPEG-4 Text formats"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecISOFF} "Support for ISO-based file formats (3GP, MP4, MJ2K)"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecM2TS} "Support for MPEG-2 Transport Stream"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecRTP} "Support for RTP and RTSP IP streaming"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecSVG} "Support for SVG including progressive loading"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecWebVTT} "Support for WebVTT subtitles"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecGDIP} "GDIPlus-based rasterizer"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecG2DS} "GPAC software rasterizer"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecFT} "FreeType font parsing"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecATSC} "ATSC3 support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecWAVE} "Windows MME Audio output support"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecXIPH} "Support for XIPP OGG, Vorbis and Theora media"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecOSVC} "Support for SVC decoding through OpenSVC Decoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOHEVC} "Support for HEVC decoding through OpenHEVC Decoder"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecNVDEC} "Support for hardware decoding through NVidia cuvid"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecDASH} "HTTP Streaming using MPEG DASH"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMSE}  "HTTP Streaming using HTML 5 Media Source Extensions"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMobIP} "UNIGE Mobile IP Framework"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecDecTek} "DekTek 3G SDI output support"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecRAW} "RAW audio-video output support"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecOffisComp} "OFFIS Audio Compressor"
+;  !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
+;  !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for MP4 file manipulation"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGPACBIN} "gpac command-line tool for various multimedia operations"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP42TS} "MP42TS command-line tool for MPEG-2 TS multiplexing"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecDC} "DashCast offline and live MPEG-DASH Encoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSDK} "GPAC SDK: headers and library files needed to develop modules for GPAC or appllication based on GPAC"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecZILLA} "GPAC playback support NPAPI-based browsers (FireFox/Gecko, Safari/WebKit)"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAX} "GPAC playback support using ActiveX component (Internet Explorer)"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4C} "GPAC command-line player and AVI dumper"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSDL} "GPAC SDL support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecValidator} "GPAC Test Validator"
 
