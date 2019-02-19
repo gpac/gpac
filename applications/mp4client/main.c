@@ -204,7 +204,6 @@ void PrintUsage()
 	        "%s\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
 	        "Features: %s %s\n",
-	        GF_IMPORT_DEFAULT_FPS,
 	        gf_gpac_version(),
 	        gf_gpac_copyright(),
 	        gf_enabled_features(), gf_disabled_features()
