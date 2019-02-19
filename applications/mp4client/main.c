@@ -918,47 +918,6 @@ void set_navigation()
 }
 
 
-static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
-{
-	char *str;
-	Float var;
-	Double sec;
-	u32 h, m, s, ms, f, fps;
-	if (!arg || (arg[0]=='-') || !isdigit(arg[0])) return 0;
-
-	/*SMPTE time code*/
-	if (strchr(arg, ':') && strchr(arg, ';') && strchr(arg, '/')) {
-		if (sscanf(arg, "%02ud:%02ud:%02ud;%02ud/%02ud", &h, &m, &s, &f, &fps)==5) {
-			sec = 0;
-			if (fps) sec = ((Double)f) / fps;
-			sec += 3600*h + 60*m + s;
-			times[*nb_times] = (u32) (1000*sec);
-			(*nb_times) ++;
-			return 1;
-		}
-	}
-	while (arg) {
-		str = strchr(arg, '-');
-		if (str) str[0] = 0;
-		/*HH:MM:SS:MS time code*/
-		if (strchr(arg, ':') && (sscanf(arg, "%u:%u:%u:%u", &h, &m, &s, &ms)==4)) {
-			sec = ms;
-			sec /= 1000;
-			sec += 3600*h + 60*m + s;
-			times[*nb_times] = (u32) (1000*sec);
-			(*nb_times) ++;
-		} else if (sscanf(arg, "%f", &var)==1) {
-			sec = atof(arg);
-			times[*nb_times] = (u32) (1000*sec);
-			(*nb_times) ++;
-		}
-		if (!str) break;
-		str[0] = '-';
-		arg = str+1;
-	}
-	return 1;
-}
-
 static void on_rti_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
 	if (rti_logs && (lm & GF_LOG_RTI)) {
@@ -1054,7 +1013,7 @@ int mp4client_main(int argc, char **argv)
 	const char *str;
 	int ret_val = 0;
 	GF_Err e;
-	u32 i, times[100], nb_times;
+	u32 i;
 	u32 simulation_time_in_ms = 0;
 	u32 initial_service_id = 0;
 	Bool auto_exit = GF_FALSE;
@@ -1069,8 +1028,7 @@ int mp4client_main(int argc, char **argv)
 #ifdef GPAC_MEMORY_TRACKING
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
 #endif
-	Double fps = GF_IMPORT_DEFAULT_FPS;
-	Bool fill_ar, visible, do_uncache, has_command;
+	Bool do_uncache, has_command;
 	char *url_arg, *out_arg, *profile, *rti_file, *views, *mosaic;
 	FILE *logfile = NULL;
 #ifndef WIN32
@@ -1082,10 +1040,8 @@ int mp4client_main(int argc, char **argv)
 
 	memset(&user, 0, sizeof(GF_User));
 
-	fill_ar = visible = do_uncache = has_command = GF_FALSE;
+	do_uncache = has_command = GF_FALSE;
 	url_arg = out_arg = profile = rti_file = views = mosaic = NULL;
-	nb_times = 0;
-	times[0] = 0;
 
 	/*first identify profile and mem tracking */
 	for (i=1; i<(u32) argc; i++) {
@@ -1184,10 +1140,6 @@ int mp4client_main(int argc, char **argv)
 		else if (!strcmp(arg, "-out")) {
 			out_arg = argv[i+1];
 			i++;
-		}
-		else if (!stricmp(arg, "-fps")) {
-			fps = atof(argv[i+1]);
-			i++;
 		} else if (!stricmp(arg, "-scale")) {
 			sscanf(argv[i+1], "%f", &scale);
 			i++;
@@ -1234,10 +1186,6 @@ int mp4client_main(int argc, char **argv)
 				if (argv[i+1][1]=='m') align_mode |= 1;
 				else if (argv[i+1][1]=='r') align_mode |= 2;
 				i++;
-			} else if (!strcmp(arg, "-fill")) {
-				fill_ar = GF_TRUE;
-			} else if (!strcmp(arg, "-show")) {
-				visible = 1;
 			} else if (!strcmp(arg, "-uncache")) {
 				do_uncache = GF_TRUE;
 			}

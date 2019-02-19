@@ -2308,7 +2308,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #endif
 	GF_List *temp_queue;
 	u32 in_time, end_time, i, count, frame_duration, frame_ts;
-	GF_MediaObject *src_mo;
 	Bool frame_drawn, has_timed_nodes=GF_FALSE, all_tx_done=GF_TRUE;
 
 #ifndef GPAC_DISABLE_LOG
@@ -2475,7 +2474,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #endif
 	//compute earliest frame TS in all textures that need refresh (skip textures with same timing)
 	frame_ts = (u32) -1;
-	src_mo = NULL;
+
 	/*update all video textures*/
 	count = gf_list_count(compositor->textures);
 	for (i=0; i<count; i++) {
