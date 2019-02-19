@@ -1108,8 +1108,8 @@ u32 get_pix_alphagrey(EVG_Texture *_this, u32 x, u32 y)
 u32 get_pix_yuv420p(EVG_Texture *_this, u32 x, u32 y)
 {
 	u8 *pY = _this->pixels + y * _this->stride + x;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y/2 * _this->stride/2 + x/2;
-	u8 *pV = pU + _this->stride*_this->height/4;
+	u8 *pU = _this->pix_u + y/2 * _this->stride/2 + x/2;
+	u8 *pV = _this->pix_v + y/2 * _this->stride/2 + x/2;
 	return GF_COL_ARGB(0xFF, *pY, *pU, *pV);
 }
 
@@ -1136,8 +1136,8 @@ u32 get_pix_yuv420p_10(EVG_Texture *_this, u32 x, u32 y)
 {
 	u8 vy, vu, vv;
 	u8 *pY = _this->pixels + y * _this->stride + x*2;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y/2 * _this->stride/2 + (x/2)*2;
-	u8 *pV = pU + _this->stride*_this->height/4;
+	u8 *pU = _this->pix_u + y/2 * _this->stride/2 + (x/2)*2;
+	u8 *pV = _this->pix_v + y/2 * _this->stride/2 + (x/2)*2;
 
 	vy = GET_LE_10BIT_AS_8(pY);
 	vu = GET_LE_10BIT_AS_8(pU);
@@ -1150,8 +1150,8 @@ u64 get_pix_yuv420p_10_wide(EVG_Texture *_this, u32 x, u32 y)
 {
 	u16 vy, vu, vv;
 	u8 *pY = _this->pixels + y * _this->stride + x*2;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y/2 * _this->stride/2 + (x/2)*2;
-	u8 *pV = pU + _this->stride*_this->height/4;
+	u8 *pU = _this->pix_u + y/2 * _this->stride/2 + (x/2)*2;
+	u8 *pV = _this->pix_v + y/2 * _this->stride/2 + (x/2)*2;
 
 	vy = GET_LE_10BIT_AS_16(pY);
 	vu = GET_LE_10BIT_AS_16(pU);
@@ -1162,24 +1162,25 @@ u64 get_pix_yuv420p_10_wide(EVG_Texture *_this, u32 x, u32 y)
 u32 get_pix_yuv420p_a(EVG_Texture *_this, u32 x, u32 y)
 {
 	u8 *pY = _this->pixels + y * _this->stride + x;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y/2 * _this->stride/2 + x/2;
-	u8 *pV = pU + _this->stride*_this->height/4;
-	u8 *pA = pY + 3*_this->stride*_this->height/2;
+	u8 *pU = _this->pix_u + y/2 * _this->stride/2 + x/2;
+	u8 *pV = _this->pix_v + y/2 * _this->stride/2 + x/2;
+	u8 *pA = _this->pix_a  + y * _this->stride + x;
+
 	return GF_COL_ARGB(*pA, *pY, *pU, *pV);
 }
 u32 get_pix_yuv422p(EVG_Texture *_this, u32 x, u32 y)
 {
 	u8 *pY = _this->pixels + y * _this->stride + x;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y * _this->stride/2 + x/2;
-	u8 *pV = pU + _this->stride/2*_this->height;
+	u8 *pU = _this->pix_u + y * _this->stride/2 + x/2;
+	u8 *pV = _this->pix_v + y * _this->stride/2 + x/2;
 	return GF_COL_ARGB(0xFF, *pY, *pU, *pV);
 }
 u32 get_pix_yuv422p_10(EVG_Texture *_this, u32 x, u32 y)
 {
 	u8 vy, vu, vv;
 	u8 *pY = _this->pixels + y * _this->stride + x*2;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y * _this->stride/2 + (x/2)*2;
-	u8 *pV = _this->pixels + _this->stride*_this->height + _this->stride/2*_this->height +  + (x/2)*2;
+	u8 *pU = _this->pix_u + y * _this->stride/2 + (x/2)*2;
+	u8 *pV = _this->pix_v + y * _this->stride/2 + (x/2)*2;
 
 	vy = GET_LE_10BIT_AS_8(pY);
 	vu = GET_LE_10BIT_AS_8(pU);
@@ -1191,8 +1192,8 @@ u64 get_pix_yuv422p_10_wide(EVG_Texture *_this, u32 x, u32 y)
 {
 	u16 vy, vu, vv;
 	u8 *pY = _this->pixels + y * _this->stride + x*2;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y * _this->stride/2 + (x/2)*2;
-	u8 *pV = _this->pixels + _this->stride*_this->height + _this->stride/2*_this->height +  + (x/2)*2;
+	u8 *pU = _this->pix_u + y * _this->stride/2 + (x/2)*2;
+	u8 *pV = _this->pix_v + y * _this->stride/2 + (x/2)*2;
 
 	vy = GET_LE_10BIT_AS_16(pY);
 	vu = GET_LE_10BIT_AS_16(pU);
@@ -1203,16 +1204,16 @@ u64 get_pix_yuv422p_10_wide(EVG_Texture *_this, u32 x, u32 y)
 u32 get_pix_yuv444p(EVG_Texture *_this, u32 x, u32 y)
 {
 	u8 *pY = _this->pixels + y * _this->stride + x;
-	u8 *pU = pY + _this->stride*_this->height;
-	u8 *pV = pU + _this->stride*_this->height;
+	u8 *pU = _this->pix_u + y * _this->stride + x;
+	u8 *pV = _this->pix_a + y * _this->stride + x;
 	return GF_COL_ARGB(0xFF, *pY, *pU, *pV);
 }
 u32 get_pix_yuv444p_10(EVG_Texture *_this, u32 x, u32 y)
 {
 	u8 vy, vu, vv;
 	u8 *pY = _this->pixels + y * _this->stride + x*2;
-	u8 *pU = pY + _this->stride*_this->height;
-	u8 *pV = pU + _this->stride*_this->height;
+	u8 *pU = _this->pix_u + y * _this->stride + x*2;
+	u8 *pV = _this->pix_v + y * _this->stride + x*2;
 
 	vy = GET_LE_10BIT_AS_8(pY);
 	vu = GET_LE_10BIT_AS_8(pU);
@@ -1223,8 +1224,8 @@ u64 get_pix_yuv444p_10_wide(EVG_Texture *_this, u32 x, u32 y)
 {
 	u16 vy, vu, vv;
 	u8 *pY = _this->pixels + y * _this->stride + x*2;
-	u8 *pU = pY + _this->stride*_this->height;
-	u8 *pV = pU + _this->stride*_this->height;
+	u8 *pU = _this->pix_u + y * _this->stride + x*2;
+	u8 *pV = _this->pix_v + y * _this->stride + x*2;
 
 	vy = GET_LE_10BIT_AS_16(pY);
 	vu = GET_LE_10BIT_AS_16(pU);
@@ -1234,15 +1235,15 @@ u64 get_pix_yuv444p_10_wide(EVG_Texture *_this, u32 x, u32 y)
 u32 get_pix_yuv444p_a(EVG_Texture *_this, u32 x, u32 y)
 {
 	u8 *pY = _this->pixels + y * _this->stride + x;
-	u8 *pU = pY + _this->stride*_this->height;
-	u8 *pV = pU + _this->stride*_this->height;
-	u8 *pA = pV + _this->stride*_this->height;
+	u8 *pU = _this->pix_u + y * _this->stride + x;
+	u8 *pV = _this->pix_v + y * _this->stride + x;
+	u8 *pA = _this->pix_a + y * _this->stride + x;
 	return GF_COL_ARGB(*pA, *pY, *pU, *pV);
 }
 u32 get_pix_yuv_nv12(EVG_Texture *_this, u32 x, u32 y)
 {
 	u8 *pY = _this->pixels + y * _this->stride + x;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y/2 * _this->stride + (x/2)*2;
+	u8 *pU = _this->pix_u + y/2 * _this->stride + (x/2)*2;
 	return GF_COL_ARGB(0xFF, *pY, *pU, *(pU+1));
 }
 
@@ -1250,7 +1251,7 @@ u32 get_pix_yuv_nv12_10(EVG_Texture *_this, u32 x, u32 y)
 {
 	u16 vy, vu, vv;
 	u8 *pY = _this->pixels + y * _this->stride + x*2;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y/2 * _this->stride + (x/2)*4;
+	u8 *pU = _this->pix_u  + y/2 * _this->stride + (x/2)*4;
 	vy = GET_BE_10BIT_AS_8(pY);
 	vu = GET_BE_10BIT_AS_8(pU);
 	vv = GET_BE_10BIT_AS_8(pU+2);
@@ -1261,7 +1262,7 @@ u64 get_pix_yuv_nv12_10_wide(EVG_Texture *_this, u32 x, u32 y)
 {
 	u16 vy, vu, vv;
 	u8 *pY = _this->pixels + y * _this->stride + x*2;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y/2 * _this->stride + (x/2)*4;
+	u8 *pU = _this->pix_u + y/2 * _this->stride + (x/2)*4;
 
 	vy = GET_BE_10BIT_AS_16(pY);
 	vu = GET_BE_10BIT_AS_16(pU);
@@ -1272,14 +1273,14 @@ u64 get_pix_yuv_nv12_10_wide(EVG_Texture *_this, u32 x, u32 y)
 u32 get_pix_yuv_nv21(EVG_Texture *_this, u32 x, u32 y)
 {
 	u8 *pY = _this->pixels + y * _this->stride + x;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y/2 * _this->stride + (x/2)*4;
+	u8 *pU = _this->pix_u + y/2 * _this->stride + (x/2)*4;
 	return GF_COL_ARGB(0xFF, *pY, *(pU+1), *pU);
 }
 u32 get_pix_yuv_nv21_10(EVG_Texture *_this, u32 x, u32 y)
 {
 	u8 vy, vu, vv;
 	u8 *pY = _this->pixels + y * _this->stride + x*2;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y/2 * _this->stride + (x/2)*4;
+	u8 *pU = _this->pix_u + y/2 * _this->stride + (x/2)*4;
 
 	vy = GET_BE_10BIT_AS_8(pY);
 	vu = GET_BE_10BIT_AS_8(pU);
@@ -1291,7 +1292,7 @@ u64 get_pix_yuv_nv21_10_wide(EVG_Texture *_this, u32 x, u32 y)
 {
 	u16 vy, vu, vv;
 	u8 *pY = _this->pixels + y * _this->stride + x*2;
-	u8 *pU = _this->pixels + _this->stride*_this->height + y/2 * _this->stride + (x/2)*4;
+	u8 *pU = _this->pix_u + y/2 * _this->stride + (x/2)*4;
 
 	vy = GET_BE_10BIT_AS_16(pY);
 	vu = GET_BE_10BIT_AS_16(pU);
@@ -1366,25 +1367,25 @@ static void texture_set_callbacks(EVG_Texture *_this)
 		return;
 	case GF_PIXEL_YUV:
 		_this->tx_get_pixel = get_pix_yuv420p;
-		return;
+		break;
 	case GF_PIXEL_YUVA:
 		_this->tx_get_pixel = get_pix_yuv420p_a;
-		return;
+		break;
 	case GF_PIXEL_YUV422:
 		_this->tx_get_pixel = get_pix_yuv422p;
-		return;
+		break;
 	case GF_PIXEL_YUV444:
 		_this->tx_get_pixel = get_pix_yuv444p;
-		return;
+		break;
 	case GF_PIXEL_YUVA444:
 		_this->tx_get_pixel = get_pix_yuv444p_a;
-		return;
+		break;
 	case GF_PIXEL_NV12:
 		_this->tx_get_pixel = get_pix_yuv_nv12;
-		return;
+		break;
 	case GF_PIXEL_NV21:
 		_this->tx_get_pixel = get_pix_yuv_nv21;
-		return;
+		break;
 	case GF_PIXEL_YUYV:
 		_this->tx_get_pixel = get_pix_yuyv;
 		return;
@@ -1400,28 +1401,71 @@ static void texture_set_callbacks(EVG_Texture *_this)
 	case GF_PIXEL_YUV_10:
 		_this->tx_get_pixel = get_pix_yuv420p_10;
 		_this->tx_get_pixel_wide = get_pix_yuv420p_10_wide;
-		return;
+		break;
 	case GF_PIXEL_YUV422_10:
 		_this->tx_get_pixel = get_pix_yuv422p_10;
 		_this->tx_get_pixel_wide = get_pix_yuv422p_10_wide;
-		return;
+		break;
 	case GF_PIXEL_YUV444_10:
 		_this->tx_get_pixel = get_pix_yuv444p_10;
 		_this->tx_get_pixel_wide = get_pix_yuv444p_10_wide;
-		return;
+		break;
 	case GF_PIXEL_NV12_10:
 		_this->tx_get_pixel = get_pix_yuv_nv12_10;
 		_this->tx_get_pixel_wide = get_pix_yuv_nv12_10_wide;
-		return;
+		break;
 	case GF_PIXEL_NV21_10:
 		_this->tx_get_pixel = get_pix_yuv_nv21_10;
 		_this->tx_get_pixel_wide = get_pix_yuv_nv21_10_wide;
+		break;
+	default:
+		return;
+	}
+	//assign image planes
+	if (_this->pix_u) return;
+
+	switch (_this->pixel_format) {
+	case GF_PIXEL_YUV_10:
+	case GF_PIXEL_YUV:
+		if (!_this->stride_uv) _this->stride_uv = _this->stride/2;
+		_this->pix_u = _this->pixels + _this->stride*_this->height;
+		_this->pix_v = _this->pix_u + _this->stride_uv * _this->height/2;
+		return;
+	case GF_PIXEL_YUVA:
+		if (!_this->stride_uv) _this->stride_uv = _this->stride/2;
+		_this->pix_u = _this->pixels + _this->stride*_this->height;
+		_this->pix_v = _this->pix_u + _this->stride_uv * _this->height/2;
+		_this->pix_a = _this->pix_v + _this->stride_uv * _this->height/2;
+		return;
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_YUV422:
+		if (!_this->stride_uv) _this->stride_uv = _this->stride/2;
+		_this->pix_u = _this->pixels + _this->stride*_this->height;
+		_this->pix_v = _this->pix_u + _this->stride_uv * _this->height;
+		return;
+	case GF_PIXEL_YUV444_10:
+	case GF_PIXEL_YUV444:
+		if (!_this->stride_uv) _this->stride_uv = _this->stride;
+		_this->pix_u = _this->pixels + _this->stride*_this->height;
+		_this->pix_v = _this->pix_u + _this->stride_uv * _this->height;
+		return;
+	case GF_PIXEL_YUVA444:
+		if (!_this->stride_uv) _this->stride_uv = _this->stride;
+		_this->pix_u = _this->pixels + _this->stride*_this->height;
+		_this->pix_v = _this->pix_u + _this->stride_uv * _this->height;
+		_this->pix_a = _this->pix_v + _this->stride_uv * _this->height;
+		return;
+	case GF_PIXEL_NV12:
+	case GF_PIXEL_NV21:
+	case GF_PIXEL_NV12_10:
+	case GF_PIXEL_NV21_10:
+		if (!_this->stride_uv) _this->stride_uv = _this->stride;
+		_this->pix_u = _this->pixels + _this->stride*_this->height;
 		return;
 	}
 }
 
-GF_EXPORT
-GF_Err gf_evg_stencil_set_texture(GF_EVGStencil * st, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy)
+static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width, u32 height, GF_PixelFormat pixelFormat, const char *pixels, u32 stride, const char *u_plane, const char *v_plane, u32 uv_stride, const char *alpha_plane)
 {
 	EVG_Texture *_this = (EVG_Texture *) st;
 	if (!_this || (_this->type != GF_STENCIL_TEXTURE) || !pixels || !width || !height || !stride || _this->owns_texture)
@@ -1481,9 +1525,23 @@ GF_Err gf_evg_stencil_set_texture(GF_EVGStencil * st, char *pixels, u32 width, u
 	_this->width = width;
 	_this->height = height;
 	_this->stride = stride;
+	_this->stride_uv = uv_stride;
 	_this->pixels = (char *) pixels;
+	_this->pix_u = (char *) u_plane;
+	_this->pix_v = (char *) v_plane;
 	texture_set_callbacks(_this);
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, const char *y_or_rgb, u32 stride, const char *u_plane, const char *v_plane, u32 uv_stride, const char *alpha_plane)
+{
+ 	return gf_evg_stencil_set_texture_internal(stencil, width, height, pixelFormat, y_or_rgb, stride, u_plane, v_plane, uv_stride, alpha_plane);
+}
+GF_EXPORT
+GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
+{
+	return gf_evg_stencil_set_texture_internal(stencil, width, height, pixelFormat, pixels, stride, NULL, NULL, 0, NULL);
 }
 
 void evg_texture_init(GF_EVGStencil *p, GF_EVGSurface *surf)

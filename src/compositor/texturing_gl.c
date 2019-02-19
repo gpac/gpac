@@ -1093,7 +1093,31 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			txh->tx_io->flags &= ~TX_NEEDS_RASTER_LOAD;
 		}
 		if (load_tx) {
-			GF_Err e = gf_evg_stencil_set_texture(txh->tx_io->tx_raster, txh->data, txh->width, txh->height, txh->stride, (GF_PixelFormat) txh->pixelformat, (GF_PixelFormat) txh->compositor->video_out->pixel_format, 0);
+			const u8 *pData = txh->data;
+			const u8 *pU=NULL, *pV=NULL, *pA=NULL;
+			u32 stride = txh->stride;
+			u32 stride_uv=0;
+			GF_Err e;
+			if (txh->hw_frame) {
+				pData=NULL;
+				if (txh->hw_frame->get_plane) {
+					e = txh->hw_frame->get_plane(txh->hw_frame, 0, &pData, &stride);
+					if (!e && txh->nb_planes>1)
+						e = txh->hw_frame->get_plane(txh->hw_frame, 1, &pU, &stride_uv);
+					if (!e && txh->nb_planes>2)
+						e = txh->hw_frame->get_plane(txh->hw_frame, 2, &pV, &stride_uv);
+					if (!e && txh->nb_planes>3)
+						e = txh->hw_frame->get_plane(txh->hw_frame, 3, &pA, &stride_uv);
+				}
+			}
+			if (!pData) {
+				if (!txh->compositor->last_error)
+					txh->compositor->last_error = GF_NOT_SUPPORTED;
+				return 0;
+			}
+
+			e = gf_evg_stencil_set_texture_planes(txh->tx_io->tx_raster, txh->width, txh->height, (GF_PixelFormat) txh->pixelformat, pData, txh->stride, pU, pV, stride_uv, pA);
+
 			if (e != GF_OK) {
 				if (!txh->compositor->last_error)
 					txh->compositor->last_error = e;

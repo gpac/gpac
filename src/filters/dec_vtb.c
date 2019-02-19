@@ -1632,7 +1632,6 @@ GF_Err vtbframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **out
 	GF_VTBHWFrame *f = (GF_VTBHWFrame *)frame->user_data;
 	if (! outPlane || !outStride) return GF_BAD_PARAM;
 	*outPlane = NULL;
-	*outStride = 0;
 
 	if (!f->locked) {
 		status = CVPixelBufferLockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
@@ -1645,8 +1644,9 @@ GF_Err vtbframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **out
 	e = GF_OK;
 	
     if (CVPixelBufferIsPlanar(f->frame)) {
-		*outStride = (u32) CVPixelBufferGetBytesPerRowOfPlane(f->frame, plane_idx);
 		*outPlane = CVPixelBufferGetBaseAddressOfPlane(f->frame, plane_idx);
+		if (*outPlane)
+			*outStride = (u32) CVPixelBufferGetBytesPerRowOfPlane(f->frame, plane_idx);
 	} else if (plane_idx==0) {
 		*outStride = (u32) CVPixelBufferGetBytesPerRow(f->frame);
 		*outPlane = CVPixelBufferGetBaseAddress(f->frame);

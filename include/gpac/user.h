@@ -78,10 +78,7 @@ enum
 	/*framebuffer works in 32 bit alpha mode - experimental, only supported on Win32*/
 	GF_TERM_WINDOW_TRANSPARENT = 1<<7,
 	/*works in windowless mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOWLESS = 1<<8,
-
-	/*internal flag always set by the terminal to indicate the compositor to run with video outout driver*/
-	GF_TERM_INIT_VIDEO = 1<<9,
+	GF_TERM_WINDOWLESS = 1<<8
 };
 
 /*user object for all callbacks*/

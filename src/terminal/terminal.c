@@ -325,7 +325,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 	gf_sys_init(GF_MemTrackerNone, NULL);
 
 	tmp->user = user;
-	user->init_flags |= GF_TERM_INIT_VIDEO;
 
 	//for now we store the init_flags in the global config (used by compositor and AV output modules)
 	//cleaning this would need futher API rework and getting rid of the GF_User strcuture
@@ -347,9 +346,9 @@ GF_Terminal *gf_term_new(GF_User *user)
 	def_h = opt ? atoi(opt) : 0;
 
 	if (def_w && def_h) {
-		sprintf(szArgs, "compositor:FID=compose:size=%dx%d", def_w, def_h);
+		sprintf(szArgs, "compositor:FID=compose:player:size=%dx%d", def_w, def_h);
 	} else {
-		strcpy(szArgs, "compositor:FID=compose");
+		strcpy(szArgs, "compositor:FID=compose:player");
 	}
 	if (! (user->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
 		strcpy(szArgs, ":aout=false");

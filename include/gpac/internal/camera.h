@@ -178,7 +178,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 void camera_reset_viewpoint(GF_Camera *cam, Bool animate);
 /*move camera to given vp*/
 void camera_move_to(GF_Camera *cam, SFVec3f pos, SFVec3f target, SFVec3f up);
-Bool camera_animate(GF_Camera *cam);
+Bool camera_animate(GF_Camera *cam, void *compositor);
 void camera_stop_anim(GF_Camera *cam);
 /*start jump mode*/
 void camera_jump(GF_Camera *cam);

@@ -356,7 +356,7 @@ static GF_Err c2d_get_video_access_normal(GF_VisualManager *visual)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Video surface memory attached to raster - w=%d h=%d pitch_x=%d pitch_y=%d\n", compositor->hw_surface.width, compositor->hw_surface.height, compositor->hw_surface.pitch_x, compositor->hw_surface.pitch_y));
 			return GF_OK;
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot attach video surface memory to raster: pixel format %s not supported\n", gf_pixel_fmt_name(compositor->hw_surface.pixel_format) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot attach video surface memory to raster for pixel format %s: %s\n", gf_pixel_fmt_name(compositor->hw_surface.pixel_format), gf_error_to_string(e) ));
 		compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, GF_FALSE);
 	}
 	compositor->hw_locked = GF_FALSE;
@@ -500,7 +500,6 @@ Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *
 
 	if (final.width<=0 || final.height <=0) return GF_FALSE;
 	if (txh->width==0 || txh->height==0) return GF_FALSE;
-
 
 	w_scale = final.width / txh->width;
 	h_scale = final.height / txh->height;

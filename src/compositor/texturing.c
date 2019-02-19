@@ -183,6 +183,8 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 		gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat, &txh->is_flipped);
 		gf_sc_texture_configure_conversion(txh);
 
+		gf_pixel_get_size_info(txh->pixelformat, txh->width, txh->height, NULL, NULL, NULL, &txh->nb_planes, NULL);
+
 		if (private_media) {
 			txh->transparent = 1;
 			txh->pixelformat = GF_PIXEL_ARGB;
@@ -260,7 +262,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	if (!txh->data && !txh->hw_frame) {
 		GF_LOG(txh->stream->connect_failure ? GF_LOG_DEBUG : GF_LOG_INFO, GF_LOG_COMPOSE, ("[Texture %p] No output frame available \n", txh));
 
-		if (txh->compositor->use_step_mode || !txh->compositor->player_mode) {
+		if (txh->compositor->use_step_mode || !txh->compositor->player) {
 			if (!txh->stream->connect_failure && !txh->last_frame_time) {
 				if (!txh->probe_time_ms) txh->probe_time_ms = gf_sys_clock();
 				else if (gf_sys_clock() - txh->probe_time_ms > txh->compositor->timeout / 2) {

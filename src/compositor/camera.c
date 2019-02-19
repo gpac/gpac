@@ -496,22 +496,25 @@ void camera_jump(GF_Camera *cam)
 }
 
 
-Bool camera_animate(GF_Camera *cam)
+Bool camera_animate(GF_Camera *cam, void *_compositor)
 {
 	u32 now;
 	Fixed frac;
+	GF_Compositor *compositor = (GF_Compositor *) _compositor;
 	if (!cam->anim_len) return GF_FALSE;
+
+	now = gf_sc_get_clock(compositor);
 
 	if (cam->jumping) {
 		if (!cam->anim_start) {
-			cam->anim_start = gf_sys_clock();
+			cam->anim_start = now;
 			cam->dheight = 0;
 			return GF_TRUE;
 		}
 		cam->position.y -= cam->dheight;
 		cam->target.y -= cam->dheight;
 
-		now = gf_sys_clock() - cam->anim_start;
+		now -= cam->anim_start;
 		if (now > cam->anim_len) {
 			cam->anim_len = 0;
 			cam->jumping = GF_FALSE;
@@ -528,10 +531,10 @@ Bool camera_animate(GF_Camera *cam)
 	}
 
 	if (!cam->anim_start) {
-		cam->anim_start = gf_sys_clock();
+		cam->anim_start = now;
 		frac = 0;
 	} else {
-		now = gf_sys_clock() - cam->anim_start;
+		now -= cam->anim_start;
 		if (now > cam->anim_len) {
 			cam->anim_len = 0;
 #ifndef FORCE_CAMERA_3D

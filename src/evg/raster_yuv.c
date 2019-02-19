@@ -41,6 +41,13 @@ mul255(s32 a, s32 b)
 }
 #endif
 
+static s32
+mul255_zero(s32 a, s32 b)
+{
+	if (!a) return 0;
+	return ((a + 1) * b) >> 8;
+}
+
 void evg_rgb_to_yuv(GF_EVGSurface *surf, GF_Color col, u8*y, u8*cb, u8*cr)
 {
 	u32 r = GF_COL_R(col);
@@ -192,7 +199,6 @@ static void overmask_yuv420p_const_run(u8 a, u8 val, u8 *ptr, u32 count, short x
 		count--;
 	}
 }
-
 void evg_yuv420p_flush_uv_const(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y)
 {
 	u32 i, a;
@@ -333,43 +339,61 @@ void evg_yuv420p_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 _cu, s
 	pV = pU + surf->height/2 * surf->pitch_y/2;
 
 	for (i=0; i<surf->width; i+=2) {
-		u32 a;
+		u32 a, a11, a12, a21, a22;
 		u32 idx1=3*i;
 		u32 idx2=3*i + 3;
 		//get alpha
-		a = (u32)surf->uv_alpha[idx1] + (u32)surf->uv_alpha[idx2];
-		a += (u32)surf_uv_alpha[idx1] + (u32)surf_uv_alpha[idx2];
+		a11 = (u32)surf->uv_alpha[idx1];
+		a12 = (u32)surf->uv_alpha[idx2];
+		a21 = (u32)surf_uv_alpha[idx1];
+		a22 = (u32)surf_uv_alpha[idx2];
 
+		a = a11 + a12 + a21 + a22;
 		if (a) {
 			u8 cdst;
-			u32 chroma_u, chroma_v;
+			u32 chroma_u, chroma_v, c11, c12, c21, c22;
 
 			a /= 4;
-
 			//get cb
 			idx1 += 1;
 			idx2 += 1;
-			chroma_u = (u32)surf->uv_alpha[idx1] + (u32)surf->uv_alpha[idx2];
-			chroma_u += (u32)surf_uv_alpha[idx1] + (u32)surf_uv_alpha[idx2];
+
+			if (a!=0xFF) {
+ 				cdst = *pU;
+			}
+			c11 = (u32)surf->uv_alpha[idx1];
+			if (a11!=0xFF) c11 = mul255_zero(a11, c11 - cdst) + cdst;
+			c12 = (u32)surf->uv_alpha[idx2];
+			if (a12!=0xFF) c12 = mul255_zero(a12, c12 - cdst) + cdst;
+			c21 = (u32)surf_uv_alpha[idx1];
+			if (a21!=0xFF) c21 = mul255_zero(a21, c21 - cdst) + cdst;
+			c22 = (u32)surf_uv_alpha[idx2];
+			if (a22!=0xFF) c22 = mul255_zero(a22, c22 - cdst) + cdst;
+
+			chroma_u = c11 + c12 + c21 + c22;
 			chroma_u /= 4;
 
 			//get cr
 			idx1 += 1;
 			idx2 += 1;
-			chroma_v = (u32)surf->uv_alpha[idx1] + (u32)surf->uv_alpha[idx2];
-			chroma_v += (u32)surf_uv_alpha[idx1] + (u32)surf_uv_alpha[idx2];
+
+			if (a!=0xFF) {
+ 				cdst = *pV;
+			}
+			c11 = (u32)surf->uv_alpha[idx1];
+			if (a11!=0xFF) c11 = mul255_zero(a11, c11 - cdst) + cdst;
+			c12 = (u32)surf->uv_alpha[idx2];
+			if (a12!=0xFF) c12 = mul255_zero(a12, c12 - cdst) + cdst;
+			c21 = (u32)surf_uv_alpha[idx1];
+			if (a21!=0xFF) c21 = mul255_zero(a21, c21 - cdst) + cdst;
+			c22 = (u32)surf_uv_alpha[idx2];
+			if (a22!=0xFF) c22 = mul255_zero(a22, c22 - cdst) + cdst;
+
+			chroma_v = c11 + c12 + c21 + c22;
 			chroma_v /= 4;
 
-			if (a==0xFF) {
-				*pU = chroma_u;
-				*pV = chroma_v;
-			} else {
- 				cdst = *pU;
-				*pU = mul255(a, chroma_u - cdst) + cdst;
-
-				cdst = *pV;
-				*pV = mul255(a, chroma_v - cdst) + cdst;
-			}
+			*pU = chroma_u;
+			*pV = chroma_v;
 		}
 		pU++;
 		pV++;
@@ -527,43 +551,63 @@ void evg_nv12_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 c
 	pU += y/2 * surf->pitch_y;
 
 	for (i=0; i<surf->width; i+=2) {
-		u32 a;
+		u32 a, a11, a12, a21, a22;
+
 		u32 idx1=3*i;
 		u32 idx2=3*i + 3;
+
 		//get alpha
-		a = (u32)surf->uv_alpha[idx1] + (u32)surf->uv_alpha[idx2];
-		a += (u32)surf_uv_alpha[idx1] + (u32)surf_uv_alpha[idx2];
+		a11 = (u32)surf->uv_alpha[idx1];
+		a12 = (u32)surf->uv_alpha[idx2];
+		a21 = (u32)surf_uv_alpha[idx1];
+		a22 = (u32)surf_uv_alpha[idx2];
+		a = a11+a12+a21+a22;
 
 		if (a) {
 			u8 cdst;
-			u32 chroma_u, chroma_v;
+			u32 chroma_u, chroma_v, c11, c12, c21, c22;
 
 			a /= 4;
 
 			//get cb
 			idx1 += 1;
 			idx2 += 1;
-			chroma_u = (u32)surf->uv_alpha[idx1] + (u32)surf->uv_alpha[idx2];
-			chroma_u += (u32)surf_uv_alpha[idx1] + (u32)surf_uv_alpha[idx2];
+			if (a!=0xFF)
+				cdst = pU[surf->idx_u];
+
+			c11 = (u32)surf->uv_alpha[idx1];
+			if (a11!=0xFF) c11 = mul255_zero(a11, c11 - cdst) + cdst;
+			c12 = (u32)surf->uv_alpha[idx2];
+			if (a12!=0xFF) c12 = mul255_zero(a12, c12 - cdst) + cdst;
+			c21 = (u32)surf_uv_alpha[idx1];
+			if (a21!=0xFF) c21 = mul255_zero(a21, c21 - cdst) + cdst;
+			c22 = (u32)surf_uv_alpha[idx2];
+			if (a22!=0xFF) c22 = mul255_zero(a22, c22 - cdst) + cdst;
+
+			chroma_u = c11 + c12 + c21 + c22;
 			chroma_u /= 4;
 
 			//get cr
 			idx1 += 1;
 			idx2 += 1;
-			chroma_v = (u32)surf->uv_alpha[idx1] + (u32)surf->uv_alpha[idx2];
-			chroma_v += (u32)surf_uv_alpha[idx1] + (u32)surf_uv_alpha[idx2];
+
+			if (a!=0xFF)
+				cdst = pU[surf->idx_v];
+
+			c11 = (u32)surf->uv_alpha[idx1];
+			if (a11!=0xFF) c11 = mul255_zero(a11, c11 - cdst) + cdst;
+			c12 = (u32)surf->uv_alpha[idx2];
+			if (a12!=0xFF) c12 = mul255_zero(a12, c12 - cdst) + cdst;
+			c21 = (u32)surf_uv_alpha[idx1];
+			if (a21!=0xFF) c21 = mul255_zero(a21, c21 - cdst) + cdst;
+			c22 = (u32)surf_uv_alpha[idx2];
+			if (a22!=0xFF) c22 = mul255_zero(a22, c22 - cdst) + cdst;
+
+			chroma_v = c11 + c12 + c21 + c22;
 			chroma_v /= 4;
 
-			if (a==0xFF) {
-				pU[surf->idx_u] = chroma_u;
-				pU[surf->idx_v] = chroma_v;
-			} else {
-				cdst = pU[surf->idx_u];
-				pU[surf->idx_u] = mul255(a, chroma_u - cdst) + cdst;
-
-				cdst = pU[surf->idx_v];
-				pU[surf->idx_v] = mul255(a, chroma_v - cdst) + cdst;
-			}
+			pU[surf->idx_u] = chroma_u;
+			pU[surf->idx_v] = chroma_v;
 		}
 		pU+=2;
 	}
@@ -670,35 +714,47 @@ void evg_yuv422p_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 _cu, s
 	pV = pU + surf->height * surf->pitch_y/2;
 
 	for (i=0; i<surf->width; i+=2) {
-		u32 a;
+		u32 a, a1, a2;
 		u32 idx1=3*i;
 		u32 idx2=3*i + 3;
 		//get alpha
-		a = (u32)surf->uv_alpha[idx1] + (u32)surf->uv_alpha[idx2];
+		a1 = (u32)surf->uv_alpha[idx1];
+		a2 = (u32)surf->uv_alpha[idx2];
+		a = a1+a2;
 		if (a) {
 			u8 cdst;
-			u32 chroma_u, chroma_v;
+			u32 chroma_u, chroma_v, c1, c2;
 
 			a /= 2;
 
+			if (a != 0xFF)
+				cdst = *pU;
+
 			//get cb
-			chroma_u = (u32)surf->uv_alpha[idx1+1] + (u32)surf->uv_alpha[idx2+1];
+			if (a != 0xFF)
+				cdst = *pU;
+
+			c1 = (u32)surf->uv_alpha[idx1+1];
+			if (a1!=0xFF) c1 = mul255_zero(a1, c1 - cdst) + cdst;
+			c2 = (u32)surf->uv_alpha[idx2+1];
+			if (a2!=0xFF) c2 = mul255_zero(a2, c1 - cdst) + cdst;
+			chroma_u = c1 + c2;
 			chroma_u /= 2;
 
-			//get cr
-			chroma_v = (u32)surf->uv_alpha[idx1+2] + (u32)surf->uv_alpha[idx2+2];
+			//get cb
+			if (a != 0xFF)
+				cdst = *pV;
+
+			c1 = (u32)surf->uv_alpha[idx1+2];
+			if (a1!=0xFF) c1 = mul255_zero(a1, c1 - cdst) + cdst;
+			c2 = (u32)surf->uv_alpha[idx2+2];
+			if (a2!=0xFF) c2 = mul255_zero(a2, c1 - cdst) + cdst;
+			chroma_v = c1 + c2;
 			chroma_v /= 2;
 
-			if (a==0xFF) {
-				*pU = chroma_u;
-				*pV = chroma_v;
-			} else {
-				cdst = *pU;
-				*pU = mul255(a, chroma_u - cdst) + cdst;
 
-				cdst = *pV;
-				*pV = mul255(a, chroma_v - cdst) + cdst;
-			}
+			*pU = chroma_u;
+			*pV = chroma_v;
 		}
 		pU++;
 		pV++;
@@ -1156,6 +1212,13 @@ mul_10(s64 a, s64 b)
 	return (s32) ( ((a + 1) * b) >> 16);
 }
 
+static s32
+mul_10_zero(s64 a, s64 b)
+{
+	if (!a) return 0;
+	return (s32) ( ((a + 1) * b) >> 16);
+}
+
 static void overmask_yuv420p_10(u16 col_a, u16 cy, u16 *dst, u32 alpha)
 {
 	s32 srca = col_a;
@@ -1321,7 +1384,6 @@ void evg_yuv420p_10_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurfac
 		surf->yuv_flush_uv(surf, (u8*)surf_uv_alpha, cu, cv, y);
 }
 
-
 void evg_yuv420p_10_flush_uv_var(GF_EVGSurface *surf, u8 *_surf_uv_alpha, s32 _cu, s32 _cv,  s32 y)
 {
 	u32 i;
@@ -1332,42 +1394,62 @@ void evg_yuv420p_10_flush_uv_var(GF_EVGSurface *surf, u8 *_surf_uv_alpha, s32 _c
 	pV = (u16 *) (surf->pixels + 5*surf->height *surf->pitch_y/4 + y/2 * surf->pitch_y/2);
 
 	for (i=0; i<surf->width; i+=2) {
-		u32 a;
+		u32 a, a11, a12, a21, a22;
 		u32 idx1=3*i;
 		u32 idx2=3*i + 3;
-		//get alpha
-		a = (u32)surf_uv_alpha_even[idx1] + (u32)surf_uv_alpha_even[idx2];
-		a += (u32)surf_uv_alpha_odd[idx1] + (u32)surf_uv_alpha_odd[idx2];
 
+		//get alpha
+		a11 = (u32)surf_uv_alpha_even[idx1];
+		a12 = (u32)surf_uv_alpha_even[idx2];
+		a21 = (u32)surf_uv_alpha_odd[idx1];
+		a22 = (u32)surf_uv_alpha_odd[idx2];
+
+		a = a11+a12+a21+a22;
 		if (a) {
-			u32 cdst;
-			u32 chroma_u, chroma_v;
+			s32 cdst;
+			s32 chroma_u, chroma_v, c11, c12, c21, c22;
 
 			a /= 4;
 
 			//get cb
 			idx1 += 1;
 			idx2 += 1;
-			chroma_u = (u32)surf_uv_alpha_even[idx1] + (u32)surf_uv_alpha_even[idx2];
-			chroma_u += (u32)surf_uv_alpha_odd[idx1] + (u32)surf_uv_alpha_odd[idx2];
+
+			if (a!=0xFFFF) {
+				get_u16_le(cdst, pU);
+			}
+			c11 = (u32)surf_uv_alpha_even[idx1];
+			if (a11!=0xFFFF) c11 = mul_10_zero(a11, c11 - cdst) + cdst;
+			c12 = (u32)surf_uv_alpha_even[idx2];
+			if (a12!=0xFFFF) c12 = mul_10_zero(a12, c12 - cdst) + cdst;
+			c21 = (u32)surf_uv_alpha_odd[idx1];
+			if (a21!=0xFFFF) c21 = mul_10_zero(a21, c21 - cdst) + cdst;
+			c22 = (u32)surf_uv_alpha_odd[idx2];
+			if (a22!=0xFFFF) c22 = mul_10_zero(a22, c22 - cdst) + cdst;
+
+			chroma_u = c11 + c12 + c21 + c22;
 			chroma_u /= 4;
+			set_u16_le(pU, (u16) chroma_u);
 
 			//get cr
 			idx1 += 1;
 			idx2 += 1;
-			chroma_v = (u32)surf_uv_alpha_even[idx1] + (u32)surf_uv_alpha_even[idx2];
-			chroma_v += (u32)surf_uv_alpha_odd[idx1] + (u32)surf_uv_alpha_odd[idx2];
-			chroma_v /= 4;
 
-			if (a==0xFFFF) {
-				set_u16_le(pU, chroma_u);
-				set_u16_le(pV, chroma_v);
-			} else {
-				get_u16_le(cdst, pU);
-				set_u16_le(pU, (u16) (mul_10(a, chroma_u - cdst) + cdst));
+			if (a!=0xFFFF) {
 				get_u16_le(cdst, pV);
-				set_u16_le(pV, (u16) (mul_10(a, chroma_v - cdst) + cdst));
 			}
+			c11 = (u32)surf_uv_alpha_even[idx1];
+			if (a11!=0xFFFF) c11 = mul_10_zero(a11, c11 - cdst) + cdst;
+			c12 = (u32)surf_uv_alpha_even[idx2];
+			if (a12!=0xFFFF) c12 = mul_10_zero(a12, c12 - cdst) + cdst;
+			c21 = (u32)surf_uv_alpha_odd[idx1];
+			if (a21!=0xFFFF) c21 = mul_10_zero(a21, c21 - cdst) + cdst;
+			c22 = (u32)surf_uv_alpha_odd[idx2];
+			if (a22!=0xFFFF) c22 = mul_10_zero(a22, c22 - cdst) + cdst;
+
+			chroma_v = c11 + c12 + c21 + c22;
+			chroma_v /= 4;
+			set_u16_le(pV, (u16) chroma_v);
 		}
 		pU++;
 		pV++;
@@ -1539,6 +1621,7 @@ void evg_nv12_10_flush_uv_const(GF_EVGSurface *surf, u8 *_surf_uv_alpha, s32 cu,
 	memset(surf->uv_alpha, 0, surf->uv_alpha_alloc);
 }
 
+
 void evg_nv12_10_flush_uv_var(GF_EVGSurface *surf, u8 *_surf_uv_alpha, s32 cu, s32 cv, s32 y)
 {
 	u32 i;
@@ -1549,43 +1632,60 @@ void evg_nv12_10_flush_uv_var(GF_EVGSurface *surf, u8 *_surf_uv_alpha, s32 cu, s
 	u8 *pV = pUV + 2*surf->idx_v;
 
 	for (i=0; i<surf->width; i+=2) {
-		u32 a;
+		u32 a, a11, a12, a21, a22;
 		u32 idx1=3*i;
 		u32 idx2=3*i + 3;
 		//get alpha
-		a = (u32)surf_uv_alpha_even[idx1] + (u32)surf_uv_alpha_even[idx2];
-		a += (u32)surf_uv_alpha_odd[idx1] + (u32)surf_uv_alpha_odd[idx2];
+		a11 = (u32)surf_uv_alpha_even[idx1];
+		a12 = (u32)surf_uv_alpha_even[idx2];
+		a21 = (u32)surf_uv_alpha_odd[idx1];
+		a22 = (u32)surf_uv_alpha_odd[idx2];
+		a = a11+a12+a21+a22;
 
 		if (a) {
-			u16 cdst;
-			u32 chroma_u, chroma_v;
+			s32 cdst, chroma_u, chroma_v, c11, c12, c21, c22;
 
 			a /= 4;
 
 			//get cb
 			idx1 += 1;
 			idx2 += 1;
-			chroma_u = (u32)surf_uv_alpha_even[idx1] + (u32)surf_uv_alpha_even[idx2];
-			chroma_u += (u32)surf_uv_alpha_odd[idx1] + (u32)surf_uv_alpha_odd[idx2];
+			if (a!=0xFFFF)
+				get_u16_le(cdst, pU);
+
+			c11 = (u32)surf_uv_alpha_even[idx1];
+			if (a11!=0xFFFF) c11 = mul_10_zero(a11, c11 - cdst) + cdst;
+			c12 = (u32)surf_uv_alpha_even[idx2];
+			if (a12!=0xFFFF) c12 = mul_10_zero(a12, c12 - cdst) + cdst;
+			c21 = (u32)surf_uv_alpha_odd[idx1];
+			if (a21!=0xFFFF) c21 = mul_10_zero(a21, c21 - cdst) + cdst;
+			c22 = (u32)surf_uv_alpha_odd[idx2];
+			if (a22!=0xFFFF) c22 = mul_10_zero(a22, c22 - cdst) + cdst;
+
+			chroma_u = c11+c12+c21+c22;
 			chroma_u /= 4;
 
 			//get cr
 			idx1 += 1;
 			idx2 += 1;
-			chroma_v = (u32)surf_uv_alpha_even[idx1] + (u32)surf_uv_alpha_even[idx2];
-			chroma_v += (u32)surf_uv_alpha_odd[idx1] + (u32)surf_uv_alpha_odd[idx2];
+			if (a!=0xFFFF)
+				get_u16_le(cdst, pV);
+
+			c11 = (u32)surf_uv_alpha_even[idx1];
+			if (a11!=0xFFFF) c11 = mul_10_zero(a11, c11 - cdst) + cdst;
+			c12 = (u32)surf_uv_alpha_even[idx2];
+			if (a12!=0xFFFF) c12 = mul_10_zero(a12, c12 - cdst) + cdst;
+			c21 = (u32)surf_uv_alpha_odd[idx1];
+			if (a21!=0xFFFF) c21 = mul_10_zero(a21, c21 - cdst) + cdst;
+			c22 = (u32)surf_uv_alpha_odd[idx2];
+			if (a22!=0xFFFF) c22 = mul_10_zero(a22, c22 - cdst) + cdst;
+
+			chroma_v = c11+c12+c21+c22;
 			chroma_v /= 4;
 
 
-			if (a==0xFFFF) {
-				set_u16_le(pU, chroma_u);
-				set_u16_le(pV, chroma_v);
-			} else {
-				get_u16_le(cdst, pU);
-				set_u16_le(pU, mul_10(a, chroma_u - cdst) + cdst);
-				get_u16_le(cdst, pV);
-				set_u16_le(pV, mul_10(a, chroma_v - cdst) + cdst);
-			}
+			set_u16_le(pU, chroma_u);
+			set_u16_le(pV, chroma_v);
 		}
 		pU += 4;
 		pV += 4;
@@ -1711,34 +1811,44 @@ void evg_yuv422p_10_flush_uv_var(GF_EVGSurface *surf, u8 *_surf_uv_alpha, s32 _c
 	u16 *pV = (u16 *) (surf->pixels + surf->height *surf->pitch_y + surf->height * surf->pitch_y/2 + y * surf->pitch_y/2);
 
 	for (i=0; i<surf->width; i+=2) {
-		u32 a;
+		u32 a, a11, a12;
 		u32 idx1=3*i;
 		u32 idx2=3*i + 3;
 		//get alpha
-		a = surf_uv_alpha[idx1] + surf_uv_alpha[idx2];
+		a11 = surf_uv_alpha[idx1];
+		a12 = surf_uv_alpha[idx2];
+		a=a11+a12;
+
 		if (a) {
-			u32 cdst;
-			u32 chroma_u, chroma_v;
+			s32 cdst, chroma_u, chroma_v, c11, c12;
 
 			a /= 2;
 
 			//get cb
-			chroma_u = (u32)surf_uv_alpha[idx1+1] + (u32)surf_uv_alpha[idx2+1];
-			chroma_u /= 2;
-			//get cr
-			chroma_v = (u32)surf_uv_alpha[idx1+2] + (u32)surf_uv_alpha[idx2+2];
-			chroma_v /= 2;
-
-			if (a==0xFFFF) {
-				set_u16_le(pU, (u16) chroma_u);
-				set_u16_le(pV, (u16) chroma_v);
-			} else {
+			if (a!=0xFFFF)
 				get_u16_le(cdst, pU);
-				set_u16_le(pU, (u16) (mul_10(a, chroma_u - cdst) + cdst) );
 
+			c11 = (u32)surf_uv_alpha[idx1+1];
+			if (a11!=0xFFFF) c11 = mul_10_zero(a11, c11 - cdst) + cdst;
+			c12 = (u32)surf_uv_alpha[idx2+1];
+			if (a12!=0xFFFF) c12 = mul_10_zero(a12, c12 - cdst) + cdst;
+
+			chroma_u = c11 + c12;
+			chroma_u /= 2;
+			set_u16_le(pU, (u16) chroma_u);
+
+			//get cr
+			if (a!=0xFFFF)
 				get_u16_le(cdst, pV);
-				set_u16_le(pV, (u16) (mul_10(a, chroma_v - cdst) + cdst) );
-			}
+
+			c11 = (u32)surf_uv_alpha[idx1+2];
+			if (a11!=0xFFFF) c11 = mul_10_zero(a11, c11 - cdst) + cdst;
+			c12 = (u32)surf_uv_alpha[idx2+2];
+			if (a12!=0xFFFF) c12 = mul_10_zero(a12, c12 - cdst) + cdst;
+
+			chroma_v = c11 + c12;
+			chroma_v /= 2;
+			set_u16_le(pV, (u16) chroma_v);
 		}
 		pU++;
 		pV++;
