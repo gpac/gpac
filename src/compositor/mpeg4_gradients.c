@@ -214,16 +214,16 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 		memset(st->tx_data, 0, sizeof(char)*txh->stride*txh->height);
 
 		pix_fmt = GF_PIXEL_RGBA;
-		e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, pix_fmt, pix_fmt, 1);
+		e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, pix_fmt);
 		if (e) {
 			pix_fmt = GF_PIXEL_ARGB;
-			e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, pix_fmt, pix_fmt, 1);
+			e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, pix_fmt);
 		}
 	} else {
 		if (!st->tx_data) {
 			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
 		}
-		e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB, GF_PIXEL_RGB, 1);
+		e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
 		if (e) {
 			/*remember for later use*/
@@ -231,7 +231,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 			transparent = 1;
 			gf_free(st->tx_data);
 			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
-			e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
+			e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB);
 		}
 	}
 	st->txh.transparent = transparent;
@@ -407,17 +407,17 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 
 		pix_fmt = GF_PIXEL_RGBA;
 
-		e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, pix_fmt, pix_fmt, 1);
+		e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, pix_fmt);
 
 		if (e) {
 			pix_fmt = GF_PIXEL_ARGB;
-			e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, pix_fmt, pix_fmt, 1);
+			e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, pix_fmt);
 		}
 	} else {
 		if (!st->tx_data) {
 			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
 		}
-		e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB, GF_PIXEL_RGB, 1);
+		e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
 		if (e) {
 			/*remember for later use*/
@@ -425,7 +425,7 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 			transparent = 1;
 			gf_free(st->tx_data);
 			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
-			e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
+			e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB);
 		}
 	}
 	st->txh.transparent = transparent;

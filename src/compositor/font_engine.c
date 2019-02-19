@@ -737,7 +737,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	span->ext->txh->data = (char *) gf_malloc(sizeof(char)*span->ext->txh->stride*span->ext->txh->height);
 	memset(span->ext->txh->data, 0, sizeof(char)*span->ext->txh->stride*span->ext->txh->height);
 
-	gf_evg_stencil_set_texture(stencil, span->ext->txh->data, span->ext->txh->width, span->ext->txh->height, span->ext->txh->stride, span->ext->txh->pixelformat, span->ext->txh->pixelformat, 1);
+	gf_evg_stencil_set_texture(stencil, span->ext->txh->data, span->ext->txh->width, span->ext->txh->height, span->ext->txh->stride, span->ext->txh->pixelformat);
 	gf_evg_surface_attach_to_texture(surface, stencil);
 
 	brush = gf_evg_stencil_new(GF_STENCIL_SOLID);

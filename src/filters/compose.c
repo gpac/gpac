@@ -91,7 +91,7 @@ static GF_Err compose_process(GF_Filter *filter)
 
 	gf_sc_draw_frame(ctx, GF_FALSE, &ms_until_next);
 
-	if (!ctx->player_mode) {
+	if (!ctx->player) {
 		/*remember to check for eos*/
 		if (ctx->dur<0) {
 			if (ctx->frame_number >= (u32) -ctx->dur)
@@ -344,33 +344,52 @@ static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 	Bool needs_reconfigure = GF_FALSE;
 	GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
 
-	if (ctx->vout == pid) return GF_NOT_SUPPORTED;
-	if (ctx->audio_renderer->aout != pid) return GF_NOT_SUPPORTED;
+	if (ctx->vout == pid) {
+		u32 w, h;
+		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_PIXFMT);
+		if (p) ctx->opfmt = p->value.uint;
 
-	gf_mixer_get_config(ctx->audio_renderer->mixer, &sr, &nb_ch, &o_fmt, &cfg);
-	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_SAMPLE_RATE);
-	if (p && (p->value.uint != sr)) {
-		sr = p->value.uint;
-		needs_reconfigure = GF_TRUE;
-	}
-	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_NUM_CHANNELS);
-	if (p && (p->value.uint != nb_ch)) {
-		nb_ch = p->value.uint;
-		needs_reconfigure = GF_TRUE;
-	}
-	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_AUDIO_FORMAT);
-	if (p) afmt = p->value.uint;
-	else afmt = GF_AUDIO_FMT_S16;
+		w = h = 0;
+		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_WIDTH);
+		if (p) w = p->value.uint;
+		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_HEIGHT);
+		if (p) h = p->value.uint;
 
-	if (o_fmt != afmt) {
-		needs_reconfigure = GF_TRUE;
+		if (w && h) {
+			ctx->size.x = w;
+			ctx->size.y = h;
+		}
+		return GF_OK;
 	}
-	if (!needs_reconfigure) return GF_OK;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Compositor] Audio output caps negotiated to %d Hz %d channels %s \n", sr, nb_ch, gf_audio_fmt_name(afmt) ));
-	gf_mixer_set_config(ctx->audio_renderer->mixer, sr, nb_ch, afmt, 0);
-	ctx->audio_renderer->need_reconfig = GF_TRUE;
-	return GF_OK;
+	if (ctx->audio_renderer->aout == pid) {
+
+		gf_mixer_get_config(ctx->audio_renderer->mixer, &sr, &nb_ch, &o_fmt, &cfg);
+		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_SAMPLE_RATE);
+		if (p && (p->value.uint != sr)) {
+			sr = p->value.uint;
+			needs_reconfigure = GF_TRUE;
+		}
+		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_NUM_CHANNELS);
+		if (p && (p->value.uint != nb_ch)) {
+			nb_ch = p->value.uint;
+			needs_reconfigure = GF_TRUE;
+		}
+		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_AUDIO_FORMAT);
+		if (p) afmt = p->value.uint;
+		else afmt = GF_AUDIO_FMT_S16;
+
+		if (o_fmt != afmt) {
+			needs_reconfigure = GF_TRUE;
+		}
+		if (!needs_reconfigure) return GF_OK;
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Compositor] Audio output caps negotiated to %d Hz %d channels %s \n", sr, nb_ch, gf_audio_fmt_name(afmt) ));
+		gf_mixer_set_config(ctx->audio_renderer->mixer, sr, nb_ch, afmt, 0);
+		ctx->audio_renderer->need_reconfig = GF_TRUE;
+		return GF_OK;
+	}
+	return GF_NOT_SUPPORTED;
 }
 
 static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -496,7 +515,11 @@ static GF_FilterArgs CompositorArgs[] =
 			"\tno: disable bounding box\n"\
 			"\tbox: draws a rectangle (2D) or box (3D mode)\n"\
 			"\taabb: draws axis-aligned bounding-box tree (3D only)", GF_PROP_UINT, "no", "no|box|aabb", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(textxt), "specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text rendering in 3D and also improve text-on-video like content. Default value will use texturing for OpenGL rendering.", GF_PROP_UINT, "default", "default|never|always", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(textxt), "specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text rendering in 3D and also improve text-on-video like content. Possible values are:\n"\
+		"\tdefault: use texturing for OpenGL rendering, no texture for 2D rasterizer\n"\
+		"\tnever: never uses text textures\n"\
+		"\talways: always render text to texture before drawing\n"\
+		"", GF_PROP_UINT, "default", "default|never|always", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(out8b), "converts 10-bit video to 8 bit texture before GPU upload.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(drop), "drops late frame when drawing. By default frames are not droped until a heavy desync of 1 sec is observed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(sclock), "forces synchronizing all streams on a single clock", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
@@ -508,9 +531,13 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(autofps), "uses video input fps for output. If no video or not set, uses fps option. Ignored in player mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(vfr), "only emits frames when changes are detected. Always true in player mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
-	{ OFFS(dur), "duration of dump when no video is present. Negative values mean number of frames, positive values duration in second, 0 stops as soon as all streams are done.", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(dur), "duration of generation. Mostly used when no video input is present. Negative values mean number of frames, positive values duration in second, 0 stops as soon as all streams are done.", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fsize), "Forces the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(mode2d), "specifies whether immediate drawing should be used or not. In immediate mode, the screen is completely redrawn at each frame. In defer mode object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer. Whether the setting is applied or not depends on the graphics module (currently all modules handle both mode). debug mode only renders changed areas.", GF_PROP_UINT, "defer", "defer|immediate|debug", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mode2d), "specifies whether immediate drawing should be used or not. Possible values are:\n"\
+	"\timmediate: the screen is completely redrawn at each frame (always on if passthrough mode is detected).\n"\
+	"\tdefer: object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer.\n"\
+	"\tdebug: only renders changed areas, reseting other areas\n"\
+	 "Whether the setting is applied or not depends on the graphics module and player mode.", GF_PROP_UINT, "defer", "defer|immediate|debug", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(amc), "audio multichannel support; if disabled always downmix to stereo. usefull if the multichannel output doesn't work properly", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(asr), "forces output sample rate - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ach), "forces output channels - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -540,7 +567,11 @@ static GF_FilterArgs CompositorArgs[] =
 	"\tyes: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations\n"\
 	"\tno: video is resized to a power of 2 texture when mapping to a shape", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(paa), "specifies whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(bcull), "specifies whether backface culling shall be disable or not.", GF_PROP_UINT, "on", "off|on|alpha", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(bcull), "specifies whether backface culling shall be disable or not. Possible values are:\n"\
+				"\ton: enables backface culling\n"\
+				"\toff: disables backface culling\n"\
+				"\talpha: only enables backface culling for transparent meshes\n"\
+		"", GF_PROP_UINT, "on", "off|on|alpha", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(wire), "enables wireframe mode.\n"\
 	"\"none\": objects are drawn as solid\n"\
     "\"only\": objects are drawn as wireframe only\n"\
@@ -568,7 +599,8 @@ static GF_FilterArgs CompositorArgs[] =
 		"\"rows\": images are interleaved by columns, left view on even rows and left view on odd rows (forces views=2).\n"\
 		"\"spv5\": images are interleaved by for SpatialView 19'' 5 views display, fullscreen mode (forces views=5).\n"\
 		"\"alio8\": images are interleaved by for Alioscopy 8 views displays, fullscreen mode (forces views=8).\n"\
-		"\"custom\": images are interleaved according to the shader file indicated in gpac config section Video, key InterleaverShader. The shader is exposed each view as uniform sampler2D gfViewX, where X is the view number starting from the left", GF_PROP_UINT, "none", "none|top|side|hmd|custom|cols|rows|ana|spv5|alio8", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+		"\"custom\": images are interleaved according to the shader file indicated in mvsgader option. The shader is exposed each view as uniform sampler2D gfViewX, where X is the view number starting from the left", GF_PROP_UINT, "none", "none|top|side|hmd|custom|cols|rows|ana|spv5|alio8", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mvshader), "indicates file path to the custom multiview interleaving shader", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fpack), "indicates default frame packing of input video", GF_PROP_UINT, "none", "none|top|side", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(camlay), "sets camera layout in multiview modes", GF_PROP_UINT, "offaxis", "straight|offaxis|linear|circular", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(iod), "specifies the inter-occular distance (eye separation) in cm (distance between the cameras). ", GF_PROP_FLOAT, "6.4", NULL, GF_FS_ARG_UPDATE},
@@ -600,12 +632,13 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(size), "force output size. If not set, size is derived from inputs", GF_PROP_VEC2I, "0x0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dpi), "default dpi if not indicated by video output", GF_PROP_VEC2I, "96x96", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dbgpvr), "debug scene used by PVR addon", GF_PROP_FLOAT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(opfmt), "pixel format to use for output. Ignored in player mode", GF_PROP_PIXFMT, "rgb", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(player), "sets compositor in player mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(opfmt), "pixel format to use for output. Ignored in player mode", GF_PROP_PIXFMT, "none", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(drv), "indicates if graphics driver should be used. Ignored in player mode. Allowed values are:\n"\
 				"\tno: never loads a graphics driver (software blitting used, no 3D possible)\n"\
 				"\tyes: always loads a graphics driver. Output pixel format will be RGB.\n"\
 				"\tauto: decides based on the loaded content.\n"\
-			, GF_PROP_UINT, "auto", "no|yes|auto", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+			, GF_PROP_UINT, "auto", "no|yes|auto", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -623,14 +656,23 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.name = "compositor",
 	GF_FS_SET_DESCRIPTION("GPAC interactive media compositor")
 	GF_FS_SET_HELP("The GPAC compositor allows mixing audio, video, text and graphics in a timed fashion.\n"\
-	"The compositor acts as a pseudo-sink for the video side and creates its own output window in player mode or whenever a display driver is enforced.\n"\
-	"The video frames are however dispatched to an output video pid in the form of frame pointers requiring later GPU read if used.\n"\
+	"The filter is explicit only and is never loaded during link resolution.\n"
+	"The compositor operates either in player or non-player mode.\n"\
+	"\n"\
+	"In player mode, the compositor acts as a pseudo-sink for the video side and creates its own output window.\n"\
+	"The video frames are dispatched to the output video pid in the form of frame pointers requiring later GPU read if used.\n"\
 	"The audio part acts as a regular filter.\n"\
 	"\n"\
-	"The filter is explicit only and is never loaded during link resolution\n"
-	"When used outside of the player, the filter will generate its outputs based on the input video frames.\n"\
+	"In non-player mode, the compositor acts as a regular filter generating frames based on the scene loaded.\n"\
+	"It will generate its outputs based on the input video frames.\n"\
 	"If no input video frames (e.g. pure BIFS / SVG / VRML), the filter will generate frames based on the fps option, at constant or variable frame rate.\n"\
-	"It will stop generating frame as soon as all input streams are done, unless extended/reduced by the dur option.\n"
+	"It will stop generating frames as soon as all input streams are done, unless extended/reduced by the dur option.\n"
+	"In non-player mode, the special URL 'gpid://' is used to locate PIDs in the scene description, in order to design scenes independently from source media.\n"\
+	"When such a pid is associated to a Background2D node in BIFS, the compositor operates in passthrough mode.\n"\
+	"In this mode, only new input frames on the passthrough pid will generate new frames.\n"\
+	"The output size and pixel format will be set to the input size and pixel format, unless specified otherwise in the filter options.\n"\
+	"If only 2D graphics are used and display driver is not forced, 2D rasterizer will happen in the output pixel format (including YUV pixel formats).\n"\
+	"In this case, inplace processing (rasterizing over the input frame data) will be used whenever allowed by input data.\n"\
 	)
 	.private_size = sizeof(GF_Compositor),
 	.flags = GF_FS_REG_MAIN_THREAD | GF_FS_REG_EXPLICIT_ONLY,

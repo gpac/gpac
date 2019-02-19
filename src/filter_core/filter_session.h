@@ -653,7 +653,7 @@ typedef struct
 //structure for input pids, in order to handle fan-outs of a pid into several filters
 struct __gf_filter_pid_inst
 {
-	//first two fileds are the same as in GF_FilterPid for typecast
+	//first two fields are the same as in GF_FilterPid for typecast
 	struct __gf_filter_pid *pid; // source pid
 	GF_Filter *filter;
 
@@ -713,7 +713,7 @@ struct __gf_filter_pid_inst
 
 struct __gf_filter_pid
 {
-	//first two fileds are the same as in GF_FilterPidInst for typecast
+	//first two fields are the same as in GF_FilterPidInst for typecast
 	struct __gf_filter_pid *pid; //self if output pid, or source pid if output
 	GF_Filter *filter;
 

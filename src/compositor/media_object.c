@@ -324,6 +324,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	u32 timescale=0;
 	u64 pck_ts=0, next_ts=0;
 	u32 retry_pull;
+	Bool is_first = GF_FALSE;
 	Bool move_to_next_only = GF_FALSE;
 
 	*eos = GF_FALSE;
@@ -374,6 +375,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 			gf_filter_pck_ref(&mo->pck);
 			gf_filter_pid_drop_packet(mo->odm->pid);
 		}
+		is_first = GF_TRUE;
 	}
 	*eos = mo->is_eos;
 	assert(mo->pck);
@@ -493,15 +495,14 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	}
 
 	if (skip_resync) {
-		Bool is_passthrough = GF_FALSE;
 		resync=GF_MO_FETCH; //prevent resync code below
 		if (mo->odm->parentscene->compositor->use_step_mode) upload_time_ms=0;
-//		if ((mo->odm->flags&GF_ODM_PASSTHROUGH) && !mo->odm->parentscene->compositor->player_mode) is_passthrough = GF_TRUE;
+
 		//we are in no resync mode, drop current frame once played and object time just matured
 		//do it only if clock is started or if compositor step mode is set
 		//the time threshold for fecthing is given by the caller
-		if ( (gf_clock_is_started(mo->odm->ck) || mo->odm->parentscene->compositor->use_step_mode || is_passthrough)
-			&& (mo->timestamp==pck_ts) && next_ts && ( (next_ts <= 1 + obj_time + upload_time_ms) || (next_ts <= 1 + obj_time_orig + upload_time_ms)  || is_passthrough) )
+		if ( (gf_clock_is_started(mo->odm->ck) || mo->odm->parentscene->compositor->use_step_mode)
+			&& (mo->timestamp==pck_ts) && next_ts && ( (next_ts <= 1 + obj_time + upload_time_ms) || (next_ts <= 1 + obj_time_orig + upload_time_ms) ) )
 		{
 			//drop current and go to next - we use the same loop as regular resync below
 			resync = GF_MO_FETCH_RESYNC;
@@ -598,8 +599,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	if (mo->ms_until_next>500)
 		mo->ms_until_next=500;
 
-	if (mo->timestamp != pck_ts) {
-		mo->frame_dur = gf_filter_pck_get_duration(mo->pck);
+	if ((mo->timestamp != pck_ts) || is_first) {
+		u64 dur = gf_filter_pck_get_duration(mo->pck);
+		dur *= 1000;
+		dur /= timescale;
+		mo->frame_dur = (u32) dur;
 		mo->last_fetch_time = obj_time;
 
 		if (mo->odm->media_current_time <= mo->timestamp)

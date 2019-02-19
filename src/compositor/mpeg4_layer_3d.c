@@ -264,7 +264,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 
 	/*set stencil texture - we don't check error as an image could not be supported by the rasterizer
 	but still supported by the blitter (case of RGBD/RGBDS)*/
-	gf_evg_stencil_set_texture(stencil, st->txh.data, st->txh.width, st->txh.height, st->txh.stride, st->txh.pixelformat, st->txh.pixelformat, 0);
+	gf_evg_stencil_set_texture(stencil, st->txh.data, st->txh.width, st->txh.height, st->txh.stride, st->txh.pixelformat);
 
 #ifdef GPAC_USE_TINYGL
 	/*create TinyGL offscreen context*/

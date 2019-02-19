@@ -273,6 +273,11 @@ Bool gf_sc_fit_world_to_screen(GF_Compositor *compositor)
 	camera_set_vectors(cam, pos, cam->vp_orientation, cam->fieldOfView);
 	cam->position = diff;
 	camera_move_to(cam, pos, cam->target, cam->up);
+	if (!compositor->player) {
+		camera_stop_anim(cam);
+		camera_set_vectors(cam, cam->end_pos, cam->end_ori, cam->end_fov);
+	}
+
 	cam->examine_center = tr_state.bbox.center;
 	cam->flags |= CF_STORE_VP;
 	if (cam->z_far < dist) cam->z_far = 10*dist;

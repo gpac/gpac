@@ -732,14 +732,9 @@ void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 			break;
 
 		case GF_3D_STEREO_CUSTOM:
-		{
-			const char *sOpt = gf_opts_get_key("core", "mv-interleave-shader");
-			if (sOpt) {
-				visual->autostereo_glsl_fragment = visual_3d_shader_from_source_file(sOpt, GL_FRAGMENT_SHADER);
-				if (visual->autostereo_glsl_fragment) res = GF_TRUE;
-			}
-		}
-		break;
+			visual->autostereo_glsl_fragment = visual_3d_shader_from_source_file(visual->compositor->mvshader, GL_FRAGMENT_SHADER);
+			if (visual->autostereo_glsl_fragment) res = GF_TRUE;
+			break;
 		}
 	}
 

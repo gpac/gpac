@@ -155,7 +155,22 @@ GF_Err gf_evg_stencil_set_alpha(GF_EVGStencil *stencil, u8 alpha);
 NOTE: this stencil acts as a data wrapper, the pixel data is not required to be locally copied
 data is not required to be available for texturing until the stencil is used in a draw operation
 */
-GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy);
+GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat);
+
+/*set stencil texture
+	@pixels: texture data, from top to bottom
+	@width, @height: texture size
+	@stride: texture horizontal pitch (bytes to skip to get to next row)
+	@pixelFormat: texture pixel format as defined in file constants.h
+	@destination_format_hint: this is the current pixel format of the destination surface, and is given
+	as a hint in case the texture needs to be converted by the stencil
+	@no_copy: if set, specifies the texture data shall not be cached by the module (eg it must be able
+	to directly modify the given memory
+NOTE: this stencil acts as a data wrapper, the pixel data is not required to be locally copied
+data is not required to be available for texturing until the stencil is used in a draw operation
+*/
+GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, const char *y_or_rgb, u32 stride, const char *u_plane, const char *v_plane, u32 uv_stride, const char *alpha_plane);
+
 
 /*sets texture tile mode*/
 GF_Err gf_evg_stencil_set_tiling(GF_EVGStencil *stencil, GF_TextureTiling mode);

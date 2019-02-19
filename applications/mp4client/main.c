@@ -118,28 +118,7 @@ u32 init_h = 0;
 u32 last_x, last_y;
 Bool right_down = GF_FALSE;
 
-void dump_frame(GF_Terminal *term, char *rad_path, u32 dump_type, u32 frameNum);
-
-enum
-{
-	DUMP_NONE = 0,
-	DUMP_AVI = 1,
-	DUMP_BMP = 2,
-	DUMP_PNG = 3,
-	DUMP_RAW = 4,
-	DUMP_SHA1 = 5,
-
-	//DuMP flags
-	DUMP_DEPTH_ONLY = 1<<16,
-	DUMP_RGB_DEPTH = 1<<17,
-	DUMP_RGB_DEPTH_SHAPE = 1<<18
-};
-
-u32 dump_mode = DUMP_NONE;
 Float scale = 1;
-
-Bool dump_file(char *the_url, char *out_url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times);
-
 
 static Bool shell_visible = GF_TRUE;
 void hide_shell(u32 cmd_type)
@@ -212,26 +191,6 @@ void PrintUsage()
 	        "\t-no-addon:      disable automatic loading of media addons declared in source URL\n"
 	        "\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
 	        "\t-ntp-shift T:   shifts NTP clock of T (signed int) milliseconds\n"
-	        "\n"
-	        "Dumper Options (times is a formated as start-end, with start being sec, h:m:s:f/fps or h:m:s:ms):\n"
-	        "\t-bmp [times]:   dumps given frames to bmp\n"
-	        "\t-png [times]:   dumps given frames to png\n"
-	        "\t-raw [times]:   dumps given frames to raw\n"
-	        "\t-avi [times]:   dumps given file to raw avi\n"
-	        "\t-sha [times]:   dumps given file to raw SHA-1 (1 hash per frame)\n"
-	        "\r-out filename:  name of the output file\n"
-	        "\t-rgbds:         dumps the RGBDS pixel format texture\n"
-	        "\t                 with -avi [times]: dumps an rgbds-format .avi\n"
-	        "\t-rgbd:          dumps the RGBD pixel format texture\n"
-	        "\t                 with -avi [times]: dumps an rgbd-format .avi\n"
-	        "\t-depth:         dumps depthmap (z-buffer) frames\n"
-	        "\t                 with -avi [times]: dumps depthmap in grayscale .avi\n"
-	        "\t                 with -bmp: dumps depthmap in grayscale .bmp\n"
-	        "\t                 with -png: dumps depthmap in grayscale .png\n"
-	        "\t-fps FPS:       specifies frame rate for AVI dumping (default: %f)\n"
-	        "\t-scale s:       scales the visual size (default: 1)\n"
-	        "\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
-	        "\t-show:          shows window while dumping (default: no)\n"
 	        "\n"
 	        "\t-uncache:       Revert all cached items to their original name and location. Does not start player.\n"
 	        "\n"
@@ -800,7 +759,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVENT_SCENE_SIZE:
 
-		if ((forced_width && forced_height) || scale || dump_mode) {
+		if ((forced_width && forced_height) || scale) {
 			GF_Event size;
 			u32 nw = forced_width ? forced_width : evt->size.width;
 			u32 nh = forced_height ? forced_height : evt->size.height;
@@ -808,13 +767,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			if (scale != 1) {
 				nw  = (u32)(nw * scale);
 				nh = (u32)(nh * scale);
-			}
-			if (dump_mode) {
-				/*we work in RGB24, and we must make sure the pitch is %4*/
-				if ((nw*3)%4) {
-					fprintf(stderr, "Adjusting width (%d) to have a stride multiple of 4\n", nw);
-					while ((nw*3)%4) nw--;
-				}
 			}
 			if ((nw != evt->size.width) || (nh != evt->size.height)) {
 				size.type = GF_EVENT_SIZE;
@@ -1237,37 +1189,6 @@ int mp4client_main(int argc, char **argv)
 		else if (!stricmp(arg, "-fps")) {
 			fps = atof(argv[i+1]);
 			i++;
-		} else if (!strcmp(arg, "-avi") || !strcmp(arg, "-sha")) {
-			dump_mode &= 0xFFFF0000;
-
-			if (!strcmp(arg, "-sha")) dump_mode |= DUMP_SHA1;
-			else dump_mode |= DUMP_AVI;
-
-			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) {
-				if (!strcmp(arg, "-avi") && (nb_times!=2) ) {
-					fprintf(stderr, "Only one time arg found for -avi - check usage\n");
-					return 1;
-				}
-				i++;
-			}
-		} else if (!strcmp(arg, "-rgbds")) { /*get dump in rgbds pixel format*/
-				dump_mode |= DUMP_RGB_DEPTH_SHAPE;
-		} else if (!strcmp(arg, "-rgbd")) { /*get dump in rgbd pixel format*/
-				dump_mode |= DUMP_RGB_DEPTH;
-		} else if (!strcmp(arg, "-depth")) {
-				dump_mode |= DUMP_DEPTH_ONLY;
-		} else if (!strcmp(arg, "-bmp")) {
-			dump_mode &= 0xFFFF0000;
-			dump_mode |= DUMP_BMP;
-			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-		} else if (!strcmp(arg, "-png")) {
-			dump_mode &= 0xFFFF0000;
-			dump_mode |= DUMP_PNG;
-			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-		} else if (!strcmp(arg, "-raw")) {
-			dump_mode &= 0xFFFF0000;
-			dump_mode |= DUMP_RAW;
-			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
 		} else if (!stricmp(arg, "-scale")) {
 			sscanf(argv[i+1], "%f", &scale);
 			i++;
@@ -1361,21 +1282,6 @@ int mp4client_main(int argc, char **argv)
 		return 0;
 	}
 
-	if (dump_mode && !url_arg ) {
-		FILE *test;
-		url_arg = (char *)gf_opts_get_key("General", "StartupFile");
-		test = url_arg ? gf_fopen(url_arg, "rt") : NULL;
-		if (!test) url_arg = NULL;
-		else gf_fclose(test);
-		
-		if (!url_arg) {
-			fprintf(stderr, "Missing argument for dump\n");
-			PrintUsage();
-			if (logfile) gf_fclose(logfile);
-			return 1;
-		}
-	}
-
 	if (!gui_mode && !url_arg && (gf_opts_get_key("General", "StartupFile") != NULL)) {
 		gui_mode=1;
 	}
@@ -1410,8 +1316,6 @@ int mp4client_main(int argc, char **argv)
 #endif
 
 
-	if (dump_mode) rti_file = NULL;
-
 	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
 
 	{
@@ -1421,24 +1325,14 @@ int mp4client_main(int argc, char **argv)
 	}
 
 
-	/*setup dumping options*/
-	if (dump_mode) {
-		if (!visible)
-			user.init_flags |= GF_TERM_INIT_HIDE;
-		no_cfg_save=GF_TRUE;
-	} else {
-		init_w = forced_width;
-		init_h = forced_height;
-	}
+	init_w = forced_width;
+	init_h = forced_height;
 
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = &user;
 
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;	
-
-	//in dump mode we don't want to rely on system clock but on the number of samples being consumed
-	if (dump_mode) user.init_flags |= GF_TERM_NO_DEF_AUDIO_OUT;
 
 	if (bench_mode) {
 		gf_opts_discard_changes();
@@ -1474,13 +1368,8 @@ int mp4client_main(int argc, char **argv)
 		if (bench_mode==1) bench_mode=2;
 	}
 
-	if (dump_mode) {
-//		gf_term_set_option(term, GF_OPT_VISIBLE, 0);
-		if (fill_ar) gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN);
-	} else {
-		str = gf_opts_get_key("General", "NoMIMETypeFetch");
-		no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
-	}
+	str = gf_opts_get_key("General", "NoMIMETypeFetch");
+	no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
 
 	if (gf_opts_get_bool("core", "proxy-on")) {
 		str = gf_opts_get_key("core", "proxy-name");
@@ -1499,15 +1388,7 @@ int mp4client_main(int argc, char **argv)
 
 	Run = 1;
 
-	if (dump_mode) {
-		if (!nb_times) {
-			times[0] = 0;
-			nb_times++;
-		}
-		ret_val = dump_file(url_arg, out_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
-		Run = 0;
-	}
-	else if (views) {
+	if (views) {
 	}
 	else if (url_arg && !strcmp(url_arg, "NOGUI")) {
 		url_arg = NULL;

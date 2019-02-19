@@ -252,8 +252,6 @@ struct __tag_compositor
 
 	Bool video_setup_failed;
 
-	Bool player_mode;
-
 	//dur config option
 	Double dur;
 	//simulation frame rate option
@@ -320,16 +318,34 @@ struct __tag_compositor
 	/*freeze_display prevents any screen updates - needed when output driver uses direct video memory access*/
 	Bool is_hidden, freeze_display;
 
+	//player option, by default disabled. In player mode the video driver is always loaded
+	//and no passthrough checks are done
+	Bool player;
+	//output pixel format option for passthrough mode, none by default
 	u32 opfmt;
+	//allocated framebuffer and size for passthrough mode
 	char *framebuffer;
 	u32 framebuffer_size;
 
+	//passthrough texture object - only assigned by background2D
 	struct _gf_sc_texture_handler *passthrough_txh;
-	char *passthrough_data;
-	u32 last_pfmt, passthrough_timescale;
+	//passthrough packet - this is only created if the associated input packet doesn't use frame interface
+	//the packet might be using the same buffer as the input data
+	//otherwise, the resulting packet needs to be created from the framebuffer
 	GF_FilterPacket *passthrough_pck;
-	//set if matching size and pixel format for input packet and output framebuffer
+	//data associated with the passthrough output - can be the same pointer as input packet or a clone
+	char *passthrough_data;
+	//timescale of the passthrough pid
+	u32 passthrough_timescale;
+	//pixel format of the passthrough pid at last emitted frame
+	u32 passthrough_pfmt;
+	//set if inplace processing is used:
+	//- matching size and pixel format for input packet and output framebuffer
+	//- inplace data processing (will skip background texture blit)
 	Bool passthrough_inplace;
+	//set to true if passthrough object is buffering, in whcih case scene clock has to be updated
+	//once buffering is done
+	Bool passthrough_check_buffer;
 
 	//debug non-immediate mode ny erasing the parts that would have been drawn
 	Bool debug_defer;
@@ -409,6 +425,7 @@ struct __tag_compositor
 	u32 views, stereo, camlay;
 	Bool rview;
 	Fixed dispdist;
+	char *mvshader;
 
 	GF_PropVec2i size, dpi;
 
@@ -786,7 +803,7 @@ typedef struct _gf_sc_texture_handler
 	/*image data for natural media*/
 	char *data;
 	//we need a local copy of width/height/etc since some textures may be defined without a stream object
-	u32 size, width, height, pixelformat, pixel_ar, stride, stride_chroma;
+	u32 size, width, height, pixelformat, pixel_ar, stride, stride_chroma, nb_planes;
 	Bool is_flipped;
 
 	GF_FilterHWFrame *hw_frame;

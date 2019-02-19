@@ -418,7 +418,7 @@ static GF_Err rawvout_lock(struct _video_out *vout, GF_VideoSurface *vi, Bool do
 		vi->width = compositor->display_width;
 		vi->height = compositor->display_height;
 		gf_pixel_get_size_info(pfmt, compositor->display_width, compositor->display_height, NULL, &vi->pitch_y, NULL, NULL, NULL);
-		if (compositor->passthrough_txh && (pfmt == compositor->passthrough_txh->pixelformat)) {
+		if (compositor->passthrough_txh && !compositor->passthrough_txh->hw_frame && (pfmt == compositor->passthrough_txh->pixelformat)) {
 			if (!compositor->passthrough_pck)
 				compositor->passthrough_pck = gf_filter_pck_new_clone(compositor->vout, compositor->passthrough_txh->stream->pck, &compositor->passthrough_data);
 
@@ -429,7 +429,7 @@ static GF_Err rawvout_lock(struct _video_out *vout, GF_VideoSurface *vi, Bool do
 		}
 		vi->pitch_x = gf_pixel_get_bytes_per_pixel(pfmt);
 		vi->pixel_format = pfmt;
-		compositor->last_pfmt = pfmt;
+		compositor->passthrough_pfmt = pfmt;
 	}
 	return GF_OK;
 }
@@ -443,6 +443,7 @@ static GF_Err rawvout_evt(struct _video_out *vout, GF_Event *evt)
 	pfmt = compositor->opfmt;
 	if (!pfmt) pfmt = GF_PIXEL_RGB;
 
+	compositor->passthrough_pfmt = pfmt;
 	gf_pixel_get_size_info(pfmt, evt->setup.width, evt->setup.height, &compositor->framebuffer_size, NULL, NULL, NULL, NULL);
 
 	compositor->framebuffer = gf_realloc(compositor->framebuffer, sizeof(char)*compositor->framebuffer_size);
@@ -465,9 +466,9 @@ GF_VideoOutput raw_vout = {
 void gf_sc_setup_passthrough(GF_Compositor *compositor)
 {
 	u32 timescale;
+	Bool is_raw_out = GF_FALSE;
 	u32 update_pfmt = 0;
 	compositor->passthrough_inplace = GF_FALSE;
-	if (compositor->video_out != &raw_vout) return;
 
 	if (!compositor->passthrough_txh) {
 		compositor->passthrough_timescale = 0;
@@ -485,21 +486,31 @@ void gf_sc_setup_passthrough(GF_Compositor *compositor)
 			update_pfmt = GF_PIXEL_RGB;
 		}
 	}
-	if (!compositor->opfmt || (compositor->opfmt == compositor->passthrough_txh->pixelformat)) {
-		compositor->passthrough_inplace = GF_TRUE;
-		update_pfmt = GF_FALSE;
-		if (!compositor->opfmt && (compositor->last_pfmt != compositor->passthrough_txh->pixelformat)) {
-			compositor->last_pfmt = compositor->passthrough_txh->pixelformat;
-			gf_filter_pid_copy_properties(compositor->vout, compositor->passthrough_txh->stream->odm->pid);
+	if (compositor->video_out == &raw_vout) {
+		is_raw_out = GF_TRUE;
+		if (!compositor->opfmt || (compositor->opfmt == compositor->passthrough_txh->pixelformat) ) {
+			if (!compositor->passthrough_txh->hw_frame) {
+				compositor->passthrough_inplace = GF_TRUE;
+				update_pfmt = GF_FALSE;
+			}
+			if (!compositor->opfmt && (compositor->passthrough_pfmt != compositor->passthrough_txh->pixelformat)) {
+				compositor->passthrough_pfmt = compositor->passthrough_txh->pixelformat;
+				gf_filter_pid_copy_properties(compositor->vout, compositor->passthrough_txh->stream->odm->pid);
+			}
 		}
 	}
+
 	if (update_pfmt) {
-		u32 stride=0, stride_uv=0;
-		gf_pixel_get_size_info(update_pfmt, compositor->display_width, compositor->display_width, NULL, &stride, &stride_uv, NULL, NULL);
+		u32 stride=0, stride_uv=0, out_size=0;
+		gf_pixel_get_size_info(update_pfmt, compositor->display_width, compositor->display_width, &out_size, &stride, &stride_uv, NULL, NULL);
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(update_pfmt));
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE, &PROP_UINT(stride));
-		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE_UV, &PROP_UINT(stride_uv));
+		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE_UV, stride_uv ? &PROP_UINT(stride_uv) : NULL);
 
+		if (is_raw_out && !compositor->passthrough_inplace && (compositor->framebuffer_size != out_size) ) {
+			compositor->framebuffer_size = out_size;
+			compositor->framebuffer = gf_realloc(compositor->framebuffer, out_size);
+		}
 	}
 }
 
@@ -585,16 +596,13 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 		compositor->msg_type |= GF_SR_CFG_SET_SIZE;
 	}
 
-	if (compositor->init_flags & GF_TERM_INIT_VIDEO)
-		compositor->player_mode = GF_TRUE;
-	else
+	if (!compositor->player)
 		compositor->init_flags = GF_TERM_INIT_HIDE;
-
 
 	if (compositor->init_flags & GF_TERM_NO_VIDEO) {
 		compositor->video_out = &null_vout;
 		compositor->ogl = GF_SC_GLMODE_OFF;
-	} else if ((compositor->init_flags & GF_TERM_INIT_VIDEO) || (compositor->drv==GF_SC_DRV_ON) ){
+	} else if (compositor->player || (compositor->drv==GF_SC_DRV_ON) ){
 		GF_Err e;
 
 		e = gf_sc_load_driver(compositor);
@@ -899,8 +907,13 @@ void gf_sc_unload(GF_Compositor *compositor)
 void gf_sc_set_fps(GF_Compositor *compositor, GF_Fraction fps)
 {
 	if (fps.den) {
+		u64 dur;
 		compositor->fps = fps;
-		compositor->frame_duration = (u32) (1000 * fps.num)/fps.den;
+		dur = fps.den;
+		dur *= 1000;
+		dur /= fps.num;
+
+		compositor->frame_duration = (u32) dur;
 		gf_sc_reset_framerate(compositor);
 
 		if (compositor->vout && !compositor->timescale) {
@@ -940,7 +953,7 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 
 u32 gf_sc_get_clock(GF_Compositor *compositor)
 {
-	if (!compositor->bench_mode && compositor->player_mode) {
+	if (!compositor->bench_mode && compositor->player) {
 		return gf_sc_ar_get_clock(compositor->audio_renderer);
 	}
 	return compositor->scene_sampled_clock;
@@ -2217,8 +2230,10 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 				else count=n_count;
 			}
 		}
-		if (compositor->passthrough_txh)
+		if (compositor->passthrough_txh) {
+			gf_sc_setup_passthrough(compositor);
 			compositor->traverse_state->immediate_draw = 1;
+		}
 
 		if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1)) {
 			/*android backend uses opengl without telling it to us, we need an ugly hack here ...*/
@@ -2253,6 +2268,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 
 
 #ifndef GPAC_DISABLE_LOG
+//defined in smil_anim ...
 extern u32 time_spent_in_anim;
 #endif
 
@@ -2322,7 +2338,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 	if (compositor->freeze_display) {
 		gf_sc_lock(compositor, 0);
-		if (!compositor->bench_mode && compositor->player_mode) {
+		if (!compositor->bench_mode && compositor->player) {
 			compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
 		}
 		return;
@@ -2381,7 +2397,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	event_time = gf_sys_clock() - event_time;
 #endif
 
-	if (compositor->player_mode) {
+	if (compositor->player) {
 		if (!compositor->bench_mode) {
 			compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
 		} else {
@@ -2487,11 +2503,19 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	texture_time = gf_sys_clock() - texture_time;
 #endif
 
-	if (!compositor->player_mode) {
-		if (compositor->passthrough_txh && compositor->passthrough_txh->hw_frame)
+	if (!compositor->player) {
+		if (compositor->passthrough_txh && compositor->passthrough_txh->hw_frame && !compositor->passthrough_txh->hw_frame->get_plane) {
 			compositor->passthrough_txh = NULL;
+		}
+
 		if (compositor->passthrough_txh && compositor->passthrough_txh->width && compositor->passthrough_txh->needs_refresh) {
 			compositor->scene_sampled_clock = compositor->passthrough_txh->last_frame_time/* + dur*/;
+		}
+		//we were buffering and are now no longer, update scene clock
+		if (compositor->passthrough_txh && compositor->passthrough_check_buffer && !gf_mo_is_buffering(compositor->passthrough_txh->stream)) {
+			u32 dur = gf_mo_get_min_frame_dur(compositor->passthrough_txh->stream);
+			compositor->passthrough_check_buffer = GF_FALSE;
+			compositor->scene_sampled_clock = compositor->passthrough_txh->last_frame_time + dur;
 		}
 	}
 	
@@ -2603,16 +2627,18 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		compositor->frame_draw_type = 0;
 	}
 
-	if (!compositor->player_mode) {
+	if (!compositor->player) {
 		if (compositor->check_eos_state<=1) {
 			compositor->check_eos_state = 0;
 			/*force a frame dispatch */
 			if (!compositor->vfr && !compositor->passthrough_txh)
 				compositor->frame_draw_type = GF_SC_DRAW_FRAME;
 
-			//still waiting for initialization
-			if (compositor->passthrough_txh && (!compositor->passthrough_txh->width || !compositor->passthrough_txh->stream->pck) ) {
-				compositor->frame_draw_type=GF_SC_DRAW_NONE;
+			if (compositor->passthrough_txh) {
+				//still waiting for initialization either from the passthrough stream or a texture used in the scene
+				if (!compositor->passthrough_txh->width || !compositor->passthrough_txh->stream->pck || (compositor->ms_until_next_frame<0) ) {
+					compositor->frame_draw_type=GF_SC_DRAW_NONE;
+				}
 				//done
 				if (compositor->passthrough_txh->stream_finished) {
 					compositor->check_eos_state = 2;
@@ -2707,22 +2733,31 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				}
 			}
 			if (pck_frame_ts) {
-				pck_frame_ts *= 1000;
-				pck_frame_ts /= compositor->passthrough_timescale;
-				frame_ts = (u32) pck_frame_ts;
+				u64 ts = pck_frame_ts;
+				ts *= 1000;
+				ts /= compositor->passthrough_timescale;
+				frame_ts = (u32) ts;
 			}
 
 			gf_filter_pck_send(pck);
 			gf_sc_ar_update_video_clock(compositor->audio_renderer, frame_ts);
 
-			if (!compositor->player_mode) {
+			if (!compositor->player) {
 				if (compositor->passthrough_txh) {
-					u64 next_frame;
-					next_frame = frame_ts + gf_filter_pck_get_duration(pck);
-					next_frame *= 1000;
-					next_frame /= compositor->passthrough_timescale;
-					assert(next_frame>=compositor->scene_sampled_clock);
-					compositor->scene_sampled_clock = (u32) next_frame;
+					// update clock if not buffering
+					if (!gf_mo_is_buffering(compositor->passthrough_txh->stream))
+					{
+						u64 next_frame;
+						next_frame = pck_frame_ts + gf_filter_pck_get_duration(pck);
+						next_frame *= 1000;
+						next_frame /= compositor->passthrough_timescale;
+						assert(next_frame>=compositor->scene_sampled_clock);
+						compositor->scene_sampled_clock = (u32) next_frame;
+					}
+					// if buffering, remember to update clock at next frame
+					else {
+						compositor->passthrough_check_buffer = GF_TRUE;
+					}
 					if (compositor->passthrough_txh->stream_finished)
 						compositor->check_eos_state = 2;
 				} else {
@@ -2742,7 +2777,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 					compositor->force_bench_frame = 1;
 				}
 			}
-		} else if (!compositor->player_mode) {
+		} else if (!compositor->player) {
 			frame_drawn = GF_FALSE;
 		}
 
@@ -2795,7 +2830,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		compositor->indirect_draw_time = 0;
 #endif
 
-		if (!compositor->player_mode && compositor->vfr) {
+		if (!compositor->player && compositor->vfr) {
 			compositor->frame_number++;
 			compositor->scene_sampled_clock = compositor->frame_number * compositor->fps.den * 1000;
 			compositor->scene_sampled_clock /= compositor->fps.num;

@@ -456,7 +456,7 @@ static void composite_update(GF_TextureHandler *txh)
 
 			/*set stencil texture - we don't check error as an image could not be supported by the rasterizer
 			but still supported by the blitter (case of RGBD/RGBDS)*/
-			gf_evg_stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat, txh->pixelformat, 0);
+			gf_evg_stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat);
 
 #ifdef GPAC_USE_TINYGL
 			if (st->visual->type_3d && !compositor->visual->type_3d) {

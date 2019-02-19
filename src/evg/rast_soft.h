@@ -232,9 +232,10 @@ typedef struct
 typedef struct __evg_texture
 {
 	EVGBASESTENCIL
-	u32 width, height, stride;
+	u32 width, height, stride, stride_uv;
 	u32 pixel_format, Bpp;
 	char *pixels;
+	char *pix_u, *pix_v, *pix_a;
 
 	GF_Point2D cur_pt;
 	Fixed cur_y, inc_x, inc_y;
