@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -27,78 +27,74 @@
 #define _GL_INC_H_
 
 #ifdef WIN32
-#include <windows.h>
+# include <windows.h>
 #endif
 
 
 #ifndef _GF_SETUP_H_
-#error "Missing gpac/setup.h include"
+# error "Missing gpac/setup.h include"
 #endif
 
 #ifndef GPAC_DISABLE_3D
 
 #ifdef GPAC_USE_GLES1X
+# ifdef GPAC_CONFIG_ANDROID
+#  include "GLES/gl.h"
+# elif defined(GPAC_CONFIG_IOS)
+#  include "OpenGLES/ES1/gl.h"
+#  include "OpenGLES/ES1/glext.h"
+#  include "glues.h"
+# else
+/*non standard include on linux/windows, usually not used*/
+#  include "GLES/egl.h"
+# endif
 
-#ifdef GPAC_CONFIG_ANDROID
-#include "GLES/gl.h"
-#elif defined(GPAC_CONFIG_IOS)
-#include "OpenGLES/ES1/gl.h"
-#include "OpenGLES/ES1/glext.h"
-#include "glues.h"
-#else
-#include "GLES/egl.h"
-#endif
-
-#if defined(GPAC_HAS_GLU) && !defined (GPAC_CONFIG_IOS)
+# if defined(GPAC_HAS_GLU) && !defined (GPAC_CONFIG_IOS)
 /*WARNING - this is NOT a standard include, GLU is not supported by GLES*/
-#include <GLES/glu.h>
-#endif
+#  include <GLES/glu.h>
+# endif
 
+# ifndef EGL_VERSION_1_0
+#  define EGL_VERSION_1_0		1
+# endif
 
-#ifndef EGL_VERSION_1_0
-#define EGL_VERSION_1_0		1
-#endif
+# ifndef EGL_VERSION_1_1
+#  ifdef GL_OES_VERSION_1_1
+#   define EGL_VERSION_1_1		1
+#  endif
+# endif
 
-#ifndef EGL_VERSION_1_1
-#ifdef GL_OES_VERSION_1_1
-#define EGL_VERSION_1_1		1
-#endif
-#endif
+//end GPAC_USE_GLES1X
+
+# elif defined(GPAC_USE_GLES2)
+#  ifdef GPAC_CONFIG_IOS
+#   include "OpenGLES/ES2/gl.h"
+#   include "glues.h"
+#  else
+#   include <GLES2/gl2.h>
+#   include <GLES2/gl2ext.h>
+#  endif
+
+//end GPAC_USE_GLES2
 
 #elif defined (CONFIG_DARWIN_GL)
 
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
 
-#else
-
-
-#ifdef GPAC_USE_OGLES1X
-#include <GLES/gl.h>
-#include <GLES/glext.h>
-
-#elif defined(GPAC_USE_GLES2)
-
-#ifdef GPAC_CONFIG_IOS
-#include "OpenGLES/ES2/gl.h"
-#include "glues.h"
-#else
-
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#endif
+//end CONFIG_DARWIN_GL
 
 #else
+//generic windows/linux config
+
 //in case the versions are defined, get the prototypes
-#define GL_GLEXT_PROTOTYPES
+# define GL_GLEXT_PROTOTYPES
+# include <GL/gl.h>
+# ifdef GPAC_HAS_GLU
+#  include <GL/glu.h>
+# endif
 
-#include <GL/gl.h>
-
-#ifdef GPAC_HAS_GLU
-#include <GL/glu.h>
-#endif
-
-#endif
+//end generic windows/linux config
 
 #endif
 
@@ -109,7 +105,6 @@
 #ifdef _WIN32_WCE
 #define GLAPICAST *
 #elif defined(WIN32)
-#include <windows.h>
 #define GLAPICAST APIENTRY *
 #else
 #define GLAPICAST *
@@ -132,8 +127,7 @@ extern proc_ ## funname funname;	\
 #define LOAD_GL_FUNCS
 #define GET_GLFUN(funname) funname = (proc_ ## funname) wglGetProcAddress(#funname)
 #elif defined(CONFIG_DARWIN_GL)
-extern void (*glutGetProcAddress(const GLubyte *procname))( void );
-#define GET_GLFUN(funname) funname = (proc_ ## funname) glutGetProcAddress(#funname)
+//no extensions with OpenGL on OSX/IOS, glext.h is present
 #else
 #define LOAD_GL_FUNCS
 extern void (*glXGetProcAddress(const GLubyte *procname))( void );
@@ -342,7 +336,7 @@ GLDECL(void, glBlendEquation, (GLint mode) )
 GLDECL(void, glPointParameterf, (GLenum , GLfloat) )
 GLDECL(void, glPointParameterfv, (GLenum, const GLfloat *) )
 
-#endif
+#endif //GL_VERSION_1_4
 
 
 
@@ -611,7 +605,7 @@ GLDECL(void, glDeleteRenderbuffers, (GLsizei n, const GLuint * renderbuffers))
 
 GLDECL(GLenum, glCheckFramebufferStatus, (GLenum target))
 
-#endif
+#endif //GPAC_CONFIG_ANDROID
 
 
 #endif //GL_VERSION_2_0

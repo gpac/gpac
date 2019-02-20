@@ -85,7 +85,7 @@ typedef struct
 } GF_MCDecCtx;
 
 typedef struct {
-	GF_FilterHWFrame hwframe;
+	GF_FilterFrameInterface frame_ifce;
 	char * frame;
 	GF_MCDecCtx * ctx;
 	ssize_t outIndex;
@@ -1022,8 +1022,8 @@ static GF_Err mcdec_process(GF_Filter *filter)
 
 static void mcdec_hw_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
-	GF_FilterHWFrame *hwframe = (GF_FilterHWFrame *) gf_filter_pck_get_hw_frame(pck);
-	GF_MCDecFrame *f = hwframe ? hwframe->user_data : NULL;
+	GF_FilterFrameInterface *frame_ifce = (GF_FilterFrameInterface *) gf_filter_pck_get_frame_interface(pck);
+	GF_MCDecFrame *f = frame_ifce ? frame_ifce->user_data : NULL;
 	if (!f) return;
 
 	if (f->ctx->codec && !f->flushed)  {
@@ -1035,7 +1035,7 @@ static void mcdec_hw_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *
 	gf_list_add(f->ctx->frames_res, f);
 }
 
-GF_Err mcdec_hw_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
+GF_Err mcdec_hw_get_plane(GF_FilterFrameInterface *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
 	GF_MCDecFrame *f = (GF_MCDecFrame *)frame->user_data;
 	if (! outPlane || !outStride) return GF_BAD_PARAM;
@@ -1064,7 +1064,7 @@ GF_Err mcdec_hw_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **out
 	return GF_OK;
 }
 
-GF_Err mcdec_hw_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix * texcoordmatrix)
+GF_Err mcdec_hw_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix * texcoordmatrix)
 {
 	GF_MCDecFrame *f = (GF_MCDecFrame *)frame->user_data;
    	if (!gl_tex_format || !gl_tex_id) return GF_BAD_PARAM;
@@ -1099,26 +1099,26 @@ static GF_Err mcdec_send_frame(GF_MCDecCtx *ctx, char *frame_buffer, u64 cts)
 		GF_SAFEALLOC(mc_frame, GF_MCDecFrame);
 		if (!mc_frame) return GF_OUT_OF_MEM;
 	}
-	memset(&mc_frame->hwframe, 0, sizeof(GF_FilterHWFrame));
-	mc_frame->hwframe.user_data = mc_frame;
+	memset(&mc_frame->frame_ifce, 0, sizeof(GF_FilterFrameInterface));
+	mc_frame->frame_ifce.user_data = mc_frame;
 	mc_frame->ctx = ctx;
 	mc_frame->frame = frame_buffer;
 	mc_frame->outIndex = ctx->outIndex;
 	mc_frame->flushed = GF_FALSE;
 
 	if (ctx->surface_rendering) {
-		mc_frame->hwframe.get_gl_texture = mcdec_hw_get_gl_texture;
+		mc_frame->frame_ifce.get_gl_texture = mcdec_hw_get_gl_texture;
 	} else {
-		mc_frame->hwframe.get_plane = mcdec_hw_get_plane;
+		mc_frame->frame_ifce.get_plane = mcdec_hw_get_plane;
 	}
 
 	if (ctx->frame_size_changed) {
-		mc_frame->hwframe.reset_pending = GF_TRUE;
+		mc_frame->frame_ifce.blocking = GF_TRUE;
 	}
 	ctx->decoded_frames_pending++;
 
 
-	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &mc_frame->hwframe, mcdec_hw_del);
+	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &mc_frame->frame_ifce, mcdec_hw_del);
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	if (dst_pck) {
