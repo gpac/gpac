@@ -730,7 +730,6 @@ static void tex_fill_run_straight(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x,
 	u32 __a;
 	Bool repeat_s = GF_FALSE;
 	Fixed x, y, _fdim;
-	char *pix_line;
 	u32 *data = surf->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
@@ -762,8 +761,7 @@ static void tex_fill_run_straight(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x,
 
 	y0 = FIX2INT(y);
 	y0 = y0 % _this->height;
-	pix_line = _this->pixels + _this->stride*y0;
-
+	
 	while (count) {
 		x0 = FIX2INT(x);
 		if (repeat_s) {
@@ -834,7 +832,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32
 	if (has_replace_cmat) has_cmat = GF_FALSE;
 	else has_cmat = _this->cmat.identity ? GF_FALSE : GF_TRUE;
 
-	replace_col = _this->replace_col;
+	replace_col = evg_col_to_wide(_this->replace_col);
 
 	while (count) {
 		x0 = FIX2INT(x);
@@ -926,7 +924,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32
 			_a = (_a * _this->alpha) >> 8;
 			_a = (u64) (_this->cmat.m[18] * _a);
 			_a<<=48;
-			pix = ( (_a & 0xFFFF000000000000UL) ) | (pix & 0x0000FFFFFFFFFFFFUL);
+			pix = ( (_a & 0xFFFF000000000000UL) ) | (replace_col & 0x0000FFFFFFFFFFFFUL);
 		}
 		//move pixel to target pixel format, applying color transform matrix
 		else if (_this->is_yuv) {
@@ -966,7 +964,6 @@ static void tex_fill_run_straight_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s3
 	u64 pix;
 	Bool repeat_s = GF_FALSE;
 	Fixed x, y, _fdim;
-	char *pix_line;
 	u64 *data = surf->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
@@ -998,7 +995,6 @@ static void tex_fill_run_straight_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s3
 
 	y0 = FIX2INT(y);
 	y0 = y0 % _this->height;
-	pix_line = _this->pixels + _this->stride*y0;
 
 	while (count) {
 		x0 = FIX2INT(x);
@@ -1256,7 +1252,7 @@ u32 get_pix_yuv_nv12_10(EVG_Texture *_this, u32 x, u32 y)
 	vu = GET_BE_10BIT_AS_8(pU);
 	vv = GET_BE_10BIT_AS_8(pU+2);
 
-	return GF_COL_ARGB(0xFF, vy, vu, vu);
+	return GF_COL_ARGB(0xFF, vy, vu, vv);
 }
 u64 get_pix_yuv_nv12_10_wide(EVG_Texture *_this, u32 x, u32 y)
 {
