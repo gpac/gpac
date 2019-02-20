@@ -2273,7 +2273,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_seq_num ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_clock_type ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_clock_type ) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_hw_frame ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_frame_interface ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_expand ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_truncate ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_merge_properties_filter ) )
@@ -2283,7 +2283,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_new_shared_internal ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_new_shared ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_new_ref ) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_new_hw_frame ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_new_frame_interface) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_forward ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_send ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_check_caps ) )
@@ -2360,6 +2360,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_name ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_sources ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negociate_property ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_register_opengl_provider) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_request_opengl) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_enable_emulation_byte_removal ) )
