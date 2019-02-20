@@ -567,8 +567,11 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 		compositor->video_out = &null_vout;
 		e = gf_filter_request_opengl(compositor->filter);
 		if (e) return e;
+#ifndef GPAC_DISABLE_3D
 		gf_sc_load_opengl_extensions(compositor, GF_TRUE);
-		if (!compositor->gl_caps.fbo) {
+		if (!compositor->gl_caps.fbo)
+#endif
+		{
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] No support for OpenGL framebuffer object, cannot run in GL mode.\n"));
 			compositor->drv = GF_SC_DRV_OFF;
 			return GF_NOT_SUPPORTED;
@@ -603,6 +606,7 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_3D
 static void gf_sc_check_video_driver(GF_Compositor *compositor)
 {
 	if (compositor->video_out == &null_vout) return;
@@ -616,6 +620,7 @@ static void gf_sc_check_video_driver(GF_Compositor *compositor)
 		}
 		return;
 	}
+
 	if (compositor->video_out == &raw_vout) return;
 	if (compositor->player) {
 		compositor->video_out->Shutdown(compositor->video_out);
@@ -624,6 +629,7 @@ static void gf_sc_check_video_driver(GF_Compositor *compositor)
 	}
 	compositor->video_out = &raw_vout;
 }
+#endif
 
 GF_Err gf_sc_load(GF_Compositor *compositor)
 {
@@ -2429,7 +2435,10 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		visual_reset_graphics(compositor->visual);
 
+#ifndef GPAC_DISABLE_3D
 		compositor_3d_delete_fbo(&compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
+#endif
+
 	}
 
 	/*process pending user events*/
