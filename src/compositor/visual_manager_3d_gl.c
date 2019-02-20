@@ -138,6 +138,17 @@ GLDECL_FUNC(glUniformMatrix4x3fv);
 GLDECL_FUNC(glGetProgramiv);
 GLDECL_FUNC(glGetProgramInfoLog);
 GLDECL_FUNC(glGetAttribLocation);
+GLDECL_FUNC(glBindFramebuffer);
+GLDECL_FUNC(glFramebufferTexture2D);
+GLDECL_FUNC(glGenFramebuffers);
+GLDECL_FUNC(glGenRenderbuffers);
+GLDECL_FUNC(glBindRenderbuffer);
+GLDECL_FUNC(glRenderbufferStorage);
+GLDECL_FUNC(glFramebufferRenderbuffer);
+GLDECL_FUNC(glDeleteFramebuffers);
+GLDECL_FUNC(glDeleteRenderbuffers);
+GLDECL_FUNC(glCheckFramebufferStatus);
+
 
 #ifndef GPAC_CONFIG_ANDROID
 GLDECL_FUNC(glEnableVertexAttribArray);
@@ -304,6 +315,18 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		if (glGetAttribLocation != NULL) {
 			compositor->shader_only_mode = GF_TRUE;
 		}
+
+		GET_GLFUN(glBindFramebuffer);
+		GET_GLFUN(glFramebufferTexture2D);
+		GET_GLFUN(glGenFramebuffers);
+		GET_GLFUN(glGenRenderbuffers);
+		GET_GLFUN(glBindRenderbuffer);
+		GET_GLFUN(glRenderbufferStorage);
+		GET_GLFUN(glFramebufferRenderbuffer);
+		GET_GLFUN(glDeleteFramebuffers);
+		GET_GLFUN(glDeleteRenderbuffers);
+		GET_GLFUN(glCheckFramebufferStatus);
+
 #endif
 
 
