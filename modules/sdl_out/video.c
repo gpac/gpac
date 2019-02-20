@@ -156,7 +156,7 @@ static u32 video_modes[] =
 	1152, 864,
 	1280, 1024
 };
-static u32 nb_video_modes = 8;
+static const u32 nb_video_modes = 8;
 
 void SDLVid_SetCaption()
 {

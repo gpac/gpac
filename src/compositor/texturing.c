@@ -132,12 +132,12 @@ void gf_sc_texture_stop_no_unregister(GF_TextureHandler *txh)
 	if (txh->needs_release) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 1);
 		txh->needs_release = 0;
-		txh->hw_frame = NULL;
+		txh->frame_ifce = NULL;
 	}
 	gf_sc_invalidate(txh->compositor, NULL);
 	gf_mo_stop(&txh->stream);
 	txh->data = NULL;
-	txh->hw_frame = NULL;
+	txh->frame_ifce = NULL;
 
 	txh->is_open = 0;
 }
@@ -150,7 +150,7 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 	if (txh->needs_release) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, -1);
 		txh->needs_release = 0;
-		txh->hw_frame = NULL;
+		txh->frame_ifce = NULL;
 	}
 	gf_sc_invalidate(txh->compositor, NULL);
 	gf_mo_stop(&txh->stream);
@@ -223,7 +223,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	/*should never happen!!*/
 	if (txh->needs_release) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
-		txh->hw_frame=NULL;
+		txh->frame_ifce=NULL;
 	}
 
 	/*check init flag*/
@@ -237,7 +237,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	//if first frame use 20ms as upload time
 	push_time = txh->nb_frames ? txh->upload_time/txh->nb_frames : 20;
 	
-	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, push_time, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->hw_frame, NULL);
+	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, push_time, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->frame_ifce, NULL);
 
 	if (txh->stream->config_changed) {
 		needs_reload = 1;
@@ -259,7 +259,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	}
 
 	/*if no frame or muted don't draw*/
-	if (!txh->data && !txh->hw_frame) {
+	if (!txh->data && !txh->frame_ifce) {
 		GF_LOG(txh->stream->connect_failure ? GF_LOG_DEBUG : GF_LOG_INFO, GF_LOG_COMPOSE, ("[Texture %p] No output frame available \n", txh));
 
 		if (txh->compositor->use_step_mode || !txh->compositor->player) {
@@ -332,7 +332,7 @@ void gf_sc_texture_release_stream(GF_TextureHandler *txh)
 		assert(txh->stream);
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
-		txh->hw_frame = NULL;
+		txh->frame_ifce = NULL;
 
 	}
 	txh->needs_refresh = 0;

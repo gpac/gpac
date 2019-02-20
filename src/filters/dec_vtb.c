@@ -157,7 +157,7 @@ typedef struct
 
 typedef struct
 {
-	GF_FilterHWFrame hw_frame;
+	GF_FilterFrameInterface frame_ifce;
 
 	Bool locked;
 	CVPixelBufferRef frame;
@@ -202,7 +202,7 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 
 	assert( gf_filter_pck_get_seek_flag(ctx->cur_pck) == 0 );
 
-	frame->hw_frame.user_data = frame;
+	frame->frame_ifce.user_data = frame;
 	frame->frame = CVPixelBufferRetain(image);
 	frame->pck_src = ctx->cur_pck;
 	gf_filter_pck_ref_props(&frame->pck_src);
@@ -1605,7 +1605,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 
 void vtbframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
-	GF_FilterHWFrame *frame = gf_filter_pck_get_hw_frame(pck);
+	GF_FilterFrameInterface *frame = gf_filter_pck_get_frame_interface(pck);
 	GF_VTBHWFrame *f = (GF_VTBHWFrame *)frame->user_data;
 	if (f->locked) {
 		CVPixelBufferUnlockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
@@ -1625,7 +1625,7 @@ void vtbframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck
 	gf_list_add(f->ctx->frames_res, f);
 }
 
-GF_Err vtbframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
+GF_Err vtbframe_get_plane(GF_FilterFrameInterface *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
     OSStatus status;
 	GF_Err e;
@@ -1673,7 +1673,7 @@ void *myGetGLContext()
 #endif
 
 
-GF_Err vtbframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
+GF_Err vtbframe_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
 {
     OSStatus status;
 	GLenum target_fmt;
@@ -1769,19 +1769,19 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Outputing frame DTS "LLU" CTS "LLU" timescale %d\n", gf_filter_pck_get_dts(vtb_frame->pck_src), gf_filter_pck_get_cts(vtb_frame->pck_src), gf_filter_pck_get_timescale(vtb_frame->pck_src)));
 
-	vtb_frame->hw_frame.user_data = vtb_frame;
-	vtb_frame->hw_frame.get_plane = vtbframe_get_plane;
+	vtb_frame->frame_ifce.user_data = vtb_frame;
+	vtb_frame->frame_ifce.get_plane = vtbframe_get_plane;
 #ifdef VTB_GL_TEXTURE
 	if (ctx->use_gl_textures)
-		vtb_frame->hw_frame.get_gl_texture = vtbframe_get_gl_texture;
+		vtb_frame->frame_ifce.get_gl_texture = vtbframe_get_gl_texture;
 #endif
 
 	if (!gf_list_count(ctx->frames) && ctx->reconfig_needed)
-		vtb_frame->hw_frame.reset_pending = GF_TRUE;
+		vtb_frame->frame_ifce.blocking = GF_TRUE;
 
 	ctx->decoded_frames_pending++;
 
-	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &vtb_frame->hw_frame, vtbframe_release);
+	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &vtb_frame->frame_ifce, vtbframe_release);
 
 	gf_filter_pck_merge_properties(vtb_frame->pck_src, dst_pck);
 	ctx->last_cts_out = gf_filter_pck_get_cts(vtb_frame->pck_src);

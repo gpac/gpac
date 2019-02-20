@@ -177,6 +177,8 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		compositor->gl_caps.abgr_texture = 1;
 	if (CHECK_GL_EXT("GL_EXT_bgra"))
 		compositor->gl_caps.bgra_texture = 1;
+	if (CHECK_GL_EXT("GL_EXT_framebuffer_object") || CHECK_GL_EXT("GL_ARB_framebuffer_object"))
+		compositor->gl_caps.fbo = 1;
 
 	if (CHECK_GL_EXT("GL_ARB_point_parameters")) {
 		compositor->gl_caps.point_sprite = 1;
@@ -1439,8 +1441,8 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 
 void visual_3d_setup(GF_VisualManager *visual)
 {
-
-	if (visual->gl_setup) {
+	//in non-player mode, we might not be the only ones using the gl context !!
+	if (visual->compositor->player && visual->gl_setup) {
 		visual->has_fog = GF_FALSE;
 		glClear(GL_DEPTH_BUFFER_BIT);
 		return;
@@ -3671,9 +3673,10 @@ void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color
 #endif
 }
 
+//note that we always use glReadPixel even if the actual rendering target is a texture
+//this is the recommended way by khronos any way
 GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *fb, u32 depth_dump_mode)
 {
-	/*FIXME*/
 	u32 i;
 
 	fb->width = compositor->display_width;
@@ -3800,7 +3803,12 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 		fb->pixel_format = (fb->pitch_x == 4) ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
 
+		if (compositor->fbo_id) compositor_3d_enable_fbo(compositor, GF_TRUE);
+
 		glReadPixels(0, 0, fb->width, fb->height, (fb->pitch_x == 4) ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
+
+		if (compositor->fbo_id) compositor_3d_enable_fbo(compositor, GF_FALSE);
+
 		/*	} else {
 				fb->pitch_x = 3;
 				fb->pitch_y = 3*compositor->vp_width;
@@ -4110,5 +4118,90 @@ restart:
 #endif //GPAC_USE_GLES1X
 
 }
+
+
+
+GF_Err compositor_3d_setup_fbo(u32 width, u32 height, u32 *fbo_id, u32 *tx_id, u32 *depth_id)
+{
+#if defined(GPAC_USE_GLES1X)
+	GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to setup FBO object: not supported on OpenGL ES 1.x\n"));
+	return GF_NOT_SUPPORTED;
+#else
+	if (! *tx_id) {
+		glGenTextures(1, tx_id);
+	}
+	glBindTexture(GL_TEXTURE_2D, *tx_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+	if (! *fbo_id)
+		 glGenFramebuffers(1, fbo_id);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, *fbo_id);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *tx_id, 0);
+
+	if (! *depth_id)
+		glGenRenderbuffers(1, depth_id);
+
+	glBindRenderbuffer(GL_RENDERBUFFER, *depth_id);
+#if defined(GPAC_CONFIG_IOS) ||  defined(GPAC_CONFIG_ANDROID)
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
+#else
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+#endif
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, *depth_id);
+
+   	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+   	switch (status) {
+   	case GL_FRAMEBUFFER_COMPLETE:
+   		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to setup FBO object: FBO status %08x\n", status));
+		return GF_NOT_SUPPORTED;
+   }
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	return GF_OK;
+#endif
+
+}
+
+void compositor_3d_delete_fbo(u32 *fbo_id, u32 *fbo_tx_id, u32 *fbo_depth_id)
+{
+#ifndef GPAC_USE_GLES1X
+	if (*fbo_id) {
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glDeleteFramebuffers(1, fbo_id);
+		*fbo_id = 0;
+	}
+	if (*fbo_depth_id) {
+		glDeleteRenderbuffers(1, fbo_depth_id);
+		*fbo_depth_id = 0;
+	}
+	if (*fbo_tx_id) {
+		glDeleteTextures(1, fbo_tx_id);
+		*fbo_tx_id = 0;
+	}
+#endif
+}
+
+u32 compositor_3d_get_fbo_pixfmt()
+{
+	return GL_TEXTURE_2D;
+}
+
+void compositor_3d_enable_fbo(GF_Compositor *compositor, Bool enable)
+{
+#ifndef GPAC_USE_GLES1X
+	glBindFramebuffer(GL_FRAMEBUFFER, enable ? compositor->fbo_id : 0);
+	if (!enable)
+		glBindTexture(GL_TEXTURE_2D, 0);
+#endif
+
+}
+
 
 #endif // GPAC_DISABLE_3D

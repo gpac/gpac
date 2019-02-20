@@ -247,7 +247,7 @@ static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_S
 	u32 nb_planes, uv_height;
 	const char *pck_data;
 	u32 pck_size;
-	GF_FilterHWFrame *hwf=NULL;
+	GF_FilterFrameInterface *hwf=NULL;
 	if (!dst_sock) return GF_OK;
 
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
@@ -259,7 +259,7 @@ static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_S
 		ctx->nb_bytes_sent += pck_size;
 		return e;
 	}
-	hwf = gf_filter_pck_get_hw_frame(pck);
+	hwf = gf_filter_pck_get_frame_interface(pck);
 	if (!hwf) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] output file handle is not opened, discarding %d bytes\n", pck_size));
 		return GF_OK;

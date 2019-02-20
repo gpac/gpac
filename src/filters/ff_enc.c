@@ -264,18 +264,18 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			}
 		} else {
 			GF_Err e=GF_NOT_SUPPORTED;
-			GF_FilterHWFrame *hwframe = gf_filter_pck_get_hw_frame(pck);
-			if (hwframe && hwframe->get_plane) {
-				e = hwframe->get_plane(hwframe, 0, (const u8 **) &ctx->frame->data[0], &ctx->frame->linesize[0]);
+			GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
+			if (frame_ifce && frame_ifce->get_plane) {
+				e = frame_ifce->get_plane(frame_ifce, 0, (const u8 **) &ctx->frame->data[0], &ctx->frame->linesize[0]);
 				if (!e && (ctx->nb_planes>1)) {
-					e = hwframe->get_plane(hwframe, 1, (const u8 **) &ctx->frame->data[1], &ctx->frame->linesize[1]);
+					e = frame_ifce->get_plane(frame_ifce, 1, (const u8 **) &ctx->frame->data[1], &ctx->frame->linesize[1]);
 					if (!e && (ctx->nb_planes>2)) {
-						e = hwframe->get_plane(hwframe, 1, (const u8 **) &ctx->frame->data[2], &ctx->frame->linesize[2]);
+						e = frame_ifce->get_plane(frame_ifce, 1, (const u8 **) &ctx->frame->data[2], &ctx->frame->linesize[2]);
 					}
 				}
 			}
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Failed to fetch %sframe data: %s\n", hwframe ? "hardware " : "", gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Failed to fetch %sframe data: %s\n", frame_ifce ? "hardware " : "", gf_error_to_string(e) ));
 				gf_filter_pid_drop_packet(ctx->in_pid);
 				return e;
 			}

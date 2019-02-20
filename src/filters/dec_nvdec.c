@@ -120,7 +120,7 @@ typedef struct __nv_frame
 {
 	CUVIDPARSERDISPINFO frame_info;
 	NVDecCtx *ctx;
-	GF_FilterHWFrame gframe;
+	GF_FilterFrameInterface gframe;
 	Bool y_mapped, uv_mapped;
 } NVDecFrame;
 
@@ -866,7 +866,7 @@ static GF_Err nvdec_process(GF_Filter *filter)
 
 void nvframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
-	GF_FilterHWFrame *frame = gf_filter_pck_get_hw_frame(pck);
+	GF_FilterFrameInterface *frame = gf_filter_pck_get_frame_interface(pck);
 	NVDecFrame *f = (NVDecFrame*) frame->user_data;
 	NVDecCtx *ctx = (NVDecCtx *)f->ctx;
 
@@ -879,7 +879,7 @@ void nvframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 /*Define codec matrix*/
 typedef struct __matrix GF_NVCodecMatrix;
 
-GF_Err nvframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_NVCodecMatrix * texcoordmatrix)
+GF_Err nvframe_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_NVCodecMatrix * texcoordmatrix)
 {
 	CUDA_MEMCPY2D mcpi;
 	CUVIDPROCPARAMS params;
@@ -1058,7 +1058,7 @@ GF_Err nvframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_te
 
 #endif
 
-GF_Err nvframe_get_frame(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
+GF_Err nvframe_get_frame(GF_FilterFrameInterface *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
 	unsigned int pitch = 0;
 	GF_Err e = GF_OK;
@@ -1176,9 +1176,9 @@ GF_Err nvdec_send_hw_frame(NVDecCtx *ctx)
 
 
 	if (!gf_list_count(ctx->frames) && ctx->needs_resetup)
-		f->gframe.reset_pending = GF_TRUE;
+		f->gframe.blocking = GF_TRUE;
 
-	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &f->gframe, nvframe_release);
+	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &f->gframe, nvframe_release);
 
 	nvdec_merge_pck_props(ctx, f, dst_pck);
 	if (gf_filter_pck_get_seek_flag(dst_pck)) {

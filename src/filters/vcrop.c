@@ -57,7 +57,7 @@ typedef struct
 
 typedef struct
 {
-	GF_FilterHWFrame hw_frame;
+	GF_FilterFrameInterface frame_ifce;
 
 	//reference to the source packet
 	GF_FilterPacket *pck;
@@ -68,7 +68,7 @@ typedef struct
 } GF_VCropFrame;
 
 
-GF_Err vcrop_frame_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
+GF_Err vcrop_frame_get_plane(GF_FilterFrameInterface *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
 	GF_VCropFrame *vframe = frame->user_data;
 
@@ -81,9 +81,9 @@ GF_Err vcrop_frame_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **
 void vcrop_packet_destruct(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
 	GF_VCropFrame *vframe;
-	GF_FilterHWFrame *hwframe = gf_filter_pck_get_hw_frame(pck);
-	if (!hwframe) return;
-	vframe = hwframe->user_data;
+	GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
+	if (!frame_ifce) return;
+	vframe = frame_ifce->user_data;
 	assert(vframe->pck);
 	gf_filter_pck_unref(vframe->pck);
 	vframe->pck = NULL;
@@ -103,7 +103,7 @@ static GF_Err vcrop_process(GF_Filter *filter)
 	u8 *dst_planes[5];
 	Bool do_memset = GF_FALSE;
 	GF_FilterPacket *dst_pck;
-	GF_FilterHWFrame *hwframe;
+	GF_FilterFrameInterface *frame_ifce;
 	GF_VCropCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 
@@ -121,7 +121,7 @@ static GF_Err vcrop_process(GF_Filter *filter)
 		return GF_OK;
 	}
 	data = gf_filter_pck_get_data(pck, &size);
-	hwframe = gf_filter_pck_get_hw_frame(pck);
+	frame_ifce = gf_filter_pck_get_frame_interface(pck);
 
 	memset(src_planes, 0, sizeof(src_planes));
 	memset(dst_planes, 0, sizeof(dst_planes));
@@ -140,10 +140,10 @@ static GF_Err vcrop_process(GF_Filter *filter)
 			src_planes[2] = src_planes[1] + ctx->src_stride[1] * ctx->src_uv_height;
 			src_planes[3] = src_planes[2] + ctx->src_stride[2] * ctx->src_uv_height;
 		}
-	} else if (hwframe && hwframe->get_plane) {
+	} else if (frame_ifce && frame_ifce->get_plane) {
 		u32 i=0;
 		for (i=0; i<4; i++) {
-		if (hwframe->get_plane(hwframe, i, (const u8 **) &src_planes[i], &ctx->src_stride[i])!=GF_OK)
+		if (frame_ifce->get_plane(frame_ifce, i, (const u8 **) &src_planes[i], &ctx->src_stride[i])!=GF_OK)
 			break;
 		}
 	} else {
@@ -207,9 +207,9 @@ static GF_Err vcrop_process(GF_Filter *filter)
 			vframe->planes[1] = src_planes[1] + s_off_x * bps / div_x + ctx->src_stride[1] * s_off_y / div_y;
 			vframe->planes[2] =src_planes[2] + s_off_x * bps / div_x + ctx->src_stride[2] * s_off_y / div_y;
 		}
-		vframe->hw_frame.user_data = vframe;
-		vframe->hw_frame.get_plane = vcrop_frame_get_plane;
-		dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &vframe->hw_frame, vcrop_packet_destruct);
+		vframe->frame_ifce.user_data = vframe;
+		vframe->frame_ifce.get_plane = vcrop_frame_get_plane;
+		dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &vframe->frame_ifce, vcrop_packet_destruct);
 		//keep a ref to input packet
 		vframe->pck = pck;
 		gf_filter_pck_ref(&vframe->pck);

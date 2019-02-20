@@ -196,7 +196,7 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 	struct jpeg_compress_struct cinfo;
 	GF_FilterPacket *pck;
 	char *in_data;
-	GF_FilterHWFrame *hwframe = NULL;
+	GF_FilterFrameInterface *frame_ifce = NULL;
 	u32 size, stride, stride_uv;
     u32 i, j;
     u8 *pY, *pU, *pV;
@@ -215,8 +215,8 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 
 	in_data = (char *) gf_filter_pck_get_data(pck, &size);
 	if (!in_data) {
-		hwframe = gf_filter_pck_get_hw_frame(pck);
-		if (!hwframe || !hwframe->get_plane) {
+		frame_ifce = gf_filter_pck_get_frame_interface(pck);
+		if (!frame_ifce || !frame_ifce->get_plane) {
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_NOT_SUPPORTED;
 		}
@@ -284,19 +284,19 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 		pU = pY + ctx->stride * ctx->height;
 		pV = pU + ctx->stride_uv * ctx->height/2;
 	} else {
-		e = hwframe->get_plane(hwframe, 0, (const u8 **)&pY, &stride);
+		e = frame_ifce->get_plane(frame_ifce, 0, (const u8 **)&pY, &stride);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc] Failed to fetch first plane in hardware frame\n"));
 			goto exit;
 		}
 		if (ctx->nb_planes>1) {
-			e = hwframe->get_plane(hwframe, 1, (const u8 **)&pU, &stride_uv);
+			e = frame_ifce->get_plane(frame_ifce, 1, (const u8 **)&pU, &stride_uv);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc] Failed to fetch first plane in hardware frame\n"));
 				goto exit;
 			}
 			if (ctx->nb_planes>2) {
-				e = hwframe->get_plane(hwframe, 2, (const u8 **)&pV, &stride_uv);
+				e = frame_ifce->get_plane(frame_ifce, 2, (const u8 **)&pV, &stride_uv);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc] Failed to fetch first plane in hardware frame\n"));
 					goto exit;

@@ -371,7 +371,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 		ctx->fd>=0
 #endif
 		) {
-		GF_FilterHWFrame *hwf = gf_filter_pck_get_hw_frame(pck);
+		GF_FilterFrameInterface *hwf = gf_filter_pck_get_frame_interface(pck);
 		if (pck_data) {
 #ifdef WIN32
 			if (! WriteFile(ctx->pipe, pck_data, pck_size, &nb_write, NULL)) {

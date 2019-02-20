@@ -562,7 +562,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 	u32 nb_planes=0, uv_height=0;
 	const char *data;
 	u32 frame_size, frame_hdr_size;
-	GF_FilterHWFrame *hwframe=NULL;
+	GF_FilterFrameInterface *frame_ifce=NULL;
 	u32 nb_4cc_props=0;
 	u32 nb_str_props=0;
 	u32 idx=0;
@@ -590,8 +590,8 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 
 	data = gf_filter_pck_get_data(pck, &frame_size);
 	if (!data) {
-		hwframe = gf_filter_pck_get_hw_frame(pck);
-		if (hwframe) {
+		frame_ifce = gf_filter_pck_get_frame_interface(pck);
+		if (frame_ifce) {
 			p = gf_filter_pid_get_property(gst->pid, GF_PROP_PID_WIDTH);
 			w = p ? p->value.uint : 0;
 			p = gf_filter_pid_get_property(gst->pid, GF_PROP_PID_HEIGHT);
@@ -817,13 +817,13 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, frame_size));
 		}
 		gsfmx_send_packets(ctx, gst, GFS_PCKTYPE_PCK, GF_FALSE, GF_FALSE, frame_size, frame_hdr_size);
-	} else if (hwframe) {
+	} else if (frame_ifce) {
 		u32 i, bpp = gf_pixel_get_bytes_per_pixel(pf);
 		for (i=0; i<nb_planes; i++) {
 			u32 j, write_h, lsize;
 			const u8 *out_ptr;
 			u32 out_stride = i ? stride_uv : stride;
-			GF_Err e = hwframe->get_plane(hwframe, i, &out_ptr, &out_stride);
+			GF_Err e = frame_ifce->get_plane(frame_ifce, i, &out_ptr, &out_stride);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Failed to fetch plane data from hardware frame, cannot write\n"));
 				break;

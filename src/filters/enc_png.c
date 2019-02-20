@@ -189,12 +189,12 @@ static GF_Err pngenc_process(GF_Filter *filter)
 	stride = ctx->stride;
 	in_data = (char *) gf_filter_pck_get_data(pck, &size);
 	if (!in_data) {
-		GF_FilterHWFrame *hwframe = gf_filter_pck_get_hw_frame(pck);
-		if (!hwframe || !hwframe->get_plane) {
+		GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
+		if (!frame_ifce || !frame_ifce->get_plane) {
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_NOT_SUPPORTED;
 		}
-		e = hwframe->get_plane(hwframe, 0, (const u8 **) &in_data, &stride);
+		e = frame_ifce->get_plane(frame_ifce, 0, (const u8 **) &in_data, &stride);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNGEnc] Failed to fetch first plane in hardware frame\n"));
 			gf_filter_pid_drop_packet(ctx->ipid);

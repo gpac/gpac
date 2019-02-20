@@ -1092,6 +1092,8 @@ static GF_Err vout_initialize(GF_Filter *filter)
 		evt.setup.back_buffer = 1;
 		evt.setup.disable_vsync = !ctx->vsync;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+
+		gf_filter_register_opengl_provider(filter, GF_TRUE);
 	}
 #endif
 
@@ -1134,7 +1136,7 @@ static void vout_finalize(GF_Filter *filter)
 
 #ifndef GPAC_DISABLE_3D
 
-static void vout_draw_gl_quad(GF_VideoOutCtx *ctx)
+static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool from_textures)
 {
 	Float dw, dh;
 	glUseProgram(ctx->glsl_program);
@@ -1172,6 +1174,11 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx)
 		0.0f,  1.0f,
 		0.0f,  0.0f,
 	};
+	//drawing from textures, don't flip y coordinates
+	if (from_textures) {
+		textureVertices[1] = textureVertices[7] = 1.0f;
+		textureVertices[3] = textureVertices[5] = 0.0f;
+	}
 
 	int loc = glGetAttribLocation(ctx->glsl_program, "gfVertex");
 	if (loc >= 0) {
@@ -1223,38 +1230,36 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx)
 	ctx->video_out->Flush(ctx->video_out, NULL);
 }
 
-static void vout_draw_gl_hw_textures(GF_VideoOutCtx *ctx, GF_FilterHWFrame *hwf)
+static void vout_draw_gl_hw_textures(GF_VideoOutCtx *ctx, GF_FilterFrameInterface *hwf)
 {
-	u32 gl_format;
+	u32 gl_format, i;
 	GF_Matrix txmx;
 
 	if (ctx->internal_textures) {
 		glDeleteTextures(ctx->num_textures, ctx->txid);
 		ctx->txid[0] = ctx->txid[1] = ctx->txid[2] = 0;
 		ctx->internal_textures = GF_FALSE;
-		ctx->num_textures = 2;
+	}
+	glMatrixMode(GL_TEXTURE);
+	glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	gf_mx_init(txmx);
+	for (i=0; i<ctx->num_textures; i++) {
+		if (hwf->get_gl_texture(hwf, 0, &gl_format, &ctx->txid[i], &txmx) != GF_OK) {
+			if (!i) return;
+			break;
+		}
+		glBindTexture(gl_format, ctx->txid[i]);
+		glTexParameteri(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(gl_format, GL_TEXTURE_MAG_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
+		glTexParameteri(gl_format, GL_TEXTURE_MIN_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
 	}
 
-	if (hwf->get_gl_texture(hwf, 0, &gl_format, &ctx->txid[0], &txmx) != GF_OK) {
-		return;
-	}
-	glBindTexture(gl_format, ctx->txid[0]);
-	glTexParameteri(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(gl_format, GL_TEXTURE_MAG_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
-	glTexParameteri(gl_format, GL_TEXTURE_MIN_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
-
-	if (hwf->get_gl_texture(hwf, 1, &gl_format, &ctx->txid[1], &txmx) != GF_OK) {
-		return;
-	}
-
-	glBindTexture(gl_format, ctx->txid[1]);
-	glTexParameteri(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(gl_format, GL_TEXTURE_MAG_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
-	glTexParameteri(gl_format, GL_TEXTURE_MIN_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
 	//and draw
-	vout_draw_gl_quad(ctx);
+	vout_draw_gl_quad(ctx, GF_TRUE);
 }
 
 static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
@@ -1262,6 +1267,8 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	Bool use_stride = GF_FALSE;
 	char *data;
 	GF_Event evt;
+	GF_Matrix mx;
+	Float hw, hh;
 	u32 wsize, stride_luma, stride_chroma;
 	char *pY=NULL, *pU=NULL, *pV=NULL;
 
@@ -1272,23 +1279,6 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 
 	if (ctx->display_changed) {
-		GF_Matrix mx;
-		Float hw, hh;
-		glViewport(0, 0, ctx->display_width, ctx->display_height);
-
-		gf_mx_init(mx);
-		hw = ((Float)ctx->display_width)/2;
-		hh = ((Float)ctx->display_height)/2;
-		gf_mx_ortho(&mx, -hw, hw, -hh, hh, 10, -5);
-		glMatrixMode(GL_PROJECTION);
-		glLoadMatrixf(mx.m);
-
-		glMatrixMode(GL_TEXTURE);
-		glLoadIdentity();
-
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-
 		//if we fill width to display width and height is outside
 		if (ctx->display_width * ctx->height / ctx->width > ctx->display_height) {
 			ctx->dw = (Float) (ctx->display_height * ctx->width * ctx->sar.num / ctx->height / ctx->sar.den);
@@ -1301,15 +1291,40 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			ctx->ow = (Float) 0;
 			ctx->oh = (Float) (ctx->display_height - ctx->dh ) / 2;
 		}
-		ctx->display_changed = GF_FALSE;
-		glClearColor(0, 0, 0, 1.0);
-		glClear(GL_COLOR_BUFFER_BIT);
-
 		if (ctx->dump_buffer) {
 			gf_free(ctx->dump_buffer);
 			ctx->dump_buffer = NULL;
 		}
 
+		ctx->display_changed = GF_FALSE;
+	}
+	glViewport(0, 0, ctx->display_width, ctx->display_height);
+
+	gf_mx_init(mx);
+	hw = ((Float)ctx->display_width)/2;
+	hh = ((Float)ctx->display_height)/2;
+	gf_mx_ortho(&mx, -hw, hw, -hh, hh, 10, -5);
+	glMatrixMode(GL_PROJECTION);
+	glLoadMatrixf(mx.m);
+
+	glMatrixMode(GL_TEXTURE);
+	glLoadIdentity();
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	glClearColor(0, 0, 0, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	//we are not sure if we are the only ones using the gl context, reset our defaults
+	glDisable(GL_LIGHTING);
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
+	if (ctx->has_alpha) {
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_BLEND);
+	} else {
+		glDisable(GL_BLEND);
 	}
 	if (ctx->has_alpha) {
 		Float r, g, b;
@@ -1326,13 +1341,13 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	data = (char*) gf_filter_pck_get_data(pck, &wsize);
 	if (!data) {
 		GF_Err e;
-		GF_FilterHWFrame *hw_frame = gf_filter_pck_get_hw_frame(pck);
-		if (hw_frame->reset_pending) ctx->force_release = GF_TRUE;
-		if (! hw_frame->get_plane) {
-			vout_draw_gl_hw_textures(ctx, hw_frame);
+		GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
+		if (frame_ifce->blocking) ctx->force_release = GF_TRUE;
+		if (frame_ifce->get_gl_texture) {
+			vout_draw_gl_hw_textures(ctx, frame_ifce);
 			return;
 		}
-		e = hw_frame->get_plane(hw_frame, 0, (const u8 **) &pY, &stride_luma);
+		e = frame_ifce->get_plane(frame_ifce, 0, (const u8 **) &pY, &stride_luma);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching chroma plane from hardware frame\n"));
 			return;
@@ -1340,14 +1355,14 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		data = pY;
 		pU = pV = NULL;
 		if (ctx->num_textures>1) {
-			e = hw_frame->get_plane(hw_frame, 1, (const u8 **) &pU, &stride_chroma);
+			e = frame_ifce->get_plane(frame_ifce, 1, (const u8 **) &pU, &stride_chroma);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching luma U plane from hardware frame\n"));
 				return;
 			}
 		}
 		if (ctx->num_textures>2) {
-			e = hw_frame->get_plane(hw_frame, 2, (const u8 **) &pV, &stride_chroma);
+			e = frame_ifce->get_plane(frame_ifce, 2, (const u8 **) &pV, &stride_chroma);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching luma V plane from hardware frame\n"));
 				return;
@@ -1365,7 +1380,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		}
 	}
 
-	if (stride_luma != ctx->width) {
+	if (ctx->is_yuv && (stride_luma != ctx->width)) {
 		use_stride = GF_TRUE; //whether >8bits or real stride
 	}
 	if (ctx->swap_uv) {
@@ -1577,7 +1592,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 	}
 	//and draw
-	vout_draw_gl_quad(ctx);
+	vout_draw_gl_quad(ctx, GF_FALSE);
 
 }
 #endif
@@ -1603,25 +1618,25 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		GF_Err e;
 		u32 stride_luma;
 		u32 stride_chroma;
-		GF_FilterHWFrame *hw_frame = gf_filter_pck_get_hw_frame(pck);
-		if (hw_frame->reset_pending) ctx->force_release = GF_TRUE;
-		if (! hw_frame->get_plane) {
+		GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
+		if (frame_ifce->blocking) ctx->force_release = GF_TRUE;
+		if (! frame_ifce->get_plane) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Hardware GL texture blit not supported with non-GL blitter\n"));
 			return;
 		}
-		e = hw_frame->get_plane(hw_frame, 0, (const u8 **) &src_surf.video_buffer, &stride_luma);
+		e = frame_ifce->get_plane(frame_ifce, 0, (const u8 **) &src_surf.video_buffer, &stride_luma);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching chroma plane from hardware frame\n"));
 			return;
 		}
 		if (ctx->is_yuv && (ctx->num_textures>1)) {
-			e = hw_frame->get_plane(hw_frame, 1, (const u8 **) &src_surf.u_ptr, &stride_chroma);
+			e = frame_ifce->get_plane(frame_ifce, 1, (const u8 **) &src_surf.u_ptr, &stride_chroma);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching luma U plane from hardware frame\n"));
 				return;
 			}
 			if ((ctx->pfmt!= GF_PIXEL_NV12) && (ctx->pfmt!= GF_PIXEL_NV21)) {
-				e = hw_frame->get_plane(hw_frame, 2, (const u8 **) &src_surf.v_ptr, &stride_chroma);
+				e = frame_ifce->get_plane(frame_ifce, 2, (const u8 **) &src_surf.v_ptr, &stride_chroma);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching luma V plane from hardware frame\n"));
 					return;
@@ -1763,18 +1778,18 @@ static GF_Err vout_process(GF_Filter *filter)
 				ctx->aborted = GF_TRUE;
 			}
 		}
-		//check if we have a clock hint from an audio output
-		if (!gf_filter_all_sinks_done(filter)) {
-			gf_filter_ask_rt_reschedule(filter, 100000);
-			if (ctx->display_changed) goto draw_frame;
-			return GF_OK;
-		}
 		if (ctx->aborted) {
 			if (ctx->last_pck) {
 				gf_filter_pck_unref(ctx->last_pck);
 				ctx->last_pck = NULL;
 			}
 			return GF_EOS;
+		}
+		//check if we have a clock hint from an audio output
+		if (!gf_filter_all_sinks_done(filter)) {
+			gf_filter_ask_rt_reschedule(filter, 100000);
+			if (ctx->display_changed) goto draw_frame;
+			return GF_OK;
 		}
 		return GF_OK;
 	}
@@ -1815,8 +1830,8 @@ static GF_Err vout_process(GF_Filter *filter)
 	}
 
 	if (ctx->buffer) {
-		GF_FilterHWFrame *hwframe = gf_filter_pck_get_hw_frame(pck);
-		if (hwframe && hwframe->reset_pending) {
+		GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
+		if (frame_ifce && frame_ifce->blocking) {
 			ctx->buffer = GF_TRUE;
 		} else {
 			u32 max_units, nb_pck, max_dur, dur=0;
@@ -2011,14 +2026,14 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(drv), "video driver name", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(vsync), "enables video screen sync", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(drop), "enables droping late frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(disp), "Display mode, gl: OpenGL, pbo: OpenGL with PBO, blit: 2D HW blit, soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(disp), "Display mode\n\tgl: OpenGL\n\tpbo: OpenGL with PBO\n\tblit: 2D HW blit\n\tsoft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, 0},
 	{ OFFS(speed), "sets playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(linear), "uses linear filtering instead of nearest pixel for GL mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(back), "specifies back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(wsize), "default init wsize, 0x0 holds the wsize of the first frame. Default is video media wsize", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(wsize), "default init wsize, 0x0 holds the wsize of the first frame. Default is video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(wpos), "default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(delay), "sets delay, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(hide), "hide output window", GF_PROP_BOOL, "false", NULL, 0},

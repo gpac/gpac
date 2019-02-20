@@ -956,6 +956,9 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	u32 time = gf_sys_clock();
 #endif
 
+	if (is_root_visual && visual->compositor->fbo_id)
+		compositor_3d_enable_fbo(visual->compositor, GF_TRUE);
+
 	visual_3d_setup(visual);
 	visual->glsl_flags = 0;
 
@@ -999,6 +1002,9 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 		visual_3d_draw_node(tr_state, root);
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\t3D drawn in \t%d\tms\n", visual->compositor->frame_number, gf_sys_clock() - time));
+
+	if (is_root_visual && visual->compositor->fbo_id)
+		compositor_3d_enable_fbo(visual->compositor, GF_FALSE);
 
 	return 1;
 }

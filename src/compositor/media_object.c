@@ -313,7 +313,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 }
 
 GF_EXPORT
-char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_ms, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_FilterHWFrame **outFrame, u32 *planar_size)
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_ms, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_FilterFrameInterface **outFrame, u32 *planar_size)
 {
 
 	u32 force_decode_mode = 0;
@@ -345,7 +345,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		return mo->frame;
 	}
 
-	if (mo->pck && mo->hw_frame && mo->hw_frame->reset_pending) {
+	if (mo->pck && mo->frame_ifce && mo->frame_ifce->blocking) {
 		gf_filter_pck_unref(mo->pck);
 		mo->pck = NULL;
 	}
@@ -576,7 +576,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	} else {
 		mo->frame += mo->RenderedLength;
 	}
-	mo->hw_frame = gf_filter_pck_get_hw_frame(mo->pck);
+	mo->frame_ifce = gf_filter_pck_get_frame_interface(mo->pck);
 //	mo->media_frame = CU->frame;
 
 	diff = (s32) ( (mo->speed >= 0) ? ( (s64) pck_ts - (s64) obj_time) : ( (s64) obj_time - (s64) pck_ts) );
@@ -656,7 +656,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	}
 
 	//TODO fixme, hack for clock signaling
-	if (!mo->frame && !mo->hw_frame)
+	if (!mo->frame && !mo->frame_ifce)
 		return NULL;
 
 	mo->nb_fetch ++;
@@ -664,13 +664,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	*size = mo->framesize;
 	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
-	if (outFrame) *outFrame = mo->hw_frame;
+	if (outFrame) *outFrame = mo->frame_ifce;
 	if (planar_size) *planar_size = mo->framesize / mo->num_channels;
 
 //	gf_odm_service_media_event(mo->odm, GF_EVENT_MEDIA_TIME_UPDATE);
 
-	if (mo->hw_frame)
-		return (char *) mo->hw_frame;
+	if (mo->frame_ifce)
+		return (char *) mo->frame_ifce;
 
 	return mo->frame;
 }

@@ -224,6 +224,11 @@ void gf_filter_del(GF_Filter *filter)
 	assert(filter);
 	assert(!filter->detached_pid_inst);
 
+#ifndef GPAC_DISABLE_3D
+	gf_list_del_item(filter->session->gl_providers, filter);
+	gf_fs_check_gl_provider(filter->session);
+#endif
+
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs) {
 		if (filter->max_nb_process>10 && (filter->max_nb_consecutive_process * 10 < filter->max_nb_process)) {
@@ -1028,15 +1033,16 @@ void gf_filter_check_output_reconfig(GF_Filter *filter)
 			//PID was reconfigured, update props
 			if (pidi->reconfig_pid_props) {
 				assert(pidi->props);
-				assert (pidi->props != pidi->reconfig_pid_props);
-				//unassign old property list and set the new one
-				assert(pidi->props->reference_count);
-				if (safe_int_dec(& pidi->props->reference_count) == 0) {
-					gf_list_del_item(pidi->pid->properties, pidi->props);
-					gf_props_del(pidi->props);
+				if (pidi->props != pidi->reconfig_pid_props) {
+					//unassign old property list and set the new one
+					assert(pidi->props->reference_count);
+					if (safe_int_dec(& pidi->props->reference_count) == 0) {
+						gf_list_del_item(pidi->pid->properties, pidi->props);
+						gf_props_del(pidi->props);
+					}
+					pidi->props = pidi->reconfig_pid_props;
+					safe_int_inc( & pidi->props->reference_count );
 				}
-				pidi->props = pidi->reconfig_pid_props;
-				safe_int_inc( & pidi->props->reference_count );
 				pidi->reconfig_pid_props = NULL;
 				gf_fs_post_task(filter->session, gf_filter_pid_reconfigure_task, pidi->filter, pid, "pidinst_reconfigure", NULL);
 			}
@@ -2557,7 +2563,7 @@ Bool gf_filter_all_sinks_done(GF_Filter *filter)
 		if (f->num_output_pids) continue;
 		for (j=0; j<f->num_input_pids; j++) {
 			GF_FilterPidInst *pidi = gf_list_get(f->input_pids, j);
-			if (!pidi->is_end_of_stream) {
+			if (pidi->pid->is_playing && !pidi->is_end_of_stream) {
 				res = GF_FALSE;
 				goto exit;
 			}
@@ -2568,3 +2574,39 @@ exit:
 	return res;
 }
 
+
+GF_EXPORT
+void gf_filter_register_opengl_provider(GF_Filter *filter, Bool do_register)
+{
+	GF_Err e;
+	if (filter->removed || filter->finalized) return;
+
+	if (do_register) {
+		if (gf_list_find(filter->session->gl_providers, filter)<0)
+			gf_list_add(filter->session->gl_providers, filter);
+		return;
+	}
+	gf_list_del_item(filter->session->gl_providers, filter);
+	e = gf_fs_check_gl_provider(filter->session);
+	if (e && filter->session->nb_gl_filters) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reload an OpenGL provider and some filters require openGL, aborting\n"));
+		gf_fs_abort(filter->session, GF_FALSE);
+	}
+}
+
+GF_EXPORT
+GF_Err gf_filter_request_opengl(GF_Filter *filter)
+{
+	GF_Err e;
+	if (filter->finalized || filter->removed) return GF_OK;
+
+	filter->session->nb_gl_filters++;
+	e = gf_fs_check_gl_provider(filter->session);
+	if (e) {
+		filter->session->nb_gl_filters--;
+		filter->main_thread_forced = GF_FALSE;
+		return e;
+	}
+	filter->main_thread_forced = GF_TRUE;
+	return GF_OK;
+}

@@ -304,6 +304,9 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			}
 		}
 		scene->root_od->scene_ns = new_sns;
+		gf_sc_set_scene(ctx, NULL);
+		gf_sg_reset(scene->graph);
+		gf_sc_set_scene(ctx, scene->graph);
 	}
 
 	//setup object (clock) and playback requests
@@ -347,8 +350,11 @@ static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 	if (ctx->vout == pid) {
 		u32 w, h;
 		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_PIXFMT);
-		if (p) ctx->opfmt = p->value.uint;
-
+		if (p) {
+			ctx->opfmt = p->value.uint;
+			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->opfmt) );
+		}
+		
 		w = h = 0;
 		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_WIDTH);
 		if (p) w = p->value.uint;
@@ -358,6 +364,8 @@ static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 		if (w && h) {
 			ctx->size.x = w;
 			ctx->size.y = h;
+			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_WIDTH, &PROP_UINT(w) );
+			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(h) );
 		}
 		return GF_OK;
 	}
@@ -669,10 +677,13 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"It will stop generating frames as soon as all input streams are done, unless extended/reduced by the dur option.\n"
 	"In non-player mode, the special URL 'gpid://' is used to locate PIDs in the scene description, in order to design scenes independently from source media.\n"\
 	"When such a pid is associated to a Background2D node in BIFS, the compositor operates in passthrough mode.\n"\
-	"In this mode, only new input frames on the passthrough pid will generate new frames.\n"\
+	"In this mode, only new input frames on the passthrough pid will generate new frames, and the scene clock matches the input packet time.\n"\
 	"The output size and pixel format will be set to the input size and pixel format, unless specified otherwise in the filter options.\n"\
+	"\n"\
 	"If only 2D graphics are used and display driver is not forced, 2D rasterizer will happen in the output pixel format (including YUV pixel formats).\n"\
 	"In this case, inplace processing (rasterizing over the input frame data) will be used whenever allowed by input data.\n"\
+	"\n"\
+	"If 3D graphics are used or display driver is forced, OpenGL will be used on offscreen surface and the output packet will be an OpenGL texture.\n"\
 	)
 	.private_size = sizeof(GF_Compositor),
 	.flags = GF_FS_REG_MAIN_THREAD | GF_FS_REG_EXPLICIT_ONLY,

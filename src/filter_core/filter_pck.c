@@ -155,7 +155,7 @@ GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck
 	if (!pck_source) return NULL;
 
 	pcki = (GF_FilterPacketInstance *) pck_source;
-	if (pcki->pck->hw_frame || !pcki->pck->data_length)
+	if (pcki->pck->frame_ifce || !pcki->pck->data_length)
 		return NULL;
 
 	ref = pcki->pck;
@@ -245,7 +245,7 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 	if (!data && !data_size) {
 		pck->data = reference->data;
 		pck->data_length = reference->data_length;
-		pck->hw_frame = reference->hw_frame;
+		pck->frame_ifce = reference->frame_ifce;
 	}
 	safe_int_inc(&reference->pid->nb_shared_packets_out);
 	return pck;
@@ -263,14 +263,14 @@ GF_Err gf_filter_pck_set_readonly(GF_FilterPacket *pck)
 }
 
 GF_EXPORT
-GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame *hw_frame, gf_fsess_packet_destructor destruct)
+GF_FilterPacket *gf_filter_pck_new_frame_interface(GF_FilterPid *pid, GF_FilterFrameInterface *frame_ifce, gf_fsess_packet_destructor destruct)
 {
 	GF_FilterPacket *pck;
-	if (!hw_frame) return NULL;
+	if (!frame_ifce) return NULL;
 	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
 	if (!pck) return NULL;
 	pck->destructor = destruct;
-	pck->hw_frame = hw_frame;
+	pck->frame_ifce = frame_ifce;
 	pck->filter_owns_mem = 2;
 	return pck;
 }
@@ -291,7 +291,7 @@ GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid)
 	gf_filter_pck_merge_properties(reference, pck);
 	pck->data = reference->data;
 	pck->data_length = reference->data_length;
-	pck->hw_frame = reference->hw_frame;
+	pck->frame_ifce = reference->frame_ifce;
 
 	return gf_filter_pck_send(pck);
 }
@@ -627,7 +627,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		if (pck->data_length) {
 			pid->filter->nb_pck_sent++;
 			pid->filter->nb_bytes_sent += pck->data_length;
-		} else if (pck->hw_frame) {
+		} else if (pck->frame_ifce) {
 			pid->filter->nb_hw_pck_sent++;
 		}
 	}
@@ -799,6 +799,9 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		inst->pid = dst;
 		inst->pid_props_change_done = 0;
 		inst->pid_info_change_done = 0;
+		//if packet is an openGL interface, force scheduling on main thread for the destination
+		if (pck->frame_ifce&&pck->frame_ifce->get_gl_texture)
+			dst->filter->main_thread_forced = GF_TRUE;
 
 		if ((inst->pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS)  {
 			safe_int_inc(&inst->pid->nb_eos_signaled);
@@ -878,7 +881,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 					inst->pck->reference_count = 0;
 					inst->pck->reference = NULL;
 					inst->pck->destructor = NULL;
-					inst->pck->hw_frame = NULL;
+					inst->pck->frame_ifce = NULL;
 					if (pck->props) {
 						GF_Err e;
 						inst->pck->props = gf_props_new(pck->pid->filter);
@@ -1407,10 +1410,10 @@ GF_FilterClockType gf_filter_pck_get_clock_type(GF_FilterPacket *pck)
 }
 
 GF_EXPORT
-GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck)
+GF_FilterFrameInterface *gf_filter_pck_get_frame_interface(GF_FilterPacket *pck)
 {
 	assert(pck);
-	return pck->pck->hw_frame;
+	return pck->pck->frame_ifce;
 }
 
 GF_EXPORT
@@ -1469,7 +1472,7 @@ Bool gf_filter_pck_is_blocking_ref(GF_FilterPacket *pck)
 
 	while (pck) {
 		if (pck->destructor && pck->filter_owns_mem) return GF_TRUE;
-		if (pck->hw_frame && pck->hw_frame->reset_pending) return GF_TRUE;
+		if (pck->frame_ifce && pck->frame_ifce->blocking) return GF_TRUE;
 		pck = pck->reference;
 	}
 	return GF_FALSE;
