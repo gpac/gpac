@@ -237,13 +237,13 @@ struct __gf_filter_pck
 	//for allocated memory packets
 	u32 alloc_size;
 	//for shared memory packets: 0: cloned mem, 1: read/write mem from source filter, 2: read-only mem from filter
-	//note that packets with hwframe are always considered as read-only memory
+	//note that packets with frame_ifce are always considered as read-only memory
 	u32 filter_owns_mem;
 	gf_fsess_packet_destructor destructor;
 	//for packet reference  packets (sharing data from other packets)
 	struct __gf_filter_pck *reference;
 
-	GF_FilterHWFrame *hw_frame;
+	GF_FilterFrameInterface *frame_ifce;
 	
 	// properties applying to this packet
 	GF_PropertyMap *props;
@@ -399,9 +399,20 @@ struct __gf_filter_session
 	char sep_args, sep_name, sep_frag, sep_list, sep_neg;
 	const char *blacklist;
 	Bool init_done;
+
+#ifndef GPAC_DISABLE_3D
+	GF_List *gl_providers;
+	volatile u32 nb_gl_filters;
+#endif
+	//internal video output to hidden window for GL context
+	struct _video_out *gl_driver;
 };
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess);
+
+#ifndef GPAC_DISABLE_3D
+GF_Err gf_fs_check_gl_provider(GF_FilterSession *session);
+#endif
 
 typedef enum
 {
@@ -619,6 +630,7 @@ struct __gf_filter
 	//system clock of first error
 	u64 time_at_first_error;
 
+	Bool main_thread_forced;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
@@ -729,7 +741,7 @@ struct __gf_filter_pid
 	volatile u32 discard_input_packets;
 	volatile u32 init_task_pending;
 	volatile Bool props_changed_since_connect;
-	//number of shared packets (shared, hw frames or reference) still out there
+	//number of shared packets (shared, frame interfaces or reference) still out there
 	volatile u32 nb_shared_packets_out;
 
 	GF_PropertyMap *infos;

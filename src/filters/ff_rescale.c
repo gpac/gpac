@@ -60,7 +60,7 @@ static GF_Err ffsws_process(GF_Filter *filter)
 	u8 *src_planes[5];
 	u8 *dst_planes[5];
 	GF_FilterPacket *dst_pck;
-	GF_FilterHWFrame *hwframe;
+	GF_FilterFrameInterface *frame_ifce;
 	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 
@@ -86,7 +86,7 @@ static GF_Err ffsws_process(GF_Filter *filter)
 		return GF_OK;
 	}
 	data = gf_filter_pck_get_data(pck, &size);
-	hwframe = gf_filter_pck_get_hw_frame(pck);
+	frame_ifce = gf_filter_pck_get_frame_interface(pck);
 	//we may have biffer input (padding) but shall not have smaller
 	if (size && (ctx->out_src_size > size) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Mismatched in source size, expected %d got %d - stride issue ?\n", ctx->out_src_size, size));
@@ -117,10 +117,10 @@ static GF_Err ffsws_process(GF_Filter *filter)
 			src_planes[2] = src_planes[1] + ctx->src_stride[1] * ctx->src_uv_height;
 			src_planes[3] = src_planes[2] + ctx->src_stride[2] * ctx->src_uv_height;
 		}
-	} else if (hwframe && hwframe->get_plane) {
+	} else if (frame_ifce && frame_ifce->get_plane) {
 		u32 i=0;
 		for (i=0; i<ctx->nb_src_planes; i++) {
-			if (hwframe->get_plane(hwframe, i, (const u8 **) &src_planes[i], &ctx->src_stride[i])!=GF_OK)
+			if (frame_ifce->get_plane(frame_ifce, i, (const u8 **) &src_planes[i], &ctx->src_stride[i])!=GF_OK)
 				break;
 		}
 	} else {

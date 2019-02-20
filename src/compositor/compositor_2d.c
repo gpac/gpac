@@ -761,14 +761,14 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	if (txh->pixelformat==GF_PIXEL_YUVD) video_src.pixel_format = GF_PIXEL_YUV;
 #endif
 	video_src.video_buffer = txh->data;
-	if (txh->hw_frame) {
+	if (txh->frame_ifce) {
 		u32 stride;
-		if (!txh->hw_frame->get_plane) return GF_FALSE;
+		if (!txh->frame_ifce->get_plane) return GF_FALSE;
 
-		e = txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &video_src.video_buffer, &video_src.pitch_y);
+		e = txh->frame_ifce->get_plane(txh->frame_ifce, 0, (const u8 **) &video_src.video_buffer, &video_src.pitch_y);
 		if (e) return GF_FALSE;
-		txh->hw_frame->get_plane(txh->hw_frame, 1, (const u8 **) video_src.u_ptr, &stride);
-		txh->hw_frame->get_plane(txh->hw_frame, 2, (const u8 **) video_src.v_ptr, &stride);
+		txh->frame_ifce->get_plane(txh->frame_ifce, 1, (const u8 **) video_src.u_ptr, &stride);
+		txh->frame_ifce->get_plane(txh->frame_ifce, 2, (const u8 **) video_src.v_ptr, &stride);
 	}
 	video_src.global_alpha = alpha;
 

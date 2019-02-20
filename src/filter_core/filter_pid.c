@@ -2982,8 +2982,10 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	Bool found_matching_sourceid;
 	Bool can_reassign_filter = GF_FALSE;
 	Bool can_try_link_resolution=GF_FALSE;
+	Bool must_try_link_resolution=GF_FALSE;
 	u32 num_pass=0;
 	GF_List *loaded_filters = NULL;
+	GF_List *linked_dest_filters = NULL;
 	GF_Filter *filter = task->filter;
 	GF_FilterPid *pid = task->pid;
 	GF_Filter *dynamic_filter_clone = NULL;
@@ -3021,6 +3023,8 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	//we lock the instantiated filter list for the entire resolution process
 	if (filter->session->filters_mx) gf_mx_p(filter->session->filters_mx);
 
+	linked_dest_filters = gf_list_new();
+
 	//we use at max 3 passes:
 	//pass 1: try direct connections without loading intermediate filter chains. If PID gets connected, skip other passes
 	//pass 2: try loading intermediate filter chains, but disable filter registry swapping. If PID gets connected, skip last
@@ -3045,6 +3049,15 @@ single_retry:
 		//source filter
 		if (!filter_dst->freg->configure_pid) continue;
 		if (filter_dst->finalized || filter_dst->removed) continue;
+
+		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
+		if (pid->pid->filter->freg == filter_dst->freg) {
+			continue;
+		}
+		//we already linked to this one
+		if (gf_list_find(linked_dest_filters, filter_dst)>=0) {
+			continue;
+		}
 
 		if (gf_list_count(pid->filter->destination_filters)) {
 			s32 ours = gf_list_find(pid->filter->destination_filters, filter_dst);
@@ -3079,10 +3092,6 @@ single_retry:
 
 		if (gf_list_find(pid->filter->blacklisted, (void *) filter_dst->freg)>=0) continue;
 
-		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
-		if (pid->pid->filter->freg == filter_dst->freg) {
-			continue;
-		}
 		//we try to load a filter chain, so don't test against filters loaded for another chain
 		if (filter_dst->dynamic_filter && (filter_dst != pid->filter->dst_filter)) {
 			//dst was explicitely set and does not match
@@ -3191,7 +3200,12 @@ single_retry:
 					gf_filter_post_remove(old_dst);
 				}
 			}
-			if (!num_pass) continue;
+			if (!num_pass) {
+				//we have an explicit link instruction so we must try dynamic link even if we connect to another filter
+				if (filter_dst->source_ids)
+					must_try_link_resolution = GF_TRUE;
+				continue;
+			}
 			filter_found_but_pid_excluded = GF_FALSE;
 
 			Bool skipped = GF_FALSE;
@@ -3216,6 +3230,7 @@ single_retry:
 					assert(pid->init_task_pending);
 					safe_int_dec(&pid->init_task_pending);
 					if (loaded_filters) gf_list_del(loaded_filters);
+					gf_list_del(linked_dest_filters);
 					return;
 				}
 				//we might had it wrong solving the chain initially, break the chain
@@ -3236,6 +3251,8 @@ single_retry:
 							if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 							assert(pid->init_task_pending);
 							safe_int_dec(&pid->init_task_pending);
+							if (loaded_filters) gf_list_del(loaded_filters);
+							gf_list_del(linked_dest_filters);
 							return;
 						} else {
 							continue;
@@ -3255,6 +3272,7 @@ single_retry:
 		gf_filter_pid_post_connect_task(filter_dst, pid);
 
 		found_dest = GF_TRUE;
+		gf_list_add(linked_dest_filters, filter_dst);
 	}
 
 	if (loaded_filters) {
@@ -3266,6 +3284,11 @@ single_retry:
 		num_pass = 1;
 		goto restart;
 	}
+	//we must do the second pass if a filter has an explicit link set through source if
+	if (!num_pass && must_try_link_resolution) {
+		num_pass = 1;
+		goto restart;
+	}
 
 	//connection task posted, nothing left to do
 	if (found_dest) {
@@ -3273,6 +3296,7 @@ single_retry:
 		safe_int_dec(&pid->init_task_pending);
 		if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 		pid->filter->disabled = GF_FALSE;
+		gf_list_del(linked_dest_filters);
 		return;
 	}
 	//on first pass, if we found a clone (eg a filter using freg:#PropName=*), instantiate this clone and redo the pid linking to this clone (last entry in the filter list)
@@ -3306,6 +3330,7 @@ single_retry:
 		}
 	}
 
+	gf_list_del(linked_dest_filters);
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 
 
@@ -4057,7 +4082,7 @@ Bool gf_filter_pid_first_packet_is_empty(GF_FilterPid *pid)
 	}
 	if (pidinst->requires_full_data_block && !(pcki->pck->info.flags & GF_PCKF_BLOCK_END))
 		return GF_TRUE;
-	return (pcki->pck->data_length || pcki->pck->hw_frame) ? GF_FALSE : GF_TRUE;
+	return (pcki->pck->data_length || pcki->pck->frame_ifce) ? GF_FALSE : GF_TRUE;
 }
 
 

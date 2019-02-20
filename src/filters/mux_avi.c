@@ -342,10 +342,10 @@ static GF_Err avimux_process(GF_Filter *filter)
 		if (pck_data) {
 			res = AVI_write_frame(ctx->avi_out, (char *) pck_data, pck_size, is_rap);
 		} else {
-			GF_FilterHWFrame *hwframe = gf_filter_pck_get_hw_frame(pck);
-			if (hwframe && hwframe->get_plane) {
+			GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
+			if (frame_ifce && frame_ifce->get_plane) {
 				u32 out_stride;
-				GF_Err e = hwframe->get_plane(hwframe, 0, (const u8 **) &pck_data, &out_stride);
+				GF_Err e = frame_ifce->get_plane(frame_ifce, 0, (const u8 **) &pck_data, &out_stride);
 				if (e==GF_OK) {
 					res = AVI_write_frame(ctx->avi_out, (char *) pck_data, video_st->height*out_stride, is_rap);
 				}

@@ -118,14 +118,14 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 			txh->stride /= 2;
 			txh->tx_io->conv_to_8bit = GF_TRUE;
 			txh->pixelformat = GF_PIXEL_YUV;
-			if(txh->hw_frame)
+			if(txh->frame_ifce)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height / 2);
 		}
 		else if (txh->pixelformat == GF_PIXEL_NV12_10) {
 			txh->stride /= 2;
 			txh->tx_io->conv_to_8bit = GF_TRUE;
 			txh->pixelformat = GF_PIXEL_NV12;
-			if(txh->hw_frame)
+			if(txh->frame_ifce)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height / 2);
 		}
 		else if (txh->pixelformat == GF_PIXEL_YUV422_10) {
@@ -133,14 +133,14 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 			txh->tx_io->conv_to_8bit = GF_TRUE;
 			txh->pixelformat = GF_PIXEL_YUV422;
 			
-			if (txh->hw_frame)
+			if (txh->frame_ifce)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 2 * sizeof(char)* txh->stride * txh->height);
 		}
 		else if (txh->pixelformat == GF_PIXEL_YUV444_10) {
 			txh->stride /= 2;
 			txh->tx_io->conv_to_8bit = GF_TRUE;
 			txh->pixelformat = GF_PIXEL_YUV444;
-			if (txh->hw_frame)
+			if (txh->frame_ifce)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height);
 		}
 	}
@@ -230,15 +230,15 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 		dst.width = txh->width;
 		dst.height = txh->height;
 		dst.pitch_y = txh->stride;
-		dst.video_buffer = txh->hw_frame ? txh->tx_io->conv_data : txh->data;
+		dst.video_buffer = txh->frame_ifce ? txh->tx_io->conv_data : txh->data;
 
 		p_u = p_v = NULL;
 		p_y = (u8 *)txh->data;
-		if (txh->hw_frame) {
+		if (txh->frame_ifce) {
 			u32 st_y, st_u, st_v;
-			txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &p_y, &st_y);
-			txh->hw_frame->get_plane(txh->hw_frame, 1, (const u8 **) &p_u, &st_u);
-			txh->hw_frame->get_plane(txh->hw_frame, 2, (const u8 **) &p_v, &st_v);
+			txh->frame_ifce->get_plane(txh->frame_ifce, 0, (const u8 **) &p_y, &st_y);
+			txh->frame_ifce->get_plane(txh->frame_ifce, 1, (const u8 **) &p_u, &st_u);
+			txh->frame_ifce->get_plane(txh->frame_ifce, 2, (const u8 **) &p_v, &st_v);
 			if (p_y) src_stride = st_y;
 		}
 
@@ -246,7 +246,7 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 
 			gf_color_write_yv12_10_to_yuv(&dst, p_y, p_u, p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
 
-			if (txh->hw_frame) {
+			if (txh->frame_ifce) {
 				p_y = dst.video_buffer;
 				p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
 				p_v = (u8*) dst.video_buffer + 5 * dst.pitch_y * txh->height / 4;
@@ -256,7 +256,7 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 
 			gf_color_write_yuv422_10_to_yuv422(&dst, p_y, p_u, p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
 
-			if (txh->hw_frame) {
+			if (txh->frame_ifce) {
 				p_y = dst.video_buffer;
 				p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
 				p_v = (u8*) dst.video_buffer + 3 * dst.pitch_y * txh->height / 2;
@@ -267,7 +267,7 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 
 			gf_color_write_yuv444_10_to_yuv444(&dst, p_y, p_u, p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
 
-			if (txh->hw_frame) {
+			if (txh->frame_ifce) {
 				p_y = dst.video_buffer;
 				p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
 				p_v = (u8*) dst.video_buffer + 2 * dst.pitch_y * txh->height;
@@ -275,11 +275,11 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 		}
 	}
 #ifndef GPAC_DISABLE_3D
-	else if (txh->tx_io->pbo_id && txh->hw_frame) {
+	else if (txh->tx_io->pbo_id && txh->frame_ifce) {
 		u32 src_stride;
-		txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &p_y, &y_stride);
-		txh->hw_frame->get_plane(txh->hw_frame, 1, (const u8 **) &p_u, &src_stride);
-		txh->hw_frame->get_plane(txh->hw_frame, 2, (const u8 **) &p_v, &src_stride);
+		txh->frame_ifce->get_plane(txh->frame_ifce, 0, (const u8 **) &p_y, &y_stride);
+		txh->frame_ifce->get_plane(txh->frame_ifce, 1, (const u8 **) &p_u, &src_stride);
+		txh->frame_ifce->get_plane(txh->frame_ifce, 2, (const u8 **) &p_v, &src_stride);
 	}
 #endif
 
@@ -316,7 +316,7 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 		txh->tx_io->pbo_pushed = 1;
 
 		//we just pushed our texture to the GPU, release
-		if (txh->hw_frame) {
+		if (txh->frame_ifce) {
 			gf_sc_texture_release_stream(txh);
 		}
 	}
@@ -1074,7 +1074,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		gf_mo_get_nb_views(txh->stream, &nb_views);
 		gf_mo_get_nb_layers(txh->stream, &nb_layers);
 	}
-	if (txh->hw_frame || nb_views == 1) nb_frames = 1;
+	if (txh->frame_ifce || nb_views == 1) nb_frames = 1;
 	else if (nb_layers) nb_frames = nb_layers;
 
 #endif
@@ -1098,16 +1098,16 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			u32 stride = txh->stride;
 			u32 stride_uv=0;
 			GF_Err e;
-			if (txh->hw_frame) {
+			if (txh->frame_ifce) {
 				pData=NULL;
-				if (txh->hw_frame->get_plane) {
-					e = txh->hw_frame->get_plane(txh->hw_frame, 0, &pData, &stride);
+				if (txh->frame_ifce->get_plane) {
+					e = txh->frame_ifce->get_plane(txh->frame_ifce, 0, &pData, &stride);
 					if (!e && txh->nb_planes>1)
-						e = txh->hw_frame->get_plane(txh->hw_frame, 1, &pU, &stride_uv);
+						e = txh->frame_ifce->get_plane(txh->frame_ifce, 1, &pU, &stride_uv);
 					if (!e && txh->nb_planes>2)
-						e = txh->hw_frame->get_plane(txh->hw_frame, 2, &pV, &stride_uv);
+						e = txh->frame_ifce->get_plane(txh->frame_ifce, 2, &pV, &stride_uv);
 					if (!e && txh->nb_planes>3)
-						e = txh->hw_frame->get_plane(txh->hw_frame, 3, &pA, &stride_uv);
+						e = txh->frame_ifce->get_plane(txh->frame_ifce, 3, &pA, &stride_uv);
 				}
 			}
 			if (!pData) {
@@ -1194,7 +1194,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			u32 stride_chroma = txh->stride_chroma;
 			u8 *pY, *pU, *pV;
 			
-			if (txh->hw_frame && txh->hw_frame->get_gl_texture ) {
+			if (txh->frame_ifce && txh->frame_ifce->get_gl_texture ) {
 				u32 gl_format;
 				
 				if (!txh->tx_io->use_external_textures) {
@@ -1205,7 +1205,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 					txh->tx_io->use_external_textures = GF_TRUE;
 				}
 					
-				if (txh->hw_frame->get_gl_texture(txh->hw_frame, 0, &gl_format, &txh->tx_io->id, &txh->tx_io->texcoordmatrix) != GF_OK) {
+				if (txh->frame_ifce->get_gl_texture(txh->frame_ifce, 0, &gl_format, &txh->tx_io->id, &txh->tx_io->texcoordmatrix) != GF_OK) {
 					return 0;
 				}
 				glBindTexture(gl_format, txh->tx_io->id);
@@ -1222,7 +1222,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				}
 #endif // GPAC_CONFIG_ANDROID
 					
-				if (txh->hw_frame->get_gl_texture(txh->hw_frame, 1, &gl_format, &txh->tx_io->u_id, &txh->tx_io->texcoordmatrix) != GF_OK) {
+				if (txh->frame_ifce->get_gl_texture(txh->frame_ifce, 1, &gl_format, &txh->tx_io->u_id, &txh->tx_io->texcoordmatrix) != GF_OK) {
 					return 0;
 				}
 
@@ -1239,13 +1239,13 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			pY = (u8 *) data;
 			pU = pV = NULL;
 
-			if (txh->hw_frame) {
+			if (txh->frame_ifce) {
 				GF_Err e;
-				e = txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &pY, &stride_luma);
+				e = txh->frame_ifce->get_plane(txh->frame_ifce, 0, (const u8 **) &pY, &stride_luma);
 				if (e) goto push_exit;
-				e = txh->hw_frame->get_plane(txh->hw_frame, 1, (const u8 **) &pU, &stride_chroma);
+				e = txh->frame_ifce->get_plane(txh->frame_ifce, 1, (const u8 **) &pU, &stride_chroma);
 				if (e) goto push_exit;
-				e = txh->hw_frame->get_plane(txh->hw_frame, 2, (const u8 **) &pV, &stride_chroma);
+				e = txh->frame_ifce->get_plane(txh->frame_ifce, 2, (const u8 **) &pV, &stride_chroma);
 				if (e) goto push_exit;
 			} else {
 				pU = (u8 *) pY + nb_frames * txh->height * txh->stride;
@@ -1354,17 +1354,17 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 #endif
 
 			txh->tx_io->pbo_pushed = 0;
-		} else if (txh->hw_frame) {
-			if (txh->hw_frame->get_gl_texture) {
+		} else if (txh->frame_ifce) {
+			if (txh->frame_ifce->get_gl_texture) {
 				u32 gl_format;
-				txh->hw_frame->get_gl_texture(txh->hw_frame, 0, &gl_format, &txh->tx_io->id, &txh->tx_io->texcoordmatrix);
+				txh->frame_ifce->get_gl_texture(txh->frame_ifce, 0, &gl_format, &txh->tx_io->id, &txh->tx_io->texcoordmatrix);
 				glBindTexture(gl_format, txh->tx_io->id);
 				GL_CHECK_ERR
 				goto push_exit;
 
 			} else {
 				u32 stride;
-				txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &data, &stride);
+				txh->frame_ifce->get_plane(txh->frame_ifce, 0, (const u8 **) &data, &stride);
 				do_tex_image_2d(txh, tx_mode, first_load, (u8 *) data, txh->stride, w, h, txh->tx_io->pbo_id);
 			}
 			txh->tx_io->pbo_pushed = 0;
@@ -1582,7 +1582,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 		ret = 1;
 	}
 #endif // GPAC_CONFIG_ANDROID
-	if (nb_views>1 && !txh->hw_frame) {
+	if (nb_views>1 && !txh->frame_ifce) {
 		if (txh->compositor->visual->current_view%2 != 0 && !txh->compositor->multiview_mode){
 			gf_mx_add_translation(mx, 0, 0.5f, 0);
 		}

@@ -274,12 +274,12 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 }
 
 
-static void gf_sc_hw_frame_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+static void gf_sc_frame_ifce_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
-	GF_FilterHWFrame *hwframe = gf_filter_pck_get_hw_frame(pck);
+	GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
 	GF_Compositor *compositor = gf_filter_get_udta(filter);
-	if (hwframe) {
-		compositor->hwframe.user_data = NULL;
+	if (frame_ifce) {
+		compositor->frame_ifce.user_data = NULL;
 		if (compositor->fb.video_buffer) {
 			gf_sc_release_screen_buffer(compositor, &compositor->fb);
 			compositor->fb.video_buffer = NULL;
@@ -289,9 +289,9 @@ static void gf_sc_hw_frame_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterP
 	compositor->skip_flush = 0;
 }
 
-GF_Err gf_sc_hw_frame_get_plane(GF_FilterHWFrame *hwframe, u32 plane_idx, const u8 **outPlane, u32 *outStride)
+GF_Err gf_sc_frame_ifce_get_plane(GF_FilterFrameInterface *frame_ifce, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
-	GF_Compositor *compositor = hwframe->user_data;
+	GF_Compositor *compositor = frame_ifce->user_data;
 
 	if (plane_idx==0) {
 		if (!compositor->fb.video_buffer)
@@ -301,6 +301,17 @@ GF_Err gf_sc_hw_frame_get_plane(GF_FilterHWFrame *hwframe, u32 plane_idx, const 
 	*outStride = compositor->fb.pitch_y;
 	return GF_OK;
 }
+#ifndef GPAC_DISABLE_3D
+GF_Err gf_sc_frame_ifce_get_gl_texture(GF_FilterFrameInterface *frame_ifce, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix_unexposed * texcoordmatrix)
+{
+	GF_Compositor *compositor = frame_ifce->user_data;
+	if (!compositor->fbo_tx_id) return GF_BAD_PARAM;
+	if (plane_idx) return GF_BAD_PARAM;
+	if (gl_tex_id) *gl_tex_id = compositor->fbo_tx_id;
+	if (gl_tex_format) *gl_tex_format = compositor_3d_get_fbo_pixfmt();
+	return GF_OK;
+}
+#endif
 
 GF_EXPORT
 Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_next)
@@ -308,7 +319,7 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 	Bool ret = GF_FALSE;
 
 	//frame still pending
-	if (compositor->hwframe.user_data)
+	if (compositor->frame_ifce.user_data)
 		return GF_TRUE;
 
 	if (compositor->flush_pending) {
@@ -402,6 +413,38 @@ GF_VideoOutput null_vout = {
 	.hw_caps = GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY | GF_VIDEO_HW_HAS_STRETCH
 };
 
+static GF_Err gl_vout_evt(struct _video_out *vout, GF_Event *evt)
+{
+	u32 pfmt;
+	GF_Compositor *compositor = (GF_Compositor *)vout->opaque;
+	if (!evt || (evt->type != GF_EVENT_VIDEO_SETUP)) return GF_OK;
+
+	pfmt = compositor->opfmt;
+	if (!pfmt) pfmt = GF_PIXEL_RGB;
+	if (compositor->passthrough_pfmt != GF_PIXEL_RGB) {
+		compositor->passthrough_pfmt = GF_PIXEL_RGB;
+		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB));
+	}
+
+	
+#ifndef GPAC_DISABLE_3D
+	return compositor_3d_setup_fbo(evt->setup.width, evt->setup.height, &compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
+GF_VideoOutput gl_vout = {
+	.Setup = nullvout_setup,
+	.Shutdown = nullvout_shutdown,
+	.Flush = nullvout_flush,
+	.SetFullScreen = nullvout_fullscreen,
+	.ProcessEvent = gl_vout_evt,
+	.LockBackBuffer = NULL,
+	.Blit = NULL,
+	.hw_caps = GF_VIDEO_HW_OPENGL
+};
+
 static GF_Err rawvout_lock(struct _video_out *vout, GF_VideoSurface *vi, Bool do_lock)
 {
 	GF_Compositor *compositor = (GF_Compositor *)vout->opaque;
@@ -418,7 +461,7 @@ static GF_Err rawvout_lock(struct _video_out *vout, GF_VideoSurface *vi, Bool do
 		vi->width = compositor->display_width;
 		vi->height = compositor->display_height;
 		gf_pixel_get_size_info(pfmt, compositor->display_width, compositor->display_height, NULL, &vi->pitch_y, NULL, NULL, NULL);
-		if (compositor->passthrough_txh && !compositor->passthrough_txh->hw_frame && (pfmt == compositor->passthrough_txh->pixelformat)) {
+		if (compositor->passthrough_txh && !compositor->passthrough_txh->frame_ifce && (pfmt == compositor->passthrough_txh->pixelformat)) {
 			if (!compositor->passthrough_pck)
 				compositor->passthrough_pck = gf_filter_pck_new_clone(compositor->vout, compositor->passthrough_txh->stream->pck, &compositor->passthrough_data);
 
@@ -489,7 +532,7 @@ void gf_sc_setup_passthrough(GF_Compositor *compositor)
 	if (compositor->video_out == &raw_vout) {
 		is_raw_out = GF_TRUE;
 		if (!compositor->opfmt || (compositor->opfmt == compositor->passthrough_txh->pixelformat) ) {
-			if (!compositor->passthrough_txh->hw_frame) {
+			if (!compositor->passthrough_txh->frame_ifce) {
 				compositor->passthrough_inplace = GF_TRUE;
 				update_pfmt = GF_FALSE;
 			}
@@ -520,6 +563,21 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 	const char *sOpt;
 	void *os_disp=NULL;
 
+	if (!compositor->player) {
+		compositor->video_out = &null_vout;
+		e = gf_filter_request_opengl(compositor->filter);
+		if (e) return e;
+		gf_sc_load_opengl_extensions(compositor, GF_TRUE);
+		if (!compositor->gl_caps.fbo) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] No support for OpenGL framebuffer object, cannot run in GL mode.\n"));
+			compositor->drv = GF_SC_DRV_OFF;
+			return GF_NOT_SUPPORTED;
+		}
+		compositor->video_out = &gl_vout;
+		compositor->video_out->opaque = compositor;
+		return GF_OK;
+	}
+
 	compositor->video_out = (GF_VideoOutput *) gf_module_load(GF_VIDEO_OUTPUT_INTERFACE, NULL);
 
 	if (!compositor->video_out ) {
@@ -541,6 +599,7 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 	if (!gf_opts_get_key("core", "video-output")) {
 		gf_opts_set_key("core", "video-output", compositor->video_out->module_name);
 	}
+	gf_filter_register_opengl_provider(compositor->filter, GF_TRUE);
 	return GF_OK;
 }
 
@@ -558,8 +617,11 @@ static void gf_sc_check_video_driver(GF_Compositor *compositor)
 		return;
 	}
 	if (compositor->video_out == &raw_vout) return;
-	compositor->video_out->Shutdown(compositor->video_out);
-	gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
+	if (compositor->player) {
+		compositor->video_out->Shutdown(compositor->video_out);
+		gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
+		gf_filter_register_opengl_provider(compositor->filter, GF_FALSE);
+	}
 	compositor->video_out = &raw_vout;
 }
 
@@ -1068,6 +1130,8 @@ static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 	gf_list_del(compositor->traverse_state->use_stack);
 #ifndef GPAC_DISABLE_3D
 	gf_list_del(compositor->traverse_state->local_lights);
+
+	compositor_3d_delete_fbo(&compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
 #endif
 
 	memset(compositor->traverse_state, 0, sizeof(GF_TraverseState));
@@ -2194,7 +2258,7 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 }
 
 
-static void gf_sc_draw_scene(GF_Compositor *compositor)
+static Bool gf_sc_draw_scene(GF_Compositor *compositor)
 {
 	u32 flags;
 
@@ -2204,7 +2268,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Scene has no root node, nothing to draw\n"));
 		//nothing to draw, skip flush
 		compositor->skip_flush = 1;
-		return;
+		return GF_FALSE;
 	}
 
 #ifdef GF_SR_USE_VIDEO_CACHE
@@ -2264,6 +2328,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 	}
 	compositor->zoom_changed = 0;
 	compositor->audio_renderer->scene_ready = GF_TRUE;
+	return GF_TRUE;
 }
 
 
@@ -2363,6 +2428,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	if (compositor->reset_graphics) {
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		visual_reset_graphics(compositor->visual);
+
+		compositor_3d_delete_fbo(&compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
 	}
 
 	/*process pending user events*/
@@ -2503,7 +2570,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #endif
 
 	if (!compositor->player) {
-		if (compositor->passthrough_txh && compositor->passthrough_txh->hw_frame && !compositor->passthrough_txh->hw_frame->get_plane) {
+		if (compositor->passthrough_txh && compositor->passthrough_txh->frame_ifce && !compositor->passthrough_txh->frame_ifce->get_plane) {
 			compositor->passthrough_txh = NULL;
 		}
 
@@ -2669,10 +2736,13 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		}
 		/*full render*/
 		else {
+			Bool scene_drawn;
 			compositor->frame_draw_type = 0;
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene - STB %d\n", compositor->scene_sampled_clock));
-			gf_sc_draw_scene(compositor);
+
+			scene_drawn = gf_sc_draw_scene(compositor);
+
 #ifndef GPAC_DISABLE_LOG
 			traverse_time = gf_sys_clock() - traverse_time;
 #endif
@@ -2686,6 +2756,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			}
 
 			if (compositor->ms_until_next_frame < 0) emit_frame = GF_FALSE;
+			else if (!scene_drawn) emit_frame = GF_FALSE;
 			else if (compositor->frame_draw_type) emit_frame = GF_FALSE;
 			else if (compositor->fonts_pending) emit_frame = GF_FALSE;
 			else emit_frame = GF_TRUE;
@@ -2709,12 +2780,18 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				pck_frame_ts = gf_filter_pck_get_cts(pck);
 			} else {
 				if (compositor->video_out==&raw_vout) {
-					pck = gf_filter_pck_new_shared(compositor->vout, compositor->framebuffer, compositor->framebuffer_size, gf_sc_hw_frame_done);
+					pck = gf_filter_pck_new_shared(compositor->vout, compositor->framebuffer, compositor->framebuffer_size, gf_sc_frame_ifce_done);
 				} else {
-					compositor->hwframe.user_data = compositor;
-					compositor->hwframe.get_plane = gf_sc_hw_frame_get_plane;
-					compositor->hwframe.reset_pending = GF_TRUE;
-					pck = gf_filter_pck_new_hw_frame(compositor->vout, &compositor->hwframe, gf_sc_hw_frame_done);
+					compositor->frame_ifce.user_data = compositor;
+					compositor->frame_ifce.get_plane = gf_sc_frame_ifce_get_plane;
+					compositor->frame_ifce.get_gl_texture = NULL;
+#ifndef GPAC_DISABLE_3D
+					if (compositor->fbo_tx_id) {
+						compositor->frame_ifce.get_gl_texture = gf_sc_frame_ifce_get_gl_texture;
+					}
+#endif
+					compositor->frame_ifce.blocking = GF_TRUE;
+					pck = gf_filter_pck_new_frame_interface(compositor->vout, &compositor->frame_ifce, gf_sc_frame_ifce_done);
 				}
 
 				if (compositor->passthrough_txh) {

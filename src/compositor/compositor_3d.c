@@ -261,6 +261,5 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 	}
 }
 
-
 #endif
 

@@ -289,7 +289,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 	if (ctx->file) {
-		GF_FilterHWFrame *hwf = gf_filter_pck_get_hw_frame(pck);
+		GF_FilterFrameInterface *hwf = gf_filter_pck_get_frame_interface(pck);
 		if (pck_data) {
 			if (ctx->patch_blocks && gf_filter_pck_get_seek_flag(pck)) {
 				u64 bo = gf_filter_pck_get_byte_offset(pck);

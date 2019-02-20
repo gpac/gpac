@@ -99,7 +99,7 @@ typedef struct
 
 	Bool force_stereo_reset;
 
-	GF_FilterHWFrame hw_frame;
+	GF_FilterFrameInterface frame_ifce;
 	OHFrame frame_ptr;
 	Bool frame_out;
 
@@ -633,7 +633,7 @@ void ohevcframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *p
 	gf_filter_post_process_task(ctx->filter);
 }
 
-GF_Err ohevcframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
+GF_Err ohevcframe_get_plane(GF_FilterFrameInterface *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx *)frame->user_data;
 	if (! outPlane || !outStride) return GF_BAD_PARAM;
@@ -660,13 +660,13 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 	GF_FilterPacket *dst_pck, *src_pck;
 	u32 i, count;
 
-	ctx->hw_frame.user_data = ctx;
-	ctx->hw_frame.get_plane = ohevcframe_get_plane;
+	ctx->frame_ifce.user_data = ctx;
+	ctx->frame_ifce.get_plane = ohevcframe_get_plane;
 	//we only keep one frame out, force releasing it
-	ctx->hw_frame.reset_pending = GF_TRUE;
+	ctx->frame_ifce.blocking = GF_TRUE;
 	oh_output_update(ctx->codec, 1, &ctx->frame_ptr);
 
-	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &ctx->hw_frame, ohevcframe_release);
+	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &ctx->frame_ifce, ohevcframe_release);
 
 	src_pck = NULL;
 	count = gf_list_count(ctx->src_packets);

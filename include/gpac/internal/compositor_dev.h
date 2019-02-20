@@ -139,7 +139,7 @@ typedef struct
 	Bool npot_texture;
 	Bool rect_texture;
 	Bool point_sprite;
-	Bool vbo, pbo;
+	Bool vbo, pbo, fbo;
 	Bool gles2_unpack;
 	u32 yuv_texture;
 	Bool has_shaders;
@@ -646,6 +646,10 @@ struct __tag_compositor
 	Bool tvtd, tvtf;
 	u32 vrhud_mode;
 	Fixed fov;
+
+	//offscreen rendering
+	u32 fbo_tx_id, fbo_id, fbo_depth_id;
+
 #endif
 
 	Bool orientation_sensors_active;
@@ -691,7 +695,7 @@ struct __tag_compositor
 	GF_Filter *filter;
 //	GF_FilterSession *fsess;
 	GF_FilterPid *vout;
-	GF_FilterHWFrame hwframe;
+	GF_FilterFrameInterface frame_ifce;
 	GF_VideoSurface fb;
 
 	Bool dbgpvr;
@@ -806,7 +810,7 @@ typedef struct _gf_sc_texture_handler
 	u32 size, width, height, pixelformat, pixel_ar, stride, stride_chroma, nb_planes;
 	Bool is_flipped;
 
-	GF_FilterHWFrame *hw_frame;
+	GF_FilterFrameInterface *frame_ifce;
 	u32 nb_frames, upload_time;
 
 #ifndef GPAC_DISABLE_VRML
@@ -1384,6 +1388,11 @@ GF_Err compositor_3d_release_screen_buffer(GF_Compositor *sr, GF_VideoSurface *f
 void gf_sc_load_opengl_extensions(GF_Compositor *sr, Bool has_gl_context);
 
 Bool gf_sc_fit_world_to_screen(GF_Compositor *compositor);
+
+GF_Err compositor_3d_setup_fbo(u32 width, u32 height, u32 *fbo_id, u32 *tx_id, u32 *depth_id);
+void compositor_3d_delete_fbo(u32 *fbo_id, u32 *fbo_tx_id, u32 *fbo_depth_id);
+u32 compositor_3d_get_fbo_pixfmt();
+void compositor_3d_enable_fbo(GF_Compositor *compositor, Bool enable);
 
 #endif
 
@@ -2316,7 +2325,7 @@ struct _mediaobj
 	u32 nb_views;
 	u32 nb_layers;
 	u32 view_min_x, view_max_x, view_min_y, view_max_y;
-	GF_FilterHWFrame *hw_frame;
+	GF_FilterFrameInterface *frame_ifce;
 
 	Bool connect_failure;
 };
