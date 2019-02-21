@@ -350,7 +350,7 @@ void evg_yuv420p_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 _cu, s
 
 		a = a11 + a12 + a21 + a22;
 		if (a) {
-			u8 cdst;
+			u8 cdst=0;
 			u32 chroma_u, chroma_v, c11, c12, c21, c22;
 
 			a /= 4;
@@ -561,7 +561,7 @@ void evg_nv12_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 c
 		a = a11+a12+a21+a22;
 
 		if (a) {
-			u8 cdst;
+			u8 cdst=0;
 			u32 chroma_u, chroma_v, c11, c12, c21, c22;
 
 			a /= 4;
@@ -716,7 +716,7 @@ void evg_yuv422p_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 _cu, s
 		a2 = (u32)surf->uv_alpha[idx2];
 		a = a1+a2;
 		if (a) {
-			u8 cdst;
+			u8 cdst=0;
 			u32 chroma_u, chroma_v, c1, c2;
 
 			a /= 2;
@@ -1392,7 +1392,7 @@ void evg_yuv420p_10_flush_uv_var(GF_EVGSurface *surf, u8 *_surf_uv_alpha, s32 _c
 
 		a = a11+a12+a21+a22;
 		if (a) {
-			s32 cdst;
+			s32 cdst=0;
 			s32 chroma_u, chroma_v, c11, c12, c21, c22;
 
 			a /= 4;
@@ -1626,7 +1626,7 @@ void evg_nv12_10_flush_uv_var(GF_EVGSurface *surf, u8 *_surf_uv_alpha, s32 cu, s
 		a = a11+a12+a21+a22;
 
 		if (a) {
-			s32 cdst, chroma_u, chroma_v, c11, c12, c21, c22;
+			s32 cdst=0, chroma_u, chroma_v, c11, c12, c21, c22;
 
 			a /= 4;
 
@@ -1800,7 +1800,7 @@ void evg_yuv422p_10_flush_uv_var(GF_EVGSurface *surf, u8 *_surf_uv_alpha, s32 _c
 		a=a11+a12;
 
 		if (a) {
-			s32 cdst, chroma_u, chroma_v, c11, c12;
+			s32 cdst=0, chroma_u, chroma_v, c11, c12;
 
 			a /= 2;
 
