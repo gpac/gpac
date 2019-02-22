@@ -357,6 +357,7 @@ static GF_Err c2d_get_video_access_normal(GF_VisualManager *visual)
 			return GF_OK;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot attach video surface memory to raster for pixel format %s: %s\n", gf_pixel_fmt_name(compositor->hw_surface.pixel_format), gf_error_to_string(e) ));
+		compositor->last_error = e;
 		compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, GF_FALSE);
 	}
 	compositor->hw_locked = GF_FALSE;
@@ -884,6 +885,12 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 	if (use_soft_stretch) {
 		GF_VideoSurface backbuffer;
+		if (!visual->compositor->softblt) {
+			if (is_attached) visual_2d_init_raster(visual);
+			txh->flags |= GF_SR_TEXTURE_DISABLE_BLIT;
+			return GF_FALSE;
+		}
+
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_TRUE);
 		if (!e) {
 			u32 push_time = gf_sys_clock();
@@ -948,6 +955,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 
 	switch (ctx->aspect.fill_texture->pixelformat) {
 	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
 	case GF_PIXEL_GREYSCALE:
 	case GF_PIXEL_RGB:
 	case GF_PIXEL_BGR:

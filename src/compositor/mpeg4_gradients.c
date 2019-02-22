@@ -514,11 +514,15 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 			for (i=0; i<txh->height; i++) {
 				char *data = txh->data + i*txh->stride;
 				for (j=0; j<txh->width; j++) {
-					u32 val = *(u32 *) &data[4*j];
-					data[4*j] = (val>>16) & 0xFF;
-					data[4*j+1] = (val>>8) & 0xFF;
-					data[4*j+2] = (val) & 0xFF;
-					data[4*j+3] = (val>>24) & 0xFF;
+					u8 a, r, g, b;
+					a = data[4*j];
+					r = data[4*j+1];
+					g = data[4*j+2];
+					b = data[4*j+3];
+					data[4*j] = r;
+					data[4*j+1] = g;
+					data[4*j+2] = b;
+					data[4*j+3] = a;
 				}
 			}
 		}

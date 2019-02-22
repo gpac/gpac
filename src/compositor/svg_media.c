@@ -221,7 +221,7 @@ static void svg_play_texture(SVG_video_stack *stack, SVGAllAttributes *atts)
 {
 	SVGAllAttributes all_atts;
 	Bool lock_scene = GF_FALSE;
-	if (stack->txh.is_open) gf_sc_texture_stop(&stack->txh);
+	if (stack->txh.is_open) gf_sc_texture_stop_no_unregister(&stack->txh);
 
 	if (!atts) {
 		gf_svg_flatten_attributes((SVG_Element*)stack->txh.owner, &all_atts);
@@ -484,7 +484,7 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 			stack->first_frame_fetched = GF_TRUE;
 			/*stop stream if needed*/
 			if (!gf_smil_timing_is_active(txh->owner)) {
-				gf_sc_texture_stop(txh);
+				gf_sc_texture_stop_no_unregister(txh);
 				//make sure the refresh flag is not cleared
 				txh->needs_refresh = GF_TRUE;
 			}
@@ -517,7 +517,7 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 
 	if (stack->stop_requested) {
 		stack->stop_requested = GF_FALSE;
-		gf_sc_texture_stop(&stack->txh);
+		gf_sc_texture_stop_no_unregister(&stack->txh);
 	}
 }
 

@@ -539,6 +539,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		if (!is_pow2) txh->tx_io->flags = TX_MUST_SCALE;
 		break;
 	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
 		txh->tx_io->gl_format = GL_LUMINANCE_ALPHA;
 		txh->tx_io->nb_comp = 2;
 		txh->tx_io->gl_type = GL_TEXTURE_2D;
@@ -839,6 +840,7 @@ Bool gf_sc_texture_convert(GF_TextureHandler *txh)
 		break;
 	case GF_PIXEL_GREYSCALE:
 	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
 	case GF_PIXEL_RGB:
 	case GF_PIXEL_RGBX:
 	case GF_PIXEL_RGBA:

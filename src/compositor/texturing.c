@@ -193,6 +193,7 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 			txh->transparent = 0;
 			switch (txh->pixelformat) {
 			case GF_PIXEL_ALPHAGREY:
+			case GF_PIXEL_GREYALPHA:
 			case GF_PIXEL_ARGB:
 			case GF_PIXEL_RGBA:
 			case GF_PIXEL_YUVA:
@@ -269,7 +270,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 				else if (gf_sys_clock() - txh->probe_time_ms > txh->compositor->timeout / 2) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Texture %p] No output frame in %d ms, considering stream not available\n", txh, txh->compositor->timeout / 2));
 					txh->stream->connect_failure = GF_TRUE;
-					gf_sc_texture_stop(txh);
+					gf_sc_texture_stop_no_unregister(txh);
 				}
 				txh->compositor->ms_until_next_frame = -1;
 			}
@@ -286,7 +287,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		txh->compositor->frame_delay = ms_until_pres;
 
 	/*if setup and same frame return*/
-	if (txh->tx_io && (txh->stream_finished || (txh->last_frame_time==ts)) ) {
+	if (txh->tx_io && ((s32) txh->last_frame_time>=0) && (txh->stream_finished || (txh->last_frame_time==ts)) ) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
 		if (!txh->stream_finished) {
@@ -329,14 +330,17 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 GF_EXPORT
 void gf_sc_texture_release_stream(GF_TextureHandler *txh)
 {
+	txh->needs_refresh = 0;
 	if (txh->needs_release) {
 		assert(txh->stream);
-		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
+		gf_mo_release_data(txh->stream, 0xFFFFFFFF, (txh->needs_release==2) ? 3 :0);
+		if (txh->needs_release==2) {
+			txh->last_frame_time = -1;
+		}
 		txh->needs_release = 0;
 		txh->frame_ifce = NULL;
 
 	}
-	txh->needs_refresh = 0;
 	if (txh->stream) txh->stream->config_changed = GF_FALSE;
 }
 

@@ -269,8 +269,8 @@ void evg_yuv420p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *su
 		len = spans[i].len;
 		s_pY = pY + spans[i].x;
 
-		if (spans[i].coverage != 0xFF) {
-			a = mul255(0xFF, spans[i].coverage);
+		a = spans[i].coverage;
+		if (a != 0xFF) {
 			overmask_yuv420p_const_run((u8)a, cy, s_pY, len, 0);
 			memset(surf_uv_alpha + spans[i].x, (u8)a, len);
 		} else  {
@@ -815,8 +815,8 @@ void evg_yuv444p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *su
 		s_pU = pU + spans[i].x;
 		s_pV = pV + spans[i].x;
 
-		if (spans[i].coverage != 0xFF) {
-			a = mul255(0xFF, spans[i].coverage);
+		a = spans[i].coverage;
+		if (a != 0xFF) {
 			overmask_yuv420p_const_run((u8)a, cy, s_pY, len, 0);
 			overmask_yuv420p_const_run((u8)a, cu, s_pU, len, 0);
 			overmask_yuv420p_const_run((u8)a, cv, s_pV, len, 0);
@@ -962,6 +962,8 @@ void evg_yuyv_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 	s32 i;
 	u8 cy, cu, cv;
 
+	if (!count) return;
+
 	pY = surf->pixels + y * surf->pitch_y;
 	cy = GF_COL_R(surf->fill_col);
 	cu = GF_COL_G(surf->fill_col);
@@ -971,25 +973,29 @@ void evg_yuyv_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 		char *s_pY;
 		u32 len;
 		len = spans[i].len;
+		//get start of yuyv block: devide x by 2, multiply by 4 (two Y pix packed in 4 bytes)
 		s_pY = pY + (spans[i].x/2) * 4;
+		//move to first Y in block
+		s_pY += surf->idx_y1;
+		//if odd pixel move to next one
 		if (spans[i].x%2) s_pY += 2;
 
 		if (spans[i].coverage != 0xFF) {
 			memset(surf->uv_alpha + spans[i].x, spans[i].coverage, len);
 			while (len--) {
-				overmask_yuvy(pY + surf->idx_y1, cy, spans[i].coverage);
+				overmask_yuvy(s_pY, cy, spans[i].coverage);
 				s_pY += 2;
 			}
 		} else  {
 			memset(surf->uv_alpha + spans[i].x, 0xFF, len);
 
 			while (len--) {
-				s_pY[surf->idx_y1] = cy;
+				*s_pY = cy;
 				s_pY += 2;
 			}
 		}
 	}
-	pY = surf->pixels + y * surf->pitch_y;
+
 	for (i=0; i<(s32) surf->width; i+=2) {
 		u32 a = (u32)surf->uv_alpha[i];
 		a += (u32)surf->uv_alpha[i + 1];

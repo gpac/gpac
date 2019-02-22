@@ -2521,6 +2521,7 @@ Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_bu
 	GF_Clock *ck;
 	Bool initialized = GF_FALSE;
 	u32 i;
+
 	if (scene) {
 		GF_ObjectManager *odm;
 		if (scene->root_od->scene_ns != ns) {
