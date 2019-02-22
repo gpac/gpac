@@ -2378,8 +2378,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	GF_SceneGraph *sg;
 #endif
 	GF_List *temp_queue;
-	u32 in_time, end_time, i, count, frame_duration, frame_ts;
-	Bool frame_drawn, has_timed_nodes=GF_FALSE, all_tx_done=GF_TRUE;
+	u32 in_time, end_time, i, count, frame_duration, frame_ts, frame_draw_type_bck;
+	Bool frame_drawn, has_timed_nodes=GF_FALSE, has_tx_streams=GF_FALSE, all_tx_done=GF_TRUE;
 
 #ifndef GPAC_DISABLE_LOG
 	s32 event_time, route_time, smil_timing_time=0, time_node_time, texture_time, traverse_time, flush_time, txtime;
@@ -2552,12 +2552,16 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	frame_ts = (u32) -1;
 
 	/*update all video textures*/
+	frame_draw_type_bck = compositor->frame_draw_type;
+	compositor->frame_draw_type = 0;
+	has_tx_streams = GF_FALSE;
 	count = gf_list_count(compositor->textures);
 	for (i=0; i<count; i++) {
 		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
 		if (!txh) break;
 		//this is not a natural (video) texture
 		if (! txh->stream) continue;
+		has_tx_streams = GF_TRUE;
 
 		/*signal graphics reset before updating*/
 		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
@@ -2577,6 +2581,10 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock() - texture_time;
 #endif
+	//in non player mode, don't redraw frame if due to end of streams on textures
+	if (!compositor->player && !frame_draw_type_bck && compositor->frame_draw_type && all_tx_done)
+		compositor->frame_draw_type = 0;
+
 
 	if (!compositor->player) {
 		if (compositor->passthrough_txh && compositor->passthrough_txh->frame_ifce && !compositor->passthrough_txh->frame_ifce->get_plane) {
@@ -2706,7 +2714,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		if (compositor->check_eos_state<=1) {
 			compositor->check_eos_state = 0;
 			/*force a frame dispatch */
-			if (!compositor->vfr && !compositor->passthrough_txh)
+			if (!compositor->vfr && !compositor->passthrough_txh && (!has_tx_streams || !all_tx_done) )
 				compositor->frame_draw_type = GF_SC_DRAW_FRAME;
 
 			if (compositor->passthrough_txh) {
@@ -2764,7 +2772,10 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				}
 			}
 
-			if (compositor->ms_until_next_frame < 0) emit_frame = GF_FALSE;
+			if (compositor->ms_until_next_frame < 0) {
+				emit_frame = GF_FALSE;
+				compositor->last_error = GF_OK;
+			}
 			else if (!scene_drawn) emit_frame = GF_FALSE;
 			else if (compositor->frame_draw_type) emit_frame = GF_FALSE;
 			else if (compositor->fonts_pending) emit_frame = GF_FALSE;

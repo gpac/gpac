@@ -2533,7 +2533,7 @@ Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_bu
 			} else if (odm->ck) {
 				initialized = GF_TRUE;
 				if (!check_buffering) {
-					if (! odm->has_seen_eos) {
+					if (! odm->has_seen_eos && (odm->state != GF_ODM_STATE_STOP) ) {
 						return 0;
 					}
 				} else {

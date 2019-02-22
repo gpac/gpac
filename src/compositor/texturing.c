@@ -213,7 +213,8 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	s32 ms_until_pres, ms_until_next;
 
 	/*already refreshed*/
-	if ((txh->stream_finished && txh->tx_io) || txh->needs_refresh) return;
+	if ((txh->stream_finished && txh->tx_io) || txh->needs_refresh)
+		return;
 
 	if (!txh->stream) {
 		txh->data = NULL;
@@ -263,7 +264,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		GF_LOG(txh->stream->connect_failure ? GF_LOG_DEBUG : GF_LOG_INFO, GF_LOG_COMPOSE, ("[Texture %p] No output frame available \n", txh));
 
 		if (txh->compositor->use_step_mode || !txh->compositor->player) {
-			if (!txh->stream->connect_failure && !txh->last_frame_time) {
+			if (!txh->stream->connect_failure && ((s32)txh->last_frame_time<0) ) {
 				if (!txh->probe_time_ms) txh->probe_time_ms = gf_sys_clock();
 				else if (gf_sys_clock() - txh->probe_time_ms > txh->compositor->timeout / 2) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Texture %p] No output frame in %d ms, considering stream not available\n", txh, txh->compositor->timeout / 2));
