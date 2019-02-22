@@ -104,9 +104,10 @@ static GF_Err compose_process(GF_Filter *filter)
 		} else if (!ctx->check_eos_state) {
 			ctx->check_eos_state = 1;
 		}
-		if ((ctx->check_eos_state==2) || (ctx->check_eos_state && ctx->root_scene && gf_sc_check_end_of_scene(ctx, 1))) {
-			gf_filter_pid_set_eos(ctx->vout);
+		if ((ctx->check_eos_state==2) || !ctx->root_scene || (ctx->check_eos_state && gf_sc_check_end_of_scene(ctx, 1))) {
 			count = gf_filter_get_ipid_count(ctx->filter);
+			if (ctx->root_scene)
+				gf_filter_pid_set_eos(ctx->vout);
 			for (i=0; i<count; i++) {
 				GF_FilterEvent evt;
 				GF_FilterPid *pid = gf_filter_get_ipid(ctx->filter, i);
@@ -118,6 +119,7 @@ static GF_Err compose_process(GF_Filter *filter)
 			}
 			return GF_EOS;
 		}
+		ctx->check_eos_state = 0;
 		//always repost a process task since we maye have things to draw even though no new input
 		gf_filter_post_process_task(filter);
 		return ctx->last_error;
@@ -237,6 +239,9 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		ctx->root_scene->root_od = gf_odm_new();
 		ctx->root_scene->root_od->scene_ns = gf_scene_ns_new(ctx->root_scene, ctx->root_scene->root_od, service_url, NULL);
 		ctx->root_scene->root_od->subscene = ctx->root_scene;
+
+		if (!ctx->player)
+			gf_filter_post_process_task(filter);
 	}
 
 	//default scene is root one

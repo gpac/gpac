@@ -123,7 +123,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	dst_striped = gf_filter_get_dst_args_stripped(fsess, dst_args);
 	//if we already concatenated our dst args to this source filter (eg this is an intermediate dynamically loaded one)
 	//don't reappend the args
-	if (dst_striped && strstr(args, dst_striped) != NULL) {
+	if (dst_striped && args && strstr(args, dst_striped) != NULL) {
 		dst_striped = NULL;
 	}
 
