@@ -4651,7 +4651,6 @@ GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 			GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 
 			if (cenc_sample) {
-				if  (!strlen((char *)cenc_sample->IV)) continue;
 				fprintf(trace, "<PIFFSampleEncryptionEntry IV_size=\"%u\" IV=\"", cenc_sample->IV_size);
 				dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
 				if (ptr->flags & 0x2) {
