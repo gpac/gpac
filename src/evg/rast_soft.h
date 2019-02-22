@@ -142,7 +142,8 @@ struct _gf_evg_surface
 	u32 fill_col;
 	u32 fill_565;
 	u64 fill_col_wide;
-	
+	u32 grey_type;
+
 #ifdef GF_RGB_444_SUPORT
 	u32 fill_444;
 #endif
@@ -164,7 +165,7 @@ struct _gf_evg_surface
 	Bool swap_uv, is_422, is_yuv, not_8bits;
 	u32 yuv_prof;
 
-	u32 idx_y1, idx_u, idx_v;
+	u32 idx_y1, idx_u, idx_v, idx_a, idx_g, idx_r, idx_b;
 
 #ifndef INLINE_POINT_CONVERSION
 	/*transformed point list*/
@@ -264,21 +265,11 @@ void evg_gradient_precompute(EVG_BaseGradient *grad, GF_EVGSurface *surf);
 void evg_radial_init(EVG_RadialGradient *_this);
 void evg_texture_init(GF_EVGStencil *p, GF_EVGSurface *surf);
 
-/*FT raster callbacks */
-void evg_bgra_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_bgra_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_bgra_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-GF_Err evg_surface_clear_bgra(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
-
-void evg_rgba_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_rgba_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_rgba_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_rgba_fill_erase(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-GF_Err evg_surface_clear_rgba(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
-
-void evg_bgrx_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_bgrx_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_bgrx_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_argb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_argb_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_argb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_argb_fill_erase(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+GF_Err evg_surface_clear_argb(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
 void evg_rgbx_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 void evg_rgbx_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
@@ -289,6 +280,16 @@ void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 void evg_rgb_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 void evg_rgb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 GF_Err evg_surface_clear_rgb(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
+
+void evg_grey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_grey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_grey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+GF_Err evg_surface_clear_grey(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
+
+void evg_alphagrey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_alphagrey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_alphagrey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+GF_Err evg_surface_clear_alphagrey(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
 void evg_rgb_to_yuv(GF_EVGSurface *surf, GF_Color col, u8*y, u8*cb, u8*cr);
 GF_Color evg_argb_to_ayuv(GF_EVGSurface *surf, GF_Color col);
@@ -318,12 +319,6 @@ void evg_yuv444p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *su
 void evg_yuv444p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 void evg_yuv444p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 GF_Err evg_surface_clear_yuv444p(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
-
-
-void evg_bgr_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_bgr_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_bgr_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-GF_Err evg_surface_clear_bgr(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
 void evg_565_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);

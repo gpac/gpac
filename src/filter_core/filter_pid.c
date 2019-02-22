@@ -4544,6 +4544,15 @@ static void gf_filter_pid_reset_task(GF_FSTask *task)
 
 	safe_int_dec(& pidi->pid->discard_input_packets );
 }
+static void gf_filter_pid_reset_stop_task(GF_FSTask *task)
+{
+	GF_FilterPidInst *pidi = (GF_FilterPidInst *)task->udta;
+	Bool was_eos_pidi = pidi->is_end_of_stream;
+	Bool was_eos_pid = pidi->pid->has_seen_eos;
+	gf_filter_pid_reset_task(task);
+	pidi->is_end_of_stream = was_eos_pidi;
+	pidi->pid->has_seen_eos = was_eos_pid;
+}
 
 void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 {
@@ -4638,7 +4647,10 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			safe_int_inc(& pid->filter->stream_reset_pending );
 
 			//post task on destination filter
-			gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_task, pidi->filter, NULL, "reset_pid", pidi);
+			if (evt->base.type==GF_FEVT_STOP)
+				gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_stop_task, pidi->filter, NULL, "reset_pid", pidi);
+			else
+				gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_task, pidi->filter, NULL, "reset_pid", pidi);
 		}
 		pid->nb_reaggregation_pending = 0;
 	}

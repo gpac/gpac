@@ -2721,9 +2721,12 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				//still waiting for initialization either from the passthrough stream or a texture used in the scene
 				if (!compositor->passthrough_txh->width || !compositor->passthrough_txh->stream->pck || (compositor->ms_until_next_frame<0) ) {
 					compositor->frame_draw_type=GF_SC_DRAW_NONE;
+					//prevent release of frame
+					if (compositor->passthrough_txh->needs_release)
+						compositor->passthrough_txh->needs_release = 2;
 				}
 				//done
-				if (compositor->passthrough_txh->stream_finished) {
+				else if ((compositor->passthrough_txh->stream_finished) && (compositor->ms_until_next_frame >= 0)) {
 					compositor->check_eos_state = 2;
 				}
 			}
@@ -2875,6 +2878,9 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			}
 		} else if (!compositor->player) {
 			frame_drawn = GF_FALSE;
+			//prevent release of frame
+			if (compositor->passthrough_txh && compositor->passthrough_txh->needs_release)
+				compositor->passthrough_txh->needs_release = 2;
 		}
 
 		if (compositor->passthrough_pck) {

@@ -103,7 +103,7 @@ static GF_Err pngenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	case GF_PIXEL_GREYSCALE:
 		ctx->png_type = PNG_COLOR_TYPE_GRAY;
 		break;
-	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
 		ctx->png_type = PNG_COLOR_TYPE_GRAY_ALPHA;
 		break;
 	case GF_PIXEL_RGB:

@@ -85,7 +85,7 @@ static void movietexture_deactivate(MovieTextureStack *stack, M_MovieTexture *mt
 	stack->time_handle.needs_unregister = 1;
 
 	if (stack->txh.is_open) {
-		gf_sc_texture_stop(&stack->txh);
+		gf_sc_texture_stop_no_unregister(&stack->txh);
 	}
 }
 static void movietexture_update(GF_TextureHandler *txh)
