@@ -343,6 +343,8 @@ struct __dash_group
 	u32 current_index;
 };
 
+static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list, u32 period_idx);
+
 struct _dash_srd_desc
 {
 	u32 srd_nb_rows, srd_nb_cols;
@@ -493,6 +495,9 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	Double ast_offset = 0;
 
 	if (mpd->type==GF_MPD_TYPE_STATIC)
+		return;
+
+	if (group->period->type != GF_MPD_TYPE_DYNAMIC)
 		return;
 
 	/*M3U8 does not use NTP sync */
@@ -1789,6 +1794,51 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	period = gf_list_get(dash->mpd->periods, dash->active_period_index);
 	if (fetch_only  && !period) goto exit;
 
+	//do a pass on the new manifest periods, check for xlink
+	if (period->origin_base_url) {
+restart_period_check:
+		for (i=0; i<gf_list_count(new_mpd->periods); i++) {
+			new_period = gf_list_get(new_mpd->periods, i);
+			if (!new_period->xlink_href) continue;
+
+			if ((new_period->start<=period->start) &&
+				( (new_period->start+new_period->duration >= period->start + period->duration) || (!new_period->duration))
+			) {
+				const char *base_url;
+				u32 j, insert_idx;
+				if (period->type == GF_MPD_TYPE_DYNAMIC) {
+					gf_dash_solve_period_xlink(dash, new_mpd->periods, i);
+					goto restart_period_check;
+				}
+				//this is a static period xlink, no need to further update the mpd, jsut swap the old periods in the new MPD
+
+				base_url = period->origin_base_url;
+				if (!base_url) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - found new Xlink period overlapping a non-xlink period in original manifest\n"));
+					gf_mpd_del(new_mpd);
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
+				insert_idx = i;
+				gf_list_rem(new_mpd->periods, i);
+				for (j=0; j<gf_list_count(dash->mpd->periods); j++) {
+					period = gf_list_get(dash->mpd->periods, j);
+					if (!period->origin_base_url) continue;
+					if (strcmp(period->origin_base_url, base_url)) continue;
+					gf_list_rem(dash->mpd->periods, j);
+					j--;
+					gf_list_insert(new_mpd->periods, period, insert_idx);
+					insert_idx++;
+				}
+				//update active period index in new list
+				dash->active_period_index = gf_list_find(new_mpd->periods, period);
+				//this will do the garbage collection
+				gf_list_add(dash->mpd->periods, new_period);
+				goto exit;
+			}
+			new_period=NULL;
+		}
+	}
+
 	new_period = NULL;
 	for (i=0; i<gf_list_count(new_mpd->periods); i++) {
 		new_period = gf_list_get(new_mpd->periods, i);
@@ -1797,10 +1847,18 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	}
 
 	if (!new_period) {
+		if (dash->mpd->type == GF_MPD_TYPE_DYNAMIC) {
+			new_period = gf_list_get(new_mpd->periods, 0);
+			//assume the old period is no longer valid
+			dash->active_period_index = 0;
+			dash->request_period_switch = GF_TRUE;
+			goto exit;
+		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: missing period\n"));
 		gf_mpd_del(new_mpd);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
+
 	dash->active_period_index = gf_list_find(new_mpd->periods, new_period);
 
 	if (gf_list_count(period->adaptation_sets) != gf_list_count(new_period->adaptation_sets)) {
@@ -1838,8 +1896,6 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	}
 
 	for (group_idx=0; group_idx<gf_list_count(dash->groups); group_idx++) {
-		Double seg_dur;
-		Bool reset_segment_count;
 		GF_MPD_AdaptationSet *set, *new_set;
 		u32 rep_i;
 		GF_DASH_Group *group = gf_list_get(dash->groups, group_idx);
@@ -2093,7 +2149,12 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 			gf_mpd_del(new_mpd);
 			return e;
 		}
-
+	}
+	//good to go, switch pointers
+	for (group_idx=0; group_idx<gf_list_count(dash->groups); group_idx++) {
+		Double seg_dur;
+		Bool reset_segment_count;
+		GF_DASH_Group *group = gf_list_get(dash->groups, group_idx);
 		/*update group/period to new period*/
 		j = gf_list_find(group->period->adaptation_sets, group->adaptation_set);
 		group->adaptation_set = gf_list_get(new_period->adaptation_sets, j);
@@ -3306,6 +3367,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	/* This variable is 0 if there is a initURL, the index of first segment downloaded otherwise */
 	u32 nb_segment_read = 0;
 	u32 file_size=0, Bps= 0;
+	char *base_url=NULL;
 	char *key_url=NULL;
 	bin128 key_iv;
 
@@ -3319,8 +3381,10 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		return GF_IO_ERR;
 	}
 	start_range = end_range = 0;
+	base_url = dash->base_url;
+	if (group->period->origin_base_url) base_url = group->period->origin_base_url;
 
-	e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_MPD_RESOLVE_URL_INIT, 0, &base_init_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL, &key_url, &key_iv, &data_url_processed);
+	e = gf_dash_resolve_url(dash->mpd, rep, group, base_url, GF_MPD_RESOLVE_URL_INIT, 0, &base_init_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL, &key_url, &key_iv, &data_url_processed);
 	if (e) {
 		if (e != GF_IP_NETWORK_EMPTY) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Unable to resolve initialization URL: %s\n", gf_error_to_string(e) ));
@@ -4479,30 +4543,32 @@ exit:
 	return e;
 }
 
-static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
+static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list, u32 period_idx)
 {
 	u32 count, i;
 	GF_Err e;
+	u64 start = 0;
 	Bool is_local=GF_FALSE;
 	const char *local_url;
 	char *url;
 	GF_DOMParser *parser;
 	GF_MPD *new_mpd;
 	GF_MPD_Period *period;
+	GF_DASHFileIOSession xlink_sess=NULL;
 
 	gf_mx_p(dash->dash_mutex);
 
-	period = gf_list_get(dash->mpd->periods, period_idx);
+	period = gf_list_get(period_list, period_idx);
 	if (!period->xlink_href) {
 		gf_mx_v(dash->dash_mutex);
 		return;
 	}
-
+	start = period->start;
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Resolving period XLINK %s\n", period->xlink_href));
 
 	if (!strcmp(period->xlink_href, "urn:mpeg:dash:resolve-to-zero:2013")) {
 		//spec is not very clear here, I suppose it means "remove the element"
-		gf_list_rem(dash->mpd->periods, period_idx);
+		gf_list_rem(period_list, period_idx);
 		gf_mpd_period_free(period);
 		gf_mx_v(dash->dash_mutex);
 		return;
@@ -4517,9 +4583,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 		e = GF_OK;
 	} else {
 		/*use non-persistent connection for MPD*/
-		e = gf_dash_download_resource(dash, &(dash->mpd_dnload), url ? url : period->xlink_href, 0, 0, 0, NULL);
-
-		gf_free(url);
+		e = gf_dash_download_resource(dash, &xlink_sess, url ? url : period->xlink_href, 0, 0, 0, NULL);
 	}
 
 	if (e) {
@@ -4527,25 +4591,35 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 		gf_free(period->xlink_href);
 		period->xlink_href = NULL;
 		gf_mx_v(dash->dash_mutex);
+		if (xlink_sess) dash->dash_io->del(dash->dash_io, xlink_sess);
+		if (url) gf_free(url);
 		return;
 	}
 
 	if (!is_local) {
 		/*in case the session has been restarted, local_url may have been destroyed - get it back*/
-		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
+		local_url = dash->dash_io->get_cache_name(dash->dash_io, xlink_sess);
 	}
 
 	/* parse the MPD */
 	parser = gf_xml_dom_new();
 	e = gf_xml_dom_parse(parser, local_url, NULL, NULL);
-	if (is_local) gf_free(url);
+	if (url) gf_free(url);
+	url = NULL;
 
+	if (xlink_sess) {
+		//get redirected URL
+		url = (char *) dash->dash_io->get_url(dash->dash_io, xlink_sess);
+		if (url) url = gf_strdup(url);
+		dash->dash_io->del(dash->dash_io, xlink_sess);
+	}
 	if (e != GF_OK) {
 		gf_xml_dom_del(parser);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot parse xlink periods: error in XML parsing %s\n", gf_error_to_string(e)));
 		gf_free(period->xlink_href);
 		period->xlink_href = NULL;
 		gf_mx_v(dash->dash_mutex);
+		if (url) gf_free(url);
 		return;
 	}
 	new_mpd = gf_mpd_new();
@@ -4566,10 +4640,11 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 		period->xlink_href = NULL;
 		gf_mpd_del(new_mpd);
 		gf_mx_v(dash->dash_mutex);
+		if (url) gf_free(url);
 		return;
 	}
 
-	gf_list_rem(dash->mpd->periods, period_idx);
+	gf_list_rem(period_list, period_idx);
 	//insert all periods
 	while (gf_list_count(new_mpd->periods)) {
 		GF_MPD_Period *inserted_period = gf_list_get(new_mpd->periods, 0);
@@ -4579,9 +4654,15 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 			gf_mpd_period_free(period);
 			continue;
 		}
-		gf_list_insert(dash->mpd->periods, inserted_period, period_idx);
+		inserted_period->origin_base_url = url ? gf_strdup(url) : NULL;
+		inserted_period->start = start;
+		inserted_period->type = GF_MPD_TYPE_STATIC;
+		start += inserted_period->duration;
+
+		gf_list_insert(period_list, inserted_period, period_idx);
 		period_idx++;
 	}
+
 	//this will do the garbage collection
 	gf_list_add(new_mpd->periods, period);
 
@@ -4693,7 +4774,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 		period = gf_list_get(dash->mpd->periods, dash->active_period_index);
 		if (!period) return GF_EOS;
 		if (!period->xlink_href) break;
-		gf_dash_solve_period_xlink(dash, dash->active_period_index);
+		gf_dash_solve_period_xlink(dash, dash->mpd->periods, dash->active_period_index);
 		retry --;
 	}
 	period = gf_list_get(dash->mpd->periods, dash->active_period_index);
@@ -5266,8 +5347,13 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	u32 representation_index;
 	u32 clock_time, file_size=0, Bps=0;
 	Bool empty_file = GF_FALSE;
+	const char *base_url = NULL;
 	const char *local_file_name = NULL;
 	const char *resource_name = NULL;
+	GF_MPD_Type dyn_type = dash->mpd->type;
+	if (group->period->origin_base_url)
+		dyn_type = group->period->type;
+
 
 	if (group->done) return GF_DASH_DownloadSuccess;
 
@@ -5289,14 +5375,14 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		Bool update_playlist = 0;
 
 		/* this period is done*/
-		if ((dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && group->period->duration) {
+		if ((dyn_type==GF_MPD_TYPE_DYNAMIC) && group->period->duration) {
 		}
 		/* update of the playlist, only if indicated */
 		else if (dash->mpd->minimum_update_period && (timer > dash->mpd->minimum_update_period)) {
 			update_playlist = 1;
 		}
 		/* if media_presentation_duration is 0 and we are in live, force a refresh (not in the spec but safety check*/
-		else if ((dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && !dash->mpd->media_presentation_duration) {
+		else if ((dyn_type==GF_MPD_TYPE_DYNAMIC) && !dash->mpd->media_presentation_duration) {
 			if (group->segment_duration && (timer > group->segment_duration*1000))
 				update_playlist = 1;
 		}
@@ -5308,9 +5394,9 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		/* Now that the playlist is up to date, we can check again */
 		if (group->download_segment_index  >= (s32) group->nb_segments_in_rep) {
 			/* if there is a specified update period, we redo the whole process */
-			if (dash->mpd->minimum_update_period || dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
+			if (dash->mpd->minimum_update_period || dyn_type==GF_MPD_TYPE_DYNAMIC) {
 
-				if ((dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && group->period->duration) {
+				if ((dyn_type==GF_MPD_TYPE_DYNAMIC) && group->period->duration) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Last segment in period (dynamic mode) - group is done\n"));
 					group->done = 1;
 					return GF_DASH_DownloadCancel;
@@ -5335,7 +5421,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 					if (dash->mpd->minimum_update_period) {
 						if (now - group->time_at_first_reload_required < dash->mpd->minimum_update_period)
 							return GF_DASH_DownloadCancel;
-					} else if (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
+					} else if (dyn_type==GF_MPD_TYPE_DYNAMIC) {
 						if (timer < group->nb_segments_in_rep * group->segment_duration * 1000)
 							return GF_DASH_DownloadCancel;
 					}
@@ -5364,7 +5450,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	}
 
 	/*check availablity start time of segment in Live !!*/
-	if (!group->broken_timing && (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && !dash->is_m3u8) {
+	if (!group->broken_timing && (dyn_type==GF_MPD_TYPE_DYNAMIC) && !dash->is_m3u8) {
 		s32 to_wait = 0;
 		u32 seg_dur_ms=0;
 #ifndef GPAC_DISABLE_LOG
@@ -5410,8 +5496,10 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		}
 	}
 
+	base_url = dash->base_url;
+	if (group->period->origin_base_url) base_url = group->period->origin_base_url;
 	/* At this stage, there are some segments left to be downloaded */
-	e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &new_base_seg_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL, &key_url, &key_iv, NULL);
+	e = gf_dash_resolve_url(dash->mpd, rep, group, base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &new_base_seg_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL, &key_url, &key_iv, NULL);
 
 	if (e || !new_base_seg_url) {
 		if (e==GF_EOS) {
@@ -6031,7 +6119,10 @@ restart_period:
 				dash->tsb_exceeded = 0;
 				dash->time_in_tsb = 0;
 				for (i=0; i<group_count; i++) {
+					GF_MPD_Type dyn_type = dash->mpd->type;
 					GF_DASH_Group *group = gf_list_get(dash->groups, i);
+
+					if (group->period->origin_base_url) dyn_type = group->period->type;
 
 					gf_mx_p(group->cache_mutex);
 
@@ -6043,7 +6134,7 @@ restart_period:
 						continue;
 					}
 					all_groups_done = 0;
-					if (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
+					if (dyn_type==GF_MPD_TYPE_DYNAMIC) {
 						gf_dash_group_check_time(group);
 					}
 					//cache is full, notify client some segments are pending
@@ -6226,14 +6317,14 @@ restart:
 	for (i = 0; i<count; i++) {
 		period = gf_list_get(dash->mpd->periods, i);
 
-		if (period->xlink_href) {
-			gf_dash_solve_period_xlink(dash, i);
-			goto restart;
-		}
-
 		if ((period->start > time) || (cumul_start > time)) {
 			break;
 		}
+		if (period->xlink_href) {
+			gf_dash_solve_period_xlink(dash, dash->mpd->periods, i);
+			goto restart;
+		}
+
 		cumul_start += period->duration;
 
 		if (time < cumul_start) {
@@ -6303,7 +6394,7 @@ static Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 		Double dur;
 
 		if (period->xlink_href) {
-			gf_dash_solve_period_xlink(dash, i);
+			gf_dash_solve_period_xlink(dash, dash->mpd->periods, i);
 			if (nb_retry) {
 				nb_retry --;
 				i--;
