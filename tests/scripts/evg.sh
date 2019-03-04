@@ -40,8 +40,8 @@ test_end
 
 #complete lists of pixel formats extensions in gpac - we don't test all of these
 #pfstr="yuv yuvl yuv2 yp2l yuv4 yp4l uyvy vyuy yuyv yvyu nv12 nv21 nv1l nv2l yuva yuvd grey algr gral rgb4 rgb5 rgb6 rgba argb bgra abgr rgb bgr xrgb rgbx xbgr bgrx rgbd rgbds rgbs rgbas"
-#the ones we test for now - only grey, greyscale, 24/32 bits RGB, all YUV. We exclude rgb from the list since this is the format of our source test and destination test
-pfstr="yuv yuvl yuv2 yp2l yuv4 yp4l uyvy vyuy yuyv yvyu nv12 nv21 nv1l nv2l grey algr gral rgba argb bgra abgr bgr xrgb rgbx xbgr bgrx"
+#the ones we test for now - only grey, greyscale, 16/24/32 bits RGB, all YUV. We exclude rgb from the list since this is the format of our source test and destination test
+pfstr="yuv yuvl yuv2 yp2l yuv4 yp4l uyvy vyuy yuyv yvyu nv12 nv21 nv1l nv2l grey algr gral rgb4 rgb5 rgb6 rgba argb bgra abgr bgr xrgb rgbx xbgr bgrx"
 
 for i in $pfstr ; do
 	test_evg_pixfmt $i

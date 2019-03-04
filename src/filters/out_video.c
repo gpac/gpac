@@ -297,6 +297,7 @@ static char *glsl_rgb_shader = "#version 120\n"\
 	{\
 		vec2 texc;\
 		vec4 col;\
+		float res, col_r, col_g1, col_g, col_b;\
 		texc = TexCoord.st;\
 		col = texture2D(rgbtx, texc); \
 		if (rgb_mode==1) {\
@@ -321,6 +322,35 @@ static char *glsl_rgb_shader = "#version 120\n"\
 			gl_FragColor.a = col.r;\
 		} else if (rgb_mode==5) {\
 			gl_FragColor.r = gl_FragColor.g = gl_FragColor.b = col.a;\
+		} else if (rgb_mode==6) {\
+			res = floor( 255.0 * col.a ); \
+			col_g = floor(res / 16.0); \
+			col_b = floor(res - col_g*16.0); \
+			gl_FragColor.r = col.r * 17.0;\
+			gl_FragColor.g = col_g / 15.0;\
+			gl_FragColor.b = col_b / 15.0;\
+		} else if (rgb_mode==7) {\
+			res = floor(255.0 * col.r); \
+			col_r = floor(res / 4.0); \
+			col_g1 = floor(res - col_r*4.0); \
+			res = floor(255.0 * col.a); \
+			col_g = floor(res / 32); \
+			col_b = floor(res - col_g*32.0); \
+			col_g += col_g1 * 8; \
+			gl_FragColor.r = col_r / 31.0;\
+			gl_FragColor.g = col_g / 31.0;\
+			gl_FragColor.b = col_b / 31.0;\
+		} else if (rgb_mode==8) {\
+			res = floor(255.0 * col.r); \
+			col_r = floor(res / 8.0); \
+			col_g1 = floor(res - col_r*8.0); \
+			res = floor(255.0 * col.a); \
+			col_g = floor(res / 32); \
+			col_b = floor(res - col_g*32.0); \
+			col_g += col_g1 * 8; \
+			gl_FragColor.r = col_r / 31.0;\
+			gl_FragColor.g = col_g / 63.0;\
+			gl_FragColor.b = col_b / 31.0;\
 		} else {\
 			gl_FragColor = col;\
 		}\
@@ -771,6 +801,30 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 #ifndef GPAC_DISABLE_3D
 		ctx->pixel_format = GL_RGBA;
 		ctx->bytes_per_pix = 4;
+#endif
+		break;
+
+	case GF_PIXEL_RGB_444:
+#ifndef GPAC_DISABLE_3D
+		ctx->pixel_format = GL_LUMINANCE_ALPHA;
+		ctx->bytes_per_pix = 2;
+		rgb_mode=6;
+#endif
+		break;
+
+	case GF_PIXEL_RGB_555:
+#ifndef GPAC_DISABLE_3D
+		ctx->pixel_format = GL_LUMINANCE_ALPHA;
+		ctx->bytes_per_pix = 2;
+		rgb_mode=7;
+#endif
+		break;
+
+	case GF_PIXEL_RGB_565:
+#ifndef GPAC_DISABLE_3D
+		ctx->pixel_format = GL_LUMINANCE_ALPHA;
+		ctx->bytes_per_pix = 2;
+		rgb_mode=8;
 #endif
 		break;
 
