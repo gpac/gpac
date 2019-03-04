@@ -600,7 +600,7 @@ static const GF_FilterCapability VCropCaps[] =
 
 GF_FilterRegister VCropRegister = {
 	.name = "vcrop",
-	GF_FS_SET_DESCRIPTION("Video croping fiter")
+	GF_FS_SET_DESCRIPTION("Video cropping filter")
 	.private_size = sizeof(GF_VCropCtx),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.args = VCropArgs,
