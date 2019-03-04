@@ -225,7 +225,7 @@ static void overmask_grey_const_run(u8 srca, u8 srcc, char *dst, s32 dst_pitch_x
 void evg_grey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
-	u32 a, c, col_no_a;
+	u32 a, c;
 	char *dst = surf->pixels + y * surf->pitch_y;
 	char *p;
 	s32 i;
@@ -235,7 +235,6 @@ void evg_grey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 	else if (surf->grey_type==1) c = GF_COL_G(col);
 	else c = GF_COL_B(col);
 
-	col_no_a = col & 0x00FFFFFF;
 	for (i=0; i<count; i++) {
 		len = spans[i].len;
 		p = dst + spans[i].x * surf->pitch_x;
@@ -267,7 +266,7 @@ void evg_grey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *sur
 
 	for (i=0; i<count; i++) {
 		fin = mul255(a, spans[i].coverage);
-		overmask_grey_const_run(a, c, dst + surf->pitch_x * spans[i].x, surf->pitch_x, spans[i].len);
+		overmask_grey_const_run(fin, c, dst + surf->pitch_x * spans[i].x, surf->pitch_x, spans[i].len);
 	}
 }
 
@@ -299,7 +298,7 @@ void evg_grey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 					else if (surf->grey_type==1) c = GF_COL_G(*col);
 					else c = GF_COL_B(*col);
 
-					*(dst + x) = GF_COL_R(*col);
+					*(dst + x) = c;
 				}
 			}
 			col++;
@@ -326,7 +325,7 @@ GF_Err evg_surface_clear_grey(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 
 	for (y = 0; y < h; y++) {
 		char *data = surf ->pixels + (y + sy) * st + surf->pitch_x*sx;
-		memset(data, r, surf->pitch_y);
+		memset(data, r, w*surf->pitch_x);
 	}
 	return GF_OK;
 }
