@@ -110,6 +110,11 @@ static u32 get_win_4CC(u32 pixel_format)
 	}
 }
 
+/*!\hideinitializer transfoms a 32-bits color into a 16-bits one.\note alpha component is lost*/
+#define GF_COL_TO_565(c) (((GF_COL_R(c) & 248)<<8) + ((GF_COL_G(c) & 252)<<3)  + (GF_COL_B(c)>>3))
+/*!\hideinitializer transfoms a 32-bits color into a 15-bits one.\note alpha component is lost*/
+#define GF_COL_TO_555(c) (((GF_COL_R(c) & 248)<<7) + ((GF_COL_G(c) & 248)<<2)  + (GF_COL_B(c)>>3))
+
 static GF_Err DD_ClearBackBuffer(GF_VideoOutput *dr, u32 color)
 {
 	HRESULT hr;
