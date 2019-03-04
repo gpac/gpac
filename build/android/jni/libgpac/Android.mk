@@ -237,6 +237,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/tileagg.c \
 	../../../../src/filters/unit_test_filter.c \
 	../../../../src/filters/vcrop.c \
+	../../../../src/filters/vflip.c \
 	../../../../src/filters/write_generic.c \
 	../../../../src/filters/write_nhml.c \
 	../../../../src/filters/write_nhnt.c \

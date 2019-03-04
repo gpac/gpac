@@ -331,6 +331,7 @@
     <ClCompile Include="..\..\src\filters\tileagg.c" />
     <ClCompile Include="..\..\src\filters\unit_test_filter.c" />
     <ClCompile Include="..\..\src\filters\vcrop.c" />
+    <ClCompile Include="..\..\src\filters\vflip.c" />
     <ClCompile Include="..\..\src\filters\write_generic.c" />
     <ClCompile Include="..\..\src\filters\write_nhml.c" />
     <ClCompile Include="..\..\src\filters\write_nhnt.c" />
