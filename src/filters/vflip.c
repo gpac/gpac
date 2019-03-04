@@ -415,8 +415,6 @@ GF_FilterRegister VFlipRegister = {
 	.finalize = vflip_finalize,
 };
 
-
-
 const GF_FilterRegister *vflip_register(GF_FilterSession *session)
 {
 	return &VFlipRegister;
