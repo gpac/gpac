@@ -99,12 +99,8 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, char *pixels, u32 wi
 	case GF_PIXEL_GREYALPHA:
 		BPP = 2;
 		break;
-#ifdef GF_RGB_444_SUPORT
 	case GF_PIXEL_RGB_444:
-#endif
-#ifdef GF_RGB_555_SUPORT
 	case GF_PIXEL_RGB_555:
-#endif
 	case GF_PIXEL_RGB_565:
 		BPP = 2;
 		break;
@@ -331,14 +327,10 @@ GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, u32 color)
 	case GF_PIXEL_BGR:
 		evg_surface_set_components_idx(surf);
 		return evg_surface_clear_rgb(surf, clear, color);
-#ifdef GF_RGB_444_SUPORT
 	case GF_PIXEL_RGB_444:
 		return evg_surface_clear_444(surf, clear, color);
-#endif
-#ifdef GF_RGB_555_SUPORT
 	case GF_PIXEL_RGB_555:
 		return evg_surface_clear_555(surf, clear, color);
-#endif
 	case GF_PIXEL_RGB_565:
 		return evg_surface_clear_565(surf, clear, color);
 
@@ -530,7 +522,6 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 
 	case GF_PIXEL_RGB_565:
 		if (use_const) {
-			surf->fill_565 = GF_COL_TO_565(col);
 			if (a!=0xFF) {
 				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_565_fill_const_a;
 			} else {
@@ -541,9 +532,8 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 			assert(surf->sten->fill_run);
 		}
 		break;
-#ifdef GF_RGB_444_SUPORT
+	case GF_PIXEL_RGB_444:
 		if (use_const) {
-			surf->fill_444 = GF_COL_TO_444(col);
 			if (a!=0xFF) {
 				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_444_fill_const_a;
 			} else {
@@ -553,11 +543,8 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_444_fill_var;
 		}
 		break;
-#endif
-#ifdef GF_RGB_555_SUPORT
 	case GF_PIXEL_RGB_555:
 		if (use_const) {
-			surf->fill_555 = GF_COL_TO_555(col);
 			if (a!=0xFF) {
 				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_555_fill_const_a;
 			} else {
@@ -567,7 +554,6 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_555_fill_var;
 		}
 		break;
-#endif
 	case GF_PIXEL_YUV:
 		surf->is_yuv = GF_TRUE;
 		if (use_const) {

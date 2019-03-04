@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
- *  This file is part of GPAC / software 2D rasterizer module
+ *  This file is part of GPAC / software 2D rasterizer
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -29,14 +29,6 @@
 #define _GF_EVG_DEV_H_
 
 #include <gpac/evg.h>
-
-/*RGB 555 support is disabled by default*/
-//#define GF_RGB_555_SUPORT
-
-/*for symbian enable 4k color depth (RGB444, 4096 colors) since a good amount of devices use that*/
-#ifdef __SYMBIAN32__
-#define GF_RGB_444_SUPORT
-#endif
 
 /*base stencil stack*/
 #define EVGBASESTENCIL	\
@@ -140,17 +132,8 @@ struct _gf_evg_surface
 
 	/*in solid color mode to speed things*/
 	u32 fill_col;
-	u32 fill_565;
 	u64 fill_col_wide;
 	u32 grey_type;
-
-#ifdef GF_RGB_444_SUPORT
-	u32 fill_444;
-#endif
-
-#ifdef GF_RGB_555_SUPORT
-	u32 fill_555;
-#endif
 
 	/*FreeType raster*/
 	EVG_Raster raster;
@@ -325,19 +308,16 @@ void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 GF_Err evg_surface_clear_565(GF_EVGSurface *_this, GF_IRect rc, GF_Color col);
 
-#ifdef GF_RGB_444_SUPORT
+
 void evg_444_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 void evg_444_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 GF_Err evg_surface_clear_444(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
-#endif
 
-#ifdef GF_RGB_555_SUPORT
 void evg_555_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 void evg_555_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 GF_Err evg_surface_clear_555(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
-#endif
 
 void evg_user_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 void evg_user_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);

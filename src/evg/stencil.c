@@ -1099,21 +1099,31 @@ u32 get_pix_bgr_24(EVG_Texture *_this, u32 x, u32 y)
 }
 u32 get_pix_444(EVG_Texture *_this, u32 x, u32 y)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
-	u16 val = *(u16*)pix;
-	return GF_COL_ARGB(0xFF,  (u8) ( (val >> 4) & 0xf0), (u8) ( (val) & 0xf0),  (u8) ( (val << 4) & 0xf0)	);
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u32 r = pix[0]&0x0f;
+	u32 g = (pix[1]>>4)&0x0f;
+	u32 b = pix[1]&0x0f;
+	return GF_COL_ARGB(0xFF, (r << 4), (g << 4), (b << 4));
 }
 u32 get_pix_555(EVG_Texture *_this, u32 x, u32 y)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
-	u16 val = *(u16*)pix;
-	return GF_COL_ARGB(0xFF, (u8) ( (val >> 7) & 0xf8), (u8) ( (val >> 2) & 0xf8), (u8) ( (val << 3) & 0xf8) );
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u32 r = (pix[0]>>2) & 0x1f;
+	u32 g = (pix[0])&0x3;
+	g<<=3;
+	g |= (pix[1]>>5) & 0x7;
+	u32 b = pix[1] & 0x1f;
+	return GF_COL_ARGB(0xFF, (r << 3), (g << 3), (b << 3));
 }
 u32 get_pix_565(EVG_Texture *_this, u32 x, u32 y)
 {
 	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
-	u16 val = *(u16*)pix;
-	return GF_COL_ARGB(0xFF,  (u8) ( (val >> 8) & 0xf8), (u8) ( (val >> 3) & 0xfc),  (u8) ( (val << 3) & 0xf8)	);
+	u32 r = (pix[0]>>3) & 0x1f;
+	u32 g = (pix[0])&0x7;
+	g<<=3;
+	g |= (pix[1]>>5) & 0x7;
+	u32 b = pix[1] & 0x1f;
+	return GF_COL_ARGB(0xFF, (r << 3), (g << 2), (b << 3));
 }
 u32 get_pix_grey(EVG_Texture *_this, u32 x, u32 y)
 {

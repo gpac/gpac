@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
- *  This file is part of GPAC / Scene Rendering sub-project
+ *  This file is part of GPAC / software 2D rasterizer
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -45,7 +45,21 @@ mul255(s32 a, s32 b)
 			RGB 565 part
 */
 
-static u16 overmask_565(u32 src, u16 dst, u32 alpha)
+static void write_565(u8 *dst, u8 r, u8 g, u8 b)
+{
+	r>>=3;
+	g>>=2;
+	b>>=3;
+
+	dst[0] = r;
+	dst[0] <<= 3;
+	dst[0] |= ((g >> 3) & 0x7);
+	dst[1] = (g & 0x7);
+	dst[1] <<= 5;
+	dst[1] |= b;
+}
+
+static void overmask_565(u32 src, u8 *dst, u32 alpha)
 {
 	u32 resr, resg, resb;
 	s32 srca = (src >> 24) & 0xff;
@@ -53,18 +67,24 @@ static u16 overmask_565(u32 src, u16 dst, u32 alpha)
 	s32 srcg = (src >> 8) & 0xff;
 	s32 srcb = (src >> 0) & 0xff;
 
-	s32 dstr = (dst >> 8) & 0xf8;
-	s32 dstg = (dst >> 3) & 0xfc;
-	s32 dstb = (dst << 3) & 0xf8;
+	s32 dstr = (dst[0] >> 3) & 0x1f;
+	s32 dstg = (dst[0]) & 0x7;
+	dstg <<= 3;
+	dstg |= (dst[1]>>3) & 0x7;
+	s32 dstb = (dst[1]) & 0x1f;
+
+	dstr<<=3;
+	dstg<<=2;
+	dstb<<=3;
 
 	srca = mul255(srca, alpha);
 	resr = mul255(srca, srcr - dstr) + dstr;
 	resg = mul255(srca, srcg - dstg) + dstg;
 	resb = mul255(srca, srcb - dstb) + dstb;
-	return GF_COL_565(resr, resg, resb);
+	write_565(dst, resr, resg, resb);
 }
 
-void overmask_565_const_run(u32 src, u16 *dst, s32 dst_pitch_x, u32 count)
+void overmask_565_const_run(u32 src, u8 *dst, s32 dst_pitch_x, u32 count)
 {
 	u32 resr, resg, resb;
 	u8 srca = (src >> 24) & 0xff;
@@ -73,31 +93,39 @@ void overmask_565_const_run(u32 src, u16 *dst, s32 dst_pitch_x, u32 count)
 	u8 srcb = (src >> 0) & 0xff;
 
 	while (count) {
-		register u16 val = *dst;
-		register u8 dstr = (val >> 8) & 0xf8;
-		register u8 dstg = (val >> 3) & 0xfc;
-		register u8 dstb = (val << 3) & 0xf8;
+		s32 dstr = (dst[0] >> 3) & 0x1f;
+		s32 dstg = (dst[0]) & 0x7;
+		dstg <<= 3;
+		dstg |= (dst[1]>>3) & 0x7;
+		s32 dstb = (dst[1]) & 0x1f;
+
+		dstr<<=3;
+		dstg<<=2;
+		dstb<<=3;
 
 		resr = mul255(srca, srcr - dstr) + dstr;
 		resg = mul255(srca, srcg - dstg) + dstg;
 		resb = mul255(srca, srcb - dstb) + dstb;
-		*dst = GF_COL_565(resr, resg, resb);
-		dst = (u16*) (((u8*)dst)+dst_pitch_x);
+		write_565(dst, resr, resg, resb);
+		dst += dst_pitch_x;
 		count--;
 	}
 }
 
 void evg_565_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
-	u16 col565 = surf->fill_565;
 	u32 col = surf->fill_col;
-	register u32 a, fin, col_no_a;
+	u32 a, fin, col_no_a;
+	u8 r, g, b;
 	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	register s32 i;
 	u32 len;
 	s32 x;
 
 	col_no_a = col&0x00FFFFFF;
+	r = GF_COL_R(col);
+	g = GF_COL_G(col);
+	b = GF_COL_B(col);
 
 	for (i=0; i<count; i++) {
 		x = spans[i].x * surf->pitch_x;
@@ -105,10 +133,10 @@ void evg_565_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 		if (spans[i].coverage != 0xFF) {
 			a = mul255(0xFF, spans[i].coverage);
 			fin = (a<<24) | (col_no_a);
-			overmask_565_const_run(fin, (u16*) (dst+x), surf->pitch_x, len);
+			overmask_565_const_run(fin, dst+x, surf->pitch_x, len);
 		} else {
 			while (len--) {
-				*(u16*) (dst + x) = col565;
+				write_565(dst+x, r, g, b);
 				x+=surf->pitch_x;
 			}
 		}
@@ -127,7 +155,7 @@ void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 	for (i=0; i<count; i++) {
 		fin = mul255(a, spans[i].coverage);
 		fin = (fin<<24) | col_no_a;
-		overmask_565_const_run(fin, (u16*) (dst + spans[i].x * surf->pitch_x), surf->pitch_x, spans[i].len);
+		overmask_565_const_run(fin, dst + spans[i].x * surf->pitch_x, surf->pitch_x, spans[i].len);
 	}
 }
 
@@ -149,10 +177,11 @@ void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 		while (len--) {
 			col_a = GF_COL_A(*col);
 			if (col_a) {
+				u32 _col = *col;
 				if ((spanalpha!=0xFF) || (col_a != 0xFF)) {
-					*(u16*) (dst+x) = overmask_565(*col, *(u16*) (dst+x), spanalpha);
+					overmask_565(_col, dst+x, spanalpha);
 				} else {
-					*(u16*) (dst+x)  = GF_COL_TO_565(*col);
+					write_565(dst+x, GF_COL_R(_col), GF_COL_G(_col), GF_COL_B(_col));
 				}
 			}
 			col++;
@@ -164,10 +193,8 @@ void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 GF_Err evg_surface_clear_565(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 {
 	register u32 x, y, w, h, sx, sy;
-	s32 st;
-	register u16 val;
-	GF_EVGSurface *_this = (GF_EVGSurface *)surf;
-	st = _this->pitch_y;
+	register u8 r, g, b;
+	u8 *data_o;
 
 	h = rc.height;
 	w = rc.width;
@@ -175,13 +202,21 @@ GF_Err evg_surface_clear_565(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 	sy = rc.y;
 
 	/*convert to 565*/
-	val = GF_COL_TO_565(col);
+	r = GF_COL_R(col);
+	g = GF_COL_R(col);
+	b = GF_COL_R(col);
 
+	data_o = NULL;
 	for (y=0; y<h; y++) {
-		u8 *data = (u8 *) _this->pixels + (sy+y) * st + _this->pitch_x*sx;
-		for (x=0; x<w; x++)  {
-			*(u16*) data = val;
-			data += _this->pitch_x;
+		u8 *data = (u8 *) surf->pixels + (sy+y) * surf->pitch_y + surf->pitch_x*sx;
+		if (!y) {
+			data_o = data;
+			for (x=0; x<w; x++)  {
+				write_565(data, r, g, b);
+				data += surf->pitch_x;
+			}
+		} else {
+			memcpy(data, data_o, w*surf->pitch_x);
 		}
 	}
 	return GF_OK;
@@ -192,9 +227,22 @@ GF_Err evg_surface_clear_565(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 /*
 			RGB 555 part
 */
-#ifdef GF_RGB_555_SUPORT
 
-static u16 overmask_555(u32 src, u16 dst, u32 alpha)
+static void write_555(u8 *dst, u8 r, u8 g, u8 b)
+{
+	r>>=3;
+	g>>=3;
+	b>>=3;
+
+	dst[0] = r;
+	dst[0] <<= 2;
+	dst[0] |= ((g >> 3) & 0x3);
+	dst[1] = (g & 0x7);
+	dst[1] <<= 5;
+	dst[1] |= b;
+}
+
+static void overmask_555(u32 src, u8 *dst, u32 alpha)
 {
 	u32 resr, resg, resb;
 	s32 srca = (src >> 24) & 0xff;
@@ -202,18 +250,23 @@ static u16 overmask_555(u32 src, u16 dst, u32 alpha)
 	s32 srcg = (src >> 8) & 0xff;
 	s32 srcb = (src >> 0) & 0xff;
 
-	s32 dstr = (dst >> 7) & 0xf8;
-	s32 dstg = (dst >> 2) & 0xf8;
-	s32 dstb = (dst << 3) & 0xf8;
+	s32 dstr = (dst[0] >> 2) & 0x1f;
+	s32 dstg = (dst[0] ) & 0x3;
+	dstg <<= 3;
+	dstg |= (dst[1]>>5 ) & 0x7;
+	s32 dstb = (dst[1] ) & 0x1f;
+	dstr<<=3;
+	dstg<<=3;
+	dstb<<=3;
 
 	srca = mul255(srca, alpha);
 	resr = mul255(srca, srcr - dstr) + dstr;
 	resg = mul255(srca, srcg - dstg) + dstg;
 	resb = mul255(srca, srcb - dstb) + dstb;
-	return GF_COL_555(resr, resg, resb);
+	write_555(dst, resr, resg, resb);
 }
 
-static void overmask_555_const_run(u32 src, u16 *dst, s32 dst_pitch_x, u32 count)
+static void overmask_555_const_run(u32 src, u8 *dst, s32 dst_pitch_x, u32 count)
 {
 	u32 resr, resg, resb;
 	u8 srca = (src >> 24) & 0xff;
@@ -222,42 +275,48 @@ static void overmask_555_const_run(u32 src, u16 *dst, s32 dst_pitch_x, u32 count
 	u8 srcb = (src >> 0) & 0xff;
 
 	while (count) {
-		u16 val = *dst;
-		u8 dstr = (val >> 7) & 0xf8;
-		u8 dstg = (val >> 2) & 0xf8;
-		u8 dstb = (val << 3) & 0xf8;
+		s32 dstr = (dst[0] >> 2) & 0x1f;
+		s32 dstg = (dst[0] ) & 0x3;
+		dstg <<= 3;
+		dstg |= (dst[1]>>5 ) & 0x7;
+		s32 dstb = (dst[1] ) & 0x1f;
+		dstr<<=3;
+		dstg<<=3;
+		dstb<<=3;
 
 		resr = mul255(srca, srcr - dstr) + dstr;
 		resg = mul255(srca, srcg - dstg) + dstg;
 		resb = mul255(srca, srcb - dstb) + dstb;
-		*dst = GF_COL_555(resr, resg, resb);
-		dst = (u16*) (((u8*)dst)+dst_pitch_x);
+		write_555(dst, resr, resg, resb);
+		dst += dst_pitch_x;
 		count--;
 	}
 }
 
 void evg_555_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
-	u16 col555 = surf->fill_555;
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
 	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 r, g, b;
 	s32 i, x;
 	u32 len;
-	u8 aa_lev = surf->AALevel;
+
+	r = GF_COL_R(col);
+	g = GF_COL_G(col);
+	b = GF_COL_B(col);
 
 	col_no_a = col&0x00FFFFFF;
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		x = spans[i].x * surf->pitch_x;
 		len = spans[i].len;
 		if (spans[i].coverage != 0xFF) {
 			a = mul255(0xFF, spans[i].coverage);
 			fin = (a<<24) | col_no_a;
-			overmask_555_const_run(fin, (u16*) (dst+x), surf->pitch_x, len);
+			overmask_555_const_run(fin, dst+x, surf->pitch_x, len);
 		} else {
 			while (len--) {
-				*(u16*) (dst+x) = col555;
+				write_555(dst+x, r, g, b);
 				x+=surf->pitch_x;
 			}
 		}
@@ -266,19 +325,17 @@ void evg_555_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 
 void evg_555_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_x;
+	u8 *dst = surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
 	s32 i;
-	u8 aa_lev = surf->AALevel;
 
 	a = (col>>24)&0xFF;
 	col_no_a = col & 0x00FFFFFF;
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		fin = mul255(a, spans[i].coverage);
 		fin = (fin<<24) | col_no_a;
-		overmask_555_const_run(fin, (u16*) (dst + spans[i].x*surf->pitch_x), surf->pitch_x, spans[i].len);
+		overmask_555_const_run(fin, dst + spans[i].x*surf->pitch_x, surf->pitch_x, spans[i].len);
 	}
 }
 
@@ -290,10 +347,8 @@ void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 	s32 i, x;
 	u32 len;
 	u32 *col;
-	u8 aa_lev = surf->AALevel;
 
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
@@ -302,10 +357,11 @@ void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 		while (len--) {
 			col_a = GF_COL_A(*col);
 			if (col_a) {
+				u32 _col = *col;
 				if ((spanalpha!=0xFF) || (col_a != 0xFF)) {
-					*(u16*) (dst+x) = overmask_555(*col, *(u16*) (dst+x), spanalpha);
+					overmask_555(*col, dst+x, spanalpha);
 				} else {
-					*(u16*) (dst+x) = GF_COL_TO_555(*col);
+					write_555(dst+x, GF_COL_R(_col), GF_COL_G(_col), GF_COL_B(_col) );
 				}
 			}
 			col++;
@@ -314,41 +370,50 @@ void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 	}
 }
 
-GF_Err evg_surface_clear_555(GF_EVGSurface surf, GF_IRect rc, GF_Color col)
+GF_Err evg_surface_clear_555(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 {
 	u32 x, y, w, h, sx, sy;
-	u16 val;
-	GF_EVGSurface *_this = (GF_EVGSurface *)surf;
-
+	u8 r, g, b;
+	u8 *data_o;
 
 	h = rc.height;
 	w = rc.width;
 	sx = rc.x;
 	sy = rc.y;
+	r = GF_COL_R(col);
+	g = GF_COL_G(col);
+	b = GF_COL_B(col);
 
-	/*convert to 565*/
-	val = GF_COL_TO_555(col);
-
+	data_o = NULL;
 	for (y=0; y<h; y++) {
-		u8 *data = _this->pixels + (sy+y) * _this->pitch_y + _this->pitch_x*sx;
-		for (x=0; x<w; x++)  {
-			*(u16*)data = val;
-			data += _this->pitch_x;
+		u8 *data = surf->pixels + (sy+y) * surf->pitch_y + surf->pitch_x*sx;
+		if (!y) {
+			data_o = data;
+			for (x=0; x<w; x++)  {
+				write_555(data, r, g, b);
+				data += surf->pitch_x;
+			}
+		} else {
+			memcpy(data, data_o, w*surf->pitch_x);
 		}
 	}
 	return GF_OK;
 }
-
-#endif
 
 
 /*
 			RGB 444 part
 */
 
-#ifdef GF_RGB_444_SUPORT
+static void write_444(u8 *dst, u8 r, u8 g, u8 b)
+{
+	dst[0] = r >> 4;
+	dst[1] = g >> 4;
+	dst[1]<<=4;
+	dst[1] |= b >> 4;
+}
 
-static u16 overmask_444(u32 src, u16 dst, u32 alpha)
+static void overmask_444(u8 *dst, u32 src, u32 alpha)
 {
 	u32 resr, resg, resb;
 	s32 srca = (src >> 24) & 0xff;
@@ -356,62 +421,68 @@ static u16 overmask_444(u32 src, u16 dst, u32 alpha)
 	s32 srcg = (src >> 8) & 0xff;
 	s32 srcb = (src >> 0) & 0xff;
 
-	s32 dstr = (dst >> 4) & 0xf0;
-	s32 dstg = (dst ) & 0xf0;
-	s32 dstb = (dst << 4) & 0xf0;
+	s32 dstr = (dst[0] & 0x0f) << 4;
+	s32 dstg = ((dst[1] >> 4) & 0x0f) << 4;
+	s32 dstb = (dst[1] & 0x0f) << 4;
 
 	srca = mul255(srca, alpha);
 	resr = mul255(srca, srcr - dstr) + dstr;
 	resg = mul255(srca, srcg - dstg) + dstg;
 	resb = mul255(srca, srcb - dstb) + dstb;
-	return GF_COL_444(resr, resg, resb);
+	write_444(dst, resr, resg, resb);
 }
 
-static void overmask_444_const_run(u32 src, u16 *dst, s32 dst_pitch_x, u32 count)
+static void overmask_444_const_run(u32 src, u8 *dst, s32 dst_pitch_x, u32 count)
 {
 	u32 resr, resg, resb;
-	u8 srca = (src >> 24) & 0xff;
-	u8 srcr = (src >> 16) & 0xff;
-	u8 srcg = (src >> 8) & 0xff;
-	u8 srcb = (src >> 0) & 0xff;
+	s32 srca = (src >> 24) & 0xff;
+	s32 srcr = (src >> 16) & 0xff;
+	s32 srcg = (src >> 8) & 0xff;
+	s32 srcb = (src >> 0) & 0xff;
 
 	while (count) {
-		u16 val = *dst;
-		u8 dstr = (val >> 4) & 0xf0;
-		u8 dstg = (val ) & 0xf0;
-		u8 dstb = (val << 4) & 0xf0;
+		s32 dstr = dst[0] & 0x0f;
+		s32 dstg = (dst[1]>>4) & 0x0f;
+		s32 dstb = (dst[1]) & 0x0f;
+
+		dstr<<=4;
+		dstg<<=4;
+		dstb<<=4;
 
 		resr = mul255(srca, srcr - dstr) + dstr;
 		resg = mul255(srca, srcg - dstg) + dstg;
 		resb = mul255(srca, srcb - dstb) + dstb;
-		*dst = GF_COL_444(resr, resg, resb);
-		dst = (u16*) (((u8*)dst)+dst_pitch_x);
+		write_444(dst, resr, resg, resb);
+
+		dst += dst_pitch_x;
 		count--;
 	}
 }
 
 void evg_444_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
-	u16 col444 = surf->fill_444;
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
 	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 r, g, b;
 	s32 i, x;
 	u32 len;
-	u8 aa_lev = surf->AALevel;
+
+	r = GF_COL_R(col);
+	g = GF_COL_G(col);
+	b = GF_COL_B(col);
 
 	col_no_a = col&0x00FFFFFF;
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		x = spans[i].x * surf->pitch_x;
 		len = spans[i].len;
 		if (spans[i].coverage != 0xFF) {
 			a = mul255(0xFF, spans[i].coverage);
 			fin = (a<<24) | col_no_a;
-			overmask_444_const_run(fin, (u16*) (dst+x), surf->pitch_x, len);
+			overmask_444_const_run(fin, dst+x, surf->pitch_x, len);
 		} else {
 			while (len--) {
-				*(u16*) (dst+x) = col444;
+				write_444(dst+x, r, g, b);
 				x+=surf->pitch_x;
 			}
 		}
@@ -424,42 +495,39 @@ void evg_444_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 	u32 col = surf->fill_col;
 	u32 a, fin, col_no_a;
 	s32 i;
-	u8 aa_lev = surf->AALevel;
 
 	a = (col>>24)&0xFF;
 	col_no_a = col & 0x00FFFFFF;
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		fin = mul255(a, spans[i].coverage);
 		fin = (fin<<24) | col_no_a;
-		overmask_444_const_run(fin, (u16*) (dst + spans[i].x*surf->pitch_x), surf->pitch_x, spans[i].len);
+		overmask_444_const_run(fin, dst + spans[i].x*surf->pitch_x, surf->pitch_x, spans[i].len);
 	}
 }
 
 
 void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_x;
+	u8 *dst = surf->pixels + y * surf->pitch_y;
 	u8 spanalpha, col_a;
 	s32 i, x;
 	u32 len;
 	u32 *col;
-	u8 aa_lev = surf->AALevel;
 
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
 		col = surf->stencil_pix_run;
-		x = spans[i].x + surf->pitch_x;
+		x = spans[i].x * surf->pitch_x;
 		while (len--) {
 			col_a = GF_COL_A(*col);
 			if (col_a) {
+				u32 _col = *col;
 				if ((spanalpha!=0xFF) || (col_a != 0xFF)) {
-					*(u16*) (dst+x) = overmask_444(*col, *(u16*) (dst+x), spanalpha);
+					overmask_444(dst+x, _col, spanalpha);
 				} else {
-					*(u16*) (dst+x) = GF_COL_TO_444(*col);
+					write_444(dst+x, GF_COL_R(_col), GF_COL_G(_col), GF_COL_B(_col) );
 				}
 			}
 			col++;
@@ -468,28 +536,34 @@ void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 	}
 }
 
-GF_Err evg_surface_clear_444(GF_EVGSurface surf, GF_IRect rc, GF_Color col)
+GF_Err evg_surface_clear_444(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 {
 	u32 x, y, w, h, sx, sy;
-	u16 val;
-	GF_EVGSurface *_this = (GF_EVGSurface *)surf;
+	u8 r, g, b;
+	u8 *data_o;
 
 	h = rc.height;
 	w = rc.width;
 	sx = rc.x;
 	sy = rc.y;
 
-	val = GF_COL_TO_444(col);
+	r = GF_COL_R(col);
+	g = GF_COL_G(col);
+	b = GF_COL_B(col);
 
+	data_o = NULL;
 	for (y=0; y<h; y++) {
-		u8 *data = _this->pixels + (sy+y) * _this->pitch_y + _this->pitch_x*sx;
-		for (x=0; x<w; x++)  {
-			*(u16*)data = val;
-			data += _this->pitch_x;
+		u8 *data = surf->pixels + (sy+y) * surf->pitch_y + surf->pitch_x*sx;
+		if (!y) {
+			data_o = data;
+			for (x=0; x<w; x++)  {
+				write_444(data, r, g, b);
+				data += surf->pitch_x;
+			}
+		} else {
+			memcpy(data, data_o, w * surf->pitch_x);
 		}
 	}
 	return GF_OK;
 }
-
-#endif
 
