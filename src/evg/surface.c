@@ -426,14 +426,14 @@ GF_Err gf_evg_surface_set_clipper(GF_EVGSurface *surf , GF_IRect *rc)
 
 static Bool setup_grey_callback(GF_EVGSurface *surf)
 {
-	u32 col, a, uv_alpha_size=0;
+	u32 a, uv_alpha_size=0;
 	Bool use_const = GF_TRUE;
 
 	if (surf->sten->type == GF_STENCIL_SOLID) {
-		col = surf->fill_col = ((EVG_Brush *)surf->sten)->color;
+		surf->fill_col = ((EVG_Brush *)surf->sten)->color;
 		a = GF_COL_A(surf->fill_col);
 	} else {
-		col = a = 0;
+		a = 0;
 		use_const = GF_FALSE;
 	}
 
