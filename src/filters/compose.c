@@ -304,9 +304,9 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 	if ((mtype==GF_STREAM_OD) && !in_iod) return GF_NOT_SUPPORTED;
 
-	//we inserted a scene (bt/svg/...) after a pid (passthrough mode), we need to create a new namesapce for
+	//we inserted a root scene (bt/svg/...) after a pid (passthrough mode), we need to create a new namesapce for
 	//the scene and reassign the old namespace to the previously created ODM
-	if (was_dyn_scene && (was_dyn_scene != scene->is_dynamic_scene)) {
+	if (!scene->root_od->parentscene && was_dyn_scene && (was_dyn_scene != scene->is_dynamic_scene)) {
 		GF_SceneNamespace *new_sns=NULL;
 		const char *service_url = "unknown";
 		const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
@@ -468,11 +468,10 @@ GF_Err compose_initialize(GF_Filter *filter)
 
 	ctx->magic = COMPOSITOR_MAGIC;
 	ctx->magic_ptr = (void *) ctx;
-
+	ctx->filter = filter;
+	
 	e = gf_sc_load(ctx);
 	if (e) return e;
-
-	ctx->filter = filter;
 
 	gf_filter_get_session_caps(filter, &sess_caps);
 

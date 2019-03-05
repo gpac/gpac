@@ -1002,6 +1002,7 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 		needs_stride = (stride != 2*w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE;
 		if (needs_stride) stride /= 2;
 	} else {
+		if (tx_mode==GL_LUMINANCE_ALPHA) stride /= 2;
 		needs_stride = (stride!=w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE;
 	}
 

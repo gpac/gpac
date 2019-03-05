@@ -350,9 +350,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 	} else {
 		strcpy(szArgs, "compositor:FID=compose:player");
 	}
-	if (! (user->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
-		strcpy(szArgs, ":aout=false");
-	}
 
 	comp_filter = gf_fs_load_filter(tmp->fsess, szArgs);
 	tmp->compositor = comp_filter ? gf_sc_from_filter(comp_filter) : NULL;
