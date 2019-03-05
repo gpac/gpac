@@ -1163,6 +1163,11 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 		if (sess->sock) gf_sk_del(sess->sock);
 		sess->sock = NULL;
 		sess->status = GF_NETIO_SETUP;
+		if (sess->ssl) {
+			SSL_shutdown(sess->ssl);
+			SSL_free(sess->ssl);
+			sess->ssl = NULL;
+		}
 	}
 	sess->total_size=0;
 	sess->bytes_done=0;
@@ -2857,7 +2862,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	sess->chunk_run_time = 0;
 	sess->last_chunk_found = GF_FALSE;
 	gf_sk_reset(sess->sock);
-
+	sHTTP[0] = 0;
+	
 	while (1) {
 		e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 		switch (e) {

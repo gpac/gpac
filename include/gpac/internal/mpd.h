@@ -422,6 +422,11 @@ typedef struct
 	void *udta;
 } GF_MPD_AdaptationSet;
 
+typedef enum {
+	GF_MPD_TYPE_STATIC,
+	GF_MPD_TYPE_DYNAMIC,
+	GF_MPD_TYPE_DYNAMIC_LAST,
+} GF_MPD_Type;
 
 typedef struct
 {
@@ -439,7 +444,10 @@ typedef struct
 	GF_List *subsets;
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
+
 	GF_List *other_descriptors;
+	char *origin_base_url;
+	GF_MPD_Type type;
 } GF_MPD_Period;
 
 typedef struct
@@ -451,12 +459,6 @@ typedef struct
 	char *more_info_url;
 } GF_MPD_ProgramInfo;
 
-
-typedef enum {
-	GF_MPD_TYPE_STATIC=0,
-	GF_MPD_TYPE_DYNAMIC,
-	GF_MPD_TYPE_DYNAMIC_LAST,
-} GF_MPD_Type;
 
 typedef struct {
 	MPD_EXTENSIBLE
