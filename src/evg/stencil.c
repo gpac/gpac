@@ -405,16 +405,25 @@ GF_Err gf_evg_stencil_set_radial_gradient(GF_EVGStencil * st, Fixed cx, Fixed cy
 
 void evg_gradient_precompute(EVG_BaseGradient *grad, GF_EVGSurface *surf)
 {
-	Bool do_cmat, do_yuv, has_a;
+	Bool do_cmat, do_yuv, has_a, has_changed;
 	u32 i, nb_col;
 
-	if (grad->yuv_prof != surf->yuv_prof) {
-		grad->yuv_prof = surf->yuv_prof;
-		do_yuv = GF_TRUE;
-	} else if (!grad->updated) {
-		return;
+	has_changed = grad->updated;
+	do_yuv = GF_FALSE;
+	if (surf->is_yuv) {
+		if (grad->yuv_prof != surf->yuv_prof) {
+			grad->yuv_prof = surf->yuv_prof;
+			do_yuv = GF_TRUE;
+			has_changed = GF_TRUE;
+		}
 	} else {
-		do_yuv = surf->is_yuv;
+		if (grad->yuv_prof) {
+			grad->yuv_prof = 0;
+			has_changed = GF_TRUE;
+		}
+	}
+	if (!has_changed) {
+		return;
 	}
 	grad->updated = 0;
 
