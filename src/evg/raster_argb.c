@@ -57,7 +57,7 @@ GFINLINE static void overmask_argb(u32 src, u8 *dst, u32 alpha, GF_EVGSurface *s
 		u8 dstg = dst[surf->idx_g];
 		u8 dstb = dst[surf->idx_b];
 
-		//do the maths , so that the result of the blend follows the sam DST = SRC*apha + DST(1-alpha)
+		//do the maths , so that the result of the blend follows the same DST = SRC*apha + DST(1-alpha)
 		//it gives a transform alpha of Fa = SRCa + DSTa - SRCa*DSTa
 		//and an RGB Fc = (SRCa*SRCc + DSTa*DSTc - DSTc*(DSTa-SRCa)) / Fa
 		final_a = dsta + srca - mul255(dsta, srca);
