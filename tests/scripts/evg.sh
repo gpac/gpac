@@ -27,8 +27,9 @@ do_hash_test "$dst_file2" "$1_rgb"
 
 #gpac -i $dst_file2:size=128x128 vout
 
-#test 2D rasterizer in format destination (passthrough with direct overlay on raw data
-do_test "$GPAC -i $dst_file:size=128x128 -i $bt_file compositor:!softblt:drv=no @ -o $dst_file3  -graph -stats"  "compose_$1"
+#test 2D rasterizer in format destination (passthrough with direct overlay on raw data)
+#note that we force using a GNU Free Font SANS to make sure we always use the same font on all platforms
+do_test "$GPAC -font-dirs=$EXTERNAL_MEDIA_DIR/fonts/ -rescan-fonts -i $dst_file:size=128x128 -i $bt_file compositor:!softblt:drv=no @ -o $dst_file3  -graph -stats"  "compose_$1"
 do_hash_test "$dst_file3" "compose_$1"
 
 #gpac -i $dst_file3:size=128x128 vout
