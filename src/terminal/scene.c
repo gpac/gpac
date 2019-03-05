@@ -121,6 +121,7 @@ static void gf_scene_reset_urls(GF_Scene *scene)
 	SFURL_RESET(scene->dims_url);
 }
 
+GF_EXPORT
 void gf_scene_del(GF_Scene *scene)
 {
 	gf_mx_p(scene->root_od->term->net_mx);
@@ -697,6 +698,7 @@ static GFINLINE Bool is_match_obj_type(u32 type, u32 hint_type)
 	return GF_FALSE;
 }
 
+GF_EXPORT
 GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref, Bool force_new_if_not_attached, GF_Node *node)
 {
 	GF_MediaObject *obj;

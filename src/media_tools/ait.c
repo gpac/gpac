@@ -581,6 +581,7 @@ static Bool gf_m2ts_is_dmscc_app(GF_M2TS_CHANNEL_APPLICATION_INFO* ChanAppInfo) 
 	return 0;
 }
 
+GF_EXPORT
 GF_M2TS_CHANNEL_APPLICATION_INFO* gf_m2ts_get_channel_application_info(GF_List* ChannelAppList, u32 ait_service_id) {
 	u32 i,nb_chanapp;
 

@@ -528,7 +528,7 @@ void InputSensorModified(GF_Node *node)
 /*
 				input sensor DDF generations (user interface)
 */
-
+GF_EXPORT
 void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 {
 	s32 X, Y;
@@ -620,6 +620,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 	gf_free(buf);
 }
 
+GF_EXPORT
 Bool gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp)
 {
 	u32 i;
@@ -842,6 +843,7 @@ Bool gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 	return 1;
 }
 
+GF_EXPORT
 void gf_term_string_input(GF_Terminal *term, u32 character)
 {
 	u32 i;
@@ -976,13 +978,17 @@ void InitStringSensor(GF_Scene *scene, GF_Node *node)
 #endif /*GPAC_DISABLE_X3D*/
 
 #else
+
+GF_EXPORT
 void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 {
 }
+GF_EXPORT
 Bool gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp)
 {
 	return GF_TRUE;
 }
+GF_EXPORT
 void gf_term_string_input(GF_Terminal *term, u32 character)
 {
 }

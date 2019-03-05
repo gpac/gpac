@@ -192,7 +192,7 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines, B
 	return res;
 }
 
-
+GF_EXPORT
 void gf_mo_unregister(GF_Node *node, GF_MediaObject *mo)
 {
 	if (mo && node) {

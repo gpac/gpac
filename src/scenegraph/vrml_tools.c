@@ -163,6 +163,7 @@ void gf_sg_vrml_parent_destroy(GF_Node *pNode)
 	gf_node_unregister_children(pNode, par->removeChildren);
 }
 
+GF_EXPORT
 GF_Err gf_sg_delete_all_protos(GF_SceneGraph *scene)
 {
 	if (!scene) return GF_BAD_PARAM;
@@ -180,7 +181,7 @@ void gf_sg_set_proto_loader(GF_SceneGraph *scene, GF_SceneGraph *(*GetExternProt
 	scene->GetExternProtoLib = GetExternProtoLib;
 }
 
-
+GF_EXPORT
 u32 gf_sg_get_next_available_route_id(GF_SceneGraph *sg)
 {
 	u32 i, count;
@@ -200,11 +201,13 @@ u32 gf_sg_get_next_available_route_id(GF_SceneGraph *sg)
 	}
 }
 
+GF_EXPORT
 void gf_sg_set_max_defined_route_id(GF_SceneGraph *sg, u32 ID)
 {
 	sg->max_defined_route_id = MAX(sg->max_defined_route_id, ID);
 }
 
+GF_EXPORT
 u32 gf_sg_get_next_available_proto_id(GF_SceneGraph *sg)
 {
 	u32 i, count;
@@ -224,6 +227,7 @@ u32 gf_sg_get_next_available_proto_id(GF_SceneGraph *sg)
 }
 
 //adds a child in the children list
+GF_EXPORT
 GF_Err gf_node_insert_child(GF_Node *parent, GF_Node *new_child, s32 Position)
 {
 	GF_ParentNode *node = (GF_ParentNode *) parent;
@@ -236,6 +240,7 @@ GF_Err gf_node_insert_child(GF_Node *parent, GF_Node *new_child, s32 Position)
 }
 
 /*for V4Studio...*/
+GF_EXPORT
 GF_Err gf_node_remove_child(GF_Node *parent, GF_Node *toremove_child)
 {
 	if (!gf_node_list_del_child(& ((GF_ParentNode *) parent)->children, toremove_child)) return GF_BAD_PARAM;
@@ -244,11 +249,13 @@ GF_Err gf_node_remove_child(GF_Node *parent, GF_Node *toremove_child)
 	return GF_OK;
 }
 
+GF_EXPORT
 void gf_sg_script_load(GF_Node *n)
 {
 	if (n && n->sgprivate->scenegraph->script_load) n->sgprivate->scenegraph->script_load(n);
 }
 
+GF_EXPORT
 GF_Proto *gf_sg_find_proto(GF_SceneGraph *sg, u32 ProtoID, char *name)
 {
 	GF_Proto *proto;
@@ -476,6 +483,7 @@ static MFAttrRef *NewMFAttrRef()
 	return tmp;
 }
 
+GF_EXPORT
 void *gf_sg_vrml_field_pointer_new(u32 FieldType)
 {
 	switch (FieldType) {
@@ -618,6 +626,7 @@ void gf_sg_sfcommand_del(SFCommandBuffer cb)
 	if (cb.buffer) gf_free(cb.buffer);
 }
 
+GF_EXPORT
 void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 {
 	GF_Node *node;
@@ -1046,6 +1055,7 @@ u32 gf_sg_vrml_get_sf_type(u32 FieldType)
 //	newly created slot
 //	!! Doesnt work for MFNodes
 //	InsertAt is the 0-based index for the new slot
+GF_EXPORT
 GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertAt)
 {
 	char *buffer;
@@ -1187,6 +1197,7 @@ GF_Err gf_sg_vrml_mf_append(void *mf, u32 FieldType, void **new_ptr)
 
 
 //remove the specified item (0-based index)
+GF_EXPORT
 GF_Err gf_sg_vrml_mf_remove(void *mf, u32 FieldType, u32 RemoveFrom)
 {
 	char *buffer;
@@ -1538,7 +1549,7 @@ SFColorRGBA gf_sg_sfcolor_to_rgba(SFColor val)
 }
 
 
-
+GF_EXPORT
 u32 gf_node_get_num_fields_in_mode(GF_Node *Node, u8 IndexMode)
 {
 	assert(Node);

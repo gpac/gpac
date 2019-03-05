@@ -76,6 +76,7 @@ static void dsmcc_free_biop_file(GF_M2TS_DSMCC_BIOP_FILE* BIOP_File);
 static void dsmcc_free_biop_stream_event(GF_M2TS_DSMCC_BIOP_STREAM_EVENT* BIOP_StreamEvent);
 static void dsmcc_free_biop_stream_message(GF_M2TS_DSMCC_BIOP_STREAM_MESSAGE* BIOP_StreamMessage);
 
+GF_EXPORT
 GF_M2TS_DSMCC_OVERLORD* gf_m2ts_init_dsmcc_overlord(u32 service_id) {
 	GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord;
 	GF_SAFEALLOC(dsmcc_overlord,GF_M2TS_DSMCC_OVERLORD);
@@ -84,6 +85,7 @@ GF_M2TS_DSMCC_OVERLORD* gf_m2ts_init_dsmcc_overlord(u32 service_id) {
 	return dsmcc_overlord;
 }
 
+GF_EXPORT
 GF_M2TS_DSMCC_OVERLORD* gf_m2ts_get_dmscc_overlord(GF_List* Dsmcc_controller,u32 service_id)
 {
 	u16 nb_dsmcc,i;
@@ -127,6 +129,7 @@ void on_dsmcc_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_m2ts_process_dsmcc(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMCC_SECTION *dsmcc, char  *data, u32 data_size, u32 table_id)
 {
 	GF_BitStream *bs;

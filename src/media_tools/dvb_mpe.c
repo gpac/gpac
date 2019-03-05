@@ -64,11 +64,13 @@ static void on_dvb_mpe_fec_frame(GF_M2TS_Demuxer *ts, MPE_FEC_FRAME *mff)
 	}
 }
 
+GF_EXPORT
 void gf_dvb_mpe_init(GF_M2TS_Demuxer *ts)
 {
 	if (ts && !ts->on_mpe_event) ts->on_mpe_event = on_dvb_mpe_section;
 }
 
+GF_EXPORT
 void gf_dvb_mpe_shutdown(GF_M2TS_Demuxer *ts)
 {
 	GF_M2TS_IP_Stream *ip_stream_buff;
@@ -109,6 +111,7 @@ void gf_dvb_mpe_shutdown(GF_M2TS_Demuxer *ts)
 	ts->ip_platform = NULL;
 }
 
+GF_EXPORT
 GF_M2TS_ES *gf_dvb_mpe_section_new()
 {
 	GF_M2TS_ES *es;
@@ -121,6 +124,7 @@ GF_M2TS_ES *gf_dvb_mpe_section_new()
 	return es;
 }
 
+GF_EXPORT
 void gf_dvb_mpe_section_del(GF_M2TS_ES *es)
 {
 	GF_M2TS_SECTION_MPE *ses = (GF_M2TS_SECTION_MPE *)es;
@@ -931,6 +935,7 @@ next :
 
 }
 
+GF_EXPORT
 void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 {
 	u32 i_streams, i_targets,i,j,l;

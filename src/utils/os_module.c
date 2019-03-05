@@ -291,6 +291,7 @@ static void load_static_modules(GF_ModuleManager *pm)
 }
 
 /*refresh modules - note we don't check for deleted modules but since we've open them the OS should forbid delete*/
+GF_EXPORT
 u32 gf_modules_refresh(GF_ModuleManager *pm)
 {
 	u32 i;

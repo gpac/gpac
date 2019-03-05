@@ -1839,7 +1839,7 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_refresh_size_info(GF_ISOFile *file, u32 trackNumber)
 {
 	u32 i, size;

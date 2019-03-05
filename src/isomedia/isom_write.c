@@ -339,6 +339,7 @@ static void gf_isom_set_root_iod(GF_ISOFile *movie)
 	movie->moov->iods->descriptor = (GF_Descriptor *)iod;
 }
 
+GF_EXPORT
 GF_Err gf_isom_add_desc_to_root_od(GF_ISOFile *movie, GF_Descriptor *theDesc)
 {
 	GF_Err e;
@@ -449,7 +450,7 @@ GF_Err gf_isom_set_pl_indication(GF_ISOFile *movie, u8 PL_Code, u8 ProfileLevel)
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_set_root_od_id(GF_ISOFile *movie, u32 OD_ID)
 {
 	GF_Err e;
@@ -473,6 +474,7 @@ GF_Err gf_isom_set_root_od_id(GF_ISOFile *movie, u32 OD_ID)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_root_od_url(GF_ISOFile *movie, char *url_string)
 {
 	GF_Err e;
@@ -749,6 +751,7 @@ GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescript
 	return SetTrackDuration(trak);
 }
 
+GF_EXPORT
 GF_Err gf_isom_add_sample_shadow(GF_ISOFile *movie, u32 trackNumber, GF_ISOSample *sample)
 {
 	GF_Err e;
@@ -839,6 +842,7 @@ GF_Err gf_isom_set_sample_rap(GF_ISOFile *movie, u32 trackNumber)
 
 }
 
+GF_EXPORT
 GF_Err gf_isom_append_sample_data(GF_ISOFile *movie, u32 trackNumber, char *data, u32 data_size)
 {
 	GF_Err e;
@@ -1143,6 +1147,7 @@ GF_Err gf_isom_set_final_name(GF_ISOFile *movie, char *filename)
 }
 
 //Add a system descriptor to the ESD of a stream(EDIT or WRITE mode only)
+GF_EXPORT
 GF_Err gf_isom_add_desc_to_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_Descriptor *theDesc)
 {
 	GF_IPIPtr *ipiD;
@@ -1678,6 +1683,7 @@ GF_Err gf_isom_remove_edit_segments(GF_ISOFile *movie, u32 trackNumber)
 
 
 //remove the edit segments for the whole track
+GF_EXPORT
 GF_Err gf_isom_remove_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 seg_index)
 {
 	GF_Err e;
@@ -2114,7 +2120,7 @@ GF_Err gf_isom_add_chapter(GF_ISOFile *movie, u32 trackNumber, u64 timestamp, ch
 	return gf_list_add(ptr->list, ce);
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_remove_chapter(GF_ISOFile *movie, u32 trackNumber, u32 index)
 {
 	GF_Err e;
@@ -2170,6 +2176,7 @@ GF_Err gf_isom_remove_chapter(GF_ISOFile *movie, u32 trackNumber, u32 index)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_remove_copyright(GF_ISOFile *movie, u32 index)
 {
 	GF_Err e;
@@ -2206,7 +2213,7 @@ GF_Err gf_isom_remove_copyright(GF_ISOFile *movie, u32 index)
 }
 
 
-
+GF_EXPORT
 GF_Err gf_isom_set_watermark(GF_ISOFile *movie, bin128 UUID, u8* data, u32 length)
 {
 	GF_Err e;
@@ -2244,6 +2251,7 @@ GF_Err gf_isom_set_watermark(GF_ISOFile *movie, bin128 UUID, u8* data, u32 lengt
 
 //set the interleaving time of media data (INTERLEAVED mode only)
 //InterleaveTime is in MovieTimeScale
+GF_EXPORT
 GF_Err gf_isom_set_interleave_time(GF_ISOFile *movie, u32 InterleaveTime)
 {
 	GF_Err e;
@@ -2255,12 +2263,14 @@ GF_Err gf_isom_set_interleave_time(GF_ISOFile *movie, u32 InterleaveTime)
 	return GF_OK;
 }
 
+GF_EXPORT
 u32 gf_isom_get_interleave_time(GF_ISOFile *movie)
 {
 	return movie ? movie->interleavingTime : 0;
 }
 
 //set the storage mode of a file (FLAT, STREAMABLE, INTERLEAVED)
+GF_EXPORT
 u8 gf_isom_get_storage_mode(GF_ISOFile *movie)
 {
 	return movie ? movie->storageMode : 0;
@@ -2272,6 +2282,7 @@ u8 gf_isom_get_storage_mode(GF_ISOFile *movie)
 //use a compact track version for sample size. This is not usually recommended
 //except for speech codecs where the track has a lot of small samples
 //compaction is done automatically while writing based on the track's sample sizes
+GF_EXPORT
 GF_Err gf_isom_use_compact_size(GF_ISOFile *movie, u32 trackNumber, u8 CompactionOn)
 {
 	GF_TrackBox *trak;
@@ -3064,7 +3075,7 @@ exit:
 	return e;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber, char *URLname, char *URNname, GF_GenericSampleDescription *udesc, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -3186,6 +3197,7 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 
 //use carefully. Very useful when you made a lot of changes (IPMP, IPI, OCI, ...)
 //THIS WILL REPLACE THE WHOLE DESCRIPTOR ...
+GF_EXPORT
 GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_GenericSampleDescription *udesc)
 {
 	GF_TrackBox *trak;
@@ -3271,6 +3283,7 @@ GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNum
 }
 
 /*removes given stream description*/
+GF_EXPORT
 GF_Err gf_isom_remove_sample_description(GF_ISOFile *movie, u32 trackNumber, u32 streamDescIndex)
 {
 	GF_TrackBox *trak;
@@ -3488,6 +3501,7 @@ GF_Err gf_isom_shift_cts_offset(GF_ISOFile *the_file, u32 trackNumber, s32 offse
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_remove_cts_info(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -3541,6 +3555,7 @@ GF_Err gf_isom_set_track_layout_info(GF_ISOFile *the_file, u32 trackNumber, u32 
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_track_name(GF_ISOFile *the_file, u32 trackNumber, char *name)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -3550,6 +3565,8 @@ GF_Err gf_isom_set_track_name(GF_ISOFile *the_file, u32 trackNumber, char *name)
 	if (name) trak->name = gf_strdup(name);
 	return GF_OK;
 }
+
+GF_EXPORT
 const char *gf_isom_get_track_name(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -3557,7 +3574,7 @@ const char *gf_isom_get_track_name(GF_ISOFile *the_file, u32 trackNumber)
 	return trak->name;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_store_movie_config(GF_ISOFile *movie, Bool remove_all)
 {
 	u32 i, count, len;
@@ -3600,7 +3617,7 @@ GF_Err gf_isom_store_movie_config(GF_ISOFile *movie, Bool remove_all)
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_load_movie_config(GF_ISOFile *movie)
 {
 	u32 i, count, len;
@@ -4013,6 +4030,7 @@ u64 gf_isom_estimate_size(GF_ISOFile *movie)
 
 
 //set shadowing on/off
+GF_EXPORT
 GF_Err gf_isom_remove_sync_shadows(GF_ISOFile *movie, u32 trackNumber)
 {
 	GF_TrackBox *trak;
@@ -4031,6 +4049,7 @@ GF_Err gf_isom_remove_sync_shadows(GF_ISOFile *movie, u32 trackNumber)
 }
 
 //fill the sync shadow table
+GF_EXPORT
 GF_Err gf_isom_set_sync_shadow(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumber, u32 syncSample)
 {
 	GF_TrackBox *trak;
@@ -4061,6 +4080,7 @@ GF_Err gf_isom_set_sync_shadow(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum
 }
 
 //set the GroupID of a track (only used for interleaving)
+GF_EXPORT
 GF_Err gf_isom_set_track_interleaving_group(GF_ISOFile *movie, u32 trackNumber, u32 GroupID)
 {
 	GF_TrackBox *trak;
@@ -4076,6 +4096,7 @@ GF_Err gf_isom_set_track_interleaving_group(GF_ISOFile *movie, u32 trackNumber, 
 
 //set the Priority of a track within a Group (only used for tight interleaving)
 //Priority ranges from 1 to 9
+GF_EXPORT
 GF_Err gf_isom_set_track_priority_in_group(GF_ISOFile *movie, u32 trackNumber, u32 Priority)
 {
 	GF_TrackBox *trak;
@@ -4089,6 +4110,7 @@ GF_Err gf_isom_set_track_priority_in_group(GF_ISOFile *movie, u32 trackNumber, u
 }
 
 //set the max SamplesPerChunk (for file optimization)
+GF_EXPORT
 GF_Err gf_isom_set_max_samples_per_chunk(GF_ISOFile *movie, u32 trackNumber, u32 maxSamplesPerChunk)
 {
 	GF_TrackBox *trak;
@@ -4143,7 +4165,7 @@ GF_Err gf_isom_set_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 Str
 	return gf_odf_desc_copy((GF_Descriptor *) slConfig, (GF_Descriptor **) slc);
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_get_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_SLConfig **slConfig)
 {
 	GF_TrackBox *trak;
@@ -4182,7 +4204,7 @@ GF_Err gf_isom_get_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 Str
 	return gf_odf_desc_copy((GF_Descriptor *) slc, (GF_Descriptor **) slConfig);
 }
 
-
+GF_EXPORT
 u32 gf_isom_get_track_group(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
@@ -4191,7 +4213,7 @@ u32 gf_isom_get_track_group(GF_ISOFile *the_file, u32 trackNumber)
 	return trak->Media->information->sampleTable->groupID;
 }
 
-
+GF_EXPORT
 u32 gf_isom_get_track_priority_in_group(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
@@ -4297,6 +4319,7 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output)
 {
 	GF_List *esds;
@@ -5081,6 +5104,7 @@ GF_Err gf_isom_remove_sample_group(GF_ISOFile *movie, u32 track, u32 grouping_ty
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 sampleGroupDescriptionIndex, u32 grouping_type_parameter)
 {
 	GF_Err e;
@@ -5118,6 +5142,7 @@ Bool sg_rap_compare_entry(void *udta, void *entry)
 	return GF_FALSE;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_number, u32 num_leading_samples)
 {
 	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_ISOM_SAMPLE_GROUP_RAP, 0, &num_leading_samples, sg_rap_create_entry, sg_rap_compare_entry);
@@ -5142,6 +5167,7 @@ Bool sg_roll_compare_entry(void *udta, void *entry)
 	return GF_FALSE;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_number, s16 roll_distance)
 {
 	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_ISOM_SAMPLE_GROUP_ROLL, 0, &roll_distance, sg_roll_create_entry, sg_roll_compare_entry);

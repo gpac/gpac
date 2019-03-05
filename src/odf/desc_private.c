@@ -467,6 +467,7 @@ GF_Err gf_odf_size_descriptor(GF_Descriptor *desc, u32 *outSize)
 //
 //		WRITERS
 //
+GF_EXPORT
 GF_Err gf_odf_write_descriptor(GF_BitStream *bs, GF_Descriptor *desc)
 {
 	switch(desc->tag) {

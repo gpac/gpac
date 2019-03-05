@@ -43,7 +43,7 @@ void compositor_init_afx_node(GF_Compositor *compositor, GF_Node *node, MFURL *u
 #endif
 }
 
-
+GF_EXPORT
 void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 {
 	switch (gf_node_get_tag(node)) {

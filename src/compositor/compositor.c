@@ -580,6 +580,7 @@ static u32 gf_sc_proc(void *par)
 	return 0;
 }
 
+GF_EXPORT
 GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 {
 	GF_Err e;
@@ -651,7 +652,7 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	return tmp;
 }
 
-
+GF_EXPORT
 void gf_sc_del(GF_Compositor *compositor)
 {
 	if (!compositor) return;
@@ -766,6 +767,7 @@ void gf_sc_del(GF_Compositor *compositor)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Destroyed\n"));
 }
 
+GF_EXPORT
 void gf_sc_set_fps(GF_Compositor *compositor, Double fps)
 {
 	if (fps) {
@@ -800,6 +802,7 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 	}
 }
 
+GF_EXPORT
 u32 gf_sc_get_clock(GF_Compositor *compositor)
 {
 	if (!compositor->bench_mode) {
@@ -808,6 +811,7 @@ u32 gf_sc_get_clock(GF_Compositor *compositor)
 	return compositor->scene_sampled_clock;
 }
 
+GF_EXPORT
 GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bool force_size)
 {
 	if (!Width || !Height) {
@@ -1865,6 +1869,7 @@ Bool gf_sc_is_over(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	return 1;
 }
 
+GF_EXPORT
 u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 {
 	switch (type) {
@@ -1965,6 +1970,7 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 	}
 }
 
+GF_EXPORT
 void gf_sc_map_point(GF_Compositor *compositor, s32 X, s32 Y, Fixed *bifsX, Fixed *bifsY)
 {
 	/*coordinates are in user-like OS....*/
@@ -2070,6 +2076,7 @@ Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS)
 	return fps;
 }
 
+GF_EXPORT
 void gf_sc_register_time_node(GF_Compositor *compositor, GF_TimeNode *tn)
 {
 	/*may happen with DEF/USE */
@@ -2078,13 +2085,15 @@ void gf_sc_register_time_node(GF_Compositor *compositor, GF_TimeNode *tn)
 	gf_list_add(compositor->time_nodes, tn);
 	tn->is_registered = 1;
 }
+
+GF_EXPORT
 void gf_sc_unregister_time_node(GF_Compositor *compositor, GF_TimeNode *tn)
 {
 	gf_list_del_item(compositor->time_nodes, tn);
 }
 
 
-
+GF_EXPORT
 GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 {
 	return NULL;
@@ -2385,6 +2394,7 @@ void gf_sc_flush_video(GF_Compositor *compositor)
 	gf_sc_lock(compositor, 1);
 }
 
+GF_EXPORT
 void gf_sc_render_frame(GF_Compositor *compositor)
 {
 #ifndef GPAC_DISABLE_SCENEGRAPH
@@ -3239,6 +3249,7 @@ static Bool gf_sc_on_event(void *cbck, GF_Event *event)
 	return gf_sc_on_event_ex((GF_Compositor *)cbck, event, GF_FALSE);
 }
 
+GF_EXPORT
 Bool gf_sc_user_event(GF_Compositor *compositor, GF_Event *event)
 {
 	switch (event->type) {

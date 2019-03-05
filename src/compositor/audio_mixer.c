@@ -102,6 +102,7 @@ Bool gf_mixer_must_reconfig(GF_AudioMixer *am)
 	return am->must_reconfig;
 }
 
+GF_EXPORT
 void gf_mixer_del(GF_AudioMixer *am)
 {
 	gf_mixer_remove_all(am);

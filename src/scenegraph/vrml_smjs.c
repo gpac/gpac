@@ -60,6 +60,8 @@ Bool gf_js_add_root(JSContext *cx, void *rp, u32 type)
 	return (JS_AddRoot(cx, rp)==JS_TRUE) ? 1 : 0;
 #endif
 }
+
+GF_EXPORT
 Bool gf_js_add_named_root(JSContext *cx, void *rp, u32 type, const char *name)
 {
 #if (JS_VERSION>=185)
@@ -4491,6 +4493,7 @@ static void JS_InitScriptFields(GF_ScriptPriv *priv, GF_Node *sc)
 	}
 }
 
+GF_EXPORT
 void gf_js_vrml_flush_event_out(GF_Node *node, GF_ScriptPriv *priv)
 {
 	u32 i;
@@ -4925,6 +4928,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 	}
 }
 
+GF_EXPORT
 void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node *observer)
 {
 #ifndef GPAC_DISABLE_SVG
@@ -5032,7 +5036,7 @@ GF_Node *gf_sg_js_get_node(JSContext *c, JSObject *obj)
 
 #endif
 
-
+GF_EXPORT
 Bool gf_sg_has_scripting()
 {
 #ifdef GPAC_HAS_SPIDERMONKEY

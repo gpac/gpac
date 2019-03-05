@@ -2890,6 +2890,7 @@ static const struct predef_col {
 };
 
 
+GF_EXPORT
 GF_Color gf_color_parse(const char *name)
 {
 	u32 i, count;
@@ -2915,6 +2916,7 @@ GF_Color gf_color_parse(const char *name)
 
 }
 
+GF_EXPORT
 const char *gf_color_get_name(GF_Color col)
 {
 	u32 i, count;

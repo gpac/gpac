@@ -1621,8 +1621,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decode_au) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decode_command_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_get_aq_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_get_node_type) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_proto_field_set_aq_info) )
 #ifndef GPAC_DISABLE_BIFS_ENC
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_del) )
