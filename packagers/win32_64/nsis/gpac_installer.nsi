@@ -237,9 +237,7 @@ lbl_winnt:
 
 lbl_add:
 
-
 lbl_xp:
-   File "${GPAC_BIN}\gm_gdip_raster.dll"
 
 lbl_done:
 FunctionEnd
