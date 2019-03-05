@@ -211,15 +211,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[FreeType] Rescaning %d font directories\n", gf_list_count(ftpriv->font_dirs) ));
 
-	count = gf_opts_get_key_count("FontCache");
-	for (i=0; i<count; i++) {
-		const char *key = gf_opts_get_key_name("FontCache", i);
-		/*any other persistent options should go here*/
-
-		gf_opts_set_key("FontCache", key, NULL);
-		count--;
-		i--;
-	}
+	gf_opts_del_section("FontCache");
 	gf_opts_set_key("core", "rescan-fonts", "no");
 
 	if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
