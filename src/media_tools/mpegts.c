@@ -1267,6 +1267,7 @@ static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, Bool simple_check)
 	return i;
 }
 
+GF_EXPORT
 Bool gf_m2ts_crc32_check(char *data, u32 len)
 {
 	u32 crc = gf_crc_32(data, len);
@@ -3514,6 +3515,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 	return e;
 }
 
+GF_EXPORT
 GF_ESD *gf_m2ts_get_esd(GF_M2TS_ES *es)
 {
 	GF_ESD *esd;
@@ -4661,7 +4663,7 @@ static void rewrite_pts_dts(unsigned char *ptr, u64 TS)
 	else _TS = _TS + ts_shift; \
 	while (_TS > pcr_mod) _TS -= pcr_mod; \
 
-
+GF_EXPORT
 GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes)
 {
 	u32 done = 0;

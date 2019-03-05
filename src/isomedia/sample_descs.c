@@ -348,6 +348,7 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_isom_3gp_config_update(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfig *param, u32 DescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -464,6 +465,8 @@ GF_Err gf_isom_get_dims_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_EXPORT
 GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -512,7 +515,7 @@ GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSD
 	return e;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 DescriptionIndex)
 {
 	GF_TrackBox *trak;

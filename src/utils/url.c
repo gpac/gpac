@@ -86,13 +86,14 @@ static u32 URL_GetProtocolType(const char *pathName)
 }
 
 /*gets protocol type*/
+GF_EXPORT
 Bool gf_url_is_local(const char *pathName)
 {
 	u32 mode = URL_GetProtocolType(pathName);
 	return (mode!=GF_URL_TYPE_INVALID && mode!=GF_URL_TYPE_ANY_URI) ? GF_TRUE : GF_FALSE;
 }
 
-
+GF_EXPORT
 char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 {
 	char* sep;

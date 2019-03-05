@@ -2829,7 +2829,6 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 }
 
 #ifndef GPAC_DISABLE_HEVC
-GF_EXPORT
 u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile_width, u32 *tile_height)
 {
 	HEVCSliceInfo *si = &hevc->s_info;

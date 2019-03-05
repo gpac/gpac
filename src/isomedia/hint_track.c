@@ -83,7 +83,7 @@ GF_Err AdjustHintInfo(GF_HintSampleEntryBox *entry, u32 HintSampleNumber)
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType)
 {
 	GF_Err e;
@@ -167,6 +167,7 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType
 }
 
 //to use with internally supported protocols
+GF_EXPORT
 GF_Err gf_isom_new_hint_description(GF_ISOFile *the_file, u32 trackNumber, s32 HintTrackVersion, s32 LastCompatibleVersion, u8 Rely, u32 *HintDescriptionIndex)
 {
 	GF_Err e;
@@ -221,6 +222,7 @@ GF_Err gf_isom_new_hint_description(GF_ISOFile *the_file, u32 trackNumber, s32 H
 *******************************************************************/
 
 //sets the RTP TimeScale
+GF_EXPORT
 GF_Err gf_isom_rtp_set_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 HintDescriptionIndex, u32 TimeScale)
 {
 	GF_TrackBox *trak;
@@ -250,6 +252,7 @@ GF_Err gf_isom_rtp_set_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 Hint
 
 //sets the RTP TimeOffset that the server will add to the packets
 //if not set, the server adds a random offset
+GF_EXPORT
 GF_Err gf_isom_rtp_set_time_offset(GF_ISOFile *the_file, u32 trackNumber, u32 HintDescriptionIndex, u32 TimeOffset)
 {
 	GF_TrackBox *trak;
@@ -280,6 +283,7 @@ GF_Err gf_isom_rtp_set_time_offset(GF_ISOFile *the_file, u32 trackNumber, u32 Hi
 
 //sets the RTP SequenceNumber Offset that the server will add to the packets
 //if not set, the server adds a random offset
+GF_EXPORT
 GF_Err gf_isom_rtp_set_time_sequence_offset(GF_ISOFile *the_file, u32 trackNumber, u32 HintDescriptionIndex, u32 SequenceNumberOffset)
 {
 	GF_TrackBox *trak;
@@ -309,6 +313,7 @@ GF_Err gf_isom_rtp_set_time_sequence_offset(GF_ISOFile *the_file, u32 trackNumbe
 
 //Starts a new sample for the hint track. A sample is just a collection of packets
 //the transmissionTime is indicated in the media timeScale of the hint track
+GF_EXPORT
 GF_Err gf_isom_begin_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 HintDescriptionIndex, u32 TransmissionTime)
 {
 	GF_TrackBox *trak;
@@ -349,6 +354,7 @@ GF_Err gf_isom_begin_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Hint
 //stores the hint sample in the file
 //set IsRandomAccessPoint if you want to indicate that this is a random access point
 //in the stream
+GF_EXPORT
 GF_Err gf_isom_end_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u8 IsRandomAccessPoint)
 {
 	GF_TrackBox *trak;
@@ -397,6 +403,7 @@ GF_Err gf_isom_end_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u8 IsRando
 
 
 //adds a blank chunk of data in the sample that is skipped while streaming
+GF_EXPORT
 GF_Err gf_isom_hint_blank_data(GF_ISOFile *the_file, u32 trackNumber, u8 AtBegin)
 {
 	GF_TrackBox *trak;
@@ -423,6 +430,7 @@ GF_Err gf_isom_hint_blank_data(GF_ISOFile *the_file, u32 trackNumber, u8 AtBegin
 
 //adds a chunk of data (max 14 bytes) in the packet that is directly copied
 //while streaming
+GF_EXPORT
 GF_Err gf_isom_hint_direct_data(GF_ISOFile *the_file, u32 trackNumber, char *data, u32 dataLength, u8 AtBegin)
 {
 	GF_TrackBox *trak;
@@ -450,6 +458,7 @@ GF_Err gf_isom_hint_direct_data(GF_ISOFile *the_file, u32 trackNumber, char *dat
 	return gf_isom_hint_pck_add_dte(pck, (GF_GenericDTE *)dte, AtBegin);
 }
 
+GF_EXPORT
 GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 SourceTrackID, u32 SampleNumber, u16 DataLength, u32 offsetInSample, char *extra_data, u8 AtBegin)
 {
 	GF_TrackBox *trak;
@@ -519,6 +528,7 @@ GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 Sourc
 	return gf_isom_hint_pck_add_dte(pck, (GF_GenericDTE *)dte, AtBegin);
 }
 
+GF_EXPORT
 GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumber, u32 SourceTrackID, u32 StreamDescriptionIndex, u16 DataLength, u32 offsetInDescription, u8 AtBegin)
 {
 	GF_TrackBox *trak;
@@ -558,7 +568,7 @@ GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumbe
 	return gf_isom_hint_pck_add_dte(pck, (GF_GenericDTE *)dte, AtBegin);
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_rtp_packet_set_flags(GF_ISOFile *the_file, u32 trackNumber,
                                     u8 PackingBit,
                                     u8 eXtensionBit,
@@ -591,6 +601,7 @@ GF_Err gf_isom_rtp_packet_set_flags(GF_ISOFile *the_file, u32 trackNumber,
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_rtp_packet_begin(GF_ISOFile *the_file, u32 trackNumber,
                                 s32 relativeTime,
                                 u8 PackingBit,
@@ -631,6 +642,7 @@ GF_Err gf_isom_rtp_packet_begin(GF_ISOFile *the_file, u32 trackNumber,
 //set the time offset of this packet. This enables packets to be placed in the hint track
 //in decoding order, but have their presentation time-stamp in the transmitted
 //packet be in a different order. Typically used for MPEG video with B-frames
+GF_EXPORT
 GF_Err gf_isom_rtp_packet_set_offset(GF_ISOFile *the_file, u32 trackNumber, s32 timeOffset)
 {
 	GF_RTPOBox *rtpo;
@@ -761,6 +773,7 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const c
 }
 
 //remove all SDP info at the track level
+GF_EXPORT
 GF_Err gf_isom_sdp_clean_track(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;

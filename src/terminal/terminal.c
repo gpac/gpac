@@ -88,6 +88,7 @@ void gf_term_message_ex(GF_Terminal *term, const char *service, const char *mess
 	}
 }
 
+GF_EXPORT
 void gf_term_message(GF_Terminal *term, const char *service, const char *message, GF_Err error)
 {
 	gf_term_message_ex(term, service, message, error, 0);
@@ -1378,6 +1379,7 @@ void gf_term_close_service(GF_Terminal *term, GF_ClientService *ns)
 	gf_term_lock_media_queue(term, 0);
 }
 
+GF_EXPORT
 void gf_term_lock_compositor(GF_Terminal *term, Bool LockIt)
 {
 	gf_sc_lock(term->compositor, LockIt);

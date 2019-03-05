@@ -233,6 +233,7 @@ const char * gf_cache_get_etag_on_disk ( const DownloadedCacheEntry entry )
 	return entry ? entry->serverETag : NULL;
 }
 
+GF_EXPORT
 const char * gf_cache_get_mime_type ( const DownloadedCacheEntry entry )
 {
 	return entry ? entry->mimeType : NULL;
@@ -253,6 +254,7 @@ Bool gf_cache_are_headers_processed(const DownloadedCacheEntry entry)
 }
 
 
+GF_EXPORT
 GF_Err gf_cache_set_etag_on_server(const DownloadedCacheEntry entry, const char * eTag ) {
 	if (!entry)
 		return GF_BAD_PARAM;
@@ -271,6 +273,7 @@ GF_Err gf_cache_set_etag_on_disk(const DownloadedCacheEntry entry, const char * 
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_cache_set_mime_type(const DownloadedCacheEntry entry, const char * mime_type ) {
 	if (!entry)
 		return GF_BAD_PARAM;
@@ -296,6 +299,7 @@ u64 gf_cache_get_end_range( const DownloadedCacheEntry entry )
 	return entry ? entry->range_end : 0;
 }
 
+GF_EXPORT
 const char * gf_cache_get_url ( const DownloadedCacheEntry entry )
 {
 	return entry ? entry->url : NULL;
@@ -316,6 +320,7 @@ const char * gf_cache_get_last_modified_on_disk ( const DownloadedCacheEntry ent
 	return entry ? entry->diskLastModified : NULL;
 }
 
+GF_EXPORT
 GF_Err gf_cache_set_last_modified_on_server ( const DownloadedCacheEntry entry, const char * newLastModified )
 {
 	if (!entry)
@@ -368,6 +373,7 @@ u32 gf_cache_get_cache_filesize ( const DownloadedCacheEntry entry )
 	return entry ? entry->cacheSize : -1;
 }
 
+GF_EXPORT
 const char * gf_cache_get_cache_filename( const DownloadedCacheEntry entry )
 {
 	return entry ? entry->cache_filename : NULL;
@@ -400,6 +406,7 @@ GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * htt
 static const char * default_cache_file_suffix = ".dat";
 static const char * cache_file_info_suffix = ".txt";
 
+GF_EXPORT
 DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char * cache_directory, const char * url , u64 start_range, u64 end_range, Bool mem_storage)
 {
 	char tmp[_CACHE_TMP_SIZE];
@@ -566,6 +573,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	return entry;
 }
 
+GF_EXPORT
 GF_Err gf_cache_set_content_length( const DownloadedCacheEntry entry, u32 length )
 {
 	CHECK_ENTRY;
@@ -637,6 +645,7 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess )
 {
 	CHECK_ENTRY;

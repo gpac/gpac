@@ -28,6 +28,7 @@
 #ifndef GPAC_DISABLE_SVG
 #include <gpac/nodes_svg.h>
 
+GF_EXPORT
 Bool gf_svg_is_animation_tag(u32 tag)
 {
 	return (tag == TAG_SVG_set ||

@@ -83,6 +83,7 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -139,6 +140,7 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 
 /*blindly adds text - note we don't rely on terminaison characters to handle utf8 and utf16 data
 in the same way. It is the user responsability to signal UTF16*/
+GF_EXPORT
 GF_Err gf_isom_text_add_text(GF_TextSample *samp, char *text_data, u32 text_len)
 {
 	if (!samp) return GF_BAD_PARAM;
@@ -160,6 +162,7 @@ GF_Err gf_isom_text_set_utf16_marker(GF_TextSample *samp)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_text_add_style(GF_TextSample *samp, GF_StyleRecord *rec)
 {
 	if (!samp || !rec) return GF_BAD_PARAM;
@@ -175,6 +178,7 @@ GF_Err gf_isom_text_add_style(GF_TextSample *samp, GF_StyleRecord *rec)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_text_add_highlight(GF_TextSample *samp, u16 start_char, u16 end_char)
 {
 	GF_TextHighlightBox *a;
@@ -188,6 +192,7 @@ GF_Err gf_isom_text_add_highlight(GF_TextSample *samp, u16 start_char, u16 end_c
 	return gf_list_add(samp->others, a);
 }
 
+GF_EXPORT
 GF_Err gf_isom_text_set_highlight_color(GF_TextSample *samp, u8 r, u8 g, u8 b, u8 a)
 {
 	if (!samp) return GF_BAD_PARAM;
@@ -219,6 +224,7 @@ GF_Err gf_isom_text_set_highlight_color_argb(GF_TextSample *samp, u32 argb)
 }
 
 /*3GPP spec is quite obscur here*/
+GF_EXPORT
 GF_Err gf_isom_text_add_karaoke(GF_TextSample *samp, u32 start_time)
 {
 	if (!samp) return GF_BAD_PARAM;
@@ -228,6 +234,7 @@ GF_Err gf_isom_text_add_karaoke(GF_TextSample *samp, u32 start_time)
 	return gf_list_add(samp->others, samp->cur_karaoke);
 }
 
+GF_EXPORT
 GF_Err gf_isom_text_set_karaoke_segment(GF_TextSample *samp, u32 end_time, u16 start_char, u16 end_char)
 {
 	if (!samp || !samp->cur_karaoke) return GF_BAD_PARAM;
@@ -240,7 +247,7 @@ GF_Err gf_isom_text_set_karaoke_segment(GF_TextSample *samp, u32 end_time, u16 s
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_text_set_scroll_delay(GF_TextSample *samp, u32 scroll_delay)
 {
 	if (!samp) return GF_BAD_PARAM;
@@ -252,6 +259,7 @@ GF_Err gf_isom_text_set_scroll_delay(GF_TextSample *samp, u32 scroll_delay)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_text_add_hyperlink(GF_TextSample *samp, char *URL, char *altString, u16 start_char, u16 end_char)
 {
 	GF_TextHyperTextBox*a;
@@ -265,6 +273,7 @@ GF_Err gf_isom_text_add_hyperlink(GF_TextSample *samp, char *URL, char *altStrin
 	return gf_list_add(samp->others, a);
 }
 
+GF_EXPORT
 GF_Err gf_isom_text_set_box(GF_TextSample *samp, s16 top, s16 left, s16 bottom, s16 right)
 {
 	if (!samp) return GF_BAD_PARAM;
@@ -279,6 +288,7 @@ GF_Err gf_isom_text_set_box(GF_TextSample *samp, s16 top, s16 left, s16 bottom, 
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_text_add_blink(GF_TextSample *samp, u16 start_char, u16 end_char)
 {
 	GF_TextBlinkBox *a;
@@ -290,6 +300,7 @@ GF_Err gf_isom_text_add_blink(GF_TextSample *samp, u16 start_char, u16 end_char)
 	return gf_list_add(samp->others, a);
 }
 
+GF_EXPORT
 GF_Err gf_isom_text_set_wrap(GF_TextSample *samp, u8 wrap_flags)
 {
 	if (!samp) return GF_BAD_PARAM;
@@ -310,6 +321,7 @@ static GFINLINE GF_Err gpp_write_modifier(GF_BitStream *bs, GF_Box *a)
 	return e;
 }
 
+GF_EXPORT
 GF_ISOSample *gf_isom_text_to_sample(GF_TextSample *samp)
 {
 	GF_Err e;
@@ -405,6 +417,7 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_EXPORT
 GF_TextSample *gf_isom_new_text_sample()
 {
 	GF_TextSample *res;
@@ -414,6 +427,7 @@ GF_TextSample *gf_isom_new_text_sample()
 	return res;
 }
 
+GF_EXPORT
 GF_Err gf_isom_text_reset_styles(GF_TextSample *samp)
 {
 	if (!samp) return GF_BAD_PARAM;
@@ -436,6 +450,7 @@ GF_Err gf_isom_text_reset_styles(GF_TextSample *samp)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_text_reset(GF_TextSample *samp)
 {
 	if (!samp) return GF_BAD_PARAM;

@@ -166,7 +166,7 @@ static GF_Scene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlin
 	return mo->odm->subscene;
 }
 
-
+GF_EXPORT
 GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, Double clipBegin, Double clipEnd)
 {
 	GF_Scene *new_resource;
@@ -205,6 +205,7 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, 
 	return new_resource->root_od->mo;
 }
 
+GF_EXPORT
 void gf_mo_unload_xlink_resource(GF_Node *node, GF_MediaObject *mo)
 {
 	if (!mo) return;

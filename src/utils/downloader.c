@@ -3524,6 +3524,7 @@ GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 en
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm, const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url)
 {
 	GF_Err e;
@@ -3642,6 +3643,7 @@ u32 gf_dm_sess_get_status(GF_DownloadSession *dnload)
 	return dnload ? dnload->status : GF_NETIO_STATE_ERROR;
 }
 
+GF_EXPORT
 GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
 {
 	if (!sess) return GF_BAD_PARAM;
@@ -3659,6 +3661,7 @@ GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
 	return GF_OK;
 }
 
+GF_EXPORT
 const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess, u64 startOffset, u64 endOffset ) {
 	u32 i, count;
 	if (!sess || !sess->dm || endOffset < startOffset)
