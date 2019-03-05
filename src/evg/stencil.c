@@ -409,11 +409,12 @@ void evg_gradient_precompute(EVG_BaseGradient *grad, GF_EVGSurface *surf)
 	u32 i, nb_col;
 
 	has_changed = grad->updated;
+
 	do_yuv = GF_FALSE;
+
 	if (surf->is_yuv) {
 		if (grad->yuv_prof != surf->yuv_prof) {
 			grad->yuv_prof = surf->yuv_prof;
-			do_yuv = GF_TRUE;
 			has_changed = GF_TRUE;
 		}
 	} else {
@@ -426,6 +427,8 @@ void evg_gradient_precompute(EVG_BaseGradient *grad, GF_EVGSurface *surf)
 		return;
 	}
 	grad->updated = 0;
+
+	do_yuv = surf->is_yuv;
 
 	do_cmat = (grad->cmat.identity) ? GF_FALSE : GF_TRUE;
 	has_a = (grad->alpha==0xFF) ? GF_FALSE : GF_TRUE;
