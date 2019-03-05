@@ -609,6 +609,7 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_3D
 static void gf_sc_check_video_driver(GF_Compositor *compositor)
 {
+	if (compositor->player) return;
 	if (compositor->video_out == &null_vout) return;
 
 	if (compositor->visual->type_3d) {
@@ -2581,8 +2582,12 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock() - texture_time;
 #endif
+	if (compositor->player) {
+		if (frame_draw_type_bck)
+			compositor->frame_draw_type = frame_draw_type_bck;
+	}
 	//in non player mode, don't redraw frame if due to end of streams on textures
-	if (!compositor->player && !frame_draw_type_bck && compositor->frame_draw_type && all_tx_done)
+	else if (!frame_draw_type_bck && compositor->frame_draw_type && all_tx_done)
 		compositor->frame_draw_type = 0;
 
 
