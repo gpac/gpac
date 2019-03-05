@@ -1148,11 +1148,14 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 		if (sess->sock) gf_sk_del(sess->sock);
 		sess->sock = NULL;
 		sess->status = GF_NETIO_SETUP;
+#ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
 			SSL_shutdown(sess->ssl);
 			SSL_free(sess->ssl);
 			sess->ssl = NULL;
 		}
+#endif
+
 	}
 	sess->total_size=0;
 	sess->bytes_done=0;
