@@ -48,15 +48,28 @@ mul255_zero(s32 a, s32 b)
 	return ((a + 1) * b) >> 8;
 }
 
+//RGB <-> YUV full range conversion, using integer (1024 factor)
+#define YUV_USE_INT
+
 void evg_rgb_to_yuv(GF_EVGSurface *surf, GF_Color col, u8*y, u8*cb, u8*cr)
 {
 	u32 r = GF_COL_R(col);
 	u32 g = GF_COL_G(col);
 	u32 b = GF_COL_B(col);
 
+#ifndef YUV_USE_INT
 	*y = (u8) (0.299*r + 0.587 * g + 0.114 * b);
 	*cb = (u8) (-0.169*(s32)r - 0.331*(s32)g + 0.499*b + 128);
 	*cr = (u8) (0.499 * r - 0.418*(s32)g - 0.0813*(s32)b + 128);
+#else
+	u32 _v = 306*r + 601 * g + 117 * b;
+	*y = (u8) (_v >> 10);
+	_v = (-173*(s32)r - 339*(s32)g + 511*b + 131072);
+	*cb = (u8) (_v >> 10);
+	_v = (511 * r - 428*(s32)g - 83*(s32)b + 131072);
+	*cr = (u8) (_v >> 10);
+#endif
+
 }
 GF_Color evg_argb_to_ayuv(GF_EVGSurface *surf, GF_Color col)
 {
@@ -66,9 +79,18 @@ GF_Color evg_argb_to_ayuv(GF_EVGSurface *surf, GF_Color col)
 	u32 g = GF_COL_G(col);
 	u32 b = GF_COL_B(col);
 
+#ifndef YUV_USE_INT
 	y = (u8) (0.299*r + 0.587 * g + 0.114 * b);
 	cb = (u8) (-0.169*(s32)r - 0.331*(s32)g + 0.499*b + 128);
 	cr = (u8) (0.499 * r - 0.418*(s32)g - 0.0813*(s32)b + 128);
+#else
+	u32 _v = 306*r + 601 * g + 117 * b;
+	y = (u8) (_v >> 10);
+	_v = (-173*(s32)r - 339*(s32)g + 511*b + 131072);
+	cb = (u8) (_v >> 10);
+	_v = (511 * r - 428*(s32)g - 83*(s32)b + 131072);
+	cr = (u8) (_v >> 10);
+#endif
 	return GF_COL_ARGB(a, y, cb, cr);
 }
 
@@ -82,13 +104,30 @@ GF_Color evg_ayuv_to_argb(GF_EVGSurface *surf, GF_Color col)
 	cb = GF_COL_G(col);
 	cr = GF_COL_B(col);
 
+#ifndef YUV_USE_INT
 	r = (s32) (y + 1.402 * (cr - 128));
 	g = (s32) (y - 0.344136 * (cb - 128) - 0.714136*(cr-128) );
 	b = (s32) (y + 1.772 * (cb - 128) );
+
 #define TRUNC_8BIT(_a) if (_a<0) {_a = 0;} else if (_a>255) {_a=255;}
 	TRUNC_8BIT(r)
 	TRUNC_8BIT(g)
 	TRUNC_8BIT(b)
+
+#else
+	y *= 1024;
+	r = (s32) (y + 1436 * (cr - 128));
+	g = (s32) (y - 352 * (cb - 128) - 731*(cr-128) );
+	b = (s32) (y + 1814 * (cb - 128) );
+
+#define TRUNC_8BIT(_a) if (_a<0) {_a = 0;} else { u32 __a = (u32) _a; __a>>=10; if (__a>255) {__a=255;} _a = __a; }
+	TRUNC_8BIT(r)
+	TRUNC_8BIT(g)
+	TRUNC_8BIT(b)
+
+#endif
+
+
 	return GF_COL_ARGB(a, r, g, b);
 }
 
@@ -96,14 +135,25 @@ u64 evg_argb_to_ayuv_wide(GF_EVGSurface *surf, u64 col)
 {
 	u16 a, y, cb, cr;
 	u32 r, g, b;
+
 	a = (col>>48)&0xFFFF;
 	r = (col>>32)&0xFFFF;
 	g = (col>>16)&0xFFFF;
 	b = (col)&0xFFFF;
 
+#ifndef YUV_USE_INT
 	y = (u16) (0.299*r + 0.587 * g + 0.114 * b);
 	cb = (u16) (-0.169*(s32)r - 0.331*(s32)g + 0.499*b + 32768);
 	cr = (u16) (0.499 * r - 0.418*(s32)g - 0.0813*(s32)b + 32768);
+#else
+	u32 _v = 306*r + 601 * g + 117 * b;
+	y = (u16) (_v >> 10);
+	_v = (-173*(s32)r - 339*(s32)g + 511*b + 33554432);
+	cb = (u16) (_v >> 10);
+	_v = (511 * r - 428*(s32)g - 83*(s32)b + 33554432);
+	cr = (u16) (_v >> 10);
+#endif
+
 
 	return evg_make_col_wide(a, y, cb, cr);
 }
@@ -117,6 +167,7 @@ u64 evg_ayuv_to_argb_wide(GF_EVGSurface *surf, u64 col)
 	cb = (col>>16)&0xFFFF;
 	cr = (col)&0xFFFF;
 
+#ifndef YUV_USE_INT
 	r = (s32) (y + 1.402 * (cr - 32768));
 	g = (s32) (y - 0.344136 * (cb - 32768) - 0.714136*(cr-32768) );
 	b = (s32) (y + 1.772 * (cb - 32768) );
@@ -124,6 +175,19 @@ u64 evg_ayuv_to_argb_wide(GF_EVGSurface *surf, u64 col)
 	TRUNC_16BIT(r)
 	TRUNC_16BIT(g)
 	TRUNC_16BIT(b)
+
+#else
+	y *= 1024;
+	r = (s32) (y + 1436 * (cr - 32768));
+	g = (s32) (y - 352 * (cb - 32768) - 731*(cr-32768) );
+	b = (s32) (y + 1814 * (cb - 32768) );
+
+#define TRUNC_16BIT(_a) if (_a<0) {_a = 0;} else { u32 __a = (u32) _a; __a>>=10; if (__a>32768) {__a=32768;} _a = __a; }
+	TRUNC_16BIT(r)
+	TRUNC_16BIT(g)
+	TRUNC_16BIT(b)
+
+#endif
 
 	return evg_make_col_wide(a, r, g, b);
 }
