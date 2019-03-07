@@ -245,7 +245,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
-	Bool is_nalu_video=GF_FALSE;
+	Bool is_nalu_video=GF_FALSE, has_seig;
 	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode;
 	s32 trans_x, trans_y;
 	s16 layer;
@@ -445,6 +445,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	if (gf_isom_is_media_encrypted(import->orig, track_in, 1)) {
 		gf_isom_get_original_format_type(import->orig, track_in, 1, &mstype);
 	}
+	has_seig = GF_FALSE;
+	if (is_cenc && gf_isom_has_cenc_sample_group(import->orig, track_in)) {
+		has_seig = GF_TRUE;
+	}
 
 	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
@@ -566,8 +570,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			}
 			if (e) goto exit;
 
-			e = gf_isom_set_sample_cenc_group(import->dest, track, i+1, Is_Encrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
-			if (e) goto exit;
+			if (has_seig) {
+				e = gf_isom_set_sample_cenc_group(import->dest, track, i+1, Is_Encrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
+				if (e) goto exit;
+			}
 		}
 
 		gf_set_progress("Importing ISO File", i+1, num_samples);
