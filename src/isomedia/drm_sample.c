@@ -1239,6 +1239,9 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 		default:
 			continue;
 		}
+		if (sampleNumber>saiz->sample_count) {
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		for (j = 0; j < sampleNumber-1; j++)
 			prev_sai_size += saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
 		size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[sampleNumber-1];

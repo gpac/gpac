@@ -2348,8 +2348,6 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		gf_set_progress("Importing ISO File", i+1, num_samples);
 
 
-		if (duration && (sampDTS > duration) ) break;
-		if (import->flags & GF_IMPORT_DO_ABORT) break;
 		if (e)
 			goto exit;
 		if (is_cenc) {
@@ -2394,6 +2392,8 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			e = gf_isom_set_sample_cenc_group(import->dest, track, i+1, Is_Encrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
 			if (e) goto exit;
 		}
+		if (duration && (sampDTS > duration) ) break;
+		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
 
 	//adjust last sample duration
