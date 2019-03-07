@@ -2711,6 +2711,8 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 /*returns opaque data of sample group*/
 Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_description_index, u32 grouping_type, u32 *default_index, const char **data, u32 *size);
 
+Bool gf_isom_has_cenc_sample_group(GF_ISOFile *the_file, u32 trackNumber);
+
 /*returns tile info */
 Bool gf_isom_get_tile_info(GF_ISOFile *file, u32 trackNumber, u32 sample_description_index, u32 *default_sample_group_index, u32 *id, u32 *independent, Bool *full_frame, u32 *x, u32 *y, u32 *w, u32 *h);
 
