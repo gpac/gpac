@@ -2258,6 +2258,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	}
 
 	is_cenc = gf_isom_is_cenc_media(import->orig, track_in, 1);
+	if (gf_isom_is_media_encrypted(import->orig, track_in, 1)) {
+		gf_isom_get_original_format_type(import->orig, track_in, 1, &mstype);
+	}
 
 	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
