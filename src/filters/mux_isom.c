@@ -2183,7 +2183,7 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 		}
 		tkw->has_open_gop = GF_TRUE;
 	}
-	if (sap_type==4) {
+	if ((sap_type==4) || tkw->has_gdr) {
 		s16 roll = gf_filter_pck_get_roll_info(pck);
 		if (for_fragment) {
 			e = gf_isom_fragment_set_sample_roll_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==4) ? GF_TRUE : GF_FALSE, roll);
