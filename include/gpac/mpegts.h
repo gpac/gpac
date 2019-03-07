@@ -1517,9 +1517,6 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes);
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
-/*quick hack to get M2TS over IP or UDP socket*/
-GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u32 buf_size, GF_Socket **out_socket);
-
 /*! @} */
 
 
