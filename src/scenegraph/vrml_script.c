@@ -190,7 +190,7 @@ void gf_sg_script_init(GF_Node *node)
 	priv->numDef += 2;
 }
 
-
+GF_EXPORT
 GF_ScriptField *gf_sg_script_field_new(GF_Node *node, u32 eventType, u32 fieldType, const char *name)
 {
 	GF_ScriptPriv *priv;
@@ -273,6 +273,7 @@ GF_Err gf_sg_script_prepare_clone(GF_Node *dest, GF_Node *orig)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sg_script_field_get_info(GF_ScriptField *field, GF_FieldInfo *info)
 {
 	if (!field || !info) return GF_BAD_PARAM;

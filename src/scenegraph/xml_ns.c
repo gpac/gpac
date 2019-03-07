@@ -619,6 +619,7 @@ static const struct xml_elt_def {
 	{ "image", TAG_XBL_image, GF_XMLNS_XBL },
 };
 
+GF_EXPORT
 u32 gf_xml_get_element_tag(const char *element_name, u32 ns)
 {
 	u32 i, count;
@@ -956,6 +957,7 @@ void gf_node_register_iri(GF_SceneGraph *sg, XMLRI *target)
 #endif
 }
 
+GF_EXPORT
 void gf_node_unregister_iri(GF_SceneGraph *sg, XMLRI *target)
 {
 #ifndef GPAC_DISABLE_SVG

@@ -442,6 +442,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	}
 
 	is_cenc = gf_isom_is_cenc_media(import->orig, track_in, 1);
+	if (gf_isom_is_media_encrypted(import->orig, track_in, 1)) {
+		gf_isom_get_original_format_type(import->orig, track_in, 1, &mstype);
+	}
 
 	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
@@ -521,10 +524,6 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 
 		gf_isom_copy_sample_info(import->dest, track, import->orig, track_in, i+1);
 
-		gf_set_progress("Importing ISO File", i+1, num_samples);
-
-		if (duration && (sampDTS > duration) ) break;
-
 		if (e)
 			goto exit;
 		if (is_cenc) {
@@ -570,6 +569,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			e = gf_isom_set_sample_cenc_group(import->dest, track, i+1, Is_Encrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
 			if (e) goto exit;
 		}
+
+		gf_set_progress("Importing ISO File", i+1, num_samples);
+		if (duration && (sampDTS > duration) ) break;
 	}
 
 	//adjust last sample duration

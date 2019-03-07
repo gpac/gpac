@@ -527,6 +527,7 @@ void *gf_node_get_name_address(GF_Node*node)
 	return NULL;
 }
 
+GF_EXPORT
 void gf_sg_set_private(GF_SceneGraph *sg, void *ptr)
 {
 	if (sg) sg->userpriv = ptr;
@@ -874,6 +875,7 @@ static void ReplaceIRINode(GF_Node *FromNode, GF_Node *old_node, GF_Node *newNod
 #endif
 
 /*get all parents of the node and replace, the instance of the node and finally destroy the node*/
+GF_EXPORT
 GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup)
 {
 #ifndef GPAC_DISABLE_SVG
@@ -1190,6 +1192,7 @@ u32 gf_sg_get_next_available_node_id(GF_SceneGraph *sg)
 	return ID+1;
 }
 
+GF_EXPORT
 u32 gf_sg_get_max_node_id(GF_SceneGraph *sg)
 {
 	NodeIDedItem *reg_node;
@@ -2324,6 +2327,7 @@ char *gf_node_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 
 
 /*this is not a NodeReplace, thus only the given container is updated - pos is 0-based*/
+GF_EXPORT
 GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 pos, GF_Node *newNode)
 {
 	GF_ChildNodeItem *child, *prev;

@@ -255,6 +255,7 @@ void gf_dom_listener_reset_defered(GF_SceneGraph *sg)
 	gf_mx_v(sg->dom_evt_mx);
 }
 
+GF_EXPORT
 void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer)
 {
 #ifdef GPAC_HAS_SPIDERMONKEY

@@ -11245,9 +11245,6 @@ GF_Err mhac_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-#endif /*GPAC_DISABLE_ISOM*/
-
-
 void jp2h_del(GF_Box *s)
 {
 	gf_free(s);
@@ -11351,7 +11348,6 @@ GF_Err ihdr_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-
 /* Dolby Vision */
 
 GF_Box *dvcC_New()
@@ -11393,7 +11389,7 @@ GF_Err dvcC_Read(GF_Box *s, GF_BitStream *bs)
 			}
 		}
 	}
-	
+
 	return GF_OK;
 }
 
@@ -11430,3 +11426,6 @@ GF_Err dvcC_Size(GF_Box *s)
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+#endif /*GPAC_DISABLE_ISOM*/

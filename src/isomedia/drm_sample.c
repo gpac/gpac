@@ -317,6 +317,7 @@ GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+GF_EXPORT
 GF_Err gf_isom_remove_track_protection(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -486,6 +487,7 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type,
                                        u32 scheme_version, char *scheme_uri, char *kms_URI,
                                        Bool selective_encryption, u32 KI_length, u32 IV_length)
@@ -1302,6 +1304,9 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 			break;
 		default:
 			continue;
+		}
+		if (sampleNumber>saiz->sample_count) {
+			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		for (j = 0; j < sampleNumber-1; j++)
 			prev_sai_size += saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];

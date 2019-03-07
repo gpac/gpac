@@ -1969,11 +1969,14 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				}
 				else if (tci->constant_IV_size == 16) {
 					memcpy(IV, tci->constant_IV, sizeof(char)*16);
-				} else
-					return GF_NOT_SUPPORTED;
-			}
-			else
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] No IV set and invalid constant IV size %d crypt info file\n", tci->constant_IV_size));
+					return GF_BAD_PARAM;
+				}
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Invalid IV size %d in crypt info file\n", tci->IV_size));
 				return GF_NOT_SUPPORTED;
+			}
 
 			e = gf_crypt_init(mc, tci->key, IV);
 			if (e) {
@@ -2203,8 +2206,10 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 		//sub-sample encryption
 		if (sai && sai->subsample_count) {
+			u32 nb_done = 0;
 			subsample_count = 0;
 			while (gf_bs_available(cyphertext_bs)) {
+				GF_CENCSubSampleEntry *sai_e;
 				assert(subsample_count < sai->subsample_count);
 				if (!sai->IV_size) {
 					//cbcs scheme mode, use constant IV
@@ -2213,25 +2218,32 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 						memset(IV+8, 0, sizeof(char)*8);
 					gf_crypt_set_IV(mc, IV, GF_AES_128_KEYSIZE);
 				}
-
-				/*read clear data and write it to pleintext bitstream*/
-				if (max_size < sai->subsamples[subsample_count].bytes_clear_data) {
-					buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_clear_data);
-					max_size = sai->subsamples[subsample_count].bytes_clear_data;
+				sai_e = &sai->subsamples[subsample_count];
+				if (nb_done + sai_e->bytes_clear_data + sai_e->bytes_encrypted_data > samp->dataLength) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Error in sample %d subsample info: %d bytes in samples but more bytes signaled in subsample data (%d bytes at subsample %d)\n", i+1, samp->dataLength, nb_done + sai_e->bytes_clear_data + sai_e->bytes_encrypted_data, subsample_count+1));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
 				}
-				gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
-				gf_bs_write_data(plaintext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
+				nb_done += sai_e->bytes_clear_data + sai_e->bytes_encrypted_data;
+
+				/*read clear data and write it to plaintext bitstream*/
+				if (max_size < sai_e->bytes_clear_data) {
+					buffer = (char*)gf_realloc(buffer, sizeof(char)*sai_e->bytes_clear_data);
+					max_size = sai_e->bytes_clear_data;
+				}
+				gf_bs_read_data(cyphertext_bs, buffer, sai_e->bytes_clear_data);
+				gf_bs_write_data(plaintext_bs, buffer, sai_e->bytes_clear_data);
 
 				/*now read encrypted data, decrypted it and write to pleintext bitstream*/
-				if (max_size < sai->subsamples[subsample_count].bytes_encrypted_data) {
-					buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_encrypted_data);
-					max_size = sai->subsamples[subsample_count].bytes_encrypted_data;
+				if (max_size < sai_e->bytes_encrypted_data) {
+					buffer = (char*)gf_realloc(buffer, sizeof(char)*sai_e->bytes_encrypted_data);
+					max_size = sai_e->bytes_encrypted_data;
 				}
-				gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+				gf_bs_read_data(cyphertext_bs, buffer, sai_e->bytes_encrypted_data);
 				//pattern decryption
 				if (crypt_byte_block && skip_byte_block) {
 					u32 pos = 0;
-					u32 res = sai->subsamples[subsample_count].bytes_encrypted_data;
+					u32 res = sai_e->bytes_encrypted_data;
 
 					if (!is_ctr_mode) {
 						u32 clear_trailing = res % 16;
@@ -2248,9 +2260,9 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 						}
 					}
 				} else {
-					gf_crypt_decrypt(mc, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+					gf_crypt_decrypt(mc, buffer, sai_e->bytes_encrypted_data);
 				}
-				gf_bs_write_data(plaintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+				gf_bs_write_data(plaintext_bs, buffer, sai_e->bytes_encrypted_data);
 
 				subsample_count++;
 			}

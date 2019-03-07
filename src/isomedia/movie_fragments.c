@@ -2292,7 +2292,7 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, u32 TrackID, u32 IV_siz
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_fragment_append_data(GF_ISOFile *movie, u32 TrackID, char *data, u32 data_size, u8 PaddingBits)
 {
 	u32 count;

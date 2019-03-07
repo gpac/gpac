@@ -220,7 +220,7 @@ static GF_Err gf_net_mobileip_ctrl(Bool start)
 	return GF_NOT_SUPPORTED;
 }
 
-
+GF_EXPORT
 u32 gf_net_has_ipv6()
 {
 #ifdef GPAC_HAS_IPV6
@@ -320,6 +320,7 @@ GF_Err gf_sk_get_host_name(char *buffer)
 	return (ret == SOCKET_ERROR) ? GF_IP_ADDRESS_NOT_FOUND : GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer)
 {
 #ifdef GPAC_HAS_IPV6
@@ -502,12 +503,14 @@ void gf_sk_del(GF_Socket *sock)
 	gf_free(sock);
 }
 
+GF_EXPORT
 void gf_sk_reset(GF_Socket *sock)
 {
 	u32 clear;
 	if (sock) setsockopt(sock->socket, SOL_SOCKET, SO_ERROR, (char *) &clear, sizeof(u32) );
 }
 
+GF_EXPORT
 s32 gf_sk_get_handle(GF_Socket *sock)
 {
 	return (s32) sock->socket;
@@ -520,6 +523,7 @@ void gf_sk_set_usec_wait(GF_Socket *sock, u32 usec_wait)
 }
 
 //connects a socket to a remote peer on a given port
+GF_EXPORT
 GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, const char *local_ip)
 {
 	s32 ret;
@@ -1420,6 +1424,7 @@ GF_Err gf_sk_receive_no_select(GF_Socket *sock, char *buffer, u32 length, u32 *B
 	return gf_sk_receive_internal(sock, buffer, length, BytesRead, GF_FALSE);
 }
 
+GF_EXPORT
 GF_Err gf_sk_listen(GF_Socket *sock, u32 MaxConnection)
 {
 	s32 i;
@@ -1431,6 +1436,7 @@ GF_Err gf_sk_listen(GF_Socket *sock, u32 MaxConnection)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 {
 	u32 client_address_size;
@@ -1503,6 +1509,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sk_get_local_info(GF_Socket *sock, u16 *Port, u32 *Familly)
 {
 #ifdef GPAC_HAS_IPV6
@@ -1538,6 +1545,7 @@ GF_Err gf_sk_get_local_info(GF_Socket *sock, u16 *Port, u32 *Familly)
 }
 
 //we have to do this for the server sockets as we use only one thread
+GF_EXPORT
 GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 {
 	u32 one;
@@ -1553,6 +1561,7 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 {
 #ifdef GPAC_HAS_IPV6
@@ -1576,6 +1585,7 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 
 
 //send length bytes of a buffer
+GF_EXPORT
 GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remoteHost, u16 remotePort)
 {
 	u32 count, remote_add_len;
@@ -1669,6 +1679,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 *BytesRead, u32 Second )
 {
 	s32 res;
@@ -1719,6 +1730,7 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 *BytesR
 
 
 //send length bytes of a buffer
+GF_EXPORT
 GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 Second )
 {
 	u32 count;

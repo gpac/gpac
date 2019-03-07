@@ -44,6 +44,7 @@ static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool r
 static void lsr_write_point_sequence(GF_LASeRCodec *lsr, GF_List **pts, const char *name);
 static void lsr_write_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const char *name);
 
+GF_EXPORT
 GF_LASeRCodec *gf_laser_encoder_new(GF_SceneGraph *graph)
 {
 	GF_LASeRCodec *tmp;
@@ -55,6 +56,7 @@ GF_LASeRCodec *gf_laser_encoder_new(GF_SceneGraph *graph)
 	return tmp;
 }
 
+GF_EXPORT
 void gf_laser_encoder_del(GF_LASeRCodec *codec)
 {
 	/*destroy all config*/
@@ -85,7 +87,7 @@ static LASeRStreamInfo *lsr_get_stream(GF_LASeRCodec *codec, u16 ESID)
 	return NULL;
 }
 
-
+GF_EXPORT
 GF_Err gf_laser_encoder_new_stream(GF_LASeRCodec *codec, u16 ESID, GF_LASERConfig *cfg)
 {
 	LASeRStreamInfo *pInfo;
@@ -104,6 +106,7 @@ GF_Err gf_laser_encoder_new_stream(GF_LASeRCodec *codec, u16 ESID, GF_LASERConfi
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_laser_encoder_get_config(GF_LASeRCodec *codec, u16 ESID, char **out_data, u32 *out_data_length)
 {
 	GF_BitStream *bs;
@@ -145,7 +148,7 @@ GF_Err gf_laser_encoder_get_config(GF_LASeRCodec *codec, u16 ESID, char **out_da
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err gf_laser_encode_au(GF_LASeRCodec *codec, u16 ESID, GF_List *command_list, Bool reset_context, char **out_data, u32 *out_data_length)
 {
 	GF_Err e;
@@ -173,6 +176,7 @@ GF_Err gf_laser_encode_au(GF_LASeRCodec *codec, u16 ESID, GF_List *command_list,
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_laser_encoder_get_rap(GF_LASeRCodec *codec, char **out_data, u32 *out_data_length)
 {
 	GF_Err e;
