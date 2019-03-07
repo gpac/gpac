@@ -5758,6 +5758,19 @@ GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track)
 		while ((ent = (GF_EdtsEntry*)gf_list_enum(elst->entryList, &i))) {
 			if (ent->segmentDuration > trackDuration)
 				ent->segmentDuration = trackDuration;
+			if (!ent->segmentDuration) {
+				u64 diff;
+				ent->segmentDuration = trackDuration;
+				if (ent->mediaTime>0) {
+					diff = ent->mediaTime;
+					diff *= trak->moov->mvhd->timeScale;
+					diff /= trak->Media->mediaHeader->timeScale;
+					if (diff < ent->segmentDuration)
+						ent->segmentDuration -= diff;
+					else
+						diff = 0;
+				}
+			}
 			if ((ent->mediaTime>=0) && ((u64) ent->mediaTime>=trak->Media->mediaHeader->duration)) {
 				ent->mediaTime = trak->Media->mediaHeader->duration;
 			}
