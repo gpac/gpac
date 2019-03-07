@@ -43,7 +43,7 @@ struct _gf_ft_mgr
 	Bool wait_font_load;
 };
 
-
+GF_EXPORT
 GF_FontManager *gf_font_manager_new(Bool wait_for_fonts)
 {
 	char *def_font = "SERIF";
@@ -164,7 +164,7 @@ GF_Err gf_font_manager_unregister_font(GF_FontManager *fm, GF_Font *font)
 }
 
 
-
+GF_EXPORT
 GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles, Bool check_only)
 {
 	u32 i;
@@ -369,7 +369,7 @@ static GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 	return glyph;
 }
 
-
+GF_EXPORT
 GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, Bool needs_rotate, const char *xml_lang, Bool fliped_text, u32 styles, GF_Node *user)
 {
 	GF_Err e;
@@ -480,6 +480,7 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 	gf_free(span);
 }
 
+GF_EXPORT
 void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 {
 	u32 i;

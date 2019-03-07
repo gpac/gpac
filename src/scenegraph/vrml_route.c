@@ -77,6 +77,7 @@ GF_Route* gf_sg_route_exists(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField
 	return NULL;
 }
 
+GF_EXPORT
 void gf_sg_route_del(GF_Route *r)
 {
 	GF_SceneGraph *sg;
@@ -105,7 +106,7 @@ void gf_sg_route_del(GF_Route *r)
 	gf_list_del_item(sg->routes_to_activate, r);
 }
 
-
+GF_EXPORT
 GF_Err gf_sg_route_del_by_id(GF_SceneGraph *sg,u32 routeID)
 {
 	GF_Route *r;
@@ -179,7 +180,7 @@ void gf_sg_route_unqueue(GF_SceneGraph *sg, GF_Route *r)
 	gf_list_del_item(sg->routes_to_activate, r);
 }
 
-
+GF_EXPORT
 GF_Route *gf_sg_route_find(GF_SceneGraph *sg, u32 RouteID)
 {
 	GF_Route *r;
@@ -190,6 +191,7 @@ GF_Route *gf_sg_route_find(GF_SceneGraph *sg, u32 RouteID)
 	return NULL;
 }
 
+GF_EXPORT
 GF_Route *gf_sg_route_find_by_name(GF_SceneGraph *sg, char *name)
 {
 	GF_Route *r;
@@ -203,7 +205,7 @@ GF_Route *gf_sg_route_find_by_name(GF_SceneGraph *sg, char *name)
 	return NULL;
 }
 
-
+GF_EXPORT
 GF_Err gf_sg_route_set_id(GF_Route *route, u32 ID)
 {
 	GF_Route *ptr;
@@ -214,11 +216,14 @@ GF_Err gf_sg_route_set_id(GF_Route *route, u32 ID)
 	route->ID = ID;
 	return GF_OK;
 }
+
+GF_EXPORT
 u32 gf_sg_route_get_id(GF_Route *route)
 {
 	return route->ID;
 }
 
+GF_EXPORT
 GF_Err gf_sg_route_set_name(GF_Route *route, char *name)
 {
 	GF_Route *ptr;
@@ -229,6 +234,8 @@ GF_Err gf_sg_route_set_name(GF_Route *route, char *name)
 	route->name = gf_strdup(name);
 	return GF_OK;
 }
+
+GF_EXPORT
 char *gf_sg_route_get_name(GF_Route *route)
 {
 	return route->name;

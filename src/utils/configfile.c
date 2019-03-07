@@ -330,6 +330,7 @@ void gf_cfg_del(GF_Config *iniFile)
 	gf_free(iniFile);
 }
 
+GF_EXPORT
 void gf_cfg_remove(GF_Config *iniFile)
 {
 	if (!iniFile) return;

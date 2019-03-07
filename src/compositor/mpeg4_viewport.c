@@ -29,6 +29,7 @@
 #include <gpac/options.h>
 
 
+GF_EXPORT
 GF_Err gf_sc_get_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const char **outName, Bool *is_bound)
 {
 #ifndef GPAC_DISABLE_VRML
@@ -61,6 +62,7 @@ GF_Err gf_sc_get_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const c
 #endif
 }
 
+GF_EXPORT
 GF_Err gf_sc_set_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const char *viewpoint_name)
 {
 #ifndef GPAC_DISABLE_VRML

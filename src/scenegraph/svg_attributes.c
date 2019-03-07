@@ -3060,6 +3060,7 @@ GF_Err laser_parse_size(LASeR_Size *size, char *attribute_content)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if_defined)
 {
 	GF_SceneGraph *sg = gf_node_get_graph((GF_Node *)n);
@@ -3432,6 +3433,7 @@ void svg_parse_one_style(GF_Node *n, char *one_style)
 	one_style[attributeNameLen] = sep;
 }
 
+GF_EXPORT
 void gf_svg_parse_style(GF_Node *n, char *style)
 {
 	u32 i = 0;

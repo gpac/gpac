@@ -192,6 +192,7 @@ GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, const char *data, u32 
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_laser_decode_command_list(GF_LASeRCodec *codec, u16 ESID, char *data, u32 data_len, GF_List *com_list)
 {
 	GF_Err e;

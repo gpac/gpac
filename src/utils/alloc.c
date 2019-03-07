@@ -948,6 +948,7 @@ static GFINLINE int gf_vasprintf (char **strp, const char *fmt, va_list ap)
 }
 #endif
 
+GF_EXPORT
 int gf_asprintf(char **strp, const char *fmt, ...)
 {
 	s32 size;

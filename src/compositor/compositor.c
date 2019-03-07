@@ -842,10 +842,10 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 
 	gf_sc_reload_config(compositor);
 
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\tNetworks\tDecoders\tFrame\tDirect Draw\tVisual Config\tEvent\tRoute\tSMIL Timing\tTime node\tTexture\tSMIL Anim\tTraverse setup\tTraverse (and direct Draw)\tTraverse (and direct Draw) without anim\tIndirect Draw\tTraverse And Draw (Indirect or Not)\tFlush\tCycle\n"));
 	return GF_OK;
 }
-
 
 void gf_sc_unload(GF_Compositor *compositor)
 {
@@ -1020,6 +1020,7 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 	}
 }
 
+GF_EXPORT
 u32 gf_sc_get_clock(GF_Compositor *compositor)
 {
 	if (!compositor->bench_mode && compositor->player) {
@@ -1028,6 +1029,7 @@ u32 gf_sc_get_clock(GF_Compositor *compositor)
 	return compositor->scene_sampled_clock;
 }
 
+GF_EXPORT
 GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bool force_size)
 {
 	if (!Width || !Height) {
@@ -1920,6 +1922,7 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 	}
 }
 
+GF_EXPORT
 void gf_sc_map_point(GF_Compositor *compositor, s32 X, s32 Y, Fixed *bifsX, Fixed *bifsY)
 {
 	/*coordinates are in user-like OS....*/
@@ -2025,6 +2028,7 @@ Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS)
 	return fps;
 }
 
+GF_EXPORT
 void gf_sc_register_time_node(GF_Compositor *compositor, GF_TimeNode *tn)
 {
 	/*may happen with DEF/USE */
@@ -2033,13 +2037,15 @@ void gf_sc_register_time_node(GF_Compositor *compositor, GF_TimeNode *tn)
 	gf_list_add(compositor->time_nodes, tn);
 	tn->is_registered = 1;
 }
+
+GF_EXPORT
 void gf_sc_unregister_time_node(GF_Compositor *compositor, GF_TimeNode *tn)
 {
 	gf_list_del_item(compositor->time_nodes, tn);
 }
 
 
-
+GF_EXPORT
 GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 {
 	return NULL;
@@ -2373,6 +2379,7 @@ void gf_sc_flush_video(GF_Compositor *compositor, Bool locked)
 	if (locked) gf_sc_lock(compositor, 1);
 }
 
+GF_EXPORT
 void gf_sc_render_frame(GF_Compositor *compositor)
 {
 #ifndef GPAC_DISABLE_SCENEGRAPH

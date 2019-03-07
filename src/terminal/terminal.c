@@ -597,6 +597,7 @@ typedef struct
 
 #ifdef FILTER_FIXME
 
+
 /* Browses all registered relocators (ZIP-based, ISOFF-based or file-system-based to relocate a URI based on the locale */
 GF_EXPORT
 Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url)
