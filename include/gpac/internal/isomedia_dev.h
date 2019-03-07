@@ -671,6 +671,7 @@ typedef struct
 	u64 segmentDuration;
 	s64 mediaTime;
 	u32 mediaRate;
+	Bool was_empty_dur;
 } GF_EdtsEntry;
 
 typedef struct

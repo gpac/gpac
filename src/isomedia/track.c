@@ -418,7 +418,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, u64 *cumulated_offset, Bool is_first_merge)
 {
 	u32 i, j, chunk_size, track_num;
-	u64 base_offset, data_offset;
+	u64 base_offset, data_offset, traf_duration;
 	u32 def_duration, DescIndex, def_size, def_flags;
 	u32 duration, size, flags, cts_offset, prev_trun_data_offset;
 	u8 pad, sync;
@@ -462,6 +462,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	chunk_size = 0;
 	prev_trun_data_offset = 0;
 	data_offset = 0;
+	traf_duration = 0;
 
 	/*in playback mode*/
 	if (traf->tfdt && is_first_merge) {
@@ -500,6 +501,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			stbl_AppendSize(trak->Media->information->sampleTable, size);
 			//then TS
 			stbl_AppendTime(trak->Media->information->sampleTable, duration);
+
+			traf_duration += duration;
+
 			//add chunk on first sample
 			if (!j) {
 				data_offset = base_offset;
@@ -551,6 +555,30 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			stbl_AppendDependencyType(trak->Media->information->sampleTable, GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
 		}
 	}
+	if (traf_duration && trak->editBox && trak->editBox->editList) {
+		for (i=0; i<gf_list_count(trak->editBox->editList->entryList); i++) {
+			GF_EdtsEntry *ent = gf_list_get(trak->editBox->editList->entryList, i);
+			if (ent->was_empty_dur) {
+				u64 extend_dur = traf_duration;
+				extend_dur *= trak->moov->mvhd->timeScale;
+				extend_dur /= trak->Media->mediaHeader->timeScale;
+				ent->segmentDuration += extend_dur;
+			}
+			else if (!ent->segmentDuration) {
+				ent->was_empty_dur = GF_TRUE;
+				if (traf_duration>ent->mediaTime)
+					traf_duration -= ent->mediaTime;
+				else
+					traf_duration = 0;
+
+				ent->segmentDuration = traf_duration;
+				ent->segmentDuration *= trak->moov->mvhd->timeScale;
+				ent->segmentDuration /= trak->Media->mediaHeader->timeScale;
+			}
+
+		}
+	}
+
 	//in any case, update the cumulated offset
 	//this will handle hypothetical files mixing MOOF offset and implicit non-moof offset
 	*cumulated_offset = data_offset + chunk_size;
