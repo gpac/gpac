@@ -566,7 +566,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			}
 			else if (!ent->segmentDuration) {
 				ent->was_empty_dur = GF_TRUE;
-				if (traf_duration>ent->mediaTime)
+				if ((s64) traf_duration > ent->mediaTime)
 					traf_duration -= ent->mediaTime;
 				else
 					traf_duration = 0;
