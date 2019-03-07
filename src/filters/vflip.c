@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2018
  *					All rights reserved
  *
- *  This file is part of GPAC / video cropping filter
+ *  This file is part of GPAC / video flipping filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -54,11 +54,34 @@ typedef struct
 
 enum
 {
-	VCROP_OFF = 0,
-	VCROP_VERT,
-	VCROP_HORIZ,
-	VCROP_BOTH,
+	VFLIP_OFF = 0,
+	VFLIP_VERT,
+	VFLIP_HORIZ,
+	VFLIP_BOTH,
 };
+
+static Bool fill_plane_dst_from_src(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 height, u32 plane_idx, u32 wiB){
+	u32 hy, i;
+	u8 *src, *dst;
+	#if 0
+	src = src_plane;
+	dst = dst_plane;
+	#endif
+
+	hy = height/2;
+	for (i=0; i<hy; i++) {
+		u8 *src_first = src_plane+ i*ctx->src_stride[plane_idx];//src
+		u8 *src_last  = src_plane+ (height  - 1 - i) * ctx->src_stride[plane_idx];//src
+
+		u8 *dst_first = dst_plane+ i*ctx->dst_stride[plane_idx];//dst
+		u8 *dst_last  = dst_plane+ (height  - 1 - i) * ctx->dst_stride[plane_idx];//dst
+
+		memcpy(ctx->line_buffer, src_last, wiB);
+		memcpy(dst_last, src_first, wiB);
+		memcpy(dst_first, ctx->line_buffer, wiB);
+	}
+	return GF_OK;
+}
 
 static GF_Err vflip_process(GF_Filter *filter)
 {
@@ -67,7 +90,7 @@ static GF_Err vflip_process(GF_Filter *filter)
 	u32 size;
 	u32 bps;
 	u32 i;
-	u8 *src, *dst;
+	u32 wiB, height;
 	u8 *src_planes[5];
 	u8 *dst_planes[5];
 	GF_FilterPacket *dst_pck;
@@ -135,6 +158,7 @@ static GF_Err vflip_process(GF_Filter *filter)
 		return GF_OUT_OF_MEM;
 	}
 
+
 	dst_planes[0] = output;
 	if (ctx->nb_planes==1) {
 	} else if (ctx->nb_planes==2) {
@@ -148,7 +172,6 @@ static GF_Err vflip_process(GF_Filter *filter)
 		dst_planes[3] = dst_planes[2] + ctx->dst_stride[2]*ctx->dst_uv_height;
 	}
 
-	u32 hy, wiB;
 
 	//YUYV variations need *2 on horizontal dimension
 	if (ctx->packed_422) {
@@ -157,108 +180,36 @@ static GF_Err vflip_process(GF_Filter *filter)
 		wiB = bps * ctx->dst_width;
 	}
 
-	src = src_planes[0];
-	dst = dst_planes[0];
+	u32 height = ctx->h;
 
-	hy = ctx->h/2;
-	for (i=0; i<hy; i++) {
-		u8 *src_first, *dst_first;
-		u8 *src_last, *dst_last;
-		src_first = src+ i*ctx->src_stride[0];
-		src_last  = src+ (ctx->h - 1 - i) * ctx->src_stride[0];
-
-		dst_first = dst+ i*ctx->dst_stride[0];
-		dst_last  = dst+ (ctx->h - 1 - i) * ctx->dst_stride[0];
-
-		memcpy(ctx->line_buffer, src_last, wiB);
-		memcpy(dst_last, src_first, wiB);
-		memcpy(dst_first, ctx->line_buffer, wiB);
-	}
+	fill_plane_dst_from_src(ctx, src_planes[0], dst_planes[0], height, 0, wiB);
 
 	//nv12/21
 	if (ctx->nb_planes==2) {
-		u32 height;
-		src = src_planes[1];
-		dst = dst_planes[1];
 		//half vertical res (/2)
 		//half horizontal res (/2) but two chroma packed per pixel (*2)
-		//src
 		wiB = bps * ctx->dst_width;
-		height = ctx->h / 2;
-		hy = height /2;
+		u32 height = ctx->h / 2;
+		fill_plane_dst_from_src(ctx, src_planes[1], dst_planes[1], height, 1, wiB);
 
-		for (i=0; i<hy; i++) {
-			u8 *src_first = src+ i*ctx->src_stride[1];
-			u8 *src_last  = src+ (height - 1 - i) * ctx->src_stride[1];
-
-			u8 *dst_first = dst + i*ctx->dst_stride[1];
-			u8 *dst_last  = dst + (height - 1 - i) * ctx->dst_stride[1];
-
-			memcpy(ctx->line_buffer, src_last, wiB);
-			memcpy(dst_last, src_first, wiB);
-			memcpy(dst_first, ctx->line_buffer, wiB);
-		}
 	} else if (ctx->nb_planes>=3) {
 		u32 div_x, div_y;
 		//alpha/depth/other plane, treat as luma plane
 		if (ctx->nb_planes==4) {
-			src = src_planes[3];
-			dst = dst_planes[3];
-			//src
 			wiB = bps * ctx->dst_width;
-			hy = ctx->h/2;
-			for (i=0; i<hy; i++) {
-				u8 *src_first = src+ i*ctx->src_stride[3];
-				u8 *src_last  = src+ (ctx->h - 1 - i) * ctx->src_stride[3];
-
-				u8 *dst_first = dst+ i*ctx->dst_stride[3];
-				u8 *dst_last  = dst+ (ctx->h - 1 - i) * ctx->dst_stride[3];
-
-				memcpy(ctx->line_buffer, src_last, wiB);
-				memcpy(dst_last, src_first, wiB);
-				memcpy(dst_first, ctx->line_buffer, wiB);
-			}
+			u32 height = ctx->h;
+			fill_plane_dst_from_src(ctx, src_planes[3], dst_planes[3], height, 3, wiB);
 		} else if (ctx->nb_planes>=3) {
 		}
 
 		div_x = (ctx->src_stride[1]==ctx->src_stride[0]) ? 1 : 2;
 		div_y = (ctx->src_uv_height==ctx->h) ? 1 : 2;
-
-		u32 height = ctx->dst_height;
+		u32 height = ctx->dst_height;	
 		height /= div_y;
 		wiB = bps * ctx->dst_width;
 		wiB /= div_x;
-
-		hy = height/2;
-
-		src = src_planes[1];
-		dst = dst_planes[1];
-		for (i=0; i<hy; i++) {
-			u8 *src_first = src+ i*ctx->src_stride[1];
-			u8 *src_last  = src+ (height  - 1 - i) * ctx->src_stride[1];
-
-			u8 *dst_first = dst+ i*ctx->dst_stride[1];
-			u8 *dst_last  = dst+ (height  - 1 - i) * ctx->dst_stride[1];
-
-			memcpy(ctx->line_buffer, src_last, wiB);
-			memcpy(dst_last, src_first, wiB);
-			memcpy(dst_first, ctx->line_buffer, wiB);
-		}
-
-		src = src_planes[2];
-		dst = dst_planes[2];
-
-		for (i=0; i<hy; i++) {
-			u8 *src_first = src+ i*ctx->src_stride[2];
-			u8 *src_last  = src+ (height  - 1 - i) * ctx->src_stride[2];
-
-			u8 *dst_first = dst+ i*ctx->dst_stride[2];
-			u8 *dst_last  = dst+ (height  - 1 - i) * ctx->dst_stride[2];
-
-			memcpy(ctx->line_buffer, src_last, wiB);
-			memcpy(dst_last, src_first, wiB);
-			memcpy(dst_first, ctx->line_buffer, wiB);
-		}
+		fill_plane_dst_from_src(ctx, src_planes[1], dst_planes[1], height, 1, wiB);
+		fill_plane_dst_from_src(ctx, src_planes[2], dst_planes[2], height, 2, wiB);
 	}
 
 	gf_filter_pck_send(dst_pck);
@@ -314,7 +265,7 @@ static GF_Err vflip_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if ((ctx->w == w) && (ctx->h == h) && (ctx->s_pfmt == pfmt) && (ctx->stride == stride)) {
 		//nothing to reconfigure
 		ctx->passthrough = GF_TRUE;
-	} else if (ctx->mode==VCROP_OFF) {
+	} else if (ctx->mode==VFLIP_OFF) {
 		ctx->passthrough = GF_TRUE;
 	} else {
 		Bool res;
