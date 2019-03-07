@@ -2074,7 +2074,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	u8 bps;
 	char *lang;
 	const char *orig_name = gf_url_get_resource_name(gf_isom_get_filename(import->orig));
-	Bool sbr, ps;
+	Bool sbr, ps, has_seig;
 	GF_ISOSample *samp;
 	GF_ESD *origin_esd;
 	GF_InitialObjectDescriptor *iod;
@@ -2261,6 +2261,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	if (gf_isom_is_media_encrypted(import->orig, track_in, 1)) {
 		gf_isom_get_original_format_type(import->orig, track_in, 1, &mstype);
 	}
+	has_seig = GF_FALSE;
+	if (is_cenc && gf_isom_has_cenc_sample_group(import->dest, track) ) {
+		has_seig = GF_TRUE;
+	}
 
 	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
@@ -2389,8 +2393,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			}
 			if (e) goto exit;
 
-			e = gf_isom_set_sample_cenc_group(import->dest, track, i+1, Is_Encrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
-			if (e) goto exit;
+			if (has_seig) {
+				e = gf_isom_set_sample_cenc_group(import->dest, track, i+1, Is_Encrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
+				if (e) goto exit;
+			}
 		}
 		if (duration && (sampDTS > duration) ) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
