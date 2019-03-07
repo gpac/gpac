@@ -3179,64 +3179,6 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 }
 
 
-GF_EXPORT
-GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u32 buf_size, GF_Socket **out_socket)
-{
-	char *str;
-	u16 port;
-	GF_Err e;
-	u32 sock_type = 0;
-
-	*out_socket=NULL;
-
-	if (!strnicmp(url, "udp://", 6) || !strnicmp(url, "mpegts-udp://", 13)) {
-		sock_type = GF_SOCK_TYPE_UDP;
-	} else if (!strnicmp(url, "mpegts-tcp://", 13) ) {
-		sock_type = GF_SOCK_TYPE_TCP;
-	} else {
-		return GF_NOT_SUPPORTED;
-	}
-
-	url = strchr(url, ':');
-	url += 3;
-
-	*out_socket = gf_sk_new(sock_type);
-	if (! (*out_socket) ) {
-		return GF_IO_ERR;
-	}
-
-	/*setup port and src*/
-	port = 1234;
-	str = strrchr(url, ':');
-	/*take care of IPv6 address*/
-	if (str && strchr(str, ']')) str = strchr(url, ':');
-	if (str) {
-		port = atoi(str+1);
-		str[0] = 0;
-	}
-
-	/*do we have a source ?*/
-	if (strlen(url) && strcmp(url, "localhost") ) {
-		if (gf_sk_is_multicast_address(url)) {
-			e = gf_sk_setup_multicast(*out_socket, url, port, 0, 0, (char*)mcast_ifce_or_mobileip);
-		} else {
-			e = gf_sk_bind(*out_socket, (char*)mcast_ifce_or_mobileip, port, url, 0, GF_SOCK_REUSE_PORT);
-		}
-		if (e) {
-			gf_sk_del(*out_socket);
-			*out_socket = NULL;
-			return e;
-		}
-	}
-	if (str) str[0] = ':';
-
-	gf_sk_set_buffer_size(*out_socket, 0, buf_size);
-	gf_sk_set_block_mode(*out_socket, 0);
-	return GF_OK;
-}
-
-
-
 
 #define M2TS_PROBE_SIZE	188000
 static Bool gf_m2ts_probe_buffer(char *buf, u32 size)

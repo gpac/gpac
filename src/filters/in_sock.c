@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / generic TCP/UDP input filter
@@ -89,11 +89,11 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 	ctx->active_sockets = gf_sk_group_new();
 	if (!ctx->active_sockets) return GF_OUT_OF_MEM;
 
-	if (!strnicmp(ctx->src, "udp://", 6) || !strnicmp(ctx->src, "mpegts-udp://", 13)) {
+	if (!strnicmp(ctx->src, "udp://", 6)) {
 		sock_type = GF_SOCK_TYPE_UDP;
 		ctx->listen = GF_FALSE;
 		ctx->is_udp = GF_TRUE;
-	} else if (!strnicmp(ctx->src, "tcp://", 6) || !strnicmp(ctx->src, "mpegts-tcp://", 13) ) {
+	} else if (!strnicmp(ctx->src, "tcp://", 6)) {
 		sock_type = GF_SOCK_TYPE_TCP;
 #ifdef GPAC_HAS_SOCK_UN
 	} else if (!strnicmp(ctx->src, "tcpu://", 7) ) {
@@ -208,8 +208,6 @@ static GF_FilterProbeScore sockin_probe_url(const char *url, const char *mime_ty
 {
 	if (!strnicmp(url, "udp://", 6)) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "tcp://", 6)) return GF_FPROBE_SUPPORTED;
-	if (!strnicmp(url, "mpegts-udp://", 13)) return GF_FPROBE_SUPPORTED;
-	if (!strnicmp(url, "mpegts-tcp://", 13)) return GF_FPROBE_SUPPORTED;
 #ifdef GPAC_HAS_SOCK_UN
 	if (!strnicmp(url, "udpu://", 7)) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "tcpu://", 7)) return GF_FPROBE_SUPPORTED;
@@ -439,7 +437,7 @@ static const GF_FilterArgs SockInArgs[] =
 	{ OFFS(listen), "indicate the input socket works in server mode", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(ka), "keep socket alive if no more connections", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, 0},
-	{ OFFS(tsprobe), "probes for MPEG-2 TS data, either RTP or raw UDO. Disabled if mime or ext are given and don't match MPEG-2 TS mimes/extensions", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(tsprobe), "probes for MPEG-2 TS data, either RTP or raw UDP. Disabled if mime or ext are given and don't match MPEG-2 TS mimes/extensions", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ext), "indicates file extension of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mime), "indicates mime type of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(block), "set blocking mode for socket(s)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -463,17 +461,20 @@ GF_FilterRegister SockInRegister = {
 	.name = "sockin",
 	GF_FS_SET_DESCRIPTION("UDP / TCP socket input")
 #ifndef GPAC_DISABLE_DOC
-	.help = "This filter handles generic TCP and UDP input sockets. It can also probe for MPEG-2 TS over RTP input. Probing of MPEG-2 TS over UDP/RTP is enabled by default but can be turned off.\n"\
-		"\nFormat of data can be specified by setting either ext or mime option. If not set, the format will be guessed by probing the first data packet"\
+	.help = "This filter handles generic TCP and UDP input sockets. It can also probe for MPEG-2 TS over RTP input. Probing of MPEG-2 TS over UDP/RTP is enabled by default but can be turned off.\n"
+		"\nFormat of data can be specified by setting either ext or mime option. If not set, the format will be guessed by probing the first data packet\n"
 		"\n"
+		"UDP sockets are used for source URLs formatted as udp://NAME\n"
+		"TCP sockets are used for source URLs formatted as tcp://NAME\n"
 #ifdef GPAC_HAS_SOCK_UN
-		"Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME"
+		"UDP unix domain sockets are used for source URLs formatted as udpu://NAME\n"
+		"TCP unix domain sockets are used for source URLs formatted as tcpu://NAME\n"
 #ifdef GPAC_CONFIG_DARWIN
 		"\nOn OSX with VM packet replay you will need to force multicast routing, eg: route add -net 239.255.1.4/32 -interface vboxnet0"
 #endif
 		""
 #else
-		"Your platform does not supports unix domain sockets"
+		"Your platform does not supports unix domain sockets, udpu:// and tcpu:// schemes not supported."
 #endif
 	,
 #endif //GPAC_DISABLE_DOC
