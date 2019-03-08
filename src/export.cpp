@@ -138,21 +138,6 @@
 /* Print */
 #pragma comment (linker, EXPORT_SYMBOL(gf_asprintf) )
 
-<<<<<<< HEAD
-=======
-/* Ring Buffer */
-#ifndef GPAC_DISABLE_PLAYER
-#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_read) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_write) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_available_for_read ) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_available_for_read) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_available_for_write) )
-#endif
-
-
->>>>>>> master
 /* Sound */
 #ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_set_config) )
@@ -677,9 +662,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_read) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_del) )
 
-<<<<<<< HEAD
 #pragma comment (linker, EXPORT_SYMBOL(av1_get_obu_name) )
-=======
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_write) )
@@ -694,7 +677,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_vp_cfg_read_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_vp_cfg_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_vp_cfg_write_bs) )
->>>>>>> master
 
 #ifndef GPAC_MINIMAL_ODF
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_add_desc) )
@@ -1902,12 +1884,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_set_speed) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_current_service_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_clock) )
-<<<<<<< HEAD
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_print_graph) )
-=======
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_forward_event) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_mfurl_from_xlink) )
->>>>>>> master
 
 /*terminal_dev exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_new) )
@@ -2018,11 +1995,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_pes_get_framing_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_sdt_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_abort_parsing) )
-<<<<<<< HEAD
-=======
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_pause_demux) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_probe_file) )
->>>>>>> master
 
 
 /* carousel.h */
@@ -2298,8 +2270,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_force_headers) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_set_localcache_provider) )
 
-<<<<<<< HEAD
-
 /*filter session exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_connect) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_disconnect) )
@@ -2507,8 +2477,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_read_sps_bs ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_read_pps_bs ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_hls_clock ) )
-=======
-#pragma comment (linker, EXPORT_SYMBOL(av1_get_obu_name) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_next_pow2) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_htonl) )
@@ -2523,4 +2491,3 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_smil_timing_init_runtime_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_smil_timing_insert_clock) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_smil_timing_is_active) )
->>>>>>> master
