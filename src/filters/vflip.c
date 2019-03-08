@@ -62,11 +62,6 @@ enum
 
 static Bool fill_plane_dst_from_src(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 height, u32 plane_idx, u32 wiB){
 	u32 hy, i;
-	u8 *src, *dst;
-	#if 0
-	src = src_plane;
-	dst = dst_plane;
-	#endif
 
 	hy = height/2;
 	for (i=0; i<hy; i++) {
@@ -174,41 +169,38 @@ static GF_Err vflip_process(GF_Filter *filter)
 
 
 	//YUYV variations need *2 on horizontal dimension
-	if (ctx->packed_422) {
-		wiB = bps * ctx->dst_width *2;
-	} else {
-		wiB = bps * ctx->dst_width;
-	}
-	u32 height = ctx->h;
-
-	fill_plane_dst_from_src(ctx, src_planes[0], dst_planes[0], height, 0, wiB);
-
-	//nv12/21
-	if (ctx->nb_planes==2) {
-		//half vertical res (/2)
-		//half horizontal res (/2) but two chroma packed per pixel (*2)
-		wiB = bps * ctx->dst_width;
-		u32 height = ctx->h / 2;
-		fill_plane_dst_from_src(ctx, src_planes[1], dst_planes[1], height, 1, wiB);
-
-	} else if (ctx->nb_planes>=3) {
-		u32 div_x, div_y;
-		//alpha/depth/other plane, treat as luma plane
-		if (ctx->nb_planes==4) {
-			wiB = bps * ctx->dst_width;
-			u32 height = ctx->h;
-			fill_plane_dst_from_src(ctx, src_planes[3], dst_planes[3], height, 3, wiB);
-		} else if (ctx->nb_planes>=3) {
+	for (i=0; i<ctx->nb_planes; i++) {
+		if (i==0) {
+			if (ctx->packed_422) {
+				wiB = bps * ctx->dst_width *2;
+			} else {
+				wiB = bps * ctx->dst_width;
+			}
+			height = ctx->h;
+		}else {
+			//nv12/21
+			if (i==1 && ctx->nb_planes==2) {
+				//half vertical res (/2)
+				//half horizontal res (/2) but two chroma packed per pixel (*2)
+				wiB = bps * ctx->dst_width;
+				height = ctx->h / 2;
+			} else if (ctx->nb_planes>=3) {
+				u32 div_x, div_y;
+				//alpha/depth/other plane, treat as luma plane
+				if (i==3 && ctx->nb_planes==4) {
+					wiB = bps * ctx->dst_width;
+					height = ctx->h;
+				}else if (i==1 || i==2) {
+					div_x = (ctx->src_stride[1]==ctx->src_stride[0]) ? 1 : 2;
+					div_y = (ctx->src_uv_height==ctx->h) ? 1 : 2;
+					 height = ctx->dst_height;
+					height /= div_y;
+					wiB = bps * ctx->dst_width;
+					wiB /= div_x;
+				}
+			}
 		}
-
-		div_x = (ctx->src_stride[1]==ctx->src_stride[0]) ? 1 : 2;
-		div_y = (ctx->src_uv_height==ctx->h) ? 1 : 2;
-		u32 height = ctx->dst_height;	
-		height /= div_y;
-		wiB = bps * ctx->dst_width;
-		wiB /= div_x;
-		fill_plane_dst_from_src(ctx, src_planes[1], dst_planes[1], height, 1, wiB);
-		fill_plane_dst_from_src(ctx, src_planes[2], dst_planes[2], height, 2, wiB);
+		fill_plane_dst_from_src(ctx, src_planes[i], dst_planes[i], height, i, wiB);
 	}
 
 	gf_filter_pck_send(dst_pck);
