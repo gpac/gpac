@@ -4520,7 +4520,7 @@ u32 gf_media_nalu_is_start_code(GF_BitStream *bs)
 }
 
 /*read that amount of data at each IO access rather than fetching byte by byte...*/
-#define AVC_CACHE_SIZE	4096
+#define AVC_CACHE_SIZE	512
 
 static u32 gf_media_nalu_locate_start_code_bs(GF_BitStream *bs, Bool locate_trailing)
 {
@@ -4546,8 +4546,8 @@ static u32 gf_media_nalu_locate_start_code_bs(GF_BitStream *bs, Bool locate_trai
 			gf_bs_read_data(bs, avc_cache, (u32) load_size);
 		}
 		v = ( (v<<8) & 0xFFFFFF00) | ((u32) avc_cache[bpos]);
-
 		bpos++;
+
 		if (locate_trailing) {
 			if ( (v & 0x000000FF) == 0) nb_cons_zeros++;
 			else nb_cons_zeros = 0;
@@ -4556,6 +4556,7 @@ static u32 gf_media_nalu_locate_start_code_bs(GF_BitStream *bs, Bool locate_trai
 		if (v == 0x00000001) end = cache_start+bpos-4;
 		else if ( (v & 0x00FFFFFF) == 0x00000001) end = cache_start+bpos-3;
 	}
+
 	gf_bs_seek(bs, start);
 	if (!end) end = gf_bs_get_size(bs);
 	if (locate_trailing) {
@@ -8012,16 +8013,13 @@ s32 gf_media_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_
 		}
 		break;
 	case GF_HEVC_NALU_SEQ_PARAM:
-		hevc->last_parsed_sps_id = gf_media_hevc_read_sps_bs_internal(bs, hevc, *layer_id, NULL);
-		ret = 0;
+		ret = hevc->last_parsed_sps_id = gf_media_hevc_read_sps_bs_internal(bs, hevc, *layer_id, NULL);
 		break;
 	case GF_HEVC_NALU_PIC_PARAM:
-		hevc->last_parsed_pps_id = gf_media_hevc_read_pps_bs_internal(bs, hevc);
-		ret = 0;
+		ret = hevc->last_parsed_pps_id = gf_media_hevc_read_pps_bs_internal(bs, hevc);
 		break;
 	case GF_HEVC_NALU_VID_PARAM:
-		hevc->last_parsed_vps_id = gf_media_hevc_read_vps_bs_internal(bs, hevc, GF_FALSE);
-		ret = 0;
+		ret = hevc->last_parsed_vps_id = gf_media_hevc_read_vps_bs_internal(bs, hevc, GF_FALSE);
 		break;
 	default:
 		ret = 0;
@@ -8029,7 +8027,7 @@ s32 gf_media_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_
 	}
 
 	/* save _prev values */
-	if (ret && hevc->s_info.sps) {
+	if ((ret>0) && hevc->s_info.sps) {
 		n_state.frame_num_offset_prev = hevc->s_info.frame_num_offset;
 		n_state.frame_num_prev = hevc->s_info.frame_num;
 
