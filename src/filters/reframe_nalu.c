@@ -33,9 +33,10 @@
 #define CTS_POC_OFFSET_SAFETY	1000
 
 //storage for nal header + slice header when not fully included in an input buffer - this needs to be big enough to hold a slice header
-//note that we only copy the entire input packet in an internal buffer when the current NAL needs to be fully available for parsing (SPS, PPS),
+//note that we only copy the entire input packet in an internal buffer when the current NAL needs to be fully available for parsing (VPS, SPS, PPS),
+//or for temporary storage (SEI)
 //otherwise we copy remaining bytes in the hdr store if a startcode may be split across two input packets
-#define SAFETY_NAL_STORE	60
+#define SAFETY_NAL_STORE	50
 
 typedef struct
 {
@@ -415,11 +416,9 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		}
 
 		gf_bs_seek(bs, nal_start + nal_size);
-		nal_start = gf_media_nalu_next_start_code_bs(bs);
-		if (nal_start) {
-			gf_bs_skip_bytes(bs, nal_start);
-		}
-
+/*		nal_start = gf_media_nalu_next_start_code_bs(bs);
+		if (nal_start) gf_bs_skip_bytes(bs, nal_start);
+*/
 		if (gf_bs_available(bs)<4)
 			break;
 
@@ -1534,7 +1533,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	case GF_HEVC_NALU_PIC_PARAM:
 		ps_idx = ctx->hevc_state->last_parsed_pps_id;
 		if (ps_idx<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Pictire Param Set\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Picture Param Set\n", ctx->log_name));
 		} else {
 			naludmx_queue_param_set(ctx, data, size, GF_HEVC_NALU_PIC_PARAM, ps_idx);
 		}
@@ -1815,9 +1814,9 @@ GF_Err naludmx_process(GF_Filter *filter)
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (ctx->first_pck_in_au) {
-				if (ctx->bytes_in_header) {
+				if (ctx->bytes_in_header || ctx->hdr_store_size) {
 					start = data = ctx->hdr_store;
-					remain = pck_size = ctx->bytes_in_header;
+					remain = pck_size = ctx->bytes_in_header ? ctx->bytes_in_header : ctx->hdr_store_size;
 					ctx->bytes_in_header = 0;
 					is_eos = GF_TRUE;
 					goto naldmx_flush;
@@ -2023,8 +2022,15 @@ naldmx_flush:
 
 
 					if (!split_start_code) {
-						//and we need to copy the nal first bytes from the store
-						nal_bytes_from_store = ctx->bytes_in_header - (current + sc_size);
+						if (sc_size == ctx->bytes_in_header) {
+							nal_hdr_in_store = GF_FALSE;
+							sc_size = 0;
+							hdr_offset=0;
+							nal_bytes_from_store = 0;
+						} else {
+							//we need to copy the nal first bytes from the store
+							nal_bytes_from_store = ctx->bytes_in_header - (current + sc_size);
+						}
 					}
 
 				}
@@ -2152,6 +2158,8 @@ naldmx_flush:
 			case GF_HEVC_NALU_VID_PARAM:
 			case GF_HEVC_NALU_SEQ_PARAM:
 			case GF_HEVC_NALU_PIC_PARAM:
+			case GF_HEVC_NALU_SEI_PREFIX:
+			case GF_HEVC_NALU_SEI_SUFFIX:
 				full_nal_required = GF_TRUE;
 				break;
 			case GF_HEVC_NALU_SLICE_TRAIL_N:
@@ -2193,7 +2201,7 @@ naldmx_flush:
 			nal_ref_idc = (hdr_start[0] & 0x60) >> 5;
 		}
 		if (!next_size) {
-			if (full_nal_required) {
+			if (full_nal_required && !is_eos) {
 				//we need the full nal loaded
 				next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
 				if (next==pck_avail)
@@ -2219,9 +2227,33 @@ naldmx_flush:
 			//ok we have either a full nal, or the start of a NAL we can start to process, parse NAL
 			if (next<0) {
 				size = pck_avail;
+				if (!nal_hdr_in_store) {
+					hdr_avail = (u32) size;
+				}
 			} else {
 				full_nal = GF_TRUE;
 				size = next;
+				if (full_nal_required) {
+					if (!nal_bytes_from_store && nal_sc_in_store) {
+						hdr_avail = (u32) size;
+						hdr_start = pck_start;
+
+					} else {
+						size += nal_bytes_from_store;
+						//we require full nal but begining of the nal is in the store, the rest in the current packet.
+						//We must copy the complete nal in the store before parsing it
+						if (nal_bytes_from_store && (size > SAFETY_NAL_STORE)) {
+							u32 copy_size = size - nal_bytes_from_store;
+							if (ctx->hdr_store_alloc<copy_size) {
+								ctx->hdr_store_alloc = copy_size;
+								ctx->hdr_store = gf_realloc(ctx->hdr_store, ctx->hdr_store_alloc);
+							}
+							memcpy(ctx->hdr_store + hdr_offset + nal_bytes_from_store, start, copy_size);
+						}
+						hdr_avail = (u32) size;
+					}
+				} else if (hdr_avail>size && !nal_bytes_from_store)
+					hdr_avail=size;
 			}
 			if (!full_nal && (size < SAFETY_NAL_STORE/2)) {
 				assert(!nal_sc_in_store);
@@ -2230,9 +2262,6 @@ naldmx_flush:
 				memcpy(ctx->hdr_store, start, remain);
 				ctx->bytes_in_header = remain;
 				break;
-			}
-			if (!nal_hdr_in_store) {
-				hdr_avail = (u32) size;
 			}
 		} else {
 			full_nal = GF_TRUE;
@@ -2275,6 +2304,14 @@ naldmx_flush:
 			assert(remain >= next);
 			start = pck_start + next;
 			remain = pck_size - (u32) (start - (u8*)data);
+			if (nal_hdr_in_store) {
+				if (full_nal && ctx->bytes_in_header) {
+					memmove(ctx->hdr_store, hdr_start+nal_bytes_from_store, ctx->bytes_in_header - nal_bytes_from_store);
+					ctx->bytes_in_header -= next_size+store_sc_size;
+				} else {
+					ctx->bytes_in_header = 0;
+				}
+			}
 			continue;
 		}
 		ctx->next_nal_end_skip = GF_FALSE;
