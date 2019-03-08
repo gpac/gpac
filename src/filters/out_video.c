@@ -1898,11 +1898,11 @@ static GF_Err vout_process(GF_Filter *filter)
 		if (frame_ifce && frame_ifce->blocking) {
 			ctx->buffer = GF_TRUE;
 		} else {
-			u32 max_units, nb_pck, max_dur, dur=0;
-			Bool buf_ok = gf_filter_pid_get_buffer_occupancy(ctx->pid, &max_units, &nb_pck, &max_dur, &dur);
+			//query full buffer duration in us
+			u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_TRUE);
 
 			if (!ctx->buffer_done) {
-				if (buf_ok && (dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid))
+				if ((dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid))
 					return GF_OK;
 				ctx->buffer_done = GF_TRUE;
 			}
