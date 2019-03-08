@@ -1041,16 +1041,22 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 			break;
 
 		case GF_HEVC_NALU_VID_PARAM:
-			gf_media_hevc_read_vps(ptr, ptr_size, hevc);
 			fputs("Video Parameter Set", dump);
+			idx = gf_media_hevc_read_vps(ptr, ptr_size, hevc);
+			if (idx<0) fprintf(dump, "\" vps_id=\"PARSING FAILURE");
+			else fprintf(dump, "\" vps_id=\"%d", idx);
 			break;
 		case GF_HEVC_NALU_SEQ_PARAM:
-			gf_media_hevc_read_sps(ptr, ptr_size, hevc);
+			idx = gf_media_hevc_read_sps(ptr, ptr_size, hevc);
 			fputs("Sequence Parameter Set", dump);
+			if (idx<0) fprintf(dump, "\" sps_id=\"PARSING FAILURE");
+			else fprintf(dump, "\" sps_id=\"%d", idx);
 			break;
 		case GF_HEVC_NALU_PIC_PARAM:
-			gf_media_hevc_read_pps(ptr, ptr_size, hevc);
+			idx = gf_media_hevc_read_pps(ptr, ptr_size, hevc);
 			fputs("Picture Parameter Set", dump);
+			if (idx<0) fprintf(dump, "\" pps_id=\"PARSING FAILURE");
+			else fprintf(dump, "\" pps_id=\"%d", idx);
 			break;
 		case GF_HEVC_NALU_ACCESS_UNIT:
 			fputs("AU Delimiter", dump);
