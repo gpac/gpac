@@ -2237,14 +2237,16 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	if (ctx->idur.num) {
 		u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
 
-		if (ctx->importer) {
-			gf_set_progress("Import", mdur * ctx->idur.den, ((u64)tkw->tk_timescale) * ctx->idur.num);
-		}
 		/*patch to align to old arch */
 		if (tkw->stream_type==GF_STREAM_VISUAL) {
 			mdur = tkw->sample.DTS;
 		}
-		if (mdur * ctx->idur.den > tkw->tk_timescale * ctx->idur.num) {
+
+		if (ctx->importer) {
+			gf_set_progress("Import", mdur * ctx->idur.den, ((u64)tkw->tk_timescale) * ctx->idur.num);
+		}
+
+		if (mdur * (u64) ctx->idur.den > tkw->tk_timescale * (u64) ctx->idur.num) {
 			GF_FilterEvent evt;
 			GF_FEVT_INIT(evt, GF_FEVT_STOP, tkw->ipid);
 			gf_filter_pid_send_event(tkw->ipid, &evt);
