@@ -3733,6 +3733,10 @@ static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid
 		prop = gf_props_get_property(map, prop_4cc, prop_name);
 		if (prop) return prop;
 	}
+	if (pid->pid->infos) {
+		prop = gf_props_get_property(pid->pid->infos, prop_4cc, prop_name);
+		if (prop) return prop;
+	}
 	if (PID_IS_OUTPUT(pid)) {
 		return NULL;
 	}
