@@ -128,7 +128,8 @@ const GF_FilterRegister *obumx_register(GF_FilterSession *session);
 const GF_FilterRegister *nvdec_register(GF_FilterSession *session);
 #endif
 const GF_FilterRegister *atscin_register(GF_FilterSession *session);
-const GF_FilterRegister *hevcsplit_register(GF_FilterSession *session);
+const GF_FilterRegister *hevcsplit_register(GF_FilterSession *session); ////////////////////////////////////////////////////////
+const GF_FilterRegister *hevcRecombine_register(GF_FilterSession *session);
 
 #ifdef GPAC_HAVE_DTAPI
 const GF_FilterRegister *dtout_register(GF_FilterSession *session)
@@ -239,7 +240,8 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 #endif
 	gf_fs_add_filter_registry(fsess, atscin_register(a_sess));
 
-	gf_fs_add_filter_registry(fsess, hevcsplit_register(a_sess));
+	gf_fs_add_filter_registry(fsess, hevcsplit_register(a_sess)); //////////////////////////////////////////////////////
+	gf_fs_add_filter_registry(fsess, hevcRecombine_register(a_sess));
 
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
