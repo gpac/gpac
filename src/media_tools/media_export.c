@@ -916,7 +916,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				break;
 			case GPAC_OTI_AUDIO_AAC_MPEG4:
 				if (!dcfg->decoderSpecificInfo) {
-					gf_export_message(dumper, GF_OK, "Could not extracting MPEG-4 AAC: descriptor not found");
+					gf_export_message(dumper, GF_OK, "Could not extract MPEG-4 AAC: descriptor specific info not found");
 					gf_odf_desc_del((GF_Descriptor *) dcfg);
 					return GF_NON_COMPLIANT_BITSTREAM;
 				}
