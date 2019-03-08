@@ -70,11 +70,11 @@ static Bool fill_plane_dst_from_src(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_pla
 
 	hy = height/2;
 	for (i=0; i<hy; i++) {
-		u8 *src_first = src_plane+ i*ctx->src_stride[plane_idx];//src
-		u8 *src_last  = src_plane+ (height  - 1 - i) * ctx->src_stride[plane_idx];//src
+		u8 *src_first = src_plane+ i*ctx->src_stride[plane_idx];
+		u8 *src_last  = src_plane+ (height  - 1 - i) * ctx->src_stride[plane_idx];
 
-		u8 *dst_first = dst_plane+ i*ctx->dst_stride[plane_idx];//dst
-		u8 *dst_last  = dst_plane+ (height  - 1 - i) * ctx->dst_stride[plane_idx];//dst
+		u8 *dst_first = dst_plane+ i*ctx->dst_stride[plane_idx];
+		u8 *dst_last  = dst_plane+ (height  - 1 - i) * ctx->dst_stride[plane_idx];
 
 		memcpy(ctx->line_buffer, src_last, wiB);
 		memcpy(dst_last, src_first, wiB);
@@ -179,7 +179,6 @@ static GF_Err vflip_process(GF_Filter *filter)
 	} else {
 		wiB = bps * ctx->dst_width;
 	}
-
 	u32 height = ctx->h;
 
 	fill_plane_dst_from_src(ctx, src_planes[0], dst_planes[0], height, 0, wiB);
