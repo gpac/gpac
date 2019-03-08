@@ -2243,7 +2243,7 @@ naldmx_flush:
 						//we require full nal but begining of the nal is in the store, the rest in the current packet.
 						//We must copy the complete nal in the store before parsing it
 						if (nal_bytes_from_store && (size > SAFETY_NAL_STORE)) {
-							u32 copy_size = size - nal_bytes_from_store;
+							u32 copy_size = (u32) (size - nal_bytes_from_store);
 							if (ctx->hdr_store_alloc<copy_size) {
 								ctx->hdr_store_alloc = copy_size;
 								ctx->hdr_store = gf_realloc(ctx->hdr_store, ctx->hdr_store_alloc);
@@ -2252,8 +2252,8 @@ naldmx_flush:
 						}
 						hdr_avail = (u32) size;
 					}
-				} else if (hdr_avail>size && !nal_bytes_from_store)
-					hdr_avail=size;
+				} else if (hdr_avail>(u32) size && !nal_bytes_from_store)
+					hdr_avail = (u32) size;
 			}
 			if (!full_nal && (size < SAFETY_NAL_STORE/2)) {
 				assert(!nal_sc_in_store);
