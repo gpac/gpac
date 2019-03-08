@@ -1167,7 +1167,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_cenc_is_pattern_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_close_fragments) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_delete_xml_subtitle_sample) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_item_extended) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_bitrate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_pssh) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_cenc_info_ex) )
@@ -1180,8 +1179,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_clean_aperture) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_image_sequence_alpha) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_image_sequence_coding_constraints) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sample_cenc_default) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_streamer_get_current_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_svc_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_vp_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_vp_config_new) )
@@ -1224,8 +1221,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_event_target_add_node) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_nb_layers) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_nb_views) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_raw_image_planes) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_mo_is_raw_memory) )
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_load_xlink_resource) )
@@ -2048,7 +2043,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_seek_in_period) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_seek_to_time) )
 
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_socket) )
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
@@ -2121,8 +2115,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_split_on_bound) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_split_on_closest) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_cues) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_isobmff_options) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_test_mode) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_next_update_time) )
 
@@ -2485,7 +2477,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_tohs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_inline_is_default_viewpoint) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpegv12_get_config) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_text_import_swf) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_smil_set_media_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_smil_timing_init_runtime_info) )
