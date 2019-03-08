@@ -81,8 +81,8 @@ static const char *szProg[] =
 	"====================",
 };
 
-static u64 prev_pos = 0;
-static u64 prev_pc = 0;
+static u64 prev_pos = (u64) -1;
+static u64 prev_pc = (u64) -1;
 static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 {
 	Double prog;
