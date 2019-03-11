@@ -452,7 +452,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 {
 	//TODO: we are dispacthing frames in "negctts mode", ie we may have DTS>CTS
 	//need to signal this for consumers using DTS (eg MPEG-2 TS)
-	if (flush_ref && ctx->pck_queue) {
+	if (flush_ref && ctx->pck_queue && ctx->poc_diff) {
 		//send all reference packet queued
 
 		while (gf_list_count(ctx->pck_queue) ) {
