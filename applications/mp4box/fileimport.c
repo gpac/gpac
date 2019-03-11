@@ -2461,7 +2461,7 @@ GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, Doub
 		char *url;
 		u32 len;
 		szLine[0] = 0;
-		fgets(szLine, 10000, pl);
+		if (!fgets(szLine, 10000, pl)) break;
 		if (szLine[0]=='#') continue;
 		len = strlen(szLine);
 		while (len && strchr("\r\n \t", szLine[len-1])) {
