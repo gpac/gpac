@@ -522,6 +522,8 @@ void PrintImportUsage()
 	        "                         * Note: aligns initial timestamp of the file to be concatenated.\n"
 	        " -catx file             same as cat but new tracks can be imported before concatenation by specifying '+ADD_COMMAND'\n"
 	        "                        where ADD_COMMAND is a regular -add syntax\n"
+	        " -catpl file            concatenates files listed in the given file (one file per line, lines starting with # are comments).\n"
+	        "                         * each listed file is concatenated as if called with -cat\n"
 	        " -unalign-cat           does not attempt to align timestamps of samples inbetween tracks\n"
 	        " -force-cat             skips media configuration check when concatenating file\n"
 	        "                         !!! THIS MAY BREAK THE CONCATENATED TRACK(S) !!!\n"
@@ -2342,7 +2344,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			nb_add++;
 			i++;
 		}
-		else if (!stricmp(arg, "-cat") || !stricmp(arg, "-catx")) {
+		else if (!stricmp(arg, "-cat") || !stricmp(arg, "-catx") || !stricmp(arg, "-catpl")) {
 			CHECK_NEXT_ARG
 			nb_cat++;
 			i++;
@@ -4148,8 +4150,8 @@ int mp4boxMain(int argc, char **argv)
 			}
 		}
 		for (i=0; i<(u32)argc; i++) {
-			if (!strcmp(argv[i], "-cat") || !strcmp(argv[i], "-catx")) {
-				e = cat_isomedia_file(file, argv[i+1], import_flags, import_fps, agg_samples, tmpdir, force_cat, align_cat, !strcmp(argv[i], "-catx") ? GF_TRUE : GF_FALSE);
+			if (!strcmp(argv[i], "-cat") || !strcmp(argv[i], "-catx") || !strcmp(argv[i], "-catpl")) {
+				e = cat_isomedia_file(file, argv[i+1], import_flags, import_fps, agg_samples, tmpdir, force_cat, align_cat, !strcmp(argv[i], "-catx") ? GF_TRUE : GF_FALSE, !strcmp(argv[i], "-catpl") ? GF_TRUE : GF_FALSE);
 				if (e) {
 					fprintf(stderr, "Error appending %s: %s\n", argv[i+1], gf_error_to_string(e));
 					gf_isom_delete(file);
