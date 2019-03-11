@@ -1863,7 +1863,7 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 
 }
 #endif /*GPAC_DISABLE_HEVC */
 
-GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
+GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl)
 {
 	u32 i, j, count, nb_tracks, nb_samp, nb_done;
 	GF_ISOFile *orig;
@@ -1876,6 +1876,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	Bool is_isom;
 	GF_ISOSample *samp;
 	Double aligned_to_DTS = 0;
+
+	if (is_pl) return cat_playlist(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines, allow_add_in_command);
 
 	if (strchr(fileName, '*')) return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines, allow_add_in_command);
 
@@ -2358,7 +2360,7 @@ Bool cat_enumerate(void *cbk, char *szName, char *szPath, GF_FileEnumInfo *file_
 	strcpy(szFileName, szName);
 	strcat(szFileName, cat_enum->szOpt);
 
-	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->tmp_dir, cat_enum->force_cat, cat_enum->align_timelines, cat_enum->allow_add_in_command);
+	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->tmp_dir, cat_enum->force_cat, cat_enum->align_timelines, cat_enum->allow_add_in_command, GF_FALSE);
 	if (e) return 1;
 	return 0;
 }
@@ -2421,6 +2423,46 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Do
 	return gf_enum_directory(cat_enum.szPath, 0, cat_enumerate, &cat_enum, NULL);
 }
 
+GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
+{
+	GF_Err e;
+	FILE *pl = gf_fopen(playlistName, "r");
+	if (!pl) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Failed to open playlist file %s\n", playlistName));
+		return GF_URL_ERROR;
+	}
+
+	e = GF_OK;
+	while (!feof(pl)) {
+		char szLine[10000];
+		char *url;
+		u32 len;
+		szLine[0] = 0;
+		fgets(szLine, 10000, pl);
+		if (szLine[0]=='#') continue;
+		len = strlen(szLine);
+		while (len && strchr("\r\n \t", szLine[len-1])) {
+			szLine[len-1] = 0;
+			len--;
+		}
+		if (!len) continue;
+
+		url = gf_url_concatenate(playlistName, szLine);
+		if (!url) url = gf_strdup(szLine);
+
+		e = cat_isomedia_file(dest, url, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines, allow_add_in_command, GF_FALSE);
+
+
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Failed to concatenate file %s\n", url));
+			gf_free(url);
+			break;
+		}
+		gf_free(url);
+	}
+	gf_fclose(pl);
+	return e;
+}
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 /*
