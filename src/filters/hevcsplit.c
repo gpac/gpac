@@ -47,7 +47,6 @@ typedef struct
 	u32 num_tiles;
 	HEVCState hevc_state;
 	u32 hevc_nalu_size_length, cfg_crc;
-
 	char *buffer_nal;
 	u32 buffer_nal_alloc;
 	GF_BitStream *bs_nal_in;
