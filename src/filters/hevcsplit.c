@@ -728,10 +728,7 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 
 	u32 slice_length = data_without_emulation_bytes_size + avc_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
 	if (*out_slice_length < slice_length)
-	{
 		*out_slice = gf_realloc(*out_slice, slice_length);
-	}
-		
 
 	*out_slice_length = slice_length;
 	gf_media_nalu_add_emulation_bytes(data_without_emulation_bytes, *out_slice, data_without_emulation_bytes_size);
