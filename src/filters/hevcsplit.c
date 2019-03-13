@@ -46,11 +46,8 @@ typedef struct
 	u32 num_tiles, got_p, did_it;
 	HEVCState hevc_state;
 	u32 hevc_nalu_size_length, cfg_crc;
-<<<<<<< HEAD
-	char *buffer_nal;
-=======
 	char *buffer_nal; // write some comments
->>>>>>> filt_tile_merge
+
 	u32 buffer_nal_alloc;
 	GF_BitStream *bs_nal_in; // *bs_vec_crop;
 } GF_HEVCSplitCtx;
