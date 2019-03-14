@@ -293,4 +293,131 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 }
 #endif /*GPAC_DISABLE_ZLIB*/
 
+
+#ifdef GPAC_HAS_LZMA
+
+#include <lzma.h>
+
+#define LZMA_COMPRESS_SAFE	2
+
+GF_EXPORT
+GF_Err gf_lz_compress_payload(char **data, u32 data_len, u32 *max_size)
+{
+	u32 block_size, comp_size;
+	lzma_options_lzma opt_lzma2;
+	lzma_stream strm = LZMA_STREAM_INIT;
+
+	lzma_lzma_preset(&opt_lzma2, LZMA_PRESET_DEFAULT);
+	lzma_filter filters[] = {
+			{ .id = LZMA_FILTER_X86, .options = NULL },
+			{ .id = LZMA_FILTER_LZMA2, .options = &opt_lzma2 },
+			{ .id = LZMA_VLI_UNKNOWN, .options = NULL },
+	};
+	lzma_ret ret = lzma_stream_encoder(&strm, filters, LZMA_CHECK_NONE);
+	if (ret != LZMA_OK) return GF_IO_ERR;
+
+	block_size = data_len*LZMA_COMPRESS_SAFE;
+	char *dest = (char *)gf_malloc(sizeof(char)*block_size);
+
+
+	strm.next_in = (const uint8_t *) (*data);
+	strm.avail_in = data_len;
+	strm.next_out = (uint8_t *) dest;
+	strm.avail_out = block_size;
+
+	ret = lzma_code(&strm, LZMA_FINISH);
+	if ((ret != LZMA_OK) && (ret != LZMA_STREAM_END)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[LZMA] compressed data failure, code %d\n", ret ));
+		return GF_IO_ERR;
+	}
+	comp_size = block_size - strm.avail_out;
+
+	if (data_len < comp_size) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[LZMA] compressed data (%d) larger than input (%d)\n", (u32) comp_size, (u32) data_len ));
+	}
+
+	if (*max_size < comp_size) {
+		*max_size = block_size;
+		*data = (char*)gf_realloc(*data, block_size * sizeof(char));
+	}
+
+	memcpy((*data) , dest, sizeof(char) * comp_size);
+	*max_size = (u32) comp_size;
+	gf_free(dest);
+
+	lzma_end(&strm);
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_lz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size)
+{
+	lzma_stream strm = LZMA_STREAM_INIT;
+	lzma_ret ret = lzma_stream_decoder(&strm, UINT64_MAX, 0);
+	if (ret != LZMA_OK) return GF_IO_ERR;
+
+	Bool owns_buffer=GF_TRUE;
+	u32 block_size = 4096;
+	u32 done = 0;
+	u32 alloc_size = 0;
+	u8 block[4096];
+	u8 *dst_buffer = NULL;
+
+	if (*uncompressed_data) {
+		owns_buffer = GF_FALSE;
+		dst_buffer = (u8 *) *uncompressed_data;
+		alloc_size = *out_size;
+	} else {
+		*out_size = 0;
+	}
+
+	strm.next_in = (const uint8_t *) data;
+	strm.avail_in = data_len;
+	strm.next_out = (uint8_t *) block;
+	strm.avail_out = block_size;
+
+	while (1) {
+		lzma_ret ret = lzma_code(&strm, LZMA_FINISH);
+
+		if ((strm.avail_out == 0) || (ret == LZMA_STREAM_END)) {
+			u32 uncomp_size = block_size - strm.avail_out;
+
+			if (done + uncomp_size > alloc_size) {
+				alloc_size = done + uncomp_size;
+				dst_buffer = gf_realloc(dst_buffer, alloc_size);
+				*out_size = alloc_size;
+			}
+			memcpy(dst_buffer + done, block, uncomp_size);
+			done += uncomp_size;
+
+			strm.next_out = (uint8_t *) block;
+			strm.avail_out = block_size;
+		}
+		if (ret == LZMA_STREAM_END) break;
+		if (ret != LZMA_OK) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[LZMA] error decompressing data: %d\n", ret ));
+			if (owns_buffer) gf_free(dst_buffer);
+			return GF_IO_ERR;
+		}
+	}
+
+	*uncompressed_data = (char *) dst_buffer;
+	*out_size = done;
+	return GF_OK;
+}
+#else
+GF_EXPORT
+GF_Err gf_lz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size)
+{
+	*out_size = 0;
+	return GF_NOT_SUPPORTED;
+}
+GF_Err gf_lz_compress_payload(char **data, u32 data_len, u32 *max_size)
+{
+	*max_size = 0;
+	return GF_NOT_SUPPORTED;
+}
+
+#endif /*GPAC_HAS_LZMA*/
+
 #endif /* GPAC_DISABLE_CORE_TOOLS*/
