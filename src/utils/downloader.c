@@ -768,7 +768,11 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 		sess->th = NULL;
 	}
 
-	if (sess->dm) gf_list_del_item(sess->dm->sessions, sess);
+	if (sess->dm) {
+		gf_mx_p(sess->dm->cache_mx);
+		gf_list_del_item(sess->dm->sessions, sess);
+		gf_mx_v(sess->dm->cache_mx);
+	}
 
 	gf_dm_remove_cache_entry_from_session(sess);
 	sess->cache_entry = NULL;
@@ -1278,7 +1282,9 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 
 	sess = gf_dm_sess_new_simple(dm, url, dl_flags, user_io, usr_cbk, e);
 	if (sess) {
 		sess->dm = dm;
+		gf_mx_p(dm->cache_mx);
 		gf_list_add(dm->sessions, sess);
+		gf_mx_v(dm->cache_mx);
 	}
 	return sess;
 }

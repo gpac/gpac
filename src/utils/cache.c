@@ -1042,15 +1042,16 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, char *data, u32 size
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Storing %d bytes to memory from external module\n", size));
 		return GF_TRUE;
 	}
-	if ( size > entry->mem_allocated) {
+	if ( size >= entry->mem_allocated) {
 		u32 new_size;
-		new_size = MAX(entry->mem_allocated*2, size);
+		new_size = MAX(entry->mem_allocated*2, size+1);
 		entry->mem_storage = (u8*)gf_realloc(entry->mem_allocated ? entry->mem_storage : NULL, (new_size+2));
 		entry->mem_allocated = new_size;
 		sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Reallocating memory cache to %d bytes\n", new_size));
 	}
 	memcpy(entry->mem_storage, data, size);
+	entry->mem_storage[size] = 0;
 	entry->written_in_cache = size;
 	sprintf(entry->cache_filename, "gmem://%d@%p", entry->written_in_cache, entry->mem_storage);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Storing %d bytes to cache memory\n", size));
