@@ -418,6 +418,7 @@ GF_Err gf_lz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 	*out_size = 0;
 	return GF_NOT_SUPPORTED;
 }
+GF_EXPORT
 GF_Err gf_lz_compress_payload(char **data, u32 data_len, u32 *max_size)
 {
 	*max_size = 0;
