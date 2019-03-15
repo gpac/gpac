@@ -883,7 +883,8 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 		//for signaling objects, we set byte after last to 0 to use string functions
 		if (!tsi)
 			obj->alloc_size++;
-		obj->payload = gf_realloc(obj->payload, obj->alloc_size);
+		obj->payload = gf_realloc(obj->payload, obj->alloc_size+1);
+		obj->payload[obj->alloc_size] = 0;
 	}
 	assert(obj->alloc_size >= start_offset + size);
 

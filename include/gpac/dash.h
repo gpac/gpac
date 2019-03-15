@@ -94,6 +94,8 @@ typedef enum
 	GF_DASH_EVENT_ABORT_DOWNLOAD,
 	/*! event send whenever cache is full, to allow client to dispatch any segment*/
 	GF_DASH_EVENT_CACHE_FULL,
+	/*! event send when all groups are done in a period*/
+	GF_DASH_EVENT_END_OF_PERIOD,
 } GF_DASHEventType;
 
 /*structure used for all IO operations for DASH*/
@@ -439,6 +441,9 @@ u64 gf_dash_get_period_duration(GF_DashClient *dash);
 //returns number of quality available for the given group
 u32 gf_dash_group_get_num_qualities(GF_DashClient *dash, u32 idx);
 
+//returns number of components in the given group
+u32 gf_dash_group_get_num_components(GF_DashClient *dash, u32 idx);
+
 void gf_dash_disable_speed_adaptation(GF_DashClient *dash, Bool disable);
 
 
@@ -519,6 +524,15 @@ GF_Err gf_dash_group_set_quality_degradation_hint(GF_DashClient *dash, u32 idx, 
 
 //sets visible rectangle of a video object, may be used for adaptation. If min_x==max_x==min_y=max_y==0, disable adaptation
 GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u32 max_x, u32 min_y, u32 max_y);
+
+/*Ignores xlink on periods if some adaptation sets are specified in the period with xlink*/
+void gf_dash_ignore_xlink(GF_DashClient *dash, Bool ignore_xlink);
+
+/*returns true if all active groups in period are done*/
+Bool gf_dash_all_groups_done(GF_DashClient *dash);
+
+/*sets query string to append to xlink on periods*/
+void gf_dash_set_period_xlink_query_string(GF_DashClient *dash, const char *query_string);
 
 typedef enum {
 	GF_DASH_ALGO_NONE = 0,
