@@ -1258,6 +1258,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_nb_views) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_raw_image_planes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_is_raw_memory) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_is_started) )
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_load_xlink_resource) )
@@ -2295,6 +2296,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_utc_drift_estimate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_algo) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_atsc_ast_shift) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_ignore_xlink) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_num_components) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_all_groups_done) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_period_xlink_query_string) )
 
 #endif
 

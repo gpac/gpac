@@ -988,6 +988,7 @@ void gf_mpd_period_free(void *_item)
 {
 	GF_MPD_Period *ptr = (GF_MPD_Period *)_item;
 	if (ptr->ID) gf_free(ptr->ID);
+	if (ptr->origin_base_url) gf_free(ptr->origin_base_url);
 	if (ptr->xlink_href) gf_free(ptr->xlink_href);
 	if (ptr->segment_base) gf_mpd_segment_base_free(ptr->segment_base);
 	if (ptr->segment_list) gf_mpd_segment_list_free(ptr->segment_list);
@@ -1110,6 +1111,7 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 			MPD_STORE_EXTENSION_NODE(mpd)
 		}
 	}
+
 	return GF_OK;
 }
 

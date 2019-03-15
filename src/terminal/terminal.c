@@ -1607,7 +1607,7 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 			continue;
 
 		/*if service has timeline locked to its parent scene, only reuse it if new object does as well*/
-		if (ns->owner->flags & GF_ODM_INHERIT_TIMELINE) {
+		if (ns->owner && ns->owner->flags & GF_ODM_INHERIT_TIMELINE) {
 			if (!(odm->flags & GF_ODM_INHERIT_TIMELINE)) continue;
 		}
 

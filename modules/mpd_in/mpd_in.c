@@ -52,17 +52,21 @@ typedef struct __mpd_module
 
 	GF_DashClient *dash;
 	Bool closed;
+	Bool at_period_switch;
 	/*interface to mpd parser*/
 	GF_DASHFileIO dash_io;
 
 	Bool connection_ack_sent;
 	Bool memory_storage;
 	Bool use_max_res, immediate_switch, allow_http_abort;
+	Bool disable_continuity;
 	MpdInLowLatency low_latency_mode;
 	MpdInBuffer buffer_mode;
 	u32 nb_playing;
+	Bool has_muxed_groups;
 
 	GF_DASHAdaptationAlgorithm adaptation_algorithm;
+	GF_List *groups;
 
 	/*max width & height in all active representations*/
 	u32 width, height;
@@ -85,10 +89,13 @@ typedef struct
 	u32 idx;
 	GF_DownloadSession *sess;
 	Bool is_timestamp_based, pto_setup;
+	u32 force_init_next;
 	u32 timescale;
 	s64 pto;
 	s64 max_cts_in_period;
 	bin128 key_IV;
+	u32 nb_comp;
+	char *mime;
 } GF_MPDGroup;
 
 const char * MPD_MPD_DESC = "MPEG-DASH Streaming";
@@ -169,6 +176,7 @@ static void mpdin_connect_ack(GF_ClientService *service, LPNETCHANNEL ns, GF_Err
 void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {
 	s32 i;
+	u32 timescale = 0;
 	GF_MPD_In *mpdin = (GF_MPD_In*) service->ifce->priv;
 	GF_Channel *ch;
 	GF_MPDGroup *group;
@@ -180,6 +188,11 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 
 	ch = (GF_Channel *) ns;
 	assert(ch->odm && ch->odm->OD);
+	timescale = ch->esd->slConfig->timestampResolution;
+	if (hdr->ts_res)
+		timescale = hdr->ts_res;
+	if (!timescale) timescale=90000;
+
 
 	i = gf_dash_get_group_idx_from_service(mpdin,  (GF_InputService *) ch->odm->OD->service_ifce);
 	if (i<0) {
@@ -207,28 +220,25 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 	//if sync is based on timestamps do not adjust the timestamps back
 	if (! group->is_timestamp_based) {
 		if (!group->pto_setup) {
-			Double scale;
 			s64 start, dur;
 			u64 pto;
 			gf_dash_group_get_presentation_time_offset(mpdin->dash, i, &pto, &group->timescale);
 			group->pto = (s64) pto;
 			group->pto_setup = 1;
 
-			if (group->timescale && (group->timescale != ch->esd->slConfig->timestampResolution)) {
-				group->pto *= ch->esd->slConfig->timestampResolution;
+			if (group->timescale && (group->timescale != timescale)) {
+				group->pto *= timescale;
 				group->pto /= group->timescale;
 			}
-			scale = ch->esd->slConfig->timestampResolution;
-			scale /= 1000;
 
-			dur = (u64) (scale * gf_dash_get_period_duration(mpdin->dash));
+			dur = (u64) (timescale * gf_dash_get_period_duration(mpdin->dash) / 1000);
 			if (dur) {
 				group->max_cts_in_period = group->pto + dur;
 			} else {
 				group->max_cts_in_period = 0;
 			}
 
-			start = (u64) (scale * gf_dash_get_period_start(mpdin->dash));
+			start = (u64) (timescale * gf_dash_get_period_start(mpdin->dash) / 1000);
 			group->pto -= start;
 		}
 
@@ -247,6 +257,10 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 				hdr->decodingTimeStamp = 0;
 				hdr->seekFlag = 1;
 			}
+			if (timescale != ch->esd->slConfig->timestampResolution) {
+				hdr->decodingTimeStamp *= ch->esd->slConfig->timestampResolution;
+				hdr->decodingTimeStamp /= timescale;
+			}
 		}
 		if (hdr->compositionTimeStampFlag) {
 			if ((s64) hdr->compositionTimeStamp >= group->pto)
@@ -255,6 +269,10 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
 				hdr->compositionTimeStamp = 0;
 				hdr->seekFlag = 1;
+			}
+			if (timescale != ch->esd->slConfig->timestampResolution) {
+				hdr->compositionTimeStamp *= ch->esd->slConfig->timestampResolution;
+				hdr->compositionTimeStamp /= timescale;
 			}
 		}
 
@@ -371,10 +389,12 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] New AdaptationSet detected after MPD update ?\n"));
 		}
 
-		if (discard_first_cache_entry) {
+		if (discard_first_cache_entry || (group->force_init_next==1)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Discarding first segment in cache\n"));
 			gf_dash_group_discard_segment(mpdin->dash, group_idx);
 		}
+		if (group->force_init_next==1)
+			group->force_init_next = 2;
 
 		while (gf_dash_is_running(mpdin->dash)) {
 			group_done=0;
@@ -386,16 +406,21 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 				if (gf_dash_is_group_selected(mpdin->dash, group_idx)
 				&& !gf_dash_get_period_switch_status(mpdin->dash)
 				&& !gf_dash_in_last_period(mpdin->dash, GF_TRUE)
+				&& gf_dash_all_groups_done(mpdin->dash)
 				) {
 					GF_NetworkCommand com;
 					param->url_query.in_end_of_period = 1;
 					memset(&com, 0, sizeof(GF_NetworkCommand));
 					com.command_type = GF_NET_BUFFER_QUERY;
 					if (gf_dash_get_period_switch_status(mpdin->dash) != 1) {
-						gf_service_command(mpdin->service, &com, GF_OK);
+						//if muxed groups, flush all otherwise we will try not to destroy the service
+						if (mpdin->has_muxed_groups)
+							gf_service_command(mpdin->service, &com, GF_OK);
+
 						//we only switch period once no more data is in our buffers
 						if (!com.buffer.occupancy) {
 							param->url_query.in_end_of_period = 0;
+							mpdin->at_period_switch = GF_TRUE;
 							gf_dash_request_period_switch(mpdin->dash);
 						}
 					}
@@ -424,6 +449,8 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			return GF_BUFFER_TOO_SMALL;
 		}
 
+		mpdin->at_period_switch = GF_FALSE;
+
 		param->url_query.current_download = 0;
 		nb_segments_cached = gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done);
 		if (nb_segments_cached < 1) {
@@ -440,6 +467,10 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			return e;
 
 		param->url_query.key_IV = &group->key_IV;
+		if (group->force_init_next==2) {
+			group->force_init_next = 0;
+			param->url_query.next_url_init_or_switch_segment = gf_dash_group_get_segment_init_url(mpdin->dash, group_idx, &param->url_query.switch_start_range, &param->url_query.switch_end_range);
+		}
 
 		if (gf_dash_group_loop_detected(mpdin->dash, group_idx)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD_IN] Clock discontinuity found\n"));
@@ -478,6 +509,17 @@ static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, u32 group_index, const char
 	u32 i;
 	const char *sPlug;
 	if (mime) {
+		for (i=0; i<gf_list_count(mpdin->groups); i++) {
+			GF_MPDGroup *group = gf_list_get(mpdin->groups, i);
+			if (group->mime && !strcmp(group->mime, mime)) {
+				group->pto_setup=GF_FALSE;
+				group->idx = group_index;
+				group->force_init_next = strstr(mime, "mp4") ? GF_TRUE : GF_FALSE;
+				gf_dash_set_group_udta(mpdin->dash, group_index, group);
+				return GF_OK;
+			}
+
+		}
 		/* Check MIME type to start the right InputService */
 		sPlug = gf_cfg_get_key(mpdin->service->term->user->config, "MimeTypes", mime);
 		if (sPlug) sPlug = strrchr(sPlug, '"');
@@ -494,7 +536,12 @@ static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, u32 group_index, const char
 				group->segment_ifce->query_proxy = MPD_ClientQuery;
 				group->mpdin = mpdin;
 				group->idx = group_index;
+				group->mime = gf_strdup(mime);
+				if ( gf_dash_group_get_num_components(mpdin->dash, group_index)>1) {
+					mpdin->has_muxed_groups = GF_TRUE;
+				}
 				gf_dash_set_group_udta(mpdin->dash, group_index, group);
+				gf_list_add(mpdin->groups, group);
 				return GF_OK;
 			}
 		}
@@ -770,6 +817,8 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 
 	/*for all selected groups, create input service and connect to init/first segment*/
 	if (dash_evt==GF_DASH_EVENT_CREATE_PLAYBACK) {
+		mpdin->has_muxed_groups = mpdin->disable_continuity ? GF_TRUE : GF_FALSE;
+
 		/*select input services if possible*/
 		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
 			const char *mime, *init_segment;
@@ -819,13 +868,16 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 					mpdin->width = w;
 					mpdin->height = h;
 				}
-
-				e = group->segment_ifce->ConnectService(group->segment_ifce, mpdin->service, init_segment);
-				if (e) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD_IN] Unable to connect input service to %s\n", init_segment));
-					gf_dash_group_select(mpdin->dash, i, GF_FALSE);
+				if (!group->service_connected) {
+					e = group->segment_ifce->ConnectService(group->segment_ifce, mpdin->service, init_segment);
+					if (e) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD_IN] Unable to connect input service to %s\n", init_segment));
+						gf_dash_group_select(mpdin->dash, i, GF_FALSE);
+					} else {
+						group->service_connected = 1;
+					}
 				} else {
-					group->service_connected = 1;
+					gf_dash_group_select(mpdin->dash, i, GF_TRUE);
 				}
 				if (mpdin->closed) return GF_OK;
 			}
@@ -835,6 +887,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 			mpdin->fn_connect_ack(mpdin->service, NULL, GF_OK);
 			mpdin->connection_ack_sent=1;
 		}
+		mpdin->at_period_switch = GF_FALSE;
 
 		//we had a seek outside of the period we were setting up, during period setup !
 		//request the seek again from the player
@@ -851,6 +904,9 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 
 	/*for all running services, stop service*/
 	if (dash_evt==GF_DASH_EVENT_DESTROY_PLAYBACK) {
+		//all groups are single-media, and we are at period switch: try to use period continuity
+		if (mpdin->at_period_switch && !mpdin->has_muxed_groups)
+			return GF_OK;
 
 		mpdin->service->subservice_disconnect = 1;
 		gf_service_disconnect_ack(mpdin->service, NULL, GF_OK);
@@ -866,6 +922,8 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 				}
 				gf_modules_close_interface((GF_BaseInterface *) group->segment_ifce);
 			}
+			gf_list_del_item(mpdin->groups, group);
+			if (group->mime) gf_free(group->mime);
 			gf_free(group);
 			gf_dash_set_group_udta(mpdin->dash, i, NULL);
 		}
@@ -928,14 +986,13 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		gf_service_command(mpdin->service, &com, GF_OK);
 		gf_dash_group_set_buffer_levels(mpdin->dash, group_idx, com.buffer.min, com.buffer.max, com.buffer.occupancy);
 	}
-	if (dash_evt==GF_DASH_EVENT_CACHE_FULL) {
+	if ((dash_evt==GF_DASH_EVENT_CACHE_FULL) ||  (dash_evt==GF_DASH_EVENT_END_OF_PERIOD) ) {
 		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
 			GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, i);
 			if (group && gf_dash_is_group_selected(mpdin->dash, i))
 				MPD_NotifyData(group, 0);
 		}
 	}
-
 	return GF_OK;
 }
 
@@ -967,7 +1024,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	GF_Err e;
 	s32 shift_utc_ms, debug_adaptation_set;
 	u32 max_cache_duration, auto_switch_count, init_timeshift, tiles_rate_decrease;
-	Bool use_server_utc;
+	Bool use_server_utc, ignore_xlink;
 	GF_DASHInitialSelectionMode first_select_mode;
 	GF_DASHTileAdaptationMode tile_adapt_mode;
 	Bool keep_files, disable_switching, use_threads;
@@ -1112,6 +1169,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "InitialTimeshift", "0");
 	if (opt) init_timeshift = atoi(opt);
 
+	ignore_xlink = GF_FALSE;
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "IgnoreXLink");
+	if (opt && !strcmp(opt, "yes")) ignore_xlink = GF_TRUE;
+
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "TileAdaptation");
 	if (!opt) {
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "TileAdaptation", "none");
@@ -1157,6 +1218,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	gf_dash_enable_utc_drift_compensation(mpdin->dash, use_server_utc);
 	gf_dash_set_tile_adaptation_mode(mpdin->dash, tile_adapt_mode, tiles_rate_decrease);
 	gf_dash_set_threaded_download(mpdin->dash, use_threads);
+	gf_dash_ignore_xlink(mpdin->dash, ignore_xlink);
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseScreenResolution");
 	//default mode is no for the time being
@@ -1211,6 +1273,12 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UTCShiftATSC", "1000");
 	else gf_dash_set_atsc_ast_shift(mpdin->dash, atoi(opt) );
 
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "NoContinuity");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "NoContinuity", "no");
+	else if (!strcmp(opt, "yes")) mpdin->disable_continuity = GF_TRUE;
+
+	gf_dash_set_period_xlink_query_string(mpdin->dash, gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "XLinkQuery") );
+
 	/*dash thread starts at the end of gf_dash_open */
 	e = gf_dash_open(mpdin->dash, url);
 	if (e) {
@@ -1251,10 +1319,25 @@ GF_Err MPD_CloseService(GF_InputService *plug)
 	assert(mpdin);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Close Service (%p) request from terminal\n", mpdin->service));
 
+	if (mpdin->service && mpdin->service->subservice_disconnect) return GF_OK;
+
 	mpdin->closed = 1;
 
 	if (mpdin->dash)
 		gf_dash_close(mpdin->dash);
+
+	while (gf_list_count(mpdin->groups)) {
+		GF_MPDGroup *group = gf_list_pop_back(mpdin->groups);
+		if (group->segment_ifce) {
+			if (group->service_connected) {
+				group->segment_ifce->CloseService(group->segment_ifce);
+				group->service_connected = 0;
+			}
+			gf_modules_close_interface((GF_BaseInterface *) group->segment_ifce);
+		}
+		if (group->mime) gf_free(group->mime);
+		gf_free(group);
+	}
 
 	gf_service_disconnect_ack(mpdin->service, NULL, GF_OK);
 
@@ -1548,7 +1631,8 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				if (ms<1000) ms = 0;
 				gf_dash_set_timeshift(mpdin->dash, ms);
 			}
-			gf_dash_seek(mpdin->dash, com->play.start_range);
+			if (!com->play.initial_broadcast_play || !mpdin->at_period_switch)
+				gf_dash_seek(mpdin->dash, com->play.start_range);
 
 			//to remove once we manage to keep the service alive
 			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
@@ -1671,6 +1755,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 		gf_free(plug);
 		return NULL;
 	}
+	mpdin->groups = gf_list_new();
 	plug->priv = mpdin;
 	mpdin->plug = plug;
 	
@@ -1702,6 +1787,7 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	if (mpdin->dash)
 		gf_dash_del(mpdin->dash);
 
+	gf_list_del(mpdin->groups);
 	gf_free(mpdin);
 	gf_free(bi);
 }

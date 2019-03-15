@@ -430,7 +430,7 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 			gf_service_connect_ack(read->service, NULL, GF_OK);
 		}
 
-		if (read->no_service_desc) isor_declare_objects(read);
+		if (read->no_service_desc)	isor_declare_objects(read);
 
 	} else {
 		/*setup downloader*/

@@ -204,8 +204,11 @@ static void term_on_disconnect(GF_ClientService *service, LPNETCHANNEL netch, GF
 		if (service->subservice_disconnect) {
 			if (service->owner && service->subservice_disconnect==1) {
 				GF_Scene *scene = service->owner->subscene ? service->owner->subscene : service->owner->parentscene;
+				s32 idx = gf_list_del_item(scene->resources, service->owner);
 				/*destroy all media*/
 				gf_scene_disconnect(scene, 1);
+				if (idx>=0)
+					gf_list_add(scene->resources, service->owner);
 			}
 			return;
 		}
@@ -471,7 +474,7 @@ static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service
 		if (ch->service != service) continue;
 		if (ch->es_state != GF_ESM_ES_RUNNING) continue;
 		if (com->base.on_channel && (com->base.on_channel != ch)) continue;
-		if (ch->dispatch_after_db || ch->bypass_sl_and_db || ch->IsEndOfStream) continue;
+		if (ch->dispatch_after_db || ch->bypass_sl_and_db/* || ch->IsEndOfStream*/) continue;
 
 		//if not in hybrid mode, perform buffer management only on base layer  -this is because we don't signal which ESs are on/off in the underlying service ...
 		if (ch->esd->dependsOnESID) {
@@ -554,6 +557,8 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 			com->buffer.occupancy = (max_buffer_time < com->buffer.max) ? 0 : 2;
 			com->buffer.max = 1;
 			com->buffer.min = 0;
+		} else if (com->buffer.occupancy && max_buffer_time>com->buffer.occupancy) {
+			com->buffer.occupancy = max_buffer_time;
 		}
 		return;
 	}

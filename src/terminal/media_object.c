@@ -1303,6 +1303,13 @@ Bool gf_mo_is_muted(GF_MediaObject *mo)
 }
 
 GF_EXPORT
+Bool gf_mo_is_started(GF_MediaObject *mo)
+{
+	if (mo && mo->odm && mo->odm->codec && gf_clock_is_started(mo->odm->codec->ck)) return GF_TRUE;
+	return GF_FALSE;
+}
+
+GF_EXPORT
 Bool gf_mo_is_done(GF_MediaObject *mo)
 {
 	Bool res = GF_FALSE;

@@ -100,19 +100,20 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 		break;
 	case GF_ATSC_EVT_MPD:
 	{
-		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-		od->ServiceID = evt_param;
-		od->RedirectOnly = 1;
-
 		sprintf(szPath, "http://gpatsc/service%d/%s", evt_param, finfo->filename);
-		od->URLString = gf_strdup(szPath);
+
+		if (gf_atsc3_dmx_get_service_udta(atscd->atsc_dmx, evt_param)==NULL) {
+			GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+			od->ServiceID = evt_param;
+			od->RedirectOnly = 1;
+			od->URLString = gf_strdup(szPath);
+			gf_service_declare_media(atscd->service, (GF_Descriptor *) od, GF_TRUE);
+		}
 		cache_entry = gf_dm_add_cache_entry(atscd->dm, szPath, finfo->data, finfo->size, 0, 0, "application/dash+xml", GF_TRUE, 0);
 
 		sprintf(szPath, "x-dash-atsc: %d\r\n", evt_param);
 		gf_dm_force_headers(atscd->dm, cache_entry, szPath);
 		gf_atsc3_dmx_set_service_udta(atscd->atsc_dmx, evt_param, cache_entry);
-
-		gf_service_declare_media(atscd->service, (GF_Descriptor *) od, GF_TRUE);
 
 		atscd->sync_tsi = 0;
 		atscd->last_toi = 0;
