@@ -1839,11 +1839,11 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 {
 	FILE *in, *out;
 	char *buf;
-	u32 buf_alloc, comp_size;
+	u32 buf_alloc, comp_size, start_offset;
 	s32 bytes_comp=0;
 	s32 bytes_uncomp=0;
 	GF_Err e = GF_OK;
-	u64 source_size, dst_size, start_offset;
+	u64 source_size, dst_size;
 	u32 orig_box_overhead;
 	u32 final_box_overhead;
 	u32 gzip_code = use_lzma ? GF_4CC('l','z','m','a') : GF_4CC('g','z','i','p') ;
@@ -1853,7 +1853,7 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 	Bool replace_all = !strcmp(compress_top_boxes, "*");
 	Bool requires_byte_ranges=GF_FALSE;
 	GF_BitStream *bs_in, *bs_out;
-	u32 idx_size, nb_moof;
+	u32 idx_size=0, nb_moof;
 	struct _ranges {
 		u32 size, csize;
 	} *ranges=NULL;
@@ -1890,7 +1890,7 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 				nb_ranges++;
 			}
 			if (!strcmp(b4cc, "ftyp") || !strcmp(b4cc, "styp")) {
-				if (!start_offset) start_offset = gf_bs_get_position(bs_in) + size-8;
+				if (!start_offset) start_offset = (u32) gf_bs_get_position(bs_in) + size-8;
 			}
 			if (!strcmp(b4cc, "sidx") || !strcmp(b4cc, "ssix")) {
 				requires_byte_ranges = GF_TRUE;
