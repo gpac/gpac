@@ -710,7 +710,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			if ((seg_start_ms>=ap->start) && (!ap->duration || (seg_end_ms<=start + ap->duration))) {
 				if (i != group->dash->active_period_index) {
 					group->dash->reinit_period_index = 1+i;
-					group->dash->start_range_period = (u64) seg_start_ms;
+					group->dash->start_range_period = (Double) seg_start_ms;
 					group->dash->start_range_period -= ap->start;
 					group->dash->start_range_period /= 1000;
 					return;
@@ -926,7 +926,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 				if ((seg_start_ms>=ap->start) && (!ap->duration || (seg_end_ms<=start + ap->duration))) {
 					group->dash->reinit_period_index = 1+i;
-					group->dash->start_range_period = (u64) seg_start_ms;
+					group->dash->start_range_period = (Double) seg_start_ms;
 					group->dash->start_range_period -= ap->start;
 					group->dash->start_range_period /= 1000;
 					return;
