@@ -700,7 +700,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 	if (gf_list_count(group->dash->mpd->periods)) {
 		u64 seg_start_ms = current_time;
-		u64 seg_end_ms = seg_start_ms + group->segment_duration*1000;
+		u64 seg_end_ms = (u64) (seg_start_ms + group->segment_duration*1000);
 		u32 i;
 		u64 start = 0;
 		for (i=0; i<gf_list_count(group->dash->mpd->periods); i++) {
@@ -710,7 +710,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			if ((seg_start_ms>=ap->start) && (!ap->duration || (seg_end_ms<=start + ap->duration))) {
 				if (i != group->dash->active_period_index) {
 					group->dash->reinit_period_index = 1+i;
-					group->dash->start_range_period = seg_start_ms;
+					group->dash->start_range_period = (u64) seg_start_ms;
 					group->dash->start_range_period -= ap->start;
 					group->dash->start_range_period /= 1000;
 					return;
@@ -912,8 +912,8 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			availabilityStartTime += group->dash->atsc_ast_shift;
 		}
 
-		seg_start_ms = group->segment_duration * (shift+start_number) * 1000;
-		seg_end_ms = seg_start_ms + group->segment_duration*1000;
+		seg_start_ms = (u64) (group->segment_duration * (shift+start_number) * 1000);
+		seg_end_ms = (u64) (seg_start_ms + group->segment_duration*1000);
 		//we are in the right period
 		if (seg_start_ms>=group->period->start && (!group->period->duration || (seg_end_ms<=group->period->start+group->period->duration)) ) {
 
@@ -926,7 +926,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 				if ((seg_start_ms>=ap->start) && (!ap->duration || (seg_end_ms<=start + ap->duration))) {
 					group->dash->reinit_period_index = 1+i;
-					group->dash->start_range_period = seg_start_ms;
+					group->dash->start_range_period = (u64) seg_start_ms;
 					group->dash->start_range_period -= ap->start;
 					group->dash->start_range_period /= 1000;
 					return;
@@ -2323,7 +2323,7 @@ restart_period_check:
 
 		if (!period->duration && new_period->duration) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("End of period upcoming, current segment index for group #%d: %d\n", group_idx+1, group->download_segment_index));
-			if (group->download_segment_index>group->nb_segments_in_rep)
+			if (group->download_segment_index > (s32) group->nb_segments_in_rep)
 				group->done = GF_TRUE;
 		}
 
@@ -4695,7 +4695,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 			u32 len;
 			char *purl, *full_url;
 			purl = url ? url : period->xlink_href;
-			len = 2 + strlen(purl) + strlen(dash->query_string);
+			len = (u32) (2 + strlen(purl) + strlen(dash->query_string));
 			full_url = gf_malloc(sizeof(char)*len);
 			strcpy(full_url, purl);
 			if (strchr(purl, '?')) strcat(full_url, "&");
@@ -6467,7 +6467,7 @@ static u32 gf_dash_period_index_from_time(GF_DashClient *dash, u64 time)
 	u32 i, count;
 	u64 cumul_start = 0;
 	Bool is_dyn = GF_FALSE;
-	GF_MPD_Period *period, *prev_period;
+	GF_MPD_Period *period;
 
 	if (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
 		u64 now, availabilityStartTime;
@@ -6488,7 +6488,6 @@ static u32 gf_dash_period_index_from_time(GF_DashClient *dash, u64 time)
 restart:
 	count = gf_list_count(dash->mpd->periods);
 	cumul_start = 0;
-	prev_period = NULL;
 	for (i = 0; i<count; i++) {
 		period = gf_list_get(dash->mpd->periods, i);
 
@@ -6506,7 +6505,6 @@ restart:
 		if (time < cumul_start) {
 			break;
 		}
-		prev_period = period;
 	}
 	if (is_dyn) {
 		for (i = 0; i<count; i++) {
