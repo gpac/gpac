@@ -1886,6 +1886,8 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 
 }
 #endif /*GPAC_DISABLE_HEVC */
 
+GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
+
 GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl)
 {
 	u32 i, j, count, nb_tracks, nb_samp, nb_done;
@@ -2461,7 +2463,7 @@ GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, Doub
 		char *url;
 		u32 len;
 		szLine[0] = 0;
-		if (!fgets(szLine, 10000, pl)) break;
+		if (fgets(szLine, 10000, pl) == NULL) break;
 		if (szLine[0]=='#') continue;
 		len = (u32) strlen(szLine);
 		while (len && strchr("\r\n \t", szLine[len-1])) {
