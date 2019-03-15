@@ -11225,8 +11225,8 @@ GF_Err dvcC_Read(GF_Box *s, GF_BitStream *bs)
 		gf_bs_read_data(bs, (char*)data, 20);
 		for (i = 0; i < 5; ++i) {
 			if (data[i] != 0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bytes are not zero\n"));
-				return GF_ISOM_INVALID_FILE;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bytes are not zero\n"));
+				//return GF_ISOM_INVALID_FILE;
 			}
 		}
 	}

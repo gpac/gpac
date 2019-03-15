@@ -884,6 +884,18 @@ Default is 100.</p>
 <p style="text-indent: 5%">
 Indicates the amount of ms to delay requests for ATSC broadcast. Default value is 1000.</p>
 
+<b>IgnoreXLink</b> [value: <i>yes no</i>]
+<p style="text-indent: 5%">
+Indicates if periods with both xlink and adaptation sets specified should resolve the xlink. Default value is yes.</p>
+
+<b>NoContinuity</b> [value: <i>yes no</i>]
+<p style="text-indent: 5%">
+Disabled period continuity playback (forces flushing all content before next period). Period continutity is only implemented for unmultiplexed files. Default value is no.</p>
+
+<b>XLinkQuery</b> [value: <i>string</i>]
+<p style="text-indent: 5%">
+Specifies a query parameter (without initial '?') to append to xlink on periods. Default value is no value.</p>
+
 <br/><br/>
 
 <a name="ALSA"></a>

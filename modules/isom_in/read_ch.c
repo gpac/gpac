@@ -235,6 +235,15 @@ next_segment:
 				e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
 				if (e < 0) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening init segment %s at UTC "LLU": %s\n", param.url_query.next_url_init_or_switch_segment, gf_net_get_utc(), gf_error_to_string(e) ));
+				} else {
+					for (i=0; i<count; i++) {
+						ISOMChannel *ch = gf_list_get(read->channels, i);
+						ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
+						ch->has_edit_list = gf_isom_get_edit_list_type(ch->owner->mov, ch->track, &ch->dts_offset) ? GF_TRUE : GF_FALSE;
+						ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track) == 1) ? GF_TRUE : GF_FALSE;
+						ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
+						ch->start = 0;
+					}
 				}
 			}
 			if (!e) {
@@ -751,6 +760,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	}
 	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
 	ch->current_slh.OCRflag = ch->owner->clock_discontinuity ? 2 : 0;
+	ch->current_slh.ts_res = ch->time_scale;
 	ch->owner->clock_discontinuity = 0;
 
 	//handle negative ctts
