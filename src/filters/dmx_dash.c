@@ -44,6 +44,8 @@ typedef struct
 	GF_DASHTileAdaptationMode tile_mode;
 	GF_DASHAdaptationAlgorithm algo;
 	Bool max_res, immediate, abort, use_bmin;
+	char *query;
+	Bool noxlink;
 
 	GF_FilterPid *mpd_pid;
 	GF_Filter *filter;
@@ -748,6 +750,8 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	gf_dash_set_agressive_adaptation(ctx->dash, ctx->aggressive);
 	gf_dash_debug_group(ctx->dash, ctx->debug_as);
 	gf_dash_disable_speed_adaptation(ctx->dash, ctx->speed);
+	gf_dash_ignore_xlink(ctx->dash, ctx->noxlink);
+	gf_dash_set_period_xlink_query_string(ctx->dash, ctx->query);
 
 	return GF_OK;
 }
@@ -1325,6 +1329,8 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(aggressive), "If enabled, switching algo targets the closest bandwidth fitting the available download rate. If no, switching algo targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(debug_as), "Plays only the adaptation set indicated by its index in the MPD; if negative, all sets are used", GF_PROP_UINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(speed), "Enables adaptation based on playback speed", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(noxlink), "Disables xlink if period has both xlink and adaptation sets", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(query), "Sets query string (without initial '?') to append to xlink of periods", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

@@ -111,10 +111,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_get_char) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_set_echo_off) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crc_32) )
-#ifndef GPAC_DISABLE_ZLIB
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_compress_payload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_decompress_payload) )
-#endif
+#pragma comment (linker, EXPORT_SYMBOL(gf_lz_compress_payload) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_lz_decompress_payload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_handles_count) )
 
 /* Memory */
@@ -1221,6 +1221,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_event_target_add_node) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_nb_layers) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_nb_views) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_is_started) )
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_load_xlink_resource) )
@@ -2218,6 +2219,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_utc_drift_estimate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_algo) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_atsc_ast_shift) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_ignore_xlink) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_num_components) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_all_groups_done) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_period_xlink_query_string) )
 
 #endif
 
