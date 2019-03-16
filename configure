@@ -1871,7 +1871,8 @@ int main( void ) { lzma_options_lzma opt_lzma2; lzma_lzma_preset(&opt_lzma2, 9);
 EOF
 
 if docc $CFLAGS_DIR -llzma $LDFLAGS ; then
-    has_lzma="yes"
+  has_lzma="yes"
+  GPAC_SH_FLAGS="$GPAC_SH_FLAGS -llzma"
 fi
 
 #overwrite detection with manual settings
