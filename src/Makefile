@@ -236,10 +236,6 @@ LD_SONAME="-Wl,-h,$(LIB)"
 EXTRALIBS+= -lrt
 endif
 
-ifeq ($(CONFIG_LZMA), yes)
-EXTRALIBS+= -llzma
-endif
-
 
 SRCS := $(OBJS:.o=.c) 
 
