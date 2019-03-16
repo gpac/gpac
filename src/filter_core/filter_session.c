@@ -1614,7 +1614,7 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 	if (f->id)
 		fprintf(stderr, " (%s)\n", f->id);
 	else
-		fprintf(stderr, " (0x%p)\n", f);
+		fprintf(stderr, " (%p)\n", f);
 
 	if (gf_list_find(filters_done, f)>=0)
 		return;

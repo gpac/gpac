@@ -413,6 +413,9 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	} else {
 		ch->sender_ntp = 0;
 	}
+
+	if (!ch->sample_num) return;
+
 	gf_isom_get_sample_flags(ch->owner->mov, ch->track, ch->sample_num, &ch->isLeading, &ch->dependsOn, &ch->dependedOn, &ch->redundant);
 
 	if (ch->is_encrypted) {

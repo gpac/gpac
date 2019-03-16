@@ -1098,7 +1098,7 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
  * \param out_size pointer for output buffer size
  * \return GF_OK if evertything went fine
  */
-GF_Err gf_lz_compress_payload(char **data, u32 data_len, u32 *max_size);
+GF_Err gf_lz_compress_payload(char **data, u32 data_len, u32 *out_size);
 
 /**
  * Decompresses a data buffer using LZMA.

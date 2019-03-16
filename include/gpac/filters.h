@@ -1681,6 +1681,7 @@ If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (
 */
 GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char *link_ext);
 
+
 /*! Overrides the filter registry caps with new caps for this instance. Typically used when an option of the filter changes the capabilities
 \param filter the target filter
 \param caps the new set of capabilities to use for the filter. These are NOT copied and shall be valid for the lifetime of the filter

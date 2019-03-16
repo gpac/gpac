@@ -257,6 +257,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 		gf_free(group);
 		return e;
 	}
+
 	gf_filter_set_setup_failure_callback(ctx->filter, group->seg_filter_src, dashdmx_on_filter_setup_error, group);
 	gf_dash_group_discard_segment(ctx->dash, group->idx);
 	group->prev_is_init_segment = GF_TRUE;
@@ -606,6 +607,47 @@ static s32 dashdmx_group_idx_from_pid(GF_DASHDmxCtx *ctx, GF_FilterPid *src_pid)
 	return -1;
 }
 
+static GF_FilterPid *dashdmx_match_output_pid(GF_Filter *filter, GF_FilterPid *input)
+{
+	u32 i, count = gf_filter_get_opid_count(filter);
+	const GF_PropertyValue *codec, *streamtype, *role, *lang;
+	streamtype = gf_filter_pid_get_property(input, GF_PROP_PID_STREAM_TYPE);
+	if (streamtype && streamtype->value.uint==GF_STREAM_ENCRYPTED)
+		streamtype = gf_filter_pid_get_property(input, GF_PROP_PID_ORIG_STREAM_TYPE);
+
+	codec = gf_filter_pid_get_property(input, GF_PROP_PID_CODECID);
+	role = gf_filter_pid_get_property(input, GF_PROP_PID_ROLE);
+	lang = gf_filter_pid_get_property(input, GF_PROP_PID_LANGUAGE);
+
+	for (i=0; i<count; i++) {
+		u32 score;
+		const GF_PropertyValue *o_codec, *o_streamtype, *o_role, *o_lang;
+		GF_FilterPid *opid = gf_filter_get_opid(filter, i);
+		//in use by us
+		if (gf_filter_pid_get_udta(opid)) continue;
+
+		o_streamtype = gf_filter_pid_get_property(opid, GF_PROP_PID_STREAM_TYPE);
+		if (o_streamtype && o_streamtype->value.uint==GF_STREAM_ENCRYPTED)
+			o_streamtype = gf_filter_pid_get_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE);
+
+		o_codec = gf_filter_pid_get_property(opid, GF_PROP_PID_CODECID);
+		o_role = gf_filter_pid_get_property(opid, GF_PROP_PID_ROLE);
+		o_lang = gf_filter_pid_get_property(opid, GF_PROP_PID_LANGUAGE);
+
+		if (!o_streamtype || !streamtype || !gf_props_equal(streamtype, o_streamtype))
+			continue;
+
+		score = 0;
+		//get highest priority for streams with same role
+		if (o_role && role && gf_props_equal(role, o_role)) score += 10;
+		//then high priority for streams with same lang
+		if (o_lang && lang && gf_props_equal(lang, o_lang)) score += 5;
+
+		//otherwise favour streams with same codec
+		if (!o_codec && codec && gf_props_equal(codec, o_codec)) score++;
+	}
+}
+
 static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 group_idx;
@@ -809,7 +851,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		}
 		return GF_TRUE;
 
-#if 0
+#ifdef FILTER_FIXME
 	case GF_NET_SERVICE_INFO:
 	{
 		s32 idx;
@@ -866,7 +908,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 	switch (fevt->base.type) {
 
 
-#if 0
+#ifdef FILTER_FIXME
 	case GF_NET_CHAN_GET_SRD:
 	{
 		Bool res;
@@ -1245,6 +1287,9 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	}
 
 	if (check_eos) {
+		Bool all_groups_done = GF_TRUE;
+		Bool is_in_last_period = gf_dash_in_last_period(ctx->dash, GF_TRUE);
+
 		for (i=0; i<count; i++) {
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 			GF_FilterPid *opid;
@@ -1252,7 +1297,15 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			if (ipid == ctx->mpd_pid) continue;
 			opid = gf_filter_pid_get_udta(ipid);
 			group = gf_filter_pid_get_udta(opid);
-			if (group->eos_detected) gf_filter_pid_set_eos(opid);
+			if (!group->eos_detected) {
+				all_groups_done = GF_FALSE;
+			} else if (is_in_last_period) {
+				gf_filter_pid_set_eos(opid);
+			}
+		}
+		if (all_groups_done) {
+			if (is_in_last_period) return GF_EOS;
+			gf_dash_request_period_switch(ctx->dash);
 		}
 	}
 	if (next_time_ms) {
