@@ -6521,6 +6521,7 @@ static GF_Err dash_check_mpd_update_and_cache(GF_DashClient *dash, Bool *cache_i
 					} else {
 						dash->active_period_index++;
 					}
+					dash->period_groups_setup = GF_FALSE;
 				}
 				if (!all_groups_done)
 					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CACHE_FULL, 0, GF_OK);

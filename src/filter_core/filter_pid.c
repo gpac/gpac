@@ -1039,7 +1039,8 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, GF
 			if (pent->prop.value.uint == GF_STREAM_FILE) {
 				return GF_TRUE;
 			}
-			matched = 0;
+			*pid_excluded = GF_TRUE;
+			return GF_FALSE;
 		}
 
 		if (matched) {
@@ -2373,10 +2374,8 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				continue;
 			}
 		}
-		else if (edge->loaded_filter_only) {
-			edge->status = EDGE_STATUS_DISABLED;
-			continue;
-		}
+		//the destination filter being loaded, do NOT disable edges marked for loaded filter only
+
 		if ((u32) edge->weight + 1 > max_weight)
 			max_weight = edge->weight + 1;
 		//enable edge and propagate down the graph
@@ -2990,6 +2989,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	GF_FilterPid *pid = task->pid;
 	GF_Filter *dynamic_filter_clone = NULL;
 	Bool filter_found_but_pid_excluded = GF_FALSE;
+	Bool ignore_source_ids = GF_FALSE;
 	const char *filter_id;
 
 	if (pid->destroyed) {
@@ -3078,6 +3078,17 @@ single_retry:
 			if (ours<0) continue;
 			pid->filter->dst_filter = NULL;
 		}
+
+		if (gf_list_count(filter_dst->source_filters)) {
+			u32 j, count2 = gf_list_count(filter_dst->source_filters);
+			for (j=0; j<count2; j++) {
+				GF_Filter *srcf = gf_list_get(filter_dst->source_filters, j);
+				if (filter_in_parent_chain(pid->filter, srcf)) {
+					ignore_source_ids = GF_TRUE;
+					break;
+				}
+			}
+		}
 		
 		//if destination accepts only one input and connected or connection pending
 		//note that if destination uses dynamic clone through source ids, we need to check this filter
@@ -3146,9 +3157,9 @@ single_retry:
 				continue;
 		}
 		//no filterID and dst expects only specific filters, continue
-		else if (filter_dst->source_ids) {
+		else if (filter_dst->source_ids && !ignore_source_ids) {
 			Bool pid_excluded=GF_FALSE;
-			if ((filter_dst->source_ids[0]!='*') && (filter_dst->source_ids[0]!=filter->session->sep_frag))
+			if ( (filter_dst->source_ids[0]!='*') && (filter_dst->source_ids[0]!=filter->session->sep_frag))
 				continue;
 			if (!filter_source_id_match(pid, "*", filter_dst, &pid_excluded, &needs_clone)) {
 				if (pid_excluded && !num_pass) filter_found_but_pid_excluded = GF_TRUE;
@@ -4603,11 +4614,18 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			canceled = GF_TRUE;
 		}
 	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_PLAY) && evt->base.on_pid->pid->is_playing) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is already playing, discarding\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", gf_filter_event_name(evt->base.type)));
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is already playing, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
 		gf_free(evt);
 		return;
 	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_STOP) && !evt->base.on_pid->pid->is_playing) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is not playing, discarding\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", gf_filter_event_name(evt->base.type)));
+		GF_FilterPidInst *pidi = (GF_FilterPidInst *) evt->base.on_pid;
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is not playing, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
+
+		//don't forget we pre-process stop by incrementing the discard counter
+		if (pidi->pid->discard_input_packets) {
+			safe_int_dec(& pidi->pid->discard_input_packets );
+		}
+
 		gf_free(evt);
 		if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
 			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);

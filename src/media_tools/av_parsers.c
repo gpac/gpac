@@ -7255,8 +7255,11 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 return GF_TRUE;
 }
 
-static void sub_layer_hrd_parameters(GF_BitStream *bs, int subLayerId, u32 cpb_cnt, Bool sub_pic_hrd_params_present_flag) {
+static void sub_layer_hrd_parameters(GF_BitStream *bs, int subLayerId, u32 cpb_cnt, Bool sub_pic_hrd_params_present_flag)
+{
 	u32 i;
+	if (!gf_bs_available(bs)) return;
+
 	for (i = 0; i <= cpb_cnt; i++) {
 		/*bit_rate_value_minus1[i] = */bs_get_ue(bs);
 		/*cpb_size_value_minus1[i] = */bs_get_ue(bs);

@@ -631,6 +631,9 @@ struct __gf_filter
 	u64 time_at_first_error;
 
 	Bool main_thread_forced;
+
+	GF_List *source_filters;
+
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);

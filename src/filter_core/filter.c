@@ -259,6 +259,7 @@ void gf_filter_del(GF_Filter *filter)
 	gf_list_del(filter->blacklisted);
 	gf_list_del(filter->destination_filters);
 	gf_list_del(filter->destination_links);
+	gf_list_del(filter->source_filters);
 	gf_list_del(filter->input_pids);
 	gf_fq_del(filter->tasks, task_del);
 	gf_fq_del(filter->pending_pids, NULL);
@@ -289,6 +290,7 @@ void gf_filter_del(GF_Filter *filter)
 			GF_Filter *a_filter = gf_list_get(filter->session->filters, i);
 			gf_list_del_item(a_filter->destination_filters, filter);
 			gf_list_del_item(a_filter->destination_links, filter);
+			gf_list_del_item(a_filter->source_filters, filter);
 			if (a_filter->cap_dst_filter==filter)
 				a_filter->cap_dst_filter = NULL;
 			if (a_filter->cloned_from == filter)
@@ -2139,7 +2141,13 @@ void gf_filter_forward_clock(GF_Filter *filter)
 GF_EXPORT
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE);
+	GF_Filter *filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE);
+	if (!filter_src) return NULL;
+
+	if (!filter->source_filters)
+		filter->source_filters = gf_list_new();
+	gf_list_add(filter->source_filters, filter_src);
+	return filter_src;
 }
 
 GF_EXPORT
