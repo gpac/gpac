@@ -598,15 +598,15 @@ EOF
         want_pic="no"
         #ugly patch for msys2 mingw32/mingw64 where toolchain is not properly setup
         if [ x"$MSYSTEM" = x"MSYS" ] && [ -e /mingw64 ]; then
-          extralibs="$extralibs -lws2_32 -lwinmm -limagehlp"
+          extralibs="$extralibs -lws2_32 -lwinmm -llzma -limagehlp"
           CFLAGS="$CFLAGS -I/mingw64/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
           LDFLAGS="$LDFLAGS -L/mingw64/lib"
         elif [ x"$MSYSTEM" = x"MSYS" ] && [ -e /mingw32 ]; then
-          extralibs="-L/mingw32/lib $extralibs -lws2_32 -lwinmm -limagehlp"
+          extralibs="-L/mingw32/lib $extralibs -lws2_32 -lwinmm -llzma -limagehlp"
           CFLAGS="$CFLAGS -I/mingw32/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
           LDFLAGS="$LDFLAGS -L/mingw32/lib"
         else
-          extralibs="$extralibs -lws2_32 -lwinmm -limagehlp"
+          extralibs="$extralibs -lws2_32 -lwinmm -llzma -limagehlp"
           CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
         fi
 		LDFLAGS="$LDFLAGS"
@@ -617,7 +617,7 @@ EOF
 
     CYGWIN*|cygwin*)
         js_flags=-DXP_PC
-        extralibs="$extralibs -lws2_32 -lwinmm"
+        extralibs="$extralibs -lws2_32 -lwinmm -llzma"
         cygwin="yes"
         win32="yes"
         ;;
