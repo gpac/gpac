@@ -1873,6 +1873,9 @@ EOF
 if docc $CFLAGS_DIR -llzma $LDFLAGS ; then
   has_lzma="yes"
   GPAC_SH_FLAGS="$GPAC_SH_FLAGS -llzma"
+  if test "$win32" = "yes"; then
+   extralibs="$extralibs -llzma"
+  fi
 fi
 
 #overwrite detection with manual settings
