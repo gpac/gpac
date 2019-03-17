@@ -138,14 +138,14 @@ typedef struct track_s
 typedef struct
 {
 	u32  bi_size;
-	u32  bi_width;
-	u32  bi_height;
+	s32  bi_width;
+	s32  bi_height;
 	u16  bi_planes;
 	u16  bi_bit_count;
 	u32  bi_compression;
 	u32  bi_size_image;
-	u32  bi_x_pels_per_meter;
-	u32  bi_y_pels_per_meter;
+	s32  bi_x_pels_per_meter;
+	s32  bi_y_pels_per_meter;
 	u32  bi_clr_used;
 	u32  bi_clr_important;
 } alBITMAPINFOHEADER;
