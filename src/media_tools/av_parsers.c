@@ -8188,13 +8188,14 @@ static u32 icount(u32 v)
 
 
 GF_EXPORT
-Bool gf_vorbis_parse_header(GF_VorbisParser **p_vp, char *data, u32 data_len)
+Bool gf_vorbis_parse_header(ogg_audio_codec_desc *codec, char *data, u32 data_len)
 {
 	u32 pack_type, i, j, k, times, nb_part, nb_books, nb_modes;
+	int l;
 	char szNAME[8];
 	oggpack_buffer opb;
 	Bool res = GF_TRUE;
-	GF_VorbisParser *vp = *p_vp;
+	GF_VorbisParser *vp = codec->parserState;
 
 	oggpack_readinit(&opb, (u8*)data, data_len);
 	pack_type = oggpack_read(&opb, 8);
@@ -8211,6 +8212,7 @@ Bool gf_vorbis_parse_header(GF_VorbisParser **p_vp, char *data, u32 data_len)
 
 	if (!vp) {
 		GF_SAFEALLOC(vp, GF_VorbisParser);
+		codec->parserState = vp;
 	}
 
 	switch (pack_type) {
@@ -8220,15 +8222,15 @@ Bool gf_vorbis_parse_header(GF_VorbisParser **p_vp, char *data, u32 data_len)
 			res = GF_FALSE;
 			goto exit;
 		}
-		vp->channels = oggpack_read(&opb, 8);
-		vp->sample_rate = oggpack_read(&opb, 32);
-		vp->max_r = oggpack_read(&opb, 32);
-		vp->avg_r = oggpack_read(&opb, 32);
-		vp->low_r = oggpack_read(&opb, 32);
+		codec->channels = oggpack_read(&opb, 8);
+		codec->sample_rate = oggpack_read(&opb, 32);
+		codec->max_r = oggpack_read(&opb, 32);
+		codec->avg_r = oggpack_read(&opb, 32);
+		codec->low_r = oggpack_read(&opb, 32);
 
 		vp->min_block = 1<<oggpack_read(&opb, 4);
 		vp->max_block = 1<<oggpack_read(&opb, 4);
-		if (vp->sample_rate < 1 || vp->channels < 1 || vp->min_block < 8 || vp->max_block < vp->min_block
+		if (codec->sample_rate < 1 || codec->channels < 1 || vp->min_block < 8 || vp->max_block < vp->min_block
 		    || oggpack_read(&opb, 1) != 1) {
 			res = GF_FALSE;
 		}
@@ -8352,13 +8354,14 @@ Bool gf_vorbis_parse_header(GF_VorbisParser **p_vp, char *data, u32 data_len)
 		if (oggpack_read(&opb, 1)) {
 			u32 nb_steps = oggpack_read(&opb, 8)+1;
 			for (j=0; j<nb_steps; j++) {
-				oggpack_read(&opb, ilog(vp->channels));
-				oggpack_read(&opb, ilog(vp->channels));
+				oggpack_read(&opb, ilog(codec->channels));
+				oggpack_read(&opb, ilog(codec->channels));
 			}
 		}
 		oggpack_read(&opb, 2);
 		if (sub_maps>1) {
-			for(j=0; j<vp->channels; j++) oggpack_read(&opb, 4);
+			for(l=0; l<codec->channels; l++)
+				oggpack_read(&opb, 4);
 		}
 		for (j=0; j<sub_maps; j++) {
 			oggpack_read(&opb, 8);
@@ -8384,16 +8387,17 @@ Bool gf_vorbis_parse_header(GF_VorbisParser **p_vp, char *data, u32 data_len)
 exit:
 	if (!res) {
 		gf_free(vp);
-		*p_vp = NULL;
+		codec->parserState = NULL;
 	}
 	return res;
 }
 
 GF_EXPORT
-u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length)
+u32 gf_vorbis_check_frame(ogg_audio_codec_desc *codec, char *data, u32 data_length)
 {
 	s32 block_size;
 	oggpack_buffer opb;
+	GF_VorbisParser *vp = (GF_VorbisParser*)codec->parserState;
 	if (!vp) return 0;
 	oggpack_readinit(&opb, (unsigned char*)data, data_length);
 	/*not audio*/
