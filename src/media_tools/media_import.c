@@ -8087,7 +8087,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 	ogg_packet oggpacket;
 	ogg_page oggpage;
 	ogg_stream_state os;
-	GF_VorbisParser vp;
+	GF_VorbisParser *vp;
 	GF_BitStream *vbs;
 	FILE *f_in;
 
@@ -8141,7 +8141,6 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 				continue;
 			}
 			num_headers = 0;
-			memset(&vp, 0, sizeof(GF_VorbisParser));
 			vbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			continue;
 		}
@@ -8166,41 +8165,41 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 
 				/*let's go, create the track*/
 				if (num_headers==3) {
-					if (!vp.is_init) {
+					if (!vp) {
 						e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Corrupted OGG Vorbis headers found");
 						goto exit;
 					}
 
-					gf_import_message(import, GF_OK, "OGG Vorbis import - sample rate %d - %d channel%s", vp.sample_rate, vp.channels, (vp.channels>1) ? "s" : "");
+					gf_import_message(import, GF_OK, "OGG Vorbis import - sample rate %d - %d channel%s", vp->sample_rate, vp->channels, (vp->channels>1) ? "s" : "");
 
 					if (!import->esd) {
 						destroy_esd = GF_TRUE;
 						import->esd = gf_odf_desc_esd_new(0);
 					}
-					track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, vp.sample_rate);
+					track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, vp->sample_rate);
 					if (!track) goto exit;
 					gf_isom_set_track_enabled(import->dest, track, 1);
 					if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 					import->final_trackID = import->esd->ESID;
 					if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
 					if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
-					import->esd->slConfig->timestampResolution = vp.sample_rate;
+					import->esd->slConfig->timestampResolution = vp->sample_rate;
 					if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 					gf_bs_get_content(vbs, &import->esd->decoderConfig->decoderSpecificInfo->data, &import->esd->decoderConfig->decoderSpecificInfo->dataLength);
 					gf_bs_del(vbs);
 					vbs = NULL;
 					import->esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-					import->esd->decoderConfig->avgBitrate = vp.avg_r;
-					import->esd->decoderConfig->maxBitrate = (vp.max_r>0) ? vp.max_r : vp.avg_r;
+					import->esd->decoderConfig->avgBitrate = vp->avg_r;
+					import->esd->decoderConfig->maxBitrate = (vp->max_r>0) ? vp->max_r : vp->avg_r;
 					import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_OGG;
 
 					e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, NULL, NULL, &di);
 					if (e) goto exit;
-					gf_isom_set_audio_info(import->dest, track, di, vp.sample_rate, (vp.channels>1) ? 2 : 1, 16, import->asemode);
+					gf_isom_set_audio_info(import->dest, track, di, vp->sample_rate, (vp->channels>1) ? 2 : 1, 16, import->asemode);
 
 					{
 						Double d = import->duration;
-						d *= vp.sample_rate;
+						d *= vp->sample_rate;
 						d /= 1000;
 						duration = (u64) d;
 					}
@@ -8208,7 +8207,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 				continue;
 			}
 
-			block_size = gf_vorbis_check_frame(&vp, (char *)oggpacket.packet, oggpacket.bytes);
+			block_size = gf_vorbis_check_frame(vp, (char *)oggpacket.packet, oggpacket.bytes);
 			if (!block_size) continue;
 
 			/*add packet*/
@@ -8244,6 +8243,7 @@ exit:
 	if (vbs) gf_bs_del(vbs);
 	if (serial_no) ogg_stream_clear(&os);
 	ogg_sync_clear(&oy);
+	if (vp) gf_free(vp);
 	if (import->esd && destroy_esd) {
 		gf_odf_desc_del((GF_Descriptor *) import->esd);
 		import->esd = NULL;

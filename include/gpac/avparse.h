@@ -158,14 +158,13 @@ typedef struct
 	u32 min_block, max_block;
 
 	/*do not touch, parser private*/
-	Bool is_init;
 	u32 modebits;
 	Bool mode_flag[64];
 } GF_VorbisParser;
 
-/*call with vorbis header packets - you MUST initialize the structure to 0 before!!
+/*call with vorbis header packets - initializes the parser on success, leave it to NULL otherwise
 returns 1 if success, 0 if error.*/
-Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len);
+Bool gf_vorbis_parse_header(GF_VorbisParser **vp, char *data, u32 data_len);
 /*returns 0 if init error or not a vorbis frame, otherwise returns the number of audio samples
 in this frame*/
 u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length);
