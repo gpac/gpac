@@ -149,7 +149,7 @@ static Bool OGG_ReadPage(OGGReader *read, ogg_page *oggpage)
 		if (!bytes) return GF_FALSE;
 		buffer = ogg_sync_buffer(&read->oy, bytes);
 		memcpy(buffer, buf, bytes);
-		ogg_sync_wrote(&read->oy, bytes);
+		if (ogg_sync_wrote(&read->oy, bytes)) return GF_FALSE;
 	}
 	return GF_TRUE;
 }

@@ -960,7 +960,8 @@ char *ogg_sync_buffer(ogg_sync_state *oy, s32 size) {
 }
 
 s32 ogg_sync_wrote(ogg_sync_state *oy, s32 bytes) {
-	if(oy->fill+bytes>oy->storage)return(-1);
+	if(oy->fill+bytes>oy->storage)
+		return(-1);
 	oy->fill+=bytes;
 	return(0);
 }

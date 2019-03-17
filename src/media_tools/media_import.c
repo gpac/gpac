@@ -7769,7 +7769,7 @@ Bool OGG_ReadPage(FILE *f_in, ogg_sync_state *oy, ogg_page *oggpage)
 	while (ogg_sync_pageout(oy, oggpage ) != 1 ) {
 		char *buffer = ogg_sync_buffer(oy, OGG_BUFFER_SIZE);
 		u32 bytes = (u32) fread(buffer, sizeof(char), OGG_BUFFER_SIZE, f_in);
-		ogg_sync_wrote(oy, bytes);
+		if (ogg_sync_wrote(oy, bytes)) return GF_FALSE;
 		if (feof(f_in)) return GF_TRUE;
 	}
 	return GF_TRUE;
@@ -7876,7 +7876,9 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 				import->tk_info[import->nb_tracks].video_info.FPS = fps_num;
 				import->tk_info[import->nb_tracks].video_info.FPS /= fps_den;
 				import->tk_info[import->nb_tracks].media_type = GF_MEDIA_TYPE_THEO;
-			} else if ((oggpacket.bytes >= 7) && !strncmp((char *)&oggpacket.packet[1], "vorbis", 6)) {
+			} else if ((oggpacket.bytes >= 7)
+				&& (!strncmp((char *)&oggpacket.packet[1], "vorbis", 6) || !strncmp((char *)&oggpacket.packet[1], "Opus", 4))
+				) {
 				import->tk_info[import->nb_tracks].type = GF_ISOM_MEDIA_AUDIO;
 				import->tk_info[import->nb_tracks].flags = 0;
 			}
@@ -8252,7 +8254,6 @@ exit:
 }
 
 #endif /*GPAC_DISABLE_OGG*/
-
 
 GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 {
@@ -10609,6 +10610,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (e) return e;
 		return gf_import_ogg_audio(importer);
 	}
+	/*Opus audio*/
+	if (!strnicmp(ext, ".opus", 5))
+		return gf_import_ogg_audio(importer);
 #endif
 
 #ifndef GPAC_DISABLE_MPEG2PS
