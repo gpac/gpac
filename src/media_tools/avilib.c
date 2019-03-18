@@ -389,60 +389,80 @@ static int avi_add_chunk(avi_t *AVI, unsigned char *tag, unsigned char *data, u3
 	return 0;
 }
 
-#define OUTD(n) long2str((unsigned char*) (ix00+bl),(s32)n); bl+=4
-#define OUTW(n) ix00[bl] = (n)&0xff; ix00[bl+1] = (n>>8)&0xff; bl+=2
-#define OUTC(n) ix00[bl] = (n)&0xff; bl+=1
-#define OUTS(s) memcpy(ix00+bl,s,4); bl+=4
-
 // this does the physical writeout of the ix## structure
 static int avi_ixnn_entry(avi_t *AVI, avistdindex_chunk *ch, avisuperindex_entry *en)
 {
-	int bl;
+	int ret;
 	u32 k;
-	unsigned int max = ch->nEntriesInUse * sizeof (u32) * ch->wLongsPerEntry + 24; // header
-	char *ix00 = (char *)gf_malloc (max);
-	char dfcc[5];
-	memcpy (dfcc, ch->fcc, 4);
-	dfcc[4] = 0;
-
-	bl = 0;
+	u32 headerSize = 24;
+	u32 chunkSize = headerSize + ch->nEntriesInUse * 4 * ch->wLongsPerEntry;
+	s64 origPos = AVI->pos;
 
 	if (en) {
 		en->qwOffset = AVI->pos;
-		en->dwSize = max;
+		en->dwSize = chunkSize;
 		//en->dwDuration = ch->nEntriesInUse -1; // NUMBER OF stream ticks == frames for video/samples for audio
 	}
 
 #ifdef DEBUG_ODML
-	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] ODML Write %s: Entries %ld size %d \n", dfcc, ch->nEntriesInUse, max));
+	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] ODML Write %.4s: Entries %ld size %d \n", ch->fcc, ch->nEntriesInUse, chunkSize));
 #endif
 
-	//OUTS(ch->fcc);
-	//OUTD(max);
-	OUTW(ch->wLongsPerEntry);
-	OUTC(ch->bIndexSubType);
-	OUTC(ch->bIndexType);
-	OUTD(ch->nEntriesInUse);
-	OUTS(ch->dwChunkId);
-	OUTD(ch->qwBaseOffset&0xffffffff);
-	OUTD((ch->qwBaseOffset>>32)&0xffffffff);
-	OUTD(ch->dwReserved3);
+	ret = avi_write_fcc(AVI, ch->fcc);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u32(AVI, chunkSize);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u16(AVI, ch->wLongsPerEntry);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u8(AVI, ch->bIndexSubType);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u8(AVI, ch->bIndexType);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u32(AVI, ch->nEntriesInUse);
+	if (ret)
+		goto on_error;
+	ret = avi_write_fcc(AVI, ch->dwChunkId);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u32(AVI, ch->qwBaseOffset&0xffffffff);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u32(AVI, (ch->qwBaseOffset>>32)&0xffffffff);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u32(AVI, ch->dwReserved3);
+	if (ret)
+		goto on_error;
 
 	for (k = 0; k < ch->nEntriesInUse; k++) {
-		OUTD(ch->aIndex[k].dwOffset);
-		OUTD(ch->aIndex[k].dwSize);
-
+		ret = avi_write_u32(AVI, ch->aIndex[k].dwOffset);
+		if (ret)
+			goto on_error;
+		ret = avi_write_u32(AVI, ch->aIndex[k].dwSize);
+		if (ret)
+			goto on_error;
 	}
-	avi_add_chunk (AVI, (unsigned char*)ch->fcc, (unsigned char*)ix00, max);
 
-	gf_free(ix00);
+	// if len is uneven, write a pad byte
+	if (chunkSize % 2) {
+		ret = avi_write_u8(AVI, 0);
+		if (ret)
+			goto on_error;
+	}
 
 	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
 }
-#undef OUTS
-#undef OUTW
-#undef OUTD
-#undef OUTC
 
 // inits a super index structure including its enclosed stdindex
 static int avi_init_super_index(avi_t *AVI, unsigned char *idxtag, avisuperindex_chunk **si)
