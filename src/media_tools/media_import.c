@@ -8163,7 +8163,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 	s32 block_size;
 	GF_ISOSample *samp;
 	Bool destroy_esd, go;
-	u32 serial_no, sno, num_headers;
+	u32 serial_no, sno;
 	ogg_packet oggpacket;
 	ogg_page oggpage;
 	ogg_stream_state os;
@@ -8192,7 +8192,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 	destroy_esd = GF_FALSE;
 	samp = gf_isom_sample_new();
 	/*avoids gcc warnings*/
-	track = num_headers = 0;
+	track = 0;
 	duration = 0;
 
 	ogg_sync_init(&oy);
@@ -8221,6 +8221,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 				continue;
 			}
 
+			/*find codec*/
 			{
 				size_t size = sizeof(ogg_audio_codec_descs) / sizeof(ogg_audio_codec_desc);
 				int i;
@@ -8237,7 +8238,6 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 				}
 			}
 
-			num_headers = 0;
 			vbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			continue;
 		}
