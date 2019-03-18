@@ -8195,7 +8195,7 @@ Bool gf_vorbis_parse_header(ogg_audio_codec_desc *codec, char *data, u32 data_le
 	char szNAME[8];
 	oggpack_buffer opb;
 	Bool res = GF_TRUE;
-	GF_VorbisParser *vp = codec->parserState;
+	GF_VorbisParser *vp = codec->parserPrivateState;
 
 	oggpack_readinit(&opb, (u8*)data, data_len);
 	pack_type = oggpack_read(&opb, 8);
@@ -8212,7 +8212,7 @@ Bool gf_vorbis_parse_header(ogg_audio_codec_desc *codec, char *data, u32 data_le
 
 	if (!vp) {
 		GF_SAFEALLOC(vp, GF_VorbisParser);
-		codec->parserState = vp;
+		codec->parserPrivateState = vp;
 	}
 
 	switch (pack_type) {
@@ -8387,17 +8387,16 @@ Bool gf_vorbis_parse_header(ogg_audio_codec_desc *codec, char *data, u32 data_le
 exit:
 	if (!res) {
 		gf_free(vp);
-		codec->parserState = NULL;
+		codec->parserPrivateState = NULL;
 	}
 	return res;
 }
 
 GF_EXPORT
-u32 gf_vorbis_check_frame(ogg_audio_codec_desc *codec, char *data, u32 data_length)
+u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length)
 {
 	s32 block_size;
 	oggpack_buffer opb;
-	GF_VorbisParser *vp = (GF_VorbisParser*)codec->parserState;
 	if (!vp) return 0;
 	oggpack_readinit(&opb, (unsigned char*)data, data_length);
 	/*not audio*/
