@@ -154,17 +154,19 @@ const char *gf_mp3_version_name(u32 hdr);
 typedef struct ogg_audio_codec_desc_t
 {
 	const char* codec_name;
-	void *parserState;
+	void *parserPrivateState;
 	int channels;
 	int sample_rate;
 	int max_r, avg_r, low_r;
-	u32(*check_frame)(struct ogg_audio_codec_desc_t *parserState, char *data, u32 data_length);
+
+	/*process the data and returns the sample block_size (i.e. duration)*/
+	GF_Err (*process)(struct ogg_audio_codec_desc_t *parserState, char *data, u32 data_length, void *importer, GF_BitStream *vbs, Bool *destroy_esd, u32 *track, u32 *di, u64 *duration, int *block_size);
 } ogg_audio_codec_desc;
 
 /*vorbis tools*/
 typedef struct
 {
-	u32 version;
+	u32 version, num_headers;
 	u32 min_block, max_block;
 
 	/*do not touch, parser private*/
@@ -175,9 +177,10 @@ typedef struct
 /*call with vorbis header packets - initializes the parser on success, leave it to NULL otherwise
 returns 1 if success, 0 if error.*/
 Bool gf_vorbis_parse_header(ogg_audio_codec_desc *codec, char *data, u32 data_len);
+
 /*returns 0 if init error or not a vorbis frame, otherwise returns the number of audio samples
 in this frame*/
-u32 gf_vorbis_check_frame(ogg_audio_codec_desc *codec, char *data, u32 data_length);
+u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length);
 
 #endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/
 
