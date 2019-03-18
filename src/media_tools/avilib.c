@@ -94,6 +94,184 @@ static u32 avi_write (FILE *fd, char *buf, u32 len)
 	return r;
 }
 
+static int avi_write_bytes(avi_t *AVI, void *data, u32 length)
+{
+	u32 ret;
+	s64 origPos = AVI->pos;
+
+	ret = avi_write(AVI->fdes, (char *)data, length);
+	if (ret != length)
+		goto on_error;
+
+	AVI->pos += length;
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_u8(avi_t *AVI, u8 value)
+{
+	u32 writtenByteCount;
+	s64 origPos = AVI->pos;
+
+	writtenByteCount = avi_write(AVI->fdes, (char *)&value, 1);
+	if (writtenByteCount != 1)
+		goto on_error;
+
+	AVI->pos += sizeof(value);
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_s8(avi_t *AVI, s8 value)
+{
+	u32 writtenByteCount;
+	s64 origPos = AVI->pos;
+
+	writtenByteCount = avi_write(AVI->fdes, (char *)&value, 1);
+	if (writtenByteCount != 1)
+		goto on_error;
+
+	AVI->pos += 1;
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_u16(avi_t *AVI, u16 value)
+{
+	int ret;
+	u8 valueLow, valueHigh;
+	s64 origPos = AVI->pos;
+
+	valueLow = (value & 0x00ff) >> 0;
+	valueHigh = (value & 0xff00) >> 8;
+	ret = avi_write_u8(AVI, valueLow);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u8(AVI, valueHigh);
+	if (ret)
+		goto on_error;
+
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_s16(avi_t *AVI, s16 value)
+{
+	int ret;
+	s8 valueLow, valueHigh;
+	s64 origPos = AVI->pos;
+
+	valueLow = (value & 0x00ff) >> 0;
+	valueHigh = (value & 0xff00) >> 8;
+	ret = avi_write_s8(AVI, valueLow);
+	if (ret)
+		goto on_error;
+	ret = avi_write_s8(AVI, valueHigh);
+	if (ret)
+		goto on_error;
+
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_u32(avi_t *AVI, u32 value)
+{
+	int ret;
+	u16 valueLow, valueHigh;
+	s64 origPos = AVI->pos;
+
+	valueLow = (value & 0x0000ffff) >> 0;
+	valueHigh = (value & 0xffff0000) >> 16;
+	ret = avi_write_u16(AVI, valueLow);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u16(AVI, valueHigh);
+	if (ret)
+		goto on_error;
+
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_s32(avi_t *AVI, s32 value)
+{
+	int ret;
+	s16 valueLow, valueHigh;
+	s64 origPos = AVI->pos;
+
+	valueLow = (value & 0x0000ffff) >> 0;
+	valueHigh = (value & 0xffff0000) >> 16;
+	ret = avi_write_s16(AVI, valueLow);
+	if (ret)
+		goto on_error;
+	ret = avi_write_s16(AVI, valueHigh);
+	if (ret)
+		goto on_error;
+
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_fcc(avi_t *AVI, char value[4])
+{
+	u32 writtenByteCount;
+	s64 origPos = AVI->pos;
+
+	writtenByteCount = avi_write(AVI->fdes, value, 4);
+	if (writtenByteCount != 4)
+		goto on_error;
+
+	AVI->pos += 4;
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_4cc(avi_t *AVI, const char *value)
+{
+	char fcc[4] = { value[0], value[1] , value[2] , value[3] };
+	return avi_write_fcc(AVI, fcc);
+}
+
 /* HEADERBYTES: The number of bytes to reserve for the header */
 
 #define HEADERBYTES 2048
