@@ -8184,9 +8184,7 @@ static GF_Err opus_process(ogg_audio_codec_desc *codec, char *data, u32 data_len
 		codec->channels = gf_bs_read_u8(bs);
 		opus->PreSkip = gf_bs_read_u16(bs);
 		opus->InputSampleRate = gf_bs_read_u32(bs);
-		if (opus->InputSampleRate == 0) {
-			codec->sample_rate = 48000;
-		}
+		codec->sample_rate = 48000; /*Opus always outputs 48000 but stores the original opus->InputSampleRate rate*/
 		opus->OutputGain = gf_bs_read_u16(bs);
 		opus->ChannelMappingFamily = gf_bs_read_u8(bs);
 		assert(opus->ChannelMappingFamily == 0);
