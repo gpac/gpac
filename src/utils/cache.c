@@ -166,6 +166,8 @@ struct __DownloadedCacheEntryStruct
 	u8 *mem_storage;
 	char *forced_headers;
 	u32 downtime;
+
+	GF_Blob cache_blob;
 };
 
 Bool delete_cache_files(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info) {
@@ -505,7 +507,9 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	}
 
 	if (entry->memory_stored) {
-		sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
+		entry->cache_blob.data = entry->mem_storage;
+		entry->cache_blob.size = entry->contentLength;
+		sprintf(entry->cache_filename, "gmem://%p", &entry->cache_blob);
 		return entry;
 	}
 
@@ -674,7 +678,9 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to create memory storage for file %s\n", entry->url));
 			return GF_OUT_OF_MEM;
 		}
-		sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
+		entry->cache_blob.data = entry->mem_storage;
+		entry->cache_blob.size = entry->contentLength;
+		sprintf(entry->cache_filename, "gmem://%p", &entry->cache_blob);
 		return GF_OK;
 	}
 
@@ -709,13 +715,15 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 			u32 new_size = MAX(entry->mem_allocated*2, entry->written_in_cache + size);
 			entry->mem_storage = (u8*)gf_realloc(entry->mem_storage, (new_size+2));
 			entry->mem_allocated = new_size;
-			sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
+			entry->cache_blob.data = entry->mem_storage;
+			entry->cache_blob.size = entry->contentLength;
+			sprintf(entry->cache_filename, "gmem://%p", &entry->cache_blob);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Reallocating memory cache to %d bytes\n", new_size));
 		}
 		memcpy(entry->mem_storage + entry->written_in_cache, data, size);
 		entry->written_in_cache += size;
 		memset(entry->mem_storage + entry->written_in_cache, 0, 2);
-		sprintf(entry->cache_filename, "gmem://%d@%p", entry->written_in_cache, entry->mem_storage);
+		entry->cache_blob.size = entry->written_in_cache;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Storing %d bytes to memory\n", size));
 		return GF_OK;
@@ -1036,7 +1044,9 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, char *data, u32 size
 		entry->mem_storage = (u8 *) data;
 		entry->written_in_cache = size;
 		entry->mem_allocated = 0;
-		sprintf(entry->cache_filename, "gmem://%d@%p", entry->written_in_cache, entry->mem_storage);
+		entry->cache_blob.data = entry->mem_storage;
+		entry->cache_blob.size = entry->written_in_cache;
+		sprintf(entry->cache_filename, "gmem://%p", &entry->cache_blob);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Storing %d bytes to memory from external module\n", size));
 		return GF_TRUE;
 	}
@@ -1045,13 +1055,14 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, char *data, u32 size
 		new_size = MAX(entry->mem_allocated*2, size+1);
 		entry->mem_storage = (u8*)gf_realloc(entry->mem_allocated ? entry->mem_storage : NULL, (new_size+2));
 		entry->mem_allocated = new_size;
-		sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
+		entry->cache_blob.data = entry->mem_storage;
+		entry->cache_blob.size = entry->contentLength;
+		sprintf(entry->cache_filename, "gmem://%p", &entry->cache_blob);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Reallocating memory cache to %d bytes\n", new_size));
 	}
 	memcpy(entry->mem_storage, data, size);
 	entry->mem_storage[size] = 0;
-	entry->written_in_cache = size;
-	sprintf(entry->cache_filename, "gmem://%d@%p", entry->written_in_cache, entry->mem_storage);
+	entry->cache_blob.size = entry->written_in_cache = size;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Storing %d bytes to cache memory\n", size));
 	return GF_FALSE;
 }

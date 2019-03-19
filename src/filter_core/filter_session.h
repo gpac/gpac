@@ -630,6 +630,8 @@ struct __gf_filter
 	//system clock of first error
 	u64 time_at_first_error;
 
+	GF_Err in_connect_err;
+
 	Bool main_thread_forced;
 
 	GF_List *source_filters;

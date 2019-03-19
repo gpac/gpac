@@ -54,7 +54,7 @@ void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst)
 	assert(pidinst);
 	gf_filter_pid_inst_reset(pidinst);
 
-	gf_fq_del(pidinst->packets, (gf_destruct_fun) pcki_del);
+ 	gf_fq_del(pidinst->packets, (gf_destruct_fun) pcki_del);
 	gf_mx_del(pidinst->pck_mx);
 	gf_list_del(pidinst->pck_reassembly);
 	if (pidinst->props) {
@@ -270,7 +270,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	GF_Filter *filter = pid->filter;
 
 	//reset in process
-	if ((pidinst->filter && pidinst->discard_packets) || filter->stream_reset_pending) {
+	if ((pidinst->filter && pidinst->discard_packets) || (filter && filter->stream_reset_pending) ) {
 		TASK_REQUEUE(task)
 		return;
 	}
@@ -319,7 +319,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	assert(pid->filter == filter);
 
 	//some more destinations on pid, update blocking state
-	if (pid->num_destinations) {
+	if (pid->num_destinations || pid->init_task_pending) {
 		if (pid->would_block)
 			gf_filter_pid_check_unblock(pid);
 		else
@@ -597,6 +597,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		gf_filter_pid_inst_swap(filter, pidinst);
 	}
 
+	filter->in_connect_err = GF_EOS;
 	//commented out for now, due to audio thread pulling packets out of the pid but not in the compositor:process, which
 	//could be called for video at the same time... FIXME
 #ifdef FILTER_FIXME
@@ -619,7 +620,11 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		filter->nb_process_since_reset = filter->nb_consecutive_process = 0;
 	}
 #endif
+	if ((e==GF_OK) && (filter->in_connect_err<GF_OK))
+		e = filter->in_connect_err;
 
+	filter->in_connect_err = GF_OK;
+	
 	if (e==GF_OK) {
 		//if new, register the new pid instance, and the source pid as input to this filer
 		if (new_pid_inst) {
@@ -649,7 +654,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			gf_mx_p(pid->filter->tasks_mx);
 			gf_list_del_item(pid->destinations, pidinst);
 			pid->num_destinations = gf_list_count(pid->destinations);
-			gf_filter_pid_inst_del(pidinst);
+			if (pidinst->filter)
+				gf_filter_pid_inst_del(pidinst);
 			gf_mx_v(pid->filter->tasks_mx);
 		}
 

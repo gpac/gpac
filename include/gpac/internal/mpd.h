@@ -275,8 +275,8 @@ typedef struct
 	Bool owned_gmem;
 	u64 init_start_range, init_end_range;
 	u32 probe_switch_count;
-	char *init_segment_data;
-	u32 init_segment_size;
+	GF_Blob init_segment;
+
 	char *key_url;
 	bin128 key_IV;
 	/*previous maximum speed that this representation can be played, or 0 if it has never been played*/

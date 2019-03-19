@@ -951,16 +951,17 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 {
 	int len, i, currentLineNumber;
 	FILE *f = NULL;
-	char *m3u8_payload;
+	u8 *m3u8_payload;
 	u32 m3u8_size, m3u8pos;
 	char currentLine[M3U8_BUF_SIZE];
 	char **attributes = NULL;
 	s_accumulated_attributes attribs;
 
 	if (!strncmp(file, "gmem://", 7)) {
-		if (sscanf(file, "gmem://%d@%p", &m3u8_size, &m3u8_payload) != 2) {
+		GF_Err e = gf_blob_get_data(file, &m3u8_payload,  &m3u8_size);
+		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot Open m3u8 source %s for reading\n", file));
-			return GF_SERVICE_ERROR;
+			return e;
 		}
 	} else {
 		f = gf_fopen(file, "rt");

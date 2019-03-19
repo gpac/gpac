@@ -1478,3 +1478,15 @@ const char *gf_lang_get_3cc(u32 idx)
 	if (idx>=sizeof(defined_languages) / sizeof(struct lang_def)) return NULL;
 	return defined_languages[idx].three_char_code;
 }
+
+GF_EXPORT
+GF_Err gf_blob_get_data(const char *blob_url, u8 **out_data, u32 *out_size)
+{
+	GF_Blob *blob = NULL;
+	if (strncmp(blob_url, "gmem://", 7)) return GF_BAD_PARAM;
+	if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
+	if (!blob) return GF_BAD_PARAM;
+	if (out_data) *out_data = blob->data;
+	if (out_size) *out_size = blob->size;
+	return GF_OK;
+}

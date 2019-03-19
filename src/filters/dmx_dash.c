@@ -607,10 +607,13 @@ static s32 dashdmx_group_idx_from_pid(GF_DASHDmxCtx *ctx, GF_FilterPid *src_pid)
 	return -1;
 }
 
-static GF_FilterPid *dashdmx_match_output_pid(GF_Filter *filter, GF_FilterPid *input)
+static GF_FilterPid *dashdmx_create_output_pid(GF_Filter *filter, GF_FilterPid *input)
 {
+	u32 global_score=0;
+	GF_FilterPid *output_pid = NULL;
 	u32 i, count = gf_filter_get_opid_count(filter);
 	const GF_PropertyValue *codec, *streamtype, *role, *lang;
+
 	streamtype = gf_filter_pid_get_property(input, GF_PROP_PID_STREAM_TYPE);
 	if (streamtype && streamtype->value.uint==GF_STREAM_ENCRYPTED)
 		streamtype = gf_filter_pid_get_property(input, GF_PROP_PID_ORIG_STREAM_TYPE);
@@ -637,7 +640,7 @@ static GF_FilterPid *dashdmx_match_output_pid(GF_Filter *filter, GF_FilterPid *i
 		if (!o_streamtype || !streamtype || !gf_props_equal(streamtype, o_streamtype))
 			continue;
 
-		score = 0;
+		score = 1;
 		//get highest priority for streams with same role
 		if (o_role && role && gf_props_equal(role, o_role)) score += 10;
 		//then high priority for streams with same lang
@@ -645,7 +648,15 @@ static GF_FilterPid *dashdmx_match_output_pid(GF_Filter *filter, GF_FilterPid *i
 
 		//otherwise favour streams with same codec
 		if (!o_codec && codec && gf_props_equal(codec, o_codec)) score++;
+
+		if (global_score<score) {
+			global_score = score;
+			output_pid = opid;
+		}
 	}
+	if (output_pid) return output_pid;
+	//none found create a new PID
+	return gf_filter_pid_new(filter);
 }
 
 static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -660,6 +671,16 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		//TODO
 		if (pid==ctx->mpd_pid) {
 			ctx->mpd_pid = NULL;
+		} else {
+			GF_FilterPid *opid = gf_filter_pid_get_udta(pid);
+			if (opid) {
+				if (gf_dash_all_groups_done(ctx->dash) && gf_dash_in_last_period(ctx->dash, GF_TRUE)) {
+					gf_filter_pid_remove(opid);
+				} else {
+					gf_filter_pid_set_udta(opid, NULL);
+					gf_filter_pid_set_udta(pid, NULL);
+				}
+			}
 		}
 		return GF_OK;
 	}
@@ -705,7 +726,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, group_idx);
 		assert(group);
 		//for now we declare every component from the input source
-		opid = gf_filter_pid_new(filter);
+		opid = dashdmx_create_output_pid(filter, pid);
 		gf_filter_pid_set_udta(opid, group);
 		gf_filter_pid_set_udta(pid, opid);
 		group->nb_pids ++;

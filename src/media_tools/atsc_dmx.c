@@ -568,8 +568,11 @@ static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 #ifdef CHECK_ISOM
 		{
 			char szBlob[1024];
+			GF_Blob blob;
+			blob.data = obj->payload;
+			blob.size = obj->total_length;
 			GF_ISOFile *file;
-			sprintf(szBlob, "gmem://%d@%p", obj->total_length, obj->payload);
+			sprintf(szBlob, "gmem://%p", &blob);
 			file = gf_isom_open(szBlob, GF_ISOM_OPEN_READ_DUMP, NULL);
 			if (file) {
 				fprintf(stderr, "ISOBMF %s file OK\n", szPath);

@@ -1701,7 +1701,7 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 	}
 	sess->range_start = start_range;
 	sess->range_end = end_range;
-	sess->needs_range = GF_TRUE;
+	sess->needs_range = (start_range || end_range) ? GF_TRUE : GF_FALSE;
 	return GF_OK;
 }
 

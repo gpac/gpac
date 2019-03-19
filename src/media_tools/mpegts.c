@@ -3212,7 +3212,7 @@ Bool gf_m2ts_probe_file(const char *fileName)
 
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u8 *mem_address;
-		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
+		if (gf_blob_get_data(fileName, &mem_address, &size) != GF_OK) {
 			return GF_FALSE;
 		}
 		if (size>M2TS_PROBE_SIZE) size = M2TS_PROBE_SIZE;

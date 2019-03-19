@@ -1437,6 +1437,9 @@ static GF_Err gf_filter_process_check_alloc(GF_Filter *filter)
 
 static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e)
 {
+	if (e>GF_OK) e = GF_OK;
+	else if (e==GF_IP_NETWORK_EMPTY) e = GF_OK;
+
 	if (e) {
 		u64 diff;
 		filter->session->last_process_error = e;
@@ -1478,8 +1481,13 @@ static void gf_filter_process_task(GF_FSTask *task)
 	assert(filter->process_task_queued);
 	filter->schedule_next_time = 0;
 
-	if (filter->disabled)
+	if (filter->disabled) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s is disabled, cancelling process\n", filter->name));
+		gf_mx_p(task->filter->tasks_mx);
+		task->filter->process_task_queued = 0;
+		gf_mx_v(task->filter->tasks_mx);
 		return;
+	}
 
 	if (filter->out_pid_connection_pending || filter->detached_pid_inst || filter->caps_negociate) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has %s pending, requeuing process\n", filter->name, filter->out_pid_connection_pending ? "connections" : filter->caps_negociate ? "caps negociation" : "input pid reassignments"));
@@ -1508,14 +1516,15 @@ static void gf_filter_process_task(GF_FSTask *task)
 		gf_mx_v(task->filter->tasks_mx);
 	}
 	if (filter->stream_reset_pending) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has stream reset pending, postponing process\n", filter->name));
 		filter->nb_tasks_done--;
 		task->requeue_request = GF_TRUE;
 		assert(filter->process_task_queued);
 		return;
 	}
 
-	//the following breaks demuxers where PIDs are not all known from start: if we filter some pids due tu user request, we may end up with the
-	//following test true but not all PIDs yet declared, hence no more processing
+	//the following breaks demuxers where PIDs are not all known from start: if we filter some pids due to user request,
+	//we may end up with the following test true but not all PIDs yet declared, hence no more processing
 	//we could add a filter cap for that, but for now we simply rely on the blocking mode algo only
 #if 0
 	if (filter->num_output_pids && (filter->num_out_pids_not_connected==filter->num_output_pids)) {
@@ -1523,8 +1532,6 @@ static void gf_filter_process_task(GF_FSTask *task)
 		return;
 	}
 #endif
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
 
 	if (task->filter->postponed_packets) {
 		while (gf_list_count(task->filter->postponed_packets)) {
@@ -1542,6 +1549,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 			gf_mx_p(task->filter->tasks_mx);
 			task->filter->process_task_queued = 0;
 			gf_mx_v(task->filter->tasks_mx);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s flushed postponed packets, postponing process\n", filter->name));
 			return;
 		}
 	}
@@ -1552,6 +1560,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (task->filter->nb_caps_renegociate) {
 		gf_filter_renegociate_output(task->filter);
 	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
 	gf_rmt_begin_hash(filter->name, GF_RMT_AGGREGATE, &filter->rmt_hash);
 
 #ifdef GPAC_MEMORY_TRACKING
@@ -1615,6 +1625,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		if (task->requeue_request) {
 			assert(filter->process_task_queued);
 		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process done requeue %d PTQ %d\n", filter->name, task->requeue_request, filter->process_task_queued ));
 	}
 }
 
@@ -1830,6 +1841,12 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 GF_EXPORT
 void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 {
+
+	if (filter->in_connect_err) {
+		filter->in_connect_err = reason;
+		return;
+	}
+
 	//filter was already connected, trigger removal of all pid instances
 	if (filter->num_input_pids) {
 		filter->removed = GF_TRUE;
@@ -1843,14 +1860,14 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 			//post a pid_delete task to also trigger removal of the filter if needed
 			gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, sfilter, pidinst->pid, "pid_inst_delete", pidinst);
 		}
+		return;
 	}
-	else {
-		//don't accept twice a notif
-		if (filter->setup_notified) return;
-		filter->setup_notified = GF_TRUE;
 
-		gf_filter_notification_failure(filter, reason, GF_TRUE);
-	}
+	//don't accept twice a notif
+	if (filter->setup_notified) return;
+	filter->setup_notified = GF_TRUE;
+
+	gf_filter_notification_failure(filter, reason, GF_TRUE);
 }
 
 void gf_filter_remove_task(GF_FSTask *task)
@@ -2097,8 +2114,25 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 		if (target_filter) filter->dst_filter = NULL;
 		return GF_TRUE;
 	}
+	if (!filter->finalized) {
+		return gf_filter_swap_source_registry(filter);
+	}
+	
 	//nope ...
 	gf_filter_setup_failure(filter, e);
+
+	for (i=0; i<gf_list_count(filter->destination_links); i++) {
+		GF_Filter *af = gf_list_get(filter->destination_links, i);
+		if (af->num_input_pids) {
+			u32 j;
+			for (j=0; j<af->num_input_pids; j++) {
+				GF_FilterPidInst *pidi = gf_list_get(af->input_pids, j);
+				pidi->is_end_of_stream = GF_TRUE;
+			}
+		}
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to find any filter for for URL %s, disabling destination filter %s\n", src_url, af->name));
+		af->removed = GF_TRUE;
+	}
 	return GF_FALSE;
 }
 

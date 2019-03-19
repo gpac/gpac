@@ -297,7 +297,9 @@ static GF_Err httpin_process(GF_Filter *filter)
 			u32 idx;
 			const char *hname, *hval;
 			const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
+
 			ctx->do_reconfigure = GF_FALSE;
+
 			if ((e==GF_EOS) && cached && strnicmp(cached, "gmem://", 7)) {
 				ctx->cached = gf_fopen(cached, "rb");
 				if (ctx->cached) {
@@ -310,12 +312,13 @@ static GF_Err httpin_process(GF_Filter *filter)
 			ctx->block[nb_read] = 0;
 			e = gf_filter_pid_raw_new(filter, ctx->src, cached, ctx->mime ? ctx->mime : gf_dm_sess_mime_type(ctx->sess), ctx->ext, ctx->block, nb_read, &ctx->pid);
 			if (e) return e;
+
+			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_FALSE) );
+
 			if (!ctx->initial_ack_done) {
 				ctx->initial_ack_done = GF_TRUE;
 				gf_filter_pid_set_property(ctx->pid, GF_GPAC_DOWNLOAD_SESSION, &PROP_POINTER( (void*)ctx->sess ) );
 			}
-
-			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(((e==GF_EOS) && cached) ? GF_TRUE : GF_FALSE) );
 
 			idx = 0;
 			while (gf_dm_sess_enum_headers(ctx->sess, &idx, &hname, &hval) == GF_OK) {
@@ -331,6 +334,12 @@ static GF_Err httpin_process(GF_Filter *filter)
 	ctx->nb_read += nb_read;
 	if (ctx->file_size && (ctx->nb_read==ctx->file_size)) {
 		ctx->is_end = GF_TRUE;
+
+		if (!ctx->cached) {
+			const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
+			if (cached)
+				gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
+		}
 	} else if (e==GF_EOS) {
 		ctx->is_end = GF_TRUE;
 	}

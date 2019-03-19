@@ -129,7 +129,7 @@ u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_rang
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u32 size;
 		u8 *mem_address;
-		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
+		if (gf_blob_get_data(fileName, &mem_address, &size) != GF_OK) {
 			return 0;
 		}
 		if (size > start_range + 8)

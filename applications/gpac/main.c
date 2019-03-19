@@ -1011,8 +1011,14 @@ restart:
 	}
 	e = gf_fs_run(session);
 	if (e>0) e = GF_OK;
-	if (!e) e = gf_fs_get_last_connect_error(session);
-	if (!e) e = gf_fs_get_last_process_error(session);
+	if (!e) {
+		e = gf_fs_get_last_connect_error(session);
+		if (e<0) fprintf(stderr, "session last connect error %s\n", gf_error_to_string(e) );
+	}
+	if (!e) {
+		e = gf_fs_get_last_process_error(session);
+		if (e<0) fprintf(stderr, "session last process error %s\n", gf_error_to_string(e) );
+	}
 
 exit:
 	if (e && nb_filters) {
