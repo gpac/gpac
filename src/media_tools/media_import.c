@@ -8186,8 +8186,15 @@ static GF_Err opus_process(ogg_audio_codec_desc *codec, char *data, u32 data_len
 		opus->InputSampleRate = gf_bs_read_u32(bs);
 		codec->sample_rate = 48000; /*Opus always outputs 48000 but stores the original opus->InputSampleRate rate*/
 		opus->OutputGain = gf_bs_read_u16(bs);
+
+		//TODO: parse and link to MP4 channel layouts - for now we just copy it binary as it is the same from Ogg to MP4
 		opus->ChannelMappingFamily = gf_bs_read_u8(bs);
-		assert(opus->ChannelMappingFamily == 0);
+		if (opus->ChannelMappingFamily != 0) {
+			u64 pos = gf_bs_get_position(bs);
+			opus->channelMappingSz = (int)(data_length - pos);
+			opus->channelMapping = gf_malloc(opus->channelMappingSz);
+			memcpy(opus->channelMapping, data + pos, opus->channelMappingSz);
+		}
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("OGG Opus import - sample rate %d - %d channel%s", codec->sample_rate, codec->channels, (codec->channels>1) ? "s" : ""));
 
@@ -8196,22 +8203,24 @@ static GF_Err opus_process(ogg_audio_codec_desc *codec, char *data, u32 data_len
 			import->esd = gf_odf_desc_esd_new(0);
 		}
 		*track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, 48000/*block sizes are alway in always in 48kHz*/);
-		if (!*track) return gf_isom_last_error(import->dest);
+		if (!*track) {
+			e = gf_isom_last_error(import->dest);
+			goto exit;
+		}
 		gf_isom_set_track_enabled(import->dest, *track, 1);
 		if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, *track);
 		import->final_trackID = import->esd->ESID;
 		if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig *)gf_odf_desc_new(GF_ODF_DCD_TAG);
 		if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *)gf_odf_desc_new(GF_ODF_SLC_TAG);
 		import->esd->slConfig->timestampResolution = 48000; /*block sizes are alway in always in 48kHz*/
-		if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *)gf_odf_desc_new(GF_ODF_DSI_TAG);
-		import->esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(import->esd->decoderConfig->decoderSpecificInfo->dataLength);
-		import->esd->decoderConfig->decoderSpecificInfo->dataLength = data_length - 8;
-		memcpy(import->esd->decoderConfig->decoderSpecificInfo->data, data+8, import->esd->decoderConfig->decoderSpecificInfo->dataLength);
+
 		import->esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_OPUS;
 
-		e = gf_isom_new_mpeg4_description(import->dest, *track, import->esd, NULL, NULL, di);
-		if (e) return e;
+		if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *)gf_odf_desc_new(GF_ODF_DSI_TAG);
+		e = gf_isom_opus_config_new(import->dest, *track, opus, NULL, NULL, di);
+		if (e) goto exit;
+
 		gf_isom_set_audio_info(import->dest, *track, *di, codec->sample_rate, (codec->channels>1) ? 2 : 1, 16, import->asemode);
 		gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_OPUS, 0);
 
@@ -8326,7 +8335,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 			/*find codec*/
 			{
 				size_t size = sizeof(ogg_audio_codec_descs) / sizeof(ogg_audio_codec_desc);
-				int i;
+				size_t i;
 				for (i = 0; i < size; ++i) {
 					if (!strncmp((char *)oggpacket.packet, ogg_audio_codec_descs[i].codec_name, strlen(ogg_audio_codec_descs[i].codec_name))) {
 						codec = &ogg_audio_codec_descs[i];
@@ -8383,13 +8392,24 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 		gf_set_progress("Importing OGG Audio", (u32) tot_size, (u32) tot_size);
 
 		gf_media_update_bitrate(import->dest, track);
+
+		/*rewrite ESD*/
+		if (import->esd) {
+			if (import->esd->decoderConfig) gf_odf_desc_del((GF_Descriptor *)import->esd->decoderConfig);
+			import->esd->decoderConfig = gf_isom_get_decoder_config(import->dest, track, 1);
+			gf_isom_change_mpeg4_description(import->dest, track, 1, import->esd);
+		}
 	}
 
 exit:
 	gf_isom_sample_del(&samp);
 	if (serial_no) ogg_stream_clear(&os);
 	ogg_sync_clear(&oy);
-	if (codec->parserPrivateState) gf_free(codec->parserPrivateState);
+	if (codec->parserPrivateState) {
+		GF_OpusSpecificBox *opus = (GF_OpusSpecificBox*)codec->parserPrivateState;
+		if (opus->channelMapping) gf_free(opus->channelMapping);
+		gf_free(opus);
+	}
 	if (import->esd && destroy_esd) {
 		gf_odf_desc_del((GF_Descriptor *) import->esd);
 		import->esd = NULL;

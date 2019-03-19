@@ -311,6 +311,9 @@ enum
 	/*AV1 media type*/
 	GF_ISOM_SUBTYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
 
+	/*Opus media type*/
+	GF_ISOM_SUBTYPE_OPUS = GF_4CC('O', 'p', 'u', 's'),
+
 	/* VP */
 	GF_ISOM_SUBTYPE_VP08 = GF_4CC('v', 'p', '0', '8'),
 	GF_ISOM_SUBTYPE_VP09 = GF_4CC('v', 'p', '0', '9'),
@@ -449,6 +452,8 @@ enum
 	GF_ISOM_BRAND_HVCI = GF_4CC( 'h', 'v', 'c', 'i' ),
 
 	GF_ISOM_BRAND_AV01 = GF_4CC( 'a', 'v', '0', '1'),
+
+	GF_ISOM_BRAND_OPUS = GF_4CC( 'O', 'p', 'u', 's'),
 
 	GF_ISOM_BRAND_ISMA = GF_4CC( 'I', 'S', 'M', 'A' ),
 

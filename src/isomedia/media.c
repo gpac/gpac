@@ -275,6 +275,23 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			break;
 		} else return GF_ISOM_INVALID_MEDIA;
 
+	case GF_ISOM_SUBTYPE_OPUS: {
+		GF_OpusSpecificBox *e = ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_opus;
+		s64 offset = (s64)&e->version - (s64)e;
+		*out_esd = gf_odf_desc_esd_new(2);
+		(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
+		(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_OPUS;
+		(*out_esd)->decoderConfig->decoderSpecificInfo->dataLength = sizeof(GF_OpusSpecificBox) - (u32)offset;
+		(*out_esd)->decoderConfig->decoderSpecificInfo->data = gf_malloc((*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
+		memcpy((*out_esd)->decoderConfig->decoderSpecificInfo->data, (char*)e + offset, (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
+		if (e->channelMapping) {
+			GF_OpusSpecificBox *e2 = (GF_OpusSpecificBox*)((char*)(*out_esd)->decoderConfig->decoderSpecificInfo->data - offset);
+			e2->channelMapping = gf_malloc(e->channelMappingSz);
+			memcpy(e2->channelMapping, e->channelMapping, e->channelMappingSz);
+			e2->channelMappingSz = e->channelMappingSz;
+		}
+		break;
+	}
 	case GF_ISOM_SUBTYPE_3GP_H263:
 		if (true_desc_only) {
 			return GF_ISOM_INVALID_MEDIA;

@@ -1329,3 +1329,110 @@ void ogg_packet_clear(ogg_packet *op) {
 }
 
 #endif /*GPAC_DISABLE_OGG*/
+
+
+#include <gpac/internal/isomedia_dev.h>
+
+#ifndef GPAC_DISABLE_ISOM
+
+GF_Box *dOps_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_OpusSpecificBox, GF_ISOM_BOX_TYPE_DOPS);
+	return (GF_Box *)tmp;
+}
+
+void dOps_del(GF_Box *s)
+{
+	GF_OpusSpecificBox *ptr = (GF_OpusSpecificBox *)s;
+	if (ptr && ptr->channelMapping) gf_free(ptr->channelMapping);
+	if (ptr) gf_free(ptr);
+}
+
+GF_Err dOps_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_OpusSpecificBox *ptr = (GF_OpusSpecificBox *)s;
+	ptr->version = gf_bs_read_u8(bs);
+	ptr->OutputChannelCount = ptr->channels = gf_bs_read_u8(bs);
+	ptr->PreSkip = gf_bs_read_u16(bs);
+	ptr->InputSampleRate = gf_bs_read_u32(bs);
+	ptr->OutputGain = gf_bs_read_u16(bs);
+
+	//TODO: ptr->ChannelMappingFamily = gf_malloc();
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err dOps_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_OpusSpecificBox *ptr = (GF_OpusSpecificBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, ptr->version);
+	gf_bs_write_u8(bs, ptr->channels);
+	gf_bs_write_u16(bs, ptr->PreSkip);
+	gf_bs_write_u32(bs, ptr->InputSampleRate);
+	gf_bs_write_u16(bs, ptr->OutputGain);
+	gf_bs_write_data(bs, ptr->channelMapping, ptr->channelMappingSz);
+	return GF_OK;
+}
+
+GF_Err dOps_Size(GF_Box *s)
+{
+	GF_OpusSpecificBox *ptr = (GF_OpusSpecificBox *)s;
+	ptr->size += 10 + ptr->channelMappingSz;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+GF_EXPORT
+GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusSpecificBox *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	u32 dataRefIndex;
+	GF_MPEGAudioSampleEntryBox *entry;
+	s64 offset;
+
+	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
+
+	//get or create the data ref
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	if (e) return e;
+	if (!dataRefIndex) {
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		if (e) return e;
+	}
+	if (!the_file->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	//create a new entry
+	entry = (GF_MPEGAudioSampleEntryBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_OPUS);
+	if (!entry) return GF_OUT_OF_MEM;
+	entry->cfg_opus = (GF_OpusSpecificBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_DOPS);
+	if (!entry->cfg_opus) return GF_OUT_OF_MEM;
+
+	offset = (s64)&cfg->version - (s64)cfg;
+	memcpy((char*)entry->cfg_opus + offset, (char*)cfg + offset, sizeof(GF_OpusSpecificBox) - (size_t)offset);
+	if (cfg->channelMapping) {
+		entry->cfg_opus->channelMapping = gf_malloc(cfg->channelMappingSz);
+		memcpy(entry->cfg_opus->channelMapping, cfg->channelMapping, cfg->channelMappingSz);
+		entry->cfg_opus->channelMappingSz = cfg->channelMappingSz;
+	}
+	
+	entry->dataReferenceIndex = dataRefIndex;
+	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
+	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+	return e;
+}
+
+#endif /*GPAC_DISABLE_ISOM*/

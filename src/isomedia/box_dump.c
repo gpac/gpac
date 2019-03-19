@@ -772,6 +772,9 @@ GF_Err audio_sample_entry_dump(GF_Box *a, FILE * trace)
 		if (p->cfg_3gpp)
 			gf_isom_box_dump(p->cfg_3gpp, trace);
 
+		if (p->cfg_opus)
+			gf_isom_box_dump(p->cfg_opus, trace);
+
 		if (p->cfg_ac3)
 			gf_isom_box_dump(p->cfg_ac3, trace);
 
@@ -3986,6 +3989,18 @@ GF_Err dimC_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+
+GF_Err dOps_dump(GF_Box *a, FILE * trace)
+{
+	GF_OpusSpecificBox *p = (GF_OpusSpecificBox *)a;
+
+	gf_isom_box_dump_start(a, "OpusSpecificBox", trace);
+	fprintf(trace, "version=\"%d\" OutputChannelCount=\"%d\" channels=\"%d\" PreSkip=\"%d\" InputSampleRate=\"%d\" OutputGain=\"%d\" ChannelMappingFamily=\"%d\">\n",
+		p->version, p->OutputChannelCount, p->channels, p->PreSkip, p->InputSampleRate, p->OutputGain, p->ChannelMappingFamily);
+	gf_isom_box_dump_done("OpusSpecificBox", a, trace);
+
+	return GF_OK;
+}
 
 GF_Err dac3_dump(GF_Box *a, FILE * trace)
 {
