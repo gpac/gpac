@@ -8224,9 +8224,9 @@ Bool gf_vorbis_parse_header(ogg_audio_codec_desc *codec, char *data, u32 data_le
 		}
 		codec->channels = oggpack_read(&opb, 8);
 		codec->sample_rate = oggpack_read(&opb, 32);
-		codec->max_r = oggpack_read(&opb, 32);
-		codec->avg_r = oggpack_read(&opb, 32);
-		codec->low_r = oggpack_read(&opb, 32);
+		vp->max_r = oggpack_read(&opb, 32);
+		vp->avg_r = oggpack_read(&opb, 32);
+		vp->low_r = oggpack_read(&opb, 32);
 
 		vp->min_block = 1<<oggpack_read(&opb, 4);
 		vp->max_block = 1<<oggpack_read(&opb, 4);
