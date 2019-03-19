@@ -1857,7 +1857,8 @@ restart:
 		filter->src_args = args;
 		//for link resolution
 		if (dst_filter && for_source)	{
-			gf_list_add(filter->destination_links, dst_filter);
+			if (gf_list_find(filter->destination_links, dst_filter)<0)
+				gf_list_add(filter->destination_links, dst_filter);
 			//to remember our connection target
 			filter->target_filter = dst_filter;
 		}

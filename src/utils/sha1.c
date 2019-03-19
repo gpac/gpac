@@ -699,9 +699,9 @@ s32 gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
 	if (!strncmp(path, "gmem://", 7)) {
 		u32 size;
 		u8 *mem_address;
-		if (sscanf(path, "gmem://%d@%p", &size, &mem_address) != 2) {
-			return GF_IO_ERR;
-		}
+		GF_Err e = gf_blob_get_data(path, &mem_address, &size);
+		if (e) return e;
+
 		gf_sha1_csum(mem_address, size, output);
 		return 0;
 	}

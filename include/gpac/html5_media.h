@@ -321,7 +321,7 @@ typedef struct
 	u32     length;
 	char    *url;
 	Bool	is_init;
-
+	GF_Blob blob;
 	/* used to do proper garbage collection between JS and Terminal */
 	u32     reference_count;
 } GF_HTML_ArrayBuffer;

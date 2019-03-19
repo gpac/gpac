@@ -1156,6 +1156,27 @@ u32 gf_opts_get_int(const char *secName, const char *keyName);
  */
 GF_Err gf_opts_discard_changes();
 
+/*!
+ * Blob structure used to pass data pointer around
+ */
+typedef struct
+{
+	/*! data block of blob */
+	u8 *data;
+	/*! size of blob */
+	u32 size;
+} GF_Blob;
+
+/*!
+ * Do not save modification to global options
+ * \param blob_url URL of blob object (ie gmem://%p)
+ * \param out_data if sucess, set to blob data pointer
+ * \param out_size if sucess, set to blob data size
+ * \return error code
+ */
+GF_Err gf_blob_get_data(const char *blob_url, u8 **out_data, u32 *out_size);
+
+
 #ifdef GPAC_DISABLE_3D
 #define GPAC_DISABLE_REMOTERY 1
 #endif

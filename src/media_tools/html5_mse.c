@@ -851,7 +851,9 @@ void gf_mse_source_buffer_append_arraybuffer(GF_HTML_SourceBuffer *sb, GF_HTML_A
 	gf_mse_source_buffer_set_update(sb, GF_TRUE);
 
 	buffer->url = (char *)gf_malloc(256);
-	sprintf(buffer->url, "gmem://%d@%p", buffer->length, buffer->data);
+	buffer->blob.data = buffer->data;
+	buffer->blob.size = buffer->length;
+	sprintf(buffer->url, "gmem://%p", &buffer->blob);
 	buffer->reference_count++;
 #ifndef GPAC_DISABLE_ISOM
 	buffer->is_init = (gf_isom_probe_file(buffer->url) == 2 ? GF_TRUE : GF_FALSE);

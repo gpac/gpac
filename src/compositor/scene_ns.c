@@ -515,21 +515,21 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	if (frag) frag[0] = '#';
 	if (!odm->scene_ns->source_filter) {
 		Bool remove_scene=GF_FALSE;
-		GF_Scene *scene = odm->subscene ? NULL : odm->parentscene;
+		GF_Scene *target_scene = odm->subscene ? NULL : odm->parentscene;
 		if (odm->mo) odm->mo->connect_failure = GF_TRUE;
 		odm->skip_disconnect_state = 1;
 		//prevent scene from being disconnected - this can happen if a script catches the event and triggers a disonnection of the parent scene
-		if (scene) scene->root_od->skip_disconnect_state = 1;
+		if (target_scene) target_scene->root_od->skip_disconnect_state = 1;
 		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, e, GF_TRUE);
 		gf_scene_message(scene, serviceURL, "Cannot find filter for service", e);
 		odm->skip_disconnect_state = 0;
 
-		if (scene) {
-			if (scene->root_od->skip_disconnect_state==2) remove_scene = GF_TRUE;
-			scene->root_od->skip_disconnect_state = 0;
+		if (target_scene) {
+			if (target_scene->root_od->skip_disconnect_state==2) remove_scene = GF_TRUE;
+			target_scene->root_od->skip_disconnect_state = 0;
 		}
 		if (remove_scene) {
-			gf_filter_post_task(scene->compositor->filter, scene_ns_remove_object, scene->root_od, "remove_odm");
+			gf_filter_post_task(scene->compositor->filter, scene_ns_remove_object, target_scene->root_od, "remove_odm");
 		} else {
 			gf_filter_post_task(scene->compositor->filter, scene_ns_remove_object, odm, "remove_odm");
 		}

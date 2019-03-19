@@ -2629,13 +2629,14 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 		char *sep;
 		sep = strstr(*out_url, ";base64,");
 		if (sep) {
-			char *decoded_base64_data;
+			GF_Blob *blob;
 			u32 len;
 			sep+=8;
 			len = (u32)strlen(sep) + 1;
-			decoded_base64_data = (char *)gf_malloc(len);
-			len = gf_base64_decode(sep, len, decoded_base64_data, len);
-			sprintf(*out_url, "gmem://%d@%p", len, decoded_base64_data);
+			GF_SAFEALLOC(blob, GF_Blob);
+			blob->data = (char *)gf_malloc(len);
+			blob->size = gf_base64_decode(sep, len, blob->data, len);
+			sprintf(*out_url, "gmem://%p", blob);
 			*data_url_process = GF_TRUE;
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("data scheme with encoding different from base64 not supported\n"));
@@ -4408,10 +4409,10 @@ static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Repr
 	FILE *f=NULL;
 	if (!strncmp(cache_name, "gmem://", 7)) {
 		u32 size;
-		char *mem_address;
-		if (sscanf(cache_name, "gmem://%d@%p", &size, &mem_address) != 2) {
-			return GF_IO_ERR;
-		}
+		u8 *mem_address;
+		e = gf_blob_get_data(cache_name, &mem_address, &size);
+		if (e) return e;
+
 		bs = gf_bs_new(mem_address, size, GF_BITSTREAM_READ);
 	} else {
 		f = gf_fopen(cache_name, "rb");
@@ -4446,11 +4447,12 @@ static GF_Err dash_load_box_type(const char *cache_name, u32 offset, u32 *box_ty
 {
 	*box_type = *box_size = 0;
 	if (!strncmp(cache_name, "gmem://", 7)) {
+		GF_Err e;
 		u32 size;
 		u8 *mem_address;
-		if (sscanf(cache_name, "gmem://%d@%p", &size, &mem_address) != 2) {
-			return GF_IO_ERR;
-		}
+		e = gf_blob_get_data(cache_name, &mem_address, &size);
+		if (e) return e;
+
 		if (offset+8 > size)
 			return GF_IO_ERR;
 		mem_address += offset;
@@ -4658,15 +4660,15 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 					}
 					//we need to store the init segment since it has the same name as the rest of the segments and will be destroyed when cleaning up the cache ..
 					else if (!strnicmp(cache_name, "gmem://", 7)) {
-						char *mem_address;
-						if (sscanf(cache_name, "gmem://%d@%p", &rep->playback.init_segment_size, &mem_address) != 2) {
-							e = GF_IO_ERR;
+						u8 *mem_address;
+						e = gf_blob_get_data(cache_name, &mem_address, &rep->playback.init_segment.size);
+						if (e) {
 							goto exit;
 						}
-						rep->playback.init_segment_data = gf_malloc(sizeof(char) * rep->playback.init_segment_size);
-						memcpy(rep->playback.init_segment_data, mem_address, sizeof(char) * rep->playback.init_segment_size);
+						rep->playback.init_segment.data = gf_malloc(sizeof(char) * rep->playback.init_segment.size);
+						memcpy(rep->playback.init_segment.data, mem_address, sizeof(char) * rep->playback.init_segment.size);
 
-						sprintf(szName, "gmem://%d@%p", rep->playback.init_segment_size, rep->playback.init_segment_data);
+						sprintf(szName, "gmem://%p", &rep->playback.init_segment);
 						rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
 						rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
 					} else {
@@ -4674,15 +4676,15 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 						if (t) {
 							s32 res;
 							fseek(t, 0, SEEK_END);
-							rep->playback.init_segment_size = (u32) gf_ftell(t);
+							rep->playback.init_segment.size = (u32) gf_ftell(t);
 							fseek(t, 0, SEEK_SET);
 
-							rep->playback.init_segment_data = gf_malloc(sizeof(char) * rep->playback.init_segment_size);
-							res = (s32) fread(rep->playback.init_segment_data, sizeof(char), rep->playback.init_segment_size, t);
-							if (res != rep->playback.init_segment_size) {
+							rep->playback.init_segment.data = gf_malloc(sizeof(char) * rep->playback.init_segment.size);
+							res = (s32) fread(rep->playback.init_segment.data, sizeof(char), rep->playback.init_segment.size, t);
+							if (res != rep->playback.init_segment.size) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to store init segment\n"));
 							} else if (rep->segment_list && rep->segment_list->initialization_segment) {
-								sprintf(szName, "gmem://%d@%p", rep->playback.init_segment_size, rep->playback.init_segment_data);
+								sprintf(szName, "gmem://%p", &rep->playback.init_segment);
 								rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
 								rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
 							}
@@ -7761,7 +7763,17 @@ void gf_dash_request_period_switch(GF_DashClient *dash)
 GF_EXPORT
 Bool gf_dash_in_last_period(GF_DashClient *dash, Bool check_eos)
 {
-	Bool res = (dash->active_period_index+1 < gf_list_count(dash->mpd->periods)) ? 0 : 1;
+	Bool res;
+
+	switch (dash->dash_state) {
+	case GF_DASH_STATE_SETUP:
+	case GF_DASH_STATE_CONNECTING:
+		return GF_FALSE;
+	default:
+		break;
+	}
+	
+	res = (dash->active_period_index+1 < gf_list_count(dash->mpd->periods)) ? 0 : 1;
 	//this code seems buggy, commented for now
 #if 0
 	if (res && dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {

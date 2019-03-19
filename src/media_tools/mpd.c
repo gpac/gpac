@@ -1174,7 +1174,7 @@ void gf_mpd_representation_free(void *_item)
 		}
 		gf_free(ptr->playback.cached_init_segment_url);
 	}
-	if (ptr->playback.init_segment_data) gf_free(ptr->playback.init_segment_data);
+	if (ptr->playback.init_segment.data) gf_free(ptr->playback.init_segment.data);
 	if (ptr->playback.key_url) gf_free(ptr->playback.key_url);
 
 	gf_mpd_del_list(ptr->base_URLs, gf_mpd_base_url_free, 0);

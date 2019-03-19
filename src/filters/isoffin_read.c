@@ -191,6 +191,12 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 			e = GF_OK;
 		}
 
+		for (i=0; i<gf_list_count(read->channels); i++) {
+			ISOMChannel *ch = gf_list_get(read->channels, i);
+			if (ch->last_state==GF_EOS)
+				ch->last_state=GF_OK;
+		}
+
 #ifndef GPAC_DISABLE_LOG
 		if (e<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening new segment %s at UTC "LLU": %s\n", next_url, gf_net_get_utc(), gf_error_to_string(e) ));
@@ -343,12 +349,16 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			sr = prop->value.lfrac.num;
 			er = prop->value.lfrac.den;
 		}
-
-		if ((read->src_crc == crc) && (read->start_range==sr) && (read->end_range==er))
+		//if eos is signaled, don't check for crc since we might have the same blob address (same alloc)
+		if (!read->eos_signaled && (read->src_crc == crc) && (read->start_range==sr) && (read->end_range==er)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] same URL crc and range for %s, skipping reconfigure\n", next_url));
 			return GF_OK;
+		}
 		read->src_crc = crc;
 		read->start_range = sr;
 		read->end_range = er;
+		read->input_loaded = GF_FALSE;
+		read->eos_signaled = GF_FALSE;
 		
 		//we need to reconfigure
 		return isoffin_reconfigure(filter, read, next_url);
@@ -861,13 +871,22 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	if (read->refresh_fragmented) {
 		u64 bytesMissing=0;
 		GF_Err e;
-		e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, /*TODO for mem storage*/NULL);
+		const char *new_url = NULL;
+		const GF_PropertyValue *prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILEPATH);
+		if (prop) new_url = prop->value.string;
+
+		e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, new_url);
 
 		if (e && (e!= GF_ISOM_INCOMPLETE_FILE)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to refresh current segment: %s\n", gf_error_to_string(e) ));
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Refreshing current segment at UTC "LLU" - "LLU" bytes still missing\n", gf_net_get_utc(), bytesMissing ));
 		}
+
+		prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);
+		if (prop && prop->value.boolean)
+			read->refresh_fragmented = GF_FALSE;
+
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG)) {
 			for (i=0; i<count; i++) {
@@ -976,6 +995,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (in_is_eos && (ch->play_state==1)) {
 					ch->play_state = 2;
 					gf_filter_pid_set_eos(ch->pid);
+					read->eos_signaled = GF_TRUE;
 				}
 				break;
 			} else {

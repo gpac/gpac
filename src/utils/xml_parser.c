@@ -1206,9 +1206,9 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u32 size;
 		u8 *xml_mem_address;
-		if (sscanf(fileName, "gmem://%d@%p", &size, &xml_mem_address) != 2) {
-			return GF_URL_ERROR;
-		}
+		e = gf_blob_get_data(fileName, &xml_mem_address, &size);
+		if (e) return e;
+
 		parser->file_size = size;
 		//copy possible BOM
 		memcpy(szLine, xml_mem_address, 4);

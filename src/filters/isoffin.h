@@ -101,6 +101,8 @@ typedef struct
 	u32 src_crc;
 	u64 start_range, end_range;
 	GF_FilterPid *pid;
+
+	Bool eos_signaled;
 } ISOMReader;
 
 
