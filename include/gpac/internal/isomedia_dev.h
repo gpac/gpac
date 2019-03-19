@@ -1411,6 +1411,20 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_BOX
+
+	/*OpusSpecificBox*/
+	u8 version;              //1
+	u8 OutputChannelCount;   //same value as the *Output Channel Count* field in the identification header defined in Ogg Opus [3]
+	u16 PreSkip;             //The value of the PreSkip field shall be at least 80 milliseconds' worth of PCM samples even when removing any number of Opus samples which may or may not contain the priming samples. The PreSkip field is not used for discarding the priming samples at the whole playback at all since it is informative only, and that task falls on the Edit List Box.
+	u32 InputSampleRate;     //The InputSampleRate field shall be set to the same value as the *Input Sample Rate* field in the identification header defined in Ogg Opus
+	s16 OutputGain;          //The OutputGain field shall be set to the same value as the *Output Gain* field in the identification header define in Ogg Opus [3]. Note that the value is stored as 8.8 fixed-point.
+	u8 ChannelMappingFamily; //The ChannelMappingFamily field shall be set to the same value as the *Channel Mapping Family* field in the identification header defined in Ogg Opus [3]. Note that the value 255 may be used for an alternative to map channels by ISO Base Media native mapping. The details are described in 4.5.1.
+
+} GF_OpusSpecificBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
 	u8 configuration_version;
 	u8 mha_pl_indication;
 	u8 reference_channel_layout;

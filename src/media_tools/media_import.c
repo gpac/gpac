@@ -8153,8 +8153,107 @@ exit:
 	return e;
 }
 
+static GF_Err opus_process(ogg_audio_codec_desc *codec, char *data, u32 data_length,
+	void *importer, Bool *destroy_esd, u32 *track, u32 *di, u64 *duration, int *block_size)
+{
+	GF_OpusSpecificBox *opus = NULL;
+	GF_Err e = GF_OK;
+	GF_MediaImporter *import = (GF_MediaImporter*)importer;
+	GF_BitStream *bs = NULL;
+	char tag[8];
+
+	if (!codec || !import || !track || !di || !destroy_esd || !duration || !block_size)
+		return GF_BAD_PARAM;
+
+	*block_size = 0;
+	opus = (GF_OpusSpecificBox*)codec->parserPrivateState;
+	bs = gf_bs_new(data, data_length, GF_BITSTREAM_READ);
+	gf_bs_read_data(bs, tag, 8);
+
+	if (!opus) {
+		/*Identification Header*/
+		u8 val;
+		val = gf_bs_read_u8(bs); /*version*/
+		if (val != 1) {
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			goto exit;
+		}
+
+		GF_SAFEALLOC(opus, GF_OpusSpecificBox);
+		codec->parserPrivateState = (void*)opus;
+		codec->channels = gf_bs_read_u8(bs);
+		opus->PreSkip = gf_bs_read_u16(bs);
+		opus->InputSampleRate = gf_bs_read_u32(bs);
+		if (opus->InputSampleRate == 0) {
+			codec->sample_rate = 48000;
+		}
+		opus->OutputGain = gf_bs_read_u16(bs);
+		opus->ChannelMappingFamily = gf_bs_read_u8(bs);
+		assert(opus->ChannelMappingFamily == 0);
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("OGG Opus import - sample rate %d - %d channel%s", codec->sample_rate, codec->channels, (codec->channels>1) ? "s" : ""));
+
+		if (!import->esd) {
+			*destroy_esd = GF_TRUE;
+			import->esd = gf_odf_desc_esd_new(0);
+		}
+		*track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, 48000/*block sizes are alway in always in 48kHz*/);
+		if (!*track) return gf_isom_last_error(import->dest);
+		gf_isom_set_track_enabled(import->dest, *track, 1);
+		if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, *track);
+		import->final_trackID = import->esd->ESID;
+		if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig *)gf_odf_desc_new(GF_ODF_DCD_TAG);
+		if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *)gf_odf_desc_new(GF_ODF_SLC_TAG);
+		import->esd->slConfig->timestampResolution = 48000; /*block sizes are alway in always in 48kHz*/
+		if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *)gf_odf_desc_new(GF_ODF_DSI_TAG);
+		import->esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(import->esd->decoderConfig->decoderSpecificInfo->dataLength);
+		import->esd->decoderConfig->decoderSpecificInfo->dataLength = data_length - 8;
+		memcpy(import->esd->decoderConfig->decoderSpecificInfo->data, data+8, import->esd->decoderConfig->decoderSpecificInfo->dataLength);
+		import->esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+		import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_OPUS;
+
+		e = gf_isom_new_mpeg4_description(import->dest, *track, import->esd, NULL, NULL, di);
+		if (e) return e;
+		gf_isom_set_audio_info(import->dest, *track, *di, codec->sample_rate, (codec->channels>1) ? 2 : 1, 16, import->asemode);
+		gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_OPUS, 0);
+
+		{
+			Double d = import->duration;
+			d *= codec->sample_rate;
+			d /= 1000;
+			*duration = (u64)d;
+		}
+	} else if (!memcmp(tag, "OpusTags", sizeof(tag))) {
+		/*skip*/
+		goto exit;
+	} else {
+		/*consider the whole packet as Ogg packets and ISOBMFF samples for Opus are framed similarly*/
+		static const int OpusFrameDurIn48k[] = { 480, 960, 1920, 2880, 480, 960, 1920, 2880, 480, 960, 1920, 2880,
+			480, 960, 480, 960,
+			120, 240, 480, 960, 120, 240, 480, 960, 120, 240, 480, 960, 120, 240, 480, 960,
+		};
+		int TOC_config = (data[0] & 0xf8) >> 3;
+		//int s = (data[0] & 0x04) >> 2;
+		*block_size = OpusFrameDurIn48k[TOC_config];
+
+		int c = data[0] & 0x03;
+		if (c == 1 || c == 2) {
+			*block_size *= 2;
+		} else if (c == 3) {
+			/*unknown number of frames*/
+			int num_frames = data[1] & 0x3f;
+			*block_size *= num_frames;
+		}
+	}
+
+exit:
+	gf_bs_del(bs);
+	return GF_OK;
+}
+
 static ogg_audio_codec_desc ogg_audio_codec_descs[] = {
 	{ "vorbis", NULL/*GF_VorbisParser*/, 0, 0, vorbis_process },
+	{ "OpusHead", NULL/*GF_OpusParser*/, 0, 0, opus_process },
 };
 
 GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
