@@ -38,6 +38,7 @@ typedef struct
 
 	GF_FilterPid *ipid, *opid;
 	u32 w, h, stride, s_pfmt;
+	u32 bps;
 	GF_Fraction ar;
 	Bool passthrough;
 	u32 dst_width, dst_height;
@@ -51,10 +52,6 @@ typedef struct
 
 
 	char *line_buffer_vf; //vertical flip
-	char *line_buffer_F_hf; //horizontal flip, first line
-	char *line_buffer_L_hf; //horizontal flip, last line
-	char * yuv_4bytes_buffer;
-	char * yuv_2bytes_buffer;
 
 } GF_VFlipCtx;
 
@@ -68,7 +65,7 @@ enum
 
 
 
-static Bool swap_2Ys_YUVpixel(GF_VFlipCtx *ctx, u8 *yuv4BytesBuffer)
+static Bool swap_2Ys_YUVpixel(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 first_4bytes_index)
 {
 	u8 tmp;
 	Bool isFirstY_indexOne;
@@ -82,20 +79,122 @@ static Bool swap_2Ys_YUVpixel(GF_VFlipCtx *ctx, u8 *yuv4BytesBuffer)
 		isFirstY_indexOne= 1;
 		break;
 	}
-	//tmp = second Y
-	tmp = yuv4BytesBuffer[2+isFirstY_indexOne];
 
-	//second Y = first Y
-	yuv4BytesBuffer[2+isFirstY_indexOne] = yuv4BytesBuffer[0+isFirstY_indexOne];
+	//Y2_dst = Y1_src
+	line_dst[first_4bytes_index+2+isFirstY_indexOne]=line_src[first_4bytes_index+0+isFirstY_indexOne];
 
-	//first Y= second Y
-	yuv4BytesBuffer[0+isFirstY_indexOne]=tmp;
+	//Y1_dst = Y2_src
+	line_dst[first_4bytes_index+0+isFirstY_indexOne]=line_src[first_4bytes_index+2+isFirstY_indexOne];
+
 	return GF_OK;
 }
 
 static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 plane_idx, u32 line_width)
 {
-	if (ctx->packed_422) {
+	if (ctx->s_pfmt == GF_PIXEL_XRGB) {
+		if (ctx->bps==4) {
+			for (u32 j = 0; j < line_width/8; j++) {
+				u8 x_comp, r_comp, g_comp, b_comp;
+				x_comp = line_src[line_width - 4*j - 4];
+				r_comp = line_src[line_width - 4*j - 3];
+				g_comp = line_src[line_width - 4*j - 2];
+				b_comp = line_src[line_width - 4*j - 1];
+
+				line_dst[line_width - 4*j - 4] = line_src[4*j];
+				line_dst[line_width - 4*j - 3] = line_src[4*j + 1];
+				line_dst[line_width - 4*j - 2] = line_src[4*j + 2];
+				line_dst[line_width - 4*j - 1] = line_src[4*j + 3];
+
+				line_dst[4*j] = x_comp;
+				line_dst[4*j + 1] = r_comp;
+				line_dst[4*j + 2] = g_comp;
+				line_dst[4*j + 3] = b_comp;
+			}
+		}else  {
+			for (u32 j = 0; j < line_width/8; j++) {
+				u16 x_comp, r_comp, g_comp, b_comp;
+				x_comp = line_src[line_width - 4*j - 4];
+				r_comp = line_src[line_width - 4*j - 3];
+				g_comp = line_src[line_width - 4*j - 2];
+				b_comp = line_src[line_width - 4*j - 1];
+
+				((u16 *)line_dst)[line_width - 4*j - 4] = ((u16 *)line_src)[4*j];
+				((u16 *)line_dst)[line_width - 4*j - 3] = ((u16 *)line_src)[4*j + 1];
+				((u16 *)line_dst)[line_width - 4*j - 2] = ((u16 *)line_src)[4*j + 2];
+				((u16 *)line_dst)[line_width - 4*j - 1] = ((u16 *)line_src)[4*j + 3];
+
+				((u16 *)line_dst)[4*j] = x_comp;
+				((u16 *)line_dst)[4*j + 1] = r_comp;
+				((u16 *)line_dst)[4*j + 2] = g_comp;
+				((u16 *)line_dst)[4*j + 3] = b_comp;
+			}
+		}
+	}else if (ctx->s_pfmt == GF_PIXEL_RGB) {
+		if (ctx->bps==3) {
+			for (u32 j = 0; j < line_width/6; j++) {
+				u8 r_comp, g_comp, b_comp;
+				r_comp = line_src[line_width - 3*j - 3];
+				g_comp = line_src[line_width - 3*j - 2];
+				b_comp = line_src[line_width - 3*j - 1];
+
+				line_dst[line_width - 3*j - 3] = line_src[3*j];
+				line_dst[line_width - 3*j - 2] = line_src[3*j + 1];
+				line_dst[line_width - 3*j - 1] = line_src[3*j + 2];
+
+				line_dst[3*j] = r_comp;
+				line_dst[3*j + 1] = g_comp;
+				line_dst[3*j + 2] = b_comp;
+			}
+		}else  {
+			for (u32 j = 0; j < line_width/6; j++) {
+				u16 r_comp, g_comp, b_comp;
+				r_comp = line_src[line_width - 3*j - 3];
+				g_comp = line_src[line_width - 3*j - 2];
+				b_comp = line_src[line_width - 3*j - 1];
+
+				((u16 *)line_dst)[line_width - 3*j - 3] = ((u16 *)line_src)[3*j];
+				((u16 *)line_dst)[line_width - 3*j - 2] = ((u16 *)line_src)[3*j + 1];
+				((u16 *)line_dst)[line_width - 3*j - 1] = ((u16 *)line_src)[3*j + 2];
+
+				((u16 *)line_dst)[3*j] = r_comp;
+				((u16 *)line_dst)[3*j + 1] = g_comp;
+				((u16 *)line_dst)[3*j + 2] = b_comp;
+			}
+		}
+	}else if (ctx->s_pfmt == GF_PIXEL_BGR){
+		if (ctx->bps==3) {
+			for (u32 j = 0; j < line_width/6; j++) {
+				u8 r_comp, g_comp, b_comp;
+				b_comp = line_src[line_width - 3*j - 3];
+				g_comp = line_src[line_width - 3*j - 2];
+				r_comp = line_src[line_width - 3*j - 1];
+
+				line_dst[line_width - 3*j - 3] = line_src[3*j];
+				line_dst[line_width - 3*j - 2] = line_src[3*j + 1];
+				line_dst[line_width - 3*j - 1] = line_src[3*j + 2];
+
+				line_dst[3*j] = b_comp;
+				line_dst[3*j + 1] = g_comp;
+				line_dst[3*j + 2] = r_comp;
+			}
+		}else  {
+			for (u32 j = 0; j < line_width/6; j++) {
+				u16 r_comp, g_comp, b_comp;
+				b_comp = line_src[line_width - 3*j - 3];
+				g_comp = line_src[line_width - 3*j - 2];
+				r_comp = line_src[line_width - 3*j - 1];
+
+				((u16 *)line_dst)[line_width - 3*j - 3] = ((u16 *)line_src)[3*j + 2];
+				((u16 *)line_dst)[line_width - 3*j - 2] = ((u16 *)line_src)[3*j + 1];
+				((u16 *)line_dst)[line_width - 3*j - 1] = ((u16 *)line_src)[3*j];
+
+				((u16 *)line_dst)[3*j] = b_comp;
+				((u16 *)line_dst)[3*j + 1] = g_comp;
+				((u16 *)line_dst)[3*j + 2] = r_comp;
+			}
+		}
+
+	}else if (ctx->packed_422) {
 		u32 fourBytesSize = line_width/4;
 		u32 w4x = fourBytesSize /2;
 		//reversing of 4-bytes sequences
@@ -103,39 +202,47 @@ static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 			//buffer = last 4 columns
 			u32 last_4bytes_index = line_width-3-(4*j);
 			u32 first_4bytes_index = 4*j;
-			memcpy(ctx->yuv_4bytes_buffer, line_src+last_4bytes_index, sizeof(char)*4);
 
 			//last 4 columns = first 4 columns
 			for (u32 p = 0; p < 4; p++) {
 				line_dst[last_4bytes_index+p] = line_src[first_4bytes_index+p];
-			}
-			//exchanging of Ys within a yuv pixel
-			swap_2Ys_YUVpixel(ctx, ctx->yuv_4bytes_buffer);
 
-			//first 4 columns = buffer
-			memcpy(line_dst+first_4bytes_index, ctx->yuv_4bytes_buffer, 4);
+				//exchanging of Ys within a yuv pixel
+				swap_2Ys_YUVpixel(ctx, line_dst, line_dst, first_4bytes_index);
+			}
 		}
 	}else {
 		//nv12/21
 		//second plane is U-plane={u1,v1, u2,v2...}
 		if (ctx->nb_planes==2 && plane_idx==1){
-			u32 twoBytesSize = line_width/2;
-			u32 w2x = twoBytesSize /2;
-			for (u32 j = 0; j < 2*w2x; j++) {
-				//buffer = last 2 columns
-				u32 last_2bytes_index = line_width-2-(2*j);
-				u32 first_2bytes_index = 2*j;
-				memcpy(ctx->yuv_2bytes_buffer, line_src+last_2bytes_index, sizeof(char)*2);
+			if (ctx->bps==1) {
+				//line_width - 2*j - 2 > 2*j to avoid
+				for (u32 j = 0; j < line_width/4; j++) {
+					u8 u_comp, v_comp;
+					u_comp = line_src[line_width - 2*j - 2];
+					v_comp = line_src[line_width - 2*j - 1];
 
-				//last 2 columns = first 2 columns
-				for (u32 p = 0; p < 2; p++) {
-					line_dst[last_2bytes_index+p] = line_src[first_2bytes_index+p];
+					line_dst[line_width - 2*j - 2] = line_src[2*j];
+					line_dst[line_width - 2*j - 1] = line_src[2*j + 1];
+
+					line_dst[2*j] = u_comp;
+					line_dst[2*j + 1] = v_comp;
 				}
+			}else{
+				for (u32 j = 0; j < line_width/4; j++) {
+					u16 u_comp, v_comp;
+					u_comp = line_src[line_width - 2*j - 2];
+					v_comp = line_src[line_width - 2*j - 1];
 
-				//first 2 columns = buffer
-				memcpy(line_dst+first_2bytes_index, ctx->yuv_2bytes_buffer, 2);
+					((u16 *)line_dst)[line_width - 2*j - 2] = ((u16 *)line_src)[2*j];
+					((u16 *)line_dst)[line_width - 2*j - 1] = ((u16 *)line_src)[2*j + 1];
+
+					((u16 *)line_dst)[2*j] = u_comp;
+					((u16 *)line_dst)[2*j + 1] = v_comp;
+				}
 			}
-		}else{
+
+		} else if (ctx->bps==1) {
 			u32 wx = line_width/2;
 			u8 tmp;
 			for (u32 j = 0; j < wx; j++) {
@@ -148,33 +255,40 @@ static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 				//first column = tmp
 				line_dst[j]=tmp;
 			}
+		} else {
+			line_width /= 2;
+			u32 wx = line_width/2;
+			u16 tmp;
+			for (u32 j = 0; j < wx; j++) {
+				//tmp = last column
+				tmp = (u16) ( ((u16 *)line_src) [line_width-1-j] );
+
+				//last column = first column
+				((u16 *)line_dst) [line_width-1-j] = ((u16*)line_src)[j];
+
+				//first column = tmp
+				((u16 *)line_dst) [j]=tmp;
+			}
 		}
 	}
 	return GF_OK;
 }
 
-static Bool horizontal_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 height, u32 plane_idx, u32 wiB){
-	u32 hy, wx, i;
-		hy = height/2;
-		for (i=0; i<hy; i++) {
-			u8 *src_first_line = src_plane+ i*ctx->src_stride[plane_idx];
-			u8 *src_last_line  = src_plane+ (height  - 1 - i) * ctx->src_stride[plane_idx];
+static Bool horizontal_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 height, u32 plane_idx, u32 wiB, u32 *src_stride)
+{
+	u32 hy, i;
+	hy = height;
+	for (i=0; i<hy; i++) {
+		u8 *src_first_line = src_plane + i * src_stride[plane_idx];
+		u8 *dst_first_line = dst_plane + i*ctx->dst_stride[plane_idx];
 
-			u8 *dst_first_line = dst_plane+ i*ctx->dst_stride[plane_idx];
-			u8 *dst_last_line  = dst_plane+ (height  - 1 - i) * ctx->dst_stride[plane_idx];
-
-			horizontal_flip_per_line(ctx, src_first_line, ctx->line_buffer_F_hf, plane_idx, wiB);
-			horizontal_flip_per_line(ctx, src_last_line, ctx->line_buffer_L_hf, plane_idx, wiB);
-
-			memcpy(dst_first_line, ctx->line_buffer_F_hf, wiB);
-			memcpy(dst_last_line, ctx->line_buffer_L_hf, wiB);
-		}
+		horizontal_flip_per_line(ctx, src_first_line, dst_first_line, plane_idx, wiB);
+	}
 	return GF_OK;
 }
 
-static Bool vertical__flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 height, u32 plane_idx, u32 wiB){
+static Bool vertical_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 height, u32 plane_idx, u32 wiB){
 	u32 hy, i;
-
 	hy = height/2;
 	for (i=0; i<hy; i++) {
 		u8 *src_first_line = src_plane+ i*ctx->src_stride[plane_idx];
@@ -195,9 +309,8 @@ static GF_Err vflip_process(GF_Filter *filter)
 	const char *data;
 	char *output;
 	u32 size;
-	u32 bps;
 	u32 i;
-	u32 wiB, height; //wiB: width in Bytes
+	u32 wiB, height; //wiB: Plane width in Bytes
 	u8 *src_planes[5];
 	u8 *dst_planes[5];
 	GF_FilterPacket *dst_pck;
@@ -241,8 +354,8 @@ static GF_Err vflip_process(GF_Filter *filter)
 	} else if (frame_ifce && frame_ifce->get_plane) {
 		u32 i=0;
 		for (i=0; i<4; i++) {
-		if (frame_ifce->get_plane(frame_ifce, i, (const u8 **) &src_planes[i], &ctx->src_stride[i])!=GF_OK)
-			break;
+			if (frame_ifce->get_plane(frame_ifce, i, (const u8 **) &src_planes[i], &ctx->src_stride[i])!=GF_OK)
+				break;
 		}
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[VFlip] No data associated with packet, not supported\n"));
@@ -250,7 +363,7 @@ static GF_Err vflip_process(GF_Filter *filter)
 		return GF_NOT_SUPPORTED;
 	}
 
-	bps = gf_pixel_get_bytes_per_pixel(ctx->s_pfmt);
+	ctx->bps = gf_pixel_get_bytes_per_pixel(ctx->s_pfmt);
 
 
 	if (frame_ifce){
@@ -279,47 +392,50 @@ static GF_Err vflip_process(GF_Filter *filter)
 		dst_planes[3] = dst_planes[2] + ctx->dst_stride[2]*ctx->dst_uv_height;
 	}
 
-		//computing of height and wiB
-		//YUYV variations need *2 on horizontal dimension
-		for (i=0; i<ctx->nb_planes; i++) {
-			if (i==0) {
-				if (ctx->packed_422) {
-					wiB = bps * ctx->dst_width *2;
-				} else {
-					wiB = bps * ctx->dst_width;
-				}
-				height = ctx->h;
-			}else {
-				//nv12/21
-				if (i==1 && ctx->nb_planes==2) {
-					//half vertical res (/2)
-					//half horizontal res (/2) but two chroma packed per pixel (*2)
-					wiB = bps * ctx->dst_width;
-					height = ctx->h / 2;
-				} else if (ctx->nb_planes>=3) {
-					u32 div_x, div_y;
-					//alpha/depth/other plane, treat as luma plane
-					if (i==3 && ctx->nb_planes==4) {
-						wiB = bps * ctx->dst_width;
-						height = ctx->h;
-					}else if (i==1 || i==2) {
-						div_x = (ctx->src_stride[1]==ctx->src_stride[0]) ? 1 : 2;
-						div_y = (ctx->src_uv_height==ctx->h) ? 1 : 2;
-						 height = ctx->dst_height;
-						height /= div_y;
-						wiB = bps * ctx->dst_width;
-						wiB /= div_x;
-					}
-				}
+	//computing of height and wiB
+	//YUYV variations need *2 on horizontal dimension
+	for (i=0; i<ctx->nb_planes; i++) {
+		if (i==0) {
+			if (ctx->packed_422) {
+				wiB = ctx->bps * ctx->dst_width *2;
+			} else {
+				wiB = ctx->bps * ctx->dst_width;
 			}
-
-			//processing according selected mode
-			if (ctx->mode==VFLIP_VERT){
-				vertical__flip(ctx, src_planes[i], dst_planes[i], height, i, wiB);
-			}else if (ctx->mode==VFLIP_HORIZ){
-				horizontal_flip(ctx, src_planes[i], dst_planes[i], height, i, wiB);
+			height = ctx->h;
+		}else {
+			//nv12/21
+			if (i==1 && ctx->nb_planes==2) {
+				//half vertical res (/2)
+				//half horizontal res (/2) but two chroma packed per pixel (*2)
+				wiB = ctx->bps * ctx->dst_width;
+				height = ctx->h / 2;
+			} else if (ctx->nb_planes>=3) {
+				u32 div_x, div_y;
+				//alpha/depth/other plane, treat as luma plane
+				if (i==3 && ctx->nb_planes==4) {
+					wiB = ctx->bps * ctx->dst_width;
+					height = ctx->h;
+				}else if (i==1 || i==2) {
+					div_x = (ctx->src_stride[1]==ctx->src_stride[0]) ? 1 : 2;
+					div_y = (ctx->src_uv_height==ctx->h) ? 1 : 2;
+					height = ctx->dst_height;
+					height /= div_y;
+					wiB = ctx->bps * ctx->dst_width;
+					wiB /= div_x;
+				}
 			}
 		}
+
+		//processing according selected mode
+		if (ctx->mode==VFLIP_VERT){
+			vertical_flip(ctx, src_planes[i], dst_planes[i], height, i, wiB);
+		}else if (ctx->mode==VFLIP_HORIZ){
+			horizontal_flip(ctx, src_planes[i], dst_planes[i], height, i, wiB, ctx->src_stride);
+		}else if (ctx->mode==VFLIP_BOTH){
+			vertical_flip(ctx, src_planes[i], dst_planes[i], height, i, wiB);
+			horizontal_flip(ctx, dst_planes[i], dst_planes[i], height, i, wiB, ctx->dst_stride);
+		}
+	}
 
 	gf_filter_pck_send(dst_pck);
 	gf_filter_pid_drop_packet(ctx->ipid);
@@ -418,10 +534,6 @@ static GF_Err vflip_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[VFlip] Configured output full frame size %dx%d\n", ctx->w, ctx->h));
 
 		ctx->line_buffer_vf = gf_realloc(ctx->line_buffer_vf, sizeof(char)*ctx->dst_stride[0] );
-		ctx->line_buffer_F_hf = gf_realloc(ctx->line_buffer_F_hf, sizeof(char)*ctx->dst_stride[0] );
-		ctx->line_buffer_L_hf = gf_realloc(ctx->line_buffer_L_hf, sizeof(char)*ctx->dst_stride[0] );
-		ctx->yuv_4bytes_buffer = gf_realloc(ctx->yuv_4bytes_buffer, sizeof(char)*4 );
-		ctx->yuv_2bytes_buffer = gf_realloc(ctx->yuv_2bytes_buffer, sizeof(char)*2 );
 
 		ctx->packed_422 = GF_FALSE;
 		switch (pfmt) {
@@ -451,37 +563,33 @@ void vflip_finalize(GF_Filter *filter)
 {
 	GF_VFlipCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->line_buffer_vf) gf_free(ctx->line_buffer_vf);
-	if (ctx->line_buffer_F_hf) gf_free(ctx->line_buffer_F_hf);
-	if (ctx->line_buffer_L_hf) gf_free(ctx->line_buffer_L_hf);
-	if (ctx->yuv_4bytes_buffer) gf_free(ctx->yuv_4bytes_buffer);
-	if (ctx->yuv_2bytes_buffer) gf_free(ctx->yuv_2bytes_buffer);
 }
 
 
 #define OFFS(_n)	#_n, offsetof(GF_VFlipCtx, _n)
 static GF_FilterArgs VFlipArgs[] =
 {
-	{ OFFS(mode), "Sets flip mode", GF_PROP_UINT, "vert", "off|vert|horiz|both", GF_FS_ARG_UPDATE | GF_FS_ARG_HINT_ADVANCED},
-	{0}
+		{ OFFS(mode), "Sets flip mode", GF_PROP_UINT, "vert", "off|vert|horiz|both", GF_FS_ARG_UPDATE | GF_FS_ARG_HINT_ADVANCED},
+		{0}
 };
 
 static const GF_FilterCapability VFlipCaps[] =
 {
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW)
+		CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+		CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW)
 };
 
 GF_FilterRegister VFlipRegister = {
-	.name = "vflip",
-	GF_FS_SET_DESCRIPTION("Video flip filter")
-	GF_FS_SET_HELP("Samir first filter !!")
-	.private_size = sizeof(GF_VFlipCtx),
-	.flags = GF_FS_REG_EXPLICIT_ONLY,
-	.args = VFlipArgs,
-	.configure_pid = vflip_configure_pid,
-	SETCAPS(VFlipCaps),
-	.process = vflip_process,
-	.finalize = vflip_finalize,
+		.name = "vflip",
+		GF_FS_SET_DESCRIPTION("Video flip filter")
+		GF_FS_SET_HELP("Samir first filter !!")
+		.private_size = sizeof(GF_VFlipCtx),
+		.flags = GF_FS_REG_EXPLICIT_ONLY,
+		.args = VFlipArgs,
+		.configure_pid = vflip_configure_pid,
+		SETCAPS(VFlipCaps),
+		.process = vflip_process,
+		.finalize = vflip_finalize,
 };
 
 
