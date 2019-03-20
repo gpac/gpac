@@ -1397,7 +1397,7 @@ GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusSpe
 	GF_Err e;
 	u32 dataRefIndex;
 	GF_MPEGAudioSampleEntryBox *entry;
-	s64 offset;
+	ptrdiff_t offset;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -1421,7 +1421,7 @@ GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusSpe
 	entry->cfg_opus = (GF_OpusSpecificBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_DOPS);
 	if (!entry->cfg_opus) return GF_OUT_OF_MEM;
 
-	offset = (s64)&cfg->version - (s64)cfg;
+	offset = (ptrdiff_t)&cfg->version - (ptrdiff_t)cfg;
 	memcpy((char*)entry->cfg_opus + offset, (char*)cfg + offset, sizeof(GF_OpusSpecificBox) - (size_t)offset);
 	if (cfg->channelMapping) {
 		entry->cfg_opus->channelMapping = gf_malloc(cfg->channelMappingSz);

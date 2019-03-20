@@ -277,7 +277,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 
 	case GF_ISOM_SUBTYPE_OPUS: {
 		GF_OpusSpecificBox *e = ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_opus;
-		s64 offset = (s64)&e->version - (s64)e;
+		ptrdiff_t offset = (ptrdiff_t)&e->version - (ptrdiff_t)e;
 		*out_esd = gf_odf_desc_esd_new(2);
 		(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
 		(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_OPUS;

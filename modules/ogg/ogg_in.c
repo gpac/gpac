@@ -464,8 +464,12 @@ void OGG_Process(OGGReader *read)
 	if (st->parse_headers && !st->got_headers) {
 		while (ogg_stream_packetout(&st->os, &oggpacket ) > 0 ) {
 			GF_BitStream *bs;
-			if (st->info.type==OGG_VORBIS)
-				gf_vorbis_parse_header(&st->vp, (char *) oggpacket.packet, oggpacket.bytes);
+			if (st->info.type == OGG_VORBIS) {
+				ogg_audio_codec_desc codec;
+				memset(&codec, 0, sizeof(ogg_audio_codec_desc));
+				codec.parserPrivateState = &st->vp;
+				gf_vorbis_parse_header(&codec, (char *)oggpacket.packet, oggpacket.bytes);
+			}
 
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (st->dsi) {
