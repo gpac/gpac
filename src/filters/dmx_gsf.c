@@ -338,7 +338,6 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 		gf_bs_read_data(bs, p->value.data.ptr, p->value.data.size);
 		break;
 
-	//string list: memory is ALWAYS duplicated
 	case GF_PROP_STRING_LIST:
 		p->value.string_list = gf_list_new();
 		len2 = gsfdmx_read_vlen(bs);
