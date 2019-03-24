@@ -137,6 +137,8 @@ struct __gf_download_session
 	u32 total_size, bytes_done, icy_metaint, icy_count, icy_bytes;
 	u64 start_time;
 	u64 chunk_run_time;
+	u64 active_time, in_time;
+
 	u32 bytes_per_sec;
 	u64 start_time_utc;
 	Bool last_chunk_found;
@@ -1328,6 +1330,11 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
 		s32 size;
+		e = gf_sk_receive(sess->sock, NULL, 0, NULL);
+		if (e==GF_IP_NETWORK_EMPTY) {
+			gf_mx_v(sess->mx);
+			return e;
+		}
 		size = SSL_read(sess->ssl, data, data_size);
 		if (size < 0)
 			e = GF_IO_ERR;
@@ -1454,7 +1461,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			return;
 		}
 
-		now  =gf_sys_clock_high_res();
+		now = gf_sys_clock_high_res();
 		e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port, (char *)ip);
 
 		/*retry*/
@@ -1507,6 +1514,8 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			ret = SSL_connect(sess->ssl);
 			if (ret<=0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SSL] Cannot connect, error %d\n", ret));
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[SSL] connected\n"));
 			}
 
 			cert = SSL_get_peer_certificate(sess->ssl);
@@ -2181,20 +2190,23 @@ static void dm_sess_update_download_rate(GF_DownloadSession * sess, Bool always_
 	runtime = sess->chunk_run_time;
 	if (sess->start_time) {
 		runtime += (gf_sys_clock_high_res() - sess->start_time);
+		if (sess->active_time) {
+			runtime = sess->active_time;
+		}
 	}
 	if (!runtime) runtime=1;
 
 	sess->bytes_per_sec = (u32) ((1000000 * (u64) sess->bytes_done) / runtime);
 
 	if (sess->chunked) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] bandwidth estimation: download time "LLD" us (chunk download time "LLD" us) - bytes %u - rate %u kbps\n", runtime, sess->chunk_run_time, sess->bytes_done, sess->bytes_per_sec*8/1000));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] bandwidth estimation: download time "LLD" us (chunk download time "LLD" us) - bytes %u - rate %u kbps\n", runtime, sess->chunk_run_time, sess->bytes_done, sess->bytes_per_sec*8/1000));
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] bandwidth estimation: download time "LLD" us - bytes %u - rate %u kbps\n", runtime, sess->bytes_done, sess->bytes_per_sec*8/1000));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] bandwidth estimation: download time "LLD" us - bytes %u - rate %u kbps\n", runtime, sess->bytes_done, sess->bytes_per_sec*8/1000));
 	}
 }
 
 
-static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size, Bool store_in_init, u32 *rewrite_size)
+static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size, Bool store_in_init, u32 *rewrite_size, u8 *original_payload)
 {
 	u32 nbBytes, remaining, hdr_size;
 	u8 *data;
@@ -2273,6 +2285,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 	}
 	//and we're done
 	if (sess->total_size && (sess->bytes_done == sess->total_size)) {
+		u64 run_time;
 		gf_dm_disconnect(sess, GF_FALSE);
 		par.msg_type = GF_NETIO_DATA_TRANSFERED;
 		par.error = GF_OK;
@@ -2284,24 +2297,33 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		}
 		gf_dm_sess_user_io(sess, &par);
 		sess->total_time_since_req = (u32) (gf_sys_clock_high_res() - sess->request_start_time);
+		run_time = gf_sys_clock_high_res() - sess->start_time;
+		if (sess->in_time) {
+			sess->active_time += gf_sys_clock_high_res() - sess->in_time;
+			if (run_time > sess->active_time) {
+				run_time = sess->active_time; // + (run_time - sess->active_time)/3;
+				sess->bytes_per_sec = (u32) ((1000000 * (u64) sess->bytes_done) / run_time);
+				sess->total_time_since_req -= run_time;
+			}
+		}
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s (%d bytes) downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", gf_cache_get_url(sess->cache_entry), sess->bytes_done,
-		                                     gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1000, sess->total_time_since_req, sess->reply_time ));
+		                                     run_time, 8*sess->bytes_per_sec/1000, sess->total_time_since_req, sess->reply_time ));
 
 		if (sess->chunked && (payload_size==2))
 			payload_size=0;
 	}
 
-	if (rewrite_size && sess->chunked) {
+	if (rewrite_size && sess->chunked && data && original_payload) {
 		//use memmove since regions overlap
-		memmove(data + *rewrite_size, data, nbBytes);
+		memmove(original_payload + *rewrite_size, data, nbBytes);
 		*rewrite_size += nbBytes;
 	}
 
 	if (!sess->nb_left_in_chunk && remaining) {
 		sess->nb_left_in_chunk = remaining;
 	} else if (payload_size) {
-		gf_dm_data_received(sess, payload, payload_size, store_in_init, rewrite_size);
+		gf_dm_data_received(sess, payload, payload_size, store_in_init, rewrite_size, original_payload);
 	}
 }
 
@@ -2322,16 +2344,17 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 	*read_size = 0;
 	if (sess->status == GF_NETIO_DATA_TRANSFERED) return GF_EOS;
 
+	sess->in_time = gf_sys_clock_high_res();
 	if (sess->status == GF_NETIO_SETUP) {
 		gf_dm_connect(sess);
 		if (sess->last_error) return sess->last_error;
-		return GF_OK;
+		e = GF_OK;
 	} else if (sess->status < GF_NETIO_DATA_EXCHANGE) {
 		sess->do_requests(sess);
-		return sess->last_error;
+		e = sess->last_error;
 	}
 	/*we're running but we had data previously*/
-	if (sess->init_data) {
+	else if (sess->init_data) {
 		if (sess->init_data_size<=buffer_size) {
 			memcpy(buffer, sess->init_data, sizeof(char)*sess->init_data_size);
 			*read_size = sess->init_data_size;
@@ -2344,17 +2367,44 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			sess->init_data_size -= buffer_size;
 			memcpy(sess->init_data, sess->init_data+buffer_size, sizeof(char)*sess->init_data_size);
 		}
-		return GF_OK;
-	}
+		e = GF_OK;
+	} else {
+#if 1
+		u32 single_read;
+		u32 nb_read = 0;
+		*read_size = 0;
+		while (1) {
+			single_read=0;
+			if (nb_read>=buffer_size)
+				break;
+			e = gf_dm_read_data(sess, buffer+nb_read, buffer_size-nb_read, &single_read);
+			if (e) break;
 
-	e = gf_dm_read_data(sess, buffer, buffer_size, read_size);
-	if (e) return e;
-	size = *read_size;
-	*read_size = 0;
-	gf_dm_data_received(sess, (u8 *) buffer, size, GF_FALSE, read_size);
-	if (!sess->chunked)
-		*read_size = size;
-	return GF_OK;
+			size = single_read;
+			single_read = 0;
+
+			gf_dm_data_received(sess, (u8 *) buffer+nb_read, size, GF_FALSE, &single_read, (u8 *) buffer+nb_read);
+			if (!sess->chunked)
+				single_read = size;
+
+			nb_read+=single_read;
+			*read_size += single_read;
+		}
+		nb_read = 0;
+#else
+		e = gf_dm_read_data(sess, buffer, buffer_size, read_size);
+		if (!e) {
+			size = *read_size;
+			*read_size = 0;
+			gf_dm_data_received(sess, (u8 *) buffer, size, GF_FALSE, read_size, buffer);
+			if (!sess->chunked)
+				*read_size = size;
+		}
+#endif
+
+	}
+	sess->active_time += gf_sys_clock_high_res() - sess->in_time;
+	return e;
 }
 
 GF_EXPORT
@@ -2444,6 +2494,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	assert (sess->status == GF_NETIO_CONNECTED);
 
 	gf_dm_clear_headers(sess);
+	sess->active_time = 0;
 
 	assert(sess->remaining_data_size == 0);
 
@@ -2757,7 +2808,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 			if (sess->sock && (e == GF_IP_CONNECTION_CLOSED)) {
 				u32 len = gf_cache_get_content_length(sess->cache_entry);
 				if (size > 0)
-					gf_dm_data_received(sess, (u8 *) sHTTP, size, GF_FALSE, NULL);
+					gf_dm_data_received(sess, (u8 *) sHTTP, size, GF_FALSE, NULL, NULL);
 				if ( ( (len == 0) && sess->use_cache_file)
 				        /*ivica patch*/
 				        || (size==0)
@@ -2786,7 +2837,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 		}
 		sHTTP[size + remaining_data_size] = 0;
 
-		gf_dm_data_received(sess, (u8 *) sHTTP, size + remaining_data_size, GF_FALSE, NULL);
+		gf_dm_data_received(sess, (u8 *) sHTTP, size + remaining_data_size, GF_FALSE, NULL, NULL);
 
 		/*socket empty*/
 		if (size < buf_size) {
@@ -3258,7 +3309,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		gf_dm_sess_user_io(sess, &par);
 		if ((BodyStart < (s32) bytesRead)) {
 			sHTTP[bytesRead] = 0;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] Failure: %s\n", sHTTP + BodyStart));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] Failure - body: %s\n", sHTTP + BodyStart));
 		}
 		notify_headers(sess, sHTTP, bytesRead, BodyStart);
 		e = GF_URL_ERROR;
@@ -3384,7 +3435,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		sess->init_data_size = 0;
 		sess->init_data = NULL;
 
-		gf_dm_data_received(sess, (u8 *) sHTTP + BodyStart, bytesRead - BodyStart, GF_TRUE, NULL);
+		gf_dm_data_received(sess, (u8 *) sHTTP + BodyStart, bytesRead - BodyStart, GF_TRUE, NULL, NULL);
 	}
 exit:
 	if (e) {
