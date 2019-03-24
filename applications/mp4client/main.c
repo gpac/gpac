@@ -1076,6 +1076,11 @@ int mp4client_main(int argc, char **argv)
 #endif
 
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+	//we by default want 2 additional threads:
+	//main thread might get locked on vsync
+	//second thread might be busy decoding audio/video
+	//third thread will then be able to refill all buffers/perform networks tasks
+	gf_opts_set_key("temp", "threads", "2");
 
 	e = gf_sys_set_args(argc, (const char **) argv);
 	if (e) {
@@ -1421,7 +1426,7 @@ int mp4client_main(int argc, char **argv)
 	while (Run) {
 
 		/*we don't want getchar to block*/
-		if ((gui_mode==1) || !gf_prompt_has_input()) {
+		if ((gui_mode==1) || 1 /* || !gf_prompt_has_input() */ ) {
 			if (reload) {
 				reload = 0;
 				gf_term_disconnect(term);
@@ -1471,6 +1476,7 @@ int mp4client_main(int argc, char **argv)
 			}
 			continue;
 		}
+
 		c = gf_prompt_get_char();
 
 force_input:

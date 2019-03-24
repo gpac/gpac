@@ -1494,6 +1494,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		//do not cancel the process task since it might have been triggered by the filter itself,
 		//we would not longer call it
 		task->requeue_request = GF_TRUE;
+		task->schedule_next_time = gf_sys_clock_high_res() + 10000;
 		assert(filter->process_task_queued);
 		return;
 	}
@@ -1533,25 +1534,22 @@ static void gf_filter_process_task(GF_FSTask *task)
 	}
 #endif
 
+	//we have postponed packets on filter, flush them
 	if (task->filter->postponed_packets) {
 		while (gf_list_count(task->filter->postponed_packets)) {
 			GF_FilterPacket *pck = gf_list_pop_front(task->filter->postponed_packets);
 			GF_Err e = gf_filter_pck_send_internal(pck, GF_FALSE);
 			if (e==GF_PENDING_PACKET) {
+				//packet is pending so was added at the end of our postponed queue - remove from queue and reinsert in front
 				gf_list_del_item(task->filter->postponed_packets, pck);
 				gf_list_insert(task->filter->postponed_packets, pck, 0);
-				break;
+				task->requeue_request = GF_TRUE;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s still has postponed packets, postponing process\n", filter->name));
+				return;
 			}
 		}
 		gf_list_del(task->filter->postponed_packets);
 		task->filter->postponed_packets = NULL;
-		if (task->filter->process_task_queued==1) {
-			gf_mx_p(task->filter->tasks_mx);
-			task->filter->process_task_queued = 0;
-			gf_mx_v(task->filter->tasks_mx);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s flushed postponed packets, postponing process\n", filter->name));
-			return;
-		}
 	}
 	FSESS_CHECK_THREAD(filter)
 
@@ -1625,7 +1623,6 @@ static void gf_filter_process_task(GF_FSTask *task)
 		if (task->requeue_request) {
 			assert(filter->process_task_queued);
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process done requeue %d PTQ %d\n", filter->name, task->requeue_request, filter->process_task_queued ));
 	}
 }
 
@@ -1734,10 +1731,10 @@ void gf_filter_post_process_task(GF_Filter *filter)
 	assert((s32)filter->process_task_queued>=0);
 
 	if (safe_int_inc(&filter->process_task_queued) <= 1) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("%s added to scheduler\n", filter->freg->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s added to scheduler\n", filter->freg->name));
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("skip post process task for filter %s\n", filter->freg->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s skip post process task\n", filter->freg->name));
 		assert(filter->session->run_status
 		 		|| filter->session->in_final_flush
 		 		|| filter->disabled
@@ -2659,3 +2656,47 @@ GF_Err gf_filter_request_opengl(GF_Filter *filter)
 	return GF_NOT_SUPPORTED;
 #endif
 }
+
+GF_EXPORT
+u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_scheme, Bool expand_proto, GF_FilterPid * (*enum_pids)(void *udta, u32 *idx), void *udta)
+{
+	u32 i, count, len, res=0;
+	if (!filter || !protocol_scheme) return 0;
+	gf_mx_p(filter->session->filters_mx);
+	len = strlen(protocol_scheme);
+	count = gf_list_count(filter->session->filters);
+	for (i=0; i<count; i++) {
+		const char *args;
+		GF_Filter *src = gf_list_get(filter->session->filters, i);
+		//check only sinks
+		if (src->freg->configure_pid) continue;
+		args = src->src_args;
+		if (!args) args = src->orig_args;
+		if (!args || (strlen(args)<5) ) continue;
+
+		if (strncmp(args + 4, protocol_scheme, len)) continue;
+		if (!expand_proto && (src->src_args[len] != ':')) continue;
+
+		if (! filter_in_parent_chain(filter, src)) {
+			u32 j=0;
+			Bool found=GF_FALSE;
+			if (!enum_pids) continue;
+			while (1) {
+				GF_FilterPid *pid = enum_pids(udta, &j);
+				if (!pid) break;
+				j++;
+				if ( filter_in_parent_chain(pid->pid->filter, src)) {
+					found=GF_TRUE;
+					break;
+				}
+			}
+			if (!found) continue;
+		}
+
+		res++;
+	}
+
+	gf_mx_v(filter->session->filters_mx);
+	return res;
+}
+

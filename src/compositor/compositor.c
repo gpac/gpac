@@ -131,8 +131,6 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 	 	&& !compositor->audio_renderer->th
 #endif
 	)
-		gf_sc_ar_reconfig(compositor->audio_renderer);
-
 	if (compositor->msg_type) {
 
 		compositor->msg_type |= GF_SR_IN_RECONFIG;
@@ -317,6 +315,8 @@ GF_EXPORT
 Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_next)
 {
 	Bool ret = GF_FALSE;
+
+	gf_sc_ar_send_or_reconfig(compositor->audio_renderer);
 
 	//frame still pending
 	if (compositor->frame_ifce.user_data)

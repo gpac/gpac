@@ -269,7 +269,7 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 
 void gf_mo_update_caps(GF_MediaObject *mo)
 {
-	const GF_PropertyValue *v;
+	const GF_PropertyValue *v, *v2;
 	if (!mo->odm || !mo->odm->pid) return;
 
 	mo->planar_audio = GF_FALSE;
@@ -286,8 +286,32 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SAR);
 		if (v) mo->pixel_ar = (v->value.frac.num) << 16 | (v->value.frac.den);
 
-		//TODO SRD
+		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SRD);
+		v2 = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SRD_REF);
+		if (v && v->value.vec4i.w && v->value.vec4i.z) {
+			mo->srd_x = v->value.vec4i.x;
+			mo->srd_y = v->value.vec4i.y;
+			mo->srd_w = v->value.vec4i.z;
+			mo->srd_h = v->value.vec4i.w;
+			if (v2) {
+				mo->srd_full_w = v2->value.vec2i.x;
+				mo->srd_full_h = v2->value.vec2i.y;
+			}
 
+			if (mo->odm->parentscene->is_dynamic_scene) {
+				if ((mo->srd_w == mo->srd_full_w) && (mo->srd_h == mo->srd_full_h)) {
+					mo->odm->parentscene->srd_type = 2;
+				} else if (!mo->odm->parentscene->srd_type) {
+					mo->odm->parentscene->srd_type = 1;
+				}
+			}
+		}
+		// SRD object with no size but global scene size: HEVC tiled based object
+		else if (v2 && v->value.vec2i.x && v2->value.vec2i.y) {
+			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->srd_type) {
+				mo->odm->parentscene->is_tiled_srd = GF_TRUE;
+			}
+		}
 	} else if (mo->odm->type==GF_STREAM_AUDIO) {
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SAMPLE_RATE);
 		if (v) mo->sample_rate = v->value.uint;
@@ -1434,7 +1458,7 @@ void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y
 
 	if ((mo->view_min_x!=min_x) || (mo->view_max_x!=max_x) || (mo->view_min_y!=min_y) || (mo->view_max_y!=max_y)) {
 		GF_FilterEvent evt;
-		GF_FEVT_INIT(evt, GF_FEVT_QUALITY_SWITCH, mo->odm->pid);
+		GF_FEVT_INIT(evt, GF_FEVT_VISIBILITY_HINT, mo->odm->pid);
 		mo->view_min_x = min_x;
 		mo->view_max_x = max_x;
 		mo->view_min_y = min_y;

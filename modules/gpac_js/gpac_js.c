@@ -1011,40 +1011,12 @@ static JSBool SMJS_FUNCTION(gpac_trigger_gc)
 	return JS_TRUE;
 }
 
-
-static JSBool SMJS_FUNCTION(gpac_migrate_url)
+static GF_FilterPid *gjs_enum_pids(void *udta, u32 *idx)
 {
-#ifdef FILTER_FIXME
-	char *url;
-	u32 i, count;
-	GF_NetworkCommand com;
-	SMJS_OBJ
-	SMJS_ARGS
-	GF_Compositor *compositor = gpac_get_compositor(c, obj);
-	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-
-	url = SMJS_CHARS(c, argv[0]);
-	if (!url) return JS_FALSE;
-
-	count = gf_list_count(compositor->root_scene->resources);
-	for (i=0; i<count; i++) {
-		GF_ObjectManager *odm = gf_list_get(compositor->root_scene->resources, i);
-		if (!odm->net_service) continue;
-		if (!strstr(url, odm->net_service->url)) continue;
-
-		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.base.command_type = GF_NET_SERVICE_MIGRATION_INFO;
-		odm->net_service->ifce->ServiceCommand(odm->net_service->ifce, &com);
-		if (com.migrate.data) {
-			SMJS_SET_RVAL( STRING_TO_JSVAL(JS_NewStringCopyZ(c, com.migrate.data)) );
-		} else {
-			SMJS_SET_RVAL( STRING_TO_JSVAL(JS_NewStringCopyZ(c, odm->net_service->url)) );
-		}
-		break;
-	}
-	SMJS_FREE(c, url);
-#endif
-	return JS_TRUE;
+	GF_Scene *scene = (GF_Scene *)udta;
+	GF_ObjectManager *odm = gf_list_get(scene->resources, *idx);
+	if (odm) return odm->pid;
+	return NULL;
 }
 
 static SMJS_FUNC_PROP_GET( odm_getProperty)
@@ -1160,28 +1132,17 @@ case GJS_OM_PROP_CODEC:
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.codec_name));
 	break;
 case GJS_OM_PROP_NB_QUALITIES:
-{
-#if FILTER_FIXME
-	//first check network
-	GF_NetworkCommand com;
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
-	com.base.on_channel = gf_list_get(odm->channels, 0);
-
-	gf_term_service_command(odm->net_service, &com);
-	if (com.quality_query.index) {
-		*vp = INT_TO_JSVAL(com.quality_query.index);
-		break;
+	*vp = INT_TO_JSVAL(1);
+	//use HAS qualities
+	if (odm->pid) {
+		const GF_PropertyValue *prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities");
+		if (prop)
+			*vp = INT_TO_JSVAL(gf_list_count( prop->value.string_list) );
 	}
-#endif
-#if 0
 	//use input channels
-	if (odm->codec->type==GF_STREAM_VISUAL) {
-		u32 count = gf_list_count(odm->codec->inChannels);
-		if (count>1) {
-			*vp = INT_TO_JSVAL(count);
-			break;
-		}
+	if (odm->extra_pids) {
+		*vp = INT_TO_JSVAL(1 + gf_list_count(odm->extra_pids));
+		break;
 	}
 	//use number of scalable addons
 	if (odm->upper_layer_odm) {
@@ -1193,10 +1154,8 @@ case GJS_OM_PROP_NB_QUALITIES:
 		*vp = INT_TO_JSVAL(count);
 		break;
 	}
-#endif
-	*vp = INT_TO_JSVAL(1);
 	break;
-}
+
 case GJS_OM_PROP_MAX_BUFFER:
 	*vp = INT_TO_JSVAL(odi.max_buffer);
 	break;
@@ -1224,14 +1183,14 @@ case GJS_OM_PROP_SELECTED_SERVICE:
 case GJS_OM_PROP_BANDWIDTH_DOWN:
 	{
 		const GF_PropertyValue *prop = gf_filter_get_info(odm->scene_ns->source_filter, GF_PROP_PID_DOWN_RATE);
-		if (prop)
-			*vp = INT_TO_JSVAL(prop->value.uint/1000);
+		*vp = INT_TO_JSVAL(prop ? prop->value.uint/1000 : 0);
 	}
-break;
+	break;
 case GJS_OM_PROP_NB_HTTP:
-#if FILTER_FIXME
-	*vp = INT_TO_JSVAL(gf_list_count(odm->net_service->dnloads) );
-#endif
+	*vp = INT_TO_JSVAL(0);
+	if (odm->scene_ns->source_filter) {
+		*vp = INT_TO_JSVAL(gf_filter_count_source_by_protocol(odm->scene_ns->source_filter, "http", GF_TRUE, gjs_enum_pids, odm->subscene ? odm->subscene : odm->parentscene ) );
+	}
 	break;
 case GJS_OM_PROP_TIMESHIFT_DEPTH:
 	if ((s32) odm->timeshift_depth > 0) {
@@ -1242,8 +1201,6 @@ case GJS_OM_PROP_TIMESHIFT_DEPTH:
 	break;
 case GJS_OM_PROP_TIMESHIFT_TIME:
 {
-#ifdef FILTER_FIXME
-	GF_NetworkCommand com;
 	GF_Scene *scene;
 	Double res = 0.0;
 
@@ -1253,9 +1210,6 @@ case GJS_OM_PROP_TIMESHIFT_TIME:
 	}
 
 	scene = odm->subscene ? odm->subscene : odm->parentscene;
-
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.command_type = GF_NET_GET_TIMESHIFT;
 
 	//we may need to check the main addon for timeshifting
 	if (scene->main_addon_selected) {
@@ -1269,16 +1223,19 @@ case GJS_OM_PROP_TIMESHIFT_TIME:
 	}
 
 	if (odm->timeshift_depth) {
-		//can be NULL
-		com.base.on_channel = gf_list_get(odm->channels, 0);
-		gf_term_service_command(odm->net_service, &com);
-		res = com.timeshift.time;
+		GF_FilterPid *pid = odm->pid;
+		if (!pid && odm->subscene) {
+			odm = gf_list_get(odm->subscene->resources, 0);
+			pid = odm->pid;
+		}
+		if (pid) {
+			const GF_PropertyValue *p = gf_filter_pid_get_info(pid, GF_PROP_PID_TIMESHIFT_TIME);
+			if (p) res = p->value.number;
+		}
 	} else if (scene->main_addon_selected) {
-		GF_Clock *ck;
-		ck = scene->dyn_ck;
-		if (!scene->is_dynamic_scene) ck = scene->root_od->ck;
+		GF_Clock *ck = scene->root_od->ck;
 		if (ck) {
-			u32 now = gf_clock_time(scene->dyn_ck) ;
+			u32 now = gf_clock_time(ck) ;
 			u32 live = scene->obj_clock_at_main_activation + gf_sys_clock() - scene->sys_clock_at_main_activation;
 			res = ((Double) live) / 1000.0;
 			res -= ((Double) now) / 1000.0;
@@ -1287,22 +1244,22 @@ case GJS_OM_PROP_TIMESHIFT_TIME:
 				GF_Event evt;
 				memset(&evt, 0, sizeof(evt));
 				evt.type = GF_EVENT_TIMESHIFT_UNDERRUN;
-				gf_sc_send_event(odm->compositor, &evt);
+				gf_sc_send_event(scene->compositor, &evt);
 				res=0;
 			} else if (res && res*1000 > scene->timeshift_depth) {
 				GF_Event evt;
 				memset(&evt, 0, sizeof(evt));
 				evt.type = GF_EVENT_TIMESHIFT_OVERFLOW;
-				gf_sc_send_event(odm->compositor, &evt);
+				gf_sc_send_event(scene->compositor, &evt);
 				res=scene->timeshift_depth;
 				res/=1000;
 			}
 		}
 	}
 	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, res) );
-#endif
 }
 break;
+
 case GJS_OM_PROP_IS_ADDON:
 	*vp = BOOLEAN_TO_JSVAL( (odm->addon || (!odm->subscene && odm->parentscene->root_od->addon)) ? JS_TRUE : JS_FALSE);
 	break;
@@ -1322,21 +1279,13 @@ case GJS_OM_PROP_DYNAMIC_SCENE:
 	*vp = BOOLEAN_TO_JSVAL(odm->subscene && odm->subscene->is_dynamic_scene ? JS_TRUE : JS_FALSE);
 	break;
 case GJS_OM_PROP_SERVICE_NAME:
-{
-#ifdef FILTER_FIXME
-	GF_NetworkCommand com;
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.command_type = GF_NET_SERVICE_INFO;
-	com.info.service_id = odi.od->ServiceID;
-	gf_term_service_command(odm->net_service, &com);
-	if (com.info.name) {
-		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, com.info.name ) );
-	} else {
-		*vp = JSVAL_NULL;
+	*vp = JSVAL_NULL;
+	if (odm->pid) {
+		const GF_PropertyValue *p = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_SERVICE_NAME);
+		if (p && p->value.string)
+			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, p->value.string ) );
 	}
-#endif
-}
-break;
+	break;
 case GJS_OM_PROP_NTP_DIFF:
 	*vp = INT_TO_JSVAL( odi.ntp_diff);
 	break;
@@ -1361,34 +1310,16 @@ case GJS_OM_PROP_MAIN_ADDON_URL:
 }
 break;
 case GJS_OM_PROP_REVERSE_PLAYBACK:
-{
-#ifdef FILTER_FIXME
-	u32 i, count;
-	GF_Err e;
-	GF_NetworkCommand com;
-	GF_Scene *scene;
 
-	scene = odm->subscene ? odm->subscene : odm->parentscene;
-
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.command_type = GF_NET_SERVICE_CAN_REVERSE_PLAYBACK;
-
-	//we may need to check the main addon for timeshifting
-	count = gf_list_count(scene->resources);
-	for (i=0; i < count; i++) {
-		GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
-		if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
-			odm = an_odm;
-		}
+	*vp = BOOLEAN_TO_JSVAL(GF_FALSE );
+	if (odm->pid) {
+		const GF_PropertyValue *p = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_PLAYBACK_MODE);
+		if (p && p->value.uint==GF_PLAYBACK_MODE_REWIND)
+			*vp = BOOLEAN_TO_JSVAL(GF_TRUE);
 	}
 
-	//can be NULL
-	com.base.on_channel = gf_list_get(odm->channels, 0);
-	e = gf_term_service_command(odm->net_service, &com);
-	*vp = BOOLEAN_TO_JSVAL((e==GF_OK) ? GF_TRUE : GF_FALSE );
-#endif
-}
-break;
+	break;
+
 case GJS_OM_PROP_SCALABLE_ENHANCEMENT:
 	*vp = BOOLEAN_TO_JSVAL(odm && (odm->lower_layer_odm || odm->scalable_addon) ? JS_TRUE : JS_FALSE);
 	break;
@@ -1444,11 +1375,15 @@ return JS_TRUE;
 
 static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 {
-#if FILTER_FIXME
-	GF_NetworkCommand com;
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+	const GF_PropertyValue *prop;
+	char *qdesc;
+	const char *id="", *mime="", *codec="";
+	u32 sr=0, ch=0, w=0, h=0, bw=0, par_n=1, par_d=1, tile_adaptation_mode=0,dependent_group_index=0;
+	Bool ilced=GF_FALSE, disabled=GF_FALSE, selected=GF_FALSE, automatic=GF_FALSE;
+	Double fps=30.0;
 	s32 idx, dep_idx=0;
 
 	if (!odm) return JS_TRUE;
@@ -1457,58 +1392,103 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 	idx = JSVAL_TO_INT(argv[0]);
 	if (argc>=2) dep_idx = JSVAL_TO_INT(argv[1]);
 
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
-	com.quality_query.index = 1 + idx;
-	com.quality_query.dependent_group_index = dep_idx;
-
-	com.base.on_channel = gf_list_get(odm->channels, 0);
-
-	if (gf_term_service_command(odm->net_service, &com) == GF_OK) {
-		JSObject *a = JS_NewObject(c, NULL, NULL, NULL);
-
-		JS_DefineProperty(c, a, "ID", STRING_TO_JSVAL(JS_NewStringCopyZ(c, com.quality_query.ID ? com.quality_query.ID : "")) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "mime", STRING_TO_JSVAL(JS_NewStringCopyZ(c, com.quality_query.mime ? com.quality_query.mime : "")) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "codec", STRING_TO_JSVAL(JS_NewStringCopyZ(c, com.quality_query.codec ? com.quality_query.codec : "")) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "width", INT_TO_JSVAL(com.quality_query.width), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "height", INT_TO_JSVAL(com.quality_query.height), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "bandwidth", INT_TO_JSVAL(com.quality_query.bandwidth), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "interlaced", BOOLEAN_TO_JSVAL(com.quality_query.interlaced), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "fps", DOUBLE_TO_JSVAL( JS_NewDouble(c, com.quality_query.fps) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "samplerate", INT_TO_JSVAL(com.quality_query.sample_rate), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "channels", INT_TO_JSVAL(com.quality_query.nb_channels), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "par_num", INT_TO_JSVAL(com.quality_query.par_num), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "par_den", INT_TO_JSVAL(com.quality_query.par_den), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "disabled", BOOLEAN_TO_JSVAL(com.quality_query.disabled), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "is_selected", BOOLEAN_TO_JSVAL(com.quality_query.is_selected), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "automatic", BOOLEAN_TO_JSVAL(com.quality_query.automatic), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "tile_mode", INT_TO_JSVAL(com.quality_query.tile_adaptation_mode), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, a, "dependent_groups", INT_TO_JSVAL(com.quality_query.dependent_group_index), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-
-
-		SMJS_SET_RVAL( OBJECT_TO_JSVAL(a) );
-	} else {
+	prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities");
+	if (!prop || (prop->type!=GF_PROP_STRING_LIST)) {
 		SMJS_SET_RVAL(JSVAL_NULL);
+		return JS_TRUE;
 	}
-#endif
+	qdesc = gf_list_get(prop->value.string_list, idx);
+	if (!qdesc) {
+		SMJS_SET_RVAL(JSVAL_NULL);
+		return JS_TRUE;
+	}
+	JSObject *a = JS_NewObject(c, NULL, NULL, NULL);
+	while (qdesc) {
+		char *sep=strstr(qdesc, "::");
+		if (sep) sep[0]=0;
+
+		if (!strncmp(qdesc, "id=", 3)) {
+			id = NULL;
+			JS_DefineProperty(c, a, "ID", STRING_TO_JSVAL(JS_NewStringCopyZ(c, qdesc+3)) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		} else if (!strncmp(qdesc, "mime=", 5)) {
+			mime = NULL;
+			JS_DefineProperty(c, a, "mime", STRING_TO_JSVAL(JS_NewStringCopyZ(c, qdesc+5)) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		} else if (!strncmp(qdesc, "codec=", 6)) {
+			codec = NULL;
+			JS_DefineProperty(c, a, "codec", STRING_TO_JSVAL(JS_NewStringCopyZ(c, qdesc+6)) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		}
+		else if (!strncmp(qdesc, "bw=", 3)) bw = atoi(qdesc+3);
+		else if (!strncmp(qdesc, "w=", 2)) w = atoi(qdesc+2);
+		else if (!strncmp(qdesc, "h=", 2)) h = atoi(qdesc+2);
+		else if (!strncmp(qdesc, "sr=", 3)) sr = atoi(qdesc+3);
+		else if (!strncmp(qdesc, "ch=", 3)) ch = atoi(qdesc+3);
+		else if (!strcmp(qdesc, "interlaced")) ilced = GF_TRUE;
+		else if (!strcmp(qdesc, "disabled")) disabled = GF_TRUE;
+		else if (!strncmp(qdesc, "fps=", 4)) {
+			u32 fd=25, fn=1;
+			if (sscanf(qdesc, "fps=%d/%d", &fn, &fd) != 2) {
+				fd=1;
+				sscanf(qdesc, "fps=%d", &fn);
+			}
+			fps = ((Double)fn) / fd;
+		}
+		else if (!strncmp(qdesc, "sar=", 4)) {
+			sscanf(qdesc, "sar=%d/%d", &par_n, &par_d);
+		}
+		if (!sep) break;
+		sep[0]=':';
+		qdesc = sep+2;
+	}
+	prop = gf_filter_pid_get_info_str(odm->pid, "has:selected");
+	if (prop && (prop->value.uint==idx))
+		selected = GF_TRUE;
+	prop = gf_filter_pid_get_info_str(odm->pid, "has:auto");
+	if (prop && prop->value.boolean)
+		automatic = GF_TRUE;
+	prop = gf_filter_pid_get_info_str(odm->pid, "has:tilemode");
+	if (prop) tile_adaptation_mode = prop->value.uint;
+
+	if (id)
+		JS_DefineProperty(c, a, "ID", STRING_TO_JSVAL(JS_NewStringCopyZ(c, id)) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	if (mime)
+		JS_DefineProperty(c, a, "mime", STRING_TO_JSVAL(JS_NewStringCopyZ(c, mime)) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	if (codec)
+		JS_DefineProperty(c, a, "codec", STRING_TO_JSVAL(JS_NewStringCopyZ(c, codec)) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+
+	JS_DefineProperty(c, a, "width", INT_TO_JSVAL(w), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "height", INT_TO_JSVAL(h), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "bandwidth", INT_TO_JSVAL(bw), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "interlaced", BOOLEAN_TO_JSVAL(ilced), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "fps", DOUBLE_TO_JSVAL( JS_NewDouble(c, fps) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "samplerate", INT_TO_JSVAL(sr), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "channels", INT_TO_JSVAL(ch), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "par_num", INT_TO_JSVAL(par_n), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "par_den", INT_TO_JSVAL(par_d), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "disabled", BOOLEAN_TO_JSVAL(disabled), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "is_selected", BOOLEAN_TO_JSVAL(selected), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "automatic", BOOLEAN_TO_JSVAL(automatic), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "tile_mode", INT_TO_JSVAL(tile_adaptation_mode), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, a, "dependent_groups", INT_TO_JSVAL(dependent_group_index), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+
+
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(a) );
+
 	return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(gjs_odm_get_srd)
 {
-#if FILTER_FIXME
-	GF_NetworkCommand com;
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
-	s32 dep_idx=0;
 	s32 x, y, w, h;
 
 	if (!odm) return JS_TRUE;
 
 	x = y = w = h = 0;
 	if (argc && JSVAL_IS_INT(argv[0]) ) {
-		dep_idx = JSVAL_TO_INT(argv[0]);
+#ifdef FILTER_FIXME
+		s32 dep_idx = JSVAL_TO_INT(argv[0]);
 
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.command_type = GF_NET_CHAN_GET_SRD;
@@ -1521,6 +1501,8 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_srd)
 			w = com.srd.w;
 			h = com.srd.h;
 		}
+#endif
+
 	} else if (odm && odm->mo && odm->mo->srd_w && odm->mo->srd_h) {
 		x = odm->mo->srd_x;
 		y = odm->mo->srd_y;
@@ -1539,55 +1521,51 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_srd)
 	} else {
 		SMJS_SET_RVAL(JSVAL_NULL);
 	}
-#endif
+
 	return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 {
-#if FILTER_FIXME
-	GF_NetworkCommand com;
-	char *ID = NULL;
+	s32 idx = -1;
 	s32 tile_mode = -1;
 	u32 dep_idx = 0;
+	GF_FilterEvent evt;
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
 
-	if (!odm) return JS_TRUE;
+	if (!odm || !odm->pid) return JS_TRUE;
 
 	if ((argc>=1) && JSVAL_IS_STRING(argv[0])) {
-		ID = SMJS_CHARS(c, argv[0]);
+		char *ID = SMJS_CHARS(c, argv[0]);
+		if (!strcmp(ID, "auto")) {
+			idx = -1;
+		} else {
+			idx = atoi(ID);
+		}
+		SMJS_FREE(c, ID);
+
 		if ((argc>=2) && JSVAL_IS_INT(argv[1])) {
 			dep_idx = JSVAL_TO_INT( argv[1]);
 		}
 	}
 	if ((argc==1) && JSVAL_IS_INT(argv[0])) {
 		tile_mode = JSVAL_TO_INT( argv[0]);
-	}
-	if (!ID && (tile_mode<0) ) {
-		return JS_TRUE;
+		if (tile_mode<0)
+			return JS_TRUE;
 	}
 
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
-	com.base.on_channel = gf_list_get(odm->channels, 0);
+	GF_FEVT_INIT(evt, GF_FEVT_QUALITY_SWITCH, odm->pid);
 
 	if (tile_mode>=0) {
-		com.switch_quality.set_tile_mode_plus_one = 1 + tile_mode;
+		evt.quality_switch.set_tile_mode_plus_one = 1 + tile_mode;
 	} else {
-		com.switch_quality.dependent_group_index = dep_idx;
-		if (!strcmp(ID, "auto")) {
-			com.switch_quality.set_auto = 1;
-		} else {
-			com.switch_quality.ID = ID;
-		}
+		evt.quality_switch.dependent_group_index = dep_idx;
+		evt.quality_switch.q_idx = idx;
 	}
+	gf_filter_pid_send_event(odm->pid, &evt);
 
-	gf_term_service_command(odm->net_service, &com);
-
-	SMJS_FREE(c, ID);
-#endif
 	return JS_TRUE;
 }
 
@@ -2263,7 +2241,6 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("set_3d",				gpac_set_3d, 1),
 		SMJS_FUNCTION_SPEC("move_window",			gpac_move_window, 2),
 		SMJS_FUNCTION_SPEC("get_scene_time",		gpac_get_scene_time, 1),
-		SMJS_FUNCTION_SPEC("migrate_url",			gpac_migrate_url, 1),
 		SMJS_FUNCTION_SPEC("set_event_filter",	gpac_set_event_filter, 1),
 		SMJS_FUNCTION_SPEC("set_focus",			gpac_set_focus, 1),
 		SMJS_FUNCTION_SPEC("get_scene",			gpac_get_scene, 1),

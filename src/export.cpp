@@ -2159,6 +2159,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_period_switch_status) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_request_period_switch) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_is_running) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_is_in_setup) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_num_segments_ready) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_discard_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_next_segment_location) )

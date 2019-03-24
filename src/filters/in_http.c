@@ -197,9 +197,9 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->last_state = GF_OK;
 			return GF_TRUE;
 		}
-		ctx->last_state = GF_OK;
 		assert(ctx->is_end);
 		assert(!ctx->pck_out);
+		ctx->last_state = GF_OK;
 		e = gf_dm_sess_setup_from_url(ctx->sess, ctx->src, evt->seek.skip_cache_expiration);
 		if (!e) e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
 		if (e) {
@@ -284,8 +284,14 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 		e = gf_dm_sess_fetch_data(ctx->sess, ctx->block, ctx->block_size, &nb_read);
 		if (e<0) {
+			if (e==GF_IP_NETWORK_EMPTY) {
+				return GF_OK;
+			}
 			if (! ctx->nb_read)
 				httpin_notify_error(filter, ctx, e);
+
+			ctx->is_end = GF_TRUE;
+			gf_filter_pid_set_eos(ctx->pid);
 			return e;
 		}
 		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
@@ -320,9 +326,12 @@ static GF_Err httpin_process(GF_Filter *filter)
 				gf_filter_pid_set_property(ctx->pid, GF_GPAC_DOWNLOAD_SESSION, &PROP_POINTER( (void*)ctx->sess ) );
 			}
 
-			idx = 0;
-			while (gf_dm_sess_enum_headers(ctx->sess, &idx, &hname, &hval) == GF_OK) {
-				gf_filter_pid_set_property_str(ctx->pid, hname, & PROP_STRING(hval));
+			/*in test mode don't expose http headers (they contain date/version/etc)*/
+			if (! gf_sys_is_test_mode()) {
+				idx = 0;
+				while (gf_dm_sess_enum_headers(ctx->sess, &idx, &hname, &hval) == GF_OK) {
+					gf_filter_pid_set_property_dyn(ctx->pid, (char *) hname, & PROP_STRING(hval));
+				}
 			}
 		}
 
@@ -391,6 +400,7 @@ GF_FilterRegister HTTPInRegister = {
 	.name = "httpin",
 	GF_FS_SET_DESCRIPTION("HTTP input")
 	.private_size = sizeof(GF_HTTPInCtx),
+	.flags = GF_FS_REG_BLOCKING,
 	.args = HTTPInArgs,
 	SETCAPS(HTTPInCaps),
 	.initialize = httpin_initialize,

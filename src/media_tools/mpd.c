@@ -138,6 +138,9 @@ static u64 gf_mpd_parse_duration(const char * const duration)
 	u32 i;
 	char *sep1, *sep2;
 	u32 h, m, s, ms;
+	u32 year, month, day;
+	Bool has_year, has_month, has_day;
+	u64 y_dur;
 	const char *startT;
 	if (!duration) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error parsing duration: no value indicated\n"));
@@ -161,10 +164,23 @@ static u64 gf_mpd_parse_duration(const char * const duration)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error parsing duration: no value indicated\n"));
 		return 0;
 	}
-	if (! startT) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error parsing duration: no Time section found\n"));
-		return 0;
-	}
+
+	year = month = day = 0;
+	has_year = strchr(duration+1, 'Y') ? GF_TRUE : GF_FALSE;
+	has_month = strchr(duration+1, 'M') ? GF_TRUE : GF_FALSE;
+	has_day = strchr(duration+1, 'D') ? GF_TRUE : GF_FALSE;
+	if (has_year && has_month && has_day) sscanf(duration+1, "%dY%dM%dD", &year, &month, &day);
+	else if (has_month && has_day) sscanf(duration+1, "%dM%dD", &month, &day);
+	else if (has_year && has_month) sscanf(duration+1, "%dY%dM", &year, &month);
+	else if (has_year && has_day) sscanf(duration+1, "%dY%dD", &year, &day);
+	else if (has_year) sscanf(duration+1, "%dY", &year);
+	else if (has_month) sscanf(duration+1, "%dM", &month);
+	else if (has_day) sscanf(duration+1, "%dD", &day);
+	y_dur = (year*365 + month*30 + day ) * 24;
+	y_dur *= 3600;
+	y_dur *= 1000;
+
+	if (! startT) return y_dur;
 
 	h = m = s = ms = 0;
 	if (NULL != (sep1 = strchr(startT+1, 'H'))) {
@@ -196,7 +212,7 @@ static u64 gf_mpd_parse_duration(const char * const duration)
 		}
 		*sep1 = 'S';
 	}
-	return (u64) ( ((h*3600+m*60+s)*(u64)1000) + ms );
+	return y_dur + (u64) ( ((h*3600+m*60+s)*(u64)1000) + ms );
 }
 
 static u32 gf_mpd_parse_duration_u32(const char * const duration)
@@ -205,7 +221,7 @@ static u32 gf_mpd_parse_duration_u32(const char * const duration)
 	if (dur <= GF_UINT_MAX) {
 		return (u32)dur;
 	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Parsed duration "LLU" doesn't fit on 32 bits! Setting to the 32 bits max.\n", dur));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Parsed duration %s ("LLU") doesn't fit on 32 bits! Setting to the 32 bits max.\n", duration, dur));
 		return GF_UINT_MAX;
 	}
 }
@@ -3928,6 +3944,12 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 		if (out_opt_segment_duration) *out_opt_segment_duration = duration;
 		if (out_opt_scale) *out_opt_scale = timescale;
 
+		*out_segment_start_time = start_time;
+		return GF_OK;
+	}
+
+	if (!rep->segment_template && !set->segment_template && !period->segment_template) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Representation without any SegmentBase, SegmentList or SegmentTemplate (non compliant). Assuming default SegmentBase\n"));
 		*out_segment_start_time = start_time;
 		return GF_OK;
 	}

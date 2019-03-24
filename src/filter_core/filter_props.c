@@ -526,6 +526,8 @@ void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
 		if (it->pname && it->name_alloc)
 			gf_free(it->pname);
 
+		it->name_alloc = GF_FALSE;
+
 		if (it->prop.type==GF_PROP_STRING) {
 			gf_free(it->prop.value.string);
 			it->prop.value.string = NULL;
@@ -548,6 +550,8 @@ void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
 		else if (it->prop.type==GF_PROP_UINT_LIST) {
 			if (it->prop.value.uint_list.vals)
 				gf_free(it->prop.value.uint_list.vals);
+			it->prop.value.uint_list.nb_items = 0;
+			it->prop.value.uint_list.vals = NULL;
 		}
 		it->prop.value.data.size = 0;
 		if (it->alloc_size) {
@@ -931,7 +935,9 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_DURATION, "Duration", "Media duration", GF_PROP_FRACTION},
 	{ GF_PROP_PID_NB_FRAMES, "NumFrames", "Number of frames in the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_FRAME_SIZE, "ConstantFrameSize", "Size of the frames for constant frame size streams", GF_PROP_UINT},
-	{ GF_PROP_PID_TIMESHIFT, "TimeshiftDepth", "Depth of the timeshift buffer", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_TIMESHIFT_DEPTH, "TimeshiftDepth", "Depth of the timeshift buffer", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_TIMESHIFT_TIME, "TimeshiftTime", "Time in the timeshift buffer in seconds - changes are signaled through pid info (no reconfigure)", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_TIMESHIFT_STATE, "TimeshiftState", "State of timeshift buffer: 0 is OK, 1 is underflow, 2 is overflow - changes are signaled through pid info (no reconfigure)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_TIMESCALE, "Timescale", "Media timescale (a timestamp delta of N is N/timescale seconds)", GF_PROP_UINT},
 	{ GF_PROP_PID_PROFILE_LEVEL, "ProfileLevel", "MPEG-4 profile and level", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DECODER_CONFIG, "DecoderConfig", "Decoder configuration data", GF_PROP_DATA},
@@ -963,6 +969,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_TRANS_Y, "TransY", "Vertical translation of the video", GF_PROP_SINT},
 	{ GF_PROP_PID_CROP_POS, "CropOrigin", "Position in source window, X,Y indicates coord in source", GF_PROP_VEC2I},
 	{ GF_PROP_PID_ORIG_SIZE, "OriginalSize", "Original resolution of video", GF_PROP_VEC2I},
+	{ GF_PROP_PID_SRD, "SRD", "Position and size of the video in the referential given by SRDRef", GF_PROP_VEC4I},
+	{ GF_PROP_PID_SRD_REF, "SRDRef", "Width and Height of the SRD referential", GF_PROP_VEC2I},
 	{ GF_PROP_PID_ALPHA, "Alpha", "Indicates the video in this pid is an alpha map", GF_PROP_BOOL},
 	{ GF_PROP_PID_BITRATE, "Bitrate", "Bitrate in bps", GF_PROP_UINT},
 	{ GF_PROP_PID_MAXRATE, "Maxrate", "Max bitrate in bps", GF_PROP_UINT},
@@ -976,7 +984,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_MIME, "MIME Type", "MIME type of source", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_FILE_EXT, "Extension", "File extension of source", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_FILE_CACHED, "Cached", "indicates the file is completely cached - changes are signaled through pid info (no reconfigure)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_DOWN_RATE, "DownloadRate", "Dowload rate of resource in bps - changes are signaled through pid info (no reconfigure)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_DOWN_RATE, "DownloadRate", "Dowload rate of resource in bits per second - changes are signaled through pid info (no reconfigure)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DOWN_SIZE, "DownloadSize", "Size of resource in bytes", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DOWN_BYTES, "DownBytes", "Number of bytes downloaded - changes are signaled through pid info (no reconfigure)", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_FILE_RANGE, "ByteRange", "Byte range of resource", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
@@ -1054,7 +1062,6 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_DASH_CUE, "DCue", "Name of a cue list file for this pid - see dasher help", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_SINGLE_SCALE, "SingleScale", "Indicates the movie header should use the media timescale of the first track added", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_UDP, "RequireReorder", "Indicates the PID packets come from source with losses and reordering happening (UDP)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
-
 };
 
 GF_EXPORT
