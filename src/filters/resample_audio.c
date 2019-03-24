@@ -244,8 +244,9 @@ static GF_Err resample_process(GF_Filter *filter)
 			ctx->in_pck = NULL;
 			continue;
 		}
-		osize = 8 * ctx->size / ctx->input_ai.chan / gf_audio_fmt_bit_depth(ctx->input_ai.afmt);
-		osize *= ctx->nb_ch * bps / 8;
+
+		osize = ctx->size * ctx->nb_ch * bps;
+		osize /= ctx->input_ai.chan * gf_audio_fmt_bit_depth(ctx->input_ai.afmt);
 
 		dstpck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
 		if (!dstpck) return GF_OK;
