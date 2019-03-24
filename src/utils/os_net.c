@@ -589,7 +589,8 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 				sock->socket = NULL_SOCKET;
 				continue;
 			}
-			if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, GF_TRUE);
+			if (sock->flags & GF_SOCK_NON_BLOCKING)
+				gf_sk_set_block_mode(sock, GF_TRUE);
 			if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
 			else sock->flags &= ~GF_SOCK_IS_IPV6;
 
@@ -609,6 +610,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 			if (ret == SOCKET_ERROR) {
 				closesocket(sock->socket);
 				sock->socket = NULL_SOCKET;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Sock_IPV4] Failed to connect to host %s: %s - retrying\n", PeerName, gf_errno_str(LASTSOCKERROR) ));
 				continue;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connected to %s:%d\n", PeerName, PortNumber));
@@ -1345,7 +1347,7 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 	fd_set Group;
 #endif
 
-	*BytesRead = 0;
+	if (BytesRead) *BytesRead = 0;
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
 
 #ifndef __SYMBIAN32__
@@ -1379,6 +1381,8 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 		}
 	}
 #endif
+	if (!buffer) return GF_OK;
+	
 	if (sock->flags & GF_SOCK_HAS_PEER)
 		res = (s32) recvfrom(sock->socket, (char *) buffer, length, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
 	else {
