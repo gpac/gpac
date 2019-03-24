@@ -258,6 +258,38 @@ static char *glsl_uyvy_shader = "#version 120\n"\
 		gl_FragColor = vec4(rgb, 1.0);\
 	}";
 
+static char *glsl_vyuy_shader = "#version 120\n"\
+	"uniform sampler2D y_plane;\
+	uniform float width;\
+	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
+	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
+	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
+	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
+	varying vec2 TexCoord;\
+	void main(void)  \
+	{\
+		vec2 texc, t_texc;\
+		vec3 yuv, rgb;\
+		vec4 uyvy;\
+		float tex_s;\
+		texc = TexCoord.st;\
+		t_texc = texc * vec2(1, 1);\
+		uyvy = texture2D(y_plane, t_texc); \
+		tex_s = texc.x*width;\
+		if (tex_s - (2.0 * floor(tex_s/2.0)) == 1.0) {\
+        	uyvy.g = uyvy.a; \
+    	}\
+    	yuv.r = uyvy.g;\
+    	yuv.g = uyvy.b;\
+    	yuv.b = uyvy.r;\
+		yuv += offset; \
+	    rgb.r = dot(yuv, R_mul); \
+	    rgb.g = dot(yuv, G_mul); \
+	    rgb.b = dot(yuv, B_mul); \
+		gl_FragColor = vec4(rgb, 1.0);\
+	}";
+
+
 static char *glsl_yuyv_shader = "#version 120\n"\
 	"uniform sampler2D y_plane;\
 	uniform float width;\
@@ -282,6 +314,37 @@ static char *glsl_yuyv_shader = "#version 120\n"\
     	yuv.r = yuyv.r;\
     	yuv.g = yuyv.g;\
     	yuv.b = yuyv.a;\
+		yuv += offset; \
+	    rgb.r = dot(yuv, R_mul); \
+	    rgb.g = dot(yuv, G_mul); \
+	    rgb.b = dot(yuv, B_mul); \
+		gl_FragColor = vec4(rgb, 1.0);\
+	}";
+
+static char *glsl_yvyu_shader = "#version 120\n"\
+	"uniform sampler2D y_plane;\
+	uniform float width;\
+	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
+	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
+	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
+	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
+	varying vec2 TexCoord;\
+	void main(void)  \
+	{\
+		vec2 texc, t_texc;\
+		vec3 yuv, rgb;\
+		vec4 yuyv;\
+		float tex_s;\
+		texc = TexCoord.st;\
+		t_texc = texc * vec2(1, 1);\
+		yuyv = texture2D(y_plane, t_texc); \
+		tex_s = texc.x*width;\
+		if (tex_s - (2.0 * floor(tex_s/2.0)) == 1.0) {\
+        	yuyv.r = yuyv.b; \
+    	}\
+    	yuv.r = yuyv.r;\
+    	yuv.g = yuyv.a;\
+    	yuv.b = yuyv.g;\
 		yuv += offset; \
 	    rgb.r = dot(yuv, R_mul); \
 	    rgb.g = dot(yuv, G_mul); \
@@ -568,9 +631,6 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 	vout_set_caption(ctx);
 
-	//pid not yet ready
-	if (!pfmt || !w || !h) return GF_OK;
-
 	if (ctx->first_cts && ctx->timescale && (ctx->timescale != timescale) ) {
 		ctx->first_cts-=1;
 		ctx->first_cts *= timescale;
@@ -578,6 +638,10 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->first_cts+=1;
 	}
 	ctx->timescale = timescale;
+
+	//pid not yet ready
+	if (!pfmt || !w || !h) return GF_OK;
+
 	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) ) return GF_OK;
 
 	dw = w;
@@ -730,6 +794,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		break;
 	case GF_PIXEL_UYVY:
 	case GF_PIXEL_YUYV:
+	case GF_PIXEL_YVYU:
+	case GF_PIXEL_VYUY:
 		ctx->uv_w = ctx->width/2;
 		ctx->uv_h = ctx->height;
 		if (!ctx->uv_stride) {
@@ -859,6 +925,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	ctx->internal_textures = GF_FALSE;
 
 	if (ctx->disp<MODE_2D) {
+		GLint loc;
 		u32 i;
 		GF_Matrix mx;
 		Float hw, hh;
@@ -887,6 +954,14 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		case GF_PIXEL_YUYV:
 			ctx->num_textures = 1;
 			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_yuyv_shader);
+			break;
+		case GF_PIXEL_VYUY:
+			ctx->num_textures = 1;
+			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_vyuy_shader);
+			break;
+		case GF_PIXEL_YVYU:
+			ctx->num_textures = 1;
+			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_yvyu_shader);
 			break;
 		default:
 			if (ctx->is_yuv) {
@@ -949,7 +1024,6 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		//sets uniforms: y, u, v textures point to texture slots 0, 1 and 2
 		glUseProgram(ctx->glsl_program);
 		for (i=0; i<ctx->num_textures; i++) {
-			GLint loc;
 			const char *txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
 			if (! ctx->is_yuv) txname = "rgbtx";
 			loc = glGetUniformLocation(ctx->glsl_program, txname);
@@ -959,22 +1033,29 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			}
 			glUniform1i(loc, i);
 		}
-		if (ctx->pfmt==GF_PIXEL_UYVY) {
-			GLint loc;
+		switch (ctx->pfmt) {
+		case GF_PIXEL_UYVY:
+		case GF_PIXEL_YUYV:
+		case GF_PIXEL_VYUY:
+		case GF_PIXEL_YVYU:
 			loc = glGetUniformLocation(ctx->glsl_program, "width");
 			if (loc == -1) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to locate width uniform in shader\n"));
 			} else {
 				glUniform1f(loc, (GLfloat) ctx->width);
 			}
-		} else if (!ctx->is_yuv) {
-			GLint loc;
-			loc = glGetUniformLocation(ctx->glsl_program, "rgb_mode");
-			if (loc == -1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to locate rgb_mode uniform in shader\n"));
-			} else {
-				glUniform1i(loc, rgb_mode);
+			break;
+		default:
+			if (!ctx->is_yuv) {
+				GLint loc;
+				loc = glGetUniformLocation(ctx->glsl_program, "rgb_mode");
+				if (loc == -1) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to locate rgb_mode uniform in shader\n"));
+				} else {
+					glUniform1i(loc, rgb_mode);
+				}
 			}
+			break;
 		}
 		glUseProgram(0);
 
@@ -1052,18 +1133,26 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	} else
 #endif
 	{
-		if (ctx->pfmt==GF_PIXEL_NV21) {
+		switch (ctx->pfmt) {
+		case GF_PIXEL_NV12:
+		case GF_PIXEL_NV21:
+		case GF_PIXEL_NV12_10:
+		case GF_PIXEL_NV21_10:
 			ctx->num_textures = 2;
-		} else if (ctx->pfmt==GF_PIXEL_NV12) {
-			ctx->num_textures = 2;
-		} else if (ctx->pfmt==GF_PIXEL_UYVY) {
+			break;
+		case GF_PIXEL_UYVY:
+		case GF_PIXEL_VYUY:
+		case GF_PIXEL_YVYU:
+		case GF_PIXEL_YUYV:
 			ctx->num_textures = 1;
-		} else if (ctx->pfmt==GF_PIXEL_YUYV) {
-			ctx->num_textures = 1;
-		} else if (ctx->is_yuv) {
-			ctx->num_textures = 3;
-		} else {
-			ctx->num_textures = 1;
+			break;
+		default:
+			if (ctx->is_yuv) {
+				ctx->num_textures = 3;
+			} else {
+				ctx->num_textures = 1;
+			}
+			break;
 		}
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] Reconfig input wsize %d x %d, %d textures\n", ctx->width, ctx->height, ctx->num_textures));
@@ -1571,7 +1660,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		}
 	}
 #endif
-	else if ((ctx->pfmt==GF_PIXEL_UYVY) || (ctx->pfmt==GF_PIXEL_YUYV)) {
+	else if ((ctx->pfmt==GF_PIXEL_UYVY) || (ctx->pfmt==GF_PIXEL_YUYV) || (ctx->pfmt==GF_PIXEL_VYUY) || (ctx->pfmt==GF_PIXEL_YVYU)) {
 		u32 uv_stride = 0;
 		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
 
@@ -1899,14 +1988,16 @@ static GF_Err vout_process(GF_Filter *filter)
 			ctx->buffer = GF_TRUE;
 		} else {
 			//query full buffer duration in us
-			u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_TRUE);
+			u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
 
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
 			if (!ctx->buffer_done) {
-				if ((dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid))
+				if ((dur < ctx->buffer * 1000) && !gf_filter_pid_is_eos(ctx->pid)) {
+					gf_filter_ask_rt_reschedule(filter, 100000);
 					return GF_OK;
+				}
 				ctx->buffer_done = GF_TRUE;
 			}
-			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
 		}
 	}
 
@@ -1944,14 +2035,22 @@ static GF_Err vout_process(GF_Filter *filter)
 			assert(diff>=0);
 			//ref stream hypothetical timestamp at now
 			ref_ts += diff;
-			if ((s64) cts > ref_ts) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" ms greater than reference clock "LLU" ms, waiting\n", gf_sys_clock(), cts*1000/ctx->timescale, ref_ts*1000/ctx->timescale));
+			cts *= 1000;
+			cts/=ctx->timescale;
+			ref_ts *= 1000;
+			ref_ts /= ctx->timescale;
+
+			//allow 10ms video advance
+#define DEF_VIDEO_AUDIO_ADVANCE_MS	15
+			if ((s64) cts > ref_ts + DEF_VIDEO_AUDIO_ADVANCE_MS) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" ms greater than reference clock "LLU" ms, waiting\n", gf_sys_clock(), cts, ref_ts));
 				//the clock is not updated continuously, only when audio sound card writes. We therefore
 				//cannot know if the sampling was recent or old, so ask for a short reschedule time
-				gf_filter_ask_rt_reschedule(filter, 3);
+				gf_filter_ask_rt_reschedule(filter, (cts-ref_ts) * 1000 - DEF_VIDEO_AUDIO_ADVANCE_MS*1000);
 				//not ready yet
 				return GF_OK;
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame "LLU" ms latest reference clock "LLU" ms\n", gf_sys_clock(), cts, ref_ts));
 			ref_clock = ref_ts;
 		} else if (!ctx->first_cts) {
 			//init clock on second frame, first frame likely will have large rendering time
@@ -1962,7 +2061,7 @@ static GF_Err vout_process(GF_Filter *filter)
 				ctx->clock_at_first_cts = 1;
 			} else {
 				ctx->first_cts = 1 + cts;
-				ctx->clock_at_first_cts = now;
+				ctx->clock_at_first_cts = 0;
 			}
 			ref_clock = cts;
 		} else {
@@ -1985,7 +2084,7 @@ static GF_Err vout_process(GF_Filter *filter)
 					diff -= (s64) (ctx->first_cts - cts);
 			}
 
-			if (diff<0) {
+			if (diff < -2000) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts "LLU"/%d "LLU" us too early, waiting\n", gf_sys_clock(), cts, ctx->timescale, -diff));
 				if (diff<-1000000) diff = -1000000;
 				gf_filter_ask_rt_reschedule(filter, (u32) (-diff));
@@ -1994,6 +2093,12 @@ static GF_Err vout_process(GF_Filter *filter)
 				//not ready yet
 				return GF_OK;
 			}
+			if (diff>2000) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts "LLU" is "LLU" us too late\n", gf_sys_clock(), cts, diff));
+			} else {
+				diff = 0;
+			}
+			
 			if (ctx->timescale != 1000000)
 				ref_clock = diff * ctx->timescale / 1000000 + cts;
 			else
@@ -2033,6 +2138,12 @@ static GF_Err vout_process(GF_Filter *filter)
 	} else {
 		gf_filter_pck_ref(&pck);
 		gf_filter_pid_drop_packet(ctx->pid);
+
+#ifndef GPAC_DISABLE_LOG
+		u64 cts = gf_filter_pck_get_cts(pck);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts "LLU"/%d  "LLU" ms\n", gf_sys_clock(), cts, ctx->timescale, (1000*cts)/ctx->timescale));
+#endif
+
 	}
 
 	if (ctx->last_pck)
@@ -2069,6 +2180,11 @@ static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 		gf_filter_pck_unref(ctx->last_pck);
 		ctx->last_pck = NULL;
 	}
+	//remember the clock right after the flush (in case of vsync)
+	if (!ctx->clock_at_first_cts) {
+		ctx->clock_at_first_cts = gf_sys_clock_high_res();
+	}
+	//note we don't ask RT reschedule in frame duration, we take the decision on postponing the next frame in the next process call
 	return GF_OK;
 }
 
