@@ -2037,6 +2037,8 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	prev_size = tkw->sample.dataLength;
 	tkw->sample.CTS_Offset = 0;
 	tkw->sample.data = (char *)gf_filter_pck_get_data(pck, &tkw->sample.dataLength);
+	if (!tkw->sample.dataLength) return GF_OK;
+
 	tkw->sample.DTS = gf_filter_pck_get_dts(pck);
 	cts = gf_filter_pck_get_cts(pck);
 	if (tkw->sample.DTS == GF_FILTER_NO_TS) {
@@ -2062,10 +2064,13 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 
 	duration = gf_filter_pck_get_duration(pck);
 	if (timescale != tkw->tk_timescale) {
+		s64 ctso;
 		tkw->sample.DTS *= tkw->tk_timescale;
 		tkw->sample.DTS /= timescale;
-		tkw->sample.CTS_Offset *= tkw->tk_timescale;
-		tkw->sample.CTS_Offset /= timescale;
+		ctso = (s64) tkw->sample.CTS_Offset;
+		ctso *= tkw->tk_timescale;
+		ctso /= timescale;
+		tkw->sample.CTS_Offset = ctso;
 		duration *= tkw->tk_timescale;
 		duration /= timescale;
 	}
@@ -3447,6 +3452,8 @@ static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		}
 		ctx->file = NULL;
 		gf_filter_pid_set_eos(ctx->opid);
+	} else {
+		ctx->file = NULL;
 	}
 }
 
