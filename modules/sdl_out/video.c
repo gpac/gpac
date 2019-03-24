@@ -1500,7 +1500,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	/*if resizing don't process otherwise we may deadlock*/
 	if (!ctx->screen) return GF_OK;
 
-	//GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Flush\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] swapping video buffers\n"));
 
 	if (ctx->output_3d_type==1) {
 		//with SDL2 we have to disable vsync by overriding swap interval
