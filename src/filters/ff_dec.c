@@ -144,6 +144,11 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	if (pck) {
 		data = gf_filter_pck_get_data(pck, &size);
 
+		if (!size) {
+			gf_filter_pid_drop_packet(ctx->in_pid);
+			return GF_OK;
+		}
+
 		pck_src = pck;
 		gf_filter_pck_ref_props(&pck_src);
 		if (pck_src) gf_list_add(ctx->src_packets, pck_src);
@@ -156,7 +161,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 			ctx->flush_done = GF_FALSE;
 		}
 
-		pkt.pts = gf_filter_pck_get_dts(pck);
+		pkt.dts = gf_filter_pck_get_dts(pck);
 		pkt.pts = gf_filter_pck_get_cts(pck);
 		pkt.duration = gf_filter_pck_get_duration(pck);
 		if (gf_filter_pck_get_sap(pck)>0)
