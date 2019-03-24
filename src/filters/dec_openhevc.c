@@ -111,6 +111,8 @@ typedef struct
 
 	Bool reconfig_pending;
 
+	Bool signal_reconfig;
+
 	GF_List *src_packets;
 } GF_OHEVCDecCtx;
 
@@ -234,6 +236,49 @@ static void ohevcdec_set_codec_name(GF_Filter *filter)
 #else
 	return gf_filter_set_name(filter, libOpenHevcVersion(ctx->codec) );
 #endif
+}
+
+static u32 ohevcdec_get_pixel_format( u32 luma_bpp, u8 chroma_format_idc)
+{
+	switch (chroma_format_idc) {
+	case 1:
+		return (luma_bpp==10) ? GF_PIXEL_YUV_10 : GF_PIXEL_YUV;
+	case 2:
+		return (luma_bpp==10) ? GF_PIXEL_YUV422_10 : GF_PIXEL_YUV422;
+	case 3:
+		return (luma_bpp==10) ? GF_PIXEL_YUV444_10 : GF_PIXEL_YUV444;
+	default:
+		return 0;
+	}
+	return 0;
+}
+
+static void ohevc_set_out_props(GF_OHEVCDecCtx *ctx)
+{
+	u32 pixfmt;
+
+	gf_filter_pid_copy_properties(ctx->opid, ctx->streams[0].ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL );
+
+	if (ctx->pack_hfr) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(2*ctx->width) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(2*ctx->height) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(2*ctx->stride) );
+	} else {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
+		if (ctx->force_stereo && ctx->is_multiview && ctx->cur_layer>1) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(2*ctx->height) );
+		} else {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
+		}
+
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
+	}
+	pixfmt = ohevcdec_get_pixel_format(ctx->luma_bpp, ctx->chroma_format_idc);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(pixfmt) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->sar) );
 }
 
 static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -361,6 +406,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			stream = &ctx->streams[ctx->nb_streams];
 		}
 		ctx->nb_streams++;
+		ctx->signal_reconfig = GF_TRUE;
 	}
 	ctx->nb_layers = ctx->cur_layer = 1;
 
@@ -554,28 +600,15 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 
 	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(ctx->opid, ctx->streams[0].ipid);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL );
-
+	if (ctx->signal_reconfig) {
+		ohevc_set_out_props(ctx);
+		ctx->signal_reconfig = GF_FALSE;
+	} else {
+		ctx->signal_reconfig = GF_TRUE;
+	}
 	return GF_OK;
 }
 
-static u32 ohevcdec_get_pixel_format( u32 luma_bpp, u8 chroma_format_idc)
-{
-	switch (chroma_format_idc) {
-	case 1:
-		return (luma_bpp==10) ? GF_PIXEL_YUV_10 : GF_PIXEL_YUV;
-	case 2:
-		return (luma_bpp==10) ? GF_PIXEL_YUV422_10 : GF_PIXEL_YUV422;
-	case 3:
-		return (luma_bpp==10) ? GF_PIXEL_YUV444_10 : GF_PIXEL_YUV444;
-	default:
-		return 0;
-	}
-	return 0;
-}
 
 
 static Bool ohevcdec_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
@@ -673,9 +706,16 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 	for (i=0;i<count; i++) {
 		src_pck = gf_list_get(ctx->src_packets, i);
 		if (gf_filter_pck_get_cts(src_pck) == ctx->frame_ptr.frame_par.pts) {
+			u8 car_v = gf_filter_pck_get_carousel_version(src_pck);
+			gf_filter_pck_set_carousel_version(src_pck, 0);
+
 			gf_filter_pck_merge_properties(src_pck, dst_pck);
 			gf_list_rem(ctx->src_packets, i);
 			gf_filter_pck_unref(src_pck);
+
+			if (car_v)
+				ohevc_set_out_props(ctx);
+
 			break;
 		}
 		src_pck = NULL;
@@ -730,7 +770,6 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		|| (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) || (ctx->chroma_format_idc != (chromat_format + 1))
 		|| (ctx->sar.num*openHevcFrame_FL.frame_par.sample_aspect_ratio.den != ctx->sar.den*openHevcFrame_FL.frame_par.sample_aspect_ratio.num)
 	 ) {
-		u32 pixfmt;
 		ctx->width = a_w;
 		ctx->stride = a_stride;
 		ctx->height = a_h;
@@ -753,24 +792,13 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		if (!ctx->sar.num) ctx->sar.num = ctx->sar.den = 1;
 
 		if (ctx->pack_hfr) {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(2*ctx->width) );
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(2*ctx->height) );
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(2*ctx->stride) );
 			ctx->out_size *= 4;
 		} else {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 			if (ctx->force_stereo && ctx->is_multiview && ctx->cur_layer>1) {
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(2*ctx->height) );
 				ctx->out_size *= 2;
-			} else {
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
 			}
-
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
 		}
-		pixfmt = ohevcdec_get_pixel_format(ctx->luma_bpp, ctx->chroma_format_idc);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(pixfmt) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->sar) );
+		ohevc_set_out_props(ctx);
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Sending ouput frame CTS "LLU"\n", openHevcFrame_FL.frame_par.pts ));
@@ -904,9 +932,15 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 
 		if (oh_output_cropped_cpy(ctx->codec, &openHevcFrame_FL)) {
 			if (src_pck) {
+				u8 car_v = gf_filter_pck_get_carousel_version(src_pck);
+				gf_filter_pck_set_carousel_version(src_pck, 0);
+
 				gf_filter_pck_merge_properties(src_pck, pck);
 				gf_list_del_item(ctx->src_packets, src_pck);
 				gf_filter_pck_unref(src_pck);
+
+				if (car_v)
+					ohevc_set_out_props(ctx);
 			} else {
 				gf_filter_pck_set_cts(pck, cts);
 			}
@@ -923,7 +957,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	u64 min_dts = GF_FILTER_NO_TS;
 	u64 min_cts = GF_FILTER_NO_TS;
 	u32 idx, nb_eos=0;
-	u32 data_size;
+	u32 data_size, nbpck;
 	char *data;
 	Bool has_pic = GF_FALSE;
 	GF_FilterPacket *pck_ref = NULL;
@@ -1029,15 +1063,19 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 		return GF_EOS;
 	}
 
-	if (min_cts == GF_FILTER_NO_TS) return GF_OK;
+	if (min_cts == GF_FILTER_NO_TS)
+		return GF_OK;
 
 	//queue reference to source packet props
 	gf_filter_pck_ref_props(&pck_ref);
 	gf_list_add(ctx->src_packets, pck_ref);
+	gf_filter_pck_set_carousel_version(pck_ref, ctx->signal_reconfig ? 1 : 0);
+	ctx->signal_reconfig = GF_FALSE;
 
 	ctx->dec_frames++;
 	got_pic = 0;
 	ctx->reaggregation_size = 0;
+	nbpck = 0;
 
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
@@ -1101,6 +1139,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 			has_pic = GF_TRUE;
 
 		gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
+		nbpck++;
 	}
 
 	if (ctx->reaggregation_size) {
