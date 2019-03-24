@@ -332,7 +332,7 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length);
  *
  *Fetches data on a socket. The socket must be in a bound or connected state
  *\param sock the socket object
- *\param buffer the reception buffer where data is written
+ *\param buffer the reception buffer where data is written. Passing NULL will only probe for data in socket (eg only do select() ).
  *\param length the allocated size of the reception buffer
  *\param read the actual number of bytes received
  *\return error if any, GF_IP_NETWORK_EMPTY if nothing to read
