@@ -94,6 +94,7 @@ typedef struct
 
 	Bool seg_was_not_ready;
 	Bool in_error;
+	Bool is_playing;
 } GF_DASHGroup;
 
 
@@ -152,8 +153,9 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 		}
 
 		if (group->max_cts_in_period && (s64) cts > group->max_cts_in_period) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet timestamp "LLU" larger than max CTS in period "LLU" - skipping\n", cts, group->max_cts_in_period));
-//			return;
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Packet timestamp "LLU" larger than max CTS in period "LLU" - forcing seek flag\n", cts, group->max_cts_in_period));
+
+			seek_flag = 1;
 		}
 
 		//remap timestamps to our timeline
@@ -487,6 +489,10 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			gf_free(group);
 			gf_dash_set_group_udta(ctx->dash, i, NULL);
 		}
+		for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
+			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
+			gf_filter_pid_set_udta(opid, NULL);
+		}
 		return GF_OK;
 	}
 	if (dash_evt==GF_DASH_EVENT_ABORT_DOWNLOAD) {
@@ -514,46 +520,60 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 				group = gf_dash_get_group_udta(ctx->dash, group_idx);
 			}
 			if (group) {
-#ifdef FILTER_FIXME
-				GF_NetworkCommand com;
-				memset(&com, 0, sizeof(GF_NetworkCommand));
+				for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
+					GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
+					if (gf_filter_pid_get_udta(opid) != group) continue;
 
-				com.command_type = GF_NET_SERVICE_EVENT;
-				com.send_event.evt.type = GF_EVENT_QUALITY_SWITCHED;
-				gf_service_command(ctx->service, &com, GF_OK);
-#endif
-
+					s32 sel = gf_dash_group_get_active_quality(ctx->dash, group_idx);
+					if (sel>=0) {
+						gf_filter_pid_set_property_str(opid, "has:selected", &PROP_UINT(sel) );
+					}
+					gf_filter_pid_set_property_str(opid, "has:auto", &PROP_UINT(gf_dash_get_automatic_switching(ctx->dash) ) );
+					gf_filter_pid_set_property_str(opid, "has:tilemode", &PROP_UINT(gf_dash_get_tile_adaptation_mode(ctx->dash) ) );
+				}
 			}
 		}
 		return GF_OK;
 	}
-#ifdef FILTER_FIXME
-	if (dash_evt==GF_DASH_EVENT_TIMESHIFT_OVERFLOW) {
-		GF_NetworkCommand com;
-		com.command_type = GF_NET_SERVICE_EVENT;
-		com.send_event.evt.type = (group_idx>=0) ? GF_EVENT_TIMESHIFT_OVERFLOW : GF_EVENT_TIMESHIFT_UNDERRUN;
-		gf_service_command(ctx->service, &com, GF_OK);
-	}
 	if (dash_evt==GF_DASH_EVENT_TIMESHIFT_UPDATE) {
-		GF_NetworkCommand com;
-		com.command_type = GF_NET_SERVICE_EVENT;
-		com.send_event.evt.type = GF_EVENT_TIMESHIFT_UPDATE;
-		gf_service_command(ctx->service, &com, GF_OK);
+		Double timeshift = gf_dash_get_timeshift_buffer_pos(ctx->dash);
+		for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
+			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
+			gf_filter_pid_set_info(opid, GF_PROP_PID_TIMESHIFT_TIME, &PROP_DOUBLE(timeshift) );
+		}
+		return GF_OK;
+	}
+	if (dash_evt==GF_DASH_EVENT_TIMESHIFT_OVERFLOW) {
+		u32 evttype = (group_idx>=0) ? 2 : 1;
+		for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
+			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
+			gf_filter_pid_set_info(opid, GF_PROP_PID_TIMESHIFT_STATE, &PROP_UINT(evttype) );
+		}
 	}
 
 	if (dash_evt==GF_DASH_EVENT_CODEC_STAT_QUERY) {
-		GF_NetworkCommand com;
-		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.command_type = GF_NET_SERVICE_CODEC_STAT_QUERY;
-		gf_service_command(ctx->service, &com, GF_OK);
-		gf_dash_group_set_codec_stat(ctx->dash, group_idx, com.codec_stat.avg_dec_time, com.codec_stat.max_dec_time, com.codec_stat.irap_avg_dec_time, com.codec_stat.irap_max_dec_time, com.codec_stat.codec_reset, com.codec_stat.decode_only_rap);
+		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, group_idx);
+		for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
+			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
+			if (gf_filter_pid_get_udta(opid) == group) {
+				GF_FilterPidStatistics stats;
+				if (gf_filter_pid_get_statistics(opid, &stats, GF_STATS_DECODER_SINK) != GF_OK)
+					continue;
+				if (stats.disconnected)
+					continue;
 
-		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.command_type = GF_NET_BUFFER_QUERY;
-		gf_service_command(ctx->service, &com, GF_OK);
-		gf_dash_group_set_buffer_levels(ctx->dash, group_idx, com.buffer.min, com.buffer.max, com.buffer.occupancy);
+				if (!stats.nb_processed) stats.nb_processed=1;
+				if (!stats.nb_saps) stats.nb_saps=1;
+
+				gf_dash_group_set_codec_stat(ctx->dash, group_idx, stats.total_process_time/stats.nb_processed, stats.max_process_time, stats.total_sap_process_time/stats.nb_saps, stats.max_sap_process_time, GF_FALSE, GF_FALSE);
+
+
+				gf_dash_group_set_buffer_levels(ctx->dash, group_idx, stats.min_playout_time/1000, stats.max_buffer_time/1000, stats.buffer_time/1000);
+
+				break;
+			}
+		}
 	}
-#endif
 	return GF_OK;
 }
 
@@ -607,12 +627,14 @@ static s32 dashdmx_group_idx_from_pid(GF_DASHDmxCtx *ctx, GF_FilterPid *src_pid)
 	return -1;
 }
 
-static GF_FilterPid *dashdmx_create_output_pid(GF_Filter *filter, GF_FilterPid *input)
+static GF_FilterPid *dashdmx_create_output_pid(GF_Filter *filter, GF_FilterPid *input, u32 *run_status)
 {
 	u32 global_score=0;
 	GF_FilterPid *output_pid = NULL;
 	u32 i, count = gf_filter_get_opid_count(filter);
 	const GF_PropertyValue *codec, *streamtype, *role, *lang;
+
+	*run_status = 0;
 
 	streamtype = gf_filter_pid_get_property(input, GF_PROP_PID_STREAM_TYPE);
 	if (streamtype && streamtype->value.uint==GF_STREAM_ENCRYPTED)
@@ -654,9 +676,161 @@ static GF_FilterPid *dashdmx_create_output_pid(GF_Filter *filter, GF_FilterPid *
 			output_pid = opid;
 		}
 	}
-	if (output_pid) return output_pid;
+	if (output_pid) {
+		*run_status = gf_filter_pid_is_playing(output_pid) ? 1 : 2;
+		return output_pid;
+	}
 	//none found create a new PID
 	return gf_filter_pid_new(filter);
+}
+
+static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, u32 group_idx, GF_FilterPid *opid, GF_FilterPid *ipid)
+{
+	GF_DASHQualityInfo qinfo;
+	GF_PropertyValue qualities, srd, srdref;
+	GF_Err e;
+	u32 count, i;
+	u32 dur, mode;
+
+	mode = dashdmx_dash_playback_mode(ctx);
+	gf_filter_pid_set_property(opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(mode));
+
+	if (ctx->max_res && gf_filter_pid_get_property(ipid, GF_PROP_PID_WIDTH)) {
+		gf_filter_pid_set_property(opid, GF_PROP_SERVICE_WIDTH, &PROP_UINT(ctx->width));
+		gf_filter_pid_set_property(opid, GF_PROP_SERVICE_HEIGHT, &PROP_UINT(ctx->height));
+	}
+
+	dur = (u32) (1000*gf_dash_get_duration(ctx->dash) );
+	if (dur>0)
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT(dur, 1000) );
+
+	dur = (1000*gf_dash_group_get_time_shift_buffer_depth(ctx->dash, group_idx) );
+	if (dur>0)
+		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESHIFT_DEPTH, &PROP_FRAC_INT(dur, 1000) );
+
+
+	if (ctx->use_bmin) {
+		u32 max = gf_dash_get_min_buffer_time(ctx->dash);
+		gf_filter_pid_set_property_str(opid, "BufferLength", &PROP_UINT(max));
+	}
+	if (ctx->max_buffer)
+		gf_filter_pid_set_property_str(opid, "BufferMaxOccupancy", &PROP_UINT(ctx->max_buffer) );
+
+	memset(&qualities, 0, sizeof(GF_PropertyValue));
+	qualities.type = GF_PROP_STRING_LIST;
+	qualities.value.string_list = gf_list_new();
+
+	count = gf_dash_group_get_num_qualities(ctx->dash, group_idx);
+	for (i=0; i<count; i++) {
+		u32 l1, l2;
+		char szInfo[500];
+		char *qdesc = NULL;
+
+#define DYNSTRCAT(_an_arg) {\
+		l1 = qdesc ? (u32) strlen(qdesc) : 0; \
+		l2 = (u32) strlen(_an_arg);\
+		if (l1) qdesc = gf_realloc(qdesc, sizeof(char)*(l1+l2+3));\
+		else qdesc = gf_realloc(qdesc, sizeof(char)*(l2+2));\
+		qdesc[l1]=0;\
+		if (l1) strcat(qdesc, "::"); \
+		strcat(qdesc, _an_arg); \
+		}\
+
+		e = gf_dash_group_get_quality_info(ctx->dash, group_idx, i, &qinfo);
+		if (e) break;
+		if (!qinfo.ID) qinfo.ID="";
+		if (!qinfo.mime) qinfo.mime="unknown";
+		if (!qinfo.codec) qinfo.codec="codec";
+
+		snprintf(szInfo, 500, "id=%s", qinfo.ID);
+		DYNSTRCAT(szInfo)
+		snprintf(szInfo, 500, "codec=%s", qinfo.codec);
+		DYNSTRCAT(szInfo)
+		snprintf(szInfo, 500, "mime=%s", qinfo.mime);
+		DYNSTRCAT(szInfo)
+		snprintf(szInfo, 500, "bw=%d", qinfo.bandwidth);
+		DYNSTRCAT(szInfo)
+
+		if (qinfo.disabled) {
+			DYNSTRCAT("disabled")
+		}
+
+		if (qinfo.width && qinfo.height) {
+			snprintf(szInfo, 500, "w=%d", qinfo.width);
+			DYNSTRCAT(szInfo)
+			snprintf(szInfo, 500, "h=%d", qinfo.height);
+			DYNSTRCAT(szInfo)
+			if (qinfo.interlaced) {
+				DYNSTRCAT("interlaced")
+			}
+			if (qinfo.fps_den) {
+				snprintf(szInfo, 500, "fps=%d/%d", qinfo.fps_num, qinfo.fps_den);
+			} else {
+				snprintf(szInfo, 500, "fps=%d", qinfo.fps_num);
+			}
+			DYNSTRCAT(szInfo)
+			if (qinfo.par_den && qinfo.par_num && (qinfo.par_den != qinfo.par_num)) {
+				snprintf(szInfo, 500, "sar=%d/%d", qinfo.par_num, qinfo.par_den);
+				DYNSTRCAT(szInfo)
+			}
+		}
+		if (qinfo.sample_rate) {
+			snprintf(szInfo, 500, "sr=%d", qinfo.sample_rate);
+			DYNSTRCAT(szInfo)
+			snprintf(szInfo, 500, "ch=%d", qinfo.nb_channels);
+			DYNSTRCAT(szInfo)
+		}
+		gf_list_add(qualities.value.string_list, qdesc);
+		qdesc = NULL;
+	}
+	gf_filter_pid_set_info_str(opid, "has:qualities", &qualities);
+
+	const char *title, *source;
+	gf_dash_get_info(ctx->dash, &title, &source);
+	gf_filter_pid_set_info(opid, GF_PROP_PID_SERVICE_NAME, &PROP_STRING(title) );
+	gf_filter_pid_set_info(opid, GF_PROP_PID_SERVICE_PROVIDER, &PROP_STRING(source) );
+
+	title = NULL;
+	gf_dash_group_enum_descriptor(ctx->dash, group_idx, GF_MPD_DESC_ROLE, 0, NULL, NULL, &title);
+	if (title)
+		gf_filter_pid_set_property(opid, GF_PROP_PID_ROLE, &PROP_STRING(title) );
+
+	title = NULL;
+	gf_dash_group_enum_descriptor(ctx->dash, group_idx, GF_MPD_DESC_ACCESSIBILITY, 0, NULL, NULL, &title);
+	if (title)
+		gf_filter_pid_set_property_str(opid, "accessibility", &PROP_STRING(title) );
+
+	title = NULL;
+	gf_dash_group_enum_descriptor(ctx->dash, group_idx, GF_MPD_DESC_RATING, 0, NULL, NULL, &title);
+	if (title)
+		gf_filter_pid_set_property_str(opid, "rating", &PROP_STRING(title) );
+
+
+#ifdef FILTER_FIXME
+	//need to implement back dependent group SRD and qualities (fir HEVC tiles)
+	if (com->srd.dependent_group_index) {
+		if (com->srd.dependent_group_index > gf_dash_group_get_num_groups_depending_on(ctx->dash, idx))
+			return GF_BAD_PARAM;
+
+		idx = gf_dash_get_dependent_group_index(ctx->dash, idx, com->srd.dependent_group_index-1);
+	}
+#endif
+
+	memset(&srd, 0, sizeof(GF_PropertyValue));
+	memset(&srdref, 0, sizeof(GF_PropertyValue));
+	srd.type = GF_PROP_VEC4I;
+	srdref.type = GF_PROP_VEC2I;
+	if (gf_dash_group_get_srd_info(ctx->dash, group_idx, NULL,
+			&srd.value.vec4i.x,
+			&srd.value.vec4i.y,
+			&srd.value.vec4i.z,
+			&srd.value.vec4i.w,
+			&srdref.value.vec2i.x,
+			&srdref.value.vec2i.y)) {
+
+		gf_filter_pid_set_property(opid, GF_PROP_PID_SRD, &srd);
+		gf_filter_pid_set_property(opid, GF_PROP_PID_SRD_REF, &srdref);
+	}
 }
 
 static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -722,42 +896,48 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//initial configure
 	opid = gf_filter_pid_get_udta(pid);
 	if (opid == NULL) {
-		u32 dur, mode;
+		u32 run_status, asid;
+		char as_name[100];
 		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, group_idx);
 		assert(group);
 		//for now we declare every component from the input source
-		opid = dashdmx_create_output_pid(filter, pid);
+		opid = dashdmx_create_output_pid(filter, pid, &run_status);
 		gf_filter_pid_set_udta(opid, group);
 		gf_filter_pid_set_udta(pid, opid);
 		group->nb_pids ++;
 
-		mode = dashdmx_dash_playback_mode(ctx);
-		gf_filter_pid_set_property(opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(mode));
+		gf_filter_pid_copy_properties(opid, pid);
 
-		if (ctx->max_res && gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH)) {
-			gf_filter_pid_set_property(opid, GF_PROP_SERVICE_WIDTH, &PROP_UINT(ctx->width));
-			gf_filter_pid_set_property(opid, GF_PROP_SERVICE_HEIGHT, &PROP_UINT(ctx->height));
+		asid = gf_dash_group_get_as_id(ctx->dash, group_idx);
+		if (!asid) asid = group_idx+1;
+		sprintf(as_name, "AS%d", asid);
+		gf_filter_pid_set_name(opid, as_name);
+
+
+		dashdmx_declare_properties(ctx, group_idx, opid, pid);
+
+		if (run_status) {
+			GF_FilterEvent evt;
+			GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+			gf_filter_pid_send_event(pid, &evt);
+			group->is_playing = GF_TRUE;
+			gf_dash_group_select(ctx->dash, group->idx, GF_TRUE);
+
+			if (run_status==2) {
+				group->is_playing = GF_FALSE;
+				gf_dash_set_group_done(ctx->dash, group->idx, GF_TRUE);
+				gf_dash_group_select(ctx->dash, group->idx, GF_FALSE);
+
+				GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+				gf_filter_pid_send_event(pid, &evt);
+			}
 		}
-
-		dur = (u32) (1000*gf_dash_get_duration(ctx->dash) );
-		if (dur>0)
-			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT(dur, 1000) );
-
-		dur = (1000*gf_dash_group_get_time_shift_buffer_depth(ctx->dash, group->idx) );
-		if (dur>0)
-			gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESHIFT, &PROP_FRAC_INT(dur, 1000) );
-
-
-		if (ctx->use_bmin) {
-			u32 max = gf_dash_get_min_buffer_time(ctx->dash);
-			gf_filter_pid_set_property_str(opid, "BufferLength", &PROP_UINT(max));
-		}
-		if (ctx->max_buffer)
-			gf_filter_pid_set_property_str(opid, "BufferMaxOccupancy", &PROP_UINT(ctx->max_buffer) );
+	} else {
+		//copy properties at reconfig
+		gf_filter_pid_copy_properties(opid, pid);
 	}
-
-	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(opid, pid);
+	//reset the file cache property (init segment could be cached but not the rest)
+	gf_filter_pid_set_property(opid, GF_PROP_PID_FILE_CACHED, NULL);
 
 	return GF_OK;
 }
@@ -846,7 +1026,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		if (fevt->quality_switch.set_tile_mode_plus_one) {
 			GF_DASHTileAdaptationMode tile_mode = fevt->quality_switch.set_tile_mode_plus_one - 1;
 			gf_dash_set_tile_adaptation_mode(ctx->dash, tile_mode, 100);
-		} else if (fevt->quality_switch.set_auto) {
+		} else if (fevt->quality_switch.q_idx < 0) {
 			gf_dash_set_automatic_switching(ctx->dash, 1);
 		} else if (fevt->base.on_pid) {
 			s32 idx;
@@ -855,7 +1035,6 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 			idx = group->idx;
 
 			gf_dash_group_set_quality_degradation_hint(ctx->dash, group->idx, fevt->quality_switch.quality_degradation);
-			if (! fevt->quality_switch.ID) return GF_TRUE;
 
 			if (fevt->quality_switch.dependent_group_index) {
 				if (fevt->quality_switch.dependent_group_index > gf_dash_group_get_num_groups_depending_on(ctx->dash, group->idx))
@@ -866,45 +1045,13 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 			}
 
 			gf_dash_set_automatic_switching(ctx->dash, 0);
-			gf_dash_group_select_quality(ctx->dash, idx, fevt->quality_switch.ID);
+			gf_dash_group_select_quality(ctx->dash, idx, NULL, fevt->quality_switch.q_idx);
 		} else {
 			gf_dash_switch_quality(ctx->dash, fevt->quality_switch.up, ctx->immediate);
 		}
 		return GF_TRUE;
 
 #ifdef FILTER_FIXME
-	case GF_NET_SERVICE_INFO:
-	{
-		s32 idx;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] Received Info command from terminal on Service (%p)\n", ctx->service));
-
-		e = GF_OK;
-		if (seg_filter_src) {
-			/* defer to the real input service */
-			e = seg_filter_src->ServiceCommand(seg_filter_src, com);
-		}
-
-		if (e!= GF_OK || !com->info.name || 2 > strlen(com->info.name)) {
-			gf_dash_get_info(ctx->dash, &com->info.name, &com->info.help);
-		}
-		idx = MPD_GetGroupIndexForChannel(ctx, com->play.on_channel);
-		if (idx>=0) {
-			//gather role and co
-			if (!com->info.role) {
-				gf_dash_group_enum_descriptor(ctx->dash, idx, GF_MPD_DESC_ROLE, 0, NULL, NULL, &com->info.role);
-			}
-			if (!com->info.accessibility) {
-				gf_dash_group_enum_descriptor(ctx->dash, idx, GF_MPD_DESC_ACCESSIBILITY, 0, NULL, NULL, &com->info.accessibility);
-			}
-			if (!com->info.rating) {
-				gf_dash_group_enum_descriptor(ctx->dash, idx, GF_MPD_DESC_RATING, 0, NULL, NULL, &com->info.rating);
-			}
-		}
-		return GF_OK;
-	}
-	case GF_NET_GET_TIMESHIFT:
-		com->timeshift.time = gf_dash_get_timeshift_buffer_pos(ctx->dash);
-		return GF_OK;
 
 	case GF_NET_ASSOCIATED_CONTENT_TIMING:
 		gf_dash_override_ntp(ctx->dash, com->addon_time.ntp);
@@ -927,85 +1074,16 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 	}
 
 	switch (fevt->base.type) {
+	case GF_FEVT_VISIBILITY_HINT:
+		group = gf_filter_pid_get_udta(fevt->base.on_pid);
+		if (!group) return GF_TRUE;
 
-
-#ifdef FILTER_FIXME
-	case GF_NET_CHAN_GET_SRD:
-	{
-		Bool res;
-		idx = MPD_GetGroupIndexForChannel(ctx, com->base.on_channel);
-		if (idx < 0) return GF_BAD_PARAM;
-		if (com->srd.dependent_group_index) {
-			if (com->srd.dependent_group_index > gf_dash_group_get_num_groups_depending_on(ctx->dash, idx))
-				return GF_BAD_PARAM;
-			
-			idx = gf_dash_get_dependent_group_index(ctx->dash, idx, com->srd.dependent_group_index-1);
-		}		
-		res = gf_dash_group_get_srd_info(ctx->dash, idx, NULL, &com->srd.x, &com->srd.y, &com->srd.w, &com->srd.h, &com->srd.width, &com->srd.height);
-		return res ? GF_OK : GF_NOT_SUPPORTED;
-	}
-
-	case GF_NET_SERVICE_QUALITY_QUERY:
-	{
-		GF_DASHQualityInfo qinfo;
-		GF_Err e;
-		u32 count, g_idx;
-		idx = MPD_GetGroupIndexForChannel(ctx, com->quality_query.on_channel);
-		if (idx < 0) return GF_BAD_PARAM;
-		count = gf_dash_group_get_num_qualities(ctx->dash, idx);
-		if (!com->quality_query.index && !com->quality_query.dependent_group_index) {
-			com->quality_query.index = count;
-			com->quality_query.dependent_group_index = gf_dash_group_get_num_groups_depending_on(ctx->dash, idx);
-			return GF_OK;
-		}
-		if (com->quality_query.dependent_group_index) {
-			if (com->quality_query.dependent_group_index > gf_dash_group_get_num_groups_depending_on(ctx->dash, idx))
-				return GF_BAD_PARAM;
-			
-			g_idx = gf_dash_get_dependent_group_index(ctx->dash, idx, com->quality_query.dependent_group_index-1);
-			if (g_idx==(u32)-1) return GF_BAD_PARAM;
-			count = gf_dash_group_get_num_qualities(ctx->dash, g_idx);
-			if (com->quality_query.index>count) return GF_BAD_PARAM;
-		} else {
-			if (com->quality_query.index>count) return GF_BAD_PARAM;
-			g_idx = idx;
-		}
-
-		e = gf_dash_group_get_quality_info(ctx->dash, g_idx, com->quality_query.index-1, &qinfo);
-		if (e) return e;
-		//group->bandwidth = qinfo.bandwidth;
-		com->quality_query.bandwidth = qinfo.bandwidth;
-		com->quality_query.ID = qinfo.ID;
-		com->quality_query.mime = qinfo.mime;
-		com->quality_query.codec = qinfo.codec;
-		com->quality_query.width = qinfo.width;
-		com->quality_query.height = qinfo.height;
-		com->quality_query.interlaced = qinfo.interlaced;
-		if (qinfo.fps_den) {
-			com->quality_query.fps = qinfo.fps_num;
-			com->quality_query.fps /= qinfo.fps_den;
-		} else {
-			com->quality_query.fps = qinfo.fps_num;
-		}
-		com->quality_query.par_num = qinfo.par_num;
-		com->quality_query.par_den = qinfo.par_den;
-		com->quality_query.sample_rate = qinfo.sample_rate;
-		com->quality_query.nb_channels = qinfo.nb_channels;
-		com->quality_query.disabled = qinfo.disabled;
-		com->quality_query.is_selected = qinfo.is_selected;
-		com->quality_query.automatic = gf_dash_get_automatic_switching(ctx->dash);
-		com->quality_query.tile_adaptation_mode = (u32) gf_dash_get_tile_adaptation_mode(ctx->dash);
-		return GF_OK;
-	}
-	case GF_NET_CHAN_VISIBILITY_HINT:
-		idx = MPD_GetGroupIndexForChannel(ctx, com->base.on_channel);
-		if (idx < 0) return GF_BAD_PARAM;
-
-		return gf_dash_group_set_visible_rect(ctx->dash, idx, com->visibility_hint.min_x, com->visibility_hint.max_x, com->visibility_hint.min_y, com->visibility_hint.max_y);
-#endif
+		gf_dash_group_set_visible_rect(ctx->dash, group->idx, fevt->visibility_hint.min_x, fevt->visibility_hint.max_x, fevt->visibility_hint.min_y, fevt->visibility_hint.max_y);
+		return GF_TRUE;
 
 	case GF_FEVT_PLAY:
 		src_evt = *fevt;
+		group->is_playing = GF_TRUE;
 
 		//adjust play range from media timestamps to MPD time
 		if (fevt->play.timestamp_based) {
@@ -1043,7 +1121,8 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 			}
 		}
 
-		gf_dash_set_speed(ctx->dash, fevt->play.speed);
+		if (fevt->play.speed)
+			gf_dash_set_speed(ctx->dash, fevt->play.speed);
 
 		/*don't seek if this command is the first PLAY request of objects declared by the subservice, unless start range is not default one (0) */
 		if (!ctx->nb_playing && (!fevt->play.initial_broadcast_play || (fevt->play.start_range>1.0) )) {
@@ -1081,7 +1160,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		dashdmx_setup_buffer(ctx, group);
 
 		ctx->nb_playing++;
-		//forward new event
+		//forward new event to source pid
 		src_evt.base.on_pid = ipid;
 		gf_filter_pid_send_event(ipid, &src_evt);
 		//cancel the event
@@ -1089,11 +1168,19 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 
 	case GF_FEVT_STOP:
 		gf_dash_set_group_done(ctx->dash, (u32) group->idx, 1);
+		gf_dash_group_select(ctx->dash, (u32) group->idx, GF_FALSE);
+		group->is_playing = GF_FALSE;
 
 		if (ctx->nb_playing)
 			ctx->nb_playing--;
-		//don't cancel the event
-		return GF_FALSE;
+
+		//forward new event to source pid
+		src_evt = *fevt;
+		src_evt.base.on_pid = ipid;
+		gf_filter_pid_send_event(ipid, &src_evt);
+
+		//cancel the event
+		return GF_TRUE;
 
 	case GF_FEVT_CAPS_CHANGE:
 		if (ctx->screen_res) {
@@ -1101,13 +1188,16 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 			gf_filter_get_session_caps(ctx->filter, &caps);
 			gf_dash_set_max_resolution(ctx->dash, caps.max_screen_width, caps.max_screen_height, caps.max_screen_bpp);
 		}
+		return GF_TRUE;
+	case GF_FEVT_INFO_UPDATE:
+		//propagate
 		return GF_FALSE;
-	//by default don't cancel
 	default:
-		return GF_FALSE;
+		break;
 	}
 
-	return GF_FALSE;
+	//by default cancel all events
+	return GF_TRUE;
 }
 
 static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
@@ -1121,7 +1211,9 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	bin128 key_IV;
 	Bool group_done;
 
+	assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
 	group->wait_for_pck = GF_TRUE;
+	group->in_error = GF_FALSE;
 
 	if (group->segment_sent) {
 		gf_dash_group_discard_segment(ctx->dash, group->idx);
@@ -1150,7 +1242,7 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 		if (e == GF_BUFFER_TOO_SMALL) {
 			group->seg_was_not_ready = GF_TRUE;
 			group->stats_uploaded = GF_TRUE;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] next segment name not known yet!\n" ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] next segment name not known yet!\n" ));
 			gf_filter_post_process_task(ctx->filter);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Error fetching next segment name: %s\n", gf_error_to_string(e) ));
@@ -1197,6 +1289,7 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	const GF_PropertyValue *p;
 	Bool broadcast_flag = GF_FALSE;
 	if (group->stats_uploaded) return;
+	if (group->prev_is_init_segment) return;
 	if (!group->seg_filter_src) return;
 
 	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_FILE_CACHED);
@@ -1262,9 +1355,6 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		if (e)
 			return e;
 
-		if (gf_filter_get_ipid_count(filter) == 1)
-			gf_filter_post_process_task(filter);
-
 		next_time_ms = gf_dash_get_min_wait_ms(ctx->dash);
 	}
 
@@ -1278,6 +1368,8 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		opid = gf_filter_pid_get_udta(ipid);
 		group = gf_filter_pid_get_udta(opid);
 
+		if (!group || !group->is_playing) continue;
+
 		while (1) {
 			pck = gf_filter_pid_get_packet(ipid);
 			if (!pck) {
@@ -1285,14 +1377,18 @@ GF_Err dashdmx_process(GF_Filter *filter)
 					group->nb_eos++;
 
 					if (group->nb_eos==group->nb_pids) {
-						gf_filter_pid_clear_eos(ipid, GF_TRUE);
-						dashdmx_update_group_stats(ctx, group);
-						dashdmx_switch_segment(ctx, group);
-						if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
+						GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
+						if (gf_filter_pid_would_block(opid)) {
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment but output pid would block, postponing\n"));
+						} else {
+							gf_filter_pid_clear_eos(ipid, GF_TRUE);
+							dashdmx_update_group_stats(ctx, group);
+							dashdmx_switch_segment(ctx, group);
+							if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
+						}
 					}
 				}
 				if (group->in_error || group->seg_was_not_ready) {
-					group->in_error = GF_FALSE;
 					dashdmx_switch_segment(ctx, group);
 					if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
 				}
@@ -1318,7 +1414,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			if (ipid == ctx->mpd_pid) continue;
 			opid = gf_filter_pid_get_udta(ipid);
 			group = gf_filter_pid_get_udta(opid);
-			if (!group->eos_detected) {
+			if (!group->eos_detected && group->is_playing) {
 				all_groups_done = GF_FALSE;
 			} else if (is_in_last_period) {
 				gf_filter_pid_set_eos(opid);
@@ -1326,10 +1422,21 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		}
 		if (all_groups_done) {
 			if (is_in_last_period) return GF_EOS;
-			gf_dash_request_period_switch(ctx->dash);
+			if (!gf_dash_get_period_switch_status(ctx->dash)) {
+				for (i=0; i<count; i++) {
+					GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, i);
+					if (!group) continue;
+					group->nb_eos = 0;
+					group->eos_detected = GF_FALSE;
+				}
+
+				gf_dash_request_period_switch(ctx->dash);
+			}
 		}
 	}
-	if (next_time_ms) {
+	if (gf_dash_is_in_setup(ctx->dash))
+		gf_filter_post_process_task(filter);
+	else if (next_time_ms) {
 		gf_filter_ask_rt_reschedule(filter, 1000 * next_time_ms);
 	}
 	return GF_OK;
@@ -1373,7 +1480,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 						"\tmin_bw: start with lowest bitrate\n"\
 						"\tmax_bw: start with highest bitrate; for tiles are used, all low priority tiles will have the lower (below max) bandwidth selected\n"\
 						"\tmax_bw_tiles: start with highest bitrate; for tiles all low priority tiles will have their lowest bandwidth selected"
-						, GF_PROP_UINT, "min_bw", "min_q|max_q|min_bw|max_bw|max_bw_tiles", 0},
+						, GF_PROP_UINT, "max_bw", "min_q|max_q|min_bw|max_bw|max_bw_tiles", 0},
 
 	{ OFFS(max_res), "use max media resolution to configure display", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(immediate), "when interactive switching is requested and immediate is set, the buffer segments are trashed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

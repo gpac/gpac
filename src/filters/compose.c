@@ -432,6 +432,28 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->audio_renderer->non_rt_output = GF_FALSE;
 	}
 		return GF_FALSE;
+	case GF_FEVT_BUFFER_REQ:
+		return GF_TRUE;
+		
+	case GF_FEVT_INFO_UPDATE:
+	{
+		GF_PropertyValue *p = (GF_PropertyValue *) gf_filter_pid_get_info(evt->base.on_pid, GF_PROP_PID_TIMESHIFT_STATE);
+		if (p && p->value.uint) {
+			GF_Event evt;
+			memset(&evt, 0, sizeof(evt));
+			GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
+			if (p->value.uint==1) {
+				evt.type = GF_EVENT_TIMESHIFT_UNDERRUN;
+				gf_sc_send_event(ctx, &evt);
+			} else if (p->value.uint==2) {
+				evt.type = GF_EVENT_TIMESHIFT_OVERFLOW;
+				gf_sc_send_event(ctx, &evt);
+			}
+			p->value.uint = 0;
+		}
+	}
+		return GF_TRUE;
+
 	default:
 		break;
 	}
@@ -572,7 +594,7 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(alayout), "forces output channel layout - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(afmt), "forces output channel format - 0 for auto", GF_PROP_PCMFMT, "s16", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(asize), "audio output packet size in samples", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(abuf), "audio output buffer duration in ms - the audio renderer fills the output pid up to this value. A too low value will lower latency but can have real-time playback issues", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(abuf), "audio output buffer duration in ms - the audio renderer fills the output pid up to this value. A too low value will lower latency but can have real-time playback issues", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(avol), "audio volume in percent", GF_PROP_UINT, "100", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(apan), "audio pan in percent, 50 is no pan", GF_PROP_UINT, "50", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(async), "audio resynchronization; if disabled, audio data is never dropped but may get out of sync", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},

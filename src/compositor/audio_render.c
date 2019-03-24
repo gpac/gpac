@@ -284,8 +284,8 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 			return;
 		}
 	}
-	//this is a safety for non blocking mode, otherwise the pid_would_block is enough
-	while (max_send && (ar->nb_bytes_out < ar->max_bytes_out)) {
+
+	while (max_send) {
 		char *data;
 		u32 dur;
 		u32 delay_ms = 0;
@@ -332,14 +332,19 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		ar->current_time = ar->time_at_last_config + (u32) (ar->bytes_requested * 1000 / ar->bytes_per_second);
 
 		max_send--;
+
+		//this is a safety for non blocking mode, otherwise the pid_would_block is enough
+		if (ar->nb_bytes_out > ar->max_bytes_out)
+			break;
 	}
 }
 
 
-void gf_sc_ar_reconfig(GF_AudioRenderer *ar)
+void gf_sc_ar_send_or_reconfig(GF_AudioRenderer *ar)
 {
 	Bool frozen;
 	if (ar->need_reconfig) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Reconfiguring audio mixer\n"));
 		/*lock mixer*/
 		gf_mixer_lock(ar->mixer, GF_TRUE);
 
@@ -356,6 +361,7 @@ void gf_sc_ar_reconfig(GF_AudioRenderer *ar)
 		/*unlock mixer*/
 		gf_mixer_lock(ar->mixer, GF_FALSE);
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] sending audio packets\n"));
 	gf_ar_send_packets(ar);
 }
 

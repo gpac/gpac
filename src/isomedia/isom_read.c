@@ -100,6 +100,7 @@ static u32 gf_isom_probe_type(u32 type)
 	case GF_ISOM_BOX_TYPE_MOOF:
 	case GF_ISOM_BOX_TYPE_STYP:
 	case GF_ISOM_BOX_TYPE_SIDX:
+	case GF_ISOM_BOX_TYPE_EMSG:
 		return 3;
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 	/*Adobe specific*/
@@ -1952,6 +1953,8 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 	if (e) {
 		if (!static_sample)
 			gf_isom_sample_del(sample);
+		else if (! (*sample)->alloc_size && (*sample)->data && (*sample)->dataLength )
+		 	(*sample)->alloc_size =  (*sample)->dataLength;
 
 		return e;
 	}

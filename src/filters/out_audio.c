@@ -37,8 +37,8 @@ typedef struct
 	Bool clock;
 	GF_Fraction dur;
 	Double speed, start;
-	u32 vol;
-
+	u32 vol, buffer;
+	
 	GF_FilterPid *pid;
 	u32 sr, afmt, nb_ch, ch_cfg, timescale;
 
@@ -54,6 +54,8 @@ typedef struct
 	GF_Filter *filter;
 	Bool is_eos;
 	Bool first_write_done;
+
+	Bool buffer_done, no_buffering;
 } GF_AudioOutCtx;
 
 
@@ -69,7 +71,7 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 
 	e = ctx->audio_out->Configure(ctx->audio_out, &sr, &nb_ch, &afmt, ch_cfg);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOutput] Failed to configure audio output: %s\n", gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] Failed to configure audio output: %s\n", gf_error_to_string(e) ));
 		if (afmt != GF_AUDIO_FMT_S16) afmt = GF_AUDIO_FMT_S16;
 		if (sr != 44100) sr = 44100;
 		if (nb_ch != 2) nb_ch = 2;
@@ -113,7 +115,7 @@ u32 aout_th_proc(void *p)
 
 	ctx->audio_th_state = 1;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[AudioOutput] Entering audio thread ID %d\n", gf_th_id() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[AudioOut] Entering audio thread ID %d\n", gf_th_id() ));
 
 	while (ctx->audio_th_state == 1) {
 		if (ctx->needs_recfg) {
@@ -122,7 +124,7 @@ u32 aout_th_proc(void *p)
 			ctx->audio_out->WriteAudio(ctx->audio_out);
 		}
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[AudioOutput] Exiting audio thread\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[AudioOut] Exiting audio thread\n"));
 	ctx->audio_out->Shutdown(ctx->audio_out);
 	ctx->audio_th_state = 3;
 	return 0;
@@ -137,6 +139,33 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 	memset(buffer, 0, buffer_size);
 	if (!ctx->pid || ctx->aborted) return 0;
 
+	//query full buffer duration in us
+	u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
+	if (!ctx->buffer_done) {
+		const char *data;
+		u32 size;
+		GF_FilterPacket *pck;
+		if ((dur < ctx->buffer * 1000) && !gf_filter_pid_is_eos(ctx->pid))
+			return 0;
+
+		/*the compositor sends empty packets after its reconfiguration to check when the config is active
+		we therefore probe the first packet before probing the buffer fullness*/
+		pck = gf_filter_pid_get_packet(ctx->pid);
+		if (!pck) return 0;
+		data = gf_filter_pck_get_data(pck, &size);
+		if (!size) {
+			gf_filter_pid_drop_packet(ctx->pid);
+			return 0;
+		}
+		//check the decoder output is full (avoids initial underrun)
+		if (gf_filter_pid_query_buffer_duration(ctx->pid, GF_TRUE)==0)
+			return 0;
+		ctx->buffer_done = GF_TRUE;
+	}
+
+
 	while (done < buffer_size) {
 		const char *data;
 		u32 size;
@@ -146,7 +175,7 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 			if (gf_filter_pid_is_eos(ctx->pid)) {
 				ctx->is_eos = GF_TRUE;
 			} else if (ctx->first_write_done) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer underflow\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[AudioOut] buffer underflow\n"));
 			}
 			return done;
 		}
@@ -244,6 +273,18 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_PRIORITY);
 	if (p) aout_set_priority(ctx, p->value.uint);
 
+	if (ctx->first_cts && (ctx->timescale != timescale)) {
+		ctx->first_cts-=1;
+		ctx->first_cts *= timescale;
+		ctx->first_cts /= ctx->timescale;
+		ctx->first_cts+=1;
+	}
+	ctx->timescale = timescale;
+
+	p = gf_filter_pid_get_property_str(pid, "BufferLength");
+	ctx->no_buffering = (p && !p->value.sint) ? GF_TRUE : GF_FALSE;
+	if (ctx->no_buffering) ctx->buffer_done = GF_TRUE;
+
 	if ((ctx->sr==sr) && (ctx->afmt == afmt) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) {
 		ctx->needs_recfg = GF_FALSE;
 		ctx->wait_recfg = GF_FALSE;
@@ -258,11 +299,15 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		//several input frames in the buffer (default being 1 pck / 1000 us max in buffers). Not doing so could cause
 		//the session to end because input is blocked (no tasks posted) and output still holds a packet 
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, pid);
-		evt.buffer_req.max_buffer_us = 100000;
+		evt.buffer_req.max_buffer_us = ctx->buffer * 1000;
 		if (ctx->bdur) {
-			evt.buffer_req.max_buffer_us = ctx->bdur;
-			evt.buffer_req.max_buffer_us *= 1000;
+			u64 b = ctx->bdur;
+			b *= 1000;
+			if (evt.buffer_req.max_buffer_us < b)
+				evt.buffer_req.max_buffer_us = b;
 		}
+		evt.buffer_req.pid_only = GF_TRUE;
+
 		gf_filter_pid_send_event(pid, &evt);
 
 		gf_filter_pid_init_play_event(pid, &evt, ctx->start, ctx->speed, "AudioOut");
@@ -272,7 +317,6 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 
 	ctx->pid = pid;
-	ctx->timescale = timescale;
 	ctx->sr = sr;
 	ctx->afmt = afmt;
 	ctx->nb_ch = nb_ch;
@@ -370,7 +414,9 @@ static GF_Err aout_process(GF_Filter *filter)
 	}
 
 	if (ctx->th || ctx->audio_out->SelfThreaded) {
-		return ctx->is_eos ? GF_EOS : GF_OK;
+		if (ctx->is_eos) return GF_EOS;
+		gf_filter_ask_rt_reschedule(filter, 100000);
+		return GF_OK;
 	}
 
 	ctx->audio_out->WriteAudio(ctx->audio_out);
@@ -409,6 +455,7 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(speed), "sets playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(vol), "sets default audio volume, as a percentage between 0 and 100", GF_PROP_UINT, "100", "0-100", 0},
+	{ OFFS(buffer), "sets buffer in ms", GF_PROP_UINT, "100", NULL, 0},
 	{0}
 };
 

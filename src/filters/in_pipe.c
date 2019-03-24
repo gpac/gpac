@@ -452,6 +452,7 @@ GF_FilterRegister PipeInRegister = {
 	"")
 	.private_size = sizeof(GF_PipeInCtx),
 	.args = PipeInArgs,
+	.flags = GF_FS_REG_BLOCKING,
 	SETCAPS(PipeInCaps),
 	.initialize = pipein_initialize,
 	.finalize = pipein_finalize,

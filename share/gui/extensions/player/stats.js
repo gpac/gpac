@@ -80,7 +80,7 @@ extension.view_stats = function () {
                         notif.show();
                         return;
                     }
-                    this.odm.select_quality(this.odm.gui.qualities[idx - 1].ID, this.odm.dependent_group_id);
+                    this.odm.select_quality('' + (idx - 1), this.odm.dependent_group_id);
                 } else {
                     this.odm.select_quality('auto', this.odm.dependent_group_id);
 
@@ -268,11 +268,13 @@ extension.view_stats = function () {
                 if (bw < 8000000) label += '' + Math.round(bw / 1000) + ' Kbps';
                 else label += '' + Math.round(bw / 1000 / 1000) + ' Mbps';
 
-                label += '\n'
-                label += 'Download bandwidth: ';
                 var bw = m.bandwidth_down;
-                if (bw < 8000) label += '' + bw + ' Kbps';
-                else label += '' + Math.round(bw / 1000) + ' Mbps';
+                if (bw) {
+                    label += '\n'
+                    label += 'Download bandwidth: ';
+                    if (bw < 8000) label += '' + bw + ' Kbps';
+                    else label += '' + Math.round(bw / 1000) + ' Mbps';
+                }
 
                 label += '\n'
                 label += 'Codec: ' + m.codec;

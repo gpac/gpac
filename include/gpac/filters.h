@@ -500,9 +500,10 @@ typedef enum
 	GF_PROP_CONST_DATA,
 	/*! user-managed pointer*/
 	GF_PROP_POINTER,
-	/*! string list, memory is ALWAYS duplicated*/
+	/*! string list, memory is NOT duplicated when setting the property, the GF_List * of
+	the passed property is directly assigned to the new property and will be and managed internally (freed by the filter session)*/
 	GF_PROP_STRING_LIST,
-	/*! unsigned 32 bit integer list, memory is ALWAYS duplicated*/
+	/*! unsigned 32 bit integer list, memory is ALWAYS duplicated when setting the property*/
 	GF_PROP_UINT_LIST,
 } GF_PropType;
 
@@ -683,7 +684,9 @@ enum
 	GF_PROP_PID_DURATION = GF_4CC('P','D','U','R'),
 	GF_PROP_PID_NB_FRAMES = GF_4CC('N','F','R','M'),
 	GF_PROP_PID_FRAME_SIZE = GF_4CC('C','F','R','S'),
-	GF_PROP_PID_TIMESHIFT = GF_4CC('P','T','S','H'),
+	GF_PROP_PID_TIMESHIFT_DEPTH = GF_4CC('P','T','S','D'),
+	GF_PROP_PID_TIMESHIFT_TIME = GF_4CC('P','T','S','T'),
+	GF_PROP_PID_TIMESHIFT_STATE = GF_4CC('P','T','S','S'),
 	GF_PROP_PID_TIMESCALE = GF_4CC('T','I','M','S'),
 	GF_PROP_PID_PROFILE_LEVEL = GF_4CC('P','R','P','L'),
 	GF_PROP_PID_DECODER_CONFIG = GF_4CC('D','C','F','G'),
@@ -716,6 +719,8 @@ enum
 	GF_PROP_PID_TRANS_Y = GF_4CC('V','T','R','Y'),
 	GF_PROP_PID_CROP_POS = GF_4CC('V','C','X','Y'),
 	GF_PROP_PID_ORIG_SIZE = GF_4CC('V','O','W','H'),
+	GF_PROP_PID_SRD = GF_4CC('S','R','D',' '),
+	GF_PROP_PID_SRD_REF = GF_4CC('S','R','D','R'),
 	GF_PROP_PID_ALPHA = GF_4CC('V','A','L','P'),
 	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),
 	GF_PROP_PID_MAXRATE = GF_4CC('M','R','A','T'),
@@ -993,7 +998,7 @@ typedef enum
 	GF_FEVT_QUALITY_SWITCH,
 	/*! visibility hint event, helps filters decide how to adapt their processing*/
 	GF_FEVT_VISIBILITY_HINT,
-	/*! special event type sent to a filter whenever the pid info properties have been modified. No cancel because no forward - cf \ref gf_filter_pid_set_info*/
+	/*! special event type sent to a filter whenever the pid info properties have been modified. No cancel because no forward - cf \ref gf_filter_pid_set_info. A filter returning GF_TRUE on this event will prevent info update notification on the destination filters*/
 	GF_FEVT_INFO_UPDATE,
 	/*! buffer requirement event. This event is NOT sent to filters, it is internaly processed by the filter session. Filters may however send this
 	event to indicate their buffereing preference (real-time sinks mostly)*/
@@ -1105,12 +1110,10 @@ typedef struct
 
 	/*! switch quality up or down */
 	Bool up;
-	/*!  move to automatic switching quality*/
-	Bool set_auto;
 	/*! 0: current group, otherwise index of the depending_on group */
 	u32 dependent_group_index;
-	/*! ID of the quality to switch, as indicated in query quality*/
-	const char *ID;
+	/*! index of the quality to switch, as indicated in "has:qualities" property. If < 0, sets to automatic quality switching*/
+	s32 q_idx;
 	/*! 1+tile mode adaptation (does not change other selections) */
 	u32 set_tile_mode_plus_one;
 	/*! quality degradation hint, between 0 (full quality) and 100 (lowest quality, stream not currently rendered)*/
@@ -1141,8 +1144,14 @@ typedef struct
 	FILTER_EVENT_BASE
 	/*! indicates the max buffer to set on pid - the buffer is only activated on pids connected to decoders*/
 	u32 max_buffer_us;
-	/*! indicates the max playout buffer to set on pid (buffer level triggering playback)*/
+	/*! indicates the max playout buffer to set on pid (buffer level triggering playback)
+		Note: this is not used internally by the blocking mechanisms, but may be needed by other filters to take decisions
+	*/
 	u32 max_playout_us;
+	/*! indicates the min playout buffer to set on pid (buffer level triggering rebuffering)
+		Note: this is not used internally by the blocking mechanisms, but may be needed by other filters to take decisions
+	*/
+	u32 min_playout_us;
 	/*! if set, only the pid target of the event will have the buffer req set; otherwise, the buffer requirement event is passed down the chain until a raw media PID is found or a decoder is found. Used for muxers*/
 	Bool pid_only;
 } GF_FEVT_BufferRequirement;
@@ -1375,6 +1384,10 @@ typedef enum
 	GF_FS_REG_HIDE_WEIGHT = 1<<4,
 	/*! Usually set for filters acting as sources but without exposing an src argument. This prevents throwing warnings on arguments not handled by the filter*/
 	GF_FS_REG_ACT_AS_SOURCE = 1<<5,
+	/*! Indicates the filter is likely to block for a long time (typically, network IO).
+	In multithread mode, this prevents the filter to be scheduled on the main thread, blocking video or audio output.
+	Ignored in single thread mode.*/
+	GF_FS_REG_BLOCKING = 1<<6,
 
 	/*! flag dynamically set at runtime for registries loaded through shared libraries*/
 	GF_FS_REG_DYNLIB = 0x80000000
@@ -1847,6 +1860,17 @@ Other filters using openGL might change the openGL context state (depth test, vi
 */
 GF_Err gf_filter_request_opengl(GF_Filter *filter);
 
+
+/*! Count the number of source filters for the given filter matching the given protocol type.
+\param filter filter to inspect
+\param protocol_scheme scheme of the protocol to test, without ://, eg "http", "rtp", "https"
+\param expand_proto if set to GF_TRUE, any source protocol with a name begining like \ref protocol_scheme will be matched. For example, use this with "http" to match all http and https schemes.
+\param enum_pids user function to enumerate PIDs against which the source should be checked . If not set, all source filters will be checked.
+\param udta user data for the callback function
+\return the number of source filters matched by protocols
+*/
+u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_scheme, Bool expand_proto, GF_FilterPid * (*enum_pids)(void *udta, u32 *idx), void *udta);
+
 /*! @} */
 
 
@@ -2094,6 +2118,8 @@ const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const ch
 /*! Statistics for pid*/
 typedef struct
 {
+	/*! if set, indicates the PID is disconnected and stats are not valid*/
+	u32 disconnected;
 	/*! average process rate on that pid in bits per seconds*/
 	u32 average_process_rate;
 	/*! max process rate on that pid in bits per seconds*/
@@ -2118,17 +2144,46 @@ typedef struct
 	u32 nb_saps;
 	/*! max process time of SAP packets on that pid in us*/
 	u32 max_sap_process_time;
-	/*! toal process time of SAP packets on that pid in us*/
+	/*! total process time of SAP packets on that pid in us*/
 	u64 total_sap_process_time;
+
+	/*! max buffer time in us - only set when querying decoder stats*/
+	u64 max_buffer_time;
+	/*! max playout buffer time in us - only set when querying decoder stats*/
+	u64 max_playout_time;
+	/*! min playout buffer time in us - only set when querying decoder stats*/
+	u64 min_playout_time;
+	/*! current buffer time in us - only set when querying decoder stats*/
+	u64 buffer_time;
+	/*! number of units in input buffer of the filter - only set when querying decoder stats*/
+	u32 nb_buffer_units;
 } GF_FilterPidStatistics;
+
+/*! Direction for stats querying*/
+typedef enum
+{
+	/*! statistics are fetched on the current pid's parent filter. If the PID is an output pid, the statistics are fetched on all the destinations for that PID*/
+	GF_STATS_LOCAL = 0,
+	/*! statistics are fetched on the current pid's parent filter. The statistics are fetched on all input of the parent filter*/
+	GF_STATS_LOCAL_INPUTS,
+	/*! statistics are fetched on all inputs of the next decoder filter up the chain (towards the sink)*/
+	GF_STATS_DECODER_SINK,
+	/*! statistics are fetched on all inputs of the previous decoder filter down the chain (towards the source)*/
+	GF_STATS_DECODER_SOURCE,
+	/*! statistics are fetched on all inputs of the next encoder filter up the chain (towards the sink)*/
+	GF_STATS_ENCODER_SINK,
+	/*! statistics are fetched on all inputs of the previous encoder filter down the chain (towards the source)*/
+	GF_STATS_ENCODER_SOURCE
+} GF_FilterPidStatsLocation;
 
 /*! Gets statistics for the pid
 \param pid the target filter pid
 \param stats the retrieved statistics
 \param for_inputs indicates to fetch stats for all input pids of the parent filter - mostly usefull for decoders
+\param location indicates where to locate the filter to query stats on it.
 \return error code if any
 */
-GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *stats, Bool for_inputs);
+GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *stats, GF_FilterPidStatsLocation location);
 
 /*! Resets current properties of the pid
 \param pid the target filter pid
@@ -2204,10 +2259,10 @@ GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_bloc
 
 /*! Gets cumulated buffer duration of pid (recursive until source)
 \param pid the target filter pid
-\param check_decoder_output if GF_TRUE, the duration includes decoded frames already output by decoder
+\param check_pid_full if GF_TRUE, returns 0 if the pid buffer is not yet full
 \return the duration in us, or -1 if session is in final flush
 */
-u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_decoder_output);
+u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full);
 
 /*! Try to force a synchronous flush of the filter chain downwards this pid. If refetching a packet returns NULL, this failed.
 \param pid the target filter pid
@@ -2423,6 +2478,12 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt);
 \param log_name name used for logs in case of capability mismatched
 */
 void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Double start, Double speed, const char *log_name);
+
+/*! Check if the given pid is marked as playing or not.
+\param pid the target filter pid
+\return GF_TRUE if pid is currently playing, GF_FALSE otherwise
+*/
+Bool gf_filter_pid_is_playing(GF_FilterPid *pid);
 
 /*! @} */
 

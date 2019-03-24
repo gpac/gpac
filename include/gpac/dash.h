@@ -220,8 +220,11 @@ void gf_dash_get_info(GF_DashClient *dash, const char **title, const char **sour
 /*switches quality up or down*/
 void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool force_immediate_switch);
 
-/*indicates whether the DASH client is running or not. For the moment, the DASH client is always run by an internal thread*/
+/*indicates whether the DASH client is running or not.*/
 Bool gf_dash_is_running(GF_DashClient *dash);
+
+/*indicates whether the DASH client is in setup stage (sloving periods, destroying or creating playback chain) or not.*/
+Bool gf_dash_is_in_setup(GF_DashClient *dash);
 
 /*get duration of the presentation*/
 Double gf_dash_get_duration(GF_DashClient *dash);
@@ -474,8 +477,11 @@ Bool gf_dash_get_automatic_switching(GF_DashClient *dash);
 //sets automatic quality switching enabled or disabled
 GF_Err gf_dash_set_automatic_switching(GF_DashClient *dash, Bool enable_switching);
 
-//selects quality of given ID
-GF_Err gf_dash_group_select_quality(GF_DashClient *dash, u32 idx, const char *ID);
+//selects quality of given ID, or at given index if ID is null
+GF_Err gf_dash_group_select_quality(GF_DashClient *dash, u32 idx, const char *ID, u32 q_idx);
+
+//returns the current quality index for the given group
+s32 gf_dash_group_get_active_quality(GF_DashClient *dash, u32 idx);
 
 //gets download rate in bytes per second for the given group
 u32 gf_dash_group_get_download_rate(GF_DashClient *dash, u32 idx);
@@ -558,6 +564,8 @@ void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 bytes_per_sec, 
 void gf_dash_set_atsc_ast_shift(GF_DashClient *dash, u32 ast_shift);
 
 u32 gf_dash_get_min_wait_ms(GF_DashClient *dash);
+
+u32 gf_dash_group_get_as_id(GF_DashClient *dash, u32 group_idx);
 
 
 #endif //GPAC_DISABLE_DASH_CLIENT

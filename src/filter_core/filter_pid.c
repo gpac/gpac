@@ -195,8 +195,23 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 	pid->max_buffer_unit = pid->filter->session->default_pid_buffer_max_units;
 	pid->raw_media = GF_FALSE;
 
-	if (codecid!=GF_CODECID_RAW)
+	if (codecid!=GF_CODECID_RAW) {
+		count=pid->filter->num_input_pids;
+		for (i=0; i<count; i++) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
+			u32 i_codecid=0, i_type=0;
+			p = gf_filter_pid_get_property(pidi->pid, GF_PROP_PID_STREAM_TYPE);
+			if (p) i_type = p->value.uint;
+
+			p = gf_filter_pid_get_property(pidi->pid, GF_PROP_PID_CODECID);
+			if (p) i_codecid = p->value.uint;
+			//same stream type but changing from raw to not raw: this is an encoder input pid
+			if ((mtype==i_type) && (i_codecid==GF_CODECID_RAW)) {
+				pidi->is_encoder_input = GF_TRUE;
+			}
+		}
 		return;
+	}
 
 	if (pid->user_max_buffer_time) {
 		pid->max_buffer_time = pid->user_max_buffer_time;
@@ -603,6 +618,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 #ifdef FILTER_FIXME
 	FSESS_CHECK_THREAD(filter)
 #endif
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s reconfigure\n", pidinst->filter->name, pidinst->pid->name));
 	e = filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, (ctype==GF_PID_CONF_REMOVE) ? GF_TRUE : GF_FALSE);
 
 #ifdef GPAC_MEMORY_TRACKING
@@ -2380,7 +2396,11 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				continue;
 			}
 		}
-		//the destination filter being loaded, do NOT disable edges marked for loaded filter only
+		//the edge destination filter is not loaded, disable edges marked for loaded filter only
+		if (edge->loaded_filter_only && (edge->src_reg->freg != pid->filter->freg) ) {
+			edge->status = EDGE_STATUS_DISABLED;
+			continue;
+		}
 
 		if ((u32) edge->weight + 1 > max_weight)
 			max_weight = edge->weight + 1;
@@ -2521,7 +2541,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			}
 
 			if (do_switch) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filters] Dijkstra: assign filter %s distance %d destination to %s priority %d (previous destination %s distance %d priority %d)\n", redge->src_reg->freg->name, dist, current_node->freg->name, redge->priority, redge->src_reg->destination ? redge->src_reg->destination->freg->name : "none", redge->src_reg->dist, redge->src_reg->priority ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filters] Dijkstra: assign filter %s distance %d destination to %s in cap %d out cap %d priority %d (previous destination %s distance %d priority %d)\n", redge->src_reg->freg->name, dist, current_node->freg->name, redge->src_cap_idx, redge->dst_cap_idx, redge->priority, redge->src_reg->destination ? redge->src_reg->destination->freg->name : "none", redge->src_reg->dist, redge->src_reg->priority ));
 				redge->src_reg->dist = dist;
 				redge->src_reg->priority = priority;
 				redge->src_reg->destination = current_node;
@@ -3056,6 +3076,7 @@ single_retry:
 		//source filter
 		if (!filter_dst->freg->configure_pid) continue;
 		if (filter_dst->finalized || filter_dst->removed) continue;
+		if (filter_dst->target_filter == pid->filter) continue;
 
 		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
 		if (pid->pid->filter->freg == filter_dst->freg) {
@@ -4032,6 +4053,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 				//it may happen that pid_configure for destination was called after packet being dispatched, in
 				//which case we are already properly configured
 				skip_props = GF_TRUE;
+				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s was already configured with the last property set, ignoring reconfigure\n", pidinst->pid->filter->name, pidinst->pid->name));
 			}
 		}
 		if (!skip_props) {
@@ -4340,7 +4362,7 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return GF_FALSE;
 	}
-	if (!pid->pid->has_seen_eos) {
+	if (!pid->pid->has_seen_eos && !pidi->discard_inputs && !pidi->discard_packets) {
 		((GF_FilterPidInst *)pid)->is_end_of_stream = GF_FALSE;
 		return GF_FALSE;
 	}
@@ -4449,7 +4471,7 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 }
 
 GF_EXPORT
-u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_decoder_output)
+u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
 {
 	u32 count, i, j;
 	u64 duration=0;
@@ -4459,12 +4481,17 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_decoder_ou
 	if (PID_IS_INPUT(pid)) {
 		GF_Filter *filter;
 		GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
+		if (!pidinst->pid) return 0;
 		filter = pidinst->pid->filter;
-		if (check_decoder_output && pidinst->pid->max_buffer_unit && (pidinst->pid->max_buffer_unit>pidinst->pid->nb_buffer_unit))
-			return 0;
+		if (check_pid_full) {
+			if (pidinst->pid->max_buffer_unit && (pidinst->pid->max_buffer_unit>pidinst->pid->nb_buffer_unit))
+				return 0;
+			if (pidinst->pid->max_buffer_time && (pidinst->pid->max_buffer_time>pidinst->pid->buffer_duration))
+				return 0;
+		}
 		count = filter->num_input_pids;
 		for (i=0; i<count; i++) {
-			u64 dur = gf_filter_pid_query_buffer_duration( gf_list_get(filter->input_pids, i), check_decoder_output);
+			u64 dur = gf_filter_pid_query_buffer_duration( gf_list_get(filter->input_pids, i), 0);
 			if (dur > duration)
 				duration = dur;
 		}
@@ -4473,8 +4500,14 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_decoder_ou
 	} else {
 		u32 count2;
 		u64 max_dur=0;
-		if (check_decoder_output && pid->max_buffer_unit && (pid->max_buffer_unit > pid->nb_buffer_unit))
-			return 0;
+
+		if (check_pid_full) {
+			if (pid->max_buffer_unit && (pid->max_buffer_unit>pid->nb_buffer_unit))
+				return 0;
+			if (pid->max_buffer_time && (pid->max_buffer_time>pid->buffer_duration))
+				return 0;
+		}
+
 		count = pid->num_destinations;
 		for (i=0; i<count; i++) {
 			GF_FilterPidInst *pidinst = gf_list_get(pid->destinations, i);
@@ -4482,7 +4515,7 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_decoder_ou
 			count2 = pidinst->filter->num_output_pids;
 			for (j=0; j<count2; j++) {
 				GF_FilterPid *pid_n = gf_list_get(pidinst->filter->output_pids, i);
-				u64 dur = gf_filter_pid_query_buffer_duration(pid_n, check_decoder_output);
+				u64 dur = gf_filter_pid_query_buffer_duration(pid_n, 0);
 				if (dur > max_dur ) max_dur = dur;
 			}
 		}
@@ -4610,6 +4643,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		if (evt->base.on_pid->nb_decoder_inputs || evt->base.on_pid->raw_media || evt->buffer_req.pid_only) {
 			evt->base.on_pid->max_buffer_time = evt->base.on_pid->user_max_buffer_time = evt->buffer_req.max_buffer_us;
 			evt->base.on_pid->user_max_playout_time = evt->buffer_req.max_playout_us;
+			evt->base.on_pid->user_min_playout_time = evt->buffer_req.min_playout_us;
 			evt->base.on_pid->max_buffer_unit = 0;
 			
 			//update blocking state
@@ -4624,12 +4658,18 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		gf_free(evt);
 		return;
 	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_STOP) && !evt->base.on_pid->pid->is_playing) {
-		GF_FilterPidInst *pidi = (GF_FilterPidInst *) evt->base.on_pid;
+		GF_FilterPid *pid = (GF_FilterPid *) evt->base.on_pid->pid;
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is not playing, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
 
-		//don't forget we pre-process stop by incrementing the discard counter
-		if (pidi->pid->discard_input_packets) {
-			safe_int_dec(& pidi->pid->discard_input_packets );
+		for (i=0; i<pid->num_destinations; i++) {
+			GF_FilterPidInst *pidi = (GF_FilterPidInst *) gf_list_get(pid->destinations, i);
+			//don't forget we pre-processed stop by incrementing the discard counter and setting discard_packets on pid instances
+			//undo this
+			if (pidi->discard_packets) {
+				assert(pidi->pid->discard_input_packets);
+				safe_int_dec(& pidi->pid->discard_input_packets );
+				pidi->discard_packets = GF_FALSE;
+			}
 		}
 
 		gf_free(evt);
@@ -4849,7 +4889,7 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 			if (evt->base.type == GF_FEVT_PLAY) {
 				pidi->is_end_of_stream = GF_FALSE;
 			} else {
-				//flag pid instance to discard all packets
+				//flag pid instance to discard all packets (cf above note)
 				pidi->discard_packets = GF_TRUE;
 				safe_int_inc(& pidi->pid->discard_input_packets );
 			}
@@ -4918,38 +4958,11 @@ Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter)
 	return filter_in_parent_chain(pid->pid->filter, filter);
 }
 
-
-GF_EXPORT
-GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *stats, Bool for_inputs)
+static void filter_pid_collect_stats(GF_List *pidi_list, GF_FilterPidStatistics *stats)
 {
 	u32 i;
-	GF_Filter *filter;
-	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
-	if (PID_IS_OUTPUT(pid)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Getting statistics on output pids is not supported (PID %s in filter %s)\n", pid->pid->name, pid->filter->name));
-		return GF_BAD_PARAM;
-	}
-	memset(stats, 0, sizeof(GF_FilterPidStatistics) );
-	if (!for_inputs) {
-		stats->avgerage_bitrate = pidi->avg_bit_rate;
-		stats->first_process_time = pidi->first_frame_time;
-		stats->last_process_time = pidi->last_pck_fetch_time;
-		stats->max_bitrate = pidi->max_bit_rate;
-		stats->max_process_time = (u32) pidi->max_process_time;
-		stats->max_sap_process_time = (u32) pidi->max_sap_process_time;
-		stats->min_frame_dur = pidi->pid->min_pck_duration;
-		stats->nb_processed = pidi->nb_processed;
-		stats->nb_saps = pidi->nb_sap_processed;
-		stats->total_process_time = pidi->total_process_time;
-		stats->total_sap_process_time = pidi->total_sap_process_time;
-
-		stats->average_process_rate = pidi->avg_process_rate;
-		stats->max_process_rate = pidi->max_process_rate;
-		return GF_OK;
-	}
-	filter = pidi->pid->filter;
-	for (i=0; i < filter->num_input_pids; i++) {
-		pidi = (GF_FilterPidInst *) gf_list_get(filter->input_pids, i);
+	for (i=0; i<gf_list_count(pidi_list); i++) {
+		GF_FilterPidInst *pidi = (GF_FilterPidInst *) gf_list_get(pidi_list, i);
 
 		stats->avgerage_bitrate += pidi->avg_bit_rate;
 		if (!stats->first_process_time || (stats->first_process_time > pidi->first_frame_time))
@@ -4971,7 +4984,111 @@ GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *s
 		stats->total_sap_process_time += pidi->total_sap_process_time;
 		stats->average_process_rate += pidi->avg_process_rate;
 		stats->max_process_rate += pidi->max_process_rate;
+
+		if (stats->nb_buffer_units < pidi->pid->nb_buffer_unit)
+			stats->nb_buffer_units = pidi->pid->nb_buffer_unit;
+		if (stats->max_buffer_time < pidi->pid->max_buffer_time)
+			stats->max_buffer_time = pidi->pid->max_buffer_time;
+
+		if (stats->max_playout_time < pidi->pid->user_max_playout_time)
+			stats->max_playout_time = pidi->pid->user_max_playout_time;
+		if (!stats->min_playout_time || (stats->min_playout_time > pidi->pid->user_min_playout_time))
+			stats->min_playout_time = pidi->pid->user_min_playout_time;
+
+		if (stats->buffer_time < pidi->pid->buffer_duration)
+			stats->buffer_time = pidi->pid->buffer_duration;
 	}
+}
+
+static GF_Filter *filter_locate_enc_dec_sink(GF_Filter *filter, Bool locate_decoder)
+{
+	u32 i, j;
+
+	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		for (j=0; j<pid->num_destinations; j++) {
+			GF_Filter *res;
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
+			if (pidi->is_decoder_input) return pidi->filter;
+			res = filter_locate_enc_dec_sink(pidi->filter, locate_decoder);
+			if (res) return res;
+		}
+	}
+	return NULL;
+}
+
+static GF_Filter *filter_locate_enc_dec_src(GF_Filter *filter, Bool locate_decoder)
+{
+	u32 i;
+
+	for (i=0; i<filter->num_input_pids; i++) {
+		GF_Filter *res;
+		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
+		if (pidi->is_decoder_input) return filter;
+
+		res = filter_locate_enc_dec_sink(pidi->pid->filter, locate_decoder);
+		if (res) return res;
+	}
+	return NULL;
+}
+
+
+GF_EXPORT
+GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *stats, GF_FilterPidStatsLocation location)
+{
+	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
+	GF_Filter *filter=NULL;
+	Bool for_decoder=GF_TRUE;
+
+	memset(stats, 0, sizeof(GF_FilterPidStatistics) );
+	if (!pidi->pid) {
+		stats->disconnected = GF_TRUE;
+		return GF_OK;
+	}
+
+	switch (location) {
+	case GF_STATS_LOCAL:
+		if (PID_IS_OUTPUT(pid)) {
+			filter_pid_collect_stats(pid->destinations, stats);
+			return GF_OK;
+		}
+		stats->avgerage_bitrate = pidi->avg_bit_rate;
+		stats->first_process_time = pidi->first_frame_time;
+		stats->last_process_time = pidi->last_pck_fetch_time;
+		stats->max_bitrate = pidi->max_bit_rate;
+		stats->max_process_time = (u32) pidi->max_process_time;
+		stats->max_sap_process_time = (u32) pidi->max_sap_process_time;
+		stats->min_frame_dur = pidi->pid->min_pck_duration;
+		stats->nb_processed = pidi->nb_processed;
+		stats->nb_saps = pidi->nb_sap_processed;
+		stats->total_process_time = pidi->total_process_time;
+		stats->total_sap_process_time = pidi->total_sap_process_time;
+
+		stats->average_process_rate = pidi->avg_process_rate;
+		stats->max_process_rate = pidi->max_process_rate;
+		return GF_OK;
+	case GF_STATS_LOCAL_INPUTS:
+		if (PID_IS_OUTPUT(pid)) {
+			filter_pid_collect_stats(pid->destinations, stats);
+			return GF_OK;
+		}
+		filter = pidi->pid->filter;
+		break;
+	case GF_STATS_ENCODER_SOURCE:
+		for_decoder = GF_FALSE;
+	case GF_STATS_DECODER_SOURCE:
+		filter = filter_locate_enc_dec_src(pidi->pid->filter, for_decoder);
+		break;
+	case GF_STATS_ENCODER_SINK:
+		for_decoder = GF_FALSE;
+	case GF_STATS_DECODER_SINK:
+		filter = filter_locate_enc_dec_sink(pidi->pid->filter, for_decoder);
+		break;
+	}
+	if (!filter) {
+		return GF_NOT_FOUND;
+	}
+	filter_pid_collect_stats(filter->input_pids, stats);
 	return GF_OK;
 }
 
@@ -5593,3 +5710,12 @@ void gf_filter_pid_recompute_dts(GF_FilterPid *pid, Bool do_recompute)
 	}
 	pid->recompute_dts = do_recompute;
 }
+
+GF_EXPORT
+Bool gf_filter_pid_is_playing(GF_FilterPid *pid)
+{
+	if (!pid) return GF_FALSE;
+	return pid->pid->is_playing;
+
+}
+

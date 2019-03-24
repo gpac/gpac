@@ -1279,7 +1279,7 @@ void gf_sc_ar_add_src(GF_AudioRenderer *ar, GF_AudioInterface *source);
 /*remove audio node*/
 void gf_sc_ar_remove_src(GF_AudioRenderer *ar, GF_AudioInterface *source);
 /*reconfig audio hardware if needed*/
-void gf_sc_ar_reconfig(GF_AudioRenderer *ar);
+void gf_sc_ar_send_or_reconfig(GF_AudioRenderer *ar);
 u32 gf_sc_ar_get_delay(GF_AudioRenderer *ar);
 
 void gf_sc_ar_update_video_clock(GF_AudioRenderer *ar, u32 video_ts);

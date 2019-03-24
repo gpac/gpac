@@ -210,6 +210,7 @@ enum
 	GF_ISOM_BOX_TYPE_SSIX	= GF_4CC( 's', 's', 'i', 'x' ),
 	GF_ISOM_BOX_TYPE_LEVA   = GF_4CC( 'l', 'e', 'v', 'a' ),
 	GF_ISOM_BOX_TYPE_PCRB	= GF_4CC( 'p', 'c', 'r', 'b' ),
+	GF_ISOM_BOX_TYPE_EMSG	= GF_4CC( 'e', 'm', 's', 'g' ),
 
 	/*3GPP text / MPEG-4 StreamingText*/
 	GF_ISOM_BOX_TYPE_FTAB	= GF_4CC( 'f', 't', 'a', 'b' ),

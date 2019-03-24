@@ -173,6 +173,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);
 	if (prop && prop->value.boolean) read->input_loaded = GF_TRUE;
 	read->refresh_fragmented = GF_FALSE;
+	read->full_segment_flush = GF_TRUE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] reconfigure triggered, URL %s\n", next_url));
 
 	switch (gf_isom_probe_file_range(next_url, read->start_range, read->end_range)) {
@@ -297,27 +298,20 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 				}
 			}
 
-			/*we changed our moov structure, sample_num now starts from 0*/
+			/*we changed our moov struc`ture, sample_num now starts from 0*/
 			ch->sample_num = 0;
-		}
-#ifdef FILTER_FIXME
-		//a loop was detected, our timing is no longer reliable if we use edit lists - just reset the sample time to tfdt ...
-		else if (param.url_query.discontinuity_type==2) {
-			ch->sample_num = 0;
-			if (ch->has_edit_list) {
-				ch->sample_time = gf_isom_get_current_tfdt(read->mov, ch->track);
-				//next read will query sample for ch->sample_time + 1
-				if (ch->sample_time) ch->sample_time--;
+			//and update channel config
+			isor_update_channel_config(ch);
+
+			/*restore NAL extraction mode*/
+			gf_isom_set_nalu_extract_mode(read->mov, ch->track, ch->nalu_extract_mode);
+
+			if (ch->is_cenc) {
+				isor_set_crypt_config(ch);
 			}
 		}
-#endif
-		/*rewrite all upcoming SPS/PPS into the samples*/
-		gf_isom_set_nalu_extract_mode(read->mov, ch->track, ch->nalu_extract_mode);
-		ch->last_state = GF_OK;
 
-		if (ch->is_cenc) {
-			isor_set_crypt_config(ch);
-		}
+		ch->last_state = GF_OK;
 	}
 	return e;
 }
@@ -906,7 +900,9 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		if (ch->play_state != 1) continue;
 		is_active = GF_TRUE;
 
-		while (! gf_filter_pid_would_block(ch->pid) ) {
+		while (1) {
+			if (!read->full_segment_flush && gf_filter_pid_would_block(ch->pid) )
+				break;
 
 			if (ch->item_id) {
 				isor_reader_get_sample_from_item(ch);

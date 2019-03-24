@@ -264,6 +264,7 @@ struct __gf_fs_task
 	Bool notified;
 	Bool requeue_request;
 	Bool can_swap;
+	Bool blocking;
 
 	u64 schedule_next_time;
 
@@ -307,7 +308,7 @@ struct __gf_filter_session
 	u32 flags;
 	Bool use_locks;
 	Bool direct_mode;
-	Bool task_in_process;
+	volatile u32 tasks_in_process;
 	Bool requires_solved_graph;
 	Bool no_main_thread;
 
@@ -711,6 +712,7 @@ struct __gf_filter_pid_inst
 	Bool is_end_of_stream;
 	volatile u32 nb_eos_signaled;
 
+	Bool is_encoder_input;
 	Bool is_decoder_input;
 	GF_PropertyMap *reconfig_pid_props;
 	
@@ -762,7 +764,7 @@ struct __gf_filter_pid
 
 	//times in us
 	u64 max_buffer_time;
-	u32 user_max_buffer_time, user_max_playout_time;
+	u32 user_max_buffer_time, user_max_playout_time, user_min_playout_time;
 	//max buffered duration of packets in each of the destination pids - concurrent inc/dec
 	u64 buffer_duration;
 	//true if the pid carries raw media

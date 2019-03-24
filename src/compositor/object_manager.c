@@ -391,6 +391,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		}
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, for_pid ? for_pid : odm->pid);
 		evt.buffer_req.max_buffer_us = odm->buffer_max_us;
+		evt.buffer_req.min_playout_us = odm->buffer_min_us;
 		evt.buffer_req.max_playout_us = odm->buffer_playout_us;
 		gf_filter_pid_send_event(NULL, &evt);
 	}
@@ -498,7 +499,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 			}
 
 			if (!role_set) {
-				const GF_PropertyValue *prop = gf_filter_pid_get_property_str(for_pid ? for_pid : odm->pid, "role");
+				const GF_PropertyValue *prop = gf_filter_pid_get_property(for_pid ? for_pid : odm->pid, GF_PROP_PID_ROLE);
 				if (prop && prop->value.string && !strcmp(prop->value.string, "main")) {
 					odm->addon->addon_type = GF_ADDON_TYPE_MAIN;
 				}
@@ -517,7 +518,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 			return;
 		}
 	} else if (odm->parentscene) {
-		const GF_PropertyValue *prop = gf_filter_pid_get_property_str(for_pid ? for_pid : odm->pid, "role");
+		const GF_PropertyValue *prop = gf_filter_pid_get_property(for_pid ? for_pid : odm->pid, GF_PROP_PID_ROLE);
 		if (prop && prop->value.string && !strncmp(prop->value.string, "ambi", 4)) {
 			odm->ambi_ch_id = atoi(prop->value.string + 4);
 			if (odm->ambi_ch_id > odm->parentscene->ambisonic_type)
@@ -1674,7 +1675,7 @@ Bool gf_odm_stop_or_destroy(GF_ObjectManager *odm)
 static void get_codec_stats(GF_FilterPid *pid, GF_MediaInfo *info)
 {
 	GF_FilterPidStatistics stats;
-	gf_filter_pid_get_statistics(pid, &stats, GF_TRUE);
+	gf_filter_pid_get_statistics(pid, &stats, GF_STATS_LOCAL_INPUTS);
 
 	info->avg_bitrate = stats.avgerage_bitrate;
 	info->max_bitrate = stats.max_bitrate;
@@ -1689,6 +1690,7 @@ static void get_codec_stats(GF_FilterPid *pid, GF_MediaInfo *info)
 	info->irap_total_dec_time = stats.total_sap_process_time;
 	info->avg_process_bitrate = stats.average_process_rate;
 	info->max_process_bitrate = stats.max_process_rate;
+	info->db_unit_count = stats.nb_buffer_units;
 }
 
 GF_EXPORT
@@ -1698,7 +1700,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 	GF_ObjectManager *an_odm;
 	GF_FilterPid *pid;
 
-	if (!odm || !odm->parentscene || !info) return GF_BAD_PARAM;
+	if (!odm || !info) return GF_BAD_PARAM;
 	memset(info, 0, sizeof(GF_MediaInfo));
 
 	info->ODID = odm->ID;

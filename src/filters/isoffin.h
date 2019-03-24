@@ -79,6 +79,7 @@ typedef struct
 
 	u32 play_only_track_id;
 	u32 play_only_first_media;
+	Bool full_segment_flush;
 	/*0: not fragmented - 1 fragmented - 2 fragmented and last fragment received*/
 	u32 frag_type;
 	Bool waiting_for_data, reset_frag_state;
