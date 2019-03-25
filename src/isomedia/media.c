@@ -277,6 +277,10 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 
 	case GF_ISOM_SUBTYPE_OPUS: {
 		GF_OpusSpecificBox *e = ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_opus;
+		if (!e) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("ESD not found for Opus\n)"));
+			break;
+		}
 		ptrdiff_t offset = (ptrdiff_t)&e->version - (ptrdiff_t)e;
 		*out_esd = gf_odf_desc_esd_new(2);
 		(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;

@@ -307,6 +307,11 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
             case GPAC_OTI_AUDIO_AAC_MPEG4:
                 codec_id = CODEC_ID_AAC;
                 break;
+#ifdef CODEC_ID_OPUS
+			case GPAC_OTI_MEDIA_OPUS:
+				codec_id = CODEC_ID_OPUS;
+				break;
+#endif
 			}
 		}
 		else if ((ffd->st==GF_STREAM_ND_SUBPIC) && (ffd->oti==0xe0)) {
@@ -1591,6 +1596,12 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
             if (avcodec_find_decoder(codec_id) != NULL)
                 return GF_CODEC_MAYBE_SUPPORTED;
             break;
+#ifdef CODEC_ID_OPUS
+		case GPAC_OTI_MEDIA_OPUS:
+			if (avcodec_find_decoder(CODEC_ID_OPUS) != NULL)
+				return GF_CODEC_MAYBE_SUPPORTED;
+#endif
+			return GF_CODEC_NOT_SUPPORTED;
 		}
 	}
 
