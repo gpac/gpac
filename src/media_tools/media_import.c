@@ -8221,7 +8221,7 @@ static GF_Err opus_process(ogg_audio_codec_desc *codec, char *data, u32 data_len
 		e = gf_isom_opus_config_new(import->dest, *track, opus, NULL, NULL, di);
 		if (e) goto exit;
 
-		gf_isom_set_audio_info(import->dest, *track, *di, codec->sample_rate, (codec->channels>1) ? 2 : 1, 16, import->asemode);
+		gf_isom_set_audio_info(import->dest, *track, *di, codec->sample_rate, codec->channels, 16, import->asemode);
 		gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_OPUS, 0);
 
 		{
