@@ -1217,7 +1217,7 @@ static GF_Err ttd_process(GF_Filter *filter)
 	//we still process any frame before our clock time even when buffering
 	obj_time = gf_clock_time(ctx->odm->ck);
 	if (cts * 1000 > obj_time * timescale) {
-		Double ts_offset = cts;
+		Double ts_offset = (Double) cts;
 		ts_offset /= timescale;
 
 		gf_sc_sys_frame_pending(ctx->scene->compositor, ts_offset, obj_time);

@@ -582,7 +582,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 
 				updates_pending++;
 
-				ts_offset = au->timing;
+				ts_offset = (Double) au->timing;
 				ts_offset /= sc->timeScale;
 				gf_sc_sys_frame_pending(priv->scene->compositor, ts_offset, stream_time);
 				break;
