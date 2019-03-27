@@ -565,10 +565,10 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 				if (!stats.nb_processed) stats.nb_processed=1;
 				if (!stats.nb_saps) stats.nb_saps=1;
 
-				gf_dash_group_set_codec_stat(ctx->dash, group_idx, stats.total_process_time/stats.nb_processed, stats.max_process_time, stats.total_sap_process_time/stats.nb_saps, stats.max_sap_process_time, GF_FALSE, GF_FALSE);
+				gf_dash_group_set_codec_stat(ctx->dash, group_idx, (u32) (stats.total_process_time/stats.nb_processed), stats.max_process_time, (u32) (stats.total_sap_process_time/stats.nb_saps), stats.max_sap_process_time, GF_FALSE, GF_FALSE);
 
 
-				gf_dash_group_set_buffer_levels(ctx->dash, group_idx, stats.min_playout_time/1000, stats.max_buffer_time/1000, stats.buffer_time/1000);
+				gf_dash_group_set_buffer_levels(ctx->dash, group_idx, (u32) (stats.min_playout_time/1000), (u32) (stats.max_buffer_time/1000), (u32) (stats.buffer_time/1000) );
 
 				break;
 			}

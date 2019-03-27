@@ -208,12 +208,15 @@ base_object_type_error: /*error case*/
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(ctx->num_samples) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->num_channels) );
 
+#if 0
 	if (!strcmp(FAAD2_VERSION, "unknown")) {
-		if (ctx->is_sbr) gf_filter_set_name(filter, "dec_faad:FAAD2-SBR");
-		else gf_filter_set_name(filter,  "dec_faad:FAAD2");
-	} else {
 		if (ctx->is_sbr) gf_filter_set_name(filter, "dec_faad:FAAD2-" FAAD2_VERSION "-SBR");
 		else gf_filter_set_name(filter,  "dec_faad:FAAD2-" FAAD2_VERSION);
+	} else
+#endif
+	{
+		if (ctx->is_sbr) gf_filter_set_name(filter, "dec_faad:FAAD2-SBR");
+		else gf_filter_set_name(filter,  "dec_faad:FAAD2");
 	}
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	return GF_OK;

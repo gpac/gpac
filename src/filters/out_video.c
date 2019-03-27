@@ -2046,7 +2046,7 @@ static GF_Err vout_process(GF_Filter *filter)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" ms greater than reference clock "LLU" ms, waiting\n", gf_sys_clock(), cts, ref_ts));
 				//the clock is not updated continuously, only when audio sound card writes. We therefore
 				//cannot know if the sampling was recent or old, so ask for a short reschedule time
-				gf_filter_ask_rt_reschedule(filter, (cts-ref_ts) * 1000 - DEF_VIDEO_AUDIO_ADVANCE_MS*1000);
+				gf_filter_ask_rt_reschedule(filter, (u32) ((cts-ref_ts) * 1000 - DEF_VIDEO_AUDIO_ADVANCE_MS*1000) );
 				//not ready yet
 				return GF_OK;
 			}

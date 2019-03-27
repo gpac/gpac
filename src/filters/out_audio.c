@@ -304,7 +304,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			u64 b = ctx->bdur;
 			b *= 1000;
 			if (evt.buffer_req.max_buffer_us < b)
-				evt.buffer_req.max_buffer_us = b;
+				evt.buffer_req.max_buffer_us = (u32) b;
 		}
 		evt.buffer_req.pid_only = GF_TRUE;
 
