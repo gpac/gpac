@@ -2179,7 +2179,6 @@ typedef enum
 /*! Gets statistics for the pid
 \param pid the target filter pid
 \param stats the retrieved statistics
-\param for_inputs indicates to fetch stats for all input pids of the parent filter - mostly usefull for decoders
 \param location indicates where to locate the filter to query stats on it.
 \return error code if any
 */
