@@ -42,9 +42,15 @@ bifs_test()
  fi
 
  #MP4 stat
- do_test "$MP4BOX -stat $mp4file -std" "MP4STAT"
- do_test "$MP4BOX -stats $mp4file -std" "MP4STATS"
- do_test "$MP4BOX -statx $mp4file -std" "MP4STATX"
+ dump=$TEMP_DIR/stat.xml
+ do_test "$MP4BOX -stat $mp4file -out $dump" "stat"
+ do_hash_test $dump "stat"
+ dump=$TEMP_DIR/stats.xml
+ do_test "$MP4BOX -stats $mp4file -out $dump" "stats"
+ do_hash_test $dump "stats"
+
+ #we cannot statx this content, it contains self-destructing branches which are not supported in statx
+ #do_test "$MP4BOX -statx $mp4file -std" "MP4STATX"
 
  #MP4 hint
  do_test "$MP4BOX -hint $mp4file" "MP4HINT"

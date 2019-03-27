@@ -472,6 +472,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 	GF_FieldInfo field;
 	GF_Err e;
 	GF_ChildNodeItem *list;
+	u32 i;
 	GF_CommandField *inf = NULL;
 	if (gf_list_count(com->command_fields))
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
@@ -520,6 +521,8 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 		}
 		break;
 	case GF_SG_NODE_DELETE:
+	case GF_SG_NODE_DELETE_EX:
+	case GF_SG_GLOBAL_QUANTIZER:
 		if (com->node) StatNode(stat->stats, com->node, 0, 1, NULL);
 		break;
 	case GF_SG_INDEXED_DELETE:
@@ -556,6 +559,42 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 	case GF_SG_ROUTE_DELETE:
 	case GF_SG_ROUTE_INSERT:
 		return GF_OK;
+	case GF_SG_XREPLACE:
+		e = gf_node_get_field(com->node, inf->fieldIndex, &field);
+		if (e) return e;
+
+		/*rescale the MFField and parse the SFField*/
+		if (field.fieldType != GF_SG_VRML_MFNODE) {
+			field.fieldType = gf_sg_vrml_get_sf_type(field.fieldType);
+			field.far_ptr = inf->field_ptr;
+			StatSingleField(stat->stats, &field);
+		} else {
+			if (inf->new_node) StatNodeGraph(stat, inf->new_node);
+		}
+
+		break;
+	case GF_SG_MULTIPLE_REPLACE:
+	case GF_SG_MULTIPLE_INDEXED_REPLACE:
+		for (i=0; i<gf_list_count(com->command_fields); i++) {
+			inf = (GF_CommandField*)gf_list_get(com->command_fields, i);
+			e = gf_node_get_field(com->node, inf->fieldIndex, &field);
+			if (e) return e;
+
+			/*rescale the MFField and parse the SFField*/
+			if (field.fieldType != GF_SG_VRML_MFNODE) {
+				field.fieldType = gf_sg_vrml_get_sf_type(field.fieldType);
+				field.far_ptr = inf->field_ptr;
+				StatSingleField(stat->stats, &field);
+			} else {
+				if (inf->new_node) StatNodeGraph(stat, inf->new_node);
+			}
+		}
+		break;
+	case GF_SG_PROTO_INSERT:
+	case GF_SG_PROTO_DELETE:
+	case GF_SG_PROTO_DELETE_ALL:
+		return GF_OK;
+
 	default:
 		return GF_BAD_PARAM;
 	}
