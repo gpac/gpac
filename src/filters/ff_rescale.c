@@ -49,6 +49,9 @@ typedef struct
 	u32 dst_stride[5];
 	u32 src_stride[5];
 	u32 nb_planes, nb_src_planes, out_size, out_src_size, src_uv_height, dst_uv_height, ow, oh;
+
+	u32 swap_idx_1, swap_idx_2;
+
 } GF_FFSWScaleCtx;
 
 static GF_Err ffsws_process(GF_Filter *filter)
@@ -149,6 +152,20 @@ static GF_Err ffsws_process(GF_Filter *filter)
 		gf_filter_pck_discard(dst_pck);
 		return GF_NOT_SUPPORTED;
 	}
+
+	if (ctx->swap_idx_1 || ctx->swap_idx_2) {
+		u32 i, j;
+		for (i=0; i<ctx->h; i++) {
+			u8 *dst = output + ctx->dst_stride[0]*i;
+			for (j=0; j<ctx->dst_stride[0]; j+=4) {
+				u8 tmp = dst[ctx->swap_idx_1];
+				dst[ctx->swap_idx_1] = dst[ctx->swap_idx_2];
+				dst[ctx->swap_idx_2] = tmp;
+				dst += 4;
+			}
+		}
+	}
+
 	gf_filter_pck_send(dst_pck);
 	gf_filter_pid_drop_packet(ctx->ipid);
 	return GF_OK;
@@ -296,6 +313,19 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->h = h;
 		ctx->s_pfmt = pfmt;
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFSWS] Setup rescaler from %dx%d fmt %s to %dx%d fmt %s\n", w, h, gf_pixel_fmt_name(pfmt), ctx->size.x, ctx->size.y, gf_pixel_fmt_name(ctx->pfmt)));
+
+		ctx->swap_idx_1 = ctx->swap_idx_2 = 0;
+		//if same source / dest pixel format, don'( swap UV components
+		if (ctx->s_pfmt != ctx->pfmt) {
+			if (ctx->pfmt==GF_PIXEL_VYUY) {
+				ctx->swap_idx_1 = 0;
+				ctx->swap_idx_2 = 2;
+			}
+			else if (ctx->pfmt==GF_PIXEL_YVYU) {
+				ctx->swap_idx_1 = 1;
+				ctx->swap_idx_2 = 3;
+			}
+		}
 	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->ow));
