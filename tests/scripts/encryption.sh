@@ -59,6 +59,13 @@ if [ $1 == "vp9" ] ; then
  	continue ;;
  *cens* )
  	continue ;;
+ *clearbytes* )
+ 	continue ;;
+ esac
+elif [ $1 != "avc" ] ; then
+ case $drm in
+ *clearbytes* )
+ 	continue ;;
  esac
 fi
 
