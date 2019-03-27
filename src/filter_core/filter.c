@@ -2663,7 +2663,7 @@ u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_s
 	u32 i, count, len, res=0;
 	if (!filter || !protocol_scheme) return 0;
 	gf_mx_p(filter->session->filters_mx);
-	len = strlen(protocol_scheme);
+	len = (u32) strlen(protocol_scheme);
 	count = gf_list_count(filter->session->filters);
 	for (i=0; i<count; i++) {
 		const char *args;
