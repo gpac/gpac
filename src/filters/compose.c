@@ -49,7 +49,7 @@ GF_Compositor *gf_sc_from_filter(GF_Filter *filter)
 
 static GF_Err compose_process(GF_Filter *filter)
 {
-	u32 i, count;
+	u32 i, nb_sys_streams_active;
 	s32 ms_until_next = 0;
 	GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
 	if (!ctx) return GF_BAD_PARAM;
@@ -63,8 +63,8 @@ static GF_Err compose_process(GF_Filter *filter)
 		gf_sc_reload_config(ctx);
 	}
 
-	count = gf_list_count(ctx->systems_pids);
-	for (i=0; i<count; i++) {
+	nb_sys_streams_active = gf_list_count(ctx->systems_pids);
+	for (i=0; i<nb_sys_streams_active; i++) {
 		GF_FilterPacket *pck;
 		GF_Err e = GF_EOS;
 		GF_FilterPid *pid = gf_list_get(ctx->systems_pids, i);
@@ -84,7 +84,7 @@ static GF_Err compose_process(GF_Filter *filter)
 		if (e==GF_EOS) {
 			gf_list_rem(ctx->systems_pids, i);
 			i--;
-			count--;
+			nb_sys_streams_active--;
 			gf_odm_on_eos(odm, pid);
 		}
 		if (ctx->reload_scene_size) {
@@ -108,10 +108,11 @@ static GF_Err compose_process(GF_Filter *filter)
 			n /= 1000;
 			if (n>=ctx->dur)
 				ctx->check_eos_state = 2;
-		} else if (!ctx->check_eos_state) {
+		} else if (!ctx->check_eos_state && !nb_sys_streams_active) {
 			ctx->check_eos_state = 1;
 		}
 		if ((ctx->check_eos_state==2) || !ctx->root_scene || (ctx->check_eos_state && gf_sc_check_end_of_scene(ctx, 1))) {
+			u32 count;
 			count = gf_filter_get_ipid_count(ctx->filter);
 			if (ctx->root_scene) {
 				gf_filter_pid_set_eos(ctx->vout);
@@ -216,8 +217,6 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (!prop) return GF_NOT_SUPPORTED;
 	codecid = prop->value.uint;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Configuring PID %s\n", gf_stream_type_name(mtype)));
-
 	odm = gf_filter_pid_get_udta(pid);
 	if (odm) {
 		if (mtype==GF_STREAM_SCENE) { }
@@ -275,6 +274,17 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
 			//we are attaching an inline, create the subscene if not done already
 			if (!sns->owner->subscene && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE)) ) {
+				//ignore system PIDs from subservice - this is typically the case when playing a bt/xmt file
+				//created from a container (mp4) and still refering to that container for the media streams
+				if (sns->owner->ignore_sys) {
+					GF_FilterEvent evt;
+					GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+					gf_filter_pid_send_event(pid, &evt);
+					GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+					gf_filter_pid_send_event(pid, &evt);
+					return GF_OK;
+				}
+
 				assert(sns->owner->parentscene);
 				sns->owner->subscene = gf_scene_new(ctx, sns->owner->parentscene);
 				sns->owner->subscene->root_od = sns->owner;
@@ -284,6 +294,8 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 	}
 	assert(scene);
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Configuring PID %s\n", gf_stream_type_name(mtype)));
 
 	was_dyn_scene = scene->is_dynamic_scene;
 

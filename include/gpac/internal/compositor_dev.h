@@ -287,7 +287,8 @@ struct __tag_compositor
 	s32 frame_delay;
 	Bool video_frame_pending;
 	Bool fullscreen_postponed;
-
+	Bool sys_frames_pending;
+	
 	Bool amc, async;
 	u32 asr, ach, alayout, afmt, asize, avol, apan, abuf;
 
@@ -1594,6 +1595,7 @@ GF_Err gf_sc_remove_video_listener(GF_Compositor *compositor, GF_VideoListener *
 
 GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bool force_size);
 
+void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 obj_time);
 
 Bool gf_sc_use_raw_texture(GF_Compositor *compositor);
 void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *display_bit_depth, u32 *audio_bpp, u32 *channels, u32 *sample_rate);
@@ -1639,7 +1641,7 @@ typedef struct
 	u32 nb_odm_users;
 
 	/*clock objects. Kept at service level since ESID namespace is the service one*/
-	GF_List *Clocks;
+	GF_List *clocks;
 
 	Fixed set_speed;
 	Bool connect_ack;
@@ -2171,6 +2173,8 @@ struct _od_manager
 	const char *redirect_url;
 	/*0: not set, 1: set , 2: set and disconnect was called to remove the object*/
 	u32 skip_disconnect_state;
+
+	Bool ignore_sys;
 };
 
 GF_ObjectManager *gf_odm_new();

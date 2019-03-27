@@ -1581,6 +1581,24 @@ from the event list. Return NULL when the event List is empty
 you MUST delete events */
 OCIEvent *gf_oci_codec_get_event(OCICodec *codec);
 
+/*! Dumps an OCI event
+ \param ev OCI event to dump
+ \param trace destination file for dumping
+ \param indent number of spaces to use as base index
+ \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+ */
+GF_Err gf_oci_dump_event(OCIEvent *ev, FILE *trace, u32 indent, Bool XMTDump);
+/*! Dumps an OCI AU
+ \param version version of the OCI stream
+ \param au OCI AU to dump
+ \param au_length size of the OCI AU to dump
+ \param trace destination file for dumping
+ \param indent number of spaces to use as base index
+ \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+ */
+GF_Err gf_oci_dump_au(u8 version, char *au, u32 au_length, FILE *trace, u32 indent, Bool XMTDump);
+
+#endif /*GPAC_MINIMAL_ODF*/
 
 #ifndef GPAC_DISABLE_OD_DUMP
 
@@ -1614,27 +1632,8 @@ GF_Err gf_odf_dump_desc(GF_Descriptor *desc, FILE *trace, u32 indent, Bool XMTDu
  */
 GF_Err gf_odf_dump_com_list(GF_List *commandList, FILE *trace, u32 indent, Bool XMTDump);
 
-/*! Dumps an OCI event
- \param ev OCI event to dump
- \param trace destination file for dumping
- \param indent number of spaces to use as base index
- \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
- */
-GF_Err gf_oci_dump_event(OCIEvent *ev, FILE *trace, u32 indent, Bool XMTDump);
-/*! Dumps an OCI AU
- \param version version of the OCI stream
- \param au OCI AU to dump
- \param au_length size of the OCI AU to dump
- \param trace destination file for dumping
- \param indent number of spaces to use as base index
- \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
- */
-GF_Err gf_oci_dump_au(u8 version, char *au, u32 au_length, FILE *trace, u32 indent, Bool XMTDump);
-
 #endif /*GPAC_DISABLE_OD_DUMP*/
 
-
-#endif /*GPAC_MINIMAL_ODF*/
 
 /*! Gets descriptor tag by name
  \param descName target descriptor name

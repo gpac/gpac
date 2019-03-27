@@ -1127,7 +1127,7 @@ Bool gf_mo_get_loop(GF_MediaObject *mo, Bool in_loop)
 #ifndef GPAC_DISABLE_VRML
 	MediaControlStack *ctrl;
 #endif
-	if (!mo) return in_loop;
+	if (!mo || !mo->odm) return in_loop;
 
 	/*get control*/
 #ifndef GPAC_DISABLE_VRML

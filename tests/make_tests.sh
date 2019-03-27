@@ -525,7 +525,7 @@ echo ""
 
 #reassign our default programs
 MP4BOX="MP4Box -noprog -for-test $base_args"
-GPAC="gpac $base_args -for-test -no-reassign"
+GPAC="gpac $base_args -noprog -for-test -no-reassign"
 MP4CLIENT="MP4Client -noprog -strict-error $base_args"
 MP42TS="MP42TS $base_args"
 DASHCAST="DashCast $base_args"
@@ -576,6 +576,7 @@ test_begin ()
  report="$TEMP_DIR/$TEST_NAME-temp.txt"
  LOGS="$LOGS_DIR/$TEST_NAME-logs.txt-new"
  final_report="$LOGS_DIR/$TEST_NAME-passed.xml"
+ test_ui=0
 
 
  if [ $do_clean != 0 ] ; then

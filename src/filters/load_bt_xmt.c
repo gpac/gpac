@@ -575,11 +575,16 @@ static GF_Err ctxload_process(GF_Filter *filter)
 			}
 
 			if (au_time > stream_time) {
+				Double ts_offset;
 				u32 t = au_time - stream_time;
 				if (!min_next_time_ms || (min_next_time_ms>t))
 					min_next_time_ms = t;
 
 				updates_pending++;
+
+				ts_offset = au->timing;
+				ts_offset /= sc->timeScale;
+				gf_sc_sys_frame_pending(priv->scene->compositor, ts_offset, stream_time);
 				break;
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[CtxLoad] %s applying AU time %d\n", priv->file_name, au_time ));
@@ -643,7 +648,6 @@ static GF_Err ctxload_process(GF_Filter *filter)
 							if (!mux || !mux->file_name) {
 								/*only animation streams are handled*/
 								if (!esd->decoderConfig) {
-									gf_odf_desc_del((GF_Descriptor *) od);
 								} else if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
 									/*set ST to private scene to get sure the stream will be redirected to us*/
 									esd->decoderConfig->streamType = GF_STREAM_PRIVATE_SCENE;
@@ -656,9 +660,8 @@ static GF_Err ctxload_process(GF_Filter *filter)
 									ODS_SetupOD(priv->scene, od);
 								} else if (esd->decoderConfig->streamType==GF_STREAM_OCR) {
 									ODS_SetupOD(priv->scene, od);
-								} else {
-									gf_odf_desc_del((GF_Descriptor *) od);
 								}
+								gf_odf_desc_del((GF_Descriptor *) od);
 								continue;
 							}
 							//solve url before import
@@ -781,42 +784,55 @@ static void ctxload_finalize(GF_Filter *filter)
 	priv->files_to_delete = NULL;
 }
 
+#include <gpac/utf.h>
 static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterProbeScore *score)
 {
-	*score = GF_FPROBE_MAYBE_SUPPORTED;
+	const char *mime_type = NULL;
+	char *dst = NULL;
+	u8 *res;
+
+	res = gf_utf_get_utf8_string_from_bom((char *)probe_data, size, &dst);
+	if (res) probe_data = res;
+
 	if (strstr(probe_data, "<XMT-A") || strstr(probe_data, ":mpeg4:xmta:")) {
-		return "application/x-xmt";
+		mime_type = "application/x-xmt";
 	} else if (strstr(probe_data, "InitialObjectDescriptor")
 		|| (strstr(probe_data, "EXTERNPROTO") && strstr(probe_data, "gpac:"))
 	) {
-		return "application/x-bt";
+		mime_type = "application/x-bt";
 	} else if ( strstr(probe_data, "children") &&
 				(strstr(probe_data, "Group") || strstr(probe_data, "OrderedGroup") || strstr(probe_data, "Layer2D") || strstr(probe_data, "Layer3D"))
 	) {
-		return "application/x-bt";
+		mime_type = "application/x-bt";
 	} else if (strstr(probe_data, "#VRML V2.0 utf8")) {
-		return "model/vrml";
+		mime_type = "model/vrml";
 	} else if ( strstr(probe_data, "#X3D V3.0")) {
-		return "model/x3d+vrml";
+		mime_type = "model/x3d+vrml";
 	} else if (strstr(probe_data, "<X3D") || strstr(probe_data, "/x3d-3.0.dtd")) {
-		return "model/x3d+xml";
+		mime_type = "model/x3d+xml";
 	} else if (strstr(probe_data, "<saf") || strstr(probe_data, "mpeg4:SAF:2005")
 		|| strstr(probe_data, "mpeg4:LASeR:2005")
 	) {
-		return "application/x-LASeR+xml";
+		mime_type = "application/x-LASeR+xml";
 	} else if (strstr(probe_data, "<svg") || strstr(probe_data, "w3.org/2000/svg") ) {
-		return "image/svg+xml";
+		mime_type = "image/svg+xml";
 	} else if (strstr(probe_data, "<widget")  ) {
-		return "application/widget";
+		mime_type = "application/widget";
 	} else if (strstr(probe_data, "<NHNTStream")) {
-		return "application/x-nhml";
+		mime_type = "application/x-nhml";
 	} else if (strstr(probe_data, "DIMSStream") ) {
-		return "application/dims";
+		mime_type = "application/dims";
 	} else if (strstr(probe_data, "TextStream") ) {
-		return "text/ttxt";
+		mime_type = "text/ttxt";
 	} else if (strstr(probe_data, "text3GTrack") ) {
-		return "quicktime/text";
+		mime_type = "quicktime/text";
 	}
+	if (dst) gf_free(dst);
+	if (mime_type) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return mime_type;
+	}
+
 	*score = GF_FPROBE_NOT_SUPPORTED;
 	return NULL;
 }

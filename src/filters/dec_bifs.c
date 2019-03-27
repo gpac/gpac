@@ -135,6 +135,7 @@ GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 }
 
 
+
 GF_Err bifs_dec_process(GF_Filter *filter)
 {
 	GF_Err e;
@@ -184,10 +185,7 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 		//we still process any frame before our clock time even when buffering
 		obj_time = gf_clock_time(odm->ck);
 		if (ts_offset * 1000 > obj_time) {
-			u32 wait_ms = (u32) (ts_offset * 1000 - obj_time);
-			if (!scene->compositor->ms_until_next_frame || ((s32) wait_ms < scene->compositor->ms_until_next_frame))
-				scene->compositor->ms_until_next_frame = (s32) wait_ms;
-
+			gf_sc_sys_frame_pending(scene->compositor, ts_offset, obj_time);
 			continue;
 		}
 

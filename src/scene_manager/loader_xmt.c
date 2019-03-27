@@ -618,6 +618,7 @@ static u32 xmt_get_node_id(GF_XMTParser *parser, char *name)
 	u32 ID = 0;
 	if (sscanf(name, "N%u", &ID) == 1) {
 		u32 k=1;
+		ID++;
 		while (name && name[k]) {
 			if (strchr("0123456789", name[k])==0) {
 				ID = 0;
@@ -626,7 +627,6 @@ static u32 xmt_get_node_id(GF_XMTParser *parser, char *name)
 			k++;
 		}
 		if (ID) {
-			ID ++;
 			n = gf_sg_find_node(parser->load->scene_graph, ID);
 			if (!n) {
 				if (parser->load->ctx && (parser->load->ctx->max_node_id<ID)) parser->load->ctx->max_node_id=ID;
@@ -636,7 +636,7 @@ static u32 xmt_get_node_id(GF_XMTParser *parser, char *name)
 	}
 	ID = xmt_get_next_node_id(parser);
 	if (n) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[XMT Parsing] (line %d) Binary ID %s already assigned to %s - keeping internal ID %d\n", gf_xml_sax_get_line(parser->sax_parser), name, gf_node_get_name(n), ID));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[XMT Parsing] (line %d) Binary ID %s already assigned to %s - keeping internal ID %d\n", gf_xml_sax_get_line(parser->sax_parser), name, gf_node_get_name(n), ID));
 	}
 	return ID;
 }
@@ -1726,7 +1726,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 					return NULL;
 				}
 			}
-			xmt_report(parser, GF_OK, "Warning: %s is not a valid node - skipping", name);
+			xmt_report(parser, GF_NON_COMPLIANT_BITSTREAM, "Warning: %s is not a valid node - skipping", name);
 			return NULL;
 		}
 		node = gf_node_new(parser->load->scene_graph, tag);
@@ -1822,7 +1822,10 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 
 	if (!parser->parsing_proto) xmt_update_timenode(parser, node);
 
-	if (register_def) gf_list_add(parser->def_nodes, node);
+	if (register_def) {
+		gf_node_register(node, NULL);
+		gf_list_add(parser->def_nodes, node);
+	}
 	if (ID) gf_node_set_id(node, ID, def_name);
 
 	if (is_script) {
@@ -2229,7 +2232,10 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 		else if (!strcmp(name, "Replace")) {
 			tag = GF_SG_SCENE_REPLACE;
 			au_is_rap = 1;
-			gf_list_reset(parser->def_nodes);
+			while (gf_list_count(parser->def_nodes)) {
+				GF_Node *anode = gf_list_pop_back(parser->def_nodes);
+				gf_node_unregister(anode, NULL);
+			}
 		}
 		else if (!strcmp(name, "Insert"))
 			tag = GF_SG_ROUTE_INSERT;
@@ -2690,6 +2696,9 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 				parser->command = NULL;
 				parser->state = XMT_STATE_COMMANDS;
 			}
+			else if (!strcmp(name, "repField")) {
+				parser->state = XMT_STATE_COMMANDS;
+			}
 			/*end proto*/
 			else if (!strcmp(name, "ProtoDeclare") || !strcmp(name, "ExternProtoDeclare"))  {
 				GF_Proto *cur = parser->parsing_proto;
@@ -2950,7 +2959,7 @@ attach_node:
 		gf_list_rem_last(parser->nodes);
 		gf_free(top);
 	} else {
-		xmt_report(parser, GF_OK, "Warning: closing element %s doesn't match created node %s", name, gf_node_get_class_name(top->node) );
+		xmt_report(parser, GF_NON_COMPLIANT_BITSTREAM, "Warning: closing element %s doesn't match created node %s", name, gf_node_get_class_name(top->node) );
 	}
 }
 

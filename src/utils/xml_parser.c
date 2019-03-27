@@ -856,7 +856,10 @@ restart:
 			else if (!strcmp(elt, "!ATTLIST") || !strcmp(elt, "!ELEMENT")) parser->sax_state = SAX_STATE_SKIP_DOCTYPE;
 			else if (!strcmp(elt, "![CDATA["))
 				parser->sax_state = SAX_STATE_CDATA;
-			else if (elt[0]=='?') parser->sax_state = SAX_STATE_XML_PROC;
+			else if (elt[0]=='?') {
+				i--;
+				parser->sax_state = SAX_STATE_XML_PROC;
+			}
 			/*node found*/
 			else {
 				xml_sax_flush_text(parser);
@@ -961,6 +964,9 @@ static XML_Entity *gf_xml_locate_entity(GF_SAXParser *parser, char *ent_start, B
 	for (i=0; i<count; i++) {
 		XML_Entity *ent = (XML_Entity *)gf_list_get(parser->entities, i);
 		if (len < ent->namelen + 1) {
+			if (strncmp(ent->name, ent_start, len))
+			 	return NULL;
+
 			*needs_text = GF_TRUE;
 			return NULL;
 		}

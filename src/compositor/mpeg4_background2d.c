@@ -445,7 +445,7 @@ static void UpdateBackgroundTexture(GF_TextureHandler *txh)
 {
 	gf_sc_texture_update_frame(txh, 0);
 
-	if (!txh->compositor->player && !txh->compositor->passthrough_txh && txh->stream && (txh->stream->odm->flags & GF_ODM_PASSTHROUGH)) {
+	if (!txh->compositor->player && !txh->compositor->passthrough_txh && txh->stream && txh->stream->odm && (txh->stream->odm->flags & GF_ODM_PASSTHROUGH)) {
 		if (!txh->width || ((txh->width==txh->compositor->display_width) && (txh->height==txh->compositor->display_height)))
 			txh->compositor->passthrough_txh = txh;
 		else

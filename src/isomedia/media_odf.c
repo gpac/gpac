@@ -339,6 +339,11 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 				j=0;
 				while ((esd = (GF_ESD*)gf_list_enum(od->ESDescriptors, &j))) {
 					ref = (GF_ES_ID_Ref *) gf_odf_desc_new(GF_ODF_ESD_REF_TAG);
+					if (!esd->ESID) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOM] Missing ESID on ESD, cannot add track reference in OD frame"));
+						e = GF_BAD_PARAM;
+						goto err_exit;
+					}
 					//1 to 1 mapping trackID and ESID. Add this track to MPOD
 					//if track does not exist, this will be remove while reading the OD stream
 					e = reftype_AddRefTrack(mpod, esd->ESID, &ref->trackRef);

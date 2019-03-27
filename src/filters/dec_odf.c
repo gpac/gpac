@@ -93,6 +93,7 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		odm = gf_odm_new();
 		odm->ID = od->objectDescriptorID;
 		odm->parentscene = scene;
+		odm->ignore_sys = GF_TRUE;
 		gf_list_add(scene->resources, odm);
 		gf_odm_setup_remote_object(odm, scene->root_od->scene_ns, od->URLString);
 		return;
@@ -116,8 +117,12 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 			u32 k=0;
 			GF_ODMExtraPid *xpid;
 			odm = gf_list_get(scene->resources, i);
-			assert(odm->pid);
-
+			//can happen with interaction streams
+			if (!odm->pid) {
+				odm = NULL;
+				continue;
+			}
+			
 			if (odm->pid_id == esd->ESID) {
 				pid = odm->pid;
 				break;
@@ -147,9 +152,8 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 				gf_list_add(scene->resources, odm);
 			}
 			gf_input_sensor_setup_object(odm, esd);
-#else
-			return;
 #endif
+			return;
 		}
 		else if (!odm || !pid ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Cannot match OD ID %d to any PID in the service, ignoring OD\n", od->objectDescriptorID));
@@ -301,8 +305,10 @@ GF_Err odf_dec_process(GF_Filter *filter)
 
 		//we still process any frame before our clock time even when buffering
 		obj_time = gf_clock_time(odm->ck);
-		if (ts_offset * 1000 > obj_time)
+		if (ts_offset * 1000 > obj_time) {
+			gf_sc_sys_frame_pending(scene->compositor, ts_offset, obj_time);
 			continue;
+		}
 
 		now = gf_sys_clock_high_res();
 		oddec = gf_odf_codec_new();

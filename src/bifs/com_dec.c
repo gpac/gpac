@@ -1023,10 +1023,14 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 		if (codec->UseName) {
 			gf_bifs_dec_name(bs, name);
 		} else {
-			sprintf(name, "Proto%d", numProtos);
+			sprintf(name, "Proto%d", gf_list_count(codec->current_graph->protos) );
 		}
 		/*create a proto in the current graph*/
 		proto = gf_sg_proto_new(codec->current_graph, ID, name, proto_list ? GF_TRUE : GF_FALSE);
+		if (!proto) {
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			goto exit;
+		}
 		if (proto_list) gf_list_add(proto_list, proto);
 
 		/*during parsing, this proto is the current active one - all nodes/proto defined/declared

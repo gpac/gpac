@@ -243,6 +243,7 @@ static GF_Err BM_XReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_
 
 	com = gf_sg_command_new(codec->current_graph, GF_SG_XREPLACE);
 	BM_SetCommandNode(com, target);
+	gf_list_add(com_list, com);
 
 	nbBits = gf_get_bit_size(gf_node_get_num_fields_in_mode(target, GF_SG_FIELD_CODING_IN)-1);
 	ind = gf_bs_read_int(bs, nbBits);
@@ -344,11 +345,7 @@ static GF_Err BM_XReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_
 		decfield.far_ptr = inf->field_ptr = gf_sg_vrml_field_pointer_new(inf->fieldType);
 	}
 	e = gf_bifs_dec_sf_field(codec, bs, target, &decfield, GF_TRUE);
-	if (e) return e;
-
-	gf_list_add(com_list, com);
-
-	return GF_OK;
+	return e;
 }
 
 static GF_Err BM_ParseExtendedUpdates(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_list)
@@ -890,14 +887,11 @@ GF_Err BM_SceneReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 GF_Err BM_ParseCommand(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_list)
 {
 	u8 go, type;
-	u32 count;
 	GF_Err e;
 	go = 1;
 	e = GF_OK;
 
 	codec->LastError = GF_OK;
-	count = 0;
-
 	while (go) {
 		type = gf_bs_read_int(bs, 2);
 		switch (type) {
@@ -915,10 +909,7 @@ GF_Err BM_ParseCommand(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 			break;
 		}
 		if (e) return e;
-
 		go = gf_bs_read_int(bs, 1);
-		count++;
-
 	}
 	while (gf_list_count(codec->QPs)) {
 		gf_bifs_dec_qp_remove(codec, GF_TRUE);
