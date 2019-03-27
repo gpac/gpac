@@ -250,7 +250,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			}
 			else if (!stricmp(att->name, "blockAlign")) {
 				if (!strcmp(att->value, "disable")) tkc->block_align = 1;
-				if (!strcmp(att->value, "always")) tkc->block_align = 2;
+				else if (!strcmp(att->value, "always")) tkc->block_align = 2;
 				else tkc->block_align = 0;
 			}
 		}

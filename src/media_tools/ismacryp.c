@@ -268,7 +268,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 			}
 			else if (!stricmp(att->name, "blockAlign")) {
 				if (!strcmp(att->value, "disable")) tkc->block_align = 1;
-				if (!strcmp(att->value, "always")) tkc->block_align = 2;
+				else if (!strcmp(att->value, "always")) tkc->block_align = 2;
 				else tkc->block_align = 0;
 			}
 		}
@@ -1715,6 +1715,9 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) {
 			GF_AVCConfig *avccfg = gf_isom_avc_config_get(mp4, track, 1);
 			GF_AVCConfig *svccfg = gf_isom_svc_config_get(mp4, track, 1);
+
+			bytes_in_nalhr = 1;
+
 			if (avccfg)
 				nalu_size_length = avccfg->nal_unit_size;
 			else if (svccfg)
@@ -1733,6 +1736,8 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				break;
 			}
 			tci->is_avc = GF_TRUE;
+			if (!tci->slice_header_clear && tci->clear_bytes)
+				bytes_in_nalhr = tci->clear_bytes;
 
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 			for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
@@ -1747,7 +1752,6 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			if (avccfg) gf_odf_avc_cfg_del(avccfg);
 			if (svccfg) gf_odf_avc_cfg_del(svccfg);
 			bs_type = ENC_NALU;
-			bytes_in_nalhr = 1;
 		} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) {
 			GF_HEVCConfig *hevccfg = gf_isom_hevc_config_get(mp4, track, 1);
 			if (hevccfg)
