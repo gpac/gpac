@@ -630,6 +630,55 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 
 		}
 		return GF_OK;
+	case GF_ODF_ESD_REMOVE_TAG:
+		for (i=0; i<count; i++) {
+			com = (GF_ODCom *)gf_list_get(codec->CommandList, i);
+			/*process OD updates*/
+			if (com->tag==GF_ODF_OD_UPDATE_TAG) {
+				u32 count, j, k, l;
+				GF_ESDRemove *esdR = (GF_ESDRemove *) command;
+				odU = (GF_ODUpdate *)com;
+				count = gf_list_count(odU->objectDescriptors);
+				/*remove all descs*/
+				for (k=0; k<count; k++) {
+					GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, k);
+					for (j=0; j<gf_list_count(od->ESDescriptors); j++) {
+						GF_ESD *esd = gf_list_get(od->ESDescriptors, j);
+						for (l=0; l<esdR->NbESDs; l++) {
+							if (esdR->ES_ID[l] == esd->ESID) {
+								gf_list_rem(od->ESDescriptors, j);
+								j--;
+								gf_odf_desc_del((GF_Descriptor *)esd);
+								break;
+							}
+						}
+					}
+				}
+			}
+			/*process ESD updates*/
+			else if (com->tag==GF_ODF_ESD_UPDATE_TAG) {
+				u32 j, k;
+				GF_ESDRemove *esdR = (GF_ESDRemove *) command;
+				GF_ESDUpdate *esdU = (GF_ESDUpdate*)com;
+				for (j=0; j<gf_list_count(esdU->ESDescriptors); j++) {
+					GF_ESD *esd = gf_list_get(esdU->ESDescriptors, j);
+					for (k=0; k<esdR->NbESDs; k++) {
+						if (esd->ESID == esdR->ES_ID[k]) {
+							gf_list_rem(codec->CommandList, j);
+							j--;
+							gf_odf_desc_del((GF_Descriptor *)esd);
+						}
+					}
+				}
+				if (!gf_list_count(esdU->ESDescriptors)) {
+					gf_list_rem(codec->CommandList, i);
+					i--;
+					count--;
+					gf_odf_com_del((GF_ODCom**)&esdU);
+				}
+			}
+		}
+		return GF_OK;
 	}
 	return GF_NOT_SUPPORTED;
 }

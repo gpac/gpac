@@ -584,7 +584,7 @@ check_default:
 				asp->fill_color &= 0x00FFFFFF;
 				break;
 			case TAG_MPEG4_PointSet2D:
-				asp->fill_color |= FIX2INT(255 * (m ? (FIX_ONE - m->transparency) : FIX_ONE)) << 24;
+				asp->fill_color |= ((u32 )(FIX2INT(255 * (m ? (FIX_ONE - m->transparency) : FIX_ONE))) ) << 24;
 				asp->pen_props.width = 0;
 				break;
 			default:

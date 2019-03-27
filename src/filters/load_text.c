@@ -2805,75 +2805,49 @@ void txtin_finalize(GF_Filter *filter)
 
 static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProbeScore *score)
 {
-	const char *utf8;
-	u8 *utf8_temp = NULL;
-	s32 uni_type;
+	char *dst = NULL;
+	u8 *res;
 
-	if (data_size<5) return NULL;
-	uni_type = gf_text_get_utf_type_data(data);
-
-	utf8 = data;
-	if (uni_type>1) {
-		u32 read;
-		u8 *sdata = (u8 *) data;
-		u8 l1, l2;
-		const u16 *sptr = (u16 *)data;
-
-		if (data_size%1) data_size--;
-		utf8_temp = gf_malloc(sizeof(char)*(data_size) );
-
-		l1 = sdata[data_size-1];
-		l2 = sdata[data_size-2];
-		sdata[data_size-1]=0;
-		sdata[data_size-2]=0;
-		read = (u32) gf_utf8_wcstombs(utf8_temp, data_size, &sptr);
-		sdata[data_size-1]=l1;
-		sdata[data_size-2]=l2;
-		if (read==(u32) -1) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTInProbe] corrupted UTF data during probe\n"));
-			return NULL;
-		}
-		utf8_temp[read] = 0;
-		utf8 = utf8_temp;
-	}
+	res = gf_utf_get_utf8_string_from_bom((char *)data, data_size, &dst);
+	if (res) data = res;
 
 #define PROBE_OK(_score, _mime) \
 		*score = _score;\
-		if (utf8_temp) gf_free(utf8_temp);\
+		if (dst) gf_free(dst);\
 		return _mime; \
 
 
-	if (!strncmp(utf8, "WEBVTT", 6)) {
+	if (!strncmp(data, "WEBVTT", 6)) {
 		PROBE_OK(GF_FPROBE_SUPPORTED, "subtitle/vtt")
 	}
-	if (strstr(utf8, " --> ")) {
+	if (strstr(data, " --> ")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/srt")
 	}
-	if (!strncmp(utf8, "FWS", 3) || !strncmp(utf8, "CWS", 3)) {
+	if (!strncmp(data, "FWS", 3) || !strncmp(data, "CWS", 3)) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "application/x-shockwave-flash")
 	}
 
-	if ((utf8[0]=='{') && strstr(utf8, "}{")) {
+	if ((data[0]=='{') && strstr(data, "}{")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/sub")
 
 	}
 	/*XML formats*/
-	if (!strstr(utf8, "?>") ) {
-		if (utf8_temp) gf_free(utf8_temp);
+	if (!strstr(data, "?>") ) {
+		if (dst) gf_free(dst);
 		return NULL;
 	}
 
-	if (strstr(utf8, "<x-quicktime-tx3g") || strstr(utf8, "<text3GTrack")) {
+	if (strstr(data, "<x-quicktime-tx3g") || strstr(data, "<text3GTrack")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "quicktime/text")
 	}
-	if (strstr(utf8, "TextStream")) {
+	if (strstr(data, "TextStream")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttxt")
 	}
-	if (strstr(utf8, "<tt ") || strstr(utf8, ":tt ")) {
+	if (strstr(data, "<tt ") || strstr(data, ":tt ")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttml")
 	}
 
-	if (utf8_temp) gf_free(utf8_temp);
+	if (dst) gf_free(dst);
 	return NULL;
 }
 

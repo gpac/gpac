@@ -618,9 +618,14 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 			if (obj->odm) obj->odm->mo = NULL;
 			odm->mo = NULL;
 			obj->odm = NULL;
+			if (obj->pck) {
+				gf_filter_pck_unref(obj->pck);
+				obj->pck = NULL;
+			}
 
 			obj->frame = NULL;
 			obj->framesize = obj->timestamp = 0;
+			obj->config_changed = GF_TRUE;
 
 
 			/*if graph not attached we can remove the link (this is likely scene shutdown for some error)*/
@@ -827,8 +832,9 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 {
 	char *url;
 	if (!scene->root_od) return;
+	if (scene->graph_attached==1) return;
 
-	if ((scene->graph_attached==1) || (gf_sg_get_root_node(scene->graph)==NULL) ) {
+	if (gf_sg_get_root_node(scene->graph)==NULL) {
 		gf_sc_invalidate(scene->compositor, NULL);
 		return;
 	}
@@ -1064,8 +1070,17 @@ void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm)
 			}
 		}
 		else if (obj->OD_ID == odm->ID) {
-			assert(obj->odm==NULL);
+			GF_ObjectManager *old_odm = NULL;
+			//OD update may trigger reassignment of ODM
+			if (obj->odm && (obj->odm != odm)) {
+				old_odm = obj->odm;
+			}
 			obj->odm = odm;
+			if (old_odm) {
+				if (old_odm->mo) old_odm->mo->odm = NULL;
+				old_odm->mo = NULL;
+				gf_odm_disconnect(old_odm, GF_TRUE);
+			}
 			odm->mo = obj;
 			goto existing;
 		}
@@ -2549,7 +2564,7 @@ Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_bu
 	}
 
 	i=0;
-	while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &i) ) ) {
+	while (ns->clocks && (ck = (GF_Clock *)gf_list_enum(ns->clocks, &i) ) ) {
 		initialized = GF_TRUE;
 		if (!check_buffering) {
 			if (!ck->has_seen_eos) return 0;

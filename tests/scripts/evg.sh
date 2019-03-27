@@ -32,7 +32,7 @@ do_hash_test "$dst_file2" "$1_rgb"
 do_test "$GPAC -font-dirs=$EXTERNAL_MEDIA_DIR/fonts/ -rescan-fonts -i $dst_file:size=128x128 -i $bt_file compositor:!softblt:drv=no @ -o $dst_file3  -graph -stats"  "compose_$1"
 do_hash_test "$dst_file3" "compose_$1"
 
-#gpac -i $dst_file3:size=128x128 vout
+#gpac -i $dst_file3:size=128x128 vout:wsize=512x512
 
 test_end
 

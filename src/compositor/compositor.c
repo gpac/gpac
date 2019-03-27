@@ -49,7 +49,7 @@ Bool gf_sc_send_event(GF_Compositor *compositor, GF_Event *evt)
 
 void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
 {
-//	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Forcing frame redraw state: %d\n", state));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Forcing frame redraw state: %d\n", state));
 	if (state==GF_SC_DRAW_FLUSH) {
 		if (!compositor->skip_flush)
 			compositor->skip_flush = 2;
@@ -2602,6 +2602,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		if (compositor->passthrough_txh && compositor->passthrough_txh->frame_ifce && !compositor->passthrough_txh->frame_ifce->get_plane) {
 			compositor->passthrough_txh = NULL;
 		}
+		if (!compositor->passthrough_txh && frame_draw_type_bck)
+			compositor->frame_draw_type = frame_draw_type_bck;
 
 		if (compositor->passthrough_txh && compositor->passthrough_txh->width && compositor->passthrough_txh->needs_refresh) {
 			compositor->scene_sampled_clock = compositor->passthrough_txh->last_frame_time/* + dur*/;
@@ -2726,8 +2728,12 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		if (compositor->check_eos_state<=1) {
 			compositor->check_eos_state = 0;
 			/*force a frame dispatch */
-			if (!compositor->vfr && !compositor->passthrough_txh && (!has_tx_streams || !all_tx_done) )
-				compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+			if (!compositor->vfr && !compositor->passthrough_txh) {
+				if (has_tx_streams && !all_tx_done)
+					compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+				if (gf_list_count(compositor->systems_pids))
+					compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+			}
 
 			if (compositor->passthrough_txh) {
 				//still waiting for initialization either from the passthrough stream or a texture used in the scene
@@ -2881,7 +2887,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 					assert(res>=compositor->scene_sampled_clock);
 					compositor->scene_sampled_clock = (u32) res;
 				}
-				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Send video frame TS %u - next frame scene clock %d ms - passthrough %p\n", frame_ts, compositor->scene_sampled_clock, compositor->passthrough_txh));
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Send video frame TS %u (%u ms) - next frame scene clock %d ms - passthrough %p\n", frame_ts, (frame_ts*1000)/compositor->fps.num, compositor->scene_sampled_clock, compositor->passthrough_txh));
 			} else {
 				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Send video frame TS %u - AR clock %d\n", frame_ts, compositor->audio_renderer->current_time));
 			 	if (compositor->bench_mode) {
@@ -2944,10 +2950,13 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		compositor->indirect_draw_time = 0;
 #endif
 
-		if (!compositor->player && compositor->vfr) {
-			compositor->frame_number++;
-			compositor->scene_sampled_clock = compositor->frame_number * compositor->fps.den * 1000;
-			compositor->scene_sampled_clock /= compositor->fps.num;
+		if (!compositor->player) {
+			if (compositor->sys_frames_pending && (compositor->ms_until_next_frame>=0) ) {
+				compositor->sys_frames_pending = GF_FALSE;
+				compositor->frame_number++;
+				compositor->scene_sampled_clock = compositor->frame_number * compositor->fps.den * 1000;
+				compositor->scene_sampled_clock /= compositor->fps.num;
+			}
 		}
 	}
 	compositor->reset_graphics = 0;
@@ -3980,3 +3989,14 @@ GF_DownloadManager *gf_sc_get_downloader(GF_Compositor *compositor)
 	return gf_filter_get_download_manager(compositor->filter);
 }
 
+void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 obj_time)
+{
+	if (!compositor->player) {
+		compositor->sys_frames_pending = GF_TRUE;
+	} else {
+		u32 wait_ms = (u32) (ts_offset * 1000 - obj_time);
+
+		if (!compositor->ms_until_next_frame || ((s32) wait_ms < compositor->ms_until_next_frame))
+			compositor->ms_until_next_frame = (s32) wait_ms;
+	}
+}

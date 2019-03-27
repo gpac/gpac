@@ -102,7 +102,7 @@ static GF_Err gf_sc_step_clocks_intern(GF_Compositor *compositor, u32 ms_diff, B
 		i = 0;
 		while ((ns = (GF_SceneNamespace*)gf_list_enum(compositor->root_scene->namespaces, &i))) {
 			j = 0;
-			while ((ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j))) {
+			while (ns->clocks && (ck = (GF_Clock *)gf_list_enum(ns->clocks, &j))) {
 				ck->init_timestamp += ms_diff;
 				ck->media_time_at_init += ms_diff;
 				//make sure we don't touch clock while doing resume/pause below
@@ -123,7 +123,7 @@ static GF_Err gf_sc_step_clocks_intern(GF_Compositor *compositor, u32 ms_diff, B
 			i = 0;
 			while ((ns = (GF_SceneNamespace*)gf_list_enum(compositor->root_scene->namespaces, &i))) {
 				j = 0;
-				while ((ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j))) {
+				while (ns->clocks && (ck = (GF_Clock *)gf_list_enum(ns->clocks, &j))) {
 					ck->nb_paused--;
 				}
 			}
@@ -1089,7 +1089,7 @@ GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)
 		GF_Clock *ck;
 		ns->set_speed = speed;
 		j=0;
-		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
+		while (ns->clocks && (ck = (GF_Clock *)gf_list_enum(ns->clocks, &j)) ) {
 			//we will have to reissue a PLAY command since playback direction changed
 			if ( gf_mulfix(ck->speed,speed) < 0)
 				restart = 1;

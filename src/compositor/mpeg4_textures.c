@@ -235,7 +235,7 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 		if (gf_node_get_tag(node)==TAG_MPEG4_CacheTexture) {
 			char section[64];
 			const char *opt, *file;
-			Bool delete_file = 1;
+			Bool delete_file = GF_TRUE;
 			M_CacheTexture *ct = (M_CacheTexture*)node;
 
 			sprintf(section, "@cache=%p", ct);
@@ -246,10 +246,10 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 				u32 sec, frac, exp;
 				sscanf(opt, "%u", &exp);
 				gf_net_get_ntp(&sec, &frac);
-				if (!exp || (exp>sec)) delete_file=0;
+				if (!exp || (exp>sec)) delete_file=GF_FALSE;
 			}
 			if (delete_file) {
-				gf_delete_file((char*)file);
+				if (file) gf_delete_file((char*)file);
 				gf_opts_del_section(section);
 			}
 

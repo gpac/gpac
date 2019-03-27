@@ -116,7 +116,7 @@ GF_Clock *gf_clock_attach(GF_List *clocks, GF_Scene *scene, u16 clock_id, u16 ES
 	Bool check_dep;
 	GF_Clock *tmp = gf_clock_find(clocks, clock_id, ES_ID);
 	/*ck dep can only be solved if in the main service*/
-	check_dep = (scene->root_od->scene_ns && scene->root_od->scene_ns->Clocks==clocks) ? GF_TRUE : GF_FALSE;
+	check_dep = (scene->root_od->scene_ns && scene->root_od->scene_ns->clocks==clocks) ? GF_TRUE : GF_FALSE;
 
 	/*this partly solves a->b->c*/
 	if (!tmp && check_dep) tmp = gf_ck_look_for_clock_dep(scene, clock_id);

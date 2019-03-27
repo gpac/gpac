@@ -336,8 +336,22 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	for (i=0; i<gf_list_count(scene->resources); i++) {
 		GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
 
-		if ((an_odm->ID != GF_MEDIA_EXTERNAL_ID) && (min_od_id < an_odm->ID))
+		if (an_odm->ID == GF_MEDIA_EXTERNAL_ID) continue;
+
+		if (min_od_id < an_odm->ID)
 			min_od_id = an_odm->ID;
+
+		if (odm) continue;
+		//check for OD replacement, look for ODMs with no PID assigned and a source filter origin for this pid
+		if (an_odm->pid) continue;
+
+		if (!an_odm->scene_ns->source_filter) continue;
+		if (! gf_filter_pid_is_filter_in_parents(pid, an_odm->scene_ns->source_filter))
+			continue;
+
+		odm = an_odm;
+		pid_odid = an_odm->ID;
+		break;
 	}
 
 	if (is_in_iod) {
@@ -407,7 +421,7 @@ GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, con
 	}
 	sns->owner = owner;
 	sns->url = gf_url_concatenate(parent_url, url);
-	sns->Clocks = gf_list_new();
+	sns->clocks = gf_list_new();
 	frag = strchr(sns->url, '#');
 	if (frag) {
 		sns->url_frag = gf_strdup(frag+1);
@@ -430,12 +444,13 @@ void gf_scene_ns_del(GF_SceneNamespace *sns, GF_Scene *root_scene)
 	if (sns->source_filter) {
 		gf_filter_remove_src(root_scene->compositor->filter, sns->source_filter);
 	}
-
-	while (gf_list_count(sns->Clocks)) {
-		GF_Clock *ck = gf_list_pop_back(sns->Clocks);
-		gf_clock_del(ck);
+	if (sns->clocks) {
+		while (gf_list_count(sns->clocks)) {
+			GF_Clock *ck = gf_list_pop_back(sns->clocks);
+			gf_clock_del(ck);
+		}
+		gf_list_del(sns->clocks);
 	}
-	gf_list_del(sns->Clocks);
 	if (sns->url) gf_free(sns->url);
 	if (sns->url_frag) gf_free(sns->url_frag);
 	gf_free(sns);
@@ -489,11 +504,27 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 		}
 	}
 
+	frag = strchr(serviceURL, '#');
+	if (frag) {
+		frag[0] = 0;
+		u32 i, count = gf_list_count(scene->compositor->root_scene->namespaces);
+		for (i=0; i<count; i++) {
+			GF_SceneNamespace *sns = gf_list_get(scene->compositor->root_scene->namespaces, i);
+			if (sns->url && !strcmp(sns->url, serviceURL)) {
+				frag[0] = '#';
+				odm->scene_ns = sns;
+				sns->nb_odm_users++;
+				return;
+			}
+		}
+	}
+
 	odm->scene_ns = gf_scene_ns_new(scene->compositor->root_scene, odm, serviceURL, (odm->addon || reloc_result) ? NULL : parent_url);
 
 	if (!odm->scene_ns) {
 		gf_scene_message(scene, serviceURL, "Cannot create scene service", GF_OUT_OF_MEM);
 		gf_odm_disconnect(odm, 1);
+		if (frag) frag[0] = '#';
 		return;
 	}
 	odm->scene_ns->nb_odm_users++;
@@ -504,11 +535,11 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 		gf_odm_service_media_event(odm, GF_EVENT_MEDIA_SETUP_DONE);
 		odm->scene_ns->connect_ack = GF_TRUE;
 		odm->flags |= GF_ODM_NOT_IN_OD_STREAM | GF_ODM_PASSTHROUGH;
+		if (frag) frag[0] = '#';
 		return;
 	}
-
-	frag = strchr(serviceURL, '#');
-	if (frag) frag[0] = 0;
+	if (!parent_url && odm->parentscene)
+		parent_url = odm->parentscene->root_od->scene_ns->url;
 
 	odm->scene_ns->source_filter = gf_filter_connect_source(scene->compositor->filter, serviceURL, parent_url, &e);
 

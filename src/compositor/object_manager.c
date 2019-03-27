@@ -293,12 +293,14 @@ void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->ID));
 			return;
 		}
-		odm->scene_ns = parent_ns;
+
+		odm->scene_ns = parent_ns ? parent_ns : odm->parentscene->root_od->scene_ns;
 		odm->scene_ns->nb_odm_users++;
 	}
 
 	/*store original OD ID */
-	if (!odm->media_current_time) odm->media_current_time = odm->ID;
+	if (!odm->media_current_time)
+		odm->media_current_time = odm->ID;
 
 	//detach it
 	odm->scene_ns = NULL;
@@ -583,7 +585,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CLOCK_ID);
 	if (prop) OD_OCR_ID = prop->value.uint;
 
-	ck_namespace = odm->scene_ns->Clocks;
+	ck_namespace = odm->scene_ns->clocks;
 	odm->set_speed = odm->scene_ns->set_speed;
 
 	/*little trick for non-OD addressing: if object is a remote one, and service owner already has clocks,
@@ -595,8 +597,8 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	/*for dynamic scene, force all streams to be sync on main OD stream (one timeline, no need to reload ressources)*/
 	else if (odm->parentscene && odm->parentscene->is_dynamic_scene && !odm->subscene) {
 		GF_ObjectManager *parent_od = odm->parentscene->root_od;
-		if (parent_od->scene_ns && (gf_list_count(parent_od->scene_ns->Clocks)==1)) {
-			ck = (GF_Clock*)gf_list_get(parent_od->scene_ns->Clocks, 0);
+		if (parent_od->scene_ns && parent_od->scene_ns->clocks && (gf_list_count(parent_od->scene_ns->clocks)==1)) {
+			ck = (GF_Clock*)gf_list_get(parent_od->scene_ns->clocks, 0);
 			if (!odm->ServiceID || (odm->ServiceID==ck->service_id)) {
 				goto clock_setup;
 			}
@@ -619,7 +621,8 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (scene->compositor->sclock) {
 		GF_Scene *parent = gf_scene_get_root_scene(scene);
 		clockID = scene->root_od->ck->clock_id;
-		ck_namespace = parent->root_od->scene_ns->Clocks;
+		ck_namespace = parent->root_od->scene_ns->clocks;
+		assert(ck_namespace);
 	}
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);

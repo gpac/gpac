@@ -441,7 +441,8 @@ static void InputSensorRegister(GF_Node *n)
 	u32 i;
 	ISStack *st = (ISStack *)gf_node_get_private(n);
 	odm = st->mo->odm;
-	if (!odm) return;
+	if (!odm || (odm->type != GF_STREAM_INTERACT)) return;
+
 	assert(odm->type == GF_STREAM_INTERACT);
 
 	/*get IS dec*/

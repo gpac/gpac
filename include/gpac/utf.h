@@ -80,6 +80,17 @@ size_t gf_utf8_mbstowcs(unsigned short* dst, size_t dst_len, const char** srcp);
 size_t gf_utf8_wcslen(const unsigned short *s);
 
 /*!
+ *\brief returns a UTF8 string from a string started with BOM
+ *
+ *Returns the length in character of a wide-char string
+ *\param data the string or wide-char string
+ *\param size of the data buffer
+  size of the data buffer
+ *\return the UTF8 string corrsponding
+ */
+char *gf_utf_get_utf8_string_from_bom(u8 *data, u32 size, char **out_ptr);
+
+/*!
  *\brief string bidi reordering
  *
  *Performs a simple reordering of words in the string based on each word direction, so that glyphs are sorted in display order.
