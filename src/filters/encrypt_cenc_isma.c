@@ -583,6 +583,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	#endif
 			if (avccfg) gf_odf_avc_cfg_del(avccfg);
 			cstr->bytes_in_nal_hdr = 1;
+			if (!cstr->slice_header_clear && cstr->tci->clear_bytes)
+				cstr->bytes_in_nal_hdr = cstr->tci->clear_bytes;
 
 			if (!cstr->nalu_size_length) {
 				cstr->nalu_size_length = 4;
