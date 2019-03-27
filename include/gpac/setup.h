@@ -574,6 +574,11 @@ char* gf_strdup(const char *str);
 # endif
 #endif
 
+//we currently disable all extra IPMP/IPMPX/OCI/extra MPEG-4 descriptors parsing
+#ifndef GPAC_MINIMAL_ODF
+#define GPAC_MINIMAL_ODF
+#endif
+
 //define this to remove most of built-in doc of libgpac - for now filter description and help is removed, but argument help is not
 //#define GPAC_DISABLE_DOC
 

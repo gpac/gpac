@@ -206,7 +206,8 @@
 /*disables X3D scene graphs*/
 //#define GPAC_DISABLE_X3D
 
-/*disables MPEG-4 OD Framework - this only minimalize the set of OD features used, however all cannot be removed*/
+/*disables MPEG-4 OD Framework - this only minimalize the set of OD features used, however all cannot be removed
+this macro is currently defined in setup.h */
 //#define GPAC_MINIMAL_ODF
 
 /*disables BIFS coding*/
