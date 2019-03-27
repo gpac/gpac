@@ -2301,9 +2301,9 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		if (sess->in_time) {
 			sess->active_time += gf_sys_clock_high_res() - sess->in_time;
 			if (run_time > sess->active_time) {
+				sess->total_time_since_req -= (u32) (run_time - sess->active_time);
 				run_time = sess->active_time; // + (run_time - sess->active_time)/3;
 				sess->bytes_per_sec = (u32) ((1000000 * (u64) sess->bytes_done) / run_time);
-				sess->total_time_since_req -= run_time;
 			}
 		}
 
