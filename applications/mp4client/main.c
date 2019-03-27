@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2018
+ *			Copyright (c) Telecom ParisTech 2005-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / command-line client
@@ -197,6 +197,7 @@ void PrintUsage()
 	        "\t-p profile:    user-defined profile, either a name or path to an existing GPAC config file.\n"
 	        "\t-stats:        dumps filter session stats after playback.\n"
 	        "\t-graph:        dumps filter session graph after playback.\n"
+	        "\t-nk:           disables keyboard interaction.\n"
 	        "\t-h or -help:   shows this screen\n"
 	        "\t-hc:           shows libgpac core options\n"
 	        "\n"
@@ -1023,7 +1024,7 @@ int mp4client_main(int argc, char **argv)
 	Bool no_cfg_save = GF_FALSE;
 	Bool print_stats = GF_FALSE;
 	Bool print_graph = GF_FALSE;
-
+	Bool no_keyboard = GF_FALSE;
 	Double play_from = 0;
 #ifdef GPAC_MEMORY_TRACKING
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
@@ -1148,6 +1149,10 @@ int mp4client_main(int argc, char **argv)
 		} else if (!stricmp(arg, "-scale")) {
 			sscanf(argv[i+1], "%f", &scale);
 			i++;
+		}
+		/* already parsed */
+		else if (!strcmp(arg, "-nk")) {
+			no_keyboard = GF_TRUE;
 		}
 		/* already parsed */
 		else if (!strcmp(arg, "-p")) {
@@ -1426,7 +1431,7 @@ int mp4client_main(int argc, char **argv)
 	while (Run) {
 
 		/*we don't want getchar to block*/
-		if ((gui_mode==1) || 1 /* || !gf_prompt_has_input() */ ) {
+		if ((gui_mode==1) || (no_keyboard || !gf_prompt_has_input()) ) {
 			if (reload) {
 				reload = 0;
 				gf_term_disconnect(term);
