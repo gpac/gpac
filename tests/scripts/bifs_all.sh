@@ -51,6 +51,8 @@ bt_test ()
   ;;
 esac
 
+ name=${name/bifs/bt}
+
  #start our test, specifying all hash names we will check
  test_begin "$name"
 
