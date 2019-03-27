@@ -270,18 +270,18 @@ static char *glsl_vyuy_shader = "#version 120\n"\
 	{\
 		vec2 texc, t_texc;\
 		vec3 yuv, rgb;\
-		vec4 uyvy;\
+		vec4 vyuy;\
 		float tex_s;\
 		texc = TexCoord.st;\
 		t_texc = texc * vec2(1, 1);\
-		uyvy = texture2D(y_plane, t_texc); \
+		vyuy = texture2D(y_plane, t_texc); \
 		tex_s = texc.x*width;\
 		if (tex_s - (2.0 * floor(tex_s/2.0)) == 1.0) {\
-        	uyvy.g = uyvy.a; \
+        	vyuy.g = vyuy.a; \
     	}\
-    	yuv.r = uyvy.g;\
-    	yuv.g = uyvy.b;\
-    	yuv.b = uyvy.r;\
+    	yuv.r = vyuy.g;\
+    	yuv.g = vyuy.b;\
+    	yuv.b = vyuy.r;\
 		yuv += offset; \
 	    rgb.r = dot(yuv, R_mul); \
 	    rgb.g = dot(yuv, G_mul); \
@@ -302,18 +302,18 @@ static char *glsl_yuyv_shader = "#version 120\n"\
 	{\
 		vec2 texc, t_texc;\
 		vec3 yuv, rgb;\
-		vec4 yuyv;\
+		vec4 yvyu;\
 		float tex_s;\
 		texc = TexCoord.st;\
 		t_texc = texc * vec2(1, 1);\
-		yuyv = texture2D(y_plane, t_texc); \
+		yvyu = texture2D(y_plane, t_texc); \
 		tex_s = texc.x*width;\
 		if (tex_s - (2.0 * floor(tex_s/2.0)) == 1.0) {\
-        	yuyv.r = yuyv.b; \
+        	yvyu.r = yvyu.b; \
     	}\
-    	yuv.r = yuyv.r;\
-    	yuv.g = yuyv.g;\
-    	yuv.b = yuyv.a;\
+    	yuv.r = yvyu.r;\
+    	yuv.g = yvyu.g;\
+    	yuv.b = yvyu.a;\
 		yuv += offset; \
 	    rgb.r = dot(yuv, R_mul); \
 	    rgb.g = dot(yuv, G_mul); \
