@@ -144,7 +144,6 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
 	if (!ctx->buffer_done) {
-		const char *data;
 		u32 size;
 		GF_FilterPacket *pck;
 		if ((dur < ctx->buffer * 1000) && !gf_filter_pid_is_eos(ctx->pid))
@@ -154,7 +153,7 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 		we therefore probe the first packet before probing the buffer fullness*/
 		pck = gf_filter_pid_get_packet(ctx->pid);
 		if (!pck) return 0;
-		data = gf_filter_pck_get_data(pck, &size);
+		gf_filter_pck_get_data(pck, &size);
 		if (!size) {
 			gf_filter_pid_drop_packet(ctx->pid);
 			return 0;
