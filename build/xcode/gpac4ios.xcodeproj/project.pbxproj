@@ -2078,7 +2078,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0800;
+				LastUpgradeCheck = 1020;
 				TargetAttributes = {
 					71A19B1912796B5600ACFF58 = {
 						DevelopmentTeam = Q46G522WGV;
@@ -2087,13 +2087,14 @@
 			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "gpac4ios" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 1;
 			knownRegions = (
-				English,
-				Japanese,
-				French,
-				German,
+				en,
+				fr,
+				de,
+				ja,
+				Base,
 			);
 			mainGroup = 29B97314FDCFA39411CA2CEA /* CustomTemplate */;
 			productRefGroup = 71CCF1321277037A00339E12 /* Products */;
@@ -2532,6 +2533,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
@@ -2580,6 +2582,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
@@ -2625,6 +2628,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				COPY_PHASE_STRIP = NO;
 				ENABLE_BITCODE = NO;
 				EXECUTABLE_PREFIX = "";
@@ -2666,6 +2670,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				COPY_PHASE_STRIP = YES;
 				ENABLE_BITCODE = NO;
 				EXECUTABLE_PREFIX = "";
@@ -2713,7 +2718,6 @@
 				DEPLOYMENT_LOCATION = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = c99;
-				GCC_FAST_OBJC_DISPATCH = NO;
 				GCC_OBJC_CALL_CXX_CDTORS = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					GPAC_CONFIG_DARWIN,
@@ -2744,7 +2748,6 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				DEPLOYMENT_LOCATION = YES;
 				GCC_C_LANGUAGE_STANDARD = c99;
-				GCC_FAST_OBJC_DISPATCH = NO;
 				GCC_OBJC_CALL_CXX_CDTORS = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					GPAC_CONFIG_DARWIN,
