@@ -2070,7 +2070,7 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 		ctso = (s64) tkw->sample.CTS_Offset;
 		ctso *= tkw->tk_timescale;
 		ctso /= timescale;
-		tkw->sample.CTS_Offset = ctso;
+		tkw->sample.CTS_Offset = (s32) ctso;
 		duration *= tkw->tk_timescale;
 		duration /= timescale;
 	}
