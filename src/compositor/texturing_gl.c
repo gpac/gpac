@@ -1086,6 +1086,9 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	if (for2d) {
 		Bool load_tx = 0;
 		if (!txh->data) return 0;
+		if (!txh->tx_io) {
+			GF_SAFEALLOC(txh->tx_io, struct __texture_wrapper);
+		}
 		if (!txh->tx_io->tx_raster) {
 			txh->tx_io->tx_raster = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
 			if (!txh->tx_io->tx_raster) return 0;

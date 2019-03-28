@@ -473,7 +473,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 
 	if (!txh) txh = ctx->aspect.fill_texture;
 	if (!txh) return;
-	if (!txh->tx_io) {
+	if (!txh->tx_io && !txh->data) {
 		gf_node_dirty_set(txh->owner, 0, 1);
 
 		txh->needs_refresh=1;

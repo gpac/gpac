@@ -146,21 +146,26 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 	if (!ctx->buffer_done) {
 		u32 size;
 		GF_FilterPacket *pck;
-		if ((dur < ctx->buffer * 1000) && !gf_filter_pid_is_eos(ctx->pid))
-			return 0;
 
 		/*the compositor sends empty packets after its reconfiguration to check when the config is active
 		we therefore probe the first packet before probing the buffer fullness*/
 		pck = gf_filter_pid_get_packet(ctx->pid);
 		if (!pck) return 0;
-		gf_filter_pck_get_data(pck, &size);
-		if (!size) {
-			gf_filter_pid_drop_packet(ctx->pid);
-			return 0;
+
+		if (gf_filter_pck_is_blocking_ref(pck)) {
+			ctx->buffer_done = GF_TRUE;
+		} else {
+			if ((dur < ctx->buffer * 1000) && !gf_filter_pid_is_eos(ctx->pid))
+				return 0;
+			gf_filter_pck_get_data(pck, &size);
+			if (!size) {
+				gf_filter_pid_drop_packet(ctx->pid);
+				return 0;
+			}
+			//check the decoder output is full (avoids initial underrun)
+			if (gf_filter_pid_query_buffer_duration(ctx->pid, GF_TRUE)==0)
+				return 0;
 		}
-		//check the decoder output is full (avoids initial underrun)
-		if (gf_filter_pid_query_buffer_duration(ctx->pid, GF_TRUE)==0)
-			return 0;
 		ctx->buffer_done = GF_TRUE;
 	}
 
