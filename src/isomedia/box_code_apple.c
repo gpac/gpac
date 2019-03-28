@@ -251,7 +251,7 @@ void alis_del(GF_Box *s)
 
 GF_Err alis_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_DataEntryAliasBox *ptr = (GF_DataEntryAliasBox *)s;
+//	GF_DataEntryAliasBox *ptr = (GF_DataEntryAliasBox *)s;
 	return GF_OK;
 }
 
@@ -266,7 +266,7 @@ GF_Box *alis_New()
 GF_Err alis_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_DataEntryAliasBox *ptr = (GF_DataEntryAliasBox *)s;
+//	GF_DataEntryAliasBox *ptr = (GF_DataEntryAliasBox *)s;
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;

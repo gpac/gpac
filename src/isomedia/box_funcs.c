@@ -1302,6 +1302,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 			switch (parentType) {
 			case GF_ISOM_BOX_TYPE_ILST:
 			case GF_ISOM_BOX_TYPE_META:
+			case GF_ISOM_BOX_TYPE_UDTA:
 			case GF_ISOM_BOX_TYPE_UNKNOWN:
 				break;
 			default:
