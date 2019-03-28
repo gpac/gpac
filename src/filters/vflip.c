@@ -52,6 +52,7 @@ typedef struct
 
 
 	char *line_buffer_vf; //vertical flip
+	char *line_buffer_hf; //horizontal flip
 
 } GF_VFlipCtx;
 
@@ -65,26 +66,26 @@ enum
 
 
 
-static Bool swap_2Ys_YUVpixel(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 first_4bytes_index)
+static Bool swap_2Ys_YUVpixel(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 FourBytes_start_index)
 {
 	u8 tmp;
-	Bool isFirstY_indexOne;
+	u32 isFirstY_indexOne;
 	switch (ctx->s_pfmt) {
 	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YVYU:
-		isFirstY_indexOne= 0;
+		isFirstY_indexOne= (u32) 0;
 		break;
 	case GF_PIXEL_UYVY:
 	case GF_PIXEL_VYUY:
-		isFirstY_indexOne= 1;
+		isFirstY_indexOne= (u32) 1;
 		break;
 	}
 
 	//Y2_dst = Y1_src
-	line_dst[first_4bytes_index + 2 + isFirstY_indexOne]=line_src[first_4bytes_index + 0 + isFirstY_indexOne];
+	line_dst[FourBytes_start_index + 2 + isFirstY_indexOne]=line_src[FourBytes_start_index + 0 + isFirstY_indexOne];
 
 	//Y1_dst = Y2_src
-	line_dst[first_4bytes_index + 0 + isFirstY_indexOne]=line_src[first_4bytes_index + 2 + isFirstY_indexOne];
+	line_dst[FourBytes_start_index + 0 + isFirstY_indexOne]=line_src[FourBytes_start_index + 2 + isFirstY_indexOne];
 
 	return GF_OK;
 }
@@ -205,27 +206,33 @@ static Bool horizontal_flip_by_rgbx_combination(GF_VFlipCtx *ctx, u8 *line_src, 
 	return GF_OK;
 }
 
-static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 plane_idx, u32 line_width)
+static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 plane_idx, u32 wiB)
 {
-	if( ctx->s_pfmt == GF_PIXEL_RGB || ctx->s_pfmt == GF_PIXEL_BGR || ctx->s_pfmt == GF_PIXEL_XRGB || ctx->s_pfmt == GF_PIXEL_RGBX || ctx->s_pfmt == GF_PIXEL_XBGR || ctx->s_pfmt == GF_PIXEL_BGRX){
+	u32 line_width = wiB;
+
+	if( ctx->s_pfmt == GF_PIXEL_RGB || ctx->s_pfmt == GF_PIXEL_BGR || ctx->s_pfmt == GF_PIXEL_XRGB || ctx->s_pfmt == GF_PIXEL_RGBX || ctx->s_pfmt == GF_PIXEL_XBGR || ctx->s_pfmt == GF_PIXEL_BGRX){ // @suppress("Symbol is not resolved")
 		horizontal_flip_by_rgbx_combination(ctx, line_src, line_dst, plane_idx, line_width);
+
 	}else if (ctx->packed_422) {
-		u32 fourBytesSize = line_width/4;
-		u32 w4x = fourBytesSize /2;
+
+		line_width = wiB/2;
+
+		//If the source data is assigned to the output packet during the destination pack allocation
+		//i.e dst_planes[0]= src_planes[0], line_src is going to change while reading it as far as writing on line_dst=line_src
+		//To avoid this situation, ctx->line_buffer_hf keeps the values of line_src
+		memcpy(ctx->line_buffer_hf, line_src, wiB);
 
 		//reversing of 4-bytes sequences
-		for (u32 j = 0; j < 4*w4x; j++) {
+		u32 fourBytesSize = wiB/4;
+		for (u32 j = 0; j < fourBytesSize; j++) {
 			//buffer = last 4 columns
-			u32 last_4bytes_index = line_width-3-(4*j);
+			u32 last_4bytes_index = wiB-4-(4*j);
 			u32 first_4bytes_index = 4*j;
-
-			//last 4 columns = first 4 columns
 			for (u32 p = 0; p < 4; p++) {
-				line_dst[last_4bytes_index+p] = line_src[first_4bytes_index+p];
-
-				//exchanging of Ys within a yuv pixel
-				swap_2Ys_YUVpixel(ctx, line_dst, line_dst, first_4bytes_index);
+				line_dst[first_4bytes_index+p] = ctx->line_buffer_hf[last_4bytes_index+p];
 			}
+			//exchanging of Ys within a yuv pixel
+			swap_2Ys_YUVpixel(ctx, line_dst, line_dst, first_4bytes_index);
 		}
 	}else {
 		//nv12/21
@@ -292,11 +299,9 @@ static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 
 static Bool horizontal_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 height, u32 plane_idx, u32 wiB, u32 *src_stride)
 {
-	u32 hy, i;
-	hy = height;
-	for (i=0; i<hy; i++) {
+	for (u32 i=0; i<height; i++) {
 		u8 *src_first_line = src_plane + i * src_stride[plane_idx];
-		u8 *dst_first_line = dst_plane + i*ctx->dst_stride[plane_idx];
+		u8 *dst_first_line = dst_plane + i * ctx->dst_stride[plane_idx];
 
 		horizontal_flip_per_line(ctx, src_first_line, dst_first_line, plane_idx, wiB);
 	}
@@ -550,6 +555,7 @@ static GF_Err vflip_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[VFlip] Configured output full frame size %dx%d\n", ctx->w, ctx->h));
 
 		ctx->line_buffer_vf = gf_realloc(ctx->line_buffer_vf, sizeof(char)*ctx->dst_stride[0] );
+		ctx->line_buffer_hf = gf_realloc(ctx->line_buffer_hf, sizeof(char)*ctx->src_stride[0] );
 
 		ctx->packed_422 = GF_FALSE;
 		switch (pfmt) {
@@ -579,6 +585,7 @@ void vflip_finalize(GF_Filter *filter)
 {
 	GF_VFlipCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->line_buffer_vf) gf_free(ctx->line_buffer_vf);
+	if (ctx->line_buffer_hf) gf_free(ctx->line_buffer_hf);
 }
 
 
