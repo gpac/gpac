@@ -242,6 +242,44 @@ GF_Err databox_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void alis_del(GF_Box *s)
+{
+	GF_DataEntryAliasBox *ptr = (GF_DataEntryAliasBox *)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+GF_Err alis_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_DataEntryAliasBox *ptr = (GF_DataEntryAliasBox *)s;
+	return GF_OK;
+}
+
+GF_Box *alis_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_DataEntryAliasBox, GF_ISOM_BOX_TYPE_ALIS);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err alis_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_DataEntryAliasBox *ptr = (GF_DataEntryAliasBox *)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	return GF_OK;
+}
+
+GF_Err alis_Size(GF_Box *s)
+{
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov)
 {
 	u32 i;

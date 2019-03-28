@@ -414,6 +414,7 @@ ISOM_BOX_IMPL_DECL(stbl)
 ISOM_BOX_IMPL_DECL(dinf)
 ISOM_BOX_IMPL_DECL(url)
 ISOM_BOX_IMPL_DECL(urn)
+ISOM_BOX_IMPL_DECL(alis)
 ISOM_BOX_IMPL_DECL(cprt)
 ISOM_BOX_IMPL_DECL(kind)
 ISOM_BOX_IMPL_DECL(chpl)
@@ -839,8 +840,9 @@ static struct box_registry_entry {
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_STHD, nmhd, "minf", 0),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_STBL, stbl, "minf"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_DINF, dinf, "minf meta"),
-	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_URL, url, "dref", 0, 1),
+	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_URL, url, "dref", 0, 1),
 	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_URN, urn, "dref", 0, 1),
+	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_ALIS, alis, "dref", 0, 1, "apple"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_CPRT, cprt, "udta", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_KIND, kind, "udta", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_HDLR, hdlr, "mdia meta minf", 0),	//minf container is OK in QT ...
