@@ -837,7 +837,7 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->other_boxes, 0);
 
 	if (!hnti->SDP) {
-		GF_Box *a = gf_isom_box_new_ex(GF_ISOM_BOX_TYPE_RTP, GF_ISOM_BOX_TYPE_HNTI);
+		GF_Box *a = gf_isom_box_new_ex(GF_ISOM_BOX_TYPE_RTP, GF_ISOM_BOX_TYPE_HNTI, 0, GF_FALSE);
 		hnti_AddBox((GF_Box*)hnti, a);
 	}
 	rtp = (GF_RTPBox *) hnti->SDP;

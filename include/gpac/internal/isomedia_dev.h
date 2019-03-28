@@ -35,6 +35,9 @@ extern "C" {
 
 enum
 {
+	//internal code type for unknown boxes
+	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
+
 	GF_ISOM_BOX_TYPE_CO64	= GF_4CC( 'c', 'o', '6', '4' ),
 	GF_ISOM_BOX_TYPE_STCO	= GF_4CC( 's', 't', 'c', 'o' ),
 	GF_ISOM_BOX_TYPE_CTTS	= GF_4CC( 'c', 't', 't', 's' ),
@@ -470,7 +473,23 @@ enum
 
 	GF_ISOM_BOX_TYPE_AUXV 	= GF_4CC('A','U','X','V'),
 
-	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
+	/*QTFF audio codes*/
+	GF_ISOM_BOX_TYPE_QT_AUDIO_RAW 	= GF_4CC('r','a','w',' '),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_TWOS 	= GF_4CC('t','w','o','s'),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_SOWT 	= GF_4CC('s','o','w','t'),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_FL32 	= GF_4CC('f','l','3','2'),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_FL64 	= GF_4CC('f','l','6','4'),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_IN24 	= GF_4CC('i','n','2','4'),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_IN32 	= GF_4CC('i','n','3','2'),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_ULAW 	= GF_4CC('u','l','a','w'),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_ALAW 	= GF_4CC('a','l','a','w'),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_ADPCM 	= GF_4CC(0x6D,0x73,0x00,0x02),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_IMA_ADPCM 	= GF_4CC(0x6D,0x73,0x00,0x11),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_DVCA 	= GF_4CC('d','v','c','a'),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_QDMC 	= GF_4CC('Q','D','M','C'),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_QDMC2	= GF_4CC('Q','D','M','2'),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_QCELP	= GF_4CC('Q','c','l','p'),
+	GF_ISOM_BOX_TYPE_QT_AUDIO_kMP3 	= GF_4CC(0x6D,0x73,0x00,0x55),
 };
 
 enum
@@ -540,7 +559,7 @@ typedef struct
 /*constructor*/
 GF_Box *gf_isom_box_new(u32 boxType);
 //some boxes may have different syntax based on container. Use this constructor for this case
-GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType);
+GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_root_box);
 
 GF_Err gf_isom_box_write(GF_Box *ptr, GF_BitStream *bs);
 GF_Err gf_isom_box_read(GF_Box *ptr, GF_BitStream *bs);
