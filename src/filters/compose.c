@@ -108,10 +108,13 @@ static GF_Err compose_process(GF_Filter *filter)
 			n /= 1000;
 			if (n>=ctx->dur)
 				ctx->check_eos_state = 2;
+			else if (ctx->vfr && !ctx->check_eos_state && !nb_sys_streams_active ) {
+				ctx->check_eos_state = 1;
+			}
 		} else if (!ctx->check_eos_state && !nb_sys_streams_active) {
 			ctx->check_eos_state = 1;
 		}
-		if ((ctx->check_eos_state==2) || !ctx->root_scene || (ctx->check_eos_state && gf_sc_check_end_of_scene(ctx, 1))) {
+		if ((ctx->check_eos_state==2) || !ctx->root_scene || (ctx->check_eos_state && gf_sc_check_end_of_scene(ctx, GF_TRUE))) {
 			u32 count;
 			count = gf_filter_get_ipid_count(ctx->filter);
 			if (ctx->root_scene) {

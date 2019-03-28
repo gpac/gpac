@@ -466,7 +466,7 @@ typedef struct
 
 	u32 pck_offset;
 	u64 first_cts;
-	u64 clock_at_first_cts;
+	u64 clock_at_first_cts, last_frame_clock;
 	Bool aborted;
 	u32 display_width, display_height;
 	Bool display_changed;
@@ -1262,8 +1262,9 @@ static void vout_finalize(GF_Filter *filter)
 		ctx->last_pck = NULL;
 	}
 
-	if (ctx->nb_frames==1) {
-		gf_sleep((u32) (ctx->hold*1000));
+	if ((ctx->nb_frames==1) || (ctx->hold<0)) {
+		u32 holdms = (u32) (((ctx->hold>0) ? ctx->hold : -ctx->hold) * 1000);
+		gf_sleep(holdms);
 	}
 
 #ifndef GPAC_DISABLE_3D
@@ -1983,9 +1984,9 @@ static GF_Err vout_process(GF_Filter *filter)
 	}
 
 	if (ctx->buffer) {
-		GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
-		if (frame_ifce && frame_ifce->blocking) {
-			ctx->buffer = GF_TRUE;
+		if (gf_filter_pck_is_blocking_ref(pck)) {
+			ctx->buffer_done = GF_TRUE;
+			ctx->buffer = 0;
 		} else {
 			//query full buffer duration in us
 			u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
@@ -2005,6 +2006,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		u64 ref_clock = 0;
 		u64 cts = gf_filter_pck_get_cts(pck);
 		u64 clock_us, now = gf_sys_clock_high_res();
+		Bool check_clock = GF_FALSE;
 		Double media_ts;
 		s64 delay;
 
@@ -2056,15 +2058,28 @@ static GF_Err vout_process(GF_Filter *filter)
 			//init clock on second frame, first frame likely will have large rendering time
 			//due to GPU config. While this is not important for recorded media, it may impact
 			//monitoring of live source (webcams) by consuming frame really late which may
-			//block frame sampling when blocking mode is enabled
+			//block source sampling when blocking mode is enabled
 			if (!ctx->clock_at_first_cts) {
-				ctx->clock_at_first_cts = 1;
+				ctx->clock_at_first_cts = 1 + cts;
 			} else {
-				ctx->first_cts = 1 + cts;
-				ctx->clock_at_first_cts = 0;
+				u64 diff = cts - ctx->clock_at_first_cts;
+				diff *= 1000;
+				diff /= ctx->timescale;
+				if (diff<100) {
+					ctx->first_cts = 1 + cts;
+					ctx->clock_at_first_cts = 0;
+				} else {
+					ctx->first_cts = ctx->clock_at_first_cts;
+					ctx->clock_at_first_cts = ctx->last_frame_clock;
+					check_clock = GF_TRUE;
+				}
 			}
 			ref_clock = cts;
 		} else {
+			check_clock = GF_TRUE;
+		}
+
+		if (check_clock) {
 			s64 diff;
 			if (ctx->speed>=0) {
 				if (cts<ctx->first_cts+1) cts = ctx->first_cts+1;
@@ -2181,8 +2196,9 @@ static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 		ctx->last_pck = NULL;
 	}
 	//remember the clock right after the flush (in case of vsync)
+	ctx->last_frame_clock = gf_sys_clock_high_res();
 	if (!ctx->clock_at_first_cts) {
-		ctx->clock_at_first_cts = gf_sys_clock_high_res();
+		ctx->clock_at_first_cts = ctx->last_frame_clock;
 	}
 	//note we don't ask RT reschedule in frame duration, we take the decision on postponing the next frame in the next process call
 	return GF_OK;
@@ -2210,7 +2226,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, 0},
 	{ OFFS(speed), "sets playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams. A negative value force a hold on last frame for single or multi-frames streams", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(linear), "uses linear filtering instead of nearest pixel for GL mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(back), "specifies back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(wsize), "default init wsize, 0x0 holds the wsize of the first frame. Default is video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},

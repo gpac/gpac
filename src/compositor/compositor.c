@@ -618,6 +618,7 @@ static void gf_sc_check_video_driver(GF_Compositor *compositor)
 		e = gf_sc_load_driver(compositor);
 		if (e) {
 			compositor->video_out = &raw_vout;
+			compositor->video_memory = 2;
 		}
 		return;
 	}
@@ -629,6 +630,7 @@ static void gf_sc_check_video_driver(GF_Compositor *compositor)
 		gf_filter_register_opengl_provider(compositor->filter, GF_FALSE);
 	}
 	compositor->video_out = &raw_vout;
+	compositor->video_memory = 2;
 }
 #endif
 
@@ -679,6 +681,7 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	} else {
 		raw_vout.opaque = compositor;
 		compositor->video_out = &raw_vout;
+		compositor->video_memory = 2;
 	}
 
 	compositor->strike_bank = gf_list_new();
@@ -1177,7 +1180,8 @@ static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 	compositor->focus_node = NULL;
 	compositor->focus_text_type = 0;
 	compositor->frame_number = 0;
-	compositor->video_memory = compositor->was_system_memory ? 0 : 1;
+	if (compositor->video_memory!=2)
+		compositor->video_memory = compositor->was_system_memory ? 0 : 1;
 	compositor->rotation = 0;
 
 	gf_list_reset(compositor->focus_ancestors);
@@ -1244,7 +1248,8 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		compositor->has_size_info = (width && height) ? 1 : 0;
 		if (compositor->has_size_info != had_size_info) compositor->scene_width = compositor->scene_height = 0;
 
-		compositor->video_memory = gf_scene_is_dynamic_scene(scene_graph);
+		if (compositor->video_memory!=2)
+			compositor->video_memory = gf_scene_is_dynamic_scene(scene_graph);
 
 #ifndef GPAC_DISABLE_3D
 		compositor->visual->camera.world_bbox.is_set = 0;
@@ -2951,12 +2956,15 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #endif
 
 		if (!compositor->player) {
-			if (compositor->sys_frames_pending && (compositor->ms_until_next_frame>=0) ) {
+			if ((compositor->sys_frames_pending && (compositor->ms_until_next_frame>=0) )
+			|| (compositor->vfr && has_timed_nodes)
+			) {
 				compositor->sys_frames_pending = GF_FALSE;
 				compositor->frame_number++;
 				compositor->scene_sampled_clock = compositor->frame_number * compositor->fps.den * 1000;
 				compositor->scene_sampled_clock /= compositor->fps.num;
 			}
+
 		}
 	}
 	compositor->reset_graphics = 0;
