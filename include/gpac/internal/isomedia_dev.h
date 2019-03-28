@@ -911,6 +911,12 @@ typedef struct
 {
 	GF_ISOM_FULL_BOX
 	GF_ISOM_DATAENTRY_FIELDS
+} GF_DataEntryAliasBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	GF_ISOM_DATAENTRY_FIELDS
 	char *nameURN;
 } GF_DataEntryURNBox;
 
