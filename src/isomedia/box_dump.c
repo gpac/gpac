@@ -192,6 +192,14 @@ GF_Err free_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err wide_dump(GF_Box *a, FILE * trace)
+{
+	gf_isom_box_dump_start(a, "WideBox", trace);
+	fprintf(trace, ">\n");
+	gf_isom_box_dump_done("WideBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err mdat_dump(GF_Box *a, FILE * trace)
 {
 	GF_MediaDataBox *p;

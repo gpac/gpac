@@ -402,6 +402,7 @@ GF_Err unkn_dump(GF_Box *a, FILE * trace);
 ISOM_BOX_IMPL_DECL(reftype)
 ISOM_BOX_IMPL_DECL(ireftype)
 ISOM_BOX_IMPL_DECL(free)
+ISOM_BOX_IMPL_DECL(wide)
 ISOM_BOX_IMPL_DECL(mdat)
 ISOM_BOX_IMPL_DECL(moov)
 ISOM_BOX_IMPL_DECL(mvhd)
@@ -1152,6 +1153,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MP3, audio_sample_entry, "stsd", "apple"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_CHPL, chpl, "udta", 0, "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VOID, void, "", "apple"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_WIDE, wide, "*", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_ILST, ilst, "meta", "apple"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_DATA, databox, "ilst", 0, "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_0xA9NAM, ilst_item, "ilst data", "apple"),
