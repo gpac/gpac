@@ -3982,8 +3982,23 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			return GF_FALSE;
 		}
 		case GF_ISOM_BOX_TYPE_MP3:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_RAW:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_TWOS:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_SOWT:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_FL32:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_FL64:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_IN24:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_IN32:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_ULAW:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_ALAW:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_ADPCM:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_IMA_ADPCM:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_DVCA:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_QDMC:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_QDMC2:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_QCELP:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_kMP3:
 			return GF_TRUE;
-		break;
 		}
 
 		if (sdesc_index1 && sdesc_index2) break;

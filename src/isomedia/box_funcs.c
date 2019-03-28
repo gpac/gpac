@@ -92,6 +92,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	char uuid[16];
 	GF_Err e;
 	GF_Box *newBox;
+	Bool skip_logs = gf_bs_get_cookie(bs) ? GF_TRUE : GF_FALSE;
 
 	if ((bs == NULL) || (outBox == NULL) ) return GF_BAD_PARAM;
 	*outBox = NULL;
@@ -116,10 +117,14 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			size = 12;
 		if (!size) {
 			if (is_root_box) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning Read Box type %s (0x%08X) size 0 reading till the end of file\n", gf_4cc_to_str(type), type));
+				if (!skip_logs) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning Read Box type %s (0x%08X) size 0 reading till the end of file\n", gf_4cc_to_str(type), type));
+				}
 				size = gf_bs_available(bs) + 8;
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box type %s (0x%08X) has size 0 but is not at root/file level, skipping\n", gf_4cc_to_str(type), type));
+				if (!skip_logs) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box type %s (0x%08X) at position "LLU" has size 0 but is not at root/file level, skipping\n", gf_4cc_to_str(type), type, start));
+				}
 				return GF_OK;
 //				return GF_ISOM_INVALID_FILE;
 			}
@@ -170,7 +175,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		((GF_EntityToGroupTypeBox*)newBox)->grouping_type = type;
 	} else {
 		//OK, create the box based on the type
-		newBox = gf_isom_box_new_ex(uuid_type ? uuid_type : type, parent_type);
+		newBox = gf_isom_box_new_ex(uuid_type ? uuid_type : type, parent_type, skip_logs, is_root_box);
 		if (!newBox) return GF_OUT_OF_MEM;
 	}
 
@@ -217,19 +222,24 @@ retry_unknown_box:
 			gf_bs_seek(bs, payload_start);
 			goto retry_unknown_box;
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box \"%s\" failed (%s) - skipping\n", gf_4cc_to_str(type), gf_error_to_string(e)));
-
+		if (!skip_logs) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box \"%s\" (start "LLU") failed (%s) - skipping\n", gf_4cc_to_str(type), start, gf_error_to_string(e)));
+		}
 		//we don't try to reparse known boxes that have been failing (too dangerous)
 		return e;
 	}
 
 	if (end-start > size) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" size "LLU" invalid (read "LLU")\n", gf_4cc_to_str(type), LLU_CAST size, LLU_CAST (end-start) ));
+		if (!skip_logs) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" size "LLU" (start "LLU") invalid (read "LLU")\n", gf_4cc_to_str(type), LLU_CAST size, start, LLU_CAST (end-start) ));
+		}
 		/*let's still try to load the file since no error was notified*/
 		gf_bs_seek(bs, start+size);
 	} else if (end-start < size) {
 		u32 to_skip = (u32) (size-(end-start));
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" has %u extra bytes\n", gf_4cc_to_str(type), to_skip));
+		if (!skip_logs) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" (start "LLU") has %u extra bytes\n", gf_4cc_to_str(type), start, to_skip));
+		}
 		gf_bs_skip_bytes(bs, to_skip);
 	}
 	*outBox = newBox;
@@ -259,7 +269,7 @@ void gf_isom_box_array_del(GF_List *other_boxes)
 
 GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b))
 {
-	return gf_isom_box_array_read_ex(parent, bs, add_box, 0);
+	return gf_isom_box_array_read_ex(parent, bs, add_box, parent->type);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1155,7 +1165,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VOID, void, "", "apple"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_WIDE, wide, "*", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_ILST, ilst, "meta", "apple"),
-	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_DATA, databox, "ilst", 0, "apple"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_DATA, databox, "ilst *", 0, "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_0xA9NAM, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_0xA9CMT, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_0xA9DAY, ilst_item, "ilst data", "apple"),
@@ -1179,6 +1189,26 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_CPIL, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_COVR, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_iTunesSpecificInfo, ilst_item, "ilst data", "apple"),
+
+	//QTaudio
+#if 0
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_RAW, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_TWOS, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_SOWT, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_FL32, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_FL64, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_IN24, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_IN32, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_ULAW, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_ALAW, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_ADPCM, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_IMA_ADPCM, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_DVCA, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_QDMC, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_QDMC2, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_QCELP, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_QT_AUDIO_kMP3, audio_sample_entry, "stsd", "apple"),
+#endif
 
 	//dolby boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_AC3, audio_sample_entry, "stsd", "dolby"),
@@ -1262,14 +1292,32 @@ static u32 get_box_reg_idx(u32 boxCode, u32 parent_type)
 	return 0;
 }
 
-GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType)
+GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_root_box)
 {
 	GF_Box *a;
 	s32 idx = get_box_reg_idx(boxType, parentType);
 	if (idx==0) {
-		if (boxType != GF_ISOM_BOX_TYPE_UNKNOWN) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s\n", gf_4cc_to_str(boxType) ));
+#ifndef GPAC_DISABLE_LOGS
+		if (!skip_logs && (boxType != GF_ISOM_BOX_TYPE_UNKNOWN)) {
+			switch (parentType) {
+			case GF_ISOM_BOX_TYPE_ILST:
+			case GF_ISOM_BOX_TYPE_META:
+			case GF_ISOM_BOX_TYPE_UNKNOWN:
+				break;
+			default:
+				if (is_root_box) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown top-level box type %s (0x%08X)\n", gf_4cc_to_str(boxType), boxType));
+				} else if (parentType) {
+					char szName[10];
+					strcpy(szName, gf_4cc_to_str(parentType));
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s (0x%08X) in parent %s\n", gf_4cc_to_str(boxType), boxType, szName));
+				} else {
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s (0x%08X)\n", gf_4cc_to_str(boxType), boxType));
+				}
+				break;
+			}
 		}
+#endif
 		a = unkn_New(boxType);
 		if (a) a->registry = &box_registry[idx];
 		return a;
@@ -1288,7 +1336,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType)
 GF_EXPORT
 GF_Box *gf_isom_box_new(u32 boxType)
 {
-	return gf_isom_box_new_ex(boxType, 0);
+	return gf_isom_box_new_ex(boxType, 0, 0, GF_FALSE);
 }
 
 void gf_isom_box_add_for_dump_mode(GF_Box *parent, GF_Box *a)
@@ -1301,6 +1349,8 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 {
 	GF_Err e;
 	GF_Box *a = NULL;
+	Bool skip_logs = gf_bs_get_cookie(bs);
+
 	//we may have terminators in some QT files (4 bytes set to 0 ...)
 	while (parent->size>=8) {
 		e = gf_isom_box_parse_ex(&a, bs, parent_type, GF_FALSE);
@@ -1312,7 +1362,9 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 		if (!a) return GF_OK;
 
 		if (parent->size < a->size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" is larger than container box\n", gf_4cc_to_str(a->type)));
+			if (!skip_logs) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" is larger than container box\n", gf_4cc_to_str(a->type)));
+			}
 			parent->size = 0;
 		} else {
 			parent->size -= a->size;
@@ -1326,7 +1378,7 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 				parent_code = gf_4cc_to_str( ((GF_UnknownBox*)parent)->original_4cc );
 			if (strstr(a->registry->parents_4cc, parent_code) != NULL) {
 				parent_OK = GF_TRUE;
-			} else if (!strcmp(a->registry->parents_4cc, "*")) {
+			} else if (!strcmp(a->registry->parents_4cc, "*") || strstr(a->registry->parents_4cc, "* ") || strstr(a->registry->parents_4cc, " *")) {
 				parent_OK = GF_TRUE;
 			} else {
 				//parent must be a sample entry
@@ -1346,7 +1398,7 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 				else if (a->type==GF_ISOM_BOX_TYPE_UNKNOWN) parent_OK = GF_TRUE;
 				else if (a->type==GF_ISOM_BOX_TYPE_UUID) parent_OK = GF_TRUE;
 			}
-			if (! parent_OK) {
+			if (! parent_OK && !skip_logs) {
 				char szName[5];
 				strcpy(szName, parent_code);
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" is invalid in container %s\n", gf_4cc_to_str(a->type), szName));
@@ -1565,7 +1617,12 @@ GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
 	} else {
 		fprintf(trace, "Size=\"%u\" ", (u32) a->size);
 	}
-	fprintf(trace, "Type=\"%s\" ", gf_4cc_to_str(a->type));
+	if (a->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
+		fprintf(trace, "Type=\"%s\" ", gf_4cc_to_str(((GF_UnknownBox*)a)->original_4cc));
+	} else {
+		fprintf(trace, "Type=\"%s\" ", gf_4cc_to_str(a->type));
+	}
+
 	if (a->type == GF_ISOM_BOX_TYPE_UUID) {
 		u32 i;
 		fprintf(trace, "UUID=\"{");

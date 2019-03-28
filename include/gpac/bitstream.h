@@ -563,6 +563,25 @@ void gf_bs_flush(GF_BitStream *bs);
  */
 void gf_bs_reassign(GF_BitStream *bs, FILE *stream);
 
+/*!
+ *\brief Sets cookie
+ *
+ *Sets a 64 bit cookie (integer, pointer) on the bitstream, returning the current cookie value
+ *\param bs the target bitstream
+ *\param cookie the new cookie to assign
+ *\return the cookie value before re-assign
+ */
+u64 gf_bs_set_cookie(GF_BitStream *bs, u64 cookie);
+
+/*!
+ *\brief Gets cookie
+ *
+ *Gets the current cookie on the bitstream
+ *\param bs the target bitstream
+ *\return the current cookie value
+ */
+u64 gf_bs_get_cookie(GF_BitStream *bs);
+
 /*! @} */
 
 #ifdef __cplusplus

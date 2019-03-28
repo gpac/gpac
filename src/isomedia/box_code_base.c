@@ -6769,6 +6769,23 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_MHA2:
 		case GF_ISOM_BOX_TYPE_MHM1:
 		case GF_ISOM_BOX_TYPE_MHM2:
+
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_RAW:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_TWOS:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_SOWT:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_FL32:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_FL64:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_IN24:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_IN32:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_ULAW:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_ALAW:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_ADPCM:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_IMA_ADPCM:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_DVCA:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_QDMC:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_QDMC2:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_QCELP:
+		case GF_ISOM_BOX_TYPE_QT_AUDIO_kMP3:
 			continue;
 
 		case GF_ISOM_BOX_TYPE_UNKNOWN:
@@ -6793,7 +6810,9 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		if (gf_bs_available(bs)) { \
 			u64 pos = gf_bs_get_position(bs); \
 			u32 count_subb = 0; \
-			GF_Err e = gf_isom_box_array_read((GF_Box *) _box, bs, gf_isom_box_add_default); \
+			GF_Err e;\
+			gf_bs_set_cookie(bs, 1);\
+			e = gf_isom_box_array_read((GF_Box *) _box, bs, gf_isom_box_add_default); \
 			count_subb = _box->other_boxes ? gf_list_count(_box->other_boxes) : 0; \
 			if (!count_subb || e) { \
 				gf_bs_seek(bs, pos); \
@@ -7769,7 +7788,16 @@ GF_Err udta_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err udta_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, udta_AddBox);
+	GF_Err e = gf_isom_box_array_read(s, bs, udta_AddBox);
+	if (e) return e;
+	if (s->size==4) {
+		u32 val = gf_bs_read_u32(bs);
+		s->size = 0;
+		if (val) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] udta has 4 remaining bytes set to %08X but they should be 0\n", val));
+		}
+	}
+	return GF_OK;
 }
 
 GF_Box *udta_New()
