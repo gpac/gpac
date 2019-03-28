@@ -452,7 +452,6 @@ enum
 
 	/* apple alis box */
 	GF_ISOM_BOX_TYPE_ALIS 	= GF_4CC('a','l','i','s'),
-
 	GF_ISOM_BOX_TYPE_WIDE 	= GF_4CC('w','i','d','e'),
 
 	/* from drm_sample.c */
@@ -1605,6 +1604,11 @@ typedef struct
 	u32 dataSize;
 	u32 original_4cc;
 } GF_FreeSpaceBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+} GF_WideBox; /*Apple*/
 
 typedef struct
 {
