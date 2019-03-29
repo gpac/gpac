@@ -474,7 +474,11 @@ enum
 	GF_QT_BOX_TYPE_C608	= GF_4CC( 'c', '6', '0', '8' ),
 	GF_QT_BOX_TYPE_APCH	= GF_4CC( 'a', 'p', 'c', 'h' ),
 	GF_QT_BOX_TYPE_APCO	= GF_4CC( 'a', 'p', 'c', 'o' ),
+	GF_QT_BOX_TYPE_APCN	= GF_4CC( 'a', 'p', 'c', 'n' ),
+	GF_QT_BOX_TYPE_APCS	= GF_4CC( 'a', 'p', 'c', 's' ),
+	GF_QT_BOX_TYPE_APCF	= GF_4CC( 'a', 'p', 'c', 'f' ),
 	GF_QT_BOX_TYPE_AP4X	= GF_4CC( 'a', 'p', '4', 'x' ),
+	GF_QT_BOX_TYPE_AP4H	= GF_4CC( 'a', 'p', '4', 'h' ),
 
 	/* from drm_sample.c */
 	GF_ISOM_BOX_TYPE_264B 	= GF_4CC('2','6','4','b'),
@@ -1094,6 +1098,23 @@ typedef struct
 	GF_ISOM_BOX
     u16 chroma;
 } GF_ChromaInfoBox;
+
+typedef struct
+{
+    u32 label;
+    u32 flags;
+    Float coordinates[3];
+} GF_AudioChannelDescription;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+
+    u32 layout_tag;
+    u32 bitmap;
+    u32 num_audio_description;
+    GF_AudioChannelDescription *audio_descs;
+} GF_ChannelLayoutInfoBox;
 
 typedef struct
 {

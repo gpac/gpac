@@ -125,9 +125,9 @@ GF_Err ilst_item_Read(GF_Box *s,GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *ilst_item_New(u32 type)
+GF_Box *ilst_item_New()
 {
-	ISOM_DECL_BOX_ALLOC(GF_ListItemBox, type);
+	ISOM_DECL_BOX_ALLOC(GF_ListItemBox, GF_ISOM_BOX_TYPE_CPIL); //type will be overwrite
 
 	tmp->data = (GF_DataBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_DATA);
 
@@ -289,6 +289,8 @@ void wide_del(GF_Box *s)
 
 GF_Err wide_Read(GF_Box *s, GF_BitStream *bs)
 {
+	gf_bs_skip_bytes(bs, s->size);
+	s->size = 0;
 	return GF_OK;
 }
 
@@ -401,7 +403,6 @@ GF_Err gmin_Read(GF_Box *s, GF_BitStream *bs)
 GF_Box *gmin_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_GenericMediaHeaderInfoBox, GF_QT_BOX_TYPE_GMIN);
-	tmp->flags = 1;
 	return (GF_Box *)tmp;
 }
 
@@ -412,18 +413,24 @@ GF_Box *gmin_New()
 GF_Err gmin_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_VideoMediaHeaderBox *ptr = (GF_VideoMediaHeaderBox *)s;
+	GF_GenericMediaHeaderInfoBox *ptr = (GF_GenericMediaHeaderInfoBox *)s;
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_u64(bs, ptr->reserved);
+
+	gf_bs_write_u16(bs, ptr->graphics_mode);
+	gf_bs_write_u16(bs, ptr->op_color_red);
+	gf_bs_write_u16(bs, ptr->op_color_green);
+	gf_bs_write_u16(bs, ptr->op_color_blue);
+	gf_bs_write_u16(bs, ptr->balance);
+	gf_bs_write_u16(bs, ptr->reserved);
 	return GF_OK;
 }
 
 GF_Err gmin_Size(GF_Box *s)
 {
 	GF_VideoMediaHeaderBox *ptr = (GF_VideoMediaHeaderBox *)s;
-	ptr->size += 8;
+	ptr->size += 12;
 	return GF_OK;
 }
 
@@ -543,6 +550,8 @@ GF_Err tmcd_Size(GF_Box *s)
 
 void tcmi_del(GF_Box *s)
 {
+	GF_TimeCodeMediaInformationBox *ptr = (GF_TimeCodeMediaInformationBox *)s;
+	if (ptr->font) gf_free(ptr->font);
 	gf_free(s);
 }
 
@@ -653,7 +662,10 @@ GF_Box *fiel_New()
 
 GF_Err fiel_Write(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
 	GF_FieldInfoBox *ptr = (GF_FieldInfoBox *)s;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
 	gf_bs_write_u8(bs, ptr->field_count);
 	gf_bs_write_u8(bs, ptr->field_order);
 	return GF_OK;
@@ -696,6 +708,8 @@ GF_Box *gama_New()
 GF_Err gama_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_GamaInfoBox *ptr = (GF_GamaInfoBox *)s;
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
 	gf_bs_write_u32(bs, ptr->gama);
 	return GF_OK;
 }
@@ -737,6 +751,8 @@ GF_Box *chrm_New()
 GF_Err chrm_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ChromaInfoBox *ptr = (GF_ChromaInfoBox *)s;
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
 	gf_bs_write_u16(bs, ptr->chroma);
 	return GF_OK;
 }
@@ -748,6 +764,87 @@ GF_Err chrm_Size(GF_Box *s)
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+void chan_del(GF_Box *s)
+{
+	GF_ChannelLayoutInfoBox *ptr = (GF_ChannelLayoutInfoBox *)s;
+	if (ptr->audio_descs) gf_free(ptr->audio_descs);
+	gf_free(s);
+}
+
+
+GF_Err chan_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i;
+	GF_ChannelLayoutInfoBox *ptr = (GF_ChannelLayoutInfoBox *)s;
+
+	ISOM_DECREASE_SIZE(s, 12);
+	ptr->layout_tag = gf_bs_read_u32(bs);
+	ptr->bitmap = gf_bs_read_u32(bs);
+	ptr->num_audio_description = gf_bs_read_u32(bs);
+
+	ptr->audio_descs = gf_malloc(sizeof(GF_AudioChannelDescription) * ptr->num_audio_description);
+	for (i=0; i<ptr->num_audio_description; i++) {
+		GF_AudioChannelDescription *adesc = &ptr->audio_descs[i];
+		ISOM_DECREASE_SIZE(s, 20);
+		adesc->label = gf_bs_read_u32(bs);
+		adesc->flags = gf_bs_read_u32(bs);
+		adesc->coordinates[0] = gf_bs_read_float(bs);
+		adesc->coordinates[1] = gf_bs_read_float(bs);
+		adesc->coordinates[2] = gf_bs_read_float(bs);
+	}
+	//avoids warning on most files
+	if (ptr->size==20) {
+		ptr->size=0;
+		gf_bs_skip_bytes(bs, 20);
+	}
+	return GF_OK;
+}
+
+GF_Box *chan_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ChannelLayoutInfoBox, GF_QT_BOX_TYPE_CHAN);
+	return (GF_Box *)tmp;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err chan_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_ChannelLayoutInfoBox *ptr = (GF_ChannelLayoutInfoBox *)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+
+	gf_bs_write_u32(bs, ptr->layout_tag);
+	gf_bs_write_u32(bs, ptr->bitmap);
+	gf_bs_write_u32(bs, ptr->num_audio_description);
+	for (i=0; i<ptr->num_audio_description; i++) {
+		GF_AudioChannelDescription *adesc = &ptr->audio_descs[i];
+		gf_bs_write_u32(bs, adesc->label);
+		gf_bs_write_u32(bs, adesc->flags);
+		gf_bs_write_float(bs, adesc->coordinates[0]);
+		gf_bs_write_float(bs, adesc->coordinates[1]);
+		gf_bs_write_float(bs, adesc->coordinates[2]);
+	}
+
+	return GF_OK;
+}
+
+GF_Err chan_Size(GF_Box *s)
+{
+	GF_ChannelLayoutInfoBox *ptr = (GF_ChannelLayoutInfoBox *)s;
+	s->size += 12 + 20 * ptr->num_audio_description;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 
 
 #endif /*GPAC_DISABLE_ISOM*/
