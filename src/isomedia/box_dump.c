@@ -642,11 +642,17 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_SUBTYPE_AV01:
 		name = "AV1SampleEntryBox";
 		break;
+	case GF_ISOM_SUBTYPE_VP08:
+		name = "VP8SampleEntryBox";
+		break;
+	case GF_ISOM_SUBTYPE_VP09:
+		name = "VP9SampleEntryBox";
+		break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
 		name = "H263SampleDescriptionBox";
 		break;
 	default:
-		name = "MPEGVisualSampleDescriptionBox";
+		name = "VisualSampleDescriptionBox";
 	}
 
 	gf_isom_box_dump_start(a, name, trace);
@@ -1375,13 +1381,18 @@ GF_Err elng_dump(GF_Box *a, FILE * trace)
 
 GF_Err unkn_dump(GF_Box *a, FILE * trace)
 {
+	const char *name = "UnknownBox";
 	GF_UnknownBox *u = (GF_UnknownBox *)a;
-	gf_isom_box_dump_start(a, "UnknownBox", trace);
+	if (!a->type && (a->size==8))
+		name = "TerminatorBox";
 
-	if (u->dataSize<100)
+	gf_isom_box_dump_start(a, name, trace);
+
+	if (u->dataSize && u->dataSize<100)
 		dump_data_attribute(trace, "data", u->data, u->dataSize);
+
 	fprintf(trace, ">\n");
-	gf_isom_box_dump_done("UnknownBox", a, trace);
+	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
 
@@ -5142,7 +5153,26 @@ GF_Err stvi_dump(GF_Box *a, FILE * trace)
 
 GF_Err def_cont_box_dump(GF_Box *a, FILE *trace)
 {
-	char *name = "SubTrackDefinitionBox"; //only one using generic box container for now
+	char *name = "GenericContainerBox";
+
+	switch (a->type) {
+	case GF_QT_BOX_TYPE_WAVE:
+		name = "DecompressionParamBox";
+		break;
+	case GF_QT_BOX_TYPE_TMCD:
+		name = "TimeCodeBox";
+		break;
+	case GF_ISOM_BOX_TYPE_GMHD:
+		name = "GenericMediaHeaderBox";
+		break;
+	case GF_QT_BOX_TYPE_TAPT:
+		name = "TrackApertureBox";
+		break;
+	case GF_ISOM_BOX_TYPE_STRD:
+		name = "SubTrackDefinitionBox";
+		break;
+	}
+
 	gf_isom_box_dump_start(a, name, trace);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done(name, a, trace);
@@ -5425,7 +5455,7 @@ GF_Err tcmi_dump(GF_Box *a, FILE * trace)
 	GF_TimeCodeMediaInformationBox *p = (GF_TimeCodeMediaInformationBox *) a;
 
 	gf_isom_box_dump_start(a, "TimeCodeMediaInformationBox", trace);
-	fprintf(trace, "textFont=\"%d\" texFace=\"%d\" textSize=\"%d\" textColorRed=\"%d\" textColorGreen=\"%d\" textColorBlue=\"%d\" backColorRed=\"%d\" backColorGreen=\"%d\" backColorBlue=\"%d\"",
+	fprintf(trace, "textFont=\"%d\" textFace=\"%d\" textSize=\"%d\" textColorRed=\"%d\" textColorGreen=\"%d\" textColorBlue=\"%d\" backColorRed=\"%d\" backColorGreen=\"%d\" backColorBlue=\"%d\"",
 			p->text_font, p->text_face, p->text_size, p->text_color_red, p->text_color_green, p->text_color_blue, p->back_color_red, p->back_color_green, p->back_color_blue);
 	if (p->font)
 		fprintf(trace, " font=\"%s\"", p->font);
@@ -5459,10 +5489,30 @@ GF_Err gama_dump(GF_Box *a, FILE * trace)
 GF_Err chrm_dump(GF_Box *a, FILE * trace)
 {
 	GF_ChromaInfoBox *p = (GF_ChromaInfoBox *) a;
+	if (a->type==GF_QT_BOX_TYPE_ENDA) {
+		gf_isom_box_dump_start(a, "AudioEndianBox", trace);
+		fprintf(trace, "littleEndian=\"%d\">\n", p->chroma);
+		gf_isom_box_dump_done("AudioEndianBox", a, trace);
+	} else {
+		gf_isom_box_dump_start(a, "ChromaInfoBox", trace);
+		fprintf(trace, "chroma=\"%d\">\n", p->chroma);
+		gf_isom_box_dump_done("ChromaInfoBox", a, trace);
+	}
+	return GF_OK;
+}
 
-	gf_isom_box_dump_start(a, "ChromaInfoBox", trace);
-	fprintf(trace, "chroma=\"%d\">\n", p->chroma);
-	gf_isom_box_dump_done("ChromaInfoBox", a, trace);
+GF_Err chan_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_ChannelLayoutInfoBox *p = (GF_ChannelLayoutInfoBox *) a;
+
+	gf_isom_box_dump_start(a, "ChannelLayoutInfoBox", trace);
+	fprintf(trace, "layout=\"%d\" bitmap=\"%d\">\n", p->layout_tag, p->bitmap);
+	for (i=0; i<p->num_audio_description; i++) {
+		GF_AudioChannelDescription *adesc = &p->audio_descs[i];
+		fprintf(trace, "<AudioChannelDescription label=\"%d\" flags=\"%08X\" coordinates=\"%f %f %f\"/>\n", adesc->label, adesc->flags, adesc->coordinates[0], adesc->coordinates[1], adesc->coordinates[2]);
+	}
+	gf_isom_box_dump_done("ChannelLayoutInfoBox", a, trace);
 	return GF_OK;
 }
 

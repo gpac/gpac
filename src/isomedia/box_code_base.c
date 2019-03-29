@@ -774,10 +774,9 @@ GF_Err unkn_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *unkn_New(u32 box_type)
+GF_Box *unkn_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_UnknownBox, GF_ISOM_BOX_TYPE_UNKNOWN);
-	tmp->original_4cc = box_type;
 	return (GF_Box *) tmp;
 }
 
@@ -789,9 +788,9 @@ GF_Err unkn_Write(GF_Box *s, GF_BitStream *bs)
 	u32 type = s->type;
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
 	if (!s) return GF_BAD_PARAM;
-	s->type = ptr->original_4cc;
+	ptr->type = ptr->original_4cc;
 	e = gf_isom_box_write_header(s, bs);
-	s->type = type;
+	ptr->type = type;
 	if (e) return e;
 
 	if (ptr->dataSize && ptr->data) {
@@ -4457,8 +4456,44 @@ GF_Err video_sample_entry_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->cfg_3gpp->size;
 	} else {
-		if (!ptr->avc_config && !ptr->svc_config && !ptr->hevc_config && !ptr->lhvc_config && (ptr->type!=GF_ISOM_BOX_TYPE_HVT1) && !ptr->av1_config && !ptr->vp_config ) {
-			return GF_ISOM_INVALID_FILE;
+		switch (ptr->type) {
+		case GF_ISOM_BOX_TYPE_AVC1:
+		case GF_ISOM_BOX_TYPE_AVC2:
+		case GF_ISOM_BOX_TYPE_AVC3:
+		case GF_ISOM_BOX_TYPE_AVC4:
+		case GF_ISOM_BOX_TYPE_SVC1:
+		case GF_ISOM_BOX_TYPE_SVC2:
+		case GF_ISOM_BOX_TYPE_MVC1:
+		case GF_ISOM_BOX_TYPE_MVC2:
+			if (!ptr->avc_config && !ptr->svc_config  && !ptr->mvc_config)
+				return GF_ISOM_INVALID_FILE;
+			break;
+		case GF_ISOM_BOX_TYPE_VP08:
+		case GF_ISOM_BOX_TYPE_VP09:
+			if (!ptr->vp_config) {
+				return GF_ISOM_INVALID_FILE;
+			}
+			break;
+		case GF_ISOM_BOX_TYPE_AV01:
+			if (!ptr->av1_config) {
+				return GF_ISOM_INVALID_FILE;
+			}
+			break;
+		case GF_ISOM_BOX_TYPE_HVC1:
+		case GF_ISOM_BOX_TYPE_HEV1:
+		case GF_ISOM_BOX_TYPE_HVC2:
+		case GF_ISOM_BOX_TYPE_HEV2:
+		case GF_ISOM_BOX_TYPE_LHV1:
+		case GF_ISOM_BOX_TYPE_LHE1:
+		//commented on purpose, HVT1 tracks have no config associated
+//		case GF_ISOM_BOX_TYPE_HVT1:
+//		case GF_ISOM_BOX_TYPE_HVT2:
+			if (!ptr->hevc_config && !ptr->lhvc_config) {
+				return GF_ISOM_INVALID_FILE;
+			}
+			break;
+		default:
+			break;
 		}
 
 		if (ptr->hevc_config && ptr->hevc_config->config) {
@@ -6816,7 +6851,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_MHM1:
 		case GF_ISOM_BOX_TYPE_MHM2:
 
-		case GF_QT_BOX_TYPE_AUDIO_RAW:
+/*		case GF_QT_BOX_TYPE_AUDIO_RAW:
 		case GF_QT_BOX_TYPE_AUDIO_TWOS:
 		case GF_QT_BOX_TYPE_AUDIO_SOWT:
 		case GF_QT_BOX_TYPE_AUDIO_FL32:
@@ -6832,6 +6867,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_QT_BOX_TYPE_AUDIO_QDMC2:
 		case GF_QT_BOX_TYPE_AUDIO_QCELP:
 		case GF_QT_BOX_TYPE_AUDIO_kMP3:
+*/
 			continue;
 
 		case GF_ISOM_BOX_TYPE_UNKNOWN:
