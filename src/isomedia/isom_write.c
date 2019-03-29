@@ -1380,7 +1380,7 @@ GF_Err gf_isom_set_clean_aperture(GF_ISOFile *movie, u32 trackNumber, u32 Stream
 		vent->clap = NULL;
 		return GF_OK;
 	}
-	if (!vent->clap) vent->clap = (GF_CleanAppertureBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_CLAP);
+	if (!vent->clap) vent->clap = (GF_CleanApertureBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_CLAP);
 	vent->clap->cleanApertureWidthN = cleanApertureWidthN;
 	vent->clap->cleanApertureWidthD = cleanApertureWidthD;
 	vent->clap->cleanApertureHeightN = cleanApertureHeightN;
@@ -3982,22 +3982,22 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			return GF_FALSE;
 		}
 		case GF_ISOM_BOX_TYPE_MP3:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_RAW:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_TWOS:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_SOWT:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_FL32:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_FL64:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_IN24:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_IN32:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_ULAW:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_ALAW:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_ADPCM:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_IMA_ADPCM:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_DVCA:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_QDMC:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_QDMC2:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_QCELP:
-		case GF_ISOM_BOX_TYPE_QT_AUDIO_kMP3:
+		case GF_QT_BOX_TYPE_AUDIO_RAW:
+		case GF_QT_BOX_TYPE_AUDIO_TWOS:
+		case GF_QT_BOX_TYPE_AUDIO_SOWT:
+		case GF_QT_BOX_TYPE_AUDIO_FL32:
+		case GF_QT_BOX_TYPE_AUDIO_FL64:
+		case GF_QT_BOX_TYPE_AUDIO_IN24:
+		case GF_QT_BOX_TYPE_AUDIO_IN32:
+		case GF_QT_BOX_TYPE_AUDIO_ULAW:
+		case GF_QT_BOX_TYPE_AUDIO_ALAW:
+		case GF_QT_BOX_TYPE_AUDIO_ADPCM:
+		case GF_QT_BOX_TYPE_AUDIO_IMA_ADPCM:
+		case GF_QT_BOX_TYPE_AUDIO_DVCA:
+		case GF_QT_BOX_TYPE_AUDIO_QDMC:
+		case GF_QT_BOX_TYPE_AUDIO_QDMC2:
+		case GF_QT_BOX_TYPE_AUDIO_QCELP:
+		case GF_QT_BOX_TYPE_AUDIO_kMP3:
 			return GF_TRUE;
 		}
 

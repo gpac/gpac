@@ -137,7 +137,7 @@ u32 gf_isom_probe_file(const char *fileName)
 	case GF_ISOM_BOX_TYPE_META:
 	case GF_ISOM_BOX_TYPE_VOID:
 	case GF_ISOM_BOX_TYPE_JP:
-	case GF_ISOM_BOX_TYPE_WIDE:
+	case GF_QT_BOX_TYPE_WIDE:
 		return 1;
 	default:
 		return 0;
