@@ -451,11 +451,30 @@ enum
 	GF_ISOM_BOX_TYPE_JPEG	= GF_4CC('j','p','e','g'),
 	GF_ISOM_BOX_TYPE_PNG 	= GF_4CC('p','n','g',' '),
 
-	GF_ISOM_BOX_TYPE_WAVE 	= GF_4CC('w','a','v','e'),
+	/* apple QT box */
+	GF_QT_BOX_TYPE_ALIS = GF_4CC('a','l','i','s'),
+	GF_QT_BOX_TYPE_WIDE = GF_4CC('w','i','d','e'),
+	GF_QT_BOX_TYPE_GMIN	= GF_4CC( 'g', 'm', 'i', 'n' ),
+	GF_QT_BOX_TYPE_TAPT	= GF_4CC( 't', 'a', 'p', 't' ),
+	GF_QT_BOX_TYPE_CLEF	= GF_4CC( 'c', 'l', 'e', 'f' ),
+	GF_QT_BOX_TYPE_PROF	= GF_4CC( 'p', 'r', 'o', 'f' ),
+	GF_QT_BOX_TYPE_ENOF	= GF_4CC( 'e', 'n', 'o', 'f' ),
+	GF_QT_BOX_TYPE_WAVE = GF_4CC('w','a','v','e'),
+	GF_QT_BOX_TYPE_CHAN = GF_4CC('c','h','a','n'),
+	GF_QT_BOX_TYPE_TERMINATOR 	= 0,
+	GF_QT_BOX_TYPE_ENDA = GF_4CC('e','n','d','a'),
+	GF_QT_BOX_TYPE_FRMA = GF_4CC('f','r','m','a'),
+	GF_QT_BOX_TYPE_TMCD = GF_4CC('t','m','c','d'),
+	GF_QT_BOX_TYPE_NAME = GF_4CC('n','a','m','e'),
+	GF_QT_BOX_TYPE_TCMI = GF_4CC('t','c','m','i'),
+	GF_QT_BOX_TYPE_FIEL = GF_4CC('f','i','e','l'),
+	GF_QT_BOX_TYPE_GAMA = GF_4CC('g','a','m','a'),
+	GF_QT_BOX_TYPE_CHRM = GF_4CC('c','h','r','m'),
 
-	/* apple alis box */
-	GF_ISOM_BOX_TYPE_ALIS 	= GF_4CC('a','l','i','s'),
-	GF_ISOM_BOX_TYPE_WIDE 	= GF_4CC('w','i','d','e'),
+	GF_QT_BOX_TYPE_C608	= GF_4CC( 'c', '6', '0', '8' ),
+	GF_QT_BOX_TYPE_APCH	= GF_4CC( 'a', 'p', 'c', 'h' ),
+	GF_QT_BOX_TYPE_APCO	= GF_4CC( 'a', 'p', 'c', 'o' ),
+	GF_QT_BOX_TYPE_AP4X	= GF_4CC( 'a', 'p', '4', 'x' ),
 
 	/* from drm_sample.c */
 	GF_ISOM_BOX_TYPE_264B 	= GF_4CC('2','6','4','b'),
@@ -474,22 +493,22 @@ enum
 	GF_ISOM_BOX_TYPE_AUXV 	= GF_4CC('A','U','X','V'),
 
 	/*QTFF audio codes*/
-	GF_ISOM_BOX_TYPE_QT_AUDIO_RAW 	= GF_4CC('r','a','w',' '),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_TWOS 	= GF_4CC('t','w','o','s'),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_SOWT 	= GF_4CC('s','o','w','t'),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_FL32 	= GF_4CC('f','l','3','2'),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_FL64 	= GF_4CC('f','l','6','4'),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_IN24 	= GF_4CC('i','n','2','4'),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_IN32 	= GF_4CC('i','n','3','2'),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_ULAW 	= GF_4CC('u','l','a','w'),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_ALAW 	= GF_4CC('a','l','a','w'),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_ADPCM 	= GF_4CC(0x6D,0x73,0x00,0x02),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_IMA_ADPCM 	= GF_4CC(0x6D,0x73,0x00,0x11),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_DVCA 	= GF_4CC('d','v','c','a'),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_QDMC 	= GF_4CC('Q','D','M','C'),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_QDMC2	= GF_4CC('Q','D','M','2'),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_QCELP	= GF_4CC('Q','c','l','p'),
-	GF_ISOM_BOX_TYPE_QT_AUDIO_kMP3 	= GF_4CC(0x6D,0x73,0x00,0x55),
+	GF_QT_BOX_TYPE_AUDIO_RAW 	= GF_4CC('r','a','w',' '),
+	GF_QT_BOX_TYPE_AUDIO_TWOS 	= GF_4CC('t','w','o','s'),
+	GF_QT_BOX_TYPE_AUDIO_SOWT 	= GF_4CC('s','o','w','t'),
+	GF_QT_BOX_TYPE_AUDIO_FL32 	= GF_4CC('f','l','3','2'),
+	GF_QT_BOX_TYPE_AUDIO_FL64 	= GF_4CC('f','l','6','4'),
+	GF_QT_BOX_TYPE_AUDIO_IN24 	= GF_4CC('i','n','2','4'),
+	GF_QT_BOX_TYPE_AUDIO_IN32 	= GF_4CC('i','n','3','2'),
+	GF_QT_BOX_TYPE_AUDIO_ULAW 	= GF_4CC('u','l','a','w'),
+	GF_QT_BOX_TYPE_AUDIO_ALAW 	= GF_4CC('a','l','a','w'),
+	GF_QT_BOX_TYPE_AUDIO_ADPCM 	= GF_4CC(0x6D,0x73,0x00,0x02),
+	GF_QT_BOX_TYPE_AUDIO_IMA_ADPCM 	= GF_4CC(0x6D,0x73,0x00,0x11),
+	GF_QT_BOX_TYPE_AUDIO_DVCA 	= GF_4CC('d','v','c','a'),
+	GF_QT_BOX_TYPE_AUDIO_QDMC 	= GF_4CC('Q','D','M','C'),
+	GF_QT_BOX_TYPE_AUDIO_QDMC2	= GF_4CC('Q','D','M','2'),
+	GF_QT_BOX_TYPE_AUDIO_QCELP	= GF_4CC('Q','c','l','p'),
+	GF_QT_BOX_TYPE_AUDIO_kMP3 	= GF_4CC(0x6D,0x73,0x00,0x55),
 };
 
 enum
@@ -858,6 +877,18 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
+
+	u16 graphics_mode;
+	u16 op_color_red;
+	u16 op_color_green;
+	u16 op_color_blue;
+	u16 balance;
+	u16 reserved;
+} GF_GenericMediaHeaderInfoBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
 	u16 balance;
 	u16 reserved;
 } GF_SoundMediaHeaderBox;
@@ -898,6 +929,15 @@ typedef struct
 {
 	GF_ISOM_FULL_BOX
 } GF_SceneMediaHeaderBox;
+
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+
+	u32 width;
+	u32 height;
+} GF_ApertureBox;
 
 typedef struct
 {
@@ -993,7 +1033,7 @@ typedef struct
 	u32 internal_type;					\
 	GF_List *protections;
 
-/*base sample entry box (never used but for typecasting)*/
+/*base sample entry box - used by some generic media sample descriptions of QT*/
 typedef struct
 {
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
@@ -1012,6 +1052,48 @@ typedef struct
 	char *data;
 	u32 data_size;
 } GF_GenericSampleEntryBox;
+
+typedef struct
+{
+	GF_ISOM_SAMPLE_ENTRY_FIELDS
+
+	u32 flags;
+	u32 timescale;
+	u32 frame_duration;
+	u8 frames_per_sec;
+} GF_TimeCodeSampleEntryBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+
+    u16 text_font;
+    u16 text_face;
+    u16 text_size;
+    u16 text_color_red, text_color_green, text_color_blue;
+    u16 back_color_red, back_color_green, back_color_blue;
+    char *font;
+} GF_TimeCodeMediaInformationBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+
+    u8 field_count;
+    u8 field_order;
+} GF_FieldInfoBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+    u32 gama;
+} GF_GamaInfoBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+    u16 chroma;
+} GF_ChromaInfoBox;
 
 typedef struct
 {
@@ -1084,7 +1166,7 @@ typedef struct
 	u32 horizOffD;
 	u32 vertOffN;
 	u32 vertOffD;
-} GF_CleanAppertureBox;
+} GF_CleanApertureBox;
 
 typedef struct
 {
@@ -1123,7 +1205,7 @@ typedef struct
 	u16 bit_depth;						\
 	s16 color_table_index;				\
 	GF_PixelAspectRatioBox *pasp;		\
-	GF_CleanAppertureBox *clap;		\
+	GF_CleanApertureBox *clap;		\
 	GF_CodingConstraintsBox *ccst;		\
 	GF_AuxiliaryTypeInfoBox *auxi;		\
 	struct __tag_protect_box *rinf;				\

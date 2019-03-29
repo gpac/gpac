@@ -273,6 +273,31 @@ GF_Err vmhd_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err gmin_dump(GF_Box *a, FILE * trace)
+{
+	GF_GenericMediaHeaderInfoBox *p = (GF_GenericMediaHeaderInfoBox *)a;
+	gf_isom_box_dump_start(a, "GenericMediaHeaderInformationBox", trace);
+	fprintf(trace, " graphicsMode=\"%d\" opcolorRed=\"%d\" opcolorGreen=\"%d\" opcolorBlue=\"%d\" balance=\"%d\">\n",
+		p->graphics_mode, p->op_color_red, p->op_color_green, p->op_color_blue, p->balance);
+	gf_isom_box_dump_done("GenericMediaHeaderInformationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err clef_dump(GF_Box *a, FILE * trace)
+{
+	const char *name = "TrackCleanApertureDimensionsBox";
+	GF_ApertureBox *p = (GF_ApertureBox *)a;
+	if (p->type==GF_QT_BOX_TYPE_PROF)
+		name = "TrackProductionApertureDimensionsBox";
+	else if (p->type==GF_QT_BOX_TYPE_ENOF)
+		name = "TrackEncodedPixelsDimensionsBox";
+
+	gf_isom_box_dump_start(a, name, trace);
+	fprintf(trace, " width=\"%d.%d\" height=\"%d.%d\">\n", (p->width>>16), p->width&0xFFFF, p->height>>16, p->height&0xFFFF);
+	gf_isom_box_dump_done(name, a, trace);
+	return GF_OK;
+}
+
 GF_Err smhd_dump(GF_Box *a, FILE * trace)
 {
 	gf_isom_box_dump_start(a, "SoundMediaHeaderBox", trace);
@@ -756,6 +781,30 @@ GF_Err audio_sample_entry_dump(GF_Box *a, FILE * trace)
 	}
 
 	if (a->type == GF_ISOM_BOX_TYPE_ENCA) {
+		gf_isom_box_array_dump(p->protections, trace);
+	}
+	gf_isom_box_dump_done(szName, a, trace);
+	return GF_OK;
+}
+
+GF_Err gen_sample_entry_dump(GF_Box *a, FILE * trace)
+{
+	char *szName;
+	GF_SampleEntryBox *p = (GF_SampleEntryBox *)a;
+
+	switch (p->type) {
+	case GF_QT_BOX_TYPE_C608:
+		szName = "ClosedCaption";
+		break;
+	default:
+		szName = "GenericSampleDescriptionBox";
+		break;
+	}
+
+	gf_isom_box_dump_start(a, szName, trace);
+	fprintf(trace, ">\n");
+
+	if (p->protections && gf_list_count(p->protections) ) {
 		gf_isom_box_array_dump(p->protections, trace);
 	}
 	gf_isom_box_dump_done(szName, a, trace);
@@ -3807,14 +3856,14 @@ GF_Err pasp_dump(GF_Box *a, FILE * trace)
 
 GF_Err clap_dump(GF_Box *a, FILE * trace)
 {
-	GF_CleanAppertureBox *ptr = (GF_CleanAppertureBox*)a;
-	gf_isom_box_dump_start(a, "CleanAppertureBox", trace);
+	GF_CleanApertureBox *ptr = (GF_CleanApertureBox*)a;
+	gf_isom_box_dump_start(a, "CleanApertureBox", trace);
 	fprintf(trace, "cleanApertureWidthN=\"%d\" cleanApertureWidthD=\"%d\" ", ptr->cleanApertureWidthN, ptr->cleanApertureWidthD);
 	fprintf(trace, "cleanApertureHeightN=\"%d\" cleanApertureHeightD=\"%d\" ", ptr->cleanApertureHeightN, ptr->cleanApertureHeightD);
 	fprintf(trace, "horizOffN=\"%d\" horizOffD=\"%d\" ", ptr->horizOffN, ptr->horizOffD);
 	fprintf(trace, "vertOffN=\"%d\" vertOffD=\"%d\"", ptr->vertOffN, ptr->vertOffD);
 	fprintf(trace, ">\n");
-	gf_isom_box_dump_done("CleanAppertureBox", a, trace);
+	gf_isom_box_dump_done("CleanApertureBox", a, trace);
 	return GF_OK;
 }
 
@@ -5356,6 +5405,64 @@ GF_Err mhac_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, "configurationVersion=\"%d\" mpegh3daProfileLevelIndication=\"%d\" referenceChannelLayout=\"%d\">\n", p->configuration_version, p->mha_pl_indication, p->reference_channel_layout);
 	gf_isom_box_dump_done("MHAConfigurationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err tmcd_dump(GF_Box *a, FILE * trace)
+{
+	GF_TimeCodeSampleEntryBox *p = (GF_TimeCodeSampleEntryBox *) a;
+
+	gf_isom_box_dump_start(a, "TimeCodeSampleEntryBox", trace);
+
+	fprintf(trace, "DataReferenceIndex=\"%d\" Flags=\"%08X\" TimeScale=\"%d\" FrameDuration=\"%d\" FramesPerSec=\"%d\">\n", p->dataReferenceIndex, p->flags, p->timescale, p->frame_duration, p->frames_per_sec);
+
+	gf_isom_box_dump_done("TimeCodeSampleEntryBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err tcmi_dump(GF_Box *a, FILE * trace)
+{
+	GF_TimeCodeMediaInformationBox *p = (GF_TimeCodeMediaInformationBox *) a;
+
+	gf_isom_box_dump_start(a, "TimeCodeMediaInformationBox", trace);
+	fprintf(trace, "textFont=\"%d\" texFace=\"%d\" textSize=\"%d\" textColorRed=\"%d\" textColorGreen=\"%d\" textColorBlue=\"%d\" backColorRed=\"%d\" backColorGreen=\"%d\" backColorBlue=\"%d\"",
+			p->text_font, p->text_face, p->text_size, p->text_color_red, p->text_color_green, p->text_color_blue, p->back_color_red, p->back_color_green, p->back_color_blue);
+	if (p->font)
+		fprintf(trace, " font=\"%s\"", p->font);
+
+	fprintf(trace, ">\n");
+
+	gf_isom_box_dump_done("TimeCodeMediaInformationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err fiel_dump(GF_Box *a, FILE * trace)
+{
+	GF_FieldInfoBox *p = (GF_FieldInfoBox *) a;
+
+	gf_isom_box_dump_start(a, "FieldInfoBox", trace);
+	fprintf(trace, "count=\"%d\" order=\"%d\">\n", p->field_count, p->field_order);
+	gf_isom_box_dump_done("FieldInfoBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err gama_dump(GF_Box *a, FILE * trace)
+{
+	GF_GamaInfoBox *p = (GF_GamaInfoBox *) a;
+
+	gf_isom_box_dump_start(a, "GamaInfoBox", trace);
+	fprintf(trace, "gama=\"%d\">\n", p->gama);
+	gf_isom_box_dump_done("GamaInfoBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err chrm_dump(GF_Box *a, FILE * trace)
+{
+	GF_ChromaInfoBox *p = (GF_ChromaInfoBox *) a;
+
+	gf_isom_box_dump_start(a, "ChromaInfoBox", trace);
+	fprintf(trace, "chroma=\"%d\">\n", p->chroma);
+	gf_isom_box_dump_done("ChromaInfoBox", a, trace);
 	return GF_OK;
 }
 

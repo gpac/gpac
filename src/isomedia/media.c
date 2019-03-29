@@ -543,7 +543,7 @@ Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 	}
 	if (a->flags & 1) return 1;
 	/*QT specific*/
-	if (a->type == GF_ISOM_BOX_TYPE_ALIS) return 1;
+	if (a->type == GF_QT_BOX_TYPE_ALIS) return 1;
 	return 0;
 }
 
