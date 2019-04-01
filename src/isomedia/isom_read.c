@@ -1485,12 +1485,42 @@ u32 gf_isom_get_sample_count(GF_ISOFile *the_file, u32 trackNumber)
 	       ;
 }
 
+GF_EXPORT
 u32 gf_isom_get_constant_sample_size(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 0;
 	return trak->Media->information->sampleTable->SampleSize->sampleSize;
+}
+
+GF_EXPORT
+u32 gf_isom_get_constant_sample_duration(GF_ISOFile *the_file, u32 trackNumber)
+{
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return 0;
+	if (trak->Media->information->sampleTable->TimeToSample->nb_entries != 1) return 0;
+	return trak->Media->information->sampleTable->TimeToSample->entries[0].sampleDelta;
+}
+
+GF_EXPORT
+Bool gf_isom_enable_raw_pack(GF_ISOFile *the_file, u32 trackNumber, u32 pack_num_samples)
+{
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_FALSE;
+	trak->pack_num_samples = 0;
+	//we only activate sample packing for raw audio
+	if (!trak->Media->handler) return GF_FALSE;
+	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_AUDIO) return GF_FALSE;
+	//and sample duration of 1
+	if (trak->Media->information->sampleTable->TimeToSample->nb_entries != 1) return GF_FALSE;
+	if (trak->Media->information->sampleTable->TimeToSample->entries[0].sampleDelta != 1) return GF_FALSE;
+	//and sample with constant size
+	if (!trak->Media->information->sampleTable->SampleSize->sampleSize) return GF_FALSE;
+	trak->pack_num_samples = pack_num_samples;
+	return pack_num_samples ? GF_TRUE : GF_FALSE;
 }
 
 GF_EXPORT
@@ -4044,7 +4074,6 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 	u32 i, count;
 	u32 descIndex, chunkNum;
 	u64 offset;
-	u8 edit;
 	u32 first_sample_in_entry, last_sample_in_entry;
 	GF_CENCSampleEncryptionGroupEntry *entry;
 
@@ -4062,7 +4091,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 #endif
 
 	if (trak && trak->Media->information->sampleTable->SampleSize && trak->Media->information->sampleTable->SampleSize->sampleCount>=sample_number) {
-		stbl_GetSampleInfos(trak->Media->information->sampleTable, sample_number, &offset, &chunkNum, &descIndex, &edit);
+		stbl_GetSampleInfos(trak->Media->information->sampleTable, sample_number, &offset, &chunkNum, &descIndex, NULL);
 	} else {
 		//this is dump mode of fragments, we haven't merged tables yet :(
 		descIndex = 1;

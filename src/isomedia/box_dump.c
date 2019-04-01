@@ -642,18 +642,13 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_SUBTYPE_AV01:
 		name = "AV1SampleEntryBox";
 		break;
-	case GF_ISOM_SUBTYPE_VP08:
-		name = "VP8SampleEntryBox";
-		break;
-	case GF_ISOM_SUBTYPE_VP09:
-		name = "VP9SampleEntryBox";
-		break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
 		name = "H263SampleDescriptionBox";
 		break;
 	default:
-		name = "VisualSampleDescriptionBox";
+		name = "MPEGVisualSampleDescriptionBox";
 	}
+
 
 	gf_isom_box_dump_start(a, name, trace);
 

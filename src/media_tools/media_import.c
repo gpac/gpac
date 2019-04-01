@@ -107,7 +107,7 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 {
 #ifndef GPAC_DISABLE_ISOM_WRITE
-	u32 i, count, timescale, db_size, ofmt;
+	u32 i, count, timescale, db_size, ofmt, cdur, csize;
 	u64 time_wnd, rate, max_rate, avg_rate, bitrate;
 	Double br;
 	GF_ESD *esd = NULL;
@@ -130,29 +130,41 @@ void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 	db_size = 0;
 	rate = max_rate = avg_rate = time_wnd = 0;
 
-	timescale = gf_isom_get_media_timescale(file, track);
-	count = gf_isom_get_sample_count(file, track);
-	for (i=0; i<count; i++) {
-		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, NULL, NULL);
-
-		if (samp->dataLength > db_size) db_size = samp->dataLength;
-
-		avg_rate += samp->dataLength;
-		rate += samp->dataLength;
-		if (samp->DTS > time_wnd + timescale) {
-			if (rate > max_rate) max_rate = rate;
-			time_wnd = samp->DTS;
-			rate = 0;
-		}
-
-		gf_isom_sample_del(&samp);
+	csize = 0;
+	cdur = 0;
+	if (gf_isom_get_media_type(file, track)==GF_ISOM_MEDIA_AUDIO) {
+		csize = gf_isom_get_constant_sample_size(file, track);
+		cdur = gf_isom_get_constant_sample_duration(file, track);
+		if (cdur > 1) cdur = 0;
 	}
 
-	br = (Double) (s64) gf_isom_get_media_duration(file, track);
-	br /= timescale;
-	bitrate = (u32) ((Double) (s64)avg_rate / br);
-	bitrate *= 8;
-	max_rate *= 8;
+	timescale = gf_isom_get_media_timescale(file, track);
+	count = gf_isom_get_sample_count(file, track);
+	if (csize && cdur) {
+		db_size = 0;
+		avg_rate = 8 * csize * timescale / cdur;
+		bitrate = rate = avg_rate;
+	} else {
+		for (i=0; i<count; i++) {
+			GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, NULL, NULL);
+
+			if (samp->dataLength > db_size) db_size = samp->dataLength;
+
+			avg_rate += samp->dataLength;
+			rate += samp->dataLength;
+			if (samp->DTS > time_wnd + timescale) {
+				if (rate > max_rate) max_rate = rate;
+				time_wnd = samp->DTS;
+				rate = 0;
+			}
+			gf_isom_sample_del(&samp);
+		}
+		br = (Double) (s64) gf_isom_get_media_duration(file, track);
+		br /= timescale;
+		bitrate = (u32) ((Double) (s64)avg_rate / br);
+		bitrate *= 8;
+		max_rate *= 8;
+	}
 	if (!max_rate) max_rate = bitrate;
 
 	/*move to bps*/
@@ -2068,7 +2080,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
 	Bool is_nalu_video = GF_FALSE;
-	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode;
+	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode, cdur;
 	s32 trans_x, trans_y;
 	s16 layer;
 	u8 bps;
@@ -2269,6 +2281,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
 
+	cdur = gf_isom_get_constant_sample_duration(import->orig, track_in);
+	gf_isom_enable_raw_pack(import->orig, track_in, 2048);
+
 	if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 		if (is_cenc ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] CENC media detected - cannot switch parameter set storage mode\n"));
@@ -2331,6 +2346,14 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				goto exit;
 			}
 			samp->DTS -= dts_offset;
+
+			if (samp->nb_pack && duration && (samp->DTS + samp->nb_pack*cdur > duration) ) {
+				u32 nb_samp = (duration - samp->DTS)/cdur;
+				u32 csize = samp->dataLength / samp->nb_pack;
+				samp->dataLength = csize*nb_samp;
+				samp->nb_pack = nb_samp;
+				duration = samp->DTS-1;
+			}
 			/*if not first sample and same DTS as previous sample, force DTS++*/
 			if (i && (samp->DTS<=sampDTS)) {
 				if (i+1 < num_samples) {
@@ -2341,6 +2364,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		sampDTS = samp->DTS;
+		if (samp->nb_pack)
+			i+= samp->nb_pack-1;
+
 		gf_isom_sample_del(&samp);
 
 		gf_isom_copy_sample_info(import->dest, track, import->orig, track_in, i+1);

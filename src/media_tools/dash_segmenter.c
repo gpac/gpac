@@ -1461,6 +1461,7 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 		tf->MediaType = gf_isom_get_media_type(input, i+1);
 		tf->sample_duration = sample_duration;
 		mpd_timescale = tf->TimeScale;
+		gf_isom_enable_raw_pack(input, i+1, 2048);
 
 		if ( (max_track_duration.num / max_track_duration.den) < gf_isom_get_track_duration(input, i+1)) {
 			max_track_duration.num = gf_isom_get_track_duration(input, i+1);
@@ -2002,6 +2003,7 @@ restart_fragmentation_pass:
 				Bool stop_frag = GF_FALSE;
 				Bool is_redundant_sample = GF_FALSE;
 				u32 split_sample_duration = 0;
+				u32 next_sample_num_offset = 1;
 				Double clamp_duration = dash_input->clamp_duration;
 				if (!clamp_duration) clamp_duration = dash_input->media_duration;
 
@@ -2039,10 +2041,13 @@ restart_fragmentation_pass:
 				}
 
 				gf_isom_get_sample_padding_bits(input, tf->OriginalTrack, tf->SampleNum+1, &NbBits);
+				if (sample->nb_pack) {
+					next_sample_num_offset = sample->nb_pack;
+				}
 
-				next = gf_isom_get_sample(input, tf->OriginalTrack, tf->SampleNum + 2, &j);
+				next = gf_isom_get_sample(input, tf->OriginalTrack, tf->SampleNum + 1 + next_sample_num_offset, &j);
 
-				if (next) sample_duration = gf_isom_get_sample_duration(input, tf->OriginalTrack, tf->SampleNum+2);
+				if (next) sample_duration = gf_isom_get_sample_duration(input, tf->OriginalTrack, tf->SampleNum+1 + next_sample_num_offset);
 				if (clamp_duration && next && clamp_duration*tf->TimeScale < next->DTS + sample_duration) {
 					gf_isom_sample_del(&next);
 					next = NULL;
@@ -2079,6 +2084,10 @@ restart_fragmentation_pass:
 					force_eos = GF_TRUE;
 				} else {
 					sample_duration = (u32) (gf_isom_get_media_duration(input, tf->OriginalTrack) - (sample->DTS - tf->loop_ts_offset));
+				}
+
+				if (sample->nb_pack) {
+					sample_duration /= sample->nb_pack;
 				}
 
 				if (tf->splitable) {
@@ -2194,7 +2203,7 @@ restart_fragmentation_pass:
 				} else {
 					gf_isom_sample_del(&sample);
 					sample = next;
-					tf->SampleNum += 1;
+					tf->SampleNum += next_sample_num_offset;
 					tf->split_sample_dts_shift = 0;
 				}
 				tf->FragmentLength += sample_duration;
