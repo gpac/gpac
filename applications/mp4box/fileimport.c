@@ -2178,6 +2178,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			}
 		}
 
+		gf_isom_enable_raw_pack(orig, i+1, 2048);
+
 		last_DTS = 0;
 		count = gf_isom_get_sample_count(orig, i+1);
 		for (j=0; j<count; j++) {
@@ -2195,6 +2197,9 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				e = gf_isom_add_sample_reference(dest, dst_tk, di, samp, offset);
 				gf_isom_sample_del(&s);
 			}
+			if (samp->nb_pack)
+				j+= samp->nb_pack-1;
+
 			gf_isom_sample_del(&samp);
 			if (e) goto err_exit;
 

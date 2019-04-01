@@ -6850,8 +6850,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_MHA2:
 		case GF_ISOM_BOX_TYPE_MHM1:
 		case GF_ISOM_BOX_TYPE_MHM2:
-
-/*		case GF_QT_BOX_TYPE_AUDIO_RAW:
+		case GF_QT_BOX_TYPE_AUDIO_RAW:
 		case GF_QT_BOX_TYPE_AUDIO_TWOS:
 		case GF_QT_BOX_TYPE_AUDIO_SOWT:
 		case GF_QT_BOX_TYPE_AUDIO_FL32:
@@ -6867,7 +6866,6 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_QT_BOX_TYPE_AUDIO_QDMC2:
 		case GF_QT_BOX_TYPE_AUDIO_QCELP:
 		case GF_QT_BOX_TYPE_AUDIO_kMP3:
-*/
 			continue;
 
 		case GF_ISOM_BOX_TYPE_UNKNOWN:
@@ -7628,6 +7626,7 @@ GF_Err trun_Read(GF_Box *s, GF_BitStream *bs)
 		return GF_ISOM_INVALID_FILE;
 
 	ptr->sample_count = gf_bs_read_u32(bs);
+	ISOM_DECREASE_SIZE(ptr, 4);
 
 	//The rest depends on the flags
 	if (ptr->flags & GF_ISOM_TRUN_DATA_OFFSET) {
@@ -7637,6 +7636,12 @@ GF_Err trun_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->flags & GF_ISOM_TRUN_FIRST_FLAG) {
 		ptr->first_sample_flags = gf_bs_read_u32(bs);
 		ISOM_DECREASE_SIZE(ptr, 4);
+	}
+	if (! (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) ) ) {
+		GF_SAFEALLOC(p, GF_TrunEntry);
+		p->nb_pack = ptr->sample_count;
+		gf_list_add(ptr->entries, p);
+		return GF_OK;
 	}
 
 	//read each entry (even though nothing may be written)
@@ -7706,7 +7711,10 @@ GF_Err trun_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u32(bs, ptr->first_sample_flags);
 	}
 
-	//if nothing to do, this will be skipped automatically
+	if (! (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) ) ) {
+		return GF_OK;
+	}
+
 	count = gf_list_count(ptr->entries);
 	for (i=0; i<count; i++) {
 		p = (GF_TrunEntry*)gf_list_get(ptr->entries, i);
@@ -7741,6 +7749,10 @@ GF_Err trun_Size(GF_Box *s)
 	//The rest depends on the flags
 	if (ptr->flags & GF_ISOM_TRUN_DATA_OFFSET) ptr->size += 4;
 	if (ptr->flags & GF_ISOM_TRUN_FIRST_FLAG) ptr->size += 4;
+
+	if (! (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) ) ) {
+		return GF_OK;
+	}
 
 	//if nothing to do, this will be skipped automatically
 	count = gf_list_count(ptr->entries);

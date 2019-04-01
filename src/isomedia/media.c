@@ -53,7 +53,6 @@ GF_Err Media_GetSampleDescIndex(GF_MediaBox *mdia, u64 DTS, u32 *sampleDescIndex
 	GF_Err e;
 	u32 sampleNumber, prevSampleNumber, num;
 	u64 offset;
-	u8 isEdited;
 	if (sampleDescIndex == NULL) return GF_BAD_PARAM;
 
 	//find the sample for this time
@@ -68,7 +67,7 @@ GF_Err Media_GetSampleDescIndex(GF_MediaBox *mdia, u64 DTS, u32 *sampleDescIndex
 		}
 		return GF_BAD_PARAM;
 	}
-	return stbl_GetSampleInfos(mdia->information->sampleTable, ( sampleNumber ? sampleNumber : prevSampleNumber), &offset, &num, sampleDescIndex, &isEdited);
+	return stbl_GetSampleInfos(mdia->information->sampleTable, ( sampleNumber ? sampleNumber : prevSampleNumber), &offset, &num, sampleDescIndex, NULL);
 }
 
 static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudioSampleEntryBox *entry, GF_ESD **out_esd)
@@ -359,8 +358,8 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	u32 bytesRead;
 	u32 dataRefIndex, chunkNumber;
 	u64 offset, new_size;
-	u8 isEdited;
 	GF_SampleEntryBox *entry;
+	GF_StscEntry *stsc_entry;
 
 	if (!mdia || !mdia->information->sampleTable) return GF_BAD_PARAM;
 	if (!mdia->information->sampleTable->SampleSize)
@@ -419,7 +418,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	if (!sIDX) return GF_OK;
 
 	(*sIDX) = 0;
-	e = stbl_GetSampleInfos(mdia->information->sampleTable, sampleNumber, &offset, &chunkNumber, sIDX, &isEdited);
+	e = stbl_GetSampleInfos(mdia->information->sampleTable, sampleNumber, &offset, &chunkNumber, sIDX, &stsc_entry);
 	if (e) return e;
 
 	//then get the DataRef
@@ -432,19 +431,28 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	if (mdia->mediaTrack->moov->mov->openMode == GF_ISOM_OPEN_READ) {
 		//same as last call in read mode
 		if (!mdia->information->dataHandler) {
-			e = gf_isom_datamap_open(mdia, dataRefIndex, isEdited);
+			e = gf_isom_datamap_open(mdia, dataRefIndex, stsc_entry->isEdited);
 			if (e) return e;
 		}
 		if (mdia->information->dataEntryIndex != dataRefIndex)
 			mdia->information->dataEntryIndex = dataRefIndex;
 	} else {
-		e = gf_isom_datamap_open(mdia, dataRefIndex, isEdited);
+		e = gf_isom_datamap_open(mdia, dataRefIndex, stsc_entry->isEdited);
 		if (e) return e;
 	}
 
 	if (out_offset) *out_offset = offset;
 	if (no_data) return GF_OK;
 	if ((*samp)->dataLength != 0) {
+
+		if (mdia->mediaTrack->pack_num_samples) {
+			u32 idx_in_chunk = sampleNumber - mdia->information->sampleTable->SampleToChunk->firstSampleInCurrentChunk;
+			u32 left_in_chunk = stsc_entry->samplesPerChunk - idx_in_chunk;
+			if (left_in_chunk > mdia->mediaTrack->pack_num_samples)
+				left_in_chunk = mdia->mediaTrack->pack_num_samples;
+			(*samp)->dataLength *= left_in_chunk;
+			(*samp)->nb_pack = left_in_chunk;
+		}
 
 		/*and finally get the data, include padding if needed*/
 		(*samp)->data = (char *) gf_malloc(sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
@@ -545,6 +553,22 @@ Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 	/*QT specific*/
 	if (a->type == GF_QT_BOX_TYPE_ALIS) return 1;
 	return 0;
+}
+
+GF_ISOMDataRefAllType Media_SelfContainedType(GF_MediaBox *mdia)
+{
+	u32 nb_ext, nb_self;
+	u32 i, count;
+
+	nb_ext = nb_self = 0;
+	count = gf_list_count(mdia->information->sampleTable->SampleDescription->other_boxes);
+	for (i=0; i<count; i++) {
+		if (Media_IsSelfContained(mdia, i+1)) nb_self++;
+		else nb_ext++;
+	}
+	if (nb_ext==count) return ISOM_DREF_EXT;
+	if (nb_self==count) return ISOM_DREF_SELF;
+	return ISOM_DREF_MIXED;
 }
 
 
@@ -829,11 +853,11 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *s
 	stbl = mdia->information->sampleTable;
 
 	//get a valid sampleNumber for this new guy
-	e = stbl_AddDTS(stbl, sample->DTS, &sampleNumber, mdia->mediaHeader->timeScale);
+	e = stbl_AddDTS(stbl, sample->DTS, &sampleNumber, mdia->mediaHeader->timeScale, sample->nb_pack);
 	if (e) return e;
 
 	//add size
-	e = stbl_AddSize(stbl->SampleSize, sampleNumber, sample->dataLength);
+	e = stbl_AddSize(stbl->SampleSize, sampleNumber, sample->dataLength, sample->nb_pack);
 	if (e) return e;
 
 	//adds CTS offset
@@ -874,7 +898,7 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *s
 	}
 
 	//and update the chunks
-	e = stbl_AddChunkOffset(mdia, sampleNumber, StreamDescIndex, data_offset);
+	e = stbl_AddChunkOffset(mdia, sampleNumber, StreamDescIndex, data_offset, sample->nb_pack);
 	if (e) return e;
 
 	if (!syncShadowNumber) return GF_OK;
@@ -926,7 +950,6 @@ GF_Err Media_UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sam
 	GF_Err e;
 	u32 drefIndex, chunkNum, descIndex;
 	u64 newOffset, DTS;
-	u8 isEdited;
 	GF_DataEntryURLBox *Dentry;
 	GF_SampleTableBox *stbl;
 
@@ -943,7 +966,7 @@ GF_Err Media_UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sam
 	}
 
 	//get our infos
-	stbl_GetSampleInfos(stbl, sampleNumber, &newOffset, &chunkNum, &descIndex, &isEdited);
+	stbl_GetSampleInfos(stbl, sampleNumber, &newOffset, &chunkNum, &descIndex, NULL);
 
 	//then check the data ref
 	e = Media_GetSampleDesc(mdia, descIndex, NULL, &drefIndex);
@@ -972,7 +995,6 @@ GF_Err Media_UpdateSampleReference(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSa
 	GF_Err e;
 	u32 drefIndex, chunkNum, descIndex;
 	u64 off, DTS;
-	u8 isEdited;
 	GF_DataEntryURLBox *Dentry;
 	GF_SampleTableBox *stbl;
 
@@ -985,7 +1007,7 @@ GF_Err Media_UpdateSampleReference(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSa
 	if (DTS != sample->DTS) return GF_BAD_PARAM;
 
 	//get our infos
-	stbl_GetSampleInfos(stbl, sampleNumber, &off, &chunkNum, &descIndex, &isEdited);
+	stbl_GetSampleInfos(stbl, sampleNumber, &off, &chunkNum, &descIndex, NULL);
 
 	//then check the data ref
 	e = Media_GetSampleDesc(mdia, descIndex, NULL, &drefIndex);

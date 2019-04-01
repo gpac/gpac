@@ -496,14 +496,18 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 			if (!j) {
 				first_ent = ent;
 				RunSize = ent->size;
+				if (ent->nb_pack) RunSize /= ent->nb_pack;
 				RunDur = ent->Duration;
 			}
 			//we may have one entry only ...
 			if (j || (count==1)) {
+				u32 ssize = ent->size;
+				if (ent->nb_pack) ssize /= ent->nb_pack;
+
 				//flags are only after first entry
 				if (j==1 || (count==1) ) RunFlags = ent->flags;
 
-				if (ent->size != RunSize) RunSize = 0;
+				if (ssize != RunSize) RunSize = 0;
 				if (ent->Duration != RunDur) RunDur = 0;
 				if (j && (RunFlags != ent->flags)) NeedFlags = 1;
 			}
@@ -515,7 +519,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 			gf_list_rem(traf->TrackRuns, i);
 			continue;
 		}
-		trun->sample_count = gf_list_count(trun->entries);
+//		trun->sample_count = gf_list_count(trun->entries);
 		trun->flags = 0;
 
 		//size checking
@@ -1994,6 +1998,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 	ent->CTS_Offset = sample->CTS_Offset;
 	ent->Duration = Duration;
 	ent->size = sample->dataLength;
+	ent->nb_pack = sample->nb_pack;
 	ent->flags = GF_ISOM_FORMAT_FRAG_FLAGS(PaddingBits, sample->IsRAP, DegradationPriority);
 	if (sample->IsRAP) {
 		ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(0, 2, 0, (redundant_coding ? 1 : 0) );
@@ -2004,7 +2009,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 	if (sample->CTS_Offset<0) {
 		trun->version = 1;
 	}
-	trun->sample_count += 1;
+	trun->sample_count += sample->nb_pack ? sample->nb_pack : 1;
 
 	//rewrite OD frames
 	if (traf->trex->track->Media->handler->handlerType == GF_ISOM_MEDIA_OD) {

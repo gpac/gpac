@@ -776,7 +776,6 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	QCPRateTable rtable[8];
 	Bool is_stdout = GF_FALSE;
 	Bool is_webvtt = GF_FALSE;
-
 	dsi_size = 0;
 	dsi = NULL;
 	hevccfg = NULL;
@@ -1411,6 +1410,11 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		qcp_type = needs_rate_octet ? 1 : 0;
 	}
 
+	if (qcp_type || (m_stype == GF_ISOM_SUBTYPE_AV01) || aac_mode || avccfg || svccfg || mvccfg || hevccfg || lhvccfg) {
+	} else {
+		gf_isom_enable_raw_pack(dumper->file, track, 2048);
+	}
+
 	/* Start exporting samples */
 	for (i=0; i<count; i++) {
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
@@ -1502,6 +1506,9 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (!avccfg && !svccfg && !mvccfg && !hevccfg && !lhvccfg &!is_webvtt) {
 			gf_bs_write_data(bs, samp->data, samp->dataLength);
 		}
+		if (samp->nb_pack)
+			i += samp->nb_pack-1;
+
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Media Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
