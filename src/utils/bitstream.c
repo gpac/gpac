@@ -67,6 +67,8 @@ struct __tag_bitstream
 	void *usr_data;
 	u64 bytes_out;
 	Bool prevent_dispatch;
+
+	u64 cookie;
 };
 
 GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const char *buffer, u64 BufferSize)
@@ -1347,4 +1349,20 @@ void gf_bs_reassign(GF_BitStream *bs, FILE *stream)
 			gf_bs_seek(bs, bs->position);
 		break;
 	}
+}
+
+u64 gf_bs_set_cookie(GF_BitStream *bs, u64 cookie)
+{
+	u64 res = 0;
+	if (bs) {
+		res = bs->cookie;
+		bs->cookie = cookie;
+	}
+	return res;
+}
+
+u64 gf_bs_get_cookie(GF_BitStream *bs)
+{
+	if (!bs) return 0;
+	return bs->cookie;
 }

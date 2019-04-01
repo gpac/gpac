@@ -431,7 +431,7 @@ u32 gf_isom_get_meta_primary_item_id(GF_ISOFile *file, Bool root_meta, u32 track
 GF_EXPORT
 GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 metaType)
 {
-	char szName[20];
+	char szName[40];
 	GF_MetaBox *meta;
 
 	GF_Err e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);

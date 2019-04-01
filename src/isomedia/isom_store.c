@@ -3,7 +3,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -70,10 +70,16 @@ typedef struct
 	u32 timeScale;
 	/*this is for generic, time-based interleaving. Expressed in Media TimeScale*/
 	u32 chunkDur;
+	u32 constant_size, constant_dur;
+
 	u64 DTSprev;
 	u8 isDone;
 	u64 prev_offset;
 	GF_MediaBox *mdia;
+	GF_SampleTableBox *stbl;
+
+	u32 all_dref_mode;
+
 	/*each writer has a sampleToChunck and ChunkOffset tables
 	these tables are filled during emulation mode and then will	replace the table in the GF_SampleTableBox*/
 	GF_SampleToChunkBox *stsc;
@@ -145,20 +151,34 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 		if (!writer) goto exit;
 		writer->sampleNumber = 1;
 		writer->mdia = trak->Media;
+		writer->stbl = trak->Media->information->sampleTable;
 		writer->timeScale = trak->Media->mediaHeader->timeScale;
+		writer->all_dref_mode = Media_SelfContainedType(writer->mdia);
+
 		writer->isDone = 0;
 		writer->DTSprev = 0;
 		writer->chunkDur = 0;
+		writer->constant_size = writer->constant_dur = 0;
+		if (writer->stbl->SampleSize->sampleSize)
+			writer->constant_size = writer->stbl->SampleSize->sampleSize;
+		if (writer->stbl->TimeToSample->nb_entries==1) {
+			writer->constant_dur = writer->stbl->TimeToSample->entries[0].sampleDelta;
+			if (writer->constant_dur>1) writer->constant_dur = 0;
+		}
+		if (!writer->constant_dur || !writer->constant_size || (writer->constant_size>=10))
+			writer->constant_size = writer->constant_dur = 0;
+
 		writer->stsc = (GF_SampleToChunkBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSC);
-		if (trak->Media->information->sampleTable->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
+		if (writer->stbl->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
 			writer->stco = gf_isom_box_new(GF_ISOM_BOX_TYPE_STCO);
 		} else {
 			writer->stco = gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
 		}
 		/*stops from chunk escape*/
-		if (interleaving) writer->mdia->information->sampleTable->MaxSamplePerChunk = 0;
+		if (interleaving) writer->stbl->MaxSamplePerChunk = 0;
 		/*for progress, assume only one descIndex*/
-		if (Media_IsSelfContained(writer->mdia, 1)) mw->total_samples += trak->Media->information->sampleTable->SampleSize->sampleCount;
+		if (Media_IsSelfContained(writer->mdia, 1))
+			mw->total_samples += writer->stbl->SampleSize->sampleCount;
 		/*optimization for interleaving: put audio last (this can be overriden by priorities)*/
 		if (movie->storageMode != GF_ISOM_STORE_INTERLEAVED) {
 			gf_list_add(writers, writer);
@@ -216,7 +236,8 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 		//we have to proceed entry by entry in case a part of the media is not self-contained...
 		for (j=0; j<writer->stsc->nb_entries; j++) {
 			ent = &writer->stsc->entries[j];
-			if (!Media_IsSelfContained(writer->mdia, ent->sampleDescriptionIndex)) continue;
+			if ((writer->all_dref_mode==ISOM_DREF_EXT) || !Media_IsSelfContained(writer->mdia, ent->sampleDescriptionIndex))
+				continue;
 
 			//OK, get the chunk(s) number(s) and "shift" its (their) offset(s).
 			if (writer->stco->type == GF_ISOM_BOX_TYPE_STCO) {
@@ -292,10 +313,10 @@ static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream
 		i=0;
 		while ((writer = (TrackWriter*)gf_list_enum(writers, &i))) {
 			//don't delete them !!!
-			stsc = writer->mdia->information->sampleTable->SampleToChunk;
-			stco = writer->mdia->information->sampleTable->ChunkOffset;
-			writer->mdia->information->sampleTable->SampleToChunk = writer->stsc;
-			writer->mdia->information->sampleTable->ChunkOffset = writer->stco;
+			stsc = writer->stbl->SampleToChunk;
+			stco = writer->stbl->ChunkOffset;
+			writer->stbl->SampleToChunk = writer->stsc;
+			writer->stbl->ChunkOffset = writer->stco;
 			writer->stco = stco;
 			writer->stsc = stsc;
 		}
@@ -310,10 +331,10 @@ static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream
 			//don't delete them !!!
 			stsc = writer->stsc;
 			stco = writer->stco;
-			writer->stsc = writer->mdia->information->sampleTable->SampleToChunk;
-			writer->stco = writer->mdia->information->sampleTable->ChunkOffset;
-			writer->mdia->information->sampleTable->SampleToChunk = stsc;
-			writer->mdia->information->sampleTable->ChunkOffset = stco;
+			writer->stsc = writer->stbl->SampleToChunk;
+			writer->stco = writer->stbl->ChunkOffset;
+			writer->stbl->SampleToChunk = stsc;
+			writer->stbl->ChunkOffset = stco;
 		}
 		if (e) return e;
 	}
@@ -335,8 +356,8 @@ u64 GetMoovAndMetaSize(GF_ISOFile *movie, GF_List *writers)
 
 		i=0;
 		while ((writer = (TrackWriter*)gf_list_enum(writers, &i))) {
-			size -= writer->mdia->information->sampleTable->ChunkOffset->size;
-			size -= writer->mdia->information->sampleTable->SampleToChunk->size;
+			size -= writer->stbl->ChunkOffset->size;
+			size -= writer->stbl->SampleToChunk->size;
 			gf_isom_box_size((GF_Box *)writer->stsc);
 			gf_isom_box_size(writer->stco);
 			size += writer->stsc->size;
@@ -354,7 +375,7 @@ u64 GetMoovAndMetaSize(GF_ISOFile *movie, GF_List *writers)
 }
 
 //Write a sample to the file - this is only called for self-contained media
-GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStream *bs)
+GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStream *bs, u32 nb_samp)
 {
 	GF_DataMap *map;
 	u32 bytes;
@@ -382,11 +403,57 @@ GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStr
 	if (bytes != size)
 		return GF_IO_ERR;
 
-	mw->nb_done++;
+	mw->nb_done+=nb_samp;
 	gf_set_progress("ISO File Writing", mw->nb_done, mw->total_samples);
 	return GF_OK;
 }
 
+//flush as much as possible from current chunk for constand size and duration (typically raw audio)
+// We don't want to write samples outside of the current source chunk
+//since the next chunk might be edited (different bitstream object), which would complexify WriteSample code
+//not flushing the chunk will work, but result in very slow writing of raw audio
+void update_writer_constant_dur(GF_ISOFile *movie, TrackWriter *tkw, GF_StscEntry *stsc_ent, u32 *nb_samp, u32 *samp_size, Bool is_flat)
+{
+	u64 chunk_dur;
+	u32 nb_in_run;
+	u32 samp_idx_in_chunk, nb_samp_left_in_src_chunk;
+	if (!tkw->constant_dur) return;
+
+	samp_idx_in_chunk = tkw->sampleNumber - tkw->stbl->SampleToChunk->firstSampleInCurrentChunk;
+	nb_samp_left_in_src_chunk = stsc_ent->samplesPerChunk - samp_idx_in_chunk;
+
+	if (nb_samp_left_in_src_chunk<=1) return;
+
+	if (is_flat) {
+		nb_in_run = nb_samp_left_in_src_chunk;
+	} else {
+
+		chunk_dur =  movie->interleavingTime * tkw->timeScale;
+		chunk_dur /= movie->moov->mvhd->timeScale;
+		chunk_dur -= tkw->chunkDur;
+
+		if (chunk_dur <= tkw->chunkDur) return;
+
+		chunk_dur -= tkw->constant_dur;
+
+		nb_in_run = chunk_dur / tkw->constant_dur;
+
+		if (nb_in_run > nb_samp_left_in_src_chunk) {
+			nb_in_run = nb_samp_left_in_src_chunk;
+		}
+	}
+	if (tkw->sampleNumber + nb_in_run >= tkw->stbl->SampleSize->sampleCount) {
+		nb_in_run = tkw->stbl->SampleSize->sampleCount - tkw->sampleNumber;
+	}
+
+	chunk_dur = nb_in_run * tkw->constant_dur;
+
+	tkw->chunkDur += chunk_dur;
+	tkw->DTSprev += chunk_dur - tkw->constant_dur; //because nb_samp += nb_in_run-1
+
+	*nb_samp = nb_in_run;
+	*samp_size = nb_in_run * tkw->constant_size;
+}
 
 GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Emulation, u64 baseOffset, u64 *mdatSize)
 {
@@ -528,7 +595,8 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 	TrackWriter *writer;
 	u64 offset, sampOffset, predOffset;
 	u32 chunkNumber, descIndex, sampSize;
-	u8 isEdited, force;
+	Bool force;
+	GF_StscEntry *stsc_ent;
 	u64 size, mdatSize = 0;
 	GF_ISOFile *movie = mw->movie;
 
@@ -562,16 +630,19 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 	i=0;
 	while ((writer = (TrackWriter*)gf_list_enum(writers, &i))) {
 		while (!writer->isDone) {
+			Bool self_contained;
+			u32 nb_samp=1;
 			//To Check: are empty sample tables allowed ???
-			if (writer->sampleNumber > writer->mdia->information->sampleTable->SampleSize->sampleCount) {
+			if (writer->sampleNumber > writer->stbl->SampleSize->sampleCount) {
 				writer->isDone = 1;
 				continue;
 			}
-			e = stbl_GetSampleInfos(writer->mdia->information->sampleTable, writer->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &isEdited);
+			e = stbl_GetSampleInfos(writer->stbl, writer->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &stsc_ent);
 			if (e) return e;
-			e = stbl_GetSampleSize(writer->mdia->information->sampleTable->SampleSize, writer->sampleNumber, &sampSize);
+			e = stbl_GetSampleSize(writer->stbl->SampleSize, writer->sampleNumber, &sampSize);
 			if (e) return e;
 
+			update_writer_constant_dur(movie, writer, stsc_ent, &nb_samp, &sampSize, GF_TRUE);
 			//update our chunks.
 			force = 0;
 			if (movie->openMode == GF_ISOM_OPEN_WRITE) {
@@ -579,9 +650,11 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 				if (predOffset != offset)
 					force = 1;
 			}
+			self_contained = ((writer->all_dref_mode==ISOM_DREF_SELF) || Media_IsSelfContained(writer->mdia, descIndex) ) ? GF_TRUE : GF_FALSE;
+
 			//update our global offset...
-			if (Media_IsSelfContained(writer->mdia, descIndex) ) {
-				e = stbl_SetChunkAndOffset(writer->mdia->information->sampleTable, writer->sampleNumber, descIndex, writer->stsc, &writer->stco, offset, force);
+			if (self_contained) {
+				e = stbl_SetChunkAndOffset(writer->stbl, writer->sampleNumber, descIndex, writer->stsc, &writer->stco, offset, force, nb_samp);
 				if (e) return e;
 				if (movie->openMode == GF_ISOM_OPEN_WRITE) {
 					predOffset = sampOffset + sampSize;
@@ -593,21 +666,21 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 				if (predOffset != offset) force = 1;
 				predOffset = sampOffset + sampSize;
 				//we have a DataRef, so use the offset idicated in sampleToChunk and ChunkOffset tables...
-				e = stbl_SetChunkAndOffset(writer->mdia->information->sampleTable, writer->sampleNumber, descIndex, writer->stsc, &writer->stco, sampOffset, force);
+				e = stbl_SetChunkAndOffset(writer->stbl, writer->sampleNumber, descIndex, writer->stsc, &writer->stco, sampOffset, force, nb_samp);
 				if (e) return e;
 			}
 			//we write the sample if not emulation
 			if (!Emulation) {
-				if (Media_IsSelfContained(writer->mdia, descIndex) ) {
-					e = WriteSample(mw, sampSize, sampOffset, isEdited, bs);
+				if (self_contained) {
+					e = WriteSample(mw, sampSize, sampOffset, stsc_ent->isEdited, bs, 1);
 					if (e) return e;
 				}
 			}
 			//ok, the track is done
-			if (writer->sampleNumber == writer->mdia->information->sampleTable->SampleSize->sampleCount) {
+			if (writer->sampleNumber >= writer->stbl->SampleSize->sampleCount) {
 				writer->isDone = 1;
 			} else {
-				writer->sampleNumber ++;
+				writer->sampleNumber += nb_samp;
 			}
 		}
 	}
@@ -875,7 +948,8 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 	s64 res;
 	u32 descIndex, sampSize, chunkNumber;
 	u16 curGroupID, curTrackPriority;
-	u8 forceNewChunk, writeGroup, isEdited;
+	Bool forceNewChunk, writeGroup;
+	GF_StscEntry *stsc_ent;
 	//this is used to emulate the write ...
 	u64 offset, totSize, sampOffset;
 	GF_ISOFile *movie = mw->movie;
@@ -894,6 +968,8 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 
 		//proceed a group
 		while (writeGroup) {
+			u32 nb_samp = 1;
+			Bool self_contained;
 			//first get the appropriated sample for the min time in this group
 			curWriter = NULL;
 			DTStmp = (u64) -1;
@@ -905,15 +981,15 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 
 				//is it done writing ?
 				//is it in our group ??
-				if (tmp->isDone || tmp->mdia->information->sampleTable->groupID != curGroupID) continue;
+				if (tmp->isDone || tmp->stbl->groupID != curGroupID) continue;
 
 				//OK, get the current sample in this track
-				stbl_GetSampleDTS(tmp->mdia->information->sampleTable->TimeToSample, tmp->sampleNumber, &DTS);
+				stbl_GetSampleDTS(tmp->stbl->TimeToSample, tmp->sampleNumber, &DTS);
 				res = TStmp ? DTStmp * tmp->timeScale - DTS * TStmp : 0;
 				if (res < 0) continue;
-				if ((!res) && curTrackPriority <= tmp->mdia->information->sampleTable->trackPriority) continue;
+				if ((!res) && curTrackPriority <= tmp->stbl->trackPriority) continue;
 				curWriter = tmp;
-				curTrackPriority = tmp->mdia->information->sampleTable->trackPriority;
+				curTrackPriority = tmp->stbl->trackPriority;
 				DTStmp = DTS;
 				TStmp = tmp->timeScale;
 			}
@@ -924,16 +1000,20 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 				continue;
 			}
 			//To Check: are empty sample tables allowed ???
-			if (curWriter->sampleNumber > curWriter->mdia->information->sampleTable->SampleSize->sampleCount) {
+			if (curWriter->sampleNumber > curWriter->stbl->SampleSize->sampleCount) {
 				curWriter->isDone = 1;
 				tracksDone ++;
 				continue;
 			}
 
-			e = stbl_GetSampleInfos(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &isEdited);
+			e = stbl_GetSampleInfos(curWriter->stbl, curWriter->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &stsc_ent);
 			if (e) return e;
-			e = stbl_GetSampleSize(curWriter->mdia->information->sampleTable->SampleSize, curWriter->sampleNumber, &sampSize);
+			e = stbl_GetSampleSize(curWriter->stbl->SampleSize, curWriter->sampleNumber, &sampSize);
 			if (e) return e;
+
+			update_writer_constant_dur(movie, curWriter, stsc_ent, &nb_samp, &sampSize, GF_FALSE);
+
+			self_contained = ((curWriter->all_dref_mode==ISOM_DREF_SELF) || Media_IsSelfContained(curWriter->mdia, descIndex) ) ? GF_TRUE : GF_FALSE;
 
 			//do we actually write, or do we emulate ?
 			if (Emulation) {
@@ -944,8 +1024,8 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 					forceNewChunk = 0;
 				}
 				//update our offsets...
-				if (Media_IsSelfContained(curWriter->mdia, descIndex) ) {
-					e = stbl_SetChunkAndOffset(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, offset, forceNewChunk);
+				if (self_contained) {
+					e = stbl_SetChunkAndOffset(curWriter->stbl, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, offset, forceNewChunk, nb_samp);
 					if (e) return e;
 					offset += sampSize;
 					totSize += sampSize;
@@ -955,23 +1035,23 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 
 					//we have a DataRef, so use the offset idicated in sampleToChunk
 					//and ChunkOffset tables...
-					e = stbl_SetChunkAndOffset(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, 0);
+					e = stbl_SetChunkAndOffset(curWriter->stbl, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, 0, nb_samp);
 					if (e) return e;
 				}
 			} else {
 				//this is no game, we're writing ....
-				if (Media_IsSelfContained(curWriter->mdia, descIndex) ) {
-					e = WriteSample(mw, sampSize, sampOffset, isEdited, bs);
+				if (self_contained) {
+					e = WriteSample(mw, sampSize, sampOffset, stsc_ent->isEdited, bs, 1);
 					if (e) return e;
 				}
 			}
 			//ok, the sample is done
-			if (curWriter->sampleNumber == curWriter->mdia->information->sampleTable->SampleSize->sampleCount) {
+			if (curWriter->sampleNumber == curWriter->stbl->SampleSize->sampleCount) {
 				curWriter->isDone = 1;
 				//one more track done...
 				tracksDone ++;
 			} else {
-				curWriter->sampleNumber ++;
+				curWriter->sampleNumber += nb_samp;
 			}
 			prevWriter = curWriter;
 		}
@@ -984,6 +1064,8 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 	return GF_OK;
 }
 
+
+
 /*uncomment the following to easily test large file generation. This will prepend 4096*1MByte of 0 before the media data*/
 //#define TEST_LARGE_FILES
 
@@ -995,7 +1077,8 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 	u32 descIndex, sampSize, chunkNumber;
 	u64 DTS;
 	u16 curGroupID;
-	u8 forceNewChunk, writeGroup, isEdited;
+	Bool forceNewChunk, writeGroup;
+	GF_StscEntry *stsc_ent;
 	//this is used to emulate the write ...
 	u64 offset, sampOffset, size, mdatSize;
 	u32 count;
@@ -1082,23 +1165,25 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 				if (tmp->isDone) continue;
 
 				//is it in our group ??
-				if (tmp->mdia->information->sampleTable->groupID != curGroupID) continue;
+				if (tmp->stbl->groupID != curGroupID) continue;
 
 				//write till this chunk is full on this track...
 				while (1) {
+					Bool self_contained;
+					u32 nb_samp = 1;
 					//To Check: are empty sample tables allowed ???
-					if (tmp->sampleNumber > tmp->mdia->information->sampleTable->SampleSize->sampleCount) {
+					if (tmp->sampleNumber > tmp->stbl->SampleSize->sampleCount) {
 						tmp->isDone = 1;
 						tracksDone ++;
 						break;
 					}
 
 					//OK, get the current sample in this track
-					stbl_GetSampleDTS(tmp->mdia->information->sampleTable->TimeToSample, tmp->sampleNumber, &DTS);
+					stbl_GetSampleDTS(tmp->stbl->TimeToSample, tmp->sampleNumber, &DTS);
 
 					//can this sample fit in our chunk ?
 					if ( ( (DTS - tmp->DTSprev) + tmp->chunkDur) *  movie->moov->mvhd->timeScale > movie->interleavingTime * tmp->timeScale
-					        /*drfit check: reject sample if outside our check window*/
+					        /*drift check: reject sample if outside our check window*/
 					        || (drift_inter && chunkLastDTS && ( ((u64)tmp->DTSprev*chunkLastScale) > ((u64)chunkLastDTS*tmp->timeScale)) )
 					   ) {
 						//in case the sample is longer than InterleaveTime
@@ -1121,17 +1206,24 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 					tmp->chunkDur += (u32) (DTS - tmp->DTSprev);
 					tmp->DTSprev = DTS;
 
-					e = stbl_GetSampleInfos(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &isEdited);
-					if (e) return e;
-					e = stbl_GetSampleSize(curWriter->mdia->information->sampleTable->SampleSize, curWriter->sampleNumber, &sampSize);
-					if (e) return e;
+					e = stbl_GetSampleInfos(curWriter->stbl, curWriter->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &stsc_ent);
+					if (e)
+						return e;
+					e = stbl_GetSampleSize(curWriter->stbl->SampleSize, curWriter->sampleNumber, &sampSize);
+					if (e)
+						return e;
+
+					self_contained = ((curWriter->all_dref_mode==ISOM_DREF_SELF) || Media_IsSelfContained(curWriter->mdia, descIndex)) ? GF_TRUE : GF_FALSE;
+
+					update_writer_constant_dur(movie, curWriter, stsc_ent, &nb_samp, &sampSize, GF_FALSE);
 
 					//do we actually write, or do we emulate ?
 					if (Emulation) {
 						//update our offsets...
-						if (Media_IsSelfContained(curWriter->mdia, descIndex) ) {
-							e = stbl_SetChunkAndOffset(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, offset, forceNewChunk);
-							if (e) return e;
+						if (self_contained) {
+							e = stbl_SetChunkAndOffset(curWriter->stbl, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, offset, forceNewChunk, nb_samp);
+							if (e)
+								return e;
 							offset += sampSize;
 							mdatSize += sampSize;
 						} else {
@@ -1140,24 +1232,25 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 
 							//we have a DataRef, so use the offset idicated in sampleToChunk
 							//and ChunkOffset tables...
-							e = stbl_SetChunkAndOffset(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, forceNewChunk);
+							e = stbl_SetChunkAndOffset(curWriter->stbl, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, forceNewChunk, nb_samp);
 							if (e) return e;
 						}
 					} else {
-						//this is no game, we're writing ....
-						if (Media_IsSelfContained(curWriter->mdia, descIndex) ) {
-							e = WriteSample(mw, sampSize, sampOffset, isEdited, bs);
-							if (e) return e;
+						//we're writing ....
+						if (self_contained) {
+							e = WriteSample(mw, sampSize, sampOffset, stsc_ent->isEdited, bs, nb_samp);
+							if (e)
+								return e;
 						}
 					}
 					//ok, the sample is done
-					if (curWriter->sampleNumber == curWriter->mdia->information->sampleTable->SampleSize->sampleCount) {
+					if (curWriter->sampleNumber >= curWriter->stbl->SampleSize->sampleCount) {
 						curWriter->isDone = 1;
 						//one more track done...
 						tracksDone ++;
 						break;
 					} else {
-						curWriter->sampleNumber ++;
+						curWriter->sampleNumber += nb_samp;
 					}
 				}
 				/*record chunk end-time & track timescale for drift-controled interleaving*/

@@ -35,6 +35,9 @@ extern "C" {
 
 enum
 {
+	//internal code type for unknown boxes
+	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
+
 	GF_ISOM_BOX_TYPE_CO64	= GF_4CC( 'c', 'o', '6', '4' ),
 	GF_ISOM_BOX_TYPE_STCO	= GF_4CC( 's', 't', 'c', 'o' ),
 	GF_ISOM_BOX_TYPE_CTTS	= GF_4CC( 'c', 't', 't', 's' ),
@@ -451,12 +454,34 @@ enum
 	GF_ISOM_BOX_TYPE_JPEG	= GF_4CC('j','p','e','g'),
 	GF_ISOM_BOX_TYPE_PNG 	= GF_4CC('p','n','g',' '),
 
-	GF_ISOM_BOX_TYPE_WAVE 	= GF_4CC('w','a','v','e'),
+	/* apple QT box */
+	GF_QT_BOX_TYPE_ALIS = GF_4CC('a','l','i','s'),
+	GF_QT_BOX_TYPE_WIDE = GF_4CC('w','i','d','e'),
+	GF_QT_BOX_TYPE_GMIN	= GF_4CC( 'g', 'm', 'i', 'n' ),
+	GF_QT_BOX_TYPE_TAPT	= GF_4CC( 't', 'a', 'p', 't' ),
+	GF_QT_BOX_TYPE_CLEF	= GF_4CC( 'c', 'l', 'e', 'f' ),
+	GF_QT_BOX_TYPE_PROF	= GF_4CC( 'p', 'r', 'o', 'f' ),
+	GF_QT_BOX_TYPE_ENOF	= GF_4CC( 'e', 'n', 'o', 'f' ),
+	GF_QT_BOX_TYPE_WAVE = GF_4CC('w','a','v','e'),
+	GF_QT_BOX_TYPE_CHAN = GF_4CC('c','h','a','n'),
+	GF_QT_BOX_TYPE_TERMINATOR 	= 0,
+	GF_QT_BOX_TYPE_ENDA = GF_4CC('e','n','d','a'),
+	GF_QT_BOX_TYPE_FRMA = GF_4CC('f','r','m','a'),
+	GF_QT_BOX_TYPE_TMCD = GF_4CC('t','m','c','d'),
+	GF_QT_BOX_TYPE_NAME = GF_4CC('n','a','m','e'),
+	GF_QT_BOX_TYPE_TCMI = GF_4CC('t','c','m','i'),
+	GF_QT_BOX_TYPE_FIEL = GF_4CC('f','i','e','l'),
+	GF_QT_BOX_TYPE_GAMA = GF_4CC('g','a','m','a'),
+	GF_QT_BOX_TYPE_CHRM = GF_4CC('c','h','r','m'),
 
-	/* apple alis box */
-	GF_ISOM_BOX_TYPE_ALIS 	= GF_4CC('a','l','i','s'),
-
-	GF_ISOM_BOX_TYPE_WIDE 	= GF_4CC('w','i','d','e'),
+	GF_QT_BOX_TYPE_C608	= GF_4CC( 'c', '6', '0', '8' ),
+	GF_QT_BOX_TYPE_APCH	= GF_4CC( 'a', 'p', 'c', 'h' ),
+	GF_QT_BOX_TYPE_APCO	= GF_4CC( 'a', 'p', 'c', 'o' ),
+	GF_QT_BOX_TYPE_APCN	= GF_4CC( 'a', 'p', 'c', 'n' ),
+	GF_QT_BOX_TYPE_APCS	= GF_4CC( 'a', 'p', 'c', 's' ),
+	GF_QT_BOX_TYPE_APCF	= GF_4CC( 'a', 'p', 'c', 'f' ),
+	GF_QT_BOX_TYPE_AP4X	= GF_4CC( 'a', 'p', '4', 'x' ),
+	GF_QT_BOX_TYPE_AP4H	= GF_4CC( 'a', 'p', '4', 'h' ),
 
 	/* from drm_sample.c */
 	GF_ISOM_BOX_TYPE_264B 	= GF_4CC('2','6','4','b'),
@@ -474,7 +499,23 @@ enum
 
 	GF_ISOM_BOX_TYPE_AUXV 	= GF_4CC('A','U','X','V'),
 
-	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
+	/*QTFF audio codes*/
+	GF_QT_BOX_TYPE_AUDIO_RAW 	= GF_4CC('r','a','w',' '),
+	GF_QT_BOX_TYPE_AUDIO_TWOS 	= GF_4CC('t','w','o','s'),
+	GF_QT_BOX_TYPE_AUDIO_SOWT 	= GF_4CC('s','o','w','t'),
+	GF_QT_BOX_TYPE_AUDIO_FL32 	= GF_4CC('f','l','3','2'),
+	GF_QT_BOX_TYPE_AUDIO_FL64 	= GF_4CC('f','l','6','4'),
+	GF_QT_BOX_TYPE_AUDIO_IN24 	= GF_4CC('i','n','2','4'),
+	GF_QT_BOX_TYPE_AUDIO_IN32 	= GF_4CC('i','n','3','2'),
+	GF_QT_BOX_TYPE_AUDIO_ULAW 	= GF_4CC('u','l','a','w'),
+	GF_QT_BOX_TYPE_AUDIO_ALAW 	= GF_4CC('a','l','a','w'),
+	GF_QT_BOX_TYPE_AUDIO_ADPCM 	= GF_4CC(0x6D,0x73,0x00,0x02),
+	GF_QT_BOX_TYPE_AUDIO_IMA_ADPCM 	= GF_4CC(0x6D,0x73,0x00,0x11),
+	GF_QT_BOX_TYPE_AUDIO_DVCA 	= GF_4CC('d','v','c','a'),
+	GF_QT_BOX_TYPE_AUDIO_QDMC 	= GF_4CC('Q','D','M','C'),
+	GF_QT_BOX_TYPE_AUDIO_QDMC2	= GF_4CC('Q','D','M','2'),
+	GF_QT_BOX_TYPE_AUDIO_QCELP	= GF_4CC('Q','c','l','p'),
+	GF_QT_BOX_TYPE_AUDIO_kMP3 	= GF_4CC(0x6D,0x73,0x00,0x55),
 };
 
 enum
@@ -544,7 +585,7 @@ typedef struct
 /*constructor*/
 GF_Box *gf_isom_box_new(u32 boxType);
 //some boxes may have different syntax based on container. Use this constructor for this case
-GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType);
+GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_root_box);
 
 GF_Err gf_isom_box_write(GF_Box *ptr, GF_BitStream *bs);
 GF_Err gf_isom_box_read(GF_Box *ptr, GF_BitStream *bs);
@@ -787,6 +828,7 @@ typedef struct
 	/*private for SVC/MVC extractors resolution*/
 	s32 extractor_mode;
 	Bool has_base_layer;
+	u32 pack_num_samples;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u64 dts_at_seg_start;
@@ -858,6 +900,18 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
+
+	u16 graphics_mode;
+	u16 op_color_red;
+	u16 op_color_green;
+	u16 op_color_blue;
+	u16 balance;
+	u16 reserved;
+} GF_GenericMediaHeaderInfoBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
 	u16 balance;
 	u16 reserved;
 } GF_SoundMediaHeaderBox;
@@ -899,6 +953,15 @@ typedef struct
 	GF_ISOM_FULL_BOX
 } GF_SceneMediaHeaderBox;
 
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+
+	u32 width;
+	u32 height;
+} GF_ApertureBox;
+
 typedef struct
 {
 	GF_ISOM_FULL_BOX
@@ -924,6 +987,12 @@ typedef struct
 	GF_ISOM_FULL_BOX
 	GF_ISOM_DATAENTRY_FIELDS
 } GF_DataEntryURLBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	GF_ISOM_DATAENTRY_FIELDS
+} GF_DataEntryAliasBox;
 
 typedef struct
 {
@@ -993,7 +1062,7 @@ typedef struct
 	u32 internal_type;					\
 	GF_List *protections;
 
-/*base sample entry box (never used but for typecasting)*/
+/*base sample entry box - used by some generic media sample descriptions of QT*/
 typedef struct
 {
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
@@ -1012,6 +1081,65 @@ typedef struct
 	char *data;
 	u32 data_size;
 } GF_GenericSampleEntryBox;
+
+typedef struct
+{
+	GF_ISOM_SAMPLE_ENTRY_FIELDS
+
+	u32 flags;
+	u32 timescale;
+	u32 frame_duration;
+	u8 frames_per_sec;
+} GF_TimeCodeSampleEntryBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+
+    u16 text_font;
+    u16 text_face;
+    u16 text_size;
+    u16 text_color_red, text_color_green, text_color_blue;
+    u16 back_color_red, back_color_green, back_color_blue;
+    char *font;
+} GF_TimeCodeMediaInformationBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+
+    u8 field_count;
+    u8 field_order;
+} GF_FieldInfoBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+    u32 gama;
+} GF_GamaInfoBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+    u16 chroma;
+} GF_ChromaInfoBox;
+
+typedef struct
+{
+    u32 label;
+    u32 flags;
+    Float coordinates[3];
+} GF_AudioChannelDescription;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+
+    u32 layout_tag;
+    u32 bitmap;
+    u32 num_audio_description;
+    GF_AudioChannelDescription *audio_descs;
+} GF_ChannelLayoutInfoBox;
 
 typedef struct
 {
@@ -1084,7 +1212,7 @@ typedef struct
 	u32 horizOffD;
 	u32 vertOffN;
 	u32 vertOffD;
-} GF_CleanAppertureBox;
+} GF_CleanApertureBox;
 
 typedef struct
 {
@@ -1123,7 +1251,7 @@ typedef struct
 	u16 bit_depth;						\
 	s16 color_table_index;				\
 	GF_PixelAspectRatioBox *pasp;		\
-	GF_CleanAppertureBox *clap;		\
+	GF_CleanApertureBox *clap;		\
 	GF_CodingConstraintsBox *ccst;		\
 	GF_AuxiliaryTypeInfoBox *auxi;		\
 	struct __tag_protect_box *rinf;				\
@@ -1448,6 +1576,7 @@ typedef struct
 	u32 nb_entries;
 	u32 alloc_size;
 	u32 *offsets;
+	u32 w_lastSampleNumber;
 } GF_ChunkOffsetBox;
 
 typedef struct
@@ -1456,6 +1585,7 @@ typedef struct
 	u32 nb_entries;
 	u32 alloc_size;
 	u64 *offsets;
+	u32 w_lastSampleNumber;
 } GF_ChunkLargeOffsetBox;
 
 typedef struct
@@ -1479,6 +1609,9 @@ typedef struct
 	u32 firstSampleInCurrentChunk;
 	u32 currentChunk;
 	u32 ghostNumber;
+
+	u32 w_lastSampleNumber;
+	u32 w_lastChunkNumber;
 } GF_SampleToChunkBox;
 
 typedef struct
@@ -1663,6 +1796,11 @@ typedef struct
 	u32 dataSize;
 	u32 original_4cc;
 } GF_FreeSpaceBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+} GF_WideBox; /*Apple*/
 
 typedef struct
 {
@@ -2245,6 +2383,7 @@ typedef struct
 	/*internal*/
 	u32 SAP_type;
 	u64 dts;
+	u32 nb_pack;
 } GF_TrunEntry;
 
 typedef struct
@@ -3496,6 +3635,13 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample);
 GF_Err Media_FindDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname, u32 *dataRefIndex);
 Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex);
 
+typedef enum
+{
+	ISOM_DREF_MIXED = 0,
+	ISOM_DREF_SELF,
+	ISOM_DREF_EXT,
+} GF_ISOMDataRefAllType;
+GF_ISOMDataRefAllType Media_SelfContainedType(GF_MediaBox *mdia);
 
 GF_TrackBox *GetTrackbyID(GF_MovieBox *moov, u32 TrackID);
 
@@ -3515,7 +3661,7 @@ GF_Err stbl_GetSampleDTS_and_Duration(GF_TimeToSampleBox *stts, u32 SampleNumber
 GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, SAPType *IsRAP, u32 *prevRAP, u32 *nextRAP);
 /*same as above but only look for open-gop RAPs and GDR (roll)*/
 GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP, u32 *prevRAP, u32 *nextRAP);
-GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offset, u32 *chunkNumber, u32 *descIndex, u8 *isEdited);
+GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offset, u32 *chunkNumber, u32 *descIndex, GF_StscEntry **scsc_entry);
 GF_Err stbl_GetSampleShadow(GF_ShadowSyncBox *stsh, u32 *sampleNumber, u32 *syncNum);
 GF_Err stbl_GetPaddingBits(GF_PaddingBitsBox *padb, u32 SampleNumber, u8 *PadBits);
 GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *stbl, u32 SampleNumber, u32 *isLeading, u32 *dependsOn, u32 *dependedOn, u32 *redundant);
@@ -3555,12 +3701,12 @@ GF_Err Media_SetDrefURL(GF_DataEntryURLBox *dref_entry, const char *origName, co
 GF_Err Media_UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sample, Bool data_only);
 GF_Err Media_UpdateSampleReference(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sample, u64 data_offset);
 /*addition in the sample tables*/
-GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 LastAUDefDuration);
+GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 LastAUDefDuration, u32 nb_pack_samples);
 GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 CTSoffset);
-GF_Err stbl_AddSize(GF_SampleSizeBox *stsz, u32 sampleNumber, u32 size);
+GF_Err stbl_AddSize(GF_SampleSizeBox *stsz, u32 sampleNumber, u32 size, u32 nb_pack_samples);
 GF_Err stbl_AddRAP(GF_SyncSampleBox *stss, u32 sampleNumber);
 GF_Err stbl_AddShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber, u32 shadowNumber);
-GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIndex, u64 offset);
+GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIndex, u64 offset, u32 nb_pack_samples);
 /*NB - no add for padding, this is done only through SetPaddingBits*/
 
 GF_Err stbl_AddSampleFragment(GF_SampleTableBox *stbl, u32 sampleNumber, u16 size);
@@ -3576,7 +3722,7 @@ GF_Err stbl_SetPaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber, u8 bits);
 /*for adding fragmented samples*/
 GF_Err stbl_SampleSizeAppend(GF_SampleSizeBox *stsz, u32 data_size);
 /*writing of the final chunk info in edit mode*/
-GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 StreamDescIndex, GF_SampleToChunkBox *the_stsc, GF_Box **the_stco, u64 data_offset, u8 forceNewChunk);
+GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 StreamDescIndex, GF_SampleToChunkBox *the_stsc, GF_Box **the_stco, u64 data_offset, Bool forceNewChunk, u32 nb_samp);
 /*EDIT LIST functions*/
 GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u8 EditMode);
 

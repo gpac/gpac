@@ -179,7 +179,7 @@ endif
 OBJS+=../modules/img_in/img_dec.o ../modules/img_in/img_in.o ../modules/img_in/bmp_dec.o ../modules/img_in/png_dec.o ../modules/img_in/jpeg_dec.o
 ifneq ($(CONFIG_JP2), no)
 OBJS+=../modules/img_in/jp2_dec.o
-EXTRALIBS+= -lopenjpeg
+EXTRALIBS+= -lopenjpeg -lm
 CFLAGS+=-DGPAC_HAS_JP2
 endif
 

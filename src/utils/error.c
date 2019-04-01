@@ -33,26 +33,32 @@ static WORD console_attr_ori = 0;
 #endif
 
 
-static char szTYPE[5];
+static char szTYPE[9];
 
 
 GF_EXPORT
 const char *gf_4cc_to_str(u32 type)
 {
 	u32 ch, i;
-	char *ptr, *name = (char *)szTYPE;
-	if (!type) return "";
-	ptr = name;
+	Bool is_ok=GF_TRUE;
+	char *name = (char *)szTYPE;
+	if (!type) return "00000000";
+
 	for (i = 0; i < 4; i++, name++) {
 		ch = type >> (8 * (3-i) ) & 0xff;
 		if ( ch >= 0x20 && ch <= 0x7E ) {
 			*name = ch;
 		} else {
-			*name = '.';
+			is_ok=GF_FALSE;
+			break;
 		}
 	}
-	*name = 0;
-	return (const char *) ptr;
+	if (is_ok) {
+		*name = 0;
+		return (const char *) szTYPE;
+	}
+	sprintf(szTYPE, "%02X%02X%02X%02X", (type>>24)&0xFF, (type>>16)&0xFF, (type>>8)&0xFF, (type)&0xFF);
+	return (const char *) szTYPE;
 }
 
 

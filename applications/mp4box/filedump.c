@@ -2294,7 +2294,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 {
 	Float scale;
 	Bool is_od_track = 0;
-	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits;
+	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits, cdur, csize;
 	u64 time_slice, dur, size;
 	u8 bps;
 	GF_ESD *esd;
@@ -3063,28 +3063,40 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	max_rate = rate = 0;
 	time_slice = 0;
 	ts = gf_isom_get_media_timescale(file, trackNum);
-	for (j=0; j<gf_isom_get_sample_count(file, trackNum); j++) {
-		GF_ISOSample *samp;
-		if (is_od_track) {
-			samp = gf_isom_get_sample(file, trackNum, j+1, NULL);
-		} else {
-			samp = gf_isom_get_sample_info(file, trackNum, j+1, NULL, NULL);
+	csize = gf_isom_get_constant_sample_size(file, trackNum);
+	cdur = gf_isom_get_constant_sample_duration(file, trackNum);
+	count = gf_isom_get_sample_count(file, trackNum);
+	if (csize && cdur) {
+		size = count * csize;
+		dur = cdur * count;
+	} else {
+
+		for (j=0; j<count; j++) {
+			GF_ISOSample *samp;
+			if (is_od_track) {
+				samp = gf_isom_get_sample(file, trackNum, j+1, NULL);
+			} else {
+				samp = gf_isom_get_sample_info(file, trackNum, j+1, NULL, NULL);
+			}
+			if (!samp) {
+				fprintf(stderr, "Failed to fetch sample %d\n", j+1);
+				return;
+			}
+			dur = samp->DTS+samp->CTS_Offset;
+			size += samp->dataLength;
+			rate += samp->dataLength;
+			if (samp->DTS - time_slice>ts) {
+				if (max_rate < rate) max_rate = rate;
+				rate = 0;
+				time_slice = samp->DTS;
+			}
+			gf_isom_sample_del(&samp);
 		}
-		if (!samp) {
-			fprintf(stderr, "Failed to fetch sample %d\n", j+1);
-			return;
-		}
-		dur = samp->DTS+samp->CTS_Offset;
-		size += samp->dataLength;
-		rate += samp->dataLength;
-		if (samp->DTS - time_slice>ts) {
-			if (max_rate < rate) max_rate = rate;
-			rate = 0;
-			time_slice = samp->DTS;
-		}
-		gf_isom_sample_del(&samp);
 	}
 	fprintf(stderr, "\nComputed info from media:\n");
+	if (csize && cdur) {
+		fprintf(stderr, "\tConstant sample size %d bytes and dur %d / %d\n", csize, cdur, ts);
+	}
 	scale = 1000;
 	scale /= ts;
 	dur = (u64) (scale * (s64)dur);
@@ -3095,7 +3107,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	}
 	/*rate in byte, dur is in ms*/
 	rate = (u32) ((size * 8 * 1000) / dur);
-	max_rate *= 8;
+
+	if (!max_rate)
+		max_rate = rate;
+	else
+		max_rate *= 8;
+
 	if (rate >= 1500) {
 		rate /= 1000;
 		max_rate /= 1000;

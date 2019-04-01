@@ -796,7 +796,7 @@ if test "$has_js" = "no" ; then
 
 cat > $TMPC << EOF
 #include <jsapi.h>
-int main( void ) { JSContext *cx=NULL; jsval rp; return JS_AddValueRoot(cx, &rp); }
+int main( void ) { JSContext *cx=NULL; jsval rp; return JS_AddRoot(cx, &rp); }
 EOF
 
     #try local
@@ -810,7 +810,7 @@ EOF
             mozjs_pkgcfg="mozjs"
         elif $pkg_config --exists mozjs185 ; then
             mozjs_pkgcfg="mozjs185"
-    elif docc $js_flags -L$local_lib -ljs -lpthread ; then
+    elif docc $js_flags -L$local_lib -ljs -lpthread -lm ; then
         has_js="local"
         #dc added
     fi
@@ -1252,7 +1252,7 @@ if test "$cross_prefix" = "" ; then
 fi
 
 if test "$has_openjpeg" = "no" ; then
-    if docc -I$local_inc/openjpeg -L$local_lib -lopenjpeg ; then
+    if docc -I$local_inc -L$local_lib -lopenjpeg ; then
         has_openjpeg="local"
     fi
 fi

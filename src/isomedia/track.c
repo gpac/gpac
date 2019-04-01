@@ -427,8 +427,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	GF_TrackFragmentRunBox *trun;
 	GF_TrunEntry *ent;
 
-	void stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration);
-	void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size);
+	void stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration, u32 nb_pack);
+	void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack);
 	void stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset);
 	void stbl_AppendSampleToChunk(GF_SampleTableBox *stbl, u32 DescIndex, u32 samplesInChunk);
 	void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 CTSOffset);
@@ -484,6 +484,11 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 		//merge the run
 		for (j=0; j<trun->sample_count; j++) {
 			ent = (GF_TrunEntry*)gf_list_get(trun->entries, j);
+
+			if (!ent) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Track %d doesn't have enough trun entries (%d) compared to sample count (%d) in run\n", traf->trex->trackID, gf_list_count(trun->entries), trun->sample_count ));
+				break;
+			}
 			size = def_size;
 			duration = def_duration;
 			flags = def_flags;
@@ -498,11 +503,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 				}
 			}
 			//add size first
-			stbl_AppendSize(trak->Media->information->sampleTable, size);
+			stbl_AppendSize(trak->Media->information->sampleTable, size, ent->nb_pack);
 			//then TS
-			stbl_AppendTime(trak->Media->information->sampleTable, duration);
-
-			traf_duration += duration;
+			stbl_AppendTime(trak->Media->information->sampleTable, duration, ent->nb_pack);
 
 			//add chunk on first sample
 			if (!j) {
@@ -535,7 +538,13 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 				first_samp_in_traf = GF_FALSE;
 				stbl_AppendTrafMap(trak->Media->information->sampleTable);
 			}
+			if (ent->nb_pack) {
+				j+= ent->nb_pack-1;
+				traf_duration += ent->nb_pack*duration;
+				continue;
+			}
 
+			traf_duration += duration;
 
 			//CTS
 			cts_offset = (trun->flags & GF_ISOM_TRUN_CTS_OFFSET) ? ent->CTS_Offset : 0;
