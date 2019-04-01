@@ -525,6 +525,10 @@ typedef struct
 
 	/*allocated data size - used only when using static sample in gf_isom_get_sample_ex*/
 	u32 alloc_size;
+	
+	/*number of packed samples in this sample. If 0 or 1, only 1 sample is present
+	only used for constant size and constant duration samples*/
+	u32 nb_pack;
 } GF_ISOSample;
 
 
@@ -749,6 +753,13 @@ u32 gf_isom_get_sample_count(GF_ISOFile *the_file, u32 trackNumber);
 
 /*Get constant sample size, or 0 if size not constant*/
 u32 gf_isom_get_constant_sample_size(GF_ISOFile *the_file, u32 trackNumber);
+
+/*Get constant sample duration, or 0 if duration not constant*/
+u32 gf_isom_get_constant_sample_duration(GF_ISOFile *the_file, u32 trackNumber);
+
+/*sets max audio sample packing in a single ISOSample*/
+Bool gf_isom_enable_raw_pack(GF_ISOFile *the_file, u32 trackNumber, u32 pack_num_samples);
+
 /*returns total amount of media bytes in track*/
 u64 gf_isom_get_media_data_size(GF_ISOFile *the_file, u32 trackNumber);
 

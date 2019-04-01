@@ -53,7 +53,7 @@ GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...)
 static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd)
 {
 #ifndef GPAC_DISABLE_ISOM_WRITE
-	u32 i, count, timescale, db_size;
+	u32 i, count, timescale, db_size, cdur, csize;
 	u64 time_wnd, rate, max_rate, avg_rate, bitrate;
 	Double br;
 	GF_ISOSample sample;
@@ -61,22 +61,37 @@ static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd
 	db_size = 0;
 	rate = max_rate = avg_rate = time_wnd = 0;
 
+	csize = 0;
+	cdur = 0;
+	if (gf_isom_get_media_type(file, track)==GF_ISOM_MEDIA_AUDIO) {
+		csize = gf_isom_get_constant_sample_size(file, track);
+		cdur = gf_isom_get_constant_sample_duration(file, track);
+		if (cdur > 1) cdur = 0;
+	}
+
 	memset(&sample, 0, sizeof(GF_ISOSample));
 	timescale = gf_isom_get_media_timescale(file, track);
 	count = gf_isom_get_sample_count(file, track);
-	for (i=0; i<count; i++) {
-		u32 di;
-		GF_ISOSample *samp = gf_isom_get_sample_info_ex(file, track, i+1, &di, NULL, &sample);
-		if (!samp) break;
 
-		if (samp->dataLength > db_size) db_size = samp->dataLength;
+	if (csize && cdur) {
+		db_size = 0;
+		avg_rate = 8 * csize * timescale / cdur;
+		bitrate = rate = avg_rate;
+	} else {
+		for (i=0; i<count; i++) {
+			u32 di;
+			GF_ISOSample *samp = gf_isom_get_sample_info_ex(file, track, i+1, &di, NULL, &sample);
+			if (!samp) break;
 
-		avg_rate += samp->dataLength;
-		rate += samp->dataLength;
-		if (samp->DTS > time_wnd + timescale) {
-			if (rate > max_rate) max_rate = rate;
-			time_wnd = samp->DTS;
-			rate = 0;
+			if (samp->dataLength > db_size) db_size = samp->dataLength;
+
+			avg_rate += samp->dataLength;
+			rate += samp->dataLength;
+			if (samp->DTS > time_wnd + timescale) {
+				if (rate > max_rate) max_rate = rate;
+				time_wnd = samp->DTS;
+				rate = 0;
+			}
 		}
 	}
 
@@ -246,7 +261,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
 	Bool is_nalu_video=GF_FALSE, has_seig;
-	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode;
+	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode, cdur;
 	s32 trans_x, trans_y;
 	s16 layer;
 	u8 bps;
@@ -450,6 +465,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		has_seig = GF_TRUE;
 	}
 
+	cdur = gf_isom_get_constant_sample_duration(import->orig, track_in);
+	gf_isom_enable_raw_pack(import->orig, track_in, 2048);
+	
 	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
 
@@ -514,6 +532,15 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				goto exit;
 			}
 			samp->DTS -= dts_offset;
+
+			if (samp->nb_pack && duration && (samp->DTS + samp->nb_pack*cdur > duration) ) {
+				u32 nb_samp = (duration - samp->DTS)/cdur;
+				u32 csize = samp->dataLength / samp->nb_pack;
+				samp->dataLength = csize*nb_samp;
+				samp->nb_pack = nb_samp;
+				duration = samp->DTS-1;
+			}
+
 			/*if not first sample and same DTS as previous sample, force DTS++*/
 			if (i && (samp->DTS<=sampDTS)) {
 				if (i+1 < num_samples) {
@@ -524,6 +551,8 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		sampDTS = samp->DTS;
+		if (samp->nb_pack)
+			i+= samp->nb_pack-1;
 		gf_isom_sample_del(&samp);
 
 		gf_isom_copy_sample_info(import->dest, track, import->orig, track_in, i+1);
