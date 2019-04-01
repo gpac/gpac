@@ -303,18 +303,24 @@ static char *glsl_rgb_shader = "#version 120\n"\
 			gl_FragColor.r = col.b;\
 			gl_FragColor.g = col.g;\
 			gl_FragColor.b = col.r;\
+			gl_FragColor.a = col.a;\
 		} else if (rgb_mode==2) {\
 			gl_FragColor.r = col.g;\
 			gl_FragColor.g = col.b;\
 			gl_FragColor.b = col.a;\
+			gl_FragColor.a = col.r;\
 		} else if (rgb_mode==3) {\
 			gl_FragColor.r = col.g;\
 			gl_FragColor.g = col.a;\
 			gl_FragColor.b = col.b;\
+			gl_FragColor.a = col.r;\
 		} else if (rgb_mode==4) {\
 			gl_FragColor.r = col.a;\
 			gl_FragColor.g = col.b;\
 			gl_FragColor.b = col.g;\
+			gl_FragColor.a = col.r;\
+		} else if (rgb_mode==5) {\
+			gl_FragColor.r = gl_FragColor.g = gl_FragColor.b = col.a;\
 		} else {\
 			gl_FragColor = col;\
 		}\
@@ -710,6 +716,10 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		break;
 	case GF_PIXEL_ALPHAGREY:
 #ifndef GPAC_DISABLE_3D
+		rgb_mode=5;
+#endif
+	case GF_PIXEL_GREYALPHA:
+#ifndef GPAC_DISABLE_3D
 		ctx->pixel_format = GL_LUMINANCE_ALPHA;
 		ctx->bytes_per_pix = 2;
 #endif
@@ -727,6 +737,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		rgb_mode=1;
 #endif
 		break;
+	case GF_PIXEL_BGRA:
+		ctx->has_alpha = GF_TRUE;
 	case GF_PIXEL_BGRX:
 #ifndef GPAC_DISABLE_3D
 		ctx->pixel_format = GL_RGBA;
@@ -734,6 +746,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		rgb_mode=1;
 #endif
 		break;
+	case GF_PIXEL_ARGB:
+		ctx->has_alpha = GF_TRUE;
 	case GF_PIXEL_XRGB:
 #ifndef GPAC_DISABLE_3D
 		ctx->pixel_format = GL_RGBA;
@@ -741,6 +755,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		rgb_mode=2;
 #endif
 		break;
+	case GF_PIXEL_ABGR:
+		ctx->has_alpha = GF_TRUE;
 	case GF_PIXEL_XBGR:
 #ifndef GPAC_DISABLE_3D
 		ctx->pixel_format = GL_RGBA;
@@ -757,13 +773,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->bytes_per_pix = 4;
 #endif
 		break;
-	case GF_PIXEL_ARGB:
-		ctx->has_alpha = GF_TRUE;
-#ifndef GPAC_DISABLE_3D
-		ctx->pixel_format = GL_RGBA;
-		ctx->bytes_per_pix = 4;
-#endif
-		break;
+
 	case 0:
 		//not yet set, happens with some decoders/stream settings - wait until first frame is available and PF is known
 		return GF_OK;

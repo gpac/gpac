@@ -582,12 +582,15 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_YUVA, "yuva"},
 	{GF_PIXEL_YUVD, "yuvd"},
 	{GF_PIXEL_GREYSCALE, "grey"},
-	{GF_PIXEL_ALPHAGREY, "gral"},
+	{GF_PIXEL_ALPHAGREY, "algr"},
+	{GF_PIXEL_GREYALPHA, "gral"},
 	{GF_PIXEL_RGB_444, "rgb4"},
 	{GF_PIXEL_RGB_555, "rgb5"},
 	{GF_PIXEL_RGB_565, "rgb6"},
 	{GF_PIXEL_RGBA, "rgba"},
 	{GF_PIXEL_ARGB, "argb"},
+	{GF_PIXEL_BGRA, "bgra"},
+	{GF_PIXEL_ABGR, "abgr"},
 	{GF_PIXEL_RGB, "rgb"},
 	{GF_PIXEL_BGR, "bgr"},
 	{GF_PIXEL_XRGB, "xrgb"},
@@ -725,6 +728,7 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		planes=1;
 		break;
 	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
 		stride = no_in_stride ? 2*width : *out_stride;
 		size = stride * height;
 		planes=1;
@@ -736,12 +740,14 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		size = stride * height;
 		planes=1;
 		break;
+	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBA:
+	case GF_PIXEL_BGRA:
+	case GF_PIXEL_ABGR:
 	case GF_PIXEL_RGBX:
 	case GF_PIXEL_BGRX:
 	case GF_PIXEL_XRGB:
 	case GF_PIXEL_XBGR:
-	case GF_PIXEL_ARGB:
-	case GF_PIXEL_RGBA:
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGBDS:
 	case GF_PIXEL_RGBAS:
@@ -869,6 +875,7 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 	case GF_PIXEL_GREYSCALE:
 		return 1;
 	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
 	case GF_PIXEL_RGB_444:
 	case GF_PIXEL_RGB_555:
 	case GF_PIXEL_RGB_565:
@@ -879,6 +886,8 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 	case GF_PIXEL_XBGR:
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
+	case GF_PIXEL_BGRA:
+	case GF_PIXEL_ABGR:
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGBDS:
 	case GF_PIXEL_RGBAS:

@@ -889,6 +889,32 @@ static void copy_row_bgrx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32
 	}
 }
 
+
+static void copy_row_argb(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha, u32 dst_pitch, u32 dst_height)
+{
+	u8 a=0, r=0, g=0, b=0;
+	s32 pos = 0x10000L;
+
+	while (dst_w) {
+		while ( pos >= 0x10000L ) {
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
+			pos -= 0x10000L;
+		}
+		if (a) {
+			dst[0] = 0xFF;
+			dst[1] = r;
+			dst[2] = g;
+			dst[3] = b;
+		}
+		dst += x_pitch;
+		pos += h_inc;
+		dst_w--;
+	}
+}
+
 static void copy_row_rgbx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha, u32 dst_pitch, u32 dst_height)
 {
 	u8 a=0, r=0, g=0, b=0;
@@ -937,7 +963,7 @@ static void copy_row_rgbd(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32
 		dst_w--;
 	}
 }
-
+#if 0
 static void copy_row_yuv444(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha, u32 dst_pitch, u32 dst_height)
 {
 	s32 pos;
@@ -970,7 +996,7 @@ static void copy_row_yuv444(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s
 		dst_w--;
 	}
 }
-
+#endif
 
 static void merge_row_rgb_555(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha, u32 dst_pitch, u32 dst_height)
 {
@@ -1067,6 +1093,7 @@ static void merge_row_rgb_24(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, 
 }
 
 
+#if 0
 static void merge_row_yuv444(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha, u32 dst_pitch, u32 dst_height)
 {
 	u32 _r, _g, _b, a=0, r=0, g=0, b=0;
@@ -1103,6 +1130,7 @@ static void merge_row_yuv444(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, 
 		dst_w--;
 	}
 }
+#endif
 
 static void merge_row_bgr_24(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha, u32 dst_pitch, u32 dst_height)
 {
@@ -1248,6 +1276,49 @@ static void merge_row_bgra(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 	}
 }
 
+
+static void merge_row_argb(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha, u32 dst_pitch, u32 dst_height)
+{
+	u32 _a, _r, _g, _b, a=0, r=0, g=0, b=0;
+	s32 pos;
+
+	pos = 0x10000;
+	while (dst_w) {
+		while ( pos >= 0x10000L ) {
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
+			pos -= 0x10000L;
+			a = mul255(a, alpha);
+		}
+
+		if (a) {
+			_b = dst[0];
+			_g = dst[1];
+			_r = dst[2];
+			if (dst[3]) {
+				_a = mul255(a, a) + mul255(0xFF-a, 0xFF);
+				_r = mul255(a, r - _r) + _r;
+				_g = mul255(a, g - _g) + _g;
+				_b = mul255(a, b - _b) + _b;
+				dst[0] = _a;
+				dst[1] = _r;
+				dst[2] = _g;
+				dst[3] = _b;
+			} else {
+				dst[0] = a;
+				dst[1] = b;
+				dst[2] = g;
+				dst[3] = r;
+			}
+		}
+		dst += x_pitch;
+		pos += h_inc;
+		dst_w--;
+	}
+}
+
 static void merge_row_rgba(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha, u32 dst_pitch, u32 dst_height)
 {
 	u32 _a, _r, _g, _b, a=0, r=0, g=0, b=0;
@@ -1308,6 +1379,17 @@ static void load_line_alpha_grey(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y
 	for (i=0; i<width; i++) {
 		dst_bits[0] = dst_bits[1] = dst_bits[2] = *src_bits++;
 		dst_bits[3] = *src_bits++;
+		dst_bits+=4;
+	}
+}
+
+static void load_line_grey_alpha(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, Bool dst_yuv)
+{
+	u32 i;
+	src_bits += x_offset*2 + y_offset*y_pitch;
+	for (i=0; i<width; i++) {
+		dst_bits[3] = *src_bits++;
+		dst_bits[0] = dst_bits[1] = dst_bits[2] = *src_bits++;
 		dst_bits+=4;
 	}
 }
@@ -1438,7 +1520,7 @@ static void load_line_rgbds(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitc
 	}
 }
 
-static void load_line_argb(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, Bool dst_yuv)
+static void load_line_bgra(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, Bool dst_yuv)
 {
 	u32 i;
 	src_bits += x_offset*4 + y_offset*y_pitch;
@@ -1451,6 +1533,18 @@ static void load_line_argb(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch
 	}
 }
 
+static void load_line_argb(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, Bool dst_yuv)
+{
+	u32 i;
+	src_bits += x_offset*4 + y_offset*y_pitch;
+	for (i=0; i<width; i++) {
+		dst_bits[3] = *src_bits++;
+		dst_bits[0] = *src_bits++;
+		dst_bits[1] = *src_bits++;
+		dst_bits[2] = *src_bits++;
+		dst_bits += 4;
+	}
+}
 static void load_line_yv12(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
 {
 	u8 *pY;
@@ -1716,6 +1810,10 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		load_line = load_line_alpha_grey;
 		has_alpha = GF_TRUE;
 		break;
+	case GF_PIXEL_GREYALPHA:
+		load_line = load_line_grey_alpha;
+		has_alpha = GF_TRUE;
+		break;
 	case GF_PIXEL_RGB_555:
 		load_line = load_line_rgb_555;
 		break;
@@ -1732,6 +1830,10 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	case GF_PIXEL_ARGB:
 		has_alpha = GF_TRUE;
 		load_line = load_line_argb;
+		break;
+	case GF_PIXEL_BGRA:
+		has_alpha = GF_TRUE;
+		load_line = load_line_bgra;
 		break;
 	case GF_PIXEL_RGBA:
 	case GF_PIXEL_RGBAS:
@@ -1831,6 +1933,10 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		break;
 	case GF_PIXEL_ARGB:
 		dst_bpp = sizeof(unsigned char)*4;
+		copy_row = has_alpha ? merge_row_argb : copy_row_argb;
+		break;
+	case GF_PIXEL_BGRA:
+		dst_bpp = sizeof(unsigned char)*4;
 		copy_row = has_alpha ? merge_row_bgra : copy_row_bgrx;
 		break;
 	case GF_PIXEL_RGBD:
@@ -1845,11 +1951,14 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		dst_bpp = sizeof(unsigned char)*4;
 		copy_row = has_alpha ? merge_row_rgbx : copy_row_rgbx;
 		break;
+#if 0
+	//yuv dest not yet supported
 	case GF_PIXEL_YUV444:
 		dst_bpp = sizeof(unsigned char)*3;
 		copy_row = has_alpha ? merge_row_yuv444 : copy_row_yuv444;
 		dst_yuv = GF_TRUE;
 		break;
+#endif
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Destination pixel format %s not supported by gf_stretch_bits\n", gf_pixel_fmt_name(dst->pixel_format) ));
 		return GF_NOT_SUPPORTED;
@@ -2259,13 +2368,13 @@ u64 gf_cmx_apply_wide(GF_ColorMatrix *_this, u64 col)
 	CLIP_COMP(_r);
 	CLIP_COMP(_g);
 	CLIP_COMP(_b);
-	res = (u32) (a*0xFFFF)&0xFFFF;
+	res = (u32) (_a*0xFFFF)&0xFFFF;
 	res<<=16;
-	res |= (u32) (r*0xFFFF)&0xFFFF;
+	res |= (u32) (_r*0xFFFF)&0xFFFF;
 	res<<=16;
-	res |= (u32) (g*0xFFFF)&0xFFFF;
+	res |= (u32) (_g*0xFFFF)&0xFFFF;
 	res<<=16;
-	res |= (u32) (b*0xFFFF)&0xFFFF;
+	res |= (u32) (_b*0xFFFF)&0xFFFF;
 	return res;
 }
 

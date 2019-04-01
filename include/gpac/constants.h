@@ -124,8 +124,10 @@ typedef enum
 {
 	/*!8 bit GREY */
 	GF_PIXEL_GREYSCALE	=	GF_4CC('G','R','E','Y'),
-	/*!16 bit greyscale*/
+	/*!16 bit greyscale, first alpha, then grey*/
 	GF_PIXEL_ALPHAGREY	=	GF_4CC('G','R','A','L'),
+	/*!16 bit greyscale, first grey, then alpha*/
+	GF_PIXEL_GREYALPHA	=	GF_4CC('A','L','G','R'),
 	/*!12 bit RGB on 16 bits (4096 colors)*/
 	GF_PIXEL_RGB_444	=	GF_4CC('R','4','4','4'),
 	/*!15 bit RGB*/
@@ -145,10 +147,15 @@ typedef enum
 	/*!32 bit BGR. Component ordering in bytes is X-B-G-R.*/
 	GF_PIXEL_XBGR		=	GF_4CC('B','G','R','X'),
 
-	/*!32 bit ARGB. Component ordering in bytes is B-G-R-A.*/
+	/*!32 bit ARGB. Component ordering in bytes is A-R-G-B.*/
 	GF_PIXEL_ARGB		=	GF_4CC('A','R','G','B'),
 	/*!32 bit RGBA (openGL like). Component ordering in bytes is R-G-B-A.*/
 	GF_PIXEL_RGBA		=	GF_4CC('R','G','B', 'A'),
+	/*!32 bit BGRA. Component ordering in bytes is B-G-R-A.*/
+	GF_PIXEL_BGRA		=	GF_4CC('B','G','R','A'),
+	/*!32 bit ABGR. Component ordering in bytes is A-B-G-R.*/
+	GF_PIXEL_ABGR		=	GF_4CC('A','B','G','R'),
+
 	/*!RGB24 + depth plane. Component ordering in bytes is R-G-B-D.*/
 	GF_PIXEL_RGBD		=	GF_4CC('R', 'G', 'B', 'D'),
 	/*!RGB24 + depth plane (7 lower bits) + shape mask. Component ordering in bytes is R-G-B-(S+D).*/
@@ -172,7 +179,7 @@ typedef enum
 
 	/*!YUV planar format*/
 	GF_PIXEL_YUV		=	GF_4CC('Y','V','1','2'),
-	/*!YUV420p in 10 bits mode, all components are stored as shorts*/
+	/*!YUV420p in 10 bits mode, little endian*/
 	GF_PIXEL_YUV_10	=	GF_4CC('Y','0','1','0'),
 	/*!YUV420p + Alpha plane*/
 	GF_PIXEL_YUVA		=	GF_4CC('Y', 'U', 'V', 'A'),
@@ -180,16 +187,21 @@ typedef enum
 	GF_PIXEL_YUVD		=	GF_4CC('Y', 'U', 'V', 'D'),
 	/*!420 Y planar UV interleaved*/
 	GF_PIXEL_NV21		=	GF_4CC('N','V','2','1'),
-	/*!420 Y planar UV interleaved, 10 bits */
+	/*!420 Y planar UV interleaved, 10 bits, little endian */
 	GF_PIXEL_NV21_10	=	GF_4CC('N','2','1','0'),
 	/*!420 Y planar VU interleaved (U and V swapped) */
 	GF_PIXEL_NV12		=	GF_4CC('N','V','1','2'),
-	/*!420 Y planar VU interleaved (U and V swapped), 10 bits */
+	/*!420 Y planar VU interleaved (U and V swapped), 10 bits, little endian */
 	GF_PIXEL_NV12_10	=	GF_4CC('N','1','2','0'),
+	/*!422 YUV*/
 	GF_PIXEL_YUV422		=	GF_4CC('Y','4','4','2'),
+	/*!422 YUV, 10 bits, little endian*/
 	GF_PIXEL_YUV422_10	=	GF_4CC('Y','2','1','0'),
+	/*!444 YUV+Alpha*/
 	GF_PIXEL_YUVA444	=	GF_4CC('Y','A','4','4'),
+	/*!444 YUV*/
 	GF_PIXEL_YUV444		=	GF_4CC('Y','4','4','4'),
+	/*!444 YUV, 10 bits, little endian*/
 	GF_PIXEL_YUV444_10	=	GF_4CC('Y','4','1','0')
 
 } GF_PixelFormat;

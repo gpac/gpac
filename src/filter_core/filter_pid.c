@@ -2982,10 +2982,10 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	Bool found_matching_sourceid;
 	Bool can_reassign_filter = GF_FALSE;
 	Bool can_try_link_resolution=GF_FALSE;
-	Bool must_try_link_resolution=GF_FALSE;
 	u32 num_pass=0;
 	GF_List *loaded_filters = NULL;
 	GF_List *linked_dest_filters = NULL;
+	GF_List *force_link_resolutions = NULL;
 	GF_Filter *filter = task->filter;
 	GF_FilterPid *pid = task->pid;
 	GF_Filter *dynamic_filter_clone = NULL;
@@ -3024,6 +3024,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	if (filter->session->filters_mx) gf_mx_p(filter->session->filters_mx);
 
 	linked_dest_filters = gf_list_new();
+	force_link_resolutions = gf_list_new();
 
 	//we use at max 3 passes:
 	//pass 1: try direct connections without loading intermediate filter chains. If PID gets connected, skip other passes
@@ -3202,8 +3203,9 @@ single_retry:
 			}
 			if (!num_pass) {
 				//we have an explicit link instruction so we must try dynamic link even if we connect to another filter
-				if (filter_dst->source_ids)
-					must_try_link_resolution = GF_TRUE;
+				if (filter_dst->source_ids) {
+					gf_list_add(force_link_resolutions, filter_dst);
+				}
 				continue;
 			}
 			filter_found_but_pid_excluded = GF_FALSE;
@@ -3231,6 +3233,7 @@ single_retry:
 					safe_int_dec(&pid->init_task_pending);
 					if (loaded_filters) gf_list_del(loaded_filters);
 					gf_list_del(linked_dest_filters);
+					gf_list_del(force_link_resolutions);
 					return;
 				}
 				//we might had it wrong solving the chain initially, break the chain
@@ -3253,6 +3256,7 @@ single_retry:
 							safe_int_dec(&pid->init_task_pending);
 							if (loaded_filters) gf_list_del(loaded_filters);
 							gf_list_del(linked_dest_filters);
+							gf_list_del(force_link_resolutions);
 							return;
 						} else {
 							continue;
@@ -3273,6 +3277,23 @@ single_retry:
 
 		found_dest = GF_TRUE;
 		gf_list_add(linked_dest_filters, filter_dst);
+
+		if (!num_pass) {
+			u32 k=0;
+			for (k=0; k<gf_list_count(force_link_resolutions); k++) {
+				GF_Filter *dst_link = gf_list_get(force_link_resolutions, k);
+				if (//if forced filter is in parent chain (already connected filters), don't force a link
+					filter_in_parent_chain(filter_dst, dst_link)
+					|| filter_in_parent_chain(dst_link, filter_dst)
+					//if forced filter is in destination of filter (connection pending), don't force a link
+					|| (gf_list_find(filter_dst->destination_filters, dst_link)>=0)
+					|| (gf_list_find(filter_dst->destination_links, dst_link)>=0)
+				) {
+					gf_list_rem(force_link_resolutions, k);
+					k--;
+				}
+			}
+		}
 	}
 
 	if (loaded_filters) {
@@ -3285,7 +3306,7 @@ single_retry:
 		goto restart;
 	}
 	//we must do the second pass if a filter has an explicit link set through source if
-	if (!num_pass && must_try_link_resolution) {
+	if (!num_pass && gf_list_count(force_link_resolutions)) {
 		num_pass = 1;
 		goto restart;
 	}
@@ -3297,6 +3318,7 @@ single_retry:
 		if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 		pid->filter->disabled = GF_FALSE;
 		gf_list_del(linked_dest_filters);
+		gf_list_del(force_link_resolutions);
 		return;
 	}
 	//on first pass, if we found a clone (eg a filter using freg:#PropName=*), instantiate this clone and redo the pid linking to this clone (last entry in the filter list)
@@ -3331,6 +3353,7 @@ single_retry:
 	}
 
 	gf_list_del(linked_dest_filters);
+	gf_list_del(force_link_resolutions);
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 
 
@@ -4521,6 +4544,15 @@ static void gf_filter_pid_reset_task(GF_FSTask *task)
 
 	safe_int_dec(& pidi->pid->discard_input_packets );
 }
+static void gf_filter_pid_reset_stop_task(GF_FSTask *task)
+{
+	GF_FilterPidInst *pidi = (GF_FilterPidInst *)task->udta;
+	Bool was_eos_pidi = pidi->is_end_of_stream;
+	Bool was_eos_pid = pidi->pid->has_seen_eos;
+	gf_filter_pid_reset_task(task);
+	pidi->is_end_of_stream = was_eos_pidi;
+	pidi->pid->has_seen_eos = was_eos_pid;
+}
 
 void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 {
@@ -4615,7 +4647,10 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			safe_int_inc(& pid->filter->stream_reset_pending );
 
 			//post task on destination filter
-			gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_task, pidi->filter, NULL, "reset_pid", pidi);
+			if (evt->base.type==GF_FEVT_STOP)
+				gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_stop_task, pidi->filter, NULL, "reset_pid", pidi);
+			else
+				gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_task, pidi->filter, NULL, "reset_pid", pidi);
 		}
 		pid->nb_reaggregation_pending = 0;
 	}

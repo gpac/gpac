@@ -87,6 +87,13 @@ static GF_Err compose_process(GF_Filter *filter)
 			count--;
 			gf_odm_on_eos(odm, pid);
 		}
+		if (ctx->reload_scene_size) {
+			u32 w, h;
+			gf_sg_get_scene_size_info(ctx->root_scene->graph, &w, &h);
+			if ((ctx->scene_width!=w) || (ctx->scene_height!=h)) {
+				gf_sc_set_scene_size(ctx, w, h, GF_TRUE);
+			}
+		}
 	}
 
 	gf_sc_draw_frame(ctx, GF_FALSE, &ms_until_next);
@@ -104,20 +111,27 @@ static GF_Err compose_process(GF_Filter *filter)
 		} else if (!ctx->check_eos_state) {
 			ctx->check_eos_state = 1;
 		}
-		if ((ctx->check_eos_state==2) || (ctx->check_eos_state && ctx->root_scene && gf_sc_check_end_of_scene(ctx, 1))) {
-			gf_filter_pid_set_eos(ctx->vout);
+		if ((ctx->check_eos_state==2) || !ctx->root_scene || (ctx->check_eos_state && gf_sc_check_end_of_scene(ctx, 1))) {
 			count = gf_filter_get_ipid_count(ctx->filter);
+			if (ctx->root_scene) {
+				gf_filter_pid_set_eos(ctx->vout);
+				if (ctx->audio_renderer)
+					gf_filter_pid_set_eos(ctx->audio_renderer->aout);
+			}
+			//send stop
 			for (i=0; i<count; i++) {
-				GF_FilterEvent evt;
 				GF_FilterPid *pid = gf_filter_get_ipid(ctx->filter, i);
-				GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
-				gf_filter_pid_send_event(pid, &evt);
-				GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
-				gf_filter_pid_send_event(pid, &evt);
-
+				if (!gf_filter_pid_is_eos(pid)) {
+					GF_FilterEvent evt;
+					GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+					gf_filter_pid_send_event(pid, &evt);
+					GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+					gf_filter_pid_send_event(pid, &evt);
+				}
 			}
 			return GF_EOS;
 		}
+		ctx->check_eos_state = 0;
 		//always repost a process task since we maye have things to draw even though no new input
 		gf_filter_post_process_task(filter);
 		return ctx->last_error;
@@ -237,6 +251,9 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		ctx->root_scene->root_od = gf_odm_new();
 		ctx->root_scene->root_od->scene_ns = gf_scene_ns_new(ctx->root_scene, ctx->root_scene->root_od, service_url, NULL);
 		ctx->root_scene->root_od->subscene = ctx->root_scene;
+
+		if (!ctx->player)
+			gf_filter_post_process_task(filter);
 	}
 
 	//default scene is root one
@@ -300,13 +317,15 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			GF_ObjectManager *anodm = gf_list_get(scene->resources, i);
 
 			if (new_sns && (anodm->scene_ns == scene->root_od->scene_ns) && (scene->root_od->scene_ns->owner==scene->root_od)) {
-				scene->root_od->scene_ns->owner = odm;
+				scene->root_od->scene_ns->owner = anodm;
+				break;
 			}
 		}
 		scene->root_od->scene_ns = new_sns;
 		gf_sc_set_scene(ctx, NULL);
 		gf_sg_reset(scene->graph);
 		gf_sc_set_scene(ctx, scene->graph);
+		ctx->reload_scene_size = GF_TRUE;
 	}
 
 	//setup object (clock) and playback requests
@@ -517,6 +536,8 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(bc), "default background color to use when displaying transparent images or video with no scene composition instructions", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(yuvhw), "enables YUV hardware for 2D blits", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(blitp), "partial hardware blits (if not set, will force more redraw)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(softblt), "enables software blit/stretch in 2D. If disabled, vector graphics rasterizer will always be used", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+
 	{ OFFS(stress), "enables stress mode of compositor (rebuild all vector graphics and texture states at each frame)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fast), "enables speed optimization - whether the setting is applied or not depends on the graphics module / graphic card", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(bvol), "draws bounding volume of objects.\n"\
