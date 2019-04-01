@@ -706,12 +706,14 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 	/*discard frame*/
 	if (mo->RenderedLength >= mo->size) {
 		mo->RenderedLength = 0;
-		if (gf_filter_pck_is_blocking_ref(mo->pck))
+		if (drop_mode==3)
+			drop_mode=0;
+		else if (gf_filter_pck_is_blocking_ref(mo->pck))
 			drop_mode = 1;
 
 		if (drop_mode) {
 			gf_filter_pck_unref(mo->pck);
-			mo->pck=NULL;
+			mo->pck = NULL;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u released frame TS %u\n", mo->odm->ID,gf_clock_time(mo->odm->ck), mo->timestamp));
 		} else {
 			/*we cannot drop since we don't know the speed of the playback (which can even be frame by frame)*/

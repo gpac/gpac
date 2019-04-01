@@ -567,8 +567,11 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 		compositor->video_out = &null_vout;
 		e = gf_filter_request_opengl(compositor->filter);
 		if (e) return e;
+#ifndef GPAC_DISABLE_3D
 		gf_sc_load_opengl_extensions(compositor, GF_TRUE);
-		if (!compositor->gl_caps.fbo) {
+		if (!compositor->gl_caps.fbo)
+#endif
+		{
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] No support for OpenGL framebuffer object, cannot run in GL mode.\n"));
 			compositor->drv = GF_SC_DRV_OFF;
 			return GF_NOT_SUPPORTED;
@@ -603,6 +606,7 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_3D
 static void gf_sc_check_video_driver(GF_Compositor *compositor)
 {
 	if (compositor->video_out == &null_vout) return;
@@ -616,6 +620,7 @@ static void gf_sc_check_video_driver(GF_Compositor *compositor)
 		}
 		return;
 	}
+
 	if (compositor->video_out == &raw_vout) return;
 	if (compositor->player) {
 		compositor->video_out->Shutdown(compositor->video_out);
@@ -624,6 +629,7 @@ static void gf_sc_check_video_driver(GF_Compositor *compositor)
 	}
 	compositor->video_out = &raw_vout;
 }
+#endif
 
 GF_Err gf_sc_load(GF_Compositor *compositor)
 {
@@ -2372,8 +2378,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	GF_SceneGraph *sg;
 #endif
 	GF_List *temp_queue;
-	u32 in_time, end_time, i, count, frame_duration, frame_ts;
-	Bool frame_drawn, has_timed_nodes=GF_FALSE, all_tx_done=GF_TRUE;
+	u32 in_time, end_time, i, count, frame_duration, frame_ts, frame_draw_type_bck;
+	Bool frame_drawn, has_timed_nodes=GF_FALSE, has_tx_streams=GF_FALSE, all_tx_done=GF_TRUE;
 
 #ifndef GPAC_DISABLE_LOG
 	s32 event_time, route_time, smil_timing_time=0, time_node_time, texture_time, traverse_time, flush_time, txtime;
@@ -2429,7 +2435,10 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		visual_reset_graphics(compositor->visual);
 
+#ifndef GPAC_DISABLE_3D
 		compositor_3d_delete_fbo(&compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
+#endif
+
 	}
 
 	/*process pending user events*/
@@ -2543,12 +2552,16 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	frame_ts = (u32) -1;
 
 	/*update all video textures*/
+	frame_draw_type_bck = compositor->frame_draw_type;
+	compositor->frame_draw_type = 0;
+	has_tx_streams = GF_FALSE;
 	count = gf_list_count(compositor->textures);
 	for (i=0; i<count; i++) {
 		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
 		if (!txh) break;
 		//this is not a natural (video) texture
 		if (! txh->stream) continue;
+		has_tx_streams = GF_TRUE;
 
 		/*signal graphics reset before updating*/
 		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
@@ -2568,6 +2581,10 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock() - texture_time;
 #endif
+	//in non player mode, don't redraw frame if due to end of streams on textures
+	if (!compositor->player && !frame_draw_type_bck && compositor->frame_draw_type && all_tx_done)
+		compositor->frame_draw_type = 0;
+
 
 	if (!compositor->player) {
 		if (compositor->passthrough_txh && compositor->passthrough_txh->frame_ifce && !compositor->passthrough_txh->frame_ifce->get_plane) {
@@ -2697,16 +2714,19 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		if (compositor->check_eos_state<=1) {
 			compositor->check_eos_state = 0;
 			/*force a frame dispatch */
-			if (!compositor->vfr && !compositor->passthrough_txh)
+			if (!compositor->vfr && !compositor->passthrough_txh && (!has_tx_streams || !all_tx_done) )
 				compositor->frame_draw_type = GF_SC_DRAW_FRAME;
 
 			if (compositor->passthrough_txh) {
 				//still waiting for initialization either from the passthrough stream or a texture used in the scene
 				if (!compositor->passthrough_txh->width || !compositor->passthrough_txh->stream->pck || (compositor->ms_until_next_frame<0) ) {
 					compositor->frame_draw_type=GF_SC_DRAW_NONE;
+					//prevent release of frame
+					if (compositor->passthrough_txh->needs_release)
+						compositor->passthrough_txh->needs_release = 2;
 				}
 				//done
-				if (compositor->passthrough_txh->stream_finished) {
+				else if ((compositor->passthrough_txh->stream_finished) && (compositor->ms_until_next_frame >= 0)) {
 					compositor->check_eos_state = 2;
 				}
 			}
@@ -2755,7 +2775,10 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				}
 			}
 
-			if (compositor->ms_until_next_frame < 0) emit_frame = GF_FALSE;
+			if (compositor->ms_until_next_frame < 0) {
+				emit_frame = GF_FALSE;
+				compositor->last_error = GF_OK;
+			}
 			else if (!scene_drawn) emit_frame = GF_FALSE;
 			else if (compositor->frame_draw_type) emit_frame = GF_FALSE;
 			else if (compositor->fonts_pending) emit_frame = GF_FALSE;
@@ -2855,6 +2878,9 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			}
 		} else if (!compositor->player) {
 			frame_drawn = GF_FALSE;
+			//prevent release of frame
+			if (compositor->passthrough_txh && compositor->passthrough_txh->needs_release)
+				compositor->passthrough_txh->needs_release = 2;
 		}
 
 		if (compositor->passthrough_pck) {

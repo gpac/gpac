@@ -123,7 +123,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	dst_striped = gf_filter_get_dst_args_stripped(fsess, dst_args);
 	//if we already concatenated our dst args to this source filter (eg this is an intermediate dynamically loaded one)
 	//don't reappend the args
-	if (dst_striped && strstr(args, dst_striped) != NULL) {
+	if (dst_striped && args && strstr(args, dst_striped) != NULL) {
 		dst_striped = NULL;
 	}
 
@@ -2578,6 +2578,7 @@ exit:
 GF_EXPORT
 void gf_filter_register_opengl_provider(GF_Filter *filter, Bool do_register)
 {
+#ifndef GPAC_DISABLE_3D
 	GF_Err e;
 	if (filter->removed || filter->finalized) return;
 
@@ -2592,11 +2593,14 @@ void gf_filter_register_opengl_provider(GF_Filter *filter, Bool do_register)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reload an OpenGL provider and some filters require openGL, aborting\n"));
 		gf_fs_abort(filter->session, GF_FALSE);
 	}
+#endif
+
 }
 
 GF_EXPORT
 GF_Err gf_filter_request_opengl(GF_Filter *filter)
 {
+#ifndef GPAC_DISABLE_3D
 	GF_Err e;
 	if (filter->finalized || filter->removed) return GF_OK;
 
@@ -2609,4 +2613,7 @@ GF_Err gf_filter_request_opengl(GF_Filter *filter)
 	}
 	filter->main_thread_forced = GF_TRUE;
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }

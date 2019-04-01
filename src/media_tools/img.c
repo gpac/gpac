@@ -469,7 +469,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 		*pixel_format = GF_PIXEL_GREYSCALE;
 		break;
 	case PNG_COLOR_TYPE_GRAY_ALPHA:
-		*pixel_format = GF_PIXEL_ALPHAGREY;
+		*pixel_format = GF_PIXEL_GREYALPHA;
 		break;
 	case PNG_COLOR_TYPE_RGB:
 		*pixel_format = GF_PIXEL_RGB;
@@ -538,7 +538,7 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 		nb_comp = 1;
 		type = PNG_COLOR_TYPE_GRAY;
 		break;
-	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
 		nb_comp = 1;
 		type = PNG_COLOR_TYPE_GRAY_ALPHA;
 		break;

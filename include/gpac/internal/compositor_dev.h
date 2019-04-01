@@ -211,6 +211,8 @@ struct __tag_compositor
 	/*video out*/
 	GF_VideoOutput *video_out;
 
+	Bool softblt;
+
 	/*video listeners (old API, should get rid of this)*/
 	GF_List *video_listeners;
 	Bool discard_input_events;
@@ -691,6 +693,7 @@ struct __tag_compositor
 	u32 timeout;
 	u32 play_state;
 	Bool use_step_mode;
+	Bool reload_scene_size;
 	//associated filter, used to load input filters
 	GF_Filter *filter;
 //	GF_FilterSession *fsess;
@@ -785,7 +788,7 @@ typedef struct _gf_sc_texture_handler
 	/*to override by each texture node*/
 	void (*update_texture_fcnt)(struct _gf_sc_texture_handler *txh);
 	/*needs_release if a visual frame is grabbed (not used by modules)*/
-	Bool needs_release;
+	u32 needs_release;
 	/*stream_finished: indicates stream is over (not used by modules)*/
 	Bool stream_finished;
 	/*needs_refresh: indicates texture content has been changed - needed by modules performing tile drawing*/
