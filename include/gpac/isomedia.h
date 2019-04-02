@@ -224,6 +224,10 @@ enum
 	GF_ISOM_MEDIA_SUBT		= GF_4CC( 's', 'b', 't', 'l' ),
 	GF_ISOM_MEDIA_SUBPIC	= GF_4CC( 's', 'u', 'b', 'p' ),
 	GF_ISOM_MEDIA_MPEG_SUBT	= GF_4CC( 's', 'u', 'b', 't' ),
+	/*closed caption track types for QT/ProRes*/
+	GF_ISOM_MEDIA_CLOSED_CAPTION		= GF_4CC( 'c', 'l', 'c', 'p' ),
+	/*timecode metadata for QT/ProRes*/
+	GF_ISOM_MEDIA_TIMECODE		= GF_4CC( 't', 'm', 'c', 'd' ),
 
 	/*MPEG-4 media types*/
 	GF_ISOM_MEDIA_OD		= GF_4CC( 'o', 'd', 's', 'm' ),
@@ -360,6 +364,35 @@ enum
 	/* on-screen colours */
 	GF_ISOM_SUBTYPE_NCLX 		= GF_4CC( 'n', 'c', 'l', 'x' ),
 	GF_ISOM_SUBTYPE_PROF 		= GF_4CC( 'p', 'r', 'o', 'f' ),
+
+	/* QT audio codecs */
+	GF_QT_SUBTYPE_RAW 	= GF_4CC('r','a','w',' '),
+	GF_QT_SUBTYPE_TWOS 	= GF_4CC('t','w','o','s'),
+	GF_QT_SUBTYPE_SOWT 	= GF_4CC('s','o','w','t'),
+	GF_QT_SUBTYPE_FL32 	= GF_4CC('f','l','3','2'),
+	GF_QT_SUBTYPE_FL64 	= GF_4CC('f','l','6','4'),
+	GF_QT_SUBTYPE_IN24 	= GF_4CC('i','n','2','4'),
+	GF_QT_SUBTYPE_IN32 	= GF_4CC('i','n','3','2'),
+	GF_QT_SUBTYPE_ULAW 	= GF_4CC('u','l','a','w'),
+	GF_QT_SUBTYPE_ALAW 	= GF_4CC('a','l','a','w'),
+	GF_QT_SUBTYPE_ADPCM 	= GF_4CC(0x6D,0x73,0x00,0x02),
+	GF_QT_SUBTYPE_IMA_ADPCM 	= GF_4CC(0x6D,0x73,0x00,0x11),
+	GF_QT_SUBTYPE_DVCA 	= GF_4CC('d','v','c','a'),
+	GF_QT_SUBTYPE_QDMC 	= GF_4CC('Q','D','M','C'),
+	GF_QT_SUBTYPE_QDMC2	= GF_4CC('Q','D','M','2'),
+	GF_QT_SUBTYPE_QCELP	= GF_4CC('Q','c','l','p'),
+	GF_QT_SUBTYPE_kMP3 	= GF_4CC(0x6D,0x73,0x00,0x55),
+
+	/* QT video codecs */
+	GF_QT_SUBTYPE_C608	= GF_4CC( 'c', '6', '0', '8' ),
+	GF_QT_SUBTYPE_APCH	= GF_4CC( 'a', 'p', 'c', 'h' ),
+	GF_QT_SUBTYPE_APCO	= GF_4CC( 'a', 'p', 'c', 'o' ),
+	GF_QT_SUBTYPE_APCN	= GF_4CC( 'a', 'p', 'c', 'n' ),
+	GF_QT_SUBTYPE_APCS	= GF_4CC( 'a', 'p', 'c', 's' ),
+	GF_QT_SUBTYPE_APCF	= GF_4CC( 'a', 'p', 'c', 'f' ),
+	GF_QT_BOX_TYPE_AP4X	= GF_4CC( 'a', 'p', '4', 'x' ),
+	GF_QT_BOX_TYPE_AP4H	= GF_4CC( 'a', 'p', '4', 'h' ),
+
 };
 
 
@@ -1064,6 +1097,7 @@ typedef struct
 	u32 samplerate;
 	u16 nb_channels;
 	u16 bits_per_sample;
+	Bool is_qtff;
 
 	/*if present*/
 	char *extension_buf;
@@ -1388,6 +1422,7 @@ typedef enum {
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2 = 2,
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG = 3,
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF = 4,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF_FULL = 5,
 } GF_AudioSampleEntryImportMode;
 
 GF_Err gf_isom_set_audio_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample, GF_AudioSampleEntryImportMode asemode);

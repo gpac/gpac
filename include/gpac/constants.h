@@ -478,6 +478,15 @@ enum
 	GF_CODECID_VP9 = GF_4CC('V','P','0','9'),
 	GF_CODECID_VP10 = GF_4CC('V','P','1','0'),
 
+	/*QT ProRes*/
+	GF_CODECID_APCH	= GF_4CC( 'a', 'p', 'c', 'h' ),
+	GF_CODECID_APCO	= GF_4CC( 'a', 'p', 'c', 'o' ),
+	GF_CODECID_APCN	= GF_4CC( 'a', 'p', 'c', 'n' ),
+	GF_CODECID_APCS	= GF_4CC( 'a', 'p', 'c', 's' ),
+	GF_CODECID_APCF	= GF_4CC( 'a', 'p', 'c', 'f' ),
+	GF_CODECID_AP4X	= GF_4CC( 'a', 'p', '4', 'x' ),
+	GF_CODECID_AP4H	= GF_4CC( 'a', 'p', '4', 'h' ),
+
 	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D')
 
 };
@@ -641,7 +650,7 @@ enum
 {
 	/*! sample = unsigned byte, interleaved channels*/
 	GF_AUDIO_FMT_U8 = 1,
-	/*! sample = signed short, interleaved channels*/
+	/*! sample = signed short Little Endian, interleaved channels*/
 	GF_AUDIO_FMT_S16,
 	/*! sample = signed integer, interleaved channels*/
 	GF_AUDIO_FMT_S32,
@@ -706,6 +715,12 @@ u32 gf_audio_fmt_bit_depth(u32 afmt);
  \return GF_TRUE if the format is planar, false otherwise
 */
 Bool gf_audio_fmt_is_planar(u32 afmt);
+
+/*! Returns audio format for raw audio ISOBMFF sample description type
+ \param msubtype ISOBMFF sample description type
+ \return the associated audio format of 0 if not known
+ */
+u32 gf_audio_fmt_from_isobmf(u32 msubtype);
 
 /*DIMS unit flags */
 /*!

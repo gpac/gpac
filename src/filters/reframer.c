@@ -268,7 +268,9 @@ static const GF_FilterCapability ReframerCaps[] =
 	//we don't accept files as input so don't output them
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	//we don't produce RAW streams during dynamic chain resolution - this will avoid loading the filter for compositor/other raw access
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW)
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	//but we may produce raw streams when filter is explicitly loaded (media exporter)
+	CAP_UINT(GF_CAPS_OUTPUT_LOADED_FILTER, GF_PROP_PID_CODECID, GF_CODECID_RAW)
 };
 
 

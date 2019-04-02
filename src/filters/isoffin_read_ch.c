@@ -470,6 +470,8 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			ch->pck_encrypted = GF_TRUE;
 		}
 	}
+	if (ch->sample && ch->sample->nb_pack)
+		ch->sample_num += ch->sample->nb_pack-1;
 }
 
 void isor_reader_release_sample(ISOMChannel *ch)

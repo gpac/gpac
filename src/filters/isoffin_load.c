@@ -76,7 +76,7 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 
 static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32 stsd_idx, u32 streamtype, Bool use_iod)
 {
-	u32 w, h, sr, nb_ch, codec_id, depends_on_id, esid, avg_rate, max_rate, buffer_size, sample_count, max_size, nb_refs, exp_refs, base_track;
+	u32 w, h, sr, nb_ch, codec_id, depends_on_id, esid, avg_rate, max_rate, buffer_size, sample_count, max_size, nb_refs, exp_refs, base_track, audio_fmt;
 	GF_ESD *an_esd;
 	const char *mime, *encoding, *stxtcfg, *namespace, *schemaloc;
 	char *tk_template;
@@ -105,6 +105,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 	u32 ocr_es_id;
 
+	audio_fmt = 0;
 	ocr_es_id = 0;
 	an_esd = gf_media_map_esd(read->mov, track, stsd_idx);
 	if (an_esd) {
@@ -184,6 +185,16 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				gf_odf_desc_del((GF_Descriptor *) txtcfg);
 			}
 		}
+			break;
+
+		case GF_QT_SUBTYPE_TWOS:
+		case GF_QT_SUBTYPE_SOWT:
+		case GF_QT_SUBTYPE_FL32:
+		case GF_QT_SUBTYPE_FL64:
+		case GF_QT_SUBTYPE_IN24:
+		case GF_QT_SUBTYPE_IN32:
+			codec_id = GF_CODECID_RAW;
+			audio_fmt = gf_audio_fmt_from_isobmf(m_subtype);
 			break;
 		default:
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
@@ -571,6 +582,12 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	if (enh_dsi) {
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_DATA_NO_COPY(enh_dsi, enh_dsi_size));
 	}
+	if (audio_fmt) {
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(audio_fmt));
+		if (codec_id == GF_CODECID_RAW) {
+			gf_isom_enable_raw_pack(read->mov, track, read->frame_size);
+		}
+	}
 
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CONFIG_IDX, &PROP_UINT(stsd_idx) );
 
@@ -743,6 +760,7 @@ void isor_declare_objects(ISOMReader *read)
 		case GF_ISOM_MEDIA_SUBT:
 		case GF_ISOM_MEDIA_SUBPIC:
 		case GF_ISOM_MEDIA_MPEG_SUBT:
+		case GF_ISOM_MEDIA_CLOSED_CAPTION:
 			streamtype = GF_STREAM_TEXT;
 			break;
 		case GF_ISOM_MEDIA_FLASH:
@@ -754,8 +772,10 @@ void isor_declare_objects(ISOMReader *read)
 			streamtype = GF_STREAM_OD;
 			break;
 		case GF_ISOM_MEDIA_META:
+		case GF_ISOM_MEDIA_TIMECODE:
 			streamtype = GF_STREAM_METADATA;
 			break;
+		/*hint tracks are never exported*/
 		case GF_ISOM_MEDIA_HINT:
 			continue;
 		default:

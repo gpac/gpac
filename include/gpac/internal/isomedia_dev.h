@@ -474,15 +474,6 @@ enum
 	GF_QT_BOX_TYPE_GAMA = GF_4CC('g','a','m','a'),
 	GF_QT_BOX_TYPE_CHRM = GF_4CC('c','h','r','m'),
 
-	GF_QT_BOX_TYPE_C608	= GF_4CC( 'c', '6', '0', '8' ),
-	GF_QT_BOX_TYPE_APCH	= GF_4CC( 'a', 'p', 'c', 'h' ),
-	GF_QT_BOX_TYPE_APCO	= GF_4CC( 'a', 'p', 'c', 'o' ),
-	GF_QT_BOX_TYPE_APCN	= GF_4CC( 'a', 'p', 'c', 'n' ),
-	GF_QT_BOX_TYPE_APCS	= GF_4CC( 'a', 'p', 'c', 's' ),
-	GF_QT_BOX_TYPE_APCF	= GF_4CC( 'a', 'p', 'c', 'f' ),
-	GF_QT_BOX_TYPE_AP4X	= GF_4CC( 'a', 'p', '4', 'x' ),
-	GF_QT_BOX_TYPE_AP4H	= GF_4CC( 'a', 'p', '4', 'h' ),
-
 	/* from drm_sample.c */
 	GF_ISOM_BOX_TYPE_264B 	= GF_4CC('2','6','4','b'),
 	GF_ISOM_BOX_TYPE_265B 	= GF_4CC('2','6','5','b'),
@@ -499,23 +490,6 @@ enum
 
 	GF_ISOM_BOX_TYPE_AUXV 	= GF_4CC('A','U','X','V'),
 
-	/*QTFF audio codes*/
-	GF_QT_BOX_TYPE_AUDIO_RAW 	= GF_4CC('r','a','w',' '),
-	GF_QT_BOX_TYPE_AUDIO_TWOS 	= GF_4CC('t','w','o','s'),
-	GF_QT_BOX_TYPE_AUDIO_SOWT 	= GF_4CC('s','o','w','t'),
-	GF_QT_BOX_TYPE_AUDIO_FL32 	= GF_4CC('f','l','3','2'),
-	GF_QT_BOX_TYPE_AUDIO_FL64 	= GF_4CC('f','l','6','4'),
-	GF_QT_BOX_TYPE_AUDIO_IN24 	= GF_4CC('i','n','2','4'),
-	GF_QT_BOX_TYPE_AUDIO_IN32 	= GF_4CC('i','n','3','2'),
-	GF_QT_BOX_TYPE_AUDIO_ULAW 	= GF_4CC('u','l','a','w'),
-	GF_QT_BOX_TYPE_AUDIO_ALAW 	= GF_4CC('a','l','a','w'),
-	GF_QT_BOX_TYPE_AUDIO_ADPCM 	= GF_4CC(0x6D,0x73,0x00,0x02),
-	GF_QT_BOX_TYPE_AUDIO_IMA_ADPCM 	= GF_4CC(0x6D,0x73,0x00,0x11),
-	GF_QT_BOX_TYPE_AUDIO_DVCA 	= GF_4CC('d','v','c','a'),
-	GF_QT_BOX_TYPE_AUDIO_QDMC 	= GF_4CC('Q','D','M','C'),
-	GF_QT_BOX_TYPE_AUDIO_QDMC2	= GF_4CC('Q','D','M','2'),
-	GF_QT_BOX_TYPE_AUDIO_QCELP	= GF_4CC('Q','c','l','p'),
-	GF_QT_BOX_TYPE_AUDIO_kMP3 	= GF_4CC(0x6D,0x73,0x00,0x55),
 };
 
 enum
