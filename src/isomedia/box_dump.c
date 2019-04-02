@@ -643,6 +643,9 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_SUBTYPE_3GP_H263:
 		name = "H263SampleDescriptionBox";
 		break;
+	case GF_ISOM_SUBTYPE_MJP2:
+		name = "MJ2KSampleDescriptionBox";
+		break;
 	default:
 		name = "MPEGVisualSampleDescriptionBox";
 	}

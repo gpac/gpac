@@ -829,7 +829,7 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 	}
 	if (dst) gf_free(dst);
 	if (mime_type) {
-		*score = GF_FPROBE_SUPPORTED;
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
 		return mime_type;
 	}
 

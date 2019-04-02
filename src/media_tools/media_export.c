@@ -1181,6 +1181,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 
 	//except in nhml inband file dump, create a sink filter
 	if (!dumper->dump_file && !(dumper->flags & GF_EXPORT_AVI)) {
+		Bool no_ext = GF_FALSE;
 		char *ext = gf_file_ext_start(dumper->out_name);
 		//mux args, for now we only dump to file
 		sprintf(szArgs, "fout:dst=%s", dumper->out_name);
@@ -1188,14 +1189,17 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (dumper->flags & GF_EXPORT_NHNT) {
 			strcpy(szExt, "nhnt");
 			strcat(szArgs, ":clone");
+			no_ext = GF_TRUE;
 			if (!ext)
 				strcat(szArgs, ":dynext");
 		} else if (dumper->flags & GF_EXPORT_NHML) {
 			strcpy(szExt, "nhml");
 			strcat(szArgs, ":clone");
+			no_ext = GF_TRUE;
 			if (!ext)
 				strcat(szArgs, ":dynext");
 		}
+
 		if (dumper->flags & GF_EXPORT_RAW_SAMPLES) {
 			if (!dumper->sample_num) {
 
@@ -1213,7 +1217,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			}
 			strcat(szArgs, ":dynext");
 		} else if (dumper->trackID && strlen(szExt) ) {
-			if (!gf_file_ext_start(dumper->out_name)) {
+			if (!no_ext && !gf_file_ext_start(dumper->out_name)) {
 				sprintf(szArgs, "fout:dst=%s.%s", dumper->out_name, szExt);
 			} else {
 				strcat(szArgs, ":fext=");
