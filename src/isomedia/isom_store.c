@@ -444,7 +444,7 @@ void update_writer_constant_dur(GF_ISOFile *movie, TrackWriter *tkw, GF_StscEntr
 
 	chunk_dur = nb_in_run * tkw->constant_dur;
 
-	tkw->chunkDur += chunk_dur;
+	tkw->chunkDur += (u32) chunk_dur;
 	tkw->DTSprev += chunk_dur - tkw->constant_dur; //because nb_samp += nb_in_run-1
 
 	*nb_samp = nb_in_run;
