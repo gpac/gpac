@@ -1102,18 +1102,22 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						//and continue with the same filter
 						continue;
 					}
-					//little optim here: if this is the main thread and we have other threads
+					//little optim here: if this is the main thread and we have other tasks pending
 					//check the timing of tasks in the secondary list. If a task is present with smaller time than
 					//the head of the main task, force a temporary swap to the secondary task list
-					if (!thid && th_count && task->notified && diff>10) {
+					if (!thid && task->notified && diff>10) {
 						next = gf_fq_head(fsess->tasks);
 						if (next && !next->blocking) {
 							u64 next_time_main = task->schedule_next_time;
 							u64 next_time_secondary = next->schedule_next_time;
-							GF_FSTask *next_main = gf_fq_head(fsess->main_thread_tasks);
-							if (next_main && (next_time_main > next_main->schedule_next_time))
-								next_time_main = next_main->schedule_next_time;
-
+							//if we have several threads, also check the next task on the main task list
+							// (different from secondary tasks in multithread case)
+							if (th_count) {
+								GF_FSTask *next_main = gf_fq_head(fsess->main_thread_tasks);
+								if (next_main && (next_time_main > next_main->schedule_next_time))
+									next_time_main = next_main->schedule_next_time;
+							}
+							
 							if (next_time_secondary<next_time_main) {
 								GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u: forcing secondary task list on main - current task schedule time "LLU" (diff to now %d) vs next time secondary "LLU" (%s::%s)\n", sys_thid, task->schedule_next_time, (s32) diff, next_time_secondary, next->filter->freg->name, next->log_name));
 								diff = 0;
