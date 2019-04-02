@@ -1415,7 +1415,7 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 {
 	GF_Err e;
 	GF_Box *a = NULL;
-	Bool skip_logs = gf_bs_get_cookie(bs);
+	Bool skip_logs = gf_bs_get_cookie(bs) ? GF_TRUE : GF_FALSE;
 
 	//we may have terminators in some QT files (4 bytes set to 0 ...)
 	while (parent->size>=8) {
