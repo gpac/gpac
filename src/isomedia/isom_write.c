@@ -1596,10 +1596,16 @@ GF_EXPORT
 GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample, GF_AudioSampleEntryImportMode asemode)
 {
 	GF_Err e;
+	u32 i;
 	GF_TrackBox *trak;
 	GF_SampleEntryBox *entry;
 	GF_AudioSampleEntryBox*aud_entry;
 	GF_SampleDescriptionBox *stsd;
+	GF_Box *wave_box = NULL;
+	GF_ChannelLayoutInfoBox *chan=NULL;
+	GF_OriginalFormatBox *frma=NULL;
+	GF_ChromaInfoBox *enda=NULL;
+	GF_Box *terminator=NULL;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
@@ -1646,11 +1652,77 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 		aud_entry->channel_count = nbChannels;
 		break;
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF:
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF_FULL:
 		stsd->version = 1;
 		aud_entry->version = 1;
 		aud_entry->is_qtff = 1;
 		aud_entry->channel_count = nbChannels;
 		break;
+	}
+	//insert wave+children and chan for QTFF
+	for (i=0; i<gf_list_count(aud_entry->other_boxes); i++) {
+		GF_Box *b = gf_list_get(aud_entry->other_boxes, i);
+		if ((b->type != GF_QT_BOX_TYPE_WAVE) && (b->type != GF_QT_BOX_TYPE_CHAN) ) continue;
+		if (asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF_FULL) {
+			if (b->type == GF_QT_BOX_TYPE_WAVE) wave_box = b;
+			else chan = (GF_ChannelLayoutInfoBox *)b;
+		} else {
+			gf_isom_box_del(b);
+			gf_list_rem(aud_entry->other_boxes, i);
+			i--;
+		}
+	}
+
+	//TODO: insert channelLayout for ISOBMFF
+	if (asemode!=GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF_FULL) return GF_OK;
+
+	if (!aud_entry->other_boxes) aud_entry->other_boxes = gf_list_new();
+	//qtff doesn't use v1 for stsd
+	stsd->version = 0;
+	if (!wave_box) {
+		wave_box = gf_isom_box_new(GF_QT_BOX_TYPE_WAVE);
+		gf_list_add(aud_entry->other_boxes, wave_box);
+	}
+	if (!chan) {
+		chan = (GF_ChannelLayoutInfoBox *) gf_isom_box_new(GF_QT_BOX_TYPE_CHAN);
+		gf_list_add(aud_entry->other_boxes, chan);
+	}
+	//TODO, proper channel mapping
+	chan->layout_tag = (nbChannels==2) ? 6750210 : 6553601;
+
+	for (i=0; i<gf_list_count(wave_box->other_boxes); i++) {
+		GF_Box *b = gf_list_get(wave_box->other_boxes, i);
+		switch (b->type) {
+		case GF_QT_BOX_TYPE_ENDA:
+			enda = (GF_ChromaInfoBox *)b;
+			break;
+		case GF_QT_BOX_TYPE_FRMA:
+			frma = (GF_OriginalFormatBox *)b;
+			break;
+		case 0:
+			terminator = b;
+			break;
+		}
+	}
+	if (!wave_box->other_boxes) wave_box->other_boxes = gf_list_new();
+
+	if (!enda) {
+		enda = (GF_ChromaInfoBox *)gf_isom_box_new(GF_QT_BOX_TYPE_ENDA);
+		enda->chroma=1;
+		gf_list_insert(wave_box->other_boxes, enda, 0);
+	}
+	if (!frma) {
+		frma = (GF_OriginalFormatBox *)gf_isom_box_new(GF_QT_BOX_TYPE_FRMA);
+		gf_list_insert(wave_box->other_boxes, frma, 0);
+	}
+	if (!terminator) {
+		terminator = gf_isom_box_new(0);
+		gf_list_add(wave_box->other_boxes, terminator);
+	}
+	if (aud_entry->type==GF_ISOM_BOX_TYPE_GNRA) {
+		frma->data_format = ((GF_GenericAudioSampleEntryBox*) aud_entry)->EntryType;
+	} else {
+		frma->data_format = aud_entry->type;
 	}
 	return GF_OK;
 }
@@ -3370,6 +3442,7 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		gena->channel_count = udesc->nb_channels ? udesc->nb_channels : 2;
 		gena->samplerate_hi = udesc->samplerate;
 		gena->samplerate_lo = 0;
+		gena->is_qtff = udesc->is_qtff;
 
 		if (udesc->extension_buf && udesc->extension_buf_size) {
 			gena->data = (char*)gf_malloc(sizeof(char) * udesc->extension_buf_size);
@@ -4197,22 +4270,22 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			return GF_FALSE;
 		}
 		case GF_ISOM_BOX_TYPE_MP3:
-		case GF_QT_BOX_TYPE_AUDIO_RAW:
-		case GF_QT_BOX_TYPE_AUDIO_TWOS:
-		case GF_QT_BOX_TYPE_AUDIO_SOWT:
-		case GF_QT_BOX_TYPE_AUDIO_FL32:
-		case GF_QT_BOX_TYPE_AUDIO_FL64:
-		case GF_QT_BOX_TYPE_AUDIO_IN24:
-		case GF_QT_BOX_TYPE_AUDIO_IN32:
-		case GF_QT_BOX_TYPE_AUDIO_ULAW:
-		case GF_QT_BOX_TYPE_AUDIO_ALAW:
-		case GF_QT_BOX_TYPE_AUDIO_ADPCM:
-		case GF_QT_BOX_TYPE_AUDIO_IMA_ADPCM:
-		case GF_QT_BOX_TYPE_AUDIO_DVCA:
-		case GF_QT_BOX_TYPE_AUDIO_QDMC:
-		case GF_QT_BOX_TYPE_AUDIO_QDMC2:
-		case GF_QT_BOX_TYPE_AUDIO_QCELP:
-		case GF_QT_BOX_TYPE_AUDIO_kMP3:
+		case GF_QT_SUBTYPE_RAW:
+		case GF_QT_SUBTYPE_TWOS:
+		case GF_QT_SUBTYPE_SOWT:
+		case GF_QT_SUBTYPE_FL32:
+		case GF_QT_SUBTYPE_FL64:
+		case GF_QT_SUBTYPE_IN24:
+		case GF_QT_SUBTYPE_IN32:
+		case GF_QT_SUBTYPE_ULAW:
+		case GF_QT_SUBTYPE_ALAW:
+		case GF_QT_SUBTYPE_ADPCM:
+		case GF_QT_SUBTYPE_IMA_ADPCM:
+		case GF_QT_SUBTYPE_DVCA:
+		case GF_QT_SUBTYPE_QDMC:
+		case GF_QT_SUBTYPE_QDMC2:
+		case GF_QT_SUBTYPE_QCELP:
+		case GF_QT_SUBTYPE_kMP3:
 			return GF_TRUE;
 		}
 

@@ -770,7 +770,7 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 res;
-	u32 type=0, fftype;
+	u32 type=0, fftype, ff_codectag=0;
 	u32 i=0;
 	u32 change_input_fmt = 0;
 	const GF_PropertyValue *prop;
@@ -838,7 +838,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	codec_id = 0;
 	if (ctx->codecid) {
-		codec_id = ffmpeg_codecid_from_gpac(ctx->codecid);
+		codec_id = ffmpeg_codecid_from_gpac(ctx->codecid, &ff_codectag);
 		if (codec_id) {
 			if (desired_codec && desired_codec->id==codec_id)
 				codec = desired_codec;
@@ -908,7 +908,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	if (ctx->encoder) {
-		u32 codec_id = ffmpeg_codecid_from_gpac(ctx->codecid);
+		u32 codec_id = ffmpeg_codecid_from_gpac(ctx->codecid, &ff_codectag);
 
 		if (type==GF_STREAM_AUDIO) {
 			if ((ctx->encoder->codec->id==codec_id) && (ctx->encoder->sample_rate==ctx->sample_rate) && (ctx->encoder->channels==ctx->channels) && (ctx->gpac_audio_fmt == afmt ) ) {
@@ -1055,6 +1055,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	ctx->encoder = avcodec_alloc_context3(codec);
 	if (! ctx->encoder) return GF_OUT_OF_MEM;
 
+	ctx->encoder->codec_tag = ff_codectag;
 	if (type==GF_STREAM_VISUAL) {
 		ctx->encoder->width = ctx->width;
 		ctx->encoder->height = ctx->height;

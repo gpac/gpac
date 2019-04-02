@@ -4119,7 +4119,7 @@ GF_Err gen_sample_entry_Read(GF_Box *s, GF_BitStream *bs)
 
 GF_Box *gen_sample_entry_New()
 {
-	ISOM_DECL_BOX_ALLOC(GF_SampleEntryBox, GF_QT_BOX_TYPE_C608);//type will be overriten
+	ISOM_DECL_BOX_ALLOC(GF_SampleEntryBox, GF_QT_SUBTYPE_C608);//type will be overriten
 	gf_isom_sample_entry_init((GF_SampleEntryBox*)tmp);
 	return (GF_Box *)tmp;
 }
@@ -6911,22 +6911,22 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_MHM1:
 		case GF_ISOM_BOX_TYPE_MHM2:
 		case GF_ISOM_BOX_TYPE_MJP2:
-		case GF_QT_BOX_TYPE_AUDIO_RAW:
-		case GF_QT_BOX_TYPE_AUDIO_TWOS:
-		case GF_QT_BOX_TYPE_AUDIO_SOWT:
-		case GF_QT_BOX_TYPE_AUDIO_FL32:
-		case GF_QT_BOX_TYPE_AUDIO_FL64:
-		case GF_QT_BOX_TYPE_AUDIO_IN24:
-		case GF_QT_BOX_TYPE_AUDIO_IN32:
-		case GF_QT_BOX_TYPE_AUDIO_ULAW:
-		case GF_QT_BOX_TYPE_AUDIO_ALAW:
-		case GF_QT_BOX_TYPE_AUDIO_ADPCM:
-		case GF_QT_BOX_TYPE_AUDIO_IMA_ADPCM:
-		case GF_QT_BOX_TYPE_AUDIO_DVCA:
-		case GF_QT_BOX_TYPE_AUDIO_QDMC:
-		case GF_QT_BOX_TYPE_AUDIO_QDMC2:
-		case GF_QT_BOX_TYPE_AUDIO_QCELP:
-		case GF_QT_BOX_TYPE_AUDIO_kMP3:
+		case GF_QT_SUBTYPE_RAW:
+		case GF_QT_SUBTYPE_TWOS:
+		case GF_QT_SUBTYPE_SOWT:
+		case GF_QT_SUBTYPE_FL32:
+		case GF_QT_SUBTYPE_FL64:
+		case GF_QT_SUBTYPE_IN24:
+		case GF_QT_SUBTYPE_IN32:
+		case GF_QT_SUBTYPE_ULAW:
+		case GF_QT_SUBTYPE_ALAW:
+		case GF_QT_SUBTYPE_ADPCM:
+		case GF_QT_SUBTYPE_IMA_ADPCM:
+		case GF_QT_SUBTYPE_DVCA:
+		case GF_QT_SUBTYPE_QDMC:
+		case GF_QT_SUBTYPE_QDMC2:
+		case GF_QT_SUBTYPE_QCELP:
+		case GF_QT_SUBTYPE_kMP3:
 			continue;
 
 		case GF_ISOM_BOX_TYPE_UNKNOWN:

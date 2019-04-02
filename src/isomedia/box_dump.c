@@ -792,7 +792,7 @@ GF_Err gen_sample_entry_dump(GF_Box *a, FILE * trace)
 	GF_SampleEntryBox *p = (GF_SampleEntryBox *)a;
 
 	switch (p->type) {
-	case GF_QT_BOX_TYPE_C608:
+	case GF_QT_SUBTYPE_C608:
 		szName = "ClosedCaption";
 		break;
 	default:

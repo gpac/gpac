@@ -651,9 +651,9 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	//we reconfigure the stream
 	else {
 		AVCodec *codec=NULL;
-		u32 codec_id;
+		u32 codec_id, ff_codectag=0;
 		if (ctx->decoder) {
-			u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid);
+			u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
 			//same codec, same config, don't reinit
 			if (ctx->decoder->codec->id == codec_id) {
 				u32 cfg_crc=0;
@@ -674,7 +674,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			return GF_OK;
 		}
 
-		codec_id = ffmpeg_codecid_from_gpac(gpac_codecid);
+		codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, &ff_codectag);
 		if (codec_id) codec = avcodec_find_decoder(codec_id);
 		if (!codec) return GF_NOT_SUPPORTED;
 
@@ -682,6 +682,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->decoder = avcodec_alloc_context3(NULL);
 		if (! ctx->decoder) return GF_OUT_OF_MEM;
 		ctx->owns_context = GF_TRUE;
+		if (ff_codectag)
+			ctx->decoder->codec_tag = ff_codectag;
 
 		ffmpeg_set_enc_dec_flags(ctx->options, ctx->decoder);
 

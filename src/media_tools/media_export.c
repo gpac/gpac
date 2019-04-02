@@ -1080,9 +1080,16 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	strcpy(szExt, "");
 	if (dumper->trackID) {
 		u32 msubtype = 0;
+		u32 mtype = 0;
+		u32 afmt = 0;
+		GF_ESD *esd;
 		const char *export_ext = dumper->out_name ? gf_file_ext_start(dumper->out_name) : NULL;
 		u32 track_num = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
-		GF_ESD *esd = gf_media_map_esd(dumper->file, track_num, 0);
+		if (!track_num) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] No tracks with ID %d in file\n", dumper->trackID));
+			return GF_BAD_PARAM;
+		}
+		esd = gf_media_map_esd(dumper->file, track_num, 0);
 		sample_count = gf_isom_get_sample_count(dumper->file, dumper->trackID);
 		if (esd) {
 			codec_id = esd->decoderConfig->objectTypeIndication;
@@ -1091,8 +1098,24 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			msubtype = gf_isom_get_media_subtype(dumper->file, track_num, 1);
 			codec_id = gf_codec_id_from_isobmf(msubtype);
 		}
+		mtype = gf_isom_get_media_type(dumper->file, track_num);
 		if (!codec_id) {
 			strcpy(szExt, gf_4cc_to_str(msubtype));
+		} else if (codec_id==GF_CODECID_RAW) {
+			switch (mtype) {
+			case GF_ISOM_MEDIA_VISUAL:
+			case GF_ISOM_MEDIA_AUXV:
+			case GF_ISOM_MEDIA_PICT:
+				break;
+			case GF_ISOM_MEDIA_AUDIO:
+				afmt = gf_audio_fmt_from_isobmf(msubtype);
+				if (afmt)
+					strcpy(szExt, gf_audio_fmt_name(afmt));
+				break;
+			default:
+				strcpy(szExt, gf_4cc_to_str(msubtype));
+				break;
+			}
 		} else {
 			char *sep;
 			const char *sname = gf_codecid_file_ext(codec_id);
@@ -1105,7 +1128,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				if (sep) sep[0] = 0;
 			}
 		}
-		switch (gf_isom_get_media_type(dumper->file, track_num)) {
+		switch (mtype) {
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_PICT:
@@ -1190,8 +1213,12 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			}
 			strcat(szArgs, ":dynext");
 		} else if (dumper->trackID && strlen(szExt) ) {
-			strcat(szArgs, ":fext=");
-			strcat(szArgs, szExt);
+			if (!gf_file_ext_start(dumper->out_name)) {
+				sprintf(szArgs, "fout:dst=%s.%s", dumper->out_name, szExt);
+			} else {
+				strcat(szArgs, ":fext=");
+				strcat(szArgs, szExt);
+			}
 		}
 
 		file_out = gf_fs_load_filter(fsess, szArgs);

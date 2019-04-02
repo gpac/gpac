@@ -99,6 +99,7 @@ typedef struct
 	u32 amr_mode_set;
 	Bool has_seig;
 	u64 empty_init_dur;
+	u32 raw_audio_bytes_per_sample;
 } TrackWriter;
 
 enum
@@ -437,6 +438,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	const GF_PropertyValue *enh_dsi=NULL;
 	const GF_PropertyValue *p;
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AudioSampleEntryImportMode ase_mode = ctx->ase;
 	TrackWriter *tkw;
 
 	if (ctx->owns_mov && !ctx->opid) {
@@ -751,6 +753,25 @@ sample_entry_setup:
 	use_gen_sample_entry = GF_TRUE;
 	use_dref = ctx->dref;
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+	if (p) width = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
+	if (p) height = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+	if (p) fps = p->value.frac;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
+	if (p) sar = p->value.frac;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ZORDER);
+	if (p) z_order = p->value.uint;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+	if (p) sr = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+	if (p) nb_chan = p->value.uint;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
+	if (p) lang_name = p->value.string;
+
 	//get our subtype
 	switch (codec_id) {
 	case GF_CODECID_MPEG_AUDIO:
@@ -963,6 +984,66 @@ sample_entry_setup:
 		use_m4sys = GF_TRUE;
 		break;
 
+	case GF_CODECID_RAW:
+		m_subtype = codec_id;
+		unknown_generic = GF_TRUE;
+		use_gen_sample_entry = GF_TRUE;
+		use_m4sys = GF_FALSE;
+		if (tkw->stream_type == GF_STREAM_AUDIO) {
+			u32 req_non_planar_type = 0;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+			if (!p) break;
+			comp_name = "RawAudio";
+			//todo: we currently only set QTFF-style raw media, add ISOBMFF raw audio support
+			switch (p->value.uint) {
+			case GF_AUDIO_FMT_U8P:
+			 	req_non_planar_type = GF_AUDIO_FMT_U8;
+			case GF_AUDIO_FMT_U8:
+				m_subtype = GF_QT_SUBTYPE_RAW;
+				break;
+			case GF_AUDIO_FMT_S16P:
+			 	req_non_planar_type = GF_AUDIO_FMT_S16;
+			case GF_AUDIO_FMT_S16:
+				m_subtype = GF_QT_SUBTYPE_SOWT;
+				break;
+			case GF_AUDIO_FMT_S24P:
+			 	req_non_planar_type = GF_AUDIO_FMT_S24;
+			case GF_AUDIO_FMT_S24:
+				m_subtype = GF_QT_SUBTYPE_IN24;
+				break;
+			case GF_AUDIO_FMT_S32P:
+			 	req_non_planar_type = GF_AUDIO_FMT_S32P;
+			case GF_AUDIO_FMT_S32:
+				m_subtype = GF_QT_SUBTYPE_IN32;
+				break;
+			case GF_AUDIO_FMT_FLTP:
+			 	req_non_planar_type = GF_AUDIO_FMT_FLTP;
+			case GF_AUDIO_FMT_FLT:
+				m_subtype = GF_QT_SUBTYPE_FL32;
+				break;
+			case GF_AUDIO_FMT_DBLP:
+			 	req_non_planar_type = GF_AUDIO_FMT_DBL;
+			case GF_AUDIO_FMT_DBL:
+				m_subtype = GF_QT_SUBTYPE_FL64;
+				break;
+			default:
+				return GF_NOT_SUPPORTED;
+			}
+			if (req_non_planar_type) {
+				if (is_true_pid)
+					gf_filter_pid_negociate_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16));
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] raw audio format planar in DASH multi-stsd mode is not supported, try assigning a resampler before the dasher\n"));
+					return GF_NOT_SUPPORTED;
+				}
+			}
+			unknown_generic = GF_FALSE;
+			tkw->raw_audio_bytes_per_sample = gf_audio_fmt_bit_depth(p->value.uint);
+			tkw->raw_audio_bytes_per_sample *= nb_chan;
+			tkw->raw_audio_bytes_per_sample /= 8;
+		}
+		break;
+
 	default:
 		m_subtype = codec_id;
 		unknown_generic = GF_TRUE;
@@ -986,25 +1067,6 @@ sample_entry_setup:
 
 	if (dsi)
 		meta_config = dsi->value.data.ptr;
-
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
-	if (p) width = p->value.uint;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
-	if (p) height = p->value.uint;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
-	if (p) fps = p->value.frac;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-	if (p) sar = p->value.frac;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ZORDER);
-	if (p) z_order = p->value.uint;
-
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
-	if (p) sr = p->value.uint;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
-	if (p) nb_chan = p->value.uint;
-
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
-	if (p) lang_name = p->value.string;
 
 	if (is_text_subs && !width && !height) {
 		mp4_mux_get_video_size(ctx, &width, &height);
@@ -1455,6 +1517,12 @@ sample_entry_setup:
 		memcpy(udesc.compressor_name+1, comp_name, len);
 		udesc.samplerate = sr;
 		udesc.nb_channels = nb_chan;
+		if (codec_id==GF_CODECID_RAW) {
+			udesc.is_qtff = GF_TRUE;
+			udesc.version = 1;
+			ase_mode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF_FULL;
+		}
+
 		udesc.width = width;
 		udesc.height = height;
 		if (width) {
@@ -1673,7 +1741,7 @@ multipid_stsd_setup:
 	}
 
 sample_entry_done:
-	if (sr) gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps, ctx->ase);
+	if (sr) gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps, ase_mode);
 	else if (width) {
 		gf_isom_set_visual_info(ctx->file, tkw->track_num, tkw->stsd_idx, width, height);
 		if (sar.den && (sar.num != sar.den)) {
@@ -2109,6 +2177,12 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	if (tkw->sample.CTS_Offset < tkw->min_neg_ctts)
 		tkw->min_neg_ctts = tkw->sample.CTS_Offset;
 
+	tkw->sample.nb_pack = 0;
+	if (tkw->raw_audio_bytes_per_sample) {
+		tkw->sample.nb_pack = tkw->sample.dataLength / tkw->raw_audio_bytes_per_sample;
+		if (tkw->sample.nb_pack) duration /= tkw->sample.nb_pack;
+	}
+
 	if (tkw->use_dref) {
 		u64 data_offset = gf_filter_pck_get_byte_offset(pck);
 		if (data_offset != GF_FILTER_NO_BO) {
@@ -2236,7 +2310,7 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 
 	tkw->next_is_first_sample = GF_FALSE;
 
-	if (duration && !for_fragment)
+	if (duration && !for_fragment && !tkw->raw_audio_bytes_per_sample)
 		gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, duration);
 
 	if (ctx->idur.num) {

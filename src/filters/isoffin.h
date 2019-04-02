@@ -57,6 +57,7 @@ typedef struct
 	u32 stsd;
 	Bool expart;
 	Bool alltk;
+	u32 frame_size;
 
 	//internal
 

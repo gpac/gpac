@@ -139,6 +139,15 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_VP9, 0, GF_STREAM_VISUAL, "VP9 Video", "vp9|ivf", NULL, "video/vp9"},
 	{GF_CODECID_VP10, 0, GF_STREAM_VISUAL, "VP10 Video", "vp10|ivf", NULL, "video/vp10"},
 
+	{GF_CODECID_APCH, 0, GF_STREAM_VISUAL, "ProRes Video HQ", "apch", NULL, "video/prores"},
+	{GF_CODECID_APCO, 0, GF_STREAM_VISUAL, "ProRes Video Proxy", "apco", NULL, "video/prores"},
+	{GF_CODECID_APCN, 0, GF_STREAM_VISUAL, "ProRes Video STD", "apcn", NULL, "video/prores"},
+	{GF_CODECID_APCS, 0, GF_STREAM_VISUAL, "ProRes Video LT", "apcs", NULL, "video/prores"},
+	{GF_CODECID_APCF, 0, GF_STREAM_VISUAL, "ProRes Video", "apcf", NULL, "video/prores"},
+	{GF_CODECID_AP4X, 0, GF_STREAM_VISUAL, "ProRes Video XQ", "ap4x", NULL, "video/prores"},
+	{GF_CODECID_AP4H, 0, GF_STREAM_VISUAL, "ProRes Video 4444", "ap4h", NULL, "video/prores"},
+
+
 	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFMPEG unmapped codec", "ffmpeg", NULL, NULL},
 
 };
@@ -208,11 +217,40 @@ u32 gf_codec_id_from_isobmf(u32 isobmftype)
 	case GF_ISOM_SUBTYPE_TEXT:
 	case GF_ISOM_SUBTYPE_TX3G:
 		return GF_CODECID_TX3G;
+
+	case GF_QT_SUBTYPE_APCH:
+		return GF_CODECID_APCH;
+	case GF_QT_SUBTYPE_APCO:
+		return GF_CODECID_APCO;
+	case GF_QT_SUBTYPE_APCN:
+		return GF_CODECID_APCN;
+	case GF_QT_SUBTYPE_APCS:
+		return GF_CODECID_APCS;
+	case GF_QT_SUBTYPE_APCF:
+		return GF_CODECID_APCF;
+	case GF_QT_BOX_TYPE_AP4X:
+		return GF_CODECID_AP4X;
+	case GF_QT_BOX_TYPE_AP4H:
+		return GF_CODECID_AP4H;
+
+	case GF_QT_SUBTYPE_TWOS:
+		return GF_CODECID_RAW;
+	case GF_QT_SUBTYPE_SOWT:
+		return GF_CODECID_RAW;
+	case GF_QT_SUBTYPE_FL32:
+		return GF_CODECID_RAW;
+	case GF_QT_SUBTYPE_FL64:
+		return GF_CODECID_RAW;
+	case GF_QT_SUBTYPE_IN24:
+		return GF_CODECID_RAW;
+	case GF_QT_SUBTYPE_IN32:
+		return GF_CODECID_RAW;
 	default:
 		break;
 	}
 	return 0;
 }
+
 
 static CodecIDReg *gf_codecid_reg_find(u32 codecid)
 {
@@ -555,6 +593,27 @@ Bool gf_audio_fmt_is_planar(u32 audio_fmt)
 	}
 	return GF_FALSE;
 }
+
+GF_EXPORT
+u32 gf_audio_fmt_from_isobmf(u32 msubtype)
+{
+	switch (msubtype) {
+	case GF_QT_SUBTYPE_TWOS:
+		return GF_AUDIO_FMT_S16;
+	case GF_QT_SUBTYPE_SOWT:
+		return GF_AUDIO_FMT_S16;
+	case GF_QT_SUBTYPE_FL32:
+		return GF_AUDIO_FMT_FLT;
+	case GF_QT_SUBTYPE_FL64:
+		return GF_AUDIO_FMT_DBL;
+	case GF_QT_SUBTYPE_IN24:
+		return GF_AUDIO_FMT_S24;
+	case GF_QT_SUBTYPE_IN32:
+		return GF_AUDIO_FMT_S32;
+	}
+	return 0;
+}
+
 
 typedef struct
 {
