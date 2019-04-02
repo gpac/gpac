@@ -228,8 +228,10 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	data = (char*)gf_malloc(sizeof(char)*size);
 	size = (u32) fread(data, sizeof(char), size, src);
 	gf_fclose(src);
-	if ((s32) size < 0) return GF_IO_ERR;
-
+	if ((s32) size <= 0) {
+		gf_free(data);
+		return gf_import_message(import, GF_URL_ERROR, "Reading file %s failed", import->in_name);
+	}
 	/*get image size*/
 	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	dsi = NULL;
@@ -2348,7 +2350,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			samp->DTS -= dts_offset;
 
 			if (samp->nb_pack && duration && (samp->DTS + samp->nb_pack*cdur > duration) ) {
-				u32 nb_samp = (duration - samp->DTS)/cdur;
+				u32 nb_samp = (u32) ( (duration - samp->DTS) / cdur);
 				u32 csize = samp->dataLength / samp->nb_pack;
 				samp->dataLength = csize*nb_samp;
 				samp->nb_pack = nb_samp;

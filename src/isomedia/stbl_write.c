@@ -71,7 +71,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 	if (DTS >= stts->w_LastDTS) {
 		ent = &stts->entries[stts->nb_entries-1];
 		if (!ent->sampleDelta && (ent->sampleCount>1)) {
-			ent->sampleDelta = DTS;
+			ent->sampleDelta = (u32) ( DTS / ent->sampleCount);
 			ent->sampleDelta /= ent->sampleCount;
 			stts->w_LastDTS = DTS - ent->sampleDelta;
 		}
