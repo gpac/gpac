@@ -47,7 +47,7 @@
      <Descr>
       <esDescr>
        <ES_Descriptor ES_ID="es20" binaryID="20" >
-        <StreamSource url="../auxiliary_files/sky.jpg" >
+        <StreamSource url="../auxiliary_files/logo.png" >
          <MP4MuxHints />
         </StreamSource>
        </ES_Descriptor>
@@ -179,7 +179,7 @@
     </ProtoDeclare>
     <OrderedGroup DEF="OG">
      <children>
-      <Background2D DEF="N0" backColor="1 0 1" url="&quot;../auxiliary_files/sky.jpg&quot;"/>
+      <Background2D DEF="N0" backColor="1 0 1" url="&quot;../auxiliary_files/logo.png&quot;"/>
       <Background2D DEF="N1" backColor="1 0 0" url="&quot;od://od10&quot;"/>
       <WorldInfo info="&quot;This tests encoding of BIFS nodes and commands and OD commands&quot; &quot;Not all bifs nodes are tested, but most encoding syntax of BIFS is&quot; &quot;&quot; &quot;GPAC Regression Tests&quot; &quot;(C) 2019 GPAC Team&quot;" title="Encoding Test"/>
       <Viewport DEF="N2" size="200 200" orientation="0.5" alignment="0 0" fit="2" description="basic Viewport"/>
