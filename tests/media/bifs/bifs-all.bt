@@ -98,7 +98,7 @@ DEF OG OrderedGroup {
    children [
     DEF N0 Background2D {
      backColor $FFAA00FF
-     url ["../auxiliary_files/sky.jpg"]
+     url ["../auxiliary_files/logo.png"]
     }
     DEF N1 Background2D {
      backColor 1 0 0
@@ -607,7 +607,7 @@ RAP AT 0 {
      ES_Descriptor {
       ES_ID 20
       muxInfo MuxInfo {
-       fileName "../auxiliary_files/sky.jpg"
+       fileName "../auxiliary_files/logo.png"
       }
      }
     ]
