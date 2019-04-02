@@ -436,7 +436,7 @@ void update_writer_constant_dur(GF_ISOFile *movie, TrackWriter *tkw, GF_StscEntr
 
 		chunk_dur -= tkw->constant_dur;
 
-		nb_in_run = chunk_dur / tkw->constant_dur;
+		nb_in_run = (u32) (chunk_dur / tkw->constant_dur);
 
 		if (nb_in_run > nb_samp_left_in_src_chunk) {
 			nb_in_run = nb_samp_left_in_src_chunk;
