@@ -431,9 +431,7 @@ GF_Err urn_dump(GF_Box *a, FILE * trace)
 
 GF_Err alis_dump(GF_Box *a, FILE * trace)
 {
-	GF_DataEntryAliasBox *p;
-
-	p = (GF_DataEntryAliasBox *)a;
+//	GF_DataEntryAliasBox *p = (GF_DataEntryAliasBox *)a;
 	gf_isom_box_dump_start(a, "AliasDataEntryBox", trace);
 	fprintf(trace, ">\n");
 

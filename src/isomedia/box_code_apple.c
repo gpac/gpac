@@ -574,8 +574,8 @@ GF_Err tcmi_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->back_color_green = gf_bs_read_u16(bs);
 	ptr->back_color_blue = gf_bs_read_u16(bs);
 	len = gf_bs_read_u8(bs);
-	if (len>ptr->size)
-		len=ptr->size;
+	if (len > ptr->size)
+		len = (u32) ptr->size;
 	if (len) {
 		ptr->font = gf_malloc(len+1);
 		gf_bs_read_data(bs, ptr->font, len);
@@ -601,6 +601,7 @@ GF_Box *tcmi_New()
 GF_Err tcmi_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
+	u32 len;
 	GF_TimeCodeMediaInformationBox *ptr = (GF_TimeCodeMediaInformationBox *)s;
 
 	e = gf_isom_full_box_write(s, bs);
@@ -615,9 +616,10 @@ GF_Err tcmi_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, ptr->back_color_red);
 	gf_bs_write_u16(bs, ptr->back_color_green);
 	gf_bs_write_u16(bs, ptr->back_color_blue);
-	gf_bs_write_u8(bs, ptr->font ? strlen(ptr->font) : 0);
+	len = ptr->font ? (u32) strlen(ptr->font) : 0;
+	gf_bs_write_u8(bs, len);
 	if (ptr->font)
-		gf_bs_write_data(bs, ptr->font, strlen(ptr->font));
+		gf_bs_write_data(bs, ptr->font, len);
 
 	return GF_OK;
 }
