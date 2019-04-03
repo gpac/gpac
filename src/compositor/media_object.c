@@ -1413,7 +1413,7 @@ void gf_mo_del(GF_MediaObject *mo)
 Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
 {
 	GF_Scene *scene;
-	if (!vr_info) return GF_FALSE;
+	if (!vr_info || !mo->odm) return GF_FALSE;
 
 	scene = mo->odm->subscene ? mo->odm->subscene : mo->odm->parentscene;
 	memset(vr_info, 0, sizeof(GF_MediaObjectVRInfo));

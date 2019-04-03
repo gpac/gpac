@@ -103,6 +103,7 @@ u32 gf_odf_get_tag_by_name(char *descName)
 	if (!stricmp(descName, "ES_ID_Inc")) return GF_ODF_ESD_INC_TAG;
 	if (!stricmp(descName, "AuxiliaryVideoData")) return GF_ODF_AUX_VIDEO_DATA;
 	if (!stricmp(descName, "DefaultDescriptor")) return GF_ODF_DSI_TAG;
+	if (!stricmp(descName, "LanguageDescriptor")) return GF_ODF_LANG_TAG;
 
 #ifndef GPAC_MINIMAL_ODF
 	if (!stricmp(descName, "ContentIdentification")) return GF_ODF_CI_TAG;
@@ -119,7 +120,6 @@ u32 gf_odf_get_tag_by_name(char *descName)
 	if (!stricmp(descName, "ContentClassification")) return GF_ODF_CC_TAG;
 	if (!stricmp(descName, "KeyWordDescriptor")) return GF_ODF_KW_TAG;
 	if (!stricmp(descName, "RatingDescriptor")) return GF_ODF_RATING_TAG;
-	if (!stricmp(descName, "LanguageDescriptor")) return GF_ODF_LANG_TAG;
 	if (!stricmp(descName, "ShortTextualDescriptor")) return GF_ODF_SHORT_TEXT_TAG;
 	if (!stricmp(descName, "ExpandedTextualDescriptor")) return GF_ODF_TEXT_TAG;
 	if (!stricmp(descName, "ContentCreatorName")) return GF_ODF_CC_NAME_TAG;

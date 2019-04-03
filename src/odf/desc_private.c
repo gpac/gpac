@@ -582,6 +582,7 @@ GF_ODCom *gf_odf_create_command(u8 tag)
 		com->tag = GF_ODF_ESD_REMOVE_REF_TAG;
 		return com;
 
+#ifndef GPAC_MINIMAL_ODF
 	case GF_ODF_IPMP_UPDATE_TAG:
 		return gf_odf_new_ipmp_update();
 	case GF_ODF_IPMP_REMOVE_TAG:
@@ -596,6 +597,10 @@ GF_ODCom *gf_odf_create_command(u8 tag)
 		if (!com) return com;
 		com->tag = tag;
 		return com;
+#else
+	default:
+		return NULL;
+#endif
 	}
 }
 
@@ -616,6 +621,7 @@ GF_Err gf_odf_delete_command(GF_ODCom *com)
 	case GF_ODF_ESD_REMOVE_TAG:
 	case GF_ODF_ESD_REMOVE_REF_TAG:
 		return gf_odf_del_esd_remove((GF_ESDRemove *)com);
+#ifndef GPAC_MINIMAL_ODF
 	case GF_ODF_IPMP_UPDATE_TAG:
 		return gf_odf_del_ipmp_update((GF_IPMPUpdate *)com);
 	case GF_ODF_IPMP_REMOVE_TAG:
@@ -623,6 +629,11 @@ GF_Err gf_odf_delete_command(GF_ODCom *com)
 
 	default:
 		return gf_odf_del_base_command((GF_BaseODCom *)com);
+#else
+	default:
+		return GF_NOT_SUPPORTED;
+#endif
+
 	}
 }
 
@@ -642,12 +653,18 @@ GF_Err gf_odf_read_command(GF_BitStream *bs, GF_ODCom *com, u32 gf_odf_size_comm
 	case GF_ODF_ESD_REMOVE_TAG:
 	case GF_ODF_ESD_REMOVE_REF_TAG:
 		return gf_odf_read_esd_remove(bs, (GF_ESDRemove *)com, gf_odf_size_command);
+#ifndef GPAC_MINIMAL_ODF
 	case GF_ODF_IPMP_UPDATE_TAG:
 		return gf_odf_read_ipmp_update(bs, (GF_IPMPUpdate *)com, gf_odf_size_command);
 	case GF_ODF_IPMP_REMOVE_TAG:
 		return gf_odf_read_ipmp_remove(bs, (GF_IPMPRemove *)com, gf_odf_size_command);
 	default:
 		return gf_odf_read_base_command(bs, (GF_BaseODCom *)com, gf_odf_size_command);
+#else
+	default:
+		return GF_NOT_SUPPORTED;
+#endif
+
 	}
 }
 
@@ -669,6 +686,7 @@ GF_Err gf_odf_size_command(GF_ODCom *com, u32 *outSize)
 	case GF_ODF_ESD_REMOVE_TAG:
 	case GF_ODF_ESD_REMOVE_REF_TAG:
 		return gf_odf_size_esd_remove((GF_ESDRemove *)com, outSize);
+#ifndef GPAC_MINIMAL_ODF
 	case GF_ODF_IPMP_UPDATE_TAG:
 		return gf_odf_size_ipmp_update((GF_IPMPUpdate *)com, outSize);
 	case GF_ODF_IPMP_REMOVE_TAG:
@@ -676,6 +694,10 @@ GF_Err gf_odf_size_command(GF_ODCom *com, u32 *outSize)
 
 	default:
 		return gf_odf_size_base_command((GF_BaseODCom *)com, outSize);
+#else
+	default:
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 }
 
@@ -696,6 +718,7 @@ GF_Err gf_odf_write_command(GF_BitStream *bs, GF_ODCom *com)
 	case GF_ODF_ESD_REMOVE_TAG:
 	case GF_ODF_ESD_REMOVE_REF_TAG:
 		return gf_odf_write_esd_remove(bs, (GF_ESDRemove *)com);
+#ifndef GPAC_MINIMAL_ODF
 	case GF_ODF_IPMP_UPDATE_TAG:
 		return gf_odf_write_ipmp_update(bs, (GF_IPMPUpdate *)com);
 	case GF_ODF_IPMP_REMOVE_TAG:
@@ -703,5 +726,9 @@ GF_Err gf_odf_write_command(GF_BitStream *bs, GF_ODCom *com)
 
 	default:
 		return gf_odf_write_base_command(bs, (GF_BaseODCom *)com);
+#else
+	default:
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 }

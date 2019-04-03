@@ -926,6 +926,9 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 	/*route insert, replace and delete*/
 	dest->RouteID = com->RouteID;
 	if (com->def_name) dest->def_name = gf_strdup(com->def_name);
+	//this is an union
+	//if (com->send_event_string) dest->send_event_string = gf_strdup(com->send_event_string);
+
 	dest->fromNodeID = com->fromNodeID;
 	dest->fromFieldIndex = com->fromFieldIndex;
 	dest->toNodeID = com->toNodeID;
@@ -933,8 +936,6 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 	dest->send_event_integer = com->send_event_integer;
 	dest->send_event_x = com->send_event_x;
 	dest->send_event_y = com->send_event_y;
-	if (com->send_event_string)
-		dest->send_event_string = gf_strdup(com->send_event_string);
 
 	dest->del_proto_list_size = com->del_proto_list_size;
 	if (com->del_proto_list_size) {

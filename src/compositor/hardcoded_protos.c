@@ -1177,6 +1177,7 @@ typedef struct
     CustomTexture tx;
     GF_TextureHandler txh;
     u32 gl_id;
+    Bool disabled;
 } CustomTextureStack;
 
 static Bool CustomTexture_GetNode(GF_Node *node, CustomTexture *tx)
@@ -1211,7 +1212,7 @@ static void TraverseCustomTexture(GF_Node *node, void *rs, Bool is_destroy)
 static void CustomTexture_update(GF_TextureHandler *txh)
 {
 #ifndef GPAC_DISABLE_3D
-    char data[12];
+    u8 data[12];
 #endif
     CustomTextureStack *stack = gf_node_get_private(txh->owner);
     //alloc texture
@@ -1220,6 +1221,8 @@ static void CustomTexture_update(GF_TextureHandler *txh)
         gf_sc_texture_allocate(txh);
         if (!txh->tx_io) return;
     }
+    if (stack->disabled) return;
+    
 #ifndef GPAC_DISABLE_3D
     //texture not setup, do it
     if (! gf_sc_texture_get_gl_id(txh)) {
@@ -1248,9 +1251,9 @@ static void CustomTexture_update(GF_TextureHandler *txh)
 #ifndef GPAC_DISABLE_3D
     //setup our texture data
     memset(data, 0, sizeof(char)*12);
-    data[0] = (char) (0xFF * FIX2FLT(stack->tx.intensity)); //first pixel red modulated by intensity
-    data[4] = (char) (0xFF * FIX2FLT(stack->tx.intensity)); //second pixel green
-    data[8] = (char) (0xFF * FIX2FLT(stack->tx.intensity)); //third pixel blue
+    data[0] = (u8) (0xFF * FIX2FLT(stack->tx.intensity)); //first pixel red modulated by intensity
+    data[4] = (u8) (0xFF * FIX2FLT(stack->tx.intensity)); //second pixel green
+    data[8] = (u8) (0xFF * FIX2FLT(stack->tx.intensity)); //third pixel blue
     //last pixel black
     
     glBindTexture( GL_TEXTURE_2D, stack->gl_id);
@@ -1274,6 +1277,11 @@ void compositor_init_custom_texture(GF_Compositor *compositor, GF_Node *node)
         gf_node_set_callback_function(node, TraverseCustomTexture);
         stack->tx = tx;
 
+		if (!gf_sc_check_gl_support(compositor)) {
+			stack->disabled = GF_TRUE;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Driver disabled, cannot render custom texture test\n"));
+			return;
+		}
         //register texture object
         gf_sc_texture_setup(&stack->txh, compositor, node);
         stack->txh.update_texture_fcnt = CustomTexture_update;

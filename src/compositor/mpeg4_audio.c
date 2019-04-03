@@ -28,14 +28,6 @@
 
 #ifndef GPAC_DISABLE_VRML
 
-typedef struct
-{
-	GF_AudioInput input;
-	GF_TimeNode time_handle;
-	Double start_time;
-	Bool set_duration, failure;
-} AudioClipStack;
-
 
 static void audioclip_activate(AudioClipStack *st, M_AudioClip *ac)
 {
@@ -88,7 +80,7 @@ static void audioclip_traverse(GF_Node *node, void *rs, Bool is_destroy)
 	if (ac->isActive) {
 		gf_sc_audio_register(&st->input, (GF_TraverseState*)rs);
 	}
-	if (st->set_duration && st->input.stream) {
+	if (st->set_duration && st->input.stream && st->input.stream->odm) {
 		ac->duration_changed = gf_mo_get_duration(st->input.stream);
 		gf_node_event_out(node, 6/*"duration_changed"*/);
 		st->set_duration = GF_FALSE;
@@ -175,14 +167,6 @@ void compositor_audioclip_modified(GF_Node *node)
 		st->time_handle.needs_unregister = GF_FALSE;
 }
 
-
-typedef struct
-{
-	GF_AudioInput input;
-	GF_TimeNode time_handle;
-	Bool is_active;
-	Double start_time;
-} AudioSourceStack;
 
 static void audiosource_activate(AudioSourceStack *st, M_AudioSource *as)
 {

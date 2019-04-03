@@ -58,9 +58,12 @@ GF_Err gf_odf_dump_com(GF_ODCom *com, FILE *trace, u32 indent, Bool XMTDump)
 		return gf_odf_dump_ipmp_update((GF_IPMPUpdate *)com, trace, indent, XMTDump);
 	case GF_ODF_IPMP_REMOVE_TAG:
 		return gf_odf_dump_ipmp_remove((GF_IPMPRemove *)com, trace, indent, XMTDump);
-#endif
 	default:
 		return gf_odf_dump_base_command((GF_BaseODCom *) com, trace, indent, XMTDump);
+#else
+	default:
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 }
 

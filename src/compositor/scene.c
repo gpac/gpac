@@ -659,6 +659,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 				while (gf_mo_event_target_count(obj)) {
 					GF_Node *n = (GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(obj, 0));
 					gf_mo_event_target_remove_by_index(obj, 0);
+
 #ifndef GPAC_DISABLE_VRML
 					switch (gf_node_get_tag(n)) {
 					case TAG_MPEG4_Inline:
@@ -667,6 +668,9 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 #endif
 						if (obj->num_open) gf_mo_stop(&obj);
 						gf_node_set_private(n, NULL);
+						break;
+					default:
+						gf_sc_mo_destroyed(n);
 						break;
 					}
 #endif
@@ -2567,7 +2571,12 @@ Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_bu
 	while (ns->clocks && (ck = (GF_Clock *)gf_list_enum(ns->clocks, &i) ) ) {
 		initialized = GF_TRUE;
 		if (!check_buffering) {
-			if (!ck->has_seen_eos) return 0;
+			Bool is_eos = ck->has_seen_eos;
+			//object not active consider it done
+			if (!is_eos && ns->owner->mo && !ns->owner->mo->num_open)
+				is_eos = GF_TRUE;
+
+			if (!is_eos) return 0;
 		} else {
 			if (ck->nb_buffering) return 0;
 		}

@@ -52,8 +52,10 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 	if (!st->is_init) {
 		if (!st->stream) {
 			st->stream = gf_mo_register(node, &st->sensor->url, 0, 0);
-			if (!st->stream || !st->stream->odm) return;
+			if (!st->stream) return;
 		}
+		if (!st->stream->odm) return;
+		
 		gf_list_add(st->stream->odm->ms_stack, st);
 		gf_odm_init_segments(st->stream->odm, st->seg, &st->sensor->url);
 		st->is_init = 1;
