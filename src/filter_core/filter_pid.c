@@ -378,11 +378,11 @@ void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid, GF_Fil
 	gf_mx_v(pid->filter->tasks_mx);
 
 
-	gf_filter_pid_inst_del(pidinst);
 	if (pidinst->is_decoder_input) {
 		assert(pidinst->pid->nb_decoder_inputs);
 		safe_int_dec(&pidinst->pid->nb_decoder_inputs);
 	}
+	gf_filter_pid_inst_del(pidinst);
 
 	if (filter->num_input_pids) return;
 
@@ -500,6 +500,7 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 		safe_int_dec(&src->filter->stream_reset_pending);
 
 		//post detach task, we will reset the swap_pidinst only once truly deconnected from filter
+		safe_int_inc(&src->pid->filter->detach_pid_tasks_pending);
 		gf_fs_post_task(filter->session, gf_filter_pid_detach_task, src->filter, src->pid, "pidinst_detach", filter);
 	} else {
 		GF_Filter *src_filter = src->filter;
@@ -878,6 +879,8 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	assert(filter->freg->configure_pid);
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s detach from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
 
+	assert(pid->filter->detach_pid_tasks_pending);
+	safe_int_dec(&pid->filter->detach_pid_tasks_pending);
 	count = pid->num_destinations;
 	for (i=0; i<count; i++) {
 		pidinst = gf_list_get(pid->destinations, i);
@@ -2670,14 +2673,38 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			for (i=0; i<nb_skip; i++) {
 				GF_Filter *f = gf_list_get(skip_if_in_filter_list, i);
 				if (f->freg == chain_start_freg) {
+					u32 j;
+					GF_Filter *dest_f = NULL;
+					Bool true_skip = GF_FALSE;
 					*skipped = GF_TRUE;
 					gf_list_del(filter_chain);
 
-					//store destination as future destination link for this new filter
-					if (gf_list_find(f->destination_links, dst)<0)
-						gf_list_add(f->destination_links, dst);
+					for (j=0; j<gf_list_count(dst->destination_filters); j++) {
+						dest_f = gf_list_get(dst->destination_filters, j);
+						if ((gf_list_find(f->destination_filters, dest_f)>=0) || (gf_list_find(f->destination_links, dest_f)>=0)) {
+							true_skip = GF_TRUE;
+							break;
+						}
+						dest_f = NULL;
+					}
 
-					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Skip link from %s:%s to %s because already connected to filter %s which can handle the connection\n", pid->filter->name, pid->name, dst->name, f->name));
+					for (j=0; j<gf_list_count(dst->destination_links) && !true_skip; j++) {
+						dest_f = gf_list_get(dst->destination_links, j);
+						if ((gf_list_find(f->destination_filters, dest_f)>=0) || (gf_list_find(f->destination_links, dest_f)>=0)) {
+							true_skip = GF_TRUE;
+							break;
+						}
+						dest_f = NULL;
+					}
+					if (true_skip) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Skip link from %s:%s to %s because both filters share the same destination %s\n", pid->filter->name, pid->name, dst->name, dest_f->name));
+					} else {
+						//store destination as future destination link for this new filter
+						if (gf_list_find(f->destination_links, dst)<0)
+							gf_list_add(f->destination_links, dst);
+
+						GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Skip link from %s:%s to %s because already connected to filter %s which can handle the connection\n", pid->filter->name, pid->name, dst->name, f->name));
+					}
 					return NULL;
 				}
 			}
@@ -3315,6 +3342,7 @@ single_retry:
 
 		found_dest = GF_TRUE;
 		gf_list_add(linked_dest_filters, filter_dst);
+		gf_list_del_item(filter->destination_links, filter_dst);
 
 		if (!num_pass) {
 			u32 k=0;
@@ -3339,6 +3367,7 @@ single_retry:
 		loaded_filters = NULL;
 	}
 
+	//we still have possible destination links and we can try link resolution, do it
 	if (!num_pass && gf_list_count(filter->destination_links) && can_try_link_resolution && filter->session->max_resolve_chain_len) {
 		num_pass = 1;
 		goto restart;
@@ -3359,6 +3388,7 @@ single_retry:
 		gf_list_del(force_link_resolutions);
 		return;
 	}
+
 	//on first pass, if we found a clone (eg a filter using freg:#PropName=*), instantiate this clone and redo the pid linking to this clone (last entry in the filter list)
 	if (dynamic_filter_clone && !num_pass) {
 		GF_Filter *clone = gf_filter_clone(dynamic_filter_clone);

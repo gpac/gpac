@@ -506,7 +506,7 @@ struct __gf_filter
 
 	volatile u32 stream_reset_pending;
 	volatile u32 num_events_queued;
-
+	volatile u32 detach_pid_tasks_pending;
 	GF_List *postponed_packets;
 
 	//list of blacklisted filtered registries
