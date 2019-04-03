@@ -369,8 +369,7 @@ static GF_Err ft_shutdown_font_engine(GF_FontReader *dr)
 	ftpriv->active_face = NULL;
 	/*reset loaded fonts*/
 	while (gf_list_count(ftpriv->loaded_fonts)) {
-		FT_Face face = gf_list_get(ftpriv->loaded_fonts, 0);
-		gf_list_rem(ftpriv->loaded_fonts, 0);
+		FT_Face face = gf_list_pop_front(ftpriv->loaded_fonts);
 		FT_Done_Face(face);
 	}
 

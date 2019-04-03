@@ -1384,13 +1384,18 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 	u32 sr=0, ch=0, w=0, h=0, bw=0, par_n=1, par_d=1, tile_adaptation_mode=0,dependent_group_index=0;
 	Bool ilced=GF_FALSE, disabled=GF_FALSE, selected=GF_FALSE, automatic=GF_FALSE;
 	Double fps=30.0;
-	s32 idx, dep_idx=0;
+	s32 idx;
+#ifdef FILTER_FIXME
+	s32 dep_idx=0;
+#endif
 
 	if (!odm) return JS_TRUE;
 	if (argc<1) return JS_TRUE;
 	if (! JSVAL_IS_INT(argv[0]) ) return JS_TRUE;
 	idx = JSVAL_TO_INT(argv[0]);
+#ifdef FILTER_FIXME
 	if (argc>=2) dep_idx = JSVAL_TO_INT(argv[1]);
+#endif
 
 	prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities");
 	if (!prop || (prop->type!=GF_PROP_STRING_LIST)) {
