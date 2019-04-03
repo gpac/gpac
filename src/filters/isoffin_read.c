@@ -743,9 +743,12 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				ch->start = (u64) t;
 			}
 			if (com->play.end_range >= com->play.start_range) {
-				t = com->play.end_range;
-				t *= ch->time_scale;
-				ch->end = (u64) t;
+				ch->end = (u64) -1;
+				if (com->play.end_range<FLT_MAX) {
+					t = com->play.end_range;
+					t *= ch->time_scale;
+					ch->end = (u64) t;
+				}
 			}
 		} else if (com->play.speed<0) {
 			Double end = com->play.end_range;

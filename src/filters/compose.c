@@ -99,6 +99,7 @@ static GF_Err compose_process(GF_Filter *filter)
 	gf_sc_draw_frame(ctx, GF_FALSE, &ms_until_next);
 
 	if (!ctx->player) {
+		Bool forced_eos = GF_FALSE;
 		/*remember to check for eos*/
 		if (ctx->dur<0) {
 			if (ctx->frame_number >= (u32) -ctx->dur)
@@ -114,6 +115,20 @@ static GF_Err compose_process(GF_Filter *filter)
 		} else if (!ctx->check_eos_state && !nb_sys_streams_active) {
 			ctx->check_eos_state = 1;
 		}
+		if (ctx->check_eos_state == 1) {
+			if (!ctx->last_check_time) ctx->last_check_time = gf_sys_clock_high_res();
+			else {
+				u64 now = gf_sys_clock_high_res();
+				if (now - ctx->last_check_time > 5000000) {
+					ctx->check_eos_state = 2;
+					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Could not detect end of stream(s) in "LLU" us, aborting\n", now - ctx->last_check_time));
+					forced_eos = GF_TRUE;
+				}
+			}
+		} else {
+			ctx->last_check_time = 0;
+		}
+
 		if ((ctx->check_eos_state==2) || !ctx->root_scene || (ctx->check_eos_state && gf_sc_check_end_of_scene(ctx, GF_TRUE))) {
 			u32 count;
 			count = gf_filter_get_ipid_count(ctx->filter);
@@ -133,7 +148,7 @@ static GF_Err compose_process(GF_Filter *filter)
 					gf_filter_pid_send_event(pid, &evt);
 				}
 			}
-			return GF_EOS;
+			return forced_eos ? GF_SERVICE_ERROR : GF_EOS;
 		}
 		ctx->check_eos_state = 0;
 		//always repost a process task since we maye have things to draw even though no new input
@@ -275,6 +290,24 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 		assert(sns->owner);
 		if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
+			if (!sns->owner->subscene && sns->owner->parentscene && (mtype!=GF_STREAM_OD) && (mtype!=GF_STREAM_SCENE)) {
+				u32 j;
+				for (j=0; j<gf_list_count(sns->owner->parentscene->scene_objects); j++) {
+					GF_MediaObject *mo = gf_list_get(sns->owner->parentscene->scene_objects, j);
+					if (mo->OD_ID == GF_MEDIA_EXTERNAL_ID) continue;
+					if (mo->OD_ID != sns->owner->ID) continue;
+
+					if (mo->type != GF_MEDIA_OBJECT_SCENE) continue;
+					//this is a pid from a subservice (inline) inserted through OD commands, create the subscene
+					sns->owner->subscene = gf_scene_new(NULL, sns->owner->parentscene);
+					sns->owner->subscene->root_od = sns->owner;
+					//scenes are by default dynamic
+					sns->owner->subscene->is_dynamic_scene = GF_TRUE;
+					sns->owner->mo = mo;
+					mo->odm = sns->owner;
+					break;
+				}
+			}
 			//we are attaching an inline, create the subscene if not done already
 			if (!sns->owner->subscene && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE)) ) {
 				//ignore system PIDs from subservice - this is typically the case when playing a bt/xmt file
@@ -620,11 +653,11 @@ static GF_FilterArgs CompositorArgs[] =
 
 #ifndef GPAC_DISABLE_3D
 	{ OFFS(ogl), "specifies 2D rendering mode.\nPossible values are:\n"\
-				"\tauto: automaitically decides betwwen on, off and hybrid based on content.\n"\
+				"\tauto: automatically decides betwwen on, off and hybrid based on content.\n"\
 				"\toff: disables OpenGL - 3D won't be rendered.\n"\
 				"\ton: uses OpenGL for all graphics - this will involve polygon tesselation and 2D graphics will not look as nice as 2D mode.\n"\
-				"\thybrid: the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all textures.\n"\
-				, GF_PROP_UINT, "auto", "auto|off|hybrid|on|raster", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+				"\thybrid: the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all 2D objects with textures and 3D objects.\n"\
+				, GF_PROP_UINT, "auto", "auto|off|hybrid|on", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pbo), "enables PixelBufferObjects to push YUV textures to GPU in OpenGL Mode. This may slightly increase the performances of the playback.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nav), "overrides the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine)", GF_PROP_UINT, "none", "none|walk|fly|pan|game|slide|exam|orbit|vr", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(linegl), "specifies that outlining shall be done through OpenGL pen width rather than vectorial outlining", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},

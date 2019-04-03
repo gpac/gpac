@@ -182,12 +182,12 @@ typedef struct
 	GF_List *IPMP_Descriptors;
 	GF_List *extensionDescriptors;
 	/*MPEG-2 (or other service mux formats) service ID*/
-	u16 ServiceID;
+	u32 ServiceID;
 	/*for ATSC, instructs client to keep OD alive even though URL string is set*/
-	u16 RedirectOnly;
-	/*pointer to the service interface (GF_InputService) of the service having declared the object
-	only used for DASH*/
-	void *service_ifce;
+	Bool RedirectOnly;
+	/*set to true for fake remote ODs in BT/XMT (remote ODs created for OD with ESD with MuxInfo)*/
+	Bool fake_remote;
+
 } GF_ObjectDescriptor;
 
 /*! GF_InitialObjectDescriptor - WARNING: even though the bitstream IOD is not

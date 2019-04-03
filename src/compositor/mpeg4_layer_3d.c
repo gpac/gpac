@@ -707,12 +707,17 @@ l3d_exit:
 void compositor_init_layer3d(GF_Compositor *compositor, GF_Node *node)
 {
 	Layer3DStack *stack;
+
+	if (!gf_sc_check_gl_support(compositor)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Driver disabled, cannot render Layer 3D\n"));
+		return;
+	}
+
 	GF_SAFEALLOC(stack, Layer3DStack);
 	if (!stack) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate layer 3d stack\n"));
 		return;
 	}
-
 	stack->visual = visual_new(compositor);
 	stack->visual->type_3d = 2;
 	stack->visual->camera.is_3D = 1;

@@ -178,7 +178,11 @@ void gf_clock_resume(GF_Clock *ck)
 		assert(!ck->nb_buffering);
 	}
 	ck->nb_paused -= 1;
-	if (!ck->nb_paused)
+	//in player mode, increment the start time to reflect how long we have been buffering
+	//in non-player mode, since we don't care about real-time, don't update the clock start time
+	//this avoids cases where the first composed frame is dispatched while the object(s) are buffering
+	//updating the clock would rewind the timebase in the past and won't trigger next frame fetch on these objects
+	if (!ck->nb_paused && ck->compositor->player)
 		ck->start_time += gf_sc_get_clock(ck->compositor) - ck->pause_time;
 	gf_mx_v(ck->mx);
 }

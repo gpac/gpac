@@ -575,8 +575,11 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 	char *data;
 	u32 data_size;
 	u32 i;
+	HEVC_VPS *vps;
 	GF_AVCConfigSlot *vps_sl = gf_list_get(ctx->vps, 0);
-	HEVC_VPS *vps = &ctx->hevc_state->vps[vps_sl->id];
+	if (!vps_sl) return GF_SERVICE_ERROR;
+
+	vps = &ctx->hevc_state->vps[vps_sl->id];
 	
 	if (!vps->vps_extension_found) return GF_OK;
 	if (vps->max_layers<2) return GF_OK;

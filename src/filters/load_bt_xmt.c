@@ -625,9 +625,8 @@ static GF_Err ctxload_process(GF_Filter *filter)
 							if (!esd) {
 								if (od->URLString) {
 									ODS_SetupOD(priv->scene, od);
-								} else {
-									gf_odf_desc_del((GF_Descriptor *) od);
 								}
+								gf_odf_desc_del((GF_Descriptor *) od);
 								continue;
 							}
 							/*fix OCR dependencies*/
@@ -690,6 +689,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 								esd->decoderConfig->streamType = GF_STREAM_PRIVATE_SCENE;
 								esd->dependsOnESID = priv->base_stream_id;
 								ODS_SetupOD(priv->scene, od);
+								gf_odf_desc_del((GF_Descriptor *) od);
 								continue;
 #endif
 							}
@@ -715,6 +715,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 							gf_odf_desc_del((GF_Descriptor *) od);
 							od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 							od->URLString = remote;
+							od->fake_remote = GF_TRUE;
 							od->objectDescriptorID = k;
 							ODS_SetupOD(priv->scene, od);
 							gf_odf_desc_del((GF_Descriptor*)od);

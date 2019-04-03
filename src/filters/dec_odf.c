@@ -93,7 +93,8 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		odm = gf_odm_new();
 		odm->ID = od->objectDescriptorID;
 		odm->parentscene = scene;
-		odm->ignore_sys = GF_TRUE;
+		if (od->fake_remote)
+			odm->ignore_sys = GF_TRUE;
 		gf_list_add(scene->resources, odm);
 		gf_odm_setup_remote_object(odm, scene->root_od->scene_ns, od->URLString);
 		return;
@@ -137,8 +138,10 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 			odm = NULL;
 		}
 
-		//input sensors don't have PIDs associated for now (only local sensors supported)
-		if (esd->decoderConfig->streamType == GF_STREAM_INTERACT) {
+		//OCR streams and input sensors don't have PIDs associated for now (only local sensors supported)
+		if ((esd->decoderConfig->streamType == GF_STREAM_INTERACT)
+			|| (esd->decoderConfig->streamType == GF_STREAM_OCR)
+		) {
 #ifndef GPAC_DISABLE_VRML
 			//first time we setup this stream, create an ODM
 			if (!odm) {
@@ -151,11 +154,20 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 				odm->scene_ns->nb_odm_users++;
 				gf_list_add(scene->resources, odm);
 			}
-			gf_input_sensor_setup_object(odm, esd);
+			if (esd->decoderConfig->streamType == GF_STREAM_INTERACT)
+				gf_input_sensor_setup_object(odm, esd);
+			else if (esd->decoderConfig->streamType == GF_STREAM_OCR) {
+				odm->mo = gf_mo_new();
+				odm->mo->odm = odm;
+				odm->mo->OD_ID = od->objectDescriptorID;
+				odm->mo->type = GF_MEDIA_OBJECT_UNDEF;
+				gf_list_add(scene->scene_objects, odm->mo);
+
+				gf_clock_set_time(odm->ck, 0);
+			}
 #endif
 			return;
-		}
-		else if (!odm || !pid ) {
+		} else if (!odm || !pid ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Cannot match OD ID %d to any PID in the service, ignoring OD\n", od->objectDescriptorID));
 			return;
 		}

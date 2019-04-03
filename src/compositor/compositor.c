@@ -489,9 +489,18 @@ static GF_Err rawvout_evt(struct _video_out *vout, GF_Event *evt)
 	compositor->passthrough_pfmt = pfmt;
 	gf_pixel_get_size_info(pfmt, evt->setup.width, evt->setup.height, &compositor->framebuffer_size, NULL, NULL, NULL, NULL);
 
-	compositor->framebuffer = gf_realloc(compositor->framebuffer, sizeof(char)*compositor->framebuffer_size);
+	if (compositor->framebuffer_size > compositor->framebuffer_alloc) {
+		compositor->framebuffer_alloc = compositor->framebuffer_size;
+		compositor->framebuffer = gf_realloc(compositor->framebuffer, sizeof(char)*compositor->framebuffer_size);
+	}
 	if (!compositor->framebuffer) return GF_OUT_OF_MEM;
 	memset(compositor->framebuffer, 0, sizeof(char)*compositor->framebuffer_size);
+
+#ifndef GPAC_DISABLE_3D
+	if (compositor->needs_offscreen_gl)
+		return compositor_3d_setup_fbo(evt->setup.width, evt->setup.height, &compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
+#endif
+
 	return GF_OK;
 }
 
@@ -552,7 +561,10 @@ void gf_sc_setup_passthrough(GF_Compositor *compositor)
 
 		if (is_raw_out && !compositor->passthrough_inplace && (compositor->framebuffer_size != out_size) ) {
 			compositor->framebuffer_size = out_size;
-			compositor->framebuffer = gf_realloc(compositor->framebuffer, out_size);
+			if (out_size > compositor->framebuffer_alloc) {
+				compositor->framebuffer_alloc = out_size;
+				compositor->framebuffer = gf_realloc(compositor->framebuffer, out_size);
+			}
 		}
 	}
 }
@@ -609,10 +621,17 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_3D
 static void gf_sc_check_video_driver(GF_Compositor *compositor)
 {
+	Bool force_gl_out = GF_FALSE;
 	if (compositor->player) return;
 	if (compositor->video_out == &null_vout) return;
 
-	if (compositor->visual->type_3d) {
+	if (compositor->visual->type_3d || compositor->hybrid_opengl) {
+		force_gl_out = GF_TRUE;
+	} else if (compositor->needs_offscreen_gl && (compositor->ogl!=GF_SC_GLMODE_OFF) ) {
+		force_gl_out = GF_TRUE;
+	}
+
+	if (force_gl_out) {
 		GF_Err e;
 		if (compositor->video_out != &raw_vout) return;
 		e = gf_sc_load_driver(compositor);
@@ -623,11 +642,11 @@ static void gf_sc_check_video_driver(GF_Compositor *compositor)
 		return;
 	}
 
-	if (compositor->video_out == &raw_vout) return;
-	if (compositor->player) {
-		compositor->video_out->Shutdown(compositor->video_out);
-		gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
-		gf_filter_register_opengl_provider(compositor->filter, GF_FALSE);
+	if (compositor->video_out == &raw_vout) {
+		if (compositor->needs_offscreen_gl) {
+			gf_filter_request_opengl(compositor->filter);
+		}
+		return;
 	}
 	compositor->video_out = &raw_vout;
 	compositor->video_memory = 2;
@@ -1342,6 +1361,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		}
 	} else {
 		gf_sc_ar_reset(compositor->audio_renderer);
+		compositor->needs_offscreen_gl = GF_FALSE;
 	}
 
 	gf_sc_reset_framerate(compositor);
@@ -2091,19 +2111,31 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			visual_3d_init_shaders(compositor->visual);
 #endif
 			if (compositor->autoconfig_opengl) {
+				u32 mode = compositor->ogl;
 				compositor->autoconfig_opengl = 0;
 				compositor->force_opengl_2d = 0;
+				compositor->hybrid_opengl = GF_FALSE;
 				compositor->visual->type_3d = prev_type_3d;
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 				//enable hybrid mode by default
-				if (compositor->visual->compositor->shader_only_mode) {
-					compositor->ogl = GF_SC_GLMODE_HYBRID;
-					compositor->hybrid_opengl = 1;
-				} else {
-					compositor->ogl = GF_SC_GLMODE_OFF;
+				if (!compositor->visual->compositor->shader_only_mode && (mode==GF_SC_GLMODE_HYBRID) ) {
+					mode = GF_SC_GLMODE_OFF;
 				}
 #endif
+				switch (mode) {
+				case GF_SC_GLMODE_OFF:
+					break;
+				case GF_SC_GLMODE_ON:
+					compositor->force_opengl_2d = 1;
+					if (!compositor->visual->type_3d)
+						compositor->visual->type_3d = 1;
+					break;
+				case GF_SC_GLMODE_AUTO:
+				case GF_SC_GLMODE_HYBRID:
+					compositor->hybrid_opengl = GF_TRUE;
+					break;
+				}
 			}
 
 		}
@@ -4008,3 +4040,23 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 ob
 			compositor->ms_until_next_frame = (s32) wait_ms;
 	}
 }
+
+Bool gf_sc_check_gl_support(GF_Compositor *compositor)
+{
+#ifdef GPAC_DISABLE_3D
+	return GF_FALSE;
+#else
+	if (!compositor->player && !compositor->is_opengl) {
+		if (compositor->drv==GF_SC_DRV_OFF) {
+			return GF_FALSE;
+		}
+		compositor->needs_offscreen_gl = GF_TRUE;
+		compositor->autoconfig_opengl = 1;
+		compositor->recompute_ar = 1;
+		return GF_TRUE;
+	}
+	return GF_TRUE;
+#endif
+
+}
+
