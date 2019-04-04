@@ -2666,7 +2666,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			compositor->show_caret = 1;
 		}
 		if (compositor->caret_next_draw_time <= compositor->last_frame_time) {
-			compositor->frame_draw_type=GF_SC_DRAW_FRAME;
+			compositor->frame_draw_type = GF_SC_DRAW_FRAME;
 			compositor->caret_next_draw_time+=500;
 			compositor->show_caret = !compositor->show_caret;
 			compositor->text_edit_changed = 1;
@@ -2752,7 +2752,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 	if (compositor->force_next_frame_redraw) {
 		compositor->force_next_frame_redraw=0;
-		compositor->frame_draw_type=GF_SC_DRAW_FRAME;
+		compositor->frame_draw_type = GF_SC_DRAW_FRAME;
 	}
 
 	//if hidden and no listener, do not draw the scene
@@ -2764,19 +2764,21 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		if (compositor->check_eos_state<=1) {
 			compositor->check_eos_state = 0;
 			/*force a frame dispatch */
-			if (!compositor->vfr && !compositor->passthrough_txh) {
-				if (has_tx_streams && !all_tx_done)
-					compositor->frame_draw_type = GF_SC_DRAW_FRAME;
-				if (gf_list_count(compositor->systems_pids))
-					compositor->frame_draw_type = GF_SC_DRAW_FRAME;
-				if (compositor->validator_mode)
-					compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+			if (!compositor->passthrough_txh) {
+				if (!compositor->vfr) {
+					if (has_tx_streams && !all_tx_done)
+						compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+					if (gf_list_count(compositor->systems_pids))
+						compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+					if (compositor->validator_mode)
+						compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+				}
 			}
 
 			if (compositor->passthrough_txh) {
 				//still waiting for initialization either from the passthrough stream or a texture used in the scene
 				if (!compositor->passthrough_txh->width || !compositor->passthrough_txh->stream->pck || (compositor->ms_until_next_frame<0) ) {
-					compositor->frame_draw_type=GF_SC_DRAW_NONE;
+					compositor->frame_draw_type = GF_SC_DRAW_NONE;
 					//prevent release of frame
 					if (compositor->passthrough_txh->needs_release)
 						compositor->passthrough_txh->needs_release = 2;
@@ -2989,15 +2991,17 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #endif
 
 		if (!compositor->player) {
+			//if systems frames are pending (not executed because too early), increase clock
 			if ((compositor->sys_frames_pending && (compositor->ms_until_next_frame>=0) )
-			|| (compositor->vfr && has_timed_nodes)
+			//if timed nodes or validator mode (which acts as a timed node firing events), increase scene clock
+			//in vfr mode
+			|| (compositor->vfr && (has_timed_nodes || compositor->validator_mode) )
 			) {
 				compositor->sys_frames_pending = GF_FALSE;
 				compositor->frame_number++;
 				compositor->scene_sampled_clock = compositor->frame_number * compositor->fps.den * 1000;
 				compositor->scene_sampled_clock /= compositor->fps.num;
 			}
-
 		}
 	}
 	compositor->reset_graphics = 0;

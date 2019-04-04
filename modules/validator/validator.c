@@ -941,6 +941,8 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		} else if (!strcmp(opt, "Play")) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator starting in playback mode.\n"));
 			validator->is_recording = GF_FALSE;
+			//this will indicate to the compositor to increment scene time even though no new changes
+			validator->compositor->validator_mode = GF_TRUE;
 		} else if (!strcmp(opt, "Record")) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator starting in recording mode.\n"));
 			validator->is_recording = GF_TRUE;
@@ -972,9 +974,6 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator using scenario playlist: %s\n", validator->xvl_filename));
 		}
-		//if validator is active, we turn off vfr mode
-		validator->compositor->vfr = GF_FALSE;
-		validator->compositor->validator_mode = GF_TRUE;
 
 		/* TODO: if start returns 0, the module is not loaded, so the above init (filter registration) is not removed,
 		   should probably return 1 all the time, to make sure stop is called */

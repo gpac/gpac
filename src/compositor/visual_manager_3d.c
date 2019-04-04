@@ -543,7 +543,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 	if (camera_animate(tr_state->camera, tr_state->visual->compositor)) {
 		if (tr_state->visual->compositor->active_layer) gf_node_dirty_set(tr_state->visual->compositor->active_layer, 0, 1);
 
-		tr_state->visual->compositor->force_next_frame_redraw = 1;
+		tr_state->visual->compositor->force_next_frame_redraw = GF_TRUE;
 	}
 
 
