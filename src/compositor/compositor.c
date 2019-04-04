@@ -362,7 +362,6 @@ static void gf_sc_reset_framerate(GF_Compositor *compositor)
 	compositor->current_frame = 0;
 }
 
-static Bool gf_sc_on_event(void *cbck, GF_Event *event);
 
 enum
 {
@@ -681,8 +680,8 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->msg_type |= GF_SR_CFG_INITIAL_RESIZE;
 	/*set default size if owning output*/
 	if (!compositor->os_wnd) {
-		compositor->new_width = compositor->size.x>0 ? compositor->size.x : SC_DEF_WIDTH;
-		compositor->new_height = compositor->size.y>0 ? compositor->size.y : SC_DEF_HEIGHT;
+		compositor->new_width = compositor->osize.x>0 ? compositor->osize.x : SC_DEF_WIDTH;
+		compositor->new_height = compositor->osize.y>0 ? compositor->osize.y : SC_DEF_HEIGHT;
 		compositor->msg_type |= GF_SR_CFG_SET_SIZE;
 	}
 
@@ -1410,9 +1409,9 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	Bool lock_ok;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("sc_set_size %dx%d\n", NewWidth, NewHeight));
-	if (compositor->size.x && compositor->size.y) {
-		NewWidth = compositor->size.x;
-		NewHeight = compositor->size.y;
+	if (compositor->osize.x && compositor->osize.y) {
+		NewWidth = compositor->osize.x;
+		NewHeight = compositor->osize.y;
 	}
 
 	if ((compositor->display_width == NewWidth) && (compositor->display_height == NewHeight))
@@ -2770,6 +2769,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 					compositor->frame_draw_type = GF_SC_DRAW_FRAME;
 				if (gf_list_count(compositor->systems_pids))
 					compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+				if (compositor->validator_mode)
+					compositor->frame_draw_type = GF_SC_DRAW_FRAME;
 			}
 
 			if (compositor->passthrough_txh) {
@@ -3471,7 +3472,8 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	return GF_TRUE;
 }
 
-static Bool gf_sc_on_event(void *cbck, GF_Event *event)
+GF_EXPORT
+Bool gf_sc_on_event(void *cbck, GF_Event *event)
 {
 	return gf_sc_on_event_ex((GF_Compositor *)cbck, event, GF_FALSE);
 }

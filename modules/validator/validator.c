@@ -38,7 +38,7 @@ typedef struct __validation_module
 	Bool trace_mode;
 
 	/* Clock used to synchronize events in recording and playback*/
-	GF_Clock *ck;
+	GF_ObjectManager *root_odm;
 
 	/* Next event to process */
 	Bool next_event_snapshot;
@@ -228,7 +228,7 @@ static void validator_on_video_frame(void *udta, u32 time)
 	if (validator->snapshot_next_frame) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		char *snap_name = validator_create_snapshot(validator);
-		validator_xvs_add_snapshot_node(validator, snap_name, gf_clock_time(validator->ck));
+		validator_xvs_add_snapshot_node(validator, snap_name, gf_clock_time(validator->root_odm->ck));
 		gf_free(snap_name);
 #endif
 		validator->snapshot_next_frame = GF_FALSE;
@@ -249,7 +249,7 @@ Bool validator_on_event_play(void *udta, GF_Event *event, Bool consumed_by_compo
 				gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
 			}
 
-			validator->ck = validator->compositor->root_scene->root_od->ck;
+			validator->root_odm = validator->compositor->root_scene->root_od;
 		}
 		break;
 	case GF_EVENT_CLICK:
@@ -267,7 +267,7 @@ Bool validator_on_event_play(void *udta, GF_Event *event, Bool consumed_by_compo
 			GF_Event evt;
 			memset(&evt, 0, sizeof(GF_Event));
 			evt.type = GF_EVENT_QUIT;
-			validator->compositor->video_out->on_event(validator->compositor->video_out->evt_cbk_hdl, &evt);
+			gf_sc_on_event(validator->compositor, &evt);
 		}
 		return GF_TRUE;
 	}
@@ -487,7 +487,7 @@ Bool validator_on_event_record(void *udta, GF_Event *event, Bool consumed_by_com
 			if (!validator->trace_mode) {
 				gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
 			}
-			validator->ck = validator->compositor->root_scene->root_od->ck;
+			validator->root_odm = validator->compositor->root_scene->root_od;
 		}
 		break;
 	case GF_EVENT_KEYDOWN:
@@ -511,14 +511,14 @@ Bool validator_on_event_record(void *udta, GF_Event *event, Bool consumed_by_com
 			if (event->key.key_code == GF_KEY_INSERT) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 				char *snap_name = validator_create_snapshot(validator);
-				validator_xvs_add_snapshot_node(validator, snap_name, gf_clock_time(validator->ck));
+				validator_xvs_add_snapshot_node(validator, snap_name, gf_clock_time(validator->root_odm->ck));
 				gf_free(snap_name);
 #endif
 			} else if (event->key.key_code == GF_KEY_END) {
 				GF_Event evt;
 				memset(&evt, 0, sizeof(GF_Event));
 				evt.type = GF_EVENT_QUIT;
-				validator->compositor->video_out->on_event(validator->compositor->video_out->evt_cbk_hdl, &evt);
+				gf_sc_on_event(validator->compositor, &evt);
 			} else if (event->key.key_code == GF_KEY_F1) {
 				validator->snapshot_next_frame = GF_TRUE;
 			}
@@ -799,7 +799,7 @@ static void validator_xvs_close(GF_Validator *validator)
 	validator->xvs_node_in_xvl = NULL;
 	validator->xvs_filename = NULL;
 	validator->test_filename = NULL;
-	validator->ck = NULL;
+	validator->root_odm = NULL;
 	validator->xvs_event_index = 0;
 	validator->snapshot_number = 0;
 }
@@ -972,6 +972,9 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator using scenario playlist: %s\n", validator->xvl_filename));
 		}
+		//if validator is active, we turn off vfr mode
+		validator->compositor->vfr = GF_FALSE;
+		validator->compositor->validator_mode = GF_TRUE;
 
 		/* TODO: if start returns 0, the module is not loaded, so the above init (filter registration) is not removed,
 		   should probably return 1 all the time, to make sure stop is called */
@@ -1045,7 +1048,7 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 	   until there is no more event, in which case we trigger either the load of the next XVS or the quit */
 	case GF_COMPOSITOR_EXT_PROCESS:
 		/* if the time is right, dispatch the event and load the next one */
-		while (!validator->is_recording && validator->evt_loaded && validator->ck && (validator->next_time <= gf_clock_time(validator->ck) )) {
+		while (!validator->is_recording && validator->evt_loaded && validator->root_odm && validator->root_odm->ck && (validator->next_time <= gf_clock_time(validator->root_odm->ck) )) {
 			Bool has_more_events;
 			//u32 diff = gf_clock_time(validator->ck) - validator->next_time;
 			//GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Time diff: evt_time=%d  clock_time = %d, diff=%d\n", validator->next_time, gf_clock_time(validator->ck), diff));
@@ -1059,7 +1062,7 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 				validator->next_event_snapshot = GF_FALSE;
 #endif
 			} else {
-				validator->compositor->video_out->on_event(validator->compositor->video_out->evt_cbk_hdl, &validator->next_event);
+				gf_sc_on_event(validator->compositor, &validator->next_event);
 			}
 			has_more_events = validator_load_event(validator);
 			if (!has_more_events) {
@@ -1072,7 +1075,7 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 						GF_Event evt;
 						memset(&evt, 0, sizeof(GF_Event));
 						evt.type = GF_EVENT_QUIT;
-						validator->compositor->video_out->on_event(validator->compositor->video_out->evt_cbk_hdl, &evt);
+						gf_sc_on_event(validator->compositor, &evt);
 					} else {
 						if (!validator->is_recording) {
 							validator_load_event(validator);

@@ -109,8 +109,9 @@ static GF_Err compose_process(GF_Filter *filter)
 			n /= 1000;
 			if (n>=ctx->dur)
 				ctx->check_eos_state = 2;
-			else if (ctx->vfr && !ctx->check_eos_state && !nb_sys_streams_active ) {
+			else if (ctx->vfr && !ctx->check_eos_state && !nb_sys_streams_active && ctx->scene_sampled_clock) {
 				ctx->check_eos_state = 1;
+				ctx->force_next_frame_redraw = GF_TRUE;
 			}
 		} else if (!ctx->check_eos_state && !nb_sys_streams_active) {
 			ctx->check_eos_state = 1;
@@ -131,6 +132,7 @@ static GF_Err compose_process(GF_Filter *filter)
 
 		if ((ctx->check_eos_state==2) || !ctx->root_scene || (ctx->check_eos_state && gf_sc_check_end_of_scene(ctx, GF_TRUE))) {
 			u32 count;
+			ctx->force_next_frame_redraw = GF_FALSE;
 			count = gf_filter_get_ipid_count(ctx->filter);
 			if (ctx->root_scene) {
 				gf_filter_pid_set_eos(ctx->vout);
@@ -264,10 +266,20 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		if (p) service_url = p->value.string;
 		
 		ctx->root_scene = gf_scene_new(ctx, NULL);
-		ctx->root_scene->is_dynamic_scene = GF_TRUE;
 		ctx->root_scene->root_od = gf_odm_new();
 		ctx->root_scene->root_od->scene_ns = gf_scene_ns_new(ctx->root_scene, ctx->root_scene->root_od, service_url, NULL);
 		ctx->root_scene->root_od->subscene = ctx->root_scene;
+		ctx->root_scene->root_od->scene_ns->nb_odm_users++;
+		switch (mtype) {
+		case GF_STREAM_SCENE:
+		case GF_STREAM_PRIVATE_SCENE:
+		case GF_STREAM_OD:
+			ctx->root_scene->is_dynamic_scene = GF_FALSE;
+			break;
+		default:
+			ctx->root_scene->is_dynamic_scene = GF_TRUE;
+			break;
+		}
 
 		if (!ctx->player)
 			gf_filter_post_process_task(filter);
@@ -429,8 +441,8 @@ static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 		if (p) h = p->value.uint;
 
 		if (w && h) {
-			ctx->size.x = w;
-			ctx->size.y = h;
+			ctx->osize.x = w;
+			ctx->osize.y = h;
 			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_WIDTH, &PROP_UINT(w) );
 			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(h) );
 		}
@@ -727,7 +739,7 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(vctol), "sets cache tolerance when storing raster graphics to memory. If the difference between the stored version scale and the target display scale is less than tolerance, the cache will be used, otherwise it will be recomputed", GF_PROP_UINT, "30", "0,100", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 #endif
 	{ OFFS(wfont), "forces to wait for SVG fonts to be loaded before displaying frames", GF_PROP_FLOAT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(size), "force output size. If not set, size is derived from inputs", GF_PROP_VEC2I, "0x0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(osize), "force output size. If not set, size is derived from inputs", GF_PROP_VEC2I, "0x0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dpi), "default dpi if not indicated by video output", GF_PROP_VEC2I, "96x96", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dbgpvr), "debug scene used by PVR addon", GF_PROP_FLOAT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(player), "sets compositor in player mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

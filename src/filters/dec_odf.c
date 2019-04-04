@@ -148,14 +148,17 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 				odm = gf_odm_new();
 				odm->type = GF_STREAM_INTERACT;
 				odm->parentscene = scene;
+				odm->ID = od->objectDescriptorID;
 				odm->pid_id = esd->ESID;
 				odm->ck = scene->root_od->ck;
 				odm->scene_ns = scene->root_od->scene_ns;
 				odm->scene_ns->nb_odm_users++;
 				gf_list_add(scene->resources, odm);
 			}
-			if (esd->decoderConfig->streamType == GF_STREAM_INTERACT)
+			if (esd->decoderConfig->streamType == GF_STREAM_INTERACT) {
+				gf_scene_setup_object(scene, odm);
 				gf_input_sensor_setup_object(odm, esd);
+			}
 			else if (esd->decoderConfig->streamType == GF_STREAM_OCR) {
 				odm->mo = gf_mo_new();
 				odm->mo->odm = odm;
