@@ -32,8 +32,8 @@
 typedef struct
 {
 	//options
-	GF_PropVec2i size;
-	u32 pfmt, scale;
+	GF_PropVec2i osize;
+	u32 ofmt, scale;
 	Double p1, p2;
 
 	//internal data
@@ -58,7 +58,7 @@ static GF_Err ffsws_process(GF_Filter *filter)
 {
 	const char *data;
 	char *output;
-	u32 size;
+	u32 osize;
 	s32 res;
 	u8 *src_planes[5];
 	u8 *dst_planes[5];
@@ -67,7 +67,7 @@ static GF_Err ffsws_process(GF_Filter *filter)
 	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 
-	if (!ctx->pfmt && !ctx->ow && !ctx->oh)
+	if (!ctx->ofmt && !ctx->ow && !ctx->oh)
 		return GF_OK;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -88,11 +88,11 @@ static GF_Err ffsws_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
 	}
-	data = gf_filter_pck_get_data(pck, &size);
+	data = gf_filter_pck_get_data(pck, &osize);
 	frame_ifce = gf_filter_pck_get_frame_interface(pck);
 	//we may have biffer input (padding) but shall not have smaller
-	if (size && (ctx->out_src_size > size) ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Mismatched in source size, expected %d got %d - stride issue ?\n", ctx->out_src_size, size));
+	if (osize && (ctx->out_src_size > osize) ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Mismatched in source osize, expected %d got %d - stride issue ?\n", ctx->out_src_size, osize));
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_NOT_SUPPORTED;
 	}
@@ -194,7 +194,7 @@ static u32 get_sws_mode(u32 mode, u32 *has_param)
 static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	u32 w, h, stride, pfmt;
+	u32 w, h, stride, ofmt;
 	GF_Fraction sar;
 	Double par[2], *par_p=NULL;
 	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
@@ -217,12 +217,12 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	//if nothing is set we, consider we run as an adaptation filter, wait for caps to be set to declare output
-	if (!ctx->pfmt && !ctx->size.x && !ctx->size.y)
+	if (!ctx->ofmt && !ctx->osize.x && !ctx->osize.y)
 		return GF_OK;
 
 
 
-	w = h = pfmt = stride = 0;
+	w = h = ofmt = stride = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 	if (p) w = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
@@ -230,7 +230,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);
 	if (p) stride = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
-	if (p) pfmt = p->value.uint;
+	if (p) ofmt = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
 	if (p) sar = p->value.frac;
 	else sar.den = sar.num = 1;
@@ -238,40 +238,40 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
-	//ctx->pfmt may be 0 if the filter is instantiated dynamically, we haven't yet been called for reconfigure
-	if (!w || !h || !pfmt) {
+	//ctx->ofmt may be 0 if the filter is instantiated dynamically, we haven't yet been called for reconfigure
+	if (!w || !h || !ofmt) {
 		ctx->passthrough = GF_TRUE;
 		return GF_OK;
 	}
-	if (!ctx->pfmt)
-		ctx->pfmt = pfmt;
+	if (!ctx->ofmt)
+		ctx->ofmt = ofmt;
 
 	ctx->passthrough = GF_FALSE;
 
-	ctx->ow = ctx->size.x ? ctx->size.x : w;
-	ctx->oh = ctx->size.y ? ctx->size.y : h;
-	if ((ctx->w == w) && (ctx->h == h) && (ctx->s_pfmt == pfmt) && (ctx->stride == stride)) {
+	ctx->ow = ctx->osize.x ? ctx->osize.x : w;
+	ctx->oh = ctx->osize.y ? ctx->osize.y : h;
+	if ((ctx->w == w) && (ctx->h == h) && (ctx->s_pfmt == ofmt) && (ctx->stride == stride)) {
 		//nothing to reconfigure
 	}
 	//passthrough mode
-	else if ((ctx->ow == w) && (ctx->oh == h) && (ctx->s_pfmt == pfmt) && (pfmt==ctx->pfmt) ) {
+	else if ((ctx->ow == w) && (ctx->oh == h) && (ctx->s_pfmt == ofmt) && (ofmt==ctx->ofmt) ) {
 		memset(ctx->dst_stride, 0, sizeof(ctx->dst_stride));
-		gf_pixel_get_size_info(ctx->pfmt, ctx->ow, ctx->oh, &ctx->out_size, &ctx->dst_stride[0], &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
+		gf_pixel_get_size_info(ctx->ofmt, ctx->ow, ctx->oh, &ctx->out_size, &ctx->dst_stride[0], &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
 		ctx->passthrough = GF_TRUE;
 	} else {
 		u32 nb_par = 0;
 		nb_par = 0;
 		Bool res;
 		u32 mode = get_sws_mode(ctx->scale, &nb_par);
-		u32 ff_src_pfmt = ffmpeg_pixfmt_from_gpac(pfmt);
-		u32 ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(ctx->pfmt);
+		u32 ff_src_pfmt = ffmpeg_pixfmt_from_gpac(ofmt);
+		u32 ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(ctx->ofmt);
 
 		//get layout info for source
 		memset(ctx->src_stride, 0, sizeof(ctx->src_stride));
 		if (ctx->stride) ctx->src_stride[0] = ctx->stride;
 
 
-		res = gf_pixel_get_size_info(pfmt, w, h, &ctx->out_src_size, &ctx->src_stride[0], &ctx->src_stride[1], &ctx->nb_src_planes, &ctx->src_uv_height);
+		res = gf_pixel_get_size_info(ofmt, w, h, &ctx->out_src_size, &ctx->src_stride[0], &ctx->src_stride[1], &ctx->nb_src_planes, &ctx->src_uv_height);
 		if (!res) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Failed to query source pixel format characteristics\n"));
 			return GF_NOT_SUPPORTED;
@@ -281,7 +281,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		//get layout info for dest
 		memset(ctx->dst_stride, 0, sizeof(ctx->dst_stride));
-		res = gf_pixel_get_size_info(ctx->pfmt, ctx->ow, ctx->oh, &ctx->out_size, &ctx->dst_stride[0], &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
+		res = gf_pixel_get_size_info(ctx->ofmt, ctx->ow, ctx->oh, &ctx->out_size, &ctx->dst_stride[0], &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
 		if (!res) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Failed to query output pixel format characteristics\n"));
 			return GF_NOT_SUPPORTED;
@@ -311,17 +311,17 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 		ctx->w = w;
 		ctx->h = h;
-		ctx->s_pfmt = pfmt;
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFSWS] Setup rescaler from %dx%d fmt %s to %dx%d fmt %s\n", w, h, gf_pixel_fmt_name(pfmt), ctx->size.x, ctx->size.y, gf_pixel_fmt_name(ctx->pfmt)));
+		ctx->s_pfmt = ofmt;
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFSWS] Setup rescaler from %dx%d fmt %s to %dx%d fmt %s\n", w, h, gf_pixel_fmt_name(ofmt), ctx->ow, ctx->oh, gf_pixel_fmt_name(ctx->ofmt)));
 
 		ctx->swap_idx_1 = ctx->swap_idx_2 = 0;
 		//if same source / dest pixel format, don'( swap UV components
-		if (ctx->s_pfmt != ctx->pfmt) {
-			if (ctx->pfmt==GF_PIXEL_VYUY) {
+		if (ctx->s_pfmt != ctx->ofmt) {
+			if (ctx->ofmt==GF_PIXEL_VYUY) {
 				ctx->swap_idx_1 = 0;
 				ctx->swap_idx_2 = 2;
 			}
-			else if (ctx->pfmt==GF_PIXEL_YVYU) {
+			else if (ctx->ofmt==GF_PIXEL_YVYU) {
 				ctx->swap_idx_1 = 1;
 				ctx->swap_idx_2 = 3;
 			}
@@ -334,7 +334,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (ctx->nb_planes>1)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, &PROP_UINT(ctx->dst_stride[1]));
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pfmt));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->ofmt));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(sar) );
 	return GF_OK;
 }
@@ -354,13 +354,13 @@ static GF_Err ffsws_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	if (ctx->opid != pid) return GF_BAD_PARAM;
 
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_WIDTH);
-	if (p) ctx->size.x = p->value.uint;
+	if (p) ctx->osize.x = p->value.uint;
 
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_HEIGHT);
-	if (p) ctx->size.y = p->value.uint;
+	if (p) ctx->osize.y = p->value.uint;
 
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_PIXFMT);
-	if (p) ctx->pfmt = p->value.uint;
+	if (p) ctx->ofmt = p->value.uint;
 	return ffsws_configure_pid(filter, ctx->ipid, GF_FALSE);
 }
 
@@ -368,8 +368,8 @@ static GF_Err ffsws_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 #define OFFS(_n)	#_n, offsetof(GF_FFSWScaleCtx, _n)
 static GF_FilterArgs FFSWSArgs[] =
 {
-	{ OFFS(size), "size of output video. When not set, input size is used", GF_PROP_VEC2I, NULL, NULL, 0},
-	{ OFFS(pfmt), "pixel format for output video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, 0},
+	{ OFFS(osize), "osize of output video. When not set, input osize is used", GF_PROP_VEC2I, NULL, NULL, 0},
+	{ OFFS(ofmt), "pixel format for output video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, 0},
 	{ OFFS(scale), "scaling mode", GF_PROP_UINT, "bicubic", "fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(p1), "scaling algo param1 - see filter info", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(p2), "scaling algo param2 - see filter info", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
