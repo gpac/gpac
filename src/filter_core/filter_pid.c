@@ -4400,6 +4400,7 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 	if (pcki)
 		gf_filter_pid_filter_internal_packet(pidi, pcki);
 
+	if (pidi->discard_packets) return GF_FALSE;
 	if (!pidi->is_end_of_stream) return GF_FALSE;
 	if (!pidi->filter->eos_probe_state)
 		pidi->filter->eos_probe_state = 1;
