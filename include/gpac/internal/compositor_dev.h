@@ -434,7 +434,7 @@ struct __tag_compositor
 	Fixed dispdist;
 	char *mvshader;
 
-	GF_PropVec2i size, dpi;
+	GF_PropVec2i osize, dpi;
 
 	Bool zoom_changed;
 
@@ -690,6 +690,8 @@ struct __tag_compositor
 
 	Bool gazer_enabled, sgaze;
 	s32 gaze_x, gaze_y;
+
+	Bool validator_mode;
 
 	//moved from old GF_Terminal
 	struct _gf_scene *root_scene;
@@ -2580,7 +2582,7 @@ void gf_scene_init_storage(GF_Scene *scene, GF_Node *node);
 
 Bool gf_sc_check_gl_support(GF_Compositor *compositor);
 void gf_sc_mo_destroyed(GF_Node *n);
-
+Bool gf_sc_on_event(void *cbck, GF_Event *event);
 
 #ifdef __cplusplus
 }

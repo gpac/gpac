@@ -1941,6 +1941,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_focus_switch_ring) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_is_over) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_navigation_supported) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_on_event) )
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_animation_get_scenegraph) )
