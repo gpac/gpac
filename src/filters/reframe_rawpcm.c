@@ -30,7 +30,7 @@
 typedef struct
 {
 	//opts
-	u32 framelen, afmt, sr, ch;
+	u32 framelen, safmt, sr, ch;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -63,11 +63,11 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 		return GF_NOT_SUPPORTED;
 
 	ctx->ipid = pid;
-	if (!ctx->afmt) {
+	if (!ctx->safmt) {
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_EXT);
-		if (p && p->value.string) ctx->afmt = gf_audio_fmt_parse(p->value.string);
+		if (p && p->value.string) ctx->safmt = gf_audio_fmt_parse(p->value.string);
 	}
-	if (!ctx->afmt) {
+	if (!ctx->safmt) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Missing audio format, cannot parse\n"));
 		return GF_BAD_PARAM;
 	}
@@ -84,7 +84,7 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 		ctx->framelen = 1024;
 	}
 
-	ctx->Bps = gf_audio_fmt_bit_depth(ctx->afmt) / 8;
+	ctx->Bps = gf_audio_fmt_bit_depth(ctx->safmt) / 8;
 	ctx->frame_size = ctx->framelen * ctx->Bps * ctx->ch;
 
 	if (!ctx->opid)
@@ -97,7 +97,7 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->ch));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(ctx->framelen));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->afmt));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->safmt));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, &PROP_BOOL(GF_TRUE));
@@ -289,7 +289,7 @@ static GF_FilterCapability PCMReframeCaps[] =
 static GF_FilterArgs PCMReframeArgs[] =
 {
 	{ OFFS(sr), "Audio sample rate", GF_PROP_UINT, "44100", NULL, 0},
-	{ OFFS(afmt), "audio format", GF_PROP_PCMFMT, "none", NULL, 0},
+	{ OFFS(safmt), "audio format", GF_PROP_PCMFMT, "none", NULL, 0},
 	{ OFFS(ch), "Number of audio ch", GF_PROP_UINT, "2", NULL, 0},
 	{ OFFS(framelen), "Number of audio samples to put in one audio frame. For planar formats, indicate plane size in samples", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
