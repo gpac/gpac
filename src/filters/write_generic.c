@@ -578,7 +578,10 @@ GF_Err writegen_process(GF_Filter *filter)
 			return GF_OK;
 		}
 		if ((ctx->sstart <= ctx->send) && (ctx->sample_num>ctx->send) ) {
+			GF_FilterEvent evt;
 			gf_filter_pid_drop_packet(ctx->ipid);
+			GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->ipid);
+			gf_filter_pid_send_event(ctx->ipid, &evt);
 			return GF_OK;
 		}
 	}
