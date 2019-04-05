@@ -79,6 +79,9 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (ctx->base_ipid == pid) {
 		gf_filter_pid_copy_properties(ctx->opid, ctx->base_ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TILE_BASE, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD_REF, NULL);
+		gf_filter_pid_set_property_str(ctx->opid, "isom:sabt", NULL);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 		if (!p) return GF_NOT_SUPPORTED;
@@ -115,6 +118,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->base_ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->base_ipid)) return GF_EOS;
+		return GF_OK;
 	}
 	min_cts = gf_filter_pck_get_cts(pck);
 	gf_filter_pck_get_data(pck, &pck_size);
@@ -125,10 +129,19 @@ static GF_Err tileagg_process(GF_Filter *filter)
 		Bool do_drop=GF_FALSE;
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
 		if (pid==ctx->base_ipid) continue;
-		pck = gf_filter_pid_get_packet(pid);
-		if (!pck) continue;
-		cts = gf_filter_pck_get_cts(pck);
-		if (cts != min_cts) continue;
+		while (1) {
+			pck = gf_filter_pid_get_packet(pid);
+			if (!pck) return GF_OK;
+
+			cts = gf_filter_pck_get_cts(pck);
+			if (cts < min_cts) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[TileAggr] Tiled pid %s with cts "LLU" less than base tile pid cts "LLU" - discarding packet\n", gf_filter_pid_get_name(pid), cts, min_cts ));
+				gf_filter_pid_drop_packet(pid);
+			} else {
+				break;
+			}
+		}
+		if (cts > min_cts) continue;
 
 		for (j=0; j<ctx->drop.nb_items; j++) {
 			if (ctx->drop.vals[j] == i) do_drop=GF_TRUE;
@@ -172,7 +185,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
 		if (pid==ctx->base_ipid) continue;
 		pck = gf_filter_pid_get_packet(pid);
-		if (!pck) continue;
+		assert(pck);
 		cts = gf_filter_pck_get_cts(pck);
 		if (cts != min_cts) continue;
 
