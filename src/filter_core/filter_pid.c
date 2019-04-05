@@ -2132,11 +2132,15 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 						assert(l<0xFFFF);
 						edge = &reg_desc->edges[reg_desc->nb_edges];
 						edge->src_reg = a_reg;
-						edge->weight = path_weight;
-						edge->src_cap_idx = k;
-						edge->dst_cap_idx = l;
+						edge->weight = (u8) path_weight;
+						edge->src_cap_idx = (u16) k;
+						edge->dst_cap_idx = (u16) l;
 						edge->priority = 0;
-						edge->loaded_filter_only = loaded_filter_only_flags;
+						//we inverted the caps, invert the flags
+						if (loaded_filter_only_flags & EDGE_LOADED_SOURCE_ONLY)
+							edge->loaded_filter_only |= EDGE_LOADED_DEST_ONLY;
+						if (loaded_filter_only_flags & EDGE_LOADED_DEST_ONLY)
+							edge->loaded_filter_only |= EDGE_LOADED_SOURCE_ONLY;
 					 	edge->src_stream_type = gf_filter_reg_get_output_stream_type(edge->src_reg->freg, edge->src_cap_idx);
 
 						reg_desc->nb_edges++;
@@ -2356,7 +2360,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				}
 			}
 
-			if (edge->loaded_filter_only && (edge->src_reg->freg != pid->filter->freg) ) {
+			if ((edge->loaded_filter_only & EDGE_LOADED_SOURCE_ONLY) && (edge->src_reg->freg != pid->filter->freg) ) {
 				edge->status = EDGE_STATUS_DISABLED;
 				continue;
 			}
@@ -2399,8 +2403,8 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				continue;
 			}
 		}
-		//the edge destination filter is not loaded, disable edges marked for loaded filter only
-		if (edge->loaded_filter_only && (edge->src_reg->freg != pid->filter->freg) ) {
+		//the edge source filter is not loaded, disable edges marked for loaded filter only
+		if ( (edge->loaded_filter_only & EDGE_LOADED_SOURCE_ONLY) && (edge->src_reg->freg != pid->filter->freg) ) {
 			edge->status = EDGE_STATUS_DISABLED;
 			continue;
 		}
@@ -4281,6 +4285,10 @@ static void gf_filter_pidinst_reset_stats(GF_FilterPidInst *pidi)
 GF_EXPORT
 void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 {
+#ifdef GPAC_MEMORY_TRACKING
+	u32 prev_nb_allocs, prev_nb_reallocs, nb_allocs, nb_reallocs;
+#endif
+
 	u32 nb_pck=0;
 	GF_FilterPacket *pck=NULL;
 	GF_FilterPacketInstance *pcki;
@@ -4359,6 +4367,13 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	pcki->pck = NULL;
 	pcki->pid = NULL;
 
+#ifdef GPAC_MEMORY_TRACKING
+	if (pid->filter && pid->filter->session->check_allocs) {
+		gf_mem_get_stats(&prev_nb_allocs, NULL, &prev_nb_reallocs, NULL);
+	}
+#endif
+
+
 	gf_fq_add(pid->filter->pcks_inst_reservoir, pcki);
 
 	//unref pck
@@ -4366,6 +4381,16 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	if (safe_int_dec(&pck->reference_count) == 0) {
 		gf_filter_packet_destroy(pck);
 	}
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (pid->filter && pid->filter->session->check_allocs) {
+		gf_mem_get_stats(&nb_allocs, NULL, &nb_reallocs, NULL);
+
+		pid->filter->session->nb_alloc_pck += (nb_allocs - prev_nb_allocs);
+		pid->filter->session->nb_realloc_pck += (nb_reallocs - prev_nb_reallocs);
+	}
+#endif
+
 	//decrement number of pending packet on target filter if this is not a destroy
 	if (pidinst->filter) {
 		assert(pidinst->filter->pending_packets);
