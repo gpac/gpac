@@ -87,7 +87,7 @@ static GF_Err filein_initialize(GF_Filter *filter)
 		ctx->file = gf_fopen(src, "rb");
 
 	if (!ctx->file) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FileIn] Failed to open %s\n", src));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileIn] Failed to open %s\n", src));
 
 		if (frag_par) frag_par[0] = '#';
 		if (cgi_par) cgi_par[0] = '?';
@@ -95,7 +95,7 @@ static GF_Err filein_initialize(GF_Filter *filter)
 		gf_filter_setup_failure(filter, GF_URL_ERROR);
 		return GF_URL_ERROR;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[FileIn] opening %s\n", src));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] opening %s\n", src));
 	gf_fseek(ctx->file, 0, SEEK_END);
 	ctx->file_size = gf_ftell(ctx->file);
 	ctx->file_pos = ctx->range.num;
@@ -169,10 +169,11 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SEEK:
 		if (evt->seek.start_offset >= ctx->file_size) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FileIn] Seek request outside of file %s range ("LLU" vs size "LLU")\n", ctx->src, evt->seek.start_offset, ctx->file_size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileIn] Seek request outside of file %s range ("LLU" vs size "LLU")\n", ctx->src, evt->seek.start_offset, ctx->file_size));
 			return GF_TRUE;
 		}
 
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] Asked to seek source to range "LLU"-"LLU"\n", evt->seek.start_offset, evt->seek.end_offset));
 		ctx->is_end = GF_FALSE;
 		gf_fseek(ctx->file, evt->seek.start_offset, SEEK_SET);
 		ctx->file_pos = evt->seek.start_offset;
@@ -186,6 +187,7 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] Asked to switch source to %s (range "LLU"-"LLU")\n", evt->seek.source_switch ? evt->seek.source_switch : "self", evt->seek.start_offset, evt->seek.end_offset));
 		assert(ctx->is_end);
 		ctx->range.num = evt->seek.start_offset;
 		ctx->range.den = evt->seek.end_offset;
@@ -276,11 +278,11 @@ static GF_Err filein_process(GF_Filter *filter)
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_size) );
 	} else {
 		if (nb_read < to_read) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FileIn] Asked to read %d but got only %d\n", to_read, nb_read));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileIn] Asked to read %d but got only %d\n", to_read, nb_read));
 			if (feof(ctx->file)) {
 				gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_size) );
 				ctx->is_end = GF_TRUE;
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FileIn] IO error EOF found after reading %d bytes but file %s size is %d\n", ctx->file_pos+nb_read, ctx->src, ctx->file_size));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileIn] IO error EOF found after reading %d bytes but file %s size is %d\n", ctx->file_pos+nb_read, ctx->src, ctx->file_size));
 			}
 		} else {
 			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_pos) );
@@ -308,7 +310,7 @@ static const GF_FilterArgs FileInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(range), "byte range", GF_PROP_FRACTION, "0-0", NULL, 0},
+	{ OFFS(range), "byte range", GF_PROP_FRACTION64, "0-0", NULL, 0},
 	{ OFFS(ext), "overrides file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "sets file mime type", GF_PROP_NAME, NULL, NULL, 0},
 	{0}
