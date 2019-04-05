@@ -379,6 +379,7 @@ struct __gf_filter_session
 
 #ifdef GPAC_MEMORY_TRACKING
 	Bool check_allocs;
+	u32 nb_alloc_pck, nb_realloc_pck;
 #endif
 	GF_Err last_connect_error, last_process_error;
 
@@ -395,7 +396,6 @@ struct __gf_filter_session
 	//protect access to link bank
 	GF_Mutex *links_mx;
 	GF_List *links;
-
 
 	char sep_args, sep_name, sep_frag, sep_list, sep_neg;
 	const char *blacklist;
@@ -547,7 +547,7 @@ struct __gf_filter
 #ifdef GPAC_MEMORY_TRACKING
 	//various stats in mem tracking mode, mostly used to detect heavy alloc/free usage by the filter
 	u64 stats_mem_allocated;
-	u32 stats_nb_alloc, stats_nb_realloc, stats_nb_calloc, stats_nb_free, nb_alloc_pck, nb_realloc_pck;
+	u32 stats_nb_alloc, stats_nb_realloc, stats_nb_calloc, stats_nb_free;
 	u32 nb_process_since_reset, nb_consecutive_process;
 	u32 max_stats_nb_alloc, max_stats_nb_realloc, max_stats_nb_calloc, max_stats_nb_free;
 	u32 max_nb_consecutive_process, max_nb_process;
@@ -910,6 +910,9 @@ typedef struct __freg_desc
 	u8 in_edges_enabling;
 } GF_FilterRegDesc;
 
+#ifdef GPAC_MEMORY_TRACKING
+size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free);
+#endif
 
 #endif //_GF_FILTER_SESSION_H_
 

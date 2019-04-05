@@ -1399,30 +1399,34 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 static GF_Err gf_filter_process_check_alloc(GF_Filter *filter)
 {
 	GF_Err e;
-	size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free);
 	u32 nb_allocs=0, nb_callocs=0, nb_reallocs=0, nb_free=0;
 	u32 prev_nb_allocs=0, prev_nb_callocs=0, prev_nb_reallocs=0, prev_nb_free=0;
 
 	//reset alloc/realloc stats of filter
-	filter->nb_alloc_pck = 0;
-	filter->nb_realloc_pck = 0;
+	filter->session->nb_alloc_pck = 0;
+	filter->session->nb_realloc_pck = 0;
 	//get current alloc state
 	gf_mem_get_stats(&prev_nb_allocs, &prev_nb_callocs, &prev_nb_reallocs, &prev_nb_free);
 	e = filter->freg->process(filter);
 
 	//get new alloc state
 	gf_mem_get_stats(&nb_allocs, &nb_callocs, &nb_reallocs, &nb_free);
-	//remove internal allocs/reallocs due to filter lib
-	assert (nb_allocs>=filter->nb_alloc_pck);
-	assert (nb_reallocs>=filter->nb_realloc_pck);
-	nb_allocs -= filter->nb_alloc_pck;
-	nb_reallocs -= filter->nb_realloc_pck;
-
 	//remove prev alloc stats
 	nb_allocs -= prev_nb_allocs;
 	nb_callocs -= prev_nb_callocs;
 	nb_reallocs -= prev_nb_reallocs;
 	nb_free -= prev_nb_free;
+
+	//remove internal allocs/reallocs due to filter lib
+	if (nb_allocs>filter->session->nb_alloc_pck)
+		nb_allocs -= filter->session->nb_alloc_pck;
+	else
+		nb_allocs = 0;
+
+	if (nb_reallocs>filter->session->nb_realloc_pck)
+		nb_reallocs -= filter->session->nb_realloc_pck;
+	else
+		nb_reallocs = 0;
 
 	//we now have nomber of allocs/realloc used by the filter internally during its process
 	if (nb_allocs || nb_callocs || nb_reallocs /* || nb_free */) {
