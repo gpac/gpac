@@ -95,6 +95,8 @@ typedef struct
 	Bool seg_was_not_ready;
 	Bool in_error;
 	Bool is_playing;
+
+	u32 nb_group_deps, current_group_dep;
 } GF_DASHGroup;
 
 
@@ -263,6 +265,8 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	gf_filter_set_setup_failure_callback(ctx->filter, group->seg_filter_src, dashdmx_on_filter_setup_error, group);
 	gf_dash_group_discard_segment(ctx->dash, group->idx);
 	group->prev_is_init_segment = GF_TRUE;
+	group->nb_group_deps = gf_dash_group_get_num_groups_depending_on(ctx->dash, group_index);
+	group->current_group_dep = 0;
 	gf_free(sURL);
 	return GF_OK;
 }
@@ -713,8 +717,6 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, u32 group_idx, GF_Fil
 		u32 max = gf_dash_get_min_buffer_time(ctx->dash);
 		gf_filter_pid_set_property_str(opid, "BufferLength", &PROP_UINT(max));
 	}
-	if (ctx->max_buffer)
-		gf_filter_pid_set_property_str(opid, "BufferMaxOccupancy", &PROP_UINT(ctx->max_buffer) );
 
 	memset(&qualities, 0, sizeof(GF_PropertyValue));
 	qualities.type = GF_PROP_STRING_LIST;
@@ -908,11 +910,12 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		gf_filter_pid_copy_properties(opid, pid);
 
-		asid = gf_dash_group_get_as_id(ctx->dash, group_idx);
-		if (!asid) asid = group_idx+1;
-		sprintf(as_name, "AS%d", asid);
-		gf_filter_pid_set_name(opid, as_name);
-
+		if (!group->nb_group_deps) {
+			asid = gf_dash_group_get_as_id(ctx->dash, group_idx);
+			if (!asid) asid = group_idx+1;
+			sprintf(as_name, "AS%d", asid);
+			gf_filter_pid_set_name(opid, as_name);
+		}
 
 		dashdmx_declare_properties(ctx, group_idx, opid, pid);
 
@@ -968,7 +971,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	ctx->dash_io.get_bytes_done = dashdmx_io_get_bytes_done;
 	ctx->dash_io.on_dash_event = dashdmx_io_on_dash_event;
 
-	ctx->dash = gf_dash_new(&ctx->dash_io, GF_DASH_THREAD_NONE, ctx->max_buffer, ctx->auto_switch, (ctx->store==2) ? GF_TRUE : GF_FALSE, (ctx->algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, GF_FALSE, ctx->timeshift);
+	ctx->dash = gf_dash_new(&ctx->dash_io, GF_DASH_THREAD_NONE, 0, ctx->auto_switch, (ctx->store==2) ? GF_TRUE : GF_FALSE, (ctx->algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, GF_FALSE, ctx->timeshift);
 
 	if (!ctx->dash) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Error - cannot create DASH Client\n"));
@@ -1212,6 +1215,7 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	const char *next_url, *next_url_init_or_switch_segment, *src_url, *key_url;
 	u64 start_range, end_range, switch_start_range, switch_end_range;
 	bin128 key_IV;
+	u32 group_idx;
 	Bool group_done;
 
 	assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
@@ -1219,7 +1223,9 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	group->in_error = GF_FALSE;
 
 	if (group->segment_sent) {
-		gf_dash_group_discard_segment(ctx->dash, group->idx);
+		if (!group->current_group_dep)
+			gf_dash_group_discard_segment(ctx->dash, group->idx);
+
 		group->segment_sent = GF_FALSE;
 		//no thread mode, we work with at most one entry in cache, call process right away to get the group next URL ready
 		gf_dash_process(ctx->dash);
@@ -1233,7 +1239,15 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 			return;
 		}
 	}
-	e = gf_dash_group_get_next_segment_location(ctx->dash, group->idx, dependent_representation_index, &next_url, &start_range, &end_range,
+
+	group_idx = group->idx;
+	if (group->nb_group_deps) {
+		if (group->current_group_dep) {
+			dependent_representation_index = group->current_group_dep;
+//			s32 res = gf_dash_get_dependent_group_index(ctx->dash, group->idx, group->current_group_dep-
+		}
+	}
+	e = gf_dash_group_get_next_segment_location(ctx->dash, group_idx, dependent_representation_index, &next_url, &start_range, &end_range,
 		        NULL, &next_url_init_or_switch_segment, &switch_start_range , &switch_end_range,
 		        &src_url, &has_next, &key_url, &key_IV);
 
@@ -1252,6 +1266,13 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 		}
 		return;
 	}
+
+	if (group->nb_group_deps) {
+		group->current_group_dep++;
+		if (group->current_group_dep>group->nb_group_deps)
+			group->current_group_dep = 0;
+	}
+
 	assert(next_url);
 	group->seg_was_not_ready = GF_FALSE;
 
@@ -1379,9 +1400,9 @@ GF_Err dashdmx_process(GF_Filter *filter)
 				if (gf_filter_pid_is_eos(ipid)) {
 					group->nb_eos++;
 
-					if (group->nb_eos==group->nb_pids) {
+					if (group->nb_eos * (1 + group->nb_group_deps) ==group->nb_pids) {
 						GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
-						if (gf_filter_pid_would_block(opid)) {
+						if (!group->current_group_dep && gf_filter_pid_would_block(opid)) {
 							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment but output pid would block, postponing\n"));
 						} else {
 							gf_filter_pid_clear_eos(ipid, GF_TRUE);
@@ -1464,7 +1485,6 @@ static const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 #define OFFS(_n)	#_n, offsetof(GF_DASHDmxCtx, _n)
 static const GF_FilterArgs DASHDmxArgs[] =
 {
-	{ OFFS(max_buffer), "max content buffer in ms. If 0 uses default player settings", GF_PROP_UINT, "10000", NULL, 0},
 	{ OFFS(auto_switch), "switch quality every N segments, disabled if 0", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(store), "enables file caching", GF_PROP_UINT, "mem", "mem|file|cache", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(algo), "adaptation algorithm to use. The following algorithms are defined:\n"\

@@ -5767,6 +5767,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 			/*do something!!*/
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error resolving URL of next segment: %s\n", gf_error_to_string(e) ));
 		}
+		if (new_base_seg_url) gf_free(new_base_seg_url);
 		return GF_DASH_DownloadCancel;
 	}
 	use_byterange = (start_range || end_range) ? 1 : 0;
@@ -5784,6 +5785,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		group->local_files = 1;
 		gf_dash_buffer_off(group);
 		if (group->force_switch_bandwidth && !dash->auto_switch_count) {
+			if (new_base_seg_url) gf_free(new_base_seg_url);
 			gf_dash_switch_group_representation(dash, group);
 			/*restart*/
 			return GF_DASH_DownloadRestart;
@@ -5796,6 +5798,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				if (key_url) gf_free(key_url);
 				return dash_download_group_download(dash, group, base_group, has_dep_following);
 			} else if (group->period->duration && (group->download_segment_index + 1 == group->nb_segments_in_rep) ) {
+				if (new_base_seg_url) gf_free(new_base_seg_url);
 				group->done = GF_TRUE;
 				return GF_DASH_DownloadCancel;
 			} else {
