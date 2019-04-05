@@ -1007,7 +1007,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			u32 ff_pmft = ctx->pixel_fmt;
 
 			if (force_pfmt == AV_PIX_FMT_NONE) {
-				ctx->pixel_fmt = AV_PIX_FMT_NONE;
+				ff_pmft = AV_PIX_FMT_NONE;
 				i=0;
 				//find a mapped pixel format
 				while (codec->pix_fmts) {
@@ -1018,7 +1018,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 					}
 					i++;
 				}
-				if (ctx->pixel_fmt == AV_PIX_FMT_NONE) {
+				if (ff_pmft == AV_PIX_FMT_NONE) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] Could not find a matching GPAC pixel format for encoder %s\n", codec->name ));
 					return GF_NOT_SUPPORTED;
 				}
