@@ -36,7 +36,7 @@ typedef struct
 	u8 dump_pid; //0: no, 1: configure/reconfig, 2: info update
 	u8 init_pid_config_done;
 	u64 pck_for_config;
-	u64 prev_dts, prev_cts;
+	u64 prev_dts, prev_cts, init_ts;
 } PidCtx;
 
 enum
@@ -58,6 +58,7 @@ typedef struct
 	Bool props, hdr, all, info, pcr;
 	Double speed, start;
 	Bool testmode;
+	GF_Fraction dur;
 
 	FILE *dump;
 
@@ -451,6 +452,18 @@ static GF_Err inspect_process(GF_Filter *filter)
 		} else {
 			inspect_dump_packet(ctx, pctx->tmp, pck, pctx->idx, pctx->pck_num);
 		}
+		if (ctx->dur.num && ctx->dur.den) {
+			u32 timescale = gf_filter_pck_get_timescale(pck);
+			u64 ts = gf_filter_pck_get_dts(pck);
+			if (ts == GF_FILTER_NO_TS) ts = gf_filter_pck_get_cts(pck);
+
+			if (!pctx->init_ts) pctx->init_ts = ts;
+			else if (ctx->dur.den * (ts - pctx->init_ts) >= ctx->dur.num * timescale) {
+				GF_FilterEvent evt;
+				GF_FEVT_INIT(evt, GF_FEVT_STOP, pctx->src_pid);
+				gf_filter_pid_send_event(pctx->src_pid, &evt);
+			}
+		}
 		gf_filter_pid_drop_packet(pctx->src_pid);
 	}
 	if (ctx->is_prober && !ctx->probe_done && (nb_done==count) && !ctx->all) {
@@ -587,6 +600,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(pcr), "dumps M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(speed), "sets playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(dur), "sets inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
 	{ OFFS(testmode), "skips URL/path dump, file size and decoder config (used for hashing encoding results)", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
