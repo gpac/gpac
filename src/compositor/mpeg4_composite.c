@@ -447,7 +447,7 @@ static void composite_update(GF_TextureHandler *txh)
 						return;
 					}
 					/*reload openGL ext*/
-					gf_sc_load_opengl_extensions(compositor, 1);
+					gf_sc_load_opengl_extensions(compositor, GF_TRUE);
 #endif
 				}
 			} else {

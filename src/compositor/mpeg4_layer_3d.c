@@ -254,7 +254,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 		}
 		visual_3d_reset_graphics(compositor->visual);
 		/*reload openGL ext*/
-		gf_sc_load_opengl_extensions(compositor, 1);
+		gf_sc_load_opengl_extensions(compositor, GF_TRUE);
 		/*load openGL shaders*/
 		visual_3d_init_shaders(compositor->visual);
 	}
