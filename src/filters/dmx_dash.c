@@ -1138,11 +1138,14 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 			//to remove once we manage to keep the service alive
 			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
 			if (gf_dash_get_period_switch_status(ctx->dash)) return GF_TRUE;
-		} else if (!fevt->play.initial_broadcast_play) {
+		}
+		//otherwise in static mode, perform a group seek
+		else if (!fevt->play.initial_broadcast_play && !gf_dash_is_dynamic_mpd(ctx->dash) ) {
 			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
 			if (gf_dash_get_period_switch_status(ctx->dash)) return GF_TRUE;
 
 			//seek on a single group
+
 			gf_dash_group_seek(ctx->dash, group->idx, fevt->play.start_range);
 		}
 
