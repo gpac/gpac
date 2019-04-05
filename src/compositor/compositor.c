@@ -422,7 +422,8 @@ static GF_Err gl_vout_evt(struct _video_out *vout, GF_Event *evt)
 	if (!pfmt) pfmt = GF_PIXEL_RGB;
 	if (compositor->passthrough_pfmt != GF_PIXEL_RGB) {
 		compositor->passthrough_pfmt = GF_PIXEL_RGB;
-		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB));
+		if (compositor->vout)
+			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB));
 	}
 
 	
@@ -691,7 +692,7 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	if (compositor->init_flags & GF_TERM_NO_VIDEO) {
 		compositor->video_out = &null_vout;
 		compositor->ogl = GF_SC_GLMODE_OFF;
-	} else if (compositor->player || (compositor->drv==GF_SC_DRV_ON) ){
+	} else if (compositor->player || (compositor->drv==GF_SC_DRV_ON)  || (compositor->ogl==GF_SC_GLMODE_HYBRID) ){
 		GF_Err e;
 
 		e = gf_sc_load_driver(compositor);
@@ -2105,7 +2106,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		}
 		if (compositor->visual->type_3d) {
 			compositor_3d_set_aspect_ratio(compositor);
-			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d);
+			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d ? GF_TRUE : GF_FALSE);
 #ifndef GPAC_USE_GLES1X
 			visual_3d_init_shaders(compositor->visual);
 #endif

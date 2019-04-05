@@ -121,7 +121,7 @@ static GF_Err compose_process(GF_Filter *filter)
 			if (!ctx->last_check_time) ctx->last_check_time = gf_sys_clock_high_res();
 			else {
 				u64 now = gf_sys_clock_high_res();
-				if (0 && now - ctx->last_check_time > 5000000) {
+				if (now - ctx->last_check_time > 5000000) {
 					ctx->check_eos_state = 2;
 					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Could not detect end of stream(s) in "LLU" us, aborting\n", now - ctx->last_check_time));
 					forced_eos = GF_TRUE;
