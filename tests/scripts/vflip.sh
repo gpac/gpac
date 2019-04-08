@@ -16,34 +16,41 @@ flipfile=$TEMP_DIR/dumpflip.$1
 do_test "$GPAC -i $rawfile:size=128x128 vflip @ -o $flipfile" "flipv"
 do_hash_test "$flipfile" "flipv"
 
-gpac -i $flipfile:size=128x128 vout 
+#gpac -i $flipfile:size=128x128 vout 
 
 
 #test horizontal flip
 do_test "$GPAC -i $rawfile:size=128x128 vflip:horiz @ -o $flipfile" "fliph"
 do_hash_test "$flipfile" "fliph"
 
-gpac -i $flipfile:size=128x128 vout
+#gpac -i $flipfile:size=128x128 vout
 
+
+if [ "$1" = "yuv" ] ; then
 
 #test both directions flip
 do_test "$GPAC -i $rawfile:size=128x128 vflip:both @ -o $flipfile" "fliphv"
 do_hash_test "$flipfile" "fliphv"
 
-gpac -i $flipfile:size=128x128 vout
+#gpac -i $flipfile:size=128x128 vout
 
 #test no flip
 do_test "$GPAC -i $rawfile:size=128x128 vflip:off @ -o $flipfile -graph" "flipoff"
 do_hash_test "$flipfile" "flipoff"
 
-gpac -i $flipfile:size=128x128 vout
+#gpac -i $flipfile:size=128x128 vout
 
+nvdec=`$GPAC -h filters 2>&1 | grep nvdec`
 
-#test Frame interface. It may be triggered by nvdia decoder
+if [ -n "$nvdec" ] ; then
+#test Frame interface with nvdec - todo, check with vtbdec. It may be triggered by nvdia decoder
 do_test "$GPAC -blacklist=ffdec,ohevcdec -i $MEDIA_DIR/auxiliary_files/enst_video.h264:dur=1 vflip:horiz:fmode=single @ -o $flipfile -graph" "fliph_dec"
 do_hash_test "$flipfile" "fliph_dec"
+fi
 
-gpac -i $flipfile:size=128x128 vout
+#gpac -i $flipfile:size=128x128 vout
+
+fi
 
 
 test_end
