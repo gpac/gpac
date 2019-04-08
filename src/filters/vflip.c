@@ -1,11 +1,11 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Authors: Samir Mustapha - Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2019
  *					All rights reserved
  *
- *  This file is part of GPAC / video flipping filter
+ *  This file is part of GPAC / video flip filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -167,6 +167,7 @@ static Bool horizontal_flip_by_rgbx_combination(GF_VFlipCtx *ctx, u8 *line_src, 
 			line_dst[comp_size*j + (isRGB? 2:0) + offset_x] = b_comp;
 		}
 	}
+
 #if 0
 	//Not supported for 10 bits (r,g,b,x) pixel format
 	else {
@@ -256,7 +257,6 @@ static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 					line_dst[2*j + 1] = v_comp;
 				}
 			}
-		#if 0
 			//Not supported for 10 bits pixel format
 			else{
 				for (u32 j = 0; j < line_width/4; j++) {
@@ -271,7 +271,6 @@ static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 					((u16 *)line_dst)[2*j + 1] = v_comp;
 				}
 			}
-		#endif
 		} else if (ctx->bps==1) {
 			u32 wx = line_width/2;
 			u8 tmp;
@@ -614,7 +613,7 @@ static const GF_FilterCapability VFlipCaps[] =
 GF_FilterRegister VFlipRegister = {
 		.name = "vflip",
 		GF_FS_SET_DESCRIPTION("Video flip filter")
-		GF_FS_SET_HELP("Samir first filter !!")
+		GF_FS_SET_HELP("Filter used to flip video frames vertically, horizontally, in both directions or no flip")
 		.private_size = sizeof(GF_VFlipCtx),
 		.flags = GF_FS_REG_EXPLICIT_ONLY,
 		.args = VFlipArgs,
