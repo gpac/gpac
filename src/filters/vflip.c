@@ -125,10 +125,10 @@ static Bool horizontal_flip_by_rgbx_combination(GF_VFlipCtx *ctx, u8 *line_src, 
 	default:
 		break;
 	}
-	//components offset_xdue to introduction of x
+	//components offset_x due to introduction of x
 	u32 offset_x;
 	//components size: 4 for (r, g, b, x) and 3 for (r, g, b)
-	u32 comp_size = (u32) (xPosition == 0)? 3: 4;
+	u32 comp_size = (u32) ((xPosition == 0)? 3: 4);
 
 	if (ctx->bps == comp_size) {
 		for (u32 j = 0; j < line_width/(2*comp_size); j++) {
@@ -166,7 +166,10 @@ static Bool horizontal_flip_by_rgbx_combination(GF_VFlipCtx *ctx, u8 *line_src, 
 			line_dst[comp_size*j + 1 			+ offset_x] = g_comp;
 			line_dst[comp_size*j + (isRGB? 2:0) + offset_x] = b_comp;
 		}
-	}else {
+	}
+#if 0
+	//Not supported for 10 bits (r,g,b,x) pixel format
+	else {
 		for (u32 j = 0; j < line_width/(2*comp_size); j++) {
 			u16 x_comp, r_comp, g_comp, b_comp;
 
@@ -203,6 +206,7 @@ static Bool horizontal_flip_by_rgbx_combination(GF_VFlipCtx *ctx, u8 *line_src, 
 			((u16 *)line_dst)[comp_size*j + (isRGB? 2:0) + offset_x] = b_comp;
 		}
 	}
+#endif
 	return GF_OK;
 }
 
@@ -239,7 +243,7 @@ static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 		//second plane is U-plane={u1,v1, u2,v2...}
 		if (ctx->nb_planes==2 && plane_idx==1){
 			if (ctx->bps==1) {
-				//line_width - 2*j - 2 > 2*j to avoid
+				//to avoid "line_width - 2*j - 2 > 2*j", jmax=line_width/4
 				for (u32 j = 0; j < line_width/4; j++) {
 					u8 u_comp, v_comp;
 					u_comp = line_src[line_width - 2*j - 2];
@@ -251,7 +255,10 @@ static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 					line_dst[2*j] = u_comp;
 					line_dst[2*j + 1] = v_comp;
 				}
-			}else{
+			}
+		#if 0
+			//Not supported for 10 bits pixel format
+			else{
 				for (u32 j = 0; j < line_width/4; j++) {
 					u16 u_comp, v_comp;
 					u_comp = line_src[line_width - 2*j - 2];
@@ -264,7 +271,7 @@ static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 					((u16 *)line_dst)[2*j + 1] = v_comp;
 				}
 			}
-
+		#endif
 		} else if (ctx->bps==1) {
 			u32 wx = line_width/2;
 			u8 tmp;
@@ -331,7 +338,7 @@ static GF_Err vflip_process(GF_Filter *filter)
 	char *output;
 	u32 size;
 	u32 i;
-	u32 wiB, height; //wiB: Plane width in Bytes
+	u32 wiB, height; //wiB: width in Bytes of a plane
 	u8 *src_planes[5];
 	u8 *dst_planes[5];
 	GF_FilterPacket *dst_pck;
@@ -578,6 +585,8 @@ static GF_Err vflip_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(sar) );
 
+	//an access unit corresponds to a single packet
+	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	return GF_OK;
 }
 
