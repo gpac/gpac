@@ -1,11 +1,11 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre, Samir Mustapha
- *			Copyright (c) Telecom ParisTech 2019
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2018
  *					All rights reserved
  *
- *  This file is part of GPAC / video flipping filter
+ *  This file is part of GPAC / video cropping filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -405,7 +405,7 @@ static const GF_FilterCapability VFlipCaps[] =
 GF_FilterRegister VFlipRegister = {
 	.name = "vflip",
 	GF_FS_SET_DESCRIPTION("Video flip filter")
-	GF_FS_SET_HELP("Flips video frames")
+	GF_FS_SET_HELP("Samir first filter !!")
 	.private_size = sizeof(GF_VFlipCtx),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.args = VFlipArgs,
@@ -414,6 +414,8 @@ GF_FilterRegister VFlipRegister = {
 	.process = vflip_process,
 	.finalize = vflip_finalize,
 };
+
+
 
 const GF_FilterRegister *vflip_register(GF_FilterSession *session)
 {
