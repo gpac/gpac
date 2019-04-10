@@ -239,7 +239,7 @@ typedef struct _dash_stream
 	u64 first_cts_in_next_seg;
 	//used for last segment computation of segmentTimeline
 	u64 est_first_cts_in_next_seg;
-	u64 last_cts;
+	u64 last_cts, last_dts;
 	u64 cumulated_dur;
 	Double cumulated_subdur;
 	Bool subdur_done;
@@ -358,6 +358,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_filter_pid_set_udta(pid, ds);
 		//don't create pid at this time
 	}
+
+	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
 #define CHECK_PROP(_type, _mem, _e) \
 	p = gf_filter_pid_get_property(pid, _type); \
@@ -4629,6 +4631,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 						ds->rep->segment_list->presentation_time_offset = cts;
 					else if (ds->rep->segment_template)
 						ds->rep->segment_template->presentation_time_offset = cts;
+					else if (ds->set->segment_template)
+						ds->set->segment_template->presentation_time_offset = cts;
 				}
 
 				ds->first_cts = cts;
@@ -4847,18 +4851,27 @@ static GF_Err dasher_process(GF_Filter *filter)
 				break;
 			}
 
-			ncts = cts + dur;
-			if (ncts>ds->est_first_cts_in_next_seg)
-				ds->est_first_cts_in_next_seg = ncts;
+			if (cts==GF_FILTER_NO_TS) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] WARNING! Source packet has no timestamp !\n"));
 
-			ncts *= 1000;
-			ncts /= ds->timescale;
-			if (ncts>base_ds->max_period_dur)
-				base_ds->max_period_dur = ncts;
+				cts = ds->last_cts;
+				dts = ds->last_dts;
+			} else {
 
-			ds->last_cts = cts + (split_dur ? split_dur : dur);
+				ncts = cts + dur;
+				if (ncts>ds->est_first_cts_in_next_seg)
+					ds->est_first_cts_in_next_seg = ncts;
+
+				ncts *= 1000;
+				ncts /= ds->timescale;
+				if (ncts>base_ds->max_period_dur)
+					base_ds->max_period_dur = ncts;
+
+				ds->last_cts = cts + (split_dur ? split_dur : dur);
+				ds->last_dts = dts;
+				ds->est_next_dts = dts + o_dur;
+			}
 			ds->nb_pck ++;
-			ds->est_next_dts = dts + o_dur;
 
 			//create new ref to input
 			dst = gf_filter_pck_new_ref(ds->opid, NULL, 0, pck);
@@ -4887,11 +4900,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 				u64 diff;
 				u8 dep_flags = gf_filter_pck_get_dependency_flags(pck);
 				u64 ts = gf_filter_pck_get_cts(pck);
-				assert (ts != GF_FILTER_NO_TS);
-				cts += ds->first_cts;
-				assert(cts >= ts);
-				diff = cts - ts;
-
+				if (ts != GF_FILTER_NO_TS) {
+					cts += ds->first_cts;
+					assert(cts >= ts);
+					diff = cts - ts;
+				} else {
+					cts = ds->last_cts;
+				}
 				gf_filter_pck_set_cts(dst, cts + ds->ts_offset);
 
 				ts = gf_filter_pck_get_dts(pck);
