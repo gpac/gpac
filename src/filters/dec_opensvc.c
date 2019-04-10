@@ -150,6 +150,9 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				ctx->streams[i+1].id = id;
 				gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 				found = GF_TRUE;
+				if (!p)
+					p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+
 				break;
 			}
 			if (ctx->streams[i].dep_id == id) {
@@ -300,6 +303,11 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 
 	for (idx=0; idx<ctx->active_streams; idx++) {
 		u64 dts, cts;
+		if (!ctx->streams[idx].ipid) {
+			if (nb_eos) nb_eos++;
+			continue;
+		}
+		
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[idx].ipid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(ctx->streams[idx].ipid)) nb_eos++;
@@ -361,6 +369,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 		u64 dts, cts;
 		u32 sps_id, pps_id;
 		u32 maxDqIdInAU;
+		if (!ctx->streams[idx].ipid) continue;
 
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[idx].ipid);
 		if (!pck) continue;
