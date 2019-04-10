@@ -942,7 +942,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_TIMESCALE, "Timescale", "Media timescale (a timestamp delta of N is N/timescale seconds)", GF_PROP_UINT},
 	{ GF_PROP_PID_PROFILE_LEVEL, "ProfileLevel", "MPEG-4 profile and level", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DECODER_CONFIG, "DecoderConfig", "Decoder configuration data", GF_PROP_DATA},
-	{ GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, "DecoderConfigEnhancement", "Decoder configuration data of the enhancement layer(s)", GF_PROP_DATA},
+	{ GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, "DecoderConfigEnhancement", "Decoder configuration data of the enhancement layer(s). Also used by 3GPP/Apple text streams to give the full sample description table used in SDP.", GF_PROP_DATA},
 	{ GF_PROP_PID_CONFIG_IDX, "DecoderConfigIndex", "1-based index of decoder config for ISO base media files", GF_PROP_UINT},
 	{ GF_PROP_PID_SAMPLE_RATE, "SampleRate", "Audio sample rate", GF_PROP_UINT},
 	{ GF_PROP_PID_SAMPLES_PER_FRAME, "SamplesPerFrame", "Number of audio sample in one coded frame", GF_PROP_UINT},
