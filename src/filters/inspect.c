@@ -504,7 +504,15 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_list_add(ctx->src_pids, pctx);
 	pctx->idx = gf_list_count(ctx->src_pids);
 
-	gf_filter_pid_set_framing_mode(pid, (ctx->mode==INSPECT_MODE_PCK) ? GF_TRUE : GF_FALSE);
+	switch (ctx->mode) {
+	case INSPECT_MODE_PCK:
+	case INSPECT_MODE_REFRAME:
+		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+		break;
+	default:
+		gf_filter_pid_set_framing_mode(pid, GF_FALSE);
+		break;
+	}
 
 	if (!ctx->is_prober) {
 		pctx->dump_pid = 1;
