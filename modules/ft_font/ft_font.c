@@ -437,6 +437,9 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	fontName = (char *) OrigFontName;
 	ftpriv->active_face = NULL;
 
+	opt = gf_opts_get_key("temp_freetype", OrigFontName);
+	if (opt) return GF_NOT_SUPPORTED;
+
 	if (!fontName || !strlen(fontName) || !stricmp(fontName, "SERIF")) {
 		fontName = ftpriv->font_serif;
 	}
@@ -488,8 +491,9 @@ checkFont:
 		}
 	}
 
-	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Font '%s' (%s) not found\n", fontName, fname));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Font %s (%s) not found\n", fontName, fname));
 	gf_free(fname);
+	gf_opts_set_key("temp_freetype", OrigFontName, "not found");
 	return GF_NOT_SUPPORTED;
 }
 
