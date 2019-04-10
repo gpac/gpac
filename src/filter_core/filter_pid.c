@@ -2679,8 +2679,6 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 				u32 j;
 				GF_Filter *dest_f = NULL;
 				Bool true_skip = GF_FALSE;
-				*skipped = GF_TRUE;
-				gf_list_del(filter_chain);
 
 				for (j=0; j<gf_list_count(dst->destination_filters); j++) {
 					dest_f = gf_list_get(dst->destination_filters, j);
@@ -2701,6 +2699,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 				}
 				if (true_skip) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Skip link from %s:%s to %s because both filters share the same destination %s\n", pid->filter->name, pid->name, dst->name, dest_f->name));
+					*skipped = GF_TRUE;
+					gf_list_del(filter_chain);
 					return NULL;
 				}
 
@@ -2711,6 +2711,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Skip link from %s:%s to %s because already connected to filter %s which can handle the connection\n", pid->filter->name, pid->name, dst->name, f->name));
 
+					*skipped = GF_TRUE;
+					gf_list_del(filter_chain);
 					return NULL;
 				}
 			}
