@@ -2253,7 +2253,7 @@ Bool gf_fs_mime_supported(GF_FilterSession *fsess, const char *mime)
 		u32 j;
 		const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
 		for (j=0; j<freg->nb_caps; j++) {
-			const GF_FilterCapability *acap = &freg->caps[i];
+			const GF_FilterCapability *acap = &freg->caps[j];
 			if (!(acap->flags & GF_CAPFLAG_INPUT)) continue;
 			if (acap->code == GF_PROP_PID_MIME) {
 				if (acap->val.value.string && strstr(acap->val.value.string, mime)) return GF_TRUE;
