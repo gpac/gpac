@@ -205,9 +205,10 @@ typedef struct
 	GF_List *extensionDescriptors;
 	/*MPEG-2 (or other service mux formats) service ID*/
 	u16 ServiceID;
-	/*pointer to the service interface (GF_InputService) of the service having declared the object
-	only used for DASH*/
-	void *service_ifce;
+	/*for ATSC, instructs client to keep OD alive even though URL string is set*/
+	Bool RedirectOnly;
+	/*set to true for fake remote ODs in BT/XMT (remote ODs created for OD with ESD with MuxInfo)*/
+	Bool fake_remote;
 
 	/*IOD extensions*/
 	u8 inlineProfileFlag;
@@ -231,6 +232,13 @@ typedef struct
 	GF_List *IPMP_Descriptors;
 	GF_List *extensionDescriptors;
 	GF_List *ES_ID_IncDescriptors;
+
+	/*MPEG-2 (or other service mux formats) service ID*/
+	u32 ServiceID;
+	/*for ATSC, instructs client to keep OD alive even though URL string is set*/
+	Bool RedirectOnly;
+	/*set to true for fake remote ODs in BT/XMT (remote ODs created for OD with ESD with MuxInfo)*/
+	Bool fake_remote;
 } GF_IsomObjectDescriptor;
 
 /*! File Format Initial Object Descriptor - same remark as IOD*/

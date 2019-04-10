@@ -358,10 +358,13 @@ static void svg_delete_one_anim_value(u8 anim_datatype, void *anim_value, GF_Sce
 void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg)
 {
 	u32 i, count;
+	u8 type = anim_values.type;
+	if (anim_values.laser_strings) type = DOM_String_datatype;
+
 	count = gf_list_count(anim_values.values);
 	for (i = 0; i < count; i++) {
 		void *value = gf_list_get(anim_values.values, i);
-		svg_delete_one_anim_value(anim_values.type, value, sg);
+		svg_delete_one_anim_value(type, value, sg);
 	}
 	gf_list_del(anim_values.values);
 	anim_values.values = NULL;
@@ -470,7 +473,6 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_list_del(l);
 		gf_free(value);
 		break;
-
 	case SMIL_RepeatCount_datatype:
 	case SMIL_Duration_datatype:
 	case SVG_Length_datatype:
@@ -481,7 +483,6 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_free(value);
 	}
 }
-
 
 void gf_smil_delete_key_types(GF_List *l)
 {

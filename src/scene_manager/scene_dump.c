@@ -2745,8 +2745,10 @@ static GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 			}
 		}
 	}
-	sdump->indent--;
-	if (!is_text) DUMP_IND(sdump);
+	if (!is_text) {
+		sdump->indent--;
+		DUMP_IND(sdump);
+	}
 	fprintf(sdump->trace, "</%s%s>\n", lsrns, com_name);
 	return GF_OK;
 }

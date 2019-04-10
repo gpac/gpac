@@ -308,7 +308,7 @@ typedef struct {
 } SMIL_AnimateValue;
 
 typedef struct {
-	u8 type;
+	u8 type, laser_strings;
 	GF_List *values;
 } SMIL_AnimateValues;
 
@@ -344,6 +344,7 @@ typedef struct __xml_ri {
 	char *string;
 	void *target;
 	u32 lsr_stream_id;
+	u32 node_id;
 } XMLRI;
 
 /*the same structure is used to watch for IDREF changes (LASeR node replace)*/
