@@ -19,7 +19,7 @@ GPAC test suite is composed of scripts written in the Bash language. Tests are p
 
 Media files used in a test can be anywhere (local file, http URL). The environmnent variable `$MEDIA_DIR` can be used to access to data located in gpac/tests/media. 
 
-Scripts should use the `$TEMP_DIR` environment variable to get a directory where to place the file they generate. This directory is cleaned after each test.
+Scripts should use the `$TEMP_DIR` environment variable to get a directory where to place the file they generate. This directory is cleaned after each test, unless `-keep-tmp`option is set.
 
 A simple GPAC test can be:
 ```
@@ -60,16 +60,19 @@ or
 single_test 'MP4Client $MEDIA_DIR\foo.mp4' test02
 ```
 
-### single_playback_test 
-Two arguments: 
-- `MP4CLIENT_ARGS`: specifies the arguments to be passed to MP4Client
+### do_play_test 
+Two or three arguments: 
 - `TESTNAME`: specifies the test name for logging, as used in `single_test`
-Performs a single playback test using MP4Client with the arguments given in `MP4CLIENT_ARGS`. The result of the playback is captured as a raw audio/video AVI. If ffmpeg is present on the system, the AVI is converted to mp4 in `results/video/$TESTNAME-play.mp4`.
-See `do_playback_test` for more info.
+- `VIDEO_ARGS`: specifies the video arguments to be loaded. If not empty, a filter chain will be loaded using these arguments as source (i.e.,  `gpac -i VIDEO_ARGS`)
+- `AUDIO_ARGS`: specifies the audio arguments to be loaded. If not empty, a filter chain will be loaded using these arguments as source (i.e.,  `gpac -i AUDIO_ARGS`). If `-`, argument is ignored but an audio filter subchain ( `aout` or `enc:aac`) will be added to the filter chain.
+Performs a playback test using `gpac` with the arguments given in `VIDEO_ARGS` and `AUDIO_ARGS`.
+If `-play` option is specified when running the tests, playbacks the sources.
+If `-video`  option is specified when running the tests, encodes the result using H264 and AAC in `results/video/$TESTNAME.mp4`.
+
 
 ## Aggregating tests
 When the results of several tests need to be aggregated, instead of using multiple `single_test` calls, sub-tests can be run within a test using the `do_test` function. 
-This is usefull when severa tests require the generation of the same input file, for example.
+This is usefull when several tests require the generation of the same input file, for example.
 
 A typical test with two subtests used in a batch will look like:
 ```
@@ -90,6 +93,10 @@ done
 Argument:
 - `TESTNAME`: specifies the test name for logging, as used in `single_test`
 
+This function defines overridable variables:
+- `$dump_size`: by default "192x192" but can be overriden by your test
+- `$dump_dur`: by default "5" seconds but can be overriden by your test
+
 ### test_end
 No argument.
 
@@ -106,20 +113,6 @@ Two arguments:
 Performs a subtest in the current test. If needed, the return value is available in `$ret`. 
 Function does nothing when the test is skipped (see below) or a previous error occured in the parent test `TESTNAME`.
 
-### do_playback_test 
-Two arguments:
-- `MP4CLIENT_ARGS`: specifies the arguments to be passed to MP4Client
-- `SUBTEST_NAME`: the subtest name as it appears in the logs and in the stats
- `do_playback_test` tests the playback of MP4CLIENT_ARGS by extracting it to a raw AVI and converting it to MP4. The subtest name for logs is `SUBTEST`.
-Function does nothing when the test is skipped (see below) or a previous error occured in the parent test `TESTNAME`.
-
-The generated videos are
--  `external_videos_refs/$TESTNAME-$SUBTEST-ref.mp4` when generating the reference hashes (see below). These videos are currently not used by test suite, only used for visual checking of the reference.
--  `results/videos/$TESTNAME-$SUBTEST-test.mp4` when testing the suite. These videos are currently not used by the test suite, only used for debugging a test.
-
-This function uses overridable variables:
-- `$dump_size`: by default "200x200" but can be overriden by your test
-- `$dump_dur`: by default "10" seconds but can be overriden by your test
 
 ## Test failure/success
 A test is considered successful if the execution returned 0.
@@ -153,48 +146,33 @@ In this example, failure to checktest `$test_skip` will make the script import 4
 
 
 ## Testing events and interactivity
-The functions `single_playback_test` and `single_playback_test`  may use recorded event traces to test interactivity; the recorded trace file is:
-- $RULES_DIR/${basename $FILE.*}-$SUBTEST-ui.xml
-
-The test suite has one UI trace generation mode, and one UI trace playback mode. In these two modes, all subtests are skipped (i.e.  `$test_skip` is  1), and the variable `$test_ui`is set to 1 when recording and 2 when playing. A test may use the `do_ui_test` function to perform UI testing. 
+The test suite has one UI trace generation mode, and one UI trace playback mode. In these two modes, all subtests are skipped (i.e.  `$test_skip` is  1), and the variable `$test_ui`is set to 1 when recording and 2 when playing. A test may use the `do_ui_test` function to perform UI testing. Since version 0.9.0, trace files have to be manually loaded by the test using them.
 
 ### do_ui_test
 Two arguments:
 - `FILE`: the command line to execute
 - `SUBTEST_NAME`: the subtest name as it appears in the logs and in the stats
 
-Performs UI event trace generation on $FILE for the subtest, for a running duration of $dump_dur and an output size $dump_size (see `do_playback_test`). `SUBTEST_NAME` must be the same as one of the playback subtests used in this test. A typicall usage is:
+Performs UI event trace generation on $FILE for the subtest using MP4Client, for a running duration of $dump_dur and an output size $dump_size (see `begin_test`). 
+UI file is generated as $RULES_DIR/${basename $FILE.*}-$SUBTEST-ui.xml
+
+A typical usage is:
 
 ```
 test_begin TESTNAME
 do_ui_test $MEDIA_DIR/somefile "play"
 
-#create some file or costly operation
-do_playback_test $MEDIA_DIR/somefile "play"
-
-test_end
-```
-
-A more complex example with target playback file creation could be
-
-```
-test_begin TESTNAME
-
-if [ $test_ui != 0 ] ; then
-$MP4BOX -mp4 test.bt
-do_ui_test test.mp4 "play"
-rm test.mp4 > /dev/null
-fi
 if [ $test_skip = 1 ] ; then
  return
 fi
 
 #create some file or costly operation
-do_test "$MP4BOX -mp4 test.bt"
-do_playback_test test.mp4 "play"
+uirec=$RULES_DIR/${basename $FILE.*}-$SUBTEST-ui.xml
+do_test "$GPAC -i $MEDIA_DIR/somefile --cfg=Validator:Mode=Play -cfg=Validator:Trace=$uirec -o dump.rgb"
 
 test_end
 ```
+
 Note that the file has to be generated
 - before testing cache status since all tests are considered as cached in UI modes
 - manually, since subtests are deactivated when the test is cached
@@ -244,17 +222,15 @@ WARNING: `HASHNAME` shall be unique for a given test, otherwise hashes will be o
 A subtest having its result reverted from fail to pass through a rule file will prevent the next hash test to be exectuted by setting the variable `skip_next_hash_test` to 1.
 You can set this variable to 0 before calling  do_hash_test  if you need to force a hash test after a test failure.
 
+### do_hash_test_bin
+Same as `do_hash_test` except skips text mode probing of source file. Should only be used with non-text files.
+ 
 ### do_compare_file_hashes 
 Two arguments
 - `FILE1`
 - `FILE2`
 Compares hashes of `FILE1` and `FILE2`. returns 0 if OK or error code otherwise.
 Function does nothing when the test is skipped (see below) or a previous error occured in the parent test `TESTNAME`.
-
-The playback functions `single_playback_test` and `do_playback_test` use hashes to check video and audio renderers. 
-- For  `single_playback_test`, the generated hashes are `$TESTNAME-avirawvideo.hash`and `$TESTNAME-avirawaudio.hash`. 
-- For `do_playback_test`, the generated hashes are `$TESTNAME-$SUBTEST-avirawvideo.hash` and `$TESTNAME-$SUBTEST-avirawaudio.hash`.
-
 
 A typical test with several subtests and hash testing looks like:
 ```
@@ -268,9 +244,8 @@ do_test CMD_LINE1_CREATING_FILE1 "Name1"
 #perform hash on FILE1 - the hash name may be the same as the subtest names
 do_hash_test FILE1 "Name1"
 
-#play the file - hashes wil be generated/checked 
-do_playback_test FILE1 "Name1"
-
+#play the file - this does not generate any hash 
+do_play_test "Name1" FILE1
 
 test_end
 ```

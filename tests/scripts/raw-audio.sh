@@ -25,7 +25,7 @@ rawfile=$TEMP_DIR/raw.$1
 do_test "$GPAC -i $mp4file -o $rawfile" "dump-$1"
 
 if [ $do_pcm_hashes != 0 ] ; then
-do_hash_test_bin "$rawfile" "dump-$1" 1
+do_hash_test_bin "$rawfile" "dump-$1"
 fi
 
 myinspect="inspect:fmt=@pn@-@cts@-@bo@@lf@"
@@ -37,7 +37,7 @@ do_hash_test "$insfile" "inspect"
 rawfile2=$TEMP_DIR/raw2.pcm
 do_test "$GPAC -i $rawfile -o $rawfile2" "dump-pcm"
 if [ $do_pcm_hashes != 0 ] ; then
-do_hash_test_bin "$rawfile2" "dump-pcm" 1
+do_hash_test_bin "$rawfile2" "dump-pcm"
 fi
 
 #only do the reverse tests for pcm (same for the other formats)

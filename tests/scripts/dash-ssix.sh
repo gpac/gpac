@@ -9,6 +9,8 @@ do_test "$MP4BOX -dash 1000 -ssix -profile onDemand $TEMP_DIR/file.mp4#video -ou
 do_hash_test $TEMP_DIR/file.mpd "mpd"
 do_hash_test $TEMP_DIR/file_dashinit.mp4 "r1"
 
-do_playback_test "$TEMP_DIR/file.mpd" "play-ondemand-ssix"
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:log=$myinspect"
+do_hash_test $myinspect "inspect"
 
 test_end

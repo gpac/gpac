@@ -34,18 +34,18 @@ fi
 gpudump=$TEMP_DIR/gpudump.rgb
 do_test "$GPAC -i $rawfile:size=128x128 vout:dumpframes=20:out=$gpudump" "gpu_dump"
 #hash test is commented since we have different gpu dump results on different platforms/os
-#do_hash_test "$gpudump" "gpu_dump"
+#do_hash_test_bin "$gpudump" "gpu_dump"
 
 #test video cropping filter in forward mode
 cropfile=$TEMP_DIR/dumpcrop.$1
 do_test "$GPAC -i $rawfile:size=128x128 vcrop:wnd=32x10x64x64 @ -o $cropfile" "crop"
-do_hash_test "$cropfile" "crop"
+do_hash_test_bin "$cropfile" "crop"
 
 #test video cropping filter in copy mode
 cropfile=$TEMP_DIR/dumpcropcp.$1
 do_test "$GPAC -i $rawfile:size=128x128 vcrop:copy:wnd=32x10x64x64 @ -o $cropfile" "crop"
 #use same hash as before, they shall be identical
-do_hash_test "$cropfile" "crop"
+do_hash_test_bin "$cropfile" "crop"
 
 test_end
 }

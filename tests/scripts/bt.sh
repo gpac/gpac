@@ -12,6 +12,59 @@ check_inline_res()
  fi
 }
 
+compositor_test()
+{
+  compopt=""
+  if [ $# -gt 2 ] ; then
+   compopt=":$3"
+  fi
+
+ if [ $strict_mode = 1 ] ; then
+  if [ -f $TEST_ERR_FILE ] ; then
+   return
+  fi
+ fi
+
+ if [ $test_skip  = 1 ] ; then
+  return
+ fi
+ RGB_DUMP="$TEMP_DIR/$2-dump.rgb"
+ PCM_DUMP="$TEMP_DIR/$2-dump.pcm"
+
+ #for the time being we don't check hashes nor use same size/dur for our tests. We will redo the UI tests once finaizing filters branch
+ dump_dur=5
+ dump_size=192x192
+ args="$GPAC -blacklist=vtbdec,nvdec -i $1 compositor:osize=$dump_size:vfr:dur=$dump_dur:asr=44100:ach=2$compopt @ -o $RGB_DUMP @1 -o $PCM_DUMP"
+
+ ui_rec=$RULES_DIR/$2-play-ui.xml
+ if [ -f $ui_rec ] ; then
+  args="$args -cfg=Validator:Mode=Play -cfg=Validator:Trace=$ui_rec"
+ fi
+
+ do_test "$args" $2
+
+ if [ -f $ui_rec ] ; then
+  $GPAC -cfg=Validator:Mode=Disable 2> /dev/null
+ fi
+
+ v_args=""
+ if [ -f $RGB_DUMP ] ; then
+#  do_hash_test_bin "$RGB_DUMP" "$2-rgb"
+  v_args="$RGB_DUMP:size=$dump_size"
+ else
+  result="no output"
+ fi
+
+ a_args=""
+ if [ -f $PCM_DUMP ] ; then
+#  do_hash_test_bin "$PCM_DUMP" "$2-pcm"
+  a_args="$PCM_DUMP:sr=44100:ch=2"
+ fi
+
+ do_play_test "$2-play" "$v_args" "$a_args"
+
+}
+
 #@bt_test execute tests on BT file: bt -> rgb only
 #encoding and decoding tests for bifs are done in bifs/sh
 bt_test ()
@@ -22,12 +75,21 @@ bt_test ()
  name=${name%.*}
  extern_proto=0
  inline_resource=0
+ skip_hash=0
 
  #file used by other test
  case $btfile in
  *-inline.bt )
   return ;;
  *-lib.bt )
+  return ;;
+ #already done in bifs tests
+ *all*.bt )
+  return ;;
+ *animated-osmo4logo* )
+  ;;
+ #already done in bifs tests, except above animated logo
+ *command*.bt )
   return ;;
  *externproto* )
   extern_proto=1 ;;
@@ -36,15 +98,15 @@ bt_test ()
  *inline* )
   inline_resource=1
    ;;
- #thef following bifs tests use rand() or date and won't produce consistent outputs across runs
+ #the following bifs tests use rand() or date and won't produce consistent outputs across runs
  *htk* )
   return;;
  *counter-auto* )
-  return;;
+  skip_hash=1;;
  bifs-game* )
-  return;;
+  skip_hash=1;;
  *-date* )
-  return;;
+  skip_hash=1;;
 esac
 
  name=${name/bifs/bt}
@@ -76,56 +138,24 @@ esac
   libfile="${btfile%.*}-lib.mp4"
  fi
 
+ #make mp4 for inline resource
  check_inline_res
 
- dump=$TEMP_DIR/dump.rgb
- dump_dur=2
+ compositor_test "$btfile" "$name"
 
- do_test "$GPAC -blacklist=vtbdec,nvdec -i $btfile compositor:size=$dump_size:vfr:dur=$dump_dur @ -o $dump" "rgbdump"
- #gpac -i $dump:size=$dump_size vout
 
  #this will sync everything, we can delete after
  test_end
-
+ #remove proto lib or inline resource file
  if [ "$libfile" != "" ] ; then
   rm $libfile 2> /dev/null
  fi
 
 }
 
-
+#test all bifs
 for i in $MEDIA_DIR/bifs/*.bt ; do
 bt_test $i
 done
 
-return
-
-if [ $disable_playback != 0 ] ; then
-
-#simple encoding test
-bt_test $MEDIA_DIR/bifs/bifs-2D-texturing-lineargradient-simple.bt
-
-#simple encoding with image import test
-bt_test $MEDIA_DIR/bifs/bifs-2D-background-background2D-image.bt
-
-#simple encoding with AV import test
-bt_test $MEDIA_DIR/bifs/bifs-timeline-mediacontrol-inline-av-inline.bt
-
-#proto encoding
- for bt in $MEDIA_DIR/bifs/bifs-proto-*.bt ; do
-  bt_test $bt
- done
-
- #bifs commands
- for bt in $MEDIA_DIR/bifs/bifs-command-*.bt ; do
-  bt_test $bt
- done
-
- #od commands
- for bt in $MEDIA_DIR/bifs/bifs-od-*.bt ; do
-  bt_test $bt
- done
-
-
-fi
 
