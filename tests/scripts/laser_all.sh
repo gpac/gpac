@@ -37,58 +37,54 @@ lsr_test ()
  #LSR->SAF
  do_test "$MP4BOX $opts -saf $lsrfile" "LSR2SAF" && do_hash_test "$saffile" "lsr-to-saf"
 
- #run all following tests in parallel
-
  #MP4->LSR
- do_test "$MP4BOX -lsr $mp4file -out test1.lsr" "MP42LSR" && do_hash_test "test1.lsr" "mp4-to-lsr" && rm test1.lsr 2> /dev/null &
+ do_test "$MP4BOX -lsr $mp4file -out $TEMP_DIR/test1.lsr" "MP42LSR"
+ do_hash_test "$TEMP_DIR/test1.lsr" "mp4-to-lsr"
 
  #SAF->LSR
- do_test "$MP4BOX -lsr $saffile -out test2.lsr" "SAF2LSR" && do_hash_test "test2.lsr" "saf-to-lsr" && rm test2.lsr 2> /dev/null &
+ do_test "$MP4BOX -lsr $saffile -out $TEMP_DIR/test2.lsr" "SAF2LSR"
+ do_hash_test "$TEMP_DIR/test2.lsr" "saf-to-lsr"
 
- if [ $play_all = 1 ] ; then
+ #mp4 read and render test
+ RGB_DUMP="$TEMP_DIR/$2-dump.rgb"
 
-  #mp4 playback
-  do_test "$MP4CLIENT -run-for 1 $mp4file" "mp4-play" &
+ #for the time being we don't check hashes nor use same size/dur for our tests. We will redo the UI tests once finaizing filters branch
+ dump_dur=5
+ dump_size=192x192
+ do_test "$GPAC -blacklist=vtbdec,nvdec -i $mp4file compositor:osize=$dump_size:vfr:dur=$dump_dur @ -o $RGB_DUMP" "dump"
 
-  #lsr playback
-  do_test "$MP4CLIENT -run-for 1 $lsrfile" "lsr-play" &
-
+ if [ -f $RGB_DUMP ] ; then
+#  do_hash_test_bin "$RGB_DUMP" "$2-rgb"
+  do_play_test "play" "$RGB_DUMP:size=$dump_size"
+ else
+  result="no output"
  fi
 
- #SAF playback - dump 10 sec of AVI and hash it. This should be enough for most of our sequences ...
- do_playback_test $saffile "play" &
+ #test saf demux
+ myinspect=$TEMP_DIR/inspect_saf.txt
+ do_test "$GPAC -i $saffile inspect:all:deep:interleave=false:log=$myinspect"
+ do_hash_test $myinspect "inspect-saf"
 
  #this will sync everything, we can delete after
  test_end
 
- rm $saffile 2> /dev/null
- rm $mp4file 2> /dev/null
-
+# rm $saffile 2> /dev/null
+# rm $mp4file 2> /dev/null
 }
 
 
 laser_tests ()
 {
- for bt in $MEDIA_DIR/laser/*.xml ; do
-  lsr_test $bt
+ for xsr in $MEDIA_DIR/laser/*.xml ; do
+  lsr_test $xsr
  done
 }
 
+#just in case
 rm -f MEDIA_DIR/laser/*.mp4 2> /dev/null
 rm -f MEDIA_DIR/laser/*.saf 2> /dev/null
 
-if [ $disable_playback != 0 ] ; then
-
-#simple encoding tests
-lsr_test $MEDIA_DIR/laser/enst_afrique.xml
-lsr_test $MEDIA_DIR/laser/stz_animate_stroke-linejoin.xml
-lsr_test $MEDIA_DIR/laser/stz_image_parsing.xml
-lsr_test $MEDIA_DIR/laser/stz_image_parsing2.xml
-lsr_test $MEDIA_DIR/laser/enst_canvas.xml
-
-else
-
-laser_tests
-
-fi
+lsr_test $MEDIA_DIR/laser/laser_all.xml
+#don't do these, all covered by laser_all.xml
+#laser_tests
 

@@ -22,4 +22,13 @@ $MP4BOX -frag 1000 $mp4file -out $fragfile 2> /dev/null
 do_test "$MP4BOX -add $fragfile:dur=20 -new $mp4file_short" "import-frag"
 do_hash_test $mp4file_short "import-frag"
 
+#test decryption module properly loads in dynamic resolution by dumping to YUV
+#we don't do a hash on the result since decoders may give slightly different results on platforms
+do_test "$GPAC -i $mp4file_short -o $TEMP_DIR/dump.yuv" "decrypt-decoder"
+#but we hash the inspection of the dump
+myinspect=$TEMP_DIR/inspect_multi.txt
+do_test "$GPAC -i $TEMP_DIR/dump.yuv:size=1280x720 inspect:all:deep:interleave=false:log=$myinspect"
+do_hash_test $myinspect "inspect-decrypt"
+do_play_test "play" "$TEMP_DIR/dump.yuv:size=1280x720"
+
 test_end

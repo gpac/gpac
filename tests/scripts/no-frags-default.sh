@@ -14,6 +14,4 @@ do_test "$MP4BOX -dash 1000 -rap -no-frags-default -single-file -out $TEMP_DIR/t
 
 do_hash_test "$TEMP_DIR/test_dashinit.mp4" "dash"
 
-do_playback_test "$TEMP_DIR/test_dashinit.mp4" "play"
-
 test_end

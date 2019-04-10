@@ -14,6 +14,8 @@ do_hash_test $TEMP_DIR/file_dash_track1_init.mp4 "$TEST_NAME-hash-init-segment-v
 
 do_hash_test $TEMP_DIR/file_dash_track2_init.mp4 "$TEST_NAME-hash-init-segment-audio"
 
-do_playback_test "$TEMP_DIR/file.mpd" "play-$TEST_NAME"
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:log=$myinspect"
+do_hash_test $myinspect "inspect"
 
 test_end
