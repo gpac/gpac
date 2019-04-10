@@ -2676,39 +2676,41 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			const GF_FilterRegister *chain_start_freg = gf_list_get(filter_chain, 0);
 			for (i=0; i<nb_skip; i++) {
 				GF_Filter *f = gf_list_get(skip_if_in_filter_list, i);
+				u32 j;
+				GF_Filter *dest_f = NULL;
+				Bool true_skip = GF_FALSE;
+				*skipped = GF_TRUE;
+				gf_list_del(filter_chain);
+
+				for (j=0; j<gf_list_count(dst->destination_filters); j++) {
+					dest_f = gf_list_get(dst->destination_filters, j);
+					if ((gf_list_find(f->destination_filters, dest_f)>=0) || (gf_list_find(f->destination_links, dest_f)>=0)) {
+						true_skip = GF_TRUE;
+						break;
+					}
+					dest_f = NULL;
+				}
+
+				for (j=0; j<gf_list_count(dst->destination_links) && !true_skip; j++) {
+					dest_f = gf_list_get(dst->destination_links, j);
+					if ((gf_list_find(f->destination_filters, dest_f)>=0) || (gf_list_find(f->destination_links, dest_f)>=0)) {
+						true_skip = GF_TRUE;
+						break;
+					}
+					dest_f = NULL;
+				}
+				if (true_skip) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Skip link from %s:%s to %s because both filters share the same destination %s\n", pid->filter->name, pid->name, dst->name, dest_f->name));
+					return NULL;
+				}
+
 				if (f->freg == chain_start_freg) {
-					u32 j;
-					GF_Filter *dest_f = NULL;
-					Bool true_skip = GF_FALSE;
-					*skipped = GF_TRUE;
-					gf_list_del(filter_chain);
+					//store destination as future destination link for this new filter
+					if (gf_list_find(f->destination_links, dst)<0)
+						gf_list_add(f->destination_links, dst);
 
-					for (j=0; j<gf_list_count(dst->destination_filters); j++) {
-						dest_f = gf_list_get(dst->destination_filters, j);
-						if ((gf_list_find(f->destination_filters, dest_f)>=0) || (gf_list_find(f->destination_links, dest_f)>=0)) {
-							true_skip = GF_TRUE;
-							break;
-						}
-						dest_f = NULL;
-					}
+					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Skip link from %s:%s to %s because already connected to filter %s which can handle the connection\n", pid->filter->name, pid->name, dst->name, f->name));
 
-					for (j=0; j<gf_list_count(dst->destination_links) && !true_skip; j++) {
-						dest_f = gf_list_get(dst->destination_links, j);
-						if ((gf_list_find(f->destination_filters, dest_f)>=0) || (gf_list_find(f->destination_links, dest_f)>=0)) {
-							true_skip = GF_TRUE;
-							break;
-						}
-						dest_f = NULL;
-					}
-					if (true_skip) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Skip link from %s:%s to %s because both filters share the same destination %s\n", pid->filter->name, pid->name, dst->name, dest_f->name));
-					} else {
-						//store destination as future destination link for this new filter
-						if (gf_list_find(f->destination_links, dst)<0)
-							gf_list_add(f->destination_links, dst);
-
-						GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Skip link from %s:%s to %s because already connected to filter %s which can handle the connection\n", pid->filter->name, pid->name, dst->name, f->name));
-					}
 					return NULL;
 				}
 			}
@@ -3016,6 +3018,10 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 	if (!p) return GF_TRUE;
 
 	if (p->value.uint==GF_STREAM_FILE) return GF_FALSE;
+	if (p->value.uint==GF_STREAM_ENCRYPTED) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
+		if (!p) return GF_TRUE;
+	}
 
 	caps = dst->forced_caps ? dst->forced_caps : dst->freg->caps;
 	nb_caps = dst->forced_caps ? dst->nb_forced_caps : dst->freg->nb_caps;
