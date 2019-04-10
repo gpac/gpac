@@ -470,11 +470,11 @@ GF_FilterRegister SockInRegister = {
 		"UDP unix domain sockets are used for source URLs formatted as udpu://NAME\n"
 		"TCP unix domain sockets are used for source URLs formatted as tcpu://NAME\n"
 #ifdef GPAC_CONFIG_DARWIN
-		"\nOn OSX with VM packet replay you will need to force multicast routing, eg: route add -net 239.255.1.4/32 -interface vboxnet0"
+	"\nOn OSX with VM packet replay you will need to force multicast routing, eg: route add -net 239.255.1.4/32 -interface vboxnet0"
 #endif
-		""
+	""
 #else
-		"Your platform does not supports unix domain sockets, udpu:// and tcpu:// schemes not supported."
+	"Your platform does not supports unix domain sockets, udpu:// and tcpu:// schemes not supported."
 #endif
 	,
 #endif //GPAC_DISABLE_DOC
