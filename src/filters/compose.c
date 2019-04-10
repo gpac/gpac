@@ -51,6 +51,7 @@ static GF_Err compose_process(GF_Filter *filter)
 {
 	u32 i, nb_sys_streams_active;
 	s32 ms_until_next = 0;
+	Bool ret;
 	GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
 	if (!ctx) return GF_BAD_PARAM;
 
@@ -96,7 +97,7 @@ static GF_Err compose_process(GF_Filter *filter)
 		}
 	}
 
-	gf_sc_draw_frame(ctx, GF_FALSE, &ms_until_next);
+	ret = gf_sc_draw_frame(ctx, GF_FALSE, &ms_until_next);
 
 	if (!ctx->player) {
 		Bool forced_eos = GF_FALSE;
@@ -114,7 +115,7 @@ static GF_Err compose_process(GF_Filter *filter)
 				if (!ctx->validator_mode)
 					ctx->force_next_frame_redraw = GF_TRUE;
 			}
-		} else if (!ctx->check_eos_state && !nb_sys_streams_active) {
+		} else if (!ret && !ctx->check_eos_state && !nb_sys_streams_active) {
 			ctx->check_eos_state = 1;
 		}
 		if (ctx->check_eos_state == 1) {

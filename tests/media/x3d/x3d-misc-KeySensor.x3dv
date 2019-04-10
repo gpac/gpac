@@ -13,12 +13,13 @@ Group {
       Shape {
        appearance Appearance {
         material Material {
-         diffuseColor 1 1 1
+         diffuseColor 1 1 0
         }
        }
        geometry DEF TEXT Text {
         string ["Hit any key", ""]
         fontStyle FontStyle {
+         size 4
          justify ["MIDDLE" "MIDDLE"]
         }
        }

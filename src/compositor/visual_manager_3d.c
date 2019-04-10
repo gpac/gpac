@@ -324,7 +324,7 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 		tr_state->camera->had_viewpoint = 1;
 	} else
 #endif
-		if (tr_state->camera->had_viewpoint==1) {
+		if (tr_state->camera->had_viewpoint) {
 			u32 had_vp = tr_state->camera->had_viewpoint;
 			tr_state->camera->had_viewpoint = 0;
 			if (tr_state->camera->is_3D) {
@@ -357,6 +357,7 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 					/*scene not yet ready, force a recompute of world bounds at next frame*/
 					if (!is_layer && gf_sc_fit_world_to_screen(tr_state->visual->compositor) == 0) {
 						tr_state->camera->had_viewpoint = 2;
+						gf_sc_invalidate(tr_state->visual->compositor, NULL);
 					}
 				}
 			} else {
