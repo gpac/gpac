@@ -451,7 +451,8 @@ typedef struct
 	u8 prev_layer_id_plus1;
 
 	//bit offset of the num_entry_point (if present) field
-	s32 entry_point_start_bits;
+	s32 entry_point_start_bits; 
+	u64 header_size_bits;
 	//byte offset of the payload start (after byte alignment)
 	s32 payload_start_offset;
 
