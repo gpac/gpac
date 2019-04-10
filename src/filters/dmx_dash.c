@@ -259,6 +259,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	if (!group->seg_filter_src) {
 		gf_free(sURL);
 		gf_free(group);
+		gf_dash_set_group_udta(ctx->dash, group_index, NULL);
 		return e;
 	}
 
