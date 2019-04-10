@@ -849,7 +849,6 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 		compositor->unthreaded_extensions = NULL;
 	}
 
-	gf_sc_set_option(compositor, GF_OPT_RELOAD_CONFIG, 1);
 	compositor->display_width = 320;
 	compositor->display_height = 240;
 	compositor->recompute_ar = GF_TRUE;
@@ -1469,7 +1468,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_3D
 
 	if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL)) {
-		if (compositor->ogl > GF_SC_GLMODE_OFF) {
+		if (compositor->player && (compositor->ogl > GF_SC_GLMODE_OFF)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL mode requested but no opengl-capable output - disabling openGL\n"));
 		}
 		compositor->force_opengl_2d = 0;

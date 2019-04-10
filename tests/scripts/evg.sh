@@ -19,20 +19,20 @@ dst_file3=$TEMP_DIR/compose.$1
 do_test "$GPAC -i $src_file:size=128x128 compositor:!softblt:opfmt=$1 @ -o $dst_file  -graph -stats"  "rgb_$1"
 do_hash_test "$dst_file" "rgb_$1"
 
-#gpac -i $dst_file:size=128x128 vout
+do_play_test "play" "$dst_file:size=128x128"
 
 #test format -> rgb
 do_test "$GPAC -i $dst_file:size=128x128 compositor:!softblt:opfmt=rgb @ -o $dst_file2  -graph -stats"  "$1_rgb"
 do_hash_test "$dst_file2" "$1_rgb"
 
-#gpac -i $dst_file2:size=128x128 vout
+do_play_test "play" "$dst_file2:size=128x128"
 
 #test 2D rasterizer in format destination (passthrough with direct overlay on raw data)
 #note that we force using a GNU Free Font SANS to make sure we always use the same font on all platforms
 do_test "$GPAC -font-dirs=$EXTERNAL_MEDIA_DIR/fonts/ -rescan-fonts -i $dst_file:size=128x128 -i $bt_file compositor:!softblt:drv=no @ -o $dst_file3  -graph -stats"  "compose_$1"
 do_hash_test "$dst_file3" "compose_$1"
 
-#gpac -i $dst_file3:size=128x128 vout:wsize=512x512
+do_play_test "play" "$dst_file3:size=128x128"
 
 test_end
 

@@ -742,7 +742,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	gf_evg_surface_attach_to_texture(surface, stencil);
 
 	brush = gf_evg_stencil_new(GF_STENCIL_SOLID);
-	gf_evg_stencil_set_brush_color(brush, 0xFF000000);
+	gf_evg_stencil_set_brush_color(brush, for_3d ? 0xFFFFFFFF : tr_state->ctx->aspect.fill_color);
 
 	cx = bounds.x + bounds.width/2;
 	cy = bounds.y - bounds.height/2;

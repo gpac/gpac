@@ -222,6 +222,10 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 	gf_mx_init(post_model_view);
 
 	if (cam->is_3D) {
+		if (!cam->z_far) {
+			cam->z_near = FIX_ONE / 100;
+			cam->z_far = FIX_ONE * 100;
+		}
 		/*setup perspective*/
 		if (camlay==GF_3D_CAMERA_OFFAXIS) {
 			Fixed left, right, top, bottom, shift, wd2, ndfl, viewing_distance;
