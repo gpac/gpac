@@ -2245,7 +2245,7 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 		case TAG_SVG_svg:
 #ifndef GPAC_DISABLE_3D
 #ifdef GF_SR_USE_DEPTH
-			if (compositor->dispdepth) {
+			if (compositor->dispdepth>=0) {
 				compositor->visual->type_3d = 2;
 				compositor->visual->camera.is_3D = 1;
 			} else

@@ -1491,6 +1491,8 @@ struct _gf_font
 	Bool not_loaded;
 
 	struct _gf_ft_mgr *ft_mgr;
+
+	GF_Compositor *compositor;
 	/*list of spans currently using the font - this is needed to allow for dynamic discard of the font*/
 	GF_List *spans;
 };

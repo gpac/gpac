@@ -502,7 +502,10 @@ static const struct predef_keyid {
 	{ GF_KEY_INFO, "Info" },
 	{ GF_KEY_EPG, "EPG" },
 	{ GF_KEY_RECORD, "Record" },
-	{ GF_KEY_BEGINPAGE, "BeginPage" }
+	{ GF_KEY_BEGINPAGE, "BeginPage" },
+
+	{ GF_KEY_CELL_SOFT1, "CELLSOFT1" },
+	{ GF_KEY_CELL_SOFT2, "CELLSOFT2" },
 };
 
 
@@ -1340,7 +1343,7 @@ static GF_Err svg_parse_transform(SVG_Transform *t, char *attribute_content)
 	if ((str = strstr(attribute_content, "ref"))) {
 		t->is_ref = 1;
 		gf_mx2d_init(t->mat);
-		str+=2;
+		str+=3;
 		while (str[i] == ' ') i++;
 		if (str[i] == '(') {
 			i++;
