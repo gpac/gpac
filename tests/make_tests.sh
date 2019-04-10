@@ -249,30 +249,6 @@ wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/video_r
 cd "$main_dir"
 }
 
-check_mp4client()
-{
-if [ $MP4CLIENT_NOT_FOUND = 0 ] && [ $do_clean = 0 ] ; then
-  MP4Client -run-for 0 2> /dev/null
-  res=$?
-  if [ $res != 0 ] ; then
-    # to remove when travis is ready to execute playback tests
-    MP4CLIENT_NOT_FOUND=1
-    echo ""
-    log $L_WAR "WARNING: MP4Client not found (ret $res) - launch results:"
-    MP4Client -run-for 0
-    res=$?
-    if [ $res = 0 ] ; then
-      log $L_INF "MP4Client returned $res on second run - all playback tests ready but still disabled"
-    else
-      echo "** MP4Client returned $res - disabling all playback tests - dumping GPAC config file **"
-      cat $HOME/.gpac/GPAC.cfg
-      echo "** End of dump **"
-      MP4CLIENT_NOT_FOUND=1
-    fi
-  fi
-fi
-}
-
 url_arg=()
 
 #Parse arguments
@@ -460,6 +436,12 @@ log $L_ERR "MP4Box not found (ret $res) - exiting"
 exit 1
 fi
 
+gpac -h 2> /dev/null
+res=$?
+if [ $res != 0 ] ; then
+log $L_ERR "gpac not found (ret $res) - exiting"
+exit 1
+fi
 
 MP42TS -h 2> /dev/null
 res=$?
@@ -480,6 +462,29 @@ else
  else
   base_args="$base_args -mem-track"
  fi
+fi
+
+
+#check MP4Client
+if [ $MP4CLIENT_NOT_FOUND = 0 ] && [ $do_clean = 0 ] && [ $global_test_ui != 0 ] ; then
+  MP4Client -run-for 0 2> /dev/null
+  res=$?
+  if [ $res != 0 ] ; then
+    # to remove when travis is ready to execute playback tests
+    MP4CLIENT_NOT_FOUND=1
+    echo ""
+    log $L_WAR "WARNING: MP4Client not found (ret $res) - launch results:"
+    MP4Client -run-for 0
+    res=$?
+    if [ $res = 0 ] ; then
+      log $L_INF "MP4Client returned $res on second run - all playback tests ready but still disabled"
+    else
+      echo "** MP4Client returned $res - disabling all playback tests - dumping GPAC config file **"
+      cat $HOME/.gpac/GPAC.cfg
+      echo "** End of dump **"
+      MP4CLIENT_NOT_FOUND=1
+    fi
+  fi
 fi
 
 fi
@@ -1268,22 +1273,6 @@ return
 fi
 single_test=1
 do_test "$1" "single"
-test_end
-}
-
-#@single_playback_test: performs a single playback test with hashes with $1 command line and $2 test name
-single_playback_test ()
-{
-  if [ $# -gt 2 ] ; then
-   log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
-   log $L_ERR "	@single_playback_test takes only two arguments - wrong call (first arg is $1)"
-  fi
-test_begin "$2"
-if [ $test_skip  = 1 ] ; then
-return
-fi
-single_test=1
-do_playback_test "$1" "play"
 test_end
 }
 
