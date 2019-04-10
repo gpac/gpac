@@ -614,7 +614,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		}
 
 		bytes_to_drop = ctx->hdr.frame_size;
-		if (ctx->timescale && (prev_pck_size <= bytes_to_drop) &&  (cts != GF_FILTER_NO_TS) ) {
+		if (ctx->timescale && !prev_pck_size &&  (cts != GF_FILTER_NO_TS) ) {
 			ctx->cts = cts;
 			cts = GF_FILTER_NO_TS;
 		}
@@ -624,7 +624,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
 			memcpy(output, sync + offset, size);
-
+			gf_filter_pck_set_dts(dst_pck, ctx->cts);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			gf_filter_pck_set_duration(dst_pck, ctx->dts_inc);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
