@@ -237,7 +237,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	GF_Err e=GF_OK;
 	u32 bytes_per_sec;
-	u64 bytes_done, total_size;
+	u64 bytes_done, total_size, byte_offset;
 	GF_NetIOStatus net_status;
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
@@ -340,6 +340,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
 	}
 
+	byte_offset = ctx->nb_read;
+
 	ctx->nb_read += nb_read;
 	if (ctx->file_size && (ctx->nb_read==ctx->file_size)) {
 		ctx->is_end = GF_TRUE;
@@ -361,7 +363,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 	gf_filter_pck_set_framing(pck, is_start, ctx->is_end);
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-	gf_filter_pck_set_byte_offset(pck, ctx->nb_read);
+	gf_filter_pck_set_byte_offset(pck, byte_offset);
 
 	//mark packet out BEFORE sending, since the call to send() may destroy the packet if cloned
 	ctx->pck_out = GF_TRUE;

@@ -199,20 +199,6 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes);
 u32 gf_bs_read_u8(GF_BitStream *bs);
 
 /*!
- *	\brief align char reading until reaching the given value
- *
- *	Reads an integer coded on 8 bits starting at a byte boundary in the bitstream until
- *  the given appears on the bitstream.
- *	\note the bytes read in the bitstream will only be update if the delimiter is found
- *	\param bs the target bitstream
- *	\param delimiter the stop condition
- *  \param out the resulting value
- *  \param max_length the maximum length of the output
- *	\return the number of value read.
- */
-u32 gf_bs_read_u8_until_delimiter(GF_BitStream *bs, u8 delimiter, u8* out, u32 max_length);
-
-/*!
  *	\brief align short reading
  *
  *	Reads an integer coded on 16 bits starting at a byte boundary in the bitstream.

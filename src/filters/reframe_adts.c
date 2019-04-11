@@ -493,6 +493,10 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 	prev_pck_size = ctx->adts_buffer_size;
 	if (pck && !ctx->resume_from) {
 		data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+		if (!pck_size) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_OK;
+		}
 
 		if (ctx->byte_offset != GF_FILTER_NO_BO) {
 			u64 byte_offset = gf_filter_pck_get_byte_offset(pck);
@@ -500,6 +504,9 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 				ctx->byte_offset = byte_offset;
 			} else if (ctx->byte_offset + ctx->adts_buffer_size != byte_offset) {
 				ctx->byte_offset = GF_FILTER_NO_BO;
+				if ((byte_offset != GF_FILTER_NO_BO) && (byte_offset>ctx->adts_buffer_size) ) {
+					ctx->byte_offset = byte_offset - ctx->adts_buffer_size;
+				}
 			}
 		}
 

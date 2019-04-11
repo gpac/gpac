@@ -168,9 +168,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_rem_last) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_swap) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_transfer) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_list_reverse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_clone) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_list_rev_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_pop_front) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_pop_back) )
 
@@ -183,7 +181,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_int) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_long_int) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u8) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u8_until_delimiter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u16) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u24) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u32) )

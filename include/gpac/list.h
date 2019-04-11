@@ -150,14 +150,6 @@ void gf_list_reset(GF_List *ptr);
 void *gf_list_last(GF_List *ptr);
 
 /*!
- *	\brief reverses the order of the elements in the list container.
- *
- *	reverses the order of the elements in the list container.
- *	\param ptr target list object
- */
-void gf_list_reverse(GF_List *ptr);
-
-/*!
  *	\brief removes last item
  *
  *	Removes the last item of the list
@@ -176,16 +168,6 @@ GF_Err gf_list_rem_last(GF_List *ptr);
  *	\note A typical enumeration will start with a value of 0 until NULL is returned.
  */
 void *gf_list_enum(GF_List *ptr, u32 *pos);
-
-/*!
- *	\brief list enumerator in reversed order
- *
- *	Retrieves the given list item in reversed order and update current position
- *	\param ptr target list object
- *	\param pos target item position. The position is automatically decrelented regardless of the return value
- *	\note A typical enumeration in reversed order will start with a value of 0 until NULL is returned.
- */
-void *gf_list_rev_enum(GF_List *ptr, u32 *pos);
 
 /*!
  *	\brief list swap

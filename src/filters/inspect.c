@@ -47,6 +47,13 @@ enum
 	INSPECT_MODE_RAW
 };
 
+enum
+{
+	INSPECT_TEST_NO=0,
+	INSPECT_TEST_NETWORK,
+	INSPECT_TEST_ENCODE,
+};
+
 typedef struct
 {
 	u32 mode;
@@ -57,7 +64,7 @@ typedef struct
 	char *fmt;
 	Bool props, hdr, all, info, pcr;
 	Double speed, start;
-	Bool testmode;
+	u32 test;
 	GF_Fraction dur;
 
 	FILE *dump;
@@ -100,18 +107,25 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
 
-	if (gf_sys_is_test_mode() || ctx->testmode) {
+	if (gf_sys_is_test_mode() || ctx->test) {
 		switch (p4cc) {
 		case GF_PROP_PID_FILEPATH:
 		case GF_PROP_PID_URL:
 			return;
+		case GF_PROP_PID_FILE_CACHED:
+		case GF_PROP_PID_DURATION:
+			if (ctx->test==INSPECT_TEST_NETWORK)
+				return;
+			break;
 		case GF_PROP_PID_DECODER_CONFIG:
 		case GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT:
 		case GF_PROP_PID_DOWN_SIZE:
-			if (ctx->testmode)
+			if (ctx->test==INSPECT_TEST_ENCODE)
 				return;
 			break;
 		default:
+			if (gf_sys_is_test_mode() && (att->type==GF_PROP_POINTER) )
+				return;
 			break;
 		}
 	}
@@ -609,7 +623,10 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(speed), "sets playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(dur), "sets inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
-	{ OFFS(testmode), "skips URL/path dump, file size and decoder config (used for hashing encoding results)", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(test), "skips some properties:\n"
+		"\tno: no properties skipped\n"
+		"\tnetwork: URL/path dump, cache state, file size properties skipped (used for hashing network results)\n"
+		"\tencode: same as network plus skip decoder config (used for hashing encoding results)", GF_PROP_UINT, "no", "no|network|encode", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

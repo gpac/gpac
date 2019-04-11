@@ -39,7 +39,7 @@ test_gsf "full" "-i $MEDIA_DIR/auxiliary_files/enst_video.h264" ":sigsn:sigbo:si
 test_gsf "crypted" "-i $MEDIA_DIR/auxiliary_files/enst_video.h264" ":IV=0x279926496a7f5d25da69f2b3b2799a7f" ":key=0x279926496a7f5d25da69f2b3b2799a7f"
 
 #raw avc file to gsf with pattern encryption
-test_gsf "crypted-pattern" "-i $MEDIA_DIR/auxiliary_files/enst_video.h264" ":pattern=1/9" ":key=0x279926496a7f5d25da69f2b3b2799a7f"
+test_gsf "crypted-pattern" "-i $MEDIA_DIR/auxiliary_files/enst_video.h264" ":IV=0x279926496a7f5d25da69f2b3b2799a7f:pattern=1/9" ":key=0x279926496a7f5d25da69f2b3b2799a7f"
 
 #source test filter with all props
 test_gsf "props-check" "-ltf UTSource:gsftest" ":crate=2.0:skp=FPS:sigbo" ""
