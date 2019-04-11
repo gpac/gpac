@@ -121,7 +121,7 @@ static GF_Err gf_bt_report(GF_BTParser *parser, GF_Err e, char *format, ...)
 		char szMsg[2048];
 		va_list args;
 		va_start(args, format);
-		vsprintf(szMsg, format, args);
+		vsnprintf(szMsg, 2048, format, args);
 		va_end(args);
 		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[BT/WRL Parsing] %s (line %d)\n", szMsg, parser->line));
 	}
@@ -479,7 +479,7 @@ char *gf_bt_get_string(GF_BTParser *parser, u8 string_delim)
 			res = (char*)gf_realloc(res, sizeof(char) * (size+500+1));	\
 			size += 500;	\
 		}	\
- 
+
 	res = (char*)gf_malloc(sizeof(char) * 500);
 	size = 500;
 	while (parser->line_buffer[parser->line_pos]==' ') parser->line_pos++;

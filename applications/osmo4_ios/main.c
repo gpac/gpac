@@ -81,7 +81,7 @@ static void UpdateRTInfo(const char *legend)
 {
 	GF_SystemRTInfo rti;
 	if (paused_by_bench==1) return;
-	
+
 	/*refresh every second*/
 	if (!display_rti && !rti_logs) return;
 	if (!gf_sys_get_rti(rti_update_time_ms, &rti, 0) && !legend)
@@ -98,17 +98,17 @@ static void UpdateRTInfo(const char *legend)
 				sprintf(szMsg, "FPS %02.02f CPU %02d Mem %d kB",
 			        gf_term_get_framerate(term, 0), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 			}
-		
+
 			PrintAVInfo(GF_FALSE);
-			
-			
+
+
 			fprintf(stderr, "%s\r", szMsg);
 		} else {
 			if (!rti.process_memory) rti.process_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
 
 			if (!rti.gpac_memory) rti.gpac_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
 		}
-		
+
 	}
 	if (rti_logs) {
 		fprintf(rti_logs, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t%s",
@@ -189,7 +189,7 @@ void ios_sensor_callback(int sensorType, float x, float y, float z, float w)
 {
 	GF_Event evt;
 	memset(&evt, 0, sizeof(GF_Event));
-	
+
 	switch (sensorType) {
 	case SENSOR_ORIENTATION:
 		evt.type = GF_EVENT_SENSOR_ORIENTATION;
@@ -238,7 +238,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	break;
 	case GF_EVENT_PROGRESS:
 		if (bench_mode && (evt->progress.progress_type==1) ) {
-		
+
 			fprintf(stderr, "Bench mode paused - downloading %02d %%\r", (u32) (evt->progress.done*100.0/evt->progress.total) );
 			if (!paused_by_bench) {
 				gf_term_set_option(term, GF_OPT_VIDEO_BENCH, 0);
@@ -317,7 +317,7 @@ static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *
 
 	if (rti_logs && (lm & GF_LOG_RTI)) {
 		char szMsg[2048];
-		vsprintf(szMsg, fmt, list);
+		vsnprintf(szMsg, 2048, fmt, list);
 		UpdateRTInfo(szMsg + 6 /*"[RTI] "*/);
 	} else {
 		if (log_time_start) fprintf(logs, "[At %d]", gf_sys_clock() - log_time_start);
@@ -538,7 +538,7 @@ int main (int argc, char *argv[])
 		}
 	}
 	gf_sys_set_args(argc, (const char **) argv);
-	
+
 	user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
@@ -585,7 +585,7 @@ int main (int argc, char *argv[])
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("WARNING: using raw output video (memory only) - no display used\n"));
 		}
 	}
-	
+
 	/*check audio output*/
 	str = gf_cfg_get_key(cfg_file, "Audio", "DriverName");
 	if (!str || !strcmp(str, "No Audio Output Available")) {
@@ -659,7 +659,7 @@ int main (int argc, char *argv[])
 		rti_update_time_ms = 500;
 		bench_mode_start = gf_sys_clock();
 	}
-	
+
 	while (Run) {
 		if (restart) {
 			restart = 0;

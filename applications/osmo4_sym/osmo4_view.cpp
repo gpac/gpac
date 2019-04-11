@@ -201,7 +201,7 @@ static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *
 	if (app->m_Logs) {
 		vfprintf(app->m_Logs, fmt, list);
 	} else {
-		vsprintf(szMsg, fmt, list);
+		vsnprintf(szMsg, 2048, fmt, list);
 		app->MessageBox(szMsg, "Error:");
 	}
 	gf_mx_v(app->m_mx);
