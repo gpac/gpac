@@ -876,16 +876,21 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	gf_mx2d_copy(backup, tr_state->transform);
 	visual->bounds_tracker_modif_flag = DRAWABLE_HAS_CHANGED;
 
+#ifndef GPAC_DISABLE_3D
 	if (visual->compositor->hybrid_opengl && visual->compositor->fbo_id) {
 		compositor_3d_enable_fbo(visual->compositor, GF_TRUE);
 	}
+#endif
+
 	e = visual_2d_init_draw(visual, tr_state);
 	if (e) {
 		gf_mx2d_copy(tr_state->transform, backup);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Visual2D] Cannot init draw phase: %s\n", gf_error_to_string(e)));
+#ifndef GPAC_DISABLE_3D
 		if (visual->compositor->hybrid_opengl && visual->compositor->fbo_id) {
 			compositor_3d_enable_fbo(visual->compositor, GF_FALSE);
 		}
+#endif
 		return 0;
 	}
 
@@ -923,9 +928,11 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	}
 #endif
 
+#ifndef GPAC_DISABLE_3D
 	if (visual->compositor->hybrid_opengl && visual->compositor->fbo_id) {
 		compositor_3d_enable_fbo(visual->compositor, GF_FALSE);
 	}
+#endif
 	return res;
 }
 

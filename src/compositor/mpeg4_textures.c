@@ -634,12 +634,14 @@ void gf_sc_mo_destroyed(GF_Node *n)
 		break;
 	case TAG_MPEG4_Background:
 	case TAG_X3D_Background:
+#ifndef GPAC_DISABLE_3D
 		((BackgroundStack *)st)->txh_back.stream = NULL;
 		((BackgroundStack *)st)->txh_front.stream = NULL;
 		((BackgroundStack *)st)->txh_left.stream = NULL;
 		((BackgroundStack *)st)->txh_right.stream = NULL;
 		((BackgroundStack *)st)->txh_top.stream = NULL;
 		((BackgroundStack *)st)->txh_bottom.stream = NULL;
+#endif
 		break;
 	case TAG_MPEG4_ImageTexture:
 	case TAG_X3D_ImageTexture:

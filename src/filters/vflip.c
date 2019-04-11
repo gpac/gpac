@@ -78,6 +78,8 @@ static void swap_2Ys_YUVpixel(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 
 	case GF_PIXEL_VYUY:
 		isFirstY_indexOne= (u32) 1;
 		break;
+	default:
+		return;
 	}
 
 	//Y2_dst = Y1_src
