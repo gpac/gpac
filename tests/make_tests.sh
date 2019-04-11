@@ -436,12 +436,12 @@ log $L_ERR "MP4Box not found (ret $res) - exiting"
 exit 1
 fi
 
-gpac -h 2> /dev/null
-res=$?
-if [ $res != 0 ] ; then
-log $L_ERR "gpac not found (ret $res) - exiting"
-exit 1
-fi
+#gpac -h 2> /dev/null
+#res=$?
+#if [ $res != 0 ] ; then
+#log $L_ERR "gpac not found (ret $res) - exiting"
+#exit 1
+#fi
 
 MP42TS -h 2> /dev/null
 res=$?
