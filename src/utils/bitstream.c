@@ -265,8 +265,10 @@ void gf_bs_del(GF_BitStream *bs)
 	}
 	/*if we are in dynamic mode (alloc done by the bitstream), free the buffer if still present*/
 	if ((bs->bsmode == GF_BITSTREAM_WRITE_DYN) && bs->original) gf_free(bs->original);
-	if (bs->buffer_io)
+	if (bs->buffer_io) {
 		bs_flush_cache(bs);
+		gf_free(bs->buffer_io);
+	}
 	gf_free(bs);
 }
 
@@ -400,6 +402,7 @@ u32 gf_bs_read_u8(GF_BitStream *bs)
 	return (u32) BS_ReadByte(bs);
 }
 
+#if 0
 GF_EXPORT
 u32 gf_bs_read_u8_until_delimiter(GF_BitStream *bs, u8 delimiter, u8* out, u32 max_length) {
 	u32 i = 0;
@@ -422,6 +425,7 @@ u32 gf_bs_read_u8_until_delimiter(GF_BitStream *bs, u8 delimiter, u8* out, u32 m
 found:
 	return i;
 }
+#endif
 
 GF_EXPORT
 u32 gf_bs_read_u16(GF_BitStream *bs)
@@ -1015,8 +1019,8 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 	}
 }
 
-/*Only valid for READ MEMORY*/
-GF_EXPORT
+#ifdef GPAC_ENABLE_BIFS_PMF
+
 void gf_bs_rewind_bits(GF_BitStream *bs, u64 nbBits)
 {
 	u64 nbBytes;
@@ -1031,6 +1035,8 @@ void gf_bs_rewind_bits(GF_BitStream *bs, u64 nbBits)
 	gf_bs_read_int(bs, (u32)nbBits);
 	return;
 }
+
+#endif
 
 /*seek from beginning of stream: use internally even when non aligned!*/
 static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
