@@ -33,16 +33,22 @@ static WORD console_attr_ori = 0;
 #endif
 
 
-static char szTYPE[9];
-
+//ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
+#define NB_4CC_BUF	10
+static char szTYPE_BUF[NB_4CC_BUF][9];
+static u32 buf_4cc_idx=0;
 
 GF_EXPORT
 const char *gf_4cc_to_str(u32 type)
 {
 	u32 ch, i;
 	Bool is_ok=GF_TRUE;
+	char *szTYPE = szTYPE_BUF[buf_4cc_idx];
 	char *name = (char *)szTYPE;
 	if (!type) return "00000000";
+	buf_4cc_idx++;
+	if (buf_4cc_idx==NB_4CC_BUF)
+		buf_4cc_idx=0;
 
 	for (i = 0; i < 4; i++, name++) {
 		ch = type >> (8 * (3-i) ) & 0xff;
