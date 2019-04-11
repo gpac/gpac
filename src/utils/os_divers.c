@@ -1988,8 +1988,14 @@ GF_Err gf_bin128_parse(const char *string, bin128 value)
 				break;
 			sprintf(szV, "%c%c", string[j], string[j+1]);
 			sscanf(szV, "%x", &v);
+			if (i > 15) {
+				// force error check below
+				i++;
+				break;
+			}
 			value[i] = v;
 			i++;
+
 		}
 	}
 	if (i != 16) {
