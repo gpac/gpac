@@ -64,8 +64,7 @@ $MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264:dur=1 -new $mp4file 2> /
 #the ones we test for now - nv1l is commented (no support in old ffmpeg used on gpac buildbot) and alpha not yet tested
 pfstr="yuv yuvl yuv2 yp2l yuv4 yp4l uyvy vyuy yuyv yvyu nv12 nv21 grey rgb bgr xrgb rgbx xbgr bgrx"
 
-#not working yuvl yp2l yp4l
-#pfstr="nv12 nv21"
+#pfstr="rgb"
 
 for i in $pfstr ; do
 	vflip_test $i
