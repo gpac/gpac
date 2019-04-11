@@ -51,7 +51,7 @@ static void swf_svg_print(SWFReader *read, const char *format, ...) {
 
 	/* print the line */
 	va_start(args, format);
-	vsprintf(line, format, args);
+	vsnprintf(line, 2000, format, args);
 	va_end(args);
 	/* add the line to the buffer */
 	line_length = (u32)strlen(line);

@@ -134,7 +134,7 @@ static GF_Err svg_report(GF_SVG_Parser *parser, GF_Err e, char *format, ...)
 		char szMsg[2048];
 		va_list args;
 		va_start(args, format);
-		vsprintf(szMsg, format, args);
+		vsnprintf(szMsg, 2048, format, args);
 		va_end(args);
 		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[SVG Parsing] line %d - %s\n", gf_xml_sax_get_line(parser->sax_parser), szMsg));
 	}
@@ -186,7 +186,7 @@ static SVG_SAFExternalStream *svg_saf_get_next_available_stream(GF_SVG_Parser *p
 	}
 	GF_SAFEALLOC(st, SVG_SAFExternalStream);
 	if (!st) return NULL;
-	
+
 	if (prev) prev->next = st;
 	else parser->streams = st;
 	st->id = id+1;
@@ -328,10 +328,10 @@ static GF_Node *svg_find_node(GF_SVG_Parser *parser, char *ID)
 static void svg_post_process_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *iri)
 {
 	GF_Err e;
-	
+
 	/* Embed script if needed or clean data URL with proper mime type */
 	svg_process_media_href(parser, elt, iri);
-	
+
 	/*keep data when encoding*/
 	if ( !(parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK)) return;
 

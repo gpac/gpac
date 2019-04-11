@@ -144,7 +144,7 @@ static GF_Err xmt_report(GF_XMTParser *parser, GF_Err e, char *format, ...)
 		char szMsg[2048];
 		va_list args;
 		va_start(args, format);
-		vsprintf(szMsg, format, args);
+		vsnprintf(szMsg, 2048, format, args);
 		va_end(args);
 		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[XMT Parsing] %s (line %d)\n", szMsg, gf_xml_sax_get_line(parser->sax_parser)) );
 	}
@@ -229,7 +229,7 @@ static void xmt_new_od_link(GF_XMTParser *parser, GF_ObjectDescriptor *od, char 
 	}
 	GF_SAFEALLOC(odl, XMT_ODLink);
 	if (!odl) return;
-	
+
 	odl->mf_urls = gf_list_new();
 	odl->od = od;
 	if (ID) od->objectDescriptorID = ID;
@@ -276,7 +276,7 @@ static void xmt_new_od_link_from_node(GF_XMTParser *parser, char *name, MFURL *u
 	}
 	GF_SAFEALLOC(odl, XMT_ODLink);
 	if (!odl) return;
-	
+
 	odl->mf_urls = gf_list_new();
 	if (url) gf_list_add(odl->mf_urls, url);
 	if (ID) odl->ID = ID;
@@ -317,7 +317,7 @@ static void xmt_new_esd_link(GF_XMTParser *parser, GF_ESD *esd, char *desc_name,
 	}
 	GF_SAFEALLOC(esdl, XMT_ESDLink);
 	if (!esdl) return;
-	
+
 	esdl->esd = esd;
 	esd->ESID = esdl->ESID = binID;
 	if (desc_name) {
@@ -1656,7 +1656,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			e = GF_OK;
 			if (!node)
 				e = xmt_report(parser, GF_BAD_PARAM, "Warning: Cannot find node %s referenced in USE - skipping", proto_use);
-			
+
 			if (e) return NULL;
 			ID = 0;
 			register_def = 0;
@@ -2602,7 +2602,7 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 	if (!elt) return;
 	GF_SAFEALLOC(new_top, XMTNodeStack);
 	if (!new_top) return;
-	
+
 	new_top->node = elt;
 	gf_list_add(parser->nodes, new_top);
 
@@ -2995,7 +2995,7 @@ static GF_XMTParser *xmt_new_parser(GF_SceneLoader *load)
 	if ((load->type==GF_SM_LOAD_XSR) && !load->ctx) return NULL;
 	GF_SAFEALLOC(parser, GF_XMTParser);
 	if (!parser) return NULL;
-	
+
 	parser->nodes = gf_list_new();
 	parser->descriptors = gf_list_new();
 	parser->od_links = gf_list_new();

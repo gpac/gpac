@@ -1422,7 +1422,7 @@ static GF_Err swf_def_font(SWFReader *read, u32 revision)
 
 	GF_SAFEALLOC(ft, SWFFont);
 	if (!ft) return GF_OUT_OF_MEM;
-	
+
 	ft->glyphs = gf_list_new();
 	ft->fontID = swf_get_16(read);
 	e = GF_OK;
@@ -1609,7 +1609,7 @@ static GF_Err swf_def_text(SWFReader *read, u32 revision)
 
 			GF_SAFEALLOC(gr, SWFGlyphRec);
 			if (!gr) return GF_OUT_OF_MEM;
-			
+
 			gf_list_add(txt.text, gr);
 			gr->fontID = fontID;
 			gr->fontSize = font_height;
@@ -2428,7 +2428,7 @@ void swf_report(SWFReader *read, GF_Err e, char *format, ...)
 		char szMsg[2048];
 		va_list args;
 		va_start(args, format);
-		vsprintf(szMsg, format, args);
+		vsnprintf(szMsg, 2048, format, args);
 		va_end(args);
 		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[SWF Parsing] %s (frame %d)\n", szMsg, read->current_frame+1) );
 	}
