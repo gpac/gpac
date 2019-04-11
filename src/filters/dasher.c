@@ -4897,7 +4897,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//prev packet was split
 			else if (is_split) {
-				u64 diff;
+				u64 diff=0;
 				u8 dep_flags = gf_filter_pck_get_dependency_flags(pck);
 				u64 ts = gf_filter_pck_get_cts(pck);
 				if (ts != GF_FILTER_NO_TS) {
