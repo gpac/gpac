@@ -1561,14 +1561,17 @@ GF_Err gf_filter_pid_force_cap(GF_FilterPid *pid, u32 cap4cc)
 
 u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps)
 {
-	u32 i, nb_bundles = nb_caps ? 1 : 0;
+	u32 i, nb_bundles = 0, num_in_bundle=0;
 	for (i=0; i<nb_caps; i++) {
 		const GF_FilterCapability *cap = &caps[i];
 		if (! (cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
-			nb_bundles++;
+			if (num_in_bundle) nb_bundles++;
+			num_in_bundle=0;
 			continue;
 		}
+		num_in_bundle++;
 	}
+	if (num_in_bundle) nb_bundles++;
 	return nb_bundles;
 }
 
@@ -2131,12 +2134,13 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 						assert(k<0xFFFF);
 						assert(l<0xFFFF);
 						edge = &reg_desc->edges[reg_desc->nb_edges];
+						memset(edge, 0, sizeof(GF_FilterRegEdge));
 						edge->src_reg = a_reg;
 						edge->weight = (u8) path_weight;
 						edge->src_cap_idx = (u16) k;
 						edge->dst_cap_idx = (u16) l;
-						edge->priority = 0;
-						//we inverted the caps, invert the flags
+
+					//we inverted the caps, invert the flags
 						if (loaded_filter_only_flags & EDGE_LOADED_SOURCE_ONLY)
 							edge->loaded_filter_only |= EDGE_LOADED_DEST_ONLY;
 						if (loaded_filter_only_flags & EDGE_LOADED_DEST_ONLY)
@@ -2442,11 +2446,12 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		}
 	}
 
-	//remove all filters not used for this resolution (no enabled edges)
+	//remove all filters not used for this resolution (no enabled edges), except source one
 	count = gf_list_count(dijkstra_nodes);
 	for (i=0; i<count; i++) {
 		u32 j, nb_edges;
 		GF_FilterRegDesc *rdesc = gf_list_get(dijkstra_nodes, i);
+		if (rdesc->freg == pid->filter->freg) continue;
 
 		nb_edges = 0;
 		for (j=0; j<rdesc->nb_edges; j++) {
@@ -2457,8 +2462,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			}
 		}
 
-		//remove from registries if no edge enabled, unless our source
-		if (!nb_edges && (rdesc->freg != pid->filter->freg)) {
+		if (!nb_edges) {
 			gf_list_rem(dijkstra_nodes, i);
 			i--;
 			count--;
