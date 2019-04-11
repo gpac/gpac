@@ -358,6 +358,8 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 			gf_filter_pck_send(dst_pck);
 		}
+		if (byte_offset != GF_FILTER_NO_BO) 
+			byte_offset += to_send;
 
 		if (ctx->remaining) {
 			gf_filter_pid_drop_packet(ctx->ipid);

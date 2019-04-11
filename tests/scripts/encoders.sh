@@ -13,7 +13,7 @@ dst_file=$TEMP_DIR/$3
 
 do_test "$GPAC -i $2 $4 -o $dst_file$6 -graph -stats $5"  "encoder"
 
-myinspect="inspect:testmode:fmt=@pn@-@dts@-@cts@@lf@"
+myinspect="inspect:test=encode:fmt=@pn@-@dts@-@cts@@lf@"
 
 if [ ! -f $dst_file ] ; then
 result="Encoded output not present"
