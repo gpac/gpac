@@ -90,137 +90,22 @@ static Bool swap_2Ys_YUVpixel(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 
 	return GF_OK;
 }
 
-static Bool horizontal_flip_by_rgbx_combination(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 plane_idx, u32 line_width)
-{
-	u32 isRGB;
-	//	xPosition = 0 : there is no X (eg: RGB)
-	//  xPosition = 1 : X on the right (eg: RGBX)
-	//  xPosition = 4 : X on the left (eg: XRGB)
-	u32 xPosition;
-	switch (ctx->s_pfmt) {
-	case GF_PIXEL_RGB:
-		isRGB = (u32) 1;
-		xPosition = (u32) 0;
-		break;
-	case GF_PIXEL_BGR:
-		isRGB = (u32) 0;
-		xPosition = (u32) 0;
-		break;
-	case GF_PIXEL_XRGB:
-		isRGB = (u32) 1;
-		xPosition = (u32) 4;
-		break;
-	case GF_PIXEL_RGBX:
-		isRGB = (u32) 1;
-		xPosition = (u32) 1;
-		break;
-	case GF_PIXEL_XBGR:
-		isRGB = (u32) 0;
-		xPosition = (u32) 4;
-		break;
-	case GF_PIXEL_BGRX:
-		isRGB = (u32) 0;
-		xPosition = (u32) 1;
-		break;
-	default:
-		break;
-	}
-	//components offset_x due to introduction of x
-	u32 offset_x;
-	//components size: 4 for (r, g, b, x) and 3 for (r, g, b)
-	u32 comp_size = (u32) ((xPosition == 0)? 3: 4);
-
-	if (ctx->bps == comp_size) {
-		for (u32 j = 0; j < line_width/(2*comp_size); j++) {
-			u8 x_comp, r_comp, g_comp, b_comp;
-
-			if (xPosition != 0){
-				x_comp = line_src[line_width - comp_size*j - xPosition];
-			}
-			//last src components
-			//isBGR=1 swaps  r_comp and b_comp assignment: 3<-->1
-			//isBGR=0 disables swapping
-			offset_x= (u32) ((xPosition == 1)? 1: 0);
-
-			r_comp = line_src[line_width - comp_size*j - ((isRGB? 3:1) + offset_x)];
-			g_comp = line_src[line_width - comp_size*j - (2 		   + offset_x)];
-			b_comp = line_src[line_width - comp_size*j - ((isRGB? 1:3) + offset_x)];
-
-			//last dst components = first src components
-			if (xPosition != 0)
-				line_dst[line_width - comp_size*j - 4] = line_src[comp_size*j];
-			offset_x= (u32) ((xPosition != 0)? 1: 0);
-
-			line_dst[line_width - comp_size*j - 3] = line_src[comp_size*j + 0 + offset_x];
-			line_dst[line_width - comp_size*j - 2] = line_src[comp_size*j + 1 + offset_x];
-			line_dst[line_width - comp_size*j - 1] = line_src[comp_size*j + 2 + offset_x];
-
-			//first dst components = last src components
-			if (xPosition != 0)
-				line_dst[comp_size*j+4-xPosition] = x_comp;
-			offset_x= (u32) ((xPosition == 4)? 1: 0);
-
-			//isBGR=1 swaps  r_comp and b_comp assignment: 2<-->0
-			//isBGR=0 disables swapping
-			line_dst[comp_size*j + (isRGB? 0:2) + offset_x] = r_comp;
-			line_dst[comp_size*j + 1 			+ offset_x] = g_comp;
-			line_dst[comp_size*j + (isRGB? 2:0) + offset_x] = b_comp;
-		}
-	}
-
-#if 0
-	//Not supported for 10 bits (r,g,b,x) pixel format
-	else {
-		for (u32 j = 0; j < line_width/(2*comp_size); j++) {
-			u16 x_comp, r_comp, g_comp, b_comp;
-
-			if (xPosition != 0){
-				x_comp = line_src[line_width - comp_size*j - xPosition];
-			}
-			//last src components
-			//isBGR=1 swaps  r_comp and b_comp assignment: 3<-->1
-			//isBGR=0 disables swapping
-			offset_x= (u32) ((xPosition == 1)? 1: 0);
-
-			r_comp = line_src[line_width - comp_size*j - ((isRGB? 3:1) + offset_x)];
-			g_comp = line_src[line_width - comp_size*j - (2 		   + offset_x)];
-			b_comp = line_src[line_width - comp_size*j - ((isRGB? 1:3) + offset_x)];
-
-			//last dst components = first src components
-			if (xPosition != 0)
-				line_dst[line_width - comp_size*j - 4] = line_src[comp_size*j];
-			offset_x= (u32) ((xPosition != 0)? 1: 0);
-
-			((u16 *)line_dst)[line_width - comp_size*j - 3] = ((u16 *)line_src)[comp_size*j + 0 + offset_x];
-			((u16 *)line_dst)[line_width - comp_size*j - 2] = ((u16 *)line_src)[comp_size*j + 1 + offset_x];
-			((u16 *)line_dst)[line_width - comp_size*j - 1] = ((u16 *)line_src)[comp_size*j + 2 + offset_x];
-
-			//first dst components = last src components
-			if (xPosition != 0)
-				line_dst[comp_size*j+4-xPosition] = x_comp;
-			offset_x= (u32) ((xPosition == 4)? 1: 0);
-
-			//isBGR=1 swaps  r_comp and b_comp assignment: 2<-->0
-			//isBGR=0 disables swapping
-			((u16 *)line_dst)[comp_size*j + (isRGB? 0:2) + offset_x] = r_comp;
-			((u16 *)line_dst)[comp_size*j + 1 			 + offset_x] = g_comp;
-			((u16 *)line_dst)[comp_size*j + (isRGB? 2:0) + offset_x] = b_comp;
-		}
-	}
-#endif
-	return GF_OK;
-}
-
 static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 plane_idx, u32 wiB)
 {
-	u32 line_width = wiB;
+	u32 line_size = wiB;
 
-	if( ctx->s_pfmt == GF_PIXEL_RGB || ctx->s_pfmt == GF_PIXEL_BGR || ctx->s_pfmt == GF_PIXEL_XRGB || ctx->s_pfmt == GF_PIXEL_RGBX || ctx->s_pfmt == GF_PIXEL_XBGR || ctx->s_pfmt == GF_PIXEL_BGRX){ // @suppress("Symbol is not resolved")
-		horizontal_flip_by_rgbx_combination(ctx, line_src, line_dst, plane_idx, line_width);
-
+	if( ctx->s_pfmt == GF_PIXEL_RGB || ctx->s_pfmt == GF_PIXEL_BGR || ctx->s_pfmt == GF_PIXEL_XRGB || ctx->s_pfmt == GF_PIXEL_RGBX || ctx->s_pfmt == GF_PIXEL_XBGR || ctx->s_pfmt == GF_PIXEL_BGRX){
+		//to avoid "line_size - 3*j - 3 > 3*j" or "line_size - 4*j - 4 > 4*j"
+		//jmax=line_size/(2*3) or jmax=line_size/(2*4)
+		for (u32 j = 0; j < line_size/(2*ctx->bps); j++) {
+			u8 pix[4];
+			memcpy(pix, line_src + line_size - ctx->bps*j, ctx->bps);
+			memcpy(line_dst + line_size - ctx->bps*j, line_src + ctx->bps*j, ctx->bps);
+			memcpy(line_dst + ctx->bps*j, pix, ctx->bps);
+		}
 	}else if (ctx->packed_422) {
 
-		line_width = wiB/2;
+		line_size = wiB/2;
 
 		//If the source data is assigned to the output packet during the destination pack allocation
 		//i.e dst_planes[0]= src_planes[0], line_src is going to change while reading it as far as writing on line_dst=line_src
@@ -244,56 +129,55 @@ static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 		//second plane is U-plane={u1,v1, u2,v2...}
 		if (ctx->nb_planes==2 && plane_idx==1){
 			if (ctx->bps==1) {
-				//to avoid "line_width - 2*j - 2 > 2*j", jmax=line_width/4
-				for (u32 j = 0; j < line_width/4; j++) {
+				//to avoid "line_size - 2*j - 2 > 2*j", jmax=line_size/4
+				for (u32 j = 0; j < line_size/4; j++) {
 					u8 u_comp, v_comp;
-					u_comp = line_src[line_width - 2*j - 2];
-					v_comp = line_src[line_width - 2*j - 1];
+					u_comp = line_src[line_size - 2*j - 2];
+					v_comp = line_src[line_size - 2*j - 1];
 
-					line_dst[line_width - 2*j - 2] = line_src[2*j];
-					line_dst[line_width - 2*j - 1] = line_src[2*j + 1];
+					line_dst[line_size - 2*j - 2] = line_src[2*j];
+					line_dst[line_size - 2*j - 1] = line_src[2*j + 1];
 
 					line_dst[2*j] = u_comp;
 					line_dst[2*j + 1] = v_comp;
 				}
 			}
-			//Not supported for 10 bits pixel format
 			else{
-				for (u32 j = 0; j < line_width/4; j++) {
+				for (u32 j = 0; j < line_size/4; j++) {
 					u16 u_comp, v_comp;
-					u_comp = line_src[line_width - 2*j - 2];
-					v_comp = line_src[line_width - 2*j - 1];
+					u_comp = line_src[line_size - 2*j - 2];
+					v_comp = line_src[line_size - 2*j - 1];
 
-					((u16 *)line_dst)[line_width - 2*j - 2] = ((u16 *)line_src)[2*j];
-					((u16 *)line_dst)[line_width - 2*j - 1] = ((u16 *)line_src)[2*j + 1];
+					((u16 *)line_dst)[line_size - 2*j - 2] = ((u16 *)line_src)[2*j];
+					((u16 *)line_dst)[line_size - 2*j - 1] = ((u16 *)line_src)[2*j + 1];
 
 					((u16 *)line_dst)[2*j] = u_comp;
 					((u16 *)line_dst)[2*j + 1] = v_comp;
 				}
 			}
 		} else if (ctx->bps==1) {
-			u32 wx = line_width/2;
+			u32 wx = line_size/2;
 			u8 tmp;
 			for (u32 j = 0; j < wx; j++) {
 				//tmp = last column
-				tmp = line_src[line_width-1-j];
+				tmp = line_src[line_size-1-j];
 
 				//last column = first column
-				line_dst[line_width-1-j] = line_src[j];
+				line_dst[line_size-1-j] = line_src[j];
 
 				//first column = tmp
 				line_dst[j]=tmp;
 			}
 		} else {
-			line_width /= 2;
-			u32 wx = line_width/2;
+			line_size /= 2;
+			u32 wx = line_size/2;
 			u16 tmp;
 			for (u32 j = 0; j < wx; j++) {
 				//tmp = last column
-				tmp = (u16) ( ((u16 *)line_src) [line_width-1-j] );
+				tmp = (u16) ( ((u16 *)line_src) [line_size-1-j] );
 
 				//last column = first column
-				((u16 *)line_dst) [line_width-1-j] = ((u16*)line_src)[j];
+				((u16 *)line_dst) [line_size-1-j] = ((u16*)line_src)[j];
 
 				//first column = tmp
 				((u16 *)line_dst) [j]=tmp;
