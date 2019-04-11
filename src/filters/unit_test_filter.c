@@ -32,6 +32,9 @@ typedef struct
 	GF_FilterPid *dst_pid;
 	GF_SHA1Context *sha_ctx;
 	u32 nb_packets, pck_del;
+
+	GF_FilterFrameInterface frame_ifce;
+	u8 ifce_data[10];
 } PIDCtx;
 
 enum
@@ -57,7 +60,8 @@ typedef struct
 	Bool norecfg;
 	const char *update;
 
-	u64 dummy1;
+	Bool gsftest;
+	GF_Fraction64 dummy1;
 } GF_UnitTestFilter;
 
 static void test_pck_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
@@ -243,28 +247,53 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 
 }
 
+static void ut_source_pck_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+{
+
+}
+
+static GF_Err ut_source_ifce_get_plane(struct _gf_filter_frame_interface *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
+{
+	PIDCtx *pctx = frame->user_data;
+	memset(pctx->ifce_data, 0, 10);
+	if (plane_idx) return GF_BAD_PARAM;
+	*outPlane = pctx->ifce_data;
+	*outStride = 5;
+	return GF_OK;
+}
+
 static GF_Err ut_filter_process_source(GF_Filter *filter)
 {
 	GF_PropertyValue p;
 	GF_FilterPacket *pck;
-	u32 i, count;
+	u32 i, count, nb_eos;
 	GF_UnitTestFilter *stack = (GF_UnitTestFilter *) gf_filter_get_udta(filter);
 
+	nb_eos = 0;
 	count = gf_list_count(stack->pids);
 	for (i=0; i<count; i++) {
 		PIDCtx *pidctx=gf_list_get(stack->pids, i);
 
 		if (pidctx->nb_packets==stack->max_pck) {
-			return GF_EOS;
+			if (stack->gsftest && pidctx->dst_pid) {
+				gf_filter_pid_remove(pidctx->dst_pid);
+				pidctx->dst_pid = NULL;
+			}
+			nb_eos++;
+			continue;
 		}
 
 		if ((stack->max_out>=0) && (pidctx->nb_packets - pidctx->pck_del >= (u32) stack->max_out) ) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_APP, ("TestSource: No packets to emit, waiting for destruction\n"));
-			return GF_OK;
+			continue;
 		}
 		pidctx->nb_packets++;
 
-		if (stack->alloc) {
+		if (stack->gsftest && pidctx->nb_packets==4) {
+			pidctx->frame_ifce.get_plane = ut_source_ifce_get_plane;
+			pidctx->frame_ifce.user_data = pidctx;
+			pck = gf_filter_pck_new_frame_interface(pidctx->dst_pid, &pidctx->frame_ifce, ut_source_pck_del);
+		} else if (stack->alloc) {
 			char *data;
 			pck = gf_filter_pck_new_alloc(pidctx->dst_pid, 10, &data);
 			memcpy(data, "PacketCopy", 10);
@@ -283,64 +312,64 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 
 		//try all our properties
 		if (pidctx->nb_packets==1) {
-			p.type = GF_PROP_BOOL;
-			p.value.boolean = GF_TRUE;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','1'), &p);
+			u32 val=1;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','1'), &PROP_BOOL(GF_TRUE) );
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','2'), &PROP_SINT(-1));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','3'), &PROP_UINT(1));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','4'), &PROP_LONGSINT(-1));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','5'), &PROP_LONGUINT(1));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','6'), &PROP_FLOAT(1.0f));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','7'), &PROP_DOUBLE(1.0));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','8'), &PROP_FRAC_INT(1,1));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','8'), &PROP_FRAC64_INT(1,1));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','9'), &PROP_POINTER(pck));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','a'), &PROP_DATA((char *) pidctx, sizeof(pidctx)));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','b'), &PROP_CONST_DATA((char *) pidctx, sizeof(pidctx)));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','c'), &PROP_STRING("custom"));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','d'), &PROP_STRING("custom"));
+			memset(&p, 0, sizeof(GF_PropertyValue));
+			p.type = GF_PROP_VEC2;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','e'), &p);
+			p.type = GF_PROP_VEC2I;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','f'), &p);
+			p.type = GF_PROP_VEC3;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','g'), &p);
+			p.type = GF_PROP_VEC3I;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','h'), &p);
+			p.type = GF_PROP_VEC4;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','i'), &p);
+			p.type = GF_PROP_VEC4I;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','j'), &p);
+			p.type = GF_PROP_STRING_LIST;
+			p.value.string_list = gf_list_new();
+			gf_list_add(p.value.string_list, gf_strdup("custom"));
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','k'), &p);
+			p.value.string_list = NULL;
+			p.type = GF_PROP_UINT_LIST;
+			p.value.uint_list.nb_items = 1;
+			p.value.uint_list.vals = &val;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','l'), &p);
 
-			p.type = GF_PROP_SINT;
-			p.value.sint = -1;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','2'), &p);
-
-			p.type = GF_PROP_UINT;
-			p.value.uint = 1;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','3'), &p);
-
-			p.type = GF_PROP_LSINT;
-			p.value.longsint = -1;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','4'), &p);
-
-			p.type = GF_PROP_LUINT;
-			p.value.longuint = 1;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','5'), &p);
-
-			p.type = GF_PROP_FLOAT;
-			p.value.fnumber = 1.0f;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','6'), &p);
-
-			p.type = GF_PROP_DOUBLE;
-			p.value.fnumber = 1.0;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','7'), &p);
-
-			p.type = GF_PROP_FRACTION;
-			p.value.frac.den = 1;
-			p.value.frac.num = 1;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','8'), &p);
-
-			p.type = GF_PROP_POINTER;
-			p.value.ptr = pck;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','9'), &p);
-
-			p.type = GF_PROP_DATA;
-			p.value.data.ptr = (char *) pidctx;
-			p.value.data.size = sizeof(pidctx);
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','a'), &p);
-
-			p.type = GF_PROP_CONST_DATA;
-			p.value.data.ptr = (char *) pidctx;
-			p.value.data.size = sizeof(pidctx);
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','b'), &p);
-
-			p.type = GF_PROP_STRING;
-			p.value.string = "custom";
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','c'), &p);
-
-			p.type = GF_PROP_BOOL;
-			p.value.boolean = GF_TRUE;
-			gf_filter_pck_set_property_str(pck, "cusd", &p);
-
-			p.type = GF_PROP_BOOL;
-			p.value.boolean = GF_TRUE;
-			gf_filter_pck_set_property_dyn(pck, "cuse", &p);
+			gf_filter_pck_set_property_str(pck, "cusd", &PROP_BOOL(GF_TRUE) );
+			gf_filter_pck_set_property_dyn(pck, "cuse", &PROP_BOOL(GF_TRUE) );
+		}
+		if (stack->gsftest) {
+			gf_filter_pck_set_dts(pck, pidctx->nb_packets-1);
+			gf_filter_pck_set_cts(pck, pidctx->nb_packets-1);
+			gf_filter_pck_set_duration(pck, 1);
+			if (pidctx->nb_packets==2) {
+				gf_filter_pck_set_seek_flag(pck, GF_TRUE);
+				gf_filter_pck_set_carousel_version(pck, 1);
+				gf_filter_pck_set_interlaced(pck, GF_TRUE);
+				gf_filter_pck_set_sap(pck, GF_FILTER_SAP_3);
+				gf_filter_pck_set_dependency_flags(pck, 0xFF);
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, &PROP_LONGUINT(0) );
+			}
+			else if (pidctx->nb_packets==3) {
+				gf_filter_pck_set_sap(pck, GF_FILTER_SAP_4);
+				gf_filter_pck_set_roll_info(pck, 1);
+				gf_filter_pck_set_byte_offset(pck, 20);
+			}
 		}
 
 		ut_filter_send_update(filter, pidctx->nb_packets);
@@ -368,6 +397,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 		gf_filter_pck_unref(pck);
 
 	}
+	if (nb_eos==count) return GF_EOS;
 	return GF_OK;
 }
 
@@ -553,6 +583,17 @@ static GF_Err ut_filter_config_source(GF_Filter *filter)
 		}
 
 		pidctx->sha_ctx = gf_sha1_starts();
+
+		if (stack->gsftest) {
+			gf_filter_pid_set_property(pidctx->dst_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
+			gf_filter_pid_set_property(pidctx->dst_pid, GF_PROP_PID_WIDTH, &PROP_UINT(5) );
+			gf_filter_pid_set_property(pidctx->dst_pid, GF_PROP_PID_HEIGHT, &PROP_UINT(2) );
+			gf_filter_pid_set_property(pidctx->dst_pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(25,1) );
+			gf_filter_pid_set_property(pidctx->dst_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+			gf_filter_pid_set_property(pidctx->dst_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_GREYSCALE) );
+			gf_filter_pid_set_property_str(pidctx->dst_pid, "gsfdummy", &p);
+			gf_filter_pid_set_property(pidctx->dst_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(25) );
+		}
 
 	}
 	return GF_OK;
@@ -749,12 +790,15 @@ static const GF_FilterArgs UTFilterArgs[] =
 	{ OFFS(update), "sends update message after half packet send. Update format is FID,argname,argval", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(cov), "Dumps options and exercise error cases for code coverage", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(norecfg), "Disabled reconfig on input pid in filter/sink mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(gsftest), "Dispatch a fake single video pid with props and packet props for GSF testing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LSINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LUINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_FLOAT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_POINTER, "0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(dummy1), "dummy for coverage", GF_PROP_FRACTION64, "0", NULL, GF_FS_ARG_UPDATE},
 	{ NULL }
 };
 
