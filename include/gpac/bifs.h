@@ -60,16 +60,8 @@ typedef struct __tag_bifs_dec GF_BifsDecoder;
 GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec);
 void gf_bifs_decoder_del(GF_BifsDecoder *codec);
 
-/*sets the scene time. Scene time is the real clock of the bifs stream in secs*/
-void gf_bifs_decoder_set_time_offset(GF_BifsDecoder *codec, Double ts);
-
-/*signals the sizeInfo of the config should be ignored - used for BIFS in AnimationStream nodes*/
-void gf_bifs_decoder_ignore_size_info(GF_BifsDecoder *codec);
-
 /*setup a stream*/
 GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder *codec, u16 ESID, char *DecoderSpecificInfo, u32 DecoderSpecificInfoLength, u32 objectTypeIndication);
-/*removes a stream*/
-GF_Err gf_bifs_decoder_remove_stream(GF_BifsDecoder *codec, u16 ESID);
 
 /*decode a BIFS AU and applies it to the graph (non-memory mode only)*/
 GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, const char *data, u32 data_length, Double ts_offset);

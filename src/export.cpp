@@ -1576,9 +1576,7 @@
 #ifndef GPAC_DISABLE_BIFS
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_ignore_size_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_configure_stream) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_remove_stream) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decode_au) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decode_command_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_get_aq_info) )
