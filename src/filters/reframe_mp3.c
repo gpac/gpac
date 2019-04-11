@@ -482,6 +482,9 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 				ctx->byte_offset = byte_offset;
 			} else if (ctx->byte_offset + ctx->mp3_buffer_size != byte_offset) {
 				ctx->byte_offset = GF_FILTER_NO_BO;
+				if ((byte_offset != GF_FILTER_NO_BO) && (byte_offset>ctx->mp3_buffer_size) ) {
+					ctx->byte_offset = byte_offset - ctx->mp3_buffer_size;
+				}
 			}
 		}
 
