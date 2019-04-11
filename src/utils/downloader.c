@@ -2378,7 +2378,9 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			if (nb_read>=buffer_size)
 				break;
 			e = gf_dm_read_data(sess, buffer+nb_read, buffer_size-nb_read, &single_read);
-			if (e) break;
+			if (e<0) {
+				break;
+			}
 
 			size = single_read;
 			single_read = 0;
@@ -2389,7 +2391,10 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 
 			nb_read+=single_read;
 			*read_size += single_read;
+
+			if (e) break;
 		}
+		if (*read_size && (e<0)) e = GF_OK;
 		nb_read = 0;
 #else
 		e = gf_dm_read_data(sess, buffer, buffer_size, read_size);
