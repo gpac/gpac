@@ -734,6 +734,8 @@ void *gf_list_enum(GF_List *ptr, u32 *pos)
 	return res;
 }
 
+//unused
+#if 0
 GF_EXPORT
 void *gf_list_rev_enum(GF_List *ptr, u32 *pos) {
 	void *res;
@@ -742,6 +744,7 @@ void *gf_list_rev_enum(GF_List *ptr, u32 *pos) {
 	(*pos)++;
 	return res;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_list_swap(GF_List *l1, GF_List *l2)
@@ -799,7 +802,8 @@ GF_List* gf_list_clone(GF_List *ptr) {
 	return new_list;
 }
 
-GF_EXPORT
+//unused
+#if 0
 void gf_list_reverse(GF_List *ptr) {
 	GF_List* saved_order;
 	void* item;
@@ -814,6 +818,7 @@ void gf_list_reverse(GF_List *ptr) {
 
 	gf_list_del(saved_order);
 }
+#endif
 
 GF_EXPORT
 void* gf_list_pop_front(GF_List *ptr) {

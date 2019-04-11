@@ -4,7 +4,7 @@
 
 mp4file="$TEMP_DIR/file.mp4"
 
-myinspect="inspect:testmode:fmt=@pn@-@dts@-@cts@@lf@"
+myinspect="inspect:test=encode:fmt=@pn@-@dts@-@cts@@lf@"
 
 test_video()
 {
