@@ -1288,6 +1288,9 @@ const char *gf_prop_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_D
 	case GF_PROP_FORBIDEN:
 		sprintf(dump, "forbiden");
 		break;
+	case GF_PROP_LAST_DEFINED:
+		sprintf(dump, "lastDefined");
+		break;
 	}
 	return dump;
 }
