@@ -345,10 +345,12 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	ctx->codecid = gf_mp3_object_type_indication(ctx->hdr);
 	sr = gf_mp3_sampling_rate(ctx->hdr);
 
-	//we change sample rate, change cts
-	if (ctx->cts && ctx->sr && (ctx->sr != sr)) {
-		ctx->cts *= sr;
-		ctx->cts /= ctx->sr;
+	if (!ctx->timescale) {
+		//we change sample rate, change cts
+		if (ctx->cts && ctx->sr && (ctx->sr != sr)) {
+			ctx->cts *= sr;
+			ctx->cts /= ctx->sr;
+		}
 	}
 	ctx->sr = sr;
 

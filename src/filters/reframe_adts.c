@@ -273,10 +273,12 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	ctx->profile = ctx->hdr.profile;
 
 	sr = GF_M4ASampleRates[ctx->hdr.sr_idx];
-	//we change sample rate, change cts
-	if (ctx->cts && (ctx->sr_idx != ctx->hdr.sr_idx)) {
-		ctx->cts *= sr;
-		ctx->cts /= GF_M4ASampleRates[ctx->sr_idx];
+	if (!ctx->timescale) {
+		//we change sample rate, change cts
+		if (ctx->cts && (ctx->sr_idx != ctx->hdr.sr_idx)) {
+			ctx->cts *= sr;
+			ctx->cts /= GF_M4ASampleRates[ctx->sr_idx];
+		}
 	}
 	ctx->sr_idx = ctx->hdr.sr_idx;
 
@@ -599,6 +601,9 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		}
 		//otherwise wait for next frame, unless if end of stream
 		else if (pck) {
+			if (ctx->timescale && !prev_pck_size &&  (cts != GF_FILTER_NO_TS) ) {
+				ctx->cts = cts;
+			}
 			break;
 		}
 

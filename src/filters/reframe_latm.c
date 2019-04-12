@@ -301,10 +301,12 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	ctx->base_object_type = ctx->acfg.base_object_type;
 
 	sr = GF_M4ASampleRates[ctx->acfg.base_sr_index];
-	//we change sample rate, change cts
-	if (ctx->cts && (ctx->sr_idx != ctx->acfg.base_sr_index)) {
-		ctx->cts *= sr;
-		ctx->cts /= GF_M4ASampleRates[ctx->sr_idx];
+	if (!ctx->timescale) {
+		//we change sample rate, change cts
+		if (ctx->cts && (ctx->sr_idx != ctx->acfg.base_sr_index)) {
+			ctx->cts *= sr;
+			ctx->cts /= GF_M4ASampleRates[ctx->sr_idx];
+		}
 	}
 	ctx->sr_idx = ctx->acfg.base_sr_index;
 
