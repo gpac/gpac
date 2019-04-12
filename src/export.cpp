@@ -218,7 +218,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_output_buffering) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u16_le) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u32_le) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bs_rewind_bits) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_truncate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_write_byte) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_write_u16_le) )
