@@ -3443,11 +3443,11 @@ single_retry:
 
 	filter->num_out_pids_not_connected ++;
 
+	GF_FilterEvent evt;
 	if (filter_found_but_pid_excluded) {
 		//PID was not included in explicit connection lists
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s in filter %s not connected to any loaded filter due to source directives\n", pid->name, pid->filter->name));
 	} else {
-		GF_FilterEvent evt;
 
 		//no filter found for this pid !
 		GF_LOG(pid->not_connected_ok ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("No filter chain found for PID %s in filter %s to any loaded filters - NOT CONNECTED\n", pid->name, pid->filter->name));
@@ -3456,20 +3456,20 @@ single_retry:
 			GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
 			pid->filter->freg->process_event(filter, &evt);
 		}
-		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
-		gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
+	}
+	GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+	gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 
-		GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
-		gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
+	GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+	gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 
-		gf_filter_pid_set_eos(pid);
-		if (pid->filter->num_out_pids_not_connected == pid->filter->num_output_pids) {
-			pid->filter->disabled = GF_TRUE;
-		}
+	gf_filter_pid_set_eos(pid);
+	if (pid->filter->num_out_pids_not_connected == pid->filter->num_output_pids) {
+		pid->filter->disabled = GF_TRUE;
+	}
 
-		if (!pid->not_connected_ok && !filter->session->max_resolve_chain_len) {
-			filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
-		}
+	if (!filter_found_but_pid_excluded && !pid->not_connected_ok && !filter->session->max_resolve_chain_len) {
+		filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
 	}
 
 	assert(pid->init_task_pending);
@@ -4452,7 +4452,8 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to signal EOS on input PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return;
 	}
-	if (pid->pid->has_seen_eos) return;
+	if (pid->has_seen_eos) return;
+	if (pid->prevent_eos_dispatch) return;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("EOS signaled on PID %s in filter %s\n", pid->name, pid->filter->name));
 	//we create a fake packet for eos signaling
@@ -4852,7 +4853,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		GF_FilterPidInst *pid_inst = gf_list_get(f->input_pids, i);
 		GF_FilterPid *pid = pid_inst->pid;
 		if (!pid) continue;
-
+		
 		if (dispatched_filters) {
 			if (gf_list_find(dispatched_filters, pid_inst->pid->filter) >=0 )
 				continue;
@@ -4989,6 +4990,14 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt)
 	if (evt->base.on_pid && PID_IS_OUTPUT(evt->base.on_pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Sending filter events upstream not yet implemented (PID %s in filter %s)\n", evt->base.on_pid->pid->name, filter->name));
 		return;
+	}
+
+	//switch and seek events are only sent on source filters
+	if ((evt->base.type==GF_FEVT_SOURCE_SWITCH) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
+		if (filter->num_input_pids) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Sending %s event on non source filter %s is not allowed, discarding)\n", gf_filter_event_name(evt->base.type), filter->name));
+			return;
+		}
 	}
 
 	dup_evt = gf_malloc(sizeof(GF_FilterEvent));
@@ -5236,12 +5245,14 @@ GF_EXPORT
 void gf_filter_pid_clear_eos(GF_FilterPid *pid, Bool clear_all)
 {
 	u32 i, j;
+	Bool was_blocking;
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
 	if (PID_IS_OUTPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Clearing EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return;
 	}
 	pid = pid->pid;
+	was_blocking = pid->filter->would_block;
 	for (i=0; i<pid->filter->num_output_pids; i++) {
 		GF_FilterPid *apid = gf_list_get(pid->filter->output_pids, i);
 		if (!clear_all && (pid != apid)) continue;
@@ -5256,6 +5267,8 @@ void gf_filter_pid_clear_eos(GF_FilterPid *pid, Bool clear_all)
 			if (apid->has_seen_eos) {
 				apid->has_seen_eos = GF_FALSE;
 				gf_filter_pid_check_unblock(apid);
+				//prevents further dispatch of eos packets by source filter
+				apid->prevent_eos_dispatch = GF_TRUE;
 			}
 			if (apidi->pid->filter->would_block && apidi->pid->filter->num_input_pids) {
 				u32 k;
@@ -5266,6 +5279,14 @@ void gf_filter_pid_clear_eos(GF_FilterPid *pid, Bool clear_all)
 			}
 		}
 	}
+	if (!clear_all || (was_blocking == pid->filter->would_block)) return;
+
+	//unblock parent
+	for (i=0; i<pid->filter->num_input_pids; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
+		gf_filter_pid_clear_eos((GF_FilterPid *) pidi, GF_TRUE);
+	}
+
 }
 
 GF_EXPORT

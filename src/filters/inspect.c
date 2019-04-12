@@ -438,6 +438,9 @@ static GF_Err inspect_process(GF_Filter *filter)
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->src_pid);
 
+		if (!pck && !gf_filter_pid_is_eos(pctx->src_pid))
+			continue;
+
 		if (pctx->dump_pid) {
 			inspect_dump_pid(ctx, pctx->tmp, pctx->src_pid, pctx->idx, pctx->init_pid_config_done ? GF_FALSE : GF_TRUE, GF_FALSE, pctx->pck_for_config, (pctx->dump_pid==2) ? GF_TRUE : GF_FALSE);
 			pctx->dump_pid = 0;

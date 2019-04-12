@@ -554,9 +554,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	//send from filter, update flags
 	if (from_filter) {
 		Bool is_cmd = (pck->info.flags & GF_PCK_CKTYPE_MASK) ? GF_TRUE : GF_FALSE;
-		if (! is_cmd )
+		if (! is_cmd ) {
 			gf_filter_forward_clock(pck->pid->filter);
-
+			pid->prevent_eos_dispatch = GF_FALSE;
+		}
 		if ( (pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS) {
 			if (!pid->has_seen_eos) {
 				pid->has_seen_eos = GF_TRUE;
