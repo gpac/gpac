@@ -1132,6 +1132,7 @@ Bool gf_props_4cc_check_props()
 
 const char *gf_prop_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum, Bool is_4cc)
 {
+	dump[0] = 0;
 	switch (att->type) {
 	case GF_PROP_SINT:
 		sprintf(dump, "%d", att->value.sint);
@@ -1182,6 +1183,7 @@ const char *gf_prop_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_D
 	case GF_PROP_FRACTION64:
 		//reduce fraction
 		if (att->value.lfrac.den && ((att->value.lfrac.num/att->value.lfrac.den) * att->value.lfrac.den == att->value.lfrac.num)) {
+			sprintf(dump, LLD, att->value.lfrac.num / att->value.lfrac.den);
 		} else {
 			sprintf(dump, LLD"/"LLU, att->value.lfrac.num, att->value.lfrac.den);
 		}
