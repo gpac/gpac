@@ -303,6 +303,16 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 			strcat(tmp, "../");
 			pathSepCount--;
 		}
+	} else if ((pathName[0]=='.') && (tmp[0]=='.') && ((tmp[1]=='/') || (tmp[1]=='\\') ) ) {
+		u32 nb_path_sep=0;
+		u32 len = (u32) strlen(tmp);
+		for (i=0; i<len; i++) {
+			if ((tmp[i]=='/') || (tmp[i]=='\\') )
+				nb_path_sep++;
+		}
+		strcpy(tmp, "");
+		while (nb_path_sep--)
+			strcat(tmp, "../");
 	} else {
 		strcat(tmp, "/");
 	}
