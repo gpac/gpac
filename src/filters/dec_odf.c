@@ -31,6 +31,8 @@ typedef struct
 {
 	GF_ObjectManager *odm;
 	GF_Scene *scene;
+	Bool is_playing;
+	GF_FilterPid *out_pid;
 } GF_ODFDecCtx;
 
 
@@ -59,6 +61,8 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	if (is_remove) {
 		out_pid = gf_filter_pid_get_udta(pid);
+		if (out_pid==ctx->out_pid)
+			ctx->out_pid = NULL;
 		gf_filter_pid_remove(out_pid);
 		return GF_OK;
 	}
@@ -80,6 +84,8 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	gf_filter_pid_copy_properties(out_pid, pid);
 	gf_filter_pid_set_property(out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_udta(pid, out_pid);
+	if (!ctx->out_pid)
+		ctx->out_pid = out_pid;
 	return GF_OK;
 }
 
@@ -285,6 +291,15 @@ GF_Err odf_dec_process(GF_Filter *filter)
 	const char *data;
 	u32 size, ESID=0;
 	const GF_PropertyValue *prop;
+	GF_ODFDecCtx *ctx = gf_filter_get_udta(filter);
+
+	if (!ctx->scene) {
+		if (ctx->is_playing) {
+			gf_filter_pid_set_eos(ctx->out_pid);
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
 
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
@@ -405,6 +420,9 @@ static Bool odf_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	switch (com->base.type) {
 	case GF_FEVT_ATTACH_SCENE:
 		break;
+	case GF_FEVT_PLAY:
+		ctx->is_playing = GF_TRUE;
+		return GF_FALSE;
 	default:
 		return GF_FALSE;
 	}

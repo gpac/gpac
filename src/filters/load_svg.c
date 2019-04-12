@@ -47,6 +47,7 @@ typedef struct
 	u16 base_es_id;
 	u32 file_pos;
 	gzFile src;
+	Bool is_playing;
 } SVGIn;
 
 
@@ -99,7 +100,13 @@ static GF_Err svgin_process(GF_Filter *filter)
 	SVGIn *svgin = (SVGIn *) gf_filter_get_udta(filter);
 
 	//no scene yet attached
-	if (!svgin->scene) return GF_OK;
+	if (!svgin->scene) {
+		if (svgin->is_playing) {
+			gf_filter_pid_set_eos(svgin->out_pid);
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
 
 #ifdef FILTER_FIXME
 	if (stream_time==(u32)-1) {
@@ -348,6 +355,7 @@ static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	switch (com->base.type) {
 	case GF_FEVT_PLAY:
 		//cancel play event, we work with full file
+		svgin->is_playing = GF_TRUE;
 		return GF_TRUE;
 	case GF_FEVT_ATTACH_SCENE:
 		break;

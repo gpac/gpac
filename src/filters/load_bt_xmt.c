@@ -60,6 +60,7 @@ typedef struct
 
 	u64 pck_time;
 	const char *service_url;
+	Bool is_playing;
 } CTXLoadPriv;
 
 
@@ -269,6 +270,7 @@ static Bool ctxload_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	case GF_FEVT_PLAY:
 		//cancel play event, we work with full file
 		//TODO: animation stream in BT
+		priv->is_playing = GF_TRUE;
 		return GF_TRUE;
 	case GF_FEVT_ATTACH_SCENE:
 		break;
@@ -371,8 +373,14 @@ static GF_Err ctxload_process(GF_Filter *filter)
 	CTXLoadPriv *priv = gf_filter_get_udta(filter);
 
 	//not yet ready
-	if (!priv->scene) return GF_OK;
-	
+	if (!priv->scene) {
+		if (priv->is_playing) {
+			gf_filter_pid_set_eos(priv->out_pid);
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
+
 	/*something failed*/
 	if (priv->load_flags==3) return GF_EOS;
 

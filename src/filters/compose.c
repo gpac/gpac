@@ -110,7 +110,7 @@ static GF_Err compose_process(GF_Filter *filter)
 			n /= 1000;
 			if (n>=ctx->dur)
 				ctx->check_eos_state = 2;
-			else if (ctx->vfr && !ctx->check_eos_state && !nb_sys_streams_active && ctx->scene_sampled_clock) {
+			else if (!ret && ctx->vfr && !ctx->check_eos_state && !nb_sys_streams_active && ctx->scene_sampled_clock) {
 				ctx->check_eos_state = 1;
 				if (!ctx->validator_mode)
 					ctx->force_next_frame_redraw = GF_TRUE;

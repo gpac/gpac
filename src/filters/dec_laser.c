@@ -38,6 +38,8 @@ typedef struct
 //	GF_Terminal *app;
 	GF_LASeRCodec *codec;
 	u32 PL, nb_streams;
+	Bool is_playing;
+	GF_FilterPid *out_pid;
 } GF_LSRDecCtx;
 
 static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -72,6 +74,8 @@ static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (is_remove) {
 		out_pid = gf_filter_pid_get_udta(pid);
+		if (ctx->out_pid==out_pid)
+			ctx->out_pid = NULL;
 		gf_filter_pid_remove(out_pid);
 		ctx->nb_streams--;
 		if (ctx->codec && ESID) {
@@ -98,6 +102,9 @@ static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_copy_properties(out_pid, pid);
 	gf_filter_pid_set_property(out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_udta(pid, out_pid);
+
+	if (!ctx->out_pid)
+		ctx->out_pid = out_pid;
 	return GF_OK;
 }
 
@@ -109,6 +116,9 @@ static Bool lsrdec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	switch (com->base.type) {
 	case GF_FEVT_ATTACH_SCENE:
 		break;
+	case GF_FEVT_PLAY:
+		ctx->is_playing = GF_TRUE;
+		return GF_FALSE;
 	default:
 		return GF_FALSE;
 	}
@@ -151,7 +161,14 @@ static GF_Err lsrdec_process(GF_Filter *filter)
 	GF_LSRDecCtx *ctx = gf_filter_get_udta(filter);
 	GF_Scene *scene = ctx->scene;
 
-	if (!scene || !ctx->codec) return GF_OK;
+	if (!scene) {
+		if (ctx->is_playing) {
+			gf_filter_pid_set_eos(ctx->out_pid);
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
+	if (!ctx->codec) return GF_OK;
 
 
 	count = gf_filter_get_ipid_count(filter);
