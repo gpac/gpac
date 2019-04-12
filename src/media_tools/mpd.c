@@ -1497,6 +1497,7 @@ try_next_segment:
 						break;
 					}
 				}
+				if (elt_url) gf_free(elt_url);
 			}
 #endif
 			GF_SAFEALLOC(rep, GF_MPD_Representation);
