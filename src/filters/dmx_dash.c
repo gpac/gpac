@@ -68,6 +68,7 @@ typedef struct
 	Double media_start_range;
 
 	Bool mpd_open;
+	Bool initial_play;
 } GF_DASHDmxCtx;
 
 typedef struct
@@ -1000,6 +1001,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	gf_dash_ignore_xlink(ctx->dash, ctx->noxlink);
 	gf_dash_set_period_xlink_query_string(ctx->dash, ctx->query);
 
+	ctx->initial_play = GF_TRUE;
 	return GF_OK;
 }
 
@@ -1020,6 +1022,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 	GF_FilterPid *ipid;
 	u64 pto;
 	u32 timescale;
+	Bool initial_play;
 	Double offset;
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) gf_filter_get_udta(filter);
 	GF_DASHGroup *group;
@@ -1128,23 +1131,30 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		if (fevt->play.speed)
 			gf_dash_set_speed(ctx->dash, fevt->play.speed);
 
+		initial_play = ctx->initial_play;
+		if (fevt->play.initial_broadcast_play) initial_play = GF_TRUE;
+
 		/*don't seek if this command is the first PLAY request of objects declared by the subservice, unless start range is not default one (0) */
-		if (!ctx->nb_playing && (!fevt->play.initial_broadcast_play || (fevt->play.start_range>1.0) )) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] Received Play command on group %d\n", group->idx));
+		if (!ctx->nb_playing) {
+			if (!initial_play || (fevt->play.start_range>1.0)) {
+				ctx->initial_play = GF_FALSE;
 
-			if (fevt->play.end_range<=0) {
-				u32 ms = (u32) ( 1000 * (-fevt->play.end_range) );
-				if (ms<1000) ms = 0;
-				gf_dash_set_timeshift(ctx->dash, ms);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] Received Play command on group %d\n", group->idx));
+
+				if (fevt->play.end_range<=0) {
+					u32 ms = (u32) ( 1000 * (-fevt->play.end_range) );
+					if (ms<1000) ms = 0;
+					gf_dash_set_timeshift(ctx->dash, ms);
+				}
+				gf_dash_seek(ctx->dash, fevt->play.start_range);
+
+				//to remove once we manage to keep the service alive
+				/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
+				if (gf_dash_get_period_switch_status(ctx->dash)) return GF_TRUE;
 			}
-			gf_dash_seek(ctx->dash, fevt->play.start_range);
-
-			//to remove once we manage to keep the service alive
-			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
-			if (gf_dash_get_period_switch_status(ctx->dash)) return GF_TRUE;
 		}
 		//otherwise in static mode, perform a group seek
-		else if (!fevt->play.initial_broadcast_play && !gf_dash_is_dynamic_mpd(ctx->dash) ) {
+		else if (!initial_play && !gf_dash_is_dynamic_mpd(ctx->dash) ) {
 			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
 			if (gf_dash_get_period_switch_status(ctx->dash)) return GF_TRUE;
 
@@ -1178,8 +1188,9 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		gf_dash_group_select(ctx->dash, (u32) group->idx, GF_FALSE);
 		group->is_playing = GF_FALSE;
 
-		if (ctx->nb_playing)
+		if (ctx->nb_playing) {
 			ctx->nb_playing--;
+		}
 
 		//forward new event to source pid
 		src_evt = *fevt;
@@ -1235,11 +1246,13 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	group->stats_uploaded = GF_FALSE;
 	group_done = GF_FALSE;
 
+#if 0
 	if (group_done) {
 		if (!gf_dash_get_period_switch_status(ctx->dash) && gf_dash_in_last_period(ctx->dash, GF_TRUE)) {
 			return;
 		}
 	}
+#endif
 
 	group_idx = group->idx;
 	if (group->nb_group_deps) {
@@ -1398,7 +1411,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		while (1) {
 			pck = gf_filter_pid_get_packet(ipid);
 			if (!pck) {
-				if (gf_filter_pid_is_eos(ipid)) {
+				if (gf_filter_pid_is_eos(ipid) || !gf_filter_pid_is_playing(opid)) {
 					group->nb_eos++;
 
 					if (group->nb_eos * (1 + group->nb_group_deps) ==group->nb_pids) {
@@ -1406,7 +1419,14 @@ GF_Err dashdmx_process(GF_Filter *filter)
 						if (!group->current_group_dep && gf_filter_pid_would_block(opid)) {
 							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment but output pid would block, postponing\n"));
 						} else {
-							gf_filter_pid_clear_eos(ipid, GF_TRUE);
+							for (i=0; i<count; i++) {
+								GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+								if (ipid == ctx->mpd_pid) continue;
+
+								if (gf_filter_pid_is_eos(ipid))
+									gf_filter_pid_clear_eos(ipid, GF_TRUE);
+							}
+
 							dashdmx_update_group_stats(ctx, group);
 							dashdmx_switch_segment(ctx, group);
 							if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
@@ -1558,6 +1578,7 @@ static const GF_FilterCapability DASHDmxCaps[] =
 	//accept any stream but files, framed
 	{ .code=GF_PROP_PID_STREAM_TYPE, .val.type=GF_PROP_UINT, .val.value.uint=GF_STREAM_FILE, .flags=(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_EXCLUDED|GF_CAPFLAG_LOADED_FILTER) },
 	{ .code=GF_PROP_PID_UNFRAMED, .val.type=GF_PROP_BOOL, .val.value.boolean=GF_TRUE, .flags=(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_EXCLUDED|GF_CAPFLAG_LOADED_FILTER) },
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
