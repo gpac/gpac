@@ -3491,7 +3491,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	if (info) {
 		gf_fseek(info, 0, SEEK_END);
 		specInfoSize = (u32) gf_ftell(info);
-		specInfo = (char*)gf_malloc(sizeof(char) * specInfoSize);
+		specInfo = (char*)gf_malloc(sizeof(char) * (specInfoSize+1));
 		gf_fseek(info, 0, SEEK_SET);
 		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, info);
 		specInfo[specInfoSize] = 0;

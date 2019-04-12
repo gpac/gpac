@@ -1104,7 +1104,6 @@ GF_Err gf_odf_del_dcd(GF_DecoderConfig *dcd)
 {
 	GF_Err e;
 	if (!dcd) return GF_BAD_PARAM;
-
 	if (dcd->decoderSpecificInfo) {
 		e = gf_odf_delete_descriptor((GF_Descriptor *) dcd->decoderSpecificInfo);
 		if (e) return e;
