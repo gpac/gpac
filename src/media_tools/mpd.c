@@ -1869,7 +1869,7 @@ try_next_segment:
 					if (! url) return GF_OUT_OF_MEM;
 					e = gf_list_add(rep->base_URLs, url);
 					if (e) return GF_OUT_OF_MEM;
-					url->URL = gf_strdup(base_url);
+					url->URL = gf_url_concatenate(mpd_file, base_url);
 				}
 			}
 
