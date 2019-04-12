@@ -36,6 +36,8 @@ typedef struct
 	GF_ObjectManager *odm;
 	GF_Scene *scene;
 
+	Bool is_playing;
+	GF_FilterPid *out_pid;
 } GF_BIFSDecCtx;
 
 #ifndef GPAC_DISABLE_BIFS
@@ -110,6 +112,8 @@ GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (is_remove) {
 		out_pid = gf_filter_pid_get_udta(pid);
+		if (ctx->out_pid==out_pid)
+			ctx->out_pid = NULL;
 		gf_filter_pid_remove(out_pid);
 		return GF_OK;
 	}
@@ -131,6 +135,9 @@ GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	gf_filter_pid_copy_properties(out_pid, pid);
 	gf_filter_pid_set_property(out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_udta(pid, out_pid);
+
+	if (!ctx->out_pid)
+		ctx->out_pid = out_pid;
 	return GF_OK;
 }
 
@@ -151,7 +158,14 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 
 	GF_Scene *scene = ctx->scene;
 
-	if (!scene || !ctx->bifs_dec) return GF_OK;
+	if (!scene) {
+		if (ctx->is_playing) {
+			gf_filter_pid_set_eos(ctx->out_pid);
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
+	if (!ctx->bifs_dec) return GF_OK;
 
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
@@ -219,6 +233,9 @@ static Bool bifs_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	switch (com->base.type) {
 	case GF_FEVT_ATTACH_SCENE:
 		break;
+	case GF_FEVT_PLAY:
+		ctx->is_playing = GF_TRUE;
+		return GF_FALSE;
 	default:
 		return GF_FALSE;
 	}
