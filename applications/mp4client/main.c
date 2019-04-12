@@ -923,7 +923,7 @@ static void on_rti_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *f
 {
 	if (rti_logs && (lm & GF_LOG_RTI)) {
 		char szMsg[2048];
-		vsprintf(szMsg, fmt, list);
+		vsnprintf(szMsg, 2048, fmt, list);
 		UpdateRTInfo(szMsg + 6 /*"[RTI] "*/);
 	}
 }
