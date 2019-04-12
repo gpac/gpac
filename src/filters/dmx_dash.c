@@ -39,7 +39,7 @@ typedef struct
 	//opts
 	s32 shift_utc, debug_as, atsc_shift;
 	u32 max_buffer, auto_switch, timeshift, tiles_rate, store, delay40X, exp_threshold, switch_count;
-	Bool server_utc, screen_res, aggressive, speed;
+	Bool server_utc, screen_res, aggressive, speedadapt;
 	GF_DASHInitialSelectionMode start_with;
 	GF_DASHTileAdaptationMode tile_mode;
 	GF_DASHAdaptationAlgorithm algo;
@@ -997,7 +997,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	gf_dash_set_switching_probe_count(ctx->dash, ctx->switch_count);
 	gf_dash_set_agressive_adaptation(ctx->dash, ctx->aggressive);
 	gf_dash_debug_group(ctx->dash, ctx->debug_as);
-	gf_dash_disable_speed_adaptation(ctx->dash, ctx->speed);
+	gf_dash_disable_speed_adaptation(ctx->dash, ctx->speedadapt);
 	gf_dash_ignore_xlink(ctx->dash, ctx->noxlink);
 	gf_dash_set_period_xlink_query_string(ctx->dash, ctx->query);
 
@@ -1553,7 +1553,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(switch_count), "Indicates how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(aggressive), "If enabled, switching algo targets the closest bandwidth fitting the available download rate. If no, switching algo targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(debug_as), "Plays only the adaptation set indicated by its index in the MPD; if negative, all sets are used", GF_PROP_UINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(speed), "Enables adaptation based on playback speed", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(speedadapt), "Enables adaptation based on playback speed", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noxlink), "Disables xlink if period has both xlink and adaptation sets", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(query), "Sets query string (without initial '?') to append to xlink of periods", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
