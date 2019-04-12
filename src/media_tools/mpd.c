@@ -1583,12 +1583,15 @@ try_next_segment:
 				byte_range_media_file = elt->url;
 				url->URL = gf_strdup(byte_range_media_file);
 			} else {
-				GF_MPD_BaseURL *url;
-				GF_SAFEALLOC(url, GF_MPD_BaseURL);
-				if (! url) return GF_OUT_OF_MEM;
-				e = gf_list_add(rep->base_URLs, url);
-				if (e) return GF_OUT_OF_MEM;
-				url->URL = gf_strdup(base_url);
+				u32 url_len = strlen(base_url);
+				if (strncmp(base_url, mpd_file, url_len)) {
+					GF_MPD_BaseURL *url;
+					GF_SAFEALLOC(url, GF_MPD_BaseURL);
+					if (! url) return GF_OUT_OF_MEM;
+					e = gf_list_add(rep->base_URLs, url);
+					if (e) return GF_OUT_OF_MEM;
+					url->URL = gf_strdup(base_url);
+				}
 			}
 
 			GF_SAFEALLOC(rep->segment_list, GF_MPD_SegmentList);
