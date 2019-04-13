@@ -3110,6 +3110,11 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		} else {
 			entry->EntryType = udesc->codec_tag;
 		}
+		if (entry->EntryType == 0) {
+			gf_isom_box_del((GF_Box *)entry);
+			return GF_NOT_SUPPORTED;
+		}
+
 		entry->dataReferenceIndex = dataRefIndex;
 		entry->vendor = udesc->vendor_code;
 		entry->version = udesc->version;
@@ -3147,6 +3152,11 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		} else {
 			gena->EntryType = udesc->codec_tag;
 		}
+		if (gena->EntryType == 0) {
+			gf_isom_box_del((GF_Box *)gena);
+			return GF_NOT_SUPPORTED;
+		}
+
 		gena->dataReferenceIndex = dataRefIndex;
 		gena->vendor = udesc->vendor_code;
 		gena->version = udesc->version;
@@ -3179,6 +3189,11 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		} else {
 			genm->EntryType = udesc->codec_tag;
 		}
+		if (genm->EntryType == 0) {
+			gf_isom_box_del((GF_Box *)genm);
+			return GF_NOT_SUPPORTED;
+		}
+
 		genm->dataReferenceIndex = dataRefIndex;
 		if (udesc->extension_buf && udesc->extension_buf_size) {
 			genm->data = (char*)gf_malloc(sizeof(char) * udesc->extension_buf_size);
