@@ -973,13 +973,13 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				i++;
 			}
 			if (change_input_fmt == AV_PIX_FMT_NONE) {
-#if LIBAVCODEC_VERSION_MAJOR >= 58
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 				void *ff_opaque=NULL;
 #else
 				AVCodec *codec_alt = NULL;
 #endif
 				while (1) {
-#if LIBAVCODEC_VERSION_MAJOR >= 58
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 					const AVCodec *codec_alt = av_codec_iterate(&ff_opaque);
 #else
 					codec_alt = av_codec_next(codec_alt);
@@ -1335,7 +1335,7 @@ const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
 		idx++;
 	}
 
-#if LIBAVCODEC_VERSION_MAJOR >= 58
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 	avcodec_free_context(&ctx);
 #else
 	av_free(ctx);
