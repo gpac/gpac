@@ -93,8 +93,10 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	cid = p->value.uint;
 
 	ctx->codecid = cid;
-	if (!ctx->opid)
+	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
+		ctx->first = GF_TRUE;
+	}
 
 	ctx->ipid = pid;
 
@@ -358,7 +360,6 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		}
 	}
 
-	ctx->first = GF_TRUE;
 	//avoid creating a file when dumping individual samples
 	if (ctx->split) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NB_FRAMES);
