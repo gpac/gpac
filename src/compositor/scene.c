@@ -2550,6 +2550,14 @@ Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_bu
 		}
 		i=0;
 		while ( (odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i)) ) {
+			switch (odm->type) {
+			case GF_STREAM_OCR:
+			case GF_STREAM_INTERACT:
+				continue;
+			default:
+				break;
+			}
+
 			if (odm->scene_ns && (odm->scene_ns != ns)) {
 				if (!gf_scene_check_clocks(odm->scene_ns, NULL, check_buffering)) return 0;
 			} else if (odm->ck) {

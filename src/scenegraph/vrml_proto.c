@@ -530,7 +530,7 @@ GF_Err gf_sg_proto_get_field_ind_static(GF_Node *Node, u32 inField, u8 IndexMode
 static Bool is_same_proto(GF_Proto *extern_proto, GF_Proto *proto)
 {
 	u32 i, count;
-	/*CRML allows external protos to have more fields defined that the externProto referencing them*/
+	/*VRML allows external protos to have more fields defined that the externProto referencing them*/
 	if (gf_list_count(extern_proto->proto_fields) > gf_list_count(proto->proto_fields)) return 0;
 	count = gf_list_count(extern_proto->proto_fields);
 	for (i=0; i<count; i++) {
