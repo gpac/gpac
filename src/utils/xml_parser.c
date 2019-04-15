@@ -220,14 +220,16 @@ static void format_sax_error(GF_SAXParser *parser, u32 linepos, const char* fmt,
 	char szM[20];
 
 	va_start(args, fmt);
-	vsprintf(parser->err_msg, fmt, args);
+	vsnprintf(parser->err_msg, ARRAY_LENGTH(parser->err_msg), fmt, args);
 	va_end(args);
 
-	sprintf(szM, " - Line %d: ", parser->line + 1);
-	strcat(parser->err_msg, szM);
-	len = (u32) strlen(parser->err_msg);
-	strncpy(parser->err_msg + len, parser->buffer+ (linepos ? linepos : parser->current_pos), 10);
-	parser->err_msg[len + 10] = 0;
+	if (strlen(parser->err_msg)+30 < ARRAY_LENGTH(parser->err_msg)) {
+		snprintf(szM, 20, " - Line %d: ", parser->line + 1);
+		strcat(parser->err_msg, szM);
+		len = (u32) strlen(parser->err_msg);
+		strncpy(parser->err_msg + len, parser->buffer+ (linepos ? linepos : parser->current_pos), 10);
+		parser->err_msg[len + 10] = 0;
+	}
 	parser->sax_state = SAX_STATE_SYNTAX_ERROR;
 }
 
@@ -1381,7 +1383,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 							}\
 							if (__is_copy) { memmove(szLine, __str, sizeof(char)*_len); szLine[_len] = 0; }\
 							else strcat(szLine, __str); \
- 
+
 	from_buffer=GF_FALSE;
 #ifdef NO_GZIP
 	if (!parser->f_in) from_buffer=GF_TRUE;
@@ -1652,7 +1654,7 @@ static void on_dom_node_start(void *cbk, const char *name, const char *ns, const
 		par->root = node;
 		gf_list_add(par->root_nodes, node);
 	}
-	
+
 	for (i=0; i<nb_attributes; i++) {
 		GF_XMLAttribute *att;
 		GF_SAFEALLOC(att, GF_XMLAttribute);
@@ -1719,7 +1721,7 @@ GF_DOMParser *gf_xml_dom_new()
 	GF_DOMParser *dom;
 	GF_SAFEALLOC(dom, GF_DOMParser);
 	if (!dom) return NULL;
-	
+
 	dom->root_nodes = gf_list_new();
 	return dom;
 }
@@ -1860,7 +1862,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 	}	\
 	strcat((*str), v);	\
 	*size += vlen;	\
- 
+
 	switch (node->type) {
 	case GF_XML_CDATA_TYPE:
 		SET_STRING("![CDATA[");
@@ -2018,7 +2020,7 @@ GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name) {
 	else if (strstr(att->value, "0X")) { u32 __i; sscanf(att->value+2, "%X", &__i); _value = __i; }\
 	else sscanf(att->value, _fmt, &_value); \
 	}\
- 
+
 
 GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs)
 {

@@ -125,6 +125,7 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 	Bool is_lhvc = GF_FALSE;
 	u32 i, j;
 	const GF_PropertyValue *dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+
 	if (!dsi) {
 		dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
 		is_lhvc = GF_TRUE;
@@ -283,11 +284,13 @@ static void ohevc_set_out_props(GF_OHEVCDecCtx *ctx)
 
 static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 i, j, dep_id=0, id=0, cfg_crc=0, codecid;
+	u32 i, dep_id=0, id=0, cfg_crc=0, codecid;
 	Bool has_scalable = GF_FALSE;
 	Bool is_sublayer = GF_FALSE;
+	char *patched_dsi=NULL;
+	u32 patched_dsi_size=0;
 	GF_HEVCStream *stream;
-	const GF_PropertyValue *p, *dsi;
+	const GF_PropertyValue *p, *dsi, *dsi_enh=NULL;
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx*) gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -337,6 +340,8 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (dsi && dsi->value.data.ptr && dsi->value.data.size) {
 		cfg_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
 	}
+	dsi_enh = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+
 	stream = NULL;
 	//check if this is an update
 	for (i=0; i<ctx->nb_streams; i++) {
@@ -468,16 +473,31 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 #endif
 		{
 			GF_HEVCConfig *hvcc = NULL;
+			GF_HEVCConfig *hvcc_enh = NULL;
 			HEVCState hevc;
+			u32 j;
 			GF_List *SPSs=NULL, *PPSs=NULL, *VPSs=NULL;
 			memset(&hevc, 0, sizeof(HEVCState));
 
 			hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 			if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
+
 			ctx->hevc_nalu_size_length = hvcc->nal_unit_size;
+
+			if (dsi_enh) {
+				hvcc_enh = gf_odf_hevc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size, GF_TRUE);
+			}
 
 			for (i=0; i< gf_list_count(hvcc->param_array); i++) {
 				GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(hvcc->param_array, i);
+
+				if (hvcc_enh) {
+					for (j=0; j< gf_list_count(hvcc_enh->param_array); j++) {
+						GF_HEVCParamArray *ar_enh = (GF_HEVCParamArray *)gf_list_get(hvcc_enh->param_array, j);
+						if (ar->type==ar_enh->type)
+							gf_list_transfer(ar->nalus, ar_enh->nalus);
+					}
+				}
 				for (j=0; j< gf_list_count(ar->nalus); j++) {
 					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
 					s32 idx;
@@ -519,6 +539,10 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				} else {
 					ohevcdec_create_inband(stream, hvcc->nal_unit_size, SPSs, PPSs, VPSs);
 				}
+			}
+			if (hvcc_enh) {
+				gf_odf_hevc_cfg_del(hvcc_enh);
+				gf_odf_hevc_cfg_write(hvcc, &patched_dsi, &patched_dsi_size);
 			}
 			gf_odf_hevc_cfg_del(hvcc);
 		}
@@ -573,7 +597,13 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				oh_extradata_cpy_lhvc(ctx->codec, (u8 *) dsi->value.data.ptr, NULL, dsi->value.data.size, 0);
 			} else
 #endif
-				oh_extradata_cpy(ctx->codec, (u8 *) dsi->value.data.ptr, dsi->value.data.size);
+			{
+				if (patched_dsi) {
+					oh_extradata_cpy(ctx->codec, (u8 *) patched_dsi, patched_dsi_size);
+				} else {
+					oh_extradata_cpy(ctx->codec, (u8 *) dsi->value.data.ptr, dsi->value.data.size);
+				}
+			}
 		}
 	} else {
 		//decode and display layer 0 by default - will be changed when attaching enhancement layers
@@ -587,6 +617,8 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		oh_select_active_layer(ctx->codec, ctx->cur_layer-1);
 		oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
 	}
+
+	if (patched_dsi) gf_free(patched_dsi);
 
 	//in case we don't have a config record
 	if (!ctx->chroma_format_idc) ctx->chroma_format_idc = 1;
@@ -781,7 +813,9 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 			ctx->out_size = ctx->stride * ctx->height * 3;
 		} 
 		//force top/bottom output of left and right frame, double height
-		if ((ctx->cur_layer==2) && (ctx->is_multiview || ctx->force_stereo) ){
+		if (ctx->pack_hfr) {
+			ctx->out_size *= 4;
+		} else if ((ctx->cur_layer==2) && (ctx->is_multiview || ctx->force_stereo) ){
 			ctx->out_size *= 2;
 		}
 
@@ -791,13 +825,6 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		ctx->sar.den = openHevcFrame_FL.frame_par.sample_aspect_ratio.den;
 		if (!ctx->sar.num) ctx->sar.num = ctx->sar.den = 1;
 
-		if (ctx->pack_hfr) {
-			ctx->out_size *= 4;
-		} else {
-			if (ctx->force_stereo && ctx->is_multiview && ctx->cur_layer>1) {
-				ctx->out_size *= 2;
-			}
-		}
 		ohevc_set_out_props(ctx);
 	}
 

@@ -502,7 +502,10 @@ static const struct predef_keyid {
 	{ GF_KEY_INFO, "Info" },
 	{ GF_KEY_EPG, "EPG" },
 	{ GF_KEY_RECORD, "Record" },
-	{ GF_KEY_BEGINPAGE, "BeginPage" }
+	{ GF_KEY_BEGINPAGE, "BeginPage" },
+
+	{ GF_KEY_CELL_SOFT1, "CELLSOFT1" },
+	{ GF_KEY_CELL_SOFT2, "CELLSOFT2" },
 };
 
 
@@ -1340,7 +1343,7 @@ static GF_Err svg_parse_transform(SVG_Transform *t, char *attribute_content)
 	if ((str = strstr(attribute_content, "ref"))) {
 		t->is_ref = 1;
 		gf_mx2d_init(t->mat);
-		str+=2;
+		str+=3;
 		while (str[i] == ' ') i++;
 		if (str[i] == '(') {
 			i++;
@@ -4848,7 +4851,7 @@ char *gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info)
 	case SVG_Points_datatype:
 	{
 #if DUMP_COORDINATES
-		SVG_Point *p = (SVG_Point *)info->far_ptr;
+		SVG_Point *p = (SVG_Point *)gf_list_get((GF_List *)info->far_ptr, 0);
 		sprintf(tmp, "%g %g", _FIX2FLT(p->x), _FIX2FLT(p->y));
 		return gf_strdup(tmp);
 #endif
@@ -4858,7 +4861,7 @@ char *gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info)
 	case SMIL_KeyTimes_datatype:
 	case SMIL_KeySplines_datatype:
 	{
-		Fixed *p = (Fixed *)info->far_ptr;
+		Fixed *p = (Fixed *)gf_list_get((GF_List *)info->far_ptr, 0);
 		sprintf(tmp, "%g", _FIX2FLT(*p));
 		return gf_strdup(tmp);
 	}
@@ -4885,7 +4888,7 @@ char *gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info)
 	break;
 	case SMIL_Times_datatype:
 	{
-		SMIL_Time *t = (SMIL_Time *)info->far_ptr;
+		SMIL_Time *t = (SMIL_Time *)gf_list_get((GF_List *)info->far_ptr, 0);
 		if (t->type == GF_SMIL_TIME_CLOCK) {
 			sprintf(tmp, "%gs", t->clock);
 		} else if (t->type==GF_SMIL_TIME_INDEFINITE) {

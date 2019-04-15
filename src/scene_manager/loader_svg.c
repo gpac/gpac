@@ -132,7 +132,7 @@ static GF_Err svg_report(GF_SVG_Parser *parser, GF_Err e, char *format, ...)
 		char szMsg[2048];
 		va_list args;
 		va_start(args, format);
-		vsprintf(szMsg, format, args);
+		vsnprintf(szMsg, 2048, format, args);
 		va_end(args);
 		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[SVG Parsing] line %d - %s\n", gf_xml_sax_get_line(parser->sax_parser), szMsg));
 	}
@@ -164,7 +164,7 @@ static SVG_SAFExternalStream *svg_saf_get_stream(GF_SVG_Parser *parser, u32 id, 
 	st = parser->streams;
 	while (st) {
 		if (id == st->id) return st;
-		if (name && !strcmp(name, st->stream_name) ) return st;
+		if (name && st->stream_name && !strcmp(name, st->stream_name) ) return st;
 		st = st->next;
 	}
 	return NULL;
@@ -184,7 +184,7 @@ static SVG_SAFExternalStream *svg_saf_get_next_available_stream(GF_SVG_Parser *p
 	}
 	GF_SAFEALLOC(st, SVG_SAFExternalStream);
 	if (!st) return NULL;
-	
+
 	if (prev) prev->next = st;
 	else parser->streams = st;
 	st->id = id+1;
@@ -326,10 +326,10 @@ static GF_Node *svg_find_node(GF_SVG_Parser *parser, char *ID)
 static void svg_post_process_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *iri)
 {
 	GF_Err e;
-	
+
 	/* Embed script if needed or clean data URL with proper mime type */
 	svg_process_media_href(parser, elt, iri);
-	
+
 	/*keep data when encoding*/
 	if ( !(parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK)) return;
 
@@ -729,6 +729,8 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			GF_DOMFullNode *d = (GF_DOMFullNode *)elt;
 			d->name = gf_strdup(name);
 			d->ns = xmlns;
+			if (ID)
+				gf_svg_parse_element_id((GF_Node *)d, ID, GF_FALSE);
 		}
 	}
 
@@ -1002,6 +1004,9 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			gf_list_add(parser->defered_listeners, listener);
 	}
 
+	if (!node_name && ID)
+		node_name = ID;
+
 	/* if the new element has an id, we try to resolve defered references (including animations, href and listeners (just above)*/
 	if (node_name) {
 		if (!has_id) {
@@ -1243,7 +1248,7 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 		/*should be a XML IDREF, not an XML IRI*/
 		if (atNode[0]=='#') atNode++;
 		parser->command->node = svg_find_node(parser, atNode);
-		if (!parser->command->node) return svg_report(parser, GF_BAD_PARAM, "Cannot find node node ref %s for command", atNode);
+		if (!parser->command->node) return svg_report(parser, GF_BAD_PARAM, "Cannot find node ref %s for command", atNode);
 		gf_node_register(parser->command->node, NULL);
 
 		/*switch to V2*/
@@ -1270,7 +1275,7 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 
 		parser->command->send_event_name = gf_dom_event_type_by_name(atEvent);
 
-		parser->command->send_event_integer = 0xEFFFFFFF;
+		parser->command->send_event_integer = 0;
 		if (atString) {
 			u32 key = gf_dom_get_key_type(atString);
 			if (key == GF_KEY_UNIDENTIFIED) {
@@ -1464,7 +1469,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 			/*create new SAF stream*/
 			st = svg_saf_get_next_available_stream(parser);
-			st->stream_name = gf_strdup(ID);
+			st->stream_name = ID ? gf_strdup(ID) : NULL;
 
 			/*create new SAF unit*/
 			parser->saf_au = gf_sm_stream_au_new(parser->saf_es, time, 0, GF_FALSE);
@@ -1622,7 +1627,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				if (parser->laser_au) parser->laser_au->flags |= GF_SM_AU_RAP;
 				break;
 			}
-
+			parser->current_ns = GF_XMLNS_SVG;
 			return;
 		}
 	}
@@ -1666,7 +1671,6 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		if (field) {
 			/*either not assigned or textContent*/
 			if (field->new_node && (field->new_node->sgprivate->tag==TAG_DOMText)) {
-				svg_report(parser, GF_OK, "Warning: LASeR cannot replace children with a mix of text nodes and elements - ignoring text\n");
 				gf_node_unregister(field->new_node, NULL);
 				field->new_node = NULL;
 			}
@@ -2041,6 +2045,8 @@ GF_Err load_svg_run(GF_SceneLoader *load)
 
 	in_time = gf_sys_clock();
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, svg_progress);
+	if (parser->last_error<0) e = parser->last_error;
+	
 	if (e<0) return svg_report(parser, e, "Unable to parse file %s: %s", load->fileName, gf_xml_sax_get_error(parser->sax_parser) );
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[Parser] Scene parsed and Scene Graph built in %d ms\n", gf_sys_clock() - in_time));
 

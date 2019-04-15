@@ -183,12 +183,14 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 	return GF_OK;
 }
 
+
+
+#if 0	//deprecated
 GF_EXPORT
 void gf_bifs_decoder_ignore_size_info(GF_BifsDecoder *codec)
 {
 	if (codec) codec->ignore_size = GF_TRUE;
 }
-
 
 GF_EXPORT
 GF_Err gf_bifs_decoder_remove_stream(GF_BifsDecoder *codec, u16 ESID)
@@ -206,6 +208,8 @@ GF_Err gf_bifs_decoder_remove_stream(GF_BifsDecoder *codec, u16 ESID)
 	}
 	return GF_BAD_PARAM;
 }
+#endif
+
 
 GF_EXPORT
 void gf_bifs_decoder_del(GF_BifsDecoder *codec)
@@ -267,12 +271,6 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, const char *data, u32 
 	codec->info = NULL;
 	codec->current_graph = NULL;
 	return e;
-}
-
-
-void gf_bifs_decoder_set_time_offset(GF_BifsDecoder *codec, Double ts)
-{
-	codec->cts_offset = ts;
 }
 
 

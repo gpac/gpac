@@ -345,7 +345,13 @@ static GF_Err vttd_process(GF_Filter *filter)
 	u32 pck_size;
 	GF_VTTDec *ctx = (GF_VTTDec *) gf_filter_get_udta(filter);
 
-	if (!ctx->scene) return GF_OK;
+	if (!ctx->scene) {
+		if (ctx->is_playing) {
+			gf_filter_pid_set_eos(ctx->opid);
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {

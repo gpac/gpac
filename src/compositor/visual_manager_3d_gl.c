@@ -168,7 +168,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #else
 	const char *ext = NULL;
 
-	if (has_gl_context && (compositor->visual->type_3d || compositor->hybrid_opengl))
+	if (has_gl_context)
 		ext = (const char *) glGetString(GL_EXTENSIONS);
 
 	if (!ext) ext = gf_opts_get_key("core", "glext");

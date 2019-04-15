@@ -369,8 +369,7 @@ static GF_Err ft_shutdown_font_engine(GF_FontReader *dr)
 	ftpriv->active_face = NULL;
 	/*reset loaded fonts*/
 	while (gf_list_count(ftpriv->loaded_fonts)) {
-		FT_Face face = gf_list_get(ftpriv->loaded_fonts, 0);
-		gf_list_rem(ftpriv->loaded_fonts, 0);
+		FT_Face face = gf_list_pop_front(ftpriv->loaded_fonts);
 		FT_Done_Face(face);
 	}
 
@@ -438,6 +437,9 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	fontName = (char *) OrigFontName;
 	ftpriv->active_face = NULL;
 
+	opt = gf_opts_get_key("temp_freetype", OrigFontName);
+	if (opt) return GF_NOT_SUPPORTED;
+
 	if (!fontName || !strlen(fontName) || !stricmp(fontName, "SERIF")) {
 		fontName = ftpriv->font_serif;
 	}
@@ -489,8 +491,9 @@ checkFont:
 		}
 	}
 
-	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Font '%s' (%s) not found\n", fontName, fname));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Font %s (%s) not found\n", fontName, fname));
 	gf_free(fname);
+	gf_opts_set_key("temp_freetype", OrigFontName, "not found");
 	return GF_NOT_SUPPORTED;
 }
 

@@ -307,7 +307,7 @@ void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Object redirection to %s (MO %08x)\n", odm->ID, remote_url, odm->mo));
 
 	/*if object is a scene, create the inline before connecting the object.
-		This is needed in irder to register the nodes using the resource for event
+		This is needed in order to register the nodes using the resource for event
 		propagation (stored at the inline level)
 	*/
 	if (odm->mo && (odm->mo->type==GF_MEDIA_OBJECT_SCENE)) {
@@ -657,7 +657,8 @@ void gf_odm_update_duration(GF_ObjectManager *odm, GF_FilterPid *pid)
 	const GF_PropertyValue *prop;
 	prop = gf_filter_pid_get_info(pid, GF_PROP_PID_DURATION);
 	if (prop) {
-		dur = 1000 * prop->value.frac.num;
+		dur = prop->value.frac.num;
+		dur *= 1000;
 		if (prop->value.frac.den) dur /= prop->value.frac.den;
 	}
 	if ((u32) dur > odm->duration) {
@@ -856,9 +857,12 @@ void gf_odm_play(GF_ObjectManager *odm)
 			odm->media_stop_time = odm->subscene ? 0 : odm->duration;
 		}
 	} else {
-		/*segment playback - since our timing is in ms whereas segment ranges are double precision,
-		make sure we have a LARGER range in ms, otherwise media sensors won't deactivate properly*/
-		odm->media_stop_time = (u64) ceil(1000 * com.play.end_range);
+		odm->media_stop_time = (u64) -1;
+		if (com.play.end_range < FLT_MAX) {
+			/*segment playback - since our timing is in ms whereas segment ranges are double precision,
+			make sure we have a LARGER range in ms, otherwise media sensors won't deactivate properly*/
+			odm->media_stop_time = (u64) ceil(1000 * com.play.end_range);
+		}
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] PID %s: At OTB %u requesting PLAY from %g to %g (clock init %d) - speed %g\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid), gf_clock_time(clock), com.play.start_range, com.play.end_range, clock->clock_init, com.play.speed));
@@ -1455,8 +1459,14 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	}
 
 	if (odm->nb_buffering) {
+	 	GF_ODMExtraPid *xpid;
+	 	u32 i=0;
 	 	Bool ret = odm_update_buffer(scene, odm, pid, &signal_eob);
 	 	if (ret) return GF_TRUE;
+		while (odm->nb_buffering && (xpid = gf_list_enum(odm->extra_pids, &i))) {
+			ret = odm_update_buffer(scene, odm, xpid->pid, &signal_eob);
+			if (ret) return GF_TRUE;
+		}
 	}
 
 	if (scene->nb_buffering) {

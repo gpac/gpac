@@ -38,6 +38,7 @@ extern "C" {
 /*for cache texture decode and hash*/
 #include <gpac/avparse.h>
 #include <gpac/crypt.h>
+#include "nodes_stacks.h"
 
 
 typedef struct
@@ -313,6 +314,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to load CacheTexture data from file %s: not found\n", src_url ? src_url : ct->image.buffer ) );
 				}
+				if (ct->image.buffer) gf_free(ct->image.buffer);
 				ct->image.buffer = NULL;
 				if (src_url) gf_free(src_url);
 			}
@@ -620,6 +622,62 @@ void compositor_init_mattetexture(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_private(node, txh);
 	gf_node_set_callback_function(node, imagetexture_destroy);
 }
+
+void gf_sc_mo_destroyed(GF_Node *n)
+{
+	void *st = gf_node_get_private(n);
+	if (!st) return;
+
+	switch (gf_node_get_tag(n)) {
+	case TAG_MPEG4_Background2D:
+		((Background2DStack *)st)->txh.stream = NULL;
+		break;
+	case TAG_MPEG4_Background:
+	case TAG_X3D_Background:
+#ifndef GPAC_DISABLE_3D
+		((BackgroundStack *)st)->txh_back.stream = NULL;
+		((BackgroundStack *)st)->txh_front.stream = NULL;
+		((BackgroundStack *)st)->txh_left.stream = NULL;
+		((BackgroundStack *)st)->txh_right.stream = NULL;
+		((BackgroundStack *)st)->txh_top.stream = NULL;
+		((BackgroundStack *)st)->txh_bottom.stream = NULL;
+#endif
+		break;
+	case TAG_MPEG4_ImageTexture:
+	case TAG_X3D_ImageTexture:
+		((GF_TextureHandler *)st)->stream = NULL;
+		break;
+	case TAG_MPEG4_MovieTexture:
+	case TAG_X3D_MovieTexture:
+		((MovieTextureStack *)st)->txh.stream = NULL;
+		break;
+	case TAG_MPEG4_MediaSensor:
+		((MediaSensorStack *)st)->stream = NULL;
+		break;
+	case TAG_MPEG4_MediaControl:
+		((MediaControlStack *)st)->stream = NULL;
+		break;
+	case TAG_MPEG4_AudioSource:
+		((AudioSourceStack *)st)->input.stream = NULL;
+		break;
+	case TAG_MPEG4_AudioClip:
+	case TAG_X3D_AudioClip:
+		((AudioClipStack *)st)->input.stream = NULL;
+		break;
+#ifndef GPAC_DISABLE_SVG
+	case TAG_SVG_video:
+	case TAG_SVG_image:
+		((SVG_video_stack *)st)->txh.stream = NULL;
+		break;
+	case TAG_SVG_audio:
+		((SVG_audio_stack *)st)->input.stream = NULL;
+		break;
+#endif
+	default:
+		break;
+	}
+}
+
 #ifdef __cplusplus
 }
 #endif

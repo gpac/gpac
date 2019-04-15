@@ -154,6 +154,7 @@ GF_EXPORT
 char *gf_url_concatenate(const char *parentName, const char *pathName)
 {
 	u32 pathSepCount, i, prot_type;
+	Bool had_sep_count = GF_FALSE;
 	char *outPath, *name, *rad, *tmp2;
 	char tmp[GF_MAX_PATH];
 
@@ -166,6 +167,13 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	if ((strlen(parentName) > GF_MAX_PATH) || (strlen(pathName) > GF_MAX_PATH)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("URL too long for concatenation: \n%s\n", pathName));
 		return NULL;
+	}
+
+	while (!strncmp(parentName, "./.", 3) || !strncmp(parentName, ".\\.", 3)) {
+		parentName += 2;
+	}
+	while (!strncmp(pathName, "./.", 3) || !strncmp(pathName, ".\\.", 3)) {
+		pathName += 2;
 	}
 
 	prot_type = URL_GetProtocolType(pathName);
@@ -287,6 +295,8 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	rad = strchr(tmp2, '#');
 	if (rad) rad[0] = 0;
 
+	if (pathSepCount)
+		had_sep_count = GF_TRUE;
 	/*remove the last /*/
 	for (i = (u32) strlen(tmp); i > 0; i--) {
 		//break our path at each separator
@@ -303,7 +313,19 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 			strcat(tmp, "../");
 			pathSepCount--;
 		}
-	} else {
+	}
+	else if (!had_sep_count && (pathName[0]=='.') && (tmp[0]=='.') && ((tmp[1]=='/') || (tmp[1]=='\\') ) ) {
+		u32 nb_path_sep=0;
+		u32 len = (u32) strlen(tmp);
+		for (i=0; i<len; i++) {
+			if ((tmp[i]=='/') || (tmp[i]=='\\') )
+				nb_path_sep++;
+		}
+		strcpy(tmp, "");
+		while (nb_path_sep--)
+			strcat(tmp, "../");
+	}
+	else {
 		strcat(tmp, "/");
 	}
 

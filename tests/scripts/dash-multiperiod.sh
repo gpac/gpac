@@ -12,8 +12,10 @@ do_hash_test $TEMP_DIR/file.mpd "mpd"
 do_hash_test $TEMP_DIR/vp1-.mp4 "initp1"
 do_hash_test $TEMP_DIR/vp2-.mp4 "initp2"
 
-#correct but currently broken in gpac
-#do_playback_test "$TEMP_DIR/file.mpd" "play-dash-live-periods"
+
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:log=$myinspect"
+do_hash_test $myinspect "inspect"
 
 test_end
 

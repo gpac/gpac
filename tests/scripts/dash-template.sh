@@ -16,7 +16,10 @@ do_hash_test $TEMP_DIR/$3 "$1-hash-init"
 
 do_hash_test $TEMP_DIR/$4 "$1-hash-seg"
 
-do_playback_test "$TEMP_DIR/file.mpd" "$1-play"
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:log=$myinspect"
+do_hash_test $myinspect "inspect"
+
 
 test_end
 

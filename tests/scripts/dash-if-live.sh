@@ -13,7 +13,8 @@ do_hash_test $TEMP_DIR/file_dash_track2_init.mp4 "init2"
 do_hash_test $TEMP_DIR/file_dash_track1_20.m4s "seg1"
 do_hash_test $TEMP_DIR/file_dash_track2_20.m4s "seg2"
 
- 
-do_playback_test "$TEMP_DIR/file.mpd" "play-dash-if-live"
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:log=$myinspect"
+do_hash_test $myinspect "inspect"
 
 test_end

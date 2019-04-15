@@ -505,6 +505,9 @@ typedef enum
 	GF_PROP_STRING_LIST,
 	/*! unsigned 32 bit integer list, memory is ALWAYS duplicated when setting the property*/
 	GF_PROP_UINT_LIST,
+
+	/*! not allowed*/
+	GF_PROP_LAST_DEFINED,
 } GF_PropType;
 
 /*! Data property*/
@@ -681,6 +684,7 @@ enum
 	GF_PROP_PID_CODECID = GF_4CC('P','O','T','I'),
 	GF_PROP_PID_IN_IOD = GF_4CC('P','I','O','D'),
 	GF_PROP_PID_UNFRAMED = GF_4CC('P','F','R','M'),
+	GF_PROP_PID_UNFRAMED_FULL_AU = GF_4CC('P','F','R','F'),
 	GF_PROP_PID_DURATION = GF_4CC('P','D','U','R'),
 	GF_PROP_PID_NB_FRAMES = GF_4CC('N','F','R','M'),
 	GF_PROP_PID_FRAME_SIZE = GF_4CC('C','F','R','S'),
@@ -920,7 +924,8 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc);
 #define PROP_FLOAT(_val) (GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_val)}
 #define PROP_FRAC_INT(_num, _den) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac.num = _num, .value.frac.den = _den}
 #define PROP_FRAC(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac = _val }
-#define PROP_FRAC64(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.lfrac = _val}
+#define PROP_FRAC64(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION64, .value.lfrac = _val}
+#define PROP_FRAC64_INT(_num, _den) (GF_PropertyValue){.type=GF_PROP_FRACTION64, .value.lfrac.num = _num, .value.lfrac.den = _den}
 #define PROP_DOUBLE(_val) (GF_PropertyValue){.type=GF_PROP_DOUBLE, .value.number = _val}
 #define PROP_STRING(_val) (GF_PropertyValue){.type=GF_PROP_STRING, .value.string = (char *) _val}
 #define PROP_STRING_NO_COPY(_val) (GF_PropertyValue){.type=GF_PROP_STRING_NO_COPY, .value.string = _val}

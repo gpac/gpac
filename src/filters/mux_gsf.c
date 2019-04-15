@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / GPAC stream serializer filter
@@ -212,9 +212,9 @@ static void gsfmx_send_packets(GSFMxCtx *ctx, GSFStream *gst, GF_GSFPacketType p
 		u32 to_write = bytes_remain;
 		u32 hdr_size = gsfmx_get_header_size(ctx, gst, use_seq_num, first_frag, no_frag, to_write, frame_size, block_offset);
 		if (ctx->mpck && (ctx->mpck < to_write + hdr_size)) {
+			no_frag = GF_FALSE;
 			hdr_size = gsfmx_get_header_size(ctx, gst, use_seq_num, first_frag, no_frag, ctx->mpck - hdr_size, frame_size, block_offset);
 			to_write = ctx->mpck - hdr_size;
-			no_frag = GF_FALSE;
 		}
 		osize = hdr_size + to_write;
 
@@ -309,6 +309,19 @@ static void gsfmx_send_pid_eos(GSFMxCtx *ctx, GSFStream *gst, Bool is_eos)
 	gsfmx_send_packets(ctx, gst, GFS_PCKTYPE_PID_EOS, is_eos, GF_FALSE, 0, 0);
 }
 
+static Bool gsfmx_can_serialize_prop(const GF_PropertyValue *p)
+{
+	switch (p->type) {
+	case GF_PROP_POINTER:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFMux] Cannot serialize pointer property, ignoring !!\n"));
+	case GF_PROP_FORBIDEN:
+		return GF_FALSE;
+	default:
+		if (p->type>=GF_PROP_LAST_DEFINED)
+			return GF_FALSE;
+		return GF_TRUE;
+	}
+}
 
 static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 {
@@ -316,11 +329,9 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 	switch (p->type) {
 	case GF_PROP_SINT:
 	case GF_PROP_UINT:
-		gsfmx_write_vlen(ctx, p->value.uint);
-		break;
 	case GF_PROP_PIXFMT:
 	case GF_PROP_PCMFMT:
-		gf_bs_write_u32(ctx->bs_w, p->value.uint);
+		gsfmx_write_vlen(ctx, p->value.uint);
 		break;
 	case GF_PROP_LSINT:
 	case GF_PROP_LUINT:
@@ -409,7 +420,7 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 		}
 		break;
 	case GF_PROP_POINTER:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Cannot serialize pointer property, ignoring !!\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[GSFMux] Cannot serialize pointer property, ignoring !!\n"));
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Cannot serialize property of unknown type, ignoring !!\n"));
@@ -435,6 +446,7 @@ static GFINLINE Bool gsfmx_is_prop_skip(GSFMxCtx *ctx, u32 prop_4cc, const char 
 			return GF_TRUE;
 		if (prop_4cc) {
 			pname = gf_props_4cc_get_name(prop_4cc);
+			if (!pname) pname = gf_4cc_to_str(prop_4cc);
 			plen = (u32) strlen(pname);
 			sep = strstr(ctx->skp, pname);
 			if (sep && ((sep[plen]==sep_l) || !sep[plen]))
@@ -456,10 +468,18 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		const char *prop_name;
 		const GF_PropertyValue *p = gf_filter_pid_enum_properties(gst->pid, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
+		if (!gsfmx_can_serialize_prop(p)) continue;
 		if ( gsfmx_is_prop_skip(ctx, prop_4cc, prop_name, sep_l) )
 			continue;
-		if (prop_4cc) nb_4cc_props++;
-		if (prop_name) nb_str_props++;
+		if (prop_4cc) {
+			if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDEN) {
+				nb_str_props++;
+			} else {
+				nb_4cc_props++;
+			}
+		}
+		else if (prop_name)
+			nb_str_props++;
 	}
 
 	gf_bs_write_u8(ctx->bs_w, gst->config_version);
@@ -472,7 +492,12 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		const char *prop_name;
 		const GF_PropertyValue *p = gf_filter_pid_enum_properties(gst->pid, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
+		if (!gsfmx_can_serialize_prop(p)) continue;
+
 		if (prop_name) continue;
+		if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDEN)
+			continue;
+
 		if ( gsfmx_is_prop_skip(ctx, prop_4cc, prop_name, sep_l) )
 			continue;
 
@@ -487,9 +512,13 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		const char *prop_name;
 		const GF_PropertyValue *p = gf_filter_pid_enum_properties(gst->pid, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
-		if (prop_4cc) continue;
+		if (!gsfmx_can_serialize_prop(p)) continue;
+		if (prop_4cc && (gf_props_4cc_get_type(prop_4cc) != GF_PROP_FORBIDEN)) continue;
+
 		if ( gsfmx_is_prop_skip(ctx, prop_4cc, prop_name, sep_l) )
 			continue;
+		if (!prop_name)
+			prop_name = gf_4cc_to_str(prop_4cc);
 
 		len = (u32) strlen(prop_name);
 		gsfmx_write_vlen(ctx, len);
@@ -582,8 +611,15 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 		const char *prop_name;
 		const GF_PropertyValue *p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
-		if (prop_4cc) nb_4cc_props++;
-		if (prop_name) nb_str_props++;
+		if (!gsfmx_can_serialize_prop(p)) continue;
+		if (prop_4cc) {
+			if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDEN)
+				nb_str_props++;
+			else
+				nb_4cc_props++;
+		}
+		else if (prop_name)
+			nb_str_props++;
 	}
 
 	gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
@@ -771,7 +807,9 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 			const char *prop_name;
 			p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 			if (!p) break;
+			if (!gsfmx_can_serialize_prop(p)) continue;
 			if (prop_name) continue;
+			if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDEN) continue;
 
 			gf_bs_write_u32(ctx->bs_w, prop_4cc);
 
@@ -779,14 +817,16 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 		}
 	}
 	if (nb_str_props) {
+		gsfmx_write_vlen(ctx, nb_str_props);
 		idx=0;
 		while (1) {
 			u32 prop_4cc, len;
 			const char *prop_name;
 			p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 			if (!p) break;
-			if (prop_4cc) continue;
-
+			if (!gsfmx_can_serialize_prop(p)) continue;
+			if (prop_4cc && (gf_props_4cc_get_type(prop_4cc) != GF_PROP_FORBIDEN)) continue;
+			if (!prop_name) prop_name = gf_4cc_to_str(prop_4cc);
 			len = (u32) strlen(prop_name);
 			gsfmx_write_vlen(ctx, len);
 			gf_bs_write_data(ctx->bs_w, prop_name, len);
@@ -830,7 +870,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 			}
 			write_h = h;
 			if (i) write_h = uv_height;
-			lsize = bpp * (i ? stride : stride_uv);
+			lsize = bpp * (i ? stride_uv : stride);
 			for (j=0; j<write_h; j++) {
 				u32 nb_write = (u32) gf_bs_write_data(ctx->bs_w, out_ptr, lsize);
 				if (nb_write != lsize) {
@@ -1058,7 +1098,7 @@ static const GF_FilterArgs GSFMxArgs[] =
 GF_FilterRegister GSFMxRegister = {
 	.name = "gsfm",
 	GF_FS_SET_DESCRIPTION("GPAC Super/Simple/Serialized/Stream/State Format multiplexer")
-	GF_FS_SET_HELP("This filter serializes the streams states (config/reconfig/info update/remove/eos) and packets of input PIDs. "\
+	GF_FS_SET_HELP("This filter serializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs. "\
 			"This allows either saving to file a session, or forwarding the state/data of streams to another instance of GPAC "\
 			"using either pipes or sockets. Upstream events are not serialized.\n"\
 			"\n"\

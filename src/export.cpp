@@ -168,9 +168,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_rem_last) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_swap) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_transfer) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_list_reverse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_clone) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_list_rev_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_pop_front) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_pop_back) )
 
@@ -183,7 +181,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_int) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_long_int) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u8) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u8_until_delimiter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u16) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u24) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u32) )
@@ -221,7 +218,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_output_buffering) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u16_le) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u32_le) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bs_rewind_bits) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_truncate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_write_byte) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_write_u16_le) )
@@ -1576,9 +1572,7 @@
 #ifndef GPAC_DISABLE_BIFS
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_ignore_size_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_configure_stream) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_remove_stream) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decode_au) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decode_command_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_get_aq_info) )
@@ -1941,6 +1935,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_focus_switch_ring) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_is_over) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_navigation_supported) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_on_event) )
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_animation_get_scenegraph) )

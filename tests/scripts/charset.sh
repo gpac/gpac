@@ -13,10 +13,7 @@ charset_test() {
 	do_test "$MP4BOX -brand TEST $TEMP_DIR/$fname" "edit"
 	do_hash_test "$TEMP_DIR/$fname" "edit"
 
-	do_playback_test "$TEMP_DIR/$fname" "play"
-
 	test_end
-
 }
 
 

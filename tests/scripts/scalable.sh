@@ -13,6 +13,7 @@ test_begin $testname
 mp4file="$TEMP_DIR/$testname.mp4"
 splitfile="$TEMP_DIR/$testname-split.mp4"
 mergefile="$TEMP_DIR/$testname-merge.mp4"
+splitdump="$TEMP_DIR/$testname-split.yuv"
 
 $MP4BOX -add $1 -new $mp4file 2> /dev/null
 
@@ -30,10 +31,27 @@ if [ $rv != 0 ] ; then
 result="Hash is not the same between source content and merge content"
 fi
 
-do_playback_test "$splitfile" "play"
+
+#decode and dump 2 frames
+case $1 in
+*sxc*)
+ do_test "$GPAC -blacklist=nvdec,vtbdec,ffdec,ohevcdec -i $splitfile -o $splitdump:sstart=8:send=9" "decode"
+ #commented for now, issue in the decoder
+ #do_hash_test "$splitdump" "decode"
+ do_play_test "split" "$splitdump:size=704x576";;
+*shvc*)
+ do_test "$GPAC -blacklist=nvdec,vtbdec,ffdec -i $splitfile -o $splitdump:sstart=8:send=9" "decode"
+ do_hash_test "$splitdump" "decode"
+ do_play_test "split" "$splitdump:size=3840x1600";;
+esac
+
 
 do_test "$MP4BOX -dash 1000 $splitfile -out $TEMP_DIR/$testname.mpd" "dash"
-do_playback_test "$TEMP_DIR/$testname.mpd" "dash-playback"
+
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/$testname.mpd inspect:all:deep:interleave=false:log=$myinspect"
+do_hash_test $myinspect "inspect"
+
 
 test_end
 

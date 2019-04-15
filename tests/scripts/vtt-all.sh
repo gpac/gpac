@@ -23,8 +23,12 @@ vtt_test ()
  do_hash_test "$mp4file" "vtt-to-mp4"
  do_test "$MP4BOX -info 1 $mp4file" "vtt-info"
 
- #MP4 playback - dump 10 sec of AVI and hash it. This should be enough for most of our sequences ...
- do_playback_test $mp4file "play"
+#FIXME
+#do_test "$GPAC -i $mp4file compositor:osize=512x192:vfr:dur=10 @ -o $TEMP_DIR/dump.rgb" "play"
+#do_hash_test "$TEMP_DIR/dump.rgb" "play"
+#do_play_test "play" "$TEMP_DIR/dump.rgb:size=512x192" ""
+
+
 
  rm $mp4file 2> /dev/null
 

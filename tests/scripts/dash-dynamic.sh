@@ -10,8 +10,10 @@ do_test "$MP4BOX -dash-live 2000 -closest -subdur 2000 -profile live -mpd-refres
 
 sleep 1
 
-dump_dur=2
-do_playback_test "$TEMP_DIR/file.mpd" "dash-play"
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_hash_test $myinspect "inspect"
+
 
 #wait for the end of the MP4Box
 wait
@@ -39,8 +41,9 @@ do_test "$MP4BOX -dash-live 2000 -closest -subdur 2000 -profile live -mpd-refres
 
 sleep 1
 
-dump_dur=2
-do_playback_test "$TEMP_DIR/file.mpd" "dash-play"
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_hash_test $myinspect "inspect"
 
 #wait for the end of the MP4Box
 wait
@@ -69,8 +72,9 @@ do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -mpd-refresh 10 -tim
 
 sleep 1
 
-dump_dur=2
-do_playback_test "$TEMP_DIR/file.mpd" "dash-play"
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_hash_test $myinspect "inspect"
 
 #wait for the end of the MP4Box
 wait
@@ -97,8 +101,9 @@ do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -mpd-refresh 10 -tim
 
 sleep 1
 
-dump_dur=2
-do_playback_test "$TEMP_DIR/file.mpd" "dash-play"
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_hash_test $myinspect "inspect"
 
 #wait for the end of the MP4Box
 wait
@@ -125,8 +130,10 @@ do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -mpd-refresh 10 -tim
 
 sleep 1
 
-dump_dur=2
-do_playback_test "$TEMP_DIR/file.mpd" "dash-play"
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_hash_test $myinspect "inspect"
+
 
 #wait for the end of the MP4Box
 wait
@@ -156,8 +163,10 @@ do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -mpd-refresh 10 -tim
 
 sleep 1
 
-dump_dur=2
-do_playback_test "$TEMP_DIR/file.mpd" "dash-play"
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_hash_test $myinspect "inspect"
+
 
 #wait for the end of the MP4Box
 wait

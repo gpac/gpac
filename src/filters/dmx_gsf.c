@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / GPAC stream serializer filter
@@ -262,11 +262,9 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 	switch (p->type) {
 	case GF_PROP_SINT:
 	case GF_PROP_UINT:
-		p->value.uint = gsfdmx_read_vlen(bs);
-		break;
 	case GF_PROP_PIXFMT:
 	case GF_PROP_PCMFMT:
-		p->value.uint = gf_bs_read_u32(bs);
+		p->value.uint = gsfdmx_read_vlen(bs);
 		break;
 	case GF_PROP_LSINT:
 	case GF_PROP_LUINT:
@@ -443,10 +441,13 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 		p.type = gf_bs_read_u8(bs);
 
 		e = gsfdmx_read_prop(bs, &p);
-		if (e) return e;
-
+		if (e) {
+			gf_free(pname);
+			return e;
+		}
 		if (is_info_update) gf_filter_pid_set_info_dyn(gst->opid, pname, &p);
 		else gf_filter_pid_set_property_dyn(gst->opid, pname, &p);
+		gf_free(pname);
 	}
 	return GF_OK;
 }
@@ -506,7 +507,7 @@ static GF_Err gsfdmx_tune(GF_Filter *filter, GSF_DemuxCtx *ctx, char *pck_data, 
 		char *magic = gf_malloc(sizeof(char)*len);
 		gf_bs_read_data(bs, magic, len);
 
-		if (ctx->magic && memcmp(ctx->magic, magic, len)) wrongm = GF_TRUE;
+		if (ctx->magic && !memcmp(ctx->magic, magic, len)) wrongm = GF_TRUE;
 		if (!wrongm) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] wrong magic word in stream config\n" ));
 			ctx->tune_error = GF_TRUE;
@@ -521,11 +522,6 @@ static GF_Err gsfdmx_tune(GF_Filter *filter, GSF_DemuxCtx *ctx, char *pck_data, 
 
 	ctx->tuned = GF_TRUE;
 	return GF_OK;
-}
-
-static GFINLINE Bool sn_greater_than(u16 v1, u16 v2)
-{
-	return ( (v1 > v2) && (v1 - v2 <= 32768) ) || ( (v1 < v2 ) && (v2 - v1  > 32768) );
 }
 
 static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst, Bool pck_frag, s32 frame_sn, u8 pkt_type, u32 frame_size)
@@ -561,7 +557,10 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
 		count = gf_list_count(gst->packets);
 		for (i=0; i<count; i++) {
 			GSF_Packet *apck = gf_list_get(gst->packets, i);
-			if (sn_greater_than(apck->frame_sn, frame_sn) ) {
+
+			if ( ( (apck->frame_sn > frame_sn) && (apck->frame_sn - frame_sn <= 32768) )
+				|| ( (apck->frame_sn < frame_sn ) && (frame_sn - apck->frame_sn > 32768) )
+			) {
 				inserted = GF_TRUE;
 				gf_list_insert(gst->packets, gpck, i);
 			}
@@ -785,6 +784,9 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 				return e;
 			}
 			gf_filter_pck_set_property_dyn(gpck->pck, pname, &p);
+			gf_free(pname);
+			if ((p.type==GF_PROP_UINT_LIST) && p.value.uint_list.vals)
+				gf_free(p.value.uint_list.vals);
 		}
 	}
 
@@ -1070,6 +1072,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] error decoding packet %s:\n", gf_error_to_string(e) ));
+			if (ctx->tune_error) return e;
 
 		}
 		gf_bs_skip_bytes(ctx->bs_r, pck_len);
@@ -1203,11 +1206,11 @@ static const GF_FilterArgs GSFDemuxArgs[] =
 GF_FilterRegister GSFDemuxRegister = {
 	.name = "gsfd",
 	GF_FS_SET_DESCRIPTION("GPAC Super/Simple/Serialized/Stream/State Format demultiplexer")
-	GF_FS_SET_HELP("This filter deserialize the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"\
+	GF_FS_SET_HELP("This filter deserializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"\
 			"This allows either reading a session saved to file, or receiving the state/data of streams from another instance of GPAC\n"\
 			"using either pipes or sockets\n"\
 			"\n"\
-			"The stream format can be encrypted in AES 128 CBC mode, in which case the demux filters has to be given a 128 bit key.")
+			"The stream format can be encrypted in AES 128 CBC mode, in which case the demux filters must be given a 128 bit key.")
 	.private_size = sizeof(GSF_DemuxCtx),
 	.max_extra_pids = (u32) -1,
 	.args = GSFDemuxArgs,

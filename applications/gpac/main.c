@@ -145,7 +145,7 @@ const char *gpac_doc =
 "\tc=NAME identifes the desired codec. NAME can be the gpac codec name or the encoder instance for ffmpeg/others\n"
 "\tb=UINT or rate=UINT or bitrate=UINT indicates the bitrate in bits per second\n"
 "\tg=UINT or gop=UINT indicates the GOP size in frames\n"
-"\tpfmt=4CC indicates the target pixel format of the source, if supported by codec\n"
+"\tpfmt=NAME indicates the target pixel format name (see -h props) of the source, if supported by codec\n"
 "\tall_intra=BOOL indicates all frames should be intra frames, if supported by codec\n"
 
 "Other options will be passed to the filter if it accepts generic argument parsing (as is the case for ffmpeg).\n"

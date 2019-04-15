@@ -131,6 +131,27 @@ typedef struct
 } BackgroundStack;
 #endif
 
+#ifndef GPAC_DISABLE_SVG
+typedef struct
+{
+	GF_TextureHandler txh;
+	Drawable *drawable;
+	MFURL txurl;
+	Bool first_frame_fetched;
+	GF_Node *audio;
+	Bool audio_dirty;
+	Bool stop_requested;
+} SVG_video_stack;
+
+typedef struct
+{
+	GF_AudioInput input;
+	Bool is_active, is_error;
+	MFURL aurl;
+} SVG_audio_stack;
+
+#endif
+
 
 typedef struct
 {

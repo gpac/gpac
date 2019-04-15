@@ -362,7 +362,6 @@ static void gf_sc_reset_framerate(GF_Compositor *compositor)
 	compositor->current_frame = 0;
 }
 
-static Bool gf_sc_on_event(void *cbck, GF_Event *event);
 
 enum
 {
@@ -423,7 +422,8 @@ static GF_Err gl_vout_evt(struct _video_out *vout, GF_Event *evt)
 	if (!pfmt) pfmt = GF_PIXEL_RGB;
 	if (compositor->passthrough_pfmt != GF_PIXEL_RGB) {
 		compositor->passthrough_pfmt = GF_PIXEL_RGB;
-		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB));
+		if (compositor->vout)
+			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB));
 	}
 
 	
@@ -489,9 +489,18 @@ static GF_Err rawvout_evt(struct _video_out *vout, GF_Event *evt)
 	compositor->passthrough_pfmt = pfmt;
 	gf_pixel_get_size_info(pfmt, evt->setup.width, evt->setup.height, &compositor->framebuffer_size, NULL, NULL, NULL, NULL);
 
-	compositor->framebuffer = gf_realloc(compositor->framebuffer, sizeof(char)*compositor->framebuffer_size);
+	if (compositor->framebuffer_size > compositor->framebuffer_alloc) {
+		compositor->framebuffer_alloc = compositor->framebuffer_size;
+		compositor->framebuffer = gf_realloc(compositor->framebuffer, sizeof(char)*compositor->framebuffer_size);
+	}
 	if (!compositor->framebuffer) return GF_OUT_OF_MEM;
 	memset(compositor->framebuffer, 0, sizeof(char)*compositor->framebuffer_size);
+
+#ifndef GPAC_DISABLE_3D
+	if (compositor->needs_offscreen_gl)
+		return compositor_3d_setup_fbo(evt->setup.width, evt->setup.height, &compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
+#endif
+
 	return GF_OK;
 }
 
@@ -552,7 +561,10 @@ void gf_sc_setup_passthrough(GF_Compositor *compositor)
 
 		if (is_raw_out && !compositor->passthrough_inplace && (compositor->framebuffer_size != out_size) ) {
 			compositor->framebuffer_size = out_size;
-			compositor->framebuffer = gf_realloc(compositor->framebuffer, out_size);
+			if (out_size > compositor->framebuffer_alloc) {
+				compositor->framebuffer_alloc = out_size;
+				compositor->framebuffer = gf_realloc(compositor->framebuffer, out_size);
+			}
 		}
 	}
 }
@@ -609,10 +621,17 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_3D
 static void gf_sc_check_video_driver(GF_Compositor *compositor)
 {
+	Bool force_gl_out = GF_FALSE;
 	if (compositor->player) return;
 	if (compositor->video_out == &null_vout) return;
 
-	if (compositor->visual->type_3d) {
+	if (compositor->visual->type_3d || compositor->hybrid_opengl) {
+		force_gl_out = GF_TRUE;
+	} else if (compositor->needs_offscreen_gl && (compositor->ogl!=GF_SC_GLMODE_OFF) ) {
+		force_gl_out = GF_TRUE;
+	}
+
+	if (force_gl_out) {
 		GF_Err e;
 		if (compositor->video_out != &raw_vout) return;
 		e = gf_sc_load_driver(compositor);
@@ -623,11 +642,11 @@ static void gf_sc_check_video_driver(GF_Compositor *compositor)
 		return;
 	}
 
-	if (compositor->video_out == &raw_vout) return;
-	if (compositor->player) {
-		compositor->video_out->Shutdown(compositor->video_out);
-		gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
-		gf_filter_register_opengl_provider(compositor->filter, GF_FALSE);
+	if (compositor->video_out == &raw_vout) {
+		if (compositor->needs_offscreen_gl) {
+			gf_filter_request_opengl(compositor->filter);
+		}
+		return;
 	}
 	compositor->video_out = &raw_vout;
 	compositor->video_memory = 2;
@@ -662,8 +681,8 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->msg_type |= GF_SR_CFG_INITIAL_RESIZE;
 	/*set default size if owning output*/
 	if (!compositor->os_wnd) {
-		compositor->new_width = compositor->size.x>0 ? compositor->size.x : SC_DEF_WIDTH;
-		compositor->new_height = compositor->size.y>0 ? compositor->size.y : SC_DEF_HEIGHT;
+		compositor->new_width = compositor->osize.x>0 ? compositor->osize.x : SC_DEF_WIDTH;
+		compositor->new_height = compositor->osize.y>0 ? compositor->osize.y : SC_DEF_HEIGHT;
 		compositor->msg_type |= GF_SR_CFG_SET_SIZE;
 	}
 
@@ -673,7 +692,7 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	if (compositor->init_flags & GF_TERM_NO_VIDEO) {
 		compositor->video_out = &null_vout;
 		compositor->ogl = GF_SC_GLMODE_OFF;
-	} else if (compositor->player || (compositor->drv==GF_SC_DRV_ON) ){
+	} else if (compositor->player || (compositor->drv==GF_SC_DRV_ON)  || (compositor->ogl==GF_SC_GLMODE_HYBRID) ){
 		GF_Err e;
 
 		e = gf_sc_load_driver(compositor);
@@ -830,7 +849,6 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 		compositor->unthreaded_extensions = NULL;
 	}
 
-	gf_sc_set_option(compositor, GF_OPT_RELOAD_CONFIG, 1);
 	compositor->display_width = 320;
 	compositor->display_height = 240;
 	compositor->recompute_ar = GF_TRUE;
@@ -1342,6 +1360,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		}
 	} else {
 		gf_sc_ar_reset(compositor->audio_renderer);
+		compositor->needs_offscreen_gl = GF_FALSE;
 	}
 
 	gf_sc_reset_framerate(compositor);
@@ -1390,9 +1409,9 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	Bool lock_ok;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("sc_set_size %dx%d\n", NewWidth, NewHeight));
-	if (compositor->size.x && compositor->size.y) {
-		NewWidth = compositor->size.x;
-		NewHeight = compositor->size.y;
+	if (compositor->osize.x && compositor->osize.y) {
+		NewWidth = compositor->osize.x;
+		NewHeight = compositor->osize.y;
 	}
 
 	if ((compositor->display_width == NewWidth) && (compositor->display_height == NewHeight))
@@ -1449,7 +1468,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_3D
 
 	if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL)) {
-		if (compositor->ogl > GF_SC_GLMODE_OFF) {
+		if (compositor->player && (compositor->ogl > GF_SC_GLMODE_OFF)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL mode requested but no opengl-capable output - disabling openGL\n"));
 		}
 		compositor->force_opengl_2d = 0;
@@ -2086,24 +2105,36 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		}
 		if (compositor->visual->type_3d) {
 			compositor_3d_set_aspect_ratio(compositor);
-			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d);
+			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d ? GF_TRUE : GF_FALSE);
 #ifndef GPAC_USE_GLES1X
 			visual_3d_init_shaders(compositor->visual);
 #endif
 			if (compositor->autoconfig_opengl) {
+				u32 mode = compositor->ogl;
 				compositor->autoconfig_opengl = 0;
 				compositor->force_opengl_2d = 0;
+				compositor->hybrid_opengl = GF_FALSE;
 				compositor->visual->type_3d = prev_type_3d;
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 				//enable hybrid mode by default
-				if (compositor->visual->compositor->shader_only_mode) {
-					compositor->ogl = GF_SC_GLMODE_HYBRID;
-					compositor->hybrid_opengl = 1;
-				} else {
-					compositor->ogl = GF_SC_GLMODE_OFF;
+				if (!compositor->visual->compositor->shader_only_mode && (mode==GF_SC_GLMODE_HYBRID) ) {
+					mode = GF_SC_GLMODE_OFF;
 				}
 #endif
+				switch (mode) {
+				case GF_SC_GLMODE_OFF:
+					break;
+				case GF_SC_GLMODE_ON:
+					compositor->force_opengl_2d = 1;
+					if (!compositor->visual->type_3d)
+						compositor->visual->type_3d = 1;
+					break;
+				case GF_SC_GLMODE_AUTO:
+				case GF_SC_GLMODE_HYBRID:
+					compositor->hybrid_opengl = GF_TRUE;
+					break;
+				}
 			}
 
 		}
@@ -2213,7 +2244,7 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 		case TAG_SVG_svg:
 #ifndef GPAC_DISABLE_3D
 #ifdef GF_SR_USE_DEPTH
-			if (compositor->dispdepth) {
+			if (compositor->dispdepth>=0) {
 				compositor->visual->type_3d = 2;
 				compositor->visual->camera.is_3D = 1;
 			} else
@@ -2635,7 +2666,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			compositor->show_caret = 1;
 		}
 		if (compositor->caret_next_draw_time <= compositor->last_frame_time) {
-			compositor->frame_draw_type=GF_SC_DRAW_FRAME;
+			compositor->frame_draw_type = GF_SC_DRAW_FRAME;
 			compositor->caret_next_draw_time+=500;
 			compositor->show_caret = !compositor->show_caret;
 			compositor->text_edit_changed = 1;
@@ -2721,7 +2752,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 	if (compositor->force_next_frame_redraw) {
 		compositor->force_next_frame_redraw=0;
-		compositor->frame_draw_type=GF_SC_DRAW_FRAME;
+		compositor->frame_draw_type = GF_SC_DRAW_FRAME;
 	}
 
 	//if hidden and no listener, do not draw the scene
@@ -2733,17 +2764,21 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		if (compositor->check_eos_state<=1) {
 			compositor->check_eos_state = 0;
 			/*force a frame dispatch */
-			if (!compositor->vfr && !compositor->passthrough_txh) {
-				if (has_tx_streams && !all_tx_done)
-					compositor->frame_draw_type = GF_SC_DRAW_FRAME;
-				if (gf_list_count(compositor->systems_pids))
-					compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+			if (!compositor->passthrough_txh) {
+				if (!compositor->vfr) {
+					if (has_tx_streams && !all_tx_done)
+						compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+					if (gf_list_count(compositor->systems_pids))
+						compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+					if (compositor->validator_mode)
+						compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+				}
 			}
 
 			if (compositor->passthrough_txh) {
 				//still waiting for initialization either from the passthrough stream or a texture used in the scene
 				if (!compositor->passthrough_txh->width || !compositor->passthrough_txh->stream->pck || (compositor->ms_until_next_frame<0) ) {
-					compositor->frame_draw_type=GF_SC_DRAW_NONE;
+					compositor->frame_draw_type = GF_SC_DRAW_NONE;
 					//prevent release of frame
 					if (compositor->passthrough_txh->needs_release)
 						compositor->passthrough_txh->needs_release = 2;
@@ -2956,15 +2991,17 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #endif
 
 		if (!compositor->player) {
+			//if systems frames are pending (not executed because too early), increase clock
 			if ((compositor->sys_frames_pending && (compositor->ms_until_next_frame>=0) )
-			|| (compositor->vfr && has_timed_nodes)
+			//if timed nodes or validator mode (which acts as a timed node firing events), increase scene clock
+			//in vfr mode
+			|| (compositor->vfr && (has_timed_nodes || compositor->validator_mode) )
 			) {
 				compositor->sys_frames_pending = GF_FALSE;
 				compositor->frame_number++;
 				compositor->scene_sampled_clock = compositor->frame_number * compositor->fps.den * 1000;
 				compositor->scene_sampled_clock /= compositor->fps.num;
 			}
-
 		}
 	}
 	compositor->reset_graphics = 0;
@@ -3439,7 +3476,8 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	return GF_TRUE;
 }
 
-static Bool gf_sc_on_event(void *cbck, GF_Event *event)
+GF_EXPORT
+Bool gf_sc_on_event(void *cbck, GF_Event *event)
 {
 	return gf_sc_on_event_ex((GF_Compositor *)cbck, event, GF_FALSE);
 }
@@ -4008,3 +4046,23 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 ob
 			compositor->ms_until_next_frame = (s32) wait_ms;
 	}
 }
+
+Bool gf_sc_check_gl_support(GF_Compositor *compositor)
+{
+#ifdef GPAC_DISABLE_3D
+	return GF_FALSE;
+#else
+	if (!compositor->player && !compositor->is_opengl) {
+		if (compositor->drv==GF_SC_DRV_OFF) {
+			return GF_FALSE;
+		}
+		compositor->needs_offscreen_gl = GF_TRUE;
+		compositor->autoconfig_opengl = 1;
+		compositor->recompute_ar = 1;
+		return GF_TRUE;
+	}
+	return GF_TRUE;
+#endif
+
+}
+

@@ -216,7 +216,7 @@ ifeq ($(CONFIG_WIN32),yes)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(DESTDIR)$(prefix)/bin
 else
 ifeq ($(DEBUGBUILD),no)
-	$(STRIP) bin/gcc/libgpac$(DYN_LIB_SUFFIX)
+	$(STRIP) -g bin/gcc/libgpac$(DYN_LIB_SUFFIX)
 endif
 ifeq ($(CONFIG_DARWIN),yes)
 	$(INSTALL) -m 755 bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION)$(DYN_LIB_SUFFIX)
@@ -246,6 +246,9 @@ ifeq ($(GPAC_ENST), yes)
 endif
 	mkdir -p "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) $(INSTFLAGS) -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/$(libdir)"
+	if [ -d $(DESTDIR)$(prefix)/$(libdir)/pkgconfig ] ; then \
+	$(INSTALL) $(INSTFLAGS) -m 644 gpac.pc "$(DESTDIR)$(prefix)/$(libdir)/pkgconfig" ; \
+	fi
 	$(MAKE) installdylib
 
 uninstall-lib:
@@ -268,11 +271,6 @@ endif
 
 ifeq ($(CONFIG_LINUX),yes)
 deb:
-#	@if [ ! -z "$(shell git diff FETCH_HEAD)" ]; then \
-#		echo "Local revision and remote revision are not congruent; you may have local commit."; \
-#		echo "Please consider pushing your commit before generating an installer"; \
-#		exit 1; \
-#	fi
 	git checkout --	debian/changelog
 	fakeroot debian/rules clean
 	sed -i -r "s/-(DEV|ALPHA)/-\1-rev$(VERSION)-$(BRANCH)/" debian/changelog

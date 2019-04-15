@@ -60,6 +60,7 @@ typedef struct
 
 	u64 pck_time;
 	const char *service_url;
+	Bool is_playing;
 } CTXLoadPriv;
 
 
@@ -269,6 +270,7 @@ static Bool ctxload_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	case GF_FEVT_PLAY:
 		//cancel play event, we work with full file
 		//TODO: animation stream in BT
+		priv->is_playing = GF_TRUE;
 		return GF_TRUE;
 	case GF_FEVT_ATTACH_SCENE:
 		break;
@@ -371,8 +373,14 @@ static GF_Err ctxload_process(GF_Filter *filter)
 	CTXLoadPriv *priv = gf_filter_get_udta(filter);
 
 	//not yet ready
-	if (!priv->scene) return GF_OK;
-	
+	if (!priv->scene) {
+		if (priv->is_playing) {
+			gf_filter_pid_set_eos(priv->out_pid);
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
+
 	/*something failed*/
 	if (priv->load_flags==3) return GF_EOS;
 
@@ -625,9 +633,8 @@ static GF_Err ctxload_process(GF_Filter *filter)
 							if (!esd) {
 								if (od->URLString) {
 									ODS_SetupOD(priv->scene, od);
-								} else {
-									gf_odf_desc_del((GF_Descriptor *) od);
 								}
+								gf_odf_desc_del((GF_Descriptor *) od);
 								continue;
 							}
 							/*fix OCR dependencies*/
@@ -690,6 +697,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 								esd->decoderConfig->streamType = GF_STREAM_PRIVATE_SCENE;
 								esd->dependsOnESID = priv->base_stream_id;
 								ODS_SetupOD(priv->scene, od);
+								gf_odf_desc_del((GF_Descriptor *) od);
 								continue;
 #endif
 							}
@@ -715,6 +723,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 							gf_odf_desc_del((GF_Descriptor *) od);
 							od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 							od->URLString = remote;
+							od->fake_remote = GF_TRUE;
 							od->objectDescriptorID = k;
 							ODS_SetupOD(priv->scene, od);
 							gf_odf_desc_del((GF_Descriptor*)od);

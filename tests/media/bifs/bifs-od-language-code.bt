@@ -70,7 +70,7 @@ AT 0 IN 1 {
              string "Texte en français"
              fontStyle FontStyle {
                 size 30
-                family "Arial"
+                family "SANS"
                 justify [ "MIDDLE" "MIDDLE" ]
              }
            }
@@ -107,7 +107,7 @@ AT 0 IN 2 {
              string "Text in English"
              fontStyle FontStyle {
                 size 30
-                family "Arial"
+                family "SANS"
                 justify [ "MIDDLE" "MIDDLE" ]
              }
            }

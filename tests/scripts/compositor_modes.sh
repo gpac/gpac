@@ -4,18 +4,28 @@ compositor_test ()
  btfile=$2
  name=$(basename $2)
  name=${name%.*}
+ name=${name/bifs/bt}
 
  test_begin "compositor-$1-$name"
  if [ $test_skip  = 1 ] ; then
   return
  fi
 
- do_playback_test "$3 -no-save $2" "play"
+ #for the time being we don't check hashes nor use same size/dur for our tests. We will redo the UI tests once finaizing filters branch
+ dump_dur=5
+ dump_size=192x192
+ RGB_DUMP=$TEMP_DIR/$name.rgb
+ do_test "$GPAC -blacklist=vtbdec,nvdec -i $2 compositor:osize=$dump_size:vfr:dur=$dump_dur:$3 @ -o $RGB_DUMP" "play"
+ if [ -f $RGB_DUMP ] ; then
+# do_hash_test_bin $RGB_DUMP "play"
+  do_play_test "play" "$RGB_DUMP:size=$dump_size"
+ else
+  result="no output"
+ fi
 
  test_end
 }
 
-BIFS_DIR="$MEDIA_DIR/bifs"
 BIFS_DIR="$MEDIA_DIR/bifs"
 SVG_DIR="$MEDIA_DIR/svg"
 
@@ -49,37 +59,26 @@ compositor_test $1 "$BIFS_DIR/bifs-bitmap-image-pixel-metrics.bt" "$opt"
 compositor_test $1 "$BIFS_DIR/bifs-misc-hc-proto-offscreengroup.bt" "$opt"
 }
 
-if [ $disable_playback != 0 ] ; then
- return
-fi
 
-
-opt="-opt Compositor:OpenGLMode=disable"
+opt="ogl=off"
 test_2d_3d "nogl"
 
-opt="-opt Compositor:OpenGLMode=always"
+opt="ogl=on"
 test_2d_3d "glonly"
 
+#the other mode (auto/hybrid) is tested in bt.sh
+
+
 #test draw mode on animations
-opt="-opt Compositor:OpenGLMode=hybrid -opt Compositor:DrawMode=immediate"
-compositor_test "hyb-immediate" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" $opt
-opt="-opt Compositor:OpenGLMode=disable -opt Compositor:DrawMode=immediate"
-compositor_test "nogl-immediate" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" $opt
-opt="-opt Compositor:OpenGLMode=hybrid -opt Compositor:DrawMode=defer-debug"
-compositor_test "hyb-defer-debug" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" $opt
-opt="-opt Compositor:OpenGLMode=disable -opt Compositor:DrawMode=defer-debug"
-compositor_test "nogl-defer-debug" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" $opt
+compositor_test "hyb-immediate" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" "ogl=hybrid:mode2d=immediate"
+compositor_test "nogl-immediate" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" "ogl=off:mode2d=immediate"
+compositor_test "hyb-defer-debug" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" "ogl=hybrid:mode2d=debug"
+compositor_test "nogl-defer-debug" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" "ogl=off:mode2d=debug"
 
-
-#test opacity on SVG
-opt="-opt Compositor:OpenGLMode=hybrid -opt Compositor:DrawMode=immediate"
-compositor_test "svgopacity-hyb-immediate" "$SVG_DIR/opacity.svg" $opt
-opt="-opt Compositor:OpenGLMode=hybrid -opt Compositor:DrawMode=defer"
-compositor_test "svgopacity-hyb-defer" "$SVG_DIR/opacity.svg" $opt
-opt="-opt Compositor:OpenGLMode=disable -opt Compositor:DrawMode=immediate"
-compositor_test "svgopacity-nogl-immediate" "$SVG_DIR/opacity.svg" $opt
-opt="-opt Compositor:OpenGLMode=disable -opt Compositor:DrawMode=defer"
-compositor_test "svgopacity-nogl-defer" "$SVG_DIR/opacity.svg" $opt
-opt="-opt Compositor:OpenGLMode=always"
-compositor_test "svgopacity-gl" "$SVG_DIR/opacity.svg" $opt
+#test group opacity on SVG
+compositor_test "svgopacity-hyb-immediate" "$SVG_DIR/opacity.svg" "ogl=hybrid:mode2d=immediate"
+compositor_test "svgopacity-hyb-defer" "$SVG_DIR/opacity.svg" "ogl=hybrid:mode2d=defer"
+compositor_test "svgopacity-nogl-immediate" "$SVG_DIR/opacity.svg" "ogl=off:mode2d=immediate"
+compositor_test "svgopacity-nogl-defer" "$SVG_DIR/opacity.svg" "ogl=off:mode2d=defer"
+compositor_test "svgopacity-gl" "$SVG_DIR/opacity.svg" "ogl=on"
 

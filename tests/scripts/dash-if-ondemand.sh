@@ -10,6 +10,8 @@ do_hash_test $TEMP_DIR/file.mpd "mpd"
 do_hash_test $TEMP_DIR/file_dash_track1_init.mp4 "r1"
 do_hash_test $TEMP_DIR/file_dash_track2_init.mp4 "r2"
 
-do_playback_test "$TEMP_DIR/file.mpd" "play-dash-if-ondemand"
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:log=$myinspect"
+do_hash_test $myinspect "inspect"
 
 test_end

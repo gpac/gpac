@@ -223,6 +223,9 @@ void gf_filter_del(GF_Filter *filter)
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction\n", filter->name));
 	assert(filter);
 	assert(!filter->detached_pid_inst);
+	assert(!filter->detach_pid_tasks_pending);
+	assert(!filter->swap_pidinst_dst);
+	assert(!filter->swap_pidinst_src);
 
 #ifndef GPAC_DISABLE_3D
 	gf_list_del_item(filter->session->gl_providers, filter);
@@ -275,12 +278,12 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->tasks_mx)
 		gf_mx_del(filter->tasks_mx);
 
-	if (filter->name) gf_free(filter->name);
 	if (filter->id) gf_free(filter->id);
 	if (filter->source_ids) gf_free(filter->source_ids);
 	if (filter->dynamic_source_ids) gf_free(filter->dynamic_source_ids);
 	if (filter->filter_udta) gf_free(filter->filter_udta);
 	if (filter->orig_args) gf_free(filter->orig_args);
+	if (filter->name) gf_free(filter->name);
 
 	if (!filter->session->in_final_flush && !filter->session->run_status) {
 		u32 i, count;
@@ -1067,7 +1070,7 @@ static GF_FilterPidInst *filter_relink_get_upper_pid(GF_FilterPidInst *cur_pidin
 		assert(opid);
 		//we have a fan-out, we cannot replace the filter graph after that point
 		//this would affect the other branches of the upper graph
-		if (opid->num_destinations>1) break;
+		if (opid->num_destinations != 1) break;
 		pidinst = gf_list_get(opid->destinations, 0);
 
 		if (gf_fq_count(pidinst->packets))
@@ -1205,6 +1208,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		}
 		//we directly detach the pid
 		else {
+			safe_int_inc(&dst_pidi->pid->filter->detach_pid_tasks_pending);
 			gf_fs_post_task(filter->session, gf_filter_pid_detach_task, filter_dst, dst_pidi->pid, "pidinst_detach", filter_dst);
 		}
 	}
@@ -1395,30 +1399,34 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 static GF_Err gf_filter_process_check_alloc(GF_Filter *filter)
 {
 	GF_Err e;
-	size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free);
 	u32 nb_allocs=0, nb_callocs=0, nb_reallocs=0, nb_free=0;
 	u32 prev_nb_allocs=0, prev_nb_callocs=0, prev_nb_reallocs=0, prev_nb_free=0;
 
 	//reset alloc/realloc stats of filter
-	filter->nb_alloc_pck = 0;
-	filter->nb_realloc_pck = 0;
+	filter->session->nb_alloc_pck = 0;
+	filter->session->nb_realloc_pck = 0;
 	//get current alloc state
 	gf_mem_get_stats(&prev_nb_allocs, &prev_nb_callocs, &prev_nb_reallocs, &prev_nb_free);
 	e = filter->freg->process(filter);
 
 	//get new alloc state
 	gf_mem_get_stats(&nb_allocs, &nb_callocs, &nb_reallocs, &nb_free);
-	//remove internal allocs/reallocs due to filter lib
-	assert (nb_allocs>=filter->nb_alloc_pck);
-	assert (nb_reallocs>=filter->nb_realloc_pck);
-	nb_allocs -= filter->nb_alloc_pck;
-	nb_reallocs -= filter->nb_realloc_pck;
-
 	//remove prev alloc stats
 	nb_allocs -= prev_nb_allocs;
 	nb_callocs -= prev_nb_callocs;
 	nb_reallocs -= prev_nb_reallocs;
 	nb_free -= prev_nb_free;
+
+	//remove internal allocs/reallocs due to filter lib
+	if (nb_allocs>filter->session->nb_alloc_pck)
+		nb_allocs -= filter->session->nb_alloc_pck;
+	else
+		nb_allocs = 0;
+
+	if (nb_reallocs>filter->session->nb_realloc_pck)
+		nb_reallocs -= filter->session->nb_realloc_pck;
+	else
+		nb_reallocs = 0;
 
 	//we now have nomber of allocs/realloc used by the filter internally during its process
 	if (nb_allocs || nb_callocs || nb_reallocs /* || nb_free */) {
@@ -1873,7 +1881,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 	GF_Filter *f = task->filter;
 	u32 count = gf_fq_count(f->tasks);
 
-	if (f->out_pid_connection_pending) {
+	if (f->out_pid_connection_pending || f->detach_pid_tasks_pending) {
 		task->requeue_request = GF_TRUE;
 		return;
 	}

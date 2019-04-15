@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / LASeR codec sub-project
@@ -276,10 +276,11 @@ static void lsr_read_extension(GF_LASeRCodec *lsr, const char *name)
 	gf_bs_read_data(lsr->bs, *out_data, len);
 	*out_len = len;
 #else
-	while (len) {
+	while (len && gf_bs_available(lsr->bs) ) {
 		gf_bs_read_int(lsr->bs, 8);
 		len--;
 	}
+	if (len) lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
 #endif
 }
 
@@ -516,7 +517,7 @@ static void lsr_read_text_content(GF_LASeRCodec *lsr, GF_Node *elt)
 	gf_dom_add_text_node(elt, str);
 }
 
-static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, const char *name, Bool is_iri)
+static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, const char *name, Bool is_iri, Bool is_font)
 {
 	XMLRI *iri;
 	char *text, *sep, *sep2, *cur;
@@ -530,6 +531,10 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 	cur = text;
 	while (cur) {
 		sep = strchr(cur, '\'');
+		if (!sep && is_font) {
+			sep = strchr(cur, ',');
+			if (!sep) sep = strchr(cur, ';');
+		}
 		if (!sep) {
 			if (is_iri) {
 				GF_SAFEALLOC(iri, XMLRI);
@@ -542,7 +547,7 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 			break;
 		}
 		sep2 = strchr(sep + 1, '\'');
-		if (!sep2) {
+		if (!sep2 && !is_font) {
 			if (is_iri) {
 				GF_SAFEALLOC(iri, XMLRI);
 				iri->string = gf_strdup(cur);
@@ -553,7 +558,10 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 			}
 			break;
 		}
-		sep2[0] = 0;
+		if (sep2)
+			sep2[0] = 0;
+		else
+			sep[0] = 0;
 		if (is_iri) {
 			GF_SAFEALLOC(iri, XMLRI);
 			iri->string = gf_strdup(sep+1);
@@ -562,8 +570,13 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 		} else {
 			gf_list_add(l, gf_strdup(sep+1));
 		}
-		sep2[0] = '\'';
-		cur = sep2 + 1;
+		if (sep2) {
+			sep2[0] = '\'';
+			cur = sep2 + 1;
+		} else {
+			sep[0] = ';';
+			cur = sep + 1;
+		}
 	}
 	gf_free(text);
 }
@@ -1358,7 +1371,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 							break;
 						case 4:
 							lsr->last_error = gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_requiredFonts, GF_TRUE, GF_FALSE, &info);
-							lsr_read_byte_align_string(lsr, info.far_ptr, "requiredFonts");
+							lsr_read_byte_align_string_list(lsr, *(GF_List **)info.far_ptr, "requiredFonts", GF_FALSE, GF_TRUE);
 							break;
 						}
 					}
@@ -1490,10 +1503,10 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 			GF_LSR_READ_INT(lsr, *(SVG_Visibility*)info.far_ptr, 2, "visibility");
 			break;
 		case TAG_SVG_ATT_requiredExtensions:
-			lsr_read_byte_align_string_list(lsr, *(GF_List**)info.far_ptr, "requiredExtensions", GF_TRUE);
+			lsr_read_byte_align_string_list(lsr, *(GF_List**)info.far_ptr, "requiredExtensions", GF_TRUE, GF_FALSE);
 			break;
 		case TAG_SVG_ATT_requiredFormats:
-			lsr_read_byte_align_string_list(lsr, *(GF_List**)info.far_ptr, "requiredFormats", GF_FALSE);
+			lsr_read_byte_align_string_list(lsr, *(GF_List**)info.far_ptr, "requiredFormats", GF_FALSE, GF_FALSE);
 			break;
 		case TAG_SVG_ATT_requiredFeatures:
 		{
@@ -1505,7 +1518,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 		}
 		break;
 		case TAG_SVG_ATT_systemLanguage:
-			lsr_read_byte_align_string_list(lsr, *(GF_List**)info.far_ptr, "systemLanguage", GF_FALSE);
+			lsr_read_byte_align_string_list(lsr, *(GF_List**)info.far_ptr, "systemLanguage", GF_FALSE, GF_FALSE);
 			break;
 		case TAG_XML_ATT_base:
 			lsr_read_byte_align_string(lsr, &((XMLRI*)info.far_ptr)->string, "xml:base");
@@ -1809,7 +1822,23 @@ static void lsr_translate_anim_value(SMIL_AnimateValue *val, u32 coded_type)
 static void lsr_translate_anim_values(SMIL_AnimateValues *val, u32 coded_type)
 {
 	u32 i, count;
-	GF_List *list = val->values;
+	GF_List *list, *new_list;
+
+	list = val->values;
+	switch (val->type) {
+	case SVG_StrokeDashArray_datatype:
+		break;
+	case SVG_ViewBox_datatype:
+		break;
+	case SVG_Coordinates_datatype:
+		break;
+	case SVG_Motion_datatype:
+		if (coded_type!=9) return;
+		break;
+	default:
+		return;
+	}
+	val->values = new_list = gf_list_new();
 	count = gf_list_count(list);
 	for (i=0; i<count; i++) {
 		switch (val->type) {
@@ -1833,10 +1862,9 @@ static void lsr_translate_anim_values(SMIL_AnimateValues *val, u32 coded_type)
 					da->array.units[j] = 0;
 					gf_free(v);
 				}
-				gf_list_del(l);
-				gf_list_rem(list, i);
-				gf_list_insert(list, da, i);
 			}
+			gf_list_del(l);
+			gf_list_add(new_list, da);
 		}
 		break;
 		case SVG_ViewBox_datatype:
@@ -1857,8 +1885,7 @@ static void lsr_translate_anim_values(SMIL_AnimateValues *val, u32 coded_type)
 				gf_list_rem_last(l);
 			}
 			gf_list_del(l);
-			gf_list_rem(list, i);
-			gf_list_insert(list, vb, i);
+			gf_list_add(new_list, vb);
 		}
 		break;
 		case SVG_Coordinates_datatype:
@@ -1879,26 +1906,24 @@ static void lsr_translate_anim_values(SMIL_AnimateValues *val, u32 coded_type)
 
 			coords = (SVG_Coordinates*)gf_malloc(sizeof(SVG_Coordinates));
 			*coords = l;
-			gf_list_rem(list, i);
-			gf_list_insert(list, coords, i);
+			gf_list_add(new_list, coords);
 		}
 		break;
 
 		case SVG_Motion_datatype:
-			if (coded_type==9) {
-				GF_Matrix2D *m = (GF_Matrix2D *)gf_malloc(sizeof(GF_Matrix2D ));
-				GF_Point2D *pt = (GF_Point2D *)gf_list_get(list, i);
-				gf_mx2d_init(*m);
-				m->m[2] = pt->x;
-				m->m[5] = pt->y;
-				gf_list_rem(list, i);
-				gf_list_insert(list, m, i);
-				gf_free(pt);
-			}
+ 		{
+			GF_Matrix2D *m = (GF_Matrix2D *)gf_malloc(sizeof(GF_Matrix2D ));
+			GF_Point2D *pt = (GF_Point2D *)gf_list_get(list, i);
+			gf_mx2d_init(*m);
+			m->m[2] = pt->x;
+			m->m[5] = pt->y;
+			gf_free(pt);
+			gf_list_add(new_list, m);
+		}
 			break;
 		}
 	}
-
+	gf_list_del(list);
 }
 
 static Bool lsr_init_smil_times(GF_LASeRCodec *lsr, SVG_Element *anim, GF_List *times, SVG_Element *parent)
@@ -1991,7 +2016,9 @@ static Bool lsr_setup_smil_anim(GF_LASeRCodec *lsr, SVG_Element *anim, SVG_Eleme
 	if (gf_node_get_attribute_by_tag((GF_Node *)anim, TAG_SVG_ATT_attributeName, GF_FALSE, GF_FALSE, &info)==GF_OK) {
 		name = info.far_ptr;
 	}
-	if (!name) return GF_FALSE;
+	if (!name) {
+		return GF_FALSE;
+	}
 
 	if (!name->field_ptr) {
 		if (gf_node_get_attribute_by_tag((GF_Node *)target, name->type, GF_TRUE, GF_FALSE, &info)!=GF_OK) return GF_FALSE;
@@ -2043,6 +2070,7 @@ translate_vals:
 			SMIL_AnimateValues *values = info.far_ptr;
 			coded_type = values->type;
 			values->type = is_animateMotion ? SVG_Motion_datatype : name->type;
+			values->laser_strings = 0;
 			lsr_translate_anim_values(values, coded_type);
 		}
 	}
@@ -2463,6 +2491,8 @@ static void lsr_read_anim_values_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 *tr_type
 
 	GF_LSR_READ_INT(lsr, coded_type, 4, "type");
 	values->type = coded_type;
+	values->laser_strings = 1;
+
 	count = lsr_read_vluimsbf5(lsr, "count");
 	for (i=0; i<count; i++) {
 		void *att = lsr_read_an_anim_value(lsr, coded_type, "a_value");
@@ -2617,14 +2647,12 @@ static void lsr_read_path_type(GF_LASeRCodec *lsr, GF_Node *n, u32 tag, SVG_Path
 	}
 	/*first MoveTo is skipped in LASeR*/
 	pt = (GF_Point2D*)gf_list_get(pts, 0);
-	if (!pt) {
-		gf_list_del(pts);
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] Empty path found.\n"));
-		return;
+	if (pt) {
+		ct_orig = orig = *pt;
+		gf_path_add_move_to_vec(path, pt);
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] Empty path found.\n"));
 	}
-	ct_orig = orig = *pt;
-
-	gf_path_add_move_to_vec(path, pt);
 	cur_pt = 1;
 	count = lsr_read_vluimsbf5(lsr, "nbOfTypes");
 	for (i=0; i<count; i++) {
@@ -2810,7 +2838,7 @@ static void lsr_read_sync_tolerance(GF_LASeRCodec *lsr, GF_Node *n)
 static void lsr_read_sync_reference(GF_LASeRCodec *lsr, GF_Node *n)
 {
 	u32 flag;
-	GF_LSR_READ_INT(lsr, flag, 1, "syncReference");
+	GF_LSR_READ_INT(lsr, flag, 1, "hasSyncReference");
 	if (flag) {
 		GF_FieldInfo info;
 		lsr->last_error = gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_syncReference, GF_TRUE, 0, &info);
@@ -2881,7 +2909,7 @@ static void lsr_read_transform_behavior(GF_LASeRCodec *lsr, GF_Node *n)
 {
 	GF_FieldInfo info;
 	u32 flag;
-	GF_LSR_READ_INT(lsr, flag, 1, "transformBehavior");
+	GF_LSR_READ_INT(lsr, flag, 1, "hasTransformBehavior");
 	if (flag) {
 		lsr->last_error = gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_transformBehavior, GF_TRUE, 0, &info);
 		GF_LSR_READ_INT(lsr, *(SVG_TransformBehavior*)info.far_ptr, 4, "transformBehavior");
@@ -4443,7 +4471,7 @@ static void lsr_read_group_content_post_init(GF_LASeRCodec *lsr, SVG_Element *el
 	if (!skip_init) gf_node_init((GF_Node*)elt);
 }
 
-static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32 fieldType, void *rep_val, u32 idx, Bool is_insert, Bool is_com)
+static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32 fieldType, void *rep_val, u32 idx, Bool is_insert, Bool is_com, u32 *single_field_type)
 {
 	Fixed *f_val;
 	SVG_Point *pt;
@@ -4451,17 +4479,28 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
 
 	switch (fieldType) {
 	case SVG_Points_datatype/*ITYPE_point*/:
+	{
+		GF_List *res = gf_list_new();
 		pt = (SVG_Point*)gf_malloc(sizeof(SVG_Point));
-		if (!pt) {
-			lsr->last_error = GF_OUT_OF_MEM;
-			return NULL;
+		if (pt) {
+			lsr_read_coordinate(lsr, &num, 0, "coordX");
+			pt->x = num.value;
+			lsr_read_coordinate(lsr, &num, 0, "coordY");
+			pt->y = num.value;
+			gf_list_add(res, pt);
 		}
-		lsr_read_coordinate(lsr, &num, 0, "coordX");
-		pt->x = num.value;
-		lsr_read_coordinate(lsr, &num, 0, "coordY");
-		pt->y = num.value;
-		return pt;
+		return res;
+	}
 	case SMIL_KeySplines_datatype/*ITYPE_float*/:
+	{
+		GF_List *res = gf_list_new();
+		f_val = (Fixed*)gf_malloc(sizeof(Fixed));
+		if (f_val) {
+			*f_val = lsr_read_fixed_16_8(lsr, "floatValue");
+			gf_list_add(res, f_val);
+		}
+		return res;
+	}
 	case SVG_StrokeDashArray_datatype:
 	case SVG_ViewBox_datatype:
 		f_val = (Fixed*)gf_malloc(sizeof(Fixed));
@@ -4472,19 +4511,29 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
 		*f_val = lsr_read_fixed_16_8(lsr, "floatValue");
 		return f_val;
 	case SMIL_KeyTimes_datatype/*ITYPE_keyTime*/:
+	{
+		GF_List *res = gf_list_new();
 		f_val = lsr_read_fraction_12_item(lsr);
-		return f_val;
+		if (f_val) gf_list_add(res, f_val);
+		return res;
+	}
 	case SMIL_KeyPoints_datatype/*ITYPE_0to1 - keyPoints*/:
+	{
+		GF_List *res = gf_list_new();
 		pt = (SVG_Point*)gf_malloc(sizeof(SVG_Point));
-		if (!pt) {
-			lsr->last_error = GF_OUT_OF_MEM;
-			return NULL;
+		if (pt) {
+			pt->x = lsr_read_fixed_clamp(lsr, "valueX");
+			pt->y = lsr_read_fixed_clamp(lsr, "valueY");
+			gf_list_add(res, pt);
 		}
-		pt->x = lsr_read_fixed_clamp(lsr, "valueX");
-		pt->y = lsr_read_fixed_clamp(lsr, "valueY");
-		return pt;
+		return res;
+	}
 	case SMIL_Times_datatype/*ITYPE_smil_time*/:
-		return lsr_read_smil_time(lsr, node);
+	{
+		GF_List *res = gf_list_new();
+		gf_list_add(res, lsr_read_smil_time(lsr, node) );
+		return res;
+	}
 	default:
 		lsr_read_extension(lsr, "privateData");
 		break;
@@ -4665,13 +4714,13 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag
 				else {
 					((SVG_Focus*)val)->type = SVG_FOCUS_IRI;
 					((SVG_Focus*)val)->target.type = XMLRI_ELEMENTID;
-					((SVG_Focus*)val)->target.target = gf_sg_find_node(lsr->sg, ID);
+					((SVG_Focus*)val)->target.node_id = ID;
 				}
 			} else {
 				if (is_default) ((XMLRI*)val)->type = XMLRI_STRING;
 				else {
-					((XMLRI*)val)->type = XMLRI_ELEMENTID;
-					((XMLRI*)val)->target = gf_sg_find_node(lsr->sg, ID);
+					((XMLRI *)val)->type = XMLRI_ELEMENTID;
+					((XMLRI *)val)->node_id = ID;
 				}
 			}
 		}
@@ -4917,7 +4966,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 					lsr_read_update_value(lsr, NULL, field->fieldIndex, field->fieldType, field->field_ptr, n ? n->sgprivate->tag : 0);
 				}
 			} else {
-				field->field_ptr = lsr_read_update_value_indexed(lsr, (GF_Node*)n, field_type, NULL, idx, com_type==LSR_UPDATE_INSERT, 1);
+				field->field_ptr = lsr_read_update_value_indexed(lsr, (GF_Node*)n, field_type, NULL, idx, com_type==LSR_UPDATE_INSERT, 1, &field->fieldType);
 			}
 		} else {
 			GF_Point2D matrix_tmp;
@@ -5010,32 +5059,35 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 					SVG_Point *pt;
 					Fixed *v1, *v2;
 					//SMIL_Time *t;
-					void *prev;
-					void *tmp = lsr_read_update_value_indexed(lsr, (GF_Node*)n, field_type, info.far_ptr, idx, com_type==LSR_UPDATE_INSERT, 0);
+					void *prev, *new_item;
+					void *tmp = lsr_read_update_value_indexed(lsr, (GF_Node*)n, field_type, info.far_ptr, idx, com_type==LSR_UPDATE_INSERT, 0, NULL);
 					switch (field_type) {
 					/*generic GF_List containers, no type translation needed*/
 					case SMIL_KeyTimes_datatype/*ITYPE_keyTime*/:
 					case SMIL_KeySplines_datatype/*ITYPE_float*/:
 					case SVG_Points_datatype/*ITYPE_point*/:
 					case SMIL_Times_datatype/*ITYPE_smil_time*/:
+						new_item = gf_list_pop_front((GF_List *)tmp);
 						if (com_type==LSR_UPDATE_INSERT) {
-							gf_list_insert(*(SVG_Coordinates*)info.far_ptr, tmp, idx);
+							gf_list_insert(*(SVG_Coordinates*)info.far_ptr, new_item, idx);
 						} else {
 							prev = gf_list_get(*(SVG_Coordinates*)info.far_ptr, idx);
 							gf_free(prev);
 							gf_list_rem(*(SVG_Coordinates*)info.far_ptr, idx);
-							gf_list_insert(*(SVG_Coordinates*)info.far_ptr, tmp, idx);
+							gf_list_insert(*(SVG_Coordinates*)info.far_ptr, new_item, idx);
 						}
 						gf_node_changed((GF_Node*)n, NULL);
+						gf_list_del((GF_List *)tmp);
 						break;
 					/*list of floats - to check when implementing it...*/
 					case SMIL_KeyPoints_datatype/*ITYPE_0to1 - keyPoints*/:
-						pt = (SVG_Point*)tmp;
+						pt = (SVG_Point*) gf_list_pop_front((GF_List *)tmp);
 						v1 = (Fixed *) gf_malloc(sizeof(Fixed));
 						*v1 = pt->x;
 						v2 = (Fixed *) gf_malloc(sizeof(Fixed));
 						*v2 = pt->y;
 						gf_free(pt);
+						gf_list_del((GF_List *)tmp);
 
 						if (com_type==LSR_UPDATE_INSERT) {
 							gf_list_insert(*(SVG_Coordinates*)info.far_ptr, v1, idx);
@@ -5097,7 +5149,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 					tmp.far_ptr = gf_svg_create_attribute_value(info.fieldType);
 					lsr_read_update_value(lsr, n, fieldIndex, field_type, tmp.far_ptr, n->sgprivate->tag);
 				} else {
-					tmp.far_ptr = lsr_read_update_value_indexed(lsr, n, field_type, NULL, idx, 0, 1);
+					tmp.far_ptr = lsr_read_update_value_indexed(lsr, n, field_type, NULL, idx, 0, 1, NULL);
 				}
 				gf_svg_attributes_add(&info, &tmp, &info, 0);
 				gf_svg_delete_attribute_value(info.fieldType, tmp.far_ptr, gf_node_get_graph(n));
@@ -5166,7 +5218,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 				field->field_ptr = &field->node_list;
 				while (count) {
 					GF_Node *new_node = lsr_read_update_content_model(lsr, (SVG_Element *) n);
-					gf_node_register(new_node, n);
+					gf_node_register(new_node, NULL);
 					gf_node_list_add_child_last(& field->node_list, new_node, &last);
 					count--;
 				}
@@ -5473,10 +5525,10 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 			GF_LSR_READ_INT(lsr, extID, lsr->info->cfg.extensionIDBits, "extensionID");
 			/*len = */lsr_read_vluimsbf5(lsr, "len");
 			if (extID==2) {
-				u32 j;
+				u32 j, sub_count;
 				lsr_read_vluimsbf5(lsr, "reserved");
-				/*sub_count = */lsr_read_vluimsbf5(lsr, "occ2");
-				for (j=0; j<count; j++) {
+				sub_count = lsr_read_vluimsbf5(lsr, "occ2");
+				for (j=0; j<sub_count; j++) {
 					u32 k, occ3;
 					GF_LSR_READ_INT(lsr, k, 2, "reserved");
 					occ3 = lsr_read_vluimsbf5(lsr, "occ3");
