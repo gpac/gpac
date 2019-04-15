@@ -1415,18 +1415,21 @@ GF_Err dashdmx_process(GF_Filter *filter)
 					group->nb_eos++;
 
 					if (group->nb_eos * (1 + group->nb_group_deps) ==group->nb_pids) {
-						GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
-						if (!group->current_group_dep && gf_filter_pid_would_block(opid)) {
-							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment but output pid would block, postponing\n"));
-						} else {
-							for (i=0; i<count; i++) {
-								GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-								if (ipid == ctx->mpd_pid) continue;
-
-								if (gf_filter_pid_is_eos(ipid))
-									gf_filter_pid_clear_eos(ipid, GF_TRUE);
+						Bool postponed = GF_FALSE;
+						for (i=0; i<count; i++) {
+							GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+							GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
+							if (ipid == ctx->mpd_pid) continue;
+							if (!group->current_group_dep && gf_filter_pid_would_block(opid)) {
+								GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment but output pid would block, postponing\n"));
+								postponed = GF_TRUE;
+								break;
 							}
 
+							if (gf_filter_pid_is_eos(ipid))
+								gf_filter_pid_clear_eos(ipid, GF_TRUE);
+						}
+						if (!postponed) {
 							dashdmx_update_group_stats(ctx, group);
 							dashdmx_switch_segment(ctx, group);
 							if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
