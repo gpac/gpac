@@ -1111,7 +1111,7 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 				u32 i, str_len = 0;
 				for (i=0; i<gf_list_count(l); i++) {
 					char *st = gf_list_get(l, i);
-					str_len += strlen(st);
+					str_len += (u32) strlen(st);
 					if (i) str_len += 1;
 				}
 
