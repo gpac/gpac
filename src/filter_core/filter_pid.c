@@ -5674,13 +5674,13 @@ GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on)
 		return GF_BAD_PARAM;
 	}
 	if (discard_on) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Discarding packets on PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Discarding packets on PID %s (filter %s to %s)\n", pid->pid->name, pid->pid->filter->name, pid->filter->name));
 		while (gf_filter_pid_get_packet(pid)) {
 			gf_filter_pid_drop_packet(pid);
 		}
 		pidi->is_end_of_stream = GF_TRUE;
 	} else {
-		pidi->is_end_of_stream = pid->has_seen_eos;
+		pidi->is_end_of_stream = pid->pid->has_seen_eos;
 	}
 	pidi->discard_inputs = discard_on;
 	return GF_OK;
