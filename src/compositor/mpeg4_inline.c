@@ -359,7 +359,27 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 	GF_ProtoLink *pl;
 	u32 i;
 	GF_Scene *scene = (GF_Scene *) _is;
-	if (!scene || !lib_url->count) return NULL;
+	if (!scene) return NULL;
+
+	//this is a scene reset, destroy all proto links
+	if (!lib_url) {
+		while (gf_list_count(scene->extern_protos)) {
+			GF_ProtoLink *pl = gf_list_pop_back(scene->extern_protos);
+			if (pl->mo) {
+				if (pl->mo->odm) {
+					gf_scene_remove_object(scene, pl->mo->odm, GF_TRUE);
+				} else {
+					gf_sg_vrml_mf_reset(&pl->mo->URLs, GF_SG_VRML_MFURL);
+					gf_list_del_item(scene->scene_objects, pl->mo);
+					gf_mo_del(pl->mo);
+				}
+			}
+			gf_free(pl);
+		}
+		return NULL;
+	}
+	if (!lib_url->count)
+		return NULL;
 
 	if (gf_inline_is_hardcoded_proto(scene->compositor, lib_url)) return (void *) GF_SG_INTERNAL_PROTO;
 

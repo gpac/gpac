@@ -375,6 +375,9 @@ void gf_sg_reset(GF_SceneGraph *sg)
 	if (sg->RootNode) gf_node_unregister(sg->RootNode, NULL);
 	sg->RootNode = NULL;
 
+	if (!sg->pOwningProto && gf_list_count(sg->protos) && sg->GetExternProtoLib)
+		sg->GetExternProtoLib(sg->userpriv, NULL);
+
 	/*WATCHOUT: we may have cyclic dependencies due to
 	1- a node referencing itself (forbidden in VRML)
 	2- nodes refered to in commands of conditionals children of this node (MPEG-4 is mute about that)
