@@ -122,7 +122,6 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	s32 gotpic;
 	const char *data = NULL;
 	Bool seek_flag = GF_FALSE;
-	GF_FilterSAPType sap_type = GF_FILTER_SAP_NONE;
 	u32 i, count;
 	u32 size=0, pix_fmt, outsize, pix_out, stride, stride_uv, uv_height, nb_planes;
 	char *out_buffer;
@@ -246,10 +245,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		pck_src = NULL;
 	}
 
-	//copy over SAP and duration indication
 	seek_flag = GF_FALSE;
-	sap_type = GF_FILTER_SAP_NONE;
-
 	if (pck_src) {
 		seek_flag = gf_filter_pck_get_seek_flag(pck_src);
 	}
@@ -268,6 +264,8 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		if (dst_pck) gf_filter_pck_merge_properties(pck_src, dst_pck);
 		gf_list_del_item(ctx->src_packets, pck_src);
 		gf_filter_pck_unref(pck_src);
+	} else {
+		if (dst_pck) gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 	}
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
@@ -337,7 +335,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		sws_scale(ctx->sws_ctx, (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
 	}
 
-	gf_filter_pck_set_sap(dst_pck, sap_type);
+	gf_filter_pck_set_seek_flag(dst_pck, GF_FALSE);
 
 	if (frame->interlaced_frame)
 		gf_filter_pck_set_interlaced(dst_pck, frame->top_field_first ? 2 : 1);
@@ -927,7 +925,7 @@ const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
 	}
 	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on codec type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
 
-#if LIBAVCODEC_VERSION_MAJOR >= 58
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 	avcodec_free_context(&dec_ctx);
 #else
 	av_free(dec_ctx);

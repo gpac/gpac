@@ -743,9 +743,12 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				ch->start = (u64) t;
 			}
 			if (com->play.end_range >= com->play.start_range) {
-				t = com->play.end_range;
-				t *= ch->time_scale;
-				ch->end = (u64) t;
+				ch->end = (u64) -1;
+				if (com->play.end_range<FLT_MAX) {
+					t = com->play.end_range;
+					t *= ch->time_scale;
+					ch->end = (u64) t;
+				}
 			}
 		} else if (com->play.speed<0) {
 			Double end = com->play.end_range;
@@ -1045,6 +1048,7 @@ static const GF_FilterCapability ISOFFInCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_METADATA),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	//we don't set output cap for streamtype FILE for now.

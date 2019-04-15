@@ -345,10 +345,12 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	ctx->codecid = gf_mp3_object_type_indication(ctx->hdr);
 	sr = gf_mp3_sampling_rate(ctx->hdr);
 
-	//we change sample rate, change cts
-	if (ctx->cts && ctx->sr && (ctx->sr != sr)) {
-		ctx->cts *= sr;
-		ctx->cts /= ctx->sr;
+	if (!ctx->timescale) {
+		//we change sample rate, change cts
+		if (ctx->cts && ctx->sr && (ctx->sr != sr)) {
+			ctx->cts *= sr;
+			ctx->cts /= ctx->sr;
+		}
 	}
 	ctx->sr = sr;
 
@@ -482,6 +484,9 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 				ctx->byte_offset = byte_offset;
 			} else if (ctx->byte_offset + ctx->mp3_buffer_size != byte_offset) {
 				ctx->byte_offset = GF_FILTER_NO_BO;
+				if ((byte_offset != GF_FILTER_NO_BO) && (byte_offset>ctx->mp3_buffer_size) ) {
+					ctx->byte_offset = byte_offset - ctx->mp3_buffer_size;
+				}
 			}
 		}
 

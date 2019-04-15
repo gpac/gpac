@@ -66,9 +66,8 @@ enum
 
 
 
-static Bool swap_2Ys_YUVpixel(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 FourBytes_start_index)
+static void swap_2Ys_YUVpixel(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 FourBytes_start_index)
 {
-	u8 tmp;
 	u32 isFirstY_indexOne;
 	switch (ctx->s_pfmt) {
 	case GF_PIXEL_YUYV:
@@ -79,6 +78,8 @@ static Bool swap_2Ys_YUVpixel(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 
 	case GF_PIXEL_VYUY:
 		isFirstY_indexOne= (u32) 1;
 		break;
+	default:
+		return;
 	}
 
 	//Y2_dst = Y1_src
@@ -86,11 +87,9 @@ static Bool swap_2Ys_YUVpixel(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 
 
 	//Y1_dst = Y2_src
 	line_dst[FourBytes_start_index + 0 + isFirstY_indexOne]=line_src[FourBytes_start_index + 2 + isFirstY_indexOne];
-
-	return GF_OK;
 }
 
-static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 plane_idx, u32 wiB)
+static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 plane_idx, u32 wiB)
 {
 	u32 line_size = wiB;
 
@@ -184,10 +183,9 @@ static Bool horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 			}
 		}
 	}
-	return GF_OK;
 }
 
-static Bool horizontal_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 height, u32 plane_idx, u32 wiB, u32 *src_stride)
+static void horizontal_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 height, u32 plane_idx, u32 wiB, u32 *src_stride)
 {
 	for (u32 i=0; i<height; i++) {
 		u8 *src_first_line = src_plane + i * src_stride[plane_idx];
@@ -195,10 +193,9 @@ static Bool horizontal_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 
 
 		horizontal_flip_per_line(ctx, src_first_line, dst_first_line, plane_idx, wiB);
 	}
-	return GF_OK;
 }
 
-static Bool vertical_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 height, u32 plane_idx, u32 wiB){
+static void vertical_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 height, u32 plane_idx, u32 wiB){
 	u32 hy, i;
 	hy = height/2;
 	for (i=0; i<hy; i++) {
@@ -212,7 +209,6 @@ static Bool vertical_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 he
 		memcpy(dst_last_line, src_first_line, wiB);
 		memcpy(dst_first_line, ctx->line_buffer_vf, wiB);
 	}
-	return GF_OK;
 }
 
 static GF_Err vflip_process(GF_Filter *filter)

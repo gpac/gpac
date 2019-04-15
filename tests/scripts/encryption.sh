@@ -35,11 +35,6 @@ do_hash_test $dashfile "crypt-dash-init"
 dashfile="$TEMP_DIR/$1-crypted_dash1.m4s"
 do_hash_test $dashfile "crypt-dash-seg"
 
-#playback test of files for which we can retrieve the key
-if [ $1 != "adobe" ] ; then
-do_playback_test "$cryptfile" "play"
-fi
-
 test_end
 
 }

@@ -273,10 +273,12 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	ctx->profile = ctx->hdr.profile;
 
 	sr = GF_M4ASampleRates[ctx->hdr.sr_idx];
-	//we change sample rate, change cts
-	if (ctx->cts && (ctx->sr_idx != ctx->hdr.sr_idx)) {
-		ctx->cts *= sr;
-		ctx->cts /= GF_M4ASampleRates[ctx->sr_idx];
+	if (!ctx->timescale) {
+		//we change sample rate, change cts
+		if (ctx->cts && (ctx->sr_idx != ctx->hdr.sr_idx)) {
+			ctx->cts *= sr;
+			ctx->cts /= GF_M4ASampleRates[ctx->sr_idx];
+		}
 	}
 	ctx->sr_idx = ctx->hdr.sr_idx;
 
@@ -493,6 +495,10 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 	prev_pck_size = ctx->adts_buffer_size;
 	if (pck && !ctx->resume_from) {
 		data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+		if (!pck_size) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_OK;
+		}
 
 		if (ctx->byte_offset != GF_FILTER_NO_BO) {
 			u64 byte_offset = gf_filter_pck_get_byte_offset(pck);
@@ -500,6 +506,9 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 				ctx->byte_offset = byte_offset;
 			} else if (ctx->byte_offset + ctx->adts_buffer_size != byte_offset) {
 				ctx->byte_offset = GF_FILTER_NO_BO;
+				if ((byte_offset != GF_FILTER_NO_BO) && (byte_offset>ctx->adts_buffer_size) ) {
+					ctx->byte_offset = byte_offset - ctx->adts_buffer_size;
+				}
 			}
 		}
 
@@ -592,6 +601,9 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		}
 		//otherwise wait for next frame, unless if end of stream
 		else if (pck) {
+			if (ctx->timescale && !prev_pck_size &&  (cts != GF_FILTER_NO_TS) ) {
+				ctx->cts = cts;
+			}
 			break;
 		}
 
@@ -614,7 +626,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		}
 
 		bytes_to_drop = ctx->hdr.frame_size;
-		if (ctx->timescale && (prev_pck_size <= bytes_to_drop) &&  (cts != GF_FILTER_NO_TS) ) {
+		if (ctx->timescale && !prev_pck_size &&  (cts != GF_FILTER_NO_TS) ) {
 			ctx->cts = cts;
 			cts = GF_FILTER_NO_TS;
 		}
@@ -624,7 +636,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
 			memcpy(output, sync + offset, size);
-
+			gf_filter_pck_set_dts(dst_pck, ctx->cts);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			gf_filter_pck_set_duration(dst_pck, ctx->dts_inc);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);

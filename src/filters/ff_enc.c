@@ -361,7 +361,11 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (ctx->init_cts_setup) {
 		ctx->init_cts_setup = GF_FALSE;
 		if (ctx->frame->pts != pkt.pts) {
+			//check shift in PTS
 			ctx->ts_shift = (s32) ( (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt.pts );
+
+			//check shift in DTS
+			ctx->ts_shift += (s32) ( (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt.dts );
 		}
 		if (ctx->ts_shift) {
 			s64 shift = ctx->ts_shift;
@@ -758,6 +762,7 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	case GF_CODECID_HEVC:
 	case GF_CODECID_MPEG4_PART2:
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_UNFRAMED_FULL_AU, &PROP_BOOL(GF_TRUE) );
 		break;
 	default:
 		if (ctx->encoder && ctx->encoder->extradata_size && ctx->encoder->extradata) {
@@ -946,8 +951,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			if (force_pfmt == AV_PIX_FMT_NONE) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFEnc] Requested source format %s not supported by codec, using default one\n", gf_pixel_fmt_name(ctx->pfmt) ));
 			} else {
-				change_input_fmt = ffmpeg_pixfmt_from_gpac(pfmt);
-				pfmt = ctx->pfmt;
+				change_input_fmt = force_pfmt;
 			}
 		}
 		ctx->pixel_fmt = ffmpeg_pixfmt_from_gpac(pfmt);
@@ -969,13 +973,13 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				i++;
 			}
 			if (change_input_fmt == AV_PIX_FMT_NONE) {
-#if LIBAVCODEC_VERSION_MAJOR >= 58
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 				void *ff_opaque=NULL;
 #else
 				AVCodec *codec_alt = NULL;
 #endif
 				while (1) {
-#if LIBAVCODEC_VERSION_MAJOR >= 58
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 					const AVCodec *codec_alt = av_codec_iterate(&ff_opaque);
 #else
 					codec_alt = av_codec_next(codec_alt);
@@ -1000,24 +1004,28 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 
 		if (ctx->pixel_fmt != change_input_fmt) {
+			u32 ff_pmft = ctx->pixel_fmt;
+
 			if (force_pfmt == AV_PIX_FMT_NONE) {
-				ctx->pixel_fmt = AV_PIX_FMT_NONE;
+				ff_pmft = AV_PIX_FMT_NONE;
 				i=0;
 				//find a mapped pixel format
 				while (codec->pix_fmts) {
 					if (codec->pix_fmts[i] == AV_PIX_FMT_NONE) break;
 					if (ffmpeg_pixfmt_to_gpac(codec->pix_fmts[i])) {
-						ctx->pixel_fmt = codec->pix_fmts[i];
+						ff_pmft = codec->pix_fmts[i];
 						break;
 					}
 					i++;
 				}
-				if (ctx->pixel_fmt == AV_PIX_FMT_NONE) {
+				if (ff_pmft == AV_PIX_FMT_NONE) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] Could not find a matching GPAC pixel format for encoder %s\n", codec->name ));
 					return GF_NOT_SUPPORTED;
 				}
+			} else if (ctx->pfmt) {
+				ff_pmft = ffmpeg_pixfmt_from_gpac(ctx->pfmt);
 			}
-			pfmt = ffmpeg_pixfmt_to_gpac(ctx->pixel_fmt);
+			pfmt = ffmpeg_pixfmt_to_gpac(ff_pmft);
 			gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt) );
 			ctx->infmt_negociate = GF_TRUE;
 		} else {
@@ -1327,7 +1335,7 @@ const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
 		idx++;
 	}
 
-#if LIBAVCODEC_VERSION_MAJOR >= 58
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 	avcodec_free_context(&ctx);
 #else
 	av_free(ctx);

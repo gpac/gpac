@@ -11,6 +11,12 @@ do_hash_test $TEMP_DIR/file_dash_track1_10.m4s "base_tile"
 do_hash_test $TEMP_DIR/file_dash_track2_10.m4s "tt1"
 do_hash_test $TEMP_DIR/file_dash_track10_10.m4s "tt9"
 
-do_playback_test "$TEMP_DIR/file.mpd" "play-srd-dash"
+myinspect=$TEMP_DIR/inspect_tiles.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:log=$myinspect"
+do_hash_test $myinspect "inspect-tiles"
+
+myinspect=$TEMP_DIR/inspect_agg.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd tileagg @ inspect:all:deep:interleave=false:log=$myinspect"
+do_hash_test $myinspect "inspect-agg"
 
 test_end

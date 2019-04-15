@@ -264,7 +264,6 @@ static void composite_update(GF_TextureHandler *txh)
 
 	if (st->unsupported) return;
 
-
 	/*
 		if (compositor->recompute_ar) {
 			gf_node_dirty_set(txh->owner, 0, 0);
@@ -289,7 +288,7 @@ static void composite_update(GF_TextureHandler *txh)
 
 #ifndef GPAC_DISABLE_3D
 	/*no alpha support in offscreen rendering*/
-	if (!compositor->visual->type_3d && !compositor->hybrid_opengl && (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
+	if (!compositor->visual->type_3d && !compositor->hybrid_opengl && !compositor->fbo_id && (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
 		new_pixel_format = GF_PIXEL_RGB;
 #endif
 
@@ -427,7 +426,9 @@ static void composite_update(GF_TextureHandler *txh)
 			/*figure out what to do if main visual (eg video out) is not in OpenGL ...*/
 			if (!compositor->visual->type_3d && !compositor->hybrid_opengl) {
 				/*create an offscreen window for OpenGL rendering*/
-				if ((compositor->offscreen_width < st->txh.width) || (compositor->offscreen_height < st->txh.height)) {
+				if (!compositor->fbo_id
+					&& ((compositor->offscreen_width < st->txh.width) || (compositor->offscreen_height < st->txh.height))
+				) {
 #ifndef GPAC_USE_TINYGL
 					GF_Err e;
 					GF_Event evt;
@@ -446,7 +447,7 @@ static void composite_update(GF_TextureHandler *txh)
 						return;
 					}
 					/*reload openGL ext*/
-					gf_sc_load_opengl_extensions(compositor, 1);
+					gf_sc_load_opengl_extensions(compositor, GF_TRUE);
 #endif
 				}
 			} else {
@@ -483,7 +484,7 @@ static void composite_update(GF_TextureHandler *txh)
 #else
 		if (compositor->visual->type_3d) {
 			st->visual->type_3d = 2;
-		} else if (compositor->hybrid_opengl) {
+		} else if (compositor->hybrid_opengl || compositor->fbo_id) {
 			st->visual->type_3d = 2;
 		} else if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) {
 			st->visual->type_3d = 0;
@@ -661,6 +662,12 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 {
 	M_CompositeTexture3D *c3d = (M_CompositeTexture3D *)node;
 	CompositeTextureStack *st;
+
+	if (!gf_sc_check_gl_support(compositor)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Driver disabled, cannot render 3D composite textures\n"));
+		return;
+	}
+
 	GF_SAFEALLOC(st, CompositeTextureStack);
 	if (!st) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate composite texture stack\n"));
@@ -671,6 +678,7 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate composite texture state\n"));
 		return;
 	}
+
 	st->tr_state->vrml_sensors = gf_list_new();
 
 	st->sensors = gf_list_new();

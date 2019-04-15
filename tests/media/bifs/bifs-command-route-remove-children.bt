@@ -87,7 +87,4 @@ AT 4000 {
  }
 }
 
-AT 100000 {
- DELETE ROUTE R1
-}
 

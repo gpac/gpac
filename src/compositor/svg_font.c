@@ -194,18 +194,16 @@ static void svg_traverse_font(GF_Node *node, void *rs, Bool is_destroy)
 
 static void svg_font_on_load(GF_Node *handler, GF_DOM_Event *event, GF_Node *observer)
 {
-	GF_Compositor *compositor;
 	GF_Font *font;
 	assert(event->currentTarget->ptr_type==GF_DOM_EVENT_TARGET_NODE);
 	assert(gf_node_get_tag((GF_Node*)event->currentTarget->ptr)==TAG_SVG_font);
 	font = gf_node_get_private((GF_Node*)event->currentTarget->ptr);
 	font->not_loaded = 0;
-	compositor = (GF_Compositor *)gf_node_get_private((GF_Node *)handler);
 
 	/*brute-force signaling that all fonts have changed and texts must be recomputed*/
-	compositor->reset_fonts = 1;
-	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
-	compositor->fonts_pending--;
+	font->compositor->reset_fonts = 1;
+	gf_sc_next_frame_state(font->compositor, GF_SC_DRAW_FRAME);
+	font->compositor->fonts_pending--;
 }
 
 void compositor_init_svg_font(GF_Compositor *compositor, GF_Node *node)
@@ -234,6 +232,7 @@ void compositor_init_svg_font(GF_Compositor *compositor, GF_Node *node)
 		return;
 	}
 	font->ft_mgr = compositor->font_manager;
+	font->compositor = compositor;
 
 	font->get_glyphs = svg_font_get_glyphs;
 	font->load_glyph = svg_font_load_glyph;
@@ -318,7 +317,6 @@ void compositor_init_svg_font(GF_Compositor *compositor, GF_Node *node)
 	/*wait for onLoad event before activating the font, otherwise we may not have all the glyphs*/
 	handler = gf_dom_listener_build(node_font, GF_EVENT_LOAD, 0);
 	handler->handle_event = svg_font_on_load;
-	gf_node_set_private((GF_Node *)handler, compositor);
 }
 
 

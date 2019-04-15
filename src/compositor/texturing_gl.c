@@ -1481,7 +1481,10 @@ void gf_sc_copy_to_texture(GF_TextureHandler *txh)
 #endif
 	GL_CHECK_ERR
 
+	if (txh->compositor->fbo_id) compositor_3d_enable_fbo(txh->compositor, GF_TRUE);
 	glCopyTexImage2D(txh->tx_io->gl_type, 0, txh->tx_io->gl_format, 0, 0, txh->width, txh->height, 0);
+	if (txh->compositor->fbo_id) compositor_3d_enable_fbo(txh->compositor, GF_FALSE);
+
 #ifndef GPAC_USE_GLES2
 	glDisable(txh->tx_io->gl_type);
 #endif
@@ -1497,9 +1500,12 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 	char *tmp=NULL;
 
 	/*in case the ID has been lost, resetup*/
-	if (!txh->data || !txh->tx_io->tx_raster) return;
+	if (!txh->data || !txh->tx_io->tx_raster)
+		return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[GL Texture] Copying GL backbuffer %dx%d@PF=%s to systems memory\n", txh->width, txh->height, gf_4cc_to_str(txh->pixelformat) ));
+
+	if (txh->compositor->fbo_id) compositor_3d_enable_fbo(txh->compositor, GF_TRUE);
 
 	if (txh->pixelformat==GF_PIXEL_RGBA) {
 		glReadPixels(0, 0, txh->width, txh->height, GL_RGBA, GL_UNSIGNED_BYTE, txh->data);
@@ -1548,6 +1554,8 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 
 	}
 #endif /*GF_SR_USE_DEPTH*/
+
+	if (txh->compositor->fbo_id) compositor_3d_enable_fbo(txh->compositor, GF_FALSE);
 
 	/*flip image because of openGL*/
 	tmp = (char*)gf_malloc(sizeof(char)*txh->stride);

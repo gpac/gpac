@@ -36,7 +36,7 @@ typedef struct
 	u8 dump_pid; //0: no, 1: configure/reconfig, 2: info update
 	u8 init_pid_config_done;
 	u64 pck_for_config;
-	u64 prev_dts, prev_cts;
+	u64 prev_dts, prev_cts, init_ts;
 } PidCtx;
 
 enum
@@ -45,6 +45,13 @@ enum
 	INSPECT_MODE_BLOCK,
 	INSPECT_MODE_REFRAME,
 	INSPECT_MODE_RAW
+};
+
+enum
+{
+	INSPECT_TEST_NO=0,
+	INSPECT_TEST_NETWORK,
+	INSPECT_TEST_ENCODE,
 };
 
 typedef struct
@@ -57,7 +64,8 @@ typedef struct
 	char *fmt;
 	Bool props, hdr, all, info, pcr;
 	Double speed, start;
-	Bool testmode;
+	u32 test;
+	GF_Fraction dur;
 
 	FILE *dump;
 
@@ -99,18 +107,25 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
 
-	if (gf_sys_is_test_mode() || ctx->testmode) {
+	if (gf_sys_is_test_mode() || ctx->test) {
 		switch (p4cc) {
 		case GF_PROP_PID_FILEPATH:
 		case GF_PROP_PID_URL:
 			return;
+		case GF_PROP_PID_FILE_CACHED:
+		case GF_PROP_PID_DURATION:
+			if (ctx->test==INSPECT_TEST_NETWORK)
+				return;
+			break;
 		case GF_PROP_PID_DECODER_CONFIG:
 		case GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT:
 		case GF_PROP_PID_DOWN_SIZE:
-			if (ctx->testmode)
+			if (ctx->test==INSPECT_TEST_ENCODE)
 				return;
 			break;
 		default:
+			if (gf_sys_is_test_mode() && (att->type==GF_PROP_POINTER) )
+				return;
 			break;
 		}
 	}
@@ -422,7 +437,9 @@ static GF_Err inspect_process(GF_Filter *filter)
 	for (i=0; i<count; i++) {
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->src_pid);
-		if (!pck) continue;
+
+		if (!pck && !gf_filter_pid_is_eos(pctx->src_pid))
+			continue;
 
 		if (pctx->dump_pid) {
 			inspect_dump_pid(ctx, pctx->tmp, pctx->src_pid, pctx->idx, pctx->init_pid_config_done ? GF_FALSE : GF_TRUE, GF_FALSE, pctx->pck_for_config, (pctx->dump_pid==2) ? GF_TRUE : GF_FALSE);
@@ -436,6 +453,8 @@ static GF_Err inspect_process(GF_Filter *filter)
 					inspect_dump_packet_fmt(ctx, pctx->tmp, NULL, 0, 0);
 			}
 		}
+		if (!pck) continue;
+		
 		pctx->pck_for_config++;
 		pctx->pck_num++;
 
@@ -450,6 +469,18 @@ static GF_Err inspect_process(GF_Filter *filter)
 			inspect_dump_packet_fmt(ctx, pctx->tmp, pck, pctx, pctx->pck_num);
 		} else {
 			inspect_dump_packet(ctx, pctx->tmp, pck, pctx->idx, pctx->pck_num);
+		}
+		if (ctx->dur.num && ctx->dur.den) {
+			u32 timescale = gf_filter_pck_get_timescale(pck);
+			u64 ts = gf_filter_pck_get_dts(pck);
+			if (ts == GF_FILTER_NO_TS) ts = gf_filter_pck_get_cts(pck);
+
+			if (!pctx->init_ts) pctx->init_ts = ts;
+			else if (ctx->dur.den * (ts - pctx->init_ts) >= ctx->dur.num * timescale) {
+				GF_FilterEvent evt;
+				GF_FEVT_INIT(evt, GF_FEVT_STOP, pctx->src_pid);
+				gf_filter_pid_send_event(pctx->src_pid, &evt);
+			}
 		}
 		gf_filter_pid_drop_packet(pctx->src_pid);
 	}
@@ -491,7 +522,15 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_list_add(ctx->src_pids, pctx);
 	pctx->idx = gf_list_count(ctx->src_pids);
 
-	gf_filter_pid_set_framing_mode(pid, (ctx->mode==INSPECT_MODE_PCK) ? GF_TRUE : GF_FALSE);
+	switch (ctx->mode) {
+	case INSPECT_MODE_PCK:
+	case INSPECT_MODE_REFRAME:
+		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+		break;
+	default:
+		gf_filter_pid_set_framing_mode(pid, GF_FALSE);
+		break;
+	}
 
 	if (!ctx->is_prober) {
 		pctx->dump_pid = 1;
@@ -587,7 +626,11 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(pcr), "dumps M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(speed), "sets playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(testmode), "skips URL/path dump, file size and decoder config (used for hashing encoding results)", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(dur), "sets inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
+	{ OFFS(test), "skips some properties:\n"
+		"\tno: no properties skipped\n"
+		"\tnetwork: URL/path dump, cache state, file size properties skipped (used for hashing network results)\n"
+		"\tencode: same as network plus skip decoder config (used for hashing encoding results)", GF_PROP_UINT, "no", "no|network|encode", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

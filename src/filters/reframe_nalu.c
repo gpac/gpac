@@ -102,6 +102,8 @@ typedef struct
 
 	GF_FilterPacket *src_pck;
 
+	Bool full_au_source;
+
 	//total delay in frames between decode and presentation
 	s32 max_total_delay;
 	//max size codable with our nal_length setting
@@ -264,18 +266,23 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->opid = gf_filter_pid_new(filter);
 		ctx->first_slice_in_au = GF_TRUE;
 	}
+	ctx->full_au_source = GF_FALSE;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED_FULL_AU);
+	if (p && p->value.boolean)
+		ctx->full_au_source = GF_TRUE;
+
 	//copy properties at init or reconfig
 	if (ctx->opid) {
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->is_hevc ? GF_CODECID_HEVC : GF_CODECID_AVC));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED_FULL_AU, NULL);
 		if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_ID))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
 
 		ctx->ps_modified = GF_TRUE;
 		ctx->crc_cfg = ctx->crc_cfg_enh = 0;
-
 	}
 	
 	return GF_OK;
@@ -575,8 +582,11 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 	char *data;
 	u32 data_size;
 	u32 i;
+	HEVC_VPS *vps;
 	GF_AVCConfigSlot *vps_sl = gf_list_get(ctx->vps, 0);
-	HEVC_VPS *vps = &ctx->hevc_state->vps[vps_sl->id];
+	if (!vps_sl) return GF_SERVICE_ERROR;
+
+	vps = &ctx->hevc_state->vps[vps_sl->id];
 	
 	if (!vps->vps_extension_found) return GF_OK;
 	if (vps->max_layers<2) return GF_OK;
@@ -2204,7 +2214,7 @@ naldmx_flush:
 			if (full_nal_required && !is_eos) {
 				//we need the full nal loaded
 				next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
-				if (next==pck_avail)
+				if (!ctx->full_au_source && (next==pck_avail))
 					next = -1;
 
 				if (next<0) {
@@ -2220,7 +2230,7 @@ naldmx_flush:
 				}
 			} else {
 				next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
-				if (!is_eos && (next == pck_avail))
+				if (!is_eos && (next == pck_avail) && !ctx->full_au_source)
 					next = -1;
 			}
 

@@ -923,7 +923,7 @@ static void on_rti_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *f
 {
 	if (rti_logs && (lm & GF_LOG_RTI)) {
 		char szMsg[2048];
-		vsprintf(szMsg, fmt, list);
+		vsnprintf(szMsg, 2048, fmt, list);
 		UpdateRTInfo(szMsg + 6 /*"[RTI] "*/);
 	}
 }
@@ -1265,9 +1265,6 @@ int mp4client_main(int argc, char **argv)
 		gf_sys_set_cfg_option("core:noprog=yes");
 	}
 
-	if (!url_arg && simulation_time_in_ms)
-		simulation_time_in_ms += gf_sys_clock();
-
 #if defined(__DARWIN__) || defined(__APPLE__)
 	carbon_init();
 #endif
@@ -1426,6 +1423,9 @@ int mp4client_main(int argc, char **argv)
 		rti_update_time_ms = 500;
 		bench_mode_start = gf_sys_clock();
 	}
+
+	if (simulation_time_in_ms)
+		simulation_time_in_ms += gf_sys_clock();
 
 
 	while (Run) {

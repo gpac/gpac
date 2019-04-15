@@ -104,7 +104,7 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 		closest->data = gf_realloc(closest->data, closest->alloc_size);
 		pck = closest;
 #ifdef GPAC_MEMORY_TRACKING
-		pid->filter->nb_realloc_pck++;
+		pid->filter->session->nb_realloc_pck++;
 #endif
 	}
 
@@ -113,7 +113,7 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 		pck->data = gf_malloc(sizeof(char)*data_size);
 		pck->alloc_size = data_size;
 #ifdef GPAC_MEMORY_TRACKING
-		pid->filter->nb_alloc_pck+=2;
+		pid->filter->session->nb_alloc_pck+=2;
 #endif
 	} else {
 		//pop first item and swap pointers. We can safely do this since this filter
@@ -503,7 +503,6 @@ void gf_filter_pck_discard(GF_FilterPacket *pck)
 GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 {
 	u32 i, count, nb_dispatch=0, nb_discard=0;
-	size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free);
 	GF_FilterPid *pid;
 	s64 duration=0;
 	u32 timescale=0;
@@ -555,9 +554,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	//send from filter, update flags
 	if (from_filter) {
 		Bool is_cmd = (pck->info.flags & GF_PCK_CKTYPE_MASK) ? GF_TRUE : GF_FALSE;
-		if (! is_cmd )
+		if (! is_cmd ) {
 			gf_filter_forward_clock(pck->pid->filter);
-
+			pid->prevent_eos_dispatch = GF_FALSE;
+		}
 		if ( (pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS) {
 			if (!pid->has_seen_eos) {
 				pid->has_seen_eos = GF_TRUE;
@@ -609,10 +609,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		gf_list_add(pid->filter->postponed_packets, pck);
 
 #ifdef GPAC_MEMORY_TRACKING
-		if (pck->pid->filter->nb_process_since_reset) {
+		if (pck->pid->filter->session->check_allocs) {
 			gf_mem_get_stats(&nb_allocs, NULL, &nb_reallocs, NULL);
-			pck->pid->filter->nb_alloc_pck += (nb_allocs - prev_nb_allocs);
-			pck->pid->filter->nb_realloc_pck += (nb_reallocs - prev_nb_reallocs);
+			pck->pid->filter->session->nb_alloc_pck += (nb_allocs - prev_nb_allocs);
+			pck->pid->filter->session->nb_realloc_pck += (nb_reallocs - prev_nb_reallocs);
 		}
 #endif
 		gf_rmt_end();
@@ -969,10 +969,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
-	if (pck->pid->filter->nb_process_since_reset) {
+	if (pck->pid->filter->session->check_allocs) {
 		gf_mem_get_stats(&nb_allocs, NULL, &nb_reallocs, NULL);
-		pck->pid->filter->nb_alloc_pck += (nb_allocs - prev_nb_allocs);
-		pck->pid->filter->nb_realloc_pck += (nb_reallocs - prev_nb_reallocs);
+		pck->pid->filter->session->nb_alloc_pck += (nb_allocs - prev_nb_allocs);
+		pck->pid->filter->session->nb_realloc_pck += (nb_reallocs - prev_nb_reallocs);
 	}
 #endif
 
@@ -1436,7 +1436,7 @@ GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, char **da
 		pck->alloc_size = pck->data_length + nb_bytes_to_add;
 		pck->data = gf_realloc(pck->data, pck->alloc_size);
 #ifdef GPAC_MEMORY_TRACKING
-		pck->pid->filter->nb_realloc_pck++;
+		pck->pid->filter->session->nb_realloc_pck++;
 #endif
 	}
 	pck->info.byte_offset = GF_FILTER_NO_BO;

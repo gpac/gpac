@@ -709,7 +709,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 		//not supported for old FFMPE versions
 #endif
 	}
-#if LIBAVCODEC_VERSION_MAJOR >= 58
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 	if (!dev_fmt) {
 		while (1) {
 			dev_fmt = av_input_video_device_next(dev_fmt);

@@ -891,7 +891,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 	a = (SVG_Element *) event->currentTarget->ptr;
 	gf_svg_flatten_attributes(a, &all_atts);
 
-	compositor = (GF_Compositor *)gf_node_get_private((GF_Node *)handler);
+	compositor = (GF_Compositor *)gf_node_get_private((GF_Node *)a);
 
 	if (!all_atts.xlink_href) return;
 
@@ -955,24 +955,22 @@ void compositor_init_svg_a(GF_Compositor *compositor, GF_Node *node)
 {
 	SVG_handlerElement *handler;
 	gf_node_set_callback_function(node, svg_traverse_a);
+	gf_node_set_private((GF_Node *)node, compositor);
 
 	/*listener for onClick event*/
 	handler = gf_dom_listener_build(node, GF_EVENT_CLICK, 0);
 	/*and overwrite handler*/
 	handler->handle_event = svg_a_handle_event;
-	gf_node_set_private((GF_Node *)handler, compositor);
 
 	/*listener for activate event*/
 	handler = gf_dom_listener_build(node, GF_EVENT_ACTIVATE, 0);
 	/*and overwrite handler*/
 	handler->handle_event = svg_a_handle_event;
-	gf_node_set_private((GF_Node *)handler, compositor);
 
 	/*listener for mousemove event*/
 	handler = gf_dom_listener_build(node, GF_EVENT_MOUSEOVER, 0);
 	/*and overwrite handler*/
 	handler->handle_event = svg_a_handle_event;
-	gf_node_set_private((GF_Node *)handler, compositor);
 
 }
 

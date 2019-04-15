@@ -483,6 +483,7 @@ function initialize() {
  var myvar;
  myvar=true;
  myvar=10;
+ myvar=10.0;
  myvar--;
  myvar-=1;
  myvar++;

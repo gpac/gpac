@@ -198,10 +198,12 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 
 
 	ctx->nb_ch = ctx->hdr.channels;
-	//we change sample rate, change cts
-	if (ctx->cts && (ctx->sample_rate != ctx->hdr.sample_rate)) {
-		ctx->cts *= ctx->hdr.sample_rate;
-		ctx->cts /= ctx->sample_rate;
+	if (!ctx->timescale) {
+		//we change sample rate, change cts
+		if (ctx->cts && (ctx->sample_rate != ctx->hdr.sample_rate)) {
+			ctx->cts *= ctx->hdr.sample_rate;
+			ctx->cts /= ctx->sample_rate;
+		}
 	}
 	ctx->sample_rate = ctx->hdr.sample_rate;
 
@@ -358,6 +360,8 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 			gf_filter_pck_send(dst_pck);
 		}
+		if (byte_offset != GF_FILTER_NO_BO) 
+			byte_offset += to_send;
 
 		if (ctx->remaining) {
 			gf_filter_pid_drop_packet(ctx->ipid);

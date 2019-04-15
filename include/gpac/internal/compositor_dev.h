@@ -328,7 +328,7 @@ struct __tag_compositor
 	u32 opfmt;
 	//allocated framebuffer and size for passthrough mode
 	char *framebuffer;
-	u32 framebuffer_size;
+	u32 framebuffer_size, framebuffer_alloc;
 
 	//passthrough texture object - only assigned by background2D
 	struct _gf_sc_texture_handler *passthrough_txh;
@@ -361,6 +361,7 @@ struct __tag_compositor
 	u32 interaction_sensors;
 
 	u32 check_eos_state;
+	u64 last_check_time;
 
 	/*set whenever 3D HW ctx changes (need to rebuild dlists/textures if any used)*/
 	u32 reset_graphics;
@@ -378,7 +379,7 @@ struct __tag_compositor
 	Bool is_opengl;
 	Bool autoconfig_opengl;
 	u32 force_opengl_2d;
-	
+
 	//in this mode all 2D raster is done through and RGBA canvas except background IO and textures which are done by the GPU. The canvas is then flushed to GPU.
 	//the mode supports defer and immediate rendering
 	Bool hybrid_opengl;
@@ -388,6 +389,9 @@ struct __tag_compositor
 	/*key modif*/
 	u32 key_states;
 	u32 interaction_level;
+
+	//set whenever a scene has Layer3D or CompositeTexture3D
+	Bool needs_offscreen_gl;
 
 	/*size override when no size info is present
 		flags:	1: size override is requested (cfg)
@@ -430,7 +434,7 @@ struct __tag_compositor
 	Fixed dispdist;
 	char *mvshader;
 
-	GF_PropVec2i size, dpi;
+	GF_PropVec2i osize, dpi;
 
 	Bool zoom_changed;
 
@@ -686,6 +690,8 @@ struct __tag_compositor
 
 	Bool gazer_enabled, sgaze;
 	s32 gaze_x, gaze_y;
+
+	Bool validator_mode;
 
 	//moved from old GF_Terminal
 	struct _gf_scene *root_scene;
@@ -1485,6 +1491,8 @@ struct _gf_font
 	Bool not_loaded;
 
 	struct _gf_ft_mgr *ft_mgr;
+
+	GF_Compositor *compositor;
 	/*list of spans currently using the font - this is needed to allow for dynamic discard of the font*/
 	GF_List *spans;
 };
@@ -2478,6 +2486,24 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos);
 
 #ifndef GPAC_DISABLE_VRML
 
+typedef struct
+{
+	GF_AudioInput input;
+	GF_TimeNode time_handle;
+	Double start_time;
+	Bool set_duration, failure;
+} AudioClipStack;
+
+
+typedef struct
+{
+	GF_AudioInput input;
+	GF_TimeNode time_handle;
+	Bool is_active;
+	Double start_time;
+} AudioSourceStack;
+
+
 /*to do: add preroll support*/
 typedef struct _media_control
 {
@@ -2556,7 +2582,9 @@ void gf_scene_init_storage(GF_Scene *scene, GF_Node *node);
 
 #endif	/*GPAC_DISABLE_VRML*/
 
-
+Bool gf_sc_check_gl_support(GF_Compositor *compositor);
+void gf_sc_mo_destroyed(GF_Node *n);
+Bool gf_sc_on_event(void *cbck, GF_Event *event);
 
 #ifdef __cplusplus
 }

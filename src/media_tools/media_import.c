@@ -41,7 +41,7 @@ GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...)
 		va_list args;
 		char szMsg[1024];
 		va_start(args, format);
-		vsprintf(szMsg, format, args);
+		vsnprintf(szMsg, 1024, format, args);
 		va_end(args);
 		GF_LOG((u32) (e ? GF_LOG_WARNING : GF_LOG_INFO), GF_LOG_AUTHOR, ("%s\n", szMsg) );
 	}
@@ -534,7 +534,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			samp->DTS -= dts_offset;
 
 			if (samp->nb_pack && duration && (samp->DTS + samp->nb_pack*cdur > duration) ) {
-				u32 nb_samp = (duration - samp->DTS)/cdur;
+				u32 nb_samp = (u32) ( (duration - samp->DTS)/cdur );
 				u32 csize = samp->dataLength / samp->nb_pack;
 				samp->dataLength = csize*nb_samp;
 				samp->nb_pack = nb_samp;

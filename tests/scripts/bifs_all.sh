@@ -16,13 +16,13 @@ bifs_test()
  do_hash_test $mp4file "mp4"
 
  #test source (BT/XMT) parsing and playback
- do_test "$GPAC -i $srcfile compositor:size=128x128:vfr @ -o $dump" "srcplay"
+ do_test "$GPAC -i $srcfile compositor:osize=128x128:vfr @ -o $dump" "srcplay"
  #we unfortunately have rounding issues for now on bt/xmt playback which do not happen on binary version
  #do_hash_test $dump "srcplay"
 
  dump=$TEMP_DIR/dump_mp4.rgb
  #test encoded BIFS playback - we cannot compare hashes of the two playback, because the encoded version uses quantization so display will differ
- do_test "$GPAC -i $mp4file compositor:size=128x128:vfr @ -o $dump" "mp4play"
+ do_test "$GPAC -i $mp4file compositor:osize=128x128:vfr @ -o $dump" "mp4play"
  do_hash_test $dump "mp4play"
 
  #test MP4 to BT

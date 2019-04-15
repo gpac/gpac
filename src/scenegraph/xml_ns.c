@@ -230,8 +230,8 @@ static const struct xml_att_def {
 	{ "fx", TAG_SVG_ATT_fx, SVG_Coordinate_datatype, 0, GF_XMLNS_SVG },
 	{ "fy", TAG_SVG_ATT_fy, SVG_Coordinate_datatype, 0, GF_XMLNS_SVG },
 	{ "size", TAG_SVG_ATT_size, LASeR_Size_datatype, 0, GF_XMLNS_SVG },
-	{ "choice", TAG_SVG_ATT_choice, LASeR_Choice_datatype, 0, GF_XMLNS_SVG },
-	{ "delta", TAG_SVG_ATT_delta, LASeR_Size_datatype, 0, GF_XMLNS_SVG },
+	{ "choice", TAG_SVG_ATT_choice, LASeR_Choice_datatype, 0, GF_XMLNS_LASER },
+	{ "delta", TAG_SVG_ATT_delta, LASeR_Size_datatype, 0, GF_XMLNS_LASER },
 	{ "offset", TAG_SVG_ATT_offset, SVG_Number_datatype, 0, GF_XMLNS_SVG },
 	{ "syncBehaviorDefault", TAG_SVG_ATT_syncBehaviorDefault, SMIL_SyncBehavior_datatype, 0, GF_XMLNS_SVG },
 	{ "syncToleranceDefault", TAG_SVG_ATT_syncToleranceDefault, SMIL_SyncTolerance_datatype, 0, GF_XMLNS_SVG },
@@ -623,7 +623,7 @@ GF_EXPORT
 u32 gf_xml_get_element_tag(const char *element_name, u32 ns)
 {
 	u32 i, count;
-	if (!element_name) return TAG_UndefinedNode;
+//	if (!element_name) return TAG_UndefinedNode;
 	count = sizeof(xml_elements) / sizeof(struct xml_elt_def);
 	for (i=0; i<count; i++) {
 		if (!strcmp(xml_elements[i].name, element_name)) {

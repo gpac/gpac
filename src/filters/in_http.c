@@ -46,7 +46,7 @@ typedef struct
 	char *src;
 	u32 block_size;
 	GF_HTTPInStoreMode cache;
-	GF_Fraction range;
+	GF_Fraction64 range;
 	char *ext;
 	char *mime;
 
@@ -237,7 +237,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	GF_Err e=GF_OK;
 	u32 bytes_per_sec;
-	u64 bytes_done, total_size;
+	u64 bytes_done, total_size, byte_offset;
 	GF_NetIOStatus net_status;
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
@@ -340,6 +340,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
 	}
 
+	byte_offset = ctx->nb_read;
+
 	ctx->nb_read += nb_read;
 	if (ctx->file_size && (ctx->nb_read==ctx->file_size)) {
 		ctx->is_end = GF_TRUE;
@@ -361,7 +363,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 	gf_filter_pck_set_framing(pck, is_start, ctx->is_end);
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-	gf_filter_pck_set_byte_offset(pck, ctx->nb_read);
+	gf_filter_pck_set_byte_offset(pck, byte_offset);
 
 	//mark packet out BEFORE sending, since the call to send() may destroy the packet if cloned
 	ctx->pck_out = GF_TRUE;
@@ -385,7 +387,7 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "1000000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cache), "Sets cache mode: disk, disk without discarding, memory or none", GF_PROP_UINT, "disk", "disk|keep|mem|none", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(range), "Sets byte range, as fraction", GF_PROP_FRACTION, "0-0", NULL, 0},
+	{ OFFS(range), "Sets byte range, as fraction", GF_PROP_FRACTION64, "0-0", NULL, 0},
 	{ OFFS(ext), "overrides file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "sets file mime type", GF_PROP_NAME, NULL, NULL, 0},
 	{0}

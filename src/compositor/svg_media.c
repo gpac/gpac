@@ -32,18 +32,6 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGPropertiesPointers *props);
 
 
-typedef struct
-{
-	GF_TextureHandler txh;
-	Drawable *drawable;
-	MFURL txurl;
-	Bool first_frame_fetched;
-	GF_Node *audio;
-	Bool audio_dirty;
-	Bool stop_requested;
-} SVG_video_stack;
-
-
 
 static Bool svg_video_get_transform_behavior(GF_TraverseState *tr_state, SVGAllAttributes *atts, Fixed *cx, Fixed *cy, Fixed *angle)
 {
@@ -617,12 +605,6 @@ void compositor_svg_video_modified(GF_Compositor *compositor, GF_Node *node)
 /*********************/
 /* SVG audio element */
 /*********************/
-typedef struct
-{
-	GF_AudioInput input;
-	Bool is_active, is_error;
-	MFURL aurl;
-} SVG_audio_stack;
 
 static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status, GF_Node *slave_audio, GF_Node *video)
 {

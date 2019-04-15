@@ -31,7 +31,7 @@ typedef struct
 {
 	//opts
 	GF_PropVec2i size;
-	GF_PixelFormat pfmt;
+	GF_PixelFormat spfmt;
 	GF_Fraction fps;
 	Bool copy;
 
@@ -67,11 +67,11 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_NOT_SUPPORTED;
 
 	ctx->ipid = pid;
-	if (!ctx->pfmt) {
+	if (!ctx->spfmt) {
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_EXT);
-		if (p && p->value.string) ctx->pfmt = gf_pixel_fmt_parse(p->value.string);
+		if (p && p->value.string) ctx->spfmt = gf_pixel_fmt_parse(p->value.string);
 	}
-	if (!ctx->pfmt) {
+	if (!ctx->spfmt) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RawVidReframe] Missing pixel format, cannot parse\n"));
 		return GF_BAD_PARAM;
 	}
@@ -81,7 +81,7 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	stride = stride_uv = 0;
-	if (! gf_pixel_get_size_info(ctx->pfmt, ctx->size.x, ctx->size.y, &ctx->frame_size, &stride, &stride_uv, NULL, NULL)) {
+	if (! gf_pixel_get_size_info(ctx->spfmt, ctx->size.x, ctx->size.y, &ctx->frame_size, &stride, &stride_uv, NULL, NULL)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RawVidReframe] Failed to query pixel format size info\n"));
 		return GF_BAD_PARAM;
 	}
@@ -95,7 +95,7 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->size.x));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->size.y));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pfmt));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->spfmt));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, &PROP_FRAC(ctx->fps));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(stride));
@@ -276,8 +276,8 @@ static GF_FilterCapability RawVidReframeCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_RawVidReframeCtx, _n)
 static GF_FilterArgs RawVidReframeArgs[] =
 {
-	{ OFFS(size), "video resolution", GF_PROP_VEC2I, "0x0", NULL, 0},
-	{ OFFS(pfmt), "pixel format", GF_PROP_PIXFMT, "none", NULL, 0},
+	{ OFFS(size), "source video resolution", GF_PROP_VEC2I, "0x0", NULL, 0},
+	{ OFFS(spfmt), "source pixel format. When not set, derived from file extension", GF_PROP_PIXFMT, "none", NULL, 0},
 	{ OFFS(fps), "frames per second", GF_PROP_FRACTION, "25/1", NULL, 0},
 	{ OFFS(copy), "copy source bytes into output frame. If not set, source bytes are referenced only", GF_PROP_BOOL, "false", NULL, 0},
 	{0}

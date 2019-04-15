@@ -1749,8 +1749,10 @@ static GF_Err swf_bifs_show_frame(SWFReader *read)
 	u32 ts;
 	Bool is_rap;
 
-	/*hack to allow for empty BIFS AU to be encoded in order to keep the frame-rate (this reduces MP4 table size...)*/
-	if ( !gf_list_count(read->bifs_au->commands)) {
+	/*hack to allow for empty BIFS AU to be encoded in order to keep the frame-rate (this reduces MP4 table size...)
+	todo: make this an option - commented for now in both master and filters*/
+#if 0
+	if (!gf_list_count(read->bifs_au->commands)) {
 		GF_Command *com;
 		GF_CommandField *f;
 		com = gf_sg_command_new(read->load->scene_graph, GF_SG_FIELD_REPLACE);
@@ -1764,6 +1766,7 @@ static GF_Err swf_bifs_show_frame(SWFReader *read)
 		*((SFInt32 *)f->field_ptr) = -1;
 		gf_list_add(read->bifs_au->commands, com);
 	}
+#endif
 
 	/*create a new AU for next frame*/
 	ts = (read->current_frame + 1) * 100;
@@ -2103,7 +2106,11 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 
 	sprintf(szMsg, "%s file converted to MPEG-4 Systems", read->load->fileName);
 	((M_WorldInfo *)n)->info.vals[0] = gf_strdup(szMsg);
-	sprintf(szMsg, "Conversion done using GPAC version %s - %s", gf_gpac_version(), gf_gpac_copyright() );
+	if (gf_sys_is_test_mode()) {
+		sprintf(szMsg, "Conversion done using GPAC");
+	} else {
+		sprintf(szMsg, "Conversion done using GPAC version %s - %s", gf_gpac_version(), gf_gpac_copyright() );
+	}
 	((M_WorldInfo *)n)->info.vals[1] = gf_strdup(szMsg);
 
 	/*background*/

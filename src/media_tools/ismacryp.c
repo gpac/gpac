@@ -1598,7 +1598,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				}
 				nb_ranges--;
 				if (!nb_ranges) break;
-				
+
 				av1_tile_idx++;
 				clear_bytes = ranges[av1_tile_idx].clear;
 				unit_size = clear_bytes + ranges[av1_tile_idx].encrypted;
@@ -2666,7 +2666,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		}
 		if (!tci.trackID)
 			tci.trackID = trackID;
-			
+
 		switch (scheme_type) {
 		case GF_CRYPT_TYPE_ISMA:
 			gf_decrypt_track = gf_ismacryp_decrypt_track;
@@ -2854,6 +2854,9 @@ static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_fil
 		}
 		if (specInfoSize < 16 + (version ? 4 + 16*KID_count : 0)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Invalid PSSH blob in version %d: size %d key count %d - ignoring PSSH\n", version, specInfoSize, KID_count));
+			if (specInfo) gf_free(specInfo);
+			if (KIDs) gf_free(KIDs);
+			if (bs) gf_bs_del(bs);
 			continue;
 		}
 		len = specInfoSize - 16 - (version ? 4 + 16*KID_count : 0);

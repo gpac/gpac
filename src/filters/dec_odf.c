@@ -31,6 +31,8 @@ typedef struct
 {
 	GF_ObjectManager *odm;
 	GF_Scene *scene;
+	Bool is_playing;
+	GF_FilterPid *out_pid;
 } GF_ODFDecCtx;
 
 
@@ -59,6 +61,8 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	if (is_remove) {
 		out_pid = gf_filter_pid_get_udta(pid);
+		if (out_pid==ctx->out_pid)
+			ctx->out_pid = NULL;
 		gf_filter_pid_remove(out_pid);
 		return GF_OK;
 	}
@@ -80,6 +84,8 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	gf_filter_pid_copy_properties(out_pid, pid);
 	gf_filter_pid_set_property(out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_udta(pid, out_pid);
+	if (!ctx->out_pid)
+		ctx->out_pid = out_pid;
 	return GF_OK;
 }
 
@@ -93,7 +99,8 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		odm = gf_odm_new();
 		odm->ID = od->objectDescriptorID;
 		odm->parentscene = scene;
-		odm->ignore_sys = GF_TRUE;
+		if (od->fake_remote)
+			odm->ignore_sys = GF_TRUE;
 		gf_list_add(scene->resources, odm);
 		gf_odm_setup_remote_object(odm, scene->root_od->scene_ns, od->URLString);
 		return;
@@ -137,25 +144,39 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 			odm = NULL;
 		}
 
-		//input sensors don't have PIDs associated for now (only local sensors supported)
-		if (esd->decoderConfig->streamType == GF_STREAM_INTERACT) {
+		//OCR streams and input sensors don't have PIDs associated for now (only local sensors supported)
+		if ((esd->decoderConfig->streamType == GF_STREAM_INTERACT)
+			|| (esd->decoderConfig->streamType == GF_STREAM_OCR)
+		) {
 #ifndef GPAC_DISABLE_VRML
 			//first time we setup this stream, create an ODM
 			if (!odm) {
 				odm = gf_odm_new();
 				odm->type = GF_STREAM_INTERACT;
 				odm->parentscene = scene;
+				odm->ID = od->objectDescriptorID;
 				odm->pid_id = esd->ESID;
 				odm->ck = scene->root_od->ck;
 				odm->scene_ns = scene->root_od->scene_ns;
 				odm->scene_ns->nb_odm_users++;
 				gf_list_add(scene->resources, odm);
 			}
-			gf_input_sensor_setup_object(odm, esd);
+			if (esd->decoderConfig->streamType == GF_STREAM_INTERACT) {
+				gf_scene_setup_object(scene, odm);
+				gf_input_sensor_setup_object(odm, esd);
+			}
+			else if (esd->decoderConfig->streamType == GF_STREAM_OCR) {
+				odm->mo = gf_mo_new();
+				odm->mo->odm = odm;
+				odm->mo->OD_ID = od->objectDescriptorID;
+				odm->mo->type = GF_MEDIA_OBJECT_UNDEF;
+				gf_list_add(scene->scene_objects, odm->mo);
+
+				gf_clock_set_time(odm->ck, 0);
+			}
 #endif
 			return;
-		}
-		else if (!odm || !pid ) {
+		} else if (!odm || !pid ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Cannot match OD ID %d to any PID in the service, ignoring OD\n", od->objectDescriptorID));
 			return;
 		}
@@ -270,6 +291,15 @@ GF_Err odf_dec_process(GF_Filter *filter)
 	const char *data;
 	u32 size, ESID=0;
 	const GF_PropertyValue *prop;
+	GF_ODFDecCtx *ctx = gf_filter_get_udta(filter);
+
+	if (!ctx->scene) {
+		if (ctx->is_playing) {
+			gf_filter_pid_set_eos(ctx->out_pid);
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
 
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
@@ -390,6 +420,9 @@ static Bool odf_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	switch (com->base.type) {
 	case GF_FEVT_ATTACH_SCENE:
 		break;
+	case GF_FEVT_PLAY:
+		ctx->is_playing = GF_TRUE;
+		return GF_FALSE;
 	default:
 		return GF_FALSE;
 	}

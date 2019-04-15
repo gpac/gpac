@@ -931,6 +931,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_CODECID, "CodecID", "Codec ID (MPEG-4 OTI or ISOBMFF 4CC)", GF_PROP_UINT},
 	{ GF_PROP_PID_IN_IOD, "InitialObjectDescriptor", "Indicates if pid is declared in the IOD for MPEG-4", GF_PROP_BOOL},
 	{ GF_PROP_PID_UNFRAMED, "Unframed", "Indicates that the media data is not framed, i.e. each packet is not a complete AU/frame or is not in internal format (eg annexB for avc/hevc, adts for aac)", GF_PROP_BOOL},
+	{ GF_PROP_PID_UNFRAMED_FULL_AU, "UnframedAU", "Indicates that the unframed media still has correct AU boundaries: one packet is one full AU, but the packet format might not be the internal one (eg annexB for avc/hevc, adts for aac)", GF_PROP_BOOL},
 	{ GF_PROP_PID_UNFRAMED_LATM, "LATM", "Indicates media is unframed AAC in LATM format", GF_PROP_BOOL},
 	{ GF_PROP_PID_DURATION, "Duration", "Media duration", GF_PROP_FRACTION},
 	{ GF_PROP_PID_NB_FRAMES, "NumFrames", "Number of frames in the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
@@ -941,7 +942,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_TIMESCALE, "Timescale", "Media timescale (a timestamp delta of N is N/timescale seconds)", GF_PROP_UINT},
 	{ GF_PROP_PID_PROFILE_LEVEL, "ProfileLevel", "MPEG-4 profile and level", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DECODER_CONFIG, "DecoderConfig", "Decoder configuration data", GF_PROP_DATA},
-	{ GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, "DecoderConfigEnhancement", "Decoder configuration data of the enhancement layer(s)", GF_PROP_DATA},
+	{ GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, "DecoderConfigEnhancement", "Decoder configuration data of the enhancement layer(s). Also used by 3GPP/Apple text streams to give the full sample description table used in SDP.", GF_PROP_DATA},
 	{ GF_PROP_PID_CONFIG_IDX, "DecoderConfigIndex", "1-based index of decoder config for ISO base media files", GF_PROP_UINT},
 	{ GF_PROP_PID_SAMPLE_RATE, "SampleRate", "Audio sample rate", GF_PROP_UINT},
 	{ GF_PROP_PID_SAMPLES_PER_FRAME, "SamplesPerFrame", "Number of audio sample in one coded frame", GF_PROP_UINT},
@@ -1131,6 +1132,7 @@ Bool gf_props_4cc_check_props()
 
 const char *gf_prop_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum, Bool is_4cc)
 {
+	dump[0] = 0;
 	switch (att->type) {
 	case GF_PROP_SINT:
 		sprintf(dump, "%d", att->value.sint);
@@ -1181,6 +1183,7 @@ const char *gf_prop_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_D
 	case GF_PROP_FRACTION64:
 		//reduce fraction
 		if (att->value.lfrac.den && ((att->value.lfrac.num/att->value.lfrac.den) * att->value.lfrac.den == att->value.lfrac.num)) {
+			sprintf(dump, LLD, att->value.lfrac.num / att->value.lfrac.den);
 		} else {
 			sprintf(dump, LLD"/"LLU, att->value.lfrac.num, att->value.lfrac.den);
 		}
@@ -1286,6 +1289,9 @@ const char *gf_prop_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_D
 	}
 	case GF_PROP_FORBIDEN:
 		sprintf(dump, "forbiden");
+		break;
+	case GF_PROP_LAST_DEFINED:
+		sprintf(dump, "lastDefined");
 		break;
 	}
 	return dump;

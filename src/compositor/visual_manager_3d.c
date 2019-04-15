@@ -357,6 +357,7 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 					/*scene not yet ready, force a recompute of world bounds at next frame*/
 					if (!is_layer && gf_sc_fit_world_to_screen(tr_state->visual->compositor) == 0) {
 						tr_state->camera->had_viewpoint = 2;
+						gf_sc_invalidate(tr_state->visual->compositor, NULL);
 					}
 				}
 			} else {
@@ -542,7 +543,8 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 	/*animate current camera - if returns TRUE draw next frame*/
 	if (camera_animate(tr_state->camera, tr_state->visual->compositor)) {
 		if (tr_state->visual->compositor->active_layer) gf_node_dirty_set(tr_state->visual->compositor->active_layer, 0, 1);
-		gf_sc_invalidate(tr_state->visual->compositor, NULL);
+
+		tr_state->visual->compositor->force_next_frame_redraw = GF_TRUE;
 	}
 
 
@@ -956,7 +958,7 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	u32 time = gf_sys_clock();
 #endif
 
-	if (is_root_visual && visual->compositor->fbo_id)
+	if (visual->compositor->fbo_id)
 		compositor_3d_enable_fbo(visual->compositor, GF_TRUE);
 
 	visual_3d_setup(visual);
@@ -1003,7 +1005,7 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] Frame\t%d\t3D drawn in \t%d\tms\n", visual->compositor->frame_number, gf_sys_clock() - time));
 
-	if (is_root_visual && visual->compositor->fbo_id)
+	if (visual->compositor->fbo_id)
 		compositor_3d_enable_fbo(visual->compositor, GF_FALSE);
 
 	return 1;

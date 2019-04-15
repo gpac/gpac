@@ -31,7 +31,7 @@
 typedef struct
 {
 	u64 pos;
-	Double duration;
+	Double start_time;
 } MPGVidIdx;
 
 typedef struct
@@ -208,8 +208,8 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(MPGVidIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = pos;
-			ctx->indexes[ctx->index_size].duration = (Double) duration;
-			ctx->indexes[ctx->index_size].duration /= ctx->fps.num;
+			ctx->indexes[ctx->index_size].start_time = (Double) (duration-ctx->fps.den);
+			ctx->indexes[ctx->index_size].start_time /= ctx->fps.num;
 			ctx->index_size ++;
 			cur_dur = 0;
 		}
@@ -230,7 +230,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 }
 
 
-static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket *pck, Bool flush_ref)
+static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket *pck, Bool flush_ref, Bool is_eos)
 {
 	//TODO: we are dispacthing frames in "negctts mode", ie we may have DTS>CTS
 	//need to signal this for consumers using DTS (eg MPEG-2 TS)
@@ -260,6 +260,11 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 					gf_filter_pck_set_cts(q_pck, cts);
 				}
 			}
+			if (is_eos && (i+1==count)) {
+				Bool start, end;
+				gf_filter_pck_get_framing(q_pck, &start, &end);
+				gf_filter_pck_set_framing(q_pck, start, GF_TRUE);
+			}
 			gf_filter_pck_send(q_pck);
 		}
 		gf_list_reset(ctx->pck_queue);
@@ -286,7 +291,7 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->fps));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 
-	mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+	mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE, GF_FALSE);
 
 	ctx->width = ctx->dsi.width;
 	ctx->height = ctx->dsi.height;
@@ -376,19 +381,22 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 
 		if (ctx->start_range) {
 			for (i=1; i<ctx->index_size; i++) {
-				if (ctx->indexes[i].duration>ctx->start_range) {
-					ctx->cts = (u64) (ctx->indexes[i-1].duration * ctx->fps.num);
+				if ((ctx->indexes[i].start_time > ctx->start_range) || (i+1==ctx->index_size)) {
+					ctx->cts = (u64) (ctx->indexes[i-1].start_time * ctx->fps.num);
 					file_pos = ctx->indexes[i-1].pos;
 					break;
 				}
 			}
 		}
+		ctx->dts = ctx->cts;
 		if (!ctx->initial_play_done) {
 			ctx->initial_play_done = GF_TRUE;
 			//seek will not change the current source state, don't send a seek
 			if (!file_pos)
 				return GF_TRUE;
 		}
+		ctx->resume_from = 0;
+		ctx->bytes_in_header = 0;
 		//post a seek
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		fevt.seek.start_offset = file_pos;
@@ -398,10 +406,16 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
-		//don't cancel event
 		ctx->is_playing = GF_FALSE;
 		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 		ctx->src_pck = NULL;
+		if (ctx->pck_queue) {
+			while (gf_list_count(ctx->pck_queue)) {
+				GF_FilterPacket *pck=gf_list_pop_front(ctx->pck_queue);
+				gf_filter_pck_discard(pck);
+			}
+		}
+		//don't cancel event
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
@@ -486,7 +500,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
-			mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+			mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE, GF_TRUE);
 			if (ctx->opid) gf_filter_pid_set_eos(ctx->opid);
 			if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 			ctx->src_pck = NULL;
@@ -619,7 +633,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 					gf_filter_pck_set_byte_offset(dst_pck, byte_offset - ctx->bytes_in_header);
 				}
 
-				mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE);
+				mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE, GF_FALSE);
 				if (current<0) current = -1;
 				else current -= ctx->bytes_in_header;
 				ctx->bytes_in_header = 0;
@@ -672,7 +686,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 					gf_filter_pck_set_byte_offset(dst_pck, byte_offset);
 				}
 
-				mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE);
+				mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE, GF_FALSE);
 				if (copy_last_bytes) {
 					memcpy(ctx->hdr_store, start+remain-3, 3);
 				}
@@ -725,7 +739,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			}
 			gf_filter_pck_set_carousel_version(dst_pck, 1);
 
-			mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE);
+			mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE, GF_FALSE);
 		}
 
 		//parse headers
@@ -911,7 +925,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			ctx->nb_b++;
 		} else {
 			//flush all pending packets
-			mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+			mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE, GF_FALSE);
 			//remeber the CTS of the last ref
 			ctx->last_ref_cts = ctx->cts;
 			if (ctx->max_b < ctx->b_frames) ctx->max_b = ctx->b_frames;
@@ -960,7 +974,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
 		ctx->frame_started = GF_TRUE;
 
-		mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE);
+		mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE, GF_FALSE);
 
 		mpgviddmx_update_time(ctx);
 

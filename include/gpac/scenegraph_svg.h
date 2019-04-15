@@ -575,6 +575,7 @@ Bool gf_svg_is_element_transformable(u32 tag);
 
 void *gf_svg_create_attribute_value(u32 attribute_type);
 void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg);
+
 /* a == b */
 Bool gf_svg_attributes_equal(GF_FieldInfo *a, GF_FieldInfo *b);
 /* a = b */
