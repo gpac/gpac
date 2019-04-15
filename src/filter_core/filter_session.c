@@ -26,6 +26,9 @@
 #include "filter_session.h"
 #include <gpac/network.h>
 
+#ifndef GPAC_DISABLE_3D
+#include <gpac/modules/video_out.h>
+#endif
 //#define CHECK_TASK_LIST_INTEGRITY
 
 
@@ -536,7 +539,12 @@ void gf_fs_del(GF_FilterSession *fsess)
 
 #ifndef GPAC_DISABLE_3D
 	gf_list_del(fsess->gl_providers);
+	if (fsess->gl_driver) {
+		fsess->gl_driver->Shutdown(fsess->gl_driver);
+		gf_modules_close_interface((GF_BaseInterface *)fsess->gl_driver);
+	}
 #endif
+
 
 	gf_free(fsess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session destroyed\n"));
@@ -2270,7 +2278,6 @@ Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt)
 }
 
 #ifndef GPAC_DISABLE_3D
-#include <gpac/modules/video_out.h>
 static Bool fsess_on_event(void *cbk, GF_Event *evt)
 {
 	return GF_TRUE;
