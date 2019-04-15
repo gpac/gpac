@@ -323,8 +323,14 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','8'), &PROP_FRAC_INT(1,1));
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','8'), &PROP_FRAC64_INT(1,1));
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','9'), &PROP_POINTER(pck));
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','a'), &PROP_DATA((char *) pidctx, sizeof(pidctx)));
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','b'), &PROP_CONST_DATA((char *) pidctx, sizeof(pidctx)));
+
+			if (stack->gsftest) {
+				gf_filter_pck_set_property(pck, GF_4CC('c','u','s','a'), &PROP_DATA(pidctx->ifce_data, 8));
+				gf_filter_pck_set_property(pck, GF_4CC('c','u','s','b'), &PROP_CONST_DATA(pidctx->ifce_data, 8));
+			} else {
+				gf_filter_pck_set_property(pck, GF_4CC('c','u','s','a'), &PROP_DATA((char *) pidctx, sizeof(pidctx)));
+				gf_filter_pck_set_property(pck, GF_4CC('c','u','s','b'), &PROP_CONST_DATA((char *) pidctx, sizeof(pidctx)));
+			}
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','c'), &PROP_STRING("custom"));
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','d'), &PROP_STRING("custom"));
 			memset(&p, 0, sizeof(GF_PropertyValue));
