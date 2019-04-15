@@ -639,7 +639,7 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 #endif
 
 		} else if (type==FF_REG_TYPE_DEV_IN) {
-#if LIBAVCODEC_VERSION_MAJOR >= 58
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 			fmt = av_input_video_device_next(fmt);
 			if (!fmt) break;
 			av_class = fmt->priv_class;
