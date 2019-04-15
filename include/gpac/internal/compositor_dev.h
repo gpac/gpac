@@ -361,7 +361,7 @@ struct __tag_compositor
 	u32 interaction_sensors;
 
 	u32 check_eos_state;
-	u64 last_check_time;
+	u32 last_check_pass;
 
 	/*set whenever 3D HW ctx changes (need to rebuild dlists/textures if any used)*/
 	u32 reset_graphics;
