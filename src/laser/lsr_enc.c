@@ -1106,7 +1106,17 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 				len +=1;
 				break;
 			case TAG_SVG_ATT_requiredFonts:
-				len += 8 * (u32) strlen(*(SVG_String*)att->data);
+			{
+				GF_List *l = *(GF_List **)att->data;
+				u32 i, str_len = 0;
+				for (i=0; i<gf_list_count(l); i++) {
+					char *st = gf_list_get(l, i);
+					str_len += strlen(st);
+					if (i) str_len += 1;
+				}
+
+				len += 8 * (u32) str_len;
+
 				/*get vluimsbf5 field size with one extra word (4 bits, enough to code string alignment)*/
 				size = lsr_get_vluimsbf5_size(len, 1);
 				cur_bits = gf_bs_get_bit_position(lsr->bs) + lsr->info->cfg.extensionIDBits + size + 5;
@@ -1116,6 +1126,7 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 					cur_bits++;
 				}
 				is_string = GF_TRUE;
+			}
 				break;
 			default:
 				len +=2;
