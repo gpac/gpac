@@ -1228,7 +1228,6 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	u64 start_range, end_range, switch_start_range, switch_end_range;
 	bin128 key_IV;
 	u32 group_idx;
-	Bool group_done;
 
 	assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
 	group->wait_for_pck = GF_TRUE;
@@ -1244,7 +1243,6 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	}
 
 	group->stats_uploaded = GF_FALSE;
-	group_done = GF_FALSE;
 
 #if 0
 	if (group_done) {
