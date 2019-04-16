@@ -480,6 +480,8 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	//use the old props as new ones and merge the previous props of dst in the new props
 	prev_dst_props = dst->props;
 	dst->props = src->props;
+	dst->force_reconfig = GF_TRUE;
+	src->force_reconfig = GF_TRUE;
 	src->props = NULL;
 	if (prev_dst_props) {
 		gf_props_merge_property(dst->props, prev_dst_props, NULL, NULL);
@@ -4084,7 +4086,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		//- the props are not set when querying the first packet (no prop queries on pid)
 		//- the new props are already set if filter_pid_get_property was queried before the first packet dispatch
 		if (pidinst->props) {
-			if (pidinst->props != pcki->pck->pid_props) {
+			if (pidinst->force_reconfig || (pidinst->props != pcki->pck->pid_props)) {
 				//destroy if last occurence, removing it from pid as well
 				//only remove if last about to be destroyed, since we may have several pid instances consuming from this pid
 				assert(pidinst->props->reference_count);
@@ -4092,6 +4094,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 					gf_list_del_item(pidinst->pid->properties, pidinst->props);
 					gf_props_del(pidinst->props);
 				}
+				pidinst->force_reconfig = GF_FALSE;
 				//set new one
 				pidinst->props = pcki->pck->pid_props;
 				safe_int_inc( & pidinst->props->reference_count );

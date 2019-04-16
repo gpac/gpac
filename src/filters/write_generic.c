@@ -117,8 +117,6 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	ctx->w = w = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
 	ctx->h = h = p ? p->value.uint : 0;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);
-	ctx->stride = p ? p->value.uint : ctx->w;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
 	pf = p ? p->value.uint : 0;
@@ -283,6 +281,14 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 					ctx->codecid = 0;
 				}
 			}
+
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);
+			ctx->stride = p ? p->value.uint : 0;
+
+			if (!ctx->stride) {
+				gf_pixel_get_size_info(ctx->target_pfmt, ctx->w, ctx->h, NULL, &ctx->stride, NULL, NULL, NULL);
+			}
+
 		} else if (stype==GF_STREAM_AUDIO) {
 			strcpy(szExt, gf_audio_fmt_sname(ctx->target_pfmt ? ctx->target_afmt : sfmt));
 			p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
