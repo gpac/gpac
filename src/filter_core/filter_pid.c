@@ -2549,7 +2549,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				if (prefRegistry[0] && (redge->src_reg->destination != current_node) && strstr(prefRegistry, current_node->freg->name)) {
 					do_switch = GF_TRUE;
 					priority = 0;
-				} else if ( (dist == redge->src_reg->dist) && (redge->priority < redge->src_reg->priority) )
+				} else if ( (dist == redge->src_reg->dist) && (priority < redge->src_reg->priority) )
 					do_switch = GF_TRUE;
 			}
 
