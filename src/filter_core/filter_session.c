@@ -1551,8 +1551,13 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 	//wait for all threads to be done, we might still need flushing the main thread queue
 	while (fsess->no_main_thread) {
 		gf_fs_thread_proc(&fsess->main_th);
-		if (! gf_fq_count(fsess->main_thread_tasks))
-			break;
+		if (gf_fq_count(fsess->main_thread_tasks))
+			continue;
+
+		if (count && (count == fsess->nb_threads_stopped) && gf_fq_count(fsess->tasks) ) {
+			continue;
+		}
+		break;
 	}
 	if (fsess->no_main_thread) {
 		safe_int_inc(&fsess->nb_threads_stopped);
