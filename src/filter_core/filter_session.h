@@ -690,6 +690,8 @@ struct __gf_filter_pid_inst
 	//set during play/stop/reset phases
 	Bool discard_packets;
 
+	Bool force_reconfig;
+
 	//set by filter
 	Bool discard_inputs;
 
