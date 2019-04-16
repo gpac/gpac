@@ -445,6 +445,7 @@ GF_FilterRegister VTTDecRegister = {
 	.private_size = sizeof(GF_VTTDec),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = VTTDecArgs,
+	.priority = 1,
 	SETCAPS(VTTDecCaps),
 	.initialize = vttd_initialize,
 	.finalize = vttd_finalize,

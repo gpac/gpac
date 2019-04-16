@@ -1319,6 +1319,7 @@ GF_FilterRegister TTXTDecRegister = {
 	.private_size = sizeof(GF_TTXTDec),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = TTXTDecArgs,
+	.priority = 1,
 	SETCAPS(TTXTDecCaps),
 	.initialize = ttd_initialize,
 	.finalize = ttd_finalize,

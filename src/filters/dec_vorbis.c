@@ -282,6 +282,7 @@ GF_FilterRegister VorbisDecRegister = {
 	.name = "vorbisdec",
 	GF_FS_SET_DESCRIPTION("OGG/Vorbis decoder")
 	.private_size = sizeof(GF_VorbisDecCtx),
+	.priority = 1,
 	SETCAPS(VorbisDecCaps),
 	.finalize = vorbisdec_finalize,
 	.configure_pid = vorbisdec_configure_pid,

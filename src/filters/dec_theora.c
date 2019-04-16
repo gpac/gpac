@@ -279,6 +279,7 @@ GF_FilterRegister TheoraDecRegister = {
 	.name = "theoradec",
 	GF_FS_SET_DESCRIPTION("OGG/Theora decoder")
 	.private_size = sizeof(GF_TheoraDecCtx),
+	.priority = 1,
 	SETCAPS(TheoraDecCaps),
 	.initialize = theoradec_initialize,
 	.finalize = theoradec_finalize,
