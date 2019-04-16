@@ -1898,6 +1898,7 @@ GF_FilterRegister GF_VTBDecCtxRegister = {
 	GF_FS_SET_DESCRIPTION("VideoToolBox decoder")
 	.private_size = sizeof(GF_VTBDecCtx),
 	.args = VTBDecArgs,
+	.priority = 1,
 	SETCAPS(VTBDecCaps),
 	.initialize = vtbdec_initialize,
 	.finalize = vtbdec_finalize,

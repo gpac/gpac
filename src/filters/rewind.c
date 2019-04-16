@@ -244,6 +244,8 @@ GF_FilterRegister RewinderRegister = {
 	GF_FS_SET_DESCRIPTION("Audio and video rewinder")
 	GF_FS_SET_HELP("The filter is in passthrough if speed is positive. Otherwise, it reverts decoded GOPs for video, or revert samples in decoded frame for audio.")
 	.private_size = sizeof(GF_RewindCtx),
+	//rewind shall be explicetely loaded
+	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.initialize = rewind_initialize,
 	.finalize = rewind_finalize,
 	.args = RewinderArgs,

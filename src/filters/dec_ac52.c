@@ -278,6 +278,7 @@ GF_FilterRegister A52DecRegister = {
 	.name = "a52dec",
 	GF_FS_SET_DESCRIPTION("A52 decoder")
 	.private_size = sizeof(GF_A52DecCtx),
+	.priority = 1,
 	SETCAPS(A52DecCaps),
 	.configure_pid = a52dec_configure_pid,
 	.process = a52dec_process,
