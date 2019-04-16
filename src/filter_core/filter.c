@@ -802,6 +802,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 						|| !strncmp(args+4, "gmem://", 7)
 						|| !strncmp(args+4, "gpac://", 7)
 						|| !strncmp(args+4, "pipe://", 7)
+						|| !strncmp(args+4, "tcp://", 6)
+						|| !strncmp(args+4, "udp://", 6)
 						|| !strncmp(args+4, "tcpu://", 7)
 						|| !strncmp(args+4, "udpu://", 7)
 						|| !strncmp(args+4, "atsc://", 7)
@@ -809,6 +811,22 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 					) {
 						internal_url = GF_TRUE;
 						sep = strchr(sep+3, ':');
+						if (!strncmp(args+4, "tcp://", 6)
+							|| !strncmp(args+4, "udp://", 6)
+							|| !strncmp(args+4, "tcpu://", 7)
+							|| !strncmp(args+4, "udpu://", 7)
+						) {
+							char *sep2 = sep ? strchr(sep+1, ':') : NULL;
+							if (sep2) {
+								u32 port = 0;;
+								sep2[0] = 0;
+								if (sscanf(sep+1, "%d", &port)!=1) {
+									port = 0;
+								}
+								sep2[0] = ':';
+								if (port) sep = sep2;
+							}
+						}
 
 					} else {
 						//get root /

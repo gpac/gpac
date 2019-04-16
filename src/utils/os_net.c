@@ -610,7 +610,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 			if (ret == SOCKET_ERROR) {
 				closesocket(sock->socket);
 				sock->socket = NULL_SOCKET;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Sock_IPV4] Failed to connect to host %s: %s - retrying\n", PeerName, gf_errno_str(LASTSOCKERROR) ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Sock_IPV4] Failed to connect to host %s: %s - retrying\n", PeerName, gf_errno_str(LASTSOCKERROR) ));
 				continue;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connected to %s:%d\n", PeerName, PortNumber));

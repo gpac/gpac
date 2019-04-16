@@ -46,6 +46,7 @@ typedef struct
 
 	u64 start_time;
 	u64 nb_bytes;
+	Bool done;
 
 } GF_SockInClient;
 
@@ -59,6 +60,7 @@ typedef struct
 	const char *ext;
 	const char *mime;
 	Bool tsprobe, listen, ka, block;
+	u32 timeout;
 #ifndef GPAC_DISABLE_STREAMING
 	u32 reorder_pck;
 	u32 reorder_delay;
@@ -72,6 +74,7 @@ typedef struct
 	char *buffer;
 
 	GF_SockGroup *active_sockets;
+	u64 last_rcv_time;
 } GF_SockInCtx;
 
 
@@ -266,12 +269,17 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	case GF_OK:
 		break;
 	case GF_IP_CONNECTION_CLOSED:
-		return GF_IP_CONNECTION_CLOSED;
+		if (!sock_c->done) {
+			sock_c->done = GF_TRUE;
+			gf_filter_pid_set_eos(sock_c->pid);
+		}
+		return GF_EOS;
 	default:
 		return e;
 	}
 	if (!nb_read) return GF_OK;
 	sock_c->nb_bytes += nb_read;
+	sock_c->done = GF_FALSE;
 
 	//we allocated one more byte for that
 	ctx->buffer[nb_read] = 0;
@@ -294,7 +302,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 			}
 		}
 
-		e = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, mime, ctx->ext, ctx->buffer, nb_read, &sock_c->pid);
+		e = gf_filter_pid_raw_new(filter, ctx->src, NULL, mime, ctx->ext, ctx->buffer, nb_read, &sock_c->pid);
 		if (e) return e;
 		if (!mime) {
 			const GF_PropertyValue *p = gf_filter_pid_get_property(sock_c->pid, GF_PROP_PID_MIME);
@@ -331,7 +339,8 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 
 	dst_pck = gf_filter_pck_new_alloc(sock_c->pid, nb_read, &out_data);
 	memcpy(out_data, in_data, nb_read);
-	gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
+
+	gf_filter_pck_set_framing(dst_pck, (sock_c->nb_bytes == nb_read)  ? GF_TRUE : GF_FALSE, GF_FALSE);
 	gf_filter_pck_send(dst_pck);
 
 	//send bitrate
@@ -345,6 +354,22 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	return GF_OK;
 }
 
+static Bool sockin_check_eos(GF_SockInCtx *ctx)
+{
+	u64 now = gf_sys_clock_high_res();
+	if (!ctx->last_rcv_time) {
+		ctx->last_rcv_time = now;
+		return GF_FALSE;
+	}
+	if (now - ctx->last_rcv_time < ctx->timeout*1000) {
+		return GF_FALSE;
+	}
+	if (ctx->sock_c.pid && !ctx->sock_c.done) {
+		gf_filter_pid_set_eos(ctx->sock_c.pid);
+		ctx->sock_c.done = GF_TRUE;
+	}
+	return GF_TRUE;
+}
 
 static GF_Err sockin_process(GF_Filter *filter)
 {
@@ -354,7 +379,18 @@ static GF_Err sockin_process(GF_Filter *filter)
 	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
 
 	e = gf_sk_group_select(ctx->active_sockets, 10);
-	if (e==GF_IP_NETWORK_EMPTY) return GF_OK;
+	if (e==GF_IP_NETWORK_EMPTY) {
+		if (ctx->is_udp) {
+			if (sockin_check_eos(ctx) )
+				return GF_EOS;
+		} else if (!gf_list_count(ctx->clients)) {
+			gf_filter_ask_rt_reschedule(filter, 1000);
+			return GF_OK;
+		}
+
+		gf_filter_ask_rt_reschedule(filter, 1000);
+		return GF_OK;
+	}
 	else if (e) return e;
 
 	if (gf_sk_group_sock_is_set(ctx->active_sockets, ctx->sock_c.socket)) {
@@ -441,6 +477,7 @@ static const GF_FilterArgs SockInArgs[] =
 	{ OFFS(ext), "indicates file extension of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mime), "indicates mime type of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(block), "set blocking mode for socket(s)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeout), "set timeout in ms for UDP socket(s)", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 #ifndef GPAC_DISABLE_STREAMING
 	{ OFFS(reorder_pck), "number of packets delay for RTP reordering (M2TS over RTP) ", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -451,10 +488,7 @@ static const GF_FilterArgs SockInArgs[] =
 
 static const GF_FilterCapability SockInCaps[] =
 {
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_UINT(GF_CAPS_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 };
 
 GF_FilterRegister SockInRegister = {
