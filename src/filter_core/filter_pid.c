@@ -2291,6 +2291,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	count = gf_list_count( fsess->links);
 	for (i=0; i<count; i++) {
 		u32 j;
+		Bool disable_filter = GF_FALSE;
 		GF_FilterRegDesc *reg_desc = gf_list_get(fsess->links, i);
 		const GF_FilterRegister *freg = reg_desc->freg;
 
@@ -2301,12 +2302,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		//set node distance and priority to infinity, whether we are in the final dijsktra set or not
 		reg_desc->dist = -1;
 		reg_desc->priority = 0xFF;
-		//reset edge status
-		for (j=0; j<reg_desc->nb_edges; j++) {
-			GF_FilterRegEdge *edge = &reg_desc->edges[j];
-			edge->status = EDGE_STATUS_NONE;
-		}
-
 
 		//remember our source descriptor - it may be absent of the final node set in case we want reconfigurable only filters
 		//and the source is not reconfigurable
@@ -2316,39 +2311,44 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		//don't add source filters except if PID is from source
 		if (!freg->configure_pid && (freg!=pid->filter->freg)) {
 			assert(freg != dst->freg);
-			continue;
+			disable_filter = GF_TRUE;
 		}
-
 		//freg shall be instantiated
-		if ((freg->flags & GF_FS_REG_EXPLICIT_ONLY) && (freg != pid->filter->freg) && (freg != dst->freg) ) {
+		else if ((freg->flags & GF_FS_REG_EXPLICIT_ONLY) && (freg != pid->filter->freg) && (freg != dst->freg) ) {
 			assert(freg != dst->freg);
-			continue;
+			disable_filter = GF_TRUE;
 		}
-
 		//no output caps, cannot add
-		if ((freg != dst->freg) && !gf_filter_has_out_caps(freg)) {
+		else if ((freg != dst->freg) && !gf_filter_has_out_caps(freg)) {
 			assert(freg != dst->freg);
 			assert(freg != pid->filter->freg);
-			continue;
+			disable_filter = GF_TRUE;
 		}
-
 		//we only want reconfigurable output filters
-		if (reconfigurable_only && !freg->reconfigure_output && (freg != dst->freg)) {
+		else if (reconfigurable_only && !freg->reconfigure_output && (freg != dst->freg)) {
 			assert(freg != dst->freg);
-			continue;
+			disable_filter = GF_TRUE;
 		}
-
-		//blacklisted filter, can't add pid
-		if (gf_list_find(pid->filter->blacklisted, (void *) freg)>=0) {
+		//blacklisted filter
+		else if (gf_list_find(pid->filter->blacklisted, (void *) freg)>=0) {
 			assert(freg != dst->freg);
 			assert(freg != pid->filter->freg);
-			continue;
+			disable_filter = GF_TRUE;
+		}
+		//blacklisted adaptation filter
+		else if (pid->adapters_blacklist && (gf_list_find(pid->adapters_blacklist, (void *) freg)>=0)) {
+			assert(freg != dst->freg);
+			disable_filter = GF_TRUE;
 		}
 
-		if (pid->adapters_blacklist && (gf_list_find(pid->adapters_blacklist, (void *) freg)>=0)) {
-			assert(freg != dst->freg);
-			continue;
+		//reset edge status
+		for (j=0; j<reg_desc->nb_edges; j++) {
+			GF_FilterRegEdge *edge = &reg_desc->edges[j];
+			edge->status = disable_filter ? EDGE_STATUS_DISABLED : EDGE_STATUS_NONE;
 		}
+
+		if (disable_filter)
+			continue;
 
 		//if source is our origin, disable edge if cap is not matched
 		for (j=0; j<reg_desc->nb_edges; j++) {
