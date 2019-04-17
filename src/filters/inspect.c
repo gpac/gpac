@@ -458,18 +458,17 @@ static GF_Err inspect_process(GF_Filter *filter)
 		pctx->pck_for_config++;
 		pctx->pck_num++;
 
-		if (!ctx->dump_pck) {
-			gf_filter_pid_drop_packet(pctx->src_pid);
-			continue;
-		}
+		if (ctx->dump_pck) {
 
-		if (ctx->is_prober) {
-			nb_done++;
-		} else if (ctx->fmt) {
-			inspect_dump_packet_fmt(ctx, pctx->tmp, pck, pctx, pctx->pck_num);
-		} else {
-			inspect_dump_packet(ctx, pctx->tmp, pck, pctx->idx, pctx->pck_num);
+			if (ctx->is_prober) {
+				nb_done++;
+			} else if (ctx->fmt) {
+				inspect_dump_packet_fmt(ctx, pctx->tmp, pck, pctx, pctx->pck_num);
+			} else {
+				inspect_dump_packet(ctx, pctx->tmp, pck, pctx->idx, pctx->pck_num);
+			}
 		}
+		
 		if (ctx->dur.num && ctx->dur.den) {
 			u32 timescale = gf_filter_pck_get_timescale(pck);
 			u64 ts = gf_filter_pck_get_dts(pck);
