@@ -157,12 +157,19 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 		}
 		gf_scene_disconnect(odm->subscene, do_remove ? GF_TRUE : GF_FALSE);
 	}
-	else if (odm->pid && (odm->type==GF_STREAM_SCENE)) {
+	else if (odm->pid) {
 		GF_FilterEvent fevt;
-		GF_FEVT_INIT(fevt, GF_FEVT_RESET_SCENE, odm->pid);
-		fevt.attach_scene.object_manager = odm;
-		fevt.attach_scene.on_pid = odm->pid;
-		gf_filter_pid_exec_event(odm->pid, &fevt);
+		switch (odm->type) {
+		case GF_STREAM_SCENE:
+		case GF_STREAM_OD:
+		case GF_STREAM_PRIVATE_SCENE:
+		case GF_STREAM_TEXT:
+			GF_FEVT_INIT(fevt, GF_FEVT_RESET_SCENE, odm->pid);
+			fevt.attach_scene.object_manager = odm;
+			fevt.attach_scene.on_pid = odm->pid;
+			gf_filter_pid_exec_event(odm->pid, &fevt);
+			break;
+		}
 	}
 	/*no destroy*/
 	if (!do_remove) return;

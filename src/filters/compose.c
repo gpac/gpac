@@ -400,7 +400,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 
 	//attach scene to input filters - may be true for dynamic scene (text rendering) and regular scenes
-	if ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE) ) {
+	if ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE) || (mtype==GF_STREAM_TEXT) ) {
 		GF_FEVT_INIT(evt, GF_FEVT_ATTACH_SCENE, pid);
 		evt.attach_scene.object_manager = gf_filter_pid_get_udta(pid);
 		gf_filter_pid_send_event(pid, &evt);

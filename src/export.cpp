@@ -642,7 +642,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_slc_set_pref) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_bifs_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_text_config) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_ui_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_laser_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_encode_ui_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sl_depacketize) )

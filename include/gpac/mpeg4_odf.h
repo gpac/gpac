@@ -1271,12 +1271,6 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg);
  \return error if any
  */
 GF_Err gf_odf_get_text_config(char *data, u32 data_len, u32 codecid, GF_TextConfig *cfg);
-/*! special function for authoring - convert DSI to UIConfig
- \param dsi text decoder specific info
- \param cfg the text config object to be filled
- \return error if any
- */
-GF_Err gf_odf_get_ui_config(GF_DefaultDescriptor *dsi, GF_UIConfig *cfg);
 /*! converts UIConfig to dsi - does not destroy input descr but does create output one
  \param cfg the UI config object
  \param out_dsi the decoder specific info created. It is the caller responsability of freeing it
