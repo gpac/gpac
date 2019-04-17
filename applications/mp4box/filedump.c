@@ -931,8 +931,8 @@ static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
 
 static void dump_sei(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_hevc)
 {
-	u32 sei_idx=0;
-	u32 i=1;
+	u32 sei_idx = 0;
+	u32 i = is_hevc ? 2 : 1;
 	u8 *sei_no_epb = NULL;
 	u32 sei_no_epb_size = 0;
 	fprintf(dump, " SEI=\"");
@@ -968,7 +968,10 @@ static void dump_sei(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_hevc)
 			break;
 		}
 	}
-	if (i!=sei_no_epb_size) fprintf(dump, "(garbage at end)");
+	if (i != sei_no_epb_size) {
+		fprintf(dump, "(garbage at end)");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("dump_sei(): garbage at end for index=%u (size of SEI(s)=%u)"));
+	}
 	fprintf(dump, "\"");
 	gf_free(sei_no_epb);
 }
