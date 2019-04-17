@@ -1245,7 +1245,6 @@ GF_Err esds_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e=GF_OK;
 	u32 descSize;
 	char *enc_desc;
-	u32 SLIsPredefined(GF_SLConfig *sl);
 	GF_ESDBox *ptr = (GF_ESDBox *)s;
 
 	descSize = (u32) (ptr->size);

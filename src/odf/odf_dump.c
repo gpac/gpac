@@ -67,8 +67,8 @@ GF_Err gf_odf_dump_com(GF_ODCom *com, FILE *trace, u32 indent, Bool XMTDump)
 	}
 }
 
-
-GF_EXPORT
+//unused
+#if 0
 GF_Err gf_odf_dump_au(char *data, u32 dataLength, FILE *trace, u32 indent, Bool XMTDump)
 {
 	GF_ODCom *com;
@@ -86,6 +86,7 @@ GF_Err gf_odf_dump_au(char *data, u32 dataLength, FILE *trace, u32 indent, Bool 
 	gf_odf_codec_del(odread);
 	return GF_OK;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_odf_dump_com_list(GF_List *commandList, FILE *trace, u32 indent, Bool XMTDump)
@@ -1330,7 +1331,7 @@ GF_Err gf_odf_dump_aux_vid(GF_AuxVideoDescriptor *ld, FILE *trace, u32 indent, B
 	DumpInt(trace, "wref", ld->wref, indent, XMTDump);
 	indent--;
 	EndSubElement(trace, indent, XMTDump);
-	if (!XMTDump) EndDescDump(trace, "LanguageDescriptor", indent, XMTDump);
+	if (!XMTDump) EndDescDump(trace, "AuxiliaryVideoData", indent, XMTDump);
 	return GF_OK;
 }
 
@@ -1922,7 +1923,6 @@ GF_Err gf_odf_dump_ipmp_remove(GF_IPMPRemove *com, FILE *trace, u32 indent, Bool
 	EndSubElement(trace, indent, XMTDump);
 	return GF_OK;
 }
-#endif //GPAC_MINIMAL_ODF
 
 GF_Err gf_odf_dump_base_command(GF_BaseODCom *com, FILE *trace, u32 indent, Bool XMTDump)
 {
@@ -1935,8 +1935,6 @@ GF_Err gf_odf_dump_base_command(GF_BaseODCom *com, FILE *trace, u32 indent, Bool
 	return GF_OK;
 }
 
-
-#ifndef GPAC_MINIMAL_ODF
 
 GF_EXPORT
 GF_Err gf_oci_dump_event(OCIEvent *ev, FILE *trace, u32 indent, Bool XMTDump)

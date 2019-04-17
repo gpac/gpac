@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -1634,10 +1634,6 @@ GF_Err gf_odf_del_muxinfo(GF_MuxInfo *mi)
 	return GF_OK;
 }
 
-GF_Err gf_odf_read_muxinfo(GF_BitStream *bs, GF_MuxInfo *mi, u32 DescSize)
-{
-	return GF_OK;
-}
 GF_Err gf_odf_size_muxinfo(GF_MuxInfo *mi, u32 *outSize)
 {
 	*outSize = 0;

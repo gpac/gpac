@@ -714,14 +714,14 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	{
 		GF_AuxVideoDescriptor *avd = (GF_AuxVideoDescriptor *)desc;
 		if (!stricmp(fieldName, "aux_video_type"))  GET_U8(avd->aux_video_type)
-		else if (!stricmp(fieldName, "position_offset_h"))  GET_U8(avd->aux_video_type)
-		else if (!stricmp(fieldName, "position_offset_v"))  GET_U8(avd->aux_video_type)
-		else if (!stricmp(fieldName, "knear"))  GET_U8(avd->aux_video_type)
-		else if (!stricmp(fieldName, "kfar"))  GET_U8(avd->aux_video_type)
-		else if (!stricmp(fieldName, "parallax_zero"))  GET_U16(avd->aux_video_type)
-		else if (!stricmp(fieldName, "parallax_scale"))  GET_U16(avd->aux_video_type)
-		else if (!stricmp(fieldName, "dref"))  GET_U16(avd->aux_video_type)
-		else if (!stricmp(fieldName, "wref"))  GET_U16(avd->aux_video_type)
+		else if (!stricmp(fieldName, "position_offset_h"))  GET_U8(avd->position_offset_h)
+		else if (!stricmp(fieldName, "position_offset_v"))  GET_U8(avd->position_offset_v)
+		else if (!stricmp(fieldName, "knear"))  GET_U8(avd->knear)
+		else if (!stricmp(fieldName, "kfar"))  GET_U8(avd->kfar)
+		else if (!stricmp(fieldName, "parallax_zero"))  GET_U16(avd->parallax_zero)
+		else if (!stricmp(fieldName, "parallax_scale"))  GET_U16(avd->parallax_scale)
+		else if (!stricmp(fieldName, "dref"))  GET_U16(avd->dref)
+		else if (!stricmp(fieldName, "wref"))  GET_U16(avd->wref)
 	}
 	break;
 	case GF_ODF_IPMP_TOOL_TAG:

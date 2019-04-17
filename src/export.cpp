@@ -1535,7 +1535,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_dump_graph) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_dumper_set_extra_graph) )
 #ifndef GPAC_DISABLE_OD_DUMP
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_au) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_com) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_desc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_com_list) )

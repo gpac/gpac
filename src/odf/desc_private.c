@@ -293,7 +293,8 @@ GF_Err gf_odf_read_descriptor(GF_BitStream *bs, GF_Descriptor *desc, u32 DescSiz
 	case GF_ODF_SEGMENT_TAG:
 		return gf_odf_read_segment(bs, (GF_Segment *) desc, DescSize);
 	case GF_ODF_MUXINFO_TAG:
-		return gf_odf_read_muxinfo(bs, (GF_MuxInfo *) desc, DescSize);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[ODF] MuxInfo descriptor cannot be read, wrong serialization or conflict with other user-space OD tags\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
 
 	case GF_ODF_AUX_VIDEO_DATA:
 		return gf_odf_read_auxvid(bs, (GF_AuxVideoDescriptor *)desc, DescSize);
