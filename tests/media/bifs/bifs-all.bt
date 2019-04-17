@@ -664,7 +664,15 @@ AT 200 {
 }
 
 AT D200 {
-   REMOVE ESD FROM 10 [20]
+   UPDATE ESD IN 10 esDescr [
+     ES_Descriptor {
+      ES_ID 30
+      muxInfo MuxInfo {
+       fileName "../auxiliary_files/logo.png"
+      }
+     }
+    ]
+
 
  APPEND TO TR1.children Shape {
   appearance Appearance {
@@ -681,6 +689,8 @@ AT D200 {
 }
 
 AT D200 {
+   REMOVE ESD FROM 10 [30]
+
   REPLACE TR.children[0] BY NULL
   DELETE APP
 }

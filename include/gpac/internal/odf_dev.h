@@ -265,7 +265,6 @@ GF_ODCom *gf_odf_create_command(u8 tag);
 GF_Err gf_odf_delete_command(GF_ODCom *com);
 GF_Err gf_odf_parse_command(GF_BitStream *bs, GF_ODCom **com, u32 *com_size);
 GF_Err gf_odf_read_command(GF_BitStream *bs, GF_ODCom *com, u32 gf_odf_size_command);
-GF_Err gf_odf_size_command(GF_ODCom *com, u32 *outSize);
 GF_Err gf_odf_write_command(GF_BitStream *bs, GF_ODCom *com);
 
 GF_ODCom *gf_odf_new_od_remove();

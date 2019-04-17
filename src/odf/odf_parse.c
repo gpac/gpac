@@ -91,7 +91,6 @@ u32 gf_odf_get_tag_by_name(char *descName)
 	if (!stricmp(descName, "DecoderSpecificInfoString")) return GF_ODF_DSI_TAG;
 	if (!stricmp(descName, "SLConfigDescriptor")) return GF_ODF_SLC_TAG;
 	if (!stricmp(descName, "SegmentDescriptor")) return GF_ODF_SEGMENT_TAG;
-	if (!stricmp(descName, "MediaTimeDescriptor")) return GF_ODF_MEDIATIME_TAG;
 	if (!stricmp(descName, "MuxInfo")) return GF_ODF_MUXINFO_TAG;
 	if (!stricmp(descName, "StreamSource")) return GF_ODF_MUXINFO_TAG;
 	if (!stricmp(descName, "BIFSConfig") || !stricmp(descName, "BIFSv2Config")) return GF_ODF_BIFS_CFG_TAG;
@@ -106,6 +105,7 @@ u32 gf_odf_get_tag_by_name(char *descName)
 	if (!stricmp(descName, "LanguageDescriptor")) return GF_ODF_LANG_TAG;
 
 #ifndef GPAC_MINIMAL_ODF
+	if (!stricmp(descName, "MediaTimeDescriptor")) return GF_ODF_MEDIATIME_TAG;
 	if (!stricmp(descName, "ContentIdentification")) return GF_ODF_CI_TAG;
 	if (!stricmp(descName, "SuppContentIdentification")) return GF_ODF_SCI_TAG;
 	if (!stricmp(descName, "IPIPtr")) return GF_ODF_IPI_PTR_TAG;
