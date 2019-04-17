@@ -9,14 +9,13 @@ if [ $test_skip  = 1 ] ; then
 return
 fi
 
-src_file=$2
 if [ -n "$3" ] ; then
 dst_file=$TEMP_DIR/$3
 else
 dst_file=$TEMP_DIR/$(basename $2)
 fi
 
-do_test "$GPAC -i $src_file reframer @ -o $dst_file  -graph -stats"  "rewrite"
+do_test "$GPAC -i $2 reframer @ -o $dst_file  -graph -stats"  "rewrite"
 do_hash_test "$dst_file" "rewrite"
 
 
@@ -67,3 +66,5 @@ test_reframer "jp2" $EXTERNAL_MEDIA_DIR/import/logo.jp2
 test_reframer "mj2" $EXTERNAL_MEDIA_DIR/import/speedway.mj2
 
 test_reframer "ogg" $EXTERNAL_MEDIA_DIR/import/dead_ogg.ogg "dead.mp4"
+
+test_reframer "m2ps" "$EXTERNAL_MEDIA_DIR/import/dead_mpg.mpg -blacklist=ffdmx" "dead.mp4"
