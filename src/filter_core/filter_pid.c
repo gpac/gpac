@@ -2344,15 +2344,12 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		//reset edge status
 		for (j=0; j<reg_desc->nb_edges; j++) {
 			GF_FilterRegEdge *edge = &reg_desc->edges[j];
-			edge->status = disable_filter ? EDGE_STATUS_DISABLED : EDGE_STATUS_NONE;
-		}
 
-		if (disable_filter)
-			continue;
-
-		//if source is our origin, disable edge if cap is not matched
-		for (j=0; j<reg_desc->nb_edges; j++) {
-			GF_FilterRegEdge *edge = &reg_desc->edges[j];
+			if (disable_filter) {
+				edge->status = EDGE_STATUS_DISABLED;
+				continue;
+			}
+			edge->status = EDGE_STATUS_NONE;
 
 			//connection from source, disable edge if pid caps mismatch
 			if (edge->src_reg->freg == pid->filter->freg) {
@@ -2366,6 +2363,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				}
 			}
 
+			//if source is not edge origin and edge is only valid for explicitly loaded filters, disable edge
 			if ((edge->loaded_filter_only & EDGE_LOADED_SOURCE_ONLY) && (edge->src_reg->freg != pid->filter->freg) ) {
 				edge->status = EDGE_STATUS_DISABLED;
 				continue;
@@ -2374,6 +2372,10 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			if ((u32) edge->weight + 1 > max_weight)
 				max_weight = (u32) edge->weight + 1;
 		}
+		//not in set
+		if (disable_filter)
+			continue;
+
 
 		//do not add destination filter
 		if (dst->freg == reg_desc->freg) {
