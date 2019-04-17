@@ -176,7 +176,6 @@ GF_Err gf_odf_read_smpte_camera(GF_BitStream *bs, GF_SMPTECamera *cpd, u32 DescS
 GF_Err gf_odf_read_sup_cid(GF_BitStream *bs, GF_SCIDesc *scid, u32 DescSize);
 GF_Err gf_odf_read_segment(GF_BitStream *bs, GF_Segment *sd, u32 DescSize);
 GF_Err gf_odf_read_mediatime(GF_BitStream *bs, GF_MediaTime *mt, u32 DescSize);
-GF_Err gf_odf_read_muxinfo(GF_BitStream *bs, GF_MuxInfo *mi, u32 DescSize);
 GF_Err gf_odf_read_ipmp_tool_list(GF_BitStream *bs, GF_IPMP_ToolList *ipmptl, u32 DescSize);
 GF_Err gf_odf_read_ipmp_tool(GF_BitStream *bs, GF_IPMP_Tool *ipmp, u32 DescSize);
 GF_Err gf_odf_read_auxvid(GF_BitStream *bs, GF_AuxVideoDescriptor *ld, u32 DescSize);

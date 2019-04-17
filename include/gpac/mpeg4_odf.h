@@ -1605,14 +1605,6 @@ GF_Err gf_oci_dump_au(u8 version, char *au, u32 au_length, FILE *trace, u32 inde
 #ifndef GPAC_DISABLE_OD_DUMP
 
 /*! Dumps an OD AU
- \param data encoded OD AU
- \param dataLength encoded OD AU size
- \param trace destination file for dumping
- \param indent number of spaces to use as base index
- \param XMTDump
- */
-GF_Err gf_odf_dump_au(char *data, u32 dataLength, FILE *trace, u32 indent, Bool XMTDump);
-/*! Dumps an OD AU
  \param com OD command to dump
  \param trace destination file for dumping
  \param indent number of spaces to use as base index
