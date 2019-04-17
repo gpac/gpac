@@ -572,6 +572,7 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 }
 
 static Bool sigint_catched=GF_FALSE;
+static Bool sigint_processed=GF_FALSE;
 #ifdef WIN32
 #include <windows.h>
 static BOOL WINAPI gpac_sig_handler(DWORD sig)
@@ -588,12 +589,15 @@ static void gpac_sig_handler(int sig)
 			char input=0;
 			int res;
 			if (sigint_catched) {
-				fprintf(stderr, "catched SIGINT twice and session not responding, forcing exit. Please report to GPAC devs https://github.com/gpac/gpac\n");
+				if (sigint_processed) {
+					fprintf(stderr, "catched SIGINT twice and session not responding, forcing exit. Please report to GPAC devs https://github.com/gpac/gpac\n");
+				}
 				exit(1);
 			}
 			sigint_catched = GF_TRUE;
 			fprintf(stderr, "catched SIGINT - flush session before exit ? (Y/n):\n");
 			res = scanf("%c", &input);
+			sigint_processed = GF_TRUE;
 			if (res!=1) input=0;
 			switch (input) {
 			case 'Y':
