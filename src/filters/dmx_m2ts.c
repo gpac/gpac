@@ -991,6 +991,7 @@ GF_FilterRegister M2TSDmxRegister = {
 	.initialize = m2tsdmx_initialize,
 	.finalize = m2tsdmx_finalize,
 	.args = M2TSDmxArgs,
+	.flags = GF_FS_REG_DYNAMIC_PIDS,
 	SETCAPS(M2TSDmxCaps),
 	.configure_pid = m2tsdmx_configure_pid,
 	.process = m2tsdmx_process,

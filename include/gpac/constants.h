@@ -524,6 +524,13 @@ u32 gf_codecid_type(u32 codecid);
 */
 u8 gf_codecid_oti(u32 codecid);
 
+/*! Gets the codecID from a given ObjectTypeIndication
+ \param stream_type stream type of the stream
+ \param oti ObjectTypeIndication of the stream
+ \return the codecID for this OTI
+*/
+u32 gf_codecid_from_oti(u32 stream_type, u32 oti);
+
 /*! Gets the associated 4CC used by isomedia or RFC6381
  \param codecid target codec ID
  \return RFC 4CC of codec, 0 if not mapped/known

@@ -82,7 +82,7 @@ typedef struct
 	GF_Fraction duration;
 	Double start_range;
 	Bool seek_file;
-	Bool is_playing;
+	u32 nb_playing;
 	Bool is_file;
 	Bool initial_play_done, file_loaded;
 
@@ -472,11 +472,11 @@ static Bool oggdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-		if (!ctx->is_playing) {
-			ctx->is_playing = GF_TRUE;
-		} else if (ctx->start_range == evt->play.start_range) {
+		if (ctx->nb_playing && (ctx->start_range == evt->play.start_range)) {
+			ctx->nb_playing++;
 			return GF_TRUE;
 		}
+		ctx->nb_playing++;
 		if (! ctx->is_file) {
 			return GF_FALSE;
 		}
@@ -517,8 +517,15 @@ static Bool oggdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
-		ctx->is_playing = GF_FALSE;
-		//don't cancel event
+		ctx->nb_playing --;
+		//cancel event if not last stream
+		if (ctx->nb_playing) return GF_TRUE;
+
+		//cancel event if we didn't get all stream headers yet not last stream
+		i=0;
+		while ((st = gf_list_enum(ctx->streams, &i))) {
+			if (!st->got_headers) return GF_TRUE;
+		}
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
@@ -621,7 +628,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 				char *output;
 				GF_FilterPacket *dst_pck;
 
-				if (st->info.type==GF_CODECID_THEORA) {
+					if (st->info.type==GF_CODECID_THEORA) {
 					oggpack_buffer opb;
 					oggpackB_readinit(&opb, oggpacket.packet, oggpacket.bytes);
 					/*not a new frame*/
@@ -714,6 +721,7 @@ GF_FilterRegister OGGDmxRegister = {
 	.initialize = oggdmx_initialize,
 	.finalize = oggdmx_finalize,
 	.args = OGGDmxArgs,
+	.flags = GF_FS_REG_DYNAMIC_PIDS,
 	SETCAPS(OGGDmxCaps),
 	.configure_pid = oggdmx_configure_pid,
 	.process = oggdmx_process,

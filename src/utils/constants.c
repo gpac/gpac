@@ -330,6 +330,14 @@ const char *gf_codecid_name_oti(u32 stream_type, u32 oti)
 }
 
 GF_EXPORT
+u32 gf_codecid_from_oti(u32 stream_type, u32 oti)
+{
+	CodecIDReg *r = gf_codecid_reg_find_oti(stream_type, oti);
+	if (!r) return GF_CODECID_NONE;
+	return r->codecid;
+}
+
+GF_EXPORT
 u8 gf_codecid_oti(u32 codecid)
 {
 	CodecIDReg *r = gf_codecid_reg_find(codecid);
