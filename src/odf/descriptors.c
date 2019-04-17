@@ -239,8 +239,8 @@ GF_Err gf_odf_write_descriptor_list_filter(GF_BitStream *bs, GF_List *descList, 
 	}
 	return GF_OK;
 }
-#ifndef GPAC_DISABLE_ODF
 
+#ifndef GPAC_MINIMAL_ODF
 
 u32 gf_ipmpx_array_size(GF_BitStream *bs, u32 *array_size)
 {
