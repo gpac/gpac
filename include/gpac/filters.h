@@ -1879,6 +1879,11 @@ GF_Err gf_filter_request_opengl(GF_Filter *filter);
 */
 u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_scheme, Bool expand_proto, GF_FilterPid * (*enum_pids)(void *udta, u32 *idx), void *udta);
 
+/*! Disables data probing on the given filter. Typically used by filters loading source filters.
+\param filter target filter
+*/
+void gf_filter_disable_probe(GF_Filter *filter);
+
 /*! @} */
 
 
