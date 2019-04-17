@@ -2447,7 +2447,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	
 	ext_not_trusted = GF_FALSE;
 	//probe data
-	if (is_new_pid && probe_data && probe_size && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
+	if (!filter->no_probe && is_new_pid && probe_data && probe_size && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
 		u32 i, count;
 		GF_FilterProbeScore score, max_score = GF_FPROBE_NOT_SUPPORTED;
 		const char *probe_mime = NULL;
@@ -2726,3 +2726,9 @@ u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_s
 	return res;
 }
 
+GF_EXPORT
+void gf_filter_disable_probe(GF_Filter *filter)
+{
+	if (filter)
+	 	filter->no_probe = GF_TRUE;
+}
