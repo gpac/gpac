@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / XIPH OGG demux filter
@@ -128,15 +128,6 @@ u64 oggdmx_granule_to_time(OGGInfo *cfg, s64 granule)
 	return 0;
 }
 
-Double oggdmx_granule_to_media_time(OGGInfo *cfg, s64 granule)
-{
-	Double t = (Double) (s64) oggdmx_granule_to_time(cfg, granule);
-	if (cfg->sample_rate) t /= cfg->sample_rate;
-	else t /= cfg->frame_rate.den;
-	return t;
-}
-
-
 static void oggdmx_get_stream_info(ogg_packet *oggpacket, OGGInfo *info)
 {
 	oggpack_buffer opb;
@@ -216,14 +207,6 @@ static void oggdmx_get_stream_info(ogg_packet *oggpacket, OGGInfo *info)
 	}
 }
 
-static void oggdmx_resetup_stream(GF_OGGDmxCtx *ctx, GF_OGGStream *st, ogg_page *oggpage)
-{
-	ogg_stream_clear(&st->os);
-	ogg_stream_init(&st->os, st->serial_no);
-	ogg_stream_pagein(&st->os, oggpage);
-	st->parse_headers = st->info.num_init_headers;
-}
-
 static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStream *st)
 {
 	if (!st->opid) {
@@ -277,7 +260,11 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 	i=0;
 	while ((st = (GF_OGGStream*)gf_list_enum(ctx->streams, &i))) {
 		if (st->serial_no==serial_no) {
-			oggdmx_resetup_stream(ctx, st, oggpage);
+			//resetup stream
+			ogg_stream_clear(&st->os);
+			ogg_stream_init(&st->os, st->serial_no);
+			ogg_stream_pagein(&st->os, oggpage);
+			st->parse_headers = st->info.num_init_headers;
 			return;
 		}
 	}

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / XIPH Vorbis decoder filter
@@ -173,11 +173,9 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
-		if (gf_filter_pid_is_eos(ctx->ipid)) {
-			gf_filter_pid_set_eos(ctx->opid);
-			return GF_EOS;
+		if (!gf_filter_pid_is_eos(ctx->ipid)) {
+			return GF_OK;
 		}
-		return GF_OK;
 	}
 	op.granulepos = -1;
 	op.b_o_s = 0;
@@ -241,7 +239,11 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 		total_samples += samples;
 		vorbis_synthesis_read(&ctx->vd, samples);
 	}
-	if (!size) return GF_OK;
+	if (!size) {
+		if (pck) return GF_OK;
+		gf_filter_pid_set_eos(ctx->opid);
+		return GF_EOS;
+	}
 
 	if (pck) {
 		ctx->last_cts = gf_filter_pck_get_cts(pck);
