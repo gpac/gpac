@@ -38,4 +38,7 @@ ttxt_test "ttxt" $MEDIA_DIR/auxiliary_files/subtitle.srt 1
 #test ttxt
 ttxt_test "tx3g" $MEDIA_DIR/auxiliary_files/subtitle.srt 2
 
+#test webvtt
+ttxt_test "vtt" $MEDIA_DIR/webvtt/simple.vtt 0
+
 
