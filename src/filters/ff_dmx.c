@@ -217,7 +217,8 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 			gf_filter_pck_set_dts(pck_dst, ts);
 		}
 
-		gf_filter_pck_set_duration(pck_dst, (u32) ctx->pkt.duration);
+		if (ctx->pkt.duration)
+			gf_filter_pck_set_duration(pck_dst, (u32) ctx->pkt.duration);
 	}
 
 	//fixme: try to identify SAP type 2 and more
@@ -734,6 +735,14 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	else if (!strncmp(ctx->src, "audio://", 8)) wants_audio = GF_TRUE;
 	else if (!strncmp(ctx->src, "av://", 5)) wants_video = wants_audio = GF_TRUE;
 
+#if defined(__DARWIN) || defined(__APPLE__)
+	if (!strncmp(dev_name, "screen", 6)) {
+		strcpy(szPatchedName, "Capture screen ");
+		strcat(szPatchedName, dev_name+6);
+		dev_name = (char *) szPatchedName;
+	}
+#endif
+
 	if (wants_video && wants_audio && !strcmp(dev_name, "0")) {
 		strcpy(szPatchedName, "0:0");
 		dev_name = (char *) szPatchedName;
@@ -866,7 +875,7 @@ GF_FilterRegister FFAVInRegister = {
 	"Typical device name can be the webcam name:\n"\
 		"'FaceTime HD Camera' on OSX, device name on windows, '/dev/video0' on linux\n"\
 		"'screen-capture-recorder', see http://screencapturer.sf.net/ on windows\n"\
-		"'Capture screen 0' on OSX (0=first screen)\n"\
+		"'Capture screen 0' on OSX (0=first screen), or 'screenN' for short\n"\
 		"X display name (eg ':0.0') on linux"\
 		"\n"\
 		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on capture devices options")
