@@ -65,3 +65,5 @@ test_reframer "m1v" $EXTERNAL_MEDIA_DIR/import/dead.m1v
 test_reframer "jp2" $EXTERNAL_MEDIA_DIR/import/logo.jp2
 
 test_reframer "mj2" $EXTERNAL_MEDIA_DIR/import/speedway.mj2
+
+test_reframer "ogg" $EXTERNAL_MEDIA_DIR/import/dead_ogg.ogg "dead.mp4"
