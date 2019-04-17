@@ -600,7 +600,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 		}
 
 		bytes_to_drop = bytes_skipped + size;
-		if (ctx->timescale && (prev_pck_size <= bytes_to_drop) && (cts != GF_FILTER_NO_TS) ) {
+		if (ctx->timescale && !prev_pck_size && (cts != GF_FILTER_NO_TS) ) {
 			ctx->cts = cts;
 			cts = GF_FILTER_NO_TS;
 		}
