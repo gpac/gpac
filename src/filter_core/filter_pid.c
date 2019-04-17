@@ -3466,7 +3466,7 @@ single_retry:
 	gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 
 	gf_filter_pid_set_eos(pid);
-	if (pid->filter->num_out_pids_not_connected == pid->filter->num_output_pids) {
+	if (!(pid->filter->freg->flags & GF_FS_REG_DYNAMIC_PIDS ) && (pid->filter->num_out_pids_not_connected == pid->filter->num_output_pids)) {
 		pid->filter->disabled = GF_TRUE;
 	}
 
@@ -4810,7 +4810,8 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	//streams are active and other not
 	if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
 		if (evt->base.type==GF_FEVT_STOP) {
-			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);
+			if (!canceled)
+				gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);
 		} else if (evt->base.type==GF_FEVT_PLAY) {
 			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_FALSE);
 		}

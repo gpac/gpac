@@ -114,7 +114,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			return;
 		}
 		streamtype = an_esd->decoderConfig->streamType;
-		codec_id = an_esd->decoderConfig->objectTypeIndication;
+		codec_id = gf_codecid_from_oti(streamtype, an_esd->decoderConfig->objectTypeIndication);
 		ocr_es_id = an_esd->OCRESID;
 		depends_on_id = an_esd->dependsOnESID;
 		lang_desc = an_esd->langDesc;

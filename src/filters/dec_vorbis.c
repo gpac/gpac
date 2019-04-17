@@ -172,7 +172,13 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 	GF_FilterPacket *pck, *dst_pck=NULL;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
-
+	if (!pck) {
+		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			gf_filter_pid_set_eos(ctx->opid);
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
 	op.granulepos = -1;
 	op.b_o_s = 0;
 	op.e_o_s = 0;

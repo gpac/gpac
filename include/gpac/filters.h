@@ -1393,6 +1393,9 @@ typedef enum
 	In multithread mode, this prevents the filter to be scheduled on the main thread, blocking video or audio output.
 	Ignored in single thread mode.*/
 	GF_FS_REG_BLOCKING = 1<<6,
+	/*! Indicates the filter PIDs may be dynamically added uring process (e.g.M2TS, GSF, etc).
+	This will prevent dectivating a filter when none of its output pids are connected*/
+	GF_FS_REG_DYNAMIC_PIDS = 1<<7,
 
 	/*! flag dynamically set at runtime for registries loaded through shared libraries*/
 	GF_FS_REG_DYNLIB = 0x80000000
