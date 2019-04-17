@@ -138,6 +138,8 @@ static GF_Err theoradec_process(GF_Filter *filter)
 	Bool is_seek;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
+	if (!pck && !gf_filter_pid_is_eos(ctx->ipid))
+		return GF_OK;
 
 	op.granulepos = -1;
 	op.b_o_s = 0;
@@ -182,13 +184,21 @@ static GF_Err theoradec_process(GF_Filter *filter)
 	if (theora_decode_packetin(&ctx->td, &op)<0) {
 		src_pck = gf_list_pop_front(ctx->src_packets);
 		gf_filter_pck_unref(src_pck);
-		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_NON_COMPLIANT_BITSTREAM;
+		if (pck) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		gf_filter_pid_set_eos(ctx->opid);
+		return GF_EOS;
 	}
 	//no frame
 	if (theora_decode_YUVout(&ctx->td, &yuv)<0) {
-		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_OK;
+		if (pck) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_OK;
+		}
+		gf_filter_pid_set_eos(ctx->opid);
+		return GF_EOS;
 	}
 
 	if (memcmp(&ctx->ti, &ctx->the_ti, sizeof(theora_info))) {
@@ -268,10 +278,9 @@ static void theoradec_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability TheoraDecCaps[] =
 {
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_THEORA),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
