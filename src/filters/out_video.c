@@ -637,6 +637,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->first_cts /= ctx->timescale;
 		ctx->first_cts+=1;
 	}
+	if (!timescale) timescale = 1;
 	ctx->timescale = timescale;
 
 	//pid not yet ready
