@@ -91,7 +91,7 @@ const char *gpac_doc =
 "Enum properties (for arguments) must use the syntax given in the argument description, otherwise value 0 (first in enum) is assumed.\n"
 "1-dimension properties (numbers, floats, ints...) are formatted as value[unit], where unit can be k/K (x1000) or m/M (x1000000) or g/G (x1000000000).\n"
 "For such properties, value +I means maximum possible value, -I minimum possible value.\n"
-"Fraction properties are formatted as num/den or num-den or num, in which case the denominator is 1.\n"
+"Fraction properties are formatted as num/den or num-den or num, in which case the denominator is 1 if num is an integer, or 1000000 if num is a floating-point value.\n"
 "Unsigned 32 bit integer properties can be specified in hexadecimal using the format 0xAABBCCDD.\n"
 "N-dimension properties (vectors) are formatted as DIM1xDIM2[xDIM3[xDIM4]] values, without multiplier.\n"
 "Data properties are formatted as:\n"
