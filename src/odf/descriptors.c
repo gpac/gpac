@@ -1365,6 +1365,8 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 			return "Dirac Video";
 		case GPAC_OTI_VIDEO_AV1:
 			return "AOM AV1 Video";
+		case GPAC_OTI_VIDEO_VP9:
+			return "VP9 Video";
 		default:
 			return "Unknown Video type";
 		}
