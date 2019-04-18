@@ -1065,8 +1065,7 @@ GF_Err gf_isom_add_sample_reference(GF_ISOFile *movie, u32 trackNumber, u32 Stre
 
 //set the duration of the last media sample. If not set, the duration of the last sample is the
 //duration of the previous one if any, or 1000 (default value).
-GF_EXPORT
-GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u32 duration)
+static GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *movie, u32 trackNumber, u64 duration, Bool is_patch)
 {
 	GF_TrackBox *trak;
 	GF_SttsEntry *ent;
@@ -1083,6 +1082,25 @@ GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u32 
 	mdur = trak->Media->mediaHeader->duration;
 	stts = trak->Media->information->sampleTable->TimeToSample;
 	if (!stts->nb_entries) return GF_BAD_PARAM;
+
+	if (is_patch) {
+		u32 i, avg_dur, nb_samp=0;
+		u64 cum_dur=0;
+		for (i=0; i<stts->nb_entries; i++) {
+			ent = (GF_SttsEntry*) &stts->entries[i];
+			cum_dur += ent->sampleCount*ent->sampleDelta;
+			nb_samp += ent->sampleCount;
+		}
+		if (cum_dur <= duration || !nb_samp) return GF_OK;
+		avg_dur = duration/(nb_samp);
+
+		for (i=0; i<stts->nb_entries; i++) {
+			ent = (GF_SttsEntry*) &stts->entries[i];
+			ent->sampleDelta = avg_dur;
+		}
+		stts->w_LastDTS = duration-avg_dur;
+		return GF_OK;
+	}
 	//get the last entry
 	ent = (GF_SttsEntry*) &stts->entries[stts->nb_entries-1];
 
@@ -1111,6 +1129,18 @@ GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u32 
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 	trak->Media->mediaHeader->duration = mdur;
 	return SetTrackDuration(trak);
+}
+
+GF_EXPORT
+GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u32 duration)
+{
+	return gf_isom_set_last_sample_duration_ex(movie, trackNumber, duration, GF_FALSE);
+}
+
+GF_EXPORT
+GF_Err gf_isom_patch_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u64 next_dts)
+{
+	return gf_isom_set_last_sample_duration_ex(movie, trackNumber, next_dts, GF_TRUE);
 }
 
 //update a sample data in the media. Note that the sample MUST exists

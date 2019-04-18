@@ -1226,6 +1226,9 @@ duration of the previous one if any, or media TimeScale (default value). This do
 you must modify this using gf_isom_set_edit_segment*/
 GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 duration);
 
+/*patches last stts entry to make sure the cumulated duration equals the given next_dts value*/
+GF_Err gf_isom_patch_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u64 next_dts);
+
 /*sets a track reference*/
 GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferencedTrackID);
 
