@@ -1463,6 +1463,7 @@ static GF_Err gf_filter_process_check_alloc(GF_Filter *filter)
 
 static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e)
 {
+	Bool kill_filter = GF_FALSE;
 	if (e>GF_OK) e = GF_OK;
 	else if (e==GF_IP_NETWORK_EMPTY) e = GF_OK;
 
@@ -1478,20 +1479,34 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e)
 		//give it at most one second
 		diff = gf_sys_clock_high_res() - filter->time_at_first_error;
 		if (diff >= 1000000) {
-			u32 i;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[Filter] %s in error / not responding properly: %d consecutive errors in "LLU" us with no packet discarded or sent\n\tdiscarding all inputs and notifying end of stream on all outputs\n", filter->name, filter->nb_consecutive_errors, diff));
-			for (i=0; i<filter->num_input_pids; i++) {
-				GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
-				gf_filter_pid_set_discard((GF_FilterPid *)pidi, GF_TRUE);
-			}
-			for (i=0; i<filter->num_output_pids; i++) {
-				GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
-				gf_filter_pid_set_eos(pid);
-			}
+			kill_filter = GF_TRUE;
 		}
 	} else {
-		filter->nb_consecutive_errors = 0;
-		filter->nb_pck_io = 0;
+		if (!filter->nb_pck_io && filter->pending_packets) {
+			filter->nb_consecutive_errors++;
+
+			if (filter->nb_consecutive_errors >= 100000) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[Filter] %s not responding properly: %d consecutive process with no packet discarded or sent, but %d packets pending\n\tdiscarding all inputs and notifying end of stream on all outputs\n", filter->name, filter->nb_consecutive_errors, filter->pending_packets));
+				kill_filter = GF_TRUE;
+			}
+		} else {
+			filter->nb_consecutive_errors = 0;
+			filter->nb_pck_io = 0;
+		}
+	}
+
+	if (kill_filter) {
+		u32 i;
+		for (i=0; i<filter->num_input_pids; i++) {
+			GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
+			gf_filter_pid_set_discard((GF_FilterPid *)pidi, GF_TRUE);
+		}
+		for (i=0; i<filter->num_output_pids; i++) {
+			GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+			gf_filter_pid_set_eos(pid);
+		}
+		filter->session->last_process_error = GF_SERVICE_ERROR;
 	}
 }
 
