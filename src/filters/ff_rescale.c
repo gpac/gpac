@@ -67,9 +67,6 @@ static GF_Err ffsws_process(GF_Filter *filter)
 	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 
-	if (!ctx->ofmt && !ctx->ow && !ctx->oh)
-		return GF_OK;
-
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 
 	if (!pck) {
@@ -79,15 +76,21 @@ static GF_Err ffsws_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
-	if (!ctx->swscaler) {
-		gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_NOT_SUPPORTED;
-	}
+
 	if (ctx->passthrough) {
 		gf_filter_pck_forward(pck, ctx->opid);
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
 	}
+	//not yet configured
+	if (!ctx->ofmt && !ctx->ow && !ctx->oh)
+		return GF_OK;
+
+	if (!ctx->swscaler) {
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_NOT_SUPPORTED;
+	}
+
 	data = gf_filter_pck_get_data(pck, &osize);
 	frame_ifce = gf_filter_pck_get_frame_interface(pck);
 	//we may have biffer input (padding) but shall not have smaller
