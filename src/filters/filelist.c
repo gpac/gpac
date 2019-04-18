@@ -283,7 +283,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 
 	f = gf_fopen(ctx->file_path, "rt");
 	while (f) {
-		u32 crc;
+		u32 crc, len;
 		char *l = fgets(szURL, GF_MAX_PATH, f);
 		if (!l || feof(f)) {
 			if (ctx->loop) {
@@ -295,6 +295,13 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 			gf_fclose(f);
 			return GF_FALSE;
 		}
+		len = strlen(szURL);
+		while (len && strchr("\n\r\t ", szURL[len-1])) {
+			szURL[len-1] = 0;
+			len--;
+		}
+		if (!len) continue;
+
 		//comment
 		if (szURL[0] == '#') {
 			nb_repeat=0;
@@ -583,7 +590,7 @@ GF_Err filelist_initialize(GF_Filter *filter)
 	ctx->io_pids = gf_list_new();
 
 	if (!ctx->in || !gf_list_count(ctx->in)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
 		return GF_OK;
 	}
 	ctx->file_list = gf_list_new();
