@@ -470,7 +470,8 @@ sample_found:
 	(*descIndex) = ent->sampleDescriptionIndex;
 	(*chunkNumber) = ent->firstChunk + stbl->SampleToChunk->currentChunk - 1;
 	if (out_ent) *out_ent = ent;
-	assert((*chunkNumber));
+	if (! *chunkNumber)
+		return GF_ISOM_INVALID_FILE;
 	
 	//ok, get the size of all the previous samples in the chunk
 	offsetInChunk = 0;
