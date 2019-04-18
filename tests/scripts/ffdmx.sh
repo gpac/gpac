@@ -8,9 +8,15 @@ if [ $test_skip  = 1 ] ; then
 return
 fi
 
-myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -no-reassign=no -i $2 inspect:all:deep:interleave=false:log=$myinspect -graph -stats" "inspect"
-do_hash_test $myinspect "inspect"
+#ffmpeg behaves differently on various platforme (FPS detection, duration & ca might slightly differ).
+#we therefore don't inspect the result but create an MP4 from it
+#myinspect=$TEMP_DIR/inspect.txt
+#do_test "$GPAC -no-reassign=no -i $2 inspect:all:deep:interleave=false:log=$myinspect -graph -stats" "inspect"
+#do_hash_test $myinspect "inspect"
+
+dstfile=$TEMP_DIR/dump.mp4
+do_test "$GPAC -no-reassign=no -i $2 -o $dstfile -graph -stats" "dump"
+do_hash_test $dstfile "dump"
 
 test_end
 }
@@ -48,8 +54,8 @@ ffavin_test "screencap-all" "video://:gfreg=ffavin:fmt=avfoundation:dev=screen0:
 fi
 
 if [ -n "$config_linux" ] ; then
-ffavin_test "screencap" "video://:gfreg=ffavin:fmt=x11grab:dev=':0.0':probes=0"
-ffavin_test "screencap-all" "video://:gfreg=ffavin:fmt=x11grab:dev=':0.0':copy:sclock"
+ffavin_test "screencap" "video://:gfreg=ffavin:fmt=x11grab:dev=:0.0:probes=0"
+ffavin_test "screencap-all" "video://:gfreg=ffavin:fmt=x11grab:dev=:0.0:copy:sclock"
 fi
 
 #todo
