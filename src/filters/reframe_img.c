@@ -119,8 +119,9 @@ Bool img_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	if (evt->base.on_pid != ctx->opid) return GF_TRUE;
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-		if (ctx->is_playing)
+		if (ctx->is_playing) {
 			return GF_TRUE;
+		}
 
 		ctx->is_playing = GF_TRUE;
 		if (!ctx->initial_play_done) {
