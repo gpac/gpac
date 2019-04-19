@@ -470,7 +470,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 		}
 		
 		if (ctx->dur.num && ctx->dur.den) {
-			u32 timescale = gf_filter_pck_get_timescale(pck);
+			u64 timescale = gf_filter_pck_get_timescale(pck);
 			u64 ts = gf_filter_pck_get_dts(pck);
 			if (ts == GF_FILTER_NO_TS) ts = gf_filter_pck_get_cts(pck);
 
