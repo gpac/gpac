@@ -114,6 +114,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_TX3G, 0, GF_STREAM_TEXT, "Subtitle/text 3GPP/Apple Stream", "tx3g", "tx3g", "quicktime/text"},
 	{GF_CODECID_THEORA, 0xDF, GF_STREAM_VISUAL, "Theora Video", "theo|theora", NULL, "video/theora"},
 	{GF_CODECID_VORBIS, 0xDD, GF_STREAM_AUDIO, "Vorbis Audio", "vorb|vorbis", NULL, "audio/vorbis"},
+	{GF_CODECID_OPUS, 0xDE, GF_STREAM_AUDIO, "Opus  Audio", "opus", NULL, "audio/opus"},
 	{GF_CODECID_FLAC, 0, GF_STREAM_AUDIO, "Flac Audio", "flac", NULL, "audio/flac"},
 	{GF_CODECID_SPEEX, 0, GF_STREAM_AUDIO, "Speex Audio", "spx|speex", NULL, "audio/speex"},
 	{GF_CODECID_SUBPIC, 0xE0, GF_STREAM_TEXT, "VobSub Subtitle", "vobsub", NULL, "text/x-vobsub"},

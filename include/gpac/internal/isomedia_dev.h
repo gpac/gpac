@@ -194,6 +194,10 @@ enum
 	GF_ISOM_BOX_TYPE_SMDM = GF_4CC('S', 'm', 'D', 'm'),
 	GF_ISOM_BOX_TYPE_COLL = GF_4CC('C', 'o', 'L', 'L'),
 
+	/*Opus*/
+	GF_ISOM_BOX_TYPE_OPUS = GF_4CC('O', 'p', 'u', 's'),
+	GF_ISOM_BOX_TYPE_DOPS = GF_4CC('d', 'O', 'p', 's'),
+
 	/*LASeR extension*/
 	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
 	GF_ISOM_BOX_TYPE_LSR1	= GF_4CC( 'l', 's', 'r', '1' ),
@@ -373,8 +377,8 @@ enum
 	GF_ISOM_BOX_TYPE_DAC3	= GF_4CC( 'd', 'a', 'c', '3' ),
 	GF_ISOM_BOX_TYPE_EC3	= GF_4CC( 'e', 'c', '-', '3' ),
 	GF_ISOM_BOX_TYPE_DEC3	= GF_4CC( 'd', 'e', 'c', '3' ),
-	GF_ISOM_BOX_TYPE_DVCC	= GF_4CC( 'd', 'v', 'c', 'C'),
-	GF_ISOM_BOX_TYPE_DVHE	= GF_4CC( 'd', 'v', 'h', 'e'),
+	GF_ISOM_BOX_TYPE_DVCC	= GF_4CC( 'd', 'v', 'c', 'C' ),
+	GF_ISOM_BOX_TYPE_DVHE	= GF_4CC( 'd', 'v', 'h', 'e' ),
 
 	GF_ISOM_BOX_TYPE_SUBS	= GF_4CC( 's', 'u', 'b', 's' ),
 
@@ -1443,6 +1447,28 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_BOX
+
+	/*OpusSpecificBox*/
+	u8 version;              //1
+	u8 OutputChannelCount;   //same value as the *Output Channel Count* field in the identification header defined in Ogg Opus [3]
+	u16 PreSkip;             //The value of the PreSkip field shall be at least 80 milliseconds' worth of PCM samples even when removing any number of Opus samples which may or may not contain the priming samples. The PreSkip field is not used for discarding the priming samples at the whole playback at all since it is informative only, and that task falls on the Edit List Box.
+	u32 InputSampleRate;     //The InputSampleRate field shall be set to the same value as the *Input Sample Rate* field in the identification header defined in Ogg Opus
+	s16 OutputGain;          //The OutputGain field shall be set to the same value as the *Output Gain* field in the identification header define in Ogg Opus [3]. Note that the value is stored as 8.8 fixed-point.
+	u8 ChannelMappingFamily; //The ChannelMappingFamily field shall be set to the same value as the *Channel Mapping Family* field in the identification header defined in Ogg Opus [3]. Note that the value 255 may be used for an alternative to map channels by ISO Base Media native mapping. The details are described in 4.5.1.
+
+	u8 StreamCount; // The StreamCount field shall be set to the same value as the *Stream Count* field in the identification header defined in Ogg Opus [3].
+	u8 CoupledCount; // The CoupledCount field shall be set to the same value as the *Coupled Count* field in the identification header defined in Ogg Opus [3].
+	u8 ChannelMapping[255]; // The ChannelMapping field shall be set to the same octet string as *Channel Mapping* field in the identi- fication header defined in Ogg Opus [3].
+
+	/*for internal box use only*/
+//	int channels;
+} GF_OpusSpecificBox;
+
+GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusSpecificBox *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
+
+typedef struct
+{
+	GF_ISOM_BOX
 	u8 configuration_version;
 	u8 mha_pl_indication;
 	u8 reference_channel_layout;
@@ -1462,6 +1488,9 @@ typedef struct
 
 	//for AC3/EC3 audio
 	GF_AC3ConfigBox *cfg_ac3;
+
+	//for Opus
+	GF_OpusSpecificBox *cfg_opus;
 
 	//for MPEG-H audio
 	GF_MHAConfigBox *cfg_mha;

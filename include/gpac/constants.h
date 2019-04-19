@@ -426,6 +426,7 @@ enum
 			dsi_size -= packet_size;
 		}
 	 *\endcode
+
 	*/
 	/*! codecid for theora video streams*/
 	GF_CODECID_THEORA = GF_4CC('t','h','e','u'),

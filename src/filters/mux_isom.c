@@ -401,6 +401,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool use_av1 = GF_FALSE;
 	Bool use_vpX = GF_FALSE;
 	Bool use_mj2 = GF_FALSE;
+	Bool use_opus = GF_FALSE;
 	Bool use_dref = GF_FALSE;
 	Bool skip_dsi = GF_FALSE;
 	Bool is_text_subs = GF_FALSE;
@@ -877,6 +878,11 @@ sample_entry_setup:
 		m_subtype = GF_ISOM_SUBTYPE_AC3;
 		comp_name = "EAC-3";
 		use_ac3_entry = GF_TRUE;
+		break;
+	case GF_CODECID_OPUS:
+		m_subtype = GF_ISOM_SUBTYPE_OPUS;
+		comp_name = "Opus";
+		use_opus = GF_TRUE;
 		break;
 	case GF_CODECID_MPEG4_PART2:
 		m_subtype = GF_ISOM_SUBTYPE_MPEG4;
@@ -1429,6 +1435,29 @@ sample_entry_setup:
 			gf_bs_del(bs);
 		}
 		e = gf_isom_ac3_config_new(ctx->file, tkw->track_num, &ac3cfg, (char *)src_url, NULL, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AC3 audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
+			return e;
+		}
+		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
+	} else if (use_opus) {
+		GF_OpusSpecificBox *opus_cfg = NULL;
+		GF_BitStream *bs;
+
+		if (!dsi) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for opus\n" ));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
+		e = gf_isom_box_parse((GF_Box**)&opus_cfg, bs);
+		gf_bs_del(bs);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error parsing opus configuration data: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+
+		e = gf_isom_opus_config_new(ctx->file, tkw->track_num, opus_cfg, (char *)src_url, NULL, &tkw->stsd_idx);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AC3 audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
 			return e;
