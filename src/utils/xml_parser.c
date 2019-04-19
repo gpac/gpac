@@ -1230,7 +1230,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 		if (e) return e;
 
 
-		e = gf_xml_sax_parse(parser, xml_mem_address+3);
+		e = gf_xml_sax_parse(parser, xml_mem_address+4);
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
 
 		parser->elt_start_pos = parser->elt_end_pos = 0;
