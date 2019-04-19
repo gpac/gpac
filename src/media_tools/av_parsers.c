@@ -8188,11 +8188,14 @@ static u32 icount(u32 v)
 
 
 GF_EXPORT
-Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
+Bool gf_vorbis_parse_header(ogg_audio_codec_desc *codec, char *data, u32 data_len)
 {
 	u32 pack_type, i, j, k, times, nb_part, nb_books, nb_modes;
+	int l;
 	char szNAME[8];
 	oggpack_buffer opb;
+	Bool res = GF_TRUE;
+	GF_VorbisParser *vp = codec->parserPrivateState;
 
 	oggpack_readinit(&opb, (u8*)data, data_len);
 	pack_type = oggpack_read(&opb, 8);
@@ -8202,38 +8205,47 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 		i++;
 	}
 	szNAME[i] = 0;
-	if (strcmp(szNAME, "vorbis")) return vp->is_init = 0;
+	if (strcmp(szNAME, "vorbis")) {
+		res = GF_FALSE;
+		goto exit;
+	}
+
+	if (!vp) {
+		GF_SAFEALLOC(vp, GF_VorbisParser);
+		codec->parserPrivateState = vp;
+	}
 
 	switch (pack_type) {
 	case 0x01:
 		vp->version = oggpack_read(&opb, 32);
-		if (vp->version!=0) return 0;
-		vp->channels = oggpack_read(&opb, 8);
-		vp->sample_rate = oggpack_read(&opb, 32);
+		if (vp->version != 0) {
+			res = GF_FALSE;
+			goto exit;
+		}
+		codec->channels = oggpack_read(&opb, 8);
+		codec->sample_rate = oggpack_read(&opb, 32);
 		vp->max_r = oggpack_read(&opb, 32);
 		vp->avg_r = oggpack_read(&opb, 32);
 		vp->low_r = oggpack_read(&opb, 32);
 
 		vp->min_block = 1<<oggpack_read(&opb, 4);
 		vp->max_block = 1<<oggpack_read(&opb, 4);
-		if (vp->sample_rate < 1) return vp->is_init = 0;
-		if (vp->channels < 1) return vp->is_init = 0;
-		if (vp->min_block<8) return vp->is_init = 0;
-		if (vp->max_block < vp->min_block) return vp->is_init = 0;
-		if (oggpack_read(&opb, 1) != 1) return vp->is_init = 0;
-		vp->is_init = 1;
-		return 1;
+		if (codec->sample_rate < 1 || codec->channels < 1 || vp->min_block < 8 || vp->max_block < vp->min_block
+		    || oggpack_read(&opb, 1) != 1) {
+			res = GF_FALSE;
+		}
+		goto exit;
 	case 0x03:
 		/*trash comments*/
-		vp->is_init ++;
-		return 1;
+		res = GF_FALSE;
+		goto exit;
 	case 0x05:
 		/*need at least bitstream header to make sure we're parsing the right thing*/
-		if (!vp->is_init) return 0;
-		break;
+		res = GF_FALSE;
+		goto exit;
 	default:
-		vp->is_init = 0;
-		return 0;
+		res = GF_FALSE;
+		goto exit;
 	}
 	/*OK parse codebook*/
 	nb_books = oggpack_read(&opb, 8) + 1;
@@ -8342,13 +8354,14 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 		if (oggpack_read(&opb, 1)) {
 			u32 nb_steps = oggpack_read(&opb, 8)+1;
 			for (j=0; j<nb_steps; j++) {
-				oggpack_read(&opb, ilog(vp->channels));
-				oggpack_read(&opb, ilog(vp->channels));
+				oggpack_read(&opb, ilog(codec->channels));
+				oggpack_read(&opb, ilog(codec->channels));
 			}
 		}
 		oggpack_read(&opb, 2);
 		if (sub_maps>1) {
-			for(j=0; j<vp->channels; j++) oggpack_read(&opb, 4);
+			for(l=0; l<codec->channels; l++)
+				oggpack_read(&opb, 4);
 		}
 		for (j=0; j<sub_maps; j++) {
 			oggpack_read(&opb, 8);
@@ -8370,7 +8383,13 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 		vp->modebits++;
 		j>>=1;
 	}
-	return 1;
+
+exit:
+	if (!res) {
+		gf_free(vp);
+		codec->parserPrivateState = NULL;
+	}
+	return res;
 }
 
 GF_EXPORT
@@ -8378,7 +8397,7 @@ u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length)
 {
 	s32 block_size;
 	oggpack_buffer opb;
-	if (!vp->is_init) return 0;
+	if (!vp) return 0;
 	oggpack_readinit(&opb, (unsigned char*)data, data_length);
 	/*not audio*/
 	if (oggpack_read(&opb, 1) !=0) return 0;
