@@ -76,6 +76,8 @@ typedef struct
 	Bool is_bmp;
 	Bool owns_timescale;
 	u32 codec_id;
+
+	Bool is_playing;
 } GF_ReframeImgCtx;
 
 
@@ -105,8 +107,32 @@ GF_Err img_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
-
+	ctx->is_playing = GF_TRUE;
 	return GF_OK;
+}
+
+Bool img_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	GF_FilterEvent fevt;
+	GF_ReframeImgCtx *ctx = gf_filter_get_udta(filter);
+	if (evt->base.on_pid != ctx->opid) return GF_TRUE;
+	switch (evt->base.type) {
+	case GF_FEVT_PLAY:
+		if (ctx->is_playing)
+			return GF_TRUE;
+		ctx->is_playing = GF_TRUE;
+		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
+		fevt.seek.start_offset = 0;
+		gf_filter_pid_send_event(ctx->ipid, &fevt);
+		return GF_TRUE;
+	case GF_FEVT_STOP:
+		ctx->is_playing = GF_FALSE;
+		return GF_FALSE;
+	default:
+		break;
+	}
+	//cancel all events
+	return GF_TRUE;
 }
 
 GF_Err img_process(GF_Filter *filter)
@@ -126,6 +152,7 @@ GF_Err img_process(GF_Filter *filter)
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			gf_filter_pid_set_eos(ctx->opid);
+			ctx->is_playing = GF_FALSE;
 			return GF_EOS;
 		}
 		return GF_OK;
@@ -383,6 +410,7 @@ GF_FilterRegister ReframeImgRegister = {
 	.configure_pid = img_configure_pid,
 	.probe_data = img_probe_data,
 	.process = img_process,
+	.process_event = img_process_event
 };
 
 const GF_FilterRegister *img_reframe_register(GF_FilterSession *session)
