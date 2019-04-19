@@ -77,6 +77,7 @@ typedef struct
 	Bool owns_timescale;
 	u32 codec_id;
 
+	Bool initial_play_done;
 	Bool is_playing;
 } GF_ReframeImgCtx;
 
@@ -120,7 +121,13 @@ Bool img_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_PLAY:
 		if (ctx->is_playing)
 			return GF_TRUE;
+
 		ctx->is_playing = GF_TRUE;
+		if (!ctx->initial_play_done) {
+			ctx->initial_play_done = GF_TRUE;
+			return GF_TRUE;
+		}
+
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		fevt.seek.start_offset = 0;
 		gf_filter_pid_send_event(ctx->ipid, &fevt);
