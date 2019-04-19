@@ -160,6 +160,8 @@ typedef struct ogg_audio_codec_desc_t
 
 	/*process the data and returns the sample block_size (i.e. duration)*/
 	GF_Err (*process)(struct ogg_audio_codec_desc_t *parserState, char *data, u32 data_length, void *importer, Bool *destroy_esd, u32 *track, u32 *di, u64 *duration, int *block_size);
+	/*release private state*/
+	void (*release)(struct ogg_audio_codec_desc_t *parserState);
 } ogg_audio_codec_desc;
 
 /*vorbis tools*/
@@ -172,6 +174,8 @@ typedef struct
 	/*do not touch, parser private*/
 	u32 modebits;
 	Bool mode_flag[64];
+	u32 nb_init;
+	GF_BitStream *vbs;
 } GF_VorbisParser;
 
 /*call with vorbis header packets - initializes the parser on success, leave it to NULL otherwise

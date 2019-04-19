@@ -8213,6 +8213,7 @@ Bool gf_vorbis_parse_header(ogg_audio_codec_desc *codec, char *data, u32 data_le
 	if (!vp) {
 		GF_SAFEALLOC(vp, GF_VorbisParser);
 		codec->parserPrivateState = vp;
+		vp->vbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	}
 
 	switch (pack_type) {
@@ -8234,15 +8235,20 @@ Bool gf_vorbis_parse_header(ogg_audio_codec_desc *codec, char *data, u32 data_le
 		    || oggpack_read(&opb, 1) != 1) {
 			res = GF_FALSE;
 		}
+		vp->nb_init=1;
 		goto exit;
 	case 0x03:
 		/*trash comments*/
-		res = GF_FALSE;
+		vp->nb_init++;
+		res = GF_TRUE;
 		goto exit;
 	case 0x05:
 		/*need at least bitstream header to make sure we're parsing the right thing*/
-		res = GF_FALSE;
-		goto exit;
+		if (!vp->nb_init) {
+			res = GF_FALSE;
+			goto exit;
+		}
+		break;
 	default:
 		res = GF_FALSE;
 		goto exit;

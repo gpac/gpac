@@ -310,6 +310,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 #ifdef CODEC_ID_OPUS
 			case GPAC_OTI_MEDIA_OPUS:
 				codec_id = CODEC_ID_OPUS;
+				(*ctx)->frame_size = 2880;//use max frame size
 				break;
 #endif
 			}
@@ -319,11 +320,16 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		}
 		*codec = avcodec_find_decoder(codec_id);
 
-        if (*codec && (codec_id == CODEC_ID_AAC)) {
-            bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
-            FFDEC_LoadDSI(ffd, bs, *codec, *ctx, GF_FALSE);
-            gf_bs_del(bs);
-        }
+        if (*codec) {
+        	switch (codec_id) {
+        	case CODEC_ID_AAC:
+        	case CODEC_ID_OPUS:
+				bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
+				FFDEC_LoadDSI(ffd, bs, *codec, *ctx, GF_FALSE);
+				gf_bs_del(bs);
+				break;
+			}
+		}
 
 	}
 	/*should never happen*/

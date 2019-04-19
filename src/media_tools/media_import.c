@@ -7812,6 +7812,10 @@ static u32 get_ogg_serial_no_for_stream(char *fileName, u32 stream_num, Bool is_
 			ogg_stream_clear(&os);
 			break;
 		}
+		if (!is_video && (oggpage.body_len >= 8) && !strncmp((char *)oggpage.body, "OpusHead", 6)) {
+			ogg_stream_clear(&os);
+			break;
+		}
 		ogg_stream_clear(&os);
 		serial_no = 0;
 	}
@@ -8070,19 +8074,26 @@ exit:
 	return e;
 }
 
+static void vorbis_release(ogg_audio_codec_desc *codec)
+{
+	if (codec->parserPrivateState) {
+		GF_VorbisParser *vp = (GF_VorbisParser*)codec->parserPrivateState;
+		if (vp->vbs) gf_bs_del(vp->vbs);
+		gf_free(vp);
+	}
+}
+
 static GF_Err vorbis_process(ogg_audio_codec_desc *codec, char *data, u32 data_length,
 	void *importer, Bool *destroy_esd, u32 *track, u32 *di, u64 *duration, int *block_size)
 {
 	GF_VorbisParser *vp = NULL;
 	GF_Err e = GF_OK;
 	GF_MediaImporter *import = (GF_MediaImporter*)importer;
-	GF_BitStream *vbs;
-	
+
 	if (!codec || !import || !track || !di || !destroy_esd || !duration || !block_size)
 		return GF_BAD_PARAM;
 
 	vp = (GF_VorbisParser*)codec->parserPrivateState;
-	vbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	if (!vp || vp->num_headers<3) {
 		if (!gf_vorbis_parse_header(codec, (char*)data, data_length)) {
@@ -8090,10 +8101,11 @@ static GF_Err vorbis_process(ogg_audio_codec_desc *codec, char *data, u32 data_l
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("Corrupted OGG Vorbis header"));
 			goto exit;
 		}
+		vp = (GF_VorbisParser*)codec->parserPrivateState;
 
 		/*copy headers*/
-		gf_bs_write_u16(vbs, data_length);
-		gf_bs_write_data(vbs, (char *)data, data_length);
+		gf_bs_write_u16(vp->vbs, data_length);
+		gf_bs_write_data(vp->vbs, (char *)data, data_length);
 		vp->num_headers++;
 
 		/*let's go, create the track*/
@@ -8122,9 +8134,9 @@ static GF_Err vorbis_process(ogg_audio_codec_desc *codec, char *data, u32 data_l
 			if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *)gf_odf_desc_new(GF_ODF_SLC_TAG);
 			import->esd->slConfig->timestampResolution = codec->sample_rate;
 			if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *)gf_odf_desc_new(GF_ODF_DSI_TAG);
-			gf_bs_get_content(vbs, &import->esd->decoderConfig->decoderSpecificInfo->data, &import->esd->decoderConfig->decoderSpecificInfo->dataLength);
-			gf_bs_del(vbs);
-			vbs = NULL;
+			gf_bs_get_content(vp->vbs, &import->esd->decoderConfig->decoderSpecificInfo->data, &import->esd->decoderConfig->decoderSpecificInfo->dataLength);
+			gf_bs_del(vp->vbs);
+			vp->vbs = NULL;
 			import->esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 			import->esd->decoderConfig->avgBitrate = vp->avg_r;
 			import->esd->decoderConfig->maxBitrate = (vp->max_r>0) ? vp->max_r : vp->avg_r;
@@ -8149,8 +8161,15 @@ static GF_Err vorbis_process(ogg_audio_codec_desc *codec, char *data, u32 data_l
 	*block_size = gf_vorbis_check_frame(vp, (char *)data, data_length);
 
 exit:
-	if (vbs) gf_bs_del(vbs);
 	return e;
+}
+
+static void opus_release(ogg_audio_codec_desc *codec)
+{
+	if (codec->parserPrivateState) {
+		GF_OpusSpecificBox *opus = (GF_OpusSpecificBox*)codec->parserPrivateState;
+		gf_free(opus);
+	}
 }
 
 static GF_Err opus_process(ogg_audio_codec_desc *codec, char *data, u32 data_length,
@@ -8181,19 +8200,18 @@ static GF_Err opus_process(ogg_audio_codec_desc *codec, char *data, u32 data_len
 
 		GF_SAFEALLOC(opus, GF_OpusSpecificBox);
 		codec->parserPrivateState = (void*)opus;
-		codec->channels = gf_bs_read_u8(bs);
-		opus->PreSkip = gf_bs_read_u16(bs);
-		opus->InputSampleRate = gf_bs_read_u32(bs);
+		codec->channels = opus->OutputChannelCount = gf_bs_read_u8(bs);
+		opus->PreSkip = gf_bs_read_u16_le(bs);
+		opus->InputSampleRate = gf_bs_read_u32_le(bs);
 		codec->sample_rate = 48000; /*Opus always outputs 48000 but stores the original opus->InputSampleRate rate*/
-		opus->OutputGain = gf_bs_read_u16(bs);
+		opus->OutputGain = gf_bs_read_u16_le(bs);
 
 		//TODO: parse and link to MP4 channel layouts - for now we just copy it binary as it is the same from Ogg to MP4
 		opus->ChannelMappingFamily = gf_bs_read_u8(bs);
 		if (opus->ChannelMappingFamily != 0) {
-			u64 pos = gf_bs_get_position(bs);
-			opus->channelMappingSz = (int)(data_length - pos);
-			opus->channelMapping = gf_malloc(opus->channelMappingSz);
-			memcpy(opus->channelMapping, data + pos, opus->channelMappingSz);
+			opus->StreamCount = gf_bs_read_u8(bs);
+			opus->CoupledCount = gf_bs_read_u8(bs);
+			gf_bs_read_data(bs, (char *) opus->ChannelMapping, opus->OutputChannelCount);
 		}
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("OGG Opus import - sample rate %d - %d channel%s", codec->sample_rate, codec->channels, (codec->channels>1) ? "s" : ""));
@@ -8259,8 +8277,8 @@ exit:
 }
 
 static ogg_audio_codec_desc ogg_audio_codec_descs[] = {
-	{ "vorbis", NULL/*GF_VorbisParser*/, 0, 0, vorbis_process },
-	{ "OpusHead", NULL/*GF_OpusParser*/, 0, 0, opus_process },
+	{ "\1vorbis", NULL/*GF_VorbisParser*/, 0, 0, vorbis_process, vorbis_release },
+	{ "OpusHead", NULL/*GF_OpusParser*/, 0, 0, opus_process, opus_release },
 };
 
 GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
@@ -8301,7 +8319,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 	tot_size = gf_ftell(f_in);
 	gf_fseek(f_in, 0, SEEK_SET);
 
-	destroy_esd = GF_FALSE;
+	destroy_esd = import->esd ? GF_FALSE : GF_TRUE;
 	samp = gf_isom_sample_new();
 	/*avoids gcc warnings*/
 	track = 0;
@@ -8405,11 +8423,8 @@ exit:
 	gf_isom_sample_del(&samp);
 	if (serial_no) ogg_stream_clear(&os);
 	ogg_sync_clear(&oy);
-	if (codec->parserPrivateState) {
-		GF_OpusSpecificBox *opus = (GF_OpusSpecificBox*)codec->parserPrivateState;
-		if (opus->channelMapping) gf_free(opus->channelMapping);
-		gf_free(opus);
-	}
+	if (codec && codec->release) codec->release(codec);
+
 	if (import->esd && destroy_esd) {
 		gf_odf_desc_del((GF_Descriptor *) import->esd);
 		import->esd = NULL;
@@ -10777,8 +10792,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		return gf_import_ogg_audio(importer);
 	}
 	/*Opus audio*/
-	if (!strnicmp(ext, ".opus", 5))
+	if (!strnicmp(ext, ".opus", 5)) {
+		if (importer->flags & GF_IMPORT_PROBE_ONLY)
+			return gf_import_ogg_video(importer);
 		return gf_import_ogg_audio(importer);
+	}
 #endif
 
 #ifndef GPAC_DISABLE_MPEG2PS

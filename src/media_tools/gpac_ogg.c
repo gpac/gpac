@@ -1344,7 +1344,6 @@ GF_Box *dOps_New()
 void dOps_del(GF_Box *s)
 {
 	GF_OpusSpecificBox *ptr = (GF_OpusSpecificBox *)s;
-	if (ptr && ptr->channelMapping) gf_free(ptr->channelMapping);
 	if (ptr) gf_free(ptr);
 }
 
@@ -1352,12 +1351,18 @@ GF_Err dOps_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_OpusSpecificBox *ptr = (GF_OpusSpecificBox *)s;
 	ptr->version = gf_bs_read_u8(bs);
-	ptr->OutputChannelCount = ptr->channels = gf_bs_read_u8(bs);
+	ptr->OutputChannelCount = gf_bs_read_u8(bs);
 	ptr->PreSkip = gf_bs_read_u16(bs);
 	ptr->InputSampleRate = gf_bs_read_u32(bs);
 	ptr->OutputGain = gf_bs_read_u16(bs);
-
-	//TODO: ptr->ChannelMappingFamily = gf_malloc();
+	ptr->ChannelMappingFamily = gf_bs_read_u8(bs);
+	ISOM_DECREASE_SIZE(ptr, 11)
+	if (ptr->size) {
+		ISOM_DECREASE_SIZE(ptr, 2+ptr->OutputChannelCount);
+		ptr->StreamCount = gf_bs_read_u8(bs);
+		ptr->CoupledCount = gf_bs_read_u8(bs);
+		gf_bs_read_data(bs, (char *) ptr->ChannelMapping, ptr->OutputChannelCount);
+	}
 	return GF_OK;
 }
 
@@ -1371,18 +1376,26 @@ GF_Err dOps_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_bs_write_u8(bs, ptr->version);
-	gf_bs_write_u8(bs, ptr->channels);
+	gf_bs_write_u8(bs, ptr->OutputChannelCount);
 	gf_bs_write_u16(bs, ptr->PreSkip);
 	gf_bs_write_u32(bs, ptr->InputSampleRate);
 	gf_bs_write_u16(bs, ptr->OutputGain);
-	gf_bs_write_data(bs, ptr->channelMapping, ptr->channelMappingSz);
+	gf_bs_write_u8(bs, ptr->ChannelMappingFamily);
+	if (ptr->ChannelMappingFamily) {
+		gf_bs_write_u8(bs, ptr->StreamCount);
+		gf_bs_write_u8(bs, ptr->CoupledCount);
+		gf_bs_write_data(bs, (char *) ptr->ChannelMapping, ptr->OutputChannelCount);
+	}
 	return GF_OK;
 }
 
 GF_Err dOps_Size(GF_Box *s)
 {
 	GF_OpusSpecificBox *ptr = (GF_OpusSpecificBox *)s;
-	ptr->size += 10 + ptr->channelMappingSz;
+	ptr->size += 11;
+	if (ptr->ChannelMappingFamily)
+		ptr->size += 2 + ptr->OutputChannelCount;
+
 	return GF_OK;
 }
 
@@ -1420,14 +1433,9 @@ GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusSpe
 	if (!entry) return GF_OUT_OF_MEM;
 	entry->cfg_opus = (GF_OpusSpecificBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_DOPS);
 	if (!entry->cfg_opus) return GF_OUT_OF_MEM;
-
+	//skip box header
 	offset = (ptrdiff_t)&cfg->version - (ptrdiff_t)cfg;
 	memcpy((char*)entry->cfg_opus + offset, (char*)cfg + offset, sizeof(GF_OpusSpecificBox) - (size_t)offset);
-	if (cfg->channelMapping) {
-		entry->cfg_opus->channelMapping = gf_malloc(cfg->channelMappingSz);
-		memcpy(entry->cfg_opus->channelMapping, cfg->channelMapping, cfg->channelMappingSz);
-		entry->cfg_opus->channelMappingSz = cfg->channelMappingSz;
-	}
 	
 	entry->dataReferenceIndex = dataRefIndex;
 	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);

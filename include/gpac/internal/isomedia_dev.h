@@ -1412,13 +1412,6 @@ typedef struct
 	GF_AC3Config cfg;
 } GF_AC3ConfigBox;
 
-/*typedef struct
-{
-	u8 StreamCount;
-	u8 CoupledCount;
-	unsigned int(8 * OutputChannelCount) ChannelMapping;
-} GF_OpusChannelMapping;*/
-
 typedef struct
 {
 	GF_ISOM_BOX
@@ -1430,11 +1423,13 @@ typedef struct
 	u32 InputSampleRate;     //The InputSampleRate field shall be set to the same value as the *Input Sample Rate* field in the identification header defined in Ogg Opus
 	s16 OutputGain;          //The OutputGain field shall be set to the same value as the *Output Gain* field in the identification header define in Ogg Opus [3]. Note that the value is stored as 8.8 fixed-point.
 	u8 ChannelMappingFamily; //The ChannelMappingFamily field shall be set to the same value as the *Channel Mapping Family* field in the identification header defined in Ogg Opus [3]. Note that the value 255 may be used for an alternative to map channels by ISO Base Media native mapping. The details are described in 4.5.1.
-	void *channelMapping; //TODO: GF_OpusChannelMapping ChannelMappingTable[255];
-	int channelMappingSz;
+
+	u8 StreamCount; // The StreamCount field shall be set to the same value as the *Stream Count* field in the identification header defined in Ogg Opus [3].
+	u8 CoupledCount; // The CoupledCount field shall be set to the same value as the *Coupled Count* field in the identification header defined in Ogg Opus [3].
+	u8 ChannelMapping[255]; // The ChannelMapping field shall be set to the same octet string as *Channel Mapping* field in the identi- fication header defined in Ogg Opus [3].
 
 	/*for internal box use only*/
-	int channels;
+//	int channels;
 } GF_OpusSpecificBox;
 
 GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusSpecificBox *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);

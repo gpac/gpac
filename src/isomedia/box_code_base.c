@@ -3893,7 +3893,7 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 		ptr->cfg_3gpp->cfg.type = ptr->type;
 		break;
 
-	case GF_ISOM_BOX_TYPE_OPUS:
+	case GF_ISOM_BOX_TYPE_DOPS:
 		ptr->cfg_opus = (GF_OpusSpecificBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_DAC3:
