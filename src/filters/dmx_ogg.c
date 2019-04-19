@@ -30,6 +30,7 @@
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)
 #include <gpac/internal/ogg.h>
+#include <gpac/internal/isomedia_dev.h>
 //#include <ogg/ogg.h>
 #include <gpac/avparse.h>
 
@@ -67,7 +68,10 @@ typedef struct
 	Bool eos_detected;
 
 	u32 recomputed_ts;
-	GF_VorbisParser vp;
+
+	GF_VorbisParser *vorbis_parser;
+
+	GF_OpusParser *opus_parser;
 } GF_OGGStream;
 
 typedef struct
@@ -91,7 +95,6 @@ typedef struct
 	/*ogg ogfile state*/
 	ogg_sync_state oy;
 } GF_OGGDmxCtx;
-
 
 void oggdmx_signal_eos(GF_OGGDmxCtx *ctx)
 {
@@ -163,6 +166,13 @@ static void oggdmx_get_stream_info(ogg_packet *oggpacket, OGGInfo *info)
 		info->type = GF_CODECID_FLAC;
 		info->num_init_headers = 3;
 	}
+	/*opus*/
+	else if ((oggpacket->bytes >= 8) && !strncmp((char *) &oggpacket->packet[0], "OpusHead", 8)) {
+		info->streamType = GF_STREAM_AUDIO;
+		info->type = GF_CODECID_OPUS;
+		info->num_init_headers = 1;
+		info->sample_rate = 48000;
+	}
 	/*theora*/
 	else if ((oggpacket->bytes >= 7) && !strncmp((char *) &oggpacket->packet[1], "theora", 6)) {
 		GF_BitStream *bs;
@@ -219,6 +229,27 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT(st->info.bitrate) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(st->info.sample_rate ? st->info.sample_rate : st->info.frame_rate.den) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT(0xFE) );
+
+	//opus DSI is formatted as box (ffmpeg compat) we might want to change that to avoid the box header
+	if (st->info.type==GF_CODECID_OPUS) {
+		GF_OpusSpecificBox *opus = (GF_OpusSpecificBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_DOPS);
+		st->dsi_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		opus->version = 0;
+
+		opus->OutputChannelCount = st->opus_parser->OutputChannelCount;
+		opus->PreSkip = st->opus_parser->PreSkip;
+		opus->InputSampleRate = st->opus_parser->InputSampleRate;
+		opus->OutputGain = st->opus_parser->OutputGain;
+		opus->ChannelMappingFamily = st->opus_parser->ChannelMappingFamily;
+		opus->StreamCount = st->opus_parser->StreamCount;
+		opus->CoupledCount = st->opus_parser->CoupledCount;
+		memcpy(opus->ChannelMapping, st->opus_parser->ChannelMapping, sizeof(char)*255);
+		gf_isom_box_size((GF_Box *) opus);
+		gf_isom_box_write((GF_Box *) opus, st->dsi_bs);
+		gf_isom_box_del((GF_Box *) opus);
+
+		st->info.nb_chan = st->opus_parser->OutputChannelCount;
+	}
 
 	if (st->dsi_bs) {
 		char *data;
@@ -295,6 +326,16 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 
 	gf_list_add(ctx->streams, st);
 	st->parse_headers = st->info.num_init_headers;
+	switch (st->info.type) {
+	case GF_CODECID_VORBIS:
+		GF_SAFEALLOC(st->vorbis_parser, GF_VorbisParser);
+		break;
+	case GF_CODECID_OPUS:
+		GF_SAFEALLOC(st->opus_parser, GF_OpusParser);
+		break;
+	default:
+		break;
+	}
 
 	if (st->got_headers) {
 		oggdmx_declare_pid(filter, ctx, st);
@@ -350,6 +391,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 	u64 max_gran;
 	Bool has_stream = GF_FALSE;
 	GF_VorbisParser vp;
+	GF_OpusParser op;
 	u64 recompute_ts;
 	GF_Fraction dur;
 
@@ -417,8 +459,15 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 						gf_vorbis_parse_header(&vp, oggpacket.packet, oggpacket.bytes);
 					} else {
 						recompute_ts += gf_vorbis_check_frame(&vp, (char *) oggpacket.packet, oggpacket.bytes);
-
 					}
+				} else if (the_info.type==GF_CODECID_OPUS) {
+					if (the_info.num_init_headers) {
+						the_info.num_init_headers--;
+						gf_opus_parse_header(&op, oggpacket.packet, oggpacket.bytes);
+					} else {
+						recompute_ts += gf_opus_check_frame(&op, (char *) oggpacket.packet, oggpacket.bytes);
+					}
+
 				} else if ((oggpacket.granulepos>=0) && ((u64) oggpacket.granulepos>max_gran) ) {
 					max_gran = oggpacket.granulepos;
 				}
@@ -576,6 +625,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 
 		if (ogg_page_bos(&oggpage)) {
 			oggdmx_new_stream(filter, ctx, &oggpage);
+			continue;
 		}
 
 		st = oggdmx_find_stream_for_page(ctx, &oggpage);
@@ -589,19 +639,29 @@ GF_Err oggdmx_process(GF_Filter *filter)
 
 		while (ogg_stream_packetout(&st->os, &oggpacket ) > 0 ) {
 			if (st->parse_headers && !st->got_headers) {
+				Bool res = GF_FALSE;
+				Bool add_page = GF_FALSE;
 				u32 bytes = oggpacket.bytes;
 				//bug in some files where first header is repeated
 				if ( (st->parse_headers + 1 == st->info.num_init_headers) && st->dsi_bs && (gf_bs_get_position(st->dsi_bs) == 2 + bytes) )
 					continue;
 
-				if (st->info.type==GF_CODECID_VORBIS)
-					gf_vorbis_parse_header(&st->vp, (char *) oggpacket.packet, oggpacket.bytes);
+				switch (st->info.type) {
+				case GF_CODECID_VORBIS:
+					res = gf_vorbis_parse_header(st->vorbis_parser, (char *) oggpacket.packet, oggpacket.bytes);
+					add_page = res;
+					break;
+				case GF_CODECID_OPUS:
+					res = gf_opus_parse_header(st->opus_parser, (char *) oggpacket.packet, oggpacket.bytes);
+					break;
+				}
 
-
-				if (!st->dsi_bs) st->dsi_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-				gf_bs_write_u16(st->dsi_bs, oggpacket.bytes);
-				gf_bs_write_data(st->dsi_bs, (char *) oggpacket.packet, oggpacket.bytes);
-
+				if (add_page) {
+					if (!st->dsi_bs) st->dsi_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+					gf_bs_write_u16(st->dsi_bs, oggpacket.bytes);
+					gf_bs_write_data(st->dsi_bs, (char *) oggpacket.packet, oggpacket.bytes);
+				}
+				
 				st->parse_headers--;
 				if (!st->parse_headers) {
 					st->got_headers = GF_TRUE;
@@ -615,7 +675,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 				char *output;
 				GF_FilterPacket *dst_pck;
 
-					if (st->info.type==GF_CODECID_THEORA) {
+				if (st->info.type==GF_CODECID_THEORA) {
 					oggpack_buffer opb;
 					oggpackB_readinit(&opb, oggpacket.packet, oggpacket.bytes);
 					/*not a new frame*/
@@ -626,15 +686,27 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
 					gf_filter_pck_set_sap(dst_pck, oggpackB_read(&opb, 1) ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1);
 					st->recomputed_ts += st->info.frame_rate.num;
-				} else {
+				}
+				//this is audio
+				else {
+					u32 block_size = 0;
+
+					if (st->info.type==GF_CODECID_VORBIS) {
+						block_size = gf_vorbis_check_frame(st->vorbis_parser, (char *) oggpacket.packet, oggpacket.bytes);
+						if (!block_size) continue;
+					}
+					else if (st->info.type==GF_CODECID_OPUS) {
+						block_size = gf_opus_check_frame(st->opus_parser, (char *) oggpacket.packet, oggpacket.bytes);
+						if (!block_size) continue;
+					}
+
+
 					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);
 					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
 					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
 					gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 
-					if (st->info.type==GF_CODECID_VORBIS) {
-						st->recomputed_ts += gf_vorbis_check_frame(&st->vp, (char *) oggpacket.packet, oggpacket.bytes);
-					}
+					st->recomputed_ts += block_size;
 				}
 				gf_filter_pck_send(dst_pck);
 
@@ -662,6 +734,8 @@ static void oggdmx_finalize(GF_Filter *filter)
 		gf_list_rem(ctx->streams, 0);
 		ogg_stream_clear(&st->os);
 		if (st->dsi_bs) gf_bs_del(st->dsi_bs);
+		if (st->vorbis_parser) gf_free(st->vorbis_parser);
+		if (st->opus_parser) gf_free(st->opus_parser);
 		gf_free(st);
 	}
 	gf_list_del(ctx->streams);
@@ -690,7 +764,7 @@ static const GF_FilterCapability OGGDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_THEORA),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "oga|spx|ogg|ogv|oggm"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "oga|spx|ogg|ogv|oggm|opus"),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_OGGDmxCtx, _n)

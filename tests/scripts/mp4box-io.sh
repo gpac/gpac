@@ -61,6 +61,8 @@ mp4_test ()
   do_hint=0 ;;
  *.av1 )
   do_hint=0 ;;
+ *.opus )
+  do_hint=0 ;;
  *.obu )
   do_hint=0 ;;
  *.ivf )

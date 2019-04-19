@@ -861,7 +861,15 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 	case GF_ISOM_SUBTYPE_VP08:
 		return gf_isom_get_esd(mp4, track, stsd_idx);
 	}
-	
+
+	if (subtype == GF_ISOM_SUBTYPE_OPUS) {
+		esd = gf_isom_get_esd(mp4, track, 1);
+		if (!esd) return NULL;
+
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_OPUS;
+		return esd;
+	}
+
 	if (subtype == GF_ISOM_SUBTYPE_3GP_DIMS) {
 		GF_DIMSDescription dims;
 		esd = gf_odf_desc_esd_new(0);

@@ -61,6 +61,7 @@ This is only needed when building libgpac and modules when libgpac is not instal
 /*common win32 parts*/
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 #if defined(_WIN64) && !defined(GPAC_64_BITS)
 #define GPAC_64_BITS
@@ -166,6 +167,7 @@ typedef unsigned int size_t;
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <stdarg.h>
 #include <limits.h>
 #include <ctype.h>
@@ -250,6 +252,7 @@ char * my_str_lwr(char *str);
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <stdarg.h>
 #include <limits.h>
 #include <float.h>

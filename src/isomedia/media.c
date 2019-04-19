@@ -272,6 +272,26 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			break;
 		} else return GF_ISOM_INVALID_MEDIA;
 
+	case GF_ISOM_SUBTYPE_OPUS: {
+		GF_OpusSpecificBox *e = ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_opus;
+		GF_BitStream *bs_out;
+		if (!e) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ESD not found for Opus\n)"));
+			break;
+		}
+
+		*out_esd = gf_odf_desc_esd_new(2);
+		(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
+		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_OPUS;
+
+		//serialize box with header - compatibility with ffmpeg
+		bs_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_isom_box_size((GF_Box *) e);
+		gf_isom_box_write((GF_Box *) e, bs_out);
+		gf_bs_get_content(bs_out, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
+		gf_bs_del(bs_out);
+		break;
+	}
 	case GF_ISOM_SUBTYPE_3GP_H263:
 		if (true_desc_only) {
 			return GF_ISOM_INVALID_MEDIA;
