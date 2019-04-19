@@ -1,12 +1,10 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Pierre Souchay 2008
+ *			Authors: Pierre Souchay , Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2008-2019
+ *					All rights reserved
  *
- *  History:
- *
- *  2008/03/30 - v1.1 (Pierre Souchay)
- *    first revision
  *
  *  PulseAudio output module : output audio thru the PulseAudio daemon
  *
@@ -212,23 +210,6 @@ PulseAudio_WriteAudio (GF_AudioOutput * dr)
 	}
 }
 
-static void
-PulseAudio_SetVolume (GF_AudioOutput * dr, u32 Volume)
-{
-	GF_LOG (GF_LOG_WARNING, GF_LOG_MMIO,
-	        ("[PulseAudio] Set volume to %lu: not yet implemented.\n", Volume));
-}
-
-static void
-PulseAudio_SetPan (GF_AudioOutput * dr, u32 Pan)
-{
-}
-
-static void
-PulseAudio_SetPriority (GF_AudioOutput * dr, u32 Priority)
-{
-}
-
 static u32
 PulseAudio_GetAudioDelay (GF_AudioOutput * dr)
 {
@@ -256,15 +237,6 @@ PulseAudio_GetAudioDelay (GF_AudioOutput * dr)
 	return ms_delay;
 }
 
-static GF_Err
-PulseAudio_QueryOutputSampleRate (GF_AudioOutput * dr, u32 * desired_sr,
-                                  u32 * NbChannels, u32 * nbBitsPerSample)
-{
-	/**
-	 * PulseAudio can do the resampling by itself and play any number of channels
-	 */
-	return GF_OK;
-}
 
 void *
 NewPulseAudioOutput ()
@@ -289,10 +261,6 @@ NewPulseAudioOutput ()
 	driv->Shutdown = PulseAudio_Shutdown;
 	driv->Configure = PulseAudio_Configure;
 	driv->GetAudioDelay = PulseAudio_GetAudioDelay;
-	driv->SetVolume = PulseAudio_SetVolume;
-	driv->SetPan = PulseAudio_SetPan;
-	driv->SetPriority = PulseAudio_SetPriority;
-	driv->QueryOutputSampleRate = PulseAudio_QueryOutputSampleRate;
 	driv->WriteAudio = PulseAudio_WriteAudio;
 	GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE, MODULE_NAME, "gpac distribution");
 	return driv;
