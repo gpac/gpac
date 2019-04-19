@@ -249,6 +249,7 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, const char *data, u32 
 	GF_Err e;
 
 	if (!codec || !data || codec->dec_memory_mode) return GF_BAD_PARAM;
+	if (!data_length) return GF_OK;
 
 	codec->info = gf_bifs_dec_get_stream(codec, ESID);
 	if (!codec->info) {
@@ -259,6 +260,7 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, const char *data, u32 
 	codec->cts_offset = ts_offset;
 
 	bs = gf_bs_new(data, data_length, GF_BITSTREAM_READ);
+	if (!bs) return GF_OUT_OF_MEM;
 	gf_bs_set_eos_callback(bs, BD_EndOfStream, codec);
 
 	if (codec->info->config.elementaryMasks) {

@@ -1970,10 +1970,13 @@ naldmx_flush:
 		//if not, dispatch these bytes as continuation of the data
 		if (ctx->bytes_in_header) {
 			Bool split_start_code=GF_FALSE;
+			u32 copy_size = SAFETY_NAL_STORE - ctx->bytes_in_header;
+			if (copy_size>remain)
+				copy_size = remain;
 
-			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, SAFETY_NAL_STORE - ctx->bytes_in_header);
-			current = gf_media_nalu_next_start_code(ctx->hdr_store, SAFETY_NAL_STORE, &sc_size);
-			if (current==SAFETY_NAL_STORE)
+			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, copy_size);
+			current = gf_media_nalu_next_start_code(ctx->hdr_store, copy_size + ctx->bytes_in_header, &sc_size);
+			if (current==copy_size + ctx->bytes_in_header)
 				current = -1;
 
 			//no start code in stored buffer
@@ -2108,7 +2111,7 @@ naldmx_flush:
 			}
 			//bytes were partly in store, partly in packet
 			if (bytes_from_store) {
-				if (bytes_from_store>=(u32) current) {
+				if (bytes_from_store> (u32) current) {
 					//we still have that many bytes from the store to dispatch
 //					bytes_from_store -= current;
 				} else {
