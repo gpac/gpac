@@ -594,8 +594,8 @@ typedef struct
 	u8 frame_presentation_time_length;
 	u32 buffer_removal_time_length;
 	u8 operating_points_count;
-	u8 decoder_model_present_for_this_op[6];
-	u8 operating_point_idc[6];
+	u8 decoder_model_present_for_this_op[32];
+	u8 operating_point_idc[32];
 
 	u32 tileRows, tileCols, tileRowsLog2, tileColsLog2;
 	u8 tile_size_bytes; /*coding tile header size*/
