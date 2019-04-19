@@ -5027,7 +5027,7 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 			GF_FilterPidInst *pidi = gf_list_get(pid->pid->destinations, i);
 			if (evt->base.type == GF_FEVT_PLAY) {
 				pidi->is_end_of_stream = GF_FALSE;
-				gf_filter_pid_clear_eos(pid, GF_FALSE);
+//				gf_filter_pid_clear_eos(pid, GF_FALSE);
 			} else {
 				//flag pid instance to discard all packets (cf above note)
 				pidi->discard_packets = GF_TRUE;

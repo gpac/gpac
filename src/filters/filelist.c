@@ -47,6 +47,8 @@ typedef struct
 	Bool is_eos;
 	u64 dts_sub;
 	u64 first_dts_plus_one;
+
+	Bool is_playing;
 } FileListPid;
 
 typedef struct
@@ -222,10 +224,14 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		iopid = gf_list_get(ctx->io_pids, i);
 		if (!iopid->ipid) continue;
 
+		fevt.base.on_pid = iopid->ipid;
 		if (evt->base.type==GF_FEVT_PLAY) {
 			gf_filter_pid_init_play_event(iopid->ipid, &fevt, ctx->start, 1.0, "FileList");
-		} else {
-			fevt.base.on_pid = iopid->ipid;
+			iopid->is_playing = GF_TRUE;
+			iopid->is_eos = GF_FALSE;
+		} else if (evt->base.type==GF_FEVT_PLAY) {
+			iopid->is_playing = GF_FALSE;
+			iopid->is_eos = GF_TRUE;
 		}
 		gf_filter_pid_send_event(iopid->ipid, &fevt);
 	}
@@ -447,6 +453,9 @@ GF_Err filelist_process(GF_Filter *filter)
 		}
 		if (iopid->is_eos) {
 			nb_done++;
+			continue;
+		}
+		if (!iopid->is_playing) {
 			continue;
 		}
 		if (gf_filter_pid_would_block(iopid->opid))
