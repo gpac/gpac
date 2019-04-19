@@ -42,8 +42,6 @@
 #include <unistd.h>
 #endif
 
-//#define FORCE_DISABLE_MPEG4SL_OVER_MPEG2TS
-
 #ifdef GPAC_ENABLE_MPE
 #include <gpac/dvb_mpe.h>
 #endif
@@ -1428,7 +1426,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		tag = data[4];
 		len = data[5];
 		while (info_length > first_loop_len) {
-#ifndef FORCE_DISABLE_MPEG4SL_OVER_MPEG2TS
 			if (tag == GF_M2TS_MPEG4_IOD_DESCRIPTOR) {
 				u32 size;
 				GF_BitStream *iod_bs;
@@ -1461,9 +1458,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					gf_m2ts_metadata_pointer_descriptor_del(metapd);
 				}
 			} else {
-#else
-			{
-#endif
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping descriptor (0x%x) and others not supported\n", tag));
 			}
 			first_loop_len += 2 + len;
@@ -1629,17 +1623,14 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		while (desc_len) {
 			u8 tag = data[0];
 			u32 len = data[1];
-			if (es && pes) {
+			if (es) {
 				switch (tag) {
 				case GF_M2TS_ISO_639_LANGUAGE_DESCRIPTOR:
-					pes->lang = GF_4CC(' ', data[2], data[3], data[4]);
+					if (pes)
+						pes->lang = GF_4CC(' ', data[2], data[3], data[4]);
 					break;
 				case GF_M2TS_MPEG4_SL_DESCRIPTOR:
-#ifdef FORCE_DISABLE_MPEG4SL_OVER_MPEG2TS
-					es->mpeg4_es_id = es->pid;
-#else
-					es->mpeg4_es_id = ((data[2] & 0x1f) << 8) | data[3];
-#endif
+					es->mpeg4_es_id = ( (u32) data[2] & 0x1f) << 8  | data[3];
 					es->flags |= GF_M2TS_ES_IS_SL;
 					break;
 				case GF_M2TS_REGISTRATION_DESCRIPTOR:
@@ -1675,13 +1666,14 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				}
 				break;
 				case GF_M2TS_DVB_SUBTITLING_DESCRIPTOR:
-					pes->sub.language[0] = data[2];
-					pes->sub.language[1] = data[3];
-					pes->sub.language[2] = data[4];
-					pes->sub.type = data[5];
-					pes->sub.composition_page_id = (data[6]<<8) | data[7];
-					pes->sub.ancillary_page_id = (data[8]<<8) | data[9];
-
+					if (pes) {
+						pes->sub.language[0] = data[2];
+						pes->sub.language[1] = data[3];
+						pes->sub.language[2] = data[4];
+						pes->sub.type = data[5];
+						pes->sub.composition_page_id = (data[6]<<8) | data[7];
+						pes->sub.ancillary_page_id = (data[8]<<8) | data[9];
+					}
 					es->stream_type = GF_M2TS_DVB_SUBTITLE;
 					break;
 				case GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR:

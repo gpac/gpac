@@ -3084,6 +3084,26 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 	return GF_TRUE;
 }
 
+static void add_possible_link_destination(GF_List *possible_linked_resolutions, GF_List *force_link_resolutions, GF_Filter *filter_dst)
+{
+	u32 i;
+
+	for (i=0; i<gf_list_count(possible_linked_resolutions); i++) {
+		GF_Filter *parent = gf_list_get(possible_linked_resolutions, i);
+		if (parent->max_extra_pids) continue;
+
+		if ((gf_list_find(filter_dst->destination_links, parent)>=0) || (gf_list_find(filter_dst->destination_filters, parent)>=0)) {
+			gf_list_rem(possible_linked_resolutions, i);
+			gf_list_insert(possible_linked_resolutions, filter_dst, i);
+			return;
+		}
+		if ((gf_list_find(parent->destination_links, filter_dst)>=0) || (gf_list_find(parent->destination_filters, filter_dst)>=0)) {
+			return;
+		}
+	}
+	gf_list_add(possible_linked_resolutions, filter_dst);
+}
+
 static void gf_filter_pid_init_task(GF_FSTask *task)
 {
 	u32 i, count;
@@ -3095,6 +3115,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	GF_List *loaded_filters = NULL;
 	GF_List *linked_dest_filters = NULL;
 	GF_List *force_link_resolutions = NULL;
+	GF_List *possible_linked_resolutions = NULL;
 	GF_Filter *filter = task->filter;
 	GF_FilterPid *pid = task->pid;
 	GF_Filter *dynamic_filter_clone = NULL;
@@ -3135,6 +3156,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 
 	linked_dest_filters = gf_list_new();
 	force_link_resolutions = gf_list_new();
+	possible_linked_resolutions = gf_list_new();
 
 	//we use at max 3 passes:
 	//pass 1: try direct connections without loading intermediate filter chains. If PID gets connected, skip other passes
@@ -3142,8 +3164,10 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	//pass 3: try loading intermediate filter chains, potentially swapping the source registry
 restart:
 
-	if (num_pass)
+	if (num_pass) {
 		loaded_filters = gf_list_new();
+
+	}
 
 	found_matching_sourceid = GF_FALSE;
 	//try to connect pid to all running filters
@@ -3170,6 +3194,8 @@ single_retry:
 		if (gf_list_find(linked_dest_filters, filter_dst)>=0) {
 			continue;
 		}
+		if (num_pass && (gf_list_find(possible_linked_resolutions, filter_dst)<0) && (gf_list_find(force_link_resolutions, filter_dst)<0) )
+			continue;
 
 		if (gf_list_count(pid->filter->destination_filters)) {
 			s32 ours = gf_list_find(pid->filter->destination_filters, filter_dst);
@@ -3331,6 +3357,8 @@ single_retry:
 				//we have an explicit link instruction so we must try dynamic link even if we connect to another filter
 				if (filter_dst->source_ids) {
 					gf_list_add(force_link_resolutions, filter_dst);
+				} else {
+					add_possible_link_destination(possible_linked_resolutions, force_link_resolutions, filter_dst);
 				}
 				continue;
 			}
@@ -3360,6 +3388,7 @@ single_retry:
 					if (loaded_filters) gf_list_del(loaded_filters);
 					gf_list_del(linked_dest_filters);
 					gf_list_del(force_link_resolutions);
+					gf_list_del(possible_linked_resolutions);
 					return;
 				}
 				//we might had it wrong solving the chain initially, break the chain
@@ -3383,6 +3412,7 @@ single_retry:
 							if (loaded_filters) gf_list_del(loaded_filters);
 							gf_list_del(linked_dest_filters);
 							gf_list_del(force_link_resolutions);
+							gf_list_del(possible_linked_resolutions);
 							return;
 						} else {
 							continue;
@@ -3447,6 +3477,7 @@ single_retry:
 		pid->filter->disabled = GF_FALSE;
 		gf_list_del(linked_dest_filters);
 		gf_list_del(force_link_resolutions);
+		gf_list_del(possible_linked_resolutions);
 		return;
 	}
 
@@ -3483,6 +3514,7 @@ single_retry:
 
 	gf_list_del(linked_dest_filters);
 	gf_list_del(force_link_resolutions);
+	gf_list_del(possible_linked_resolutions);
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 
 

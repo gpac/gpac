@@ -235,9 +235,9 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			stype = GF_STREAM_AUDIO;
 			codecid = GF_CODECID_EAC3;
 			break;
-		//TODO: MP4on2 is currently broken in filters
 		case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 			((GF_M2TS_ES*)stream)->flags |= GF_M2TS_ES_SEND_REPEATED_SECTIONS;
+			//fallthrough
 		case GF_M2TS_SYSTEMS_MPEG4_PES:
 			if (!esd) {
 				m4sys_iod_stream = GF_TRUE;
@@ -277,7 +277,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, &PROP_UINT(esd->decoderConfig ? esd->decoderConfig->objectTypeIndication : GF_CODECID_BIFS) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(esd->OCRESID ? esd->OCRESID : esd->ESID) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID) );
-		if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo )
+		if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->dataLength)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength) );
 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_IN_IOD, &PROP_BOOL(m4sys_iod_stream) );
@@ -303,13 +303,14 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC(ctx->duration) );
 
 	/*indicate our coding dependencies if any*/
-	if (stream->depends_on_pid) {
-		gf_filter_pid_set_property(opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(stream->depends_on_pid) );
-		if ((stream->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL) || (stream->stream_type == GF_M2TS_VIDEO_HEVC_MCTS)) {
-			gf_filter_pid_set_property(opid, GF_PROP_PID_SUBLAYER, &PROP_BOOL(GF_TRUE) );
+	if (!m4sys_stream) {
+		if (stream->depends_on_pid) {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(stream->depends_on_pid) );
+			if ((stream->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL) || (stream->stream_type == GF_M2TS_VIDEO_HEVC_MCTS)) {
+				gf_filter_pid_set_property(opid, GF_PROP_PID_SUBLAYER, &PROP_BOOL(GF_TRUE) );
+			}
 		}
 	}
-
 	gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
 }
 
