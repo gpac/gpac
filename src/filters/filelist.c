@@ -60,6 +60,7 @@ typedef struct
 	GF_FilterPid *file_pid;
 	const char *file_path;
 	u32 last_url_crc;
+	u32 last_url_lineno;
 	Bool load_next;
 
 	GF_Filter *filter_src;
@@ -257,7 +258,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	u32 len;
 	Bool last_found = GF_FALSE;
 	FILE *f;
-	u32 nb_repeat=0;
+	u32 nb_repeat=0, lineno=0;
 	Double start=0, stop=0;
 
 	if (ctx->file_list) {
@@ -295,6 +296,8 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 			gf_fclose(f);
 			return GF_FALSE;
 		}
+		lineno++;
+
 		len = strlen(szURL);
 		while (len && strchr("\n\r\t ", szURL[len-1])) {
 			szURL[len-1] = 0;
@@ -315,9 +318,10 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		crc = gf_crc_32(szURL, (u32) strlen(szURL) );
 		if (!ctx->last_url_crc) {
 			ctx->last_url_crc = crc;
+			ctx->last_url_lineno = lineno;
 			break;
 		}
-		if (ctx->last_url_crc == crc) {
+		if ((ctx->last_url_crc == crc) && (ctx->last_url_lineno == lineno)) {
 			last_found = GF_TRUE;
 			nb_repeat=0;
 			start=stop=0;
@@ -326,6 +330,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		}
 		if (last_found) {
 			ctx->last_url_crc = crc;
+			ctx->last_url_lineno = lineno;
 			break;
 		}
 		nb_repeat=0;
@@ -453,9 +458,6 @@ GF_Err filelist_process(GF_Filter *filter)
 			u32 dur;
 			GF_FilterPacket *pck;
 
-			if (gf_filter_pid_would_block(iopid->opid))
-				break;
-				
 			pck = gf_filter_pid_get_packet(iopid->ipid);
 			if (!pck) {
 				if (gf_filter_pid_is_eos(iopid->ipid))
@@ -465,6 +467,10 @@ GF_Err filelist_process(GF_Filter *filter)
 					nb_done++;
 				break;
 			}
+
+			if (gf_filter_pid_would_block(iopid->opid))
+				break;
+
 			dst_pck = gf_filter_pck_new_ref(iopid->opid, NULL, 0, pck);
 			gf_filter_pck_merge_properties(pck, dst_pck);
 			dts = gf_filter_pck_get_dts(pck);
@@ -484,6 +490,7 @@ GF_Err filelist_process(GF_Filter *filter)
 			if (iopid->timescale == iopid->o_timescale) {
 				gf_filter_pck_set_dts(dst_pck, iopid->dts_o + dts - iopid->dts_sub);
 				gf_filter_pck_set_cts(dst_pck, iopid->cts_o + cts - iopid->dts_sub);
+				gf_filter_pck_set_duration(dst_pck, dur);
 			} else {
 				u64 ts = dts;
 				ts *= iopid->o_timescale;
@@ -549,6 +556,7 @@ GF_Err filelist_process(GF_Filter *filter)
 				GF_FilterEvent evt;
 				iopid = gf_list_get(ctx->io_pids, i);
 				if (!iopid->ipid) continue;
+
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, iopid->ipid);
 				gf_filter_pid_send_event(iopid->ipid, &evt);
 
