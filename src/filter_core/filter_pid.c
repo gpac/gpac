@@ -457,7 +457,6 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 		}
 		gf_mx_v(dst->pid->filter->tasks_mx);
 	}
-	assert(!dst->buffer_duration);
 
 	if (src) {
 		while (1) {
