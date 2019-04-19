@@ -344,13 +344,16 @@ packed_frame :
 		buffer[2] = 'i';
 		buffer[3] = 'd';
 	}
-	src_pck = gf_list_pop_front(ctx->src_packets);
+	src_pck = gf_list_get(ctx->src_packets, 0);
 
 	res = xvid_decore(ctx->codec, XVID_DEC_DECODE, &frame, NULL);
 	if (res < 0) {
 		gf_filter_pck_discard(dst_pck);
 		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
-		if (src_pck) gf_filter_pck_unref(src_pck);
+		if (src_pck) {
+			gf_filter_pck_unref(src_pck);
+			gf_list_pop_front(ctx->src_packets);
+		}
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
@@ -363,7 +366,6 @@ packed_frame :
 		if ((buffer[0] == 'v') && (buffer[1] == 'o') && (buffer[2] == 'i') && (buffer[3] =='d')) {
 			gf_filter_pck_discard(dst_pck);
 			if (pck) gf_filter_pid_drop_packet(ctx->ipid);
-			if (src_pck) gf_filter_pck_unref(src_pck);
 			return GF_OK;
 		}
 	}
@@ -374,6 +376,7 @@ packed_frame :
 		ctx->next_cts = gf_filter_pck_get_cts(src_pck);
 		ctx->next_cts += gf_filter_pck_get_duration(src_pck);
 		gf_filter_pck_unref(src_pck);
+		gf_list_pop_front(ctx->src_packets);
 	} else {
 		is_seek = 0;
 		gf_filter_pck_set_cts(dst_pck, ctx->next_cts);
