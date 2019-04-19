@@ -1622,7 +1622,10 @@ void gf_filter_sep_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids);
 Bool gf_filter_block_enabled(GF_Filter *filter);
 
 
-/*! Connects a source to this filter
+/*! Connects a source to this filter.
+Note:
+Any filter loaded between the source and the calling filter will not use argument inheritance from the caller.
+
 \param filter the target filter
 \param url url of source to connect to, with optional arguments.
 \param parent_url url of parent if any
