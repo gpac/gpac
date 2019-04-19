@@ -5028,14 +5028,12 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 			GF_FilterPidInst *pidi = gf_list_get(pid->pid->destinations, i);
 			if (evt->base.type == GF_FEVT_PLAY) {
 				pidi->is_end_of_stream = GF_FALSE;
+				gf_filter_pid_clear_eos(pid, GF_FALSE);
 			} else {
 				//flag pid instance to discard all packets (cf above note)
 				pidi->discard_packets = GF_TRUE;
 				safe_int_inc(& pidi->pid->discard_input_packets );
 			}
-		}
-		if (evt->base.type==GF_FEVT_STOP) {
-			gf_filter_pid_clear_eos(pid, GF_FALSE);
 		}
 	}
 
@@ -5421,7 +5419,7 @@ GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc)
 {
 	u32 i;
-	GF_PropertyMap *map = pid->caps_negociate;
+	GF_PropertyMap *map = pid->pid->caps_negociate;
 	if (PID_IS_INPUT(pid)) {
 		u32 k;
 		GF_Filter *dst = pid->filter->cap_dst_filter;
