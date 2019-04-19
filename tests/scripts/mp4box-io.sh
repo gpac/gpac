@@ -35,6 +35,8 @@ mp4_test ()
  case $1 in
  *.xslt )
   return ;;
+ *.ttxt )
+  return ;;
  *.opus )
   return ;;
  *.html* )
