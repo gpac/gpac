@@ -228,6 +228,14 @@ u32 gf_bs_read_u32(GF_BitStream *bs);
  */
 u64 gf_bs_read_u64(GF_BitStream *bs);
 /*!
+*	\brief little endian integer reading
+*
+*	Reads an integer coded on 64 bits in little-endian order.
+*	\param bs the target bitstream
+*	\return the integer value read.
+*/
+u64 gf_bs_read_u64_le(GF_BitStream *bs);
+/*!
  *	\brief little endian integer reading
  *
  *	Reads an integer coded on 32 bits in little-endian order.

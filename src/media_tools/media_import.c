@@ -7556,10 +7556,11 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 	GF_VPConfig *vp9_cfg = NULL;
 	FILE *mdia = NULL;
 	GF_BitStream *bs = NULL;
-	u32 timescale = 0, dts_inc = 0, track_num = 0, track_id = 0, di = 0, cur_samp = 0, codec_fourcc = 0, frame_rate = 0, time_scale = 0, num_frames = 0;
+	u32 timescale = 0, dts_inc = 0, track_num = 0, track_id = 0, di = 0, cur_samp = 0, codec_fourcc = 0, num_frames = 0;
 	int width = 0, height = 0, renderWidth, renderHeight;
 	Double FPS = 0.0;
 	u64 pos = 0, fsize = 0;
+	Bool forced_fps = GF_FALSE;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->nb_tracks = 1;
@@ -7583,17 +7584,18 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 	if (probe_webm_matrovska(bs))
 		goto exit;
 
-	e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale, &num_frames);
+	e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &timescale, &dts_inc, &num_frames);
 	if (e)
 		goto exit;
 
 	FPS = (Double)import->video_fps;
 	if (!FPS || import->video_fps == GF_IMPORT_AUTO_FPS) {
-		FPS = (double)frame_rate / time_scale;
+		FPS = (double)timescale / dts_inc;
 	} else {
 		/*fps is forced by the caller*/
+		get_video_timing(FPS, &timescale, &dts_inc);
+		forced_fps = GF_TRUE;
 	}
-	get_video_timing(FPS, &timescale, &dts_inc);
 
 	track_id = 0;
 	if (import->esd) track_id = import->esd->ESID;
@@ -7611,11 +7613,11 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 
 	while (gf_bs_available(bs)) {
 		Bool key_frame = GF_FALSE;
-		u64 frame_size = 0;
+		u64 frame_size = 0, pts = 0;
 		int num_frames_in_superframe = 0, superframe_index_size = 0, i = 0;
 		u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
 
-		GF_Err e = gf_media_parse_ivf_frame_header(bs, &frame_size);
+		GF_Err e = gf_media_parse_ivf_frame_header(bs, &frame_size, &pts);
 		if (e) goto exit;
 
 		pos = gf_bs_get_position(bs);
@@ -7659,7 +7661,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 		/*add sample*/
 		{
 			GF_ISOSample *samp = gf_isom_sample_new();
-			samp->DTS = (u64)dts_inc*cur_samp;
+			samp->DTS = forced_fps ? (u64)dts_inc*cur_samp : pts;
 			samp->IsRAP = key_frame ? SAP_TYPE_1 : 0;
 			samp->CTS_Offset = 0;
 			samp->dataLength = (u32)(gf_bs_get_position(bs) - pos);

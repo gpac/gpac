@@ -1063,6 +1063,14 @@ void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), vo
 
 
 GF_EXPORT
+u64 gf_bs_read_u64_le(GF_BitStream *bs)
+{
+	u32 low = gf_bs_read_u32_le(bs);
+	u32 high = gf_bs_read_u32_le(bs);
+	return (high << 32) + low;
+}
+
+GF_EXPORT
 u32 gf_bs_read_u32_le(GF_BitStream *bs)
 {
 	u32 ret, v;
