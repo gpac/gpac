@@ -2,7 +2,7 @@
 
 srcfile=$TEMP_DIR/test.mp4
 
-raw_out_test ()
+aout_test ()
 {
 
 test_begin "audio-$1"
@@ -45,21 +45,21 @@ config_win=`gpac -h bin 2>&1 | grep GPAC_CONFIG_WIN32`
 #todo - we should check which modules are indeed present
 
 #SDL is built on all platforms
-raw_out_test "sdl" 0
+aout_test "sdl" 0
 
 #alsa, pulse, jack and oss on linux
 if [ -n "$config_linux" ] ; then
-raw_out_test "alsa" 0
-raw_out_test "pulseaudio" 0
+aout_test "alsa" 0
+aout_test "pulseaudio" 0
 
 hasjd=`which jackd`
 
 if [ -n "hasjd" ] ; then
-raw_out_test "jack" 1
+aout_test "jack" 1
 fi
 
 if [ -f "/dev/dsp" ]; then
-raw_out_test "oss_audio" 0
+aout_test "oss_audio" 0
 fi
 
 
@@ -69,9 +69,9 @@ fi
 #DSound and wav in windows
 if [ -n "$config_win" ] ; then
 
-raw_out_test "dx_hw" 0
+aout_test "dx_hw" 0
 
-raw_out_test "wav_audio" 0
+aout_test "wav_audio" 0
 
 fi
 #end windows tests
