@@ -934,14 +934,10 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	}
 
 	if (subtype == GF_ISOM_SUBTYPE_OPUS) {
-		esd = gf_odf_desc_esd_new(0);
-		esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
-		esd->ESID = gf_isom_get_track_id(mp4, track);
-		esd->OCRESID = esd->ESID;
-		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+		esd = gf_isom_get_esd(mp4, track, 1);
+		if (!esd) return NULL;
+
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_OPUS;
-		gf_odf_desc_del((GF_Descriptor*)esd->decoderConfig->decoderSpecificInfo);
-		esd->decoderConfig->decoderSpecificInfo = NULL;
 		return esd;
 	}
 

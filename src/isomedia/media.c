@@ -277,23 +277,22 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 
 	case GF_ISOM_SUBTYPE_OPUS: {
 		GF_OpusSpecificBox *e = ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_opus;
+		GF_BitStream *bs_out;
 		if (!e) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("ESD not found for Opus\n)"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ESD not found for Opus\n)"));
 			break;
 		}
-		ptrdiff_t offset = (ptrdiff_t)&e->version - (ptrdiff_t)e;
+
 		*out_esd = gf_odf_desc_esd_new(2);
 		(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
 		(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_OPUS;
-		(*out_esd)->decoderConfig->decoderSpecificInfo->dataLength = sizeof(GF_OpusSpecificBox) - (u32)offset;
-		(*out_esd)->decoderConfig->decoderSpecificInfo->data = gf_malloc((*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
-		memcpy((*out_esd)->decoderConfig->decoderSpecificInfo->data, (char*)e + offset, (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
-		if (e->channelMapping) {
-			GF_OpusSpecificBox *e2 = (GF_OpusSpecificBox*)((char*)(*out_esd)->decoderConfig->decoderSpecificInfo->data - offset);
-			e2->channelMapping = gf_malloc(e->channelMappingSz);
-			memcpy(e2->channelMapping, e->channelMapping, e->channelMappingSz);
-			e2->channelMappingSz = e->channelMappingSz;
-		}
+
+		//serialize box with header - compatibility with ffmpeg
+		bs_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_isom_box_size((GF_Box *) e);
+		gf_isom_box_write((GF_Box *) e, bs_out);
+		gf_bs_get_content(bs_out, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
+		gf_bs_del(bs_out);
 		break;
 	}
 	case GF_ISOM_SUBTYPE_3GP_H263:

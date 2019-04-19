@@ -3995,8 +3995,18 @@ GF_Err dOps_dump(GF_Box *a, FILE * trace)
 	GF_OpusSpecificBox *p = (GF_OpusSpecificBox *)a;
 
 	gf_isom_box_dump_start(a, "OpusSpecificBox", trace);
-	fprintf(trace, "version=\"%d\" OutputChannelCount=\"%d\" channels=\"%d\" PreSkip=\"%d\" InputSampleRate=\"%d\" OutputGain=\"%d\" ChannelMappingFamily=\"%d\">\n",
-		p->version, p->OutputChannelCount, p->channels, p->PreSkip, p->InputSampleRate, p->OutputGain, p->ChannelMappingFamily);
+	fprintf(trace, "version=\"%d\" OutputChannelCount=\"%d\" PreSkip=\"%d\" InputSampleRate=\"%d\" OutputGain=\"%d\" ChannelMappingFamily=\"%d\"",
+		p->version, p->OutputChannelCount, p->PreSkip, p->InputSampleRate, p->OutputGain, p->ChannelMappingFamily);
+
+	if (p->ChannelMappingFamily) {
+		u32 i;
+		fprintf(trace, " StreamCount=\"%d\" CoupledStreamCount=\"%d\" channelMapping=\"", p->StreamCount, p->CoupledCount);
+		for (i=0; i<p->OutputChannelCount; i++) {
+			fprintf(trace, "%s%d", i ? " " : "", p->ChannelMapping[i]);
+		}
+		fprintf(trace, "\"");
+	}
+	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("OpusSpecificBox", a, trace);
 
 	return GF_OK;
