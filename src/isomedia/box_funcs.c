@@ -660,6 +660,7 @@ ISOM_BOX_IMPL_DECL(ccst)
 ISOM_BOX_IMPL_DECL(auxi)
 ISOM_BOX_IMPL_DECL(hvcc)
 ISOM_BOX_IMPL_DECL(av1c)
+ISOM_BOX_IMPL_DECL(dOps)
 ISOM_BOX_IMPL_DECL(prft)
 
 //VPx
@@ -1076,6 +1077,10 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VP09, video_sample_entry, "stsd", "vp"),
 	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_SMDM, SmDm, "vp08 vp09 encv resv", 1, 0, "vp"),
 	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_COLL, CoLL, "vp08 vp09 encv resv", 1, 0, "vp"),
+
+	//Opus in ISOBMFF boxes
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_OPUS, audio_sample_entry, "stsd", "Opus"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DOPS, dOps, "Opus", "Opus"),
 		
 	//part20 boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LSR1, lsr1, "stsd", "p20"),

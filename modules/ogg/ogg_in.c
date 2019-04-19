@@ -149,7 +149,7 @@ static Bool OGG_ReadPage(OGGReader *read, ogg_page *oggpage)
 		if (!bytes) return GF_FALSE;
 		buffer = ogg_sync_buffer(&read->oy, bytes);
 		memcpy(buffer, buf, bytes);
-		ogg_sync_wrote(&read->oy, bytes);
+		if (ogg_sync_wrote(&read->oy, bytes)) return GF_FALSE;
 	}
 	return GF_TRUE;
 }
@@ -464,8 +464,12 @@ void OGG_Process(OGGReader *read)
 	if (st->parse_headers && !st->got_headers) {
 		while (ogg_stream_packetout(&st->os, &oggpacket ) > 0 ) {
 			GF_BitStream *bs;
-			if (st->info.type==OGG_VORBIS)
-				gf_vorbis_parse_header(&st->vp, (char *) oggpacket.packet, oggpacket.bytes);
+			if (st->info.type == OGG_VORBIS) {
+				ogg_audio_codec_desc codec;
+				memset(&codec, 0, sizeof(ogg_audio_codec_desc));
+				codec.parserPrivateState = &st->vp;
+				gf_vorbis_parse_header(&codec, (char *)oggpacket.packet, oggpacket.bytes);
+			}
 
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (st->dsi) {
