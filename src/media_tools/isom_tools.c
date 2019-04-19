@@ -855,6 +855,8 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	case GF_ISOM_SUBTYPE_LHV1:
 	case GF_ISOM_SUBTYPE_LHE1:
 	case GF_ISOM_SUBTYPE_AV01:
+	case GF_ISOM_SUBTYPE_VP08:
+	case GF_ISOM_SUBTYPE_VP09:
 		return gf_isom_get_esd(mp4, track, 1);
 	}
 
