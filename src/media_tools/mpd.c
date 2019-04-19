@@ -1584,7 +1584,7 @@ try_next_segment:
 				byte_range_media_file = elt->url;
 				url->URL = gf_strdup(byte_range_media_file);
 			} else {
-				u32 url_len = strlen(base_url);
+				u32 url_len = (u32) strlen(base_url);
 				if (strncmp(base_url, mpd_file, url_len)) {
 					GF_MPD_BaseURL *url;
 					GF_SAFEALLOC(url, GF_MPD_BaseURL);
