@@ -753,6 +753,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	hh = ctx->height/2;
 	if (ctx->height %2) hh++;
 
+	ctx->is_yuv = GF_FALSE;
 	switch (ctx->pfmt) {
 	case GF_PIXEL_YUV444_10:
 		ctx->bit_depth = 10;
@@ -1994,7 +1995,7 @@ static GF_Err vout_process(GF_Filter *filter)
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
 			if (!ctx->buffer_done) {
-				if ((dur < ctx->buffer * 1000) && !gf_filter_pid_is_eos(ctx->pid)) {
+				if ((dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid)) {
 					gf_filter_ask_rt_reschedule(filter, 100000);
 					return GF_OK;
 				}
