@@ -609,6 +609,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!prop) return GF_NOT_SUPPORTED;
 	gpac_codecid = prop->value.uint;
+	if (gpac_codecid==GF_CODECID_RAW)
+		return GF_NOT_SUPPORTED;
 
 
 	//initial config or update
