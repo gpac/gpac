@@ -1,14 +1,9 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Pierre Souchay 2008
- *  History:
- *
- *  2008/02/19 - v1.1 (Pierre Souchay)
- *    first revision
- *  2008/03/11 - v1.2 (Pierre Souchay)
- *    added volume control
- *    fixed possible bug in latency computation (did not return the max value)
+ *			Authors: Pierre Souchay , Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2008-2019
+ *					All rights reserved
  *
  *  Jack audio output module : output audio thru the jackd daemon
  *
@@ -377,7 +372,9 @@ Jack_Configure(GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels,
 			if (ctx->jackPorts[channels] == NULL)
 				goto exit_cleanup;
 		}
-		onBufferSizeChanged (jack_get_buffer_size (ctx->jack), dr);
+//		onBufferSizeChanged (jack_get_buffer_size (ctx->jack), dr);
+//		if (!ctx->jack) return GF_IO_ERR;
+
 		jack_set_buffer_size_callback (ctx->jack, onBufferSizeChanged, dr);
 		jack_set_process_callback (ctx->jack, process_callback, dr);
 	}
