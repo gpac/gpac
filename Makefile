@@ -216,7 +216,7 @@ ifeq ($(CONFIG_WIN32),yes)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(DESTDIR)$(prefix)/bin
 else
 ifeq ($(DEBUGBUILD),no)
-	$(STRIP) -g bin/gcc/libgpac$(DYN_LIB_SUFFIX)
+	$(STRIP) -S bin/gcc/libgpac$(DYN_LIB_SUFFIX)
 endif
 ifeq ($(CONFIG_DARWIN),yes)
 	$(INSTALL) -m 755 bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION)$(DYN_LIB_SUFFIX)
