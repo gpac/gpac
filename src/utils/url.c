@@ -150,8 +150,7 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 }
 
 
-GF_EXPORT
-char *gf_url_concatenate(const char *parentName, const char *pathName)
+static char *gf_url_concatenate_ex(const char *parentName, const char *pathName, Bool relative_to_parent)
 {
 	u32 pathSepCount, i, prot_type;
 	Bool had_sep_count = GF_FALSE;
@@ -314,7 +313,11 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 			pathSepCount--;
 		}
 	}
-	else if (!had_sep_count && (pathName[0]=='.') && (tmp[0]=='.') && ((tmp[1]=='/') || (tmp[1]=='\\') ) ) {
+		//path is relative to current dir
+	else if (!relative_to_parent && (pathName[0]=='.') && ((pathName[1]=='/') || (pathName[1]=='\\') ) ) {
+		strcpy(tmp, "./");
+	//parent is relative to current dir
+	} else if (!had_sep_count && (pathName[0]=='.') && (tmp[0]=='.') && ((tmp[1]=='/') || (tmp[1]=='\\') ) ) {
 		u32 nb_path_sep=0;
 		u32 len = (u32) strlen(tmp);
 		for (i=0; i<len; i++) {
@@ -324,8 +327,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 		strcpy(tmp, "");
 		while (nb_path_sep--)
 			strcat(tmp, "../");
-	}
-	else {
+	} else {
 		strcat(tmp, "/");
 	}
 
@@ -354,6 +356,16 @@ check_spaces:
 		i++;
 	}
 	return outPath;
+}
+GF_EXPORT
+char *gf_url_concatenate(const char *parentName, const char *pathName)
+{
+	return gf_url_concatenate_ex(parentName, pathName, GF_FALSE);
+}
+GF_EXPORT
+char *gf_url_concatenate_parent(const char *parentName, const char *pathName)
+{
+	return gf_url_concatenate_ex(parentName, pathName, GF_TRUE);
 }
 
 GF_EXPORT
