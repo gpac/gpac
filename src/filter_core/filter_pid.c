@@ -3084,6 +3084,7 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 	return GF_TRUE;
 }
 
+#if 0
 static void add_possible_link_destination(GF_List *possible_linked_resolutions, GF_List *force_link_resolutions, GF_Filter *filter_dst)
 {
 	u32 i;
@@ -3103,6 +3104,7 @@ static void add_possible_link_destination(GF_List *possible_linked_resolutions, 
 	}
 	gf_list_add(possible_linked_resolutions, filter_dst);
 }
+#endif
 
 static void gf_filter_pid_init_task(GF_FSTask *task)
 {
@@ -3115,7 +3117,9 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	GF_List *loaded_filters = NULL;
 	GF_List *linked_dest_filters = NULL;
 	GF_List *force_link_resolutions = NULL;
+#if 0
 	GF_List *possible_linked_resolutions = NULL;
+#endif
 	GF_Filter *filter = task->filter;
 	GF_FilterPid *pid = task->pid;
 	GF_Filter *dynamic_filter_clone = NULL;
@@ -3156,7 +3160,9 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 
 	linked_dest_filters = gf_list_new();
 	force_link_resolutions = gf_list_new();
+#if 0
 	possible_linked_resolutions = gf_list_new();
+#endif
 
 	//we use at max 3 passes:
 	//pass 1: try direct connections without loading intermediate filter chains. If PID gets connected, skip other passes
@@ -3194,8 +3200,10 @@ single_retry:
 		if (gf_list_find(linked_dest_filters, filter_dst)>=0) {
 			continue;
 		}
+#if 0
 		if (num_pass && (gf_list_find(possible_linked_resolutions, filter_dst)<0) && (gf_list_find(force_link_resolutions, filter_dst)<0) )
 			continue;
+#endif
 
 		if (gf_list_count(pid->filter->destination_filters)) {
 			s32 ours = gf_list_find(pid->filter->destination_filters, filter_dst);
@@ -3357,9 +3365,12 @@ single_retry:
 				//we have an explicit link instruction so we must try dynamic link even if we connect to another filter
 				if (filter_dst->source_ids) {
 					gf_list_add(force_link_resolutions, filter_dst);
-				} else {
+				}
+#if 0
+				 else {
 					add_possible_link_destination(possible_linked_resolutions, force_link_resolutions, filter_dst);
 				}
+#endif
 				continue;
 			}
 			filter_found_but_pid_excluded = GF_FALSE;
@@ -3388,7 +3399,9 @@ single_retry:
 					if (loaded_filters) gf_list_del(loaded_filters);
 					gf_list_del(linked_dest_filters);
 					gf_list_del(force_link_resolutions);
+#if 0
 					gf_list_del(possible_linked_resolutions);
+#endif
 					return;
 				}
 				//we might had it wrong solving the chain initially, break the chain
@@ -3412,7 +3425,9 @@ single_retry:
 							if (loaded_filters) gf_list_del(loaded_filters);
 							gf_list_del(linked_dest_filters);
 							gf_list_del(force_link_resolutions);
+#if 0
 							gf_list_del(possible_linked_resolutions);
+#endif
 							return;
 						} else {
 							continue;
@@ -3477,7 +3492,9 @@ single_retry:
 		pid->filter->disabled = GF_FALSE;
 		gf_list_del(linked_dest_filters);
 		gf_list_del(force_link_resolutions);
+#if 0
 		gf_list_del(possible_linked_resolutions);
+#endif
 		return;
 	}
 
@@ -3514,7 +3531,9 @@ single_retry:
 
 	gf_list_del(linked_dest_filters);
 	gf_list_del(force_link_resolutions);
+#if 0
 	gf_list_del(possible_linked_resolutions);
+#endif
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 
 
