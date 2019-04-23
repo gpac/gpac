@@ -1974,7 +1974,6 @@
 
 /*mpegts.h exports*/
 #ifndef GPAC_DISABLE_MPEG2TS
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_esd) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_process_data) )
@@ -1985,7 +1984,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_stream_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_crc32_check) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_restamp) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_pes_get_framing_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_sdt_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_abort_parsing) )
 

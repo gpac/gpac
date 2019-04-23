@@ -149,200 +149,6 @@ static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool sam
 
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-
-static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
-{
-	u32 sc_pos = 0;
-	u32 start = 0;
-	GF_M2TS_PES_PCK pck;
-
-	/*dispatch frame*/
-	pck.stream = pes;
-	pck.DTS = pes->DTS;
-	pck.PTS = pes->PTS;
-	pck.flags = 0;
-
-
-	if (data_len + pes->reassemble_len > pes->reassemble_alloc) {
-		pes->reassemble_alloc = data_len + pes->reassemble_len;
-		pes->reassemble_buf = gf_realloc(pes->reassemble_buf, sizeof(char)*pes->reassemble_alloc);
-	}
-	memcpy(pes->reassemble_buf + pes->reassemble_len, data, data_len);
-	pes->reassemble_len += data_len;
-	data_len = pes->reassemble_len;
-	data = pes->reassemble_buf;
-
-
-	/*fixme - we need to test this with more LATM sources were PES framing is on any boundaries*/
-	while (sc_pos+2<data_len) {
-		u32 size;
-		u32 amux_len;
-		GF_BitStream *bs;
-		/*look for sync marker 0x2B7 on 11 bits*/
-		if ((data[sc_pos]!=0x56) || ((data[sc_pos+1] & 0xE0) != 0xE0)) {
-			sc_pos++;
-			continue;
-		}
-
-		/*flush any pending data*/
-		if (start < sc_pos) {
-			assert(data_len >= sc_pos);
-			memmove(pes->reassemble_buf, pes->reassemble_buf + sc_pos, data_len - sc_pos);
-			pes->reassemble_len -= sc_pos;
-			sc_pos = 0;
-			data_len = pes->reassemble_len;
-			data = pes->reassemble_buf;
-		}
-
-		/*found a start code*/
-		amux_len = data[sc_pos+1] & 0x1F;
-		amux_len <<= 8;
-		amux_len |= data[sc_pos+2];
-		if (!amux_len) {
-			sc_pos+=3;
-			assert(data_len >= sc_pos);
-			memmove(pes->reassemble_buf, pes->reassemble_buf + sc_pos, data_len - sc_pos);
-			pes->reassemble_len -= sc_pos;
-			sc_pos = 0;
-			data_len = pes->reassemble_len;
-			data = pes->reassemble_buf;
-			continue;
-		}
-
-
-		//we cannot check sync wait for next frame
-		if (data_len < sc_pos+4+amux_len) {
-			if (pes->aud_sr) {
-				u32 tsinc = 1024*90000/pes->aud_sr;
-				pes->PTS += tsinc;
-			}
-			return 0;
-		}
-
-		//we are not sync, trash what is before the start code and continue
-		if ((data[sc_pos+3+amux_len] != 0x56) || ((data[sc_pos+3+amux_len + 1] & 0xE0) != 0xE0)) {
-			sc_pos+=2;
-			assert(data_len >= sc_pos);
-			memmove(pes->reassemble_buf , pes->reassemble_buf+ sc_pos, data_len - sc_pos);
-			pes->reassemble_len -= sc_pos;
-			sc_pos = 0;
-			data_len = pes->reassemble_len;
-			data = pes->reassemble_buf;
-			continue;
-		}
-
-
-		bs = gf_bs_new((char *)data+sc_pos+3, amux_len, GF_BITSTREAM_READ);
-
-		/*use same stream mux*/
-		if (!gf_bs_read_int(bs, 1)) {
-			Bool amux_version, amux_versionA;
-
-			amux_version = gf_bs_read_int(bs, 1);
-			amux_versionA = 0;
-			if (amux_version) amux_versionA = gf_bs_read_int(bs, 1);
-			if (!amux_versionA) {
-				u32 i, allStreamsSameTimeFraming, numProgram;
-				if (amux_version) gf_latm_get_value(bs);
-
-				allStreamsSameTimeFraming = gf_bs_read_int(bs, 1);
-				/*numSubFrames = */gf_bs_read_int(bs, 6);
-				numProgram = gf_bs_read_int(bs, 4);
-				for (i=0; i<=numProgram; i++) {
-					u32 j, num_lay;
-					num_lay = gf_bs_read_int(bs, 3);
-					for (j=0; j<=num_lay; j++) {
-						GF_M4ADecSpecInfo cfg;
-						u32 frameLengthType;
-						Bool same_cfg = 0;
-						if (i || j) same_cfg = gf_bs_read_int(bs, 1);
-
-						if (!same_cfg) {
-							if (amux_version==1) gf_latm_get_value(bs);
-							gf_m4a_parse_config(bs, &cfg, 0);
-
-							if (!pes->aud_sr) {
-								pck.stream = pes;
-								pes->aud_aac_sr_idx = cfg.base_sr_index;
-								pes->aud_sr = cfg.base_sr;
-								pes->aud_nb_ch = cfg.nb_chan;
-								pes->aud_aac_obj_type = cfg.base_object_type;
-
-								gf_m4a_write_config(&cfg, &pck.data, &pck.data_len);
-								ts->on_event(ts, GF_M2TS_EVT_AAC_CFG, &pck);
-								gf_free(pck.data);
-							}
-						}
-						frameLengthType = gf_bs_read_int(bs, 3);
-						if (!frameLengthType) {
-							/*latmBufferFullness = */gf_bs_read_int(bs, 8);
-							if (!allStreamsSameTimeFraming) {
-							}
-						} else {
-							/*not supported*/
-						}
-					}
-
-				}
-				/*other data present*/
-				if (gf_bs_read_int(bs, 1)) {
-//					u32 k = 0;
-				}
-				/*CRCcheck present*/
-				if (gf_bs_read_int(bs, 1)) {
-				}
-			}
-
-
-		}
-
-		/*we have a cfg, read data - we only handle single stream multiplex in LATM/LOAS*/
-		if (pes->aud_sr) {
-			size = 0;
-			while (1) {
-				u32 tmp = gf_bs_read_int(bs, 8);
-				size += tmp;
-				if (tmp!=255) break;
-			}
-			if (size>pes->buf_len) {
-				pes->buf_len = size;
-				pes->buf = gf_realloc(pes->buf, sizeof(char)*pes->buf_len);
-			}
-			gf_bs_read_data(bs, (char *)pes->buf, size);
-
-			/*dispatch frame*/
-			pck.stream = pes;
-			pck.DTS = pes->PTS;
-			pck.PTS = pes->PTS;
-			pck.flags = GF_M2TS_PES_PCK_AU_START | GF_M2TS_PES_PCK_RAP;
-			pck.data = (char *)pes->buf;
-			pck.data_len = size;
-
-			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-		}
-		gf_bs_del(bs);
-
-		//trash dispatched AU, including 3 bytes header
-		sc_pos += amux_len+3;
-		assert(data_len >= sc_pos);
-		memmove(pes->reassemble_buf, pes->reassemble_buf + sc_pos, data_len - sc_pos);
-		pes->reassemble_len -= sc_pos;
-		sc_pos = 0;
-		data_len = pes->reassemble_len;
-		data = pes->reassemble_buf;
-
-		if ((data_len>3) && pes->aud_sr) {
-			/*update PTS in case we don't get any update*/
-			size = 1024*90000/pes->aud_sr;
-			pes->PTS += size;
-		}
-	}
-	/*we consumed all data*/
-	return 0;
-}
-#endif
-
-#ifndef GPAC_DISABLE_AV_PARSERS
 static u32 gf_m2ts_reframe_ac3(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
 {
 	GF_M2TS_PES_PCK pck;
@@ -2808,7 +2614,8 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 	return e;
 }
 
-GF_EXPORT
+//unused
+#if 0
 GF_ESD *gf_m2ts_get_esd(GF_M2TS_ES *es)
 {
 	GF_ESD *esd;
@@ -2842,7 +2649,6 @@ GF_ESD *gf_m2ts_get_esd(GF_M2TS_ES *es)
 
 	return esd;
 }
-
 void gf_m2ts_set_segment_switch(GF_M2TS_Demuxer *ts)
 {
 	u32 i;
@@ -2852,6 +2658,10 @@ void gf_m2ts_set_segment_switch(GF_M2TS_Demuxer *ts)
 		es->flags |= GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY;
 	}
 }
+
+
+#endif
+
 
 GF_EXPORT
 void gf_m2ts_reset_parsers_for_program(GF_M2TS_Demuxer *ts, GF_M2TS_Program *prog)
@@ -2915,7 +2725,7 @@ static void gf_m2ts_process_section_discard(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION
 {
 }
 
-GF_EXPORT
+#if 0 //unused
 u32 gf_m2ts_pes_get_framing_mode(GF_M2TS_PES *pes)
 {
 	if (pes->flags & GF_M2TS_ES_IS_SECTION) {
@@ -2932,6 +2742,8 @@ u32 gf_m2ts_pes_get_framing_mode(GF_M2TS_PES *pes)
 	if (pes->reframe == gf_m2ts_reframe_reset) return GF_M2TS_PES_FRAMING_SKIP;
 	return GF_M2TS_PES_FRAMING_DEFAULT;
 }
+#endif
+
 
 GF_EXPORT
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
@@ -2996,14 +2808,9 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 #ifndef GPAC_DISABLE_AV_PARSERS
 		case GF_M2TS_AUDIO_MPEG1:
 		case GF_M2TS_AUDIO_MPEG2:
-			pes->reframe = gf_m2ts_reframe_default;
-			break;
 		case GF_M2TS_AUDIO_AAC:
-			pes->reframe = gf_m2ts_reframe_default;
-			break;
 		case GF_M2TS_AUDIO_LATM_AAC:
-			//TODO
-			pes->reframe = gf_m2ts_reframe_aac_latm;
+			pes->reframe = gf_m2ts_reframe_default;
 			break;
 		case GF_M2TS_AUDIO_AC3:
 			//TODO
