@@ -37,9 +37,6 @@ OrderedGroup {
     esDescr [
      ES_Descriptor {
       ES_ID 20
-      muxInfo MuxInfo {
-       fileName "../auxiliary_files/enst_video.h264"
-      }
       langDescr LanguageDescriptor {
        languageCode eng
       }
@@ -54,7 +51,11 @@ OrderedGroup {
         position_offset_h 0
         position_offset_v 10
        }
+       GPACLanguage {}
       ]
+      muxInfo MuxInfo {
+       fileName "../auxiliary_files/enst_video.h264"
+      }
      }
     ]
    }

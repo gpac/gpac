@@ -103,6 +103,7 @@ u32 gf_odf_get_tag_by_name(char *descName)
 	if (!stricmp(descName, "AuxiliaryVideoData")) return GF_ODF_AUX_VIDEO_DATA;
 	if (!stricmp(descName, "DefaultDescriptor")) return GF_ODF_DSI_TAG;
 	if (!stricmp(descName, "LanguageDescriptor")) return GF_ODF_LANG_TAG;
+	if (!stricmp(descName, "GPACLanguage")) return GF_ODF_GPAC_LANG;
 
 #ifndef GPAC_MINIMAL_ODF
 	if (!stricmp(descName, "MediaTimeDescriptor")) return GF_ODF_MEDIATIME_TAG;
@@ -697,6 +698,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	}
 	break;
 	case GF_ODF_LANG_TAG:
+	case GF_ODF_GPAC_LANG:
 	{
 		GF_Language *ld = (GF_Language *)desc;
 		if (!stricmp(fieldName, "languageCode")) {
