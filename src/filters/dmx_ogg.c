@@ -654,6 +654,9 @@ GF_Err oggdmx_process(GF_Filter *filter)
 				case GF_CODECID_OPUS:
 					res = gf_opus_parse_header(st->opus_parser, (char *) oggpacket.packet, oggpacket.bytes);
 					break;
+				case GF_CODECID_THEORA:
+					add_page = GF_TRUE;
+					break;
 				}
 
 				if (add_page) {
