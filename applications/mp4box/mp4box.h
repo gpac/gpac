@@ -93,7 +93,7 @@ void PrintBuiltInNodes(u32 graph_type);
 void PrintBuiltInBoxes();
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
-GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump);
+GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump, Bool merge_vtt_cues);
 #endif
 
 
