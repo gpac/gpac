@@ -78,7 +78,7 @@ static GF_Err theoradec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		if (ctx->cfg_crc == ex_crc) return GF_OK;
 		ctx->cfg_crc = ex_crc;
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[XVID] Reconfiguring without DSI not yet supported\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Theora] Reconfiguring without DSI not yet supported\n"));
 		return GF_NOT_SUPPORTED;
 	}
 	if (!ctx->opid) {
