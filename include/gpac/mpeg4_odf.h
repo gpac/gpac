@@ -135,7 +135,8 @@ enum
 
 
 	/*descriptor for aucilary video data*/
-	GF_ODF_AUX_VIDEO_DATA	= GF_ODF_EXT_BEGIN_TAG + 1
+	GF_ODF_AUX_VIDEO_DATA	= GF_ODF_EXT_BEGIN_TAG + 1,
+	GF_ODF_GPAC_LANG	= GF_ODF_EXT_BEGIN_TAG + 2
 };
 
 

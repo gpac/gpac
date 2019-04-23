@@ -83,6 +83,10 @@ GF_Descriptor *gf_odf_create_descriptor(u8 tag)
 		return gf_odf_new_esd_ref();
 	case GF_ODF_LANG_TAG:
 		return gf_odf_new_lang();
+	case GF_ODF_GPAC_LANG:
+		desc = gf_odf_new_lang();
+		if (desc) desc->tag = GF_ODF_GPAC_LANG;
+		return desc;
 
 #ifndef GPAC_MINIMAL_ODF
 	case GF_ODF_MEDIATIME_TAG:
@@ -197,6 +201,7 @@ GF_Err gf_odf_delete_descriptor(GF_Descriptor *desc)
 		return gf_odf_del_auxvid((GF_AuxVideoDescriptor *)desc);
 
 	case GF_ODF_LANG_TAG:
+	case GF_ODF_GPAC_LANG:
 		return gf_odf_del_lang((GF_Language *)desc);
 
 	case GF_ODF_ESD_INC_TAG:
@@ -300,6 +305,7 @@ GF_Err gf_odf_read_descriptor(GF_BitStream *bs, GF_Descriptor *desc, u32 DescSiz
 		return gf_odf_read_auxvid(bs, (GF_AuxVideoDescriptor *)desc, DescSize);
 
 	case GF_ODF_LANG_TAG:
+	case GF_ODF_GPAC_LANG:
 		return gf_odf_read_lang(bs, (GF_Language *)desc, DescSize);
 
 #ifndef GPAC_MINIMAL_ODF
@@ -399,6 +405,7 @@ GF_Err gf_odf_size_descriptor(GF_Descriptor *desc, u32 *outSize)
 		return gf_odf_size_auxvid((GF_AuxVideoDescriptor *)desc, outSize);
 
 	case GF_ODF_LANG_TAG:
+	case GF_ODF_GPAC_LANG:
 		return gf_odf_size_lang((GF_Language *)desc, outSize);
 
 #ifndef GPAC_MINIMAL_ODF
@@ -499,6 +506,7 @@ GF_Err gf_odf_write_descriptor(GF_BitStream *bs, GF_Descriptor *desc)
 		return gf_odf_write_auxvid(bs, (GF_AuxVideoDescriptor *)desc);
 
 	case GF_ODF_LANG_TAG:
+	case GF_ODF_GPAC_LANG:
 		return gf_odf_write_lang(bs, (GF_Language *)desc);
 
 #ifndef GPAC_MINIMAL_ODF

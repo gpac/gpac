@@ -36,6 +36,8 @@ bifs_test()
 
 
  if [ $basic_test = 1 ] ; then
+   do_test "$MP4BOX -diso $mp4file -out $TEMP_DIR/dump.xml" "diso"
+   do_hash_test $TEMP_DIR/dump.xml "diso"
    test_end
    return
  fi
