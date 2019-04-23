@@ -12,11 +12,11 @@ fi
 
 if [ $2 = 1 ] ; then
 jdon=`pgrep jackd`
-if [ -z $jdon ] ; then
+if [ -z "$jdon" ] ; then
 #sleep before starting jackd since we just executed an audio test before, and it looks like the deamon has issues starting up
 echo "starting jackd, sleeping for 5 sec" >> $LOGS
 sleep 5
-jackd -r -d alsa -r 44100 &
+jackd -r -d alsa -r 44100  -P hw:0,0 &
 echo "jackd started, sleeping for 2 sec" >> $LOGS
 sleep 2
 fi
@@ -24,7 +24,7 @@ fi
 
 do_test "$GPAC -i $srcfile aout:drv=$1 -logs=mmio@debug" "play"
 
-if [ $2 = 1 ] && [ -z $jdon ] ; then
+if [ $2 = 1 ] && [ -z "$jdon" ] ; then
 echo "killing jackd" >> $LOGS
 killall -9 jackd
 fi
@@ -43,9 +43,6 @@ config_osx=`gpac -h bin 2>&1 | grep GPAC_CONFIG_DARWIN`
 config_win=`gpac -h bin 2>&1 | grep GPAC_CONFIG_WIN32`
 
 #todo - we should check which modules are indeed present
-
-#SDL is built on all platforms
-aout_test "sdl" 0
 
 #alsa, pulse, jack and oss on linux
 if [ -n "$config_linux" ] ; then
@@ -76,5 +73,8 @@ aout_test "wav_audio" 0
 fi
 #end windows tests
 
+
+#SDL is built on all platforms
+aout_test "sdl" 0
 
 
