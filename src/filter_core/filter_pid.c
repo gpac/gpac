@@ -2453,6 +2453,12 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			edge->status = EDGE_STATUS_DISABLED;
 			continue;
 		}
+		//we are relinking to a dynamically loaded filter, only accept edges connecting to the same bundle as when
+		//the initial resolution was done
+		if ((dst->bundle_idx_at_resolution>=0) && (edge->dst_cap_idx !=dst->bundle_idx_at_resolution)) {
+			edge->status = EDGE_STATUS_DISABLED;
+			continue;
+		}
 
 		if ((u32) edge->weight + 1 > max_weight)
 			max_weight = edge->weight + 1;
@@ -2849,7 +2855,9 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 			//the other filters shouldn't need any specific init
 			af->dynamic_filter = GF_TRUE;
-//			af->user_pid_props = GF_FALSE;
+
+			//remember our target cap bundle on that filter
+			af->bundle_idx_at_resolution = bundle_idx;
 			//remember our target cap on that filter
 			af->cap_idx_at_resolution = cap_idx;
 			//copy source IDs for all filters in the chain

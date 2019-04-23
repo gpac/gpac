@@ -456,8 +456,8 @@ struct __gf_filter
 	GF_FilterArgType arg_type;
 	//allocated pointer to the argument string for source filters
 	char *src_args;
-	//pointer to the argument string of the destingation filter for filters dynamically loaded
-	const char *dst_args;
+	//allocated argument string of the destingation filter for filters dynamically loaded, if any
+	char *dst_args;
 
 	//tasks pending for this filter. The first task in this list is also present in the filter session
 	//task list in order to avoid locking the main task list with a mutex
@@ -606,6 +606,8 @@ struct __gf_filter
 	//valid when a pid inst is waiting for a reconnection, NULL otherwise
 	GF_List *detached_pid_inst;
 
+	//index of the bundle input for dynamic filters
+	s32 bundle_idx_at_resolution;
 	//index of the cap bundle input for adaptation filters
 	s32 cap_idx_at_resolution;
 

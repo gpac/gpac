@@ -120,6 +120,9 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	filter->destination_filters = gf_list_new();
 	filter->destination_links = gf_list_new();
 
+	filter->bundle_idx_at_resolution = -1;
+	filter->cap_idx_at_resolution = -1;
+
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 	gf_list_add(fsess->filters, filter);
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
@@ -186,7 +189,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	} else {
 		e = gf_filter_new_finalize(filter, src_striped, arg_type);
 	}
-	filter->dst_args = dst_args;
+	filter->dst_args = dst_args ? gf_strdup(dst_args) : NULL;
 
 	if (e) {
 		if (!filter->setup_notified) {
@@ -309,6 +312,7 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->dynamic_source_ids) gf_free(filter->dynamic_source_ids);
 	if (filter->filter_udta) gf_free(filter->filter_udta);
 	if (filter->orig_args) gf_free(filter->orig_args);
+	if (filter->dst_args) gf_free(filter->dst_args);
 	if (filter->name) gf_free(filter->name);
 
 	if (!filter->session->in_final_flush && !filter->session->run_status) {
