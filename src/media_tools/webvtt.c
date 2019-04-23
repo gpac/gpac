@@ -1219,6 +1219,7 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 		gf_list_add(wsample->cues, cue);
 		/* update with the previous sample */
 		if (prev_wsample) {
+			Bool do_del = GF_TRUE;
 			Bool  found = GF_FALSE;
 			while (!found && gf_list_count(prev_wsample->cues)) {
 				GF_WebVTTCue *old_cue = (GF_WebVTTCue *)gf_list_get(prev_wsample->cues, 0);
@@ -1252,16 +1253,19 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 					} else {
 						/* keep the cue in the current sample to respect cue start ordering */
 						gf_list_add(wsample->cues, old_cue);
+						do_del = GF_FALSE;
 					}
 				}
 				/* delete the old cue */
-				gf_webvtt_cue_del(old_cue);
+				if (do_del)
+					gf_webvtt_cue_del(old_cue);
 			}
 		}
 	}
 	/* No cue in the current sample */
 	if (prev_wsample) {
 		while (gf_list_count(prev_wsample->cues)) {
+			Bool do_del = GF_TRUE;
 			GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(prev_wsample->cues, 0);
 			gf_list_rem(prev_wsample->cues, 0);
 			/* finalize the end cue time */
@@ -1275,8 +1279,10 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 			} else {
 				/* keep the cue in the current sample to respect cue start ordering */
 				gf_list_add(wsample->cues, cue);
+				do_del = GF_FALSE;
 			}
-			gf_webvtt_cue_del(cue);
+			if (do_del)
+				gf_webvtt_cue_del(cue);
 		}
 		gf_webvtt_sample_del(prev_wsample);
 		gf_list_rem_last(parser->samples);
@@ -1478,6 +1484,8 @@ static void gf_webvtt_dump_cue(void *user, GF_WebVTTCue *cue)
 	}
 }
 
+//unused
+#if 0
 static GF_Err gf_webvtt_dump_cues(FILE *dump, GF_List *cues)
 {
 	u32 i;
@@ -1493,6 +1501,7 @@ GF_Err gf_webvtt_dump_sample(FILE *dump, GF_WebVTTSample *samp)
 	fprintf(stdout, "NOTE New WebVTT Sample ("LLD"-"LLD")\n\n", samp->start, samp->end);
 	return gf_webvtt_dump_cues(dump, samp->cues);
 }
+#endif
 
 
 void gf_webvtt_parser_cue_callback(GF_WebVTTParser *parser, void (*on_cue_read)(void *, GF_WebVTTCue *), void *udta)
