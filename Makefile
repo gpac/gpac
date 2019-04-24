@@ -180,8 +180,9 @@ ifeq ($(DISABLE_PLAYER), no)
 endif
 endif
 ifeq ($(CONFIG_DARWIN),yes)
-	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_MAJOR)
-	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_MAJOR) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX)
+	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION_MAJOR)$(DYN_LIB_SUFFIX)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX)
 else
 	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
 	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
@@ -219,8 +220,9 @@ ifeq ($(DEBUGBUILD),no)
 	$(STRIP) -S bin/gcc/libgpac$(DYN_LIB_SUFFIX)
 endif
 ifeq ($(CONFIG_DARWIN),yes)
-	$(INSTALL) -m 755 bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION)$(DYN_LIB_SUFFIX)
-	ln -sf libgpac.$(VERSION)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX)
+	$(INSTALL) -m 755 bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX)
+	ln -sf libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION_MAJOR)$(DYN_LIB_SUFFIX)
+	ln -sf libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX)
 else
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
 	ln -sf libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
