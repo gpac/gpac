@@ -4480,24 +4480,30 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
 	switch (fieldType) {
 	case SVG_Points_datatype/*ITYPE_point*/:
 	{
-		GF_List *res = gf_list_new();
+		ListOfXXX *res;
+		GF_SAFEALLOC(res, ListOfXXX);
+		if (!res) return NULL;
+		*res = gf_list_new();
 		pt = (SVG_Point*)gf_malloc(sizeof(SVG_Point));
 		if (pt) {
 			lsr_read_coordinate(lsr, &num, 0, "coordX");
 			pt->x = num.value;
 			lsr_read_coordinate(lsr, &num, 0, "coordY");
 			pt->y = num.value;
-			gf_list_add(res, pt);
+			gf_list_add(*res, pt);
 		}
 		return res;
 	}
 	case SMIL_KeySplines_datatype/*ITYPE_float*/:
 	{
-		GF_List *res = gf_list_new();
+		ListOfXXX *res;
+		GF_SAFEALLOC(res, ListOfXXX);
+		if (!res) return NULL;
+		*res = gf_list_new();
 		f_val = (Fixed*)gf_malloc(sizeof(Fixed));
 		if (f_val) {
 			*f_val = lsr_read_fixed_16_8(lsr, "floatValue");
-			gf_list_add(res, f_val);
+			gf_list_add(*res, f_val);
 		}
 		return res;
 	}
@@ -4512,26 +4518,35 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
 		return f_val;
 	case SMIL_KeyTimes_datatype/*ITYPE_keyTime*/:
 	{
-		GF_List *res = gf_list_new();
+		ListOfXXX *res;
+		GF_SAFEALLOC(res, ListOfXXX);
+		if (!res) return NULL;
+		*res = gf_list_new();
 		f_val = lsr_read_fraction_12_item(lsr);
-		if (f_val) gf_list_add(res, f_val);
+		if (f_val) gf_list_add(*res, f_val);
 		return res;
 	}
 	case SMIL_KeyPoints_datatype/*ITYPE_0to1 - keyPoints*/:
 	{
-		GF_List *res = gf_list_new();
+		ListOfXXX *res;
+		GF_SAFEALLOC(res, ListOfXXX);
+		if (!res) return NULL;
+		*res = gf_list_new();
 		pt = (SVG_Point*)gf_malloc(sizeof(SVG_Point));
 		if (pt) {
 			pt->x = lsr_read_fixed_clamp(lsr, "valueX");
 			pt->y = lsr_read_fixed_clamp(lsr, "valueY");
-			gf_list_add(res, pt);
+			gf_list_add(*res, pt);
 		}
 		return res;
 	}
 	case SMIL_Times_datatype/*ITYPE_smil_time*/:
 	{
-		GF_List *res = gf_list_new();
-		gf_list_add(res, lsr_read_smil_time(lsr, node) );
+		ListOfXXX *res;
+		GF_SAFEALLOC(res, ListOfXXX);
+		if (!res) return NULL;
+		*res = gf_list_new();
+		gf_list_add(*res, lsr_read_smil_time(lsr, node) );
 		return res;
 	}
 	default:
@@ -5067,7 +5082,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 					case SMIL_KeySplines_datatype/*ITYPE_float*/:
 					case SVG_Points_datatype/*ITYPE_point*/:
 					case SMIL_Times_datatype/*ITYPE_smil_time*/:
-						new_item = gf_list_pop_front((GF_List *)tmp);
+						new_item = gf_list_pop_front(*(GF_List **)tmp);
 						if (com_type==LSR_UPDATE_INSERT) {
 							gf_list_insert(*(SVG_Coordinates*)info.far_ptr, new_item, idx);
 						} else {
@@ -5077,17 +5092,19 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 							gf_list_insert(*(SVG_Coordinates*)info.far_ptr, new_item, idx);
 						}
 						gf_node_changed((GF_Node*)n, NULL);
-						gf_list_del((GF_List *)tmp);
+						gf_list_del(*(GF_List **)tmp);
+						gf_free(tmp);
 						break;
 					/*list of floats - to check when implementing it...*/
 					case SMIL_KeyPoints_datatype/*ITYPE_0to1 - keyPoints*/:
-						pt = (SVG_Point*) gf_list_pop_front((GF_List *)tmp);
+						pt = (SVG_Point*) gf_list_pop_front(*(GF_List **)tmp);
 						v1 = (Fixed *) gf_malloc(sizeof(Fixed));
 						*v1 = pt->x;
 						v2 = (Fixed *) gf_malloc(sizeof(Fixed));
 						*v2 = pt->y;
 						gf_free(pt);
-						gf_list_del((GF_List *)tmp);
+						gf_list_del(*(GF_List **)tmp);
+						gf_free(tmp);
 
 						if (com_type==LSR_UPDATE_INSERT) {
 							gf_list_insert(*(SVG_Coordinates*)info.far_ptr, v1, idx);
