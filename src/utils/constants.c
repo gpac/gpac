@@ -324,14 +324,6 @@ u32 gf_codecid_type(u32 codecid)
 }
 
 GF_EXPORT
-const char *gf_codecid_name_oti(u32 stream_type, u32 oti)
-{
-	CodecIDReg *r = gf_codecid_reg_find_oti(stream_type, oti);
-	if (!r) return "Codec Not Supported";
-	return r->name;
-}
-
-GF_EXPORT
 u32 gf_codecid_from_oti(u32 stream_type, u32 oti)
 {
 	CodecIDReg *r = gf_codecid_reg_find_oti(stream_type, oti);
@@ -672,19 +664,6 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_RGBAS, "rgbas"},
 	{0}
 };
-
-GF_EXPORT
-u32 gf_pixel_fmt_enum(u32 *idx, const char **out_name)
-{
-	u32 pf, c=sizeof(GF_PixelFormats) / sizeof(GF_PixFmt);
-	if (!idx) return 0;
-	if (*idx >= c) return 0;
-	if (! GF_PixelFormats[*idx].pixfmt) return 0;
-	if (out_name) *out_name = GF_PixelFormats[*idx].name;
-	pf = GF_PixelFormats[*idx].pixfmt;
-	(*idx) ++;
-	return pf;
-}
 
 GF_EXPORT
 u32 gf_pixel_fmt_parse(const char *pf_name)
