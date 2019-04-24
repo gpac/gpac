@@ -1816,7 +1816,7 @@ static u32 gpac_unit_tests()
 	zbuf = gf_strdup("123451234512345123451234512345");
 	osize=0;
 	e = gf_lz_compress_payload(&zbuf, 1+strlen(zbuf), &osize);
-	if (e) {
+	if (e && (e!= GF_NOT_SUPPORTED)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma compress fail\n"));
 		gf_free(zbuf);
 		return 1;
@@ -1826,7 +1826,7 @@ static u32 gpac_unit_tests()
 	e = gf_lz_decompress_payload(zbuf, osize, &ozbuf, &res);
 	gf_free(zbuf);
 	if (ozbuf) gf_free(ozbuf);
-	if (e) {
+	if (e && (e!= GF_NOT_SUPPORTED)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma decompress fail\n"));
 		return 1;
 	}
@@ -1859,5 +1859,8 @@ static u32 gpac_unit_tests()
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] blob url parsing fail\n"));
 		return 1;
 	}
+	gf_sys_get_battery_state(NULL, NULL, NULL, NULL, NULL);
+	gf_log_get_tools_levels();
+
 	return 0;
 }

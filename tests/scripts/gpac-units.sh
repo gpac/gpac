@@ -90,7 +90,7 @@ test_end
 
 test_begin "gpac-remotery"
 if [ $test_skip != 1 ] ; then
-do_test "$GPAC src=$MEDIA_DIR/auxiliary_files/enst_audio.aac inspect -rmt" "remotery"
+do_test "$GPAC src=$MEDIA_DIR/auxiliary_files/enst_audio.aac inspect -logs=filter@info:ncl -rmt" "remotery"
 fi
 test_end
 

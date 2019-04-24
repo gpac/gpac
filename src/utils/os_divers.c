@@ -1969,11 +1969,6 @@ void gf_fm_request_call(u32 type, u32 param, int *value) {
 
 #endif //GPAC_CONFIG_ANDROID
 
-GF_EXPORT
-s32 gf_gettimeofday(struct timeval *tp, void *tz) {
-	return gettimeofday(tp, tz);
-}
-
 
 static u32 ntp_shift = GF_NTP_SEC_1900_TO_1970;
 
