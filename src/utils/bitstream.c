@@ -1066,7 +1066,7 @@ GF_EXPORT
 u64 gf_bs_read_u64_le(GF_BitStream *bs)
 {
 	u32 low = gf_bs_read_u32_le(bs);
-	u32 high = gf_bs_read_u32_le(bs);
+	u64 high = gf_bs_read_u32_le(bs);
 	return (high << 32) + low;
 }
 
