@@ -176,16 +176,6 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 \return current line number of SAX parser
 */
 u32 gf_xml_sax_get_line(GF_SAXParser *parser);
-/*! Gets file size - may be inaccurate if gzipped (only compressed file size is known)
-\param parser the SAX parser to use
-\return file size of content associated with parser
-*/
-u32 gf_xml_sax_get_file_size(GF_SAXParser *parser);
-/*! Gets current file position
-\param parser the SAX parser to use
-\return file position from 0 in the  content
-*/
-u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser);
 
 /*! Peeks a node forward in the file. This may be used to pick the attribute of the first node found matching a given (attributeName, attributeValue) couple
 \param parser SAX parser to use
@@ -284,44 +274,12 @@ GF_XMLNode *gf_xml_dom_get_root_idx(GF_DOMParser *parser, u32 idx);
  */
 char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only);
 
-/*! Create the root element -- the only top level element -- of the document.
- *
- *\param parser the DOM structure
- *\param name the name of the root element
- *\return The created node if creation occurs properly, otherwise NULL;
- */
-GF_XMLNode *gf_xml_dom_create_root(GF_DOMParser *parser, const char* name);
-
 /*! Get the root element -- the only top level element -- of the document.
  *
  *\param parser the DOM structure
  *\return The corresponding node if exists, otherwise NULL;
  */
 GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser);
-
-/*! Returns the root element of the DOM and detached it from the parser
- *
- *\param parser the DOM structure
- *\return The corresponding node if exists, otherwise NULL. The node will have to be freed using \ref gf_xml_dom_node_del
- */
-GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser);
-
-/*! Sets an attribute value for this element
- *
- *\param node the GF_XMLNode node
- *\param name the name of the attribute
- *\param value the value of the attribute
- *\return The created attribute if setting occurs properly, otherwise NULL;
- */
-GF_XMLAttribute *gf_xml_dom_set_attribute(GF_XMLNode *node, const char* name, const char* value);
-
-/*! Gets the attribute for this element with the given name.
- *
- *\param node the GF_XMLNode node
- *\param name the attribute name
- *\return The corresponding attribute if exists, otherwise NULL;
- */
-GF_XMLAttribute *gf_xml_dom_get_attribute(GF_XMLNode *node, const char* name);
 
 /*
 *\brief Creates an attribute with the given name and value.
@@ -351,14 +309,6 @@ GF_Err gf_xml_dom_append_child(GF_XMLNode *node, GF_XMLNode *child);
  *\return Error code if any, otherwise GF_OK
  */
 GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child);
-
-/*! Creates a node with the given name and namespace URI.
- *
- *\param ns the node namespace
- *\param name the name namespace
- *\return The created GF_XMLNode if creation occurs properly, otherwise NULL;
- */
-GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name);
 
 /*! Destroys a node, its attributes and its children
  *

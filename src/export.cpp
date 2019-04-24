@@ -416,8 +416,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_suspend) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_parse_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_get_line) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_get_file_size) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_get_file_pos) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_peek_node) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_binary_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_get_error) )
@@ -428,12 +426,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_create_root) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_attribute) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_set_attribute) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_create_attribute) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_append_child) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_rem_child) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_node_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_error) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_line) )
@@ -443,7 +438,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root_nodes_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root_idx) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_parse_bit_sequence) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_detach_root) )
 #endif
 
 #ifndef GPAC_DISABLE_SVG
