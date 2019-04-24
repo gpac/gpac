@@ -159,7 +159,7 @@ log()
   elif [ $1 = $L_WAR ]; then
     tput setaf 2
   elif [ $1 = $L_INF ]; then
-    tput setaf 4
+    tput setaf 3
   elif [ $verbose = 0 ]; then
     tput sgr0
     return
