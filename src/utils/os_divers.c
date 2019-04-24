@@ -1763,6 +1763,8 @@ Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32*level, u32 *ba
 }
 
 
+#if 0 //global lock currently not used
+
 struct GF_GlobalLock {
 	const char * resourceName;
 };
@@ -1946,6 +1948,9 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock) {
 	gf_free(lock);
 	return GF_OK;
 }
+
+#endif //global lock uni-used
+
 
 #ifdef GPAC_CONFIG_ANDROID
 

@@ -244,8 +244,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_notify) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_wait) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_wait_for) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_global_resource_lock) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_global_resource_unlock) )
 
 /* Socket */
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_new) )
