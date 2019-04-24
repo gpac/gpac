@@ -363,7 +363,7 @@ typedef struct
 	Bool slice_segment_header_extension_present_flag, output_flag_present_flag, lists_modification_present_flag, cabac_init_present_flag;
 	Bool weighted_pred_flag, weighted_bipred_flag, slice_chroma_qp_offsets_present_flag, deblocking_filter_override_enabled_flag, loop_filter_across_slices_enabled_flag, entropy_coding_sync_enabled_flag;
 	Bool loop_filter_across_tiles_enabled_flag;
-
+	s32 pic_init_qp_minus26;
 	u32 num_tile_columns, num_tile_rows;
 	u32 column_width[22], row_height[20];
 } HEVC_PPS;
@@ -437,8 +437,8 @@ typedef struct
 typedef struct
 {
 	u8 nal_unit_type;
-	u32 frame_num, poc_lsb, slice_type;
-
+	u32 frame_num, poc_lsb, slice_type, header_size_with_emulation;
+	
 	s32 redundant_pic_cnt;
 
 	s32 poc;
@@ -455,6 +455,9 @@ typedef struct
 	u64 header_size_bits;
 	//byte offset of the payload start (after byte alignment)
 	s32 payload_start_offset;
+
+	s32 slice_qp_delta_start_bits;
+	s32 slice_qp_delta;
 
 	HEVC_SPS *sps;
 	HEVC_PPS *pps;
@@ -481,7 +484,14 @@ typedef struct _hevc_state
 	s32 last_parsed_vps_id;
 	s32 last_parsed_sps_id;
 	s32 last_parsed_pps_id;
+
 } HEVCState;
+
+typedef struct hevc_combine{
+	Bool is_hevccombine, first_slice_segment;
+	s32 buffer_header_src_alloc; // because payload_start_offset is s32, otherwhise it's an u32
+	u8 *buffer_header_src;
+}Combine;
 
 enum
 {
