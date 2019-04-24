@@ -140,7 +140,7 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 static void mp4_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 {
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_PARSER, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
+	if (format && gf_log_tool_level_on(GF_LOG_PARSER, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
 		char szMsg[1024];
 		va_list args;
 		va_start(args, format);
@@ -401,6 +401,12 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 	gf_odf_desc_del((GF_Descriptor *) esd);
 	esd = NULL;
 
+	//for coverage
+	if (gf_sys_is_test_mode()) {
+		mp4_report(load, GF_OK, NULL);
+		gf_sm_isom_suspend(load, GF_TRUE);
+		gf_sm_isom_suspend(load, GF_FALSE);
+	}
 	load->process = gf_sm_load_run_isom;
 	load->done = gf_sm_load_done_isom;
 	load->suspend = gf_sm_isom_suspend;
