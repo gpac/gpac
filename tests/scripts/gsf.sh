@@ -16,7 +16,11 @@ dst_file=$TEMP_DIR/dump.gsf
 myinspect=$TEMP_DIR/inspect.txt
 
 do_test "$GPAC $2 reframer @ -o $dst_file$3$4 -graph -logs=container@debug"  "gsf-mux"
+
+#do not hash the mux for AV: gsf mux does not guarantee the order of the stream declaration, nor the packets / stream order. We however hash the demux result
+if [ "$1" != "av" ] ; then
 do_hash_test "$dst_file" "gsf-mux"
+fi
 
 do_test "$GPAC -i $dst_file$4 inspect:all:deep:interleave=false:log=$myinspect -graph" "gsf-demux"
 do_hash_test $myinspect "gsf-demux"
