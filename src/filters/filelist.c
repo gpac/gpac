@@ -304,7 +304,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		}
 		lineno++;
 
-		len = strlen(szURL);
+		len = (u32) strlen(szURL);
 		while (len && strchr("\n\r\t ", szURL[len-1])) {
 			szURL[len-1] = 0;
 			len--;
