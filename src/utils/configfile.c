@@ -330,7 +330,7 @@ void gf_cfg_del(GF_Config *iniFile)
 	gf_free(iniFile);
 }
 
-GF_EXPORT
+#if 0 //unused
 void gf_cfg_remove(GF_Config *iniFile)
 {
 	if (!iniFile) return;
@@ -338,7 +338,7 @@ void gf_cfg_remove(GF_Config *iniFile)
 	gf_cfg_clear(iniFile);
 	gf_free(iniFile);
 }
-
+#endif
 
 GF_EXPORT
 const char *gf_cfg_get_key(GF_Config *iniFile, const char *secName, const char *keyName)
@@ -361,7 +361,7 @@ get_key:
 	return NULL;
 }
 
-GF_EXPORT
+#if 0 //unused
 const char *gf_cfg_get_ikey(GF_Config *iniFile, const char *secName, const char *keyName)
 {
 	u32 i;
@@ -381,7 +381,7 @@ get_key:
 	}
 	return NULL;
 }
-
+#endif
 
 GF_EXPORT
 GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue)
@@ -494,7 +494,7 @@ void gf_cfg_del_section(GF_Config *iniFile, const char *secName)
 	}
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue, u32 index)
 {
 	u32 i;
@@ -521,8 +521,9 @@ GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *ke
 	iniFile->hasChanged = GF_TRUE;
 	return GF_OK;
 }
+#endif
 
-GF_EXPORT
+#if 0 //unused
 const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const char *keyName, u32 sub_index)
 {
 	u32 j;
@@ -549,8 +550,9 @@ const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const ch
 	gf_free(keyValue);
 	return NULL;
 }
+#endif
 
-GF_EXPORT
+#if 0//unused
 GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName)
 {
 	if (!fileName) return GF_OK;
@@ -558,3 +560,6 @@ GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName)
 	iniFile->fileName = gf_strdup(fileName);
 	return iniFile->fileName ? GF_OK : GF_OUT_OF_MEM;
 }
+#endif
+
+
