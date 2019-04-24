@@ -1092,7 +1092,7 @@ static GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *movie, u32 trackNu
 			nb_samp += ent->sampleCount;
 		}
 		if (cum_dur <= duration || !nb_samp) return GF_OK;
-		avg_dur = duration/(nb_samp);
+		avg_dur = (u32) (duration/nb_samp);
 
 		for (i=0; i<stts->nb_entries; i++) {
 			ent = (GF_SttsEntry*) &stts->entries[i];
@@ -1109,7 +1109,7 @@ static GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *movie, u32 trackNu
 
 	//we only have one sample
 	if (ent->sampleCount == 1) {
-		ent->sampleDelta = duration;
+		ent->sampleDelta = (u32) duration;
 	} else {
 		if (ent->sampleDelta == duration) return GF_OK;
 		ent->sampleCount -= 1;
@@ -1120,7 +1120,7 @@ static GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *movie, u32 trackNu
 			if (!stts->entries) return GF_OUT_OF_MEM;
 		}
 		stts->entries[stts->nb_entries].sampleCount = 1;
-		stts->entries[stts->nb_entries].sampleDelta = duration;
+		stts->entries[stts->nb_entries].sampleDelta = (u32) duration;
 		stts->nb_entries++;
 		//and update the write cache
 		stts->w_currentSampleNum = trak->Media->information->sampleTable->SampleSize->sampleCount;
