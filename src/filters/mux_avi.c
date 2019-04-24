@@ -115,7 +115,7 @@ static GF_Err avimux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 	gf_filter_pid_check_caps(pid);
 
-	w = h = sr = nb_ch = pf = codec_id = type = timescale = wfmt = 0;
+	w = h = sr = nb_ch = pf = codec_id = type = timescale = wfmt = stride = 0;
 	bps = 16;
 	br=128000;
 	fps.den = fps.num = 0;
