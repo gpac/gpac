@@ -3855,7 +3855,7 @@ static void Server_Update(Server* server)
         {
             // Inspect first byte to see if a message is there
             char message_first_byte;
-            rmtU32 message_length;
+            rmtU32 message_length=0;
             rmtError error = WebSocket_Receive(server->client_socket, &message_first_byte, &message_length, 1, 0);
             if (error == RMT_ERROR_NONE)
             {
