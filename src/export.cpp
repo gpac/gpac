@@ -282,7 +282,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp_ts) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp_diff_ms) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_set_ntp_shift) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_net_get_utc_ts) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_errno_str) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_blob_get_data) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_utc) )
@@ -290,7 +293,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_timezone) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_has_ipv6) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_is_ipv6) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_net_mobileip_set_callback) )
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
 #pragma comment (linker, EXPORT_SYMBOL(gf_base64_encode) )
@@ -425,7 +427,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_parse) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_create_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_create_attribute) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_append_child) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_rem_child) )
