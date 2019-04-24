@@ -8568,7 +8568,7 @@ GF_EXPORT
 Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 {
 	u32 pack_type, i, j, k, times, nb_part, nb_books, nb_modes;
-	int l;
+	u32 l;
 	char szNAME[8];
 	oggpack_buffer opb;
 
