@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / alsa audio output module
@@ -262,18 +262,6 @@ static void ALSA_WriteAudio(GF_AudioOutput*dr)
 	}
 }
 
-static void ALSA_SetVolume(GF_AudioOutput*dr, u32 Volume)
-{
-}
-
-static void ALSA_SetPan(GF_AudioOutput*dr, u32 Pan)
-{
-}
-
-static void ALSA_SetPriority(GF_AudioOutput*dr, u32 Priority)
-{
-}
-
 static u32 ALSA_GetAudioDelay(GF_AudioOutput*dr)
 {
 	ALSAContext *ctx = (ALSAContext*)dr->opaque;
@@ -335,9 +323,6 @@ void *NewALSAOutput()
 	driv->Shutdown = ALSA_Shutdown;
 	driv->Configure = ALSA_Configure;
 	driv->GetAudioDelay = ALSA_GetAudioDelay;
-	driv->SetVolume = ALSA_SetVolume;
-	driv->SetPan = ALSA_SetPan;
-	driv->SetPriority = ALSA_SetPriority;
 	driv->QueryOutputSampleRate = ALSA_QueryOutputSampleRate;
 	driv->WriteAudio = ALSA_WriteAudio;
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "ALSA Audio Output", "gpac distribution");

@@ -120,7 +120,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID);
 static GF_Err gf_bt_report(GF_BTParser *parser, GF_Err e, char *format, ...)
 {
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_PARSER, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
+	if (format && gf_log_tool_level_on(GF_LOG_PARSER, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
 		char szMsg[2048];
 		va_list args;
 		va_start(args, format);
@@ -133,12 +133,6 @@ static GF_Err gf_bt_report(GF_BTParser *parser, GF_Err e, char *format, ...)
 	return e;
 }
 
-
-GF_Node *gf_bt_new_node(GF_BTParser *parser, u32 tag)
-{
-	GF_Node *n = gf_node_new(parser->load->scene_graph, tag);
-	return n;
-}
 
 void gf_bt_check_line(GF_BTParser *parser)
 {
@@ -1289,7 +1283,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 		node = gf_sg_find_node_by_name(parser->load->scene_graph, str);
 		if (!node) {
 			/*create a temp node (undefined)*/
-			node = gf_bt_new_node(parser, TAG_UndefinedNode);
+			node = gf_node_new(parser->load->scene_graph, TAG_UndefinedNode);
 			ID = gf_bt_get_def_id(parser, str);
 			gf_node_set_id(node, ID, str);
 			gf_node_register(node, NULL);
@@ -1322,7 +1316,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 		if (proto) {
 			node = gf_sg_proto_create_instance(parser->load->scene_graph, proto);
 		} else {
-			node = gf_bt_new_node(parser, tag);
+			node = gf_node_new(parser->load->scene_graph, tag);
 		}
 		if (!parser->parsing_proto) init_node = 1;
 	}
@@ -1637,7 +1631,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 			}
 			n = gf_sg_proto_create_instance(parser->load->scene_graph, p);
 		} else {
-			n = gf_bt_new_node(parser, tag);
+			n = gf_node_new(parser->load->scene_graph, tag);
 		}
 		ID = gf_bt_get_def_id(parser, ret);
 		if (n) {
@@ -3740,6 +3734,10 @@ GF_Err gf_sm_load_init_bt(GF_SceneLoader *load)
 	load->done = load_bt_done;
 	load->suspend = load_bt_suspend;
 	load->parse_string = load_bt_parse_string;
+
+	//for coverage
+	if (gf_sys_is_test_mode())
+		gf_bt_report(parser, GF_OK, NULL);
 
 	e = gf_sm_load_bt_initialize(load, NULL, 0);
 	if (e) {

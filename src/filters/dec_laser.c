@@ -247,6 +247,7 @@ GF_FilterRegister LSRDecRegister = {
 	GF_FS_SET_DESCRIPTION("MPEG-4 LASeR decoder")
 	.private_size = sizeof(GF_LSRDecCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
+	.priority = 1,
 	SETCAPS(LSRDecCaps),
 	.finalize = lsrdec_finalize,
 	.process = lsrdec_process,

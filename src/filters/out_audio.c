@@ -37,7 +37,7 @@ typedef struct
 	Bool clock;
 	GF_Fraction dur;
 	Double speed, start;
-	u32 vol, buffer;
+	u32 vol, pan, buffer;
 	
 	GF_FilterPid *pid;
 	u32 sr, afmt, nb_ch, ch_cfg, timescale;
@@ -56,6 +56,7 @@ typedef struct
 	Bool first_write_done;
 
 	Bool buffer_done, no_buffering;
+	u32 hwdelay, totaldelay;
 } GF_AudioOutCtx;
 
 
@@ -79,8 +80,14 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 	if (ctx->speed == FIX_ONE) ctx->speed_set = GF_TRUE;
 
 	if (ctx->vol<=100) {
-		ctx->audio_out->SetVolume(ctx->audio_out, ctx->vol);
+		if (ctx->audio_out->SetVolume)
+			ctx->audio_out->SetVolume(ctx->audio_out, ctx->vol);
 		ctx->vol = 101;
+	}
+	if (ctx->pan<=100) {
+		if (ctx->audio_out->SetPan)
+			ctx->audio_out->SetPan(ctx->audio_out, ctx->pan);
+		ctx->pan = 101;
 	}
 
 
@@ -107,6 +114,16 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		ctx->needs_recfg = GF_FALSE;
 		ctx->wait_recfg = GF_FALSE;
 	}
+	ctx->hwdelay = 0;
+	if (ctx->audio_out->GetAudioDelay) {
+		ctx->hwdelay = ctx->audio_out->GetAudioDelay(ctx->audio_out);
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[AudioOut] Hardware delay is %d ms\n", ctx->hwdelay ));
+	}
+	ctx->totaldelay = 0;
+	if (ctx->audio_out->GetTotalBufferTime) {
+		ctx->totaldelay = ctx->audio_out->GetTotalBufferTime(ctx->audio_out);
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[AudioOut] Total audio delay is %d ms\n", ctx->totaldelay ));
+	}
 }
 
 u32 aout_th_proc(void *p)
@@ -120,8 +137,10 @@ u32 aout_th_proc(void *p)
 	while (ctx->audio_th_state == 1) {
 		if (ctx->needs_recfg) {
 			aout_reconfig(ctx);
-		} else {
+		} else if (ctx->pid) {
 			ctx->audio_out->WriteAudio(ctx->audio_out);
+		} else {
+			gf_sleep(10);
 		}
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[AudioOut] Exiting audio thread\n"));
@@ -374,14 +393,20 @@ static GF_Err aout_initialize(GF_Filter *filter)
 		ctx->audio_out = NULL;
 		return e;
 	}
-
+	/*only used for coverage for now*/
+	if (ctx->audio_out->QueryOutputSampleRate) {
+		u32 sr = 48000;
+		u32 ch = 2;
+		u32 bps = 16;
+		ctx->audio_out->QueryOutputSampleRate(ctx->audio_out, &sr, &ch, &bps);
+	}
 	if (ctx->audio_out->SelfThreaded) {
-		if (ctx->audio_out->SetPriority)
-			ctx->audio_out->SetPriority(ctx->audio_out, GF_THREAD_PRIORITY_REALTIME);
 	} else if (ctx->threaded) {
 		ctx->th = gf_th_new("AudioOutput");
 		gf_th_run(ctx->th, aout_th_proc, ctx);
 	}
+
+	aout_set_priority(ctx, GF_THREAD_PRIORITY_REALTIME);
 
 	return GF_OK;
 }
@@ -458,7 +483,8 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other filters to use", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(speed), "sets playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(vol), "sets default audio volume, as a percentage between 0 and 100", GF_PROP_UINT, "100", "0-100", 0},
+	{ OFFS(vol), "sets default audio volume, as a percentage between 0 and 100", GF_PROP_UINT, "100", "0-100", GF_FS_ARG_UPDATE},
+	{ OFFS(pan), "sets stereo pan, as a percentage between 0 and 100, 50 being centered", GF_PROP_UINT, "50", "0-100", GF_FS_ARG_UPDATE},
 	{ OFFS(buffer), "sets buffer in ms", GF_PROP_UINT, "100", NULL, 0},
 	{0}
 };

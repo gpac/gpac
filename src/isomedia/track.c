@@ -1240,6 +1240,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			break;
 		case GF_ISOM_BOX_TYPE_AV01:
 		case GF_ISOM_BOX_TYPE_AV1C:
+		case GF_ISOM_BOX_TYPE_OPUS:
+		case GF_ISOM_BOX_TYPE_DOPS:
 		case GF_ISOM_BOX_TYPE_STXT:
 		case GF_ISOM_BOX_TYPE_WVTT:
 		case GF_ISOM_BOX_TYPE_STPP:
@@ -1287,7 +1289,12 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			entry = (GF_MPEGSampleEntryBox*) entry_v;
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
-			if (esd->decoderConfig->objectTypeIndication==GF_CODECID_AC3) {
+			if (esd->decoderConfig->objectTypeIndication == GF_CODECID_OPUS) {
+				GF_MPEGAudioSampleEntryBox *opus = (GF_MPEGAudioSampleEntryBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_OPUS);
+				if (!opus) return GF_OUT_OF_MEM;
+				opus->cfg_opus = (GF_OpusSpecificBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_DOPS);
+				entry = (GF_MPEGSampleEntryBox*)opus;
+			} else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AC3) {
 				GF_MPEGAudioSampleEntryBox *ac3 = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
 				if (!ac3) return GF_OUT_OF_MEM;
 				ac3->cfg_ac3 = (GF_AC3ConfigBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DAC3);

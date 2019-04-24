@@ -91,7 +91,6 @@ u32 gf_odf_get_tag_by_name(char *descName)
 	if (!stricmp(descName, "DecoderSpecificInfoString")) return GF_ODF_DSI_TAG;
 	if (!stricmp(descName, "SLConfigDescriptor")) return GF_ODF_SLC_TAG;
 	if (!stricmp(descName, "SegmentDescriptor")) return GF_ODF_SEGMENT_TAG;
-	if (!stricmp(descName, "MediaTimeDescriptor")) return GF_ODF_MEDIATIME_TAG;
 	if (!stricmp(descName, "MuxInfo")) return GF_ODF_MUXINFO_TAG;
 	if (!stricmp(descName, "StreamSource")) return GF_ODF_MUXINFO_TAG;
 	if (!stricmp(descName, "BIFSConfig") || !stricmp(descName, "BIFSv2Config")) return GF_ODF_BIFS_CFG_TAG;
@@ -104,8 +103,10 @@ u32 gf_odf_get_tag_by_name(char *descName)
 	if (!stricmp(descName, "AuxiliaryVideoData")) return GF_ODF_AUX_VIDEO_DATA;
 	if (!stricmp(descName, "DefaultDescriptor")) return GF_ODF_DSI_TAG;
 	if (!stricmp(descName, "LanguageDescriptor")) return GF_ODF_LANG_TAG;
+	if (!stricmp(descName, "GPACLanguage")) return GF_ODF_GPAC_LANG;
 
 #ifndef GPAC_MINIMAL_ODF
+	if (!stricmp(descName, "MediaTimeDescriptor")) return GF_ODF_MEDIATIME_TAG;
 	if (!stricmp(descName, "ContentIdentification")) return GF_ODF_CI_TAG;
 	if (!stricmp(descName, "SuppContentIdentification")) return GF_ODF_SCI_TAG;
 	if (!stricmp(descName, "IPIPtr")) return GF_ODF_IPI_PTR_TAG;
@@ -697,6 +698,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	}
 	break;
 	case GF_ODF_LANG_TAG:
+	case GF_ODF_GPAC_LANG:
 	{
 		GF_Language *ld = (GF_Language *)desc;
 		if (!stricmp(fieldName, "languageCode")) {
@@ -714,14 +716,14 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	{
 		GF_AuxVideoDescriptor *avd = (GF_AuxVideoDescriptor *)desc;
 		if (!stricmp(fieldName, "aux_video_type"))  GET_U8(avd->aux_video_type)
-		else if (!stricmp(fieldName, "position_offset_h"))  GET_U8(avd->aux_video_type)
-		else if (!stricmp(fieldName, "position_offset_v"))  GET_U8(avd->aux_video_type)
-		else if (!stricmp(fieldName, "knear"))  GET_U8(avd->aux_video_type)
-		else if (!stricmp(fieldName, "kfar"))  GET_U8(avd->aux_video_type)
-		else if (!stricmp(fieldName, "parallax_zero"))  GET_U16(avd->aux_video_type)
-		else if (!stricmp(fieldName, "parallax_scale"))  GET_U16(avd->aux_video_type)
-		else if (!stricmp(fieldName, "dref"))  GET_U16(avd->aux_video_type)
-		else if (!stricmp(fieldName, "wref"))  GET_U16(avd->aux_video_type)
+		else if (!stricmp(fieldName, "position_offset_h"))  GET_U8(avd->position_offset_h)
+		else if (!stricmp(fieldName, "position_offset_v"))  GET_U8(avd->position_offset_v)
+		else if (!stricmp(fieldName, "knear"))  GET_U8(avd->knear)
+		else if (!stricmp(fieldName, "kfar"))  GET_U8(avd->kfar)
+		else if (!stricmp(fieldName, "parallax_zero"))  GET_U16(avd->parallax_zero)
+		else if (!stricmp(fieldName, "parallax_scale"))  GET_U16(avd->parallax_scale)
+		else if (!stricmp(fieldName, "dref"))  GET_U16(avd->dref)
+		else if (!stricmp(fieldName, "wref"))  GET_U16(avd->wref)
 	}
 	break;
 	case GF_ODF_IPMP_TOOL_TAG:

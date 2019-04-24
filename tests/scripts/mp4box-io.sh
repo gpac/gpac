@@ -35,6 +35,10 @@ mp4_test ()
  case $1 in
  *.xslt )
   return ;;
+ *.ttxt )
+  return ;;
+ *.opus )
+  return ;;
  *.html* )
   return ;;
  *.bt )
@@ -56,6 +60,8 @@ mp4_test ()
  *.mj2 )
   do_hint=0 ;;
  *.av1 )
+  do_hint=0 ;;
+ *.opus )
   do_hint=0 ;;
  *.obu )
   do_hint=0 ;;

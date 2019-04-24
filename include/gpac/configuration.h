@@ -66,6 +66,11 @@
 
 #define GPAC_HAS_GLU
 
+#ifndef GPAC_CONFIG_WIN32
+#define GPAC_CONFIG_WIN32
+#endif //GPAC_CONFIG_WIN32
+
+
 #endif /*GPAC_MP4BOX_MINI*/
 
 /*Configuration for WindowsCE 32 bits */

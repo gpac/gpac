@@ -458,20 +458,19 @@ static GF_Err inspect_process(GF_Filter *filter)
 		pctx->pck_for_config++;
 		pctx->pck_num++;
 
-		if (!ctx->dump_pck) {
-			gf_filter_pid_drop_packet(pctx->src_pid);
-			continue;
-		}
+		if (ctx->dump_pck) {
 
-		if (ctx->is_prober) {
-			nb_done++;
-		} else if (ctx->fmt) {
-			inspect_dump_packet_fmt(ctx, pctx->tmp, pck, pctx, pctx->pck_num);
-		} else {
-			inspect_dump_packet(ctx, pctx->tmp, pck, pctx->idx, pctx->pck_num);
+			if (ctx->is_prober) {
+				nb_done++;
+			} else if (ctx->fmt) {
+				inspect_dump_packet_fmt(ctx, pctx->tmp, pck, pctx, pctx->pck_num);
+			} else {
+				inspect_dump_packet(ctx, pctx->tmp, pck, pctx->idx, pctx->pck_num);
+			}
 		}
+		
 		if (ctx->dur.num && ctx->dur.den) {
-			u32 timescale = gf_filter_pck_get_timescale(pck);
+			u64 timescale = gf_filter_pck_get_timescale(pck);
 			u64 ts = gf_filter_pck_get_dts(pck);
 			if (ts == GF_FILTER_NO_TS) ts = gf_filter_pck_get_cts(pck);
 
@@ -515,12 +514,28 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	pctx->src_pid = pid;
 	gf_filter_pid_set_udta(pid, pctx);
 	if (! ctx->interleave) {
+		const GF_PropertyValue *p;
 		pctx->tmp = gf_temp_file_new(NULL);
+
+		//in non interleave mode, log audio first and video after - mostly used for tests where we always need th same output
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+		if (p && (p->value.uint==GF_STREAM_AUDIO)) {
+			u32 i;
+			gf_list_insert(ctx->src_pids, pctx, 0);
+
+			for (i=0; i<gf_list_count(ctx->src_pids); i++) {
+				PidCtx *actx = gf_list_get(ctx->src_pids, i);
+				actx->idx = i+1;
+			}
+		} else {
+			gf_list_add(ctx->src_pids, pctx);
+		}
 	} else {
 		pctx->tmp = ctx->dump;
+		gf_list_add(ctx->src_pids, pctx);
 	}
-	gf_list_add(ctx->src_pids, pctx);
-	pctx->idx = gf_list_count(ctx->src_pids);
+
+	pctx->idx = gf_list_find(ctx->src_pids, pctx) + 1;
 
 	switch (ctx->mode) {
 	case INSPECT_MODE_PCK:

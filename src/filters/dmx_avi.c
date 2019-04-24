@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2017
+ *			Copyright (c) Telecom ParisTech 2005-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / AVI demuxer filter
@@ -74,7 +74,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 	u32 codecid = 0;
 	u32 a_fmt = 0;
 	Bool unframed = GF_FALSE;
-	u32 i, count;
+	u32 i, count, pfmt=0;
 	GF_Fraction dur;
 	char *comp;
 
@@ -111,12 +111,16 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 		codecid = GF_CODECID_AVC;
 	} else if (!stricmp(comp, "DIV3") || !stricmp(comp, "DIV4")) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIDmx] Video format %s not compliant with MPEG-4 Visual - please recompress the file first\n", comp));
+	} else if (!comp[0]) {
+		codecid = GF_CODECID_RAW;
+		pfmt = GF_PIXEL_BGR;
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIDmx] Video format %s not supported, patch welcome\n", comp));
 	}
 
 	ctx->v_in_use = GF_FALSE;
 	if (codecid) {
+		u32 w, h;
 		if (!ctx->v_opid) {
 			ctx->v_opid = gf_filter_pid_new(filter);
 		}
@@ -125,30 +129,59 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 		sync_id = 1;
 		ctx->v_in_use = GF_TRUE;
 
-
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_CODECID, &PROP_UINT(codecid) );
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num) );
-		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_ID, &PROP_UINT( sync_id) );
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( sync_id ) );
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_FPS, &PROP_FRAC( ctx->fps ) );
-		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_WIDTH, &PROP_UINT( AVI_video_width(ctx->avi) ) );
-		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_HEIGHT, &PROP_UINT( AVI_video_height(ctx->avi) ) );
+		w = AVI_video_width(ctx->avi);
+		h = AVI_video_height(ctx->avi);
+		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_WIDTH, &PROP_UINT( w ) );
+		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_HEIGHT, &PROP_UINT( h ) );
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_DURATION, &PROP_FRAC( dur ) );
-		gf_filter_pid_set_property_str(ctx->v_opid, "nocts", &PROP_BOOL( GF_TRUE ) );
+
+		if (pfmt) {
+			u32 stride=0;
+			gf_pixel_get_size_info(pfmt, w, h, NULL, &stride, NULL, NULL, NULL);
+			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_STRIDE, &PROP_UINT( stride ) );
+			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_PIXFMT, &PROP_UINT( pfmt ) );
+		} else {
+			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+			gf_filter_pid_set_property_str(ctx->v_opid, "nocts", &PROP_BOOL( GF_TRUE ) );
+		}
 	}
 
 	count = AVI_audio_tracks(ctx->avi);
 	for (i=0; i<count; i++) {
+		u32 afmt=0, nb_bits;
 		AVI_set_audio_track(ctx->avi, i);
 
 		codecid = 0;
 		a_fmt = AVI_audio_format(ctx->avi);
+		nb_bits = AVI_audio_bits(ctx->avi);
 		switch (a_fmt) {
 		case WAVE_FORMAT_PCM:
-			codecid = GF_CODECID_PCM;
+			codecid = GF_CODECID_RAW;
+			switch (nb_bits) {
+			case 8:
+				afmt = GF_AUDIO_FMT_U8;
+				break;
+			case 16:
+				afmt = GF_AUDIO_FMT_S16;
+				break;
+			case 24:
+				afmt = GF_AUDIO_FMT_S24;
+				break;
+			case 32:
+				afmt = GF_AUDIO_FMT_S32;
+				break;
+			default:
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIDmx] Audio bit depth %d not mapped, patch welcome\n", nb_bits));
+				afmt = GF_AUDIO_FMT_S16;
+				break;
+			}
 			break;
 		case WAVE_FORMAT_ADPCM:
 			codecid = GF_CODECID_ADPCM;
@@ -222,10 +255,10 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT( codecid) );
-			gf_filter_pid_set_property(st->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT( AVI_audio_rate(ctx->avi) ) );
+			st->freq = AVI_audio_rate(ctx->avi);
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT( st->freq ) );
 			st->nb_channels = AVI_audio_channels(ctx->avi);
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT( st->nb_channels ) );
-			st->freq = AVI_audio_rate(ctx->avi);
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT( st->freq ) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT( 2 + st->stream_num) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( sync_id ) );
@@ -236,6 +269,9 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL( GF_TRUE ) );
 				//we don't set timescale, let the reframer handle it
 			} else {
+				if (afmt) {
+					gf_filter_pid_set_property(st->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt) );
+				}
 				st->audio_bps = AVI_audio_bits(ctx->avi);
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(st->freq) );
 			}
@@ -334,17 +370,18 @@ GF_Err avidmx_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	u32 i, count, nb_done;
 	Bool start, end;
-	pck = gf_filter_pid_get_packet(ctx->ipid);
-	if (!pck) {
-		return GF_OK;
-	}
-	gf_filter_pck_get_framing(pck, &start, &end);
-	if (!end) {
-		gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_OK;
-	}
 
 	if (!ctx->avi) {
+		pck = gf_filter_pid_get_packet(ctx->ipid);
+		if (!pck) {
+			return GF_OK;
+		}
+		gf_filter_pck_get_framing(pck, &start, &end);
+		if (!end) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_OK;
+		}
+
 		ctx->avi = AVI_open_input_file((char *)ctx->src_url, 1);
 		if (!ctx->avi) {
 			GF_Err e = GF_NON_COMPLIANT_BITSTREAM;
@@ -375,6 +412,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 				AVI_read_frame(ctx->avi, pck_data, &key);
 				gf_filter_pck_set_byte_offset(dst_pck, file_offset);
 				gf_filter_pck_set_cts(dst_pck, cts);
+				gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
 				gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 				if (key) gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 				gf_filter_pck_send(dst_pck);
@@ -420,6 +458,8 @@ GF_Err avidmx_process(GF_Filter *filter)
 				gf_filter_pck_set_byte_offset(dst_pck, file_offset);
 
 			gf_filter_pck_send(dst_pck);
+
+			st->aud_frame ++;
 		} else {
 			st->audio_done = GF_TRUE;
 			nb_done++;

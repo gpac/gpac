@@ -153,7 +153,7 @@ void convert_file_info(char *inName, u32 trackID)
 			else fprintf(stderr, "Video");
 			if (import.tk_info[i].video_info.temporal_enhancement) fprintf(stderr, " Temporal Enhancement");
 			break;
-		case GF_ISOM_MEDIA_AUDIO:
+		case GF_STREAM_AUDIO:
 			fprintf(stderr, "Audio");
 			break;
 		case GF_STREAM_TEXT:
@@ -215,8 +215,10 @@ void convert_file_info(char *inName, u32 trackID)
 		if (import.tk_info[i].flags & GF_IMPORT_3GPP_AGGREGATION) fprintf(stderr, "\tCan use 3GPP frame aggregation\n");
 		if (import.tk_info[i].flags & GF_IMPORT_NO_DURATION) fprintf(stderr, "\tCannot use duration-based import\n");
 
-		found = 1;
-		break;
+		if (trackID) {
+			found = 1;
+			break;
+		}
 	}
 	fprintf(stderr, "\n");
 	if (!found && trackID) fprintf(stderr, "Cannot find track %d in file\n", trackID);

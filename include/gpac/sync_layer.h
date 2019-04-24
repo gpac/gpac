@@ -83,8 +83,6 @@ enum
 {
 	SLPredef_Null = 0x01,
 	SLPredef_MP4 = 0x02,
-	/*intern to GPAC, means NO SL at all (for streams unable to handle AU reconstruction a timing)*/
-	SLPredef_SkipSL = 0xF0
 };
 
 /*set SL predefined (assign all fields according to sl->predefined value)*/

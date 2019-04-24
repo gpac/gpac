@@ -241,10 +241,11 @@ GF_Err gf_export_hint(GF_MediaExporter *dumper)
 static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 track, char *dsi, u32 dsiSize)
 {
 #ifndef GPAC_DISABLE_VOBSUB
-	FILE			*fidx, *fsub;
-	u32				 width, height, i, count, di;
-	GF_ISOSample	*samp;
-	char			 *lang = NULL;
+	FILE *fidx, *fsub;
+	u32 width, height, i, count, di;
+	GF_ISOSample *samp;
+	char *lang = NULL;
+	char szPath[GF_MAX_PATH];
 
 	/* Check decoder specific information (palette) size - should be 64 */
 	if (dsiSize != 64) {
@@ -252,7 +253,13 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	}
 
 	/* Create an idx file */
-	fidx = gf_fopen(szName, "wb");
+	if (!gf_file_ext_start(szName)) {
+		strcpy(szPath, szName);
+		strcat(szPath, ".idx");
+		fidx = gf_fopen(szPath, "wb");
+	 } else {
+		fidx = gf_fopen(szName, "wb");
+	}
 	if (!fidx) {
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
@@ -1092,7 +1099,11 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		esd = gf_media_map_esd(dumper->file, track_num, 0);
 		sample_count = gf_isom_get_sample_count(dumper->file, dumper->trackID);
 		if (esd) {
-			codec_id = esd->decoderConfig->objectTypeIndication;
+			if (esd->decoderConfig->objectTypeIndication<GF_CODECID_LAST_MPEG4_MAPPING) {
+				codec_id = gf_codecid_from_oti(esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+			} else {
+				codec_id = esd->decoderConfig->objectTypeIndication;
+			}
 		}
 		if (!codec_id) {
 			msubtype = gf_isom_get_media_subtype(dumper->file, track_num, 1);

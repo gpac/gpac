@@ -1881,7 +1881,7 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height,
 	return GF_OK;
 }
 
-GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
+GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size, u64 *pts)
 {
 	if (!frame_size) return GF_BAD_PARAM;
 
@@ -1892,7 +1892,7 @@ GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	/*TODO: u64 pts = */gf_bs_read_u64(bs);
+	*pts = gf_bs_read_u64_le(bs);
 
 	return GF_OK;
 }
@@ -2671,10 +2671,10 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 
 GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 {
-	u64 frame_size;
+	u64 frame_size, pts_ignored;
 	GF_Err e;
 	if (gf_bs_available(bs)<12) return GF_EOS;
-	e = gf_media_parse_ivf_frame_header(bs, &frame_size);
+	e = gf_media_parse_ivf_frame_header(bs, &frame_size, &pts_ignored);
 	if (e) return e;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] IVF frame detected (size "LLU")\n", frame_size));
 
@@ -8748,6 +8748,7 @@ GF_EXPORT
 Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 {
 	u32 pack_type, i, j, k, times, nb_part, nb_books, nb_modes;
+	u32 l;
 	char szNAME[8];
 	oggpack_buffer opb;
 
@@ -8759,12 +8760,16 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 		i++;
 	}
 	szNAME[i] = 0;
-	if (strcmp(szNAME, "vorbis")) return vp->is_init = 0;
+	if (strcmp(szNAME, "vorbis")) {
+		return GF_FALSE;
+	}
 
 	switch (pack_type) {
 	case 0x01:
 		vp->version = oggpack_read(&opb, 32);
-		if (vp->version!=0) return 0;
+		if (vp->version != 0) {
+			return GF_FALSE;
+		}
 		vp->channels = oggpack_read(&opb, 8);
 		vp->sample_rate = oggpack_read(&opb, 32);
 		vp->max_r = oggpack_read(&opb, 32);
@@ -8773,24 +8778,23 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 
 		vp->min_block = 1<<oggpack_read(&opb, 4);
 		vp->max_block = 1<<oggpack_read(&opb, 4);
-		if (vp->sample_rate < 1) return vp->is_init = 0;
-		if (vp->channels < 1) return vp->is_init = 0;
-		if (vp->min_block<8) return vp->is_init = 0;
-		if (vp->max_block < vp->min_block) return vp->is_init = 0;
-		if (oggpack_read(&opb, 1) != 1) return vp->is_init = 0;
-		vp->is_init = 1;
-		return 1;
+		if (vp->sample_rate < 1 || vp->channels < 1 || vp->min_block < 8 || vp->max_block < vp->min_block
+		    || oggpack_read(&opb, 1) != 1) {
+			return GF_FALSE;
+		}
+		vp->nb_init=1;
+		return GF_TRUE;
+
 	case 0x03:
 		/*trash comments*/
-		vp->is_init ++;
-		return 1;
+		vp->nb_init++;
+		return GF_TRUE;
 	case 0x05:
 		/*need at least bitstream header to make sure we're parsing the right thing*/
-		if (!vp->is_init) return 0;
+		if (!vp->nb_init) return GF_FALSE;
 		break;
 	default:
-		vp->is_init = 0;
-		return 0;
+		return GF_FALSE;
 	}
 	/*OK parse codebook*/
 	nb_books = oggpack_read(&opb, 8) + 1;
@@ -8905,7 +8909,8 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 		}
 		oggpack_read(&opb, 2);
 		if (sub_maps>1) {
-			for(j=0; j<vp->channels; j++) oggpack_read(&opb, 4);
+			for(l=0; l<vp->channels; l++)
+				oggpack_read(&opb, 4);
 		}
 		for (j=0; j<sub_maps; j++) {
 			oggpack_read(&opb, 8);
@@ -8927,7 +8932,8 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 		vp->modebits++;
 		j>>=1;
 	}
-	return 1;
+
+	return GF_TRUE;
 }
 
 GF_EXPORT
@@ -8935,13 +8941,78 @@ u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length)
 {
 	s32 block_size;
 	oggpack_buffer opb;
-	if (!vp->is_init) return 0;
+	if (!vp) return 0;
 	oggpack_readinit(&opb, (unsigned char*)data, data_length);
 	/*not audio*/
 	if (oggpack_read(&opb, 1) !=0) return 0;
 	block_size = oggpack_read(&opb, vp->modebits);
 	if (block_size == -1) return 0;
 	return ((vp->mode_flag[block_size]) ? vp->max_block : vp->min_block) / (2);
+}
+
+/*call with vorbis header packets - initializes the parser on success, leave it to NULL otherwise
+returns 1 if success, 0 if error.*/
+Bool gf_opus_parse_header(GF_OpusParser *opus, char *data, u32 data_len)
+{
+	char tag[9];
+	GF_BitStream *bs = gf_bs_new(data, data_len, GF_BITSTREAM_READ);
+	gf_bs_read_data(bs, tag, 8);
+	tag[8]=0;
+
+	if (memcmp(data, "OpusHead", sizeof(char)*8)) {
+		gf_bs_del(bs);
+		return GF_FALSE;
+	}
+	/*Identification Header*/
+	opus->version = gf_bs_read_u8(bs); /*version*/
+	if (opus->version != 1) {
+		gf_bs_del(bs);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Opus] Unsupported version %d\n", opus->version));
+		return GF_FALSE;
+	}
+	opus->OutputChannelCount = gf_bs_read_u8(bs);
+	opus->PreSkip = gf_bs_read_u16_le(bs);
+	opus->InputSampleRate = gf_bs_read_u32_le(bs);
+	opus->OutputGain = gf_bs_read_u16_le(bs);
+	opus->ChannelMappingFamily = gf_bs_read_u8(bs);
+	if (opus->ChannelMappingFamily != 0) {
+		opus->StreamCount = gf_bs_read_u8(bs);
+		opus->CoupledCount = gf_bs_read_u8(bs);
+		gf_bs_read_data(bs, (char *) opus->ChannelMapping, opus->OutputChannelCount);
+	}
+	gf_bs_del(bs);
+	return GF_TRUE;
+}
+
+/*returns 0 if init error or not a vorbis frame, otherwise returns the number of audio samples
+in this frame*/
+u32 gf_opus_check_frame(GF_OpusParser *op, char *data, u32 data_length)
+{
+	u32 block_size;
+
+	if (!memcmp(data, "OpusHead", sizeof(char)*8))
+		return 0;
+	if (!memcmp(data, "OpusTags", sizeof(char)*8))
+		return 0;
+
+	/*consider the whole packet as Ogg packets and ISOBMFF samples for Opus are framed similarly*/
+	static const int OpusFrameDurIn48k[] = { 480, 960, 1920, 2880, 480, 960, 1920, 2880, 480, 960, 1920, 2880,
+		480, 960, 480, 960,
+		120, 240, 480, 960, 120, 240, 480, 960, 120, 240, 480, 960, 120, 240, 480, 960,
+	};
+	int TOC_config = (data[0] & 0xf8) >> 3;
+	//int s = (data[0] & 0x04) >> 2;
+	block_size = OpusFrameDurIn48k[TOC_config];
+
+	int c = data[0] & 0x03;
+	if (c == 1 || c == 2) {
+		block_size *= 2;
+	} else if (c == 3) {
+		/*unknown number of frames*/
+		int num_frames = data[1] & 0x3f;
+		block_size *= num_frames;
+	}
+	return block_size;
 }
 
 #endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/

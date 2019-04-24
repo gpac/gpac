@@ -239,8 +239,8 @@ GF_Err gf_odf_write_descriptor_list_filter(GF_BitStream *bs, GF_List *descList, 
 	}
 	return GF_OK;
 }
-#ifndef GPAC_DISABLE_ODF
 
+#ifndef GPAC_MINIMAL_ODF
 
 u32 gf_ipmpx_array_size(GF_BitStream *bs, u32 *array_size)
 {
@@ -404,8 +404,8 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg)
 	gf_bs_del(bs);
 	return GF_OK;
 }
-
-GF_EXPORT
+//unused
+#if 0
 GF_Err gf_odf_get_ui_config(GF_DefaultDescriptor *dsi, GF_UIConfig *cfg)
 {
 	u32 len, i;
@@ -426,6 +426,7 @@ GF_Err gf_odf_get_ui_config(GF_DefaultDescriptor *dsi, GF_UIConfig *cfg)
 	gf_bs_del(bs);
 	return GF_OK;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_odf_encode_ui_config(GF_UIConfig *cfg, GF_DefaultDescriptor **out_dsi)

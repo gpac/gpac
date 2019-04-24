@@ -1,3 +1,5 @@
+PROFILE ignored
+
 InitialObjectDescriptor {
  objectDescriptorID 1
  audioProfileLevelIndication 255
@@ -293,6 +295,9 @@ DEF OG OrderedGroup {
      }
     }
     Shape {
+     appearance Appearance {
+      material MaterialKey {}
+     }
      geometry Bitmap {}
     }
     AnimationStream {}
@@ -305,6 +310,10 @@ DEF OG OrderedGroup {
      }
     }
     TimeSensor {}
+    ServerCommand {}
+    WideSound {}
+    ScoreShape {}
+    Shadow {}
 
     Shape {
      appearance DEF SOMEAPP Appearance {
@@ -664,7 +673,15 @@ AT 200 {
 }
 
 AT D200 {
-   REMOVE ESD FROM 10 [20]
+   UPDATE ESD IN 10 esDescr [
+     ES_Descriptor {
+      ES_ID 30
+      muxInfo MuxInfo {
+       fileName "../auxiliary_files/logo.png"
+      }
+     }
+    ]
+
 
  APPEND TO TR1.children Shape {
   appearance Appearance {
@@ -681,6 +698,8 @@ AT D200 {
 }
 
 AT D200 {
+   REMOVE ESD FROM 10 [30]
+
   REPLACE TR.children[0] BY NULL
   DELETE APP
 }
@@ -730,6 +749,7 @@ AT D200 {
      }
     }
     geometry IndexedFaceSet2D {
+     coordIndex [0 1 2 3 4 5]
      coord Coordinate2D {
       point [-100 0 -50 100 50 100 100 0 50 -100 -50 -100]
      }

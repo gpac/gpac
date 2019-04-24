@@ -192,7 +192,7 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_SCENE));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
 
 	return GF_OK;
@@ -363,7 +363,9 @@ static GF_Err vttd_process(GF_Filter *filter)
 	}
 
 	//object clock shall be valid
-	assert(ctx->odm->ck);
+	if (!ctx->odm->ck)
+		return GF_OK;
+
 	cts = gf_filter_pck_get_cts( pck );
 	timescale = gf_filter_pck_get_timescale(pck);
 
@@ -435,7 +437,7 @@ static const GF_FilterCapability VTTDecCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_WVTT),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
@@ -445,6 +447,7 @@ GF_FilterRegister VTTDecRegister = {
 	.private_size = sizeof(GF_VTTDec),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = VTTDecArgs,
+	.priority = 1,
 	SETCAPS(VTTDecCaps),
 	.initialize = vttd_initialize,
 	.finalize = vttd_finalize,

@@ -480,6 +480,8 @@ GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc)
 	IPMP_Declarators.
 		As it could be used for other purposes we keep it generic
 	You must create the list yourself, the functions just encode/decode from/to the list
+
+	These functions are also used in mp4 for extension descriptor in LASeR and AVC sample descriptions
 *****************************************************************************************/
 
 GF_EXPORT
@@ -594,6 +596,21 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 					}
 				}
 			}
+			/*process ESD remove*/
+			else if (com->tag==GF_ODF_ESD_REMOVE_TAG) {
+				u32 j;
+				GF_ODRemove *odR = (GF_ODRemove *) command;
+				GF_ESDRemove *esdR = (GF_ESDRemove*)com;
+				for (j=0; j<odR->NbODs; j++) {
+					if (esdR->ODID==odR->OD_ID[j]) {
+						gf_list_rem(codec->CommandList, i);
+						i--;
+						count--;
+						gf_odf_com_del((GF_ODCom**)&esdR);
+						break;
+					}
+				}
+			}
 		}
 		return GF_OK;
 	case GF_ODF_OD_UPDATE_TAG:
@@ -676,6 +693,42 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 					count--;
 					gf_odf_com_del((GF_ODCom**)&esdU);
 				}
+			}
+		}
+		return GF_OK;
+	case GF_ODF_ESD_UPDATE_TAG:
+		for (i=0; i<count; i++) {
+			com = (GF_ODCom *)gf_list_get(codec->CommandList, i);
+			/*process OD updates*/
+			if (com->tag==GF_ODF_OD_UPDATE_TAG) {
+				u32 count2, k, l;
+				GF_ESDUpdate *esdU = (GF_ESDUpdate *) command;
+				odU = (GF_ODUpdate *)com;
+				count2 = gf_list_count(odU->objectDescriptors);
+				/*remove all descs*/
+				for (k=0; k<count2; k++) {
+					GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, k);
+					if (od->objectDescriptorID==esdU->ODID) {
+						GF_ESD *esd;
+						while (gf_list_count(od->ESDescriptors)) {
+							esd = gf_list_pop_back(od->ESDescriptors);
+							gf_odf_desc_del((GF_Descriptor *)esd);
+						}
+						gf_list_transfer(od->ESDescriptors, esdU->ESDescriptors);
+						l = 0;
+						while ((esd = gf_list_enum(esdU->ESDescriptors, &l))) {
+							GF_ESD *new_esd;
+							GF_Err e = gf_odf_desc_copy((GF_Descriptor*)esd, (GF_Descriptor**)&new_esd);
+							if (e==GF_OK)
+								gf_list_add(od->ESDescriptors, new_esd);
+						}
+						break;
+					}
+				}
+			}
+			/*process ESD updates*/
+			else if (com->tag==GF_ODF_ESD_UPDATE_TAG) {
+				return GF_NOT_SUPPORTED;
 			}
 		}
 		return GF_OK;

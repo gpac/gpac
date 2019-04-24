@@ -368,6 +368,7 @@ GF_BaseInterface *gf_modules_load(u32 whichplug, u32 InterfaceFamily)
 	/*build cache*/
 	if (!opt) {
 		u32 i;
+		const int maxKeySize = 32;
 		Bool found = GF_FALSE;
 		char *key;
 		const u32 *si = inst->query_func();
@@ -379,11 +380,11 @@ GF_BaseInterface *gf_modules_load(u32 whichplug, u32 InterfaceFamily)
 		i=0;
 		while (si[i]) i++;
 
-		key = (char*)gf_malloc(sizeof(char) * 10 * (i+1) );
+		key = (char*)gf_malloc(sizeof(char) * maxKeySize * i);
 		key[0] = 0;
 		i=0;
 		while (si[i]) {
-			snprintf(szKey, 32, "%s:yes ", gf_4cc_to_str(si[i]));
+			snprintf(szKey, maxKeySize, "%s:yes ", gf_4cc_to_str(si[i]));
 			strcat(key, szKey);
 			if (InterfaceFamily==si[i]) found = GF_TRUE;
 			i++;
@@ -500,7 +501,7 @@ GF_BaseInterface *gf_modules_load_by_name(const char *plug_name, u32 InterfaceFa
 		}
 		gf_modules_close_interface(ifce);
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] Plugin %s not found in %d modules.\n", plug_name, count));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Plugin %s not found in %d modules.\n", plug_name, count));
 	return NULL;
 }
 

@@ -35,6 +35,7 @@ single_test "$GPAC -h alias" "gpac-h-alias"
 single_test "$GPAC -ha alias" "gpac-ha-alias"
 single_test "$GPAC -h links" "gpac-h-links"
 single_test "$GPAC -h links mxisom" "gpac-h-links-single"
+single_test "$GPAC -h modules" "gpac-h-modules"
 single_test "$GPAC -h filters" "gpac-h-filters"
 single_test 'gpac -h filters:*' "gpac-h-filters-all"
 single_test 'gpac -h *:*' "gpac-h-all"
@@ -86,6 +87,19 @@ do_hash_test $TEMP_DIR/logs.txt  "inspect-res3"
 
 fi
 test_end
+
+test_begin "gpac-remotery"
+if [ $test_skip != 1 ] ; then
+do_test "$GPAC src=$MEDIA_DIR/auxiliary_files/enst_audio.aac inspect -logs=filter@info:ncl -rmt" "remotery"
+fi
+test_end
+
+test_begin "gpac-units"
+if [ $test_skip != 1 ] ; then
+do_test "$GPAC -lu -logs=app@info:filter@debug -unit-tests" "units"
+fi
+test_end
+
 
 single_test "$GPAC -ltf UTSource:cov UTFilter:cov UTSink:cov" "gpac-filter-dump_props"
 

@@ -99,9 +99,6 @@ GF_Err gf_odf_slc_set_pref(GF_SLConfig *sl)
 		sl->timestampResolution = 1000;
 		sl->timestampLength = 32;
 		break;
-	case SLPredef_SkipSL:
-		sl->predefined = SLPredef_SkipSL;
-		break;
 	/*handle all unknown predefined as predef-null*/
 	default:
 		sl->useAccessUnitStartFlag = 0;
@@ -124,28 +121,6 @@ GF_Err gf_odf_slc_set_pref(GF_SLConfig *sl)
 	return GF_OK;
 }
 
-u32 SLIsPredefined(GF_SLConfig *sl)
-{
-	if (!sl) return 0;
-	if (sl->predefined) return sl->predefined;
-
-	if (!sl->useAccessUnitStartFlag
-	        &&  !sl->useAccessUnitEndFlag
-	        && !sl->usePaddingFlag
-	        && sl->useTimestampsFlag
-	        && !sl->useIdleFlag
-	        && !sl->durationFlag
-	        && !sl->timestampLength
-	        && !sl->OCRLength
-	        && !sl->AULength
-	        && !sl->instantBitrateLength
-	        && !sl->degradationPriorityLength
-	        && !sl->AUSeqNumLength
-	        && !sl->packetSeqNumLength)
-		return SLPredef_MP4;
-
-	return 0;
-}
 
 //this function gets the real amount of bytes needed to store the timeStamp
 static u32 GetTSbytesLen(GF_SLConfig *sl)

@@ -418,6 +418,8 @@ static Bool mp3_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	case GF_FEVT_STOP:
 		ctx->is_playing = GF_FALSE;
+		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+		ctx->src_pck = NULL;
 		//don't cancel event
 		return GF_FALSE;
 
@@ -600,7 +602,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 		}
 
 		bytes_to_drop = bytes_skipped + size;
-		if (ctx->timescale && (prev_pck_size <= bytes_to_drop) && (cts != GF_FILTER_NO_TS) ) {
+		if (ctx->timescale && !prev_pck_size && (cts != GF_FILTER_NO_TS) ) {
 			ctx->cts = cts;
 			cts = GF_FILTER_NO_TS;
 		}
@@ -669,6 +671,7 @@ static void mp3_dmx_finalize(GF_Filter *filter)
 	if (ctx->indexes) gf_free(ctx->indexes);
 	if (ctx->mp3_buffer) gf_free(ctx->mp3_buffer);
 	if (ctx->id3_buffer) gf_free(ctx->id3_buffer);
+	if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 }
 
 

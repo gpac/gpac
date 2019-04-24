@@ -1245,7 +1245,6 @@ GF_Err esds_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e=GF_OK;
 	u32 descSize;
 	char *enc_desc;
-	u32 SLIsPredefined(GF_SLConfig *sl);
 	GF_ESDBox *ptr = (GF_ESDBox *)s;
 
 	descSize = (u32) (ptr->size);
@@ -3898,6 +3897,7 @@ void audio_sample_entry_del(GF_Box *s)
 
 	if (ptr->esd) gf_isom_box_del((GF_Box *)ptr->esd);
 	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
+	if (ptr->cfg_opus) gf_isom_box_del((GF_Box *)ptr->cfg_opus);
 	if (ptr->cfg_ac3) gf_isom_box_del((GF_Box *)ptr->cfg_ac3);
 	if (ptr->cfg_3gpp) gf_isom_box_del((GF_Box *)ptr->cfg_3gpp);
 	gf_free(ptr);
@@ -3923,6 +3923,9 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 		ptr->cfg_3gpp->cfg.type = ptr->type;
 		break;
 
+	case GF_ISOM_BOX_TYPE_DOPS:
+		ptr->cfg_opus = (GF_OpusSpecificBox *)a;
+		break;
 	case GF_ISOM_BOX_TYPE_DAC3:
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
 		break;
@@ -4072,6 +4075,10 @@ GF_Err audio_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)ptr->cfg_3gpp, bs);
 		if (e) return e;
 	}
+	if (ptr->cfg_opus) {
+		e = gf_isom_box_write((GF_Box *)ptr->cfg_opus, bs);
+		if (e) return e;
+	}
 	if (ptr->cfg_ac3) {
 		e = gf_isom_box_write((GF_Box *)ptr->cfg_ac3, bs);
 		if (e) return e;
@@ -4094,6 +4101,11 @@ GF_Err audio_sample_entry_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *)ptr->cfg_3gpp);
 		if (e) return e;
 		ptr->size += ptr->cfg_3gpp->size;
+	}
+	if (ptr->cfg_opus) {
+		e = gf_isom_box_size((GF_Box *)ptr->cfg_opus);
+		if (e) return e;
+		ptr->size += ptr->cfg_opus->size;
 	}
 	if (ptr->cfg_ac3) {
 		e = gf_isom_box_size((GF_Box *)ptr->cfg_ac3);
@@ -6899,6 +6911,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_TEXT:
 		case GF_ISOM_BOX_TYPE_ENCT:
 		case GF_ISOM_BOX_TYPE_DIMS:
+		case GF_ISOM_BOX_TYPE_OPUS:
 		case GF_ISOM_BOX_TYPE_AC3:
 		case GF_ISOM_BOX_TYPE_EC3:
 		case GF_ISOM_BOX_TYPE_LSR1:

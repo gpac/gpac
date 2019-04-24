@@ -714,6 +714,7 @@ void PrintDumpUsage()
 	        " -dump-chap           extracts chapter file\n"
 	        " -dump-chap-ogg       extracts chapter file as OGG format\n"
 	        " -dump-udta [ID:]4cc  extracts udta for the given 4CC. If ID is given, dumps from UDTA of the given track ID, otherwise moov is used.\n"
+	        " -mergevtt            merge vtt cues while dumping\n"
 	        "\n"
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	        " -ttxt                converts input subtitle to GPAC TTXT format\n"
@@ -2146,7 +2147,7 @@ GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
-Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, hls_clock, do_mpd_rip;
+Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, hls_clock, do_mpd_rip, merge_vtt_cues;
 char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes;
 u32 track_dump_type, dump_isom, dump_timestamps;
 u32 trackID;
@@ -3354,6 +3355,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-statx")) stat_level = 3;
 		else if (!stricmp(arg, "-diso")) dump_isom = 1;
 		else if (!stricmp(arg, "-dxml")) dump_isom = 2;
+		else if (!stricmp(arg, "-mergevtt")) merge_vtt_cues = GF_TRUE;
 		else if (!stricmp(arg, "-dump-cover")) dump_cart = 1;
 		else if (!stricmp(arg, "-dump-chap")) dump_chap = 1;
 		else if (!stricmp(arg, "-dump-chap-ogg")) dump_chap = 2;
@@ -3855,7 +3857,7 @@ int mp4boxMain(int argc, char **argv)
 	split_size = 0;
 	movie_time = 0;
 	dump_nal = dump_saps = dump_saps_mode = 0;
-	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = do_mpd_rip = GF_FALSE;
+	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = do_mpd_rip = merge_vtt_cues = GF_FALSE;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	dump_mode = GF_SM_DUMP_NONE;
 #endif
@@ -4811,7 +4813,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 #ifndef GPAC_DISABLE_ISOM_DUMP
 	if (dump_isom) {
-		e = dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_isom==2) ? GF_TRUE : GF_FALSE);
+		e = dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_isom==2) ? GF_TRUE : GF_FALSE, merge_vtt_cues);
 		if (e) goto err_exit;
 	}
 	if (dump_cr) dump_isom_ismacryp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);

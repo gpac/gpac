@@ -960,24 +960,17 @@ enum
 Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
 
 
+/*!
+ *	\brief Gets process ID
+ *
+ *	Gets ID of the process running this gpac instance.
+ *	\return the ID of the main process
+ */
+u32 gf_sys_get_process_id();
+
+
 Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32 *level, u32 *batteryLifeTime, u32 *batteryFullLifeTime);
 
-typedef struct _GF_GlobalLock_opaque GF_GlobalLock;
-
-/*!
- * This function allows the user to create a global lock for all GPAC instances.
- * This allow to disable some features for other instances for instance.
- * \param resourceName The name of the resource to lock
- * \return false if resource has been locked, true if resource could not be locked
- */
-GF_GlobalLock * gf_global_resource_lock(const char * resourceName);
-
-/*!
- * Unlock a previouly locked resource
- * \param lock The resource to unlock
- * \return GF_OK if evertything went fine
- */
-GF_Err gf_global_resource_unlock(GF_GlobalLock * lock);
 
 /*!	@} */
 
@@ -1115,7 +1108,7 @@ GF_Err gf_lz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 typedef struct __sha1_context GF_SHA1Context;
 
 #define GF_SHA1_DIGEST_SIZE		20
-#define GF_SHA1_DIGEST_SIZE_HEXA		41
+
 /*  Create SHA-1 context */
 GF_SHA1Context *gf_sha1_starts();
 /*  Adds byte to the SHA-1 context */
@@ -1132,11 +1125,6 @@ int gf_sha1_file(const char *filename, u8 digest[GF_SHA1_DIGEST_SIZE]);
  * Gets SHA-1 of input buffer
  */
 void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE]);
-/*
- * Gets SHA-1 of input buffer into hexa form
- */
-void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE_HEXA]);
-
 /*! @} */
 
 

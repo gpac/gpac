@@ -253,10 +253,8 @@ static GF_Err resample_process(GF_Filter *filter)
 		gf_filter_pck_merge_properties(ctx->in_pck, dstpck);
 
 		written = gf_mixer_get_output(ctx->mixer, output, osize, 0);
-		if (ctx->speed != FIX_ONE) {
+		if (written != osize) {
 			gf_filter_pck_truncate(dstpck, written);
-		} else {
-			assert(written==osize);
 		}
 		gf_filter_pck_send(dstpck);
 

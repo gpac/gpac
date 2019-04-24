@@ -18,19 +18,26 @@ vtt_test ()
   return
  fi
 
- #BT->XMT
+ #VTT->MP4
  do_test "$MP4BOX -add $vttfile -new $mp4file" "vtt-to-mp4"
  do_hash_test "$mp4file" "vtt-to-mp4"
- do_test "$MP4BOX -info 1 $mp4file" "vtt-info"
 
-#FIXME
-#do_test "$GPAC -i $mp4file compositor:osize=512x192:vfr:dur=10 @ -o $TEMP_DIR/dump.rgb" "play"
-#do_hash_test "$TEMP_DIR/dump.rgb" "play"
-#do_play_test "play" "$TEMP_DIR/dump.rgb:size=512x192" ""
+ #MP4 with VTT xml dump
+if [ $2 = 1 ] ; then
+ do_test "$MP4BOX -dxml $mp4file -out $TEMP_DIR/dump.xml" "vtt-dxml"
+ do_hash_test "$TEMP_DIR/dump.xml" "vtt-dxml"
+
+ do_test "$MP4BOX -dxml -mergevtt $mp4file -out $TEMP_DIR/dump2.xml" "vtt-merge-dxml"
+ do_hash_test "$TEMP_DIR/dump2.xml" "vtt-merge-dxml"
+
+ do_test "$MP4BOX -raw 1 $mp4file -out $TEMP_DIR/dump.vtt" "vtt-dump"
+ do_hash_test "$TEMP_DIR/dump.vtt" "vtt-dump"
 
 
+fi
 
- rm $mp4file 2> /dev/null
+
+# rm $mp4file 2> /dev/null
 
  test_end
 }
@@ -38,8 +45,11 @@ vtt_test ()
 
 vtt_tests ()
 {
+ first_test=1
+
  for t in $MEDIA_DIR/webvtt/* ; do
-  vtt_test $t
+  vtt_test $t $first_test
+  first_test=0
  done
 }
 

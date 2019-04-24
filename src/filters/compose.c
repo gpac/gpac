@@ -119,17 +119,14 @@ static GF_Err compose_process(GF_Filter *filter)
 			ctx->check_eos_state = 1;
 		}
 		if (ctx->check_eos_state == 1) {
-			if (!ctx->last_check_time) ctx->last_check_time = gf_sys_clock_high_res();
-			else {
-				u64 now = gf_sys_clock_high_res();
-				if (now - ctx->last_check_time > 5000000) {
-					ctx->check_eos_state = 2;
-					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Could not detect end of stream(s) in "LLU" us, aborting\n", now - ctx->last_check_time));
-					forced_eos = GF_TRUE;
-				}
+			ctx->last_check_pass++;
+			if (ctx->last_check_pass > 10000) {
+				ctx->check_eos_state = 2;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Could not detect end of stream(s) in %d render pass, aborting\n", ctx->last_check_pass));
+				forced_eos = GF_TRUE;
 			}
 		} else {
-			ctx->last_check_time = 0;
+			ctx->last_check_pass = 0;
 		}
 
 		if ((ctx->check_eos_state==2) || !ctx->root_scene || (ctx->check_eos_state && gf_sc_check_end_of_scene(ctx, GF_TRUE))) {
@@ -403,7 +400,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 
 	//attach scene to input filters - may be true for dynamic scene (text rendering) and regular scenes
-	if ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE) ) {
+	if ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE) || (mtype==GF_STREAM_TEXT) ) {
 		GF_FEVT_INIT(evt, GF_FEVT_ATTACH_SCENE, pid);
 		evt.attach_scene.object_manager = gf_filter_pid_get_udta(pid);
 		gf_filter_pid_send_event(pid, &evt);

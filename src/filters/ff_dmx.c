@@ -210,14 +210,13 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 
 		gf_filter_pck_set_cts(pck_dst, ts );
 
-		if (!ctx->pkt.dts) ctx->pkt.dts = ctx->pkt.pts;
-
 		if (ctx->pkt.dts != AV_NOPTS_VALUE) {
 			ts = ctx->pkt.dts * stream->time_base.num;
 			gf_filter_pck_set_dts(pck_dst, ts);
 		}
 
-		gf_filter_pck_set_duration(pck_dst, (u32) ctx->pkt.duration);
+		if (ctx->pkt.duration)
+			gf_filter_pck_set_duration(pck_dst, (u32) ctx->pkt.duration);
 	}
 
 	//fixme: try to identify SAP type 2 and more
@@ -278,6 +277,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 	nb_t = nb_a = nb_v = 0;
 	for (i = 0; i < ctx->demuxer->nb_streams; i++) {
 		GF_FilterPid *pid=NULL;
+		Bool force_reframer = GF_FALSE;
 		Bool expose_ffdec=GF_FALSE;
 		AVStream *stream = ctx->demuxer->streams[i];
 		AVCodecContext *codec = stream->codec;
@@ -354,6 +354,21 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(gpac_codec_id) );
 		}
 
+		//force reframer for the following formats if no DSI is found
+		if (!codec->extradata_size) {
+			switch (gpac_codec_id) {
+			case GF_CODECID_AC3:
+			case GF_CODECID_AAC_MPEG4:
+			case GF_CODECID_AAC_MPEG2_MP:
+			case GF_CODECID_AAC_MPEG2_LCP:
+			case GF_CODECID_AAC_MPEG2_SSRP:
+			case GF_CODECID_AVC:
+			case GF_CODECID_HEVC:
+			case GF_CODECID_AV1:
+				force_reframer = GF_TRUE;
+				break;
+			}
+		}
 		if (expose_ffdec) {
 			const char *cname = avcodec_get_name(codec->codec_id);
 			gf_filter_pid_set_property(pid, GF_FFMPEG_DECODER_CONFIG, &PROP_POINTER( (void*)codec ) );
@@ -361,20 +376,22 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 			if (cname)
 				gf_filter_pid_set_property_str(pid, "ffmpeg:codec", &PROP_STRING(cname ) );
 		} else if (codec->extradata_size) {
-			Bool force_reframer = GF_FALSE;
 
 			//avc/hevc read by ffmpeg is still in annex B format
 			if (!strcmp(ctx->demuxer->iformat->name, "h264") || !strcmp(ctx->demuxer->iformat->name, "hevc")) {
 				force_reframer = GF_TRUE;
 			}
 			
-			if (force_reframer) {
-				gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
-			} else {
+			if (!force_reframer) {
 				//expose as const data
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)codec->extradata, codec->extradata_size) );
 			}
 		}
+
+		if (force_reframer) {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+		}
+
 
 		if (codec->sample_rate)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT( codec->sample_rate ) );
@@ -734,6 +751,14 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	else if (!strncmp(ctx->src, "audio://", 8)) wants_audio = GF_TRUE;
 	else if (!strncmp(ctx->src, "av://", 5)) wants_video = wants_audio = GF_TRUE;
 
+#if defined(__DARWIN) || defined(__APPLE__)
+	if (!strncmp(dev_name, "screen", 6)) {
+		strcpy(szPatchedName, "Capture screen ");
+		strcat(szPatchedName, dev_name+6);
+		dev_name = (char *) szPatchedName;
+	}
+#endif
+
 	if (wants_video && wants_audio && !strcmp(dev_name, "0")) {
 		strcpy(szPatchedName, "0:0");
 		dev_name = (char *) szPatchedName;
@@ -866,7 +891,7 @@ GF_FilterRegister FFAVInRegister = {
 	"Typical device name can be the webcam name:\n"\
 		"'FaceTime HD Camera' on OSX, device name on windows, '/dev/video0' on linux\n"\
 		"'screen-capture-recorder', see http://screencapturer.sf.net/ on windows\n"\
-		"'Capture screen 0' on OSX (0=first screen)\n"\
+		"'Capture screen 0' on OSX (0=first screen), or 'screenN' for short\n"\
 		"X display name (eg ':0.0') on linux"\
 		"\n"\
 		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on capture devices options")

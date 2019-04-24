@@ -509,6 +509,8 @@ static GF_Err ctxload_process(GF_Filter *filter)
 			priv->ctx = NULL;
 			priv->load_flags = 3;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[CtxLoad] Failed to load context for file %s: %s\n", priv->file_name, gf_error_to_string(e) ));
+			if (priv->out_pid)
+				gf_filter_pid_set_eos(priv->out_pid);
 			return e;
 		}
 

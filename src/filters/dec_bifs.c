@@ -275,6 +275,7 @@ GF_FilterRegister BIFSDecRegister = {
 	GF_FS_SET_DESCRIPTION("MPEG-4 BIFS decoder")
 	.private_size = sizeof(GF_BIFSDecCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
+	.priority = 1,
 	SETCAPS(BIFSDecCaps),
 	.finalize = bifs_dec_finalize,
 	.process = bifs_dec_process,

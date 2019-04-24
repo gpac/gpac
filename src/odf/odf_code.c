@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -1098,7 +1098,6 @@ GF_Err gf_odf_del_dcd(GF_DecoderConfig *dcd)
 {
 	GF_Err e;
 	if (!dcd) return GF_BAD_PARAM;
-
 	if (dcd->decoderSpecificInfo) {
 		e = gf_odf_delete_descriptor((GF_Descriptor *) dcd->decoderSpecificInfo);
 		if (e) return e;
@@ -1466,45 +1465,7 @@ GF_Err gf_odf_write_segment(GF_BitStream *bs, GF_Segment *sd)
 	}
 	return GF_OK;
 }
-GF_Descriptor *gf_odf_new_mediatime()
-{
-	GF_MediaTime *newDesc = (GF_MediaTime *) gf_malloc(sizeof(GF_MediaTime));
-	if (!newDesc) return NULL;
 
-	memset(newDesc, 0, sizeof(GF_MediaTime));
-	newDesc->tag = GF_ODF_MEDIATIME_TAG;
-	return (GF_Descriptor *) newDesc;
-}
-GF_Err gf_odf_del_mediatime(GF_MediaTime *mt)
-{
-	if (!mt) return GF_BAD_PARAM;
-	gf_free(mt);
-	return GF_OK;
-}
-GF_Err gf_odf_read_mediatime(GF_BitStream *bs, GF_MediaTime *mt, u32 DescSize)
-{
-	if (!mt) return GF_BAD_PARAM;
-	mt->mediaTimeStamp = gf_bs_read_double(bs);
-	return GF_OK;
-}
-GF_Err gf_odf_size_mediatime(GF_MediaTime *mt, u32 *outSize)
-{
-	if (!mt) return GF_BAD_PARAM;
-	*outSize = 8;
-	return GF_OK;
-}
-GF_Err gf_odf_write_mediatime(GF_BitStream *bs, GF_MediaTime *mt)
-{
-	GF_Err e;
-	u32 size;
-	if (!mt) return GF_BAD_PARAM;
-	e = gf_odf_size_descriptor((GF_Descriptor *)mt, &size);
-	if (e) return e;
-	e = gf_odf_write_base_descriptor(bs, mt->tag, size);
-	if (e) return e;
-	gf_bs_write_double(bs, mt->mediaTimeStamp);
-	return GF_OK;
-}
 
 
 GF_Descriptor *gf_odf_new_lang()
@@ -1672,10 +1633,6 @@ GF_Err gf_odf_del_muxinfo(GF_MuxInfo *mi)
 	return GF_OK;
 }
 
-GF_Err gf_odf_read_muxinfo(GF_BitStream *bs, GF_MuxInfo *mi, u32 DescSize)
-{
-	return GF_OK;
-}
 GF_Err gf_odf_size_muxinfo(GF_MuxInfo *mi, u32 *outSize)
 {
 	*outSize = 0;
@@ -1760,7 +1717,45 @@ GF_Err gf_odf_del_ui_cfg(GF_UIConfig *desc)
 
 #ifndef GPAC_MINIMAL_ODF
 
+GF_Descriptor *gf_odf_new_mediatime()
+{
+	GF_MediaTime *newDesc = (GF_MediaTime *) gf_malloc(sizeof(GF_MediaTime));
+	if (!newDesc) return NULL;
 
+	memset(newDesc, 0, sizeof(GF_MediaTime));
+	newDesc->tag = GF_ODF_MEDIATIME_TAG;
+	return (GF_Descriptor *) newDesc;
+}
+GF_Err gf_odf_del_mediatime(GF_MediaTime *mt)
+{
+	if (!mt) return GF_BAD_PARAM;
+	gf_free(mt);
+	return GF_OK;
+}
+GF_Err gf_odf_read_mediatime(GF_BitStream *bs, GF_MediaTime *mt, u32 DescSize)
+{
+	if (!mt) return GF_BAD_PARAM;
+	mt->mediaTimeStamp = gf_bs_read_double(bs);
+	return GF_OK;
+}
+GF_Err gf_odf_size_mediatime(GF_MediaTime *mt, u32 *outSize)
+{
+	if (!mt) return GF_BAD_PARAM;
+	*outSize = 8;
+	return GF_OK;
+}
+GF_Err gf_odf_write_mediatime(GF_BitStream *bs, GF_MediaTime *mt)
+{
+	GF_Err e;
+	u32 size;
+	if (!mt) return GF_BAD_PARAM;
+	e = gf_odf_size_descriptor((GF_Descriptor *)mt, &size);
+	if (e) return e;
+	e = gf_odf_write_base_descriptor(bs, mt->tag, size);
+	if (e) return e;
+	gf_bs_write_double(bs, mt->mediaTimeStamp);
+	return GF_OK;
+}
 
 GF_Descriptor *gf_odf_new_cc()
 {

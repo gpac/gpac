@@ -100,6 +100,7 @@ typedef struct
 	Bool has_seig;
 	u64 empty_init_dur;
 	u32 raw_audio_bytes_per_sample;
+	u64 dts_patch;
 } TrackWriter;
 
 enum
@@ -400,6 +401,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool use_av1 = GF_FALSE;
 	Bool use_vpX = GF_FALSE;
 	Bool use_mj2 = GF_FALSE;
+	Bool use_opus = GF_FALSE;
 	Bool use_dref = GF_FALSE;
 	Bool skip_dsi = GF_FALSE;
 	Bool is_text_subs = GF_FALSE;
@@ -876,6 +878,11 @@ sample_entry_setup:
 		m_subtype = GF_ISOM_SUBTYPE_AC3;
 		comp_name = "EAC-3";
 		use_ac3_entry = GF_TRUE;
+		break;
+	case GF_CODECID_OPUS:
+		m_subtype = GF_ISOM_SUBTYPE_OPUS;
+		comp_name = "Opus";
+		use_opus = GF_TRUE;
 		break;
 	case GF_CODECID_MPEG4_PART2:
 		m_subtype = GF_ISOM_SUBTYPE_MPEG4;
@@ -1433,6 +1440,29 @@ sample_entry_setup:
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
+	} else if (use_opus) {
+		GF_OpusSpecificBox *opus_cfg = NULL;
+		GF_BitStream *bs;
+
+		if (!dsi) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for opus\n" ));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
+		e = gf_isom_box_parse((GF_Box**)&opus_cfg, bs);
+		gf_bs_del(bs);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error parsing opus configuration data: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+
+		e = gf_isom_opus_config_new(ctx->file, tkw->track_num, opus_cfg, (char *)src_url, NULL, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AC3 audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
+			return e;
+		}
+		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
 	} else if (m_subtype == GF_ISOM_SUBTYPE_METX) {
 		comp_name = "XML Metadata";
 		e = gf_isom_new_xml_metadata_description(ctx->file, tkw->track_num, meta_xmlns, meta_schemaloc, meta_encoding, &tkw->stsd_idx);
@@ -1883,7 +1913,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	return mp4_mux_setup_pid(filter, pid, GF_TRUE);
 }
 
-static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx);
+static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx);
 
 static Bool mp4_mux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
@@ -2101,7 +2131,7 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 
 	subs = gf_filter_pck_get_property(pck, GF_PROP_PCK_SUBS);
 
-	prev_dts = tkw->sample.DTS;
+	prev_dts = tkw->nb_samples ? tkw->sample.DTS : GF_FILTER_NO_TS;
 	prev_size = tkw->sample.dataLength;
 	tkw->sample.CTS_Offset = 0;
 	tkw->sample.data = (char *)gf_filter_pck_get_data(pck, &tkw->sample.dataLength);
@@ -2155,12 +2185,16 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 		cts -= tkw->ts_shift;
 	}
 
-	if (prev_dts && (prev_dts >= tkw->sample.DTS) ) {
+	tkw->sample.DTS += tkw->dts_patch;
+	if (tkw->nb_samples && (prev_dts >= tkw->sample.DTS) ) {
 		//the fragmented API will patch the duration on the fly
 		if (!for_fragment) {
-			gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, 0);
+			gf_isom_patch_last_sample_duration(ctx->file, tkw->track_num, prev_dts);
 		}
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID %s Sample %d with DTS "LLU" less than previous sample DTS "LLU", adjusting prev sample duration\n", gf_filter_pid_get_name(tkw->ipid), tkw->nb_samples, tkw->sample.DTS, prev_dts ));
+
+		tkw->dts_patch = prev_dts - tkw->sample.DTS;
+		tkw->sample.DTS += tkw->dts_patch;
 	}
 
 
@@ -3141,8 +3175,10 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 	}
 
 	if (count == nb_eos) {
-		if (ctx->file)
-			mp4_mux_done(filter, ctx);
+		if (ctx->file) {
+			GF_Err e = mp4_mux_done(filter, ctx);
+			if (e) return e;
+		}
 		return GF_EOS;
 	}
 
@@ -3282,6 +3318,8 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 	min_cts = (u64) -1;
 	for (i=0; i<count; i++) {
 		GF_ISOSample *s = gf_isom_get_sample_info(ctx->file, tkw->track_num, i+1, &di, &doff);
+		if (!s) return;
+
 		if (s->DTS + s->CTS_Offset > max_cts)
 			max_cts = s->DTS + s->CTS_Offset;
 
@@ -3380,8 +3418,9 @@ static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	}
 }
 
-static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
+static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 {
+	GF_Err e = GF_OK;
 	u32 i, count;
 	const GF_PropertyValue *p;
 
@@ -3500,7 +3539,6 @@ static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	}
 
 	if (ctx->owns_mov) {
-		GF_Err e=GF_OK;
 		switch (ctx->store) {
 		case MP4MX_MODE_INTER:
 			if (ctx->cdur==0) {
@@ -3521,7 +3559,7 @@ static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		} else {
 			e = gf_isom_close(ctx->file);
 			if (e) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MP4Mux] Failed to set write file: %s\n", gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[MP4Mux] Failed to write file: %s\n", gf_error_to_string(e) ));
 			}
 		}
 		ctx->file = NULL;
@@ -3529,6 +3567,7 @@ static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	} else {
 		ctx->file = NULL;
 	}
+	return e;
 }
 
 static void mp4_mux_finalize(GF_Filter *filter)
