@@ -1748,6 +1748,7 @@ static u32 gpac_unit_tests()
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 4-byte char\n"));
 		return 1;
 	}
+
 	utf8_buf[0] = 0xf8;
 	utf8_buf[1] = 0x80;
 	utf8_buf[2] = 0x80;
@@ -1837,8 +1838,12 @@ static u32 gpac_unit_tests()
 	gf_htons(0xAABB);
 	gf_tohs(0xAABB);
 	gf_errno_str(-1);
+
+	/* these two lock the bash shell in test mode
 	gf_prompt_set_echo_off(GF_TRUE);
 	gf_prompt_set_echo_off(GF_FALSE);
+	*/
+
 	gf_net_set_ntp_shift(-1000);
 	gf_net_get_ntp_diff_ms(gf_net_get_ntp_ts() );
 	gf_net_get_timezone();
@@ -1861,7 +1866,7 @@ static u32 gpac_unit_tests()
 	}
 	gf_sys_get_battery_state(NULL, NULL, NULL, NULL, NULL);
 	gf_sys_get_process_id();
-	gf_log_get_tools_levels();
-
+	data = (u8 *) gf_log_get_tools_levels();
+	if (data) gf_free(data);
 	return 0;
 }
