@@ -100,6 +100,8 @@ u32 utf8_to_ucs4(u32 * ucs4_buf, u32 utf8_len, unsigned char *utf8_buf)
 			               + (*(utf8_buf + 5) - 0x80));
 			utf8_buf += 6;
 			ucs_len++;
+		} else {
+			return 0;
 		}
 	}
 	return (ucs_len);

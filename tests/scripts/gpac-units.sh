@@ -87,6 +87,19 @@ do_hash_test $TEMP_DIR/logs.txt  "inspect-res3"
 fi
 test_end
 
+test_begin "gpac-remotery"
+if [ $test_skip != 1 ] ; then
+do_test "$GPAC src=$MEDIA_DIR/auxiliary_files/enst_audio.aac inspect -rmt" "remotery"
+fi
+test_end
+
+test_begin "gpac-units"
+if [ $test_skip != 1 ] ; then
+do_test "$GPAC -unit-tests" "units"
+fi
+test_end
+
+
 single_test "$GPAC -ltf UTSource:cov UTFilter:cov UTSink:cov" "gpac-filter-dump_props"
 
 sched_test "UTSource UTSink" "gpac-filter-1source-1sink-shared"

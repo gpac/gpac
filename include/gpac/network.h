@@ -581,26 +581,6 @@ u16 gf_htons(u16 val);
  */
 u16 gf_tohs(u16 val);
 
-/*!
- *	\brief MobileIP Callback
- *
- * The gf_net_mobileip_ctrl_cbk type is the type for the callback of the \ref gf_net_mobileip_set_callback function. By default no mobileip is used
- *	\param cbck Opaque user data.
- *	\param start boolean indicating wether the MobileIP subsystem should be started or stopped.
- *	\return Error code if needed.
- *
- */
-typedef GF_Err (*gf_net_mobileip_ctrl_cbk)(Bool start);
-
-/*!
- *\brief Assigns MobileIP callback
- *
- *Assigns the MobileIP control callback.
- *\param _mobip_cbk MobileIP control callback
- *\param MobileIP MobileIP address
- */
-void gf_net_mobileip_set_callback(gf_net_mobileip_ctrl_cbk _mobip_cbk, const char *MobileIP);
-
 /*! @} */
 
 #ifdef __cplusplus
