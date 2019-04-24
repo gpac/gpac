@@ -38,7 +38,7 @@ static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
 static s32 runfor = 0;
 Bool enable_prompt = GF_FALSE;
-
+Bool do_unit_tests = GF_FALSE;
 static int alias_argc = 0;
 static char **alias_argv = NULL;
 static GF_List *args_used = NULL;
@@ -58,6 +58,7 @@ static void write_core_options();
 static void write_file_extensions();
 static int gpac_make_lang(char *filename);
 static Bool gpac_expand_alias(int argc, char **argv);
+static u32 gpac_unit_tests();
 
 
 #ifndef GPAC_DISABLE_DOC
@@ -471,6 +472,7 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("wf", NULL, "writes all filter options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("wfx", NULL, "writes all filter options and all meta filter arguments in the config file unless already set (large config file !)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("k", NULL, "enables keyboard interaction from command line", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("unit-tests", NULL, "enables unit tests of some functions otherwise not covered by gpac test suite", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 
 	{0}
 };
@@ -856,6 +858,8 @@ static int gpac_main(int argc, char **argv)
 
 		} else if (!strcmp(arg, "-k")) {
 			enable_prompt = GF_TRUE;
+		} else if (!strcmp(arg, "-unit-tests")) {
+			do_unit_tests = GF_TRUE;
 		} else if (arg[0]=='-') {
 			if (!strcmp(arg, "-i") || !strcmp(arg, "-src") || !strcmp(arg, "-o") || !strcmp(arg, "-dst") ) {
 			} else if (!gf_sys_is_gpac_arg(arg) ) {
@@ -868,6 +872,10 @@ static int gpac_main(int argc, char **argv)
 			arg_val--;
 			arg_val[0]='=';
 		}
+	}
+
+	if (do_unit_tests) {
+		gpac_exit( gpac_unit_tests() );
 	}
 
 	if (alias_set) {
@@ -1638,4 +1646,134 @@ static Bool gpac_expand_alias(int argc, char **argv)
 
 	}
 	return GF_TRUE;
+}
+
+#include <gpac/unicode.h>
+#include <gpac/base_coding.h>
+#include <gpac/network.h>
+static u32 gpac_unit_tests()
+{
+	u32 ucs4_buf[4];
+	u8 utf8_buf[7];
+	utf8_buf[0] = 'a';
+	utf8_buf[1] = 0;
+	if (! utf8_to_ucs4 (ucs4_buf, 1, (unsigned char *) utf8_buf)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for single char\n"));
+		return 1;
+	}
+	utf8_buf[0] = 0xc2;
+	utf8_buf[1] = 0xa3;
+	utf8_buf[2] = 'a';
+	utf8_buf[3] = 0;
+	if (! utf8_to_ucs4 (ucs4_buf, 3, (unsigned char *) utf8_buf)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 2-byte + 1-byte char\n"));
+		return 1;
+	}
+	utf8_buf[0] = 0xe0;
+	utf8_buf[1] = 0xa4;
+	utf8_buf[2] = 0xb9;
+	utf8_buf[3] = 0;
+	if (! utf8_to_ucs4 (ucs4_buf, 3, (unsigned char *) utf8_buf)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 3-byte char\n"));
+		return 1;
+	}
+	utf8_buf[0] = 0xf0;
+	utf8_buf[1] = 0x90;
+	utf8_buf[2] = 0x8d;
+	utf8_buf[3] = 0x88;
+	utf8_buf[4] = 0;
+	if (! utf8_to_ucs4 (ucs4_buf, 4, (unsigned char *) utf8_buf)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 4-byte char\n"));
+		return 1;
+	}
+	utf8_buf[0] = 0xf8;
+	utf8_buf[1] = 0x80;
+	utf8_buf[2] = 0x80;
+	utf8_buf[3] = 0x80;
+	utf8_buf[4] = 0xaf;
+	utf8_buf[5] = 0;
+	if (! utf8_to_ucs4 (ucs4_buf, 5, (unsigned char *) utf8_buf)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 5-byte char\n"));
+		return 1;
+	}
+	utf8_buf[0] = 0xfc;
+	utf8_buf[1] = 0x80;
+	utf8_buf[2] = 0x80;
+	utf8_buf[3] = 0x80;
+	utf8_buf[4] = 0x80;
+	utf8_buf[5] = 0xaf;
+	utf8_buf[6] = 0;
+	if (! utf8_to_ucs4 (ucs4_buf, 6, (unsigned char *) utf8_buf)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 6-byte char\n"));
+		return 1;
+	}
+	//test error case
+	utf8_buf[0] = 0xf8;
+	utf8_to_ucs4 (ucs4_buf, 6, (unsigned char *) utf8_buf);
+
+	char buf[5], obuf[3];
+	obuf[0] = 1;
+	obuf[1] = 2;
+	u32 res = gf_base16_encode(obuf, 2, buf, 5);
+	if (res != 4) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] base16 encode fail\n"));
+		return 1;
+	}
+	u32 res2 = gf_base16_decode(buf, res, obuf, 3);
+	if (res2 != 2) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] base16 decode fail\n"));
+		return 1;
+	}
+
+	char *zbuf;
+	u32 osize;
+	GF_Err e;
+	char *ozbuf;
+
+#ifndef GPAC_DISABLE_ZLIB
+	zbuf = gf_strdup("123451234512345123451234512345");
+	osize=0;
+	e = gf_gz_compress_payload(&zbuf, 1+strlen(zbuf), &osize);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] zlib compress fail\n"));
+		gf_free(zbuf);
+		return 1;
+	}
+	ozbuf=NULL;
+	res=0;
+	e = gf_gz_decompress_payload(zbuf, osize, &ozbuf, &res);
+	gf_free(zbuf);
+	if (ozbuf) gf_free(ozbuf);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] zlib decompress fail\n"));
+		return 1;
+	}
+#endif
+
+#ifdef GPAC_HAS_LZMA
+	zbuf = gf_strdup("123451234512345123451234512345");
+	osize=0;
+	e = gf_lz_compress_payload(&zbuf, 1+strlen(zbuf), &osize);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma compress fail\n"));
+		gf_free(zbuf);
+		return 1;
+	}
+	ozbuf=NULL;
+	res=0;
+	e = gf_lz_decompress_payload(zbuf, osize, &ozbuf, &res);
+	gf_free(zbuf);
+	if (ozbuf) gf_free(ozbuf);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma decompress fail\n"));
+		return 1;
+	}
+#endif
+
+	gf_htonl(0xAABBCCDD);
+	gf_ntohl(0xAABBCCDD);
+	gf_htons(0xAABB);
+	gf_tohs(0xAABB);
+	gf_errno_str(-1);
+	return 0;
 }
