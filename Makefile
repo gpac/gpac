@@ -75,7 +75,7 @@ lcov_clean:
 lcov_only:
 	@echo "Generating lcov info in coverage.info"
 	@rm -f ./gpac-conf-* > /dev/null
-	@lcov -q -capture --directory . --output-file all.info 
+	@lcov -q -capture --directory . --output-file all.info
 	@lcov --remove all.info */usr/* */opt/* */include/* --output coverage.info
 	@rm all.info
 	@echo "Purging lcov info"
@@ -126,6 +126,7 @@ endif
 	$(INSTALL) -d "$(DESTDIR)$(moddir)"
 ifneq ($(MP4BOX_STATIC),yes)
 	$(INSTALL) bin/gcc/gm_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
+	$(INSTALL) bin/gcc/gf_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
 	#rm -f $(DESTDIR)$(moddir)/libgpac$(DYN_LIB_SUFFIX)
 	#rm -f $(DESTDIR)$(moddir)/nposmozilla$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_OPENHEVC),yes)
@@ -135,8 +136,8 @@ endif
 endif
 	$(INSTALL) -d "$(DESTDIR)$(mandir)"
 	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui"
@@ -145,10 +146,10 @@ endif
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/shaders"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/scripts"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/include"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/  
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/" 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/mpegu-core.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/scripts/webvtt-renderer.js "$(DESTDIR)$(prefix)/share/gpac/scripts/"
 
