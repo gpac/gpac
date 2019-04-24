@@ -95,7 +95,7 @@ test_end
 
 test_begin "gpac-units"
 if [ $test_skip != 1 ] ; then
-do_test "$GPAC -unit-tests" "units"
+do_test "$GPAC -lu -unit-tests" "units"
 fi
 test_end
 

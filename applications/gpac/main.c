@@ -1655,6 +1655,9 @@ static u32 gpac_unit_tests()
 {
 	u32 ucs4_buf[4];
 	u8 utf8_buf[7];
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[CoreUnitTests] performing tests\n"));
+
 	utf8_buf[0] = 'a';
 	utf8_buf[1] = 0;
 	if (! utf8_to_ucs4 (ucs4_buf, 1, (unsigned char *) utf8_buf)) {
@@ -1775,5 +1778,11 @@ static u32 gpac_unit_tests()
 	gf_htons(0xAABB);
 	gf_tohs(0xAABB);
 	gf_errno_str(-1);
+	gf_prompt_set_echo_off(GF_TRUE);
+	gf_prompt_set_echo_off(GF_FALSE);
+	gf_net_set_ntp_shift(-1000);
+	gf_net_get_ntp_diff_ms(gf_net_get_ntp_ts() );
+	gf_net_get_timezone();
+	gf_net_get_utc_ts(70, 1, 0, 0, 0, 0);
 	return 0;
 }
