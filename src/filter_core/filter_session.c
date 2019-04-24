@@ -2132,7 +2132,8 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 	return fsess->download_manager;
 }
 
-void gf_fs_cleanup_filters_task(GF_FSTask *task)
+#if 0
+static void gf_fs_cleanup_filters_task(GF_FSTask *task)
 {
 	GF_FilterSession *fsess = task->udta;
 	u32 i, count = gf_list_count(fsess->filters);
@@ -2150,6 +2151,7 @@ void gf_fs_cleanup_filters_task(GF_FSTask *task)
 		}
 	}
 }
+#endif
 
 void gf_fs_cleanup_filters(GF_FilterSession *fsess)
 {
