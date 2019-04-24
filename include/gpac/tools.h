@@ -1099,7 +1099,7 @@ GF_Err gf_lz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 typedef struct __sha1_context GF_SHA1Context;
 
 #define GF_SHA1_DIGEST_SIZE		20
-#define GF_SHA1_DIGEST_SIZE_HEXA		41
+
 /*  Create SHA-1 context */
 GF_SHA1Context *gf_sha1_starts();
 /*  Adds byte to the SHA-1 context */
@@ -1116,11 +1116,6 @@ int gf_sha1_file(const char *filename, u8 digest[GF_SHA1_DIGEST_SIZE]);
  * Gets SHA-1 of input buffer
  */
 void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE]);
-/*
- * Gets SHA-1 of input buffer into hexa form
- */
-void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE_HEXA]);
-
 /*! @} */
 
 

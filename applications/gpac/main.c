@@ -334,6 +334,60 @@ static void gpac_filter_help(void)
 
 }
 
+#include <gpac/modules/video_out.h>
+#include <gpac/modules/audio_out.h>
+#include <gpac/modules/compositor_ext.h>
+#include <gpac/modules/hardcoded_proto.h>
+#include <gpac/modules/js_usr.h>
+#include <gpac/modules/font.h>
+
+static void gpac_modules_help(void)
+{
+	u32 i;
+	fprintf(stderr, "Available modules:\n");
+	for (i=0; i<gf_modules_count(); i++) {
+		char *str = (char *) gf_modules_get_file_name(i);
+		if (!str) continue;
+		fprintf(stderr, "\t%s implements: ", str);
+		if (!strncmp(str, "gm_", 3) || !strncmp(str, "gsm_", 4)) {
+			GF_BaseInterface *ifce = gf_modules_load_by_name(str, GF_VIDEO_OUTPUT_INTERFACE);
+			if (ifce) {
+				fprintf(stderr, "VideoOutput ");
+				gf_modules_close_interface(ifce);
+			}
+			ifce = gf_modules_load_by_name(str, GF_AUDIO_OUTPUT_INTERFACE);
+			if (ifce) {
+				fprintf(stderr, "AudioOutput ");
+				gf_modules_close_interface(ifce);
+			}
+			ifce = gf_modules_load_by_name(str, GF_FONT_READER_INTERFACE);
+			if (ifce) {
+				fprintf(stderr, "FontReader ");
+				gf_modules_close_interface(ifce);
+			}
+			ifce = gf_modules_load_by_name(str, GF_COMPOSITOR_EXT_INTERFACE);
+			if (ifce) {
+				fprintf(stderr, "CompositorExtension ");
+				gf_modules_close_interface(ifce);
+			}
+			ifce = gf_modules_load_by_name(str, GF_JS_USER_EXT_INTERFACE);
+			if (ifce) {
+				fprintf(stderr, "javaScriptExtension ");
+				gf_modules_close_interface(ifce);
+			}
+			ifce = gf_modules_load_by_name(str, GF_HARDCODED_PROTO_INTERFACE);
+			if (ifce) {
+				fprintf(stderr, "HardcodedProto ");
+				gf_modules_close_interface(ifce);
+			}
+		} else {
+			fprintf(stderr, "Filter ");
+		}
+		fprintf(stderr, "\n");
+	}
+	fprintf(stderr, "\n");
+}
+
 #ifndef GPAC_DISABLE_DOC
 const char *gpac_alias =
 "The gpac command line can become quite complex when many sources or filters are used. In order to simplify this, an alias system is provided.\n"
@@ -455,6 +509,7 @@ GF_GPACArg gpac_args[] =
 			"\talias: prints the gpac alias syntax.\n"\
 			"\tlog: prints the log system help.\n"\
 			"\tcore: prints the supported libgpac core options. Use -ha/-hx/-hh for advanced/expert options.\n"\
+			"\tmodules: prints available modules.\n"\
 			"\tfilters: prints name of all available filters.\n"\
 			"\tfilters:*: prints name of all available filters, including meta filters.\n"\
 			"\tcodecs: prints the supported builtin codecs.\n"\
@@ -761,6 +816,9 @@ static int gpac_main(int argc, char **argv)
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "core")) {
 				gpac_core_help(argmode, GF_FALSE);
+				gpac_exit(0);
+			} else if (!strcmp(argv[i+1], "modules")) {
+				gpac_modules_help();
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "doc")) {
 				gpac_filter_help();

@@ -501,7 +501,7 @@ GF_BaseInterface *gf_modules_load_by_name(const char *plug_name, u32 InterfaceFa
 		}
 		gf_modules_close_interface(ifce);
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] Plugin %s not found in %d modules.\n", plug_name, count));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Plugin %s not found in %d modules.\n", plug_name, count));
 	return NULL;
 }
 
