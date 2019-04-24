@@ -110,14 +110,6 @@ const char *gf_disabled_features(void);
 */
 const char *gf_4cc_to_str(u32 type);
 
-/*!
- *	\brief asprintf() portable implementation
- *
- *	similar to sprintf, except it allows the string on the
- *  \note asprintf implementation for windows
-*/
-int gf_asprintf(char **buffer, const char *fmt, ...);
-
 
 size_t gf_fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 

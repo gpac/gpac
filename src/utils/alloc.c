@@ -728,7 +728,8 @@ void log_backtrace(unsigned int log_level, memory_element *element)
 }
 
 
-Bool gf_check_address(void *ptr)
+#if 0 //unused
+Bool gf_mem_check_address(void *ptr)
 {
 	Bool res = GF_TRUE;
 	int pos;
@@ -755,6 +756,7 @@ Bool gf_check_address(void *ptr)
 	gf_mx_v(gpac_allocations_lock);
 	return res;
 }
+#endif
 
 /*returns the size of the unregistered block*/
 static int unregister_address(void *ptr, const char *filename, int line)
@@ -909,6 +911,7 @@ void gf_memory_print()
 
 #endif /*GPAC_MEMORY_TRACKING*/
 
+#if 0 //unused
 
 /*gf_asprintf(): as_printf portable implementation*/
 #if defined(WIN32) || defined(_WIN32_WCE) || (defined (__SVR4) && defined (__sun))
@@ -962,3 +965,5 @@ int gf_asprintf(char **strp, const char *fmt, ...)
 	va_end(args);
 	return size;
 }
+
+#endif //unused
