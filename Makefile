@@ -60,8 +60,8 @@ distclean:
 	@find . -type f -name '*.gcno*' -delete
 	@find . -type f -name '*.gcda*' -delete
 	@rm -f coverage.info 2> /dev/null
-	@rm -f bin/gcc/gm_*.so 2> /dev/null
-	@rm -f bin/gcc/gf_*.so 2> /dev/null
+	@rm -f bin/gcc/gm_*$(DYN_LIB_SUFFIX) 2> /dev/null
+	@rm -f bin/gcc/gf_*$(DYN_LIB_SUFFIX) 2> /dev/null
 
 doc:
 	@cd $(SRC_PATH)/share/doc && doxygen
