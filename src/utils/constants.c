@@ -388,7 +388,7 @@ const char *gf_stream_type_name(u32 streamType)
 	case GF_STREAM_FONT:
 		return "Font";
 	case GF_STREAM_TEXT:
-		return "Text_Subtitle";
+		return "Text";
 	case GF_STREAM_FILE:
 		return "File";
 	case GF_STREAM_ENCRYPTED:
