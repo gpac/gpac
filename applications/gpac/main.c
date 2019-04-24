@@ -1796,7 +1796,7 @@ static u32 gpac_unit_tests()
 #ifndef GPAC_DISABLE_ZLIB
 	zbuf = gf_strdup("123451234512345123451234512345");
 	osize=0;
-	e = gf_gz_compress_payload(&zbuf, 1+strlen(zbuf), &osize);
+	e = gf_gz_compress_payload(&zbuf, 1 + (u32) strlen(zbuf), &osize);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] zlib compress fail\n"));
 		gf_free(zbuf);
