@@ -83,15 +83,14 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
         case GF_ISOM_MEDIA_AUXV:
         case GF_ISOM_MEDIA_PICT:
 			if (gf_isom_get_media_subtype(src, i+1, 1) == GF_ISOM_BOX_TYPE_JPEG) {
-				GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(src, i+1, 1);
-				if ((udesc->width>w) || (udesc->height>h)) {
-					w = udesc->width;
-					h = udesc->height;
+				u32 aw, ah;
+				gf_isom_get_visual_info(src, i+1, 1, &aw, &ah);
+				if ((aw>w) || (ah>h)) {
+					w = aw;
+					h = ah;
 					tk = i+1;
 					nb_samp = gf_isom_get_sample_count(src, i+1);
 				}
-				if (udesc->extension_buf) gf_free(udesc->extension_buf);
-				gf_free(udesc);
 			}
 			break;
 		case GF_ISOM_MEDIA_QTVR:
