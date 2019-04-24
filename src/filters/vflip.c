@@ -94,7 +94,7 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 	u32 line_size = wiB;
 
 	if( ctx->s_pfmt == GF_PIXEL_RGB || ctx->s_pfmt == GF_PIXEL_BGR || ctx->s_pfmt == GF_PIXEL_XRGB || ctx->s_pfmt == GF_PIXEL_RGBX || ctx->s_pfmt == GF_PIXEL_XBGR || ctx->s_pfmt == GF_PIXEL_BGRX){
-		//to avoid "line_size - 3*j - 3 > 3*j" or "line_size - 4*j - 4 > 4*j"
+		//to avoid "3*j > line_size - 3*j - 3" or "4*j > line_size - 4*j - 4"
 		//jmax=line_size/(2*3) or jmax=line_size/(2*4)
 		for (u32 j = 0; j < line_size/(2*ctx->bps); j++) {
 			u8 pix[4];
@@ -102,6 +102,7 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 			memcpy(line_dst + line_size - ctx->bps*j, line_src + ctx->bps*j, ctx->bps);
 			memcpy(line_dst + ctx->bps*j, pix, ctx->bps);
 		}
+
 	}else if (ctx->packed_422) {
 
 		line_size = wiB/2;
