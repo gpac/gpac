@@ -163,6 +163,7 @@ static u32 ipv6_check_state = 0;
 #include <sys/un.h>
 #endif
 
+GF_EXPORT
 const char *gf_errno_str(int errnoval)
 {
 	return strerror(errnoval);

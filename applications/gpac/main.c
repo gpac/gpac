@@ -1651,6 +1651,7 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/unicode.h>
 #include <gpac/base_coding.h>
 #include <gpac/network.h>
+#include <gpac/iso639.h>
 static u32 gpac_unit_tests()
 {
 	u32 ucs4_buf[4];
@@ -1784,5 +1785,21 @@ static u32 gpac_unit_tests()
 	gf_net_get_ntp_diff_ms(gf_net_get_ntp_ts() );
 	gf_net_get_timezone();
 	gf_net_get_utc_ts(70, 1, 0, 0, 0, 0);
+
+	gf_lang_get_count();
+	gf_lang_get_2cc(2);
+	GF_Blob b;
+	b.data = (u8 *) "test";
+	b.size = 5;
+	char url[100];
+	u8 *data;
+	u32 size;
+	sprintf(url, "gmem://%p", &b);
+
+	gf_blob_get_data(url, &data, &size);
+	if (!data || strcmp((char *)data, "test")) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] blob url parsing fail\n"));
+		return 1;
+	}
 	return 0;
 }

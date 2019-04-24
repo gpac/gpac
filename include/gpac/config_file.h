@@ -100,16 +100,7 @@ GF_Err gf_cfg_save(GF_Config *cfgFile);
  *\return the desired key value if found, NULL otherwise.
  */
 const char *gf_cfg_get_key(GF_Config *cfgFile, const char *secName, const char *keyName);
-/*!
- *	\brief key value query ignoring case
- *
- *Gets a key value from its section and name. Comparison is performed while ignoring case.
- *\param cfgFile the target configuration file
- *\param secName the desired key parent section name (case ignored)
- *\param keyName the desired key name (case ignored)
- *\return the desired key value if found, NULL otherwise.
- */
-const char *gf_cfg_get_ikey(GF_Config *cfgFile, const char *secName, const char *keyName);
+
 /*!
  *	\brief key value update
  *
@@ -159,19 +150,6 @@ u32 gf_cfg_get_key_count(GF_Config *cfgFile, const char *secName);
 const char *gf_cfg_get_key_name(GF_Config *cfgFile, const char *secName, u32 keyIndex);
 
 /*!
- *	\brief key insertion
- *
- *Inserts a new key in a given section. Returns an error if a key with the given name
- *already exists in the section
- *\param cfgFile the target configuration file
- *\param secName the target section
- *\param keyName the name of the target key
- *\param keyValue the value for the new key
- *\param index the 0-based index position of the new key
- */
-GF_Err gf_cfg_insert_key(GF_Config *cfgFile, const char *secName, const char *keyName, const char *keyValue, u32 index);
-
-/*!
  *	\brief section destrouction
  *
  *Removes all entries in the given section
@@ -181,27 +159,11 @@ GF_Err gf_cfg_insert_key(GF_Config *cfgFile, const char *secName, const char *ke
 void gf_cfg_del_section(GF_Config *cfgFile, const char *secName);
 
 /*!
- * get a sub key (separator is ':') in a given key in a given section. Returns an error if the key does not exist
- *\param cfgFile the target configuration file
- *\param secName the target section
- *\param keyName the name of the target key
- *\param sub_index the 0-based index position of the sub key*/
-const char *gf_cfg_get_sub_key(GF_Config *cfgFile, const char *secName, const char *keyName,u32 sub_index);
-
-/*!
  * Get the full filename associated with this config file
  * \param iniFile The Configuration
  * \return the associated filename
  */
 const char * gf_cfg_get_filename(GF_Config *iniFile);
-
-/*!
- * Set the full filename associated with this config file
- * \param iniFile The Configuration
- * \param fileName new filename for the config
- * \return erroro code
- */
-GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName);
 
 
 /*!
