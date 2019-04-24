@@ -137,9 +137,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_strdup) )
 #endif /*GPAC_MEMORY_TRACKING*/
 
-/* Print */
-#pragma comment (linker, EXPORT_SYMBOL(gf_asprintf) )
-
 /* Sound */
 #ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_set_config) )
