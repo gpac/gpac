@@ -1393,6 +1393,9 @@ typedef enum
 	In multithread mode, this prevents the filter to be scheduled on the main thread, blocking video or audio output.
 	Ignored in single thread mode.*/
 	GF_FS_REG_BLOCKING = 1<<6,
+	/*! Indicates the filter PIDs may be dynamically added uring process (e.g.M2TS, GSF, etc).
+	This will prevent dectivating a filter when none of its output pids are connected*/
+	GF_FS_REG_DYNAMIC_PIDS = 1<<7,
 
 	/*! flag dynamically set at runtime for registries loaded through shared libraries*/
 	GF_FS_REG_DYNLIB = 0x80000000
@@ -1619,7 +1622,10 @@ void gf_filter_sep_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids);
 Bool gf_filter_block_enabled(GF_Filter *filter);
 
 
-/*! Connects a source to this filter
+/*! Connects a source to this filter.
+Note:
+Any filter loaded between the source and the calling filter will not use argument inheritance from the caller.
+
 \param filter the target filter
 \param url url of source to connect to, with optional arguments.
 \param parent_url url of parent if any
@@ -1875,6 +1881,11 @@ GF_Err gf_filter_request_opengl(GF_Filter *filter);
 \return the number of source filters matched by protocols
 */
 u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_scheme, Bool expand_proto, GF_FilterPid * (*enum_pids)(void *udta, u32 *idx), void *udta);
+
+/*! Disables data probing on the given filter. Typically used by filters loading source filters.
+\param filter target filter
+*/
+void gf_filter_disable_probe(GF_Filter *filter);
 
 /*! @} */
 

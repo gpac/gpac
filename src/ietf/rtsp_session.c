@@ -594,7 +594,6 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	sess->http = gf_sk_new(GF_SOCK_TYPE_TCP);
 	if (!sess->http ) return GF_IP_NETWORK_FAILURE;
 
-	/*mobileIP is enabled, bind first*/
 	if (gf_sk_connect(sess->http, sess->Server, sess->Port, NULL)) return GF_IP_CONNECTION_FAILURE;
 
 	memset(buffer, 0, GF_RTSP_DEFAULT_BUFFER);

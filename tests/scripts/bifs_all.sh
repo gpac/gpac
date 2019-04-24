@@ -8,6 +8,7 @@ bifs_test()
  fi
 
  is_bt=$3
+ basic_test=$4
  srcfile=$1
  mp4file=${srcfile%.*}'.mp4'
  dump=$TEMP_DIR/dump.rgb
@@ -15,15 +16,6 @@ bifs_test()
  do_test "$MP4BOX -mp4 $srcfile" "mp4"
  do_hash_test $mp4file "mp4"
 
- #test source (BT/XMT) parsing and playback
- do_test "$GPAC -i $srcfile compositor:osize=128x128:vfr @ -o $dump" "srcplay"
- #we unfortunately have rounding issues for now on bt/xmt playback which do not happen on binary version
- #do_hash_test $dump "srcplay"
-
- dump=$TEMP_DIR/dump_mp4.rgb
- #test encoded BIFS playback - we cannot compare hashes of the two playback, because the encoded version uses quantization so display will differ
- do_test "$GPAC -i $mp4file compositor:osize=128x128:vfr @ -o $dump" "mp4play"
- do_hash_test $dump "mp4play"
 
  #test MP4 to BT
  do_test "$MP4BOX -bt $mp4file -out $TEMP_DIR/dump.bt" "mp42bt"
@@ -41,6 +33,25 @@ bifs_test()
   do_test "$MP4BOX -bt $srcfile -out $TEMP_DIR/dump.bt" "xmt2bt"
   do_hash_test $TEMP_DIR/dump.bt "bt"
  fi
+
+
+ if [ $basic_test = 1 ] ; then
+   do_test "$MP4BOX -diso $mp4file -out $TEMP_DIR/dump.xml" "diso"
+   do_hash_test $TEMP_DIR/dump.xml "diso"
+   test_end
+   return
+ fi
+
+ #test source (BT/XMT) parsing and playback
+ do_test "$GPAC -font-dirs=$EXTERNAL_MEDIA_DIR/fonts/ -rescan-fonts -i $srcfile compositor:osize=128x128:vfr @ -o $dump" "srcplay"
+ #we unfortunately have rounding issues for now on bt/xmt playback
+ #do_hash_test $dump "srcplay"
+
+ dump=$TEMP_DIR/dump_mp4.rgb
+ #test encoded BIFS playback - we cannot compare hashes of the two playback, because the encoded version uses quantization so display will differ
+ do_test "$GPAC -font-dirs=$EXTERNAL_MEDIA_DIR/fonts/ -rescan-fonts -i $mp4file compositor:osize=128x128:vfr @ -o $dump" "mp4play"
+ #we unfortunately have rounding issues for now on mp4 playback
+ #do_hash_test $dump "mp4play"
 
  #MP4 stat
  dump=$TEMP_DIR/stat.xml
@@ -65,11 +76,13 @@ bifs_test()
 
 
 #test BT
-bifs_test $MEDIA_DIR/bifs/bifs-all.bt "bifs-all-bt" 1
+bifs_test $MEDIA_DIR/bifs/bifs-all.bt "bifs-all-bt" 1 0
 
 #test BT UTF16
-bifs_test $MEDIA_DIR/bifs/bifs-all-utf16.bt "bifs-all-bt-utf16" 1
+bifs_test $MEDIA_DIR/bifs/bifs-all-utf16.bt "bifs-all-bt-utf16" 1 0
 
 #test XMT
-bifs_test $MEDIA_DIR/bifs/bifs-all.xmt "bifs-all-xmt" 0
+bifs_test $MEDIA_DIR/bifs/bifs-all.xmt "bifs-all-xmt" 0 0
 
+#test BT and isom
+bifs_test $MEDIA_DIR/bifs/bifs-isom.bt "bifs-all-isom" 1 1

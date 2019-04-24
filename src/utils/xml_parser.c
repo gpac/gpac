@@ -1230,7 +1230,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 		if (e) return e;
 
 
-		e = gf_xml_sax_parse(parser, xml_mem_address+3);
+		e = gf_xml_sax_parse(parser, xml_mem_address+4);
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
 
 		parser->elt_start_pos = parser->elt_end_pos = 0;
@@ -1341,7 +1341,7 @@ u32 gf_xml_sax_get_line(GF_SAXParser *parser) {
 	return parser->line + 1 ;
 }
 
-GF_EXPORT
+#if 0 //unused
 u32 gf_xml_sax_get_file_size(GF_SAXParser *parser)
 {
 #ifdef NO_GZIP
@@ -1351,7 +1351,6 @@ u32 gf_xml_sax_get_file_size(GF_SAXParser *parser)
 #endif
 }
 
-GF_EXPORT
 u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser)
 {
 #ifdef NO_GZIP
@@ -1360,6 +1359,9 @@ u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser)
 	return parser->gz_in ? parser->file_pos : 0;
 #endif
 }
+#endif
+
+
 
 GF_EXPORT
 char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value, char *substitute, char *get_attr, char *end_pattern, Bool *is_substitute)
@@ -1767,13 +1769,14 @@ void gf_xml_dom_del(GF_DOMParser *parser)
 	gf_free(parser);
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser)
 {
 	GF_XMLNode *root = parser->root;
 	parser->root = NULL;
 	return root;
 }
+#endif
 
 static void dom_on_progress(void *cbck, u64 done, u64 tot)
 {
@@ -1807,7 +1810,7 @@ GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, char *string)
 	return e<0 ? e : GF_OK;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_XMLNode *gf_xml_dom_create_root(GF_DOMParser *parser, const char* name) {
 	GF_XMLNode * root;
 	if (!parser) return NULL;
@@ -1818,6 +1821,7 @@ GF_XMLNode *gf_xml_dom_create_root(GF_DOMParser *parser, const char* name) {
 
 	return root;
 }
+#endif
 
 GF_EXPORT
 GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser)
@@ -1927,7 +1931,7 @@ char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only)
 	return str;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_XMLAttribute *gf_xml_dom_set_attribute(GF_XMLNode *node, const char* name, const char* value) {
 	GF_XMLAttribute *att;
 	if (!name || !value) return NULL;
@@ -1942,19 +1946,6 @@ GF_XMLAttribute *gf_xml_dom_set_attribute(GF_XMLNode *node, const char* name, co
 	return att;
 }
 
-GF_EXPORT
-GF_XMLAttribute *gf_xml_dom_create_attribute(const char* name, const char* value) {
-	GF_XMLAttribute *att;
-	GF_SAFEALLOC(att, GF_XMLAttribute);
-	if (!att) return NULL;
-
-	att->name = gf_strdup(name);
-	att->value = gf_strdup(value);
-	return att;
-}
-
-
-GF_EXPORT
 GF_XMLAttribute *gf_xml_dom_get_attribute(GF_XMLNode *node, const char* name) {
 	u32 i = 0;
 	GF_XMLAttribute *att;
@@ -1968,6 +1959,20 @@ GF_XMLAttribute *gf_xml_dom_get_attribute(GF_XMLNode *node, const char* name) {
 
 	return NULL;
 }
+
+#endif
+
+GF_EXPORT
+GF_XMLAttribute *gf_xml_dom_create_attribute(const char* name, const char* value) {
+	GF_XMLAttribute *att;
+	GF_SAFEALLOC(att, GF_XMLAttribute);
+	if (!att) return NULL;
+
+	att->name = gf_strdup(name);
+	att->value = gf_strdup(value);
+	return att;
+}
+
 
 GF_EXPORT
 GF_Err gf_xml_dom_append_child(GF_XMLNode *node, GF_XMLNode *child) {
@@ -1988,7 +1993,7 @@ GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child) {
 	return gf_list_rem(node->content, idx);
 }
 
-GF_EXPORT
+#if 0
 GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name) {
 	GF_XMLNode* node;
 	GF_SAFEALLOC(node, GF_XMLNode);
@@ -2011,6 +2016,7 @@ GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name) {
 	}
 	return node;
 }
+#endif //unused
 
 #include <gpac/base_coding.h>
 

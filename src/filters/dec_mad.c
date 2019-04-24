@@ -276,6 +276,7 @@ GF_FilterRegister MADRegister = {
 	.name = "maddec",
 	GF_FS_SET_DESCRIPTION("MAD decoder")
 	.private_size = sizeof(GF_MADCtx),
+	.priority = 1,
 	SETCAPS(MADCaps),
 	.finalize = maddec_finalize,
 	.configure_pid = maddec_configure_pid,

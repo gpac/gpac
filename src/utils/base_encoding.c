@@ -155,7 +155,7 @@ u32 gf_base16_encode(char *_in, u32 inSize, char *_out, u32 outSize)
 	}
 	out[(inSize * 2)] = 0;
 
-	return i;
+	return inSize * 2;
 }
 
 #define char16(nb) (((nb) < 97) ? ((nb)-48) : ((nb)-87))
@@ -200,7 +200,8 @@ GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *max_size)
 	stream.zfree = (free_func)NULL;
 	stream.opaque = (voidpf)NULL;
 
-	err = deflateInit(&stream, 9);
+	err = deflateInit2(&stream, 9, Z_DEFLATED, 16+MAX_WBITS, 8, Z_DEFAULT_STRATEGY);
+
 	if (err != Z_OK) {
 		gf_free(dest);
 		return GF_IO_ERR;
@@ -254,7 +255,6 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 	d_stream.next_out = (Bytef*) *uncompressed_data;
 	d_stream.avail_out = size;
 
-//	err = inflateInit(&d_stream);
 	err = inflateInit2(&d_stream, 16+MAX_WBITS);
 
 	if (err == Z_OK) {

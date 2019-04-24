@@ -2655,7 +2655,10 @@ static GF_Err txtin_process(GF_Filter *filter)
 	//file is loaded
 
 	e = ctx->text_process(filter, ctx);
+
+
 	if (e==GF_EOS) {
+		//keep input alive until end of stream, so that we keep getting called
 		gf_filter_pid_drop_packet(ctx->ipid);
 		if (gf_filter_pid_is_eos(ctx->ipid))
 			gf_filter_pid_set_eos(ctx->opid);

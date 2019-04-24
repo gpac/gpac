@@ -114,9 +114,11 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_TX3G, 0, GF_STREAM_TEXT, "Subtitle/text 3GPP/Apple Stream", "tx3g", "tx3g", "quicktime/text"},
 	{GF_CODECID_THEORA, 0xDF, GF_STREAM_VISUAL, "Theora Video", "theo|theora", NULL, "video/theora"},
 	{GF_CODECID_VORBIS, 0xDD, GF_STREAM_AUDIO, "Vorbis Audio", "vorb|vorbis", NULL, "audio/vorbis"},
+	{GF_CODECID_OPUS, 0xDE, GF_STREAM_AUDIO, "Opus  Audio", "opus", NULL, "audio/opus"},
 	{GF_CODECID_FLAC, 0, GF_STREAM_AUDIO, "Flac Audio", "flac", NULL, "audio/flac"},
 	{GF_CODECID_SPEEX, 0, GF_STREAM_AUDIO, "Speex Audio", "spx|speex", NULL, "audio/speex"},
 	{GF_CODECID_SUBPIC, 0xE0, GF_STREAM_TEXT, "VobSub Subtitle", "vobsub", NULL, "text/x-vobsub"},
+	{GF_CODECID_SUBPIC, 0xE0, GF_STREAM_ND_SUBPIC, "VobSub Subtitle", "vobsub", NULL, "text/x-vobsub"},
 	{GF_CODECID_PCM, 0, GF_STREAM_AUDIO, "PCM", "pcm", NULL, "audio/pcm"},
 	{GF_CODECID_ADPCM, 0, GF_STREAM_AUDIO, "AD-PCM", "adpcm", NULL, "audio/pcm"},
 	{GF_CODECID_IBM_CVSD, 0, GF_STREAM_AUDIO, "IBM CSVD", "csvd", NULL, "audio/pcm"},
@@ -330,6 +332,14 @@ const char *gf_codecid_name_oti(u32 stream_type, u32 oti)
 }
 
 GF_EXPORT
+u32 gf_codecid_from_oti(u32 stream_type, u32 oti)
+{
+	CodecIDReg *r = gf_codecid_reg_find_oti(stream_type, oti);
+	if (!r) return GF_CODECID_NONE;
+	return r->codecid;
+}
+
+GF_EXPORT
 u8 gf_codecid_oti(u32 codecid)
 {
 	CodecIDReg *r = gf_codecid_reg_find(codecid);
@@ -378,7 +388,7 @@ const char *gf_stream_type_name(u32 streamType)
 	case GF_STREAM_FONT:
 		return "Font";
 	case GF_STREAM_TEXT:
-		return "Text_Subtitle";
+		return "Text";
 	case GF_STREAM_FILE:
 		return "File";
 	case GF_STREAM_ENCRYPTED:

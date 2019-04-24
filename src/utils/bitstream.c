@@ -1225,6 +1225,7 @@ u64 gf_bs_read_u64_le(GF_BitStream *bs)
 	ret |= v;
 	return ret;
 }
+
 GF_EXPORT
 u32 gf_bs_read_u32_le(GF_BitStream *bs)
 {

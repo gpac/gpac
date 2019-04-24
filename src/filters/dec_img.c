@@ -159,6 +159,7 @@ GF_FilterRegister ImgDecRegister = {
 	.name = "imgdec",
 	GF_FS_SET_DESCRIPTION("PNG/JPG decoder")
 	.private_size = sizeof(GF_IMGDecCtx),
+	.priority = 1,
 	SETCAPS(ImgDecCaps),
 	.configure_pid = imgdec_configure_pid,
 	.process = imgdec_process,

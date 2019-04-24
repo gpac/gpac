@@ -497,7 +497,7 @@ static GF_Err rawvout_evt(struct _video_out *vout, GF_Event *evt)
 	memset(compositor->framebuffer, 0, sizeof(char)*compositor->framebuffer_size);
 
 #ifndef GPAC_DISABLE_3D
-	if (compositor->needs_offscreen_gl)
+	if (compositor->needs_offscreen_gl && (compositor->ogl != GF_SC_GLMODE_OFF))
 		return compositor_3d_setup_fbo(evt->setup.width, evt->setup.height, &compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
 #endif
 

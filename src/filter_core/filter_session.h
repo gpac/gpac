@@ -419,7 +419,9 @@ typedef enum
 {
 	GF_FILTER_ARG_EXPLICIT = 0,
 	GF_FILTER_ARG_INHERIT,
+	GF_FILTER_ARG_INHERIT_SOURCE_ONLY,
 	GF_FILTER_ARG_EXPLICIT_SOURCE,
+	GF_FILTER_ARG_EXPLICIT_SOURCE_NO_DST_INHERIT,
 	GF_FILTER_ARG_EXPLICIT_SINK,
 } GF_FilterArgType;
 
@@ -454,8 +456,8 @@ struct __gf_filter
 	GF_FilterArgType arg_type;
 	//allocated pointer to the argument string for source filters
 	char *src_args;
-	//pointer to the argument string of the destingation filter for filters dynamically loaded
-	const char *dst_args;
+	//allocated argument string of the destingation filter for filters dynamically loaded, if any
+	char *dst_args;
 
 	//tasks pending for this filter. The first task in this list is also present in the filter session
 	//task list in order to avoid locking the main task list with a mutex
@@ -472,6 +474,8 @@ struct __gf_filter
 	Bool has_out_caps;
 
 	Bool disabled;
+
+	Bool no_probe;
 
 	//list of pids connected to this filter
 	GF_List *input_pids;
@@ -602,6 +606,8 @@ struct __gf_filter
 	//valid when a pid inst is waiting for a reconnection, NULL otherwise
 	GF_List *detached_pid_inst;
 
+	//index of the bundle input for dynamic filters
+	s32 bundle_idx_at_resolution;
 	//index of the cap bundle input for adaptation filters
 	s32 cap_idx_at_resolution;
 
@@ -634,7 +640,7 @@ struct __gf_filter
 	GF_Err in_connect_err;
 
 	Bool main_thread_forced;
-
+	Bool no_dst_arg_inherit;
 	GF_List *source_filters;
 
 };
@@ -647,7 +653,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter);
 
 GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
 
-GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source);
+GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit);
 
 void gf_filter_pid_inst_delete_task(GF_FSTask *task);
 
@@ -689,6 +695,8 @@ struct __gf_filter_pid_inst
 	Bool first_block_started;
 	//set during play/stop/reset phases
 	Bool discard_packets;
+
+	Bool force_reconfig;
 
 	//set by filter
 	Bool discard_inputs;
@@ -797,6 +805,8 @@ struct __gf_filter_pid
 	Bool ext_not_trusted;
 
 	Bool require_source_id;
+	//only used in filter_check_caps
+	GF_PropertyMap *local_props;
 };
 
 
@@ -871,6 +881,8 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 const GF_PropertyEntry *gf_filter_pid_get_property_entry(GF_FilterPid *pid, u32 prop_4cc);
 const GF_PropertyEntry *gf_filter_pid_get_property_entry_str(GF_FilterPid *pid, const char *prop_name);
 
+const GF_PropertyValue *gf_filter_pid_get_property_first(GF_FilterPid *pid, u32 prop_4cc);
+const GF_PropertyValue *gf_filter_pid_get_property_str_first(GF_FilterPid *pid, const char *prop_name);
 
 
 enum

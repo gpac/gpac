@@ -163,6 +163,7 @@ static u32 ipv6_check_state = 0;
 #include <sys/un.h>
 #endif
 
+GF_EXPORT
 const char *gf_errno_str(int errnoval)
 {
 	return strerror(errnoval);
@@ -179,8 +180,7 @@ enum
 	GF_SOCK_IS_LISTENING = 1<<13,
 	/*socket is bound to a specific dest (server) or source (client) */
 	GF_SOCK_HAS_PEER = 1<<14,
-	GF_SOCK_IS_MIP = 1<<15,
-	GF_SOCK_IS_UN = 1<<16,
+	GF_SOCK_IS_UN = 1<<15,
 };
 
 struct __tag_socket
@@ -199,26 +199,6 @@ struct __tag_socket
 };
 
 
-
-/*
-	MobileIP tools
-*/
-
-static gf_net_mobileip_ctrl_cbk mobip_cbk = NULL;
-static const char *MobileIPAdd = NULL;
-
-GF_EXPORT
-void gf_net_mobileip_set_callback(gf_net_mobileip_ctrl_cbk _mobip_cbk, const char *mip)
-{
-	mobip_cbk = _mobip_cbk;
-	MobileIPAdd = _mobip_cbk ? mip : NULL;
-}
-
-static GF_Err gf_net_mobileip_ctrl(Bool start)
-{
-	if (mobip_cbk) return mobip_cbk(start);
-	return GF_NOT_SUPPORTED;
-}
 
 GF_EXPORT
 u32 gf_net_has_ipv6()
@@ -301,15 +281,7 @@ static struct addrinfo *gf_sk_get_ipv6_addr(const char *PeerName, u16 PortNumber
 	return res;
 }
 
-static Bool gf_sk_ipv6_set_remote_address(GF_Socket *sock, const char *address, u16 PortNumber)
-{
-	struct addrinfo *res = gf_sk_get_ipv6_addr(address, PortNumber, AF_UNSPEC, 0, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM);
-	if (!res) return GF_FALSE;
-	memcpy(&sock->dest_addr, res->ai_addr, res->ai_addrlen);
-	sock->dest_addr_len = (u32) res->ai_addrlen;
-	freeaddrinfo(res);
-	return GF_TRUE;
-}
+
 #endif
 
 
@@ -482,12 +454,6 @@ static void gf_sk_free(GF_Socket *sock)
 	}
 	if (sock->socket) closesocket(sock->socket);
 	sock->socket = (SOCKET) 0L;
-
-	/*if MobileIP socket, unregister it*/
-	if (sock->flags & GF_SOCK_IS_MIP) {
-		sock->flags &= ~GF_SOCK_IS_MIP;
-		gf_net_mobileip_ctrl(GF_FALSE);
-	}
 }
 
 
@@ -562,15 +528,6 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 	if (!res) return GF_IP_CONNECTION_FAILURE;
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Host %s found\n", PeerName));
 
-	/*turn on MobileIP*/
-	if (local_ip && MobileIPAdd && !strcmp(MobileIPAdd, local_ip) ) {
-		if (gf_net_mobileip_ctrl(GF_TRUE)==GF_OK) {
-			sock->flags |= GF_SOCK_IS_MIP;
-		} else {
-			local_ip = NULL;
-		}
-	}
-
 	lip = NULL;
 	if (local_ip) {
 		lip = gf_sk_get_ipv6_addr(local_ip, PortNumber, AF_UNSPEC, AI_PASSIVE, type);
@@ -610,7 +567,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 			if (ret == SOCKET_ERROR) {
 				closesocket(sock->socket);
 				sock->socket = NULL_SOCKET;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Sock_IPV4] Failed to connect to host %s: %s - retrying\n", PeerName, gf_errno_str(LASTSOCKERROR) ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Sock_IPV4] Failed to connect to host %s: %s - retrying\n", PeerName, gf_errno_str(LASTSOCKERROR) ));
 				continue;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connected to %s:%d\n", PeerName, PortNumber));
@@ -627,7 +584,6 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 
 #else
 	if (local_ip) {
-		/*this will turn on MobileIP if needed*/
 		GF_Err e = gf_sk_bind(sock, local_ip, PortNumber, PeerName, PortNumber, GF_SOCK_REUSE_PORT);
 		if (e) return e;
 	}
@@ -770,15 +726,6 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 		freeaddrinfo(res);
 	}
 
-	/*turn on MobileIP*/
-	if (local_ip && MobileIPAdd && !strcmp(MobileIPAdd, local_ip) ) {
-		if (gf_net_mobileip_ctrl(GF_TRUE)==GF_OK) {
-			sock->flags |= GF_SOCK_IS_MIP;
-		} else {
-			/*res = */gf_sk_get_ipv6_addr(NULL, port, af, AI_PASSIVE, type);
-			local_ip = NULL;
-		}
-	}
 	res = gf_sk_get_ipv6_addr(local_ip, port, af, AI_PASSIVE, type);
 	if (!res) {
 		if (local_ip) {
@@ -843,14 +790,6 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 
 	memset((void *) &LocalAdd, 0, sizeof(LocalAdd));
 
-	/*turn on MobileIP*/
-	if (local_ip && MobileIPAdd && !strcmp(MobileIPAdd, local_ip) ) {
-		if (gf_net_mobileip_ctrl(1)==GF_OK) {
-			sock->flags |= GF_SOCK_IS_MIP;
-		} else {
-			local_ip = NULL;
-		}
-	}
 	/*setup the address*/
 	ip_add = 0;
 	if (local_ip) ip_add = inet_addr(local_ip);
@@ -1053,15 +992,6 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 	/*check the address*/
 	if (!gf_sk_is_multicast_address(multi_IPAdd)) return GF_BAD_PARAM;
 
-	/*turn on MobileIP*/
-	if (local_interface_ip && MobileIPAdd && !strcmp(MobileIPAdd, local_interface_ip) ) {
-		if (gf_net_mobileip_ctrl(GF_TRUE)==GF_OK) {
-			sock->flags |= GF_SOCK_IS_MIP;
-		} else {
-			local_interface_ip = NULL;
-		}
-	}
-
 
 #ifdef GPAC_HAS_IPV6
 	is_ipv6 = gf_net_is_ipv6(multi_IPAdd) || gf_net_is_ipv6(local_interface_ip) ? GF_TRUE : GF_FALSE;
@@ -1118,9 +1048,11 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 		freeaddrinfo(res);
 		if (!sock->socket) return GF_IP_CONNECTION_FAILURE;
 
-
-		if (!gf_sk_ipv6_set_remote_address(sock, multi_IPAdd, MultiPortNumber))
-			return GF_IP_CONNECTION_FAILURE;
+		struct addrinfo *_res = gf_sk_get_ipv6_addr(multi_IPAdd, MultiPortNumber, AF_UNSPEC, 0, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM);
+		if (!_res) return GF_IP_CONNECTION_FAILURE;
+		memcpy(&sock->dest_addr, _res->ai_addr, res->ai_addrlen);
+		sock->dest_addr_len = (u32) _res->ai_addrlen;
+		freeaddrinfo(_res);
 
 		addr = (struct sockaddr *)&sock->dest_addr;
 		if (addr->sa_family == AF_INET) {
@@ -1587,9 +1519,9 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 
 
 
+#if 0 //unused
 
 //send length bytes of a buffer
-GF_EXPORT
 GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remoteHost, u16 remotePort)
 {
 	u32 count, remote_add_len;
@@ -1682,6 +1614,8 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 	}
 	return GF_OK;
 }
+#endif
+
 
 GF_EXPORT
 GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 *BytesRead, u32 Second )

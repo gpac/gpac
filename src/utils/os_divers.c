@@ -1763,6 +1763,8 @@ Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32*level, u32 *ba
 }
 
 
+#if 0 //global lock currently not used
+
 struct GF_GlobalLock {
 	const char * resourceName;
 };
@@ -1947,6 +1949,9 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock) {
 	return GF_OK;
 }
 
+#endif //global lock uni-used
+
+
 #ifdef GPAC_CONFIG_ANDROID
 
 fm_callback_func fm_cbk = NULL;
@@ -1963,11 +1968,6 @@ void gf_fm_request_call(u32 type, u32 param, int *value) {
 }
 
 #endif //GPAC_CONFIG_ANDROID
-
-GF_EXPORT
-s32 gf_gettimeofday(struct timeval *tp, void *tz) {
-	return gettimeofday(tp, tz);
-}
 
 
 static u32 ntp_shift = GF_NTP_SEC_1900_TO_1970;
@@ -2355,3 +2355,21 @@ GF_Err gf_bin128_parse(const char *string, bin128 value)
 	}
 	return GF_OK;
 }
+
+
+#ifndef WIN32
+#include <unistd.h>
+GF_EXPORT
+u32 gf_sys_get_process_id()
+{
+	return getpid ();
+}
+#else
+#include <windows.h>
+GF_EXPORT
+u32 gf_sys_get_process_id()
+{
+	return GetCurrentProcessId();
+}
+#endif
+

@@ -284,11 +284,22 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 		gf_isom_set_track_reference(mp4, gf_isom_get_track_by_id(mp4, import.final_trackID), GF_ISOM_REF_OCR, src->OCRESID);
 	}
 
+	track = gf_isom_get_track_by_id(mp4, import.final_trackID);
 	i=0;
 	while ((d = gf_list_enum(src->extensionDescriptors, &i))) {
+		Bool do_del = GF_FALSE;
 		if (d->tag == GF_ODF_AUX_VIDEO_DATA) {
-			gf_isom_add_user_data(mp4, gf_isom_get_track_by_id(mp4, import.final_trackID), GF_ISOM_BOX_TYPE_AUXV, 0, NULL, 0);
+			gf_isom_add_user_data(mp4, track, GF_ISOM_BOX_TYPE_AUXV, 0, NULL, 0);
+			do_del = GF_TRUE;
+		}
+		else if (d->tag == GF_ODF_GPAC_LANG) {
+			gf_isom_add_desc_to_description(mp4, track, 1, d);
+			do_del = GF_TRUE;
+
+		}
+		if (do_del) {
 			gf_list_rem(src->extensionDescriptors, i-1);
+			i--;
 			gf_odf_desc_del(d);
 		}
 	}

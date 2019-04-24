@@ -595,8 +595,8 @@ typedef struct
 	u8 frame_presentation_time_length;
 	u32 buffer_removal_time_length;
 	u8 operating_points_count;
-	u8 decoder_model_present_for_this_op[6];
-	u8 operating_point_idc[6];
+	u8 decoder_model_present_for_this_op[32];
+	u8 operating_point_idc[32];
 
 	u32 tileRows, tileCols, tileRowsLog2, tileColsLog2;
 	u8 tile_size_bytes; /*coding tile header size*/
@@ -634,7 +634,7 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state);
 GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state);
 
-GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size);
+GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size, u64 *pts);
 
 Bool gf_media_probe_ivf(GF_BitStream *bs);
 Bool gf_media_aom_probe_annexb(GF_BitStream *bs);
@@ -711,7 +711,6 @@ u64 gf_webvtt_sample_get_end(GF_WebVTTSample * samp);
 
 #ifndef GPAC_DISABLE_ISOM
 GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, Bool box_mode, u32 index);
-GF_Err gf_webvtt_dump_sample(FILE *dump, GF_WebVTTSample *samp);
 GF_Err gf_webvtt_parser_dump_done(GF_WebVTTParser *parser, u32 duration);
 #endif /* GPAC_DISABLE_ISOM */
 

@@ -1776,6 +1776,7 @@ try_next_segment:
 						break;
 					}
 				}
+				if (elt_url) gf_free(elt_url);
 			}
 #endif
 			GF_SAFEALLOC(rep, GF_MPD_Representation);
@@ -1869,7 +1870,7 @@ try_next_segment:
 					if (! url) return GF_OUT_OF_MEM;
 					e = gf_list_add(rep->base_URLs, url);
 					if (e) return GF_OUT_OF_MEM;
-					url->URL = gf_url_concatenate(mpd_file, base_url);
+					url->URL = gf_url_concatenate_parent(mpd_file, base_url);
 				}
 			}
 

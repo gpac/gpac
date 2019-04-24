@@ -128,3 +128,7 @@ fi
 
 test_decoder "ac3-a52" $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.ac3 "test.pcm" "-blacklist=ffdec" 1
 test_decoder "ac3-ff" $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.ac3 "test.pcm" "-blacklist=a52dec" 0
+
+test_decoder "vorbis" $EXTERNAL_MEDIA_DIR/import/dead_ogg.ogg "test.pcm" "-blacklist=ffdec" 0
+
+test_decoder "theora" $EXTERNAL_MEDIA_DIR/import/dead_ogg.ogg "test.yuv" "-blacklist=ffdec" 0

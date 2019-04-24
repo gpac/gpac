@@ -53,12 +53,12 @@ typedef struct
 	Double start_range;
 	u64 first_dts;
 
-	Bool is_playing;
+	u32 nb_playing;
 	GF_Fraction duration;
 	Bool in_seek;
 
 	GF_List *streams;
-
+	Bool initial_play_done;
 } GF_M2PSDmxCtx;
 
 static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
@@ -234,22 +234,37 @@ GF_Err m2psdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
+	GF_FilterEvent fevt;
 	GF_M2PSDmxCtx *ctx = gf_filter_get_udta(filter);
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-		if (ctx->is_playing && (ctx->start_range ==  evt->play.start_range)) {
+		if (ctx->nb_playing && (ctx->start_range ==  evt->play.start_range)) {
+			ctx->nb_playing++;
 			return GF_TRUE;
 		}
+		ctx->nb_playing++;
 		ctx->start_range = evt->play.start_range;
-		ctx->is_playing = GF_TRUE;
-		ctx->in_seek = GF_TRUE;
-		//cancel play event, we work with full file
+		if (!ctx->initial_play_done) {
+			ctx->initial_play_done = GF_TRUE;
+			//seek will not change the current source state, don't send a seek
+			if (ctx->start_range<0.5)
+				return GF_TRUE;
+		}
+
+		//post a seek
+		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
+		fevt.seek.start_offset = 0;
+		gf_filter_pid_send_event(ctx->ipid, &fevt);
+
+		//cancel event
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
-		ctx->is_playing = GF_FALSE;
-		//don't cancel event
+		ctx->nb_playing--;
+		//cancel event if not last stream playing
+		if (ctx->nb_playing) return GF_TRUE;
+
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
@@ -288,7 +303,7 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 		}
 		m2psdmx_setup(filter, ctx);
 	}
-	if (!ctx->is_playing) return GF_OK;
+	if (!ctx->nb_playing) return GF_OK;
 
 
 	nb_done = 0;
@@ -403,15 +418,23 @@ void m2psdmx_finalize(GF_Filter *filter)
 	if (ctx->ps) mpeg2ps_close(ctx->ps);
 }
 
+static const char *m2psdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	*score = GF_FPROBE_EXT_MATCH;
+	return "mpg|mpeg|vob";
+}
+
 static const GF_FilterCapability M2PSDmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mpeg|audio/mpeg"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "mpg|mpeg|vob"),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 
@@ -426,6 +449,7 @@ GF_FilterRegister M2PSDmxRegister = {
 	.configure_pid = m2psdmx_configure_pid,
 	.process = m2psdmx_process,
 	.process_event = m2psdmx_process_event,
+	.probe_data = m2psdmx_probe_data,
 	//this filter is not very reliable, prefer ffmpeg when available
 	.priority = 255
 };

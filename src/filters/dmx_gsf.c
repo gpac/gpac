@@ -1214,6 +1214,7 @@ GF_FilterRegister GSFDemuxRegister = {
 	.private_size = sizeof(GSF_DemuxCtx),
 	.max_extra_pids = (u32) -1,
 	.args = GSFDemuxArgs,
+	.flags = GF_FS_REG_DYNAMIC_PIDS,
 	SETCAPS(GSFDemuxCaps),
 	.initialize = gsfdmx_initialize,
 	.finalize = gsfdmx_finalize,

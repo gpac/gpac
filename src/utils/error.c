@@ -211,9 +211,9 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 		char *sep_level = strchr(val, '@');
 		if (!sep_level) {
 			if (!strcmp(val, "ncl")) {
-				void default_log_callback_no_col(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist);
+				void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist);
 
-				gf_log_set_callback(NULL, default_log_callback_no_col);
+				gf_log_set_callback(NULL, default_log_callback);
 				if (!val[3]) break;
 				val += 4;
 				continue;
@@ -386,11 +386,6 @@ u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
 	return global_log_tools[log_tool].level;
 }
 
-void default_log_callback_no_col(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
-{
-	vfprintf(stderr, fmt, vlist);
-}
-
 #define RED    "\x1b[31m"
 #define YELLOW "\x1b[33m"
 #define GREEN  "\x1b[32m"
@@ -463,7 +458,7 @@ void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, cons
 }
 
 static void *user_log_cbk = NULL;
-gf_log_cbk log_cbk = default_log_callback;
+gf_log_cbk log_cbk = default_log_callback_color;
 static Bool log_exit_on_error = GF_FALSE;
 
 GF_EXPORT

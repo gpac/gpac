@@ -1403,7 +1403,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 {
 	GF_Err e;
 	u16 proxy_port = 0;
-	const char *proxy, *ip;
+	const char *proxy;
 
 	if (!sess->sock) {
 		sess->num_retry = 40;
@@ -1444,8 +1444,6 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	}
 
 
-	ip = gf_opts_get_key("core", "mobile-ip");
-
 	if (!proxy) {
 		proxy = sess->server_name;
 		proxy_port = sess->port;
@@ -1462,7 +1460,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		}
 
 		now = gf_sys_clock_high_res();
-		e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port, (char *)ip);
+		e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port, NULL);
 
 		/*retry*/
 		if ((e == GF_IP_SOCK_WOULD_BLOCK) && sess->num_retry) {

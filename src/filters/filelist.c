@@ -47,6 +47,8 @@ typedef struct
 	Bool is_eos;
 	u64 dts_sub;
 	u64 first_dts_plus_one;
+
+	Bool is_playing;
 } FileListPid;
 
 typedef struct
@@ -60,6 +62,7 @@ typedef struct
 	GF_FilterPid *file_pid;
 	const char *file_path;
 	u32 last_url_crc;
+	u32 last_url_lineno;
 	Bool load_next;
 
 	GF_Filter *filter_src;
@@ -221,10 +224,14 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		iopid = gf_list_get(ctx->io_pids, i);
 		if (!iopid->ipid) continue;
 
+		fevt.base.on_pid = iopid->ipid;
 		if (evt->base.type==GF_FEVT_PLAY) {
 			gf_filter_pid_init_play_event(iopid->ipid, &fevt, ctx->start, 1.0, "FileList");
-		} else {
-			fevt.base.on_pid = iopid->ipid;
+			iopid->is_playing = GF_TRUE;
+			iopid->is_eos = GF_FALSE;
+		} else if (evt->base.type==GF_FEVT_PLAY) {
+			iopid->is_playing = GF_FALSE;
+			iopid->is_eos = GF_TRUE;
 		}
 		gf_filter_pid_send_event(iopid->ipid, &fevt);
 	}
@@ -257,7 +264,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	u32 len;
 	Bool last_found = GF_FALSE;
 	FILE *f;
-	u32 nb_repeat=0;
+	u32 nb_repeat=0, lineno=0;
 	Double start=0, stop=0;
 
 	if (ctx->file_list) {
@@ -283,7 +290,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 
 	f = gf_fopen(ctx->file_path, "rt");
 	while (f) {
-		u32 crc;
+		u32 crc, len;
 		char *l = fgets(szURL, GF_MAX_PATH, f);
 		if (!l || feof(f)) {
 			if (ctx->loop) {
@@ -295,6 +302,15 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 			gf_fclose(f);
 			return GF_FALSE;
 		}
+		lineno++;
+
+		len = (u32) strlen(szURL);
+		while (len && strchr("\n\r\t ", szURL[len-1])) {
+			szURL[len-1] = 0;
+			len--;
+		}
+		if (!len) continue;
+
 		//comment
 		if (szURL[0] == '#') {
 			nb_repeat=0;
@@ -308,9 +324,10 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		crc = gf_crc_32(szURL, (u32) strlen(szURL) );
 		if (!ctx->last_url_crc) {
 			ctx->last_url_crc = crc;
+			ctx->last_url_lineno = lineno;
 			break;
 		}
-		if (ctx->last_url_crc == crc) {
+		if ((ctx->last_url_crc == crc) && (ctx->last_url_lineno == lineno)) {
 			last_found = GF_TRUE;
 			nb_repeat=0;
 			start=stop=0;
@@ -319,6 +336,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		}
 		if (last_found) {
 			ctx->last_url_crc = crc;
+			ctx->last_url_lineno = lineno;
 			break;
 		}
 		nb_repeat=0;
@@ -437,6 +455,9 @@ GF_Err filelist_process(GF_Filter *filter)
 			nb_done++;
 			continue;
 		}
+		if (!iopid->is_playing) {
+			continue;
+		}
 		if (gf_filter_pid_would_block(iopid->opid))
 			continue;
 
@@ -446,9 +467,6 @@ GF_Err filelist_process(GF_Filter *filter)
 			u32 dur;
 			GF_FilterPacket *pck;
 
-			if (gf_filter_pid_would_block(iopid->opid))
-				break;
-				
 			pck = gf_filter_pid_get_packet(iopid->ipid);
 			if (!pck) {
 				if (gf_filter_pid_is_eos(iopid->ipid))
@@ -458,6 +476,10 @@ GF_Err filelist_process(GF_Filter *filter)
 					nb_done++;
 				break;
 			}
+
+			if (gf_filter_pid_would_block(iopid->opid))
+				break;
+
 			dst_pck = gf_filter_pck_new_ref(iopid->opid, NULL, 0, pck);
 			gf_filter_pck_merge_properties(pck, dst_pck);
 			dts = gf_filter_pck_get_dts(pck);
@@ -477,6 +499,7 @@ GF_Err filelist_process(GF_Filter *filter)
 			if (iopid->timescale == iopid->o_timescale) {
 				gf_filter_pck_set_dts(dst_pck, iopid->dts_o + dts - iopid->dts_sub);
 				gf_filter_pck_set_cts(dst_pck, iopid->cts_o + cts - iopid->dts_sub);
+				gf_filter_pck_set_duration(dst_pck, dur);
 			} else {
 				u64 ts = dts;
 				ts *= iopid->o_timescale;
@@ -542,6 +565,7 @@ GF_Err filelist_process(GF_Filter *filter)
 				GF_FilterEvent evt;
 				iopid = gf_list_get(ctx->io_pids, i);
 				if (!iopid->ipid) continue;
+
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, iopid->ipid);
 				gf_filter_pid_send_event(iopid->ipid, &evt);
 
@@ -583,7 +607,7 @@ GF_Err filelist_initialize(GF_Filter *filter)
 	ctx->io_pids = gf_list_new();
 
 	if (!ctx->in || !gf_list_count(ctx->in)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
 		return GF_OK;
 	}
 	ctx->file_list = gf_list_new();

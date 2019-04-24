@@ -117,6 +117,7 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		if (e) return e;
 		if (ctx->mdia) gf_fclose(ctx->mdia);
 		ctx->mdia = NULL;
+		gf_filter_disable_probe(ctx->sub_filter);
 
 		ctx->first = GF_TRUE;
 	}
@@ -406,11 +407,20 @@ GF_Err vobsubdmx_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-void vobsubdmx_finalize(GF_Filter *filter)
+static void vobsubdmx_finalize(GF_Filter *filter)
 {
 	GF_VOBSubDmxCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->vobsub) vobsub_free(ctx->vobsub);
 	if (ctx->mdia) gf_fclose(ctx->mdia);
+}
+
+static const char * vobsubdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	if (!strncmp(data, "# VobSub", 8)) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "text/vobsub";
+	}
+	return NULL;
 }
 
 #define OFFS(_n)	#_n, offsetof(GF_VOBSubDmxCtx, _n)
@@ -443,6 +453,7 @@ GF_FilterRegister VOBSubDmxRegister = {
 	SETCAPS(VOBSubDmxCaps),
 	.configure_pid = vobsubdmx_configure_pid,
 	.process = vobsubdmx_process,
+	.probe_data = vobsubdmx_probe_data,
 	.process_event = vobsubdmx_process_event
 };
 

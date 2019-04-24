@@ -437,6 +437,7 @@ GF_FilterRegister J2KRegister = {
 	GF_FS_SET_DESCRIPTION("OpenJPEG2000 decoder")
 #endif
 	.private_size = sizeof(GF_J2KCtx),
+	.priority = 1,
 	SETCAPS(J2KCaps),
 	.configure_pid = j2kdec_configure_pid,
 	.process = j2kdec_process,

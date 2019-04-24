@@ -67,9 +67,6 @@ static GF_Err ffsws_process(GF_Filter *filter)
 	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 
-	if (!ctx->ofmt && !ctx->ow && !ctx->oh)
-		return GF_OK;
-
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 
 	if (!pck) {
@@ -79,15 +76,21 @@ static GF_Err ffsws_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
-	if (!ctx->swscaler) {
-		gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_NOT_SUPPORTED;
-	}
+
 	if (ctx->passthrough) {
 		gf_filter_pck_forward(pck, ctx->opid);
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
 	}
+	//not yet configured
+	if (!ctx->ofmt && !ctx->ow && !ctx->oh)
+		return GF_OK;
+
+	if (!ctx->swscaler) {
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_NOT_SUPPORTED;
+	}
+
 	data = gf_filter_pck_get_data(pck, &osize);
 	frame_ifce = gf_filter_pck_get_frame_interface(pck);
 	//we may have biffer input (padding) but shall not have smaller
@@ -235,14 +238,13 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (p) sar = p->value.frac;
 	else sar.den = sar.num = 1;
 
+	//ctx->ofmt may be 0 if the filter is instantiated dynamically, we haven't yet been called for reconfigure
+	if (!w || !h || !ofmt) {
+		return GF_OK;
+	}
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
-	//ctx->ofmt may be 0 if the filter is instantiated dynamically, we haven't yet been called for reconfigure
-	if (!w || !h || !ofmt) {
-		ctx->passthrough = GF_TRUE;
-		return GF_OK;
-	}
 	if (!ctx->ofmt)
 		ctx->ofmt = ofmt;
 
@@ -334,6 +336,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (ctx->nb_planes>1)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, &PROP_UINT(ctx->dst_stride[1]));
 
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->ofmt));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(sar) );
 	return GF_OK;

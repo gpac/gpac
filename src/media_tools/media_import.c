@@ -1007,7 +1007,6 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	else if (!strnicmp(ext, ".txt", 4) || !strnicmp(ext, ".chap", 5) || !stricmp(fmt, "CHAP") )
 		return gf_media_import_chapters_file(importer);
 
-
 #ifdef FILTER_FIXME
 	#error "importer TO CHECK: SAF, TS"
 #endif

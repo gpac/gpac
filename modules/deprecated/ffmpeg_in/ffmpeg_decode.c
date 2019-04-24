@@ -278,6 +278,9 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				codec_id = CODEC_ID_PNG;
 				ffd->is_image = GF_TRUE;
 				break;
+			case GPAC_OTI_VIDEO_VP9:
+				codec_id = CODEC_ID_VP9;
+				break;
 #ifdef CODEC_ID_AV1
 			case GPAC_OTI_VIDEO_AV1:
 				codec_id = CODEC_ID_AV1;
@@ -307,6 +310,12 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
             case GPAC_OTI_AUDIO_AAC_MPEG4:
                 codec_id = CODEC_ID_AAC;
                 break;
+#ifdef CODEC_ID_OPUS
+			case GPAC_OTI_MEDIA_OPUS:
+				codec_id = CODEC_ID_OPUS;
+				(*ctx)->frame_size = 2880;//use max frame size
+				break;
+#endif
 			}
 		}
 		else if ((ffd->st==GF_STREAM_ND_SUBPIC) && (ffd->oti==0xe0)) {
@@ -314,11 +323,16 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		}
 		*codec = avcodec_find_decoder(codec_id);
 
-        if (*codec && (codec_id == CODEC_ID_AAC)) {
-            bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
-            FFDEC_LoadDSI(ffd, bs, *codec, *ctx, GF_FALSE);
-            gf_bs_del(bs);
-        }
+        if (*codec) {
+        	switch (codec_id) {
+        	case CODEC_ID_AAC:
+        	case CODEC_ID_OPUS:
+				bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
+				FFDEC_LoadDSI(ffd, bs, *codec, *ctx, GF_FALSE);
+				gf_bs_del(bs);
+				break;
+			}
+		}
 
 	}
 	/*should never happen*/
@@ -1591,6 +1605,12 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
             if (avcodec_find_decoder(codec_id) != NULL)
                 return GF_CODEC_MAYBE_SUPPORTED;
             break;
+#ifdef CODEC_ID_OPUS
+		case GPAC_OTI_MEDIA_OPUS:
+			if (avcodec_find_decoder(CODEC_ID_OPUS) != NULL)
+				return GF_CODEC_MAYBE_SUPPORTED;
+#endif
+			return GF_CODEC_NOT_SUPPORTED;
 		}
 	}
 
@@ -1662,6 +1682,11 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 			return GF_CODEC_NOT_SUPPORTED;
 		case GPAC_OTI_IMAGE_PNG:
 			if (avcodec_find_decoder(CODEC_ID_PNG) != NULL)
+				return GF_CODEC_MAYBE_SUPPORTED;
+			return GF_CODEC_NOT_SUPPORTED;
+
+		case GPAC_OTI_VIDEO_VP9:
+			if (avcodec_find_decoder(AV_CODEC_ID_VP9) != NULL)
 				return GF_CODEC_MAYBE_SUPPORTED;
 			return GF_CODEC_NOT_SUPPORTED;
 

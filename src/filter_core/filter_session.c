@@ -1551,8 +1551,13 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 	//wait for all threads to be done, we might still need flushing the main thread queue
 	while (fsess->no_main_thread) {
 		gf_fs_thread_proc(&fsess->main_th);
-		if (! gf_fq_count(fsess->main_thread_tasks))
-			break;
+		if (gf_fq_count(fsess->main_thread_tasks))
+			continue;
+
+		if (count && (count == fsess->nb_threads_stopped) && gf_fq_count(fsess->tasks) ) {
+			continue;
+		}
+		break;
 	}
 	if (fsess->no_main_thread) {
 		safe_int_inc(&fsess->nb_threads_stopped);
@@ -1782,7 +1787,7 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 	gf_fs_post_task(fsess, gf_filter_update_arg_task, filter, NULL, "update_arg", upd);
 }
 
-GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source)
+GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit)
 {
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
 	GF_FilterRegister *candidate_freg=NULL;
@@ -1912,7 +1917,12 @@ restart:
 	}
 
 	e = GF_OK;
-	arg_type = for_source ? GF_FILTER_ARG_EXPLICIT_SOURCE : GF_FILTER_ARG_EXPLICIT_SINK;
+	arg_type = GF_FILTER_ARG_EXPLICIT_SINK;
+	if (for_source) {
+		if (no_args_inherit) arg_type = GF_FILTER_ARG_EXPLICIT_SOURCE_NO_DST_INHERIT;
+		else arg_type = GF_FILTER_ARG_EXPLICIT_SOURCE;
+	}
+
 	if (!filter) {
 		filter = gf_filter_new(fsess, candidate_freg, args, NULL, arg_type, err);
 	} else {
@@ -1945,13 +1955,13 @@ restart:
 GF_EXPORT
 GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_TRUE);
+	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_TRUE, GF_FALSE);
 }
 
 GF_EXPORT
 GF_Filter *gf_fs_load_destination(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_FALSE);
+	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_FALSE, GF_FALSE);
 }
 
 
@@ -2122,7 +2132,8 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 	return fsess->download_manager;
 }
 
-void gf_fs_cleanup_filters_task(GF_FSTask *task)
+#if 0
+static void gf_fs_cleanup_filters_task(GF_FSTask *task)
 {
 	GF_FilterSession *fsess = task->udta;
 	u32 i, count = gf_list_count(fsess->filters);
@@ -2140,6 +2151,7 @@ void gf_fs_cleanup_filters_task(GF_FSTask *task)
 		}
 	}
 }
+#endif
 
 void gf_fs_cleanup_filters(GF_FilterSession *fsess)
 {

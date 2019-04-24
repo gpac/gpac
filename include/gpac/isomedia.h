@@ -308,6 +308,9 @@ enum
 	/*AV1 media type*/
 	GF_ISOM_SUBTYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
 
+	/*Opus media type*/
+	GF_ISOM_SUBTYPE_OPUS = GF_4CC('O', 'p', 'u', 's'),
+
 	/* VP */
 	GF_ISOM_SUBTYPE_VP08 = GF_4CC('v', 'p', '0', '8'),
 	GF_ISOM_SUBTYPE_VP09 = GF_4CC('v', 'p', '0', '9'),
@@ -480,6 +483,8 @@ enum
 
 
 	GF_ISOM_BRAND_AV01 = GF_4CC( 'a', 'v', '0', '1'),
+
+	GF_ISOM_BRAND_OPUS = GF_4CC( 'O', 'p', 'u', 's'),
 
 	GF_ISOM_BRAND_ISMA = GF_4CC( 'I', 'S', 'M', 'A' ),
 
@@ -1225,6 +1230,9 @@ GF_Err gf_isom_add_sample_reference(GF_ISOFile *the_file, u32 trackNumber, u32 S
 duration of the previous one if any, or media TimeScale (default value). This does not modify the edit list if any,
 you must modify this using gf_isom_set_edit_segment*/
 GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 duration);
+
+/*patches last stts entry to make sure the cumulated duration equals the given next_dts value*/
+GF_Err gf_isom_patch_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u64 next_dts);
 
 /*sets a track reference*/
 GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferencedTrackID);

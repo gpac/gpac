@@ -180,7 +180,7 @@ enum
 	GF_IMPORT_OVSBR = 1<<14,
 	/*! set subsample information with SVC*/
 	GF_IMPORT_SET_SUBSAMPLES = 1<<15,
-	/*! force to mark non-IDR frmaes with sync data (I slices,) to be marked as sync points points
+	/*! force to mark non-IDR frames with sync data (I slices,) to be marked as sync points points
 	THE RESULTING FILE IS NOT COMPLIANT*/
 	GF_IMPORT_FORCE_SYNC = 1<<16,
 	/*! keep trailing 0 bytes in AU payloads when any*/

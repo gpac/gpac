@@ -411,6 +411,7 @@ GF_FilterRegister FAADRegister = {
 	.name = "faad",
 	GF_FS_SET_DESCRIPTION("FAAD decoder")
 	.private_size = sizeof(GF_FAADCtx),
+	.priority = 1,
 	SETCAPS(FAADCaps),
 	.configure_pid = faaddec_configure_pid,
 	.process = faaddec_process,

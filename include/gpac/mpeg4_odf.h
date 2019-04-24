@@ -135,7 +135,8 @@ enum
 
 
 	/*descriptor for aucilary video data*/
-	GF_ODF_AUX_VIDEO_DATA	= GF_ODF_EXT_BEGIN_TAG + 1
+	GF_ODF_AUX_VIDEO_DATA	= GF_ODF_EXT_BEGIN_TAG + 1,
+	GF_ODF_GPAC_LANG	= GF_ODF_EXT_BEGIN_TAG + 2
 };
 
 
@@ -1271,12 +1272,6 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg);
  \return error if any
  */
 GF_Err gf_odf_get_text_config(char *data, u32 data_len, u32 codecid, GF_TextConfig *cfg);
-/*! special function for authoring - convert DSI to UIConfig
- \param dsi text decoder specific info
- \param cfg the text config object to be filled
- \return error if any
- */
-GF_Err gf_odf_get_ui_config(GF_DefaultDescriptor *dsi, GF_UIConfig *cfg);
 /*! converts UIConfig to dsi - does not destroy input descr but does create output one
  \param cfg the UI config object
  \param out_dsi the decoder specific info created. It is the caller responsability of freeing it
@@ -1610,14 +1605,6 @@ GF_Err gf_oci_dump_au(u8 version, char *au, u32 au_length, FILE *trace, u32 inde
 
 #ifndef GPAC_DISABLE_OD_DUMP
 
-/*! Dumps an OD AU
- \param data encoded OD AU
- \param dataLength encoded OD AU size
- \param trace destination file for dumping
- \param indent number of spaces to use as base index
- \param XMTDump
- */
-GF_Err gf_odf_dump_au(char *data, u32 dataLength, FILE *trace, u32 indent, Bool XMTDump);
 /*! Dumps an OD AU
  \param com OD command to dump
  \param trace destination file for dumping

@@ -331,6 +331,8 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 		//nothing to do
 	} else if (mo->odm->type==GF_STREAM_SCENE) {
 		//nothing to do
+	} else if (mo->odm->type==GF_STREAM_TEXT) {
+		//nothing to do
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("NOT YET IMPLEMENTED IN FILTERS\n"));
 	}

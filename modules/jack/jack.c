@@ -1,14 +1,9 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Pierre Souchay 2008
- *  History:
- *
- *  2008/02/19 - v1.1 (Pierre Souchay)
- *    first revision
- *  2008/03/11 - v1.2 (Pierre Souchay)
- *    added volume control
- *    fixed possible bug in latency computation (did not return the max value)
+ *			Authors: Pierre Souchay , Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2008-2019
+ *					All rights reserved
  *
  *  Jack audio output module : output audio thru the jackd daemon
  *
@@ -38,22 +33,6 @@
 #include <jack/ringbuffer.h>
 #include <gpac/modules/audio_out.h>
 
-#ifndef WIN32
-#include <unistd.h>
-int
-getPid ()
-{
-	return getpid ();
-}
-#else
-#include <windows.h>
-int
-getPid ()
-{
-	return GetCurrentProcessId();
-}
-#endif
-
 #define MAX_JACK_CLIENT_NAME_SZ 128
 /*
  * This structure defines the handle to a Jack driver
@@ -68,19 +47,11 @@ typedef struct
 	char *buffer;
 	u32 bufferSz;
 	u32 bytesPerSample;
-	char isActive;
-	char autoConnect;
-	char autoStartJackd;
+	Bool isActive;
+	Bool autoConnect;
 	jack_default_audio_sample_t **channels;
 	float volume;
 } JackContext;
-
-#ifndef TRUE
-#define TRUE 1
-#endif
-#ifndef FALSE
-#define FALSE 0
-#endif
 
 static void
 Jack_cleanup (JackContext * ctx)
@@ -233,68 +204,24 @@ onBufferSizeChanged (jack_nframes_t nframes, void *arg)
 	return 0;
 }
 
-static const char *MODULE_NAME = "Jack";
-
-static const char *AUTO_CONNECT_OPTION = "AutoConnect";
-
-static const char *AUTO_START_JACKD_OPTION = "AutoStartJackd";
-
-static const char *TRUE_OPTION = "true";
-
-static const char *YES_OPTION = "yes";
-
-static char
-optionIsTrue (const char *optionValue)
-{
-	return (0 == strcasecmp (TRUE_OPTION, optionValue) ||
-	        0 == strcasecmp (YES_OPTION, optionValue)
-	        || 0 == strcmp ("1", optionValue));
-}
-
-
 static GF_Err
 Jack_Setup (GF_AudioOutput * dr, void *os_handle, u32 num_buffers,
             u32 total_duration)
 {
-	const char *opt;
 	JackContext *ctx = (JackContext *) dr->opaque;
 	jack_status_t status;
 	jack_options_t options = JackNullOption;
 
 	memset (ctx->jackClientName, 0, MAX_JACK_CLIENT_NAME_SZ);
-	snprintf (ctx->jackClientName, MAX_JACK_CLIENT_NAME_SZ, "gpac-%d",
-	          getPid ());
+	snprintf (ctx->jackClientName, MAX_JACK_CLIENT_NAME_SZ, "gpac-%d", gf_sys_get_process_id() );
 
-	opt = gf_opts_get_key(MODULE_NAME, AUTO_CONNECT_OPTION);
-	if (opt != NULL)
-	{
-		if (optionIsTrue (opt))
-			ctx->autoConnect = TRUE;
-		else
-			ctx->autoConnect = FALSE;
-	}
-	else
-	{
-		ctx->autoConnect = TRUE;
-		gf_opts_set_key(MODULE_NAME, AUTO_CONNECT_OPTION, YES_OPTION);
-	}
-	opt = gf_opts_get_key(MODULE_NAME, AUTO_START_JACKD_OPTION);
-	if (opt != NULL)
-	{
-		if (optionIsTrue (opt))
-			ctx->autoStartJackd = TRUE;
-		else
-			ctx->autoStartJackd = FALSE;
-	}
-	else
-	{
-		ctx->autoStartJackd = TRUE;
-		gf_opts_set_key(MODULE_NAME, AUTO_START_JACKD_OPTION, YES_OPTION);
-	}
-	if (!ctx->autoStartJackd)
-	{
+	ctx->autoConnect = GF_TRUE;
+	if (gf_opts_get_bool("Jack", "NoAutoConnect"))
+		ctx->autoConnect = GF_FALSE;
+
+	if (gf_opts_get_bool("Jack", "NoStartServer"))
 		options |= JackNoStartServer;
-	}
+
 	ctx->jack = jack_client_open (ctx->jackClientName, options, &status, NULL);
 	if (status & JackNameNotUnique)
 	{
@@ -377,7 +304,9 @@ Jack_Configure(GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels,
 			if (ctx->jackPorts[channels] == NULL)
 				goto exit_cleanup;
 		}
-		onBufferSizeChanged (jack_get_buffer_size (ctx->jack), dr);
+//		onBufferSizeChanged (jack_get_buffer_size (ctx->jack), dr);
+//		if (!ctx->jack) return GF_IO_ERR;
+
 		jack_set_buffer_size_callback (ctx->jack, onBufferSizeChanged, dr);
 		jack_set_process_callback (ctx->jack, process_callback, dr);
 	}
@@ -411,7 +340,7 @@ Jack_Configure(GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels,
 				}
 			}
 		}
-		ctx->isActive = TRUE;
+		ctx->isActive = GF_TRUE;
 	}
 	return GF_OK;
 exit_cleanup:
@@ -524,9 +453,8 @@ NewJackOutput ()
 	ctx->buffer = NULL;
 	ctx->bufferSz = 0;
 	ctx->bytesPerSample = 0;
-	ctx->isActive = FALSE;
-	ctx->autoConnect = FALSE;
-	ctx->autoStartJackd = FALSE;
+	ctx->isActive = GF_FALSE;
+	ctx->autoConnect = GF_FALSE;
 	ctx->volume = 1.0;
 
 	GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE,
