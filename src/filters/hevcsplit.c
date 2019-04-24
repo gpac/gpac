@@ -42,7 +42,6 @@ typedef struct
 	//options
 	//internal
 	GF_FilterPid *ipid;
-	GF_List *opids;
 	HEVCTilePid tile_pids[64]; // GF_FilterPid *opid;
 	u32 num_tiles;
 	HEVCState hevc_state;
@@ -56,62 +55,6 @@ typedef struct
 
 u32 bs_get_ue(GF_BitStream *bs);
 s32 bs_get_se(GF_BitStream *bs);
-
-/**
- * Visualization of VPS properties and return VPS ID
-	 *
-	 * @param buffer
-	 * @param bz
-	 * @param hevc
-	 * @return
-	 */
-u32 parse_print_VPS(char *buffer, u32 bz, HEVCState* hevc) {
-	u32 i = gf_media_hevc_read_vps(buffer, bz, hevc);
-	printf("=== Visualization of VPS with id: %d ===\n", (*hevc).vps[i].id);
-	printf("num_profile_tier_level:	%hhu\n", (*hevc).vps[i].num_profile_tier_level);
-	return i;
-}
-
-/**
- * Visualization of SPS properties and return SPS ID
-	 *
-	 * @param buffer
-	 * @param bz
-	 * @param hevc
-	 * @return
-	 */
-u32 parse_print_SPS(char *buffer, u32 bz, HEVCState* hevc) {
-
-	u32 i = gf_media_hevc_read_sps(buffer, bz, hevc);
-	printf("=== Visualization of SPS with id: %d ===\n", (*hevc).sps[i].id);
-	printf("width:	%u\n", (*hevc).sps[i].width);
-	printf("height:	%u\n", (*hevc).sps[i].height);
-	printf("pic_width_in_luma_samples:	%u\n", (*hevc).sps[i].max_CU_width);
-	printf("pic_heigth_in_luma_samples:	%u\n", (*hevc).sps[i].max_CU_height);
-	printf("cw_left:	%u\n", (*hevc).sps[i].cw_left);
-	printf("cw_right:	%u\n", (*hevc).sps[i].cw_right);
-	printf("cw_top:	%u\n", (*hevc).sps[i].cw_top);
-	printf("cw_bottom:	%u\n", (*hevc).sps[i].cw_bottom);
-	return i;
-}
-
-/**
- * Visualization of PPS properties and return PPS ID
- * @param buffer
- * @param bz
- * @param hevc
- * @return
- */
-
-u32 parse_print_PPS(char *buffer, u32 bz, HEVCState* hevc) {
-	u32 i = gf_media_hevc_read_pps(buffer, bz, hevc);
-	printf("=== Visualization of PPS with id: %d ===\n", (*hevc).pps[i].id);
-	printf("tiles_enabled_flag:	%u\n", (*hevc).pps[i].tiles_enabled_flag);
-	printf("uniform_spacing_flag:	%d\n", (*hevc).pps[i].uniform_spacing_flag);
-	printf("num_tile_columns:	%u\n", (*hevc).pps[i].num_tile_columns);
-	printf("num_tile_rows:	%u\n", (*hevc).pps[i].num_tile_rows);
-	return i;
-}
 
 void bs_set_ue(GF_BitStream *bs, u32 num) {
 	s32 length = 1;
@@ -137,40 +80,6 @@ void bs_set_se(GF_BitStream *bs, s32 num)
 	bs_set_ue(bs, v);
 }
 
-u32 new_address(int x, int y, u32 num_CTU_height[], u32 num_CTU_width[], int num_CTU_width_tot, u32 sliceAdresse)
-{
-	int sum_height = 0, sum_width = 0, adress = 0;
-	int i, j;
-	for (i = 0; i < x; i++) sum_height += num_CTU_height[i];
-	for (j = 0; j < y; j++) sum_width += num_CTU_width[j];
-	sum_height += (sliceAdresse / num_CTU_width[j]);
-	sum_width += (sliceAdresse % num_CTU_width[j]);
-	adress = sum_height * num_CTU_width_tot + sum_width;
-
-	//adress= sum_height;
-	return adress;
-}
-
-u32 sum_array(u32 *array, u32 length)
-{
-	u32 i, sum = 0;
-	for (i = 0; i < length; i++)
-	{
-		sum += array[i];
-	}
-	return sum;
-}
-
-void slice_address_calculation(HEVCState *hevc, u32 *address, u32 tile_x, u32 tile_y)
-{
-	HEVCSliceInfo *si = &hevc->s_info;
-	u32 PicWidthInCtbsY;
-
-	PicWidthInCtbsY = si->sps->width / si->sps->max_CU_width;
-	if (PicWidthInCtbsY * si->sps->max_CU_width < si->sps->width) PicWidthInCtbsY++;
-
-	*address = tile_x / si->sps->max_CU_width + (tile_y / si->sps->max_CU_width) * PicWidthInCtbsY;
-}
 //Transform slice 1d address into 2D address
 u32 get_newSliceAddress_and_tilesCordinates(u32 *x, u32 *y, HEVCState *hevc)
 {
@@ -874,6 +783,15 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	if (is_remove) {
 		// todo!  gf_filter_pid_remove(ctx->opid); on all output pids
+		for(u32 i = 0; i < ctx->num_tiles; i++)
+		{
+			HEVCTilePid *tpid = &ctx->tile_pids[i];
+			if (tpid->opid) {
+				gf_filter_pid_remove(tpid->opid);
+				tpid->opid = NULL;
+			}
+		}
+		ctx->ipid = NULL;
 		return GF_OK;
 	}
 	// checks if input pid matchs its destination filter.
