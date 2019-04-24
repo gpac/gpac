@@ -1415,7 +1415,6 @@
 #endif GPAC_DISABLE_CRYPTO
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_sha1_csum) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sha1_csum_hexa) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sha1_file) )
 
 #ifndef GPAC_DISABLE_AV_PARSERS

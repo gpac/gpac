@@ -736,7 +736,8 @@ void gf_sha1_csum( u8 *input, u32 ilen, u8 output[GF_SHA1_DIGEST_SIZE] )
 	}
 }
 
-GF_EXPORT
+#if 0 //unused
+#define GF_SHA1_DIGEST_SIZE_HEXA		41
 void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE_HEXA]) {
 	u8 tmp[GF_SHA1_DIGEST_SIZE];
 	gf_sha1_csum (buf, buflen, tmp );
@@ -752,5 +753,8 @@ void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE_HEXA])
 		}
 	}
 }
+#endif
+
+
 #endif
 
