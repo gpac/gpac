@@ -59,16 +59,6 @@ free_pulseaudio_resources (GF_AudioOutput * dr)
 	ctx->playback_handle = NULL;
 }
 
-static const char *MODULE_NAME = "PulseAudio";
-
-static const char *OUTPUT_NAME = "OutputName";
-
-static const char *OUTPUT_DESCRIPTION = "OutputDescription";
-
-static const char *DEFAULT_OUTPUT_NAME = "GPAC";
-
-static const char *DEFAULT_OUTPUT_DESCRIPTION = "GPAC Output";
-
 static GF_Err
 PulseAudio_Setup (GF_AudioOutput * dr, void *os_handle,
                   u32 num_buffers, u32 total_duration)
@@ -77,26 +67,11 @@ PulseAudio_Setup (GF_AudioOutput * dr, void *os_handle,
 	PulseAudioContext *ctx = (PulseAudioContext *) dr->opaque;
 	if (ctx == NULL)
 		return GF_BAD_PARAM;
-	opt = gf_opts_get_key(MODULE_NAME, OUTPUT_NAME);
-	ctx->output_name = DEFAULT_OUTPUT_NAME;
-	if (opt != NULL)
-	{
-		ctx->output_name = opt;
-	}
-	else
-	{
-		gf_opts_set_key(MODULE_NAME, OUTPUT_NAME, DEFAULT_OUTPUT_NAME);
-	}
-	opt = gf_opts_get_key(MODULE_NAME, OUTPUT_DESCRIPTION);
-	ctx->output_description = DEFAULT_OUTPUT_DESCRIPTION;
-	if (opt != NULL)
-	{
-		ctx->output_description = opt;
-	}
-	else
-	{
-		gf_opts_set_key(MODULE_NAME, OUTPUT_DESCRIPTION, DEFAULT_OUTPUT_DESCRIPTION);
-	}
+	opt = gf_opts_get_key("PulseAudio", "Name");
+	ctx->output_name = opt ? ctx->output_name : "GPAC";
+
+	opt = gf_opts_get_key("PulseAudio", "Description");
+	ctx->output_description = opt  ? opt  : "GPAC Output";
 	return GF_OK;
 }
 
@@ -262,7 +237,7 @@ NewPulseAudioOutput ()
 	driv->Configure = PulseAudio_Configure;
 	driv->GetAudioDelay = PulseAudio_GetAudioDelay;
 	driv->WriteAudio = PulseAudio_WriteAudio;
-	GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE, MODULE_NAME, "gpac distribution");
+	GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE, "PulseAudio", "gpac distribution");
 	return driv;
 }
 

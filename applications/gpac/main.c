@@ -1860,6 +1860,7 @@ static u32 gpac_unit_tests()
 		return 1;
 	}
 	gf_sys_get_battery_state(NULL, NULL, NULL, NULL, NULL);
+	gf_sys_get_process_id();
 	gf_log_get_tools_levels();
 
 	return 0;

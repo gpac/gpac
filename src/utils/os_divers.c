@@ -2355,3 +2355,21 @@ GF_Err gf_bin128_parse(const char *string, bin128 value)
 	}
 	return GF_OK;
 }
+
+
+#ifndef WIN32
+#include <unistd.h>
+GF_EXPORT
+u32 gf_sys_get_process_id()
+{
+	return getpid ();
+}
+#else
+#include <windows.h>
+GF_EXPORT
+u32 gf_sys_get_process_id()
+{
+	return GetCurrentProcessId();
+}
+#endif
+
