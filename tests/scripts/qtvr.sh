@@ -19,7 +19,7 @@ qtvr_test()
  test_end
 }
 
-for src in $EXTERNAL_MEDIA_DIR/qtvr/* ; do
+for src in $EXTERNAL_MEDIA_DIR/qtvr/*.mov ; do
 qtvr_test $src
 done
 
