@@ -135,7 +135,7 @@ typedef struct
 	u32 raw_pix_fmt;
 	Bool flipped;
 	u32 direct_output_mode;
-	
+
 	u32 stride;
 
 	u32 output_cb_size;
@@ -143,7 +143,7 @@ typedef struct
 	u32 frame_start;
 	char audio_buf[192000];
 	Bool check_h264_isma;
-	
+
 	Bool frame_size_changed;
 
 	u32 base_ES_ID;
@@ -287,7 +287,10 @@ void Delete_FFMPEG_Demux(void *ifce);
 #define CODEC_ID_PNG	AV_CODEC_ID_PNG
 #define CODEC_ID_AMR_NB	AV_CODEC_ID_AMR_NB
 #define CODEC_ID_AMR_WB	AV_CODEC_ID_AMR_WB
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54, 92, 100 )
 #define CODEC_ID_VP9	AV_CODEC_ID_VP9
+#endif
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 1, 100 )
 #define CODEC_ID_OPUS	AV_CODEC_ID_OPUS
