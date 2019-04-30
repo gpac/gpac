@@ -1564,10 +1564,13 @@ static void dump_obu(FILE *dump, u32 idx, AV1State *av1, char *obu, u32 obu_leng
 			else if (av1->frame_state.frame_type==AV1_INTER_FRAME) fprintf(dump, "frame_type=\"inter\" ");
 			else if (av1->frame_state.frame_type==AV1_INTRA_ONLY_FRAME) fprintf(dump, "frame_type=\"intra_only\" ");
 			else if (av1->frame_state.frame_type==AV1_SWITCH_FRAME) fprintf(dump, "frame_type=\"switch\" ");
+			fprintf(dump, "refresh_frame_flags=\"%d\" ", av1->frame_state.refresh_frame_flags);
 
 			DUMP_OBU_INT2("show_frame", av1->frame_state.show_frame);
 			if (av1->frame_state.show_existing_frame) {
 				DUMP_OBU_INT2("show_existing_frame", av1->frame_state.show_existing_frame);
+			} else {
+				DUMP_OBU_INT2("show_existing_frame", 0);
 			}
 		}
 		if (obu_type==OBU_FRAME_HEADER)
