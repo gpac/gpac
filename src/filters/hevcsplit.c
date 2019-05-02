@@ -22,7 +22,7 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
+//#define DYNAMIQUE_TPID
 #include <gpac/bitstream.h>
 #include <gpac/filters.h>
 #include <gpac/avparse.h>
@@ -34,15 +34,18 @@ typedef struct
 	GF_FilterPid *opid;
 	u32 width, height, orig_x, orig_y;
 	GF_FilterPacket *cur_pck;
+	u8 did_it;
 } HEVCTilePid;
 
 typedef struct
 {
-	//options
-	//internal
 	GF_FilterPid *ipid;
 	GF_List *opids;
-	HEVCTilePid tile_pids[64]; // GF_FilterPid *opid;
+#ifdef DYNAMIQUE_TPID
+	HEVCTilePid *tile_pids; 
+#else
+	HEVCTilePid tile_pids[64]; 
+#endif
 	u32 num_tiles, got_p, did_it;
 	HEVCState hevc_state;
 	u32 hevc_nalu_size_length, cfg_crc;
@@ -561,13 +564,13 @@ exit:
 
 static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *in_slice, u32 in_slice_length, char **out_slice, u32 *out_slice_length, u32 final_width, u32 final_height, u32 crop_origin_x, u32 crop_origin_y)
 {
-	char *data_without_emulation_bytes = NULL, *buff_crop_origin_x = NULL;
+	char *data_without_emulation_bytes = NULL;
 	u32 data_without_emulation_bytes_size = 0, position = 0;
-	u64 header_end, bs_ori_size, vec_crop_size = 0, dst_buf_size = 0;
+	u64 header_end, bs_ori_size, dst_buf_size = 0;
 	char *dst_buf = NULL;
 	u32 num_entry_point_start;
 	u32 pps_id;
-	GF_BitStream *bs_ori, *bs_rw, *bs_buff_crop_origin_x; // *pre_bs_ori;
+	GF_BitStream *bs_ori, *bs_rw;
 	Bool IDRPicFlag = GF_FALSE;
 	Bool RapPicFlag = GF_FALSE;
 	u32 nb_bits_per_adress_dst = 0;
@@ -577,8 +580,8 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 	u32 first_slice_segment_in_pic_flag;
 	u32 dependent_slice_segment_flag;
 	int address_ori;
-	HEVCTilePid *tpid = &ctx->tile_pids[7];
-	u8 nal_unit_type, temporal_id, layer_id;
+	//HEVCTilePid *tpid = &ctx->tile_pids[7];
+	u8 nal_unit_type;
 	HEVCState *hevc = &ctx->hevc_state;
 
 	//buff_crop_origin_x = gf_malloc(6 * sizeof(char));
@@ -741,7 +744,6 @@ static char* extract( GF_HEVCSplitCtx *ctx, char *buffer, u32 buffer_length, u32
 {
 	u8 nal_unit_type, temporal_id, layer_id;
 	u32 buf_size, newAddress,i,j;
-	s32 pps_id = -1;
 	HEVCState *hevc = &ctx->hevc_state; // ctx->hevc_state already set.
 
 	gf_media_hevc_parse_nalu(buffer, buffer_length, hevc, &nal_unit_type, &temporal_id, &layer_id);
@@ -767,7 +769,11 @@ static char* extract( GF_HEVCSplitCtx *ctx, char *buffer, u32 buffer_length, u32
 		newAddress = get_newSliceAddress_and_tilesCordinates(&i, &j, hevc);
 		// matching_opid (or *original_coord = newAddress)
 		*original_coord = i * hevc->s_info.pps->num_tile_columns + j; 
+#ifdef DYNAMIQUE_TPID
+		HEVCTilePid *tpid = (ctx->tile_pids + (*original_coord));
+#else
 		HEVCTilePid *tpid = &ctx->tile_pids[*original_coord];
+#endif
 
 		//rewrite and copy the Slice
 		buf_size = ctx->buffer_nal_alloc;
@@ -844,10 +850,8 @@ static void bsnal(char *output_nal, char *rewritten_nal, u32 out_nal_size, u32 h
 
 static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 dep_id = 0, id = 0, cfg_crc = 0, codecid, did_it = 0, o_width, o_height;
+	u32 id = 0, cfg_crc = 0, codecid, o_width, o_height;
 	s32 pps_id = -1, sps_id = -1;
-	Bool has_scalable = GF_FALSE;
-	Bool is_sublayer = GF_FALSE;
 	const GF_PropertyValue *p, *dsi;
 	GF_Err e;
 	// private stack of the filter returned as an object GF_HEVCSplitCtx.
@@ -941,12 +945,26 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	for (i = 0; i < rows; i++) {
 		for (j = 0; j < cols; j++) {
 			u32 idx = i * cols + j;
-			HEVCTilePid *tpid = &ctx->tile_pids[idx];
-			get_size_of_tile(&ctx->hevc_state, i, j, pps_id, &tpid->width, &tpid->height, &tpid->orig_x, &tpid->orig_y);
-
-			if (!tpid->opid) {
+#ifdef DYNAMIQUE_TPID
+			if (idx == 0)
+				ctx->tile_pids = (HEVCTilePid *) gf_malloc(sizeof(HEVCTilePid));
+			else {
+				ctx->tile_pids = (HEVCTilePid *) gf_realloc(ctx->tile_pids, sizeof(HEVCTilePid));
+				printf("Realloc done for idx %d\n", idx);
+			}
+			HEVCTilePid *tpid = (ctx->tile_pids + idx);
+			if (tpid->did_it > -1)
+			{
+				tpid->did_it = -2;
 				tpid->opid = gf_filter_pid_new(filter);
 			}
+#else	
+			HEVCTilePid *tpid = &ctx->tile_pids[idx];
+			if (!tpid->opid) {
+				tpid->opid = gf_filter_pid_new(filter);
+			}		
+#endif
+			get_size_of_tile(&ctx->hevc_state, i, j, pps_id, &tpid->width, &tpid->height, &tpid->orig_x, &tpid->orig_y);
 			// Best practice is to copy all properties of ipid in opid, then reassign properties changed by the filter
 			gf_filter_pid_copy_properties(tpid->opid, ctx->ipid);
 			// for each output pid, set decoder_config, width and height.
@@ -960,20 +978,20 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		}
 	}
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE); // reaggregate to form complete frame.
-	 static u32 k = 0;
-	 k++;
+	static u32 k = 0;
+	k++;
+#ifdef DYNAMIQUE_TPID
+	gf_free(ctx->tile_pids);
+#endif
 	return GF_OK;
 }
 
 static GF_Err hevcsplit_process(GF_Filter *filter)
 {
-	u64 min_dts = GF_FILTER_NO_TS;
-	u64 min_cts = GF_FILTER_NO_TS;
 	u32 idx, nb_eos = 0, hevc_nalu_size_length;
 	u32 data_size, nal_length, opid_idx = 0;
 	u8 temporal_id, layer_id, nal_unit_type, i; // On default we have a nalu
 	char *data;
-	Bool has_pic = GF_FALSE;
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx*)gf_filter_get_udta(filter);
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] Process started.\n"));
 
@@ -1026,8 +1044,12 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 			{
 					for(i = 0; i < ctx->num_tiles; i++)
 					{
+#ifdef DYNAMIQUE_TPID
+						HEVCTilePid *tpid = (ctx->tile_pids + i);
+#else
 						HEVCTilePid *tpid = &ctx->tile_pids[i];
-							if (!tpid->opid) {
+#endif
+						if (!tpid->opid) {
 								// ERROR
 								continue;
 							}
@@ -1047,7 +1069,7 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 			}
 			else
 			{
-					HEVCTilePid *tpid = &ctx->tile_pids[opid_idx];
+					HEVCTilePid *tpid = ctx->tile_pids + opid_idx;
 					if (!tpid->opid) {
 						// ERROR
 						continue;
@@ -1067,10 +1089,9 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 			}		
 	}
 	gf_filter_pid_drop_packet(ctx->ipid);
-
 	// done rewriting all nals from input, send all output
 	for (idx = 0; idx < ctx->num_tiles; idx++) {
-		HEVCTilePid *tpid = &ctx->tile_pids[idx];
+		HEVCTilePid *tpid = ctx->tile_pids + idx;
 		if (!tpid->opid) continue;
 		if (tpid->cur_pck) {
 			gf_filter_pck_send(tpid->cur_pck);
@@ -1129,7 +1150,7 @@ GF_FilterRegister HEVCSplitRegister = {
 	.process = hevcsplit_process,
 };
 
-const GF_FilterRegister *hevcsplit_register(GF_FilterSession *session)
+const GF_FilterRegister* hevcsplit_register(GF_FilterSession *session)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] hevcsplit_register started.\n"));
 	return &HEVCSplitRegister;
