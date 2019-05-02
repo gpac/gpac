@@ -437,8 +437,8 @@ typedef struct
 typedef struct
 {
 	u8 nal_unit_type;
-	u32 frame_num, poc_lsb, slice_type;
-
+	u32 frame_num, poc_lsb, slice_type, header_size_with_emulation;
+	
 	s32 redundant_pic_cnt;
 
 	s32 poc;
@@ -484,7 +484,14 @@ typedef struct _hevc_state
 	s32 last_parsed_vps_id;
 	s32 last_parsed_sps_id;
 	s32 last_parsed_pps_id;
+
 } HEVCState;
+
+typedef struct hevc_combine{
+	Bool is_hevccombine, first_slice_segment;
+	s32 buffer_header_src_alloc; // because payload_start_offset is s32, otherwhise it's an u32
+	u8 *buffer_header_src;
+}Combine;
 
 enum
 {
