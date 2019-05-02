@@ -7037,7 +7037,9 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			}
 			/*five_minus_max_num_merge_cand=*/bs_get_ue(bs);
 		}
-		/*slice_qp_delta = */bs_get_se(bs);
+		si->slice_qp_delta_start_bits = (gf_bs_get_position(bs) - 1) * 8 + gf_bs_get_bit_position(bs);
+		/*slice_qp_delta = */si->slice_qp_delta = bs_get_se(bs);
+
 		if (pps->slice_chroma_qp_offsets_present_flag) {
 			/*slice_cb_qp_offset=*/bs_get_se(bs);
 			/*slice_cr_qp_offset=*/bs_get_se(bs);
@@ -8278,6 +8280,8 @@ s32 gf_media_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_
 	Bool is_slice = GF_FALSE;
 	s32 ret = -1;
 	HEVCSliceInfo n_state;
+	char *buffer_header_src;
+	u32 header_size_with_emulation;
 
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
