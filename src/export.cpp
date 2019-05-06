@@ -2243,7 +2243,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_set_localcache_provider) )
 
 /*filter session exports*/
-#pragma comment (linker, EXPORT_SYMBOL(gf_sc_connect) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_connect_from_time_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_disconnect) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_info) )
