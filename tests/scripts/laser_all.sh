@@ -1,15 +1,3 @@
-is_linux32=0
-#on linux 32 bit we for now disable the hashes, they all differ due to different float/double precision
-config=`gpac -h bin 2>&1 | grep GPAC_HAS_64`
-
-if [ -z $config ] ; then
-config=`gpac -h bin 2>&1 | grep GPAC_CONFIG_LINUX`
-
-if [ -n "$config" ] ; then
-is_linux32=1
-fi
-fi
-
 #@lsr_test execute tests on lsr file: laser<->MP4, laser<->saf,  conversions BT, XMT and MP4 Playback
 lsr_test ()
 {
@@ -76,7 +64,7 @@ lsr_test ()
  do_test "$GPAC -i $saffile inspect:all:deep:interleave=false:log=$myinspect"
 
  #don't hash content on 32 bits, fp precision leads to different results, hence different crc
- if [ $is_linux32 != 1 ] ; then
+ if [ $GPAC_OSTYPE != "lin32" ] ; then
   do_hash_test $myinspect "inspect-saf"
  fi
  #this will sync everything, we can delete after
