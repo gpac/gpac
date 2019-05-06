@@ -99,10 +99,13 @@ static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd
 	br /= timescale;
 	if (br) {
 		GF_ESD *esd = NULL;
-		bitrate = (u32) ((Double) (s64)avg_rate / br);
-		bitrate *= 8;
-		max_rate *= 8;
+		if (!csize || !cdur) {
+			bitrate = (u32) ((Double) (s64)avg_rate / br);
+			bitrate *= 8;
+			max_rate *= 8;
+		}
 		if (!max_rate) max_rate = bitrate;
+
 
 		if (use_esd) esd = gf_isom_get_esd(file, track, 1);
 		if (esd) {
