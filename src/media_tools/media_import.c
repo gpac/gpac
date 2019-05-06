@@ -106,7 +106,6 @@ static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd
 		}
 		if (!max_rate) max_rate = bitrate;
 
-
 		if (use_esd) esd = gf_isom_get_esd(file, track, 1);
 		if (esd) {
 			esd->decoderConfig->avgBitrate = (u32) bitrate;
