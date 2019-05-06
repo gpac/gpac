@@ -1,15 +1,3 @@
-is_linux32=0
-#on linux 32 bit we for now disable the hashes, they all differ due to different float/double precision
-config=`gpac -h bin 2>&1 | grep GPAC_HAS_64`
-
-if [ -z $config ] ; then
-config=`gpac -h bin 2>&1 | grep GPAC_CONFIG_LINUX`
-
-if [ -n "$config" ] ; then
-is_linux32=1
-fi
-fi
-
 ttxt_test()
 {
  test_begin "ttxtdec-$1"
@@ -30,7 +18,7 @@ ttxt_test()
  #test source parsing and playback
  do_test "$GPAC -font-dirs=$EXTERNAL_MEDIA_DIR/fonts/ -rescan-fonts -i $srcfile compositor:osize=512x128:vfr @ -o $dump" "srcplay"
  #don't hash content on 32 bits, fp precision leads to different results
- if [ $is_linux32 != 1 ] ; then
+ if [ $GPAC_OSTYPE != "lin32" ] ; then
   do_hash_test $dump "srcplay"
  fi
 

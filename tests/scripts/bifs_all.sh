@@ -1,14 +1,3 @@
-is_linux32=0
-#on linux 32 bit we for now disable the hashes, they all differ due to different float/double precision
-config=`gpac -h bin 2>&1 | grep GPAC_HAS_64`
-
-if [ -z $config ] ; then
-config=`gpac -h bin 2>&1 | grep GPAC_CONFIG_LINUX`
-
-if [ -n "$config" ] ; then
-is_linux32=1
-fi
-fi
 
 
 bifs_test()
@@ -30,7 +19,7 @@ bifs_test()
 
 
  #except on linux32 (rounding errors converting back from bifs)
- if [ $is_linux32 != 1 ] ; then
+ if [ $GPAC_OSTYPE != "lin32" ] ; then
   #test MP4 to BT
   do_test "$MP4BOX -bt $mp4file -out $TEMP_DIR/dump.bt" "mp42bt"
   do_hash_test $TEMP_DIR/dump.bt "mp42bt"
