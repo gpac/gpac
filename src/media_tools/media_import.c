@@ -157,7 +157,6 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 	GF_ISOSample *samp;
 	u32 codecid;
 	char *dsi, *data;
-	FILE *src;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->tk_info[0].track_num = 1;
@@ -168,15 +167,9 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 		return GF_OK;
 	}
 
-	src = gf_fopen(import->in_name, "rb");
-	if (!src) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
+	e = gf_file_load_data(import->in_name, (u8 **) &data, &size);
+	if (e) return gf_import_message(import, e, "Opening file %s failed", import->in_name);
 
-	gf_fseek(src, 0, SEEK_END);
-	size = (u32) gf_ftell(src);
-	gf_fseek(src, 0, SEEK_SET);
-	data = (char*)gf_malloc(sizeof(char)*size);
-	size = (u32) fread(data, sizeof(char), size, src);
-	gf_fclose(src);
 	if ((s32) size < 0) return GF_IO_ERR;
 
 	codecid = GF_CODECID_AFX;

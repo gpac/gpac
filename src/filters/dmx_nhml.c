@@ -451,7 +451,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 	u32 dims_profile, dims_level, dims_pathComponents, dims_fullRequestHost, dims_streamType, dims_containsRedundant;
 	char *textEncoding, *dims_contentEncoding, *dims_content_script_types, *mime_type, *xml_schema_loc, *xmlns;
-	FILE *nhml, *info;
+	FILE *nhml;
 	const GF_PropertyValue *p;
 	char *auxiliary_mime_types = NULL;
 	char *ext, szName[1000], szInfo[GF_MAX_PATH], szXmlFrom[1000], szXmlHeaderEnd[1000];
@@ -577,21 +577,17 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		}
 #ifndef GPAC_DISABLE_ZLIB
 		else if (!stricmp(att->name, "gzipDictionary")) {
-			u64 d_size;
+			u32 d_size;
 			if (stricmp(att->value, "self")) {
 				char *url = gf_url_concatenate(ctx->src_url, att->value);
-				FILE *d = gf_fopen(url ? url : att->value, "rb");
+
+				e = gf_file_load_data(url ? url : att->value, (u8 **) &ctx->dictionary, &d_size);
+
 				if (url) gf_free(url);
-				if (!d) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot open dictionary file %s - IO error", att->value ));
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot open dictionary file %s: %s", att->value, gf_error_to_string(e) ));
 					continue;
 				}
-				gf_fseek(d, 0, SEEK_END);
-				d_size = gf_ftell(d);
-				ctx->dictionary = (char*)gf_malloc(sizeof(char)*(size_t)(d_size+1));
-				gf_fseek(d, 0, SEEK_SET);
-				d_size = fread(ctx->dictionary, sizeof(char), (size_t)d_size, d);
-				ctx->dictionary[d_size]=0;
 			}
 			ctx->use_dict = GF_TRUE;
 		}
@@ -682,15 +678,9 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	info = gf_fopen(szInfo, "rb");
-	if (info) {
-		gf_fseek(info, 0, SEEK_END);
-		specInfoSize = (u32) gf_ftell(info) + 1;
-		specInfo = (char*)gf_malloc(sizeof(char) * specInfoSize);
-		gf_fseek(info, 0, SEEK_SET);
-		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, info);
-		gf_fclose(info);
-		specInfo[specInfoSize] = 0;
+	if (gf_file_exists(szInfo)) {
+		e = gf_file_load_data(szInfo, (u8 **)&specInfo, &specInfoSize);
+		if (e) return e;
 	} else if (ctx->header_end) {
 		/* for text based streams, the decoder specific info can be at the beginning of the file */
 		specInfoSize = ctx->header_end;

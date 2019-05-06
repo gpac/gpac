@@ -79,18 +79,8 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 	} else
 #endif
 	{
-		FILE *t = gf_fopen(src, "rb");
-		if (!t) return GF_IO_ERR;
-		fseek(t, 0, SEEK_END);
-		size = ftell(t);
-		fseek(t, 0, SEEK_SET);
-		data = gf_malloc(sizeof(char)*size);
-		if (size != fread(data, 1, size, t) ) {
-			gf_free(data);
-			gf_fclose(t);
-			return GF_IO_ERR;
-		}
-		gf_fclose(t);
+		GF_Err e = gf_file_load_data(src, (u8 **) &data, &size);
+		if (e) return e;
 	}
 
 	if (size && data) {
@@ -951,25 +941,16 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 
 			if (rvc_config) {
-				FILE *f = gf_fopen(rvc_config, "rb");
-				if (f) {
-					char *data;
-					u32 size;
-					size_t read;
-					gf_fseek(f, 0, SEEK_END);
-					size = (u32) gf_ftell(f);
-					gf_fseek(f, 0, SEEK_SET);
-					data = gf_malloc(sizeof(char)*size);
-					read = fread(data, 1, size, f);
-					gf_fclose(f);
-					if (read != size) {
-						fprintf(stderr, "Error: could not read rvc config from %s\n", rvc_config);
-						e = GF_IO_ERR;
-						goto exit;
-					}
+				char *data;
+				u32 size;
+				e = gf_file_load_data(rvc_config, (u8 **) &data, &size);
+				if (e) {
+					fprintf(stderr, "Error: failed to load rvc config from file: %s\n", gf_error_to_string(e) );
+				} else {
 #ifdef GPAC_DISABLE_ZLIB
 					fprintf(stderr, "Error: no zlib support - RVC not available\n");
 					e = GF_NOT_SUPPORTED;
+					gf_free(data);
 					goto exit;
 #else
 					gf_gz_compress_payload(&data, size, &size);

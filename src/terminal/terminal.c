@@ -1517,10 +1517,10 @@ Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_
 		*bytes_per_sec /= 8;
 	}
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DOWN_BYTES);
-	if (p && bytes_done) *bytes_done = p->value.longuint;
+	if (p && bytes_done) *bytes_done = (u32) p->value.longuint;
 
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DOWN_SIZE);
-	if (p && total_bytes) *bytes_done = p->value.longuint;
+	if (p && total_bytes) *bytes_done = (u32) p->value.longuint;
 
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_URL);
 	if (p && url) *url = p->value.string;

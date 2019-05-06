@@ -67,8 +67,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_localized) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_process_id) )
 
-
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_default_cache_directory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_4cc_to_str) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_error_to_string) )
@@ -76,6 +74,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rand) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_user_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_enum_directory) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_file_load_data) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_modify_tools_levels) )

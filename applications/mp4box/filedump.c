@@ -125,16 +125,9 @@ GF_Err set_cover_art(GF_ISOFile *file, char *inName)
 {
 	GF_Err e;
 	char *tag, *ext;
-	FILE *t;
 	u32 tag_len;
-	t = gf_fopen(inName, "rb");
-	gf_fseek(t, 0, SEEK_END);
-	tag_len = (u32) gf_ftell(t);
-	gf_fseek(t, 0, SEEK_SET);
-	tag = gf_malloc(sizeof(char) * tag_len);
-	tag_len = (u32) fread(tag, sizeof(char), tag_len, t);
-	gf_fclose(t);
-
+	e = gf_file_load_data(inName, (u8 **) &tag, &tag_len);
+	if (e) return e;
 	ext = strrchr(inName, '.');
 	if (!stricmp(ext, ".png")) tag_len |= 0x80000000;
 	e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, tag, tag_len);
