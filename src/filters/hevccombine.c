@@ -1051,7 +1051,7 @@ GF_FilterRegister HevcRecombineRegister = {
 	.max_extra_pids = -1,
 };
 
-const GF_FilterRegister *hevcRecombine_register(GF_FilterSession *session)
+const GF_FilterRegister *hevccombine_register(GF_FilterSession *session)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Combine] hevcRecombine_register started.\n"));
 	return &HevcRecombineRegister;
