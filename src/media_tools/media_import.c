@@ -59,7 +59,7 @@ static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd
 	GF_ISOSample sample;
 
 	db_size = 0;
-	rate = max_rate = avg_rate = time_wnd = 0;
+	rate = max_rate = avg_rate = time_wnd = bitrate = 0;
 
 	csize = 0;
 	cdur = 0;
