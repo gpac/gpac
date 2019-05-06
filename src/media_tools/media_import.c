@@ -2352,6 +2352,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			if (samp->nb_pack && duration && (samp->DTS + samp->nb_pack*cdur > duration) ) {
 				u32 nb_samp = (u32) ( (duration - samp->DTS) / cdur);
 				u32 csize = samp->dataLength / samp->nb_pack;
+				if (!nb_samp) {
+					gf_isom_sample_del(&samp);
+					break;
+				}
 				samp->dataLength = csize*nb_samp;
 				samp->nb_pack = nb_samp;
 				duration = samp->DTS-1;
