@@ -60,17 +60,20 @@ void carbon_uninit();
 #endif	//WIN32
 
 /*local prototypes*/
-void PrintWorldInfo(GF_Terminal *term);
-void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *URL);
-void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 indent, char *root_name);
+static void PrintWorldInfo(GF_Terminal *term);
+static void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *URL);
+static void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 indent, char *root_name);
 
-void ViewODs(GF_Terminal *term, Bool show_timing);
-void PrintGPACConfig();
+static void ViewODs(GF_Terminal *term, Bool show_timing);
+static void PrintGPACConfig(Bool full_dump);
+static void MakeScreenshot(Bool for_coverage);
+static void PrintAVInfo(Bool final);
 
 static u32 gui_mode = 0;
 
 static Bool restart = GF_FALSE;
 static Bool reload = GF_FALSE;
+Bool do_coverage = GF_FALSE;
 
 Bool no_prog = 0;
 
@@ -192,8 +195,6 @@ void PrintUsage()
 	        "\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
 	        "\t-ntp-shift T:   shifts NTP clock of T (signed int) milliseconds\n"
 	        "\n"
-	        "\t-uncache:       Revert all cached items to their original name and location. Does not start player.\n"
-	        "\n"
 	        "\t-p profile:    user-defined profile, either a name or path to an existing GPAC config file.\n"
 	        "\t-stats:        dumps filter session stats after playback.\n"
 	        "\t-graph:        dumps filter session graph after playback.\n"
@@ -289,8 +290,6 @@ static void PrintTime(u64 time)
 	fprintf(stderr, "%02d:%02d:%02d.%03d", h, m, s, ms);
 }
 
-void PrintAVInfo(Bool final);
-
 
 static u32 rti_update_time_ms = 200;
 static FILE *rti_logs = NULL;
@@ -351,39 +350,37 @@ static void ResetCaption()
 	event.caption.caption = NULL;
 
 	if (is_connected) {
-#ifdef FILTER_FIXME
 		char szName[1024];
-		NetInfoCommand com;
+		GF_TermURLInfo urli;
 
 		/*get any service info*/
-		if (!startup_file && gf_term_get_service_info(term, gf_term_get_root_object(term), &com) == GF_OK) {
+		if (!startup_file && gf_term_get_service_info(term, gf_term_get_root_object(term), &urli) == GF_OK) {
 			strcpy(szName, "");
-			if (com.track_info) {
+			if (urli.track_num) {
 				char szBuf[10];
-				sprintf(szBuf, "%02d ", (u32) (com.track_info>>16) );
+				sprintf(szBuf, "%02d ", (u32) urli.track_num );
 				strcat(szName, szBuf);
 			}
-			if (com.artist) {
-				strcat(szName, com.artist);
+			if (urli.artist) {
+				strcat(szName, urli.artist);
 				strcat(szName, " ");
 			}
-			if (com.name) {
-				strcat(szName, com.name);
+			if (urli.name) {
+				strcat(szName, urli.name);
 				strcat(szName, " ");
 			}
-			if (com.album) {
+			if (urli.album) {
 				strcat(szName, "(");
-				strcat(szName, com.album);
+				strcat(szName, urli.album);
 				strcat(szName, ")");
 			}
-			if (com.provider) {
+			if (urli.provider) {
 				strcat(szName, "(");
-				strcat(szName, com.provider);
+				strcat(szName, urli.provider);
 				strcat(szName, ")");
 			}
 			if (strlen(szName)) event.caption.caption = szName;
 		}
-#endif
 		if (!event.caption.caption) {
 			char *str = strrchr(the_url, '\\');
 			if (!str) str = strrchr(the_url, '/');
@@ -825,7 +822,8 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	}
 	break;
 	case GF_EVENT_NAVIGATE_INFO:
-		if (evt->navigate.to_url) fprintf(stderr, "Go to URL: \"%s\"\r", evt->navigate.to_url);
+		if (evt->navigate.to_url)
+			fprintf(stderr, "Go to URL: \"%s\"\r", evt->navigate.to_url);
 		break;
 	case GF_EVENT_NAVIGATE:
 		if (gf_term_is_supported_url(term, evt->navigate.to_url, 1, no_mime_check)) {
@@ -896,14 +894,14 @@ void set_navigation()
 		fprintf(stderr, "Content/compositor doesn't allow user-selectable navigation\n");
 	} else if (type==1) {
 		fprintf(stderr, "Select Navigation (\'N\'one, \'E\'xamine, \'S\'lide): ");
-		nav = getch();
+		nav = do_coverage ? 'N' : getch();
 		if (nav=='N') e = gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_NONE);
 		else if (nav=='E') e = gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_EXAMINE);
 		else if (nav=='S') e = gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_SLIDE);
 		else fprintf(stderr, "Unknown selector \'%c\' - only \'N\',\'E\',\'S\' allowed\n", nav);
 	} else if (type==2) {
 		fprintf(stderr, "Select Navigation (\'N\'one, \'W\'alk, \'F\'ly, \'E\'xamine, \'P\'an, \'S\'lide, \'G\'ame, \'V\'R, \'O\'rbit): ");
-		nav = getch();
+		nav = do_coverage ? 'N' : getch();
 		if (nav=='N') e = gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_NONE);
 		else if (nav=='W') e = gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_WALK);
 		else if (nav=='F') e = gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_FLY);
@@ -950,59 +948,6 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 	}
 }
 
-Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
-{
-	const char *url;
-	char *sep;
-	GF_Config *cached;
-	if (strncmp(item_name, "gpac_cache_", 11)) return GF_FALSE;
-	cached = gf_cfg_new(NULL, item_path);
-	url = gf_cfg_get_key(cached, "cache", "url");
-	if (url) url = strstr(url, "://");
-	if (url) {
-		u32 i, len, dir_len=0, k=0;
-		char *dst_name;
-		sep = strstr(item_path, "gpac_cache_");
-		if (sep) {
-			sep[0] = 0;
-			dir_len = (u32) strlen(item_path);
-			sep[0] = 'g';
-		}
-		url+=3;
-		len = (u32) strlen(url);
-		dst_name = gf_malloc(len+dir_len+1);
-		memset(dst_name, 0, len+dir_len+1);
-
-		strncpy(dst_name, item_path, dir_len);
-		k=dir_len;
-		for (i=0; i<len; i++) {
-			dst_name[k] = url[i];
-			if (dst_name[k]==':') dst_name[k]='_';
-			else if (dst_name[k]=='/') {
-				if (!gf_dir_exists(dst_name))
-					gf_mkdir(dst_name);
-			}
-			k++;
-		}
-		sep = strrchr(item_path, '.');
-		if (sep) {
-			sep[0]=0;
-			if (gf_file_exists(item_path)) {
-				gf_move_file(item_path, dst_name);
-			}
-			sep[0]='.';
-		}
-		gf_free(dst_name);
-	}
-	gf_cfg_del(cached);
-	gf_delete_file(item_path);
-	return GF_FALSE;
-}
-void do_flatten_cache(const char *cache_dir)
-{
-	gf_enum_directory(cache_dir, GF_FALSE, revert_cache_file, NULL, "*.txt");
-}
-
 
 #ifdef WIN32
 #include <wincon.h>
@@ -1029,7 +974,7 @@ int mp4client_main(int argc, char **argv)
 #ifdef GPAC_MEMORY_TRACKING
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
 #endif
-	Bool do_uncache, has_command;
+	Bool has_command;
 	char *url_arg, *out_arg, *profile, *rti_file, *views, *mosaic;
 	FILE *logfile = NULL;
 #ifndef WIN32
@@ -1041,7 +986,7 @@ int mp4client_main(int argc, char **argv)
 
 	memset(&user, 0, sizeof(GF_User));
 
-	do_uncache = has_command = GF_FALSE;
+	has_command = GF_FALSE;
 	url_arg = out_arg = profile = rti_file = views = mosaic = NULL;
 
 	/*first identify profile and mem tracking */
@@ -1196,8 +1141,6 @@ int mp4client_main(int argc, char **argv)
 				if (argv[i+1][1]=='m') align_mode |= 1;
 				else if (argv[i+1][1]=='r') align_mode |= 2;
 				i++;
-			} else if (!strcmp(arg, "-uncache")) {
-				do_uncache = GF_TRUE;
 			}
 			else if (!strcmp(arg, "-exit")) auto_exit = GF_TRUE;
 			else if (!stricmp(arg, "-views")) {
@@ -1219,6 +1162,10 @@ int mp4client_main(int argc, char **argv)
 				print_stats=GF_TRUE;
 			} else if (!stricmp(arg, "-graph")) {
 				print_graph=GF_TRUE;
+			} else if (!stricmp(arg, "-cov")) {
+				do_coverage = GF_TRUE;
+				print_stats = GF_TRUE;
+				print_graph = GF_TRUE;
 			} else {
 				u32 res = gf_sys_is_gpac_arg(arg);
 				if (!res) {
@@ -1231,13 +1178,6 @@ int mp4client_main(int argc, char **argv)
 			i++;
 		}
  	}
-
-	if (do_uncache) {
-		const char *cache_dir = gf_opts_get_key("core", "cache");
-		do_flatten_cache(cache_dir);
-		fprintf(stderr, "GPAC Cache dir %s flattened\n", cache_dir);
-		return 0;
-	}
 
 	if (!gui_mode && !url_arg && (gf_opts_get_key("General", "StartupFile") != NULL)) {
 		gui_mode=1;
@@ -1743,7 +1683,7 @@ force_input:
 			break;
 
 		case 'c':
-			PrintGPACConfig();
+			PrintGPACConfig(GF_FALSE);
 			break;
 		case '3':
 		{
@@ -1880,68 +1820,8 @@ force_input:
 
 		/*extract to PNG*/
 		case 'Z':
-		{
-			char szFileName[100];
-			u32 nb_pass, nb_views, offscreen_view = 0;
-			GF_VideoSurface fb;
-			GF_Err e;
-			nb_pass = 1;
-			nb_views = gf_term_get_option(term, GF_OPT_NUM_STEREO_VIEWS);
-			if (nb_views>1) {
-				fprintf(stderr, "Auto-stereo mode detected - type number of view to dump (0 is main output, 1 to %d offscreen view, %d for all offscreen, %d for all offscreen and main)\n", nb_views, nb_views+1, nb_views+2);
-				if (scanf("%d", &offscreen_view) != 1) {
-					offscreen_view = 0;
-				}
-				if (offscreen_view==nb_views+1) {
-					offscreen_view = 1;
-					nb_pass = nb_views;
-				}
-				else if (offscreen_view==nb_views+2) {
-					offscreen_view = 0;
-					nb_pass = nb_views+1;
-				}
-			}
-			while (nb_pass) {
-				nb_pass--;
-				if (offscreen_view) {
-					sprintf(szFileName, "view%d_dump.png", offscreen_view);
-					e = gf_term_get_offscreen_buffer(term, &fb, offscreen_view-1, 0);
-				} else {
-					sprintf(szFileName, "gpac_video_dump_"LLU".png", gf_net_get_utc() );
-					e = gf_term_get_screen_buffer(term, &fb);
-				}
-				offscreen_view++;
-				if (e) {
-					fprintf(stderr, "Error dumping screen buffer %s\n", gf_error_to_string(e) );
-					nb_pass = 0;
-				} else {
-#ifndef GPAC_DISABLE_AV_PARSERS
-					u32 dst_size = fb.width*fb.height*4;
-					char *dst = (char*)gf_malloc(sizeof(char)*dst_size);
-
-					e = gf_img_png_enc(fb.video_buffer, fb.width, fb.height, fb.pitch_y, fb.pixel_format, dst, &dst_size);
-					if (e) {
-						fprintf(stderr, "Error encoding PNG %s\n", gf_error_to_string(e) );
-						nb_pass = 0;
-					} else {
-						FILE *png = gf_fopen(szFileName, "wb");
-						if (!png) {
-							fprintf(stderr, "Error writing file %s\n", szFileName);
-							nb_pass = 0;
-						} else {
-							gf_fwrite(dst, dst_size, 1, png);
-							gf_fclose(png);
-							fprintf(stderr, "Dump to %s\n", szFileName);
-						}
-					}
-					if (dst) gf_free(dst);
-					gf_term_release_screen_buffer(term, &fb);
-#endif //GPAC_DISABLE_AV_PARSERS
-				}
-			}
-			fprintf(stderr, "Done: %s\n", szFileName);
-		}
-		break;
+			MakeScreenshot(GF_FALSE);
+			break;
 
 		case 'G':
 		{
@@ -1996,6 +1876,71 @@ force_input:
 	if (print_stats)
 		gf_term_print_stats(term);
 
+	if (do_coverage) {
+		u32 w, h, nb_drawn;
+		GF_Event evt;
+		Bool is_bound;
+		const char *outName;
+		GF_ObjectManager *root_odm, *odm;
+		PrintAVInfo(GF_TRUE);
+		PrintODList(term, NULL, 0, 0, "Root");
+		ViewODs(term, GF_TRUE);
+		ViewODs(term, GF_FALSE);
+		ViewOD(term, 0, (u32) -1, NULL);
+		ViewOD(term, 0, 1, NULL);
+		PrintUsage();
+		PrintHelp();
+		PrintWorldInfo(term);
+		PrintGPACConfig(GF_TRUE);
+		gf_term_dump_scene(term, NULL, NULL, GF_FALSE, 0, NULL);
+		gf_term_get_current_service_id(term);
+		gf_term_toggle_addons(term, GF_FALSE);
+		set_navigation();
+
+		memset(&evt, 0, sizeof(GF_Event));
+		evt.type = GF_EVENT_MOUSEUP;
+		evt.mouse.x = 20;
+		evt.mouse.y = 20;
+		gf_term_send_event(term, &evt);
+
+		gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
+		//exercice step clocks
+		gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
+		root_odm = gf_term_get_root_object(term);
+		gf_term_find_service(term, root_odm, 0);
+		gf_term_select_service(term, root_odm, 0);
+		odm = gf_term_get_object(term, root_odm, 0);
+		gf_term_select_object(term, odm );
+		gf_term_object_subscene_type(term, odm);
+		gf_term_get_visual_output_size(term, &w, &h);
+		gf_term_switch_quality(term, GF_TRUE);
+
+		gf_term_is_type_supported(term, "video/mp4");
+		gf_term_get_url(term);
+		gf_term_get_simulation_frame_rate(term, &nb_drawn);
+
+		gf_term_get_text_selection(term, GF_TRUE);
+		gf_term_paste_text(term, "test", GF_TRUE);
+
+		MakeScreenshot(GF_TRUE);
+
+		gf_term_scene_update(term, NULL, "REPLACE DYN_TRANS.translation BY 10 10");
+		gf_term_add_object(term, "./media/auxiliary_files/subtitle.srt", GF_TRUE);
+
+		gf_term_play_from_time(term, 1000, GF_TRUE);
+
+		gf_term_get_viewpoint(term, 1, &outName, &is_bound);
+		gf_term_set_viewpoint(term, 1, "testvp");
+
+		gf_term_connect_with_path(term, "logo.jpg", "./media/auxiliary_files/");
+		gf_term_navigate_to(term, "./media/auxiliary_files/logo.jpg");
+		send_open_url("./media/auxiliary_files/logo.jpg");
+		switch_bench(1);
+		do_set_speed(1.0);
+		hide_shell(0);
+		list_modules();
+	}
+
 	i = gf_sys_clock();
 	gf_term_disconnect(term);
 	if (rti_file) UpdateRTInfo("Disconnected\n");
@@ -2038,11 +1983,83 @@ force_input:
 GF_MAIN_FUNC(mp4client_main)
 
 
+static void MakeScreenshot(Bool for_coverage)
+{
+	char szFileName[100];
+	u32 nb_pass, nb_views, offscreen_view = 0;
+	GF_VideoSurface fb;
+	GF_Err e;
+	nb_pass = 1;
+	nb_views = gf_term_get_option(term, GF_OPT_NUM_STEREO_VIEWS);
+	if (nb_views>1) {
+		fprintf(stderr, "Auto-stereo mode detected - type number of view to dump (0 is main output, 1 to %d offscreen view, %d for all offscreen, %d for all offscreen and main)\n", nb_views, nb_views+1, nb_views+2);
+		if (!for_coverage) {
+			if (scanf("%d", &offscreen_view) != 1) {
+				offscreen_view = 0;
+			}
+		}
+		if (offscreen_view==nb_views+1) {
+			offscreen_view = 1;
+			nb_pass = nb_views;
+		}
+		else if (offscreen_view==nb_views+2) {
+			offscreen_view = 0;
+			nb_pass = nb_views+1;
+		}
+	}
+	if (for_coverage && !offscreen_view) {
+		if (gf_term_get_offscreen_buffer(term, &fb, 0, 0)==GF_OK)
+			gf_term_release_screen_buffer(term, &fb);
+	}
+	while (nb_pass) {
+		nb_pass--;
+		if (offscreen_view) {
+			sprintf(szFileName, "view%d_dump.png", offscreen_view);
+			e = gf_term_get_offscreen_buffer(term, &fb, offscreen_view-1, 0);
+		} else {
+			sprintf(szFileName, "gpac_video_dump_"LLU".png", gf_net_get_utc() );
+			e = gf_term_get_screen_buffer(term, &fb);
+		}
+		offscreen_view++;
+		if (e) {
+			fprintf(stderr, "Error dumping screen buffer %s\n", gf_error_to_string(e) );
+			nb_pass = 0;
+		} else {
+#ifndef GPAC_DISABLE_AV_PARSERS
+			u32 dst_size = fb.width*fb.height*4;
+			char *dst = (char*)gf_malloc(sizeof(char)*dst_size);
+
+			e = gf_img_png_enc(fb.video_buffer, fb.width, fb.height, fb.pitch_y, fb.pixel_format, dst, &dst_size);
+			if (e) {
+				fprintf(stderr, "Error encoding PNG %s\n", gf_error_to_string(e) );
+				nb_pass = 0;
+			} else {
+				FILE *png = gf_fopen(szFileName, "wb");
+				if (!png) {
+					fprintf(stderr, "Error writing file %s\n", szFileName);
+					nb_pass = 0;
+				} else {
+					gf_fwrite(dst, dst_size, 1, png);
+					gf_fclose(png);
+					fprintf(stderr, "Dump to %s\n", szFileName);
+				}
+			}
+			if (dst) gf_free(dst);
+			gf_term_release_screen_buffer(term, &fb);
+
+			if (for_coverage) gf_delete_file(szFileName);
+#endif //GPAC_DISABLE_AV_PARSERS
+		}
+	}
+	fprintf(stderr, "Done: %s\n", szFileName);
+}
+
 static GF_ObjectManager *video_odm = NULL;
 static GF_ObjectManager *audio_odm = NULL;
 static GF_ObjectManager *scene_odm = NULL;
 static u32 last_odm_count = 0;
-void PrintAVInfo(Bool final)
+
+static void PrintAVInfo(Bool final)
 {
 	GF_MediaInfo a_odi, v_odi, s_odi;
 	Double avg_dec_time=0;
@@ -2208,7 +2225,7 @@ void PrintAVInfo(Bool final)
 	}
 }
 
-void PrintWorldInfo(GF_Terminal *term)
+static void PrintWorldInfo(GF_Terminal *term)
 {
 	u32 i;
 	const char *title;
@@ -2227,7 +2244,7 @@ void PrintWorldInfo(GF_Terminal *term)
 	gf_list_del(descs);
 }
 
-void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 indent, char *root_name)
+static void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 indent, char *root_name)
 {
 	GF_MediaInfo odi;
 	u32 i, count;
@@ -2303,10 +2320,12 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 	}
 }
 
-void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
+static void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 {
 	GF_MediaInfo odi;
-	u32 i, count, d_enum;
+	u32 i, count, d_enum, id;
+	GF_TermNetStats stats;
+	GF_Err e;
 	GF_ObjectManager *odm, *root_odm = gf_term_get_root_object(term);
 	if (!root_odm) return;
 
@@ -2427,7 +2446,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 		const char *url;
 		u32 done, total, bps;
 		d_enum = 0;
-		while (gf_term_get_download_info(term, odm, &d_enum, &url, NULL, &done, &total, &bps)) {
+		while (gf_term_get_download_info(term, odm, &d_enum, &url, &done, &total, &bps)) {
 			if (d_enum==1) fprintf(stderr, "Current Downloads in service:\n");
 			if (done && total) {
 				fprintf(stderr, "%s: %d / %d bytes (%.2f %%) - %.2f kBps\n", url, done, total, (100.0f*done)/total, ((Float)bps)/1024.0f);
@@ -2438,39 +2457,35 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 		if (!d_enum) fprintf(stderr, "No Downloads in service\n");
 		fprintf(stderr, "\n");
 	}
-#ifdef FILTER_FIXME
-	{
-	NetStatCommand com;
+
 	d_enum = 0;
-	while (gf_term_get_channel_net_info(term, odm, &d_enum, &id, &com, &e)) {
+	while (gf_term_get_channel_net_info(term, odm, &d_enum, &id, &stats, &e)) {
 		if (e) continue;
-		if (!com.bw_down && !com.bw_up) continue;
+		if (!stats.bw_down && !stats.bw_up) continue;
 
 		fprintf(stderr, "Stream ID %d statistics:\n", id);
-		if (com.multiplex_port) {
-			fprintf(stderr, "\tMultiplex Port %d - multiplex ID %d\n", com.multiplex_port, com.port);
+		if (stats.multiplex_port) {
+			fprintf(stderr, "\tMultiplex Port %d - multiplex ID %d\n", stats.multiplex_port, stats.port);
 		} else {
-			fprintf(stderr, "\tPort %d\n", com.port);
+			fprintf(stderr, "\tPort %d\n", stats.port);
 		}
-		fprintf(stderr, "\tPacket Loss Percentage: %.4f\n", com.pck_loss_percentage);
-		fprintf(stderr, "\tDown Bandwidth: %d bps\n", com.bw_down);
-		if (com.bw_up) fprintf(stderr, "\tUp Bandwidth: %d bps\n", com.bw_up);
-		if (com.ctrl_port) {
-			if (com.multiplex_port) {
-				fprintf(stderr, "\tControl Multiplex Port: %d - Control Multiplex ID %d\n", com.multiplex_port, com.ctrl_port);
+		fprintf(stderr, "\tPacket Loss Percentage: %.4f\n", stats.pck_loss_percentage);
+		fprintf(stderr, "\tDown Bandwidth: %d bps\n", stats.bw_down);
+		if (stats.bw_up) fprintf(stderr, "\tUp Bandwidth: %d bps\n", stats.bw_up);
+		if (stats.ctrl_port) {
+			if (stats.multiplex_port) {
+				fprintf(stderr, "\tControl Multiplex Port: %d - Control Multiplex ID %d\n", stats.multiplex_port, stats.ctrl_port);
 			} else {
-				fprintf(stderr, "\tControl Port: %d\n", com.ctrl_port);
+				fprintf(stderr, "\tControl Port: %d\n", stats.ctrl_port);
 			}
-			fprintf(stderr, "\tDown Bandwidth: %d bps\n", com.ctrl_bw_down);
-			fprintf(stderr, "\tUp Bandwidth: %d bps\n", com.ctrl_bw_up);
+			fprintf(stderr, "\tDown Bandwidth: %d bps\n", stats.ctrl_bw_down);
+			fprintf(stderr, "\tUp Bandwidth: %d bps\n", stats.ctrl_bw_up);
 		}
 		fprintf(stderr, "\n");
 	}
-	}
-#endif
 }
 
-void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
+static void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 {
 	GF_MediaInfo odi;
 	u32 ind = indent;
@@ -2521,7 +2536,7 @@ void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 
 }
 
-void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
+static void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 {
 	Float avg_dec_time;
 	GF_MediaInfo odi;
@@ -2591,7 +2606,7 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 
 }
 
-void ViewODs(GF_Terminal *term, Bool show_timing)
+static void ViewODs(GF_Terminal *term, Bool show_timing)
 {
 	GF_ObjectManager *root_odm = gf_term_get_root_object(term);
 	if (!root_odm) return;
@@ -2605,18 +2620,22 @@ void ViewODs(GF_Terminal *term, Bool show_timing)
 }
 
 
-void PrintGPACConfig()
+static void PrintGPACConfig(Bool full_dump)
 {
 	u32 i, j, cfg_count, key_count;
 	char szName[200];
 	char *secName = NULL;
 
-	fprintf(stderr, "Enter section name (\"*\" for complete dump):\n");
-	if (1 > scanf("%s", szName)) {
-		fprintf(stderr, "No section name, aborting.\n");
-		return;
+	if (full_dump) {
+		strcpy(szName, "*");
+	} else {
+		fprintf(stderr, "Enter section name (\"*\" for complete dump):\n");
+		if (1 > scanf("%s", szName)) {
+			fprintf(stderr, "No section name, aborting.\n");
+			return;
+		}
+		if (strcmp(szName, "*")) secName = szName;
 	}
-	if (strcmp(szName, "*")) secName = szName;
 
 	fprintf(stderr, "\n\n*** GPAC Configuration ***\n\n");
 

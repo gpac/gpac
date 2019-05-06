@@ -48,7 +48,7 @@ endif
 endif
 
 #common obj
-OBJS= main.o extract.o
+OBJS= main.o
 ifeq ($(CONFIG_DARWIN),yes)
 OBJS+= carbon_events.o
 LDFLAGS += -framework Carbon

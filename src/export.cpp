@@ -1837,9 +1837,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_add_object) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_is_supported_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_simulation_frame_rate) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_step_clocks) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_process_flush) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_process_flush_video) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_service_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_text_selection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_paste_text) )
@@ -1858,8 +1855,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_offscreen_buffer) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_set_speed) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_current_service_id) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_clock) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_print_graph) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_is_type_supported) )
 
 /*terminal_dev exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_new) )
@@ -2258,8 +2255,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odm_get_object_info) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_bit_depth) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_compositor) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_connect_output_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_print_stats) )
