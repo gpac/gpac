@@ -163,15 +163,46 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 	@bytes_done, @total_bytes: file info. total_bytes may be 0 (eg http streaming)
 	@bytes_per_sec: guess what
 */
-Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, const char **server, const char **path, u32 *bytes_done, u32 *total_bytes, u32 *bytes_per_sec);
+Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, const char **url, u32 *bytes_done, u32 *total_bytes, u32 *bytes_per_sec);
 
-/*same principles as above , struct __netcom is defined in service.h*/
-typedef struct __netstatcom NetStatCommand;
-Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, u32 *chid, NetStatCommand *netcom, GF_Err *ret_code);
+typedef struct
+{
+	/*percentage of packet loss from network. This cannot be figured out by the app since there is no
+	one-to-one mapping between the protocol packets and the final SL packet (cf RTP payloads)*/
+	Float pck_loss_percentage;
+	/*channel port, control channel port if any (eg RTCP)*/
+	u16 port, ctrl_port;
+	/*bandwidth used by channel & its control channel if any (both up and down) - expressed in bits per second
+	for HTTP connections, typically only bw_down is used*/
+	u32 bw_up, bw_down, ctrl_bw_down, ctrl_bw_up;
+	/*set to 0 if channel is not part of a multiplex. Otherwise set to the multiplex port, and
+	above port info shall be identifiers in the multiplex - note that multiplexing overhead is ignored
+	in GPAC for the current time*/
+	u16 multiplex_port;
+} GF_TermNetStats;
 
-/*same principles as above , struct __netinfo is defined in service.h*/
-typedef struct __netinfocom NetInfoCommand;
-GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, NetInfoCommand *netcom);
+/*gets network statistics for the given channle in the given object (same principles as above)*/
+Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, u32 *chid, GF_TermNetStats *net_stats, GF_Err *ret_code);
+
+typedef struct
+{
+	u32 service_id;
+	u16 track_num;
+	u16 track_total;
+	u32 genre;
+	const char *album;
+	const char *artist;
+	const char *comment;
+	const char *composer;
+	const char *name;
+	const char *writer;
+	const char *provider;
+	//as in MPEG_DASH role
+	const char *role;
+	const char *accessibility;
+	const char *rating;
+} GF_TermURLInfo;
+GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, GF_TermURLInfo *info);
 
 /*retrieves world info of the scene @od belongs to.
 If @odm is or points to an inlined OD the world info of the inlined content is retrieved

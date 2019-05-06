@@ -817,7 +817,7 @@ static void validator_test_open(GF_Validator *validator)
 		gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
 		if (validator->is_recording)
 			validator->snapshot_next_frame = GF_TRUE;
-		gf_sc_connect(validator->compositor, filename);
+		gf_sc_connect_from_time_ex(validator->compositor, filename, 0, 0, 0, NULL);
 
 	}
 //	validator->ck = validator->compositor->root_scene->scene_codec ? validator->compositor->root_scene->scene_codec->ck : validator->compositor->root_scene->dyn_ck;

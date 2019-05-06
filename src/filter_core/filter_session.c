@@ -2286,7 +2286,7 @@ Bool gf_fs_mime_supported(GF_FilterSession *fsess, const char *mime)
 
 Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt)
 {
-	return fs_default_event_proc(session, uievt);
+	return session->ui_event_proc(session->ui_opaque, uievt);
 }
 
 #ifndef GPAC_DISABLE_3D

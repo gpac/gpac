@@ -163,18 +163,6 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	if (scene->is_dynamic_scene) {
 		if (!root->ID)
 			root->ID = 1;
-			
-		if (!root->scene_ns->connect_ack) {
-			/*othewise send a connect ack for top level*/
-			GF_Event evt;
-			root->scene_ns->connect_ack = GF_TRUE;
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Root object connected (%s) !\n", root->scene_ns->url));
-
-			evt.type = GF_EVENT_CONNECT;
-			evt.connect.is_connected = GF_TRUE;
-			gf_sc_send_event(scene->compositor, &evt);
-		}
 	}
 
 	v = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
@@ -406,6 +394,18 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	} else {
 		//cannot setup until we get the associated OD_Update
 		odm->ID = 0;
+	}
+
+	if (scene->is_dynamic_scene && !root->scene_ns->connect_ack) {
+		/*othewise send a connect ack for top level*/
+		GF_Event evt;
+		root->scene_ns->connect_ack = GF_TRUE;
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Root object connected (%s) !\n", root->scene_ns->url));
+
+		evt.type = GF_EVENT_CONNECT;
+		evt.connect.is_connected = GF_TRUE;
+		gf_sc_send_event(scene->compositor, &evt);
 	}
 }
 

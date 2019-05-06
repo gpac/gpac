@@ -52,17 +52,14 @@ struct _tag_terminal
 	GF_User *user;
 	GF_Compositor *compositor;
 	GF_FilterSession *fsess;
+
+	u32 reload_state;
+	char *reload_url;
 };
 
 GF_Compositor *gf_sc_from_filter(GF_Filter *filter);
 
-GF_EXPORT
-GF_Compositor *gf_term_get_compositor(GF_Terminal *term)
-{
-	return term->compositor;
-}
-
-u32 gf_comp_play_from_time(GF_Compositor *compositor, u64 from_time, u32 pause_at_first_frame);
+u32 gf_sc_play_from_time(GF_Compositor *compositor, u64 from_time, u32 pause_at_first_frame);
 
 
 GF_EXPORT
@@ -196,7 +193,8 @@ static void gf_term_set_play_state(GF_Compositor *compositor, u32 PlayState, Boo
 }
 
 
-static void gf_term_connect_from_time_ex(GF_Compositor *compositor, const char *URL, u64 startTime, u32 pause_at_first_frame, Bool secondary_scene, const char *parent_path)
+GF_EXPORT
+void gf_sc_connect_from_time_ex(GF_Compositor *compositor, const char *URL, u64 startTime, u32 pause_at_first_frame, Bool secondary_scene, const char *parent_path)
 {
 	GF_Scene *scene;
 	GF_ObjectManager *odm;
@@ -207,7 +205,7 @@ static void gf_term_connect_from_time_ex(GF_Compositor *compositor, const char *
 		if (compositor->root_scene->root_od && compositor->root_scene->root_od->scene_ns) {
 			main_url = compositor->root_scene->root_od->scene_ns->url;
 			if (main_url && !strcmp(main_url, URL)) {
-				gf_comp_play_from_time(compositor, 0, pause_at_first_frame);
+				gf_sc_play_from_time(compositor, 0, pause_at_first_frame);
 				return;
 			}
 		}
@@ -255,23 +253,31 @@ static void gf_term_connect_from_time_ex(GF_Compositor *compositor, const char *
 	gf_scene_ns_connect_object(scene, odm, (char *) URL, (char*)parent_path);
 }
 
-void gf_term_refresh_cache(GF_Config *cfg)
+
+GF_EXPORT
+Bool gf_term_is_type_supported(GF_Terminal *term, const char* mime)
+{
+	return gf_fs_mime_supported(term->fsess, mime);
+}
+
+//todo: move this to compositor ?
+static void gf_term_refresh_cache()
 {
 	u32 i, count;
-	count = gf_cfg_get_section_count(cfg);
+	count = gf_opts_get_section_count();
 	for (i=0; i<count; i++) {
 		const char *opt;
 		u32 sec, frac, exp;
 		Bool force_delete;
 		const char *file;
-		const char *name = gf_cfg_get_section_name(cfg, i);
+		const char *name = gf_opts_get_section_name(i);
 		if (strncmp(name, "@cache=", 7)) continue;
 
-		file = gf_cfg_get_key(cfg, name, "cacheFile");
-		opt = gf_cfg_get_key(cfg, name, "expireAfterNTP");
+		file = gf_opts_get_key(name, "cacheFile");
+		opt = gf_opts_get_key(name, "expireAfterNTP");
 		if (!opt) {
 			if (file) gf_delete_file((char*) file);
-			gf_cfg_del_section(cfg, name);
+			gf_opts_del_section(name);
 			i--;
 			count--;
 			continue;
@@ -290,17 +296,12 @@ void gf_term_refresh_cache(GF_Config *cfg)
 		if (force_delete) {
 			if (file) gf_delete_file((char*) opt);
 
-			gf_cfg_del_section(cfg, name);
+			gf_opts_del_section(name);
 			i--;
 			count--;
 			continue;
 		}
 	}
-}
-
-Bool gf_term_is_type_supported(GF_Terminal *term, const char* mime)
-{
-	return gf_fs_mime_supported(term->fsess, mime);
 }
 
 GF_EXPORT
@@ -375,43 +376,15 @@ GF_Terminal *gf_term_new(GF_User *user)
 	}
 
 #ifdef FILTER_FIXME
-	tmp->downloader = gf_dm_new(user->config);
 	gf_dm_set_auth_callback(tmp->downloader, gf_term_get_user_pass, tmp);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] downloader loaded\n"));
-
-
-	tmp->unthreaded_extensions = gf_list_new();
-	tmp->evt_mx = gf_mx_new("Event Filter");
-
-
-	if (0 == gf_opts_get_key_count("MimeTypes")) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Initializing Mime Types..."));
-		/* No mime-types detected, probably the first launch */
-		for (i=0; i< gf_modules_count(); i++) {
-			GF_BaseInterface *ifce = gf_modules_load(i, GF_NET_CLIENT_INTERFACE);
-			if (ifce) {
-				GF_InputService * service = (GF_InputService*) ifce;
-				GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Asking mime types supported for new module %s...\n", ifce->module_name));
-				if (service->RegisterMimeTypes) {
-					u32 num = service->RegisterMimeTypes(service);
-					GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] module %s has registered %u new mime-types.\n", ifce->module_name, num));
-				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] Module %s has not declared any RegisterMimeTypes method, cannot guess its supported mime-types.\n", ifce->module_name));
-				}
-				gf_modules_close_interface(ifce);
-			}
-		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Finished Initializing Mime Types."));
-	}
 
 	tmp->uri_relocators = gf_list_new();
 	tmp->locales.relocate_uri = term_check_locales;
 	tmp->locales.term = tmp;
 	gf_list_add(tmp->uri_relocators, &tmp->locales);
-
-	tmp->speed_ratio = FIX_ONE;
-
 #endif
+
+	gf_term_refresh_cache();
 
 	gf_filter_post_process_task(comp_filter);
 	gf_fs_run(tmp->fsess);
@@ -433,42 +406,32 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_fs_del(term->fsess);
 
 	gf_sys_close();
+	if (term->reload_url) gf_free(term->reload_url);
 	gf_free(term);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Terminal destroyed\n"));
 	return GF_OK;
 }
 
 GF_EXPORT
-GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
-{
-	return gf_sc_step_clocks_intern(term->compositor, ms_diff, GF_FALSE);
-
-}
-GF_EXPORT
 void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u64 startTime, u32 pause_at_first_frame)
 {
 	if (!term) return;
-	gf_term_connect_from_time_ex(term->compositor, URL, startTime, pause_at_first_frame, 0, NULL);
+	gf_sc_connect_from_time_ex(term->compositor, URL, startTime, pause_at_first_frame, 0, NULL);
 }
 
 GF_EXPORT
 void gf_term_connect(GF_Terminal * term, const char *URL)
 {
 	if (!term) return;
-	gf_term_connect_from_time_ex(term->compositor, URL, 0, 0, 0, NULL);
+	gf_sc_connect_from_time_ex(term->compositor, URL, 0, 0, 0, NULL);
 }
 
-GF_EXPORT
-void gf_sc_connect(GF_Compositor *compositor, const char *URL)
-{
-	gf_term_connect_from_time_ex(compositor, URL, 0, 0, 0, NULL);
-}
 
 GF_EXPORT
 void gf_term_connect_with_path(GF_Terminal * term, const char *URL, const char *parent_path)
 {
 	if (!term) return;
-	gf_term_connect_from_time_ex(term->compositor, URL, 0, 0, 0, parent_path);
+	gf_sc_connect_from_time_ex(term->compositor, URL, 0, 0, 0, parent_path);
 }
 
 GF_EXPORT
@@ -534,7 +497,7 @@ Double gf_term_get_simulation_frame_rate(GF_Terminal *term, u32 *nb_frames_drawn
 
 /*get rendering option*/
 static
-u32 gf_comp_get_option(GF_Compositor *compositor, u32 type)
+u32 gf_sc_term_get_option(GF_Compositor *compositor, u32 type)
 {
 	if (!compositor) return 0;
 	switch (type) {
@@ -578,7 +541,7 @@ u32 gf_comp_get_option(GF_Compositor *compositor, u32 type)
 GF_EXPORT
 u32 gf_term_get_option(GF_Terminal * term, u32 type)
 {
-	return term ? gf_comp_get_option(term->compositor, type) : 0;
+	return term ? gf_sc_term_get_option(term->compositor, type) : 0;
 }
 
 GF_EXPORT
@@ -616,13 +579,13 @@ Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char
 #endif
 
 GF_EXPORT
-u32 gf_comp_play_from_time(GF_Compositor *compositor, u64 from_time, u32 pause_at_first_frame)
+u32 gf_sc_play_from_time(GF_Compositor *compositor, u64 from_time, u32 pause_at_first_frame)
 {
 	if (!compositor || !compositor->root_scene || !compositor->root_scene->root_od) return 0;
 	if (compositor->root_scene->root_od->flags & GF_ODM_NO_TIME_CTRL) return 1;
 
 	if (pause_at_first_frame==2) {
-		if (gf_comp_get_option(compositor, GF_OPT_PLAY_STATE) != GF_STATE_PLAYING)
+		if (gf_sc_term_get_option(compositor, GF_OPT_PLAY_STATE) != GF_STATE_PLAYING)
 			pause_at_first_frame = 1;
 		else
 			pause_at_first_frame = 0;
@@ -662,7 +625,7 @@ u32 gf_comp_play_from_time(GF_Compositor *compositor, u64 from_time, u32 pause_a
 GF_EXPORT
 u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, u32 pause_at_first_frame)
 {
-	return term ? gf_comp_play_from_time(term->compositor, from_time, pause_at_first_frame) : 0;
+	return term ? gf_sc_play_from_time(term->compositor, from_time, pause_at_first_frame) : 0;
 }
 
 GF_EXPORT
@@ -704,16 +667,9 @@ u32 gf_term_get_elapsed_time_in_ms(GF_Terminal *term)
 	return gf_clock_elapsed_time(ck);
 }
 
-GF_Node *gf_term_pick_node(GF_Terminal *term, s32 X, s32 Y)
-{
-	if (!term || !term->compositor) return NULL;
-	return gf_sc_pick_node(term->compositor, X, Y);
-}
-
 GF_EXPORT
 void gf_term_navigate_to(GF_Terminal *term, const char *toURL)
 {
-#ifdef FILTER_FIXME
 	GF_Compositor *compositor = term ? term->compositor : NULL;
 	if (!term) return;
 	if (!toURL && !term->compositor->root_scene) return;
@@ -727,7 +683,6 @@ void gf_term_navigate_to(GF_Terminal *term, const char *toURL)
 		if (!term->reload_url) term->reload_url = gf_strdup(toURL);
 	}
 	term->reload_state = 1;
-#endif
 }
 
 GF_EXPORT
@@ -747,33 +702,29 @@ GF_Err gf_term_add_object(GF_Terminal *term, const char *url, Bool auto_play)
 {
 	GF_MediaObject *mo=NULL;
 	//this needs refinement
-#ifdef FILTER_FIXME
 	SFURL sfurl;
 	MFURL mfurl;
-	if (!url || !term || !term->root_scene || !term->root_scene->is_dynamic_scene) return GF_BAD_PARAM;
+	if (!url || !term || !term->compositor->root_scene || !term->compositor->root_scene->is_dynamic_scene) return GF_BAD_PARAM;
 
 	sfurl.OD_ID = GF_MEDIA_EXTERNAL_ID;
 	sfurl.url = (char *) url;
 	mfurl.count = 1;
 	mfurl.vals = &sfurl;
 	/*only text tracks are supported for now...*/
-	mo = gf_scene_get_media_object(term->root_scene, &mfurl, GF_MEDIA_OBJECT_TEXT, 1);
+	mo = gf_scene_get_media_object(term->compositor->root_scene, &mfurl, GF_MEDIA_OBJECT_TEXT, 1);
 	if (mo) {
 		/*check if we must deactivate it*/
 		if (mo->odm) {
 			if (mo->num_open && !auto_play) {
-				gf_scene_select_object(term->root_scene, mo->odm);
-			} else {
-				mo->odm->OD_PL = auto_play ? 1 : 0;
+				gf_scene_select_object(term->compositor->root_scene, mo->odm);
 			}
 		} else {
-			gf_list_del_item(term->root_scene->scene_objects, mo);
+			gf_list_del_item(term->compositor->root_scene->scene_objects, mo);
 			gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
 			gf_free(mo);
 			mo = NULL;
 		}
 	}
-#endif
 	return mo ? GF_OK : GF_NOT_SUPPORTED;
 }
 
@@ -785,9 +736,6 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 #ifndef GPAC_DISABLE_SMGR
 	GF_Err e;
 	GF_StreamContext *sc;
-#ifdef FILTER_FIXME
-	GF_ESD *esd;
-#endif
 	Bool is_xml = 0;
 	Double time = 0;
 	u32 i, tag;
@@ -884,22 +832,40 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 
 		load.ctx = gf_sm_new(compositor->root_scene->graph);
 	} else if (compositor->root_scene->root_od) {
+		u32 nb_ch = 0;
 		load.ctx = gf_sm_new(compositor->root_scene->graph);
-#ifdef FILTER_FIXME
-		/*restore streams*/
-		i=0;
-		while ((esd = (GF_ESD*)gf_list_enum(compositor->root_scene->root_od->OD->ESDescriptors, &i)) ) {
-			switch (esd->decoderConfig->streamType) {
+
+		if (compositor->root_scene->root_od->pid) nb_ch++;
+		if (compositor->root_scene->root_od->extra_pids) nb_ch += gf_list_count(compositor->root_scene->root_od->extra_pids);
+		for (i=0; i<nb_ch; i++) {
+			u32 stream_type, es_id, oti;
+			const GF_PropertyValue *p;
+			GF_FilterPid *pid = compositor->root_scene->root_od->pid;
+			if (i) {
+				GF_ODMExtraPid *xpid = gf_list_get(compositor->root_scene->root_od->extra_pids, i-1);
+				pid = xpid->pid;
+			}
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+			if (!p) continue;
+			stream_type = p->value.uint;
+			switch (stream_type) {
 			case GF_STREAM_OD:
 			case GF_STREAM_SCENE:
 			case GF_STREAM_PRIVATE_SCENE:
-				sc = gf_sm_stream_new(load.ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
-				if (esd->decoderConfig->streamType==GF_STREAM_PRIVATE_SCENE) sc->streamType = GF_STREAM_SCENE;
-				sc->timeScale = esd->slConfig->timestampResolution;
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
+				if (!p)
+					p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+				es_id = p ? p->value.uint : 0;
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+				oti = p ? p->value.uint : 1;
+
+				sc = gf_sm_stream_new(load.ctx, es_id, stream_type, oti);
+				if (stream_type==GF_STREAM_PRIVATE_SCENE) sc->streamType = GF_STREAM_SCENE;
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+				sc->timeScale = p ? p->value.uint : 1000;
 				break;
 			}
 		}
-#endif
 	} else {
 		return GF_BAD_PARAM;
 	}
@@ -1037,7 +1003,7 @@ enum
 	GF_ACTION_QUALITY_DOWN,
 };
 
-#ifdef FILTER_FIXME
+#ifdef FILTER_FIXME //unused for now, need to patch compositor shortcuts
 static void set_clocks_speed(GF_Compositor *compositor, Fixed ratio)
 {
 	u32 i, j;
@@ -1349,53 +1315,26 @@ GF_Err gf_term_get_visual_output_size(GF_Terminal *term, u32 *width, u32 *height
 }
 
 GF_EXPORT
-u32 gf_term_get_clock(GF_Terminal *term)
-{
-	return gf_sc_ar_get_clock(term->compositor->audio_renderer);
-}
-
-
-
-GF_EXPORT
 void gf_term_process_step(GF_Terminal *term)
 {
-	gf_fs_run_step(term->fsess);
-}
-
-GF_EXPORT
-GF_Err gf_term_process_flush(GF_Terminal *term)
-{
-	u32 diff, now = gf_sys_clock();
-
-	/*update till frame mature*/
-	while (1) {
-
-		gf_fs_run_step(term->fsess);
-
-		if (!gf_sc_draw_frame(term->compositor, 1, NULL)) {
-			if (!term->compositor->root_scene || !term->compositor->root_scene->root_od)
-				break;
-
-			//force end of buffer
-			if (gf_scene_check_clocks(term->compositor->root_scene->root_od->scene_ns, term->compositor->root_scene, 1))
-				break;
-
-			//consider timeout after 30 s
-			diff = gf_sys_clock() - now;
-			if (diff>30000) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Waited more than %d ms to flush frame - aborting\n", diff));
-				return GF_IP_UDP_TIMEOUT;
+	/*need to reload*/
+	if (term->reload_state == 1) {
+		term->reload_state = 0;
+		gf_term_disconnect(term);
+		term->reload_state = 2;
+	}
+	if (term->reload_state == 2) {
+		if (!term->compositor->root_scene) {
+			term->reload_state = 0;
+			if (term->reload_url) {
+				gf_term_connect(term, term->reload_url);
+				gf_free(term->reload_url);
 			}
+			term->reload_url = NULL;
 		}
 	}
-	return GF_OK;
-}
 
-GF_EXPORT
-GF_Err gf_term_process_flush_video(GF_Terminal *term)
-{
-	gf_sc_flush_video(term->compositor, GF_FALSE);
-	return GF_OK;
+	gf_fs_run_step(term->fsess);
 }
 
 static Bool check_in_scene(GF_Scene *scene, GF_ObjectManager *odm)
@@ -1544,62 +1483,143 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 
 
 GF_EXPORT
-Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, const char **server, const char **path, u32 *bytes_done, u32 *total_bytes, u32 *bytes_per_sec)
+Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, const char **url, u32 *bytes_done, u32 *total_bytes, u32 *bytes_per_sec)
 {
-#ifdef FILTER_FIXME
-	GF_DownloadSession * sess;
-	if (!term || !odm || !gf_term_check_odm(term, odm)) return 0;
-	if (odm->net_service->owner != odm) return 0;
+	u32 nb_ch;
+	const GF_PropertyValue *p;
+	GF_FilterPid *pid;
+	if (!term || !odm || !gf_term_check_odm(term, odm)) return GF_FALSE;
+	if (odm->scene_ns->owner != odm)
+		return GF_FALSE;
 
-	if (*d_enum >= gf_list_count(odm->net_service->dnloads)) return 0;
-	sess = (GF_DownloadSession*)gf_list_get(odm->net_service->dnloads, *d_enum);
-	if (!sess) return 0;
-	(*d_enum) ++;
-	gf_dm_sess_get_stats(sess, server, path, bytes_done, total_bytes, bytes_per_sec, NULL);
-	return 1;
-#endif
-	return 0;
-}
+	nb_ch = odm->pid ? 1 : 0;
+	if (odm->extra_pids)
+	 	nb_ch += gf_list_count(odm->extra_pids);
 
-GF_EXPORT
-Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, u32 *chid, NetStatCommand *netcom, GF_Err *ret_code)
-{
-#ifdef FILTER_FIXME
-	GF_Channel *ch;
-	GF_NetworkCommand com;
-	if (!term || !odm || !gf_term_check_odm(term, odm)) return 0;
-	if (*d_enum >= gf_list_count(odm->channels)) return 0;
-	ch = (GF_Channel*)gf_list_get(odm->channels, *d_enum);
-	if (!ch) return 0;
-	(*d_enum) ++;
-	if (ch->is_pulling) {
-		(*ret_code) = GF_NOT_SUPPORTED;
-		return 1;
+	if (!nb_ch) {
+		GF_ObjectManager *anodm;
+		if (*d_enum || !odm->subscene) return GF_FALSE;
+		anodm = gf_list_get(odm->subscene->resources, 0);
+		pid = anodm->pid;
+	} else {
+
+		if (*d_enum >= nb_ch) return GF_FALSE;
+		if (! *d_enum) pid = odm->pid;
+		else pid = gf_list_get(odm->extra_pids, *d_enum - 1);
 	}
-	(*chid) = ch->esd->ESID;
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.on_channel = ch;
-	com.command_type = GF_NET_GET_STATS;
-	(*ret_code) = gf_term_service_command(ch->service, &com);
-	memcpy(netcom, &com.net_stats, sizeof(NetStatCommand));
-#endif
-	return 1;
+	if (!pid) return GF_FALSE;
+
+	(*d_enum) ++;
+
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DOWN_RATE);
+	if (p && bytes_per_sec) {
+		*bytes_per_sec = p->value.uint;
+		*bytes_per_sec /= 8;
+	}
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DOWN_BYTES);
+	if (p && bytes_done) *bytes_done = p->value.longuint;
+
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DOWN_SIZE);
+	if (p && total_bytes) *bytes_done = p->value.longuint;
+
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_URL);
+	if (p && url) *url = p->value.string;
+	return GF_TRUE;
 }
 
 GF_EXPORT
-GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, NetInfoCommand *netinfo)
+Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, u32 *chid, GF_TermNetStats *net_stats, GF_Err *ret_code)
 {
-#ifdef FILTER_FIXME
-	GF_Err e;
-	GF_NetworkCommand com;
-	if (!term || !odm || !netinfo || !gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.command_type = GF_NET_SERVICE_INFO;
-	e = gf_term_service_command(odm->net_service, &com);
-	memcpy(netinfo, &com.info, sizeof(NetInfoCommand));
-	return e;
-#endif
-	return GF_NOT_SUPPORTED;
+	u32 nb_ch;
+	const GF_PropertyValue *p;
+	GF_FilterPid *pid;
+	if (!term || !odm || !gf_term_check_odm(term, odm)) return GF_FALSE;
+
+	nb_ch = odm->pid ? 1 : 0;
+	if (odm->extra_pids)
+	 	nb_ch += gf_list_count(odm->extra_pids);
+
+	if (*d_enum >= nb_ch) return GF_FALSE;
+	if (! *d_enum) pid = odm->pid;
+	else pid = gf_list_get(odm->extra_pids, *d_enum - 1);
+	if (!pid) return GF_FALSE;
+	(*d_enum) ++;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+	if (p)  (*chid) = p->value.uint;
+
+	(*ret_code) = GF_OK;
+
+	memset(net_stats, 0, sizeof(GF_TermNetStats));
+	p = gf_filter_pid_get_info_str(pid, "nets:loss");
+	if (p) net_stats->pck_loss_percentage = p->value.fnumber;
+
+	p = gf_filter_pid_get_info_str(pid, "nets:interleaved");
+	if (p) {
+		net_stats->multiplex_port = p->value.uint;
+		p = gf_filter_pid_get_info_str(pid, "nets:rtpid");
+		if (p) net_stats->port = p->value.uint;
+		p = gf_filter_pid_get_info_str(pid, "nets:rtcpid");
+		if (p) net_stats->ctrl_port = p->value.uint;
+	} else {
+		p = gf_filter_pid_get_info_str(pid, "nets:rtpp");
+		if (p) net_stats->port = p->value.uint;
+		p = gf_filter_pid_get_info_str(pid, "nets:rtcpp");
+		if (p) net_stats->ctrl_port = p->value.uint;
+	}
+
+	p = gf_filter_pid_get_info_str(pid, "nets:bw_down");
+	if (p) net_stats->bw_down = p->value.uint;
+	p = gf_filter_pid_get_info_str(pid, "nets:bw_up");
+	if (p) net_stats->bw_up = p->value.uint;
+	p = gf_filter_pid_get_info_str(pid, "nets:ctrl_bw_down");
+	if (p) net_stats->ctrl_bw_down = p->value.uint;
+	p = gf_filter_pid_get_info_str(pid, "nets:ctrl_bw_up");
+	if (p) net_stats->ctrl_bw_up = p->value.uint;
+	return GF_TRUE;
+}
+
+GF_EXPORT
+GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, GF_TermURLInfo *urli)
+{
+	const GF_PropertyValue *p;
+	GF_FilterPid *pid;
+	if (!term || !odm || !urli || !gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
+
+	pid = odm->pid;
+	if (!pid && odm->subscene) {
+		GF_ObjectManager *anodm = gf_list_get(odm->subscene->resources, 0);
+		if (!anodm) return GF_OK;
+		pid = anodm->pid;
+	}
+	if (!pid) return GF_OK;
+
+	memset(urli, 0, sizeof(GF_TermURLInfo));
+
+	p = gf_filter_pid_get_info_str(pid, "info:name");
+	if (p) urli->name = p->value.string;
+
+	p = gf_filter_pid_get_info_str(pid, "info:artist");
+	if (p) urli->artist = p->value.string;
+
+	p = gf_filter_pid_get_info_str(pid, "info:album");
+	if (p) urli->album = p->value.string;
+
+	p = gf_filter_pid_get_info_str(pid, "info:comment");
+	if (p) urli->comment = p->value.string;
+
+	p = gf_filter_pid_get_info_str(pid, "info:composer");
+	if (p) urli->composer = p->value.string;
+
+	p = gf_filter_pid_get_info_str(pid, "info:writer");
+	if (p) urli->writer = p->value.string;
+
+	p = gf_filter_pid_get_info_str(pid, "info:track");
+	if (p) {
+		urli->track_num = p->value.frac.num;
+		urli->track_total = p->value.frac.den;
+	}
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -1710,14 +1730,4 @@ void gf_term_print_graph(GF_Terminal *term)
 {
 	if (term->fsess)
 		gf_fs_print_connections(term->fsess);
-}
-
-GF_EXPORT
-GF_Err gf_term_connect_output_filter(GF_Terminal *term, const char *filter_desc)
-{
-	GF_Filter *out = gf_fs_load_filter(term->fsess, filter_desc);
-	if (!out) return GF_NOT_FOUND;
-	gf_filter_set_sources(out, "compose");
-	gf_filter_reconnect_output(term->compositor->filter);
-	return GF_OK;
 }

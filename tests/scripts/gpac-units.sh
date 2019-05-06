@@ -100,6 +100,15 @@ do_test "$GPAC -lu -logs=app@info:filter@debug -unit-tests -mem-track-stack" "un
 fi
 test_end
 
+test_begin "gpac-uncache"
+if [ test_skip != 1 ] ; then
+
+do_test "$GPAC -i http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/regression_tests/auxiliary_files/logo.jpg inspect" "http-get"
+do_test "$GPAC -uncache" "uncache"
+
+fi
+test_end
+
 
 single_test "$GPAC -ltf UTSource:cov UTFilter:cov UTSink:cov" "gpac-filter-dump_props"
 

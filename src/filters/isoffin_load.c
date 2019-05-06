@@ -497,6 +497,38 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_STRING_NO_COPY(tx3g_config_sdp) );
 			}
 		}
+
+
+		u32 tag_len;
+		const char *tag;
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_NAME, &tag, &tag_len)==GF_OK)
+			gf_filter_pid_set_info_str(ch->pid, "info:name", &PROP_STRING(tag) );
+
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_ARTIST, &tag, &tag_len)==GF_OK)
+			gf_filter_pid_set_info_str(ch->pid, "info:artist", &PROP_STRING(tag) );
+
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_ALBUM, &tag, &tag_len)==GF_OK)
+			gf_filter_pid_set_info_str(ch->pid, "info:album", &PROP_STRING(tag) );
+
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COMMENT, &tag, &tag_len)==GF_OK)
+			gf_filter_pid_set_info_str(ch->pid, "info:comment", &PROP_STRING(tag) );
+
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) {
+			u16 tk_n = (tag[2]<<8)|tag[3];
+			u16 tk_all = (tag[4]<<8)|tag[5];
+			gf_filter_pid_set_info_str(ch->pid, "info:track", &PROP_FRAC_INT(tk_n, tk_all) );
+		}
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COMPOSER, &tag, &tag_len)==GF_OK)
+			gf_filter_pid_set_info_str(ch->pid, "info:composer", &PROP_STRING(tag) );
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_WRITER, &tag, &tag_len)==GF_OK)
+			gf_filter_pid_set_info_str(ch->pid, "info:writer", &PROP_STRING(tag) );
+
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_GENRE, &tag, &tag_len)==GF_OK) {
+			if (tag[0]) {
+			} else {
+				/*com->info.genre = (tag[0]<<8) | tag[1];*/
+			}
+		}
 	}
 
 	//update decoder configs
