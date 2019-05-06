@@ -286,7 +286,8 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 		if (!ctx->opid) {
 			char *ext;
 			char szMedia[1000];
-			FILE *info;
+			char *dsi;
+			u32 dsi_size;
 			u32 val, oti;
 			u64 media_size;
 
@@ -343,19 +344,11 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			ext = strrchr(szMedia, '.');
 			if (ext) ext[0] = 0;
 			strcat(szMedia, ".info");
-			info = gf_fopen(szMedia, "rb");
-			if (info) {
-				char *dsi;
-				u32 dsi_size;
 
-				gf_fseek(info, 0, SEEK_END);
-				dsi_size = (u32) gf_ftell(info);
-				dsi = (char*)gf_malloc(sizeof(char) * dsi_size);
-				gf_fseek(info, 0, SEEK_SET);
-				if (fread(dsi, 1,dsi_size, info) != dsi_size) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[NHNT] Failed to read decoder config\n"));
-				}
-				gf_fclose(info);
+			dsi = NULL;
+			if ( gf_file_load_data(szMedia, (u8 **) &dsi, &dsi_size) != GF_OK) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[NHNT] Failed to read decoder config\n"));
+			} else {
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 				if (oti==GF_CODECID_MPEG4_PART2) {

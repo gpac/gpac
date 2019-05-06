@@ -989,6 +989,18 @@ Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32 *level, u32 *b
 GF_Err gf_bin128_parse(const char *string, bin128 value);
 
 /*!
+ *\brief reads a file into memory
+ *
+ * Reads a local file into memory, in binary open mode.
+ *
+ * \param file_name path on disk of the file to read
+ * \param out_data pointer to allocted adress, to be freed by caller
+ * \param out_size pointer to allocted size
+ * \return error code if any
+ */
+GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size);
+
+/*!
  *	\brief Delete Directory
  *
  *	Delete a  dir within the full path.

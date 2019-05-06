@@ -151,59 +151,6 @@ void OD_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 	}
 }
 
-void OD_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
-{
-	FILE *f;
-	u32 size;
-	size_t readen;
-	if (*out_data) gf_free(*out_data);
-	*out_data = NULL;
-	*out_data_size = 0;
-	f = gf_fopen(fileName, "rb");
-	if (!f) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ODF Parse] cannot open data file %s - skipping\n", fileName));
-		return;
-	}
-	gf_fseek(f, 0, SEEK_END);
-	assert(gf_ftell(f) < 0x80000000);
-	size = (u32) gf_ftell(f);
-	gf_fseek(f, 0, SEEK_SET);
-	*out_data_size = size;
-	*out_data = (char*)gf_malloc(sizeof(char) * (size_t)size);
-	readen = fread(*out_data, sizeof(char), (size_t)size, f);
-	if (readen != size) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ODF Parse] readen size=%d does not match size=%d in %s\n", readen, size, fileName));
-	}
-	gf_fclose(f);
-}
-
-void OD_ParseBin128(char *val, bin128 *data)
-{
-	if (!strnicmp(val, "0x", 2)) val+=2;
-
-	if (strlen(val)<16) {
-		GF_BitStream *bs;
-		u32 int_val = atoi(val);
-		bs = gf_bs_new((char*) (*data), 16, GF_BITSTREAM_WRITE);
-		gf_bs_write_int(bs, 0, 32);
-		gf_bs_write_int(bs, 0, 32);
-		gf_bs_write_int(bs, 0, 32);
-		gf_bs_write_int(bs, int_val, 32);
-		gf_bs_del(bs);
-	} else {
-		u32 i, b;
-		char szB[3];
-		szB[2] = 0;
-		for (i=0; i<16; i++) {
-			szB[0] = val[2*i];
-			szB[1] = val[2*i+1];
-			sscanf(szB, "%x", &b);
-			((char *)data)[i] = (u8) b;
-		}
-	}
-}
-
-
 GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 {
 	Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size);
@@ -541,7 +488,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 				OD_ParseBinData(val, &dsi->data, &dsi->dataLength);
 				ret = 1;
 			} else if (!strnicmp(val, "file:", 5)) {
-				OD_ParseFileData(val+5, &dsi->data, &dsi->dataLength);
+				gf_file_load_data(val+5, (u8 **) &dsi->data, &dsi->dataLength);
 				ret = 1;
 			} else if (!strlen(val)) ret = 1;
 		}
@@ -554,7 +501,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 				OD_ParseBinData(val, &dsi->data, &dsi->dataLength);
 				ret = 1;
 			} else if (!strnicmp(val, "file:", 5)) {
-				OD_ParseFileData(val+5, &dsi->data, &dsi->dataLength);
+				gf_file_load_data(val+5, (u8 **) &dsi->data, &dsi->dataLength);
 				ret = 1;
 			}
 		}
@@ -580,7 +527,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 				OD_ParseBinData(val, &uic->ui_data, &uic->ui_data_length);
 				ret = 1;
 			} else if (!strnicmp(val, "file:", 5)) {
-				OD_ParseFileData(val+5, &uic->ui_data, &uic->ui_data_length);
+				gf_file_load_data(val+5, (u8 **) &uic->ui_data, &uic->ui_data_length);
 				ret = 1;
 			} else {
 				ret = OD_ParseUIConfig(val, &uic->ui_data, &uic->ui_data_length);
@@ -683,7 +630,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "IPMP_DescriptorIDEx")) GET_U16(ipmp->IPMP_DescriptorIDEx)
 		else if (!stricmp(fieldName, "IPMP_ToolID")) {
 			ret = 1;
-			OD_ParseBin128(val, &ipmp->IPMP_ToolID);
+			gf_bin128_parse(val, ipmp->IPMP_ToolID);
 		}
 		else if (!stricmp(fieldName, "controlPointCode")) GET_U8(ipmp->control_point)
 		else if (!stricmp(fieldName, "sequenceCode")) GET_U8(ipmp->cp_sequence_code)
@@ -731,7 +678,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		GF_IPMP_Tool *it = (GF_IPMP_Tool*)desc;
 		if (!stricmp(fieldName, "IPMP_ToolID")) {
 			ret = 1;
-			OD_ParseBin128(val, &it->IPMP_ToolID);
+			gf_bin128_parse(val, it->IPMP_ToolID);
 		}
 		else if (!stricmp(fieldName, "ToolURL"))  GET_STRING(it->tool_url)
 		}

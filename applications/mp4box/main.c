@@ -5455,13 +5455,7 @@ int mp4boxMain(int argc, char **argv)
 				char *d, *ext;
 				d=NULL;
 				if (val) {
-					FILE *t = gf_fopen(val, "rb");
-					gf_fseek(t, 0, SEEK_END);
-					tlen = (u32)gf_ftell(t);
-					gf_fseek(t, 0, SEEK_SET);
-					d = gf_malloc(sizeof(char) * tlen);
-					tlen = (u32)fread(d, sizeof(char), tlen, t);
-					gf_fclose(t);
+					gf_file_load_data(val, (u8 **) &d, &tlen);
 
 					ext = strrchr(val, '.');
 					if (!stricmp(ext, ".png")) tlen |= 0x80000000;

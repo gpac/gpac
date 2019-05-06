@@ -1680,18 +1680,12 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		char *sdp_buf;
 		u32 sdp_size, i;
 		GF_Err e;
-		FILE *_sdp = gf_fopen(src, "rt");
-		if (!_sdp) {
-			fprintf(stderr, "Error opening %s - no such file\n", src);
+
+		e = gf_file_load_data(src, (u8 **) &sdp_buf, &sdp_size);
+		if (e) {
+			fprintf(stderr, "Error opening %s\n", src);
 			return 0;
 		}
-		gf_fseek(_sdp, 0, SEEK_END);
-		sdp_size = (u32)gf_ftell(_sdp);
-		gf_fseek(_sdp, 0, SEEK_SET);
-		sdp_buf = (char*)gf_malloc(sizeof(char)*sdp_size);
-		memset(sdp_buf, 0, sizeof(char)*sdp_size);
-		sdp_size = (u32) fread(sdp_buf, 1, sdp_size, _sdp);
-		gf_fclose(_sdp);
 
 		sdp = gf_sdp_info_new();
 		e = gf_sdp_info_parse(sdp, sdp_buf, sdp_size);
@@ -1956,29 +1950,18 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			*pcr_offset = atoi(next_arg);
 		}
 		else if (CHECK_PARAM("-video")) {
-			FILE *f;
+			GF_Err e;
 			if (video_input_found) {
 				error_msg = "multiple '-video' found";
 				arg = NULL;
 				goto error;
 			}
 			video_input_found = 1;
-			f = gf_fopen(next_arg, "rb");
-			if (!f) {
-				error_msg = "video file not found: ";
+			e = gf_file_load_data(next_arg, (u8 **) video_buffer, video_buffer_size);
+			if (e) {
+				fprintf(stderr, "Error while reading video file %s\n", next_arg);
 				goto error;
 			}
-			gf_fseek(f, 0, SEEK_END);
-			*video_buffer_size = (u32)gf_ftell(f);
-			gf_fseek(f, 0, SEEK_SET);
-			assert(*video_buffer_size);
-			*video_buffer = (char*) gf_malloc(*video_buffer_size);
-			{
-				s32 read = (u32) fread(*video_buffer, sizeof(char), *video_buffer_size, f);
-				if (read != *video_buffer_size)
-					fprintf(stderr, "Error while reading video file, has readen %u chars instead of %u.\n", read, *video_buffer_size);
-			}
-			gf_fclose(f);
 		} else if (CHECK_PARAM("-audio")) {
 			if (audio_input_found) {
 				error_msg = "multiple '-audio' found";

@@ -765,18 +765,8 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 	if (!strnicmp(buffer, "file://", 7)) {
 		char *url = gf_url_concatenate(fileName, buffer+7);
 		if (url) {
-			FILE *f = gf_fopen(url, "rb");
-			if (f) {
-				fseek(f, 0, SEEK_END);
-				data_size = (u32) ftell(f);
-				fseek(f, 0, SEEK_SET);
-				data = gf_malloc(sizeof(char)*data_size);
-				if (data) {
-					if (fread(data, 1, data_size, f) != data_size) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] error reading bitwrapper file %s\n", url));
-					}
-				}
-				gf_fclose(f);
+			if (gf_file_load_data(url, (u8 **) &data, &data_size) != GF_OK) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] error reading bitwrapper file %s\n", url));
 			}
 			gf_free(url);
 		}
