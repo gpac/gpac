@@ -86,6 +86,8 @@ bt_test ()
  #already done in bifs tests
  *all*.bt )
   return ;;
+ *animationstream.bt )
+  return ;;
  *animated-osmo4logo* )
   ;;
  #already done in bifs tests, except above animated logo
