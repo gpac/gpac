@@ -96,6 +96,7 @@ typedef struct
 	bin128 key_IV;
 	u32 nb_comp;
 	char *mime;
+	u64 last_dts;
 } GF_MPDGroup;
 
 const char * MPD_MPD_DESC = "MPEG-DASH Streaming";
@@ -180,6 +181,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 	GF_MPD_In *mpdin = (GF_MPD_In*) service->ifce->priv;
 	GF_Channel *ch;
 	GF_MPDGroup *group;
+	GF_SLHeader s_hdr;
 	Bool do_map_time = GF_FALSE;
 	if (!ns || !hdr) {
 		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
@@ -201,6 +203,9 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 	}
 
 	group = gf_dash_get_group_udta(mpdin->dash, i);
+
+	s_hdr = *hdr;
+	hdr = &s_hdr;
 
 	if (gf_dash_is_m3u8(mpdin->dash)) {
 		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
@@ -240,6 +245,9 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 
 			start = (u64) (timescale * gf_dash_get_period_start(mpdin->dash) / 1000);
 			group->pto -= start;
+
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] PTO setup for group %d : PTO "LLD" - period start "LLD" - last dts "LLU")\n", i, group->pto, start, group->last_dts));
+
 		}
 
 		//filter any packet outside the current period
@@ -295,6 +303,14 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 		do_map_time = 1;
 		group->pto_setup = 1;
 	}
+
+	if (group->last_dts>hdr->decodingTimeStamp) {
+		u32 diff = (u32) (group->last_dts - hdr->decodingTimeStamp);
+		if (diff*100 < timescale) {
+			return;
+		}
+	}
+	group->last_dts = hdr->decodingTimeStamp;
 
 	mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
 
@@ -363,7 +379,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		Bool discard_first_cache_entry = param->url_query.drop_first_segment;
 		Bool check_current_download = param->url_query.current_download;
 		u32 timer = gf_sys_clock();
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Query Next request from input service %s\n", ifce->module_name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Query Next request from input service %s (drop first seg %d)\n", ifce->module_name, discard_first_cache_entry));
 
 
 		param->url_query.current_download = 0;
