@@ -5865,6 +5865,9 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 				written = 0;
 			}
 		}
+	} else {
+		//nothing modified, return original nal size
+		written = nal_size;
 	}
 	gf_free(new_buffer);
 
