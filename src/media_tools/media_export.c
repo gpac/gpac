@@ -1285,7 +1285,6 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 
 		/* Start writing the stream out */
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
-//		gf_bs_write_data(bs, dsi, dsi_size);
 	} else {
 		/* Start writing the stream out */
 		gf_bs_del(bs);
