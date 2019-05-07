@@ -1285,7 +1285,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 
 		/* Start writing the stream out */
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
-		gf_bs_write_data(bs, dsi, dsi_size);
+//		gf_bs_write_data(bs, dsi, dsi_size);
 	} else {
 		/* Start writing the stream out */
 		gf_bs_del(bs);
@@ -1426,6 +1426,8 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (avccfg || svccfg || mvccfg || hevccfg || lhvccfg) {
 			u32 j, nal_size, remain, nal_unit_size;
 			Bool is_rap;
+			Bool has_aud = GF_FALSE;
+			Bool write_dsi = GF_FALSE;
 			char *ptr = samp->data;
 			nal_unit_size = 0;
 			if (avccfg) nal_unit_size= avccfg->nal_unit_size;
@@ -1446,12 +1448,13 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				}
 			}
 
-			if (i && dsi && is_rap) {
-				gf_bs_write_data(bs, dsi, dsi_size);
+			if (dsi && (is_rap || !i) ) {
+				write_dsi = GF_TRUE;
 			}
 
 			remain = samp->dataLength;
 			while (remain) {
+				Bool is_aud = GF_FALSE;
 				nal_size = 0;
 				if (remain<nal_unit_size) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Sample %d (size %d): Corrupted NAL Unit: header size %d - bytes left %d\n", i+1, samp->dataLength, nal_unit_size, remain) );
@@ -1463,11 +1466,53 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 					remain--;
 					ptr++;
 				}
-				gf_bs_write_u32(bs, 1);
+
 				if (remain < nal_size) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Sample %d (size %d): Corrupted NAL Unit: size %d - bytes left %d\n", i+1, samp->dataLength, nal_size, remain) );
 					nal_size = remain;
 				}
+
+				if (avccfg || svccfg || mvccfg) {
+					u8 nal_type = ptr[0] & 0x1F;
+					if (nal_type==GF_AVC_NALU_ACCESS_UNIT) is_aud = GF_TRUE;
+				} else {
+					u8 nal_type = (ptr[0] & 0x7E) >> 1;
+					if (nal_type==GF_HEVC_NALU_ACCESS_UNIT) is_aud = GF_TRUE;
+				}
+
+				if (is_aud) {
+					if (!has_aud) {
+						gf_bs_write_u32(bs, 1);
+						gf_bs_write_data(bs, ptr, nal_size);
+						has_aud = GF_TRUE;
+					}
+					ptr += nal_size;
+					remain -= nal_size;
+					continue;
+				}
+
+				if (!has_aud) {
+					has_aud = GF_TRUE;
+					gf_bs_write_u32(bs, 1);
+					if (avccfg || svccfg || mvccfg) {
+						u32 hdr = ptr[0] & 0x60;
+						hdr |= GF_AVC_NALU_ACCESS_UNIT;
+						gf_bs_write_u8(bs, hdr);
+					} else {
+						//just copy the current nal header, patching the nal type to AU delim
+						u32 hdr = ptr[0] & 0x81;
+						hdr |= GF_AVC_NALU_ACCESS_UNIT << 1;
+						gf_bs_write_u8(bs, hdr);
+						gf_bs_write_u8(bs, ptr[1]);
+					}
+				}
+
+				if (write_dsi) {
+					write_dsi = GF_FALSE;
+					gf_bs_write_data(bs, dsi, dsi_size);
+				}
+
+				gf_bs_write_u32(bs, 1);
 				gf_bs_write_data(bs, ptr, nal_size);
 				ptr += nal_size;
 				remain -= nal_size;
