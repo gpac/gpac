@@ -455,8 +455,6 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-void gf_media_update_bitrate(GF_ISOFile *file, u32 track);
-
 /*ISMACrypt*/
 
 static GFINLINE void isma_resync_IV(GF_Crypt *mc, u64 BSO, char *salt)
