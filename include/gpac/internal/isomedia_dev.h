@@ -1543,7 +1543,6 @@ typedef struct
 	u32 nb_entries;
 	u32 alloc_size;
 	u32 *offsets;
-	u32 w_lastSampleNumber;
 } GF_ChunkOffsetBox;
 
 typedef struct
@@ -1552,7 +1551,6 @@ typedef struct
 	u32 nb_entries;
 	u32 alloc_size;
 	u64 *offsets;
-	u32 w_lastSampleNumber;
 } GF_ChunkLargeOffsetBox;
 
 typedef struct

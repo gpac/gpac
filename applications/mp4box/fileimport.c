@@ -2312,10 +2312,18 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				gf_isom_set_edit_segment(dest, dst_tk, editTime, segmentDuration, mediaTime, editMode);
 			}
 		}
+		gf_media_update_bitrate(dest, dst_tk);
 
 	}
 	gf_set_progress("Appending", nb_samp, nb_samp);
 
+	/*check brands*/
+	gf_isom_get_brand_info(orig, NULL, NULL, &j);
+	for (i=0; i<j; i++) {
+		u32 brand;
+		gf_isom_get_alternate_brand(orig, i+1, &brand);
+		gf_isom_modify_alternate_brand(dest, brand, 1);
+	}
 	/*check chapters*/
 	for (i=0; i<gf_isom_get_chapter_count(orig, 0); i++) {
 		char *name;

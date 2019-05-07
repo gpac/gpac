@@ -35,8 +35,6 @@
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-void gf_media_update_bitrate(GF_ISOFile *file, u32 track);
-
 enum
 {
 	GF_TEXT_IMPORT_NONE = 0,
