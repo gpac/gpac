@@ -34,10 +34,10 @@
 
 
 
-static GF_Err gf_qt_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
+static GF_Err gf_qtvr_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 {
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_PARSER, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
+	if (format && gf_log_tool_level_on(GF_LOG_PARSER, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
 		char szMsg[1024];
 		va_list args;
 		va_start(args, format);
@@ -71,7 +71,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	if (!load->ctx) return GF_NOT_SUPPORTED;
 
 	src = gf_isom_open(load->fileName, GF_ISOM_OPEN_READ, NULL);
-	if (!src) return gf_qt_report(load, GF_URL_ERROR, "Opening file %s failed", load->fileName);
+	if (!src) return gf_qtvr_report(load, GF_URL_ERROR, "Opening file %s failed", load->fileName);
 
 	w = h = tk = 0;
 	nb_samp = 0;
@@ -100,18 +100,20 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	}
 	if (!has_qtvr) {
 		gf_isom_delete(src);
-		return gf_qt_report(load, GF_NOT_SUPPORTED, "QTVR not found - no conversion available for this QuickTime movie");
+		return gf_qtvr_report(load, GF_NOT_SUPPORTED, "QTVR not found - no conversion available for this QuickTime movie");
 	}
 	if (!tk) {
 		gf_isom_delete(src);
-		return gf_qt_report(load, GF_NON_COMPLIANT_BITSTREAM, "No associated visual track with QTVR movie");
+		return gf_qtvr_report(load, GF_NON_COMPLIANT_BITSTREAM, "No associated visual track with QTVR movie");
 	}
 	if (nb_samp!=6) {
 		gf_isom_delete(src);
-		return gf_qt_report(load, GF_NOT_SUPPORTED, "Movie %s doesn't look a Cubic QTVR - sorry...", load->fileName);
+		return gf_qtvr_report(load, GF_NOT_SUPPORTED, "Movie %s doesn't look a Cubic QTVR - sorry...", load->fileName);
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("QT: Importing Cubic QTVR Movie"));
+	//for coverage
+	gf_qtvr_report(load, GF_OK, NULL);
 
 	/*create scene*/
 	sg = load->ctx->scene_graph;

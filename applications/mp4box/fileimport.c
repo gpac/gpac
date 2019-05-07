@@ -2643,8 +2643,6 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	GF_BifsEncoder *bifsenc;
 	GF_InitialObjectDescriptor *iod;
 	u32 i, j, count;
-	GF_StreamContext *sc;
-	GF_ESD *esd;
 	Bool encode_names, delete_bcfg;
 	GF_BIFSConfig *bcfg;
 	GF_AUContext		*au;
@@ -2666,7 +2664,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	if (!iod) {
 		count = 0;
 		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			sc = gf_list_get(ctx->streams, i);
+			GF_StreamContext *sc = gf_list_get(ctx->streams, i);
 			if (sc->streamType == GF_STREAM_OD) count++;
 		}
 		if (!iod && count>1) return GF_NOT_SUPPORTED;
@@ -2675,11 +2673,12 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	count = gf_list_count(ctx->streams);
 	for (i=0; i<count; i++) {
 		u32 nbb;
+		Bool delete_esd = GF_FALSE;
+		GF_ESD *esd = NULL;
 		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
-		esd = NULL;
+
 		if (sc->streamType != GF_STREAM_SCENE) continue;
 
-		esd = NULL;
 		if (iod) {
 			for (j=0; j<gf_list_count(iod->ESDescriptors); j++) {
 				esd = gf_list_get(iod->ESDescriptors, j);
@@ -2705,6 +2704,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 			esd->decoderConfig->decoderSpecificInfo = NULL;
 			esd->ESID = sc->ESID;
 			esd->decoderConfig->streamType = GF_STREAM_SCENE;
+			delete_esd = GF_TRUE;
 		}
 		if (!esd->decoderConfig) return GF_OUT_OF_MEM;
 
@@ -2743,7 +2743,6 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		gf_bifs_encoder_new_stream(bifsenc, sc->ESID, bcfg, encode_names, 0);
 		if (delete_bcfg) gf_odf_desc_del((GF_Descriptor *)bcfg);
 
-		/*setup MP4 track*/
 		if (!esd->slConfig) esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 		if (sc->timeScale) esd->slConfig->timestampResolution = sc->timeScale;
 		if (!esd->slConfig->timestampResolution) esd->slConfig->timestampResolution = 1000;
@@ -2762,13 +2761,14 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 			au = gf_list_get(sc->AUs, j);
 			e = gf_bifs_encode_au(bifsenc, sc->ESID, au->commands, &data, &data_len);
 			if (data) {
-				sprintf(szName, "%s%02d.bifs", szRad, j);
+				sprintf(szName, "%s-%02d-%02d.bifs", szRad, sc->ESID, j);
 				f = gf_fopen(szName, "wb");
 				gf_fwrite(data, data_len, 1, f);
 				gf_fclose(f);
 				gf_free(data);
 			}
 		}
+		if (delete_esd) gf_odf_desc_del((GF_Descriptor*)esd);
 	}
 	gf_bifs_encoder_del(bifsenc);
 	return e;
@@ -2809,7 +2809,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
 	if (e) {
-		fprintf(stderr, "Cannot load context %s - %s\n", inputContext, gf_error_to_string(e));
+		fprintf(stderr, "Cannot load context %s: %s\n", inputContext, gf_error_to_string(e));
 		goto exit;
 	}
 
@@ -2826,7 +2826,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
 	if (e) {
-		fprintf(stderr, "Cannot load chunk context %s - %s\n", chunkFile, gf_error_to_string(e));
+		fprintf(stderr, "Cannot load scene commands chunk %s: %s\n", chunkFile, gf_error_to_string(e));
 		goto exit;
 	}
 	fprintf(stderr, "Context and chunks loaded\n");

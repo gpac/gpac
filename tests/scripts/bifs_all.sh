@@ -78,6 +78,36 @@ bifs_test()
  test_end
 }
 
+bifs_chunk_test()
+{
+ test_begin "bifs-chunk"
+
+ if [ $test_skip  = 1 ] ; then
+  return
+ fi
+ inctx=$MEDIA_DIR/bifs/bifs-animationstream.bt
+ outctx=$TEMP_DIR/out.bt
+ infile=$TEMP_DIR/in.bt
+ echo "AT 1000 {" > $infile
+ #field replace tests
+ echo "REPLACE BACK.set_bind BY FALSE" >> $infile
+ echo "REPLACE BACK.backColor BY 0 1 0" >> $infile
+ #node insertion test
+ echo "APPEND TO TR.children DEF S2 Shape { appearance Appearance { material USE MAT } geometry Rectangle { size 10 10 } } " >> $infile
+ #field replace on inserted node test
+ echo "REPLACE S2.geometry BY Circle { radius 10 }" >> $infile
+ echo "}" >> $infile
+ #animation stream command
+ echo "AT 1000 IN 5 { REPLACE N0.translation BY 100 0 }" >> $infile
+
+ do_test "$MP4BOX -ctx-in $inctx -ctx-out $outctx -mp4 $infile" "encode"
+ do_hash_test_bin "$TEMP_DIR/in-01-01.bifs" "es1-au1"
+ do_hash_test_bin "$TEMP_DIR/in-05-01.bifs" "es5-au1"
+ do_hash_test "$outctx" "outctx"
+
+ test_end
+}
+
 
 #test BT
 bifs_test $MEDIA_DIR/bifs/bifs-all.bt "bifs-all-bt" 1 0
@@ -90,3 +120,6 @@ bifs_test $MEDIA_DIR/bifs/bifs-all.xmt "bifs-all-xmt" 0 0
 
 #test BT and isom
 bifs_test $MEDIA_DIR/bifs/bifs-isom.bt "bifs-all-isom" 1 1
+
+bifs_chunk_test
+
