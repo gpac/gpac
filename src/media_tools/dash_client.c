@@ -159,6 +159,7 @@ struct __dash_client
 	//atsc AST shift in ms
 	u32 atsc_ast_shift;
 
+	Bool initial_period_tunein;
 	//in ms
 	u32 time_in_tsb, prev_time_in_tsb;
 	u32 tsb_exceeded;
@@ -716,6 +717,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 			if ((seg_start_ms>=ap->start) && (!ap->duration || (seg_end_ms<=start + ap->duration))) {
 				if (i != group->dash->active_period_index) {
+					group->dash->initial_period_tunein = GF_FALSE;
 					group->dash->reinit_period_index = 1+i;
 					group->dash->start_range_period = (Double) seg_start_ms;
 					group->dash->start_range_period -= ap->start;
@@ -907,7 +909,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	if (group->segment_duration) {
 		u32 nb_segs_in_update = (u32) (mpd->minimum_update_period / (1000*group->segment_duration) );
 		Double nb_seg = (Double) current_time;
-		u64 seg_start_ms, seg_end_ms;
 		nb_seg /= 1000;
 		nb_seg /= group->segment_duration;
 		shift = (u32) nb_seg;
@@ -919,28 +920,32 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			availabilityStartTime += group->dash->atsc_ast_shift;
 		}
 
-		seg_start_ms = (u64) (group->segment_duration * (shift+start_number) * 1000);
-		seg_end_ms = (u64) (seg_start_ms + group->segment_duration*1000);
-		//we are in the right period
-		if (seg_start_ms>=group->period->start && (!group->period->duration || (seg_end_ms<=group->period->start+group->period->duration)) ) {
+		if (group->dash->initial_period_tunein) {
+			u64 seg_start_ms, seg_end_ms;
 
-		} else {
-			u32 i;
-			u64 start = 0;
-			for (i=0; i<gf_list_count(group->dash->mpd->periods); i++) {
-				GF_MPD_Period *ap = gf_list_get(group->dash->mpd->periods, i);
-				if (ap->start) start = ap->start;
+			seg_start_ms = (u64) (group->segment_duration * (shift+start_number) * 1000);
+			seg_end_ms = (u64) (seg_start_ms + group->segment_duration*1000);
+			//we are in the right period
+			if (seg_start_ms>=group->period->start && (!group->period->duration || (seg_end_ms<=group->period->start+group->period->duration)) ) {
+				group->dash->initial_period_tunein = GF_FALSE;
+			} else {
+				u32 i;
+				u64 start = 0;
+				for (i=0; i<gf_list_count(group->dash->mpd->periods); i++) {
+					GF_MPD_Period *ap = gf_list_get(group->dash->mpd->periods, i);
+					if (ap->start) start = ap->start;
 
-				if ((seg_start_ms>=ap->start) && (!ap->duration || (seg_end_ms<=start + ap->duration))) {
-					group->dash->reinit_period_index = 1+i;
-					group->dash->start_range_period = (Double) seg_start_ms;
-					group->dash->start_range_period -= ap->start;
-					group->dash->start_range_period /= 1000;
-					return;
+					if ((seg_start_ms>=ap->start) && (!ap->duration || (seg_end_ms<=start + ap->duration))) {
+						group->dash->reinit_period_index = 1+i;
+						group->dash->start_range_period = (Double) seg_start_ms;
+						group->dash->start_range_period -= ap->start;
+						group->dash->start_range_period /= 1000;
+						return;
+					}
+
+					if (!ap->duration) break;
+					start += ap->duration;
 				}
-
-				if (!ap->duration) break;
-				start += ap->duration;
 			}
 		}
 
@@ -2344,6 +2349,13 @@ exit:
 	dash->mpd = new_mpd;
 	dash->last_update_time = gf_sys_clock();
 	dash->mpd_fetch_time = fetch_time;
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Manifest after update:\n"));
+	for (i=0; i<gf_list_count(new_mpd->periods); i++) {
+		GF_MPD_Period *ap = gf_list_get(new_mpd->periods, i);
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\tP#%d: start "LLU" - duration " LLU" - xlink %s\n", i+1, ap->start, ap->duration, ap->xlink_href ? ap->xlink_href : ap->origin_base_url ? ap->origin_base_url : "none"));
+	}
+
 	return GF_OK;
 }
 
@@ -4754,7 +4766,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 	u64 src_duration = 0;
 	Bool is_local=GF_FALSE;
 	const char *local_url;
-	char *url;
+	char *url, *period_xlink;
 	GF_DOMParser *parser;
 	GF_MPD *new_mpd;
 	GF_MPD_Period *period;
@@ -4778,8 +4790,15 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 		return;
 	}
 
+	//ATSC puts a tag in front of the url ("tag:atsc.org,2016:xlink") - in case others decide to follow this crazy example, whe search for http:// or https://
+	period_xlink = strstr(period->xlink_href, "http://");
+	if (!period_xlink) period_xlink = strstr(period->xlink_href, "HTTP://");
+	if (!period_xlink) period_xlink = strstr(period->xlink_href, "https://");
+	if (!period_xlink) period_xlink = strstr(period->xlink_href, "HTTPS://");
+	if (!period_xlink) period_xlink = period->xlink_href;
+
 	//xlink relative to our MPD base URL
-	url = gf_url_concatenate(dash->base_url, period->xlink_href);
+	url = gf_url_concatenate(dash->base_url, period_xlink);
 
 	if (!strstr(url, "://") || !strnicmp(url, "file://", 7) ) {
 		local_url = url;
@@ -4789,7 +4808,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 		if (dash->query_string) {
 			u32 len;
 			char *purl, *full_url;
-			purl = url ? url : period->xlink_href;
+			purl = url ? url : period_xlink;
 			len = (u32) (2 + strlen(purl) + strlen(dash->query_string));
 			full_url = gf_malloc(sizeof(char)*len);
 			strcpy(full_url, purl);
@@ -4801,7 +4820,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 			gf_free(full_url);
 		} else {
 			/*use non-persistent connection for MPD*/
-			e = gf_dash_download_resource(dash, &xlink_sess, url ? url : period->xlink_href, 0, 0, 0, NULL);
+			e = gf_dash_download_resource(dash, &xlink_sess, url ? url : period_xlink, 0, 0, 0, NULL);
 		}
 	}
 
@@ -5038,6 +5057,8 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			}
 		}
 	}
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Setting up period start "LLU" duration "LLU" xlink %s ID %s\n", period->start, period->duration, period->origin_base_url ? period->origin_base_url : "none", period->ID ? period->ID : "none"));
 
 	/*setup all groups*/
 	gf_dash_setup_groups(dash);
@@ -7316,6 +7337,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, GF_DASHThreadMode thread_mode
 	dash->debug_group_index = -1;
 	dash->tile_rate_decrease = 100;
 	dash->atsc_ast_shift = 1000;
+	dash->initial_period_tunein = GF_TRUE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Client created\n"));
 	return dash;
 }
@@ -8155,6 +8177,7 @@ void gf_dash_seek(GF_DashClient *dash, Double start_range)
 		start_range /= 1000;
 
 		is_dynamic = 1;
+		dash->initial_period_tunein = GF_TRUE;
 	}
 
 	/*first check if we seek to another period*/

@@ -252,7 +252,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 	u32 pck_size, size, sap, temporal_id, layer_id;
 	u8 avc_hdr;
 	Bool insert_dsi = GF_FALSE;
-	Bool has_nal_delim = GF_FALSE;
+	Bool has_nalu_delim = GF_FALSE;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
@@ -279,6 +279,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 
 	while (gf_bs_available((ctx->bs_r))) {
 		Bool skip_nal = GF_FALSE;
+		Bool is_nalu_delim = GF_FALSE;
 		u32 pos;
 		u32 nal_size = gf_bs_read_int(ctx->bs_r, 8*ctx->nal_hdr_size);
 		if (nal_size > gf_bs_available(ctx->bs_r) ) {
@@ -287,9 +288,14 @@ GF_Err nalumx_process(GF_Filter *filter)
 		}
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 		//even if not filtering, parse to check for AU delim
-		skip_nal = nalumx_is_nal_skip(ctx, data, pos, &has_nal_delim, &layer_id, &temporal_id, &avc_hdr);
+		skip_nal = nalumx_is_nal_skip(ctx, data, pos, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr);
 		if (!ctx->extract) {
 			skip_nal = GF_FALSE;
+		}
+		if (is_nalu_delim) {
+			has_nalu_delim = GF_TRUE;
+			if (!ctx->delim)
+				skip_nal = GF_TRUE;
 		}
 		if (!skip_nal)
 			size += nal_size + 4;
@@ -299,10 +305,10 @@ GF_Err nalumx_process(GF_Filter *filter)
 	gf_bs_seek(ctx->bs_r, 0);
 
 	if (!ctx->delim)
-		has_nal_delim = GF_TRUE;
+		has_nalu_delim = GF_TRUE;
 
 	//we need to insert NALU delim
-	if (!has_nal_delim) {
+	if (!has_nalu_delim) {
 		size += ctx->is_hevc ? 3 : 2;
 		size += 4;
 	}
@@ -332,7 +338,8 @@ GF_Err nalumx_process(GF_Filter *filter)
 	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs_w, output, size);
 
-	if (!has_nal_delim) {
+	// nalu delimiter is not present, write it first
+	if (!has_nalu_delim) {
 		gf_bs_write_u32(ctx->bs_w, 1);
 		if (ctx->is_hevc) {
 			assert(layer_id);
@@ -350,19 +357,11 @@ GF_Err nalumx_process(GF_Filter *filter)
 			gf_bs_write_int(ctx->bs_w, 0xF0 , 8); /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
 		}
 	}
-	if (insert_dsi) {
-		gf_bs_write_data(ctx->bs_w, ctx->dsi, ctx->dsi_size);
-
-		if (!ctx->rcfg) {
-			gf_free(ctx->dsi);
-			ctx->dsi = NULL;
-			ctx->dsi_size = 0;
-		}
-	}
 
 	while (gf_bs_available((ctx->bs_r))) {
 		u32 pos;
 		Bool skip_nal = GF_FALSE;
+		Bool is_nalu_delim = GF_FALSE;
 		u32 nal_size = gf_bs_read_int(ctx->bs_r, 8*ctx->nal_hdr_size);
 		if (nal_size > gf_bs_available(ctx->bs_r) ) {
 			gf_filter_pid_drop_packet(ctx->ipid);
@@ -370,13 +369,35 @@ GF_Err nalumx_process(GF_Filter *filter)
 		}
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 
-		if (ctx->extract) {
-			skip_nal = nalumx_is_nal_skip(ctx, data, pos, &has_nal_delim, &layer_id, &temporal_id, &avc_hdr);
+		skip_nal = nalumx_is_nal_skip(ctx, data, pos, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr);
+		if (!ctx->extract) {
+			skip_nal = GF_FALSE;
 		}
-		if (!skip_nal) {
-			gf_bs_write_u32(ctx->bs_w, 1);
-			gf_bs_write_data(ctx->bs_w, data+pos, nal_size);
+		//we don't serialize nalu delimiter, skip nal
+		else if (!ctx->delim && is_nalu_delim) {
+			skip_nal = GF_TRUE;
 		}
+
+
+		if (skip_nal) {
+			gf_bs_skip_bytes(ctx->bs_r, nal_size);
+			continue;
+		}
+
+		//insert dsi only after NALUD if any
+		if (insert_dsi && !is_nalu_delim) {
+			insert_dsi = GF_FALSE;
+			gf_bs_write_data(ctx->bs_w, ctx->dsi, ctx->dsi_size);
+
+			if (!ctx->rcfg) {
+				gf_free(ctx->dsi);
+				ctx->dsi = NULL;
+				ctx->dsi_size = 0;
+			}
+		}
+
+		gf_bs_write_u32(ctx->bs_w, 1);
+		gf_bs_write_data(ctx->bs_w, data+pos, nal_size);
 
 		gf_bs_skip_bytes(ctx->bs_r, nal_size);
 	}

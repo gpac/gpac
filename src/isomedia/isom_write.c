@@ -4036,7 +4036,7 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 	scale /= trak->Media->mediaHeader->timeScale;
 	trak->Media->mediaHeader->timeScale = newTS;
 	if (!force_rescale) {
-		u32 i, k, idx;
+		u32 i, k, idx, last_delta;
 		GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
 		u64 cur_dts;
 		u64*DTSs = NULL;
@@ -4049,7 +4049,7 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 				ent->mediaTime = (u32) (scale*ent->mediaTime);
 			}
 		}
-		if (! stbl || !stbl->TimeToSample) {
+		if (! stbl || !stbl->TimeToSample || !stbl->TimeToSample->nb_entries) {
 			return SetTrackDuration(trak);
 		}
 
@@ -4077,6 +4077,8 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 				idx++;
 			}
 		}
+		last_delta = stbl->TimeToSample->entries[stbl->TimeToSample->nb_entries-1].sampleDelta * scale;
+
 		//repack DTS
 		if (stbl->SampleSize->sampleCount) {
 			stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
@@ -4094,6 +4096,15 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 					stbl->TimeToSample->entries[idx].sampleCount=1;
 				}
 			}
+			//add the sample delta for the last sample
+			if (stbl->TimeToSample->entries[idx].sampleDelta == last_delta) {
+				stbl->TimeToSample->entries[idx].sampleCount++;
+			} else {
+				idx++;
+				stbl->TimeToSample->entries[idx].sampleDelta = last_delta;
+				stbl->TimeToSample->entries[idx].sampleCount=1;
+			}
+
 			stbl->TimeToSample->nb_entries = idx+1;
 			stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->TimeToSample->nb_entries);
 		}

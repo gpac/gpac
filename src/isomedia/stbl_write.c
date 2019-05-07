@@ -1758,6 +1758,9 @@ GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl)
 	stsc_tmp->nb_entries = stsc_tmp->alloc_size = stbl->SampleSize->sampleCount;
 	stsc_tmp->entries = gf_malloc(sizeof(GF_StscEntry)*stsc_tmp->nb_entries);
 	if (!stsc_tmp->entries) return GF_OUT_OF_MEM;
+	//set write cache to last sample before unpack
+	stsc_tmp->w_lastSampleNumber = stbl->SampleSize->sampleCount;
+	stsc_tmp->w_lastChunkNumber = stbl->SampleSize->sampleCount;
 
 	//OK write our two tables...
 	ent = NULL;
