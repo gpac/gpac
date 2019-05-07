@@ -5234,6 +5234,12 @@ restart_import:
 
 		/*remove*/
 		case GF_AVC_NALU_ACCESS_UNIT:
+			if (import->keep_audelim) {
+				copy_size = nal_size;
+			} else {
+				copy_size = 0;
+			}
+			break;
 		case GF_AVC_NALU_FILLER_DATA:
 		case GF_AVC_NALU_END_OF_SEQ:
 		case GF_AVC_NALU_END_OF_STREAM:
