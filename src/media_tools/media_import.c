@@ -122,6 +122,7 @@ static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd
 #endif
 }
 
+GF_EXPORT
 void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 {
 	gf_media_update_bitrate_ex(file, track, GF_FALSE);
@@ -1169,6 +1170,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (importer->flags & GF_IMPORT_SVC_NONE) DYNSTRCAT("nosvc");
 		if (importer->flags & GF_IMPORT_SAMPLE_DEPS) DYNSTRCAT("deps");
 		if (importer->flags & GF_IMPORT_FORCE_MPEG4) DYNSTRCAT("mpeg4");
+		if (importer->keep_audelim) DYNSTRCAT("audelim");
 		if (importer->is_alpha) DYNSTRCAT("#Alpha");
 
 		if (importer->streamFormat && !strcmp(importer->streamFormat, "VTT")) DYNSTRCAT("webvtt");

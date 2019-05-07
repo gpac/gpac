@@ -454,6 +454,7 @@ void PrintImportUsage()
 	        " \":forcesync\"         forces non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
 	        "       !! RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
 	        " \":xps_inband\"        Sets xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)\n"
+	        " \":au_delim\"          Keeps AU delimiter NAL units in the imported file\n"
 	        " \":max_lid=N\"         sets HEVC max layer ID to be imported to N. Default imports all.\n"
 	        " \":max_tid=N\"         sets HEVC max temporal ID to be imported to N. Default imports all.\n"
 	        " \":tiles\"             adds HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks.\n"

@@ -56,7 +56,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index_dur;
-	Bool explicit, autofps, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps, seirw;
+	Bool explicit, autofps, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim;
 	u32 nal_length;
 
 	//only one input pid declared
@@ -1616,8 +1616,11 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		}
 		break;
 
-	/*remove*/
 	case GF_HEVC_NALU_ACCESS_UNIT:
+		if (!ctx->audelim)
+			*skip_nal = GF_TRUE;
+		break;
+	/*remove*/
 	case GF_HEVC_NALU_FILLER_DATA:
 	case GF_HEVC_NALU_END_OF_SEQ:
 	case GF_HEVC_NALU_END_OF_STREAM:
@@ -1724,10 +1727,11 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 		}
 		return 0;
 
-	/*remove*/
 	case GF_AVC_NALU_ACCESS_UNIT:
-		*skip_nal = GF_TRUE;
+		if (!ctx->audelim)
+			*skip_nal = GF_TRUE;
 		return 1;
+	/*remove*/
 	case GF_AVC_NALU_FILLER_DATA:
 	case GF_AVC_NALU_END_OF_SEQ:
 	case GF_AVC_NALU_END_OF_STREAM:
@@ -2928,6 +2932,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(subsamples), "import subsamples information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seirw), "rewrite AVC sei messages for ISOBMFF constraints", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(audelim), "keeps Access Unit delimiter in payload", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
