@@ -374,6 +374,7 @@ typedef struct __track_import
 	s16 audio_roll;
 
 	Bool is_alpha;
+	Bool keep_audelim;
 } GF_MediaImporter;
 
 /*!

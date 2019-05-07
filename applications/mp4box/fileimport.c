@@ -258,6 +258,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
 	const char *szLan;
 	GF_Err e;
+	Bool keep_audelim = GF_FALSE;
 	GF_MediaImporter import;
 	char *ext, szName[1000], *handler_name, *rvc_config, *chapter_name;
 	GF_List *kinds;
@@ -438,6 +439,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "alpha")) import.is_alpha = GF_TRUE;
 		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
 		else if (!stricmp(ext+1, "xps_inband")) import_flags |= GF_IMPORT_FORCE_XPS_INBAND;
+		else if (!stricmp(ext+1, "au_delim")) keep_audelim = GF_TRUE;
 		else if (!strnicmp(ext+1, "max_lid=", 8) || !strnicmp(ext+1, "max_tid=", 8)) {
 			s32 val = atoi(ext+9);
 			if (val < 0) {
@@ -685,6 +687,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.video_fps = force_fps;
 	import.frames_per_sample = frames_per_sample;
 	import.flags = import_flags;
+	import.keep_audelim = keep_audelim;
 
 	if (!import.nb_tracks) {
 		u32 count, o_count;
