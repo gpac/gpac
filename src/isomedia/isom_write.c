@@ -3736,7 +3736,7 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 				idx++;
 			}
 		}
-		last_delta = stbl->TimeToSample->entries[stbl->TimeToSample->nb_entries-1].sampleDelta * scale;
+		last_delta = (u32) (stbl->TimeToSample->entries[stbl->TimeToSample->nb_entries-1].sampleDelta * scale);
 
 		//repack DTS
 		if (stbl->SampleSize->sampleCount) {
