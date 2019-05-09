@@ -445,7 +445,7 @@ static const GF_FilterArgs NALUMxArgs[] =
 {
 	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(extract), "Extracts full, base or layer only", GF_PROP_UINT, "all", "all|base|layer", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(delim), "Inserts AU NAL Delimiter", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(delim), "Inserts AU NAL Delimiter", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
