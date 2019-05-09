@@ -141,7 +141,7 @@ typedef struct
 	Bool ps_modified;
 
 	//stats
-	u32 nb_idr, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_nalus;
+	u32 nb_idr, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_nalus, nb_aud;
 
 	//frame has intra slice
 	Bool has_islice;
@@ -197,6 +197,9 @@ typedef struct
 	LHVCLayerInfo linf[64];
 	u8 max_temporal_id[64];
 	u8 min_layer_id;
+
+	Bool has_initial_aud;
+	char init_aud[3];
 } GF_NALUDmxCtx;
 
 
@@ -1617,8 +1620,13 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		break;
 
 	case GF_HEVC_NALU_ACCESS_UNIT:
-		if (!ctx->audelim)
+		ctx->nb_aud++;
+		if (!ctx->audelim) {
 			*skip_nal = GF_TRUE;
+		} else if (!ctx->opid) {
+			ctx->has_initial_aud = GF_TRUE;
+			memcpy(ctx->init_aud, data, 3);
+		}
 		break;
 	/*remove*/
 	case GF_HEVC_NALU_FILLER_DATA:
@@ -1728,8 +1736,13 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 		return 0;
 
 	case GF_AVC_NALU_ACCESS_UNIT:
-		if (!ctx->audelim)
+		ctx->nb_aud++;
+		if (!ctx->audelim) {
 			*skip_nal = GF_TRUE;
+		} else if (!ctx->opid) {
+			ctx->has_initial_aud = GF_TRUE;
+			memcpy(ctx->init_aud, data, 2);
+		}
 		return 1;
 	/*remove*/
 	case GF_AVC_NALU_FILLER_DATA:
@@ -1827,14 +1840,14 @@ GF_Err naludmx_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			if (ctx->bytes_in_header || ctx->hdr_store_size) {
+				start = data = ctx->hdr_store;
+				remain = pck_size = ctx->bytes_in_header ? ctx->bytes_in_header : ctx->hdr_store_size;
+				ctx->bytes_in_header = 0;
+				is_eos = GF_TRUE;
+				goto naldmx_flush;
+			}
 			if (ctx->first_pck_in_au) {
-				if (ctx->bytes_in_header || ctx->hdr_store_size) {
-					start = data = ctx->hdr_store;
-					remain = pck_size = ctx->bytes_in_header ? ctx->bytes_in_header : ctx->hdr_store_size;
-					ctx->bytes_in_header = 0;
-					is_eos = GF_TRUE;
-					goto naldmx_flush;
-				}
 				naludmx_finalize_au_flags(ctx);
 			}
 			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
@@ -2288,8 +2301,8 @@ naldmx_flush:
 			nal_parse_result = naludmx_parse_nal_avc(ctx, hdr_start, hdr_avail, nal_type, &skip_nal, &is_slice, &is_islice);
 		}
 
-		//new frame
-		if (nal_parse_result>0) {
+		//new frame - if no slices, we detected the new frame on AU delimiter, don't flush new frame !
+		if ((nal_parse_result>0) && !ctx->first_slice_in_au) {
 			//new frame - we flush later on
 			naludmx_finalize_au_flags(ctx);
 
@@ -2624,6 +2637,15 @@ naldmx_flush:
 
 		au_start = ctx->first_pck_in_au ? GF_FALSE : GF_TRUE;
 
+		if (ctx->has_initial_aud) {
+			u32 audelim_size = ctx->is_hevc ? 3 : 2;
+			/*dst_pck = */naludmx_start_nalu(ctx, audelim_size, GF_FALSE, &au_start, &pck_data);
+			memcpy(pck_data + ctx->nal_length , ctx->init_aud, audelim_size);
+			ctx->has_initial_aud = GF_FALSE;
+			if (ctx->subsamples) {
+				naludmx_add_subsample(ctx, audelim_size, avc_svc_subs_priority, avc_svc_subs_reserved);
+			}
+		}
 		if (ctx->sei_buffer_size) {
 			//sei buffer is already nal size prefixed
 			/*dst_pck = */naludmx_start_nalu(ctx, ctx->sei_buffer_size, GF_TRUE, &au_start, &pck_data);
