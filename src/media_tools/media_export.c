@@ -1497,12 +1497,17 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 						u32 hdr = ptr[0] & 0x60;
 						hdr |= GF_AVC_NALU_ACCESS_UNIT;
 						gf_bs_write_u8(bs, hdr);
+						gf_bs_write_u8(bs, 0xF0);
 					} else {
 						//just copy the current nal header, patching the nal type to AU delim
 						u32 hdr = ptr[0] & 0x81;
 						hdr |= GF_HEVC_NALU_ACCESS_UNIT << 1;
 						gf_bs_write_u8(bs, hdr);
 						gf_bs_write_u8(bs, ptr[1]);
+
+						/*pic-type - by default we signal all slice types possible*/
+						gf_bs_write_int(bs, 2, 3);
+						gf_bs_write_int(bs, 0, 5);
 					}
 				}
 
