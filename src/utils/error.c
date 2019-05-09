@@ -1502,7 +1502,7 @@ GF_EXPORT
 GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep)
 {
 	u32	l1, l2, lsep;
-	if (to_append) return GF_OK;
+	if (!to_append) return GF_OK;
 
 	lsep = sep ? (u32) strlen(sep) : 0;
 	l1 = *str ? (u32) strlen(*str) : 0;
