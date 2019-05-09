@@ -161,6 +161,8 @@ void error_callback(const char *msg, void *client_data)
 {
 	if (msg) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[OpenJPEG] Error %s", msg));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenJPEG] coverage test\n"));
 	}
 }
 /**
@@ -170,6 +172,8 @@ void warning_callback(const char *msg, void *client_data)
 {
 	if (msg) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[OpenJPEG] Warning %s", msg));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenJPEG] coverage test\n"));
 	}
 }
 /**
@@ -179,6 +183,8 @@ void info_callback(const char *msg, void *client_data)
 {
 	if (msg) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[OpenJPEG] Info %s", msg));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenJPEG] coverage test\n"));
 	}
 }
 

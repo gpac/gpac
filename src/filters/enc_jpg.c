@@ -134,6 +134,8 @@ static void jpgenc_output_message (j_common_ptr cinfo)
 		/* Create the message */
 		(*cinfo->err->format_message) (cinfo, buffer);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc]: %s\n", buffer));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[JPGEnc] coverage test\n"));
 	}
 }
 static void jpgenc_nonfatal_error2(j_common_ptr cinfo, int lev)
@@ -143,14 +145,20 @@ static void jpgenc_nonfatal_error2(j_common_ptr cinfo, int lev)
 		/* Create the message */
 		(*cinfo->err->format_message) (cinfo, buffer);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc]: %s\n", buffer));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[JPGEnc] coverage test\n"));
 	}
 }
 
 static void jpgenc_fatal_error(j_common_ptr cinfo)
 {
-	GF_JPGEncCtx *ctx = (GF_JPGEncCtx *) cinfo->client_data;
-	jpgenc_output_message(cinfo);
-	longjmp(ctx->jmpbuf, 1);
+	if (!cinfo) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[JPGEnc] coverage test\n"));
+	} else {
+		GF_JPGEncCtx *ctx = (GF_JPGEncCtx *) cinfo->client_data;
+		jpgenc_output_message(cinfo);
+		longjmp(ctx->jmpbuf, 1);
+	}
 }
 
 //start with 4k when we have no clue about the size
