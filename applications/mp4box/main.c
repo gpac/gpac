@@ -1624,20 +1624,13 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				        ) {
 					break;
 				} else {
-					u32 l1, l2;
 					char *nsep = strchr(sep+1, ':');
 
 					if (nsep && !strncmp(nsep, "://", 3)) nsep = strchr(nsep+3, ':');
 					if (nsep) nsep[0] = 0;
-					l1 = other_opts ? (u32) strlen(other_opts) : 0;
-					l2 = (u32) strlen(sep);
-					if (other_opts) {
-						other_opts = gf_realloc(other_opts, sizeof(char) * (l1+l2+2));
-						strcat(other_opts, ":");
-						strcat(other_opts, sep);
-					} else {
-						other_opts = strdup(sep);
-					}
+
+					gf_dynstrcat(&other_opts, sep, ":");
+
 					if (nsep) nsep[0] = ':';
 
 					sep = strchr(sep+1, ':');
