@@ -129,17 +129,21 @@ static GF_Err jpgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 static void jpgenc_output_message (j_common_ptr cinfo)
 {
-	char buffer[JMSG_LENGTH_MAX];
-	/* Create the message */
-	(*cinfo->err->format_message) (cinfo, buffer);
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc]: %s\n", buffer));
+	if (cinfo) {
+		char buffer[JMSG_LENGTH_MAX];
+		/* Create the message */
+		(*cinfo->err->format_message) (cinfo, buffer);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc]: %s\n", buffer));
+	}
 }
 static void jpgenc_nonfatal_error2(j_common_ptr cinfo, int lev)
 {
-	char buffer[JMSG_LENGTH_MAX];
-	/* Create the message */
-	(*cinfo->err->format_message) (cinfo, buffer);
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc]: %s\n", buffer));
+	if (cinfo) {
+		char buffer[JMSG_LENGTH_MAX];
+		/* Create the message */
+		(*cinfo->err->format_message) (cinfo, buffer);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc]: %s\n", buffer));
+	}
 }
 
 static void jpgenc_fatal_error(j_common_ptr cinfo)
@@ -338,6 +342,17 @@ exit:
 	return GF_OK;
 }
 
+static GF_Err jpgenc_initialize(GF_Filter *filter)
+{
+	//for coverage
+	if (gf_sys_is_test_mode()) {
+		jpgenc_output_message(NULL);
+		jpgenc_nonfatal_error2(NULL, 0);
+		jpgenc_fatal_error(NULL);
+	}
+	return GF_OK;
+}
+
 static const GF_FilterCapability JPGEncCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
@@ -359,6 +374,7 @@ GF_FilterRegister JPGEncRegister = {
 	.private_size = sizeof(GF_JPGEncCtx),
 	.args = JPGEncArgs,
 	SETCAPS(JPGEncCaps),
+	.initialize = jpgenc_initialize,
 	.configure_pid = jpgenc_configure_pid,
 	.process = jpgenc_process,
 };
