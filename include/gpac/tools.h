@@ -1170,7 +1170,7 @@ GF_Err gf_blob_get_data(const char *blob_url, u8 **out_data, u32 *out_size);
 
 /*!
  * Dynamic concatenation of string with optionnal separator
- * \param src pointer to destination string pointer
+ * \param str pointer to destination string pointer
  * \param to_append string to append
  * \param sep optionnal separator string to insert before concatenation. If set and initial string is NULL, will not be appended
  * \return error code

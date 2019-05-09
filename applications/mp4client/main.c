@@ -124,9 +124,10 @@ Bool right_down = GF_FALSE;
 Float scale = 1;
 
 static Bool shell_visible = GF_TRUE;
-void hide_shell(u32 cmd_type)
-{
 #if defined(WIN32) && !defined(_WIN32_WCE)
+
+void w32_hide_shell(u32 cmd_type)
+{
 	typedef HWND (WINAPI *GetConsoleWindowT)(void);
 	HMODULE hk32 = GetModuleHandle("kernel32.dll");
 	GetConsoleWindowT GetConsoleWindow = (GetConsoleWindowT ) GetProcAddress(hk32,"GetConsoleWindow");
@@ -139,9 +140,14 @@ void hide_shell(u32 cmd_type)
 		shell_visible = GF_FALSE;
 	}
 	else if (cmd_type==2) PostMessage(GetConsoleWindow(), WM_CLOSE, 0, 0);
+}
+
+#define hide_shell w32_hide_shell
+#else
+
+#define hide_shell(_var)
 
 #endif
-}
 
 
 void send_open_url(const char *url)
