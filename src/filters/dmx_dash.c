@@ -726,19 +726,8 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, u32 group_idx, GF_Fil
 
 	count = gf_dash_group_get_num_qualities(ctx->dash, group_idx);
 	for (i=0; i<count; i++) {
-		u32 l1, l2;
 		char szInfo[500];
 		char *qdesc = NULL;
-
-#define DYNSTRCAT(_an_arg) {\
-		l1 = qdesc ? (u32) strlen(qdesc) : 0; \
-		l2 = (u32) strlen(_an_arg);\
-		if (l1) qdesc = gf_realloc(qdesc, sizeof(char)*(l1+l2+3));\
-		else qdesc = gf_realloc(qdesc, sizeof(char)*(l2+2));\
-		qdesc[l1]=0;\
-		if (l1) strcat(qdesc, "::"); \
-		strcat(qdesc, _an_arg); \
-		}\
 
 		e = gf_dash_group_get_quality_info(ctx->dash, group_idx, i, &qinfo);
 		if (e) break;
@@ -747,42 +736,62 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, u32 group_idx, GF_Fil
 		if (!qinfo.codec) qinfo.codec="codec";
 
 		snprintf(szInfo, 500, "id=%s", qinfo.ID);
-		DYNSTRCAT(szInfo)
+
+		e = gf_dynstrcat(&qdesc, szInfo, "::");
+		if (e) break;
+
 		snprintf(szInfo, 500, "codec=%s", qinfo.codec);
-		DYNSTRCAT(szInfo)
+		e = gf_dynstrcat(&qdesc, szInfo, "::");
+		if (e) break;
+
 		snprintf(szInfo, 500, "mime=%s", qinfo.mime);
-		DYNSTRCAT(szInfo)
+		e = gf_dynstrcat(&qdesc, szInfo, "::");
+		if (e) break;
+
 		snprintf(szInfo, 500, "bw=%d", qinfo.bandwidth);
-		DYNSTRCAT(szInfo)
+		e = gf_dynstrcat(&qdesc, szInfo, "::");
+		if (e) break;
 
 		if (qinfo.disabled) {
-			DYNSTRCAT("disabled")
+			e = gf_dynstrcat(&qdesc, "disabled", "::");
+			if (e) break;
 		}
 
 		if (qinfo.width && qinfo.height) {
 			snprintf(szInfo, 500, "w=%d", qinfo.width);
-			DYNSTRCAT(szInfo)
+			e = gf_dynstrcat(&qdesc, szInfo, "::");
+			if (e) break;
+
 			snprintf(szInfo, 500, "h=%d", qinfo.height);
-			DYNSTRCAT(szInfo)
+			e = gf_dynstrcat(&qdesc, szInfo, "::");
+			if (e) break;
+
 			if (qinfo.interlaced) {
-				DYNSTRCAT("interlaced")
+				e = gf_dynstrcat(&qdesc, "interlaced", "::");
+				if (e) break;
 			}
 			if (qinfo.fps_den) {
 				snprintf(szInfo, 500, "fps=%d/%d", qinfo.fps_num, qinfo.fps_den);
 			} else {
 				snprintf(szInfo, 500, "fps=%d", qinfo.fps_num);
 			}
-			DYNSTRCAT(szInfo)
+			e = gf_dynstrcat(&qdesc, szInfo, "::");
+			if (e) break;
+
 			if (qinfo.par_den && qinfo.par_num && (qinfo.par_den != qinfo.par_num)) {
 				snprintf(szInfo, 500, "sar=%d/%d", qinfo.par_num, qinfo.par_den);
-				DYNSTRCAT(szInfo)
+				e = gf_dynstrcat(&qdesc, szInfo, "::");
+				if (e) break;
 			}
 		}
 		if (qinfo.sample_rate) {
 			snprintf(szInfo, 500, "sr=%d", qinfo.sample_rate);
-			DYNSTRCAT(szInfo)
+			e = gf_dynstrcat(&qdesc, szInfo, "::");
+			if (e) break;
+
 			snprintf(szInfo, 500, "ch=%d", qinfo.nb_channels);
-			DYNSTRCAT(szInfo)
+			e = gf_dynstrcat(&qdesc, szInfo, "::");
+			if (e) break;
 		}
 		gf_list_add(qualities.value.string_list, qdesc);
 		qdesc = NULL;

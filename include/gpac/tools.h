@@ -1160,7 +1160,7 @@ typedef struct
 } GF_Blob;
 
 /*!
- * Do not save modification to global options
+ * Retrieves data associated with a blob url
  * \param blob_url URL of blob object (ie gmem://%p)
  * \param out_data if sucess, set to blob data pointer
  * \param out_size if sucess, set to blob data size
@@ -1168,6 +1168,14 @@ typedef struct
  */
 GF_Err gf_blob_get_data(const char *blob_url, u8 **out_data, u32 *out_size);
 
+/*!
+ * Dynamic concatenation of string with optionnal separator
+ * \param src pointer to destination string pointer
+ * \param to_append string to append
+ * \param sep optionnal separator string to insert before concatenation. If set and initial string is NULL, will not be appended
+ * \return error code
+ */
+GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep);
 
 #ifdef GPAC_DISABLE_3D
 #define GPAC_DISABLE_REMOTERY 1

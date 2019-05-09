@@ -1095,55 +1095,55 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			importer->nb_tracks++;
 		}
 	} else {
-		u32 l1, l2;
 		char *args = NULL;
 		char szSubArg[1024];
 		GF_Filter *isobmff_mux;
 
-#define DYNSTRCAT(_an_arg) {\
-		l1 = args ? (u32) strlen(args) : 0; \
-		l2 = (u32) strlen(_an_arg);\
-		if (l1) args = gf_realloc(args, sizeof(char)*(l1+l2+2));\
-		else args = gf_realloc(args, sizeof(char)*(l2+1));\
-		if (!args) { gf_fs_del(fsess); return GF_OUT_OF_MEM; }\
-		args[l1]=0;\
-		if (l1) strcat(args, ":"); \
-		strcat(args, _an_arg); \
-		}\
-
 		//mux args
-		DYNSTRCAT("mxisom:importer");
+		e = gf_dynstrcat(&args, "mxisom:importer", ":");
+
 		sprintf(szSubArg, "file=%p", importer->dest);
-		DYNSTRCAT(szSubArg);
+		e |= gf_dynstrcat(&args, szSubArg, ":");
 		if (importer->trackID) {
 			sprintf(szSubArg, "SID=1#PID=%d", importer->trackID);
-			DYNSTRCAT(szSubArg);
+			e |= gf_dynstrcat(&args, szSubArg, ":");
 		}
-		if (importer->filter_dst_opts) DYNSTRCAT(importer->filter_dst_opts);
+		if (importer->filter_dst_opts)
+			e |= gf_dynstrcat(&args, importer->filter_dst_opts, ":");
 
-		if (importer->flags & GF_IMPORT_FORCE_MPEG4) DYNSTRCAT("m4sys");
-		if (importer->flags & GF_IMPORT_USE_DATAREF) DYNSTRCAT("dref");
-		if (importer->flags & GF_IMPORT_NO_EDIT_LIST) DYNSTRCAT("noedit");
-		if (importer->flags & GF_IMPORT_FORCE_PACKED) DYNSTRCAT("pack_nal");
-		if (importer->flags & GF_IMPORT_FORCE_XPS_INBAND) DYNSTRCAT("xps_inband=all");
+		if (importer->flags & GF_IMPORT_FORCE_MPEG4)
+			e |= gf_dynstrcat(&args, "m4sys", ":");
+		if (importer->flags & GF_IMPORT_USE_DATAREF)
+			e |= gf_dynstrcat(&args, "dref", ":");
+		if (importer->flags & GF_IMPORT_NO_EDIT_LIST)
+			e |= gf_dynstrcat(&args, "noedit", ":");
+		if (importer->flags & GF_IMPORT_FORCE_PACKED)
+			e |= gf_dynstrcat(&args, "pack_nal", ":");
+		if (importer->flags & GF_IMPORT_FORCE_XPS_INBAND)
+			e |= gf_dynstrcat(&args, "xps_inband=all", ":");
 		if (importer->esd && importer->esd->ESID) {
 			sprintf(szSubArg, "tkid=%d", importer->esd->ESID);
-			DYNSTRCAT(szSubArg);
+			e |= gf_dynstrcat(&args, szSubArg, ":");
 		}
 
 		if (importer->duration) {
 			sprintf(szSubArg, "idur=%d/1000", importer->duration);
-			DYNSTRCAT(szSubArg);
+			e |= gf_dynstrcat(&args, szSubArg, ":");
 		}
 		if (importer->frames_per_sample) {
 			sprintf(szSubArg, "pack3gp=%d", importer->frames_per_sample);
-			DYNSTRCAT(szSubArg);
+			e |= gf_dynstrcat(&args, szSubArg, ":");
 		}
-		if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2) { DYNSTRCAT("ase=v0s"); }
-		else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) { DYNSTRCAT("ase=v1"); }
-		else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) { DYNSTRCAT("ase=v1qt"); }
+		if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2) { e |= gf_dynstrcat(&args, "ase=v0s", ":"); }
+		else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) { e |= gf_dynstrcat(&args, "ase=v1", ":"); }
+		else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) { e |= gf_dynstrcat(&args, "ase=v1qt", ":"); }
 
-		if (importer->flags & GF_IMPORT_USE_CCST) {DYNSTRCAT("ccst"); }
+		if (importer->flags & GF_IMPORT_USE_CCST) {e |= gf_dynstrcat(&args, "ccst", ":"); }
+
+		if (e) {
+			gf_free(args);
+			return gf_import_message(importer, e, "[Importer] Cannot load ISOBMFF muxer arguments");
+		}
 
 		isobmff_mux = gf_fs_load_filter(fsess, args);
 		gf_free(args);
@@ -1154,26 +1154,31 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		}
 
 		//source args
-		DYNSTRCAT("importer:index_dur=0");
-		if (importer->trackID) DYNSTRCAT("FID=1");
-		if (importer->filter_src_opts) DYNSTRCAT(importer->filter_src_opts);
+		e = gf_dynstrcat(&args, "importer:index_dur=0", ":");
+		if (importer->trackID) e |= gf_dynstrcat(&args, "FID=1", ":");
+		if (importer->filter_src_opts) e |= gf_dynstrcat(&args, importer->filter_src_opts, ":");
 
-		if (importer->flags & GF_IMPORT_SBR_IMPLICIT) DYNSTRCAT("sbr=imp")
-		else if (importer->flags & GF_IMPORT_SBR_EXPLICIT) DYNSTRCAT("sbr=exp")
-		if (importer->flags & GF_IMPORT_PS_IMPLICIT) DYNSTRCAT("ps=imp")
-		else if (importer->flags & GF_IMPORT_PS_EXPLICIT) DYNSTRCAT("ps=exp")
-		if (importer->flags & GF_IMPORT_OVSBR) DYNSTRCAT("ovsbr");
+		if (importer->flags & GF_IMPORT_SBR_IMPLICIT) e |= gf_dynstrcat(&args, "sbr=imp", ":");
+		else if (importer->flags & GF_IMPORT_SBR_EXPLICIT) e |= gf_dynstrcat(&args, "sbr=exp", ":");
+		if (importer->flags & GF_IMPORT_PS_IMPLICIT) e |= gf_dynstrcat(&args, "ps=imp", ":");
+		else if (importer->flags & GF_IMPORT_PS_EXPLICIT) e |= gf_dynstrcat(&args, "ps=exp", ":");
+		if (importer->flags & GF_IMPORT_OVSBR) e |= gf_dynstrcat(&args, "ovsbr", ":");
 		//avoids message at end of import
-		if (importer->flags & GF_IMPORT_FORCE_PACKED) DYNSTRCAT("nal_length=0");
-		if (importer->flags & GF_IMPORT_SET_SUBSAMPLES) DYNSTRCAT("subsamples");
-		if (importer->flags & GF_IMPORT_NO_SEI) DYNSTRCAT("nosei");
-		if (importer->flags & GF_IMPORT_SVC_NONE) DYNSTRCAT("nosvc");
-		if (importer->flags & GF_IMPORT_SAMPLE_DEPS) DYNSTRCAT("deps");
-		if (importer->flags & GF_IMPORT_FORCE_MPEG4) DYNSTRCAT("mpeg4");
-		if (importer->keep_audelim) DYNSTRCAT("audelim");
-		if (importer->is_alpha) DYNSTRCAT("#Alpha");
+		if (importer->flags & GF_IMPORT_FORCE_PACKED) e |= gf_dynstrcat(&args, "nal_length=0", ":");
+		if (importer->flags & GF_IMPORT_SET_SUBSAMPLES) e |= gf_dynstrcat(&args, "subsamples", ":");
+		if (importer->flags & GF_IMPORT_NO_SEI) e |= gf_dynstrcat(&args, "nosei", ":");
+		if (importer->flags & GF_IMPORT_SVC_NONE) e |= gf_dynstrcat(&args, "nosvc", ":");
+		if (importer->flags & GF_IMPORT_SAMPLE_DEPS) e |= gf_dynstrcat(&args, "deps", ":");
+		if (importer->flags & GF_IMPORT_FORCE_MPEG4) e |= gf_dynstrcat(&args, "mpeg4", ":");
+		if (importer->keep_audelim) e |= gf_dynstrcat(&args, "audelim", ":");
+		if (importer->is_alpha) e |= gf_dynstrcat(&args, "#Alpha", ":");
 
-		if (importer->streamFormat && !strcmp(importer->streamFormat, "VTT")) DYNSTRCAT("webvtt");
+		if (importer->streamFormat && !strcmp(importer->streamFormat, "VTT")) e |= gf_dynstrcat(&args, "webvtt", ":");
+
+		if (e) {
+			gf_free(args);
+			return gf_import_message(importer, e, "[Importer] Cannot load arguments for input %s", importer->in_name);
+		}
 
 		gf_fs_load_source(fsess, importer->in_name, args, NULL, &e);
 		gf_free(args);

@@ -2897,19 +2897,16 @@ void dasher_context_update_period_start(GF_DasherCtx *ctx)
 		ds->rep->dasher_ctx->mux_pids = NULL;
 		for (j=0; j<count; j++) {
 			char szMuxPID[10];
-			u32 l1, l2;
 			GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, j);
 			if (a_ds==ds) continue;
 			if (a_ds->muxed_base != ds) continue;
-			l1 = ds->rep->dasher_ctx->mux_pids ? (u32) strlen(ds->rep->dasher_ctx->mux_pids) : 0;
-			if (l1)
+
+			if (ds->rep->dasher_ctx->mux_pids)
 				sprintf(szMuxPID, " %d", a_ds->id);
 			else
 				sprintf(szMuxPID, "%d", a_ds->id);
-			l2 = (u32) strlen(szMuxPID);
-			ds->rep->dasher_ctx->mux_pids = gf_realloc(ds->rep->dasher_ctx->mux_pids, sizeof(char)*(l1+l2+1));
-			strcpy(ds->rep->dasher_ctx->mux_pids + l1, szMuxPID);
-			ds->rep->dasher_ctx->mux_pids[l1+l2] = 0;
+
+			gf_dynstrcat(&ds->rep->dasher_ctx->mux_pids, szMuxPID, NULL);
 		}
 
 	}

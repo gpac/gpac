@@ -1076,7 +1076,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 {
 	const char *src;
-	char szArgs[4096], szSubArgs[1024], szExt[30];
+	char *args, szSubArgs[1024], szExt[30];
 	GF_Filter *file_out, *reframer, *remux=NULL, *src_filter;
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
@@ -1084,6 +1084,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	u32 sample_count=0;
 	Bool skip_write_filter = GF_FALSE;
 
+	args = NULL;
 	strcpy(szExt, "");
 	if (dumper->trackID) {
 		u32 msubtype = 0;
@@ -1189,77 +1190,92 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		return GF_OUT_OF_MEM;
 	}
 	file_out = NULL;
-
+	args = NULL;
 	//except in nhml inband file dump, create a sink filter
 	if (!dumper->dump_file && !(dumper->flags & GF_EXPORT_AVI)) {
 		Bool no_ext = GF_FALSE;
 		char *ext = gf_file_ext_start(dumper->out_name);
 		//mux args, for now we only dump to file
-		sprintf(szArgs, "fout:dst=%s", dumper->out_name);
+		e = gf_dynstrcat(&args, "fout:dst=", NULL);
+		e |= gf_dynstrcat(&args, dumper->out_name, NULL);
 
 		if (dumper->flags & GF_EXPORT_NHNT) {
 			strcpy(szExt, "nhnt");
-			strcat(szArgs, ":clone");
+			e |= gf_dynstrcat(&args, ":clone", NULL);
 			no_ext = GF_TRUE;
 			if (!ext)
-				strcat(szArgs, ":dynext");
+				e |= gf_dynstrcat(&args, ":dynext", NULL);
 		} else if (dumper->flags & GF_EXPORT_NHML) {
 			strcpy(szExt, "nhml");
-			strcat(szArgs, ":clone");
+			e |= gf_dynstrcat(&args, ":clone", NULL);
 			no_ext = GF_TRUE;
 			if (!ext)
-				strcat(szArgs, ":dynext");
+				e |= gf_dynstrcat(&args, ":dynext", NULL);
 		}
 
 		if (dumper->flags & GF_EXPORT_RAW_SAMPLES) {
 			if (!dumper->sample_num) {
 
-				ext = gf_file_ext_start(szArgs);
+				ext = gf_file_ext_start(args);
 				if (ext) ext[0] = 0;
 				if (sample_count>=1000) {
-					strcat(szArgs, "_$num%08d$");
+					e |= gf_dynstrcat(&args, "_$num%08d$", NULL);
 				} else if (sample_count) {
-					strcat(szArgs, "_$num%03d$");
+					e |= gf_dynstrcat(&args, "_$num%03d$", NULL);
 				} else {
-					strcat(szArgs, "_$num$");
+					e |= gf_dynstrcat(&args, "_$num$", NULL);
 				}
 				ext = gf_file_ext_start(dumper->out_name);
-				if (ext) strcat(szArgs, ext);
+				if (ext) e |= gf_dynstrcat(&args, ext, NULL);
 			}
-			strcat(szArgs, ":dynext");
+			e |= gf_dynstrcat(&args, ":dynext", NULL);
 		} else if (dumper->trackID && strlen(szExt) ) {
 			if (!no_ext && !gf_file_ext_start(dumper->out_name)) {
-				sprintf(szArgs, "fout:dst=%s.%s", dumper->out_name, szExt);
+				if (args) gf_free(args);
+				args=NULL;
+				e = gf_dynstrcat(&args, "fout:dst=", NULL);
+				e |= gf_dynstrcat(&args, dumper->out_name, NULL);
+				e |= gf_dynstrcat(&args, szExt, ".");
 			} else {
-				strcat(szArgs, ":fext=");
-				strcat(szArgs, szExt);
+				e |= gf_dynstrcat(&args, ":fext=", NULL);
+				e |= gf_dynstrcat(&args, szExt, NULL);
 			}
 		}
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load arguments for output file dumper\n"));
+			if (args) gf_free(args);
+			gf_fs_del(fsess);
+			return e;
+		}
 
-		file_out = gf_fs_load_filter(fsess, szArgs);
+		file_out = gf_fs_load_filter(fsess, args);
 		if (!file_out) {
 			gf_fs_del(fsess);
+			if (args) gf_free(args);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load output file dumper\n"));
 			return GF_FILTER_NOT_FOUND;
 		}
 	}
+	if (args) gf_free(args);
+	args = NULL;
+
 	//raw sample frame, force loading filter generic write in frame mode
 	if (dumper->flags & GF_EXPORT_RAW_SAMPLES) {
-		sprintf(szArgs, "writegen:frame");
+		e = gf_dynstrcat(&args, "writegen:frame", NULL);
 		if (dumper->sample_num) {
 			sprintf(szSubArgs, ":sstart=%d:send=%d", dumper->sample_num, dumper->sample_num);
-			strcat(szArgs, szSubArgs);
+			e |= gf_dynstrcat(&args, szSubArgs, NULL);
 		}
-		remux = gf_fs_load_filter(fsess, szArgs);
-		if (!remux) {
+		remux = e ? NULL : gf_fs_load_filter(fsess, args);
+		if (!remux || e) {
 			gf_fs_del(fsess);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load stream->file filter\n"));
-			return GF_FILTER_NOT_FOUND;
+			if (args) gf_free(args);
+			return e ? e : GF_FILTER_NOT_FOUND;
 		}
 	}
 	else if (dumper->flags & GF_EXPORT_NHNT) {
-		sprintf(szArgs, "nhntw");
-		remux = gf_fs_load_filter(fsess, szArgs);
+		remux = gf_fs_load_filter(fsess, "nhntw");
 		if (!remux) {
 			gf_fs_del(fsess);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load NHNT write filter\n"));
@@ -1267,30 +1283,34 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 	}
 	else if (dumper->flags & GF_EXPORT_NHML) {
-		sprintf(szArgs, "nhmlw:name=%s", dumper->out_name);
+		e = gf_dynstrcat(&args, "nhmlw:name=", NULL);
+		e |= gf_dynstrcat(&args, dumper->out_name, NULL);
 		if (dumper->flags & GF_EXPORT_NHML_FULL)
-			strcat(szArgs, ":full");
+			e |= gf_dynstrcat(&args, ":full", NULL);
 		if (dumper->dump_file) {
 			sprintf(szSubArgs, ":nhmlonly:filep=%p", dumper->dump_file);
-			strcat(szArgs, szSubArgs);
+			e |= gf_dynstrcat(&args, szSubArgs, NULL);
 		}
-		remux = gf_fs_load_filter(fsess, szArgs);
-		if (!remux) {
+		remux = e ? NULL : gf_fs_load_filter(fsess, args);
+		if (!remux || e) {
 			gf_fs_del(fsess);
+			if (args) gf_free(args);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load NHML write filter\n"));
-			return GF_FILTER_NOT_FOUND;
+			return e ? e : GF_FILTER_NOT_FOUND;
 		}
 	}
 	else if (dumper->flags & GF_EXPORT_AVI) {
-		sprintf(szArgs, "avimx:dst=%s", dumper->out_name);
-		if (!strstr(szArgs, ".avi")) strcat(szArgs, ".avi");
-		strcat(szArgs, ":noraw");
+		e = gf_dynstrcat(&args, "avimx:dst=", NULL);
+		e |= gf_dynstrcat(&args, dumper->out_name, NULL);
+		if (!strstr(args, ".avi")) e |= gf_dynstrcat(&args, ".avi", NULL);
+		e |= gf_dynstrcat(&args, ":noraw", NULL);
 
-		file_out = gf_fs_load_filter(fsess, szArgs);
-		if (!file_out) {
+		file_out = e ? NULL : gf_fs_load_filter(fsess, args);
+		if (!file_out || e) {
 			gf_fs_del(fsess);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load AVI output filter\n"));
-			return GF_FILTER_NOT_FOUND;
+			if (args) gf_free(args);
+			return e ? e : GF_FILTER_NOT_FOUND;
 		}
 	} else if (!skip_write_filter) {
 		remux = gf_fs_load_filter(fsess, "writegen");
@@ -1300,26 +1320,30 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			return GF_FILTER_NOT_FOUND;
 		}
 	}
+	if (args) gf_free(args);
+	args = NULL;
 
 	//force a reframer filter, connected to our input
-	sprintf(szArgs, "reframer:SID=1");
+	e = gf_dynstrcat(&args, "reframer:SID=1", NULL);
 	if (dumper->trackID) {
 		sprintf(szSubArgs, "#PID=%d", dumper->trackID);
-		strcat(szArgs, szSubArgs);
+		e |= gf_dynstrcat(&args, szSubArgs, NULL);
 	}
-	strcat(szArgs, ":exporter");
+	e |= gf_dynstrcat(&args, ":exporter", NULL);
 	if (dumper->flags & GF_EXPORT_SVC_LAYER)
-		strcat(szArgs, ":extract=layer");
+		e |= gf_dynstrcat(&args, ":extract=layer", NULL);
 	if (dumper->flags & GF_EXPORT_WEBVTT_NOMERGE)
-		strcat(szArgs, ":merge");
+		e |= gf_dynstrcat(&args, ":merge", NULL);
 
-
-	reframer = gf_fs_load_filter(fsess, szArgs);
-	if (!reframer) {
+	reframer = gf_fs_load_filter(fsess, args);
+	if (!reframer || e) {
 		gf_fs_del(fsess);
+		if (args) gf_free(args);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load reframer filter\n"));
-		return GF_FILTER_NOT_FOUND;
+		return e ? e : GF_FILTER_NOT_FOUND;
 	}
+	if (args) gf_free(args);
+	args = NULL;
 
 	src = dumper->in_name ? dumper->in_name : gf_isom_get_filename(dumper->file);
 	src_filter = gf_fs_load_source(fsess, src, "FID=1:noedit", NULL, &e);
