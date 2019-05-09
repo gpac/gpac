@@ -6612,8 +6612,14 @@ restart_import:
 			}
 			break;
 
-		/*remove*/
 		case GF_HEVC_NALU_ACCESS_UNIT:
+			if (import->keep_audelim) {
+				copy_size = nal_size;
+			} else {
+				copy_size = 0;
+			}
+			break;
+		/*remove*/
 		case GF_HEVC_NALU_FILLER_DATA:
 		case GF_HEVC_NALU_END_OF_SEQ:
 		case GF_HEVC_NALU_END_OF_STREAM:

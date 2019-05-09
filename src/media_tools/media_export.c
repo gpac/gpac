@@ -1500,7 +1500,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 					} else {
 						//just copy the current nal header, patching the nal type to AU delim
 						u32 hdr = ptr[0] & 0x81;
-						hdr |= GF_AVC_NALU_ACCESS_UNIT << 1;
+						hdr |= GF_HEVC_NALU_ACCESS_UNIT << 1;
 						gf_bs_write_u8(bs, hdr);
 						gf_bs_write_u8(bs, ptr[1]);
 					}
