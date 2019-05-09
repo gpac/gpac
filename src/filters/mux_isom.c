@@ -33,6 +33,11 @@
 #define TEXT_DEFAULT_HEIGHT	60
 #define TEXT_DEFAULT_FONT_SIZE	18
 
+enum{
+	NALU_NONE,
+	NALU_AVC,
+	NALU_HEVC
+};
 
 typedef struct
 {
@@ -69,12 +74,15 @@ typedef struct
 
 	Bool import_msg_header_done;
 
+	u32 nal_unit_size;
+
 	GF_AVCConfig *avcc, *svcc;
 	GF_HEVCConfig *hvcc, *lvcc;
 
 	char *inband_hdr;
 	u32 inband_hdr_size;
-	Bool is_nalu, is_av1, is_vpx;
+	u32 is_nalu;
+	Bool is_av1, is_vpx;
 	Bool fragment_done;
 	s32 ts_delay, negctts_shift;
 	Bool insert_tfdt, probe_min_ctts;
@@ -298,13 +306,18 @@ static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	GF_BitStream *bs;
 	if (tkw->inband_hdr) gf_free(tkw->inband_hdr);
 
+	tkw->nal_unit_size = 0;
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (tkw->avcc || tkw->svcc) {
-		if (tkw->avcc)
+		if (tkw->avcc) {
 			mp4_mux_write_ps_list(bs, tkw->avcc->sequenceParameterSets, tkw->avcc->nal_unit_size);
+			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->avcc->nal_unit_size;
+		}
 
-		if (tkw->svcc)
+		if (tkw->svcc) {
 			mp4_mux_write_ps_list(bs, tkw->svcc->sequenceParameterSets, tkw->svcc->nal_unit_size);
+			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->svcc->nal_unit_size;
+		}
 
 		if (tkw->avcc && tkw->avcc->sequenceParameterSetExtensions)
 			mp4_mux_write_ps_list(bs, tkw->avcc->sequenceParameterSetExtensions, tkw->avcc->nal_unit_size);
@@ -319,10 +332,14 @@ static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 			mp4_mux_write_ps_list(bs, tkw->svcc->pictureParameterSets, tkw->svcc->nal_unit_size);
 	}
 	if (tkw->hvcc || tkw->lvcc) {
-		if (tkw->hvcc)
+		if (tkw->hvcc) {
 			mp4_mux_write_ps_list(bs, mp4_mux_get_hevc_ps(tkw->hvcc, GF_HEVC_NALU_VID_PARAM), tkw->hvcc->nal_unit_size);
-		if (tkw->lvcc)
+			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->hvcc->nal_unit_size;
+		}
+		if (tkw->lvcc) {
 			mp4_mux_write_ps_list(bs, mp4_mux_get_hevc_ps(tkw->lvcc, GF_HEVC_NALU_VID_PARAM), tkw->lvcc->nal_unit_size);
+			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->hvcc->nal_unit_size;
+		}
 		if (tkw->hvcc)
 			mp4_mux_write_ps_list(bs, mp4_mux_get_hevc_ps(tkw->hvcc, GF_HEVC_NALU_SEQ_PARAM), tkw->hvcc->nal_unit_size);
 		if (tkw->lvcc)
@@ -414,7 +431,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	GF_FilterPid *orig_pid = NULL;
 	u32 codec_id;
 	u32 frames_per_sample_backup=0;
-	Bool is_nalu_backup = GF_FALSE;
+	u32 is_nalu_backup = NALU_NONE;
 	Bool is_tile_base = GF_FALSE;
 	Bool unknown_generic = GF_FALSE;
 	u32 multi_pid_final_stsd_idx = 0;
@@ -1256,7 +1273,7 @@ sample_entry_setup:
 		if (!tkw->has_brands)
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_AVC1, 1);
 
-		tkw->is_nalu = GF_TRUE;
+		tkw->is_nalu = NALU_AVC;
 
 		tkw->use_dref = GF_FALSE;
 
@@ -1269,7 +1286,7 @@ sample_entry_setup:
 		}
 		gf_odf_hevc_cfg_del(tkw->hvcc);
 		tkw->hvcc = NULL;
-		tkw->is_nalu = GF_TRUE;
+		tkw->is_nalu = NALU_HEVC;
 		tkw->use_dref = GF_FALSE;
 		if (!tkw->has_brands)
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_HVTI, 1);
@@ -1297,7 +1314,7 @@ sample_entry_setup:
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
 		}
 
-		tkw->is_nalu = GF_TRUE;
+		tkw->is_nalu = NALU_HEVC;
 
 		if (!e && enh_dsi) {
 			if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
@@ -2126,6 +2143,8 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	const GF_PropertyValue *subs = NULL;
 	GF_FilterSAPType sap_type;
 	u8 dep_flags;
+	Bool insert_subsample_dsi = GF_FALSE;
+	u32 first_nal_is_audelim = GF_FALSE;
 
 	timescale = gf_filter_pck_get_timescale(pck);
 
@@ -2239,27 +2258,49 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 		}
 	} else {
 		if ((tkw->sample.IsRAP || tkw->force_inband_inject) && ctx->xps_inband) {
+			char *au_delim=NULL;
+			u32 au_delim_size=0;
 			char *pck_data = tkw->sample.data;
 			u32 pck_data_len = tkw->sample.dataLength;
 			tkw->sample.data = tkw->inband_hdr;
 			tkw->sample.dataLength = tkw->inband_hdr_size;
 			tkw->force_inband_inject = GF_FALSE;
 
+			if (tkw->is_nalu==NALU_AVC) {
+				char *nal = pck_data + tkw->nal_unit_size;
+				if ((nal[0] & 0x1F) == GF_AVC_NALU_ACCESS_UNIT) {
+					first_nal_is_audelim = au_delim_size = 2 + tkw->nal_unit_size;
+					au_delim = pck_data;
+				}
+			} else {
+				char *nal = pck_data + tkw->nal_unit_size;
+				if (((nal[0] & 0x7E)>>1) == GF_HEVC_NALU_ACCESS_UNIT) {
+					first_nal_is_audelim = au_delim_size = 3 + tkw->nal_unit_size;
+					au_delim = pck_data;
+				}
+			}
+
+			if (au_delim) {
+				tkw->sample.data = au_delim;
+				tkw->sample.dataLength = au_delim_size;
+				pck_data += au_delim_size;
+				pck_data_len -= au_delim_size;
+			}
+
 			if (for_fragment) {
 				e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &tkw->sample, tkw->stsd_idx, duration, 0, 0, 0);
+				if (!e && au_delim) {
+					e = gf_isom_fragment_append_data(ctx->file, tkw->track_id, tkw->inband_hdr, tkw->inband_hdr_size, 0);
+				}
 				if (!e) e = gf_isom_fragment_append_data(ctx->file, tkw->track_id, pck_data, pck_data_len, 0);
-
-				if (subs)
-					gf_isom_fragment_add_subsample(ctx->file, tkw->track_id, 0, tkw->inband_hdr_size, 0, 0, 0);
-
 			} else {
 				e = gf_isom_add_sample(ctx->file, tkw->track_num, tkw->stsd_idx, &tkw->sample);
+				if (au_delim && !e) {
+					e = gf_isom_append_sample_data(ctx->file, tkw->track_num, tkw->inband_hdr, tkw->inband_hdr_size);
+				}
 				if (!e) e = gf_isom_append_sample_data(ctx->file, tkw->track_num, pck_data, pck_data_len);
-
-				if (subs)
-					gf_isom_add_subsample(ctx->file, tkw->track_num, tkw->nb_samples+1, 0, tkw->inband_hdr_size, 0, 0, 0);
-
 			}
+			insert_subsample_dsi = GF_TRUE;
 		} else if (for_fragment) {
 			e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &tkw->sample, tkw->stsd_idx, duration, 0, 0, 0);
 		} else {
@@ -2310,6 +2351,16 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	}
 
 	if (subs) {
+		//if no AUDelim nal and inband header injection, push new subsample
+		if (!first_nal_is_audelim && insert_subsample_dsi) {
+			if (for_fragment) {
+				gf_isom_fragment_add_subsample(ctx->file, tkw->track_id, 0, tkw->inband_hdr_size, 0, 0, 0);
+			} else {
+				gf_isom_add_subsample(ctx->file, tkw->track_num, tkw->nb_samples, 0, tkw->inband_hdr_size, 0, 0, 0);
+			}
+			insert_subsample_dsi = GF_FALSE;
+		}
+
 		if (!ctx->bs_r) ctx->bs_r = gf_bs_new(subs->value.data.ptr, subs->value.data.size, GF_BITSTREAM_READ);
 		else gf_bs_reassign_buffer(ctx->bs_r, subs->value.data.ptr, subs->value.data.size);
 
@@ -2324,6 +2375,19 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 				gf_isom_fragment_add_subsample(ctx->file, tkw->track_id, flags, subs_size, priority, reserved, discardable);
 			} else {
 				gf_isom_add_subsample(ctx->file, tkw->track_num, tkw->nb_samples, flags, subs_size, priority, reserved, discardable);
+			}
+
+			//we have AUDelim nal and inband header injection, push new subsample for inband header once we have pushed the first subsample (au delim)
+			if (insert_subsample_dsi) {
+				if (first_nal_is_audelim != subs_size) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] inserting inband param after AU delimiter NALU, but sample has subsample information not aligned on NALU (got %d subsample size but expecting %d) - file might be broken!\n", subs_size, first_nal_is_audelim));
+				}
+				if (for_fragment) {
+					gf_isom_fragment_add_subsample(ctx->file, tkw->track_id, 0, tkw->inband_hdr_size, 0, 0, 0);
+				} else {
+					gf_isom_add_subsample(ctx->file, tkw->track_num, tkw->nb_samples, 0, tkw->inband_hdr_size, 0, 0, 0);
+				}
+				insert_subsample_dsi = GF_FALSE;
 			}
 		}
 	}

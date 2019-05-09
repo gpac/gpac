@@ -347,7 +347,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 			gf_bs_write_int(ctx->bs_w, 0, 1);
 			gf_bs_write_int(ctx->bs_w, GF_HEVC_NALU_ACCESS_UNIT, 6);
 			gf_bs_write_int(ctx->bs_w, layer_id-1, 6); //we should pick the layerID of the following nalus ...
-			gf_bs_write_int(ctx->bs_w, temporal_id+1, 3);
+			gf_bs_write_int(ctx->bs_w, temporal_id, 3);
 			/*pic-type - by default we signal all slice types possible*/
 			gf_bs_write_int(ctx->bs_w, 2, 3);
 			gf_bs_write_int(ctx->bs_w, 0, 5);
