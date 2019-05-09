@@ -6368,6 +6368,7 @@ restart_import:
 
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
+				sample_has_vps = GF_TRUE;
 				if (!is_empty_sample)
 					flush_sample = GF_TRUE;
 			}
