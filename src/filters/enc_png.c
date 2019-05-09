@@ -160,18 +160,25 @@ static void pngenc_write(png_structp png, png_bytep data, png_size_t size)
 
 void pngenc_flush(png_structp png)
 {
+	if (!png) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[PNGEnc] coverage test\n"));
+	}
 }
 
 static void pngenc_error(png_structp cbk, png_const_charp msg)
 {
 	if (msg) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNGEnc] Error %s", msg));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[PNGEnc] coverage test\n"));
 	}
 }
 static void pngenc_warn(png_structp cbk, png_const_charp msg)
 {
 	if (msg) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[PNGEnc] Warning %s", msg));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[PNGEnc] coverage test\n"));
 	}
 }
 
