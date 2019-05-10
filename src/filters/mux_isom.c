@@ -3950,6 +3950,12 @@ static const GF_FilterArgs MP4MuxArgs[] =
 GF_FilterRegister MP4MuxRegister = {
 	.name = "mxisom",
 	GF_FS_SET_DESCRIPTION("ISOBMFF muxer")
+	GF_FS_SET_HELP("Muxes file according to ISOBMFF (14496-12 and derived specifications)\n"
+	"\n"
+	"By default all input PIDs with ItemID property set are muxed as items, otherwise they are muxed as tracks.\n"
+	"To prevent items to be muxed as items, use itemid option from ISOBMF demuxer.\n"
+	"To force non)item streams to be muxed as items, use #ItemID option on that PID:\n"
+	"\tEX: -i source.jpg:#ItemID=1 -o file.mp4\n")
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,
 	.initialize = mp4_mux_initialize,
