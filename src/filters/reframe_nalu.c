@@ -2247,8 +2247,12 @@ naldmx_flush:
 				}
 			} else {
 				next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
-				if (!is_eos && (next == pck_avail) && !ctx->full_au_source)
-					next = -1;
+				if ( (next == pck_avail) && !ctx->full_au_source) {
+					if (!is_eos)
+						next = -1;
+					else if (ctx->is_hevc && pck_avail<2)
+						next = -1;
+				}
 			}
 
 			//ok we have either a full nal, or the start of a NAL we can start to process, parse NAL
@@ -2286,8 +2290,11 @@ naldmx_flush:
 				assert(!nal_sc_in_store);
 				assert(!nal_hdr_in_store);
 				assert(remain < SAFETY_NAL_STORE);
-				memcpy(ctx->hdr_store, start, remain);
-				ctx->bytes_in_header = remain;
+				//we may have garbage at the end os stream, if the stream was cancelled in the middle (truncated nal)
+				if (!is_eos) {
+					memcpy(ctx->hdr_store, start, remain);
+					ctx->bytes_in_header = remain;
+				}
 				break;
 			}
 		} else {

@@ -909,13 +909,18 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 	GF_ImageItemProperties props;
 	GF_FilterPid *pid;
 	GF_ESD *esd;
-	u32 item_id;
-	gf_isom_get_meta_item_info(read->mov, GF_TRUE, 0, item_idx, &item_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	u32 item_id=0;
+	const char *item_name, *item_mime_type, *item_encoding;
+
+	if (item_idx>gf_isom_get_meta_item_count(read->mov, GF_TRUE, 0))
+		return GF_FALSE;
+
+	item_name = item_mime_type = item_encoding = NULL;
+	gf_isom_get_meta_item_info(read->mov, GF_TRUE, 0, item_idx, &item_id, NULL, NULL, NULL, NULL, NULL, &item_name, &item_mime_type, &item_encoding);
 
 	if (!item_id) return GF_FALSE;
 
 	gf_isom_get_meta_image_props(read->mov, GF_TRUE, 0, item_id, &props);
-	if (props.hidden) return GF_FALSE;
 
 	esd = gf_media_map_item_esd(read->mov, item_id);
 	if (!esd) return GF_FALSE;
@@ -930,7 +935,9 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 		gf_filter_pid_copy_properties(pid, read->pid);
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esd->ESID));
-	gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_ID, &PROP_UINT(item_id));
+	if (read->itemid)
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_ID, &PROP_UINT(item_id));
+		
 	//TODO: no support for LHEVC images
 	//gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID));
 
@@ -948,7 +955,20 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 		gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(props.width));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(props.height));
 	}
+	if (props.hidden) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_HIDDEN, &PROP_BOOL(props.hidden));
+	}
 	gf_odf_desc_del((GF_Descriptor *)esd);
+
+	if (gf_isom_get_meta_primary_item_id(read->mov, GF_TRUE, 0) == item_id) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_PRIMARY_ITEM, &PROP_BOOL(GF_TRUE));
+	} else {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_PRIMARY_ITEM, &PROP_BOOL(GF_FALSE));
+	}
+
+	gf_filter_pid_set_property_str(pid, "meta:mime", item_mime_type ? &PROP_STRING(item_mime_type) : NULL );
+	gf_filter_pid_set_property_str(pid, "meta:name", item_name ? &PROP_STRING(item_name) : NULL );
+	gf_filter_pid_set_property_str(pid, "meta:encoding", item_encoding ? &PROP_STRING(item_encoding) : NULL );
 
 	if (!ch) {
 		/*ch = */isor_create_channel(read, pid, 0, item_id, GF_FALSE);
