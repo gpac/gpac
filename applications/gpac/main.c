@@ -1186,11 +1186,10 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 		if (reg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD) fprintf(stderr, " ConfigureMainThread");
 		if (reg->flags & GF_FS_REG_HIDE_WEIGHT) fprintf(stderr, " HideWeight");
 		if (reg->flags & GF_FS_REG_DYNLIB) fprintf(stderr, " DynamicLib");
-
 		if (reg->probe_url) fprintf(stderr, " URLMimeProber");
 		if (reg->probe_data) fprintf(stderr, " DataProber");
 		if (reg->reconfigure_output) fprintf(stderr, " ReconfigurableOutput");
-		if (reg->probe_data) fprintf(stderr, " DataProber");
+
 		fprintf(stderr, "\nPriority %d", reg->priority);
 
 		fprintf(stderr, "\n");
