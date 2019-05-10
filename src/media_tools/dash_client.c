@@ -156,6 +156,7 @@ struct __dash_client
 	u32 atsc_ast_shift;
 
 	Bool initial_period_tunein;
+
 	//in ms
 	u32 time_in_tsb, prev_time_in_tsb;
 	u32 tsb_exceeded;
@@ -708,7 +709,10 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			GF_MPD_Period *ap = gf_list_get(group->dash->mpd->periods, i);
 			if (ap->start) start = ap->start;
 
-			if ((seg_start_ms>=ap->start) && (!ap->duration || (seg_end_ms<=start + ap->duration))) {
+			if (group->dash->initial_period_tunein
+				&& (seg_start_ms>=ap->start)
+				&& (!ap->duration || (seg_end_ms<=start + ap->duration))
+			) {
 				if (i != group->dash->active_period_index) {
 					group->dash->initial_period_tunein = GF_FALSE;
 					group->dash->reinit_period_index = 1+i;
@@ -722,23 +726,20 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			if (!ap->duration) break;
 			start += ap->duration;
 		}
+		group->dash->initial_period_tunein = GF_FALSE;
 	}
 
+	//compute current time in period
 	if (current_time < group->period->start)
 		current_time = 0;
-	else
-		current_time -= group->period->start;
-
-#if 0
-	{
-		s64 diff = (s64) current_time - (s64) (mpd->media_presentation_duration);
-		if (ABS(diff)>10) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Broken UTC timing in client or server - got Media URL is not set in segment list\n"));
-
+	else {
+		if (group->dash->initial_period_tunein) {
+			current_time -= group->period->start;
+		} else {
+			//initial period was setup, consider we are moving to a new period, so time in this period is 0
+			current_time = 0;
 		}
-		current_time = mpd->media_presentation_duration;
 	}
-#endif
 
 	current_time_no_timeshift = current_time;
 	if ( ((s32) mpd->time_shift_buffer_depth>=0)) {
@@ -756,15 +757,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			if (current_time < shift) current_time = 0;
 			else current_time -= shift;
 		}
-		//commented for now, this increase the delay to the live ...
-#if 0
-		else if (group->dash->user_buffer_ms) {
-			shift = MIN(group->dash->user_buffer_ms, mpd->time_shift_buffer_depth);
-
-			if (current_time < shift) current_time = 0;
-			else current_time -= shift;
-		}
-#endif
 	}
 	group->dash->time_in_tsb = group->dash->prev_time_in_tsb = 0;
 
@@ -820,8 +812,8 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		u32 i, seg_idx = 0;
 
 		current_time_rescale = current_time;
-		current_time_rescale /= 1000;
 		current_time_rescale *= timescale;
+		current_time_rescale /= 1000;
 
 		count = gf_list_count(timeline->entries);
 		for (i=0; i<count; i++) {
@@ -891,14 +883,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		return;
 	}
 
-#if 0
-	static Bool emul_first = GF_FALSE;
-	if (!emul_first) {
-		current_time = 600000;
-		emul_first = GF_TRUE;
-	}
-#endif
-
 	if (group->segment_duration) {
 		u32 nb_segs_in_update = (u32) (mpd->minimum_update_period / (1000*group->segment_duration) );
 		Double nb_seg = (Double) current_time;
@@ -920,7 +904,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			seg_end_ms = (u64) (seg_start_ms + group->segment_duration*1000);
 			//we are in the right period
 			if (seg_start_ms>=group->period->start && (!group->period->duration || (seg_end_ms<=group->period->start+group->period->duration)) ) {
-				group->dash->initial_period_tunein = GF_FALSE;
 			} else {
 				u32 i;
 				u64 start = 0;
@@ -929,6 +912,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 					if (ap->start) start = ap->start;
 
 					if ((seg_start_ms>=ap->start) && (!ap->duration || (seg_end_ms<=start + ap->duration))) {
+						group->dash->initial_period_tunein = GF_FALSE;
 						group->dash->reinit_period_index = 1+i;
 						group->dash->start_range_period = (Double) seg_start_ms;
 						group->dash->start_range_period -= ap->start;
@@ -942,6 +926,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			}
 		}
 
+		group->dash->initial_period_tunein = GF_FALSE;
 		//not time shifting, we are at the live edge, we must stick to start of segment otherwise we won't have enough data to play until next segment is ready
 
 		if (!group->dash->initial_time_shift_value) {
@@ -7823,7 +7808,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 
 	if (group->cached[index].has_dep_following) {
 		if (has_next_segment) *has_next_segment = GF_TRUE;
-	} else if (group->cached[index+1].cache) {
+	} else if (group->cached[index+1].cache && group->adaptation_set) {
 		GF_MPD_Representation *rep;
 
 		rep = gf_list_get(group->adaptation_set->representations, group->cached[index].representation_index);
