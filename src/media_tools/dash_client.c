@@ -4696,29 +4696,31 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 		e = GF_OK;
 	} else {
 		if (dash->query_string) {
-			char szFullURL[4096];
-			u32 len;
+			char *full_url;
 			char *purl, *sep;
+			u32 len;
 			purl = url ? url : period_xlink;
-			len = (u32) (2 + strlen(purl) + strlen(dash->query_string));
+			len = (u32) (2 + strlen(purl) + strlen(dash->query_string) + (period->ID ? strlen(period->ID) : 0 ) );
+			full_url = gf_malloc(sizeof(char)*len);
 
-			strcpy(szFullURL, purl);
-			if (strchr(purl, '?')) strcat(szFullURL, "&");
-			else strcat(szFullURL, "?");
+			strcpy(full_url, purl);
+			if (strchr(purl, '?')) strcat(full_url, "&");
+			else strcat(full_url, "?");
 
-			strcat(szFullURL, dash->query_string);
+			strcat(full_url, dash->query_string);
 			sep = strstr(dash->query_string, "=PID");
-			if (sep) {
-				char *sep2 = strstr(szFullURL, "=PID");
+			if (sep && period->ID) {
+				char *sep2 = strstr(full_url, "=PID");
 				if (sep2) sep2[1] = 0;
-				strcat(szFullURL, period->ID);
-				strcat(szFullURL, sep+4);
+				strcat(full_url, period->ID);
+				strcat(full_url, sep+4);
 			} else {
-				strcat(szFullURL, dash->query_string);
+				strcat(full_url, dash->query_string);
 			}
 
 			/*use non-persistent connection for MPD*/
-			e = gf_dash_download_resource(dash, &xlink_sess, szFullURL, 0, 0, 0, NULL);
+			e = gf_dash_download_resource(dash, &xlink_sess, full_url, 0, 0, 0, NULL);
+			gf_free(full_url);
 
 		} else {
 			/*use non-persistent connection for MPD*/
