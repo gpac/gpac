@@ -316,18 +316,6 @@ void dashdmx_io_del(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 	if (!ctx->reuse_download_session)
 		gf_dm_sess_del((GF_DownloadSession *)session);
 }
-void dashdmx_io_abort(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
-{
-	gf_dm_sess_abort((GF_DownloadSession *)session);
-}
-GF_Err dashdmx_io_setup_from_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *url, s32 group_idx)
-{
-	return gf_dm_sess_setup_from_url((GF_DownloadSession *)session, url, GF_FALSE);
-}
-GF_Err dashdmx_io_set_range(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, u64 start_range, u64 end_range, Bool discontinue_cache)
-{
-	return gf_dm_sess_set_range((GF_DownloadSession *)session, start_range, end_range, discontinue_cache);
-}
 GF_Err dashdmx_io_init(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
 	return gf_dm_sess_process_headers((GF_DownloadSession *)session);
@@ -357,12 +345,23 @@ u64 dashdmx_io_get_utc_start_time(GF_DASHFileIO *dashio, GF_DASHFileIOSession se
 	return gf_dm_sess_get_utc_start((GF_DownloadSession *)session);
 }
 
-
+#if 0 //unused since we are in non threaded mode
+void dashdmx_io_abort(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
+{
+	gf_dm_sess_abort((GF_DownloadSession *)session);
+}
+GF_Err dashdmx_io_setup_from_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *url, s32 group_idx)
+{
+	return gf_dm_sess_setup_from_url((GF_DownloadSession *)session, url, GF_FALSE);
+}
+GF_Err dashdmx_io_set_range(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, u64 start_range, u64 end_range, Bool discontinue_cache)
+{
+	return gf_dm_sess_set_range((GF_DownloadSession *)session, start_range, end_range, discontinue_cache);
+}
 
 u32 dashdmx_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
 	u32 bps=0;
-//	GF_DownloadSession *sess = (GF_DownloadSession *)session;
 	if (session) {
 		gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, NULL, NULL, &bps, NULL);
 	} else {
@@ -370,23 +369,21 @@ u32 dashdmx_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession ses
 		bps = gf_dm_get_data_rate(ctx->dm);
 		bps/=8;
 	}
-	//GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("DEBUG. 2. max max max  %d \n", bps*8));
 	return bps;
 }
 u32 dashdmx_io_get_total_size(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
 	u64 size=0;
-//	GF_DownloadSession *sess = (GF_DownloadSession *)session;
 	gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, &size, NULL, NULL, NULL);
 	return (u32) size;
 }
 u32 dashdmx_io_get_bytes_done(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
 	u64 size=0;
-//	GF_DownloadSession *sess = (GF_DownloadSession *)session;
 	gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, NULL, &size, NULL, NULL);
 	return (u32) size;
 }
+#endif
 
 GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt, s32 group_idx, GF_Err error_code)
 {
@@ -967,9 +964,6 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	ctx->dash_io.delete_cache_file = dashdmx_io_delete_cache_file;
 	ctx->dash_io.create = dashdmx_io_create;
 	ctx->dash_io.del = dashdmx_io_del;
-	ctx->dash_io.abort = dashdmx_io_abort;
-	ctx->dash_io.setup_from_url = dashdmx_io_setup_from_url;
-	ctx->dash_io.set_range = dashdmx_io_set_range;
 	ctx->dash_io.init = dashdmx_io_init;
 	ctx->dash_io.run = dashdmx_io_run;
 	ctx->dash_io.get_url = dashdmx_io_get_url;
@@ -977,9 +971,16 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	ctx->dash_io.get_mime = dashdmx_io_get_mime;
 	ctx->dash_io.get_header_value = dashdmx_io_get_header_value;
 	ctx->dash_io.get_utc_start_time = dashdmx_io_get_utc_start_time;
+
+#if 0 //unused since we are in non threaded mode
+	ctx->dash_io.abort = dashdmx_io_abort;
+	ctx->dash_io.setup_from_url = dashdmx_io_setup_from_url;
+	ctx->dash_io.set_range = dashdmx_io_set_range;
 	ctx->dash_io.get_bytes_per_sec = dashdmx_io_get_bytes_per_sec;
 	ctx->dash_io.get_total_size = dashdmx_io_get_total_size;
 	ctx->dash_io.get_bytes_done = dashdmx_io_get_bytes_done;
+#endif
+
 	ctx->dash_io.on_dash_event = dashdmx_io_on_dash_event;
 
 	ctx->dash = gf_dash_new(&ctx->dash_io, GF_DASH_THREAD_NONE, 0, ctx->auto_switch, (ctx->store==2) ? GF_TRUE : GF_FALSE, (ctx->algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, GF_FALSE, ctx->timeshift);
@@ -1423,25 +1424,43 @@ GF_Err dashdmx_process(GF_Filter *filter)
 
 					if (group->nb_eos * (1 + group->nb_group_deps) ==group->nb_pids) {
 						Bool postponed = GF_FALSE;
+						//check all pids in this group, postpone segment switch if blocking
 						for (i=0; i<count; i++) {
 							GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 							GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
+							GF_DASHGroup *agroup;
 							if (ipid == ctx->mpd_pid) continue;
+							agroup = gf_filter_pid_get_udta(opid);
+							if (!agroup || (agroup != group)) continue;
+
 							if (!group->current_group_dep && gf_filter_pid_would_block(opid)) {
-								GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment but output pid would block, postponing\n"));
+								GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d but output pid would block, postponing\n", group->idx));
 								postponed = GF_TRUE;
 								break;
 							}
+						}
+						if (postponed)
+							break;
+
+						//good to switch, cancel all end of stream signals on pids from this group and switch
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d, updating stats and switching segment\n", group->idx));
+						for (i=0; i<count; i++) {
+							GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+							GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
+							GF_DASHGroup *agroup;
+							if (ipid == ctx->mpd_pid) continue;
+							agroup = gf_filter_pid_get_udta(opid);
+							if (!agroup || (agroup != group)) continue;
 
 							if (gf_filter_pid_is_eos(ipid))
 								gf_filter_pid_clear_eos(ipid, GF_TRUE);
 						}
-						if (!postponed) {
-							dashdmx_update_group_stats(ctx, group);
-							dashdmx_switch_segment(ctx, group);
-							if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
-						}
+						dashdmx_update_group_stats(ctx, group);
+						dashdmx_switch_segment(ctx, group);
+						if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
 					}
+				} else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] No source packet group %d and not in end of stream\n", group->idx));
 				}
 				if (group->in_error || group->seg_was_not_ready) {
 					dashdmx_switch_segment(ctx, group);
