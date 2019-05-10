@@ -275,9 +275,9 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 					}
 				}
 				if (!found) {
+					fprintf(stderr, "Unknown log tool specified: %s\n", tools);
 					sep_level[0] = '@';
 					if (sep) sep[0] = ':';
-					fprintf(stderr, "Unknown log tool specified: %s\n", val);
 					return GF_BAD_PARAM;
 				}
 			}
