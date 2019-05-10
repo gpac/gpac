@@ -674,7 +674,9 @@ GF_Err infe_Read(GF_Box *s, GF_BitStream *bs)
 		string_len++;
 	}
 	gf_free(buf);
-	if (!ptr->item_name || (!ptr->content_type && ptr->version < 2)) return GF_ISOM_INVALID_FILE;
+	if (!ptr->item_name || (!ptr->content_type && ptr->version < 2)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isoff] Infe without name or content type !\n"));
+	}
 	return GF_OK;
 }
 
