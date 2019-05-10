@@ -108,6 +108,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		default: ctx->filter_sap_none = GF_TRUE; break;
 		}
 	}
+	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
 	return GF_OK;
 }
