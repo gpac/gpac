@@ -4789,8 +4789,9 @@ GF_EXPORT
 GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const char *data, u32 data_size)
 {
 	GF_List *list;
+    u32 btype;
 	GF_Box *box;
-	GF_UnknownUUIDBox *uuid;
+	GF_UnknownUUIDBox *uuidb;
 
 	if (!data_size || !data) return GF_OK;
 
@@ -4807,15 +4808,16 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const c
 		if (!movie->moov->other_boxes) movie->moov->other_boxes = gf_list_new();
 		list = movie->moov->other_boxes;
 	}
-
-	box = gf_isom_box_new(gf_isom_solve_uuid_box((char *) UUID));
-	uuid = (GF_UnknownUUIDBox*)box;
-	uuid->internal_4cc = gf_isom_solve_uuid_box((char *) UUID);
-	memcpy(uuid->uuid, UUID, sizeof(bin128));
-	uuid->dataSize = data_size;
-	uuid->data = (char*)gf_malloc(sizeof(char)*data_size);
-	memcpy(uuid->data, data, sizeof(char)*data_size);
-	gf_list_add(list, uuid);
+    btype = gf_isom_solve_uuid_box((char *) UUID);
+    if (!btype) btype = GF_ISOM_BOX_TYPE_UUID;
+    box = gf_isom_box_new(btype);
+	uuidb = (GF_UnknownUUIDBox*)box;
+	uuidb->internal_4cc = gf_isom_solve_uuid_box((char *) UUID);
+	memcpy(uuidb->uuid, UUID, sizeof(bin128));
+	uuidb->dataSize = data_size;
+	uuidb->data = (char*)gf_malloc(sizeof(char)*data_size);
+	memcpy(uuidb->data, data, sizeof(char)*data_size);
+	gf_list_add(list, uuidb);
 	return GF_OK;
 }
 
