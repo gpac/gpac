@@ -1378,10 +1378,14 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 			}
 		}
 #endif
-		a = unkn_New();
-		((GF_UnknownBox *)a)->original_4cc = boxType;
-
-		if (a) a->registry = &box_registry[0];
+        if (boxType==GF_ISOM_BOX_TYPE_UUID) {
+            a = uuid_New();
+            if (a) a->registry = &box_registry[1];
+        } else {
+            a = unkn_New();
+            ((GF_UnknownBox *)a)->original_4cc = boxType;
+            if (a) a->registry = &box_registry[0];
+        }
 		return a;
 	}
 	a = box_registry[idx].new_fn();
