@@ -670,7 +670,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 
 	if (stsc->w_lastSampleNumber + 1 == sampleNumber ) needs_split = GF_TRUE;
 
-	if (!stsc->nb_entries || (stsc->nb_entries + (needs_split ? 2 : 0) == stsc->alloc_size)) {
+	if (!stsc->nb_entries || (stsc->nb_entries + (needs_split ? 2 : 0) >= stsc->alloc_size)) {
 		if (!stsc->alloc_size) stsc->alloc_size = 1;
 		ALLOC_INC(stsc->alloc_size);
 		stsc->entries = gf_realloc(stsc->entries, sizeof(GF_StscEntry)*stsc->alloc_size);
