@@ -14,7 +14,7 @@ bifs_test()
  mp4file=${srcfile%.*}'.mp4'
  dump=$TEMP_DIR/dump.rgb
  #test source (BT/XMT) parsing and encoding
- do_test "$MP4BOX -mp4 $srcfile" "mp4"
+ do_test "$MP4BOX -log -mp4 $srcfile" "mp4"
  do_hash_test $mp4file "mp4"
 
 
