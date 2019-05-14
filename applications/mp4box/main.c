@@ -1857,6 +1857,10 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 		u32 size, csize;
 	} *ranges=NULL;
 
+	if (!outName) {
+		fprintf(stderr, "Missing output file name\n");
+		return GF_BAD_PARAM;
+	}
 
 	in = gf_fopen(inName, "rb");
 	if (!in) return GF_URL_ERROR;
@@ -5603,8 +5607,8 @@ int mp4boxMain(int argc, char **argv)
 		fprintf(stderr, "Fragmenting file (%.3f seconds fragments)\n", interleaving_time);
 		e = gf_media_fragment_file(file, outfile, interleaving_time, use_mfra);
 		if (e) fprintf(stderr, "Error while fragmenting file: %s\n", gf_error_to_string(e));
-		if (!e && !outName && !force_new) {
-			if (gf_delete_file(inName)) fprintf(stderr, "Error removing file %s\n", inName);
+		if (!e && !outName) {
+			if (gf_file_exists(inName) && gf_delete_file(inName)) fprintf(stderr, "Error removing file %s\n", inName);
 			else if (gf_move_file(outfile, inName)) fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
 		}
 		if (e) goto err_exit;
