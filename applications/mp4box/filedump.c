@@ -119,24 +119,6 @@ GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name)
 	return GF_OK;
 }
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
-
-GF_Err set_cover_art(GF_ISOFile *file, char *inName)
-{
-	GF_Err e;
-	char *tag, *ext;
-	u32 tag_len;
-	e = gf_file_load_data(inName, (u8 **) &tag, &tag_len);
-	if (e) return e;
-	ext = strrchr(inName, '.');
-	if (!stricmp(ext, ".png")) tag_len |= 0x80000000;
-	e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, tag, tag_len);
-	gf_free(tag);
-	return e;
-}
-
-#endif
-
 #ifndef GPAC_DISABLE_SCENE_DUMP
 
 GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDumpFormat dump_mode, Bool do_log)
