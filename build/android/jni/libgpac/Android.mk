@@ -348,7 +348,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/scenegraph/vrml_smjs.c \
 	../../../../src/scenegraph/vrml_tools.c \
 	../../../../src/scenegraph/x3d_nodes.c \
-	../../../../src/scenegraph/xbl_process.c \
 	../../../../src/scenegraph/xml_ns.c \
 	../../../../src/scene_manager/encode_isom.c \
 	../../../../src/scene_manager/loader_bt.c \
