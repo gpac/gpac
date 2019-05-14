@@ -175,8 +175,7 @@ void PrintGeneralUsage()
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
 	        " -splitz S:E          same as -split-chunk, but adjust the end time to be before the last RAP sample\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
-	        " -group-add fmt       creates a new grouping information in the file. Format is\n"
-	        "                      a colon-separated list of following options:\n"
+	        " -group-add fmt       creates a new grouping information in the file. Format is a colon-separated list of following options:\n"
 	        "                      refTrack=ID: ID of the track used as a group reference.\n"
 	        "                       If not set, the track will belong to the same group as the previous trackID specified.\n"
 	        "                       If 0 or no previous track specified, a new alternate group will be created\n"
@@ -194,7 +193,6 @@ void PrintGeneralUsage()
 	        " -group-rem-track ID  removes track from its group\n"
 	        " -group-rem ID        removes the track's group\n"
 	        " -group-clean         removes all group information from all tracks\n"
-	        " -group-single        puts all tracks in a single group\n"
 	        " -ref id:XXXX:refID   adds a reference of type 4CC from track ID to track refID\n"
 	        " -keep-utc            keeps UTC timing in the file after edit\n"
 	        " -udta ID:[OPTS]      sets udta for given track or movie if ID is 0. OPTS is a colon separated list of:\n"
@@ -642,6 +640,7 @@ void PrintHintUsage()
 	        " -latm                forces MPG4-LATM transport for AAC streams\n"
 	        " -static              enables static RTP payload IDs whenever possible\n"
 	        "                       * By default, dynamic payloads are always used\n"
+	        " -group-single        puts all tracks in a single hint group\n"
 	        "\n"
 	        "MPEG-4 Generic Payload Options\n"
 	        " -ocr                 forces all streams to be synchronized\n"
@@ -2964,7 +2963,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			nb_meta_act++;
 			i++;
 		}
-		else if (!stricmp(arg, "-group-add") || !stricmp(arg, "-group-rem-track") || !stricmp(arg, "-group-rem") || !stricmp(arg, "-group-clean")) {
+		else if (!stricmp(arg, "-group-add") || !stricmp(arg, "-group-rem-track") || !stricmp(arg, "-group-rem") ) {
 			TSELActionType act_type;
 			if (!stricmp(arg, "-group-rem")) {
 				act_type = TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP;
