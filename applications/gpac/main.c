@@ -1724,6 +1724,7 @@ static u32 gpac_unit_tests()
 	u8 utf8_buf[7];
 
 	gpac_fsess_task_help(); //for coverage
+	gf_dm_sess_last_error(NULL);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[CoreUnitTests] performing tests\n"));
 

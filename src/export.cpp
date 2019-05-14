@@ -393,15 +393,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_url_info_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_url_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_url_info_init) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dm_is_thread_dead) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_abort) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_set_range) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_setup_from_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_global_rate) )
-
-
-
-#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_can_be_cached_on_disk) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_new) )

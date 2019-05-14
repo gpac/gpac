@@ -22,6 +22,9 @@ if [ "$test_skip" != 1 ] ; then
 do_test "$MP4BOX -wget http://download.tsi.telecom-paristech.fr/gpac/DASH_CONFORMANCE/TelecomParisTech/ttml-live/ttml.mpd $TEMP_DIR/test.xml" "wget"
 do_hash_test $TEMP_DIR/test.xml "wget"
 
+do_test "$MP4BOX -wget https://download.tsi.telecom-paristech.fr/gpac/DASH_CONFORMANCE/TelecomParisTech/ttml-live/ttml.mpd $TEMP_DIR/test2.xml" "wget-https"
+do_hash_test $TEMP_DIR/test2.xml "wget-https"
+
 fi
 
 test_end
