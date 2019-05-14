@@ -786,6 +786,7 @@ void compositor_init_bitwrapper(GF_Compositor *compositor, GF_Node *node)
 {
 	M_BitWrapper *bit;
 	bit = (M_BitWrapper *)node;
+	if (!bit->node) return;
 	gf_node_set_private(node, gf_node_get_private(bit->node));
 	gf_node_set_callback_function(node, TraverseBitWrapper);
 }

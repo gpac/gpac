@@ -2469,7 +2469,9 @@ void InitStringSensor(GF_Scene *scene, GF_Node *node);
 GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info);
 
 
-void gf_sc_connect(GF_Compositor *compositor, const char *URL);
+
+void gf_sc_connect_from_time_ex(GF_Compositor *compositor, const char *URL, u64 startTime, u32 pause_at_first_frame, Bool secondary_scene, const char *parent_path);
+
 void gf_sc_disconnect(GF_Compositor *compositor);
 
 

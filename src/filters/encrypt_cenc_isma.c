@@ -453,7 +453,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 			continue;
 		}
 
-		e = gf_xml_parse_bit_sequence(node, &specInfo, &specInfoSize);
+		e = gf_xml_parse_bit_sequence(node, cfile_name, &specInfo, &specInfoSize);
 		if (e) {
 			if (specInfo) gf_free(specInfo);
 			gf_xml_dom_del(parser);

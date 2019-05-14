@@ -5401,6 +5401,7 @@ void gf_filter_pid_clear_eos(GF_FilterPid *pid, Bool clear_all)
 				//prevents further dispatch of eos packets by source filter
 				apid->prevent_eos_dispatch = GF_TRUE;
 			}
+
 			if (apidi->pid->filter->would_block && apidi->pid->filter->num_input_pids) {
 				u32 k;
 				for (k=0; k<apidi->pid->filter->num_input_pids; k++) {
@@ -5414,8 +5415,8 @@ void gf_filter_pid_clear_eos(GF_FilterPid *pid, Bool clear_all)
 
 	//unblock parent
 	for (i=0; i<pid->filter->num_input_pids; i++) {
-		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
-		gf_filter_pid_clear_eos((GF_FilterPid *) pidi, GF_TRUE);
+		GF_FilterPidInst *apidi = gf_list_get(pid->filter->input_pids, i);
+		gf_filter_pid_clear_eos((GF_FilterPid *) apidi, GF_TRUE);
 	}
 
 }

@@ -52,7 +52,7 @@ typedef struct
 {
 	//options
 	char *src;
-	Bool allt, noedit, itt;
+	Bool allt, noedit, itt, itemid;
 	u32 smode;
 	u32 stsd;
 	Bool expart;

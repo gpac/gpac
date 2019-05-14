@@ -81,7 +81,10 @@ static void inspect_finalize(GF_Filter *filter)
 	Bool concat=GF_FALSE;
 	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
-	if (ctx->dump && (ctx->dump!=stderr) && (ctx->dump!=stdout)) concat=GF_TRUE;
+	if (ctx->dump) {
+		if ((ctx->dump!=stderr) && (ctx->dump!=stdout)) concat=GF_TRUE;
+		else if (!ctx->interleave) concat=GF_TRUE;
+	}
 	while (gf_list_count(ctx->src_pids)) {
 		PidCtx *pctx = gf_list_pop_front(ctx->src_pids);
 

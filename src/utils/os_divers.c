@@ -2357,6 +2357,54 @@ GF_Err gf_bin128_parse(const char *string, bin128 value)
 }
 
 
+GF_EXPORT
+GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size)
+{
+	u64 fsize;
+	FILE *file = gf_fopen(file_name, "rb");
+	*out_data = NULL;
+	*out_size = 0;
+
+	if (!file) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot open file %s\n", file_name));
+		return GF_IO_ERR;
+	}
+	gf_fseek(file, 0, SEEK_END);
+	fsize = gf_ftell(file);
+	if (fsize>0xFFFFFFFFUL) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] file %s is too big to load in memory ("LLU" bytes)\n", fsize));
+		gf_fclose(file);
+		return GF_OUT_OF_MEM;
+	}
+
+	*out_size = (u32) fsize;
+	if (fsize == 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] file %s is empty\n", file_name));
+		gf_fclose(file);
+		return GF_OK;
+	}
+
+	/* First, read the dump in a buffer */
+	*out_data = gf_malloc((size_t)(fsize+1) * sizeof(char));
+	if (! *out_data) {
+		gf_fclose(file);
+		return GF_OUT_OF_MEM;
+	}
+	gf_fseek(file, 0, SEEK_SET);
+	fsize = fread(*out_data, sizeof(char), (size_t)fsize, file);
+	gf_fclose(file);
+	if ((u32) fsize != *out_size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] file %s read failed\n", file_name));
+		gf_fclose(file);
+		gf_free(*out_data);
+		*out_data = NULL;
+		*out_size = 0;
+		return GF_IO_ERR;
+	}
+	(*out_data)[fsize] = 0;
+	return GF_OK;
+}
+
 #ifndef WIN32
 #include <unistd.h>
 GF_EXPORT

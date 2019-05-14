@@ -3683,6 +3683,7 @@ GF_Err load_bt_run(GF_SceneLoader *load)
 GF_Err load_bt_parse_string(GF_SceneLoader *load, const char *str)
 {
 	GF_Err e;
+	char *dup_str;
 	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
 	if (!parser) return GF_BAD_PARAM;
 
@@ -3692,16 +3693,20 @@ GF_Err load_bt_parse_string(GF_SceneLoader *load, const char *str)
 		parser->file_size = 0;
 		parser->line_pos = 0;
 	}
-	parser->line_buffer = gf_strdup(str);
+	parser->line_buffer = dup_str = gf_strdup(str);
 	parser->line_size = (s32)strlen(str);
 
 	if (!parser->initialized) {
 		e = gf_sm_load_bt_initialize(load, str, 0);
-		if (e) return e;
+		if (e) {
+			gf_free(dup_str);
+			return e;
+		}
 	}
 	e = gf_bt_loader_run_intern(parser, NULL, 0);
 	parser->line_buffer = NULL;
 	parser->line_size = 0;
+	gf_free(dup_str);
 	return e;
 }
 

@@ -24,17 +24,7 @@ test_http "mp4-seek" "http://download.tsi.telecom-paristech.fr/gpac/gpac_test_su
 test_http "aac-simple" "http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/regression_tests/auxiliary_files/enst_audio.aac" ""
 
 #on linux 32 bit we for now disable the aac seek, since the rounding of (start) and indexes in file gives a slightly different cts
-do_aac_seek=1
-config=`gpac -h bin 2>&1 | grep GPAC_HAS_64`
-if [ -z $config ] ; then
-config=`gpac -h bin 2>&1 | grep GPAC_CONFIG_LINUX`
-
-if [ -n "$config" ] ; then
-do_aac_seek=0
-fi
-fi
-
-if [ $do_aac_seek != 0 ] ; then
+if [ $GPAC_OSTYPE != "lin32" ] ; then
 test_http "aac-seek" "http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/regression_tests/auxiliary_files/enst_audio.aac" ":dur=2.0:start=2"
 fi
 

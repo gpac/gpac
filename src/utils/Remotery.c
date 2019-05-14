@@ -451,7 +451,7 @@ static rmtBool AtomicCompareAndSwap(rmtU32 volatile* val, long old_val, long new
     #if defined(RMT_PLATFORM_WINDOWS) && !defined(__MINGW32__)
         return _InterlockedCompareExchange((long volatile*)val, new_val, old_val) == old_val ? RMT_TRUE : RMT_FALSE;
     #elif defined(RMT_PLATFORM_POSIX) || defined(__MINGW32__)
-        return __sync_bool_compare_and_swap(val, old_val, new_val) ? RMT_TRUE : RMT_FALSE;
+        return __sync_bool_compare_and_swap(val, (rmtU32) old_val, (rmtU32) new_val) ? RMT_TRUE : RMT_FALSE;
     #endif
 }
 
@@ -3142,7 +3142,7 @@ static rmtError WebSocketHandshake(TCPSocket* tcp_socket, rmtPStr limit_host)
     {
         r_size_t limit_host_len = strnlen_s(limit_host, 128);
         char* found = NULL;
-        if (strstr_s(host, buffer_end - host, limit_host, limit_host_len, &found) != EOK)
+        if (strstr_s(host, (r_size_t) ( buffer_end - host), limit_host, limit_host_len, &found) != EOK)
             return RMT_ERROR_WEBSOCKET_HANDSHAKE_BAD_HOST;
     }
 
@@ -3150,14 +3150,14 @@ static rmtError WebSocketHandshake(TCPSocket* tcp_socket, rmtPStr limit_host)
     key = GetField(buffer, buffer_len, "Sec-WebSocket-Key:");
     if (key == NULL)
         return RMT_ERROR_WEBSOCKET_HANDSHAKE_NO_KEY;
-    if (strstr_s(key, buffer_end - key, "\r\n", 2, &key_end) != EOK)
+    if (strstr_s(key, (r_size_t) ( buffer_end - key), "\r\n", 2, &key_end) != EOK)
         return RMT_ERROR_WEBSOCKET_HANDSHAKE_BAD_KEY;
     *key_end = 0;
 
     // Concatenate the browser's key with the WebSocket Protocol GUID and base64 encode
     // the hash, to prove to the browser that this is a bonafide WebSocket server
     buffer[0] = 0;
-    if (strncat_s(buffer, buffer_len, key, key_end - key) != EOK)
+    if (strncat_s(buffer, buffer_len, key, (r_size_t) ( key_end - key) ) != EOK)
         return RMT_ERROR_WEBSOCKET_HANDSHAKE_STRING_FAIL;
     if (strncat_s(buffer, buffer_len, websocket_guid, sizeof(websocket_guid)) != EOK)
         return RMT_ERROR_WEBSOCKET_HANDSHAKE_STRING_FAIL;
@@ -3855,7 +3855,7 @@ static void Server_Update(Server* server)
         {
             // Inspect first byte to see if a message is there
             char message_first_byte;
-            rmtU32 message_length;
+            rmtU32 message_length=0;
             rmtError error = WebSocket_Receive(server->client_socket, &message_first_byte, &message_length, 1, 0);
             if (error == RMT_ERROR_NONE)
             {

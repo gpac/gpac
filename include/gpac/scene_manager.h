@@ -149,20 +149,12 @@ void gf_sm_del(GF_SceneManager *ctx);
 WARNING: if a stream with the same streamType and no ESID already exists in the context,
 it is assigned the requested ES_ID - this is needed to solve base layer*/
 GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamType, u32 codec_id);
-/*removes and destroy stream context from presentation context*/
-void gf_sm_stream_del(GF_SceneManager *ctx, GF_StreamContext *sc);
 /*locate a stream based on its id*/
 GF_StreamContext *gf_sm_stream_find(GF_SceneManager *ctx, u16 ES_ID);
 /*create a new AU context in the given stream context*/
 GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double time_ms, Bool isRap);
 
 GF_MuxInfo *gf_sm_get_mux_info(GF_ESD *src);
-
-/*reset the context:
-- purge all access units on all streams
-- destroy root OD
-*/
-void gf_sm_reset(GF_SceneManager *ctx);
 
 /*applies all commands in all streams (only BIFS for now): the context manager will only have maximum one AU per
 stream, this AU being a random access for the stream
@@ -297,8 +289,6 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load);
 GF_Err gf_sm_load_run(GF_SceneLoader *load);
 /*terminates the context loader*/
 void gf_sm_load_done(GF_SceneLoader *load);
-/*suspends/resume context loading*/
-GF_Err gf_sm_load_suspend(GF_SceneLoader *load, Bool suspend);
 
 /*parses memory scene (any textural format) into the context
 !! THE LOADER TYPE MUST BE ASSIGNED (BT/WRL/XMT/X3D/SVG only) !!

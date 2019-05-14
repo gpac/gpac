@@ -60,6 +60,8 @@ static int gpac_make_lang(char *filename);
 static Bool gpac_expand_alias(int argc, char **argv);
 static u32 gpac_unit_tests();
 
+static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info);
+
 
 #ifndef GPAC_DISABLE_DOC
 const char *gpac_doc =
@@ -522,6 +524,8 @@ GF_GPACArg gpac_args[] =
  	GF_DEF_ARG("alias", NULL, "assigns a new alias or remove an alias. Can be specified several times. See gpac -h alias", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("aliasdoc", NULL, "assigns documentation for a given alias (optionnal). Can be specified several times", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
+ 	GF_DEF_ARG("uncache", NULL, "reverts all items in GPAC cache directory to their original name and server path", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+
 	GF_DEF_ARG("wc", NULL, "writes all core options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("we", NULL, "writes all file extensions in the config file unless already set (usefull to change some default file extensions)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("wf", NULL, "writes all filter options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
@@ -882,10 +886,15 @@ static int gpac_main(int argc, char **argv)
 			if (arg_val) nb_loops = atoi(arg_val);
 		} else if (!strcmp(arg, "-runfor")) {
 			if (arg_val) runfor = 1000*atoi(arg_val);
-		}
-		else if (!strcmp(arg, "-cfg")) {
+		} else if (!strcmp(arg, "-uncache")) {
+			const char *cache_dir = gf_opts_get_key("core", "cache");
+			gf_enum_directory(cache_dir, GF_FALSE, revert_cache_file, NULL, "*.txt");
+			fprintf(stderr, "GPAC Cache dir %s flattened\n", cache_dir);
+			gpac_exit(0);
+		} else if (!strcmp(arg, "-cfg")) {
 			nothing_to_do = GF_FALSE;
 		}
+
 		else if (!strcmp(arg, "-alias") || !strcmp(arg, "-aliasdoc")) {
 			char *alias_val;
 			Bool exists;
@@ -1177,11 +1186,10 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 		if (reg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD) fprintf(stderr, " ConfigureMainThread");
 		if (reg->flags & GF_FS_REG_HIDE_WEIGHT) fprintf(stderr, " HideWeight");
 		if (reg->flags & GF_FS_REG_DYNLIB) fprintf(stderr, " DynamicLib");
-
 		if (reg->probe_url) fprintf(stderr, " URLMimeProber");
 		if (reg->probe_data) fprintf(stderr, " DataProber");
 		if (reg->reconfigure_output) fprintf(stderr, " ReconfigurableOutput");
-		if (reg->probe_data) fprintf(stderr, " DataProber");
+
 		fprintf(stderr, "\nPriority %d", reg->priority);
 
 		fprintf(stderr, "\n");
@@ -1715,6 +1723,8 @@ static u32 gpac_unit_tests()
 	u32 ucs4_buf[4];
 	u8 utf8_buf[7];
 
+	gpac_fsess_task_help(); //for coverage
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[CoreUnitTests] performing tests\n"));
 
 	utf8_buf[0] = 'a';
@@ -1748,6 +1758,7 @@ static u32 gpac_unit_tests()
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 4-byte char\n"));
 		return 1;
 	}
+
 	utf8_buf[0] = 0xf8;
 	utf8_buf[1] = 0x80;
 	utf8_buf[2] = 0x80;
@@ -1795,7 +1806,7 @@ static u32 gpac_unit_tests()
 #ifndef GPAC_DISABLE_ZLIB
 	zbuf = gf_strdup("123451234512345123451234512345");
 	osize=0;
-	e = gf_gz_compress_payload(&zbuf, 1+strlen(zbuf), &osize);
+	e = gf_gz_compress_payload(&zbuf, 1 + (u32) strlen(zbuf), &osize);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] zlib compress fail\n"));
 		gf_free(zbuf);
@@ -1837,8 +1848,12 @@ static u32 gpac_unit_tests()
 	gf_htons(0xAABB);
 	gf_tohs(0xAABB);
 	gf_errno_str(-1);
+
+	/* these two lock the bash shell in test mode
 	gf_prompt_set_echo_off(GF_TRUE);
 	gf_prompt_set_echo_off(GF_FALSE);
+	*/
+
 	gf_net_set_ntp_shift(-1000);
 	gf_net_get_ntp_diff_ms(gf_net_get_ntp_ts() );
 	gf_net_get_timezone();
@@ -1861,7 +1876,64 @@ static u32 gpac_unit_tests()
 	}
 	gf_sys_get_battery_state(NULL, NULL, NULL, NULL, NULL);
 	gf_sys_get_process_id();
-	gf_log_get_tools_levels();
+	data = (u8 *) gf_log_get_tools_levels();
+	if (data) gf_free(data);
 
+	sigint_catched = GF_TRUE;
+
+#ifdef WIN32
+	gpac_sig_handler(CTRL_C_EVENT);
+#else
+	gpac_sig_handler(SIGINT);
+#endif
 	return 0;
+}
+
+static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
+{
+	const char *url;
+	char *sep;
+	GF_Config *cached;
+	if (strncmp(item_name, "gpac_cache_", 11)) return GF_FALSE;
+	cached = gf_cfg_new(NULL, item_path);
+	url = gf_cfg_get_key(cached, "cache", "url");
+	if (url) url = strstr(url, "://");
+	if (url) {
+		u32 i, len, dir_len=0, k=0;
+		char *dst_name;
+		sep = strstr(item_path, "gpac_cache_");
+		if (sep) {
+			sep[0] = 0;
+			dir_len = (u32) strlen(item_path);
+			sep[0] = 'g';
+		}
+		url+=3;
+		len = (u32) strlen(url);
+		dst_name = gf_malloc(len+dir_len+1);
+		memset(dst_name, 0, len+dir_len+1);
+
+		strncpy(dst_name, item_path, dir_len);
+		k=dir_len;
+		for (i=0; i<len; i++) {
+			dst_name[k] = url[i];
+			if (dst_name[k]==':') dst_name[k]='_';
+			else if (dst_name[k]=='/') {
+				if (!gf_dir_exists(dst_name))
+					gf_mkdir(dst_name);
+			}
+			k++;
+		}
+		sep = strrchr(item_path, '.');
+		if (sep) {
+			sep[0]=0;
+			if (gf_file_exists(item_path)) {
+				gf_move_file(item_path, dst_name);
+			}
+			sep[0]='.';
+		}
+		gf_free(dst_name);
+	}
+	gf_cfg_del(cached);
+	gf_delete_file(item_path);
+	return GF_FALSE;
 }

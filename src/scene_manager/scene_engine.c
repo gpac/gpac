@@ -294,8 +294,7 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	GF_Err e;
 	char rad_name[4096];
 	char file_name[4096];
-	FILE *file = NULL;
-	u64 fsize;
+	u32 fsize;
 	char *buffer = NULL;
 	GF_BitStream *bs = NULL;
 	u8 dims_header;
@@ -381,26 +380,12 @@ start:
 #endif
 
 	sprintf(file_name, "%s.svg", rad_name);
-	file = gf_fopen(file_name, "rb");
-	if (!file) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot open SVG dump file %s\n", file_name));
-		e = GF_IO_ERR;
+
+	e = gf_file_load_data(file_name, (u8 **) &buffer, &fsize);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Error loading SVG dump file %s\n", file_name));
 		goto exit;
 	}
-	gf_fseek(file, 0, SEEK_END);
-	fsize = gf_ftell(file);
-
-	if (fsize == 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] SVG dump %s is empty\n", file_name));
-		goto exit;
-	}
-
-	/* First, read the dump in a buffer */
-	buffer = gf_malloc((size_t)fsize * sizeof(char));
-	gf_fseek(file, 0, SEEK_SET);
-	fsize = fread(buffer, sizeof(char), (size_t)fsize, file);
-	gf_fclose(file);
-	file = NULL;
 
 	/* Then, set DIMS unit header - TODO: notify redundant units*/
 	if (commands && gf_list_count(commands)) {
@@ -454,7 +439,6 @@ start:
 
 exit:
 	if (buffer) gf_free(buffer);
-	if (file) gf_fclose(file);
 	return e;
 }
 

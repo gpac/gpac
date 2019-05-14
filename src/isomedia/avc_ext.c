@@ -1826,6 +1826,7 @@ static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand
 			gf_free(ar);
 			gf_list_rem(cfg->param_array, i);
 			i--;
+			continue;
 		}
 		if (!ar->array_completeness)
 			array_incomplete = 1;

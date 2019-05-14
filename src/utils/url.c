@@ -468,7 +468,7 @@ Bool gf_url_get_resource_path(const char *sURL, char *res_path)
 }
 
 
-GF_EXPORT
+#if 0 //unused
 Bool gf_url_remove_last_delimiter(const char *sURL, char *res_path)
 {
 	strcpy(res_path, sURL);
@@ -480,9 +480,9 @@ Bool gf_url_remove_last_delimiter(const char *sURL, char *res_path)
 	return GF_FALSE;
 }
 
-GF_EXPORT
 const char* gf_url_get_ressource_extension(const char *sURL) {
 	const char *dot = strrchr(sURL, '.');
 	if(!dot || dot == sURL) return "";
 	return dot + 1;
 }
+#endif //unused

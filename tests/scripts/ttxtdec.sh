@@ -1,4 +1,3 @@
-
 ttxt_test()
 {
  test_begin "ttxtdec-$1"
@@ -18,7 +17,10 @@ ttxt_test()
 
  #test source parsing and playback
  do_test "$GPAC -font-dirs=$EXTERNAL_MEDIA_DIR/fonts/ -rescan-fonts -i $srcfile compositor:osize=512x128:vfr @ -o $dump" "srcplay"
- do_hash_test $dump "srcplay"
+ #don't hash content on 32 bits, fp precision leads to different results
+ if [ $GPAC_OSTYPE != "lin32" ] ; then
+  do_hash_test $dump "srcplay"
+ fi
 
  do_play_test "dump" "$dump:size=512x128"
 

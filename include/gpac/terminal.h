@@ -173,17 +173,6 @@ for until next frame should be drawn before returning.
 */
 void gf_term_process_step(GF_Terminal *term);
 
-/*decodes all pending media and render frame until no scene changes are detected and no clocks is buffering.
-This does not flush the backbuffer to the front buffer, you have to call @gf_term_process_flush_video for this
-NOTE: This can only be used when the terminal runs without visual thread (GF_TERM_NO_VISUAL_THREAD flag set)
-*/
-GF_Err gf_term_process_flush(GF_Terminal *term);
-
-/*flushes video backbuffer to screen. This is typically used after gf_term_process_flush, once the screen buffer is no longer needed
-NOTE: This can only be used when the terminal runs without visual thread (GF_TERM_NO_VISUAL_THREAD flag set)
-*/
-GF_Err gf_term_process_flush_video(GF_Terminal *term);
-
 /*post user interaction to terminal*/
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
 Bool gf_term_user_event(GF_Terminal *term, GF_Event *event);
@@ -213,19 +202,7 @@ this will call all decoders to adjust their quality levels
 VERY BASIC INTERFACE*/
 void gf_term_switch_quality(GF_Terminal *term, Bool up);
 
-
-/*get global clock in milliseconds*/
-u32 gf_term_get_clock(GF_Terminal *term);
-
-/*get internal compositor*/
-struct __tag_compositor *gf_term_get_compositor(GF_Terminal *term);;
-
-/*connect output filter chain */
-GF_Err gf_term_connect_output_filter(GF_Terminal *term, const char *filter_desc);
-
-/*forwards all clocks of the given amount of time. Can only be used when terminal is in paused mode
-this is mainly designed for movie dumping in MP4Client*/
-GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff);
+Bool gf_term_is_type_supported(GF_Terminal *term, const char* mime);
 
 /*! @} */
 

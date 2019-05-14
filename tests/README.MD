@@ -8,7 +8,7 @@ Running the test suite or a given test generates:
 - result/all_logs.txt: logs of all tests that were executed 
 - result/all_results.xml: GNU time/gtime statistics and execution status of all tests that were executed
 
-The different options of make_tests.sh can are given by the command:
+The different options of make_tests.sh are given by the command:
 ```
 make_tests.sh -h
 ```
@@ -19,7 +19,7 @@ GPAC test suite is composed of scripts written in the Bash language. Tests are p
 
 Media files used in a test can be anywhere (local file, http URL). The environmnent variable `$MEDIA_DIR` can be used to access to data located in gpac/tests/media. 
 
-Scripts should use the `$TEMP_DIR` environment variable to get a directory where to place the file they generate. This directory is cleaned after each test, unless `-keep-tmp`option is set.
+Scripts should use the `$TEMP_DIR` environment variable to get a directory where to place the file they generate. This directory is cleaned after each test, unless `-tmp`option is set.
 
 A simple GPAC test can be:
 ```
@@ -35,6 +35,9 @@ MP4Client $MEDIA_DIR\foo.mp4
 In order to provide test caching and produce the unified test report for all the tests, with common timing, logging, etc, `make_tests.sh` defines several functions that should be used in a test.
 
 Each test has its own log file `$LOGS` in which you can write (a lot is already in there, such as test name/data and all stderr).
+
+Tests may be customized depending on the platform they run on. teh environment variable `$GPAC_OSTYPE` can be used to test the binary version used; the currently defined values are `lin32`, `lin64`, `win32`, `win64`, `osx32`, `osx64` and `unknwon`.
+
 
 ## Simple Testing
 A simple test whose result will be integrated in the test suite report is run using the single_test function.

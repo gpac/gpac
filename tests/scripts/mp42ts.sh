@@ -23,6 +23,11 @@ do_hash_test $tsfile "mux"
  do_test "$GPAC -i $tsfile inspect:all:deep:interleave=false:log=$myinspect"
  do_hash_test $myinspect "inspect"
 
+if [ $1 = "simple" ] ; then
+ do_test "$MP4BOX -dm2ts $tsfile" "dump"
+ do_hash_test $TEMP_DIR/test.ts_prog_1_timestamps.txt "dump"
+fi
+
 test_end
 }
 
