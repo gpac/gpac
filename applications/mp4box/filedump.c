@@ -3719,7 +3719,7 @@ static void revert_cache_file(char *item_path)
 	gf_delete_file(szPATH);
 }
 
-GF_Err rip_mpd(const char *mpd_src)
+GF_Err rip_mpd(const char *mpd_src, const char *output_dir)
 {
 	GF_DownloadSession *sess;
 	u32 i, connect_time, reply_time, download_time, req_hdr_size, rsp_hdr_size;
@@ -3731,13 +3731,19 @@ GF_Err rip_mpd(const char *mpd_src)
 	GF_MPD_Representation *rep;
 	char szName[GF_MAX_PATH];
 	char *name;
-	GF_Config *cfg;
 	GF_DownloadManager *dm;
 
-	cfg = gf_cfg_new(NULL, NULL);
-	gf_cfg_set_key(cfg, "General", "CacheDirectory", ".");
-	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "true");
-	dm = gf_dm_new(cfg);
+	if (output_dir) {
+		char *sep;
+		strcpy(szName, output_dir);
+		sep = gf_file_basename(szName);
+		if (sep) sep[0] = 0;
+		gf_opts_set_key("temp", "cache", szName);
+	} else {
+		gf_opts_set_key("temp", "cache", ".");
+	}
+	gf_opts_set_key("temp", "clean-cache", "true");
+	dm = gf_dm_new(NULL);
 
 
 	name = strrchr(mpd_src, '/');
@@ -3874,6 +3880,9 @@ GF_Err rip_mpd(const char *mpd_src)
 						if (seg_url) gf_free(seg_url);
 						if (e != GF_URL_ERROR) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Error downloading segment %s: %s\n", seg_url, gf_error_to_string(e)));
+						} else {
+							//todo, properly detect end of dash representation
+							e = GF_OK;
 						}
 						break;
 					}
@@ -3883,15 +3892,10 @@ GF_Err rip_mpd(const char *mpd_src)
 				}
 			}
 		}
-		if (initTemplate) {
-			gf_free(initTemplate);
-			initTemplate = NULL;
-		}
 	}
 
 err_exit:
 	if (mpd) gf_mpd_del(mpd);
 	gf_dm_del(dm);
-	gf_cfg_del(cfg);
 	return e;
 }
