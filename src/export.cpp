@@ -1530,14 +1530,11 @@
 #ifndef GPAC_DISABLE_SENG
 /*bifsengine exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_init) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_seng_init_from_string) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_seng_init_from_context) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_stream_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_stream_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_encode_context) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_encode_from_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_encode_from_string) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_seng_encode_from_commands) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_save_context) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_enable_aggregation) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_aggregate_context) )
