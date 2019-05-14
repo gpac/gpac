@@ -581,9 +581,6 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load);
 
 GF_Err gf_sm_load_init_svg(GF_SceneLoader *load);
 
-GF_Err gf_sm_load_init_xbl(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_xbl(GF_SceneLoader *load);
-void gf_sm_load_done_xbl(GF_SceneLoader *load);
 #endif
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
@@ -658,15 +655,12 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 			else if (strstr(szExt, "mov")) load->type = GF_SM_LOAD_QT;
 			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG;
 			else if (strstr(szExt, "xsr")) load->type = GF_SM_LOAD_XSR;
-			else if (strstr(szExt, "xbl")) load->type = GF_SM_LOAD_XBL;
 			else if (strstr(szExt, "xml")) {
 				char *rtype = gf_xml_get_root_type(load->fileName, &e);
 				if (rtype) {
 					if (!strcmp(rtype, "SAFSession")) load->type = GF_SM_LOAD_XSR;
 					else if (!strcmp(rtype, "XMT-A")) load->type = GF_SM_LOAD_XMTA;
 					else if (!strcmp(rtype, "X3D")) load->type = GF_SM_LOAD_X3D;
-					else if (!strcmp(rtype, "bindings")) load->type = GF_SM_LOAD_XBL;
-
 					gf_free(rtype);
 				}
 			}
@@ -696,12 +690,6 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	case GF_SM_LOAD_DIMS:
 		return gf_sm_load_init_svg(load);
 
-	case GF_SM_LOAD_XBL:
-		e = gf_sm_load_init_xbl(load);
-
-		load->process = gf_sm_load_run_xbl;
-		load->done = gf_sm_load_done_xbl;
-		return e;
 #endif
 
 #ifndef GPAC_DISABLE_SWF_IMPORT

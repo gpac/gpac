@@ -107,7 +107,6 @@
     <ClInclude Include="..\..\include\gpac\nodes_mpeg4.h" />
     <ClInclude Include="..\..\include\gpac\nodes_svg.h" />
     <ClInclude Include="..\..\include\gpac\nodes_x3d.h" />
-    <ClInclude Include="..\..\include\gpac\nodes_xbl.h" />
     <ClInclude Include="..\..\include\gpac\options.h" />
     <ClInclude Include="..\..\include\gpac\path2d.h" />
     <ClInclude Include="..\..\include\gpac\Remotery.h" />
@@ -460,7 +459,6 @@
     <ClCompile Include="..\..\src\scenegraph\vrml_smjs.c" />
     <ClCompile Include="..\..\src\scenegraph\vrml_tools.c" />
     <ClCompile Include="..\..\src\scenegraph\x3d_nodes.c" />
-    <ClCompile Include="..\..\src\scenegraph\xbl_process.c" />
     <ClCompile Include="..\..\src\scenegraph\xml_ns.c" />
     <ClCompile Include="..\..\src\scene_manager\encode_isom.c" />
     <ClCompile Include="..\..\src\scene_manager\loader_bt.c" />

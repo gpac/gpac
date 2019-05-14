@@ -141,7 +141,6 @@
 		9201018C18D5A445003D1ACA /* vrml_smjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201007118D5A444003D1ACA /* vrml_smjs.c */; };
 		9201018D18D5A445003D1ACA /* vrml_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201007218D5A444003D1ACA /* vrml_tools.c */; };
 		9201018F18D5A445003D1ACA /* x3d_nodes.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201007418D5A444003D1ACA /* x3d_nodes.c */; };
-		9201019018D5A445003D1ACA /* xbl_process.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201007518D5A444003D1ACA /* xbl_process.c */; };
 		9201019118D5A445003D1ACA /* xml_ns.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201007618D5A444003D1ACA /* xml_ns.c */; };
 		920101A618D5A445003D1ACA /* alloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201008D18D5A444003D1ACA /* alloc.c */; };
 		920101A718D5A445003D1ACA /* base_encoding.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201008E18D5A444003D1ACA /* base_encoding.c */; };
@@ -738,7 +737,6 @@
 		9201007118D5A444003D1ACA /* vrml_smjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vrml_smjs.c; sourceTree = "<group>"; };
 		9201007218D5A444003D1ACA /* vrml_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vrml_tools.c; sourceTree = "<group>"; };
 		9201007418D5A444003D1ACA /* x3d_nodes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = x3d_nodes.c; sourceTree = "<group>"; };
-		9201007518D5A444003D1ACA /* xbl_process.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = xbl_process.c; sourceTree = "<group>"; };
 		9201007618D5A444003D1ACA /* xml_ns.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = xml_ns.c; sourceTree = "<group>"; };
 		9201008D18D5A444003D1ACA /* alloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = alloc.c; sourceTree = "<group>"; };
 		9201008E18D5A444003D1ACA /* base_encoding.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = base_encoding.c; sourceTree = "<group>"; };
@@ -1342,7 +1340,6 @@
 				9201007118D5A444003D1ACA /* vrml_smjs.c */,
 				9201007218D5A444003D1ACA /* vrml_tools.c */,
 				9201007418D5A444003D1ACA /* x3d_nodes.c */,
-				9201007518D5A444003D1ACA /* xbl_process.c */,
 				9201007618D5A444003D1ACA /* xml_ns.c */,
 			);
 			path = scenegraph;
@@ -2710,7 +2707,6 @@
 				922CF1271FCF169900F2F6A4 /* dmx_avi.c in Sources */,
 				9201018F18D5A445003D1ACA /* x3d_nodes.c in Sources */,
 				92B9A5681F8660D700A24FE4 /* mpeg4_layer_3d.c in Sources */,
-				9201019018D5A445003D1ACA /* xbl_process.c in Sources */,
 				9201019118D5A445003D1ACA /* xml_ns.c in Sources */,
 				92B9A59F1F8660D700A24FE4 /* mpeg4_inline.c in Sources */,
 				92F8D4781F71642E00616F7C /* filter_pid.c in Sources */,

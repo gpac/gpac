@@ -220,7 +220,6 @@
 		71CCF3121277045100339E12 /* vrml_smjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF20F1277045100339E12 /* vrml_smjs.c */; };
 		71CCF3131277045100339E12 /* vrml_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2101277045100339E12 /* vrml_tools.c */; };
 		71CCF3141277045100339E12 /* x3d_nodes.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2111277045100339E12 /* x3d_nodes.c */; };
-		71CCF3151277045100339E12 /* xbl_process.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2121277045100339E12 /* xbl_process.c */; };
 		71CCF3161277045100339E12 /* xml_ns.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2131277045100339E12 /* xml_ns.c */; };
 		71CCF32A1277045100339E12 /* terminal.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2281277045100339E12 /* terminal.c */; };
 		71CCF32B1277045100339E12 /* base_encoding.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF22A1277045100339E12 /* base_encoding.c */; };
@@ -776,7 +775,6 @@
 		71CCF20F1277045100339E12 /* vrml_smjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vrml_smjs.c; sourceTree = "<group>"; };
 		71CCF2101277045100339E12 /* vrml_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vrml_tools.c; sourceTree = "<group>"; };
 		71CCF2111277045100339E12 /* x3d_nodes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = x3d_nodes.c; sourceTree = "<group>"; };
-		71CCF2121277045100339E12 /* xbl_process.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = xbl_process.c; sourceTree = "<group>"; };
 		71CCF2131277045100339E12 /* xml_ns.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = xml_ns.c; sourceTree = "<group>"; };
 		71CCF2281277045100339E12 /* terminal.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = terminal.c; sourceTree = "<group>"; };
 		71CCF22A1277045100339E12 /* base_encoding.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = base_encoding.c; sourceTree = "<group>"; };
@@ -1553,7 +1551,6 @@
 				71CCF20F1277045100339E12 /* vrml_smjs.c */,
 				71CCF2101277045100339E12 /* vrml_tools.c */,
 				71CCF2111277045100339E12 /* x3d_nodes.c */,
-				71CCF2121277045100339E12 /* xbl_process.c */,
 				71CCF2131277045100339E12 /* xml_ns.c */,
 			);
 			name = scenegraph;
@@ -2438,7 +2435,6 @@
 				71CCF3131277045100339E12 /* vrml_tools.c in Sources */,
 				92EB6DE720E4E19700A97A49 /* enc_png.c in Sources */,
 				71CCF3141277045100339E12 /* x3d_nodes.c in Sources */,
-				71CCF3151277045100339E12 /* xbl_process.c in Sources */,
 				71CCF3161277045100339E12 /* xml_ns.c in Sources */,
 				92EB6E1A20E4E19700A97A49 /* in_http.c in Sources */,
 				92EB6E1720E4E19700A97A49 /* enc_jpg.c in Sources */,

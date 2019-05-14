@@ -1087,15 +1087,6 @@ void gf_dom_listener_reset_defered(GF_SceneGraph *sg);
 
 void gf_node_delete_attributes(GF_Node *node);
 
-
-typedef GF_DOMNode XBL_Element;
-const char *gf_xbl_get_element_name(u32 tag);
-u32 gf_xbl_get_element_tag(const char *element_name);
-XBL_Element *gf_xbl_create_node(u32 ElementTag);
-u32 gf_xbl_get_attribute_tag(u32 element_tag, const char *attribute_name);
-GF_DOMAttribute *gf_xbl_create_attribute(GF_DOMNode *elt, u32 tag);
-
-
 GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep);
 
 GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target);
