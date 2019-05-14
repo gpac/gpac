@@ -709,7 +709,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		if (node->type) continue;
 		if (stricmp(node->name, "DecoderSpecificInfo") ) continue;
 
-		e = gf_xml_parse_bit_sequence(node, &specInfo, &specInfoSize);
+		e = gf_xml_parse_bit_sequence(node, ctx->src_url, &specInfo, &specInfoSize);
 		if (e) {
 			if (specInfo) gf_free(specInfo);
 			return e;
@@ -1047,7 +1047,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 		} else if (has_subbs) {
 			gf_bs_reassign_buffer(ctx->bs_w, ctx->samp_buffer, ctx->samp_buffer_alloc);
-			gf_xml_parse_bit_sequence_bs(node, ctx->bs_w);
+			gf_xml_parse_bit_sequence_bs(node, ctx->src_url, ctx->bs_w);
 			gf_bs_get_content(ctx->bs_w, &ctx->samp_buffer, &ctx->samp_buffer_size);
 			if (ctx->samp_buffer_size > ctx->samp_buffer_alloc)
 				ctx->samp_buffer_alloc = ctx->samp_buffer_size;

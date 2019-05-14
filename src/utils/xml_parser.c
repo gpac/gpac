@@ -25,6 +25,7 @@
 
 #include <gpac/xml.h>
 #include <gpac/utf.h>
+#include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
 
@@ -2028,7 +2029,7 @@ GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name) {
 	}\
 
 
-GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs)
+GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, GF_BitStream *bs)
 {
 	u32 i, j;
 	GF_XMLNode *node;
@@ -2055,7 +2056,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs)
 		if (node->type) continue;
 
 		if (stricmp(node->name, "BS") ) {
-			gf_xml_parse_bit_sequence_bs(node, bs);
+			gf_xml_parse_bit_sequence_bs(node, parent_url, bs);
 			continue;
 		}
 
@@ -2159,7 +2160,14 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs)
 		} else if (szFile) {
 			u32 read, remain;
 			char block[1024];
-			FILE *_tmp = gf_fopen(szFile, use_text ? "rt" : "rb");
+			FILE *_tmp = NULL;
+			if (parent_url) {
+				char *f_url = gf_url_concatenate(parent_url, szFile);
+				_tmp = gf_fopen(f_url, use_text ? "rt" : "rb");
+				gf_free(f_url);
+			} else {
+				_tmp = gf_fopen(szFile, use_text ? "rt" : "rb");
+			}
 
 			if (!_tmp) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Error opening file %s\n", szFile));
@@ -2194,12 +2202,12 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs)
 }
 
 GF_EXPORT
-GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **data, u32 *data_size)
+GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, const char *parent_url, char **data, u32 *data_size)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (!bs) return GF_OUT_OF_MEM;
 
-	gf_xml_parse_bit_sequence_bs(bsroot, bs);
+	gf_xml_parse_bit_sequence_bs(bsroot, parent_url, bs);
 
 	gf_bs_align(bs);
 	gf_bs_get_content(bs, data, data_size);
