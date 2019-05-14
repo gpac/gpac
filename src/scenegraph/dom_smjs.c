@@ -423,7 +423,10 @@ static jsval dom_base_node_construct(JSContext *c, GF_JSClass *_class, GF_Node *
 
 	if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio)
 	{
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 		html_media_element_js_init(c, new_obj, n);
+#endif
+
 	}
 	if (!n->sgprivate->interact) {
 		GF_SAFEALLOC(n->sgprivate->interact, struct _node_interactive_ext);
@@ -692,6 +695,7 @@ static JSBool sg_js_get_event_target(JSContext *c, JSObject *obj, GF_EventType e
 	*sg = NULL;
 	*n = NULL;
 
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 	if (gf_dom_event_get_category(evtType) == GF_DOM_EVENT_MEDIA) {
 		void gf_html_media_get_event_target(JSContext *c, JSObject *obj, GF_DOMEventTarget **target, GF_SceneGraph **sg);
 		gf_html_media_get_event_target(c, obj, target, sg);
@@ -703,6 +707,8 @@ static JSBool sg_js_get_event_target(JSContext *c, JSObject *obj, GF_EventType e
 		gf_mse_get_event_target(c, obj, target, sg);
 		if (*target && *sg) return JS_TRUE;
 	}
+#endif
+
 
 	if (GF_JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) || is_svg_document_class(c, obj)) {
 		/*document interface*/
@@ -2430,6 +2436,7 @@ if (SMJS_ID_IS_INT(id)) {
 		case GF_DOM_EVENT_TARGET_DOCUMENT:
 			*vp = dom_document_construct(c, (GF_SceneGraph *) evt->target);
 			break;
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 		case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
 			*vp = OBJECT_TO_JSVAL(((GF_HTML_MediaSource *)evt->target)->_this);
 			break;
@@ -2439,6 +2446,7 @@ if (SMJS_ID_IS_INT(id)) {
 		case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST:
 			*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBufferList *)evt->target)->_this);
 			break;
+#endif
 		default:
 			break;
 		}
@@ -2452,6 +2460,7 @@ if (SMJS_ID_IS_INT(id)) {
 		case GF_DOM_EVENT_TARGET_DOCUMENT:
 			*vp = dom_document_construct(c, (GF_SceneGraph *) evt->currentTarget->ptr);
 			break;
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 		case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
 			*vp = OBJECT_TO_JSVAL(((GF_HTML_MediaSource *)evt->target)->_this);
 			break;
@@ -2461,6 +2470,7 @@ if (SMJS_ID_IS_INT(id)) {
 		case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST:
 			*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBufferList *)evt->target)->_this);
 			break;
+#endif
 		default:
 			break;
 		}
@@ -3668,8 +3678,10 @@ if (SMJS_ID_IS_INT(id)) {
 				break;
 			case XHR_RESPONSETYPE_ARRAYBUFFER:
 				if (!ctx->arraybuffer) {
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 					/* always return the same ArrayBuffer, is this correct? Probably not in chunked/loading mode */
 					ctx->arraybuffer = gf_arraybuffer_js_new(c, ctx->data, ctx->size, obj);
+#endif
 				}
 				*vp = OBJECT_TO_JSVAL( ctx->arraybuffer );
 				break;
@@ -4264,16 +4276,15 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 
 }
 
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 void html_media_element_js_finalize(JSContext *c, GF_Node *n);
+#endif
 
 GF_EXPORT
 void gf_sg_js_dom_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 {
 	u32 i, count;
 	if (n) {
-		if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
-			//html_media_element_js_finalize(c, n);
-		}
 		if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
 			JSObject *obj = (JSObject *)n->sgprivate->interact->js_binding->node;
 			SMJS_SET_PRIVATE(c, obj, NULL);
@@ -4293,7 +4304,9 @@ void gf_sg_js_dom_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 		n = dom_get_node(c, obj);
 		if (n) {
 			if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 				html_media_element_js_finalize(c, n);
+#endif
 			}
 			SMJS_SET_PRIVATE(c, obj, NULL);
 			n->sgprivate->interact->js_binding->node=NULL;

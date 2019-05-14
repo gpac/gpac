@@ -75,8 +75,6 @@
 		9201014718D5A445003D1ACA /* dsmcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002918D5A444003D1ACA /* dsmcc.c */; };
 		9201014818D5A445003D1ACA /* dvb_mpe.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002A18D5A444003D1ACA /* dvb_mpe.c */; };
 		9201014A18D5A445003D1ACA /* gpac_ogg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002C18D5A444003D1ACA /* gpac_ogg.c */; };
-		9201014B18D5A445003D1ACA /* html5_media.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002D18D5A444003D1ACA /* html5_media.c */; };
-		9201014C18D5A445003D1ACA /* html5_mse.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002E18D5A444003D1ACA /* html5_mse.c */; };
 		9201014D18D5A445003D1ACA /* img.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002F18D5A444003D1ACA /* img.c */; };
 		9201014F18D5A445003D1ACA /* isom_hinter.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201003118D5A444003D1ACA /* isom_hinter.c */; };
 		9201015018D5A445003D1ACA /* isom_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201003218D5A444003D1ACA /* isom_tools.c */; };
@@ -123,8 +121,6 @@
 		9201017A18D5A445003D1ACA /* commands.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201005F18D5A444003D1ACA /* commands.c */; };
 		9201017B18D5A445003D1ACA /* dom_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201006018D5A444003D1ACA /* dom_events.c */; };
 		9201017C18D5A445003D1ACA /* dom_smjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201006118D5A444003D1ACA /* dom_smjs.c */; };
-		9201017D18D5A445003D1ACA /* html5_media_smjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201006218D5A444003D1ACA /* html5_media_smjs.c */; };
-		9201017E18D5A445003D1ACA /* html5_mse_smjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201006318D5A444003D1ACA /* html5_mse_smjs.c */; };
 		9201017F18D5A445003D1ACA /* mpeg4_animators.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201006418D5A444003D1ACA /* mpeg4_animators.c */; };
 		9201018018D5A445003D1ACA /* mpeg4_nodes.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201006518D5A444003D1ACA /* mpeg4_nodes.c */; };
 		9201018118D5A445003D1ACA /* mpeg4_valuator.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201006618D5A444003D1ACA /* mpeg4_valuator.c */; };
@@ -671,8 +667,6 @@
 		9201002918D5A444003D1ACA /* dsmcc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dsmcc.c; sourceTree = "<group>"; };
 		9201002A18D5A444003D1ACA /* dvb_mpe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dvb_mpe.c; sourceTree = "<group>"; };
 		9201002C18D5A444003D1ACA /* gpac_ogg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gpac_ogg.c; sourceTree = "<group>"; };
-		9201002D18D5A444003D1ACA /* html5_media.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = html5_media.c; sourceTree = "<group>"; };
-		9201002E18D5A444003D1ACA /* html5_mse.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = html5_mse.c; sourceTree = "<group>"; };
 		9201002F18D5A444003D1ACA /* img.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = img.c; sourceTree = "<group>"; };
 		9201003118D5A444003D1ACA /* isom_hinter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_hinter.c; sourceTree = "<group>"; };
 		9201003218D5A444003D1ACA /* isom_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_tools.c; sourceTree = "<group>"; };
@@ -719,8 +713,6 @@
 		9201005F18D5A444003D1ACA /* commands.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = commands.c; sourceTree = "<group>"; };
 		9201006018D5A444003D1ACA /* dom_events.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dom_events.c; sourceTree = "<group>"; };
 		9201006118D5A444003D1ACA /* dom_smjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dom_smjs.c; sourceTree = "<group>"; };
-		9201006218D5A444003D1ACA /* html5_media_smjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = html5_media_smjs.c; sourceTree = "<group>"; };
-		9201006318D5A444003D1ACA /* html5_mse_smjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = html5_mse_smjs.c; sourceTree = "<group>"; };
 		9201006418D5A444003D1ACA /* mpeg4_animators.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mpeg4_animators.c; sourceTree = "<group>"; };
 		9201006518D5A444003D1ACA /* mpeg4_nodes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mpeg4_nodes.c; sourceTree = "<group>"; };
 		9201006618D5A444003D1ACA /* mpeg4_valuator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mpeg4_valuator.c; sourceTree = "<group>"; };
@@ -1253,8 +1245,6 @@
 				9201002918D5A444003D1ACA /* dsmcc.c */,
 				9201002A18D5A444003D1ACA /* dvb_mpe.c */,
 				9201002C18D5A444003D1ACA /* gpac_ogg.c */,
-				9201002D18D5A444003D1ACA /* html5_media.c */,
-				9201002E18D5A444003D1ACA /* html5_mse.c */,
 				9201002F18D5A444003D1ACA /* img.c */,
 				9201003118D5A444003D1ACA /* isom_hinter.c */,
 				9201003218D5A444003D1ACA /* isom_tools.c */,
@@ -1322,8 +1312,6 @@
 				9201005F18D5A444003D1ACA /* commands.c */,
 				9201006018D5A444003D1ACA /* dom_events.c */,
 				9201006118D5A444003D1ACA /* dom_smjs.c */,
-				9201006218D5A444003D1ACA /* html5_media_smjs.c */,
-				9201006318D5A444003D1ACA /* html5_mse_smjs.c */,
 				9201006418D5A444003D1ACA /* mpeg4_animators.c */,
 				9201006518D5A444003D1ACA /* mpeg4_nodes.c */,
 				9201006618D5A444003D1ACA /* mpeg4_valuator.c */,
@@ -2568,8 +2556,6 @@
 				92EB479320F6333900E1F2DD /* rewrite_obu.c in Sources */,
 				9201014818D5A445003D1ACA /* dvb_mpe.c in Sources */,
 				9201014A18D5A445003D1ACA /* gpac_ogg.c in Sources */,
-				9201014B18D5A445003D1ACA /* html5_media.c in Sources */,
-				9201014C18D5A445003D1ACA /* html5_mse.c in Sources */,
 				9201014D18D5A445003D1ACA /* img.c in Sources */,
 				9201014F18D5A445003D1ACA /* isom_hinter.c in Sources */,
 				9201015018D5A445003D1ACA /* isom_tools.c in Sources */,
@@ -2673,9 +2659,7 @@
 				92B9A56A1F8660D700A24FE4 /* svg_grouping.c in Sources */,
 				92D3C6272031E94F00BA1735 /* atsc_dmx.c in Sources */,
 				9201017C18D5A445003D1ACA /* dom_smjs.c in Sources */,
-				9201017D18D5A445003D1ACA /* html5_media_smjs.c in Sources */,
 				925975002215BA3A0007E02B /* raster_565.c in Sources */,
-				9201017E18D5A445003D1ACA /* html5_mse_smjs.c in Sources */,
 				9234CF391FD6A6E400CCDFA1 /* dec_ttxt.c in Sources */,
 				92B9A56C1F8660D700A24FE4 /* svg_base.c in Sources */,
 				92BB85681F7BFB63009BC9C8 /* dec_bifs.c in Sources */,
