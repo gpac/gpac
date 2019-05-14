@@ -64,3 +64,16 @@ test_cat "srt" $MEDIA_DIR/auxiliary_files/subtitle.srt 0
 test_cat_merge "avc" $EXTERNAL_MEDIA_DIR/counter/counter_30s_I25_baseline_320x180_128kbps.264 $EXTERNAL_MEDIA_DIR/counter/counter_30s_I25_baseline_640x360_192kbps.264
 
 test_cat_merge "hevc" $EXTERNAL_MEDIA_DIR/counter/counter_1280_720_I_25_untiled_200k.hevc $EXTERNAL_MEDIA_DIR/counter/counter_1280_720_I_25_tiled_1mb.hevc
+
+
+test_begin "mp4box-catmulti"
+if [ "$test_skip" != 1 ] ; then
+
+
+mp4file="$TEMP_DIR/file.mp4"
+do_test "$MP4BOX -cat $EXTERNAL_MEDIA_DIR/counter/@.hevc -new $mp4file" "cat"
+do_hash_test $mp4file "cat"
+
+fi
+test_end
+
