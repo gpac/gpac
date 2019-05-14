@@ -825,6 +825,27 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 	return ctx->screen ? GF_OK : GF_IO_ERR;
 }
 
+static void SDLVid_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
+{
+#ifndef GPAC_CONFIG_IOS
+	SDLVID();
+	switch (cursor_type) {
+	case GF_CURSOR_ANCHOR:
+	case GF_CURSOR_TOUCH:
+	case GF_CURSOR_ROTATE:
+	case GF_CURSOR_PROXIMITY:
+	case GF_CURSOR_PLANE:
+		SDL_SetCursor(ctx->curs_hand);
+		break;
+	case GF_CURSOR_COLLIDE:
+		SDL_SetCursor(ctx->curs_collide);
+		break;
+	default:
+		SDL_SetCursor(ctx->curs_def);
+		break;
+	}
+#endif
+}
 
 static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 {
@@ -904,6 +925,7 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 		SDLVid_SetCaption();
 #endif
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Video output initialized - screen resolution %d %d\n", dr->max_screen_width, dr->max_screen_height));
+
 	return GF_TRUE;
 }
 
@@ -1225,6 +1247,13 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 		return GF_IO_ERR;
 	}
 #endif
+
+	//coverage
+	if (gf_sys_is_test_mode()) {
+		GF_Event evt;
+		sdl_translate_key(SDLK_BACKSPACE, &evt.key);
+		SDLVid_SetCursor(dr, GF_CURSOR_NORMAL);
+	}
 
 	ctx->is_init = GF_TRUE;
 	return GF_OK;
@@ -1587,28 +1616,6 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	return GF_OK;
 }
 #endif
-
-static void SDLVid_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
-{
-#ifndef GPAC_CONFIG_IOS
-	SDLVID();
-	switch (cursor_type) {
-	case GF_CURSOR_ANCHOR:
-	case GF_CURSOR_TOUCH:
-	case GF_CURSOR_ROTATE:
-	case GF_CURSOR_PROXIMITY:
-	case GF_CURSOR_PLANE:
-		SDL_SetCursor(ctx->curs_hand);
-		break;
-	case GF_CURSOR_COLLIDE:
-		SDL_SetCursor(ctx->curs_collide);
-		break;
-	default:
-		SDL_SetCursor(ctx->curs_def);
-		break;
-	}
-#endif
-}
 
 
 #ifdef WIN32
@@ -2488,6 +2495,7 @@ void *SDL_NewVideo()
 #else
 	SDL_StartTextInput();
 #endif /* SDL_TEXTINPUTEVENT_TEXT_SIZE */
+
 	return driv;
 }
 
