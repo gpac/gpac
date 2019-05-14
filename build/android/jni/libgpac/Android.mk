@@ -297,8 +297,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/media_tools/dsmcc.c \
 	../../../../src/media_tools/dvb_mpe.c \
 	../../../../src/media_tools/gpac_ogg.c \
-	../../../../src/media_tools/html5_media.c \
-	../../../../src/media_tools/html5_mse.c \
 	../../../../src/media_tools/img.c \
 	../../../../src/media_tools/isom_hinter.c \
 	../../../../src/media_tools/isom_tools.c \
@@ -330,8 +328,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/scenegraph/commands.c \
 	../../../../src/scenegraph/dom_events.c \
 	../../../../src/scenegraph/dom_smjs.c \
-	../../../../src/scenegraph/html5_media_smjs.c \
-	../../../../src/scenegraph/html5_mse_smjs.c \
 	../../../../src/scenegraph/mpeg4_animators.c \
 	../../../../src/scenegraph/mpeg4_nodes.c \
 	../../../../src/scenegraph/mpeg4_valuator.c \

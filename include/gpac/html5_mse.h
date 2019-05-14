@@ -49,6 +49,9 @@ extern "C" {
 #include <gpac/setup.h>
 
 #include <gpac/html5_media.h>
+
+#ifdef GPAC_ENABLE_HTML5_MEDIA
+
 #include <gpac/internal/smjs_api.h>
 
 typedef enum
@@ -237,6 +240,8 @@ GF_Err gf_mse_track_buffer_get_next_packet(GF_HTML_Track *track,
         GF_SLHeader *out_sl_hdr, Bool *sl_compressed,
         GF_Err *out_reception_status, Bool *is_new_data);
 GF_Err gf_mse_track_buffer_release_packet(GF_HTML_Track *track);
+
+#endif //GPAC_ENABLE_HTML5_MEDIA
 
 /*! @} */
 
