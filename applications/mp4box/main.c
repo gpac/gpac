@@ -5367,6 +5367,7 @@ int mp4boxMain(int argc, char **argv)
 			needSave = GF_TRUE;
 			break;
 		case TRAC_ACTION_SET_UDTA:
+			fprintf(stderr, "Assigning udta box\n");
 			e = set_file_udta(file, track, tka->udta_type, tka->src_name, tka->sample_num ? GF_TRUE : GF_FALSE);
 			if (e) goto err_exit;
 			needSave = GF_TRUE;
