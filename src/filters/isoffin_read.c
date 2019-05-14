@@ -669,30 +669,6 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 
 	if (!read || read->disconnected) return GF_FALSE;
 
-#ifdef FILTER_FIXME
-	if (com->type==GF_NET_SERVICE_INFO) {
-		u32 tag_len;
-		const char *tag;
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_NAME, &tag, &tag_len)==GF_OK) com->info.name = tag;
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_ARTIST, &tag, &tag_len)==GF_OK) com->info.artist = tag;
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_ALBUM, &tag, &tag_len)==GF_OK) com->info.album = tag;
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COMMENT, &tag, &tag_len)==GF_OK) com->info.help = tag;
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) {
-			com->info.track_info = (((tag[2]<<8)|tag[3]) << 16) | ((tag[4]<<8)|tag[5]);
-		}
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COMPOSER, &tag, &tag_len)==GF_OK) com->info.composer = tag;
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_WRITER, &tag, &tag_len)==GF_OK) com->info.writer = tag;
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_GENRE, &tag, &tag_len)==GF_OK) {
-			if (tag[0]) {
-				com->info.genre = 0;
-			} else {
-				com->info.genre = (tag[0]<<8) | tag[1];
-			}
-		}
-		return GF_OK;
-	}
-#endif
-
 	if (com->base.type == GF_FEVT_QUALITY_SWITCH) {
 		count = gf_list_count(read->channels);
 		for (i = 0; i < count; i++) {
@@ -1028,6 +1004,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(allt), "loads all tracks even if unknown\n\t", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noedit), "do not use edit lists", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(itt), "(items-to-track) converts all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(itemid), "keeps item IDs in PID properties", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(smode), "Load mode for scalable/tile tracks\n\tsplit: each track is declared, extractors are removed\n\tsplitx: each track is declared, extractors are kept\n\tsingle: a single track is declared (highest level for scalable, tile base for tiling)", GF_PROP_UINT, "split", "split|splitx|single", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(alltk), "declares all tracks even disabled ones", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frame_size), "frame size for raw audio samples (dispatches frame_size samples per packet)", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},

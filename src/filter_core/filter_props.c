@@ -992,6 +992,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_ZORDER, "ZOrder", "Z-order of the video, from 0 (first) to max int (last)", GF_PROP_UINT},
 	{ GF_PROP_PID_TRANS_X, "TransX", "Horizontal translation of the video", GF_PROP_SINT},
 	{ GF_PROP_PID_TRANS_Y, "TransY", "Vertical translation of the video", GF_PROP_SINT},
+	{ GF_PROP_PID_HIDDEN, "Hidden", "Indicates the PID is hidden in visual/audio rendering", GF_PROP_BOOL},
+
 	{ GF_PROP_PID_CROP_POS, "CropOrigin", "Position in source window, X,Y indicates coord in source", GF_PROP_VEC2I},
 	{ GF_PROP_PID_ORIG_SIZE, "OriginalSize", "Original resolution of video", GF_PROP_VEC2I},
 	{ GF_PROP_PID_SRD, "SRD", "Position and size of the video in the referential given by SRDRef", GF_PROP_VEC4I},
@@ -1087,6 +1089,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_DASH_CUE, "DCue", "Name of a cue list file for this pid - see dasher help", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_SINGLE_SCALE, "SingleScale", "Indicates the movie header should use the media timescale of the first track added", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_UDP, "RequireReorder", "Indicates the PID packets come from source with losses and reordering happening (UDP)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_PRIMARY_ITEM, "Primary", "Indicates this is a primary item in isobmf", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 };
 
 GF_EXPORT

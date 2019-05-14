@@ -2698,6 +2698,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 
 	svg_js = script->sgprivate->scenegraph->svg_js;
 	if (!strnicmp(file, "file://", 7)) file += 7;
+
 	jsf = gf_fopen(file, "rb");
 	if (!jsf) {
 		GF_JSAPIParam par;

@@ -79,18 +79,8 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 	} else
 #endif
 	{
-		FILE *t = gf_fopen(src, "rb");
-		if (!t) return GF_IO_ERR;
-		fseek(t, 0, SEEK_END);
-		size = ftell(t);
-		fseek(t, 0, SEEK_SET);
-		data = gf_malloc(sizeof(char)*size);
-		if (size != fread(data, 1, size, t) ) {
-			gf_free(data);
-			gf_fclose(t);
-			return GF_IO_ERR;
-		}
-		gf_fclose(t);
+		GF_Err e = gf_file_load_data(src, (u8 **) &data, &size);
+		if (e) return e;
 	}
 
 	if (size && data) {
@@ -254,6 +244,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
 	const char *szLan;
 	GF_Err e;
+	Bool keep_audelim = GF_FALSE;
 	GF_MediaImporter import;
 	char *ext, szName[1000], *handler_name, *rvc_config, *chapter_name;
 	GF_List *kinds;
@@ -434,6 +425,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "alpha")) import.is_alpha = GF_TRUE;
 		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
 		else if (!stricmp(ext+1, "xps_inband")) import_flags |= GF_IMPORT_FORCE_XPS_INBAND;
+		else if (!stricmp(ext+1, "au_delim")) keep_audelim = GF_TRUE;
 		else if (!strnicmp(ext+1, "max_lid=", 8) || !strnicmp(ext+1, "max_tid=", 8)) {
 			s32 val = atoi(ext+9);
 			if (val < 0) {
@@ -709,7 +701,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.video_fps = force_fps;
 	import.frames_per_sample = frames_per_sample;
 	import.flags = import_flags;
-	import.flags = import_flags;
+	import.keep_audelim = keep_audelim;
 
 	if (!import.nb_tracks) {
 		u32 count, o_count;
@@ -951,25 +943,16 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 
 			if (rvc_config) {
-				FILE *f = gf_fopen(rvc_config, "rb");
-				if (f) {
-					char *data;
-					u32 size;
-					size_t read;
-					gf_fseek(f, 0, SEEK_END);
-					size = (u32) gf_ftell(f);
-					gf_fseek(f, 0, SEEK_SET);
-					data = gf_malloc(sizeof(char)*size);
-					read = fread(data, 1, size, f);
-					gf_fclose(f);
-					if (read != size) {
-						fprintf(stderr, "Error: could not read rvc config from %s\n", rvc_config);
-						e = GF_IO_ERR;
-						goto exit;
-					}
+				char *data;
+				u32 size;
+				e = gf_file_load_data(rvc_config, (u8 **) &data, &size);
+				if (e) {
+					fprintf(stderr, "Error: failed to load rvc config from file: %s\n", gf_error_to_string(e) );
+				} else {
 #ifdef GPAC_DISABLE_ZLIB
 					fprintf(stderr, "Error: no zlib support - RVC not available\n");
 					e = GF_NOT_SUPPORTED;
+					gf_free(data);
 					goto exit;
 #else
 					gf_gz_compress_payload(&data, size, &size);
@@ -1149,10 +1132,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		split_dur = (double) GF_MAX_FLOAT;
 	}
 
-
-	ext = strrchr(inName, '/');
-	if (!ext) ext = strrchr(inName, '\\');
-	strcpy(szName, ext ? ext+1 : inName);
+	//split in same dir as source
+	strcpy(szName, inName);
 	ext = strrchr(szName, '.');
 	if (ext) ext[0] = 0;
 	ext = strrchr(inName, '.');
@@ -1312,6 +1293,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 			if (start<chunk_start) {
 				tki->stop_state = 2;
 			} else  {
+				samp = NULL;
 				e = gf_isom_get_sample_for_media_time(mp4, tki->tk, (u64) (chunk_start*tki->time_scale), &di, GF_ISOM_SEARCH_SYNC_BACKWARD, &samp, &sample_num, NULL);
 				if (e!=GF_OK) {
 					fprintf(stderr, "Cannot locate RAP in track ID %d for chunk extraction from %02.2f sec\n", gf_isom_get_track_id(mp4, tki->tk), chunk_start);
@@ -1464,7 +1446,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 
 
 				if (tki->has_non_raps && is_rap) {
-					GF_ISOSample *next_rap;
+					GF_ISOSample *next_rap=NULL;
 					u32 next_rap_num, sdi;
 					last_rap_sample_time = (Double) (s64) samp->DTS;
 					last_rap_sample_time /= tki->time_scale;
@@ -1906,7 +1888,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 
 	if (is_pl) return cat_playlist(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines, allow_add_in_command);
 
-	if (strchr(fileName, '*')) return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines, allow_add_in_command);
+	if (strchr(fileName, '*') || (strchr(fileName, '@')) )
+		return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines, allow_add_in_command);
 
 	multi_cat = allow_add_in_command ? strchr(fileName, '+') : NULL;
 	if (multi_cat) {
@@ -2334,10 +2317,18 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				gf_isom_set_edit_segment(dest, dst_tk, editTime, segmentDuration, mediaTime, editMode);
 			}
 		}
+		gf_media_update_bitrate(dest, dst_tk);
 
 	}
 	gf_set_progress("Appending", nb_samp, nb_samp);
 
+	/*check brands*/
+	gf_isom_get_brand_info(orig, NULL, NULL, &j);
+	for (i=0; i<j; i++) {
+		u32 brand;
+		gf_isom_get_alternate_brand(orig, i+1, &brand);
+		gf_isom_modify_alternate_brand(dest, brand, 1);
+	}
 	/*check chapters*/
 	for (i=0; i<gf_isom_get_chapter_count(orig, 0); i++) {
 		char *name;
@@ -2389,7 +2380,7 @@ Bool cat_enumerate(void *cbk, char *szName, char *szPath, GF_FileEnumInfo *file_
 	if (strnicmp(szName, cat_enum->szRad1, len_rad1)) return 0;
 	if (strlen(cat_enum->szRad2) && !strstr(szName + len_rad1, cat_enum->szRad2) ) return 0;
 
-	strcpy(szFileName, szName);
+	strcpy(szFileName, szPath);
 	strcat(szFileName, cat_enum->szOpt);
 
 	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->tmp_dir, cat_enum->force_cat, cat_enum->align_timelines, cat_enum->allow_add_in_command, GF_FALSE);
@@ -2434,6 +2425,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Do
 		sep[0] = 0;
 	}
 	sep = strchr(cat_enum.szRad1, '*');
+	if (!sep) sep = strchr(cat_enum.szRad1, '@');
 	if (strlen(sep + 1) >= sizeof(cat_enum.szRad2)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is too long.\n", (sep + 1)));
 		return GF_NOT_SUPPORTED;
@@ -2662,8 +2654,6 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	GF_BifsEncoder *bifsenc;
 	GF_InitialObjectDescriptor *iod;
 	u32 i, j, count;
-	GF_StreamContext *sc;
-	GF_ESD *esd;
 	Bool encode_names, delete_bcfg;
 	GF_BIFSConfig *bcfg;
 	GF_AUContext		*au;
@@ -2685,7 +2675,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	if (!iod) {
 		count = 0;
 		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			sc = gf_list_get(ctx->streams, i);
+			GF_StreamContext *sc = gf_list_get(ctx->streams, i);
 			if (sc->streamType == GF_STREAM_OD) count++;
 		}
 		if (!iod && count>1) return GF_NOT_SUPPORTED;
@@ -2694,11 +2684,12 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	count = gf_list_count(ctx->streams);
 	for (i=0; i<count; i++) {
 		u32 nbb;
+		Bool delete_esd = GF_FALSE;
+		GF_ESD *esd = NULL;
 		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
-		esd = NULL;
+
 		if (sc->streamType != GF_STREAM_SCENE) continue;
 
-		esd = NULL;
 		if (iod) {
 			for (j=0; j<gf_list_count(iod->ESDescriptors); j++) {
 				esd = gf_list_get(iod->ESDescriptors, j);
@@ -2724,6 +2715,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 			esd->decoderConfig->decoderSpecificInfo = NULL;
 			esd->ESID = sc->ESID;
 			esd->decoderConfig->streamType = GF_STREAM_SCENE;
+			delete_esd = GF_TRUE;
 		}
 		if (!esd->decoderConfig) return GF_OUT_OF_MEM;
 
@@ -2762,7 +2754,6 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		gf_bifs_encoder_new_stream(bifsenc, sc->ESID, bcfg, encode_names, 0);
 		if (delete_bcfg) gf_odf_desc_del((GF_Descriptor *)bcfg);
 
-		/*setup MP4 track*/
 		if (!esd->slConfig) esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 		if (sc->timeScale) esd->slConfig->timestampResolution = sc->timeScale;
 		if (!esd->slConfig->timestampResolution) esd->slConfig->timestampResolution = 1000;
@@ -2781,13 +2772,14 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 			au = gf_list_get(sc->AUs, j);
 			e = gf_bifs_encode_au(bifsenc, sc->ESID, au->commands, &data, &data_len);
 			if (data) {
-				sprintf(szName, "%s%02d.bifs", szRad, j);
+				sprintf(szName, "%s-%02d-%02d.bifs", szRad, sc->ESID, j);
 				f = gf_fopen(szName, "wb");
 				gf_fwrite(data, data_len, 1, f);
 				gf_fclose(f);
 				gf_free(data);
 			}
 		}
+		if (delete_esd) gf_odf_desc_del((GF_Descriptor*)esd);
 	}
 	gf_bifs_encoder_del(bifsenc);
 	return e;
@@ -2828,7 +2820,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
 	if (e) {
-		fprintf(stderr, "Cannot load context %s - %s\n", inputContext, gf_error_to_string(e));
+		fprintf(stderr, "Cannot load context %s: %s\n", inputContext, gf_error_to_string(e));
 		goto exit;
 	}
 
@@ -2845,7 +2837,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
 	if (e) {
-		fprintf(stderr, "Cannot load chunk context %s - %s\n", chunkFile, gf_error_to_string(e));
+		fprintf(stderr, "Cannot load scene commands chunk %s: %s\n", chunkFile, gf_error_to_string(e));
 		goto exit;
 	}
 	fprintf(stderr, "Context and chunks loaded\n");
@@ -2931,8 +2923,8 @@ static Bool wgt_enum_files(void *cbck, char *file_name, char *file_path, GF_File
 	WGTEnum *wgt = (WGTEnum *)cbck;
 
 	if (!strcmp(wgt->root_file, file_path)) return 0;
-	/*remove CVS stuff*/
-	if (strstr(file_path, ".#")) return 0;
+	//remove hidden files
+	if (file_path[0] == '.') return 0;
 	gf_list_add(wgt->imports, gf_strdup(file_path) );
 	return 0;
 }
@@ -3024,6 +3016,12 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 
 			FILE *test = gf_fopen(item, "rb");
 			if (!test) {
+				char *resurl = gf_url_concatenate(file_name, item);
+				test = gf_fopen(resurl, "rb");
+				gf_free(resurl);
+			}
+
+			if (!test) {
 				gf_list_rem(imports, i);
 				i--;
 				count--;
@@ -3065,7 +3063,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 	skip_chars = (u32) strlen(root_dir);
 	count = gf_list_count(imports);
 	for (i=0; i<count; i++) {
-		char *ext, *mime, *encoding, *name = NULL;
+		char *ext, *mime, *encoding, *name = NULL, *itemurl;
 		char *item = gf_list_get(imports, i);
 
 		name = gf_strdup(item + skip_chars);
@@ -3105,8 +3103,11 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 			encoding = "binary-gzip";
 		}
 
-		e = gf_isom_add_meta_item(file, 1, 0, 0, item, name, 0, GF_META_ITEM_TYPE_MIME, mime, encoding, NULL,  NULL, NULL);
+		itemurl = gf_url_concatenate(file_name, item);
+
+		e = gf_isom_add_meta_item(file, 1, 0, 0, itemurl ? itemurl : item, name, 0, GF_META_ITEM_TYPE_MIME, mime, encoding, NULL,  NULL, NULL);
 		gf_free(name);
+		gf_free(itemurl);
 		if (e) goto exit;
 	}
 

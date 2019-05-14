@@ -9,6 +9,12 @@ if [ $test_skip  = 1 ] ; then
  return
 fi
 
+ #for coverage, test XML dump for isma
+ dump_isma=0
+ case $1 in
+ *isma* )
+  dump_isma=1;;
+ esac
 cryptfile="$TEMP_DIR/$1-crypted.mp4"
 decryptfile="$TEMP_DIR/$1-decrypted.mp4"
 
@@ -25,6 +31,12 @@ rv=$?
 if [ $rv != 0 ] ; then
 result="Hash is not the same between source content and decrypted content"
 fi
+
+if [ $dump_isma = 1 ] ; then
+ismadump="$TEMP_DIR/isamdump.xml"
+do_test "$MP4BOX -dcr $cryptfile -out $ismadump" "DumpIsma"
+fi
+
 
 #do dash test
 do_test "$MP4BOX -dash 4000 -profile live -out $TEMP_DIR/test.mpd $cryptfile" "DASH"

@@ -86,4 +86,4 @@ configure-stamp
 gpac.pc
 tests/external_media/
 tests/results/
-
+tests/hash_refs/

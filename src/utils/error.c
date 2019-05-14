@@ -275,9 +275,9 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 					}
 				}
 				if (!found) {
+					fprintf(stderr, "Unknown log tool specified: %s\n", tools);
 					sep_level[0] = '@';
 					if (sep) sep[0] = ':';
-					fprintf(stderr, "Unknown log tool specified: %s\n", val);
 					return GF_BAD_PARAM;
 				}
 			}
@@ -1495,5 +1495,26 @@ GF_Err gf_blob_get_data(const char *blob_url, u8 **out_data, u32 *out_size)
 	if (!blob) return GF_BAD_PARAM;
 	if (out_data) *out_data = blob->data;
 	if (out_size) *out_size = blob->size;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep)
+{
+	u32	l1, l2, lsep;
+	if (!to_append) return GF_OK;
+
+	lsep = sep ? (u32) strlen(sep) : 0;
+	l1 = *str ? (u32) strlen(*str) : 0;
+	l2 = (u32) strlen(to_append);
+	if (l1) (*str) = gf_realloc((*str), sizeof(char)*(l1+l2+lsep+1));
+	else (*str) = gf_realloc((*str), sizeof(char)*(l2+lsep));
+
+	if (! (*str) )
+		return GF_OUT_OF_MEM;
+
+	(*str)[l1]=0;
+	if (l1 && sep) strcat((*str), sep);
+	strcat((*str), to_append);
 	return GF_OK;
 }

@@ -8,20 +8,32 @@ if [ $do_hash != 0 ] ; then
  do_hash_test $hintfile "hint"
 fi
 
+#echo "test $1"
+do_sdp_dump=0
+
+case $1 in
+*english* )
+ do_sdp_dump=1;;
+esac
+
+if [ $do_sdp_dump != 0 ] ; then
  #check SDP+RTP packets
  do_test "$MP4BOX -drtp $hintfile -out $tempfile" "RTPDump"
-if [ $do_hash != 0 ] ; then
- do_hash_test "$tempfile" "drtp"
+ if [ $do_hash != 0 ] ; then
+  do_hash_test "$tempfile" "drtp"
+ fi
+ #check SDP dump from isom
+ do_test "$MP4BOX -sdp $hintfile -out $tempfile" "SDPDump"
+ if [ $do_hash != 0 ] ; then
+  do_hash_test "$tempfile" "sdp"
+ fi
 fi
 
- #unhint media
- do_test "$MP4BOX -unhint $hintfile" "RTPUnhint"
+#unhint media
+do_test "$MP4BOX -unhint $hintfile" "RTPUnhint"
 if [ $do_hash != 0 ] ; then
  do_hash_test $hintfile "unhint"
 fi
-
- rm $tempfile
- rm $hintfile
 }
 
 #@mp4_test execute basics MP4Box tests on source file: -add, -info, -dts, -hint -drtp -sdp -unhint and MP4 Playback
@@ -30,6 +42,7 @@ mp4_test ()
  do_hint=1
  do_play=1
  do_hash=1
+ do_dnal=0
 
  #ignore xlst & others, no hinting for images
  case $1 in
@@ -60,21 +73,31 @@ mp4_test ()
  *.mj2 )
   do_hint=0 ;;
  *.av1 )
-  do_hint=0 ;;
+  do_dnal=1
+  do_hint=0
+  ;;
  *.opus )
   do_hint=0 ;;
  *.obu )
-  do_hint=0 ;;
+  do_dnal=1
+  do_hint=0
+  ;;
  *.ivf )
+  do_dnal=1
   do_hint=0 ;;
  *.png )
   do_hint=0 ;;
  *.qcp )
   do_play=0 ;;
   #mpg, ogg and avi import is broken in master, disable hash until we move to filters
-  #two many diffs in SVC import (sei, svc subseq PS) between old and new archs, we comment out hashing for now
- *.mpg | *.ogg | *.avi | *svc* )
+ *.mpg | *.ogg | *.avi)
   do_hash=0 ;;
+  #two many diffs in SVC import (sei, svc subseq PS) between old and new archs, we comment out hashing for now
+ *svc* )
+  do_dnal=1
+  do_hash=0 ;;
+ *.avc | *.264 | *.h264 | *.hevc | *.hvc | *.265 | *.h265 )
+  do_dnal=1;;
  #no support for hinting or playback yet
  *.ismt )
   do_hint=0 && do_play=0 ;;
@@ -84,6 +107,7 @@ mp4_test ()
  test_begin "mp4box-io-$name"
 
  mp4file="$TEMP_DIR/$name.mp4"
+ nalfile="$TEMP_DIR/nal.xml"
  tmp1="$TEMP_DIR/$name.1.tmp"
  tmp2="$TEMP_DIR/$name.2.tmp"
 
@@ -99,6 +123,12 @@ mp4_test ()
  if [ $do_hash != 0 ] ; then
   do_hash_test $mp4file "add"
  fi
+
+ if [ $do_dnal != 0 ] ; then
+  do_test "$MP4BOX -dnal 1 $mp4file -out $nalfile" "NALDump"
+  do_hash_test $nalfile "NALDump"
+ fi
+
 
  #all the tests below are run in parallel
 

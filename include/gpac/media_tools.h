@@ -108,6 +108,14 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);
  * \return error if any
  */
 GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track, Bool non_ref_only);
+
+/*!
+ *updates bitrate info on given track.
+ * \param file target movie
+ * \param track target track
+ */
+void gf_media_update_bitrate(GF_ISOFile *file, u32 track);
+
 #endif
 
 /*! @} */
@@ -384,6 +392,7 @@ typedef struct __track_import
 	s16 audio_roll;
 
 	Bool is_alpha;
+	Bool keep_audelim;
 } GF_MediaImporter;
 
 /*!

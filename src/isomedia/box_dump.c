@@ -1766,7 +1766,7 @@ static void tx3g_dump_rgba8(FILE * trace, char *name, u32 col)
 }
 static void tx3g_dump_rgb16(FILE * trace, char *name, char col[6])
 {
-	fprintf(trace, "%s=\"%x %x %x\"", name, *((u16*)col), *((u16*)(col+1)), *((u16*)(col+2)));
+	fprintf(trace, "%s=\"%x %x %x\"", name, *((u16*)col), *((u16*)(col+2)), *((u16*)(col+4)));
 }
 static void tx3g_dump_box(FILE * trace, GF_BoxRecord *rec)
 {

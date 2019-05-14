@@ -506,10 +506,10 @@ GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 		if (codec->info->config.UsePredictiveMFField) {
 			flag = gf_bs_read_int(bs, 1);
 			if (flag) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[BIFS] Stream uses Predictive Field Coding!\n"));
 #ifdef GPAC_ENABLE_BIFS_PMF
 				return gf_bifs_dec_pred_mf_field(codec, bs, node, field);
 #else
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BIFS] Stream uses Predictive Field Coding, disabled in this build!\n"));
 				return GF_NOT_SUPPORTED;
 #endif
 			}

@@ -137,24 +137,6 @@ const char *gf_url_get_resource_name(const char *url);
  */
 Bool gf_url_get_resource_path(const char *url, char *res_path);
 
-/*!
- *\brief Remove last delimenter from URL
- *
- * Remove last delimenter from URL
- *\param sURL input url
- *\param res_path buffer for resulting path storage
- *\return GF_TRUE if delimiter was extracted, otherwise GF_FALSE.
- */
-Bool gf_url_remove_last_delimiter(const char *sURL, char *res_path);
-
-/*!
- *\brief Extract extension from a resource path in URL
- *
- * Extract a resource path of URL and analyze its extension
- *\param sURL input url
- *\return The corresponding extension if exists, otherwise NULL.
- */
-const char* gf_url_get_ressource_extension(const char *sURL);
 
 /*!
  *\brief gets UTC time

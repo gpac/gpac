@@ -1378,10 +1378,14 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 			}
 		}
 #endif
-		a = unkn_New();
-		((GF_UnknownBox *)a)->original_4cc = boxType;
-
-		if (a) a->registry = &box_registry[0];
+        if (boxType==GF_ISOM_BOX_TYPE_UUID) {
+            a = uuid_New();
+            if (a) a->registry = &box_registry[1];
+        } else {
+            a = unkn_New();
+            ((GF_UnknownBox *)a)->original_4cc = boxType;
+            if (a) a->registry = &box_registry[0];
+        }
 		return a;
 	}
 	a = box_registry[idx].new_fn();
@@ -1635,7 +1639,7 @@ GF_Err gf_isom_dump_supported_box(u32 idx, FILE * trace)
 		nb_versions = box_registry[idx].max_version_plus_one - 1;
 	}
 	for (i = 0; i <= nb_versions; i++) {
-		a = gf_isom_box_new(box_registry[idx].box_4cc);
+		a = box_registry[idx].new_fn();
 		a->registry = &box_registry[idx];
 
 		if (box_registry[idx].alt_4cc) {

@@ -93,7 +93,7 @@ void gf_dm_url_info_del(GF_URL_Info * info);
  *
  *Creates a new download manager object.
  *\param cfg optional configuration file. Currently the download manager needs a configuration file for cache location and
- *other options. The cache directory must be indicated in the section "General", key "CacheDirectory" of the configuration
+ *other options. The cache directory must be indicated in the section "core", key "cache" of the configuration
  *file. If the cache directory is not found, the cache will be disabled but the downloader will still work.
  *\return the download manager object
 */

@@ -704,12 +704,9 @@ GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pi
 GF_EXPORT
 GF_Err gf_img_file_dec(char *png_filename, u32 *hint_codecid, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
 {
-	u32 fsize, read, codecid;
-	FILE *f;
+	u32 fsize, codecid;
 	char *data;
 	GF_Err e;
-	f = gf_fopen(png_filename, "rb");
-	if (!f) return GF_URL_ERROR;
 
 	codecid = 0;
 	if (!hint_codecid || ! *hint_codecid) {
@@ -720,13 +717,9 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_codecid, u32 *width, u32 *h
 	} else if (hint_codecid) {
 		codecid = *hint_codecid;
 	}
-	gf_fseek(f, 0, SEEK_END);
-	fsize = (u32)gf_ftell(f);
-	gf_fseek(f, 0, SEEK_SET);
-	data = gf_malloc(fsize);
-	read = (s32) fread(data, sizeof(char), fsize, f);
-	gf_fclose( f );
-	if (read != fsize) return GF_IO_ERR;
+
+	e = gf_file_load_data(png_filename, (u8 **)&data, &fsize);
+	if (e) return e;
 
 	e = GF_NOT_SUPPORTED;
 	*dst_size = 0;
