@@ -688,7 +688,7 @@ static u32 compute_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pid)
 	return new_address;
 }
 
-static GF_Err hevcRecombine_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err hevccombine_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	Bool grid_config_changed = GF_FALSE;
 	u32 cfg_crc = 0, pid_width, pid_height;
@@ -827,7 +827,7 @@ static GF_Err hevcRecombine_configure_pid(GF_Filter *filter, GF_FilterPid *pid, 
 	return GF_OK;
 }
 
-static GF_Err hevcRecombine_process(GF_Filter *filter)
+static GF_Err hevccombine_process(GF_Filter *filter)
 {
 	char *data;
 	u32 pos, nal_length, out_slice_header_length = 0, data_size;
@@ -927,7 +927,7 @@ static GF_Err hevcRecombine_process(GF_Filter *filter)
 #endif
 			// if (0 && nal_unit_type < 32) {
 			if (nal_unit_type < 32) {
-				if (!tile_pid->address_computed) { // if each tile comes with a diferent Id
+				if (!tile_pid->address_computed) { // if each tile comes with a different Id
 					tile_pid->slice_segment_address = compute_address(ctx, tile_pid);
 					tile_pid->address_computed = GF_TRUE;
 					ctx->pid_idx++;
@@ -983,9 +983,9 @@ static GF_Err hevcRecombine_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static GF_Err hevcRecombine_initialize(GF_Filter *filter)
+static GF_Err hevccombine_initialize(GF_Filter *filter)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Combine] hevcRecombine_initialize started.\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Combine] hevccombine_initialize started.\n"));
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx *)gf_filter_get_udta(filter);
 	ctx->bs_nal_in = gf_bs_new((char *)ctx, 1, GF_BITSTREAM_READ);
 	#ifdef DYNAMIQUE_HEVC_STATE
@@ -994,9 +994,9 @@ static GF_Err hevcRecombine_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
-static void hevcRecombine_finalize(GF_Filter *filter)
+static void hevccombine_finalize(GF_Filter *filter)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Combine] hevcRecombine_finalize.\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Combine] hevccombine_finalize.\n"));
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx *)gf_filter_get_udta(filter);
 	HEVCTilePidCtx *tile_pid;
 	if (ctx->buffer_nal) gf_free(ctx->buffer_nal);
@@ -1018,7 +1018,7 @@ static void hevcRecombine_finalize(GF_Filter *filter)
 	fclose(LuT);
 }
 
-static const GF_FilterCapability hevcRecombineCaps[] =
+static const GF_FilterCapability hevccombineCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
@@ -1031,28 +1031,28 @@ static const GF_FilterCapability hevcRecombineCaps[] =
 
 #define OFFS(_n)	#_n, offsetof(GF_HEVCSplitCtx, _n)
 
-static const GF_FilterArgs hevcRecombineArgs[] =
+static const GF_FilterArgs hevccombineArgs[] =
 {
 	//	{ OFFS(threading), "Set threading mode", GF_PROP_UINT, "frame", "frameslice|frame|slice", GF_FS_ARG_HINT_ADVANCED},
 		{0}
 };
 
-GF_FilterRegister HevcRecombineRegister = {
+GF_FilterRegister HevccombineRegister = {
 	.name = "hevccombine",
 	GF_FS_SET_DESCRIPTION("Stream merger")
 	.private_size = sizeof(GF_HEVCSplitCtx),
-	SETCAPS(hevcRecombineCaps),
+	SETCAPS(hevccombineCaps),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
-	.initialize = hevcRecombine_initialize,
-	.finalize = hevcRecombine_finalize,
-	.args = hevcRecombineArgs,
-	.configure_pid = hevcRecombine_configure_pid,
-	.process = hevcRecombine_process,
+	.initialize = hevccombine_initialize,
+	.finalize = hevccombine_finalize,
+	.args = hevccombineArgs,
+	.configure_pid = hevccombine_configure_pid,
+	.process = hevccombine_process,
 	.max_extra_pids = -1,
 };
 
 const GF_FilterRegister *hevccombine_register(GF_FilterSession *session)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Combine] hevcRecombine_register started.\n"));
-	return &HevcRecombineRegister;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Combine] hevccombine_register started.\n"));
+	return &HevccombineRegister;
 }
