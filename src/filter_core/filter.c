@@ -2469,10 +2469,8 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	if (url) {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(url));
 
-		sep = strrchr(url, '/');
-		if (!sep) sep = strrchr(url, '\\');
-		if (!sep) sep = (char *) url;
-		else sep++;
+		sep = gf_file_basename(url);
+
 		gf_filter_pid_set_name(pid, sep);
 
 		if (fext) {

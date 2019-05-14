@@ -323,6 +323,7 @@ GF_Err gf_lz_compress_payload(char **data, u32 data_len, u32 *max_size)
 	if (ret != LZMA_OK) return GF_IO_ERR;
 
 	block_size = data_len*LZMA_COMPRESS_SAFE;
+	if (block_size < 64) block_size = 64;
 	char *dest = (char *)gf_malloc(sizeof(char)*block_size);
 
 

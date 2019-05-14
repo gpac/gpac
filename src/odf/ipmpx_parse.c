@@ -169,28 +169,6 @@ void GF_IPMPX_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 	}
 }
 
-void GF_IPMPX_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
-{
-	FILE *f;
-	u32 size;
-	if (*out_data) gf_free(*out_data);
-	*out_data = NULL;
-	*out_data_size = 0;
-	f = gf_fopen(fileName, "rb");
-	if (!f) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IPMPX Parse] cannot open data file %s - skipping\n", fileName));
-		return;
-	}
-	gf_fseek(f, 0, SEEK_END);
-	assert(gf_ftell(f) < 0x80000000);
-	size = (u32) gf_ftell(f);
-	gf_fseek(f, 0, SEEK_SET);
-	*out_data = (char*)gf_malloc(sizeof(char) * size);
-	size = (s32) fread(*out_data, sizeof(char), size, f);
-	if ((s32) size >= 0)
-		*out_data_size = size;
-	gf_fclose(f);
-}
 
 void GF_IPMPX_ParseBin128(char *val, bin128 *data)
 {

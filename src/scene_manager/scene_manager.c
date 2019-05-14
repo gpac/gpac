@@ -138,14 +138,6 @@ static void gf_sm_delete_stream(GF_StreamContext *sc)
 }
 
 GF_EXPORT
-void gf_sm_stream_del(GF_SceneManager *ctx, GF_StreamContext *sc)
-{
-	if (gf_list_del_item(ctx->streams, sc)>=0) {
-		gf_sm_delete_stream(sc);
-	}
-}
-
-GF_EXPORT
 void gf_sm_del(GF_SceneManager *ctx)
 {
 	u32 count;
@@ -159,7 +151,7 @@ void gf_sm_del(GF_SceneManager *ctx)
 	gf_free(ctx);
 }
 
-GF_EXPORT
+#if 0 //unused
 void gf_sm_reset(GF_SceneManager *ctx)
 {
 	GF_StreamContext *sc;
@@ -170,6 +162,7 @@ void gf_sm_reset(GF_SceneManager *ctx)
 	if (ctx->root_od) gf_odf_desc_del((GF_Descriptor *) ctx->root_od);
 	ctx->root_od = NULL;
 }
+#endif
 
 GF_EXPORT
 GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double time_sec, Bool isRap)
@@ -744,12 +737,13 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_sm_load_suspend(GF_SceneLoader *load, Bool suspend)
 {
 	if (load->suspend) return load->suspend(load, suspend);
 	return GF_OK;
 }
+#endif
 
 #if !defined(GPAC_DISABLE_LOADER_BT) || !defined(GPAC_DISABLE_LOADER_XMT)
 #include <gpac/base_coding.h>
@@ -762,21 +756,15 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 
 	if (!bw->buffer.buffer) return;
 	buffer = bw->buffer.buffer;
-	if (!strnicmp(buffer, "file://", 7)) {
-		char *url = gf_url_concatenate(fileName, buffer+7);
+	if (!strnicmp(buffer, "file:", 5) ) {
+		char *url;
+		if (!strnicmp(buffer, "file://", 7)) buffer += 7;
+		else buffer += 5;
+
+		url = gf_url_concatenate(fileName, buffer);
 		if (url) {
-			FILE *f = gf_fopen(url, "rb");
-			if (f) {
-				fseek(f, 0, SEEK_END);
-				data_size = (u32) ftell(f);
-				fseek(f, 0, SEEK_SET);
-				data = gf_malloc(sizeof(char)*data_size);
-				if (data) {
-					if (fread(data, 1, data_size, f) != data_size) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] error reading bitwrapper file %s\n", url));
-					}
-				}
-				gf_fclose(f);
+			if (gf_file_load_data(url, (u8 **) &data, &data_size) != GF_OK) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] error reading bitwrapper file %s\n", url));
 			}
 			gf_free(url);
 		}
@@ -796,13 +784,14 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 		} else {
 			u32 i, c;
 			char s[3];
-			data_size = (u32) strlen(buffer) / 3;
+			if (!strnicmp(buffer, "0x", 2)) buffer += 2;
+			data_size = (u32) strlen(buffer) / 2;
 			data = (char*)gf_malloc(sizeof(char) * data_size);
 			if (data) {
 				s[2] = 0;
 				for (i=0; i<data_size; i++) {
-					s[0] = buffer[3*i+1];
-					s[1] = buffer[3*i+2];
+					s[0] = buffer[2*i];
+					s[1] = buffer[2*i+1];
 					sscanf(s, "%02X", &c);
 					data[i] = (unsigned char) c;
 				}

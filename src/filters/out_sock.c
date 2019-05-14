@@ -194,11 +194,11 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 		e = gf_sk_setup_multicast(ctx->socket, url, port, 0, 0, ctx->ifce);
 		ctx->listen = GF_FALSE;
 	} else if ((sock_type == GF_SOCK_TYPE_UDP)
-#ifdef GPAC_HAS_SOCK_UN 
+#ifdef GPAC_HAS_SOCK_UN
 		|| (sock_type == GF_SOCK_TYPE_UDP_UN)
 #endif
 	) {
-		e = gf_sk_bind(ctx->socket, ctx->ifce, port, url, port, GF_SOCK_REUSE_PORT);
+		e = gf_sk_bind(ctx->socket, ctx->ifce, port, url, port, GF_SOCK_REUSE_PORT | GF_SOCK_FAKE_BIND);
 		ctx->listen = GF_FALSE;
 	} else if (ctx->listen) {
 		e = gf_sk_bind(ctx->socket, NULL, port, url, 0, GF_SOCK_REUSE_PORT);
@@ -466,7 +466,7 @@ static GF_Err sockout_process(GF_Filter *filter)
 	}
 
 	ctx->nb_pck_processed++;
-	
+
 	if (is_pck_ref) {
 		gf_filter_pck_unref(pck);
 		ctx->rev_pck = NULL;

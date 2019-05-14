@@ -22,4 +22,8 @@ do_test "$MP4BOX -dash 1000 $input:sscale -out $TEMP_DIR/test.mpd" "dash-sscale"
 do_hash_test $TEMP_DIR/src_dashinit.mp4 "dash-sscale-init"
 #do_hash_test $TEMP_DIR/test.mpd "dash-sscale-mpd"
 
+output=$TEMP_DIR/test3.mp4
+do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/count_english.mp3:timescale=44100 -new $output" "audio"
+do_hash_test $output "audio"
+
 test_end

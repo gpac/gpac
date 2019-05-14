@@ -225,21 +225,11 @@ static void svg_process_media_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *i
 		}
 	}
 	if ((parser->load->flags & GF_SM_LOAD_EMBEDS_RES) && (iri->type==XMLRI_STRING) ) {
-		u64 size;
+		u32 size;
 		char *buffer;
-		FILE *f;
-		f = gf_fopen(iri->string, "rb");
-		if (!f) {
-			return;
-		}
-		gf_fseek(f, 0, SEEK_END);
-		size = gf_ftell(f);
-		gf_fseek(f, 0, SEEK_SET);
 
-		buffer = gf_malloc(sizeof(char) * (size_t)(size+1));
-		size = fread(buffer, sizeof(char), (size_t)size, f);
-		gf_fclose(f);
-
+		GF_Err e = gf_file_load_data(iri->string, (u8 **) &buffer, &size);
+		if (e) return;
 
 		if (tag==TAG_SVG_script) {
 			GF_DOMText *dtext;

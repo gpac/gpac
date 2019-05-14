@@ -510,10 +510,9 @@ GF_EXPORT
 GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, char *XMLFileName, Bool IsBinaryXML)
 {
 	GF_Err e;
-	FILE *xmlfile;
 	GF_XMLBox *xml;
 	GF_MetaBox *meta;
-	u32 length, bread;
+	u32 length;
 
 	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -531,24 +530,7 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 
 
 	/*assume 32bit max size = 4Go should be sufficient for a DID!!*/
-	xmlfile = gf_fopen(XMLFileName, "rb");
-	if (!xmlfile) return GF_URL_ERROR;
-	gf_fseek(xmlfile, 0, SEEK_END);
-	assert(gf_ftell(xmlfile) < 0x80000000);
-	length = (u32) gf_ftell(xmlfile);
-	gf_fseek(xmlfile, 0, SEEK_SET);
-	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*(length+1));
-	bread =  (u32) fread(xml->xml, 1, sizeof(unsigned char)*length, xmlfile);
-	if (ferror(xmlfile) || (bread != length)) {
-		gf_free(xml->xml);
-		xml->xml = NULL;
-		return GF_BAD_PARAM;
-	}
-	else {
-		xml->xml[length] = '\0';
-	}
-	gf_fclose(xmlfile);
-	return GF_OK;
+	return gf_file_load_data(XMLFileName, (u8 **) &xml->xml, &length);
 }
 
 GF_EXPORT
@@ -763,27 +745,23 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 	}
 
 	if (strlen(image_props->iccPath) > 0) {
-		FILE *fp = gf_fopen(image_props->iccPath, "rb");
-		if (fp) {
-			size_t read;
+		u32 size;
+		u8 *data;
+		GF_Err e = gf_file_load_data(image_props->iccPath, &data, &size);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error opening ICC colour profile file at %s\n", &image_props->iccPath));
+
+		} else {
+
 			GF_ColourInformationBox *colr = (GF_ColourInformationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_COLR);
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] reading ICC colour profile from file %s\n", &image_props->iccPath));
 			colr->colour_type = GF_ISOM_SUBTYPE_PROF;
-			fseek(fp,0,SEEK_END);
-			colr->opaque_size = (u32)ftell(fp);
-			fseek(fp,0,SEEK_SET);
-			colr->opaque = malloc(colr->opaque_size);
-			read = gf_fread(colr->opaque, 1, colr->opaque_size, fp);
-			gf_fclose(fp);
-			if (ferror(fp) || read != colr->opaque_size) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error reading ICC colour profile from file %s\n", &image_props->iccPath));
-			} else {
-				gf_list_add(ipco->other_boxes, colr);
-				prop_index = gf_list_count(ipco->other_boxes) - 1;
-				meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_FALSE);
-			}
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error opening ICC colour profile file at %s\n", &image_props->iccPath));
+			colr->opaque_size = size;
+			colr->opaque = data;
+
+			gf_list_add(ipco->other_boxes, colr);
+			prop_index = gf_list_count(ipco->other_boxes) - 1;
+			meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_FALSE);
 		}
 	}
 

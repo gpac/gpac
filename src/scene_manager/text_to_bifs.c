@@ -329,7 +329,6 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	}
 
 exit:
-	if (e) gf_sm_stream_del(ctx, srt);
 	gf_fclose(srt_in);
 	return e;
 }
@@ -514,8 +513,6 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			sfstr->buffer = gf_strdup(szText);
 		}
 	}
-
-	if (e) gf_sm_stream_del(ctx, srt);
 	gf_fclose(sub_in);
 	return e;
 }
