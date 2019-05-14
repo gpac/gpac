@@ -2921,8 +2921,8 @@ static Bool wgt_enum_files(void *cbck, char *file_name, char *file_path, GF_File
 	WGTEnum *wgt = (WGTEnum *)cbck;
 
 	if (!strcmp(wgt->root_file, file_path)) return 0;
-	/*remove CVS stuff*/
-	if (strstr(file_path, ".#")) return 0;
+	//remove hidden files
+	if (file_path[0] == '.') return 0;
 	gf_list_add(wgt->imports, gf_strdup(file_path) );
 	return 0;
 }
@@ -3014,6 +3014,12 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 
 			FILE *test = gf_fopen(item, "rb");
 			if (!test) {
+				char *resurl = gf_url_concatenate(file_name, item);
+				test = gf_fopen(resurl, "rb");
+				gf_free(resurl);
+			}
+
+			if (!test) {
 				gf_list_rem(imports, i);
 				i--;
 				count--;
@@ -3055,7 +3061,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 	skip_chars = (u32) strlen(root_dir);
 	count = gf_list_count(imports);
 	for (i=0; i<count; i++) {
-		char *ext, *mime, *encoding, *name = NULL;
+		char *ext, *mime, *encoding, *name = NULL, *itemurl;
 		char *item = gf_list_get(imports, i);
 
 		name = gf_strdup(item + skip_chars);
@@ -3095,8 +3101,11 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 			encoding = "binary-gzip";
 		}
 
-		e = gf_isom_add_meta_item(file, 1, 0, 0, item, name, 0, GF_META_ITEM_TYPE_MIME, mime, encoding, NULL,  NULL, NULL);
+		itemurl = gf_url_concatenate(file_name, item);
+
+		e = gf_isom_add_meta_item(file, 1, 0, 0, itemurl ? itemurl : item, name, 0, GF_META_ITEM_TYPE_MIME, mime, encoding, NULL,  NULL, NULL);
 		gf_free(name);
+		gf_free(itemurl);
 		if (e) goto exit;
 	}
 

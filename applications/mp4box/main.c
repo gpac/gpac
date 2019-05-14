@@ -4340,6 +4340,10 @@ int mp4boxMain(int argc, char **argv)
 			fileName[0] = ':';
 		} else {
 			file = package_file(pack_file, NULL, tmpdir, pack_wgt);
+			if (!file) {
+				fprintf(stderr, "Failed to package file\n");
+				return mp4box_cleanup(1);
+			}
 		}
 		if (!outName) outName = inName;
 		needSave = GF_TRUE;
