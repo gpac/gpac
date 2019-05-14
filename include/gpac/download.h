@@ -265,26 +265,6 @@ void gf_dm_sess_del(GF_DownloadSession * sess);
 void gf_dm_sess_abort(GF_DownloadSession * sess);
 
 /*!
- *\brief sets private data
- *
- *associate private data with the session.
- *\param sess the download session
- *\param private_data the private data
- *\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
- */
-void gf_dm_sess_set_private(GF_DownloadSession * sess, void *private_data);
-
-/*!
- *\brief gets private data
- *
- *Gets private data associated with the session.
- *\param sess the download session
- *\return the private data
- *\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
- */
-void *gf_dm_sess_get_private(GF_DownloadSession * sess);
-
-/*!
  *\brief gets last session error
  *
  *Gets the last error that occured in the session
@@ -293,13 +273,6 @@ void *gf_dm_sess_get_private(GF_DownloadSession * sess);
  */
 GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess);
 
-/*!
- *\brief is download manager thread dead?
- *
- *Indicates whether the thread has ended
- *\param sess the download session
- */
-Bool gf_dm_is_thread_dead(GF_DownloadSession *sess);
 
 /*!
  *\brief fetches data on session
@@ -439,16 +412,6 @@ GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 en
  * \return a pointer to the entry of session refreshed
  */
 DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess);
-
-/*!
- * Tells whether session can be cached on disk.
- * Typically, when request has no content length, it deserves being streamed an cannot be cached
- * (ICY or MPEG-streamed content
- * \param sess The session
- * \return True if a cache can be created
- */
-Bool gf_dm_sess_can_be_cached_on_disk(const GF_DownloadSession *sess);
-
 
 /*!
  * Re-setup an existing, completed session to download a new URL. If same server/port/protocol is used, the same socket will be reused if the session

@@ -839,12 +839,19 @@ static void gf_dm_sess_user_io(GF_DownloadSession *sess, GF_NETIO_Parameter *par
 	}
 }
 
-GF_EXPORT
+#if 0 //unused
+/*!
+ *\brief is download manager thread dead?
+ *
+ *Indicates whether the thread has ended
+ *\param sess the download session
+ */
 Bool gf_dm_is_thread_dead(GF_DownloadSession *sess)
 {
 	if (!sess) return GF_TRUE;
 	return (sess->flags & GF_DOWNLOAD_SESSION_THREAD_DEAD) ? GF_TRUE : GF_FALSE;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess)
@@ -2443,12 +2450,20 @@ const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess)
 	return gf_cache_get_cache_filename(sess->cache_entry);
 }
 
-GF_EXPORT
+#if 0 //unused
+/*!
+ * Tells whether session can be cached on disk.
+ * Typically, when request has no content length, it deserves being streamed an cannot be cached
+ * (ICY or MPEG-streamed content
+ * \param sess The session
+ * \return True if a cache can be created
+ */
 Bool gf_dm_sess_can_be_cached_on_disk(const GF_DownloadSession *sess)
 {
 	if (!sess) return GF_FALSE;
 	return gf_cache_get_content_length(sess->cache_entry) != 0;
 }
+#endif
 
 GF_EXPORT
 void gf_dm_sess_abort(GF_DownloadSession * sess)
@@ -2459,23 +2474,34 @@ void gf_dm_sess_abort(GF_DownloadSession * sess)
 	sess->status = GF_NETIO_STATE_ERROR;
 	gf_mx_v(sess->mx);
 }
+
+#if 0 //unused
+/*!
+ *\brief gets private data
+ *
+ *Gets private data associated with the session.
+ *\param sess the download session
+ *\return the private data
+ *\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
+ */
 void *gf_dm_sess_get_private(GF_DownloadSession * sess)
 {
 	return sess ? sess->ext : NULL;
 }
 
+/*!
+ *\brief sets private data
+ *
+ *associate private data with the session.
+ *\param sess the download session
+ *\param private_data the private data
+ *\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
+ */
 void gf_dm_sess_set_private(GF_DownloadSession * sess, void *private_data)
 {
 	if (sess) sess->ext = private_data;
 }
-
-/* HTTP(S) stuff*/
-static GFINLINE u32 http_skip_space(char *val)
-{
-	u32 ret = 0;
-	while (val[ret] == ' ') ret+=1;
-	return ret;
-}
+#endif
 
 /*!
  * Sends the HTTP headers
@@ -3084,7 +3110,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			if (!strncmp(hdrp->value, "bytes", 5)) {
 				val = hdrp->value + 5;
 				if (val[0] == ':') val += 1;
-				val += http_skip_space(val);
+				while (val[0] == ' ') val += 1;
+
 				if (val[0] == '*') {
 					sscanf(val, "*/%u", &total_size);
 				} else {
