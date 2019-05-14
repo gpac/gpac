@@ -4005,7 +4005,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 
 	if (do_mpd_rip) {
-		e = rip_mpd(inName);
+		e = rip_mpd(inName, outName);
 		return mp4box_cleanup(e ? 1 : 0);
 	}
 
