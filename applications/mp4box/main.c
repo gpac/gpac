@@ -1223,15 +1223,6 @@ GF_FileType get_file_type_by_ext(char *inName)
 	return type;
 }
 
-#if !defined(GPAC_DISABLE_MEDIA_IMPORT) && !defined(GPAC_DISABLE_ISOM_WRITE)
-static Bool can_convert_to_isma(GF_ISOFile *file)
-{
-	u32 spec = gf_isom_guess_specification(file);
-	if (spec==GF_ISOM_BRAND_ISMA) return GF_TRUE;
-	return GF_FALSE;
-}
-#endif
-
 typedef struct
 {
 	u32 trackID;
@@ -1778,7 +1769,7 @@ static u32 create_new_track_action(char *string, TrackAction **actions, u32 *nb_
 }
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
-static GF_Err nhml_bs_to_bin(char *inName, char *outName, u32 dump_std)
+static GF_Err xml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 {
 	GF_Err e;
 	GF_XMLNode *root;
@@ -1798,7 +1789,7 @@ static GF_Err nhml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 		return GF_OK;
 	}
 
-	e = gf_xml_parse_bit_sequence(root, &data, &data_size);
+	e = gf_xml_parse_bit_sequence(root, inName, &data, &data_size);
 	gf_xml_dom_del(dom);
 
 	if (e) {
@@ -2104,27 +2095,6 @@ static GF_Err hash_file(char *name, u32 dump_std)
 	return GF_OK;
 }
 
-Bool log_sys_clock = GF_FALSE;
-Bool log_utc_time = GF_FALSE;
-
-static void on_mp4box_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
-{
-	FILE *logs = cbk ? cbk : stderr;
-
-	if (log_sys_clock) {
-		fprintf(logs, "At "LLD" ", gf_sys_clock_high_res() );
-	}
-	if (log_utc_time) {
-		u64 utc_clock = gf_net_get_utc() ;
-		time_t secs = utc_clock/1000;
-		struct tm t;
-		t = *gmtime(&secs);
-		fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS "LLU") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
-	}
-
-	vfprintf(logs, fmt, list);
-	fflush(logs);
-}
 
 char outfile[5000];
 GF_Err e;
@@ -2177,7 +2147,7 @@ Bool HintCopy = 0;
 u32 MTUSize = 1450;
 #endif
 #ifndef GPAC_DISABLE_CORE_TOOLS
-Bool do_bin_nhml = GF_FALSE;
+Bool do_bin_xml = GF_FALSE;
 #endif
 GF_ISOFile *file;
 Bool frag_real_time = GF_FALSE;
@@ -3376,7 +3346,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-mpd-rip")) do_mpd_rip = GF_TRUE;
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
-		else if (!stricmp(arg, "-bin")) do_bin_nhml = GF_TRUE;
+		else if (!stricmp(arg, "-bin")) do_bin_xml = GF_TRUE;
 #endif
 		else if (!stricmp(arg, "-dump-udta")) {
 			char *sep, *code;
@@ -3929,9 +3899,6 @@ int mp4boxMain(int argc, char **argv)
 		return mp4box_cleanup(i - 1);
 	}
 
-	if (!logfile && (log_sys_clock || log_utc_time) )
-		gf_log_set_callback(NULL, on_mp4box_log);
-
 	if (!inName && dump_std)
 		inName = "std";
 
@@ -4316,7 +4283,6 @@ int mp4boxMain(int argc, char **argv)
 		if (!keep_sys_tracks) remove_systems_tracks(file);
 
 		needSave = GF_TRUE;
-		if (conv_type && can_convert_to_isma(file)) conv_type = GF_ISOM_CONV_TYPE_ISMA;
 	}
 #endif /*!GPAC_DISABLE_MEDIA_IMPORT && !GPAC_DISABLE_ISOM_WRITE*/
 
@@ -4689,8 +4655,8 @@ int mp4boxMain(int argc, char **argv)
 					dump_mpeg2_ts(inName, pes_dump, program_number);
 #endif
 #ifndef GPAC_DISABLE_CORE_TOOLS
-				} else if (do_bin_nhml) {
-					nhml_bs_to_bin(inName, outName, dump_std);
+				} else if (do_bin_xml) {
+					xml_bs_to_bin(inName, outName, dump_std);
 #endif
 				} else if (do_hash) {
 					hash_file(inName, dump_std);
@@ -4852,8 +4818,8 @@ int mp4boxMain(int argc, char **argv)
 		if (e) goto err_exit;
 	}
 #ifndef GPAC_DISABLE_CORE_TOOLS
-	if (do_bin_nhml) {
-		e = nhml_bs_to_bin(inName, outName, dump_std);
+	if (do_bin_xml) {
+		e = xml_bs_to_bin(inName, outName, dump_std);
 		if (e) goto err_exit;
 	}
 #endif

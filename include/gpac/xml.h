@@ -333,18 +333,20 @@ void gf_xml_dom_node_del(GF_XMLNode *node);
  *
  *
  *\param bsroot the root node of XML document describing the bitstream to create
+ *\param parent_url URL of the parent document
  *\param out_data pointer to output buffer allocated by the function to store the result
  *\param out_data_size pointer to output buffer size allocated by the function to store the result
  *\return error code if any or GF_OK
  */
-GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **out_data, u32 *out_data_size);
+GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, const char *parent_url, char **out_data, u32 *out_data_size);
 
 /*! Parses XML bit sequence in an existing bitstream object. The syntax for the XML is the same as in \ref gf_xml_parse_bit_sequence
  *\param bsroot the root node of XML document describing the bitstream to create
+ *\param parent_url URL of the parent document
  *\param bs target bitstream to write the result into. The bitstream must be a dynamic write bitstream object
  *\return error code or GF_OK
  */
-GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs);
+GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, GF_BitStream *bs);
 
 /*! Gets the element and check that the namespace is known ('xmlns'-only supported for now)
  *\param n                  the node to process
