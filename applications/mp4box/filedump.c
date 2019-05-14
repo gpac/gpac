@@ -3538,10 +3538,6 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	GF_M2TS_Demuxer *ts;
 	FILE *src;
 
-	if (!prog_num && !out_name) {
-		fprintf(stderr, "No program number nor output filename specified. No timestamp file will be generated.");
-	}
-
 	src = gf_fopen(mpeg2ts_file, "rb");
 	if (!src) {
 		fprintf(stderr, "Cannot open %s: no such file\n", mpeg2ts_file);
@@ -3585,6 +3581,16 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 		if (dumper.has_seen_pat) break;
 	}
 	dumper.has_seen_pat = GF_TRUE;
+
+	if (!prog_num) {
+		GF_M2TS_Program *p = gf_list_get(ts->programs, 0);
+		if (p) prog_num = p->number;
+		fprintf(stderr, "No program number specified, defaulting to first program\n");
+	}
+
+	if (!prog_num && !out_name) {
+		fprintf(stderr, "No program number nor output filename specified. No timestamp file will be generated\n");
+	}
 
 	if (prog_num) {
 		sprintf(dumper.timestamps_info_name, "%s_prog_%d_timestamps.txt", mpeg2ts_file, prog_num/*, mpeg2ts_file*/);
