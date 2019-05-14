@@ -423,11 +423,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 			}
 			if (!strncmp(rvc_config_att, "data:application/rvc-config+xml+gz", 35)) is_gz = GF_TRUE;
 		} else if (!strnicmp(rvc_config_att, "http://", 7) || !strnicmp(rvc_config_att, "https://", 8) ) {
-			char *mime;
-			if (gf_dm_get_file_memory(rvc_config_att, &rvc_data, &rvc_size, &mime) == GF_OK) {
-				if (mime && strstr(mime, "+gz")) is_gz = GF_TRUE;
-				if (mime) gf_free(mime);
-			}
+			return NULL;
 		}
 		if (rvc_data) {
 			if (is_gz) {

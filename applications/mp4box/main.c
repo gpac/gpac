@@ -4014,8 +4014,9 @@ int mp4boxMain(int argc, char **argv)
 		e = gf_dm_wget(do_wget, inName, 0, 0, NULL);
 		if (e != GF_OK) {
 			fprintf(stderr, "Cannot retrieve %s: %s\n", do_wget, gf_error_to_string(e) );
+			return mp4box_cleanup(1);
 		}
-		return mp4box_cleanup(1);
+		return mp4box_cleanup(0);
 	}
 #endif
 
