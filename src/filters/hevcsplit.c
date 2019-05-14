@@ -22,7 +22,9 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-//#define DYNAMIQUE_TPID
+#if 0
+#define DYNAMIQUE_TPID
+#endif
 #include <gpac/bitstream.h>
 #include <gpac/filters.h>
 #include <gpac/avparse.h>
@@ -34,15 +36,24 @@ typedef struct
 	GF_FilterPid *opid;
 	u32 width, height, orig_x, orig_y;
 	GF_FilterPacket *cur_pck;
+#ifdef DYNAMIQUE_TPID
+	s32 did_it;
+	u8 pid_idx;
+#else
 	u8 did_it;
+#endif
 } HEVCTilePid;
 
 typedef struct
 {
 	GF_FilterPid *ipid;
-	GF_List *opids;
 #ifdef DYNAMIQUE_TPID
+#if 0
 	HEVCTilePid *tile_pids; 
+	u32 tile_pids_alloc_size;
+#endif
+	u8 pid_idx;
+	u64 addr_tile_pid[25];
 #else
 	HEVCTilePid tile_pids[64]; 
 #endif
@@ -160,7 +171,7 @@ static void slice_address_calculation(HEVCState *hevc, u32 *address, u32 tile_x,
 }
 
 //Transform slice 1d address into 2D address
-static u32 get_newSliceAddress_and_tilesCordinates(u32 *x, u32 *y, HEVCState *hevc)
+static u32 get_newSliceAddress_and_tilesCoordinates(u32 *x, u32 *y, HEVCState *hevc)
 {
 	HEVCSliceInfo si = hevc->s_info;
 	u32 i, tbX = 0, tbY = 0, slX, slY, PicWidthInCtbsY, PicHeightInCtbsX, valX = 0, valY = 0;
@@ -750,7 +761,7 @@ static char* extract( GF_HEVCSplitCtx *ctx, char *buffer, u32 buffer_length, u32
 
 	gf_media_hevc_parse_nalu(buffer, buffer_length, hevc, &nal_unit_type, &temporal_id, &layer_id);
 	switch (nal_unit_type) {
-		// For all those cases
+	// For all those cases
 	case GF_HEVC_NALU_SLICE_TRAIL_N:
 	case GF_HEVC_NALU_SLICE_TRAIL_R:
 	case GF_HEVC_NALU_SLICE_TSA_N:
@@ -768,11 +779,16 @@ static char* extract( GF_HEVCSplitCtx *ctx, char *buffer, u32 buffer_length, u32
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
 	case GF_HEVC_NALU_SLICE_CRA:
 
-		newAddress = get_newSliceAddress_and_tilesCordinates(&i, &j, hevc);
+		newAddress = get_newSliceAddress_and_tilesCoordinates(&i, &j, hevc);
 		// matching_opid (or *original_coord = newAddress)
 		*original_coord = i * hevc->s_info.pps->num_tile_columns + j; 
 #ifdef DYNAMIQUE_TPID
+#if 0
 		HEVCTilePid *tpid = (ctx->tile_pids + (*original_coord));
+#endif
+
+		HEVCTilePid *tpid = gf_filter_pid_get_udta(ctx->ipid);
+
 #else
 		HEVCTilePid *tpid = &ctx->tile_pids[*original_coord];
 #endif
@@ -858,13 +874,28 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	GF_Err e;
 	// private stack of the filter returned as an object GF_HEVCSplitCtx.
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx*)gf_filter_get_udta(filter); 
+	HEVCTilePid *tpid;
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] configure_pid started.\n"));
 
 	if (is_remove) {
-		// todo!  gf_filter_pid_remove(ctx->opid); on all output pids
+		// TODO!  gf_filter_pid_remove(ctx->opid); on all output pids
 		for(u32 i = 0; i < ctx->num_tiles; i++)
 		{
+#ifdef DYNAMIQUE_TPID
+			tpid = gf_filter_pid_get_udta(pid);
+			if (!tpid) { // Is it forcing or tpid needs it ?
+					GF_SAFEALLOC(tpid, HEVCTilePid);
+					gf_filter_pid_set_udta(pid, tpid);
+					tpid->pid_idx = ctx->pid_idx;
+#if 0
+					ctx->addr_tile_pid[ctx->pid_idx] = tpid; // So we can free the address of tpid in finalize
+#endif
+				}
+				assert(tpid);
+
+#else
 			HEVCTilePid *tpid = &ctx->tile_pids[i];
+#endif
 			if (tpid->opid) {
 				gf_filter_pid_remove(tpid->opid);
 				tpid->opid = NULL;
@@ -953,22 +984,40 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	// Done with parsing SPS/pps/vps
 	u32 rows = ctx->hevc_state.pps[pps_id].num_tile_rows;
 	u32 cols = ctx->hevc_state.pps[pps_id].num_tile_columns;
+	u32 idx;
 	for (i = 0; i < rows; i++) {
 		for (j = 0; j < cols; j++) {
-			u32 idx = i * cols + j;
+			idx = i * cols + j;
 #ifdef DYNAMIQUE_TPID
+#if 0
 			if (idx == 0)
 				ctx->tile_pids = (HEVCTilePid *) gf_malloc(sizeof(HEVCTilePid));
 			else {
 				ctx->tile_pids = (HEVCTilePid *) gf_realloc(ctx->tile_pids, sizeof(HEVCTilePid));
 				printf("Realloc done for idx %d\n", idx);
 			}
+#endif
+
+			tpid = gf_filter_pid_get_udta(pid);
+			if (!tpid){
+				GF_SAFEALLOC(tpid, HEVCTilePid);
+				gf_filter_pid_set_udta(pid, tpid);
+				tpid->pid_idx = ctx->pid_idx;
+				if (!tpid->opid){
+					tpid->opid = gf_filter_pid_new(filter);
+				}
+				ctx->addr_tile_pid[ctx->pid_idx] = tpid; // So we can free the address of tile_pid in finalize
+			}
+			assert(tpid);
+#if 0
 			HEVCTilePid *tpid = (ctx->tile_pids + idx);
 			if (tpid->did_it > -1)
 			{
 				tpid->did_it = -2;
 				tpid->opid = gf_filter_pid_new(filter);
 			}
+#endif
+
 #else	
 			HEVCTilePid *tpid = &ctx->tile_pids[idx];
 			if (!tpid->opid) {
@@ -992,20 +1041,25 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	static u32 k = 0;
 	k++;
 #ifdef DYNAMIQUE_TPID
+#if 0
 	gf_free(ctx->tile_pids);
+#endif
+	ctx->pid_idx++;
 #endif
 	return GF_OK;
 }
 
 static GF_Err hevcsplit_process(GF_Filter *filter)
 {
-	u32 idx, nb_eos = 0, hevc_nalu_size_length;
+	u32 nb_eos = 0, hevc_nalu_size_length;
 	u32 data_size, nal_length, opid_idx = 0;
 	u8 temporal_id, layer_id, nal_unit_type, i; // On default we have a nalu
 	char *data;
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx*)gf_filter_get_udta(filter);
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] Process started.\n"));
-
+#ifdef DYNAMIQUE_TPID
+	ctx->pid_idx = 0;
+#endif
 	// Gets the first packet in the input pid buffer
 	GF_FilterPacket *pck_src = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck_src) {
@@ -1015,7 +1069,7 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
-	data = (char *) gf_filter_pck_get_data(pck_src, &data_size); // data contains only a packet 
+	data = (char *) gf_filter_pck_get_data(pck_src, &data_size); //  a packet contains only data
 	//TODO: this is a clock signaling, for now just trash ..
 	if (!data) {
 		gf_filter_pid_drop_packet(ctx->ipid);
@@ -1036,7 +1090,7 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 		// ctx->hevc_nalu_size_length filled using hvcc
 		nal_length = gf_bs_read_int(ctx->bs_nal_in, ctx->hevc_nalu_size_length * 8);
 		u32 pos = (u32) gf_bs_get_position(ctx->bs_nal_in);
-		// skip the content of the nal from bs to buffer (usefull for the next nal)
+		// skip the content of the nal from bs to buffer (useful for the next nal)
 		 gf_bs_skip_bytes(ctx->bs_nal_in, nal_length);
 		// gf_bs_skip_bytes(bs, ctx->hevc_nalu_size_length * 8);
 		// data+pos is an address 
@@ -1056,7 +1110,10 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 					for(i = 0; i < ctx->num_tiles; i++)
 					{
 #ifdef DYNAMIQUE_TPID
+#if 0
 						HEVCTilePid *tpid = (ctx->tile_pids + i);
+#endif
+						HEVCTilePid *tpid = ctx->addr_tile_pid[i];
 #else
 						HEVCTilePid *tpid = &ctx->tile_pids[i];
 #endif
@@ -1076,11 +1133,18 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 							gf_filter_pck_expand(tpid->cur_pck, ctx->hevc_nalu_size_length + out_nal_size, &data_start, &output_nal, &new_size);
 						}
 					bsnal(output_nal, rewritten_nal, out_nal_size, hevc_nalu_size_length);
+#ifdef DYNAMIQUE_TPID
+					ctx->pid_idx++;
+#endif
 					}
 			}
 			else
 			{
-					HEVCTilePid *tpid = ctx->tile_pids + opid_idx;
+#ifdef DYNAMIQUE_TPID
+				HEVCTilePid *tpid = ctx->addr_tile_pid[opid_idx];
+#else
+						HEVCTilePid *tpid = ctx->tile_pids + opid_idx;
+#endif
 					if (!tpid->opid) {
 						// ERROR
 						continue;
@@ -1101,8 +1165,14 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 	}
 	gf_filter_pid_drop_packet(ctx->ipid);
 	// done rewriting all nals from input, send all output
-	for (idx = 0; idx < ctx->num_tiles; idx++) {
-		HEVCTilePid *tpid = ctx->tile_pids + idx;
+	for (u32 idx = 0; idx < ctx->num_tiles; idx++) {
+
+#ifdef DYNAMIQUE_TPID
+				HEVCTilePid *tpid = gf_filter_pid_get_udta(ctx->ipid);
+#else
+				HEVCTilePid *tpid = ctx->tile_pids + idx;
+#endif
+
 		if (!tpid->opid) continue;
 		if (tpid->cur_pck) {
 			gf_filter_pck_send(tpid->cur_pck);
@@ -1124,8 +1194,15 @@ static void hevcsplit_finalize(GF_Filter *filter)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] hevcsplit_finalize started.\n"));
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx *) gf_filter_get_udta(filter);
+	HEVCTilePid *tpid;
 	if (ctx->buffer_nal) gf_free(ctx->buffer_nal);
 	gf_bs_del(ctx->bs_nal_in);
+#ifdef DYNAMIQUE_TPID
+	for (u32 i = 0; i < ctx->num_tiles; i++) {
+		tpid = ctx->addr_tile_pid[i];
+		gf_free((HEVCTilePid *)ctx->addr_tile_pid[i]);
+	}
+#endif
 }
 
 static const GF_FilterCapability HEVCSplitCaps[] =
