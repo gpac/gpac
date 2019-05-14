@@ -1639,7 +1639,7 @@ GF_Err gf_isom_dump_supported_box(u32 idx, FILE * trace)
 		nb_versions = box_registry[idx].max_version_plus_one - 1;
 	}
 	for (i = 0; i <= nb_versions; i++) {
-		a = gf_isom_box_new(box_registry[idx].box_4cc);
+		a = box_registry[idx].new_fn();
 		a->registry = &box_registry[idx];
 
 		if (box_registry[idx].alt_4cc) {
