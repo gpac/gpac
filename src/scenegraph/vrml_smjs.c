@@ -4584,27 +4584,20 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 
 static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_script, jsval *rval)
 {
-	FILE *jsf;
 	char *jsscript;
-	u64 fsize;
+	u32 fsize;
 	Bool success = 1;
 	JSBool ret;
+	GF_Err e;
 	jsval fval;
 	GF_ScriptPriv *priv = (GF_ScriptPriv *) script->sgprivate->UserPrivate;
 	uintN attr;
 	JSBool found;
 
-	jsf = gf_fopen(file, "rb");
-	if (!jsf) return 0;
-
-	gf_fseek(jsf, 0, SEEK_END);
-	fsize = gf_ftell(jsf);
-	gf_fseek(jsf, 0, SEEK_SET);
-	jsscript = gf_malloc(sizeof(char)*(size_t)(fsize+1));
-	fsize = fread(jsscript, sizeof(char), (size_t)fsize, jsf);
-	gf_fclose(jsf);
-	jsscript[fsize] = 0;
-
+	e = gf_file_load_data(file, (u8 **) &jsscript, &fsize);
+	if (e) {
+		return GF_FALSE;
+	}
 	*rval = JSVAL_NULL;
 	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, (u32) (sizeof(char)*fsize), file, 0, rval);
 	if (ret==JS_FALSE) success = 0;

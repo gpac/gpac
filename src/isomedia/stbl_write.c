@@ -72,7 +72,6 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 		ent = &stts->entries[stts->nb_entries-1];
 		if (!ent->sampleDelta && (ent->sampleCount>1)) {
 			ent->sampleDelta = (u32) ( DTS / ent->sampleCount);
-			ent->sampleDelta /= ent->sampleCount;
 			stts->w_LastDTS = DTS - ent->sampleDelta;
 		}
 		//OK, we're adding at the end
@@ -671,7 +670,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 
 	if (stsc->w_lastSampleNumber + 1 == sampleNumber ) needs_split = GF_TRUE;
 
-	if (!stsc->nb_entries || (stsc->nb_entries + (needs_split ? 2 : 0) == stsc->alloc_size)) {
+	if (!stsc->nb_entries || (stsc->nb_entries + (needs_split ? 2 : 0) >= stsc->alloc_size)) {
 		if (!stsc->alloc_size) stsc->alloc_size = 1;
 		ALLOC_INC(stsc->alloc_size);
 		stsc->entries = gf_realloc(stsc->entries, sizeof(GF_StscEntry)*stsc->alloc_size);
@@ -1759,6 +1758,9 @@ GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl)
 	stsc_tmp->nb_entries = stsc_tmp->alloc_size = stbl->SampleSize->sampleCount;
 	stsc_tmp->entries = gf_malloc(sizeof(GF_StscEntry)*stsc_tmp->nb_entries);
 	if (!stsc_tmp->entries) return GF_OUT_OF_MEM;
+	//set write cache to last sample before unpack
+	stsc_tmp->w_lastSampleNumber = stbl->SampleSize->sampleCount;
+	stsc_tmp->w_lastChunkNumber = stbl->SampleSize->sampleCount;
 
 	//OK write our two tables...
 	ent = NULL;

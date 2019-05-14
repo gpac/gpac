@@ -436,12 +436,37 @@ log $L_ERR "MP4Box not found (ret $res) - exiting"
 exit 1
 fi
 
-#gpac -h 2> /dev/null
-#res=$?
-#if [ $res != 0 ] ; then
-#log $L_ERR "gpac not found (ret $res) - exiting"
+GPAC_OSTYPE="unknown"
+
+gpac -h 2> /dev/null
+res=$?
+if [ $res != 0 ] ; then
+log $L_ERR "gpac not found (ret $res) - exiting"
 #exit 1
-#fi
+else
+ bininfo=`gpac -h bin 2>&1`
+ config=`echo $bininfo | grep GPAC_64`
+ if [ -z "$config" ] ; then
+  bits=32
+ else
+  bits=64
+ fi
+
+ config=`echo $bininfo | grep GPAC_CONFIG_LINUX`
+ if [ -n "$config" ] ; then
+  GPAC_OSTYPE="lin$bits"
+ else
+  config=`echo $bininfo | grep GPAC_CONFIG_DARWIN`
+  if [ -n "$config" ] ; then
+  GPAC_OSTYPE="osx$bits"
+  else
+   config=`echo $bininfo | grep GPAC_CONFIG_WIN`
+   if [ -n "$config" ] ; then
+    GPAC_OSTYPE="win$bits"
+   fi
+  fi
+ fi
+fi
 
 MP42TS -h 2> /dev/null
 res=$?

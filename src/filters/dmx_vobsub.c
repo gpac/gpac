@@ -209,6 +209,9 @@ GF_Err vobsubdmx_parse_idx(GF_Filter *filter, GF_VOBSubDmxCtx *ctx)
 		for (i=0; i<ctx->vobsub->num_langs; i++) {
 			GF_FilterPid *opid = gf_filter_pid_new(filter);
 
+			//copy properties from idx pid
+			gf_filter_pid_copy_properties(opid, ctx->idx_pid);
+
 			gf_filter_pid_set_property(opid, GF_PROP_PID_ID, &PROP_UINT(i+1) );
 			gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
 			gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_SUBPIC) );

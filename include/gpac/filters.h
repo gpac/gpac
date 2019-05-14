@@ -721,6 +721,7 @@ enum
 	GF_PROP_PID_ZORDER = GF_4CC('V', 'Z','I','X'),
 	GF_PROP_PID_TRANS_X = GF_4CC('V','T','R','X'),
 	GF_PROP_PID_TRANS_Y = GF_4CC('V','T','R','Y'),
+	GF_PROP_PID_HIDDEN = GF_4CC('H','I','D','E'),
 	GF_PROP_PID_CROP_POS = GF_4CC('V','C','X','Y'),
 	GF_PROP_PID_ORIG_SIZE = GF_4CC('V','O','W','H'),
 	GF_PROP_PID_SRD = GF_4CC('S','R','D',' '),
@@ -818,6 +819,8 @@ enum
 	GF_PROP_PID_DASH_CUE = GF_4CC('D','C','U','E'),
 	GF_PROP_PID_SINGLE_SCALE = GF_4CC('D','S','T','S'),
 	GF_PROP_PID_UDP = GF_4CC('P','U','D','P'),
+
+	GF_PROP_PID_PRIMARY_ITEM = GF_4CC('P','I','T','M'),
 };
 
 /*! Gets readable name of built-in property

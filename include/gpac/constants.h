@@ -208,13 +208,6 @@ typedef enum
 
 
 /*! enumerates GPAC pixel formats
- \param[in,out] idx index of the pixel format to query, incremented at each call
- \param[out] out_name output name of the pixel format
- \return pixel format code
-*/
-u32 gf_pixel_fmt_enum(u32 *idx, const char **out_name);
-
-/*! enumerates GPAC pixel formats
  \param pf_name name of the pixel format
  \return pixel format code
 */
@@ -505,13 +498,6 @@ const char *gf_codecid_name(u32 codecid);
  \return codec ID
 */
 u32 gf_codecid_enum(u32 idx, const char **short_name, const char **long_name);
-
-/*! Gets a textual description for the given MPEG-4 stream type and object type
- \param stream_type stream type of the stream
- \param oti ObjectTypeIndication of the stream
- \return textual description of the stream
-*/
-const char *gf_codecid_name_oti(u32 stream_type, u32 oti);
 
 /*! Gets the associated streamtype for the given codecID
  \param codecid target codec ID

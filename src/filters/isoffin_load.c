@@ -497,6 +497,38 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_STRING_NO_COPY(tx3g_config_sdp) );
 			}
 		}
+
+
+		u32 tag_len;
+		const char *tag;
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_NAME, &tag, &tag_len)==GF_OK)
+			gf_filter_pid_set_info_str(ch->pid, "info:name", &PROP_STRING(tag) );
+
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_ARTIST, &tag, &tag_len)==GF_OK)
+			gf_filter_pid_set_info_str(ch->pid, "info:artist", &PROP_STRING(tag) );
+
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_ALBUM, &tag, &tag_len)==GF_OK)
+			gf_filter_pid_set_info_str(ch->pid, "info:album", &PROP_STRING(tag) );
+
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COMMENT, &tag, &tag_len)==GF_OK)
+			gf_filter_pid_set_info_str(ch->pid, "info:comment", &PROP_STRING(tag) );
+
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) {
+			u16 tk_n = (tag[2]<<8)|tag[3];
+			u16 tk_all = (tag[4]<<8)|tag[5];
+			gf_filter_pid_set_info_str(ch->pid, "info:track", &PROP_FRAC_INT(tk_n, tk_all) );
+		}
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COMPOSER, &tag, &tag_len)==GF_OK)
+			gf_filter_pid_set_info_str(ch->pid, "info:composer", &PROP_STRING(tag) );
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_WRITER, &tag, &tag_len)==GF_OK)
+			gf_filter_pid_set_info_str(ch->pid, "info:writer", &PROP_STRING(tag) );
+
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_GENRE, &tag, &tag_len)==GF_OK) {
+			if (tag[0]) {
+			} else {
+				/*com->info.genre = (tag[0]<<8) | tag[1];*/
+			}
+		}
 	}
 
 	//update decoder configs
@@ -877,13 +909,18 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 	GF_ImageItemProperties props;
 	GF_FilterPid *pid;
 	GF_ESD *esd;
-	u32 item_id;
-	gf_isom_get_meta_item_info(read->mov, GF_TRUE, 0, item_idx, &item_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	u32 item_id=0;
+	const char *item_name, *item_mime_type, *item_encoding;
+
+	if (item_idx>gf_isom_get_meta_item_count(read->mov, GF_TRUE, 0))
+		return GF_FALSE;
+
+	item_name = item_mime_type = item_encoding = NULL;
+	gf_isom_get_meta_item_info(read->mov, GF_TRUE, 0, item_idx, &item_id, NULL, NULL, NULL, NULL, NULL, &item_name, &item_mime_type, &item_encoding);
 
 	if (!item_id) return GF_FALSE;
 
 	gf_isom_get_meta_image_props(read->mov, GF_TRUE, 0, item_id, &props);
-	if (props.hidden) return GF_FALSE;
 
 	esd = gf_media_map_item_esd(read->mov, item_id);
 	if (!esd) return GF_FALSE;
@@ -898,7 +935,9 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 		gf_filter_pid_copy_properties(pid, read->pid);
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esd->ESID));
-	gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_ID, &PROP_UINT(item_id));
+	if (read->itemid)
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_ID, &PROP_UINT(item_id));
+		
 	//TODO: no support for LHEVC images
 	//gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID));
 
@@ -916,7 +955,20 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 		gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(props.width));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(props.height));
 	}
+	if (props.hidden) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_HIDDEN, &PROP_BOOL(props.hidden));
+	}
 	gf_odf_desc_del((GF_Descriptor *)esd);
+
+	if (gf_isom_get_meta_primary_item_id(read->mov, GF_TRUE, 0) == item_id) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_PRIMARY_ITEM, &PROP_BOOL(GF_TRUE));
+	} else {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_PRIMARY_ITEM, &PROP_BOOL(GF_FALSE));
+	}
+
+	gf_filter_pid_set_property_str(pid, "meta:mime", item_mime_type ? &PROP_STRING(item_mime_type) : NULL );
+	gf_filter_pid_set_property_str(pid, "meta:name", item_name ? &PROP_STRING(item_name) : NULL );
+	gf_filter_pid_set_property_str(pid, "meta:encoding", item_encoding ? &PROP_STRING(item_encoding) : NULL );
 
 	if (!ch) {
 		/*ch = */isor_create_channel(read, pid, 0, item_id, GF_FALSE);

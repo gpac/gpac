@@ -1,4 +1,3 @@
-
 #@lsr_test execute tests on lsr file: laser<->MP4, laser<->saf,  conversions BT, XMT and MP4 Playback
 lsr_test ()
 {
@@ -63,8 +62,11 @@ lsr_test ()
  #test saf demux
  myinspect=$TEMP_DIR/inspect_saf.txt
  do_test "$GPAC -i $saffile inspect:all:deep:interleave=false:log=$myinspect"
- do_hash_test $myinspect "inspect-saf"
 
+ #don't hash content on 32 bits, fp precision leads to different results, hence different crc
+ if [ $GPAC_OSTYPE != "lin32" ] ; then
+  do_hash_test $myinspect "inspect-saf"
+ fi
  #this will sync everything, we can delete after
  test_end
 

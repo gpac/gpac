@@ -61,12 +61,12 @@ dst_file=$TEMP_DIR/$3
 
 #start udp reciever first, with 2s timeout - if we test out of order / drop, skip receiver
 if [ -z $6 ] ; then
-do_test "$GPAC -i udp://localhost:1234:ext=$4:timeout=1000 -o $dst_file -graph"  "in"  &
+do_test "$GPAC -i udp://$4:timeout=1000 -o $dst_file -graph"  "in"  &
 
 sleep .1
 fi
 
-do_test "$GPAC -i $src_file -o udp://localhost:1234:ext=$4:rate=1m$6 -graph"  "out"
+do_test "$GPAC -i $src_file -o udp://$4:rate=1m$6 -graph"  "out"
 
 wait
 
@@ -100,10 +100,13 @@ test_sock_tcp "raw-gsf-mp4" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.mp4"
 
 
 #raw file | udp | raw file
-test_sock_udp "raw-raw" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.aac" "aac" 1 ""
+test_sock_udp "raw-raw" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.aac" "localhost:1234:ext=aac" 1 ""
 
 #raw file | udp | mp4 file
-test_sock_udp "raw-mp4" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.mp4" "aac" 0 ""
+test_sock_udp "raw-mp4" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.mp4" "localhost:1234:ext=aac" 0 ""
 
 #raw file -> demux -> gsf | pipe | mp4 file
-test_sock_udp "raw-gsf-mp4" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.mp4" "gsf" 0 ":pckr=0/10:pckd=0/100"
+test_sock_udp "raw-gsf-mp4" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.mp4" "localhost:1234:ext=gsf" 0 ":pckr=0/10:pckd=0/100"
+
+#raw file | udp multicast | raw file
+test_sock_udp "raw-raw-mcast" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.aac" "234.0.0.1:1234:ext=aac" 1 ""

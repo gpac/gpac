@@ -132,3 +132,7 @@ test_decoder "ac3-ff" $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.ac3 "test.pc
 test_decoder "vorbis" $EXTERNAL_MEDIA_DIR/import/dead_ogg.ogg "test.pcm" "-blacklist=ffdec" 0
 
 test_decoder "theora" $EXTERNAL_MEDIA_DIR/import/dead_ogg.ogg "test.yuv" "-blacklist=ffdec" 0
+
+#test aac multichannel decode to raw
+test_decoder "aac-faad-mc" $EXTERNAL_MEDIA_DIR/import/aac_vbr_51_128k.aac "test.pcm" "-blacklist=ffdec" 1
+

@@ -298,21 +298,14 @@ static void imagetexture_update(GF_TextureHandler *txh)
 			if (ct->image.buffer) {
 				char *par = (char *) gf_scene_get_service_url( gf_node_get_graph(txh->owner ) );
 				char *src_url = gf_url_concatenate(par, ct->image.buffer);
-				FILE *test = gf_fopen( src_url ? src_url : ct->image.buffer, "rb");
-				if (test) {
-					fseek(test, 0, SEEK_END);
-					ct->data_len = (u32) gf_ftell(test);
-					ct->data = gf_malloc(sizeof(char)*ct->data_len);
-					fseek(test, 0, SEEK_SET);
-					if (ct->data_len != fread(ct->data, 1, ct->data_len, test)) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to load CacheTexture data from file %s: IO err\n", src_url ? src_url : ct->image.buffer ) );
-						gf_free(ct->data);
-						ct->data = NULL;
-						ct->data_len = 0;
-					}
-					gf_fclose(test);
-				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to load CacheTexture data from file %s: not found\n", src_url ? src_url : ct->image.buffer ) );
+
+				if (ct->data) gf_free(ct->data);
+				ct->data = NULL;
+				ct->data_len = 0;
+
+				e = gf_file_load_data(src_url ? src_url : ct->image.buffer, &ct->data, &ct->data_len);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to load CacheTexture data from file %s: %s\n", src_url ? src_url : ct->image.buffer, gf_error_to_string(e) ) );
 				}
 				if (ct->image.buffer) gf_free(ct->image.buffer);
 				ct->image.buffer = NULL;

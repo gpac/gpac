@@ -110,14 +110,6 @@ const char *gf_disabled_features(void);
 */
 const char *gf_4cc_to_str(u32 type);
 
-/*!
- *	\brief asprintf() portable implementation
- *
- *	similar to sprintf, except it allows the string on the
- *  \note asprintf implementation for windows
-*/
-int gf_asprintf(char **buffer, const char *fmt, ...);
-
 
 size_t gf_fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 
@@ -997,6 +989,18 @@ Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32 *level, u32 *b
 GF_Err gf_bin128_parse(const char *string, bin128 value);
 
 /*!
+ *\brief reads a file into memory
+ *
+ * Reads a local file into memory, in binary open mode.
+ *
+ * \param file_name path on disk of the file to read
+ * \param out_data pointer to allocted adress, to be freed by caller
+ * \param out_size pointer to allocted size
+ * \return error code if any
+ */
+GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size);
+
+/*!
  *	\brief Delete Directory
  *
  *	Delete a  dir within the full path.
@@ -1156,7 +1160,7 @@ typedef struct
 } GF_Blob;
 
 /*!
- * Do not save modification to global options
+ * Retrieves data associated with a blob url
  * \param blob_url URL of blob object (ie gmem://%p)
  * \param out_data if sucess, set to blob data pointer
  * \param out_size if sucess, set to blob data size
@@ -1164,6 +1168,14 @@ typedef struct
  */
 GF_Err gf_blob_get_data(const char *blob_url, u8 **out_data, u32 *out_size);
 
+/*!
+ * Dynamic concatenation of string with optionnal separator
+ * \param str pointer to destination string pointer
+ * \param to_append string to append
+ * \param sep optionnal separator string to insert before concatenation. If set and initial string is NULL, will not be appended
+ * \return error code
+ */
+GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep);
 
 #ifdef GPAC_DISABLE_3D
 #define GPAC_DISABLE_REMOTERY 1
