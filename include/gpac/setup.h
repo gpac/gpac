@@ -571,12 +571,6 @@ char* gf_strdup(const char *str);
 # endif
 #endif
 
-#if !defined(GPAC_HAS_SPIDERMONKEY) || defined(GPAC_DISABLE_SVG)
-# ifndef GPAC_DISABLE_MSE
-# define GPAC_DISABLE_MSE
-# endif
-#endif
-
 //we currently disable all extra IPMP/IPMPX/OCI/extra MPEG-4 descriptors parsing
 #ifndef GPAC_MINIMAL_ODF
 #define GPAC_MINIMAL_ODF

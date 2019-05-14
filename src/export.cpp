@@ -2205,15 +2205,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_dump_iso_track) )
 #endif
 
-#ifndef GPAC_DISABLE_MSE
-#pragma comment (linker, EXPORT_SYMBOL(gf_mse_track_buffer_get_next_packet) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_mse_track_buffer_release_packet) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_mse_mediasource_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_mse_mediasource_open) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_mse_mediasource_close) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_mse_mediasource_end) )
-#endif
-
 #pragma comment (linker, EXPORT_SYMBOL(utf8_to_ucs4) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_new) )
