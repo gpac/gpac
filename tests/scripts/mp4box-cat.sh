@@ -41,8 +41,26 @@ fi
 test_end
 }
 
+test_cat_merge()
+{
+test_begin "mp4box-catmerge-$1"
+if [ "$test_skip" = 1 ] ; then
+return
+fi
+
+mp4file="$TEMP_DIR/file.mp4"
+do_test "$MP4BOX -cat $2 -cat $3 -new $mp4file" "mergecat"
+do_hash_test $mp4file "mergecat"
+
+test_end
+}
+
+
 test_cat "avc" $MEDIA_DIR/auxiliary_files/enst_video.h264 1
 test_cat "hevc" $MEDIA_DIR/auxiliary_files/counter.hvc 0
 test_cat "aac" $MEDIA_DIR/auxiliary_files/enst_audio.aac 0
 test_cat "srt" $MEDIA_DIR/auxiliary_files/subtitle.srt 0
 
+test_cat_merge "avc" $EXTERNAL_MEDIA_DIR/counter/counter_30s_I25_baseline_320x180_128kbps.264 $EXTERNAL_MEDIA_DIR/counter/counter_30s_I25_baseline_640x360_192kbps.264
+
+test_cat_merge "hevc" $EXTERNAL_MEDIA_DIR/counter/counter_1280_720_I_25_untiled_200k.hevc $EXTERNAL_MEDIA_DIR/counter/counter_1280_720_I_25_tiled_1mb.hevc
