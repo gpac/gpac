@@ -357,15 +357,6 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm, const char * 
 void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess, const char * url);
 
 /*!
- * Get a range of a cache entry file
- * \param sess The session
- * \param startOffset The first byte of the request to get
- * \param endOffset The last byte of request to get
- * \return The temporary name for the file created to have a range of the file
- */
-const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess, u64 startOffset, u64 endOffset );
-
-/*!
  *\brief get statistics
  *
  *Gets download statistics for the session. All output parameters are optional and may be set to NULL.
@@ -406,14 +397,6 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess);
 GF_Err gf_dm_sess_process_headers(GF_DownloadSession * sess);
 
 /*!
- *\brief fetch session status
- *
- *Fetch the session current status
- *\param sess the download session
- *\return the session status*/
-u32 gf_dm_sess_get_status(GF_DownloadSession * sess);
-
-/*!
  *\brief Get session resource url
  *
  *Returns the original resource URL associated with the session
@@ -421,15 +404,6 @@ u32 gf_dm_sess_get_status(GF_DownloadSession * sess);
  *\return the associated URL
  */
 const char *gf_dm_sess_get_resource_name(GF_DownloadSession *sess);
-
-/*!
- *\brief Get session original resource url
- *
- *Returns the original resource URL before any redirection associated with the session
- *\param sess the download session
- *\return the associated URL
- */
-const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *sess);
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
 /*!
@@ -459,15 +433,6 @@ GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 en
 #endif /* GPAC_DISABLE_CORE_TOOLS */
 
 /*!
- *\brief Reset session
- *
- *Resets the session for new processing of the same url
- *\param sess the download session
- *\return error code if any
- */
-GF_Err gf_dm_sess_reset(GF_DownloadSession *sess);
-
-/*!
  * \brief forces the refresh of a cache entry
  * The entry is still allocated in the session.
  * \param sess The session
@@ -484,16 +449,6 @@ DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess);
  */
 Bool gf_dm_sess_can_be_cached_on_disk(const GF_DownloadSession *sess);
 
-
-/*!
- * Reassigns session flags and callbacks. This is only possible if the session is not threaded.
- * \param sess The session
- * \param flags The new flags for the session - if flags is 0xFFFFFFFF, existing flags are not modified
- * \param user_io The new callback function
- * \param cbk The new user data to ba used in the callback function
- * \return GF_OK or error
- */
-GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io user_io, void *cbk);
 
 /*!
  * Re-setup an existing, completed session to download a new URL. If same server/port/protocol is used, the same socket will be reused if the session
@@ -554,19 +509,6 @@ u32 gf_dm_get_data_rate(GF_DownloadManager *dm);
  *\return the cumulated rate in bits per sec.
  */
 u32 gf_dm_get_global_rate(GF_DownloadManager *dm);
-
-
-/*
- *\brief fetches remote file in memory
- *
- *Fetches remote file in memory.
- *\param url the data to fetch
- *\param out_data output data (allocated by function)
- *\param out_size output data size
- *\param out_mime if not NULL, pointer will contain the mime type (allocated by function)
- *\return error code if any
- */
-GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, char **out_mime);
 
 
 /*

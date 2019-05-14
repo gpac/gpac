@@ -372,7 +372,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_fetch_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_last_error) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_resource_name) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_reset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_mime_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_header) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_header_sizes_and_times) )
@@ -380,7 +379,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_set_data_rate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_data_rate) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_reassign) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_get_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_get_cache_filename) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_create_entry) )
@@ -391,7 +389,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_set_etag_on_server) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_set_content_length) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_set_mime_type) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_cache_get_cache_filename_range) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_delete_cached_file_entry_session) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_url_info_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_url_info) )
@@ -400,7 +397,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_abort) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_set_range) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_setup_from_url) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_file_memory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_global_rate) )
 
 

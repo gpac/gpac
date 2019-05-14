@@ -3577,7 +3577,18 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm, const char *url, const cha
 	return e;
 }
 
-GF_EXPORT
+#if 0 //unused
+
+/*
+ *\brief fetches remote file in memory
+ *
+ *Fetches remote file in memory.
+ *\param url the data to fetch
+ *\param out_data output data (allocated by function)
+ *\param out_size output data size
+ *\param out_mime if not NULL, pointer will contain the mime type (allocated by function)
+ *\return error code if any
+ */
 GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, char **out_mime)
 {
 	GF_Err e;
@@ -3641,6 +3652,7 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 	gf_dm_del(dm);
 	return e;
 }
+#endif
 
 GF_EXPORT
 const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload)
@@ -3648,18 +3660,40 @@ const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload)
 	return dnload ? dnload->orig_url : NULL;
 }
 
+
+#if 0 //unused
+/*!
+ *\brief Get session original resource url
+ *
+ *Returns the original resource URL before any redirection associated with the session
+ *\param sess the download session
+ *\return the associated URL
+ */
 const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *dnload)
 {
 	if (dnload) return dnload->orig_url_before_redirect ? dnload->orig_url_before_redirect : dnload->orig_url;
 	return NULL;
 }
 
+/*!
+ *\brief fetch session status
+ *
+ *Fetch the session current status
+ *\param sess the download session
+ *\return the session status*/
 u32 gf_dm_sess_get_status(GF_DownloadSession *dnload)
 {
 	return dnload ? dnload->status : GF_NETIO_STATE_ERROR;
 }
 
-GF_EXPORT
+
+/*!
+ *\brief Reset session
+ *
+ *Resets the session for new processing of the same url
+ *\param sess the download session
+ *\return error code if any
+ */
 GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
 {
 	if (!sess) return GF_BAD_PARAM;
@@ -3677,7 +3711,13 @@ GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
 	return GF_OK;
 }
 
-GF_EXPORT
+/*!
+ * Get a range of a cache entry file
+ * \param sess The session
+ * \param startOffset The first byte of the request to get
+ * \param endOffset The last byte of request to get
+ * \return The temporary name for the file created to have a range of the file
+ */
 const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess, u64 startOffset, u64 endOffset ) {
 	u32 i, count;
 	if (!sess || !sess->dm || endOffset < startOffset)
@@ -3769,7 +3809,14 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
 	}
 }
 
-GF_EXPORT
+/*!
+ * Reassigns session flags and callbacks. This is only possible if the session is not threaded.
+ * \param sess The session
+ * \param flags The new flags for the session - if flags is 0xFFFFFFFF, existing flags are not modified
+ * \param user_io The new callback function
+ * \param cbk The new user data to ba used in the callback function
+ * \return GF_OK or error
+ */
 GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io user_io, void *cbk)
 {
 	/*shall only be called for non-threaded sessions!! */
@@ -3842,6 +3889,8 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 	/*threaded session shall be started with gf_dm_sess_process*/
 	return GF_OK;
 }
+#endif
+
 
 GF_EXPORT
 void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
