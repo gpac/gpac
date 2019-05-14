@@ -8,20 +8,32 @@ if [ $do_hash != 0 ] ; then
  do_hash_test $hintfile "hint"
 fi
 
+#echo "test $1"
+do_sdp_dump=0
+
+case $1 in
+*english* )
+ do_sdp_dump=1;;
+esac
+
+if [ $do_sdp_dump != 0 ] ; then
  #check SDP+RTP packets
  do_test "$MP4BOX -drtp $hintfile -out $tempfile" "RTPDump"
-if [ $do_hash != 0 ] ; then
- do_hash_test "$tempfile" "drtp"
+ if [ $do_hash != 0 ] ; then
+  do_hash_test "$tempfile" "drtp"
+ fi
+ #check SDP dump from isom
+ do_test "$MP4BOX -sdp $hintfile -out $tempfile" "SDPDump"
+ if [ $do_hash != 0 ] ; then
+  do_hash_test "$tempfile" "sdp"
+ fi
 fi
 
- #unhint media
- do_test "$MP4BOX -unhint $hintfile" "RTPUnhint"
+#unhint media
+do_test "$MP4BOX -unhint $hintfile" "RTPUnhint"
 if [ $do_hash != 0 ] ; then
  do_hash_test $hintfile "unhint"
 fi
-
- rm $tempfile
- rm $hintfile
 }
 
 #@mp4_test execute basics MP4Box tests on source file: -add, -info, -dts, -hint -drtp -sdp -unhint and MP4 Playback
