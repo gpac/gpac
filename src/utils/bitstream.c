@@ -1285,6 +1285,7 @@ u32 gf_bs_get_bit_position(GF_BitStream *bs)
 	return bs->nbBits;
 }
 
+GF_EXPORT
 u32 gf_bs_read_vluimsbf5(GF_BitStream *bs)
 {
 	u32 nb_words = 0;
@@ -1345,6 +1346,14 @@ void gf_bs_flush(GF_BitStream *bs)
 	fflush(bs->stream);
 }
 
+#if 0 //unused
+/*!
+ *\brief Reassigns FILE object for stream-based bitstreams
+ *
+ *Reassigns FILE object for stream-based bitstreams. Automatically sets the stream position to the bitstream position
+ *\param bs the target bitstream
+ *\param stream the new stream to assign
+ */
 void gf_bs_reassign(GF_BitStream *bs, FILE *stream)
 {
 	if (!bs) return;
@@ -1357,6 +1366,7 @@ void gf_bs_reassign(GF_BitStream *bs, FILE *stream)
 		break;
 	}
 }
+#endif
 
 u64 gf_bs_set_cookie(GF_BitStream *bs, u64 cookie)
 {

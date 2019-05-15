@@ -492,10 +492,6 @@ typedef struct s_memory_element
 typedef memory_element** memory_list;
 
 
-#define GPAC_MEMORY_TRACKING_HASH_TABLE 1
-
-#if GPAC_MEMORY_TRACKING_HASH_TABLE
-
 #define HASH_ENTRIES 4096
 
 #if !defined(WIN32)
@@ -510,8 +506,6 @@ static unsigned int gf_memory_hash(void *ptr)
 	return (unsigned int) ( (((uint64_t) ((intptr_t) ptr)>>4) + (uint64_t) ((intptr_t)ptr) ) % HASH_ENTRIES );
 #endif
 }
-
-#endif
 
 
 /*base functions (add, find, del_item, del) are implemented upon a stack model*/
@@ -587,25 +581,6 @@ static int gf_memory_del_item_stack(memory_element **p, void *ptr)
 	return 0;
 }
 
-static void gf_memory_del_stack(memory_element **p)
-{
-	memory_element *curr_element=*p, *next_element;
-	while (curr_element) {
-		next_element = curr_element->next;
-#ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-        if (curr_element->backtrace_stack) {
-            FREE(curr_element->backtrace_stack);
-        }
-#endif
-		FREE(curr_element);
-		curr_element = next_element;
-	}
-	*p = NULL;
-}
-
-
-#if GPAC_MEMORY_TRACKING_HASH_TABLE
-
 /*this list is implemented as a stack to minimise the cost of freeing recent allocations*/
 static void gf_memory_add(memory_list *p, void *ptr, int size, const char *filename, int line)
 {
@@ -651,23 +626,6 @@ static int gf_memory_del_item(memory_list *p, void *ptr)
 	return ret;
 }
 
-static void gf_memory_del(memory_list *p)
-{
-	int i;
-	for (i=0; i<HASH_ENTRIES; i++)
-		gf_memory_del_stack(&((*p)[i]));
-	FREE(*p);
-	p = NULL;
-}
-
-#else
-
-#define gf_memory_add		gf_memory_add_stack
-#define gf_memory_del		gf_memory_del_stack
-#define gf_memory_del_item	gf_memory_del_item_stack
-#define gf_memory_find		gf_memory_find_stack
-
-#endif
 
 
 #endif /*GPAC_MEMORY_TRACKING*/
@@ -782,12 +740,9 @@ static int unregister_address(void *ptr, const char *filename, int line)
 				/* assert(0); */ /*don't assert since this is often due to allocations that occured out of gpac (fonts, etc.)*/
 			} else {
 				int i;
-#if GPAC_MEMORY_TRACKING_HASH_TABLE
 				unsigned int hash = gf_memory_hash(ptr);
 				memory_element *element = memory_rem[hash];
-#else
-				memory_element *element = memory_rem;
-#endif
+
 				assert(element);
 				for (i=1; i<pos; i++)
 					element = element->next;
@@ -818,7 +773,28 @@ static int unregister_address(void *ptr, const char *filename, int line)
 				gpac_allocations_lock = NULL;
 
 				gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] the allocated-blocks-list is empty: the freed-blocks-list will be emptied too.\n");
-				gf_memory_del(&memory_rem);
+
+				//reset the freed block list
+				memory_list *m_list = &memory_rem;
+				int i;
+				for (i=0; i<HASH_ENTRIES; i++) {
+					memory_element **m_elt = &((*m_list)[i]) ;
+
+					memory_element *curr_element=*m_elt, *next_element;
+					while (curr_element) {
+						next_element = curr_element->next;
+#ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+						if (curr_element->backtrace_stack) {
+							FREE(curr_element->backtrace_stack);
+						}
+#endif
+						FREE(curr_element);
+						curr_element = next_element;
+					}
+					*m_elt = NULL;
+				}
+
+				FREE(*m_list);
 
 				return size;
 			} else {
@@ -876,13 +852,8 @@ void gf_memory_print()
 
 		/*lock*/
 		gf_mx_p(gpac_allocations_lock);
-#if GPAC_MEMORY_TRACKING_HASH_TABLE
 		for (i=0; i<HASH_ENTRIES; i++) {
 			memory_element *curr_element = memory_add[i], *next_element;
-#else
-		{
-			memory_element *curr_element = memory_add, *next_element;
-#endif
 			while (curr_element) {
 				char szVal[51];
 				u32 size;

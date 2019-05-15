@@ -58,7 +58,7 @@ static void write_core_options();
 static void write_file_extensions();
 static int gpac_make_lang(char *filename);
 static Bool gpac_expand_alias(int argc, char **argv);
-static u32 gpac_unit_tests();
+static u32 gpac_unit_tests(GF_MemTrackerType mem_track);
 
 static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info);
 
@@ -942,7 +942,7 @@ static int gpac_main(int argc, char **argv)
 	}
 
 	if (do_unit_tests) {
-		gpac_exit( gpac_unit_tests() );
+		gpac_exit( gpac_unit_tests(mem_track) );
 	}
 
 	if (alias_set) {
@@ -1720,10 +1720,16 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/iso639.h>
 #include <gpac/token.h>
 #include <gpac/xml.h>
-static u32 gpac_unit_tests()
+#include <gpac/thread.h>
+static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 {
 	u32 ucs4_buf[4];
 	u8 utf8_buf[7];
+
+	void *mem = gf_calloc(4, sizeof(u32));
+	gf_free(mem);
+
+	if (mem_track == GF_MemTrackerNone) return 0;
 
 	gpac_fsess_task_help(); //for coverage
 	gf_dm_sess_last_error(NULL);
@@ -1930,6 +1936,11 @@ static u32 gpac_unit_tests()
 
 	gf_closest_point_to_line(center, ray.dir, center);
 
+	GF_Plane plane;
+	plane.d = FIX_ONE;
+	plane.normal = center;
+	gf_plane_intersect_line(&plane, &center, &ray.dir, &outPoint);
+
 	GF_Vec4 rot, quat;
 	rot.x = rot.y = 0;
 	rot.z = FIX_ONE;
@@ -1957,6 +1968,13 @@ static u32 gpac_unit_tests()
 	gf_sk_receive_wait(NULL, NULL, 0, &fam, 1);
 	gf_sk_send_wait(NULL, NULL, 0, 1);
 
+	//path2D
+	GF_Path *path = gf_path_new();
+	gf_path_add_move_to(path, 0, 0);
+	gf_path_add_quadratic_to(path, 5, 5, 10, 0);
+	gf_path_point_over(path, 4, 0);
+	gf_path_del(path);
+	
 	//xml dom - to update once we find a way to integrate atsc demux in tests
 	GF_DOMParser *dom = gf_xml_dom_new();
 	gf_xml_dom_parse_string(dom, "<Dummy>test</Dummy>");
@@ -1975,6 +1993,21 @@ static u32 gpac_unit_tests()
 
 	gf_dm_force_headers(dm, ent, "x-GPAC: test\r\n");
 	gf_dm_del(dm);
+
+	//constants
+	gf_stream_type_afx_name(GPAC_AFX_3DMC);
+	//thread
+	gf_th_stop(NULL);
+	gf_list_swap(NULL, NULL);
+	//bitstream
+	GF_BitStream *bs = gf_bs_new("test", 4, GF_BITSTREAM_READ);
+	gf_bs_bits_available(bs);
+	gf_bs_get_bit_offset(bs);
+	gf_bs_read_vluimsbf5(bs);
+	gf_bs_del(bs);
+	//module
+	gf_module_load_static(NULL);
+
 	return 0;
 }
 
