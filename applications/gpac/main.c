@@ -1897,6 +1897,46 @@ static u32 gpac_unit_tests()
 
 	gf_cleanup_dir("testdir");
 	gf_rmdir("testdir");
+
+	//math.c not covered yet by our sample files
+	GF_Matrix2D mx;
+	gf_mx2d_init(mx);
+	gf_mx2d_add_skew(&mx, FIX_ONE, FIX_ONE);
+	gf_mx2d_add_skew_x(&mx, GF_PI/4);
+	gf_mx2d_add_skew_y(&mx, GF_PI/4);
+	GF_Point2D scale, translate;
+	Fixed rotate;
+	gf_mx2d_decompose(&mx, &scale, &rotate, &translate);
+	GF_Rect rc1, rc2;
+	memset(&rc1, 0, sizeof(GF_Rect));
+	memset(&rc2, 0, sizeof(GF_Rect));
+	gf_rect_equal(&rc1, &rc2);
+
+	GF_Matrix mat;
+	gf_mx_init(mat);
+	Fixed yaw, pitch, roll;
+	gf_mx_get_yaw_pitch_roll(&mat, &yaw, &pitch, &roll);
+
+	GF_Ray ray;
+	GF_Vec center, outPoint;
+	memset(&ray, 0, sizeof(GF_Ray));
+	ray.dir.z = FIX_ONE;
+	memset(&center, 0, sizeof(GF_Vec));
+	gf_ray_hit_sphere(&ray, &center, FIX_ONE, &outPoint);
+
+	gf_closest_point_to_line(center, ray.dir, center);
+
+	GF_Vec4 rot, quat;
+	rot.x = rot.y = 0;
+	rot.z = FIX_ONE;
+	rot.q = GF_PI/4;
+	quat = gf_quat_from_rotation(rot);
+	gf_quat_get_inv(&quat);
+	gf_quat_rotate(&quat, &ray.dir);
+	gf_quat_slerp(quat, quat, FIX_ONE/2);
+	GF_BBox bbox;
+	memset(&bbox, 0, sizeof(GF_BBox));
+	gf_bbox_equal(&bbox, &bbox);
 	return 0;
 }
 

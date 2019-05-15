@@ -192,7 +192,7 @@ static void SVG_Build_Bitmap_Graph(SVG_video_stack *stack, GF_TraverseState *tr_
 	drawable_reset_path(stack->drawable);
 	gf_path_add_rect_center(stack->drawable->path, rectx, recty, rectwidth, rectheight);
 	gf_path_get_bounds(stack->drawable->path, &new_rc);
-	if (!gf_rect_equal(rc, new_rc))
+	if (!gf_rect_equal(&rc, &new_rc))
 		drawable_mark_modified(stack->drawable, tr_state);
 	else if (stack->txh.flags & GF_SR_TEXTURE_PRIVATE_MEDIA)
 		drawable_mark_modified(stack->drawable, tr_state);

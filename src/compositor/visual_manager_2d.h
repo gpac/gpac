@@ -34,7 +34,7 @@ GF_Rect gf_rect_ft(GF_IRect *rc);
 Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2);
 
 /*@rc1 equales @rc2*/
-#define gf_rect_equal(rc1, rc2) ((rc1.width == rc2.width) && (rc1.height == rc2.height) && (rc1.x == rc2.x)  && (rc1.y == rc2.y))
+#define irect_rect_equal(rc1, rc2) ((rc1.width == rc2.width) && (rc1.height == rc2.height) && (rc1.x == rc2.x)  && (rc1.y == rc2.y))
 
 //#define TRACK_OPAQUE_REGIONS
 

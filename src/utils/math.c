@@ -1020,9 +1020,9 @@ Bool gf_rect_overlaps(GF_Rect rc1, GF_Rect rc2)
 }
 
 GF_EXPORT
-Bool gf_rect_equal(GF_Rect rc1, GF_Rect rc2)
+Bool gf_rect_equal(GF_Rect *rc1, GF_Rect *rc2)
 {
-	if ( (rc1.x == rc2.x)  && (rc1.y == rc2.y) && (rc1.width == rc2.width) && (rc1.height == rc2.height) )
+	if ( (rc1->x == rc2->x) && (rc1->y == rc2->y) && (rc1->width == rc2->width) && (rc1->height == rc2->height) )
 		return GF_TRUE;
 	return GF_FALSE;
 }
@@ -1978,13 +1978,6 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 }
 
 
-GF_EXPORT
-Bool gf_plane_exists_intersection(GF_Plane *plane, GF_Plane *with)
-{
-	GF_Vec cross;
-	cross = gf_vec_cross(with->normal, plane->normal);
-	return gf_vec_lensq(cross) > FIX_EPSILON;
-}
 
 GF_EXPORT
 Bool gf_plane_intersect_line(GF_Plane *plane, GF_Vec *linepoint, GF_Vec *linevec, GF_Vec *outPoint)
@@ -1999,7 +1992,14 @@ Bool gf_plane_intersect_line(GF_Plane *plane, GF_Vec *linepoint, GF_Vec *linevec
 	return GF_TRUE;
 }
 
-GF_EXPORT
+#if 0 //unused
+Bool gf_plane_exists_intersection(GF_Plane *plane, GF_Plane *with)
+{
+	GF_Vec cross;
+	cross = gf_vec_cross(with->normal, plane->normal);
+	return gf_vec_lensq(cross) > FIX_EPSILON;
+}
+
 Bool gf_plane_intersect_plane(GF_Plane *plane, GF_Plane *with, GF_Vec *linepoint, GF_Vec *linevec)
 {
 	Fixed fn00 = gf_vec_len(plane->normal);
@@ -2020,7 +2020,6 @@ Bool gf_plane_intersect_plane(GF_Plane *plane, GF_Plane *with, GF_Vec *linepoint
 	return GF_FALSE;
 }
 
-GF_EXPORT
 Bool gf_plane_intersect_planes(GF_Plane *plane, GF_Plane *p1, GF_Plane *p2, GF_Vec *outPoint)
 {
 	GF_Vec lp, lv;
@@ -2029,6 +2028,7 @@ Bool gf_plane_intersect_planes(GF_Plane *plane, GF_Plane *p1, GF_Plane *p2, GF_V
 	return GF_FALSE;
 }
 
+#endif
 
 
 GF_EXPORT
@@ -2207,7 +2207,7 @@ Bool gf_ray_hit_triangle(GF_Ray *ray, GF_Vec *v0, GF_Vec *v1, GF_Vec *v2, Fixed 
 	return GF_TRUE;
 }
 
-GF_EXPORT
+#if 0 //unused
 Bool gf_ray_hit_triangle_backcull(GF_Ray *ray, GF_Vec *v0, GF_Vec *v1, GF_Vec *v2, Fixed *dist)
 {
 	Fixed u, v, det;
@@ -2234,6 +2234,7 @@ Bool gf_ray_hit_triangle_backcull(GF_Ray *ray, GF_Vec *v0, GF_Vec *v1, GF_Vec *v
 	*dist = gf_divfix(gf_vec_dot(edge2, qvec), det);
 	return GF_TRUE;
 }
+#endif
 
 GF_EXPORT
 GF_Vec gf_closest_point_to_line(GF_Vec line_pt, GF_Vec line_vec, GF_Vec pt)
