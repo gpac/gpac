@@ -735,7 +735,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	tr_state->traversing_mode = TRAVERSE_DRAW_2D;
 
 	//if only one opaque object has changed and not moved, skip background unless hybgl mode
-	if (!visual->compositor->hybrid_opengl && !hyb_force_redraw && !hyb_force_background && first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0].rect)) {
+	if (!visual->compositor->hybrid_opengl && !hyb_force_redraw && !hyb_force_background && first_opaque && (visual->to_redraw.count==1) && irect_rect_equal(&first_opaque->bi->clip, &visual->to_redraw.list[0].rect)) {
 		visual->has_modif=0;
 		goto skip_background;
 	}

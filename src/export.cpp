@@ -530,16 +530,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_plane_intersect_line) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_closest_point_to_line) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_plane_get_p_vertex_idx) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_plane_exists_intersection) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_plane_intersect_plane) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_plane_intersect_planes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bbox_plane_relation) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mx_apply_ray) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ray) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ray_hit_box) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ray_hit_sphere) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ray_hit_triangle) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ray_hit_triangle_backcull) )
 
 /*color.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_stretch_bits) )
