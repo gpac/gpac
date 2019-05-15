@@ -696,14 +696,16 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		u8 sampleRateIndex = (hdr >> 10) & 0x3;
 		if (sampleRateIndex>2) break;
 		u32 fsize = gf_mp3_frame_size(hdr);
-		if (fsize + pos > size) {
-			nb_frames++;
-			break;
-		}
 		if (prev_pos && pos) {
 			nb_frames=0;
 			break;
 		}
+
+		if (fsize + pos > size) {
+			nb_frames++;
+			break;
+		}
+
 		prev_pos = pos;
 		nb_frames++;
 		if (nb_frames>4) break;
