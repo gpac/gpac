@@ -265,7 +265,10 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	}
 
 	/* Create a sub file */
-	vobsub_trim_ext(szName);
+	char *ext = gf_file_ext_start(szName);
+	if (ext && (!stricmp(ext, ".idx") || !stricmp(ext, ".sub")) ) {
+		ext[0] = 0;
+	}
 	szName = strcat(szName, ".sub");
 	fsub = gf_fopen(szName, "wb");
 	if (!fsub) {
