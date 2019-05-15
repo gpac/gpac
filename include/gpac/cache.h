@@ -2,7 +2,7 @@
  *                      GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Pierre Souchay
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *                                      All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -79,12 +79,6 @@ const char * gf_cache_get_etag_on_server( const DownloadedCacheEntry entry );
  */
 GF_Err gf_cache_set_etag_on_disk(const DownloadedCacheEntry entry, const char * eTag );
 
-/**
- * Get the ETag associated with this cache entry if any
- * \param entry The entry
- * \return The ETag if any was defined, NULL otherwise
- */
-const char * gf_cache_get_etag_on_disk( const DownloadedCacheEntry entry );
 
 /**
  * Set the eTag in the cache. Data is duplicated, so original string can be freed by caller.
@@ -118,25 +112,11 @@ GF_Err gf_cache_set_mime_type(const DownloadedCacheEntry entry, const char * mim
 const char * gf_cache_get_url( const DownloadedCacheEntry entry );
 
 /**
- * Get the Hash Key associated with this cache entry.
- * \param entry The entry
- * \return The Hash key (never NULL if entry is valid)
- */
-const char * gf_cache_get_hash( const DownloadedCacheEntry entry );
-
-/**
  * Tells whether a cache entry should be cached safely (no
  * \param entry The entry
  * \return 1 if entry should be cached
  */
 Bool gf_cache_can_be_cached( const DownloadedCacheEntry entry );
-
-/**
- * Get the Last-Modified information associated with this cache entry.
- * \param entry The entry
- * \return The Last-Modified header (can be NULL)
- */
-const char * gf_cache_get_last_modified_on_disk ( const DownloadedCacheEntry entry );
 
 /**
  * Get the Last-Modified information associated with this cache entry.
@@ -211,24 +191,6 @@ u64 gf_cache_get_size(const char * directory);
  */
 GF_Err gf_cache_delete_all_cached_files(const char * directory);
 
-
-/*
- * Cache Reader functions
- */
-
-GF_CacheReader gf_cache_reader_new(const DownloadedCacheEntry entry);
-
-GF_Err gf_cache_reader_del( GF_CacheReader handle );
-
-s64 gf_cache_reader_seek_at( GF_CacheReader reader, u64 seekPosition);
-
-s64 gf_cache_reader_get_position( const GF_CacheReader reader);
-
-s64 gf_cache_reader_get_currentSize( GF_CacheReader reader );
-
-s64 gf_cache_reader_get_full_size( GF_CacheReader reader );
-
-s32 gf_cache_reader_read( GF_CacheReader reader, char * buff, s32 length);
 
 Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry);
 
