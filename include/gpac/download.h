@@ -496,6 +496,42 @@ GF_Err gf_dm_sess_get_header_sizes_and_times(GF_DownloadSession *sess, u32 *req_
  */
 void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess);
 
+/*
+ *Registers a locacl cache provider (bypassing the http session), used when populating cache from input data (atsc for example)
+
+ *\param dm the download manager
+ *\param local_cache_url_provider_cbk callback function to the cache provider. The callback function shall return GF_TRUE if the requested URL is provided by this local cache
+ *\param lc_udta opaque pointer passed to the callback function
+ *\return error code if any
+ */
+GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_url_provider_cbk)(void *udta, char *url, Bool is_cache_destroy), void *lc_udta);
+
+/*
+ *Adds a local entry in the cache
+
+ *\param dm the download manager
+ *\param szURL the URL this resource is caching
+ *\param data data of the resource
+ *\param size size of the resource
+ *\param start_range start range of the data in the resource
+ *\param end_range start range of the data in the resource. If both \ref start_range and  \ref end_range are 0, the data is the complete resource
+ *\param mime associated MIME type if any
+ *\param clone_memory indicates that the data shall be cloned in the cache because the caller will discard it
+ *\param download_time_ms indicates the download time of the associated resource, if known, 0 otherwise.
+ *\return a cache entry structure
+ */
+const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, char *data, u64 size, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms);
+
+/*
+ *Forces HTTP headers for a given cache entry
+
+ *\param dm the download manager
+ *\param entry the cache entry to update
+ *\param headers the header string, including CRLF delimiters, to force
+ *\return error code if any
+*/
+GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry entry, const char *headers);
+
 /*! @} */
 
 #ifdef __cplusplus

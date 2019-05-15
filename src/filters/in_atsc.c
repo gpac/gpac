@@ -84,10 +84,6 @@ static void atscin_finalize(GF_Filter *filter)
 	}
 }
 
-const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, char *data, u64 size, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms);
-
-GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry entry, const char *headers);
-
 static void atscin_send_file(ATSCInCtx *ctx, u32 service_id, GF_ATSCEventFileInfo *finfo, u32 evt_type)
 {
 	if (!ctx->kc || !finfo->corrupted) {
@@ -311,8 +307,6 @@ static GF_Err atscin_process(GF_Filter *filter)
 	}
 	return GF_OK;
 }
-
-GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_url_provider_cbk)(void *udta, char *url, Bool is_cache_destroy), void *lc_udta);
 
 
 static GF_Err atscin_initialize(GF_Filter *filter)
