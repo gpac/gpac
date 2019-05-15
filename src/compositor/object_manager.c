@@ -377,6 +377,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 	if (odm->pid && !odm->buffer_playout_us) {
 		GF_FilterEvent evt;
 		const GF_PropertyValue *prop;
+		u32 tsdepth=0;
 		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 
 		odm->buffer_playout_us = scene->compositor->buf * 1000;
@@ -390,6 +391,12 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		if (prop) odm->buffer_min_us = prop->value.uint;
 		prop = gf_filter_pid_get_property_str(for_pid ? for_pid : odm->pid, "BufferMaxOccupancy");
 		if (prop) odm->buffer_max_us = prop->value.uint;
+
+		prop = gf_filter_pid_get_property(for_pid ? for_pid : odm->pid, GF_PROP_PID_TIMESHIFT_DEPTH);
+		if (prop && prop->value.frac.den) {
+			tsdepth = (u32) ( ((u64)prop->value.frac.num) * 1000  / prop->value.frac.den);
+		}
+		gf_odm_set_timeshift_depth(odm, tsdepth);
 
 		if (odm->buffer_playout_us > odm->buffer_max_us) odm->buffer_max_us = odm->buffer_playout_us;
 
