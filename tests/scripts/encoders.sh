@@ -105,3 +105,15 @@ test_encoder "aac-ffenc" $MEDIA_DIR/auxiliary_files/count_french.mp3 "test.aac" 
 
 test_encoder "ac3-ffenc" $MEDIA_DIR/auxiliary_files/count_french.mp3 "test.ac3" "" "" ""
 
+
+
+#explicit encoding load
+test_begin "encoder-explicit"
+
+if [ $test_skip != 1 ] ; then
+
+dst=$TEMP_DIR/file.mp4
+do_test "$GPAC -i $EXTERNAL_MEDIA_DIR/raw/raw.rgb:size=128x128 enc:c=png @ -o $dst" "encode"
+do_hash_test "$dst" "encode"
+fi
+test_end

@@ -1023,6 +1023,10 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT))
 					filter->clonable=GF_TRUE;
 				found = GF_TRUE;
+			}
+			//codec for generic enc load
+			else if (!strcmp("c", szArg)) {
+				found = GF_TRUE;
 			} else if (!strcmp("N", szArg)) {
 				gf_filter_set_name(filter, value);
 				found = GF_TRUE;
