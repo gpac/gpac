@@ -1638,7 +1638,10 @@ static void ObjectAllocator_Destructor(ObjectAllocator* allocator)
 {
     // Ensure everything has been released to the allocator
     assert(allocator != NULL);
+	//GPAC crude patch to avoid deadlock on opengl unbind upon exit
+#if 0
     assert(allocator->nb_inuse == 0);
+#endif
 
     // Destroy all objects released to the allocator
     while (allocator->first_free != NULL)
@@ -6885,11 +6888,22 @@ RMT_API void _rmt_UnbindOpenGL(void)
 
         // Stall waiting for the OpenGL queue to empty into the Remotery queue
         while (!rmtMessageQueue_IsEmpty(opengl->mq_to_opengl_main))
+#if 0
             UpdateOpenGLFrame();
+#else
+		//GPAC crude patch to avoid deadlock on opengl unbind upon exit
+		{
+			Message* message = rmtMessageQueue_PeekNextMessage(opengl->mq_to_opengl_main);
+			if (message == NULL)
+				break;
+
+			rmtMessageQueue_ConsumeNextMessage(opengl->mq_to_opengl_main, message);
+		}
+#endif
 
         // There will be a whole bunch of OpenGL sample trees queued up the remotery queue that need releasing
         FreePendingSampleTrees(g_Remotery, SampleType_OpenGL, opengl->flush_samples);
-        
+
         // Forcefully delete sample tree on this thread to release time stamps from
         // the same thread that created them
         Remotery_DeleteSampleTree(g_Remotery, SampleType_OpenGL);
@@ -6909,6 +6923,9 @@ RMT_API void _rmt_BeginOpenGLSample(rmtPStr name, rmtU32* hash_cache)
     ThreadSampler* ts;
 
     if (g_Remotery == NULL)
+        return;
+
+    if (g_Remotery->opengl->dll_handle == NULL)
         return;
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
@@ -6934,6 +6951,9 @@ RMT_API void _rmt_BeginOpenGLSample(rmtPStr name, rmtU32* hash_cache)
             OpenGLTimestamp_Begin(ogl_sample->timestamp);
         }
     }
+    // Empty the error queue before using it for glGenQueries
+    while ( rmtglGetError() != GL_NO_ERROR)
+        ;
 }
 
 
@@ -7023,6 +7043,9 @@ RMT_API void _rmt_EndOpenGLSample(void)
     if (g_Remotery == NULL)
         return;
 
+    if (g_Remotery->opengl->dll_handle == NULL)
+        return;
+
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
         // Close the timestamp
@@ -7042,6 +7065,9 @@ RMT_API void _rmt_EndOpenGLSample(void)
                 UpdateOpenGLFrame();
         }
     }
+    // Empty the error queue before using it for glGenQueries
+    while ( rmtglGetError() != GL_NO_ERROR)
+        ;
 }
 
 

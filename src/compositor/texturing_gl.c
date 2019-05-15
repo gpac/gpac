@@ -2056,6 +2056,7 @@ Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh)
 u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Rect *bounds)
 {
 	GF_Matrix mx;
+	Bool res;
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
 #endif
@@ -2086,9 +2087,14 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	}
 	if (!txh->pixelformat)
 		return 0;
-	if (! tx_set_image(txh, 0) ) {
-		return 0;
-	}
+
+	gf_rmt_begin_gl(gf_sc_texture_push_image);
+	res = tx_set_image(txh, 0);
+	gf_rmt_end_gl();
+	if (!res) return 0;
+
+
+	gf_rmt_begin_gl(gf_sc_texture_enable);
 
 	if (bounds && txh->compute_gradient_matrix) {
 		GF_Matrix2D mx2d;
@@ -2145,10 +2151,9 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		glClientActiveTexture(GL_TEXTURE0);
 #endif
 
-		return 1;
 	}
-
-	if (compositor->shader_only_mode) {
+	else if (compositor->shader_only_mode) {
+		GL_CHECK_ERR
 		glUseProgram(root_visual->glsl_programs[root_visual->glsl_flags]);
 		GL_CHECK_ERR
 
@@ -2158,11 +2163,12 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		GL_CHECK_ERR
 
 		tx_bind(txh);
-		return 1;
-	}
+	} else
 #endif
+		tx_bind(txh);
 
-	tx_bind(txh);
+
+	gf_rmt_end_gl();
 	return 1;
 
 }

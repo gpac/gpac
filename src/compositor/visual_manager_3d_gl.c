@@ -3383,6 +3383,11 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #if !defined(GPAC_USE_GLES2)
 	Bool mesh_drawn = 0;
 #endif
+
+	GL_CHECK_ERR
+
+	gf_rmt_begin_gl(visual_3d_mesh_paint);
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
 	if (tr_state->visual->compositor->wire != GF_WIREFRAME_ONLY) {
 		visual_3d_draw_mesh(tr_state, mesh);
@@ -3425,6 +3430,8 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		visual_3d_draw_bounds(tr_state, mesh);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Done drawing mesh %p\n", mesh));
+
+	gf_rmt_end_gl();
 }
 
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
