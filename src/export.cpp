@@ -383,6 +383,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_set_data_rate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_data_rate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_set_auth_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_get_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_get_cache_filename) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_create_entry) )
