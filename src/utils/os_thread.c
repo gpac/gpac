@@ -318,7 +318,7 @@ void Thread_Stop(GF_Thread *t, Bool Destroy)
 GF_EXPORT
 void gf_th_stop(GF_Thread *t)
 {
-	Thread_Stop(t, GF_FALSE);
+	if (t) Thread_Stop(t, GF_FALSE);
 }
 
 GF_EXPORT

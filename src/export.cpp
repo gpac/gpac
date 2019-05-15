@@ -215,6 +215,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_bit_position) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_content_no_truncate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_output_buffering) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_vluimsbf5) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u16_le) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u32_le) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_truncate) )

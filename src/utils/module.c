@@ -127,9 +127,12 @@ GF_ModuleManager *gpac_modules_static = NULL;
 GF_EXPORT
 GF_Err gf_module_load_static(GF_InterfaceRegister *(*register_module)())
 {
-	GF_InterfaceRegister *pr = register_module();
+	GF_InterfaceRegister *pr;
 	GF_Err rc;
+	if (register_module == NULL)
+		return GF_OK;
 
+	pr = register_module();
 	if (!pr) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically loaded module\n"));
 		return GF_NOT_SUPPORTED;
