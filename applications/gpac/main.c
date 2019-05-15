@@ -1985,6 +1985,8 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 
 	//downloader - to update once we find a way to integrate atsc demux in tests
 	GF_DownloadManager *dm = gf_dm_new(NULL);
+	gf_dm_set_auth_callback(dm, NULL, NULL);
+
 	gf_dm_set_data_rate(dm, 0);
 	gf_dm_get_data_rate(dm);
 	gf_dm_set_localcache_provider(dm, NULL, NULL);
@@ -1992,6 +1994,8 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	const DownloadedCacheEntry ent = gf_dm_add_cache_entry(dm, "http://localhost/test.dummy", "test", 4, 0, 0, "application/octet-string", GF_FALSE, 1);
 
 	gf_dm_force_headers(dm, ent, "x-GPAC: test\r\n");
+	gf_dm_sess_enum_headers(NULL, NULL, NULL, NULL);//this one is deactivated in test mode in httpin because of Date: header
+	gf_dm_sess_abort(NULL);
 	gf_dm_del(dm);
 
 	//constants

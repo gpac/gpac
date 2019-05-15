@@ -406,14 +406,6 @@ GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 en
 #endif /* GPAC_DISABLE_CORE_TOOLS */
 
 /*!
- * \brief forces the refresh of a cache entry
- * The entry is still allocated in the session.
- * \param sess The session
- * \return a pointer to the entry of session refreshed
- */
-DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess);
-
-/*!
  * Re-setup an existing, completed session to download a new URL. If same server/port/protocol is used, the same socket will be reused if the session
  * has the GF_NETIO_SESSION_PERSISTENT flag set. This is only possible if the session is not threaded.
  * \param sess The session
