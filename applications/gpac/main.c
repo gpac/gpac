@@ -1718,6 +1718,7 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/base_coding.h>
 #include <gpac/network.h>
 #include <gpac/iso639.h>
+#include <gpac/token.h>
 static u32 gpac_unit_tests()
 {
 	u32 ucs4_buf[4];
@@ -1937,6 +1938,21 @@ static u32 gpac_unit_tests()
 	GF_BBox bbox;
 	memset(&bbox, 0, sizeof(GF_BBox));
 	gf_bbox_equal(&bbox, &bbox);
+
+	//token.c
+	char container[1024];
+	gf_token_get_strip("12 34{ 56 : }", 0, "{:", " ", container, 1024);
+
+	//netwok.c
+	char name[GF_MAX_IP_NAME_LEN];
+	gf_sk_get_host_name(name);
+	gf_sk_set_usec_wait(NULL, 1000);
+	u32 fam;
+	u16 port;
+	//to remove once we have rtsp server back
+	gf_sk_get_local_info(NULL, &port, &fam);
+	gf_sk_receive_wait(NULL, NULL, 0, &fam, 1);
+	gf_sk_send_wait(NULL, NULL, 0, 1);
 	return 0;
 }
 

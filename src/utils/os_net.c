@@ -482,6 +482,7 @@ s32 gf_sk_get_handle(GF_Socket *sock)
 	return (s32) sock->socket;
 }
 
+GF_EXPORT
 void gf_sk_set_usec_wait(GF_Socket *sock, u32 usec_wait)
 {
 	if (!sock) return;
@@ -1628,6 +1629,7 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 *BytesR
 #endif
 
 	*BytesRead = 0;
+	if (!sock || !sock->socket) return GF_BAD_PARAM;
 
 #ifndef __SYMBIAN32__
 	//can we read?
