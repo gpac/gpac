@@ -1184,7 +1184,9 @@ Exit:
 static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 {
 	GF_Point2D   v_last;
+#if 0 //unused
 	GF_Point2D   v_control;
+#endif
 	GF_Point2D   v_start;
 	GF_Point2D*  point;
 	GF_Point2D*  limit;
@@ -1209,7 +1211,9 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 		v_start = outline->points[first];
 		v_last  = outline->points[last];
 
+#if 0 //unused
 		v_control = v_start;
+#endif
 
 		point = outline->points + first;
 		tags  = outline->tags  + first;
