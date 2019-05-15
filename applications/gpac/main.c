@@ -1957,13 +1957,24 @@ static u32 gpac_unit_tests()
 	gf_sk_receive_wait(NULL, NULL, 0, &fam, 1);
 	gf_sk_send_wait(NULL, NULL, 0, 1);
 
-	//xml dom - to remove once we find a way to integrate atsc demux in tests
+	//xml dom - to update once we find a way to integrate atsc demux in tests
 	GF_DOMParser *dom = gf_xml_dom_new();
 	gf_xml_dom_parse_string(dom, "<Dummy>test</Dummy>");
 	gf_xml_dom_get_error(dom);
 	gf_xml_dom_get_line(dom);
 	gf_xml_dom_get_root_nodes_count(dom);
 	gf_xml_dom_del(dom);
+
+	//downloader - to update once we find a way to integrate atsc demux in tests
+	GF_DownloadManager *dm = gf_dm_new(NULL);
+	gf_dm_set_data_rate(dm, 1000000);
+	gf_dm_get_data_rate(dm);
+	gf_dm_set_localcache_provider(dm, NULL, NULL);
+
+	const DownloadedCacheEntry ent = gf_dm_add_cache_entry(dm, "http://localhost/test.dummy", "test", 4, 0, 0, "application/octet-string", GF_FALSE, 1);
+
+	gf_dm_force_headers(dm, ent, "x-GPAC: test\r\n");
+	gf_dm_del(dm);
 	return 0;
 }
 
