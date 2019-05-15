@@ -1834,7 +1834,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 
 	zbuf = gf_strdup("123451234512345123451234512345");
 	osize=0;
-	e = gf_lz_compress_payload(&zbuf, 1+strlen(zbuf), &osize);
+	e = gf_lz_compress_payload(&zbuf, 1+(u32) strlen(zbuf), &osize);
 	if (e && (e!= GF_NOT_SUPPORTED)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma compress fail\n"));
 		gf_free(zbuf);
