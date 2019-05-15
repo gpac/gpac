@@ -91,28 +91,11 @@ static void load_all_modules(GF_ModuleManager *mgr)
 	LOAD_PLUGIN(x11_out);
 #endif
 
-#if FILTER_FIXME
-
-#ifndef GPAC_DISABLE_LOADER_BT
-	LOAD_PLUGIN(osd);
-#endif
-
-#ifndef GPAC_DISABLE_SVG
-	LOAD_PLUGIN(widgetman);
-#endif
-
-
-#if defined(GPAC_CONFIG_IOS) || defined(__DARWIN__) || defined(__APPLE__)
-    LOAD_PLUGIN(vtb);
-#endif
-
 	//todo fix project for iOS
 #ifdef GPAC_CONFIG_IOS
 	//these do not compile with xcode 4.2
 //    LOAD_PLUGIN(ios_cam);
 //    LOAD_PLUGIN(ios_mpegv);
-#endif
-
 #endif
 
 #endif //GPAC_STATIC_MODULES

@@ -635,11 +635,12 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	}
 
 	filter->in_connect_err = GF_EOS;
-	//commented out for now, due to audio thread pulling packets out of the pid but not in the compositor:process, which
-	//could be called for video at the same time... FIXME
-#ifdef FILTER_FIXME
+	//commented out: audio thread may be pulling packets out of the pid but not in the compositor:process, which
+	//could be called for video at the same time...
+#if 0
 	FSESS_CHECK_THREAD(filter)
 #endif
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s reconfigure\n", pidinst->filter->name, pidinst->pid->name));
 	e = filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, (ctype==GF_PID_CONF_REMOVE) ? GF_TRUE : GF_FALSE);
 
