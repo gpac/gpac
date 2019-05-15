@@ -60,7 +60,7 @@ test_end
 
 test_begin "gpac-io-syntax"
 if [ $test_skip != 1 ] ; then
-do_test "$GPAC src=$MEDIA_DIR/auxiliary_files/logo.jpg dst=$TEMP_DIR/test.jpg" "io-syntax1"
+do_test "$GPAC -lc -logs=all@debug src=$MEDIA_DIR/auxiliary_files/logo.jpg dst=$TEMP_DIR/test.jpg" "io-syntax1"
 do_hash_test $TEMP_DIR/test.jpg  "io-syntax1"
 
 do_test "$GPAC -src $MEDIA_DIR/auxiliary_files/logo.jpg -dst $TEMP_DIR/test.jpg" "io-syntax2"
@@ -90,7 +90,7 @@ test_end
 
 test_begin "gpac-remotery"
 if [ $test_skip != 1 ] ; then
-do_test "$GPAC src=$MEDIA_DIR/auxiliary_files/enst_audio.aac inspect -logs=filter@info:ncl -rmt" "remotery"
+do_test "$GPAC src=$MEDIA_DIR/auxiliary_files/enst_audio.aac inspect -logs=filter@info:ncl -rmt -rmt-log" "remotery"
 fi
 test_end
 
