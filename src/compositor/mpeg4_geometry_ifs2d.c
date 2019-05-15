@@ -79,11 +79,13 @@ static void ifs2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState
 static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 {
 	u32 i, count, ci_count;
+#if 0 //unused
 	u32 j, ind_col, num_col;
 	SFVec2f center, end;
 	SFColor col_cen;
 	GF_EVGStencil *grad;
 	u32 *colors;
+#endif
 	GF_Path *path;
 	SFVec2f start;
 	SFVec2f *pts;
@@ -165,15 +167,13 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 	}
 
 	/*final case, color per vertex means gradient fill/strike*/
-	grad = gf_evg_stencil_new(GF_STENCIL_VERTEX_GRADIENT);
 	/*not supported, fill default*/
-	if (!grad) {
-		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
-		return;
-	}
+	visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
+	visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
+	return;
 
 
+#if 0 //deprecated
 	path = gf_path_new();
 
 	ind_col = 0;
@@ -251,6 +251,9 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		ctx->flags &= ~CTX_PATH_STROKE;
 	}
 	gf_path_del(path);
+#endif
+
+
 }
 
 static void TraverseIFS2D(GF_Node *node, void *rs, Bool is_destroy)

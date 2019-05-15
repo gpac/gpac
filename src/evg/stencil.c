@@ -1051,7 +1051,7 @@ GF_EVGStencil *evg_texture_brush()
 	tmp->fill_run = tex_fill_run;
 	tmp->type = GF_STENCIL_TEXTURE;
 	/*default is using the surface settings*/
-	tmp->filter = GF_TEXTURE_FILTER_DEFAULT;
+	gf_evg_stencil_set_filter( (GF_EVGStencil *) tmp, GF_TEXTURE_FILTER_DEFAULT);
 	tmp->mod = 0;
 	gf_cmx_init(&tmp->cmat);
 	tmp->alpha = 255;
@@ -1724,22 +1724,4 @@ GF_Err gf_evg_stencil_set_alpha(GF_EVGStencil * st, u8 alpha)
 		((EVG_BaseGradient*)st)->alpha = alpha;
 	}
 	return GF_OK;
-}
-
-GF_EXPORT
-GF_Err gf_evg_stencil_set_vertex_path(GF_EVGStencil *stencil, GF_Path *path)
-{
-	return GF_NOT_SUPPORTED;
-}
-
-GF_EXPORT
-GF_Err gf_evg_stencil_set_vertex_center(GF_EVGStencil *stencil, Fixed cx, Fixed cy, u32 color)
-{
-	return GF_NOT_SUPPORTED;
-}
-
-GF_EXPORT
-GF_Err gf_evg_stencil_set_vertex_colors(GF_EVGStencil *stencil, u32 *colors, u32 nbCol)
-{
-	return GF_NOT_SUPPORTED;
 }
