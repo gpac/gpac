@@ -1719,6 +1719,7 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/network.h>
 #include <gpac/iso639.h>
 #include <gpac/token.h>
+#include <gpac/xml.h>
 static u32 gpac_unit_tests()
 {
 	u32 ucs4_buf[4];
@@ -1955,6 +1956,14 @@ static u32 gpac_unit_tests()
 	gf_sk_get_local_info(NULL, &port, &fam);
 	gf_sk_receive_wait(NULL, NULL, 0, &fam, 1);
 	gf_sk_send_wait(NULL, NULL, 0, 1);
+
+	//xml dom - to remove once we find a way to integrate atsc demux in tests
+	GF_DOMParser *dom = gf_xml_dom_new();
+	gf_xml_dom_parse_string(dom, "<Dummy>test</Dummy>");
+	gf_xml_dom_get_error(dom);
+	gf_xml_dom_get_line(dom);
+	gf_xml_dom_get_root_nodes_count(dom);
+	gf_xml_dom_del(dom);
 	return 0;
 }
 
