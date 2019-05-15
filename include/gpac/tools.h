@@ -790,15 +790,6 @@ u32 gf_sys_get_argc();
 const char *gf_sys_get_arg(u32 arg);
 
 /*!
- *	\brief enable or disable remotery profiler
- *
- *	Enable or disable remotery profiler.
- *	\param start GF_TRUE to start profiler, GF_FALSE otherwise.
- *	\return GF_TRUE if success, GF_FALSE if failure or GF_NOT_SUPPORTED if not built-in.
- */
-Bool gf_sys_enable_profiling(Bool start);
-
-/*!
  *	\brief checks if test mode is enabled
  *
  *	Checks if test mode is enabled (no date nor GPAC version should be written).

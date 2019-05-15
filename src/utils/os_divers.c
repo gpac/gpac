@@ -114,6 +114,7 @@ u64 gf_sys_clock_high_res()
 
 #endif
 
+static Bool gf_sys_enable_profiling(Bool start, Bool is_shutdown);
 
 
 GF_EXPORT
@@ -827,7 +828,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 		}
 
 		if (gf_opts_get_bool("core", "rmt"))
-			gf_sys_enable_profiling(GF_TRUE);
+			gf_sys_enable_profiling(GF_TRUE, GF_FALSE);
 
 		if (quiet) {
 			if (quiet==2) gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_QUIET);
@@ -887,8 +888,7 @@ static void gpac_rmt_input_handler(const char* text, void* context)
 }
 #endif
 
-GF_EXPORT
-Bool gf_sys_enable_profiling(Bool start)
+static Bool gf_sys_enable_profiling(Bool start, Bool is_shutdown)
 {
 #ifndef GPAC_DISABLE_REMOTERY
 	if (start && !remotery_handle) {
@@ -918,6 +918,7 @@ Bool gf_sys_enable_profiling(Bool start)
 			rmt_UnbindOpenGL();
 
 		rmt_DestroyGlobalInstance(remotery_handle);
+
 		remotery_handle=NULL;
 		if (gpac_prev_default_logs != NULL)
 			gf_log_set_callback(NULL, gpac_prev_default_logs);
@@ -1112,7 +1113,7 @@ void gf_sys_close()
 		psapi_hinst = NULL;
 #endif
 
-		gf_sys_enable_profiling(GF_FALSE);
+		gf_sys_enable_profiling(GF_FALSE, GF_TRUE);
 		
 		gf_uninit_global_config(gpac_discard_config);
 
