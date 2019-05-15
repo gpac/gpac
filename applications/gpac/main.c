@@ -1891,8 +1891,10 @@ static u32 gpac_unit_tests()
 	gf_mkdir("testdir/somedir");
 	strcpy(url, "testdir/somedir/test.bin");
 	FILE *f=gf_fopen(url, "wb");
-	fprintf(f, "some tes\n");
+	fprintf(f, "some test\n");
+#ifdef GPAC_MEMORY_TRACKING
 	gf_memory_print();
+#endif
 	gf_fclose(f);
 	gf_file_modification_time(url);
 
