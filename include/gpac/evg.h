@@ -132,13 +132,6 @@ NOTE 3: this overrides the colors provided for linear gradient
 */
 GF_Err gf_evg_stencil_set_gradient_interpolation(GF_EVGStencil *stencil, Fixed *pos, GF_Color *col, u32 count);
 
-/*vertex gradient : set limit path */
-GF_Err gf_evg_stencil_set_vertex_path(GF_EVGStencil *stencil, GF_Path *path);
-/*set the center of the gradient*/
-GF_Err gf_evg_stencil_set_vertex_center(GF_EVGStencil *stencil, Fixed cx, Fixed cy, u32 color);
-/*set the center of the gradient*/
-GF_Err gf_evg_stencil_set_vertex_colors(GF_EVGStencil *stencil, u32 *colors, u32 nbCol);
-
 /*sets global alpha blending level for stencil (texture and gradients)
 the alpha channel shall be combined with the color matrix if any*/
 GF_Err gf_evg_stencil_set_alpha(GF_EVGStencil *stencil, u8 alpha);
