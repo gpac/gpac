@@ -267,6 +267,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_send_wait) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_receive_wait) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_receive_no_select) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sk_set_usec_wait) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_is_local) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_get_absolute_path) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_concatenate) )
