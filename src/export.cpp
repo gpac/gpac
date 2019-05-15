@@ -379,6 +379,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_mime_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_header) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_header_sizes_and_times) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_enum_headers) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_set_data_rate) )
