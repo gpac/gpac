@@ -1985,7 +1985,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 
 	//downloader - to update once we find a way to integrate atsc demux in tests
 	GF_DownloadManager *dm = gf_dm_new(NULL);
-	gf_dm_set_data_rate(dm, 1000000);
+	gf_dm_set_data_rate(dm, 0);
 	gf_dm_get_data_rate(dm);
 	gf_dm_set_localcache_provider(dm, NULL, NULL);
 
