@@ -274,14 +274,6 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
  */
 GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess );
 
-/**
- * \brief Returns write file pointer
- * This function returns the current cache file pointer
- * \param entry The entry to use
- * \return cache file pointer or NULL
- */
-FILE *gf_cache_get_file_pointer(const DownloadedCacheEntry entry);
-
 /*modify end range when chaining byte-range requests*/
 void gf_cache_set_end_range(DownloadedCacheEntry entry, u64 range_end);
 
@@ -3250,6 +3242,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			sess->last_error = e;
 			gf_dm_sess_notify_state(sess, sess->status, e);
 		}
+		gf_free(new_location);
 		return e;
 	case 304:
 	{
@@ -3859,51 +3852,6 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 	/*shall only be called for non-threaded sessions!! */
 	if (sess->th) return GF_BAD_PARAM;
 
-#if 0
-	/*if the user requests non-cached (eg callback-sent) data, but the session was configured to use file, we need to copy back existing
-	data to the session init_data */
-	if (sess->use_cache_file && (flags & GF_NETIO_SESSION_NOT_CACHED)) {
-		if (sess->cache_entry) {
-			FILE *fptr = gf_cache_get_file_pointer(sess->cache_entry);
-			if (fptr) {
-				gf_fseek(fptr, 0, SEEK_END);
-				sess->init_data_size = (u32) gf_ftell(fptr);
-				gf_fseek(fptr, 0, SEEK_SET);
-				if (sess->init_data) gf_free(sess->init_data);
-				sess->init_data = gf_malloc(sess->init_data_size);
-				sess->init_data_size = fread(sess->init_data, 1, sess->init_data_size, fptr);
-				gf_cache_close_write_cache(sess->cache_entry, sess, 0);
-			}
-			gf_dm_remove_cache_entry_from_session(sess);
-			sess->cache_entry = NULL;
-		}
-		sess->use_cache_file = 0;
-	}
-#endif
-
-
-#if 0
-	/*the case where the user wants file but the session is configured as live is simply ignored*/
-	else if (!sess->use_cache_file && (sess->flags & GF_NETIO_SESSION_NOT_CACHED)) {
-		sess->use_cache_file = 1;
-		gf_dm_configure_cache(sess);
-
-		if (sess->http_read_type == GET ) {
-			e = gf_cache_open_write_cache(sess->cache_entry, sess);
-			if (e) return e;
-
-			if (sess->init_data && sess->init_data_size) {
-				gf_cache_write_to_cache(sess->cache_entry, sess, sess->init_data, sess->init_data_size);
-				if (sess->init_data) {
-					gf_free(sess->init_data);
-					sess->init_data = NULL;
-				}
-				sess->init_data_size = 0;
-			}
-		}
-	}
-#endif
-
 	if (flags == 0xFFFFFFFF) {
 		sess->user_proc = user_io;
 		sess->usr_cbk = cbk;
@@ -4096,16 +4044,21 @@ GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry en
 		if (sess->cache_entry != entry) continue;
 		gf_dm_sess_reload_cached_headers(sess);
 	}
-	//for coverage
+	//for coverage,
 	if (!count && gf_sys_is_test_mode()) {
 		gf_dm_sess_reload_cached_headers(NULL);
 		gf_dm_refresh_cache_entry(NULL);
 		gf_dm_session_thread(NULL);
-		gf_icy_skip_data(NULL, NULL, 0);
-		gf_dm_get_chunk_data(NULL, GF_FALSE, NULL, NULL, NULL);
 		gf_user_credentials_save_digest(NULL, NULL, NULL);
 		gf_user_credentials_ask_password(NULL, NULL);
 		gf_user_credentials_register(NULL, NULL, NULL, NULL, GF_FALSE);
+		gf_cache_are_headers_processed(NULL);
+		gf_cache_get_start_range(NULL);
+		gf_cache_get_end_range(NULL);
+		gf_cache_get_content_length(NULL);
+		gf_cache_set_end_range(NULL, 0);
+		gf_cache_get_forced_headers(NULL);
+		gf_cache_get_downtime(NULL);
 	}
 	gf_mx_v(dm->cache_mx);
 	return res ? GF_OK : GF_BAD_PARAM;
