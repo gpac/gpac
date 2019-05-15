@@ -1885,6 +1885,18 @@ static u32 gpac_unit_tests()
 #else
 	gpac_sig_handler(SIGINT);
 #endif
+
+	gf_mkdir("testdir");
+	gf_mkdir("testdir/somedir");
+	strcpy(url, "testdir/somedir/test.bin");
+	FILE *f=gf_fopen(url, "wb");
+	fprintf(f, "some tes\n");
+	gf_memory_print();
+	gf_fclose(f);
+	gf_file_modification_time(url);
+
+	gf_cleanup_dir("testdir");
+	gf_rmdir("testdir");
 	return 0;
 }
 
