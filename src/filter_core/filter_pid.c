@@ -1522,8 +1522,6 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 				}
 				//not an input cap
 				if (! (a_cap->flags & GF_CAPFLAG_INPUT) ) continue;
-				//optional cap
-				if (a_cap->flags & GF_CAPFLAG_OPTIONAL) continue;
 				//not a static and not in bundle
 				if (! (a_cap->flags & GF_CAPFLAG_STATIC)) {
 					if (j<cur_bundle_start)
@@ -1566,7 +1564,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 				(*priority) = cap->priority;
 			}
 		}
-		else if (!(cap->flags & GF_CAPFLAG_EXCLUDED) ) {
+		else if (! (cap->flags & (GF_CAPFLAG_EXCLUDED | GF_CAPFLAG_OPTIONAL) ) ) {
 			all_caps_matched=GF_FALSE;
 		}
 	}

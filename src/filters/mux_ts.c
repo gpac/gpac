@@ -396,7 +396,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				diff *= 1000000;
 				diff /= tspid->esi.timescale;
 				assert(tspid->prog->cts_offset <= diff);
-				tspid->prog->cts_offset = (u32) diff;
+				tspid->prog->cts_offset += (u32) diff;
 
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU", adjusting all CTS by %d / %d!\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale));
 
@@ -565,7 +565,10 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 		if (turl[0]=='#') {
 			sscanf(turl, "#%d#", &service_id);
 			turl = strchr(turl+1, '#');
-			assert(turl);
+			if (!turl) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSMux] Invalid temi syntax, expecting #SID# but got nothing\n"));
+				return;
+			}
 			turl += 1;
 			idx = 0;
 		}
@@ -686,7 +689,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		nb_progs = gf_m2ts_mux_program_count(ctx->mux);
 		if (nb_progs>1) {
 			if (ctx->dash_mode) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSMux] Muxing several propgrams (%d) in DASH mode is not allowed\n", nb_progs+1));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSMux] Muxing several programs (%d) in DASH mode is not allowed\n", nb_progs+1));
 				return GF_BAD_PARAM;
 			}
 			pmt_id += (nb_progs - 1) * 100;
@@ -1053,6 +1056,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			ctx->dash_file_name[0] = 0;
 			ctx->next_is_start = GF_FALSE;
 		}
+
 		gf_filter_pck_send(pck);
 		ctx->nb_pck++;
 		ctx->nb_pck_in_seg++;
@@ -1063,6 +1067,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			break;
 		}
 	}
+
 	if (status==GF_M2TS_STATE_EOS) {
 		gf_filter_pid_set_eos(ctx->opid);
 		if (ctx->nb_pck_in_seg) {
@@ -1206,16 +1211,20 @@ static const GF_FilterArgs TSMuxArgs[] =
 	{ OFFS(pat_rate), "interval between PAT in ms", GF_PROP_UINT, "200", NULL, 0},
 	{ OFFS(pcr_offset), "offsets all timestamps from PCR by V, in 90kHz. Default value is computed based on input media", GF_PROP_UINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mpeg4), "forces usage of MPEG-4 signaling (IOD and SL Config).\n"\
-				"none disables 4on2. full sends AUs as SL packets over section for OD, section/pes for scene (cf bifs_pes)\n"\
-				"scene sends only scene streams as 4on2 but uses regular PES without SL for audio and video\n"\
+				"\tnone: disables 4on2\n"\
+				"\tfull: sends AUs as SL packets over section for OD, section/pes for scene (cf bifs_pes)\n"\
+				"\tscene: sends only scene streams as 4on2 but uses regular PES without SL for audio and video"\
 				, GF_PROP_UINT, "none", "none|full|scene", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(pmt_version), "sets version number of the PMT", GF_PROP_UINT, "200", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(disc), "sets the discontinuity marker for the first packet of each stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(repeat_rate), "interval in ms between two carousel send for MPEG-4 systems. Is overriden by carousel duration PID property if defined", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(repeat_img), "interval in ms between resending (as PES) of single-image streams. If 0, image data is sent once only", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(max_pcr), "sets max interval in ms between 2 PCR", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(nb_pack), "packs N TS packets in output packets", GF_PROP_UINT, "1", NULL, 0},
-	{ OFFS(pes_pack), "Sets AU to PES packing mode. audio will pack only multiple audio AUs in a PES, none make exactly one AU per PES, all will pack multiple AUs per PES for all streams", GF_PROP_UINT, "audio", "audio|none|all", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(nb_pack), "packs N TS packets in output packets", GF_PROP_UINT, "4", NULL, 0},
+	{ OFFS(pes_pack), "Sets AU to PES packing mode.\n"\
+		"\taudio: will pack only multiple audio AUs in a PES\n"\
+		"\tnone: make exactly one AU per PES\n"\
+		"\tall will pack multiple AUs per PES for all streams", GF_PROP_UINT, "audio", "audio|none|all", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rt), "Forces real-time output", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(bifs_pes), "force sending BIFS streams as PES packets and not sections. copy mode disables timestamps in BIFS SL and only carries PES timestamps", GF_PROP_UINT, "off", "off|on|copy", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(flush_rap), "force flushing mux program when RAP is found on video, and injects PAT and PMT before the next video PES begin", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1242,16 +1251,21 @@ GF_FilterRegister TSMuxRegister = {
 	GF_FS_SET_DESCRIPTION("MPEG-2 Transport Stream muxer")
 	GF_FS_SET_HELP("GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.\n"\
 	 	"For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.\n"\
-		"Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in program with service ID inidcated by sid option\n"\
+		"Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in the program with service ID as indicated by sid option\n"\
 		"name option is overriden by input PID property ServiceName\n"\
 		"provider option is overriden by input PID property ServiceProvider\n"\
 		"\n"\
 		"The temi option allows specifying a list of URLs or timeline IDs to insert in the program.\n"
 		"Only a single TEMI timeline can be specified per PID.\n"
-		"The syntax is\n"\
-		"temi=\"url,4\": inserts a temi URL+timecode to the first stream of all progrrams and an external temi to the second stream of all programs\n"\
-		"temi=\"#20#,4#10#URL\": inserts a temi URL+timecode to the first stream of program with ServiceID 10 and an external temi to the second stream of program with ServiceID 20\n"\
-		"temi=\"#20#4#10#,,URL\": inserts a temi URL+timecode to the third stream of program with ServiceID 10 and an external temi to the first stream of program with ServiceID 20\n"\
+		"The syntax is a comma-separated list of one or more TEMI description, each of them separated by '#'\n"
+		"Each TEMI description is formated as #ServiceID#ID_OR_URL, with:\n"\
+		"\tServiceID: optional, number indicating the target serviceID\n"\
+		"\tID_OR_URL: If numbern indicates the TEMI ID to use for external timeline. Otherwise, gives the URL to insert\n"\
+		"Each comma-separated description designs a stream index in the target service. Ex:\n"\
+		"temi=\"url\": inserts a temi URL+timecode in the first stream of all programs\n"\
+		"temi=\"url,4\": inserts a temi URL+timecode in the first stream of all programs and an external temi with ID 4 in the second stream of all programs\n"\
+		"temi=\"#20#4,#10#URL\": inserts an external temi with ID 4 in the first stream of program with ServiceID 20 and a temi URL to the second stream of program with ServiceID 10\n"\
+		"temi=\"#20#4,,#10#URL\": inserts an external temi with ID 4 in the first stream of program with ServiceID 20 and a temi URL to the third stream of program with ServiceID 10 (and nothing on second stream)\n"\
 		"\n"\
 		"In DASH mode, the PCR is always initialized at 0, and flush_rap is automatically set.\n"
 	)

@@ -428,7 +428,7 @@ fi
 
 if [ $check_only = 0 ] ; then
 
-#check MP4Box, gpac, MP4Client and MP42TS (use default args, not custum ones because of -mem-track)
+#check MP4Box, gpac and MP4Client (use default args, not custum ones because of -mem-track)
 MP4Box -h 2> /dev/null
 res=$?
 if [ $res != 0 ] ; then
@@ -466,13 +466,6 @@ else
    fi
   fi
  fi
-fi
-
-MP42TS -h 2> /dev/null
-res=$?
-if [ $res != 0 ] ; then
-log $L_ERR "MP42TS not found (ret $res) - exiting"
-exit 1
 fi
 
 #check mem tracking is supported
@@ -546,8 +539,6 @@ echo ""
 MP4BOX="MP4Box -noprog -for-test $base_args"
 GPAC="gpac $base_args -noprog -for-test -no-reassign"
 MP4CLIENT="MP4Client -noprog -strict-error $base_args"
-MP42TS="MP42TS $base_args"
-DASHCAST="DashCast $base_args"
 
 $MP4BOX -version 2> $INTERN_TEMP_DIR/version.txt
 VERSION="`head -1 $INTERN_TEMP_DIR/version.txt | cut -d ' ' -f 5-` "

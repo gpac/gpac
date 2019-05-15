@@ -168,14 +168,16 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
 		return GF_NOT_SUPPORTED;
 	}
-	if (!stricmp(ctx->dst, "null")) {
+	if (!stricmp(ctx->dst, "null") ) {
 		ctx->is_null = GF_TRUE;
-		//null, we accept any kind
-		ctx->in_caps[0].code = GF_PROP_PID_STREAM_TYPE;
-		ctx->in_caps[0].val = PROP_UINT(GF_STREAM_UNKNOWN);
-		ctx->in_caps[0].flags = GF_CAPS_INPUT_EXCLUDED;
-		gf_filter_override_caps(filter, ctx->in_caps, 1);
-		return GF_OK;
+		//null and no format specified, we accept any kind
+		if (!ctx->fext) {
+			ctx->in_caps[0].code = GF_PROP_PID_STREAM_TYPE;
+			ctx->in_caps[0].val = PROP_UINT(GF_STREAM_UNKNOWN);
+			ctx->in_caps[0].flags = GF_CAPS_INPUT_EXCLUDED;
+			gf_filter_override_caps(filter, ctx->in_caps, 1);
+			return GF_OK;
+		}
 	}
 	if (ctx->dynext) return GF_OK;
 
@@ -246,6 +248,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 
 	if (ctx->is_null) {
 		gf_filter_pid_drop_packet(ctx->pid);
+		return fileout_process(filter);
 		return GF_OK;
 	}
 

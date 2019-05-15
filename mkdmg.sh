@@ -48,7 +48,6 @@ fi
 cp bin/gcc/MP4Client tmpdmg/GPAC.app/Contents/MacOS/Osmo4
 cp bin/gcc/MP4Box tmpdmg/GPAC.app/Contents/MacOS/MP4Box
 cp bin/gcc/gpac tmpdmg/GPAC.app/Contents/MacOS/gpac
-cp bin/gcc/MP42TS tmpdmg/GPAC.app/Contents/MacOS/MP42TS
 if [ -f bin/gcc/DashCast ]
 then
 cp bin/gcc/DashCast tmpdmg/GPAC.app/Contents/MacOS/DashCast
@@ -71,11 +70,9 @@ fi
 echo rewriting APPS dependencies
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
-install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib MP42TS
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib gpac
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
-install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib MP42TS
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib gpac
 
 cd ../../../..
