@@ -31,6 +31,8 @@
 
 #define FT_IS_SMALL( x )  ( (x) > -FIX_EPSILON && (x) < FIX_EPSILON )
 
+#if 0 //unused
+
 static void ft_conic_split(GF_Point2D*  base )
 {
 	Fixed  a, b;
@@ -146,6 +148,7 @@ static Bool ft_cubic_is_small_enough(GF_Point2D *base, Fixed *angle_in, Fixed *a
 	return ((theta1 < FT_SMALL_CUBIC_THRESHOLD) && (theta2 < FT_SMALL_CUBIC_THRESHOLD )) ? GF_TRUE : GF_FALSE;
 }
 
+#endif
 
 /***************************************************************************/
 /***************************************************************************/
@@ -226,7 +229,7 @@ static s32 ft_stroke_border_lineto( FT_StrokeBorder  border, GF_Point2D*       t
 	return 0;
 }
 
-
+#if 0 //unused
 static s32 ft_stroke_border_conicto( FT_StrokeBorder  border, GF_Point2D*       control, GF_Point2D*       to )
 {
 	assert( border->start >= 0 );
@@ -247,6 +250,7 @@ static s32 ft_stroke_border_conicto( FT_StrokeBorder  border, GF_Point2D*       
 	border->movable = GF_FALSE;
 	return 0;
 }
+#endif
 
 static s32 ft_stroke_border_cubicto( FT_StrokeBorder  border,
                                      GF_Point2D*       control1,
@@ -837,7 +841,7 @@ Exit:
 	return error;
 }
 
-
+#if 0 //unused
 static s32 FT_Stroker_ConicTo(FT_Stroker *stroker, GF_Point2D*  control, GF_Point2D * to)
 {
 	s32 error = 0;
@@ -1019,6 +1023,8 @@ static s32 FT_Stroker_CubicTo(FT_Stroker *stroker,
 Exit:
 	return error;
 }
+#endif
+
 
 
 static s32 FT_Stroker_BeginSubPath(FT_Stroker *stroker, GF_Point2D*  to)
@@ -1262,6 +1268,8 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 				continue;
 			}
 
+
+#if 0 //unused
 			case GF_PATH_CURVE_CONIC:  /* consume conic arcs */
 				v_control.x = point->x;
 				v_control.y = point->y;
@@ -1329,6 +1337,11 @@ Do_Conic:
 				goto Close;
 			}
 			break;
+#else
+			default:  /* GF_PATH_CURVE_CUBIC */
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Path2DStroke] Path is not flatten, cannot strike cubic and quadratic !\n"));
+#endif
+
 			}
 		}
 
