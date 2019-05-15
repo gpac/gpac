@@ -889,6 +889,7 @@ void gf_mx2d_inverse(GF_Matrix2D *_this)
 	gf_mx2d_copy(*_this, tmp);
 }
 
+GF_EXPORT
 Bool gf_mx2d_decompose(GF_Matrix2D *mx, GF_Point2D *scale, Fixed *rotate, GF_Point2D *translate)
 {
 	Fixed det, angle;

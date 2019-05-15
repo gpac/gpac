@@ -304,6 +304,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_get_line) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_find) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_token_get_strip) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_force_new) )
@@ -478,6 +479,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mx2d_apply_coords) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mx2d_apply_point) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mx2d_apply_rect) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mx2d_decompose) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_bit_size) )
 
 /*exported for 3D tools*/
