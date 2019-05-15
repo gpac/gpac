@@ -1824,7 +1824,6 @@ static u32 gpac_unit_tests()
 	}
 #endif
 
-#ifdef GPAC_HAS_LZMA
 	zbuf = gf_strdup("123451234512345123451234512345");
 	osize=0;
 	e = gf_lz_compress_payload(&zbuf, 1+strlen(zbuf), &osize);
@@ -1842,7 +1841,6 @@ static u32 gpac_unit_tests()
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma decompress fail\n"));
 		return 1;
 	}
-#endif
 
 	gf_htonl(0xAABBCCDD);
 	gf_ntohl(0xAABBCCDD);
