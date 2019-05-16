@@ -131,26 +131,6 @@ enum
 	}	\
  
 
-s32 gf_text_get_utf_type_data(const u8 *BOM)
-{
-	if ((BOM[0]==0xFF) && (BOM[1]==0xFE)) {
-		/*UTF32 not supported*/
-		if (!BOM[2] && !BOM[3]) return -1;
-		return 3;
-	}
-	if ((BOM[0]==0xFE) && (BOM[1]==0xFF)) {
-		/*UTF32 not supported*/
-		if (!BOM[2] && !BOM[3]) return -1;
-		return 2;
-	} else if ((BOM[0]==0xEF) && (BOM[1]==0xBB) && (BOM[2]==0xBF)) {
-		return 1;
-	}
-	if (BOM[0]<0x80) {
-		return 0;
-	}
-	return -1;
-}
-
 s32 gf_text_get_utf_type(FILE *in_src)
 {
 	u32 read;
