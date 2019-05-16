@@ -1234,6 +1234,11 @@ u32 gf_sys_is_gpac_arg(const char *arg_name)
 	const GF_GPACArg *arg = NULL;
 	u32 i=0;
 	arg_name = arg_name+1;
+	if (arg_name[0]=='-')
+		return 2;
+	if (arg_name[0]=='+')
+		return 2;
+
 	while (GPAC_Args[i].name) {
 		arg = &GPAC_Args[i];
 		i++;

@@ -676,12 +676,32 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 
 static const char *gf_filter_load_arg_config(const char *sec_name, const char *arg_name, const char *arg_val)
 {
+	Bool gf_sys_has_filter_global_args();
 	const char *opt;
+
+	//look in global args
+	if (gf_sys_has_filter_global_args()) {
+		u32 alen = strlen(arg_name);
+		u32 i, nb_args = gf_sys_get_argc();
+		for (i=0; i<nb_args; i++) {
+			const char *arg = gf_sys_get_arg(i);
+			if (arg[0]!='-') continue;
+			if (arg[1]!='-') continue;
+			if (!strncmp(arg+2, arg_name, alen)) {
+				char *sep = strchr(arg, '=');
+				if (sep) return sep+1;
+				//no arg value means boolean true
+				else return "true";
+			}
+		}
+	}
+
+	//look in config file
 	opt = gf_opts_get_key(sec_name, arg_name);
 	if (opt)
 		return opt;
 
-	//keep MP4Client behaviour: some options are set in MP4Client main apply them
+	//ifce (used by socket and keep MP4Client behaviour: some options are set in MP4Client main apply them
 	if (!strcmp(arg_name, "ifce")) {
 		opt = gf_opts_get_key("core", "ifce");
 		if (opt)
@@ -705,9 +725,13 @@ static Bool gf_filter_has_arg(GF_Filter *filter, const char *arg_name)
 
 static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *filter)
 {
+	GF_PropertyValue argv;
+	Bool gf_sys_has_filter_global_meta_args();
 	u32 i, key_count = gf_opts_get_key_count(sec_name);
+
+	FSESS_CHECK_THREAD(filter)
+
 	for (i=0; i<key_count; i++) {
-		GF_PropertyValue argv;
 		const char *arg_val, *arg_name = gf_opts_get_key_name(sec_name, i);
 		if (gf_filter_has_arg(filter, arg_name)) continue;
 
@@ -717,8 +741,27 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		memset(&argv, 0, sizeof(GF_PropertyValue));
 		argv.type = GF_PROP_STRING;
 		argv.value.string = (char *) arg_val;
-		FSESS_CHECK_THREAD(filter)
 		filter->freg->update_arg(filter, arg_name, &argv);
+	}
+	if (!gf_sys_has_filter_global_meta_args()) return;
+
+	key_count = gf_sys_get_argc();
+	for (i=0; i<key_count; i++) {
+		char szArg[100];
+		const char *sep, *arg = gf_sys_get_arg(i);
+		if (arg[0] != '-') continue;
+		if (arg[1] != '+') continue;
+		arg+=2;
+		sep = strchr(arg, '=');
+		memset(&argv, 0, sizeof(GF_PropertyValue));
+		argv.type = GF_PROP_STRING;
+		if (sep) {
+			strncpy(szArg, arg, sizeof(char)* (sep - arg) );
+			argv.value.string = (char *) sep+1;
+		} else {
+			strncpy(szArg, arg, sizeof(char)* strlen(arg) );
+		}
+		filter->freg->update_arg(filter, szArg, &argv);
 	}
 }
 
@@ -758,8 +801,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		GF_PropertyValue argv;
 		const char *def_val;
 		const GF_FilterArgs *a = &filter->freg->args[i];
-		i++;
 		if (!a || !a->arg_name) break;
+		i++;
 		if (a->flags & GF_FS_ARG_META) {
 			has_meta_args = GF_TRUE;
 			continue;
