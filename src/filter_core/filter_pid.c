@@ -3978,7 +3978,7 @@ const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *pid, const char
 GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name)
 {
-	u32 i, count, cur_idx=0;
+	u32 i, count, cur_idx=0, nb_in_pid=0;
 	const GF_PropertyValue * prop;
 
 	if (PID_IS_OUTPUT(pid)) {
@@ -3992,16 +3992,21 @@ const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32
 			*idx = cur_idx;
 			return prop;
 		}
-		*idx = cur_idx;
+		nb_in_pid = cur_idx;
+		cur_idx = *idx - nb_in_pid;
 	}
 
 	count = gf_list_count(pid->filter->input_pids);
 	for (i=0; i<count; i++) {
-		u32 sub_idx = 0;
+		u32 sub_idx = cur_idx;
 		GF_FilterPid *pidinst = gf_list_get(pid->filter->input_pids, i);
 		prop = gf_filter_pid_enum_info((GF_FilterPid *)pidinst, &sub_idx, prop_4cc, prop_name);
-		*idx += sub_idx;
-		if (prop) return prop;
+		if (prop) {
+			*idx = nb_in_pid + sub_idx;
+			return prop;
+		}
+		nb_in_pid += sub_idx;
+		cur_idx = *idx - nb_in_pid;
 	}
 	return NULL;
 }
