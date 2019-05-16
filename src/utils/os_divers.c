@@ -758,6 +758,18 @@ void gf_log_reset_file()
 	}
 }
 
+static Bool gpac_has_global_filter_args=GF_FALSE;
+static Bool gpac_has_global_filter_meta_args=GF_FALSE;
+
+Bool gf_sys_has_filter_global_args()
+{
+	return gpac_has_global_filter_args;
+}
+Bool gf_sys_has_filter_global_meta_args()
+{
+	return gpac_has_global_filter_meta_args;
+}
+
 GF_EXPORT
 GF_Err gf_sys_set_args(s32 argc, const char **argv)
 {
@@ -787,8 +799,11 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				}
 				continue;
 			}
-
-			if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
+			if (arg[1]=='-') {
+				gpac_has_global_filter_args = GF_TRUE;
+			} else if (arg[1]=='+') {
+				gpac_has_global_filter_meta_args = GF_TRUE;
+			} else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
 				gpac_log_file_name = arg_val;
 				if (!use_sep) i += 1;
 			} else if (!strcmp(arg, "-logs") ) {
