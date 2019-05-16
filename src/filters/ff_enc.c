@@ -972,7 +972,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				}
 				i++;
 			}
-			if (change_input_fmt == AV_PIX_FMT_NONE) {
+			if (!ctx->ffc && (change_input_fmt == AV_PIX_FMT_NONE)) {
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 				void *ff_opaque=NULL;
 #else
@@ -1259,7 +1259,11 @@ static const GF_FilterCapability FFEncodeCaps[] =
 GF_FilterRegister FFEncodeRegister = {
 	.name = "ffenc",
 	GF_FS_SET_DESCRIPTION("FFMPEG encoder "LIBAVCODEC_IDENT)
-	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on encoder options")
+	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on encoder options"
+		"\n"
+		"Note that if no codec is explicited through ffc option and no pixel format is given, codecs will be enumerated to find a matching pixel format.\n"
+
+	)
 	.private_size = sizeof(GF_FFEncodeCtx),
 	SETCAPS(FFEncodeCaps),
 	.initialize = ffenc_initialize,
