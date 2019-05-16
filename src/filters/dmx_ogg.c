@@ -116,21 +116,6 @@ static GF_OGGStream *oggdmx_find_stream_for_page(GF_OGGDmxCtx *ctx, ogg_page *og
 	return NULL;
 }
 
-
-u64 oggdmx_granule_to_time(OGGInfo *cfg, s64 granule)
-{
-	if (cfg->sample_rate) {
-		return granule;
-	}
-	if (cfg->frame_rate.num) {
-		s64 iframe = granule>>cfg->theora_kgs;
-		s64 pframe = granule - (iframe<<cfg->theora_kgs);
-		pframe += iframe;
-		return (u64) (pframe / cfg->frame_rate.num);
-	}
-	return 0;
-}
-
 static void oggdmx_get_stream_info(ogg_packet *oggpacket, OGGInfo *info)
 {
 	oggpack_buffer opb;
@@ -482,7 +467,17 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 			dur.num = (u32) recompute_ts;
 			dur.den = the_info.sample_rate;
 		} else {
-			dur.num = (u32) oggdmx_granule_to_time(&the_info, max_gran);
+			//convert granule to time
+			if (the_info.sample_rate) {
+				dur.num = max_gran;
+			} else if (the_info.frame_rate.num) {
+				s64 iframe = max_gran >> the_info.theora_kgs;
+				s64 pframe = max_gran - (iframe << the_info.theora_kgs);
+				pframe += iframe;
+				dur.num = (u64) (pframe / the_info.frame_rate.num);
+			} else {
+				dur.num = 0;
+			}
 			if (the_info.sample_rate) dur.den = the_info.sample_rate;
 			else dur.den = the_info.frame_rate.den;
 		}
