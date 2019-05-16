@@ -435,9 +435,9 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 
 	gf_filter_pck_send(dst_pck);
 
-	if (pck->version_number == pck->stream->slcfg->predefined)
+	if (pck->version_number + 1 == pck->stream->slcfg->carousel_version)
 		return;
-	pck->stream->slcfg->predefined = pck->version_number;
+	pck->stream->slcfg->carousel_version = 1 + pck->version_number;
 
 
 	if (pck->stream->flags & GF_M2TS_ES_IS_MPEG4_OD) {

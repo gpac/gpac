@@ -72,8 +72,9 @@ typedef struct
 	u16 CUDuration;
 	u64 startDTS;
 	u64 startCTS;
-
+	//internal
 	Bool no_dts_signaling;
+	u32 carousel_version;
 } GF_SLConfig;
 
 /***************************************
