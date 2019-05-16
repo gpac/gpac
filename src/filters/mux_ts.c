@@ -1026,22 +1026,32 @@ static GF_Err tsmux_process(GF_Filter *filter)
 
 
 	nb_pck_in_pack=0;
-	while ((ts_pck = gf_m2ts_mux_process(ctx->mux, &status, &usec_till_next)) != NULL) {
+	while (1) {
 		char *output;
 		u32 osize;
+		Bool is_pack_flush = GF_FALSE;
 
-		tsmux_insert_sidx(ctx, GF_FALSE);
-
-		if (ctx->nb_pack>1) {
-			memcpy(ctx->pack_buffer + 188 * nb_pck_in_pack, ts_pck, 188);
-			nb_pck_in_pack++;
-
-			if (nb_pck_in_pack < ctx->nb_pack)
-				continue;
-
+		ts_pck = gf_m2ts_mux_process(ctx->mux, &status, &usec_till_next);
+		if (ts_pck == NULL) {
+			if (!nb_pck_in_pack)
+				break;
 			ts_pck = (const char *) ctx->pack_buffer;
+			is_pack_flush = GF_TRUE;
 		} else {
-			nb_pck_in_pack = 1;
+
+			tsmux_insert_sidx(ctx, GF_FALSE);
+
+			if (ctx->nb_pack>1) {
+				memcpy(ctx->pack_buffer + 188 * nb_pck_in_pack, ts_pck, 188);
+				nb_pck_in_pack++;
+
+				if (nb_pck_in_pack < ctx->nb_pack)
+					continue;
+
+				ts_pck = (const char *) ctx->pack_buffer;
+			} else {
+				nb_pck_in_pack = 1;
+			}
 		}
 		osize = nb_pck_in_pack * 188;
 		pck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
@@ -1062,6 +1072,9 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		ctx->nb_pck_in_seg++;
 		ctx->nb_pck_in_file++;
 		nb_pck_in_pack = 0;
+
+		if (is_pack_flush)
+			break;
 
 		if (status>=GF_M2TS_STATE_PADDING) {
 			break;
