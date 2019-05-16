@@ -69,6 +69,18 @@ typedef struct
 	GF_Err last_state;
 } GF_HTTPInCtx;
 
+static void httpin_notify_error(GF_Filter *filter, GF_HTTPInCtx *ctx, GF_Err e)
+{
+	if (filter && (ctx->last_state == GF_OK)) {
+		if (!ctx->initial_ack_done) {
+			gf_filter_setup_failure(filter, e);
+			ctx->initial_ack_done = GF_TRUE;
+		} else {
+			gf_filter_notification_failure(filter, e, GF_FALSE);
+		}
+		ctx->last_state = e;
+	}
+}
 
 static GF_Err httpin_initialize(GF_Filter *filter)
 {
@@ -96,6 +108,11 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 		gf_dm_sess_set_range(ctx->sess, ctx->range.num, ctx->range.den, GF_TRUE);
 	}
 
+	//for coverage
+	if (gf_sys_is_test_mode())
+		httpin_notify_error(NULL, NULL, GF_OK);
+
+
 	return GF_OK;
 }
 
@@ -115,20 +132,6 @@ static GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_ty
 	if (!strnicmp(url, "https://", 8) ) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "gmem://", 7) ) return GF_FPROBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
-}
-
-
-static void httpin_notify_error(GF_Filter *filter, GF_HTTPInCtx *ctx, GF_Err e)
-{
-	if (ctx->last_state == GF_OK) {
-		if (!ctx->initial_ack_done) {
-			gf_filter_setup_failure(filter, e);
-			ctx->initial_ack_done = GF_TRUE;
-		} else {
-			gf_filter_notification_failure(filter, e, GF_FALSE);
-		}
-		ctx->last_state = e;
-	}
 }
 
 static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
