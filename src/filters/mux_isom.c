@@ -454,6 +454,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	const char *meta_xmlns = NULL;
 	const char *meta_schemaloc = NULL;
 	const char *meta_auxmimes = NULL;
+	const char *meta_content_encoding = NULL;
 	char *txt_font = NULL;
 
 	u32 i, count, reuse_stsd = 0;
@@ -1099,6 +1100,8 @@ sample_entry_setup:
 		if (p) meta_mime = p->value.string;
 		p = gf_filter_pid_get_property_str(pid, "meta:encoding");
 		if (p) meta_encoding = p->value.string;
+		p = gf_filter_pid_get_property_str(pid, "meta:content_encoding");
+		if (p) meta_content_encoding = p->value.string;
 		p = gf_filter_pid_get_property_str(pid, "meta:xmlns");
 		if (p) meta_xmlns = p->value.string;
 		p = gf_filter_pid_get_property_str(pid, "meta:schemaloc");
@@ -1525,7 +1528,7 @@ sample_entry_setup:
 		}
 	} else if ((m_subtype == GF_ISOM_SUBTYPE_SBTT) || (m_subtype == GF_ISOM_SUBTYPE_STXT) ) {
 		comp_name = (m_subtype == GF_ISOM_SUBTYPE_STXT) ? "Simple Timed Text" : "Textual Subtitle";
-		e = gf_isom_new_stxt_description(ctx->file, tkw->track_num, m_subtype, meta_mime, meta_encoding, meta_config, &tkw->stsd_idx);
+		e = gf_isom_new_stxt_description(ctx->file, tkw->track_num, m_subtype, meta_mime, meta_content_encoding, meta_config, &tkw->stsd_idx);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new %s sample description: %s\n", gf_4cc_to_str(m_subtype), gf_error_to_string(e) ));
 			return e;
