@@ -192,6 +192,26 @@ static u32 id3_read_size(GF_BitStream *bs)
 	return size;
 }
 
+#include <gpac/utf.h>
+static void mp3_dmx_id3_set_string(GF_MP3DmxCtx *ctx, char *name, u8 *buf)
+{
+	if ((buf[0]==0xFF) || (buf[0]==0xFE)) {
+		const u16 *sptr = (u16 *) (buf+2);
+		s32 len = UTF8_MAX_BYTES_PER_CHAR*gf_utf8_wcslen(sptr);
+		char *tmp = gf_malloc(len+1);
+		len = gf_utf8_wcstombs(tmp, len, &sptr);
+		if (len>=0) {
+			tmp[len] = 0;
+			gf_filter_pid_set_property_dyn(ctx->opid, name, &PROP_STRING(tmp) );
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[MP3Dmx] Corrupted ID3 text frame %s\n", name));
+		}
+		gf_free(tmp);
+	} else {
+		gf_filter_pid_set_property_dyn(ctx->opid, name, &PROP_STRING(buf) );
+	}
+}
+
 static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 {
 	GF_BitStream *bs = gf_bs_new(ctx->id3_buffer, ctx->id3_buffer_size, GF_BITSTREAM_READ);
@@ -228,46 +248,48 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 			break;
 		}
 
-		if (buf_alloc<fsize) {
-			buf = gf_realloc(buf, fsize);
-			buf_alloc = fsize;
+		if (buf_alloc<=fsize) {
+			buf = gf_realloc(buf, fsize+2);
+			buf_alloc = fsize+2;
 		}
 
 		gf_bs_read_data(bs, buf, fsize);
+		buf[fsize]=0;
+		buf[fsize+1]=0;
 
 		switch (ftag) {
-		case GF_4CC('T','I','T','2'):
-			gf_filter_pid_set_info_str(ctx->opid, "id3:title", &PROP_STRING(buf+1) );
+		case ID3V2_FRAME_TIT2:
+			mp3_dmx_id3_set_string(ctx, "tag:title", buf+1);
 			break;
-		case GF_4CC('T','P','E','1'):
-			gf_filter_pid_set_info_str(ctx->opid, "id3:artist", &PROP_STRING(buf+1) );
+		case ID3V2_FRAME_TPE1:
+			mp3_dmx_id3_set_string(ctx, "tag:artist", buf+1);
 			break;
-		case GF_4CC('T','A','L','B'):
-			gf_filter_pid_set_info_str(ctx->opid, "id3:album", &PROP_STRING(buf+1) );
+		case ID3V2_FRAME_TALB:
+			mp3_dmx_id3_set_string(ctx, "tag:album", buf+1);
 			break;
-		case GF_4CC('T','C','O','N'):
-			gf_filter_pid_set_info_str(ctx->opid, "id3:genre", &PROP_STRING(buf+1) );
+		case ID3V2_FRAME_TCON:
+			mp3_dmx_id3_set_string(ctx, "tag:genre", buf+1);
 			break;
-		case GF_4CC('T','D','R','C'):
-			gf_filter_pid_set_info_str(ctx->opid, "id3:recdate", &PROP_STRING(buf+1) );
+		case ID3V2_FRAME_TDRC:
+			mp3_dmx_id3_set_string(ctx, "tag:recdate", buf+1);
 			break;
-		case GF_4CC('T','R','C','K'):
-			gf_filter_pid_set_info_str(ctx->opid, "id3:tracknum", &PROP_STRING(buf+1) );
+		case ID3V2_FRAME_TRCK:
+			mp3_dmx_id3_set_string(ctx, "tag:tracknum", buf+1);
 			break;
-		case GF_4CC('T','S','S','E'):
-			gf_filter_pid_set_info_str(ctx->opid, "id3:encoder", &PROP_STRING(buf+1) );
+		case ID3V2_FRAME_TSSE:
+			mp3_dmx_id3_set_string(ctx, "tag:encoder", buf+1);
 			break;
-		case GF_4CC('T','X','X','X'):
+		case ID3V2_FRAME_TXXX:
 			sep = memchr(buf, 0, fsize);
 			if (sep) {
-				strcpy(szTag, "id3:");
+				strcpy(szTag, "tag:");
 				strncat(szTag, buf+1, 1023);
-				gf_filter_pid_set_info_str(ctx->opid, szTag, &PROP_STRING(sep+1) );
+				mp3_dmx_id3_set_string(ctx, szTag, sep+1);
 			}
 			break;
 
 		//we forward as is the APIC tag for now
-		case GF_4CC('A','P','I','C'):
+		case ID3V2_FRAME_APIC:
 			if (ctx->expart) {
 				//first char is text encoding
 				//then mime
@@ -297,12 +319,12 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 			}
 			//fallthrough
 		default:
-			sprintf(szTag, "id3:%s", gf_4cc_to_str(ftag));
+			sprintf(szTag, "tag:%s", gf_4cc_to_str(ftag));
 
 			if ((ftag>>24) == 'T') {
-				gf_filter_pid_set_info_str(ctx->opid, szTag, &PROP_STRING(buf+1) );
+				mp3_dmx_id3_set_string(ctx, szTag, buf+1);
 			} else {
-				gf_filter_pid_set_info_str(ctx->opid, szTag, &PROP_DATA(buf, fsize) );
+				gf_filter_pid_set_property_str(ctx->opid, szTag, &PROP_DATA(buf, fsize) );
 			}
 			break;
 		}
@@ -521,6 +543,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 
 	while (remain) {
 		u8 *sync;
+		Bool skip_id3v1=GF_FALSE;
 		u32 bytes_skipped=0, size, nb_samp, bytes_to_drop=0;;
 
 		if (!ctx->tag_size && (remain>3)) {
@@ -575,8 +598,12 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 		if (size + 1 < remain-bytes_skipped) {
 			//make sure we are sync!
 			if (sync[size] !=0xFF) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[MP3Dmx] invalid frame, resyncing\n"));
-				goto drop_byte;
+				if ((sync[size]=='T') && (sync[size+1]=='A') && (sync[size+2]=='G')) {
+					skip_id3v1=GF_TRUE;
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[MP3Dmx] invalid frame, resyncing\n"));
+					goto drop_byte;
+				}
 			}
 		}
 		//otherwise wait for next frame, unless if end of stream
@@ -623,6 +650,10 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 			gf_filter_pck_send(dst_pck);
 		}
 		mp3_dmx_update_cts(ctx);
+
+		//TODO, parse id3v1 ??
+		if (skip_id3v1)
+			bytes_to_drop+=128;
 
 		//truncated last frame
 		if (bytes_to_drop>remain) {
