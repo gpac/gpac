@@ -597,6 +597,10 @@ GF_Err compose_initialize(GF_Filter *filter)
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC(ctx->fps) );
 
+	//for coverage
+	if (gf_sys_is_test_mode())
+		compose_update_arg(filter, NULL, NULL);
+
 	//always request a process task since we don't depend on input packets arrival (animations, pure scene presentations)
 	gf_filter_post_process_task(filter);
 	return GF_OK;

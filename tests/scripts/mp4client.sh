@@ -6,9 +6,21 @@ single_test "$MP4CLIENT -guid -rmt -rmt-ogl -run-for 2 -stats $MEDIA_DIR/auxilia
 test_begin "mp4client-playfrom"
 if [ $test_skip = 0 ] ; then
 
-do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -new $TEMP_DIR/file.mp4" "create"
+#run import with regular MP4Box (no test, with progress) for coverage
+do_test "MP4Box -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -new $TEMP_DIR/file.mp4" "create"
 
-do_test "$MP4CLIENT -for-test -no-save -size 100x100 -speed 2 -rtix $TEMP_DIR/logs.txt -exit -play-from 6 $TEMP_DIR/file.mp4 -cov" "mp4client-playfrom"
+do_test "$MP4CLIENT -for-test -no-save -size 100x100 -speed 2 -rtix $TEMP_DIR/logs.txt -exit -play-from 6 $TEMP_DIR/file.mp4 -cov" "play"
+
+fi
+test_end
+
+
+test_begin "mp4client-playfrom-ts"
+if [ $test_skip = 0 ] ; then
+
+do_test "$GPAC -i $MEDIA_DIR/auxiliary_files/enst_video.h264 -o $TEMP_DIR/file.ts" "create"
+
+do_test "$MP4CLIENT -for-test -no-save -size 100x100 -speed 2 -rtix $TEMP_DIR/logs.txt -exit -play-from 6 $TEMP_DIR/file.ts -cov -blacklist=vtbdec,nvdec" "play"
 
 fi
 test_end
