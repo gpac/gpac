@@ -831,14 +831,13 @@ u32 gf_m4v_parser_get_obj_type(GF_M4VParser *m4v);
 static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 {
 	u8 ftype;
-	u32 tinc, nb_frames, o_type;
+	u32 tinc, o_type;
 	u64 fsize, start;
 	Bool is_coded, is_m4v=(pctx->codec_id==GF_CODECID_MPEG4_PART2) ? GF_TRUE : GF_FALSE;
 	GF_Err e;
 	GF_M4VParser *m4v = gf_m4v_parser_new(data, size, !is_m4v);
 
 	gf_m4v_parser_set_inspect(m4v);
-	nb_frames = 0;
 	while (1) {
 		ftype = 0;
 		is_coded = GF_FALSE;
@@ -1147,7 +1146,6 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	GF_AVCConfig *avcc, *svcc;
 	GF_AVCConfigSlot *slc;
 	GF_HEVCConfig *hvcc, *lhcc;
-	Bool is_lhvc = GF_FALSE;
 	Bool is_enh = GF_FALSE;
 	char *elt_name = NULL;
 	const GF_PropertyValue *p, *dsi, *dsi_enh;
@@ -1270,7 +1268,6 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		fprintf(dump, "</AVCParameterSets>\n");
 		break;
 	case GF_CODECID_LHVC:
-		is_lhvc = GF_TRUE;
 		is_enh = GF_TRUE;
 	case GF_CODECID_HEVC:
 	case GF_CODECID_HEVC_TILES:
