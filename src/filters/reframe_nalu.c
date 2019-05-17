@@ -1855,6 +1855,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 				start = data = ctx->hdr_store;
 				remain = pck_size = ctx->bytes_in_header ? ctx->bytes_in_header : ctx->hdr_store_size;
 				ctx->bytes_in_header = 0;
+				ctx->hdr_store_size = 0;
 				is_eos = GF_TRUE;
 				goto naldmx_flush;
 			}

@@ -1262,32 +1262,35 @@ sample_entry_setup:
 
 		tkw->avcc = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 
-		if (tkw->codecid == GF_CODECID_SVC) {
-			e = gf_isom_svc_config_new(ctx->file, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
-		} else {
-			e = gf_isom_avc_config_new(ctx->file, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
-		}
+		if (needs_sample_entry) {
 
-		if (!e && enh_dsi) {
-			if (tkw->svcc) gf_odf_avc_cfg_del(tkw->svcc);
-			tkw->svcc = gf_odf_avc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size);
-			if (tkw->svcc) {
-				e = gf_isom_svc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->svcc, GF_TRUE);
-				if (e) {
-					gf_odf_avc_cfg_del(tkw->svcc);
-					tkw->svcc = NULL;
-				}
+			if (tkw->codecid == GF_CODECID_SVC) {
+				e = gf_isom_svc_config_new(ctx->file, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
+			} else {
+				e = gf_isom_avc_config_new(ctx->file, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
+			}
 
-				if (!dsi && ctx->xps_inband) {
-					gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx);
+			if (!e && enh_dsi) {
+				if (tkw->svcc) gf_odf_avc_cfg_del(tkw->svcc);
+				tkw->svcc = gf_odf_avc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size);
+				if (tkw->svcc) {
+					e = gf_isom_svc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->svcc, GF_TRUE);
+					if (e) {
+						gf_odf_avc_cfg_del(tkw->svcc);
+						tkw->svcc = NULL;
+					}
+
+					if (!dsi && ctx->xps_inband) {
+						gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx);
+					}
 				}
 			}
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AVC sample description: %s\n", gf_error_to_string(e) ));
+				return e;
+			}
 		}
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AVC sample description: %s\n", gf_error_to_string(e) ));
-			return e;
-		}
-
+		
 		if (dsi && ctx->xps_inband) {
 			//this will cleanup all PS in avcC / svcC
 			gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx);
