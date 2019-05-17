@@ -192,9 +192,6 @@ void isor_check_producer_ref_time(ISOMReader *read);
 //ISOMChannel *isor_get_channel(ISOMReader *reader, GF_FilterPid *pid);
 ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track, u32 item_id, Bool force_no_extractors);
 
-/*uses nero chapter info and remaps to MPEG-4 OCI if no OCI present in descriptor*/
-void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod);
-
 void isor_declare_objects(ISOMReader *read);
 
 void isor_reader_get_sample_from_item(ISOMChannel *ch);
