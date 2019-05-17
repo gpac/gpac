@@ -30,6 +30,7 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
+#if 0	//deprecated - we need to rework chapter information to deal with static chapters and chapter tracks
 void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 {
 	GF_Segment *prev_seg;
@@ -73,6 +74,7 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 		}
 	}
 }
+#endif
 
 static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32 stsd_idx, u32 streamtype, Bool use_iod)
 {
