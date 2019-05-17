@@ -105,7 +105,7 @@ void gf_m4v_parser_reset(GF_M4VParser *m4v, u8 obj_type);
 
 /*get a frame. The parser ALWAYS resync on the next object in the bitstream
 thus you can seek the bitstream to copy the payload without re-seeking it */
-GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded);
+GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded);
 /*returns current object start in bitstream*/
 u64 gf_m4v_get_object_start(GF_M4VParser *m4v);
 /*returns 1 if current object is a valid MPEG-4 Visual object*/
