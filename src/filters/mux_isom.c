@@ -443,6 +443,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	u32 audio_pli=0;
 	Bool force_tk_layout = GF_FALSE;
 	Bool force_mix_xps = GF_FALSE;
+	Bool make_inband_headers = GF_FALSE;
 
 	const char *lang_name = NULL;
 	const char *comp_name = NULL;
@@ -1145,6 +1146,10 @@ sample_entry_setup:
 		if ((needs_sample_entry==2) && (ctx->xps_inband==2)) {
 			force_mix_xps = GF_TRUE;
 		}
+		else if ((needs_sample_entry==2) && (ctx->xps_inband==1)) {
+			needs_sample_entry = 0;
+			make_inband_headers = GF_TRUE;
+		}
 	}
 	
 	if (force_mix_xps) {
@@ -1326,43 +1331,44 @@ sample_entry_setup:
 		} else {
 			tkw->hvcc = gf_odf_hevc_cfg_new();
 		}
-		e = gf_isom_hevc_config_new(ctx->file, tkw->track_num, tkw->hvcc, NULL, NULL, &tkw->stsd_idx);
-
-		if (!tkw->has_brands) {
-			gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO4, 1);
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
-		}
-		//pacth for old arch
-		else if (ctx->dash_mode) {
-			gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO6, 1);
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
-		}
-
 		tkw->is_nalu = NALU_HEVC;
 
-		if (!e && enh_dsi) {
-			if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
-			tkw->lvcc = gf_odf_hevc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size, GF_TRUE);
-			if (tkw->lvcc) {
-				e = gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->lvcc, dsi ? GF_ISOM_LEHVC_WITH_BASE_BACKWARD : GF_ISOM_LEHVC_ONLY);
-				if (e) {
-					gf_odf_hevc_cfg_del(tkw->lvcc);
-					tkw->lvcc = NULL;
-				}
+		if (needs_sample_entry) {
+			e = gf_isom_hevc_config_new(ctx->file, tkw->track_num, tkw->hvcc, NULL, NULL, &tkw->stsd_idx);
 
-				if (!dsi && ctx->xps_inband) {
-					gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx);
-				}
+			if (!tkw->has_brands) {
+				gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO4, 1);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
 			}
-		} else if (codec_id == GF_CODECID_LHVC) {
-			gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->hvcc, GF_ISOM_LEHVC_ONLY);
-		} else if (is_tile_base) {
-			//force hvc2
-			gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->hvcc, GF_ISOM_HEVC_TILE_BASE);
-		}
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new HEVC sample description: %s\n", gf_error_to_string(e) ));
-			return e;
+			//pacth for old arch
+			else if (ctx->dash_mode) {
+				gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO6, 1);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
+			}
+
+			if (!e && enh_dsi) {
+				if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
+				tkw->lvcc = gf_odf_hevc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size, GF_TRUE);
+				if (tkw->lvcc) {
+					e = gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->lvcc, dsi ? GF_ISOM_LEHVC_WITH_BASE_BACKWARD : GF_ISOM_LEHVC_ONLY);
+					if (e) {
+						gf_odf_hevc_cfg_del(tkw->lvcc);
+						tkw->lvcc = NULL;
+					}
+
+					if (!dsi && ctx->xps_inband) {
+						gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx);
+					}
+				}
+			} else if (codec_id == GF_CODECID_LHVC) {
+				gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->hvcc, GF_ISOM_LEHVC_ONLY);
+			} else if (is_tile_base) {
+				gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->hvcc, GF_ISOM_HEVC_TILE_BASE);
+			}
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new HEVC sample description: %s\n", gf_error_to_string(e) ));
+				return e;
+			}
 		}
 
 		if (dsi && ctx->xps_inband) {
@@ -1661,31 +1667,32 @@ multipid_stsd_setup:
 
 
 	//final opt: we couldn't detect before if the same stsd was possible, now that we have create a new one, check again
-	reuse_stsd = 0;
-	//don't try to reuse STSDs in multi STSD setup for DASH
-	if (multi_pid_stsd) count = 0;
-	else count = gf_isom_get_sample_description_count(ctx->file, tkw->track_num);
-	for (i=0; i<count; i++) {
-		if (i+1 == tkw->stsd_idx) continue;
+	if (needs_sample_entry) {
+		reuse_stsd = 0;
+		//don't try to reuse STSDs in multi STSD setup for DASH
+		if (multi_pid_stsd) count = 0;
+		else count = gf_isom_get_sample_description_count(ctx->file, tkw->track_num);
+		for (i=0; i<count; i++) {
+			if (i+1 == tkw->stsd_idx) continue;
 
-		if (gf_isom_is_same_sample_description(ctx->file, tkw->track_num, tkw->stsd_idx, ctx->file, tkw->track_num, i+1) ) {
-			gf_isom_remove_stream_description(ctx->file, tkw->track_num, tkw->stsd_idx);
-			tkw->stsd_idx = i+1;
-			reuse_stsd = 1;
-			break;
+			if (gf_isom_is_same_sample_description(ctx->file, tkw->track_num, tkw->stsd_idx, ctx->file, tkw->track_num, i+1) ) {
+				gf_isom_remove_stream_description(ctx->file, tkw->track_num, tkw->stsd_idx);
+				tkw->stsd_idx = i+1;
+				reuse_stsd = 1;
+				break;
+			}
+		}
+		if (!reuse_stsd) {
+			tkw->samples_in_stsd = 0;
+		} else if (use_3gpp_config && tkw->amr_mode_set) {
+			GF_3GPConfig *gpp_cfg = gf_isom_3gp_config_get(ctx->file, tkw->track_num, tkw->stsd_idx);
+			if (gpp_cfg->AMR_mode_set != tkw->amr_mode_set) {
+				gpp_cfg->AMR_mode_set = tkw->amr_mode_set;
+				gf_isom_3gp_config_update(ctx->file, tkw->track_num, gpp_cfg, tkw->stsd_idx);
+			}
+			gf_free(gpp_cfg);
 		}
 	}
-	if (!reuse_stsd) {
-		tkw->samples_in_stsd = 0;
-	} else if (use_3gpp_config && tkw->amr_mode_set) {
-		GF_3GPConfig *gpp_cfg = gf_isom_3gp_config_get(ctx->file, tkw->track_num, tkw->stsd_idx);
-		if (gpp_cfg->AMR_mode_set != tkw->amr_mode_set) {
-			gpp_cfg->AMR_mode_set = tkw->amr_mode_set;
-			gf_isom_3gp_config_update(ctx->file, tkw->track_num, gpp_cfg, tkw->stsd_idx);
-		}
-		gf_free(gpp_cfg);
-	}
-
 
 	if (tkw->is_encrypted) {
 		const char *scheme_uri=NULL;
@@ -1883,7 +1890,7 @@ sample_entry_done:
 			gf_odf_hevc_cfg_del(tkw->lvcc);
 			tkw->lvcc = NULL;
 		}
-	} else if (needs_sample_entry) {
+	} else if (needs_sample_entry || make_inband_headers) {
 		mp4_mux_make_inband_header(ctx, tkw);
 	}
 
