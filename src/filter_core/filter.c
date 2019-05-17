@@ -681,7 +681,7 @@ static const char *gf_filter_load_arg_config(const char *sec_name, const char *a
 
 	//look in global args
 	if (gf_sys_has_filter_global_args()) {
-		u32 alen = strlen(arg_name);
+		u32 alen = (u32) strlen(arg_name);
 		u32 i, nb_args = gf_sys_get_argc();
 		for (i=0; i<nb_args; i++) {
 			const char *arg = gf_sys_get_arg(i);
