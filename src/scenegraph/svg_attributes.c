@@ -1579,7 +1579,18 @@ next_command:
 				end.y += rel_ref_pt.y;
 			}
 #ifndef PARSE_PATH_ONLY
-			gf_path_add_cubic_to(path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
+			switch (prev_c) {
+			case 'c':
+			case 'C':
+			case 's':
+			case 'S':
+				gf_path_add_cubic_to(path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
+				break;
+			default:
+				gf_path_add_quadratic_to(path, ct_end.x, ct_end.y, end.x, end.y);
+				break;
+			}
+
 #endif
 			rel_ref_pt = end;
 			ct_orig = ct_end;
