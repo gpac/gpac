@@ -280,7 +280,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 	while (gf_bs_available((ctx->bs_r))) {
 		Bool skip_nal = GF_FALSE;
 		Bool is_nalu_delim = GF_FALSE;
-		u32 pos;
+		u32 pos, nal_temporal_id, nal_layer_id;
 		u32 nal_size = gf_bs_read_int(ctx->bs_r, 8*ctx->nal_hdr_size);
 		if (nal_size > gf_bs_available(ctx->bs_r) ) {
 			gf_filter_pid_drop_packet(ctx->ipid);
@@ -288,7 +288,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 		}
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 		//even if not filtering, parse to check for AU delim
-		skip_nal = nalumx_is_nal_skip(ctx, data, pos, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr);
+		skip_nal = nalumx_is_nal_skip(ctx, data, pos, &is_nalu_delim, &nal_layer_id, &nal_temporal_id, &avc_hdr);
 		if (!ctx->extract) {
 			skip_nal = GF_FALSE;
 		}
@@ -297,9 +297,13 @@ GF_Err nalumx_process(GF_Filter *filter)
 			if (!ctx->delim)
 				skip_nal = GF_TRUE;
 		}
-		if (!skip_nal)
+		if (!skip_nal) {
 			size += nal_size + 4;
-
+			if (nal_layer_id>layer_id)
+				layer_id = nal_layer_id;
+			if (nal_temporal_id>temporal_id)
+				temporal_id=nal_temporal_id;
+		}
 		gf_bs_skip_bytes(ctx->bs_r, nal_size);
 	}
 	gf_bs_seek(ctx->bs_r, 0);
@@ -342,7 +346,10 @@ GF_Err nalumx_process(GF_Filter *filter)
 	if (!has_nalu_delim) {
 		gf_bs_write_u32(ctx->bs_w, 1);
 		if (ctx->is_hevc) {
-			assert(layer_id);
+			if (!layer_id)
+				layer_id=1;
+			if (!temporal_id)
+				temporal_id=1;
 #ifndef GPAC_DISABLE_HEVC
 			gf_bs_write_int(ctx->bs_w, 0, 1);
 			gf_bs_write_int(ctx->bs_w, GF_HEVC_NALU_ACCESS_UNIT, 6);

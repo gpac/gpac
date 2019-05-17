@@ -194,7 +194,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 		Bool is_coded;
 		u64 pos;
 		pos = gf_m4v_get_object_start(vparser);
-		e = gf_m4v_parse_frame(vparser, dsi, &ftype, &tinc, &fsize, &start, &is_coded);
+		e = gf_m4v_parse_frame(vparser, &dsi, &ftype, &tinc, &fsize, &start, &is_coded);
 		if (e<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Could not parse video frame\n"));
 			continue;
@@ -872,7 +872,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		//good to go
 		gf_m4v_parser_reset(ctx->vparser, sc_type_forced ? forced_sc_type + 1 : 0);
 		size = 0;
-		e = gf_m4v_parse_frame(ctx->vparser, ctx->dsi, &ftype, &tinc, &size, &fstart, &is_coded);
+		e = gf_m4v_parse_frame(ctx->vparser, &ctx->dsi, &ftype, &tinc, &size, &fstart, &is_coded);
 		//true if we strip VO and VISOBJ assert(!fstart);
 
 		//we skipped bytes already in store + end of start code present in packet, so the size of the first object
@@ -1052,7 +1052,7 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	while (1) {
 		ftype = 0;
 		is_coded = GF_FALSE;
-		e = gf_m4v_parse_frame(parser, dsi, &ftype, &tinc, &fsize, &start, &is_coded);
+		e = gf_m4v_parse_frame(parser, &dsi, &ftype, &tinc, &fsize, &start, &is_coded);
 		if (!nb_frames && start)
 			break;
 		if (is_coded) nb_frames++;
@@ -1077,7 +1077,7 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	while (1) {
 		ftype = 0;
 		is_coded = GF_FALSE;
-		e = gf_m4v_parse_frame(parser, dsi, &ftype, &tinc, &fsize, &start, &is_coded);
+		e = gf_m4v_parse_frame(parser, &dsi, &ftype, &tinc, &fsize, &start, &is_coded);
 		if (!nb_frames && start)
 			break;
 		if (is_coded) nb_frames++;

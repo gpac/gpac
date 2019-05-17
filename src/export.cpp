@@ -1346,6 +1346,10 @@
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_inspect_dump_nalu) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_inspect_dump_obu) )
+
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_change_par) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_remove_non_rap) )

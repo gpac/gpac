@@ -56,7 +56,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index_dur;
-	Bool explicit, autofps, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim;
+	Bool explicit, autofps, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze;
 	u32 nal_length;
 
 	//only one input pid declared
@@ -799,7 +799,8 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u
 			hvcc->temporalIdNested = lvcc->temporalIdNested = vps->temporal_id_nesting;
 		}
 		//TODO set scalability mask
-		naludmx_hevc_add_param((ctx->explicit || ! (*has_hevc_base) ) ? lvcc : hvcc, sl, GF_HEVC_NALU_VID_PARAM);
+		if (!ctx->analyze)
+			naludmx_hevc_add_param((ctx->explicit || ! (*has_hevc_base) ) ? lvcc : hvcc, sl, GF_HEVC_NALU_VID_PARAM);
 	}
 
 	count = gf_list_count(ctx->sps);
@@ -857,7 +858,8 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u
 			if (sps->width > max_w) max_w = sps->width;
 			if (sps->height > max_h) max_h = sps->height;
 		}
-		naludmx_hevc_add_param(cfg, sl, GF_HEVC_NALU_SEQ_PARAM);
+		if (!ctx->analyze)
+			naludmx_hevc_add_param(cfg, sl, GF_HEVC_NALU_SEQ_PARAM);
 	}
 
 	cfg = ctx->explicit ? lvcc : hvcc;
@@ -866,7 +868,8 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u
 		GF_AVCConfigSlot *sl = gf_list_get(ctx->pps, i);
 		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
 		if (!layer_id) *has_hevc_base = GF_TRUE;
-		naludmx_hevc_add_param(layer_id ? lvcc : cfg, sl, GF_HEVC_NALU_PIC_PARAM);
+		if (!ctx->analyze)
+			naludmx_hevc_add_param(layer_id ? lvcc : cfg, sl, GF_HEVC_NALU_PIC_PARAM);
 	}
 
 	*dsi = *dsi_enh = NULL;
@@ -997,7 +1000,8 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u32 *dsi_
 			if (sps->width > max_w) max_w = sps->width;
 			if (sps->height > max_h) max_h = sps->height;
 		}
-		gf_list_add(cfg->sequenceParameterSets, sl);
+		if (!ctx->analyze)
+			gf_list_add(cfg->sequenceParameterSets, sl);
 	}
 
 	cfg = ctx->explicit ? svcc : avcc;
@@ -1005,21 +1009,24 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u32 *dsi_
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *sl = gf_list_get(ctx->sps_ext, i);
 		if (!cfg->sequenceParameterSetExtensions) cfg->sequenceParameterSetExtensions = gf_list_new();
-		gf_list_add(cfg->sequenceParameterSetExtensions, sl);
+		if (!ctx->analyze)
+			gf_list_add(cfg->sequenceParameterSetExtensions, sl);
 	}
 
 	cfg = ctx->explicit ? svcc : avcc;
 	count = gf_list_count(ctx->pps);
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *sl = gf_list_get(ctx->pps, i);
-		gf_list_add(cfg->pictureParameterSets, sl);
+		if (!ctx->analyze)
+			gf_list_add(cfg->pictureParameterSets, sl);
 	}
 
 	cfg = svcc;
 	count = gf_list_count(ctx->pps_svc);
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *sl = gf_list_get(ctx->pps_svc, i);
-		gf_list_add(cfg->pictureParameterSets, sl);
+		if (!ctx->analyze)
+			gf_list_add(cfg->pictureParameterSets, sl);
 	}
 
 	*dsi = *dsi_enh = NULL;
@@ -1056,7 +1063,11 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	GF_Fraction sar;
 	Bool has_hevc_base = GF_TRUE;
 
-	if (!ctx->ps_modified) return;
+	if (ctx->analyze) {
+		if (ctx->opid && !ctx->ps_modified) return;
+	} else {
+		if (!ctx->ps_modified) return;
+	}
 	ctx->ps_modified = GF_FALSE;
 
 	dsi = dsi_enh = NULL;
@@ -1087,7 +1098,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	}
 
 	naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
-	if (gf_list_count(ctx->pck_queue)) {
+	if (!ctx->analyze && gf_list_count(ctx->pck_queue)) {
 		GF_LOG(dsi_enh ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] xPS changed but could not flush frames before signaling state change %s\n", ctx->log_name, dsi_enh ? "- likely scalable xPS update" : "!"));
 	}
 
@@ -2187,7 +2198,8 @@ naldmx_flush:
 			case GF_HEVC_NALU_PIC_PARAM:
 			case GF_HEVC_NALU_SEI_PREFIX:
 			case GF_HEVC_NALU_SEI_SUFFIX:
-				full_nal_required = GF_TRUE;
+				if (!ctx->analyze)
+					full_nal_required = GF_TRUE;
 				break;
 			case GF_HEVC_NALU_SLICE_TRAIL_N:
 			case GF_HEVC_NALU_SLICE_TSA_N:
@@ -2220,7 +2232,8 @@ naldmx_flush:
 			case GF_AVC_NALU_SVC_PREFIX_NALU:
 			//we also need the SEI in AVC since some SEI messages have to be removed
 			case GF_AVC_NALU_SEI:
-				full_nal_required = GF_TRUE;
+				if (!ctx->analyze)
+					full_nal_required = GF_TRUE;
 				break;
 			default:
 				break;
@@ -2306,6 +2319,11 @@ naldmx_flush:
 			nal_parse_result = naludmx_parse_nal_hevc(ctx, hdr_start, hdr_avail, &skip_nal, &is_slice, &is_islice);
 		} else {
 			nal_parse_result = naludmx_parse_nal_avc(ctx, hdr_start, hdr_avail, nal_type, &skip_nal, &is_slice, &is_islice);
+		}
+
+		if (ctx->analyze) {
+			skip_nal = GF_FALSE;
+			ctx->sei_buffer_size = 0;
 		}
 
 		//new frame - if no slices, we detected the new frame on AU delimiter, don't flush new frame !
@@ -2962,6 +2980,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seirw), "rewrite AVC sei messages for ISOBMFF constraints", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(audelim), "keeps Access Unit delimiter in payload", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 

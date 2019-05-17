@@ -261,7 +261,7 @@ s32 gf_mv12_next_slice_start(unsigned char *pbuffer, u32 startoffset, u32 buflen
 struct __tag_m4v_parser
 {
 	GF_BitStream *bs;
-	Bool mpeg12;
+	Bool mpeg12, step_mode;
 	u32 current_object_type;
 	u32 force_next_obj_type;
 	u64 current_object_start;
@@ -303,6 +303,17 @@ void gf_m4v_parser_del_no_bs(GF_M4VParser *m4v)
 	gf_free(m4v);
 }
 
+GF_EXPORT
+void gf_m4v_parser_set_inspect(GF_M4VParser *m4v)
+{
+	if (m4v) m4v->step_mode = 1;
+}
+GF_EXPORT
+u32 gf_m4v_parser_get_obj_type(GF_M4VParser *m4v)
+{
+	if (m4v) return m4v->current_object_type;
+	return 0;
+}
 
 #define M4V_CACHE_SIZE		4096
 s32 M4V_LoadObject(GF_M4VParser *m4v)
@@ -514,11 +525,73 @@ static u8 m4v_get_sar_idx(u32 w, u32 h)
 	return 0xF;
 }
 
+static void gf_m4v_parse_vol(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
+{
+	u8 verid, par;
+	s32 clock_rate;
+	u8 vpl = dsi->VideoPL;
+
+	memset(dsi, 0, sizeof(GF_M4VDecSpecInfo));
+	dsi->VideoPL = vpl;
+
+	verid = 0;
+	dsi->RAP_stream = gf_bs_read_int(m4v->bs, 1);
+	dsi->objectType = gf_bs_read_int(m4v->bs, 8);
+	if (gf_bs_read_int(m4v->bs, 1)) {
+		verid = gf_bs_read_int(m4v->bs, 4);
+		gf_bs_read_int(m4v->bs, 3);
+	}
+	par = gf_bs_read_int(m4v->bs, 4);
+	if (par == 0xF) {
+		dsi->par_num = gf_bs_read_int(m4v->bs, 8);
+		dsi->par_den = gf_bs_read_int(m4v->bs, 8);
+	} else if (par<6) {
+		dsi->par_num = m4v_sar[par].w;
+		dsi->par_den = m4v_sar[par].h;
+	}
+	if (gf_bs_read_int(m4v->bs, 1)) {
+		gf_bs_read_int(m4v->bs, 3);
+		if (gf_bs_read_int(m4v->bs, 1)) gf_bs_read_int(m4v->bs, 79);
+	}
+	dsi->has_shape = gf_bs_read_int(m4v->bs, 2);
+	if (dsi->has_shape && (verid!=1) ) gf_bs_read_int(m4v->bs, 4);
+	gf_bs_read_int(m4v->bs, 1);
+	/*clock rate*/
+	dsi->clock_rate = gf_bs_read_int(m4v->bs, 16);
+	/*marker*/
+	gf_bs_read_int(m4v->bs, 1);
+
+	clock_rate = dsi->clock_rate-1;
+	if (clock_rate >= 65536) clock_rate = 65535;
+	if (clock_rate > 0) {
+		for (dsi->NumBitsTimeIncrement = 1; dsi->NumBitsTimeIncrement < 16; dsi->NumBitsTimeIncrement++)	{
+			if (clock_rate == 1) break;
+			clock_rate = (clock_rate >> 1);
+		}
+	} else {
+		/*fix from vivien for divX*/
+		dsi->NumBitsTimeIncrement = 1;
+	}
+	/*fixed FPS stream*/
+	dsi->time_increment = 0;
+	if (gf_bs_read_int(m4v->bs, 1)) {
+		dsi->time_increment = gf_bs_read_int(m4v->bs, dsi->NumBitsTimeIncrement);
+	}
+	if (!dsi->has_shape) {
+		gf_bs_read_int(m4v->bs, 1);
+		dsi->width = gf_bs_read_int(m4v->bs, 13);
+		gf_bs_read_int(m4v->bs, 1);
+		dsi->height = gf_bs_read_int(m4v->bs, 13);
+	} else {
+		dsi->width = dsi->height = 0;
+	}
+
+}
+
 static GF_Err gf_m4v_parse_config_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 {
 	s32 o_type;
-	u8 go, verid, par;
-	s32 clock_rate;
+	u8 go;
 
 	if (!m4v || !dsi) return GF_BAD_PARAM;
 
@@ -534,57 +607,7 @@ static GF_Err gf_m4v_parse_config_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo *ds
 			break;
 
 		case M4V_VOL_START_CODE:
-			verid = 0;
-			dsi->RAP_stream = gf_bs_read_int(m4v->bs, 1);
-			dsi->objectType = gf_bs_read_int(m4v->bs, 8);
-			if (gf_bs_read_int(m4v->bs, 1)) {
-				verid = gf_bs_read_int(m4v->bs, 4);
-				gf_bs_read_int(m4v->bs, 3);
-			}
-			par = gf_bs_read_int(m4v->bs, 4);
-			if (par == 0xF) {
-				dsi->par_num = gf_bs_read_int(m4v->bs, 8);
-				dsi->par_den = gf_bs_read_int(m4v->bs, 8);
-			} else if (par<6) {
-				dsi->par_num = m4v_sar[par].w;
-				dsi->par_den = m4v_sar[par].h;
-			}
-			if (gf_bs_read_int(m4v->bs, 1)) {
-				gf_bs_read_int(m4v->bs, 3);
-				if (gf_bs_read_int(m4v->bs, 1)) gf_bs_read_int(m4v->bs, 79);
-			}
-			dsi->has_shape = gf_bs_read_int(m4v->bs, 2);
-			if (dsi->has_shape && (verid!=1) ) gf_bs_read_int(m4v->bs, 4);
-			gf_bs_read_int(m4v->bs, 1);
-			/*clock rate*/
-			dsi->clock_rate = gf_bs_read_int(m4v->bs, 16);
-			/*marker*/
-			gf_bs_read_int(m4v->bs, 1);
-
-			clock_rate = dsi->clock_rate-1;
-			if (clock_rate >= 65536) clock_rate = 65535;
-			if (clock_rate > 0) {
-				for (dsi->NumBitsTimeIncrement = 1; dsi->NumBitsTimeIncrement < 16; dsi->NumBitsTimeIncrement++)	{
-					if (clock_rate == 1) break;
-					clock_rate = (clock_rate >> 1);
-				}
-			} else {
-				/*fix from vivien for divX*/
-				dsi->NumBitsTimeIncrement = 1;
-			}
-			/*fixed FPS stream*/
-			dsi->time_increment = 0;
-			if (gf_bs_read_int(m4v->bs, 1)) {
-				dsi->time_increment = gf_bs_read_int(m4v->bs, dsi->NumBitsTimeIncrement);
-			}
-			if (!dsi->has_shape) {
-				gf_bs_read_int(m4v->bs, 1);
-				dsi->width = gf_bs_read_int(m4v->bs, 13);
-				gf_bs_read_int(m4v->bs, 1);
-				dsi->height = gf_bs_read_int(m4v->bs, 13);
-			} else {
-				dsi->width = dsi->height = 0;
-			}
+			gf_m4v_parse_vol(m4v, dsi);
 			/*shape will be done later*/
 			gf_bs_align(m4v->bs);
 			break;
@@ -616,7 +639,7 @@ GF_Err gf_m4v_parse_config(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 	}
 }
 
-static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded)
+static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded)
 {
 	u8 go, hasVOP, firstObj, val;
 	s32 o_type;
@@ -630,9 +653,10 @@ static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi
 	m4v->current_object_type = (u32) -1;
 	*frame_type = 0;
 
-	M4V_Reset(m4v, m4v->current_object_start);
-	go = 1;
+	if (!m4v->step_mode)
+		M4V_Reset(m4v, m4v->current_object_start);
 
+	go = 1;
 	while (go) {
 		o_type = M4V_LoadObject(m4v);
 		switch (o_type) {
@@ -681,12 +705,14 @@ static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi
 			*size = gf_bs_get_position(m4v->bs) - *start;
 			return GF_EOS;
 		}
+		if (m4v->step_mode)
+			return GF_OK;
 	}
 	*size = m4v->current_object_start - *start;
 	return GF_OK;
 }
 
-static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded)
+static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded)
 {
 	u8 go, hasVOP, firstObj, secs;
 	s32 o_type;
@@ -701,8 +727,10 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi,
 	m4v->current_object_type = (u32) -1;
 	*frame_type = 0;
 	*start = 0;
-	
-	M4V_Reset(m4v, m4v->current_object_start);
+
+	if (!m4v->step_mode)
+		M4V_Reset(m4v, m4v->current_object_start);
+
 	go = 1;
 	while (go) {
 		o_type = M4V_LoadObject(m4v);
@@ -726,20 +754,20 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi,
 			while (gf_bs_read_int(m4v->bs, 1) != 0)
 				secs ++;
 			/*no support for B frames in parsing*/
-			secs += (dsi.enh_layer || *frame_type!=2) ? m4v->tc_dec : m4v->tc_disp;
+			secs += (dsi->enh_layer || *frame_type!=2) ? m4v->tc_dec : m4v->tc_disp;
 			/*marker*/
 			gf_bs_read_int(m4v->bs, 1);
 			/*vop_time_inc*/
-			if (dsi.NumBitsTimeIncrement)
-				vop_inc = gf_bs_read_int(m4v->bs, dsi.NumBitsTimeIncrement);
+			if (dsi->NumBitsTimeIncrement)
+				vop_inc = gf_bs_read_int(m4v->bs, dsi->NumBitsTimeIncrement);
 
 			m4v->prev_tc_dec = m4v->tc_dec;
 			m4v->prev_tc_disp = m4v->tc_disp;
-			if (dsi.enh_layer || *frame_type!=2) {
+			if (dsi->enh_layer || *frame_type!=2) {
 				m4v->tc_disp = m4v->tc_dec;
 				m4v->tc_dec = secs;
 			}
-			*time_inc = secs * dsi.clock_rate + vop_inc;
+			*time_inc = secs * dsi->clock_rate + vop_inc;
 			/*marker*/
 			gf_bs_read_int(m4v->bs, 1);
 			/*coded*/
@@ -754,8 +782,10 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi,
 			if (hasVOP) go = 0;
 			break;
 
-		case M4V_VOS_START_CODE:
 		case M4V_VOL_START_CODE:
+			if (m4v->step_mode)
+				gf_m4v_parse_vol(m4v, dsi);
+		case M4V_VOS_START_CODE:
 			if (hasVOP) {
 				go = 0;
 			} else if (firstObj) {
@@ -772,6 +802,8 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi,
 			*size = gf_bs_get_position(m4v->bs) - *start;
 			return GF_EOS;
 		}
+		if (m4v->step_mode)
+			return GF_OK;
 	}
 	assert(m4v->current_object_start >= *start);
 	*size = m4v->current_object_start - *start;
@@ -779,7 +811,7 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi,
 }
 
 GF_EXPORT
-GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded)
+GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded)
 {
 	if (m4v->mpeg12) {
 		return gf_m4v_parse_frame_mpeg12(m4v, dsi, frame_type, time_inc, size, start, is_coded);
