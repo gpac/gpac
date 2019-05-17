@@ -12,7 +12,7 @@ fi
 do_sdp_dump=0
 
 case $1 in
-*english* )
+*english.mp3 )
  do_sdp_dump=1;;
 esac
 
