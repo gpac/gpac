@@ -195,6 +195,7 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 			gf_evg_stencil_set_linear_gradient(grad, start.x, start.y, end.x, end.y);
 			gf_evg_stencil_set_gradient_interpolation(grad, pos, linear, 2);
 		} else {
+            grad = NULL;
 #if 0 //unused
 			grad = gf_evg_stencil_new(GF_STENCIL_VERTEX_GRADIENT);
 			if (grad) {
