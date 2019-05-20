@@ -4473,12 +4473,12 @@ GF_Err video_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 			if (e) return e;
 		}
 	}
-	if (ptr->pasp) {
-		e = gf_isom_box_write((GF_Box *)ptr->pasp, bs);
+	if (ptr->clap) {
+		e = gf_isom_box_write((GF_Box*)ptr->clap, bs);
 		if (e) return e;
 	}
-	if (ptr->clap) {
-		e = gf_isom_box_write((GF_Box *)ptr->clap, bs);
+	if (ptr->pasp) {
+		e = gf_isom_box_write((GF_Box *)ptr->pasp, bs);
 		if (e) return e;
 	}
 	if (ptr->ccst) {
