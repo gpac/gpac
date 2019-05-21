@@ -7787,10 +7787,11 @@ Bool OGG_ReadPage(FILE *f_in, ogg_sync_state *oy, ogg_page *oggpage)
 {
 	if (feof(f_in)) return GF_FALSE;
 	while (ogg_sync_pageout(oy, oggpage ) != 1 ) {
-		char *buffer = ogg_sync_buffer(oy, OGG_BUFFER_SIZE);
+		char *buffer;
+		if (feof(f_in)) return GF_TRUE;
+		buffer = ogg_sync_buffer(oy, OGG_BUFFER_SIZE);
 		u32 bytes = (u32) fread(buffer, sizeof(char), OGG_BUFFER_SIZE, f_in);
 		if (ogg_sync_wrote(oy, bytes)) return GF_FALSE;
-		if (feof(f_in)) return GF_TRUE;
 	}
 	return GF_TRUE;
 }
