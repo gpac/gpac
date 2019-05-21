@@ -1884,7 +1884,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	u64 insert_dts;
 	Bool is_isom;
 	GF_ISOSample *samp;
-	Double aligned_to_DTS = 0;
+	GF_Fraction64 aligned_to_DTS_frac;
 
 	if (is_pl) return cat_playlist(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines, allow_add_in_command);
 
@@ -1971,12 +1971,14 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	}
 	dest_orig_dur /= gf_isom_get_timescale(dest);
 
-	aligned_to_DTS = 0;
+	aligned_to_DTS_frac.num = 0;
+	aligned_to_DTS_frac.den = 1;
 	for (i=0; i<gf_isom_get_track_count(dest); i++) {
-		Double track_dur = (Double) gf_isom_get_media_duration(dest, i+1);
-		track_dur /= gf_isom_get_media_timescale(dest, i+1);
-		if (aligned_to_DTS < track_dur) {
-			aligned_to_DTS = track_dur;
+		u64 track_dur = (Double) gf_isom_get_media_duration(dest, i+1);
+		u32 track_ts = gf_isom_get_media_timescale(dest, i+1);
+		if (aligned_to_DTS_frac.num * track_ts < track_dur * aligned_to_DTS_frac.den) {
+			aligned_to_DTS_frac.num = track_dur;
+			aligned_to_DTS_frac.den = track_ts;
 		}
 	}
 
@@ -2172,7 +2174,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		count = gf_isom_get_sample_count(dest, dst_tk);
 
 		if (align_timelines) {
-			insert_dts = (u64) (aligned_to_DTS * gf_isom_get_media_timescale(dest, dst_tk));
+			insert_dts = (u64) (aligned_to_DTS_frac.num * gf_isom_get_media_timescale(dest, dst_tk));
+			insert_dts /= aligned_to_DTS_frac.den;
 		} else if (use_ts_dur && (count>1)) {
 			insert_dts = 2*gf_isom_get_sample_dts(dest, dst_tk, count) - gf_isom_get_sample_dts(dest, dst_tk, count-1);
 		} else {
@@ -2250,10 +2253,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			gf_isom_set_edit_segment(dest, dst_tk, (u64) (s64) (insert_dts*rescale), (u64) (s64) (media_dur*rescale), 0, GF_ISOM_EDIT_NORMAL);
 		} else if (merge_edits) {
 			/*convert from media time to track time*/
-			Double rescale = (Float) gf_isom_get_timescale(dest);
-			rescale /= (Float) gf_isom_get_media_timescale(dest, dst_tk);
+			u32 movts_dst = gf_isom_get_timescale(dest);
+			u32 trackts_dst = gf_isom_get_media_timescale(dest, dst_tk);
 			/*convert from orig to dst time scale*/
-			rescale *= ts_scale;
+			movts_dst *= ts_scale;
 
 			/*get the first edit normal mode and add the new track dur*/
 			for (j=nb_edits; j>0; j--) {
@@ -2265,14 +2268,17 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 					Double prev_dur = (Double) (s64) dest_track_dur_before_cat;
 					Double dur = (Double) (s64) gf_isom_get_media_duration(orig, i+1);
 
-					dur *= rescale;
-					prev_dur *= rescale;
+					dur *= movts_dst;
+					dur /= trackts_dst;
+					prev_dur *= movts_dst;
+					prev_dur /= trackts_dst;
 
 					/*safety test: some files have broken edit lists. If no more than 2 entries, check that the segment duration
 					is less or equal to the movie duration*/
 					if (prev_dur < segmentDuration) {
 						fprintf(stderr, "Warning: suspicious edit list entry found: duration %g sec but longest track duration before cat is %g - fixing it\n", (Double) (s64) segmentDuration/1000.0, prev_dur/1000);
-						segmentDuration = (u64) (s64) ( (Double) (s64) (dest_track_dur_before_cat - mediaTime) * rescale );
+						segmentDuration = (dest_track_dur_before_cat - mediaTime) * movts_dst;
+						segmentDuration /= trackts_dst;
 					}
 
 					segmentDuration += (u64) (s64) dur;
