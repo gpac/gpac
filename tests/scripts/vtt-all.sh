@@ -3,7 +3,6 @@
 vtt_test ()
 {
  vttfile=$1
- mp4file="$TEMP_DIR/test.mp4"
  name=$(basename $1)
  name=${name%.*}
 
@@ -17,6 +16,8 @@ vtt_test ()
  if [ $test_skip  = 1 ] ; then
   return
  fi
+
+ mp4file="$TEMP_DIR/test.mp4"
 
  #VTT->MP4
  do_test "$MP4BOX -add $vttfile -new $mp4file" "vtt-to-mp4"

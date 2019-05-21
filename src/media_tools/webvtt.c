@@ -616,6 +616,8 @@ GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE *vtt_file, s32 unicod
 	if (!parser) return GF_BAD_PARAM;
 	parser->state = WEBVTT_PARSER_STATE_WAITING_SIGNATURE;
 
+	if (gf_sys_is_test_mode())
+		gf_webvtt_parser_restart(parser);
 	parser->is_srt = is_srt;
 	if (is_srt)
 		parser->state = WEBVTT_PARSER_STATE_WAITING_CUE;
