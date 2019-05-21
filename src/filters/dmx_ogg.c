@@ -469,12 +469,12 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 		} else {
 			//convert granule to time
 			if (the_info.sample_rate) {
-				dur.num = max_gran;
+				dur.num = (s32) max_gran;
 			} else if (the_info.frame_rate.num) {
 				s64 iframe = max_gran >> the_info.theora_kgs;
 				s64 pframe = max_gran - (iframe << the_info.theora_kgs);
 				pframe += iframe;
-				dur.num = (u64) (pframe / the_info.frame_rate.num);
+				dur.num = (s32) (pframe / the_info.frame_rate.num);
 			} else {
 				dur.num = 0;
 			}
