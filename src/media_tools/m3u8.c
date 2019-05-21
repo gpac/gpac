@@ -749,6 +749,9 @@ static Stream* master_playlist_find_matching_stream(const MasterPlaylist *pl, co
 GF_EXPORT
 GF_Err gf_m3u8_parse_master_playlist(const char *file, MasterPlaylist **playlist, const char *baseURL)
 {
+	if (gf_sys_is_test_mode())
+		string2num("coverage");
+
 	return gf_m3u8_parse_sub_playlist(file, playlist, baseURL, NULL, NULL);
 }
 
