@@ -2026,8 +2026,23 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		if (dst_tk) {
 			if (mtype != gf_isom_get_media_type(dest, dst_tk))
 				dst_tk = 0;
-			else if (gf_isom_get_media_subtype(dest, dst_tk, 1) != gf_isom_get_media_subtype(orig, i+1, 1))
-				dst_tk = 0;
+			else {
+				u32 subtype_dst = gf_isom_get_media_subtype(dest, dst_tk, 1);
+				u32 subtype_src = gf_isom_get_media_subtype(orig, i+1, 1);
+				if (subtype_dst==GF_ISOM_SUBTYPE_AVC3_H264)
+					subtype_dst=GF_ISOM_SUBTYPE_AVC_H264 ;
+				if (subtype_src==GF_ISOM_SUBTYPE_AVC3_H264)
+					subtype_src=GF_ISOM_SUBTYPE_AVC_H264;
+
+				if (subtype_dst==GF_ISOM_SUBTYPE_HEV1)
+					subtype_dst=GF_ISOM_SUBTYPE_HVC1;
+				if (subtype_src==GF_ISOM_SUBTYPE_HEV1)
+					subtype_src=GF_ISOM_SUBTYPE_HVC1;
+
+				if (subtype_dst != subtype_src) {
+					dst_tk = 0;
+				}
+			}
 		}
 
 		if (!dst_tk) {
