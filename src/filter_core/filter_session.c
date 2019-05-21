@@ -823,6 +823,12 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 		len = (u32) (sep - name);
 	} else len = (u32) strlen(name);
 
+	if (!len) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing filter name in %s\n", name));
+		return NULL;
+
+	}
+
 	if (!strncmp(name, "enc", len)) {
 		return gf_fs_load_encoder(fsess, args);
 	}
