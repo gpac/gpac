@@ -692,7 +692,6 @@ GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE *vtt_file, s32 unicod
                              void (*on_sample_parsed)(void *, GF_WebVTTSample *),
                              void (*on_header_parsed)(void *, const char *));
 GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser);
-u64 gf_webvtt_parser_last_duration(GF_WebVTTParser *parser);
 void gf_webvtt_parser_del(GF_WebVTTParser *parser);
 void gf_webvtt_parser_suspend(GF_WebVTTParser *vttparser);
 void gf_webvtt_parser_restart(GF_WebVTTParser *parser);

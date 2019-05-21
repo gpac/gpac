@@ -1018,12 +1018,6 @@ static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx)
 	if (e < GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] WebVTT process error %s\n", gf_error_to_string(e) ));
 	}
-
-	/*do not add any empty sample at the end since it modifies track duration and is not needed - it is the player job
-	to figure out when to stop displaying the last text sample
-	However update the last sample duration*/
-//	gf_isom_set_last_sample_duration(import->dest, track, (u32) gf_webvtt_parser_last_duration(ctx->vttparser));
-	
 	return e;
 }
 
