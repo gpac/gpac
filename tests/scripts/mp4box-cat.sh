@@ -71,8 +71,11 @@ if [ "$test_skip" != 1 ] ; then
 
 
 mp4file="$TEMP_DIR/file.mp4"
+insp="$TEMP_DIR/inspect.txt"
+#we cannot hash the result because -cat * will call enum_directory which may behave differently across platforms
 do_test "$MP4BOX -cat $EXTERNAL_MEDIA_DIR/counter/@.hevc -new $mp4file" "cat"
-do_hash_test $mp4file "cat"
+do_test "$GPAC -i $mp4file inspect:deep:log=$insp:fmt=%dts%%cts%%lf%" "catinspect"
+do_hash_test $insp "catinspect"
 
 fi
 test_end
