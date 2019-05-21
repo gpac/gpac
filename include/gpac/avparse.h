@@ -108,8 +108,6 @@ thus you can seek the bitstream to copy the payload without re-seeking it */
 GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded);
 /*returns current object start in bitstream*/
 u64 gf_m4v_get_object_start(GF_M4VParser *m4v);
-/*returns 1 if current object is a valid MPEG-4 Visual object*/
-Bool gf_m4v_is_valid_object_type(GF_M4VParser *m4v);
 /*decodes DSI/VOSHeader for MPEG4*/
 GF_Err gf_m4v_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
 /*decodes DSI/VOSHeader for MPEG12*/
@@ -334,8 +332,6 @@ u32 gf_ac3_get_bitrate(u32 brcode);
 GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 GF_Err gf_avc_get_pps_info(char *pps, u32 pps_size, u32 *pps_id, u32 *sps_id);
 
-//hevc_state is optional but shall be used for layer extensions since all size info is in VPS and not SPS
-GF_Err gf_hevc_get_sps_info(char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 //get chroma format name from chroma format (1: 420, 2: 422, 3: 444

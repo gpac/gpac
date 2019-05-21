@@ -1336,7 +1336,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_import_chapters_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_change_pl) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_nalu_next_start_code_bs) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_media_nalu_payload_end_bs) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_svc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_merge_svc) )
@@ -1375,7 +1374,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_sps) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_sps_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_pps) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_hevc_get_sps_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_get_profile_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_get_sps_info_with_state) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_parse_nalu) )
@@ -1411,7 +1409,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4v_parse_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4v_parse_frame) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4v_get_object_start) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m4v_is_valid_object_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4v_get_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4v_rewrite_pl) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mp3_num_channels) )

@@ -118,7 +118,7 @@ const char *gf_stream_type_name(u32 streamType);
  *	Supported pixel formats for everything using video
 */
 #ifndef GF_4CC
-#define GF_4CC(a,b,c,d) (((a)<<24)|((b)<<16)|((c)<<8)|(d))
+#define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|(d))
 #endif
 typedef enum
 {

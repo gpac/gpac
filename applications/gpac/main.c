@@ -1732,6 +1732,7 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/token.h>
 #include <gpac/xml.h>
 #include <gpac/thread.h>
+#include <gpac/avparse.h>
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 {
 	u32 ucs4_buf[4];
@@ -2022,6 +2023,8 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_bs_del(bs);
 	//module
 	gf_module_load_static(NULL);
+
+	gf_mp3_version_name(0);
 
 	return 0;
 }
