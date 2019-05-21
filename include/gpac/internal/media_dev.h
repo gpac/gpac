@@ -56,9 +56,6 @@ u32 gf_media_nalu_is_start_code(GF_BitStream *bs);
 /*returns size of chunk between current and next startcode (excluding startcode sizes), 0 if no more startcodes (eos)*/
 u32 gf_media_nalu_next_start_code_bs(GF_BitStream *bs);
 
-/*returns size of chunk between current startcode and end of payload (0x000000) - if no trailing bytes are found, returns the same as gf_media_nalu_next_start_code_bs*/
-u32 gf_media_nalu_payload_end_bs(GF_BitStream *bs);
-
 /*return nb bytes from current data until the next start code and set the size of the next start code (3 or 4 bytes)
 returns data_len if no startcode found and sets sc_size to 0 (last nal in payload)*/
 u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size);
@@ -261,11 +258,6 @@ s32 gf_media_avc_read_sps_bs(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u3
 s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc);
 s32 gf_media_avc_read_pps_bs(GF_BitStream *bs, AVCState *avc);
 
-/*return sps ID or -1 if error*/
-s32 gf_media_avc_read_sps_ext(const char *spse_data, u32 spse_size);
-s32 gf_media_avc_read_sps_ext_bs(GF_BitStream *bs);
-/*is slice an IDR*/
-Bool gf_media_avc_slice_is_IDR(AVCState *avc);
 /*is slice containing intra MB only*/
 Bool gf_media_avc_slice_is_intra(AVCState *avc);
 /*parses NALU, updates avc state and returns:
