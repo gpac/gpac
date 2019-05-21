@@ -33,6 +33,11 @@ if [ $2 = 1 ] ; then
  do_test "$MP4BOX -raw 1 $mp4file -out $TEMP_DIR/dump.vtt" "vtt-dump"
  do_hash_test "$TEMP_DIR/dump.vtt" "vtt-dump"
 
+ do_test "$MP4BOX -six 1 $mp4file -out $TEMP_DIR/dumpvtt" "six-dump"
+ do_hash_test "$TEMP_DIR/dumpvtt.six" "six-dump"
+
+ do_test "$MP4BOX -webvtt-raw 1 $mp4file -out $TEMP_DIR/vttraw" "vttraw-dump"
+ do_hash_test "$TEMP_DIR/vttraw.vtt" "vttraw-dump"
 
 fi
 

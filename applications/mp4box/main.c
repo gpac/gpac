@@ -4428,10 +4428,9 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e));
 			return mp4box_cleanup(1);
 		}
-		if (dash_start_date) gf_dasher_set_start_date(dasher, dash_start_date);
 
-
-		//e = gf_dasher_set_location(dasher, mpd_source);
+		gf_dasher_set_start_date(dasher, dash_start_date);
+		gf_dasher_set_location(dasher, dash_source);
 		for (i=0; i < nb_mpd_base_urls; i++) {
 			e = gf_dasher_add_base_url(dasher, mpd_base_urls[i]);
 			if (e) {
