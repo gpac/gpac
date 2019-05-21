@@ -3643,11 +3643,11 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			        &di);
 		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_SBTT) {
 			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_SBTT,
-			                                 dims.mime_type, dims.textEncoding, specInfo,
+			                                 dims.mime_type, dims.contentEncoding, specInfo,
 			                                 &di);
 		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_STXT) {
 			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_STXT,
-			                                 dims.mime_type, dims.textEncoding, specInfo,
+			                                 dims.mime_type, dims.contentEncoding, specInfo,
 			                                 &di);
 		} else {
 			e = GF_NOT_SUPPORTED;
