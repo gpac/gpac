@@ -67,3 +67,12 @@ scalable_test $i
 
 done
 
+
+test_begin "hevc-filtering"
+if [ $test_skip != 1 ] ; then
+
+mp4file=$TEMP_DIR/file.mp4
+do_test "$MP4BOX -add $EXTERNAL_MEDIA_DIR/scalable/shvc.265:max_lid=0 -new $mp4file" "filter-layer"
+do_hash_test $mp4file "filter-layer"
+fi
+test_end
