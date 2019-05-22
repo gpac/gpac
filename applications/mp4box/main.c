@@ -4094,7 +4094,7 @@ int mp4boxMain(int argc, char **argv)
 			char szDATA[1000];
 			s32 read;
 			szDATA[999]=0;
-			read = fread(szDATA, 1, 999, f);
+			read = (s32) fread(szDATA, 1, 999, f);
 			if (read<0) read = 0;
 			szDATA[read]=0;
 			gf_fclose(f);
