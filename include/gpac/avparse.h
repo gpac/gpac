@@ -354,7 +354,6 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size);
 GF_Err gf_img_file_dec(char *png_file, u32 *codecid, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size);
 GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size);
-GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst_file);
 
 
 

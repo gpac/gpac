@@ -169,6 +169,47 @@ static char *validator_create_snapshot(GF_Validator *validator)
 	return dumpname;
 }
 
+static GF_Err validator_file_dec(char *png_filename, u32 *hint_codecid, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
+{
+	u32 fsize, codecid;
+	char *data;
+	GF_Err e;
+
+	codecid = 0;
+	if (!hint_codecid || ! *hint_codecid) {
+		char *ext = strrchr(png_filename, '.');
+		if (!ext) return GF_NOT_SUPPORTED;
+		if (!stricmp(ext, ".png")) codecid = GF_CODECID_PNG;
+		else if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) codecid = GF_CODECID_JPEG;
+	} else if (hint_codecid) {
+		codecid = *hint_codecid;
+	}
+
+	e = gf_file_load_data(png_filename, (u8 **)&data, &fsize);
+	if (e) return e;
+
+	e = GF_NOT_SUPPORTED;
+	*dst_size = 0;
+	if (codecid == GF_CODECID_JPEG) {
+#ifdef GPAC_HAS_JPEG
+		e = gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);
+		if (*dst_size) {
+			*dst = gf_malloc(*dst_size);
+			return gf_img_jpeg_dec(data, fsize, width, height, pixel_format, *dst, dst_size, 0);
+		}
+#endif
+	} else if (codecid == GF_CODECID_PNG) {
+#ifdef GPAC_HAS_PNG
+		e = gf_img_png_dec(data, fsize, width, height, pixel_format, NULL, dst_size);
+		if (*dst_size) {
+			*dst = gf_malloc(*dst_size);
+			return gf_img_png_dec(data, fsize, width, height, pixel_format, *dst, dst_size);
+		}
+#endif
+	}
+	return e;
+}
+
 static Bool validator_compare_snapshots(GF_Validator *validator)
 {
 	char *ref_name, *new_name;
@@ -183,12 +224,12 @@ static Bool validator_compare_snapshots(GF_Validator *validator)
 	ref_name = validator_get_snapshot_name(validator, GF_TRUE, snap_number);
 	new_name = validator_get_snapshot_name(validator, GF_FALSE, snap_number);
 
-	e = gf_img_file_dec(ref_name, NULL, &ref_width, &ref_height, &ref_pixel_format, &ref_data, &ref_data_size);
+	e = validator_file_dec(ref_name, NULL, &ref_width, &ref_height, &ref_pixel_format, &ref_data, &ref_data_size);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Cannot decode PNG file %s\n", ref_name));
 		goto end;
 	}
-	e = gf_img_file_dec(new_name, NULL, &new_width, &new_height, &new_pixel_format, &new_data, &new_data_size);
+	e = validator_file_dec(new_name, NULL, &new_width, &new_height, &new_pixel_format, &new_data, &new_data_size);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Cannot decode PNG file %s\n", new_name));
 		goto end;
