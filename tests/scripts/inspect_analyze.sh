@@ -25,3 +25,11 @@ test_inspect $MEDIA_DIR/auxiliary_files/counter.hvc
 test_inspect $MEDIA_DIR/auxiliary_files/video.av1
 
 
+test_begin "inspect-info"
+if [ "$test_skip" != 1 ] ; then
+inspect="$TEMP_DIR/inspect.txt"
+do_test "$GPAC -i $MEDIA_DIR/auxiliary_files/count_video.cmp inspect:deep:log=$inspect:info" "inspect"
+do_hash_test $inspect "inspect"
+
+fi
+test_end

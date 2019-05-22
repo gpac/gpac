@@ -2039,6 +2039,13 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	tsbuf[11] = 0xc0;
 	tsbuf[13] = 0x2 << 4;
 	gf_m2ts_restamp(tsbuf, 188, 1000, &is_pes);
+
+
+	gf_filter_post_task(NULL,NULL,NULL,NULL);
+	gf_filter_get_num_events_queued(NULL);
+	gf_filter_get_arg(NULL, NULL, NULL);
+	gf_filter_all_sinks_done(NULL);
+
 	return 0;
 }
 

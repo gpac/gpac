@@ -510,6 +510,10 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		if (is_true_pid) {
 			gf_filter_pid_set_udta(pid, tkw);
 
+			if (gf_sys_is_test_mode()) {
+				gf_filter_pid_get_min_pck_duration(pid);
+			}
+
 			if (!ctx->owns_mov || ctx->force_play) {
 				GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 				gf_filter_pid_send_event(pid, &evt);

@@ -711,18 +711,6 @@ static const char *gf_filter_load_arg_config(const char *sec_name, const char *a
 	return arg_val;
 }
 
-static Bool gf_filter_has_arg(GF_Filter *filter, const char *arg_name)
-{
-	u32 i=0;
-	while (filter->freg->args) {
-		const GF_FilterArgs *a = &filter->freg->args[i];
-		if (!a || !a->arg_name) break;
-		i++;
-		if (!strcmp(a->arg_name, arg_name)) return GF_TRUE;
-	}
-	return GF_FALSE;
-}
-
 static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *filter)
 {
 	GF_PropertyValue argv;
@@ -732,8 +720,20 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 	FSESS_CHECK_THREAD(filter)
 
 	for (i=0; i<key_count; i++) {
+		Bool arg_found = GF_FALSE;
+		u32 k=0;
 		const char *arg_val, *arg_name = gf_opts_get_key_name(sec_name, i);
-		if (gf_filter_has_arg(filter, arg_name)) continue;
+		//check if this is a regular arg, if so don't process it
+		while (filter->freg->args) {
+			const GF_FilterArgs *a = &filter->freg->args[k];
+			if (!a || !a->arg_name) break;
+			k++;
+			if (!strcmp(a->arg_name, arg_name)) {
+				arg_found = GF_TRUE;
+				break;
+			}
+		}
+		if (arg_found) continue;
 
 		arg_val = gf_opts_get_key(sec_name, arg_name);
 		if (!arg_val) continue;
@@ -2352,8 +2352,7 @@ void gf_filter_make_sticky(GF_Filter *filter)
 	if (filter) filter->sticky = 1;
 }
 
-//recursievely go up the filter chain and count queued events
-//THIS FUNCTION IS NOT THREAD SAFE
+GF_EXPORT
 u32 gf_filter_get_num_events_queued(GF_Filter *filter)
 {
 	u32 i;
@@ -2611,7 +2610,7 @@ GF_EXPORT
 const char *gf_filter_get_arg(GF_Filter *filter, const char *arg_name, char dump[GF_PROP_DUMP_ARG_SIZE])
 {
 	u32 i=0;
-	while (1) {
+	while (filter) {
 		GF_PropertyValue p;
 		const GF_FilterArgs *arg = &filter->freg->args[i];
 		if (!arg || !arg->arg_name) break;
@@ -2719,7 +2718,7 @@ Bool gf_filter_all_sinks_done(GF_Filter *filter)
 {
 	u32 i, count;
 	Bool res = GF_TRUE;
-	if (filter->session->in_final_flush || (filter->session->run_status==GF_EOS) )
+	if (!filter || filter->session->in_final_flush || (filter->session->run_status==GF_EOS) )
 		return GF_TRUE;
 		
 	gf_mx_p(filter->session->filters_mx);

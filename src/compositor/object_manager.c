@@ -562,6 +562,12 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	flag = (s8) -1;
 	if (!pid) pid = odm->pid;
 
+	if (gf_sys_is_test_mode() && pid) {
+		GF_FilterPidStatistics stats;
+		gf_filter_pid_get_statistics(pid, &stats, GF_STATS_DECODER_SOURCE);
+		gf_filter_pid_get_packet_count(pid);
+	}
+
 	if (odm->ck) {
 		ck = odm->ck;
 		goto clock_setup;
