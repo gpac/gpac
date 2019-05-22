@@ -979,7 +979,6 @@ struct tag_m2ts_demux
 	char* dsmcc_root_dir;
 	GF_List* dsmcc_controler;
 
-	Bool abort_parsing;
 	Bool table_reset;
 };
 
@@ -996,9 +995,6 @@ void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts);
 GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *ts, u32 program_id);
 
 Bool gf_m2ts_crc32_check(char *data, u32 len);
-
-/*aborts parsing of the current data (typically needed when parsing done by a different thread). If force_reset_pes is set, all pending pes data is discarded*/
-void gf_m2ts_abort_parsing(GF_M2TS_Demuxer *ts, Bool force_reset_pes);
 
 
 typedef struct
@@ -1043,9 +1039,6 @@ typedef struct
 	*/
 } GF_M2TS_AdaptationField;
 
-
-
-void gf_m2ts_print_info(GF_M2TS_Demuxer *ts);
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
@@ -1151,9 +1144,7 @@ typedef struct __elementary_stream_ifce
 	u32 stream_id;
 	/*MPEG-4 ST/OTIs*/
 	u8 stream_type;
-	u32 object_type_indication;
-	/*stream 4CC for non-mpeg codecs, 0 otherwise (stream is identified through StreamType/ObjectType)*/
-	u32 fourcc;
+	u32 codecid;
 	/*packed 3-char language code (4CC with last byte ' ')*/
 	u32 lang;
 	/*media timescale*/

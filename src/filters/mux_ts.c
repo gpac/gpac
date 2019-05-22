@@ -487,7 +487,7 @@ void update_m4sys_info(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog)
 		const GF_PropertyValue *p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_IN_IOD);
 		if (p && p->value.boolean) {
 			GF_ESD *esd = gf_odf_desc_esd_new(0);
-			esd->decoderConfig->objectTypeIndication = stream->ifce->object_type_indication;
+			esd->decoderConfig->objectTypeIndication = stream->ifce->codecid;
 			esd->decoderConfig->streamType = stream->ifce->stream_type;
 			esd->ESID = stream->ifce->stream_id;
 			esd->dependsOnESID = stream->ifce->depends_on_stream;
@@ -524,13 +524,8 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_DEPENDENCY_ID);
 	if (p) tspid->esi.depends_on_stream = p->value.uint;
-	if (tspid->codec_id< GF_CODECID_LAST_MPEG4_MAPPING)
-		tspid->esi.object_type_indication = tspid->codec_id;
-	else
-		tspid->esi.fourcc = tspid->codec_id;
 
-	if (tspid->codec_id < GF_CODECID_LAST_MPEG4_MAPPING)
-		tspid->esi.object_type_indication = tspid->codec_id;
+	tspid->esi.codecid = tspid->codec_id;
 
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_LANGUAGE);
 	if (p) {

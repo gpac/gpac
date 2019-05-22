@@ -17,7 +17,9 @@ do_test "$GPAC -i $TEMP_DIR/test.mp4 -o $TEMP_DIR/test.ts:pcr_init=1000000:pes_p
 do_hash_test "$TEMP_DIR/test.ts" "m2tsmux"
 
 #for coverage, test m2ts dump with mp4box
-do_test "$MP4BOX -dm2ts $TEMP_DIR/test.ts" "dump_m2ts"
+do_test "$MP4BOX -logs container@debug -dm2ts $TEMP_DIR/test.ts" "dump_m2ts"
 do_hash_test $TEMP_DIR/test.ts_prog_1_timestamps.txt "dump_m2ts"
+
+do_test "$GPAC -i $TEMP_DIR/test.ts:dsmcc inspect" "inspect"
 
 test_end

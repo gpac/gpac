@@ -3027,74 +3027,75 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			i++;
 		}
 #endif
-else if (!stricmp(arg, "-languages")) {
-	PrintLanguages();
-	return 1;
-}
-else if (!stricmp(arg, "-h")) {
-	if (i + 1 == (u32)argc) PrintUsage();
-	else if (!strcmp(argv[i + 1], "general")) PrintGeneralUsage();
-	else if (!strcmp(argv[i + 1], "extract")) PrintExtractUsage();
-	else if (!strcmp(argv[i + 1], "dash")) PrintDASHUsage();
-	else if (!strcmp(argv[i + 1], "dump")) PrintDumpUsage();
-	else if (!strcmp(argv[i + 1], "import")) PrintImportUsage();
-	else if (!strcmp(argv[i + 1], "format")) PrintFormats();
-	else if (!strcmp(argv[i + 1], "hint")) PrintHintUsage();
-	else if (!strcmp(argv[i + 1], "encode")) PrintEncodeUsage();
-	else if (!strcmp(argv[i + 1], "crypt")) PrintEncryptUsage();
-	else if (!strcmp(argv[i + 1], "meta")) PrintMetaUsage();
-	else if (!strcmp(argv[i + 1], "swf")) PrintSWFUsage();
+		else if (!stricmp(arg, "-languages")) {
+			PrintLanguages();
+			return 1;
+		}
+		else if (!stricmp(arg, "-h")) {
+			if (i + 1 == (u32)argc) PrintUsage();
+			else if (!strcmp(argv[i + 1], "general")) PrintGeneralUsage();
+			else if (!strcmp(argv[i + 1], "extract")) PrintExtractUsage();
+			else if (!strcmp(argv[i + 1], "dash")) PrintDASHUsage();
+			else if (!strcmp(argv[i + 1], "dump")) PrintDumpUsage();
+			else if (!strcmp(argv[i + 1], "import")) PrintImportUsage();
+			else if (!strcmp(argv[i + 1], "format")) PrintFormats();
+			else if (!strcmp(argv[i + 1], "hint")) PrintHintUsage();
+			else if (!strcmp(argv[i + 1], "encode")) PrintEncodeUsage();
+			else if (!strcmp(argv[i + 1], "crypt")) PrintEncryptUsage();
+			else if (!strcmp(argv[i + 1], "meta")) PrintMetaUsage();
+			else if (!strcmp(argv[i + 1], "swf")) PrintSWFUsage();
 #ifndef GPAC_DISABLE_ATSC
-	else if (!strcmp(argv[i + 1], "atsc")) PrintATSCUsage();
+			else if (!strcmp(argv[i + 1], "atsc")) PrintATSCUsage();
 #endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
-	else if (!strcmp(argv[i + 1], "rtp")) fprintf(stderr, "RTP streaming deprecated in MP4Box, use gpac applications\n");
-	else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
+			else if (!strcmp(argv[i + 1], "rtp")) fprintf(stderr, "RTP streaming deprecated in MP4Box, use gpac applications\n");
+			else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
 #endif
-	else if (!strcmp(argv[i + 1], "core")) PrintCoreUsage();
-	else if (!strcmp(argv[i + 1], "all")) {
-		PrintGeneralUsage();
-		PrintExtractUsage();
-		PrintDASHUsage();
-		PrintDumpUsage();
-		PrintImportUsage();
-		PrintFormats();
-		PrintHintUsage();
-		PrintEncodeUsage();
-		PrintEncryptUsage();
-		PrintMetaUsage();
-		PrintSWFUsage();
+			else if (!strcmp(argv[i + 1], "core")) PrintCoreUsage();
+			else if (!strcmp(argv[i + 1], "all")) {
+				PrintGeneralUsage();
+				PrintExtractUsage();
+				PrintDASHUsage();
+				PrintDumpUsage();
+				PrintImportUsage();
+				PrintFormats();
+				PrintHintUsage();
+				PrintEncodeUsage();
+				PrintEncryptUsage();
+				PrintMetaUsage();
+				PrintSWFUsage();
 #ifndef GPAC_DISABLE_ATSC
-		PrintATSCUsage();
+				PrintATSCUsage();
 #endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
-		PrintLiveUsage();
+				PrintLiveUsage();
 #endif
-		PrintCoreUsage();
+				PrintCoreUsage();
+			} else {
+				PrintUsage();
+			}
+			return 1;
+		}
+		else if (!stricmp(arg, "-v")) verbose++;
+		else if (!stricmp(arg, "-tag-list")) {
+			fprintf(stderr, "Supported iTunes tag modifiers:\n");
+			for (i = 0; i < nb_itunes_tags; i++) {
+				fprintf(stderr, "\t%s\t%s\n", itags[i].name, itags[i].comment);
+			}
+			return 1;
+		}
+		else if (!live_scene) {
+			u32 res = gf_sys_is_gpac_arg(arg);
+			if (res==0) {
+				fprintf(stderr, "Option %s unknown. Please check usage\n", arg);
+				return 2;
+			} else if (res==2) {
+				i++;
+			}
+		}
 	}
-	else PrintUsage();
-	return 1;
-}
-else if (!stricmp(arg, "-v")) verbose++;
-else if (!stricmp(arg, "-tag-list")) {
-	fprintf(stderr, "Supported iTunes tag modifiers:\n");
-	for (i = 0; i < nb_itunes_tags; i++) {
-		fprintf(stderr, "\t%s\t%s\n", itags[i].name, itags[i].comment);
-	}
-	return 1;
-}
-else if (!live_scene) {
-	u32 res = gf_sys_is_gpac_arg(arg);
-	if (res==0) {
-		fprintf(stderr, "Option %s unknown. Please check usage\n", arg);
-		return 2;
-	} else if (res==2) {
-		i++;
-	}
-}
-}
-*current_index = i;
-return 0;
+	*current_index = i;
+	return 0;
 }
 
 Bool mp4box_parse_args(int argc, char **argv)

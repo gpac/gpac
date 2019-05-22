@@ -1733,6 +1733,7 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/xml.h>
 #include <gpac/thread.h>
 #include <gpac/avparse.h>
+#include <gpac/mpegts.h>
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 {
 	u32 ucs4_buf[4];
@@ -1916,6 +1917,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 #endif
 	gf_fclose(f);
 	gf_file_modification_time(url);
+	gf_m2ts_probe_file(url);
 
 	gf_cleanup_dir("testdir");
 	gf_rmdir("testdir");
@@ -2025,7 +2027,18 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_module_load_static(NULL);
 
 	gf_mp3_version_name(0);
-
+	char tsbuf[188];
+	u8 is_pes=GF_TRUE;
+	memset(tsbuf, 0, 188);
+	tsbuf[0] = 0x47;
+	tsbuf[1] = 0x40;
+	tsbuf[4]=0x00;
+	tsbuf[5]=0x00;
+	tsbuf[6]=0x01;
+	tsbuf[10] = 0x80;
+	tsbuf[11] = 0xc0;
+	tsbuf[13] = 0x2 << 4;
+	gf_m2ts_restamp(tsbuf, 188, 1000, &is_pes);
 	return 0;
 }
 

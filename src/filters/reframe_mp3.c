@@ -175,22 +175,6 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
-static u32 id3_read_size(GF_BitStream *bs)
-{
-	u32 size = 0;
-	gf_bs_read_int(bs, 1);
-	size |= gf_bs_read_int(bs, 7);
-	size<<=7;
-	gf_bs_read_int(bs, 1);
-	size |= gf_bs_read_int(bs, 7);
-	size<<=7;
-	gf_bs_read_int(bs, 1);
-	size |= gf_bs_read_int(bs, 7);
-	size<<=7;
-	gf_bs_read_int(bs, 1);
-	size |= gf_bs_read_int(bs, 7);
-	return size;
-}
 
 #include <gpac/utf.h>
 static void mp3_dmx_id3_set_string(GF_MP3DmxCtx *ctx, char *name, u8 *buf)
@@ -223,7 +207,7 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	/*u8 unsync = */gf_bs_read_int(bs, 1);
 	u8 ext_hdr = gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 6);
-	u32 size = id3_read_size(bs);
+	u32 size = gf_id3_read_size(bs);
 
 
 	if (ext_hdr) {
@@ -236,7 +220,7 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 		u32 pic_size;
 		//u32 pic_type;
 		u32 ftag = gf_bs_read_u32(bs);
-		u32 fsize = id3_read_size(bs);
+		u32 fsize = gf_id3_read_size(bs);
 		/*u16 fflags = */gf_bs_read_u16(bs);
 
 		size -= 10;
