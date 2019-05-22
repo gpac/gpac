@@ -101,7 +101,8 @@ void oggdmx_signal_eos(GF_OGGDmxCtx *ctx)
 	GF_OGGStream *st;
 	u32 i=0;
 	while ((st = (GF_OGGStream*)gf_list_enum(ctx->streams, &i))) {
-		gf_filter_pid_set_eos(st->opid);
+		if (st->opid)
+			gf_filter_pid_set_eos(st->opid);
 	}
 }
 
