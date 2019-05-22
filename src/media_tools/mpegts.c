@@ -177,7 +177,7 @@ static GF_Err id3_parse_tag(char *data, u32 length, char **output, u32 *output_s
 	gf_bs_read_int(bs, 6);
 	u32 size = gf_id3_read_size(bs);
 
-	pos = gf_bs_get_position(bs);
+	pos = (u32) gf_bs_get_position(bs);
 	if (size != length-pos)
 		size = length-pos;
 
@@ -189,7 +189,7 @@ static GF_Err id3_parse_tag(char *data, u32 length, char **output, u32 *output_s
 
 		//TODO, handle more ID3 tags ?
 		if (ftag==ID3V2_FRAME_TXXX) {
-			u32 pos = gf_bs_get_position(bs);
+			u32 pos = (u32) gf_bs_get_position(bs);
 			char *text = data+pos;
 			add_text(output, output_size, output_pos, text, fsize);
 		} else {

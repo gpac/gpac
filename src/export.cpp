@@ -1955,6 +1955,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_dmscc_overlord) )
 #endif
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_dmscc_init) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_probe_file) )
+
 
 
 #ifndef GPAC_DISABLE_MPEG2TS_MUX
@@ -1980,6 +1982,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_init_from_dom) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_to_mpd) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_smooth_to_mpd) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_solve_representation_xlink) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_solve_segment_list_xlink) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_delete_segment_list) )
