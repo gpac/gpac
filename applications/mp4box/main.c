@@ -4089,20 +4089,27 @@ int mp4boxMain(int argc, char **argv)
 			mp4box_cleanup(1);
 		}
 		FILE *f = gf_fopen(remote ? "tmp_main.m3u8" : inName, "r");
-		Bool is_m3u8 = GF_TRUE;
+		u32 manif_type = 0;
 		if (f) {
 			char szDATA[1000];
+			s32 read;
 			szDATA[999]=0;
-			fread(szDATA, 1, 999, f);
+			read = fread(szDATA, 1, 999, f);
+			if (read<0) read = 0;
+			szDATA[read]=0;
 			gf_fclose(f);
 			if (strstr(szDATA, "SmoothStreamingMedia"))
-				is_m3u8 = GF_FALSE;
+				manif_type = 2;
+			else if (strstr(szDATA, "#EXTM3U"))
+				manif_type = 1;
 		}
 
-		if (is_m3u8) {
+		if (manif_type==1) {
 			e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_TRUE, GF_TRUE);
-		} else {
+		} else if (manif_type==2) {
 			e = gf_mpd_smooth_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd, mpd_base_url ? mpd_base_url : inName);
+		} else {
+			e = GF_NOT_SUPPORTED;
 		}
 		if (!e)
 			gf_mpd_write_file(mpd, outfile);
@@ -4116,10 +4123,10 @@ int mp4boxMain(int argc, char **argv)
 			gf_delete_file("tmp_main.m3u8");
 		}
 		if (e != GF_OK) {
-			fprintf(stderr, "Error converting M3U8 (%s) to MPD (%s): %s\n", inName, outfile, gf_error_to_string(e));
+			fprintf(stderr, "Error converting %s (%s) to MPD (%s): %s\n", (manif_type==1) ? "HLS" : "Smooth",  inName, outfile, gf_error_to_string(e));
 			return mp4box_cleanup(1);
 		} else {
-			fprintf(stderr, "Done converting M3U8 (%s) to MPD (%s)\n", inName, outfile);
+			fprintf(stderr, "Done converting %s (%s) to MPD (%s)\n", (manif_type==1) ? "HLS" : "Smooth",  inName, outfile);
 			return mp4box_cleanup(0);
 		}
 	}
