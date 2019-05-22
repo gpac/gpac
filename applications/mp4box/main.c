@@ -212,7 +212,7 @@ void PrintGeneralUsage()
 void PrintDASHUsage()
 {
 	fprintf(stderr, "DASH Options:\n"
-	        " -mpd m3u8            converts HLS manifest (local or remote http) to MPD\n"
+	        " -mpd URL            converts HLS or smooth manifest (local or remote http) to MPD\n"
 	        "                       Note: not compatible with other DASH options (except -out and -tmp) and does not convert associated segments\n"
 	        " -dash dur            enables DASH-ing of the file(s) with a segment duration of DUR ms\n"
 	        "                       Note: the duration of a fragment (subsegment) is set\n"
@@ -4063,10 +4063,11 @@ int mp4boxMain(int argc, char **argv)
 			if (outName)
 				strcpy(outfile, outName);
 			else {
-				const char *sep = strrchr(inName, '/');
-				char *ext = strstr(sep, ".m3u8");
+				const char *sep = gf_file_basename(inName);
+				char *ext = gf_file_ext_start(sep);
 				if (ext) ext[0] = 0;
-				sprintf(outfile, "%s.mpd", sep+1);
+				sprintf(outfile, "%s.mpd", sep);
+				if (ext) ext[0] = '.';
 			}
 		} else {
 			if (outName)
@@ -4086,7 +4087,22 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "[DASH] Error: MPD creation problem %s\n", gf_error_to_string(e));
 			mp4box_cleanup(1);
 		}
-		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_TRUE, GF_TRUE);
+		FILE *f = gf_fopen(remote ? "tmp_main.m3u8" : inName, "r");
+		Bool is_m3u8 = GF_TRUE;
+		if (f) {
+			char szDATA[1000];
+			szDATA[999]=0;
+			fread(szDATA, 1, 999, f);
+			gf_fclose(f);
+			if (strstr(szDATA, "SmoothStreamingMedia"))
+				is_m3u8 = GF_FALSE;
+		}
+
+		if (is_m3u8) {
+			e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_TRUE, GF_TRUE);
+		} else {
+			e = gf_mpd_smooth_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd, mpd_base_url ? mpd_base_url : inName);
+		}
 		if (!e)
 			gf_mpd_write_file(mpd, outfile);
 
