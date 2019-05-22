@@ -1,50 +1,47 @@
 #!/bin/sh
-
-test_begin "dash-read"
-
- if [ $test_skip != 1 ] ; then
-
-
-inspectfilter="inspect:all:deep:dur=10:interleave=false:test=noprop:fmt=%dts%-%cts%-%sap%%lf%"
+inspectfilter="inspect:all:deep:interleave=false:test=noprop:fmt=%dts%-%cts%-%sap%%lf%"
+dur=10
+start=0
 
 source=http://download.tsi.telecom-paristech.fr/gpac/DASH_CONFORMANCE/TelecomParisTech/mp4-live-1s/mp4-live-1s-mpd-AV-BS.mpd
-myinspect=$TEMP_DIR/inspect-none.txt
-do_test "$GPAC -i $source:gpac:algo=none:start_with=max_bw $inspectfilter:log=$myinspect" "no-adapt"
-do_hash_test $myinspect "no-adapt"
 
-myinspect=$TEMP_DIR/inspect-adapt.txt
-do_test "$GPAC -i $source $inspectfilter:log=$myinspect" "adapt"
-do_hash_test $myinspect "adapt"
+dash_test ()
+{
 
-myinspect=$TEMP_DIR/inspect-adapt.txt
-do_test "$GPAC -i $source:gpac:abort $inspectfilter::log=$myinspect" "adapt-abort"
-do_hash_test $myinspect "adapt-abort"
+test_begin "dash-read-$1"
 
-algos="grate bba0 bolaf bolab bolau bolau"
+if [ $test_skip = 1 ] ; then
+return
+fi
 
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $2 $inspectfilter:dur=$dur:start=$start:log=$myinspect" "read"
+
+if [ $3 != 0 ] ; then
+do_hash_test $myinspect "read"
+fi
+
+test_end
+}
+
+
+dash_test "no-adapt" "$source:gpac:algo=none:start_with=max_bw" 1
+
+algos="gbuf grate bba0 bolaf bolab bolau bolao"
 for algo in $algos ; do
-myinspect=$TEMP_DIR/inspect-$algo.txt
-do_test "$GPAC -i $source --algo=$algo $inspectfilter:log=$myinspect" "$algo"
-do_hash_test $myinspect "$algo"
+dash_test "$algo" "$source --algo=$algo"  1
 done
 
+dash_test "abort" "$source:gpac:abort"  1
+dash_test "auto" "$source:gpac:auto_switch=1"  1
+dash_test "bmin" "$source:gpac:use_bmin"  1
+dash_test "xlink" "http://dash.akamaized.net/dash264/TestCases/5b/nomor/6.mpd" 1
 
-myinspect=$TEMP_DIR/inspect-xlink.txt
-do_test "$GPAC -i http://dash.akamaized.net/dash264/TestCases/5b/nomor/6.mpd $inspectfilter:log=$myinspect" "xlink"
-do_hash_test $myinspect "xlink"
+start=255
+dash_test "seek" "http://dash.akamaized.net/dash264/TestCases/5b/nomor/6.mpd" 1
+start=0
 
-fi
-test_end
+dash_test "ondemand" "http://download.tsi.telecom-paristech.fr/gpac/DASH_CONFORMANCE/TelecomParisTech/mp4-onDemand/mp4-onDemand-mpd-V.mpd" 1
 
-
-test_begin "dash-read-live"
-if [ $test_skip != 1 ] ; then
-
-inspectfilter="inspect:dur=2:interleave=false"
-
-myinspect=$TEMP_DIR/inspect-live.txt
-do_test "$GPAC -i https://livesim.dashif.org/livesim/mup_30/testpic_2s/Manifest.mpd $inspectfilter:log=$myinspect" "live"
-#cannot hash test this is a live source
-
-fi
-test_end
+dur=4
+dash_test "live" "https://livesim.dashif.org/livesim/mup_30/testpic_2s/Manifest.mpd" 0
