@@ -38,6 +38,8 @@ static u32 mask[]=
 	0x3fffffff,0x7fffffff,0xffffffff
 };
 
+#if 0 //unused
+
 static u32 mask8B[]=
 {0x00,0x80,0xc0,0xe0,0xf0,0xf8,0xfc,0xfe,0xff};
 
@@ -216,16 +218,6 @@ void oggpackB_writeclear(oggpack_buffer *b) {
 	oggpack_writeclear(b);
 }
 
-void oggpack_readinit(oggpack_buffer *b,unsigned char *buf,s32 bytes) {
-	memset(b,0,sizeof(*b));
-	b->buffer=b->ptr=buf;
-	b->storage=bytes;
-}
-
-void oggpackB_readinit(oggpack_buffer *b,unsigned char *buf,s32 bytes) {
-	oggpack_readinit(b,buf,bytes);
-}
-
 /* Read in bits without advancing the bitptr; bits <= 32 */
 s32 oggpack_look(oggpack_buffer *b,s32 bits) {
 	u32 ret;
@@ -289,6 +281,19 @@ s32 oggpackB_look1(oggpack_buffer *b) {
 	if(b->endbyte>=b->storage)return(-1);
 	return((b->ptr[0]>>(7-b->endbit))&1);
 }
+
+#endif //unused
+
+void oggpack_readinit(oggpack_buffer *b,unsigned char *buf,s32 bytes) {
+	memset(b,0,sizeof(*b));
+	b->buffer=b->ptr=buf;
+	b->storage=bytes;
+}
+
+void oggpackB_readinit(oggpack_buffer *b,unsigned char *buf,s32 bytes) {
+	oggpack_readinit(b,buf,bytes);
+}
+
 
 void oggpack_adv(oggpack_buffer *b,s32 bits) {
 	bits+=b->endbit;
@@ -384,6 +389,7 @@ overflow:
 	return(ret);
 }
 
+#if 0 //unused
 s32 oggpack_read1(oggpack_buffer *b) {
 	u32 ret;
 
@@ -452,6 +458,8 @@ unsigned char *oggpackB_get_buffer(oggpack_buffer *b) {
 	return oggpack_get_buffer(b);
 }
 
+#endif //unused
+
 
 #undef BUFFER_INCREMENT
 
@@ -501,6 +509,7 @@ s32 ogg_page_pageno(ogg_page *og) {
 }
 
 
+#if 0 //unused
 
 /* returns the number of packets that are completed on this page (if
    the leading packet is begun on a previous page, but ends on this
@@ -526,6 +535,7 @@ s32 ogg_page_packets(ogg_page *og) {
 	return(count);
 }
 
+#endif //unused
 
 #if 0
 /* helper to initialize lookup for direct-table CRC (illustrative; we
@@ -646,6 +656,8 @@ s32 ogg_stream_clear(ogg_stream_state *os) {
 	return(0);
 }
 
+#if 0 //unused
+
 s32 ogg_stream_destroy(ogg_stream_state *os) {
 	if(os) {
 		ogg_stream_clear(os);
@@ -653,6 +665,8 @@ s32 ogg_stream_destroy(ogg_stream_state *os) {
 	}
 	return(0);
 }
+
+#endif //unused
 
 /* Helpers for ogg_stream_encode; this keeps the structure and
    what's happening fairly clear */
@@ -889,9 +903,11 @@ s32 ogg_stream_pageout(ogg_stream_state *os, ogg_page *og) {
 	return(0);
 }
 
+#if 0 //unused
 s32 ogg_stream_eos(ogg_stream_state *os) {
 	return os->e_o_s;
 }
+#endif
 
 /* DECODING PRIMITIVES: packet streaming layer **********************/
 
@@ -926,6 +942,7 @@ s32 ogg_sync_clear(ogg_sync_state *oy) {
 	return(0);
 }
 
+#if 0 //unused
 s32 ogg_sync_destroy(ogg_sync_state *oy) {
 	if(oy) {
 		ogg_sync_clear(oy);
@@ -933,6 +950,8 @@ s32 ogg_sync_destroy(ogg_sync_state *oy) {
 	}
 	return(0);
 }
+#endif
+
 
 char *ogg_sync_buffer(ogg_sync_state *oy, s32 size) {
 
@@ -1226,6 +1245,7 @@ s32 ogg_stream_pagein(ogg_stream_state *os, ogg_page *og) {
 	return(0);
 }
 
+#if 0 //unused
 /* clear things to an initial state.  Good to call, eg, before seeking */
 s32 ogg_sync_reset(ogg_sync_state *oy) {
 	oy->fill=0;
@@ -1260,6 +1280,7 @@ s32 ogg_stream_reset_serialno(ogg_stream_state *os,s32 serialno) {
 	os->serialno=serialno;
 	return(0);
 }
+#endif //unused
 
 static s32 _packetout(ogg_stream_state *os,ogg_packet *op,s32 adv) {
 
@@ -1323,10 +1344,13 @@ s32 ogg_stream_packetpeek(ogg_stream_state *os,ogg_packet *op) {
 	return _packetout(os,op,0);
 }
 
+#if 0 //unused
 void ogg_packet_clear(ogg_packet *op) {
 	gf_free(op->packet);
 	memset(op, 0, sizeof(*op));
 }
+#endif
+
 
 #endif /*GPAC_DISABLE_OGG*/
 

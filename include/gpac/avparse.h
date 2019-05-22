@@ -212,10 +212,10 @@ Bool gf_opus_parse_header(GF_OpusParser *op, char *data, u32 data_len);
 in this frame*/
 u32 gf_opus_check_frame(GF_OpusParser *op, char *data, u32 data_length);
 
+#endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/
+
 /*reads a 32 bit sync safe integer of id3v2*/
 u32 gf_id3_read_size(GF_BitStream *bs);
-
-#endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/
 
 
 enum
