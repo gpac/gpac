@@ -34,9 +34,18 @@ if [ $EXTERNAL_MEDIA_AVAILABLE = 0 ] ; then
  return
 fi
 
-for i in `ls $EXTERNAL_MEDIA_DIR/smooth/* | grep -v "html"` ; do
+for i in $EXTERNAL_MEDIA_DIR/smooth/*.mp4 ; do
 
 smooth_test $i
 
 done
 
+
+test_begin "smooth-to-mpd"
+if [ $test_skip != 1 ] ; then
+
+do_test "$MP4BOX -mpd $EXTERNAL_MEDIA_DIR/smooth/manifest.xml -out $TEMP_DIR/test.mpd" "convert"
+do_hash_test $TEMP_DIR/test.mpd "convert"
+
+fi
+test_end

@@ -65,7 +65,7 @@ typedef struct
 } GF_MPD_ContentComponent;
 
 
-//some elments are typically overloaded in XML, we keep the attributes / childrne nodes here. The attributes list is NULL if no extensions were found, otherwise it is a list of @GF_XMLAttribute.
+//some elments are typically overloaded in XML, we keep the attributes / children nodes here. The attributes list is NULL if no extensions were found, otherwise it is a list of @GF_XMLAttribute.
 //The children list is NULL if no extensions were found, otherwise it is a list of @GF_XMLNode
 #define MPD_EXTENSIBLE	\
 	GF_List *attributes;	\
@@ -195,8 +195,6 @@ typedef struct
 	u64 hls_utc_start_time;
 	GF_List *Segments_duration_list;	\
 } GF_MPD_SegmentURL;
-
-GF_MPD_SegmentURL *gf_mpd_segmenturl_new(const char*media, u64 start_range, u64 end_range, const char *index, u64 idx_start_range, u64 idx_end_range);
 
 typedef struct
 {
@@ -513,12 +511,9 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_
 
 GF_MPD *gf_mpd_new();
 void gf_mpd_del(GF_MPD *mpd);
-/*resets the periods of an initialized MPD*/
-void gf_mpd_reset_periods(GF_MPD *mpd);
 /*frees a GF_MPD_SegmentURL structure (type-casted to void *)*/
 void gf_mpd_segment_url_free(void *ptr);
 void gf_mpd_segment_base_free(void *ptr);
-void gf_mpd_segment_url_list_free(GF_List *list);
 void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root);
 void gf_mpd_url_free(void *_item);
 
@@ -527,7 +522,7 @@ void gf_mpd_period_free(void *_item);
 
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
-GF_Err gf_mpd_write_m3u8_file(GF_MPD *mpd, const char *file_name, GF_MPD_Period *period);
+
 GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period);
 
 GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root);
@@ -566,6 +561,8 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
 void gf_mpd_del_list(GF_List *list, void (*__destructor)(void *), Bool reset_only);
 void gf_mpd_descriptor_free(void *item);
 
+
+GF_Err gf_mpd_smooth_to_mpd(char * smooth_file, GF_MPD *mpd, const char *default_base_url);
 
 /*get the number of base URLs for the given representation. This cumuluates all base URLs at MPD, period, AdaptationSet and Representation levels*/
 u32 gf_mpd_get_base_url_count(GF_MPD *mpd, GF_MPD_Period *period, GF_MPD_AdaptationSet *set, GF_MPD_Representation *rep);
@@ -610,12 +607,6 @@ typedef enum {
 GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
 	GF_MPD_Period const * const in_period, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
 	u32 *out_segment_index, Double *out_opt_seek_time);
-
-/*get the index and the period for a given time in the MPD*/
-GF_EXPORT
-GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
-	GF_MPD const * const in_mpd, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
-	GF_MPD_Period **out_period, u32 *out_segment_index, Double *out_opt_seek_time);
 
 void gf_mpd_base_url_free(void *_item);
 

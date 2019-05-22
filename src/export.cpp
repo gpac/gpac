@@ -1996,8 +1996,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_init_smooth_from_dom) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_complete_from_dom) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_get_segment_start_time_with_timescale) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_seek_in_period) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_seek_to_time) )
 
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
