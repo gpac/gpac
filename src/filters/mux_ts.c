@@ -27,6 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/mpegts.h>
 #include <gpac/iso639.h>
+#include <gpac/webvtt.h>
 
 typedef struct
 {
@@ -114,6 +115,8 @@ typedef struct
 	Bool rewrite_odf;
 	Bool has_seen_eods;
 	u32 pck_duration;
+
+	char *pck_data_buf;
 } M2Pid;
 
 static u32 tsmux_format_af_descriptor(char *af_data, u32 timeline_id, u64 timecode, u32 timescale, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time)
@@ -417,6 +420,40 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			tsmux_rewrite_odf(tspid->ctx, &es_pck);
 		}
 
+		if (tspid->pck_data_buf) gf_free(tspid->pck_data_buf);
+		tspid->pck_data_buf = NULL;
+
+		//drop formatting for TX3G
+		if (tspid->codec_id == GF_CODECID_TX3G) {
+			u16 len = es_pck.data[0];
+			len<<=8;
+			len |= es_pck.data[1];
+			es_pck.data += 2;
+			es_pck.data_len = len;
+		}
+		//serialize webvtt cue formatting for TX3G
+		else if (tspid->codec_id == GF_CODECID_WEBVTT) {
+			u32 i;
+			u64 start_ts;
+			void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue);
+			GF_List *cues;
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+			start_ts = es_pck.cts * 1000;
+			start_ts /= tspid->esi.timescale;
+			cues = gf_webvtt_parse_cues_from_data(es_pck.data, es_pck.data_len, start_ts);
+			for (i = 0; i < gf_list_count(cues); i++) {
+				GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, i);
+				webvtt_write_cue(bs, cue);
+				gf_webvtt_cue_del(cue);
+			}
+			gf_list_del(cues);
+			gf_bs_get_content(bs, &es_pck.data, &es_pck.data_len);
+			gf_bs_del(bs);
+			tspid->pck_data_buf = es_pck.data;
+		}
+		//for TTML we keep the entire payload as a PES packet
+
 		tspid->nb_pck++;
 		ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &es_pck);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSMux] PID %d: packet %d CTS "LLU"\n", tspid->esi.stream_id, tspid->nb_pck, es_pck.cts));
@@ -594,6 +631,7 @@ static void tsmux_del_stream(M2Pid *tspid)
 {
 	if (tspid->temi_url) gf_free(tspid->temi_url);
 	if (tspid->esi.sl_config) gf_free(tspid->esi.sl_config);
+	if (tspid->pck_data_buf) gf_free(tspid->pck_data_buf);
 	gf_free(tspid);
 }
 
@@ -1148,6 +1186,9 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 	}
 	ctx->pids = gf_list_new();
 	if (ctx->nb_pack>1) ctx->pack_buffer = gf_malloc(sizeof(char)*188*ctx->nb_pack);
+
+	if (gf_sys_is_test_mode())
+		gf_m2ts_get_sys_clock(ctx->mux);
 
 	return GF_OK;
 }

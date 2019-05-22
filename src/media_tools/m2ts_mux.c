@@ -2380,7 +2380,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 	return stream;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_scale)
 {
 	GF_M2TS_Mux_Stream *stream = (GF_M2TS_Mux_Stream *)_self->output_udta;
@@ -2391,6 +2391,7 @@ GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_sc
 	stream->ts_scale.den = time_scale;
 	return GF_OK;
 }
+#endif
 
 GF_EXPORT
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_find(GF_M2TS_Mux *muxer, u32 program_number)

@@ -111,7 +111,7 @@ GF_Err vttmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	return GF_OK;
 }
 
-void vttmx_timestamp_dump(GF_WebVTTMxCtx *ctx, GF_WebVTTTimestamp *ts, Bool dump_hour)
+void vttmx_timestamp_dump(GF_BitStream *bs, GF_WebVTTTimestamp *ts, Bool dump_hour)
 {
 	char szTS[200];
 	szTS[0] = 0;
@@ -119,40 +119,45 @@ void vttmx_timestamp_dump(GF_WebVTTMxCtx *ctx, GF_WebVTTTimestamp *ts, Bool dump
 		sprintf(szTS, "%02u:", ts->hour);
 	}
 	sprintf(szTS, "%02u:%02u.%03u", ts->min, ts->sec, ts->ms);
-	gf_bs_write_data(ctx->bs_w, szTS, (u32) strlen(szTS) );
+	gf_bs_write_data(bs, szTS, (u32) strlen(szTS) );
+}
+
+void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)
+{
+	if (!cue) return;
+	if (cue->pre_text) {
+		gf_bs_write_data(bs, cue->pre_text, (u32) strlen(cue->pre_text));
+		gf_bs_write_data(bs, "\n\n", 2);
+	}
+	if (cue->id) gf_bs_write_data(bs, cue->id, (u32) strlen(cue->id) );
+	if (cue->start.hour || cue->end.hour) {
+		vttmx_timestamp_dump(bs, &cue->start, GF_TRUE);
+		gf_bs_write_data(bs, " --> ", 5);
+		vttmx_timestamp_dump(bs, &cue->end, GF_TRUE);
+	} else {
+		vttmx_timestamp_dump(bs, &cue->start, GF_FALSE);
+		gf_bs_write_data(bs, " --> ", 5);
+		vttmx_timestamp_dump(bs, &cue->end, GF_FALSE);
+	}
+	if (cue->settings) {
+		gf_bs_write_data(bs, " ", 1);
+		gf_bs_write_data(bs, cue->settings, (u32) strlen(cue->settings));
+	}
+	gf_bs_write_data(bs, "\n", 1);
+	if (cue->text)
+		gf_bs_write_data(bs, cue->text, (u32) strlen(cue->text));
+	gf_bs_write_data(bs, "\n\n", 2);
+
+	if (cue->post_text) {
+		gf_bs_write_data(bs, cue->post_text, (u32) strlen(cue->post_text));
+		gf_bs_write_data(bs, "\n\n", 2);
+	}
 }
 
 static void vttmx_write_cue(void *udta, GF_WebVTTCue *cue)
 {
 	GF_WebVTTMxCtx *ctx = (GF_WebVTTMxCtx *)udta;
-	if (!cue) return;
-	if (cue->pre_text) {
-		gf_bs_write_data(ctx->bs_w, cue->pre_text, (u32) strlen(cue->pre_text));
-		gf_bs_write_data(ctx->bs_w, "\n\n", 2);
-	}
-	if (cue->id) gf_bs_write_data(ctx->bs_w, cue->id, (u32) strlen(cue->id) );
-	if (cue->start.hour || cue->end.hour) {
-		vttmx_timestamp_dump(ctx, &cue->start, GF_TRUE);
-		gf_bs_write_data(ctx->bs_w, " --> ", 5);
-		vttmx_timestamp_dump(ctx, &cue->end, GF_TRUE);
-	} else {
-		vttmx_timestamp_dump(ctx, &cue->start, GF_FALSE);
-		gf_bs_write_data(ctx->bs_w, " --> ", 5);
-		vttmx_timestamp_dump(ctx, &cue->end, GF_FALSE);
-	}
-	if (cue->settings) {
-		gf_bs_write_data(ctx->bs_w, " ", 1);
-		gf_bs_write_data(ctx->bs_w, cue->settings, (u32) strlen(cue->settings));
-	}
-	gf_bs_write_data(ctx->bs_w, "\n", 1);
-	if (cue->text)
-		gf_bs_write_data(ctx->bs_w, cue->text, (u32) strlen(cue->text));
-	gf_bs_write_data(ctx->bs_w, "\n\n", 2);
-
-	if (cue->post_text) {
-		gf_bs_write_data(ctx->bs_w, cue->post_text, (u32) strlen(cue->post_text));
-		gf_bs_write_data(ctx->bs_w, "\n\n", 2);
-	}
+	webvtt_write_cue(ctx->bs_w, cue);
 }
 
 void vttmx_parser_flush(GF_WebVTTMxCtx *ctx)
