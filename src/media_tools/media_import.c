@@ -7513,15 +7513,28 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 					if (a_hdr->obu) gf_free(a_hdr->obu);
 					gf_free(a_hdr);
 				}
+
 			}
 
 			e = gf_isom_add_sample(import->dest, track_num, di, samp);
 			if (e) goto exit;
+			cur_samp++;
+
+			//write sample deps
+			if (import->flags & GF_IMPORT_SAMPLE_DEPS) {
+				u32 isLeading, dependsOn, dependedOn, hasRedundant;
+				isLeading = 0;
+				dependsOn = samp->IsRAP ? 2 : 1;
+				dependedOn = state.frame_state.refresh_frame_flags ? 1 : 2;
+				hasRedundant = 0;
+
+				e = gf_isom_sample_set_dep_info(import->dest, track_num, cur_samp, isLeading, dependsOn, dependedOn, hasRedundant);
+				if (e) goto exit;
+			}
 
 			gf_isom_sample_del(&samp);
 
 			gf_set_progress("Importing AV1", gf_bs_get_position(bs), fsize);
-			cur_samp++;
 		}
 	}
 
