@@ -346,12 +346,6 @@ u64 dashdmx_io_get_utc_start_time(GF_DASHFileIO *dashio, GF_DASHFileIOSession se
 {
 	return gf_dm_sess_get_utc_start((GF_DownloadSession *)session);
 }
-
-#if 0 //unused since we are in non threaded mode
-void dashdmx_io_abort(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
-{
-	gf_dm_sess_abort((GF_DownloadSession *)session);
-}
 GF_Err dashdmx_io_setup_from_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *url, s32 group_idx)
 {
 	return gf_dm_sess_setup_from_url((GF_DownloadSession *)session, url, GF_FALSE);
@@ -359,6 +353,12 @@ GF_Err dashdmx_io_setup_from_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession ses
 GF_Err dashdmx_io_set_range(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, u64 start_range, u64 end_range, Bool discontinue_cache)
 {
 	return gf_dm_sess_set_range((GF_DownloadSession *)session, start_range, end_range, discontinue_cache);
+}
+
+#if 0 //unused since we are in non threaded mode
+void dashdmx_io_abort(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
+{
+	gf_dm_sess_abort((GF_DownloadSession *)session);
 }
 
 u32 dashdmx_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
@@ -402,12 +402,37 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 	}
 
 	if (dash_evt==GF_DASH_EVENT_SELECT_GROUPS) {
+		gf_dash_groups_set_language(ctx->dash, gf_opts_get_key("core", "lang"));
 		//let the player decide which group to play: we declare everything
 		return GF_OK;
 	}
 
 	/*for all selected groups, create input service and connect to init/first segment*/
 	if (dash_evt==GF_DASH_EVENT_CREATE_PLAYBACK) {
+		//coverage of a few functions from old arch not deprecated (yet)
+		if (gf_sys_is_test_mode()) {
+			Bool done;
+			gf_dash_is_group_selected(ctx->dash, 0);
+			gf_dash_get_url(ctx->dash);
+			gf_dash_group_get_segment_init_keys(ctx->dash, 0, NULL);
+			gf_dash_group_get_max_segments_in_cache(ctx->dash, 0);
+			gf_dash_group_get_num_segments_ready(ctx->dash, 0, &done);
+			gf_dash_group_probe_current_download_segment_location(ctx->dash, 0, NULL, NULL, NULL, NULL, NULL);
+			gf_dash_group_current_segment_start_time(ctx->dash, 0);
+			gf_dash_group_get_representation_info(ctx->dash, 0, 0, NULL, NULL, NULL, NULL, NULL);
+			gf_dash_group_loop_detected(ctx->dash, 0);
+			gf_dash_is_dynamic_mpd(ctx->dash);
+			gf_dash_group_get_language(ctx->dash, 0);
+			gf_dash_group_get_num_components(ctx->dash, 0);
+			gf_dash_group_get_download_rate(ctx->dash, 0);
+			gf_dash_get_utc_drift_estimate(ctx->dash);
+
+
+			//these are not used in the test suite (require decoding)
+			gf_dash_group_set_codec_stat(ctx->dash, 0, 0, 0, 0, 0, GF_FALSE, GF_FALSE);
+			gf_dash_group_set_buffer_levels(ctx->dash, 0, 0, 0, 0);
+		}
+
 		/*select input services if possible*/
 		for (i=0; i<gf_dash_get_group_count(ctx->dash); i++) {
 			const char *mime, *init_segment;
@@ -512,11 +537,6 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		return GF_OK;
 	}
 
-	if (dash_evt==GF_DASH_EVENT_BUFFERING) {
-		u32 tot, done;
-		gf_dash_get_buffer_info(ctx->dash, &tot, &done);
-		return GF_OK;
-	}
 	if (dash_evt==GF_DASH_EVENT_QUALITY_SWITCH) {
 		if (group_idx>=0) {
 			GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, group_idx);
@@ -973,11 +993,11 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	ctx->dash_io.get_mime = dashdmx_io_get_mime;
 	ctx->dash_io.get_header_value = dashdmx_io_get_header_value;
 	ctx->dash_io.get_utc_start_time = dashdmx_io_get_utc_start_time;
+	ctx->dash_io.setup_from_url = dashdmx_io_setup_from_url;
+	ctx->dash_io.set_range = dashdmx_io_set_range;
 
 #if 0 //unused since we are in non threaded mode
 	ctx->dash_io.abort = dashdmx_io_abort;
-	ctx->dash_io.setup_from_url = dashdmx_io_setup_from_url;
-	ctx->dash_io.set_range = dashdmx_io_set_range;
 	ctx->dash_io.get_bytes_per_sec = dashdmx_io_get_bytes_per_sec;
 	ctx->dash_io.get_total_size = dashdmx_io_get_total_size;
 	ctx->dash_io.get_bytes_done = dashdmx_io_get_bytes_done;
@@ -985,7 +1005,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 
 	ctx->dash_io.on_dash_event = dashdmx_io_on_dash_event;
 
-	ctx->dash = gf_dash_new(&ctx->dash_io, GF_DASH_THREAD_NONE, 0, ctx->auto_switch, (ctx->store==2) ? GF_TRUE : GF_FALSE, (ctx->algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, GF_FALSE, ctx->timeshift);
+	ctx->dash = gf_dash_new(&ctx->dash_io, GF_DASH_THREAD_NONE, 0, ctx->auto_switch, (ctx->store==2) ? GF_TRUE : GF_FALSE, (ctx->algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, ctx->timeshift);
 
 	if (!ctx->dash) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Error - cannot create DASH Client\n"));
