@@ -61,6 +61,7 @@ enum
 enum
 {
 	INSPECT_TEST_NO=0,
+	INSPECT_TEST_NOPROP,
 	INSPECT_TEST_NETWORK,
 	INSPECT_TEST_ENCODE,
 };
@@ -605,6 +606,7 @@ static void inspect_finalize(GF_Filter *filter)
 static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, const char *pname, const GF_PropertyValue *att)
 {
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
+
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
 
 	if (gf_sys_is_test_mode() || ctx->test) {
@@ -1150,6 +1152,8 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	char *elt_name = NULL;
 	const GF_PropertyValue *p, *dsi, *dsi_enh;
 
+	if (ctx->test==INSPECT_TEST_NOPROP) return;
+
 	//disconnect of src pid (not yet supported)
 	if (ctx->xml) {
 
@@ -1418,8 +1422,9 @@ static GF_Err inspect_process(GF_Filter *filter)
 
 			if (!ctx->hdr_done) {
 				ctx->hdr_done=GF_TRUE;
+				//dump header on main output file, not on pid one!
 				if (ctx->hdr && ctx->fmt && !ctx->xml)
-					inspect_dump_packet_fmt(ctx, pctx->tmp, NULL, 0, 0);
+					inspect_dump_packet_fmt(ctx, ctx->dump, NULL, 0, 0);
 			}
 		}
 		if (!pck) continue;
@@ -1630,8 +1635,9 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(xml), "uses xml formatting. This disables any custom format set through fmt option", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(test), "skips some properties:\n"
 		"\tno: no properties skipped\n"
+		"\tnoprop: all properties/info changes on pid are skipped, only packets are dumped\n"
 		"\tnetwork: URL/path dump, cache state, file size properties skipped (used for hashing network results)\n"
-		"\tencode: same as network plus skip decoder config (used for hashing encoding results)", GF_PROP_UINT, "no", "no|network|encode", GF_FS_ARG_HINT_EXPERT},
+		"\tencode: same as network plus skip decoder config (used for hashing encoding results)", GF_PROP_UINT, "no", "no|noprop|network|encode", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

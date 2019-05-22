@@ -1409,6 +1409,8 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			return e;
 
 		next_time_ms = gf_dash_get_min_wait_ms(ctx->dash);
+		if (next_time_ms>1000)
+			next_time_ms=1000;
 	}
 
 	//flush all media input
