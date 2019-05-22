@@ -3985,6 +3985,7 @@ const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32
 		return NULL;
 	}
 	pid = pid->pid;
+	cur_idx = *idx;
 	if (pid->infos) {
 		cur_idx = *idx;
 		const GF_PropertyValue *prop = gf_props_enum_property(pid->infos, &cur_idx, prop_4cc, prop_name);

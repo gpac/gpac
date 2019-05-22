@@ -2413,6 +2413,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_request_opengl) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_count_source_by_protocol) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_disable_probe) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_num_events_queued) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_all_sinks_done) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_enable_emulation_byte_removal ) )

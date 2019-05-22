@@ -1548,7 +1548,7 @@ const char *gf_filter_get_name(GF_Filter *filter);
 */
 void gf_filter_make_sticky(GF_Filter *filter);
 
-/*! Return the number of queued events on the filter. Events are not aggregated, some filter may want to wait until all events are processed before taking actions
+/*! Return the number of queued events on the filter. Events are not aggregated, some filter may want to wait until all events are processed before taking actions. This recursively goes up the filter chain and count queued events - THIS FUNCTION IS NOT THREAD SAFE
 \param filter target filter
 \return number of queued events
 */
