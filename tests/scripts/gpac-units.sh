@@ -106,6 +106,12 @@ do_test "gpac -for-test -unit-tests" "units-nomt"
 fi
 test_end
 
+test_begin "gpac-setupfail"
+if [ $test_skip != 1 ] ; then
+do_test "$GPAC fin:src=blob inspect" "setupfail"
+fi
+test_end
+
 
 test_begin "gpac-uncache"
 if [ test_skip != 1 ] ; then
