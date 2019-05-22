@@ -733,7 +733,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			if (!ap->duration) break;
 			start += ap->duration;
 		}
-		group->dash->initial_period_tunein = GF_FALSE;
 	}
 
 	//compute current time in period
@@ -933,7 +932,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			}
 		}
 
-		group->dash->initial_period_tunein = GF_FALSE;
 		//not time shifting, we are at the live edge, we must stick to start of segment otherwise we won't have enough data to play until next segment is ready
 
 		if (!group->dash->initial_time_shift_value) {
@@ -3085,6 +3083,7 @@ static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *grou
 	u32 r; // reservoir
 	u32 cu; // cushion
 	u32 buf_now = group->buffer_occupancy_ms;
+	u32 buf_max = group->buffer_max_ms;
 	double f_buf_now;
 
 	/* We don't use the segment duration as advertised in the MPD because it may not be there due to segment timeline*/
@@ -3092,10 +3091,12 @@ static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *grou
 
 	rate_min = ((GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, 0))->bandwidth;
 	rate_max = ((GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, gf_list_count(group->adaptation_set->representations) - 1))->bandwidth;
+
+	if (!buf_max) buf_max = 3*segment_duration_ms;
 	/* if the current buffer cannot hold an entire new segment, we indicate that we don't want to download it
 	   NOTE: This is not described in the paper
 	*/
-	if (group->buffer_occupancy_ms + segment_duration_ms > group->buffer_max_ms) {
+	if (group->buffer_occupancy_ms + segment_duration_ms > buf_max) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] BBA-0: not enough space to download new segment: %d\n", group->buffer_occupancy_ms));
 		return -1;
 	}
@@ -3118,15 +3119,15 @@ static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *grou
      * the size of cushion is between 37.5% and 90% of the buffer size
 	 * the rate map is piece-wise
      */
-	if (group->buffer_max_ms <= segment_duration_ms) {
+	if (buf_max <= segment_duration_ms) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] BBA-0: cannot initialize BBA-0 given the buffer size (%d) and segment duration (%d)\n", group->buffer_max_ms, group->segment_duration*1000));
 		return -1;
 	}
-	r = (u32)(37.5*group->buffer_max_ms / 100);
+	r = (u32)(37.5*buf_max / 100);
 	if (r < segment_duration_ms) {
 		r = segment_duration_ms;
 	}
-	cu = (u32)((90-37.5)*group->buffer_max_ms / 100);
+	cu = (u32)((90-37.5)*buf_max / 100);
 
 	if (buf_now <= r) {
 		f_buf_now = rate_min;
@@ -6346,6 +6347,7 @@ static GF_Err dash_setup_period_and_groups(GF_DashClient *dash)
 		if (e) break;
 	}
 	dash->first_period_in_mpd = 0;
+	dash->initial_period_tunein = GF_FALSE;
 
 	/*if error signal to the user*/
 	if (e != GF_OK) {
@@ -6707,7 +6709,7 @@ exit:
 
 static u32 gf_dash_period_index_from_time(GF_DashClient *dash, u64 time)
 {
-	u32 i, count;
+	u32 i, count, active_period_plus_one;
 	u64 cumul_start = 0;
 	Bool is_dyn = GF_FALSE;
 	GF_MPD_Period *period;
@@ -6731,22 +6733,24 @@ static u32 gf_dash_period_index_from_time(GF_DashClient *dash, u64 time)
 restart:
 	count = gf_list_count(dash->mpd->periods);
 	cumul_start = 0;
+	active_period_plus_one = 0;
 	for (i = 0; i<count; i++) {
 		period = gf_list_get(dash->mpd->periods, i);
 
 		if (period->xlink_href && !period->duration) {
-			gf_dash_solve_period_xlink(dash, dash->mpd->periods, i);
-			goto restart;
+			if (!active_period_plus_one || period->xlink_actuate_on_load) {
+				gf_dash_solve_period_xlink(dash, dash->mpd->periods, i);
+				goto restart;
+			}
 		}
 
 		if ((period->start > time) || (cumul_start > time)) {
-			break;
-		}
+		} else {
+			cumul_start += period->duration;
 
-		cumul_start += period->duration;
-
-		if (time < cumul_start) {
-			break;
+			if (!active_period_plus_one && (time < cumul_start)) {
+				active_period_plus_one = i+1;
+			}
 		}
 	}
 	if (is_dyn) {
@@ -6755,7 +6759,7 @@ restart:
 			if (!period->xlink_href && !period->origin_base_url) return i;
 		}
 	}
-	return (i>=1 ? (i-1) : 0);
+	return active_period_plus_one ? active_period_plus_one-1 : 0;
 }
 
 static void gf_dash_download_stop(GF_DashClient *dash)
