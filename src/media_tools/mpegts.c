@@ -393,6 +393,17 @@ static void gf_m2ts_section_filter_del(GF_M2TS_SectionFilter *sf)
 	gf_free(sf);
 }
 
+
+static void gf_m2ts_metadata_descriptor_del(GF_M2TS_MetadataDescriptor *metad)
+{
+	if (metad) {
+		if (metad->service_id_record) gf_free(metad->service_id_record);
+		if (metad->decoder_config) gf_free(metad->decoder_config);
+		if (metad->decoder_config_id) gf_free(metad->decoder_config_id);
+		gf_free(metad);
+	}
+}
+
 GF_EXPORT
 void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 {
@@ -418,6 +429,9 @@ void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 		if (pes->buf) gf_free(pes->buf);
 		if (pes->reassemble_buf) gf_free(pes->reassemble_buf);
 		if (pes->temi_tc_desc) gf_free(pes->temi_tc_desc);
+
+		if (pes->metadata_descriptor) gf_m2ts_metadata_descriptor_del(pes->metadata_descriptor);
+
 	}
 	if (es->slcfg) gf_free(es->slcfg);
 	gf_free(es);
@@ -1119,7 +1133,7 @@ static GF_M2TS_MetadataPointerDescriptor *gf_m2ts_read_metadata_pointer_descript
 	return d;
 }
 
-void gf_m2ts_metadata_pointer_descriptor_del(GF_M2TS_MetadataPointerDescriptor *metapd)
+static void gf_m2ts_metadata_pointer_descriptor_del(GF_M2TS_MetadataPointerDescriptor *metapd)
 {
 	if (metapd) {
 		if (metapd->locator_data) gf_free(metapd->locator_data);
@@ -1176,15 +1190,6 @@ static GF_M2TS_MetadataDescriptor *gf_m2ts_read_metadata_descriptor(GF_BitStream
 	return d;
 }
 
-void gf_m2ts_metadata_descriptor_del(GF_M2TS_MetadataDescriptor *metad)
-{
-	if (metad) {
-		if (metad->service_id_record) gf_free(metad->service_id_record);
-		if (metad->decoder_config) gf_free(metad->decoder_config);
-		if (metad->decoder_config_id) gf_free(metad->decoder_config_id);
-		gf_free(metad);
-	}
-}
 
 static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
@@ -2935,6 +2940,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 			gf_list_del(p->additional_ods);
 		}
 		if (p->pmt_iod) gf_odf_desc_del((GF_Descriptor *)p->pmt_iod);
+		if (p->metadata_pointer_descriptor)	gf_m2ts_metadata_pointer_descriptor_del(p->metadata_pointer_descriptor);
 		gf_free(p);
 	}
 	gf_list_del(ts->programs);

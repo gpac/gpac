@@ -1964,7 +1964,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_set_pcr_max_interval) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_program_add) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_program_stream_add) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_program_stream_update_ts_scale) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_update_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_process) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_sys_clock) )
