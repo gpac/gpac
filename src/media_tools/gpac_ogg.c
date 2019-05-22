@@ -38,8 +38,8 @@ static u32 mask[]=
 	0x3fffffff,0x7fffffff,0xffffffff
 };
 
-#if 0 //unused
 
+#ifdef GPAC_CONFIG_WIN32
 static u32 mask8B[]=
 {0x00,0x80,0xc0,0xe0,0xf0,0xf8,0xfc,0xfe,0xff};
 
@@ -49,10 +49,17 @@ void oggpack_writeinit(oggpack_buffer *b) {
 	b->buffer[0]='\0';
 	b->storage=BUFFER_INCREMENT;
 }
+#endif
+
+
+#if 0 //unused
 
 void oggpackB_writeinit(oggpack_buffer *b) {
 	oggpack_writeinit(b);
 }
+#endif
+
+#ifdef GPAC_CONFIG_WIN32
 
 void oggpack_writetrunc(oggpack_buffer *b,s32 bits) {
 	s32 bytes=bits>>3;
@@ -62,6 +69,9 @@ void oggpack_writetrunc(oggpack_buffer *b,s32 bits) {
 	b->endbyte=bytes;
 	*b->ptr&=mask[bits];
 }
+#endif
+
+#if 0//unused
 
 void oggpackB_writetrunc(oggpack_buffer *b,s32 bits) {
 	s32 bytes=bits>>3;
@@ -71,6 +81,9 @@ void oggpackB_writetrunc(oggpack_buffer *b,s32 bits) {
 	b->endbyte=bytes;
 	*b->ptr&=mask8B[bits];
 }
+#endif
+
+#ifdef GPAC_CONFIG_WIN32
 
 /* Takes only up to 32 bits. */
 void oggpack_write(oggpack_buffer *b,u32 value,s32 bits) {
@@ -106,6 +119,9 @@ void oggpack_write(oggpack_buffer *b,u32 value,s32 bits) {
 	b->endbit=bits&7;
 }
 
+#endif
+
+#if 0 //unused
 /* Takes only up to 32 bits. */
 void oggpackB_write(oggpack_buffer *b,u32 value,s32 bits) {
 	if(b->endbyte+4>=b->storage) {
@@ -199,24 +215,34 @@ void oggpackB_writecopy(oggpack_buffer *b,void *source,s32 bits) {
 	oggpack_writecopy_helper(b,source,bits,oggpackB_write,1);
 }
 
+
+void oggpackB_reset(oggpack_buffer *b) {
+	oggpack_reset(b);
+}
+#endif
+
+#ifdef GPAC_CONFIG_WIN32
 void oggpack_reset(oggpack_buffer *b) {
 	b->ptr=b->buffer;
 	b->buffer[0]=0;
 	b->endbit=b->endbyte=0;
 }
+#endif
 
-void oggpackB_reset(oggpack_buffer *b) {
-	oggpack_reset(b);
-}
-
+#ifdef GPAC_CONFIG_WIN32
 void oggpack_writeclear(oggpack_buffer *b) {
 	gf_free(b->buffer);
 	memset(b,0,sizeof(*b));
 }
+#endif
 
+#if 0 //unused
 void oggpackB_writeclear(oggpack_buffer *b) {
 	oggpack_writeclear(b);
 }
+#endif
+
+#ifdef GPAC_CONFIG_WIN32
 
 /* Read in bits without advancing the bitptr; bits <= 32 */
 s32 oggpack_look(oggpack_buffer *b,s32 bits) {
@@ -244,7 +270,9 @@ s32 oggpack_look(oggpack_buffer *b,s32 bits) {
 	}
 	return(m&ret);
 }
+#endif
 
+#if 0 //unused
 /* Read in bits without advancing the bitptr; bits <= 32 */
 s32 oggpackB_look(oggpack_buffer *b,s32 bits) {
 	u32 ret;
@@ -433,11 +461,16 @@ overflow:
 	}
 	return(ret);
 }
+#endif
+
+#ifdef GPAC_CONFIG_WIN32
 
 s32 oggpack_bytes(oggpack_buffer *b) {
 	return(b->endbyte+(b->endbit+7)/8);
 }
+#endif
 
+#if 0 //unused
 s32 oggpack_bits(oggpack_buffer *b) {
 	return(b->endbyte*8+b->endbit);
 }
@@ -449,11 +482,16 @@ s32 oggpackB_bytes(oggpack_buffer *b) {
 s32 oggpackB_bits(oggpack_buffer *b) {
 	return oggpack_bits(b);
 }
+#endif
+
+#ifdef GPAC_CONFIG_WIN32
 
 unsigned char *oggpack_get_buffer(oggpack_buffer *b) {
 	return(b->buffer);
 }
+#endif
 
+#if 0 //unused
 unsigned char *oggpackB_get_buffer(oggpack_buffer *b) {
 	return oggpack_get_buffer(b);
 }

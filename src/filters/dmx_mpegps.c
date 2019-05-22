@@ -263,9 +263,9 @@ static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			if (!pss->in_use) continue;
 
 			if (pss->stream_type==GF_STREAM_VISUAL) {
-				mpeg2ps_seek_video_frame(ctx->ps, pss->stream_num, ctx->start_range*1000);
+				mpeg2ps_seek_video_frame(ctx->ps, pss->stream_num, (u64) (ctx->start_range*1000));
 			} else {
-				mpeg2ps_seek_audio_frame(ctx->ps, pss->stream_num, ctx->start_range*1000);
+				mpeg2ps_seek_audio_frame(ctx->ps, pss->stream_num, (u64) (ctx->start_range*1000) );
 			}
 		}
 		//cancel event
