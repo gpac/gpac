@@ -144,7 +144,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 		break;
 	}
 
-	if (arg_type!=GF_FILTER_ARG_EXPLICIT_SOURCE) {
+	if ((arg_type!=GF_FILTER_ARG_EXPLICIT_SOURCE) && (arg_type!=GF_FILTER_ARG_EXPLICIT)) {
 		src_striped = gf_filter_get_args_stripped(fsess, src_args, GF_FALSE);
 	}
 
@@ -1910,8 +1910,14 @@ struct _gf_filter_setup_failure
 static void gf_filter_setup_failure_task(GF_FSTask *task)
 {
 	s32 res;
+	GF_Err e;
 	GF_Filter *f = ((struct _gf_filter_setup_failure *)task->udta)->filter;
-	gf_free(task->udta);
+	if (task->udta) {
+		e = ((struct _gf_filter_setup_failure *)task->udta)->e;
+		gf_free(task->udta);
+
+		f->session->last_connect_error = e;
+	}
 
 	if (!f->finalized && f->freg->finalize) {
 		FSESS_CHECK_THREAD(f)

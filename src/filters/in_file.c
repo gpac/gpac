@@ -93,6 +93,8 @@ static GF_Err filein_initialize(GF_Filter *filter)
 		if (cgi_par) cgi_par[0] = '?';
 
 		gf_filter_setup_failure(filter, GF_URL_ERROR);
+		if (gf_sys_is_test_mode() && !strcmp(src, "blob"))
+			return GF_OK;
 		return GF_URL_ERROR;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] opening %s\n", src));
