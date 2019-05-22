@@ -1978,9 +1978,9 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	aligned_to_DTS_frac.num = 0;
 	aligned_to_DTS_frac.den = 1;
 	for (i=0; i<gf_isom_get_track_count(dest); i++) {
-		u64 track_dur = (Double) gf_isom_get_media_duration(dest, i+1);
+		u64 track_dur = gf_isom_get_media_duration(dest, i+1);
 		u32 track_ts = gf_isom_get_media_timescale(dest, i+1);
-		if (aligned_to_DTS_frac.num * track_ts < track_dur * aligned_to_DTS_frac.den) {
+		if ((u64)aligned_to_DTS_frac.num * track_ts < track_dur * aligned_to_DTS_frac.den) {
 			aligned_to_DTS_frac.num = track_dur;
 			aligned_to_DTS_frac.den = track_ts;
 		}
@@ -2260,7 +2260,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			u32 movts_dst = gf_isom_get_timescale(dest);
 			u32 trackts_dst = gf_isom_get_media_timescale(dest, dst_tk);
 			/*convert from orig to dst time scale*/
-			movts_dst *= ts_scale;
+			movts_dst = (u32) (movts_dst * ts_scale);
 
 			/*get the first edit normal mode and add the new track dur*/
 			for (j=nb_edits; j>0; j--) {
