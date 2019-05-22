@@ -188,54 +188,6 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 }
 #endif
 
-GF_Err gf_export_hint(GF_MediaExporter *dumper)
-{
-#ifndef GPAC_DISABLE_ISOM_HINTING
-	GF_Err e;
-	char szName[1000], szType[5];
-	char *pck;
-	FILE *out;
-	u32 track, i, size, m_stype, sn, count;
-
-	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
-		return GF_BAD_PARAM;
-	}
-	m_stype = gf_isom_get_media_subtype(dumper->file, track, 1);
-
-	e = gf_isom_reset_hint_reader(dumper->file, track, dumper->sample_num ? dumper->sample_num : 1, 0, 0, 0);
-	if (e) return gf_export_message(dumper, e, "Error initializing hint reader");
-
-	gf_export_message(dumper, GF_OK, "Extracting hint track samples - type %s", szType);
-
-	count = gf_isom_get_sample_count(dumper->file, track);
-	if (dumper->sample_num) count = 0;
-
-	i = 1;
-	while (1) {
-		e = gf_isom_next_hint_packet(dumper->file, track, &pck, &size, NULL, NULL, NULL, &sn);
-		if (e==GF_EOS) break;
-		if (dumper->sample_num && (dumper->sample_num != sn)) {
-			gf_free(pck);
-			break;
-		}
-		if (e) return gf_export_message(dumper, e, "Error fetching hint packet %d", i);
-		sprintf(szName, "%s_pck_%04d.%s", dumper->out_name, i, gf_4cc_to_str(m_stype));
-		out = gf_fopen(szName, "wb");
-		gf_fwrite(pck, size, 1, out);
-		gf_fclose(out);
-		gf_free(pck);
-		i++;
-		if (count) gf_set_progress("Hint Export", sn, count);
-	}
-	if (count) gf_set_progress("Hint Export", count, count);
-
-	return GF_OK;
-#else
-	return GF_NOT_SUPPORTED;
-#endif
-}
-
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 track, char *dsi, u32 dsiSize)
