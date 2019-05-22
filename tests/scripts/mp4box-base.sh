@@ -52,6 +52,9 @@ do_hash_test $mp4file "flat-storage"
 do_test "$MP4BOX -brand MP4V:1 -ab iso6 -inter 250 $mp4file" "interleave-250ms"
 do_hash_test $mp4file "interleave-250ms"
 
+do_test "$MP4BOX -single 1 $mp4file -out $TEMP_DIR/single.mp4" "single"
+do_hash_test "$TEMP_DIR/single.mp4" "single"
+
 do_test "$MP4BOX -rb iso6 -frag 1000 $mp4file -out $TEMP_DIR/frag-1s.mp4" "frag-1s"
 do_hash_test "$TEMP_DIR/frag-1s.mp4" "frag-1s"
 mv "$TEMP_DIR/frag-1s.mp4" $mp4file
