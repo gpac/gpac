@@ -359,11 +359,13 @@ s32 MPEG12_PictHdrType (unsigned char *pbuffer)
 	return ((pbuffer[1] >> 3) & 0x7);
 }
 
+#if 0 //unused
 u16 MPEG12_PictHdrTempRef(unsigned char *pbuffer)
 {
 	pbuffer += sizeof(u32);
 	return ((pbuffer[0] << 2) | ((pbuffer[1] >> 6) & 0x3));
 }
+#endif
 
 
 static u64 read_pts (u8 *pak)
@@ -1489,6 +1491,7 @@ static Bool invalid_video_streamno (mpeg2ps_t *ps, u32 streamno)
 	return 0;
 }
 
+#if 0 //unused
 const char *mpeg2ps_get_video_stream_name (mpeg2ps_t *ps, u32 streamno)
 {
 	if (invalid_video_streamno(ps, streamno)) {
@@ -1499,6 +1502,7 @@ const char *mpeg2ps_get_video_stream_name (mpeg2ps_t *ps, u32 streamno)
 	}
 	return "Mpeg-1";
 }
+#endif
 
 mpeg2ps_video_type_t mpeg2ps_get_video_stream_type (mpeg2ps_t *ps,
         u32 streamno)
@@ -1569,6 +1573,7 @@ u32 mpeg2ps_get_audio_stream_count (mpeg2ps_t *ps)
 	return ps->audio_cnt;
 }
 
+#if 0 //unused
 const char *mpeg2ps_get_audio_stream_name (mpeg2ps_t *ps,
         u32 streamno)
 {
@@ -1592,6 +1597,7 @@ const char *mpeg2ps_get_audio_stream_name (mpeg2ps_t *ps,
 
 	return "LPCM";
 }
+#endif
 
 mpeg2ps_audio_type_t mpeg2ps_get_audio_stream_type (mpeg2ps_t *ps,
         u32 streamno)
@@ -1804,6 +1810,7 @@ Bool mpeg2ps_get_audio_frame(mpeg2ps_t *ps, u32 streamno,
 	return 1;
 }
 
+#if 0 //unused
 u64 mpeg2ps_get_ps_size(mpeg2ps_t *ps)
 {
 	return file_size(ps->fd);
@@ -1818,7 +1825,7 @@ s64 mpeg2ps_get_audio_pos(mpeg2ps_t *ps, u32 streamno)
 	if (invalid_audio_streamno(ps, streamno)) return 0;
 	return gf_ftell(ps->audio_streams[streamno]->m_fd);
 }
-
+#endif
 
 
 /***************************************************************************
@@ -1981,10 +1988,7 @@ static Bool mpeg2ps_seek_frame (mpeg2ps_t *ps,
       return GF_TRUE;
     }
     // at this point, rec is > a distance.  If within 5 or so seconds,
-    // skip
-    if (rec->dts > dts) {
-		return GF_FALSE;
-    }
+
     if (rec->dts + (5 * 90000) < dts) {
       // more than 5 seconds away - skip and search
       if (rec->next_rec == NULL) {
