@@ -874,7 +874,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 					gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
 					gf_bs_write_int(bs,	8, 8);
 					gf_bs_write_int(bs,	GF_M2TS_RA_STREAM_GPAC, 32);
-					gf_bs_write_int(bs,	es->ifce->fourcc, 32);
+					gf_bs_write_int(bs,	es->ifce->codecid, 32);
 				}
 				break;
 			}
@@ -958,20 +958,41 @@ static void gf_m2ts_remap_timestamps_for_pes(GF_M2TS_Mux_Stream *stream, u32 pck
 	*dts = *dts - stream->program->initial_ts + pcr_offset;
 }
 
+void id3_write_size(GF_BitStream *bs, u32 len)
+{
+	u32 size;
+
+	size = (len>>21) & 0x7F;
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_int(bs, size, 7);
+
+	size = (len>>14) & 0x7F;
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_int(bs, size, 7);
+
+	size = (len>>7) & 0x7F;
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_int(bs, size, 7);
+
+	size = (len) & 0x7F;
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_int(bs, size, 7);
+}
+
 static void id3_tag_create(char **input, u32 *len)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u8(bs, 'I');
 	gf_bs_write_u8(bs, 'D');
 	gf_bs_write_u8(bs, '3');
-	gf_bs_write_u8(bs, 4);
-	gf_bs_write_u8(bs, 0);
-	gf_bs_write_int(bs, 0, 1);
-	gf_bs_write_int(bs, 0, 1);
-	gf_bs_write_int(bs, 0, 1);
-	gf_bs_write_int(bs, 0x1F, 5);
+	gf_bs_write_u8(bs, 4); //major
+	gf_bs_write_u8(bs, 0); //minor
+	gf_bs_write_u8(bs, 0); //flags
+
+	id3_write_size(bs, *len + 10);
+
 	gf_bs_write_u32(bs, ID3V2_FRAME_TXXX);
-	gf_bs_write_u32(bs, *len); /* size of the text */
+	id3_write_size(bs, *len); /* size of the text */
 	gf_bs_write_u8(bs, 0);
 	gf_bs_write_u8(bs, 0);
 	gf_bs_write_data(bs, *input, *len);
@@ -2223,7 +2244,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		introduce more overhead at very low bitrates where such cases happen, but will ensure proper timing
 		of each frame*/
 		stream->prevent_two_au_start_in_pes = GF_TRUE;
-		switch (ifce->object_type_indication) {
+		switch (ifce->codecid) {
 		case GF_CODECID_MPEG4_PART2:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG4;
 			break;
@@ -2276,7 +2297,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			gf_m2ts_stream_set_default_slconfig(stream);
 			break;
 		default:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts video type for codec %s, signaling as PES private using codec 4CC in regristration descriptor\n", gf_codecid_name(ifce->fourcc) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts video type for codec %s, signaling as PES private using codec 4CC in registration descriptor\n", gf_codecid_name(ifce->codecid) ));
 
 			stream->mpeg2_stream_type = GF_M2TS_PRIVATE_DATA;
 			stream->force_single_au = GF_TRUE;
@@ -2289,7 +2310,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		stream->mpeg2_stream_id = 0xC0;
 		//override default packing for audio
 		stream->force_single_au = (stream->program->mux->au_pes_mode == GF_M2TS_PACK_NONE) ? GF_TRUE : GF_FALSE;
-		switch (ifce->object_type_indication) {
+		switch (ifce->codecid) {
 		case GF_CODECID_MPEG_AUDIO:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_MPEG1;
 			break;
@@ -2310,8 +2331,11 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		case GF_CODECID_AC3:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AC3;
 			break;
+		case GF_CODECID_EAC3:
+			stream->mpeg2_stream_type = GF_M2TS_AUDIO_EC3;
+			break;
 		default:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts audio type for codec %s, signaling as PES private using codec 4CC in regristration descriptor\n", gf_codecid_name(ifce->fourcc) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts audio type for codec %s, signaling as PES private using codec 4CC in registration descriptor\n", gf_codecid_name(ifce->codecid) ));
 			stream->mpeg2_stream_type = GF_M2TS_PRIVATE_DATA;
 			stream->force_single_au = GF_TRUE;
 			stream->force_reg_desc = GF_TRUE;
@@ -2350,7 +2374,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		gf_m2ts_stream_add_metadata_descriptor(stream);
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported codec %s, signaling as raw data\n", gf_codecid_name(ifce->fourcc) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported codec %s, signaling as raw data\n", gf_codecid_name(ifce->codecid) ));
 		stream->mpeg2_stream_id = 0xBD;
 		stream->mpeg2_stream_type = GF_M2TS_METADATA_PES;
 		break;

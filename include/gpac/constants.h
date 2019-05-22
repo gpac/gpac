@@ -406,7 +406,6 @@ enum
 	/*! codecid for subtitle/text streams in tx3g / apple text format*/
 	GF_CODECID_TX3G = GF_4CC( 't', 'x', '3', 'g' ),
 
-
 	/*!
 	 * \brief OGG DecoderConfig
 	 *

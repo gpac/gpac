@@ -1945,7 +1945,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_crc32_check) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_restamp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_sdt_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_abort_parsing) )
 
 
 /* carousel.h */
