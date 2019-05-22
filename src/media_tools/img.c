@@ -426,7 +426,9 @@ static void gf_png_user_read_data(png_structp png_ptr, png_bytep data, png_size_
 }
 static void gf_png_user_error_fn(png_structp png_ptr,png_const_charp error_msg)
 {
-	longjmp(png_jmpbuf(png_ptr), 1);
+	if (png_ptr) {
+		longjmp(png_jmpbuf(png_ptr), 1);
+	}
 }
 
 
@@ -449,6 +451,9 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	udta.size = png_size;
 	udta.pos = 0;
 	udta.rows=NULL;
+	if (gf_sys_is_test_mode()) {
+		gf_png_user_error_fn(NULL, NULL);
+	}
 
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, (png_voidp) &udta, NULL, NULL);
 	if (!png_ptr) return GF_IO_ERR;
@@ -582,6 +587,10 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 	//      png_voidp user_error_ptr, user_error_fn, user_warning_fn);
 
 	if (png_ptr == NULL) return GF_IO_ERR;
+
+	if (gf_sys_is_test_mode()) {
+		gf_png_flush(NULL);
+	}
 
 	/* Allocate/initialize the image information data.  REQUIRED */
 	info_ptr = png_create_info_struct(png_ptr);
