@@ -220,8 +220,7 @@ enum
 	/*! when set a default ccst box is used in the sample entry */
 	GF_IMPORT_USE_CCST  = 1<<30,
 
-	/*! print filter session stats at the end of the import*/
-	GF_IMPORT_FILTER_STATS = 0x80000000	//(=1<<31)
+	//GF_IMPORT_FILTER_STATS = 0x80000000	//(=1<<31)
 };
 
 
@@ -393,6 +392,7 @@ typedef struct __track_import
 
 	Bool is_alpha;
 	Bool keep_audelim;
+	u32 print_stats_graph;
 } GF_MediaImporter;
 
 /*!
