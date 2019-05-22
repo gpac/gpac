@@ -240,7 +240,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode, temporal_mode;
 	s32 par_d, par_n, prog_id, delay, force_rate, moov_timescale;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
-	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only;
+	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only, print_stats_graph=0;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
 	const char *szLan;
 	GF_Err e;
@@ -544,8 +544,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "rate=", 5)) {
 			force_rate = atoi(ext+6);
 		}
-		else if (!stricmp(ext+1, "fstat")) import_flags |= GF_IMPORT_FILTER_STATS;
-		else if (!strcmp(ext+1, "sopt")) {
+		else if (!stricmp(ext+1, "fstat"))
+			print_stats_graph |= 1;
+		else if (!stricmp(ext+1, "fgraph"))
+			print_stats_graph |= 2;
+		else if (!strncmp(ext+1, "sopt", 4)) {
 			if (ext2) ext2[0] = ':';
 			char *opt_dest = strstr(ext+1, "dopt");
 			if (opt_dest) {
@@ -556,7 +559,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			ext = NULL;
 			break;
 		}
-		else if (!strcmp(ext+1, "dopt")) {
+		else if (!strncmp(ext+1, "dopt", 4)) {
 			if (ext2) ext2[0] = ':';
 			char *opt_src = strstr(ext+1, "sopt");
 			if (opt_src) {
@@ -702,6 +705,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.frames_per_sample = frames_per_sample;
 	import.flags = import_flags;
 	import.keep_audelim = keep_audelim;
+	import.print_stats_graph = print_stats_graph;
 
 	if (!import.nb_tracks) {
 		u32 count, o_count;
