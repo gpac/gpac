@@ -330,6 +330,7 @@ void oggpack_adv(oggpack_buffer *b,s32 bits) {
 	b->endbit=bits&7;
 }
 
+#if 0 //unused
 void oggpackB_adv(oggpack_buffer *b,s32 bits) {
 	oggpack_adv(b,bits);
 }
@@ -345,6 +346,7 @@ void oggpack_adv1(oggpack_buffer *b) {
 void oggpackB_adv1(oggpack_buffer *b) {
 	oggpack_adv1(b);
 }
+#endif
 
 /* bits <= 32 */
 s32 oggpack_read(oggpack_buffer *b,s32 bits) {
