@@ -1546,6 +1546,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_get_version) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_get_rap) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_set_source_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_get_child_table) )
+
+
 #endif
 #endif /*GPAC_DISABLE_BIFS*/
 
@@ -1617,6 +1620,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_list_get_child) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_list_get_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_list_del_child_idx) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sg_script_get_field_index) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_dump_attribute) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_dirty_parent_graph) )

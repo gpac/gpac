@@ -527,57 +527,18 @@ static void PrintNodeSFField(u32 type, void *far_ptr)
 }
 #endif
 
-void PrintNode(const char *name, u32 graph_type)
+#ifndef GPAC_DISABLE_VRML
+static void do_print_node(GF_Node *node, GF_SceneGraph *sg, const char *name, u32 graph_type, Bool is_nodefield, Bool do_cov)
 {
-#ifdef GPAC_DISABLE_VRML
-	fprintf(stderr, "VRML/MPEG-4/X3D scene graph is disabled in this build of GPAC\n");
-	return;
-#else
-	const char *nname, *std_name;
 	char szField[1024];
-	GF_Node *node;
-	GF_SceneGraph *sg;
-	u32 tag, nbF, i;
+	u32 nbF, i;
 	GF_FieldInfo f;
 #ifndef GPAC_DISABLE_BIFS
 	u8 qt, at;
 	Fixed bmin, bmax;
 	u32 nbBits;
 #endif /*GPAC_DISABLE_BIFS*/
-	Bool is_nodefield = 0;
 
-	char *sep = strchr(name, '.');
-	if (sep) {
-		strcpy(szField, sep+1);
-		sep[0] = 0;
-		is_nodefield = 1;
-	}
-
-	if (graph_type==1) {
-#ifndef GPAC_DISABLE_X3D
-		tag = gf_node_x3d_type_by_class_name(name);
-		std_name = "X3D";
-#else
-		fprintf(stderr, "X3D node printing is not supported (X3D support disabled)\n");
-		return;
-#endif
-	} else {
-		tag = gf_node_mpeg4_type_by_class_name(name);
-		std_name = "MPEG4";
-	}
-	if (!tag) {
-		fprintf(stderr, "Unknown %s node %s\n", std_name, name);
-		return;
-	}
-
-	sg = gf_sg_new();
-	node = gf_node_new(sg, tag);
-	gf_node_register(node, NULL);
-	nname = gf_node_get_class_name(node);
-	if (!node) {
-		fprintf(stderr, "Node %s not supported in current built\n", nname);
-		return;
-	}
 	nbF = gf_node_get_field_count(node);
 
 	if (is_nodefield) {
@@ -607,8 +568,29 @@ void PrintNode(const char *name, u32 graph_type)
 		}
 		return;
 	}
+	if (do_cov) {
+		u32 ndt;
+		if (graph_type==0) {
+			u32 i, all;
+			gf_node_mpeg4_type_by_class_name(name);
+			gf_bifs_get_child_table(node);
+			all = gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_ALL);
+			for (i=0; i<all; i++) {
+				u32 res;
+				gf_sg_script_get_field_index(node, i, GF_SG_FIELD_CODING_ALL, &res);
+			}
 
-	fprintf(stderr, "Node Syntax:\n%s {\n", nname);
+			gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF);
+			gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_IN);
+			gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_OUT);
+			gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DYN);
+		}
+		else if (graph_type==1) gf_node_x3d_type_by_class_name(name);
+		for (ndt=NDT_SFWorldNode; ndt<NDT_LAST; ndt++) {
+			gf_node_in_table_by_tag(gf_node_get_tag(node), ndt);
+		}
+	}
+	fprintf(stderr, "%s {\n", name);
 
 	for (i=0; i<nbF; i++) {
 		gf_node_get_field(node, i, &f);
@@ -652,15 +634,72 @@ void PrintNode(const char *name, u32 graph_type)
 		}
 #endif /*GPAC_DISABLE_BIFS*/
 		fprintf(stderr, "\n");
+
+		if (do_cov) {
+			gf_node_get_field_by_name(node, (char *) f.name, &f);
+		}
 	}
 	fprintf(stderr, "}\n\n");
+
+}
+#endif
+
+
+void PrintNode(const char *name, u32 graph_type)
+{
+#ifdef GPAC_DISABLE_VRML
+	fprintf(stderr, "VRML/MPEG-4/X3D scene graph is disabled in this build of GPAC\n");
+	return;
+#else
+	const char *std_name;
+	char szField[1024];
+	GF_Node *node;
+	GF_SceneGraph *sg;
+	u32 tag;
+#ifndef GPAC_DISABLE_BIFS
+#endif /*GPAC_DISABLE_BIFS*/
+	Bool is_nodefield = 0;
+
+	char *sep = strchr(name, '.');
+	if (sep) {
+		strcpy(szField, sep+1);
+		sep[0] = 0;
+		is_nodefield = 1;
+	}
+
+	if (graph_type==1) {
+#ifndef GPAC_DISABLE_X3D
+		tag = gf_node_x3d_type_by_class_name(name);
+		std_name = "X3D";
+#else
+		fprintf(stderr, "X3D node printing is not supported (X3D support disabled)\n");
+		return;
+#endif
+	} else {
+		tag = gf_node_mpeg4_type_by_class_name(name);
+		std_name = "MPEG4";
+	}
+	if (!tag) {
+		fprintf(stderr, "Unknown %s node %s\n", std_name, name);
+		return;
+	}
+
+	sg = gf_sg_new();
+	node = gf_node_new(sg, tag);
+	gf_node_register(node, NULL);
+	name = gf_node_get_class_name(node);
+	if (!node) {
+		fprintf(stderr, "Node %s not supported in current built\n", name);
+		return;
+	}
+	do_print_node(node, sg, name, graph_type, is_nodefield, GF_FALSE);
 
 	gf_node_unregister(node, NULL);
 	gf_sg_del(sg);
 #endif /*GPAC_DISABLE_VRML*/
 }
 
-void PrintBuiltInNodes(u32 graph_type)
+void PrintBuiltInNodes(u32 graph_type, Bool dump_nodes)
 {
 #if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_X3D) && !defined(GPAC_DISABLE_SVG)
 	GF_Node *node;
@@ -706,7 +745,11 @@ void PrintBuiltInNodes(u32 graph_type)
 		node = gf_node_new(sg, i);
 		if (node) {
 			gf_node_register(node, NULL);
-			fprintf(stderr, " %s\n", gf_node_get_class_name(node));
+			if (dump_nodes) {
+				do_print_node(node, sg, gf_node_get_class_name(node), graph_type, GF_FALSE, GF_TRUE);
+			} else {
+				fprintf(stderr, " %s\n", gf_node_get_class_name(node));
+			}
 			gf_node_unregister(node, NULL);
 			nb_in++;
 		} else {

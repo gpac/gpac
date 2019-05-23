@@ -3291,18 +3291,18 @@ Bool mp4box_parse_args(int argc, char **argv)
 			PrintNode(argv[i + 1], 1);
 			return 1;
 		}
-		else if (!stricmp(arg, "-nodes")) {
-			PrintBuiltInNodes(0);
+		else if (!stricmp(arg, "-nodes") || !stricmp(arg, "-nodex")) {
+			PrintBuiltInNodes(0, !stricmp(arg, "-nodex") ? GF_TRUE : GF_FALSE);
 			return 1;
 		}
-		else if (!stricmp(arg, "-xnodes")) {
-			PrintBuiltInNodes(1);
+		else if (!stricmp(arg, "-xnodes") || !stricmp(arg, "-xnodex")) {
+			PrintBuiltInNodes(1, !stricmp(arg, "-xnodex") ? GF_TRUE : GF_FALSE);
 			return 1;
 		}
 #endif
 #ifndef GPAC_DISABLE_SVG
 		else if (!stricmp(arg, "-snodes")) {
-			PrintBuiltInNodes(2);
+			PrintBuiltInNodes(2, GF_FALSE);
 			return 1;
 		}
 #endif

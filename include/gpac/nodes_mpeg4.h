@@ -3302,7 +3302,8 @@ enum {
 	NDT_SFSBSiteNode,
 	NDT_SFBaseMeshNode,
 	NDT_SFSubdivSurfaceSectorNode,
-	NDT_SFMusicScoreNode
+	NDT_SFMusicScoreNode,
+	NDT_LAST
 };
 
 /*All BIFS versions handled*/
