@@ -1194,6 +1194,17 @@ typedef struct
 	u32 vertOffD;
 } GF_CleanApertureBox;
 
+typedef struct {
+	GF_ISOM_BOX
+	u32 colour_type;
+	u16 colour_primaries;
+	u16 transfer_characteristics;
+	u16 matrix_coefficients;
+	Bool full_range_flag;
+	u8* opaque;
+	u32 opaque_size;
+} GF_ColourInformationBox;
+
 typedef struct __ContentLightLevel {
 	GF_ISOM_BOX
 	u16 max_content_light_level;
@@ -1254,6 +1265,7 @@ typedef struct
 	GF_AuxiliaryTypeInfoBox *auxi;		\
 	struct __tag_protect_box *rinf;		\
 	GF_RVCConfigurationBox *rvcc;		\
+	GF_ColourInformationBox *colr;		\
 	GF_MasteringDisplayColourVolumeBox *mdcv;	\
 	GF_ContentLightLevelBox *clli;		\
 
@@ -3192,17 +3204,6 @@ typedef struct {
 	u32 image_width;
 	u32 image_height;
 } GF_ImageSpatialExtentsPropertyBox;
-
-typedef struct {
-	GF_ISOM_BOX
-	u32 colour_type;
-	u16 colour_primaries;
-	u16 transfer_characteristics;
-	u16 matrix_coefficients;
-	Bool full_range_flag;
-	u8 *opaque;
-	u32 opaque_size;
-} GF_ColourInformationBox;
 
 typedef struct {
 	GF_ISOM_FULL_BOX

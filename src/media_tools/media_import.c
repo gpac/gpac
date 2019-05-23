@@ -7551,6 +7551,8 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	if (e) goto exit;
 	e = gf_media_update_par(import->dest, track_num);
 	if (e) goto exit;
+	e = gf_isom_set_colr_nclx(import->dest, track_num, di, state.color_primaries, state.transfer_characteristics, state.matrix_coefficients, state.color_range);
+	if (e) goto exit;
 
 	gf_media_update_bitrate(import->dest, track_num);
 	if (import->flags & GF_IMPORT_USE_CCST) {
