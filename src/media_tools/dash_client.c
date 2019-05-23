@@ -7798,7 +7798,8 @@ GF_EXPORT
 u32 gf_dash_group_get_max_segments_in_cache(GF_DashClient *dash, u32 idx)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
-	return group->max_cached_segments;
+	if (group) return group->max_cached_segments;
+	return 0;
 }
 
 
@@ -7810,6 +7811,10 @@ u32 gf_dash_group_get_num_segments_ready(GF_DashClient *dash, u32 idx, Bool *gro
 
 	if (dash->dash_mutex) gf_mx_p(dash->dash_mutex);
 	group = gf_list_get(dash->groups, idx);
+	if (!group) {
+		if (dash->dash_mutex) gf_mx_v(dash->dash_mutex);
+		return 0;
+	}
 	if (group->cache_mutex) gf_mx_p(group->cache_mutex);
 
 	*group_is_done = 0;
@@ -8112,6 +8117,7 @@ GF_EXPORT
 Double gf_dash_group_current_segment_start_time(GF_DashClient *dash, u32 idx)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return 0.0;
 	return gf_dash_get_segment_start_time(group, NULL);
 }
 
