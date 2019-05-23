@@ -72,7 +72,7 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	}
 	path = strstr(ctx->src, "://");
 	if (path) path += 3;
-	if (strstr(path, "://")) {
+	if (path && strstr(path, "://")) {
 		ctx->is_end = GF_TRUE;
 		return gf_filter_pid_raw_new(filter, path, path, NULL, NULL, NULL, 0, &ctx->pid);
 	}
