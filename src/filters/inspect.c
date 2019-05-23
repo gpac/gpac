@@ -498,7 +498,7 @@ void gf_inspect_dump_obu(FILE *dump, AV1State *av1, char *obu, u64 obu_length, O
 #define DUMP_OBU_INT(_v) fprintf(dump, #_v"=\"%d\" ", av1->_v);
 #define DUMP_OBU_INT2(_n, _v) fprintf(dump, _n"=\"%d\" ", _v);
 
-	fprintf(dump, "   <OBU size=\"%d\" type=\"%s\" header_size=\"%d\" has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", (u32) obu_size, av1_get_obu_name(obu_type), hdr_size, av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
+	fprintf(dump, "   <OBU size=\""LLU"\" type=\"%s\" header_size=\"%d\" has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", obu_size, av1_get_obu_name(obu_type), hdr_size, av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
 	if (dump_crc) fprintf(dump, "crc=\"%u\" ", gf_crc_32(obu, obu_length) );
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER:
@@ -532,11 +532,7 @@ void gf_inspect_dump_obu(FILE *dump, AV1State *av1, char *obu, u64 obu_length, O
 			fprintf(dump, "refresh_frame_flags=\"%d\" ", av1->frame_state.refresh_frame_flags);
 
 			DUMP_OBU_INT2("show_frame", av1->frame_state.show_frame);
-			if (av1->frame_state.show_existing_frame) {
-				DUMP_OBU_INT2("show_existing_frame", av1->frame_state.show_existing_frame);
-			} else {
-				DUMP_OBU_INT2("show_existing_frame", 0);
-			}
+			DUMP_OBU_INT2("show_existing_frame", av1->frame_state.show_existing_frame);
 		}
 		if (obu_type==OBU_FRAME_HEADER)
 			break;
