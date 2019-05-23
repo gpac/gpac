@@ -49,6 +49,7 @@ typedef struct
 	Double index_dur;
 	Bool autofps;
 	Bool importer;
+	Bool deps;
 	
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -668,6 +669,19 @@ GF_Err av1dmx_parse_av1(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 	memcpy(output, ctx->state.frame_obus, pck_size);
 
+	if (ctx->deps) {
+		u8 flags = 0;
+		//dependsOn
+		flags = ( ctx->state.frame_state.key_frame) ? 2 : 1;
+		flags <<= 2;
+		//dependedOn
+	 	flags |= ctx->state.frame_state.refresh_frame_flags ? 1 : 2;
+		flags <<= 2;
+		//hasRedundant
+	 	//flags |= ctx->has_redundant ? 1 : 2;
+	 	gf_filter_pck_set_dependency_flags(pck, flags);
+	}
+
 	gf_filter_pck_send(pck);
 
 	av1dmx_update_cts(ctx);
@@ -925,6 +939,7 @@ static const GF_FilterArgs AV1DmxArgs[] =
 	{ OFFS(autofps), "detect FPS from bitstream, fallback to fps option if not possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(importer), "compatibility with old importer", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
