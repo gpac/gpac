@@ -95,9 +95,10 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
  * \param track target track
  * \param ar_num aspect ratio numerator
  * \param ar_den aspect ratio denominator
+ * \param force_par aspect ratio is always written even when not necessary
  * \return error if any
  */
-GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);
+GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, Bool force_par);
 
 /*!
  *Removes all non rap samples (sync and other RAP sample group info) from the track.
