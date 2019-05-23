@@ -7464,14 +7464,14 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 
 		/*add sample*/
 		{
-			u32 i = 0;
+			u32 frame_obus_idx = 0;
 			GF_ISOSample *samp = gf_isom_sample_new();
 			samp->DTS = (u64)dts_inc*cur_samp;
 			samp->IsRAP = state.frame_state.key_frame ? SAP_TYPE_1 : 0;
 			samp->CTS_Offset = 0;
 
-			for (i = 0; i < gf_list_count(state.frame_state.frame_obus); ++i)
-				samp->dataLength += (u32)((GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.frame_obus, i))->obu_length;
+			for (frame_obus_idx = 0; frame_obus_idx < gf_list_count(state.frame_state.frame_obus); ++frame_obus_idx)
+				samp->dataLength += (u32)((GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.frame_obus, frame_obus_idx))->obu_length;
 			samp->data = gf_malloc(samp->dataLength);
 
 			samp->dataLength = 0;
@@ -7506,10 +7506,10 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 				}
 
 				while (gf_list_count(state.frame_state.header_obus)) {
-					u32 i = 0;
+					u32 obu_array_index = 0;
 					GF_AV1_OBUArrayEntry *a_hdr = (GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.header_obus, 0);
-					for (i = 0; i < gf_list_count(av1_cfg->obu_array); ++i) {
-						GF_AV1_OBUArrayEntry *a_cfg = (GF_AV1_OBUArrayEntry*)gf_list_get(av1_cfg->obu_array, i);
+					for (obu_array_index = 0; obu_array_index < gf_list_count(av1_cfg->obu_array); ++obu_array_index) {
+						GF_AV1_OBUArrayEntry *a_cfg = (GF_AV1_OBUArrayEntry*)gf_list_get(av1_cfg->obu_array, obu_array_index);
 						if (a_cfg->obu_type == a_hdr->obu_type) {
 							if (a_cfg->obu_length != a_hdr->obu_length || memcmp(a_cfg->obu, a_hdr->obu, (size_t)a_hdr->obu_length)) {
 								gf_import_message(import, GF_NOT_SUPPORTED, "Changing AV1 header OBUs detected for file %s", import->in_name);
