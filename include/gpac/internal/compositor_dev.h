@@ -264,6 +264,7 @@ struct __tag_compositor
 	Bool autofps;
 	//autofps option
 	Bool vfr;
+	Bool nojs;
 
 	//frame duration in ms, used to match closest frame in input video streams
 	u32 frame_duration;
@@ -1456,8 +1457,6 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 /*returns the node associated with the given xlink - this is not always the target node of the xlink structure due
 to async restart of animation nodes*/
 GF_Node *compositor_svg_get_xlink_resource_node(GF_Node *node, XMLRI *xlink);
-
-GF_SceneGraph *gf_sc_animation_get_scenegraph(GF_Node *node);
 
 #endif
 

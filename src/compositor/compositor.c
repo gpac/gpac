@@ -338,7 +338,7 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 	//next frame is late, we should redraw
 	if (compositor->ms_until_next_frame < 0) ret = GF_TRUE;
 	else if (compositor->frame_draw_type) ret = GF_TRUE;
-	else if (compositor->fonts_pending) ret = GF_TRUE;
+	else if (compositor->fonts_pending>0) ret = GF_TRUE;
 
 	return ret;
 }
@@ -2839,7 +2839,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			}
 			else if (!scene_drawn) emit_frame = GF_FALSE;
 			else if (compositor->frame_draw_type) emit_frame = GF_FALSE;
-			else if (compositor->fonts_pending) emit_frame = GF_FALSE;
+			else if (compositor->fonts_pending>0) emit_frame = GF_FALSE;
 			else emit_frame = GF_TRUE;
 		}
 		/*and flush*/

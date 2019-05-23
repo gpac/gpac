@@ -898,7 +898,10 @@ static Bool validator_load_event(GF_Validator *validator)
 	validator->evt_loaded = GF_FALSE;
 	validator->next_event_snapshot = GF_FALSE;
 
-	if (!validator->xvs_node) return GF_FALSE;
+	if (!validator->xvs_node) {
+		validator->compositor->validator_mode = GF_FALSE;
+		return GF_FALSE;
+	}
 
 	while (1) {
 		event_node = (GF_XMLNode*)gf_list_get(validator->xvs_node->content, validator->xvs_event_index);
@@ -960,6 +963,7 @@ static Bool validator_load_event(GF_Validator *validator)
 		att_index++;
 	}
 	validator->evt_loaded = GF_TRUE;
+	validator->compositor->sys_frames_pending = GF_TRUE;
 	return GF_TRUE;
 }
 
@@ -979,7 +983,7 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		if (!opt) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("Validator missing configuration, stopping.\n"));
 			return GF_FALSE;
-		} else if (!strcmp(opt, "Play")) {
+		} else if (!strcmp(opt, "Play") || !strcmp(opt, "Play")) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator starting in playback mode.\n"));
 			validator->is_recording = GF_FALSE;
 			//this will indicate to the compositor to increment scene time even though no new changes
@@ -994,6 +998,8 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("Validator configuration using wrong mode, stopping.\n"));
 			return GF_FALSE;
 		}
+
+		gf_opts_set_key("Validator", "Mode", "Disable");
 
 		/* initializes the validator and starts */
 		validator->xvs_filename = NULL;

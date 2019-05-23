@@ -31,6 +31,8 @@
 #include <gpac/internal/mesh.h>
 #endif
 
+#ifdef GPAC_ENABLE_FLASHSHAPE
+
 typedef struct
 {
 	GF_Path *path;
@@ -474,3 +476,4 @@ void compositor_init_hc_flashshape(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, fs_traverse);
 }
 
+#endif // GPAC_ENABLE_FLASHSHAPE

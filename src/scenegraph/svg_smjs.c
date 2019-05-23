@@ -2832,7 +2832,7 @@ void JSScript_LoadSVG(GF_Node *node)
 	else if (node->sgprivate->tag == TAG_SVG_script) {
 		txt = svg_get_text_child(node);
 		if (!txt) return;
-		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, (u32) strlen(txt->textContent), 0, 0, &rval);
+		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, (u32) strlen(txt->textContent), NULL, 0, &rval);
 		if (ret==JS_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("SVG: Invalid script\n") );
 		}
