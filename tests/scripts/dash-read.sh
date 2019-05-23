@@ -39,6 +39,8 @@ dash_test "xlink" "http://dash.akamaized.net/dash264/TestCases/5b/nomor/6.mpd" 1
 
 start=255
 dash_test "seek" "http://dash.akamaized.net/dash264/TestCases/5b/nomor/6.mpd" 1
+start=100
+dash_test "seek2" "http://dash.akamaized.net/dash264/TestCases/5b/nomor/6.mpd" 1
 start=0
 
 dash_test "ondemand" "http://download.tsi.telecom-paristech.fr/gpac/DASH_CONFORMANCE/TelecomParisTech/mp4-onDemand/mp4-onDemand-mpd-V.mpd" 1
