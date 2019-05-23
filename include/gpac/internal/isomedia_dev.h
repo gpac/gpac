@@ -1194,6 +1194,24 @@ typedef struct
 	u32 vertOffD;
 } GF_CleanApertureBox;
 
+typedef struct __ContentLightLevel {
+	GF_ISOM_BOX
+	u16 max_content_light_level;
+	u16 max_pic_average_light_level;
+} GF_ContentLightLevelBox;
+
+typedef struct ___MasteringDisplayColourVolume {
+	GF_ISOM_BOX
+	struct {
+		u16 x;
+		u16 y;
+	} display_primaries[3];
+	u16 white_point_x;
+	u16 white_point_y;
+	u32 max_display_mastering_luminance;
+	u32 min_display_mastering_luminance;
+} GF_MasteringDisplayColourVolumeBox;
+
 typedef struct
 {
 	GF_ISOM_FULL_BOX
@@ -1231,11 +1249,13 @@ typedef struct
 	u16 bit_depth;						\
 	s16 color_table_index;				\
 	GF_PixelAspectRatioBox *pasp;		\
-	GF_CleanApertureBox *clap;		\
+	GF_CleanApertureBox *clap;			\
 	GF_CodingConstraintsBox *ccst;		\
 	GF_AuxiliaryTypeInfoBox *auxi;		\
-	struct __tag_protect_box *rinf;				\
+	struct __tag_protect_box *rinf;		\
 	GF_RVCConfigurationBox *rvcc;		\
+	GF_MasteringDisplayColourVolumeBox *mdcv;	\
+	GF_ContentLightLevelBox *clli;		\
 
 
 typedef struct
@@ -3200,24 +3220,6 @@ typedef struct {
 	GF_ISOM_BOX
 	u8 angle;
 } GF_ImageRotationBox;
-
-typedef struct {
-	GF_ISOM_BOX
-	u16 max_content_light_level;
-	u16 max_pic_average_light_level;
-} GF_ContentLightLevelBox;
-
-typedef struct {
-	GF_ISOM_BOX
-	struct {
-		u16 x;
-		u16 y;
-	} display_primaries[3];
-	u16 white_point_x;
-	u16 white_point_y;
-	u32 max_display_mastering_luminance;
-	u32 min_display_mastering_luminance;
-} GF_MasteringDisplayColourVolumeBox;
 
 typedef struct {
 	u32 item_id;

@@ -4287,6 +4287,8 @@ void video_sample_entry_del(GF_Box *s)
 
 	if (ptr->pasp) gf_isom_box_del((GF_Box *)ptr->pasp);
 	if (ptr->clap) gf_isom_box_del((GF_Box *)ptr->clap);
+	if (ptr->mdcv) gf_isom_box_del((GF_Box*)ptr->mdcv);
+	if (ptr->clli) gf_isom_box_del((GF_Box*)ptr->clli);
 	if (ptr->rinf) gf_isom_box_del((GF_Box *)ptr->rinf);
 	if (ptr->ccst) gf_isom_box_del((GF_Box *)ptr->ccst);
 
@@ -4356,7 +4358,6 @@ GF_Err video_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 		/*for 3GP config, remember sample entry type in config*/
 		ptr->cfg_3gpp->cfg.type = ptr->type;
 		break;
-		break;
 
 	case GF_ISOM_BOX_TYPE_PASP:
 		if (ptr->pasp) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -4365,6 +4366,14 @@ GF_Err video_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_CLAP:
 		if (ptr->clap) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->clap = (GF_CleanApertureBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_MDCV:
+		if (ptr->mdcv) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->mdcv = (GF_MasteringDisplayColourVolumeBox*)a;
+		break;
+	case GF_ISOM_BOX_TYPE_CLLI:
+		if (ptr->clli) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->clli = (GF_ContentLightLevelBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_CCST:
 		if (ptr->ccst) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -4479,6 +4488,14 @@ GF_Err video_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 	}
 	if (ptr->pasp) {
 		e = gf_isom_box_write((GF_Box *)ptr->pasp, bs);
+		if (e) return e;
+	}
+	if (ptr->mdcv) {
+		e = gf_isom_box_write((GF_Box*)ptr->mdcv, bs);
+		if (e) return e;
+	}
+	if (ptr->clli) {
+		e = gf_isom_box_write((GF_Box*)ptr->clli, bs);
 		if (e) return e;
 	}
 	if (ptr->ccst) {
@@ -4613,6 +4630,16 @@ GF_Err video_sample_entry_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *)ptr->pasp);
 		if (e) return e;
 		ptr->size += ptr->pasp->size;
+	}
+	if (ptr->mdcv) {
+		e = gf_isom_box_size((GF_Box*)ptr->mdcv);
+		if (e) return e;
+		ptr->size += ptr->mdcv->size;
+	}
+	if (ptr->clli) {
+		e = gf_isom_box_size((GF_Box*)ptr->clli);
+		if (e) return e;
+		ptr->size += ptr->clli->size;
 	}
 	if (ptr->clap) {
 		e = gf_isom_box_size((GF_Box *)ptr->clap);

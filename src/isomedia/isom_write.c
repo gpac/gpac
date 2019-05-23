@@ -1447,6 +1447,53 @@ GF_Err gf_isom_set_visual_color_info(GF_ISOFile *movie, u32 trackNumber, u32 Str
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_set_hdr(GF_ISOFile* movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_MasteringDisplayColourVolumeInfo *mdcv, GF_ContentLightLevelInfo *clli)
+{
+	GF_Err e;
+	GF_TrackBox* trak;
+	GF_SampleEntryBox* entry;
+	GF_VisualSampleEntryBox* vent;
+	GF_SampleDescriptionBox* stsd;
+	u32 i;
+
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
+	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->other_boxes)) {
+		return movie->LastError = GF_BAD_PARAM;
+	}
+	entry = (GF_SampleEntryBox*)gf_list_get(stsd->other_boxes, StreamDescriptionIndex - 1);
+	//no support for generic sample entries (eg, no MPEG4 descriptor)
+	if (entry == NULL) return GF_BAD_PARAM;
+	if (!movie->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
+
+	vent = (GF_VisualSampleEntryBox*)entry;
+
+	/*mdcv*/
+	if (!vent->mdcv) vent->mdcv = (GF_MasteringDisplayColourVolumeBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_MDCV);
+	for (i = 0; i < 3; ++i) {
+		vent->mdcv->display_primaries[i].x = mdcv->display_primaries[i].x;
+		vent->mdcv->display_primaries[i].y = mdcv->display_primaries[i].y;
+	}
+	vent->mdcv->min_display_mastering_luminance = mdcv->min_display_mastering_luminance;
+	vent->mdcv->max_display_mastering_luminance = mdcv->max_display_mastering_luminance;
+
+	/*clli*/
+	if (!vent->clli) vent->clli = (GF_ContentLightLevelBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_CLLI);
+	vent->clli->max_content_light_level = clli->max_content_light_level;
+	vent->clli->max_pic_average_light_level = clli->max_pic_average_light_level;
+
+	return e;
+}
 
 GF_EXPORT
 GF_Err gf_isom_set_clean_aperture(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 cleanApertureWidthN, u32 cleanApertureWidthD, u32 cleanApertureHeightN, u32 cleanApertureHeightD, u32 horizOffN, u32 horizOffD, u32 vertOffN, u32 vertOffD)

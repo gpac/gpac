@@ -3209,11 +3209,109 @@ exit:
 	}
 	return file;
 }
+
+GF_Err hdr_file(GF_ISOFile *movie, char *file_name)
+{
+	GF_DOMParser *parser;
+	GF_XMLNode *root, *stream;
+	GF_Err e;
+	u32 i;
+	GF_MasteringDisplayColourVolumeBox mdcv;
+	GF_ContentLightLevelBox clli;
+
+	memset(&mdcv, 0, sizeof(GF_MasteringDisplayColourVolumeBox));
+	memset(&clli, 0, sizeof(GF_ContentLightLevelBox));
+
+	parser = gf_xml_dom_new();
+	e = gf_xml_dom_parse(parser, file_name, NULL, NULL);
+	if (e) {
+		fprintf(stderr, "Error parsing HDR XML file: Line %d - %s. Abort.\n", gf_xml_dom_get_line(parser), gf_xml_dom_get_error(parser));
+		gf_xml_dom_del(parser);
+		return e;
+	}
+	root = gf_xml_dom_get_root(parser);
+	if (!root) {
+		fprintf(stderr, "Error parsing HDR XML file: no \"root\" found. Abort.\n");
+		gf_xml_dom_del(parser);
+		return e;
+	}
+	if (strcmp(root->name, "HDR")) {
+		fprintf(stderr, "Error parsing HDR XML file: root name is \"%s\", expecting \"HDR\"\n", root->name);
+		gf_xml_dom_del(parser);
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	i = 0;
+	while ((stream = gf_list_enum(root->content, &i))) {
+		u32 id = 0, j;
+		GF_XMLAttribute* att = NULL;
+		GF_XMLNode *box = NULL;
+
+		if (stream->type != GF_XML_NODE_TYPE) continue;
+		if (strcmp(stream->name, "Track")) continue;
+
+		j = 0;
+		while ((att = gf_list_enum(stream->attributes, &j))) {
+			if (!strcmp(att->name, "id")) id = atoi(att->value);
+			else fprintf(stderr, "HDR XML: ignoring track attribute \"%s\"\n", att->name);
+		}
+
+		j = 0;
+		while ((box = gf_list_enum(stream->content, &j))) {
+			u32 k;
+
+			if (box->type != GF_XML_NODE_TYPE) continue;
+
+			if (!strcmp(box->name, "mdcv")) {
+				k = 0;
+				while ((att = gf_list_enum(box->attributes, &k))) {
+					if (!strcmp(att->name, "display_primaries_0_x")) mdcv.display_primaries[0].x = atoi(att->value);
+					else if (!strcmp(att->name, "display_primaries_0_y")) mdcv.display_primaries[0].y = atoi(att->value);
+					else if (!strcmp(att->name, "display_primaries_1_x")) mdcv.display_primaries[1].x = atoi(att->value);
+					else if (!strcmp(att->name, "display_primaries_1_y")) mdcv.display_primaries[1].y = atoi(att->value);
+					else if (!strcmp(att->name, "display_primaries_2_x")) mdcv.display_primaries[2].x = atoi(att->value);
+					else if (!strcmp(att->name, "display_primaries_2_y")) mdcv.display_primaries[2].y = atoi(att->value);
+					else if (!strcmp(att->name, "white_point_x")) mdcv.white_point_x = atoi(att->value);
+					else if (!strcmp(att->name, "white_point_y")) mdcv.white_point_y = atoi(att->value);
+					else if (!strcmp(att->name, "max_display_mastering_luminance")) mdcv.max_display_mastering_luminance = atoi(att->value);
+					else if (!strcmp(att->name, "min_display_mastering_luminance")) mdcv.min_display_mastering_luminance = atoi(att->value);
+					else fprintf(stderr, "HDR XML: ignoring box \"%s\" attribute \"%s\"\n", box->name, att->name);
+				}
+			} else if (!strcmp(box->name, "clli")) {
+				k = 0;
+				while ((att = gf_list_enum(box->attributes, &k))) {
+					if (!strcmp(att->name, "max_content_light_level")) clli.max_content_light_level = atoi(att->value);
+					else if (!strcmp(att->name, "max_pic_average_light_level")) clli.max_pic_average_light_level = atoi(att->value);
+					else fprintf(stderr, "HDR XML: ignoring box \"%s\" attribute \"%s\"\n", box->name, att->name);
+				}
+			} else {
+				fprintf(stderr, "HDR XML: ignoring box element \"%s\"\n", box->name);
+				continue;
+			}
+		}
+
+		e = gf_isom_set_hdr(movie, id, 1, &mdcv, &clli);
+		if (e) {
+			fprintf(stderr, "HDR XML: error in gf_isom_set_hdr()\n");
+			break;
+		}
+	}
+
+	gf_xml_dom_del(parser);
+	return e;
+}
+
 #else
 GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool make_wgt)
 {
 	fprintf(stderr, "XML Not supported in this build of GPAC - cannot package file\n");
 	return NULL;
+}
+
+GF_Err hdr_file(GF_ISOFile* movie, char* file_name)
+{
+	fprintf(stderr, "XML Not supported in this build of GPAC - cannot process HDR parameter file\n");
+	return GF_OK;
 }
 #endif //#ifndef GPAC_DISABLE_CORE_TOOLS
 
