@@ -1058,7 +1058,6 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 	u64 offset, sampOffset, size, mdatSize;
 	u32 count;
 	GF_ISOFile *movie = mw->movie;
-	if (!movie->moov || !movie->moov->mvhd) return GF_NON_COMPLIANT_BITSTREAM;
 
 	mdatSize = 0;
 
@@ -1090,22 +1089,23 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 		mdatSize += size;
 		StartOffset += (u32) size;
 	}
-	if (movie->moov && movie->moov->meta) {
-		e = DoWriteMeta(movie, movie->moov->meta, bs, Emulation, StartOffset, &size);
-		if (e) return e;
-		mdatSize += size;
-		StartOffset += (u32) size;
-	}
-	i=0;
-	while ((tmp = (TrackWriter*)gf_list_enum(writers, &i))) {
-		if (tmp->mdia->mediaTrack->meta) {
-			e = DoWriteMeta(movie, tmp->mdia->mediaTrack->meta, bs, Emulation, StartOffset, &size);
+	if (movie->moov) {
+		if (movie->moov->meta) {
+			e = DoWriteMeta(movie, movie->moov->meta, bs, Emulation, StartOffset, &size);
 			if (e) return e;
 			mdatSize += size;
 			StartOffset += (u32) size;
 		}
+		i=0;
+		while ((tmp = (TrackWriter*)gf_list_enum(writers, &i))) {
+			if (tmp->mdia->mediaTrack->meta) {
+				e = DoWriteMeta(movie, tmp->mdia->mediaTrack->meta, bs, Emulation, StartOffset, &size);
+				if (e) return e;
+				mdatSize += size;
+				StartOffset += (u32) size;
+			}
+		}
 	}
-
 
 
 	if (movie->storageMode == GF_ISOM_STORE_TIGHT)
@@ -1411,11 +1411,6 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 
 		if (buffer_size) {
 			gf_bs_set_output_buffering(bs, buffer_size);
-		}
-
-		if (!movie->moov) {
-			/* in case of file with only a meta box, we force a flat storage */
-			movie->storageMode = GF_ISOM_STORE_FLAT;
 		}
 
 		switch (movie->storageMode) {
