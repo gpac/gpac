@@ -29,6 +29,8 @@
 #include "nodes_stacks.h"
 #include "texturing.h"
 
+#ifdef GPAC_ENABLE_SVG_FILTERS
+
 typedef struct
 {
 	GF_TextureHandler txh;
@@ -441,6 +443,8 @@ void compositor_init_svg_filter(GF_Compositor *compositor, GF_Node *node)
 	stack->drawable->node = node;
 	gf_sc_texture_allocate(&stack->txh);
 }
+
+#endif //GPAC_ENABLE_SVG_FILTERS
 
 #endif
 

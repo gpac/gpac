@@ -31,7 +31,7 @@ compositor_test()
  RGB_DUMP="$TEMP_DIR/$2-dump.rgb"
  PCM_DUMP="$TEMP_DIR/$2-dump.pcm"
 
- #for the time being we don't check hashes nor use same size/dur for our tests. We will redo the UI tests once finaizing filters branch
+ #for the time being we don't check hashes nor use same size/dur for our tests. We will redo the UI tests once finalizing filters branch
  dump_dur=5
  dump_size=192x192
  args="$GPAC -blacklist=vtbdec,nvdec -i $1 compositor:osize=$dump_size:vfr:dur=$dump_dur:asr=44100:ach=2$compopt @ -o $RGB_DUMP @1 -o $PCM_DUMP"
@@ -42,10 +42,6 @@ compositor_test()
  fi
 
  do_test "$args" $2
-
- if [ -f $ui_rec ] ; then
-  $GPAC -cfg=Validator:Mode=Disable 2> /dev/null
- fi
 
  v_args=""
  if [ -f $RGB_DUMP ] ; then

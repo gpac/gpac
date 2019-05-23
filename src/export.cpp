@@ -1896,7 +1896,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_on_event) )
 
 #ifndef GPAC_DISABLE_SVG
-#pragma comment (linker, EXPORT_SYMBOL(gf_sc_animation_get_scenegraph) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_svg_convert_length_to_display) )
 #endif
 

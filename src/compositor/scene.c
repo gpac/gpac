@@ -311,7 +311,8 @@ GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene)
 	gf_sg_set_private(tmp->graph, tmp);
 	gf_sg_set_node_callback(tmp->graph, gf_scene_node_callback);
 	gf_sg_set_scene_time_callback(tmp->graph, gf_scene_get_time);
-	gf_sg_set_script_action(tmp->graph, gf_scene_script_action, tmp);
+	if (tmp->compositor && !tmp->compositor->nojs)
+		gf_sg_set_script_action(tmp->graph, gf_scene_script_action, tmp);
 
 	//copy over pause_at_first_frame flag so that new subscene is not paused right away
 	if (parentScene)

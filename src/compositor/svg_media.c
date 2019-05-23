@@ -298,7 +298,6 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 			gf_node_dirty_clear(node, 0);
 			SVG_Build_Bitmap_Graph((SVG_video_stack*)gf_node_get_private(node), tr_state);
 		}
-
 	}
 
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
