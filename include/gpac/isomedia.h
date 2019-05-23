@@ -1345,6 +1345,8 @@ GF_Err gf_isom_set_track_matrix(GF_ISOFile *the_file, u32 trackNumber, u32 matri
 
 GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 hSpacing, u32 vSpacing, Bool force_par);
 
+GF_Err gf_isom_set_colr_nclx(GF_ISOFile* movie, u32 trackNumber, u32 StreamDescriptionIndex, u16 colour_primaries, u16 transfer_characteristics, u16 matrix_coefficients, Bool full_range_flag);
+
 GF_Err gf_isom_set_clean_aperture(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 cleanApertureWidthN, u32 cleanApertureWidthD, u32 cleanApertureHeightN, u32 cleanApertureHeightD, u32 horizOffN, u32 horizOffD, u32 vertOffN, u32 vertOffD);
 
 typedef struct ___MasteringDisplayColourVolume GF_MasteringDisplayColourVolumeInfo;

@@ -4287,6 +4287,7 @@ void video_sample_entry_del(GF_Box *s)
 
 	if (ptr->pasp) gf_isom_box_del((GF_Box *)ptr->pasp);
 	if (ptr->clap) gf_isom_box_del((GF_Box *)ptr->clap);
+	if (ptr->colr) gf_isom_box_del((GF_Box*)ptr->colr);
 	if (ptr->mdcv) gf_isom_box_del((GF_Box*)ptr->mdcv);
 	if (ptr->clli) gf_isom_box_del((GF_Box*)ptr->clli);
 	if (ptr->rinf) gf_isom_box_del((GF_Box *)ptr->rinf);
@@ -4366,6 +4367,10 @@ GF_Err video_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_CLAP:
 		if (ptr->clap) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->clap = (GF_CleanApertureBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_COLR:
+		if (ptr->colr) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->colr = (GF_ColourInformationBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_MDCV:
 		if (ptr->mdcv) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -4488,6 +4493,10 @@ GF_Err video_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 	}
 	if (ptr->pasp) {
 		e = gf_isom_box_write((GF_Box *)ptr->pasp, bs);
+		if (e) return e;
+	}
+	if (ptr->colr) {
+		e = gf_isom_box_write((GF_Box*)ptr->colr, bs);
 		if (e) return e;
 	}
 	if (ptr->mdcv) {
@@ -4630,6 +4639,11 @@ GF_Err video_sample_entry_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *)ptr->pasp);
 		if (e) return e;
 		ptr->size += ptr->pasp->size;
+	}
+	if (ptr->colr) {
+		e = gf_isom_box_size((GF_Box*)ptr->colr);
+		if (e) return e;
+		ptr->size += ptr->colr->size;
 	}
 	if (ptr->mdcv) {
 		e = gf_isom_box_size((GF_Box*)ptr->mdcv);
