@@ -1538,7 +1538,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	if (nbNotCoded) gf_import_message(import, GF_OK, "Removed %d N-VOPs%s", nbNotCoded,is_packed ? " (Packed Bitstream)" : "");
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, (u8) PL);
 
-	if (dsi.par_den && dsi.par_num) gf_media_change_par(import->dest, track, dsi.par_num, dsi.par_den);
+	if (dsi.par_den && dsi.par_num) gf_media_change_par(import->dest, track, dsi.par_num, dsi.par_den, GF_FALSE);
 
 exit:
 	if (samp) gf_isom_sample_del(&samp);
@@ -2660,7 +2660,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	if (last_pos!=file_size) gf_set_progress("Importing MPEG-PS Video", frames, frames);
 
 	gf_media_update_bitrate(import->dest, track);
-	if (ar) gf_media_change_par(import->dest, track, ar>>16, ar&0xffff);
+	if (ar) gf_media_change_par(import->dest, track, ar>>16, ar&0xffff, GF_FALSE);
 
 exit:
 	if (import->esd && destroy_esd) {
@@ -3705,7 +3705,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		u32 w = sdesc.width;
 		gf_isom_set_visual_info(import->dest, track, di, sdesc.width, sdesc.height);
 		if (par_den && par_num) {
-			gf_media_change_par(import->dest, track, par_num, par_den);
+			gf_media_change_par(import->dest, track, par_num, par_den, GF_FALSE);
 			w *= par_num;
 			w /= par_den;
 		} else {
@@ -9728,7 +9728,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				gf_isom_set_visual_info(import->dest, tsimp->track, 1, pck->stream->vid_w, pck->stream->vid_h);
 				gf_isom_set_track_layout_info(import->dest, tsimp->track, w<<16, pck->stream->vid_h<<16, 0, 0, 0);
 				if (w != pck->stream->vid_w) {
-					e = gf_isom_set_pixel_aspect_ratio(import->dest, tsimp->track, 1, pck->stream->vid_par>>16, pck->stream->vid_par&0xff);
+					e = gf_isom_set_pixel_aspect_ratio(import->dest, tsimp->track, 1, pck->stream->vid_par>>16, pck->stream->vid_par&0xff, GF_FALSE);
 					if (e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error setting aspect ratio\n"));
 					}

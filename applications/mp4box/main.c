@@ -261,7 +261,7 @@ void PrintGeneralUsage()
 	        " -timescale VAL       sets movie timescale to VAL ticks per second (default is 600)\n"
 	        " -lang [tkID=]LAN     sets track language. LAN is the BCP-47 code (eng, en-UK, ...)\n"
 	        " -delay tkID=TIME     sets track start delay in ms\n"
-	        " -par tkID=PAR        sets visual track pixel aspect ratio (PAR=N:D or \"none\")\n"
+	        " -par tkID=PAR        sets visual track pixel aspect ratio (PAR=N:D or \"none\" or \"force\" to write anyway)\n"
 	        " -name tkID=NAME      sets track handler name\n"
 	        "                       * NAME can indicate a UTF-8 file (\"file://file name\"\n"
 	        " -itags tag1[:tag2]   sets iTunes tags to file - more info: MP4Box -tag-list\n"
@@ -5495,7 +5495,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 			break;
 		case TRAC_ACTION_SET_PAR:
-			e = gf_media_change_par(file, track, tka->par_num, tka->par_den);
+			e = gf_media_change_par(file, track, tka->par_num, tka->par_den, GF_FALSE);
 			needSave = GF_TRUE;
 			break;
 		case TRAC_ACTION_SET_HANDLER_NAME:
