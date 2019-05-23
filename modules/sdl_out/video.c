@@ -1817,339 +1817,6 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	return GF_OK;
 }
 
-
-static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, unsigned char *src, unsigned char *pU, unsigned char *pV, u32 src_stride, u32 src_pf, u32 src_width, u32 src_height, const GF_Window *src_wnd)
-{
-	unsigned char *pY;
-	pY = src;
-	if (src_pf == GF_PIXEL_YUV422) {
-		u32 i;
-		unsigned char * dst, * dst2, * src1, * src2, * dst3, * src3, * _src2, * _src3;
-
-		if (!pU || !pV) {
-			pU = src + src_stride * src_height;
-			pV = src + 3 * src_stride * src_height / 2;
-		}
-
-		if (src_wnd -> y || src_wnd -> x) {
-			pY = pY + src_stride * src_wnd -> y + src_wnd -> x;
-			pU = pU + (src_stride * src_wnd -> y + src_wnd -> x) / 2;
-			pV = pV + (src_stride * src_wnd -> y + src_wnd -> x) / 2;
-
-		}
-
-		src1 = pY;
-		dst = pYD;
-		_src2 = (pixel_format != GF_PIXEL_YUV) ? pU : pV;
-		_src3 = (pixel_format != GF_PIXEL_YUV) ? pV : pU;
-
-		for (i = 0; i < src_wnd -> h; i++) {
-			memcpy(dst, src1, src_wnd -> w);
-			src1 += src_stride;
-			dst += pitch_y;
-		}
-		for (i = 0; i < src_wnd -> h / 2; i++) {
-			src2 = _src2 + i * src_stride;
-			dst2 = pVD + i * pitch_y / 2;
-			src3 = _src3 + i * src_stride;
-			dst3 = pUD + i * pitch_y / 2;
-			memcpy(dst2, src2, src_wnd -> w / 2);
-			memcpy(dst3, src3, src_wnd -> w / 2);
-		}
-
-	} else if (src_pf == GF_PIXEL_YUV444) {
-		u32 i, j;
-		unsigned char * dst, * dst2, * src1, * src2, * dst3, * src3, * _src2, * _src3;
-
-		if (!pU || !pV) {
-			pU = src + src_stride * src_height;
-			pV = src + 2 * src_stride * src_height;
-		}
-
-		if (src_wnd -> y || src_wnd -> x) {
-			pY = pY + src_stride * src_wnd -> y + src_wnd -> x;
-			pU = pU + src_stride * src_wnd -> y + src_wnd -> x;
-			pV = pV + src_stride * src_wnd -> y + src_wnd -> x;
-
-		}
-		src1 = pY;
-		dst = pYD;
-		_src2 = (pixel_format != GF_PIXEL_YUV) ? pU : pV;
-		_src3 = (pixel_format != GF_PIXEL_YUV) ? pV : pU;
-
-		for (i = 0; i < src_wnd -> h; i++) {
-			memcpy(dst, src1, src_wnd -> w);
-			src1 += src_stride;
-			dst += pitch_y;
-		}
-		for (i = 0; i < src_wnd -> h / 2; i++) {
-			src2 = _src2 + 2 * i * src_stride;
-			dst2 = pVD + i * pitch_y / 2;
-			src3 = _src3 + 2 * i * src_stride;
-			dst3 = pUD + i * pitch_y / 2;
-				for (j = 0; j < src_wnd -> w / 2; j++) { 
-				* dst2 = * src2;
-				dst2++;
-				src2 += 2;
-				* dst3 = * src3;
-				dst3++;
-				src3 += 2;
-			}
-		}
-
-	} else if (src_pf == GF_PIXEL_YUV422_10) {
-		u32 i, j;
-		unsigned char * _src2, * _src3;
-		u16 * src_y, * src_u, * src_v;
-		if (!pU || !pV) {
-			pU = src + src_stride * src_height;
-			pV = src + 3 * src_stride * src_height / 2;
-		}
-
-		if (src_wnd -> y || src_wnd -> x) {
-			src_y = (u16 * ) pY + src_wnd -> x;
-			src_u = (u16 * ) pU + src_wnd -> x / 2;
-			src_v = (u16 * ) pV + src_wnd -> x / 2;
-			pY = (u8 * ) src_y + src_stride * src_wnd -> y;
-			pU = (u8 * ) src_u + src_stride * src_wnd -> y / 2;
-			pV = (u8 * ) src_v + src_stride * src_wnd -> y / 2;
-
-		}
-
-		_src2 = (pixel_format != GF_PIXEL_YUV) ? pU : pV;
-		_src3 = (pixel_format != GF_PIXEL_YUV) ? pV : pU;
-		for (i = 0; i < src_wnd -> h; i++) {
-			u16 * src = (u16 * )(pY + i * src_stride);
-			u8 * dst = (u8 * )(pYD + i * pitch_y);
-				for (j = 0; j < src_wnd -> w; j++) { 
-				* dst = ( * src) >> 2;
-				dst++;
-				src++;
-			}
-		}
-		for (i = 0; i < src_wnd -> h / 2; i++) {
-			u16 * src2 = (u16 * )(_src2 + i * src_stride);
-			u8 * dst2 = (u8 * )(pVD + i * pitch_y / 2);
-				for (j = 0; j < src_wnd -> w / 2; j++) { 
-				* dst2 = ( * src2) >> 2;
-				dst2++;
-				src2++;
-			}
-		}
-		for (i = 0; i < src_wnd -> h / 2; i++) {
-			u16 * src3 = (u16 * )(_src3 + i * src_stride);
-			u8 * dst3 = (u8 * )(pUD + i * pitch_y / 2);
-				for (j = 0; j < src_wnd -> w / 2; j++) { 
-				* dst3 = ( * src3) >> 2;
-				dst3++;
-				src3++;
-			}
-		}
-
-	} else if (src_pf == GF_PIXEL_YUV444_10) {
-		u32 i, j;
-		unsigned char * _src2, * _src3;
-		u16 * src_y, * src_u, * src_v;
-
-		if (!pU || !pV) {
-			pU = src + src_stride * src_height;
-			pV = src + 2 * src_stride * src_height;
-		}
-
-		if (src_wnd -> y || src_wnd -> x) {
-			src_y = (u16 * ) pY + src_wnd -> x;
-			src_u = (u16 * ) pU + src_wnd -> x;
-			src_v = (u16 * ) pV + src_wnd -> x;
-			pY = (u8 * ) src_y + src_stride * src_wnd -> y;
-			pU = (u8 * ) src_u + src_stride * src_wnd -> y;
-			pV = (u8 * ) src_v + src_stride * src_wnd -> y;
-
-		}
-
-		_src2 = (pixel_format != GF_PIXEL_YUV) ? pU : pV;
-		_src3 = (pixel_format != GF_PIXEL_YUV) ? pV : pU;
-		for (i = 0; i < src_wnd -> h; i++) {
-			u16 * src = (u16 * )(pY + i * src_stride);
-			u8 * dst = (u8 * ) pYD + i * pitch_y;
-				for (j = 0; j < src_wnd -> w; j++) { 
-				* dst = ( * src) >> 2;
-				dst++;
-				src++;
-			}
-		}
-		for (i = 0; i < src_wnd -> h / 2; i++) {
-			u16 * src2 = (u16 * )(_src2 + 2 * i * src_stride);
-			u8 * dst2 = (u8 * ) pVD + i * pitch_y / 2;
-				for (j = 0; j < src_wnd -> w / 2; j++) { 
-				* dst2 = ( * src2) >> 2;
-				dst2++;
-				src2 += 2;
-			}
-		}
-		for (i = 0; i < src_wnd -> h / 2; i++) {
-			u16 * src3 = (u16 * )(_src3 + 2 * i * src_stride);
-			u8 * dst3 = (u8 * ) pUD + i * pitch_y / 2;
-				for (j = 0; j < src_wnd -> w / 2; j++) { 
-				* dst3 = ( * src3) >> 2;
-				dst3++;
-				src3 += 2;
-			}
-		}
-
-	} else if ((src_pf == GF_PIXEL_NV12) || (src_pf == GF_PIXEL_NV21)) {
-		u32 i, j;
-		u8 *src_y, *src_uv;
-
-		src_y = pY;
-		src_uv = pU;
-		if (!src_uv) src_uv = src_y + src_stride * src_height;
-
-		if (src_wnd->y || src_wnd->x) {
-			src_y += src_wnd->x;
-			src_uv += 2*src_wnd->x;
-			src_y += src_stride * src_wnd->y;
-			src_uv += src_stride * src_wnd->y;
-		}
-
-		if ( (pitch_y == (s32) src_stride) && (src_wnd->w == src_width) && (src_wnd->h == src_height)) {
-			assert(!src_wnd->x);
-			assert(!src_wnd->y);
-			memcpy(pYD, pY, sizeof(unsigned char)*src_width*src_height);
-		} else {
-			for (i = 0; i < src_wnd->h; i++) {
-				u8 *src = src_y + i * src_stride;
-				u8 *dst = (u8 * ) pYD + i * pitch_y;
-				memcpy(dst, src, src_width);
-			}
-		}
-		for (i = 0; i < src_wnd->h/2; i++) {
-			u8 *src_u = src_uv + i * src_stride;
-			u8 *dst_u, *dst_v;
-			if (src_pf == GF_PIXEL_NV12) {
-				dst_u = pUD + i * pitch_y / 2;
-				dst_v = pVD + i * pitch_y / 2;
-			} else {
-				dst_v = pUD + i * pitch_y / 2;
-				dst_u = pVD + i * pitch_y / 2;
-			}
-			for (j = 0; j < src_wnd->w/2; j++) {
-				*dst_u = *src_u;
-				src_u++;
-				*dst_v = *src_u;
-				src_u++;
-				dst_u++;
-				dst_v++;
-			}
-		}
-	} else {
-		
-		if (!pU || !pV) {
-			pU = src + src_stride * src_height;
-			pV = src + 5*src_stride * src_height/4;
-		}
-
-		if (src_wnd->y || src_wnd->x) {
-			pY = pY + src_stride * src_wnd->y + src_wnd->x;
-			/*because of U and V downsampling by 2x2, working with odd Y offset will lead to a half-line shift between Y and UV components. We
-			therefore force an even Y offset for U and V planes.*/
-			pU = pU + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
-			pV = pV + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
-		}
-		
-	/*complete source copy*/
-	if ( (pitch_y == (s32) src_stride) && (src_wnd->w == src_width) && (src_wnd->h == src_height)) {
-		assert(!src_wnd->x);
-		assert(!src_wnd->y);
-		memcpy(pYD, pY, sizeof(unsigned char)*src_width*src_height);
-		memcpy(pVD, pV, sizeof(unsigned char)*src_width*src_height/4);
-		memcpy(pUD, pU, sizeof(unsigned char)*src_width*src_height/4);
-	} else if (src_pf==GF_PIXEL_YUYV) {
-		u32 i, j;
-		unsigned char *dst_y, *dst_u, *dst_v;
-
-		pY = src + src_stride * src_wnd->y + src_wnd->x;
-		pU = src + src_stride * src_wnd->y + src_wnd->x + 1;
-		pV = src + src_stride * src_wnd->y + src_wnd->x + 3;
-
-
-		dst_y = pYD;
-		dst_v = pVD;
-		dst_u = pUD;
-		for (i=0; i<src_wnd->h; i++) {
-			for (j=0; j<src_wnd->w; j+=2) {
-				*dst_y = * pY;
-				*(dst_y+1) = * (pY+2);
-				dst_y += 2;
-				pY += 4;
-				if (i%2) continue;
-
-				*dst_u = (*pU + *(pU + src_stride)) / 2;
-				*dst_v = (*pV + *(pV + src_stride)) / 2;
-				dst_u++;
-				dst_v++;
-				pU += 4;
-				pV += 4;
-			}
-			if (i%2) {
-				pU += src_stride;
-				pV += src_stride;
-			}
-		}
-	} else if (src_pf==GF_PIXEL_YUV_10) {
-		u32 i, j;
-		for (i=0; i<src_wnd->h; i++) {
-			u16 *py = (u16 *) (pY + i*src_stride);
-			for (j=0; j<src_wnd->w; j++) {
-				*pYD = (*py) >> 2;
-				pYD ++;
-				py++;
-			}
-		}
-		for (i=0; i<src_wnd->h/2; i++) {
-			u16 *pu = (u16 *) (pU + i*src_stride/2);
-			for (j=0; j<src_wnd->w/2; j++) {
-				*pUD = (*pu) >> 2;
-				pUD ++;
-				pu++;
-			}
-		}
-		for (i=0; i<src_wnd->h/2; i++) {
-			u16 *pv = (u16 *) (pV + i*src_stride/2);
-			for (j=0; j<src_wnd->w/2; j++) {
-				*pVD = (*pv) >> 2;
-				pVD ++;
-				pv++;
-			}
-		}
-
-	} else {
-		u32 i;
-		unsigned char *dst, *src, *dst2, *src2, *dst3, *src3;
-
-		src = pY;
-		dst = pYD;
-
-		src2 = (pixel_format != GF_PIXEL_YUV) ? pU : pV;
-		dst2 = pVD;
-		src3 = (pixel_format  != GF_PIXEL_YUV) ? pV : pU;
-		dst3 = pUD;
-		for (i=0; i<src_wnd->h; i++) {
-			memcpy(dst, src, src_wnd->w);
-			src += src_stride;
-			dst += pitch_y;
-			if (i<src_wnd->h/2) {
-				memcpy(dst2, src2, src_wnd->w/2);
-				src2 += src_stride/2;
-				dst2 += pitch_y/2;
-				memcpy(dst3, src3, src_wnd->w/2);
-				src3 += src_stride/2;
-				dst3 += pitch_y/2;
-			}
-		}
-	}
-  }
-}
-
 #if SDL_VERSION_ATLEAST(2,0,0)
 static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
 {
@@ -2285,9 +1952,9 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	SDL_QueryTexture((*pool), &format, &acc, &w, &h);
 
 	if (need_copy) {
-		u8* pixels;
+		GF_VideoSurface dst_v;
+		char *pixels;
 		int pitch;
-		u8 *pY, *pU, *pV;
 		GF_Window swnd;
 		/*copy pixels*/
 		if (SDL_LockTexture(*pool, NULL, (void**)&pixels, &pitch) < 0) {
@@ -2300,10 +1967,16 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 			src_wnd = &swnd;
 		}
 
-		pY = pixels;
-		pU = pixels + h*pitch;
-		pV = pixels + 5*h*pitch/4;
-		copy_yuv(pY, pU, pV, GF_PIXEL_YUV, pitch, (unsigned char *) video_src->video_buffer, (unsigned char *) video_src->u_ptr, (unsigned char *) video_src->v_ptr, video_src->pitch_y, video_src->pixel_format, video_src->width, video_src->height, src_wnd);
+		memset(&dst_v, 0, sizeof(GF_VideoSurface));
+		dst_v.video_buffer = pixels;
+		dst_v.u_ptr = pixels + h*pitch;
+		dst_v.v_ptr = pixels + 5*h*pitch/4;
+		dst_v.pitch_y = pitch;
+		dst_v.pixel_format = GF_PIXEL_YUV;
+		dst_v.width = video_src->width;
+		dst_v.height = video_src->height;
+
+		gf_stretch_bits(&dst_v, video_src, NULL, src_wnd, 0xFF, GF_FALSE, NULL, NULL);
 
 		SDL_UnlockTexture(*pool);
 	} else {
@@ -2352,6 +2025,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] Bliting surface (overlay type %d)\n", overlay_type));
 
 	if (overlay_type) {
+		GF_VideoSurface dst_v;
 		if (!video_src) {
 			if (ctx->yuv_overlay) {
 				SDL_FreeYUVOverlay(ctx->yuv_overlay);
@@ -2368,9 +2042,17 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		/*copy pixels*/
 		SDL_LockYUVOverlay(ctx->yuv_overlay);
 
-		copy_yuv(ctx->yuv_overlay->pixels[0], ctx->yuv_overlay->pixels[1], ctx->yuv_overlay->pixels[2], GF_PIXEL_YUV, ctx->yuv_overlay->pitches[0],
-		         (unsigned char *) video_src->video_buffer, (unsigned char *) video_src->u_ptr, (unsigned char *) video_src->v_ptr, video_src->pitch_y, video_src->pixel_format,
-		         video_src->width, video_src->height, src_wnd);
+
+		memset(&dst_v, 0, sizeof(GF_VideoSurface));
+		dst_v.video_buffer = (char *) ctx->yuv_overlay->pixels[0];
+		dst_v.u_ptr = (char *) ctx->yuv_overlay->pixels[1];
+		dst_v.v_ptr = (char *) ctx->yuv_overlay->pixels[2];
+		dst_v.pitch_y = ctx->yuv_overlay->pitches[0];
+		dst_v.pixel_format = GF_PIXEL_YUV;
+		dst_v.width = video_src->width;
+		dst_v.height = video_src->height;
+
+		gf_stretch_bits(&dst_v, video_src, NULL, src_wnd, 0xFF, GF_FALSE, NULL, NULL);
 
 		SDL_UnlockYUVOverlay(ctx->yuv_overlay);
 
