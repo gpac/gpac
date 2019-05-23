@@ -37,7 +37,7 @@ if [ $EXTERNAL_MEDIA_AVAILABLE = 0 ] ; then
  return
 fi
 
-for i in `ls $EXTERNAL_MEDIA_DIR/smooth/* | grep -v "html"` ; do
+for i in $EXTERNAL_MEDIA_DIR/smooth/*.mp4 ; do
 
 smooth_test $i
 
