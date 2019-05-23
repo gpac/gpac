@@ -602,6 +602,8 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType
 
 	if (tk_box) {
 		GF_BitStream *bs = gf_bs_new(tk_box, tk_box_size, GF_BITSTREAM_READ);
+		gf_bs_set_cookie(bs, 1);
+
 		e = gf_isom_box_parse_ex((GF_Box**)&trak, bs, GF_ISOM_BOX_TYPE_MOOV, GF_FALSE);
 		gf_bs_del(bs);
 		if (e) trak = NULL;
