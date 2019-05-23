@@ -1664,12 +1664,11 @@ GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 du
 	} else {
 		t = stdout;
 	}
-	res = (u32) fwrite(data, 1, count, t);
+	res = (u32) fwrite(data+8, 1, count-8, t);
 	if (inName) gf_fclose(t);
 	gf_free(data);
-	if (count != res) {
+	if (count-8 != res) {
 		fprintf(stderr, "Error writing udta to file\n");
-		gf_free(data);
 		return GF_IO_ERR;
 	}
 	return GF_OK;
