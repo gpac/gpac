@@ -57,6 +57,7 @@ extension = {
     stats_resources: [],
     nb_objs_at_last_scan: 0,
     stats_timer: null,
+    test_mode: false,
 
     do_show_controler: function () {
 		if (this.file_open_dlg) {
@@ -141,10 +142,6 @@ extension = {
 			/*
 			if (evt.keycode == 'F7') {
 			 this.controler.fullscreen.on_click();
-			 return true;
-			}
-			if (evt.keycode == 'F8') {
-			 gpac.reload();
 			 return true;
 			}
 			*/
@@ -267,6 +264,9 @@ extension = {
                 ext.stats_timer.on_event = ext.stats_timer_on_event;
                 if (ext.show_stats_init) {
                     ext.view_stats();
+                }
+                if (ext.test_mode) {
+                    ext.coverage_tests();                    
                 }
             }
 
@@ -1010,7 +1010,7 @@ extension = {
                     || (arg == '-opt') || (arg == '-ifce') || (arg == '-views') || (arg == '-mosaic') || (arg == '-avi') || (arg == '-out') || (arg == '-ntp-shift')
                     || (arg == '-fps') || (arg == '-scale') || (arg == '-run-for') || (arg == '-bl')
                 ) {
-			i++;
+        			i++;
                 } else if (arg == '-service') {
                     this.initial_service_id = parseInt(gpac.get_arg(i + 1));
                     i++;
@@ -1029,6 +1029,9 @@ extension = {
                 } else if (arg == '-loop') {
                     this.initial_loop = true;
                 } else if (arg == '-stats') {
+                    this.show_stats_init = true;
+                } else if (arg == '-gui-test') {
+                    this.test_mode = true;
                     this.show_stats_init = true;
                 } else if (arg == '-speed') {
                     this.initial_speed = Number(gpac.get_arg(i + 1));
@@ -1068,6 +1071,27 @@ extension = {
 
         this.controler.show();
         gw_hide_dock();
+
+    },
+
+    coverage_tests: function() {
+        gpac.trigger_gc();
+        gpac.navigation_supported(GF_NAVIGATE_EXAMINE);
+        gpac.move_window(0,0, true);
+        gpac.error_string(-1);
+        gpac.show_keyboard();
+        gpac.switch_quality(true);
+
+        var m = this.stats_resources[0];
+        //m.gui.info.on_click();
+        m.disable_main_addon();
+        m.select_service(0);
+        m.addon_layout(0,0);
+        m.declare_addon();
+        m.enable_addon();
+        m.select();
+        m.select_quality('0', 0);
+        m.select_quality('auto', 0);
 
     },
 
@@ -1173,6 +1197,9 @@ extension = {
                 value = this.duration - value;
                 str = '-';
             }
+        }
+        if (this.test_mode && (value>2)) {
+            gpac.exit();                    
         }
 
         h = Math.floor(value / 3600);

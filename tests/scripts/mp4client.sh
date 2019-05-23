@@ -3,6 +3,9 @@ single_test "$MP4CLIENT -guid -run-for 2" "mp4client-gui"
 
 single_test "$MP4CLIENT -guid -rmt -rmt-ogl -run-for 2 -stats $MEDIA_DIR/auxiliary_files/sky.jpg" "mp4client-gui-stats"
 
+single_test "$MP4CLIENT -gui -for-test -gui-test http://download.tsi.telecom-paristech.fr/gpac/DASH_CONFORMANCE/TelecomParisTech/mp4-live-1s/mp4-live-1s-mpd-V-BS.mpd" "mp4client-gui-dash"
+
+
 test_begin "mp4client-playfrom"
 if [ $test_skip = 0 ] ; then
 
@@ -24,4 +27,6 @@ do_test "$MP4CLIENT -for-test -no-save -size 100x100 -speed 2 -rtix $TEMP_DIR/lo
 
 fi
 test_end
+
+
 

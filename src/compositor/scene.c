@@ -1860,13 +1860,18 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 static Bool check_odm_deactivate(SFURL *url, GF_ObjectManager *odm, GF_Node *n)
 {
 	GF_FieldInfo info;
+	MFURL *mfurl;
 	if (!is_odm_url(url, odm) || !n) return 0;
+
+	gf_node_get_field_by_name(n, "url", &info);
+	mfurl = (MFURL *)info.far_ptr;
+	if ((url->OD_ID!=GF_MEDIA_EXTERNAL_ID) && mfurl->count && (mfurl->vals[0].OD_ID==url->OD_ID))
+		return 1;
 
 	if (url->url) gf_free(url->url);
 	url->url = NULL;
 	url->OD_ID = 0;
 
-	gf_node_get_field_by_name(n, "url", &info);
 	gf_sg_vrml_mf_reset(info.far_ptr, GF_SG_VRML_MFURL);
 	gf_node_get_field_by_name(n, "stopTime", &info);
 	*((SFTime *)info.far_ptr) = gf_node_get_scene_time(n);
