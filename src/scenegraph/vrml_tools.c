@@ -1009,6 +1009,9 @@ u32 gf_sg_vrml_get_sf_type(u32 FieldType)
 	case GF_SG_VRML_SFVEC3F:
 	case GF_SG_VRML_MFVEC3F:
 		return GF_SG_VRML_SFVEC3F;
+	case GF_SG_VRML_SFVEC4F:
+	case GF_SG_VRML_MFVEC4F:
+		return GF_SG_VRML_SFVEC4F;
 	case GF_SG_VRML_SFVEC2F:
 	case GF_SG_VRML_MFVEC2F:
 		return GF_SG_VRML_SFVEC2F;
