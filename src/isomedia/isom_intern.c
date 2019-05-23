@@ -131,7 +131,11 @@ static void FixTrackID(GF_ISOFile *mov)
 		GF_TrackFragmentBox *traf = (GF_TrackFragmentBox*)gf_list_get(mov->moof->TrackList, 0);
 		GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(mov->moov->trackList, 0);
 		if ((traf->tfhd->trackID != trak->Header->trackID)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Warning: trackID of MOOF/TRAF(%u) is not the same as MOOV/TRAK(%u). Trying to fix.\n", traf->tfhd->trackID, trak->Header->trackID));
+			if (!mov->is_smooth) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Warning: trackID of MOOF/TRAF(%u) is not the same as MOOV/TRAK(%u). Trying to fix.\n", traf->tfhd->trackID, trak->Header->trackID));
+			} else {
+				trak->Header->trackID = traf->tfhd->trackID;
+			}
 			traf->tfhd->trackID = trak->Header->trackID;
 		}
 	}
