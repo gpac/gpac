@@ -9,7 +9,7 @@ x3d_test ()
   return
  fi
 
-do_test "$GPAC -i $1 compositor:osize=192x192:vfr:ogl=on @ -o $TEMP_DIR/dump.rgb" "play"
+do_test "$GPAC -i $1 compositor:osize=192x192:vfr:ogl=on:dur=5 @ -o $TEMP_DIR/dump.rgb" "play"
 
 myinspect=$TEMP_DIR/inspect.txt
 do_test "$GPAC -i $TEMP_DIR/dump.rgb:size=192x192 inspect:all:interleave=false:fmt=%cts%-%size%%lf%:log=$myinspect -graph -stats"
