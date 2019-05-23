@@ -1201,6 +1201,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_parse_xml_subtitle_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_sample_set_dep_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_JPEG2000) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_hdr) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_clean_aperture) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_image_sequence_alpha) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_image_sequence_coding_constraints) )

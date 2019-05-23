@@ -87,6 +87,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 #endif
 
 GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool make_wgt);
+GF_Err hdr_file(GF_ISOFile* movie, char* file_name);
 
 #endif
 
@@ -262,6 +263,7 @@ void PrintGeneralUsage()
 	        " -lang [tkID=]LAN     sets track language. LAN is the BCP-47 code (eng, en-UK, ...)\n"
 	        " -delay tkID=TIME     sets track start delay in ms\n"
 	        " -par tkID=PAR        sets visual track pixel aspect ratio (PAR=N:D or \"none\" or \"force\" to write anyway)\n"
+	        " -hdr file            path to XML file describing HDR boxes (mdcv, clli, ...)"
 	        " -name tkID=NAME      sets track handler name\n"
 	        "                       * NAME can indicate a UTF-8 file (\"file://file name\"\n"
 	        " -itags tag1[:tag2]   sets iTunes tags to file - more info: MP4Box -tag-list\n"
@@ -2228,7 +2230,7 @@ GF_SceneDumpFormat dump_mode;
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
 Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, do_mpd_rip;
-char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes;
+char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *hdr_filename;
 u32 track_dump_type, dump_isom, dump_timestamps;
 u32 trackID;
 Bool comp_lzma=GF_FALSE;
@@ -2658,6 +2660,11 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			tracks[nb_track_act].trackID = atoi(szTK);
 			open_edit = GF_TRUE;
 			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-hdr")) {
+			CHECK_NEXT_ARG
+			hdr_filename = argv[i + 1];
 			i++;
 		}
 		else if (!stricmp(arg, "-lang")) {
@@ -3989,7 +3996,7 @@ int mp4boxMain(int argc, char **argv)
 	program_number = 0;
 	info_track_id = 0;
 	do_flat = GF_FALSE;
-	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = NULL;
+	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = hdr_filename = NULL;
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
 	swf_flags = GF_SM_SWF_SPLIT_TIMELINE;
@@ -4811,6 +4818,11 @@ int mp4boxMain(int argc, char **argv)
 				return mp4box_cleanup(1);
 			}
 		}
+	}
+
+	if (hdr_filename) {
+		e = hdr_file(file, hdr_filename);
+		if (e) goto err_exit;
 	}
 
 	if (file && keep_utc && open_edit) {
