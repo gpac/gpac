@@ -235,6 +235,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	}
 
 	file->moov = (GF_MovieBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MOOV);
+	gf_list_add(file->TopBoxes, file->moov);
 	file->moov->mov = file;
 	file->is_smooth = GF_TRUE;
 	file->moov->mvhd = (GF_MovieHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MVHD);

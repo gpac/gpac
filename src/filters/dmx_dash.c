@@ -110,7 +110,6 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 
 	if (gf_dash_is_m3u8(ctx->dash)) {
 		gf_filter_pck_forward(in_pck, out_pid);
-		gf_filter_pid_drop_packet(in_pid);
 
 		if (!group->pto_setup) {
 			cts = gf_filter_pck_get_cts(in_pck);
@@ -118,6 +117,8 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 			gf_filter_pid_set_property_str(out_pid, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
 			group->pto_setup = GF_TRUE;
 		}
+
+		gf_filter_pid_drop_packet(in_pid);
 		return;
 	}
 
@@ -243,6 +244,15 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 
 	sURL = gf_malloc(sizeof(char) * (strlen(init_segment_name) + 200) );
 	strcpy(sURL, init_segment_name);
+	if (!strncmp(sURL, "isobmff://", 10)) {
+		const char *base_url = gf_dash_get_url(ctx->dash);
+		if (!strnicmp(base_url, "http://", 7))
+			sprintf(sURL, "http://%s", init_segment_name);
+		else if (!strnicmp(base_url, "https://", 7))
+			sprintf(sURL, "http://%s", init_segment_name);
+		else
+			sprintf(sURL, "file://%s", init_segment_name);
+	}
 	if (!ctx->store) {
 		if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
 		strcat(sURL, ":cache=mem");
@@ -402,7 +412,12 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 	}
 
 	if (dash_evt==GF_DASH_EVENT_SELECT_GROUPS) {
-		gf_dash_groups_set_language(ctx->dash, gf_opts_get_key("core", "lang"));
+		if (gf_sys_is_test_mode()) {
+			gf_dash_groups_set_language(ctx->dash, gf_opts_get_key("core", "lang"));
+			//these are not used in the test suite (require JS)
+			gf_dash_switch_quality(ctx->dash, GF_TRUE, GF_TRUE);
+		}
+
 		//let the player decide which group to play: we declare everything
 		return GF_OK;
 	}
@@ -431,6 +446,20 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			//these are not used in the test suite (require decoding)
 			gf_dash_group_set_codec_stat(ctx->dash, 0, 0, 0, 0, 0, GF_FALSE, GF_FALSE);
 			gf_dash_group_set_buffer_levels(ctx->dash, 0, 0, 0, 0);
+
+			//these are not used in the test suite (require JS)
+			if (ctx->algo==GF_DASH_ALGO_NONE)
+				gf_dash_set_automatic_switching(ctx->dash, GF_FALSE);
+			gf_dash_group_select_quality(ctx->dash, (u32) -1, NULL, 0);
+
+			//these are not used yet in the test suite (require TEMI)
+			gf_dash_override_ntp(ctx->dash, 0);
+
+			//these are not used yet in the test suite (require tiling + long run)
+			gf_dash_group_set_quality_degradation_hint(ctx->dash, 0, 0);
+			gf_dash_group_set_visible_rect(ctx->dash, 0, 0, 0, 0, 0);
+			//this happen only when error downloading a segment
+			gf_dash_set_group_download_state(ctx->dash, 0, GF_OK);
 		}
 
 		/*select input services if possible*/
@@ -1548,15 +1577,25 @@ GF_Err dashdmx_process(GF_Filter *filter)
 static const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	char *d = (char *)data;
-	char *res;
+	char *res_dash, *res_m3u, *res_smooth;
 	char last_c = d[size-1];
 	d[size-1] = 0;
-	res = strstr(data, "<MPD ");
+	res_dash = strstr(data, "<MPD ");
+	res_m3u = strstr(data, "#EXTM3U");
+	res_smooth = strstr(data, "<SmoothStreamingMedia");
 	d[size-1] = last_c;
 
-	if (res) {
+	if (res_dash) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "application/dash+xml";
+	}
+	if (res_m3u) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "video/mpegurl";
+	}
+	if (res_smooth) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "application/vnd.ms-sstr+xml";
 	}
 	return NULL;
 }
@@ -1622,7 +1661,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 static const GF_FilterCapability DASHDmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd|audio/mpegurl|video/mpegurl|application/vnd.ms-sstr+xml"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),

@@ -2521,9 +2521,17 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	if (url) {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(url));
 
-		sep = gf_file_basename(url);
+		if (!strnicmp(url, "isobmff://", 10)) {
+			gf_filter_pid_set_name(pid, "isobmff://");
+			fext = "mp4";
+			mime_type = "video/mp4";
+			if (is_new_pid)
+				gf_filter_pid_set_eos(pid);
+		} else {
+			sep = gf_file_basename(url);
 
-		gf_filter_pid_set_name(pid, sep);
+			gf_filter_pid_set_name(pid, sep);
+		}
 
 		if (fext) {
 			strncpy(tmp_ext, fext, 20);

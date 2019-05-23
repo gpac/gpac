@@ -86,6 +86,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 {
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 	GF_Err e;
+	char *server;
 	u32 flags = 0;
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
@@ -97,6 +98,13 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 	flags = GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT;
 	if (ctx->cache==GF_HTTPIN_STORE_MEM) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
 	else if (ctx->cache==GF_HTTPIN_STORE_NONE) flags |= GF_NETIO_SESSION_NOT_CACHED;
+
+	server = strstr(ctx->src, "://");
+	if (server) server += 3;
+	if (strstr(server, "://")) {
+		ctx->is_end = GF_TRUE;
+		return gf_filter_pid_raw_new(filter, server, server, NULL, NULL, NULL, 0, &ctx->pid);
+	}
 
 	ctx->sess = gf_dm_sess_new(ctx->dm, ctx->src, flags, NULL, NULL, &e);
 	if (e) {
@@ -151,14 +159,15 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			//abort session
 			gf_filter_pid_set_eos(ctx->pid);
 			ctx->is_end = GF_TRUE;
-			gf_dm_sess_abort(ctx->sess);
+			if (ctx->sess)
+				gf_dm_sess_abort(ctx->sess);
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SEEK:
 		if (evt->seek.start_offset < ctx->file_size) {
 			ctx->is_end = GF_FALSE;
 			//open cache if needed
-			if (!ctx->cached && ctx->file_size && (ctx->nb_read==ctx->file_size) ) {
+			if (!ctx->cached && ctx->file_size && (ctx->nb_read==ctx->file_size) && ctx->sess) {
 				const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
 				if (cached) ctx->cached = gf_fopen(cached, "rb");
 			}
@@ -166,7 +175,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 			if (ctx->cached) {
 				gf_fseek(ctx->cached, ctx->nb_read, SEEK_SET);
-			} else {
+			} else if (ctx->sess) {
 				gf_dm_sess_abort(ctx->sess);
 				gf_dm_sess_set_range(ctx->sess, ctx->nb_read, 0, GF_TRUE);
 			}
@@ -178,9 +187,8 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
-		assert(ctx->sess);
 		if (evt->seek.source_switch) {
-			if (ctx->src && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !evt->seek.previous_is_init_segment) {
+			if (ctx->src && ctx->sess && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !evt->seek.previous_is_init_segment) {
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src);
 			}
 			if (ctx->src) gf_free(ctx->src);
@@ -192,7 +200,8 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		//abort type
 		if (evt->seek.start_offset == (u64) -1) {
 			if (!ctx->is_end) {
-				gf_dm_sess_abort(ctx->sess);
+				if (ctx->sess)
+					gf_dm_sess_abort(ctx->sess);
 				ctx->is_end = GF_TRUE;
 				gf_filter_pid_set_eos(ctx->pid);
 			}
@@ -203,7 +212,18 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		assert(ctx->is_end);
 		assert(!ctx->pck_out);
 		ctx->last_state = GF_OK;
-		e = gf_dm_sess_setup_from_url(ctx->sess, ctx->src, evt->seek.skip_cache_expiration);
+		if (ctx->sess) {
+			e = gf_dm_sess_setup_from_url(ctx->sess, ctx->src, evt->seek.skip_cache_expiration);
+		} else {
+			u32 flags;
+
+			flags = GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT;
+			if (ctx->cache==GF_HTTPIN_STORE_MEM) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+			else if (ctx->cache==GF_HTTPIN_STORE_NONE) flags |= GF_NETIO_SESSION_NOT_CACHED;
+
+			ctx->sess = gf_dm_sess_new(ctx->dm, ctx->src, flags, NULL, NULL, &e);
+		}
+
 		if (!e) e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTPIn] Cannot resetup session from URL %s: %s\n", ctx->src, gf_error_to_string(e) ) );
@@ -251,6 +271,9 @@ static GF_Err httpin_process(GF_Filter *filter)
 	if (ctx->is_end)
 		return GF_EOS;
 
+	if (!ctx->sess)
+		return GF_EOS;
+
 	if (!ctx->pid) {
 		if (ctx->nb_read) return GF_SERVICE_ERROR;
 	} else {
@@ -294,7 +317,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 				httpin_notify_error(filter, ctx, e);
 
 			ctx->is_end = GF_TRUE;
-			gf_filter_pid_set_eos(ctx->pid);
+			if (ctx->pid)
+				gf_filter_pid_set_eos(ctx->pid);
 			return e;
 		}
 		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);

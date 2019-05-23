@@ -3150,8 +3150,11 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u3
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
 
 	//don't serialize dref
-	dref = trak->Media->information->dataInformation->dref;
-	trak->Media->information->dataInformation->dref = NULL;
+	dref = NULL;
+	if (trak->Media->information->dataInformation) {
+		dref = trak->Media->information->dataInformation->dref;
+		trak->Media->information->dataInformation->dref = NULL;
+	}
 
 	//don't serialize stbl
 	stbl = trak->Media->information->sampleTable;
@@ -3181,7 +3184,8 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u3
 	gf_bs_del(bs);
 
 	//restore our pointers
-	trak->Media->information->dataInformation->dref = dref;
+	if (dref)
+		trak->Media->information->dataInformation->dref = dref;
 	trak->Media->information->sampleTable = stbl;
 	if (senc) {
 		trak->sample_encryption = senc;

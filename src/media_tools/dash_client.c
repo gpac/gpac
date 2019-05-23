@@ -2336,7 +2336,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 			return;
 
 		if (e) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Could not reslove XLINK %s in time - using old representation\n", rep->segment_list->xlink_href));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Could not reslove XLINK %s in time - using old representation\n", rep->segment_list->xlink_href));
 			group->active_rep_index = prev_active_rep_index;
 			return;
 		}
@@ -6008,7 +6008,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 		total_rate = 0;
 	}
 	if (local_files==count) {
-		total_rate = dash->dash_io->get_bytes_per_sec(dash->dash_io, NULL);
+		total_rate = dash->dash_io->get_bytes_per_sec ? dash->dash_io->get_bytes_per_sec(dash->dash_io, NULL) : 0;
 		if (!total_rate) local_file_mode = GF_TRUE;
 	} else if (!total_rate) {
 		return;
@@ -6886,9 +6886,14 @@ static GF_Err http_ifce_get(GF_FileDownload *getter, char *url)
 	GF_DASHFileIOSession *sess;
 	GF_DashClient *dash = (GF_DashClient*) getter->udta;
 	if (!getter->session) {
-		sess = dash->dash_io->create(dash->dash_io, 1, url, -1);
-		if (!sess) return GF_IO_ERR;
-		getter->session = sess;
+		if (!dash->mpd_dnload || (dash->thread_mode!=GF_DASH_THREAD_NONE)) {
+			sess = dash->dash_io->create(dash->dash_io, 1, url, -1);
+			if (!sess) return GF_IO_ERR;
+			getter->session = sess;
+		} else {
+			sess = getter->session = dash->mpd_dnload;
+			e = dash->dash_io->setup_from_url(dash->dash_io, getter->session, url, -1);
+		}
 	}
 	else {
 		u32 group_idx = -1, i;
