@@ -2232,11 +2232,9 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 		 break;
 	}
 
-
 	gf_free(filter->filter_udta);
 	filter->filter_udta = NULL;
 	if (!src_url) return GF_FALSE;
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Swaping source filter for URL %s\n", src_url));
 
 	target_filter = filter->target_filter;
@@ -2244,15 +2242,14 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 	gf_fs_load_source_dest_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit);
 	//we manage to reassign an input registry
 	if (e==GF_OK) {
+		gf_free(src_url);
 		if (target_filter) filter->dst_filter = NULL;
 		return GF_TRUE;
 	}
 	if (!filter->finalized) {
+		gf_free(src_url);
 		return gf_filter_swap_source_registry(filter);
 	}
-	
-	//nope ...
-	gf_filter_setup_failure(filter, e);
 
 	for (i=0; i<gf_list_count(filter->destination_links); i++) {
 		GF_Filter *af = gf_list_get(filter->destination_links, i);
@@ -2263,9 +2260,12 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 				pidi->is_end_of_stream = GF_TRUE;
 			}
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to find any filter for for URL %s, disabling destination filter %s\n", src_url, af->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to find any filter for URL %s, disabling destination filter %s\n", src_url, af->name));
 		af->removed = GF_TRUE;
 	}
+	//nope ...
+	gf_filter_setup_failure(filter, e);
+	gf_free(src_url);
 	return GF_FALSE;
 }
 

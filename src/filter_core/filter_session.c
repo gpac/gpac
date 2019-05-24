@@ -1804,6 +1804,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 	const char *force_freg = NULL;
 	char *sURL, *mime_type, *args, *sep;
 	char szExt[50];
+	Bool free_url=GF_FALSE;
 	memset(szExt, 0, sizeof(szExt));
 
 	if (err) *err = GF_OK;
@@ -1824,6 +1825,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 		/*path absolute*/
 		if (!sURL) sURL = gf_strdup(url);
+		free_url=GF_TRUE;
 
 		if (!strncmp(sURL, "gpac://", 7)) {
 			u32 ulen = (u32) strlen(sURL+7);
@@ -1899,7 +1901,8 @@ restart:
 			force_freg = NULL;
 			goto restart;
 		}
-		gf_free(sURL);
+		if (free_url)
+			gf_free(sURL);
 		if (err) *err = GF_NOT_SUPPORTED;
 		if (filter) filter->finalized = GF_TRUE;
 		return NULL;
@@ -1937,7 +1940,9 @@ restart:
 		if (err) *err = e;
 	}
 
-	gf_free(sURL);
+	if (free_url)
+		gf_free(sURL);
+
 	if (filter) {
 		if (filter->src_args) gf_free(filter->src_args);
 		filter->src_args = args;
