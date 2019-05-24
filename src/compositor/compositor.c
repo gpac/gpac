@@ -2997,10 +2997,15 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			//in vfr mode
 			|| (compositor->vfr && (has_timed_nodes || compositor->validator_mode) )
 			) {
+				u64 res;
 				compositor->sys_frames_pending = GF_FALSE;
 				compositor->frame_number++;
-				compositor->scene_sampled_clock = compositor->frame_number * compositor->fps.den * 1000;
-				compositor->scene_sampled_clock /= compositor->fps.num;
+				res = compositor->frame_number;
+				res *= compositor->fps.den;
+				res *= 1000;
+				res /= compositor->fps.num;
+				assert(res >= compositor->scene_sampled_clock);
+				compositor->scene_sampled_clock = res;
 			}
 		}
 	}
