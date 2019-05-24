@@ -361,6 +361,7 @@ static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		break;
 	case GF_FEVT_RESET_SCENE:
 		gf_sm_load_done(&svgin->loader);
+		svgin->scene = NULL;
 		return GF_FALSE;
 	default:
 		return GF_FALSE;
