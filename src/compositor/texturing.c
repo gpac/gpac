@@ -246,10 +246,8 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 
 	if (txh->stream->config_changed) {
 		needs_reload = 1;
-	} else if (size && txh->size && (size != txh->size)) {
-		//we should never get here
-//		needs_reload = 1;
-		assert(0);
+	} else if (txh->data && size && txh->size && (size != txh->size)) {
+		needs_reload = 1;
 	}
 	
 	if (needs_reload) {
