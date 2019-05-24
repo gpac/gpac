@@ -1934,7 +1934,7 @@ force_input:
 		MakeScreenshot(GF_TRUE);
 
 		gf_term_scene_update(term, NULL, "REPLACE DYN_TRANS.translation BY 10 10");
-		gf_term_add_object(term, "./media/auxiliary_files/subtitle.srt", GF_TRUE);
+		gf_term_add_object(term, NULL, GF_TRUE);
 
 		gf_term_play_from_time(term, 1000, GF_TRUE);
 
