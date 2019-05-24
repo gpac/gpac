@@ -322,7 +322,7 @@ struct __gf_filter_session
 	volatile u32 active_threads;
 
 	//if more than one thread, this mutex protects access to loaded filters list, to avoid concurrent calls to destruct and
-	//filter testing (graph resolution, update sending, ...)
+	//filter testing (graph resolution, update sending, non thread-safe graph traversal...)
 	GF_Mutex *filters_mx;
 
 	//reservoir for property maps for PID and packets properties
