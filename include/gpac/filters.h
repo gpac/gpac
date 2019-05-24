@@ -999,8 +999,7 @@ typedef enum
 	GF_FEVT_SEGMENT_SIZE,
 	/*! Scene attach event, sent down from compositor to filters (BIFS/OD/timedtext/any scene-related) to share the scene (resources and node graph)*/
 	GF_FEVT_ATTACH_SCENE,
-	/*! Scene reset event, sent down from compositor to filters (BIFS/OD/timedtext/any scene-related) to indicate scene reset (resources and node graph)
-	THIS IS A DIRECT FILTER CALL NOT THREADSAFE, filters processing this event SHALL run on the main thread*/
+	/*! Scene reset event, sent down from compositor to filters (BIFS/OD/timedtext/any scene-related) to indicate scene reset (resources and node graph). This is a direct filter call, only sent processed by filters running on the main thread*/
 	GF_FEVT_RESET_SCENE,
 	/*! quality switching request event, helps filters decide how to adapt their processing*/
 	GF_FEVT_QUALITY_SWITCH,
@@ -1548,7 +1547,7 @@ const char *gf_filter_get_name(GF_Filter *filter);
 */
 void gf_filter_make_sticky(GF_Filter *filter);
 
-/*! Return the number of queued events on the filter. Events are not aggregated, some filter may want to wait until all events are processed before taking actions. This recursively goes up the filter chain and count queued events - THIS FUNCTION IS NOT THREAD SAFE
+/*! Return the number of queued events on the filter. Events are not aggregated, some filter may want to wait until all events are processed before taking actions. The function recursively goes up the filter chain and count queued events.
 \param filter target filter
 \return number of queued events
 */

@@ -2358,8 +2358,7 @@ void gf_filter_make_sticky(GF_Filter *filter)
 	if (filter) filter->sticky = 1;
 }
 
-GF_EXPORT
-u32 gf_filter_get_num_events_queued(GF_Filter *filter)
+static u32 gf_filter_get_num_events_queued_internal(GF_Filter *filter)
 {
 	u32 i;
 	u32 nb_events = 0;
@@ -2375,6 +2374,23 @@ u32 gf_filter_get_num_events_queued(GF_Filter *filter)
 		}
 	}
 	return nb_events;
+}
+GF_EXPORT
+u32 gf_filter_get_num_events_queued(GF_Filter *filter)
+{
+	u32 res;
+	GF_FilterSession *fsess;
+	if (!filter) return 0;
+	fsess = filter->session;
+
+	if (fsess->filters_mx)
+		gf_mx_p(fsess->filters_mx);
+
+	res = gf_filter_get_num_events_queued_internal(filter);
+	if (fsess->filters_mx)
+		gf_mx_v(fsess->filters_mx);
+
+	return res;
 }
 
 GF_EXPORT

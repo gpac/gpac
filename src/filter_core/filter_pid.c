@@ -5113,6 +5113,9 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 GF_EXPORT
 void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 {
+	if (evt && (evt->base.type==GF_FEVT_RESET_SCENE))
+		return;
+
 	gf_filter_pid_send_event_internal(pid, evt, GF_FALSE);
 }
 
@@ -5122,6 +5125,9 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt)
 	GF_FilterEvent *dup_evt;
 	//filter is being shut down, prevent any event posting
 	if (filter->finalized) return;
+
+	if (evt && (evt->base.type==GF_FEVT_RESET_SCENE))
+		return;
 
 	if (evt->base.on_pid && PID_IS_OUTPUT(evt->base.on_pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Sending filter events upstream not yet implemented (PID %s in filter %s)\n", evt->base.on_pid->pid->name, filter->name));
@@ -5152,7 +5158,10 @@ void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 {
 	//filter is being shut down, prevent any event posting
 	if (pid->pid->filter->finalized) return;
-	assert (pid->pid->filter->freg->flags &	GF_FS_REG_MAIN_THREAD);
+	if (! (pid->pid->filter->freg->flags &	GF_FS_REG_MAIN_THREAD)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Executing event on PID %s created by filter %s not running on main thread, not allowed\n", pid->pid->name, pid->filter->name));
+		return;
+	}
 
 	if (pid->pid->filter->freg->process_event) {
 		if (evt->base.on_pid) evt->base.on_pid = evt->base.on_pid->pid;
