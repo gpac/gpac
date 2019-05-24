@@ -8,7 +8,8 @@ fi
 
 
 mp4file=$TEMP_DIR/file.mp4
-plist=$TEMP_DIR/plist-params.m3u
+#generate playlist in current dir since we put relative path in it
+plist=plist-params.m3u
 echo "" > $plist
 echo "$MEDIA_DIR/auxiliary_files/count_video.cmp" >> $plist
 echo "$MEDIA_DIR/auxiliary_files/enst_video.h264" >> $plist
@@ -19,6 +20,8 @@ do_hash_test $mp4file "create"
 myinspect=$TEMP_DIR/inspect.txt
 do_test "$GPAC -i $mp4file inspect:all:deep:log=$myinspect"
 do_hash_test $myinspect "inspect"
+
+rm $plist
 
 test_end
 

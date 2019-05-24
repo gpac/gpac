@@ -24,7 +24,8 @@ catfile="$TEMP_DIR/test-catmp4.mp4"
 do_test "$MP4BOX -cat $mp4file $mp4file -out $catfile" "catmp4"
 do_hash_test $catfile "catmp4"
 
-plfile="$TEMP_DIR/pl.txt"
+#generate playlist in current dir since we put relative path in it
+plfile="pl.txt"
 echo $2 > $plfile
 echo $2 >> $plfile
 
@@ -35,6 +36,8 @@ do_hash_test $catfile "catpl"
 catfile="$TEMP_DIR/test-catplmp4.mp4"
 do_test "$MP4BOX -catpl $plfile $mp4file -out $catfile" "catplmp4"
 do_hash_test $catfile "catplmp4"
+
+rm $plfile
 
 fi
 
