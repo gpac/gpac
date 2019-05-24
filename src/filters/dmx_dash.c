@@ -1338,7 +1338,8 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 			group->seg_was_not_ready = GF_TRUE;
 			group->stats_uploaded = GF_TRUE;
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] next segment name not known yet!\n" ));
-			gf_filter_post_process_task(ctx->filter);
+			gf_filter_ask_rt_reschedule(ctx->filter, 10000);
+//			gf_filter_post_process_task(ctx->filter);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Error fetching next segment name: %s\n", gf_error_to_string(e) ));
 		}

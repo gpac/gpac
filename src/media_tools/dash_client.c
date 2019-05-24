@@ -744,6 +744,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		u64 current_time_rescale;
 		u64 timeline_duration = 0;
 		u32 count;
+		u64 last_s_dur=0;
 		u32 i, seg_idx = 0;
 
 		current_time_rescale = current_time;
@@ -760,6 +761,16 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			timeline_duration += (1+ent->repeat_count)*ent->duration;
 
 			if (i+1 == count) timeline_duration -= ent->duration;
+			last_s_dur=ent->duration;
+		}
+
+
+		if (!group->dash->mpd->minimum_update_period) {
+			last_s_dur *= 1000;
+			last_s_dur /= timescale;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] dynamic MPD but no update period specified and SegmentTimeline used - will use segment duration %d ms as default update rate\n", last_s_dur));
+
+			group->dash->mpd->minimum_update_period = last_s_dur;
 		}
 
 		for (i=0; i<count; i++) {
@@ -799,15 +810,18 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 				segtime += ent->duration;
 				repeat--;
 				seg_idx++;
+				last_s_dur=ent->duration;
 			}
 		}
 		//check if we're ahead of time but "reasonnably" ahead (max 1 min) - otherwise consider the timing is broken
-		if ((current_time_rescale >= segtime) && (current_time_rescale <= segtime + 60*timescale)) {
+		if ((current_time_rescale + last_s_dur >= segtime) && (current_time_rescale <= segtime + 60*timescale)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] current time "LLU" is greater than last SegmentTimeline end "LLU" - defaulting to last entry in SegmentTimeline\n", current_time_rescale, segtime));
 			group->download_segment_index = seg_idx-1;
-			group->nb_segments_in_rep = 10;
-			group->start_playback_range = (current_time)/1000.0;
+			group->nb_segments_in_rep = seg_idx;
+			group->start_playback_range = current_time/1000.0;
 			group->ast_at_init = availabilityStartTime - (u32) (ast_offset*1000);
+			//force an update in half the target period
+			group->dash->last_update_time = gf_sys_clock() + group->dash->mpd->minimum_update_period/2;
 		} else {
 			//NOT FOUND !!
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] current time "LLU" is NOT in SegmentTimeline ["LLU"-"LLU"] - cannot estimate current startNumber, default to 0 ...\n", current_time_rescale, start_segtime, segtime));
@@ -815,6 +829,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			group->nb_segments_in_rep = 10;
 			group->broken_timing = GF_TRUE;
 		}
+
 		return;
 	}
 
@@ -2255,9 +2270,12 @@ restart_period_check:
 	}
 
 exit:
-	/*swap representations - we don't need to update download_segment_index as it still points to the right entry in the merged list*/
-	if (dash->mpd)
+	/*swap MPDs*/
+	if (dash->mpd) {
+		if (!new_mpd->minimum_update_period && (new_mpd->type==GF_MPD_TYPE_DYNAMIC))
+			new_mpd->minimum_update_period = dash->mpd->minimum_update_period;
 		gf_mpd_del(dash->mpd);
+	}
 	dash->mpd = new_mpd;
 	dash->last_update_time = gf_sys_clock();
 	dash->mpd_fetch_time = fetch_time;
