@@ -22,10 +22,7 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#if 0
 #define DYNAMIQUE_TPID
-#endif
-
 
 #include <gpac/bitstream.h>
 #include <gpac/filters.h>
