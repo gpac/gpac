@@ -2046,6 +2046,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_filter_get_arg(NULL, NULL, NULL);
 	gf_filter_all_sinks_done(NULL);
 
+	gf_opts_discard_changes();
 	return 0;
 }
 
