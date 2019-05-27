@@ -655,7 +655,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 			}
 			if (trans->SSRC) {
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";ssrc=");
-				RTSP_WRITE_INT(buffer, size, cur_pos, trans->SSRC, 0);
+				RTSP_WRITE_HEX(buffer, size, cur_pos, trans->SSRC, 0);
 			}
 		}
 		//done with transport

@@ -213,6 +213,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/out_audio.c \
 	../../../../src/filters/out_file.c \
 	../../../../src/filters/out_rtp.c \
+	../../../../src/filters/out_rtsp.c \
 	../../../../src/filters/out_sock.c \
 	../../../../src/filters/reframe_ac3.c \
 	../../../../src/filters/reframe_adts.c \

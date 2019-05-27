@@ -238,7 +238,7 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 			}
 			if (trans->SSRC) {
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";ssrc=");
-				RTSP_WRITE_INT(buffer, size, cur_pos, trans->SSRC, 0);
+				RTSP_WRITE_HEX(buffer, size, cur_pos, trans->SSRC, 0);
 			}
 		}
 		//done with transport
@@ -292,7 +292,7 @@ GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	        && strcmp(com->method, GF_RTSP_PLAY)
 	        && strcmp(com->method, GF_RTSP_PAUSE)
 	        && strcmp(com->method, GF_RTSP_RECORD)
-	        && strcmp(com->method, GF_RTSP_REDIRECTE)
+	        && strcmp(com->method, GF_RTSP_REDIRECT)
 	        && strcmp(com->method, GF_RTSP_TEARDOWN)
 	        && strcmp(com->method, GF_RTSP_OPTIONS)
 
@@ -471,7 +471,7 @@ GF_Err RTSP_ParseCommandHeader(GF_RTSPSession *sess, GF_RTSPCommand *com, u32 Bo
 	com->service_name = gf_strdup(ValBuf);
 
 	//RTSP version
-	Pos = gf_token_get(LineBuffer, Pos, "\t\r\n", ValBuf, 1024);
+	Pos = gf_token_get(LineBuffer, Pos, " \t\r\n", ValBuf, 1024);
 	if (Pos <= 0) return GF_OK;
 	if (strcmp(ValBuf, GF_RTSP_VERSION)) {
 		com->StatusCode = NC_RTSP_RTSP_Version_Not_Supported;
@@ -483,6 +483,21 @@ GF_Err RTSP_ParseCommandHeader(GF_RTSPSession *sess, GF_RTSPCommand *com, u32 Bo
 	return gf_rtsp_parse_header(buffer + ret, Size - ret, BodyStart, com, NULL);
 }
 
+char *RTSP_DEFINED_METHODS[] =
+{
+	GF_RTSP_DESCRIBE,
+	GF_RTSP_SETUP,
+	GF_RTSP_PLAY,
+	GF_RTSP_PAUSE,
+	GF_RTSP_RECORD,
+	GF_RTSP_TEARDOWN,
+	GF_RTSP_GET_PARAMETER,
+	GF_RTSP_SET_PARAMETER,
+	GF_RTSP_OPTIONS,
+	GF_RTSP_ANNOUNCE,
+	GF_RTSP_REDIRECT,
+	NULL
+};
 
 GF_EXPORT
 GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
@@ -500,10 +515,21 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	//fill TCP buffer
 	e = gf_rtsp_fill_buffer(sess);
 	if (e) goto exit;
+	if (sess->TCPChannels)
 	//this is upcoming, interleaved data
-	if (strncmp(sess->tcp_buffer+sess->CurrentPos, "RTSP", 4)) {
-		e = GF_IP_NETWORK_EMPTY;
-		goto exit;
+	if (sess->interleaved) {
+		u32 i=0;
+		Bool sync = GF_FALSE;
+		while (RTSP_DEFINED_METHODS[i]) {
+			if (!strncmp(sess->tcp_buffer+sess->CurrentPos, RTSP_DEFINED_METHODS[i], strlen(RTSP_DEFINED_METHODS[i]) ) ) {
+				sync = GF_TRUE;
+				break;
+			}
+		}
+		if (!sync) {
+			e = GF_IP_NETWORK_EMPTY;
+			goto exit;
+		}
 	}
 	e = gf_rtsp_read_reply(sess);
 	if (e) goto exit;
@@ -520,7 +546,8 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	//reset TCP buffer
 	sess->CurrentPos += BodyStart + com->Content_Length;
 
-	if (!com->CSeq) com->StatusCode = NC_RTSP_Bad_Request;
+	if (!com->CSeq)
+		com->StatusCode = NC_RTSP_Bad_Request;
 
 	if (e || (com->StatusCode != NC_RTSP_OK)) goto exit;
 

@@ -284,6 +284,7 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	GF_RTPInStream *stream;
 	GF_RTPIn *ctx = (GF_RTPIn *) gf_filter_get_udta(filter);
 	Bool reset_stream = GF_FALSE;
+	Bool skip_rtsp_teardown = GF_FALSE;
 
 	if (evt->base.type == GF_FEVT_QUALITY_SWITCH) {
 		gf_rtp_switch_quality(ctx, evt->quality_switch.up);
@@ -301,12 +302,15 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 
+		ctx->is_eos = GF_FALSE;
+
 		if ((stream->status==RTP_Running) && ((ctx->last_start_range >= 0) && (ctx->last_start_range==evt->play.start_range)))
 		 	return GF_TRUE;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Processing play on channel @%08x - %s\n", stream, stream->rtsp ? "RTSP control" : "No control (RTP)" ));
 		/*is this RTSP or direct RTP?*/
 		stream->flags &= ~RTP_EOS;
+		stream->flags &= ~RTP_EOS_FLUSHED;
 
 		if (!(stream->flags & RTP_INTERLEAVED)) {
 			if (stream->rtp_ch->rtp)
@@ -363,7 +367,10 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		/*is this RTSP or direct RTP?*/
 		if (stream->rtsp) {
-			rtpin_rtsp_usercom_send(stream->rtsp, stream, evt);
+			if (!ctx->is_eos)
+				rtpin_rtsp_usercom_send(stream->rtsp, stream, evt);
+			else
+				skip_rtsp_teardown=GF_TRUE;
 		} else {
 			stream->status = RTP_Connected;
 			stream->rtpin->last_ntp = 0;
@@ -396,7 +403,7 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	}
 
 	//flush rtsp commands
-	if (ctx->session) {
+	if (ctx->session && !skip_rtsp_teardown) {
 		rtpin_rtsp_process_commands(ctx->session);
 	}
 
@@ -420,6 +427,8 @@ static GF_Err rtpin_process(GF_Filter *filter)
 	u32 i;
 	GF_RTPInStream *stream;
 	GF_RTPIn *ctx = gf_filter_get_udta(filter);
+
+	if (ctx->is_eos) return GF_EOS;
 
 	if (ctx->ipid) {
 		GF_FilterPacket *pck = NULL;
@@ -483,7 +492,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			//reset status
 			stream->status = RTP_Disconnected;
 			//reset all dynamic flags
-			stream->flags &= ~(RTP_EOS | RTP_SKIP_NEXT_COM | RTP_CONNECTED);
+			stream->flags &= ~(RTP_EOS | RTP_EOS_FLUSHED | RTP_SKIP_NEXT_COM | RTP_CONNECTED);
 			//mark as interleaved
 			stream->flags |= RTP_INTERLEAVED;
 			//reset SSRC since wome servers don't include it in interleave response
@@ -517,9 +526,11 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		GF_Err e = gf_sk_group_select(ctx->sockgroup, 10);
 		if (e) break;
 
+		ctx->eos_probe_start = 0;
+
 		i=0;
 		while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {
-			if ((stream->flags & RTP_EOS) || (stream->status!=RTP_Running) ) continue;
+			if (stream->status!=RTP_Running) continue;
 
 			/*for interleaved channels don't read too fast, query the buffer occupancy*/
 			if (stream->flags & RTP_INTERLEAVED) {
@@ -527,11 +538,56 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			} else {
 				read += rtpin_stream_read(stream);
 			}
+			if (stream->flags & RTP_EOS) {
+				ctx->eos_probe_start = gf_sys_clock();
+			}
 		}
+
 		if (!read) {
 			break;
 		}
 		tot_read+=read;
+	}
+
+	//we wait max 300ms to detect eos
+	if (ctx->eos_probe_start && (gf_sys_clock() - ctx->eos_probe_start > 300) ) {
+		u32 nb_eos=0;
+		i=0;
+		while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {
+			if (! (stream->flags & RTP_EOS)) break;
+			if (stream->flags & RTP_EOS_FLUSHED) {
+				nb_eos++;
+				continue;
+			}
+			while (1) {
+				u32 size = gf_rtp_flush_rtp(stream->rtp_ch, stream->buffer, stream->rtpin->block_size);
+				if (!size) break;
+				rtpin_stream_on_rtp_pck(stream, stream->buffer, size);
+			}
+
+			stream->stat_stop_time = gf_sys_clock();
+			if (stream->pck_queue) {
+				while (gf_list_count(stream->pck_queue)) {
+					GF_FilterPacket *pck = gf_list_pop_front(stream->pck_queue);
+					gf_filter_pck_send(pck);
+				}
+			}
+			gf_filter_pid_set_eos(stream->opid);
+			stream->flags |= RTP_EOS_FLUSHED;
+			nb_eos++;
+		}
+		if (nb_eos==gf_list_count(ctx->streams)) {
+			if (!ctx->is_eos) {
+				ctx->is_eos = GF_TRUE;
+				if (ctx->session) {
+					/*send teardown*/
+					rtpin_rtsp_teardown(ctx->session, NULL);
+					rtpin_rtsp_flush(ctx->session);
+				}
+			}
+			return GF_EOS;
+		}
+		ctx->eos_probe_start = 0;
 	}
 
 	/*and process commands / flush TCP*/
@@ -545,8 +601,10 @@ static GF_Err rtpin_process(GF_Filter *filter)
 	}
 	if (ctx->max_sleep<0)
 		gf_filter_ask_rt_reschedule(filter, (u32) ((-ctx->max_sleep) *1000) );
-	else
+	else {
+		assert(ctx->min_frame_dur_ms <= ctx->max_sleep);
 		gf_filter_ask_rt_reschedule(filter, ctx->min_frame_dur_ms*1000);
+	}
 	return GF_OK;
 }
 
@@ -578,6 +636,7 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 		the_ext[0] = 0;
 	}
 	ctx->session = rtpin_rtsp_new(ctx, (char *) ctx->src);
+	gf_filter_disable_inputs(filter);
 
 	if (!strnicmp(ctx->src, "satip://", 8)) {
 		ctx->session->satip = GF_TRUE;
@@ -601,9 +660,11 @@ static void rtpin_finalize(GF_Filter *filter)
 	if (ctx->session) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Closing RTSP service\n"));
 		rtpin_rtsp_flush(ctx->session);
-		/*send teardown*/
-		rtpin_rtsp_teardown(ctx->session, NULL);
-		rtpin_rtsp_flush(ctx->session);
+		if (!ctx->is_eos) {
+			/*send teardown*/
+			rtpin_rtsp_teardown(ctx->session, NULL);
+			rtpin_rtsp_flush(ctx->session);
+		}
 	}
 
 	rtpin_reset(ctx, GF_TRUE);
@@ -673,7 +734,7 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(user_agent), "User agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GPAC_UA", NULL, 0},
 	{ OFFS(languages), "User languages, by default solved from GPAC preferences", GF_PROP_STRING, "$GPAC_LANG", NULL, 0},
 	{ OFFS(stats), "Updates statistics to the user every given MS, 0 disables reporting", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(max_sleep), "Sets max sleep in milliseconds. A negative value -N means to always sleep for N ms, a positive value N means to sleep at most N ms but will sleep less if frame duration is shorter", GF_PROP_SINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(max_sleep), "Sets max sleep in milliseconds. A negative value -N means to always sleep for N ms, a positive value N means to sleep at most N ms but will sleep less if frame duration is shorter", GF_PROP_SINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rtcpsync), "Uses RTCP to adjust synchronization", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };

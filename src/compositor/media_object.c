@@ -626,7 +626,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		mo->ms_until_next=500;
 
 	if ((mo->timestamp != pck_ts) || is_first) {
-		u64 media_time;
+		u32 media_time;
 		u64 dur = gf_filter_pck_get_duration(mo->pck);
 		dur *= 1000;
 		dur /= timescale;

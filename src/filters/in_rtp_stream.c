@@ -150,13 +150,17 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 
 	hdr->seekFlag = 0;
 	hdr->compositionTimeStamp += stream->ts_adjust;
-	assert(hdr->compositionTimeStamp >= stream->first_rtp_ts - 1);
-	hdr->compositionTimeStamp -= stream->first_rtp_ts - 1;
+	if (stream->first_rtp_ts) {
+		assert(hdr->compositionTimeStamp >= stream->first_rtp_ts - 1);
+		hdr->compositionTimeStamp -= stream->first_rtp_ts - 1;
+	}
 
 	if (hdr->decodingTimeStamp) {
 		hdr->decodingTimeStamp += stream->ts_adjust;
-		assert(hdr->decodingTimeStamp >= stream->first_rtp_ts - 1);
-		hdr->decodingTimeStamp -= stream->first_rtp_ts - 1;
+		if (stream->first_rtp_ts) {
+			assert(hdr->decodingTimeStamp >= stream->first_rtp_ts - 1);
+			hdr->decodingTimeStamp -= stream->first_rtp_ts - 1;
+		}
 	}
 
 	pck = gf_filter_pck_new_alloc(stream->opid, size, &pck_data);
@@ -167,19 +171,20 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 	gf_filter_pck_set_cts(pck, hdr->compositionTimeStamp);
 
 	diff = (s64) hdr->compositionTimeStamp - (s64) stream->prev_cts;
-	stream->prev_cts = (u32) hdr->compositionTimeStamp;
-	if ((stream->rtpin->max_sleep>0) &&  diff) {
+	if ((stream->rtpin->max_sleep>0) && stream->prev_cts && diff) {
 		if (diff<0) diff = -diff;
 		if (!stream->min_dur_rtp || (diff < stream->min_dur_rtp)) {
-			stream->min_dur_rtp = (u32) diff;
-			diff *= 1000;
-			diff /= stream->rtp_ch->TimeScale;
-			if (diff > stream->rtpin->max_sleep) diff = stream->rtpin->max_sleep;
-			if (!stream->rtpin->min_frame_dur_ms || ( (u32) diff < stream->rtpin->min_frame_dur_ms)) {
-				stream->rtpin->min_frame_dur_ms = (u32) diff;
+			u64 dur = diff;
+			dur *= 1000;
+			dur /= stream->rtp_ch->TimeScale;
+			stream->min_dur_rtp = (u32) dur;
+			if (dur > stream->rtpin->max_sleep) dur = stream->rtpin->max_sleep;
+			if (!stream->rtpin->min_frame_dur_ms || ( (u32) dur < stream->rtpin->min_frame_dur_ms)) {
+				stream->rtpin->min_frame_dur_ms = (u32) dur;
 			}
 		}
 	}
+	stream->prev_cts = (u32) hdr->compositionTimeStamp;
 
 	gf_filter_pck_set_sap(pck, hdr->randomAccessPointFlag ? GF_FILTER_SAP_1  :GF_FILTER_SAP_NONE);
 	if (hdr->au_duration)
@@ -643,14 +648,6 @@ static void rtpin_stream_on_rtcp_pck(GF_RTPInStream *stream, char *pck, u32 size
 
 	if (e == GF_EOS) {
 		stream->flags |= RTP_EOS;
-		stream->stat_stop_time = gf_sys_clock();
-		if (stream->pck_queue) {
-			while (gf_list_count(stream->pck_queue)) {
-				GF_FilterPacket *pck = gf_list_pop_front(stream->pck_queue);
-				gf_filter_pck_send(pck);
-			}
-		}
-		gf_filter_pid_set_eos(stream->opid);
 	}
 }
 
@@ -678,7 +675,6 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 	u32 size, tot_size = 0;
 
 	if (!stream->rtp_ch) return 0;
-
 	if (gf_sk_group_sock_is_set(stream->rtpin->sockgroup, stream->rtp_ch->rtcp)) {
 		size = gf_rtp_read_rtcp(stream->rtp_ch, stream->buffer, stream->rtpin->block_size);
 		if (size) {

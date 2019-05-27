@@ -255,7 +255,7 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 		case GF_STREAM_SCENE:
 			rtpch->rtp = gf_rtp_streamer_new_extended(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr,
 			             GP_RTP_PCK_SYSTEMS_CAROUSEL, (char *) config, config_len,
-			             96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4);
+			             96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, GF_FALSE);
 
 			if (rtpch->rtp) {
 				gf_rtp_streamer_disable_auto_rtcp(rtpch->rtp);

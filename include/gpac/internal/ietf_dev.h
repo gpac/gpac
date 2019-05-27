@@ -186,7 +186,7 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 
 #define RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, str)		\
 	if (strlen((const char *) str)+pos >= buf_size) {	\
-		buf_size += RTSP_WRITE_STEPALLOC;	\
+		buf_size += strlen((const char *) str);	\
 		buf = (char *) gf_realloc(buf, buf_size);		\
 	}	\
 	strcpy(buf+pos, (const char *) str);		\
@@ -212,6 +212,11 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 		sprintf(temp, "%d", d);		\
 	}	\
 	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp);
+
+#define RTSP_WRITE_HEX(buf, buf_size, pos, d, sig)		\
+	sprintf(temp, "%X", d);		\
+	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp);
+
 
 #define RTSP_WRITE_FLOAT_WITHOUT_CHECK(buf, buf_size, pos, d)		\
 	sprintf(temp, "%.4f", d);		\
@@ -283,6 +288,7 @@ struct _tag_rtsp_session
 
 	/*all RTP channels in an interleaved RTP on RTSP session*/
 	GF_List *TCPChannels;
+	Bool interleaved;
 };
 
 GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort);

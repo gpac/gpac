@@ -3005,7 +3005,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				res *= 1000;
 				res /= compositor->fps.num;
 				assert(res >= compositor->scene_sampled_clock);
-				compositor->scene_sampled_clock = res;
+				compositor->scene_sampled_clock = (u32) res;
 			}
 		}
 	}
