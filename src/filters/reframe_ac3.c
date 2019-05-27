@@ -196,6 +196,9 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(AC3_FRAME_SIZE) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
 
+	if (ctx->duration.num)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+
 
 	ctx->nb_ch = ctx->hdr.channels;
 	if (!ctx->timescale) {

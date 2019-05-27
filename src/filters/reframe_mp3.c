@@ -344,6 +344,8 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	if (ctx->is_file && ctx->index_dur) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
+	if (ctx->duration.num)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 
 	if (!ctx->timescale) gf_filter_pid_set_name(ctx->opid, "audio");
 
