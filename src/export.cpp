@@ -1275,7 +1275,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sdp_info_reset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sdp_info_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sdp_info_check) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sdp_info_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sdp_media_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sdp_media_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sdp_conn_new) )
@@ -2414,6 +2413,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_request_opengl) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_count_source_by_protocol) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_disable_probe) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_disable_inputs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_num_events_queued) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_all_sinks_done) )
 

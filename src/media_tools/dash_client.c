@@ -770,7 +770,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			last_s_dur /= timescale;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] dynamic MPD but no update period specified and SegmentTimeline used - will use segment duration %d ms as default update rate\n", last_s_dur));
 
-			group->dash->mpd->minimum_update_period = last_s_dur;
+			group->dash->mpd->minimum_update_period = (u32) last_s_dur;
 		}
 
 		for (i=0; i<count; i++) {

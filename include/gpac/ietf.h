@@ -191,6 +191,8 @@ typedef struct
 	/*Transport protocol. In this version we only support RTP/AVP, the following flag tells
 	us if this is RTP/AVP/TCP or RTP/AVP (default)*/
 	char *Profile;
+
+	Bool is_sender;
 } GF_RTSPTransport;
 
 
@@ -216,10 +218,9 @@ void gf_rtsp_transport_del(GF_RTSPTransport *transp);
 #define GF_RTSP_TEARDOWN		"TEARDOWN"
 #define GF_RTSP_GET_PARAMETER	"GET_PARAMETER"
 #define GF_RTSP_SET_PARAMETER	"SET_PARAMETER"
-#define GF_RTSP_OPTIONS		"OPTIONS"
+#define GF_RTSP_OPTIONS			"OPTIONS"
 #define GF_RTSP_ANNOUNCE		"ANNOUNCE"
-#define GF_RTSP_REDIRECTE		"REDIRECT"
-
+#define GF_RTSP_REDIRECT		"REDIRECT"
 
 typedef struct
 {
@@ -618,6 +619,8 @@ void gf_rtp_reset_ssrc(GF_RTPChannel *ch);
 /*read any data on UDP only (not valid for TCP). Performs re-ordering if configured for it
 returns amount of data read (raw UDP packet size)*/
 u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
+u32 gf_rtp_flush_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
+
 u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
 //flush RTP reorderer
 u32 gf_rtp_read_flush(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
@@ -919,8 +922,6 @@ void gf_sdp_info_reset(GF_SDPInfo *sdp);
 GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size);
 /*check the consistency of the GF_SDPInfo*/
 GF_Err gf_sdp_info_check(GF_SDPInfo *sdp);
-/*write the SDP to a new buffer and returns it. Automatically checks the SDP before calling*/
-GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf);
 
 
 /*

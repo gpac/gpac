@@ -257,6 +257,7 @@
 		92AAF0E818D6DB9300E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92AAF16F18D6F66300E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92B02F4F1DD2004400F85E77 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B02F4E1DD2004400F85E77 /* OpenGL.framework */; };
+		92B2A4A52297FD9E002A65A7 /* out_rtsp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B2A4A42297FD9E002A65A7 /* out_rtsp.c */; };
 		92B9A5071F83FD7800A24FE4 /* in_dvb4linux.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A5061F83FD7700A24FE4 /* in_dvb4linux.c */; };
 		92B9A50A1F840A6800A24FE4 /* dec_vtb.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A5081F840A6700A24FE4 /* dec_vtb.c */; };
 		92B9A5111F8660B500A24FE4 /* terminal.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A50C1F8660B500A24FE4 /* terminal.c */; };
@@ -881,6 +882,7 @@
 		92AAF0DC18D6DB5500E2FF12 /* video.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = video.c; path = ../../modules/sdl_out/video.c; sourceTree = "<group>"; };
 		92AAF16518D6F40400E2FF12 /* gm_ft_font.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_ft_font.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92B02F4E1DD2004400F85E77 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		92B2A4A42297FD9E002A65A7 /* out_rtsp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtsp.c; path = filters/out_rtsp.c; sourceTree = "<group>"; };
 		92B9A5061F83FD7700A24FE4 /* in_dvb4linux.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_dvb4linux.c; path = filters/in_dvb4linux.c; sourceTree = "<group>"; };
 		92B9A5081F840A6700A24FE4 /* dec_vtb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_vtb.c; path = filters/dec_vtb.c; sourceTree = "<group>"; };
 		92B9A50C1F8660B500A24FE4 /* terminal.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = terminal.c; sourceTree = "<group>"; };
@@ -1939,6 +1941,7 @@
 				9289D9F41FDEFFCD00C24F83 /* out_file.c */,
 				9206822D20EA69680041169F /* out_pipe.c */,
 				92C0F37D21EC7BB0002961C8 /* out_rtp.c */,
+				92B2A4A42297FD9E002A65A7 /* out_rtsp.c */,
 				9203644E20EE12470087883E /* out_sock.c */,
 				928A7F802059372C00E02E89 /* out_video.c */,
 				92061A841FE0484500B5C464 /* reframer.c */,
@@ -2384,6 +2387,7 @@
 				92F8D47D1F71642E00616F7C /* filter.c in Sources */,
 				920100B818D5A444003D1ACA /* memory_decoder.c in Sources */,
 				920100B918D5A444003D1ACA /* predictive_mffield.c in Sources */,
+				92B2A4A52297FD9E002A65A7 /* out_rtsp.c in Sources */,
 				920100BB18D5A444003D1ACA /* quantize.c in Sources */,
 				920100BD18D5A444003D1ACA /* script_dec.c in Sources */,
 				92B9A59D1F8660D700A24FE4 /* compositor.c in Sources */,

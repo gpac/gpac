@@ -366,6 +366,7 @@
 		929A92A016EF8BC200B7C64F /* icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929A16EF8BC200B7C64F /* icon.png */; };
 		929FA64321A3E83F000455A7 /* reframe_latm.c in Sources */ = {isa = PBXBuildFile; fileRef = 929FA64221A3E83E000455A7 /* reframe_latm.c */; };
 		92B039F716F2050100B2568F /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B039F616F2050100B2568F /* libSDL2.a */; };
+		92B2A4A7229C0F47002A65A7 /* out_rtsp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B2A4A6229C0F47002A65A7 /* out_rtsp.c */; };
 		92BC210316EF8E7A000E0620 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199991278778800ACFF58 /* audio.c */; };
 		92BC210716EF8E7A000E0620 /* cursors.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999A1278778800ACFF58 /* cursors.c */; };
 		92BC210C16EF8E7A000E0620 /* ft_font.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199811278776700ACFF58 /* ft_font.c */; };
@@ -923,6 +924,7 @@
 		929A929A16EF8BC200B7C64F /* icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon.png; path = ../../applications/osmo4_ios/Resources/icon.png; sourceTree = SOURCE_ROOT; };
 		929FA64221A3E83E000455A7 /* reframe_latm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_latm.c; path = ../../src/filters/reframe_latm.c; sourceTree = "<group>"; };
 		92B039F616F2050100B2568F /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = ../../extra_lib/lib/iOS/libSDL2.a; sourceTree = SOURCE_ROOT; };
+		92B2A4A6229C0F47002A65A7 /* out_rtsp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtsp.c; path = ../../src/filters/out_rtsp.c; sourceTree = "<group>"; };
 		92C0F37F21EDFA8D002961C8 /* out_rtp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtp.c; path = ../../src/filters/out_rtp.c; sourceTree = "<group>"; };
 		92D3C62B2031ECE600BA1735 /* atsc_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = atsc_dmx.c; sourceTree = "<group>"; };
 		92DF5CA51BA6C6F80058A7BA /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
@@ -1777,6 +1779,7 @@
 		92EB6D5E20E4E16700A97A49 /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				92B2A4A6229C0F47002A65A7 /* out_rtsp.c */,
 				92EB6D8B20E4E19300A97A49 /* compose.c */,
 				92EB6D9420E4E19400A97A49 /* dasher.c */,
 				92EB6DB020E4E19600A97A49 /* dec_ac52.c */,
@@ -2374,6 +2377,7 @@
 				92EB6D6E20E4E17F00A97A49 /* filter_pck.c in Sources */,
 				8959AC77211C9A26004D2C87 /* dmx_gsf.c in Sources */,
 				92EB6DD620E4E19700A97A49 /* dec_ttxt.c in Sources */,
+				92B2A4A7229C0F47002A65A7 /* out_rtsp.c in Sources */,
 				71CCF2F11277045100339E12 /* odf_parse.c in Sources */,
 				92EB6DCA20E4E19700A97A49 /* dec_bifs.c in Sources */,
 				71CCF2F21277045100339E12 /* qos.c in Sources */,
