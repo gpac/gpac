@@ -1564,7 +1564,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 			kill_filter = GF_TRUE;
 		}
 	} else {
-		if ((!filter->nb_pck_io && filter->pending_packets) || for_reconnection) {
+		if ((!filter->nb_pck_io && filter->pending_packets && (filter->nb_pids_playing>0) ) || for_reconnection) {
 			filter->nb_consecutive_errors++;
 
 			if (filter->nb_consecutive_errors >= 100000) {
@@ -2862,4 +2862,11 @@ void gf_filter_disable_probe(GF_Filter *filter)
 {
 	if (filter)
 	 	filter->no_probe = GF_TRUE;
+}
+
+GF_EXPORT
+void gf_filter_disable_inputs(GF_Filter *filter)
+{
+	if (filter)
+	 	filter->no_inputs = GF_TRUE;
 }

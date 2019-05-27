@@ -190,9 +190,13 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 	p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_CODECID);
 	if (p) codecid = p->value.uint;
 
-	//by default all buffers are 1ms max
-	pid->max_buffer_time = pid->filter->session->default_pid_buffer_max_us;
-	pid->max_buffer_unit = pid->filter->session->default_pid_buffer_max_units;
+	if (pid->user_max_buffer_time) {
+		pid->max_buffer_time = pid->user_max_buffer_time;
+		pid->max_buffer_unit = 0;
+	} else {
+		pid->max_buffer_time = pid->filter->session->default_pid_buffer_max_us;
+		pid->max_buffer_unit = pid->filter->session->default_pid_buffer_max_units;
+	}
 	pid->raw_media = GF_FALSE;
 
 	if (codecid!=GF_CODECID_RAW) {
@@ -777,7 +781,11 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 						gf_list_add(target->detached_pid_inst, filter->swap_pidinst_dst);
 					}
 					filter->swap_pidinst_dst = NULL;
-					gf_filter_post_remove(filter);
+					if (filter->on_setup_error) {
+						gf_filter_notification_failure(filter, e, GF_TRUE);
+					} else {
+						gf_filter_post_remove(filter);
+					}
 				}
 				return e;
 			} else {
@@ -3194,7 +3202,7 @@ single_retry:
 		filter_dst = gf_list_get(filter->session->filters, i);
 		//source filter
 		if (!filter_dst->freg->configure_pid) continue;
-		if (filter_dst->finalized || filter_dst->removed) continue;
+		if (filter_dst->finalized || filter_dst->removed || filter_dst->no_inputs) continue;
 		if (filter_dst->target_filter == pid->filter) continue;
 
 		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
@@ -3957,6 +3965,8 @@ static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid
 	count = gf_list_count(pid->filter->input_pids);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *pidinst = gf_list_get(pid->filter->input_pids, i);
+		if (!pidinst->pid) continue;
+		
 		prop = gf_filter_pid_get_info_internal(pidinst->pid, prop_4cc, prop_name);
 		if (prop) return prop;
 	}
@@ -4847,7 +4857,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			evt->base.on_pid->user_max_playout_time = evt->buffer_req.max_playout_us;
 			evt->base.on_pid->user_min_playout_time = evt->buffer_req.min_playout_us;
 			evt->base.on_pid->max_buffer_unit = 0;
-			
+			fprintf(stderr, "set buffer of PID %s:%s to %u\n", evt->base.on_pid->name, evt->base.on_pid->filter->name, evt->buffer_req.max_buffer_us);
 			//update blocking state
 			if (evt->base.on_pid->would_block)
 				gf_filter_pid_check_unblock(evt->base.on_pid);
@@ -4896,6 +4906,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		//phase
 		if (evt->base.type==GF_FEVT_PLAY) {
 			pid->is_playing = GF_TRUE;
+			pid->filter->nb_pids_playing++;
 			if (pid->initial_play_done) {
 				do_reset = GF_FALSE;
 			} else {
@@ -4906,8 +4917,10 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			}
 		} else if (evt->base.type==GF_FEVT_STOP) {
 			pid->is_playing = GF_FALSE;
+			pid->filter->nb_pids_playing--;
 		} else if (evt->base.type==GF_FEVT_SOURCE_SEEK) {
 			pid->is_playing = GF_TRUE;
+			pid->filter->nb_pids_playing++;
 		}
 		for (i=0; i<pid->num_destinations && do_reset; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
@@ -4940,11 +4953,14 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	//if more than one input or more than one output, only the filter can decide what to do if some of the
 	//streams are active and other not
 	if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
-		if (evt->base.type==GF_FEVT_STOP) {
-			if (!canceled)
-				gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);
-		} else if (evt->base.type==GF_FEVT_PLAY) {
-			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_FALSE);
+		GF_FilterPidInst *apidi = gf_list_get(f->input_pids, 0);
+		if (apidi->pid) {
+			if (evt->base.type==GF_FEVT_STOP) {
+				if (!canceled)
+					gf_filter_pid_set_discard((GF_FilterPid *)apidi, GF_TRUE);
+			} else if (evt->base.type==GF_FEVT_PLAY) {
+				gf_filter_pid_set_discard((GF_FilterPid *)apidi, GF_FALSE);
+			}
 		}
 	}
 
@@ -5184,6 +5200,7 @@ static void filter_pid_collect_stats(GF_List *pidi_list, GF_FilterPidStatistics 
 	u32 i;
 	for (i=0; i<gf_list_count(pidi_list); i++) {
 		GF_FilterPidInst *pidi = (GF_FilterPidInst *) gf_list_get(pidi_list, i);
+		if (!pidi->pid) continue;
 
 		stats->avgerage_bitrate += pidi->avg_bit_rate;
 		if (!stats->first_process_time || (stats->first_process_time > pidi->first_frame_time))
