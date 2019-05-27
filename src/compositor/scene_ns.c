@@ -61,6 +61,18 @@ void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 			//notify before disconnecting
 			if (root->subscene) gf_scene_notify_event(root->subscene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, err, GF_FALSE);
 
+			//detach clocks before destroying namspace
+			root->ck = NULL;
+			if (root->subscene) {
+				u32 i, count = gf_list_count(root->subscene->resources);
+				for (i=0; i<count; i++) {
+					GF_ObjectManager *anodm = gf_list_get(root->subscene->resources, i);
+					anodm->ck = NULL;
+					if (anodm->scene_ns==root->scene_ns)
+					 	anodm->scene_ns = NULL;
+				}
+			}
+
 			root->scene_ns = NULL;
 			if (scene_ns->owner && scene_ns->nb_odm_users) scene_ns->nb_odm_users--;
 			scene_ns->owner = NULL;

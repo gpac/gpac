@@ -47,7 +47,6 @@ Double gf_scene_get_time(void *_is)
 	GF_Clock *ck;
 	assert(scene);
 	assert(scene->root_od);
-	assert(scene->root_od->ck);
 	ck = scene->root_od->ck;
 	if (!ck) return 0.0;
 	ret = gf_clock_time(ck);
@@ -443,6 +442,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 		i = 0;
 		while ((odm = (GF_ObjectManager *)gf_list_enum(scene->resources, &i))) {
 			if (for_shutdown && odm->mo) {
+				odm->ck = NULL;
 				obj = odm->mo;
 				while (gf_mo_event_target_count(obj)) {
 					GF_Node *n = (GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(obj, 0));
@@ -747,6 +747,10 @@ void gf_scene_buffering_info(GF_Scene *scene)
 	//likely local file playback with buffer disabled
 	if (!max_buff_val)
 		return;
+	//destruction
+	if (!scene->root_od->scene_ns)
+		return;
+
 	evt.type = GF_EVENT_PROGRESS;
 	evt.progress.progress_type = 0;
 	evt.progress.service = scene->root_od->scene_ns->url;
