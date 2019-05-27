@@ -316,7 +316,7 @@ Bool gf_rect_overlaps(GF_Rect rc1, GF_Rect rc2);
  *\param rc2 second rectangle to test
  *\return 1 if rectangles are identical, 0 otherwise
 */
-Bool gf_rect_equal(GF_Rect rc1, GF_Rect rc2);
+Bool gf_rect_equal(GF_Rect *rc1, GF_Rect *rc2);
 
 /*!
  *\brief pixel-aligned rectangle
@@ -1036,12 +1036,6 @@ Bool gf_ray_hit_sphere(GF_Ray *ray, GF_Vec *center, Fixed radius, GF_Vec *out_po
  *\return retuns 1 if the ray intersects the triangle, 0 otherwise
 */
 Bool gf_ray_hit_triangle(GF_Ray *ray, GF_Vec *v0, GF_Vec *v1, GF_Vec *v2, Fixed *dist);
-/*same as above and performs backface cull (solid meshes)*/
-/*!\brief ray triangle intersection test
- *
- *Checks if a ray intersects a triangle or not, performing backface culling. For parameters details, look at \ref gf_ray_hit_triangle_backcull
- */
-Bool gf_ray_hit_triangle_backcull(GF_Ray *ray, GF_Vec *v0, GF_Vec *v1, GF_Vec *v2, Fixed *dist);
 
 /*! @} */
 

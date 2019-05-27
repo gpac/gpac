@@ -876,6 +876,22 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 		gf_bt_parse_double(parser, info->name, & ((SFVec3d *)info->far_ptr)->z);
 		if (parser->last_error) return;
 		break;
+	case GF_SG_VRML_SFVEC4F:
+		gf_bt_parse_float(parser, info->name, & ((SFVec4f *)info->far_ptr)->x);
+		if (parser->last_error) return;
+		/*many VRML files use ',' separator*/
+		gf_bt_check_code(parser, ',');
+		gf_bt_parse_float(parser, info->name, & ((SFVec4f *)info->far_ptr)->y);
+		if (parser->last_error) return;
+		/*many VRML files use ',' separator*/
+		gf_bt_check_code(parser, ',');
+		gf_bt_parse_float(parser, info->name, & ((SFVec4f *)info->far_ptr)->z);
+		if (parser->last_error) return;
+		/*many VRML files use ',' separator*/
+		gf_bt_check_code(parser, ',');
+		gf_bt_parse_float(parser, info->name, & ((SFVec4f *)info->far_ptr)->q);
+		if (parser->last_error) return;
+		break;
 	case GF_SG_VRML_SFROTATION:
 		gf_bt_parse_float(parser, info->name, & ((SFRotation *)info->far_ptr)->x);
 		if (parser->last_error) return;

@@ -597,26 +597,6 @@ static const struct xml_elt_def {
 	{ "simpleLayout", TAG_LSR_simpleLayout, GF_XMLNS_LASER },
 	{ "updates", TAG_LSR_updates, GF_XMLNS_LASER },
 
-	/*XBL*/
-	{ "bindings", TAG_XBL_bindings, GF_XMLNS_XBL },
-	{ "binding", TAG_XBL_binding, GF_XMLNS_XBL },
-	{ "content", TAG_XBL_content, GF_XMLNS_XBL },
-	{ "children", TAG_XBL_children, GF_XMLNS_XBL },
-	{ "implementation", TAG_XBL_implementation, GF_XMLNS_XBL },
-	{ "constructor", TAG_XBL_constructor, GF_XMLNS_XBL },
-	{ "destructor", TAG_XBL_destructor, GF_XMLNS_XBL },
-	{ "field", TAG_XBL_field, GF_XMLNS_XBL },
-	{ "property", TAG_XBL_property, GF_XMLNS_XBL },
-	{ "getter", TAG_XBL_getter, GF_XMLNS_XBL },
-	{ "setter", TAG_XBL_setter, GF_XMLNS_XBL },
-	{ "method", TAG_XBL_method, GF_XMLNS_XBL },
-	{ "parameter", TAG_XBL_parameter, GF_XMLNS_XBL },
-	{ "body", TAG_XBL_body, GF_XMLNS_XBL },
-	{ "handlers", TAG_XBL_handlers, GF_XMLNS_XBL },
-	{ "handler", TAG_XBL_handler, GF_XMLNS_XBL },
-	{ "resources", TAG_XBL_resources, GF_XMLNS_XBL },
-	{ "stylesheet", TAG_XBL_stylesheet, GF_XMLNS_XBL },
-	{ "image", TAG_XBL_image, GF_XMLNS_XBL },
 };
 
 GF_EXPORT

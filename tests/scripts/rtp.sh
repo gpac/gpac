@@ -54,6 +54,9 @@ rtp_test "mp3" $mp4file
 mp4file="$MYTMP/avc.mp4"
 $MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264:dur=1 -new $mp4file 2> /dev/null
 rtp_test "avc" $mp4file
+
+single_test "$GPAC -i $mp4file -o $TEMP_DIR/session.sdp:loop=no:ip=$DST:ifce=$IFCE:xps" "avc-xps"
+
 #rm $mp4file > /dev/null
 
 mp4file="$MYTMP/cmp.mp4"

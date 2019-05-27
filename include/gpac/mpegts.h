@@ -979,7 +979,6 @@ struct tag_m2ts_demux
 	char* dsmcc_root_dir;
 	GF_List* dsmcc_controler;
 
-	Bool abort_parsing;
 	Bool table_reset;
 };
 
@@ -996,9 +995,6 @@ void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts);
 GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *ts, u32 program_id);
 
 Bool gf_m2ts_crc32_check(char *data, u32 len);
-
-/*aborts parsing of the current data (typically needed when parsing done by a different thread). If force_reset_pes is set, all pending pes data is discarded*/
-void gf_m2ts_abort_parsing(GF_M2TS_Demuxer *ts, Bool force_reset_pes);
 
 
 typedef struct
@@ -1043,9 +1039,6 @@ typedef struct
 	*/
 } GF_M2TS_AdaptationField;
 
-
-
-void gf_m2ts_print_info(GF_M2TS_Demuxer *ts);
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
@@ -1151,9 +1144,7 @@ typedef struct __elementary_stream_ifce
 	u32 stream_id;
 	/*MPEG-4 ST/OTIs*/
 	u8 stream_type;
-	u32 object_type_indication;
-	/*stream 4CC for non-mpeg codecs, 0 otherwise (stream is identified through StreamType/ObjectType)*/
-	u32 fourcc;
+	u32 codecid;
 	/*packed 3-char language code (4CC with last byte ' ')*/
 	u32 lang;
 	/*media timescale*/
@@ -1499,9 +1490,6 @@ u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer);
 GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, GF_M2TS_PackMode au_pes_mode);
 GF_Err gf_m2ts_mux_set_initial_pcr(GF_M2TS_Mux *muxer, u64 init_pcr_value);
 GF_Err gf_m2ts_mux_enable_pcr_only_packets(GF_M2TS_Mux *muxer, Bool enable_forced_pcr);
-
-/*user interface functions*/
-GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_scale);
 
 void gf_m2ts_mux_program_set_name(GF_M2TS_Mux_Program *program, const char *program_name, const char *mux_provider_name);
 void gf_m2ts_mux_enable_sdt(GF_M2TS_Mux *mux, u32 refresh_rate_ms);

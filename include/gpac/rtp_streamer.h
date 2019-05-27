@@ -108,7 +108,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 codecid, u32 ti
         u32 flags, char *dsi, u32 dsi_len,
         u32 PayloadType, u32 sample_rate, u32 nb_ch,
         Bool is_crypted, u32 IV_length, u32 KI_length,
-        u32 MinSize, u32 MaxSize, u32 avgTS, u32 maxDTSDelta, u32 const_dur, u32 bandwidth, u32 max_ptime, u32 au_sn_len);
+        u32 MinSize, u32 MaxSize, u32 avgTS, u32 maxDTSDelta, u32 const_dur, u32 bandwidth, u32 max_ptime, u32 au_sn_len, Bool for_rtsp);
 
 /*!
  *	\brief RTP file streamer destructor
@@ -131,7 +131,7 @@ void gf_rtp_streamer_del(GF_RTPStreamer *streamer);
  */
 GF_Err gf_rtp_streamer_append_sdp(GF_RTPStreamer *rtp, u16 ESID, char *dsi, u32 dsi_len, char *KMS_URI, char **out_sdp_buffer);
 
-GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *dsi, u32 dsi_len, char *dsi_enh, u32 dsi_enh_len, char *KMS_URI, u32 width, u32 height, u32 tw, u32 th, s32 tx, s32 ty, s16 tl, char **out_sdp_buffer);
+GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *dsi, u32 dsi_len, char *dsi_enh, u32 dsi_enh_len, char *KMS_URI, u32 width, u32 height, u32 tw, u32 th, s32 tx, s32 ty, s16 tl, Bool for_rtsp, char **out_sdp_buffer);
 
 GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap);
 
@@ -143,9 +143,17 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 
 void gf_rtp_streamer_disable_auto_rtcp(GF_RTPStreamer *streamer);
 
+GF_Err gf_rtp_streamer_send_bye(GF_RTPStreamer *streamer);
+
 GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rtp_ts, u32 force_ntp_type, u32 ntp_sec, u32 ntp_frac);
 
 u8 gf_rtp_streamer_get_payload_type(GF_RTPStreamer *streamer);
+
+GF_Err gf_rtp_streamer_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const char * dest, int port, int ttl, const char *ifce_addr);
+
+GF_Err gf_rtp_streamer_init_rtsp(GF_RTPStreamer *rtp, u32 path_mtu, GF_RTSPTransport  *tr, const char *ifce_addr);
+
+u16 gf_rtp_streamer_get_next_rtp_sn(GF_RTPStreamer *streamer);
 
 /*! @} */
 

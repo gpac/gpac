@@ -2061,17 +2061,23 @@ static GF_Err vout_process(GF_Filter *filter)
 			//due to GPU config. While this is not important for recorded media, it may impact
 			//monitoring of live source (webcams) by consuming frame really late which may
 			//block source sampling when blocking mode is enabled
+
+			//store first frame TS
 			if (!ctx->clock_at_first_cts) {
 				ctx->clock_at_first_cts = 1 + cts;
 			} else {
-				u64 diff = cts - ctx->clock_at_first_cts;
+				//comute CTS diff in ms
+				u64 diff = cts - ctx->clock_at_first_cts + 1;
 				diff *= 1000;
 				diff /= ctx->timescale;
+				//diff less than 100ms (eg 10fps or more), init on the second frame
 				if (diff<100) {
 					ctx->first_cts = 1 + cts;
-					ctx->clock_at_first_cts = 0;
-				} else {
-					ctx->first_cts = ctx->clock_at_first_cts;
+					ctx->clock_at_first_cts = now;
+				}
+				//otherwise (low frame rate), init on the first frame
+				else {
+					ctx->first_cts = ctx->clock_at_first_cts - 1;
 					ctx->clock_at_first_cts = ctx->last_frame_clock;
 					check_clock = GF_TRUE;
 				}
@@ -2199,9 +2205,7 @@ static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 	}
 	//remember the clock right after the flush (in case of vsync)
 	ctx->last_frame_clock = gf_sys_clock_high_res();
-	if (!ctx->clock_at_first_cts) {
-		ctx->clock_at_first_cts = ctx->last_frame_clock;
-	}
+
 	//note we don't ask RT reschedule in frame duration, we take the decision on postponing the next frame in the next process call
 	return GF_OK;
 }

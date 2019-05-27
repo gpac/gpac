@@ -316,7 +316,7 @@ DEF OG OrderedGroup {
     Shadow {}
     BitWrapper { buffer "01A2B8"}
     BitWrapper { buffer "data:application/octet-string;base64,dGVzdA=="}
-    BitWrapper { buffer "file://../auxiliary_files/subtitle.srt"}
+    BitWrapper { buffer "file://../auxiliary_files/logo.jpg"}
 
 
     Shape {

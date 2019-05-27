@@ -96,11 +96,7 @@ u64 mpeg2ps_get_max_time_msec(mpeg2ps_t *ps);
  * mpeg2ps_get_video_stream_count - returns count of video streams in file
  */
 u32 mpeg2ps_get_video_stream_count(mpeg2ps_t *ps);
-/*
- * mpeg2ps_get_video_stream_name - returns display name for stream
- */
-const char *mpeg2ps_get_video_stream_name(mpeg2ps_t *ps,
-        u32 streamno);
+
 /*
  * mpeg2ps_get_video_stream_type - returns enum type for stream
  */
@@ -145,10 +141,6 @@ Bool mpeg2ps_seek_video_frame(mpeg2ps_t *ps, u32 streamno,
  */
 u32 mpeg2ps_get_audio_stream_count(mpeg2ps_t *ps);
 /*
- * mpeg2ps_get_audio_stream_name - returns display name for stream
- */
-const char *mpeg2ps_get_audio_stream_name(mpeg2ps_t *ps, u32 streamno);
-/*
  * mpeg2ps_get_audio_stream_type - returns enum type for stream
  */
 mpeg2ps_audio_type_t mpeg2ps_get_audio_stream_type(mpeg2ps_t *ps, u32 streamno);
@@ -182,19 +174,6 @@ Bool mpeg2ps_get_audio_frame(mpeg2ps_t *ps,
 Bool mpeg2ps_seek_audio_frame(mpeg2ps_t *ps, u32 streamno,
                               u64 msec_timestamp);
 
-
-
-/*
- * returns file size
- */
-u64 mpeg2ps_get_ps_size(mpeg2ps_t *ps);
-/*
- * returns position in file
- *  ps - handle from above
- *  streamno - stream to read
- */
-s64 mpeg2ps_get_video_pos(mpeg2ps_t *ps, u32 streamno);
-s64 mpeg2ps_get_audio_pos(mpeg2ps_t *ps, u32 streamno);
 
 typedef void (*error_msg_func_t)(int loglevel,
                                  const char *lib,

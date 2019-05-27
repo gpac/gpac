@@ -730,6 +730,10 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			if (playback_speed != FIX_ONE)
 				gf_term_set_speed(term, playback_speed);
 
+			if (do_coverage) {
+				gf_term_switch_quality(term, 1);
+			}
+
 		} else if (is_connected) {
 			fprintf(stderr, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
 			is_connected = 0;
@@ -1919,7 +1923,6 @@ force_input:
 		gf_term_select_object(term, odm );
 		gf_term_object_subscene_type(term, odm);
 		gf_term_get_visual_output_size(term, &w, &h);
-		gf_term_switch_quality(term, GF_TRUE);
 
 		gf_term_is_type_supported(term, "video/mp4");
 		gf_term_get_url(term);
@@ -1931,7 +1934,7 @@ force_input:
 		MakeScreenshot(GF_TRUE);
 
 		gf_term_scene_update(term, NULL, "REPLACE DYN_TRANS.translation BY 10 10");
-		gf_term_add_object(term, "./media/auxiliary_files/subtitle.srt", GF_TRUE);
+		gf_term_add_object(term, NULL, GF_TRUE);
 
 		gf_term_play_from_time(term, 1000, GF_TRUE);
 

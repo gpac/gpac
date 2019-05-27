@@ -127,6 +127,10 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, &PROP_FRAC( dur ) );
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL( GF_TRUE ) );
 		gf_filter_pid_set_property_str(st->opid, "nocts", &PROP_BOOL(GF_TRUE ));
+
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT((u32) mpeg2ps_get_video_stream_bitrate(ctx->ps, i) ) );
+
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_SEEK ) );
 	}
 
 	nb_streams = mpeg2ps_get_audio_stream_count(ctx->ps);
@@ -179,6 +183,8 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, &PROP_FRAC( dur ) );
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL( GF_TRUE ) );
 		gf_filter_pid_set_property_str(st->opid, "nocts", &PROP_BOOL(GF_TRUE ));
+
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_SEEK ) );
 	}
 }
 
@@ -234,7 +240,7 @@ GF_Err m2psdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_FilterEvent fevt;
+	u32 i;
 	GF_M2PSDmxCtx *ctx = gf_filter_get_udta(filter);
 
 	switch (evt->base.type) {
@@ -252,11 +258,16 @@ static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				return GF_TRUE;
 		}
 
-		//post a seek
-		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
-		fevt.seek.start_offset = 0;
-		gf_filter_pid_send_event(ctx->ipid, &fevt);
+		for (i=0; i<gf_list_count(ctx->streams); i++) {
+			M2PSStream *pss = gf_list_get(ctx->streams, i);
+			if (!pss->in_use) continue;
 
+			if (pss->stream_type==GF_STREAM_VISUAL) {
+				mpeg2ps_seek_video_frame(ctx->ps, pss->stream_num, (u64) (ctx->start_range*1000));
+			} else {
+				mpeg2ps_seek_audio_frame(ctx->ps, pss->stream_num, (u64) (ctx->start_range*1000) );
+			}
+		}
 		//cancel event
 		return GF_TRUE;
 

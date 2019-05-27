@@ -60,7 +60,7 @@ test_end
 
 test_begin "gpac-io-syntax"
 if [ $test_skip != 1 ] ; then
-do_test "$GPAC src=$MEDIA_DIR/auxiliary_files/logo.jpg dst=$TEMP_DIR/test.jpg" "io-syntax1"
+do_test "$GPAC -lc -logs=all@debug src=$MEDIA_DIR/auxiliary_files/logo.jpg dst=$TEMP_DIR/test.jpg" "io-syntax1"
 do_hash_test $TEMP_DIR/test.jpg  "io-syntax1"
 
 do_test "$GPAC -src $MEDIA_DIR/auxiliary_files/logo.jpg -dst $TEMP_DIR/test.jpg" "io-syntax2"
@@ -90,7 +90,7 @@ test_end
 
 test_begin "gpac-remotery"
 if [ $test_skip != 1 ] ; then
-do_test "$GPAC src=$MEDIA_DIR/auxiliary_files/enst_audio.aac inspect -logs=filter@info:ncl -rmt" "remotery"
+do_test "$GPAC src=$MEDIA_DIR/auxiliary_files/enst_audio.aac inspect -logs=filter@info -rmt -rmt-log" "remotery"
 fi
 test_end
 
@@ -100,10 +100,23 @@ do_test "$GPAC -lu -logs=app@info:filter@debug -unit-tests -mem-track-stack" "un
 fi
 test_end
 
+test_begin "gpac-units-nomt"
+if [ $test_skip != 1 ] ; then
+do_test "gpac -for-test -unit-tests" "units-nomt"
+fi
+test_end
+
+test_begin "gpac-setupfail"
+if [ $test_skip != 1 ] ; then
+do_test "$GPAC fin:src=blob inspect" "setupfail"
+fi
+test_end
+
+
 test_begin "gpac-uncache"
 if [ test_skip != 1 ] ; then
 
-do_test "$GPAC -i http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/regression_tests/auxiliary_files/logo.jpg inspect" "http-get"
+do_test "$GPAC -logs=filter@debug:ncl -i http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/regression_tests/auxiliary_files/logo.jpg inspect" "http-get"
 do_test "$GPAC -uncache" "uncache"
 
 fi

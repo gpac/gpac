@@ -148,8 +148,6 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_APCF, 0, GF_STREAM_VISUAL, "ProRes Video", "apcf", NULL, "video/prores"},
 	{GF_CODECID_AP4X, 0, GF_STREAM_VISUAL, "ProRes Video XQ", "ap4x", NULL, "video/prores"},
 	{GF_CODECID_AP4H, 0, GF_STREAM_VISUAL, "ProRes Video 4444", "ap4h", NULL, "video/prores"},
-
-
 	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFMPEG unmapped codec", "ffmpeg", NULL, NULL},
 
 };
@@ -381,6 +379,8 @@ const char *gf_stream_type_name(u32 streamType)
 		return "Font";
 	case GF_STREAM_TEXT:
 		return "Text";
+	case GF_STREAM_METADATA:
+		return "Metadata";
 	case GF_STREAM_FILE:
 		return "File";
 	case GF_STREAM_ENCRYPTED:

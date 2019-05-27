@@ -703,6 +703,7 @@ static JSBool SMJS_FUNCTION(gpac_switch_quality)
 }
 
 
+#if 0 //unused
 static JSBool SMJS_FUNCTION(gpac_reload)
 {
 	SMJS_OBJ
@@ -715,6 +716,7 @@ static JSBool SMJS_FUNCTION(gpac_reload)
 	gf_filter_ui_event(compositor->filter, &evt);
 	return JS_TRUE;
 }
+#endif
 
 static JSBool SMJS_FUNCTION(gpac_navigation_supported)
 {
@@ -964,6 +966,10 @@ static JSBool SMJS_FUNCTION(gpac_move_window)
 	evt.move.relative = 1;
 	evt.move.x = JSVAL_TO_INT(argv[0]);
 	evt.move.y = JSVAL_TO_INT(argv[1]);
+	if (argc ==3) {
+		if (JSVAL_TO_BOOLEAN(argv[2]) == JS_TRUE)
+			evt.move.relative = 0;
+	}
 	compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 
 	return JS_TRUE;
@@ -983,6 +989,7 @@ static JSBool SMJS_FUNCTION(gpac_error_string)
 	return JS_TRUE;
 }
 
+#if 0 //unused
 static JSBool SMJS_FUNCTION(gpac_get_scene_time)
 {
 	SMJS_OBJ
@@ -999,6 +1006,7 @@ static JSBool SMJS_FUNCTION(gpac_get_scene_time)
 
 	return JS_TRUE;
 }
+#endif
 
 static JSBool SMJS_FUNCTION(gpac_trigger_gc)
 {
@@ -1656,21 +1664,24 @@ static JSBool SMJS_FUNCTION(gjs_odm_addon_layout)
 	pos = JSVAL_TO_INT(argv[0]);
 	size = JSVAL_TO_INT(argv[1]);
 
-	gf_scene_set_addon_layout_info(odm->subscene, pos, size);
+	if (odm->subscene)
+		gf_scene_set_addon_layout_info(odm->subscene, pos, size);
 	return JS_TRUE;
 }
 
 static void do_enable_addon(GF_ObjectManager *odm, char *addon_url, Bool enable_if_defined, Bool disable_if_defined )
 {
+	if (addon_url) {
 #ifdef FILTER_FIXME
-	GF_AssociatedContentLocation addon_info;
-	memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
-	addon_info.external_URL = addon_url;
-	addon_info.timeline_id = -100;
-	addon_info.enable_if_defined = enable_if_defined;
-	addon_info.disable_if_defined = disable_if_defined;
-	gf_scene_register_associated_media(odm->subscene ? odm->subscene : odm->parentscene, &addon_info);
+		GF_AssociatedContentLocation addon_info;
+		memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
+		addon_info.external_URL = addon_url;
+		addon_info.timeline_id = -100;
+		addon_info.enable_if_defined = enable_if_defined;
+		addon_info.disable_if_defined = disable_if_defined;
+		gf_scene_register_associated_media(odm->subscene ? odm->subscene : odm->parentscene, &addon_info);
 #endif
+	}
 }
 
 static JSBool SMJS_FUNCTION(gjs_odm_enable_addon)
@@ -1681,7 +1692,12 @@ static JSBool SMJS_FUNCTION(gjs_odm_enable_addon)
 	SMJS_ARGS
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
 
-	if (! JSVAL_IS_STRING(argv[0]) ) return JS_TRUE;
+	if (! JSVAL_IS_STRING(argv[0]) ) {
+		if (gf_sys_is_test_mode()) {
+			do_enable_addon(odm, NULL, GF_TRUE, GF_FALSE);
+		}
+		return JS_TRUE;
+	}
 	if ((argc==2) && JSVAL_IS_BOOLEAN(argv[1])) {
 		do_disable = (Bool) JSVAL_TO_BOOLEAN(argv[1]);
 	}
@@ -2017,6 +2033,7 @@ static JSBool SMJS_FUNCTION(gpac_set_focus)
 	return JS_TRUE;
 }
 
+#if 0 //unused
 static JSBool SMJS_FUNCTION(gpac_get_scene)
 {
 	GF_Node *elt;
@@ -2068,13 +2085,14 @@ static JSBool SMJS_FUNCTION(gpac_get_scene)
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(scene_obj) );
 	return JS_TRUE;
 }
+#endif
 
 static JSBool SMJS_FUNCTION(gpac_show_keyboard)
 {
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_Compositor *compositor = gpac_get_compositor(c, obj);
-	if (!argc) return JS_FALSE;
+	if (!argc) return JS_TRUE;
 
 	if (JSVAL_IS_BOOLEAN(argv[0])) {
 		Bool show = JSVAL_TO_BOOLEAN(argv[0])==JS_TRUE;
@@ -2245,17 +2263,14 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("exit",				gpac_exit, 0),
 		SMJS_FUNCTION_SPEC("set_3d",				gpac_set_3d, 1),
 		SMJS_FUNCTION_SPEC("move_window",			gpac_move_window, 2),
-		SMJS_FUNCTION_SPEC("get_scene_time",		gpac_get_scene_time, 1),
 		SMJS_FUNCTION_SPEC("set_event_filter",	gpac_set_event_filter, 1),
 		SMJS_FUNCTION_SPEC("set_focus",			gpac_set_focus, 1),
-		SMJS_FUNCTION_SPEC("get_scene",			gpac_get_scene, 1),
 		SMJS_FUNCTION_SPEC("error_string",		gpac_error_string, 1),
 		SMJS_FUNCTION_SPEC("show_keyboard",		gpac_show_keyboard, 1),
 		SMJS_FUNCTION_SPEC("trigger_gc",		gpac_trigger_gc, 1),
 		SMJS_FUNCTION_SPEC("get_object_manager",		gpac_get_object_manager, 1),
 		SMJS_FUNCTION_SPEC("new_storage",		gpac_new_storage, 1),
 		SMJS_FUNCTION_SPEC("switch_quality",		gpac_switch_quality, 1),
-		SMJS_FUNCTION_SPEC("reload",		gpac_reload, 1),
 		SMJS_FUNCTION_SPEC("navigation_supported",		gpac_navigation_supported, 1),
 		SMJS_FUNCTION_SPEC("set_back_color",		gpac_set_back_color, 3),
 

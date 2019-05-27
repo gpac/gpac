@@ -237,7 +237,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 
 		if (codecid) {
 			AVIAstream *st = NULL;
-			u32 j, c  = gf_list_count(ctx->audios);
+			u32 brate, j, c  = gf_list_count(ctx->audios);
 			for (j=0; j<c; j++) {
 				st = gf_list_get(ctx->audios, j);
 				if (!st->in_use) break;
@@ -259,7 +259,10 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT( st->freq ) );
 			st->nb_channels = AVI_audio_channels(ctx->avi);
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT( st->nb_channels ) );
-			gf_filter_pid_set_property(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT( st->freq ) );
+			brate = AVI_audio_mp3rate(ctx->avi);
+			//for mp3 and aac
+			if (brate && unframed)
+				gf_filter_pid_set_property(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT( brate ) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT( 2 + st->stream_num) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( sync_id ) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, &PROP_FRAC( dur ) );

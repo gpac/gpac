@@ -67,7 +67,7 @@ typedef struct
 	u32 parsing_state;
 	u32 current_child_idx;
 	Bool has_sap;
-	Bool do_compress;
+	u32 compress_type;
 	const char *src_url;
 	u64 last_dts;
 	u32 dts_inc;
@@ -374,11 +374,13 @@ exit:
 
 #define ZLIB_COMPRESS_SAFE	4
 
-static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, char **dict, u32 offset)
+static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, u32 compress_type, char **dict, u32 offset)
 {
 	z_stream stream;
 	int err;
 	u32 size;
+
+	if (!ctx) return GF_OK;
 
 	size = ctx->samp_buffer_size*ZLIB_COMPRESS_SAFE;
 	if (ctx->zlib_buffer_alloc < size) {
@@ -394,7 +396,11 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, char **dict, u32 offset)
 	stream.zfree = (free_func)NULL;
 	stream.opaque = (voidpf)NULL;
 
-	err = deflateInit(&stream, 9);
+	if (compress_type==1) {
+		err = deflateInit(&stream, 9);
+	} else {
+		err = deflateInit2(&stream, 9, Z_DEFLATED, 16+MAX_WBITS, 8, Z_DEFAULT_STRATEGY);
+	}
 	if (err != Z_OK) {
 		return GF_IO_ERR;
 	}
@@ -450,7 +456,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	u32 width, height, codec_tag, sample_rate, nb_channels, version, revision, vendor_code, temporal_quality, spatial_quality, h_res, v_res, bit_depth, bits_per_sample;
 
 	u32 dims_profile, dims_level, dims_pathComponents, dims_fullRequestHost, dims_streamType, dims_containsRedundant;
-	char *textEncoding, *dims_contentEncoding, *dims_content_script_types, *mime_type, *xml_schema_loc, *xmlns;
+	char *textEncoding, *contentEncoding, *dims_content_script_types, *mime_type, *xml_schema_loc, *xmlns;
 	FILE *nhml;
 	const GF_PropertyValue *p;
 	char *auxiliary_mime_types = NULL;
@@ -503,7 +509,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 	ctx->dts_inc = 0;
 	inRootOD = GF_FALSE;
-	ctx->do_compress = GF_FALSE;
+	ctx->compress_type = 0;
 	specInfo = NULL;
 
 #ifndef GPAC_DISABLE_ZLIB
@@ -524,7 +530,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	width = height = codec_tag = sample_rate = nb_channels = version = revision = vendor_code = temporal_quality = spatial_quality = h_res = v_res = bit_depth = bits_per_sample = 0;
 
 	dims_pathComponents = dims_fullRequestHost = 0;
-	textEncoding = dims_contentEncoding = dims_content_script_types = mime_type = xml_schema_loc = xmlns = NULL;
+	textEncoding = contentEncoding = dims_content_script_types = mime_type = xml_schema_loc = xmlns = NULL;
 	dims_profile = dims_level = 255;
 	dims_streamType = GF_TRUE;
 	dims_containsRedundant = 1;
@@ -571,7 +577,10 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		} else if (!stricmp(att->name, "DTS_increment")) {
 			NHML_SCAN_INT("%u", ctx->dts_inc)
 		} else if (!stricmp(att->name, "gzipSamples")) {
-			ctx->do_compress = (!stricmp(att->value, "yes")) ? GF_TRUE : GF_FALSE;
+			if (!stricmp(att->value, "yes") || !stricmp(att->value, "gzip"))
+				ctx->compress_type = 2;
+			else if (!stricmp(att->value, "deflate"))
+				ctx->compress_type = 1;
 		} else if (!stricmp(att->name, "auxiliaryMimeTypes")) {
 			auxiliary_mime_types = gf_strdup(att->name);
 		}
@@ -638,8 +647,12 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			textEncoding = att->value;
 		} else if (!stricmp(att->name, "content_encoding")) {
 			if (!strcmp(att->value, "deflate")) {
-				dims_contentEncoding = att->value;
-				ctx->do_compress = GF_TRUE;
+				contentEncoding = att->value;
+				ctx->compress_type = 1;
+			}
+			else if (!strcmp(att->value, "gzip")) {
+				contentEncoding = att->value;
+				ctx->compress_type = 2;
 			}
 		} else if (!stricmp(att->name, "content_script_types")) {
 			dims_content_script_types = att->value;
@@ -772,7 +785,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		if (dims_streamType) gf_filter_pid_set_property_str(ctx->opid, "dims:streamType", &PROP_BOOL(dims_streamType) );
 		if (dims_containsRedundant) gf_filter_pid_set_property_str(ctx->opid, "dims:redundant", &PROP_UINT(dims_containsRedundant) );
 		if (textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(textEncoding) );
-		if (dims_contentEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:content_encoding", &PROP_STRING(dims_contentEncoding) );
+		if (contentEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:content_encoding", &PROP_STRING(contentEncoding) );
 		if (dims_content_script_types) gf_filter_pid_set_property_str(ctx->opid, "dims:scriptTypes", &PROP_STRING(dims_content_script_types) );
 		if (mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime_type) );
 		if (xml_schema_loc) gf_filter_pid_set_property_str(ctx->opid, "meta:schemaloc", &PROP_STRING(xml_schema_loc) );
@@ -792,6 +805,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		} else if (codec_tag == GF_ISOM_SUBTYPE_STXT) {
 			if (mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime_type) );
 			if (textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(textEncoding) );
+			if (contentEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:content_encoding", &PROP_STRING(contentEncoding) );
 		} else {
 			e = GF_NOT_SUPPORTED;
 		}
@@ -923,7 +937,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		s32 cts_offset;
 		u64 offset=0, byte_offset = GF_FILTER_NO_BO;
 		u32 nb_subsamples = 0;
-		Bool redundant_rap, append, compress, has_subbs, first_subsample_is_first = GF_FALSE;
+		Bool redundant_rap, append, has_subbs, first_subsample_is_first = GF_FALSE;
+		u32 compress_type;
 		char *base_data = NULL;
 		if (node->type) continue;
 		if (stricmp(node->name, ctx->is_dims ? "DIMSUnit" : "NHNTSample") ) continue;
@@ -936,7 +951,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		ctx->samp_buffer_size = 0;
 		dims_flags = 0;
 		append = GF_FALSE;
-		compress = ctx->do_compress;
+		compress_type = ctx->compress_type;
 		sample_duration = 0;
 		redundant_rap = 0;
 		sap_type = ctx->has_sap ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1;
@@ -1006,7 +1021,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		if (sap_type==GF_FILTER_SAP_1)
 			dims_flags |= GF_DIMS_UNIT_M;
 
-		if (!(dims_flags & GF_DIMS_UNIT_C)) compress = GF_FALSE;
+		if (ctx->is_dims)
+			compress_type = (dims_flags & GF_DIMS_UNIT_C) ? 2 : 0 ;
 
 		if (ctx->is_img) sample_duration = ctx->duration.den;
 
@@ -1137,9 +1153,9 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			ctx->samp_buffer[2] = dims_flags;
 		}
 
-		if (compress) {
+		if (compress_type) {
 #ifndef GPAC_DISABLE_ZLIB
-			e = compress_sample_data(ctx, ctx->use_dict ? &ctx->dictionary : NULL, ctx->is_dims ? 3 : 0);
+			e = compress_sample_data(ctx, compress_type, ctx->use_dict ? &ctx->dictionary : NULL, ctx->is_dims ? 3 : 0);
 			if (e) return e;
 
 			if (ctx->is_dims) {
@@ -1337,6 +1353,7 @@ void nhmldmx_finalize(GF_Filter *filter)
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
 	if (ctx->samp_buffer) gf_free(ctx->samp_buffer);
+	if (ctx->zlib_buffer) gf_free(ctx->zlib_buffer);
 }
 
 

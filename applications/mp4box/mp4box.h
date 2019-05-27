@@ -89,7 +89,7 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 stat_level);
 #endif
 void PrintNode(const char *name, u32 graph_type);
-void PrintBuiltInNodes(u32 graph_type);
+void PrintBuiltInNodes(u32 graph_type, Bool dump_all);
 void PrintBuiltInBoxes();
 
 #ifndef GPAC_DISABLE_ISOM_DUMP

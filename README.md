@@ -45,9 +45,6 @@ MP4Box documentation is [available online](https://gpac.wp.imt.fr/mp4box/)
 MP4Client is a media player built upon libgpac, featuring a rich media interactive composition engine with MPEG-4 BIFS, SVG, VRML/X3D support.
 For GPAC configuration instruction, check gpac/doc/configuration.html or gpac/doc/man/gpac.1 (man gpac when installed)
 
-## MP42TS (deprecated)
-MP42TS is a TS multiplexer from MP4 and RTP sources.
-
 ## gpac 
 As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC. For API backward compatibility, old apps (MP4Box, MP4Client, ...) have been kept but rewritten to match the new filter architecture.
 They do not however expose all possible filter connections. The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filers not enabled by other apps. See gpac -h for more details, and check libgpac filter documentation.
@@ -70,7 +67,7 @@ Remaining before release
 - [x] merge VP9 
 - [x] move iOS client to filters
 - [ ] move Android client to filters
-- [ ] rewrite MP42TS to filters or drop it
+- [x] rewrite MP42TS to filters or drop it
 - [ ] fixed features disabled during rearchitecture or drop them (FILTER_FIXME macro)
 - [x] add pipe source and sink
 - [x] add  tcp source and sink

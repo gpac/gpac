@@ -102,6 +102,8 @@ typedef struct
 	u32 min_frame_dur_ms;
 
 	GF_SockGroup *sockgroup;
+	Bool is_eos;
+	u32 eos_probe_start;
 } GF_RTPIn;
 
 enum
@@ -197,6 +199,7 @@ enum
 	RTP_CONNECTED = (1<<5),
 	/*EOS signaled (RTCP or range-based)*/
 	RTP_EOS = (1<<6),
+	RTP_EOS_FLUSHED = (1<<7),
 };
 
 enum

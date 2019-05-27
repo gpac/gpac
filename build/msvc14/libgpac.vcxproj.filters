@@ -58,6 +58,9 @@
     <Filter Include="filters\nvdec">
       <UniqueIdentifier>{31cfbb94-a9c2-4ef2-b571-3f6887127e5b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="evg">
+      <UniqueIdentifier>{46167f3c-694d-4be9-b8cc-8578e73200cb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\win32\inttypes.h">
@@ -264,15 +267,6 @@
     <ClInclude Include="..\..\include\gpac\events_constants.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\gpac\filestreamer.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\gpac\html5_media.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\gpac\html5_mse.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\gpac\ietf.h">
       <Filter>include</Filter>
     </ClInclude>
@@ -319,9 +313,6 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\nodes_x3d.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\gpac\nodes_xbl.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\options.h">
@@ -800,16 +791,7 @@
     <ClCompile Include="..\..\src\media_tools\dvb_mpe.c">
       <Filter>media_tools</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\media_tools\filestreamer.c">
-      <Filter>media_tools</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\media_tools\gpac_ogg.c">
-      <Filter>media_tools</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\media_tools\html5_media.c">
-      <Filter>media_tools</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\media_tools\html5_mse.c">
       <Filter>media_tools</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\media_tools\img.c">
@@ -947,12 +929,6 @@
     <ClCompile Include="..\..\src\scenegraph\dom_smjs.c">
       <Filter>scenegraph</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\scenegraph\html5_media_smjs.c">
-      <Filter>scenegraph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\scenegraph\html5_mse_smjs.c">
-      <Filter>scenegraph</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\scenegraph\mpeg4_animators.c">
       <Filter>scenegraph</Filter>
     </ClCompile>
@@ -999,9 +975,6 @@
       <Filter>scenegraph</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\scenegraph\x3d_nodes.c">
-      <Filter>scenegraph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\scenegraph\xbl_process.c">
       <Filter>scenegraph</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\scenegraph\xml_ns.c">
@@ -1445,7 +1418,36 @@
     <ClCompile Include="..\..\src\filters\in_atsc.c">
       <Filter>filters</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\filters\reframe_latm.c" />
+    <ClCompile Include="..\..\src\evg\ftgrays.c">
+      <Filter>evg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\out_rtp.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\evg\raster_565.c">
+      <Filter>evg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\evg\raster_argb.c">
+      <Filter>evg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\evg\raster_rgb.c">
+      <Filter>evg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\evg\raster_yuv.c">
+      <Filter>evg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_latm.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\evg\stencil.c">
+      <Filter>evg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\evg\surface.c">
+      <Filter>evg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\vflip.c">
+      <Filter>filters</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\filters\dec_vtb_glctx.m">

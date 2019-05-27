@@ -58,7 +58,7 @@ static void write_core_options();
 static void write_file_extensions();
 static int gpac_make_lang(char *filename);
 static Bool gpac_expand_alias(int argc, char **argv);
-static u32 gpac_unit_tests();
+static u32 gpac_unit_tests(GF_MemTrackerType mem_track);
 
 static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info);
 
@@ -314,6 +314,17 @@ const char *gpac_doc =
 "properties such as width/height/samplerate/... !\n"
 "\tEX: -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
 "This will mux the streams in dump.ts, using ServiceID 4 for pids from v1.mp4 and ServiceID 2 for pids from v2.mp4\n"
+"\n"
+"Global filter options\n"
+"It is possible to specify options global to multiple filters using --OPT_NAME=VAL. Global options do not override filter options.\n"
+"This will set option OPT_NAME, when present, to VAL in any loaded filter.\n"
+"\tEX: --buffer=100 -i file vout aout\n"
+"This is equivalent as specifying vout:buffer=100 aout:buffer=100\n"
+"\tEX: --buffer=100 -i file vout aout:buffer=10\n"
+"This is equivalent as specifying vout:buffer=100 aout:buffer=10\n"
+"This syntax only applies to regular options. Meta-filter options can be set in the same way using the syntax -+OPT_NAME=VAL.\n"
+"\tEX: -+vprofile=Baseline -i file.cmp -o dump.264\n"
+"This is equivalent as specifying -o dump.264:vprofile=Baseline\n"
 "\n"
 "External filters\n"
 "\n"
@@ -942,7 +953,7 @@ static int gpac_main(int argc, char **argv)
 	}
 
 	if (do_unit_tests) {
-		gpac_exit( gpac_unit_tests() );
+		gpac_exit( gpac_unit_tests(mem_track) );
 	}
 
 	if (alias_set) {
@@ -1718,12 +1729,23 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/base_coding.h>
 #include <gpac/network.h>
 #include <gpac/iso639.h>
-static u32 gpac_unit_tests()
+#include <gpac/token.h>
+#include <gpac/xml.h>
+#include <gpac/thread.h>
+#include <gpac/avparse.h>
+#include <gpac/mpegts.h>
+static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 {
 	u32 ucs4_buf[4];
 	u8 utf8_buf[7];
 
+	void *mem = gf_calloc(4, sizeof(u32));
+	gf_free(mem);
+
+	if (mem_track == GF_MemTrackerNone) return 0;
+
 	gpac_fsess_task_help(); //for coverage
+	gf_dm_sess_last_error(NULL);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[CoreUnitTests] performing tests\n"));
 
@@ -1823,10 +1845,9 @@ static u32 gpac_unit_tests()
 	}
 #endif
 
-#ifdef GPAC_HAS_LZMA
 	zbuf = gf_strdup("123451234512345123451234512345");
 	osize=0;
-	e = gf_lz_compress_payload(&zbuf, 1+strlen(zbuf), &osize);
+	e = gf_lz_compress_payload(&zbuf, 1+(u32) strlen(zbuf), &osize);
 	if (e && (e!= GF_NOT_SUPPORTED)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma compress fail\n"));
 		gf_free(zbuf);
@@ -1841,7 +1862,6 @@ static u32 gpac_unit_tests()
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma decompress fail\n"));
 		return 1;
 	}
-#endif
 
 	gf_htonl(0xAABBCCDD);
 	gf_ntohl(0xAABBCCDD);
@@ -1886,6 +1906,147 @@ static u32 gpac_unit_tests()
 #else
 	gpac_sig_handler(SIGINT);
 #endif
+
+	gf_mkdir("testdir");
+	gf_mkdir("testdir/somedir");
+	strcpy(url, "testdir/somedir/test.bin");
+	FILE *f=gf_fopen(url, "wb");
+	fprintf(f, "some test\n");
+#ifdef GPAC_MEMORY_TRACKING
+	gf_memory_print();
+#endif
+	gf_fclose(f);
+	gf_file_modification_time(url);
+	gf_m2ts_probe_file(url);
+
+	gf_cleanup_dir("testdir");
+	gf_rmdir("testdir");
+
+	//math.c not covered yet by our sample files
+	GF_Matrix2D mx;
+	gf_mx2d_init(mx);
+	gf_mx2d_add_skew(&mx, FIX_ONE, FIX_ONE);
+	gf_mx2d_add_skew_x(&mx, GF_PI/4);
+	gf_mx2d_add_skew_y(&mx, GF_PI/4);
+	GF_Point2D scale, translate;
+	Fixed rotate;
+	gf_mx2d_decompose(&mx, &scale, &rotate, &translate);
+	GF_Rect rc1, rc2;
+	memset(&rc1, 0, sizeof(GF_Rect));
+	memset(&rc2, 0, sizeof(GF_Rect));
+	gf_rect_equal(&rc1, &rc2);
+
+	GF_Matrix mat;
+	gf_mx_init(mat);
+	Fixed yaw, pitch, roll;
+	gf_mx_get_yaw_pitch_roll(&mat, &yaw, &pitch, &roll);
+
+	GF_Ray ray;
+	GF_Vec center, outPoint;
+	memset(&ray, 0, sizeof(GF_Ray));
+	ray.dir.z = FIX_ONE;
+	memset(&center, 0, sizeof(GF_Vec));
+	gf_ray_hit_sphere(&ray, &center, FIX_ONE, &outPoint);
+
+	gf_closest_point_to_line(center, ray.dir, center);
+
+	GF_Plane plane;
+	plane.d = FIX_ONE;
+	plane.normal = center;
+	gf_plane_intersect_line(&plane, &center, &ray.dir, &outPoint);
+
+	GF_Vec4 rot, quat;
+	rot.x = rot.y = 0;
+	rot.z = FIX_ONE;
+	rot.q = GF_PI/4;
+	quat = gf_quat_from_rotation(rot);
+	gf_quat_get_inv(&quat);
+	gf_quat_rotate(&quat, &ray.dir);
+	gf_quat_slerp(quat, quat, FIX_ONE/2);
+	GF_BBox bbox;
+	memset(&bbox, 0, sizeof(GF_BBox));
+	gf_bbox_equal(&bbox, &bbox);
+
+	//token.c
+	char container[1024];
+	gf_token_get_strip("12 34{ 56 : }", 0, "{:", " ", container, 1024);
+
+	//netwok.c
+	char name[GF_MAX_IP_NAME_LEN];
+	gf_sk_get_host_name(name);
+	gf_sk_set_usec_wait(NULL, 1000);
+	u32 fam;
+	u16 port;
+	//to remove once we have rtsp server back
+	gf_sk_get_local_info(NULL, &port, &fam);
+	gf_sk_receive_wait(NULL, NULL, 0, &fam, 1);
+	gf_sk_send_wait(NULL, NULL, 0, 1);
+
+	//path2D
+	GF_Path *path = gf_path_new();
+	gf_path_add_move_to(path, 0, 0);
+	gf_path_add_quadratic_to(path, 5, 5, 10, 0);
+	gf_path_point_over(path, 4, 0);
+	gf_path_del(path);
+	
+	//xml dom - to update once we find a way to integrate atsc demux in tests
+	GF_DOMParser *dom = gf_xml_dom_new();
+	gf_xml_dom_parse_string(dom, "<Dummy>test</Dummy>");
+	gf_xml_dom_get_error(dom);
+	gf_xml_dom_get_line(dom);
+	gf_xml_dom_get_root_nodes_count(dom);
+	gf_xml_dom_del(dom);
+
+	//downloader - to update once we find a way to integrate atsc demux in tests
+	GF_DownloadManager *dm = gf_dm_new(NULL);
+	gf_dm_set_auth_callback(dm, NULL, NULL);
+
+	gf_dm_set_data_rate(dm, 0);
+	gf_dm_get_data_rate(dm);
+	gf_dm_set_localcache_provider(dm, NULL, NULL);
+
+	const DownloadedCacheEntry ent = gf_dm_add_cache_entry(dm, "http://localhost/test.dummy", "test", 4, 0, 0, "application/octet-string", GF_FALSE, 1);
+
+	gf_dm_force_headers(dm, ent, "x-GPAC: test\r\n");
+	gf_dm_sess_enum_headers(NULL, NULL, NULL, NULL);//this one is deactivated in test mode in httpin because of Date: header
+	gf_dm_sess_abort(NULL);
+	gf_dm_del(dm);
+
+	//constants
+	gf_stream_type_afx_name(GPAC_AFX_3DMC);
+	//thread
+	gf_th_stop(NULL);
+	gf_list_swap(NULL, NULL);
+	//bitstream
+	GF_BitStream *bs = gf_bs_new("test", 4, GF_BITSTREAM_READ);
+	gf_bs_bits_available(bs);
+	gf_bs_get_bit_offset(bs);
+	gf_bs_read_vluimsbf5(bs);
+	gf_bs_del(bs);
+	//module
+	gf_module_load_static(NULL);
+
+	gf_mp3_version_name(0);
+	char tsbuf[188];
+	u8 is_pes=GF_TRUE;
+	memset(tsbuf, 0, 188);
+	tsbuf[0] = 0x47;
+	tsbuf[1] = 0x40;
+	tsbuf[4]=0x00;
+	tsbuf[5]=0x00;
+	tsbuf[6]=0x01;
+	tsbuf[10] = 0x80;
+	tsbuf[11] = 0xc0;
+	tsbuf[13] = 0x2 << 4;
+	gf_m2ts_restamp(tsbuf, 188, 1000, &is_pes);
+
+
+	gf_filter_post_task(NULL,NULL,NULL,NULL);
+	gf_filter_get_num_events_queued(NULL);
+	gf_filter_get_arg(NULL, NULL, NULL);
+	gf_filter_all_sinks_done(NULL);
+
+	gf_opts_discard_changes();
 	return 0;
 }
 

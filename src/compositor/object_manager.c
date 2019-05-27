@@ -377,6 +377,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 	if (odm->pid && !odm->buffer_playout_us) {
 		GF_FilterEvent evt;
 		const GF_PropertyValue *prop;
+		u32 tsdepth=0;
 		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 
 		odm->buffer_playout_us = scene->compositor->buf * 1000;
@@ -391,6 +392,12 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		prop = gf_filter_pid_get_property_str(for_pid ? for_pid : odm->pid, "BufferMaxOccupancy");
 		if (prop) odm->buffer_max_us = prop->value.uint;
 
+		prop = gf_filter_pid_get_property(for_pid ? for_pid : odm->pid, GF_PROP_PID_TIMESHIFT_DEPTH);
+		if (prop && prop->value.frac.den) {
+			tsdepth = (u32) ( ((u64)prop->value.frac.num) * 1000  / prop->value.frac.den);
+		}
+		gf_odm_set_timeshift_depth(odm, tsdepth);
+
 		if (odm->buffer_playout_us > odm->buffer_max_us) odm->buffer_max_us = odm->buffer_playout_us;
 
 		prop = gf_filter_pid_get_info(for_pid ? for_pid : odm->pid, GF_PROP_PID_FILE_CACHED);
@@ -403,6 +410,9 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		evt.buffer_req.min_playout_us = odm->buffer_min_us;
 		evt.buffer_req.max_playout_us = odm->buffer_playout_us;
 		gf_filter_pid_send_event(NULL, &evt);
+
+		if (odm->buffer_min_us>evt.buffer_req.max_playout_us)
+			odm->buffer_min_us = 0;
 	}
 
 
@@ -554,6 +564,12 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	ck = NULL;
 	flag = (s8) -1;
 	if (!pid) pid = odm->pid;
+
+	if (gf_sys_is_test_mode() && pid) {
+		GF_FilterPidStatistics stats;
+		gf_filter_pid_get_statistics(pid, &stats, GF_STATS_DECODER_SOURCE);
+		gf_filter_pid_get_packet_count(pid);
+	}
 
 	if (odm->ck) {
 		ck = odm->ck;
@@ -1000,7 +1016,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	if (odm->nb_buffering) {
 		assert(scene->nb_buffering>=odm->nb_buffering);
 		scene->nb_buffering -= odm->nb_buffering;
-		while (odm->nb_buffering) {
+		while (odm->nb_buffering && odm->ck) {
 			gf_clock_buffer_off(odm->ck);
 			odm->nb_buffering --;
 		}
@@ -1429,8 +1445,12 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 		odm->nb_buffering --;
 		assert(scene->nb_buffering);
 		scene->nb_buffering--;
+		//if eos while buffering, consider the last rebuffer an error
+		//fixeme, we need a way to probe for eos being "close" but not yet detected
+		if (odm->nb_rebuffer) odm->nb_rebuffer --;
 		if (!scene->nb_buffering) {
 			*signal_eob = GF_TRUE;
+			if (scene->nb_rebuffer) scene->nb_buffering--;
 		}
 		if (odm->ck)
 			gf_clock_buffer_off(odm->ck);
@@ -1486,7 +1506,17 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			if (an_odm->nb_buffering)
 	 			odm_update_buffer(scene, an_odm, an_odm->pid, &signal_eob);
 		}
+	} else if (odm->buffer_min_us && odm->pid && odm->ck && odm->ck->clock_init && !gf_filter_pid_has_seen_eos(odm->pid) ) {
+		u64 buffer_duration = gf_filter_pid_query_buffer_duration(odm->pid, GF_TRUE);
+		if (buffer_duration < odm->buffer_min_us) {
+			gf_clock_buffer_on(odm->ck);
+			odm->nb_buffering++;
+			odm->nb_rebuffer++;
+			if (!scene->nb_buffering) scene->nb_rebuffer++;
+			scene->nb_buffering++;
+		}
 	}
+
 	if (scene->nb_buffering || signal_eob)
 		gf_scene_buffering_info(scene);
 

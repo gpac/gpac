@@ -187,7 +187,7 @@ static GF_Err X11_InitOverlay(GF_VideoOutput *vout, u32 VideoWidth, u32 VideoHei
 
 	X11_DestroyOverlay(xwin);
 
-	xwin->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 0);
+	xwin->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 0);
 	if (xwin->xvport<0)
 		xwin->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YUY2, 0);
 
@@ -316,6 +316,7 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
  * Translate X_Key to GF_Key
  */
 //=====================================
+
 static void x11_translate_key(u32 X11Key, GF_EventKey *evt)
 {
 	evt->flags = 0;
@@ -1350,6 +1351,8 @@ static int X11_BadAccess_ByPass(Display * display,
                                 XErrorEvent * event)
 {
 	char msg[60];
+	if (!display) return 0;
+
 	if (event->error_code == BadAccess)
 	{
 		selectinput_err = 1;
@@ -1544,7 +1547,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 
 #ifdef GPAC_HAS_X11_SHM
 	sOpt = gf_opts_get_key("core", "hwvmem");
-	if (sOpt && !strcmp(sOpt, "yes")) {
+	if (!sOpt || strcmp(sOpt, "no")) {
 		int XShmMajor, XShmMinor;
 		Bool XShmPixmaps;
 		if (XShmQueryVersion(xWindow->display, &XShmMajor, &XShmMinor, &XShmPixmaps)) {
@@ -1561,13 +1564,13 @@ X11_SetupWindow (GF_VideoOutput * vout)
 #ifdef GPAC_HAS_X11_XV
 	sOpt = gf_opts_get_key("core", "no-colorkey");
 	if (sOpt && !strcmp(sOpt, "yes")) {
-		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 0);
+		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 0);
 	} else {
-		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 1);
+		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 1);
 		if (xWindow->xvport<0) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware has no color keying\n"));
 			vout->overlay_color_key = 0;
-			xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 0);
+			xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 0);
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware uses color key %08x\n", vout->overlay_color_key));
 		}
@@ -1822,6 +1825,12 @@ void *NewX11VideoOutput ()
 	driv->hw_caps = GF_VIDEO_HW_OPENGL;
 	/*fixme - needs a better detection scheme*/
 	driv->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+
+	if (gf_sys_is_test_mode()) {
+		GF_Event evt;
+		x11_translate_key(XK_BackSpace, &evt.key);
+		X11_BadAccess_ByPass(NULL, NULL);
+	}
 	return (void *) driv;
 
 }

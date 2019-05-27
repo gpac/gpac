@@ -60,7 +60,7 @@ void PrintLiveUsage()
 	        "-mtu=MTU   path MTU for RTP packets. Default is 1450 bytes\n"
 	        "-ifce=IFCE IP address of the physical interface to use. Default: NULL(ANY)\n"
 	        "-ttl=TTL   time to live for multicast packets. Default: 1\n"
-	        "-sdp=Name  ouput SDP file - default: session.sdp\n"
+	        "-sdp=Name  output SDP file - default: session.sdp\n"
 	        "\n"
 	        "-dims      turns on DIMS mode for SVG input - default: off\n"
 	        "-no-rap    disabled RAP sending - this also disables carousel generation. Default: off\n"
@@ -255,7 +255,7 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 		case GF_STREAM_SCENE:
 			rtpch->rtp = gf_rtp_streamer_new_extended(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr,
 			             GP_RTP_PCK_SYSTEMS_CAROUSEL, (char *) config, config_len,
-			             96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4);
+			             96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, GF_FALSE);
 
 			if (rtpch->rtp) {
 				gf_rtp_streamer_disable_auto_rtcp(rtpch->rtp);
@@ -363,7 +363,7 @@ int live_session(int argc, char **argv)
 	u32 ttl = 1;
 	u32 path_mtu = 1450;
 	s32 next_time;
-	u64 last_src_modif, mod_time;
+	u64 last_src_modif, mod_time, runfor=0, start_time;
 	char *src_name = NULL;
 	Bool run, has_carousel, no_rap;
 	Bool udp = 0;
@@ -409,6 +409,10 @@ int live_session(int argc, char **argv)
 		else if (!strnicmp(arg, "-tcp=", 5)) {
 			sk_port = atoi(arg+5);
 			udp = 0;
+		}
+		else if (!stricmp(arg, "-run-for")) {
+			runfor = 1 + 1000 * atoi(argv[i+1]);
+			i++;
 		}
 	}
 	if (!filename) {
@@ -487,6 +491,19 @@ int live_session(int argc, char **argv)
 
 	live_session_send_carousel(&livesess, NULL);
 
+
+	if (gf_sys_is_test_mode()) {
+		aggregate_on_stream = (u16) -1;
+		adjust_carousel_time = force_rap = discard_pending = signal_rap = signal_critical = 0;
+		aggregate_au = version_inc = 1;
+		period = -1;
+		ts_delta = 0;
+		es_id = 0;
+
+		set_broadcast_params(&livesess, es_id, period, ts_delta, aggregate_on_stream, adjust_carousel_time, force_rap, aggregate_au, discard_pending, signal_rap, signal_critical, version_inc);
+	}
+
+	start_time = gf_sys_clock_high_res();
 	check = 10;
 	run = 1;
 	while (run) {
@@ -721,6 +738,10 @@ int live_session(int argc, char **argv)
 			livesess.force_carousel = 0;
 			continue;
 		}
+
+		if (runfor && (gf_sys_clock_high_res() > start_time+runfor))
+			break;
+
 
 		if (!has_carousel) {
 			gf_sleep(10);

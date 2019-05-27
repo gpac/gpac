@@ -71,12 +71,14 @@ void gf_isom_datamap_del(GF_DataMap *ptr)
 //Close a data entry
 void gf_isom_datamap_close(GF_MediaInformationBox *minf)
 {
-	GF_DataEntryBox *ent;
+	GF_DataEntryBox *ent = NULL;
 	if (!minf || !minf->dataHandler) return;
 
-	ent = (GF_DataEntryBox*)gf_list_get(minf->dataInformation->dref->other_boxes, minf->dataEntryIndex - 1);
+	if (minf->dataInformation && minf->dataInformation->dref) {
+		ent = (GF_DataEntryBox*)gf_list_get(minf->dataInformation->dref->other_boxes, minf->dataEntryIndex - 1);
+	}
 
-	//if ent NULL, the data entry was not used (should never happen)
+	//if ent NULL, the data entry was not used (smooth)
 	if (ent == NULL) return;
 
 	//self contained, do nothing

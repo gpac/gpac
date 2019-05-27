@@ -54,7 +54,7 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 	char *frag_par = NULL;
 	char *cgi_par = NULL;
-	char *src;
+	char *src, *path;
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
 
@@ -69,6 +69,12 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	if (strnicmp(ctx->src, "file:/", 6) && strstr(ctx->src, "://"))  {
 		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
 		return GF_NOT_SUPPORTED;
+	}
+	path = strstr(ctx->src, "://");
+	if (path) path += 3;
+	if (path && strstr(path, "://")) {
+		ctx->is_end = GF_TRUE;
+		return gf_filter_pid_raw_new(filter, path, path, NULL, NULL, NULL, 0, &ctx->pid);
 	}
 
 	//local file
@@ -93,6 +99,8 @@ static GF_Err filein_initialize(GF_Filter *filter)
 		if (cgi_par) cgi_par[0] = '?';
 
 		gf_filter_setup_failure(filter, GF_URL_ERROR);
+		if (gf_sys_is_test_mode() && !strcmp(src, "blob"))
+			return GF_OK;
 		return GF_URL_ERROR;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] opening %s\n", src));
@@ -175,7 +183,9 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] Asked to seek source to range "LLU"-"LLU"\n", evt->seek.start_offset, evt->seek.end_offset));
 		ctx->is_end = GF_FALSE;
-		gf_fseek(ctx->file, evt->seek.start_offset, SEEK_SET);
+		if (ctx->file)
+			gf_fseek(ctx->file, evt->seek.start_offset, SEEK_SET);
+
 		ctx->file_pos = evt->seek.start_offset;
 		ctx->end_pos = evt->seek.end_offset;
 		if (ctx->end_pos>ctx->file_size) ctx->end_pos = ctx->file_size;

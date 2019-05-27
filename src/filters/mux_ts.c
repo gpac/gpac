@@ -27,6 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/mpegts.h>
 #include <gpac/iso639.h>
+#include <gpac/webvtt.h>
 
 typedef struct
 {
@@ -114,6 +115,8 @@ typedef struct
 	Bool rewrite_odf;
 	Bool has_seen_eods;
 	u32 pck_duration;
+
+	char *pck_data_buf;
 } M2Pid;
 
 static u32 tsmux_format_af_descriptor(char *af_data, u32 timeline_id, u64 timecode, u32 timescale, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time)
@@ -396,7 +399,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				diff *= 1000000;
 				diff /= tspid->esi.timescale;
 				assert(tspid->prog->cts_offset <= diff);
-				tspid->prog->cts_offset = (u32) diff;
+				tspid->prog->cts_offset += (u32) diff;
 
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU", adjusting all CTS by %d / %d!\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale));
 
@@ -416,6 +419,40 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		if (tspid->rewrite_odf) {
 			tsmux_rewrite_odf(tspid->ctx, &es_pck);
 		}
+
+		if (tspid->pck_data_buf) gf_free(tspid->pck_data_buf);
+		tspid->pck_data_buf = NULL;
+
+		//drop formatting for TX3G
+		if (tspid->codec_id == GF_CODECID_TX3G) {
+			u16 len = es_pck.data[0];
+			len<<=8;
+			len |= es_pck.data[1];
+			es_pck.data += 2;
+			es_pck.data_len = len;
+		}
+		//serialize webvtt cue formatting for TX3G
+		else if (tspid->codec_id == GF_CODECID_WEBVTT) {
+			u32 i;
+			u64 start_ts;
+			void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue);
+			GF_List *cues;
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+			start_ts = es_pck.cts * 1000;
+			start_ts /= tspid->esi.timescale;
+			cues = gf_webvtt_parse_cues_from_data(es_pck.data, es_pck.data_len, start_ts);
+			for (i = 0; i < gf_list_count(cues); i++) {
+				GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, i);
+				webvtt_write_cue(bs, cue);
+				gf_webvtt_cue_del(cue);
+			}
+			gf_list_del(cues);
+			gf_bs_get_content(bs, &es_pck.data, &es_pck.data_len);
+			gf_bs_del(bs);
+			tspid->pck_data_buf = es_pck.data;
+		}
+		//for TTML we keep the entire payload as a PES packet
 
 		tspid->nb_pck++;
 		ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &es_pck);
@@ -450,7 +487,7 @@ void update_m4sys_info(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog)
 		const GF_PropertyValue *p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_IN_IOD);
 		if (p && p->value.boolean) {
 			GF_ESD *esd = gf_odf_desc_esd_new(0);
-			esd->decoderConfig->objectTypeIndication = stream->ifce->object_type_indication;
+			esd->decoderConfig->objectTypeIndication = stream->ifce->codecid;
 			esd->decoderConfig->streamType = stream->ifce->stream_type;
 			esd->ESID = stream->ifce->stream_id;
 			esd->dependsOnESID = stream->ifce->depends_on_stream;
@@ -487,13 +524,8 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_DEPENDENCY_ID);
 	if (p) tspid->esi.depends_on_stream = p->value.uint;
-	if (tspid->codec_id< GF_CODECID_LAST_MPEG4_MAPPING)
-		tspid->esi.object_type_indication = tspid->codec_id;
-	else
-		tspid->esi.fourcc = tspid->codec_id;
 
-	if (tspid->codec_id < GF_CODECID_LAST_MPEG4_MAPPING)
-		tspid->esi.object_type_indication = tspid->codec_id;
+	tspid->esi.codecid = tspid->codec_id;
 
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_LANGUAGE);
 	if (p) {
@@ -565,7 +597,10 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 		if (turl[0]=='#') {
 			sscanf(turl, "#%d#", &service_id);
 			turl = strchr(turl+1, '#');
-			assert(turl);
+			if (!turl) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSMux] Invalid temi syntax, expecting #SID# but got nothing\n"));
+				return;
+			}
 			turl += 1;
 			idx = 0;
 		}
@@ -591,6 +626,7 @@ static void tsmux_del_stream(M2Pid *tspid)
 {
 	if (tspid->temi_url) gf_free(tspid->temi_url);
 	if (tspid->esi.sl_config) gf_free(tspid->esi.sl_config);
+	if (tspid->pck_data_buf) gf_free(tspid->pck_data_buf);
 	gf_free(tspid);
 }
 
@@ -686,7 +722,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		nb_progs = gf_m2ts_mux_program_count(ctx->mux);
 		if (nb_progs>1) {
 			if (ctx->dash_mode) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSMux] Muxing several propgrams (%d) in DASH mode is not allowed\n", nb_progs+1));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSMux] Muxing several programs (%d) in DASH mode is not allowed\n", nb_progs+1));
 				return GF_BAD_PARAM;
 			}
 			pmt_id += (nb_progs - 1) * 100;
@@ -1023,22 +1059,32 @@ static GF_Err tsmux_process(GF_Filter *filter)
 
 
 	nb_pck_in_pack=0;
-	while ((ts_pck = gf_m2ts_mux_process(ctx->mux, &status, &usec_till_next)) != NULL) {
+	while (1) {
 		char *output;
 		u32 osize;
+		Bool is_pack_flush = GF_FALSE;
 
-		tsmux_insert_sidx(ctx, GF_FALSE);
-
-		if (ctx->nb_pack>1) {
-			memcpy(ctx->pack_buffer + 188 * nb_pck_in_pack, ts_pck, 188);
-			nb_pck_in_pack++;
-
-			if (nb_pck_in_pack < ctx->nb_pack)
-				continue;
-
+		ts_pck = gf_m2ts_mux_process(ctx->mux, &status, &usec_till_next);
+		if (ts_pck == NULL) {
+			if (!nb_pck_in_pack)
+				break;
 			ts_pck = (const char *) ctx->pack_buffer;
+			is_pack_flush = GF_TRUE;
 		} else {
-			nb_pck_in_pack = 1;
+
+			tsmux_insert_sidx(ctx, GF_FALSE);
+
+			if (ctx->nb_pack>1) {
+				memcpy(ctx->pack_buffer + 188 * nb_pck_in_pack, ts_pck, 188);
+				nb_pck_in_pack++;
+
+				if (nb_pck_in_pack < ctx->nb_pack)
+					continue;
+
+				ts_pck = (const char *) ctx->pack_buffer;
+			} else {
+				nb_pck_in_pack = 1;
+			}
 		}
 		osize = nb_pck_in_pack * 188;
 		pck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
@@ -1053,16 +1099,21 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			ctx->dash_file_name[0] = 0;
 			ctx->next_is_start = GF_FALSE;
 		}
+
 		gf_filter_pck_send(pck);
 		ctx->nb_pck++;
 		ctx->nb_pck_in_seg++;
 		ctx->nb_pck_in_file++;
 		nb_pck_in_pack = 0;
 
+		if (is_pack_flush)
+			break;
+
 		if (status>=GF_M2TS_STATE_PADDING) {
 			break;
 		}
 	}
+
 	if (status==GF_M2TS_STATE_EOS) {
 		gf_filter_pid_set_eos(ctx->opid);
 		if (ctx->nb_pck_in_seg) {
@@ -1130,6 +1181,9 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 	}
 	ctx->pids = gf_list_new();
 	if (ctx->nb_pack>1) ctx->pack_buffer = gf_malloc(sizeof(char)*188*ctx->nb_pack);
+
+	if (gf_sys_is_test_mode())
+		gf_m2ts_get_sys_clock(ctx->mux);
 
 	return GF_OK;
 }
@@ -1206,16 +1260,20 @@ static const GF_FilterArgs TSMuxArgs[] =
 	{ OFFS(pat_rate), "interval between PAT in ms", GF_PROP_UINT, "200", NULL, 0},
 	{ OFFS(pcr_offset), "offsets all timestamps from PCR by V, in 90kHz. Default value is computed based on input media", GF_PROP_UINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mpeg4), "forces usage of MPEG-4 signaling (IOD and SL Config).\n"\
-				"none disables 4on2. full sends AUs as SL packets over section for OD, section/pes for scene (cf bifs_pes)\n"\
-				"scene sends only scene streams as 4on2 but uses regular PES without SL for audio and video\n"\
+				"\tnone: disables 4on2\n"\
+				"\tfull: sends AUs as SL packets over section for OD, section/pes for scene (cf bifs_pes)\n"\
+				"\tscene: sends only scene streams as 4on2 but uses regular PES without SL for audio and video"\
 				, GF_PROP_UINT, "none", "none|full|scene", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(pmt_version), "sets version number of the PMT", GF_PROP_UINT, "200", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(disc), "sets the discontinuity marker for the first packet of each stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(repeat_rate), "interval in ms between two carousel send for MPEG-4 systems. Is overriden by carousel duration PID property if defined", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(repeat_img), "interval in ms between resending (as PES) of single-image streams. If 0, image data is sent once only", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(max_pcr), "sets max interval in ms between 2 PCR", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(nb_pack), "packs N TS packets in output packets", GF_PROP_UINT, "1", NULL, 0},
-	{ OFFS(pes_pack), "Sets AU to PES packing mode. audio will pack only multiple audio AUs in a PES, none make exactly one AU per PES, all will pack multiple AUs per PES for all streams", GF_PROP_UINT, "audio", "audio|none|all", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(nb_pack), "packs N TS packets in output packets", GF_PROP_UINT, "4", NULL, 0},
+	{ OFFS(pes_pack), "Sets AU to PES packing mode.\n"\
+		"\taudio: will pack only multiple audio AUs in a PES\n"\
+		"\tnone: make exactly one AU per PES\n"\
+		"\tall will pack multiple AUs per PES for all streams", GF_PROP_UINT, "audio", "audio|none|all", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rt), "Forces real-time output", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(bifs_pes), "force sending BIFS streams as PES packets and not sections. copy mode disables timestamps in BIFS SL and only carries PES timestamps", GF_PROP_UINT, "off", "off|on|copy", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(flush_rap), "force flushing mux program when RAP is found on video, and injects PAT and PMT before the next video PES begin", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1242,16 +1300,21 @@ GF_FilterRegister TSMuxRegister = {
 	GF_FS_SET_DESCRIPTION("MPEG-2 Transport Stream muxer")
 	GF_FS_SET_HELP("GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.\n"\
 	 	"For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.\n"\
-		"Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in program with service ID inidcated by sid option\n"\
+		"Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in the program with service ID as indicated by sid option\n"\
 		"name option is overriden by input PID property ServiceName\n"\
 		"provider option is overriden by input PID property ServiceProvider\n"\
 		"\n"\
 		"The temi option allows specifying a list of URLs or timeline IDs to insert in the program.\n"
 		"Only a single TEMI timeline can be specified per PID.\n"
-		"The syntax is\n"\
-		"temi=\"url,4\": inserts a temi URL+timecode to the first stream of all progrrams and an external temi to the second stream of all programs\n"\
-		"temi=\"#20#,4#10#URL\": inserts a temi URL+timecode to the first stream of program with ServiceID 10 and an external temi to the second stream of program with ServiceID 20\n"\
-		"temi=\"#20#4#10#,,URL\": inserts a temi URL+timecode to the third stream of program with ServiceID 10 and an external temi to the first stream of program with ServiceID 20\n"\
+		"The syntax is a comma-separated list of one or more TEMI description, each of them separated by '#'\n"
+		"Each TEMI description is formated as #ServiceID#ID_OR_URL, with:\n"\
+		"\tServiceID: optional, number indicating the target serviceID\n"\
+		"\tID_OR_URL: If numbern indicates the TEMI ID to use for external timeline. Otherwise, gives the URL to insert\n"\
+		"Each comma-separated description designs a stream index in the target service. Ex:\n"\
+		"temi=\"url\": inserts a temi URL+timecode in the first stream of all programs\n"\
+		"temi=\"url,4\": inserts a temi URL+timecode in the first stream of all programs and an external temi with ID 4 in the second stream of all programs\n"\
+		"temi=\"#20#4,#10#URL\": inserts an external temi with ID 4 in the first stream of program with ServiceID 20 and a temi URL to the second stream of program with ServiceID 10\n"\
+		"temi=\"#20#4,,#10#URL\": inserts an external temi with ID 4 in the first stream of program with ServiceID 20 and a temi URL to the third stream of program with ServiceID 10 (and nothing on second stream)\n"\
 		"\n"\
 		"In DASH mode, the PCR is always initialized at 0, and flush_rap is automatically set.\n"
 	)

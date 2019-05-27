@@ -168,11 +168,10 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, 
 GF_EXPORT
 void gf_mo_unload_xlink_resource(GF_Node *node, GF_MediaObject *mo)
 {
-	if (!mo) return;
-
-	if (!mo->odm->subscene) {
+	if (!mo || !mo->odm || !mo->odm->subscene) {
 		return;
 	}
+
 	if (mo->num_open) {
 		mo->num_open--;
 		if (!mo->num_open) {

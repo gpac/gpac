@@ -68,7 +68,9 @@ void dom_node_set_textContent(GF_Node *n, char *text);
 
 jsval dom_node_get_sibling(JSContext *c, GF_Node *n, Bool is_prev, Bool elt_only);
 
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 void html_media_init_js_api(GF_SceneGraph *scene);
+#endif
 
 #define _ScriptMessage(_sg, _msg) {\
 			GF_JSAPIParam par;	\
@@ -2270,15 +2272,19 @@ jsval svg_udom_new_point(JSContext *c, Fixed x, Fixed y)
 	return OBJECT_TO_JSVAL(p);
 }
 
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 void *html_get_element_class(GF_Node *n);
+#endif
 
 void *svg_get_element_class(GF_Node *n)
 {
 	if (!n) return NULL;
 	if ((n->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG)) {
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 		if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
 			return html_get_element_class(n);
 		}
+#endif
 		return &svg_rt->svgElement;
 	}
 	return NULL;
@@ -2578,7 +2584,9 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 	return (ret==JS_FALSE) ? GF_FALSE : GF_TRUE;
 }
 
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 void html_media_js_api_del();
+#endif
 
 void gf_svg_script_context_del(GF_SVGJS *svg_js, GF_SceneGraph *scenegraph)
 {
@@ -2592,8 +2600,10 @@ void gf_svg_script_context_del(GF_SVGJS *svg_js, GF_SceneGraph *scenegraph)
 	assert(svg_rt);
 	svg_rt->nb_inst--;
 	if (!svg_rt->nb_inst) {
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 		/* HTML */
 		html_media_js_api_del();
+#endif
 		gf_free(svg_rt);
 		svg_rt = NULL;
 	}
@@ -2659,8 +2669,11 @@ GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 	/*load SVG & DOM APIs*/
 	svg_init_js_api(sg);
 
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 	/* HTML */
 	html_media_init_js_api(sg);
+#endif
+
 
 	svg_js->script_execute = svg_script_execute;
 	svg_js->handler_execute = svg_script_execute_handler;
@@ -2819,7 +2832,7 @@ void JSScript_LoadSVG(GF_Node *node)
 	else if (node->sgprivate->tag == TAG_SVG_script) {
 		txt = svg_get_text_child(node);
 		if (!txt) return;
-		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, (u32) strlen(txt->textContent), 0, 0, &rval);
+		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, txt->textContent, (u32) strlen(txt->textContent), NULL, 0, &rval);
 		if (ret==JS_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("SVG: Invalid script\n") );
 		}

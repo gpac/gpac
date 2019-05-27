@@ -76,7 +76,7 @@ lcov_only:
 	@echo "Generating lcov info in coverage.info"
 	@rm -f ./gpac-conf-* > /dev/null
 	@lcov -q -capture --directory . --output-file all.info
-	@lcov --remove all.info */usr/* */opt/* */include/* --output coverage.info
+	@lcov --remove all.info '*/usr/*' '*/opt/*' '*/include/*' '*/validator/*' --output coverage.info
 	@rm all.info
 	@echo "Purging lcov info"
 	@cd src ; for dir in * ; do cd .. ; sed -i -- "s/$$dir\/$$dir\//$$dir\//g" coverage.info; cd src; done ; cd ..
@@ -107,11 +107,6 @@ ifeq ($(DISABLE_ISOFF), no)
 	if [ -f bin/gcc/MP4Box$(EXE_SUFFIX) ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
 	fi
-ifneq ($(MP4BOX_STATIC), yes)
-	if [ -f bin/gcc/MP42TS$(EXE_SUFFIX) ] ; then \
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP42TS$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
-	fi
-endif
 endif
 ifneq ($(MP4BOX_STATIC), yes)
 ifeq ($(DISABLE_PLAYER), no)
@@ -173,7 +168,6 @@ lninstall:
 	ln -sf $(BUILD_PATH)/bin/gcc/gpac$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/gpac$(EXE_SUFFIX)
 ifeq ($(DISABLE_ISOFF), no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Box$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Box$(EXE_SUFFIX)
-	ln -sf $(BUILD_PATH)/bin/gcc/MP42TS$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP42TS$(EXE_SUFFIX)
 endif
 ifneq ($(MP4BOX_STATIC),yes)
 ifeq ($(DISABLE_PLAYER), no)
@@ -203,8 +197,6 @@ endif
 	rm -rf $(DESTDIR)$(prefix)/$(libdir)/pkgconfig/gpac.pc
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Box
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Client
-	rm -rf $(DESTDIR)$(prefix)/bin/MP42TS
-	rm -rf $(DESTDIR)$(prefix)/bin/DashCast
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4box.1
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4client.1
 	rm -rf $(DESTDIR)$(mandir)/man1/gpac.1

@@ -110,7 +110,7 @@ static GF_Err compose_process(GF_Filter *filter)
 			n /= 1000;
 			if (n>=ctx->dur)
 				ctx->check_eos_state = 2;
-			else if (!ret && ctx->vfr && !ctx->check_eos_state && !nb_sys_streams_active && ctx->scene_sampled_clock) {
+			else if (!ret && ctx->vfr && !ctx->check_eos_state && !nb_sys_streams_active && ctx->scene_sampled_clock && !ctx->validator_mode) {
 				ctx->check_eos_state = 1;
 				if (!ctx->validator_mode)
 					ctx->force_next_frame_redraw = GF_TRUE;
@@ -597,6 +597,10 @@ GF_Err compose_initialize(GF_Filter *filter)
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC(ctx->fps) );
 
+	//for coverage
+	if (gf_sys_is_test_mode())
+		compose_update_arg(filter, NULL, NULL);
+
 	//always request a process task since we don't depend on input packets arrival (animations, pure scene presentations)
 	gf_filter_post_process_task(filter);
 	return GF_OK;
@@ -661,6 +665,8 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(buf), "playout buffer in ms. Overriden by BufferLenth property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(rbuf), "rebuffer trigger in ms. Overriden by RebufferLenth property of input pid", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(mbuf), "max buffer in ms (must be greater than playout buffer). Overriden by BufferMaxOccupancy property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
+
+	{ OFFS(nojs), "disables javascript", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 #ifndef GPAC_DISABLE_3D
 	{ OFFS(ogl), "specifies 2D rendering mode.\nPossible values are:\n"\

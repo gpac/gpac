@@ -118,7 +118,7 @@ const char *gf_stream_type_name(u32 streamType);
  *	Supported pixel formats for everything using video
 */
 #ifndef GF_4CC
-#define GF_4CC(a,b,c,d) (((a)<<24)|((b)<<16)|((c)<<8)|(d))
+#define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|(d))
 #endif
 typedef enum
 {
@@ -405,7 +405,6 @@ enum
 
 	/*! codecid for subtitle/text streams in tx3g / apple text format*/
 	GF_CODECID_TX3G = GF_4CC( 't', 'x', '3', 'g' ),
-
 
 	/*!
 	 * \brief OGG DecoderConfig
@@ -932,13 +931,14 @@ typedef enum {
 	ID3V2_FRAME_RVRB = GF_4CC('R','V','R','B'),
 	ID3V2_FRAME_SYLT = GF_4CC('S','Y','L','T'),
 	ID3V2_FRAME_SYTC = GF_4CC('S','Y','T','C'),
-	ID3V2_FRAME_TALB = GF_4CC('T','E','N','C'),
+	ID3V2_FRAME_TALB = GF_4CC('T','A','L','B'),
 	ID3V2_FRAME_TBPM = GF_4CC('T','B','P','M'),
 	ID3V2_FRAME_TCOM = GF_4CC('T','C','O','M'),
 	ID3V2_FRAME_TCON = GF_4CC('T','C','O','N'),
 	ID3V2_FRAME_TCOP = GF_4CC('T','C','O','P'),
 	ID3V2_FRAME_TDAT = GF_4CC('T','D','A','T'),
 	ID3V2_FRAME_TDLY = GF_4CC('T','D','L','Y'),
+	ID3V2_FRAME_TDRC = GF_4CC('T','D','R','C'),
 	ID3V2_FRAME_TENC = GF_4CC('T','E','N','C'),
 	ID3V2_FRAME_TEXT = GF_4CC('T','E','X','T'),
 	ID3V2_FRAME_TFLT = GF_4CC('T','F','L','T'),

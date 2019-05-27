@@ -602,6 +602,8 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType
 
 	if (tk_box) {
 		GF_BitStream *bs = gf_bs_new(tk_box, tk_box_size, GF_BITSTREAM_READ);
+		gf_bs_set_cookie(bs, 1);
+
 		e = gf_isom_box_parse_ex((GF_Box**)&trak, bs, GF_ISOM_BOX_TYPE_MOOV, GF_FALSE);
 		gf_bs_del(bs);
 		if (e) trak = NULL;
@@ -3150,8 +3152,11 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u3
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
 
 	//don't serialize dref
-	dref = trak->Media->information->dataInformation->dref;
-	trak->Media->information->dataInformation->dref = NULL;
+	dref = NULL;
+	if (trak->Media->information->dataInformation) {
+		dref = trak->Media->information->dataInformation->dref;
+		trak->Media->information->dataInformation->dref = NULL;
+	}
 
 	//don't serialize stbl
 	stbl = trak->Media->information->sampleTable;
@@ -3181,7 +3186,8 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u3
 	gf_bs_del(bs);
 
 	//restore our pointers
-	trak->Media->information->dataInformation->dref = dref;
+	if (dref)
+		trak->Media->information->dataInformation->dref = dref;
 	trak->Media->information->sampleTable = stbl;
 	if (senc) {
 		trak->sample_encryption = senc;

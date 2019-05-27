@@ -98,28 +98,6 @@ enum {
 	GF_NODE_RANGE_FIRST_SVG,
 	GF_NODE_RANGE_LAST_SVG = GF_NODE_RANGE_FIRST_SVG+100,
 
-	/*range for XBL*/
-	GF_NODE_RANGE_FIRST_XBL,
-	TAG_XBL_bindings = GF_NODE_RANGE_FIRST_XBL,
-	TAG_XBL_binding,
-	TAG_XBL_content,
-	TAG_XBL_children,
-	TAG_XBL_implementation,
-	TAG_XBL_constructor,
-	TAG_XBL_destructor,
-	TAG_XBL_field,
-	TAG_XBL_property,
-	TAG_XBL_getter,
-	TAG_XBL_setter,
-	TAG_XBL_method,
-	TAG_XBL_parameter,
-	TAG_XBL_body,
-	TAG_XBL_handlers,
-	TAG_XBL_handler,
-	TAG_XBL_resources,
-	TAG_XBL_stylesheet,
-	TAG_XBL_image,
-	GF_NODE_RANGE_LAST_XBL,
 };
 
 

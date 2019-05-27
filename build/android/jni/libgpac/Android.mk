@@ -213,6 +213,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/out_audio.c \
 	../../../../src/filters/out_file.c \
 	../../../../src/filters/out_rtp.c \
+	../../../../src/filters/out_rtsp.c \
 	../../../../src/filters/out_sock.c \
 	../../../../src/filters/reframe_ac3.c \
 	../../../../src/filters/reframe_adts.c \
@@ -297,8 +298,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/media_tools/dsmcc.c \
 	../../../../src/media_tools/dvb_mpe.c \
 	../../../../src/media_tools/gpac_ogg.c \
-	../../../../src/media_tools/html5_media.c \
-	../../../../src/media_tools/html5_mse.c \
 	../../../../src/media_tools/img.c \
 	../../../../src/media_tools/isom_hinter.c \
 	../../../../src/media_tools/isom_tools.c \
@@ -330,8 +329,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/scenegraph/commands.c \
 	../../../../src/scenegraph/dom_events.c \
 	../../../../src/scenegraph/dom_smjs.c \
-	../../../../src/scenegraph/html5_media_smjs.c \
-	../../../../src/scenegraph/html5_mse_smjs.c \
 	../../../../src/scenegraph/mpeg4_animators.c \
 	../../../../src/scenegraph/mpeg4_nodes.c \
 	../../../../src/scenegraph/mpeg4_valuator.c \
@@ -348,7 +345,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/scenegraph/vrml_smjs.c \
 	../../../../src/scenegraph/vrml_tools.c \
 	../../../../src/scenegraph/x3d_nodes.c \
-	../../../../src/scenegraph/xbl_process.c \
 	../../../../src/scenegraph/xml_ns.c \
 	../../../../src/scene_manager/encode_isom.c \
 	../../../../src/scene_manager/loader_bt.c \

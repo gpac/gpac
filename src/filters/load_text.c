@@ -131,26 +131,6 @@ enum
 	}	\
  
 
-s32 gf_text_get_utf_type_data(const u8 *BOM)
-{
-	if ((BOM[0]==0xFF) && (BOM[1]==0xFE)) {
-		/*UTF32 not supported*/
-		if (!BOM[2] && !BOM[3]) return -1;
-		return 3;
-	}
-	if ((BOM[0]==0xFE) && (BOM[1]==0xFF)) {
-		/*UTF32 not supported*/
-		if (!BOM[2] && !BOM[3]) return -1;
-		return 2;
-	} else if ((BOM[0]==0xEF) && (BOM[1]==0xBB) && (BOM[2]==0xBF)) {
-		return 1;
-	}
-	if (BOM[0]<0x80) {
-		return 0;
-	}
-	return -1;
-}
-
 s32 gf_text_get_utf_type(FILE *in_src)
 {
 	u32 read;
@@ -1038,12 +1018,6 @@ static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx)
 	if (e < GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] WebVTT process error %s\n", gf_error_to_string(e) ));
 	}
-
-	/*do not add any empty sample at the end since it modifies track duration and is not needed - it is the player job
-	to figure out when to stop displaying the last text sample
-	However update the last sample duration*/
-//	gf_isom_set_last_sample_duration(import->dest, track, (u32) gf_webvtt_parser_last_duration(ctx->vttparser));
-	
 	return e;
 }
 

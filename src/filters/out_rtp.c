@@ -35,7 +35,7 @@
 #include <gpac/base_coding.h>
 #include <gpac/rtp_streamer.h>
 
-typedef struct __tag_rtp_track
+typedef struct
 {
 	GF_RTPStreamer *rtp;
 	u16 port;
@@ -89,8 +89,8 @@ typedef struct
 {
 	//options
 	char *ip;
-	u16 port;
-	Bool loop;
+	u32 port;
+	Bool loop, xps;
 	Bool mpeg4;
 	u32 mtu;
 	u32 ttl;
@@ -242,7 +242,7 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 			if (p) h = p->value.uint;
 		}
 
-		gf_rtp_streamer_append_sdp_extended(stream->rtp, stream->id, dsi, dsi_len, dsi_enh, dsi_enh_len, (char *)KMS, w, h, tw, th, tx, ty, tl, &sdp_media);
+		gf_rtp_streamer_append_sdp_extended(stream->rtp, stream->id, dsi, dsi_len, dsi_enh, dsi_enh_len, (char *)KMS, w, h, tw, th, tx, ty, tl, GF_FALSE, &sdp_media);
 
 		if (ctx->base_pid_id) {
 			u32 size, j;
@@ -452,7 +452,9 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (stream->rtp && (cfg_crc==stream->cfg_crc))
 		return GF_OK;
 
-	if (stream->cfg_crc)
+	if (ctx->xps)
+		stream->inject_ps = GF_TRUE;
+	else if (stream->cfg_crc)
 		stream->inject_ps = GF_TRUE;
 	stream->cfg_crc = cfg_crc;
 
@@ -575,7 +577,7 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				 flags, dsi, dsi_len,
 				 payt, samplerate, nb_ch,
 				 is_crypted, IV_length, KI_length,
-				 average_size, max_size, max_tsdelta, max_cts_offset, const_dur, bandwidth, max_ptime, au_sn_len);
+				 average_size, max_size, max_tsdelta, max_cts_offset, const_dur, bandwidth, max_ptime, au_sn_len, GF_FALSE);
 
 	if (!stream->rtp) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Could not initialize RTP for stream %s: %s\n", gf_filter_pid_get_name(pid), gf_error_to_string(e)));
@@ -1001,6 +1003,7 @@ static const GF_FilterArgs RTPOutArgs[] =
 	{ OFFS(tt), "time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away", GF_PROP_UINT, "1000", NULL, 0},
 	{ OFFS(runfor), "run for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, 0},
 	{ OFFS(tso), "sets timestamp offset in microsecs. Negative value means random initial timestamp", GF_PROP_SINT, "-1", NULL, 0},
+	{ OFFS(xps), "force parameter set injection at each SAP. If not set, only inject if different from SDP ones", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 

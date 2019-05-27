@@ -614,7 +614,7 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			timing->RepeatInterval = SDP_MakeSeconds(comp);
 			pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
 			timing->ActiveDuration = SDP_MakeSeconds(comp);
-			while (1) {
+			while (pos>=0) {
 				pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
 				if (pos <= 0) break;
 				timing->OffsetFromStart[timing->NbRepeatOffsets] = SDP_MakeSeconds(comp);
@@ -870,7 +870,7 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 		SDP_WRITE_ALLOC_STR("\r\n", 0);		\
 	}
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 {
 	char *buf;
@@ -1165,5 +1165,7 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 	*out_str_buf = buf;
 	return GF_OK;
 }
+#endif
+
 
 #endif /*GPAC_DISABLE_STREAMING*/

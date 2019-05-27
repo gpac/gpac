@@ -1976,7 +1976,6 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 	}
 #ifndef GPAC_DISABLE_SVG
 	else if (tag <= GF_NODE_RANGE_LAST_SVG) node = (GF_Node *) gf_svg_create_node(tag);
-	else if (tag <= GF_NODE_RANGE_LAST_XBL) node = (GF_Node *) gf_xbl_create_node(tag);
 #endif
 	else node = NULL;
 

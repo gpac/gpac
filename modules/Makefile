@@ -29,11 +29,6 @@ else
 PLUGDIRS+=freenect
 endif
 
-ifeq ($(CONFIG_OSS_AUDIO), no)
-else
-PLUGDIRS+=oss_audio
-endif
-
 ifeq ($(CONFIG_ALSA), yes)
 PLUGDIRS+=alsa
 endif

@@ -144,7 +144,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 		break;
 	}
 
-	if (arg_type!=GF_FILTER_ARG_EXPLICIT_SOURCE) {
+	if ((arg_type!=GF_FILTER_ARG_EXPLICIT_SOURCE) && (arg_type!=GF_FILTER_ARG_EXPLICIT)) {
 		src_striped = gf_filter_get_args_stripped(fsess, src_args, GF_FALSE);
 	}
 
@@ -676,12 +676,32 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 
 static const char *gf_filter_load_arg_config(const char *sec_name, const char *arg_name, const char *arg_val)
 {
+	Bool gf_sys_has_filter_global_args();
 	const char *opt;
+
+	//look in global args
+	if (gf_sys_has_filter_global_args()) {
+		u32 alen = (u32) strlen(arg_name);
+		u32 i, nb_args = gf_sys_get_argc();
+		for (i=0; i<nb_args; i++) {
+			const char *arg = gf_sys_get_arg(i);
+			if (arg[0]!='-') continue;
+			if (arg[1]!='-') continue;
+			if (!strncmp(arg+2, arg_name, alen)) {
+				char *sep = strchr(arg, '=');
+				if (sep) return sep+1;
+				//no arg value means boolean true
+				else return "true";
+			}
+		}
+	}
+
+	//look in config file
 	opt = gf_opts_get_key(sec_name, arg_name);
 	if (opt)
 		return opt;
 
-	//keep MP4Client behaviour: some options are set in MP4Client main apply them
+	//ifce (used by socket and keep MP4Client behaviour: some options are set in MP4Client main apply them
 	if (!strcmp(arg_name, "ifce")) {
 		opt = gf_opts_get_key("core", "ifce");
 		if (opt)
@@ -691,25 +711,29 @@ static const char *gf_filter_load_arg_config(const char *sec_name, const char *a
 	return arg_val;
 }
 
-static Bool gf_filter_has_arg(GF_Filter *filter, const char *arg_name)
-{
-	u32 i=0;
-	while (filter->freg->args) {
-		const GF_FilterArgs *a = &filter->freg->args[i];
-		if (!a || !a->arg_name) break;
-		i++;
-		if (!strcmp(a->arg_name, arg_name)) return GF_TRUE;
-	}
-	return GF_FALSE;
-}
-
 static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *filter)
 {
+	GF_PropertyValue argv;
+	Bool gf_sys_has_filter_global_meta_args();
 	u32 i, key_count = gf_opts_get_key_count(sec_name);
+
+	FSESS_CHECK_THREAD(filter)
+
 	for (i=0; i<key_count; i++) {
-		GF_PropertyValue argv;
+		Bool arg_found = GF_FALSE;
+		u32 k=0;
 		const char *arg_val, *arg_name = gf_opts_get_key_name(sec_name, i);
-		if (gf_filter_has_arg(filter, arg_name)) continue;
+		//check if this is a regular arg, if so don't process it
+		while (filter->freg->args) {
+			const GF_FilterArgs *a = &filter->freg->args[k];
+			if (!a || !a->arg_name) break;
+			k++;
+			if (!strcmp(a->arg_name, arg_name)) {
+				arg_found = GF_TRUE;
+				break;
+			}
+		}
+		if (arg_found) continue;
 
 		arg_val = gf_opts_get_key(sec_name, arg_name);
 		if (!arg_val) continue;
@@ -717,8 +741,27 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		memset(&argv, 0, sizeof(GF_PropertyValue));
 		argv.type = GF_PROP_STRING;
 		argv.value.string = (char *) arg_val;
-		FSESS_CHECK_THREAD(filter)
 		filter->freg->update_arg(filter, arg_name, &argv);
+	}
+	if (!gf_sys_has_filter_global_meta_args()) return;
+
+	key_count = gf_sys_get_argc();
+	for (i=0; i<key_count; i++) {
+		char szArg[100];
+		const char *sep, *arg = gf_sys_get_arg(i);
+		if (arg[0] != '-') continue;
+		if (arg[1] != '+') continue;
+		arg+=2;
+		sep = strchr(arg, '=');
+		memset(&argv, 0, sizeof(GF_PropertyValue));
+		argv.type = GF_PROP_STRING;
+		if (sep) {
+			strncpy(szArg, arg, sizeof(char)* (sep - arg) );
+			argv.value.string = (char *) sep+1;
+		} else {
+			strncpy(szArg, arg, sizeof(char)* strlen(arg) );
+		}
+		filter->freg->update_arg(filter, szArg, &argv);
 	}
 }
 
@@ -758,8 +801,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		GF_PropertyValue argv;
 		const char *def_val;
 		const GF_FilterArgs *a = &filter->freg->args[i];
-		i++;
 		if (!a || !a->arg_name) break;
+		i++;
 		if (a->flags & GF_FS_ARG_META) {
 			has_meta_args = GF_TRUE;
 			continue;
@@ -1022,6 +1065,10 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			} else if (!strcmp("clone", szArg)) {
 				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT))
 					filter->clonable=GF_TRUE;
+				found = GF_TRUE;
+			}
+			//codec for generic enc load
+			else if (!strcmp("c", szArg)) {
 				found = GF_TRUE;
 			} else if (!strcmp("N", szArg)) {
 				gf_filter_set_name(filter, value);
@@ -1517,7 +1564,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 			kill_filter = GF_TRUE;
 		}
 	} else {
-		if ((!filter->nb_pck_io && filter->pending_packets) || for_reconnection) {
+		if ((!filter->nb_pck_io && filter->pending_packets && (filter->nb_pids_playing>0) ) || for_reconnection) {
 			filter->nb_consecutive_errors++;
 
 			if (filter->nb_consecutive_errors >= 100000) {
@@ -1863,8 +1910,14 @@ struct _gf_filter_setup_failure
 static void gf_filter_setup_failure_task(GF_FSTask *task)
 {
 	s32 res;
+	GF_Err e;
 	GF_Filter *f = ((struct _gf_filter_setup_failure *)task->udta)->filter;
-	gf_free(task->udta);
+	if (task->udta) {
+		e = ((struct _gf_filter_setup_failure *)task->udta)->e;
+		gf_free(task->udta);
+
+		f->session->last_connect_error = e;
+	}
 
 	if (!f->finalized && f->freg->finalize) {
 		FSESS_CHECK_THREAD(f)
@@ -2179,11 +2232,9 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 		 break;
 	}
 
-
 	gf_free(filter->filter_udta);
 	filter->filter_udta = NULL;
 	if (!src_url) return GF_FALSE;
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Swaping source filter for URL %s\n", src_url));
 
 	target_filter = filter->target_filter;
@@ -2191,15 +2242,14 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 	gf_fs_load_source_dest_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit);
 	//we manage to reassign an input registry
 	if (e==GF_OK) {
+		gf_free(src_url);
 		if (target_filter) filter->dst_filter = NULL;
 		return GF_TRUE;
 	}
 	if (!filter->finalized) {
+		gf_free(src_url);
 		return gf_filter_swap_source_registry(filter);
 	}
-	
-	//nope ...
-	gf_filter_setup_failure(filter, e);
 
 	for (i=0; i<gf_list_count(filter->destination_links); i++) {
 		GF_Filter *af = gf_list_get(filter->destination_links, i);
@@ -2210,9 +2260,12 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 				pidi->is_end_of_stream = GF_TRUE;
 			}
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to find any filter for for URL %s, disabling destination filter %s\n", src_url, af->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to find any filter for URL %s, disabling destination filter %s\n", src_url, af->name));
 		af->removed = GF_TRUE;
 	}
+	//nope ...
+	gf_filter_setup_failure(filter, e);
+	gf_free(src_url);
 	return GF_FALSE;
 }
 
@@ -2305,9 +2358,7 @@ void gf_filter_make_sticky(GF_Filter *filter)
 	if (filter) filter->sticky = 1;
 }
 
-//recursievely go up the filter chain and count queued events
-//THIS FUNCTION IS NOT THREAD SAFE
-u32 gf_filter_get_num_events_queued(GF_Filter *filter)
+static u32 gf_filter_get_num_events_queued_internal(GF_Filter *filter)
 {
 	u32 i;
 	u32 nb_events = 0;
@@ -2323,6 +2374,23 @@ u32 gf_filter_get_num_events_queued(GF_Filter *filter)
 		}
 	}
 	return nb_events;
+}
+GF_EXPORT
+u32 gf_filter_get_num_events_queued(GF_Filter *filter)
+{
+	u32 res;
+	GF_FilterSession *fsess;
+	if (!filter) return 0;
+	fsess = filter->session;
+
+	if (fsess->filters_mx)
+		gf_mx_p(fsess->filters_mx);
+
+	res = gf_filter_get_num_events_queued_internal(filter);
+	if (fsess->filters_mx)
+		gf_mx_v(fsess->filters_mx);
+
+	return res;
 }
 
 GF_EXPORT
@@ -2469,9 +2537,17 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	if (url) {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(url));
 
-		sep = gf_file_basename(url);
+		if (!strnicmp(url, "isobmff://", 10)) {
+			gf_filter_pid_set_name(pid, "isobmff://");
+			fext = "mp4";
+			mime_type = "video/mp4";
+			if (is_new_pid)
+				gf_filter_pid_set_eos(pid);
+		} else {
+			sep = gf_file_basename(url);
 
-		gf_filter_pid_set_name(pid, sep);
+			gf_filter_pid_set_name(pid, sep);
+		}
 
 		if (fext) {
 			strncpy(tmp_ext, fext, 20);
@@ -2564,7 +2640,7 @@ GF_EXPORT
 const char *gf_filter_get_arg(GF_Filter *filter, const char *arg_name, char dump[GF_PROP_DUMP_ARG_SIZE])
 {
 	u32 i=0;
-	while (1) {
+	while (filter) {
 		GF_PropertyValue p;
 		const GF_FilterArgs *arg = &filter->freg->args[i];
 		if (!arg || !arg->arg_name) break;
@@ -2672,7 +2748,7 @@ Bool gf_filter_all_sinks_done(GF_Filter *filter)
 {
 	u32 i, count;
 	Bool res = GF_TRUE;
-	if (filter->session->in_final_flush || (filter->session->run_status==GF_EOS) )
+	if (!filter || filter->session->in_final_flush || (filter->session->run_status==GF_EOS) )
 		return GF_TRUE;
 		
 	gf_mx_p(filter->session->filters_mx);
@@ -2786,4 +2862,11 @@ void gf_filter_disable_probe(GF_Filter *filter)
 {
 	if (filter)
 	 	filter->no_probe = GF_TRUE;
+}
+
+GF_EXPORT
+void gf_filter_disable_inputs(GF_Filter *filter)
+{
+	if (filter)
+	 	filter->no_inputs = GF_TRUE;
 }

@@ -230,6 +230,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		case GF_M2TS_AUDIO_AC3:
 			stype = GF_STREAM_AUDIO;
 			codecid = GF_CODECID_AC3;
+			unframed = GF_TRUE;
 			break;
 		case GF_M2TS_AUDIO_EC3:
 			stype = GF_STREAM_AUDIO;
@@ -251,6 +252,11 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			m4sys_stream = GF_TRUE;
 			//cannot setup stream yet
 			if (!esd) return;
+			break;
+		case GF_M2TS_METADATA_PES:
+		case GF_M2TS_METADATA_ID3_HLS:
+			stype = GF_STREAM_METADATA;
+			codecid = GF_CODECID_SIMPLE_TEXT;
 			break;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type %d not supported - ignoring pid\n", stream->stream_type));
@@ -435,9 +441,9 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 
 	gf_filter_pck_send(dst_pck);
 
-	if (pck->version_number == pck->stream->slcfg->predefined)
+	if (pck->version_number + 1 == pck->stream->slcfg->carousel_version)
 		return;
-	pck->stream->slcfg->predefined = pck->version_number;
+	pck->stream->slcfg->carousel_version = 1 + pck->version_number;
 
 
 	if (pck->stream->flags & GF_M2TS_ES_IS_MPEG4_OD) {

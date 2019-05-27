@@ -212,7 +212,7 @@ void PrintGeneralUsage()
 void PrintDASHUsage()
 {
 	fprintf(stderr, "DASH Options:\n"
-	        " -mpd m3u8            converts HLS manifest (local or remote http) to MPD\n"
+	        " -mpd URL            converts HLS or smooth manifest (local or remote http) to MPD\n"
 	        "                       Note: not compatible with other DASH options (except -out and -tmp) and does not convert associated segments\n"
 	        " -dash dur            enables DASH-ing of the file(s) with a segment duration of DUR ms\n"
 	        "                       Note: the duration of a fragment (subsegment) is set\n"
@@ -512,6 +512,7 @@ void PrintImportUsage()
 	        " \":rate=VAL\"          forces average rate and max rate to VAL (in bps) in btrt box. If 0, removes btrt box\n"
 	        "\n"
 	        " \":fstat\"   			prints filter session stats after import\n"
+	        " \":fgraph\"   		prints filter session graph after import\n"
 	        " \":sopt:[OPTS]\"      set OPTS as additionnal arguments to source filter. OPTS can be any usual filter argument, see gpac -h\n"
 	        " \":dopt:[OPTS]\"      set OPTS as additionnal arguments to destination (ISOBMF muxer) filter. OPTS can be any usual filter argument, see gpac -h\n"
 	        "\n"
@@ -3026,74 +3027,75 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			i++;
 		}
 #endif
-else if (!stricmp(arg, "-languages")) {
-	PrintLanguages();
-	return 1;
-}
-else if (!stricmp(arg, "-h")) {
-	if (i + 1 == (u32)argc) PrintUsage();
-	else if (!strcmp(argv[i + 1], "general")) PrintGeneralUsage();
-	else if (!strcmp(argv[i + 1], "extract")) PrintExtractUsage();
-	else if (!strcmp(argv[i + 1], "dash")) PrintDASHUsage();
-	else if (!strcmp(argv[i + 1], "dump")) PrintDumpUsage();
-	else if (!strcmp(argv[i + 1], "import")) PrintImportUsage();
-	else if (!strcmp(argv[i + 1], "format")) PrintFormats();
-	else if (!strcmp(argv[i + 1], "hint")) PrintHintUsage();
-	else if (!strcmp(argv[i + 1], "encode")) PrintEncodeUsage();
-	else if (!strcmp(argv[i + 1], "crypt")) PrintEncryptUsage();
-	else if (!strcmp(argv[i + 1], "meta")) PrintMetaUsage();
-	else if (!strcmp(argv[i + 1], "swf")) PrintSWFUsage();
+		else if (!stricmp(arg, "-languages")) {
+			PrintLanguages();
+			return 1;
+		}
+		else if (!stricmp(arg, "-h")) {
+			if (i + 1 == (u32)argc) PrintUsage();
+			else if (!strcmp(argv[i + 1], "general")) PrintGeneralUsage();
+			else if (!strcmp(argv[i + 1], "extract")) PrintExtractUsage();
+			else if (!strcmp(argv[i + 1], "dash")) PrintDASHUsage();
+			else if (!strcmp(argv[i + 1], "dump")) PrintDumpUsage();
+			else if (!strcmp(argv[i + 1], "import")) PrintImportUsage();
+			else if (!strcmp(argv[i + 1], "format")) PrintFormats();
+			else if (!strcmp(argv[i + 1], "hint")) PrintHintUsage();
+			else if (!strcmp(argv[i + 1], "encode")) PrintEncodeUsage();
+			else if (!strcmp(argv[i + 1], "crypt")) PrintEncryptUsage();
+			else if (!strcmp(argv[i + 1], "meta")) PrintMetaUsage();
+			else if (!strcmp(argv[i + 1], "swf")) PrintSWFUsage();
 #ifndef GPAC_DISABLE_ATSC
-	else if (!strcmp(argv[i + 1], "atsc")) PrintATSCUsage();
+			else if (!strcmp(argv[i + 1], "atsc")) PrintATSCUsage();
 #endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
-	else if (!strcmp(argv[i + 1], "rtp")) fprintf(stderr, "RTP streaming deprecated in MP4Box, use gpac applications\n");
-	else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
+			else if (!strcmp(argv[i + 1], "rtp")) fprintf(stderr, "RTP streaming deprecated in MP4Box, use gpac applications\n");
+			else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
 #endif
-	else if (!strcmp(argv[i + 1], "core")) PrintCoreUsage();
-	else if (!strcmp(argv[i + 1], "all")) {
-		PrintGeneralUsage();
-		PrintExtractUsage();
-		PrintDASHUsage();
-		PrintDumpUsage();
-		PrintImportUsage();
-		PrintFormats();
-		PrintHintUsage();
-		PrintEncodeUsage();
-		PrintEncryptUsage();
-		PrintMetaUsage();
-		PrintSWFUsage();
+			else if (!strcmp(argv[i + 1], "core")) PrintCoreUsage();
+			else if (!strcmp(argv[i + 1], "all")) {
+				PrintGeneralUsage();
+				PrintExtractUsage();
+				PrintDASHUsage();
+				PrintDumpUsage();
+				PrintImportUsage();
+				PrintFormats();
+				PrintHintUsage();
+				PrintEncodeUsage();
+				PrintEncryptUsage();
+				PrintMetaUsage();
+				PrintSWFUsage();
 #ifndef GPAC_DISABLE_ATSC
-		PrintATSCUsage();
+				PrintATSCUsage();
 #endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
-		PrintLiveUsage();
+				PrintLiveUsage();
 #endif
-		PrintCoreUsage();
+				PrintCoreUsage();
+			} else {
+				PrintUsage();
+			}
+			return 1;
+		}
+		else if (!stricmp(arg, "-v")) verbose++;
+		else if (!stricmp(arg, "-tag-list")) {
+			fprintf(stderr, "Supported iTunes tag modifiers:\n");
+			for (i = 0; i < nb_itunes_tags; i++) {
+				fprintf(stderr, "\t%s\t%s\n", itags[i].name, itags[i].comment);
+			}
+			return 1;
+		}
+		else if (!live_scene) {
+			u32 res = gf_sys_is_gpac_arg(arg);
+			if (res==0) {
+				fprintf(stderr, "Option %s unknown. Please check usage\n", arg);
+				return 2;
+			} else if (res==2) {
+				i++;
+			}
+		}
 	}
-	else PrintUsage();
-	return 1;
-}
-else if (!stricmp(arg, "-v")) verbose++;
-else if (!stricmp(arg, "-tag-list")) {
-	fprintf(stderr, "Supported iTunes tag modifiers:\n");
-	for (i = 0; i < nb_itunes_tags; i++) {
-		fprintf(stderr, "\t%s\t%s\n", itags[i].name, itags[i].comment);
-	}
-	return 1;
-}
-else if (!live_scene) {
-	u32 res = gf_sys_is_gpac_arg(arg);
-	if (res==0) {
-		fprintf(stderr, "Option %s unknown. Please check usage\n", arg);
-		return 2;
-	} else if (res==2) {
-		i++;
-	}
-}
-}
-*current_index = i;
-return 0;
+	*current_index = i;
+	return 0;
 }
 
 Bool mp4box_parse_args(int argc, char **argv)
@@ -3289,18 +3291,18 @@ Bool mp4box_parse_args(int argc, char **argv)
 			PrintNode(argv[i + 1], 1);
 			return 1;
 		}
-		else if (!stricmp(arg, "-nodes")) {
-			PrintBuiltInNodes(0);
+		else if (!stricmp(arg, "-nodes") || !stricmp(arg, "-nodex")) {
+			PrintBuiltInNodes(0, !stricmp(arg, "-nodex") ? GF_TRUE : GF_FALSE);
 			return 1;
 		}
-		else if (!stricmp(arg, "-xnodes")) {
-			PrintBuiltInNodes(1);
+		else if (!stricmp(arg, "-xnodes") || !stricmp(arg, "-xnodex")) {
+			PrintBuiltInNodes(1, !stricmp(arg, "-xnodex") ? GF_TRUE : GF_FALSE);
 			return 1;
 		}
 #endif
 #ifndef GPAC_DISABLE_SVG
 		else if (!stricmp(arg, "-snodes")) {
-			PrintBuiltInNodes(2);
+			PrintBuiltInNodes(2, GF_FALSE);
 			return 1;
 		}
 #endif
@@ -4014,8 +4016,9 @@ int mp4boxMain(int argc, char **argv)
 		e = gf_dm_wget(do_wget, inName, 0, 0, NULL);
 		if (e != GF_OK) {
 			fprintf(stderr, "Cannot retrieve %s: %s\n", do_wget, gf_error_to_string(e) );
+			return mp4box_cleanup(1);
 		}
-		return mp4box_cleanup(1);
+		return mp4box_cleanup(0);
 	}
 #endif
 
@@ -4061,10 +4064,11 @@ int mp4boxMain(int argc, char **argv)
 			if (outName)
 				strcpy(outfile, outName);
 			else {
-				const char *sep = strrchr(inName, '/');
-				char *ext = strstr(sep, ".m3u8");
+				const char *sep = gf_file_basename(inName);
+				char *ext = gf_file_ext_start(sep);
 				if (ext) ext[0] = 0;
-				sprintf(outfile, "%s.mpd", sep+1);
+				sprintf(outfile, "%s.mpd", sep);
+				if (ext) ext[0] = '.';
 			}
 		} else {
 			if (outName)
@@ -4084,7 +4088,29 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "[DASH] Error: MPD creation problem %s\n", gf_error_to_string(e));
 			mp4box_cleanup(1);
 		}
-		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_TRUE, GF_TRUE);
+		FILE *f = gf_fopen(remote ? "tmp_main.m3u8" : inName, "r");
+		u32 manif_type = 0;
+		if (f) {
+			char szDATA[1000];
+			s32 read;
+			szDATA[999]=0;
+			read = (s32) fread(szDATA, 1, 999, f);
+			if (read<0) read = 0;
+			szDATA[read]=0;
+			gf_fclose(f);
+			if (strstr(szDATA, "SmoothStreamingMedia"))
+				manif_type = 2;
+			else if (strstr(szDATA, "#EXTM3U"))
+				manif_type = 1;
+		}
+
+		if (manif_type==1) {
+			e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_TRUE, GF_TRUE);
+		} else if (manif_type==2) {
+			e = gf_mpd_smooth_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd, mpd_base_url ? mpd_base_url : inName);
+		} else {
+			e = GF_NOT_SUPPORTED;
+		}
 		if (!e)
 			gf_mpd_write_file(mpd, outfile);
 
@@ -4097,10 +4123,10 @@ int mp4boxMain(int argc, char **argv)
 			gf_delete_file("tmp_main.m3u8");
 		}
 		if (e != GF_OK) {
-			fprintf(stderr, "Error converting M3U8 (%s) to MPD (%s): %s\n", inName, outfile, gf_error_to_string(e));
+			fprintf(stderr, "Error converting %s (%s) to MPD (%s): %s\n", (manif_type==1) ? "HLS" : "Smooth",  inName, outfile, gf_error_to_string(e));
 			return mp4box_cleanup(1);
 		} else {
-			fprintf(stderr, "Done converting M3U8 (%s) to MPD (%s)\n", inName, outfile);
+			fprintf(stderr, "Done converting %s (%s) to MPD (%s)\n", (manif_type==1) ? "HLS" : "Smooth",  inName, outfile);
 			return mp4box_cleanup(0);
 		}
 	}
@@ -4427,10 +4453,9 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e));
 			return mp4box_cleanup(1);
 		}
-		if (dash_start_date) gf_dasher_set_start_date(dasher, dash_start_date);
 
-
-		//e = gf_dasher_set_location(dasher, mpd_source);
+		gf_dasher_set_start_date(dasher, dash_start_date);
+		gf_dasher_set_location(dasher, dash_source);
 		for (i=0; i < nb_mpd_base_urls; i++) {
 			e = gf_dasher_add_base_url(dasher, mpd_base_urls[i]);
 			if (e) {

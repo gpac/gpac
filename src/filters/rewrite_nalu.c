@@ -297,9 +297,9 @@ GF_Err nalumx_process(GF_Filter *filter)
 			if (!ctx->delim)
 				skip_nal = GF_TRUE;
 		}
-		if (!skip_nal)
+		if (!skip_nal) {
 			size += nal_size + 4;
-
+		}
 		gf_bs_skip_bytes(ctx->bs_r, nal_size);
 	}
 	gf_bs_seek(ctx->bs_r, 0);
@@ -342,7 +342,10 @@ GF_Err nalumx_process(GF_Filter *filter)
 	if (!has_nalu_delim) {
 		gf_bs_write_u32(ctx->bs_w, 1);
 		if (ctx->is_hevc) {
-			assert(layer_id);
+			if (!layer_id)
+				layer_id=1;
+			if (!temporal_id)
+				temporal_id=1;
 #ifndef GPAC_DISABLE_HEVC
 			gf_bs_write_int(ctx->bs_w, 0, 1);
 			gf_bs_write_int(ctx->bs_w, GF_HEVC_NALU_ACCESS_UNIT, 6);
