@@ -542,6 +542,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	if (!pid->filter->num_input_pids && !pid->initial_play_done && !pid->is_playing) {
 		pid->initial_play_done = GF_TRUE;
 		pid->is_playing = GF_TRUE;
+		pid->filter->nb_pids_playing++;
 	}
 
 	if (pid->filter->eos_probe_state)
@@ -661,9 +662,15 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 						pid->last_pck_dts -= pid->nb_unreliable_dts;
 						pid->last_pck_dts += min_dur * pid->nb_unreliable_dts;
 						pid->nb_unreliable_dts = 0;
+						if (pid->last_pck_dts + min_dur > pck->info.cts) {
+							if (pck->info.cts > min_dur)
+ 								pid->last_pck_dts = pck->info.cts - min_dur;
+							else
+								pid->last_pck_dts = 0;
+						}
 					}
-
-					pck->info.dts = pid->last_pck_dts + min_dur;
+					if (pid->last_pck_dts)
+						pck->info.dts = pid->last_pck_dts + min_dur;
 					//if (pck->info.dts > pck->info.cts) pck->info.dts = pck->info.cts;
 				}
 			}

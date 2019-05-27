@@ -476,6 +476,9 @@ struct __gf_filter
 	Bool disabled;
 
 	Bool no_probe;
+	Bool no_inputs;
+	
+	s32 nb_pids_playing;
 
 	//list of pids connected to this filter
 	GF_List *input_pids;

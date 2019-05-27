@@ -1889,6 +1889,11 @@ u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_s
 */
 void gf_filter_disable_probe(GF_Filter *filter);
 
+/*! Disables input connection on the filter. This is used by filters acting both as true sources or demux/processing filters depending on their option.
+\param filter target filter
+*/
+void gf_filter_disable_inputs(GF_Filter *filter);
+
 /*! @} */
 
 
