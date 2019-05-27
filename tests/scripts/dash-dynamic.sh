@@ -11,7 +11,7 @@ do_test "$MP4BOX -dash-live 2000 -closest -subdur 2000 -profile live -mpd-refres
 sleep 1
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect" "inspect"
 do_hash_test $myinspect "inspect"
 
 
@@ -42,7 +42,7 @@ do_test "$MP4BOX -dash-live 2000 -closest -subdur 2000 -profile live -mpd-refres
 sleep 1
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect" "inspect"
 do_hash_test $myinspect "inspect"
 
 #wait for the end of the MP4Box
@@ -73,7 +73,7 @@ do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -mpd-refresh 10 -tim
 sleep 1
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect" "inspect"
 do_hash_test $myinspect "inspect"
 
 #wait for the end of the MP4Box
@@ -102,7 +102,7 @@ do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -mpd-refresh 10 -tim
 sleep 1
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect" "inspect"
 do_hash_test $myinspect "inspect"
 
 #wait for the end of the MP4Box
@@ -131,7 +131,7 @@ do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -mpd-refresh 10 -tim
 sleep 1
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect" "inspect"
 do_hash_test $myinspect "inspect"
 
 
@@ -164,7 +164,7 @@ do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -mpd-refresh 10 -tim
 sleep 1
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect" "inspect"
 do_hash_test $myinspect "inspect"
 
 

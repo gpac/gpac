@@ -616,6 +616,8 @@ GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE *vtt_file, s32 unicod
 	if (!parser) return GF_BAD_PARAM;
 	parser->state = WEBVTT_PARSER_STATE_WAITING_SIGNATURE;
 
+	if (gf_sys_is_test_mode())
+		gf_webvtt_parser_restart(parser);
 	parser->is_srt = is_srt;
 	if (is_srt)
 		parser->state = WEBVTT_PARSER_STATE_WAITING_CUE;
@@ -637,6 +639,8 @@ void gf_webvtt_parser_suspend(GF_WebVTTParser *vttparser)
 
 void gf_webvtt_parser_restart(GF_WebVTTParser *parser)
 {
+	if (!parser->vtt_in) return;
+
 	gf_fseek(parser->vtt_in, 0, SEEK_SET);
 	parser->last_duration = 0;
 	while (gf_list_count(parser->samples)) {
@@ -672,10 +676,12 @@ void gf_webvtt_parser_del(GF_WebVTTParser *parser)
 	}
 }
 
+#if 0
 u64 gf_webvtt_parser_last_duration(GF_WebVTTParser *parser)
 {
 	return parser ? parser->last_duration : 0;
 }
+#endif
 
 
 static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *samples, GF_WebVTTCue *cue)
@@ -1358,7 +1364,11 @@ GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength,
 	*dumpedLength = 0;
 	bs = gf_bs_new(data, dataLength, GF_BITSTREAM_READ);
 	e = gf_isom_box_parse(&box, bs);
-	if (!box || (box->type != GF_ISOM_BOX_TYPE_VTTC_CONFIG)) return GF_BAD_PARAM;
+	if (!box || (box->type != GF_ISOM_BOX_TYPE_VTTC_CONFIG)) {
+		gf_bs_del(bs);
+		if (box) gf_isom_box_del(box);
+		return GF_BAD_PARAM;
+	}
 	config = (GF_StringBox *)box;
 	if (config->string) {
 		fprintf(dump, "%s", config->string);

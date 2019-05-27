@@ -313,11 +313,12 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 			pathSepCount--;
 		}
 	}
-		//path is relative to current dir
+	//path is relative to current dir
 	else if (!relative_to_parent && (pathName[0]=='.') && ((pathName[1]=='/') || (pathName[1]=='\\') ) ) {
-		strcpy(tmp, "./");
+		strcat(tmp, "/");
+	}
 	//parent is relative to current dir
-	} else if (!had_sep_count && (pathName[0]=='.') && (tmp[0]=='.') && ((tmp[1]=='/') || (tmp[1]=='\\') ) ) {
+	else if (!had_sep_count && (pathName[0]=='.') && (tmp[0]=='.') && ((tmp[1]=='/') || (tmp[1]=='\\') ) ) {
 		u32 nb_path_sep=0;
 		u32 len = (u32) strlen(tmp);
 		for (i=0; i<len; i++) {

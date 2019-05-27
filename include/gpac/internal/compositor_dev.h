@@ -264,6 +264,7 @@ struct __tag_compositor
 	Bool autofps;
 	//autofps option
 	Bool vfr;
+	Bool nojs;
 
 	//frame duration in ms, used to match closest frame in input video streams
 	u32 frame_duration;
@@ -1457,8 +1458,6 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 to async restart of animation nodes*/
 GF_Node *compositor_svg_get_xlink_resource_node(GF_Node *node, XMLRI *xlink);
 
-GF_SceneGraph *gf_sc_animation_get_scenegraph(GF_Node *node);
-
 #endif
 
 /*Text handling*/
@@ -1718,6 +1717,7 @@ struct _gf_scene
 	u64 duration;
 
 	u32 nb_buffering;
+	u32 nb_rebuffer;
 
 	/*max timeshift of all objects*/
 	u32 timeshift_depth;
@@ -1986,6 +1986,9 @@ u32 gf_clock_time(GF_Clock *ck);
 /*return media time in ms*/
 u32 gf_clock_media_time(GF_Clock *ck);
 
+/*translates from clock time in ms to media time in ms*/
+u32 gf_clock_to_media_time(GF_Clock *ck, u32 clock_val);
+
 /*return time in ms since clock started - may be different from clock time when seeking or live*/
 u32 gf_clock_elapsed_time(GF_Clock *ck);
 
@@ -2113,7 +2116,7 @@ struct _od_manager
 
 	Bool clock_inherited;
 	//0 or 1, except for IOD where we may have several BIFS/OD streams
-	u32 nb_buffering;
+	u32 nb_buffering, nb_rebuffer;
 	u32 buffer_max_us, buffer_min_us, buffer_playout_us;
 
 	//internal hash for source allowing to distinguish input PIDs sources
@@ -2302,7 +2305,7 @@ struct _mediaobj
 
 	u32 frame_dur;
 	u32 last_fetch_time;
-
+	Bool first_frame_fetched;
 	//number of bytes read in the current packet
 	u32 RenderedLength;
 

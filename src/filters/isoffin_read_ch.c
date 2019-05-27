@@ -179,10 +179,6 @@ static void init_reader(ISOMChannel *ch)
 	ch->owner->no_order_check = ch->speed < 0 ? GF_TRUE : GF_FALSE;
 }
 
-void isor_reader_load_next_item(ISOMReader *read, ISOMChannel *ch, u32 item_idx)
-{
-
-}
 void isor_reader_get_sample_from_item(ISOMChannel *ch)
 {
 	if (ch->au_seq_num) {

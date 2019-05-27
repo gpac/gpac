@@ -580,15 +580,6 @@ GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src, Bool keep_src);
 void gf_bs_flush(GF_BitStream *bs);
 
 /*!
- *\brief Reassigns FILE object for stream-based bitstreams
- *
- *Reassigns FILE object for stream-based bitstreams. Automatically sets the stream position to the bitstream position
- *\param bs the target bitstream
- *\param stream the new stream to assign
- */
-void gf_bs_reassign(GF_BitStream *bs, FILE *stream);
-
-/*!
  *\brief AVC&HEVC Annex B mode, only used for read mode
  *
  *Enables or disable emulation byte prevention for AVC and HEVC annex B formats in read mode. This does NOT apply to \ref gf_bs_read_data nor  \ref gf_bs_skip_bytes

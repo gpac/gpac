@@ -80,15 +80,6 @@ static GF_Err bifs_dec_configure_bifs_dec(GF_BIFSDecCtx *ctx, GF_FilterPid *pid)
 	return GF_OK;
 }
 
-Bool gf_scene_check_namespace(GF_Scene *scene, GF_FilterPid *pid)
-{
-	if (!scene->root_od) return GF_TRUE;
-	assert(scene->root_od->scene_ns);
-	assert(scene->root_od->scene_ns->source_filter);
-
-	return gf_filter_pid_is_filter_in_parents(pid, scene->root_od->scene_ns->source_filter);
-}
-
 GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_FilterPid *out_pid;

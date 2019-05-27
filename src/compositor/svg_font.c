@@ -441,17 +441,33 @@ static Bool svg_font_uri_check(GF_Node *node, FontURIStack *st)
 		if (!font_name) return 0;
 		if (!st->mo) {
 			st->mo = gf_mo_load_xlink_resource(node, 0, 0, -1);
-			if (!st->mo) return 0;
+			if (!st->mo) {
+				st->compositor->fonts_pending--;
+				return 0;
+			}
 		}
 		ext_sg = gf_mo_get_scenegraph(st->mo);
-		if (!ext_sg) return 0;
+		if (!ext_sg) {
+			st->compositor->fonts_pending--;
+			return 0;
+		}
 		atts.xlink_href->target = gf_sg_find_node_by_name(ext_sg, font_name+1);
-		if (!atts.xlink_href->target) return 0;
+		if (!atts.xlink_href->target) {
+			st->compositor->fonts_pending--;
+			return 0;
+		}
 	}
 	font_elt = atts.xlink_href->target;
-	if (gf_node_get_tag(font_elt) != TAG_SVG_font) return 0;
+	if (gf_node_get_tag(font_elt) != TAG_SVG_font) {
+		st->compositor->fonts_pending--;
+		return 0;
+	}
 	font = gf_node_get_private(font_elt);
-	if (!font) return 0;
+	if (!font) {
+		st->compositor->fonts_pending--;
+		return 0;
+	}
+
 	st->alias = font;
 
 	gf_mo_is_done(st->mo);

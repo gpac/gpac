@@ -112,11 +112,9 @@ void gf_m4v_parser_reset(GF_M4VParser *m4v, u8 obj_type);
 
 /*get a frame. The parser ALWAYS resync on the next object in the bitstream
 thus you can seek the bitstream to copy the payload without re-seeking it */
-GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded);
+GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded);
 /*returns current object start in bitstream*/
 u64 gf_m4v_get_object_start(GF_M4VParser *m4v);
-/*returns 1 if current object is a valid MPEG-4 Visual object*/
-Bool gf_m4v_is_valid_object_type(GF_M4VParser *m4v);
 /*decodes DSI/VOSHeader for MPEG4*/
 GF_Err gf_m4v_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
 /*decodes DSI/VOSHeader for MPEG12*/
@@ -222,6 +220,9 @@ in this frame*/
 u32 gf_opus_check_frame(GF_OpusParser *op, char *data, u32 data_length);
 
 #endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/
+
+/*reads a 32 bit sync safe integer of id3v2*/
+u32 gf_id3_read_size(GF_BitStream *bs);
 
 
 enum
@@ -348,6 +349,7 @@ u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal
 
 //hevc_state is optional but shall be used for layer extensions since all size info is in VPS and not SPS
 GF_Err gf_hevc_get_sps_info(char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 //get chroma format name from chroma format (1: 420, 2: 422, 3: 444
@@ -370,7 +372,6 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size);
 GF_Err gf_img_file_dec(char *png_file, u32 *codecid, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size);
 GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size);
-GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst_file);
 
 
 

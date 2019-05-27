@@ -72,7 +72,7 @@ LIBGPAC_ODF+=odf/odf_parse.o
 endif
 
 ## libgpac objects gathering: src/scenegraph
-LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o scenegraph/xbl_process.o scenegraph/xml_ns.o scenegraph/html5_media_smjs.o scenegraph/html5_mse_smjs.o
+LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o scenegraph/xml_ns.o
 
 ## libgpac objects gathering: src/crypto
 LIBGPAC_CRYPTO=
@@ -133,10 +133,6 @@ LIBGPAC_MEDIATOOLS+=media_tools/saf.o
 endif
 ifeq ($(DISABLE_VOBSUB), no)
 LIBGPAC_MEDIATOOLS+=media_tools/vobsub.o
-endif
-
-ifeq ($(DISABLE_PLAYER), no)
-LIBGPAC_MEDIATOOLS+=media_tools/html5_media.o media_tools/html5_mse.o
 endif
 
 LIBGPAC_MEDIATOOLS+=media_tools/webvtt.o
@@ -213,6 +209,7 @@ MEDIATOOLS_CFLAGS=$(JS_FLAGS)
 include ../static.mak
 
 LIBGPAC_FILTERS+=filters/compose.o filters/dasher.o filters/dec_ac52.o filters/dec_bifs.o filters/dec_faad.o filters/dec_img.o filters/dec_j2k.o filters/dec_laser.o filters/dec_mad.o filters/dec_nvdec.o filters/dec_nvdec_sdk.o filters/dec_odf.o filters/dec_theora.o filters/dec_ttxt.o filters/dec_vorbis.o filters/dec_vtb.o filters/dec_webvtt.o filters/dec_xvid.o filters/decrypt_cenc_isma.o filters/dmx_avi.o filters/dmx_dash.o filters/dmx_gsf.o filters/dmx_m2ts.o filters/dmx_mpegps.o filters/dmx_nhml.o filters/dmx_nhnt.o filters/dmx_ogg.o filters/dmx_saf.o filters/dmx_vobsub.o filters/enc_jpg.o filters/enc_png.o filters/encrypt_cenc_isma.o filters/ff_common.o filters/ff_dec.o filters/ff_dmx.o filters/ff_enc.o filters/ff_rescale.o filters/filelist.o filters/hevcsplit.o filters/in_atsc.o filters/in_dvb4linux.o filters/in_file.o filters/in_http.o filters/in_pipe.o filters/in_rtp.o filters/in_rtp_rtsp.o filters/in_rtp_sdp.o filters/in_rtp_signaling.o filters/in_rtp_stream.o filters/in_sock.o filters/inspect.o filters/isoffin_load.o filters/isoffin_read.o filters/isoffin_read_ch.o filters/load_bt_xmt.o filters/load_svg.o filters/load_text.o filters/mux_avi.o filters/mux_gsf.o filters/mux_isom.o filters/mux_ts.o filters/out_audio.o  filters/out_file.o filters/out_pipe.o filters/out_rtp.o filters/out_sock.o filters/out_video.o filters/reframer.o filters/reframe_ac3.o filters/reframe_adts.o filters/reframe_latm.o filters/reframe_amr.o filters/reframe_av1.o filters/reframe_h263.o filters/reframe_img.o filters/reframe_mp3.o filters/reframe_mpgvid.o filters/reframe_nalu.o filters/reframe_qcp.o filters/reframe_rawvid.o filters/reframe_rawpcm.o filters/resample_audio.o filters/tileagg.o filters/unit_test_filter.o filters/rewind.o filters/rewrite_adts.o filters/rewrite_mp4v.o filters/rewrite_nalu.o filters/rewrite_obu.o filters/vflip.o filters/vcrop.o filters/write_generic.o filters/write_nhml.o filters/write_nhnt.o filters/write_qcp.o filters/write_vtt.o
+
 
 FILTERS_CFLAGS=$(JS_FLAGS)
 

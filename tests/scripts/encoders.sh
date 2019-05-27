@@ -88,7 +88,7 @@ test_encoder "mpeg2-ffenc" $MEDIA_DIR/auxiliary_files/enst_video.h264 "test.m2v"
 
 #test AVC encode
 if [ -n "$x264ff" ] ; then
-test_encoder "avc-ffenc" $MEDIA_DIR/auxiliary_files/count_video.cmp "test.264" "" "-blacklist=vtbdec,nvdec,ohevcdec" "::x264-params=no-mbtree:sync-lookahead=0::profile=baseline"
+test_encoder "avc-ffenc" $MEDIA_DIR/auxiliary_files/count_video.cmp "test.264" "" "-blacklist=vtbdec,nvdec,ohevcdec" "ls::x264-params=no-mbtree:sync-lookahead=0::profile=baseline"
 fi
 
 #test MJ2 encode - we need to explicetly add the encoder, since the isom muxer can accept any input
@@ -105,3 +105,15 @@ test_encoder "aac-ffenc" $MEDIA_DIR/auxiliary_files/count_french.mp3 "test.aac" 
 
 test_encoder "ac3-ffenc" $MEDIA_DIR/auxiliary_files/count_french.mp3 "test.ac3" "" "" ""
 
+
+
+#explicit encoding load
+test_begin "encoder-explicit"
+
+if [ $test_skip != 1 ] ; then
+
+dst=$TEMP_DIR/file.mp4
+do_test "$GPAC -i $EXTERNAL_MEDIA_DIR/raw/raw.rgb:size=128x128 enc:c=png @ -o $dst" "encode"
+do_hash_test "$dst" "encode"
+fi
+test_end

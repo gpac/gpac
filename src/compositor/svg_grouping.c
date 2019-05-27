@@ -582,7 +582,9 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 		SVGgStack *group;
 
 		if (!tr_state->in_svg_filter && all_atts.filter && all_atts.filter->iri.target) {
+#ifdef GPAC_ENABLE_SVG_FILTERS
 			svg_draw_filter(all_atts.filter->iri.target, node, tr_state);
+#endif
 			return;
 		}
 		group = gf_node_get_private(node);
@@ -691,6 +693,7 @@ void compositor_init_svg_g(GF_Compositor *compositor, GF_Node *node)
 }
 
 
+#if 0 //unused
 static void svg_traverse_defs(GF_Node *node, void *rs, Bool is_destroy)
 {
 	SVGPropertiesPointers backup_props;
@@ -724,6 +727,7 @@ void compositor_init_svg_defs(GF_Compositor *compositor, GF_Node *node)
 {
 	gf_node_set_callback_function(node, svg_traverse_defs);
 }
+#endif
 
 
 
@@ -847,24 +851,6 @@ static void svg_traverse_a(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->svg_flags = backup_flags;
 }
 
-static Bool is_timing_target(GF_Node *n)
-{
-	if (!n) return 0;
-	switch (gf_node_get_tag(n)) {
-	case TAG_SVG_set:
-	case TAG_SVG_animate:
-	case TAG_SVG_animateColor:
-	case TAG_SVG_animateTransform:
-	case TAG_SVG_animateMotion:
-	case TAG_SVG_discard:
-	case TAG_SVG_animation:
-	case TAG_SVG_video:
-	case TAG_SVG_audio:
-		return 1;
-	}
-	return 0;
-}
-
 static void svg_a_set_view(GF_Node *handler, GF_Compositor *compositor, const char *url)
 {
 	gf_scene_set_fragment_uri(handler, url);
@@ -942,12 +928,22 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 		return;
 	}
 	/*this is a time event*/
-	if (is_timing_target(all_atts.xlink_href->target)) {
+	switch (gf_node_get_tag(all_atts.xlink_href->target)) {
+	case TAG_SVG_set:
+	case TAG_SVG_animate:
+	case TAG_SVG_animateColor:
+	case TAG_SVG_animateTransform:
+	case TAG_SVG_animateMotion:
+	case TAG_SVG_discard:
+	case TAG_SVG_animation:
+	case TAG_SVG_video:
+	case TAG_SVG_audio:
 		gf_smil_timing_insert_clock(all_atts.xlink_href->target, 0, gf_node_get_scene_time((GF_Node *)handler) );
-	}
-	/*this is an implicit SVGView event*/
-	else {
+		break;
+	default:
+		/*this is an implicit SVGView event*/
 		svg_a_set_view(handler, compositor, gf_node_get_name(all_atts.xlink_href->target));
+		break;
 	}
 }
 
@@ -1308,7 +1304,7 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 		if (subroot) tr_state->visual->compositor->focus_node = subroot;
 	}
 
-	if (stack->inline_sg) {
+	if (stack->inline_sg && stack->resource->odm) {
 		gf_sc_traverse_subscene(tr_state->visual->compositor, node, stack->inline_sg, tr_state);
 	}
 
@@ -1383,7 +1379,7 @@ GF_Node *compositor_svg_get_xlink_resource_node(GF_Node *node, XMLRI *xlink)
 	return NULL;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_SceneGraph *gf_sc_animation_get_scenegraph(GF_Node *node)
 {
 	SVGlinkStack *stack;
@@ -1391,6 +1387,7 @@ GF_SceneGraph *gf_sc_animation_get_scenegraph(GF_Node *node)
 	stack = gf_node_get_private(node);
 	return stack->inline_sg;
 }
+#endif
 
 
 #endif

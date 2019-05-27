@@ -904,29 +904,6 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 }
 
 
-static GFINLINE void isma_resync_IV(GF_Crypt *mc, u64 BSO, char *salt)
-{
-	char IV[17];
-	u64 count;
-	u32 remain;
-	GF_BitStream *bs;
-	count = BSO / 16;
-	remain = (u32) (BSO % 16);
-
-	/*format IV to begin of counter*/
-	bs = gf_bs_new(IV, 17, GF_BITSTREAM_WRITE);
-	gf_bs_write_u8(bs, 0);	/*begin of counter*/
-	gf_bs_write_data(bs, salt, 8);
-	gf_bs_write_u64(bs, (s64) count);
-	gf_bs_del(bs);
-	gf_crypt_set_IV(mc, IV, GF_AES_128_KEYSIZE+1);
-
-	/*decrypt remain bytes*/
-	if (remain) {
-		char dummy[20];
-		gf_crypt_decrypt(mc, dummy, remain);
-	}
-}
 static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPacket *pck)
 {
 	u32 isma_hdr_size=0;
@@ -1012,7 +989,28 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	//encrypt
 	if (flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
 		/*resync IV*/
-		if (!cstr->prev_sample_encryped) isma_resync_IV(cstr->crypt, cstr->BSO, (char *) cstr->tci->first_IV);
+		if (!cstr->prev_sample_encryped) {
+			char IV[17];
+			u64 count;
+			u32 remain;
+			GF_BitStream *bs;
+			count = cstr->BSO / 16;
+			remain = (u32) (cstr->BSO % 16);
+
+			/*format IV to begin of counter*/
+			bs = gf_bs_new(IV, 17, GF_BITSTREAM_WRITE);
+			gf_bs_write_u8(bs, 0);	/*begin of counter*/
+			gf_bs_write_data(bs, cstr->tci->first_IV, 8);
+			gf_bs_write_u64(bs, (s64) count);
+			gf_bs_del(bs);
+			gf_crypt_set_IV(cstr->crypt, IV, GF_AES_128_KEYSIZE+1);
+
+			/*decrypt remain bytes*/
+			if (remain) {
+				char dummy[20];
+				gf_crypt_decrypt(cstr->crypt, dummy, remain);
+			}
+		}
 		gf_crypt_encrypt(cstr->crypt, output+isma_hdr_size, size);
 		cstr->prev_sample_encryped = GF_TRUE;
 	} else {

@@ -1344,11 +1344,11 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 		tr_state->text_end_x = 0;
 		tr_state->text_end_y = (tr_state->svg_props->line_increment->type == SVG_NUMBER_AUTO ? 0 : tr_state->svg_props->line_increment->value);
 
-		tr_state->x_anchors = gf_list_new();
-
 		if (tr_state->svg_props->font_size && (tr_state->svg_props->font_size->value <= tr_state->max_height)) {
 			Fixed remain;
 			u32 c, refresh_to_idx, prev_refresh;
+			tr_state->x_anchors = gf_list_new();
+
 			/*switch to bounds mode, and recompute children*/
 			mode = tr_state->traversing_mode;
 			tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;

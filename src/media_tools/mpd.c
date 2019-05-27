@@ -234,19 +234,6 @@ static GF_MPD_ByteRange *gf_mpd_parse_byte_range(const char * const attr)
 	return br;
 }
 
-static GF_Err gf_mpd_parse_location(GF_MPD *mpd, GF_XMLNode *child)
-{
-	char *str = gf_mpd_parse_text_content(child);
-	if (str) return gf_list_add(mpd->locations, str);
-	return GF_OK;
-}
-
-static GF_Err gf_mpd_parse_metrics(GF_MPD *mpd, GF_XMLNode *child)
-{
-	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Metrics not implemented yet\n"));
-	return GF_OK;
-}
-
 GF_Err gf_mpd_parse_base_url(GF_List *container, GF_XMLNode *node)
 {
 	u32 i;
@@ -429,6 +416,7 @@ void gf_mpd_parse_multiple_segment_base(GF_MPD *mpd, GF_MPD_MultipleSegmentBase 
 	}
 }
 
+#if 0 //unused
 GF_MPD_SegmentURL *gf_mpd_segmenturl_new(const char*media, u64 start_range, u64 end_range, const char *index, u64 idx_start_range, u64 idx_end_range)
 {
 	GF_MPD_SegmentURL *seg_url;
@@ -445,6 +433,7 @@ GF_MPD_SegmentURL *gf_mpd_segmenturl_new(const char*media, u64 start_range, u64 
 		seg_url->media=gf_strdup(media);
 	return seg_url;
 }
+#endif
 
 void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root)
 {
@@ -1022,8 +1011,9 @@ void gf_mpd_url_free(void *_item)
 	if (ptr->byte_range) gf_free(ptr->byte_range);
 	gf_free(ptr);
 }
-void gf_mpd_string_free(void *_item) {
-	gf_free(_item);
+void gf_mpd_string_free(void *_item)
+{
+	if (_item) gf_free(_item);
 }
 
 void gf_mpd_prog_info_free(void *_item)
@@ -1066,10 +1056,12 @@ void gf_mpd_segment_timeline_free(void *_item)
 	gf_free(ptr);
 }
 
+#if 0 //unused
 void gf_mpd_segment_url_list_free(GF_List *list)
 {
 	gf_mpd_del_list(list, gf_mpd_segment_url_free, 0);
 }
+#endif
 
 void gf_mpd_segment_list_free(void *_item)
 {
@@ -1268,6 +1260,9 @@ GF_EXPORT
 void gf_mpd_del(GF_MPD *mpd)
 {
 	if (!mpd) return;
+	if (gf_sys_is_test_mode())
+		gf_mpd_string_free(NULL);
+
 	gf_mpd_del_list(mpd->program_infos, gf_mpd_prog_info_free, 0);
 	gf_mpd_del_list(mpd->base_URLs, gf_mpd_base_url_free, 0);
 	gf_mpd_del_list(mpd->locations, gf_mpd_string_free, 0);
@@ -1277,14 +1272,6 @@ void gf_mpd_del(GF_MPD *mpd)
 	if (mpd->ID) gf_free(mpd->ID);
 	gf_mpd_extensible_free((GF_MPD_ExtensibleVirtual*) mpd);
 	gf_free(mpd);
-}
-
-GF_EXPORT
-void gf_mpd_reset_periods(GF_MPD *mpd)
-{
-	if (!mpd) return;
-	gf_mpd_del_list(mpd->periods, gf_mpd_period_free, 0);
-	mpd->periods = gf_list_new();
 }
 
 
@@ -1376,14 +1363,13 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 			e = gf_mpd_parse_program_info(mpd, child);
 			if (e) return e;
 		} else if (!strcmp(child->name, "Location")) {
-			e = gf_mpd_parse_location(mpd, child);
-			if (e) return e;
+			char *str = gf_mpd_parse_text_content(child);
+			if (str) gf_list_add(mpd->locations, str);
 		} else if (!strcmp(child->name, "Period")) {
 			e = gf_mpd_parse_period(mpd, child);
 			if (e) return e;
 		} else if (!strcmp(child->name, "Metrics")) {
-			e = gf_mpd_parse_metrics(mpd, child);
-			if (e) return e;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Metrics not implemented yet\n"));
 		} else if (!strcmp(child->name, "BaseURL")) {
 			e = gf_mpd_parse_base_url(mpd->base_URLs, child);
 			if (e) return e;
@@ -3165,7 +3151,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 }
 
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_mpd_write_m3u8_file(GF_MPD *mpd, const char *file_name, GF_MPD_Period *period)
 {
 	GF_Err e;
@@ -3183,6 +3169,7 @@ GF_Err gf_mpd_write_m3u8_file(GF_MPD *mpd, const char *file_name, GF_MPD_Period 
 	mpd->create_m3u8_files = GF_FALSE;
 	return e;
 }
+#endif
 
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 {
@@ -3990,6 +3977,7 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 	return GF_OK;
 }
 
+#if 0 //unused
 static GF_Err mpd_seek_periods(Double seek_time, GF_MPD const * const in_mpd, GF_MPD_Period **out_period)
 {
 	Double start_time;
@@ -4021,6 +4009,8 @@ static GF_Err mpd_seek_periods(Double seek_time, GF_MPD const * const in_mpd, GF
 
 	return GF_OK;
 }
+#endif
+
 
 GF_EXPORT
 GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
@@ -4072,7 +4062,7 @@ GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
 	return GF_OK;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
 	GF_MPD const * const in_mpd, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
 	GF_MPD_Period **out_period, u32 *out_segment_index, Double *out_opt_seek_time)
@@ -4093,6 +4083,7 @@ GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
 
 	return GF_OK;
 }
+#endif
 
 /*
 	smooth streaming 2.1 support
@@ -4355,6 +4346,22 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
     return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_mpd_smooth_to_mpd(char * smooth_file, GF_MPD *mpd, const char *default_base_url)
+{
+	GF_DOMParser *dom = gf_xml_dom_new();
+	GF_Err e = gf_xml_dom_parse(dom, smooth_file, NULL, 0);
+	if (!e) {
+		e = gf_mpd_init_smooth_from_dom(gf_xml_dom_get_root(dom), mpd, default_base_url);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[MPD] Failed to convert smooth manifest to MPD\n"));
+		}
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[MPD] Failed to load smooth manifest\n"));
+	}
+	gf_xml_dom_del(dom);
+	return e;
+}
 #define EXTRACT_FORMAT(_nb_chars)	\
 			strcpy(szFmt, "%d");	\
 			char_template+=_nb_chars;	\

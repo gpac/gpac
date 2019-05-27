@@ -47,7 +47,6 @@ Double gf_scene_get_time(void *_is)
 	GF_Clock *ck;
 	assert(scene);
 	assert(scene->root_od);
-	assert(scene->root_od->ck);
 	ck = scene->root_od->ck;
 	if (!ck) return 0.0;
 	ret = gf_clock_time(ck);
@@ -311,7 +310,8 @@ GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene)
 	gf_sg_set_private(tmp->graph, tmp);
 	gf_sg_set_node_callback(tmp->graph, gf_scene_node_callback);
 	gf_sg_set_scene_time_callback(tmp->graph, gf_scene_get_time);
-	gf_sg_set_script_action(tmp->graph, gf_scene_script_action, tmp);
+	if (tmp->compositor && !tmp->compositor->nojs)
+		gf_sg_set_script_action(tmp->graph, gf_scene_script_action, tmp);
 
 	//copy over pause_at_first_frame flag so that new subscene is not paused right away
 	if (parentScene)
@@ -442,6 +442,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 		i = 0;
 		while ((odm = (GF_ObjectManager *)gf_list_enum(scene->resources, &i))) {
 			if (for_shutdown && odm->mo) {
+				odm->ck = NULL;
 				obj = odm->mo;
 				while (gf_mo_event_target_count(obj)) {
 					GF_Node *n = (GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(obj, 0));
@@ -746,6 +747,10 @@ void gf_scene_buffering_info(GF_Scene *scene)
 	//likely local file playback with buffer disabled
 	if (!max_buff_val)
 		return;
+	//destruction
+	if (!scene->root_od->scene_ns)
+		return;
+
 	evt.type = GF_EVENT_PROGRESS;
 	evt.progress.progress_type = 0;
 	evt.progress.service = scene->root_od->scene_ns->url;
@@ -1860,13 +1865,18 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 static Bool check_odm_deactivate(SFURL *url, GF_ObjectManager *odm, GF_Node *n)
 {
 	GF_FieldInfo info;
+	MFURL *mfurl;
 	if (!is_odm_url(url, odm) || !n) return 0;
+
+	gf_node_get_field_by_name(n, "url", &info);
+	mfurl = (MFURL *)info.far_ptr;
+	if ((url->OD_ID!=GF_MEDIA_EXTERNAL_ID) && mfurl->count && (mfurl->vals[0].OD_ID==url->OD_ID))
+		return 1;
 
 	if (url->url) gf_free(url->url);
 	url->url = NULL;
 	url->OD_ID = 0;
 
-	gf_node_get_field_by_name(n, "url", &info);
 	gf_sg_vrml_mf_reset(info.far_ptr, GF_SG_VRML_MFURL);
 	gf_node_get_field_by_name(n, "stopTime", &info);
 	*((SFTime *)info.far_ptr) = gf_node_get_scene_time(n);

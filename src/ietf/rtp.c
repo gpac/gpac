@@ -104,8 +104,13 @@ GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, c
 	} else {
 		ch->net_info.source = gf_strdup(remote_address);
 	}
-	if (trans_info->SSRC) ch->SenderSSRC = trans_info->SSRC;
-
+	if (trans_info->SSRC) {
+		if (trans_info->is_sender) {
+			ch->SSRC = trans_info->SSRC;
+		} else {
+			ch->SenderSSRC = trans_info->SSRC;
+		}
+	}
 	//check we REALLY have unicast or multicast
 	if (gf_sk_is_multicast_address(ch->net_info.source) && ch->net_info.IsUnicast) return GF_SERVICE_ERROR;
 	return GF_OK;
@@ -354,6 +359,25 @@ u32 gf_rtp_read_flush(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 		gf_free(pck);
 	}
 	return res;
+}
+
+GF_EXPORT
+u32 gf_rtp_flush_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
+{
+	u32 res;
+	char *pck;
+
+	//only if the socket exist (otherwise RTSP interleaved channel)
+	if (!ch || !ch->rtp || !ch->po) return 0;
+
+	//pck queue may need to be flushed
+	pck = (char *) gf_rtp_reorderer_get(ch->po, &res, GF_FALSE);
+	if (pck) {
+		memcpy(buffer, pck, res);
+		gf_free(pck);
+		return res;
+	}
+	return 0;
 }
 
 GF_EXPORT

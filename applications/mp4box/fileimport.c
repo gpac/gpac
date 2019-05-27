@@ -240,7 +240,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode, temporal_mode;
 	s32 par_d, par_n, prog_id, delay, force_rate, moov_timescale;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
-	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only;
+	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only, print_stats_graph=0;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
 	const char *szLan;
 	GF_Err e;
@@ -544,8 +544,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "rate=", 5)) {
 			force_rate = atoi(ext+6);
 		}
-		else if (!stricmp(ext+1, "fstat")) import_flags |= GF_IMPORT_FILTER_STATS;
-		else if (!strcmp(ext+1, "sopt")) {
+		else if (!stricmp(ext+1, "fstat"))
+			print_stats_graph |= 1;
+		else if (!stricmp(ext+1, "fgraph"))
+			print_stats_graph |= 2;
+		else if (!strncmp(ext+1, "sopt", 4)) {
 			if (ext2) ext2[0] = ':';
 			char *opt_dest = strstr(ext+1, "dopt");
 			if (opt_dest) {
@@ -556,7 +559,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			ext = NULL;
 			break;
 		}
-		else if (!strcmp(ext+1, "dopt")) {
+		else if (!strncmp(ext+1, "dopt", 4)) {
 			if (ext2) ext2[0] = ':';
 			char *opt_src = strstr(ext+1, "sopt");
 			if (opt_src) {
@@ -702,6 +705,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.frames_per_sample = frames_per_sample;
 	import.flags = import_flags;
 	import.keep_audelim = keep_audelim;
+	import.print_stats_graph = print_stats_graph;
 
 	if (!import.nb_tracks) {
 		u32 count, o_count;
@@ -1884,7 +1888,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	u64 insert_dts;
 	Bool is_isom;
 	GF_ISOSample *samp;
-	Double aligned_to_DTS = 0;
+	GF_Fraction64 aligned_to_DTS_frac;
 
 	if (is_pl) return cat_playlist(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines, allow_add_in_command);
 
@@ -1971,12 +1975,14 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	}
 	dest_orig_dur /= gf_isom_get_timescale(dest);
 
-	aligned_to_DTS = 0;
+	aligned_to_DTS_frac.num = 0;
+	aligned_to_DTS_frac.den = 1;
 	for (i=0; i<gf_isom_get_track_count(dest); i++) {
-		Double track_dur = (Double) gf_isom_get_media_duration(dest, i+1);
-		track_dur /= gf_isom_get_media_timescale(dest, i+1);
-		if (aligned_to_DTS < track_dur) {
-			aligned_to_DTS = track_dur;
+		u64 track_dur = gf_isom_get_media_duration(dest, i+1);
+		u32 track_ts = gf_isom_get_media_timescale(dest, i+1);
+		if ((u64)aligned_to_DTS_frac.num * track_ts < track_dur * aligned_to_DTS_frac.den) {
+			aligned_to_DTS_frac.num = track_dur;
+			aligned_to_DTS_frac.den = track_ts;
 		}
 	}
 
@@ -2026,8 +2032,23 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		if (dst_tk) {
 			if (mtype != gf_isom_get_media_type(dest, dst_tk))
 				dst_tk = 0;
-			else if (gf_isom_get_media_subtype(dest, dst_tk, 1) != gf_isom_get_media_subtype(orig, i+1, 1))
-				dst_tk = 0;
+			else {
+				u32 subtype_dst = gf_isom_get_media_subtype(dest, dst_tk, 1);
+				u32 subtype_src = gf_isom_get_media_subtype(orig, i+1, 1);
+				if (subtype_dst==GF_ISOM_SUBTYPE_AVC3_H264)
+					subtype_dst=GF_ISOM_SUBTYPE_AVC_H264 ;
+				if (subtype_src==GF_ISOM_SUBTYPE_AVC3_H264)
+					subtype_src=GF_ISOM_SUBTYPE_AVC_H264;
+
+				if (subtype_dst==GF_ISOM_SUBTYPE_HEV1)
+					subtype_dst=GF_ISOM_SUBTYPE_HVC1;
+				if (subtype_src==GF_ISOM_SUBTYPE_HEV1)
+					subtype_src=GF_ISOM_SUBTYPE_HVC1;
+
+				if (subtype_dst != subtype_src) {
+					dst_tk = 0;
+				}
+			}
 		}
 
 		if (!dst_tk) {
@@ -2157,7 +2178,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		count = gf_isom_get_sample_count(dest, dst_tk);
 
 		if (align_timelines) {
-			insert_dts = (u64) (aligned_to_DTS * gf_isom_get_media_timescale(dest, dst_tk));
+			insert_dts = (u64) (aligned_to_DTS_frac.num * gf_isom_get_media_timescale(dest, dst_tk));
+			insert_dts /= aligned_to_DTS_frac.den;
 		} else if (use_ts_dur && (count>1)) {
 			insert_dts = 2*gf_isom_get_sample_dts(dest, dst_tk, count) - gf_isom_get_sample_dts(dest, dst_tk, count-1);
 		} else {
@@ -2235,10 +2257,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			gf_isom_set_edit_segment(dest, dst_tk, (u64) (s64) (insert_dts*rescale), (u64) (s64) (media_dur*rescale), 0, GF_ISOM_EDIT_NORMAL);
 		} else if (merge_edits) {
 			/*convert from media time to track time*/
-			Double rescale = (Float) gf_isom_get_timescale(dest);
-			rescale /= (Float) gf_isom_get_media_timescale(dest, dst_tk);
+			u32 movts_dst = gf_isom_get_timescale(dest);
+			u32 trackts_dst = gf_isom_get_media_timescale(dest, dst_tk);
 			/*convert from orig to dst time scale*/
-			rescale *= ts_scale;
+			movts_dst = (u32) (movts_dst * ts_scale);
 
 			/*get the first edit normal mode and add the new track dur*/
 			for (j=nb_edits; j>0; j--) {
@@ -2250,14 +2272,17 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 					Double prev_dur = (Double) (s64) dest_track_dur_before_cat;
 					Double dur = (Double) (s64) gf_isom_get_media_duration(orig, i+1);
 
-					dur *= rescale;
-					prev_dur *= rescale;
+					dur *= movts_dst;
+					dur /= trackts_dst;
+					prev_dur *= movts_dst;
+					prev_dur /= trackts_dst;
 
 					/*safety test: some files have broken edit lists. If no more than 2 entries, check that the segment duration
 					is less or equal to the movie duration*/
 					if (prev_dur < segmentDuration) {
 						fprintf(stderr, "Warning: suspicious edit list entry found: duration %g sec but longest track duration before cat is %g - fixing it\n", (Double) (s64) segmentDuration/1000.0, prev_dur/1000);
-						segmentDuration = (u64) (s64) ( (Double) (s64) (dest_track_dur_before_cat - mediaTime) * rescale );
+						segmentDuration = (dest_track_dur_before_cat - mediaTime) * movts_dst;
+						segmentDuration /= trackts_dst;
 					}
 
 					segmentDuration += (u64) (s64) dur;

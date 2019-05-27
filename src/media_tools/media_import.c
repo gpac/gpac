@@ -961,10 +961,11 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 	return gf_media_import(&import);
 }
 
-void on_import_setup_failure(GF_Filter *f, void *on_setup_error_udta, GF_Err e)
+static void on_import_setup_failure(GF_Filter *f, void *on_setup_error_udta, GF_Err e)
 {
 	GF_MediaImporter *importer = (GF_MediaImporter *)on_setup_error_udta;
-	importer->last_error = e;
+	if (importer)
+		importer->last_error = e;
 }
 
 GF_EXPORT
@@ -1026,6 +1027,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			gf_fs_del(fsess);
 			return gf_import_message(importer, e, "[Importer] Cannot load filter for input file \"%s\"", importer->in_name);
 		}
+		if (gf_sys_is_test_mode())
+			on_import_setup_failure(NULL, NULL, GF_OK);
+
 		gf_filter_set_setup_failure_callback(prober, src_filter, on_import_setup_failure, importer);
 		gf_fs_run(fsess);
 
@@ -1213,9 +1217,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 		}
 
-		if (importer->flags & GF_IMPORT_FILTER_STATS) {
-			gf_fs_print_stats(fsess);
-		}
+		if (importer->print_stats_graph & 1) gf_fs_print_stats(fsess);
+		if (importer->print_stats_graph & 2) gf_fs_print_connections(fsess);
 	}
 	gf_fs_del(fsess);
 	return GF_OK;

@@ -12,7 +12,7 @@ fi
 do_sdp_dump=0
 
 case $1 in
-*english* )
+*english.mp3 )
  do_sdp_dump=1;;
 esac
 
@@ -51,7 +51,7 @@ mp4_test ()
  *.ttxt )
   return ;;
  *.opus )
-  return ;;
+  do_hint=0;;
  *.html* )
   return ;;
  *.bt )
@@ -171,6 +171,9 @@ mp4box_tests ()
  for src in $EXTERNAL_MEDIA_DIR/import/* ; do
   mp4_test $src
  done
+
+  mp4_test $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.ac3
+
 
 }
 

@@ -220,6 +220,8 @@ static void format_sax_error(GF_SAXParser *parser, u32 linepos, const char* fmt,
 	u32 len;
 	char szM[20];
 
+	if (!parser) return;
+
 	va_start(args, fmt);
 	vsnprintf(parser->err_msg, ARRAY_LENGTH(parser->err_msg), fmt, args);
 	va_end(args);
@@ -1119,6 +1121,10 @@ GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM)
 		parser->unicode_type = 0;
 		offset = 0;
 	}
+
+	if (gf_sys_is_test_mode())
+		format_sax_error(NULL, 0, "");
+
 	parser->sax_state = SAX_STATE_ELEMENT;
 	return gf_xml_sax_parse(parser, BOM + offset);
 }

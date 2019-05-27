@@ -719,12 +719,14 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 static void gf_smil_handle_event_begin(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *observer)
 {
 	GF_FieldInfo info;
-	GF_Node *timed_elt = (GF_Node *)gf_node_get_private(hdl);
+	SVGTimedAnimBaseElement *timed_elt = (SVGTimedAnimBaseElement *)gf_node_get_private(hdl);
+	if (!timed_elt || !timed_elt->timingp) return;
+
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "begin";
 	info.far_ptr = ((SVGTimedAnimBaseElement *)timed_elt)->timingp->begin;
 	info.fieldType = SMIL_Times_datatype;
-	gf_smil_handle_event(timed_elt, &info, evt, GF_FALSE);
+	gf_smil_handle_event((GF_Node *)timed_elt, &info, evt, GF_FALSE);
 }
 
 static void gf_smil_handle_event_end(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *observer)

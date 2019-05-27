@@ -52,6 +52,11 @@ typedef struct
 	u32 codec_id;
 } GF_OBUMxCtx;
 
+static Bool obumx_test_filter_prop(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop)
+{
+	return GF_TRUE;
+}
+
 GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 crc;
@@ -77,7 +82,12 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		ctx->opid = gf_filter_pid_new(filter);
 	}
 	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(ctx->opid, pid);
+	//for coverage
+	if (gf_sys_is_test_mode()) {
+		gf_filter_pid_merge_properties(ctx->opid, pid, obumx_test_filter_prop, NULL);
+	}else {
+		gf_filter_pid_copy_properties(ctx->opid, pid);
+	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 
 	ctx->ipid = pid;

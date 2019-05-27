@@ -1719,7 +1719,9 @@ void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 			return;
 		}
 		if (!strcmp(url, "urn:inet:gpac:builtin:FlashShape")) {
+#ifdef GPAC_ENABLE_FLASHSHAPE
 			compositor_init_hc_flashshape(compositor, node);
+#endif
 			return;
 		}
 		if (!strcmp(url, "urn:inet:gpac:builtin:StyleGroup")) {

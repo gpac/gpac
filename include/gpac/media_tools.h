@@ -220,8 +220,7 @@ enum
 	/*! when set a default ccst box is used in the sample entry */
 	GF_IMPORT_USE_CCST  = 1<<30,
 
-	/*! print filter session stats at the end of the import*/
-	GF_IMPORT_FILTER_STATS = 0x80000000	//(=1<<31)
+	//GF_IMPORT_FILTER_STATS = 0x80000000	//(=1<<31)
 };
 
 
@@ -393,6 +392,7 @@ typedef struct __track_import
 
 	Bool is_alpha;
 	Bool keep_audelim;
+	u32 print_stats_graph;
 } GF_MediaImporter;
 
 /*!
@@ -1269,13 +1269,6 @@ void gf_saf_mux_del(GF_SAFMuxer *mux);
  */
 GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 buffersize_db, u8 stream_type, u8 object_type, char *mime_type, char *dsi, u32 dsi_len, char *remote_url);
 
-/*!
- Removes a stream from the SAF multiplex
- \param mux the SAF multiplexer object
- \param stream_id ID of the SAF stream to remove
- \return error if any
- */
-GF_Err gf_saf_mux_stream_rem(GF_SAFMuxer *mux, u32 stream_id);
 
 /*!
  adds an AU to the given Warning, AU data will be freed by the multiplexer. AUs are NOT re-sorted by CTS, in order to enable audio interleaving.

@@ -378,7 +378,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 	if ( gf_odm_check_buffering(mo->odm, NULL) ) {
 		//if buffering, first frame fetched and still buffering return
-		if (mo->pck && mo->odm->nb_buffering)
+		if (mo->first_frame_fetched && mo->odm->nb_buffering)
 			return NULL;
 	}
 
@@ -405,7 +405,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	}
 	*eos = mo->is_eos;
 	assert(mo->pck);
-	
+	mo->first_frame_fetched = GF_TRUE;
 
 	/*data = */gf_filter_pck_get_data(mo->pck, size);
 	timescale = gf_filter_pck_get_timescale(mo->pck);
@@ -626,14 +626,17 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		mo->ms_until_next=500;
 
 	if ((mo->timestamp != pck_ts) || is_first) {
+		u32 media_time;
 		u64 dur = gf_filter_pck_get_duration(mo->pck);
 		dur *= 1000;
 		dur /= timescale;
 		mo->frame_dur = (u32) dur;
 		mo->last_fetch_time = obj_time;
 
-		if (mo->odm->media_current_time <= mo->timestamp)
-			mo->odm->media_current_time = mo->timestamp;
+		media_time = gf_clock_to_media_time(mo->odm->ck, mo->timestamp);
+		
+		if (mo->odm->media_current_time <= media_time)
+			mo->odm->media_current_time = media_time;
 
 		if (mo->odm->parentscene->is_dynamic_scene) {
 			GF_Scene *s = mo->odm->parentscene;
@@ -835,6 +838,7 @@ void gf_mo_stop(GF_MediaObject **_mo)
 
 	mo->num_open--;
 	if (!mo->num_open && mo->odm) {
+		mo->first_frame_fetched = GF_FALSE;
 		if (mo->odm->flags & GF_ODM_DESTROYED) {
 			*_mo = NULL;
 			return;

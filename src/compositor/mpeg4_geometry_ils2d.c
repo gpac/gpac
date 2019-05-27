@@ -77,9 +77,12 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 	SFColor col;
 	Fixed alpha;
 	u32 i, count, col_ind, ind, end_at;
-	u32 linear[2], *colors;
+	u32 linear[2];
+#if 0 //unused
+	u32 *colors, j;
+#endif
 	SFVec2f start, end;
-	u32 j, num_col;
+	u32 num_col;
 	GF_EVGStencil *grad;
 	DrawableContext *ctx = tr_state->ctx;
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
@@ -192,6 +195,8 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 			gf_evg_stencil_set_linear_gradient(grad, start.x, start.y, end.x, end.y);
 			gf_evg_stencil_set_gradient_interpolation(grad, pos, linear, 2);
 		} else {
+            grad = NULL;
+#if 0 //unused
 			grad = gf_evg_stencil_new(GF_STENCIL_VERTEX_GRADIENT);
 			if (grad) {
 				gf_evg_stencil_set_vertex_path(grad, path);
@@ -210,6 +215,8 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 				gf_evg_stencil_set_vertex_colors(grad, colors, num_col);
 				gf_free(colors);
 			}
+#endif
+
 		}
 		gf_evg_stencil_set_matrix(grad, &ctx->transform);
 		visual_2d_draw_path(tr_state->visual, path, ctx, NULL, grad, tr_state);

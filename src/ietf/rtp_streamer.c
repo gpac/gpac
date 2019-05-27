@@ -87,6 +87,26 @@ static void rtp_stream_on_data(void *cbk, char *data, u32 data_size, Bool is_hea
 	rtp->payload_len += data_size;
 }
 
+
+GF_Err gf_rtp_streamer_init_rtsp(GF_RTPStreamer *rtp, u32 path_mtu, GF_RTSPTransport  *tr, const char *ifce_addr)
+{
+	GF_Err res;
+
+	if (!rtp->channel) rtp->channel = gf_rtp_new();
+
+	res = gf_rtp_setup_transport(rtp->channel, tr, tr->destination);
+	if (res !=0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("Cannot setup RTP transport info: %s\n", gf_error_to_string(res) ));
+		return res;
+	}
+
+	res = gf_rtp_initialize(rtp->channel, 0, GF_TRUE, path_mtu, 0, 0, (char *)ifce_addr);
+	if (res !=0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("Cannot initialize RTP sockets: %s\n", gf_error_to_string(res) ));
+		return res;
+	}
+	return GF_OK;
+}
 static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const char * dest, int port, int ttl, const char *ifce_addr)
 {
 	GF_RTSPTransport tr;
@@ -135,7 +155,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 codecid, u32 ti
         u32 PayloadType, u32 sample_rate, u32 nb_ch,
         Bool is_crypted, u32 IV_length, u32 KI_length,
         u32 MinSize, u32 MaxSize, u32 avgTS, u32 maxDTSDelta, u32 const_dur, u32 bandwidth, u32 max_ptime,
-        u32 au_sn_len)
+        u32 au_sn_len, Bool for_rtsp)
 {
 	GF_SLConfig slc;
 	GF_RTPStreamer *stream;
@@ -425,12 +445,15 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 codecid, u32 ti
 
 	if (force_dts_delta) stream->packetizer->slMap.DTSDeltaLength = force_dts_delta;
 
-	e = rtp_stream_init_channel(stream, MTU + 12, ip_dest, port, TTL, ifce_addr);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Failed to create RTP channel - error %s\n", gf_error_to_string(e) ));
-		gf_free(stream);
-		return NULL;
+	if (!for_rtsp) {
+		e = rtp_stream_init_channel(stream, MTU + 12, ip_dest, port, TTL, ifce_addr);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Failed to create RTP channel - error %s\n", gf_error_to_string(e) ));
+			gf_free(stream);
+			return NULL;
+		}
 	}
+
 	stream->ts_scale = slc.timestampResolution;
 	stream->ts_scale /= timeScale;
 
@@ -446,7 +469,7 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
                                     const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
                                     u32 flags, char *dsi, u32 dsi_len)
 {
-	return gf_rtp_streamer_new_extended(streamType, codecid, timeScale, ip_dest, port, MTU, TTL, ifce_addr, flags, dsi, dsi_len, 96, 0, 0, GF_FALSE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	return gf_rtp_streamer_new_extended(streamType, codecid, timeScale, ip_dest, port, MTU, TTL, ifce_addr, flags, dsi, dsi_len, 96, 0, 0, GF_FALSE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, GF_FALSE);
 
 }
 
@@ -484,19 +507,20 @@ void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, cha
 
 
 GF_EXPORT
-GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *dsi, u32 dsi_len, char *dsi_enh, u32 dsi_enh_len, char *KMS_URI, u32 width, u32 height, u32 tw, u32 th, s32 tx, s32 ty, s16 tl, char **out_sdp_buffer)
+GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *dsi, u32 dsi_len, char *dsi_enh, u32 dsi_enh_len, char *KMS_URI, u32 width, u32 height, u32 tw, u32 th, s32 tx, s32 ty, s16 tl, Bool for_rtsp, char **out_sdp_buffer)
 {
 	u32 size;
-	u16 port;
+	u16 port=0;
 	char mediaName[30], payloadName[30];
 	char sdp[20000], sdpLine[10000];
 
 	if (!out_sdp_buffer) return GF_BAD_PARAM;
 
 	gf_rtp_builder_get_payload_name(rtp->packetizer, payloadName, mediaName);
-	gf_rtp_get_ports(rtp->channel, &port, NULL);
+	if (!for_rtsp)
+		gf_rtp_get_ports(rtp->channel, &port, NULL);
 
-	sprintf(sdp, "m=%s %d RTP/%s %d\n", mediaName, port, rtp->packetizer->slMap.IV_length ? "SAVP" : "AVP", rtp->packetizer->PayloadType);
+	sprintf(sdp, "m=%s %d RTP/%s %d\n", mediaName, for_rtsp ? 0 : port, rtp->packetizer->slMap.IV_length ? "SAVP" : "AVP", rtp->packetizer->PayloadType);
 	sprintf(sdpLine, "a=rtpmap:%d %s/%d\n", rtp->packetizer->PayloadType, payloadName, rtp->packetizer->sl_config.timestampResolution);
 	strcat(sdp, sdpLine);
 	if (ESID && (rtp->packetizer->rtp_payt != GF_RTP_PAYT_3GPP_DIMS)) {
@@ -693,7 +717,7 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 GF_EXPORT
 GF_Err gf_rtp_streamer_append_sdp(GF_RTPStreamer *rtp, u16 ESID, char *dsi, u32 dsi_len, char *KMS_URI, char **out_sdp_buffer)
 {
-	return gf_rtp_streamer_append_sdp_extended(rtp, ESID, dsi, dsi_len, NULL, 0, KMS_URI, 0, 0, 0, 0, 0, 0, 0, out_sdp_buffer);
+	return gf_rtp_streamer_append_sdp_extended(rtp, ESID, dsi, dsi_len, NULL, 0, KMS_URI, 0, 0, 0, 0, 0, 0, 0, GF_FALSE, out_sdp_buffer);
 }
 
 GF_EXPORT
@@ -743,9 +767,21 @@ GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rt
 }
 
 GF_EXPORT
+GF_Err gf_rtp_streamer_send_bye(GF_RTPStreamer *streamer)
+{
+	return gf_rtp_send_bye(streamer->channel, NULL, NULL);
+}
+
+GF_EXPORT
 u8 gf_rtp_streamer_get_payload_type(GF_RTPStreamer *streamer)
 {
 	return streamer->packetizer->PayloadType;
+}
+
+GF_EXPORT
+u16 gf_rtp_streamer_get_next_rtp_sn(GF_RTPStreamer *streamer)
+{
+	return streamer->packetizer->rtp_header.SequenceNumber+1;
 }
 
 #endif /*GPAC_DISABLE_STREAMING && GPAC_DISABLE_ISOM*/

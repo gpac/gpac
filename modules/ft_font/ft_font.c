@@ -491,7 +491,7 @@ checkFont:
 		}
 	}
 
-	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Font %s (%s) not found\n", fontName, fname));
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[FreeType] Font %s (%s) not found\n", fontName, fname));
 	gf_free(fname);
 	gf_opts_set_key("temp_freetype", OrigFontName, "not found");
 	return GF_NOT_SUPPORTED;

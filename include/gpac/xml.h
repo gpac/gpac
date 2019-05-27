@@ -121,7 +121,7 @@ typedef	void (*gf_xml_sax_node_end)(void *sax_cbck, const char *node_name, const
 */
 typedef	void (*gf_xml_sax_text_content)(void *sax_cbck, const char *content, Bool is_cdata);
 /*! SAX progress callback
-	\param sax_cbck user data passed durinc creation of SAX parser
+	\param cbck user data passed durinc creation of SAX parser
 	\param done amount of bytes parsed from the file
 	\param total total number of bytes in the file
 */
@@ -223,11 +223,17 @@ u32 gf_xml_sax_get_node_end_pos(GF_SAXParser *parser);
 /*! the DOM loader. GPAC can also load complete XML document in memory, using a DOM-like approach. This is a simpler
 approach for document parsing not requiring progressive loading*/
 typedef struct _tag_dom_parser GF_DOMParser;
-GF_DOMParser *gf_xml_dom_new();
+
 /*! the DOM loader constructor
 \return the created DOM loader, NULL if memory error
 */
+GF_DOMParser *gf_xml_dom_new();
+
+/*! the DOM loader constructor
+\param parser the DOM parser to destroy
+*/
 void gf_xml_dom_del(GF_DOMParser *parser);
+
 /*! Parses an XML document or fragment contained in a file
 \param parser the DOM parser to use
 \param file the file to parse

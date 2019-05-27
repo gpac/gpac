@@ -61,17 +61,6 @@ typedef struct _tag_vobsub_file
 	vobsub_lang langs[32];
 } vobsub_file;
 
-GFINLINE static void vobsub_trim_ext(char *filename)
-{
-	char *pos = strrchr(filename, '.');
-
-	if (pos != NULL) {
-		if (!stricmp(pos, ".idx") || !stricmp(pos, ".sub")) {
-			*pos = '\0';
-		}
-	}
-}
-
 s32    vobsub_lang_name(u16 id);
 char  *vobsub_lang_id(char *name);
 GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, int *version);

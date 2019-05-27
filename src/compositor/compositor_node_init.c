@@ -558,7 +558,9 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 		break;
 
 	case TAG_SVG_filter:
+#ifdef GPAC_ENABLE_SVG_FILTERS
 		compositor_init_svg_filter(compositor, node);
+#endif
 		break;
 
 	case TAG_LSR_updates:

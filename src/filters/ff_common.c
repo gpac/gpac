@@ -368,6 +368,7 @@ static const GF_FF_ST FF2GPAC_StreamTypes[] =
 	{0},
 };
 
+/*
 u32 ffmpeg_stream_type_from_gpac(u32 streamtype)
 {
 	u32 i=0;
@@ -379,6 +380,7 @@ u32 ffmpeg_stream_type_from_gpac(u32 streamtype)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC stream type %s, assuming data\n", gf_stream_type_name(streamtype) ));
 	return AVMEDIA_TYPE_DATA;
 }
+*/
 
 u32 ffmpeg_stream_type_to_gpac(u32 streamtype)
 {

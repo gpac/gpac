@@ -1508,7 +1508,7 @@ GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep)
 	l1 = *str ? (u32) strlen(*str) : 0;
 	l2 = (u32) strlen(to_append);
 	if (l1) (*str) = gf_realloc((*str), sizeof(char)*(l1+l2+lsep+1));
-	else (*str) = gf_realloc((*str), sizeof(char)*(l2+lsep));
+	else (*str) = gf_realloc((*str), sizeof(char)*(l2+lsep+1));
 
 	if (! (*str) )
 		return GF_OUT_OF_MEM;

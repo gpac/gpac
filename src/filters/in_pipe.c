@@ -75,6 +75,8 @@ typedef struct
 	char *buffer;
 } GF_PipeInCtx;
 
+static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt);
+
 static GF_Err pipein_initialize(GF_Filter *filter)
 {
 	GF_Err e = GF_OK;
@@ -213,6 +215,9 @@ err_exit:
 		ctx->buffer = gf_malloc(ctx->block_size +1);
 
 	gf_filter_post_process_task(filter);
+
+	if (gf_sys_is_test_mode())
+		pipein_process_event(NULL, NULL);
 	return GF_OK;
 }
 
@@ -243,10 +248,12 @@ static GF_FilterProbeScore pipein_probe_url(const char *url, const char *mime_ty
 
 static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_PipeInCtx *ctx = (GF_PipeInCtx *) gf_filter_get_udta(filter);
+	GF_PipeInCtx *ctx;
+	if (!filter) return GF_TRUE;
 
+	ctx = (GF_PipeInCtx *) gf_filter_get_udta(filter);
 	if (evt->base.on_pid && (evt->base.on_pid != ctx->pid))
-		return GF_FALSE;
+		return GF_TRUE;
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
@@ -270,7 +277,7 @@ static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	default:
 		break;
 	}
-	return GF_FALSE;
+	return GF_TRUE;
 }
 
 

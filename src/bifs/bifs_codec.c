@@ -485,7 +485,7 @@ GF_Err gf_bifs_encoder_set_source_url(GF_BifsEncoder *codec, const char *src_url
 
 #endif /*GPAC_DISABLE_BIFS_ENC*/
 
-
+GF_EXPORT
 u32 gf_bifs_get_child_table(GF_Node *Node)
 {
 	assert(Node);

@@ -472,10 +472,13 @@ GF_Err gf_rtsp_session_read(GF_RTSPSession *sess)
 GF_EXPORT
 u32 gf_rtsp_unregister_interleave(GF_RTSPSession *sess, u8 LowInterID)
 {
+	u32 res;
 	GF_TCPChan *ptr;
 	ptr = GetTCPChannel(sess, LowInterID, LowInterID, GF_TRUE);
 	if (ptr) gf_free(ptr);
-	return gf_list_count(sess->TCPChannels);
+	res = gf_list_count(sess->TCPChannels);
+	if (!res) sess->interleaved = GF_FALSE;
+	return res;
 }
 
 GF_EXPORT
@@ -494,6 +497,7 @@ GF_Err gf_rtsp_register_interleave(GF_RTSPSession *sess, void *the_ch, u8 LowInt
 		ptr->rtcpID = HighInterID;
 		gf_list_add(sess->TCPChannels, ptr);
 	}
+	sess->interleaved=GF_TRUE;
 	return GF_OK;
 }
 
@@ -660,7 +664,7 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener)
 	sess->ConnectionType = fam;
 	gf_sk_get_host_name(name);
 	sess->Server = gf_strdup(name);
-
+	gf_rtsp_set_buffer_size(sess, 4096);
 	sess->TCPChannels = gf_list_new();
 	return sess;
 }

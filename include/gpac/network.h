@@ -226,7 +226,7 @@ typedef struct __tag_socket GF_Socket;
 typedef struct __tag_sock_group GF_SockGroup;
 
 /*!Buffer size to pass for IP address retrieval*/
-#define GF_MAX_IP_NAME_LEN	516
+#define GF_MAX_IP_NAME_LEN	1025
 
 /*!socket is a TCP socket*/
 #define GF_SOCK_TYPE_TCP		0x01

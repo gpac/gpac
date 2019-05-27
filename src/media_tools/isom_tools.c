@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -2075,6 +2075,8 @@ GF_Err gf_media_filter_hevc(GF_ISOFile *file, u32 track, u8 max_temporal_id_plus
 					gf_list_rem(ar->nalus, j);
 					j--;
 					count2--;
+					gf_free(sl->data);
+					gf_free(sl);
 				}
 			}
 		}
@@ -2096,6 +2098,8 @@ GF_Err gf_media_filter_hevc(GF_ISOFile *file, u32 track, u8 max_temporal_id_plus
 					gf_list_rem(ar->nalus, j);
 					j--;
 					count2--;
+					gf_free(sl->data);
+					gf_free(sl);
 				}
 			}
 		}
@@ -2120,7 +2124,9 @@ GF_Err gf_media_filter_hevc(GF_ISOFile *file, u32 track, u8 max_temporal_id_plus
 			u8 temporal_id_plus_one = gf_bs_read_int(bs, 3);
 			size -= 2;
 
-			if ((max_temporal_id_plus_one && (temporal_id_plus_one > max_temporal_id_plus_one)) || (max_layer_id_plus_one && (layer_id+1 > max_layer_id_plus_one))) {
+			if ((max_temporal_id_plus_one && (temporal_id_plus_one > max_temporal_id_plus_one))
+				|| (max_layer_id_plus_one && (layer_id+1 > max_layer_id_plus_one))
+			) {
 				gf_bs_skip_bytes(bs, size);
 				continue;
 			}
@@ -2146,6 +2152,9 @@ GF_Err gf_media_filter_hevc(GF_ISOFile *file, u32 track, u8 max_temporal_id_plus
 
 		gf_bs_get_content(dst_bs, &sample->data, &sample->dataLength);
 		e = gf_isom_update_sample(file, track, i+1, sample, GF_TRUE);
+		gf_bs_del(dst_bs);
+		gf_isom_sample_del(&sample);
+
 		if (e)
 			goto exit;
 	}

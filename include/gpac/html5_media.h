@@ -65,6 +65,8 @@ extern "C" {
 #include <gpac/xml.h>
 #include <gpac/internal/compositor_dev.h>
 
+#ifdef GPAC_ENABLE_HTML5_MEDIA
+
 #ifdef GPAC_HAS_SPIDERMONKEY
 #include <gpac/internal/smjs_api.h>
 #endif
@@ -374,6 +376,9 @@ void gf_html_media_controller_del(GF_HTML_MediaController *mc);
 GF_HTML_ArrayBuffer *gf_arraybuffer_new(char *data, u32 length);
 JSObject *gf_arraybuffer_js_new(JSContext *c, char *data, u32 length, JSObject *parent);
 void gf_arraybuffer_del(GF_HTML_ArrayBuffer *buffer, Bool del_js);
+
+
+#endif //GPAC_ENABLE_HTML5_MEDIA
 
 /*! @} */
 

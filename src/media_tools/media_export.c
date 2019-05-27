@@ -77,54 +77,87 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 	ogg_packet op;
 	ogg_page og;
 	u32 count, i, di, theora_kgs, nb_i, nb_p;
+	Bool flush_first = GF_TRUE;
 	GF_BitStream *bs;
 	GF_ISOSample *samp;
 	GF_ESD *esd = gf_isom_get_esd(dumper->file, track, 1);
 
 
-	gf_rand_init(1);
-	ogg_stream_init(&os, gf_rand());
+	memset(&os, 0, sizeof(ogg_stream_state));
+	memset(&og, 0, sizeof(ogg_page));
+	memset(&op, 0, sizeof(ogg_packet));
 
-	op.granulepos = 0;
-	op.packetno = 0;
-	op.b_o_s = 1;
-	op.e_o_s = 0;
+	if (gf_sys_is_test_mode()) {
+		ogg_stream_init(&os, 1);
+	} else {
+		gf_rand_init(1);
+		ogg_stream_init(&os, gf_rand());
+	}
 
 	out = szName ? gf_fopen(szName, "wb") : stdout;
 	if (!out) return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 
 	theora_kgs = 0;
 	bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
-	while (gf_bs_available(bs)) {
-		op.bytes = gf_bs_read_u16(bs);
-		op.packet = (unsigned char*)gf_malloc(sizeof(char) * op.bytes);
-		gf_bs_read_data(bs, (char*)op.packet, op.bytes);
-		ogg_stream_packetin(&os, &op);
-
-		if (op.b_o_s) {
-			ogg_stream_pageout(&os, &og);
-			gf_fwrite(og.header, 1, og.header_len, out);
-			gf_fwrite(og.body, 1, og.body_len, out);
-			op.b_o_s = 0;
-
-			if (esd->decoderConfig->objectTypeIndication==GF_CODECID_THEORA) {
-				u32 kff;
-				GF_BitStream *vbs = gf_bs_new((char*)op.packet, op.bytes, GF_BITSTREAM_READ);
-				gf_bs_skip_bytes(vbs, 40);
-				gf_bs_read_int(vbs, 6); /* quality */
-				kff = 1 << gf_bs_read_int(vbs, 5);
-				gf_bs_del(vbs);
-
-				theora_kgs = 0;
-				kff--;
-				while (kff) {
-					theora_kgs ++;
-					kff >>= 1;
-				}
-			}
+	if (esd->decoderConfig->objectTypeIndication==GF_CODECID_OPUS) {
+		GF_BitStream *bs_out;
+		GF_OpusSpecificBox *dops = (GF_OpusSpecificBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DOPS);
+		dops->size = gf_bs_read_u32(bs);
+		gf_bs_read_u32(bs);
+		gf_isom_box_read((GF_Box *)dops, bs);
+		bs_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_data(bs_out, "OpusHead", 8);
+		gf_bs_write_u8(bs_out, 1);//version
+		gf_bs_write_u8(bs_out, dops->OutputChannelCount);
+		gf_bs_write_u16_le(bs_out, dops->PreSkip);
+		gf_bs_write_u32_le(bs_out, dops->InputSampleRate);
+		gf_bs_write_u16_le(bs_out, dops->OutputGain);
+		gf_bs_write_u8(bs_out, dops->ChannelMappingFamily);
+		if (dops->ChannelMappingFamily) {
+			gf_bs_write_u8(bs_out, dops->StreamCount);
+			gf_bs_write_u8(bs_out, dops->CoupledCount);
+			gf_bs_write_data(bs, (char *) dops->ChannelMapping, dops->OutputChannelCount);
 		}
+		gf_isom_box_del((GF_Box*)dops);
+
+		gf_bs_get_content(bs_out, (char **) &op.packet, &op.bytes);
+		gf_bs_del(bs_out);
+		ogg_stream_packetin(&os, &op);
 		gf_free(op.packet);
 		op.packetno ++;
+
+	} else {
+		while (gf_bs_available(bs)) {
+			op.bytes = gf_bs_read_u16(bs);
+			op.packet = (unsigned char*)gf_malloc(sizeof(char) * op.bytes);
+			gf_bs_read_data(bs, (char*)op.packet, op.bytes);
+			ogg_stream_packetin(&os, &op);
+
+			if (flush_first) {
+				ogg_stream_pageout(&os, &og);
+				gf_fwrite(og.header, 1, og.header_len, out);
+				gf_fwrite(og.body, 1, og.body_len, out);
+				flush_first = 0;
+
+				if (esd->decoderConfig->objectTypeIndication==GF_CODECID_THEORA) {
+					u32 kff;
+					GF_BitStream *vbs = gf_bs_new((char*)op.packet, op.bytes, GF_BITSTREAM_READ);
+					gf_bs_skip_bytes(vbs, 40);
+					gf_bs_read_int(vbs, 6); /* quality */
+					kff = 1 << gf_bs_read_int(vbs, 5);
+					gf_bs_del(vbs);
+
+					theora_kgs = 0;
+					kff--;
+					while (kff) {
+						theora_kgs ++;
+						kff >>= 1;
+					}
+				}
+			}
+			gf_free(op.packet);
+			op.packetno ++;
+		}
 	}
 	gf_bs_del(bs);
 	gf_odf_desc_del((GF_Descriptor *)esd);
@@ -188,54 +221,6 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 }
 #endif
 
-GF_Err gf_export_hint(GF_MediaExporter *dumper)
-{
-#ifndef GPAC_DISABLE_ISOM_HINTING
-	GF_Err e;
-	char szName[1000], szType[5];
-	char *pck;
-	FILE *out;
-	u32 track, i, size, m_stype, sn, count;
-
-	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
-		return GF_BAD_PARAM;
-	}
-	m_stype = gf_isom_get_media_subtype(dumper->file, track, 1);
-
-	e = gf_isom_reset_hint_reader(dumper->file, track, dumper->sample_num ? dumper->sample_num : 1, 0, 0, 0);
-	if (e) return gf_export_message(dumper, e, "Error initializing hint reader");
-
-	gf_export_message(dumper, GF_OK, "Extracting hint track samples - type %s", szType);
-
-	count = gf_isom_get_sample_count(dumper->file, track);
-	if (dumper->sample_num) count = 0;
-
-	i = 1;
-	while (1) {
-		e = gf_isom_next_hint_packet(dumper->file, track, &pck, &size, NULL, NULL, NULL, &sn);
-		if (e==GF_EOS) break;
-		if (dumper->sample_num && (dumper->sample_num != sn)) {
-			gf_free(pck);
-			break;
-		}
-		if (e) return gf_export_message(dumper, e, "Error fetching hint packet %d", i);
-		sprintf(szName, "%s_pck_%04d.%s", dumper->out_name, i, gf_4cc_to_str(m_stype));
-		out = gf_fopen(szName, "wb");
-		gf_fwrite(pck, size, 1, out);
-		gf_fclose(out);
-		gf_free(pck);
-		i++;
-		if (count) gf_set_progress("Hint Export", sn, count);
-	}
-	if (count) gf_set_progress("Hint Export", count, count);
-
-	return GF_OK;
-#else
-	return GF_NOT_SUPPORTED;
-#endif
-}
-
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 track, char *dsi, u32 dsiSize)
@@ -265,7 +250,10 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	}
 
 	/* Create a sub file */
-	vobsub_trim_ext(szName);
+	char *ext = gf_file_ext_start(szName);
+	if (ext && (!stricmp(ext, ".idx") || !stricmp(ext, ".sub")) ) {
+		ext[0] = 0;
+	}
 	szName = strcat(szName, ".sub");
 	fsub = gf_fopen(szName, "wb");
 	if (!fsub) {
@@ -654,7 +642,8 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 	mstype = gf_isom_get_media_subtype(dumper->file, track, 1);
 
 	/*write header*/
-	fprintf(vtt, "WEBVTT Metadata track generated by GPAC MP4Box %s\n", gf_gpac_version());
+	fprintf(vtt, "WEBVTT Metadata track generated by GPAC MP4Box %s\n", gf_sys_is_test_mode() ? "" : gf_gpac_version());
+
 	fprintf(vtt, "kind:metadata\n");
 	{
 		char *lang;
@@ -1164,7 +1153,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			break;
 		}
 		//TODO, move these two to filters one of these days
-		if ((codec_id==GF_CODECID_VORBIS) || (codec_id==GF_CODECID_THEORA)) {
+		if ((codec_id==GF_CODECID_VORBIS) || (codec_id==GF_CODECID_THEORA) || (codec_id==GF_CODECID_OPUS)) {
 			char *outname = dumper->out_name;
 			if (outname && !strcmp(outname, "std")) outname=NULL;
 			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);

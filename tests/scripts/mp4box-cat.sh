@@ -24,7 +24,8 @@ catfile="$TEMP_DIR/test-catmp4.mp4"
 do_test "$MP4BOX -cat $mp4file $mp4file -out $catfile" "catmp4"
 do_hash_test $catfile "catmp4"
 
-plfile="$TEMP_DIR/pl.txt"
+#generate playlist in current dir since we put relative path in it
+plfile="pl.txt"
 echo $2 > $plfile
 echo $2 >> $plfile
 
@@ -35,6 +36,8 @@ do_hash_test $catfile "catpl"
 catfile="$TEMP_DIR/test-catplmp4.mp4"
 do_test "$MP4BOX -catpl $plfile $mp4file -out $catfile" "catplmp4"
 do_hash_test $catfile "catplmp4"
+
+rm $plfile
 
 fi
 
@@ -71,8 +74,15 @@ if [ "$test_skip" != 1 ] ; then
 
 
 mp4file="$TEMP_DIR/file.mp4"
+insp="$TEMP_DIR/inspect.txt"
+#we cannot hash the result because -cat * will call enum_directory which may behave differently across platforms
 do_test "$MP4BOX -cat $EXTERNAL_MEDIA_DIR/counter/@.hevc -new $mp4file" "cat"
-do_hash_test $mp4file "cat"
+
+myres=`MP4Box -info $mp4file 2>&1 | grep "2250 samples"`
+
+if [ -z "$myres" ] ; then
+result="error importing"
+fi
 
 fi
 test_end

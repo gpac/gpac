@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -527,57 +527,18 @@ static void PrintNodeSFField(u32 type, void *far_ptr)
 }
 #endif
 
-void PrintNode(const char *name, u32 graph_type)
+#ifndef GPAC_DISABLE_VRML
+static void do_print_node(GF_Node *node, GF_SceneGraph *sg, const char *name, u32 graph_type, Bool is_nodefield, Bool do_cov)
 {
-#ifdef GPAC_DISABLE_VRML
-	fprintf(stderr, "VRML/MPEG-4/X3D scene graph is disabled in this build of GPAC\n");
-	return;
-#else
-	const char *nname, *std_name;
 	char szField[1024];
-	GF_Node *node;
-	GF_SceneGraph *sg;
-	u32 tag, nbF, i;
+	u32 nbF, i;
 	GF_FieldInfo f;
 #ifndef GPAC_DISABLE_BIFS
 	u8 qt, at;
 	Fixed bmin, bmax;
 	u32 nbBits;
 #endif /*GPAC_DISABLE_BIFS*/
-	Bool is_nodefield = 0;
 
-	char *sep = strchr(name, '.');
-	if (sep) {
-		strcpy(szField, sep+1);
-		sep[0] = 0;
-		is_nodefield = 1;
-	}
-
-	if (graph_type==1) {
-#ifndef GPAC_DISABLE_X3D
-		tag = gf_node_x3d_type_by_class_name(name);
-		std_name = "X3D";
-#else
-		fprintf(stderr, "X3D node printing is not supported (X3D support disabled)\n");
-		return;
-#endif
-	} else {
-		tag = gf_node_mpeg4_type_by_class_name(name);
-		std_name = "MPEG4";
-	}
-	if (!tag) {
-		fprintf(stderr, "Unknown %s node %s\n", std_name, name);
-		return;
-	}
-
-	sg = gf_sg_new();
-	node = gf_node_new(sg, tag);
-	gf_node_register(node, NULL);
-	nname = gf_node_get_class_name(node);
-	if (!node) {
-		fprintf(stderr, "Node %s not supported in current built\n", nname);
-		return;
-	}
 	nbF = gf_node_get_field_count(node);
 
 	if (is_nodefield) {
@@ -607,8 +568,29 @@ void PrintNode(const char *name, u32 graph_type)
 		}
 		return;
 	}
+	if (do_cov) {
+		u32 ndt;
+		if (graph_type==0) {
+			u32 i, all;
+			gf_node_mpeg4_type_by_class_name(name);
+			gf_bifs_get_child_table(node);
+			all = gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_ALL);
+			for (i=0; i<all; i++) {
+				u32 res;
+				gf_sg_script_get_field_index(node, i, GF_SG_FIELD_CODING_ALL, &res);
+			}
 
-	fprintf(stderr, "Node Syntax:\n%s {\n", nname);
+			gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF);
+			gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_IN);
+			gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_OUT);
+			gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DYN);
+		}
+		else if (graph_type==1) gf_node_x3d_type_by_class_name(name);
+		for (ndt=NDT_SFWorldNode; ndt<NDT_LAST; ndt++) {
+			gf_node_in_table_by_tag(gf_node_get_tag(node), ndt);
+		}
+	}
+	fprintf(stderr, "%s {\n", name);
 
 	for (i=0; i<nbF; i++) {
 		gf_node_get_field(node, i, &f);
@@ -652,15 +634,72 @@ void PrintNode(const char *name, u32 graph_type)
 		}
 #endif /*GPAC_DISABLE_BIFS*/
 		fprintf(stderr, "\n");
+
+		if (do_cov) {
+			gf_node_get_field_by_name(node, (char *) f.name, &f);
+		}
 	}
 	fprintf(stderr, "}\n\n");
+
+}
+#endif
+
+
+void PrintNode(const char *name, u32 graph_type)
+{
+#ifdef GPAC_DISABLE_VRML
+	fprintf(stderr, "VRML/MPEG-4/X3D scene graph is disabled in this build of GPAC\n");
+	return;
+#else
+	const char *std_name;
+	char szField[1024];
+	GF_Node *node;
+	GF_SceneGraph *sg;
+	u32 tag;
+#ifndef GPAC_DISABLE_BIFS
+#endif /*GPAC_DISABLE_BIFS*/
+	Bool is_nodefield = 0;
+
+	char *sep = strchr(name, '.');
+	if (sep) {
+		strcpy(szField, sep+1);
+		sep[0] = 0;
+		is_nodefield = 1;
+	}
+
+	if (graph_type==1) {
+#ifndef GPAC_DISABLE_X3D
+		tag = gf_node_x3d_type_by_class_name(name);
+		std_name = "X3D";
+#else
+		fprintf(stderr, "X3D node printing is not supported (X3D support disabled)\n");
+		return;
+#endif
+	} else {
+		tag = gf_node_mpeg4_type_by_class_name(name);
+		std_name = "MPEG4";
+	}
+	if (!tag) {
+		fprintf(stderr, "Unknown %s node %s\n", std_name, name);
+		return;
+	}
+
+	sg = gf_sg_new();
+	node = gf_node_new(sg, tag);
+	gf_node_register(node, NULL);
+	name = gf_node_get_class_name(node);
+	if (!node) {
+		fprintf(stderr, "Node %s not supported in current built\n", name);
+		return;
+	}
+	do_print_node(node, sg, name, graph_type, is_nodefield, GF_FALSE);
 
 	gf_node_unregister(node, NULL);
 	gf_sg_del(sg);
 #endif /*GPAC_DISABLE_VRML*/
 }
 
-void PrintBuiltInNodes(u32 graph_type)
+void PrintBuiltInNodes(u32 graph_type, Bool dump_nodes)
 {
 #if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_X3D) && !defined(GPAC_DISABLE_SVG)
 	GF_Node *node;
@@ -706,7 +745,11 @@ void PrintBuiltInNodes(u32 graph_type)
 		node = gf_node_new(sg, i);
 		if (node) {
 			gf_node_register(node, NULL);
-			fprintf(stderr, " %s\n", gf_node_get_class_name(node));
+			if (dump_nodes) {
+				do_print_node(node, sg, gf_node_get_class_name(node), graph_type, GF_FALSE, GF_TRUE);
+			} else {
+				fprintf(stderr, " %s\n", gf_node_get_class_name(node));
+			}
 			gf_node_unregister(node, NULL);
 			nb_in++;
 		} else {
@@ -906,361 +949,8 @@ static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
 	return nal_size;
 }
 
-#ifndef GPAC_DISABLE_AV_PARSERS
+void gf_inspect_dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc);
 
-static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
-{
-	u32 sei_idx=0;
-	u32 i;
-	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
-
-	//skip nal header
-	gf_bs_read_int(bs, is_hevc ? 16 : 8);
-
-	fprintf(dump, " SEI=\"");
-	while (gf_bs_available(bs) ) {
-		u32 sei_type = 0;
-		u32 sei_size = 0;
-		while (gf_bs_peek_bits(bs, 8, 0) == 0xFF) {
-			sei_type+= 255;
-		}
-		sei_type += gf_bs_read_int(bs, 8);
-		while (gf_bs_peek_bits(bs, 8, 0) == 0xFF) {
-			sei_size += 255;
-			gf_bs_read_int(bs, 8);
-		}
-		sei_size += gf_bs_read_int(bs, 8);
-		i=0;
-		while (i < sei_size) {
-			gf_bs_read_u8(bs);
-			i++;
-		}
-		if (sei_idx) fprintf(dump, ",");
-		fprintf(dump, "(type=%u, size=%u)", sei_type, sei_size);
-		sei_idx++;
-		if (gf_bs_peek_bits(bs, 8, 0) == 0x80) {
-			break;
-		}
-	}
-	fprintf(dump, "\"");
-}
-
-static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc)
-{
-	s32 res;
-	u8 type, nal_ref_idc;
-	u8 dependency_id, quality_id, temporal_id;
-	u8 track_ref_index;
-	s8 sample_offset;
-	u32 data_offset, data_size;
-	s32 idx;
-	GF_BitStream *bs;
-
-
-	if (!ptr_size) {
-		fprintf(dump, "error=\"invalid nal size 0\"");
-		return;
-	}
-
-	if (dump_crc) fprintf(dump, "crc=\"%u\" ", gf_crc_32(ptr, ptr_size) );
-
-	if (hevc) {
-#ifndef GPAC_DISABLE_HEVC
-		res = gf_media_hevc_parse_nalu(ptr, ptr_size, hevc, &type, &temporal_id, &quality_id);
-
-		fprintf(dump, "code=\"%d\" type=\"", type);
-		switch (type) {
-		case GF_HEVC_NALU_SLICE_TRAIL_N:
-			fputs("TRAIL_N slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_TRAIL_R:
-			fputs("TRAIL_R slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_TSA_N:
-			fputs("TSA_N slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_TSA_R:
-			fputs("TSA_R slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_STSA_N:
-			fputs("STSA_N slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_STSA_R:
-			fputs("STSA_R slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_RADL_N:
-			fputs("RADL_N slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_RADL_R:
-			fputs("RADL_R slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_RASL_N:
-			fputs("RASL_N slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_RASL_R:
-			fputs("RASL_R slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_BLA_W_LP:
-			fputs("Broken link access slice (W LP)", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_BLA_W_DLP:
-			fputs("Broken link access slice (W DLP)", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_BLA_N_LP:
-			fputs("Broken link access slice (N LP)", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_IDR_W_DLP:
-			fputs("IDR slice (W DLP)", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_IDR_N_LP:
-			fputs("IDR slice (N LP)", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_CRA:
-			fputs("CRA slice", dump);
-			break;
-
-		case GF_HEVC_NALU_VID_PARAM:
-			fputs("Video Parameter Set", dump);
-			idx = gf_media_hevc_read_vps(ptr, ptr_size, hevc);
-			if (idx<0) fprintf(dump, "\" vps_id=\"PARSING FAILURE");
-			else fprintf(dump, "\" vps_id=\"%d", idx);
-			break;
-		case GF_HEVC_NALU_SEQ_PARAM:
-			idx = gf_media_hevc_read_sps(ptr, ptr_size, hevc);
-			fputs("Sequence Parameter Set", dump);
-			if (idx<0) fprintf(dump, "\" sps_id=\"PARSING FAILURE");
-			else fprintf(dump, "\" sps_id=\"%d", idx);
-			break;
-		case GF_HEVC_NALU_PIC_PARAM:
-			idx = gf_media_hevc_read_pps(ptr, ptr_size, hevc);
-			fputs("Picture Parameter Set", dump);
-			if (idx<0) fprintf(dump, "\" pps_id=\"PARSING FAILURE");
-			else fprintf(dump, "\" pps_id=\"%d", idx);
-			break;
-		case GF_HEVC_NALU_ACCESS_UNIT:
-			fputs("AU Delimiter", dump);
-			fprintf(dump, "\" primary_pic_type=\"%d", ptr[2] >> 5);
-			break;
-		case GF_HEVC_NALU_END_OF_SEQ:
-			fputs("End of Sequence", dump);
-			break;
-		case GF_HEVC_NALU_END_OF_STREAM:
-			fputs("End of Stream", dump);
-			break;
-		case GF_HEVC_NALU_FILLER_DATA:
-			fputs("Filler Data", dump);
-			break;
-		case GF_HEVC_NALU_SEI_PREFIX:
-			fputs("SEI Prefix", dump);
-			break;
-		case GF_HEVC_NALU_SEI_SUFFIX:
-			fputs("SEI Suffix", dump);
-			break;
-		case 48:
-			fputs("HEVCAggregator", dump);
-			break;
-		case 49:
-		{
-			u32 remain = ptr_size-2;
-			char *s = ptr+2;
-
-			fputs("HEVCExtractor ", dump);
-			while (remain) {
-				u32 mode = s[0];
-				remain -= 1;
-				s += 1;
-				if (mode) {
-					u32 len = s[0];
-					if (len+1>remain) {
-						fprintf(dump, "error=\"invalid inband data extractor size: %d vs %d remaining\"", len, remain);
-						return;
-					}
-					remain -= len+1;
-					s += len+1;
-					fprintf(dump, "\" inband_size=\"%d", len);
-				} else {
-					if (remain < 2 + 2*nalh_size) {
-						fprintf(dump, "error=\"invalid ref data extractor size: %d vs %d remaining\"", 2 + 2*nalh_size, remain);
-						return;
-					}
-					track_ref_index = (u8) s[0];
-					sample_offset = (s8) s[1];
-					data_offset = read_nal_size_hdr(&s[2], nalh_size);
-					data_size = read_nal_size_hdr(&s[2+nalh_size], nalh_size);
-					fprintf(dump, "\" track_ref_index=\"%d\" sample_offset=\"%d\" data_offset=\"%d\" data_size=\"%d", track_ref_index, sample_offset, data_offset, data_size);
-
-					remain -= 2 + 2*nalh_size;
-					s += 2 + 2*nalh_size;
-				}
-			}
-		}
-			break;
-		default:
-			fprintf(dump, "UNKNOWN (parsing return %d)", res);
-			break;
-		}
-		fputs("\"", dump);
-
-		if ((type==GF_HEVC_NALU_SEI_PREFIX) || (type==GF_HEVC_NALU_SEI_SUFFIX)) {
-			bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
-			dump_sei(dump, bs, GF_TRUE);
-			gf_bs_del(bs);
-		}
-
-		if (type<GF_HEVC_NALU_VID_PARAM) {
-
-			fprintf(dump, " slice=\"%s\" poc=\"%d\"", (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_I) ? "I" : (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_P) ? "P" : (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_B) ? "B" : "Unknown", hevc->s_info.poc);
-			fprintf(dump, " first_slice_in_pic=\"%d\"", hevc->s_info.first_slice_segment_in_pic_flag);
-			fprintf(dump, " dependent_slice_segment=\"%d\"", hevc->s_info.dependent_slice_segment_flag);
-		}
-
-		fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", quality_id, temporal_id);
-
-#endif //GPAC_DISABLE_HEVC
-		return;
-	}
-
-	type = ptr[0] & 0x1F;
-	nal_ref_idc = ptr[0] & 0x60;
-	nal_ref_idc>>=5;
-	fprintf(dump, "code=\"%d\" type=\"", type);
-	res = -2;
-	bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
-	switch (type) {
-	case GF_AVC_NALU_NON_IDR_SLICE:
-		res = gf_media_avc_parse_nalu(bs, avc);
-		fputs("Non IDR slice", dump);
-		break;
-	case GF_AVC_NALU_DP_A_SLICE:
-		fputs("DP Type A slice", dump);
-		break;
-	case GF_AVC_NALU_DP_B_SLICE:
-		fputs("DP Type B slice", dump);
-		break;
-	case GF_AVC_NALU_DP_C_SLICE:
-		fputs("DP Type C slice", dump);
-		break;
-	case GF_AVC_NALU_IDR_SLICE:
-		res = gf_media_avc_parse_nalu(bs, avc);
-		fputs("IDR slice", dump);
-		break;
-	case GF_AVC_NALU_SEI:
-		fputs("SEI Message", dump);
-		break;
-	case GF_AVC_NALU_SEQ_PARAM:
-		fputs("SequenceParameterSet", dump);
-		idx = gf_media_avc_read_sps_bs(bs, avc, 0, NULL);
-		if (idx<0) fprintf(dump, "\" sps_id=\"PARSING FAILURE");
-		else fprintf(dump, "\" sps_id=\"%d", idx);
-		fprintf(dump, "\" frame_mbs_only_flag=\"%d", avc->sps->frame_mbs_only_flag);
-		fprintf(dump, "\" mb_adaptive_frame_field_flag=\"%d", avc->sps->mb_adaptive_frame_field_flag);
-		fprintf(dump, "\" vui_parameters_present_flag=\"%d", avc->sps->vui_parameters_present_flag);
-		fprintf(dump, "\" max_num_ref_frames=\"%d", avc->sps->max_num_ref_frames);
-		fprintf(dump, "\" gaps_in_frame_num_value_allowed_flag=\"%d", avc->sps->gaps_in_frame_num_value_allowed_flag);
-		fprintf(dump, "\" chroma_format_idc=\"%d", avc->sps->chroma_format);
-		fprintf(dump, "\" bit_depth_luma_minus8=\"%d", avc->sps->luma_bit_depth_m8);
-		fprintf(dump, "\" bit_depth_chroma_minus8=\"%d", avc->sps->chroma_bit_depth_m8);
-		fprintf(dump, "\" width=\"%d", avc->sps->width);
-		fprintf(dump, "\" height=\"%d", avc->sps->height);
-		fprintf(dump, "\" crop_top=\"%d", avc->sps->crop.top);
-		fprintf(dump, "\" crop_left=\"%d", avc->sps->crop.left);
-		fprintf(dump, "\" crop_bottom=\"%d", avc->sps->crop.bottom);
-		fprintf(dump, "\" crop_right=\"%d", avc->sps->crop.right);
-		if (avc->sps->vui_parameters_present_flag) {
-			fprintf(dump, "\" vui_video_full_range_flag=\"%d", avc->sps->vui.video_full_range_flag);
-			fprintf(dump, "\" vui_video_signal_type_present_flag=\"%d", avc->sps->vui.video_signal_type_present_flag);
-			fprintf(dump, "\" vui_aspect_ratio_info_present_flag=\"%d", avc->sps->vui.aspect_ratio_info_present_flag);
-			fprintf(dump, "\" vui_aspect_ratio_num=\"%d", avc->sps->vui.par_num);
-			fprintf(dump, "\" vui_aspect_ratio_den=\"%d", avc->sps->vui.par_den);
-			fprintf(dump, "\" vui_overscan_info_present_flag=\"%d", avc->sps->vui.overscan_info_present_flag);
-			fprintf(dump, "\" vui_colour_description_present_flag=\"%d", avc->sps->vui.colour_description_present_flag);
-			fprintf(dump, "\" vui_colour_primaries=\"%d", avc->sps->vui.colour_primaries);
-			fprintf(dump, "\" vui_transfer_characteristics=\"%d", avc->sps->vui.transfer_characteristics);
-			fprintf(dump, "\" vui_matrix_coefficients=\"%d", avc->sps->vui.matrix_coefficients);
-			fprintf(dump, "\" vui_low_delay_hrd_flag=\"%d", avc->sps->vui.low_delay_hrd_flag);
-		}
-		break;
-	case GF_AVC_NALU_PIC_PARAM:
-		fputs("PictureParameterSet", dump);
-		idx = gf_media_avc_read_pps_bs(bs, avc);
-		if (idx<0) fprintf(dump, "\" pps_id=\"PARSING FAILURE\" ");
-		else fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", idx, avc->pps[idx].sps_id);
-		fprintf(dump, "\" entropy_coding_mode_flag=\"%d", avc->pps[idx].entropy_coding_mode_flag);
-
-		break;
-	case GF_AVC_NALU_ACCESS_UNIT:
-		fputs("AccessUnit delimiter", dump);
-		fprintf(dump, "\" primary_pic_type=\"%d", gf_bs_read_u8(bs) >> 5);
-		break;
-	case GF_AVC_NALU_END_OF_SEQ:
-		fputs("EndOfSequence", dump);
-		break;
-	case GF_AVC_NALU_END_OF_STREAM:
-		fputs("EndOfStream", dump);
-		break;
-	case GF_AVC_NALU_FILLER_DATA:
-		fputs("Filler data", dump);
-		break;
-	case GF_AVC_NALU_SEQ_PARAM_EXT:
-		fputs("SequenceParameterSetExtension", dump);
-		break;
-	case GF_AVC_NALU_SVC_PREFIX_NALU:
-		fputs("SVCPrefix", dump);
-		break;
-	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
-		fputs("SVCSubsequenceParameterSet", dump);
-		idx = gf_media_avc_read_sps_bs(bs, avc, 1, NULL);
-		assert (idx >= 0);
-		fprintf(dump, "\" sps_id=\"%d", idx - GF_SVC_SSPS_ID_SHIFT);
-		break;
-	case GF_AVC_NALU_SLICE_AUX:
-		fputs("Auxiliary Slice", dump);
-		break;
-
-	case GF_AVC_NALU_SVC_SLICE:
-		gf_media_avc_parse_nalu(bs, avc);
-		fputs(is_svc ? "SVCSlice" : "CodedSliceExtension", dump);
-		dependency_id = (ptr[2] & 0x70) >> 4;
-		quality_id = (ptr[2] & 0x0F);
-		temporal_id = (ptr[3] & 0xE0) >> 5;
-		fprintf(dump, "\" dependency_id=\"%d\" quality_id=\"%d\" temporal_id=\"%d", dependency_id, quality_id, temporal_id);
-		fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
-		break;
-	case 30:
-		fputs("SVCAggregator", dump);
-		break;
-	case 31:
-		fputs("SVCExtractor", dump);
-		track_ref_index = (u8) ptr[4];
-		sample_offset = (s8) ptr[5];
-		data_offset = read_nal_size_hdr(&ptr[6], nalh_size);
-		data_size = read_nal_size_hdr(&ptr[6+nalh_size], nalh_size);
-		fprintf(dump, "\" track_ref_index=\"%d\" sample_offset=\"%d\" data_offset=\"%d\" data_size=\"%d\"", track_ref_index, sample_offset, data_offset, data_size);
-		break;
-
-	default:
-		fputs("UNKNOWN", dump);
-		break;
-	}
-	fputs("\"", dump);
-
-	if (nal_ref_idc) {
-		fprintf(dump, " nal_ref_idc=\"%d\"", nal_ref_idc);
-	}
-	if (res>=0) {
-		fprintf(dump, " poc=\"%d\" pps_id=\"%d\"", avc->s_info.poc, avc->s_info.pps->id);
-	}
-
-	if (type==GF_AVC_NALU_SEI) {
-		dump_sei(dump, bs, GF_FALSE);
-	}
-
-	if (res==-1)
-		fprintf(dump, " status=\"error decoding slice\"");
-
-	if (bs) gf_bs_del(bs);
-}
-#endif
 
 void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 {
@@ -1300,7 +990,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "   <NALU size=\"%d\" ", slc->size);\
-			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);\
+			gf_inspect_dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);\
 			fprintf(dump, "/>\n");\
 		}\
 		fprintf(dump, "  </%sArray>\n", name);\
@@ -1465,9 +1155,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 				break;
 			} else {
 				fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
-#ifndef GPAC_DISABLE_AV_PARSERS
-				dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);
-#endif
+				gf_inspect_dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);
 				fprintf(dump, "/>\n");
 			}
 			idx++;
@@ -1520,67 +1208,7 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	if (inName) gf_fclose(dump);
 }
 
-
-#ifndef GPAC_DISABLE_AV_PARSERS
-static void dump_obu(FILE *dump, u32 idx, AV1State *av1, char *obu, u32 obu_length, ObuType obu_type, u32 obu_size, u32 hdr_size, Bool dump_crc)
-{
-#define DUMP_OBU_INT(_v) fprintf(dump, #_v"=\"%d\" ", av1->_v);
-#define DUMP_OBU_INT2(_n, _v) fprintf(dump, _n"=\"%d\" ", _v);
-
-	fprintf(dump, "   <OBU number=\"%d\" size=\"%d\" type=\"%s\" header_size=\"%d\" has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", idx, (u32) obu_size, av1_get_obu_name(obu_type), hdr_size, av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
-	if (dump_crc) fprintf(dump, "crc=\"%u\" ", gf_crc_32(obu, obu_length) );
-	switch (obu_type) {
-	case OBU_SEQUENCE_HEADER:
-		DUMP_OBU_INT(width)
-		DUMP_OBU_INT(height)
-		DUMP_OBU_INT(bit_depth)
-		DUMP_OBU_INT(still_picture)
-		DUMP_OBU_INT(OperatingPointIdc)
-		DUMP_OBU_INT(color_range)
-		DUMP_OBU_INT(color_description_present_flag)
-		DUMP_OBU_INT(color_primaries)
-		DUMP_OBU_INT(transfer_characteristics)
-		DUMP_OBU_INT(matrix_coefficients)
-		DUMP_OBU_INT2("profile", av1->config->seq_profile)
-		DUMP_OBU_INT2("level", av1->config->seq_level_idx_0)
-		break;
-	case OBU_FRAME_HEADER:
-	case OBU_FRAME:
-		if (av1->frame_id_numbers_present_flag) {
-			DUMP_OBU_INT2("delta_frame_id_length_minus_2", av1->delta_frame_id_length_minus_2)
-		}
-		if (av1->reduced_still_picture_header) {
-			DUMP_OBU_INT(reduced_still_picture_header)
-		}
-		DUMP_OBU_INT2("uncompressed_header_bytes", av1->frame_state.uncompressed_header_bytes);
-		if (av1->frame_state.uncompressed_header_bytes) {
-			if (av1->frame_state.frame_type==AV1_KEY_FRAME) fprintf(dump, "frame_type=\"key\" ");
-			else if (av1->frame_state.frame_type==AV1_INTER_FRAME) fprintf(dump, "frame_type=\"inter\" ");
-			else if (av1->frame_state.frame_type==AV1_INTRA_ONLY_FRAME) fprintf(dump, "frame_type=\"intra_only\" ");
-			else if (av1->frame_state.frame_type==AV1_SWITCH_FRAME) fprintf(dump, "frame_type=\"switch\" ");
-
-			DUMP_OBU_INT2("show_frame", av1->frame_state.show_frame);
-			if (av1->frame_state.show_existing_frame) {
-				DUMP_OBU_INT2("show_existing_frame", av1->frame_state.show_existing_frame);
-			}
-		}
-		if (obu_type==OBU_FRAME_HEADER)
-			break;
-
-	case OBU_TILE_GROUP:
-		if (av1->frame_state.nb_tiles_in_obu) {
-			DUMP_OBU_INT2("nb_tiles", av1->frame_state.nb_tiles_in_obu)
-		} else {
-			fprintf(dump, "nb_tiles=\"unknown\" ");
-		}
-		break;
-	default:
-		break;
-
-	}
-	fprintf(dump, "/>\n");
-}
-#endif
+void gf_inspect_dump_obu(FILE *dump, AV1State *av1, char *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc);
 
 void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 {
@@ -1609,14 +1237,12 @@ void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 
 	fprintf(dump, " <OBUConfig>\n");
 
-	idx = 1;
 	for (i=0; i<gf_list_count(av1.config->obu_array); i++) {
 		GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
 		bs = gf_bs_new((const char *)obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
 		gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
-		dump_obu(dump, idx, &av1, (char*)obu->obu, (u32)obu->obu_length, obu_type, (u32)obu_size, hdr_size, dump_crc);
+		gf_inspect_dump_obu(dump, &av1, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, dump_crc);
 		gf_bs_del(bs);
-		idx++;
 	}
 	fprintf(dump, " </OBUConfig>\n");
 
@@ -1644,13 +1270,11 @@ void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 		bs = gf_bs_new(ptr, size, GF_BITSTREAM_READ);
 		while (size) {
 			gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
-
 			if (obu_size > size) {
 				fprintf(dump, "   <!-- OBU number %d is corrupted: size is %d but only %d remains -->\n", idx, (u32) obu_size, size);
 				break;
 			}
-
-			dump_obu(dump, idx, &av1, ptr, (u32)obu_size, obu_type, (u32) obu_size, hdr_size, dump_crc);
+			gf_inspect_dump_obu(dump, &av1, ptr, obu_size, obu_type, obu_size, hdr_size, dump_crc);
 			ptr += obu_size;
 			size -= (u32)obu_size;
 			idx++;
@@ -2083,12 +1707,11 @@ GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 du
 	} else {
 		t = stdout;
 	}
-	res = (u32) fwrite(data, 1, count, t);
+	res = (u32) fwrite(data+8, 1, count-8, t);
 	if (inName) gf_fclose(t);
 	gf_free(data);
-	if (count != res) {
+	if (count-8 != res) {
 		fprintf(stderr, "Error writing udta to file\n");
-		gf_free(data);
 		return GF_IO_ERR;
 	}
 	return GF_OK;
@@ -2630,13 +2253,13 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 #ifndef GPAC_DISABLE_AV_PARSERS
 						GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, &oti);
 						if (samp) {
-							oti = GF_4CC((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
+							u32 mhdr = GF_4CC((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
 							if (full_dump) fprintf(stderr, "\t");
 							fprintf(stderr, "%s Audio - %d Channel(s) - SampleRate %d - Layer %d\n",
-							        gf_mp3_version_name(oti),
-							        gf_mp3_num_channels(oti),
-							        gf_mp3_sampling_rate(oti),
-							        gf_mp3_layer(oti)
+							        gf_mp3_version_name(mhdr),
+							        gf_mp3_num_channels(mhdr),
+							        gf_mp3_sampling_rate(mhdr),
+							        gf_mp3_layer(mhdr)
 							       );
 							gf_isom_sample_del(&samp);
 						} else {

@@ -1,7 +1,7 @@
 
 
 test_begin "mp4box-tsel"
-if [ "$test_skip" = 1 ] ; then
+if [ $test_skip = 1 ] ; then
 return
 fi
 

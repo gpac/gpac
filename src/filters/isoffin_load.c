@@ -30,6 +30,7 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
+#if 0	//deprecated - we need to rework chapter information to deal with static chapters and chapter tracks
 void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 {
 	GF_Segment *prev_seg;
@@ -73,6 +74,7 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 		}
 	}
 }
+#endif
 
 static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32 stsd_idx, u32 streamtype, Bool use_iod)
 {
@@ -779,9 +781,6 @@ void isor_declare_objects(ISOMReader *read)
 	for (i=0; i<count; i++) {
 		u32 mtype, m_subtype, streamtype, stsd_idx;
 
-		if (!read->alltk && !gf_isom_is_track_enabled(read->mov, i+1))
-			continue;
-
 		mtype = gf_isom_get_media_type(read->mov, i+1);
 		switch (mtype) {
 		case GF_ISOM_MEDIA_AUDIO:
@@ -823,6 +822,15 @@ void isor_declare_objects(ISOMReader *read)
 			}
 			streamtype = GF_STREAM_UNKNOWN;
 			break;
+		}
+
+		if (!read->alltk && !gf_isom_is_track_enabled(read->mov, i+1)) {
+			if (count>1) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d is disabled, ignoring track - you may retry by specifying allt option\n", i+1));
+				continue;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d is disabled but single track in file, considering it enabled\n", i+1 ));
+			}
 		}
 
 		stsd_idx = read->stsd ? read->stsd : 1;

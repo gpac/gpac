@@ -109,6 +109,9 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 	if (e->key_uri) {
 		gf_free(e->key_uri);
 	}
+	if (e->init_segment_url) {
+		gf_free(e->init_segment_url);
+	}
 	memset(e->key_iv, 0, sizeof(bin128) );
 	if (e->url) 
 		gf_free(e->url);
@@ -413,6 +416,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 			}
 		}
 		if (ret[1]) {
+			if (attributes->title) gf_free(attributes->title);
 			attributes->title = gf_strdup(ret[1]);
 		}
 		return ret;
@@ -430,6 +434,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 			if (ret[1] != NULL && safe_start_equals("URI=\"", ret[1])) {
 				int_value = (u32) strlen(ret[1]);
 				if (ret[1][int_value-1] == '"') {
+					if (attributes->key_url) gf_free(attributes->key_url);
 					attributes->key_url = gf_strdup(&(ret[1][4]));
 				}
 			}
@@ -468,6 +473,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 				char *uri = val + 5;
 				int_value = (u32) strlen(uri);
 				if (uri[int_value-1] == '"') {
+					if (attributes->init_url) gf_free(attributes->init_url);
 					attributes->init_url = gf_strdup(uri);
 					attributes->init_url[int_value-1]=0;
 				}
@@ -509,6 +515,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 			} else if (safe_start_equals("CODECS=\"", ret[i])) {
 				int_value = (u32) strlen(ret[i]);
 				if (ret[i][int_value-1] == '"') {
+					if (attributes->codecs) gf_free(attributes->codecs);
 					attributes->codecs = gf_strdup(&(ret[i][7]));
 				}
 			} else if (safe_start_equals("RESOLUTION=", ret[i])) {
@@ -522,11 +529,13 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 			} else if (safe_start_equals("AUDIO=", ret[i])) {
 				assert(attributes->type == MEDIA_TYPE_UNKNOWN);
 				attributes->type = MEDIA_TYPE_AUDIO;
+				if (attributes->group.audio) gf_free(attributes->group.audio);
 				attributes->group.audio = gf_strdup(ret[i] + 6);
 				M3U8_COMPATIBILITY_VERSION(4);
 			} else if (safe_start_equals("VIDEO=", ret[i])) {
 				assert(attributes->type == MEDIA_TYPE_UNKNOWN);
 				attributes->type = MEDIA_TYPE_VIDEO;
+				if (attributes->group.video) gf_free(attributes->group.video);
 				attributes->group.video = gf_strdup(ret[i] + 6);
 				M3U8_COMPATIBILITY_VERSION(4);
 			}
@@ -583,6 +592,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 				}
 			} else if (safe_start_equals("URI=\"", ret[i])) {
 				size_t len;
+				if (attributes->mediaURL) gf_free(attributes->mediaURL);
 				attributes->mediaURL = gf_strdup(ret[i]+5);
 				len = strlen(attributes->mediaURL);
 				if (len && (attributes->mediaURL[len-1] == '"')) {
@@ -592,23 +602,28 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 				}
 			} else if (safe_start_equals("GROUP-ID=", ret[i])) {
 				if (attributes->type == MEDIA_TYPE_AUDIO) {
+					if (attributes->group.audio) gf_free(attributes->group.audio);
 					attributes->group.audio = gf_strdup(ret[i]+9);
 					attributes->stream_id = GROUP_ID_TO_PROGRAM_ID(AUDIO, attributes->group.audio);
 				} else if (attributes->type == MEDIA_TYPE_VIDEO) {
+					if (attributes->group.video) gf_free(attributes->group.video);
 					attributes->group.video = gf_strdup(ret[i]+9);
 					attributes->stream_id = GROUP_ID_TO_PROGRAM_ID(VIDEO, attributes->group.video);
 				} else if (attributes->type == MEDIA_TYPE_SUBTITLES) {
+					if (attributes->group.subtitle) gf_free(attributes->group.subtitle);
 					attributes->group.subtitle = gf_strdup(ret[i]+9);
 					attributes->stream_id = GROUP_ID_TO_PROGRAM_ID(SUBTITLES, attributes->group.subtitle);
 				} else if (attributes->type == MEDIA_TYPE_CLOSED_CAPTIONS) {
-					attributes->group.subtitle = gf_strdup(ret[i]+9);
-					attributes->stream_id = GROUP_ID_TO_PROGRAM_ID(CLOSED_CAPTIONS, attributes->group.subtitle);
+					if (attributes->group.closed_captions) gf_free(attributes->group.closed_captions);
+					attributes->group.closed_captions = gf_strdup(ret[i]+9);
+					attributes->stream_id = GROUP_ID_TO_PROGRAM_ID(CLOSED_CAPTIONS, attributes->group.closed_captions);
 				} else if (attributes->type == MEDIA_TYPE_UNKNOWN) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA:GROUP-ID=%s. Ignoring the line.\n", ret[i]+9));
 					return NULL;
 				}
 			} else if (safe_start_equals("LANGUAGE=\"", ret[i])) {
 				size_t len;
+				if (attributes->language) gf_free(attributes->language);
 				attributes->language = gf_strdup(ret[i]+9);
 				len = strlen(attributes->language);
 				if (len && (attributes->language[len-1] == '"')) {
@@ -749,6 +764,9 @@ static Stream* master_playlist_find_matching_stream(const MasterPlaylist *pl, co
 GF_EXPORT
 GF_Err gf_m3u8_parse_master_playlist(const char *file, MasterPlaylist **playlist, const char *baseURL)
 {
+	if (gf_sys_is_test_mode())
+		string2num("coverage");
+
 	return gf_m3u8_parse_sub_playlist(file, playlist, baseURL, NULL, NULL);
 }
 
@@ -1067,9 +1085,36 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 
 			//do not reset all attributes but at least set width/height/codecs to NULL, otherwise we may miss detection
 			//of audio-only playlists in av sequences
-			//reset_attributes(&attribs);
+
 			attribs.width = attribs.height = 0;
-			attribs.codecs = NULL;
+			if (attribs.codecs) {
+				gf_free(attribs.codecs);
+				attribs.codecs = NULL;
+			}
+			if (attribs.group.audio) {
+				gf_free(attribs.group.audio);
+				attribs.group.audio=NULL;
+			}
+			if (attribs.language) {
+				gf_free(attribs.language);
+				attribs.language=NULL;
+			}
+			if (attribs.title) {
+				gf_free(attribs.title);
+				attribs.title=NULL;
+			}
+			if (attribs.key_url) {
+				gf_free(attribs.key_url);
+				attribs.key_url=NULL;
+			}
+			if (attribs.init_url) {
+				gf_free(attribs.init_url);
+				attribs.init_url = NULL;
+			}
+			if (attribs.mediaURL) {
+				gf_free(attribs.mediaURL);
+				attribs.mediaURL = NULL;
+			}
 		}
 	}
 	if (f) gf_fclose(f);
@@ -1091,6 +1136,16 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 		gf_free(attribs.key_url);
 	if (attribs.init_url)
 		gf_free(attribs.init_url);
+	if (attribs.codecs)
+		gf_free(attribs.codecs);
+	if (attribs.group.audio)
+		gf_free(attribs.group.audio);
+	if (attribs.language)
+		gf_free(attribs.language);
+	if (attribs.title)
+		gf_free(attribs.title);
+	if (attribs.mediaURL)
+		gf_free(attribs.mediaURL);
 
 	if (attribs.version < attribs.compatibility_version) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Version %d specified but tags from version %d detected\n", attribs.version, attribs.compatibility_version));

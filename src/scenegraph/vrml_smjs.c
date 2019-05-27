@@ -4599,7 +4599,7 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 		return GF_FALSE;
 	}
 	*rval = JSVAL_NULL;
-	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, (u32) (sizeof(char)*fsize), file, 0, rval);
+	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, fsize, file, 0, rval);
 	if (ret==JS_FALSE) success = 0;
 
 	if (success && primary_script

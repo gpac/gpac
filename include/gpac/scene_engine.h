@@ -67,29 +67,6 @@ typedef void (*gf_seng_callback)(void *udta, u16 ESID, char *data, u32 size, u64
 GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, u32 load_type, char *dump_path, Bool embed_resources);
 
 /**
- * \param calling_object is the calling object on which call back will be called
- * \param inputContext is an UTF-8 scene description (with or without IOD) in BT or XMT-A format
- * \param load_type is the preferred loader type for the content (e.g. SVG vs DIMS)
- * \param width width of scene if no IOD is given in the context.
- * \param height height of scene if no IOD is given in the context.
- * \param usePixelMetrics metrics system used in the scene, if no IOD is given in the context.
- * \param dump_path the path where scenes are dumped
- *
- * must be called only one time (by process calling the DLL) before other calls
- */
-GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char *inputContext, u32 load_type, u32 width, u32 height, Bool usePixelMetrics, char *dump_path);
-
-
-/**
- * \param calling_object the calling object on which call back will be called
- * \param ctx an already loaded scene manager
- * \param dump_path the path where scenes are dumped
- *
- * must be called only one time (by process calling the DLL) before other calls
- */
-GF_SceneEngine *gf_seng_init_from_context(void *calling_object, GF_SceneManager *ctx, char *dump_path);
-
-/**
  * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
  *
  * must be called after gf_seng_init()
@@ -150,16 +127,6 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_agg
  */
 GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, u16 ESID, Bool disable_aggregation, char *auString, gf_seng_callback callback);
 
-/**
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- * \param ESID indicates the stream to which these commands apply (0 if first scene stream)
- * \param disable_aggregation
- * \param time
- * \param commands the list of commands to encode
- * \param callback pointer on a callback function to get the result of the coding the AU using the current context
- *
- */
-GF_Err gf_seng_encode_from_commands(GF_SceneEngine *seng, u16 ESID, Bool disable_aggregation, u32 time, GF_List *commands, gf_seng_callback callback);
 
 /**
  * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()

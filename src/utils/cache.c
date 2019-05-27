@@ -1,8 +1,8 @@
 /*
  *					GPAC Multimedia Framework
  *
- *			Authors: Pierre Souchay, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2012
+ *			Authors: Jean Le Feuvre, Pierre Souchay
+ *			Copyright (c) Telecom ParisTech 2010-2019
  *					All rights reserved
  *
  *   This file is part of GPAC / common tools sub-project
@@ -230,12 +230,6 @@ const char * gf_cache_get_etag_on_server ( const DownloadedCacheEntry entry )
 	return entry ? entry->serverETag : NULL;
 }
 
-const char * gf_cache_get_etag_on_disk ( const DownloadedCacheEntry entry )
-{
-	return entry ? entry->serverETag : NULL;
-}
-
-GF_EXPORT
 const char * gf_cache_get_mime_type ( const DownloadedCacheEntry entry )
 {
 	return entry ? entry->mimeType : NULL;
@@ -255,8 +249,6 @@ Bool gf_cache_are_headers_processed(const DownloadedCacheEntry entry)
 	return entry->headers_done;
 }
 
-
-GF_EXPORT
 GF_Err gf_cache_set_etag_on_server(const DownloadedCacheEntry entry, const char * eTag ) {
 	if (!entry)
 		return GF_BAD_PARAM;
@@ -275,7 +267,6 @@ GF_Err gf_cache_set_etag_on_disk(const DownloadedCacheEntry entry, const char * 
 	return GF_OK;
 }
 
-GF_EXPORT
 GF_Err gf_cache_set_mime_type(const DownloadedCacheEntry entry, const char * mime_type ) {
 	if (!entry)
 		return GF_BAD_PARAM;
@@ -283,12 +274,6 @@ GF_Err gf_cache_set_mime_type(const DownloadedCacheEntry entry, const char * mim
 		gf_free(entry->mimeType);
 	entry->mimeType = mime_type? gf_strdup( mime_type) : NULL;
 	return GF_OK;
-}
-
-Bool gf_cache_is_cached_on_disk(const DownloadedCacheEntry entry ) {
-	if (entry == NULL)
-		return GF_FALSE;
-	return entry->flags & NO_CACHE;
 }
 
 u64 gf_cache_get_start_range( const DownloadedCacheEntry entry )
@@ -301,15 +286,9 @@ u64 gf_cache_get_end_range( const DownloadedCacheEntry entry )
 	return entry ? entry->range_end : 0;
 }
 
-GF_EXPORT
 const char * gf_cache_get_url ( const DownloadedCacheEntry entry )
 {
 	return entry ? entry->url : NULL;
-}
-
-const char * gf_cache_get_hash ( const DownloadedCacheEntry entry )
-{
-	return entry ? entry->hash : NULL;
 }
 
 const char * gf_cache_get_last_modified_on_server ( const DownloadedCacheEntry entry )
@@ -317,12 +296,6 @@ const char * gf_cache_get_last_modified_on_server ( const DownloadedCacheEntry e
 	return entry ? entry->serverLastModified : NULL;
 }
 
-const char * gf_cache_get_last_modified_on_disk ( const DownloadedCacheEntry entry )
-{
-	return entry ? entry->diskLastModified : NULL;
-}
-
-GF_EXPORT
 GF_Err gf_cache_set_last_modified_on_server ( const DownloadedCacheEntry entry, const char * newLastModified )
 {
 	if (!entry)
@@ -375,13 +348,11 @@ u32 gf_cache_get_cache_filesize ( const DownloadedCacheEntry entry )
 	return entry ? entry->cacheSize : -1;
 }
 
-GF_EXPORT
 const char * gf_cache_get_cache_filename( const DownloadedCacheEntry entry )
 {
 	return entry ? entry->cache_filename : NULL;
 }
 
-GF_EXPORT
 GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * httpRequest) {
 	if (!entry || !httpRequest)
 		return GF_BAD_PARAM;
@@ -408,7 +379,6 @@ GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * htt
 static const char * default_cache_file_suffix = ".dat";
 static const char * cache_file_info_suffix = ".txt";
 
-GF_EXPORT
 DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char * cache_directory, const char * url , u64 start_range, u64 end_range, Bool mem_storage)
 {
 	char tmp[_CACHE_TMP_SIZE];
@@ -577,7 +547,6 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	return entry;
 }
 
-GF_EXPORT
 GF_Err gf_cache_set_content_length( const DownloadedCacheEntry entry, u32 length )
 {
 	CHECK_ENTRY;
@@ -649,7 +618,6 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 	return e;
 }
 
-GF_EXPORT
 GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess )
 {
 	CHECK_ENTRY;
@@ -749,59 +717,6 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Writing %d bytes to cache\n", size));
 	return GF_OK;
-}
-
-GF_CacheReader gf_cache_reader_new(const DownloadedCacheEntry entry) {
-	GF_CacheReader reader;
-	if (entry == NULL)
-		return NULL;
-	reader = (GF_CacheReader)gf_malloc(sizeof(struct __CacheReaderStruct));
-	if (reader == NULL)
-		return NULL;
-	reader->readPtr = gf_fopen( entry->cache_filename, "rb" );
-	reader->readPosition = 0;
-	if (!reader->readPtr) {
-		gf_cache_reader_del(reader);
-		return NULL;
-	}
-	return reader;
-}
-
-GF_Err gf_cache_reader_del( GF_CacheReader handle ) {
-	if (!handle)
-		return GF_BAD_PARAM;
-	if (handle->readPtr)
-		gf_fclose(handle->readPtr);
-	handle->readPtr = NULL;
-	handle->readPosition = -1;
-	return GF_OK;
-}
-
-s64 gf_cache_reader_seek_at( GF_CacheReader reader, u64 seekPosition) {
-	if (!reader)
-		return -1;
-	reader->readPosition = gf_fseek(reader->readPtr, seekPosition, SEEK_SET);
-	return reader->readPosition;
-}
-
-s64 gf_cache_reader_get_position( const GF_CacheReader reader) {
-	if (!reader)
-		return -1;
-	return reader->readPosition;
-}
-
-s64 gf_cache_reader_get_currentSize( GF_CacheReader reader );
-
-s64 gf_cache_reader_full_size( GF_CacheReader reader );
-
-s32 gf_cache_reader_read( GF_CacheReader reader, char * buff, s32 length) {
-	s32 read;
-	if (!reader || !buff || length < 0 || !reader->readPtr)
-		return -1;
-	read = (s32) fread(buff, sizeof(char), length, reader->readPtr);
-	if (read > 0)
-		reader->readPosition+= read;
-	return read;
 }
 
 GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
@@ -973,17 +888,13 @@ s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadS
 	return count + 1;
 }
 
-FILE *gf_cache_get_file_pointer(const DownloadedCacheEntry entry)
-{
-	if (entry) return entry->writeFilePtr;
-	return NULL;
-}
-
 void gf_cache_set_end_range(DownloadedCacheEntry entry, u64 range_end)
 {
-	entry->previousRangeContentLength = entry->contentLength;
-	entry->range_end = range_end;
-	entry->continue_file = GF_TRUE;
+	if (entry) {
+		entry->previousRangeContentLength = entry->contentLength;
+		entry->range_end = range_end;
+		entry->continue_file = GF_TRUE;
+	}
 }
 
 Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry)

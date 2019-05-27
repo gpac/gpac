@@ -373,15 +373,6 @@ Section "gpac" SecGPACBIN
 SectionEnd
 
 
-Section "MP42TS" SecMP42TS
-  SectionIn 1
-  SetOutPath $INSTDIR
-  File "${GPAC_BIN}\MP42TS.exe"
-  Push $INSTDIR
-  Call AddToPath
-SectionEnd
-
-
 Section "GPAC SDK" SecSDK
   SectionIn 1
   SetOutPath $INSTDIR\sdk\include
@@ -460,7 +451,6 @@ SubSectionEnd
 ;  !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for MP4 file manipulation"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGPACBIN} "gpac command-line tool for various multimedia operations"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP42TS} "MP42TS command-line tool for MPEG-2 TS multiplexing"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSDK} "GPAC SDK: headers and library files needed to develop modules for GPAC or appllication based on GPAC"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSDL} "GPAC SDL support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecValidator} "GPAC Test Validator"
