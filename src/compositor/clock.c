@@ -25,7 +25,7 @@
 
 #include <gpac/internal/compositor_dev.h>
 
-GF_Clock *NewClock(GF_Compositor *compositor)
+static GF_Clock *gf_clock_new(GF_Compositor *compositor)
 {
 	GF_Clock *tmp;
 	GF_SAFEALLOC(tmp, GF_Clock);
@@ -121,7 +121,7 @@ GF_Clock *gf_clock_attach(GF_List *clocks, GF_Scene *scene, u16 clock_id, u16 ES
 	/*this partly solves a->b->c*/
 	if (!tmp && check_dep) tmp = gf_ck_look_for_clock_dep(scene, clock_id);
 	if (!tmp) {
-		tmp = NewClock(scene->compositor);
+		tmp = gf_clock_new(scene->compositor);
 		tmp->clock_id = clock_id;
 		gf_list_add(clocks, tmp);
 	} else {
@@ -226,20 +226,24 @@ u32 gf_clock_time(GF_Clock *ck)
 	return time - ck->drift;
 }
 
+u32 gf_clock_to_media_time(GF_Clock *ck, u32 clock_val)
+{
+	u32 t = clock_val;
+	if (ck && ck->has_media_time_shift) {
+		if (t>ck->init_timestamp) t -= ck->init_timestamp;
+		else t=0;
+		t += ck->media_time_at_init;
+	}
+	return t;
+}
+
 u32 gf_clock_media_time(GF_Clock *ck)
 {
 	u32 t;
 	if (!ck) return 0;
 	if (!ck->has_seen_eos && ck->last_ts_rendered) t = ck->last_ts_rendered;
 	else t = gf_clock_time(ck);
-	//if media time is not mapped, we consider that the timestamps are aligned with the media time
-	if (ck->has_media_time_shift) {
-		if (t>ck->init_timestamp) t -= ck->init_timestamp;
-		else t=0;
-
-		t += ck->media_time_at_init;
-	}
-	return t;
+	return gf_clock_to_media_time(ck, t);
 }
 
 u32 gf_clock_elapsed_time(GF_Clock *ck)
@@ -269,7 +273,8 @@ void gf_clock_buffer_off(GF_Clock *ck)
 	//assert(ck->nb_buffering);
 	if (ck->nb_buffering) {
 		ck->nb_buffering -= 1;
-		if (!ck->nb_buffering) gf_clock_resume(ck);
+		if (!ck->nb_buffering)
+			gf_clock_resume(ck);
 	}
 	gf_mx_v(ck->mx);
 }

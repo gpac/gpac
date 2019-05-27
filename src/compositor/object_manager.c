@@ -410,6 +410,9 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		evt.buffer_req.min_playout_us = odm->buffer_min_us;
 		evt.buffer_req.max_playout_us = odm->buffer_playout_us;
 		gf_filter_pid_send_event(NULL, &evt);
+
+		if (odm->buffer_min_us>evt.buffer_req.max_playout_us)
+			odm->buffer_min_us = 0;
 	}
 
 
@@ -1013,7 +1016,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	if (odm->nb_buffering) {
 		assert(scene->nb_buffering>=odm->nb_buffering);
 		scene->nb_buffering -= odm->nb_buffering;
-		while (odm->nb_buffering) {
+		while (odm->nb_buffering && odm->ck) {
 			gf_clock_buffer_off(odm->ck);
 			odm->nb_buffering --;
 		}
@@ -1442,8 +1445,12 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 		odm->nb_buffering --;
 		assert(scene->nb_buffering);
 		scene->nb_buffering--;
+		//if eos while buffering, consider the last rebuffer an error
+		//fixeme, we need a way to probe for eos being "close" but not yet detected
+		if (odm->nb_rebuffer) odm->nb_rebuffer --;
 		if (!scene->nb_buffering) {
 			*signal_eob = GF_TRUE;
+			if (scene->nb_rebuffer) scene->nb_buffering--;
 		}
 		if (odm->ck)
 			gf_clock_buffer_off(odm->ck);
@@ -1499,7 +1506,17 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			if (an_odm->nb_buffering)
 	 			odm_update_buffer(scene, an_odm, an_odm->pid, &signal_eob);
 		}
+	} else if (odm->buffer_min_us && odm->pid && odm->ck && odm->ck->clock_init && !gf_filter_pid_has_seen_eos(odm->pid) ) {
+		u64 buffer_duration = gf_filter_pid_query_buffer_duration(odm->pid, GF_TRUE);
+		if (buffer_duration < odm->buffer_min_us) {
+			gf_clock_buffer_on(odm->ck);
+			odm->nb_buffering++;
+			odm->nb_rebuffer++;
+			if (!scene->nb_buffering) scene->nb_rebuffer++;
+			scene->nb_buffering++;
+		}
 	}
+
 	if (scene->nb_buffering || signal_eob)
 		gf_scene_buffering_info(scene);
 
