@@ -2,7 +2,9 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2017
+ *					 Yacine Mathurin Boubacar Aziakou
+ *					 Samir Mustapha
+ *			Copyright (c) Telecom ParisTech 2019
  *					All rights reserved
  *
  *  This file is part of GPAC / HEVC tile split and rewrite filter
@@ -22,7 +24,6 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#define DYNAMIQUE_TPID
 
 #include <gpac/bitstream.h>
 #include <gpac/filters.h>
@@ -35,89 +36,25 @@ typedef struct
 	GF_FilterPid *opid;
 	u32 width, height, orig_x, orig_y;
 	GF_FilterPacket *cur_pck;
-#ifdef DYNAMIQUE_TPID
 	s32 did_it;
 	u8 pid_idx;
-#else
-	u8 did_it;
-#endif
 } HEVCTilePid;
 
 typedef struct
 {
 	GF_FilterPid *ipid;
-#ifdef DYNAMIQUE_TPID
 	GF_List *tpidstack;
-#else
-	HEVCTilePid tile_pids[64]; 
-#endif
 	u32 num_tiles, got_p, did_it;
 	HEVCState hevc_state;
 	u32 hevc_nalu_size_length, cfg_crc;
-	char *buffer_nal; // write some comments
+	char *buffer_nal; // writes some comments
 
 	u32 buffer_nal_alloc;
-	GF_BitStream *bs_nal_in; // *bs_vec_crop;
+	GF_BitStream *bs_nal_in;
 } GF_HEVCSplitCtx;
 
 u32 bs_get_ue(GF_BitStream *bs);
 s32 bs_get_se(GF_BitStream *bs);
-
-/**
- * Visualization of VPS properties and return VPS ID
- *
- * @param buffer
- * @param bz
- * @param hevc
- * @return
- */
-u32 parse_print_VPS(char *buffer, u32 bz, HEVCState* hevc) {
-	u32 i = gf_media_hevc_read_vps(buffer, bz, hevc);
-	printf("=== Visualization of VPS with id: %d ===\n", (*hevc).vps[i].id);
-	printf("num_profile_tier_level:	%hhu\n", (*hevc).vps[i].num_profile_tier_level);
-	return i;
-}
-
-/**
- * Visualization of SPS properties and return SPS ID
- *
- * @param buffer
- * @param bz
- * @param hevc
- * @return
- */
-u32 parse_print_SPS(char *buffer, u32 bz, HEVCState* hevc) {
-
-	u32 i = gf_media_hevc_read_sps(buffer, bz, hevc);
-	printf("=== Visualization of SPS with id: %d ===\n", (*hevc).sps[i].id);
-	printf("width:	%u\n", (*hevc).sps[i].width);
-	printf("height:	%u\n", (*hevc).sps[i].height);
-	printf("pic_width_in_luma_samples:	%u\n", (*hevc).sps[i].max_CU_width);
-	printf("pic_heigth_in_luma_samples:	%u\n", (*hevc).sps[i].max_CU_height);
-	printf("cw_left:	%u\n", (*hevc).sps[i].cw_left);
-	printf("cw_right:	%u\n", (*hevc).sps[i].cw_right);
-	printf("cw_top:	%u\n", (*hevc).sps[i].cw_top);
-	printf("cw_bottom:	%u\n", (*hevc).sps[i].cw_bottom);
-	return i;
-}
-
-/**
- * Visualization of PPS properties and return PPS ID
- * @param buffer
- * @param bz
- * @param hevc
- * @return
- */
-
-u32 parse_print_PPS(char *buffer, u32 bz, HEVCState* hevc) {
-	u32 i = gf_media_hevc_read_pps(buffer, bz, hevc);
-	printf("=== Visualization of PPS with id: %d ===\n", (*hevc).pps[i].id);
-	printf("tiles_enabled_flag:	%u\n", (*hevc).pps[i].tiles_enabled_flag);
-	printf("uniform_spacing_flag:	%d\n", (*hevc).pps[i].uniform_spacing_flag);
-	printf("num_tile_columns:	%u\n", (*hevc).pps[i].num_tile_columns);
-	printf("num_tile_rows:	%u\n", (*hevc).pps[i].num_tile_rows);
-	return i;
-}
 
 static void bs_set_ue(GF_BitStream *bs, u32 num) {
 	s32 length = 1;
@@ -143,29 +80,8 @@ static void bs_set_se(GF_BitStream *bs, s32 num)
 	bs_set_ue(bs, v);
 }
 
-static u32 sum_array(u32 *array, u32 length)
-{
-	u32 i, sum = 0;
-	for (i = 0; i < length; i++)
-	{
-		sum += array[i];
-	}
-	return sum;
-}
-
-static void slice_address_calculation(HEVCState *hevc, u32 *address, u32 tile_x, u32 tile_y)
-{
-	HEVCSliceInfo *si = &hevc->s_info;
-	u32 PicWidthInCtbsY;
-
-	PicWidthInCtbsY = si->sps->width / si->sps->max_CU_width;
-	if (PicWidthInCtbsY * si->sps->max_CU_width < si->sps->width) PicWidthInCtbsY++;
-
-	*address = tile_x / si->sps->max_CU_width + (tile_y / si->sps->max_CU_width) * PicWidthInCtbsY;
-}
-
 //Transform slice 1d address into 2D address
-static u32 get_newSliceAddress_and_tilesCoordinates(u32 *x, u32 *y, HEVCState *hevc)
+static u32 get_new_slice_address_and_tiles_coordinates(u32 *x, u32 *y, HEVCState *hevc)
 {
 	HEVCSliceInfo si = hevc->s_info;
 	u32 i, tbX = 0, tbY = 0, slX, slY, PicWidthInCtbsY, PicHeightInCtbsX, valX = 0, valY = 0;
@@ -353,10 +269,10 @@ static void write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, 
 	}
 }
 
-static void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, HEVCState *hevc, char **out_SPS, u32 *out_SPS_length)
+static void rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, HEVCState *hevc, char **out_SPS, u32 *out_SPS_length)
 {
 	GF_BitStream *bs_in, *bs_out;
-	u64 length_no_use = 4096, dst_buffer_size;
+	u64 length_no_use = 4096;
 	char *data_without_emulation_bytes = NULL;
 	u32 data_without_emulation_bytes_size = 0, sps_ext_or_max_sub_layers_minus1;
 	u8 max_sub_layers_minus1 = 0, layer_id;
@@ -366,7 +282,7 @@ static void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, 
 	bs_in = gf_bs_new(in_SPS, in_SPS_length, GF_BITSTREAM_READ);
 	gf_bs_enable_emulation_byte_removal(bs_in, GF_TRUE);
 	bs_out = gf_bs_new(NULL, length_no_use, GF_BITSTREAM_WRITE);
-	dst_buffer_size = gf_bs_get_size(bs_out);
+	/*dst_buffer_size =*/ gf_bs_get_size(bs_out);
 	if (!bs_in) goto exit;
 
 	//copy NAL Header
@@ -403,14 +319,12 @@ static void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, 
 		}
 	}
 	else {
-		u32 w, h;
 		chroma_format_idc = bs_get_ue(bs_in);
 		bs_set_ue(bs_out, chroma_format_idc);
 		if (chroma_format_idc == 3)
 			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1); // copy separate_colour_plane_flag
-		w = bs_get_ue(bs_in); //skip width bits in input bitstream
-		h = bs_get_ue(bs_in); //skip height bits in input bitstream
-		//get_size_of_slice(&width, &height, hevc); // get the width and height of the tile
+		/*w =*/ bs_get_ue(bs_in); //skip width bits in input bitstream
+		/*h =*/ bs_get_ue(bs_in); //skip height bits in input bitstream
 
 		//Copy the new width and height in output bitstream
 		bs_set_ue(bs_out, width);
@@ -451,7 +365,6 @@ static void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, 
 	gf_bs_get_content(bs_out, &data_without_emulation_bytes, &data_without_emulation_bytes_size);
 
 	*out_SPS_length = data_without_emulation_bytes_size + avc_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
-	/*29/01/2019*/ u32 emulation_prevention_bytes_to_add = avc_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
 	*out_SPS = gf_malloc(*out_SPS_length);
 	gf_media_nalu_add_emulation_bytes(data_without_emulation_bytes, *out_SPS, data_without_emulation_bytes_size);
 
@@ -461,7 +374,7 @@ static void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, 
 	gf_free(data_without_emulation_bytes);
 }
 
-static void rewrite_PPS(Bool extract, char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length, u32 num_tile_columns_minus1, u32 num_tile_rows_minus1, u32 uniform_spacing_flag, u32 column_width_minus1[], u32 row_height_minus1[])
+static void rewrite_pps(Bool extract, char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length, u32 num_tile_columns_minus1, u32 num_tile_rows_minus1, u32 uniform_spacing_flag, u32 column_width_minus1[], u32 row_height_minus1[])
 {
 	u64 length_no_use = 0;
 	u8 cu_qp_delta_enabled_flag, tiles_enabled_flag, loop_filter_across_slices_enabled_flag;
@@ -494,7 +407,7 @@ static void rewrite_PPS(Bool extract, char *in_PPS, u32 in_PPS_length, char **ou
 	bs_set_se(bs_out, bs_get_se(bs_in)); // pps_cr_qp_offset
 	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 4), 4); // from pps_slice_chroma_qp_offsets_present_flag to transquant_bypass_enabled_flag
 
-	//tile//////////////////////
+	//Tile
 
 	if (extract)
 	{
@@ -531,9 +444,9 @@ static void rewrite_PPS(Bool extract, char *in_PPS, u32 in_PPS_length, char **ou
 		{
 			u32 i;
 			for (i = 0; i < num_tile_columns_minus1; i++)
-				bs_set_ue(bs_out, column_width_minus1[i] - 1);//column_width_minus1[i]
+				bs_set_ue(bs_out, column_width_minus1[i] - 1);
 			for (i = 0; i < num_tile_rows_minus1; i++)
-				bs_set_ue(bs_out, row_height_minus1[i] - 1);//row_height_minus1[i]
+				bs_set_ue(bs_out, row_height_minus1[i] - 1);
 		}
 		loop_filter_across_tiles_enabled_flag = 1;//loop_filter_across_tiles_enabled_flag
 		gf_bs_write_int(bs_out, loop_filter_across_tiles_enabled_flag, 1);
@@ -572,14 +485,13 @@ static void rewrite_PPS(Bool extract, char *in_PPS, u32 in_PPS_length, char **ou
 static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *in_slice, u32 in_slice_length, char **out_slice, u32 *out_slice_length, u32 final_width, u32 final_height, u32 crop_origin_x, u32 crop_origin_y)
 {
 	char *data_without_emulation_bytes = NULL;
-	u32 data_without_emulation_bytes_size = 0, position = 0;
-	u64 header_end, bs_ori_size;
+	u32 data_without_emulation_bytes_size = 0;
+	u64 header_end;
 	u32 dst_buf_size = 0;
 	char *dst_buf = NULL;
 	u32 num_entry_point_start;
 	u32 pps_id;
 	GF_BitStream *bs_ori, *bs_rw;
-	Bool IDRPicFlag = GF_FALSE;
 	Bool RapPicFlag = GF_FALSE;
 	u32 nb_bits_per_adress_dst = 0;
 	HEVC_PPS *pps;
@@ -587,19 +499,14 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 	u64 al, slice_size, slice_offset_orig, slice_offset_dst;
 	u32 first_slice_segment_in_pic_flag;
 	u32 dependent_slice_segment_flag;
-	int address_ori;
-	//HEVCTilePid *tpid = &ctx->tile_pids[7];
 	u8 nal_unit_type;
 	HEVCState *hevc = &ctx->hevc_state;
 
-	//buff_crop_origin_x = gf_malloc(6 * sizeof(char));
 	data_without_emulation_bytes = gf_malloc( in_slice_length * sizeof(char) ); // In slice content shall be written as a character, sizeof(char) is the length on which each character is coded.
-	/*data_without_emulation_bytes = gf_malloc(in_slice_length * sizeof(char));*/
 	data_without_emulation_bytes_size = avc_remove_emulation_bytes(in_slice, data_without_emulation_bytes, in_slice_length);
 	bs_ori = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
-	//bs_ori = gf_bs_new(in_slice, in_slice_length, GF_BITSTREAM_READ);
-	//gf_bs_enable_emulation_byte_removal(bs_ori, GF_TRUE);
-	bs_ori_size = gf_bs_get_refreshed_size(bs_ori);
+
+	gf_bs_get_refreshed_size(bs_ori);
 	bs_rw = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	assert(hevc->s_info.header_size_bits >= 0);
@@ -623,7 +530,6 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 	switch (nal_unit_type) {
 	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
-		IDRPicFlag = GF_TRUE;
 		RapPicFlag = GF_TRUE;
 		break;
 	case GF_HEVC_NALU_SLICE_BLA_W_LP:
@@ -656,7 +562,7 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 	}
 	if (!first_slice_segment_in_pic_flag) 						    //slice_segment_address READ
 	{
-		address_ori = gf_bs_read_int(bs_ori, sps->bitsSliceSegmentAddress);
+		gf_bs_read_int(bs_ori, sps->bitsSliceSegmentAddress);
 	}
 	else {} 	//original slice segment address = 0
 
@@ -696,7 +602,6 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 	if (pps->slice_segment_header_extension_present_flag)
 		gf_bs_write_int(bs_rw, 0, 1);
 
-
 	//we may have unparsed data in the source bitstream (slice header) due to entry points or slice segment extensions
 	//TODO: we might want to copy over the slice extension header bits
 	while (header_end != (gf_bs_get_position(bs_ori) - 1) * 8 + gf_bs_get_bit_position(bs_ori))
@@ -705,13 +610,11 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 	//read byte_alignment() is bit=1 + x bit=0
 	al = gf_bs_read_int(bs_ori, 1);
 	assert(al == 1);
-	u8 align = gf_bs_align(bs_ori);
 
 	//write byte_alignment() is bit=1 + x bit=0
 	gf_bs_write_int(bs_rw, 1, 1);
 	gf_bs_align(bs_rw);					//align
-	position = (gf_bs_get_position(bs_ori) - 1) * 8 + gf_bs_get_bit_position(bs_ori); // !!!!!!!!!!!!!
-#if 1
+
 	gf_bs_get_content(bs_rw, &dst_buf, &dst_buf_size); /* bs_rw: header.*/
 	slice_size = gf_bs_available(bs_ori);/* Slice_size: the rest of the slice after the header (no_emulation_bytes in it).*/
 	slice_offset_orig = gf_bs_get_position(bs_ori); /* Slice_offset_orig: Immediate next byte after header_end (start of the slice_payload) */
@@ -723,19 +626,6 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 	gf_free(data_without_emulation_bytes);
 	data_without_emulation_bytes = dst_buf;
 	data_without_emulation_bytes_size = dst_buf_size;
-
-#else
-	while (gf_bs_available(bs_ori)) {
-		gf_bs_write_u8(bs_rw, gf_bs_read_u8(bs_ori));
-	}
-	gf_bs_truncate(bs_rw);
-
-	gf_free(data_without_emulation_bytes);
-	data_without_emulation_bytes = NULL;
-	data_without_emulation_bytes_size = 0;
-
-	gf_bs_get_content(bs_rw, &data_without_emulation_bytes, &data_without_emulation_bytes_size);
-#endif
 
 	u32 slice_length = data_without_emulation_bytes_size + avc_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
 	if (*out_slice_length < slice_length)
@@ -751,7 +641,7 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 static char* extract(GF_Filter *filter, GF_HEVCSplitCtx *ctx, char *buffer, u32 buffer_length, u32 *original_coord, u32 *out_size)
 {
 	u8 nal_unit_type, temporal_id, layer_id;
-	u32 buf_size, newAddress,i,j;
+	u32 buf_size,i,j;
 	HEVCState *hevc = &ctx->hevc_state; // ctx->hevc_state already set.
 
 	gf_media_hevc_parse_nalu(buffer, buffer_length, hevc, &nal_unit_type, &temporal_id, &layer_id);
@@ -774,17 +664,12 @@ static char* extract(GF_Filter *filter, GF_HEVCSplitCtx *ctx, char *buffer, u32 
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
 	case GF_HEVC_NALU_SLICE_CRA:
 
-		newAddress = get_newSliceAddress_and_tilesCoordinates(&i, &j, hevc);
+		/*newAddress =*/ get_new_slice_address_and_tiles_coordinates(&i, &j, hevc);
 		// matching_opid (or *original_coord = newAddress)
 		*original_coord = i * hevc->s_info.pps->num_tile_columns + j; 
-#ifdef DYNAMIQUE_TPID
 
 		GF_FilterPid * opid = gf_filter_get_opid(filter, *original_coord);
 		HEVCTilePid * tpid = gf_filter_pid_get_udta(opid);
-
-#else
-		HEVCTilePid *tpid = &ctx->tile_pids[*original_coord];
-#endif
 
 		//rewrite and copy the Slice
 		buf_size = ctx->buffer_nal_alloc;
@@ -797,7 +682,7 @@ static char* extract(GF_Filter *filter, GF_HEVCSplitCtx *ctx, char *buffer, u32 
 		*out_size = buf_size;
 		return ctx->buffer_nal;
 
-	default: // if(nal_unit_type <= GF_HEVC_NALU_SLICE_CRA)  // VCL
+	default:
 		*out_size = buffer_length;
 		return buffer;
 	}
@@ -820,12 +705,11 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx , GF_FilterPid *opid, char *
 		for (j = 0; j < gf_list_count(ar->nalus); j++) { // for all the nalus the i-th param got
 			/*! used for storing AVC sequenceParameterSetNALUnit and pictureParameterSetNALUnit*/
 			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j); // store j-th nalus in *sl
-			u16 hdr = sl->data[0] << 8 | sl->data[1];
 
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
 				char *outSPS;
 				u32 outSize;
-				rewrite_SPS(sl->data, sl->size, new_width, new_height, &ctx->hevc_state, &outSPS, &outSize);
+				rewrite_sps(sl->data, sl->size, new_width, new_height, &ctx->hevc_state, &outSPS, &outSize);
 				gf_free(sl->data);
 				sl->data = outSPS;
 				sl->size= outSize;
@@ -835,7 +719,7 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx , GF_FilterPid *opid, char *
 			else if (ar->type == GF_HEVC_NALU_PIC_PARAM) {
 				char *outPPS;
 				u32 outSize;
-				rewrite_PPS(GF_TRUE, sl->data, sl->size, &outPPS, &outSize, 0, 0, 0, NULL, NULL);
+				rewrite_pps(GF_TRUE, sl->data, sl->size, &outPPS, &outSize, 0, 0, 0, NULL, NULL);
 				gf_free(sl->data);
 				sl->data = outPPS;
 				sl->size = outSize;
@@ -854,60 +738,38 @@ static void bsnal(char *output_nal, char *rewritten_nal, u32 out_nal_size, u32 h
 	GF_BitStream *bsnal = gf_bs_new(output_nal, hevc_nalu_size_length, GF_BITSTREAM_WRITE);
 	gf_bs_write_int(bsnal, out_nal_size, 8 * hevc_nalu_size_length); // bsnal is full up there !! and output_nal holds out_nal_size written as bitstream on 8 * hevc_nalu_size_length
 	// At output_nal, skeep ctx->hevc_nalu_size_length then write "rewritten_nal" on out_nal_size Bytes
-	// memcpy(output_nal, out_nal_size, ctx->hevc_nalu_size_length);
 	memcpy(output_nal + hevc_nalu_size_length, rewritten_nal, out_nal_size);
 	gf_bs_del(bsnal);
 }
 
 static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 id = 0, cfg_crc = 0, codecid, o_width, o_height;
+	u32 cfg_crc = 0, codecid, o_width, o_height;
 	s32 pps_id = -1, sps_id = -1;
 	const GF_PropertyValue *p, *dsi;
 	GF_Err e;
 	// private stack of the filter returned as an object GF_HEVCSplitCtx.
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx*)gf_filter_get_udta(filter); 
-	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] configure_pid started.\n"));
 
 	if (is_remove) {
-		// TODO!  gf_filter_pid_remove(ctx->opid); on all output pids
-#ifdef DYNAMIQUE_TPID
 		GF_FilterPid *opid;
 		HEVCTilePid  *tpid;
 		u32 count;
 		count = gf_filter_get_opid_count(filter);
 		for (u32 i=0; i<count; i++) {
-#else
-			for(u32 i = 0; i < ctx->num_tiles; i++){
-#endif
-#ifdef DYNAMIQUE_TPID
-				opid = gf_filter_get_opid(filter, i);
-				tpid = gf_filter_pid_get_udta(opid);
+			opid = gf_filter_get_opid(filter, i);
+			tpid = gf_filter_pid_get_udta(opid);
 
-				if (tpid->opid) { //TODO opid == pid->opid
-					gf_filter_pid_remove(tpid->opid);
-					tpid->opid = NULL;
-				}
-				if (tpid) gf_free(tpid);
-				if(opid){ // TODO to remove as it is useless
-					gf_filter_pid_set_udta(opid, NULL);
-					gf_filter_pid_remove(opid);
-				}
-				if (opid) gf_free(opid);
-			}
-#else
-			HEVCTilePid *tpid = &ctx->tile_pids[i];
 			if (tpid->opid) {
 				gf_filter_pid_remove(tpid->opid);
 				tpid->opid = NULL;
 			}
+			if (tpid) gf_free(tpid);
+			if(opid){
+				gf_filter_pid_set_udta(opid, NULL);
+				gf_filter_pid_remove(opid);
+			}
 		}
-#endif
-		//		u32 count;
-		//				count = gf_filter_get_opid_count(filter);
-		//				for (i=0; i<count; i++) {
-		//					gf_filter_pid_remove( gf_filter_get_opid(filter, i) );
-		//				}
 		ctx->ipid = NULL;
 		return GF_OK;
 	}
@@ -919,9 +781,8 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 	// If null (no Id), Gets the build in property of the pid: here ESID Id of the pid.
 	if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
-	/* 'p' is an object fulfilled above, retrieve from it the variable value
-	as an unsigned int. Q: '.uint' not in the doc, otherwise where */
-	if (p) id = p->value.uint;
+	// 'p' is an object fulfilled above, retrieve from it the variable value
+	//as an unsigned int. Q: '.uint' not in the doc, otherwise where
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	codecid = p ? p->value.uint : 0; // If p isn't null, get the codecid else codecid = 0;
@@ -960,15 +821,11 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 			/*! used for storing AVC sequenceParameterSetNALUnit and pictureParameterSetNALUnit*/
 			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j); // store j-th nalus in *sl
 			s32 idx;
-			u16 hdr = sl->data[0] << 8 | sl->data[1];
 
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
 				idx = gf_media_hevc_read_sps(sl->data, sl->size, &ctx->hevc_state);
 				if ((idx >= 0) && sps_id<0)
 					sps_id = idx;
-			}
-			else if (ar->type == GF_HEVC_NALU_VID_PARAM) {
-				s32 vps_id = gf_media_hevc_read_vps(sl->data, sl->size, &ctx->hevc_state);
 			}
 			else if (ar->type == GF_HEVC_NALU_PIC_PARAM) {
 				s32 id = gf_media_hevc_read_pps(sl->data, sl->size, &ctx->hevc_state);
@@ -991,36 +848,19 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	// Done with parsing SPS/pps/vps
 	u32 rows = ctx->hevc_state.pps[pps_id].num_tile_rows;
 	u32 cols = ctx->hevc_state.pps[pps_id].num_tile_columns;
-	u32 idx;
 
 	for (i = 0; i < rows; i++) {
 		for (j = 0; j < cols; j++) {
-			idx = i * cols + j;
-#ifdef DYNAMIQUE_TPID
-#if 0
-			tpid = gf_filter_pid_get_udta(pid); // TODO this line should be useless: to remove (*)
-#endif
 			HEVCTilePid *tpid ;
 			GF_SAFEALLOC(tpid, HEVCTilePid);
 			gf_list_add(ctx->tpidstack, tpid);
 			tpid->opid = gf_filter_pid_new(filter);
 
-#if 0
-			gf_filter_pid_set_udta(pid, tpid); // TODO this line should be useless: to remove (*)
-#endif
-
 			gf_filter_pid_set_udta(tpid->opid, tpid);
 			assert(tpid);//TODO IS IT USEFUL ?
 
-#else	
-			HEVCTilePid *tpid = &ctx->tile_pids[idx];
-			if (!tpid->opid) {
-				tpid->opid = gf_filter_pid_new(filter);
-			}
-#endif
 			get_size_of_tile(&ctx->hevc_state, i, j, pps_id, &tpid->width, &tpid->height, &tpid->orig_x, &tpid->orig_y);
-			// Best practice is to copy all properties of ipid in opid, then reassign properties changed by the filter
-			gf_filter_pid_copy_properties(tpid->opid, ctx->ipid);//TODO should be useless as it is already executed in gf_filter_pid_new
+			gf_filter_pid_copy_properties(tpid->opid, ctx->ipid);
 			// for each output pid, set decoder_config, width and height.
 			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_WIDTH, &PROP_UINT(tpid->width));
 			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(tpid->height));
@@ -1042,7 +882,6 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 	u8 temporal_id, layer_id, nal_unit_type, i; // On default we have a nalu
 	char *data;
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx*)gf_filter_get_udta(filter);
-	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] Process started.\n"));
 	// Gets the first packet in the input pid buffer
 	GF_FilterPacket *pck_src = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck_src) {
@@ -1068,12 +907,9 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 
 	char *output_nal, *rewritten_nal;
 	u32 out_nal_size;
-#ifdef DYNAMIQUE_TPID
 	//gf_filter_get_opid_count
 	GF_FilterPid * opid;
 	HEVCTilePid * tpid;
-#else
-#endif
 	while (gf_bs_available(ctx->bs_nal_in))
 	{
 		// ctx->hevc_nalu_size_length filled using hvcc
@@ -1081,12 +917,8 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 		u32 pos = (u32) gf_bs_get_position(ctx->bs_nal_in);
 		// skip the content of the nal from bs to buffer (useful for the next nal)
 		gf_bs_skip_bytes(ctx->bs_nal_in, nal_length);
-		// gf_bs_skip_bytes(bs, ctx->hevc_nalu_size_length * 8);
 		// data+pos is an address
 		gf_media_hevc_parse_nalu(data+pos, nal_length, &ctx->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
-		/*gf_filter_pck_forward
-		  gf_filter_pck_forward(pck_src, ctx->cur_pck);
-		 */
 		/* todo: copy source NAL to ALL destination pids if type > 34
 		   arrange the size of the tiles
 		 */
@@ -1098,15 +930,10 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 		{
 			for(i = 0; i < ctx->num_tiles; i++)
 			{
-#ifdef DYNAMIQUE_TPID
 				//gf_filter_get_opid_count
 				opid = gf_filter_get_opid(filter, i);
 				tpid = gf_filter_pid_get_udta(opid);
-#else
-				HEVCTilePid *tpid = &ctx->tile_pids[i];
-#endif
 				if (!tpid->opid) {
-					// ERROR	// tpid->opid = gf_filter_pid_new(filter); TODO ?
 					continue;
 				}
 				if (!tpid->cur_pck) {
@@ -1125,52 +952,30 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 		}
 		else
 		{
-#ifdef DYNAMIQUE_TPID
-#if 0
-			for(i = 0; i < ctx->num_tiles; i++)
-			{
-#endif
-
-				opid = gf_filter_get_opid(filter, opid_idx);
-				tpid = gf_filter_pid_get_udta(opid);
-#else
-				HEVCTilePid *tpid = ctx->tile_pids + opid_idx;
-#endif
-				if (!tpid->opid) {
-					// ERROR
-					continue;
-				}
-				if (!tpid->cur_pck) {
-					// ctx->hevc_nalu_size_length (field used to indicate the nal_length) + out_nal_size: (the nal itself)
-					tpid->cur_pck = gf_filter_pck_new_alloc(tpid->opid, ctx->hevc_nalu_size_length + out_nal_size, &output_nal);
-					gf_filter_pck_merge_properties(pck_src, tpid->cur_pck);
-					// todo: might need to rewrite crypto info
-				}
-				else { // to be rexamined !
-					char *data_start;
-					u32 new_size;
-					gf_filter_pck_expand(tpid->cur_pck, ctx->hevc_nalu_size_length + out_nal_size, &data_start, &output_nal, &new_size); // just the alloc
-				}
-				bsnal(output_nal, rewritten_nal, out_nal_size, hevc_nalu_size_length);	// Then the data itself
-#ifdef DYNAMIQUE_TPID
-#if 0
+			opid = gf_filter_get_opid(filter, opid_idx);
+			tpid = gf_filter_pid_get_udta(opid);
+			if (!tpid->opid) {
+				continue;
 			}
-#endif
-
-#else
-#endif
+			if (!tpid->cur_pck) {
+				// ctx->hevc_nalu_size_length (field used to indicate the nal_length) + out_nal_size: (the nal itself)
+				tpid->cur_pck = gf_filter_pck_new_alloc(tpid->opid, ctx->hevc_nalu_size_length + out_nal_size, &output_nal);
+				gf_filter_pck_merge_properties(pck_src, tpid->cur_pck);
+				// TODO: might need to rewrite crypto info
+			}
+			else { // TODO to be reexamined !
+				char *data_start;
+				u32 new_size;
+				gf_filter_pck_expand(tpid->cur_pck, ctx->hevc_nalu_size_length + out_nal_size, &data_start, &output_nal, &new_size); // just the alloc
+			}
+			bsnal(output_nal, rewritten_nal, out_nal_size, hevc_nalu_size_length);	// Then the data itself
 		}
 	}
 	gf_filter_pid_drop_packet(ctx->ipid);
 	// done rewriting all nals from input, send all output
 	for (u32 idx = 0; idx < ctx->num_tiles; idx++) {
-
-#ifdef DYNAMIQUE_TPID
 		opid = gf_filter_get_opid(filter, idx);
 		tpid = gf_filter_pid_get_udta(opid);
-#else
-		HEVCTilePid *tpid = ctx->tile_pids + idx;
-#endif
 
 		if (!tpid->opid) continue;
 		if (tpid->cur_pck) {
@@ -1186,10 +991,7 @@ static GF_Err hevcsplit_initialize(GF_Filter *filter)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] hevcsplit_initialize started.\n"));
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx *) gf_filter_get_udta(filter);
 	ctx->bs_nal_in = gf_bs_new((char *)ctx, 1, GF_BITSTREAM_READ);
-#ifdef DYNAMIQUE_TPID
 	ctx->tpidstack = gf_list_new();
-#else
-#endif
 	return GF_OK;
 }
 
@@ -1199,7 +1001,6 @@ static void hevcsplit_finalize(GF_Filter *filter)
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx *) gf_filter_get_udta(filter);
 	if (ctx->buffer_nal) gf_free(ctx->buffer_nal);
 	gf_bs_del(ctx->bs_nal_in);
-#ifdef DYNAMIQUE_TPID
 	u32 i, count;
 	HEVCTilePid *tpid;
 	count = gf_list_count(ctx->tpidstack);
@@ -1208,8 +1009,6 @@ static void hevcsplit_finalize(GF_Filter *filter)
 		gf_free(tpid);
 	}
 	gf_list_del(ctx->tpidstack);
-#else
-#endif
 }
 
 static const GF_FilterCapability HEVCSplitCaps[] =
@@ -1217,8 +1016,6 @@ static const GF_FilterCapability HEVCSplitCaps[] =
 		CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 		CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 		CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-		//CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_TILE_BASE, GF_TRUE),
-		//CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_TILE_BASE, GF_TRUE),
 		CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 		CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_HEVC)
 };
@@ -1227,7 +1024,6 @@ static const GF_FilterCapability HEVCSplitCaps[] =
 
 static const GF_FilterArgs HEVCSplitArgs[] =
 {
-		//	{ OFFS(threading), "Set threading mode", GF_PROP_UINT, "frame", "frameslice|frame|slice", GF_FS_ARG_HINT_ADVANCED},
 		{0}
 };
 
@@ -1236,7 +1032,7 @@ GF_FilterRegister HEVCSplitRegister = {
 		GF_FS_SET_DESCRIPTION("Stream spliter")
 		.private_size = sizeof(GF_HEVCSplitCtx),
 		SETCAPS(HEVCSplitCaps),
-		//hevc split shall be explicetely loaded
+		//hevc split shall be explicitly loaded
 		.flags = GF_FS_REG_EXPLICIT_ONLY,
 		.initialize = hevcsplit_initialize,
 		.finalize = hevcsplit_finalize,
