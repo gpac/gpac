@@ -256,7 +256,6 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 {
 	GF_Err e = GF_OK;
 	Bool disable_mpeg4 = GF_FALSE;
-	u16 first_port;
 	u32 flags, average_size, max_size, max_tsdelta, codecid, const_dur, nb_ch, samplerate, max_cts_offset, bandwidth, IV_length, KI_length, dsi_len, max_ptime, au_sn_len;
 	char *dsi;
 	Bool is_crypted;
@@ -317,8 +316,6 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 
 	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_NB_FRAMES);
 	stream->nb_aus = p ? p->value.uint : 0;
-
-	first_port = stream->port+2;
 
 	switch (stream->streamtype) {
 	case GF_STREAM_OD:
