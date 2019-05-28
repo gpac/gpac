@@ -453,9 +453,7 @@ static u32 RTCP_FormatBYE(GF_RTPChannel *ch, GF_BitStream *bs)
 }
 
 GF_EXPORT
-GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
-                       GF_Err (*RTP_TCPCallback)(void *cbk, char *pck, u32 pck_size),
-                       void *rtsp_cbk)
+GF_Err gf_rtp_send_bye(GF_RTPChannel *ch)
 {
 	GF_BitStream *bs;
 	u32 report_size;
@@ -484,8 +482,8 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
 	if (ch->rtcp) {
 		e = gf_sk_send(ch->rtcp, report_buf, report_size);
 	} else {
-		if (RTP_TCPCallback)
-			e = RTP_TCPCallback(rtsp_cbk, report_buf, report_size);
+		if (ch->send_interleave)
+			e = ch->send_interleave(ch->interleave_cbk1, ch->interleave_cbk2, GF_TRUE, report_buf, report_size);
 		else
 			e = GF_BAD_PARAM;
 	}
@@ -494,9 +492,7 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
 }
 
 GF_EXPORT
-GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
-                               GF_Err (*RTP_TCPCallback)(void *cbk, char *pck, u32 pck_size),
-                               void *rtsp_cbk)
+GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch)
 {
 	u32 Time, report_size;
 	GF_BitStream *bs;
@@ -529,8 +525,8 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
 	if (ch->rtcp) {
 		e = gf_sk_send(ch->rtcp, report_buf, report_size);
 	} else {
-		if (RTP_TCPCallback)
-			e = RTP_TCPCallback(rtsp_cbk, report_buf, report_size);
+		if (ch->send_interleave)
+			e = ch->send_interleave(ch->interleave_cbk1, ch->interleave_cbk2, GF_TRUE, report_buf, report_size);
 		else
 			e = GF_BAD_PARAM;
 	}

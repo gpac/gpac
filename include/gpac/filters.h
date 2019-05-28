@@ -858,7 +858,7 @@ const char *gf_props_get_type_name(u32 type);
 */
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char);
 
-/*! Maximum string size to use when dumping a propery*/
+/*! Maximum string size to use when dumping a property*/
 #define GF_PROP_DUMP_ARG_SIZE	100
 
 /*! Dumps a property value to string
@@ -1644,6 +1644,15 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 */
 GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err);
 
+/*! Checks if a source filter can handle the given URL. The source filter is not loaded.
+
+\param filter the target filter
+\param url url of source to connect to, with optional arguments.
+\param parent_url url of parent if any
+\return GF_TRUE if a source filter can be found for this URL, GF_FALSE otherwise
+*/
+Bool gf_filter_is_supported_source(GF_Filter *filter, const char *url, const char *parent_url);
+
 /*! Gets the number of input pids connected to a filter
 \param filter the target filter
 \return number of input pids
@@ -1893,6 +1902,15 @@ void gf_filter_disable_probe(GF_Filter *filter);
 \param filter target filter
 */
 void gf_filter_disable_inputs(GF_Filter *filter);
+
+/*! Checks if some PIDs are still not connected in the graph originating at filter. This is typically used by filters dynamically loading source filters to make sure all pids from the source are connected.
+
+NOTE: this does not guarantee that no other pid remove or configure will happen later on, this depends on the source type and is unknown by GPAC's filter architecture.
+\param filter target filter
+\param stop_at_filter check connections until this filter. If NULL, connections are checked until upper (sink) end of graph
+\return GF_TRUE if any filter in the path has pending pid connections
+*/
+Bool gf_filter_has_pid_connection_pending(GF_Filter *filter, GF_Filter *stop_at_filter);
 
 /*! @} */
 

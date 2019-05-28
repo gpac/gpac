@@ -155,6 +155,8 @@ GF_Err gf_rtp_streamer_init_rtsp(GF_RTPStreamer *rtp, u32 path_mtu, GF_RTSPTrans
 
 u16 gf_rtp_streamer_get_next_rtp_sn(GF_RTPStreamer *streamer);
 
+GF_Err gf_rtp_streamer_set_interleave_callbacks(GF_RTPStreamer *streamer, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, char *pck, u32 pck_size), void *cbk1, void *cbk2);
+
 /*! @} */
 
 #ifdef __cplusplus

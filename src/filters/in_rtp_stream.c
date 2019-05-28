@@ -664,11 +664,6 @@ GF_Err rtpin_rtsp_data_cbk(GF_RTSPSession *sess, void *cbk, char *buffer, u32 bu
 }
 
 
-static GF_Err rtpin_rtsp_tcp_send_report(void *par, char *pck, u32 pck_size)
-{
-	return GF_OK;
-}
-
 
 u32 rtpin_stream_read(GF_RTPInStream *stream)
 {
@@ -694,7 +689,7 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 	if (!tot_size) return 0;
 
 	/*and send the report*/
-	if (stream->flags & RTP_ENABLE_RTCP) gf_rtp_send_rtcp_report(stream->rtp_ch, rtpin_rtsp_tcp_send_report, stream);
+	if (stream->flags & RTP_ENABLE_RTCP) gf_rtp_send_rtcp_report(stream->rtp_ch);
 
 	/*detect timeout*/
 	if (stream->rtpin->udp_timeout) {

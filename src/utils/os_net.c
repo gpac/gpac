@@ -1504,9 +1504,9 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 #ifdef GPAC_HAS_IPV6
 	char clienthost[NI_MAXHOST];
 	char servname[NI_MAXHOST];
-	struct sockaddr_in6 * addrptr = (struct sockaddr_in6 *)(&sock->dest_addr_len);
+	struct sockaddr_in6 * addrptr = (struct sockaddr_in6 *)(&sock->dest_addr);
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
-	inet_ntop(AF_INET6, addrptr, clienthost, NI_MAXHOST);
+	inet_ntop(AF_INET, addrptr, clienthost, NI_MAXHOST);
 	strcpy(buf, clienthost);
 	if (getnameinfo((struct sockaddr *)addrptr, sock->dest_addr_len, clienthost, NI_MAXHOST, servname, NI_MAXHOST, NI_NUMERICHOST) == 0) {
 		strcpy(buf, clienthost);

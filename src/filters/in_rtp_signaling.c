@@ -176,6 +176,11 @@ GF_Err rtpin_stream_setup(GF_RTPInStream *stream, RTPIn_StreamDescribe *ch_desc)
 	return GF_OK;
 }
 
+static GF_Err rtpin_rtsp_tcp_send_report(void *par, void *par2, Bool is_rtcp, char *pck, u32 pck_size)
+{
+	return GF_OK;
+}
+
 void rtpin_rtsp_setup_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e)
 {
 	GF_RTPInStream *stream;
@@ -233,6 +238,9 @@ void rtpin_rtsp_setup_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e)
 	if (gf_rtp_is_interleaved(stream->rtp_ch)) {
 		stream->flags |= RTP_INTERLEAVED;
 		gf_rtsp_set_interleave_callback(sess->session, rtpin_rtsp_data_cbk);
+
+		gf_rtp_set_interleave_callbacks(stream->rtp_ch, rtpin_rtsp_tcp_send_report, stream, stream);
+		sess->flags |= RTSP_TCP_FLUSH;
 	}
 
 	if (sess->satip) {
@@ -627,6 +635,9 @@ process_reply:
 
 		}
 	} else if (ch_ctrl->evt.base.type == GF_FEVT_STOP) {
+		sess->rtpin->eos_probe_start = gf_sys_clock();
+		if (stream)
+			stream->flags |= RTP_EOS;
 	}
 	gf_free(ch_ctrl);
 	com->user_data = NULL;
@@ -636,12 +647,16 @@ process_reply:
 err_exit:
 	if (stream) {
 		stream->status = RTP_Disconnected;
+		stream->flags |= RTP_EOS;
 		gf_rtsp_reset_aggregation(stream->rtsp->session);
 		stream->check_rtp_time = RTP_SET_TIME_NONE;
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] Error processing user command %s\n", gf_error_to_string(e) ));
 	gf_free(ch_ctrl);
 	com->user_data = NULL;
+	if (sess->flags & RTSP_TCP_FLUSH) {
+		sess->rtpin->eos_probe_start = gf_sys_clock();
+	}
 }
 
 

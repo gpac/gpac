@@ -4857,7 +4857,6 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			evt->base.on_pid->user_max_playout_time = evt->buffer_req.max_playout_us;
 			evt->base.on_pid->user_min_playout_time = evt->buffer_req.min_playout_us;
 			evt->base.on_pid->max_buffer_unit = 0;
-			fprintf(stderr, "set buffer of PID %s:%s to %u\n", evt->base.on_pid->name, evt->base.on_pid->filter->name, evt->buffer_req.max_buffer_us);
 			//update blocking state
 			if (evt->base.on_pid->would_block)
 				gf_filter_pid_check_unblock(evt->base.on_pid);
