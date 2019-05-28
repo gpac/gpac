@@ -599,7 +599,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 	if (ctx->max_sleep<0)
 		gf_filter_ask_rt_reschedule(filter, (u32) ((-ctx->max_sleep) *1000) );
 	else {
-		assert(ctx->min_frame_dur_ms <= ctx->max_sleep);
+		assert(ctx->min_frame_dur_ms <= (u32) ctx->max_sleep);
 		gf_filter_ask_rt_reschedule(filter, ctx->min_frame_dur_ms*1000);
 	}
 	return GF_OK;

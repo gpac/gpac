@@ -496,7 +496,7 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 	u32 nb_bits_per_adress_dst = 0;
 	HEVC_PPS *pps;
 	HEVC_SPS *sps;
-	u64 al, slice_size, slice_offset_orig, slice_offset_dst;
+	u32 al, slice_size, slice_offset_orig, slice_offset_dst;
 	u32 first_slice_segment_in_pic_flag;
 	u32 dependent_slice_segment_flag;
 	u8 nal_unit_type;
@@ -616,8 +616,8 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 	gf_bs_align(bs_rw);					//align
 
 	gf_bs_get_content(bs_rw, &dst_buf, &dst_buf_size); /* bs_rw: header.*/
-	slice_size = gf_bs_available(bs_ori);/* Slice_size: the rest of the slice after the header (no_emulation_bytes in it).*/
-	slice_offset_orig = gf_bs_get_position(bs_ori); /* Slice_offset_orig: Immediate next byte after header_end (start of the slice_payload) */
+	slice_size = (u32) gf_bs_available(bs_ori);/* Slice_size: the rest of the slice after the header (no_emulation_bytes in it).*/
+	slice_offset_orig = (u32) gf_bs_get_position(bs_ori); /* Slice_offset_orig: Immediate next byte after header_end (start of the slice_payload) */
 	slice_offset_dst = dst_buf_size;/* Slice_offset_dst: bs_rw_size (size of our new header). */
 	dst_buf_size += slice_size;/* Size of our new header plus the payload itself.*/
 	dst_buf = gf_realloc(dst_buf, sizeof(char)*dst_buf_size);/* A buffer for our new header plus the payload. */

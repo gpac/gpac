@@ -663,7 +663,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 						pid->last_pck_dts += min_dur * pid->nb_unreliable_dts;
 						pid->nb_unreliable_dts = 0;
 						if (pid->last_pck_dts + min_dur > pck->info.cts) {
-							if (pck->info.cts > min_dur)
+							if ((s64) pck->info.cts > min_dur)
  								pid->last_pck_dts = pck->info.cts - min_dur;
 							else
 								pid->last_pck_dts = 0;
