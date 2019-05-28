@@ -6908,7 +6908,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			}
 			/*five_minus_max_num_merge_cand=*/bs_get_ue(bs);
 		}
-		si->slice_qp_delta_start_bits = (gf_bs_get_position(bs) - 1) * 8 + gf_bs_get_bit_position(bs);
+		si->slice_qp_delta_start_bits = (s32) (gf_bs_get_position(bs) - 1) * 8 + gf_bs_get_bit_position(bs);
 		/*slice_qp_delta = */si->slice_qp_delta = bs_get_se(bs);
 
 		if (pps->slice_chroma_qp_offsets_present_flag) {
