@@ -749,4 +749,21 @@ GF_Err gf_rtsp_get_remote_address(GF_RTSPSession *sess, char *buf)
 	return gf_sk_get_remote_address(sess->connection, buf);
 }
 
+GF_EXPORT
+GF_Err gf_rtsp_session_write_interleaved(GF_RTSPSession *sess, u32 idx, char *pck, u32 pck_size)
+{
+	GF_Err e;
+	char streamID[4];
+	if (!sess || !sess->connection) return GF_BAD_PARAM;
+
+	streamID[0] = '$';
+	streamID[1] = (u8) idx;
+	streamID[2] = (pck_size>>8) & 0xFF;
+	streamID[3] = pck_size & 0xFF;
+
+	e = gf_sk_send_wait(sess->connection, streamID, 4, 20);
+	e |= gf_sk_send_wait(sess->connection, pck, pck_size, 20);
+	return e;
+}
+
 #endif /*GPAC_DISABLE_STREAMING*/

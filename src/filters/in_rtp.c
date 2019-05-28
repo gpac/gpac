@@ -533,11 +533,8 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			if (stream->status!=RTP_Running) continue;
 
 			/*for interleaved channels don't read too fast, query the buffer occupancy*/
-			if (stream->flags & RTP_INTERLEAVED) {
-				stream->rtsp->flags |= RTSP_TCP_FLUSH;
-			} else {
-				read += rtpin_stream_read(stream);
-			}
+			read += rtpin_stream_read(stream);
+
 			if (stream->flags & RTP_EOS) {
 				ctx->eos_probe_start = gf_sys_clock();
 			}

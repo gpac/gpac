@@ -243,13 +243,6 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		}
 		if (UDPBufferSize) gf_sk_set_buffer_size(ch->rtp, IsSource, UDPBufferSize);
 
-		if (IsSource) {
-			if (ch->send_buffer) gf_free(ch->send_buffer);
-			ch->send_buffer = (char *) gf_malloc(sizeof(char) * PathMTU);
-			ch->send_buffer_size = PathMTU;
-		}
-
-
 		//create re-ordering queue for UDP only, and receive
 		if (ReorederingSize && !IsSource) {
 			if (!MaxReorderDelay) MaxReorderDelay = 200;
@@ -280,6 +273,12 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			e = gf_sk_setup_multicast(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, GF_FALSE, local_ip);
 			if (e) return e;
 		}
+	}
+
+	if (IsSource) {
+		if (ch->send_buffer) gf_free(ch->send_buffer);
+		ch->send_buffer_size = PathMTU + 12;
+		ch->send_buffer = (char *) gf_malloc(sizeof(char) * ch->send_buffer_size);
 	}
 
 	//format CNAME if not done yet
@@ -418,7 +417,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 		}
 	}
 	/*monitor keep-alive period*/
-	if (ch->nat_keepalive_time_period) {
+	if (ch->nat_keepalive_time_period && !ch->send_interleave) {
 		u32 now = gf_sys_clock();
 		if (res) {
 			ch->last_nat_keepalive_time = now;
@@ -636,7 +635,8 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u
 
 	if (rtp_hdr->CSRCCount) fast_send = GF_FALSE;
 
-	if (12 + pck_size + 4*rtp_hdr->CSRCCount > ch->send_buffer_size) return GF_IO_ERR;
+	if (12 + pck_size + 4*rtp_hdr->CSRCCount > ch->send_buffer_size)
+		return GF_IO_ERR;
 
 	if (fast_send) {
 		hdr = pck - 12;
@@ -661,8 +661,16 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u
 	//nb: RTP header is always aligned
 	Start = (u32) gf_bs_get_position(ch->bs_w);
 
+	if (ch->send_interleave) {
+		if (fast_send) {
+			e = ch->send_interleave(ch->interleave_cbk1, ch->interleave_cbk2, GF_FALSE, hdr, pck_size+12);
+		} else {
+			memcpy(ch->send_buffer + Start, pck, pck_size);
+			e = ch->send_interleave(ch->interleave_cbk1, ch->interleave_cbk2, GF_FALSE, ch->send_buffer, Start + pck_size);
+		}
+	}
 	//copy payload
-	if (fast_send) {
+	else if (fast_send) {
 		e = gf_sk_send(ch->rtp, hdr, pck_size+12);
 	} else {
 		memcpy(ch->send_buffer + Start, pck, pck_size);
@@ -686,7 +694,7 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u
 	ch->last_pck_ts = rtp_hdr->TimeStamp;
 	gf_net_get_ntp(&ch->last_pck_ntp_sec, &ch->last_pck_ntp_frac);
 
-	if (!ch->no_auto_rtcp) gf_rtp_send_rtcp_report(ch, NULL, NULL);
+	if (!ch->no_auto_rtcp) gf_rtp_send_rtcp_report(ch);
 	return GF_OK;
 }
 
@@ -1043,6 +1051,16 @@ send_it:
 	gf_free(t);
 	return ret;
 }
+
+GF_Err gf_rtp_set_interleave_callbacks(GF_RTPChannel *ch, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, char *pck, u32 pck_size), void *cbk1, void *cbk2)
+{
+	if (!ch) return GF_BAD_PARAM;
+	ch->send_interleave = RTP_TCPCallback;
+	ch->interleave_cbk1 = cbk1;
+	ch->interleave_cbk2 = cbk2;
+	return GF_OK;
+}
+
 
 #endif /*GPAC_DISABLE_STREAMING*/
 

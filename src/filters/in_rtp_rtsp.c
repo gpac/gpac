@@ -62,7 +62,6 @@ void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess)
 			e = gf_rtsp_session_read(sess->session);
 			if (e) break;
 		}
-		sess->flags &= ~RTSP_TCP_FLUSH;
 	}
 
 	/*handle response or announce*/

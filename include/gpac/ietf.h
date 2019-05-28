@@ -498,6 +498,7 @@ u8 gf_rtsp_get_next_interleave_id(GF_RTSPSession *sess);
 /*gets the IP address of the connected peer - buffer shall be GF_MAX_IP_NAME_LEN long*/
 GF_Err gf_rtsp_get_remote_address(GF_RTSPSession *sess, char *buffer);
 
+GF_Err gf_rtsp_session_write_interleaved(GF_RTSPSession *sess, u32 idx, char *pck, u32 pck_size);
 
 /*
 		RTP LIB EXPORTS
@@ -635,19 +636,18 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 the callback function. NOTE: many RTP implementation do NOT process RTCP info received on TCP...
 the lib will decide whether the report shall be sent or not, therefore you should call
 this function at regular times*/
-GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
-                               GF_Err (*RTP_TCPCallback)(void *cbk, char *pck, u32 pck_size),
-                               void *rtsp_cbk);
+GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch);
 
 /*send a BYE info (leaving the session)*/
-GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
-                       GF_Err (*RTP_TCPCallback)(void *cbk, char *pck, u32 pck_size),
-                       void *rtsp_cbk);
+GF_Err gf_rtp_send_bye(GF_RTPChannel *ch);
 
 
 /*send RTP packet. In fast_send mode, user passes a pck pointer with 12 bytes available BEFORE pck to
 write the header in place*/
 GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u32 pck_size, Bool fast_send);
+
+GF_Err gf_rtp_set_interleave_callbacks(GF_RTPChannel *ch, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, char *pck, u32 pck_size), void *cbk1, void *cbk2);
+
 
 enum
 {

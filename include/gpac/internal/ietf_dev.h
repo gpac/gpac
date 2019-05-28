@@ -164,6 +164,9 @@ struct __tag_rtp_channel
 
 	GF_BitStream *bs_r, *bs_w;
 	Bool no_select;
+
+	GF_Err (*send_interleave)(void *cbk1, void *cbk2, Bool is_rtcp, char *pck, u32 pck_size);
+	void *interleave_cbk1, *interleave_cbk2;
 };
 
 /*gets UTC in the channel RTP timescale*/

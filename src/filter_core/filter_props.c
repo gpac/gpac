@@ -1159,6 +1159,16 @@ Bool gf_props_4cc_check_props()
 
 const char *gf_prop_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum, Bool is_4cc)
 {
+	switch (att->type) {
+	case GF_PROP_NAME:
+	case GF_PROP_STRING:
+	case GF_PROP_STRING_NO_COPY:
+		break;
+	default:
+		if (!dump) return NULL;
+		break;
+	}
+
 	dump[0] = 0;
 	switch (att->type) {
 	case GF_PROP_SINT:
@@ -1252,7 +1262,7 @@ const char *gf_prop_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_D
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:
 		return att->value.string;
-		break;
+
 	case GF_PROP_DATA:
 	case GF_PROP_CONST_DATA:
 	case GF_PROP_DATA_NO_COPY:

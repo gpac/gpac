@@ -418,7 +418,8 @@ void gf_rtsp_set_command_value(GF_RTSPCommand *com, char *Header, char *Value)
 	else if (!stricmp(Header, "Range")) com->Range = gf_rtsp_range_parse(Value);
 	else if (!stricmp(Header, "Referer")) com->Referer = gf_strdup(Value);
 	else if (!stricmp(Header, "Scale")) sscanf(Value, "%lf", &com->Scale);
-	else if (!stricmp(Header, "Session")) com->Session = gf_strdup(Value);
+	else if (!stricmp(Header, "Session"))
+		com->Session = gf_strdup(Value);
 	else if (!stricmp(Header, "Speed")) sscanf(Value, "%lf", &com->Speed);
 	else if (!stricmp(Header, "User_Agent")) com->User_Agent = gf_strdup(Value);
 	//Transports
@@ -533,6 +534,8 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	}
 	e = gf_rtsp_read_reply(sess);
 	if (e) goto exit;
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Got Command:\n%s\n", sess->tcp_buffer+sess->CurrentPos));
 
 	gf_rtsp_get_body_info(sess, &BodyStart, &size);
 	e = RTSP_ParseCommandHeader(sess, com, BodyStart);

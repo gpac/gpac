@@ -2239,7 +2239,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 
 	target_filter = filter->target_filter;
 	filter->finalized = GF_FALSE;
-	gf_fs_load_source_dest_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit);
+	gf_fs_load_source_dest_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit, NULL);
 	//we manage to reassign an input registry
 	if (e==GF_OK) {
 		gf_free(src_url);
@@ -2306,9 +2306,18 @@ void gf_filter_forward_clock(GF_Filter *filter)
 }
 
 GF_EXPORT
+Bool gf_filter_is_supported_source(GF_Filter *filter, const char *url, const char *parent_url)
+{
+	GF_Err e;
+	Bool is_supported = GF_FALSE;
+	gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, &e, NULL, filter, GF_TRUE, GF_TRUE, &is_supported);
+	return is_supported;
+}
+
+GF_EXPORT
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err)
 {
-	GF_Filter *filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE);
+	GF_Filter *filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE, NULL);
 	if (!filter_src) return NULL;
 
 	if (!filter->source_filters)
@@ -2320,7 +2329,7 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 GF_EXPORT
 GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err)
 {
-	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE, GF_FALSE);
+	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE, GF_FALSE, NULL);
 }
 
 
@@ -2640,7 +2649,9 @@ GF_EXPORT
 const char *gf_filter_get_arg(GF_Filter *filter, const char *arg_name, char dump[GF_PROP_DUMP_ARG_SIZE])
 {
 	u32 i=0;
-	while (filter) {
+	if (!filter || !arg_name || !dump) return NULL;
+
+	while (1) {
 		GF_PropertyValue p;
 		const GF_FilterArgs *arg = &filter->freg->args[i];
 		if (!arg || !arg->arg_name) break;
@@ -2869,4 +2880,37 @@ void gf_filter_disable_inputs(GF_Filter *filter)
 {
 	if (filter)
 	 	filter->no_inputs = GF_TRUE;
+}
+
+static Bool gf_filter_has_pid_connection_pending_internal(GF_Filter *filter, GF_Filter *stop_at_filter)
+{
+	u32 i, j;
+	if (filter == stop_at_filter) return GF_FALSE;
+
+	if (filter->has_pending_pids) return GF_TRUE;
+
+	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		if (pid->init_task_pending) return GF_TRUE;
+		for (j=0; j<pid->num_destinations; j++) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
+			Bool res = gf_filter_has_pid_connection_pending_internal(pidi->filter, stop_at_filter);
+			if (res) return GF_TRUE;
+		}
+	}
+	return GF_FALSE;
+}
+
+GF_EXPORT
+Bool gf_filter_has_pid_connection_pending(GF_Filter *filter, GF_Filter *stop_at_filter)
+{
+	GF_FilterSession *fsess;
+	Bool res;
+	if (!filter) return GF_FALSE;
+	//lock session, this is an unsafe call
+	fsess = filter->session;
+	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
+	res = gf_filter_has_pid_connection_pending_internal(filter, stop_at_filter);
+	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
+	return res;
 }

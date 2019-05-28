@@ -763,13 +763,13 @@ GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rt
 	streamer->channel->forced_ntp_frac = force_ntp_type ? ntp_frac : 0;
 	if (force_ntp_type==2)
 		streamer->channel->next_report_time = 0;
-	return gf_rtp_send_rtcp_report(streamer->channel, NULL, NULL);
+	return gf_rtp_send_rtcp_report(streamer->channel);
 }
 
 GF_EXPORT
 GF_Err gf_rtp_streamer_send_bye(GF_RTPStreamer *streamer)
 {
-	return gf_rtp_send_bye(streamer->channel, NULL, NULL);
+	return gf_rtp_send_bye(streamer->channel);
 }
 
 GF_EXPORT
@@ -782,6 +782,13 @@ GF_EXPORT
 u16 gf_rtp_streamer_get_next_rtp_sn(GF_RTPStreamer *streamer)
 {
 	return streamer->packetizer->rtp_header.SequenceNumber+1;
+}
+
+GF_EXPORT
+GF_Err gf_rtp_streamer_set_interleave_callbacks(GF_RTPStreamer *streamer, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, char *pck, u32 pck_size), void *cbk1, void *cbk2)
+{
+
+ 	return gf_rtp_set_interleave_callbacks(streamer->channel, RTP_TCPCallback, cbk1, cbk2);
 }
 
 #endif /*GPAC_DISABLE_STREAMING && GPAC_DISABLE_ISOM*/

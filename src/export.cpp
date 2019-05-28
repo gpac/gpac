@@ -1119,6 +1119,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_disable_auto_rtcp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_rtcp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_get_payload_type) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_set_interleave_callbacks) )
+
 #endif
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_map_esd) )
@@ -1240,6 +1242,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_next_interleave_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_remote_address) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_session_port) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_session_write_interleaved) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_setup_transport) )
@@ -2399,6 +2402,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_remove_src ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_connect_source ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_connect_destination ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_is_supported_source ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_buffer_max ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_make_sticky ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_hint_single_clock ) )
@@ -2416,7 +2420,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_disable_inputs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_num_events_queued) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_all_sinks_done) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_has_pid_connection_pending) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_enable_emulation_byte_removal ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_del ) )
