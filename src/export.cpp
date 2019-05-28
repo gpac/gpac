@@ -1231,11 +1231,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_unregister_interleave) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_session_new_server) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_command) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_load_service_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_generate_session_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_send_response) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_session_ip) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_next_interleave_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_remote_address) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_session_port) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_session_write_interleaved) )
@@ -1286,12 +1284,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_depacketizer_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_depacketizer_reset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_depacketizer_process) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_depacketizer_get_slconfig) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_reorderer_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_reorderer_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_reorderer_reset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_reorderer_add) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_reorderer_get) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_reset_ssrc) )
 
 #endif /*GPAC_DISABLE_STREAMING*/
 
