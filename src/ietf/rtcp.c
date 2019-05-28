@@ -261,11 +261,6 @@ process_reports:
 	return e;
 }
 
-u32 gf_rtp_get_ntp_frac(u32 sec, u32 frac)
-{
-	return ( ((sec  & 0x0000ffff) << 16) |  ((frac & 0xffff0000) >> 16));
-}
-
 static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 {
 	u32 length, is_sr, sec, frac, expected, val, size;
@@ -353,7 +348,11 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 	//RTP specs annexe A.8
 	gf_bs_write_u32(bs, ( ch->Jitter >> 4));
 	//LSR
-	val = ch->last_SR_NTP_sec ? gf_rtp_get_ntp_frac(ch->last_SR_NTP_sec, ch->last_SR_NTP_frac) : 0;
+	if (ch->last_SR_NTP_sec) {
+		val = ( ((ch->last_SR_NTP_sec  & 0x0000ffff) << 16) |  ((ch->last_SR_NTP_frac & 0xffff0000) >> 16));
+	} else {
+		val = 0;
+	}
 	gf_bs_write_u32(bs, val);
 
 	// DLSR
@@ -547,12 +546,11 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch)
 	return e;
 }
 
-
+#if 0 //unused
 
 #define RTCP_SAFE_FREE(p) if (p) gf_free(p);	\
 					p = NULL;
 
-GF_EXPORT
 GF_Err gf_rtp_set_info_rtcp(GF_RTPChannel *ch, u32 InfoCode, char *info_string)
 {
 	if (!ch) return GF_BAD_PARAM;
@@ -591,5 +589,8 @@ GF_Err gf_rtp_set_info_rtcp(GF_RTPChannel *ch, u32 InfoCode, char *info_string)
 	}
 	return GF_OK;
 }
+
+#endif
+
 
 #endif /*GPAC_DISABLE_STREAMING*/

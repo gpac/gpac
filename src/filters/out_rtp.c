@@ -52,6 +52,7 @@ typedef struct
 	s32 delay;
 	char *info, *url, *email;
 	s32 runfor, tso;
+	Bool latm;
 
 	/*timeline origin of our session (all tracks) in microseconds*/
 	u64 sys_clock_at_init;
@@ -252,7 +253,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 	return GF_OK;
 }
 
-GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool inject_xps, Bool use_mpeg4_signaling, u32 payt, u32 mtu, u32 ttl, const char *ifce, Bool is_rtsp, u32 *base_pid_id)
+GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool inject_xps, Bool use_mpeg4_signaling, Bool use_latm, u32 payt, u32 mtu, u32 ttl, const char *ifce, Bool is_rtsp, u32 *base_pid_id)
 {
 	GF_Err e = GF_OK;
 	Bool disable_mpeg4 = GF_FALSE;
@@ -416,6 +417,8 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 			max_size = 1000;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTPOut] AAC stream detected but not information available on average size/tsdelta/duration, assuming const dur %d max_tsdelta %d average size %d max size %d\n", const_dur, max_tsdelta, average_size, max_size));
 		}
+		if (use_latm)
+			flags |= GP_RTP_PCK_USE_LATM_AAC;
 		break;
 	}
 
@@ -451,7 +454,7 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 
 
 	/*init packetizer*/
-	stream->rtp = gf_rtp_streamer_new_extended(stream->streamtype, codecid, stream->timescale,
+	stream->rtp = gf_rtp_streamer_new(stream->streamtype, codecid, stream->timescale,
 				 (char *) ipdest, stream->port, mtu, ttl, ifce,
 				 flags, dsi, dsi_len,
 				 payt, samplerate, nb_ch,
@@ -606,7 +609,7 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	payt = ctx->payt + gf_list_find(ctx->streams, stream);
 	//init rtp
-	e = rtpout_init_streamer(stream,  ctx->ip ? ctx->ip : "127.0.0.1", ctx->xps, ctx->mpeg4, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_FALSE, &ctx->base_pid_id);
+	e = rtpout_init_streamer(stream,  ctx->ip ? ctx->ip : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_FALSE, &ctx->base_pid_id);
 	if (e) return e;
 
 	stream->selected = GF_TRUE;
@@ -1036,6 +1039,7 @@ static const GF_FilterArgs RTPOutArgs[] =
 	{ OFFS(runfor), "run for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, 0},
 	{ OFFS(tso), "sets timestamp offset in microsecs. Negative value means random initial timestamp", GF_PROP_SINT, "-1", NULL, 0},
 	{ OFFS(xps), "force parameter set injection at each SAP. If not set, only inject if different from SDP ones", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(latm), "uses latm for AAC payload format", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 

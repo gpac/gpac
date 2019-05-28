@@ -35,6 +35,8 @@
 
 static void gf_rtp_parse_pass_through(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
+	if (!rtp) return;
+
 	rtp->sl_hdr.accessUnitStartFlag = 1;
 	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp)
 		rtp->sl_hdr.accessUnitStartFlag = 1;
@@ -927,6 +929,7 @@ static void gf_rtp_parse_latm(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 }
 #endif
 
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
 	u32 du_size, offset, dsize, hdr_size;
@@ -1004,6 +1007,8 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 	}
 
 }
+#endif
+
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
@@ -1088,7 +1093,9 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "AMR-WB")) return GF_RTP_PAYT_AMR_WB;
 	else if (!stricmp(map->payload_name, "3gpp-tt")) return GF_RTP_PAYT_3GPP_TEXT;
 	else if (!stricmp(map->payload_name, "H264")) return GF_RTP_PAYT_H264_AVC;
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 	else if (!stricmp(map->payload_name, "richmedia+xml")) return GF_RTP_PAYT_3GPP_DIMS;
+#endif
 	else if (!stricmp(map->payload_name, "ac3")) return GF_RTP_PAYT_AC3;
 	else if (!stricmp(map->payload_name, "H264-SVC")) return GF_RTP_PAYT_H264_SVC;
 	else if (!stricmp(map->payload_name, "H265")) return GF_RTP_PAYT_HEVC;
@@ -1230,6 +1237,8 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			payt_set_param(rtp, att->Name, att->Value);
 		}
 	}
+	if (gf_sys_is_test_mode())
+		gf_rtp_parse_pass_through(NULL, NULL, NULL, 0);
 
 	switch (rtp->payt) {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -1484,7 +1493,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		gf_bs_write_u16(bs, tcfg.vert_offset);
 		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
 		rtp->sl_map.StreamType = GF_STREAM_TEXT;
-		rtp->sl_map.CodecID = 0x08;
+		rtp->sl_map.CodecID = GF_CODECID_TEXT_MPEG4;
 		gf_bs_del(bs);
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_ttxt;
@@ -1655,6 +1664,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	break;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 	/*todo - rewrite DIMS config*/
 	case GF_RTP_PAYT_3GPP_DIMS:
 		rtp->sl_map.StreamType = GF_STREAM_SCENE;
@@ -1667,10 +1677,12 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_3gpp_dims;
 		break;
+#endif
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_RTP_PAYT_AC3:
 		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-		rtp->sl_map.CodecID = 0xA5;
+		rtp->sl_map.CodecID = GF_CODECID_AC3;
 		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_ac3;
@@ -1811,7 +1823,7 @@ void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, cha
 }
 
 
-GF_EXPORT
+#if 0 //unused
 void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *slc)
 {
 	memset(slc, 0, sizeof(GF_SLConfig));
@@ -1854,6 +1866,7 @@ void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *slc)
 		}
 	}
 }
+#endif
 
 
 #endif /*GPAC_DISABLE_STREAMING*/

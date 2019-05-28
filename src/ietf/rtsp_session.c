@@ -162,10 +162,6 @@ void gf_rtsp_reset_aggregation(GF_RTSPSession *sess)
 	sess->RTSP_State = GF_RTSP_STATE_INIT;
 }
 
-void RTSP_AcknowledgeError(GF_RTSPSession *sess)
-{
-}
-
 void RemoveTCPChannels(GF_RTSPSession *sess)
 {
 	GF_TCPChan *ch;
@@ -229,12 +225,13 @@ u32 gf_rtsp_get_session_state(GF_RTSPSession *sess)
 	return state;
 }
 
-GF_EXPORT
+#if 0 //unused
 char *gf_rtsp_get_last_request(GF_RTSPSession *sess)
 {
 	if (!sess) return NULL;
 	return sess->RTSPLastRequest;
 }
+#endif
 
 
 //check whether the url contains server and service name
@@ -249,25 +246,19 @@ u32 gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url)
 	return 0;
 }
 
-GF_EXPORT
+#if 0 //unused
 const char *gf_rtsp_get_last_session_id(GF_RTSPSession *sess)
 {
 	if (!sess) return NULL;
 	return sess->last_session_id;
 }
+#endif
 
 GF_EXPORT
 char *gf_rtsp_get_server_name(GF_RTSPSession *sess)
 {
 	if (!sess) return NULL;
 	return sess->Server;
-}
-
-GF_EXPORT
-char *gf_rtsp_get_service_name(GF_RTSPSession *sess)
-{
-	if (!sess) return NULL;
-	return sess->Service;
 }
 
 GF_EXPORT
@@ -294,7 +285,7 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 	if (sess->SockBufferSize) gf_sk_set_buffer_size(sess->connection, GF_FALSE, sess->SockBufferSize);
 
 	if (!sess->http && sess->HasTunnel) {
-		e = gf_rtsp_http_tunnel_start(sess, "toto is the king of RTSP");
+		e = gf_rtsp_http_tunnel_start(sess, "GPAC the king of RTSP");
 		if (e) return e;
 	}
 	sess->NeedConnection = 0;
@@ -430,27 +421,6 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 }
 
 
-
-
-
-
-
-
-/*
-		Exposed API, thread-safe
-*/
-
-GF_Err RTSP_ResetInterleaving(GF_RTSPSession *sess, Bool ResetChannels)
-{
-	if (!sess) return GF_BAD_PARAM;
-	sess->payloadSize = 0;
-	sess->pck_start = 0;
-	sess->InterID = (u8) -1;
-	if (ResetChannels) RemoveTCPChannels(sess);
-	return GF_OK;
-}
-
-
 GF_EXPORT
 GF_Err gf_rtsp_session_read(GF_RTSPSession *sess)
 {
@@ -474,6 +444,8 @@ u32 gf_rtsp_unregister_interleave(GF_RTSPSession *sess, u8 LowInterID)
 {
 	u32 res;
 	GF_TCPChan *ptr;
+	if (!sess) return 0;
+
 	ptr = GetTCPChannel(sess, LowInterID, LowInterID, GF_TRUE);
 	if (ptr) gf_free(ptr);
 	res = gf_list_count(sess->TCPChannels);
@@ -539,16 +511,22 @@ static Bool HTTP_RandInit = GF_TRUE;
 #define HTTP_RSP_OK	"HTTP/1.0 200 OK"
 
 
-void RTSP_GenerateHTTPCookie(GF_RTSPSession *sess)
+//http tunnelling start.
+GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 {
+	GF_Err e;
+	u32 size;
+	s32 pos;
 	u32 i, num, temp;
+	char buffer[GF_RTSP_DEFAULT_BUFFER];
 
+	//generate http cookie
 	if (HTTP_RandInit) {
 		gf_rand_init(GF_FALSE);
 		HTTP_RandInit = GF_FALSE;
 	}
 	if (!sess->CookieRadLen) {
-		strcpy(sess->HTTP_Cookie, "MPEG4M4");
+		strcpy(sess->HTTP_Cookie, "GPACROH");
 		sess->CookieRadLen = 8;
 	}
 	num = gf_rand();
@@ -557,20 +535,6 @@ void RTSP_GenerateHTTPCookie(GF_RTSPSession *sess)
 		sess->HTTP_Cookie[sess->CookieRadLen + i] = (u8) temp + sess->HTTP_Cookie[0];
 	}
 	sess->HTTP_Cookie[sess->CookieRadLen + i] = 0;
-}
-
-
-
-
-//http tunnelling start.
-GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
-{
-	GF_Err e;
-	u32 size;
-	s32 pos;
-	char buffer[GF_RTSP_DEFAULT_BUFFER];
-
-	RTSP_GenerateHTTPCookie(sess);
 
 	//  1. send "GET /sample.mov HTTP/1.0\r\n ..."
 	memset(buffer, 0, GF_RTSP_DEFAULT_BUFFER);
@@ -670,7 +634,7 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener)
 }
 
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_rtsp_load_service_name(GF_RTSPSession *sess, char *URL)
 {
 	char server[1024], service[1024];
@@ -693,7 +657,7 @@ GF_Err gf_rtsp_load_service_name(GF_RTSPSession *sess, char *URL)
 	sess->Service = gf_strdup(service);
 	return GF_OK;
 }
-
+#endif
 
 GF_EXPORT
 char *gf_rtsp_generate_session_id(GF_RTSPSession *sess)
@@ -726,7 +690,7 @@ GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char *buffer)
 }
 
 
-GF_EXPORT
+#if 0 //unused
 u8 gf_rtsp_get_next_interleave_id(GF_RTSPSession *sess)
 {
 	u32 i;
@@ -740,7 +704,7 @@ u8 gf_rtsp_get_next_interleave_id(GF_RTSPSession *sess)
 	}
 	return id;
 }
-
+#endif
 
 GF_EXPORT
 GF_Err gf_rtsp_get_remote_address(GF_RTSPSession *sess, char *buf)

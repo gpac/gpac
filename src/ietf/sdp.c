@@ -444,7 +444,7 @@ Bool SDP_IsDynamicPayload(GF_SDPMedia *media, char *payt)
 }
 
 //translate h || m || d in sec. Fractions are not allowed with this writing
-s32 SDP_MakeSeconds(char *buf)
+static s32 SDP_MakeSeconds(char *buf)
 {
 	s32 sign;
 	char num[30], *test;
@@ -491,6 +491,9 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 	timing = NULL;
 
 	if (!sdp) return GF_BAD_PARAM;
+	if (gf_sys_is_test_mode())
+		SDP_MakeSeconds("30m");
+
 
 	//Clean SDP info
 	gf_sdp_info_reset(sdp);
@@ -723,8 +726,9 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 }
 
 
+#if 0 //unused
 
-GF_Err SDP_CheckConnection(GF_SDPConnection *conn)
+static GF_Err SDP_CheckConnection(GF_SDPConnection *conn)
 {
 	if (!conn) return GF_BAD_PARAM;
 	if (!conn->host || !conn->add_type || !conn->net_type) return GF_REMOTE_SERVICE_ERROR;
@@ -739,7 +743,6 @@ GF_Err SDP_CheckConnection(GF_SDPConnection *conn)
 
 //return GF_BAD_PARAM if invalid structure, GF_REMOTE_SERVICE_ERROR if bad formatting
 //or GF_OK
-GF_EXPORT
 GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 {
 	GF_Err e;
@@ -870,7 +873,6 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 		SDP_WRITE_ALLOC_STR("\r\n", 0);		\
 	}
 
-#if 0 //unused
 GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 {
 	char *buf;

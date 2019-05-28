@@ -50,27 +50,6 @@ extern "C" {
 
 typedef struct __rtp_streamer GF_RTPStreamer;
 
-/*!
- *	\brief RTP Streamer constructor
- *
- *	Constructs a new RTP file streamer
- *\param streamType type of the stream (GF_STREAM_* as defined in <gpac/constants.h>)
- *\param codecid codecid for the stream (GF_CODECID_* as defined in <gpac/constants.h>)
- *\param timeScale unit to express timestamps
- *\param ip_dest IP address of the destination
- *\param port port number of the destination
- *\param MTU Maximum Transmission Unit size to use
- *\param TTL Time To Leave
- *\param ifce_addr IP of the local interface to use (may be NULL)
- *\param flags
- *\param dsi MPEG-4 Decoder Specific Info for the stream
- *\param dsi_len length of the dsi parameter
- *\return new object
- */
-
-GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
-                                    const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
-                                    u32 flags, char *dsi, u32 dsi_len);
 
 /*!
  *	\brief RTP Streamer constructor with extended parameters
@@ -103,7 +82,7 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
  *\param au_sn_len length of the MPEG-4 SL descriptor AU sequence number field
  *\return new object
  */
-GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 codecid, u32 timeScale,
+GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
         const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
         u32 flags, char *dsi, u32 dsi_len,
         u32 PayloadType, u32 sample_rate, u32 nb_ch,

@@ -253,7 +253,7 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 		switch (st) {
 		case GF_STREAM_OD:
 		case GF_STREAM_SCENE:
-			rtpch->rtp = gf_rtp_streamer_new_extended(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr,
+			rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr,
 			             GP_RTP_PCK_SYSTEMS_CAROUSEL, (char *) config, config_len,
 			             96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, GF_FALSE);
 
@@ -263,7 +263,7 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 			}
 			break;
 		default:
-			rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr, GP_RTP_PCK_SIGNAL_RAP, (char *) config, config_len);
+			rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr, GP_RTP_PCK_SIGNAL_RAP, (char *) config, config_len, 96, 0, 0, GF_FALSE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, GF_FALSE);
 			break;
 		}
 		rtpch->ESID = ESID;
