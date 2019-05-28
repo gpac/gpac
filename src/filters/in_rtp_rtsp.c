@@ -295,7 +295,7 @@ GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, char *session_con
 				if (!in_session) return GF_SERVICE_ERROR;
 			}
 			/*remove session control part from channel control*/
-			service_name = gf_rtsp_get_service_name(in_session->session);
+			service_name = in_session->session->Service;
 			ctrl = strstr(stream->control, service_name);
 			if (ctrl && (strlen(ctrl) != strlen(service_name)) ) {
 				ctrl += strlen(service_name) + 1;

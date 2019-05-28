@@ -129,7 +129,7 @@ void gf_rtp_reset_buffers(GF_RTPChannel *ch)
 GF_EXPORT
 void gf_rtp_reset_ssrc(GF_RTPChannel *ch)
 {
-	ch->SenderSSRC = 0;
+	if (ch) ch->SenderSSRC = 0;
 }
 
 GF_EXPORT
@@ -308,11 +308,6 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 	return GF_OK;
 }
 
-/*get the UTC time expressed in RTP timescale*/
-void gf_rtp_channel_disable_select(GF_RTPChannel *ch, Bool no_select)
-{
-	if (ch) ch->no_select = no_select;
-}
 /*get the UTC time expressed in RTP timescale*/
 u32 gf_rtp_channel_time(GF_RTPChannel *ch)
 {
@@ -719,13 +714,14 @@ u32 gf_rtp_get_clockrate(GF_RTPChannel *ch)
 	return ch->TimeScale;
 }
 
-GF_EXPORT
+#if 0 //unused
 u32 gf_rtp_is_active(GF_RTPChannel *ch)
 {
 	if (!ch) return 0;
 	if (!ch->rtp_first_SN && !ch->rtp_time) return 0;
 	return 1;
 }
+#endif
 
 GF_EXPORT
 u8 gf_rtp_get_low_interleave_id(GF_RTPChannel *ch)
@@ -797,13 +793,13 @@ GF_RTSPTransport *gf_rtp_get_transport(GF_RTPChannel *ch)
 	return &ch->net_info;
 }
 
-GF_EXPORT
+#if 0 //unused
 u32 gf_rtp_get_local_ssrc(GF_RTPChannel *ch)
 {
 	if (!ch) return 0;
 	return ch->SSRC;
 }
-
+#endif
 
 #if 0
 "#RTP log format:\n"
@@ -860,29 +856,27 @@ GF_RTPReorder *gf_rtp_reorderer_new(u32 MaxCount, u32 MaxDelay)
 	return tmp;
 }
 
-static void DelItem(GF_POItem *it)
-{
-	if (it) {
-		if (it->next) DelItem(it->next);
-		gf_free(it->pck);
-		gf_free(it);
-	}
-}
-
-
 GF_EXPORT
 void gf_rtp_reorderer_del(GF_RTPReorder *po)
 {
-	if (po->in) DelItem(po->in);
+	gf_rtp_reorderer_reset(po);
 	gf_free(po);
 }
 
 GF_EXPORT
 void gf_rtp_reorderer_reset(GF_RTPReorder *po)
 {
+	GF_POItem *item;
 	if (!po) return;
 
-	if (po->in) DelItem(po->in);
+	item = po->in;
+	while (item) {
+		GF_POItem *next = item->next;
+		gf_free(item->pck);
+		gf_free(item);
+		item = next;
+	}
+
 	po->head_seqnum = 0;
 	po->Count = 0;
 	po->IsInit = 0;
