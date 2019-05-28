@@ -277,6 +277,8 @@
     <ClCompile Include="..\..\src\filters\ff_enc.c" />
     <ClCompile Include="..\..\src\filters\ff_rescale.c" />
     <ClCompile Include="..\..\src\filters\filelist.c" />
+    <ClCompile Include="..\..\src\filters\hevccombine.c" />
+    <ClCompile Include="..\..\src\filters\hevcsplit.c" />
     <ClCompile Include="..\..\src\filters\inspect.c" />
     <ClCompile Include="..\..\src\filters\in_atsc.c" />
     <ClCompile Include="..\..\src\filters\in_dvb4linux.c" />

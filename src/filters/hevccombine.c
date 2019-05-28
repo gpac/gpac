@@ -47,7 +47,7 @@ typedef struct
 	int *tile_width, *tile_height;
 	u8 num_video_counter, num_video_per_height, nb_ipid;
 	u8 *on_row, *on_col, hevc_nalu_size_length, pid_idx;
-	u64 addr_tile_pid[25];
+	HEVCTilePidCtx *addr_tile_pid[25];
 } GF_HEVCSplitCtx;
 
 u32 bs_get_ue(GF_BitStream *bs);
@@ -213,7 +213,6 @@ static void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, 
 	gf_bs_get_content(bs_out, &data_without_emulation_bytes, &data_without_emulation_bytes_size);
 
 	*out_SPS_length = data_without_emulation_bytes_size + avc_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
-	/* 29/01/2019 */ u32 emulation_prevention_bytes_to_add = avc_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
 	*out_SPS = gf_malloc(*out_SPS_length);
 	gf_media_nalu_add_emulation_bytes(data_without_emulation_bytes, *out_SPS, data_without_emulation_bytes_size);
 
@@ -352,7 +351,7 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 	u32 first_slice_segment_in_pic_flag;
 	u32 dependent_slice_segment_flag;
 	int address_ori;
-	u8 nal_unit_type, temporal_id, layer_id;
+	u8 nal_unit_type;
 	s32 new_slice_qp_delta;
 
 	HEVCState *hevc = &tile_pid->hevc_state;
@@ -482,7 +481,7 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 	//read byte_alignment() is bit=1 + x bit=0
 	al = gf_bs_read_int(bs_ori, 1);
 	assert(al == 1);
-	u8 align = gf_bs_align(bs_ori);
+	gf_bs_align(bs_ori);
 
 	//write byte_alignment() is bit=1 + x bit=0
 	gf_bs_write_int(bs_rw, 1, 1);
@@ -548,7 +547,6 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *d
 		for (j = 0; j < gf_list_count(ar->nalus); j++) { // for all the nalus the i-th param got
 			/*! used for storing AVC sequenceParameterSetNALUnit and pictureParameterSetNALUnit*/
 			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j); // store j-th nalus in *sl
-			u16 hdr = sl->data[0] << 8 | sl->data[1];
 
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
 				char *outSPS;
@@ -576,6 +574,7 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *d
 	gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(new_dsi, new_size));
 	return GF_OK;
 }
+#if 0
 static GF_Err rewrite_hevc_dsi_pps(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *data, u32 size, u8 num_tile_rows_minus1, u8 num_tile_cols_minus1)
 {
 	u32 i, j;
@@ -616,6 +615,7 @@ static GF_Err rewrite_hevc_dsi_pps(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, cha
 	gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(new_dsi, new_size));
 	return GF_OK;
 }
+#endif
 
 static void bsnal(char *output_nal, char *rewritten_nal, u32 out_nal_size, u32 hevc_nalu_size_length)
 {
@@ -627,7 +627,7 @@ static void bsnal(char *output_nal, char *rewritten_nal, u32 out_nal_size, u32 h
 
 static u32 compute_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pid)
 {
-	u32 i, j, new_address = 0, sum_height = 0, sum_width = 0, visualise = 0, v2 = 0;
+	u32 i, j, new_address = 0, sum_height = 0, sum_width = 0;
 	HEVCTilePidCtx *ptr = NULL, *current_pid = ctx->addr_tile_pid[tile_pid->pid_idx];
 
 #if 1
@@ -692,8 +692,6 @@ static GF_Err hevccombine_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bo
 {
 	Bool grid_config_changed = GF_FALSE;
 	u32 cfg_crc = 0, pid_width, pid_height;
-	Bool has_scalable = GF_FALSE;
-	Bool is_sublayer = GF_FALSE;
 	const GF_PropertyValue *p, *dsi;
 	GF_Err e;
 	u32 num_tile_rows_minus1 = 0, num_tile_columns_minus1 = 0;
@@ -758,7 +756,6 @@ static GF_Err hevccombine_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bo
 		for (j = 0; j < gf_list_count(ar->nalus); j++) {
 			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j); 
 			s32 idx = 0;
-			u16 hdr = sl->data[0] << 8 | sl->data[1];
 
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
 				idx = gf_media_hevc_read_sps(sl->data, sl->size, &tile_pid->hevc_state);
@@ -830,7 +827,7 @@ static GF_Err hevccombine_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bo
 static GF_Err hevccombine_process(GF_Filter *filter)
 {
 	char *data;
-	u32 pos, nal_length, out_slice_header_length = 0, data_size;
+	u32 pos, nal_length, data_size;
 	u8 temporal_id, layer_id, nal_unit_type, i; 
 	char *output_nal;
 	u32 out_nal_size;

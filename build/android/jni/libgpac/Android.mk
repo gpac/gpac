@@ -189,6 +189,8 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/ff_enc.c \
 	../../../../src/filters/ff_rescale.c \
 	../../../../src/filters/filelist.c \
+	../../../../src/filters/hevccombine.c \
+	../../../../src/filters/hevcsplit.c \
 	../../../../src/filters/in_atsc.c \
 	../../../../src/filters/in_dvb4linux.c \
 	../../../../src/filters/in_file.c \
