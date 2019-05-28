@@ -1883,8 +1883,6 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
-				92B2A4A8229D64EF002A65A7 /* hevccombine.c */,
-				92B2A4A9229D64EF002A65A7 /* hevcsplit.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92FE596C2088E52900CF0C5A /* dasher.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
@@ -1923,6 +1921,8 @@
 				92E9167B2073F1DB00EE92FB /* ff_enc.c */,
 				92E318CE20645036007BE021 /* ff_rescale.c */,
 				92754D5F207D24F600170383 /* filelist.c */,
+				92B2A4A8229D64EF002A65A7 /* hevccombine.c */,
+				92B2A4A9229D64EF002A65A7 /* hevcsplit.c */,
 				92A505B920FC833800049B29 /* in_atsc.c */,
 				92B9A5061F83FD7700A24FE4 /* in_dvb4linux.c */,
 				92BB855A1F7BFB61009BC9C8 /* in_file.c */,
