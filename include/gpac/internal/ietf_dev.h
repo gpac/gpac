@@ -189,7 +189,7 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 
 #define RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, str)		\
 	if (strlen((const char *) str)+pos >= buf_size) {	\
-		buf_size += strlen((const char *) str);	\
+		buf_size += (u32) strlen((const char *) str);	\
 		buf = (char *) gf_realloc(buf, buf_size);		\
 	}	\
 	strcpy(buf+pos, (const char *) str);		\
