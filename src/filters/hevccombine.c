@@ -117,7 +117,7 @@ static void write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, 
 static void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, char **out_SPS, u32 *out_SPS_length)
 {
 	GF_BitStream *bs_in, *bs_out;
-	u64 length_no_use = 4096, dst_buffer_size;
+	u64 length_no_use = 4096;
 	char *data_without_emulation_bytes = NULL;
 	u32 data_without_emulation_bytes_size = 0, sps_ext_or_max_sub_layers_minus1;
 	u8 max_sub_layers_minus1 = 0, layer_id;
@@ -128,7 +128,7 @@ static void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, 
 	bs_in = gf_bs_new(in_SPS, in_SPS_length, GF_BITSTREAM_READ);
 	gf_bs_enable_emulation_byte_removal(bs_in, GF_TRUE);
 	bs_out = gf_bs_new(NULL, length_no_use, GF_BITSTREAM_WRITE);
-	dst_buffer_size = gf_bs_get_size(bs_out);
+
 	if (!bs_in) goto exit;
 
 	//copy NAL Header
@@ -165,13 +165,12 @@ static void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, 
 		}
 	}
 	else {
-		u32 w, h;
 		chroma_format_idc = bs_get_ue(bs_in);
 		bs_set_ue(bs_out, chroma_format_idc);
 		if (chroma_format_idc == 3)
 			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1); // copy separate_colour_plane_flag
-		w = bs_get_ue(bs_in); //skip width bits in input bitstream
-		h = bs_get_ue(bs_in); //skip height bits in input bitstream
+		/*w = */bs_get_ue(bs_in); //skip width bits in input bitstream
+		/*h = */bs_get_ue(bs_in); //skip height bits in input bitstream
 		//get_size_of_slice(&width, &height, hevc); // get the width and height of the tile
 
 		//Copy the new width and height in output bitstream
@@ -336,13 +335,12 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 {
 	char *data_without_emulation_bytes = NULL;
 	u32 data_without_emulation_bytes_size = 0;
-	u64 header_end, bs_ori_size;
+	u64 header_end;
 	u32 dst_buf_size = 0;
 	char *dst_buf = NULL;
 	u32 num_entry_point_start;
 	u32 pps_id;
 	GF_BitStream *bs_ori, *bs_rw; // *pre_bs_ori;
-	Bool IDRPicFlag = GF_FALSE;
 	Bool RapPicFlag = GF_FALSE;
 	u32 nb_bits_per_adress_dst = 0, slice_qp_delta_start;
 	HEVC_PPS *pps;
@@ -350,7 +348,6 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 	u32 al, slice_size, slice_offset_orig, slice_offset_dst;
 	u32 first_slice_segment_in_pic_flag;
 	u32 dependent_slice_segment_flag;
-	int address_ori;
 	u8 nal_unit_type;
 	s32 new_slice_qp_delta;
 
@@ -364,7 +361,7 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 	bs_ori = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
 	//bs_ori = gf_bs_new(in_slice, in_slice_length, GF_BITSTREAM_READ);
 	//gf_bs_enable_emulation_byte_removal(bs_ori, GF_TRUE);
-	bs_ori_size = gf_bs_get_refreshed_size(bs_ori);
+
 	bs_rw = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	assert(hevc->s_info.header_size_bits >= 0);
@@ -389,7 +386,6 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 	switch (nal_unit_type) {
 	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
-		IDRPicFlag = GF_TRUE;
 		RapPicFlag = GF_TRUE;
 		break;
 	case GF_HEVC_NALU_SLICE_BLA_W_LP:
@@ -422,7 +418,7 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 	}
 	if (!first_slice_segment_in_pic_flag) 						    //slice_segment_address READ
 	{
-		address_ori = gf_bs_read_int(bs_ori, sps->bitsSliceSegmentAddress);
+		/*address_ori = */gf_bs_read_int(bs_ori, sps->bitsSliceSegmentAddress);
 	}
 	else {} 	//original slice segment address = 0
 
