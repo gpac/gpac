@@ -381,7 +381,7 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 	gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 9), 9);
 
 	first_slice_segment_in_pic_flag = gf_bs_read_int(bs_ori, 1);    //first_slice_segment_in_pic_flag
-	if (new_address <= 0)
+	if (new_address == 0)
 		gf_bs_write_int(bs_rw, 1, 1);
 	else
 		gf_bs_write_int(bs_rw, 0, 1);
@@ -463,10 +463,8 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 	{
 		gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 1), 1);
 	}
-	//write num_entry_points
-	if (new_address >= 0) {
-		bs_set_ue(bs_rw, 0);
-	}
+	//write num_entry_points to 0 (always present since we use tiling)
+	bs_set_ue(bs_rw, 0);
 
 	//write slice extension to 0
 	if (pps->slice_segment_header_extension_present_flag)
