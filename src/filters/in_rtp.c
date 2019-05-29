@@ -495,7 +495,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			stream->flags &= ~(RTP_EOS | RTP_EOS_FLUSHED | RTP_SKIP_NEXT_COM | RTP_CONNECTED);
 			//mark as interleaved
 			stream->flags |= RTP_INTERLEAVED;
-			//reset SSRC since wome servers don't include it in interleave response
+			//reset SSRC since some servers don't include it in interleave response
 			gf_rtp_reset_ssrc(stream->rtp_ch);
 
 			//send setup

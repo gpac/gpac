@@ -479,8 +479,13 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_DIMS:
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 			hintType = GF_RTP_PAYT_3GPP_DIMS;
 			streamType = GF_STREAM_SCENE;
+#else
+			hintType = 0;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] 3GPP DIMS over RTP disabled in build\n", streamType));
+#endif
 			break;
 		case GF_ISOM_SUBTYPE_AC3:
 			hintType = GF_RTP_PAYT_AC3;
@@ -995,6 +1000,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 		gf_free(config_bytes);
 	}
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 	/*3GPP DIMS*/
 	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_3GPP_DIMS) {
 		GF_DIMSDescription dims;
@@ -1026,6 +1032,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		}
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
+#endif
 	/*extensions for some mobile phones*/
 	if (Width && Height) {
 		sprintf(sdpLine, "a=framesize:%d %d-%d", tkHint->rtp_p->PayloadType, Width, Height);
