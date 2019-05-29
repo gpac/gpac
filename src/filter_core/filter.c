@@ -237,6 +237,19 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 	return GF_OK;
 }
 
+void gf_filter_reset_pending_packets(GF_Filter *filter)
+{
+	//may happen when a filter is removed from the chain
+	if (filter->postponed_packets) {
+		while (gf_list_count(filter->postponed_packets)) {
+			GF_FilterPacket *pck = gf_list_pop_front(filter->postponed_packets);
+			gf_filter_packet_destroy(pck);
+		}
+		gf_list_del(filter->postponed_packets);
+		filter->postponed_packets = NULL;
+	}
+}
+
 static void reset_filter_args(GF_Filter *filter);
 
 //when destroying the filter queue we have to skip tasks marked as notified, since they are also present in the
@@ -1627,7 +1640,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		return;
 	}
 	if (filter->removed || filter->finalized) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has been removed, skiping process\n", filter->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has been %s, skiping process\n", filter->name, filter->finalized ? "finalized" : "removed"));
 		return;
 	}
 
@@ -1980,6 +1993,7 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 
 	//filter was already connected, trigger removal of all pid instances
 	if (filter->num_input_pids) {
+		gf_filter_reset_pending_packets(filter);
 		filter->removed = GF_TRUE;
 		while (filter->num_input_pids) {
 			GF_FilterPidInst *pidinst = gf_list_get(filter->input_pids, 0);
@@ -2081,6 +2095,7 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 	
 	//filter will be removed, propagate on all output pids
 	filter->removed = GF_TRUE;
+
 	count = gf_list_count(filter->output_pids);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);

@@ -823,8 +823,10 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		gf_mx_v(pidinst->pid->filter->tasks_mx);
 
 		//disconnected the last input, flag as removed
-		if (!filter->num_input_pids && !filter->sticky)
+		if (!filter->num_input_pids && !filter->sticky) {
+			gf_filter_reset_pending_packets(filter);
 			filter->removed = GF_TRUE;
+		}
 		//post a pid_delete task to also trigger removal of the filter if needed
 		gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, pid->filter, pid, "pid_inst_delete", pidinst);
 
