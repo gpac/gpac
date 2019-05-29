@@ -1,6 +1,7 @@
-#test RTP streaming and MP4 client
+#test RTSP streaming server and client stacks - use port 8888 to avoid permission issues o test machines
 
-IP="127.0.0.1"
+PORT=8888
+IP="127.0.0.1:$PORT"
 MCASTIP="234.0.0.1"
 IFCE="127.0.0.1"
 
@@ -38,7 +39,7 @@ return
 fi
 
 #start rtsp server
-do_test "$GPAC -runfor=4000 rtspout:runfor=1500:mounts=$MEDIA_DIR/auxiliary_files/ $3 -stats" "server" &
+do_test "$GPAC -runfor=4000 rtspout:port=$PORT:runfor=1500:mounts=$MEDIA_DIR/auxiliary_files/ $3 -stats" "server" &
 
 sleep 1
 
@@ -57,7 +58,8 @@ test_end
 rtsp_test_single "regular" $MEDIA_DIR/auxiliary_files/enst_audio.aac " --tso=10000" ""
 rtsp_test_single "interleave" $MEDIA_DIR/auxiliary_files/enst_audio.aac " --tso=10000" " --interleave"
 
-rtsp_test_server "regular" "rtsp://localhost/enst_audio.aac" " --tso=10000" " "
-rtsp_test_server "dynurl" 'rtsp://localhost/@enst_audio.aac@enst_video.h264' " --tso=10000 --dynurl" ""
+rtsp_test_server "regular" "rtsp://$IP/enst_audio.aac" " --tso=10000" " "
+rtsp_test_server "dynurl" "rtsp://$IP/@enst_audio.aac@enst_video.h264" " --tso=10000 --dynurl" ""
 
-rtsp_test_server "mcast" "rtsp://localhost/enst_audio.aac" " --tso=10000 --mcast=on" " --force_mcast=$MCASTIP "
+rtsp_test_server "mcast" "rtsp://$IP/enst_audio.aac" " --tso=10000 --mcast=on" " --force_mcast=$MCASTIP "
+
