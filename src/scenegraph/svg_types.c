@@ -473,6 +473,11 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_list_del(l);
 		gf_free(value);
 		break;
+
+	case 0:
+		if (*(SVG_String *)value) gf_free(*(SVG_String *)value);
+		gf_free(value);
+		break;
 	case SMIL_RepeatCount_datatype:
 	case SMIL_Duration_datatype:
 	case SVG_Length_datatype:
@@ -481,6 +486,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	case SVG_Display_datatype:
 	default:
 		gf_free(value);
+		break;
 	}
 }
 

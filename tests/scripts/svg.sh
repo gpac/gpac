@@ -35,6 +35,9 @@ svg_test()
 
  do_play_test "$2-play" "$v_args" "$a_args"
 
+ do_test "$MP4BOX -stat $1" "stats"
+
+
 test_end
 
 }
