@@ -86,7 +86,11 @@ GF_SceneGraph *gf_sg_new()
 		gf_sg_get_namespace(NULL, 0);
 		gf_node_parent_of(NULL, NULL);
 		gf_sg_get_parent(tmp);
-	}
+		gf_node_get_attribute_count(NULL);
+		gf_xml_node_clone(NULL, NULL, NULL, NULL, 0);
+		gf_dom_flatten_textContent(NULL);
+
+	 }
 
 	return tmp;
 }

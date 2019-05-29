@@ -443,8 +443,6 @@ typedef enum
 	GF_DOM_EVENT_FAKE = 0x80000000 //1<<31
 } GF_DOMEventCategory;
 GF_DOMEventCategory gf_dom_event_get_category(GF_EventType type);
-u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg);
-u32 gf_node_get_dom_event_filter(GF_Node *node);
 
 void gf_sg_register_event_type(GF_SceneGraph *sg, GF_DOMEventCategory category);
 void gf_sg_unregister_event_type(GF_SceneGraph *sg, GF_DOMEventCategory category);
