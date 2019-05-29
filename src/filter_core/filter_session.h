@@ -669,6 +669,8 @@ void gf_filter_process_inline(GF_Filter *filter);
 
 void gf_filter_pid_retry_caps_negotiate(GF_FilterPid *src_pid, GF_FilterPid *pid, GF_Filter *dst_filter);
 
+void gf_filter_reset_pending_packets(GF_Filter *filter);
+
 typedef struct
 {
 	char *name;
