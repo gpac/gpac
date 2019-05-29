@@ -369,7 +369,6 @@
     <ClCompile Include="..\..\src\isomedia\data_map.c" />
     <ClCompile Include="..\..\src\isomedia\drm_sample.c" />
     <ClCompile Include="..\..\src\isomedia\iff.c" />
-    <ClCompile Include="..\..\src\isomedia\ttml.c" />
     <ClCompile Include="..\..\src\isomedia\hinting.c" />
     <ClCompile Include="..\..\src\isomedia\hint_track.c" />
     <ClCompile Include="..\..\src\isomedia\isom_intern.c" />

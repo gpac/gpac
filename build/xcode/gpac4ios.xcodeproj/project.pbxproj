@@ -524,7 +524,6 @@
 		9747B6F514864C7800280D95 /* dsmcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F314864C7800280D95 /* dsmcc.c */; };
 		97793E5115E6370D005123E1 /* dash_client.c in Sources */ = {isa = PBXBuildFile; fileRef = 97793E5015E6370D005123E1 /* dash_client.c */; };
 		97A5D5891704C61A00144E5D /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 976AF9991704C5C9004E9C00 /* AudioToolbox.framework */; };
-		97A8DDC41896AFF300F4680F /* ttml.c in Sources */ = {isa = PBXBuildFile; fileRef = 97A8DDC31896AFF300F4680F /* ttml.c */; };
 		97DB67C51627B22F00A7E054 /* dash_segmenter.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DB67C41627B22F00A7E054 /* dash_segmenter.c */; };
 		97DDAFEF1569631900528219 /* sha1.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DDAFEE1569631900528219 /* sha1.c */; };
 		97E08C69160F684B00BBDC34 /* swf_svg.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E08C68160F684B00BBDC34 /* swf_svg.c */; };
@@ -1078,7 +1077,6 @@
 		976AF9991704C5C9004E9C00 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		97793E5015E6370D005123E1 /* dash_client.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dash_client.c; sourceTree = "<group>"; };
 		9793AE341704C0BD00E0C938 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
-		97A8DDC31896AFF300F4680F /* ttml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ttml.c; sourceTree = "<group>"; };
 		97DB67C41627B22F00A7E054 /* dash_segmenter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dash_segmenter.c; sourceTree = "<group>"; };
 		97DDAFEE1569631900528219 /* sha1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sha1.c; sourceTree = "<group>"; };
 		97E08C68160F684B00BBDC34 /* swf_svg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = swf_svg.c; sourceTree = "<group>"; };
@@ -1402,8 +1400,6 @@
 		71CCF19F1277045100339E12 /* isomedia */ = {
 			isa = PBXGroup;
 			children = (
-				92DF5CA51BA6C6F80058A7BA /* iff.c */,
-				97A8DDC31896AFF300F4680F /* ttml.c */,
 				97116F201646E38D00BD1AD0 /* box_code_adobe.c */,
 				71CCF1A01277045100339E12 /* avc_ext.c */,
 				71CCF1A11277045100339E12 /* box_code_3gpp.c */,
@@ -1417,6 +1413,7 @@
 				71CCF1A91277045100339E12 /* hint_track.c */,
 				71CCF1AA1277045100339E12 /* hinting.c */,
 				71CCF1AB1277045100339E12 /* drm_sample.c */,
+				92DF5CA51BA6C6F80058A7BA /* iff.c */,
 				71CCF1AC1277045100339E12 /* isom_intern.c */,
 				71CCF1AD1277045100339E12 /* isom_read.c */,
 				71CCF1AE1277045100339E12 /* isom_store.c */,
@@ -2506,7 +2503,6 @@
 				92EB6E0820E4E19700A97A49 /* dec_ac52.c in Sources */,
 				92EB6E1920E4E19700A97A49 /* ff_enc.c in Sources */,
 				97E29F6917D1138B00904FBF /* webvtt.c in Sources */,
-				97A8DDC41896AFF300F4680F /* ttml.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

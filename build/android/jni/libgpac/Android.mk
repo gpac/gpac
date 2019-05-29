@@ -285,7 +285,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/isomedia/stbl_read.c \
 	../../../../src/isomedia/stbl_write.c \
 	../../../../src/isomedia/track.c \
-	../../../../src/isomedia/ttml.c \
 	../../../../src/isomedia/tx3g.c \
 	../../../../src/laser/lsr_dec.c \
 	../../../../src/laser/lsr_enc.c \
