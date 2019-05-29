@@ -4,6 +4,13 @@ svg_test()
 
  name=$(basename $1)
  name=${name%.*}
+ do_hash=1
+
+ case $name in
+ *video* )
+  do_hash=0
+  ;;
+ esac
 
  #start our test, specifying all hash names we will check
  test_begin "svg-$name"
@@ -11,8 +18,8 @@ svg_test()
   return
  fi
 
- RGB_DUMP="$TEMP_DIR/$2-dump.rgb"
- PCM_DUMP="$TEMP_DIR/$2-dump.pcm"
+ RGB_DUMP="$TEMP_DIR/dump.rgb"
+ PCM_DUMP="$TEMP_DIR/dump.pcm"
 
  #for the time being we don't check hashes nor use same size/dur for our tests. We will redo the UI tests once finaizing filters branch
  dump_dur=5
@@ -21,7 +28,10 @@ svg_test()
 
  v_args=""
  if [ -f $RGB_DUMP ] ; then
-  do_hash_test_bin "$RGB_DUMP" "dump"
+
+  if [ $do_hash = 1 ] ; then
+   do_hash_test_bin "$RGB_DUMP" "dump"
+  fi
   v_args="$RGB_DUMP:size=$dump_size"
  else
   result="no output"
@@ -29,7 +39,6 @@ svg_test()
 
  a_args=""
  if [ -f $PCM_DUMP ] ; then
-#  do_hash_test_bin "$PCM_DUMP" "$2-pcm"
   a_args="$PCM_DUMP:sr=44100:ch=2"
  fi
 

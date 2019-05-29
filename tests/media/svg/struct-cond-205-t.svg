@@ -25,15 +25,6 @@
   <!--======================================================================-->
   <!--Content of Test Case follows...                  =====================-->
   <!--======================================================================-->
-  <defs>
-    <font-face
-      font-family="SVGFreeSansASCII"
-      unicode-range="U+0-7F">
-      <font-face-src>
-        <font-face-uri xlink:href="../images/SVGFreeSans.svg#ascii"/>
-      </font-face-src>
-    </font-face>
-  </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII" font-size="18">
 		<g fill="#555" font-size="10" text-anchor="middle">
 			<text fill="#000" x="240" font-size="14" y="30" id="display-title">Required Features Attribute</text>
