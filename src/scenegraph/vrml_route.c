@@ -217,11 +217,12 @@ GF_Err gf_sg_route_set_id(GF_Route *route, u32 ID)
 	return GF_OK;
 }
 
-GF_EXPORT
+#if 0 //unused
 u32 gf_sg_route_get_id(GF_Route *route)
 {
 	return route->ID;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_sg_route_set_name(GF_Route *route, char *name)

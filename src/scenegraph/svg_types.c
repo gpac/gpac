@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2004-2012
+ *			Copyright (c) Telecom ParisTech 2004-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph sub-project
@@ -198,6 +198,7 @@ Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
 }
 
 
+#if 0 //unused
 void gf_svg_reset_path(SVG_PathData d)
 {
 #if USE_GF_PATH
@@ -218,9 +219,11 @@ void gf_svg_reset_path(SVG_PathData d)
 	gf_list_del(d.points);
 #endif
 }
+#endif
+
 
 /* TODO: update for elliptical arcs */
-GF_EXPORT
+#if USE_GF_PATH
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 {
 	u32 i, j, command_count;
@@ -300,6 +303,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 		}
 	}
 }
+#endif
 
 
 void gf_smil_delete_times(GF_List *list)
@@ -314,6 +318,7 @@ void gf_smil_delete_times(GF_List *list)
 	gf_list_del(list);
 }
 
+#if 0 //unused
 void gf_svg_delete_points(GF_List *list)
 {
 	u32 i, count = gf_list_count(list);
@@ -333,6 +338,7 @@ void gf_svg_delete_coordinates(GF_List *list)
 	}
 	gf_list_del(list);
 }
+#endif
 
 void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI *iri)
 {
@@ -370,11 +376,13 @@ void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *
 	anim_values.values = NULL;
 }
 
+#if 0 //unused
 void gf_svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg)
 {
 	svg_delete_one_anim_value(anim_value.type, anim_value.value, sg);
 	anim_value.value = NULL;
 }
+#endif
 
 void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 {
@@ -490,6 +498,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	}
 }
 
+#if 0 //unused
 void gf_smil_delete_key_types(GF_List *l)
 {
 	while (gf_list_count(l)) {
@@ -499,6 +508,7 @@ void gf_smil_delete_key_types(GF_List *l)
 	}
 	gf_list_del(l);
 }
+#endif
 
 
 #endif /*GPAC_DISABLE_SVG*/

@@ -597,7 +597,9 @@ void gf_svg_parse_style(GF_Node *n, char *style);
 char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info);
 char *gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info);
 
+#if USE_GF_PATH
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points);
+#endif
 
 GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if_defined);
 
