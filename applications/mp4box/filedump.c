@@ -785,6 +785,8 @@ void PrintBuiltInBoxes()
 	//index 0 is our internal unknown box handler
 	for (i=1; i<count; i++) {
 		gf_isom_dump_supported_box(i, stdout);
+		if (gf_sys_is_test_mode())
+			gf_isom_get_supported_box_type(i);
 	}
 	fprintf(stdout, "</Boxes>\n");
 }
