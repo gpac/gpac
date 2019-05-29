@@ -26,9 +26,9 @@ if [ $inspect_only = 1 ] ; then
 
 myinspect=$TEMP_DIR/inspect.txt
 
-do_test "$GPAC -for-test -runfor=1500 -i $TEMP_DIR/session.sdp:ifce=$IFCE inspect:deep:all:log=$myinspect -stats -graph" "dump" &
+do_test "$GPAC -for-test -runfor=2000 -i $TEMP_DIR/session.sdp:ifce=$IFCE inspect:deep:all:log=$myinspect -stats -graph" "dump" &
 
-sleep .1
+sleep .5
 #run without loop and tso=100000 to avoid a rand() that might impact TS rounding differently (hence slightly different durations->different hashes)
 do_test "$GPAC -i $2 -o $TEMP_DIR/session.sdp:loop=no:ip=$DST:ifce=$IFCE:tso=100000 -stats" "stream"
 
@@ -44,7 +44,7 @@ dump_native=$TEMP_DIR/dump.$1
 dump_mp4=$TEMP_DIR/dump.mp4
 dump_ts=$TEMP_DIR/dump.ts
 dump_mpd=$TEMP_DIR/dump.mpd
-do_test "$GPAC -for-test -runfor=1500 -i $TEMP_DIR/session.sdp:ifce=$IFCE$4 -o $dump_native -o $dump_mp4 -o $dump_ts:pcr_init=0:pes_pack=none -o $dump_mpd -stats -graph" "dump" &
+do_test "$GPAC -for-test -runfor=2000 -i $TEMP_DIR/session.sdp:ifce=$IFCE$4 -o $dump_native -o $dump_mp4 -o $dump_ts:pcr_init=0:pes_pack=none -o $dump_mpd -stats -graph" "dump" &
 
 sleep .1
 #run without loop and tso=100000 to avoid a rand() that might impact TS rounding differently (hence slightly different durations->different hashes)
