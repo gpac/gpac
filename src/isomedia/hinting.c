@@ -958,7 +958,22 @@ GF_Err gf_isom_hint_rtcp_write(GF_RTCPPacket *ptr, GF_BitStream *bs)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-GF_EXPORT
+
+
+#if 0 //unused
+
+/*small hint reader - performs data caching*/
+
+/*resets hint reading parameters, returns an error if the hint type is not supported for reading
+packet sequence number is always reseted to 0
+@sample_start: indicates from where the packets should be read (regular 1-based sample number)
+@ts_offset: constant offset for timestamps, must be expressed in media timescale (which is the hint timescale).
+	usually 0 (no offset)
+@sn_offset: offset for packet sequence number (first packet will have a SN of 1 + sn_offset)
+	usually 0
+@ssrc: sync source identifier for RTP
+*/
+
 GF_Err gf_isom_reset_hint_reader(GF_ISOFile *the_file, u32 trackNumber, u32 sample_start, u32 ts_offset, u32 sn_offset, u32 ssrc)
 {
 	GF_Err e;
@@ -1045,7 +1060,18 @@ static GF_ISOSample *gf_isom_get_data_sample(GF_HintSample *hsamp, GF_TrackBox *
 	return samp;
 }
 
-GF_EXPORT
+/*reads next hint packet. ALl packets are read in transmission (decoding) order
+returns an error if not supported, or GF_EOS when no more packets are available
+currently only RTP reader is supported
+@pck_data, @pck_size: output packet data (must be freed by caller) - contains all info to be sent
+	on the wire, eg for RTP contains the RTP header and the data
+@disposable (optional): indicates that the packet can be dropped when late (B-frames & co)
+@repeated (optional): indicates this is a repeated packet (same one has already been sent)
+@trans_ts (optional): indicates the transmission time of the packet, expressed in hint timescale, taking into account
+the ts_offset specified in gf_isom_reset_hint_reader. Depending on packets this may not be the same
+as the hint sample timestamp + ts_offset, some packets may need to be sent earlier (B-frames)
+@sample_num (optional): indicates hint sample number the packet belongs to
+*/
 GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pck_data, u32 *pck_size, Bool *disposable, Bool *repeated, u32 *trans_ts, u32 *sample_num)
 {
 	GF_RTPPacket *pck;
@@ -1166,5 +1192,8 @@ GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pc
 	}
 	return GF_OK;
 }
+
+#endif
+
 
 #endif /* !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_HINTING)*/
