@@ -1072,7 +1072,7 @@ GF_Node *gf_smil_get_element(SMIL_Timing_RTI *rti)
 
 Double gf_smil_get_media_duration(SMIL_Timing_RTI *rti)
 {
-	return rti->media_duration;
+	return rti ? rti->media_duration : 0.0;
 }
 
 

@@ -68,7 +68,8 @@ GF_Proto *gf_sg_proto_new(GF_SceneGraph *inScene, u32 ProtoID, char *name, Bool 
 	return tmp;
 }
 
-GF_EXPORT
+#if 0
+/*used for memory handling of scene graph only. move proto from off-graph to in-graph or reverse*/
 GF_Err gf_sg_proto_set_in_graph(GF_Proto *proto, GF_SceneGraph *inScene, Bool set_in)
 {
 	u32 i;
@@ -96,6 +97,7 @@ GF_Err gf_sg_proto_set_in_graph(GF_Proto *proto, GF_SceneGraph *inScene, Bool se
 	}
 	return gf_list_add(insertIn, proto);
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_sg_proto_del(GF_Proto *proto)
@@ -168,7 +170,8 @@ GF_SceneGraph *gf_sg_proto_get_graph(GF_Proto *proto)
 	return proto ? proto->sub_graph : NULL;
 }
 
-GF_EXPORT
+
+#if 0
 void gf_sg_proto_set_private(GF_Proto *p, void *ptr, void (*OnDelete)(void *ptr) )
 {
 	if (p) {
@@ -177,11 +180,11 @@ void gf_sg_proto_set_private(GF_Proto *p, void *ptr, void (*OnDelete)(void *ptr)
 	}
 }
 
-GF_EXPORT
 void *gf_sg_proto_get_private(GF_Proto *p)
 {
 	return p ? p->userpriv : NULL;
 }
+#endif
 
 GF_EXPORT
 MFURL *gf_sg_proto_get_extern_url(GF_Proto *proto)
@@ -262,7 +265,7 @@ GF_ProtoFieldInterface *gf_sg_proto_field_new(GF_Proto *proto, u32 fieldType, u3
 	return tmp;
 }
 
-GF_EXPORT
+#if 0 //unused
 void gf_sg_proto_field_set_private(GF_ProtoFieldInterface *field, void *ptr, void (*OnDelete)(void *ptr))
 {
 	if (field) {
@@ -271,12 +274,11 @@ void gf_sg_proto_field_set_private(GF_ProtoFieldInterface *field, void *ptr, voi
 	}
 }
 
-GF_EXPORT
 void *gf_sg_proto_field_get_private(GF_ProtoFieldInterface *field)
 {
 	return field ? field->userpriv : NULL;
 }
-
+#endif
 
 GF_EXPORT
 GF_Err gf_sg_proto_field_get_field(GF_ProtoFieldInterface *field, GF_FieldInfo *info)
@@ -1299,17 +1301,6 @@ Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
 	return 0;
 }
 
-GF_SceneGraph *Node_GetExternProtoScene(GF_Node *node)
-{
-	GF_SceneGraph *sg;
-	sg = node->sgprivate->scenegraph;
-	if (!sg->pOwningProto) return NULL;
-	if (!sg->pOwningProto->proto_interface->ExternProto.count) return NULL;
-	sg = sg->pOwningProto->proto_interface->parent_graph;
-	while (sg->parent_scene) sg = sg->parent_scene;
-	return sg;
-}
-
 GF_EXPORT
 GF_Err gf_node_proto_set_grouping(GF_Node *node)
 {
@@ -1333,7 +1324,7 @@ GF_Node *gf_node_get_proto_root(GF_Node *node)
 	return ((GF_ProtoInstance *)node)->RenderingNode;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Node *gf_node_get_proto_parent(GF_Node *node)
 {
 	if (!node) return NULL;
@@ -1344,7 +1335,6 @@ GF_Node *gf_node_get_proto_parent(GF_Node *node)
 	return NULL;
 }
 
-GF_EXPORT
 Bool gf_node_is_proto_root(GF_Node *node)
 {
 	if (!node) return 0;
@@ -1353,6 +1343,7 @@ Bool gf_node_is_proto_root(GF_Node *node)
 	if (gf_list_find(node->sgprivate->scenegraph->pOwningProto->node_code, node)>=0) return 1;
 	return 0;
 }
+#endif
 
 
 GF_EXPORT
