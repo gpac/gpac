@@ -2961,6 +2961,7 @@ GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig, GF_ISOFile *dest)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst)
 {
 	GF_Err e;

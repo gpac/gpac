@@ -241,8 +241,13 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 #endif
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;
-
+               
 			totSize += a->size;
+
+            if (!mov->moov->mvhd) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MovieHeaderBox\n"));
+                return GF_ISOM_INVALID_FILE;
+            }
 
 			//dump senc info in dump mode
 			if (mov->dump_mode_alloc) {

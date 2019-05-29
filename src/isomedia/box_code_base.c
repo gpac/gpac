@@ -345,8 +345,12 @@ GF_Err kind_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_data(bs, ptr->schemeURI, (u32) (strlen(ptr->schemeURI) + 1 ));
-	if (ptr->value) {
+    if (ptr->schemeURI)
+        gf_bs_write_data(bs, ptr->schemeURI, (u32) (strlen(ptr->schemeURI) + 1 ));
+    else
+        gf_bs_write_u8(bs, 0);
+    
+    if (ptr->value) {
 		gf_bs_write_data(bs, ptr->value, (u32) (strlen(ptr->value) + 1) );
 	}
 	return GF_OK;
@@ -356,7 +360,7 @@ GF_Err kind_Size(GF_Box *s)
 {
 	GF_KindBox *ptr = (GF_KindBox *)s;
 
-	ptr->size += strlen(ptr->schemeURI) + 1;
+    ptr->size += (ptr->schemeURI ? strlen(ptr->schemeURI) : 0) + 1;
 	if (ptr->value) {
 		ptr->size += strlen(ptr->value) + 1;
 	}
@@ -1302,9 +1306,10 @@ GF_Err esds_Write(GF_Box *s, GF_BitStream *bs)
 	u32 descSize = 0;
 	GF_ESDBox *ptr = (GF_ESDBox *)s;
 	//make sure we write with no ESID and no OCRESID
-	ptr->desc->ESID = 0;
-	ptr->desc->OCRESID = 0;
-
+    if (ptr->desc) {
+        ptr->desc->ESID = 0;
+        ptr->desc->OCRESID = 0;
+    }
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	e = gf_odf_desc_write((GF_Descriptor *)ptr->desc, &enc_desc, &descSize);
@@ -1906,14 +1911,16 @@ GF_Err sdp_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	//don't write the NULL char!!!
-	gf_bs_write_data(bs, ptr->sdpText, (u32) strlen(ptr->sdpText));
+    if (ptr->sdpText)
+        gf_bs_write_data(bs, ptr->sdpText, (u32) strlen(ptr->sdpText));
 	return GF_OK;
 }
 GF_Err sdp_Size(GF_Box *s)
 {
 	GF_SDPBox *ptr = (GF_SDPBox *)s;
 	//don't count the NULL char!!!
-	ptr->size += strlen(ptr->sdpText);
+    if (ptr->sdpText)
+        ptr->size += strlen(ptr->sdpText);
 	return GF_OK;
 }
 
@@ -2556,7 +2563,7 @@ GF_Err payt_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_bs_write_u32(bs, ptr->payloadCode);
-	len = (u32) strlen(ptr->payloadString);
+    len = ptr->payloadString ? (u32) strlen(ptr->payloadString) : 0;
 	gf_bs_write_u8(bs, len);
 	if (len) gf_bs_write_data(bs, ptr->payloadString, len);
 	return GF_OK;
@@ -3779,18 +3786,7 @@ GF_Err moov_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err moov_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	e = gf_isom_box_array_read(s, bs, moov_AddBox);
-	if (e) {
-		return e;
-	}
-	else {
-		if (!((GF_MovieBox *)s)->mvhd) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MovieHeaderBox\n"));
-			return GF_ISOM_INVALID_FILE;
-		}
-	}
-	return e;
+	return gf_isom_box_array_read(s, bs, moov_AddBox);
 }
 
 GF_Box *moov_New()
@@ -4234,9 +4230,11 @@ GF_Err mp4s_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	gf_bs_write_data(bs, ptr->reserved, 6);
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
-	e = gf_isom_box_write((GF_Box *)ptr->esd, bs);
-	if (e) return e;
-	return gf_isom_box_array_write(s, ptr->protections, bs);
+    if (ptr->esd) {
+        e = gf_isom_box_write((GF_Box *)ptr->esd, bs);
+        if (e) return e;
+    }
+    return gf_isom_box_array_write(s, ptr->protections, bs);
 }
 
 GF_Err mp4s_Size(GF_Box *s)
@@ -4245,10 +4243,12 @@ GF_Err mp4s_Size(GF_Box *s)
 	GF_MPEGSampleEntryBox *ptr = (GF_MPEGSampleEntryBox *)s;
 
 	ptr->size += 8;
-	e = gf_isom_box_size((GF_Box *)ptr->esd);
-	if (e) return e;
-	ptr->size += ptr->esd->size;
-	return gf_isom_box_array_size(s, ptr->protections);
+    if (ptr->esd) {
+        e = gf_isom_box_size((GF_Box *)ptr->esd);
+        if (e) return e;
+        ptr->size += ptr->esd->size;
+    }
+    return gf_isom_box_array_size(s, ptr->protections);
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -7533,8 +7533,6 @@ GF_Err reftype_Write(GF_Box *s, GF_BitStream *bs)
 	u32 i;
 	GF_TrackReferenceTypeBox *ptr = (GF_TrackReferenceTypeBox *)s;
 	ptr->type = ptr->reference_type;
-	if (!ptr->trackIDCount) return GF_OK;
-
 	e = gf_isom_box_write_header(s, bs);
 	ptr->type = GF_ISOM_BOX_TYPE_REFT;
 	if (e) return e;
@@ -7548,9 +7546,7 @@ GF_Err reftype_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err reftype_Size(GF_Box *s)
 {
 	GF_TrackReferenceTypeBox *ptr = (GF_TrackReferenceTypeBox *)s;
-	if (!ptr->trackIDCount)
-		ptr->size=0;
-	else
+	if (ptr->trackIDCount)
 		ptr->size += (ptr->trackIDCount * sizeof(u32));
 	return GF_OK;
 }
@@ -10997,7 +10993,7 @@ GF_Err fdpa_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_int(bs, ptr->info.session_close_bit, 1);
 	gf_bs_write_int(bs, ptr->info.object_close_bit, 1);
 	gf_bs_write_int(bs, 0, 4);
-	ptr->info.transport_object_identifier = gf_bs_read_u16(bs);
+	gf_bs_write_u16(bs, ptr->info.transport_object_identifier);
 	gf_bs_write_u16(bs, ptr->header_ext_count);
 	for (i=0; i<ptr->header_ext_count; i++) {
 		gf_bs_write_u8(bs, ptr->headers[i].header_extension_type);
@@ -11312,14 +11308,16 @@ GF_Err ainf_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	gf_bs_write_u32(bs, ptr->profile_version);
-	gf_bs_write_data(bs, ptr->APID, (u32) strlen(ptr->APID) + 1);
+    if (ptr->APID)
+        gf_bs_write_data(bs, ptr->APID, (u32) strlen(ptr->APID) );
+    gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
 
 GF_Err ainf_Size(GF_Box *s)
 {
 	GF_AssetInformationBox *ptr = (GF_AssetInformationBox *) s;
-	s->size += 4 +  strlen(ptr->APID) + 1;
+    s->size += 4 + (ptr->APID ? strlen(ptr->APID) : 0 ) + 1;
 	return GF_OK;
 }
 
@@ -11364,7 +11362,7 @@ GF_Err mhac_Write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_MHAConfigBox *ptr = (GF_MHAConfigBox *) s;
 
-	e = gf_isom_box_write(s, bs);
+	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_bs_write_u8(bs, ptr->configuration_version);
 	gf_bs_write_u8(bs, ptr->mha_pl_indication);
@@ -11553,7 +11551,11 @@ GF_Err dvcC_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_int(bs, ptr->DOVIConfig.rpu_present_flag, 1);
 	gf_bs_write_int(bs, ptr->DOVIConfig.el_present_flag, 1);
 	gf_bs_write_int(bs, ptr->DOVIConfig.bl_present_flag, 1);
-	gf_bs_write_int(bs, 0, 5*32);
+    gf_bs_write_u32(bs, 0);
+    gf_bs_write_u32(bs, 0);
+    gf_bs_write_u32(bs, 0);
+    gf_bs_write_u32(bs, 0);
+    gf_bs_write_u32(bs, 0);
 
 	return GF_OK;
 }

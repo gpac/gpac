@@ -3306,8 +3306,8 @@ Bool mp4box_parse_args(int argc, char **argv)
 			return 1;
 		}
 #endif
-		else if (!stricmp(arg, "-boxes")) {
-			PrintBuiltInBoxes();
+		else if (!stricmp(arg, "-boxes") || !stricmp(arg, "-boxcov")) {
+            PrintBuiltInBoxes(!stricmp(arg, "-boxcov") ? GF_TRUE : GF_FALSE);
 			return 1;
 		}
 		else if (!stricmp(arg, "-std")) dump_std = 2;
