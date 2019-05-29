@@ -484,7 +484,6 @@ GF_Route *gf_sg_route_find(GF_SceneGraph *sg, u32 RouteID);
 GF_Route *gf_sg_route_find_by_name(GF_SceneGraph *sg, char *name);
 /*assign route ID - fails if a route with same ID already exist*/
 GF_Err gf_sg_route_set_id(GF_Route *route, u32 ID);
-u32 gf_sg_route_get_id(GF_Route *route);
 /*assign route name if desired*/
 GF_Err gf_sg_route_set_name(GF_Route *route, char *name);
 char *gf_sg_route_get_name(GF_Route *route);

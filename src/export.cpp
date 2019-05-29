@@ -1659,7 +1659,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_svg_is_animation_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_svg_apply_animations) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_svg_attributes_copy) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_svg_path_build) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_get_element_tag) )
 
 
@@ -1708,7 +1707,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_route_find) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_route_find_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_route_set_id) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sg_route_get_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_route_set_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_route_get_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_activate_routes) )

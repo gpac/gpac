@@ -552,13 +552,10 @@ GF_Err gf_node_try_destroy(GF_SceneGraph *sg, GF_Node *pNode, GF_Node *parentNod
 
 
 /* reset functions for SVG types */
-void gf_svg_reset_path(SVG_PathData path);
 void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI*iri);
 /* delete functions for SVG types */
 void gf_svg_delete_paint		(GF_SceneGraph *sg, SVG_Paint *paint);
 void gf_smil_delete_times		(GF_List *l);
-void gf_svg_delete_points		(GF_List *l);
-void gf_svg_delete_coordinates	(GF_List *l);
 /*for keyTimes, keyPoints and keySplines*/
 void gf_smil_delete_key_types	(GF_List *l);
 
@@ -635,7 +632,6 @@ Bool gf_svg_is_inherit(GF_FieldInfo *a);
 Bool gf_svg_is_current_color(GF_FieldInfo *a);
 
 void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg);
-void gf_svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg);
 
 Bool gf_svg_is_timing_tag(u32 tag);
 Bool gf_svg_is_animation_tag(u32 tag);
