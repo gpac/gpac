@@ -1028,7 +1028,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 				rsp_code = NC_RTSP_Forbidden;
 
 			if (ctx->dst && (strstr(ctx->dst, "://127.0.0.1") || strstr(ctx->dst, "://localhost") || strstr(ctx->dst, "://::1/128") ) ) {
-				if (transport->destination) gf_free(transport->destination);
+				if (!reset_transport_dest && transport->destination) gf_free(transport->destination);
 				transport->destination = "127.0.0.1";
 				reset_transport_dest = GF_TRUE;
 			}
@@ -1075,7 +1075,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 				sess->response->Session = sess->sessionID;
 				if (!enable_multicast) {
 					gf_rtsp_get_session_ip(sess->rtsp, remoteIP);
-					if (transport->destination) gf_free(transport->destination);
+					if (!reset_transport_dest && transport->destination) gf_free(transport->destination);
 					transport->destination = NULL;
 					transport->source = remoteIP;
 				}
