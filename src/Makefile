@@ -44,9 +44,6 @@ endif
 ifeq ($(DISABLE_ISOM_ADOBE), no)
 LIBGPAC_ISOM+=isomedia/box_code_adobe.o
 endif
-ifeq ($(DISABLE_TTML), no)
-LIBGPAC_ISOM+=isomedia/ttml.o
-endif
 
 
 ## libgpac objects gathering: src/odf

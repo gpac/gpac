@@ -62,7 +62,6 @@
 		9201012B18D5A444003D1ACA /* stbl_read.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201000918D5A444003D1ACA /* stbl_read.c */; };
 		9201012C18D5A444003D1ACA /* stbl_write.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201000A18D5A444003D1ACA /* stbl_write.c */; };
 		9201012D18D5A444003D1ACA /* track.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201000B18D5A444003D1ACA /* track.c */; };
-		9201012E18D5A444003D1ACA /* ttml.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201000C18D5A444003D1ACA /* ttml.c */; };
 		9201012F18D5A444003D1ACA /* tx3g.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201000D18D5A444003D1ACA /* tx3g.c */; };
 		9201013018D5A444003D1ACA /* lsr_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201000F18D5A444003D1ACA /* lsr_dec.c */; };
 		9201013118D5A444003D1ACA /* lsr_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001018D5A444003D1ACA /* lsr_enc.c */; };
@@ -646,7 +645,6 @@
 		9201000918D5A444003D1ACA /* stbl_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stbl_read.c; sourceTree = "<group>"; };
 		9201000A18D5A444003D1ACA /* stbl_write.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stbl_write.c; sourceTree = "<group>"; };
 		9201000B18D5A444003D1ACA /* track.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = track.c; sourceTree = "<group>"; };
-		9201000C18D5A444003D1ACA /* ttml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ttml.c; sourceTree = "<group>"; };
 		9201000D18D5A444003D1ACA /* tx3g.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = tx3g.c; sourceTree = "<group>"; };
 		9201000F18D5A444003D1ACA /* lsr_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lsr_dec.c; sourceTree = "<group>"; };
 		9201001018D5A444003D1ACA /* lsr_enc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lsr_enc.c; sourceTree = "<group>"; };
@@ -1577,7 +1575,6 @@
 				9201000918D5A444003D1ACA /* stbl_read.c */,
 				9201000A18D5A444003D1ACA /* stbl_write.c */,
 				9201000B18D5A444003D1ACA /* track.c */,
-				9201000C18D5A444003D1ACA /* ttml.c */,
 				9201000D18D5A444003D1ACA /* tx3g.c */,
 			);
 			path = isomedia;
@@ -2484,7 +2481,6 @@
 				9201012C18D5A444003D1ACA /* stbl_write.c in Sources */,
 				926656C61F7D45F700299CC6 /* dmx_ogg.c in Sources */,
 				9201012D18D5A444003D1ACA /* track.c in Sources */,
-				9201012E18D5A444003D1ACA /* ttml.c in Sources */,
 				926F15571FE986B000C40779 /* write_nhml.c in Sources */,
 				926656C81F7E92C200299CC6 /* dmx_m2ts.c in Sources */,
 				92B9A5691F8660D700A24FE4 /* mpeg4_layout.c in Sources */,
