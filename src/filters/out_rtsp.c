@@ -850,7 +850,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 					rsp_code = NC_RTSP_Not_Found;
 			}
 		}
-		else if ((res_path[0] == '?') || (gf_sys_is_test_mode() && (res_path[0] == '@'))) {
+		else if ((res_path[0] == '?') || (res_path[0] == '@') ) {
 			if (!ctx->dynurl) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTSP] client %s wants dynamic services, not enabled\n", sess->peer_address));
 				rsp_code = NC_RTSP_Forbidden;
@@ -859,9 +859,14 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 				rsp_code = NC_RTSP_OK;
 				res_path++;
 				while (res_path) {
+					char sep_c=0;
 					char *src_url = NULL;
 					char *sep = strchr(res_path, '&');
-					if (sep) sep[0] = 0;
+					if (!sep) sep = strchr(res_path, '@');
+					if (sep) {
+						sep_c = sep[0];
+						sep[0] = 0;
+					}
 
 					if (!strstr(res_path, "://")) {
 						src_url = rtspout_get_local_res_path(ctx, res_path);
@@ -878,7 +883,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 					}
 
 					if (!sep) break;
-					sep[0] = '&';
+					sep[0] = sep_c;
 					res_path = sep+1;
 					if (rsp_code != NC_RTSP_OK)
 						break;
@@ -1288,7 +1293,7 @@ GF_FilterRegister RTSPOutRegister = {
 		"The filter can work as a regular RTSP server by specifying the mounts option to indicate paths of media file to be served:\n"\
 		"EX: gpac rtspout:mounts=mydir1,mydir2\n"\
 		"In server mode, it is possible to load any source supported by gpac by setting the option 'dynurl'.\n"\
-		"The expected syntax of the dynamic RTSP URLs is 'rtsp://servername/?URL1[&URLN]'\n"\
+		"The expected syntax of the dynamic RTSP URLs is 'rtsp://servername/?URL1[&URLN]' or 'rtsp://servername/@URL1[@URLN]' \n"\
 		"Each URL can be absolute or local, in which case it is resolved against the mount point(s).\n"\
 		"\tEX: 'gpac -i rtsp://localhost/?pipe://mynamepipe&myfile.mp4 [dst filters]'\n"\
 		"The server will resolve this URL in a new session containing streams from myfile.mp4 and streams from pipe mynamepipe.\n"\
