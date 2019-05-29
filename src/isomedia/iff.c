@@ -722,7 +722,9 @@ GF_Err auxc_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	//with terminating 0
-	gf_bs_write_data(bs, p->aux_urn, (u32) strlen(p->aux_urn) + 1 );
+    if (p->aux_urn)
+        gf_bs_write_data(bs, p->aux_urn, (u32) strlen(p->aux_urn) );
+    gf_bs_write_u8(bs, 0);
 	gf_bs_write_data(bs, p->data, p->data_size);
 
 	return GF_OK;
@@ -731,7 +733,7 @@ GF_Err auxc_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err auxc_Size(GF_Box *s)
 {
 	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox*)s;
-	p->size += strlen(p->aux_urn) + 1 + p->data_size;
+    p->size += (p->aux_urn ? strlen(p->aux_urn) : 0) + 1 + p->data_size;
 	return GF_OK;
 }
 
@@ -767,14 +769,16 @@ GF_Err auxi_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	//with terminating 0
-	gf_bs_write_data(bs, ptr->aux_track_type, (u32) strlen(ptr->aux_track_type) + 1 );
+    if (ptr->aux_track_type)
+        gf_bs_write_data(bs, ptr->aux_track_type, (u32) strlen(ptr->aux_track_type) );
+    gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
 
 GF_Err auxi_Size(GF_Box *s)
 {
 	GF_AuxiliaryTypeInfoBox *ptr = (GF_AuxiliaryTypeInfoBox *)s;
-	ptr->size += strlen(ptr->aux_track_type) + 1;
+    ptr->size += (ptr->aux_track_type ? strlen(ptr->aux_track_type) : 0 )+ 1;
 	return GF_OK;
 }
 

@@ -268,7 +268,7 @@ GF_Err xml_Size(GF_Box *s)
 {
 	GF_XMLBox *ptr = (GF_XMLBox *)s;
 	if (!s) return GF_BAD_PARAM;
-	ptr->size += strlen(ptr->xml)+1;
+    ptr->size += (ptr->xml ? strlen(ptr->xml) : 0) + 1;
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
