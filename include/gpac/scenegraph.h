@@ -170,8 +170,6 @@ u32 gf_node_get_id(GF_Node*);
 /* gets node built-in name (eg 'Appearance', ..) */
 const char *gf_node_get_class_name(GF_Node *Node);
 
-u32 gf_sg_node_get_tag_by_class_name(const char *name, u32 xmlns);
-
 /*unset the node ID*/
 GF_Err gf_node_remove_id(GF_Node *p);
 
@@ -596,10 +594,6 @@ void gf_sg_script_load(GF_Node *script);
 
 /*returns true if current lib has javascript support*/
 Bool gf_sg_has_scripting();
-
-
-char *gf_node_dump_attribute(GF_Node *elt, GF_FieldInfo *info);
-
 
 /*
 			scene graph command tools used for BIFS and LASeR

@@ -1602,7 +1602,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_command_field_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_get_next_available_node_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_get_max_node_id) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sg_node_get_tag_by_class_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_get_field_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_list_add_child) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_list_add_child_last) )
@@ -1615,13 +1614,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_script_get_field_index) )
 
 
-#pragma comment (linker, EXPORT_SYMBOL(gf_node_dump_attribute) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_dirty_parent_graph) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_dirty_parents) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_get_proto_parent) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_get_proto_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_is_proto_root) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_node_list_append_child) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_proto_is_grouping) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_proto_set_grouping) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_remove_id) )
