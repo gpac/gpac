@@ -537,16 +537,9 @@ GF_Proto *gf_sg_proto_new(GF_SceneGraph *inScene, u32 ProtoID, char *name, Bool 
 /*destroy proto interface - can be used even if instances of the proto are still present*/
 GF_Err gf_sg_proto_del(GF_Proto *proto);
 
-/*used for memory handling of scene graph only. move proto from off-graph to in-graph or reverse*/
-GF_Err gf_sg_proto_set_in_graph(GF_Proto *proto, GF_SceneGraph *inScene, Bool set_in);
-
 /*returns graph associated with this proto. Such a graph cannot be used for rendering but is needed during
 construction of proto dictionaries in case of nested protos*/
 GF_SceneGraph *gf_sg_proto_get_graph(GF_Proto *proto);
-
-/*get/set private data*/
-void gf_sg_proto_set_private(GF_Proto *proto, void *ptr, void (*OnDelete)(void *ptr) );
-void *gf_sg_proto_get_private(GF_Proto *proto);
 
 /*add node code - a proto is build of several nodes, the first node is used for rendering
 and the others are kept private. This set of nodes is refered to as the proto "node code"*/
@@ -567,9 +560,7 @@ GF_ProtoFieldInterface *gf_sg_proto_field_new(GF_Proto *proto, u32 fieldType, u3
 the node shall be a node of the proto scenegraph, and the fieldtype/eventType of both fields shall match
 (except SF/MFString and MF/SFURL which are allowed) due to BIFS semantics*/
 GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node *node, u32 nodeFieldIndex);
-/*set/get user private data for the proto field declaration*/
-void gf_sg_proto_field_set_private(GF_ProtoFieldInterface *field, void *ptr, void (*OnDelete)(void *ptr) );
-void *gf_sg_proto_field_get_private(GF_ProtoFieldInterface *field);
+
 /*returns field info of the field - this is typically used to setup the default value of the field*/
 GF_Err gf_sg_proto_field_get_field(GF_ProtoFieldInterface *field, GF_FieldInfo *info);
 
@@ -616,9 +607,6 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 
 /*returns root node (the one and only one being traversed) of this proto instance if any*/
 GF_Node *gf_node_get_proto_root(GF_Node *node);
-
-/*returns parent ProtoInstance node if this node is in a proto*/
-GF_Node *gf_node_get_proto_parent(GF_Node *node);
 
 /*indicates proto field has been parsed and its value is valid - this is needed for externProtos not specifying default
 values*/

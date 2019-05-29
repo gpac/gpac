@@ -89,7 +89,9 @@ GF_SceneGraph *gf_sg_new()
 		gf_node_get_attribute_count(NULL);
 		gf_xml_node_clone(NULL, NULL, NULL, NULL, 0);
 		gf_dom_flatten_textContent(NULL);
-
+		gf_smil_timing_pause(NULL);
+		gf_smil_timing_resume(NULL);
+		gf_smil_get_media_duration(NULL);
 	 }
 
 	return tmp;
