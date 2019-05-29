@@ -93,6 +93,7 @@ void gf_sg_register_event_type(GF_SceneGraph *sg, GF_DOMEventCategory category)
 	gf_dom_refresh_event_filter(sg);
 }
 
+#if 0 //unused
 u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg)
 {
 	return sg->dom_evt_filter;
@@ -106,6 +107,7 @@ u32 gf_node_get_dom_event_filter(GF_Node *node)
 		return 0;
 	}
 }
+#endif
 
 /* Associate a listener node and a event target node
    - adds the listener node in the list of event listener nodes for the target node
@@ -500,12 +502,14 @@ static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *
 	gf_sg_dom_event_bubble(parent, event, use_stack, cur_par_idx);
 }
 
-void gf_sg_dom_stack_parents(GF_Node *node, GF_List *stack)
+#if 0 //unused, see below
+static void gf_sg_dom_stack_parents(GF_Node *node, GF_List *stack)
 {
 	if (!node) return;
 	if (node->sgprivate->interact && node->sgprivate->interact->dom_evt) gf_list_insert(stack, node, 0);
 	gf_sg_dom_stack_parents(gf_node_get_parent(node, 0), stack);
 }
+#endif
 
 GF_EXPORT
 Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack)
@@ -537,6 +541,7 @@ Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack
 
 	/*capture phase - not 100% sure, the actual capture phase should be determined by the std using the DOM events
 	SVGT doesn't use this phase, so we don't add it for now.*/
+#if 0
 	if ((0)) {
 		Bool aborted = GF_FALSE;
 		u32 i, count;
@@ -560,6 +565,8 @@ Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack
 		gf_list_del(parents);
 		if (aborted) return GF_TRUE;
 	}
+#endif
+
 	/*target phase*/
 	event->event_phase = GF_DOM_EVENT_PHASE_AT_TARGET;
 	cur_par_idx = 0;
@@ -843,6 +850,7 @@ char *gf_dom_flatten_textContent(GF_Node *n)
 	u32 len = 0;
 	char *res = NULL;
 	GF_ChildNodeItem *list;
+	if (!n) return NULL;
 
 	if ((n->sgprivate->tag==TAG_DOMText) && ((GF_DOMText*)n)->textContent) {
 		/*if ( ((GF_DOMText*)n)->type == GF_DOM_TEXT_REGULAR) */{
@@ -881,6 +889,7 @@ GF_DOMUpdates *gf_dom_add_updates_node(GF_Node *parent)
 	return text;
 }
 
+#if 0 //unused
 GF_DOMUpdates *gf_dom_add_update_node(GF_Node *parent)
 {
 	GF_DOMUpdates *update;
@@ -894,6 +903,7 @@ GF_DOMUpdates *gf_dom_add_update_node(GF_Node *parent)
 	gf_node_list_add_child_last(&((GF_ParentNode *)parent)->children, (GF_Node*)update, NULL);
 	return update;
 }
+#endif
 
 void gf_dom_event_dump_listeners(GF_Node *n, FILE *f)
 {

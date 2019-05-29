@@ -659,9 +659,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 
 	cursor_type = GF_CURSOR_NORMAL;
 	/*all mouse events*/
-	if ((event->type<=GF_EVENT_MOUSEWHEEL)
-	        // && (gf_node_get_dom_event_filter(gf_sg_get_root_node(compositor->scene)) & GF_DOM_EVENT_MOUSE)
-	   ) {
+	if (event->type<=GF_EVENT_MOUSEWHEEL) {
 		Fixed X = compositor->hit_world_point.x;
 		Fixed Y = compositor->hit_world_point.y;
 		/*flip back to origin at top-left*/

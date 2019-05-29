@@ -655,8 +655,9 @@ GF_NamespaceType gf_xml_get_element_namespace(GF_Node *n)
 u32 gf_node_get_attribute_count(GF_Node *node)
 {
 	u32 count = 0;
-	GF_DOMNode *dom = (GF_DOMNode *)node;
-	GF_DOMAttribute *atts = dom->attributes;
+	GF_DOMAttribute *atts;
+	if (!node) return 0;
+	atts =  ((GF_DOMNode *)node)->attributes;
 	while (atts) {
 		count++;
 		atts = atts->next;
@@ -948,7 +949,9 @@ void gf_node_unregister_iri(GF_SceneGraph *sg, XMLRI *target)
 GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep)
 {
 	GF_DOMAttribute *att;
-	GF_Node *clone = gf_node_new(inScene, orig->sgprivate->tag);
+	GF_Node *clone;
+	if (!orig) return NULL;
+	clone = gf_node_new(inScene, orig->sgprivate->tag);
 	if (!clone) return NULL;
 
 	if (orig->sgprivate->tag == TAG_DOMText) {
