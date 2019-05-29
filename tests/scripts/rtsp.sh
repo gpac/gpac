@@ -58,6 +58,6 @@ rtsp_test_single "regular" $MEDIA_DIR/auxiliary_files/enst_audio.aac " --tso=100
 rtsp_test_single "interleave" $MEDIA_DIR/auxiliary_files/enst_audio.aac " --tso=10000" " --interleave"
 
 rtsp_test_server "regular" "rtsp://localhost/enst_audio.aac" " --tso=10000" " "
-rtsp_test_server "dynurl" 'rtsp://localhost/@enst_audio.aac&enst_video.h264' " --tso=10000 --dynurl" ""
+rtsp_test_server "dynurl" 'rtsp://localhost/@enst_audio.aac@enst_video.h264' " --tso=10000 --dynurl" ""
 
 rtsp_test_server "mcast" "rtsp://localhost/enst_audio.aac" " --tso=10000 --mcast=on" " --force_mcast=$MCASTIP "
