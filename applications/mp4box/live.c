@@ -235,6 +235,10 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 	char *sdp = gf_rtp_streamer_format_sdp_header("GPACSceneStreamer", ip, NULL, iod64);
 	if (iod64) gf_free(iod64);
 
+	if (gf_sys_is_test_mode()) {
+		GF_Descriptor *desc = gf_seng_get_iod(livesess->seng);
+		if (desc) gf_odf_desc_del(desc);
+	}
 	for (i=0; i<count; i++) {
 		u16 ESID;
 		u32 st, oti, ts;
@@ -754,6 +758,15 @@ int live_session(int argc, char **argv)
 		}
 		if (next_time) gf_sleep(next_time);
 		live_session_send_carousel(&livesess, ch);
+	}
+
+	if (gf_sys_is_test_mode()) {
+/*		gf_seng_save_context(livesess.seng, NULL);
+		gf_seng_aggregate_context
+		gf_seng_encode_from_string
+		gf_seng_encode_from_file
+*/
+
 	}
 
 exit:

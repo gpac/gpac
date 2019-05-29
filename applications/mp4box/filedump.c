@@ -369,7 +369,7 @@ void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 sta
 	e = gf_sm_load_init(&load);
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
-	if (e) goto exit;
+	if (e<0) goto exit;
 
 	if (inName) {
 		strcpy(szBuf, inName);

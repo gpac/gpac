@@ -351,6 +351,7 @@ start:
 	}
 	gf_sm_dumper_del(dumper);
 
+#if 0 //unused
 	if(seng->dump_rap) {
 		GF_SceneDumper *dumper = NULL;
 
@@ -365,6 +366,7 @@ start:
 		e = gf_sm_dump_graph(dumper, 0, 0);
 		gf_sm_dumper_del(dumper);
 	}
+#endif
 
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot dump DIMS Commands\n"));
@@ -567,12 +569,13 @@ GF_Err gf_seng_aggregate_context(GF_SceneEngine *seng, u16 ESID)
 	return gf_sm_aggregate(seng->ctx, ESID);
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_seng_dump_rap_on(GF_SceneEngine *seng, Bool dump_rap)
 {
 	seng->dump_rap = dump_rap;
 	return 0;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
@@ -619,6 +622,7 @@ GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
 static GF_AUContext *gf_seng_create_new_au(GF_StreamContext *sc, u32 time)
 {
 	GF_AUContext *new_au, *last_au;
+	if (!sc) return NULL;
 	last_au = gf_list_last(sc->AUs);
 	if (last_au && last_au->timing == time) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneEngine] Forcing new AU\n"));
@@ -858,16 +862,20 @@ static void seng_exec_conditional(M_Conditional *c, GF_SceneGraph *scene)
 
 static void seng_conditional_activate(GF_Node *node, GF_Route *route)
 {
-	GF_SceneEngine *seng = (GF_SceneEngine *) gf_node_get_private(node);
-	M_Conditional *c = (M_Conditional*)node;
-	if (c->activate) seng_exec_conditional(c, seng->sg);
+	if (node) {
+		GF_SceneEngine *seng = (GF_SceneEngine *) gf_node_get_private(node);
+		M_Conditional *c = (M_Conditional*)node;
+		if (c->activate) seng_exec_conditional(c, seng->sg);
+	}
 }
 
 static void seng_conditional_reverse_activate(GF_Node *node, GF_Route *route)
 {
-	GF_SceneEngine *seng = (GF_SceneEngine *) gf_node_get_private(node);
-	M_Conditional*c = (M_Conditional*)node;
-	if (!c->reverseActivate) seng_exec_conditional(c, seng->sg);
+	if (node) {
+		GF_SceneEngine *seng = (GF_SceneEngine *) gf_node_get_private(node);
+		M_Conditional*c = (M_Conditional*)node;
+		if (!c->reverseActivate) seng_exec_conditional(c, seng->sg);
+	}
 }
 #endif //GPAC_DISABLE_VRML
 
@@ -918,6 +926,12 @@ GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load
 	seng->loader.flags = GF_SM_LOAD_MPEG4_STRICT;
 	if (embed_resources) seng->loader.flags |= GF_SM_LOAD_EMBEDS_RES;
 
+	if (gf_sys_is_test_mode()) {
+		seng_conditional_activate(NULL, NULL);
+		seng_conditional_reverse_activate(NULL, NULL);
+		gf_seng_create_new_au(NULL, 0);
+
+	}
 	seng->loader.fileName = inputContext;
 	e = gf_sm_load_init(&(seng->loader));
 	if (!e) e = gf_sm_load_run(&(seng->loader));
