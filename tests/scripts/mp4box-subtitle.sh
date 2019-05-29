@@ -16,6 +16,8 @@ my_test "$MP4BOX -ttxt $MEDIA_DIR/auxiliary_files/subtitle.srt -out" "$TEMP_DIR/
 
 my_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/subtitle.srt -new" "$TEMP_DIR/subtitle-srt-tx3g.mp4" "srt-add"
 
+my_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/subtitle.sub -new" "$TEMP_DIR/subtitle-sub-tx3g.mp4" "sub-add"
+
 my_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/subtitle.srt:fmt=VTT -new" "$TEMP_DIR/subtitle-srt-wvtt.mp4" "srt-vtt-add"
 
 my_test "$MP4BOX -add $TEMP_DIR/subtitle-srt.ttxt -new" "$TEMP_DIR/subtitle-ttxt-tx3g.mp4" "tx3g-add"
