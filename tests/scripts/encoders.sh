@@ -19,7 +19,7 @@ if [ ! -f $dst_file ] ; then
 result="Encoded output not present"
 else
 
-#encoder outputs vary from platofrms to platforms, we cannot do a hash on the result ...
+#encoder outputs vary from platforms to platforms, we cannot do a hash on the result ...
 #this will need further investigations
 #do_hash_test "$dst_file" "encoder"
 
@@ -88,7 +88,7 @@ test_encoder "mpeg2-ffenc" $MEDIA_DIR/auxiliary_files/enst_video.h264 "test.m2v"
 
 #test AVC encode
 if [ -n "$x264ff" ] ; then
-test_encoder "avc-ffenc" $MEDIA_DIR/auxiliary_files/count_video.cmp "test.264" "" "-blacklist=vtbdec,nvdec,ohevcdec" "ls::x264-params=no-mbtree:sync-lookahead=0::profile=baseline"
+test_encoder "avc-ffenc" $MEDIA_DIR/auxiliary_files/count_video.cmp "test.264" "" "-blacklist=vtbdec,nvdec,ohevcdec" "::ls::x264-params=no-mbtree:sync-lookahead=0::profile=baseline"
 fi
 
 #test MJ2 encode - we need to explicetly add the encoder, since the isom muxer can accept any input

@@ -671,7 +671,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 					}
 					if (pid->last_pck_dts)
 						pck->info.dts = pid->last_pck_dts + min_dur;
-					//if (pck->info.dts > pck->info.cts) pck->info.dts = pck->info.cts;
 				}
 			}
 		}
