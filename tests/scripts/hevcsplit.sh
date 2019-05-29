@@ -24,14 +24,6 @@ done
 test_end
 }
 
-#hevcsplit_test
-#hevcsplit_test "500kb"
-hevcsplit_test "1mb"
-
-#compressionSize="500kb 1mb"
-#compressionSize="1mb 500kb"
-#for i in $compressionSize ; do
-#hevcsplit_test $i
-#done 
-
+hevcsplit_test "500kb"
+#hevcsplit_test "1mb"
 
