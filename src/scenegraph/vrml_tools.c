@@ -239,8 +239,7 @@ GF_Err gf_node_insert_child(GF_Node *parent, GF_Node *new_child, s32 Position)
 	return GF_OK;
 }
 
-/*for V4Studio...*/
-GF_EXPORT
+#if 0
 GF_Err gf_node_remove_child(GF_Node *parent, GF_Node *toremove_child)
 {
 	if (!gf_node_list_del_child(& ((GF_ParentNode *) parent)->children, toremove_child)) return GF_BAD_PARAM;
@@ -248,6 +247,7 @@ GF_Err gf_node_remove_child(GF_Node *parent, GF_Node *toremove_child)
 	/*gf_node_unregister(toremove_child, parent);*/
 	return GF_OK;
 }
+#endif
 
 GF_EXPORT
 void gf_sg_script_load(GF_Node *n)
@@ -1736,7 +1736,7 @@ Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field)
 	return 0;
 }
 
-
+#if 0 //unused
 char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 {
 	char szVal[1024];
@@ -1831,6 +1831,8 @@ char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 	/*todo - dump MFFields*/
 	return NULL;
 }
+#endif
+
 
 #endif /*GPAC_DISABLE_VRML*/
 
