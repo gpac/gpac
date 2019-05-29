@@ -27,6 +27,7 @@ if [ $do_sdp_dump != 0 ] ; then
  if [ $do_hash != 0 ] ; then
   do_hash_test "$tempfile" "sdp"
  fi
+ do_test "$MP4BOX -info 65536 $hintfile" "HintInfo"
 fi
 
 #unhint media

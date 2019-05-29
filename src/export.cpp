@@ -885,8 +885,6 @@
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_payt_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_payt_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_hint_reader) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_next_hint_packet) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_sdp_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_sdp_track_get) )
 # ifndef GPAC_DISABLE_ISOM_DUMP
