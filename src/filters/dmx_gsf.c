@@ -107,6 +107,7 @@ typedef struct
 	Bool wait_for_play;
 
 	GF_List *pck_res;
+	Bool buffer_too_small;
 } GSF_DemuxCtx;
 
 
@@ -971,6 +972,9 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		Bool full_pck = (frag_flags==0) ? GF_TRUE : GF_FALSE;
 		Bool pck_frag = (frag_flags>=2) ? GF_TRUE : GF_FALSE;
 
+		//reset buffer too small flag, and blindly parse the following vlen fields
+		ctx->buffer_too_small = GF_FALSE;
+
 		st_idx = gsfdmx_read_vlen(ctx->bs_r);
 		if (has_sn) {
 			frame_sn = gf_bs_read_u16(ctx->bs_r);
@@ -986,6 +990,10 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		if (pck_len > gf_bs_available(ctx->bs_r)) {
 			break;
 		}
+		//buffer was not big enough to contain all the vlen fields, we need more data
+		if (ctx->buffer_too_small)
+			break;
+			
 		if (full_pck) {
 			block_size = pck_len;
 			block_offset = 0;
@@ -1143,12 +1151,20 @@ static const char *gsfdmx_probe_data(const u8 *data, u32 data_size, GF_FilterPro
 	return NULL;
 }
 
+static void gsfdmx_not_enough_bytes(void *par)
+{
+	GSF_DemuxCtx *ctx = (GSF_DemuxCtx *)par;
+	ctx->buffer_too_small = GF_TRUE;
+}
+
 static GF_Err gsfdmx_initialize(GF_Filter *filter)
 {
 	GSF_DemuxCtx *ctx = gf_filter_get_udta(filter);
 	ctx->streams = gf_list_new();
 	if (!ctx->streams) return GF_OUT_OF_MEM;
 	ctx->bs_r = gf_bs_new((char *) ctx, 1, GF_BITSTREAM_READ);
+	gf_bs_set_eos_callback(ctx->bs_r, gsfdmx_not_enough_bytes, ctx);
+
 	ctx->bs_pck = gf_bs_new((char *) ctx, 1, GF_BITSTREAM_READ);
 	ctx->pck_res = gf_list_new();
 	return GF_OK;
