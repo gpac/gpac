@@ -56,7 +56,7 @@ struct __txtin_ctx
 	GF_FilterPid *ipid, *opid;
 	const char *file_name;
 	u32 fmt;
-	Bool is_playing;
+	u32 playstate;
 	//0: not seeking, 1: seek request pending, 2: seek configured, discarding packets up until start_range
 	u32 seek_state;
 	Double start_range;
@@ -578,7 +578,8 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 		return txtin_setup_srt(filter, ctx);
 	}
 	if (!ctx->opid) return GF_NOT_SUPPORTED;
-	if (!ctx->is_playing) return GF_OK;
+	if (!ctx->playstate) return GF_OK;
+	else if (ctx->playstate==2) return GF_EOS;
 
 	txt_line = 0;
 	set_start_char = set_end_char = GF_FALSE;
@@ -1249,7 +1250,8 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 
 	if (!ctx->is_setup) return gf_text_ttml_setup(filter, ctx);
 	if (ctx->non_compliant_ttml || !ctx->opid) return GF_NOT_SUPPORTED;
-	if (!ctx->is_playing) return GF_OK;
+	if (!ctx->playstate) return GF_OK;
+	else if (ctx->playstate==2) return GF_EOS;
 
 	if (ctx->seek_state==1) {
 		ctx->seek_state = 2;
@@ -1595,7 +1597,8 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 		return txtin_setup_srt(filter, ctx);
 	}
 	if (!ctx->opid) return GF_NOT_SUPPORTED;
-	if (!ctx->is_playing) return GF_OK;
+	if (!ctx->playstate) return GF_OK;
+	else if (ctx->playstate==2) return GF_EOS;
 
 	if (ctx->seek_state==1) {
 		ctx->seek_state = 2;
@@ -1965,7 +1968,8 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 		return txtin_setup_ttxt(filter, ctx);
 	}
 	if (!ctx->opid) return GF_NON_COMPLIANT_BITSTREAM;
-	if (!ctx->is_playing) return GF_OK;
+	if (!ctx->playstate) return GF_OK;
+	else if (ctx->playstate==2) return GF_EOS;
 
 	if (ctx->seek_state==1) {
 		ctx->seek_state = 2;
@@ -2281,7 +2285,8 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 		probe_first_desc_only = GF_TRUE;
 	}
 	if (!ctx->opid) return GF_NON_COMPLIANT_BITSTREAM;
-	if (!ctx->is_playing && !probe_first_desc_only) return GF_OK;
+	if (!ctx->playstate && !probe_first_desc_only) return GF_OK;
+	else if (ctx->playstate==2) return GF_EOS;
 
 	if (ctx->seek_state==1) {
 		ctx->seek_state = 2;
@@ -2731,8 +2736,8 @@ static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	GF_TXTIn *ctx = gf_filter_get_udta(filter);
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-		if (ctx->is_playing) return GF_TRUE;
-		ctx->is_playing = GF_TRUE;
+		if (ctx->playstate==1) return GF_TRUE;
+		ctx->playstate = 1;
 		if ((ctx->start_range < 0.1) && (evt->play.start_range<0.1)) return GF_TRUE;
 		ctx->start_range = evt->play.start_range;
 		ctx->seek_state = 1;
@@ -2740,7 +2745,7 @@ static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
-		ctx->is_playing = GF_FALSE;
+		ctx->playstate = 2;
 		//cancel play event, we work with full file
 		return GF_TRUE;
 	default:
