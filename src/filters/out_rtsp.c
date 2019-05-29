@@ -71,6 +71,7 @@ typedef struct
 	u32 block_size;
 	Bool close, loop, dynurl, mpeg4;
 	u32 mcast;
+	Bool latm;
 
 	GF_Socket *server_sock;
 	GF_List *sessions;
@@ -315,7 +316,7 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	payt = ctx->payt + gf_list_find(sess->streams, stream);
 
-	e = rtpout_init_streamer(stream, ctx->ifce ? ctx->ifce : "127.0.0.1", ctx->xps, ctx->mpeg4, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_TRUE, &sess->base_pid_id);
+	e = rtpout_init_streamer(stream, ctx->ifce ? ctx->ifce : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_TRUE, &sess->base_pid_id);
 	if (e) return e;
 
 	if (ctx->loop) {
@@ -844,11 +845,12 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 			if (sess->server_path) {
 				char *sepp = strstr(sess->server_path, "://");
 				if (sepp) sepp = strchr(sepp+3, '/');
+				if (sepp) sepp++;
 				if (!sepp || strcmp(sepp, res_path))
 					rsp_code = NC_RTSP_Not_Found;
 			}
 		}
-		else if (res_path[0] == '?') {
+		else if ((res_path[0] == '?') || (gf_sys_is_test_mode() && (res_path[0] == '@'))) {
 			if (!ctx->dynurl) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTSP] client %s wants dynamic services, not enabled\n", sess->peer_address));
 				rsp_code = NC_RTSP_Forbidden;
@@ -1252,6 +1254,7 @@ static const GF_FilterArgs RTSPOutArgs[] =
 	{ OFFS(runfor), "run the session for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tso), "sets timestamp offset in microsecs. Negative value means random initial timestamp", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xps), "force parameter set injection at each SAP. If not set, only inject if different from SDP ones", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(latm), "uses latm for AAC payload format", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(mounts), "list of directories to expose in server mode", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read TCP socket", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(user_agent), "User agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GPAC_UA", NULL, 0},

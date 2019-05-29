@@ -413,9 +413,8 @@ some servers do not restart with the right CSeq...*/
 void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection);
 
 u32 gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url);
-const char *gf_rtsp_get_last_session_id(GF_RTSPSession *sess);
+
 char *gf_rtsp_get_server_name(GF_RTSPSession *sess);
-char *gf_rtsp_get_service_name(GF_RTSPSession *sess);
 u16 gf_rtsp_get_session_port(GF_RTSPSession *sess);
 
 /*Fetch an RTSP response from the server the GF_RTSPResponse will be reseted before fetch*/
@@ -442,9 +441,6 @@ enum
 };
 
 u32 gf_rtsp_get_session_state(GF_RTSPSession *sess);
-/*aggregate command state-machine: the PLAY/PAUSE can be aggregated
-(sent before the reply is received). This function gets the last command sent*/
-char *gf_rtsp_get_last_request(GF_RTSPSession *sess);
 /*foce a reset in case of pbs*/
 void gf_rtsp_reset_aggregation(GF_RTSPSession *sess);
 
@@ -476,10 +472,6 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener);
 /*fetch an RTSP request. The GF_RTSPCommand will be reseted before fetch*/
 GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com);
 
-/*unpack the URL, check the service name / server. Typically used when a client sends a
- DESCRIBE || SETUP url RTSP/1.0. Server / service name check must be performed by your app as redirection
-or services available are unknown here.*/
-GF_Err gf_rtsp_load_service_name(GF_RTSPSession *sess, char *URL);
 
 /*geenrates a session ID fpor the given session*/
 char *gf_rtsp_generate_session_id(GF_RTSPSession *sess);
@@ -491,9 +483,6 @@ GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp);
 buffer shall be GF_MAX_IP_NAME_LEN long*/
 GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char *buffer);
 
-/*returns the next available ID for interleaving. It is recommended that you use 2
-consecutive IDs for RTP/RTCP interleaving*/
-u8 gf_rtsp_get_next_interleave_id(GF_RTSPSession *sess);
 
 /*gets the IP address of the connected peer - buffer shall be GF_MAX_IP_NAME_LEN long*/
 GF_Err gf_rtsp_get_remote_address(GF_RTSPSession *sess, char *buffer);
@@ -660,17 +649,12 @@ enum
 	GF_RTCP_INFO_PRIV
 };
 
-/*sets RTCP info sent in RTCP reports. info_string shall NOT exceed 255 chars*/
-GF_Err gf_rtp_set_info_rtcp(GF_RTPChannel *ch, u32 InfoCode, char *info_string);
-
 u32 gf_rtp_is_unicast(GF_RTPChannel *ch);
 u32 gf_rtp_is_interleaved(GF_RTPChannel *ch);
 u32 gf_rtp_get_clockrate(GF_RTPChannel *ch);
-u32 gf_rtp_is_active(GF_RTPChannel *ch);
 u8 gf_rtp_get_low_interleave_id(GF_RTPChannel *ch);
 u8 gf_rtp_get_hight_interleave_id(GF_RTPChannel *ch);
 GF_RTSPTransport *gf_rtp_get_transport(GF_RTPChannel *ch);
-u32 gf_rtp_get_local_ssrc(GF_RTPChannel *ch);
 
 Float gf_rtp_get_loss(GF_RTPChannel *ch);
 u32 gf_rtp_get_tcp_bytes_sent(GF_RTPChannel *ch);
@@ -696,10 +680,6 @@ void gf_rtp_get_ports(GF_RTPChannel *ch, u16 *rtp_port, u16 *rtcp_port);
 
   Some quick constructors are available for GF_SDPConnection and GF_SDPMedia in order to set up
   some specific parameters to their default value
-
-  An extra function gf_sdp_info_check(GF_SDPInfo *sdp) is provided for compliency check
-  with RFC2327: all requested fields are checked as well as conflicting information forbidden
-  in RFC 2327
 ****************************************************************************/
 
 /*
@@ -920,8 +900,6 @@ void gf_sdp_info_del(GF_SDPInfo *sdp);
 void gf_sdp_info_reset(GF_SDPInfo *sdp);
 /*Parses a memory SDP buffer*/
 GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size);
-/*check the consistency of the GF_SDPInfo*/
-GF_Err gf_sdp_info_check(GF_SDPInfo *sdp);
 
 
 /*
@@ -1136,15 +1114,17 @@ enum
 	GF_RTP_PAYT_H264_AVC,
 	/*use LATM for AAC-LC*/
 	GF_RTP_PAYT_LATM,
-	/*use 3GPP DIMS format*/
-	GF_RTP_PAYT_3GPP_DIMS,
 	/*use AC3 audio format*/
 	GF_RTP_PAYT_AC3,
 	/*use H264-SVC transport*/
 	GF_RTP_PAYT_H264_SVC,
 	/*use HEVC/H265 transport - no RFC yet, only draft*/
 	GF_RTP_PAYT_HEVC,
-	GF_RTP_PAYT_LHVC
+	GF_RTP_PAYT_LHVC,
+#if GPAC_ENABLE_3GPP_DIMS_RTP
+	/*use 3GPP DIMS format*/
+	GF_RTP_PAYT_3GPP_DIMS,
+#endif
 };
 
 
@@ -1415,9 +1395,6 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet
 void gf_rtp_depacketizer_del(GF_RTPDepacketizer *rtp);
 void gf_rtp_depacketizer_reset(GF_RTPDepacketizer *rtp, Bool full_reset);
 void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size);
-
-void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *sl);
-
 
 #endif /*GPAC_DISABLE_STREAMING*/
 

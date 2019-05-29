@@ -546,6 +546,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 }
 
 
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration)
 {
 	u32 frag_state;
@@ -669,6 +670,7 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 	gf_bs_del(bs);
 	return GF_OK;
 }
+#endif
 
 
 

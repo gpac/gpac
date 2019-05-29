@@ -113,8 +113,10 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 		return gp_rtp_builder_do_smv(builder, data, data_size, IsAUEnd, FullAUSize);
 	case GF_RTP_PAYT_LATM:
 		return gp_rtp_builder_do_latm(builder, data, data_size, IsAUEnd, FullAUSize, duration);
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 	case GF_RTP_PAYT_3GPP_DIMS:
 		return gp_rtp_builder_do_dims(builder, data, data_size, IsAUEnd, FullAUSize, duration);
+#endif
 	case GF_RTP_PAYT_AC3:
 		return gp_rtp_builder_do_ac3(builder, data, data_size, IsAUEnd, FullAUSize);
 	case GF_RTP_PAYT_HEVC:
@@ -516,10 +518,12 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "MP4A-LATM");
 		return GF_TRUE;
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 	case GF_RTP_PAYT_3GPP_DIMS:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "richmedia+xml");
 		return GF_TRUE;
+#endif
 	case GF_RTP_PAYT_AC3:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "ac3");

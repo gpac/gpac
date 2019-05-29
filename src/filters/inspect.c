@@ -1450,6 +1450,8 @@ static GF_Err inspect_process(GF_Filter *filter)
 				GF_FilterEvent evt;
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, pctx->src_pid);
 				gf_filter_pid_send_event(pctx->src_pid, &evt);
+				gf_filter_pid_set_discard(pctx->src_pid, GF_TRUE);
+				break;
 			}
 		}
 		gf_filter_pid_drop_packet(pctx->src_pid);

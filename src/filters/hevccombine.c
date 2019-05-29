@@ -474,7 +474,9 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 
 	//read byte_alignment() is bit=1 + x bit=0
 	al = gf_bs_read_int(bs_ori, 1);
-	assert(al == 1);
+	if (al != 1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCCombine] source slice header not properly aligned\n"));
+	}
 	gf_bs_align(bs_ori);
 
 	//write byte_alignment() is bit=1 + x bit=0
@@ -543,8 +545,8 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *d
 			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j); // store j-th nalus in *sl
 
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
-				char *outSPS;
-				u32 outSize;
+				char *outSPS=NULL;
+				u32 outSize=0;
 				rewrite_SPS(sl->data, sl->size, new_width, new_height, &outSPS, &outSize);
 				gf_free(sl->data);
 				sl->data = outSPS;
@@ -553,8 +555,8 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *d
 			else if (ar->type == GF_HEVC_NALU_VID_PARAM) {
 			}
 			else if (ar->type == GF_HEVC_NALU_PIC_PARAM) {
-				char *outPPS;
-				u32 outSize;
+				char *outPPS=NULL;
+				u32 outSize=0;
 				rewrite_PPS(GF_FALSE, sl->data, sl->size, &outPPS, &outSize, num_tile_rows_minus1, num_tile_columns_minus1, uniform_spacing_flag, ctx);
 				gf_free(sl->data);
 				sl->data = outPPS;

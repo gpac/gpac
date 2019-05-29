@@ -438,7 +438,7 @@ fi
 
 GPAC_OSTYPE="unknown"
 
-gpac -h 2> /dev/null
+gpac -h >/dev/null 2>&1
 res=$?
 if [ $res != 0 ] ; then
 log $L_ERR "gpac not found (ret $res) - exiting"
