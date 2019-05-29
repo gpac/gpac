@@ -364,9 +364,9 @@ static void rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, 
 
 	gf_bs_get_content(bs_out, &data_without_emulation_bytes, &data_without_emulation_bytes_size);
 
-	*out_SPS_length = data_without_emulation_bytes_size + avc_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
+	*out_SPS_length = data_without_emulation_bytes_size + gf_media_nalu_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
 	*out_SPS = gf_malloc(*out_SPS_length);
-	gf_media_nalu_add_emulation_bytes(data_without_emulation_bytes, *out_SPS, data_without_emulation_bytes_size);
+	*out_SPS_length = gf_media_nalu_add_emulation_bytes(data_without_emulation_bytes, *out_SPS, data_without_emulation_bytes_size);
 
 	exit:
 	gf_bs_del(bs_in);
@@ -503,7 +503,7 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 	HEVCState *hevc = &ctx->hevc_state;
 
 	data_without_emulation_bytes = gf_malloc( in_slice_length * sizeof(char) ); // In slice content shall be written as a character, sizeof(char) is the length on which each character is coded.
-	data_without_emulation_bytes_size = avc_remove_emulation_bytes(in_slice, data_without_emulation_bytes, in_slice_length);
+	data_without_emulation_bytes_size = gf_media_nalu_remove_emulation_bytes(in_slice, data_without_emulation_bytes, in_slice_length);
 	bs_ori = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
 
 	gf_bs_get_refreshed_size(bs_ori);
@@ -629,7 +629,7 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 	data_without_emulation_bytes = dst_buf;
 	data_without_emulation_bytes_size = dst_buf_size;
 
-	u32 slice_length = data_without_emulation_bytes_size + avc_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
+	u32 slice_length = data_without_emulation_bytes_size + gf_media_nalu_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
 	if (*out_slice_length < slice_length)
 		*out_slice = gf_realloc(*out_slice, slice_length);
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Romain Bouqueau, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -6206,8 +6206,6 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, A
 }
 
 
-#ifndef GPAC_DISABLE_ISOM
-
 static u8 avc_get_sar_idx(u32 w, u32 h)
 {
 	u32 i;
@@ -6316,85 +6314,6 @@ GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 	}
 	return GF_OK;
 }
-#endif
-#if 0
-{
-	/*returns the nal_size without emulation prevention bytes*/
-	u32 avc_emulation_bytes_remove_count(const char *buffer, u32 nal_size)
-	{
-		u32 i = 0, emulation_bytes_count = 0;
-		u8 num_zero = 0;
-
-		while (i < nal_size)
-		{
-			/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
-			  other than the following sequences shall not occur at any byte-aligned position:
-			  \96 0x00000300
-			  \96 0x00000301
-			  \96 0x00000302
-			  \96 0x00000303"
-			*/
-			if (num_zero == 2
-				&& buffer[i] == 0x03
-				&& i + 1 < nal_size /*next byte is readable*/
-				&& buffer[i + 1] < 0x04)
-			{
-				/*emulation code found*/
-				num_zero = 0;
-				emulation_bytes_count++;
-				i++;
-			}
-
-			if (!buffer[i])
-				num_zero++;
-			else
-				num_zero = 0;
-
-			i++;
-		}
-
-		return emulation_bytes_count;
-	}
-
-	/*nal_size is updated to allow better error detection*/
-	u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
-	{
-		u32 i = 0, emulation_bytes_count = 0;
-		u8 num_zero = 0;
-
-		while (i < nal_size)
-		{
-			/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
-			  other than the following sequences shall not occur at any byte-aligned position:
-			  0x00000300
-			  0x00000301
-			  0x00000302
-			  0x00000303"
-			*/
-			if (num_zero == 2
-				&& buffer_src[i] == 0x03
-				&& i + 1 < nal_size /*next byte is readable*/
-				&& buffer_src[i + 1] < 0x04)
-			{
-				/*emulation code found*/
-				num_zero = 0;
-				emulation_bytes_count++;
-				i++;
-			}
-
-			buffer_dst[i - emulation_bytes_count] = buffer_src[i];
-
-			if (!buffer_src[i])
-				num_zero++;
-			else
-				num_zero = 0;
-
-			i++;
-		}
-		return nal_size - emulation_bytes_count;
-	}
-}
-#endif
 
 GF_EXPORT
 GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d)
@@ -6438,107 +6357,6 @@ GF_Err gf_avc_get_pps_info(char *pps_data, u32 pps_size, u32 *pps_id, u32 *sps_i
 exit:
 	gf_bs_del(bs);
 	return e;
-}
-
-/*nal_size is updated to allow better error detection*/
-u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
-{
-	u32 i = 0, emulation_bytes_count = 0;
-	u8 num_zero = 0;
-
-	while (i < nal_size)
-	{
-		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
-		  other than the following sequences shall not occur at any byte-aligned position:
-		  0x00000300
-		  0x00000301
-		  0x00000302
-		  0x00000303"
-		*/
-		if (num_zero == 2
-			&& buffer_src[i] == 0x03
-			&& i + 1 < nal_size /*next byte is readable*/
-			&& buffer_src[i + 1] < 0x04)
-		{
-			/*emulation code found*/
-			num_zero = 0;
-			emulation_bytes_count++;
-			i++;
-		}
-
-		buffer_dst[i - emulation_bytes_count] = buffer_src[i];
-
-		if (!buffer_src[i])
-			num_zero++;
-		else
-			num_zero = 0;
-
-		i++;
-	}
-
-	return nal_size - emulation_bytes_count;
-}
-u32 avc_emulation_bytes_add_count(char *buffer, u32 nal_size)
-{
-	u32 i = 0, emulation_bytes_count = 0;
-	u8 num_zero = 0;
-
-	while (i < nal_size) {
-		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
-		other than the following sequences shall not occur at any byte-aligned position:
-		\96 0x00000300
-		\96 0x00000301
-		\96 0x00000302
-		\96 0x00000303"
-		*/
-		if (num_zero == 2 && buffer[i] < 0x04) {
-			/*emulation code found*/
-			num_zero = 0;
-			emulation_bytes_count++;
-			if (!buffer[i])
-				num_zero = 1;
-		}
-		else {
-			if (!buffer[i])
-				num_zero++;
-			else
-				num_zero = 0;
-		}
-		i++;
-	}
-	return emulation_bytes_count;
-}
-u32 avc_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
-{
-	u32 i = 0, emulation_bytes_count = 0;
-	u8 num_zero = 0;
-
-	while (i < nal_size) {
-		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
-		other than the following sequences shall not occur at any byte-aligned position:
-		0x00000300
-		0x00000301
-		0x00000302
-		0x00000303"
-		*/
-		if (num_zero == 2 && (u8)buffer_src[i] < 0x04) {
-			/*add emulation code*/
-			num_zero = 0;
-			buffer_dst[i + emulation_bytes_count] = 0x03;
-			emulation_bytes_count++;
-			if (!buffer_src[i])
-				num_zero = 1;
-		}
-		else {
-			if (!buffer_src[i])
-				num_zero++;
-			else
-				num_zero = 0;
-		}
-		buffer_dst[i + emulation_bytes_count] = buffer_src[i];
-		i++;
-	}
-	return nal_size + emulation_bytes_count;
 }
 
 #ifndef GPAC_DISABLE_HEVC

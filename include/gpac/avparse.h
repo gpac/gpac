@@ -69,9 +69,6 @@ void gf_media_reduce_aspect_ratio(u32 *width, u32 *height);
  */
 void gf_media_get_reduced_frame_rate(u32 *timescale, u32 *sample_dur);
 
-//u32 avc_emulation_bytes_remove_count(const char *buffer, u32 nal_size);
-//u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size);
-
 /*inserts emulation prevention bytes from buffer_src into buffer_dst*/
 u32 gf_media_nalu_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size);
 /*returns the nal_size without emulation prevention bytes*/
@@ -341,11 +338,6 @@ u32 gf_ac3_get_bitrate(u32 brcode);
 
 GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 GF_Err gf_avc_get_pps_info(char *pps, u32 pps_size, u32 *pps_id, u32 *sps_id);
-
-u32 avc_emulation_bytes_add_count(char *buffer, u32 nal_size);
-u32 avc_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size);
-u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size);
-
 
 //hevc_state is optional but shall be used for layer extensions since all size info is in VPS and not SPS
 GF_Err gf_hevc_get_sps_info(char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
