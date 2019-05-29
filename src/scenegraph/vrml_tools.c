@@ -717,6 +717,8 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 	case GF_SG_VRML_MFSCRIPT:
 		gf_sg_mfscript_del( * ((MFScript *) field));
 		break;
+	case GF_SG_VRML_SFSCRIPT:
+		return;
 
 	default:
 		assert(0);
