@@ -1072,6 +1072,7 @@ static DispShape *swf_get_depth_entry(SWFReader *read, u32 Depth, Bool create)
 
 static GF_Err swf_func_skip(SWFReader *read)
 {
+	if (!read) return GF_OK;
 	swf_skip_data(read, read->size);
 	return read->ioerr;
 }
@@ -2036,6 +2037,7 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 
 static GF_Err swf_def_hdr_jpeg(SWFReader *read)
 {
+	if (!read) return GF_OK;
 	if (read->jpeg_hdr) {
 		swf_report(read, GF_NON_COMPLIANT_BITSTREAM, "JPEG Table already defined in file");
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -2282,6 +2284,7 @@ static const char *swf_get_tag_name(u32 tag)
 
 static GF_Err swf_unknown_tag(SWFReader *read)
 {
+	if (!read) return GF_OK;
 	swf_report(read, GF_NOT_SUPPORTED, "Tag %s (0x%2x) not implemented - skipping", swf_get_tag_name(read->tag), read->tag);
 	return swf_func_skip(read);
 }
@@ -2442,7 +2445,7 @@ void swf_report(SWFReader *read, GF_Err e, char *format, ...)
 static void swf_io_error(void *par)
 {
 	SWFReader *read = (SWFReader *)par;
-	read->ioerr = GF_IO_ERR;
+	if (read) read->ioerr = GF_IO_ERR;
 }
 
 GF_Err gf_sm_load_run_swf(GF_SceneLoader *load)
@@ -2520,6 +2523,10 @@ void gf_sm_load_done_swf(GF_SceneLoader *load)
 {
 	SWFReader *read = (SWFReader *) load->loader_priv;
 	if (!read) return;
+	if (read->svg_file) {
+		gf_fclose(read->svg_file);
+		read->svg_file = NULL;
+	}
 	gf_swf_reader_del(read);
 	load->loader_priv = NULL;
 }
@@ -2615,6 +2622,14 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 
 	if (!load->ctx || !load->scene_graph || !load->fileName) return GF_BAD_PARAM;
 
+	if (gf_sys_is_test_mode()) {
+		swf_func_skip(NULL);
+		swf_def_hdr_jpeg(NULL);
+		swf_get_tag_name(SWF_FREECHARACTER);
+		swf_unknown_tag(NULL);
+		swf_io_error(NULL);
+	}
+
 	read = gf_swf_reader_new(load->localPath, load->fileName);
 	read->load = load;
 	read->flags = load->swf_import_flags;
@@ -2647,6 +2662,7 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 			}
 			svgFile = gf_fopen(svgFileName, "wt");
 			if (!svgFile) return GF_BAD_PARAM;
+			read->svg_file = svgFile;
 		} else {
 			svgFile = stdout;
 		}

@@ -186,10 +186,12 @@ struct SWFReader
 	Bool svg_shape_started;
 	/* end of SVG conversion state */
 
-	/* MP4 user */
+	/* MP4/SVG user */
 	void *user;
 	GF_Err (*add_sample)(void *user, const char *data, u32 length, u64 timestamp, Bool isRap);
 	GF_Err (*add_header)(void *user, const char *data, u32 length, Bool isHeader);
+
+	FILE *svg_file;
 };
 
 
