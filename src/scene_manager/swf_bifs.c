@@ -1984,6 +1984,8 @@ static void swf_bifs_finalize(SWFReader *read)
 		gf_list_rem(read->buttons, 0);
 		gf_free(btnrec);
 	}
+	gf_list_del(read->buttons);
+	read->buttons = NULL;
 
 	count = gf_list_count(read->fonts);
 	for (i=0; i<count; i++) {
@@ -2033,7 +2035,6 @@ Bool swf_bifs_action(SWFReader *read, SWFAction *act)
 		url.count = 1;
 		url.vals = &sfurl;
 		s2b_set_field(read, dst, n, "url", -1, GF_SG_VRML_MFURL, &url, 0);
-		s2b_set_field(read, dst, n, "parameter", -1, GF_SG_VRML_MFSTRING, &url, 0);
 		bval = 1;
 		s2b_set_field(read, dst, n, "activate", -1, GF_SG_VRML_SFBOOL, &bval, 0);
 		break;
@@ -2079,6 +2080,13 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	read->action = swf_bifs_action;
 	read->finalize = swf_bifs_finalize;
 
+	if (gf_sys_is_test_mode()) {
+		swf_nstart(NULL, NULL, NULL, NULL, 0);
+		swf_nend(NULL, NULL, NULL);
+		swf_ntext(NULL, NULL, GF_FALSE);
+
+
+	}
 	/*create BIFS stream*/
 	read->bifs_es = gf_sm_stream_new(read->load->ctx, 1, GF_STREAM_SCENE, GF_CODECID_BIFS);
 	read->bifs_es->timeScale = read->frame_rate*100;
