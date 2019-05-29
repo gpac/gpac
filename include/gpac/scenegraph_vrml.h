@@ -365,8 +365,7 @@ position is the 0-BASED index in the list of children, -1 means end of list (app
 DOES NOT CHECK CHILD/PARENT type compatibility
 */
 GF_Err gf_node_insert_child(GF_Node *parent, GF_Node *new_child, s32 Position);
-/*removes an existing node from the "children" field*/
-GF_Err gf_node_remove_child(GF_Node *parent, GF_Node *toremove_child);
+
 /*remove and replace given child by specified node. If node is NULL, only delete target node
 position is the 0-BASED index in the list of children, -1 means end of list (append)
 DOES NOT CHECK CHILD/PARENT type compatibility

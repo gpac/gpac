@@ -377,9 +377,6 @@ void gf_sg_sfurl_del(SFURL url);
 Bool gf_sg_vrml_node_init(GF_Node *node);
 Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field);
 
-char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info);
-
-
 
 //
 //		MF Fields tools

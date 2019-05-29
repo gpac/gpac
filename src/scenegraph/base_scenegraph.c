@@ -2337,7 +2337,7 @@ const char *gf_sg_get_namespace(GF_SceneGraph *sg, GF_NamespaceType xmlns_id)
 }
 
 
-#if 0
+#if 0 //unused
 char *gf_node_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 {
 #ifndef GPAC_DISABLE_SVG

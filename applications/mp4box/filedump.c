@@ -764,6 +764,14 @@ void PrintBuiltInNodes(u32 graph_type, Bool dump_nodes)
 	} else {
 		fprintf(stderr, "\n%d nodes supported - %d nodes not supported\n", nb_in, nb_not_in);
 	}
+	//coverage
+	if (dump_nodes) {
+		for (i=GF_SG_VRML_SFBOOL; i<GF_SG_VRML_SCRIPT_FUNCTION; i++) {
+			void *fp = gf_sg_vrml_field_pointer_new(i);
+			gf_sg_vrml_field_pointer_del(fp, i);
+		}
+
+	}
 #else
 	fprintf(stderr, "\nNo scene graph enabled in this MP4Box build\n");
 #endif

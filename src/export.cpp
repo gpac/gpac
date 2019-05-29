@@ -1679,7 +1679,6 @@
 #ifndef GPAC_DISABLE_VRML
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_get_num_fields_in_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_insert_child) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_node_remove_child) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_event_out) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_event_out_str) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_vrml_get_event_type_name) )
