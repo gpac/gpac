@@ -74,6 +74,20 @@ GF_SceneGraph *gf_sg_new()
 	tmp->objects = gf_list_new();
 #endif
 	tmp->on_node_modified = node_modif_stub;
+
+	//test some functions only used in weird smil anim or dom JS, and not adressed in test suite
+	if (gf_sys_is_test_mode()) {
+		node_modif_stub(NULL, NULL, NULL, NULL);
+		gf_node_remove_id(NULL);
+		gf_node_list_get_child(NULL, 0);
+		gf_node_get_parent_count(NULL);
+		gf_node_get_num_instances(NULL);
+		gf_node_get_log_name(NULL);
+		gf_sg_get_namespace(NULL, 0);
+		gf_node_parent_of(NULL, NULL);
+		gf_sg_get_parent(tmp);
+	}
+
 	return tmp;
 }
 
@@ -518,6 +532,7 @@ GFINLINE GF_Node *SG_SearchForDuplicateNodeID(GF_SceneGraph *sg, u32 nodeID, GF_
 	return NULL;
 }
 
+#if 0 //unused
 void *gf_node_get_name_address(GF_Node*node)
 {
 	NodeIDedItem *reg_node;
@@ -529,6 +544,7 @@ void *gf_node_get_name_address(GF_Node*node)
 	}
 	return NULL;
 }
+#endif
 
 GF_EXPORT
 void gf_sg_set_private(GF_SceneGraph *sg, void *ptr)
@@ -1374,7 +1390,7 @@ GF_Err gf_node_list_insert_child(GF_ChildNodeItem **list, GF_Node *n, u32 pos)
 	return GF_OK;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_node_list_append_child(GF_ChildNodeItem **list, GF_ChildNodeItem **last_child, GF_Node *n)
 {
 	GF_ChildNodeItem *child, *cur;
@@ -1401,6 +1417,7 @@ GF_Err gf_node_list_append_child(GF_ChildNodeItem **list, GF_ChildNodeItem **las
 	}
 	return GF_OK;
 }
+#endif
 
 GF_EXPORT
 GF_Node *gf_node_list_get_child(GF_ChildNodeItem *list, s32 pos)
@@ -1593,7 +1610,7 @@ GF_EXPORT
 u32 gf_node_get_parent_count(GF_Node *node)
 {
 	u32 count = 0;
-	GF_ParentList *nlist = node->sgprivate->parents;
+	GF_ParentList *nlist = node ? node->sgprivate->parents : 0;
 	while (nlist) {
 		count++;
 		nlist = nlist->next;
@@ -1923,7 +1940,7 @@ const char *gf_node_get_class_name(GF_Node *node)
 	return "UnsupportedNode";
 }
 
-GF_EXPORT
+#if 0 //unused
 u32 gf_sg_node_get_tag_by_class_name(const char *name, u32 ns)
 {
 	u32 tag = TAG_UndefinedNode;
@@ -1947,6 +1964,8 @@ u32 gf_sg_node_get_tag_by_class_name(const char *name, u32 ns)
 
 	return 	tag;
 }
+#endif
+
 
 GF_EXPORT
 GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
@@ -2028,7 +2047,7 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 
 u32 gf_node_get_num_instances(GF_Node *node)
 {
-	return node->sgprivate->num_instances;
+	return node ? node->sgprivate->num_instances : 0;
 }
 
 static GF_Err gf_node_get_field_by_name_enum(GF_Node *node, char *name, GF_FieldInfo *field)
@@ -2077,7 +2096,9 @@ GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 static char log_node_name[2+16+1];
 const char *gf_node_get_log_name(GF_Node *anim)
 {
-	const char *name = gf_node_get_name(anim);
+	const char *name;
+	if (!anim) return "";
+	name = gf_node_get_name(anim);
 	if (name) return name;
 	else {
 		sprintf(log_node_name, "%p", anim);
@@ -2301,6 +2322,7 @@ const char *gf_sg_get_namespace(GF_SceneGraph *sg, GF_NamespaceType xmlns_id)
 {
 	GF_XMLNS *ns;
 	u32 i, count;
+	if (!sg) return NULL;
 	count = sg->ns ? gf_list_count(sg->ns) : 0;
 	for (i=0; i<count; i++) {
 		ns = gf_list_get(sg->ns, i);
@@ -2311,7 +2333,7 @@ const char *gf_sg_get_namespace(GF_SceneGraph *sg, GF_NamespaceType xmlns_id)
 }
 
 
-GF_EXPORT
+#if 0
 char *gf_node_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 {
 #ifndef GPAC_DISABLE_SVG
@@ -2326,6 +2348,7 @@ char *gf_node_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 	return NULL;
 #endif
 }
+#endif
 
 
 /*this is not a NodeReplace, thus only the given container is updated - pos is 0-based*/
