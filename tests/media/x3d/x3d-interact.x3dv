@@ -27,12 +27,22 @@ DEF BToggler BooleanToggle {
 DEF IT1 IntegerTrigger {
   integerKey 1
 }
+DEF BT1 BooleanTrigger {
+}
 
+DEF TT TimeTrigger {
+}
  ]
 }
 
 ROUTE TS.isActive TO Filter.set_boolean
 ROUTE TS.fraction_changed TO ISequencer.set_fraction
 ROUTE TS.fraction_changed TO BSequencer.set_fraction
+ROUTE TS.isActive TO BSequencer.next
+ROUTE TS.isActive TO BSequencer.previous
 ROUTE TS.isActive TO BToggler.set_boolean
+ROUTE TS.isActive TO TT.set_boolean
 ROUTE TS.isActive TO IT1.set_boolean
+ROUTE TS.isActive TO ISequencer.next
+ROUTE TS.isActive TO ISequencer.previous
+ROUTE TS.time TO BT1.set_triggerTime

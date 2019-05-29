@@ -99,7 +99,7 @@ void timesensor_update_time(GF_TimeNode *st)
 		}
 #ifndef GPAC_DISABLE_X3D
 		if (stack->is_x3d && !TS->loop) {
-			if (!stack->start_time) return;
+			if (!stack->start_time && !gf_sys_is_test_mode() ) return;
 			if (currentTime >= TS->startTime+stack->cycle_interval) return;
 		}
 #endif
