@@ -266,8 +266,7 @@ int main(int argc, char **argv)
 	//interleave data and remove imported file
 	//FIXME: set multiple fragments:
 	sprintf(tmpstr, "%s_HD_100_Seg%u-Frag1", output, ctx.segnum); //FIXME: "HD", "100" and fragnum: pass as arg
-	//e = gf_media_fragment_file(isom_file_in, tmpstr, 1.0);
-	e = gf_media_fragment_file(isom_file_in, tmpstr, 1.0+gf_isom_get_duration(isom_file_in)/gf_isom_get_timescale(isom_file_in));
+	e = gf_media_fragment_file(isom_file_in, tmpstr, 1.0+gf_isom_get_duration(isom_file_in)/gf_isom_get_timescale(isom_file_in), GF_FALSE);
 	if (e) {
 		fprintf(stderr, "Error while fragmenting file to output %s: %s\n", output, gf_error_to_string(e));
 		assert(0);
