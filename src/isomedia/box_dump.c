@@ -465,6 +465,7 @@ GF_Err kind_dump(GF_Box *a, FILE * trace)
 static char *format_duration(u64 dur, u32 timescale, char *szDur)
 {
 	u32 h, m, s, ms;
+	if (!timescale) return NULL;
 	dur = (u32) (( ((Double) (s64) dur)/timescale)*1000);
 	h = (u32) (dur / 3600000);
 	dur -= h*3600000;
@@ -479,7 +480,7 @@ static char *format_duration(u64 dur, u32 timescale, char *szDur)
 
 static void dump_escape_string(FILE * trace, char *name)
 {
-	u32 i, len = (u32) strlen(name);
+	u32 i, len = name ? (u32) strlen(name) : 0;
 	for (i=0; i<len; i++) {
 		if (name[i]=='"') fprintf(trace, "&quot;");
 		else fputc(name[i], trace);
@@ -504,6 +505,10 @@ GF_Err chpl_dump(GF_Box *a, FILE * trace)
 		}
 	} else {
 		fprintf(trace, "<Chapter name=\"\" startTime=\"\"/>\n");
+	}
+	if (gf_sys_is_test_mode()) {
+		format_duration(0, 0, NULL);
+		dump_escape_string(NULL, NULL);
 	}
 
 	gf_isom_box_dump_done("ChapterListBox", a, trace);
@@ -1390,6 +1395,9 @@ GF_Err unkn_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done(name, a, trace);
+	if (gf_sys_is_test_mode()) {
+		dump_data_string(NULL, NULL, 0);
+	}
 	return GF_OK;
 }
 
