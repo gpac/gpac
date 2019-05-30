@@ -2,6 +2,7 @@ hint_test ()
 {
  tempfile=$1'.tmp'
  hintfile=$1'.hint'
+ hintdump=$1'.xml'
  #hint media
  do_test "$MP4BOX -hint $1 -out $hintfile" "RTPHint"
 if [ $do_hash != 0 ] ; then
@@ -12,9 +13,10 @@ fi
 do_sdp_dump=0
 
 case $1 in
-*english.mp3 )
+*english*mp3* )
  do_sdp_dump=1;;
 esac
+
 
 if [ $do_sdp_dump != 0 ] ; then
  #check SDP+RTP packets
@@ -29,6 +31,7 @@ if [ $do_sdp_dump != 0 ] ; then
  fi
  do_test "$MP4BOX -info 65536 $hintfile" "HintInfo"
 fi
+
 
 #unhint media
 do_test "$MP4BOX -unhint $hintfile" "RTPUnhint"
@@ -137,7 +140,7 @@ mp4_test ()
  do_test "$MP4BOX -info $mp4file" "MediaInfo" &
 
  #test -diso
- do_test "$MP4BOX -diso $mp4file -out $tmp1" "XMDDump"
+ do_test "$MP4BOX -diso $mp4file -out $tmp1" "XMLDump"
 if [ $do_hash != 0 ] ; then
  do_hash_test $tmp1 "diso"
 fi
