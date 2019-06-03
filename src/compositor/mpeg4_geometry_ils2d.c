@@ -293,15 +293,19 @@ static void TraverseILS2D(GF_Node *node, void *rs, Bool is_destroy)
 static void ILS2D_SetColorIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
-	gf_sg_vrml_field_copy(&ils2D->colorIndex, &ils2D->set_colorIndex, GF_SG_VRML_MFINT32);
-	gf_sg_vrml_mf_reset(&ils2D->set_colorIndex, GF_SG_VRML_MFINT32);
+	if (node) {
+		gf_sg_vrml_field_copy(&ils2D->colorIndex, &ils2D->set_colorIndex, GF_SG_VRML_MFINT32);
+		gf_sg_vrml_mf_reset(&ils2D->set_colorIndex, GF_SG_VRML_MFINT32);
+	}
 }
 
 static void ILS2D_SetCoordIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
-	gf_sg_vrml_field_copy(&ils2D->coordIndex, &ils2D->set_coordIndex, GF_SG_VRML_MFINT32);
-	gf_sg_vrml_mf_reset(&ils2D->set_coordIndex, GF_SG_VRML_MFINT32);
+	if (node) {
+		gf_sg_vrml_field_copy(&ils2D->coordIndex, &ils2D->set_coordIndex, GF_SG_VRML_MFINT32);
+		gf_sg_vrml_mf_reset(&ils2D->set_coordIndex, GF_SG_VRML_MFINT32);
+	}
 }
 
 void compositor_init_indexed_line_set2d(GF_Compositor *compositor, GF_Node *node)
@@ -312,6 +316,14 @@ void compositor_init_indexed_line_set2d(GF_Compositor *compositor, GF_Node *node
 	gf_node_set_callback_function(node, TraverseILS2D);
 	ils2D->on_set_colorIndex = ILS2D_SetColorIndex;
 	ils2D->on_set_coordIndex = ILS2D_SetCoordIndex;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		ILS2D_SetCoordIndex(NULL, NULL);
+		ILS2D_SetColorIndex(NULL, NULL);
+	}
+#endif
+
 }
 
 #endif /*GPAC_DISABLE_VRML*/

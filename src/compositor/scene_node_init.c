@@ -59,8 +59,10 @@ void TraverseKeyNavigator(GF_Node *node, void *rs, Bool is_destroy)
 
 void on_kn_set_focus(GF_Node*node, GF_Route *_route)
 {
-	GF_Scene *scene = (GF_Scene *)gf_node_get_private(node);
-	gf_sc_change_key_navigator(scene->compositor, node);
+	if (node) {
+		GF_Scene *scene = (GF_Scene *)gf_node_get_private(node);
+		gf_sc_change_key_navigator(scene->compositor, node);
+	}
 }
 
 void evaluate_scene_cap(GF_Node *node, GF_Route *route)
@@ -259,6 +261,11 @@ void gf_scene_on_node_init(void *_scene, GF_Node *node)
 		gf_node_set_private(node, scene);
 		gf_list_add(scene->keynavigators, node);
 		((M_KeyNavigator*)node)->on_setFocus = on_kn_set_focus;
+#ifdef GPAC_ENABLE_COVERAGE
+		if (gf_sys_is_test_mode()) {
+			on_kn_set_focus(NULL, NULL);
+		}
+#endif
 		break;
 
 #endif
