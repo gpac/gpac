@@ -58,6 +58,13 @@ GF_VisualManager *visual_new(GF_Compositor *compositor)
 	tmp->DrawBitmap = visual_draw_bitmap_stub;
 	tmp->ClearSurface = visual_2d_clear_surface;
 
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		visual_draw_bitmap_stub(tmp, NULL, NULL);
+		visual_reset_graphics(NULL);
+	}
+#endif
+
 #ifndef GPAC_DISABLE_3D
 
 #ifndef GPAC_DISABLE_VRML
@@ -294,6 +301,7 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 
 void visual_reset_graphics(GF_VisualManager *visual)
 {
+	if (!visual) return;
 #ifndef GPAC_DISABLE_3D
 	if (visual->type_3d) {
 		visual_3d_reset_graphics(visual);

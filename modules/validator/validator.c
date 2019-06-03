@@ -287,7 +287,7 @@ Bool validator_on_event_play(void *udta, GF_Event *event, Bool consumed_by_compo
 	case GF_EVENT_CONNECT:
 		if (event->connect.is_connected) {
 			if (!validator->trace_mode) {
-				gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
+//deprecated				gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
 			}
 
 			validator->root_odm = validator->compositor->root_scene->root_od;
@@ -526,7 +526,7 @@ Bool validator_on_event_record(void *udta, GF_Event *event, Bool consumed_by_com
 	case GF_EVENT_CONNECT:
 		if (event->connect.is_connected) {
 			if (!validator->trace_mode) {
-				gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
+//deprecated				gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
 			}
 			validator->root_odm = validator->compositor->root_scene->root_od;
 		}
@@ -567,13 +567,13 @@ Bool validator_on_event_record(void *udta, GF_Event *event, Bool consumed_by_com
 			rec_event = GF_FALSE;
 			validator_xvs_close(validator);
 			gf_sc_disconnect(validator->compositor);
-			gf_sc_remove_video_listener(validator->compositor, &validator->video_listener);
+//deprecated			gf_sc_remove_video_listener(validator->compositor, &validator->video_listener);
 			validator_xvs_next(validator, GF_FALSE);
 		} else if (event->key.key_code == GF_KEY_PAGEUP) {
 			rec_event = GF_FALSE;
 			validator_xvs_close(validator);
 			gf_sc_disconnect(validator->compositor);
-			gf_sc_remove_video_listener(validator->compositor, &validator->video_listener);
+//deprecated			gf_sc_remove_video_listener(validator->compositor, &validator->video_listener);
 			validator_xvs_next(validator, GF_TRUE);
 		} else if (event->key.key_code == GF_KEY_CONTROL) {
 			rec_event = GF_FALSE;
@@ -855,7 +855,7 @@ static void validator_test_open(GF_Validator *validator)
 		else
 			sprintf(filename, "%s", validator->test_filename);
 
-		gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
+//deprecated		gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
 		if (validator->is_recording)
 			validator->snapshot_next_frame = GF_TRUE;
 		gf_sc_connect_from_time_ex(validator->compositor, filename, 0, 0, 0, NULL);
@@ -1115,7 +1115,7 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 				validator_xvs_close(validator);
 				if (! validator->trace_mode) {
 					gf_sc_disconnect(validator->compositor);
-					gf_sc_remove_video_listener(validator->compositor, &validator->video_listener);
+//deprecated					gf_sc_remove_video_listener(validator->compositor, &validator->video_listener);
 					validator_xvs_next(validator, GF_FALSE);
 					if (!validator->xvs_node) {
 						GF_Event evt;
