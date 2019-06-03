@@ -768,6 +768,12 @@ const char *gf_enabled_features()
 #ifdef GPAC_HAS_SOCK_UN
 	                       "GPAC_HAS_SOCK_UN "
 #endif
+#ifdef GPAC_ENABLE_COVERAGE
+	                       "GPAC_ENABLE_COVERAGE "
+#endif
+#ifdef GPAC_MINIMAL_ODF
+	                       "GPAC_MINIMAL_ODF "
+#endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	                       "GPAC_HAS_SPIDERMONKEY "
 #endif
@@ -850,9 +856,6 @@ const char *gf_disabled_features()
 #endif
 #ifdef GPAC_DISABLE_VRML
 	                       "GPAC_DISABLE_VRML "
-#endif
-#ifdef GPAC_MINIMAL_ODF
-	                       "GPAC_MINIMAL_ODF "
 #endif
 #ifdef GPAC_DISABLE_BIFS
 	                       "GPAC_DISABLE_BIFS "

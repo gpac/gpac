@@ -116,10 +116,10 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 		gf_dm_sess_set_range(ctx->sess, ctx->range.num, ctx->range.den, GF_TRUE);
 	}
 
-	//for coverage
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode())
 		httpin_notify_error(NULL, NULL, GF_OK);
-
+#endif
 
 	return GF_OK;
 }

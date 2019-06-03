@@ -273,6 +273,7 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 	JPGErr jper;
 	JPGCtx jpx;
 
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		gf_jpeg_fatal_error(NULL);
 		gf_jpeg_output_message(NULL);
@@ -280,6 +281,7 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 		gf_jpeg_fill_input_buffer(NULL);
 		gf_jpeg_skip_input_data(NULL, 0);
 	}
+#endif
 
 	jpx.cinfo.err = jpeg_std_error(&(jper.pub));
 	jper.pub.error_exit = gf_jpeg_fatal_error;
@@ -451,9 +453,12 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	udta.size = png_size;
 	udta.pos = 0;
 	udta.rows=NULL;
+
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		gf_png_user_error_fn(NULL, NULL);
 	}
+#endif
 
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, (png_voidp) &udta, NULL, NULL);
 	if (!png_ptr) return GF_IO_ERR;
@@ -588,9 +593,11 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 
 	if (png_ptr == NULL) return GF_IO_ERR;
 
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		gf_png_flush(NULL);
 	}
+#endif
 
 	/* Allocate/initialize the image information data.  REQUIRED */
 	info_ptr = png_create_info_struct(png_ptr);

@@ -434,12 +434,13 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 
 static GF_Err j2kdec_initialize(GF_Filter *filter)
 {
-	//for coverage
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		error_callback(NULL, NULL);
 		warning_callback(NULL, NULL);
 		info_callback(NULL, NULL);
 	}
+#endif
 	return GF_OK;
 }
 

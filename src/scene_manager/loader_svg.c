@@ -1931,9 +1931,12 @@ static GF_SVG_Parser *svg_new_parser(GF_SceneLoader *load)
 	gf_sg_add_namespace(parser->load->scene_graph, "http://www.w3.org/2000/svg", NULL);
 	parser->current_ns = GF_XMLNS_SVG;
 
-	//for coverage
-	if (gf_sys_is_test_mode())
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
 		svg_report(parser, GF_OK, NULL);
+	}
+#endif
+
 	return parser;
 }
 

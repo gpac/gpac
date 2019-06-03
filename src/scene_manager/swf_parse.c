@@ -2622,6 +2622,7 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 
 	if (!load->ctx || !load->scene_graph || !load->fileName) return GF_BAD_PARAM;
 
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		swf_func_skip(NULL);
 		swf_def_hdr_jpeg(NULL);
@@ -2629,6 +2630,7 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 		swf_unknown_tag(NULL);
 		swf_io_error(NULL);
 	}
+#endif
 
 	read = gf_swf_reader_new(load->localPath, load->fileName);
 	read->load = load;

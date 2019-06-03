@@ -506,11 +506,12 @@ GF_Err chpl_dump(GF_Box *a, FILE * trace)
 	} else {
 		fprintf(trace, "<Chapter name=\"\" startTime=\"\"/>\n");
 	}
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		format_duration(0, 0, NULL);
 		dump_escape_string(NULL, NULL);
 	}
-
+#endif
 	gf_isom_box_dump_done("ChapterListBox", a, trace);
 	return GF_OK;
 }
@@ -1395,9 +1396,11 @@ GF_Err unkn_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done(name, a, trace);
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		dump_data_string(NULL, NULL, 0);
 	}
+#endif
 	return GF_OK;
 }
 

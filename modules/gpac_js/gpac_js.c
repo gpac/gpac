@@ -1693,9 +1693,11 @@ static JSBool SMJS_FUNCTION(gjs_odm_enable_addon)
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
 
 	if (! JSVAL_IS_STRING(argv[0]) ) {
+#ifdef GPAC_ENABLE_COVERAGE
 		if (gf_sys_is_test_mode()) {
 			do_enable_addon(odm, NULL, GF_TRUE, GF_FALSE);
 		}
+#endif
 		return JS_TRUE;
 	}
 	if ((argc==2) && JSVAL_IS_BOOLEAN(argv[1])) {

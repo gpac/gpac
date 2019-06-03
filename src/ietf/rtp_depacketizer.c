@@ -1237,8 +1237,11 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			payt_set_param(rtp, att->Name, att->Value);
 		}
 	}
-	if (gf_sys_is_test_mode())
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
 		gf_rtp_parse_pass_through(NULL, NULL, NULL, 0);
+	}
+#endif
 
 	switch (rtp->payt) {
 #ifndef GPAC_DISABLE_AV_PARSERS
