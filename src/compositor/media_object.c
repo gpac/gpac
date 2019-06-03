@@ -299,10 +299,15 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 			}
 
 			if (mo->odm->parentscene->is_dynamic_scene) {
+				u32 old_type = mo->odm->parentscene->srd_type;
 				if ((mo->srd_w == mo->srd_full_w) && (mo->srd_h == mo->srd_full_h)) {
 					mo->odm->parentscene->srd_type = 2;
 				} else if (!mo->odm->parentscene->srd_type) {
 					mo->odm->parentscene->srd_type = 1;
+				}
+				if (old_type != mo->odm->parentscene->srd_type) {
+					gf_sg_reset(mo->odm->parentscene->graph);
+					gf_scene_regenerate(mo->odm->parentscene);
 				}
 			}
 		}

@@ -542,6 +542,10 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	odm->scene_ns->nb_odm_users++;
 	assert(odm->scene_ns->owner == odm);
 
+	if (frag && !odm->scene_ns->url_frag) {
+		odm->scene_ns->url_frag = gf_strdup(frag+1);
+	}
+
 	if (!strncmp(serviceURL, "gpid://", 7)) {
 		gf_odm_service_media_event(odm, GF_EVENT_MEDIA_SETUP_BEGIN);
 		gf_odm_service_media_event(odm, GF_EVENT_MEDIA_SETUP_DONE);
