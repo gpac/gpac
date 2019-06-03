@@ -1741,6 +1741,7 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/rtp_streamer.h>
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 {
+#ifdef GPAC_ENABLE_COVERAGE
 	u32 ucs4_buf[4];
 	u8 utf8_buf[7];
 
@@ -2061,6 +2062,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_rtp_streamer_get_payload_type(NULL);
 	gf_rtsp_unregister_interleave(NULL, 0);
 
+#endif
 	return 0;
 }
 

@@ -46,6 +46,8 @@ OrderedGroup { children [
 		DEF TS TouchSensor {}
 	]}
 	DEF TES TestSensor {}
+
+	TermCap {}
 ] }
 
 

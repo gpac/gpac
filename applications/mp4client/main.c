@@ -1886,6 +1886,7 @@ force_input:
 	if (print_stats)
 		gf_term_print_stats(term);
 
+#ifdef GPAC_ENABLE_COVERAGE
 	if (do_coverage) {
 		u32 w, h, k, nb_drawn;
 		GF_Event evt;
@@ -1967,6 +1968,7 @@ force_input:
 			evt.key.key_code = GF_KEY_CONTROL;
 			gf_term_user_event(term, &evt);
 		}
+		gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
 
 		gf_term_connect_with_path(term, "logo.jpg", "./media/auxiliary_files/");
 		gf_term_navigate_to(term, "./media/auxiliary_files/logo.jpg");
@@ -1976,6 +1978,7 @@ force_input:
 		hide_shell(0);
 		list_modules();
 	}
+#endif
 
 	i = gf_sys_clock();
 	gf_term_disconnect(term);

@@ -250,29 +250,37 @@ static void TraverseIFS(GF_Node *n, void *rs, Bool is_destroy)
 static void IFS_SetColorIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedFaceSet *ifs = (M_IndexedFaceSet *)node;
-	gf_sg_vrml_field_copy(&ifs->colorIndex, &ifs->set_colorIndex, GF_SG_VRML_MFINT32);
-	gf_sg_vrml_mf_reset(&ifs->set_colorIndex, GF_SG_VRML_MFINT32);
+	if (node) {
+		gf_sg_vrml_field_copy(&ifs->colorIndex, &ifs->set_colorIndex, GF_SG_VRML_MFINT32);
+		gf_sg_vrml_mf_reset(&ifs->set_colorIndex, GF_SG_VRML_MFINT32);
+	}
 }
 
 static void IFS_SetCoordIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedFaceSet *ifs = (M_IndexedFaceSet *)node;
-	gf_sg_vrml_field_copy(&ifs->coordIndex, &ifs->set_coordIndex, GF_SG_VRML_MFINT32);
-	gf_sg_vrml_mf_reset(&ifs->set_coordIndex, GF_SG_VRML_MFINT32);
+	if (node) {
+		gf_sg_vrml_field_copy(&ifs->coordIndex, &ifs->set_coordIndex, GF_SG_VRML_MFINT32);
+		gf_sg_vrml_mf_reset(&ifs->set_coordIndex, GF_SG_VRML_MFINT32);
+	}
 }
 
 static void IFS_SetNormalIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedFaceSet *ifs = (M_IndexedFaceSet *)node;
-	gf_sg_vrml_field_copy(&ifs->normalIndex, &ifs->set_normalIndex, GF_SG_VRML_MFINT32);
-	gf_sg_vrml_mf_reset(&ifs->set_normalIndex, GF_SG_VRML_MFINT32);
+	if (node) {
+		gf_sg_vrml_field_copy(&ifs->normalIndex, &ifs->set_normalIndex, GF_SG_VRML_MFINT32);
+		gf_sg_vrml_mf_reset(&ifs->set_normalIndex, GF_SG_VRML_MFINT32);
+	}
 }
 
 static void IFS_SetTexCoordIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedFaceSet *ifs = (M_IndexedFaceSet *)node;
-	gf_sg_vrml_field_copy(&ifs->texCoordIndex, &ifs->set_texCoordIndex, GF_SG_VRML_MFINT32);
-	gf_sg_vrml_mf_reset(&ifs->set_texCoordIndex, GF_SG_VRML_MFINT32);
+	if (node) {
+		gf_sg_vrml_field_copy(&ifs->texCoordIndex, &ifs->set_texCoordIndex, GF_SG_VRML_MFINT32);
+		gf_sg_vrml_mf_reset(&ifs->set_texCoordIndex, GF_SG_VRML_MFINT32);
+	}
 }
 
 void compositor_init_ifs(GF_Compositor *compositor, GF_Node *node)
@@ -284,6 +292,16 @@ void compositor_init_ifs(GF_Compositor *compositor, GF_Node *node)
 	ifs->on_set_coordIndex = IFS_SetCoordIndex;
 	ifs->on_set_normalIndex = IFS_SetNormalIndex;
 	ifs->on_set_texCoordIndex = IFS_SetTexCoordIndex;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		IFS_SetCoordIndex(NULL, NULL);
+		IFS_SetColorIndex(NULL, NULL);
+		IFS_SetNormalIndex(NULL, NULL);
+		IFS_SetTexCoordIndex(NULL, NULL);
+	}
+#endif
+
 }
 
 static void build_shape_ils(GF_Node *n, Drawable3D *stack, GF_TraverseState *tr_state)
@@ -318,6 +336,14 @@ void compositor_init_ils(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, TraverseILS);
 	ils->on_set_colorIndex = ILS_SetColorIndex;
 	ils->on_set_coordIndex = ILS_SetCoordIndex;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		ILS_SetCoordIndex(NULL, NULL);
+		ILS_SetColorIndex(NULL, NULL);
+	}
+#endif
+
 }
 
 
@@ -334,8 +360,10 @@ static void TraverseElevationGrid(GF_Node *n, void *rs, Bool is_destroy)
 static void ElevationGrid_SetHeight(GF_Node *node, GF_Route *route)
 {
 	M_ElevationGrid *eg = (M_ElevationGrid *)node;
-	gf_sg_vrml_field_copy(&eg->height, &eg->set_height, GF_SG_VRML_MFFLOAT);
-	gf_sg_vrml_mf_reset(&eg->set_height, GF_SG_VRML_MFFLOAT);
+	if (node) {
+		gf_sg_vrml_field_copy(&eg->height, &eg->set_height, GF_SG_VRML_MFFLOAT);
+		gf_sg_vrml_mf_reset(&eg->set_height, GF_SG_VRML_MFFLOAT);
+	}
 }
 
 void compositor_init_elevation_grid(GF_Compositor *compositor, GF_Node *node)
@@ -344,6 +372,11 @@ void compositor_init_elevation_grid(GF_Compositor *compositor, GF_Node *node)
 	drawable_3d_new(node);
 	gf_node_set_callback_function(node, TraverseElevationGrid);
 	eg->on_set_height = ElevationGrid_SetHeight;
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		ElevationGrid_SetHeight(NULL, NULL);
+	}
+#endif
 }
 
 static void build_shape_extrusion(GF_Node *n, Drawable3D *stack, GF_TraverseState *tr_state)
@@ -359,26 +392,34 @@ static void TraverseExtrusion(GF_Node *n, void *rs, Bool is_destroy)
 static void Extrusion_SetCrossSection(GF_Node *node, GF_Route *route)
 {
 	M_Extrusion *eg = (M_Extrusion *)node;
-	gf_sg_vrml_field_copy(&eg->crossSection, &eg->set_crossSection, GF_SG_VRML_MFVEC2F);
-	gf_sg_vrml_mf_reset(&eg->set_crossSection, GF_SG_VRML_MFVEC2F);
+	if (node) {
+		gf_sg_vrml_field_copy(&eg->crossSection, &eg->set_crossSection, GF_SG_VRML_MFVEC2F);
+		gf_sg_vrml_mf_reset(&eg->set_crossSection, GF_SG_VRML_MFVEC2F);
+	}
 }
 static void Extrusion_SetOrientation(GF_Node *node, GF_Route *route)
 {
 	M_Extrusion *eg = (M_Extrusion *)node;
-	gf_sg_vrml_field_copy(&eg->orientation, &eg->set_orientation, GF_SG_VRML_MFROTATION);
-	gf_sg_vrml_mf_reset(&eg->set_orientation, GF_SG_VRML_MFROTATION);
+	if (node) {
+		gf_sg_vrml_field_copy(&eg->orientation, &eg->set_orientation, GF_SG_VRML_MFROTATION);
+		gf_sg_vrml_mf_reset(&eg->set_orientation, GF_SG_VRML_MFROTATION);
+	}
 }
 static void Extrusion_SetScale(GF_Node *node, GF_Route *route)
 {
 	M_Extrusion *eg = (M_Extrusion *)node;
-	gf_sg_vrml_field_copy(&eg->scale, &eg->set_scale, GF_SG_VRML_MFVEC2F);
-	gf_sg_vrml_mf_reset(&eg->set_scale, GF_SG_VRML_MFVEC2F);
+	if (node) {
+		gf_sg_vrml_field_copy(&eg->scale, &eg->set_scale, GF_SG_VRML_MFVEC2F);
+		gf_sg_vrml_mf_reset(&eg->set_scale, GF_SG_VRML_MFVEC2F);
+	}
 }
 static void Extrusion_SetSpine(GF_Node *node, GF_Route *route)
 {
 	M_Extrusion *eg = (M_Extrusion *)node;
-	gf_sg_vrml_field_copy(&eg->spine, &eg->set_spine, GF_SG_VRML_MFVEC3F);
-	gf_sg_vrml_mf_reset(&eg->set_spine, GF_SG_VRML_MFVEC3F);
+	if (node) {
+		gf_sg_vrml_field_copy(&eg->spine, &eg->set_spine, GF_SG_VRML_MFVEC3F);
+		gf_sg_vrml_mf_reset(&eg->set_spine, GF_SG_VRML_MFVEC3F);
+	}
 }
 void compositor_init_extrusion(GF_Compositor *compositor, GF_Node *node)
 {
@@ -389,6 +430,16 @@ void compositor_init_extrusion(GF_Compositor *compositor, GF_Node *node)
 	ext->on_set_orientation = Extrusion_SetOrientation;
 	ext->on_set_scale = Extrusion_SetScale;
 	ext->on_set_spine = Extrusion_SetSpine;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		Extrusion_SetCrossSection(NULL, NULL);
+		Extrusion_SetOrientation(NULL, NULL);
+		Extrusion_SetScale(NULL, NULL);
+		Extrusion_SetSpine(NULL, NULL);
+	}
+#endif
+
 }
 
 
