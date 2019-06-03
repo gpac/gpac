@@ -239,17 +239,6 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		compositor->msg_type &= ~GF_SR_IN_RECONFIG;
 	}
 	if (notif_size) {
-
-		if (compositor->video_listeners) {
-			u32 k=0;
-			GF_VideoListener *l;
-			while ((l = gf_list_enum(compositor->video_listeners, &k))) {
-				if (compositor->init_flags & GF_TERM_WINDOW_TRANSPARENT)
-					l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height, 4);
-				else
-					l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height, 3);
-			}
-		}
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_WIDTH, &PROP_UINT(compositor->display_width));
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(compositor->display_height));
 	}
@@ -577,6 +566,17 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 
 	if (!compositor->player) {
 		compositor->video_out = &null_vout;
+
+#ifdef GPAC_ENABLE_COVERAGE
+		if (gf_sys_is_test_mode()) {
+			nullvout_setup(NULL, NULL, NULL, 0);
+			nullvout_fullscreen(NULL, GF_FALSE, NULL, NULL);
+			nullvout_evt(NULL, NULL);
+			nullvout_lock(NULL, NULL, GF_FALSE);
+			nullvout_blit(NULL, NULL, NULL, NULL, 0);
+		}
+#endif
+
 		e = gf_filter_request_opengl(compositor->filter);
 		if (e) return e;
 #ifndef GPAC_DISABLE_3D
@@ -966,8 +966,6 @@ void gf_sc_unload(GF_Compositor *compositor)
 	if (compositor->textures_gc) gf_list_del(compositor->textures_gc);
 	if (compositor->time_nodes) gf_list_del(compositor->time_nodes);
 	if (compositor->extra_scenes) gf_list_del(compositor->extra_scenes);
-	if (compositor->video_listeners) gf_list_del(compositor->video_listeners);
-
 	if (compositor->input_streams) gf_list_del(compositor->input_streams);
 	if (compositor->x3d_sensors) gf_list_del(compositor->x3d_sensors);
 
@@ -1012,17 +1010,6 @@ void gf_sc_set_fps(GF_Compositor *compositor, GF_Fraction fps)
 		}
 	}
 }
-
-u32 gf_sc_get_audio_buffer_length(GF_Compositor *compositor)
-{
-#ifdef ENABLE_AOUT
-	if (!compositor || !compositor->audio_renderer || !compositor->audio_renderer->audio_out) return 0;
-	return compositor->audio_renderer->audio_out->GetTotalBufferTime(compositor->audio_renderer->audio_out);
-#else
-	return 0;
-#endif
-}
-
 
 static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 {
@@ -1070,13 +1057,6 @@ GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bo
 	if (force_size)
 		compositor->has_size_info = 1;
 	return GF_OK;
-}
-
-Bool gf_sc_get_size(GF_Compositor *compositor, u32 *Width, u32 *Height)
-{
-	*Height = compositor->scene_height;
-	*Width = compositor->scene_width;
-	return 1;
 }
 
 #ifndef GPAC_DISABLE_SVG
@@ -1383,13 +1363,6 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		gf_sc_send_event(compositor, &evt);
 	}
 	return GF_OK;
-}
-
-void gf_sc_lock_audio(GF_Compositor *compositor, Bool doLock)
-{
-	if (compositor->audio_renderer) {
-		gf_mixer_lock(compositor->audio_renderer->mixer, doLock);
-	}
 }
 
 GF_EXPORT
@@ -2066,13 +2039,6 @@ GF_EXPORT
 void gf_sc_unregister_time_node(GF_Compositor *compositor, GF_TimeNode *tn)
 {
 	gf_list_del_item(compositor->time_nodes, tn);
-}
-
-
-GF_EXPORT
-GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
-{
-	return NULL;
 }
 
 static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
@@ -2755,8 +2721,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		compositor->frame_draw_type = GF_SC_DRAW_FRAME;
 	}
 
-	//if hidden and no listener, do not draw the scene
-	if (compositor->is_hidden && !compositor->video_listeners) {
+	//if hidden and player mode, do not draw the scene
+	if (compositor->is_hidden && compositor->player) {
 		compositor->frame_draw_type = 0;
 	}
 
@@ -2824,14 +2790,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 			traverse_time = gf_sys_clock() - traverse_time;
 #endif
-
-			if (compositor->video_listeners && compositor->skip_flush!=1) {
-				u32 k=0;
-				GF_VideoListener *l;
-				while ((l = gf_list_enum(compositor->video_listeners, &k))) {
-					l->on_video_frame(l->udta, gf_sc_ar_get_clock(compositor->audio_renderer) );
-				}
-			}
 
 			if (compositor->ms_until_next_frame < 0) {
 				emit_frame = GF_FALSE;
@@ -3044,7 +3002,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		//in bench mode we always increase the clock of the fixed target simulation rate - this needs refinement if video is used ...
 		compositor->scene_sampled_clock += frame_duration;
 	}
-	compositor->video_frame_pending=0;
 	gf_sc_lock(compositor, 0);
 
 	if (frame_drawn) compositor->step_mode = GF_FALSE;
@@ -3077,13 +3034,13 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			u64 start = gf_sys_clock_high_res();
 			u64 diff=0;
 			u64 wait_for = 1000 * (u64) compositor->ms_until_next_frame;
-			while (! compositor->msg_type && ! compositor->video_frame_pending) {
+			while (! compositor->msg_type) {
 				gf_sleep(1);
 				diff = gf_sys_clock_high_res() - start;
 				if (diff >= wait_for)
 					break;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor slept %d ms until next frame (msg type %d - frame pending %d)\n", diff/1000, compositor->msg_type, compositor->video_frame_pending));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor slept %d ms until next frame (msg type %d)\n", diff/1000, compositor->msg_type));
 		}
 		return;
 	}
@@ -3496,10 +3453,6 @@ Bool gf_sc_user_event(GF_Compositor *compositor, GF_Event *event)
 	case GF_EVENT_SET_CAPTION:
 		compositor->video_out->ProcessEvent(compositor->video_out, event);
 		return GF_FALSE;
-
-//	case GF_EVENT_SET_CAPTION:
-//		gf_sc_queue_event(compositor, event);
-//		return GF_FALSE;
 	default:
 		return gf_sc_on_event_ex(compositor, event, GF_TRUE);
 	}
@@ -3513,13 +3466,6 @@ void gf_sc_register_extra_graph(GF_Compositor *compositor, GF_SceneGraph *extra_
 	else if (gf_list_find(compositor->extra_scenes, extra_scene)<0) gf_list_add(compositor->extra_scenes, extra_scene);
 	gf_sc_lock(compositor, GF_FALSE);
 }
-
-
-u32 gf_sc_get_audio_delay(GF_Compositor *compositor)
-{
-	return compositor->audio_renderer ? compositor->audio_renderer->audio_delay : 0;
-}
-
 
 Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSAPIParam *param)
 {
@@ -3771,51 +3717,7 @@ void gf_sc_check_focus_upon_destroy(GF_Node *n)
 	if (compositor->hit_text==n) compositor->hit_text = NULL;
 }
 
-GF_EXPORT
-GF_Err gf_sc_add_video_listener(GF_Compositor *sc, GF_VideoListener *vl)
-{
-	if (!sc|| !vl || !vl->on_video_frame || !vl->on_video_reconfig) return GF_BAD_PARAM;
-
-	gf_sc_lock(sc, GF_TRUE);
-	if (!sc->video_listeners) sc->video_listeners = gf_list_new();
-	gf_list_add(sc->video_listeners, vl);
-	gf_sc_lock(sc, GF_FALSE);
-	return GF_OK;
-}
-
-GF_EXPORT
-GF_Err gf_sc_remove_video_listener(GF_Compositor *sc, GF_VideoListener *vl)
-{
-	if (!sc|| !vl) return GF_BAD_PARAM;
-
-	gf_sc_lock(sc, GF_TRUE);
-	gf_list_del_item(sc->video_listeners, vl);
-	if (!gf_list_count(sc->video_listeners)) {
-		gf_list_del(sc->video_listeners);
-		sc->video_listeners = NULL;
-	}
-	gf_sc_lock(sc, GF_FALSE);
-	return GF_OK;
-}
-
-Bool gf_sc_use_raw_texture(GF_Compositor *compositor)
-{
-	if (!compositor) return 0;
-//	if (!compositor->visual->type_3d && !compositor->force_opengl_2d) return 0;
-	return compositor->texture_from_decoder_memory;
-}
-
-void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *display_bit_depth, u32 *audio_bpp, u32 *channels, u32 *sample_rate)
-{
-	if (width) *width = compositor->video_out->max_screen_width;
-	if (height) *height = compositor->video_out->max_screen_height;
-	if (display_bit_depth) *display_bit_depth = compositor->video_out->max_screen_bpp ? compositor->video_out->max_screen_bpp : 8;
-	//to do
-	if (audio_bpp) *audio_bpp = 8;
-	if (channels) *channels = 0;
-	if (sample_rate) *sample_rate = 48000;
-}
-
+#if 0 //unused
 void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pending)
 {
 	if (frame_pending) {
@@ -3825,11 +3727,6 @@ void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pendin
 		//do not increase clock
 		compositor->force_bench_frame = 2;
 	}
-}
-
-void gf_sc_set_video_pending_frame(GF_Compositor *compositor)
-{
-	compositor->video_frame_pending = GF_TRUE;
 }
 
 void gf_sc_queue_event(GF_Compositor *compositor, GF_Event *evt)
@@ -3856,6 +3753,8 @@ void gf_sc_queue_event(GF_Compositor *compositor, GF_Event *evt)
 	}
 	gf_mx_v(compositor->evq_mx);
 }
+#endif
+
 
 void gf_sc_queue_dom_event(GF_Compositor *compositor, GF_Node *node, GF_DOM_Event *evt)
 {
@@ -3984,16 +3883,6 @@ Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type)
 		}
 	return GF_TRUE;
 }
-
-Bool gf_sc_use_3d(GF_Compositor *compositor)
-{
-#ifndef GPAC_DISABLE_3D
-	return (compositor->visual->type_3d || compositor->hybrid_opengl) ? 1 : 0;
-#else
-	return 0;
-#endif
-}
-
 
 
 u32 gf_sc_check_end_of_scene(GF_Compositor *compositor, Bool skip_interactions)

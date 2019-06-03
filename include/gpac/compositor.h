@@ -88,8 +88,6 @@ void gf_sc_node_destroy(GF_Compositor *compositor, GF_Node *node, GF_SceneGraph 
 
 /*locks/unlocks the visual scene rendering - modification of the scene tree shall only happen when scene compositor is locked*/
 void gf_sc_lock(GF_Compositor *sr, Bool doLock);
-/*locks/unlocks the audio scene rendering - this is needed whenever an audio object changes config on the fly*/
-void gf_sc_lock_audio(GF_Compositor *sr, Bool doLock);
 
 /*notify user input - returns 0 if event hasn't been handled by the compositor*/
 Bool gf_sc_user_event(GF_Compositor *sr, GF_Event *event);
@@ -138,9 +136,6 @@ void gf_sc_render_frame(GF_Compositor *sr);
 /*forces graphics cache recompute*/
 void gf_sc_reset_graphics(GF_Compositor *sr);
 
-/*picks a node (may return NULL) - coords are given in OS client system coordinate, as in UserInput*/
-GF_Node *gf_sc_pick_node(GF_Compositor *sr, s32 X, s32 Y);
-
 /*get viewpoints/viewports for main scene - idx is 1-based, and if greater than number of viewpoints return GF_EOS*/
 GF_Err gf_sc_get_viewpoint(GF_Compositor *sr, u32 viewpoint_idx, const char **outName, Bool *is_bound);
 /*set viewpoints/viewports for main scene given its name - idx is 1-based, or 0 to retrieve by viewpoint name
@@ -151,23 +146,12 @@ GF_Err gf_sc_set_viewpoint(GF_Compositor *sr, u32 viewpoint_idx, const char *vie
 this is needed to handle graph metrics changes between scenes...*/
 void gf_sc_traverse_subscene(GF_Compositor *sr, GF_Node *inline_parent, GF_SceneGraph *subscene, void *rs);
 
-/*set outupt size*/
+/*set output size*/
 GF_Err gf_sc_set_size(GF_Compositor *sr, u32 NewWidth, u32 NewHeight);
-/*get outupt size*/
-Bool gf_sc_get_size(GF_Compositor *sr, u32 *Width, u32 *Height);
-
-/*returns total length of audio hardware buffer in ms, 0 if no audio*/
-u32 gf_sc_get_audio_buffer_length(GF_Compositor *sr);
 
 /*add/remove extra scene from compositor (extra scenes are OSDs or any other scene graphs not directly
 usable by main scene, like 3GP text streams*/
 void gf_sc_register_extra_graph(GF_Compositor *sr, GF_SceneGraph *extra_scene, Bool do_remove);
-
-/*gets audio hardware delay*/
-u32 gf_sc_get_audio_delay(GF_Compositor *sr);
-
-/*returns total length of audio hardware buffer in ms, 0 if no audio*/
-u32 gf_sc_get_audio_buffer_length(GF_Compositor *sr);
 
 void *gf_sc_get_visual_compositor(GF_Compositor *sr);
 

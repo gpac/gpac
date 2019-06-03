@@ -213,8 +213,6 @@ struct __tag_compositor
 
 	Bool softblt;
 
-	/*video listeners (old API, should get rid of this)*/
-	GF_List *video_listeners;
 	Bool discard_input_events;
 	u32 video_th_id;
 
@@ -286,7 +284,6 @@ struct __tag_compositor
 	u32 last_click_time;
 	s32 ms_until_next_frame;
 	s32 frame_delay;
-	Bool video_frame_pending;
 	Bool fullscreen_postponed;
 	Bool sys_frames_pending;
 	
@@ -738,7 +735,6 @@ typedef struct
 
 void gf_sc_queue_dom_event(GF_Compositor *compositor, GF_Node *node, GF_DOM_Event *evt);
 void gf_sc_queue_dom_event_on_target(GF_Compositor *compositor, GF_DOM_Event *evt, GF_DOMEventTarget *target, GF_SceneGraph *sg);
-void gf_sc_queue_event(GF_Compositor *compositor, GF_Event *evt);
 
 /*base stack for timed nodes (nodes that activate themselves at given times)
 	@UpdateTimeNode: shall be setup by the node handler and is called once per simulation frame
@@ -1597,30 +1593,14 @@ typedef struct
 	void (*on_video_reconfig)(void *udta, u32 width, u32 height, u8 bpp);
 } GF_VideoListener;
 
-GF_Err gf_sc_add_video_listener(GF_Compositor *compositor, GF_VideoListener *vl);
-GF_Err gf_sc_remove_video_listener(GF_Compositor *compositor, GF_VideoListener *vl);
-
-
 GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bool force_size);
 
 void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 obj_time);
-
-Bool gf_sc_use_raw_texture(GF_Compositor *compositor);
-void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *display_bit_depth, u32 *audio_bpp, u32 *channels, u32 *sample_rate);
-
-//signals the compositor a system frame is pending on a future frame
-void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pending);
-
-//indicates a video frame is pending - this is used fo decoders dispatching their internal memory in order to wake up the compositor asap
-void gf_sc_set_video_pending_frame(GF_Compositor *compositor);
 
 Bool gf_sc_is_over(GF_Compositor *compositor, GF_SceneGraph *scene_graph);
 
 /*returns true if scene or current layer accepts tghe requested navigation type, false otherwise*/
 Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type);
-
-/*returns true if 3D acceleration is enabled*/
-Bool gf_sc_use_3d(GF_Compositor *compositor);
 
 u32 gf_sc_check_end_of_scene(GF_Compositor *compositor, Bool skip_interactions);
 
