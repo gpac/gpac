@@ -658,10 +658,16 @@ u32 gf_term_get_time_in_ms(GF_Terminal *term)
 GF_EXPORT
 u32 gf_term_get_elapsed_time_in_ms(GF_Terminal *term)
 {
+	u32 i, count;
 	GF_Clock *ck;
 	GF_Compositor *compositor = term ? term->compositor : NULL;
 	if (!term || !compositor->root_scene) return 0;
-	ck = compositor->root_scene->root_od->ck;
+	count = gf_list_count(compositor->root_scene->namespaces);
+	for (i=0; i<count; i++) {
+		GF_SceneNamespace *sns = gf_list_get(compositor->root_scene->namespaces, i);
+		ck = gf_list_get(sns->clocks, 0);
+		if (ck) break;
+	}
 	if (!ck) return 0;
 
 	return gf_clock_elapsed_time(ck);

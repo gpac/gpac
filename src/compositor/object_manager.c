@@ -302,7 +302,8 @@ void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent
 		}
 
 		odm->scene_ns = parent_ns ? parent_ns : odm->parentscene->root_od->scene_ns;
-		odm->scene_ns->nb_odm_users++;
+		if (odm->scene_ns)
+			odm->scene_ns->nb_odm_users++;
 	}
 
 	/*store original OD ID */
