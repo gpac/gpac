@@ -11,6 +11,9 @@ single_test "$MP4CLIENT -cov -run-for 2 $MEDIA_DIR/bifs/bifs-2D-painting-materia
 
 single_test "$MP4CLIENT -blacklist=vtbdec,nvdec -run-for 2 http://download.tsi.telecom-paristech.fr/gpac/tests/live360mcts/demo/live360.mpd#VR" "mp4client-vrtiled"
 
+single_test "$MP4CLIENT -blacklist=vtbdec,nvdec -run-for 1 mosaic://$MEDIA_DIR/auxiliary_files/count_video.cmp:$MEDIA_DIR/auxiliary_files/enst_video.h264" "mp4client-mosaic"
+
+single_test "$MP4CLIENT -blacklist=vtbdec,nvdec -run-for 1 --stereo=top views://$MEDIA_DIR/auxiliary_files/count_video.cmp:$MEDIA_DIR/auxiliary_files/enst_video.h264" "mp4client-views"
 
 test_begin "mp4client-playfrom"
 if [ $test_skip = 0 ] ; then

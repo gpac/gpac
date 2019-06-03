@@ -318,15 +318,19 @@ static void TraverseILS(GF_Node *n, void *rs, Bool is_destroy)
 static void ILS_SetColorIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedLineSet *ils = (M_IndexedLineSet *)node;
-	gf_sg_vrml_field_copy(&ils->colorIndex, &ils->set_colorIndex, GF_SG_VRML_MFINT32);
-	gf_sg_vrml_mf_reset(&ils->set_colorIndex, GF_SG_VRML_MFINT32);
+	if (node) {
+		gf_sg_vrml_field_copy(&ils->colorIndex, &ils->set_colorIndex, GF_SG_VRML_MFINT32);
+		gf_sg_vrml_mf_reset(&ils->set_colorIndex, GF_SG_VRML_MFINT32);
+	}
 }
 
 static void ILS_SetCoordIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedLineSet *ils = (M_IndexedLineSet *)node;
-	gf_sg_vrml_field_copy(&ils->coordIndex, &ils->set_coordIndex, GF_SG_VRML_MFINT32);
-	gf_sg_vrml_mf_reset(&ils->set_coordIndex, GF_SG_VRML_MFINT32);
+	if (node) {
+		gf_sg_vrml_field_copy(&ils->coordIndex, &ils->set_coordIndex, GF_SG_VRML_MFINT32);
+		gf_sg_vrml_mf_reset(&ils->set_coordIndex, GF_SG_VRML_MFINT32);
+	}
 }
 
 void compositor_init_ils(GF_Compositor *compositor, GF_Node *node)

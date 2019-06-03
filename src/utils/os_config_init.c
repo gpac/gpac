@@ -1229,6 +1229,8 @@ Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_n
 GF_EXPORT
 u32 gf_sys_is_gpac_arg(const char *arg_name)
 {
+	char *argsep;
+	u32 arglen;
 	const GF_GPACArg *arg = NULL;
 	u32 i=0;
 	arg_name = arg_name+1;
@@ -1237,10 +1239,14 @@ u32 gf_sys_is_gpac_arg(const char *arg_name)
 	if (arg_name[0]=='+')
 		return 1;
 
+	argsep = strchr(arg_name, '=');
+	if (argsep) arglen = (u32) (argsep - arg_name);
+	else arglen = strlen(arg_name);
+
 	while (GPAC_Args[i].name) {
 		arg = &GPAC_Args[i];
 		i++;
-		if (!strcmp(arg->name, arg_name)) break;
+		if (!strncmp(arg->name, arg_name, arglen)) break;
 		if (arg->altname) {
 			char *alt = strstr(arg->altname, arg_name);
 			if (alt) {
@@ -1252,6 +1258,7 @@ u32 gf_sys_is_gpac_arg(const char *arg_name)
 	}
 	if (!arg) return 0;
 	if (arg->type==GF_ARG_BOOL) return 1;
+	if (argsep) return 1;
 	return 2;
 }
 

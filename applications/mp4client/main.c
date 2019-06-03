@@ -1092,7 +1092,7 @@ int mp4client_main(int argc, char **argv)
 			gf_net_set_ntp_shift(shift);
 		}
 		else if (!stricmp(arg, "-run-for")) {
-			simulation_time_in_ms = atoi(argv[i+1]) * 1000;
+			simulation_time_in_ms = (u32) (atof(argv[i+1]) * 1000);
 			if (!simulation_time_in_ms)
 				simulation_time_in_ms = 1; /*1ms*/
 			i++;
