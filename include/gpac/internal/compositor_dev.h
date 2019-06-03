@@ -1296,8 +1296,6 @@ typedef struct _soundinterface
 	/*gets volume for each channel - vol = Fixed[GF_AUDIO_MIXER_MAX_CHANNELS]. returns 1 if volume shall be changed (!= 1.0)
 	if NULL channels are always at full intensity*/
 	Bool (*GetChannelVolume)(GF_Node *owner, Fixed *vol);
-	/*get sound priority (0: min, 255: max) - used by mixer to determine*/
-	u8 (*GetPriority) (GF_Node *owner);
 	/*node owning the structure*/
 	GF_Node *owner;
 } GF_SoundInterface;

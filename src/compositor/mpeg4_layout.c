@@ -747,8 +747,12 @@ layout_exit:
 
 static Bool OnLayout(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
-	Bool vertical = ((M_Layout *)sh->sensor)->scrollVertical;
-	LayoutStack *st = (LayoutStack *) gf_node_get_private(sh->sensor);
+	Bool vertical;
+	LayoutStack *st;
+	if (!sh) return GF_FALSE;
+
+	st = (LayoutStack *) gf_node_get_private(sh->sensor);
+	vertical = ((M_Layout *)sh->sensor)->scrollVertical;
 
 	if (!is_over) {
 		st->is_scrolling = 0;
@@ -800,7 +804,7 @@ static Bool OnLayout(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Even
 static Bool layout_is_enabled(GF_Node *node)
 {
 	M_Layout *l = (M_Layout *)node;
-	if (l->scrollRate != 0) return 0;
+	if (node && (l->scrollRate != 0)) return 0;
 	return 1;
 }
 
@@ -820,6 +824,14 @@ void compositor_init_layout(GF_Compositor *compositor, GF_Node *node)
 	stack->hdl.sensor = node;
 	stack->hdl.IsEnabled = layout_is_enabled;
 	stack->hdl.OnUserEvent = OnLayout;
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		OnLayout(NULL, GF_FALSE, GF_FALSE, NULL, NULL);
+		layout_is_enabled(node);
+		compositor_mpeg4_layout_get_sensor_handler(node);
+	}
+#endif
+
 }
 
 void compositor_layout_modified(GF_Compositor *compositor, GF_Node *node)
@@ -839,7 +851,9 @@ void compositor_layout_modified(GF_Compositor *compositor, GF_Node *node)
 
 GF_SensorHandler *compositor_mpeg4_layout_get_sensor_handler(GF_Node *node)
 {
-	LayoutStack *st = (LayoutStack *) gf_node_get_private(node);
+	LayoutStack *st;
+	if (!node) return NULL;
+	st = (LayoutStack *) gf_node_get_private(node);
 	return &st->hdl;
 }
 
