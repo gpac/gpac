@@ -9,6 +9,8 @@ single_test "$MP4CLIENT -cov -run-for 2 $MEDIA_DIR/bifs/bifs-3D-shapes-box.bt" "
 
 single_test "$MP4CLIENT -cov -run-for 2 $MEDIA_DIR/bifs/bifs-2D-painting-material2D.bt" "mp4client-nav2D"
 
+single_test "$MP4CLIENT -blacklist=vtbdec,nvdec -run-for 2 http://download.tsi.telecom-paristech.fr/gpac/tests/live360mcts/demo/live360.mpd#VR" "mp4client-vrtiled"
+
 
 test_begin "mp4client-playfrom"
 if [ $test_skip = 0 ] ; then

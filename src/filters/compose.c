@@ -409,10 +409,15 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 	//scene is dynamic
 	if (scene->is_dynamic_scene) {
+		Bool reset = GF_FALSE;
 		char *sep = scene->root_od->scene_ns->url_frag;
 		if (sep && ( !strnicmp(sep, "LIVE360", 7) || !strnicmp(sep, "360", 3) || !strnicmp(sep, "VR", 2) ) ) {
 			scene->vr_type = 1;
+			if (scene->vr_type != 1) reset = GF_TRUE;
 		}
+		if (reset)
+			gf_sg_reset(scene->graph);
+
 		gf_scene_regenerate(scene);
 	}
 
