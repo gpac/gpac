@@ -77,10 +77,6 @@ static Bool SND2D_GetChannelVolume(GF_Node *node, Fixed *vol)
 	return (volume==FIX_ONE) ? 0 : 1;
 }
 
-static u8 SND2D_GetPriority(GF_Node *node)
-{
-	return 255;
-}
 
 void compositor_init_sound2d(GF_Compositor *compositor, GF_Node *node)
 {
@@ -90,7 +86,6 @@ void compositor_init_sound2d(GF_Compositor *compositor, GF_Node *node)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate sound 2d stack\n"));
 		return;
 	}
-	snd->snd_ifce.GetPriority = SND2D_GetPriority;
 	snd->snd_ifce.GetChannelVolume = SND2D_GetChannelVolume;
 	snd->snd_ifce.owner = node;
 	gf_node_set_private(node, snd);
@@ -275,10 +270,6 @@ static Bool SND_GetChannelVolume(GF_Node *node, Fixed *vol)
 	}
 	return !st->identity;
 }
-static u8 SND_GetPriority(GF_Node *node)
-{
-	return (u8) ((M_Sound *)node)->priority*255;
-}
 
 void compositor_init_sound(GF_Compositor *compositor, GF_Node *node)
 {
@@ -289,7 +280,6 @@ void compositor_init_sound(GF_Compositor *compositor, GF_Node *node)
 		return;
 	}
 	snd->snd_ifce.GetChannelVolume = SND_GetChannelVolume;
-	snd->snd_ifce.GetPriority = SND_GetPriority;
 	snd->snd_ifce.owner = node;
 	gf_node_set_private(node, snd);
 	gf_node_set_callback_function(node, TraverseSound);
