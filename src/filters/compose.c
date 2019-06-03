@@ -401,9 +401,11 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	//attach scene to input filters - may be true for dynamic scene (text rendering) and regular scenes
 	if ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE) || (mtype==GF_STREAM_TEXT) ) {
+		void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt);
+
 		GF_FEVT_INIT(evt, GF_FEVT_ATTACH_SCENE, pid);
 		evt.attach_scene.object_manager = gf_filter_pid_get_udta(pid);
-		gf_filter_pid_send_event(pid, &evt);
+		gf_filter_pid_exec_event(pid, &evt);
 	}
 	//scene is dynamic
 	if (scene->is_dynamic_scene) {
@@ -714,7 +716,7 @@ static GF_FilterArgs CompositorArgs[] =
 		"\"rows\": images are interleaved by columns, left view on even rows and left view on odd rows (forces views=2).\n"\
 		"\"spv5\": images are interleaved by for SpatialView 19'' 5 views display, fullscreen mode (forces views=5).\n"\
 		"\"alio8\": images are interleaved by for Alioscopy 8 views displays, fullscreen mode (forces views=8).\n"\
-		"\"custom\": images are interleaved according to the shader file indicated in mvsgader option. The shader is exposed each view as uniform sampler2D gfViewX, where X is the view number starting from the left", GF_PROP_UINT, "none", "none|top|side|hmd|custom|cols|rows|ana|spv5|alio8", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+		"\"custom\": images are interleaved according to the shader file indicated in mvshader option. The shader is exposed each view as uniform sampler2D gfViewX, where X is the view number starting from the left", GF_PROP_UINT, "none", "none|top|side|hmd|custom|cols|rows|ana|spv5|alio8", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mvshader), "indicates file path to the custom multiview interleaving shader", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fpack), "indicates default frame packing of input video", GF_PROP_UINT, "none", "none|top|side", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(camlay), "sets camera layout in multiview modes", GF_PROP_UINT, "offaxis", "straight|offaxis|linear|circular", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},

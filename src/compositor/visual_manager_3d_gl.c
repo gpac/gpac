@@ -1715,6 +1715,9 @@ static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *t
 	u32 i;
 	GF_Matrix inv_mx;
 
+	if (!visual->num_clips)
+		return;
+
 	gf_mx_copy(inv_mx, tr_state->model_matrix);
 	gf_mx_inverse(&inv_mx);
 
@@ -2435,8 +2438,15 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	GLint loc, loc_vertex_array, loc_color_array, loc_normal_array, loc_textcoord_array;
 	u32 flags;
 	u32 num_lights = visual->num_lights;
-	
+	Bool is_debug_bounds = GF_FALSE;
+
 	flags = root_visual->glsl_flags;
+
+	if (!mesh) {
+		is_debug_bounds = GF_TRUE;
+		mesh = tr_state->visual->compositor->unit_bbox;
+		flags = 0;
+	}
 
 	if (visual->has_material_2d) {
 		num_lights = 0;
@@ -2455,7 +2465,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	}
 
-	if (num_lights) {
+	if (num_lights && !is_debug_bounds) {
 		flags |= GF_GL_HAS_LIGHT;
 	} else {
 		flags &= ~GF_GL_HAS_LIGHT;
@@ -2511,8 +2521,24 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	//setup clippers
 	visual_3d_set_clippers_shaders(visual, tr_state);
 
+	if (is_debug_bounds) {
+		Float cols[4];
+		loc = gf_glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
+		cols[0] = 1.0 - FIX2FLT(visual->mat_2d.red);
+		cols[1] = 1.0 - FIX2FLT(visual->mat_2d.green);
+		cols[2] = 1.0 - FIX2FLT(visual->mat_2d.blue);
+		cols[3] = 1.0;
+		if (loc>=0)
+			glUniform4fv(loc, 1, (GLfloat *) cols);
+		GL_CHECK_ERR
+
+		loc = gf_glGetUniformLocation(visual->glsl_program, "hasMaterial2D");
+		if (loc>=0)
+			glUniform1i(loc, 1);
+		GL_CHECK_ERR
+	}
 	/* Material2D does not have any lights, color used is "gfEmissionColor" uniform */
-	if (visual->has_material_2d) {
+	else if (visual->has_material_2d) {
 		//for YUV manually set alpha
 		if (flags & GF_GL_IS_YUV) {
 			loc = gf_glGetUniformLocation(visual->glsl_program, "alpha");
@@ -2597,7 +2623,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	}
 
 	//setup mesh color vertex attribute - only available for some shaders
-	if (!tr_state->mesh_num_textures && (mesh->flags & MESH_HAS_COLOR)) {
+	if (!tr_state->mesh_num_textures && (mesh->flags & MESH_HAS_COLOR) && !is_debug_bounds) {
 		loc_color_array = gf_glGetAttribLocation(visual->glsl_program, "gfMeshColor");
 		if (loc_color_array >= 0) {
 
@@ -2852,6 +2878,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	GF_VisualManager *visual = tr_state->visual;
 	Bool has_col, has_tx, has_norm;
 	void *base_address = NULL;
+	Bool is_debug_bounds = GF_FALSE;
 
 #if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_GLES1X)
 	Float *color_array = NULL;
@@ -2861,7 +2888,10 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 #endif
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
+	if (mesh) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
+	}
+
 	//clear error
 	glGetError();
 	GL_CHECK_ERR
@@ -2878,6 +2908,11 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 #endif
 
+	if (!mesh) {
+		mesh = tr_state->visual->compositor->unit_bbox;
+		is_debug_bounds = GF_TRUE;
+	}
+
 	if (! visual_3d_bind_buffer(compositor, mesh, &base_address)) {
 #if! defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
 		glUseProgram(0);
@@ -2886,24 +2921,28 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 	has_col = has_tx = has_norm = 0;
 
-	//set lights before pushing modelview matrix
-	visual_3d_set_lights(visual);
+	if (!is_debug_bounds) {
+		//set lights before pushing modelview matrix
+		visual_3d_set_lights(visual);
+	}
 
 	visual_3d_update_matrices(tr_state);
 
 	/*enable states*/
-	if (visual->has_fog) visual_3d_enable_fog(visual);
+	if (!is_debug_bounds) {
+		if (visual->has_fog) visual_3d_enable_fog(visual);
 
-	if (visual->state_color_on) glEnable(GL_COLOR_MATERIAL);
-	else glDisable(GL_COLOR_MATERIAL);
+		if (visual->state_color_on) glEnable(GL_COLOR_MATERIAL);
+		else glDisable(GL_COLOR_MATERIAL);
 
-	if (visual->state_blend_on) glEnable(GL_BLEND);
+		if (visual->state_blend_on) glEnable(GL_BLEND);
+	}
+
 
 	//setup scissor
 	visual_3d_set_clipper_scissor(visual, tr_state);
 
-	if (visual->num_clips)
-		visual_3d_set_clippers(visual, tr_state);
+	visual_3d_set_clippers(visual, tr_state);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 #if defined(GPAC_USE_GLES1X)
@@ -3214,8 +3253,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	glDisable(GL_COLOR_MATERIAL);
 
 	//reset all our states
-	if (visual->num_clips)
-		visual_3d_reset_clippers(visual);
+	visual_3d_reset_clippers(visual);
 	visual->has_material_2d = 0;
 	visual->has_material = 0;
 	visual->state_color_on = 0;
@@ -3257,6 +3295,11 @@ static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 
 	visual_3d_set_debug_color(0);
+	//in shader mode force pushing projection and modelview using fixed pipeline API
+	if (tr_state->visual->compositor->shader_only_mode) {
+		tr_state->visual->needs_projection_matrix_reload=GF_TRUE;
+		visual_3d_update_matrices(tr_state);
+	}
 
 	if (tr_state->visual->compositor->norms==GF_NORMALS_VERTEX) {
 		IDX_TYPE *idx = mesh->indices;
@@ -3332,13 +3375,13 @@ void visual_3d_draw_aabb_nodeBounds(GF_TraverseState *tr_state, AABBNode *node)
 		gf_mx_add_translation(&tr_state->model_matrix, c.x, c.y, c.z);
 		gf_mx_add_scale(&tr_state->model_matrix, s.x, s.y, s.z);
 
-		visual_3d_draw_mesh(tr_state, tr_state->visual->compositor->unit_bbox);
+		visual_3d_draw_mesh(tr_state, NULL);
 
 		gf_mx_copy(tr_state->model_matrix, mx);
 	}
 }
 
-void visual_3d_draw_bbox_ex(GF_TraverseState *tr_state, GF_BBox *box, Bool is_debug)
+void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box, Bool is_debug)
 {
 	GF_Matrix mx;
 	SFVec3f c, s;
@@ -3356,13 +3399,8 @@ void visual_3d_draw_bbox_ex(GF_TraverseState *tr_state, GF_BBox *box, Bool is_de
 	gf_mx_add_translation(&tr_state->model_matrix, c.x, c.y, c.z);
 	gf_mx_add_scale(&tr_state->model_matrix, s.x, s.y, s.z);
 
-	visual_3d_draw_mesh(tr_state, tr_state->visual->compositor->unit_bbox);
+	visual_3d_draw_mesh(tr_state, NULL);
 	gf_mx_copy(tr_state->model_matrix, mx);
-}
-
-void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box)
-{
-	visual_3d_draw_bbox_ex(tr_state, box, 0);
 }
 
 static void visual_3d_draw_bounds(GF_TraverseState *tr_state, GF_Mesh *mesh)
@@ -3372,7 +3410,7 @@ static void visual_3d_draw_bounds(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (mesh->aabb_root && (tr_state->visual->compositor->bvol==GF_BOUNDS_AABB)) {
 		visual_3d_draw_aabb_nodeBounds(tr_state, mesh->aabb_root);
 	} else {
-		visual_3d_draw_bbox_ex(tr_state, &mesh->bounds, 1);
+		visual_3d_draw_bbox(tr_state, &mesh->bounds, GF_TRUE);
 	}
 }
 
