@@ -1487,7 +1487,7 @@ Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_
 {
 	u32 nb_ch;
 	const GF_PropertyValue *p;
-	GF_FilterPid *pid;
+	GF_FilterPid *pid=NULL;
 	if (!term || !odm || !gf_term_check_odm(term, odm)) return GF_FALSE;
 	if (odm->scene_ns->owner != odm)
 		return GF_FALSE;
@@ -1500,7 +1500,7 @@ Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_
 		GF_ObjectManager *anodm;
 		if (*d_enum || !odm->subscene) return GF_FALSE;
 		anodm = gf_list_get(odm->subscene->resources, 0);
-		pid = anodm->pid;
+		if (anodm) pid = anodm->pid;
 	} else {
 
 		if (*d_enum >= nb_ch) return GF_FALSE;
