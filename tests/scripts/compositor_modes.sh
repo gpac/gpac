@@ -83,3 +83,9 @@ compositor_test "svgopacity-nogl-defer" "$SVG_DIR/opacity.svg" "ogl=off:mode2d=d
 compositor_test "svgopacity-gl" "$SVG_DIR/opacity.svg" "ogl=on"
 
 compositor_test "gl-noshader" "$MEDIA_DIR/bifs/bifs-3D-lighting-fog.bt" "ogl=on:vertshader=NULL"
+
+compositor_test "gl-stereo" "$MEDIA_DIR/bifs/bifs-3D-lighting-fog.bt" "ogl=on:stereo=spv5:bvol=box"
+
+compositor_test "gl-norms" "$MEDIA_DIR/bifs/bifs-3D-lighting-fog.bt" "ogl=on:bvol=aabb:norms=face"
+
+compositor_test "gl-strike" "$MEDIA_DIR/bifs/bifs-2D-painting-material2D.bt" "ogl=on:linegl"

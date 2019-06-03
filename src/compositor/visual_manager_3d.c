@@ -99,7 +99,7 @@ void drawable3d_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state,
 	} else {
 		bounds = orig_bounds;
 	}
-	visual_3d_draw_bbox(tr_state, bounds);
+	visual_3d_draw_bbox(tr_state, bounds, GF_FALSE);
 }
 
 

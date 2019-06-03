@@ -393,11 +393,6 @@ static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 
 				//init clocks
 				gf_odm_check_buffering(svgin->scene->root_od, svgin->in_pid);
-
-//				gf_sg_set_node_callback(svgin->scene->graph, CTXLoad_NodeCallback);
-//				priv->service_url = odm->scene_ns->url;
-//				if (!priv->ctx)	CTXLoad_Setup(filter, priv);
-
 			}
 			return GF_TRUE;
 		}

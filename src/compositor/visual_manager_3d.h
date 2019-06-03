@@ -302,7 +302,7 @@ void visual_3d_mesh_hatch(GF_TraverseState *tr_state, GF_Mesh *mesh, u32 hatchSt
 #endif
 
 
-void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box);
+void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box, Bool is_debug);
 
 
 GF_Err visual_3d_init_autostereo(GF_VisualManager *visual);
