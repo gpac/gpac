@@ -491,9 +491,12 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 	timing = NULL;
 
 	if (!sdp) return GF_BAD_PARAM;
-	if (gf_sys_is_test_mode())
-		SDP_MakeSeconds("30m");
 
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		SDP_MakeSeconds("30m");
+	}
+#endif
 
 	//Clean SDP info
 	gf_sdp_info_reset(sdp);

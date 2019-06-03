@@ -216,8 +216,11 @@ err_exit:
 
 	gf_filter_post_process_task(filter);
 
-	if (gf_sys_is_test_mode())
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
 		pipein_process_event(NULL, NULL);
+	}
+#endif
 	return GF_OK;
 }
 

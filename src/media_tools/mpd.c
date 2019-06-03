@@ -1260,8 +1260,11 @@ GF_EXPORT
 void gf_mpd_del(GF_MPD *mpd)
 {
 	if (!mpd) return;
-	if (gf_sys_is_test_mode())
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
 		gf_mpd_string_free(NULL);
+	}
+#endif
 
 	gf_mpd_del_list(mpd->program_infos, gf_mpd_prog_info_free, 0);
 	gf_mpd_del_list(mpd->base_URLs, gf_mpd_base_url_free, 0);

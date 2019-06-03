@@ -928,9 +928,12 @@ static Bool gf_sys_enable_profiling(Bool start, Bool is_shutdown)
 		if (gf_opts_get_bool("core", "rmt-log")) {
 			gpac_prev_default_logs = gf_log_set_callback(NULL, gpac_rmt_log_callback);
 		}
+#ifdef GPAC_ENABLE_COVERAGE
 		if (gf_sys_is_test_mode()) {
 			gpac_rmt_input_handler(NULL, NULL);
 		}
+#endif
+
 	} else if (!start && remotery_handle) {
 		if (gf_opts_get_bool("core", "rmt-ogl"))
 			rmt_UnbindOpenGL();

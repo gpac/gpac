@@ -3250,6 +3250,10 @@ then
     echo "FREENECT_LDLAGS=$freenect_ld" >> config.mak
 fi
 
+if test "$want_gcov"  = "yes" ; then
+    echo "#define GPAC_ENABLE_COVERAGE" >> $TMPH
+fi
+
 echo "DISABLE_PLAYER=$disable_player" >> config.mak
 echo "DISABLE_STREAMING=$disable_streaming" >> config.mak
 echo "DISABLE_SVG=$disable_svg" >> config.mak

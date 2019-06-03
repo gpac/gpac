@@ -235,10 +235,12 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 	char *sdp = gf_rtp_streamer_format_sdp_header("GPACSceneStreamer", ip, NULL, iod64);
 	if (iod64) gf_free(iod64);
 
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		GF_Descriptor *desc = gf_seng_get_iod(livesess->seng);
 		if (desc) gf_odf_desc_del(desc);
 	}
+#endif
 	for (i=0; i<count; i++) {
 		u16 ESID;
 		u32 st, oti, ts;
@@ -496,6 +498,7 @@ int live_session(int argc, char **argv)
 	live_session_send_carousel(&livesess, NULL);
 
 
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		aggregate_on_stream = (u16) -1;
 		adjust_carousel_time = force_rap = discard_pending = signal_rap = signal_critical = 0;
@@ -506,6 +509,7 @@ int live_session(int argc, char **argv)
 
 		set_broadcast_params(&livesess, es_id, period, ts_delta, aggregate_on_stream, adjust_carousel_time, force_rap, aggregate_au, discard_pending, signal_rap, signal_critical, version_inc);
 	}
+#endif
 
 	start_time = gf_sys_clock_high_res();
 	check = 10;
@@ -760,14 +764,15 @@ int live_session(int argc, char **argv)
 		live_session_send_carousel(&livesess, ch);
 	}
 
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 /*		gf_seng_save_context(livesess.seng, NULL);
 		gf_seng_aggregate_context
 		gf_seng_encode_from_string
 		gf_seng_encode_from_file
 */
-
 	}
+#endif
 
 exit:
 	live_session_shutdown(&livesess);

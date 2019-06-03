@@ -675,9 +675,13 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 			ch = (ISOMChannel *)gf_list_get(read->channels, i);
 			if (ch->base_track && gf_isom_needs_layer_reconstruction(read->mov)) {
 				ch->next_track = isoffin_channel_switch_quality(ch, read->mov, com->quality_switch.up);
-			} else if (gf_sys_is_test_mode()) {
+			}
+#ifdef GPAC_ENABLE_COVERAGE
+			else if (gf_sys_is_test_mode()) {
 				isoffin_channel_switch_quality(ch, read->mov, com->quality_switch.up);
 			}
+#endif
+
 		}
 		return GF_TRUE;
 	}

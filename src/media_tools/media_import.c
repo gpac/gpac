@@ -1027,8 +1027,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			gf_fs_del(fsess);
 			return gf_import_message(importer, e, "[Importer] Cannot load filter for input file \"%s\"", importer->in_name);
 		}
-		if (gf_sys_is_test_mode())
+#ifdef GPAC_ENABLE_COVERAGE
+		if (gf_sys_is_test_mode()) {
 			on_import_setup_failure(NULL, NULL, GF_OK);
+		}
+#endif
 
 		gf_filter_set_setup_failure_callback(prober, src_filter, on_import_setup_failure, importer);
 		gf_fs_run(fsess);

@@ -76,6 +76,7 @@ GF_SceneGraph *gf_sg_new()
 	tmp->on_node_modified = node_modif_stub;
 
 	//test some functions only used in weird smil anim or dom JS, and not adressed in test suite
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		node_modif_stub(NULL, NULL, NULL, NULL);
 		gf_node_remove_id(NULL);
@@ -92,8 +93,8 @@ GF_SceneGraph *gf_sg_new()
 		gf_smil_timing_pause(NULL);
 		gf_smil_timing_resume(NULL);
 		gf_smil_get_media_duration(NULL);
-	 }
-
+	}
+#endif
 	return tmp;
 }
 

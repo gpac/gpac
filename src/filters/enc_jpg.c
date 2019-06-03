@@ -352,12 +352,13 @@ exit:
 
 static GF_Err jpgenc_initialize(GF_Filter *filter)
 {
-	//for coverage
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		jpgenc_output_message(NULL);
 		jpgenc_nonfatal_error2(NULL, 0);
 		jpgenc_fatal_error(NULL);
 	}
+#endif
 	return GF_OK;
 }
 

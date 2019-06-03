@@ -1182,9 +1182,11 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 	ctx->pids = gf_list_new();
 	if (ctx->nb_pack>1) ctx->pack_buffer = gf_malloc(sizeof(char)*188*ctx->nb_pack);
 
-	if (gf_sys_is_test_mode())
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
 		gf_m2ts_get_sys_clock(ctx->mux);
-
+	}
+#endif
 	return GF_OK;
 }
 

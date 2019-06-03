@@ -99,8 +99,10 @@ static GF_Err filein_initialize(GF_Filter *filter)
 		if (cgi_par) cgi_par[0] = '?';
 
 		gf_filter_setup_failure(filter, GF_URL_ERROR);
+#ifdef GPAC_ENABLE_COVERAGE
 		if (gf_sys_is_test_mode() && !strcmp(src, "blob"))
 			return GF_OK;
+#endif
 		return GF_URL_ERROR;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] opening %s\n", src));

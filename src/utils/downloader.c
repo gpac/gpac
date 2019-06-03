@@ -3896,9 +3896,12 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 		//when rate is limited, use smaller smaller read size
 		if (dm->limit_data_rate) dm->read_buf_size = 1024;
 
-		//for coverage
-		if (gf_sys_is_test_mode())
+#ifdef GPAC_ENABLE_COVERAGE
+		if (gf_sys_is_test_mode()) {
 			dm_exceeds_cap_rate(dm);
+		}
+#endif
+
 	}
 }
 
@@ -4046,7 +4049,8 @@ GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry en
 		if (sess->cache_entry != entry) continue;
 		gf_dm_sess_reload_cached_headers(sess);
 	}
-	//for coverage,
+
+#ifdef GPAC_ENABLE_COVERAGE
 	if (!count && gf_sys_is_test_mode()) {
 		gf_dm_sess_reload_cached_headers(NULL);
 		gf_dm_refresh_cache_entry(NULL);
@@ -4062,6 +4066,8 @@ GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry en
 		gf_cache_get_forced_headers(NULL);
 		gf_cache_get_downtime(NULL);
 	}
+#endif
+
 	gf_mx_v(dm->cache_mx);
 	return res ? GF_OK : GF_BAD_PARAM;
 }

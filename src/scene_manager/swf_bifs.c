@@ -2080,13 +2080,14 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	read->action = swf_bifs_action;
 	read->finalize = swf_bifs_finalize;
 
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		swf_nstart(NULL, NULL, NULL, NULL, 0);
 		swf_nend(NULL, NULL, NULL);
 		swf_ntext(NULL, NULL, GF_FALSE);
-
-
 	}
+#endif
+
 	/*create BIFS stream*/
 	read->bifs_es = gf_sm_stream_new(read->load->ctx, 1, GF_STREAM_SCENE, GF_CODECID_BIFS);
 	read->bifs_es->timeScale = read->frame_rate*100;

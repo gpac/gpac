@@ -351,12 +351,13 @@ exit:
 
 static GF_Err pngenc_initialize(GF_Filter *filter)
 {
-	//for coverage
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		pngenc_flush(NULL);
 		pngenc_error(NULL, NULL);
 		pngenc_warn(NULL, NULL);
 	}
+#endif
 	return GF_OK;
 }
 

@@ -3756,9 +3756,11 @@ GF_Err gf_sm_load_init_bt(GF_SceneLoader *load)
 	load->suspend = load_bt_suspend;
 	load->parse_string = load_bt_parse_string;
 
-	//for coverage
-	if (gf_sys_is_test_mode())
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
 		gf_bt_report(parser, GF_OK, NULL);
+	}
+#endif
 
 	e = gf_sm_load_bt_initialize(load, NULL, 0);
 	if (e) {
