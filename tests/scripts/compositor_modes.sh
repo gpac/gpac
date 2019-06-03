@@ -82,3 +82,4 @@ compositor_test "svgopacity-nogl-immediate" "$SVG_DIR/opacity.svg" "ogl=off:mode
 compositor_test "svgopacity-nogl-defer" "$SVG_DIR/opacity.svg" "ogl=off:mode2d=defer"
 compositor_test "svgopacity-gl" "$SVG_DIR/opacity.svg" "ogl=on"
 
+compositor_test "gl-noshader" "$MEDIA_DIR/bifs/bifs-3D-lighting-fog.bt" "ogl=on:vertshader=NULL"
