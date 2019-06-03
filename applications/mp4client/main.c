@@ -1887,7 +1887,7 @@ force_input:
 		gf_term_print_stats(term);
 
 	if (do_coverage) {
-		u32 w, h, nb_drawn;
+		u32 w, h, k, nb_drawn;
 		GF_Event evt;
 		Bool is_bound;
 		const char *outName;
@@ -1940,6 +1940,33 @@ force_input:
 
 		gf_term_get_viewpoint(term, 1, &outName, &is_bound);
 		gf_term_set_viewpoint(term, 1, "testvp");
+
+		for (k=GF_NAVIGATE_WALK; k<=GF_NAVIGATE_VR; k++) {
+			gf_term_set_option(term, GF_OPT_NAVIGATION, k);
+			memset(&evt, 0, sizeof(GF_Event));
+			evt.type = GF_EVENT_MOUSEDOWN;
+			evt.mouse.x = 100;
+			evt.mouse.y = 100;
+			gf_term_user_event(term, &evt);
+			evt.type = GF_EVENT_MOUSEMOVE;
+			evt.mouse.x += 10;
+			gf_term_user_event(term, &evt);
+			evt.mouse.y += 10;
+			gf_term_user_event(term, &evt);
+
+			evt.type = GF_EVENT_KEYDOWN;
+			evt.key.key_code = GF_KEY_CONTROL;
+			gf_term_user_event(term, &evt);
+
+			evt.type = GF_EVENT_MOUSEMOVE;
+			evt.mouse.x = 120;
+			evt.mouse.y = 110;
+			gf_term_user_event(term, &evt);
+
+			evt.type = GF_EVENT_KEYUP;
+			evt.key.key_code = GF_KEY_CONTROL;
+			gf_term_user_event(term, &evt);
+		}
 
 		gf_term_connect_with_path(term, "logo.jpg", "./media/auxiliary_files/");
 		gf_term_navigate_to(term, "./media/auxiliary_files/logo.jpg");

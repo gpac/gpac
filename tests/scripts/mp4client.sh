@@ -5,6 +5,10 @@ single_test "$MP4CLIENT -guid -rmt -rmt-ogl -run-for 2 -stats $MEDIA_DIR/auxilia
 
 single_test "$MP4CLIENT -gui -for-test -gui-test http://download.tsi.telecom-paristech.fr/gpac/DASH_CONFORMANCE/TelecomParisTech/mp4-live-1s/mp4-live-1s-mpd-V-BS.mpd" "mp4client-gui-dash"
 
+single_test "$MP4CLIENT -cov -run-for 2 $MEDIA_DIR/bifs/bifs/bifs-3D-shapes-box.bt" "mp4client-nav3D"
+
+single_test "$MP4CLIENT -cov -run-for 2 $MEDIA_DIR/bifs/bifs/bifs-2D-painting-material2D.bt" "mp4client-nav2D"
+
 
 test_begin "mp4client-playfrom"
 if [ $test_skip = 0 ] ; then
