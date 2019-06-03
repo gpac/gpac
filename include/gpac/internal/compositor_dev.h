@@ -626,6 +626,7 @@ struct __tag_compositor
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	Bool shader_only_mode;
 #endif
+	char *vertshader, *fragshader;
 
 	//force video frame packing (0=no packing or GF_3D_STEREO_SIDE or GF_3D_STEREO_TOP)
 	u32 fpack;

@@ -726,7 +726,8 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(tvtd), "disables the tile having full coverage of the SRD, only displaying partial tiles", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tvtf), "force all tiles to be considered visible, regardless of viewpoint", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fov), "default field of view for VR", GF_PROP_FLOAT, "1.570796326794897", NULL, GF_FS_ARG_UPDATE},
-
+	{ OFFS(vertshader), "specifies path to vertex shader file", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT },
+	{ OFFS(fragshader), "specifies path to fragment shader file", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT },
 #endif
 
 #ifdef GF_SR_USE_DEPTH

@@ -609,9 +609,9 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 		/*shaders are at the same location*/
 		sprintf(gui_path, "%s%cshaders%cvertex.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "core", "vert-shader", gui_path);
+		gf_cfg_set_key(cfg, "filter@compositor", "vertshader", gui_path);
 		sprintf(gui_path, "%s%cshaders%cfragment.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "core", "frag-shader", gui_path);
+		gf_cfg_set_key(cfg, "filter@compositor", "fragshader", gui_path);
 
 		//aliases and other defaults
 		sprintf(gui_path, "%s%cdefault.cfg", szPath, GF_PATH_SEPARATOR);
@@ -661,9 +661,9 @@ static void check_modules_dir(GF_Config *cfg)
 		sep[0] = 0;
 
 		sprintf(shader_path, "%s%cshaders%cvertex.glsl", path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "core", "vert-shader", shader_path);
+		gf_cfg_set_key(cfg, "filter@compositor", "vertshader", shader_path);
 		sprintf(shader_path, "%s%cshaders%cfragment.glsl", path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "core", "frag-shader", shader_path);
+		gf_cfg_set_key(cfg, "filter@compositor", "fragshader", shader_path);
 	}
 	cfg_path = gf_cfg_get_filename(cfg);
 	gf_ios_refresh_cache_directory(cfg, cfg_path);
@@ -1019,8 +1019,6 @@ GF_GPACArg GPAC_Args[] = {
 
  GF_DEF_ARG("switch-vres", NULL, "selects smallest video resolution larger than scene size, otherwise use current video resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("hwvmem", NULL, "specifies (2D renderer only) if main video backbuffer is always on hardware, always on system memory or selected by GPAC (default mode). Depending on the scene type, this may drastically change the playback speed", NULL, "auto|always|never", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("vert-shader", NULL, "specifies path to vertex shader file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("frag-shader", NULL, "specifies path to vertex shader file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("pref-yuv4cc", NULL, "sets prefered YUV 4CC for overlays (used by DirectX only)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("yuv-overlay", NULL, "indicates YUV overlay is possible on the video card. Always overriden by video output module", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("offscreen-yuv", NULL, "indicates if offscreen yuv->rgb is enabled. can be set to false to force disabling", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
