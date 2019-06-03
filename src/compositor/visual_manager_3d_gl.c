@@ -353,17 +353,15 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	}
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
-	if (compositor->shader_only_mode) {
-		const char *shader = gf_opts_get_key("core", "vert-shader");
-		FILE *t = shader ? gf_fopen(shader, "rt") : NULL;
+	if (compositor->shader_only_mode && compositor->vertshader && compositor->fragshader) {
+		FILE *t = gf_fopen(compositor->vertshader, "rt");
 		if (!t) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Vertex shader not found, disabling shaders\n"));
 			compositor->shader_only_mode = GF_FALSE;
 		}
 		if (t) gf_fclose(t);
 
-		shader = gf_opts_get_key("core", "frag-shader");
-		t = shader ? gf_fopen(shader, "rt") : NULL;
+		t =gf_fopen(compositor->fragshader, "rt");
 		if (!t) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Fragment shader not found, disabling shaders\n"));
 			compositor->shader_only_mode = GF_FALSE;
@@ -1027,7 +1025,7 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	visual->glsl_has_shaders = GF_TRUE;
 	GL_CHECK_ERR
 
-	shader_file =(char *) gf_opts_get_key("core", "vert-shader");
+	shader_file = visual->compositor->vertshader;
 	if (!shader_file) return GF_FALSE;
 
 	for (i=0; i<GF_GL_NB_VERT_SHADERS; i++) {
@@ -1039,7 +1037,7 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 		}
 	}
 
-	shader_file =(char *) gf_opts_get_key("core", "frag-shader");
+	shader_file = visual->compositor->fragshader;
 	if (!shader_file) return GF_FALSE;
 
 	for (i=0; i<GF_GL_NB_FRAG_SHADERS; i++) {
