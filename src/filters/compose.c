@@ -129,7 +129,7 @@ static GF_Err compose_process(GF_Filter *filter)
 			ctx->last_check_pass = 0;
 		}
 
-		if ((ctx->check_eos_state==2) || !ctx->root_scene || (ctx->check_eos_state && gf_sc_check_end_of_scene(ctx, GF_TRUE))) {
+		if ((ctx->check_eos_state==2) || (ctx->check_eos_state && gf_sc_check_end_of_scene(ctx, GF_TRUE))) {
 			u32 count;
 			ctx->force_next_frame_redraw = GF_FALSE;
 			count = gf_filter_get_ipid_count(ctx->filter);
