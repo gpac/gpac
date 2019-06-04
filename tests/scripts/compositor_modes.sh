@@ -82,14 +82,16 @@ compositor_test "svgopacity-nogl-immediate" "$SVG_DIR/opacity.svg" "ogl=off:mode
 compositor_test "svgopacity-nogl-defer" "$SVG_DIR/opacity.svg" "ogl=off:mode2d=defer"
 compositor_test "svgopacity-gl" "$SVG_DIR/opacity.svg" "ogl=on"
 
-compositor_test "gl-noshader" "$MEDIA_DIR/bifs/bifs-3D-lighting-fog.bt" "ogl=on:vertshader=NULL"
+compositor_test "gl-noshader" "$BIFS_DIR/bifs-3D-lighting-fog.bt" "ogl=on:vertshader=NULL"
 
-compositor_test "gl-stereo" "$MEDIA_DIR/bifs/bifs-3D-lighting-fog.bt" "ogl=on:stereo=spv5:bvol=box"
+compositor_test "gl-stereo" "$BIFS_DIR/bifs-3D-lighting-fog.bt" "ogl=on:stereo=spv5:bvol=box"
 
-compositor_test "gl-norms" "$MEDIA_DIR/bifs/bifs-3D-lighting-fog.bt" "ogl=on:bvol=aabb:norms=face"
+compositor_test "gl-norms" "$BIFS_DIR/bifs-3D-lighting-fog.bt" "ogl=on:bvol=aabb:norms=face"
 
-compositor_test "gl-strike" "$MEDIA_DIR/bifs/bifs-2D-painting-material2D.bt" "ogl=on:linegl"
+compositor_test "gl-strike" "$BIFS_DIR/bifs-2D-painting-material2D.bt" "ogl=on:linegl"
 
-compositor_test "gl-text" "$MEDIA_DIR/bifs/bifs-text-length.bt" "ogl=on:drv=yes:textxt=never"
+compositor_test "gl-text" "$BIFS_DIR/bifs-text-length.bt" "ogl=on:drv=yes:textxt=never"
+
+compositor_test "svg-gl" "$SVG_DIR/shapes-rect-01-t.svg" "ogl=on:drv=yes"
 
 single_test "$GPAC -i $BIFS_DIR/bifs-2D-background-background2D-image.bt compositor:ogl=on:drv=yes @ vout" "compositor-gltexout"
