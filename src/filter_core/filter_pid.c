@@ -4218,7 +4218,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	}
 	pcki->pid->is_end_of_stream = GF_FALSE;
 
-	if ( (pcki->pck->info.flags & GF_PCKF_PROPS_CHANGED) && !pcki->pid_props_change_done) {
+	if ( (pcki->pck->info.flags & GF_PCKF_PROPS_CHANGED) /*&& !pcki->pid_props_change_done*/) {
 		GF_Err e;
 		Bool skip_props = GF_FALSE;
 
@@ -4261,7 +4261,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 				return NULL;
 		}
 	}
-	if ( (pcki->pck->info.flags & GF_PCKF_INFO_CHANGED) /*&& !pcki->pid_info_change_done*/) {
+	if ( (pcki->pck->info.flags & GF_PCKF_INFO_CHANGED) && !pcki->pid_info_change_done) {
 		Bool res=GF_FALSE;
 
 		//it may happen that this filter pid is pulled from another thread than ours (eg audio callback), in which case
@@ -4698,9 +4698,15 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
 		if (!pidinst->pid) return 0;
 		filter = pidinst->pid->filter;
 		if (check_pid_full) {
-			if (pidinst->pid->max_buffer_unit && (pidinst->pid->max_buffer_unit>pidinst->pid->nb_buffer_unit))
-				return 0;
-			if (pidinst->pid->max_buffer_time && (pidinst->pid->max_buffer_time>pidinst->pid->buffer_duration))
+			Bool buffer_full = GF_FALSE;
+
+			if (pidinst->pid->max_buffer_unit && (pidinst->pid->max_buffer_unit<=pidinst->pid->nb_buffer_unit))
+				buffer_full = GF_TRUE;
+
+			if (pidinst->pid->max_buffer_time && (pidinst->pid->max_buffer_time<=pidinst->pid->buffer_duration))
+				buffer_full = GF_TRUE;
+
+			if (!buffer_full)
 				return 0;
 		}
 		count = filter->num_input_pids;
