@@ -423,7 +423,7 @@ static void TraversePlaneClipper(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (gf_node_dirty_get(node)) {
 		PlaneClipper_GetNode(node, &stack->pc);
-		gf_node_dirty_clear(node, 0);
+		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 
 	if (tr_state->num_clip_planes==MAX_USER_CLIP_PLANES) {
