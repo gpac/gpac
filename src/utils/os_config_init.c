@@ -1241,7 +1241,7 @@ u32 gf_sys_is_gpac_arg(const char *arg_name)
 
 	argsep = strchr(arg_name, '=');
 	if (argsep) arglen = (u32) (argsep - arg_name);
-	else arglen = strlen(arg_name);
+	else arglen = (u32) strlen(arg_name);
 
 	while (GPAC_Args[i].name) {
 		arg = &GPAC_Args[i];
