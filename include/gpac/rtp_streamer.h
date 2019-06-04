@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / media tools sub-project
@@ -63,7 +63,7 @@ typedef struct __rtp_streamer GF_RTPStreamer;
  *\param MTU Maximum Transmission Unit size to use
  *\param TTL Time To Leave
  *\param ifce_addr IP of the local interface to use (may be NULL)
- *\param flags
+ *\param flags set of RTP flags passed to the streamer
  *\param dsi MPEG-4 Decoder Specific Info for the stream
  *\param dsi_len length of the dsi parameter
  *\param PayloadType RTP payload type
@@ -72,14 +72,15 @@ typedef struct __rtp_streamer GF_RTPStreamer;
  *\param is_crypted Boolean indicating if the stream is crypted
  *\param IV_length lenght of the Initialisation Vector used for encryption
  *\param KI_length length of the key index
- *\param MinSize
- *\param MaxSize
- *\param avgTS
- *\param maxDTSDelta
- *\param const_dur
- *\param bandwidth
- *\param max_ptime
- *\param au_sn_len length of the MPEG-4 SL descriptor AU sequence number field
+ *\param MinSize minimum AU size, 0 if unknown
+ *\param MaxSize maximum AU size, 0 if unknown
+ *\param avgTS average TS delta in timeScale, 0 if unknown
+ *\param maxDTSDelta maximum DTS delta in timeScale, 0 if unknown
+ *\param const_dur constant duration in timeScale, 0 if unknown
+ *\param bandwidth bandwidth, 0 if unknown
+ *\param max_ptime maximum packet duration in timeScale, 0 if unknown
+ *\param au_sn_len length of the MPEG-4 SL descriptor AU sequence number field, 0 if unknown
+ *\param for_rtsp indicates this is an RTP channel in an RTSP session, RTP channel will not be created, use \ref gf_rtp_streamer_init_rtsp
  *\return new object
  */
 GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
