@@ -1381,9 +1381,6 @@ GF_Err gf_media_export(GF_MediaExporter *dumper)
 	else if (dumper->flags & GF_EXPORT_SIX) return gf_media_export_six(dumper);
 
 	//the following ones should be moved to muxing filters
-#ifndef GPAC_DISABLE_AVILIB
-//	else if (dumper->flags & GF_EXPORT_AVI) return gf_media_export_avi(dumper);
-#endif /*GPAC_DISABLE_AVILIB*/
 	else if (dumper->flags & GF_EXPORT_SAF) return gf_media_export_saf(dumper);
 
 	//the rest is handled by the generic exporter
