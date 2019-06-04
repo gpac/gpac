@@ -1932,6 +1932,9 @@ force_input:
 		gf_term_get_text_selection(term, GF_TRUE);
 		gf_term_paste_text(term, "test", GF_TRUE);
 
+		gf_term_set_option(term, GF_OPT_AUDIO_MUTE, 1);
+
+
 		MakeScreenshot(GF_TRUE);
 
 		gf_term_scene_update(term, NULL, "REPLACE DYN_TRANS.translation BY 10 10");
@@ -1967,6 +1970,11 @@ force_input:
 			evt.type = GF_EVENT_KEYUP;
 			evt.key.key_code = GF_KEY_CONTROL;
 			gf_term_user_event(term, &evt);
+
+			evt.type = GF_EVENT_KEYDOWN;
+			evt.key.key_code = GF_KEY_J;
+			gf_term_user_event(term, &evt);
+
 		}
 		gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
 

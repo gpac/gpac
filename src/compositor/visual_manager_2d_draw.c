@@ -757,6 +757,7 @@ void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect
 	gf_path_del(path);
 }
 
+#if 0 //unused
 void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 strike)
 {
 	GF_Path *path;
@@ -819,3 +820,5 @@ void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 
 		ra_union_rect(&visual->hybgl_drawn, rc);
 #endif
 }
+#endif
+

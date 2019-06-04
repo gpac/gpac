@@ -30,20 +30,6 @@
 
 #define FORCE_CAMERA_3D
 
-GF_Camera *new_camera()
-{
-	GF_Camera *tmp;
-	GF_SAFEALLOC(tmp, GF_Camera);
-	if (!tmp) return NULL;
-	tmp->speed = 1;
-
-	return tmp;
-}
-void delete_camera(GF_Camera *cam)
-{
-	if (cam) gf_free(cam);
-}
-
 void camera_invalidate(GF_Camera *cam)
 {
 	/*forces recompute of default viewpoint*/

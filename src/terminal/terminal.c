@@ -1404,7 +1404,17 @@ u32 gf_term_object_subscene_type(GF_Terminal *term, GF_ObjectManager *odm)
 
 	if (!odm->subscene) return 0;
 #ifndef GPAC_DISABLE_VRML
-	if (odm->parentscene) return gf_inline_is_protolib_object(odm->parentscene, odm) ? 3 : 2;
+	if (odm->parentscene) {
+
+		u32 i=0;
+		GF_ProtoLink *pl;
+		i=0;
+		while ((pl = (GF_ProtoLink*)gf_list_enum(odm->parentscene->extern_protos, &i))) {
+			if (pl->mo->odm == odm) return 3;
+		}
+		return 2;
+	}
+	
 #endif
 	return 1;
 }

@@ -449,16 +449,6 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 	return NULL;
 }
 
-Bool gf_inline_is_protolib_object(GF_Scene *scene, GF_ObjectManager *odm)
-{
-	u32 i;
-	GF_ProtoLink *pl;
-	i=0;
-	while ((pl = (GF_ProtoLink*)gf_list_enum(scene->extern_protos, &i))) {
-		if (pl->mo->odm == odm) return GF_TRUE;
-	}
-	return GF_FALSE;
-}
 
 GF_EXPORT
 Bool gf_inline_is_default_viewpoint(GF_Node *node)
@@ -729,11 +719,11 @@ static void gf_storage_traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 static void on_force_restore(GF_Node *n, struct _route *_route)
 {
-	gf_storage_load((M_Storage *)n);
+	if (n) gf_storage_load((M_Storage *)n);
 }
 static void on_force_save(GF_Node *n, struct _route *_route)
 {
-	gf_storage_save((M_Storage *)n);
+	if (n) gf_storage_save((M_Storage *)n);
 }
 
 void gf_scene_init_storage(GF_Scene *scene, GF_Node *node)
@@ -758,6 +748,16 @@ void gf_scene_init_storage(GF_Scene *scene, GF_Node *node)
 
 	gf_list_add(scene->storages, node);
 	if (storage->_auto) gf_storage_load(storage);
+
+	if (gf_sys_is_test_mode()) {
+		Bool aptr;
+		on_force_save(NULL, NULL);
+		on_force_restore(NULL, NULL);
+		storage_parse_sf(&aptr, GF_SG_VRML_SFBOOL, "true");
+
+	}
+#ifdef GPAC_ENABLE_COVERAGE
+#endif
 }
 
 #endif // GPAC_DISABLE_VRML

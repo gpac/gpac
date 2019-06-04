@@ -1167,15 +1167,9 @@ static void svg_animation_smil_update(GF_Node *node, SVGlinkStack *stack, Fixed 
 	}
 }
 
-static void svg_reset_xlink_target(GF_Node *node)
-{
-	SVGAllAttributes all_atts;
-	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
-	if (all_atts.xlink_href) all_atts.xlink_href->target=NULL;
-}
-
 static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
 {
+	Bool reset_target = GF_FALSE;
 	GF_Node *node = gf_smil_get_element(rti);
 	SVGlinkStack *stack = gf_node_get_private(node);
 	switch (status) {
@@ -1190,7 +1184,7 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 		break;
 	case SMIL_TIMING_EVAL_REMOVE:
 		if (stack->resource) {
-			svg_reset_xlink_target(node);
+			reset_target = GF_TRUE;
 			gf_mo_unload_xlink_resource(node, stack->resource);
 			stack->resource = NULL;
 			stack->fragment_id = NULL;
@@ -1200,12 +1194,17 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 		break;
 	case SMIL_TIMING_EVAL_REPEAT:
 		if (stack->resource) {
-			svg_reset_xlink_target(node);
+			reset_target = GF_TRUE;
 			stack->fragment_id = NULL;
 			stack->inline_sg = NULL;
 			gf_mo_restart(stack->resource);
 		}
 		break;
+	}
+	if (reset_target) {
+		SVGAllAttributes all_atts;
+		gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+		if (all_atts.xlink_href) all_atts.xlink_href->target=NULL;
 	}
 }
 

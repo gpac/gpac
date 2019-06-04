@@ -1272,8 +1272,6 @@ void gf_sc_ar_set_pan(GF_AudioRenderer *ar, u32 Balance);
 /*mute/unmute audio*/
 void gf_sc_ar_mute(GF_AudioRenderer *ar, Bool mute);
 
-/*set audio priority*/
-void gf_sc_ar_set_priority(GF_AudioRenderer *ar, u32 priority);
 /*gets time in msec - this is the only clock used by the whole ESM system - depends on the audio driver*/
 u32 gf_sc_ar_get_clock(GF_AudioRenderer *ar);
 /*reset all input nodes*/
@@ -1284,7 +1282,6 @@ void gf_sc_ar_add_src(GF_AudioRenderer *ar, GF_AudioInterface *source);
 void gf_sc_ar_remove_src(GF_AudioRenderer *ar, GF_AudioInterface *source);
 /*reconfig audio hardware if needed*/
 void gf_sc_ar_send_or_reconfig(GF_AudioRenderer *ar);
-u32 gf_sc_ar_get_delay(GF_AudioRenderer *ar);
 
 void gf_sc_ar_update_video_clock(GF_AudioRenderer *ar, u32 video_ts);
 
@@ -1842,7 +1839,6 @@ typedef struct
 Bool gf_inline_is_default_viewpoint(GF_Node *node);
 
 GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url);
-Bool gf_inline_is_protolib_object(GF_Scene *scene, GF_ObjectManager *odm);
 
 /*restarts inline scene - care has to be taken not to remove the scene while it is traversed*/
 void gf_inline_restart(GF_Scene *scene);

@@ -449,9 +449,15 @@ case GJS_GPAC_PROP_ZOOM:
 		memset(&jspar, 0, sizeof(GF_JSAPIParam));
 		compositor->root_scene->graph->script_action(compositor->root_scene->graph->script_action_cbck, GF_JSAPI_OP_GET_SCALE, NULL, &jspar);
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(jspar.val)  ) );
+#ifdef GPAC_ENABLE_COVERAGE
+		if (gf_sys_is_test_mode()) {
+			compositor->root_scene->graph->script_action(compositor->root_scene->graph->script_action_cbck, GF_JSAPI_OP_GET_VIEWPORT, NULL, &jspar);
+		}
+#endif
 	} else {
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, 1.0) );
 	}
+
 	break;
 case GJS_GPAC_PROP_TEXT_SEL:
 	{
