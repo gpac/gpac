@@ -700,32 +700,6 @@ void compositor_init_text(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, Text_Traverse);
 }
 
-
-static void TraverseTextureText(GF_Node *node, void *rs, Bool is_destroy)
-{
-	TextStack *stack;
-	GF_Node *text;
-	GF_FieldInfo field;
-	if (is_destroy) return;
-	if (gf_node_get_field(node, 0, &field) != GF_OK) return;
-	if (field.fieldType != GF_SG_VRML_SFNODE) return;
-	text = *(GF_Node **)field.far_ptr;
-	if (!text) return;
-
-	if (gf_node_get_field(node, 1, &field) != GF_OK) return;
-	if (field.fieldType != GF_SG_VRML_SFBOOL) return;
-
-	if (gf_node_get_tag(text) != TAG_MPEG4_Text) return;
-	stack = (TextStack *) gf_node_get_private(text);
-	stack->texture_text_flag = *(SFBool*)field.far_ptr ? 1 : 0;
-}
-
-
-void compositor_init_texture_text(GF_Compositor *compositor, GF_Node *node)
-{
-	gf_node_set_callback_function(node, TraverseTextureText);
-}
-
 #ifndef GPAC_DISABLE_3D
 void compositor_extrude_text(GF_Node *node, GF_TraverseState *tr_state, GF_Mesh *mesh, MFVec3f *thespine, Fixed creaseAngle, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool txAlongSpine)
 {

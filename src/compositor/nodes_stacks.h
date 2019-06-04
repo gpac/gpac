@@ -291,8 +291,6 @@ GF_TextureHandler *gf_sc_hardcoded_proto_get_texture_handler(GF_Node *n);
 void compositor_extrude_text(GF_Node *node, GF_TraverseState *tr_state, GF_Mesh *mesh, MFVec3f *thespine, Fixed creaseAngle, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool txAlongSpine);
 #endif
 
-void compositor_init_texture_text(GF_Compositor *compositor, GF_Node *node);
-
 void compositor_init_envtest(GF_Compositor *compositor, GF_Node *node);
 void compositor_envtest_modified(GF_Node *node);
 void compositor_evaluate_envtests(GF_Compositor *compositor, u32 param_type);
