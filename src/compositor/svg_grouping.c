@@ -502,7 +502,7 @@ void compositor_init_svg_svg(GF_Compositor *compositor, GF_Node *node)
 Bool compositor_svg_get_viewport(GF_Node *n, GF_Rect *rc)
 {
 	SVGsvgStack *stack;
-	if (gf_node_get_tag(n) != TAG_SVG_svg) return 0;
+	if (!n || (gf_node_get_tag(n) != TAG_SVG_svg)) return 0;
 	stack = gf_node_get_private(n);
 	rc->width = stack->parent_vp.x;
 	rc->height = stack->parent_vp.y;
