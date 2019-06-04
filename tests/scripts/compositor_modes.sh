@@ -63,7 +63,7 @@ compositor_test $1 "$BIFS_DIR/bifs-misc-hc-proto-offscreengroup.bt" "$opt"
 opt="ogl=off"
 test_2d_3d "nogl"
 
-opt="ogl=on"
+opt="ogl=on:drv=yes"
 test_2d_3d "glonly"
 
 #the other mode (auto/hybrid) is tested in bt.sh
