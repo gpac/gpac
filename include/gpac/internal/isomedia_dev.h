@@ -793,8 +793,6 @@ typedef struct
 	/*private for media padding*/
 	u32 padding_bytes;
 	/*private for editing*/
-	char *name;
-	/*private for editing*/
 	Bool is_unpacked;
 	/*private for checking dependency*/
 	u32 originalFile;

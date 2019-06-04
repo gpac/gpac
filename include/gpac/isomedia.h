@@ -1459,13 +1459,6 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 
 u32 gf_isom_get_last_created_track_id(GF_ISOFile *movie);
 
-/*
-	some authoring extensions
-*/
-/*sets name for authoring - if name is NULL reset authoring name*/
-GF_Err gf_isom_set_track_name(GF_ISOFile *the_file, u32 trackNumber, char *name);
-/*gets authoring name*/
-const char *gf_isom_get_track_name(GF_ISOFile *the_file, u32 trackNumber);
 
 /*
 			MPEG-4 Extensions
@@ -1811,12 +1804,6 @@ GF_Err gf_isom_get_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 Str
 
 u32 gf_isom_get_track_group(GF_ISOFile *the_file, u32 trackNumber);
 u32 gf_isom_get_track_priority_in_group(GF_ISOFile *the_file, u32 trackNumber);
-
-/*stores movie config (storage mode, interleave time, track groupIDs, priorities and names) in UDTA(kept on disk)
-if @remove_all is set, removes all stored info, otherwise recompute all stored info*/
-GF_Err gf_isom_store_movie_config(GF_ISOFile *the_file, Bool remove_all);
-/*restores movie config (storage mode, interleave time, track groupIDs, priorities and names) if found*/
-GF_Err gf_isom_load_movie_config(GF_ISOFile *the_file);
 
 /*setup interleaving for storage (shortcut for storeage mode + interleave_time)*/
 GF_Err gf_isom_make_interleave(GF_ISOFile *mp4file, Double TimeInSec);

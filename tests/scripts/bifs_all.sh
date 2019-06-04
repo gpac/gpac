@@ -75,6 +75,10 @@ bifs_test()
  do_test "$MP4BOX -mp4 -sync 1000 $srcfile" "mp4sync"
  do_hash_test $mp4file "mp4sync"
 
+ #MP4 sync generation
+ do_test "$MP4BOX -mp4 -sync 1000 $srcfile" "mp4shadow"
+ do_hash_test $mp4file "mp4shadow"
+
  test_end
 }
 
