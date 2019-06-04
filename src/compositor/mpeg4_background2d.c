@@ -505,6 +505,7 @@ void compositor_background2d_modified(GF_Node *node)
 	gf_sc_invalidate(st->txh.compositor, NULL);
 }
 
+#if 0 //unused
 Bool compositor_background_transparent(GF_Node *node)
 {
 	if (node && (gf_node_get_tag(node) == TAG_MPEG4_Background2D)) {
@@ -518,5 +519,7 @@ Bool compositor_background_transparent(GF_Node *node)
 	/*consider all other background nodes transparent*/
 	return 1;
 }
+#endif
+
 
 #endif /*GPAC_DISABLE_VRML*/

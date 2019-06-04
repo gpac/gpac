@@ -90,4 +90,6 @@ compositor_test "gl-norms" "$MEDIA_DIR/bifs/bifs-3D-lighting-fog.bt" "ogl=on:bvo
 
 compositor_test "gl-strike" "$MEDIA_DIR/bifs/bifs-2D-painting-material2D.bt" "ogl=on:linegl"
 
+compositor_test "gl-text" "$MEDIA_DIR/bifs/bifs-text-length.bt" "ogl=on:drv=yes:textxt=never"
+
 single_test "$GPAC -i $BIFS_DIR/bifs-2D-background-background2D-image.bt compositor:ogl=on:drv=yes @ vout" "compositor-gltexout"

@@ -427,9 +427,11 @@ void compositor_init_viewpoint(GF_Compositor *compositor, GF_Node *node)
 
 static void navinfo_set_bind(GF_Node *node, GF_Route *route)
 {
-	ViewStack *st = (ViewStack *) gf_node_get_private(node);
-	Bindable_OnSetBind(node, st->reg_stacks, NULL);
-	gf_sc_invalidate( gf_sc_get_compositor(node), NULL);
+	if (node) {
+		ViewStack *st = (ViewStack *) gf_node_get_private(node);
+		Bindable_OnSetBind(node, st->reg_stacks, NULL);
+		gf_sc_invalidate( gf_sc_get_compositor(node), NULL);
+	}
 }
 
 static void TraverseNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
@@ -553,6 +555,12 @@ void compositor_init_navigation_info(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, TraverseNavigationInfo);
 	((M_NavigationInfo*)node)->on_set_bind = navinfo_set_bind;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		navinfo_set_bind(NULL, NULL);
+	}
+#endif
 }
 
 
