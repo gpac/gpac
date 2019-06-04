@@ -1024,6 +1024,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 		src_filter = gf_fs_load_source(fsess, importer->in_name, "index_dur=0", NULL, &e);
 		if (e) {
+			gf_fs_run(fsess);
 			gf_fs_del(fsess);
 			return gf_import_message(importer, e, "[Importer] Cannot load filter for input file \"%s\"", importer->in_name);
 		}
