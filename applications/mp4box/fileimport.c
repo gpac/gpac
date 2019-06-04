@@ -250,6 +250,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	GF_List *kinds;
 	GF_TextFlagsMode txt_mode = GF_ISOM_TEXT_FLAGS_OVERWRITE;
 	u8 max_layer_id_plus_one, max_temporal_id_plus_one;
+	u32 clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod;
+	Bool has_clap=GF_FALSE;
+
+	clap_wn = clap_wd = clap_hn = clap_hd = clap_hon = clap_hod = clap_von = clap_vod = 0;
 
 	rvc_predefined = 0;
 	chapter_name = NULL;
@@ -339,6 +343,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				if (ext2) ext2 = strchr(ext2+1, ':');
 				if (ext2) ext2[0] = 0;
 				sscanf(ext+5, "%d:%d", &par_n, &par_d);
+			}
+		}
+		else if (!strnicmp(ext+1, "clap=", 5)) {
+			if (!stricmp(ext+6, "none")) {
+				has_clap=GF_TRUE;
+			} else {
+				if (sscanf(ext+6, "%d:%d:%d:%d:%d:%d:%d:%d", &clap_wn, &clap_wd, &clap_hn, &clap_hd, &clap_hon, &clap_hod, &clap_von, &clap_vod)==8) {
+					has_clap=GF_TRUE;
+				}
 			}
 		}
 		else if (!strnicmp(ext+1, "name=", 5)) {
@@ -743,6 +756,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if ((par_n>=0) && (par_d>=0)) {
 				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
 			}
+			if (has_clap) {
+				e = gf_isom_set_clean_aperture(import.dest, i+1, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
+			}
 
 			if (rap_only || refs_only) {
 				e = gf_media_remove_non_rap(import.dest, i+1, refs_only);
@@ -886,8 +902,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 					}
 				}
 			}
-			if (gf_isom_is_video_subtype(import.tk_info[i].stream_type) && (par_n>=-1) && (par_d>=-1)) {
-				e = gf_media_change_par(import.dest, track, par_n, par_d);
+			if (gf_isom_is_video_subtype(import.tk_info[i].stream_type)) {
+				if ((par_n>=-1) && (par_d>=-1)) {
+					e = gf_media_change_par(import.dest, track, par_n, par_d);
+				}
+				if (has_clap) {
+					e = gf_isom_set_clean_aperture(import.dest, track, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
+				}
 			}
 			if (rap_only || refs_only) {
 				e = gf_media_remove_non_rap(import.dest, track, refs_only);
