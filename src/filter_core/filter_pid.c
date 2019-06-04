@@ -4831,6 +4831,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	GF_FilterEvent *evt = task->udta;
 	GF_Filter *f = task->filter;
 	GF_List *dispatched_filters = NULL;
+	Bool evt_reused=GF_FALSE;
 
 	//if stream reset task is posted, wait for it before processing this event
 	if (f->stream_reset_pending) {
@@ -5019,11 +5020,12 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			safe_int_inc(& pid_inst->pid->discard_input_packets );
 		}
 		//allocate a copy except for the last PID where we use the one from the input
-		if (i+1<count) {
+		if (evt_reused) {
 			an_evt = gf_malloc(sizeof(GF_FilterEvent));
 			memcpy(an_evt, evt, sizeof(GF_FilterEvent));
 		} else {
 			an_evt = evt;
+			evt_reused = GF_TRUE;
 		}
 		an_evt->base.on_pid = task->pid ? pid : NULL;
 
@@ -5032,6 +5034,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		gf_fs_post_task(pid->filter->session, gf_filter_pid_send_event_downstream, pid->filter, task->pid ? pid : NULL, "downstream_event", an_evt);
 	}
 	if (dispatched_filters) gf_list_del(dispatched_filters);
+	if (!evt_reused) gf_free(evt);
 	return;
 }
 
