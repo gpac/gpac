@@ -12,11 +12,14 @@ do_hash_test $TEMP_DIR/file_dash_track2_10.m4s "tt1"
 do_hash_test $TEMP_DIR/file_dash_track10_10.m4s "tt9"
 
 myinspect=$TEMP_DIR/inspect_tiles.txt
-do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:log=$myinspect"
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:log=$myinspect" "inspect-tiles"
 do_hash_test $myinspect "inspect-tiles"
 
+#also do a playback test for coverage
+do_test "$MP4CLIENT -blacklist=vtbdec,nvdec -i $TEMP_DIR/file.mpd#VR -run-for 1" "play-tiles"
+
 myinspect=$TEMP_DIR/inspect_agg.txt
-do_test "$GPAC -i $TEMP_DIR/file.mpd tileagg @ inspect:all:deep:interleave=false:log=$myinspect"
+do_test "$GPAC -i $TEMP_DIR/file.mpd tileagg @ inspect:all:deep:interleave=false:log=$myinspect" "inspect-tileagg"
 do_hash_test $myinspect "inspect-agg"
 
 test_end

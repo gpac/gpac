@@ -80,7 +80,7 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_copy_properties(ctx->opid, ctx->base_ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TILE_BASE, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD, NULL);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD_REF, NULL);
+		//we keep the SRDREF property to indicate this was a tiled HEVC reassembled
 		gf_filter_pid_set_property_str(ctx->opid, "isom:sabt", NULL);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);

@@ -312,7 +312,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 			}
 		}
 		// SRD object with no size but global scene size: HEVC tiled based object
-		else if (v2 && v->value.vec2i.x && v2->value.vec2i.y) {
+		else if (v2 && v2->value.vec2i.x && v2->value.vec2i.y) {
 			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->srd_type) {
 				mo->odm->parentscene->is_tiled_srd = GF_TRUE;
 			}

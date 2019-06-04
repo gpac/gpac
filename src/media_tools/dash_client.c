@@ -5060,8 +5060,13 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 				}
 				if (res) {
 					group->srd_desc = gf_dash_get_srd_desc(dash, id, GF_TRUE);
-					group->srd_desc->srd_fw = w;
-					group->srd_desc->srd_fh = h;
+					if (!w) w = group->srd_x + group->srd_w;
+					if (!h) h = group->srd_y + group->srd_h;
+
+					if (w>group->srd_desc->srd_fw)
+						group->srd_desc->srd_fw = w;
+					if (h>group->srd_desc->srd_fh)
+						group->srd_desc->srd_fh = h;
 				}
 
 			} else {
@@ -5104,8 +5109,13 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 				}
 				if (res) {
 					group->srd_desc = gf_dash_get_srd_desc(dash, id, GF_TRUE);
-					group->srd_desc->srd_fw = w;
-					group->srd_desc->srd_fh = h;
+					if (!w) w = group->srd_x + group->srd_w;
+					if (!h) h = group->srd_y + group->srd_h;
+
+					if (w>group->srd_desc->srd_fw)
+						group->srd_desc->srd_fw = w;
+					if (h>group->srd_desc->srd_fh)
+						group->srd_desc->srd_fh = h;
 				}
 			}
 		}
