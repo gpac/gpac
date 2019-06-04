@@ -3670,6 +3670,7 @@ Bool gf_sc_has_text_selection(GF_Compositor *compositor)
 	return (compositor->store_text_state==GF_SC_TSEL_FROZEN) ? GF_TRUE : GF_FALSE;
 }
 
+GF_EXPORT
 const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 {
 	const u16 *srcp;

@@ -89,3 +89,5 @@ compositor_test "gl-stereo" "$MEDIA_DIR/bifs/bifs-3D-lighting-fog.bt" "ogl=on:st
 compositor_test "gl-norms" "$MEDIA_DIR/bifs/bifs-3D-lighting-fog.bt" "ogl=on:bvol=aabb:norms=face"
 
 compositor_test "gl-strike" "$MEDIA_DIR/bifs/bifs-2D-painting-material2D.bt" "ogl=on:linegl"
+
+single_test "$GPAC -i $BIFS_DIR/bifs-2D-background-background2D-image.bt compositor:ogl=on:drv=yes @ vout" "compositor-gltexout"

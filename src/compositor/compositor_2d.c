@@ -157,42 +157,6 @@ exit:
 	compositor->visual->nb_objects_on_canvas_since_last_ogl_flush = 0;
 }
 
-Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx)
-{
-	u8 alpha = GF_COL_A(ctx->aspect.fill_color);
-
-	if (ctx->transform.m[1] || ctx->transform.m[3]) return GF_FALSE;
-
-	visual_3d_set_state(visual, V3D_STATE_LIGHT, GF_FALSE);
-	visual_3d_enable_antialias(visual, GF_FALSE);
-	if (alpha && (alpha != 0xFF)) {
-		visual_3d_set_material_2d_argb(visual, ctx->aspect.fill_color);
-		gf_sc_texture_set_blend_mode(ctx->aspect.fill_texture, TX_MODULATE);
-	} else if (gf_sc_texture_is_transparent(ctx->aspect.fill_texture)) {
-		gf_sc_texture_set_blend_mode(ctx->aspect.fill_texture, TX_REPLACE);
-	} else {
-		visual_3d_set_state(visual, V3D_STATE_BLEND, GF_FALSE);
-	}
-#ifndef GPAC_DISABLE_VRML
-	/*ignore texture transform for bitmap*/
-	tr_state->mesh_num_textures = gf_sc_texture_enable(ctx->aspect.fill_texture, tr_state->appear ? ((M_Appearance *)tr_state->appear)->textureTransform : NULL);
-	if (tr_state->mesh_num_textures) {
-		SFVec2f size, orig;
-		GF_Mesh *mesh;
-		size.x = ctx->bi->unclip.width;
-		size.y = ctx->bi->unclip.height;
-		mesh = new_mesh();
-		mesh_new_rectangle(mesh, size, &orig, GF_TRUE);
-		visual_3d_mesh_paint(tr_state, mesh);
-		mesh_free(mesh);
-		gf_sc_texture_disable(ctx->aspect.fill_texture);
-		tr_state->mesh_num_textures = 0;
-		return GF_TRUE;
-	}
-#endif
-	return GF_FALSE;
-}
-
 Bool compositor_2d_hybgl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx)
 {
 	GF_Node *txtrans = NULL;

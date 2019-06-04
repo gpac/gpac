@@ -190,6 +190,8 @@ enum {
 	GJS_GPAC_PROP_SENSORS_ACTIVE = -36,
 	GJS_GPAC_PROP_SIM_FPS = -37,
 	GJS_GPAC_PROP_HAS_OPENGL = -38,
+	GJS_GPAC_PROP_ZOOM = -39,
+	GJS_GPAC_PROP_TEXT_SEL = -40,
 
 };
 
@@ -440,6 +442,23 @@ case GJS_GPAC_PROP_DPI_Y:
 
 case GJS_GPAC_PROP_SENSORS_ACTIVE:
 	*vp = BOOLEAN_TO_JSVAL(compositor->orientation_sensors_active);
+	break;
+case GJS_GPAC_PROP_ZOOM:
+	if (compositor->root_scene && compositor->root_scene->graph->script_action) {
+		GF_JSAPIParam jspar;
+		memset(&jspar, 0, sizeof(GF_JSAPIParam));
+		compositor->root_scene->graph->script_action(compositor->root_scene->graph->script_action_cbck, GF_JSAPI_OP_GET_SCALE, NULL, &jspar);
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(jspar.val)  ) );
+	} else {
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, 1.0) );
+	}
+	break;
+case GJS_GPAC_PROP_TEXT_SEL:
+	{
+		const char *text = gf_sc_get_selected_text(compositor);
+		if (!text) text = "";
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, text) );
+	}
 	break;
 }
 
@@ -2253,6 +2272,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("dpi_x",						GJS_GPAC_PROP_DPI_X, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("dpi_y",						GJS_GPAC_PROP_DPI_Y, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("sensors_active",			GJS_GPAC_PROP_SENSORS_ACTIVE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+		SMJS_PROPERTY_SPEC("zoom",						GJS_GPAC_PROP_ZOOM, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("text_selection",			GJS_GPAC_PROP_TEXT_SEL, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};

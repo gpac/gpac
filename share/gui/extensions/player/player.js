@@ -1081,6 +1081,8 @@ extension = {
         gpac.error_string(-1);
         gpac.show_keyboard();
         gpac.switch_quality(true);
+        var z = gpac.zoom;
+        z = gpac.text_selection;
 
         var m = this.stats_resources[0];
         //m.gui.info.on_click();
