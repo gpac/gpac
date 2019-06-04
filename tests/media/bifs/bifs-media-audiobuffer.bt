@@ -46,7 +46,7 @@ OrderedGroup {
     children [
      AudioSource {
       url [od:10]
-      stopTime -1
+      stopTime 2
      }
     ]
    }
