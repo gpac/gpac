@@ -33,7 +33,7 @@
 			<text xml:id="comment-2" x="240" y="47">
 				 to 0 and nothing should be rendered. </text>
 		</g>
-			<video x="15" y="65" width="320" height="240" id="v1" xlink:href="../auxiliary_files/enst_video.h264" type="video/x-h264"/>
+			<video x="15" y="65" width="320" height="240" id="v1" xlink:href="../auxiliary_files/enst_video.h264" type="video/x-h264" syncReference="v1"/>
 	</g>
 	<text xml:id="revision" x="10" y="340" font-size="40" stroke="none" fill="black">$Revision: 1.8 $</text>
 	<rect xml:id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>

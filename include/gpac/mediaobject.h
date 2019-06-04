@@ -152,8 +152,6 @@ void gf_mo_adjust_clock(GF_MediaObject *mo, s32 ms_drift);
 
 Bool gf_mo_is_started(GF_MediaObject *mo);
 
-u32 gf_mo_get_last_frame_time(GF_MediaObject *mo);
-
 Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat, Bool *is_flipped);
 
 void gf_mo_get_nb_views(GF_MediaObject *mo, int * nb_views);
@@ -168,8 +166,6 @@ Fixed gf_mo_get_current_speed(GF_MediaObject *mo);
 returns 0 if no audio is associated, 1 if there is an audio object associated, 2 if the service is not yet ready (not connected)*/
 u32 gf_mo_has_audio(GF_MediaObject *mo);
 
-s32 gf_mo_get_clock_drift(GF_MediaObject *mo);
-
 enum
 {
 	/*used by animation stream to remove TEXT from display upon delete and URL change*/
@@ -178,7 +174,6 @@ enum
 	GF_MO_IN_RESYNC = (1<<2),
 };
 
-u32 gf_mo_get_flags(GF_MediaObject *mo);
 void gf_mo_set_flag(GF_MediaObject *mo, u32 flag, Bool set_on);
 
 /*loads a new resource as indicated in the xlink:href attribute of the node. If this points to a fragment
@@ -222,7 +217,6 @@ void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y
 void gf_mo_del(GF_MediaObject *mo);
 
 GF_DOMEventTarget  *gf_mo_event_target_add_node(GF_MediaObject *mo, GF_Node *n);
-GF_Err              gf_mo_event_target_remove(GF_MediaObject *mo, GF_DOMEventTarget *target);
 GF_Err              gf_mo_event_target_remove_by_node(GF_MediaObject *mo, GF_Node *node);
 GF_Err              gf_mo_event_target_remove_by_index(GF_MediaObject *mo, u32 i);
 GF_DOMEventTarget  *gf_mo_event_target_get(GF_MediaObject *mo, u32 i);

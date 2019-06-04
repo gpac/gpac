@@ -1612,6 +1612,11 @@ void compositor_evaluate_envtests(GF_Compositor *compositor, u32 param_type)
 	}
 }
 
+void compositor_envtest_modified(GF_Node *node)
+{
+	envtest_evaluate(node, NULL);
+}
+
 void compositor_init_envtest(GF_Compositor *compositor, GF_Node *node)
 {
 	M_EnvironmentTest *envtest = (M_EnvironmentTest *)node;
@@ -1620,12 +1625,14 @@ void compositor_init_envtest(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, traverse_envtest);
 
 	envtest->on_evaluate = envtest_evaluate;
+
+#if GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		compositor_envtest_modified(node);
+	}
+#endif
 }
 
-void compositor_envtest_modified(GF_Node *node)
-{
-	envtest_evaluate(node, NULL);
-}
 
 
 #endif /*GPAC_DISABLE_VRML*/

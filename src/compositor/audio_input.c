@@ -123,7 +123,11 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_s
 			ai->need_release = GF_FALSE;
 			return gf_audio_input_fetch_frame(callback, size, planar_size, audio_delay_ms);
 		}
-		resync_delay = gf_mo_get_clock_drift(ai->stream) - drift;
+		if (ai->stream->odm && ai->stream->odm->ck)
+			resync_delay = ai->stream->odm->ck->drift - drift;
+		else
+			resync_delay = -drift;
+			
 		if (resync_delay < 0) resync_delay = -resync_delay;
 
 		if (resync_delay > MIN_DRIFT_ADJUST) {

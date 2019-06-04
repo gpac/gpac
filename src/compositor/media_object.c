@@ -775,18 +775,6 @@ void gf_mo_get_object_time(GF_MediaObject *mo, u32 *obj_time)
 }
 
 GF_EXPORT
-s32 gf_mo_get_clock_drift(GF_MediaObject *mo)
-{
-	s32 res = 0;
-
-	/*regular media codec...*/
-	if (mo->odm->ck) {
-		res = mo->odm->ck->drift;
-	}
-	return res;
-}
-
-GF_EXPORT
 void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_loop)
 {
 	if (!mo) return;
@@ -1249,12 +1237,6 @@ void gf_mo_adjust_clock(GF_MediaObject *mo, s32 ms_drift)
 }
 
 GF_EXPORT
-u32 gf_mo_get_flags(GF_MediaObject *mo)
-{
-	return mo ? mo->flags : 0;
-}
-
-GF_EXPORT
 void gf_mo_set_flag(GF_MediaObject *mo, u32 flag, Bool set_on)
 {
 	if (mo) {
@@ -1263,12 +1245,6 @@ void gf_mo_set_flag(GF_MediaObject *mo, u32 flag, Bool set_on)
 		else
 			mo->flags &= ~flag;
 	}
-}
-
-GF_EXPORT
-u32 gf_mo_get_last_frame_time(GF_MediaObject *mo)
-{
-	return mo ? mo->timestamp : 0;
 }
 
 GF_EXPORT
@@ -1328,13 +1304,6 @@ GF_DOMEventTarget *gf_mo_event_target_add_node(GF_MediaObject *mo, GF_Node *n)
 #else
 	return NULL;
 #endif
-}
-
-GF_Err gf_mo_event_target_remove(GF_MediaObject *mo, GF_DOMEventTarget *target)
-{
-	if (!mo || !target) return GF_BAD_PARAM;
-	gf_list_del_item(mo->evt_targets, target);
-	return GF_OK;
 }
 
 GF_Err gf_mo_event_target_remove_by_index(GF_MediaObject *mo, u32 i)
