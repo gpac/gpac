@@ -640,7 +640,7 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 		else if (!slave_audio && stack->input.stream_finished && (gf_smil_get_media_duration(rti) < 0) ) {
 			Double dur = gf_mo_get_duration(stack->input.stream);
 			if (dur <= 0) {
-				dur = gf_mo_get_last_frame_time(stack->input.stream);
+				dur = stack->input.stream ? stack->input.stream->timestamp : 0;
 				dur /= 1000;
 			}
 			gf_smil_set_media_duration(rti, dur);
