@@ -11,6 +11,8 @@ mp4file2="$TEMP_DIR/test2.mp4"
 do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264+$MEDIA_DIR/auxiliary_files/enst_audio.aac -isma -new $mp4file" "add-plus"
 do_hash_test $mp4file "add-plus"
 
+do_test "$MP4BOX -time 2018/07/15-20:30:00 $mp4file" "time"
+do_hash_test $mp4file "time"
 
 do_test "$MP4BOX -diod $mp4file" "diod"
 do_hash_test $mp4file "diod"
