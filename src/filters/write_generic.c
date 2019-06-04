@@ -905,7 +905,7 @@ static GF_FilterArgs GenDumpArgs[] =
 	{ OFFS(decinfo), "Decoder config insert mode: no means never, first means on first packet, sap means at each SAP, auto selects between no and first based on media type", GF_PROP_UINT, "auto", "no|first|sap|auto", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(split), "Force one file per decoded frame.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frame), "Force single frame dump with no rewrite. In this mode, all codecids are supported", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(sstart), "Start number of frame to dump", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(sstart), "Start number of frame to dump. If 0, all samples are dumped", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(send), "End number of frame to dump. If start<end, all samples after start are dumped", GF_PROP_UINT, "0", NULL, 0},
 	{0}
 };
