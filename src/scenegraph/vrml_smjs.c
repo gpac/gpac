@@ -1574,6 +1574,7 @@ GF_ScriptPriv *priv;
 if (! GF_JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) )
 	return JS_FALSE;
 ptr = (GF_JSField *) SMJS_GET_PRIVATE(c, obj);
+if (!ptr) return JS_FALSE;
 assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 n = * ((GF_Node **)ptr->field.far_ptr);
 priv = JS_GetScriptStack(c);
