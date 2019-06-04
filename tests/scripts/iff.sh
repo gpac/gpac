@@ -74,4 +74,7 @@ do_hash_test $iff_file "create-pict-heif"
 do_test "$MP4BOX -add-image $COUNTERFILE:primary $iff_file" "add-image-pict"
 do_hash_test $iff_file "add-image-pict"
 
+do_test "$MP4BOX -add $COUNTERFILE:hdlr=pict:ccst -ab heic -new $iff_file" "create-ccst"
+do_hash_test $iff_file "create-ccst"
+
 test_end
