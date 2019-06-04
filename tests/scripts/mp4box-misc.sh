@@ -41,6 +41,17 @@ do_hash_test $mp4file2 "refonly"
 do_test "$MP4BOX -clap 10=96:1:96:1:20:1:20:1 $mp4file -out $mp4file2" "clap"
 do_hash_test $mp4file2 "clap"
 
+do_test "$MP4BOX -cprt supercopyright $mp4file" "cprt"
+do_hash_test $mp4file "cprt"
+
+mp4file="$TEMP_DIR/testco64.mp4"
+do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -co64 -new $mp4file" "add-co64"
+do_hash_test $mp4file "add-co64"
+
+mp4file="$TEMP_DIR/teststz2.mp4"
+do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/subtitle.srt:stz2 -new $mp4file" "add-stz2"
+do_hash_test $mp4file "add-stz2"
+
 
 test_end
 
