@@ -1374,8 +1374,6 @@ Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res);
 void compositor_send_resize_event(GF_Compositor *compositor, GF_SceneGraph *subscene, Fixed old_z, Fixed old_tx, Fixed old_ty, Bool is_resize);
 
 void compositor_set_cache_memory(GF_Compositor *compositor, u32 memory);
-/*checks whether the background node is transparent or not*/
-Bool compositor_background_transparent(GF_Node *node);
 
 #ifndef GPAC_DISABLE_3D
 

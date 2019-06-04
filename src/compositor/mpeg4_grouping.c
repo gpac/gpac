@@ -379,11 +379,6 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 
 #ifndef GPAC_DISABLE_3D
 
-void group_3d_setup(GroupingNode *group, GF_Node *node)
-{
-	memset(group, 0, sizeof(GroupingNode));
-}
-
 void group_3d_delete(GF_Node *node)
 {
 	GroupingNode *group = (GroupingNode *)gf_node_get_private(node);
