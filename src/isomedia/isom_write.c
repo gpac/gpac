@@ -2957,6 +2957,11 @@ GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst)
 	return e;
 }
 
+#if 0 //unused
+/*clones the entire movie file to destination. Tracks can be cloned if clone_tracks is set, in which case hint tracks can be
+kept if keep_hint_tracks is set
+if keep_pssh, all pssh boxes will be kept
+fragment information (mvex) is not kept*/
 GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks, Bool keep_pssh)
 {
 	GF_Err e;
@@ -3071,6 +3076,8 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 
 	return GF_OK;
 }
+#endif
+
 
 GF_EXPORT
 GF_Err gf_isom_get_raw_user_data(GF_ISOFile *file, char **output, u32 *output_size)
@@ -3301,6 +3308,8 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	return GF_OK;
 }
 
+#if 0
+/*clones all sampleDescription entries in new track, after an optional reset of existing entries*/
 GF_Err gf_isom_clone_sample_descriptions(GF_ISOFile *the_file, u32 trackNumber, GF_ISOFile *orig_file, u32 orig_track, Bool reset_existing)
 {
 	u32 i;
@@ -3325,6 +3334,7 @@ GF_Err gf_isom_clone_sample_descriptions(GF_ISOFile *the_file, u32 trackNumber, 
 	}
 	return e;
 }
+#endif
 
 
 GF_EXPORT
@@ -3514,7 +3524,8 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 
 //use carefully. Very useful when you made a lot of changes (IPMP, IPI, OCI, ...)
 //THIS WILL REPLACE THE WHOLE DESCRIPTOR ...
-GF_EXPORT
+#if 0 //unused
+/*change the data field of an unknown sample description*/
 GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_GenericSampleDescription *udesc)
 {
 	GF_TrackBox *trak;
@@ -3598,9 +3609,10 @@ GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNum
 	}
 	return GF_BAD_PARAM;
 }
+#endif
 
+#if 0
 /*removes given stream description*/
-GF_EXPORT
 GF_Err gf_isom_remove_sample_description(GF_ISOFile *movie, u32 trackNumber, u32 streamDescIndex)
 {
 	GF_TrackBox *trak;
@@ -3617,6 +3629,7 @@ GF_Err gf_isom_remove_sample_description(GF_ISOFile *movie, u32 trackNumber, u32
 	gf_isom_box_del(entry);
 	return GF_OK;
 }
+#endif
 
 //sets a track reference
 GF_EXPORT
@@ -3652,7 +3665,7 @@ GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 re
 }
 
 //removes a track reference
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_isom_remove_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferenceIndex)
 {
 	GF_Err e;
@@ -3695,7 +3708,7 @@ GF_Err gf_isom_remove_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32
 	dpnd->trackIDs = newIDs;
 	return GF_OK;
 }
-
+#endif
 
 //sets a track reference
 GF_EXPORT
@@ -3790,7 +3803,8 @@ GF_Err gf_isom_rewrite_track_dependencies(GF_ISOFile *movie, u32 trackNumber)
 	return GF_OK;
 }
 
-GF_EXPORT
+#if 0 //unused
+/*modify CTS offset of a given sample (used for B-frames) - MUST be called in unpack mode only*/
 GF_Err gf_isom_modify_cts_offset(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, u32 offset)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -3801,6 +3815,7 @@ GF_Err gf_isom_modify_cts_offset(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 	trak->Media->information->sampleTable->CompositionOffset->entries[sample_number - 1].decodingOffset = offset;
 	return GF_OK;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_isom_shift_cts_offset(GF_ISOFile *the_file, u32 trackNumber, s32 offset_shift)
@@ -3818,7 +3833,7 @@ GF_Err gf_isom_shift_cts_offset(GF_ISOFile *the_file, u32 trackNumber, s32 offse
 	return GF_OK;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_isom_remove_cts_info(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -3829,6 +3844,7 @@ GF_Err gf_isom_remove_cts_info(GF_ISOFile *the_file, u32 trackNumber)
 	trak->Media->information->sampleTable->CompositionOffset = NULL;
 	return GF_OK;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_isom_set_cts_packing(GF_ISOFile *the_file, u32 trackNumber, Bool unpack)
@@ -3851,7 +3867,7 @@ GF_Err gf_isom_set_cts_packing(GF_ISOFile *the_file, u32 trackNumber, Bool unpac
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_track_matrix(GF_ISOFile *the_file, u32 trackNumber, u32 matrix[9])
+GF_Err gf_isom_set_track_matrix(GF_ISOFile *the_file, u32 trackNumber, s32 matrix[9])
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Header) return GF_BAD_PARAM;

@@ -756,7 +756,7 @@ typedef struct
 	u16 alternate_group;
 	u16 volume;
 	u16 reserved3;
-	u32 matrix[9];
+	s32 matrix[9];
 	u32 width, height;
 } GF_TrackHeaderBox;
 
