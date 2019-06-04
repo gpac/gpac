@@ -47,6 +47,7 @@ mp4_test ()
  do_play=1
  do_hash=1
  do_dnal=0
+ do_avi=0
 
  #ignore xlst & others, no hinting for images
  case $1 in
@@ -105,6 +106,8 @@ mp4_test ()
  #no support for hinting or playback yet
  *.ismt )
   do_hint=0 && do_play=0 ;;
+ *.cmp )
+  do_avi=1
  esac
 
  name=$(basename $1)
@@ -156,6 +159,11 @@ fi
 
  if [ $do_hint != 0 ] ; then
   hint_test $mp4file &
+ fi
+
+ if [ $do_avi != 0 ] ; then
+  do_test "$MP4BOX -avi $mp4file -out $TEMP_DIR/test.avi" "avi-dump"
+  do_hash_test $TEMP_DIR/test.avi "avi-dump"
  fi
 
  test_end
