@@ -4222,7 +4222,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	}
 	pcki->pid->is_end_of_stream = GF_FALSE;
 
-	if ( (pcki->pck->info.flags & GF_PCKF_PROPS_CHANGED) /*&& !pcki->pid_props_change_done*/) {
+	if ( (pcki->pck->info.flags & GF_PCKF_PROPS_CHANGED) && !pcki->pid_props_change_done) {
 		GF_Err e;
 		Bool skip_props = GF_FALSE;
 
@@ -4265,7 +4265,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 				return NULL;
 		}
 	}
-	if ( (pcki->pck->info.flags & GF_PCKF_INFO_CHANGED) && !pcki->pid_info_change_done) {
+	if ( (pcki->pck->info.flags & GF_PCKF_INFO_CHANGED) /* && !pcki->pid_info_change_done*/) {
 		Bool res=GF_FALSE;
 
 		//it may happen that this filter pid is pulled from another thread than ours (eg audio callback), in which case
