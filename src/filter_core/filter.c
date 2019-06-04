@@ -2275,8 +2275,12 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 				pidi->is_end_of_stream = GF_TRUE;
 			}
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to find any filter for URL %s, disabling destination filter %s\n", src_url, af->name));
-		af->removed = GF_TRUE;
+		if (af->sticky) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to find any filter for URL %s\n", src_url));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to find any filter for URL %s, disabling destination filter %s\n", src_url, af->name));
+			af->removed = GF_TRUE;
+		}
 	}
 	//nope ...
 	gf_filter_setup_failure(filter, e);

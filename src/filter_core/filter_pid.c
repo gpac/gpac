@@ -3579,6 +3579,10 @@ single_retry:
 	gf_filter_pid_set_eos(pid);
 	if (!(pid->filter->freg->flags & GF_FS_REG_DYNAMIC_PIDS ) && (pid->filter->num_out_pids_not_connected == pid->filter->num_output_pids)) {
 		pid->filter->disabled = GF_TRUE;
+
+		if (can_reassign_filter) {
+			gf_filter_setup_failure(pid->filter, GF_FILTER_NOT_FOUND);
+		}
 	}
 
 	if (!filter_found_but_pid_excluded && !pid->not_connected_ok && !filter->session->max_resolve_chain_len) {
