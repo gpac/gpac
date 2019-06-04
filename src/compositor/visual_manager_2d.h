@@ -91,8 +91,6 @@ struct _drawable_store
  */
 Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState *tr_state, Bool is_root_visual);
 
-Bool visual_2d_node_cull(GF_TraverseState *tr_state, GF_Rect *bounds);
-
 void visual_2d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children);
 
 void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 is_offscreen);
