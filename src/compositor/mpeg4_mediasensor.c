@@ -137,24 +137,6 @@ void MS_Modified(GF_Node *node)
 	gf_sc_invalidate(st->parent->compositor, NULL);
 }
 
-
-static void media_sensor_activate_segment(MediaSensorStack *media_sens, GF_Segment *desc)
-{
-	media_sens->sensor->isActive = 1;
-	gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
-	/*set info*/
-	gf_sg_vrml_mf_reset(& media_sens->sensor->info, GF_SG_VRML_MFSTRING);
-	gf_sg_vrml_mf_alloc(& media_sens->sensor->info, GF_SG_VRML_MFSTRING, 1);
-	media_sens->sensor->info.vals[0] = desc->SegmentName ? gf_strdup(desc->SegmentName) : NULL;
-	gf_node_event_out((GF_Node *) media_sens->sensor, 5/*"info"*/);
-	/*set duration*/
-	media_sens->sensor->mediaDuration = desc->Duration;
-	gf_node_event_out((GF_Node *) media_sens->sensor, 3/*"mediaDuration"*/);
-	/*set seg start time*/
-	media_sens->sensor->streamObjectStartTime = desc->startTime;
-	gf_node_event_out((GF_Node *) media_sens->sensor, 2/*"streamObjectStartTime"*/);
-}
-
 void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 {
 	GF_Segment *desc;
@@ -253,9 +235,23 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 			}
 
 			if (!media_sens->sensor->isActive) {
-				media_sensor_activate_segment(media_sens, desc);
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[ODM%d] Activating media sensor time %g - segment %s\n", odm->ID, time, desc->SegmentName));
+
+				media_sens->sensor->isActive = 1;
+				gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
+				/*set info*/
+				gf_sg_vrml_mf_reset(& media_sens->sensor->info, GF_SG_VRML_MFSTRING);
+				gf_sg_vrml_mf_alloc(& media_sens->sensor->info, GF_SG_VRML_MFSTRING, 1);
+				media_sens->sensor->info.vals[0] = desc->SegmentName ? gf_strdup(desc->SegmentName) : NULL;
+				gf_node_event_out((GF_Node *) media_sens->sensor, 5/*"info"*/);
+				/*set duration*/
+				media_sens->sensor->mediaDuration = desc->Duration;
+				gf_node_event_out((GF_Node *) media_sens->sensor, 3/*"mediaDuration"*/);
+				/*set seg start time*/
+				media_sens->sensor->streamObjectStartTime = desc->startTime;
+				gf_node_event_out((GF_Node *) media_sens->sensor, 2/*"streamObjectStartTime"*/);
+
 			}
 
 			/*set media time - relative to segment start time*/

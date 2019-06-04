@@ -240,11 +240,13 @@ void gf_sc_ar_remove_src(GF_AudioRenderer *ar, GF_AudioInterface *source)
 }
 
 
+#if 0 //unused
 void gf_sc_ar_set_priority(GF_AudioRenderer *ar, u32 priority)
 {
 	if (ar->aout)
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_PRIORITY, &PROP_UINT(priority) );
 }
+#endif
 
 void gf_sc_ar_update_video_clock(GF_AudioRenderer *ar, u32 video_ts)
 {
@@ -365,6 +367,7 @@ void gf_sc_ar_send_or_reconfig(GF_AudioRenderer *ar)
 	gf_ar_send_packets(ar);
 }
 
+#if 0 //unused
 u32 gf_sc_ar_get_delay(GF_AudioRenderer *ar)
 {
 	if (!ar->bytes_per_second) return 0;
@@ -372,7 +375,7 @@ u32 gf_sc_ar_get_delay(GF_AudioRenderer *ar)
 	// since we don't know how much of the first packet data out there has been consumed
 	return 1000 * ar->nb_bytes_out / ar->bytes_per_second;
 }
-
+#endif
 
 u32 gf_sc_ar_get_clock(GF_AudioRenderer *ar)
 {

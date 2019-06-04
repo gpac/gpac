@@ -58,10 +58,14 @@ typedef struct
 static void CALLBACK mesh_tess_begin(GLenum which) {
 	assert(which==GL_TRIANGLES);
 }
-static void CALLBACK mesh_tess_end(void) { }
-static void CALLBACK mesh_tess_error(GLenum error_code) {
-	GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Mesh] Tesselate error %s\n", gluErrorString(error_code)));
+static void CALLBACK mesh_tess_end(void) {
 }
+static void CALLBACK mesh_tess_error(GLenum error_code)
+{
+	if (error_code)
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Mesh] Tesselate error %s\n", gluErrorString(error_code)));
+}
+
 /*only needed to force GL_TRIANGLES*/
 static void CALLBACK mesh_tess_edgeflag(GLenum flag) { }
 
@@ -219,6 +223,13 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 	mesh->bounds.max_edge.y = rc.y;
 	mesh->bounds.min_edge.z = mesh->bounds.max_edge.z = 0;
 	gf_bbox_refresh(&mesh->bounds);
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		mesh_tess_error(0);
+	}
+#endif
+
 }
 
 #else
