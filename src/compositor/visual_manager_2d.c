@@ -169,6 +169,7 @@ void visual_2d_drawable_delete(GF_VisualManager *visual, struct _drawable *drawa
 	}
 }
 
+#if 0 //unused
 Bool visual_2d_node_cull(GF_TraverseState *tr_state, GF_Rect *bounds)
 {
 	GF_Rect rc;
@@ -179,6 +180,7 @@ Bool visual_2d_node_cull(GF_TraverseState *tr_state, GF_Rect *bounds)
 	if (gf_irect_overlaps(&tr_state->visual->top_clipper, &i_rc)) return 1;
 	return 0;
 }
+#endif
 
 void visual_2d_setup_projection(GF_VisualManager *visual, GF_TraverseState *tr_state)
 {
