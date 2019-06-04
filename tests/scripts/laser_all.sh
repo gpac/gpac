@@ -45,7 +45,7 @@ lsr_test ()
  do_hash_test "$TEMP_DIR/test2.lsr" "saf-to-lsr"
 
  #mp4 read and render test
- RGB_DUMP="$TEMP_DIR/$2-dump.rgb"
+ RGB_DUMP="$TEMP_DIR/$name-dump.rgb"
 
  #for the time being we don't check hashes nor use same size/dur for our tests. We will redo the UI tests once finaizing filters branch
  dump_dur=5
@@ -53,7 +53,7 @@ lsr_test ()
  do_test "$GPAC -blacklist=vtbdec,nvdec -i $mp4file compositor:osize=$dump_size:vfr:dur=$dump_dur @ -o $RGB_DUMP" "dump"
 
  if [ -f $RGB_DUMP ] ; then
-#  do_hash_test_bin "$RGB_DUMP" "$2-rgb"
+#  do_hash_test_bin "$RGB_DUMP" "rgb"
   do_play_test "play" "$RGB_DUMP:size=$dump_size"
  else
   result="no output"
