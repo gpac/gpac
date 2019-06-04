@@ -1692,10 +1692,6 @@ void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
             return;
         }
 #endif
-		if (!strcmp(url, "urn:inet:gpac:builtin:TextureText")) {
-			compositor_init_texture_text(compositor, node);
-			return;
-		}
 		if (!strcmp(url, "urn:inet:gpac:builtin:OffscreenGroup")) {
 			compositor_init_offscreen_group(compositor, node);
 			return;

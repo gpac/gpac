@@ -234,11 +234,11 @@ GF_Err gf_input_sensor_setup_object(GF_ObjectManager *odm, GF_ESD *esd)
 		is_ctx->io_dev->DispatchFrame = isdev_dispatch_frame;
 	}
 
+#ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		isdev_add_field(NULL, 0, NULL);
 		isdev_dispatch_frame(NULL, NULL, 0);
 	}
-#if GPAC_ENABLE_COVERAGE
 #endif
 
 	gf_list_add(is_ctx->odm->parentscene->compositor->input_streams, is_ctx);
