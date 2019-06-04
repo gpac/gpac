@@ -1590,6 +1590,7 @@ GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Ter
 {
 	const GF_PropertyValue *p;
 	GF_FilterPid *pid;
+	if (urli) memset(urli, 0, sizeof(GF_TermURLInfo));
 	if (!term || !odm || !urli || !gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
 
 	pid = odm->pid;
