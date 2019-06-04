@@ -1276,21 +1276,16 @@ GF_Err gf_isom_set_final_name(GF_ISOFile *the_file, char *filename);
 
 /*set the storage mode of a file (FLAT, STREAMABLE, INTERLEAVED)*/
 GF_Err gf_isom_set_storage_mode(GF_ISOFile *the_file, u8 storageMode);
-u8 gf_isom_get_storage_mode(GF_ISOFile *the_file);
 
 /*set the interleaving time of media data (INTERLEAVED mode only)
 InterleaveTime is in MovieTimeScale*/
 GF_Err gf_isom_set_interleave_time(GF_ISOFile *the_file, u32 InterleaveTime);
-u32 gf_isom_get_interleave_time(GF_ISOFile *the_file);
 
 /*forces usage of 64 bit chunk offsets*/
 void gf_isom_force_64bit_chunk_offset(GF_ISOFile *the_file, Bool set_on);
 
 /*set the copyright in one language.*/
 GF_Err gf_isom_set_copyright(GF_ISOFile *the_file, const char *threeCharCode, char *notice);
-
-/*deletes copyright (1-based indexes)*/
-GF_Err gf_isom_remove_copyright(GF_ISOFile *the_file, u32 index);
 
 /*add a kind type to the track */
 GF_Err gf_isom_add_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *schemeURI, const char *value);
@@ -1315,9 +1310,6 @@ GF_Err gf_isom_add_chapter(GF_ISOFile *the_file, u32 trackNumber, u64 timestamp,
 
 /*deletes copyright (1-based index, index 0 for all)*/
 GF_Err gf_isom_remove_chapter(GF_ISOFile *the_file, u32 trackNumber, u32 index);
-
-/*set watermark info for movie*/
-GF_Err gf_isom_set_watermark(GF_ISOFile *the_file, bin128 UUID, u8* data, u32 length);
 
 /*Track Edition functions - used to change the normal playback of the media if desired
 NOTE: IT IS THE USER RESPONSABILITY TO CREATE A CONSISTENT TIMELINE FOR THE TRACK
@@ -1395,11 +1387,6 @@ GF_Err gf_isom_modify_alternate_brand(GF_ISOFile *the_file, u32 Brand, u8 AddIt)
 
 /*removes all alternate brands except major brand*/
 GF_Err gf_isom_reset_alt_brands(GF_ISOFile *movie);
-
-/*set the number of padding bits at the end of a given sample if needed
-if the function is never called the padding bit info is ignored
-this MUST be called on an existin sample*/
-GF_Err gf_isom_set_sample_padding_bits(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u8 NbBits);
 
 GF_Err gf_isom_set_sample_flags(GF_ISOFile *file, u32 track, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
 

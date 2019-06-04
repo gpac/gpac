@@ -2409,7 +2409,7 @@ GF_Err gf_isom_remove_chapter(GF_ISOFile *movie, u32 trackNumber, u32 index)
 	return GF_OK;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_isom_remove_copyright(GF_ISOFile *movie, u32 index)
 {
 	GF_Err e;
@@ -2445,8 +2445,6 @@ GF_Err gf_isom_remove_copyright(GF_ISOFile *movie, u32 index)
 	return GF_OK;
 }
 
-
-GF_EXPORT
 GF_Err gf_isom_set_watermark(GF_ISOFile *movie, bin128 UUID, u8* data, u32 length)
 {
 	GF_Err e;
@@ -2481,6 +2479,7 @@ GF_Err gf_isom_set_watermark(GF_ISOFile *movie, bin128 UUID, u8* data, u32 lengt
 	ptr->dataSize = length;
 	return udta_AddBox((GF_Box *)movie->moov->udta, (GF_Box *) ptr);
 }
+#endif
 
 //set the interleaving time of media data (INTERLEAVED mode only)
 //InterleaveTime is in MovieTimeScale
@@ -2495,20 +2494,6 @@ GF_Err gf_isom_set_interleave_time(GF_ISOFile *movie, u32 InterleaveTime)
 	movie->interleavingTime = InterleaveTime;
 	return GF_OK;
 }
-
-GF_EXPORT
-u32 gf_isom_get_interleave_time(GF_ISOFile *movie)
-{
-	return movie ? movie->interleavingTime : 0;
-}
-
-//set the storage mode of a file (FLAT, STREAMABLE, INTERLEAVED)
-GF_EXPORT
-u8 gf_isom_get_storage_mode(GF_ISOFile *movie)
-{
-	return movie ? movie->storageMode : 0;
-}
-
 
 
 
@@ -2725,7 +2710,7 @@ GF_Err gf_isom_reset_alt_brands(GF_ISOFile *movie)
 	return GF_OK;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_isom_set_sample_padding_bits(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumber, u8 NbBits)
 {
 	GF_TrackBox *trak;
@@ -2740,7 +2725,7 @@ GF_Err gf_isom_set_sample_padding_bits(GF_ISOFile *movie, u32 trackNumber, u32 s
 	//set Padding info
 	return stbl_SetPaddingBits(trak->Media->information->sampleTable, sampleNumber, NbBits);
 }
-
+#endif
 
 GF_EXPORT
 GF_Err gf_isom_remove_user_data_item(GF_ISOFile *movie, u32 trackNumber, u32 UserDataType, bin128 UUID, u32 UserDataIndex)

@@ -14,6 +14,8 @@ do_hash_test $mp4file "udta-moov"
 do_test "$MP4BOX -dump-udta GPAC $mp4file -out $binfile" "udta-moov-dump"
 do_hash_test $binfile "udta-moov-dump"
 
+do_test "$MP4BOX -udta 0:type=GPAC:src= $mp4file" "udta-moov-rem"
+do_hash_test $mp4file "udta-moov-rem"
 
 mp4file="$TEMP_DIR/udtatrack.mp4"
 binfile="$TEMP_DIR/dumptrack.bin"

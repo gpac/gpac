@@ -66,7 +66,7 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 
 	if (!udta_type && !is_box_array) return GF_BAD_PARAM;
 
-	if (!src) {
+	if (!src || !strlen(src)) {
 		return gf_isom_remove_user_data(dest, tracknum, udta_type, uuid);
 	}
 
@@ -252,6 +252,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u8 max_layer_id_plus_one, max_temporal_id_plus_one;
 	u32 clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod;
 	Bool has_clap=GF_FALSE;
+	Bool use_stz2=GF_FALSE;
 
 	clap_wn = clap_wd = clap_hn = clap_hd = clap_hon = clap_hod = clap_von = clap_vod = 0;
 
@@ -600,6 +601,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			import.audio_roll_change = GF_TRUE;
 			import.audio_roll = atoi(ext+12);
 		}
+		else if (!strcmp(ext+1, "stz2")) {
+			use_stz2 = GF_TRUE;
+		}
 
 		/*unrecognized, assume name has colon in it*/
 		else {
@@ -759,6 +763,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (has_clap) {
 				e = gf_isom_set_clean_aperture(import.dest, i+1, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
 			}
+			if (use_stz2) {
+				e = gf_isom_use_compact_size(import.dest, i+1, 1);
+			}
 
 			if (rap_only || refs_only) {
 				e = gf_media_remove_non_rap(import.dest, i+1, refs_only);
@@ -909,6 +916,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				if (has_clap) {
 					e = gf_isom_set_clean_aperture(import.dest, track, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
 				}
+			}
+			if (use_stz2) {
+				e = gf_isom_use_compact_size(import.dest, track, 1);
 			}
 			if (rap_only || refs_only) {
 				e = gf_media_remove_non_rap(import.dest, track, refs_only);
