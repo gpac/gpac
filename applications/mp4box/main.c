@@ -4240,27 +4240,23 @@ int mp4boxMain(int argc, char **argv)
 			if (!strcmp(argv[i], "-add")) {
 				char *src = argv[i+1];
 
-				e = import_file(file, src, import_flags, import_fps, agg_samples);
-				if (e) {
-					while (src) {
-						char *sep = strchr(src, '+');
-						if (sep) {
-							sep[0] = 0;
-						} else {
-							break;
-						}
-
-						e = import_file(file, src, import_flags, import_fps, agg_samples);
-
-						if (sep) {
-							sep[0] = '+';
-							src = sep+1;
-						} else {
-							src= NULL;
-						}
-						if (e)
-							break;
+				while (src) {
+					char *sep = strchr(src, '+');
+					if (sep) {
+						sep[0] = 0;
 					}
+
+					e = import_file(file, src, import_flags, import_fps, agg_samples);
+
+					if (sep) {
+						sep[0] = '+';
+						src = sep+1;
+					} else {
+						break;
+					}
+					if (e)
+						break;
+
 					if (e) {
 						fprintf(stderr, "Error importing %s: %s\n", argv[i+1], gf_error_to_string(e));
 						gf_isom_delete(file);
@@ -4886,6 +4882,7 @@ int mp4boxMain(int argc, char **argv)
 				gf_fclose(iodf);
 			}
 			gf_free(bs);
+			gf_odf_desc_del((GF_Descriptor*)iod);
 		}
 	}
 
