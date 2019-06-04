@@ -1075,7 +1075,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 
 	args = NULL;
 	strcpy(szExt, "");
-	if (dumper->trackID) {
+	if (dumper->trackID && dumper->file) {
 		u32 msubtype = 0;
 		u32 mtype = 0;
 		u32 afmt = 0;
@@ -1218,6 +1218,10 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				if (ext) e |= gf_dynstrcat(&args, ext, NULL);
 			}
 			e |= gf_dynstrcat(&args, ":dynext", NULL);
+		} else if (dumper->flags & GF_EXPORT_AVI_NATIVE) {
+			if (!strlen(szExt)) {
+				e |= gf_dynstrcat(&args, ":dynext", NULL);
+			}
 		} else if (dumper->trackID && strlen(szExt) ) {
 			if (!no_ext && !gf_file_ext_start(dumper->out_name)) {
 				if (args) gf_free(args);
