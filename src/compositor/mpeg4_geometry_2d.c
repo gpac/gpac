@@ -775,6 +775,9 @@ static void TraverseBitWrapper(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_set_private(node, NULL);
 		return;
 	}
+#ifdef GPAC_ENABLE_COVERAGE
+	if (!rs) return;
+#endif
 
 	tr_state = (GF_TraverseState *)rs;
 	// Traverse the node here
@@ -789,6 +792,12 @@ void compositor_init_bitwrapper(GF_Compositor *compositor, GF_Node *node)
 	if (!bit->node) return;
 	gf_node_set_private(node, gf_node_get_private(bit->node));
 	gf_node_set_callback_function(node, TraverseBitWrapper);
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		TraverseBitWrapper(node, NULL, GF_FALSE);
+	}
+#endif
 }
 
 

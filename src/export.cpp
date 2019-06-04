@@ -1872,6 +1872,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_is_over) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_navigation_supported) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_on_event) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_selected_text) )
+
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_svg_convert_length_to_display) )
