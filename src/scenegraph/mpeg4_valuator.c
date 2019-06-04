@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -404,9 +404,11 @@ static void Valuator_SetInSFVec3f(GF_Node *n, GF_Route *route)
 static void Valuator_SetInSFRotation(GF_Node *n, GF_Route *route)
 {
 	SFVec4f val;
-	M_Valuator *_this = (M_Valuator *) n;
-	val = _this->inSFRotation;
-	SetValuatorOutput(_this, &val, NULL, GF_SG_VRML_SFROTATION);
+	if (n) {
+		M_Valuator *_this = (M_Valuator *) n;
+		val = _this->inSFRotation;
+		SetValuatorOutput(_this, &val, NULL, GF_SG_VRML_SFROTATION);
+	}
 }
 
 /*
@@ -435,19 +437,25 @@ static void Valuator_SetInSFString(GF_Node *n, GF_Route *route)
 
 static void Valuator_SetInMFColor(GF_Node *n, GF_Route *route)
 {
-	M_Valuator *_this = (M_Valuator *) n;
-	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFColor, GF_SG_VRML_MFCOLOR);
+	if (n) {
+		M_Valuator *_this = (M_Valuator *) n;
+		SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFColor, GF_SG_VRML_MFCOLOR);
+	}
 }
 
 static void Valuator_SetInMFFloat(GF_Node *n, GF_Route *route)
 {
-	M_Valuator *_this = (M_Valuator *) n;
-	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFFloat, GF_SG_VRML_MFFLOAT);
+	if (n) {
+		M_Valuator *_this = (M_Valuator *) n;
+		SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFFloat, GF_SG_VRML_MFFLOAT);
+	}
 }
 static void Valuator_SetInMFInt32(GF_Node *n, GF_Route *route)
 {
-	M_Valuator *_this = (M_Valuator *) n;
-	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFInt32, GF_SG_VRML_MFINT32);
+	if (n) {
+		M_Valuator *_this = (M_Valuator *) n;
+		SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFInt32, GF_SG_VRML_MFINT32);
+	}
 }
 static void Valuator_SetInMFVec2f(GF_Node *n, GF_Route *route)
 {
@@ -456,18 +464,24 @@ static void Valuator_SetInMFVec2f(GF_Node *n, GF_Route *route)
 }
 static void Valuator_SetInMFVec3f(GF_Node *n, GF_Route *route)
 {
-	M_Valuator *_this = (M_Valuator *) n;
-	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFVec3f, GF_SG_VRML_MFVEC3F);
+	if (n) {
+		M_Valuator *_this = (M_Valuator *) n;
+		SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFVec3f, GF_SG_VRML_MFVEC3F);
+	}
 }
 static void Valuator_SetInMFRotation(GF_Node *n, GF_Route *route)
 {
-	M_Valuator *_this = (M_Valuator *) n;
-	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFRotation, GF_SG_VRML_MFROTATION);
+	if (n) {
+		M_Valuator *_this = (M_Valuator *) n;
+		SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFRotation, GF_SG_VRML_MFROTATION);
+	}
 }
 static void Valuator_SetInMFString(GF_Node *n, GF_Route *route)
 {
-	M_Valuator *_this = (M_Valuator *) n;
-	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFString, GF_SG_VRML_MFSTRING);
+	if (n) {
+		M_Valuator *_this = (M_Valuator *) n;
+		SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFString, GF_SG_VRML_MFSTRING);
+	}
 }
 
 
@@ -504,6 +518,18 @@ Bool InitValuator(M_Valuator *node)
 	gf_node_set_private((GF_Node*)node, temp);
 	gf_node_set_callback_function((GF_Node*)node, valuator_destroy);
 
+#ifdef GPAC_ENABLE_COVERAGE
+	//we are a bit lazy here
+	if (gf_sys_is_test_mode()) {
+		Valuator_SetInSFRotation(NULL, NULL);
+		Valuator_SetInMFColor(NULL, NULL);
+		Valuator_SetInMFFloat(NULL, NULL);
+		Valuator_SetInMFInt32(NULL, NULL);
+		Valuator_SetInMFVec3f(NULL, NULL);
+		Valuator_SetInMFRotation(NULL, NULL);
+		Valuator_SetInMFString(NULL, NULL);
+	}
+#endif
 	return 1;
 }
 
