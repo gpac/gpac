@@ -1234,9 +1234,6 @@ GF_Err gf_isom_patch_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u6
 /*sets a track reference*/
 GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferencedTrackID);
 
-/*removes a track reference*/
-GF_Err gf_isom_remove_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferenceIndex);
-
 /*removes all track references*/
 GF_Err gf_isom_remove_track_references(GF_ISOFile *the_file, u32 trackNumber);
 
@@ -1398,7 +1395,7 @@ all coord values are expressed as 16.16 fixed point floats*/
 GF_Err gf_isom_set_track_layout_info(GF_ISOFile *the_file, u32 trackNumber, u32 width, u32 height, s32 translation_x, s32 translation_y, s16 layer);
 
 /*sets track matrix - all coordinates are expressed as 16.16 floating points*/
-GF_Err gf_isom_set_track_matrix(GF_ISOFile *the_file, u32 trackNumber, u32 matrix[9]);
+GF_Err gf_isom_set_track_matrix(GF_ISOFile *the_file, u32 trackNumber, s32 matrix[9]);
 
 GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 hSpacing, u32 vSpacing);
 
@@ -1424,19 +1421,12 @@ unpack=0: set unpack on - !!creates a CTTS table if none found!!
 unpack=1: set unpack off and repacks all table info
 */
 GF_Err gf_isom_set_cts_packing(GF_ISOFile *the_file, u32 trackNumber, Bool unpack);
-/*modify CTS offset of a given sample (used for B-frames) - MUST be called in unpack mode only*/
-GF_Err gf_isom_modify_cts_offset(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, u32 offset);
+
 /*shift all CTS with the given offset - MUST be called in unpack mode only*/
 GF_Err gf_isom_shift_cts_offset(GF_ISOFile *the_file, u32 trackNumber, s32 offset_shift);
 
-/*remove CTS offset table (used for B-frames)*/
-GF_Err gf_isom_remove_cts_info(GF_ISOFile *the_file, u32 trackNumber);
-
 /*set 3-char or BCP-47 code media language*/
 GF_Err gf_isom_set_media_language(GF_ISOFile *the_file, u32 trackNumber, char *code);
-
-/*removes given stream description*/
-GF_Err gf_isom_remove_sample_description(GF_ISOFile *the_file, u32 trackNumber, u32 streamDescIndex);
 
 /*sets the RVC config for the given track sample description*/
 GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 rvc_predefined, char *mime, char *data, u32 size);
@@ -1498,9 +1488,6 @@ use this to store media not currently supported by the ISO media format
 */
 GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *the_file, u32 trackNumber, char *URLname, char *URNname, GF_GenericSampleDescription *udesc, u32 *outDescriptionIndex);
 
-/*change the data field of an unknown sample description*/
-GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_GenericSampleDescription *udesc);
-
 /*
 special shortcut for stream description cloning from a given input file (this avoids inspecting for media type)
 @the_file, @trackNumber: destination file and track
@@ -1508,9 +1495,6 @@ special shortcut for stream description cloning from a given input file (this av
 @URLname, @URNname, @outDescriptionIndex: same usage as with gf_isom_new_mpeg4_description
 */
 GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, GF_ISOFile *orig_file, u32 orig_track, u32 orig_desc_index, char *URLname, char *URNname, u32 *outDescriptionIndex);
-
-/*clones all sampleDescription entries in new track, after an optional reset of existing entries*/
-GF_Err gf_isom_clone_sample_descriptions(GF_ISOFile *the_file, u32 trackNumber, GF_ISOFile *orig_file, u32 orig_track, Bool reset_existing);
 
 /*special shortcut: clones a track (everything except media data and sample info (DTS, CTS, RAPs, etc...)
 also clones sampleDescriptions
@@ -1526,11 +1510,6 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u3
 
 GF_Err gf_isom_get_raw_user_data(GF_ISOFile *file, char **output, u32 *output_size);
 
-/*clones the entire movie file to destination. Tracks can be cloned if clone_tracks is set, in which case hint tracks can be
-kept if keep_hint_tracks is set
-if keep_pssh, all pssh boxes will be kept
-fragment information (mvex) is not kept*/
-GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks, Bool keep_pssh);
 
 /*returns true if same set of sample description in both tracks - this does include self-contained checking
 and reserved flags. The specific media cfg (DSI & co) is not analysed, only

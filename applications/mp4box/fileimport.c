@@ -253,6 +253,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod;
 	Bool has_clap=GF_FALSE;
 	Bool use_stz2=GF_FALSE;
+	Bool has_mx=GF_FALSE;
+	s32 mx[9];
 
 	clap_wn = clap_wd = clap_hn = clap_hd = clap_hon = clap_hod = clap_von = clap_vod = 0;
 
@@ -353,6 +355,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				if (sscanf(ext+6, "%d:%d:%d:%d:%d:%d:%d:%d", &clap_wn, &clap_wd, &clap_hn, &clap_hd, &clap_hon, &clap_hod, &clap_von, &clap_vod)==8) {
 					has_clap=GF_TRUE;
 				}
+			}
+		}
+		else if (!strnicmp(ext+1, "mx=", 3)) {
+			if (strstr(ext+4, "0x")) {
+				if (sscanf(ext+4, "0x%d:0x%d:0x%d:0x%d:0x%d:0x%d:0x%d:0x%d:0x%d", &mx[0], &mx[1], &mx[2], &mx[3], &mx[4], &mx[5], &mx[6], &mx[7], &mx[8])==9) {
+					has_mx=GF_TRUE;
+				}
+			} else if (sscanf(ext+4, "%d:%d:%d:%d:%d:%d:%d:%d:%d", &mx[0], &mx[1], &mx[2], &mx[3], &mx[4], &mx[5], &mx[6], &mx[7], &mx[8])==9) {
+				has_mx=GF_TRUE;
 			}
 		}
 		else if (!strnicmp(ext+1, "name=", 5)) {
@@ -766,6 +777,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (use_stz2) {
 				e = gf_isom_use_compact_size(import.dest, i+1, 1);
 			}
+			if (has_mx) {
+				e = gf_isom_set_track_matrix(import.dest, i+1, mx);
+			}
 
 			if (rap_only || refs_only) {
 				e = gf_media_remove_non_rap(import.dest, i+1, refs_only);
@@ -916,6 +930,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				if (has_clap) {
 					e = gf_isom_set_clean_aperture(import.dest, track, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
 				}
+			}
+			if (has_mx) {
+				e = gf_isom_set_track_matrix(import.dest, track, mx);
 			}
 			if (use_stz2) {
 				e = gf_isom_use_compact_size(import.dest, track, 1);
