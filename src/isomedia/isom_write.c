@@ -4262,7 +4262,7 @@ u64 gf_isom_estimate_size(GF_ISOFile *movie)
 
 
 //set shadowing on/off
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_isom_remove_sync_shadows(GF_ISOFile *movie, u32 trackNumber)
 {
 	GF_TrackBox *trak;
@@ -4280,8 +4280,9 @@ GF_Err gf_isom_remove_sync_shadows(GF_ISOFile *movie, u32 trackNumber)
 	return GF_OK;
 }
 
-//fill the sync shadow table
-GF_EXPORT
+/*Use this function to do the shadowing if you use shadowing.
+the sample to be shadowed MUST be a non-sync sample (ignored if not)
+the sample shadowing must be a Sync sample (error if not)*/
 GF_Err gf_isom_set_sync_shadow(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumber, u32 syncSample)
 {
 	GF_TrackBox *trak;
@@ -4310,6 +4311,7 @@ GF_Err gf_isom_set_sync_shadow(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum
 
 	return stbl_SetSyncShadow(stbl->ShadowSync, sampleNumber, syncSample);
 }
+#endif
 
 //set the GroupID of a track (only used for interleaving)
 GF_EXPORT
@@ -4397,7 +4399,7 @@ GF_Err gf_isom_set_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 Str
 	return gf_odf_desc_copy((GF_Descriptor *) slConfig, (GF_Descriptor **) slc);
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_isom_get_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_SLConfig **slConfig)
 {
 	GF_TrackBox *trak;
@@ -4436,7 +4438,6 @@ GF_Err gf_isom_get_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 Str
 	return gf_odf_desc_copy((GF_Descriptor *) slc, (GF_Descriptor **) slConfig);
 }
 
-GF_EXPORT
 u32 gf_isom_get_track_group(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
@@ -4445,7 +4446,6 @@ u32 gf_isom_get_track_group(GF_ISOFile *the_file, u32 trackNumber)
 	return trak->Media->information->sampleTable->groupID;
 }
 
-GF_EXPORT
 u32 gf_isom_get_track_priority_in_group(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
@@ -4453,6 +4453,7 @@ u32 gf_isom_get_track_priority_in_group(GF_ISOFile *the_file, u32 trackNumber)
 	if (!trak) return 0;
 	return trak->Media->information->sampleTable->trackPriority;
 }
+#endif
 
 
 GF_EXPORT
@@ -4551,7 +4552,8 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 	return GF_OK;
 }
 
-GF_EXPORT
+#if 0 //unused
+/*clones root OD from input to output file, without copying root OD track references*/
 GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output)
 {
 	GF_List *esds;
@@ -4588,6 +4590,7 @@ GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output)
 	}
 	return GF_OK;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_isom_set_media_type(GF_ISOFile *movie, u32 trackNumber, u32 new_type)
@@ -4612,13 +4615,14 @@ GF_Err gf_isom_set_media_subtype(GF_ISOFile *movie, u32 trackNumber, u32 sampleD
 }
 
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_isom_set_JPEG2000(GF_ISOFile *mov, Bool set_on)
 {
 	if (!mov) return GF_BAD_PARAM;
 	mov->is_jp2 = set_on;
 	return GF_OK;
 }
+#endif
 
 GF_Err gf_isom_remove_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID)
 {
@@ -5491,68 +5495,6 @@ Bool sg_encryption_compare_entry(void *udta, void *_entry)
 	return GF_FALSE;
 }
 
-#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_SampleTableBox *stbl, u32 grouping_type, u32 grouping_type_parameter, u32 sampleGroupDescriptionIndex, Bool sgpd_in_traf)
-{
-	if (sgpd_in_traf) {
-		void *entry = NULL;
-		u32 i, count;
-		GF_SampleGroupDescriptionBox *sgdesc = NULL;
-		GF_BitStream *bs;
-
-		count = gf_list_count(stbl->sampleGroupsDescription);
-		for (i = 0; i < count; i++) {
-			sgdesc = (GF_SampleGroupDescriptionBox *)gf_list_get(stbl->sampleGroupsDescription, i);
-			if (sgdesc->grouping_type == grouping_type)
-				break;
-			sgdesc = NULL;
-		}
-		if (!sgdesc)
-			return GF_BAD_PARAM;
-
-		entry = gf_list_get(sgdesc->group_descriptions, sampleGroupDescriptionIndex-1);
-		if (!entry)
-			return GF_BAD_PARAM;
-
-		switch (grouping_type) {
-		case GF_ISOM_SAMPLE_GROUP_RAP:
-		{
-			char udta[2];
-			bs = gf_bs_new(udta, 2*sizeof(char), GF_BITSTREAM_WRITE);
-			gf_bs_write_u8(bs, ((GF_VisualRandomAccessEntry *)entry)->num_leading_samples_known);
-			gf_bs_write_u8(bs, ((GF_VisualRandomAccessEntry *)entry)->num_leading_samples);
-			gf_bs_del(bs);
-			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, udta, sg_rap_create_entry, sg_rap_compare_entry);
-		}
-		case GF_ISOM_SAMPLE_GROUP_SYNC:
-		{
-			char udta[1];
-			bs = gf_bs_new(udta, 1*sizeof(char), GF_BITSTREAM_WRITE);
-			gf_bs_write_int(bs, 0, 2);
-			gf_bs_write_int(bs, ((GF_SYNCEntry *)entry)->NALU_type, 6);
-			gf_bs_del(bs);
-			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, udta, sg_rap_create_entry, sg_rap_compare_entry);
-		}
-		case GF_ISOM_SAMPLE_GROUP_ROLL:
-		{
-			char udta[2];
-			bs = gf_bs_new(udta, 2*sizeof(char), GF_BITSTREAM_WRITE);
-			gf_bs_write_u16(bs, ((GF_RollRecoveryEntry *)entry)->roll_distance);
-			gf_bs_del(bs);
-			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, udta, sg_roll_create_entry, sg_roll_compare_entry);
-		}
-		case GF_ISOM_SAMPLE_GROUP_SEIG:
-		{
-			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, entry, sg_encryption_create_entry, sg_encryption_compare_entry);
-		}
-		default:
-			return GF_BAD_PARAM;
-		}
-	}
-
-	return gf_isom_add_sample_group_entry(traf->sampleGroups, 0, grouping_type, grouping_type_parameter, sampleGroupDescriptionIndex);
-}
-#endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 
 /*sample encryption information group can be in stbl or traf*/
 GF_EXPORT
@@ -5703,7 +5645,7 @@ GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use
 	}
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_isom_set_sync_table(GF_ISOFile *file, u32 track)
 {
 	GF_Err e;
@@ -5720,6 +5662,7 @@ GF_Err gf_isom_set_sync_table(GF_ISOFile *file, u32 track)
 
 	return GF_OK;
 }
+#endif
 
 Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
 {
@@ -5774,7 +5717,7 @@ GF_Err gf_isom_set_sample_flags(GF_ISOFile *file, u32 track, u32 sampleNumber, u
 	return stbl_SetDependencyType(trak->Media->information->sampleTable, sampleNumber, isLeading, dependsOn, dependedOn, redundant);
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_isom_sample_set_dep_info(GF_ISOFile *file, u32 track, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant)
 {
 	GF_TrackBox *trak;
@@ -5784,6 +5727,7 @@ GF_Err gf_isom_sample_set_dep_info(GF_ISOFile *file, u32 track, u32 sampleNumber
 
 	return stbl_AddDependencyType(trak->Media->information->sampleTable, sampleNumber, isLeading, dependsOn, dependedOn, redundant);
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src, u32 src_track, u32 sampleNumber)

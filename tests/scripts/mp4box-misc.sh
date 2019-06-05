@@ -52,8 +52,12 @@ do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -co64 -new $mp4
 do_hash_test $mp4file "add-co64"
 
 mp4file="$TEMP_DIR/teststz2.mp4"
-do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/subtitle.srt:stz2 -new $mp4file" "add-stz2"
+do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/subtitle.srt:stz2:stype=gsrt:group=2:txtflags=00010101 -new $mp4file" "add-stz2"
 do_hash_test $mp4file "add-stz2"
+
+mp4file="$TEMP_DIR/testrvc.mp4"
+do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264:rvc=$MEDIA_DIR/auxiliary_files/subtitle.srt -new $mp4file" "add-rvc"
+do_hash_test $mp4file "add-rvc"
 
 
 test_end

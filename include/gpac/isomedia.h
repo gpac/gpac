@@ -1200,9 +1200,6 @@ GF_Err gf_isom_rewrite_track_dependencies(GF_ISOFile *movie, u32 trackNumber);
 /*Add samples to a track. Use streamDescriptionIndex to specify the desired stream (if several)*/
 GF_Err gf_isom_add_sample(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, const GF_ISOSample *sample);
 
-/*set depenecy info for given sample*/
-GF_Err gf_isom_sample_set_dep_info(GF_ISOFile *file, u32 track, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
-
 //copies all sample dependency, subSample and sample group information from the given sampleNumber in source file to the last added sample in dest file
 GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src, u32 src_track, u32 sampleNumber);
 
@@ -1503,8 +1500,6 @@ also clones sampleDescriptions
 GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *dest_file, Bool keep_data_ref, u32 *dest_track);
 /*special shortcut: clones IOD PLs from orig to dest if any*/
 GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig, GF_ISOFile *dest);
-/*clones root OD from input to output file, without copying root OD track references*/
-GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output);
 
 GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u32 *output_size);
 
@@ -1515,8 +1510,6 @@ GF_Err gf_isom_get_raw_user_data(GF_ISOFile *file, char **output, u32 *output_si
 and reserved flags. The specific media cfg (DSI & co) is not analysed, only
 a brutal memory comparaison is done*/
 Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index1, GF_ISOFile *f2, u32 tk2, u32 sdesc_index2);
-
-GF_Err gf_isom_set_JPEG2000(GF_ISOFile *mov, Bool set_on);
 
 /* sample information for all tracks setup are reset. This allows keeping the memory
 footprint low when playing segments. Note however that seeking in the file is then no longer possible*/
@@ -1725,20 +1718,10 @@ GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, u32 trackID, u32 is_
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
-GF_Err gf_isom_set_sync_table(GF_ISOFile *the_file, u32 trackNumber);
-
 /******************************************************************
 		GENERIC Publishing API
 ******************************************************************/
 
-/*Removes all sync shadow entries for a given track. The shadow samples are NOT removed; they must be removed
-by the user app*/
-GF_Err gf_isom_remove_sync_shadows(GF_ISOFile *the_file, u32 trackNumber);
-
-/*Use this function to do the shadowing if you use shadowing.
-the sample to be shadowed MUST be a non-sync sample (ignored if not)
-the sample shadowing must be a Sync sample (error if not)*/
-GF_Err gf_isom_set_sync_shadow(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 syncSample);
 
 /*set the GroupID of a track (only used for optimized interleaving). By setting GroupIDs
 you can specify the storage order for media data of a group of streams. This is useful
@@ -1762,11 +1745,6 @@ in using the default SLConfig (predefined = 2) remapped to predefined = 0
 This is useful while reading the IOD / OD stream of an MP4 file. Note however that
 only full AUs are extracted, therefore the calling application must SL-packetize the streams*/
 GF_Err gf_isom_set_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_SLConfig *slConfig);
-
-GF_Err gf_isom_get_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_SLConfig **slConfig);
-
-u32 gf_isom_get_track_group(GF_ISOFile *the_file, u32 trackNumber);
-u32 gf_isom_get_track_priority_in_group(GF_ISOFile *the_file, u32 trackNumber);
 
 /*setup interleaving for storage (shortcut for storeage mode + interleave_time)*/
 GF_Err gf_isom_make_interleave(GF_ISOFile *mp4file, Double TimeInSec);
@@ -2744,9 +2722,6 @@ GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32
 #endif
 /*add subsample information for the latest sample added to the current track fragment*/
 GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 flags, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable);
-
-/*copy over the subsample and sampleToGroup information of the given sample from the source track/file to the last sample added to the current track fragment of the destination file*/
-GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber, Bool sgpd_in_traf);
 
 /*gets the number of the next moof to be produced*/
 u32 gf_isom_get_next_moof_number(GF_ISOFile *movie);

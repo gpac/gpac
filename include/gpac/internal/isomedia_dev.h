@@ -3743,7 +3743,6 @@ GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie);
-GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_SampleTableBox *stbl, u32 grouping_type, u32 grouping_type_parameter, u32 sampleGroupDescriptionIndex, Bool sgpd_in_traf);
 #endif
 
 Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type);
