@@ -2371,6 +2371,68 @@ GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 flags,
 	return gf_isom_add_subsample_info(subs, last_sample, subSampleSize, priority, reserved, discardable);
 }
 
+#if 0 //unused
+static GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_SampleTableBox *stbl, u32 grouping_type, u32 grouping_type_parameter, u32 sampleGroupDescriptionIndex, Bool sgpd_in_traf)
+{
+	if (sgpd_in_traf) {
+		void *entry = NULL;
+		u32 i, count;
+		GF_SampleGroupDescriptionBox *sgdesc = NULL;
+		GF_BitStream *bs;
+
+		count = gf_list_count(stbl->sampleGroupsDescription);
+		for (i = 0; i < count; i++) {
+			sgdesc = (GF_SampleGroupDescriptionBox *)gf_list_get(stbl->sampleGroupsDescription, i);
+			if (sgdesc->grouping_type == grouping_type)
+				break;
+			sgdesc = NULL;
+		}
+		if (!sgdesc)
+			return GF_BAD_PARAM;
+
+		entry = gf_list_get(sgdesc->group_descriptions, sampleGroupDescriptionIndex-1);
+		if (!entry)
+			return GF_BAD_PARAM;
+
+		switch (grouping_type) {
+		case GF_ISOM_SAMPLE_GROUP_RAP:
+		{
+			char udta[2];
+			bs = gf_bs_new(udta, 2*sizeof(char), GF_BITSTREAM_WRITE);
+			gf_bs_write_u8(bs, ((GF_VisualRandomAccessEntry *)entry)->num_leading_samples_known);
+			gf_bs_write_u8(bs, ((GF_VisualRandomAccessEntry *)entry)->num_leading_samples);
+			gf_bs_del(bs);
+			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, udta, sg_rap_create_entry, sg_rap_compare_entry);
+		}
+		case GF_ISOM_SAMPLE_GROUP_SYNC:
+		{
+			char udta[1];
+			bs = gf_bs_new(udta, 1*sizeof(char), GF_BITSTREAM_WRITE);
+			gf_bs_write_int(bs, 0, 2);
+			gf_bs_write_int(bs, ((GF_SYNCEntry *)entry)->NALU_type, 6);
+			gf_bs_del(bs);
+			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, udta, sg_rap_create_entry, sg_rap_compare_entry);
+		}
+		case GF_ISOM_SAMPLE_GROUP_ROLL:
+		{
+			char udta[2];
+			bs = gf_bs_new(udta, 2*sizeof(char), GF_BITSTREAM_WRITE);
+			gf_bs_write_u16(bs, ((GF_RollRecoveryEntry *)entry)->roll_distance);
+			gf_bs_del(bs);
+			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, udta, sg_roll_create_entry, sg_roll_compare_entry);
+		}
+		case GF_ISOM_SAMPLE_GROUP_SEIG:
+		{
+			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, entry, sg_encryption_create_entry, sg_encryption_compare_entry);
+		}
+		default:
+			return GF_BAD_PARAM;
+		}
+	}
+
+	return gf_isom_add_sample_group_entry(traf->sampleGroups, 0, grouping_type, grouping_type_parameter, sampleGroupDescriptionIndex);
+}
+/*copy over the subsample and sampleToGroup information of the given sample from the source track/file to the last sample added to the current track fragment of the destination file*/
 GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber, Bool sgpd_in_traf)
 {
 	u32 i, count, last_sample, idx, subs_flags;
@@ -2489,6 +2551,8 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 	}
 	return GF_OK;
 }
+#endif
+
 
 GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, u32 trackID, u32 is_leading, u32 dependsOn, u32 dependedOn, u32 redundant)
 {
