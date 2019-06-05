@@ -2429,9 +2429,15 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	/* if there is no scene*/
 	if (!compositor->scene && !gf_list_count(compositor->extra_scenes) ) {
 		gf_sc_draw_scene(compositor);
-		//increase clock in bench mode before releasing mutex
-		if (compositor->bench_mode && (compositor->force_bench_frame==1)) {
-			compositor->scene_sampled_clock += compositor->frame_duration;
+		if (compositor->player) {
+			//increase clock in bench mode before releasing mutex
+			if (compositor->bench_mode && (compositor->force_bench_frame==1)) {
+				compositor->scene_sampled_clock += compositor->frame_duration;
+			}
+		} else {
+			if (compositor->root_scene && compositor->root_scene->graph_attached) {
+				compositor->check_eos_state = 2;
+			}
 		}
 		gf_sc_lock(compositor, 0);
 		compositor->force_bench_frame=0;

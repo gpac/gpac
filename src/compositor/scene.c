@@ -843,11 +843,11 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 	if (!scene->root_od) return;
 	if (scene->graph_attached==1) return;
 
+	scene->graph_attached = 1;
 	if (gf_sg_get_root_node(scene->graph)==NULL) {
 		gf_sc_invalidate(scene->compositor, NULL);
 		return;
 	}
-	scene->graph_attached = 1;
 
 	/*locate fragment IRI*/
 	if (scene->root_od->scene_ns && scene->root_od->scene_ns->url) {

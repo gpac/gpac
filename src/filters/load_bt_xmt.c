@@ -340,6 +340,7 @@ static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 	u32 i, j, max_dur;
 	GF_AUContext *au;
 	GF_StreamContext *sc;
+	u32 nb_aus=0;
 	max_dur = 0;
 	i=0;
 	while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
@@ -350,12 +351,20 @@ static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 		j=0;
 		while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
 			if (!au->timing) au->timing = (u64) (sc->timeScale*au->timing_sec);
+			if (gf_list_count(au->commands))
+				nb_aus++;
 		}
 		if (au && sc->in_root_od && (au->timing>max_dur)) max_dur = (u32) (au->timing * 1000 / sc->timeScale);
 	}
 	if (max_dur) {
 		priv->scene->root_od->duration = max_dur;
 		gf_scene_set_duration(priv->scene);
+	}
+	if ((priv->load_flags==1) && priv->ctx->root_od && priv->ctx->root_od->URLString) {
+		gf_filter_pid_set_property(priv->out_pid, GF_PROP_PID_REMOTE_URL, &PROP_STRING(priv->ctx->root_od->URLString) );
+	}
+	if (!nb_aus) {
+		gf_filter_pid_set_eos(priv->out_pid);
 	}
 }
 
