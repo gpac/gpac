@@ -444,8 +444,8 @@ GF_FilterRegister PipeInRegister = {
 		"If neither is set, data format probing will be done\n"\
 		"\n"\
 		"On Windows hosts, the default pipe prefix is \"\\\\.\\pipe\\gpac\\\" if no prefix is set \n"\
-		"\tEX dst=mypipe resolves in \\\\.\\pipe\\gpac\\mypipe\n"\
-		"\tEX dst=\\\\.\\pipe\\myapp\\mypipe resolves in \\\\.\\pipe\\myapp\\mypipe\n"
+		"EX dst=mypipe resolves in \\\\.\\pipe\\gpac\\mypipe\n"\
+		"EX dst=\\\\.\\pipe\\myapp\\mypipe resolves in \\\\.\\pipe\\myapp\\mypipe\n"
 		"Any destination name starting with \\\\ is used as is, with \\ translated in /\n"\
 		"\n"\
 		"Input pipes are created by default in non-blocking mode\n"\

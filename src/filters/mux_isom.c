@@ -3953,10 +3953,10 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(btrt), "sets btrt box in sample description", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(mediats), "sets media timescale. A value of 0 means inherit from pid, a value of -1 means derive from samplerate or frame rate", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(ase), "sets audio sample entry mode for more than stereo layouts:\n"\
-			"\tv0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"\
-			"\tv0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"\
-			"\tv1: use v1 signaling, ISOBMFF style\n"\
-			"\tv1qt: use v1 signaling, QTFF style\n"\
+			"- v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"\
+			"- v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"\
+			"- v1: use v1 signaling, ISOBMFF style\n"\
+			"- v1qt: use v1 signaling, QTFF style\n"\
 		, GF_PROP_UINT, "v0", "|v0|v0s|v1|v1qt", 0},
 	{ OFFS(ssix), "creates ssix when sidx is present, level 1 mappping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ccst), "insert coding constraint box for video tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -3974,7 +3974,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"By default all input PIDs with ItemID property set are muxed as items, otherwise they are muxed as tracks.\n"
 	"To prevent items to be muxed as items, use itemid option from ISOBMF demuxer.\n"
 	"To force non)item streams to be muxed as items, use #ItemID option on that PID:\n"
-	"\tEX: -i source.jpg:#ItemID=1 -o file.mp4\n")
+	"EX -i source.jpg:#ItemID=1 -o file.mp4\n")
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,
 	.initialize = mp4_mux_initialize,

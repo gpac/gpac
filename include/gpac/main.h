@@ -175,8 +175,9 @@ void gf_sys_print_arg(const GF_GPACArg *arg, const char *arg_subsystem);
 /*! prints libgpac help for builton core options to stderr
 \param mode filtering mode based on argument  type
 \param subsystem_flags filtering mode based on argument subsytem flags
+\param sys_print_arg custom callback function for printing the arg
 */
-void gf_sys_print_core_help(GF_SysArgMode mode, u32 subsystem_flags);
+void gf_sys_print_core_help(GF_SysArgMode mode, u32 subsystem_flags, void (*sys_print_arg)(const GF_GPACArg *arg, const char *arg_subsystem));
 
 /*! gets localized version of string identified by module name and identifier.
 \param sec_name name of the module to query, such as "gpac", "core", or filter name

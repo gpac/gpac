@@ -386,12 +386,85 @@ u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
 	return global_log_tools[log_tool].level;
 }
 
-#define RED    "\x1b[31m"
-#define YELLOW "\x1b[33m"
-#define GREEN  "\x1b[32m"
-#define CYAN   "\x1b[36m"
+
+#define RED    	"\x1b[31m"
+#define GREEN  	"\x1b[32m"
+#define YELLOW	"\x1b[33m"
+#define CYAN   	"\x1b[36m"
+#define BLUE	"\x1b[34m"
+#define MAGENTA  "\x1b[35m"
 #define WHITE  "\x1b[37m"
 #define RESET  "\x1b[0m"
+
+GF_EXPORT
+void gf_sys_set_term_color(FILE *std, GF_ConsoleColor color_code)
+{
+#if defined(WIN32) && !defined(GPAC_CONFIG_WIN32)
+	if (console == NULL) {
+		CONSOLE_SCREEN_BUFFER_INFO console_info;
+		console = GetStdHandle(STD_ERROR_HANDLE);
+		assert(console != INVALID_HANDLE_VALUE);
+		if (console != INVALID_HANDLE_VALUE) {
+			GetConsoleScreenBufferInfo(console, &console_info);
+			console_attr_ori = console_info.wAttributes;
+		}
+	}
+	switch(color_code) {
+	case GF_CONSOLE_RED:
+		SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED);
+		break;
+	case GF_CONSOLE_BLUE:
+		SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_BLUE);
+		break;
+	case GF_CONSOLE_GREEN:
+		SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_GREEN);
+		break;
+	case GF_CONSOLE_YELLOW:
+		SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN);
+		break;
+	case GF_CONSOLE_MAGENTA:
+		SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_BLUE);
+		break;
+	case GF_CONSOLE_CYAN:
+		SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_GREEN | FOREGROUND_BLUE);
+		break;
+	case GF_CONSOLE_WHITE:
+		SetConsoleTextAttribute(console, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
+		break;
+	case GF_CONSOLE_RESET:
+	default:
+		SetConsoleTextAttribute(console, console_attr_ori);
+	}
+#else
+	switch(color_code) {
+	case GF_CONSOLE_RED:
+		fprintf(std, RED);
+		break;
+	case GF_CONSOLE_BLUE:
+		fprintf(std, BLUE);
+		break;
+	case GF_CONSOLE_GREEN:
+		fprintf(std, GREEN);
+		break;
+	case GF_CONSOLE_YELLOW:
+		fprintf(std, YELLOW);
+		break;
+	case GF_CONSOLE_MAGENTA:
+		fprintf(std, MAGENTA);
+		break;
+	case GF_CONSOLE_CYAN:
+		fprintf(std, CYAN);
+		break;
+	case GF_CONSOLE_WHITE:
+		fprintf(std, WHITE);
+		break;
+	case GF_CONSOLE_RESET:
+	default:
+		fprintf(std, RESET);
+	}
+#endif
+}
+
 
 void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {

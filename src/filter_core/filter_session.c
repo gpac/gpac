@@ -2053,7 +2053,7 @@ Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt)
 }
 
 GF_EXPORT
-void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name)
+void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, void (*print_fn)(u32 is_first, const char *fmt, ...) )
 {
 	Bool found = GF_FALSE;
 	GF_List *done = gf_list_new();
@@ -2067,23 +2067,39 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name)
 			continue;
 
 		if (!src->nb_edges) {
-			fprintf(stderr, "%s has no sources\n", src->freg->name);
+			if (print_fn)
+				print_fn(2, "%s: no sources\n", src->freg->name);
+			else
+				fprintf(stderr, "%s: no sources\n", src->freg->name);
 			continue;
 		}
 		found = GF_TRUE;
-		fprintf(stderr, "%s sources:", src->freg->name);
+		if (print_fn)
+			print_fn(2, "%s sources:", src->freg->name);
+		else
+			fprintf(stderr, "%s sources:", src->freg->name);
 
 		for (j=0; j<src->nb_edges; j++) {
 			if (gf_list_find(done, (void *) src->edges[j].src_reg->freg->name)<0) {
-				fprintf(stderr, " %s", src->edges[j].src_reg->freg->name);
+				if (print_fn)
+					print_fn(0, " %s", src->edges[j].src_reg->freg->name);
+				else
+					fprintf(stderr, " %s", src->edges[j].src_reg->freg->name);
 				gf_list_add(done, (void *) src->edges[j].src_reg->freg->name);
 			}
 		}
-		fprintf(stderr, "\n");
+		if (print_fn)
+			print_fn(0, "\n");
+		else
+			fprintf(stderr, "\n");
 		gf_list_reset(done);
 	}
 	if (found && filter_name) {
-		fprintf(stderr, "%s sinks:", filter_name);
+		if (print_fn)
+			print_fn(2, "%s sinks:", filter_name);
+		else
+			fprintf(stderr, "%s sinks:", filter_name);
+
 		for (i=0; i<count; i++) {
 			const GF_FilterRegDesc *src = gf_list_get(session->links, i);
 			if (!strcmp(src->freg->name, filter_name)) continue;
@@ -2092,13 +2108,19 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name)
 				if (strcmp(src->edges[j].src_reg->freg->name, filter_name)) continue;
 
 				if (gf_list_find(done, (void *) src->freg->name)<0) {
-					fprintf(stderr, " %s", src->freg->name);
+					if (print_fn)
+						print_fn(0, " %s", src->freg->name);
+					else
+						fprintf(stderr, " %s", src->freg->name);
 					gf_list_add(done, (void *) src->freg->name);
 				}
 			}
 			gf_list_reset(done);
 		}
-		fprintf(stderr, "\n");
+		if (print_fn)
+			print_fn(0, "\n");
+		else
+			fprintf(stderr, "\n");
 	}
 	gf_list_del(done);
 }

@@ -65,6 +65,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_cfg_option) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_localized) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_process_id) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_term_color) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_default_cache_directory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_4cc_to_str) )

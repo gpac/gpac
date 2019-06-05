@@ -1633,10 +1633,10 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(analyze), "analyses sample content (NALU, OBU). This will force XML formatting", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(xml), "uses xml formatting. This disables any custom format set through fmt option", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(test), "skips some properties:\n"
-		"\tno: no properties skipped\n"
-		"\tnoprop: all properties/info changes on pid are skipped, only packets are dumped\n"
-		"\tnetwork: URL/path dump, cache state, file size properties skipped (used for hashing network results)\n"
-		"\tencode: same as network plus skip decoder config (used for hashing encoding results)", GF_PROP_UINT, "no", "no|noprop|network|encode", GF_FS_ARG_HINT_EXPERT},
+		"- no: no properties skipped\n"
+		"- noprop: all properties/info changes on pid are skipped, only packets are dumped\n"
+		"- network: URL/path dump, cache state, file size properties skipped (used for hashing network results)\n"
+		"- encode: same as network plus skip decoder config (used for hashing encoding results)", GF_PROP_UINT, "no", "no|noprop|network|encode", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -1652,35 +1652,35 @@ const GF_FilterRegister InspectRegister = {
 	GF_FS_SET_HELP("The inspector filter can be used to dump pid and packets. Te default options load only pid changes.\n"\
 				"The packet inspector mode can be configured to dump specific properties of packets using the fmt option.\n"\
 	 			"When the option is not present, all properties are dumped. Otherwise, only properties identified by $TOKEN$ are printed use $, @ or % for TOKEN separator. TOKEN can be:\n"\
-				"\tpn: packet (frame in framed mode) number\n"\
-				"\tdts: decoding time stamp in stream timescale, N/A if not available\n"\
-				"\tddts: difference between current and previous packet's decoding time stamp in stream timescale, N/A if not available\n"\
-				"\tcts: composition time stamp in stream timescale, N/A if not available\n"\
-				"\tdcts: difference between current and previous packet's composition time stamp in stream timescale, N/A if not available\n"\
-				"\tctso: difference between composition time stamp and decoding time stamp in stream timescale, N/A if not available\n"\
-				"\tdur: duration in stream timescale\n"\
-				"\tframe: framing status: frame_full (complete AU), frame_start, , frame_end, frame_cont\n"
-				"\tsap or rap: SAP type of the frame\n"\
-				"\tilace: interlacing flag (0: progressive, 1: top field, 2: bottom field)\n"\
-				"\tcorr: corrupted packet flag\n"\
-				"\tseek: seek flag\n"\
-				"\tbo: byte offset in source, N/A if not available\n"\
-				"\troll: roll info\n"\
-				"\tcrypt: crypt flag\n"\
-				"\tvers: carrousel version number\n"\
-				"\tsize: size of packet\n"\
-				"\tcrc: 32 bit CRC of packet\n"\
-				"\tlf: insert linefeed\n"\
-				"\tcr: insert carriage return\n"\
-				"\tdata: hex dump of packet - WARNING, THIS IS BIG !!\n"\
-				"\tlp: leading picture flag\n"\
-				"\tdepo: depends on other packet flag\n"\
-				"\tdepf: is depended on other packet flag\n"\
-				"\tred: redundant coding flag\n"\
-				"\tck: clock type (used for PCR discontinuities)\n"\
-	 			"\tProperty name or 4cc.\n"\
-				"\tpid.P4CC: PID property 4CC\n"\
-				"\tpid.PropName: PID property name\n"\
+				"- pn: packet (frame in framed mode) number\n"\
+				"- dts: decoding time stamp in stream timescale, N/A if not available\n"\
+				"- ddts: difference between current and previous packet's decoding time stamp in stream timescale, N/A if not available\n"\
+				"- cts: composition time stamp in stream timescale, N/A if not available\n"\
+				"- dcts: difference between current and previous packet's composition time stamp in stream timescale, N/A if not available\n"\
+				"- ctso: difference between composition time stamp and decoding time stamp in stream timescale, N/A if not available\n"\
+				"- dur: duration in stream timescale\n"\
+				"- frame: framing status: frame_full (complete AU), frame_start, , frame_end, frame_cont\n"
+				"- sap or rap: SAP type of the frame\n"\
+				"- ilace: interlacing flag (0: progressive, 1: top field, 2: bottom field)\n"\
+				"- corr: corrupted packet flag\n"\
+				"- seek: seek flag\n"\
+				"- bo: byte offset in source, N/A if not available\n"\
+				"- roll: roll info\n"\
+				"- crypt: crypt flag\n"\
+				"- vers: carrousel version number\n"\
+				"- size: size of packet\n"\
+				"- crc: 32 bit CRC of packet\n"\
+				"- lf: insert linefeed\n"\
+				"- cr: insert carriage return\n"\
+				"- data: hex dump of packet - WARNING, THIS IS BIG !!\n"\
+				"- lp: leading picture flag\n"\
+				"- depo: depends on other packet flag\n"\
+				"- depf: is depended on other packet flag\n"\
+				"- red: redundant coding flag\n"\
+				"- ck: clock type (used for PCR discontinuities)\n"\
+	 			"- Property name or 4cc.\n"\
+				"- pid.P4CC: PID property 4CC\n"\
+				"- pid.PropName: PID property name\n"\
 	 			"\n"\
 	 			"EX: fmt=\"PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$\" dumps packet number, cts and dts, eg \"PID 1 packet 10 DTS 100 CTS 108 \\n\" \n"\
 	 			"\n"\

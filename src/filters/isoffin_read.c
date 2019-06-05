@@ -1044,13 +1044,13 @@ GF_FilterRegister ISOFFInRegister = {
 	.name = "mp4dmx",
 	GF_FS_SET_DESCRIPTION("ISOBMFF and QT demuxer")
 	GF_FS_SET_HELP("When scalable tracks are present in a file, the reader can operate in 3 modes using smode option:\n"\
-	 	"\tsmode=single: resolves all extractors to extract a single bitstream from a scalable set. The highest level is used\n"\
+	 	"- smode=single: resolves all extractors to extract a single bitstream from a scalable set. The highest level is used\n"\
 	 	"In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the configs\n"\
-	 	"\tsmode=split: all extractors are removed and every track of the scalable set is declared. In this mode, each enhancement track has no base decoder config\n"
+	 	"- smode=split: all extractors are removed and every track of the scalable set is declared. In this mode, each enhancement track has no base decoder config\n"
 	 	"and an enhancement decoder config.\n"\
-	 	"\tsmode=splitx: extractors are kept in the bitstream, and every track of the scalable set is declared. In this mode, each enhancement track has a base decoder config\n"
+	 	"- smode=splitx: extractors are kept in the bitstream, and every track of the scalable set is declared. In this mode, each enhancement track has a base decoder config\n"
 	 	" (copied from base) and an enhancement decoder config. This is mostly used for DASHing content.\n"\
-	 	"\tWARNING: smode=splitx will result in extractor NAL units still present in the output bitstream, which shall only be true if the output is ISOBMFF based\n")
+	 	"Warning: smode=splitx will result in extractor NAL units still present in the output bitstream, which shall only be true if the output is ISOBMFF based\n")
 	.private_size = sizeof(ISOMReader),
 	.args = ISOFFInArgs,
 	.initialize = isoffin_initialize,

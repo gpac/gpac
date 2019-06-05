@@ -1267,9 +1267,9 @@ static const GF_FilterArgs RTSPOutArgs[] =
 	{ OFFS(loop), "loops all streams in session (not always possible depending on source type) - see filter help.", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dynurl), "allows dynamic service assembly - see filter help.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mcast), "controls multicast setup of a session.\n"
-				"\toff: clients are never allowed to create a multicast\n"
-				"\ton: clients can create multicast sessions\n"
-				"\tmirror: clients can create a multicast session. Any later request to the same URL will use that multicast session\n"
+				"- off: clients are never allowed to create a multicast\n"
+				"- on: clients can create multicast sessions\n"
+				"- mirror: clients can create a multicast session. Any later request to the same URL will use that multicast session\n"
 		, GF_PROP_UINT, "off", "off|on|mirror", GF_FS_ARG_HINT_EXPERT},
 
 	{0}
@@ -1295,7 +1295,7 @@ GF_FilterRegister RTSPOutRegister = {
 		"In server mode, it is possible to load any source supported by gpac by setting the option 'dynurl'.\n"\
 		"The expected syntax of the dynamic RTSP URLs is 'rtsp://servername/?URL1[&URLN]' or 'rtsp://servername/@URL1[@URLN]' \n"\
 		"Each URL can be absolute or local, in which case it is resolved against the mount point(s).\n"\
-		"\tEX: 'gpac -i rtsp://localhost/?pipe://mynamepipe&myfile.mp4 [dst filters]'\n"\
+		"EX 'gpac -i rtsp://localhost/?pipe://mynamepipe&myfile.mp4 [dst filters]'\n"\
 		"The server will resolve this URL in a new session containing streams from myfile.mp4 and streams from pipe mynamepipe.\n"\
 		"When setting the 'runfor' in server mode, the server will exit at the end of the last session being closed.\n"\
 		"\n"\

@@ -764,14 +764,14 @@ static const GF_FilterArgs ADTSDmxArgs[] =
 	{ OFFS(mpeg4), "forces signaling as MPEG-4 AAC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ovsbr), "forces oversampling SBR (does not multiply timescales by 2)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sbr), "set SBR signaling:\n"\
-				"\tno: no SBR signaling at all\n"\
-				"\timp: backward-compatible SBR signaling (audio signaled as AAC-LC)\n"\
-				"\texp: explicit SBR signaling (audio signaled as AAC-SBR)"\
+				"- no: no SBR signaling at all\n"\
+				"- imp: backward-compatible SBR signaling (audio signaled as AAC-LC)\n"\
+				"- exp: explicit SBR signaling (audio signaled as AAC-SBR)"\
 				, GF_PROP_UINT, "no", "no|imp|exp", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ps), "set PS signaling:\n"\
-				"\tno: no PS signaling at all\n"\
-				"\timp: backward-compatible PS signaling (audio signaled as AAC-LC)\n"\
-				"\texp: explicit PS signaling (audio signaled as AAC-PS)\n"\
+				"- no: no PS signaling at all\n"\
+				"- imp: backward-compatible PS signaling (audio signaled as AAC-LC)\n"\
+				"- exp: explicit PS signaling (audio signaled as AAC-PS)\n"\
 				, GF_PROP_UINT, "no", "no|imp|exp", GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };

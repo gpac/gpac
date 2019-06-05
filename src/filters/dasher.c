@@ -5362,7 +5362,11 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(dur), "DASH target duration in seconds", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(tpl), "use template mode (multiple segment, template URLs)", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(stl), "use segment timeline (ignored in on_demand mode)", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(dmode), "MPD mode:\n\tstatic: not live\n\tdynamic: live generation\n\tdynlast: last call for live, will turn the MPD into static", GF_PROP_UINT, "static", "static|dynamic|dynlast", GF_FS_ARG_UPDATE},
+	{ OFFS(dmode), "MPD mode:\n"
+		"- static: not live\n"
+		"- dynamic: live generation\n"
+		"- dynlast: last call for live, will turn the MPD into static\n"
+		"", GF_PROP_UINT, "static", "static|dynamic|dynlast", GF_FS_ARG_UPDATE},
 	{ OFFS(sseg), "single segment is used", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sfile), "Segments are contained in a single file (default in on_demand)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(align), "Enables segment time alignment between representations", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -5420,64 +5424,65 @@ static const GF_FilterArgs DasherArgs[] =
 GF_FilterRegister DasherRegister = {
 	.name = "dasher",
 	GF_FS_SET_DESCRIPTION("MPEG-DASH and HLS segmenter")
-	GF_FS_SET_HELP("GPAC DASH and HLS segmenter\n"\
+	GF_FS_SET_HELP("# GPAC DASH and HLS segmenter\n"\
+			"## Template strings\n"\
 			"The segmenter uses template strings to derive output file names, regardless of the DASH mode (even when templates are not used)\n"\
 			"The default template is $File$_dash for ondemand and single file modes, and $File$_$Number$ for seperate segment files\n"\
-			"\tEX: template=Great_$File$_$Width$_$Number$\n"\
+			"EX template=Great_$File$_$Width$_$Number$\n"\
 			"If source is foo.mp4 with 640x360 video, this will resolve in Great_foo_640_$Number$ for the DASH template\n"\
-			"\tEX: template=Great_$File$_$Width$\n"\
+			"EX template=Great_$File$_$Width$\n"\
 			"If source is foo.mp4 with 640x360 video, this will resolve in Great_foo_640.mp4 for onDemand case\n"\
 			"\n"\
 			"Standard DASH replacement strings\n"\
-	        "\t$Number[%%0Nd]$: is replaced by the segment number, possibly prefixed with 0\n"\
-	        "\t$RepresentationID$ is replaced by representation name\n"\
-	        "\t$Time$ is replaced by segment start time\n"\
-	        "\t$Bandwidth$ is replaced by representation bandwidth.\n"\
+	        "- $Number[%%0Nd]$: replaced by the segment number, possibly prefixed with 0\n"\
+	        "- $RepresentationID$: replaced by representation name\n"\
+	        "- $Time$: replaced by segment start time\n"\
+	        "- $Bandwidth$: replaced by representation bandwidth.\n"\
 			"\n"\
 			"Additionnal replacement strings (not DASH, not generic GPAC replacements but may occur multiple times in template):\n"\
-	        "\t$Init=NAME$ is replaced by NAME for init segment, ignored otherwise\n"\
-	        "\t$Index=NAME$ is replaced by NAME for index segments, ignored otherwise\n"\
-	        "\t$Path=PATH$ is replaced by PATH when creating segments, ignored otherwise\n"\
-	        "\t$Segment=NAME$ is replaced by NAME for media segments, ignored for init segments\n"\
-	        "\t$DS$ (Dash Suffix) is replaced by \"_trackN\" in case the source is an AV multiplex, or kept empty otherwise\n"\
+	        "- $Init=NAME$: replaced by NAME for init segment, ignored otherwise\n"\
+	        "- $Index=NAME$: replaced by NAME for index segments, ignored otherwise\n"\
+	        "- $Path=PATH$: replaced by PATH when creating segments, ignored otherwise\n"\
+	        "- $Segment=NAME$: replaced by NAME for media segments, ignored for init segments\n"\
+	        "- $DS$ (Dash Suffix): replaced by \"_trackN\" in case the source is an AV multiplex, or kept empty otherwise\n"\
 			"\n"\
-
+			"## PID assignment\n"\
 			"To assign PIDs into periods and adaptation sets and configure the session, the dasher looks for the following properties on each input pid:\n"\
-			"\tRepresentation: assigns representation ID to input pid. If not set, the default behaviour is to have each media component in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)\n"\
-			"\tPeriod: assigns period ID to input pid. If not set, the default behaviour is to have all media in the same period with the same start time\n"
-			"\tPStart: assigns period start. If not set, 0 is assumed, and periods appear in the Period ID declaration order. If negative, this gives the period order (-1 first, then -2 ...). If positive, this gives the true start time and will abort DASHing at period end\n"\
-			"\t\tWhen both positive and negative values are found, the by-order periods (negative) will be inserted AFTER the timed period (positive)\n"\
-			"\tASID: assigns parent adaptation set ID. If not 0, only sources with same AS ID will be in the same adaptation set\n"
-			"\t\tIf multiple streams in source, only the first stream will have an AS ID assigned\n"\
-			"\txlink: for remote periods, only checked for null pid\n"\
-			"\tRole, PDesc, ASDesc, ASCDesc, RDesc: various descriptors to set for period, AS or representation\n"\
-			"\tBUrl: base URLs to use for the pid (per representation)\n"\
-			"\tTemplate: overrides dasher template for this PID\n"\
-			"\tDashDur: overrides dasher segment duration for this PID\n"\
-			"\tStartNumber: sets the start number for the first segment in the PID, default is 1\n"
-			"\tNon-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overriden on input PIDs using the general PID property settings (cf global help).\n"\
-			"\tEX: src=test.mp4:#Bitrate=1M dst=test.mpd\n"\
+			"- Representation: assigns representation ID to input pid. If not set, the default behaviour is to have each media component in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)\n"\
+			"- Period: assigns period ID to input pid. If not set, the default behaviour is to have all media in the same period with the same start time\n"
+			"- PStart: assigns period start. If not set, 0 is assumed, and periods appear in the Period ID declaration order. If negative, this gives the period order (-1 first, then -2 ...). If positive, this gives the true start time and will abort DASHing at period end\n"\
+			"Note: When both positive and negative values are found, the by-order periods (negative) will be inserted AFTER the timed period (positive)\n"\
+			"- ASID: assigns parent adaptation set ID. If not 0, only sources with same AS ID will be in the same adaptation set\n"
+			"Note: If multiple streams in source, only the first stream will have an AS ID assigned\n"\
+			"- xlink: for remote periods, only checked for null pid\n"\
+			"- Role, PDesc, ASDesc, ASCDesc, RDesc: various descriptors to set for period, AS or representation\n"\
+			"- BUrl: base URLs to use for the pid (per representation)\n"\
+			"- Template: overrides dasher template for this PID\n"\
+			"- DashDur: overrides dasher segment duration for this PID\n"\
+			"- StartNumber: sets the start number for the first segment in the PID, default is 1\n"
+			"- Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overriden on input PIDs using the general PID property settings (cf global help).\n"\
+			"EX src=test.mp4:#Bitrate=1M dst=test.mpd\n"\
 			"This will force declaring a bitrate of 1M for the representation, regardless of actual source bitrate\n"\
-			"\tEX: src=muxav.mp4 dst=test.mpd\n"\
+			"EX src=muxav.mp4 dst=test.mpd\n"\
 			"This will create unmuxed DASH segments\n"\
-			"\tEX: src=muxav.mp4:#Representation=1 dst=test.mpd\n"\
+			"EX src=muxav.mp4:#Representation=1 dst=test.mpd\n"\
 			"This will create muxed DASH segments\n"\
-			"\tEX: src=m1.mp4 src=m2.mp4:#Period=Yep dst=test.mpd\n"\
+			"EX src=m1.mp4 src=m2.mp4:#Period=Yep dst=test.mpd\n"\
 			"This will put src m1.mp4 in first period, m2.mp4 in second period\n"\
-			"\tEX: src=m1.mp4:#BUrl=http://foo/bar dst=test.mpd\n"\
+			"EX src=m1.mp4:#BUrl=http://foo/bar dst=test.mpd\n"\
 			"This will assign a base URL to src m1.mp4\n"\
-			"\tEX: src=m1.mp4:#ASCDesc=<ElemName val=\"attval\">text</ElemName> dst=test.mpd\n"\
+			"EX src=m1.mp4:#ASCDesc=<ElemName val=\"attval\">text</ElemName> dst=test.mpd\n"\
 			"This will assign the specified XML descriptor to the adaptation set.\n"\
-			"\t\tNote that this can be used to inject most DASH descriptors not natively handled by the dasher\n"\
-			"\t\tThe dasher handles the XML descriptor as a string and does not attempt to validate it.\n"\
-			"\t\tDescriptors, as well as some dasher filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:\n"\
-			"\tEX: src=m1.mp4:#RDesc=<Elem attribute=\"1\"/>,<Elem2>text</Elem2> dst=test.mpd\n"\
+			"Note:  this can be used to inject most DASH descriptors not natively handled by the dasher. "\
+			"The dasher handles the XML descriptor as a string and does not attempt to validate it. "\
+			"Descriptors, as well as some dasher filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:\n"\
+			"EX src=m1.mp4:#RDesc=<Elem attribute=\"1\"/>,<Elem2>text</Elem2> dst=test.mpd\n"\
 			"This will insert two descriptors in the representation(s) of m1.mp4\n"\
-			"\tEX: src=video.mp4:#Template=foo$Number$ src=audio.mp4:#Template=bar$Number$ dst=test.mpd\n"\
+			"EX src=video.mp4:#Template=foo$Number$ src=audio.mp4:#Template=bar$Number$ dst=test.mpd\n"\
 			"This will assign different templates to the audio and video sources.\n"\
-			"\tEX: src=null:#xlink=http://foo/bar.xml:#PDur=4 src=m.mp4:#PStart=-1\n"\
+			"EX src=null:#xlink=http://foo/bar.xml:#PDur=4 src=m.mp4:#PStart=-1\n"\
 			"This will insert an create an MPD with first a remote period then a regular one\n"\
-			"\tEX: src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4\n"\
+			"EX src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4\n"\
 			"This will insert an create an MPD with first a regular period, dashing ony 6s of content, then a remote one\n"\
 			"\n"\
 			"The dasher will request muxing filter chains for each representation and will reassign PID IDs\n"\
@@ -5486,39 +5491,40 @@ GF_FilterRegister DasherRegister = {
 			"For HLS, the output pid will deliver the master playlist and the variant playlists\n"\
 			"The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant\n"\
 			"\n"\
+			"## Cue-driven segmentation\n"\
 			"The segmenter can take a list of cues to use for the segmentation process, in which case only these cues are used to derive segment boundaries.\n"
 			"Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are <Stream> elements, with attributes:\n"\
-			"\t\"id\": integer for stream/track/pid ID\n"\
-			"\t\"timescale\":integer giving the units of following timestamps\n"\
-			"\t\"mode\": if present and value is \"edit\", the timestamp are in presentation time (edit list applied). Otherwise they are in media time\n"\
+			"- id: integer for stream/track/pid ID\n"\
+			"- timescale:integer giving the units of following timestamps\n"\
+			"- mode: if present and value is \"edit\", the timestamp are in presentation time (edit list applied). Otherwise they are in media time\n"\
 			"The children of <Stream> are <Cue> elements, with attributes:\n"\
-			"\t\"sample\": integer giving the sample/frame number of a sample at which spliting shall happen\n"\
-			"\t\"dts\": long integer giving the decoding time stamp of a sample at which spliting shall happen\n"\
-			"\t\"cts\": long integer giving the composition / presentation time stamp of a sample at which spliting shall happen\n"\
-			"WARNING: cues shall be listed in decoding order. Cue files can be specified for the entire dasher, or per PID using DashCue property.\n"\
+			"- sample: integer giving the sample/frame number of a sample at which spliting shall happen\n"\
+			"- dts: long integer giving the decoding time stamp of a sample at which spliting shall happen\n"\
+			"- cts: long integer giving the composition / presentation time stamp of a sample at which spliting shall happen\n"\
+			"Warning: cues shall be listed in decoding order. Cue files can be specified for the entire dasher, or per PID using DashCue property.\n"\
 			"\n"\
-			"Note to developpers: output muxers allowing segmented output must obey the following:\n"\
-			"* add a \"DashMode\" capability to their input caps (value of the cap is ignored, only its presence is required)\n"\
-			"* inspect packet properties\n"\
-			"\t\"FileNumber\" gives the signal of a new DASH segment\n"\
-			"\t\"FileName\" gives the optional file name (if not present, output shall be a single file)\n"\
-			"\t\t\"FileName\" property is only set for packet carrying the \"FileNumber\" property\n"\
-			"\t\t\"FileName\" property is only on one PID (usually the first) for multiplexed outputs\n"\
-			"\t\"IDXName\" gives the optional index name (if not present, index shall be in the same file as dash segment). Only used for MPEG-2 TS for now\n"\
-			"\t\t\"EODS\" property is set on packets with no DATA, no TS to signal the end of a DASH segment\n"\
-			"\t\t\tThis is only used when stoping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see dasher \"subdur\" option)\n"\
-			"* for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any\n"\
-			"* for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any\n"\
-			"* the following filter options are passed to muxers, which should declare them as arguments:\n"\
-			"\t\tnoinit: disables output of init segment for the muxer (used to handle bitstream switching with single init in DASH)\n"\
-			"\t\tfrag: indicates muxer shall used fragmented format (used for ISOBMFF mostly)\n"\
-			"\t\tsubs_sidx=0: indicates an SIDX shall be generated - only added if not already specified by user\n"\
-			"\t\txps_inband=all|no: indicates AVC/HEVC/... parameter sets shall be sent inband or out of band\n"\
-			"\t\tnofragdef: indicates fragment defaults should be set in each segment rather than in init segment\n"\
+			"## Muxer development considerations\n"\
+			"Output muxers allowing segmented output must obey the following:\n"\
+			"- add a \"DashMode\" capability to their input caps (value of the cap is ignored, only its presence is required)\n"\
+			"- inspect packet properties\n"\
+			" - FileNumber: gives the signal of a new DASH segment\n"\
+			" - FileName: gives the optional file name (if not present, output shall be a single file). "\
+			"It is only set for packet carrying the \"FileNumber\" property, and only on one PID (usually the first) for multiplexed outputs\n"\
+			" - IDXName: gives the optional index name (if not present, index shall be in the same file as dash segment). Only used for MPEG-2 TS for now\n"\
+			" - EODS: property is set on packets with no DATA, no TS to signal the end of a DASH segment. "\
+			"This is only used when stoping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see dasher \"subdur\" option)\n"\
+			"- for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any\n"\
+			"- for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any\n"\
+			"- the following filter options are passed to muxers, which should declare them as arguments:\n"\
+			" - noinit: disables output of init segment for the muxer (used to handle bitstream switching with single init in DASH)\n"\
+			" - frag: indicates muxer shall used fragmented format (used for ISOBMFF mostly)\n"\
+			" - subs_sidx=0: indicates an SIDX shall be generated - only added if not already specified by user\n"\
+			" - xps_inband=all|no: indicates AVC/HEVC/... parameter sets shall be sent inband or out of band\n"\
+			" - nofragdef: indicates fragment defaults should be set in each segment rather than in init segment\n"\
 			"\n"\
 			"The dasher will add the following properties to the output PIDs:\n"\
-			"\tDashMode: identifies VoD (single file with global index) or regular DASH mode used by dasher\n"\
-			"\tDashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example\n"\
+			"- DashMode: identifies VoD (single file with global index) or regular DASH mode used by dasher\n"\
+			"- DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example\n"\
 			)
 	.private_size = sizeof(GF_DasherCtx),
 	.args = DasherArgs,
