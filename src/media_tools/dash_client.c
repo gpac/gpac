@@ -6558,6 +6558,7 @@ static GF_Err gf_dash_process_internal(GF_DashClient *dash)
 		if (dash->dash_state == GF_DASH_STATE_SETUP)
 			return GF_OK;
 
+		dash->initial_period_tunein = GF_FALSE;
 		dash_do_groups(dash);
 		return GF_OK;
 	case GF_DASH_STATE_STOPPED:

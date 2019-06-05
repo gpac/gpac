@@ -30,6 +30,10 @@
 //we need to write Adobe custom boxes
 #include <gpac/internal/isomedia_dev.h>
 
+extern struct box_registry_entry box_registry[];
+extern u32 get_box_reg_idx(u32 boxCode, u32 parent_type);
+extern size_t size_registry();
+
 GF_Err adobize_segment(GF_ISOFile *isom_file, AdobeHDSCtx *ctx)
 {
 	GF_Err e;
@@ -54,6 +58,7 @@ GF_Err adobize_segment(GF_ISOFile *isom_file, AdobeHDSCtx *ctx)
 	afra->type = GF_4CC('a', 'f', 'r', 'a');
 	afra->version = 0;
 	afra->flags = 0;
+	afra->registry = (const struct box_registry_entry*)((u8*)& box_registry + size_registry() * get_box_reg_idx(afra->type, 0));
 	afra->long_ids = 1;
 	afra->long_offsets = 1;
 	afra->global_entries = 0;
@@ -78,6 +83,7 @@ GF_Err adobize_segment(GF_ISOFile *isom_file, AdobeHDSCtx *ctx)
 	abst->type = GF_4CC('a', 'b', 's', 't');
 	abst->version = 0;
 	abst->flags = 0;
+	abst->registry = (const struct box_registry_entry*)((u8*)& box_registry + size_registry() * get_box_reg_idx(abst->type, 0));
 	abst->bootstrapinfo_version = 1;
 	abst->profile = 0;
 	abst->live = 1;
@@ -99,6 +105,7 @@ GF_Err adobize_segment(GF_ISOFile *isom_file, AdobeHDSCtx *ctx)
 		asrt->type = GF_4CC('a', 's', 'r', 't');
 		asrt->version = 0;
 		asrt->flags = 0;
+		asrt->registry = (const struct box_registry_entry*)((u8*)& box_registry + size_registry() * get_box_reg_idx(asrt->type, 0));
 		asrt->segment_run_entry_count = 1;
 		{
 			asre->first_segment = ctx->segnum;
@@ -124,6 +131,7 @@ GF_Err adobize_segment(GF_ISOFile *isom_file, AdobeHDSCtx *ctx)
 		afrt->type = GF_4CC('a', 'f', 'r', 't');
 		afrt->version = 0;
 		afrt->flags = 0;
+		afrt->registry = (const struct box_registry_entry*)((u8*)& box_registry + size_registry() * get_box_reg_idx(afrt->type, 0));
 		afrt->timescale = gf_isom_get_timescale(isom_file);
 		afrt->fragment_run_entry_count = 1;
 		{
@@ -152,6 +160,7 @@ GF_Err adobize_segment(GF_ISOFile *isom_file, AdobeHDSCtx *ctx)
 		return e;
 	}
 
+	abst->size = 12; /*full box*/
 	e = abst_Size((GF_Box*)abst);
 	if (e) {
 		fprintf(stderr, "Impossible to compute ABST box size: %s\n", gf_error_to_string(e));

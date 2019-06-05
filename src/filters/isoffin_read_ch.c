@@ -137,6 +137,12 @@ static void init_reader(ISOMChannel *ch)
 		if (ch->has_rap && ch->has_edit_list) {
 			ch->edit_sync_frame = ch->sample_num;
 		}
+		
+		if (ch->sample && !ch->sample->data && ch->owner->frag_type && !ch->has_edit_list) {
+			gf_isom_sample_del(&ch->sample);
+			ch->sample_num = 1;
+			ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index);
+		}
 	}
 
 
