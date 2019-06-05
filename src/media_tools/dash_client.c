@@ -726,7 +726,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			if (!ap->duration) break;
 			start += ap->duration;
 		}
-		group->dash->initial_period_tunein = GF_FALSE;
 	}
 
 	//compute current time in period
@@ -926,7 +925,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			}
 		}
 
-		group->dash->initial_period_tunein = GF_FALSE;
 		//not time shifting, we are at the live edge, we must stick to start of segment otherwise we won't have enough data to play until next segment is ready
 
 		if (!group->dash->initial_time_shift_value) {
@@ -6407,6 +6405,7 @@ restart_period:
 			dash_global_rate_adaptation(dash, GF_TRUE);
 		}
 
+		dash->initial_period_tunein = GF_FALSE;
 
 		/*for each selected groups*/
 		for (i=0; i<group_count; i++) {
