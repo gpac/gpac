@@ -425,6 +425,12 @@ static void init_reader(ISOMChannel *ch)
 		if (ch->has_rap && ch->has_edit_list) {
 			ch->edit_sync_frame = ch->sample_num;
 		}
+
+		if (ch->sample && !ch->sample->data && ch->owner->frag_type && !ch->has_edit_list) {
+			gf_isom_sample_del(&ch->sample);
+			ch->sample_num = 1;
+			ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index);
+		}
 	}
 
 	/*no sample means we're not in the track range - stop*/
@@ -441,6 +447,7 @@ static void init_reader(ISOMChannel *ch)
 		} else if (ch->sample_num) {
 			ch->last_state = (ch->owner->frag_type==1) ? GF_OK : GF_EOS;
 			ch->to_init = 0;
+			ch->last_sample_desc_index = 1;
 		}
 		return;
 	}
