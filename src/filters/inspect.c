@@ -1617,7 +1617,7 @@ static Bool inspect_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 static const GF_FilterArgs InspectArgs[] =
 {
 	{ OFFS(log), "sets inspect log filename", GF_PROP_STRING, "stderr", "fileName or stderr or stdout", 0},
-	{ OFFS(mode), "dump mode:\n\tpck: dumps full packet\n\tblk: dumps packets before reconstruction\n\tframe: force reframer\n\traw: dumps source packets without demuxing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
+	{ OFFS(mode), "dump mode:\n- pck: dumps full packet\n- blk: dumps packets before reconstruction\n- frame: force reframer\n- raw: dumps source packets without demuxing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
 	{ OFFS(interleave), "dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(deep), "dumps packets along with PID state change - implied when fmt is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(props), "dumps packet properties - ignored when fmt is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
