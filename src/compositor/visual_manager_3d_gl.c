@@ -2524,10 +2524,10 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	if (is_debug_bounds) {
 		Float cols[4];
 		loc = gf_glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
-		cols[0] = 1.0 - FIX2FLT(visual->mat_2d.red);
-		cols[1] = 1.0 - FIX2FLT(visual->mat_2d.green);
-		cols[2] = 1.0 - FIX2FLT(visual->mat_2d.blue);
-		cols[3] = 1.0;
+		cols[0] = 1.0f - FIX2FLT(visual->mat_2d.red);
+		cols[1] = 1.0f - FIX2FLT(visual->mat_2d.green);
+		cols[2] = 1.0f - FIX2FLT(visual->mat_2d.blue);
+		cols[3] = 1.0f;
 		if (loc>=0)
 			glUniform4fv(loc, 1, (GLfloat *) cols);
 		GL_CHECK_ERR

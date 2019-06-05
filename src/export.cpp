@@ -867,11 +867,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_constant_sample_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_enable_raw_pack) )
 
-
-#ifndef GPAC_DISABLE_ISOM_WRITE
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sync_table) )
-#endif
-
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_num_supported_boxes) )
