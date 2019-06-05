@@ -695,9 +695,9 @@ GF_FilterRegister FileListRegister = {
 	GF_FS_SET_DESCRIPTION("sources concatenator")
 	GF_FS_SET_HELP("This filter can be used to play playlist files (extension txt or m3u) or a list of sources using flist:l=\"f1[,f2]\", where f1 can be a file or a directory to enum.\n"\
 		"Syntax for directory is:\n"\
-		"\tdir/*: enumerates everything in dir\n"\
-		"\tfoo/*.png: enumerates all files with extension png in foo\n"\
-		"\tfoo/*.png;*.jpg: enumerates all files with extension png or jpg in foo\n"\
+		"- dir/*: enumerates everything in dir\n"\
+		"- foo/*.png: enumerates all files with extension png in foo\n"\
+		"- foo/*.png;*.jpg: enumerates all files with extension png or jpg in foo\n"\
 		"\n"\
 		"The filter loads any source supported by GPAC, files (remote or local) or other.\n"\
 		"The filter forces input demultiplex (no streamtype FILE) and recomputes the input timestamps into a continuous timeline.\n"\
@@ -705,14 +705,14 @@ GF_FilterRegister FileListRegister = {
 		"\n"\
 		"When using a playlist, directives can be given in a comment line (starting with '#' before the file name)\n"\
 		"The following directives (separated with space or comma) are supported:\n"\
-		"\trepeat=N: repeats N times the content (hence played N+1)\n"\
-		"\tstart=T: tries to play the file from start time T seconds (double format only)\n"\
-		"\t\t!! This may not work with some files/formats not supporting seeking\n"
-		"\tstop=T: stops source playback after T seconds (double format only)\n"\
-		"\t\tThis works on any source (implemented independetly from seek support)\n"
+		"- repeat=N: repeats N times the content (hence played N+1)\n"\
+		"- start=T: tries to play the file from start time T seconds (double format only)\n"\
+		"Warning: This may not work with some files/formats not supporting seeking\n"
+		"- stop=T: stops source playback after T seconds (double format only)\n"\
+		"This works on any source (implemented independetly from seek support)\n"
 		"\n"\
 		"The source lines follow the usual source syntax, see main help\n"\
-		"\t\tAdditionnal pid properties can be added per source, but are valid only for the current source, and reset at next source\n"
+		"Additionnal pid properties can be added per source, but are valid only for the current source, and reset at next source\n"
 		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist\n"\
 		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded\n")
 	.private_size = sizeof(GF_FileListCtx),

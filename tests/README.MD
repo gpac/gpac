@@ -36,7 +36,7 @@ In order to provide test caching and produce the unified test report for all the
 
 Each test has its own log file `$LOGS` in which you can write (a lot is already in there, such as test name/data and all stderr).
 
-Tests may be customized depending on the platform they run on. teh environment variable `$GPAC_OSTYPE` can be used to test the binary version used; the currently defined values are `lin32`, `lin64`, `win32`, `win64`, `osx32`, `osx64` and `unknwon`.
+Tests may be customized depending on the platform they run on. the environment variable `$GPAC_OSTYPE` can be used to test the binary version used; the currently defined values are `lin32`, `lin64`, `win32`, `win64`, `osx32`, `osx64` and `unknwon`.
 
 
 ## Simple Testing
@@ -44,7 +44,7 @@ A simple test whose result will be integrated in the test suite report is run us
 
 ### single_test 
 Two arguments:
-- `CMD_LINE`: Executes the given `CMD_LINE`. The command line must be passed between quotes. 
+- `CMD_LINE`: Executes the given `CMD_LINE`. The command line must be passed between single or double quotes. 
 - `TESTNAME`: specifies the test name
 
 Each call generates:
@@ -55,12 +55,12 @@ Each call generates:
 A simple test using `single_test` looks like:
 ```
 #!/bin/sh
-single_test 'MP4Box -add $MEDIA_DIR\foo.bar $TEMP_DIR\foo.mp4' test01
+single_test "MP4Box -add $MEDIA_DIR\foo.bar $TEMP_DIR\foo.mp4" test01
 ```
 or 
 ```
 #!/bin/sh
-single_test 'MP4Client $MEDIA_DIR\foo.mp4' test02
+single_test "MP4Client $MEDIA_DIR\foo.mp4" test02
 ```
 
 ### do_play_test 
@@ -131,7 +131,7 @@ To customize a test, a file named `$TESTNAME.sh` can be placed in the gpac/rules
 In order to avoid running all tests again whenever one test fails, the GPAC testing environment caches previous test results. If an XML file corresponding to the test or subtest exists in the results folder, the test or subtest is not run. If you want to ignore previous results, use `make_tests.sh -clean` before running the test suite. If you only want to invalidate tests of a given script, use  `make_tests.sh -clean script.sh` 
 In case a test requires generating files before testing , it is recommended to check the variable `test_skip` to check if the test is being skipped because cached. A typical function looks like:
 
-A typical test with several subtests and hash testing looks like:
+A typical test with several subtests looks like:
 ```
 test_begin TESTNAME
 if [ $test_skip = 1 ] ; then
@@ -218,7 +218,7 @@ Two arguments
 - `FILE`
 - `HASHNAME`
 When the test suite is run in hash generation mode, this generates the reference `hash_refs/$TESTNAME-$HASHNAME.hash`. Otherwise, creates a SHA-1 of FILE and compares it with the reference `$TESTNAME-$HASHNAME.hash`. 
-Function does nothing when the test is skipped (see below) or a previous error occured in the parent test `TESTNAME`.
+Function does nothing when the test is skipped or a previous error occured in the parent test `TESTNAME`.
 
 WARNING: `HASHNAME` shall be unique for a given test, otherwise hashes will be overwritten.
 

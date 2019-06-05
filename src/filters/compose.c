@@ -620,9 +620,9 @@ GF_Err compose_initialize(GF_Filter *filter)
 static GF_FilterArgs CompositorArgs[] =
 {
 	{ OFFS(aa), "Set anti-aliasing mode for raster graphics - whether the setting is applied or not depends on the graphics module / graphic card.\n"\
-		"\tnone: no anti-aliasing\n"\
-    	"\ttext: anti-aliasing for text only\n"\
-    	"\tall: complete anti-aliasing", GF_PROP_UINT, "all", "none|text|all", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+		"- none: no anti-aliasing\n"\
+    	"- text: anti-aliasing for text only\n"\
+    	"- all: complete anti-aliasing", GF_PROP_UINT, "all", "none|text|all", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hlfill), "Set highlight fill color (ARGB)", GF_PROP_UINT, "0x0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hlline), "Set highlight stroke color (ARGB)", GF_PROP_UINT, "0xFF000000", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hllinew), "Set highlight stroke width", GF_PROP_FLOAT, "1.0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
@@ -635,13 +635,13 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(stress), "enables stress mode of compositor (rebuild all vector graphics and texture states at each frame)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fast), "enables speed optimization - whether the setting is applied or not depends on the graphics module / graphic card", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(bvol), "draws bounding volume of objects.\n"\
-			"\tno: disable bounding box\n"\
-			"\tbox: draws a rectangle (2D) or box (3D mode)\n"\
-			"\taabb: draws axis-aligned bounding-box tree (3D only)", GF_PROP_UINT, "no", "no|box|aabb", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+			"- no: disable bounding box\n"\
+			"- box: draws a rectangle (2D) or box (3D mode)\n"\
+			"- aabb: draws axis-aligned bounding-box tree (3D only)", GF_PROP_UINT, "no", "no|box|aabb", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(textxt), "specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text rendering in 3D and also improve text-on-video like content. Possible values are:\n"\
-		"\tdefault: use texturing for OpenGL rendering, no texture for 2D rasterizer\n"\
-		"\tnever: never uses text textures\n"\
-		"\talways: always render text to texture before drawing\n"\
+		"- default: use texturing for OpenGL rendering, no texture for 2D rasterizer\n"\
+		"- never: never uses text textures\n"\
+		"- always: always render text to texture before drawing\n"\
 		"", GF_PROP_UINT, "default", "default|never|always", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(out8b), "converts 10-bit video to 8 bit texture before GPU upload.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(drop), "drops late frame when drawing. By default frames are not droped until a heavy desync of 1 sec is observed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
@@ -657,9 +657,9 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(dur), "duration of generation. Mostly used when no video input is present. Negative values mean number of frames, positive values duration in second, 0 stops as soon as all streams are done.", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fsize), "Forces the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mode2d), "specifies whether immediate drawing should be used or not. Possible values are:\n"\
-	"\timmediate: the screen is completely redrawn at each frame (always on if passthrough mode is detected).\n"\
-	"\tdefer: object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer.\n"\
-	"\tdebug: only renders changed areas, reseting other areas\n"\
+	"- immediate: the screen is completely redrawn at each frame (always on if passthrough mode is detected).\n"\
+	"- defer: object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer.\n"\
+	"- debug: only renders changed areas, reseting other areas\n"\
 	 "Whether the setting is applied or not depends on the graphics module and player mode.", GF_PROP_UINT, "defer", "defer|immediate|debug", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(amc), "audio multichannel support; if disabled always downmix to stereo. usefull if the multichannel output doesn't work properly", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(asr), "forces output sample rate - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -680,22 +680,22 @@ static GF_FilterArgs CompositorArgs[] =
 
 #ifndef GPAC_DISABLE_3D
 	{ OFFS(ogl), "specifies 2D rendering mode.\nPossible values are:\n"\
-				"\tauto: automatically decides betwwen on, off and hybrid based on content.\n"\
-				"\toff: disables OpenGL - 3D won't be rendered.\n"\
-				"\ton: uses OpenGL for all graphics - this will involve polygon tesselation and 2D graphics will not look as nice as 2D mode.\n"\
-				"\thybrid: the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all 2D objects with textures and 3D objects.\n"\
+				"- auto: automatically decides betwwen on, off and hybrid based on content.\n"\
+				"- off: disables OpenGL - 3D won't be rendered.\n"\
+				"- on: uses OpenGL for all graphics - this will involve polygon tesselation and 2D graphics will not look as nice as 2D mode.\n"\
+				"- hybrid: the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all 2D objects with textures and 3D objects.\n"\
 				, GF_PROP_UINT, "auto", "auto|off|hybrid|on", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pbo), "enables PixelBufferObjects to push YUV textures to GPU in OpenGL Mode. This may slightly increase the performances of the playback.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nav), "overrides the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine)", GF_PROP_UINT, "none", "none|walk|fly|pan|game|slide|exam|orbit|vr", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(linegl), "specifies that outlining shall be done through OpenGL pen width rather than vectorial outlining", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(epow2), "emulate power-of-2 textures for openGL (old hardware). Ignored if OpenGL rectangular texture extension is enabled\n"\
-	"\tyes: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations\n"\
-	"\tno: video is resized to a power of 2 texture when mapping to a shape", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	"- yes: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations\n"\
+	"- no: video is resized to a power of 2 texture when mapping to a shape", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(paa), "specifies whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(bcull), "specifies whether backface culling shall be disable or not. Possible values are:\n"\
-				"\ton: enables backface culling\n"\
-				"\toff: disables backface culling\n"\
-				"\talpha: only enables backface culling for transparent meshes\n"\
+				"- on: enables backface culling\n"\
+				"- off: disables backface culling\n"\
+				"- alpha: only enables backface culling for transparent meshes\n"\
 		"", GF_PROP_UINT, "on", "off|on|alpha", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(wire), "enables wireframe mode.\n"\
 	"\"none\": objects are drawn as solid\n"\
@@ -761,9 +761,9 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(player), "sets compositor in player mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(opfmt), "pixel format to use for output. Ignored in player mode", GF_PROP_PIXFMT, "none", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(drv), "indicates if graphics driver should be used. Ignored in player mode. Allowed values are:\n"\
-				"\tno: never loads a graphics driver (software blitting used, no 3D possible)\n"\
-				"\tyes: always loads a graphics driver. Output pixel format will be RGB.\n"\
-				"\tauto: decides based on the loaded content.\n"\
+				"- no: never loads a graphics driver (software blitting used, no 3D possible)\n"\
+				"- yes: always loads a graphics driver. Output pixel format will be RGB.\n"\
+				"- auto: decides based on the loaded content.\n"\
 			, GF_PROP_UINT, "auto", "no|yes|auto", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };

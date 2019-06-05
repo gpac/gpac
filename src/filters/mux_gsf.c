@@ -1116,7 +1116,7 @@ GF_FilterRegister GSFMxRegister = {
 			"The header/tunein packet may get quite big when all pid properties are kept. In order to help reduce its size, the minp option can be used: "
 			"this will remove all built-in properties marked as dropable (cf property help) as well as all non built-in properties.\n"
 			"The skp option may also be used to specify which property to drop:\n"
-			"\tEX: skp=\"4CC1,Name2\n"\
+			"EX skp=\"4CC1,Name2\n"\
 			"This will remove properties of type 4CC1 and properties (built-in or not) of name Name2\n"
 			"\n")
 	.private_size = sizeof(GSFMxCtx),

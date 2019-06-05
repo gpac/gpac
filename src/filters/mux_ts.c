@@ -1262,9 +1262,9 @@ static const GF_FilterArgs TSMuxArgs[] =
 	{ OFFS(pat_rate), "interval between PAT in ms", GF_PROP_UINT, "200", NULL, 0},
 	{ OFFS(pcr_offset), "offsets all timestamps from PCR by V, in 90kHz. Default value is computed based on input media", GF_PROP_UINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mpeg4), "forces usage of MPEG-4 signaling (IOD and SL Config).\n"\
-				"\tnone: disables 4on2\n"\
-				"\tfull: sends AUs as SL packets over section for OD, section/pes for scene (cf bifs_pes)\n"\
-				"\tscene: sends only scene streams as 4on2 but uses regular PES without SL for audio and video"\
+				"- none: disables 4on2\n"\
+				"- full: sends AUs as SL packets over section for OD, section/pes for scene (cf bifs_pes)\n"\
+				"- scene: sends only scene streams as 4on2 but uses regular PES without SL for audio and video"\
 				, GF_PROP_UINT, "none", "none|full|scene", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(pmt_version), "sets version number of the PMT", GF_PROP_UINT, "200", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(disc), "sets the discontinuity marker for the first packet of each stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1273,9 +1273,9 @@ static const GF_FilterArgs TSMuxArgs[] =
 	{ OFFS(max_pcr), "sets max interval in ms between 2 PCR", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nb_pack), "packs N TS packets in output packets", GF_PROP_UINT, "4", NULL, 0},
 	{ OFFS(pes_pack), "Sets AU to PES packing mode.\n"\
-		"\taudio: will pack only multiple audio AUs in a PES\n"\
-		"\tnone: make exactly one AU per PES\n"\
-		"\tall will pack multiple AUs per PES for all streams", GF_PROP_UINT, "audio", "audio|none|all", GF_FS_ARG_HINT_ADVANCED},
+		"- audio: will pack only multiple audio AUs in a PES\n"\
+		"- none: make exactly one AU per PES\n"\
+		"- all will pack multiple AUs per PES for all streams", GF_PROP_UINT, "audio", "audio|none|all", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rt), "Forces real-time output", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(bifs_pes), "force sending BIFS streams as PES packets and not sections. copy mode disables timestamps in BIFS SL and only carries PES timestamps", GF_PROP_UINT, "off", "off|on|copy", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(flush_rap), "force flushing mux program when RAP is found on video, and injects PAT and PMT before the next video PES begin", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1310,8 +1310,8 @@ GF_FilterRegister TSMuxRegister = {
 		"Only a single TEMI timeline can be specified per PID.\n"
 		"The syntax is a comma-separated list of one or more TEMI description, each of them separated by '#'\n"
 		"Each TEMI description is formated as #ServiceID#ID_OR_URL, with:\n"\
-		"\tServiceID: optional, number indicating the target serviceID\n"\
-		"\tID_OR_URL: If numbern indicates the TEMI ID to use for external timeline. Otherwise, gives the URL to insert\n"\
+		"- ServiceID: optional, number indicating the target serviceID\n"\
+		"- ID_OR_URL: If numbern indicates the TEMI ID to use for external timeline. Otherwise, gives the URL to insert\n"\
 		"Each comma-separated description designs a stream index in the target service. Ex:\n"\
 		"temi=\"url\": inserts a temi URL+timecode in the first stream of all programs\n"\
 		"temi=\"url,4\": inserts a temi URL+timecode in the first stream of all programs and an external temi with ID 4 in the second stream of all programs\n"\

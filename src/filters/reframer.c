@@ -291,7 +291,7 @@ GF_FilterRegister ReframerRegister = {
 	GF_FS_SET_HELP("This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"\
 		"The filter can be used to filter out packets based on SAP types, for example to extract only the key frames (SAP 1,2,3) of a video\n"\
 		"The filter can be used to add real-time regulation of input packets. For example to simulate a live DASH:\n"\
-		"\tEX \"src=m.mp4 reframer:rt=on dst=live.mpd:dynamic\"\n"\
+		"EX \"src=m.mp4 reframer:rt=on dst=live.mpd:dynamic\"\n"\
 		)
 	.private_size = sizeof(GF_ReframerCtx),
 	.max_extra_pids = (u32) -1,

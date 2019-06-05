@@ -942,7 +942,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference pid", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DEPENDENCY_ID, "DependencyID", "ID of layer dependended on", GF_PROP_UINT},
 	{ GF_PROP_PID_SUBLAYER, "SubLayer", "pid is a sublayer of the stream depended on rather than an enhancement layer", GF_PROP_BOOL},
-	{ GF_PROP_PID_PLAYBACK_MODE, "PlaybackMode", "Playback mode supported:\n\t0: is no time control\n\t1: is play/pause/seek,speed=1\n\t2: is play/pause/seek,speed>=0\n\t3: is play/pause/seek, reverse playback", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_PLAYBACK_MODE, "PlaybackMode", "Playback mode supported:\n- 0: no time control\n- 1: play/pause/seek,speed=1\n- 2: play/pause/seek,speed>=0\n- 3: play/pause/seek, reverse playback", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_SCALABLE, "Scalable", "Scalable stream", GF_PROP_BOOL},
 	{ GF_PROP_PID_TILE_BASE, "TileBase", "Tile base stream", GF_PROP_BOOL},
 	{ GF_PROP_PID_LANGUAGE, "Language", "Language code: ISO639 2/3 character code or RFC 4646", GF_PROP_NAME},

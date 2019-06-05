@@ -487,8 +487,8 @@ GF_FilterRegister PipeOutRegister = {
 		"The pipe name indicated in dst can use template mechanisms from gpac, e.g. dst=pipe_$ServiceID$\n"\
 		"\n"\
 		"On Windows hosts, the default pipe prefix is \"\\\\.\\pipe\\gpac\\\" if no prefix is set \n"\
-		"\tEX dst=mypipe resolves in \\\\.\\pipe\\gpac\\mypipe\n"\
-		"\tEX dst=\\\\.\\pipe\\myapp\\mypipe resolves in \\\\.\\pipe\\myapp\\mypipe\n"
+		"EX dst=mypipe resolves in \\\\.\\pipe\\gpac\\mypipe\n"\
+		"EX dst=\\\\.\\pipe\\myapp\\mypipe resolves in \\\\.\\pipe\\myapp\\mypipe\n"
 		"Any destination name starting with \\\\ is used as is, with \\ translated in /\n"\
 		"\n"\
 		"The pipe input can create the pipe if not found using mkp option. On windows hosts, this will create a pipe server.\n"\

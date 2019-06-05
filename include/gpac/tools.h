@@ -544,6 +544,35 @@ void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level);
 */
 void gf_log_reset_file();
 
+
+/*!
+ * GPAC Log tools
+ *	\hideinitializer
+ *
+ * Describes the color code for console print
+ */
+typedef enum
+{
+	/*!reset color*/
+	GF_CONSOLE_RESET=0,
+	/*!set text to red*/
+	GF_CONSOLE_RED,
+	/*!set text to green*/
+	GF_CONSOLE_GREEN,
+	/*!set text to blue*/
+	GF_CONSOLE_BLUE,
+	/*!set text to yellow*/
+	GF_CONSOLE_YELLOW,
+	/*!set text to cyan*/
+	GF_CONSOLE_CYAN,
+	/*!set text to white*/
+	GF_CONSOLE_WHITE,
+	/*!set text to magenta*/
+	GF_CONSOLE_MAGENTA
+} GF_ConsoleColor;
+
+void gf_sys_set_term_color(FILE *std, GF_ConsoleColor color_code);
+
 /*!
  *	\brief PseudoRandom Integer Generation Initialization
  *

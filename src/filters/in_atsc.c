@@ -364,11 +364,11 @@ GF_FilterRegister ATSCInRegister = {
 	 "The default behaviour is to populate GPAC HTTP cache with the recieved files, using \"http://gpatsc/serviceN/\" as service root, N being the ATSC service ID.\n"\
 	 "In cache mode, repeated files are always send.\n"\
 	"The cached MPD is assigned the following headers:\n"\
-	"\t\"x-dash-atsc: N\" indicates the ATSC service ID\n"\
-	"\t\"x-dash-first-seg: NAME\" indicates the name of the first segment completely retrieved from the broadcast\n"\
-	"\t\"x-atsc-loop: yes\" indicates a loop in the service has been detected\n"\
+	"- x-dash-atsc: integer value, indicates the ATSC service ID\n"\
+	"- x-dash-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast\n"\
+	"- x-atsc-loop: boolean value, if yes indicates a loop in the service has been detected\n"\
 	"The cached files are assigned the following headers:\n"\
-	"\t\"x-atsc: yes\" indicates the file comes from an ATSC session\n"\
+	"- x-atsc: bollean value, if yes indicates the file comes from an ATSC session\n"\
 	 "\n"\
 	 "This behaviour can be changed by disabling the cache, in which case the filter will output files on a single output pid of type \"file\". "\
 	"The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not repeated unless requested.\n"

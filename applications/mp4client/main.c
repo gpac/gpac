@@ -1020,7 +1020,7 @@ int mp4client_main(int argc, char **argv)
 			return 0;
 		} else if (!strcmp(arg, "-hc")) {
 			fprintf(stderr, "libgpac options:\n");
-			gf_sys_print_core_help(GF_ARGMODE_ALL, 0);
+			gf_sys_print_core_help(GF_ARGMODE_ALL, 0, NULL);
 			return 0;
 		}
 	}
