@@ -1291,7 +1291,7 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		else if (cap->code==GF_PROP_PID_CODECID) szVal = (const char *) gf_codecid_name(cap->val.value.uint);
 		else szVal = gf_prop_dump_val(&cap->val, szDump, GF_FALSE, NULL);
 
-		format_help(0, " - Type: %s - Value: %s", szName,  szVal);
+		format_help(0, " %s=\"%s\"", szName,  szVal);
 		if (cap->priority) format_help(0, ", priority=%d", cap->priority);
 		format_help(0, "\n");
 	}
@@ -1371,7 +1371,12 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 			}
 			if (a->min_max_enum) {
 				format_help(0, " %s: %s", strchr(a->min_max_enum, '|') ? "Enum" : "minmax", a->min_max_enum);
-			}
+/*                if (strchr(a->min_max_enum, '|') && !strstr(a->arg_desc, "- ")) {
+                    fprintf(stderr, "\nfilter %s bad format for arg %s, missing description\n", reg->name, a->arg_name);
+                }
+*/
+                
+            }
 			if (a->flags & GF_FS_ARG_UPDATE) format_help(0, " Updatable");
 			if (a->flags & GF_FS_ARG_META) format_help(0, " Meta");
 			format_help(0, "\n");
