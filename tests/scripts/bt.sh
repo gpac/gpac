@@ -47,7 +47,7 @@ compositor_test()
  if [ -f $RGB_DUMP ] ; then
 #  do_hash_test_bin "$RGB_DUMP" "$2-rgb"
   v_args="$RGB_DUMP:size=$dump_size"
- else
+ elif [ $empty_dump = 0 ] ; then
   result="no output"
  fi
 
@@ -72,6 +72,7 @@ bt_test ()
  extern_proto=0
  inline_resource=0
  skip_hash=0
+ empty_dump=0
 
  #file used by other test
  case $btfile in
@@ -105,6 +106,8 @@ bt_test ()
   skip_hash=1;;
  *-date* )
   skip_hash=1;;
+ *remoteiod* )
+  empty_dump=1;;
 esac
 
  name=${name/bifs/bt}
@@ -155,5 +158,4 @@ esac
 for i in $MEDIA_DIR/bifs/*.bt ; do
 bt_test $i
 done
-
 
