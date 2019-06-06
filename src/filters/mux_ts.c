@@ -1272,12 +1272,15 @@ static const GF_FilterArgs TSMuxArgs[] =
 	{ OFFS(repeat_img), "interval in ms between resending (as PES) of single-image streams. If 0, image data is sent once only", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(max_pcr), "sets max interval in ms between 2 PCR", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nb_pack), "packs N TS packets in output packets", GF_PROP_UINT, "4", NULL, 0},
-	{ OFFS(pes_pack), "Sets AU to PES packing mode.\n"\
+	{ OFFS(pes_pack), "sets AU to PES packing mode.\n"\
 		"- audio: will pack only multiple audio AUs in a PES\n"\
 		"- none: make exactly one AU per PES\n"\
 		"- all will pack multiple AUs per PES for all streams", GF_PROP_UINT, "audio", "audio|none|all", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(rt), "Forces real-time output", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(bifs_pes), "force sending BIFS streams as PES packets and not sections. copy mode disables timestamps in BIFS SL and only carries PES timestamps", GF_PROP_UINT, "off", "off|on|copy", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(rt), "forces real-time output", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(bifs_pes), "force sending BIFS streams as PES packets and not sections\n"
+	"- on: uses BIFS PES\n"
+	"- off: uses BIFS sections\n"
+	"- copy: uses BIFS PES but removes timestamps in BIFS SL and only carries PES timestamps", GF_PROP_UINT, "off", "off|on|copy", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(flush_rap), "force flushing mux program when RAP is found on video, and injects PAT and PMT before the next video PES begin", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pcr_only), "enables PCR-only TS packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(pcr_init), "sets initial PCR value for the programs. Negative value implies random value is picked", GF_PROP_LSINT, "-1", NULL, 0},

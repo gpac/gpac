@@ -1824,7 +1824,7 @@ static const GF_FilterCapability CENCEncCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_CENCEncCtx, _n)
 static const GF_FilterArgs GF_CENCEncArgs[] =
 {
-	{ OFFS(cfile), "Crypt file - see filter help", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(cfile), "crypt file location - see filter help", GF_PROP_STRING, NULL, NULL, 0},
 	{0}
 };
 

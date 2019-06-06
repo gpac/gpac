@@ -1082,7 +1082,10 @@ static const GF_FilterArgs GSFMxArgs[] =
 	{ OFFS(sigdur), "signal duration", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigbo), "signal byte offset", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigdts), "signal decoding timestamp", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(dbg), "debug mode, skips packet or force packet size to 0", GF_PROP_UINT, "no", "no|nodata|nopck", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dbg), "sets debug mode\n"
+	"- no: disables debug\n"
+	"- nodata: force packet size to 0\n"
+	"- nopck: skips packet", GF_PROP_UINT, "no", "no|nodata|nopck", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(key), "encrypts packets using given key - see filter helps", GF_PROP_DATA, NULL, NULL, 0},
 	{ OFFS(IV), "sets IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)", GF_PROP_DATA, NULL, NULL, 0},
 	{ OFFS(pattern), "sets nb crypt / nb_skip block pattern. default is all encrypted", GF_PROP_FRACTION, "1/0", NULL, GF_FS_ARG_HINT_ADVANCED},

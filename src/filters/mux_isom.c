@@ -3917,13 +3917,25 @@ static const GF_FilterArgs MP4MuxArgs[] =
 {
 	{ OFFS(m4sys), "force MPEG-4 Systems signaling of tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dref), "only references data from source file - not compatible with all media sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ctmode), "sets cts mode for video tracks. edit uses edit lists to shift first frame to presentation time 0. noedit doesn't shift timeline. negctts uses ctts v1 and no edit lists", GF_PROP_UINT, "edit", "edit|noedit|negctts", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ctmode), "sets composition offset mode for video tracks.\n"
+	"- edit: uses edit lists to shift first frame to presentation time 0\n"
+	"- noedit: doesn't shift timeline\n"
+	"- negctts: uses ctts v1 with possibly negative offsets and no edit lists", GF_PROP_UINT, "edit", "edit|noedit|negctts", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(idur), "only imports the specified duration", GF_PROP_FRACTION, "0", NULL, 0},
 	{ OFFS(pack3gp), "packs a given number of 3GPP audio frames in one sample", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import progress", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pack_nal), "repacks NALU size length to minimum possible size for AVC/HEVC/...", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(xps_inband), "Use inband param set for AVC/HEVC/.... If mix, creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|mix", 0},
-	{ OFFS(store), "Write mode. inter uses cdur to interleave the file. flat writes a flat file, file at end. cap flushes to disk as soon as samples are added. tight uses per-sample interleaving of all tracks. frag framents the file using cdur duration. sfrag framents the file using cdur duration but adjusting to start with SAP1/3.  ", GF_PROP_UINT, "inter", "inter|flat|cap|tight|frag|sfrag", 0},
+	{ OFFS(xps_inband), "use inband (in sample data) param set for AVC/HEVC/...\n"
+	"- no: paramater sets are not inband, several sample descriptions might be created\n"
+	"- all: paramater sets are inband, no param sets in sample description\n"
+	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|mix", 0},
+	{ OFFS(store), "file storage mode\n"
+	"- inter: uses cdur to interleave the file\n"
+	"- flat: writes a flat file, moov at end\n"
+	"- cap: flushes to disk as soon as samples are added\n"
+	"- tight:  uses per-sample interleaving of all tracks\n"
+	"- frag: fragments the file using cdur duration\n"
+	"- sfrag: framents the file using cdur duration but adjusting to start with SAP1/3", GF_PROP_UINT, "inter", "inter|flat|cap|tight|frag|sfrag", 0},
 	{ OFFS(cdur), "chunk duration for interleaving and fragmentation modes", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(moovts), "timescale to use for movie. A negative value picks the media timescale of the first track added", GF_PROP_SINT, "600", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(moof_first), "generates fragments starting with moof then mdat", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -3932,31 +3944,40 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(file), "pointer to a write/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(m4cc), "4 character code of empty box to appen at the end of a segment", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(chain_sidx), "Uses daisy-chaining of SIDX", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(msn), "Sets sequence number of first moof to N", GF_PROP_UINT, "1", NULL, 0},
-	{ OFFS(msninc), "Sets sequence number increase between moofs", GF_PROP_UINT, "1", NULL, 0},
+	{ OFFS(chain_sidx), "uses daisy-chaining of SIDX", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(msn), "sets sequence number of first moof to N", GF_PROP_UINT, "1", NULL, 0},
+	{ OFFS(msninc), "sets sequence number increase between moofs", GF_PROP_UINT, "1", NULL, 0},
 	{ OFFS(tfdt), "sets TFDT of first traf", GF_PROP_FRACTION64, "0", NULL, 0},
 	{ OFFS(tfdt_traf), "sets TFDT in each traf", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(nofragdef), "disables default flags in fragments", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(straf), "uses a single traf per moov (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(strun), "uses a single traf per moov (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(psshs), "PSSH boxes store mode:\n\tmoof: in first moof of each segments\n\tmoov: in movie box\n\tnone: discarded", GF_PROP_UINT, "moov", "moov|moof|none", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(psshs), "set PSSH boxes store mode\n"
+	"- moof: in first moof of each segments\n"
+	"- moov: in movie box\n"
+	"- none: pssh is discarded", GF_PROP_UINT, "moov", "moov|moof|none", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sgpd_traf), "stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(cache), "Enables temp storage for VoD dash modes. When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX. When enabled, file data is stored to a cache and flushed upon completion", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(cache), "enables temp storage for VoD dash modes. When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX. When enabled, file data is stored to a cache and flushed upon completion", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(noinit), "does not send initial moov, used for DASH bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(tktpl), "use track box from input if any as a template to create new track. no disables template, yes clones the track (except edits and decoder config), udta only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(mudta), "use udta and other moov extension boxes from input if any. no disables import, yes clones all extension boxes, udta only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tktpl), "use track box from input if any as a template to create new track\n"
+	"- no: disables template\n"
+	"- yes: clones the track (except edits and decoder config)\n"
+	"- udta: only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mudta), "use udta and other moov extension boxes from input if any\n"
+	"- no: disables import\n"
+	"- yes: clones all extension boxes\n"
+	"- udta: only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tmpd), "sets temp dire for intermediate file(s)", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mvex), "sets mvex after tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tkid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fdur), "fragments based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(btrt), "sets btrt box in sample description", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(mediats), "sets media timescale. A value of 0 means inherit from pid, a value of -1 means derive from samplerate or frame rate", GF_PROP_SINT, "0", NULL, 0},
-	{ OFFS(ase), "sets audio sample entry mode for more than stereo layouts:\n"\
+	{ OFFS(ase), "sets audio sample entry mode for more than stereo layouts\n"\
 			"- v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"\
 			"- v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"\
 			"- v1: use v1 signaling, ISOBMFF style\n"\
-			"- v1qt: use v1 signaling, QTFF style\n"\
+			"- v1qt: use v1 signaling, QTFF style"\
 		, GF_PROP_UINT, "v0", "|v0|v0s|v1|v1qt", 0},
 	{ OFFS(ssix), "creates ssix when sidx is present, level 1 mappping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ccst), "insert coding constraint box for video tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

@@ -1296,10 +1296,10 @@ void ttd_finalize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_TTXTDec, _n)
 static const GF_FilterArgs TTXTDecArgs[] =
 {
-	{ OFFS(texture), "Use texturing for output text", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(outline), "Draw text outline", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(width), "Default width when standalone rendering", GF_PROP_UINT, "400", NULL, 0},
-	{ OFFS(height), "Default height when standalone rendering", GF_PROP_UINT, "200", NULL, 0},
+	{ OFFS(texture), "use texturing for output text", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(outline), "draw text outline", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(width), "default width when standalone rendering", GF_PROP_UINT, "400", NULL, 0},
+	{ OFFS(height), "default height when standalone rendering", GF_PROP_UINT, "200", NULL, 0},
 	{0}
 };
 

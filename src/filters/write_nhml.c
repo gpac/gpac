@@ -833,11 +833,15 @@ static const GF_FilterCapability NHMLDumpCaps[] =
 static const GF_FilterArgs NHMLDumpArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(dims), "Uses DIMS mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(name), "Sets output name of files produced (needed media/info files refered to from XML", GF_PROP_STRING, "dump.nhml", NULL, 0},
-	{ OFFS(nhmlonly), "Only dumps NHML info, not media", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(full), "Full NHML dump", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(chksum), "Insert frame checksum", GF_PROP_UINT, "none", "none|crc|sha1", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dims), "uses DIMS mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(name), "sets output name of files produced (needed media/info files refered to from XML", GF_PROP_STRING, "dump.nhml", NULL, 0},
+	{ OFFS(nhmlonly), "only dumps NHML info, not media", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(full), "full NHML dump", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(chksum), "insert frame checksum\n"
+	"- none: no checksum\n"
+	"- crc: CRC32 checksum\n"
+	"- sha1: SHA1 checksum"
+	"", GF_PROP_UINT, "none", "none|crc|sha1", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(filep), "dumps directly to FILE (used by MP4Box)", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };

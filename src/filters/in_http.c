@@ -413,8 +413,12 @@ static const GF_FilterArgs HTTPInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "1000000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(cache), "Sets cache mode: disk, disk without discarding, memory or none", GF_PROP_UINT, "disk", "disk|keep|mem|none", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(range), "Sets byte range, as fraction", GF_PROP_FRACTION64, "0-0", NULL, 0},
+	{ OFFS(cache), "sets cache mode\n"
+	"- disk: cache to disk,  discard once session is no longer used\n"
+	"- disk: cache to disk and keep\n"
+	"- mem: stores to memory, discard once session is no longer used\n"
+	"- none: no cache", GF_PROP_UINT, "disk", "disk|keep|mem|none", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(range), "sets byte range, as fraction", GF_PROP_FRACTION64, "0-0", NULL, 0},
 	{ OFFS(ext), "overrides file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "sets file mime type", GF_PROP_NAME, NULL, NULL, 0},
 	{0}

@@ -877,7 +877,7 @@ static const GF_FilterCapability CTXLoadCaps[] =
 static const GF_FilterArgs CTXLoadArgs[] =
 {
 	{ OFFS(progressive), "enable progressive loading", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sax_dur), "SAX loading duration", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sax_dur), "loading duration for SAX parsing (XMT), 0 disables SAX parsing", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
