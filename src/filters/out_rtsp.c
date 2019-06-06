@@ -1247,12 +1247,12 @@ static const GF_FilterCapability RTSPOutCaps[] =
 static const GF_FilterArgs RTSPOutArgs[] =
 {
 	{ OFFS(dst), "location of destination file - see filter help ", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(port), "RTSP port", GF_PROP_UINT, "554", NULL, 0},
+	{ OFFS(port), "server port", GF_PROP_UINT, "554", NULL, 0},
 	{ OFFS(firstport), "port for first stream in session", GF_PROP_UINT, "6000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(mtu), "RTP MTU size in bytes", GF_PROP_UINT, "1460", NULL, 0},
+	{ OFFS(mtu), "size of RTP MTU in bytes", GF_PROP_UINT, "1460", NULL, 0},
 	{ OFFS(ttl), "time-to-live for muticast packets. A value of 0 uses client requested TTL, or 1", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ifce), "IP adress of network inteface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(payt), "RTP payload type to use for dynamic configs.", GF_PROP_UINT, "96", "96-127", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ifce), "default network inteface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(payt), "payload type to use for dynamic configs.", GF_PROP_UINT, "96", "96-127", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mpeg4), "sends all streams using MPEG-4 generic payload format if posible", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(delay), "send delay for packet (negative means send earlier)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tt), "time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1262,14 +1262,14 @@ static const GF_FilterArgs RTSPOutArgs[] =
 	{ OFFS(latm), "uses latm for AAC payload format", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(mounts), "list of directories to expose in server mode", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read TCP socket", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(user_agent), "User agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GPAC_UA", NULL, 0},
+	{ OFFS(user_agent), "user agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GPAC_UA", NULL, 0},
 	{ OFFS(close), "closes RTSP connection after each request, except when RTP over RTSP is used", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(loop), "loops all streams in session (not always possible depending on source type) - see filter help.", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dynurl), "allows dynamic service assembly - see filter help.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mcast), "controls multicast setup of a session.\n"
 				"- off: clients are never allowed to create a multicast\n"
 				"- on: clients can create multicast sessions\n"
-				"- mirror: clients can create a multicast session. Any later request to the same URL will use that multicast session\n"
+				"- mirror: clients can create a multicast session. Any later request to the same URL will use that multicast session"
 		, GF_PROP_UINT, "off", "off|on|mirror", GF_FS_ARG_HINT_EXPERT},
 
 	{0}

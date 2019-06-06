@@ -1371,12 +1371,41 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 			}
 			if (a->min_max_enum) {
 				format_help(0, " %s: %s", strchr(a->min_max_enum, '|') ? "Enum" : "minmax", a->min_max_enum);
-/*                if (strchr(a->min_max_enum, '|') && !strstr(a->arg_desc, "- ")) {
-                    fprintf(stderr, "\nfilter %s bad format for arg %s, missing description\n", reg->name, a->arg_name);
+
+				//check format
+                if ((a->arg_type!=GF_PROP_UINT_LIST) && !(a->flags&GF_FS_ARG_META) && strchr(a->min_max_enum, '|') ) {
+                	if (!strstr(a->arg_desc, "- ")) {
+                    	fprintf(stderr, "\nWARNING: filter %s bad format for arg %s, missing description\n", reg->name, a->arg_name);
+                    	exit(1);
+					}
+                	if (strstr(a->arg_desc, ":\n")) {
+                    	fprintf(stderr, "\nWARNING: filter %s bad format for arg %s, missing description\n", reg->name, a->arg_name);
+                    	exit(1);
+					}
                 }
-*/
-                
             }
+            if (!(a->flags&GF_FS_ARG_META)) {
+				u8 achar;
+				char *sep;
+
+				achar = a->arg_desc[strlen(a->arg_desc)-1];
+				if (achar == '\n') {
+					fprintf(stderr, "\nWARNING: filter %s bad format for arg %s, missing description\n", reg->name, a->arg_name);
+					exit(1);
+				}
+
+				achar = a->arg_desc[0];
+				if ((achar >= 'A') && (achar <= 'Z')) {
+					fprintf(stderr, "\nWARNING: filter %s bad format for arg %s, missing description\n", reg->name, a->arg_name);
+					exit(1);
+				}
+				sep = strchr(a->arg_desc, ' ');
+				if (sep) sep--;
+				if (sep && (sep[0] == 's')) {
+					fprintf(stderr, "\nWARNING: filter %s bad format for arg %s, missing description\n", reg->name, a->arg_name);
+					exit(1);
+				}
+			}
 			if (a->flags & GF_FS_ARG_UPDATE) format_help(0, " Updatable");
 			if (a->flags & GF_FS_ARG_META) format_help(0, " Meta");
 			format_help(0, "\n");

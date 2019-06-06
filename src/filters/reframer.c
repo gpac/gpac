@@ -277,7 +277,10 @@ static const GF_FilterCapability ReframerCaps[] =
 static const GF_FilterArgs ReframerArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(rt), "real-time regulation mode of input. off disables it, on enables it on each pid, sync enables it on all pid", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(rt), "real-time regulation mode of input\n"
+	"- off: disables real-time regulation\n"
+	"- on: enables real-time regulation, one clock per pid\n"
+	"- sync: enables real-time regulation one clock for all pids", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(saps), "drops non-SAP packets, off by default. The string contains the list (whitespace or comma-separated) of SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(refs), "forwards only frames used as reference frames, if indicated in the input stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(speed), "speed for real-time regulation mode - only positive value", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED},

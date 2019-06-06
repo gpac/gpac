@@ -290,7 +290,11 @@ static const GF_FilterCapability ADTSMxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_ADTSMxCtx, _n)
 static const GF_FilterArgs ADTSMxArgs[] =
 {
-	{ OFFS(mpeg2), "Signals as MPEG2 AAC", GF_PROP_UINT, "auto", "auto|no|yes", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mpeg2), "signals as MPEG2 AAC\n"
+	"- auto: selects based on AAC profile\n"
+	"- no: always signals as MPEG-4 AAC\n"
+	"- yes: always signals as MPEG-2 AAC"
+	"", GF_PROP_UINT, "auto", "auto|no|yes", GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -322,7 +326,7 @@ static GF_Err latmmx_initialize(GF_Filter*filter)
 #define OFFS(_n)	#_n, offsetof(GF_ADTSMxCtx, _n)
 static const GF_FilterArgs LATMMxArgs[] =
 {
-	{ OFFS(fdsi), "Sets delay between two LATM Audio Config", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fdsi), "sets delay between two LATM Audio Config", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

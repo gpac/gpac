@@ -2228,8 +2228,12 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(drv), "video driver name", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(vsync), "enables video screen sync", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(drop), "enables droping late frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(disp), "Display mode\n\tgl: OpenGL\n\tpbo: OpenGL with PBO\n\tblit: 2D HW blit\n\tsoft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(disp), "display mode\n"
+	"- gl: OpenGL\n"
+	"- pbo: OpenGL with PBO\n"
+	"- blit: 2D hardware blit\n"
+	"- soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, 0},
 	{ OFFS(speed), "sets playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams. A negative value force a hold on last frame for single or multi-frames streams", GF_PROP_DOUBLE, "1.0", NULL, 0},

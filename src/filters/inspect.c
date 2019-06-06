@@ -1616,23 +1616,27 @@ static Bool inspect_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 #define OFFS(_n)	#_n, offsetof(GF_InspectCtx, _n)
 static const GF_FilterArgs InspectArgs[] =
 {
-	{ OFFS(log), "sets inspect log filename", GF_PROP_STRING, "stderr", "fileName or stderr or stdout", 0},
-	{ OFFS(mode), "dump mode:\n- pck: dumps full packet\n- blk: dumps packets before reconstruction\n- frame: force reframer\n- raw: dumps source packets without demuxing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
-	{ OFFS(interleave), "dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(deep), "dumps packets along with PID state change - implied when fmt is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(props), "dumps packet properties - ignored when fmt is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(dump_data), "enables full data dump, WARNING heavy - ignored when fmt is set, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(fmt), "sets packet dump format - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(hdr), "prints a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(all), "analyses for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(log), "set inspect log filename", GF_PROP_STRING, "stderr", "fileName or stderr or stdout", 0},
+	{ OFFS(mode), "dump mode\n"
+	"- pck: dumps full packet\n"
+	"- blk: dumps packets before reconstruction\n"
+	"- frame: force reframer\n"
+	"- raw: dumps source packets without demuxing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
+	{ OFFS(interleave), "dump packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(deep), "dump packets along with PID state change - implied when fmt is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(props), "dump packet properties - ignored when fmt is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dump_data), "enable full data dump, WARNING heavy - ignored when fmt is set, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fmt), "set packet dump format - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(hdr), "print a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(all), "analyse for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(info), "monitor PID info changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(pcr), "dumps M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(speed), "sets playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(dur), "sets inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
-	{ OFFS(analyze), "analyses sample content (NALU, OBU). This will force XML formatting", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(xml), "uses xml formatting. This disables any custom format set through fmt option", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(test), "skips some properties:\n"
+	{ OFFS(pcr), "dump M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(speed), "set playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(dur), "set inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
+	{ OFFS(analyze), "analyse sample content (NALU, OBU). This will force XML formatting", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(xml), "use xml formatting. This disables any custom format set through fmt option", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(test), "skip some properties\n"
 		"- no: no properties skipped\n"
 		"- noprop: all properties/info changes on pid are skipped, only packets are dumped\n"
 		"- network: URL/path dump, cache state, file size properties skipped (used for hashing network results)\n"
