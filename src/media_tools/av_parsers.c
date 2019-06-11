@@ -3222,7 +3222,9 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		frame_state->frame_type = gf_bs_read_int(bs, 2);
 		FrameIsIntra = (frame_state->frame_type == AV1_INTRA_ONLY_FRAME || frame_state->frame_type == AV1_KEY_FRAME);
 		frame_state->show_frame = gf_bs_read_int(bs, 1);
-		frame_state->key_frame = frame_state->seen_seq_header && frame_state->show_frame && frame_state->frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header;
+		if (frame_state->is_first_frame) {
+			frame_state->key_frame = frame_state->seen_seq_header && frame_state->show_frame && frame_state->frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header;
+		}
 		if (frame_state->show_frame && state->decoder_model_info_present_flag && !state->equal_picture_interval) {
 			/*frame_presentation_time = */gf_bs_read_int(bs, state->frame_presentation_time_length);
 		}
@@ -3951,6 +3953,7 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 		break;
 	case OBU_FRAME:
 		e = av1_parse_frame(bs, state, pos, *obu_size);
+		state->frame_state.is_first_frame = GF_FALSE;
 		if (gf_bs_get_position(bs) != pos + *obu_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Frame parsing did not consume the right number of bytes !\n"));
 			e = GF_NON_COMPLIANT_BITSTREAM;
