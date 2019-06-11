@@ -7300,6 +7300,7 @@ void av1_reset_frame_state(AV1StateFrame *frame_state) {
 	}
 
 	memset(frame_state, 0, sizeof(AV1StateFrame));
+	frame_state->is_first_frame = GF_TRUE;
 }
 
 static Bool probe_webm_matrovska(GF_BitStream *bs)
