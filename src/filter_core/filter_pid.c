@@ -190,6 +190,12 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 	p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_CODECID);
 	if (p) codecid = p->value.uint;
 
+	p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_STREAM_TYPE);
+	if (p) mtype = p->value.uint;
+
+	pid->stream_type = mtype;
+	pid->codecid = codecid;
+
 	if (pid->user_max_buffer_time) {
 		pid->max_buffer_time = pid->user_max_buffer_time;
 		pid->max_buffer_unit = 0;
@@ -222,8 +228,6 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 		pid->max_buffer_unit = 0;
 	}
 
-	p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_STREAM_TYPE);
-	if (p) mtype = p->value.uint;
 
 	//output is a decoded raw stream: if some input has same type but different codecid this is a decoder
 	//set input buffer size
@@ -3761,6 +3765,10 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 	}
 	//info property, do not request a new property map
 	if (is_info) {
+		if (value && (value->type==GF_PROP_POINTER)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set info property of type pointer is forbidden (filter %s) - ignoring\n", pid->filter->name));
+			return GF_BAD_PARAM;
+		}
 		map = pid->infos;
 		if (!map) {
 			map = pid->infos = gf_props_new(pid->filter);

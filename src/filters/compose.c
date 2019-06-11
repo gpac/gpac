@@ -807,7 +807,7 @@ static const GF_FilterCapability CompositorCaps[] =
 
 const GF_FilterRegister CompositorFilterRegister = {
 	.name = "compositor",
-	GF_FS_SET_DESCRIPTION("GPAC interactive media compositor")
+	GF_FS_SET_DESCRIPTION("Compositor")
 	GF_FS_SET_HELP("The GPAC compositor allows mixing audio, video, text and graphics in a timed fashion.\n"\
 	"The filter is explicit only and is never loaded during link resolution.\n"
 	"The compositor operates either in player or non-player mode.\n"\

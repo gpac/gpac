@@ -386,20 +386,12 @@ u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
 	return global_log_tools[log_tool].level;
 }
 
-
-#define RED    	"\x1b[31m"
-#define GREEN  	"\x1b[32m"
-#define YELLOW	"\x1b[33m"
-#define CYAN   	"\x1b[36m"
-#define BLUE	"\x1b[34m"
-#define MAGENTA  "\x1b[35m"
-#define WHITE  "\x1b[37m"
-#define RESET  "\x1b[0m"
-
 GF_EXPORT
-void gf_sys_set_term_color(FILE *std, GF_ConsoleColor color_code)
+void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 {
+	u32 color_code = code & 0xFFFF;
 #if defined(WIN32) && !defined(GPAC_CONFIG_WIN32)
+	WORD attribs=0;
 	if (console == NULL) {
 		CONSOLE_SCREEN_BUFFER_INFO console_info;
 		console = GetStdHandle(STD_ERROR_HANDLE);
@@ -411,117 +403,102 @@ void gf_sys_set_term_color(FILE *std, GF_ConsoleColor color_code)
 	}
 	switch(color_code) {
 	case GF_CONSOLE_RED:
-		SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED);
+		attribs = FOREGROUND_INTENSITY | FOREGROUND_RED;
 		break;
 	case GF_CONSOLE_BLUE:
-		SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_BLUE);
+		attribs = FOREGROUND_INTENSITY | FOREGROUND_BLUE;
 		break;
 	case GF_CONSOLE_GREEN:
-		SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_GREEN);
+		attribs = FOREGROUND_INTENSITY | FOREGROUND_GREEN;
 		break;
 	case GF_CONSOLE_YELLOW:
-		SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN);
+		attribs = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN;
 		break;
 	case GF_CONSOLE_MAGENTA:
-		SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_BLUE);
+		attribs = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_BLUE;
 		break;
 	case GF_CONSOLE_CYAN:
-		SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_GREEN | FOREGROUND_BLUE);
+		attribs = FOREGROUND_INTENSITY | FOREGROUND_GREEN | FOREGROUND_BLUE;
 		break;
 	case GF_CONSOLE_WHITE:
-		SetConsoleTextAttribute(console, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
+		attribs = FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE;
 		break;
 	case GF_CONSOLE_RESET:
 	default:
-		SetConsoleTextAttribute(console, console_attr_ori);
+		attribs = console_attr_ori;
+	}
+	SetConsoleTextAttribute(console, attribs);
+#elif !defined(_WIN32_WCE)
+
+	switch(color_code) {
+	case GF_CONSOLE_RED: fprintf(std, "\x1b[31m"); break;
+	case GF_CONSOLE_BLUE:
+		fprintf(std, "\x1b[34m");
+		break;
+	case GF_CONSOLE_GREEN:
+		fprintf(std, "\x1b[32m");
+		break;
+	case GF_CONSOLE_YELLOW:
+		fprintf(std, "\x1b[33m");
+		break;
+	case GF_CONSOLE_MAGENTA:
+		fprintf(std, "\x1b[35m");
+		break;
+	case GF_CONSOLE_CYAN:
+		fprintf(std, "\x1b[36m");
+		break;
+	case GF_CONSOLE_WHITE:
+		fprintf(std, "\x1b[37m");
+		break;
+
+	case GF_CONSOLE_CLEAR:
+		fprintf(std, "\e[1;1H\e[2J");
+		return;
+
+	case GF_CONSOLE_SAVE:
+		fprintf(std, "\033[?47h");
+		return;
+	case GF_CONSOLE_RESTORE:
+		fprintf(std, "\033[?47l");
+		return;
+
+	case GF_CONSOLE_RESET:
+	default:
+		if (!code)
+			fprintf(std, "\x1b[0m");
+	}
+	if (code) {
+		if (code & GF_CONSOLE_BOLD) fprintf(std, "\x1b[1m");
+		if (code & GF_CONSOLE_ITALIC) fprintf(std, "\x1b[3m");
+		if (code & GF_CONSOLE_UNDERLINED) fprintf(std, "\x1b[4m");
+		if (code & GF_CONSOLE_STRIKE) fprintf(std, "\x1b[9m");
 	}
 #else
-	switch(color_code) {
-	case GF_CONSOLE_RED:
-		fprintf(std, RED);
-		break;
-	case GF_CONSOLE_BLUE:
-		fprintf(std, BLUE);
-		break;
-	case GF_CONSOLE_GREEN:
-		fprintf(std, GREEN);
-		break;
-	case GF_CONSOLE_YELLOW:
-		fprintf(std, YELLOW);
-		break;
-	case GF_CONSOLE_MAGENTA:
-		fprintf(std, MAGENTA);
-		break;
-	case GF_CONSOLE_CYAN:
-		fprintf(std, CYAN);
-		break;
-	case GF_CONSOLE_WHITE:
-		fprintf(std, WHITE);
-		break;
-	case GF_CONSOLE_RESET:
-	default:
-		fprintf(std, RESET);
-	}
 #endif
 }
 
 
 void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
-#if defined(WIN32) && !defined(GPAC_CONFIG_WIN32)
-	if (console == NULL) {
-		CONSOLE_SCREEN_BUFFER_INFO console_info;
-		console = GetStdHandle(STD_ERROR_HANDLE);
-		assert(console != INVALID_HANDLE_VALUE);
-		if (console != INVALID_HANDLE_VALUE) {
-			GetConsoleScreenBufferInfo(console, &console_info);
-			console_attr_ori = console_info.wAttributes;
-		}
-	}
 	switch(level) {
-		case GF_LOG_ERROR:
-			SetConsoleTextAttribute(console, FOREGROUND_RED | FOREGROUND_INTENSITY);
-			break;
-		case GF_LOG_WARNING:
-			SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN);
-			break;
-		case GF_LOG_INFO:
-			SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_GREEN);
-			break;
-		case GF_LOG_DEBUG:
-			SetConsoleTextAttribute(console, FOREGROUND_GREEN);
-			break;
-		default:
-			SetConsoleTextAttribute(console, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
-			break;
+	case GF_LOG_ERROR:
+		gf_sys_set_console_code(stderr, GF_CONSOLE_RED);
+		break;
+	case GF_LOG_WARNING:
+		gf_sys_set_console_code(stderr, GF_CONSOLE_YELLOW);
+		break;
+	case GF_LOG_INFO:
+		gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
+		break;
+	case GF_LOG_DEBUG:
+		gf_sys_set_console_code(stderr, GF_CONSOLE_CYAN);
+		break;
+	default:
+		gf_sys_set_console_code(stderr, GF_CONSOLE_WHITE);
+		break;
 	}
-
 	vfprintf(stderr, fmt, vlist);
-	SetConsoleTextAttribute(console, console_attr_ori);
-#elif !defined(_WIN32_WCE)
-	switch(level) {
-		case GF_LOG_ERROR:
-			fprintf(stderr, RED);
-			break;
-		case GF_LOG_WARNING:
-			fprintf(stderr, YELLOW);
-			break;
-		case GF_LOG_INFO:
-			fprintf(stderr, GREEN);
-			break;
-		case GF_LOG_DEBUG:
-			fprintf(stderr, CYAN);
-			break;
-		default:
-			fprintf(stderr, WHITE);
-			break;
-	}
-
-	vfprintf(stderr, fmt, vlist);
-	fprintf(stderr, RESET);
-#else /*_WIN32_WCE*/
-	/*no log*/
-#endif
+	gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
 }
 
 

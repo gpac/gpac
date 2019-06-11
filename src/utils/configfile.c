@@ -30,6 +30,7 @@
 
 typedef struct
 {
+	Bool do_restrict;
 	char *name;
 	char *value;
 } IniKey;
@@ -340,8 +341,7 @@ void gf_cfg_remove(GF_Config *iniFile)
 }
 #endif
 
-GF_EXPORT
-const char *gf_cfg_get_key(GF_Config *iniFile, const char *secName, const char *keyName)
+const char *gf_cfg_get_key_internal(GF_Config *iniFile, const char *secName, const char *keyName, Bool restricted_only)
 {
 	u32 i;
 	IniSection *sec;
@@ -356,9 +356,18 @@ const char *gf_cfg_get_key(GF_Config *iniFile, const char *secName, const char *
 get_key:
 	i=0;
 	while ( (key = (IniKey *) gf_list_enum(sec->keys, &i)) ) {
-		if (!strcmp(key->name, keyName)) return key->value;
+		if (!strcmp(key->name, keyName)) {
+			if (!restricted_only || key->do_restrict)
+				return key->value;
+			return NULL;
+		}
 	}
 	return NULL;
+}
+GF_EXPORT
+const char *gf_cfg_get_key(GF_Config *iniFile, const char *secName, const char *keyName)
+{
+	return gf_cfg_get_key_internal(iniFile, secName, keyName, GF_FALSE);
 }
 
 #if 0 //unused
@@ -383,8 +392,7 @@ get_key:
 }
 #endif
 
-GF_EXPORT
-GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue)
+GF_Err gf_cfg_set_key_internal(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue, Bool is_restrict)
 {
 	u32 i;
 	Bool has_changed = GF_TRUE;
@@ -428,6 +436,7 @@ set_value:
 		if (has_changed) iniFile->hasChanged = GF_TRUE;
 		return GF_OK;
 	}
+	key->do_restrict = is_restrict;
 	/* same value, don't update */
 	if (!strcmp(key->value, keyValue)) return GF_OK;
 
@@ -435,6 +444,13 @@ set_value:
 	key->value = gf_strdup(keyValue);
 	if (has_changed) iniFile->hasChanged = GF_TRUE;
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue)
+{
+	return gf_cfg_set_key_internal(iniFile, secName, keyName, keyValue, GF_FALSE);
+
 }
 
 GF_EXPORT

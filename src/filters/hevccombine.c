@@ -1032,7 +1032,7 @@ static const GF_FilterArgs hevccombineArgs[] =
 
 GF_FilterRegister HevccombineRegister = {
 	.name = "hevccombine",
-	GF_FS_SET_DESCRIPTION("Stream merger")
+	GF_FS_SET_DESCRIPTION("HEVC tile merger")
 	.private_size = sizeof(GF_HEVCSplitCtx),
 	SETCAPS(hevccombineCaps),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,

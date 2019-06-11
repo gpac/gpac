@@ -154,7 +154,7 @@ static const GF_FilterArgs M4VMxArgs[] =
 
 GF_FilterRegister M4VMxRegister = {
 	.name = "ufm4v",
-	GF_FS_SET_DESCRIPTION("ISOBMFF to MPEG-4(Part2) writer")
+	GF_FS_SET_DESCRIPTION("M4V writer")
 	.private_size = sizeof(GF_M4VMxCtx),
 	.args = M4VMxArgs,
 	SETCAPS(M4VMxCaps),

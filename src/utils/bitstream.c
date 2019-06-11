@@ -1170,6 +1170,8 @@ u64 gf_bs_get_size(GF_BitStream *bs)
 {
 	if (bs->buffer_io)
 		return bs->size + bs->buffer_written;
+	if (bs->on_block_out)
+		return bs->position;
 	return bs->size;
 }
 

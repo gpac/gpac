@@ -323,8 +323,8 @@ static const GF_FilterArgs FileInArgs[] =
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(range), "byte range", GF_PROP_FRACTION64, "0-0", NULL, 0},
-	{ OFFS(ext), "overrides file extension", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(mime), "sets file mime type", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},
 	{0}
 };
 
@@ -335,7 +335,7 @@ static const GF_FilterCapability FileInCaps[] =
 
 GF_FilterRegister FileInRegister = {
 	.name = "fin",
-	GF_FS_SET_DESCRIPTION("Generic file input")
+	GF_FS_SET_DESCRIPTION("File input")
 	.private_size = sizeof(GF_FileInCtx),
 	.args = FileInArgs,
 	.initialize = filein_initialize,

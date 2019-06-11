@@ -225,6 +225,14 @@ const char *gf_pixel_fmt_name(u32 pfmt);
 */
 const char *gf_pixel_fmt_sname(u32 pfmt);
 
+/*! enumerates pixel formats
+ \param idx index of the pixel format, 0-based
+ \param name name of the pixel format
+ \param fileext file extension of the pixel format
+ \param description description of the pixel format
+ \return pixel format code, 0 if no more pixel formats are availble
+*/
+Bool gf_pixel_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **description);
 
 /*! gets the list of all supported pixel format names
  \return list of supported pixel format names
@@ -714,6 +722,15 @@ Bool gf_audio_fmt_is_planar(u32 afmt);
  \return the associated audio format of 0 if not known
  */
 u32 gf_audio_fmt_from_isobmf(u32 msubtype);
+
+/*! enumerates audio formats
+ \param idx index of the audio format, 0-based
+ \param name name of the audio format
+ \param fileext file extension of the pixel format
+ \param desc audio format description
+ \return audio format or 0 if no more audio formats are availble
+*/
+u32 gf_audio_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **desc);
 
 /*DIMS unit flags */
 /*!

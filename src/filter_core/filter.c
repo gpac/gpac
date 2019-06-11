@@ -1018,6 +1018,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		while (filter->filter_udta && filter->freg->args) {
 			Bool is_my_arg = GF_FALSE;
 			Bool reverse_bool = GF_FALSE;
+			const char *restricted=NULL;
 			const GF_FilterArgs *a = &filter->freg->args[i];
 			i++;
 			if (!a || !a->arg_name) break;
@@ -1038,6 +1039,13 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 						value = szArg;
 					}
 				}
+			}
+
+			if (is_my_arg) restricted = gf_opts_get_key_restricted(szSecName, a->arg_name);
+			if (restricted) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is restricted to %s by system-wide configuration, ignoring\n", szArg, filter->freg->name, restricted));
+				found=GF_TRUE;
+				break;
 			}
 
 			if (is_my_arg) {
@@ -1498,11 +1506,15 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 		//we are done for now
 		else {
 			task->requeue_request = GF_FALSE;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filter] %s removed from scheduler block %d\n", filter->name, filter->would_block));
 		}
 	} else {
 		//we have some more process() requests queued, requeue
 		task->requeue_request = GF_TRUE;
+	}
+	if (task->requeue_request) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filter] %s kept in scheduler blocking %d\n", filter->name, filter->would_block));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filter] %s removed from scheduler - blocking %d\n", filter->name, filter->would_block));
 	}
 	gf_mx_v(filter->tasks_mx);
 }
@@ -1724,7 +1736,9 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (filter->session->run_status != GF_OK) {
 		return;
 	}
-	if ((e==GF_EOS) && filter->postponed_packets)
+	//if eos but we still have pending packets or proocess tasts queued, move to GF_OK so that
+	//we evaluate the blocking state
+	if ((e==GF_EOS) && (filter->postponed_packets || filter->process_task_queued) )
 		e = GF_OK;
 
 	if ((e==GF_EOS) || filter->removed || filter->finalized) {
@@ -2932,4 +2946,46 @@ Bool gf_filter_has_pid_connection_pending(GF_Filter *filter, GF_Filter *stop_at_
 	res = gf_filter_has_pid_connection_pending_internal(filter, stop_at_filter);
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 	return res;
+}
+
+GF_EXPORT
+Bool gf_filter_reporting_enabled(GF_Filter *filter)
+{
+	if (filter) return filter->session->reporting_on;
+	return GF_FALSE;
+}
+
+GF_EXPORT
+GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus)
+{
+	GF_Event evt;
+	u32 len;
+	if (!filter) return GF_BAD_PARAM;
+	if (!filter->session->reporting_on)
+		return GF_OK;
+		
+	if (!szStatus) {
+		if (filter->status_str) filter->status_str[0] = 0;
+		return GF_OK;
+	}
+	len = strlen(szStatus);
+	if (len>filter->status_str_alloc) {
+		filter->status_str_alloc = len+1;
+		filter->status_str = gf_realloc(filter->status_str, filter->status_str_alloc);
+		if (!filter->status_str) {
+			filter->status_str_alloc = 0;
+			return GF_OUT_OF_MEM;
+		}
+	}
+	memcpy(filter->status_str, szStatus, len+1);
+	filter->status_percent = percent;
+
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_PROGRESS;
+	evt.progress.progress_type = 3;
+	evt.progress.done = percent;
+	evt.progress.total = percent ? 100 : 0;
+	evt.progress.filter_idx = gf_list_find(filter->session->filters, filter);
+	gf_fs_ui_event(filter->session, &evt);
+	return GF_OK;
 }

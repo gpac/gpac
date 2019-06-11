@@ -638,12 +638,17 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 	return mov;
 }
 
-GF_Err gf_isom_set_write_callback(GF_ISOFile *mov, GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size), void *usr_data, u32 block_size)
+GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
+ 			GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size),
+			GF_Err (*on_block_patch)(void *usr_data, char *block, u32 block_size, u64 block_offset),
+ 			void *usr_data,
+ 			u32 block_size)
 {
 	if (mov->finalName && !strcmp(mov->finalName, "_gpac_isobmff_redirect")) {}
 	else if (mov->fileName && !strcmp(mov->fileName, "_gpac_isobmff_redirect")) {}
 	else return GF_BAD_PARAM;
 	mov->on_block_out = on_block_out;
+	mov->on_block_patch = on_block_patch;
 	mov->on_block_out_usr_data = usr_data;
 	mov->on_block_out_block_size = block_size;
 	return GF_OK;

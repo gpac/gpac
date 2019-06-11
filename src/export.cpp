@@ -1032,6 +1032,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_copy_sample_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_sample_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_group) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_progress_callback) )
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
@@ -2187,11 +2188,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_all_shortnames) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_get_size_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_all_shortnames) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_new_defaults) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_del) )
@@ -2223,6 +2226,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_connect_error ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_process_error ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_filter_exists ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_enable_reporting) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_ui_callback) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_add_event_listener ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_remove_event_listener ) )
 
@@ -2365,6 +2371,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_num_events_queued) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_all_sinks_done) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_has_pid_connection_pending) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_reporting_enabled) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_enable_emulation_byte_removal ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_del ) )

@@ -503,13 +503,12 @@ GF_Err gf_list_add(GF_List *ptr, void* item)
 {
 	if (! ptr) return GF_BAD_PARAM;
 
-	ptr->entryCount ++;
-	ptr->slots = (void **) gf_realloc(ptr->slots, ptr->entryCount*sizeof(void*));
+	ptr->slots = (void **) gf_realloc(ptr->slots, (ptr->entryCount+1)*sizeof(void*));
 	if (!ptr->slots) {
-		ptr->entryCount = 0;
 		return GF_OUT_OF_MEM;
 	}
-	ptr->slots[ptr->entryCount-1] = item;
+	ptr->slots[ptr->entryCount] = item;
+	ptr->entryCount ++;
 	return GF_OK;
 }
 
@@ -626,6 +625,8 @@ GF_EXPORT
 GF_Err gf_list_add(GF_List *ptr, void* item)
 {
 	if (! ptr) return GF_BAD_PARAM;
+	if (! item)
+		return GF_BAD_PARAM;
 	if (ptr->allocSize==ptr->entryCount) realloc_chain(ptr);
 	if (!ptr->slots) return GF_OUT_OF_MEM;
 
@@ -644,7 +645,8 @@ u32 gf_list_count(const GF_List *ptr)
 GF_EXPORT
 void *gf_list_get(GF_List *ptr, u32 itemNumber)
 {
-	if(!ptr || (itemNumber >= ptr->entryCount)) return NULL;
+	if(!ptr || (itemNumber >= ptr->entryCount))
+		return NULL;
 	return ptr->slots[itemNumber];
 }
 

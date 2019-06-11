@@ -1045,7 +1045,7 @@ static const GF_FilterCapability ISOFFInCaps[] =
 
 GF_FilterRegister ISOFFInRegister = {
 	.name = "mp4dmx",
-	GF_FS_SET_DESCRIPTION("ISOBMFF and QT demuxer")
+	GF_FS_SET_DESCRIPTION("ISOBMFF/QT demuxer")
 	GF_FS_SET_HELP("When scalable tracks are present in a file, the reader can operate in 3 modes using smode option:\n"\
 	 	"- smode=single: resolves all extractors to extract a single bitstream from a scalable set. The highest level is used\n"\
 	 	"In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the configs\n"\

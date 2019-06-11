@@ -290,7 +290,7 @@ static const GF_FilterCapability ADTSMxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_ADTSMxCtx, _n)
 static const GF_FilterArgs ADTSMxArgs[] =
 {
-	{ OFFS(mpeg2), "signals as MPEG2 AAC\n"
+	{ OFFS(mpeg2), "signal as MPEG2 AAC\n"
 	"- auto: selects based on AAC profile\n"
 	"- no: always signals as MPEG-4 AAC\n"
 	"- yes: always signals as MPEG-2 AAC"
@@ -301,7 +301,7 @@ static const GF_FilterArgs ADTSMxArgs[] =
 
 GF_FilterRegister ADTSMxRegister = {
 	.name = "ufadts",
-	GF_FS_SET_DESCRIPTION("Raw AAC to ADTS writer")
+	GF_FS_SET_DESCRIPTION("ADTS writer")
 	.private_size = sizeof(GF_ADTSMxCtx),
 	.args = ADTSMxArgs,
 	.finalize = adtsmx_finalize,
@@ -326,7 +326,7 @@ static GF_Err latmmx_initialize(GF_Filter*filter)
 #define OFFS(_n)	#_n, offsetof(GF_ADTSMxCtx, _n)
 static const GF_FilterArgs LATMMxArgs[] =
 {
-	{ OFFS(fdsi), "sets delay between two LATM Audio Config", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fdsi), "set delay between two LATM Audio Config", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
