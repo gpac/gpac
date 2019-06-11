@@ -1028,8 +1028,8 @@ static const GF_FilterArgs RTPOutArgs[] =
 {
 	{ OFFS(ip), "destination IP adress (NULL is 127.0.0.1)", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(port), "port for first stream in session", GF_PROP_UINT, "7000", NULL, 0},
-	{ OFFS(loop), "loops all streams in session (not always possible depending on source type)", GF_PROP_BOOL, "true", NULL, 0},
-	{ OFFS(mpeg4), "sends all streams using MPEG-4 generic payload format if posible", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(loop), "loop all streams in session (not always possible depending on source type)", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(mpeg4), "send all streams using MPEG-4 generic payload format if posible", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(mtu), "size of RTP MTU in bytes", GF_PROP_UINT, "1460", NULL, 0},
 	{ OFFS(ttl), "time-to-live for muticast packets", GF_PROP_UINT, "2", NULL, 0},
 	{ OFFS(ifce), "default network inteface to use", GF_PROP_STRING, NULL, NULL, 0},
@@ -1037,9 +1037,9 @@ static const GF_FilterArgs RTPOutArgs[] =
 	{ OFFS(delay), "send delay for packet (negative means send earlier)", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(tt), "time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away", GF_PROP_UINT, "1000", NULL, 0},
 	{ OFFS(runfor), "run for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, 0},
-	{ OFFS(tso), "sets timestamp offset in microsecs. Negative value means random initial timestamp", GF_PROP_SINT, "-1", NULL, 0},
+	{ OFFS(tso), "set timestamp offset in microsecs. Negative value means random initial timestamp", GF_PROP_SINT, "-1", NULL, 0},
 	{ OFFS(xps), "force parameter set injection at each SAP. If not set, only inject if different from SDP ones", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(latm), "uses latm for AAC payload format", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(latm), "use latm for AAC payload format", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 

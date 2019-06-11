@@ -451,14 +451,14 @@ static const GF_FilterArgs NALUMxArgs[] =
 	"- full: extracts all layers\n"
 	"- base: extract base layer only\n"
 	"- layer: extract non-base layer(s) only", GF_PROP_UINT, "all", "all|base|layer", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(delim), "inserts AU NAL Delimiter", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(delim), "insert AU Delimiter NAL", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 
 GF_FilterRegister NALUMxRegister = {
 	.name = "ufnalu",
-	GF_FS_SET_DESCRIPTION("ISOBMFF to AnnexB (start codes) writer for AVC|H264 and HEVC")
+	GF_FS_SET_DESCRIPTION("AVC/HEVC to AnnexB writer")
 	.private_size = sizeof(GF_NALUMxCtx),
 	.args = NALUMxArgs,
 	.finalize = nalumx_finalize,

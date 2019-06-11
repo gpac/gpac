@@ -1213,7 +1213,7 @@ static const GF_FilterArgs GSFDemuxArgs[] =
 {
 	{ OFFS(key), "key for decrypting packets", GF_PROP_DATA, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(magic), "magic string to check in setup packet", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(mq), "sets max packet queue length for loss detection. 0 will flush incomplete packet when a new one starts", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mq), "set max packet queue length for loss detection. 0 will flush incomplete packet when a new one starts", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pad), "byte value used to pad lost packets", GF_PROP_UINT, "0", "0-255", GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
@@ -1221,8 +1221,9 @@ static const GF_FilterArgs GSFDemuxArgs[] =
 
 GF_FilterRegister GSFDemuxRegister = {
 	.name = "gsfd",
-	GF_FS_SET_DESCRIPTION("GPAC Super/Simple/Serialized/Stream/State Format demultiplexer")
-	GF_FS_SET_HELP("This filter deserializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"\
+	GF_FS_SET_DESCRIPTION("GSF Demuxer")
+	GF_FS_SET_HELP("# GPAC Super/Simple/Serialized/Stream/State Format demultiplexer\n"
+			"This filter deserializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"\
 			"This allows either reading a session saved to file, or receiving the state/data of streams from another instance of GPAC\n"\
 			"using either pipes or sockets\n"\
 			"\n"\

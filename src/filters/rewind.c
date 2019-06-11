@@ -241,7 +241,7 @@ static const GF_FilterArgs RewinderArgs[] =
 
 GF_FilterRegister RewinderRegister = {
 	.name = "rewind",
-	GF_FS_SET_DESCRIPTION("Audio and video rewinder")
+	GF_FS_SET_DESCRIPTION("Audio/Video rewinder")
 	GF_FS_SET_HELP("The filter is in passthrough if speed is positive. Otherwise, it reverts decoded GOPs for video, or revert samples in decoded frame for audio.")
 	.private_size = sizeof(GF_RewindCtx),
 	//rewind shall be explicetely loaded

@@ -359,6 +359,7 @@ struct __gf_filter_session
 	Bool disable_blocking;
 	Bool in_final_flush;
 
+	Bool reporting_on;
 	/*user defined callback for all functions - cannot be NULL*/
 	void *ui_opaque;
 	/*the event proc. Return value depend on the event type, usually 0
@@ -646,6 +647,9 @@ struct __gf_filter
 	Bool no_dst_arg_inherit;
 	GF_List *source_filters;
 
+	char *status_str;
+	u32 status_str_alloc, status_percent;
+
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
@@ -783,6 +787,8 @@ struct __gf_filter_pid
 	u64 buffer_duration;
 	//true if the pid carries raw media
 	Bool raw_media;
+	//for stats only
+	u32 stream_type, codecid;
 
 	volatile u32 would_block; // concurrent set
 	volatile u32 nb_decoder_inputs;

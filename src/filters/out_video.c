@@ -2226,25 +2226,25 @@ static Bool vout_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 static const GF_FilterArgs VideoOutArgs[] =
 {
 	{ OFFS(drv), "video driver name", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(vsync), "enables video screen sync", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(drop), "enables droping late frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(vsync), "enable video screen sync", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(drop), "enable droping late frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(disp), "display mode\n"
 	"- gl: OpenGL\n"
 	"- pbo: OpenGL with PBO\n"
 	"- blit: 2D hardware blit\n"
 	"- soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, 0},
-	{ OFFS(speed), "sets playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams. A negative value force a hold on last frame for single or multi-frames streams", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(linear), "uses linear filtering instead of nearest pixel for GL mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(back), "specifies back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(wsize), "default init wsize, 0x0 holds the wsize of the first frame. Default is video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(dur), "only play the specified duration", GF_PROP_FRACTION, "0", NULL, 0},
+	{ OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(hold), "number of seconds to hold display for single-frame streams. A negative value force a hold on last frame for single or multi-frames streams", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(linear), "use linear filtering instead of nearest pixel for GL mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(back), "back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(wsize), "default init window size. 0x0 holds the window size of the first frame. Negative values indicate video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(wpos), "default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(delay), "sets delay, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(delay), "set delay, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(hide), "hide output window", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(fullscreen), "use fullcreen", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(buffer), "sets buffer in ms", GF_PROP_UINT, "100", NULL, 0},
+	{ OFFS(buffer), "set buffer in ms", GF_PROP_UINT, "100", NULL, 0},
 	{ OFFS(dumpframes), "ordered list of frames to dump, 1 being first frame - see filter help", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(out), "radical of dump frame filenames. If no extension is provided, frames as exported as $OUT_%d.PFMT.", GF_PROP_STRING, "dump", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}

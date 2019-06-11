@@ -655,8 +655,8 @@ void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const cha
 		}
 	}
 #endif
-
 }
+
 
 #if GF_PROPS_HASHTABLE_SIZE
 GF_List *gf_props_get_list(GF_PropertyMap *map)
@@ -670,10 +670,48 @@ GF_List *gf_props_get_list(GF_PropertyMap *map)
 }
 #endif
 
+static void gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyValue *value, Bool is_old_prop)
+{
+	char *src_ptr;
+	//remember source pointer
+	src_ptr = prop->prop.value.data.ptr;
+
+	if (is_old_prop) {
+		gf_props_reset_single(&prop->prop);
+	}
+
+	//copy prop value
+	memcpy(&prop->prop, value, sizeof(GF_PropertyValue));
+
+	if (prop->prop.type == GF_PROP_STRING) {
+		prop->prop.value.string = value->value.string ? gf_strdup(value->value.string) : NULL;
+	} else if (prop->prop.type == GF_PROP_STRING_NO_COPY) {
+		prop->prop.value.string = value->value.string;
+		prop->prop.type = GF_PROP_STRING;
+	} else if (prop->prop.type == GF_PROP_DATA) {
+		//restore source pointer, realloc if needed
+		prop->prop.value.data.ptr = src_ptr;
+		if (prop->alloc_size < value->value.data.size) {
+			prop->alloc_size = value->value.data.size;
+			prop->prop.value.data.ptr = gf_realloc(prop->prop.value.data.ptr, sizeof(char) * value->value.data.size);
+			assert(prop->alloc_size);
+		}
+		memcpy(prop->prop.value.data.ptr, value->value.data.ptr, value->value.data.size);
+	} else if (prop->prop.type == GF_PROP_DATA_NO_COPY) {
+		prop->prop.type = GF_PROP_DATA;
+		prop->alloc_size = value->value.data.size;
+		assert(prop->alloc_size);
+	}
+	else if (prop->prop.type == GF_PROP_UINT_LIST) {
+		prop->prop.value.uint_list.vals = gf_malloc(sizeof(u32) * value->value.uint_list.nb_items);
+		memcpy(prop->prop.value.uint_list.vals, value->value.uint_list.vals, sizeof(u32) * value->value.uint_list.nb_items);
+		prop->prop.value.uint_list.nb_items = value->value.uint_list.nb_items;
+	}
+}
+
 GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value)
 {
 	GF_PropertyEntry *prop;
-	char *src_ptr;
 #if GF_PROPS_HASHTABLE_SIZE
 	u32 i, count;
 #endif
@@ -719,35 +757,7 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 		prop->name_alloc=GF_TRUE;
 	}
 
-	//remember source pointer
-	src_ptr = prop->prop.value.data.ptr;
-	//copy prop value
-	memcpy(&prop->prop, value, sizeof(GF_PropertyValue));
-
-	if (prop->prop.type == GF_PROP_STRING) {
-		prop->prop.value.string = value->value.string ? gf_strdup(value->value.string) : NULL;
-	} else if (prop->prop.type == GF_PROP_STRING_NO_COPY) {
-		prop->prop.value.string = value->value.string;
-		prop->prop.type = GF_PROP_STRING;
-	} else if (prop->prop.type == GF_PROP_DATA) {
-		//restore source pointer, realloc if needed
-		prop->prop.value.data.ptr = src_ptr;
-		if (prop->alloc_size < value->value.data.size) {
-			prop->alloc_size = value->value.data.size;
-			prop->prop.value.data.ptr = gf_realloc(prop->prop.value.data.ptr, sizeof(char) * value->value.data.size);
-			assert(prop->alloc_size);
-		}
-		memcpy(prop->prop.value.data.ptr, value->value.data.ptr, value->value.data.size);
-	} else if (prop->prop.type == GF_PROP_DATA_NO_COPY) {
-		prop->prop.type = GF_PROP_DATA;
-		prop->alloc_size = value->value.data.size;
-		assert(prop->alloc_size);
-	}
-	else if (prop->prop.type == GF_PROP_UINT_LIST) {
-		prop->prop.value.uint_list.vals = gf_malloc(sizeof(u32) * value->value.uint_list.nb_items);
-		memcpy(prop->prop.value.uint_list.vals, value->value.uint_list.vals, sizeof(u32) * value->value.uint_list.nb_items);
-		prop->prop.value.uint_list.nb_items = value->value.uint_list.nb_items;
-	}
+	gf_props_assign_value(prop, value, GF_FALSE);
 
 #if GF_PROPS_HASHTABLE_SIZE
 	return gf_list_add(map->hash_table[hash], prop);
@@ -759,10 +769,25 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 
 GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value)
 {
+	GF_PropertyEntry *old_ent;
 	u32 hash = gf_props_hash_djb2(p4cc, name ? name : dyn_name);
+#if 0
+	if (!value) {
+		gf_props_remove_property(map, hash, p4cc, name ? name : dyn_name);
+		return GF_OK;
+	}
+	old_ent = (GF_PropertyEntry *) gf_props_get_property_entry(map, p4cc, name);
+	if (!old_ent)
+		return gf_props_insert_property(map, hash, p4cc, name, dyn_name, value);
+
+	gf_props_assign_value(old_ent, value, GF_TRUE);
+#else
+
 	gf_props_remove_property(map, hash, p4cc, name ? name : dyn_name);
 	if (!value) return GF_OK;
 	return gf_props_insert_property(map, hash, p4cc, name, dyn_name, value);
+#endif
+	return GF_OK;
 }
 
 const GF_PropertyEntry *gf_props_get_property_entry(GF_PropertyMap *map, u32 prop_4cc, const char *name)
@@ -786,6 +811,10 @@ const GF_PropertyEntry *gf_props_get_property_entry(GF_PropertyMap *map, u32 pro
 	count = gf_list_count(map->properties);
 	for (i=0; i<count; i++) {
 		GF_PropertyEntry *p = gf_list_get(map->properties, i);
+		if (!p) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Concurrent read/write access to property map, cannot query property now\n"));
+			return NULL;
+		}
 
 		if ((prop_4cc && (p->p4cc==prop_4cc)) || (p->pname && name && !strcmp(p->pname, name)) ) {
 			res = p;
@@ -936,7 +965,7 @@ const char *gf_props_get_type_name(u32 type)
 GF_BuiltInProperty GF_BuiltInProps [] =
 {
 	{ GF_PROP_PID_ID, "ID", "Stream ID", GF_PROP_UINT},
-	{ GF_PROP_PID_ESID, "ESID", "MPEG-4 ESID of pid - mandatory if MPEG-4 Systems used", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ESID, "ESID", "MPEG-4 ESID of pid", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ITEM_ID, "ItemID", "ID of image item in HEIF, same value as ID", GF_PROP_UINT},
 	{ GF_PROP_PID_SERVICE_ID, "ServiceID", "ID of parent service", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference pid", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
@@ -1010,7 +1039,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_FILEPATH, "SourcePath", "Path of source file on file system", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_MIME, "MIME Type", "MIME type of source", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_FILE_EXT, "Extension", "File extension of source", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_FILE_CACHED, "Cached", "indicates the file is completely cached - changes are signaled through pid info (no reconfigure)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_FILE_CACHED, "Cached", "indicates the file is completely cached", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DOWN_RATE, "DownloadRate", "Dowload rate of resource in bits per second - changes are signaled through pid info (no reconfigure)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DOWN_SIZE, "DownloadSize", "Size of resource in bytes", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DOWN_BYTES, "DownBytes", "Number of bytes downloaded - changes are signaled through pid info (no reconfigure)", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},

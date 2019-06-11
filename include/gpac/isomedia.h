@@ -1749,6 +1749,7 @@ GF_Err gf_isom_set_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 Str
 /*setup interleaving for storage (shortcut for storeage mode + interleave_time)*/
 GF_Err gf_isom_make_interleave(GF_ISOFile *mp4file, Double TimeInSec);
 
+void gf_isom_set_progress_callback(GF_ISOFile *file, void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total), void *progress_cbk_udta);
 
 /******************************************************************
 		GENERIC HINTING WRITING API

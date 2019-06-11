@@ -504,15 +504,15 @@ static const GF_FilterArgs SockOutArgs[] =
 	{ OFFS(sockbuf), "block size used to read file", GF_PROP_UINT, "65536", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(port), "default port if not specified", GF_PROP_UINT, "1234", NULL, 0},
 	{ OFFS(ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ext), "indicates file extension of pipe data", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(mime), "indicates mime type of pipe data", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(listen), "indicates the output socket works in server mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ext), "file extension of pipe data - see filter help", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(mime), "mime type of pipe data - see filter help", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(listen), "indicate the output socket works in server mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ka), "keep socket alive if no more connections", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(kp), "keep packets in queue if no more clients", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(speed), "sets playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(rate), "sets send rate in bps, disabled by default (as fast as possible)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(rate), "set send rate in bps, disabled by default (as fast as possible)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pckr), "reverse packet every N - see filter help", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(pckd), "drop packet every N - see filter help", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
@@ -530,7 +530,7 @@ static const GF_FilterCapability SockOutCaps[] =
 
 GF_FilterRegister SockOutRegister = {
 	.name = "sockout",
-	GF_FS_SET_DESCRIPTION("UDP / TCP socket output")
+	GF_FS_SET_DESCRIPTION("UDP/TCP output")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter handles generic output sockets (mono-directionnal) in blocking mode only.\n"
 		"The filter can work in server mode, waiting for source connections, or or in client mode, directly connecting.\n"

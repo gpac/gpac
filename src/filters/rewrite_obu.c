@@ -399,7 +399,7 @@ static const GF_FilterArgs OBUMxArgs[] =
 
 GF_FilterRegister OBUMxRegister = {
 	.name = "ufobu",
-	GF_FS_SET_DESCRIPTION("OBU to IVF/OBU/annexB writer")
+	GF_FS_SET_DESCRIPTION("IVF/OBU/annexB writer")
 	GF_FS_SET_HELP("The OBU rewrite filter is used to rewrite the OBU bitstream into IVF, annex B or OBU sequence, reinserting the temporal delimiter OBU")
 	.private_size = sizeof(GF_OBUMxCtx),
 	.args = OBUMxArgs,

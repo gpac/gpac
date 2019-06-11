@@ -399,6 +399,7 @@ void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *
 	gf_filter_sess_reset_graph(session, freg);
 }
 
+GF_EXPORT
 void gf_fs_set_ui_callback(GF_FilterSession *fs, Bool (*ui_event_proc)(void *opaque, GF_Event *event), void *cbk_udta)
 {
 	if (fs) {
@@ -2039,7 +2040,7 @@ Bool gf_filter_forward_gf_event(GF_Filter *filter, GF_Event *evt, Bool consumed,
 	if (!skip_user && !consumed && filter->session->ui_event_proc) {
 		Bool res;
 //		term->nb_calls_in_event_proc++;
-		res = filter->session->ui_event_proc(filter->session->ui_opaque, evt);
+		res = gf_fs_ui_event(filter->session, evt);
 //		term->nb_calls_in_event_proc--;
 		return res;
 	}
@@ -2293,6 +2294,98 @@ Bool gf_fs_mime_supported(GF_FilterSession *fsess, const char *mime)
 	return GF_FALSE;
 }
 
+
+GF_EXPORT
+void gf_fs_enable_reporting(GF_FilterSession *session, Bool reporting_on)
+{
+	if (session) session->reporting_on = reporting_on;
+}
+
+GF_EXPORT
+void gf_fs_lock_filters(GF_FilterSession *session, Bool do_lock)
+{
+	if (!session || !session->filters_mx) return;
+	if (do_lock) gf_mx_p(session->filters_mx);
+	else gf_mx_v(session->filters_mx);
+}
+
+GF_EXPORT
+u32 gf_fs_get_filters_count(GF_FilterSession *session)
+{
+	return session ? gf_list_count(session->filters) : 0;
+}
+
+GF_EXPORT
+GF_Err gf_fs_get_filters_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats)
+{
+	GF_Filter *f;
+	u32 i;
+	Bool set_name=GF_FALSE;
+	if (!stats || !session) return GF_BAD_PARAM;
+	memset(stats, 0, sizeof(GF_FilterStats));
+	f = gf_list_get(session->filters, idx);
+	if (!f) return GF_BAD_PARAM;
+	stats->percent = f->status_percent>100 ? -1 : (s32) f->status_percent;
+	stats->status = f->status_str;
+	stats->nb_pck_processed = f->nb_pck_processed;
+	stats->nb_bytes_processed = f->nb_bytes_processed;
+	stats->time_process = f->time_process;
+	stats->nb_hw_pck_sent = f->nb_hw_pck_sent;
+	stats->nb_pck_sent = f->nb_pck_sent;
+	stats->nb_bytes_sent = f->nb_bytes_sent;
+	stats->nb_tasks_done = f->nb_tasks_done;
+	stats->nb_errors = f->nb_errors;
+	stats->name = f->name;
+	stats->reg_name = f->freg->name;
+	stats->done = f->removed || f->finalized;
+	if (stats->name && !strcmp(stats->name, stats->reg_name)) {
+		set_name=GF_TRUE;
+	}
+
+
+	if (!stats->nb_pid_out && stats->nb_pid_in) stats->type = GF_FS_STATS_FILTER_RAWOUT;
+	else if (!stats->nb_pid_in && stats->nb_pid_out) stats->type = GF_FS_STATS_FILTER_RAWIN;
+
+	stats->nb_pid_out = f->num_output_pids;
+	for (i=0; i<f->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(f->output_pids, i);
+		stats->nb_out_pck += pid->nb_pck_sent;
+		if (pid->has_seen_eos) stats->in_eos = GF_TRUE;
+
+		if (!stats->codecid)
+			stats->codecid = pid->codecid;
+		if (!stats->stream_type)
+			stats->stream_type = pid->stream_type;
+
+		if (set_name) {
+			stats->name = pid->name;
+			set_name = GF_FALSE;
+		}
+	}
+	stats->nb_pid_in = f->num_input_pids;
+	for (i=0; i<f->num_input_pids; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(f->input_pids, i);
+		stats->nb_in_pck += pidi->nb_processed;
+		if (pidi->is_end_of_stream) stats->in_eos = GF_TRUE;
+
+		if (pidi->is_decoder_input) stats->type = GF_FS_STATS_FILTER_DECODE;
+		else if (pidi->is_encoder_input) stats->type = GF_FS_STATS_FILTER_ENCODE;
+
+		if (pidi->pid->stream_type==GF_STREAM_FILE)
+			stats->type = GF_FS_STATS_FILTER_DEMUX;
+
+		if (!stats->codecid)
+			stats->codecid = pidi->pid->codecid;
+		if (!stats->stream_type)
+			stats->stream_type = pidi->pid->stream_type;
+
+		if (set_name) {
+			stats->name = pidi->pid->name;
+			set_name = GF_FALSE;
+		}
+	}
+	return GF_OK;
+}
 
 Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt)
 {

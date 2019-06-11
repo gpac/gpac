@@ -481,7 +481,7 @@ void vflip_finalize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_VFlipCtx, _n)
 static GF_FilterArgs VFlipArgs[] =
 {
-		{ OFFS(mode), "sets flip mode\n"
+		{ OFFS(mode), "flip mode\n"
 		"- off: no flipping (passthrough)\n"
 		"- vert: vertical flip\n"
 		"- horiz: horizontal flip\n"
@@ -498,7 +498,7 @@ static const GF_FilterCapability VFlipCaps[] =
 
 GF_FilterRegister VFlipRegister = {
 		.name = "vflip",
-		GF_FS_SET_DESCRIPTION("Video flip filter")
+		GF_FS_SET_DESCRIPTION("Video flip")
 		GF_FS_SET_HELP("Filter used to flip video frames vertically, horizontally, in both directions or no flip")
 		.private_size = sizeof(GF_VFlipCtx),
 		.flags = GF_FS_REG_EXPLICIT_ONLY,

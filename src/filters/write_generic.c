@@ -924,8 +924,9 @@ void writegen_finalize(GF_Filter *filter)
 
 GF_FilterRegister GenDumpRegister = {
 	.name = "writegen",
-	GF_FS_SET_DESCRIPTION("Generic single stream to file converter, used when extracting/converting PIDs")
-	GF_FS_SET_HELP("The writegen filter should usually not be explicetly loaded without a source ID specified, since the filter would likely match any pid connection.")
+	GF_FS_SET_DESCRIPTION("Stream to file")
+	GF_FS_SET_HELP("Generic single stream to file converter, used when extracting/converting PIDs.\n"
+	"The writegen filter should usually not be explicetly loaded without a source ID specified, since the filter would likely match any pid connection.")
 	.private_size = sizeof(GF_GenDumpCtx),
 	.args = GenDumpArgs,
 	.initialize = writegen_initialize,
