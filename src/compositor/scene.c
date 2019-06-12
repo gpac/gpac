@@ -2361,9 +2361,9 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 		u32 serv_w=0, serv_h=0;
 		GF_FilterPid *pid = gf_filter_get_ipid(scene->compositor->filter, 0);
 		const GF_PropertyValue *prop;
-		prop = gf_filter_pid_get_info(pid, GF_PROP_SERVICE_WIDTH);
+		prop = gf_filter_pid_get_property(pid, GF_PROP_SERVICE_WIDTH);
 		if (prop) serv_w = prop->value.uint;
-		prop = gf_filter_pid_get_info(pid, GF_PROP_SERVICE_HEIGHT);
+		prop = gf_filter_pid_get_property(pid, GF_PROP_SERVICE_HEIGHT);
 		if (prop) serv_h = prop->value.uint;
 
 

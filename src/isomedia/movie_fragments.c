@@ -153,7 +153,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type, 
 		}
 
 		//write movie
-		e = WriteToFile(movie);
+		e = WriteToFile(movie, GF_TRUE);
 		if (e) return e;
 
 		if (movie->on_block_out) {

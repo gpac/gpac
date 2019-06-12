@@ -411,7 +411,7 @@ static const GF_FilterArgs ReframeImgArgs[] =
 
 GF_FilterRegister ReframeImgRegister = {
 	.name = "rfimg",
-	GF_FS_SET_DESCRIPTION("JPG/J2K/PNG/BMP Image reframer")
+	GF_FS_SET_DESCRIPTION("JPG/J2K/PNG/BMP reframer")
 	.private_size = sizeof(GF_ReframeImgCtx),
 	.args = ReframeImgArgs,
 	SETCAPS(ReframeImgCaps),

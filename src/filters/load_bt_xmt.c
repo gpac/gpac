@@ -363,7 +363,7 @@ static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 	if ((priv->load_flags==1) && priv->ctx->root_od && priv->ctx->root_od->URLString) {
 		gf_filter_pid_set_property(priv->out_pid, GF_PROP_PID_REMOTE_URL, &PROP_STRING(priv->ctx->root_od->URLString) );
 	}
-	if (!nb_aus) {
+	if ((priv->load_flags==2) && !nb_aus) {
 		gf_filter_pid_set_eos(priv->out_pid);
 	}
 }
@@ -877,13 +877,13 @@ static const GF_FilterCapability CTXLoadCaps[] =
 static const GF_FilterArgs CTXLoadArgs[] =
 {
 	{ OFFS(progressive), "enable progressive loading", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sax_dur), "SAX loading duration", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sax_dur), "loading duration for SAX parsing (XMT), 0 disables SAX parsing", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 GF_FilterRegister CTXLoadRegister = {
 	.name = "btplay",
-	GF_FS_SET_DESCRIPTION("Textual BT/XMT/X3D loader for playback")
+	GF_FS_SET_DESCRIPTION("BT/XMT/X3D loader")
 	.private_size = sizeof(CTXLoadPriv),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = CTXLoadArgs,

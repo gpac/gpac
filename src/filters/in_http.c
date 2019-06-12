@@ -303,6 +303,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 			return GF_EOS;
 		}
 		nb_read = (u32) fread(ctx->block, 1, to_read, ctx->cached);
+		bytes_per_sec = 0;
 
 	}
 	//we read from network
@@ -396,6 +397,14 @@ static GF_Err httpin_process(GF_Filter *filter)
 	ctx->pck_out = GF_TRUE;
 	gf_filter_pck_send(pck);
 
+	if (ctx->file_size && gf_filter_reporting_enabled(filter)) {
+		char szStatus[1024], *szSrc;
+		szSrc = gf_file_basename(ctx->src);
+
+		sprintf(szStatus, "%s: % 16"LLD_SUF" /% 16"LLD_SUF" (%02.02f) % 8d kbps", szSrc, (s64) bytes_done, (s64) ctx->file_size, ((Double)bytes_done*100.0)/ctx->file_size, bytes_per_sec*8/1000);
+		gf_filter_update_status(filter, (u32) (bytes_done*10000/ctx->file_size), szStatus);
+	}
+
 	if (ctx->is_end) {
 		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 		gf_filter_pid_set_eos(ctx->pid);
@@ -413,10 +422,14 @@ static const GF_FilterArgs HTTPInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "1000000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(cache), "Sets cache mode: disk, disk without discarding, memory or none", GF_PROP_UINT, "disk", "disk|keep|mem|none", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(range), "Sets byte range, as fraction", GF_PROP_FRACTION64, "0-0", NULL, 0},
-	{ OFFS(ext), "overrides file extension", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(mime), "sets file mime type", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(cache), "set cache mode\n"
+	"- disk: cache to disk,  discard once session is no longer used\n"
+	"- disk: cache to disk and keep\n"
+	"- mem: stores to memory, discard once session is no longer used\n"
+	"- none: no cache", GF_PROP_UINT, "disk", "disk|keep|mem|none", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(range), "set byte range, as fraction", GF_PROP_FRACTION64, "0-0", NULL, 0},
+	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},
 	{0}
 };
 

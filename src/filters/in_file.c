@@ -307,6 +307,14 @@ static GF_Err filein_process(GF_Filter *filter)
 	ctx->pck_out = GF_TRUE;
 	gf_filter_pck_send(pck);
 
+	if (ctx->file_size && gf_filter_reporting_enabled(filter)) {
+		char szStatus[1024], *szSrc;
+		szSrc = gf_file_basename(ctx->src);
+
+		sprintf(szStatus, "%s: % 16"LLD_SUF" /% 16"LLD_SUF" (%02.02f)", szSrc, (s64) ctx->file_pos, (s64) ctx->file_size, ((Double)ctx->file_pos*100.0)/ctx->file_size);
+		gf_filter_update_status(filter, (u32) (ctx->file_pos*10000/ctx->file_size), szStatus);
+	}
+
 	if (ctx->is_end) {
 		gf_filter_pid_set_eos(ctx->pid);
 		return GF_EOS;
@@ -323,8 +331,8 @@ static const GF_FilterArgs FileInArgs[] =
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(range), "byte range", GF_PROP_FRACTION64, "0-0", NULL, 0},
-	{ OFFS(ext), "overrides file extension", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(mime), "sets file mime type", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},
 	{0}
 };
 
@@ -335,7 +343,7 @@ static const GF_FilterCapability FileInCaps[] =
 
 GF_FilterRegister FileInRegister = {
 	.name = "fin",
-	GF_FS_SET_DESCRIPTION("Generic file input")
+	GF_FS_SET_DESCRIPTION("File input")
 	.private_size = sizeof(GF_FileInCtx),
 	.args = FileInArgs,
 	.initialize = filein_initialize,

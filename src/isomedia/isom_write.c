@@ -61,6 +61,16 @@ GF_Err FlushCaptureMode(GF_ISOFile *movie)
 	/*make sure nothing was added*/
 	if (gf_bs_get_position(movie->editFileMap->bs)) return GF_OK;
 
+	if (!strcmp(movie->fileName, "_gpac_isobmff_redirect")) {
+		if (!movie->on_block_out) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block callback, cannot write\n"));
+			return GF_BAD_PARAM;
+		}
+
+		gf_bs_del(movie->editFileMap->bs);
+		movie->editFileMap->bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+	}
+
 	/*add all first boxes*/
 	if (movie->brand) {
 		e = gf_isom_box_size((GF_Box *)movie->brand);
@@ -74,7 +84,7 @@ GF_Err FlushCaptureMode(GF_ISOFile *movie)
 		e = gf_isom_box_write((GF_Box *)movie->pdin, movie->editFileMap->bs);
 		if (e) return e;
 	}
-
+	movie->mdat->bsOffset = gf_bs_get_position(movie->editFileMap->bs);
 	/*we have a trick here: the data will be stored on the fly, so the first
 	thing in the file is the MDAT. As we don't know if we have a large file (>4 GB) or not
 	do as if we had one and write 16 bytes: 4 (type) + 4 (size) + 8 (largeSize)...*/
@@ -6108,6 +6118,16 @@ GF_Err gf_isom_set_sample_group_in_traf(GF_ISOFile *file)
 
 	file->sample_groups_in_traf = GF_TRUE;
 	return GF_OK;
+}
+
+GF_EXPORT
+void gf_isom_set_progress_callback(GF_ISOFile *file, void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total), void *progress_cbk_udta)
+{
+	if (file) {
+		file->progress_cbk = progress_cbk;
+		file->progress_cbk_udta = progress_cbk_udta;
+
+	}
 }
 
 

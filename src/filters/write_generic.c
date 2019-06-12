@@ -900,13 +900,17 @@ static GF_FilterCapability GenDumpCaps[] =
 static GF_FilterArgs GenDumpArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(pfmt), "Pixel format for raw extract. If not set, derived from extension", GF_PROP_PIXFMT, "none", NULL, 0},
-	{ OFFS(afmt), "Audio format for raw extract. If not set, derived from extension", GF_PROP_PCMFMT, "none", NULL, 0},
-	{ OFFS(decinfo), "Decoder config insert mode: no means never, first means on first packet, sap means at each SAP, auto selects between no and first based on media type", GF_PROP_UINT, "auto", "no|first|sap|auto", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(split), "Force one file per decoded frame.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(frame), "Force single frame dump with no rewrite. In this mode, all codecids are supported", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(sstart), "Start number of frame to dump. If 0, all samples are dumped", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(send), "End number of frame to dump. If start<end, all samples after start are dumped", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(pfmt), "pixel format for raw extract. If not set, derived from extension", GF_PROP_PIXFMT, "none", NULL, 0},
+	{ OFFS(afmt), "audio format for raw extract. If not set, derived from extension", GF_PROP_PCMFMT, "none", NULL, 0},
+	{ OFFS(decinfo), "decoder config insert mode\n"
+	"- no: never inserted\n"
+	"- first: inserted on first packet\n"
+	"- sap: inserted at each SAP\n"
+	"- auto: selects between no and first based on media type", GF_PROP_UINT, "auto", "no|first|sap|auto", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(split), "force one file per decoded frame.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(frame), "force single frame dump with no rewrite. In this mode, all codecids are supported", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(sstart), "start number of frame to dump. If 0, all samples are dumped", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(send), "end number of frame to dump. If start<end, all samples after start are dumped", GF_PROP_UINT, "0", NULL, 0},
 	{0}
 };
 
@@ -920,8 +924,9 @@ void writegen_finalize(GF_Filter *filter)
 
 GF_FilterRegister GenDumpRegister = {
 	.name = "writegen",
-	GF_FS_SET_DESCRIPTION("Generic single stream to file converter, used when extracting/converting PIDs")
-	GF_FS_SET_HELP("The writegen filter should usually not be explicetly loaded without a source ID specified, since the filter would likely match any pid connection.")
+	GF_FS_SET_DESCRIPTION("Stream to file")
+	GF_FS_SET_HELP("Generic single stream to file converter, used when extracting/converting PIDs.\n"
+	"The writegen filter should usually not be explicetly loaded without a source ID specified, since the filter would likely match any pid connection.")
 	.private_size = sizeof(GF_GenDumpCtx),
 	.args = GenDumpArgs,
 	.initialize = writegen_initialize,

@@ -1031,7 +1031,7 @@ static const GF_FilterArgs HEVCSplitArgs[] =
 
 GF_FilterRegister HEVCSplitRegister = {
 		.name = "hevcsplit",
-		GF_FS_SET_DESCRIPTION("Stream spliter")
+		GF_FS_SET_DESCRIPTION("HEVC tile spliter")
 		.private_size = sizeof(GF_HEVCSplitCtx),
 		SETCAPS(HEVCSplitCaps),
 		//hevc split shall be explicitly loaded

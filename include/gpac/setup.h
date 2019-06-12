@@ -385,10 +385,10 @@ char* gf_strdup(const char *str);
 
 #if (defined (WIN32) || defined (_WIN32_WCE)) && (defined(__MINGW32__) || !defined(__GNUC__))
 
-#define LLD "%I64d"
-#define LLU "%I64u"
-#define LLX "%I64x"
-#define LLXPAD( pad ) "%" pad "I64x"
+#define LLD_SUF "I64d"
+#define LLU_SUF "I64u"
+#define LLX_SUF "I64x"
+
 #define LLD_CAST
 #define LLU_CAST
 #ifdef _WIN64
@@ -399,10 +399,10 @@ char* gf_strdup(const char *str);
 
 #elif defined (__SYMBIAN32__)
 
-#define LLD "%d"
-#define LLU "%u"
-#define LLX "%x"
-#define LLXPAD( pad ) "%" pad "x"
+#define LLD_SUF "d"
+#define LLU_SUF "u"
+#define LLX_SUF "x"
+
 #define LLD_CAST (u32)
 #define LLU_CAST (s32)
 #define PTR_TO_U_CAST (u32)
@@ -410,10 +410,10 @@ char* gf_strdup(const char *str);
 /*seems that even though _LP64 is defined in OSX, %ll modifiers are still needed*/
 #elif defined(__DARWIN__) || defined(__APPLE__)
 
-#define LLD "%lld"
-#define LLU "%llu"
-#define LLX "%llx"
-#define LLXPAD( pad ) "%" pad "llx"
+#define LLD_SUF "lld"
+#define LLU_SUF "llu"
+#define LLX_SUF "llx"
+
 
 #ifdef __LP64__ /* Mac OS 64 bits */
 #define PTR_TO_U_CAST (u64)
@@ -423,18 +423,18 @@ char* gf_strdup(const char *str);
 
 #elif defined(_LP64) /*Unix 64 bits*/
 
-#define LLD "%ld"
-#define LLU "%lu"
-#define LLX "%lx"
-#define LLXPAD( pad ) "%" pad "lx"
+#define LLD_SUF "ld"
+#define LLU_SUF "lu"
+#define LLX_SUF "lx"
+
 #define PTR_TO_U_CAST (u64)
 
 #else /*Unix 32 bits*/
 
-#define LLD "%lld"
-#define LLU "%llu"
-#define LLX "%llx"
-#define LLXPAD( pad ) "%" pad "llx"
+#define LLD_SUF "lld"
+#define LLU_SUF "llu"
+#define LLX_SUF "llx"
+
 #define PTR_TO_U_CAST (u32)
 
 #endif
@@ -450,6 +450,11 @@ char* gf_strdup(const char *str);
 #ifndef PTR_TO_U_CAST
 #define PTR_TO_U_CAST
 #endif
+
+#define LLD "%"LLD_SUF
+#define LLU "%"LLU_SUF
+#define LLX "%"LLX_SUF
+
 
 #if !defined(GF_EXPORT)
 #if defined(__GNUC__) && __GNUC__ >= 4 && !defined(GPAC_CONFIG_IOS)

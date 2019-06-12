@@ -295,14 +295,14 @@ static const GF_FilterCapability NHNTDumpCaps[] =
 static const GF_FilterArgs NHNTDumpArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(large), "Uses large file mode", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(large), "use large file mode", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
 
 GF_FilterRegister NHNTDumpRegister = {
 	.name = "nhntw",
-	GF_FS_SET_DESCRIPTION("NHNT file writer")
+	GF_FS_SET_DESCRIPTION("NHNT writer")
 	.private_size = sizeof(GF_NHNTDumpCtx),
 	.args = NHNTDumpArgs,
 	.finalize = nhntdump_finalize,

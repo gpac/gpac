@@ -203,9 +203,9 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (reassign) {
 		filelist_start_ipid(ctx, iopid);
 	}
-	p = gf_filter_pid_get_info(pid, GF_PROP_PID_URL);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
 	if (p)
-	 	gf_filter_pid_set_info(iopid->opid, GF_PROP_PID_URL, p);
+	 	gf_filter_pid_set_property(iopid->opid, GF_PROP_PID_URL, p);
 
 	return GF_OK;
 }
@@ -677,7 +677,7 @@ static const GF_FilterArgs GF_FileListArgs[] =
 	{ OFFS(in), "list of files to play - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(dur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, 0},
 	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(timescale), "forces output timescale on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timescale), "force output timescale on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

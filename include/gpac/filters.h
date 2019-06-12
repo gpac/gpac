@@ -434,6 +434,92 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 */
 Bool gf_fs_check_registry_cap(const GF_FilterRegister *filter_reg, u32 in_cap_code, GF_PropertyValue *in_cap, u32 out_cap_code, GF_PropertyValue *out_cap);
 
+
+/*! Enables or disables filter reporting
+\param session filter session
+\param reporting_on if GF_TRUE, reporting will be enabled
+*/
+void gf_fs_enable_reporting(GF_FilterSession *session, Bool reporting_on);
+
+/*! Locks global session mutex - mostly used to query filter reports and avoids concurrent destruction of a filter
+\param session filter session
+\param do_lock if GF_TRUE, session is locked, otherwise session is unlocked
+*/
+void gf_fs_lock_filters(GF_FilterSession *session, Bool do_lock);
+
+/*! Gets number of active filters in the session
+\param session filter session
+\return number of active filters
+*/
+u32 gf_fs_get_filters_count(GF_FilterSession *session);
+
+typedef enum
+{
+	GF_FS_STATS_FILTER_UNKNOWN,
+	GF_FS_STATS_FILTER_RAWIN,
+	GF_FS_STATS_FILTER_DEMUX,
+	GF_FS_STATS_FILTER_DECODE,
+	GF_FS_STATS_FILTER_ENCODE,
+	GF_FS_STATS_FILTER_MUX,
+	GF_FS_STATS_FILTER_RAWOUT,
+} GF_FSFilterType;
+
+typedef struct
+{
+	/*!number of tasks executed by this filter*/
+	u64 nb_tasks_done;
+	/*!number of packets processed by this filter*/
+	u64 nb_pck_processed;
+	/*!number of bytes processed by this filter*/
+	u64 nb_bytes_processed;
+	/*!number of packets sent by this filter*/
+	u64 nb_pck_sent;
+	/*!number of hardware frames packets sent by this filter*/
+	u64 nb_hw_pck_sent;
+	/*!number of processing errors in the lifetime of the filter*/
+	u32 nb_errors;
+
+	/*!number of bytes sent by this filter*/
+	u64 nb_bytes_sent;
+	/*!number of microseconds this filter was active*/
+	u64 time_process;
+	/*!percentage of data processed (between 0 and 100), otherwise unknown (-1)*/
+	s32 percent;
+	/*!last status report from filter, null if session reporting is not enabled*/
+	const char *status;
+	/*!filter name*/
+	const char *name;
+	/*!filter registry name*/
+	const char *reg_name;
+	/*!set to GF_TRUE if filter is done processing*/
+	Bool done;
+	/*!number of input pids*/
+	u32 nb_pid_in;
+	/*!number of input packets processed*/
+	u64 nb_in_pck;
+	/*!number of output pids*/
+	u32 nb_pid_out;
+	/*!number of output packets sent*/
+	u64 nb_out_pck;
+	/*!set to GF_TRUE if filter has seen end of stream*/
+	Bool in_eos;
+	/*!set to GF_TRUE if filter has seen end of stream*/
+	GF_FSFilterType type;
+	/*!set to streamtype of output pid if this is not a demux*/
+	u32 stream_type;
+	/*!set to codecid of output pid*/
+	u32 codecid;
+} GF_FilterStats;
+
+/*! Gets number of active filters in the session
+\param session filter session
+\param idx index of filters to query
+\param stats statistics for filter
+\return error code if any
+*/
+GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats);
+
+
 /*! @} */
 
 
@@ -1237,12 +1323,29 @@ typedef enum
 /*! Structure holding arguments for a filter*/
 typedef struct
 {
-	/*! argument name*/
+	/*! argument name. Naming conventions:
+		- only use lowercase
+		- keep short and avoid '_'
+	*/
 	const char *arg_name;
 	/*! offset of the argument in the structure, -1 means not exposed/stored in structure, in which case it is notified through the update_arg function.
 	The offset is casted into the corresponding property value of the argument type*/
 	s32 offset_in_private;
-	/*! description of argument*/
+	/*! description of argument. Format conventions:
+		- first letter is lowercase except if it is an acronym (eg, 'IP').
+		- description does not end with a '.'; multiple sentences are however allowed with '.' separators.
+		- description does not end with a new line '\n' or '\r' ; multiple sentences are however allowed with '.' separators.
+		- keep it short. If too long, use " - see filter help" and put description in filter help.
+		- only use markdown '`' and '*', except for enumeration lists which shall use "- ".
+		- do not use CR/LF ('\r' and '\n') in description except to start enum types description.
+		- use infinitive (eg \"set foo to bar\" and not \"sets foo to bar\").
+		- Enumerations should be described as:
+		 		sentence(s)'\n' (no '.' nor ':' at end)
+		 		- name1: val'\n' (no '.' at end)
+		 		- nameN: val (no '.' nor '\n' at end of last value description)
+			and enum value description order shall match enum order
+
+	*/
 	const char *arg_desc;
 	/*! type of argument - this is a property type*/
 	GF_PropType arg_type;
@@ -1250,7 +1353,12 @@ typedef struct
 	const char *arg_default_val;
 	/*! string describing an enum (unsigned integer type) or a min/max value.
 		For min/max, the syntax is "min,max", with -I = -infinity and +I = +infinity
-		For enum, the syntax is "a|b|...", resoling in a=0, b=1,... To skip a value insert '|' eg "|a|b" resolves to a=1, b=2, "a||b" resolves to a=0, b=2*/
+		For enum, the syntax is "a|b|...", resoling in a=0, b=1,... To skip a value insert '|' eg "|a|b" resolves to a=1, b=2, "a||b" resolves to a=0, b=2
+
+		Naming conventions for enumeration:
+			- use single word
+			- use lowercase escept for single/double characters name (eg 'A', 'V').
+	*/
 	const char *min_max_enum;
 	/*! set of argument flags*/
 	GF_FSArgumentFlags flags;
@@ -1408,7 +1516,11 @@ typedef enum
 If capabilities need to be changed for a specific filter, use \ref gf_filter_override_caps*/
 struct __gf_filter_register
 {
-	/*! mandatory - name of the filter as used when setting up filters, shall not contain any space*/
+	/*! mandatory - name of the filter as used when setting up filters. Naming conventions:
+		- shall not contain any space (breaks filter lookup)
+		- should use lowercase
+		- should not use '_'
+	*/
 	const char *name;
 	/*! optional - size of private stack structure. The structure is allocated by the framework and arguments are setup before calling any of the filter functions*/
 	u32 private_size;
@@ -1513,15 +1625,32 @@ struct __gf_filter_register
 	void *udta;
 
 
+	/*! version of the filter, usually only for external libs*/
+	const char *version;
 #ifndef GPAC_DISABLE_DOC
-	/*! optional - short description of the filter*/
+	/*! short description of the filter. Conventions:
+		- should be small (used to generate UI / documentation)
+		- Should be Capitalized
+		- shall not use markdown
+		- shall be single line
+	*/
 	const char *description;
-	/*! optional - author of the filter*/
+	/*! author of the filter. Conventions:
+		- shall not use markdown
+		- first line if present is author name and should be normally capitalized
+		- second line if present is comma-separated list of contact info (eg http://foo.bar,mailto:foo@bar.com)
+	*/
 	const char *author;
-	/*! optionnal - help of the filter*/
+	/*! help of the filter. Conventions:
+		- describe any non-obvious behaviour of the filter here
+		- markdown is allowed. Use '`' for code, "__" for italic, "**" for bold and  "~~" for strikethrough.
+		- mardown top-level sections shall use '#', second level '##', and so on
+		- mardown bullet lists shall use "- ", " - " etc...
+		- notes shall be identifed as a line starting with "Note: "
+		- warnings shall be identifed as a line starting with "Warning: "
+	*/
 	const char *help;
 #endif
-
 };
 
 
@@ -1913,6 +2042,23 @@ NOTE: this does not guarantee that no other pid remove or configure will happen 
 */
 Bool gf_filter_has_pid_connection_pending(GF_Filter *filter, GF_Filter *stop_at_filter);
 
+
+/*! Checks if reporting is turned on at session level.
+\param filter target filter
+\return GF_TRUE if reporting is enabled, GF_FALSE otherwise
+*/
+Bool gf_filter_reporting_enabled(GF_Filter *filter);
+
+/*! Updates filter status string and progress. Should not be called if reporting is turned off at session level.
+This allows gathering stats from filter in realtime. The status string can be anything but shall not contain '\n' and
+should not contain any source or destination URL except for sources and sinks.
+\param filter target filter
+\param percent percentage (from 0 to 10000) of operation status. If more than 10000 ignored
+\param szStatus string giving a status of the filter
+\return error code if any
+*/
+GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus);
+
 /*! @} */
 
 
@@ -2001,6 +2147,8 @@ GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *pid, char *name, const GF_Pr
 Similar to \ref gf_filter_pid_set_property, but infos are not copied up the chain. First packet dispatched after calling
 this function will be marked , and its fetching by the consuming filter will trigger a process_event notification. If the
 consumming filter copies properties from source packet to output packet, the flag will be passed to such new output packet.
+Note: any property type can be used for info, except \ref GF_PROP_POINTER.
+
 \param pid the target filter pid
 \param prop_4cc the built-in property code to modify
 \param value the new value to assign, or NULL if the property is to be removed
@@ -2008,7 +2156,7 @@ consumming filter copies properties from source packet to output packet, the fla
 */
 GF_Err gf_filter_pid_set_info(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value);
 
-/*! Sets a new info property on an output pid
+/*! Sets a new info property on an output pid - see \ref gf_filter_pid_set_info
 See  \ref gf_filter_pid_set_info
 \param pid the target filter pid
 \param name the name of the property to modify
@@ -2026,7 +2174,7 @@ See \ref gf_filter_pid_set_info
 */
 GF_Err gf_filter_pid_set_info_dyn(GF_FilterPid *pid, char *name, const GF_PropertyValue *value);
 
-/*! Sets user data pointer for a pid
+/*! Sets user data pointer for a pid - see \ref gf_filter_pid_set_info
 \param pid the target filter pid
 \param udta user data pointer
 */
@@ -2260,20 +2408,23 @@ Old properties of the destination are first copied to the new property set befor
 GF_Err gf_filter_pid_merge_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid, gf_filter_prop_filter filter_prop, void *cbk );
 
 /*! Gets a built-in property of the pid
+Warning: properties are only valid until the next configure_pid is called. Attempting to use a property
+value (either the pointer or one of the value) queried before the current configure_pid will result in
+ unpredictable behaviour, potentially crashes.
 \param pid the target filter pid
 \param prop_4cc the code of the built-in property to retrieve
 \return the property if found or NULL otherwise
 */
 const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4cc);
 
-/*! Gets a property of the pid
+/*! Gets a property of the pid - see \ref gf_filter_pid_get_property
 \param pid the target filter pid
 \param prop_name the name of the property to retrieve
 \return the property if found or NULL otherwise
 */
 const GF_PropertyValue *gf_filter_pid_get_property_str(GF_FilterPid *pid, const char *prop_name);
 
-/*! Enumerates properties of a pid
+/*! Enumerates properties of a pid - see \ref gf_filter_pid_get_property
 \param pid the target filter pid
 \param idx input/output index of the current property. 0 means first. Incremented by 1 upon success
 \param prop_4cc set to the built-in code of the property if built-in
@@ -2312,6 +2463,7 @@ void gf_filter_pid_try_pull(GF_FilterPid *pid);
 
 
 /*! Looks for a built-in property value on a  pids. This is a recursive call on input chain
+Info query is NOT threadsafe in gpac, you
 \param pid the target filter pid to query
 \param prop_4cc the code of the built-in property to fetch
 \return the property if found NULL otherwise
@@ -2525,6 +2677,15 @@ void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Doubl
 \return GF_TRUE if pid is currently playing, GF_FALSE otherwise
 */
 Bool gf_filter_pid_is_playing(GF_FilterPid *pid);
+
+/*! Enables direct dispatch of packets to connected filters. This mode is usefull when a filter may send a very large number of packets
+in one process() call; this is for example the case of the isobmff muxer in interleave mode. Using this mode avoids overloading
+the pid buffer with packets.
+If the session is multi-threaded, this parameter has no effect.
+\param pid the target filter pid
+\return GF_TRUE if pid is currently playing, GF_FALSE otherwise
+*/
+GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *pid);
 
 /*! @} */
 

@@ -3543,6 +3543,9 @@ struct __tag_isom {
 
 	u64 read_byte_offset;
 
+	void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total);
+	void *progress_cbk_udta;
+
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u32 FragmentsFlags, NextMoofNumber;
 	/*active fragment*/
@@ -3586,6 +3589,7 @@ struct __tag_isom {
 	Bool is_smooth;
 
 	GF_Err (*on_block_out)(void *usr_data, char *block, u32 block_size);
+	GF_Err (*on_block_patch)(void *usr_data, char *block, u32 block_size, u64 block_offset);
 	void *on_block_out_usr_data;
 	u32 on_block_out_block_size;
 	//in block disptach mode we don't have the full file, keep the position
@@ -3609,7 +3613,11 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 /*close and delete a movie*/
 void gf_isom_delete_movie(GF_ISOFile *mov);
 
-GF_Err gf_isom_set_write_callback(GF_ISOFile *mov, GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size), void *usr_data, u32 block_size);
+GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
+ 			GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size),
+			GF_Err (*on_block_patch)(void *usr_data, char *block, u32 block_size, u64 block_offset),
+ 			void *usr_data,
+ 			u32 block_size);
 
 /*StreamDescription reconstruction Functions*/
 GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outESD);
@@ -3686,7 +3694,7 @@ GF_Err CanAccessMovie(GF_ISOFile *movie, u32 Mode);
 GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char *tmp_dir);
 void gf_isom_insert_moov(GF_ISOFile *file);
 
-GF_Err WriteToFile(GF_ISOFile *movie);
+GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments);
 GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, u32 DataReferenceIndex, GF_ESD *esd, u32 *outStreamIndex);
 u8 RequestTrack(GF_MovieBox *moov, u32 TrackID);
 /*Track-Media setup*/

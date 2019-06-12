@@ -216,7 +216,7 @@ typedef struct
 	u8 type;
 	/*name of service issuing the progress notif*/
 	const char *service;
-	/*progress type: 0: buffering, 1: downloading, 2: importing (BT/VRML/...)*/
+	/*progress type: 0: buffering, 1: downloading, 2: importing (BT/VRML/...), 3: filter status update*/
 	u32 progress_type;
 	/*amount done and total amount of operation.
 		For buffer events, expresses current and total desired stream buffer in scene in milliseconds
@@ -224,8 +224,13 @@ typedef struct
 		For import events, no units defined (depends on importers)
 	*/
 	u32 done, total;
-	/* for download events */
-	u32 bytes_per_seconds;
+	union {
+		/* for download events */
+		u32 bytes_per_seconds;
+		/* for filter status event, index of filter in session */
+		u32 filter_idx;
+	};
+	
 } GF_EventProgress;
 
 /*event proc return value: ignored*/

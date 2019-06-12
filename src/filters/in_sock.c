@@ -473,9 +473,9 @@ static const GF_FilterArgs SockInArgs[] =
 	{ OFFS(listen), "indicate the input socket works in server mode", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(ka), "keep socket alive if no more connections", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, 0},
-	{ OFFS(tsprobe), "probes for MPEG-2 TS data, either RTP or raw UDP. Disabled if mime or ext are given and don't match MPEG-2 TS mimes/extensions", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ext), "indicates file extension of udp data", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(mime), "indicates mime type of udp data", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(tsprobe), "probe for MPEG-2 TS data, either RTP or raw UDP. Disabled if mime or ext are given and don't match MPEG-2 TS mimes/extensions", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ext), "indicate file extension of udp data", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(mime), "indicate mime type of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(block), "set blocking mode for socket(s)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timeout), "set timeout in ms for UDP socket(s)", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
 
@@ -493,7 +493,7 @@ static const GF_FilterCapability SockInCaps[] =
 
 GF_FilterRegister SockInRegister = {
 	.name = "sockin",
-	GF_FS_SET_DESCRIPTION("UDP / TCP socket input")
+	GF_FS_SET_DESCRIPTION("UDP/TCP input")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter handles generic TCP and UDP input sockets. It can also probe for MPEG-2 TS over RTP input. Probing of MPEG-2 TS over UDP/RTP is enabled by default but can be turned off.\n"
 		"\nFormat of data can be specified by setting either ext or mime option. If not set, the format will be guessed by probing the first data packet\n"

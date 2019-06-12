@@ -457,11 +457,11 @@ static GF_FilterProbeScore pipeout_probe_url(const char *url, const char *mime)
 static const GF_FilterArgs PipeOutArgs[] =
 {
 	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(ext), "indicates file extension of pipe data", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(mime), "indicates mime type of pipe data", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(dynext), "indicates the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(speed), "sets playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(ext), "indicate file extension of pipe data", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(mime), "indicate mime type of pipe data", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(dynext), "indicate the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(mkp), "create pipe if not found - see filter help", GF_PROP_BOOL, "false", NULL, 0 },
 	{ OFFS(block_size), "buffer size used to write to pipe, windows only", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED },
 	{0}

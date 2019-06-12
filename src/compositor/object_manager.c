@@ -401,7 +401,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 
 		if (odm->buffer_playout_us > odm->buffer_max_us) odm->buffer_max_us = odm->buffer_playout_us;
 
-		prop = gf_filter_pid_get_info(for_pid ? for_pid : odm->pid, GF_PROP_PID_FILE_CACHED);
+		prop = gf_filter_pid_get_property(for_pid ? for_pid : odm->pid, GF_PROP_PID_FILE_CACHED);
 		if (prop) {
 			odm->buffer_playout_us = odm->buffer_max_us = 1000;
 			odm->buffer_min_us = 0;

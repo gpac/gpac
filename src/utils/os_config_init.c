@@ -833,6 +833,7 @@ void gf_uninit_global_config(Bool discard_config)
 
 void gf_cfg_load_restrict()
 {
+	GF_Err gf_cfg_set_key_internal(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue, Bool is_restrict);
 	char szPath[GF_MAX_PATH];
 	if (get_default_install_path(szPath, GF_PATH_SHARE)) {
 		strcat(szPath, "/");
@@ -849,7 +850,7 @@ void gf_cfg_load_restrict()
 					for (j=0; j<kcount; j++) {
 						const char *kname = gf_cfg_get_key_name(rcfg, sname, j);
 						const char *kval = gf_cfg_get_key(rcfg, sname, kname);
-						gf_cfg_set_key(gpac_global_config, sname, kname, kval);
+						gf_cfg_set_key_internal(gpac_global_config, sname, kname, kval, GF_TRUE);
 					}
 				}
 				gf_cfg_del(rcfg);
@@ -906,6 +907,13 @@ const char *gf_opts_get_key_name(const char *secName, u32 keyIndex)
 	return gf_cfg_get_key_name(gpac_global_config, secName, keyIndex);
 }
 
+GF_EXPORT
+const char *gf_opts_get_key_restricted(const char *secName, const char *keyName)
+{
+	const char *gf_cfg_get_key_internal(GF_Config *iniFile, const char *secName, const char *keyName, Bool restricted_only);
+	if (!gpac_global_config) return NULL;
+	return gf_cfg_get_key_internal(gpac_global_config, secName, keyName, GF_TRUE);
+}
 
 
 GF_EXPORT
@@ -923,14 +931,14 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("logs", NULL, "set log tools and levels."\
 			"\n"\
 			"You can independently log different tools involved in a session.\n"\
-			"log_args is formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"\
-	        "levelX can be one of:\n"\
+			"log_args is formatted as a ':'-separated list of `toolX[:toolZ]@levelX`\n"\
+	        "`levelX` can be one of:\n"\
 	        "- quiet: skip logs\n"\
 	        "- error: logs only error messages\n"\
 	        "- warning: logs error+warning messages\n"\
 	        "- info: logs error+warning+info messages\n"\
 	        "- debug: logs all messages\n"\
-	        "toolX can be one of:\n"\
+	        "`toolX` can be one of:\n"\
 	        "- core: libgpac core\n"\
 	        "- coding: bitstream formats (audio, video, scene)\n"\
 	        "- container: container formats (ISO File, MPEG-2 TS, AVI, ...)\n"\
@@ -957,103 +965,101 @@ GF_GPACArg GPAC_Args[] = {
 	        "- sched: filter session scheduler debugging\n"\
 	        "- mutex: log all mutex calls\n"\
 	        "- all: all tools logged - other tools can be specified afterwards.\n"\
-	        "The special keyword \"ncl\" can be set to disable color logs.\n"\
-	        "The special keyword \"strict\" can be set to exit at first error.\n"\
+	        "The special keyword `ncl` can be set to disable color logs.\n"\
+	        "The special keyword `strict` can be set to exit at first error.\n"\
 	        "EX -logs all@info:dash@debug:ncl\n"\
-			"This moves all log to info level, dash to debug level and disable color logs."\
+			"This moves all log to info level, dash to debug level and disable color logs"\
  			, NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
 
- GF_DEF_ARG("noprog", NULL, "disables progress messages", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
- GF_DEF_ARG("quiet", NULL, "disables all messages, including errors", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
+ GF_DEF_ARG("noprog", NULL, "disable progress messages", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
+ GF_DEF_ARG("quiet", NULL, "disable all messages, including errors", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
 
- GF_DEF_ARG("strict-error", "se", "exits after the first error is reported", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("store-dir", NULL, "sets storage directory", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("mod-dirs", NULL, "sets module directories", NULL, NULL, GF_ARG_STRINGS, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("ifce", NULL, "sets default multicast interface through interface IP address", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("lang", NULL, "sets preferred language", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("cfg", "opt", "sets configuration file value. The string parameter can be formatted as:\n"\
-	        "- section:key=val: sets the key to a new value\n"\
-	        "- section:key=null , section:key: removes the key\n"\
-	        "- section:*=null: removes the section"\
+ GF_DEF_ARG("strict-error", "se", "exit after the first error is reported", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("store-dir", NULL, "set storage directory", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("mod-dirs", NULL, "set module directories", NULL, NULL, GF_ARG_STRINGS, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("ifce", NULL, "set default multicast interface through interface IP address", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("lang", NULL, "set preferred language", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("cfg", "opt", "set configuration file value. The string parameter can be formatted as:\n"\
+	        "- `section:key=val`: set the key to a new value\n"\
+	        "- `section:key=null`, `section:key`: remove the key\n"\
+	        "- `section:*=null`: remove the section"\
 			, NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("no-save", NULL, "discards any changes made to the config file upon exit", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("version", NULL, "sets to GPAC version, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("64bits", NULL, "indicates if GPAC version is 64 bits, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("no-save", NULL, "discard any changes made to the config file upon exit", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("version", NULL, "set to GPAC version, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("mod-reload", NULL, "unload / reload module shared libs when no longer used", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("for-test", NULL, "disables all creation/modif dates and GPAC versions in files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("cache", NULL, "sets cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("proxy-on", NULL, "Enables HTTP proxy", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("proxy-name", NULL, "sets HTTP proxy address", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("proxy-port", NULL, "sets HTTP proxy port", "80", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("maxrate", NULL, "sets max HTTP download rate in bits per sec. 0 means unlimited", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("no-cache", NULL, "disables HTTP caching", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("offline-cache", NULL, "enables offline HTTP caching (no revalidation of existing resource in cache)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("clean-cache", NULL, "indicates if HTTP cache should be clean upon launch/exit", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("cache-size", NULL, "specifies cache size in bytes", "100M", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("head-timeout", NULL, "Sets HTTP head request timeout in milliseconds", "5000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("req-timeout", NULL, "Sets HTTP/RTSP request timeout in milliseconds", "20000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("broken-cert", NULL, "Enables accepting broken SSL certificates", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("user-agent", "ua", "sets user agent name for HTTP/RTSP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("user-profileid", "upid", "sets user profile ID (through  \"X-UserProfileID\" entity header)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("user-profile", "up", "sets user profile filename. Content of file is appended as body to HEAD/GET requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("query-string", NULL, "inserts query string (without ?) to URL on requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("for-test", NULL, "disable all creation/modif dates and GPAC versions in files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("cache", NULL, "cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("proxy-on", NULL, "enable HTTP proxy", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("proxy-name", NULL, "set HTTP proxy address", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("proxy-port", NULL, "set HTTP proxy port", "80", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("maxrate", NULL, "set max HTTP download rate in bits per sec. 0 means unlimited", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("no-cache", NULL, "disable HTTP caching", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("offline-cache", NULL, "enable offline HTTP caching (no revalidation of existing resource in cache)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("clean-cache", NULL, "indicate if HTTP cache should be clean upon launch/exit", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("cache-size", NULL, "specify cache size in bytes", "100M", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("head-timeout", NULL, "set HTTP head request timeout in milliseconds", "5000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("req-timeout", NULL, "set HTTP/RTSP request timeout in milliseconds", "20000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("broken-cert", NULL, "enable accepting broken SSL certificates", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("user-agent", "ua", "set user agent name for HTTP/RTSP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("user-profileid", "upid", "set user profile ID (through **X-UserProfileID** entity header)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("user-profile", "up", "set user profile filename. Content of file is appended as body to HEAD/GET requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("query-string", NULL, "insert query string (without ?) to URL on requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 
- GF_DEF_ARG("dbg-edges", NULL, "logs edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("dbg-edges", NULL, "log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("no-block", NULL, "disable blocking mode of filters", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reg", NULL, "disable regulation (no sleep) in session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reassign", NULL, "disable source filter reassignment in pid graph resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("sched", NULL, "set scheduler mode. Possible modes are:\n"\
-		"- free: uses lock-free queues except for task list (default)\n"\
-		"- lock: uses mutexes for queues when several threads\n"\
-		"- freex: uses lock-free queues including for task lists (experimental)\n"\
-		"- flock: uses mutexes for queues even when no thread (debug mode)\n"\
-		"- direct: uses no threads and direct dispatch of tasks whenever possible (debug mode)", "free", "free|lock|flock|freex|direct", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
- GF_DEF_ARG("max-chain", NULL, "sets maximum chain length when resolving filter links.Default value covers for ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]. Filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
- GF_DEF_ARG("max-sleep", NULL, "sets maximum sleep time slot in milliseconds when regulation is enabled", "50", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+		"- free: lock-free queues except for task list (default)\n"\
+		"- lock: mutexes for queues when several threads\n"\
+		"- freex: lock-free queues including for task lists (experimental)\n"\
+		"- flock: mutexes for queues even when no thread (debug mode)\n"\
+		"- direct: no threads and direct dispatch of tasks whenever possible (debug mode)", "free", "free|lock|flock|freex|direct", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("max-chain", NULL, "set maximum chain length when resolving filter links.Default value covers for ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]. Filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("max-sleep", NULL, "set maximum sleep time slot in milliseconds when regulation is enabled", "50", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("threads", NULL, "set N extra thread for the session. -1 means use all available cores", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-probe", NULL, "disable data probing on sources and relies on extension (faster load but more error-prone)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("blacklist", NULL, "blacklist the filters listed in the given string (comma-seperated list)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-graph-cache", NULL, "disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory ungry but slower)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
- GF_DEF_ARG("switch-vres", NULL, "selects smallest video resolution larger than scene size, otherwise use current video resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("hwvmem", NULL, "specifies (2D renderer only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed. Possible values are:\n"
+ GF_DEF_ARG("switch-vres", NULL, "select smallest video resolution larger than scene size, otherwise use current video resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("hwvmem", NULL, "specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed. Possible values are:\n"
  "- always: always on hardware\n"
  "- never: always on system memory\n"
  "- auto: selected by GPAC based on content type (graphics or video)", "auto", "auto|always|never", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("pref-yuv4cc", NULL, "sets prefered YUV 4CC for overlays (used by DirectX only)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("yuv-overlay", NULL, "indicates YUV overlay is possible on the video card. Always overriden by video output module", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("offscreen-yuv", NULL, "indicates if offscreen yuv->rgb is enabled. can be set to false to force disabling", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("overlay-color-key", NULL, "indicates color to use for overlay keying, hex format", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("gl-offscreen", NULL, "indicates openGL mode for offscreen rendering.\n"\
-		"- Window: A hidden window is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work\n"\
-    	"- VisibleWindow: A visible window is used to perform offscreen rendering. This can be usefull while debugging\n"\
-    	"- Pixmap: An X11 Pixmap is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work and can even crash the player\n"\
-    	"- PBuffer: uses opengl PBuffers for drawing, not always supported"\
+ GF_DEF_ARG("pref-yuv4cc", NULL, "set prefered YUV 4CC for overlays (used by DirectX only)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("yuv-overlay", NULL, "indicate YUV overlay is possible on the video card. Always overriden by video output module", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("offscreen-yuv", NULL, "indicate if offscreen yuv->rgb is enabled. can be set to false to force disabling", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("overlay-color-key", NULL, "color to use for overlay keying, hex format", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("gl-offscreen", NULL, "openGL mode for offscreen rendering.\n"\
+		"- Window: a hidden window is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work\n"\
+    	"- VisibleWindow: a visible window is used to perform offscreen rendering. This can be usefull while debugging\n"\
+    	"- Pixmap: an X11 Pixmap is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work and can even crash the player\n"\
+    	"- PBuffer: use opengl PBuffers for drawing, not always supported"\
  	, NULL, "Window|VisibleWindow|Pixmap|PBuffer", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-bits-comp", NULL, "number of bits per color component in openGL", "8", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-bits-depth", NULL, "number of bits for depth buffer in openGL", "16", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("gl-doublebuf", NULL, "enables openGL double buffering", "yes", NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("gl-doublebuf", NULL, "enable openGL double buffering", "yes", NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("sdl-defer", NULL, "use defer rendering for SDL", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("no-colorkey", NULL, "disables color keying at the video output level", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("video-output", NULL, "indicates the name of the video output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("gapi-fbaccess", NULL, "sets GAPI access mode to the backbuffer", NULL, "base|raw|gx", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("audio-output", NULL, "indicates the name of the audio output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("alsa-devname", NULL, "sets ALSA dev name", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_AUDIO),
- GF_DEF_ARG("force-alsarate", NULL, "forces ALSA and OSS output sample rate", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
- GF_DEF_ARG("ds-disable-notif", NULL, "disables DirectSound audio buffer notifications when supported", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
- GF_DEF_ARG("font-reader", NULL, "indicates name of font reader module", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_TEXT),
- GF_DEF_ARG("font-dirs", NULL, "indicates comma-separated list of directories to scan for fonts", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_TEXT),
- GF_DEF_ARG("rescan-fonts", NULL, "indicates the font directory must be rescanned", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_TEXT),
- GF_DEF_ARG("rmt", NULL, "enables profiling through [Remotery](https://github.com/Celtoys/Remotery). A copy of Remotery visualizer is in gpac/share/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-port", NULL, "sets remotery port", "17815", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-reuse", NULL, "have remotery reuse port", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("no-colorkey", NULL, "disable color keying at the video output level", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("video-output", NULL, "indicate the name of the video output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("audio-output", NULL, "indicate the name of the audio output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("alsa-devname", NULL, "set ALSA dev name", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_AUDIO),
+ GF_DEF_ARG("force-alsarate", NULL, "force ALSA and OSS output sample rate", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
+ GF_DEF_ARG("ds-disable-notif", NULL, "disable DirectSound audio buffer notifications when supported", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
+ GF_DEF_ARG("font-reader", NULL, "indicate name of font reader module", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_TEXT),
+ GF_DEF_ARG("font-dirs", NULL, "indicate comma-separated list of directories to scan for fonts", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_TEXT),
+ GF_DEF_ARG("rescan-fonts", NULL, "indicate the font directory must be rescanned", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_TEXT),
+ GF_DEF_ARG("rmt", NULL, "enable profiling through [Remotery](https://github.com/Celtoys/Remotery). A copy of Remotery visualizer is in gpac/share/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-port", NULL, "set remotery port", "17815", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-reuse", NULL, "allow remotery to reuse port", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("rmt-localhost", NULL, "make remotery only accepts localhost connection", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-sleep", NULL, "sets remotery sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-nmsg", NULL, "sets remotery number of messages per update", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-qsize", NULL, "sets remotery message queue size in bytes", "131072", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-log", NULL, "redirects logs to remotery (experimental, usually not well handled by browser)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-sleep", NULL, "set remotery sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-nmsg", NULL, "set remotery number of messages per update", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-qsize", NULL, "set remotery message queue size in bytes", "131072", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-log", NULL, "redirect logs to remotery (experimental, usually not well handled by browser)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("rmt-ogl", NULL, "make remotery sample opengl calls", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  {0}
 };

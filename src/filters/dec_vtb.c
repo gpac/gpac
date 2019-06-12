@@ -1888,8 +1888,8 @@ static const GF_FilterArgs VTBDecArgs[] =
 {
 	{ OFFS(reorder), "number of frames to wait for temporal re-ordering", GF_PROP_UINT, "6", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(no_copy), "dispatch VTB frames into filter chain (no copy)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ofmt), "sets default pixel format for decoded video. If not matched default to nv12", GF_PROP_PIXFMT, "nv12", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(disable_hw), "Disables hardware decoding", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(ofmt), "set default pixel format for decoded video. If not matched default to nv12", GF_PROP_PIXFMT, "nv12", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(disable_hw), "disable hardware decoding", GF_PROP_BOOL, "false", NULL, 0},
 	{}
 };
 

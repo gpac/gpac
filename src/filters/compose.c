@@ -619,53 +619,53 @@ GF_Err compose_initialize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_Compositor, _n)
 static GF_FilterArgs CompositorArgs[] =
 {
-	{ OFFS(aa), "Set anti-aliasing mode for raster graphics - whether the setting is applied or not depends on the graphics module / graphic card.\n"\
+	{ OFFS(aa), "set anti-aliasing mode for raster graphics - whether the setting is applied or not depends on the graphics module / graphic card.\n"\
 		"- none: no anti-aliasing\n"\
     	"- text: anti-aliasing for text only\n"\
     	"- all: complete anti-aliasing", GF_PROP_UINT, "all", "none|text|all", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(hlfill), "Set highlight fill color (ARGB)", GF_PROP_UINT, "0x0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(hlline), "Set highlight stroke color (ARGB)", GF_PROP_UINT, "0xFF000000", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(hllinew), "Set highlight stroke width", GF_PROP_FLOAT, "1.0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sz), "specifies whether scalable zoom should be used or not. When scalable zoom is enabled, resizing the output window will also recompute all vectorial objects. Otherwise only the final buffer is stretched.", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(hlfill), "set highlight fill color (ARGB)", GF_PROP_UINT, "0x0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(hlline), "set highlight stroke color (ARGB)", GF_PROP_UINT, "0xFF000000", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(hllinew), "set highlight stroke width", GF_PROP_FLOAT, "1.0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sz), "enable scalable zoom. When scalable zoom is enabled, resizing the output window will also recompute all vectorial objects. Otherwise only the final buffer is stretched.", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(bc), "default background color to use when displaying transparent images or video with no scene composition instructions", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(yuvhw), "enables YUV hardware for 2D blits", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(yuvhw), "enable YUV hardware for 2D blits", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(blitp), "partial hardware blits (if not set, will force more redraw)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(softblt), "enables software blit/stretch in 2D. If disabled, vector graphics rasterizer will always be used", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(softblt), "enable software blit/stretch in 2D. If disabled, vector graphics rasterizer will always be used", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 
-	{ OFFS(stress), "enables stress mode of compositor (rebuild all vector graphics and texture states at each frame)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(fast), "enables speed optimization - whether the setting is applied or not depends on the graphics module / graphic card", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(bvol), "draws bounding volume of objects.\n"\
+	{ OFFS(stress), "enable stress mode of compositor (rebuild all vector graphics and texture states at each frame)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(fast), "enable speed optimization - whether the setting is applied or not depends on the graphics module / graphic card", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(bvol), "draw bounding volume of objects.\n"\
 			"- no: disable bounding box\n"\
 			"- box: draws a rectangle (2D) or box (3D mode)\n"\
 			"- aabb: draws axis-aligned bounding-box tree (3D only)", GF_PROP_UINT, "no", "no|box|aabb", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(textxt), "specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text rendering in 3D and also improve text-on-video like content. Possible values are:\n"\
+	{ OFFS(textxt), "specify whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text rendering in 3D and also improve text-on-video like content\n"\
 		"- default: use texturing for OpenGL rendering, no texture for 2D rasterizer\n"\
 		"- never: never uses text textures\n"\
-		"- always: always render text to texture before drawing\n"\
+		"- always: always render text to texture before drawing"\
 		"", GF_PROP_UINT, "default", "default|never|always", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(out8b), "converts 10-bit video to 8 bit texture before GPU upload.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(drop), "drops late frame when drawing. By default frames are not droped until a heavy desync of 1 sec is observed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(sclock), "forces synchronizing all streams on a single clock", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(out8b), "convert 10-bit video to 8 bit texture before GPU upload.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(drop), "drop late frame when drawing. By default frames are not droped until a heavy desync of 1 sec is observed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(sclock), "force synchronizing all streams on a single clock", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sgaze), "simulate gaze events through mouse", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ckey), "color key to use in windowless mode (0xFFRRGGBB). GPAC currently doesn't support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of GPAC's output, if supported.", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(timeout), "timeout in ms after which a source is considered dead", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fps), "simulation frame rate when animation-only sources are played (ignored when video is present).", GF_PROP_FRACTION, "30/1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(timescale), "timescale used for output packets when no input video pid. A value of 0 means fps numerator.", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(autofps), "uses video input fps for output. If no video or not set, uses fps option. Ignored in player mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(vfr), "only emits frames when changes are detected. Always true in player mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(autofps), "use video input fps for output. If no video or not set, uses fps option. Ignored in player mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(vfr), "only emit frames when changes are detected. Always true in player mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(dur), "duration of generation. Mostly used when no video input is present. Negative values mean number of frames, positive values duration in second, 0 stops as soon as all streams are done.", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(fsize), "Forces the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(mode2d), "specifies whether immediate drawing should be used or not. Possible values are:\n"\
+	{ OFFS(fsize), "force the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mode2d), "specify whether immediate drawing should be used or not\n"\
 	"- immediate: the screen is completely redrawn at each frame (always on if passthrough mode is detected).\n"\
 	"- defer: object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer.\n"\
 	"- debug: only renders changed areas, reseting other areas\n"\
 	 "Whether the setting is applied or not depends on the graphics module and player mode.", GF_PROP_UINT, "defer", "defer|immediate|debug", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(amc), "audio multichannel support; if disabled always downmix to stereo. usefull if the multichannel output doesn't work properly", GF_PROP_BOOL, "true", NULL, 0},
-	{ OFFS(asr), "forces output sample rate - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ach), "forces output channels - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(alayout), "forces output channel layout - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(afmt), "forces output channel format - 0 for auto", GF_PROP_PCMFMT, "s16", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(asr), "force output sample rate - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ach), "force output channels - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(alayout), "force output channel layout - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(afmt), "force output channel format - 0 for auto", GF_PROP_PCMFMT, "s16", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(asize), "audio output packet size in samples", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(abuf), "audio output buffer duration in ms - the audio renderer fills the output pid up to this value. A too low value will lower latency but can have real-time playback issues", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(avol), "audio volume in percent", GF_PROP_UINT, "100", NULL, GF_FS_ARG_UPDATE},
@@ -676,32 +676,46 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(rbuf), "rebuffer trigger in ms. Overriden by RebufferLenth property of input pid", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(mbuf), "max buffer in ms (must be greater than playout buffer). Overriden by BufferMaxOccupancy property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
 
-	{ OFFS(nojs), "disables javascript", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(nojs), "disable javascript", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 #ifndef GPAC_DISABLE_3D
-	{ OFFS(ogl), "specifies 2D rendering mode.\nPossible values are:\n"\
+	{ OFFS(ogl), "specify 2D rendering mode\n"\
 				"- auto: automatically decides betwwen on, off and hybrid based on content.\n"\
 				"- off: disables OpenGL - 3D won't be rendered.\n"\
 				"- on: uses OpenGL for all graphics - this will involve polygon tesselation and 2D graphics will not look as nice as 2D mode.\n"\
-				"- hybrid: the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all 2D objects with textures and 3D objects.\n"\
+				"- hybrid: the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all 2D objects with textures and 3D objects."\
 				, GF_PROP_UINT, "auto", "auto|off|hybrid|on", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(pbo), "enables PixelBufferObjects to push YUV textures to GPU in OpenGL Mode. This may slightly increase the performances of the playback.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(nav), "overrides the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine)", GF_PROP_UINT, "none", "none|walk|fly|pan|game|slide|exam|orbit|vr", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(linegl), "specifies that outlining shall be done through OpenGL pen width rather than vectorial outlining", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(pbo), "enable PixelBufferObjects to push YUV textures to GPU in OpenGL Mode. This may slightly increase the performances of the playback.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(nav), "override the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine)\n"\
+	"- none: disables navigation\n"\
+	"- walk: 3D world walk\n"\
+	"- fly: 3D world fly (no ground detection)\n"\
+	"- pan: 2D/3D world zomm/pan\n"\
+	"- game: 3D world game (mouse gives walk direction)\n"\
+	"- slide: 2D/3D world slide\n"\
+	"- exam: 2D/3D object examine\n"\
+	"- orbit: 3D object orbit\n"\
+	"- vr: 3D world VR (yaw/pitch/roll)"\
+	"", GF_PROP_UINT, "none", "none|walk|fly|pan|game|slide|exam|orbit|vr", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(linegl), "indicate that outlining shall be done through OpenGL pen width rather than vectorial outlining", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(epow2), "emulate power-of-2 textures for openGL (old hardware). Ignored if OpenGL rectangular texture extension is enabled\n"\
 	"- yes: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations\n"\
 	"- no: video is resized to a power of 2 texture when mapping to a shape", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(paa), "specifies whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(bcull), "specifies whether backface culling shall be disable or not. Possible values are:\n"\
+	{ OFFS(paa), "indicate whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(bcull), "indicate whether backface culling shall be disable or not\n"\
 				"- on: enables backface culling\n"\
 				"- off: disables backface culling\n"\
-				"- alpha: only enables backface culling for transparent meshes\n"\
+				"- alpha: only enables backface culling for transparent meshes"\
 		"", GF_PROP_UINT, "on", "off|on|alpha", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(wire), "enables wireframe mode.\n"\
-	"\"none\": objects are drawn as solid\n"\
-    "\"only\": objects are drawn as wireframe only\n"\
-    "\"solid\": objects are drawn as solid and wireframe is then drawn", GF_PROP_UINT, "none", "none|only|solid", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(norms), "enables normal drawing", GF_PROP_UINT, "none", "none|face|vertex", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(wire), "wireframe mode.\n"\
+	"- none: objects are drawn as solid\n"\
+    "- only: objects are drawn as wireframe only\n"\
+    "- solid: objects are drawn as solid and wireframe is then drawn", GF_PROP_UINT, "none", "none|only|solid", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(norms), "normal vector drawing for debug\n"
+	"- none: no normals drawn\n"
+	"- face: one normal per face drawn\n"
+	"- vertex: one normal per vertex drawn"
+	"", GF_PROP_UINT, "none", "none|face|vertex", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(glus), "use GLU scale, which may be slower but nicer than GPAC's software stretch routines.", GF_PROP_BOOL,
 #ifdef GPAC_CONFIG_IOS
 	"false",
@@ -711,59 +725,72 @@ static GF_FilterArgs CompositorArgs[] =
 	 NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rext), "use non power of two (rectangular) texture GL extension", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cull), "use aabb culling: large objects are rendered in multiple calls when not fully in viewport", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(yuvgl), "enables YUV open GL pixel format support if hardware supports it. If not supported and shaders are available, YUV to RGB will be done on GPU", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(depth_gl_scale), "sets depth scaler", GF_PROP_FLOAT, "100", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(depth_gl_type), "sets geometry type used to draw depth video", GF_PROP_UINT, "vbo", "none|point|strip|vbo", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(views), "specifies the number of views to use in stereo mode", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(stereo), "specifies the stereo output type (default \"none\"). If your graphic card does not support OpenGL shaders, only \"top\" and \"side\" modes will be available.\n"\
-		"\"side\": images are displayed side by side from left to right.\n"\
-		"\"top\": images are displayed from top (laft view) to bottom (right view).\n"\
-		"\"hmd\": same as side except that view aspect ratio is not changed.\n"\
-		"\"ana\": standard color anaglyph (red for left view, green and blue for right view) is used (forces views=2).\n"\
-		"\"cols\": images are interleaved by columns, left view on even columns and left view on odd columns (forces views=2).\n"\
-		"\"rows\": images are interleaved by columns, left view on even rows and left view on odd rows (forces views=2).\n"\
-		"\"spv5\": images are interleaved by for SpatialView 19'' 5 views display, fullscreen mode (forces views=5).\n"\
-		"\"alio8\": images are interleaved by for Alioscopy 8 views displays, fullscreen mode (forces views=8).\n"\
-		"\"custom\": images are interleaved according to the shader file indicated in mvshader option. The shader is exposed each view as uniform sampler2D gfViewX, where X is the view number starting from the left", GF_PROP_UINT, "none", "none|top|side|hmd|custom|cols|rows|ana|spv5|alio8", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(mvshader), "indicates file path to the custom multiview interleaving shader", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(fpack), "indicates default frame packing of input video", GF_PROP_UINT, "none", "none|top|side", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(camlay), "sets camera layout in multiview modes", GF_PROP_UINT, "offaxis", "straight|offaxis|linear|circular", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(iod), "specifies the inter-occular distance (eye separation) in cm (distance between the cameras). ", GF_PROP_FLOAT, "6.4", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(yuvgl), "enable YUV open GL pixel format support if hardware supports it. If not supported and shaders are available, YUV to RGB will be done on GPU", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(depth_gl_scale), "set depth scaler", GF_PROP_FLOAT, "100", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(depth_gl_type), "set geometry type used to draw depth video\n"
+	"- none: no geometric conversion\n"
+	"- point: compute point cloud from pixel+depth\n"
+	"- strip: same as point but thins point set"
+	"", GF_PROP_UINT, "vbo", "none|point|strip", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(views), "number of views to use in stereo mode", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(stereo), "stereo output type. If your graphic card does not support OpenGL shaders, only 'top' and 'side' modes will be available.\n"\
+		"- side: images are displayed side by side from left to right.\n"\
+		"- top: images are displayed from top (laft view) to bottom (right view).\n"\
+		"- hmd: same as side except that view aspect ratio is not changed.\n"\
+		"- ana: standard color anaglyph (red for left view, green and blue for right view) is used (forces views=2).\n"\
+		"- cols: images are interleaved by columns, left view on even columns and left view on odd columns (forces views=2).\n"\
+		"- rows: images are interleaved by columns, left view on even rows and left view on odd rows (forces views=2).\n"\
+		"- spv5: images are interleaved by for SpatialView 19'' 5 views display, fullscreen mode (forces views=5).\n"\
+		"- alio8: images are interleaved by for Alioscopy 8 views displays, fullscreen mode (forces views=8).\n"\
+		"- custom: images are interleaved according to the shader file indicated in mvshader option. The shader is exposed each view as uniform sampler2D gfViewX, where X is the view number starting from the left", GF_PROP_UINT, "none", "none|top|side|hmd|custom|cols|rows|ana|spv5|alio8", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mvshader), "file path to the custom multiview interleaving shader", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(fpack), "default frame packing of input video\n"
+		"- none: no frame packing\n"
+		"- top: top bottom frame packing\n"
+		"- side: side by side packing"
+	"", GF_PROP_UINT, "none", "none|top|side", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(camlay), " camera layout in multiview modes\n"
+		"- straight: camera is moved along a straight line, no rotation\n"
+		"- offaxis: off-axis projection is used\n"
+		"- linear: camera is moved along a straight line with rotation\n"
+		"- circular: camera is moved along a circle with rotation"
+	"", GF_PROP_UINT, "offaxis", "straight|offaxis|linear|circular", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(iod), "inter-occular distance (eye separation) in cm (distance between the cameras). ", GF_PROP_FLOAT, "6.4", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(rview), "reverse view order", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(tvtn), "number of point sampling for tile visibility algo", GF_PROP_UINT, "30", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tvtt), "number of points above which the tile is considered visible", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(tvtd), "disables the tile having full coverage of the SRD, only displaying partial tiles", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tvtd), "disable the tile having full coverage of the SRD, only displaying partial tiles", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tvtf), "force all tiles to be considered visible, regardless of viewpoint", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fov), "default field of view for VR", GF_PROP_FLOAT, "1.570796326794897", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(vertshader), "specifies path to vertex shader file", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT },
-	{ OFFS(fragshader), "specifies path to fragment shader file", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT },
+	{ OFFS(vertshader), "path to vertex shader file", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT },
+	{ OFFS(fragshader), "path to fragment shader file", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT },
 #endif
 
 #ifdef GF_SR_USE_DEPTH
-	{ OFFS(autocal), "auto callibrates znear/zfar in depth rendering mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(dispdepth), "sets display depth, negative value uses default screen height", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(dispdist), "specifies the distance in cm between the camera and the zero-disparity plane. There is currently no automatic calibration of depth in GPAC", GF_PROP_FLOAT, "50", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(autocal), "auto callibration of znear/zfar in depth rendering mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dispdepth), "display depth, negative value uses default screen height", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dispdist), "distance in cm between the camera and the zero-disparity plane. There is currently no automatic calibration of depth in GPAC", GF_PROP_FLOAT, "50", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 #ifndef GPAC_DISABLE_3D
-	{ OFFS(focdist), "sets focus distance", GF_PROP_FLOAT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(focdist), "distance of focus point", GF_PROP_FLOAT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 #endif
 #endif
 
 #ifdef GF_SR_USE_VIDEO_CACHE
-	{ OFFS(vcsize), "sets cache size when storing raster graphics to memory", GF_PROP_UINT, "0", "0,+I", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(vcscale), "sets cache scale factor in percent when storing raster graphics to memory", GF_PROP_UINT, "100", "0,100", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(vctol), "sets cache tolerance when storing raster graphics to memory. If the difference between the stored version scale and the target display scale is less than tolerance, the cache will be used, otherwise it will be recomputed", GF_PROP_UINT, "30", "0,100", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(vcsize), "visual cache size when storing raster graphics to memory", GF_PROP_UINT, "0", "0,+I", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(vcscale), "visual cache scale factor in percent when storing raster graphics to memory", GF_PROP_UINT, "100", "0,100", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(vctol), "visual cache tolerance when storing raster graphics to memory. If the difference between the stored version scale and the target display scale is less than tolerance, the cache will be used, otherwise it will be recomputed", GF_PROP_UINT, "30", "0,100", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 #endif
-	{ OFFS(wfont), "forces to wait for SVG fonts to be loaded before displaying frames", GF_PROP_FLOAT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(wfont), "wait for SVG fonts to be loaded before displaying frames", GF_PROP_FLOAT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(osize), "force output size. If not set, size is derived from inputs", GF_PROP_VEC2I, "0x0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dpi), "default dpi if not indicated by video output", GF_PROP_VEC2I, "96x96", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dbgpvr), "debug scene used by PVR addon", GF_PROP_FLOAT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(player), "sets compositor in player mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(player), "set compositor in player mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(opfmt), "pixel format to use for output. Ignored in player mode", GF_PROP_PIXFMT, "none", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(drv), "indicates if graphics driver should be used. Ignored in player mode. Allowed values are:\n"\
+	{ OFFS(drv), "indicate if graphics driver should be used. Ignored in player mode\n"\
 				"- no: never loads a graphics driver (software blitting used, no 3D possible)\n"\
-				"- yes: always loads a graphics driver. Output pixel format will be RGB.\n"\
-				"- auto: decides based on the loaded content.\n"\
+				"- yes: always loads a graphics driver. Output pixel format will be RGB\n"\
+				"- auto: decides based on the loaded content"\
 			, GF_PROP_UINT, "auto", "no|yes|auto", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
@@ -780,7 +807,7 @@ static const GF_FilterCapability CompositorCaps[] =
 
 const GF_FilterRegister CompositorFilterRegister = {
 	.name = "compositor",
-	GF_FS_SET_DESCRIPTION("GPAC interactive media compositor")
+	GF_FS_SET_DESCRIPTION("Compositor")
 	GF_FS_SET_HELP("The GPAC compositor allows mixing audio, video, text and graphics in a timed fashion.\n"\
 	"The filter is explicit only and is never loaded during link resolution.\n"
 	"The compositor operates either in player or non-player mode.\n"\

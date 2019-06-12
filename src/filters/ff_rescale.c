@@ -373,7 +373,7 @@ static GF_FilterArgs FFSWSArgs[] =
 {
 	{ OFFS(osize), "osize of output video. When not set, input osize is used", GF_PROP_VEC2I, NULL, NULL, 0},
 	{ OFFS(ofmt), "pixel format for output video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, 0},
-	{ OFFS(scale), "scaling mode", GF_PROP_UINT, "bicubic", "fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(scale), "scaling mode - see filter info", GF_PROP_UINT, "bicubic", "fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(p1), "scaling algo param1 - see filter info", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(p2), "scaling algo param2 - see filter info", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
@@ -388,7 +388,8 @@ static const GF_FilterCapability FFSWSCaps[] =
 
 GF_FilterRegister FFSWSRegister = {
 	.name = "ffsws",
-	GF_FS_SET_DESCRIPTION("FFMPEG video rescaler "LIBSWSCALE_IDENT)
+	.version=LIBSWSCALE_IDENT,
+	GF_FS_SET_DESCRIPTION("FFMPEG video rescaler")
 	GF_FS_SET_HELP("For bicubic, to tune the shape of the basis function, p1 tunes f(1) and p2 f´(1)\n"\
 				"For gauss p1 tunes the exponent and thus cutoff frequency\n"\
 				"For lanczos p1 tunes the width of the window function"\

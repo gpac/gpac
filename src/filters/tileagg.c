@@ -257,13 +257,13 @@ static const GF_FilterCapability TileAggCaps[] =
 
 static const GF_FilterArgs TileAggArgs[] =
 {
-	{ OFFS(drop), "Specify indexes of tiles to drop", GF_PROP_UINT_LIST, "", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(drop), "specify indexes of tiles to drop", GF_PROP_UINT_LIST, "", NULL, GF_FS_ARG_UPDATE},
 	{0}
 };
 
 GF_FilterRegister TileAggRegister = {
 	.name = "tileagg",
-	GF_FS_SET_DESCRIPTION("Video tile aggregator for HEVC")
+	GF_FS_SET_DESCRIPTION("HEVC tile aggregator")
 	.private_size = sizeof(GF_TileAggCtx),
 	SETCAPS(TileAggCaps),
 	.initialize = tileagg_initialize,
