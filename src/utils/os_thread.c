@@ -463,13 +463,14 @@ GF_Mutex *gf_mx_new(const char *name)
 
 #ifndef GPAC_DISABLE_LOG
 	if (name) {
-		tmp->log_name = gf_strdup(name);
+		if (stricmp(name, "Logs")) {
+			tmp->log_name = gf_strdup(name);
+		}
 	} else {
 		char szN[20];
 		sprintf(szN, "%p", (void*)tmp);
 		tmp->log_name = gf_strdup(szN);
 	}
-	assert( tmp->log_name);
 #endif
 
 	return tmp;
@@ -483,24 +484,37 @@ void gf_mx_del(GF_Mutex *mx)
 #endif
 	if (!mx) return;
 
-	if (mx->Holder) {
+#ifndef GPAC_DISABLE_LOG
+	if (mx->Holder && mx->log_name) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MUTEX, ("[Mutex %s] Destroying mutex from thread %s but hold by thread %s\n", mx->log_name, log_th_name(gf_th_id() ), log_th_name(mx->Holder) ));
 	}
-	
+#endif
+
 #ifdef WIN32
 	if (!CloseHandle(mx->hMutex)) {
-		DWORD err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] CloseHandle when deleting mutex failed with error code %d\n", mx->log_name, err));
+#ifndef GPAC_DISABLE_LOG
+		if (mx->log_name) {
+			DWORD err = GetLastError();
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] CloseHandle when deleting mutex failed with error code %d\n", mx->log_name, err));
+		}
+#endif
 	}
 #else
 	err = pthread_mutex_destroy(&mx->hMutex);
-	if (err)
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] pthread_mutex_destroy failed with error code %d\n", mx->log_name, err));
+	if (err) {
+#ifndef GPAC_DISABLE_LOG
+		if (mx->log_name) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] pthread_mutex_destroy failed with error code %d\n", mx->log_name, err));
+		}
+#endif
+	}
 
 #endif
 #ifndef GPAC_DISABLE_LOG
-	gf_free(mx->log_name);
-	mx->log_name = NULL;
+	if (mx->log_name) {
+		gf_free(mx->log_name);
+		mx->log_name = NULL;
+	}
 #endif
 	gf_free(mx);
 }
@@ -520,20 +534,32 @@ void gf_mx_v(GF_Mutex *mx)
 
 	if (mx->HolderCount == 0) {
 #ifndef GPAC_DISABLE_LOG
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Released by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder) ));
+		if (mx->log_name) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Released by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder) ));
+		}
 #endif
 		mx->Holder = 0;
 #ifdef WIN32
 		{
 			BOOL ret = ReleaseMutex(mx->hMutex);
 			if (!ret) {
-				DWORD err = GetLastError();
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't release mutex (thread %s, error %d)\n", log_th_name(mx->Holder), err));
+#ifndef GPAC_DISABLE_LOG
+				if (mx->log_name) {
+					DWORD err = GetLastError();
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't release mutex (thread %s, error %d)\n", log_th_name(mx->Holder), err));
+				}
+#endif
+
 			}
 		}
 #else
-		if (pthread_mutex_unlock(&mx->hMutex))
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't release mutex (thread %s)\n", log_th_name(mx->Holder)));
+		if (pthread_mutex_unlock(&mx->hMutex)) {
+#ifndef GPAC_DISABLE_LOG
+			if (mx->log_name) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't release mutex (thread %s)\n", log_th_name(mx->Holder)));
+			}
+#endif
+		}
 #endif
 	}
 }
@@ -558,7 +584,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 
 #ifndef GPAC_DISABLE_LOG
 	mx_holder_name = mx->Holder ? log_th_name(mx->Holder) : "none";
-	if (mx->Holder)
+	if (mx->Holder && mx->log_name)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Thread %s waiting a release from thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(caller), mx_holder_name ));
 #endif
 
@@ -574,10 +600,12 @@ u32 gf_mx_p(GF_Mutex *mx)
 	retCode = pthread_mutex_lock(&mx->hMutex);
 	if (retCode != 0 ) {
 #ifndef GPAC_DISABLE_LOG
-		if (retCode == EINVAL)
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Not properly initialized.\n", mx, mx->log_name));
-		if (retCode == EDEADLK)
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Deadlock detected.\n", mx, mx->log_name));
+		if (mx->log_name) {
+			if (retCode == EINVAL)
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Not properly initialized.\n", mx, mx->log_name));
+			if (retCode == EDEADLK)
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Deadlock detected.\n", mx, mx->log_name));
+		}
 #endif /* GPAC_DISABLE_LOG */
 		assert(0);
 		return 0;
@@ -585,7 +613,11 @@ u32 gf_mx_p(GF_Mutex *mx)
 #endif /* NOT WIN32 */
 	mx->HolderCount = 1;
 	mx->Holder = caller;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Grabbed by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder) ));
+#ifndef GPAC_DISABLE_LOG
+	if (mx->log_name) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Grabbed by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder) ));
+	}
+#endif
 	return 1;
 }
 
@@ -619,24 +651,40 @@ Bool gf_mx_try_lock(GF_Mutex *mx)
 		break;
 	case WAIT_ABANDONED:
 	case WAIT_TIMEOUT:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Couldn't be locked by thread %s (grabbed by thread %s)\n", mx->log_name, gf_sys_clock(), log_th_name(caller), log_th_name(mx->Holder) ));
+#ifndef GPAC_DISABLE_LOG
+		if (mx->log_name) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Couldn't be locked by thread %s (grabbed by thread %s)\n", mx->log_name, gf_sys_clock(), log_th_name(caller), log_th_name(mx->Holder) ));
+		}
+#endif
 		return GF_FALSE;
 	case WAIT_FAILED:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] At %d WaitForSingleObject failed\n", mx->log_name, gf_sys_clock()));
-		return GF_FALSE;
+#ifndef GPAC_DISABLE_LOG
+		if (mx->log_name) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] At %d WaitForSingleObject failed\n", mx->log_name, gf_sys_clock()));
+			return GF_FALSE;
+		}
+#endif
 	default:
 		assert(0);
 		return GF_FALSE;
 	}
 #else
 	if (pthread_mutex_trylock(&mx->hMutex) != 0 ) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Couldn't release it for thread %s (grabbed by thread %s)\n", mx->log_name, gf_sys_clock(), log_th_name(caller), log_th_name(mx->Holder) ));
+#ifndef GPAC_DISABLE_LOG
+		if (mx->log_name) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Couldn't release it for thread %s (grabbed by thread %s)\n", mx->log_name, gf_sys_clock(), log_th_name(caller), log_th_name(mx->Holder) ));
+		}
+#endif
 		return GF_FALSE;
 	}
 #endif
 	mx->Holder = caller;
 	mx->HolderCount = 1;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Grabbed by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder) ));
+#ifndef GPAC_DISABLE_LOG
+	if (mx->log_name) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Grabbed by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder) ));
+	}
+#endif
 	return GF_TRUE;
 }
 
