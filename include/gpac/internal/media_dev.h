@@ -341,6 +341,10 @@ typedef struct
 	Bool poc_proportional_to_timing_flag;
 	u32 num_ticks_poc_diff_one_minus1;
 
+	Bool video_full_range_flag;
+	Bool colour_description_present_flag;
+	u8 colour_primaries, transfer_characteristic, matrix_coeffs;
+
 	u32 rep_format_idx;
 } HEVC_SPS;
 
