@@ -4970,9 +4970,14 @@ GF_Err colr_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "ColourInformationBox", trace);
 	fprintf(trace, "colour_type=\"%s\"", gf_4cc_to_str(ptr->colour_type));
 
-	if (ptr->colour_type == GF_ISOM_SUBTYPE_NCLX) {
-		fprintf(trace, " colour_primaries=\"%d\" transfer_characteristics=\"%d\" matrix_coefficients=\"%d\" full_range_flag=\"%d\">\n",
-			(int)ptr->colour_primaries, (int)ptr->transfer_characteristics, (int)ptr->matrix_coefficients, ptr->full_range_flag);
+	if (ptr->colour_type == GF_ISOM_SUBTYPE_NCLX || ptr->colour_type == GF_ISOM_SUBTYPE_NCLC) {
+		fprintf(trace, " colour_primaries=\"%d\" transfer_characteristics=\"%d\" matrix_coefficients=\"%d\"",
+			(int)ptr->colour_primaries, (int)ptr->transfer_characteristics, (int)ptr->matrix_coefficients);
+
+		if (ptr->colour_type == GF_ISOM_SUBTYPE_NCLX) {
+			fprintf(trace, " full_range_flag=\"%d\"", ptr->full_range_flag);
+		}
+		fprintf(trace, ">\n");
 	} else if (ptr->colour_type == GF_ISOM_SUBTYPE_PROF || ptr->colour_type == GF_ISOM_SUBTYPE_RICC) {
 		fprintf(trace, ">\n");
 		if (ptr->opaque != NULL) {
