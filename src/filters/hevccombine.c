@@ -124,7 +124,7 @@ static void write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, 
 static void rewrite_pps_tile_grid(char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length, u8 num_tile_rows_minus1, u8 num_tile_columns_minus1, u32 uniform_spacing_flag, GF_HEVCSplitCtx *ctx)
 {
 	u64 length_no_use = 0;
-	u8 cu_qp_delta_enabled_flag, tiles_enabled_flag;
+	u8 cu_qp_delta_enabled_flag;
 	u32 loop_filter_flag;
 
 	GF_BitStream *bs_in;
@@ -158,8 +158,7 @@ static void rewrite_pps_tile_grid(char *in_PPS, u32 in_PPS_length, char **out_PP
 
 
 	gf_bs_read_int(bs_in, 1);
-	gf_bs_write_int(bs_out, 1, 1);//tiles_enable_flag ----from 0 to 1
-	tiles_enabled_flag = 1;//always enable
+	gf_bs_write_int(bs_out, 1, 1);
 	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1);//entropy_coding_sync_enabled_flag
 	bs_set_ue(bs_out, num_tile_columns_minus1);//write num_tile_columns_minus1
 	bs_set_ue(bs_out, num_tile_rows_minus1);//num_tile_rows_minus1
@@ -174,7 +173,7 @@ static void rewrite_pps_tile_grid(char *in_PPS, u32 in_PPS_length, char **out_PP
 		for (i = 0; i < num_tile_rows_minus1; i++)
 			bs_set_ue(bs_out, (ctx->tile_prop[i].height / 64 - 1)); // row_height_minus1[i]
 	}
-	loop_filter_flag = 1; // loop_filter_across_tiles_enabled_flag
+	loop_filter_flag = 1;
 	gf_bs_write_int(bs_out, loop_filter_flag, 1);
 
 	loop_filter_flag = gf_bs_read_int(bs_in, 1);
