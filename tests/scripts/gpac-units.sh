@@ -112,6 +112,21 @@ do_test "$GPAC fin:src=blob inspect" "setupfail"
 fi
 test_end
 
+test_begin "gpac-genmd"
+if [ $test_skip != 1 ] ; then
+do_test "$GPAC -genmd" "genmd"
+rm filter*.md
+rm core*.md
+rm _Side*.md
+rm gpac*.md
+fi
+test_end
+
+test_begin "gpac-reporting"
+if [ $test_skip != 1 ] ; then
+do_test "$GPAC -i media/auxiliary_files/enst_video.h264 inspect -r -logs=filter@debug" "reports"
+fi
+test_end
 
 test_begin "gpac-uncache"
 if [ test_skip != 1 ] ; then
