@@ -696,8 +696,10 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	u32 i, count, nb_active;
 	u64 now;
 	GF_SystemRTInfo rti;
+
 	if (is_init) {
 		gf_sys_set_console_code(stderr, GF_CONSOLE_SAVE);
+
 		logs_to_file = gf_sys_logs_to_file();
 		if (!logs_to_file) {
 			if (!nb_log_entries) nb_log_entries = 1;
@@ -714,7 +716,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 		return;
 
 	last_report_clock_us = now;
-	if (!is_final) 
+	if (!is_final)
 		gf_sys_set_console_code(stderr, GF_CONSOLE_CLEAR);
 
 	gf_sys_get_rti(100, &rti, 0);

@@ -405,7 +405,11 @@ static Bool is_mintty = GF_FALSE;
 GF_EXPORT
 void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 {
-	u32 color_code = code & 0xFFFF;
+	u32 color_code;
+
+	if (gf_sys_is_test_mode())
+		return;
+	color_code = code & 0xFFFF;
 #if defined(GPAC_CONFIG_WIN32)
 	WORD attribs=0;
 	if (!is_mintty && (console == NULL)) {
