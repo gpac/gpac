@@ -297,14 +297,14 @@ static const GF_FilterCapability WebVTTMxCaps[] =
 static const GF_FilterArgs WebVTTMxArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(merge), "merges VTT cue if needed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(merge), "merge VTT cue if needed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 
 GF_FilterRegister WebVTTMxRegister = {
 	.name = "writevtt",
-	GF_FS_SET_DESCRIPTION("WebVTT file writer")
+	GF_FS_SET_DESCRIPTION("WebVTT writer")
 	.private_size = sizeof(GF_WebVTTMxCtx),
 	.args = WebVTTMxArgs,
 	.finalize = vttmx_finalize,

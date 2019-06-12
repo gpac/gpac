@@ -278,7 +278,7 @@ static GF_FilterArgs RawVidReframeArgs[] =
 {
 	{ OFFS(size), "source video resolution", GF_PROP_VEC2I, "0x0", NULL, 0},
 	{ OFFS(spfmt), "source pixel format. When not set, derived from file extension", GF_PROP_PIXFMT, "none", NULL, 0},
-	{ OFFS(fps), "frames per second", GF_PROP_FRACTION, "25/1", NULL, 0},
+	{ OFFS(fps), "number of frames per second", GF_PROP_FRACTION, "25/1", NULL, 0},
 	{ OFFS(copy), "copy source bytes into output frame. If not set, source bytes are referenced only", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
@@ -286,7 +286,7 @@ static GF_FilterArgs RawVidReframeArgs[] =
 
 GF_FilterRegister RawVidReframeRegister = {
 	.name = "rfrawvid",
-	GF_FS_SET_DESCRIPTION("RAW video (YUV, RGB) reframer")
+	GF_FS_SET_DESCRIPTION("RAW video reframer")
 	.private_size = sizeof(GF_RawVidReframeCtx),
 	.args = RawVidReframeArgs,
 	SETCAPS(RawVidReframeCaps),

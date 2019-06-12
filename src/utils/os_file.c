@@ -850,20 +850,22 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 	FILE *res = NULL;
 
 	if (strchr(mode, 'w')) {
-		char *sep = strchr(file_name, '/');
-		if (!sep) sep = strchr(file_name, '\\');
-		if (file_name[0] == '/') sep = strchr(file_name+1, '/');
-		else if (file_name[2] == '\\') sep = strchr(file_name+3, '\\');
+		char *fname = gf_strdup(file_name);
+		char *sep = strchr(fname, '/');
+		if (!sep) sep = strchr(fname, '\\');
+		if (file_name[0] == '/') sep = strchr(fname+1, '/');
+		else if (file_name[2] == '\\') sep = strchr(fname+3, '\\');
 
 		while (sep) {
 			char *n_sep;
 			char c = sep[0];
 			sep[0] = 0;
-			if (!gf_dir_exists(file_name)) {
-				GF_Err e = gf_mkdir(file_name);
+			if (!gf_dir_exists(fname)) {
+				GF_Err e = gf_mkdir(fname);
 				if (e != GF_OK) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Failed to create directory %s: %s\n", file_name, gf_error_to_string(e) ));
 					sep[0] = c;
+					gf_free(fname);
 					return NULL;
 				}
 			}
@@ -872,6 +874,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 			if (!n_sep) n_sep = strchr(sep+1, '\\');
 			sep = n_sep;
 		}
+		gf_free(fname);
 	}
 
 #if defined(WIN32)

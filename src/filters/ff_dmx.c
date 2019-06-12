@@ -607,7 +607,8 @@ static const GF_FilterCapability FFDmxCaps[] =
 
 GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
-	GF_FS_SET_DESCRIPTION("FFMPEG demuxer "LIBAVFORMAT_IDENT)
+	.version=LIBAVFORMAT_IDENT,
+	GF_FS_SET_DESCRIPTION("FFMPEG demuxer")
 	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on demuxers options")
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFDmxCaps),
@@ -629,7 +630,7 @@ void ffdmx_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
 static const GF_FilterArgs FFDemuxArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
-	{ "*", -1, "Any possible args defined for AVFormatContext and sub-classes", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "any possible args defined for AVFormatContext and sub-classes. See `gpac -hx ffdmx` and `gpac -hx ffdmx:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
@@ -660,7 +661,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 	args = gf_malloc(sizeof(GF_FilterArgs)*(i+1));
 	memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
 	FFDemuxRegister.args = args;
-	args[0] = (GF_FilterArgs){ OFFS(src), "Source URL", GF_PROP_STRING, NULL, NULL, 0} ;
+	args[0] = (GF_FilterArgs){ OFFS(src), "location of source content", GF_PROP_STRING, NULL, NULL, 0} ;
 	i=0;
 	while (dmx_ctx->av_class->option) {
 		opt = &dmx_ctx->av_class->option[i];
@@ -668,7 +669,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 		args[i+1] = ffmpeg_arg_translate(opt);
 		i++;
 	}
-	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
+	args[i+1] = (GF_FilterArgs) { "*", -1, "meta options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
 
 	avformat_free_context(dmx_ctx);
 
@@ -886,7 +887,8 @@ static const GF_FilterCapability FFAVInCaps[] =
 
 GF_FilterRegister FFAVInRegister = {
 	.name = "ffavin",
-	GF_FS_SET_DESCRIPTION("FFMPEG Audio Video Capture "LIBAVDEVICE_IDENT)
+	.version = LIBAVDEVICE_IDENT,
+	GF_FS_SET_DESCRIPTION("FFMPEG AV Capture")
 	GF_FS_SET_HELP("Typical classes ar 'dshow' on windows, 'avfoundation' on OSX, 'video4linux2' or 'x11grab' on linux\n\n"\
 	"Typical device name can be the webcam name:\n"\
 		"'FaceTime HD Camera' on OSX, device name on windows, '/dev/video0' on linux\n"\
@@ -911,12 +913,17 @@ static const GF_FilterArgs FFAVInArgs[] =
 	{ OFFS(src), "url of device, video:// audio:// or av://", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(fmt), "name of device class - see filter help. If not set, defaults to first device class", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(dev), "name of device or index of device - see filter help", GF_PROP_STRING, "0", NULL, 0},
-	{ OFFS(copy), "Copy raw frames rather instead of sharing them", GF_PROP_UINT, "A", "NO|A|V|AV", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sclock), "Use system clock (us) instead of device timestamp (for buggy devices)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(probes), "Probes a given number of video frames before emitting - this usually helps with bad timing of the first frames", GF_PROP_UINT, "10", "0-100", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(copy), "set copy mode of raw frames\n"
+	"- N: frames are only forwarded (shared memory, no copy)\n"
+	"- A: audio frames are copied, video frames are forwarded\n"
+	"- V: video frames are copied, audio frames are forwarded\n"
+	"- AV: all frames are copied"
+	"", GF_PROP_UINT, "A", "N|A|V|AV", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sclock), "use system clock (us) instead of device timestamp (for buggy devices)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(probes), "probe a given number of video frames before emitting - this usually helps with bad timing of the first frames", GF_PROP_UINT, "10", "0-100", GF_FS_ARG_HINT_EXPERT},
 
 
-	{ "*", -1, "Any possible args defined for AVInputFormat and AVFormatContext", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "any possible args defined for AVInputFormat and AVFormatContext. See `gpac -hx ffavin` and `gpac -hx ffavin:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 

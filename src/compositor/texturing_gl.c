@@ -828,7 +828,7 @@ Bool gf_sc_texture_convert(GF_TextureHandler *txh)
 		goto common;
 
 	case GF_PIXEL_RGBD:
-		if ((txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) || (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_VBO)) {
+		if (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) {
 			bpp = 4;
 			break;
 		}
@@ -946,7 +946,7 @@ common:
 			txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 		break;
 	case GF_PIXEL_YUVD:
-		if ((txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) || (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_VBO)) {
+		if (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) {
 			src.pixel_format = GF_PIXEL_YUV;
 			txh->tx_io->conv_format = GF_PIXEL_RGB_DEPTH;
 			dst.pixel_format = GF_PIXEL_RGB;
@@ -964,7 +964,7 @@ common:
 		txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 		break;
 	case GF_PIXEL_RGBD:
-		if ((txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) || (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_VBO)) {
+		if (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) {
 			dst.pitch_y = 3*txh->width;
 			txh->tx_io->conv_format = GF_PIXEL_RGB_DEPTH;
 			dst.pixel_format = GF_PIXEL_RGB;

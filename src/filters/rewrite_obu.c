@@ -392,14 +392,14 @@ static const GF_FilterCapability OBUMxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_OBUMxCtx, _n)
 static const GF_FilterArgs OBUMxArgs[] =
 {
-	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(rcfg), "force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, 0},
 	{0}
 };
 
 
 GF_FilterRegister OBUMxRegister = {
 	.name = "ufobu",
-	GF_FS_SET_DESCRIPTION("OBU to IVF/OBU/annexB writer")
+	GF_FS_SET_DESCRIPTION("IVF/OBU/annexB writer")
 	GF_FS_SET_HELP("The OBU rewrite filter is used to rewrite the OBU bitstream into IVF, annex B or OBU sequence, reinserting the temporal delimiter OBU")
 	.private_size = sizeof(GF_OBUMxCtx),
 	.args = OBUMxArgs,

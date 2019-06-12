@@ -2874,7 +2874,7 @@ static const GF_FilterArgs TXTInArgs[] =
 
 GF_FilterRegister TXTInRegister = {
 	.name = "txtin",
-	GF_FS_SET_DESCRIPTION("Timed text  SRT, SUB, TTXT, QT-TeXML, WebVTT, TTML and SWF2SVG loader")
+	GF_FS_SET_DESCRIPTION("Subtitle loader")
 	.private_size = sizeof(GF_TXTIn),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = TXTInArgs,

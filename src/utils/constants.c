@@ -431,23 +431,24 @@ typedef struct
 {
 	u32 sfmt;
 	const char *name; //as used in gpac
+	const char *desc;
 	const char *sname; //short name, as used in gpac
 } GF_AudioFmt;
 
 static const GF_AudioFmt GF_AudioFormats[] =
 {
-	{GF_AUDIO_FMT_U8, "u8", "pc8"},
-	{GF_AUDIO_FMT_S16, "s16", "pcm"},
-	{GF_AUDIO_FMT_S24, "s24"},
-	{GF_AUDIO_FMT_S32, "s32"},
-	{GF_AUDIO_FMT_FLT, "flt"},
-	{GF_AUDIO_FMT_DBL, "dbl"},
-	{GF_AUDIO_FMT_U8P, "u8p", "pc8p"},
-	{GF_AUDIO_FMT_S16P, "s16p", "pcmp"},
-	{GF_AUDIO_FMT_S24P, "s24p"},
-	{GF_AUDIO_FMT_S32P, "s32p"},
-	{GF_AUDIO_FMT_FLTP, "fltp"},
-	{GF_AUDIO_FMT_DBLP, "dblp"},
+	{GF_AUDIO_FMT_U8, "u8", "8 bit PCM", "pc8"},
+	{GF_AUDIO_FMT_S16, "s16", "16 bit PCM Little Endian", "pcm"},
+	{GF_AUDIO_FMT_S24, "s24", "24 bit PCM"},
+	{GF_AUDIO_FMT_S32, "s32", "32 bit PCM Little Endian"},
+	{GF_AUDIO_FMT_FLT, "flt", "32-bit floating point PCM"},
+	{GF_AUDIO_FMT_DBL, "dbl", "64-bit floating point PCM"},
+	{GF_AUDIO_FMT_U8P, "u8p", "8 bit PCM planar", "pc8p"},
+	{GF_AUDIO_FMT_S16P, "s16p", "16 bit PCM Little Endian planar", "pcmp"},
+	{GF_AUDIO_FMT_S24P, "s24p", "24 bit PCM planar"},
+	{GF_AUDIO_FMT_S32P, "s32p", "32 bit PCM Little Endian planar"},
+	{GF_AUDIO_FMT_FLTP, "fltp", "32-bit floating point PCM planar"},
+	{GF_AUDIO_FMT_DBLP, "dblp", "64-bit floating point PCM planar"},
 	{0}
 };
 
@@ -552,6 +553,23 @@ const char *gf_audio_fmt_all_shortnames()
 }
 
 GF_EXPORT
+u32 gf_audio_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **desc)
+{
+	u32 nb_afmt = sizeof(GF_AudioFormats) / sizeof(GF_AudioFmt);
+	if (*idx >= nb_afmt) return 0;
+	if (!GF_AudioFormats[*idx].sfmt) return 0;
+
+	*name = GF_AudioFormats[*idx].name;
+	*desc = GF_AudioFormats[*idx].desc;
+
+	*fileext = GF_AudioFormats[*idx].sname;
+	if (! *fileext) *fileext = *name;
+	nb_afmt = GF_AudioFormats[*idx].sfmt;
+	(*idx)++;
+	return nb_afmt;
+}
+
+GF_EXPORT
 u32 gf_audio_fmt_bit_depth(u32 audio_fmt)
 {
 	switch (audio_fmt) {
@@ -621,47 +639,48 @@ typedef struct
 {
 	u32 pixfmt;
 	const char *name; //as used in gpac
+	const char *desc; //as used in gpac
 	const char *sname; //short name, as used in gpac
 } GF_PixFmt;
 
 static const GF_PixFmt GF_PixelFormats[] =
 {
-	{GF_PIXEL_YUV, "yuv420", "yuv"},
-	{GF_PIXEL_YUV_10, "yuv420_10", "yuvl"},
-	{GF_PIXEL_YUV422, "yuv422", "yuv2"},
-	{GF_PIXEL_YUV422_10, "yuv422_10", "yp2l"},
-	{GF_PIXEL_YUV444, "yuv444", "yuv4"},
-	{GF_PIXEL_YUV444_10, "yuv444_10", "yp4l"},
-	{GF_PIXEL_UYVY, "uyvy"},
-	{GF_PIXEL_VYUY, "vyuy"},
-	{GF_PIXEL_YUYV, "yuyv"},
-	{GF_PIXEL_YVYU, "yvyu"},
-	{GF_PIXEL_NV12, "nv12"},
-	{GF_PIXEL_NV21, "nv21"},
-	{GF_PIXEL_NV12_10, "nv1l"},
-	{GF_PIXEL_NV21_10, "nv2l"},
-	{GF_PIXEL_YUVA, "yuva"},
-	{GF_PIXEL_YUVD, "yuvd"},
-	{GF_PIXEL_GREYSCALE, "grey"},
-	{GF_PIXEL_ALPHAGREY, "algr"},
-	{GF_PIXEL_GREYALPHA, "gral"},
-	{GF_PIXEL_RGB_444, "rgb4"},
-	{GF_PIXEL_RGB_555, "rgb5"},
-	{GF_PIXEL_RGB_565, "rgb6"},
-	{GF_PIXEL_RGBA, "rgba"},
-	{GF_PIXEL_ARGB, "argb"},
-	{GF_PIXEL_BGRA, "bgra"},
-	{GF_PIXEL_ABGR, "abgr"},
-	{GF_PIXEL_RGB, "rgb"},
-	{GF_PIXEL_BGR, "bgr"},
-	{GF_PIXEL_XRGB, "xrgb"},
-	{GF_PIXEL_RGBX, "rgbx"},
-	{GF_PIXEL_XBGR, "xbgr"},
-	{GF_PIXEL_BGRX, "bgrx"},
-	{GF_PIXEL_RGBD, "rgbd"},
-	{GF_PIXEL_RGBDS, "rgbds"},
-	{GF_PIXEL_RGBS, "rgbs"},
-	{GF_PIXEL_RGBAS, "rgbas"},
+	{GF_PIXEL_YUV, "yuv420", "Planar YUV 420 8 bit", "yuv"},
+	{GF_PIXEL_YUV_10, "yuv420_10", "Planar YUV 420 10 bit", "yuvl"},
+	{GF_PIXEL_YUV422, "yuv422", "Planar YUV 422 8 bit", "yuv2"},
+	{GF_PIXEL_YUV422_10, "yuv422_10", "Planar YUV 422 10 bit", "yp2l"},
+	{GF_PIXEL_YUV444, "yuv444", "Planar YUV 444 8 bit", "yuv4"},
+	{GF_PIXEL_YUV444_10, "yuv444_10", "Planar YUV 444 10 bit", "yp4l"},
+	{GF_PIXEL_UYVY, "uyvy", "Planar UYVY 422 8 bit"},
+	{GF_PIXEL_VYUY, "vyuy", "Planar VYUV 422 8 bit"},
+	{GF_PIXEL_YUYV, "yuyv", "Planar YUYV 422 8 bit"},
+	{GF_PIXEL_YVYU, "yvyu", "Planar YVYU 422 8 bit"},
+	{GF_PIXEL_NV12, "nv12", "Semi-planar YUV 420 8 bit, Y plane and UV plane"},
+	{GF_PIXEL_NV21, "nv21", "Semi-planar YUV 420 8 bit, Y plane and VU plane"},
+	{GF_PIXEL_NV12_10, "nv1l", "Semi-planar YUV 420 10 bit, Y plane and UV plane"},
+	{GF_PIXEL_NV21_10, "nv2l", "Semi-planar YUV 420 8 bit, Y plane and VU plane"},
+	{GF_PIXEL_YUVA, "yuva", "Planar YUV+alpha 420 8 bit"},
+	{GF_PIXEL_YUVD, "yuvd", "Planar YUV+depth  420 8 bit"},
+	{GF_PIXEL_GREYSCALE, "grey", "Greyscale 8 bit"},
+	{GF_PIXEL_ALPHAGREY, "algr", "Alpha+Grey 8 bit"},
+	{GF_PIXEL_GREYALPHA, "gral", "Grey+Alpha 8 bit"},
+	{GF_PIXEL_RGB_444, "rgb4", "RGB 444, 12 bits (16 stored) / pixel"},
+	{GF_PIXEL_RGB_555, "rgb5", "RGB 555, 15 bits (16 stored) / pixel"},
+	{GF_PIXEL_RGB_565, "rgb6", "RGB 555, 16 bits / pixel"},
+	{GF_PIXEL_RGBA, "rgba", "RGBA 32 bits (8 bits / component)"},
+	{GF_PIXEL_ARGB, "argb", "ARGB 32 bits (8 bits / component)"},
+	{GF_PIXEL_BGRA, "bgra", "BGRA 32 bits (8 bits / component)"},
+	{GF_PIXEL_ABGR, "abgr", "ABGR 32 bits (8 bits / component)"},
+	{GF_PIXEL_RGB, "rgb", "RGB 24 bits (8 bits / component)"},
+	{GF_PIXEL_BGR, "bgr", "BGR 24 bits (8 bits / component)"},
+	{GF_PIXEL_XRGB, "xrgb", "xRGB 32 bits (8 bits / component)"},
+	{GF_PIXEL_RGBX, "rgbx", "RGBx 32 bits (8 bits / component)"},
+	{GF_PIXEL_XBGR, "xbgr", "xBGR 32 bits (8 bits / component)"},
+	{GF_PIXEL_BGRX, "bgrx", "BGRx 32 bits (8 bits / component)"},
+	{GF_PIXEL_RGBD, "rgbd", "RGB+depth 32 bits (8 bits / component)"},
+	{GF_PIXEL_RGBDS, "rgbds", "RGB+depth+bit shape (8 bits / RGB component, 7 bit depth (low bits) + 1 bit shape)"},
+	{GF_PIXEL_RGBS, "rgbs", "RGB 24 bits stereo (side-by-side) - to be removed\n"},
+	{GF_PIXEL_RGBAS, "rgbas", "RGBA 32 bits stereo (side-by-side) - to be removed\n"},
 	{0}
 };
 
@@ -707,6 +726,23 @@ const char *gf_pixel_fmt_sname(u32 pfmt)
 	return "unknown";
 
 }
+
+GF_EXPORT
+u32 gf_pixel_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **description)
+{
+	u32 nb_pfmt = sizeof(GF_PixelFormats) / sizeof(GF_PixFmt);
+	if (*idx >= nb_pfmt) return 0;
+	if (! GF_PixelFormats[*idx].pixfmt) return 0;
+
+	*name = GF_PixelFormats[*idx].name;
+	*fileext = GF_PixelFormats[*idx].sname;
+	if (! *fileext) *fileext = *name;
+	*description = GF_PixelFormats[*idx].desc;
+	nb_pfmt = GF_PixelFormats[*idx].pixfmt;
+	(*idx)++;
+	return nb_pfmt;
+}
+
 
 static char szAllPixelFormats[5000] = {0};
 

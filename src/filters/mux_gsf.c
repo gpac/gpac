@@ -1082,14 +1082,17 @@ static const GF_FilterArgs GSFMxArgs[] =
 	{ OFFS(sigdur), "signal duration", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigbo), "signal byte offset", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigdts), "signal decoding timestamp", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(dbg), "debug mode, skips packet or force packet size to 0", GF_PROP_UINT, "no", "no|nodata|nopck", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(key), "encrypts packets using given key - see filter helps", GF_PROP_DATA, NULL, NULL, 0},
-	{ OFFS(IV), "sets IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)", GF_PROP_DATA, NULL, NULL, 0},
-	{ OFFS(pattern), "sets nb crypt / nb_skip block pattern. default is all encrypted", GF_PROP_FRACTION, "1/0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(mpck), "sets max packet size. 0 means no fragmentation (each AU is sent in one packet)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dbg), "set debug mode\n"
+	"- no: disable debug\n"
+	"- nodata: force packet size to 0\n"
+	"- nopck: skip packet", GF_PROP_UINT, "no", "no|nodata|nopck", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(key), "encrypt packets using given key - see filter helps", GF_PROP_DATA, NULL, NULL, 0},
+	{ OFFS(IV), "set IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)", GF_PROP_DATA, NULL, NULL, 0},
+	{ OFFS(pattern), "set nb crypt / nb_skip block pattern. default is all encrypted", GF_PROP_FRACTION, "1/0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mpck), "set max packet size. 0 means no fragmentation (each AU is sent in one packet)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(magic), "magic string to append in setup packet", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(skp), "comma separated list of pid property names to skip - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(minp), "includes only the minimum set of properties required for stream processing - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(minp), "include only the minimum set of properties required for stream processing - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(crate), "carousel period for tune-in info in seconds - see filter help", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
@@ -1097,8 +1100,9 @@ static const GF_FilterArgs GSFMxArgs[] =
 
 GF_FilterRegister GSFMxRegister = {
 	.name = "gsfm",
-	GF_FS_SET_DESCRIPTION("GPAC Super/Simple/Serialized/Stream/State Format multiplexer")
-	GF_FS_SET_HELP("This filter serializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs. "
+	GF_FS_SET_DESCRIPTION("GSF Muxer")
+	GF_FS_SET_HELP("# GPAC Super/Simple/Serialized/Stream/State Format multiplexer\n"
+			"This filter serializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs. "
 			"This allows either saving to file a session, or forwarding the state/data of streams to another instance of GPAC "
 			"using either pipes or sockets. Upstream events are not serialized.\n"
 			"\n"

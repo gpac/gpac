@@ -286,7 +286,7 @@ static const GF_FilterCapability TheoraDecCaps[] =
 
 GF_FilterRegister TheoraDecRegister = {
 	.name = "theoradec",
-	GF_FS_SET_DESCRIPTION("OGG/Theora decoder")
+	GF_FS_SET_DESCRIPTION("Theora decoder")
 	.private_size = sizeof(GF_TheoraDecCtx),
 	.priority = 1,
 	SETCAPS(TheoraDecCaps),

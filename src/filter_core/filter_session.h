@@ -277,7 +277,7 @@ struct __gf_fs_task
 };
 
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
-void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool requires_main_thread);
+void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool requires_main_thread, Bool force_direct_call);
 
 void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filter, const char *name, const char *val, u32 propagate_mask);
 void gf_filter_pid_send_event_downstream(GF_FSTask *task);
@@ -338,6 +338,10 @@ struct __gf_filter_session
 
 	GF_Mutex *props_mx;
 
+	GF_Mutex *info_mx;
+
+	GF_Mutex *ui_mx;
+
 	GF_List *threads;
 	GF_SessionThread main_th;
 
@@ -359,6 +363,7 @@ struct __gf_filter_session
 	Bool disable_blocking;
 	Bool in_final_flush;
 
+	Bool reporting_on;
 	/*user defined callback for all functions - cannot be NULL*/
 	void *ui_opaque;
 	/*the event proc. Return value depend on the event type, usually 0
@@ -646,6 +651,9 @@ struct __gf_filter
 	Bool no_dst_arg_inherit;
 	GF_List *source_filters;
 
+	char *status_str;
+	u32 status_str_alloc, status_percent;
+
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
@@ -758,6 +766,7 @@ struct __gf_filter_pid
 	Bool destroyed;
 	Bool not_connected_ok;
 	Bool removed;
+	Bool direct_dispatch;
 	volatile u32 discard_input_packets;
 	volatile u32 init_task_pending;
 	volatile Bool props_changed_since_connect;
@@ -783,6 +792,8 @@ struct __gf_filter_pid
 	u64 buffer_duration;
 	//true if the pid carries raw media
 	Bool raw_media;
+	//for stats only
+	u32 stream_type, codecid;
 
 	volatile u32 would_block; // concurrent set
 	volatile u32 nb_decoder_inputs;
@@ -931,6 +942,8 @@ typedef struct __freg_desc
 #ifdef GPAC_MEMORY_TRACKING
 size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free);
 #endif
+
+void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dispatch);
 
 #endif //_GF_FILTER_SESSION_H_
 

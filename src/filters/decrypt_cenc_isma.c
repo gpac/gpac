@@ -1220,14 +1220,14 @@ static const GF_FilterCapability CENCDecCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_CENCDecCtx, _n)
 static const GF_FilterArgs GF_CENCDecArgs[] =
 {
-	{ OFFS(cfile), "Crypt file - see filter help", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(cfile), "crypt file location - see filter help", GF_PROP_STRING, NULL, NULL, 0},
 	{0}
 };
 
 GF_FilterRegister CENCDecRegister = {
 	.name = "cdcrypt",
-	GF_FS_SET_DESCRIPTION("CENC, ISMA and adobe decryptor")
-	GF_FS_SET_HELP("The CENC/ISMA decryptor uses a configuration file for retrieving keys. The syntax is available at:\n"\
+	GF_FS_SET_DESCRIPTION("CENC decryptor")
+	GF_FS_SET_HELP("The CENC decryptor supports decrypting CENC, ISMA and Adobe streams. It uses a configuration file for retrieving keys. The syntax is available at:\n"\
 			"https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/\n"\
 			"The file can be set per PID using the property DecryptFile (highest priority), CryptFile (lower priority)\n"\
 			 "or set at the filter option level (lowest priority).\n"\

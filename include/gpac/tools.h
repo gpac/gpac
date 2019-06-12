@@ -525,6 +525,22 @@ GF_Err gf_log_modify_tools_levels(const char *val);
 */
 void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level);
 
+/*!
+ *	\brief Checks if color logs is enabled
+ *
+ * Checks if color logs is enabled
+ *	\return GF_TRUE if color logs are used
+*/
+Bool gf_sys_logs_color();
+
+/*!
+ *	\brief Checks if logs are stored to file
+ *
+ *Checks if logs are stored to file
+ *	\return GF_TRUE if logs are stored to file
+*/
+Bool gf_sys_logs_to_file();
+
 #ifdef GPAC_DISABLE_LOG
 #define GF_LOG(_ll, _lm, __args)
 #else
@@ -568,10 +584,25 @@ typedef enum
 	/*!set text to white*/
 	GF_CONSOLE_WHITE,
 	/*!set text to magenta*/
-	GF_CONSOLE_MAGENTA
-} GF_ConsoleColor;
+	GF_CONSOLE_MAGENTA,
+	/*!reset all console text*/
+	GF_CONSOLE_CLEAR,
+	/*!save console state*/
+	GF_CONSOLE_SAVE,
+	/*!restore console state*/
+	GF_CONSOLE_RESTORE,
 
-void gf_sys_set_term_color(FILE *std, GF_ConsoleColor color_code);
+	/*!set text to bold modifier*/
+	GF_CONSOLE_BOLD = 1<<16,
+	/*!set text to italic*/
+	GF_CONSOLE_ITALIC = 1<<17,
+	/*!set text to underlined*/
+	GF_CONSOLE_UNDERLINED = 1<<18,
+	/*!set text to strikethrough*/
+	GF_CONSOLE_STRIKE = 1<<19
+} GF_ConsoleCodes;
+
+void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code);
 
 /*!
  *	\brief PseudoRandom Integer Generation Initialization
@@ -1161,6 +1192,8 @@ u32 gf_opts_get_key_count(const char *secName);
 const char *gf_opts_get_key_name(const char *secName, u32 keyIndex);
 Bool gf_opts_get_bool(const char *secName, const char *keyName);
 u32 gf_opts_get_int(const char *secName, const char *keyName);
+//same as gf_opts_get_key but returns NULL if the key is not restricted
+const char *gf_opts_get_key_restricted(const char *secName, const char *keyName);
 
 /*!
  * Do not save modification to global options

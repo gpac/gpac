@@ -190,6 +190,12 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 	p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_CODECID);
 	if (p) codecid = p->value.uint;
 
+	p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_STREAM_TYPE);
+	if (p) mtype = p->value.uint;
+
+	pid->stream_type = mtype;
+	pid->codecid = codecid;
+
 	if (pid->user_max_buffer_time) {
 		pid->max_buffer_time = pid->user_max_buffer_time;
 		pid->max_buffer_unit = 0;
@@ -222,8 +228,6 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 		pid->max_buffer_unit = 0;
 	}
 
-	p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_STREAM_TYPE);
-	if (p) mtype = p->value.uint;
 
 	//output is a decoded raw stream: if some input has same type but different codecid this is a decoder
 	//set input buffer size
@@ -3602,7 +3606,7 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 	assert(filter->freg->configure_pid);
 	safe_int_inc(&filter->session->pid_connect_tasks_pending);
 	safe_int_inc(&filter->in_pid_connection_pending);
-	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE);
+	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE, GF_FALSE);
 }
 
 
@@ -3761,6 +3765,10 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 	}
 	//info property, do not request a new property map
 	if (is_info) {
+		if (value && (value->type==GF_PROP_POINTER)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set info property of type pointer is forbidden (filter %s) - ignoring\n", pid->filter->name));
+			return GF_BAD_PARAM;
+		}
 		map = pid->infos;
 		if (!map) {
 			map = pid->infos = gf_props_new(pid->filter);
@@ -3946,26 +3954,32 @@ const GF_PropertyEntry *gf_filter_pid_get_property_entry_str(GF_FilterPid *pid, 
 	return gf_props_get_property_entry(map, 0, prop_name);
 }
 
-static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name)
+static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name, Bool first_call)
 {
 	u32 i, count;
-	const GF_PropertyValue * prop;
-	GF_PropertyMap *map = filter_pid_get_prop_map(pid, GF_FALSE);
+	const GF_PropertyValue * prop = NULL;
+	GF_PropertyMap *map;
+	if (first_call) {
+		gf_mx_p(pid->filter->session->info_mx);
+	}
+	map = filter_pid_get_prop_map(pid, GF_FALSE);
+
 	if (map) {
 		prop = gf_props_get_property(map, prop_4cc, prop_name);
-		if (prop) return prop;
+		if (prop) goto exit;
 	}
 	if (pid->pid->infos) {
 		prop = gf_props_get_property(pid->pid->infos, prop_4cc, prop_name);
-		if (prop) return prop;
+		if (prop) goto exit;
 	}
 	if (PID_IS_OUTPUT(pid)) {
-		return NULL;
+		prop = NULL;
+		goto exit;
 	}
 	pid = pid->pid;
 	if (pid->infos) {
 		prop = gf_props_get_property(pid->infos, prop_4cc, prop_name);
-		if (prop) return prop;
+		if (prop) goto exit;
 	}
 
 	count = gf_list_count(pid->filter->input_pids);
@@ -3973,22 +3987,28 @@ static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid
 		GF_FilterPid *pidinst = gf_list_get(pid->filter->input_pids, i);
 		if (!pidinst->pid) continue;
 		
-		prop = gf_filter_pid_get_info_internal(pidinst->pid, prop_4cc, prop_name);
-		if (prop) return prop;
+		prop = gf_filter_pid_get_info_internal(pidinst->pid, prop_4cc, prop_name, GF_FALSE);
+		if (prop) goto exit;
 	}
-	return NULL;
+	prop = NULL;
+
+exit:
+	if (first_call) {
+		gf_mx_v(pid->filter->session->info_mx);
+	}
+	return prop;
 }
 
 GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc)
 {
-	return gf_filter_pid_get_info_internal(pid, prop_4cc, NULL);
+	return gf_filter_pid_get_info_internal(pid, prop_4cc, NULL, GF_TRUE);
 }
 
 GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *pid, const char *prop_name)
 {
-	return gf_filter_pid_get_info_internal(pid, 0, prop_name);
+	return gf_filter_pid_get_info_internal(pid, 0, prop_name, GF_TRUE);
 }
 
 GF_EXPORT
@@ -4034,19 +4054,28 @@ static const GF_PropertyValue *gf_filter_get_info_internal(GF_Filter *filter, u3
 	u32 i, count;
 	const GF_PropertyValue * prop;
 
+	gf_mx_p(filter->session->info_mx);
+
 	//TODO avoid doing back and forth ...
 	count = gf_list_count(filter->output_pids);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
-		prop = gf_filter_pid_get_info_internal(pid, prop_4cc, prop_name);
-		if (prop) return prop;
+		prop = gf_filter_pid_get_info_internal(pid, prop_4cc, prop_name, GF_FALSE);
+		if (prop) {
+			gf_mx_v(filter->session->info_mx);
+			return prop;
+		}
 	}
 	count = gf_list_count(filter->input_pids);
 	for (i=0; i<count; i++) {
 		GF_FilterPidInst *pidinst = gf_list_get(filter->input_pids, i);
-		prop = gf_filter_pid_get_info_internal(pidinst->pid, prop_4cc, prop_name);
-		if (prop) return prop;
+		prop = gf_filter_pid_get_info_internal(pidinst->pid, prop_4cc, prop_name, GF_FALSE);
+		if (prop) {
+			gf_mx_v(filter->session->info_mx);
+			return prop;
+		}
 	}
+	gf_mx_v(filter->session->info_mx);
 	return NULL;
 }
 
@@ -5984,3 +6013,15 @@ Bool gf_filter_pid_is_playing(GF_FilterPid *pid)
 
 }
 
+GF_EXPORT
+GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *pid)
+{
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set direct dispatch mode on input pid %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	if (pid->filter->session->threads)
+		return GF_OK;
+	pid->direct_dispatch = GF_TRUE;
+	return GF_OK;
+}

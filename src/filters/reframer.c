@@ -277,18 +277,22 @@ static const GF_FilterCapability ReframerCaps[] =
 static const GF_FilterArgs ReframerArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(rt), "real-time regulation mode of input. off disables it, on enables it on each pid, sync enables it on all pid", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(saps), "drops non-SAP packets, off by default. The string contains the list (whitespace or comma-separated) of SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(refs), "forwards only frames used as reference frames, if indicated in the input stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(rt), "real-time regulation mode of input\n"
+	"- off: disables real-time regulation\n"
+	"- on: enables real-time regulation, one clock per pid\n"
+	"- sync: enables real-time regulation one clock for all pids", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(saps), "drop non-SAP packets, off by default. The string contains the list (whitespace or comma-separated) of SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(refs), "forward only frames used as reference frames, if indicated in the input stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(speed), "speed for real-time regulation mode - only positive value", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(raw), "forces input streams to be in raw format (i.e. forces decoding of input)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(raw), "force input streams to be in raw format (i.e. forces decoding of input)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 GF_FilterRegister ReframerRegister = {
 	.name = "reframer",
-	GF_FS_SET_DESCRIPTION("Passthrough filter ensuring reframing, and optionnally decoding, of inputs")
-	GF_FS_SET_HELP("This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"\
+	GF_FS_SET_DESCRIPTION("Media Reframer")
+	GF_FS_SET_HELP("Passthrough filter ensuring reframing, and optionnally decoding, of inputs\n"
+		"This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"\
 		"The filter can be used to filter out packets based on SAP types, for example to extract only the key frames (SAP 1,2,3) of a video\n"\
 		"The filter can be used to add real-time regulation of input packets. For example to simulate a live DASH:\n"\
 		"EX \"src=m.mp4 reframer:rt=on dst=live.mpd:dynamic\"\n"\

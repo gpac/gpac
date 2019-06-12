@@ -761,17 +761,17 @@ static const GF_FilterArgs ADTSDmxArgs[] =
 {
 	{ OFFS(frame_size), "size of AAC frame in audio samples", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(mpeg4), "forces signaling as MPEG-4 AAC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ovsbr), "forces oversampling SBR (does not multiply timescales by 2)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sbr), "set SBR signaling:\n"\
+	{ OFFS(mpeg4), "force signaling as MPEG-4 AAC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ovsbr), "force oversampling SBR (does not multiply timescales by 2)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sbr), "set SBR signaling\n"\
 				"- no: no SBR signaling at all\n"\
 				"- imp: backward-compatible SBR signaling (audio signaled as AAC-LC)\n"\
 				"- exp: explicit SBR signaling (audio signaled as AAC-SBR)"\
 				, GF_PROP_UINT, "no", "no|imp|exp", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ps), "set PS signaling:\n"\
+	{ OFFS(ps), "set PS signaling\n"\
 				"- no: no PS signaling at all\n"\
 				"- imp: backward-compatible PS signaling (audio signaled as AAC-LC)\n"\
-				"- exp: explicit PS signaling (audio signaled as AAC-PS)\n"\
+				"- exp: explicit PS signaling (audio signaled as AAC-PS)"\
 				, GF_PROP_UINT, "no", "no|imp|exp", GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };

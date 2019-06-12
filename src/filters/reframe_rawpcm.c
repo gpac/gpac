@@ -288,17 +288,17 @@ static GF_FilterCapability PCMReframeCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_PCMReframeCtx, _n)
 static GF_FilterArgs PCMReframeArgs[] =
 {
-	{ OFFS(sr), "Audio sample rate", GF_PROP_UINT, "44100", NULL, 0},
+	{ OFFS(sr), "sample rate", GF_PROP_UINT, "44100", NULL, 0},
 	{ OFFS(safmt), "audio format", GF_PROP_PCMFMT, "none", NULL, 0},
-	{ OFFS(ch), "Number of audio ch", GF_PROP_UINT, "2", NULL, 0},
-	{ OFFS(framelen), "Number of audio samples to put in one audio frame. For planar formats, indicate plane size in samples", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ch), "number of channels", GF_PROP_UINT, "2", NULL, 0},
+	{ OFFS(framelen), "number of samples to put in one audio frame. For planar formats, indicate plane size in samples", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 
 GF_FilterRegister PCMReframeRegister = {
 	.name = "rfpcm",
-	GF_FS_SET_DESCRIPTION("PCM audio reframer")
+	GF_FS_SET_DESCRIPTION("PCM reframer")
 	.private_size = sizeof(GF_PCMReframeCtx),
 	.args = PCMReframeArgs,
 	SETCAPS(PCMReframeCaps),

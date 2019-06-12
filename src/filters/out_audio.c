@@ -162,6 +162,7 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 	u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
+
 	if (!ctx->buffer_done) {
 		u32 size;
 		GF_FilterPacket *pck;
@@ -236,6 +237,15 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 			nb_copy = (size - ctx->pck_offset);
 			if (nb_copy + done > buffer_size) nb_copy = buffer_size - done;
 			memcpy(buffer+done, data+ctx->pck_offset, nb_copy);
+
+			if (!done && gf_filter_reporting_enabled(ctx->filter)) {
+				char szStatus[1024];
+				u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+				sprintf(szStatus, "%d Hz %d ch %s buffer %d / %d ms", ctx->sr, ctx->nb_ch, gf_audio_fmt_name(ctx->afmt), (u32) (dur/1000), ctx->buffer);
+				gf_filter_update_status(ctx->filter, -1, szStatus);
+			}
+
+
 			done += nb_copy;
 			ctx->first_write_done = GF_TRUE;
 			if (nb_copy + ctx->pck_offset < size) {
@@ -479,13 +489,13 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(bnum), "number of audio buffers - 0 for auto", GF_PROP_UINT, "2", NULL, 0},
 	{ OFFS(bdur), "total duration of all buffers in ms - 0 for auto. The longer the audio buffer is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degradated when using large audio buffers", GF_PROP_UINT, "100", NULL, 0},
 	{ OFFS(threaded), "force dedicated thread creation if sound card driver is not threaded", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other filters to use", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(speed), "sets playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(vol), "sets default audio volume, as a percentage between 0 and 100", GF_PROP_UINT, "100", "0-100", GF_FS_ARG_UPDATE},
-	{ OFFS(pan), "sets stereo pan, as a percentage between 0 and 100, 50 being centered", GF_PROP_UINT, "50", "0-100", GF_FS_ARG_UPDATE},
-	{ OFFS(buffer), "sets buffer in ms", GF_PROP_UINT, "100", NULL, 0},
+	{ OFFS(dur), "only play the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(clock), "hint audio clock for this stream (reports system time and CTS), for other filters to use", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(vol), "set default audio volume, as a percentage between 0 and 100", GF_PROP_UINT, "100", "0-100", GF_FS_ARG_UPDATE},
+	{ OFFS(pan), "set stereo pan, as a percentage between 0 and 100, 50 being centered", GF_PROP_UINT, "50", "0-100", GF_FS_ARG_UPDATE},
+	{ OFFS(buffer), "set buffer in ms", GF_PROP_UINT, "100", NULL, 0},
 	{0}
 };
 
@@ -499,7 +509,7 @@ static const GF_FilterCapability AudioOutCaps[] =
 
 GF_FilterRegister AudioOutRegister = {
 	.name = "aout",
-	GF_FS_SET_DESCRIPTION("Audio soundcard output")
+	GF_FS_SET_DESCRIPTION("Audio output")
 	.private_size = sizeof(GF_AudioOutCtx),
 	.args = AudioOutArgs,
 	SETCAPS(AudioOutCaps),
