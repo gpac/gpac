@@ -5821,7 +5821,13 @@ restart_import:
 		if (e) goto exit;
 	}
 
-	gf_media_update_par(import->dest, track);
+	e = gf_media_update_par(import->dest, track);
+	if (e) goto exit;
+	/*arbitrary: use the last active SPS*/
+	if (avc.sps[avc.sps_active_idx].vui_parameters_present_flag && avc.sps[avc.sps_active_idx].vui.colour_description_present_flag) {
+		e = gf_isom_set_colr_nclx(import->dest, track, di, avc.sps[avc.sps_active_idx].vui.colour_primaries, avc.sps[avc.sps_active_idx].vui.transfer_characteristics, avc.sps[avc.sps_active_idx].vui.matrix_coefficients, avc.sps[avc.sps_active_idx].vui.video_full_range_flag);
+		if (e) goto exit;
+	}
 	gf_media_update_bitrate(import->dest, track);
 
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0x7F);
@@ -7183,7 +7189,15 @@ next_nal:
 		if (e) goto exit;
 	}
 
-	gf_media_update_par(import->dest, track);
+	e = gf_media_update_par(import->dest, track);
+	if (e) goto exit;
+	{
+		/*arbitrary: use the last active SPS*/
+		if (hevc.sps[hevc.sps_active_idx].colour_description_present_flag) {
+			e = gf_isom_set_colr_nclx(import->dest, track, di, hevc.sps[hevc.sps_active_idx].colour_primaries, hevc.sps[hevc.sps_active_idx].transfer_characteristic, hevc.sps[hevc.sps_active_idx].matrix_coeffs, hevc.sps[hevc.sps_active_idx].video_full_range_flag);
+			if (e) goto exit;
+		}
+	}
 	gf_media_update_bitrate(import->dest, track);
 
 	gf_isom_set_brand_info(import->dest, GF_ISOM_BRAND_ISO4, 1);
