@@ -117,7 +117,10 @@ static GF_Err tileagg_process(GF_Filter *filter)
 
 	pck = gf_filter_pid_get_packet(ctx->base_ipid);
 	if (!pck) {
-		if (gf_filter_pid_is_eos(ctx->base_ipid)) return GF_EOS;
+		if (gf_filter_pid_is_eos(ctx->base_ipid)) {
+			gf_filter_pid_set_eos(ctx->opid);
+			return GF_EOS;
+		}
 		return GF_OK;
 	}
 	min_cts = gf_filter_pck_get_cts(pck);
