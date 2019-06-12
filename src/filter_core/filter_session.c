@@ -229,6 +229,11 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 		return NULL;
 	}
 
+	if (nb_threads) {
+		fsess->info_mx = gf_mx_new("FilterSessionInfo");
+		fsess->ui_mx = gf_mx_new("FilterSessionUIProc");
+	}
+
 	for (i=0; i<(u32) nb_threads; i++) {
 		GF_SessionThread *sess_thread;
 		GF_SAFEALLOC(sess_thread, GF_SessionThread);
@@ -517,6 +522,12 @@ void gf_fs_del(GF_FilterSession *fsess)
 	if (fsess->props_mx)
 		gf_mx_del(fsess->props_mx);
 
+	if (fsess->info_mx)
+		gf_mx_del(fsess->info_mx);
+
+	if (fsess->ui_mx)
+		gf_mx_del(fsess->ui_mx);
+
 	if (fsess->semaphore_other && (fsess->semaphore_other != fsess->semaphore_main) )
 		gf_sema_del(fsess->semaphore_other);
 
@@ -575,7 +586,7 @@ static void check_task_list(GF_FilterQueue *fq, GF_FSTask *task)
 #endif
 
 
-void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure)
+void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_direct_call)
 {
 	GF_FSTask *task;
 	Bool force_main_thread = GF_FALSE;
@@ -586,7 +597,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 
 	//only flatten calls if in main thread (we still have some broken filters using threading
 	//that could trigger tasks
-	if (fsess->direct_mode && fsess->tasks_in_process && gf_th_id()==fsess->main_th.th_id) {
+	if ((force_direct_call || fsess->direct_mode) && fsess->tasks_in_process && gf_th_id()==fsess->main_th.th_id) {
 		GF_FSTask atask;
 		u64 task_time = gf_sys_clock_high_res();
 		memset(&atask, 0, sizeof(GF_FSTask));
@@ -683,7 +694,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta)
 {
-	gf_fs_post_task_ex(fsess, task_fun, filter, pid, log_name, udta, GF_FALSE);
+	gf_fs_post_task_ex(fsess, task_fun, filter, pid, log_name, udta, GF_FALSE, GF_FALSE);
 }
 
 GF_EXPORT
@@ -2316,7 +2327,7 @@ u32 gf_fs_get_filters_count(GF_FilterSession *session)
 }
 
 GF_EXPORT
-GF_Err gf_fs_get_filters_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats)
+GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats)
 {
 	GF_Filter *f;
 	u32 i;
@@ -2389,7 +2400,11 @@ GF_Err gf_fs_get_filters_stats(GF_FilterSession *session, u32 idx, GF_FilterStat
 
 Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt)
 {
-	return session->ui_event_proc(session->ui_opaque, uievt);
+	Bool ret;
+	gf_mx_p(session->ui_mx);
+	ret = session->ui_event_proc(session->ui_opaque, uievt);
+	gf_mx_v(session->ui_mx);
+	return ret;
 }
 
 #ifndef GPAC_DISABLE_3D

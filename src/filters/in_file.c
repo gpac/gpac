@@ -307,6 +307,14 @@ static GF_Err filein_process(GF_Filter *filter)
 	ctx->pck_out = GF_TRUE;
 	gf_filter_pck_send(pck);
 
+	if (ctx->file_size && gf_filter_reporting_enabled(filter)) {
+		char szStatus[1024], *szSrc;
+		szSrc = gf_file_basename(ctx->src);
+
+		sprintf(szStatus, "%s: % 16"LLD_SUF" /% 16"LLD_SUF" (%02.02f)", szSrc, (s64) ctx->file_pos, (s64) ctx->file_size, ((Double)ctx->file_pos*100.0)/ctx->file_size);
+		gf_filter_update_status(filter, (u32) (ctx->file_pos*10000/ctx->file_size), szStatus);
+	}
+
 	if (ctx->is_end) {
 		gf_filter_pid_set_eos(ctx->pid);
 		return GF_EOS;

@@ -517,7 +517,7 @@ typedef struct
 \param stats statistics for filter
 \return error code if any
 */
-GF_Err gf_fs_get_filters_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats);
+GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats);
 
 
 /*! @} */
@@ -2050,9 +2050,10 @@ Bool gf_filter_has_pid_connection_pending(GF_Filter *filter, GF_Filter *stop_at_
 Bool gf_filter_reporting_enabled(GF_Filter *filter);
 
 /*! Updates filter status string and progress. Should not be called if reporting is turned off at session level.
-This allows gathering stats from filter in realtime. The status string can be anything but shall not contain '\n'
+This allows gathering stats from filter in realtime. The status string can be anything but shall not contain '\n' and
+should not contain any source or destination URL except for sources and sinks.
 \param filter target filter
-\param percent percentage (from 0 to 100) of operation status. If more than 100 ignored
+\param percent percentage (from 0 to 10000) of operation status. If more than 10000 ignored
 \param szStatus string giving a status of the filter
 \return error code if any
 */
@@ -2676,6 +2677,15 @@ void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Doubl
 \return GF_TRUE if pid is currently playing, GF_FALSE otherwise
 */
 Bool gf_filter_pid_is_playing(GF_FilterPid *pid);
+
+/*! Enables direct dispatch of packets to connected filters. This mode is usefull when a filter may send a very large number of packets
+in one process() call; this is for example the case of the isobmff muxer in interleave mode. Using this mode avoids overloading
+the pid buffer with packets.
+If the session is multi-threaded, this parameter has no effect.
+\param pid the target filter pid
+\return GF_TRUE if pid is currently playing, GF_FALSE otherwise
+*/
+GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *pid);
 
 /*! @} */
 

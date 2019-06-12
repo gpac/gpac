@@ -714,6 +714,12 @@ static Bool gpac_log_utc_time = GF_FALSE;
 static Bool gpac_test_mode = GF_FALSE;
 static Bool gpac_discard_config = GF_FALSE;
 
+GF_EXPORT
+Bool gf_sys_logs_to_file()
+{
+	return gpac_log_file ? GF_TRUE : GF_FALSE;
+}
+
 static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
 	FILE *logs = cbk ? cbk : stderr;
@@ -760,6 +766,8 @@ void gf_log_reset_file()
 
 static Bool gpac_has_global_filter_args=GF_FALSE;
 static Bool gpac_has_global_filter_meta_args=GF_FALSE;
+#include <gpac/thread.h>
+GF_Mutex *logs_mx = NULL;
 
 Bool gf_sys_has_filter_global_args()
 {
@@ -837,6 +845,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				arg_val[0]='=';
 			}
 		}
+
 		if (gpac_log_file_name) {
 			gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
 			gf_log_set_callback(gpac_log_file, on_gpac_log);
@@ -1093,9 +1102,12 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 #endif
 
 
+		logs_mx = gf_mx_new("Logs");
+
 		gf_rand_init(GF_FALSE);
 		
 		gf_init_global_config(profile);
+
 
 	}
 	sys_init += 1;
@@ -1144,6 +1156,9 @@ void gf_sys_close()
 		}
 		if (gpac_lang_file) gf_cfg_del(gpac_lang_file);
 		gpac_lang_file = NULL;
+
+		gf_mx_del(logs_mx);
+		logs_mx = NULL;
 
 	}
 }

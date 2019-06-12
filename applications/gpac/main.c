@@ -520,6 +520,7 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("wf", NULL, "write all filter options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("wfx", NULL, "write all filter options and all meta filter arguments in the config file unless already set (large config file !)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("k", NULL, "enable keyboard interaction from command line", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("nr", NULL, "disable reports", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("unit-tests", NULL, "enable unit tests of some functions otherwise not covered by gpac test suite", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	GF_DEF_ARG("genmd", NULL, "generate markdown doc", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	{0}
@@ -626,31 +627,118 @@ static void gpac_fsess_task_help()
 	);
 }
 
-Bool stderr_init = 0;
 
-static void gpac_print_report(GF_FilterSession *fsess)
+static Bool logs_to_file=GF_FALSE;
+
+#define DEF_LOG_ENTRIES	10
+
+struct _logentry
 {
-	u32 i, count;
+	u32 tool, level;
+	u32 nb_repeat;
+	u64 clock;
+	char *szMsg;
+} *static_logs;
+static u32 nb_log_entries = DEF_LOG_ENTRIES;
 
-	if (!stderr_init) {
-		gf_sys_set_console_code(stderr, GF_CONSOLE_SAVE);
-		stderr_init = GF_TRUE;
+static u32 log_write=0;
+
+static void gpac_on_logs(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char* fmt, va_list vlist)
+{
+	va_list vlist_tmp;
+	va_copy(vlist_tmp, vlist);
+	u32 len = vsnprintf(NULL, 0, fmt, vlist_tmp);
+	if (help_buf_size < len+2) {
+		help_buf_size = len+2;
+		help_buf = gf_realloc(help_buf, help_buf_size);
 	}
+	vsprintf(help_buf, fmt, vlist);
+
+	if (log_write && static_logs[log_write-1].szMsg) {
+		if (!strcmp(static_logs[log_write-1].szMsg, help_buf)) {
+			static_logs[log_write-1].nb_repeat++;
+			return;
+		}
+	}
+
+	static_logs[log_write].level = log_level;
+	static_logs[log_write].tool = log_tool;
+	if (static_logs[log_write].szMsg) gf_free(static_logs[log_write].szMsg);
+	static_logs[log_write].szMsg = gf_strdup(help_buf);
+	static_logs[log_write].clock = gf_net_get_utc();
+
+	log_write++;
+	if (log_write==nb_log_entries) {
+		log_write = nb_log_entries - 1;
+		gf_free(static_logs[0].szMsg);
+		memmove(&static_logs[0], &static_logs[1], sizeof (struct _logentry) * (nb_log_entries-1) );
+		memset(&static_logs[log_write], 0, sizeof(struct _logentry));
+	}
+}
+
+u64 last_report_clock_us = 0;
+static void print_date(u64 time)
+{
+	time_t gtime;
+	struct tm *t;
+	u32 sec;
+	u32 ms;
+	gtime = time / 1000;
+	sec = (u32)(time / 1000);
+	ms = (u32)(time - ((u64)sec) * 1000);
+	t = gmtime(&gtime);
+//	fprintf(stderr, "[%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, ms);
+	fprintf(stderr, "[%02d:%02d:%02d.%03dZ] ", t->tm_hour, t->tm_min, t->tm_sec, ms);
+}
+
+static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_final)
+{
+	u32 i, count, nb_active;
+	u64 now;
+	GF_SystemRTInfo rti;
+	if (is_init) {
+		gf_sys_set_console_code(stderr, GF_CONSOLE_SAVE);
+		logs_to_file = gf_sys_logs_to_file();
+		if (!logs_to_file) {
+			if (!nb_log_entries) nb_log_entries = 1;
+			static_logs = gf_malloc(sizeof(struct _logentry) * nb_log_entries);
+			memset(static_logs, 0, sizeof(struct _logentry) * nb_log_entries);
+			gf_log_set_callback(fsess, gpac_on_logs);
+		}
+		last_report_clock_us = gf_sys_clock_high_res();
+		return;
+	}
+
+	now = gf_sys_clock_high_res();
+	if ( (now - last_report_clock_us < 100000) && !is_final)
+		return;
+
+	last_report_clock_us = now;
 	gf_sys_set_console_code(stderr, GF_CONSOLE_CLEAR);
 
-	gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
-	fprintf(stderr, "GPAC Session Status:\n");
+	gf_sys_get_rti(100, &rti, 0);
+	gf_sys_set_console_code(stderr, GF_CONSOLE_CYAN);
+	print_date(gf_net_get_utc());
+	fprintf(stderr, "GPAC Session Status: ");
 	gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
+	fprintf(stderr, "mem % 10"LLD_SUF" kb CPU % 2d", rti.gpac_memory/1000, rti.process_cpu_time);
+	fprintf(stderr, "\n");
 
 	gf_fs_lock_filters(fsess, GF_TRUE);
-	count = gf_fs_get_filters_count(fsess);
+	nb_active = count = gf_fs_get_filters_count(fsess);
 	for (i=0; i<count; i++) {
 		GF_FilterStats stats;
-		gf_fs_get_filters_stats(fsess, i, &stats);
+		gf_fs_get_filter_stats(fsess, i, &stats);
+		if (stats.done) {
+			nb_active--;
+			continue;
+		}
 		if (stats.status) {
-			fprintf(stderr, "%s\n", stats.status);
+			format_help(FH_FIRST_IS_HL, "%s: %s\n", stats.reg_name, stats.status);
 		} else {
-			fprintf(stderr, "%s", stats.name);
+			gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
+			fprintf(stderr, "%s", stats.name ? stats.name : stats.reg_name);
+			gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
 			if (stats.name && strcmp(stats.name, stats.reg_name))
 				fprintf(stderr, " (%s)", stats.reg_name);
 			fprintf(stderr, ": %s ", gf_stream_type_name(stats.stream_type));
@@ -662,17 +750,37 @@ static void gpac_print_report(GF_FilterSession *fsess)
 				pck_per_sec *= 1000000;
 				pck_per_sec /= (stats.time_process+1);
 
-				fprintf(stderr, "%02.02f FPS ", pck_per_sec);
+				fprintf(stderr, "% 10"LLD_SUF" pck %02.02f FPS ", (s64) stats.nb_out_pck, pck_per_sec);
 			} else {
 				if (stats.nb_pid_in)
-					fprintf(stderr, "in %d pids "LLU" pck ", stats.nb_pid_in, stats.nb_in_pck);
+					fprintf(stderr, "in %d pids % 10"LLD_SUF" pck ", stats.nb_pid_in, (s64)stats.nb_in_pck);
 				if (stats.nb_pid_out)
-					fprintf(stderr, "out %d pids "LLU" pck ", stats.nb_pid_out, stats.nb_out_pck);
+					fprintf(stderr, "out %d pids % 10"LLD_SUF" pck ", stats.nb_pid_out, (s64) stats.nb_out_pck);
 			}
 			if (stats.in_eos)
 				fprintf(stderr, "- EOS");
 			fprintf(stderr, "\n");
 		}
+	}
+	fprintf(stderr, "Active filters: %d\n", nb_active);
+
+	if (!logs_to_file) {
+		fprintf(stderr, "\nLogs:\n");
+		for (i=0; i<log_write; i++) {
+			if (static_logs[i].level==GF_LOG_ERROR) gf_sys_set_console_code(stderr, GF_CONSOLE_RED);
+			else if (static_logs[i].level==GF_LOG_WARNING) gf_sys_set_console_code(stderr, GF_CONSOLE_YELLOW);
+			else if (static_logs[i].level==GF_LOG_INFO) gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
+			else gf_sys_set_console_code(stderr, GF_CONSOLE_CYAN);
+
+			print_date(static_logs[i].clock);
+
+			if (static_logs[i].nb_repeat)
+				fprintf(stderr, "[repeated %d] ", static_logs[i].nb_repeat);
+
+			fprintf(stderr, "%s", static_logs[i].szMsg);
+			gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
+		}
+		fprintf(stderr, "\n");
 	}
 	gf_fs_lock_filters(fsess, GF_FALSE);
 }
@@ -682,7 +790,7 @@ static Bool gpac_event_proc(void *opaque, GF_Event *event)
 	GF_FilterSession *fsess = (GF_FilterSession *)opaque;
 	if (event->type==GF_EVENT_PROGRESS) {
 		if (event->progress.progress_type==3) {
-			gpac_print_report(fsess);
+			gpac_print_report(fsess, GF_FALSE, GF_FALSE);
 		}
 	}
 	return GF_FALSE;
@@ -808,6 +916,15 @@ static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
 
 	if (sidebar_md)
 		gf_fclose(sidebar_md);
+
+	if (static_logs) {
+		u32 i;
+		for (i=0; i<nb_log_entries; i++) {
+			if (static_logs[i].szMsg)
+				gf_free(static_logs[i].szMsg);
+		}
+		gf_free(static_logs);
+	}
 
 	gf_sys_close();
 	if (code) return code;
@@ -1098,6 +1215,8 @@ static int gpac_main(int argc, char **argv)
 
 		} else if (!strcmp(arg, "-k")) {
 			enable_prompt = GF_TRUE;
+		} else if (!strcmp(arg, "-nr")) {
+			enable_reports = GF_FALSE;
 		} else if (!strcmp(arg, "-unit-tests")) {
 			do_unit_tests = GF_TRUE;
 		} else if (arg[0]=='-') {
@@ -1267,6 +1386,10 @@ restart:
 #endif
 	}
 
+	if (enable_reports) {
+		gpac_print_report(session, GF_TRUE, GF_FALSE);
+	}
+
 	e = gf_fs_run(session);
 	if (e>0) e = GF_OK;
 	if (!e) {
@@ -1278,9 +1401,9 @@ restart:
 		if (e<0) fprintf(stderr, "session last process error %s\n", gf_error_to_string(e) );
 	}
 
-	if (stderr_init) {
+	if (enable_reports) {
 		gf_sys_set_console_code(stderr, GF_CONSOLE_RESTORE);
-		stderr_init = GF_FALSE;
+		gpac_print_report(session, GF_FALSE, GF_TRUE);
 	}
 
 exit:

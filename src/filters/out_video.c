@@ -1993,10 +1993,16 @@ static GF_Err vout_process(GF_Filter *filter)
 			//query full buffer duration in us
 			u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] buffer %d / %d ms\r", (u32) (dur/1000), ctx->buffer));
 			if (!ctx->buffer_done) {
 				if ((dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid)) {
 					gf_filter_ask_rt_reschedule(filter, 100000);
+
+					if (gf_filter_reporting_enabled(filter)) {
+						char szStatus[1024];
+						sprintf(szStatus, "buffering %d / %d ms", (u32) (dur/1000), ctx->buffer);
+						gf_filter_update_status(filter, -1, szStatus);
+					}
 					return GF_OK;
 				}
 				ctx->buffer_done = GF_TRUE;
@@ -2176,6 +2182,15 @@ static GF_Err vout_process(GF_Filter *filter)
 
 
 draw_frame:
+
+	if (ctx->last_pck && gf_filter_reporting_enabled(filter)) {
+		char szStatus[1024];
+		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+		sprintf(szStatus, "%dx%d->%dx%d %s frame TS "LLU"/%d buffer %d / %d ms", ctx->width, ctx->height, ctx->display_width, ctx->display_height,
+		 	gf_pixel_fmt_name(ctx->pfmt), gf_filter_pck_get_cts(ctx->last_pck), ctx->timescale, (u32) (dur/1000), ctx->buffer);
+		gf_filter_update_status(filter, -1, szStatus);
+	}
+
 	return vout_draw_frame(ctx);
 }
 

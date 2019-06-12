@@ -40,7 +40,7 @@ typedef struct
 
 	FILE *file;
 	Bool is_std;
-	u32 nb_write;
+	u64 nb_write;
 
 	GF_FilterCapability in_caps[2];
 	char szExt[10];
@@ -240,6 +240,11 @@ static GF_Err fileout_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->pid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->pid)) {
+			if (gf_filter_reporting_enabled(filter)) {
+				char szStatus[1024];
+				snprintf(szStatus, 1024, "%s: done - wrote "LLU" bytes", gf_file_basename(ctx->szFileName), ctx->nb_write);
+				gf_filter_update_status(filter, 10000, szStatus);
+			}
 			fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
 			return GF_EOS;
 		}
@@ -366,6 +371,11 @@ static GF_Err fileout_process(GF_Filter *filter)
 	gf_filter_pid_drop_packet(ctx->pid);
 	if (end && !ctx->cat) {
 		fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
+	}
+	if (gf_filter_reporting_enabled(filter)) {
+		char szStatus[1024];
+		snprintf(szStatus, 1024, "%s: wrote % 16"LLD_SUF" bytes", gf_file_basename(ctx->szFileName), (s64) ctx->nb_write);
+		gf_filter_update_status(filter, -1, szStatus);
 	}
 	return GF_OK;
 }

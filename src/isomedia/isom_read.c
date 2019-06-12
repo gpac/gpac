@@ -504,7 +504,7 @@ GF_Err gf_isom_write(GF_ISOFile *movie) {
 			}
 		} else
 #endif
-			e = WriteToFile(movie);
+			e = WriteToFile(movie, GF_FALSE);
 	}
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
