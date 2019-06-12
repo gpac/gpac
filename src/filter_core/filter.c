@@ -327,6 +327,8 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->orig_args) gf_free(filter->orig_args);
 	if (filter->dst_args) gf_free(filter->dst_args);
 	if (filter->name) gf_free(filter->name);
+	if (filter->status_str) gf_free(filter->status_str);
+
 
 	if (!filter->session->in_final_flush && !filter->session->run_status) {
 		u32 i, count;
