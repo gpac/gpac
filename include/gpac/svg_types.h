@@ -173,6 +173,8 @@ enum {
 	/*LASeR types*/
 	LASeR_Choice_datatype,
 	LASeR_Size_datatype,
+
+	SVG_Matrix2D_datatype,
 };
 
 /* Definition of SVG base data types */

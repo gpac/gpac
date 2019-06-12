@@ -681,7 +681,10 @@ static void gf_smil_anim_get_last_specified_value(SMIL_Anim_RTI *rai)
 	if (!animp) return;
 
 	if (rai->path) {
-		if (!rai->last_specified_value.far_ptr) rai->last_specified_value.far_ptr = gf_malloc(sizeof(GF_Matrix2D));
+		if (!rai->last_specified_value.far_ptr) {
+			rai->last_specified_value.far_ptr = gf_malloc(sizeof(GF_Matrix2D));
+			rai->last_specified_value.fieldType = SVG_Matrix2D_datatype;
+		}
 		gf_svg_compute_path_anim(rai, rai->last_specified_value.far_ptr, FIX_ONE);
 		return;
 	} else if (rai->anim_elt->sgprivate->tag == TAG_SVG_set) {
