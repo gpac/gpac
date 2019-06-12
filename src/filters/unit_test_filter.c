@@ -786,17 +786,26 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_UnitTestFilter, _n)
 static const GF_FilterArgs UTFilterArgs[] =
 {
-	{ OFFS(pid_att), "Sets default value for PID \"cust\" attribute", GF_PROP_NAME, "UTSourceData", NULL, 0},
-	{ OFFS(max_pck), "Maximum number of packets to send in source mode", GF_PROP_UINT, "1000", NULL, 0},
-	{ OFFS(nb_pids), "Number of PIDs in source mode", GF_PROP_UINT, "1", "1-+I", 0},
-	{ OFFS(max_out), "Maximum number of shared packets not yet released in source/filter mode, no limit if -1", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(alloc), "Uses allocated memory packets in source mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(fwd), "Indicates packet forward mode for filter.\n\t\tshared: uses shared memory (dangerous)\n\t\tcopy: uses copy\n\t\tref: uses references to source packet\n\t\tmix: change mode at each packet sent", GF_PROP_UINT, "shared", "shared|copy|ref|mix", GF_FS_ARG_UPDATE},
-	{ OFFS(framing), "Divides packets in 3 for filter mode, or allows partial blocks for sink mode", GF_PROP_UINT, "none", "none|default|nostart|noend", GF_FS_ARG_UPDATE},
-	{ OFFS(update), "sends update message after half packet send. Update format is FID,argname,argval", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(cov), "Dumps options and exercise error cases for code coverage", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(norecfg), "Disabled reconfig on input pid in filter/sink mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(gsftest), "Dispatch a fake single video pid with props and packet props for GSF testing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(pid_att), "set default value for PID \"cust\" attribute", GF_PROP_NAME, "UTSourceData", NULL, 0},
+	{ OFFS(max_pck), "maximum number of packets to send in source mode", GF_PROP_UINT, "1000", NULL, 0},
+	{ OFFS(nb_pids), "number of PIDs in source mode", GF_PROP_UINT, "1", "1-+I", 0},
+	{ OFFS(max_out), "maximum number of shared packets not yet released in source/filter mode, no limit if -1", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(alloc), "use allocated memory packets in source mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(fwd), "indicate packet forward mode for filter.\n"
+	"- shared: use shared memory (dangerous)\n"
+	"- copy: use copy\n"
+	"- ref: use references to source packet\n"
+	"- mix: change mode at each packet sent", GF_PROP_UINT, "shared", "shared|copy|ref|mix", GF_FS_ARG_UPDATE},
+	{ OFFS(framing), "packet framing.\n"
+	"- none: disable packet split\n"
+	"- default: divide packets in 3 for filter mode and allows partial blocks for sink mode\n"
+	"- nostart: same as default but does not signal packet start flag\n"
+	"- noend: same as default but does not signal packet end flag"
+	"", GF_PROP_UINT, "none", "none|default|nostart|noend", GF_FS_ARG_UPDATE},
+	{ OFFS(update), "send update message after half packet send. Update format is FID,argname,argval", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(cov), "dump options and exercise error cases for code coverage", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(norecfg), "disable reconfig on input pid in filter/sink mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(gsftest), "dispatch a fake single video pid with props and packet props for GSF testing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LSINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LUINT, "0", NULL, GF_FS_ARG_UPDATE},
