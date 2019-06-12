@@ -56,8 +56,10 @@ do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/subtitle.srt:stz2:stype=gsrt:gr
 do_hash_test $mp4file "add-stz2"
 
 mp4file="$TEMP_DIR/testrvc.mp4"
-do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264:rvc=$MEDIA_DIR/auxiliary_files/subtitle.srt -new $mp4file" "add-rvc"
-do_hash_test $mp4file "add-rvc"
+do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264:rvc=$MEDIA_DIR/auxiliary_files/logo.jpg -new $mp4file" "add-rvc"
+#zip might produce dufferent binary result, hash the -diso for the file
+do_test "$MP4BOX -diso $mp4file" "dump-rvc"
+do_hash_test "$TEMP_DIR/testrvc_info.xml" "add-rvc"
 
 
 test_end
