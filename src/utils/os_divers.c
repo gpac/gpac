@@ -1131,6 +1131,7 @@ GF_EXPORT
 void gf_sys_close()
 {
 	if (sys_init > 0) {
+		GF_Mutex *old_log_mx;
 		sys_init --;
 		if (sys_init) return;
 		/*prevent any call*/
@@ -1157,8 +1158,9 @@ void gf_sys_close()
 		if (gpac_lang_file) gf_cfg_del(gpac_lang_file);
 		gpac_lang_file = NULL;
 
-		gf_mx_del(logs_mx);
+		old_log_mx = logs_mx;
 		logs_mx = NULL;
+		gf_mx_del(old_log_mx);
 
 	}
 }
