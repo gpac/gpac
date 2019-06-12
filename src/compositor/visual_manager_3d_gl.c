@@ -979,6 +979,11 @@ static void gf_glQueryAttributes(GF_SHADERID progObj)
 }
 #endif
 
+void visual_3d_clean_state(GF_VisualManager *visual)
+{
+	glGetError();
+}
+
 static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 {
 	u32 i;
@@ -1012,6 +1017,8 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 		GL_CHECK_ERR;
 	}
 
+	//Clear error log (if the program is lost we will always have an GL_INVALID_VALUE error)
+	glGetError();
 	//nothing to do
 	if (visual->glsl_has_shaders) {
 		return GF_TRUE;
@@ -3423,6 +3430,7 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	GL_CHECK_ERR
 
 	gf_rmt_begin_gl(visual_3d_mesh_paint);
+	glGetError();
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
 	if (tr_state->visual->compositor->wire != GF_WIREFRAME_ONLY) {
@@ -3468,6 +3476,7 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Done drawing mesh %p\n", mesh));
 
 	gf_rmt_end_gl();
+	glGetError();
 }
 
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)

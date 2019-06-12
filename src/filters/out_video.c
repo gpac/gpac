@@ -2201,8 +2201,10 @@ static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 #ifndef GPAC_DISABLE_3D
 		if (ctx->disp < MODE_2D) {
 			gf_rmt_begin_gl(vout_draw_gl);
+			glGetError();
 			vout_draw_gl(ctx, ctx->last_pck);
 			gf_rmt_end_gl();
+			glGetError();
 		} else
 #endif
 		{

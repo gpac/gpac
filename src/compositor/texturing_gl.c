@@ -1138,6 +1138,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 
 	if (! (txh->tx_io->flags & TX_NEEDS_HW_LOAD) ) return 1;
 
+	GL_CHECK_ERR
+
 	/*in case the ID has been lost, resetup*/
 	if (!txh->tx_io->id && !txh->tx_io->use_external_textures) {
 		glGenTextures(1, &txh->tx_io->id);
@@ -1756,12 +1758,15 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		return 0;
 
 	gf_rmt_begin_gl(gf_sc_texture_push_image);
+	glGetError();
 	res = tx_set_image(txh, 0);
 	gf_rmt_end_gl();
+	glGetError();
 	if (!res) return 0;
 
 
 	gf_rmt_begin_gl(gf_sc_texture_enable);
+	glGetError();
 
 	if (bounds && txh->compute_gradient_matrix) {
 		GF_Matrix2D mx2d;
@@ -1836,6 +1841,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 
 	gf_rmt_end_gl();
+	glGetError();
 	return 1;
 
 }

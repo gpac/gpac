@@ -194,6 +194,7 @@ Bool visual_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState
 		visual_clean_contexts(visual);
 		return res;
 	}
+	visual_3d_clean_state(visual);
 #endif
 	return visual_2d_draw_frame(visual, root, tr_state, is_root_visual);
 }
