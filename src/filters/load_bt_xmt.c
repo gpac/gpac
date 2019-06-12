@@ -363,7 +363,7 @@ static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 	if ((priv->load_flags==1) && priv->ctx->root_od && priv->ctx->root_od->URLString) {
 		gf_filter_pid_set_property(priv->out_pid, GF_PROP_PID_REMOTE_URL, &PROP_STRING(priv->ctx->root_od->URLString) );
 	}
-	if (!nb_aus) {
+	if ((priv->load_flags==2) && !nb_aus) {
 		gf_filter_pid_set_eos(priv->out_pid);
 	}
 }
