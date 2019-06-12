@@ -311,6 +311,8 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual);
 void visual_3d_init_shaders(GF_VisualManager *visual);
 void visual_3d_reset_graphics(GF_VisualManager *visual);
 
+void visual_3d_clean_state(GF_VisualManager *visual);
+
 #endif /*GPAC_DISABLE_3D*/
 
 
