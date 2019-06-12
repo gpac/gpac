@@ -525,6 +525,22 @@ GF_Err gf_log_modify_tools_levels(const char *val);
 */
 void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level);
 
+/*!
+ *	\brief Checks if color logs is enabled
+ *
+ * Checks if color logs is enabled
+ *	\return GF_TRUE if color logs are used
+*/
+Bool gf_sys_logs_color();
+
+/*!
+ *	\brief Checks if logs are stored to file
+ *
+ *Checks if logs are stored to file
+ *	\return GF_TRUE if logs are stored to file
+*/
+Bool gf_sys_logs_to_file();
+
 #ifdef GPAC_DISABLE_LOG
 #define GF_LOG(_ll, _lm, __args)
 #else

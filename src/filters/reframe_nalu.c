@@ -1844,6 +1844,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 	u8 *start;
 	u32 pck_size;
 	u32 hdr_size_at_resume = 0;
+	u32 nalu_before = ctx->nb_nalus;
 	s32 remain;
 	Bool is_eos = GF_FALSE;
 
@@ -2747,6 +2748,13 @@ naldmx_flush:
 	}
 	if (is_eos)
 		return naludmx_process(filter);
+
+	if ((ctx->nb_nalus>nalu_before) && gf_filter_reporting_enabled(filter)) {
+		char szStatus[1024];
+
+		sprintf(szStatus, "%s %dx%d % 10d NALU % 10d I % 10d P % 10d B % 10d SEI", ctx->is_hevc ? "HEVC":"AVC|H264", ctx->width, ctx->height, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sei);
+		gf_filter_update_status(filter, -1, szStatus);
+	}
 
 	gf_filter_pid_drop_packet(ctx->ipid);
 	return GF_OK;

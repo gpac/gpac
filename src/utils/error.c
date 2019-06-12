@@ -222,6 +222,14 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 				if (!val[6]) break;
 				val += 7;
 				continue;
+			} else if (!strcmp(val, "quiet")) {
+				u32 i;
+				for (i=0; i<GF_LOG_TOOL_MAX; i++)
+					global_log_tools[i].level = GF_LOG_QUIET;
+
+				if (!val[5]) break;
+				val += 6;
+				continue;
 			} else {
 				fprintf(stderr, "Unrecognized log format %s - expecting logTool@logLevel\n", val);
 				return GF_BAD_PARAM;
@@ -507,16 +515,26 @@ void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, cons
 	vfprintf(stderr, fmt, vlist);
 }
 
+#include <gpac/thread.h>
 static void *user_log_cbk = NULL;
 gf_log_cbk log_cbk = default_log_callback_color;
 static Bool log_exit_on_error = GF_FALSE;
+extern GF_Mutex *logs_mx;
+
+GF_EXPORT
+Bool gf_sys_logs_color()
+{
+	return (log_cbk == default_log_callback_color) ? GF_TRUE : GF_FALSE;
+}
 
 GF_EXPORT
 void gf_log(const char *fmt, ...)
 {
 	va_list vl;
 	va_start(vl, fmt);
+	gf_mx_p(logs_mx);
 	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+	gf_mx_v(logs_mx);
 	va_end(vl);
 	if (log_exit_on_error && (call_lev==GF_LOG_ERROR) && (call_tool != GF_LOG_MEMORY)) {
 		exit(1);

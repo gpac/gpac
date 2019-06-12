@@ -536,7 +536,7 @@ echo ""
 
 #reassign our default programs
 MP4BOX="MP4Box -noprog -for-test $base_args"
-GPAC="gpac $base_args -noprog -for-test -no-reassign"
+GPAC="gpac $base_args -noprog -for-test -no-reassign -nr"
 MP4CLIENT="MP4Client -noprog -strict-error $base_args"
 
 $MP4BOX -version 2> $INTERN_TEMP_DIR/version.txt

@@ -769,25 +769,16 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 
 GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value)
 {
-	GF_PropertyEntry *old_ent;
+	GF_Err e;
 	u32 hash = gf_props_hash_djb2(p4cc, name ? name : dyn_name);
-#if 0
-	if (!value) {
-		gf_props_remove_property(map, hash, p4cc, name ? name : dyn_name);
-		return GF_OK;
-	}
-	old_ent = (GF_PropertyEntry *) gf_props_get_property_entry(map, p4cc, name);
-	if (!old_ent)
-		return gf_props_insert_property(map, hash, p4cc, name, dyn_name, value);
-
-	gf_props_assign_value(old_ent, value, GF_TRUE);
-#else
-
+	gf_mx_p(map->session->info_mx);
 	gf_props_remove_property(map, hash, p4cc, name ? name : dyn_name);
-	if (!value) return GF_OK;
-	return gf_props_insert_property(map, hash, p4cc, name, dyn_name, value);
-#endif
-	return GF_OK;
+	if (!value)
+		e = GF_OK;
+	else
+		e = gf_props_insert_property(map, hash, p4cc, name, dyn_name, value);
+	gf_mx_v(map->session->info_mx);
+	return e;
 }
 
 const GF_PropertyEntry *gf_props_get_property_entry(GF_PropertyMap *map, u32 prop_4cc, const char *name)

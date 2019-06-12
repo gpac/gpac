@@ -46,18 +46,21 @@ typedef struct
 	u32 dsi_size;
 
 	GF_BitStream *bs_w, *bs_r;
+	u32 nb_nalu, nb_nalu_in_hdr;
+	u32 width, height;
 } GF_NALUMxCtx;
 
 
 
 
-static void nalumx_write_ps_list(GF_BitStream *bs, GF_List *list)
+static void nalumx_write_ps_list(GF_NALUMxCtx *ctx, GF_BitStream *bs, GF_List *list)
 {
 	u32 i, count = list ? gf_list_count(list) : 0;
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *sl = gf_list_get(list, i);
 		gf_bs_write_u32(bs, 1);
 		gf_bs_write_data(bs, sl->data, sl->size);
+		ctx->nb_nalu_in_hdr++;
 	}
 }
 
@@ -90,40 +93,40 @@ static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, char *dsi, u32 dsi_le
 		if (!avcc && !svcc) return GF_NON_COMPLIANT_BITSTREAM;
 		ctx->nal_hdr_size = avcc ? avcc->nal_unit_size : svcc->nal_unit_size;
 	}
-
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (avcc || svcc) {
-		if (avcc)
-			nalumx_write_ps_list(bs, avcc->sequenceParameterSets);
+		if (avcc) {
+			nalumx_write_ps_list(ctx, bs, avcc->sequenceParameterSets);
+		}
 
 		if (svcc)
-			nalumx_write_ps_list(bs, svcc->sequenceParameterSets);
+			nalumx_write_ps_list(ctx, bs, svcc->sequenceParameterSets);
 
 		if (avcc && avcc->sequenceParameterSetExtensions)
-			nalumx_write_ps_list(bs, avcc->sequenceParameterSetExtensions);
+			nalumx_write_ps_list(ctx, bs, avcc->sequenceParameterSetExtensions);
 
 		if (svcc && svcc->sequenceParameterSetExtensions)
-			nalumx_write_ps_list(bs, svcc->sequenceParameterSetExtensions);
+			nalumx_write_ps_list(ctx, bs, svcc->sequenceParameterSetExtensions);
 
 		if (avcc)
-			nalumx_write_ps_list(bs, avcc->pictureParameterSets);
+			nalumx_write_ps_list(ctx, bs, avcc->pictureParameterSets);
 
 		if (svcc)
-			nalumx_write_ps_list(bs, svcc->pictureParameterSets);
+			nalumx_write_ps_list(ctx, bs, svcc->pictureParameterSets);
 	}
 	if (hvcc || lvcc) {
 		if (hvcc)
-			nalumx_write_ps_list(bs, nalumx_get_hevc_ps(hvcc, GF_HEVC_NALU_VID_PARAM));
+			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(hvcc, GF_HEVC_NALU_VID_PARAM));
 		if (lvcc)
-			nalumx_write_ps_list(bs, nalumx_get_hevc_ps(lvcc, GF_HEVC_NALU_VID_PARAM));
+			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(lvcc, GF_HEVC_NALU_VID_PARAM));
 		if (hvcc)
-			nalumx_write_ps_list(bs, nalumx_get_hevc_ps(hvcc, GF_HEVC_NALU_SEQ_PARAM));
+			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(hvcc, GF_HEVC_NALU_SEQ_PARAM));
 		if (lvcc)
-			nalumx_write_ps_list(bs, nalumx_get_hevc_ps(lvcc, GF_HEVC_NALU_SEQ_PARAM));
+			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(lvcc, GF_HEVC_NALU_SEQ_PARAM));
 		if (hvcc)
-			nalumx_write_ps_list(bs, nalumx_get_hevc_ps(hvcc, GF_HEVC_NALU_PIC_PARAM));
+			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(hvcc, GF_HEVC_NALU_PIC_PARAM));
 		if (lvcc)
-			nalumx_write_ps_list(bs, nalumx_get_hevc_ps(lvcc, GF_HEVC_NALU_PIC_PARAM));
+			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(lvcc, GF_HEVC_NALU_PIC_PARAM));
 	}
 	if (ctx->dsi) gf_free(ctx->dsi);
 	gf_bs_get_content(bs, &ctx->dsi, &ctx->dsi_size);
@@ -177,6 +180,12 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	} else {
 		ctx->is_hevc = GF_FALSE;
 	}
+
+	ctx->width = ctx->height = 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+	if (p) ctx->width = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
+	if (p) ctx->height = p->value.uint;
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
@@ -359,6 +368,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 			gf_bs_write_int(ctx->bs_w, (avc_hdr & 0x60) | GF_AVC_NALU_ACCESS_UNIT, 8);
 			gf_bs_write_int(ctx->bs_w, 0xF0 , 8); /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
 		}
+		ctx->nb_nalu++;
 	}
 
 	while (gf_bs_available((ctx->bs_r))) {
@@ -391,6 +401,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 		if (insert_dsi && !is_nalu_delim) {
 			insert_dsi = GF_FALSE;
 			gf_bs_write_data(ctx->bs_w, ctx->dsi, ctx->dsi_size);
+			ctx->nb_nalu += ctx->nb_nalu_in_hdr;
 
 			if (!ctx->rcfg) {
 				gf_free(ctx->dsi);
@@ -403,6 +414,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 		gf_bs_write_data(ctx->bs_w, data+pos, nal_size);
 
 		gf_bs_skip_bytes(ctx->bs_r, nal_size);
+		ctx->nb_nalu++;
 	}
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
@@ -412,6 +424,13 @@ GF_Err nalumx_process(GF_Filter *filter)
 
 	gf_filter_pid_drop_packet(ctx->ipid);
 
+	if (gf_filter_reporting_enabled(filter)) {
+		char szStatus[1024];
+
+		sprintf(szStatus, "%s Annex-B %dx%d % 10d NALU", ctx->is_hevc ? "HEVC":"AVC|H264", ctx->width, ctx->height, ctx->nb_nalu);
+		gf_filter_update_status(filter, -1, szStatus);
+
+	}
 	return GF_OK;
 }
 

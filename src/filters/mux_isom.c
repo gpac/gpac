@@ -488,8 +488,14 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("mp4") );
 
-		if (ctx->store == MP4MX_MODE_FLAT) {
+		switch (ctx->store) {
+		case MP4MX_MODE_FLAT:
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_BOOL(GF_TRUE) );
+			break;
+		case MP4MX_MODE_INTER:
+		case MP4MX_MODE_TIGHT:
+			gf_filter_pid_allow_direct_dispatch(ctx->opid);
+			break;
 		}
 	}
 
@@ -3474,7 +3480,7 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 {
 	Bool status_changed=GF_FALSE;
 	u32 total_pc = 0;
-	char *szDst, szStatus[1024], szTK[20];
+	char szStatus[1024], szTK[20];
 	if (!gf_filter_reporting_enabled(filter))
 		return;
 	if (!ctx->update_report)
@@ -3482,48 +3488,46 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 
 	ctx->update_report = GF_FALSE;
 
-	szDst = gf_filter_pid_get_destination(ctx->opid);
-	szDst = gf_file_basename(szDst);
 	if (ctx->config_timing) {
-		sprintf(szStatus, "%s: waiting for clock init", szDst);
+		sprintf(szStatus, "waiting for clock init");
 		status_changed = GF_TRUE;
 	} else if (total) {
 		if (done>=total) {
-			u32 ohead = 0;
-			if (ctx->total_bytes_in) ohead = (u32) ((ctx->total_bytes_out - ctx->total_bytes_in)*100 / ctx->total_bytes_in);
+			Double ohead = 0;
+			if (ctx->total_bytes_in) ohead =  ((Double) (ctx->total_bytes_out - ctx->total_bytes_in)*100 / ctx->total_bytes_in);
 
-			sprintf(szStatus, "%s: done %d samples "LLU"B in "LLU"B out overhead %d%% (%02.02g B/sample)", szDst, ctx->total_samples, ctx->total_bytes_in, ctx->total_bytes_out, ohead, ((Double)(ctx->total_bytes_out-ctx->total_bytes_in))/ctx->total_samples);
+			sprintf(szStatus, "done %d samples - bytes "LLU" in "LLU" out - overhead %02.02f%% (%02.02g B/sample)", ctx->total_samples, ctx->total_bytes_in, ctx->total_bytes_out, ohead, ((Double)(ctx->total_bytes_out-ctx->total_bytes_in))/ctx->total_samples);
 			status_changed = GF_TRUE;
-			total_pc = 100;
+			total_pc = 10000;
 
 		} else {
-			u32 pc = (u32) ((done*100)/total);
+			u32 pc = (u32) ((done*10000)/total);
 			if (ctx->last_mux_pc == pc + 1) return;
 			ctx->last_mux_pc = pc + 1;
-			sprintf(szStatus, "%s: mux %d%%", szDst, pc);
+			sprintf(szStatus, "mux %d%%", pc);
 			status_changed = GF_TRUE;
 		}
 	} else {
 		u32 i, count = gf_list_count(ctx->tracks);
-		sprintf(szStatus, "%s: %s", szDst, (ctx->store==MP4MX_MODE_FLAT) ? "mux" : "import");
+		sprintf(szStatus, "%s", (ctx->store==MP4MX_MODE_FLAT) ? "mux" : "import");
 		for (i=0; i<count; i++) {
 			u32 pc=0;
 			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 			if (tkw->aborted) {
-				pc=100;
+				pc=10000;
 			} else if (ctx->idur.num) {
 				u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
 				u64 tk_done = mdur * ctx->idur.den;
 				u64 tk_total = ((u64)tkw->tk_timescale) * ctx->idur.num;
-				pc = ((tk_done*100)/tk_total);
+				pc = (u32) ((tk_done*10000)/tk_total);
 			} else {
 				if (tkw->nb_frames) {
-					pc = (100 * tkw->nb_samples) / tkw->nb_frames;
+					pc = (u32) ( (10000 * (u64) tkw->nb_samples) / tkw->nb_frames);
 				} else {
 					if (tkw->pid_dur.num && tkw->pid_dur.den) {
-						pc = (u32) ((tkw->sample.DTS*100 * tkw->pid_dur.den) / (tkw->pid_dur.num * tkw->tk_timescale));
+						pc = (u32) ((tkw->sample.DTS*10000 * tkw->pid_dur.den) / (tkw->pid_dur.num * tkw->tk_timescale));
 					} else if (tkw->down_bytes && tkw->down_size) {
-						pc = (u32) ((tkw->down_bytes*100) / tkw->down_size);
+						pc = (u32) ((tkw->down_bytes*10000) / tkw->down_size);
 					}
 				}
 			}

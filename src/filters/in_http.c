@@ -303,6 +303,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 			return GF_EOS;
 		}
 		nb_read = (u32) fread(ctx->block, 1, to_read, ctx->cached);
+		bytes_per_sec = 0;
 
 	}
 	//we read from network
@@ -395,6 +396,14 @@ static GF_Err httpin_process(GF_Filter *filter)
 	//mark packet out BEFORE sending, since the call to send() may destroy the packet if cloned
 	ctx->pck_out = GF_TRUE;
 	gf_filter_pck_send(pck);
+
+	if (ctx->file_size && gf_filter_reporting_enabled(filter)) {
+		char szStatus[1024], *szSrc;
+		szSrc = gf_file_basename(ctx->src);
+
+		sprintf(szStatus, "%s: % 16"LLD_SUF" /% 16"LLD_SUF" (%02.02f) % 8d kbps", szSrc, (s64) bytes_done, (s64) ctx->file_size, ((Double)bytes_done*100.0)/ctx->file_size, bytes_per_sec*8/1000);
+		gf_filter_update_status(filter, (u32) (bytes_done*10000/ctx->file_size), szStatus);
+	}
 
 	if (ctx->is_end) {
 		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );

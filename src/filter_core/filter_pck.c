@@ -968,7 +968,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			if ((s64) pid->buffer_duration < dst->buffer_duration) pid->buffer_duration = dst->buffer_duration;
 
 			//post process task
-			gf_filter_post_process_task(dst->filter);
+			gf_filter_post_process_task_internal(dst->filter, pid->direct_dispatch);
 
 #endif
 		}

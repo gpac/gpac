@@ -2260,7 +2260,6 @@ void gf_mpd_print_date(FILE *out, char *name, u64 time)
 	u32 sec;
 	u32 ms;
 	gtime = time / 1000;
-//	gtime -= GF_NTP_SEC_1900_TO_1970;
 	sec = (u32)(time / 1000);
 	ms = (u32)(time - ((u64)sec) * 1000);
 

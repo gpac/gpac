@@ -84,6 +84,7 @@ typedef struct
 	TS_SIDX *sidx_entries;
 	GF_BitStream *idx_bs;
 	u32 nb_pck_in_file, nb_pck_first_sidx, ref_pid;
+	u64 total_bytes_in;
 } GF_TSMuxCtx;
 
 typedef struct
@@ -419,6 +420,8 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		if (tspid->rewrite_odf) {
 			tsmux_rewrite_odf(tspid->ctx, &es_pck);
 		}
+
+		tspid->ctx->total_bytes_in += es_pck.data_len;
 
 		if (tspid->pck_data_buf) gf_free(tspid->pck_data_buf);
 		tspid->pck_data_buf = NULL;
@@ -989,7 +992,7 @@ static void tsmux_insert_sidx(GF_TSMuxCtx *ctx, Bool final_flush)
 static GF_Err tsmux_process(GF_Filter *filter)
 {
 	const char *ts_pck;
-	u32 nb_pck_in_pack;
+	u32 nb_pck_in_pack, nb_pck_in_call;
 	u32 status, usec_till_next;
 	GF_FilterPacket *pck;
 	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
@@ -1057,7 +1060,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		}
 	}
 
-
+	nb_pck_in_call = 0;
 	nb_pck_in_pack=0;
 	while (1) {
 		char *output;
@@ -1101,9 +1104,10 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		}
 
 		gf_filter_pck_send(pck);
-		ctx->nb_pck++;
+		ctx->nb_pck += nb_pck_in_pack;
 		ctx->nb_pck_in_seg++;
 		ctx->nb_pck_in_file++;
+		nb_pck_in_call += nb_pck_in_pack;
 		nb_pck_in_pack = 0;
 
 		if (is_pack_flush)
@@ -1111,6 +1115,25 @@ static GF_Err tsmux_process(GF_Filter *filter)
 
 		if (status>=GF_M2TS_STATE_PADDING) {
 			break;
+		}
+		if (nb_pck_in_call>100)
+			break;
+	}
+	if (gf_filter_reporting_enabled(filter)) {
+		char szStatus[1024];
+		if (status==GF_M2TS_STATE_EOS) {
+			Double ohead = 0;
+			u64 total_bytes_out = ctx->nb_pck;
+			total_bytes_out *= 188;
+
+			if (ctx->total_bytes_in) ohead =  ((Double) (total_bytes_out - ctx->total_bytes_in)*100 / ctx->total_bytes_in);
+
+			sprintf(szStatus, "done - TS clock % 6d ms bitrate %d kbps - bytes "LLD" in "LLD" out overhead %02.02f%%", gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000, ctx->total_bytes_in, total_bytes_out, ohead);
+			gf_filter_update_status(filter, 10000, szStatus);
+		} else {
+
+			sprintf(szStatus, "sysclock % 6d ms TS clock % 6d ms bitrate % 8d kbps", gf_m2ts_get_sys_clock(ctx->mux), gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000);
+			gf_filter_update_status(filter, -1, szStatus);
 		}
 	}
 
@@ -1275,7 +1298,7 @@ static const GF_FilterArgs TSMuxArgs[] =
 	{ OFFS(pes_pack), "set AU to PES packing mode.\n"\
 		"- audio: will pack only multiple audio AUs in a PES\n"\
 		"- none: make exactly one AU per PES\n"\
-		"- all will pack multiple AUs per PES for all streams", GF_PROP_UINT, "audio", "audio|none|all", GF_FS_ARG_HINT_ADVANCED},
+		"- all: will pack multiple AUs per PES for all streams", GF_PROP_UINT, "audio", "audio|none|all", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rt), "use real-time output", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(bifs_pes), "select BIFS streams packetization (PES vs sections)\n"
 	"- on: uses BIFS PES\n"
