@@ -253,10 +253,16 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 			return 0;
 		}
 		visual_3d_reset_graphics(compositor->visual);
+		if (evt.setup.opengl_mode && gf_opts_get_bool("core", "rmt-ogl")) {
+			rmt_BindOpenGL();
+		}
 		/*reload openGL ext*/
 		gf_sc_load_opengl_extensions(compositor, GF_TRUE);
 		/*load openGL shaders*/
 		visual_3d_init_shaders(compositor->visual);
+			if (evt.setup.opengl_mode && gf_opts_get_bool("core", "rmt-ogl")) {
+				rmt_BindOpenGL();
+			}
 	}
 #endif
 	st->txh.data = (char*)gf_malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);

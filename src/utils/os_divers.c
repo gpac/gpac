@@ -931,8 +931,7 @@ static Bool gf_sys_enable_profiling(Bool start, Bool is_shutdown)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] unable to initialize Remotery profiler: error %d\n", rme));
 			return GF_FALSE;
 		}
-		if (gf_opts_get_bool("core", "rmt-ogl"))
-			rmt_BindOpenGL();
+		//openGL binding is done upon loading of the driver, otherwise crashes on windows
 
 		if (gf_opts_get_bool("core", "rmt-log")) {
 			gpac_prev_default_logs = gf_log_set_callback(NULL, gpac_rmt_log_callback);
