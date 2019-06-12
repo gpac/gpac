@@ -139,9 +139,9 @@ static void init_reader(ISOMChannel *ch)
 		}
 		
 		if (ch->sample && !ch->sample->data && ch->owner->frag_type && !ch->has_edit_list) {
-			gf_isom_sample_del(&ch->sample);
+			ch->sample = NULL;
 			ch->sample_num = 1;
-			ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index);
+			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample);
 		}
 	}
 
