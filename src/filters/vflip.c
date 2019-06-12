@@ -98,8 +98,8 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 		//jmax=line_size/(2*3) or jmax=line_size/(2*4)
 		for (u32 j = 0; j < line_size/(2*ctx->bps); j++) {
 			u8 pix[4];
-			memcpy(pix, line_src + line_size - ctx->bps*j, ctx->bps);
-			memcpy(line_dst + line_size - ctx->bps*j, line_src + ctx->bps*j, ctx->bps);
+			memcpy(pix, line_src + line_size - ctx->bps*(j+1), ctx->bps);
+			memcpy(line_dst + line_size - ctx->bps*(j+1), line_src + ctx->bps*j, ctx->bps);
 			memcpy(line_dst + ctx->bps*j, pix, ctx->bps);
 		}
 
