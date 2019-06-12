@@ -693,6 +693,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		gf_mx_p(pidinst->pid->filter->tasks_mx);
 		gf_list_del_item(pidinst->pid->destinations, pidinst);
 		pidinst->pid->num_destinations = gf_list_count(pidinst->pid->destinations);
+		//detach filter from pid instance
 		pidinst->filter = NULL;
 		gf_mx_v(pidinst->pid->filter->tasks_mx);
 
@@ -701,8 +702,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			gf_mx_p(pid->filter->tasks_mx);
 			gf_list_del_item(pid->destinations, pidinst);
 			pid->num_destinations = gf_list_count(pid->destinations);
-			if (pidinst->filter)
-				gf_filter_pid_inst_del(pidinst);
+			//destroy pid instance
+			gf_filter_pid_inst_del(pidinst);
 			gf_mx_v(pid->filter->tasks_mx);
 		}
 
