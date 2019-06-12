@@ -4966,9 +4966,15 @@ GF_Err colr_dump(GF_Box *a, FILE * trace)
 	u32 size_64;
 	GF_ColourInformationBox *ptr = (GF_ColourInformationBox *)a;
 	if (!a) return GF_BAD_PARAM;
+
 	gf_isom_box_dump_start(a, "ColourInformationBox", trace);
-	fprintf(trace, "colour_type=\"%s\" colour_primaries=\"%d\" transfer_characteristics=\"%d\" matrix_coefficients=\"%d\" full_range_flag=\"%d\">\n", gf_4cc_to_str(ptr->colour_type), ptr->colour_primaries, ptr->transfer_characteristics, ptr->matrix_coefficients, ptr->full_range_flag);
-	if (ptr->colour_type == GF_ISOM_SUBTYPE_PROF || ptr->colour_type == GF_ISOM_SUBTYPE_RICC) {
+	fprintf(trace, "colour_type=\"%s\"", gf_4cc_to_str(ptr->colour_type));
+
+	if (ptr->colour_type == GF_ISOM_SUBTYPE_NCLX) {
+		fprintf(trace, " colour_primaries=\"%d\" transfer_characteristics=\"%d\" matrix_coefficients=\"%d\" full_range_flag=\"%d\">\n",
+			(int)ptr->colour_primaries, (int)ptr->transfer_characteristics, (int)ptr->matrix_coefficients, ptr->full_range_flag);
+	} else if (ptr->colour_type == GF_ISOM_SUBTYPE_PROF || ptr->colour_type == GF_ISOM_SUBTYPE_RICC) {
+		fprintf(trace, ">\n");
 		if (ptr->opaque != NULL) {
 			fprintf(trace, "<profile><![CDATA[");
 			size_64 = 2 * ptr->opaque_size;
@@ -4978,7 +4984,10 @@ GF_Err colr_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "%s", prof_data_64);
 			fprintf(trace, "]]></profile>");
 		}
+	} else {
+		fprintf(trace, ">\n");
 	}
+
 	gf_isom_box_dump_done("ColourInformationBox", a, trace);
 	return GF_OK;
 }
