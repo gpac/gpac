@@ -118,6 +118,9 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 		gf_sc_reset_graphics(compositor);
 		return GF_OK;
 	}
+	if (evt.setup.opengl_mode && gf_opts_get_bool("core", "rmt-ogl")) {
+		rmt_BindOpenGL();
+	}
 
 #if defined(GPAC_USE_TINYGL)
 	{

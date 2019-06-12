@@ -684,6 +684,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 		evt.setup.disable_vsync = !ctx->vsync;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+		if (evt.setup.opengl_mode && gf_opts_get_bool("core", "rmt-ogl")) {
+			rmt_BindOpenGL();
+		}
 		if (!ctx->in_fullscreen) {
 			ctx->display_width = evt.setup.width;
 			ctx->display_height = evt.setup.height;
@@ -1248,6 +1251,9 @@ static GF_Err vout_initialize(GF_Filter *filter)
 		evt.setup.disable_vsync = !ctx->vsync;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 
+		if (evt.setup.opengl_mode && gf_opts_get_bool("core", "rmt-ogl")) {
+			rmt_BindOpenGL();
+		}
 		gf_filter_register_opengl_provider(filter, GF_TRUE);
 	}
 #endif
