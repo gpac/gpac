@@ -54,6 +54,11 @@ u32 bs_get_ue(GF_BitStream *bs);
 
 s32 bs_get_se(GF_BitStream *bs);
 
+//in src/filters/hevcsplit.c
+void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, char **out_SPS, u32 *out_SPS_length);
+
+static void rewrite_pps_tile_grid(char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length, u8 num_tile_rows_minus1, u8 num_tile_columns_minus1, u32 uniform_spacing_flag, GF_HEVCSplitCtx *ctx);
+
 static void bs_set_ue(GF_BitStream *bs, u32 num) {
 	s32 length = 1;
 	s32 temp = ++num;
@@ -78,6 +83,7 @@ static void bs_set_se(GF_BitStream *bs, s32 num)
 	bs_set_ue(bs, v);
 }
 
+#if 0 //todo
 //rewrite the profile and level
 static void write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, Bool ProfilePresentFlag, u8 MaxNumSubLayersMinus1)
 {
@@ -113,117 +119,13 @@ static void write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, 
 			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 8), 8);
 	}
 }
+#endif
 
-static void rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, char **out_SPS, u32 *out_SPS_length)
-{
-	GF_BitStream *bs_in, *bs_out;
-	u64 length_no_use = 4096;
-	char *data_without_emulation_bytes = NULL;
-	u32 data_without_emulation_bytes_size = 0, sps_ext_or_max_sub_layers_minus1;
-	u8 max_sub_layers_minus1 = 0, layer_id;
-	Bool conformance_window_flag, multiLayerExtSpsFlag;
-	u32 chroma_format_idc;
-
-
-	bs_in = gf_bs_new(in_SPS, in_SPS_length, GF_BITSTREAM_READ);
-	gf_bs_enable_emulation_byte_removal(bs_in, GF_TRUE);
-	bs_out = gf_bs_new(NULL, length_no_use, GF_BITSTREAM_WRITE);
-
-	if (!bs_in) goto exit;
-
-	//copy NAL Header
-	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 7), 7);
-	layer_id = gf_bs_read_int(bs_in, 6);
-	gf_bs_write_int(bs_out, layer_id, 6);
-	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 3), 3);
-
-	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 4), 4); //copy vps_id
-
-	if (layer_id == 0)
-	{
-		max_sub_layers_minus1 = gf_bs_read_int(bs_in, 3);
-		gf_bs_write_int(bs_out, max_sub_layers_minus1, 3);
-	}
-	else
-	{
-		sps_ext_or_max_sub_layers_minus1 = gf_bs_read_int(bs_in, 3);
-		gf_bs_write_int(bs_out, sps_ext_or_max_sub_layers_minus1, 3);
-	}
-	multiLayerExtSpsFlag = (layer_id != 0) && (sps_ext_or_max_sub_layers_minus1 == 7);
-	if (!multiLayerExtSpsFlag) {
-		gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1);
-		write_profile_tier_level(bs_in, bs_out, 1, max_sub_layers_minus1);
-	}
-
-	bs_set_ue(bs_out, bs_get_ue(bs_in)); //copy sps_id
-
-	if (multiLayerExtSpsFlag) {
-		u8 update_rep_format_flag = gf_bs_read_int(bs_in, 1);
-		gf_bs_write_int(bs_out, update_rep_format_flag, 1);
-		if (update_rep_format_flag) {
-			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 8), 8);
-		}
-	}
-	else {
-		chroma_format_idc = bs_get_ue(bs_in);
-		bs_set_ue(bs_out, chroma_format_idc);
-		if (chroma_format_idc == 3)
-			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1); // copy separate_colour_plane_flag
-		/*w = */bs_get_ue(bs_in); //skip width bits in input bitstream
-		/*h = */bs_get_ue(bs_in); //skip height bits in input bitstream
-
-		//Copy the new width and height in output bitstream
-		bs_set_ue(bs_out, width);
-		bs_set_ue(bs_out, height);
-
-		//Get rid of the bit conformance_window_flag
-		conformance_window_flag = gf_bs_read_int(bs_in, 1);
-		//put the new conformance flag to zero
-		gf_bs_write_int(bs_out, 0, 1);
-
-		//Skip the bits related to conformance_window_offset
-		if (conformance_window_flag)
-		{
-			bs_get_ue(bs_in);
-			bs_get_ue(bs_in);
-			bs_get_ue(bs_in);
-			bs_get_ue(bs_in);
-		}
-	}
-
-	//copy and write the rest of the bits in the byte
-	while (gf_bs_get_bit_position(bs_in) != 8) {
-		gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1);
-	}
-
-	//copy and write the rest of the bytes
-	while (gf_bs_get_size(bs_in) != gf_bs_get_position(bs_in)) {
-		gf_bs_write_int(bs_out, gf_bs_read_u8(bs_in), 8); //watchout, not aligned in destination bitstream
-	}
-
-
-	gf_bs_align(bs_out);						//align
-
-	gf_free(data_without_emulation_bytes);
-	data_without_emulation_bytes = NULL;
-	data_without_emulation_bytes_size = 0;
-
-	gf_bs_get_content(bs_out, &data_without_emulation_bytes, &data_without_emulation_bytes_size);
-
-	*out_SPS_length = data_without_emulation_bytes_size + gf_media_nalu_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
-	*out_SPS = gf_malloc(*out_SPS_length);
-	gf_media_nalu_add_emulation_bytes(data_without_emulation_bytes, *out_SPS, data_without_emulation_bytes_size);
-
-exit:
-	gf_bs_del(bs_in);
-	gf_bs_del(bs_out);
-	gf_free(data_without_emulation_bytes);
-}
-
-static void rewrite_pps(Bool extract, char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length, u8 num_tile_rows_minus1, u8 num_tile_columns_minus1, u32 uniform_spacing_flag, GF_HEVCSplitCtx *ctx)
+static void rewrite_pps_tile_grid(char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length, u8 num_tile_rows_minus1, u8 num_tile_columns_minus1, u32 uniform_spacing_flag, GF_HEVCSplitCtx *ctx)
 {
 	u64 length_no_use = 0;
-	u8 cu_qp_delta_enabled_flag, tiles_enabled_flag, loop_filter_across_slices_enabled_flag;
+	u8 cu_qp_delta_enabled_flag, tiles_enabled_flag;
+	u32 loop_filter_flag;
 
 	GF_BitStream *bs_in;
 	GF_BitStream *bs_out;
@@ -254,54 +156,29 @@ static void rewrite_pps(Bool extract, char *in_PPS, u32 in_PPS_length, char **ou
 	bs_set_se(bs_out, bs_get_se(bs_in)); // pps_cr_qp_offset
 	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 4), 4); // from pps_slice_chroma_qp_offsets_present_flag to transquant_bypass_enabled_flag
 
-	//tile:
 
-	if (extract)
+	gf_bs_read_int(bs_in, 1);
+	gf_bs_write_int(bs_out, 1, 1);//tiles_enable_flag ----from 0 to 1
+	tiles_enabled_flag = 1;//always enable
+	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1);//entropy_coding_sync_enabled_flag
+	bs_set_ue(bs_out, num_tile_columns_minus1);//write num_tile_columns_minus1
+	bs_set_ue(bs_out, num_tile_rows_minus1);//num_tile_rows_minus1
+	gf_bs_write_int(bs_out, uniform_spacing_flag, 1);  //uniform_spacing_flag
+
+	if (!uniform_spacing_flag)
 	{
-		tiles_enabled_flag = gf_bs_read_int(bs_in, 1); // tiles_enabled_flag
-		gf_bs_write_int(bs_out, 0, 1);
-		gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1); // entropy_coding_sync_enabled_flag
-		if (tiles_enabled_flag)
-		{
-			u32 num_tile_columns_minus1 = bs_get_ue(bs_in);
-			u32 num_tile_rows_minus1 = bs_get_ue(bs_in);
-			u8 uniform_spacing_flag = gf_bs_read_int(bs_in, 1);
-			if (!uniform_spacing_flag)
-			{
-				u32 i;
-				for (i = 0; i < num_tile_columns_minus1; i++)
-					bs_get_ue(bs_in);
-				for (i = 0; i < num_tile_rows_minus1; i++)
-					bs_get_ue(bs_in);
-			}
-			gf_bs_read_int(bs_in, 1);
-		}
+		u8 i;
+		for (i = 0; i < num_tile_columns_minus1; i++)
+			bs_set_ue(bs_out, (ctx->tile_prop[i].width / 64 - 1)); // column_width_minus1[i], todo: not a ctu size
+		i = 0;
+		for (i = 0; i < num_tile_rows_minus1; i++)
+			bs_set_ue(bs_out, (ctx->tile_prop[i].height / 64 - 1)); // row_height_minus1[i]
 	}
-	else {
-		u32 loop_filter_across_tiles_enabled_flag;
-		gf_bs_read_int(bs_in, 1);
-		gf_bs_write_int(bs_out, 1, 1);//tiles_enable_flag ----from 0 to 1
-		tiles_enabled_flag = 1;//always enable
-		gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1);//entropy_coding_sync_enabled_flag    
-		bs_set_ue(bs_out, num_tile_columns_minus1);//write num_tile_columns_minus1 
-		bs_set_ue(bs_out, num_tile_rows_minus1);//num_tile_rows_minus1
-		gf_bs_write_int(bs_out, uniform_spacing_flag, 1);  //uniform_spacing_flag
+	loop_filter_flag = 1; // loop_filter_across_tiles_enabled_flag
+	gf_bs_write_int(bs_out, loop_filter_flag, 1);
 
-		if (!uniform_spacing_flag)
-		{
-			u8 i;
-			for (i = 0; i < num_tile_columns_minus1; i++)
-				bs_set_ue(bs_out, (ctx->tile_prop[i].width / 64 - 1)); // column_width_minus1[i], todo: not a ctu size
-			i = 0;
-			for (i = 0; i < num_tile_rows_minus1; i++)
-				bs_set_ue(bs_out, (ctx->tile_prop[i].height / 64 - 1)); // row_height_minus1[i]
-		}
-		loop_filter_across_tiles_enabled_flag = 1; // loop_filter_across_tiles_enabled_flag
-		gf_bs_write_int(bs_out, loop_filter_across_tiles_enabled_flag, 1);
-	}
-
-	loop_filter_across_slices_enabled_flag = gf_bs_read_int(bs_in, 1);
-	gf_bs_write_int(bs_out, loop_filter_across_slices_enabled_flag, 1);
+	loop_filter_flag = gf_bs_read_int(bs_in, 1);
+	gf_bs_write_int(bs_out, loop_filter_flag, 1);
 
 	// copy and write the rest of the bits in the byte
 	while (gf_bs_get_bit_position(bs_in) != 8) {
@@ -521,7 +398,7 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *d
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
 				char *outSPS=NULL;
 				u32 outSize=0;
-				rewrite_SPS(sl->data, sl->size, new_width, new_height, &outSPS, &outSize);
+				hevc_rewrite_sps(sl->data, sl->size, new_width, new_height, &outSPS, &outSize);
 				gf_free(sl->data);
 				sl->data = outSPS;
 				sl->size = outSize;
@@ -531,7 +408,7 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *d
 			else if (ar->type == GF_HEVC_NALU_PIC_PARAM) {
 				char *outPPS=NULL;
 				u32 outSize=0;
-				rewrite_PPS(GF_FALSE, sl->data, sl->size, &outPPS, &outSize, num_tile_rows_minus1, num_tile_columns_minus1, uniform_spacing_flag, ctx);
+				rewrite_pps_tile_grid(sl->data, sl->size, &outPPS, &outSize, num_tile_rows_minus1, num_tile_columns_minus1, uniform_spacing_flag, ctx);
 				gf_free(sl->data);
 				sl->data = outPPS;
 				sl->size = outSize;
@@ -879,7 +756,6 @@ static void hevccombine_finalize(GF_Filter *filter)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Combine] hevccombine_finalize.\n"));
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx *)gf_filter_get_udta(filter);
-	HEVCTilePidCtx *tile_pid;
 	if (ctx->buffer_nal) gf_free(ctx->buffer_nal);
 	gf_bs_del(ctx->bs_nal_in);
 
@@ -890,7 +766,7 @@ static void hevccombine_finalize(GF_Filter *filter)
 //	FILE *LuT = NULL;
 //	LuT = fopen("LuT.txt", "a");
 //	for (int i = 0; i < ctx->nb_ipid; i++) {
-//		tile_pid = ctx->addr_tile_pid[i];
+//		HEVCTilePidCtx *tile_pid = ctx->addr_tile_pid[i];
 //		fprintf(LuT,"%d %d %d %d\n", tile_pid->sum_width * 64, tile_pid->sum_height * 64, tile_pid->width, tile_pid->height);
 //		gf_free(ctx->addr_tile_pid[i]);
 //	}

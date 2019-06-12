@@ -269,7 +269,7 @@ static void write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, 
 	}
 }
 
-static void rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, HEVCState *hevc, char **out_SPS, u32 *out_SPS_length)
+void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, char **out_SPS, u32 *out_SPS_length)
 {
 	GF_BitStream *bs_in, *bs_out;
 	u64 length_no_use = 4096;
@@ -374,7 +374,7 @@ static void rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, 
 	gf_free(data_without_emulation_bytes);
 }
 
-static void rewrite_pps(Bool extract, char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length, u32 num_tile_columns_minus1, u32 num_tile_rows_minus1, u32 uniform_spacing_flag, u32 column_width_minus1[], u32 row_height_minus1[])
+static void rewrite_pps_no_grid(char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length)
 {
 	u64 length_no_use = 0;
 	u8 cu_qp_delta_enabled_flag, tiles_enabled_flag, loop_filter_across_slices_enabled_flag;
@@ -407,49 +407,23 @@ static void rewrite_pps(Bool extract, char *in_PPS, u32 in_PPS_length, char **ou
 	bs_set_se(bs_out, bs_get_se(bs_in)); // pps_cr_qp_offset
 	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 4), 4); // from pps_slice_chroma_qp_offsets_present_flag to transquant_bypass_enabled_flag
 
-	//Tile
-
-	if (extract)
+	tiles_enabled_flag = gf_bs_read_int(bs_in, 1); // tiles_enabled_flag
+	gf_bs_write_int(bs_out, 0, 1);
+	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1); // entropy_coding_sync_enabled_flag
+	if (tiles_enabled_flag)
 	{
-		tiles_enabled_flag = gf_bs_read_int(bs_in, 1); // tiles_enabled_flag
-		gf_bs_write_int(bs_out, 0, 1);
-		gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1); // entropy_coding_sync_enabled_flag
-		if (tiles_enabled_flag)
-		{
-			u32 num_tile_columns_minus1 = bs_get_ue(bs_in);
-			u32 num_tile_rows_minus1 = bs_get_ue(bs_in);
-			u8 uniform_spacing_flag = gf_bs_read_int(bs_in, 1);
-			if (!uniform_spacing_flag)
-			{
-				u32 i;
-				for (i = 0; i < num_tile_columns_minus1; i++)
-					bs_get_ue(bs_in);
-				for (i = 0; i < num_tile_rows_minus1; i++)
-					bs_get_ue(bs_in);
-			}
-			gf_bs_read_int(bs_in, 1);
-		}
-	}
-	else {
-		u32 loop_filter_across_tiles_enabled_flag;
-		gf_bs_read_int(bs_in, 1);
-		gf_bs_write_int(bs_out, 1, 1);//tiles_enable_flag ----from 0 to 1
-		tiles_enabled_flag = 1;//always enable
-		gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1);//entropy_coding_sync_enabled_flag    
-		bs_set_ue(bs_out, num_tile_columns_minus1);//write num_tile_columns_minus1 
-		bs_set_ue(bs_out, num_tile_rows_minus1);//num_tile_rows_minus1
-		gf_bs_write_int(bs_out, uniform_spacing_flag, 1);  //uniform_spacing_flag
-
+		u32 num_tile_columns_minus1 = bs_get_ue(bs_in);
+		u32 num_tile_rows_minus1 = bs_get_ue(bs_in);
+		u8 uniform_spacing_flag = gf_bs_read_int(bs_in, 1);
 		if (!uniform_spacing_flag)
 		{
 			u32 i;
 			for (i = 0; i < num_tile_columns_minus1; i++)
-				bs_set_ue(bs_out, column_width_minus1[i] - 1);
+				bs_get_ue(bs_in);
 			for (i = 0; i < num_tile_rows_minus1; i++)
-				bs_set_ue(bs_out, row_height_minus1[i] - 1);
+				bs_get_ue(bs_in);
 		}
-		loop_filter_across_tiles_enabled_flag = 1;//loop_filter_across_tiles_enabled_flag
-		gf_bs_write_int(bs_out, loop_filter_across_tiles_enabled_flag, 1);
+		gf_bs_read_int(bs_in, 1);
 	}
 
 	loop_filter_across_slices_enabled_flag = gf_bs_read_int(bs_in, 1);
@@ -711,7 +685,7 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx , GF_FilterPid *opid, char *
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
 				char *outSPS=NULL;
 				u32 outSize=0;
-				rewrite_sps(sl->data, sl->size, new_width, new_height, &ctx->hevc_state, &outSPS, &outSize);
+				hevc_rewrite_sps(sl->data, sl->size, new_width, new_height, &outSPS, &outSize);
 				gf_free(sl->data);
 				sl->data = outSPS;
 				sl->size= outSize;
@@ -721,7 +695,7 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx , GF_FilterPid *opid, char *
 			else if (ar->type == GF_HEVC_NALU_PIC_PARAM) {
 				char *outPPS=NULL;
 				u32 outSize=0;
-				rewrite_pps(GF_TRUE, sl->data, sl->size, &outPPS, &outSize, 0, 0, 0, NULL, NULL);
+				rewrite_pps_no_grid(sl->data, sl->size, &outPPS, &outSize);
 				gf_free(sl->data);
 				sl->data = outPPS;
 				sl->size = outSize;
