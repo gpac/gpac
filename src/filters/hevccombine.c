@@ -114,7 +114,7 @@ static void write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, 
 	}
 }
 
-static void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, char **out_SPS, u32 *out_SPS_length)
+static void rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, char **out_SPS, u32 *out_SPS_length)
 {
 	GF_BitStream *bs_in, *bs_out;
 	u64 length_no_use = 4096;
@@ -171,7 +171,6 @@ static void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, 
 			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1); // copy separate_colour_plane_flag
 		/*w = */bs_get_ue(bs_in); //skip width bits in input bitstream
 		/*h = */bs_get_ue(bs_in); //skip height bits in input bitstream
-		//get_size_of_slice(&width, &height, hevc); // get the width and height of the tile
 
 		//Copy the new width and height in output bitstream
 		bs_set_ue(bs_out, width);
@@ -221,7 +220,7 @@ exit:
 	gf_free(data_without_emulation_bytes);
 }
 
-static void rewrite_PPS(Bool extract, char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length, u8 num_tile_rows_minus1, u8 num_tile_columns_minus1, u32 uniform_spacing_flag, GF_HEVCSplitCtx *ctx)
+static void rewrite_pps(Bool extract, char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length, u8 num_tile_rows_minus1, u8 num_tile_columns_minus1, u32 uniform_spacing_flag, GF_HEVCSplitCtx *ctx)
 {
 	u64 length_no_use = 0;
 	u8 cu_qp_delta_enabled_flag, tiles_enabled_flag, loop_filter_across_slices_enabled_flag;
@@ -255,7 +254,7 @@ static void rewrite_PPS(Bool extract, char *in_PPS, u32 in_PPS_length, char **ou
 	bs_set_se(bs_out, bs_get_se(bs_in)); // pps_cr_qp_offset
 	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 4), 4); // from pps_slice_chroma_qp_offsets_present_flag to transquant_bypass_enabled_flag
 
-	//tile//////////////////////
+	//tile:
 
 	if (extract)
 	{
@@ -353,14 +352,9 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 
 	HEVCState *hevc = &tile_pid->hevc_state;
 
-
-	//buff_crop_origin_x = gf_malloc(6 * sizeof(char));
 	data_without_emulation_bytes = gf_malloc(in_slice_length * sizeof(char)); // In slice content shall be written as a character, sizeof(char) is the length on which each character is coded.
-	/*data_without_emulation_bytes = gf_malloc(in_slice_length * sizeof(char));*/
 	data_without_emulation_bytes_size = gf_media_nalu_remove_emulation_bytes(in_slice, data_without_emulation_bytes, in_slice_length);
 	bs_ori = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
-	//bs_ori = gf_bs_new(in_slice, in_slice_length, GF_BITSTREAM_READ);
-	//gf_bs_enable_emulation_byte_removal(bs_ori, GF_TRUE);
 
 	bs_rw = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
@@ -450,7 +444,6 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 		gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 1), 1);
 	}
 	new_slice_qp_delta = hevc->pps->pic_init_qp_minus26 + hevc->s_info.slice_qp_delta - ctx->base_pps_init_qp_delta_minus26; // no restriction for first tlie cause the result is correct
-	//printf("base_pps_init_qp_delta_minus26 = %i\tpic_init_qp_minus26 = %i\thevc->s_info.slice_qp_delta = %i\tnew_slice_qp_delta = %i\n", base_pps_init_qp_delta_minus26, hevc->pps->pic_init_qp_minus26, hevc->s_info.slice_qp_delta, new_slice_qp_delta);
 	bs_set_se(bs_rw, new_slice_qp_delta);
 	bs_get_se(bs_ori);
 	
@@ -482,7 +475,6 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 	//write byte_alignment() is bit=1 + x bit=0
 	gf_bs_write_int(bs_rw, 1, 1);
 	gf_bs_align(bs_rw);	// align
-#if 1
 	gf_bs_get_content(bs_rw, &dst_buf, &dst_buf_size); /* bs_rw: header.*/
 	slice_size = (u32) gf_bs_available(bs_ori); /* Slice_size: the rest of the slice after the header (no_emulation_bytes in it). */
 	slice_offset_orig = (u32) gf_bs_get_position(bs_ori); /* Slice_offset_orig: Immediate next byte after header_end (start of the slice_payload) */
@@ -494,24 +486,6 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 	gf_free(data_without_emulation_bytes);
 	data_without_emulation_bytes = dst_buf;
 	data_without_emulation_bytes_size = dst_buf_size;
-#elif 0
-	gf_bs_get_content(bs_rw, &dst_buf, &dst_buf_size); /* bs_rw: header.*/
-	
-	gf_free(data_without_emulation_bytes);
-	data_without_emulation_bytes = dst_buf;
-	data_without_emulation_bytes_size = dst_buf_size;
-#else
-	while (gf_bs_available(bs_ori)) {
-		gf_bs_write_u8(bs_rw, gf_bs_read_u8(bs_ori));
-	}
-	gf_bs_truncate(bs_rw);
-
-	gf_free(data_without_emulation_bytes);
-	data_without_emulation_bytes = NULL;
-	data_without_emulation_bytes_size = 0;
-
-	gf_bs_get_content(bs_rw, &data_without_emulation_bytes, &data_without_emulation_bytes_size);
-#endif
 
 	u32 slice_length = data_without_emulation_bytes_size + gf_media_nalu_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
 	if (*out_slice_length < slice_length)
@@ -570,48 +544,6 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *d
 	gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(new_dsi, new_size));
 	return GF_OK;
 }
-#if 0
-static GF_Err rewrite_hevc_dsi_pps(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *data, u32 size, u8 num_tile_rows_minus1, u8 num_tile_cols_minus1)
-{
-	u32 i, j;
-	char *new_dsi;
-	u32 new_size;
-	Bool uniform_spacing_flag = GF_FALSE;
-	GF_HEVCConfig *hvcc = NULL;
-	// Profile, tier and level syntax ( nal class: Reserved and unspecified)
-	hvcc = gf_odf_hevc_cfg_read(data, size, GF_FALSE);
-	if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
-
-	// for all the list objects in param_array
-	for (i = 0; i < gf_list_count(hvcc->param_array); i++) { // hvcc->param_array:list object
-		GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(hvcc->param_array, i); // ar contains the i-th item in param_array
-		for (j = 0; j < gf_list_count(ar->nalus); j++) { // for all the nalus the i-th param got
-			/*! used for storing AVC sequenceParameterSetNALUnit and pictureParameterSetNALUnit*/
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j); // store j-th nalus in *sl
-			u16 hdr = sl->data[0] << 8 | sl->data[1];
-
-			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
-				
-			}
-			else if (ar->type == GF_HEVC_NALU_VID_PARAM) {
-			}
-			else if (ar->type == GF_HEVC_NALU_PIC_PARAM) {
-				char *outPPS;
-				u32 outSize;
-				rewrite_PPS(GF_FALSE, sl->data, sl->size, &outPPS, &outSize, num_tile_rows_minus1, num_tile_cols_minus1, uniform_spacing_flag, ctx); // static config: 2 rows and a col (tbc)
-				gf_free(sl->data);
-				sl->data = outPPS;
-				sl->size = outSize;
-			}
-		}
-	}
-	gf_odf_hevc_cfg_write(hvcc, &new_dsi, &new_size);
-	gf_odf_hevc_cfg_del(hvcc);
-
-	gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(new_dsi, new_size));
-	return GF_OK;
-}
-#endif
 
 static void bsnal(char *output_nal, char *rewritten_nal, u32 out_nal_size, u32 hevc_nalu_size_length)
 {
@@ -626,19 +558,15 @@ static u32 compute_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pid)
 	u32 i, j, new_address = 0, sum_height = 0, sum_width = 0;
 	HEVCTilePidCtx *ptr = NULL, *current_pid = ctx->addr_tile_pid[tile_pid->pid_idx];
 
-#if 1
 	if (ctx->pid_idx > 0)
 	{
 		HEVCTilePidCtx *previous_pid = ctx->addr_tile_pid[tile_pid->pid_idx - 1];
-		//if (position_row[k] == position_row[k - 1] && position_col[k] == position_col[k - 1])
 		if ((current_pid->tile_pos_row == previous_pid->tile_pos_row) && (current_pid->tile_pos_col == previous_pid->tile_pos_col))
 		{
-			//for (j = 0; j < *(ctx->on_col + ctx->pid_idx); j++) sum_width += *(ctx->tile_size_x + j) / 64; // num_CTU_width[j]
 			for (j = 0; j < current_pid->tile_pos_col; j++) {
 				ptr = ctx->addr_tile_pid[j];
 				sum_width += ptr->width / 64; // num_CTU_width[j]
 			}
-			//while (*(ctx->on_row + ctx->pid_idx) == *(ctx->on_row + ctx->pid_idx - 1) && *(ctx->on_col + ctx->pid_idx) == *(ctx->on_col + ctx->pid_idx - 1))
 			while (current_pid->tile_pos_row == previous_pid->tile_pos_row && current_pid->tile_pos_col == previous_pid->tile_pos_col)
 			{
 				ptr = ctx->addr_tile_pid[tile_pid->pid_idx - 1];
@@ -650,12 +578,10 @@ static u32 compute_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pid)
 		}
 		else
 		{
-			//for (i = 0; i < *(ctx->on_row + ctx->pid_idx); i++) sum_height += *(ctx->tile_size_y + i) / 64; // num_CTU_height[i]
 			for (i = 0; i < current_pid->tile_pos_row; i++) {
 				ptr = ctx->addr_tile_pid[i];
 				sum_height += ptr->height / 64; // num_CTU_height[i]
 			}
-			//for (j = 0; j < *(ctx->on_col + ctx->pid_idx); j++) sum_width += *(ctx->tile_size_x + j) / 64; // num_CTU_width[j]
 			for (j = 0; j < current_pid->tile_pos_col; j++) {
 				ptr = ctx->addr_tile_pid[i];
 				sum_width += ptr->width / 64; // num_CTU_width[j]
@@ -665,8 +591,6 @@ static u32 compute_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pid)
 	}
 	else
 	{
-		//visualise = *(ctx->tile_size_y);
-		//visualise = ptr->tile_pos_row;
 		
 		for (i = 0; i < current_pid->tile_pos_row; i++) {
 			ptr = ctx->addr_tile_pid[i];
@@ -678,7 +602,6 @@ static u32 compute_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pid)
 		}
 		new_address = sum_height * (ctx->out_width / 64) + sum_width; 
 	}
-#endif
 	current_pid->sum_height = sum_height;
 	current_pid->sum_width = sum_width;
 	return new_address;
@@ -832,26 +755,6 @@ static GF_Err hevccombine_process(GF_Filter *filter)
 	GF_FilterPacket *output_pck = NULL;
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx*) gf_filter_get_udta (filter);
 	ctx->pid_idx = 0;
-#if 0
-	if (did_it == 0) {
-		//ctx->num_video_counter--;
-		//ctx->num_video_per_height--;
-		ctx->on_row = gf_malloc(ctx->num_video_counter * sizeof(int));
-		ctx->on_col = gf_malloc(ctx->num_video_counter * sizeof(int));
-
-		for (video_idx = 0; video_idx < ctx->num_video_counter; video_idx++) { // change the "39" to proper script/lettering
-		//video_idx++;
-			*(ctx->on_row + video_idx) = (video_idx + 1) % ctx->num_video_per_height; // position_row[] is atoi(argv[]) - 1
-			if (*(ctx->on_row + video_idx) == 0) *(ctx->on_row + video_idx) = ctx->num_video_per_height;
-			*(ctx->on_row + video_idx) -= 1;
-			num_tile_rows_minus1 = *(ctx->on_row + video_idx);
-			*(ctx->on_col + video_idx) = ceil((video_idx + 1) * pow(ctx->num_video_per_height, -1)) - 1; // position_col[] is atoi(argv[]) - 1
-			num_tile_columns_minus1 = *(ctx->on_col + video_idx);
-			did_it = 1;
-		}
-		rewrite_hevc_dsi_pps(ctx, ctx->opid, ctx->dsi_ptr, ctx->dsi_size, num_tile_rows_minus1, num_tile_columns_minus1); // write num_tile_minus1 ...
-	}
-#endif
 	
 	nb_eos = 0;
 	nb_ipid = gf_filter_get_ipid_count(filter);
@@ -908,17 +811,6 @@ static GF_Err hevccombine_process(GF_Filter *filter)
 			pos = (u32) gf_bs_get_position(ctx->bs_nal_in);
 			gf_media_hevc_parse_nalu(data + pos, nal_length, &tile_pid->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
 			gf_bs_skip_bytes(ctx->bs_nal_in, nal_length); //skip nal in bs
-			//u32 v = ctx->num_video_counter, h = ctx->num_video_per_height; // useful for debug
-#if 0
-			if (nal_unit_type == 39) { // change the "39" to proper script/lettering
-				video_idx++;
-				*(ctx->on_row + video_idx) = (video_idx + 1) % ctx->num_video_per_height; // position_row[] is atoi(argv[]) - 1
-				if (*(ctx->on_row + video_idx) == 0) *(ctx->on_row + video_idx) = ctx->num_video_per_height;
-				*(ctx->on_row + video_idx) -= 1;
-				*(ctx->on_col + video_idx) = ceil((video_idx + 1) * pow(ctx->num_video_per_height, -1)) - 1; // position_col[] is atoi(argv[]) - 1
-			}
-#endif
-			// if (0 && nal_unit_type < 32) {
 			if (nal_unit_type < 32) {
 				if (!tile_pid->address_computed) { // if each tile comes with a different Id
 					tile_pid->slice_segment_address = compute_address(ctx, tile_pid);
@@ -939,7 +831,6 @@ static GF_Err hevccombine_process(GF_Filter *filter)
 				if (out_nal_size > ctx->buffer_nal_alloc)
 					ctx->buffer_nal_alloc = out_nal_size;
 			}
-			//else forward(pck_src, ctx->cur_pck); // Automatic gf_filter_pck_expand ?
 			else {
 				gf_media_hevc_parse_nalu(data + pos, nal_length, &tile_pid->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
 				// Copy SEI_PREFIX only for the first sample.
@@ -981,9 +872,6 @@ static GF_Err hevccombine_initialize(GF_Filter *filter)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Combine] hevccombine_initialize started.\n"));
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx *)gf_filter_get_udta(filter);
 	ctx->bs_nal_in = gf_bs_new((char *)ctx, 1, GF_BITSTREAM_READ);
-	#ifdef DYNAMIQUE_HEVC_STATE
-	ctx->hevc_state = (HEVCState *)gf_malloc(sizeof(HEVCState));
-#endif // DYNAMIQUE_HEVC_STATE
 	return GF_OK;
 }
 
@@ -994,21 +882,19 @@ static void hevccombine_finalize(GF_Filter *filter)
 	HEVCTilePidCtx *tile_pid;
 	if (ctx->buffer_nal) gf_free(ctx->buffer_nal);
 	gf_bs_del(ctx->bs_nal_in);
-	#ifdef DYNAMIQUE_HEVC_STATE
-	#endif // DYNAMIQUE_HEVC_STATE
 
-	// Mecanism to ensure the file creation for each execution of the program  
-	int r = rename("LuT.txt", "LuT.txt");
-	if (r == 0) remove("LuT.txt");
-
-	FILE *LuT = NULL;
-	LuT = fopen("LuT.txt", "a");
-	for (int i = 0; i < ctx->nb_ipid; i++) {
-		tile_pid = ctx->addr_tile_pid[i];
-		fprintf(LuT,"%d %d %d %d\n", tile_pid->sum_width * 64, tile_pid->sum_height * 64, tile_pid->width, tile_pid->height);
-		gf_free(ctx->addr_tile_pid[i]);
-	}
-	fclose(LuT);
+//	// Mecanism to ensure the file creation for each execution of the program
+//	int r = rename("LuT.txt", "LuT.txt");
+//	if (r == 0) remove("LuT.txt");
+//
+//	FILE *LuT = NULL;
+//	LuT = fopen("LuT.txt", "a");
+//	for (int i = 0; i < ctx->nb_ipid; i++) {
+//		tile_pid = ctx->addr_tile_pid[i];
+//		fprintf(LuT,"%d %d %d %d\n", tile_pid->sum_width * 64, tile_pid->sum_height * 64, tile_pid->width, tile_pid->height);
+//		gf_free(ctx->addr_tile_pid[i]);
+//	}
+//	fclose(LuT);
 }
 
 static const GF_FilterCapability hevccombineCaps[] =
@@ -1016,8 +902,6 @@ static const GF_FilterCapability hevccombineCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	//CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_TILE_BASE, GF_TRUE),
-	//CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_TILE_BASE, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_HEVC)
 };
@@ -1026,7 +910,6 @@ static const GF_FilterCapability hevccombineCaps[] =
 
 static const GF_FilterArgs hevccombineArgs[] =
 {
-	//	{ OFFS(threading), "Set threading mode", GF_PROP_UINT, "frame", "frameslice|frame|slice", GF_FS_ARG_HINT_ADVANCED},
 		{0}
 };
 
