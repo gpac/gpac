@@ -710,11 +710,12 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	}
 
 	now = gf_sys_clock_high_res();
-	if ( (now - last_report_clock_us < 100000) && !is_final)
+	if ( (now - last_report_clock_us < 200000) && !is_final)
 		return;
 
 	last_report_clock_us = now;
-	gf_sys_set_console_code(stderr, GF_CONSOLE_CLEAR);
+	if (!is_final) 
+		gf_sys_set_console_code(stderr, GF_CONSOLE_CLEAR);
 
 	gf_sys_get_rti(100, &rti, 0);
 	gf_sys_set_console_code(stderr, GF_CONSOLE_CYAN);
@@ -734,7 +735,10 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 			continue;
 		}
 		if (stats.status) {
-			format_help(FH_FIRST_IS_HL, "%s: %s\n", stats.reg_name, stats.status);
+			gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
+			fprintf(stderr, "%s", stats.name ? stats.name : stats.reg_name);
+			gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
+			fprintf(stderr, ": %s\n", stats.status);
 		} else {
 			gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
 			fprintf(stderr, "%s", stats.name ? stats.name : stats.reg_name);
@@ -746,7 +750,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 			 	fprintf(stderr, "(%s) ", gf_codecid_name(stats.codecid) );
 
 			if ((stats.nb_pid_in == stats.nb_pid_out) && (stats.nb_pid_in==1)) {
-				Double pck_per_sec = stats.nb_pck_sent;
+				Double pck_per_sec = (Double) stats.nb_pck_sent;
 				pck_per_sec *= 1000000;
 				pck_per_sec /= (stats.time_process+1);
 
@@ -765,6 +769,9 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	fprintf(stderr, "Active filters: %d\n", nb_active);
 
 	if (!logs_to_file) {
+		if (is_final && !static_logs[i].szMsg)
+			return;
+
 		fprintf(stderr, "\nLogs:\n");
 		for (i=0; i<log_write; i++) {
 			if (static_logs[i].level==GF_LOG_ERROR) gf_sys_set_console_code(stderr, GF_CONSOLE_RED);
@@ -783,6 +790,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 		fprintf(stderr, "\n");
 	}
 	gf_fs_lock_filters(fsess, GF_FALSE);
+	fflush(stderr);
 }
 
 static Bool gpac_event_proc(void *opaque, GF_Event *event)
@@ -2634,7 +2642,7 @@ static void format_help(u32 flags, const char *fmt, ...)
 			char *sep = strchr(line, ' ');
 
 			if (flags & FH_FIRST_IS_OPT)
-				att_len = strlen(line);
+				att_len = (u32) strlen(line);
 
 			if (sep) sep[0] = 0;
 

@@ -25,13 +25,6 @@
 
 #include <gpac/tools.h>
 
-#if defined(WIN32) && !defined(GPAC_CONFIG_WIN32)
-#include <windows.h>
-#include <wincon.h>
-static HANDLE console = NULL;
-static WORD console_attr_ori = 0;
-#endif
-
 
 //ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
 #define NB_4CC_BUF	10
@@ -394,21 +387,44 @@ u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
 	return global_log_tools[log_tool].level;
 }
 
+#if defined(GPAC_CONFIG_WIN32)
+#include <windows.h>
+#include <wincon.h>
+static HANDLE console = NULL;
+static WORD console_attr_ori = 0;
+static CONSOLE_SCREEN_BUFFER_INFO cbck_console;
+static CONSOLE_CURSOR_INFO cbck_cursor;
+static PCHAR_INFO cbck_buffer=NULL;
+static Bool cbck_stored=GF_FALSE;
+static Bool is_mintty = GF_FALSE;
+#endif
+
+
+
+
 GF_EXPORT
 void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 {
 	u32 color_code = code & 0xFFFF;
-#if defined(WIN32) && !defined(GPAC_CONFIG_WIN32)
+#if defined(GPAC_CONFIG_WIN32)
 	WORD attribs=0;
-	if (console == NULL) {
+	if (!is_mintty && (console == NULL)) {
 		CONSOLE_SCREEN_BUFFER_INFO console_info;
-		console = GetStdHandle(STD_ERROR_HANDLE);
-		assert(console != INVALID_HANDLE_VALUE);
-		if (console != INVALID_HANDLE_VALUE) {
-			GetConsoleScreenBufferInfo(console, &console_info);
-			console_attr_ori = console_info.wAttributes;
+		const char *shellv = getenv("SHELL");
+		if (shellv) {
+			is_mintty = GF_TRUE;
+		} else {
+			console = GetStdHandle(STD_ERROR_HANDLE);
+			assert(console != INVALID_HANDLE_VALUE);
+			if (console != INVALID_HANDLE_VALUE) {
+				GetConsoleScreenBufferInfo(console, &console_info);
+				console_attr_ori = console_info.wAttributes;
+			}
 		}
 	}
+
+	if (is_mintty) goto win32_ismtty;
+
 	switch(color_code) {
 	case GF_CONSOLE_RED:
 		attribs = FOREGROUND_INTENSITY | FOREGROUND_RED;
@@ -431,12 +447,100 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 	case GF_CONSOLE_WHITE:
 		attribs = FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE;
 		break;
+
+	case GF_CONSOLE_SAVE:
+		if (!cbck_stored) {
+			u32 size, line, line_incr;
+			COORD pos;
+			BOOL res;
+			SMALL_RECT region;
+
+			res = GetConsoleScreenBufferInfo(console, &cbck_console);
+			if (res) res = GetConsoleCursorInfo(console, &cbck_cursor);
+			
+			if (!res) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to save win32 console info\n"));
+				return;
+			}
+			size = cbck_console.dwSize.X * cbck_console.dwSize.Y;
+			cbck_buffer = (PCHAR_INFO) gf_malloc(size * sizeof(CHAR_INFO));
+			pos.X = 0;
+			region.Left = 0;
+			region.Right = cbck_console.dwSize.X - 1;
+			line_incr = 12000 / cbck_console.dwSize.X;
+			for (line=0; line < (u32) cbck_console.dwSize.Y; line += line_incr) {
+				pos.Y = line;
+				region.Top = line;
+				region.Bottom = line + line_incr - 1;
+				if (!ReadConsoleOutput(console, cbck_buffer, cbck_console.dwSize, pos, &region)) {
+					gf_free(cbck_buffer);
+					cbck_buffer = NULL;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to save win32 console info\n"));
+					return;
+				}
+			}
+			cbck_stored = GF_TRUE;
+		}
+		return;
+
+	case GF_CONSOLE_RESTORE:
+		if (cbck_stored) {
+			COORD pos;
+			SMALL_RECT region;
+			BOOL res;
+			pos.X = pos.Y = 0;
+			region.Top = region.Left = 0;
+			region.Bottom = cbck_console.dwSize.Y - 1;
+			region.Right = cbck_console.dwSize.X - 1;
+			res = SetConsoleScreenBufferSize(console, cbck_console.dwSize);
+			if (res) res = SetConsoleWindowInfo(console, TRUE, &cbck_console.srWindow);
+			if (res) res = SetConsoleCursorPosition(console, cbck_console.dwCursorPosition);
+			if (res) res = SetConsoleTextAttribute(console, cbck_console.wAttributes);
+			
+			if (!res) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to restore win32 console info\n"));
+				return;
+			}
+			WriteConsoleOutput(console, cbck_buffer, cbck_console.dwSize,
+				pos, &region);
+			gf_free(cbck_buffer);
+			cbck_stored = GF_FALSE;
+		}
+		return;
+
+	case GF_CONSOLE_CLEAR:
+	{
+		COORD coords;
+		DWORD written;
+		DWORD consolesize;
+		CONSOLE_SCREEN_BUFFER_INFO console_info;
+
+		coords.X = coords.Y = 0;
+		GetConsoleScreenBufferInfo(console, &console_info);
+		consolesize = console_info.dwSize.X * console_info.dwSize.Y;
+
+		/* fill space & attribute */
+		FillConsoleOutputCharacter(console, ' ', consolesize, coords, &written);
+		FillConsoleOutputAttribute(console, console_info.wAttributes, consolesize, coords, &written);
+		SetConsoleCursorPosition(console, coords);
+	}
+		return;
 	case GF_CONSOLE_RESET:
 	default:
 		attribs = console_attr_ori;
 	}
+
+	if ((code & 0xFFFF0000) && !color_code) {
+		attribs |= COMMON_LVB_UNDERSCORE;
+	}
+
 	SetConsoleTextAttribute(console, attribs);
-#elif !defined(_WIN32_WCE)
+
+win32_ismtty:
+#endif
+
+
+#if !defined(_WIN32_WCE)
 
 	switch(color_code) {
 	case GF_CONSOLE_RED: fprintf(std, "\x1b[31m"); break;
@@ -460,7 +564,7 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 		break;
 
 	case GF_CONSOLE_CLEAR:
-		fprintf(std, "\e[1;1H\e[2J");
+		fprintf(std, "\x1b[2J\x1b[0;0H");
 		return;
 
 	case GF_CONSOLE_SAVE:
@@ -468,6 +572,7 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 		return;
 	case GF_CONSOLE_RESTORE:
 		fprintf(std, "\033[?47l");
+		fprintf(std, "\x1b[J");
 		return;
 
 	case GF_CONSOLE_RESET:
@@ -481,7 +586,6 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 		if (code & GF_CONSOLE_UNDERLINED) fprintf(std, "\x1b[4m");
 		if (code & GF_CONSOLE_STRIKE) fprintf(std, "\x1b[9m");
 	}
-#else
 #endif
 }
 

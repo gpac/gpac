@@ -65,7 +65,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_cfg_option) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_localized) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_process_id) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_term_color) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_console_code) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_logs_color) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_logs_to_file) )
 
@@ -2210,6 +2210,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_get_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_filters_registry_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_filter_registry) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_lock_filters) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_filters_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_filter_stats) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_register_test_filters) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_load_source) )
