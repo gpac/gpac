@@ -12,29 +12,32 @@ rawfile=$TEMP_DIR/raw.$1
 do_test "$GPAC -i $mp4file -o $rawfile -blacklist=vtbdec,nvdec,ohevcdec" "dump"
 
 #test vertical flip
-flipfile=$TEMP_DIR/dumpflip.$1
+flipfile=$TEMP_DIR/dumpflipv.$1
 do_test "$GPAC -i $rawfile:size=128x128 vflip @ -o $flipfile" "flipv"
 do_hash_test_bin "$flipfile" "flipv"
 
-#gpac -i $flipfile:size=128x128 vout 
+do_play_test "play-v" "$flipfile:size=128x128" ""
 
 
 #test horizontal flip
+flipfile=$TEMP_DIR/dumpfliph.$1
 do_test "$GPAC -i $rawfile:size=128x128 vflip:horiz @ -o $flipfile" "fliph"
 do_hash_test_bin "$flipfile" "fliph"
 
-#gpac -i $flipfile:size=128x128 vout
+do_play_test "play-h" "$flipfile:size=128x128" ""
 
 
 if [ "$1" = "yuv" ] ; then
 
 #test both directions flip
+flipfile=$TEMP_DIR/dumpfliphv.$1
 do_test "$GPAC -i $rawfile:size=128x128 vflip:both @ -o $flipfile" "fliphv"
 do_hash_test_bin "$flipfile" "fliphv"
 
 #gpac -i $flipfile:size=128x128 vout
 
 #test no flip
+flipfile=$TEMP_DIR/dumpflipno.$1
 do_test "$GPAC -i $rawfile:size=128x128 vflip:off @ -o $flipfile -graph" "flipoff"
 do_hash_test_bin "$flipfile" "flipoff"
 
