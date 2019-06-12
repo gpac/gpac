@@ -38,7 +38,7 @@ static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
 static s32 runfor = 0;
 Bool enable_prompt = GF_FALSE;
-Bool enable_reports = GF_TRUE;
+Bool enable_reports = GF_FALSE;
 Bool do_unit_tests = GF_FALSE;
 static int alias_argc = 0;
 static char **alias_argv = NULL;
@@ -520,7 +520,7 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("wf", NULL, "write all filter options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("wfx", NULL, "write all filter options and all meta filter arguments in the config file unless already set (large config file !)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("k", NULL, "enable keyboard interaction from command line", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("nr", NULL, "disable reports", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("r", NULL, "enable reports", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("unit-tests", NULL, "enable unit tests of some functions otherwise not covered by gpac test suite", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	GF_DEF_ARG("genmd", NULL, "generate markdown doc", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	{0}
@@ -1223,8 +1223,8 @@ static int gpac_main(int argc, char **argv)
 
 		} else if (!strcmp(arg, "-k")) {
 			enable_prompt = GF_TRUE;
-		} else if (!strcmp(arg, "-nr")) {
-			enable_reports = GF_FALSE;
+		} else if (!strcmp(arg, "-r")) {
+			enable_reports = GF_TRUE;
 		} else if (!strcmp(arg, "-unit-tests")) {
 			do_unit_tests = GF_TRUE;
 		} else if (arg[0]=='-') {
