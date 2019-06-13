@@ -371,6 +371,7 @@ static const GF_FilterCapability PNGEncCaps[] =
 GF_FilterRegister PNGEncRegister = {
 	.name = "pngenc",
 	GF_FS_SET_DESCRIPTION("PNG encoder")
+	GF_FS_SET_HELP("This filter encodes a single uncompressed video PID to PNG using libpng.")
 	.private_size = sizeof(GF_PNGEncCtx),
 	.initialize = pngenc_initialize,
 	.finalize = pngenc_finalize,

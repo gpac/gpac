@@ -449,6 +449,7 @@ static const GF_FilterCapability VOBSubDmxCaps[] =
 GF_FilterRegister VOBSubDmxRegister = {
 	.name = "vobsubdmx",
 	GF_FS_SET_DESCRIPTION("VobSub demuxer")
+	GF_FS_SET_HELP("This filter demultiplexes VobSub files/data to produce media PIDs and frames.")
 	.private_size = sizeof(GF_VOBSubDmxCtx),
 	.max_extra_pids = 1,
 	.args = GF_VOBSubDmxArgs,

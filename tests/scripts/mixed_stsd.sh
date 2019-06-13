@@ -18,7 +18,7 @@ do_test "$GPAC -i $plist -o $mp4file" "create-mp4"
 do_hash_test $mp4file "create"
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $mp4file inspect:all:deep:log=$myinspect"
+do_test "$GPAC -i $mp4file inspect:allp:deep:log=$myinspect"
 do_hash_test $myinspect "inspect"
 
 rm $plist

@@ -850,6 +850,7 @@ static const GF_FilterArgs NHMLDumpArgs[] =
 GF_FilterRegister NHMLDumpRegister = {
 	.name = "nhmlw",
 	GF_FS_SET_DESCRIPTION("NHML writer")
+	GF_FS_SET_HELP("This filter converts a single stream to an NHML output file.")
 	.private_size = sizeof(GF_NHMLDumpCtx),
 	.args = NHMLDumpArgs,
 	.initialize = nhmldump_initialize,

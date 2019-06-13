@@ -424,6 +424,7 @@ static const GF_FilterArgs XVIDArgs[] =
 GF_FilterRegister XVIDRegister = {
 	.name = "xviddec",
 	GF_FS_SET_DESCRIPTION("XVid decoder")
+	GF_FS_SET_HELP("This filter decodes MPEG-4 part 2 (and DivX) through libxvidcore library.")
 	.private_size = sizeof(GF_XVIDCtx),
 	.args = XVIDArgs,
 	SETCAPS(XVIDCaps),

@@ -158,6 +158,7 @@ static const GF_FilterCapability ImgDecCaps[] =
 GF_FilterRegister ImgDecRegister = {
 	.name = "imgdec",
 	GF_FS_SET_DESCRIPTION("PNG/JPG decoder")
+	GF_FS_SET_HELP("This filter decodes JPEG and PNG images.")
 	.private_size = sizeof(GF_IMGDecCtx),
 	.priority = 1,
 	SETCAPS(ImgDecCaps),

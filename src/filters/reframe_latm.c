@@ -596,6 +596,7 @@ static const GF_FilterArgs LATMDmxArgs[] =
 GF_FilterRegister LATMDmxRegister = {
 	.name = "rflatm",
 	GF_FS_SET_DESCRIPTION("LATM reframer")
+	GF_FS_SET_HELP("This filter parses AAC in LATM files/data and outputs corresponding audio PID and frames.")
 	.private_size = sizeof(GF_LATMDmxCtx),
 	.args = LATMDmxArgs,
 	.finalize = latm_dmx_finalize,

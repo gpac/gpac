@@ -780,6 +780,7 @@ static const GF_FilterArgs ADTSDmxArgs[] =
 GF_FilterRegister ADTSDmxRegister = {
 	.name = "rfadts",
 	GF_FS_SET_DESCRIPTION("ADTS reframer")
+	GF_FS_SET_HELP("This filter parses AAC files/data and outputs corresponding audio PID and frames.")
 	.private_size = sizeof(GF_ADTSDmxCtx),
 	.args = ADTSDmxArgs,
 	.finalize = adts_dmx_finalize,

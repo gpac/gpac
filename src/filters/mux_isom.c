@@ -4072,7 +4072,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(dref), "only references data from source file - not compatible with all media sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ctmode), "set composition offset mode for video tracks.\n"
 	"- edit: uses edit lists to shift first frame to presentation time 0\n"
-	"- noedit: doesn't shift timeline\n"
+	"- noedit: ignore edit lists and does not shift timeline\n"
 	"- negctts: uses ctts v1 with possibly negative offsets and no edit lists", GF_PROP_UINT, "edit", "edit|noedit|negctts", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(idur), "only import the specified duration", GF_PROP_FRACTION, "0", NULL, 0},
 	{ OFFS(pack3gp), "pack a given number of 3GPP audio frames in one sample", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -4110,7 +4110,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- moov: in movie box\n"
 	"- none: pssh is discarded", GF_PROP_UINT, "moov", "moov|moof|none", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sgpd_traf), "store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(cache), "enable temp storage for VoD dash modes. When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX. When enabled, file data is stored to a cache and flushed upon completion", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(cache), "enable temp storage for VoD dash modes - see filter help", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(noinit), "do not produce initial moov, used for DASH bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tktpl), "use track box from input if any as a template to create new track\n"
 	"- no: disables template\n"
@@ -4142,13 +4142,19 @@ static const GF_FilterArgs MP4MuxArgs[] =
 
 GF_FilterRegister MP4MuxRegister = {
 	.name = "mxisom",
-	GF_FS_SET_DESCRIPTION("ISOBMFF muxer")
-	GF_FS_SET_HELP("Muxes file according to ISOBMFF (14496-12 and derived specifications)\n"
+	GF_FS_SET_DESCRIPTION("ISOBMFF/QT muxer")
+	GF_FS_SET_HELP("Muxes file according to ISOBMFF (14496-12 and derived specifications) or QuickTime\n"
 	"\n"
 	"By default all input PIDs with ItemID property set are muxed as items, otherwise they are muxed as tracks.\n"
-	"To prevent items to be muxed as items, use itemid option from ISOBMF demuxer.\n"
-	"To force non)item streams to be muxed as items, use #ItemID option on that PID:\n"
-	"EX -i source.jpg:#ItemID=1 -o file.mp4\n")
+	"To prevent source items to be muxed as items, use [-itemid](mp4dmx) option from ISOBMF demuxer.\n"
+	"EX -i source.mp4:itemid=false -o file.mp4\n"
+	"  \n"
+	"To force non-item streams to be muxed as items, use __#ItemID__ option on that PID:\n"
+	"EX -i source.jpg:#ItemID=1 -o file.mp4\n"
+	"  \n"
+	"The `cache` mode allows controling how DASH onDemand segments are generated:\n"
+	"-  When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file __before__ the final SIDX.\n"
+	"- When enabled, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.\n")
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,
 	.initialize = mp4_mux_initialize,

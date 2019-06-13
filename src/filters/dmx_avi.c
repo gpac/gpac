@@ -531,6 +531,7 @@ static const GF_FilterArgs AVIDmxArgs[] =
 GF_FilterRegister AVIDmxRegister = {
 	.name = "avidmx",
 	GF_FS_SET_DESCRIPTION("AVI demuxer")
+	GF_FS_SET_HELP("This filter demultiplexes AVI files/data to produce media PIDs and frames.")
 	.private_size = sizeof(GF_AVIDmxCtx),
 	.initialize = avidmx_initialize,
 	.finalize = avidmx_finalize,

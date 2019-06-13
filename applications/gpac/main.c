@@ -50,12 +50,16 @@ static char *help_buf = NULL;
 static u32 help_buf_size=0;
 FILE *sidebar_md=NULL;
 
+#define LINE_OFFSET_DESCR 40
+
 static const char *auto_gen_md_warning = "<!-- automatically generated - do not edit, patch gpac/applications/gpac/main.c -->\n";
 
 
 #define FH_FIRST_IS_OPT	1
 #define FH_FIRST_IS_HL	1<<1
 #define FH_NEWLINE_TO_BR	1<<2
+#define FH_OPT_DESC	1<<3
+
 
 //uncomment to check argument description matches our conventions - see filter.h
 #define CHECK_DOC
@@ -94,14 +98,14 @@ const char *gpac_doc =
 "Note: When a pid cannot be connected to any filter, a warning is thrown and all packets dispatched on "
 "this pid will be destroyed. The session may however still run.\n"
 "Each output pid carries a set of properties describing the data it delivers (eg __width__, __height__, __codec__, ...). Properties "
-"can be built-in (identified by a 4 character code **abcd**, see `gpac -h props`), or user-defined (identified by a string). Each pid tracks "
+"can be built-in (identified by a 4 character code **abcd**, see [properties (-h props)](filters_properties) ), or user-defined (identified by a string). Each pid tracks "
 "its properties changes and triggers filter reconfiguration during packet processing. This allows the filter chain to be "
 "reconfigured at run time, potentially reloading part of the chain (eg unload a video decoder when switching from compressed "
 "to uncompressed sources).\n"
 "Each filter exposes one or more sets of capabilities, called __capability bundle__, which are property type and values "
 "that must be matched or excluded by connecting pids.\n"
 "Each filter exposes a set of argument to configure itself, using property types and values described as strings formated with "
-"separators. This help is given with default separator sets `:=#,@` to specify filters, properties and options. Use `gpac -seps` to change them.\n"
+"separators. This help is given with default separator sets `:=#,@` to specify filters, properties and options. Use [-seps](GPAC) to change them.\n"
 "# Property format\n"
 "- boolean: formatted as `yes`|`true`|`1` or `no`|`false`|`0`\n"
 "- enumeration (for filter arguments only): must use the syntax given in the argument description, otherwise value `0` (first in enum) is assumed.\n"
@@ -122,23 +126,23 @@ const char *gpac_doc =
 "Filters are listed by name, with options appended as a list of colon-separated `name=value` pairs. Additionnal syntax is provided for:\n"
 "- boolean: `value` can be omitted, defaulting to `true` (eg `:noedit`). Using `!` before the name negates the result (eg `:!moof_first`)\n"
 "- enumerations: name can be omitted (eg `:disp=pbo` is equivalent to `:pbo`), provided that filter developers pay attention to not reuse enumeration names in the same filter.\n"
-"When string parameters are used (eg URLs), it is recommended to escape the string using the keyword `gpac`.\n"
+"When string parameters are used (eg URLs), it is recommended to escape the string using the keyword `gpac`.  \n"
 "EX filter:ARG=http://foo/bar?yes:gpac:opt=VAL\n"
-"This will properly extract the URL\n"
+"This will properly extract the URL.\n"
 "EX filter:ARG=http://foo/bar?yes:opt=VAL\n"
-"This will fail to extract it and keep `:opt=VAL` as part of the URL\n"
+"This will fail to extract it and keep `:opt=VAL` as part of the URL.\n"
 "The escape mechanism is not needed for local source, for which file existence is probed during argument parsing. "
 "It is also not needed for builtin procotol handlers (`avin://`, `video://`, `audio://`, `pipe://`)\n"
 "For `tcp://` and `udp://` protocols, the escape is not needed if a trailing `/` is appended after the port number.\n"
 "EX -i tcp://127.0.0.1:1234:OPT\n"
-"This will fail to extract the URL and options\n"
+"This will fail to extract the URL and options/\n"
 "EX -i tcp://127.0.0.1:1234/:OPT\n"
-"This will extract the URL and options\n"
+"This will extract the URL and options.\n"
 "Note: one trick to avoid the escape sequence is to declare the URLs option at the end, eg `f1:opt1=foo:url=http://bar`, provided you have only one URL parameter to specify on the filter.\n"
 "## Source and Sink filters\n"
 "Source and sink filters do not need to be addressed by the filter name, specifying `src=` or `dst=` instead is enough. "
 "You can also use the syntax `-src URL` or `-i URL` for sources and `-dst URL` or `-o URL` for destination, this allows prompt completion in shells\n"
-"EX src=file.mp4  \n-src file.mp4  \n -i file.mp4\n"
+"EX src=file.mp4 -src file.mp4 -i file.mp4\n"
 "This will find a filter (for example `fin`) able to load `file.mp4`. The same result can be achieved by using `fin:src=file.mp4`\n"
 "EX src=file.mp4 dst=dump.yuv\n"
 "This will dump the video content of `file.mp4` in `dump.yuv`.\n"
@@ -156,7 +160,7 @@ const char *gpac_doc =
 "- c=NAME: identifes the desired codec. `NAME` can be the gpac codec name or the encoder instance for ffmpeg/others\n"
 "- b=UINT, rate=UINT, bitrate=UINT: indicates the bitrate in bits per second\n"
 "- g=UINT, gop=UINT: indicates the GOP size in frames\n"
-"- pfmt=NAME: indicates the target pixel format name (see `gpac -h props`) of the source, if supported by codec\n"
+"- pfmt=NAME: indicates the target pixel format name (see [properties (-h props)](filters_properties) ) of the source, if supported by codec\n"
 "- all_intra=BOOL: indicates all frames should be intra frames, if supported by codec\n"
 "Other options will be passed to the filter if it accepts generic argument parsing (as is the case for ffmpeg)\n"
 "EX src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true dst=raw.264\n"
@@ -243,7 +247,7 @@ const char *gpac_doc =
 "This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and "
 "src pid will be linked to `reframer` (no source ID), loading a demuxer to solve the link. The result is a complete remux of the source file.\n"
 "# Arguments inheriting\n"
-"Unless explicitly disabled (see `-max-chain` option), the filter engine will resolve implicit or explicit (__LINK__) connections "
+"Unless explicitly disabled (see [-max-chain](CORE)), the filter engine will resolve implicit or explicit (__LINK__) connections "
 "between filters and will allocate any filter chain required to connect the filters. "
 "In doing so, it loads new filters with arguments inherited from both the source and the destination.\n"
 "EX src=file.mp4:OPT dst=file.aac dst=file.264\n"
@@ -301,7 +305,7 @@ const char *gpac_doc =
 "This will mux the streams in `dump.ts`, using `ServiceID` 4 for pids from `v1.mp4` and `ServiceID` 2 for pids from `v2.mp4`\n"
 "# External filters\n"
 "GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in "
-"folders listed in GPAC config file section `core` key `mod-dirs`. The files shall be named __gf_*__ and shall export a single function\n"
+"folders listed in GPAC config file section `core` key `mod-dirs`. The files shall be named __gf_*__ and shall export a single function "
 "returning a filter register - see [libgpac documentation](https://doxygen.gpac.io/) for more details.\n"
 "\n";
 #endif
@@ -377,13 +381,13 @@ static void gpac_modules_help(void)
 const char *gpac_alias =
 "The gpac command line can become quite complex when many sources or filters are used. In order to simplify this, an alias system is provided.\n"
 "\n"
-"To assign an alias, use the syntax 'gpac -alias=\"NAME VALUE\"'.\n"
+"To assign an alias, use the syntax `gpac -alias=\"NAME VALUE\"`.\n"
 "- `NAME`: shall be a single string, with no space.\n"
 "- `VALUE`: the list of argument this alias replaces. If not set, the alias is destroyed\n"
 "\n"
 "When parsing arguments, the alias will be replace by its value.\n"
 "EX gpac -alias=\"output aout vout\"\n"
-"This allows later playback using 'gpac -i src.mp4 output'\n"
+"This allows later playback using `gpac -i src.mp4 output`\n"
 "\n"
 "Aliases can use arguments from the command line. The allowed syntaxes are:\n"
 "- `@{a}`: replaced by the value of the argument with index `a` after the alias\n"
@@ -393,20 +397,20 @@ const char *gpac_alias =
 "\n"
 "The specified index can be:\n"
 "- forward index: a strictly positive integer, 1 being the first argument after the alias\n"
-"- backward index: the value 'n' (or 'N') to indicate the last argument on the command line. This can be followed by -x to rewind arguments (eg @{n-1} is the before last argument)\n"
+"- backward index: the value 'n' (or 'N') to indicate the last argument on the command line. This can be followed by `-x` to rewind arguments (eg `@{n-1}` is the before last argument)\n"
 "\n"
 "Arguments not used by any aliases are kept on the command line, other ones are removed\n"
 "\n"
 "EX -alias=\"foo src=@{N} dst=test.mp4\"\n"
-"The command 'gpac foo f1 f2' expands to 'gpac src=f2 dst=test.mp4 f1'\n"
+"The command `gpac foo f1 f2` expands to `gpac src=f2 dst=test.mp4 f1`\n"
 "EX -alias=\"list: inspect src=@{+:N}\"\n"
-"The command 'gpac list f1 f2 f3' expands to 'gpac inspect src=f1 src=f2 src=f3'\n"
-"EX -alias=\"list inspect src=@{+2:N}'\"\n"
-"The command 'gpac list f1 f2 f3' expands to 'gpac inspect src=f2 src=f3 f1'\n"
-"EX -alias=\"plist aout vout flist:in=@{-:N}'\"\n"
-"The command 'gpac plist f1 f2 f3' expands to 'gpac aout vout plist:in=\"f1,f2,f3\"'  \n"
+"The command `gpac list f1 f2 f3` expands to `gpac inspect src=f1 src=f2 src=f3`\n"
+"EX -alias=\"list inspect src=@{+2:N}\"\n"
+"The command `gpac list f1 f2 f3` expands to `gpac inspect src=f2 src=f3 f1`\n"
+"EX -alias=\"plist aout vout flist:srcs=@{-:N}\"\n"
+"The command `gpac plist f1 f2 f3` expands to `gpac aout vout plist:srcs=\"f1,f2,f3\"`  \n"
 "\n"
-"Alias documentation can be set using 'gpac -aliasdoc=\"NAME VALUE\"', with `NAME` the alias name and `VALUE` the documentation.\n"
+"Alias documentation can be set using `gpac -aliasdoc=\"NAME VALUE\"`, with `NAME` the alias name and `VALUE` the documentation.\n"
 "Alias documentation will then appear in gpac help.\n"
 "\n";
 #endif
@@ -444,7 +448,7 @@ static void gpac_alias_help(GF_SysArgMode argmode)
 				format_help(0, " (%s)", alias_value);
 
 			if (alias_doc)
-				format_help(0, ": %s", gf_sys_localized("gpac", "aliasdoc", alias_doc));
+				format_help(FH_OPT_DESC, ": %s", gf_sys_localized("gpac", "aliasdoc", alias_doc));
 			else if  (argmode<GF_ARGMODE_ADVANCED) {
 				format_help(0, " (%s)", alias_value);
 			}
@@ -481,19 +485,21 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("loop", NULL, "loop execution of session, creating a session at each loop, mainly used for testing. If no value is given, loops forever", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("runfor", NULL, "run for the given amount of milliseconds", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 
-	GF_DEF_ARG("stats", NULL, "print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("graph", NULL, "print graph after execution. Graph can be viewed at runtime by typing 'g' in the prompt", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("stats", NULL, "print stats after execution", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("graph", NULL, "print graph after execution", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("k", NULL, "enable keyboard interaction from command line", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("r", NULL, "enable reports", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("seps", NULL, "set the default character sets used to seperate various arguments\n"\
 		"- the first char is used to seperate argument names\n"\
 		"- the second char, if present, is used to seperate names and values\n"\
 		"- the third char, if present, is used to seperate fragments for pid sources\n"\
-		"- the fourth char, if present, is used for list separators (sourceIDs, gfreg, ...)\n"\
+		"- the fourth char, if present, is used for list separators (__sourceIDs__, __gfreg__, ...)\n"\
 		"- the fifth char, if present, is used for boolean negation\n"\
-		"- the sixth char, if present, is used for LINK directives (cf -h doc)", GF_FS_DEFAULT_SEPS, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+		"- the sixth char, if present, is used for LINK directives (see [filters help (-h doc)](filters_general))", GF_FS_DEFAULT_SEPS, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 
-	GF_DEF_ARG("i", "src", "specify an input file - see filters help -h doc", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("o", "dst", "specify an output file - see filters help -h doc", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("h", "help -ha -hx -hh", "print help. Use help/-h for basic options, -ha for advanced options, -hx for expert options and -hh for all. String parameter can be:\n"\
+	GF_DEF_ARG("i", "src", "specify an input file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("o", "dst", "specify an output file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("h", "help -ha -hx -hh", "print help. Use `help`/`-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all. String parameter can be:\n"\
 			"- empty: prints command line options help\n"\
 			"- doc: prints the general filter info\n"\
 			"- alias: prints the gpac alias syntax\n"\
@@ -505,12 +511,13 @@ GF_GPACArg gpac_args[] =
 			"- filters:*: prints name of all available filters, including meta filters\n"\
 			"- codecs: prints the supported builtin codecs\n"\
 			"- props: prints the supported builtin pid properties\n"\
-			"- links: prints possible connections between each supported filters. If a filter name is specified (eg -h links reframer), prints sources for this filter\n"\
+			"- links: prints possible connections between each supported filters.\n"\
+			"- links FNAME: prints sources and sinks for filter `FNAME`\n"\
 			"- FNAME: prints filter FNAME info (multiple FNAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation. Use * to print info on all filters (warning, big output!), *:* to print info on all filters including meta filter instances (warning, big big output!). By default only basic filter options and description are shown. Use -ha to show advanced options and filter IO capabilities, -hx for expert options, -hh for all options and filter capbilities"\
 		, NULL, NULL, GF_ARG_STRING, 0),
 
  	GF_DEF_ARG("p", NULL, "use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, tries to load profile from that file. Otherwise, create a directory of the specified name and store new config there", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("alias", NULL, "assign a new alias or remove an alias. Can be specified several times. See gpac -h alias", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("alias", NULL, "assign a new alias or remove an alias. Can be specified several times. See [alias usage (-h alias)](#using-aliases)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("aliasdoc", NULL, "assign documentation for a given alias (optionnal). Can be specified several times", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
  	GF_DEF_ARG("uncache", NULL, "revert all items in GPAC cache directory to their original name and server path", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
@@ -519,8 +526,6 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("we", NULL, "write all file extensions in the config file unless already set (usefull to change some default file extensions)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("wf", NULL, "write all filter options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("wfx", NULL, "write all filter options and all meta filter arguments in the config file unless already set (large config file !)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("k", NULL, "enable keyboard interaction from command line", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("r", NULL, "enable reports", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("unit-tests", NULL, "enable unit tests of some functions otherwise not covered by gpac test suite", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	GF_DEF_ARG("genmd", NULL, "generate markdown doc", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	{0}
@@ -533,7 +538,7 @@ static void gpac_usage(GF_SysArgMode argmode)
 	if ((argmode != GF_ARGMODE_ADVANCED) && (argmode != GF_ARGMODE_EXPERT) ) {
 		format_help(0, "Usage: gpac [options] FILTER [LINK] FILTER [...] \n"
 			"gpac is GPAC's command line tool for setting up and running filter chains. Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.\n"
-			"boolean values don't need any value specified. Other types shall be formatted as `opt=val`, except `-i`, `-src`, `-o`, `-dst` and `-h` options.\n\n"
+			"boolean values do not need any value specified. Other types shall be formatted as `opt=val`, except [-i](), `src`, [-o](), `dst` and [-h]() options.\n\n"
 		);
 	}
 
@@ -569,11 +574,13 @@ const char *gpac_config =
 {
 "# Configuration file\n"
 "GPAC uses a configuration file to modify default options of libgpac and filters. This configuration file is located in `$HOME/.gpac/GPAC.cfg`.\n"
-"Applications in GPAC can also specify a different configuration file through the `-p` option to indicate a profile, see `gpac -hx`. "
+"Applications in GPAC can also specify a different configuration file through the [-p](GPAC) option to indicate a profile. "
 "This allows different configurations for different usages and simplifies command line typing.\n"
+"EX gpac -p=foo []\n"
+"This will load configuration from $HOME/.gpac/foo/GPAC.cfg, creating it if needed.\n"
 "By default the configuration file only holds a few system specific options and directories. It is possbible to serialize "
-"the entire set of options to the configuration file, using `gpac -wc -wf`. This should be avoided as the resulting configuration file "
-"size will be quite large.\n"
+"the entire set of options to the configuration file, using [-wc](GPAC) [-wf](GPAC). This should be avoided as the resulting "
+"configuration file size will be quite large, hence larger memory usage for the applications.\n"
 "The options specified in the configuration file may be overriden by the values in __restrict.cfg__ file located in GPAC share directory, "
 "if present; this allows enforcing system-wide configuration values.\n"
 "Note: The methods describe in this section apply to any application in GPAC transferring their arguments "
@@ -581,7 +588,8 @@ const char *gpac_config =
 "# Core options\n"
 "The options from libgpac core can also be assigned though the config file from section __core__ using "
 "option name **without initial dash** as key name.\n"
-"EX [core]threads=2 in the config file is similar as using -threads=2\n"
+"EX [core]threads=2\n"
+"Setting this in the config file is equivalent to using `-threads=2`.\n"
 "The options specified at prompt overrides the value of the config file.\n"
 "# Filter options in configuration\n"
 "It is possible to alter the default value of a filter option by modifing the configuration file. Filter __foo__ options are stored in section "
@@ -589,19 +597,19 @@ const char *gpac_config =
 "options specified at prompt or through alias.\n"
 "EX [filter@rtpin]interleave=yes\n"
 "This will force the rtp input filter to always request RTP over RTSP by default.\n"
-"To generate a configuration file with all filters options serialized, use `gpac -wf` (see `gpac -hx`)\n"
+"To generate a configuration file with all filters options serialized, use [-wf](GPAC).\n"
 "# Global filter options\n"
 "It is possible to specify options global to multiple filters using `--OPTNAME=VAL`. Global options do not override filter options but "
 "take precedence over options loaded from configuration file.\n"
 "This will set option `OPTNAME`, when present, to `VAL` in any loaded filter.\n"
 "EX --buffer=100 -i file vout aout\n"
-"This is equivalent as specifying `vout:buffer=100 aout:buffer=100`\n"
+"This is equivalent to specifying `vout:buffer=100 aout:buffer=100`.\n"
 "EX --buffer=100 -i file vout aout:buffer=10\n"
-"This is equivalent as specifying `vout:buffer=100 aout:buffer=10`\n"
+"This is equivalent to specifying `vout:buffer=100 aout:buffer=10`.\n"
 "Warning: This syntax only applies to regular filter options. It cannot be used with builtin shortcuts (gfreg, enc, ...).\n"
 "Meta-filter options can be set in the same way using the syntax `-+OPT_NAME=VAL`.\n"
 "EX -+vprofile=Baseline -i file.cmp -o dump.264\n"
-"This is equivalent as specifying `-o dump.264:vprofile=Baseline`\n"
+"This is equivalent to specifying `-o dump.264:vprofile=Baseline`.\n"
 
 };
 #endif
@@ -1048,7 +1056,7 @@ static int gpac_main(int argc, char **argv)
 			else if (!strcmp(arg, "-hx")) argmode = GF_ARGMODE_EXPERT;
 			else if (!strcmp(arg, "-hh")) argmode = GF_ARGMODE_ALL;
 
-			if (i+1==argc) {
+			if ((i+1==argc) || (argv[i+1][0]=='-')) {
 				gpac_usage(argmode);
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "log")) {
@@ -1488,39 +1496,71 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 
 	if (gen_doc==1) {
 		char szName[1024];
-		sprintf(szName, "filter-%s.md", reg->name);
+		sprintf(szName, "%s.md", reg->name);
 		gf_fclose(helpout);
 		helpout = gf_fopen(szName, "w");
 		fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » %s\n", reg->description);
 		fprintf(helpout, "%s", auto_gen_md_warning);
 
 		if (!sidebar_md) {
+			char *sbbuf = NULL;
+			if (gf_file_exists("_Sidebar.md")) {
+				char szLine[1024];
+				u32 end_pos=0;
+				sidebar_md = gf_fopen("_Sidebar.md", "r");
+				gf_fseek(sidebar_md, 0, SEEK_SET);
+				while (!feof(sidebar_md)) {
+					fgets(szLine, 1024, sidebar_md);
+					if (!strncmp(szLine, "**Filters Help**", 16)) {
+						end_pos = ftell(sidebar_md);
+						break;
+					}
+				}
+				if (!end_pos) end_pos = ftell(sidebar_md);
+				if (end_pos) {
+					sbbuf = gf_malloc(end_pos+1);
+					gf_fseek(sidebar_md, 0, SEEK_SET);
+					end_pos = fread(sbbuf, 1, end_pos, sidebar_md);
+					sbbuf[end_pos]=0;
+					gf_fclose(sidebar_md);
+				}
+			}
 			sidebar_md = gf_fopen("_Sidebar.md", "w");
-			fprintf(sidebar_md, "[**HOME**](Home) » [**Filters**](Filters-Introduction)  \n");
-			fprintf(helpout, "<!-- automatically generated - do not edit, patch gpac/applications/gpac/main.c -->\n");
-			fprintf(sidebar_md, "  \n");
-			fprintf(sidebar_md, "**GPAC Configuration**  \n");
-			fprintf(sidebar_md, "  \n");
-			fprintf(sidebar_md, "[[Configuration File|core_config]]  \n");
-			fprintf(sidebar_md, "[[Global Options|core_options]]  \n");
-			fprintf(sidebar_md, "[[Logging|core_logs]]  \n");
-			fprintf(sidebar_md, "  \n");
-			fprintf(sidebar_md, "**Filters Overview**  \n");
-			fprintf(sidebar_md, "  \n");
-			fprintf(sidebar_md, "[[gpac General Usage|gpac_general]]  \n");
-			fprintf(sidebar_md, "[[General Filters Concepts|filters_general]]  \n");
-			fprintf(sidebar_md, "[[Built-in Properties|filters_properties]]  \n");
-			fprintf(sidebar_md, "  \n");
-			fprintf(sidebar_md, "**Filters Help**  \n");
-  			fprintf(sidebar_md, "  \n");
-			fprintf(sidebar_md, "**Filters Help**  \n  \n  \n");
+			if (sbbuf) {
+				fprintf(sidebar_md, "%s\n  \n", sbbuf);
+				gf_free(sbbuf);
+			}
+
 		}
-		fprintf(sidebar_md, "[[%s|filter-%s]]  \n", reg->name, reg->name);
+#ifndef GPAC_DISABLE_DOC
+		if (reg->description) {
+			fprintf(sidebar_md, "[[%s (%s)|%s]]  \n", reg->description, reg->name, reg->name);
+		} else {
+			fprintf(sidebar_md, "[[%s|%s]]  \n", reg->name, reg->name);
+		}
+		if (!reg->help) {
+			fprintf(stderr, "filter %s without help, forbidden\n", reg->name);
+			exit(1);
+		}
+		if (!reg->description) {
+			fprintf(stderr, "filter %s without description, forbidden\n", reg->name);
+			exit(1);
+		}
+#endif
+
+		format_help(0, "# %s\n", reg->description);
+#ifndef GPAC_DISABLE_DOC
+		format_help(0, "Registry name used to load filter: **%s**\n", reg->name);
+#endif
+
+	} else {
+		format_help(0, "# %s\n", reg->name);
+#ifndef GPAC_DISABLE_DOC
+		if (reg->description) format_help(0, "Description: %s\n", reg->description);
+#endif
 	}
 
-	format_help(0, "# %s\n", reg->name);
 #ifndef GPAC_DISABLE_DOC
-	if (reg->description) format_help(0, "Description: %s\n", reg->description);
 	if (reg->author) format_help(0, "Author: %s\n", reg->author);
 	if (reg->help) format_help(0, "\n%s\n\n", reg->help);
 #else
@@ -1567,41 +1607,72 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 		}
 
 		while (1) {
-			Bool print = GF_FALSE;
+			Bool is_enum = GF_FALSE;
 			const GF_FilterArgs *a = & reg->args[idx];
 			if (!a || !a->arg_name) break;
 			idx++;
+
+			if (a->flags & GF_FS_ARG_HINT_HIDE) continue;
+
 			switch (argmode) {
 			case GF_ARGMODE_ALL:
 			case GF_ARGMODE_EXPERT:
-			 	print = GF_TRUE;
 			 	break;
 			case GF_ARGMODE_ADVANCED:
-			 	if (!(a->flags & GF_FS_ARG_HINT_EXPERT)) print = GF_TRUE;
+			 	if (a->flags & GF_FS_ARG_HINT_EXPERT) continue;
 			 	break;
 			case GF_ARGMODE_BASE:
-			 	if (!(a->flags & (GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_HINT_ADVANCED)) ) print = GF_TRUE;
+			 	if (a->flags & (GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_HINT_ADVANCED)) continue;
 			 	break;
 			}
-			if (!print) continue;
 
-			format_help(FH_FIRST_IS_OPT, "%s (%s):", a->arg_name, gf_props_get_type_name(a->arg_type));
-			format_help(0, "%s.", a->arg_desc);
-			if (a->arg_default_val) {
-				format_help(0, " Default %s.", a->arg_default_val);
+			if ((a->arg_type==GF_PROP_UINT) && a->min_max_enum && strchr(a->min_max_enum, '|')) {
+				is_enum = GF_TRUE;
+			}
+
+			if (gen_doc==1) {
+				format_help(0, "<a id=\"%s\">", a->arg_name);
+				format_help(FH_FIRST_IS_HL, "%s", a->arg_name);
+				format_help(0, "</a> (%s", is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
 			} else {
-				format_help(0, " No default.");
+				format_help(FH_FIRST_IS_HL, "%s (%s", a->arg_name, is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
 			}
-			if (a->min_max_enum) {
-				format_help(0, " %s: %s", strchr(a->min_max_enum, '|') ? "Enum" : "minmax", a->min_max_enum);
+			if (a->arg_default_val) {
+				format_help(0, ", default: __%s__", a->arg_default_val);
+			} else {
+				format_help(0, ", no default");
 			}
-			if (a->flags & GF_FS_ARG_UPDATE) format_help(0, " Updatable");
-			if (a->flags & GF_FS_ARG_META) format_help(0, " Meta");
-			format_help(0, "\n");
+			if (a->min_max_enum && !is_enum) {
+				format_help(0, ", %s: %s", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax", a->min_max_enum);
+			}
+			if (a->flags & GF_FS_ARG_UPDATE) format_help(0, ", updatable");
+			if (a->flags & GF_FS_ARG_META) format_help(0, ", meta");
+			format_help(FH_OPT_DESC, "): %s\n", a->arg_desc);
+
+			if (a->min_max_enum && strchr(a->min_max_enum, '|'))
+				format_help(0, "\n");
 
 
 #ifdef CHECK_DOC
 			u8 achar;
+			u32 j=0;
+			char szArg[100];
+			sprintf(szArg, " %s ", a->arg_name);
+			if (strstr(reg->help, szArg)) {
+				fprintf(stderr, "\nWARNING: filter %s bad help, uses arg %s without link\n", reg->name, a->arg_name);
+				exit(1);
+			}
+			while (1) {
+				const GF_FilterArgs *anarg = & reg->args[j];
+				if (!anarg || !anarg->arg_name) break;
+				j++;
+				if (a == anarg) continue;
+				if (strstr(reg->help, szArg)) {
+					fprintf(stderr, "\nWARNING: filter %s bad description for argument %s, uses arg %s without link\n", reg->name, anarg->arg_name, a->arg_name);
+					exit(1);
+				}
+			}
+			
 			if (a->min_max_enum) {
 				//check format
                 if ((a->arg_type!=GF_PROP_UINT_LIST) && !(a->flags&GF_FS_ARG_META) && strchr(a->min_max_enum, '|') ) {
@@ -1635,7 +1706,11 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 						exit(1);
 					}
 				}
-				sep = strchr(a->arg_desc, ' ');
+				if (a->arg_desc[0] == ' ') {
+					fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, first character should not be space\n", reg->name, a->arg_name);
+					exit(1);
+				}
+				sep = strchr(a->arg_desc+1, ' ');
 				if (sep) sep--;
 				if (sep && (sep[0] == 's')) {
 					fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, first word should be infinitive\n", reg->name, a->arg_name);
@@ -1707,11 +1782,11 @@ static void dump_all_props(void)
 	const GF_BuiltInProperty *prop_info;
 
 	if (gen_doc==1) {
-		format_help(0, "Built-in properties for PIDs and packets, pixel formats and audio formats. See gsfm filter help for more info on dropable.\n  \n  ");
+		format_help(0, "Built-in properties for PIDs and packets, pixel formats and audio formats. See [GSF mux](gsfm) filter help for more info on dropable.\n  \n  ");
 		format_help(0, "Name | 4CC | type | Dropable | Packet| Description  \n");
 		format_help(0, "--- | --- | --- | --- | --- | ---  \n");
 	} else {
-		format_help(0, "Built-in properties for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (dropable - see gsfm filter help), P (packet property)\n\n");
+		format_help(0, "Built-in properties for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (dropable - see GSF mux filter help), P (packet property)\n\n");
 	}
 	while ((prop_info = gf_props_get_description(i))) {
 		i++;
@@ -2539,14 +2614,13 @@ static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_F
 	return GF_FALSE;
 }
 
-static u32 max_char_hl=40;
-
 enum
 {
 	TOK_CODE,
 	TOK_BOLD,
 	TOK_ITALIC,
 	TOK_STRIKE,
+	TOK_OPTLINK,
 };
 struct _token {
 	char *tok;
@@ -2557,9 +2631,11 @@ struct _token {
  {"**", GF_CONSOLE_BOLD},
  {"__", GF_CONSOLE_ITALIC},
  {"~~", GF_CONSOLE_STRIKE},
+ {"[-", GF_CONSOLE_YELLOW|GF_CONSOLE_ITALIC},
 };
 static u32 nb_tokens = sizeof(Tokens) / sizeof(struct _token);
 
+static u32 line_pos = 0;
 static void format_help(u32 flags, const char *fmt, ...)
 {
 	char *line;
@@ -2627,38 +2703,49 @@ static void format_help(u32 flags, const char *fmt, ...)
 			//look for ": "
 			&& ((tok_sep=strstr(line, ": ")) != NULL )
 		) {
+			if (!gen_doc)
+				fprintf(helpout, "\t");
 			while (line[0] != '-') {
 				fprintf(helpout, " ");
 				line++;
+				line_pos++;
+
 			}
-			fprintf(helpout, "- ");
+			fprintf(helpout, "* ");
+			line_pos+=2;
 			if (!gen_doc)
 				gf_sys_set_console_code(helpout, GF_CONSOLE_YELLOW);
 			tok_sep[0] = 0;
 			fprintf(helpout, "%s", line+2);
+			line_pos += (u32) strlen(line+2);
 			tok_sep[0] = ':';
 			line = tok_sep;
 			if (!gen_doc)
 				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
-		} else if (flags & (FH_FIRST_IS_OPT | FH_FIRST_IS_HL)) {
+		} else if (flags & (FH_FIRST_IS_OPT | FH_FIRST_IS_HL | FH_OPT_DESC)) {
 			char *sep = strchr(line, ' ');
-
-			if (flags & FH_FIRST_IS_OPT)
-				att_len = (u32) strlen(line);
 
 			if (sep) sep[0] = 0;
 
-			if (!gen_doc)
+			if (!gen_doc && !(flags&FH_OPT_DESC) )
 				gf_sys_set_console_code(helpout, GF_CONSOLE_GREEN);
 
-			if (gen_doc==1) {
+			if ((gen_doc==1) && !(flags&FH_OPT_DESC) ) {
 				fprintf(helpout, "__%s__", line);
+				line_pos += 4+ (u32) strlen(line);
 			} else {
 				fprintf(helpout, "%s", line);
+				line_pos += (u32) strlen(line);
 			}
 
-			if (!gen_doc)
+			if (!gen_doc && !(flags&FH_OPT_DESC) )
 				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
+
+			if (flags & FH_OPT_DESC) {
+				flags = 0;
+				att_len = line_pos;
+			}
+
 
 			if (sep) {
 				sep[0] = ' ';
@@ -2669,20 +2756,39 @@ static void format_help(u32 flags, const char *fmt, ...)
 		}
 		if (!line) break;
 
-		if (line_before)
+		if (line_before) {
 			fprintf(helpout, "\n");
+			line_pos=0;
+		}
 
 		if (console_code != GF_CONSOLE_RESET) {
 			if (gen_doc==1) {
-				if (console_code & GF_CONSOLE_BOLD) fprintf(helpout, "__");
-				else if (console_code & GF_CONSOLE_ITALIC) fprintf(helpout, "_");
+				if (console_code & GF_CONSOLE_BOLD) {
+					fprintf(helpout, "__");
+					line_pos+=2;
+				}
+				else if (console_code & GF_CONSOLE_ITALIC) {
+					fprintf(helpout, "_");
+					line_pos++;
+				}
 			} else {
 				gf_sys_set_console_code(helpout, console_code);
 			}
 		}
 
-		if (header_string)
+		if (att_len) {
+			while (att_len < LINE_OFFSET_DESCR) {
+				fprintf(helpout, " ");
+				att_len++;
+				line_pos++;
+			}
+		}
+
+
+		if (header_string) {
 			fprintf(helpout, "%s", header_string);
+			line_pos += (u32) strlen(header_string);
+		}
 
 		while (line) {
 			u32 tid=0, i;
@@ -2698,13 +2804,23 @@ static void format_help(u32 flags, const char *fmt, ...)
 				next_token[0]=0;
 			}
 			if ((gen_doc==1) && has_token) {
-				if (tid==TOK_CODE) fprintf(helpout, "`%s`", line);
-				else if (tid==TOK_ITALIC) fprintf(helpout, "_%s_", line);
-				else if (tid==TOK_BOLD) fprintf(helpout, "__%s__", line);
-				else fprintf(helpout, "%s", line);
+				if (tid==TOK_CODE) {
+					fprintf(helpout, "`%s`", line);
+					line_pos+=2;
+				} else if (tid==TOK_ITALIC) {
+					fprintf(helpout, "_%s_", line);
+					line_pos+=2;
+				} else if (tid==TOK_BOLD) {
+					fprintf(helpout, "__%s__", line);
+					line_pos+=4;
+				} else {
+					fprintf(helpout, "%s", line);
+				}
 			} else {
 				fprintf(helpout, "%s", line);
 			}
+			line_pos+=(u32) strlen(line);
+
 			if (!next_token) break;
 			has_token = !has_token;
 
@@ -2735,33 +2851,82 @@ static void format_help(u32 flags, const char *fmt, ...)
 				}
 			}
 			line = next_token + (u32) strlen(Tokens[tid].tok);
+
+			if (has_token && tid==TOK_OPTLINK) {
+				char *link = strchr(line, '(');
+				if (link) link++;
+				char *end_link = strchr(line, ')');
+				if (end_link) end_link[0] = 0;
+				char *end_tok = strchr(line, ']');
+				if (end_tok) end_tok[0] = 0;
+
+				if (gen_doc==1) {
+					if (!strncmp(link, "GPAC", 4)) {
+						fprintf(helpout, "[-%s](gpac_general/#%s)", line, line);
+						line_pos+=7 + 2*strlen(line) + strlen("gpac_general");
+					} else if (!strncmp(link, "LOG", 3)) {
+						fprintf(helpout, "[-%s](core_logs/#%s)", line, line);
+						line_pos+=7 + 2*strlen(line) + strlen("core_logs");
+					} else if (!strncmp(link, "CORE", 3)) {
+						fprintf(helpout, "[-%s](core_options/#%s)", line, line);
+						line_pos+=7 + 2*strlen(line) + strlen("core_options");
+					} else if (strlen(link)) {
+						fprintf(helpout, "[-%s](%s/#%s)", line, link, line);
+						line_pos+=7 + 2*strlen(line) + strlen(link);
+					} else if (!strcmp(line, "i") || !strcmp(line, "o") || !strcmp(line, "h")){
+						fprintf(helpout, "[-%s](#%s)", line, line);
+						line_pos+=5 + 2*strlen(line) + strlen(link);
+					} else {
+						//this is a filter opt, don't print '-'
+						fprintf(helpout, "[%s](#%s)", line, line);
+						line_pos+=4 + 2*strlen(line) + strlen(link);
+					}
+				} else {
+					if (!strncmp(link, "GPAC", 4)
+						|| !strncmp(link, "LOG", 3)
+						|| !strncmp(link, "CORE", 3)
+						|| strlen(link)
+						|| !strcmp(line, "i") || !strcmp(line, "o") || !strcmp(line, "h")
+					) {
+						fprintf(helpout, "-%s", line);
+						line_pos+=1+strlen(line);
+					} else {
+						fprintf(helpout, "%s", line);
+						line_pos+=strlen(line);
+					}
+					gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
+				}
+				if (!end_link) break;
+				line = end_link+1;
+				has_token = GF_FALSE;
+			}
 		}
 
 		if (has_token && !gen_doc)
 			gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
 
-		if (footer_string)
+		if (footer_string) {
 			fprintf(helpout, "%s", footer_string);
-
+			line_pos += (u32) strlen(footer_string);
+		}
 		if (console_code != GF_CONSOLE_RESET) {
 			if (gen_doc==1) {
-				if (console_code & GF_CONSOLE_BOLD) fprintf(helpout, "__");
-				else if (console_code & GF_CONSOLE_ITALIC) fprintf(helpout, "_");
+				if (console_code & GF_CONSOLE_BOLD) {
+					fprintf(helpout, "__");
+					line_pos+=2;
+				} else if (console_code & GF_CONSOLE_ITALIC) {
+					fprintf(helpout, "_");
+					line_pos++;
+				}
 			} else {
 				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
-			}
-		}
-
-		if (att_len) {
-			while (max_char_hl>att_len) {
-				fprintf(helpout, " ");
-				att_len++;
 			}
 		}
 
 		if (line_after) {
 			if (gen_doc==1) fprintf(helpout, "  ");
 			fprintf(helpout, (flags & FH_NEWLINE_TO_BR) ? "<br/>" : "\n");
+			line_pos=0;
 		}
 
 		if (!next_line) break;
@@ -2769,6 +2934,7 @@ static void format_help(u32 flags, const char *fmt, ...)
 		if (gen_doc==1) fprintf(helpout, "  ");
 		line = next_line+1;
 		fprintf(helpout, (line[0] && (flags & FH_NEWLINE_TO_BR)) ? "<br/>" : "\n");
+		line_pos=0;
 	}
 }
 
@@ -2808,30 +2974,45 @@ static void print_sys_arg(const GF_GPACArg *arg, const char *arg_subsystem)
 	}
 #endif
 
+	if (arg->flags & GF_ARG_HINT_HIDE)
+		return;
 
-	format_help(FH_FIRST_IS_OPT, "-%s", arg->name);
+	if (gen_doc==1) {
+		format_help(0, "<a id=\"%s\">", arg->name);
+		format_help(FH_FIRST_IS_OPT, "-%s", arg->name);
+		format_help(0, "</a>");
+	} else {
+		format_help(FH_FIRST_IS_OPT, "-%s", arg->name);
+	}
 	if (arg->altname) {
 		format_help(0, " ");
 		format_help(FH_FIRST_IS_OPT, "-%s", arg->altname);
 	}
 
-	format_help(0, " (");
-	switch (arg->type) {
-	case GF_ARG_BOOL: format_help(0, "boolean"); break;
-	case GF_ARG_INT: format_help(0, "int"); break;
-	case GF_ARG_DOUBLE: format_help(0, "number"); break;
-	case GF_ARG_STRING: format_help(0, "string"); break;
-	case GF_ARG_STRINGS: format_help(0, "string list"); break;
-	default: break;
+	if (arg->type==GF_ARG_INT && arg->values && strchr(arg->values, '|')) {
+		format_help(0, " (Enum");
+		if (arg->val)
+			format_help(0, ", default: **%s**", arg->val);
+		format_help(0, ")");
+	} else {
+		format_help(0, " (");
+		switch (arg->type) {
+		case GF_ARG_BOOL: format_help(0, "boolean"); break;
+		case GF_ARG_INT: format_help(0, "int"); break;
+		case GF_ARG_DOUBLE: format_help(0, "number"); break;
+		case GF_ARG_STRING: format_help(0, "string"); break;
+		case GF_ARG_STRINGS: format_help(0, "string list"); break;
+		default: break;
+		}
+		if (arg->val)
+			format_help(0, ", default: **%s**", arg->val);
+		if (arg->values)
+			format_help(0, ", values: __%s__", arg->values);
+		format_help(0, ")");
 	}
-	if (arg->val)
-		format_help(0, ", default: **%s**", arg->val);
-	if (arg->values)
-		format_help(0, ", values: __%s__", arg->values);
-	format_help(0, ")");
 
 	if (arg->description)
-		format_help(0, ": %s", gf_sys_localized(arg_subsystem, arg->name, arg->description) );
+		format_help(FH_OPT_DESC, ": %s", gf_sys_localized(arg_subsystem, arg->name, arg->description) );
 	format_help(0, "\n");
 
 	if ((gen_doc==1) && arg->description && strstr(arg->description, "- "))

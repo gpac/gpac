@@ -55,7 +55,7 @@ typedef struct
 {
 	//opts
 	Bool loop, revert;
-	GF_List *in;
+	GF_List *srcs;
 	GF_Fraction dur;
 	u32 timescale;
 
@@ -606,14 +606,14 @@ GF_Err filelist_initialize(GF_Filter *filter)
 	GF_FileListCtx *ctx = gf_filter_get_udta(filter);
 	ctx->io_pids = gf_list_new();
 
-	if (!ctx->in || !gf_list_count(ctx->in)) {
+	if (!ctx->srcs || !gf_list_count(ctx->srcs)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
 		return GF_OK;
 	}
 	ctx->file_list = gf_list_new();
-	count = gf_list_count(ctx->in);
+	count = gf_list_count(ctx->srcs);
 	for (i=0; i<count; i++) {
-		char *list = gf_list_get(ctx->in, i);
+		char *list = gf_list_get(ctx->srcs, i);
 
 		if (strchr(list, '*') ) {
 			sep_dir = strrchr(list, '/');
@@ -639,7 +639,7 @@ GF_Err filelist_initialize(GF_Filter *filter)
 	}
 
 	if (!gf_list_count(ctx->file_list)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No files found in list %s\n", ctx->in));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No files found in list %s\n", ctx->srcs));
 		return GF_BAD_PARAM;
 	}
 	ctx->file_list_idx = ctx->revert ? gf_list_count(ctx->file_list) : -1;
@@ -674,7 +674,7 @@ void filelist_finalize(GF_Filter *filter)
 static const GF_FilterArgs GF_FileListArgs[] =
 {
 	{ OFFS(loop), "continuously loop playlist/list of files - see filter help", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(in), "list of files to play - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},
+	{ OFFS(srcs), "list of files to play - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(dur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, 0},
 	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "force output timescale on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},

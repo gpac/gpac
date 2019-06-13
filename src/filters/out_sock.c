@@ -510,7 +510,7 @@ static const GF_FilterArgs SockOutArgs[] =
 	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ka), "keep socket alive if no more connections", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(kp), "keep packets in queue if no more clients", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(rate), "set send rate in bps, disabled by default (as fast as possible)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pckr), "reverse packet every N - see filter help", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -536,8 +536,8 @@ GF_FilterRegister SockOutRegister = {
 		"The filter can work in server mode, waiting for source connections, or or in client mode, directly connecting.\n"
 		"In server mode, the filter can be instructed to keep running at the end of the stream\n"
 		"In server mode, the default behaviour is to keep input packets when no more clients are connected; "
-		"this can be adjusted though the kp option, however there is no realtime regulation of how fast packets are droped.\n"
-		"If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter), or set the send rate option\n"
+		"this can be adjusted though the [-kp]() option, however there is no realtime regulation of how fast packets are droped.\n"
+		"If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter), or set the send [-rate]() option\n"
 		"\n"
 		"UDP sockets are used for destinations URLs formatted as udp://NAME\n"
 		"TCP sockets are used for destinations URLs formatted as tcp://NAME\n"

@@ -74,7 +74,7 @@ typedef struct
 	Bool deep;
 	char *log;
 	char *fmt;
-	Bool props, hdr, all, info, pcr, analyze, xml;
+	Bool props, hdr, allp, info, pcr, analyze, xml;
 	Double speed, start;
 	u32 test;
 	GF_Fraction dur;
@@ -1456,7 +1456,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 		}
 		gf_filter_pid_drop_packet(pctx->src_pid);
 	}
-	if (ctx->is_prober && !ctx->probe_done && (nb_done==count) && !ctx->all) {
+	if (ctx->is_prober && !ctx->probe_done && (nb_done==count) && !ctx->allp) {
 		for (i=0; i<count; i++) {
 			PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 			GF_FilterEvent evt;
@@ -1623,20 +1623,20 @@ static const GF_FilterArgs InspectArgs[] =
 	"- frame: force reframer\n"
 	"- raw: dumps source packets without demuxing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
 	{ OFFS(interleave), "dump packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(deep), "dump packets along with PID state change - implied when fmt is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(props), "dump packet properties - ignored when fmt is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(dump_data), "enable full data dump, WARNING heavy - ignored when fmt is set, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(deep), "dump packets along with PID state change - implied when [-fmt]() is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(props), "dump packet properties - ignored when  [-fmt]() is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dump_data), "enable full data dump, WARNING heavy - ignored when  [-fmt]() is set, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fmt), "set packet dump format - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hdr), "print a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(all), "analyse for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(allp), "analyse for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(info), "monitor PID info changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pcr), "dump M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(speed), "set playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(dur), "set inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
-	{ OFFS(analyze), "analyse sample content (NALU, OBU). This will force XML formatting", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(analyze), "analyze sample content (NALU, OBU). This will force XML formatting", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(xml), "use xml formatting. This disables any custom format set through fmt option", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(test), "skip some properties\n"
+	{ OFFS(test), "skip predefined stes of properties, used for test mode\n"
 		"- no: no properties skipped\n"
 		"- noprop: all properties/info changes on pid are skipped, only packets are dumped\n"
 		"- network: URL/path dump, cache state, file size properties skipped (used for hashing network results)\n"
@@ -1653,17 +1653,18 @@ static const GF_FilterCapability InspectCaps[] =
 const GF_FilterRegister InspectRegister = {
 	.name = "inspect",
 	GF_FS_SET_DESCRIPTION("Inspect packets")
-	GF_FS_SET_HELP("The inspector filter can be used to dump pid and packets. Te default options load only pid changes.\n"\
-				"The packet inspector mode can be configured to dump specific properties of packets using the fmt option.\n"\
-	 			"When the option is not present, all properties are dumped. Otherwise, only properties identified by $TOKEN$ are printed use $, @ or % for TOKEN separator. TOKEN can be:\n"\
+	GF_FS_SET_HELP("The inspector filter can be used to dump pid and packets. It may be used to also check parts of payload of the packets. The default options inspect only pid changes.\n"\
+				"The packet inspector can be configured to dump specific properties of packets using [-fmt]().\n"\
+	 			"When the option is not present, all properties are dumped. Otherwise, only properties identified by `$TOKEN$` "
+	 			"are printed. You may use '$', '@' or '%' for `TOKEN` separator. `TOKEN` can be:\n"\
 				"- pn: packet (frame in framed mode) number\n"\
 				"- dts: decoding time stamp in stream timescale, N/A if not available\n"\
-				"- ddts: difference between current and previous packet's decoding time stamp in stream timescale, N/A if not available\n"\
+				"- ddts: difference between current and previous packets decoding time stamp in stream timescale, N/A if not available\n"\
 				"- cts: composition time stamp in stream timescale, N/A if not available\n"\
-				"- dcts: difference between current and previous packet's composition time stamp in stream timescale, N/A if not available\n"\
+				"- dcts: difference between current and previous packets composition time stamp in stream timescale, N/A if not available\n"\
 				"- ctso: difference between composition time stamp and decoding time stamp in stream timescale, N/A if not available\n"\
 				"- dur: duration in stream timescale\n"\
-				"- frame: framing status: frame_full (complete AU), frame_start, , frame_end, frame_cont\n"
+				"- frame: framing status: frame_full (complete AU), frame_start, frame_end, frame_cont\n"
 				"- sap or rap: SAP type of the frame\n"\
 				"- ilace: interlacing flag (0: progressive, 1: top field, 2: bottom field)\n"\
 				"- corr: corrupted packet flag\n"\
@@ -1686,12 +1687,13 @@ const GF_FilterRegister InspectRegister = {
 				"- pid.P4CC: PID property 4CC\n"\
 				"- pid.PropName: PID property name\n"\
 	 			"\n"\
-	 			"EX: fmt=\"PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$\" dumps packet number, cts and dts, eg \"PID 1 packet 10 DTS 100 CTS 108 \\n\" \n"\
+	 			"EX fmt=\"PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$\"\n"
+	 			"This dumps packet number, cts and dts as follows: `\"PID 1 packet 10 DTS 100 CTS 108 \\n\"`\n"\
+	 			"  \n"\
+	 			"An unrecognized keywork or missing property will resolve to an empty string.\n"\
 	 			"\n"\
-	 			"An unrecognized keywork or missing property will resolve to an empty string\n"\
-	 			"\n"\
-	 			"Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original sequence order\n"\
-	 			"since the inspector fetches one packet at a time on each PID\n")
+	 			"Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original "
+	 			" sequence order since the inspector fetches one packet at a time on each PID.\n")
 	.private_size = sizeof(GF_InspectCtx),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,
@@ -1727,6 +1729,8 @@ static const GF_FilterCapability ProberCaps[] =
 const GF_FilterRegister ProbeRegister = {
 	.name = "probe",
 	GF_FS_SET_DESCRIPTION("Probe source")
+	GF_FS_SET_HELP("The Probe filter is used by applications (typically `MP4Box`) to query demuxed pids available in a source chain.\n"
+	"The filter does not produce any output nor feedback, it is up to the app developper to query input pids of the prober and take appropriated decisions.")
 	.private_size = sizeof(GF_InspectCtx),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,

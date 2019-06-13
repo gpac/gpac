@@ -1282,28 +1282,28 @@ GF_FilterRegister RTSPOutRegister = {
 	GF_FS_SET_HELP("The RTSP server partially implements RTSP 1.0, with support for OPTIONS, DESCRIBE, SETUP, PLAY, PAUSE and TEARDOWN.\n"\
 		"Multiple PLAY ranges are not supported, PLAY range end is not supported, PAUSE range is not supported.\n"
 		"Only aggregated control is supported for PLAY and PAUSE, PAUSE/PLAY on single stream is not supported.\n"\
-		"The server only runs on TCP, and handles request in sequence (won't probe for commands until previous response was sent).\n"\
+		"The server only runs on TCP, and handles request in sequence (will not probe for commands until previous response was sent).\n"\
 		"The server supports both RTP over UDP delivery and RTP interleaved over RTSP delivery.\n"\
 		"\n"\
-		"The filter can work as a simple output filter by specifying the 'dst' option:\n"\
-		"EX: gpac -i source -o rtsp://myip/sessionname\n"\
-		"EX: gpac -i source dst=rtsp://myip/sessionname\n"\
-		"In this mode, only one session is possible. It is possible to loop the input source(s) by specifying the loop option.\n"\
+		"The filter can work as a simple output filter by specifying the [-dst]() option:\n"\
+		"EX gpac -i source -o rtsp://myip/sessionname\n"\
+		"EX gpac -i source dst=rtsp://myip/sessionname\n"\
+		"In this mode, only one session is possible. It is possible to [-loop]() the input source(s).\n"\
 		"\n"\
-		"The filter can work as a regular RTSP server by specifying the mounts option to indicate paths of media file to be served:\n"\
-		"EX: gpac rtspout:mounts=mydir1,mydir2\n"\
-		"In server mode, it is possible to load any source supported by gpac by setting the option 'dynurl'.\n"\
-		"The expected syntax of the dynamic RTSP URLs is 'rtsp://servername/?URL1[&URLN]' or 'rtsp://servername/@URL1[@URLN]' \n"\
+		"The filter can work as a regular RTSP server by specifying the [-mounts]() option to indicate paths of media file to be served:\n"\
+		"EX gpac rtspout:mounts=mydir1,mydir2\n"\
+		"In server mode, it is possible to load any source supported by gpac by setting the option [-dynurl]().\n"\
+		"The expected syntax of the dynamic RTSP URLs is `rtsp://servername/?URL1[&URLN]` or `rtsp://servername/@URL1[@URLN]` \n"\
 		"Each URL can be absolute or local, in which case it is resolved against the mount point(s).\n"\
-		"EX 'gpac -i rtsp://localhost/?pipe://mynamepipe&myfile.mp4 [dst filters]'\n"\
+		"EX gpac -i rtsp://localhost/?pipe://mynamepipe&myfile.mp4 [dst filters]\n"\
 		"The server will resolve this URL in a new session containing streams from myfile.mp4 and streams from pipe mynamepipe.\n"\
-		"When setting the 'runfor' in server mode, the server will exit at the end of the last session being closed.\n"\
+		"When setting [-runfor]() in server mode, the server will exit at the end of the last session being closed.\n"\
 		"\n"\
-		"In both modes, clients can setup multicast if the mcast option is 'on' or 'mirror'.\n"\
-		"In 'mirror' mode, any DESCRIBE command on a resource already delivered through a multicast session will use that multicast.\n"\
+		"In both modes, clients can setup multicast if the [-mcast]() option is `on` or `mirror`.\n"\
+		"When [-mcast]() is set to `mirror` mode, any DESCRIBE command on a resource already delivered through a multicast session will use that multicast.\n"\
 		"Consequently, only DESCRIBE methods are processed for such sessions, other methods will return Unauthorized.\n"\
 		"\n"\
-		"The scheduling algorithm and RTP options are the same as the RTP output filter, see gpac -h rtpout\n"\
+		"The scheduling algorithm and RTP options are the same as the RTP output filter, see [gpac -h rtpout](rtpout)\n"\
 	)
 	.private_size = sizeof(GF_RTSPOutCtx),
 	.max_extra_pids = -1,

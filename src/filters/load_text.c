@@ -2875,6 +2875,8 @@ static const GF_FilterArgs TXTInArgs[] =
 GF_FilterRegister TXTInRegister = {
 	.name = "txtin",
 	GF_FS_SET_DESCRIPTION("Subtitle loader")
+	GF_FS_SET_HELP("This filter reads subtitle data (srt/webvtt/ttxt/sub) to produce media PIDs and frames.")
+
 	.private_size = sizeof(GF_TXTIn),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = TXTInArgs,

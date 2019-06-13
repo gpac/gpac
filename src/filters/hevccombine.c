@@ -812,6 +812,7 @@ static const GF_FilterArgs hevccombineArgs[] =
 GF_FilterRegister HevccombineRegister = {
 	.name = "hevccombine",
 	GF_FS_SET_DESCRIPTION("HEVC tile merger")
+	GF_FS_SET_HELP("This filter merges a set of HEVC PIDs into a single motion-constrained tiled HEVC PID.")
 	.private_size = sizeof(GF_HEVCSplitCtx),
 	SETCAPS(hevccombineCaps),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,

@@ -2256,7 +2256,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	"- pbo: OpenGL with PBO\n"
 	"- blit: 2D hardware blit\n"
 	"- soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(dur), "only play the specified duration", GF_PROP_FRACTION, "0", NULL, 0},
 	{ OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(hold), "number of seconds to hold display for single-frame streams. A negative value force a hold on last frame for single or multi-frames streams", GF_PROP_DOUBLE, "1.0", NULL, 0},
@@ -2285,8 +2285,8 @@ GF_FilterRegister VideoOutRegister = {
 	GF_FS_SET_DESCRIPTION("Video output")
 	GF_FS_SET_HELP("This filter displays a single visual pid in a window.\n"\
 	"The window is created unless a window handle (HWND, xWindow, etc) is indicated in the config file ( [Temp]OSWnd=ptr).\n"\
-	"The output uses GPAC's video output module indicated in drv option or in the config file (see GPAC core help).\n"\
-	"The GPAC's video output module can be further configured (see GPAC core help).\n"\
+	"The output uses GPAC video output module indicated in [-drv]() option or in the config file (see GPAC core help).\n"\
+	"The video output module can be further configured (see GPAC core help).\n"\
 	"The filter can use openGL or 2D blitter of the graphics card, depending on the OS support.\n"\
 	"The filter can be used do dump frames as written on the grapics card.\n"\
 	"In this case, the window is not visible and only the listed frames are drawn to the GPU.\n"\

@@ -81,7 +81,7 @@ do_test "$GPAC test $MEDIA_DIR/auxiliary_files/logo.jpg -k $TEMP_DIR/logs.txt -l
 do_hash_test $TEMP_DIR/logs.txt  "inspect-res2"
 
 #test list
-$GPAC -alias='test flist:in=@{-:N-1} inspect:log=src=@{N}' -aliasdoc='test some doc' 2> /dev/null
+$GPAC -alias='test flist:srcs=@{-:N-1} inspect:log=src=@{N}' -aliasdoc='test some doc' 2> /dev/null
 do_test "$GPAC -threads=-1 test $MEDIA_DIR/auxiliary_files/logo.jpg $MEDIA_DIR/auxiliary_files/logo.png $TEMP_DIR/logs.txt" "gpac-alias-list"
 do_hash_test $TEMP_DIR/logs.txt  "inspect-res3"
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-inspectfilter="inspect:all:deep:interleave=false:test=noprop:fmt=%dts%-%cts%-%sap%%lf%"
+inspectfilter="inspect:allp:deep:interleave=false:test=noprop:fmt=%dts%-%cts%-%sap%%lf%"
 dur=10
 start=0
 

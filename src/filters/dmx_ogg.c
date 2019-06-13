@@ -777,6 +777,7 @@ static const GF_FilterArgs OGGDmxArgs[] =
 GF_FilterRegister OGGDmxRegister = {
 	.name = "oggdmx",
 	GF_FS_SET_DESCRIPTION("OGG demuxer")
+	GF_FS_SET_HELP("This filter demultiplexes OGG files/data into a set of media PIDs and frames.")
 	.private_size = sizeof(GF_OGGDmxCtx),
 	.initialize = oggdmx_initialize,
 	.finalize = oggdmx_finalize,

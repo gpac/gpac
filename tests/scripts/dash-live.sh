@@ -12,7 +12,7 @@ do_hash_test "$TEMP_DIR/file_dash_track1_20.m4s" "seg1"
 do_hash_test "$TEMP_DIR/file_dash_track2_20.m4s" "seg2"
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:dur=2/1:log=$myinspect"
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:allp:deep:interleave=false:dur=2/1:log=$myinspect"
 do_hash_test $myinspect "inspect"
 
 test_end

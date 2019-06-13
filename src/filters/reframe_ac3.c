@@ -587,6 +587,7 @@ static const GF_FilterArgs AC3DmxArgs[] =
 GF_FilterRegister AC3DmxRegister = {
 	.name = "rfac3",
 	GF_FS_SET_DESCRIPTION("AC3 reframer")
+	GF_FS_SET_HELP("This filter parses AC3 and E-AC3 files/data and outputs corresponding audio PID and frames.")
 	.private_size = sizeof(GF_AC3DmxCtx),
 	.args = AC3DmxArgs,
 	.finalize = ac3dmx_finalize,

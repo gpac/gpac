@@ -1139,8 +1139,9 @@ static const GF_FilterArgs MPGVidDmxArgs[] =
 
 GF_FilterRegister MPGVidDmxRegister = {
 	.name = "rfmpgvid",
-	GF_FS_SET_DESCRIPTION("M1V/M4V reframer")
-	GF_FS_SET_HELP("The demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS")
+	GF_FS_SET_DESCRIPTION("M1V/M2V/M4V reframer")
+	GF_FS_SET_HELP("This filter parses MPEG-1/2 and MPEG-4 part 2 video files/data and outputs corresponding video PID and frames.\n"
+		"Note: The demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS.")
 	.private_size = sizeof(GF_MPGVidDmxCtx),
 	.args = MPGVidDmxArgs,
 	.initialize = mpgviddmx_initialize,

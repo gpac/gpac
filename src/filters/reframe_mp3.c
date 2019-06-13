@@ -779,6 +779,7 @@ static const GF_FilterArgs MP3DmxArgs[] =
 GF_FilterRegister MP3DmxRegister = {
 	.name = "rfmp3",
 	GF_FS_SET_DESCRIPTION("MP3 reframer")
+	GF_FS_SET_HELP("This filter parses MPEG-1/2 audio files/data and outputs corresponding audio PID and frames.")
 	.private_size = sizeof(GF_MP3DmxCtx),
 	.args = MP3DmxArgs,
 	.finalize = mp3_dmx_finalize,

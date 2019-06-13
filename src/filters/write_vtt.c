@@ -305,6 +305,7 @@ static const GF_FilterArgs WebVTTMxArgs[] =
 GF_FilterRegister WebVTTMxRegister = {
 	.name = "writevtt",
 	GF_FS_SET_DESCRIPTION("WebVTT writer")
+	GF_FS_SET_HELP("This filter converts a single stream to a WebVTT output file.")
 	.private_size = sizeof(GF_WebVTTMxCtx),
 	.args = WebVTTMxArgs,
 	.finalize = vttmx_finalize,

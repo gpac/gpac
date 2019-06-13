@@ -410,6 +410,7 @@ static const GF_FilterCapability FAADCaps[] =
 GF_FilterRegister FAADRegister = {
 	.name = "faad",
 	GF_FS_SET_DESCRIPTION("FAAD decoder")
+	GF_FS_SET_HELP("This filter decodes AAC streams through faad library.")
 	.private_size = sizeof(GF_FAADCtx),
 	.priority = 1,
 	SETCAPS(FAADCaps),

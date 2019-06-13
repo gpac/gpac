@@ -11,7 +11,7 @@ fi
 #ffmpeg behaves differently on various platforme (FPS detection, duration & ca might slightly differ).
 #we therefore don't inspect the result but create an MP4 from it
 #myinspect=$TEMP_DIR/inspect.txt
-#do_test "$GPAC -no-reassign=no -i $2 inspect:all:deep:interleave=false:log=$myinspect -graph -stats" "inspect"
+#do_test "$GPAC -no-reassign=no -i $2 inspect:allp:deep:interleave=false:log=$myinspect -graph -stats" "inspect"
 #do_hash_test $myinspect "inspect"
 
 dstfile=$TEMP_DIR/dump.mp4

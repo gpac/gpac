@@ -459,6 +459,7 @@ static const GF_FilterCapability ODFDecCaps[] =
 GF_FilterRegister ODFDecRegister = {
 	.name = "odfdec",
 	GF_FS_SET_DESCRIPTION("MPEG-4 OD decoder")
+	GF_FS_SET_HELP("This filter decodes MPEG-4 OD frames directly into the scene manager of the compositor. It cannot be used to dump OD content.")
 	.private_size = sizeof(GF_ODFDecCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.priority = 1,

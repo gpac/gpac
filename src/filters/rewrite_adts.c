@@ -302,6 +302,7 @@ static const GF_FilterArgs ADTSMxArgs[] =
 GF_FilterRegister ADTSMxRegister = {
 	.name = "ufadts",
 	GF_FS_SET_DESCRIPTION("ADTS writer")
+	GF_FS_SET_HELP("This filter converts AAC streams into ADTS encapsulated data.")
 	.private_size = sizeof(GF_ADTSMxCtx),
 	.args = ADTSMxArgs,
 	.finalize = adtsmx_finalize,
@@ -345,6 +346,7 @@ static const GF_FilterCapability LATMMxCaps[] =
 GF_FilterRegister LATMMxRegister = {
 	.name = "uflatm",
 	GF_FS_SET_DESCRIPTION("Raw AAC to LATM writer")
+	GF_FS_SET_HELP("This filter converts AAC streams into LATM encapsulated data.")
 	.private_size = sizeof(GF_ADTSMxCtx),
 	.args = LATMMxArgs,
 	.initialize = latmmx_initialize,

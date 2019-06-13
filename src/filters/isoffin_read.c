@@ -1009,7 +1009,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(allt), "load all tracks even if unknown\n\t", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noedit), "do not use edit lists", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(itt), "(items-to-track) converts all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(itt), "convert all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(itemid), "keep item IDs in PID properties", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(smode), "load mode for scalable/tile tracks\n"
 	"- split: each track is declared, extractors are removed\n"
@@ -1046,7 +1046,7 @@ static const GF_FilterCapability ISOFFInCaps[] =
 GF_FilterRegister ISOFFInRegister = {
 	.name = "mp4dmx",
 	GF_FS_SET_DESCRIPTION("ISOBMFF/QT demuxer")
-	GF_FS_SET_HELP("When scalable tracks are present in a file, the reader can operate in 3 modes using smode option:\n"\
+	GF_FS_SET_HELP("When scalable tracks are present in a file, the reader can operate in 3 modes using [-smode]() option:\n"\
 	 	"- smode=single: resolves all extractors to extract a single bitstream from a scalable set. The highest level is used\n"\
 	 	"In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the configs\n"\
 	 	"- smode=split: all extractors are removed and every track of the scalable set is declared. In this mode, each enhancement track has no base decoder config\n"

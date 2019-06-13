@@ -276,7 +276,7 @@ GF_Err gf_fs_set_separators(GF_FilterSession *session, const char *separator_set
 /*! Sets the maximum length of a filter chain dynamically loaded to solve connection between two filters
 \param session filter session
 \param  max_chain_length sets maximum chain length when resolving filter links.
-Default value is 6 ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out])
+Default value is 6 ([ in -> ] demux -> reframe -> decode -> encode -> reframe -> mux [ -> out ])
 (filter chains loaded for adaptation (eg pixel format change, audio resample) are loaded after the link resolution)
 Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually
 \return error if any
@@ -1344,7 +1344,7 @@ typedef struct
 		 		- name1: val'\n' (no '.' at end)
 		 		- nameN: val (no '.' nor '\n' at end of last value description)
 			and enum value description order shall match enum order
-
+		- links are allowed, see \ref struct __gf_filter_register doc
 	*/
 	const char *arg_desc;
 	/*! type of argument - this is a property type*/
@@ -1648,6 +1648,16 @@ struct __gf_filter_register
 		- mardown bullet lists shall use "- ", " - " etc...
 		- notes shall be identifed as a line starting with "Note: "
 		- warnings shall be identifed as a line starting with "Warning: "
+		- the sequence "[-" is reserved for option links. It is formated as:
+		 		- "[-OPT]()": link to self page for option OPT
+		 		- "[-OPT](LINK)": link to other page for option OPT.
+			LINK can be:
+				- GPAC: resolves to general GPAC help
+				- CORE: resolves to general CORE help
+				- LOG: resolves to general LOG help
+				- ANY: resolves to filter with register name 'ANY'
+
+			Note that [text](ANY) with ANY a filter registry name will link to that filter help page
 	*/
 	const char *help;
 #endif

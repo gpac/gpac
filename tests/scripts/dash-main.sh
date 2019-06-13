@@ -14,7 +14,7 @@ do_hash_test $TEMP_DIR/test-init.mp4 "init"
 do_hash_test $TEMP_DIR/test-10.m4s "seg"
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:log=$myinspect"
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:allp:deep:interleave=false:log=$myinspect"
 do_hash_test $myinspect "inspect"
 
 test_end

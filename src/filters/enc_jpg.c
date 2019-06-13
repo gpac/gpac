@@ -384,6 +384,7 @@ static GF_FilterArgs JPGEncArgs[] =
 GF_FilterRegister JPGEncRegister = {
 	.name = "jpgenc",
 	GF_FS_SET_DESCRIPTION("JPG encoder")
+	GF_FS_SET_HELP("This filter encodes a single uncompressed video PID to JPEG using libjpeg.")
 	.private_size = sizeof(GF_JPGEncCtx),
 	.args = JPGEncArgs,
 	SETCAPS(JPGEncCaps),

@@ -22,7 +22,7 @@ if [ "$1" != "av" ] ; then
 do_hash_test "$dst_file" "gsf-mux"
 fi
 
-do_test "$GPAC -i $dst_file$4 inspect:all:deep:interleave=false:log=$myinspect -graph" "gsf-demux"
+do_test "$GPAC -i $dst_file$4 inspect:allp:deep:interleave=false:log=$myinspect -graph" "gsf-demux"
 do_hash_test $myinspect "gsf-demux"
 
 test_end

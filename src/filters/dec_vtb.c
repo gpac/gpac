@@ -1896,6 +1896,7 @@ static const GF_FilterArgs VTBDecArgs[] =
 GF_FilterRegister GF_VTBDecCtxRegister = {
 	.name = "vtbdec",
 	GF_FS_SET_DESCRIPTION("VideoToolBox decoder")
+	GF_FS_SET_HELP("This filter decodes MPEG-2, H263, AVC|H264 and HEVC streams through VideoToolBox. It allows GPU frame dispatch or direct frame copy.")
 	.private_size = sizeof(GF_VTBDecCtx),
 	.args = VTBDecArgs,
 	.priority = 1,

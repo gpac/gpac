@@ -459,6 +459,7 @@ GF_FilterRegister J2KRegister = {
 	.version = ""OPENJPEG_VERSION,
 #endif
 	GF_FS_SET_DESCRIPTION("OpenJPEG2000 decoder")
+	GF_FS_SET_HELP("This filter decodes JPEG2000 streams through OpenJPEG2000 library.")
 	.private_size = sizeof(GF_J2KCtx),
 	.priority = 1,
 	SETCAPS(J2KCaps),

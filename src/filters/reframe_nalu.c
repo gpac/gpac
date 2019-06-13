@@ -2979,7 +2979,7 @@ static const GF_FilterCapability NALUDmxCaps[] =
 static const GF_FilterArgs NALUDmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, 0},
-	{ OFFS(autofps), "detect FPS from bitstream, fallback to fps option if not possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(autofps), "detect FPS from bitstream, fallback to [-fps]() option if not possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(index_dur), "indexing window length. If 0, bitstream is not probed for duration", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(explicit), "use explicit layered (SVC/LHVC) import", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -3000,7 +3000,8 @@ static const GF_FilterArgs NALUDmxArgs[] =
 GF_FilterRegister NALUDmxRegister = {
 	.name = "rfnalu",
 	GF_FS_SET_DESCRIPTION("AVC/HEVC reframer")
-	GF_FS_SET_HELP("This demuxer only produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.\n\tThe demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS.")
+	GF_FS_SET_HELP("This filter parses AVC|H264 and HEVC files/data and outputs corresponding video PID and frames.\n"
+	"This demuxer only produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.\nNote: The demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS.")
 	.private_size = sizeof(GF_NALUDmxCtx),
 	.args = NALUDmxArgs,
 	.initialize = naludmx_initialize,

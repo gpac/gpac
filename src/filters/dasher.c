@@ -5433,7 +5433,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(subdur), "maximum duration of the input file to be segmentated. This does not change the segment duration, segmentation stops once segments produced exceeded the duration.", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ast), "set start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ) for live mode. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(state), "path to file used to store/reload state info when simulating live. This is stored as a valid MPD with GPAC XML extensions", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(loop), "loop source file when dashing with subdur and state. If not set, a new period is created once the source is over", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(loop), "loop sources when dashing with subdur and state. If not set, a new period is created once the sources are over", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(split), "enable cloning samples for text/metadata/scene description streams, marking further clones as redundant", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hlsc), "insert clock reference in variant playlist in live HLS", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cues), "set cue file - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
@@ -5451,12 +5451,12 @@ GF_FilterRegister DasherRegister = {
 	GF_FS_SET_DESCRIPTION("DASH and HLS segmenter")
 	GF_FS_SET_HELP("# GPAC DASH and HLS segmenter\n"\
 			"## Template strings\n"\
-			"The segmenter uses template strings to derive output file names, regardless of the DASH mode (even when templates are not used)\n"\
-			"The default template is $File$_dash for ondemand and single file modes, and $File$_$Number$ for seperate segment files\n"\
+			"The segmenter uses templates to derive output file names, regardless of the DASH mode (even when templates are not used). "\
+			"The default one is $File$_dash for ondemand and single file modes, and $File$_$Number$ for seperate segment files\n"\
 			"EX template=Great_$File$_$Width$_$Number$\n"\
-			"If source is foo.mp4 with 640x360 video, this will resolve in Great_foo_640_$Number$ for the DASH template\n"\
+			"If input is foo.mp4 with 640x360 video, this will resolve in Great_foo_640_$Number$ for the DASH template\n"\
 			"EX template=Great_$File$_$Width$\n"\
-			"If source is foo.mp4 with 640x360 video, this will resolve in Great_foo_640.mp4 for onDemand case\n"\
+			"If input is foo.mp4 with 640x360 video, this will resolve in Great_foo_640.mp4 for onDemand case\n"\
 			"\n"\
 			"Standard DASH replacement strings\n"\
 	        "- $Number[%%0Nd]$: replaced by the segment number, possibly prefixed with 0\n"\
@@ -5469,7 +5469,7 @@ GF_FilterRegister DasherRegister = {
 	        "- $Index=NAME$: replaced by NAME for index segments, ignored otherwise\n"\
 	        "- $Path=PATH$: replaced by PATH when creating segments, ignored otherwise\n"\
 	        "- $Segment=NAME$: replaced by NAME for media segments, ignored for init segments\n"\
-	        "- $DS$ (Dash Suffix): replaced by \"_trackN\" in case the source is an AV multiplex, or kept empty otherwise\n"\
+	        "- $DS$ (Dash Suffix): replaced by \"_trackN\" in case the input is an AV multiplex, or kept empty otherwise\n"\
 			"\n"\
 			"## PID assignment\n"\
 			"To assign PIDs into periods and adaptation sets and configure the session, the dasher looks for the following properties on each input pid:\n"\
@@ -5481,13 +5481,13 @@ GF_FilterRegister DasherRegister = {
 			"Note: If multiple streams in source, only the first stream will have an AS ID assigned\n"\
 			"- xlink: for remote periods, only checked for null pid\n"\
 			"- Role, PDesc, ASDesc, ASCDesc, RDesc: various descriptors to set for period, AS or representation\n"\
-			"- BUrl: base URLs to use for the pid (per representation)\n"\
-			"- Template: overrides dasher template for this PID\n"\
+			"- BUrl: overrides dasher [-base] with a set of BaseURLs to use for the pid (per representation)\n"\
+			"- Template: overrides dasher [-template]() for this PID\n"\
 			"- DashDur: overrides dasher segment duration for this PID\n"\
 			"- StartNumber: sets the start number for the first segment in the PID, default is 1\n"
 			"- Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overriden on input PIDs using the general PID property settings (cf global help).\n"\
 			"EX src=test.mp4:#Bitrate=1M dst=test.mpd\n"\
-			"This will force declaring a bitrate of 1M for the representation, regardless of actual source bitrate\n"\
+			"This will force declaring a bitrate of 1M for the representation, regardless of actual input bitrate\n"\
 			"EX src=muxav.mp4 dst=test.mpd\n"\
 			"This will create unmuxed DASH segments\n"\
 			"EX src=muxav.mp4:#Representation=1 dst=test.mpd\n"\
@@ -5495,7 +5495,7 @@ GF_FilterRegister DasherRegister = {
 			"EX src=m1.mp4 src=m2.mp4:#Period=Yep dst=test.mpd\n"\
 			"This will put src m1.mp4 in first period, m2.mp4 in second period\n"\
 			"EX src=m1.mp4:#BUrl=http://foo/bar dst=test.mpd\n"\
-			"This will assign a base URL to src m1.mp4\n"\
+			"This will assign a baseURL to src m1.mp4\n"\
 			"EX src=m1.mp4:#ASCDesc=<ElemName val=\"attval\">text</ElemName> dst=test.mpd\n"\
 			"This will assign the specified XML descriptor to the adaptation set.\n"\
 			"Note:  this can be used to inject most DASH descriptors not natively handled by the dasher. "\
@@ -5517,7 +5517,7 @@ GF_FilterRegister DasherRegister = {
 			"The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant\n"\
 			"\n"\
 			"## Cue-driven segmentation\n"\
-			"The segmenter can take a list of cues to use for the segmentation process, in which case only these cues are used to derive segment boundaries.\n"
+			"The segmenter can take a list of instructions, or Cues, to use for the segmentation process, in which case only these are used to derive segment boundaries.\n"
 			"Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are <Stream> elements, with attributes:\n"\
 			"- id: integer for stream/track/pid ID\n"\
 			"- timescale:integer giving the units of following timestamps\n"\
@@ -5526,7 +5526,7 @@ GF_FilterRegister DasherRegister = {
 			"- sample: integer giving the sample/frame number of a sample at which spliting shall happen\n"\
 			"- dts: long integer giving the decoding time stamp of a sample at which spliting shall happen\n"\
 			"- cts: long integer giving the composition / presentation time stamp of a sample at which spliting shall happen\n"\
-			"Warning: cues shall be listed in decoding order. Cue files can be specified for the entire dasher, or per PID using DashCue property.\n"\
+			"Warning: Cues shall be listed in decoding order. Cue files can be specified for the entire dasher, or per PID using DashCue property.\n"\
 			"\n"\
 			"## Muxer development considerations\n"\
 			"Output muxers allowing segmented output must obey the following:\n"\
@@ -5537,7 +5537,7 @@ GF_FilterRegister DasherRegister = {
 			"It is only set for packet carrying the \"FileNumber\" property, and only on one PID (usually the first) for multiplexed outputs\n"\
 			" - IDXName: gives the optional index name (if not present, index shall be in the same file as dash segment). Only used for MPEG-2 TS for now\n"\
 			" - EODS: property is set on packets with no DATA, no TS to signal the end of a DASH segment. "\
-			"This is only used when stoping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see dasher \"subdur\" option)\n"\
+			"This is only used when stoping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see [-subdur]() )\n"\
 			"- for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any\n"\
 			"- for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any\n"\
 			"- the following filter options are passed to muxers, which should declare them as arguments:\n"\

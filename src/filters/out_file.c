@@ -396,7 +396,7 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(dst), "location of destination file - see filter help ", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(append), "open in append mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dynext), "indicate the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cat), "cat each file of input pid rather than creating one file per filename", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -418,7 +418,7 @@ GF_FilterRegister FileOutRegister = {
 	.name = "fout",
 	GF_FS_SET_DESCRIPTION("File output")
 	GF_FS_SET_HELP("The file output filter can work as a null sink when its destination is \"null\", dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.\n"\
-	"In regular mode, the filter will dump to file incomming packets (stream type file), starting a new file for each packet having a start block set, unless operating in cat mode.\n"\
+	"In regular mode, the filter will dump to file incomming packets (stream type file), starting a new file for each packet having a __frame_start__ flag set, unless operating in [-cat]() mode.\n"\
 	"The ouput file name can use gpac templating mechanism, see gpac help.")
 	.private_size = sizeof(GF_FileOutCtx),
 	.args = FileOutArgs,
