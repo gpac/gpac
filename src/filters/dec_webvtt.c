@@ -444,6 +444,7 @@ static const GF_FilterCapability VTTDecCaps[] =
 GF_FilterRegister VTTDecRegister = {
 	.name = "vttdec",
 	GF_FS_SET_DESCRIPTION("WebVTT decoder")
+	GF_FS_SET_HELP("This filter decodes WebVTT streams directly into a javascript context of the compositor. It cannot be used to dump WebVTT content.")
 	.private_size = sizeof(GF_VTTDec),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = VTTDecArgs,

@@ -20,7 +20,7 @@ sleep 1
 
 myinspect=$TEMP_DIR/inspect.txt
 
-do_test "$GPAC -i rtsp://$IP/testsession inspect:deep:all:dur=1/1:log=$myinspect $4 -stats -graph" "dump"
+do_test "$GPAC -i rtsp://$IP/testsession inspect:deep:allp:dur=1/1:log=$myinspect $4 -stats -graph" "dump"
 
 wait
 
@@ -45,7 +45,7 @@ sleep 1
 
 myinspect=$TEMP_DIR/inspect.txt
 
-do_test "$GPAC -i $2 inspect:deep:all:dur=1/1:interleave=false:log=$myinspect $4 -stats -graph" "dump"
+do_test "$GPAC -i $2 inspect:deep:allp:dur=1/1:interleave=false:log=$myinspect $4 -stats -graph" "dump"
 
 wait
 

@@ -16,7 +16,7 @@ qt_prores_test ()
  do_test "$MP4BOX -info $1" "RawMediaInfo"
 
  myinspect=$TEMP_DIR/inspect.txt
- do_test "$GPAC -i $1 inspect:all:deep:interleave=false:log=$myinspect -graph -stats"
+ do_test "$GPAC -i $1 inspect:allp:deep:interleave=false:log=$myinspect -graph -stats"
  do_hash_test $myinspect "inspect"
 
 

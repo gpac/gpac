@@ -864,7 +864,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	}
 	if (wants_audio && wants_video) {
 		if (!ctx->copy_audio || !ctx->copy_video) {
-			GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] using muxed capture av:// without copy on %s, this might introduce packet losses due to blocking modes or delayed consumption of the frames. If experiencing problems, either use copy=AV option or consider using two filters video:// and audio://\n", ctx->fname, (!ctx->copy_audio && !ctx->copy_video) ? "audio and video streams" : ctx->copy_video ? "audio stream" : "video stream"));
+			GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] using muxed capture av:// without copy on %s, this might introduce packet losses due to blocking modes or delayed consumption of the frames. If experiencing problems, either set [-copy]() to `AV` or consider using two filters video:// and audio://\n", ctx->fname, (!ctx->copy_audio && !ctx->copy_video) ? "audio and video streams" : ctx->copy_video ? "audio stream" : "video stream"));
 		}
 	}
 	return ffdmx_init_common(filter, ctx);
@@ -889,12 +889,12 @@ GF_FilterRegister FFAVInRegister = {
 	.name = "ffavin",
 	.version = LIBAVDEVICE_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG AV Capture")
-	GF_FS_SET_HELP("Typical classes ar 'dshow' on windows, 'avfoundation' on OSX, 'video4linux2' or 'x11grab' on linux\n\n"\
+	GF_FS_SET_HELP("Typical classes are `dshow` on windows, `avfoundation` on OSX, `video4linux2` or `x11grab` on linux\n\n"\
 	"Typical device name can be the webcam name:\n"\
-		"'FaceTime HD Camera' on OSX, device name on windows, '/dev/video0' on linux\n"\
-		"'screen-capture-recorder', see http://screencapturer.sf.net/ on windows\n"\
-		"'Capture screen 0' on OSX (0=first screen), or 'screenN' for short\n"\
-		"X display name (eg ':0.0') on linux"\
+		"`FaceTime HD Camera` on OSX, device name on windows, `/dev/video0` on linux\n"\
+		"`screen-capture-recorder`, see http://screencapturer.sf.net/ on windows\n"\
+		"`Capture screen 0` on OSX (0=first screen), or `screenN` for short\n"\
+		"X display name (eg `:0.0`) on linux"\
 		"\n"\
 		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on capture devices options")
 	.private_size = sizeof(GF_FFDemuxCtx),
@@ -910,7 +910,7 @@ GF_FilterRegister FFAVInRegister = {
 
 static const GF_FilterArgs FFAVInArgs[] =
 {
-	{ OFFS(src), "url of device, video:// audio:// or av://", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(src), "url of device, `video://`, `audio://` or `av://`", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(fmt), "name of device class - see filter help. If not set, defaults to first device class", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(dev), "name of device or index of device - see filter help", GF_PROP_STRING, "0", NULL, 0},
 	{ OFFS(copy), "set copy mode of raw frames\n"

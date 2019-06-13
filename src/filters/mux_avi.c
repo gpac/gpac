@@ -482,6 +482,7 @@ static const GF_FilterCapability AVIMuxCapsNoRAW[] =
 GF_FilterRegister AVIMuxRegister = {
 	.name = "avimx",
 	GF_FS_SET_DESCRIPTION("AVI muxer")
+	GF_FS_SET_HELP("This filter multiplexes raw or compressed audio and video to produce an AVI output.")
 	.private_size = sizeof(GF_AVIMuxCtx),
 	.max_extra_pids = -1,
 	.args = AVIMuxArgs,

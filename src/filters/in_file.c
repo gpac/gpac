@@ -344,6 +344,10 @@ static const GF_FilterCapability FileInCaps[] =
 GF_FilterRegister FileInRegister = {
 	.name = "fin",
 	GF_FS_SET_DESCRIPTION("File input")
+	GF_FS_SET_HELP("This filter dispatch raw blocks from input file into a filter chain.\n"
+	"Block size can be adjusted using [-block_size]().\n"
+	"Content format can be forced through [-mime]() and file extension can be changed through [-ext]().\n"
+	"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.")
 	.private_size = sizeof(GF_FileInCtx),
 	.args = FileInArgs,
 	.initialize = filein_initialize,

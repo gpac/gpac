@@ -267,6 +267,7 @@ static const GF_FilterArgs TileAggArgs[] =
 GF_FilterRegister TileAggRegister = {
 	.name = "tileagg",
 	GF_FS_SET_DESCRIPTION("HEVC tile aggregator")
+	GF_FS_SET_HELP("This filter reaggregates a set of split tiled HEVC streams (`hvt1` or `hvt2` in isobmff) into a single HEVC stream.")
 	.private_size = sizeof(GF_TileAggCtx),
 	SETCAPS(TileAggCaps),
 	.initialize = tileagg_initialize,

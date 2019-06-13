@@ -275,6 +275,7 @@ static const GF_FilterCapability MADCaps[] =
 GF_FilterRegister MADRegister = {
 	.name = "maddec",
 	GF_FS_SET_DESCRIPTION("MAD decoder")
+	GF_FS_SET_HELP("This filter decodes MPEG 1/2 audio streams through libmad library.")
 	.private_size = sizeof(GF_MADCtx),
 	.priority = 1,
 	SETCAPS(MADCaps),

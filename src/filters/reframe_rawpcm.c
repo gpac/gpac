@@ -299,6 +299,7 @@ static GF_FilterArgs PCMReframeArgs[] =
 GF_FilterRegister PCMReframeRegister = {
 	.name = "rfpcm",
 	GF_FS_SET_DESCRIPTION("PCM reframer")
+	GF_FS_SET_HELP("This filter parses raw PCM file/data and outputs corresponding raw audio PID and frames.")
 	.private_size = sizeof(GF_PCMReframeCtx),
 	.args = PCMReframeArgs,
 	SETCAPS(PCMReframeCaps),

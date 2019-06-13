@@ -1250,6 +1250,7 @@ static const GF_FilterArgs OHEVCDecArgs[] =
 GF_FilterRegister OHEVCDecRegister = {
 	.name = "ohevcdec",
 	GF_FS_SET_DESCRIPTION("OpenHEVC decoder")
+	GF_FS_SET_HELP("This filter decodes HEVC and LHVC (HEVC scalable extensions) from one or more PIDs through the OpenHEVC library")
 	.private_size = sizeof(GF_OHEVCDecCtx),
 	SETCAPS(OHEVCDecCaps),
 	.initialize = ohevcdec_initialize,

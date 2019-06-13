@@ -1006,6 +1006,7 @@ static const GF_FilterArgs HEVCSplitArgs[] =
 GF_FilterRegister HEVCSplitRegister = {
 		.name = "hevcsplit",
 		GF_FS_SET_DESCRIPTION("HEVC tile spliter")
+		GF_FS_SET_HELP("This filter splits a motion-constrained tiled HEVC PID into N independent HEVC PIDs.")
 		.private_size = sizeof(GF_HEVCSplitCtx),
 		SETCAPS(HEVCSplitCaps),
 		//hevc split shall be explicitly loaded

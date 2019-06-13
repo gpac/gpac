@@ -287,6 +287,7 @@ static GF_FilterArgs RawVidReframeArgs[] =
 GF_FilterRegister RawVidReframeRegister = {
 	.name = "rfrawvid",
 	GF_FS_SET_DESCRIPTION("RAW video reframer")
+	GF_FS_SET_HELP("This filter parses raw YUV and RGB files/data and outputs corresponding raw video PID and frames.")
 	.private_size = sizeof(GF_RawVidReframeCtx),
 	.args = RawVidReframeArgs,
 	SETCAPS(RawVidReframeCaps),

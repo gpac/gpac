@@ -939,7 +939,7 @@ static const GF_FilterCapability AV1DmxCaps[] =
 static const GF_FilterArgs AV1DmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, 0},
-	{ OFFS(autofps), "detect FPS from bitstream, fallback to fps option if not possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(autofps), "detect FPS from bitstream, fallback to [-fps]() option if not possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(importer), "compatibility with old importer", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -950,6 +950,7 @@ static const GF_FilterArgs AV1DmxArgs[] =
 GF_FilterRegister AV1DmxRegister = {
 	.name = "rfav1",
 	GF_FS_SET_DESCRIPTION("AV1/IVF/VP9 reframer")
+	GF_FS_SET_HELP("This filter parses AV1 OBU, AV1 AnnexB or IVF with AV1 or VP9 files/data and outputs corresponding visual PID and frames.")
 	.private_size = sizeof(GF_AV1DmxCtx),
 	.args = AV1DmxArgs,
 	.finalize = av1dmx_finalize,

@@ -61,7 +61,7 @@ lsr_test ()
 
  #test saf demux
  myinspect=$TEMP_DIR/inspect_saf.txt
- do_test "$GPAC -i $saffile inspect:all:deep:interleave=false:log=$myinspect"
+ do_test "$GPAC -i $saffile inspect:allp:deep:interleave=false:log=$myinspect"
 
  #don't hash content on 32 bits, fp precision leads to different results, hence different crc
  if [ $GPAC_OSTYPE != "lin32" ] ; then

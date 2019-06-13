@@ -578,6 +578,7 @@ static const GF_FilterArgs AMRDmxArgs[] =
 GF_FilterRegister AMRDmxRegister = {
 	.name = "rfamr",
 	GF_FS_SET_DESCRIPTION("AMR/EVRC reframer")
+	GF_FS_SET_HELP("This filter parses AMR, AMR Wideband, EVRC and SMV files/data and outputs corresponding audio PID and frames.")
 	.private_size = sizeof(GF_AMRDmxCtx),
 	.args = AMRDmxArgs,
 	.initialize = amrdmx_initialize,

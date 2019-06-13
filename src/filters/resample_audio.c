@@ -352,6 +352,7 @@ static const GF_FilterArgs ResamplerArgs[] =
 GF_FilterRegister ResamplerRegister = {
 	.name = "resample",
 	GF_FS_SET_DESCRIPTION("Audio resampler")
+	GF_FS_SET_HELP("This filter resamples raw audio to a target sample rate, number of channels or audio format.")
 	.private_size = sizeof(GF_ResampleCtx),
 	.initialize = resample_initialize,
 	.finalize = resample_finalize,

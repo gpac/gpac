@@ -1262,7 +1262,7 @@ GF_FilterRegister FFEncodeRegister = {
 	GF_FS_SET_DESCRIPTION("FFMPEG encoder")
 	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on encoder options"
 		"\n"
-		"Note that if no codec is explicited through ffc option and no pixel format is given, codecs will be enumerated to find a matching pixel format.\n"
+		"Note: if no codec is explicited through [-ffc]() option and no pixel format is given, codecs will be enumerated to find a matching pixel format.\n"
 
 	)
 	.private_size = sizeof(GF_FFEncodeCtx),

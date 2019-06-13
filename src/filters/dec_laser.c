@@ -245,6 +245,7 @@ static const GF_FilterCapability LSRDecCaps[] =
 GF_FilterRegister LSRDecRegister = {
 	.name = "lsrdec",
 	GF_FS_SET_DESCRIPTION("MPEG-4 LASeR decoder")
+	GF_FS_SET_HELP("This filter decodes MPEG-4 LASeR frames directly into the scene graph of the compositor. It cannot be used to dump LASeR content.")
 	.private_size = sizeof(GF_LSRDecCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.priority = 1,

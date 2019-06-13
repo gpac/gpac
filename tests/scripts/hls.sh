@@ -21,7 +21,7 @@ echo "skipping hash, invalid when per-test temp dir is used"
 fi
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $mpdfile inspect:all:deep:interleave=false:log=$myinspect -stats -graph" "inspect"
+do_test "$GPAC -i $mpdfile inspect:allp:deep:interleave=false:log=$myinspect -stats -graph" "inspect"
 do_hash_test $myinspect "inspect"
 
 test_end

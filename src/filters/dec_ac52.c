@@ -277,6 +277,7 @@ static const GF_FilterCapability A52DecCaps[] =
 GF_FilterRegister A52DecRegister = {
 	.name = "a52dec",
 	GF_FS_SET_DESCRIPTION("A52 decoder")
+	GF_FS_SET_HELP("This filter decodes AC3 streams through a52dec library.")
 	.private_size = sizeof(GF_A52DecCtx),
 	.priority = 1,
 	SETCAPS(A52DecCaps),

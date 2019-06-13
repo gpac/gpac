@@ -10,7 +10,7 @@ if [ $test_skip = 1 ] ; then
 fi
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $2 inspect:all:deep:test=network:interleave=false:log=$myinspect$3 -graph -stats"
+do_test "$GPAC -i $2 inspect:allp:deep:test=network:interleave=false:log=$myinspect$3 -graph -stats"
 do_hash_test $myinspect "inspect"
 
 test_end

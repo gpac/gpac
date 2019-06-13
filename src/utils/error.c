@@ -123,6 +123,7 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 
 static gf_on_progress_cbk prog_cbk = NULL;
 static void *user_cbk;
+static Bool gpac_no_color_logs = GF_FALSE;
 
 GF_EXPORT
 void gf_set_progress(const char *title, u64 done, u64 total)
@@ -206,6 +207,7 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 			if (!strcmp(val, "ncl")) {
 				void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist);
 
+				gpac_no_color_logs = GF_TRUE;
 				gf_log_set_callback(NULL, default_log_callback);
 				if (!val[3]) break;
 				val += 4;
@@ -407,7 +409,7 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 {
 	u32 color_code;
 
-	if (gf_sys_is_test_mode())
+	if (gf_sys_is_test_mode() || gpac_no_color_logs)
 		return;
 	color_code = code & 0xFFFF;
 #if defined(GPAC_CONFIG_WIN32)

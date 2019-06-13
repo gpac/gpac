@@ -44,7 +44,7 @@ typedef struct
 	char *src, *ifce;
 	Bool cache, kc, sr;
 	u32 buffer, timeout;
-	s32 service, stsi;
+	s32 tunein, stsi;
 	
 	//internal
 	GF_Filter *filter;
@@ -326,12 +326,12 @@ static GF_Err atscin_initialize(GF_Filter *filter)
 	ctx->atsc_dmx = gf_atsc3_dmx_new(ctx->ifce, NULL, ctx->buffer);
 
 	gf_atsc3_set_callback(ctx->atsc_dmx, atscin_on_event, ctx);
-	if (ctx->service>0) ctx->tune_service_id = ctx->service;
+	if (ctx->tunein>0) ctx->tune_service_id = ctx->tunein;
 
 	if (ctx->tune_service_id)
 		gf_atsc3_tune_in(ctx->atsc_dmx, ctx->tune_service_id, GF_FALSE);
 	else
-		gf_atsc3_tune_in(ctx->atsc_dmx, (u32) ctx->service, GF_TRUE);
+		gf_atsc3_tune_in(ctx->atsc_dmx, (u32) ctx->tunein, GF_TRUE);
 
 	ctx->start_time = gf_sys_clock();
 
@@ -346,12 +346,12 @@ static const GF_FilterArgs ATSCInArgs[] =
 	{ OFFS(src), "location of source content - see filter help", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(ifce), "default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cache), "indicate the files should populate GPAC HTTP cache - see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(service), "service ID to bootstrap on. 0 means tune to no service, -1 tune all services -2 means tune on first service found", GF_PROP_SINT, "-2", NULL, 0},
+	{ OFFS(tunein), "service ID to bootstrap on. 0 means tune to no service, -1 tune all services -2 means tune on first service found", GF_PROP_SINT, "-2", NULL, 0},
 	{ OFFS(buffer), "receive buffer size to use in bytes", GF_PROP_UINT, "0x80000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timeout), "timeout in ms after which tunein fails", GF_PROP_UINT, "5000", NULL, 0},
 	{ OFFS(kc), "keep corrupted file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sr), "skip repeated files - ignored in cache mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(stsi), "define one output pid per tsi/serviceID - ignored in cache mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sr), "skip repeated files - ignored in [-cache]() mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(stsi), "define one output pid per tsi/serviceID - ignored in [-cache]() mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -361,8 +361,8 @@ GF_FilterRegister ATSCInRegister = {
 	GF_FS_SET_DESCRIPTION("ATSC input")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.\n"\
-	 "The default behaviour is to populate GPAC HTTP cache with the recieved files, using \"http://gpatsc/serviceN/\" as service root, N being the ATSC service ID.\n"\
-	 "In cache mode, repeated files are always send.\n"\
+	 "The default behaviour is to populate GPAC HTTP Cache with the recieved files, using \"http://gpatsc/serviceN/\" as service root, N being the ATSC service ID.\n"\
+	 "In [-cache]() mode, repeated files are always send.\n"\
 	"The cached MPD is assigned the following headers:\n"\
 	"- x-dash-atsc: integer value, indicates the ATSC service ID\n"\
 	"- x-dash-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast\n"\

@@ -1227,11 +1227,11 @@ static const GF_FilterArgs GF_CENCDecArgs[] =
 GF_FilterRegister CENCDecRegister = {
 	.name = "cdcrypt",
 	GF_FS_SET_DESCRIPTION("CENC decryptor")
-	GF_FS_SET_HELP("The CENC decryptor supports decrypting CENC, ISMA and Adobe streams. It uses a configuration file for retrieving keys. The syntax is available at:\n"\
-			"https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/\n"\
-			"The file can be set per PID using the property DecryptFile (highest priority), CryptFile (lower priority)\n"\
-			 "or set at the filter option level (lowest priority).\n"\
-			 "When the file set per PID, the first CrypTrack with the same ID is used, otherwise the first CrypTrack is used.")
+	GF_FS_SET_HELP("The CENC decryptor supports decrypting CENC, ISMA and Adobe streams. It uses a configuration file for retrieving keys.\n"
+	"The syntax is available at: https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/\n"
+	"The file can be set per PID using the property DecryptFile (highest priority), CryptFile (lower priority) "
+	"or set at the filter level using [-cfile]() (lowest priority).\n"
+	"When the file is set per PID, the first `CrypTrack` with the same ID is used, otherwise the first `CrypTrack` is used.")
 	.private_size = sizeof(GF_CENCDecCtx),
 	.max_extra_pids=-1,
 	.args = GF_CENCDecArgs,

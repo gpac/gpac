@@ -740,6 +740,7 @@ static const GF_FilterArgs RTPInArgs[] =
 GF_FilterRegister RTPInRegister = {
 	.name = "rtpin",
 	GF_FS_SET_DESCRIPTION("RTP/RTSP/SDP input")
+	GF_FS_SET_HELP("This filter handles SDP file reading, rtp direct url and RTSP session and produces media PIDs and frames.")
 	.private_size = sizeof(GF_RTPIn),
 	.args = RTPInArgs,
 	.initialize = rtpin_initialize,

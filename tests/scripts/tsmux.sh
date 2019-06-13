@@ -12,11 +12,11 @@ do_test "$GPAC $2 -o $tsfile:pcr_init=0:pes_pack=none$3" "mux"
 do_hash_test $tsfile "mux"
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $tsfile inspect:all:deep:interleave=false:log=$myinspect" "inspect"
+do_test "$GPAC -i $tsfile inspect:allp:deep:interleave=false:log=$myinspect" "inspect"
 do_hash_test $myinspect "inspect"
 
 myinspect=$TEMP_DIR/inspect-frame.txt
-do_test "$GPAC -i $tsfile inspect:mode=frame:all:deep:interleave=false:log=$myinspect" "inspect-frame"
+do_test "$GPAC -i $tsfile inspect:mode=frame:allp:deep:interleave=false:log=$myinspect" "inspect-frame"
 do_hash_test $myinspect "inspect-frame"
 
 test_end

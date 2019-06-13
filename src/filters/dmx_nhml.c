@@ -1381,6 +1381,7 @@ static const GF_FilterCapability NHMLDmxCaps[] =
 GF_FilterRegister NHMLDmxRegister = {
 	.name = "nhmlr",
 	GF_FS_SET_DESCRIPTION("NHML parser")
+	GF_FS_SET_HELP("This filter reads NHML files/data to produce a media PID and frames.")
 	.private_size = sizeof(GF_NHMLDmxCtx),
 	.args = GF_NHMLDmxArgs,
 	.initialize = nhmldmx_initialize,

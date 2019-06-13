@@ -17,7 +17,7 @@ do_hash_test $TEMP_DIR/$3 "$1-hash-init"
 do_hash_test $TEMP_DIR/$4 "$1-hash-seg"
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:all:deep:interleave=false:log=$myinspect"
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:allp:deep:interleave=false:log=$myinspect"
 do_hash_test $myinspect "inspect"
 
 

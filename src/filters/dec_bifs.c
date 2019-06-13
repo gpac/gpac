@@ -264,6 +264,7 @@ static const GF_FilterCapability BIFSDecCaps[] =
 GF_FilterRegister BIFSDecRegister = {
 	.name = "bifsdec",
 	GF_FS_SET_DESCRIPTION("MPEG-4 BIFS decoder")
+	GF_FS_SET_HELP("This filter decodes MPEG-4 BIFS frames directly into the scene graph of the compositor. It cannot be used to dump BIFS content.")
 	.private_size = sizeof(GF_BIFSDecCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.priority = 1,

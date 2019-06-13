@@ -365,6 +365,7 @@ static const GF_FilterArgs QCPMxArgs[] =
 GF_FilterRegister QCPMxRegister = {
 	.name = "writeqcp",
 	GF_FS_SET_DESCRIPTION("QCP writer")
+	GF_FS_SET_HELP("This filter converts a single stream to a QCP output file.")
 	.private_size = sizeof(GF_QCPMxCtx),
 	.args = QCPMxArgs,
 	SETCAPS(QCPMxCaps),

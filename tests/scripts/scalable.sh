@@ -49,7 +49,7 @@ esac
 do_test "$MP4BOX -dash 1000 $splitfile -out $TEMP_DIR/$testname.mpd" "dash"
 
 myinspect=$TEMP_DIR/inspect.txt
-do_test "$GPAC -i $TEMP_DIR/$testname.mpd inspect:all:deep:interleave=false:log=$myinspect"
+do_test "$GPAC -i $TEMP_DIR/$testname.mpd inspect:allp:deep:interleave=false:log=$myinspect"
 do_hash_test $myinspect "inspect"
 
 

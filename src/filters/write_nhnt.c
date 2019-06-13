@@ -303,6 +303,7 @@ static const GF_FilterArgs NHNTDumpArgs[] =
 GF_FilterRegister NHNTDumpRegister = {
 	.name = "nhntw",
 	GF_FS_SET_DESCRIPTION("NHNT writer")
+	GF_FS_SET_HELP("This filter converts a single stream to an NHNT output file.")
 	.private_size = sizeof(GF_NHNTDumpCtx),
 	.args = NHNTDumpArgs,
 	.finalize = nhntdump_finalize,

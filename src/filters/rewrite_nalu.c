@@ -478,6 +478,7 @@ static const GF_FilterArgs NALUMxArgs[] =
 GF_FilterRegister NALUMxRegister = {
 	.name = "ufnalu",
 	GF_FS_SET_DESCRIPTION("AVC/HEVC to AnnexB writer")
+	GF_FS_SET_HELP("This filter converts AVC|H264 and HEVC streams into AnnexB format, with inband parameter sets and start codes.")
 	.private_size = sizeof(GF_NALUMxCtx),
 	.args = NALUMxArgs,
 	.finalize = nalumx_finalize,

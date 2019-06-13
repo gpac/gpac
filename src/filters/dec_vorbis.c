@@ -289,6 +289,7 @@ static const GF_FilterCapability VorbisDecCaps[] =
 GF_FilterRegister VorbisDecRegister = {
 	.name = "vorbisdec",
 	GF_FS_SET_DESCRIPTION("Vorbis decoder")
+	GF_FS_SET_HELP("This filter decodes Vorbis streams through libvorbis library.")
 	.private_size = sizeof(GF_VorbisDecCtx),
 	.priority = 1,
 	SETCAPS(VorbisDecCaps),

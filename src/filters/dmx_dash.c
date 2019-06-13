@@ -1695,6 +1695,7 @@ static const GF_FilterCapability DASHDmxCaps[] =
 GF_FilterRegister DASHDmxRegister = {
 	.name = "dashin",
 	GF_FS_SET_DESCRIPTION("MPEG-DASH and HLS client")
+	GF_FS_SET_HELP("This filter reads MPEG-DASH, HLS and MS Smooth (on demand only) manifests and produces media PIDs and frames.")
 	.private_size = sizeof(GF_DASHDmxCtx),
 	.initialize = dashdmx_initialize,
 	.finalize = dashdmx_finalize,

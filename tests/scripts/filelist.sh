@@ -12,7 +12,7 @@ fi
 dump=$TEMP_DIR/dump.rgb
 myinspect=$TEMP_DIR/inspect.txt
 
-do_test "$GPAC $2 inspect:all:deep:interleave=false:log=$myinspect -graph -stats -logs=app@debug" "inspect"
+do_test "$GPAC $2 inspect:allp:deep:interleave=false:log=$myinspect -graph -stats -logs=app@debug" "inspect"
 do_hash_test $myinspect "inspect"
 
 if [ $3 = 1 ] ; then
@@ -27,7 +27,7 @@ test_end
 
 }
 
-test_flist "codecs" "flist:dur=1/1:in=$MEDIA_DIR/auxiliary_files/logo.jpg,$MEDIA_DIR/auxiliary_files/logo.png" 0
+test_flist "codecs" "flist:dur=1/1:srcs=$MEDIA_DIR/auxiliary_files/logo.jpg,$MEDIA_DIR/auxiliary_files/logo.png" 0
 
 #geenrate plist in current dir not in temp, since we put relative path in playlist
 plist=plist.m3u
@@ -53,6 +53,6 @@ echo "$MEDIA_DIR/auxiliary_files/logo.jpg" >> $plist
 
 test_flist "params" "-i $plist:dur=1/1" 0
 
-test_flist "enum" "flist:in=$MEDIA_DIR/auxiliary_files/\*.jpg" 0
+test_flist "enum" "flist:srcs=$MEDIA_DIR/auxiliary_files/\*.jpg" 0
 
 rm $plist

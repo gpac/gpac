@@ -689,6 +689,7 @@ static const GF_FilterArgs H263DmxArgs[] =
 GF_FilterRegister H263DmxRegister = {
 	.name = "rfh263",
 	GF_FS_SET_DESCRIPTION("H263 reframer")
+	GF_FS_SET_HELP("This filter parses H263 files/data and outputs corresponding visual PID and frames.")
 	.private_size = sizeof(GF_H263DmxCtx),
 	.args = H263DmxArgs,
 	.finalize = h263dmx_finalize,

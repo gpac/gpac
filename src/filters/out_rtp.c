@@ -1048,10 +1048,11 @@ GF_FilterRegister RTPOutRegister = {
 	.name = "rtpout",
 	GF_FS_SET_DESCRIPTION("RTP Streamer")
 	GF_FS_SET_HELP("The RTP streamer outputs an SDP on a file pid and streams RTP packets over UDP, starting from the indicated port.\n"\
-	"The RTP packets produced have a maximum payload set by the mtu option (IP packet will be mtu + 40 bytes of IP+UDP+RTP headers)\n."
-	"The real-time scheduling algorithm first initializes the clock by computing the smallest timestamp for all input pids and mapping this media time to the system clock\n"\
-	"It then determines the earliest packet to send next on each input pid, potentially adding delay if set in the filter options.\n"\
-	"It then compares the packet mapped timestamp TS to the system clock SC. When TS-SC is less than tt, the RTP packets for the source packet are sent\n."
+	"The RTP packets produced have a maximum payload set by the [-mtu]() option (IP packet will be MTU + 40 bytes of IP+UDP+RTP headers).\n"
+	"The real-time scheduling algorithm first initializes the clock by computing the smallest timestamp for all input pids and "
+	"mapping this media time to the system clock. It then determines the earliest packet to send next on each input pid, "
+	"adding [-delay]() if any. It finally compares the packet mapped timestamp __TS__ to the "
+	"system clock __SC__. When __TS__ - __SC__ is less than [-tt](), the RTP packets for the source packet are sent."
 	)
 	.private_size = sizeof(GF_RTPOutCtx),
 	.max_extra_pids = -1,
