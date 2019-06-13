@@ -1656,6 +1656,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 			if (a->min_max_enum && strchr(a->min_max_enum, '|'))
 				format_help(0, "\n");
 
+			if (!gen_doc) continue;
 
 #ifdef CHECK_DOC
 			if (a->flags & GF_FS_ARG_META) continue;
@@ -1664,7 +1665,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 			u32 j=0;
 			char szArg[100];
 			sprintf(szArg, " %s ", a->arg_name);
-			if (strstr(reg->help, szArg)) {
+			if (reg->help && strstr(reg->help, szArg)) {
 				fprintf(stderr, "\nWARNING: filter %s bad help, uses arg %s without link\n", reg->name, a->arg_name);
 				exit(1);
 			}
@@ -1673,7 +1674,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 				if (!anarg || !anarg->arg_name) break;
 				j++;
 				if (a == anarg) continue;
-				if (strstr(reg->help, szArg)) {
+				if (reg->help && strstr(reg->help, szArg)) {
 					fprintf(stderr, "\nWARNING: filter %s bad description for argument %s, uses arg %s without link\n", reg->name, anarg->arg_name, a->arg_name);
 					exit(1);
 				}
