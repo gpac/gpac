@@ -811,6 +811,9 @@ static Bool gpac_event_proc(void *opaque, GF_Event *event)
 			gpac_print_report(fsess, GF_FALSE, GF_FALSE);
 		}
 	}
+	else if (event->type==GF_EVENT_QUIT) {
+		gf_fs_abort(fsess, GF_TRUE);
+	}
 	return GF_FALSE;
 }
 
@@ -1510,7 +1513,8 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 				sidebar_md = gf_fopen("_Sidebar.md", "r");
 				gf_fseek(sidebar_md, 0, SEEK_SET);
 				while (!feof(sidebar_md)) {
-					fgets(szLine, 1024, sidebar_md);
+					char *read = fgets(szLine, 1024, sidebar_md);
+					if (!read) break;
 					if (!strncmp(szLine, "**Filters Help**", 16)) {
 						end_pos = ftell(sidebar_md);
 						break;
@@ -1654,6 +1658,8 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 
 
 #ifdef CHECK_DOC
+			if (a->flags & GF_FS_ARG_META) continue;
+
 			u8 achar;
 			u32 j=0;
 			char szArg[100];
