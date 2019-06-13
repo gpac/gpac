@@ -401,6 +401,7 @@ static const GF_FilterArgs DVBLinuxArgs[] =
 GF_FilterRegister DVBLinuxRegister = {
 	.name = "dvbin",
 	GF_FS_SET_DESCRIPTION("DVB for Linux")
+	GF_FS_SET_DESCRIPTION("Experimental DVB support for linux, requires a channel config file through [-chcfg]()")
 	.private_size = sizeof(GF_DVBLinuxCtx),
 	.args = DVBLinuxArgs,
 	.initialize = dvblin_initialize,
