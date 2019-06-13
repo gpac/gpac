@@ -866,6 +866,7 @@ shopt -s nullglob
   log $L_ERR "$TEST_NAME: $result"
  fi
 
+shopt -u nullglob
 }
 
 do_fuzz()
@@ -923,7 +924,7 @@ ret=0
 do_test ()
 {
   skip_next_hash_test=0
-  
+
   if [ $# -gt 2 ] ; then
    log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
    log $L_ERR "	@do_test takes only two arguments - wrong call (first arg $1)"
