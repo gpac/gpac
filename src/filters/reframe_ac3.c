@@ -549,8 +549,8 @@ static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSco
 		size -= fsize+pos;
 		data += fsize+pos;
 	}
-	if (nb_frames>=2) {
-		*score = nb_not_contig ? GF_FPROBE_MAYBE_SUPPORTED : GF_FPROBE_SUPPORTED;
+	if (!nb_not_contig && (nb_frames>=2)) {
+		*score = GF_FPROBE_SUPPORTED;
 		return "audio/ac3";
 	}
 	return NULL;
