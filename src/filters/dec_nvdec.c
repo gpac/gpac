@@ -1323,6 +1323,7 @@ static const GF_FilterArgs NVDecArgs[] =
 GF_FilterRegister NVDecRegister = {
 	.name = "nvdec",
 	GF_FS_SET_DESCRIPTION("NVidia decoder")
+	GF_FS_SET_HELP("This filter decodes MPEG-2, MPEG-4 Part 2, AVC|H264 and HEVC streams through NVideia decoder. It allows GPU frame dispatch or direct frame copy.")
 	.private_size = sizeof(NVDecCtx),
 	SETCAPS(NVDecCaps),
 	.flags = GF_FS_REG_CONFIGURE_MAIN_THREAD | GF_FS_REG_HIDE_WEIGHT,
