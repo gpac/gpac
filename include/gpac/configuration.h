@@ -45,8 +45,7 @@
 #define GPAC_HAS_PNG
 #define GPAC_HAS_LIBA52
 #define GPAC_HAS_FAAD
-//deactivated for now, issue with our win build, link fails
-//#define GPAC_HAS_JP2
+#define GPAC_HAS_JP2
 #define GPAC_HAS_MAD
 #define GPAC_HAS_OPENHEVC
 #define GPAC_HAS_OPENSVC

@@ -249,6 +249,9 @@ endif
 
 ifneq ($(CONFIG_JP2),no)
 EXTRALIBS+=-lopenjpeg
+ifeq ($(CONFIG_JP2), local)
+CFLAGS+= -I"$(LOCAL_INC_PATH)/openjpeg"
+endif
 endif
 
 ifeq ($(CONFIG_OPENHEVC),yes)

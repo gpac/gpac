@@ -30,6 +30,7 @@
 
 #if !defined(__GNUC__)
 # if defined(_WIN32_WCE) || defined (WIN32)
+#  define OPJ_STATIC
 #  if defined(_DEBUG)
 #   pragma comment(lib, "LibOpenJPEGd")
 #  else
