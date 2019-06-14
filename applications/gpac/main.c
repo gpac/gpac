@@ -45,20 +45,13 @@ static char **alias_argv = NULL;
 static GF_List *args_used = NULL;
 static GF_List *args_alloc = NULL;
 static u32 gen_doc = 0;
-static FILE *helpout = NULL;
-static char *help_buf = NULL;
-static u32 help_buf_size=0;
-FILE *sidebar_md=NULL;
+static u32 help_flags = 0;
 
-#define LINE_OFFSET_DESCR 40
+FILE *sidebar_md=NULL;
+static FILE *helpout = NULL;
+
 
 static const char *auto_gen_md_warning = "<!-- automatically generated - do not edit, patch gpac/applications/gpac/main.c -->\n";
-
-
-#define FH_FIRST_IS_HL	1
-#define FH_NEWLINE_TO_BR	1<<1
-#define FH_OPT_DESC	1<<2
-
 
 //uncomment to check argument description matches our conventions - see filter.h
 #define CHECK_DOC
@@ -80,10 +73,6 @@ static Bool gpac_expand_alias(int argc, char **argv);
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track);
 
 static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info);
-
-static void format_help(u32 flags, const char *fmt, ...);
-static void print_sys_arg(const GF_GPACArg *arg, const char *arg_subsystem);
-
 
 
 
@@ -311,7 +300,7 @@ const char *gpac_doc =
 
 static void gpac_filter_help(void)
 {
-	format_help(0,
+	gf_sys_format_help(helpout, help_flags,
 "Usage: gpac [options] FILTER [LINK] FILTER [...] \n"
 #ifndef GPAC_DISABLE_DOC
 	"%s", gf_sys_localized("gpac", "doc", gpac_doc)
@@ -332,48 +321,48 @@ static void gpac_filter_help(void)
 static void gpac_modules_help(void)
 {
 	u32 i;
-	format_help(0, "Available modules:\n");
+	gf_sys_format_help(helpout, help_flags, "Available modules:\n");
 	for (i=0; i<gf_modules_count(); i++) {
 		char *str = (char *) gf_modules_get_file_name(i);
 		if (!str) continue;
-		format_help(FH_FIRST_IS_HL, "%s: implements ", str);
+		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s: implements ", str);
 		if (!strncmp(str, "gm_", 3) || !strncmp(str, "gsm_", 4)) {
 			GF_BaseInterface *ifce = gf_modules_load_by_name(str, GF_VIDEO_OUTPUT_INTERFACE);
 			if (ifce) {
-				format_help(0, "VideoOutput ");
+				gf_sys_format_help(helpout, help_flags, "VideoOutput ");
 				gf_modules_close_interface(ifce);
 			}
 			ifce = gf_modules_load_by_name(str, GF_AUDIO_OUTPUT_INTERFACE);
 			if (ifce) {
-				format_help(0, "AudioOutput ");
+				gf_sys_format_help(helpout, help_flags, "AudioOutput ");
 				gf_modules_close_interface(ifce);
 			}
 			ifce = gf_modules_load_by_name(str, GF_FONT_READER_INTERFACE);
 			if (ifce) {
-				format_help(0, "FontReader ");
+				gf_sys_format_help(helpout, help_flags, "FontReader ");
 				gf_modules_close_interface(ifce);
 			}
 			ifce = gf_modules_load_by_name(str, GF_COMPOSITOR_EXT_INTERFACE);
 			if (ifce) {
-				format_help(0, "CompositorExtension ");
+				gf_sys_format_help(helpout, help_flags, "CompositorExtension ");
 				gf_modules_close_interface(ifce);
 			}
 			ifce = gf_modules_load_by_name(str, GF_JS_USER_EXT_INTERFACE);
 			if (ifce) {
-				format_help(0, "javaScriptExtension ");
+				gf_sys_format_help(helpout, help_flags, "javaScriptExtension ");
 				gf_modules_close_interface(ifce);
 			}
 			ifce = gf_modules_load_by_name(str, GF_HARDCODED_PROTO_INTERFACE);
 			if (ifce) {
-				format_help(0, "HardcodedProto ");
+				gf_sys_format_help(helpout, help_flags, "HardcodedProto ");
 				gf_modules_close_interface(ifce);
 			}
 		} else {
-			format_help(0, "Filter ");
+			gf_sys_format_help(helpout, help_flags, "Filter ");
 		}
-		format_help(0, "\n");
+		gf_sys_format_help(helpout, help_flags, "\n");
 	}
-	format_help(0, "\n");
+	gf_sys_format_help(helpout, help_flags, "\n");
 }
 
 #ifndef GPAC_DISABLE_DOC
@@ -391,8 +380,11 @@ const char *gpac_alias =
 "Aliases can use arguments from the command line. The allowed syntaxes are:\n"
 "- `@{a}`: replaced by the value of the argument with index `a` after the alias\n"
 "- `@{a,b}`: replaced by the value of the arguments with index `a` and `b`\n"
+"- `@{a:b}`: replaced by the value of the arguments between index `a` and `b`\n"
 "- `@{-a,b}`: replaced by the value of the arguments with index `a` and `b`, inserting a list separator (comma by default) between them\n"
+"- `@{-a:b}`: replaced by the value of the arguments between index `a` and `b`, inserting a list separator (comma by default) between them\n"
 "- `@{+a,b}`: clones the alias for each value listed, replacing in each clone with the corresponding argument\n"
+"- `@{+a:b}`: clones the alias for each value listed, replacing in each clone with the corresponding argument\n"
 "\n"
 "The specified index can be:\n"
 "- forward index: a strictly positive integer, 1 being the first argument after the alias\n"
@@ -421,9 +413,9 @@ static void gpac_alias_help(GF_SysArgMode argmode)
 	if (argmode >= GF_ARGMODE_EXPERT) {
 
 #ifndef GPAC_DISABLE_DOC
-		format_help(0, "%s", gf_sys_localized("gpac", "alias", gpac_alias) );
+		gf_sys_format_help(helpout, help_flags, "%s", gf_sys_localized("gpac", "alias", gpac_alias) );
 #else
-		format_help(0, "%s", "GPAC compiled without built-in doc.\n");
+		gf_sys_format_help(helpout, help_flags, "%s", "GPAC compiled without built-in doc.\n");
 #endif
 		if (argmode == GF_ARGMODE_EXPERT) {
 			return;
@@ -433,29 +425,29 @@ static void gpac_alias_help(GF_SysArgMode argmode)
 	count = gf_opts_get_key_count("gpac.alias");
 	if (count) {
 		if (argmode < GF_ARGMODE_EXPERT) {
-			format_help(0, "Available aliases (use 'gpac -hx alias' for more info on aliases):\n");
+			gf_sys_format_help(helpout, help_flags, "Available aliases (use 'gpac -hx alias' for more info on aliases):\n");
 		} else {
-			format_help(0, "Available aliases:\n");
+			gf_sys_format_help(helpout, help_flags, "Available aliases:\n");
 		}
 		for (i=0; i<count; i++) {
 			const char *alias = gf_opts_get_key_name("gpac.alias", i);
 			const char *alias_doc = gf_opts_get_key("gpac.aliasdoc", alias);
 			const char *alias_value = gf_opts_get_key("gpac.alias", alias);
 
-			format_help(FH_FIRST_IS_HL, "%s", alias);
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", alias);
 			if (argmode>=GF_ARGMODE_ADVANCED)
-				format_help(0, " (%s)", alias_value);
+				gf_sys_format_help(helpout, help_flags, " (%s)", alias_value);
 
 			if (alias_doc)
-				format_help(FH_OPT_DESC, ": %s", gf_sys_localized("gpac", "aliasdoc", alias_doc));
+				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_OPT_DESC, ": %s", gf_sys_localized("gpac", "aliasdoc", alias_doc));
 			else if  (argmode<GF_ARGMODE_ADVANCED) {
-				format_help(0, " (%s)", alias_value);
+				gf_sys_format_help(helpout, help_flags, " (%s)", alias_value);
 			}
 
-			format_help(0, "\n");
+			gf_sys_format_help(helpout, help_flags, "\n");
 		}
 	} else {
-		format_help(0, "No aliases defined - use 'gpac -hx alias' for more info on aliases\n");
+		gf_sys_format_help(helpout, help_flags, "No aliases defined - use 'gpac -hx alias' for more info on aliases\n");
 	}
 }
 
@@ -463,7 +455,7 @@ static void gpac_alias_help(GF_SysArgMode argmode)
 static void gpac_core_help(GF_SysArgMode mode, Bool for_logs)
 {
 	u32 mask;
-	format_help(0, "libgpac %s options:\n", for_logs ? "logs" : "core");
+	gf_sys_format_help(helpout, help_flags, "libgpac %s options:\n", for_logs ? "logs" : "core");
 	if (for_logs) {
 		mask = GF_ARG_SUBSYS_LOG;
 	} else {
@@ -471,7 +463,7 @@ static void gpac_core_help(GF_SysArgMode mode, Bool for_logs)
 		mask &= ~GF_ARG_SUBSYS_LOG;
 		mask &= ~GF_ARG_SUBSYS_FILTERS;
 	}
-	gf_sys_print_core_help(mode, mask, print_sys_arg);
+	gf_sys_print_core_help(helpout, 0, mode, mask);
 }
 
 GF_GPACArg gpac_args[] =
@@ -535,7 +527,7 @@ static void gpac_usage(GF_SysArgMode argmode)
 {
 	u32 i=0;
 	if ((argmode != GF_ARGMODE_ADVANCED) && (argmode != GF_ARGMODE_EXPERT) ) {
-		format_help(0, "Usage: gpac [options] FILTER [LINK] FILTER [...] \n"
+		gf_sys_format_help(helpout, help_flags, "Usage: gpac [options] FILTER [LINK] FILTER [...] \n"
 			"gpac is GPAC's command line tool for setting up and running filter chains. Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.\n"
 			"boolean values do not need any value specified. Other types shall be formatted as `opt=val`, except [-i](), `src`, [-o](), `dst` and [-h]() options.\n\n"
 		);
@@ -551,20 +543,20 @@ static void gpac_usage(GF_SysArgMode argmode)
 			else if ((argmode==GF_ARGMODE_BASE) && (arg->flags & (GF_ARG_HINT_ADVANCED| GF_ARG_HINT_EXPERT)) ) continue;
 		}
 
-		print_sys_arg(arg, "gpac");
+		gf_sys_print_arg(helpout, 0, arg, "gpac");
 	}
 
 	if (argmode>=GF_ARGMODE_ADVANCED) {
-		gf_sys_print_core_help(argmode, GF_ARG_SUBSYS_FILTERS, print_sys_arg);
+		gf_sys_print_core_help(helpout, 0, argmode, GF_ARG_SUBSYS_FILTERS);
 	}
 
 	if (argmode==GF_ARGMODE_BASE) {
 		if ( gf_opts_get_key_count("gpac.aliasdoc")) {
-			format_help(0, "\n");
+			gf_sys_format_help(helpout, help_flags, "\n");
 			gpac_alias_help(GF_ARGMODE_BASE);
 		}
 
-		format_help(0, "\ngpac - GPAC command line filter engine - version %s\n%s\n", gf_gpac_version(), gf_gpac_copyright() );
+		gf_sys_format_help(helpout, help_flags, "\ngpac - GPAC command line filter engine - version %s\n%s\n", gf_gpac_version(), gf_gpac_copyright() );
 	}
 }
 
@@ -617,9 +609,9 @@ static void gpac_config_help()
 {
 
 #ifndef GPAC_DISABLE_DOC
-		format_help(0, "%s", gf_sys_localized("gpac", "config", gpac_config) );
+		gf_sys_format_help(helpout, help_flags, "%s", gf_sys_localized("gpac", "config", gpac_config) );
 #else
-		format_help(0, "%s", "GPAC compiled without built-in doc.\n");
+		gf_sys_format_help(helpout, help_flags, "%s", "GPAC compiled without built-in doc.\n");
 #endif
 }
 
@@ -650,19 +642,21 @@ static u32 nb_log_entries = DEF_LOG_ENTRIES;
 
 static u32 log_write=0;
 
+static char *log_buf = NULL;
+static u32 log_buf_size=0;
 static void gpac_on_logs(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char* fmt, va_list vlist)
 {
 	va_list vlist_tmp;
 	va_copy(vlist_tmp, vlist);
 	u32 len = vsnprintf(NULL, 0, fmt, vlist_tmp);
-	if (help_buf_size < len+2) {
-		help_buf_size = len+2;
-		help_buf = gf_realloc(help_buf, help_buf_size);
+	if (log_buf_size < len+2) {
+		log_buf_size = len+2;
+		log_buf = gf_realloc(log_buf, log_buf_size);
 	}
-	vsprintf(help_buf, fmt, vlist);
+	vsprintf(log_buf, fmt, vlist);
 
 	if (log_write && static_logs[log_write-1].szMsg) {
-		if (!strcmp(static_logs[log_write-1].szMsg, help_buf)) {
+		if (!strcmp(static_logs[log_write-1].szMsg, log_buf)) {
 			static_logs[log_write-1].nb_repeat++;
 			return;
 		}
@@ -671,7 +665,7 @@ static void gpac_on_logs(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_too
 	static_logs[log_write].level = log_level;
 	static_logs[log_write].tool = log_tool;
 	if (static_logs[log_write].szMsg) gf_free(static_logs[log_write].szMsg);
-	static_logs[log_write].szMsg = gf_strdup(help_buf);
+	static_logs[log_write].szMsg = gf_strdup(log_buf);
 	static_logs[log_write].clock = gf_net_get_utc();
 
 	log_write++;
@@ -930,7 +924,7 @@ static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
 		gf_list_del(args_used);
 		gf_free(alias_argv);
 	}
-	if (help_buf) gf_free(help_buf);
+	if (log_buf) gf_free(log_buf);
 	if ((helpout != stdout) && (helpout != stderr))
 		gf_fclose(helpout);
 
@@ -1094,7 +1088,7 @@ static int gpac_main(int argc, char **argv)
 
 				i++;
 			} else if (!strcmp(argv[i+1], "bin")) {
-				format_help(0, "GPAC binary information:\n"\
+				gf_sys_format_help(helpout, help_flags, "GPAC binary information:\n"\
 				 	"Version: %s\n"\
 	        		"Compilation configuration: " GPAC_CONFIGURATION "\n"\
 	        		"Enabled features: %s\n" \
@@ -1115,6 +1109,7 @@ static int gpac_main(int argc, char **argv)
 			argmode = GF_ARGMODE_ALL;
 			if (!strcmp(arg, "-genmd")) {
 				gen_doc = 1;
+				help_flags = GF_PRINTARG_MD;
 				helpout = gf_fopen("gpac_general.md", "w");
 				fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » Usage\n");
 				fprintf(helpout, "%s", auto_gen_md_warning);
@@ -1159,7 +1154,7 @@ static int gpac_main(int argc, char **argv)
 				fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » General Concepts\n");
 				fprintf(helpout, "%s", auto_gen_md_warning);
 			}
-			format_help(0, "%s", gpac_doc);
+			gf_sys_format_help(helpout, help_flags, "%s", gpac_doc);
 
 			if (gen_doc==1) {
 				gf_fclose(helpout);
@@ -1285,7 +1280,7 @@ restart:
 		goto exit;
 	}
 	if (view_filter_conn) {
-		gf_fs_print_all_connections(session, view_conn_for_filter, format_help);
+		gf_fs_print_all_connections(session, view_conn_for_filter, gf_sys_format_help);
 		goto exit;
 	}
 	if (dump_codecs) {
@@ -1468,28 +1463,28 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		char szDump[GF_PROP_DUMP_ARG_SIZE];
 		const GF_FilterCapability *cap = &caps[i];
 		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE) && i+1==nb_caps) break;
-		if (!i) format_help(0, "Capabilities Bundle:\n");
+		if (!i) gf_sys_format_help(helpout, help_flags, "Capabilities Bundle:\n");
 		else if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
-			format_help(0, "Capabilities Bundle:\n");
+			gf_sys_format_help(helpout, help_flags, "Capabilities Bundle:\n");
 			continue;
 		}
 
 		szName = cap->name ? cap->name : gf_props_4cc_get_name(cap->code);
 		if (!szName) szName = gf_4cc_to_str(cap->code);
-		format_help(0, "\t Flags:");
-		if (cap->flags & GF_CAPFLAG_INPUT) format_help(0, " Input");
-		if (cap->flags & GF_CAPFLAG_OUTPUT) format_help(0, " Output");
-		if (cap->flags & GF_CAPFLAG_EXCLUDED) format_help(0, " Exclude");
-		if (cap->flags & GF_CAPFLAG_LOADED_FILTER) format_help(0, " LoadedFilterOnly");
+		gf_sys_format_help(helpout, help_flags, "\t Flags:");
+		if (cap->flags & GF_CAPFLAG_INPUT) gf_sys_format_help(helpout, help_flags, " Input");
+		if (cap->flags & GF_CAPFLAG_OUTPUT) gf_sys_format_help(helpout, help_flags, " Output");
+		if (cap->flags & GF_CAPFLAG_EXCLUDED) gf_sys_format_help(helpout, help_flags, " Exclude");
+		if (cap->flags & GF_CAPFLAG_LOADED_FILTER) gf_sys_format_help(helpout, help_flags, " LoadedFilterOnly");
 
 		//dump some interesting predefined ones which are not mapped to types
 		if (cap->code==GF_PROP_PID_STREAM_TYPE) szVal = gf_stream_type_name(cap->val.value.uint);
 		else if (cap->code==GF_PROP_PID_CODECID) szVal = (const char *) gf_codecid_name(cap->val.value.uint);
 		else szVal = gf_prop_dump_val(&cap->val, szDump, GF_FALSE, NULL);
 
-		format_help(0, " %s=\"%s\"", szName,  szVal);
-		if (cap->priority) format_help(0, ", priority=%d", cap->priority);
-		format_help(0, "\n");
+		gf_sys_format_help(helpout, help_flags, " %s=\"%s\"", szName,  szVal);
+		if (cap->priority) gf_sys_format_help(helpout, help_flags, ", priority=%d", cap->priority);
+		gf_sys_format_help(helpout, help_flags, "\n");
 	}
 }
 
@@ -1551,60 +1546,60 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 		}
 #endif
 
-		format_help(0, "# %s\n", reg->description);
+		gf_sys_format_help(helpout, help_flags, "# %s\n", reg->description);
 #ifndef GPAC_DISABLE_DOC
-		format_help(0, "Registry name used to load filter: **%s**\n", reg->name);
+		gf_sys_format_help(helpout, help_flags, "Registry name used to load filter: **%s**\n", reg->name);
 #endif
 
 	} else {
-		format_help(0, "# %s\n", reg->name);
+		gf_sys_format_help(helpout, help_flags, "# %s\n", reg->name);
 #ifndef GPAC_DISABLE_DOC
-		if (reg->description) format_help(0, "Description: %s\n", reg->description);
+		if (reg->description) gf_sys_format_help(helpout, help_flags, "Description: %s\n", reg->description);
 #endif
 	}
 
 #ifndef GPAC_DISABLE_DOC
-	if (reg->author) format_help(0, "Author: %s\n", reg->author);
-	if (reg->help) format_help(0, "\n%s\n\n", reg->help);
+	if (reg->author) gf_sys_format_help(helpout, help_flags, "Author: %s\n", reg->author);
+	if (reg->help) gf_sys_format_help(helpout, help_flags, "\n%s\n\n", reg->help);
 #else
-	format_help(0, "GPAC compiled without built-in doc\n");
+	gf_sys_format_help(helpout, help_flags, "GPAC compiled without built-in doc\n");
 #endif
 
 	if (argmode==GF_ARGMODE_EXPERT) {
-		if (reg->max_extra_pids==(u32) -1) format_help(0, "Max Input pids: any\n");
-		else format_help(0, "Max Input pids: %d\n", 1 + reg->max_extra_pids);
+		if (reg->max_extra_pids==(u32) -1) gf_sys_format_help(helpout, help_flags, "Max Input pids: any\n");
+		else gf_sys_format_help(helpout, help_flags, "Max Input pids: %d\n", 1 + reg->max_extra_pids);
 
-		format_help(0, "Flags:");
-		if (reg->flags & GF_FS_REG_EXPLICIT_ONLY) format_help(0, " ExplicitOnly");
-		if (reg->flags & GF_FS_REG_MAIN_THREAD) format_help(0, " MainThread");
-		if (reg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD) format_help(0, " ConfigureMainThread");
-		if (reg->flags & GF_FS_REG_HIDE_WEIGHT) format_help(0, " HideWeight");
-		if (reg->flags & GF_FS_REG_DYNLIB) format_help(0, " DynamicLib");
-		if (reg->probe_url) format_help(0, " URLMimeProber");
-		if (reg->probe_data) format_help(0, " DataProber");
-		if (reg->reconfigure_output) format_help(0, " ReconfigurableOutput");
+		gf_sys_format_help(helpout, help_flags, "Flags:");
+		if (reg->flags & GF_FS_REG_EXPLICIT_ONLY) gf_sys_format_help(helpout, help_flags, " ExplicitOnly");
+		if (reg->flags & GF_FS_REG_MAIN_THREAD) gf_sys_format_help(helpout, help_flags, " MainThread");
+		if (reg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD) gf_sys_format_help(helpout, help_flags, " ConfigureMainThread");
+		if (reg->flags & GF_FS_REG_HIDE_WEIGHT) gf_sys_format_help(helpout, help_flags, " HideWeight");
+		if (reg->flags & GF_FS_REG_DYNLIB) gf_sys_format_help(helpout, help_flags, " DynamicLib");
+		if (reg->probe_url) gf_sys_format_help(helpout, help_flags, " URLMimeProber");
+		if (reg->probe_data) gf_sys_format_help(helpout, help_flags, " DataProber");
+		if (reg->reconfigure_output) gf_sys_format_help(helpout, help_flags, " ReconfigurableOutput");
 
-		format_help(0, "\nPriority %d", reg->priority);
+		gf_sys_format_help(helpout, help_flags, "\nPriority %d", reg->priority);
 
-		format_help(0, "\n");
+		gf_sys_format_help(helpout, help_flags, "\n");
 	}
 
 
 	if (reg->args) {
 		u32 idx=0;
 		if (gen_doc==1) {
-			format_help(0, "# Options  \n");
+			gf_sys_format_help(helpout, help_flags, "# Options  \n");
 		} else {
 			switch (argmode) {
 			case GF_ARGMODE_ALL:
 			case GF_ARGMODE_EXPERT:
-				format_help(0, "# Options (expert):\n");
+				gf_sys_format_help(helpout, help_flags, "# Options (expert):\n");
 				break;
 			case GF_ARGMODE_ADVANCED:
-				format_help(0, "# Options (advanced):\n");
+				gf_sys_format_help(helpout, help_flags, "# Options (advanced):\n");
 				break;
 			case GF_ARGMODE_BASE:
-				format_help(0, "# Options (basic):\n");
+				gf_sys_format_help(helpout, help_flags, "# Options (basic):\n");
 				break;
 			}
 		}
@@ -1634,26 +1629,26 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 			}
 
 			if (gen_doc==1) {
-				format_help(0, "<a id=\"%s\">", a->arg_name);
-				format_help(FH_FIRST_IS_HL, "%s", a->arg_name);
-				format_help(0, "</a> (%s", is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
+				gf_sys_format_help(helpout, help_flags, "<a id=\"%s\">", a->arg_name);
+				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", a->arg_name);
+				gf_sys_format_help(helpout, help_flags, "</a> (%s", is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
 			} else {
-				format_help(FH_FIRST_IS_HL, "%s (%s", a->arg_name, is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
+				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%s", a->arg_name, is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
 			}
 			if (a->arg_default_val) {
-				format_help(0, ", default: __%s__", a->arg_default_val);
+				gf_sys_format_help(helpout, help_flags, ", default: __%s__", a->arg_default_val);
 			} else {
-				format_help(0, ", no default");
+				gf_sys_format_help(helpout, help_flags, ", no default");
 			}
 			if (a->min_max_enum && !is_enum) {
-				format_help(0, ", %s: %s", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax", a->min_max_enum);
+				gf_sys_format_help(helpout, help_flags, ", %s: %s", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax", a->min_max_enum);
 			}
-			if (a->flags & GF_FS_ARG_UPDATE) format_help(0, ", updatable");
-			if (a->flags & GF_FS_ARG_META) format_help(0, ", meta");
-			format_help(FH_OPT_DESC, "): %s\n", a->arg_desc);
+			if (a->flags & GF_FS_ARG_UPDATE) gf_sys_format_help(helpout, help_flags, ", updatable");
+			if (a->flags & GF_FS_ARG_META) gf_sys_format_help(helpout, help_flags, ", meta");
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_OPT_DESC, "): %s\n", a->arg_desc);
 
 			if (a->min_max_enum && strchr(a->min_max_enum, '|'))
-				format_help(0, "\n");
+				gf_sys_format_help(helpout, help_flags, "\n");
 
 			if (!gen_doc) continue;
 
@@ -1726,7 +1721,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 #endif
 		}
 	} else {
-		format_help(0, "No options\n");
+		gf_sys_format_help(helpout, help_flags, "No options\n");
 	}
 
 	if (reg->nb_caps) {
@@ -1734,14 +1729,14 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 			dump_caps(reg->nb_caps, reg->caps);
 		}
 	}
-	format_help(0, "\n");
+	gf_sys_format_help(helpout, help_flags, "\n");
 }
 
 static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_SysArgMode argmode)
 {
 	Bool found = GF_FALSE;
 	u32 i, count = gf_fs_filters_registry_count(session);
-	if (list_filters) format_help(0, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
+	if (list_filters) gf_sys_format_help(helpout, help_flags, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
 	for (i=0; i<count; i++) {
 		const GF_FilterRegister *reg = gf_fs_get_filter_registry(session, i);
 		if (gen_doc) {
@@ -1771,15 +1766,15 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 			}
 		} else {
 #ifndef GPAC_DISABLE_DOC
-			format_help(FH_FIRST_IS_HL, "%s: %s\n", reg->name, reg->description);
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s: %s\n", reg->name, reg->description);
 #else
-			format_help(0, "%s (compiled without built-in doc)\n", reg->name);
+			gf_sys_format_help(helpout, help_flags, "%s (compiled without built-in doc)\n", reg->name);
 #endif
 			found = GF_TRUE;
 
 		}
 	}
-	if (!found) format_help(0, "No such filter\n");
+	if (!found) gf_sys_format_help(helpout, help_flags, "No such filter\n");
 }
 
 static void dump_all_props(void)
@@ -1788,11 +1783,11 @@ static void dump_all_props(void)
 	const GF_BuiltInProperty *prop_info;
 
 	if (gen_doc==1) {
-		format_help(0, "Built-in properties for PIDs and packets, pixel formats and audio formats. See [GSF mux](gsfmx) filter help for more info on dropable.\n  \n  ");
-		format_help(0, "Name | 4CC | type | Dropable | Packet| Description  \n");
-		format_help(0, "--- | --- | --- | --- | --- | ---  \n");
+		gf_sys_format_help(helpout, help_flags, "Built-in properties for PIDs and packets, pixel formats and audio formats. See [GSF mux](gsfmx) filter help for more info on dropable.\n  \n  ");
+		gf_sys_format_help(helpout, help_flags, "Name | 4CC | type | Dropable | Packet| Description  \n");
+		gf_sys_format_help(helpout, help_flags, "--- | --- | --- | --- | --- | ---  \n");
 	} else {
-		format_help(0, "Built-in properties for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (dropable - see GSF mux filter help), P (packet property)\n\n");
+		gf_sys_format_help(helpout, help_flags, "Built-in properties for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (dropable - see GSF mux filter help), P (packet property)\n\n");
 	}
 	while ((prop_info = gf_props_get_description(i))) {
 		i++;
@@ -1800,7 +1795,7 @@ static void dump_all_props(void)
 		if (! prop_info->name) continue;
 
 		if (gen_doc==1) {
-			format_help(FH_NEWLINE_TO_BR, "%s | %s | %s | %s | %s | %s  \n", prop_info->name, gf_4cc_to_str(prop_info->type), gf_props_get_type_name(prop_info->data_type),
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s | %s | %s | %s | %s  \n", prop_info->name, gf_4cc_to_str(prop_info->type), gf_props_get_type_name(prop_info->data_type),
 			 	(prop_info->flags & GF_PROP_FLAG_GSF_REM) ? "yes" : "no",
 			 	(prop_info->flags & GF_PROP_FLAG_PCK) ? "yes" : "no",
 			 	prop_info->description
@@ -1810,34 +1805,34 @@ static void dump_all_props(void)
 			if (prop_info->flags & GF_PROP_FLAG_GSF_REM) strcat(szFlags, "D");
 			if (prop_info->flags & GF_PROP_FLAG_PCK) strcat(szFlags, "P");
 
-			format_help(FH_FIRST_IS_HL, "%s (%s %s %s):", prop_info->name, gf_4cc_to_str(prop_info->type), gf_props_get_type_name(prop_info->data_type), szFlags);
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%s %s %s):", prop_info->name, gf_4cc_to_str(prop_info->type), gf_props_get_type_name(prop_info->data_type), szFlags);
 
-			format_help(0, "%s", prop_info->description);
+			gf_sys_format_help(helpout, help_flags, "%s", prop_info->description);
 
 			if (prop_info->data_type==GF_PROP_PIXFMT) {
-				format_help(0, "\n\tNames: %s\n\tFile extensions: %s", gf_pixel_fmt_all_names(), gf_pixel_fmt_all_shortnames() );
+				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\tFile extensions: %s", gf_pixel_fmt_all_names(), gf_pixel_fmt_all_shortnames() );
 			} else if (prop_info->data_type==GF_PROP_PCMFMT) {
-				format_help(0, "\n\tNames: %s\n\tFile extensions: %s", gf_audio_fmt_all_names(), gf_audio_fmt_all_shortnames() );
+				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\tFile extensions: %s", gf_audio_fmt_all_names(), gf_audio_fmt_all_shortnames() );
 			}
-			format_help(0, "\n");
+			gf_sys_format_help(helpout, help_flags, "\n");
 		}
 	}
 	if (gen_doc==1) {
 		u32 idx=0;
 		const char *name, *fileext, *desc;
-		format_help(0, "# Pixel formats\n");
-		format_help(0, "Name | File extensions | Description  \n");
-		format_help(0, " --- | --- | ---  \n");
+		gf_sys_format_help(helpout, help_flags, "# Pixel formats\n");
+		gf_sys_format_help(helpout, help_flags, "Name | File extensions | Description  \n");
+		gf_sys_format_help(helpout, help_flags, " --- | --- | ---  \n");
 		while ( gf_pixel_fmt_enum(&idx, &name, &fileext, &desc)) {
-			format_help(FH_NEWLINE_TO_BR, "%s | %s | %s  \n", name, fileext, desc);
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s | %s  \n", name, fileext, desc);
 		}
 
 		idx=0;
-		format_help(0, "# Audio formats\n");
-		format_help(0, " Name | File extensions | Description  \n");
-		format_help(0, " --- | --- | ---  \n");
+		gf_sys_format_help(helpout, help_flags, "# Audio formats\n");
+		gf_sys_format_help(helpout, help_flags, " Name | File extensions | Description  \n");
+		gf_sys_format_help(helpout, help_flags, " --- | --- | ---  \n");
 		while ( gf_audio_fmt_enum(&idx, &name, &fileext, &desc)) {
-			format_help(FH_NEWLINE_TO_BR, "%s | %s | %s  \n", name, fileext, desc);
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s | %s  \n", name, fileext, desc);
 		}
 	}
 }
@@ -1848,7 +1843,7 @@ static void dump_all_codec(GF_FilterSession *session)
 	GF_PropertyValue cp;
 	u32 cidx=0;
 	u32 count = gf_fs_filters_registry_count(session);
-	format_help(0, "Codec names listed as built_in_name[|variant](I: Filter Input support, O: Filter Output support): full_name\n");
+	gf_sys_format_help(helpout, help_flags, "Codec names listed as built_in_name[|variant](I: Filter Input support, O: Filter Output support): full_name\n");
 	rawp.type = cp.type = GF_PROP_UINT;
 	rawp.value.uint = GF_CODECID_RAW;
 	while (1) {
@@ -1869,10 +1864,10 @@ static void dump_all_codec(GF_FilterSession *session)
 			if ( gf_fs_check_registry_cap(reg, GF_PROP_PID_CODECID, &cp, GF_PROP_PID_CODECID, &rawp)) dec_found = GF_TRUE;
 		}
 
-		format_help(FH_FIRST_IS_HL, "%s (%c%c)", sname, dec_found ? 'I' : '-', enc_found ? 'O' : '-');
-		format_help(0, "%s\n", lname);
+		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%c%c)", sname, dec_found ? 'I' : '-', enc_found ? 'O' : '-');
+		gf_sys_format_help(helpout, help_flags, "%s\n", lname);
 	}
-	format_help(0, "\n");
+	gf_sys_format_help(helpout, help_flags, "\n");
 }
 
 /*********************************************************
@@ -1953,7 +1948,7 @@ static void gpac_lang_set_key(GF_Config *cfg, const char *sec_name,  const char 
 			u32 old_crc = atoi(crc_opt);
 			crc_key = gf_crc_32(key_val, (u32) strlen(key_val));
 			if (old_crc != crc_key) {
-				format_help(0, "Warning: description has changed for %s:%s (crc %d - crc in file %d) - please check translation\n", sec_name, key_name, crc_key, old_crc);
+				gf_sys_format_help(helpout, help_flags, "Warning: description has changed for %s:%s (crc %d - crc in file %d) - please check translation\n", sec_name, key_name, crc_key, old_crc);
 			}
 			return;
 		}
@@ -1976,13 +1971,13 @@ static int gpac_make_lang(char *filename)
 	gf_sys_init(GF_MemTrackerNone, NULL);
 	GF_FilterSession *session = gf_fs_new_defaults(0);
 	if (!session) {
-		format_help(0, "failed to load session, cannot create language file\n");
+		gf_sys_format_help(helpout, help_flags, "failed to load session, cannot create language file\n");
 		return 1;
 	}
 	if (!gf_file_exists(filename)) {
 		FILE *f = gf_fopen(filename, "wt");
 		if (!f) {
-			format_help(0, "failed to open %s in write mode\n", filename);
+			gf_sys_format_help(helpout, help_flags, "failed to open %s in write mode\n", filename);
 			return 1;
 		}
 		gf_fclose(f);
@@ -2620,407 +2615,3 @@ static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_F
 	return GF_FALSE;
 }
 
-enum
-{
-	TOK_CODE,
-	TOK_BOLD,
-	TOK_ITALIC,
-	TOK_STRIKE,
-	TOK_OPTLINK,
-};
-struct _token {
-	char *tok;
-	GF_ConsoleCodes cmd_type;
-} Tokens[] =
-{
- {"`", GF_CONSOLE_YELLOW|GF_CONSOLE_ITALIC},
- {"**", GF_CONSOLE_BOLD},
- {"__", GF_CONSOLE_ITALIC},
- {"~~", GF_CONSOLE_STRIKE},
- {"[-", GF_CONSOLE_YELLOW|GF_CONSOLE_ITALIC},
-};
-static u32 nb_tokens = sizeof(Tokens) / sizeof(struct _token);
-
-static u32 line_pos = 0;
-static void format_help(u32 flags, const char *fmt, ...)
-{
-	char *line;
-	u32 len;
-	va_list vlist;
-
-	va_start(vlist, fmt);
-	len=vsnprintf(NULL, 0, fmt, vlist);
-	va_end(vlist);
-	if (help_buf_size < len+2) {
-		help_buf_size = len+2;
-		help_buf = gf_realloc(help_buf, help_buf_size);
-	}
-	va_start(vlist, fmt);
-	vsprintf(help_buf, fmt, vlist);
-	va_end(vlist);
-
-
-	line = help_buf;
-	while (line[0]) {
-		u32 att_len = 0;
-		char *tok_sep = NULL;
-		GF_ConsoleCodes console_code = GF_CONSOLE_RESET;
-		Bool line_before = GF_FALSE;
-		Bool line_after = GF_FALSE;
-		const char *footer_string = NULL;
-		const char *header_string = NULL;
-		char *next_line = strchr(line, '\n');
-		Bool has_token=GF_FALSE;
-
-		if (next_line) next_line[0]=0;
-
-
-		if ((line[0]=='#') && (line[1]==' ')) {
-			if (!gen_doc)
-				line+=2;
-
-			console_code = GF_CONSOLE_GREEN;
-			line_after = line_before = GF_TRUE;
-		} else if ((line[0]=='#') && (line[1]=='#') && (line[2]==' ')) {
-			if (!gen_doc)
-				line+=3;
-			console_code = GF_CONSOLE_MAGENTA;
-			line_before = GF_TRUE;
-		} else if ((line[0]=='E') && (line[1]=='X') && (line[2]==' ')) {
-			line+=3;
-			console_code = GF_CONSOLE_YELLOW;
-			if (gen_doc) {
-				header_string = "Example\n```\n";
-				footer_string = "\n```";
-			} else {
-				header_string = "Example:\n";
-			}
-		} else if (!strncmp(line, "Note: ", 6)) {
-			console_code = GF_CONSOLE_CYAN | GF_CONSOLE_ITALIC;
-		} else if (!strncmp(line, "Warning: ", 9)) {
-			line_after = line_before = GF_TRUE;
-			console_code = GF_CONSOLE_RED | GF_CONSOLE_BOLD;
-		} else if ( (
-			 ((line[0]=='-') && (line[1]==' '))
-			 || ((line[0]==' ') && (line[1]=='-') && (line[2]==' '))
-			 || ((line[0]==' ') && (line[1]==' ') && (line[2]=='-') && (line[3]==' '))
-			)
-
-			//look for ": "
-			&& ((tok_sep=strstr(line, ": ")) != NULL )
-		) {
-			if (!gen_doc)
-				fprintf(helpout, "\t");
-			while (line[0] != '-') {
-				fprintf(helpout, " ");
-				line++;
-				line_pos++;
-
-			}
-			fprintf(helpout, "* ");
-			line_pos+=2;
-			if (!gen_doc)
-				gf_sys_set_console_code(helpout, GF_CONSOLE_YELLOW);
-			tok_sep[0] = 0;
-			fprintf(helpout, "%s", line+2);
-			line_pos += (u32) strlen(line+2);
-			tok_sep[0] = ':';
-			line = tok_sep;
-			if (!gen_doc)
-				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
-		} else if (flags & (FH_FIRST_IS_HL | FH_OPT_DESC)) {
-			char *sep = strchr(line, ' ');
-
-			if (sep) sep[0] = 0;
-
-			if (!gen_doc && !(flags&FH_OPT_DESC) )
-				gf_sys_set_console_code(helpout, GF_CONSOLE_GREEN);
-
-			if ((gen_doc==1) && !(flags&FH_OPT_DESC) ) {
-				fprintf(helpout, "__%s__", line);
-				line_pos += 4+ (u32) strlen(line);
-			} else {
-				fprintf(helpout, "%s", line);
-				line_pos += (u32) strlen(line);
-			}
-
-			if (!gen_doc && !(flags&FH_OPT_DESC) )
-				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
-
-			if (flags & FH_OPT_DESC) {
-				flags = 0;
-				att_len = line_pos;
-			}
-
-
-			if (sep) {
-				sep[0] = ' ';
-				line = sep;
-			} else {
-				line = NULL;
-			}
-		}
-		if (!line) break;
-
-		if (line_before) {
-			fprintf(helpout, "\n");
-			line_pos=0;
-		}
-
-		if (console_code != GF_CONSOLE_RESET) {
-			if (gen_doc==1) {
-				if (console_code & GF_CONSOLE_BOLD) {
-					fprintf(helpout, "__");
-					line_pos+=2;
-				}
-				else if (console_code & GF_CONSOLE_ITALIC) {
-					fprintf(helpout, "_");
-					line_pos++;
-				}
-			} else {
-				gf_sys_set_console_code(helpout, console_code);
-			}
-		}
-
-		if (att_len) {
-			while (att_len < LINE_OFFSET_DESCR) {
-				fprintf(helpout, " ");
-				att_len++;
-				line_pos++;
-			}
-		}
-
-
-		if (header_string) {
-			fprintf(helpout, "%s", header_string);
-			line_pos += (u32) strlen(header_string);
-		}
-
-		while (line) {
-			u32 tid=0, i;
-			char *next_token = NULL;
-			for (i=0; i<nb_tokens; i++) {
-				char *tok = strstr(line, Tokens[i].tok);
-				if (!tok) continue;
-				if (next_token && ((next_token-line) < (tok-line)) ) continue;
-				next_token=tok;
-				tid=i;
-			}
-			if (next_token) {
-				next_token[0]=0;
-			}
-			if ((gen_doc==1) && has_token) {
-				if (tid==TOK_CODE) {
-					fprintf(helpout, "`%s`", line);
-					line_pos+=2;
-				} else if (tid==TOK_ITALIC) {
-					fprintf(helpout, "_%s_", line);
-					line_pos+=2;
-				} else if (tid==TOK_BOLD) {
-					fprintf(helpout, "__%s__", line);
-					line_pos+=4;
-				} else {
-					fprintf(helpout, "%s", line);
-				}
-			} else {
-				fprintf(helpout, "%s", line);
-			}
-			line_pos+=(u32) strlen(line);
-
-			if (!next_token) break;
-			has_token = !has_token;
-
-			if (!gen_doc) {
-				if (has_token) {
-					u32 cmd;
-					if (Tokens[tid].cmd_type & 0xFFFF) {
-						cmd = Tokens[tid].cmd_type;
-					} else {
-						cmd = Tokens[tid].cmd_type | console_code;
-					}
-
-					if (console_code&GF_CONSOLE_ITALIC) {
-						if (Tokens[tid].cmd_type & GF_CONSOLE_ITALIC) {
-							cmd &= ~GF_CONSOLE_ITALIC;
-							cmd |= GF_CONSOLE_BOLD;
-						}
-					}
-					else if (console_code&GF_CONSOLE_BOLD) {
-						if (Tokens[tid].cmd_type & GF_CONSOLE_BOLD) {
-							cmd &= ~GF_CONSOLE_BOLD;
-							cmd |= GF_CONSOLE_ITALIC;
-						}
-					}
-					gf_sys_set_console_code(helpout, cmd);
-				} else {
-					gf_sys_set_console_code(helpout, console_code);
-				}
-			}
-			line = next_token + (u32) strlen(Tokens[tid].tok);
-
-			if (has_token && tid==TOK_OPTLINK) {
-				char *link = strchr(line, '(');
-				if (link) link++;
-				char *end_link = strchr(line, ')');
-				if (end_link) end_link[0] = 0;
-				char *end_tok = strchr(line, ']');
-				if (end_tok) end_tok[0] = 0;
-
-				if (gen_doc==1) {
-					if (!strncmp(link, "GPAC", 4)) {
-						fprintf(helpout, "[-%s](gpac_general/#%s)", line, line);
-						line_pos+=7 + 2*strlen(line) + strlen("gpac_general");
-					} else if (!strncmp(link, "LOG", 3)) {
-						fprintf(helpout, "[-%s](core_logs/#%s)", line, line);
-						line_pos+=7 + 2*strlen(line) + strlen("core_logs");
-					} else if (!strncmp(link, "CORE", 3)) {
-						fprintf(helpout, "[-%s](core_options/#%s)", line, line);
-						line_pos+=7 + 2*strlen(line) + strlen("core_options");
-					} else if (strlen(link)) {
-						fprintf(helpout, "[-%s](%s/#%s)", line, link, line);
-						line_pos+=7 + 2*strlen(line) + strlen(link);
-					} else if (!strcmp(line, "i") || !strcmp(line, "o") || !strcmp(line, "h")){
-						fprintf(helpout, "[-%s](#%s)", line, line);
-						line_pos+=5 + 2*strlen(line) + strlen(link);
-					} else {
-						//this is a filter opt, don't print '-'
-						fprintf(helpout, "[%s](#%s)", line, line);
-						line_pos+=4 + 2*strlen(line) + strlen(link);
-					}
-				} else {
-					if (!strncmp(link, "GPAC", 4)
-						|| !strncmp(link, "LOG", 3)
-						|| !strncmp(link, "CORE", 3)
-						|| strlen(link)
-						|| !strcmp(line, "i") || !strcmp(line, "o") || !strcmp(line, "h")
-					) {
-						fprintf(helpout, "-%s", line);
-						line_pos+=1+strlen(line);
-					} else {
-						fprintf(helpout, "%s", line);
-						line_pos+=strlen(line);
-					}
-					gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
-				}
-				if (!end_link) break;
-				line = end_link+1;
-				has_token = GF_FALSE;
-			}
-		}
-
-		if (has_token && !gen_doc)
-			gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
-
-		if (footer_string) {
-			fprintf(helpout, "%s", footer_string);
-			line_pos += (u32) strlen(footer_string);
-		}
-		if (console_code != GF_CONSOLE_RESET) {
-			if (gen_doc==1) {
-				if (console_code & GF_CONSOLE_BOLD) {
-					fprintf(helpout, "__");
-					line_pos+=2;
-				} else if (console_code & GF_CONSOLE_ITALIC) {
-					fprintf(helpout, "_");
-					line_pos++;
-				}
-			} else {
-				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
-			}
-		}
-
-		if (line_after) {
-			if (gen_doc==1) fprintf(helpout, "  ");
-			fprintf(helpout, (flags & FH_NEWLINE_TO_BR) ? "<br/>" : "\n");
-			line_pos=0;
-		}
-
-		if (!next_line) break;
-		next_line[0]=0;
-		if (gen_doc==1) fprintf(helpout, "  ");
-		line = next_line+1;
-		fprintf(helpout, (line[0] && (flags & FH_NEWLINE_TO_BR)) ? "<br/>" : "\n");
-		line_pos=0;
-	}
-}
-
-static void print_sys_arg(const GF_GPACArg *arg, const char *arg_subsystem)
-{
-#ifdef CHECK_DOC
-	if ((arg->name[0]>='A') && (arg->name[0]<='Z')) {
-		if ((arg->name[1]<'A') || (arg->name[1]>'Z')) {
-			fprintf(stderr, "\nWARNING: arg %s bad name format, should use lowercase\n", arg->name);
-			exit(1);
-		}
-	}
-	if (arg->description) {
-		char *sep;
-
-		if ((arg->description[0]>='A') && (arg->description[0]<='Z')) {
-			if ((arg->description[1]<'A') || (arg->description[1]>'Z')) {
-				fprintf(stderr, "\nWARNING: arg %s bad name format \"%s\", should use lowercase\n", arg->name, arg->description);
-				exit(1);
-			}
-		}
-		if (strchr(arg->description, '\t')) {
-			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not use tab\n", arg->name, arg->description);
-			exit(1);
-		}
-		u8 achar = arg->description[strlen(arg->description)-1];
-		if (achar == '.') {
-			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not end with .\n", arg->name, arg->description);
-			exit(1);
-		}
-		sep = strchr(arg->description, ' ');
-		if (sep) sep--;
-		if (sep[0] == 's') {
-			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should use infintive\n", arg->name, arg->description);
-			exit(1);
-		}
-	}
-#endif
-
-	if (arg->flags & GF_ARG_HINT_HIDE)
-		return;
-
-	if (gen_doc==1) {
-		format_help(0, "<a id=\"%s\">", arg->name);
-		format_help(FH_FIRST_IS_HL, "-%s", arg->name);
-		format_help(0, "</a>");
-	} else {
-		format_help(FH_FIRST_IS_HL, "-%s", arg->name);
-	}
-	if (arg->altname) {
-		format_help(0, " ");
-		format_help(FH_FIRST_IS_HL, "-%s", arg->altname);
-	}
-
-	if (arg->type==GF_ARG_INT && arg->values && strchr(arg->values, '|')) {
-		format_help(0, " (Enum");
-		if (arg->val)
-			format_help(0, ", default: **%s**", arg->val);
-		format_help(0, ")");
-	} else {
-		format_help(0, " (");
-		switch (arg->type) {
-		case GF_ARG_BOOL: format_help(0, "boolean"); break;
-		case GF_ARG_INT: format_help(0, "int"); break;
-		case GF_ARG_DOUBLE: format_help(0, "number"); break;
-		case GF_ARG_STRING: format_help(0, "string"); break;
-		case GF_ARG_STRINGS: format_help(0, "string list"); break;
-		default: break;
-		}
-		if (arg->val)
-			format_help(0, ", default: **%s**", arg->val);
-		if (arg->values)
-			format_help(0, ", values: __%s__", arg->values);
-		format_help(0, ")");
-	}
-
-	if (arg->description)
-		format_help(FH_OPT_DESC, ": %s", gf_sys_localized(arg_subsystem, arg->name, arg->description) );
-	format_help(0, "\n");
-
-	if ((gen_doc==1) && arg->description && strstr(arg->description, "- "))
-		format_help(0, "\n");
-}

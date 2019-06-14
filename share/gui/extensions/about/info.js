@@ -1,7 +1,7 @@
 extension = {
     start: function () {
 
-        var str = 'Version ' +  gpac.get_option('General', 'Version');
+        var str = 'Version ' +  gpac.get_option('core', 'version');
         str += '\nMore info: http://gpac.io';
         str += '\nDistributed under LGPL v2.1 or any later version';
         str += '\n(c) 2002-2018 Telecom ParisTech';

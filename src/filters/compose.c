@@ -814,14 +814,14 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"\n"\
 	"In media-client mode, the compositor acts as a pseudo-sink for the video side and creates its own output window.\n"\
 	"The video frames are dispatched to the output video pid in the form of frame pointers requiring later GPU read if used.\n"\
-	"The audio part acts as a regular filter.\n"\
+	"The audio part acts as a regular filter, potentially mixing and resampling the audio inputs to generate its output.\n"\
 	"\n"\
-	"In filter-only mode, the compositor acts as a regular filter generating frames based on the scene loaded.\n"\
+	"In filter-only mode, the compositor acts as a regular filter generating frames based on the loaded scene.\n"\
 	"It will generate its outputs based on the input video frames.\n"\
 	"If no input video frames (e.g. pure BIFS / SVG / VRML), the filter will generate frames based on the [-fps](), at constant or variable frame rate.\n"\
 	"It will stop generating frames as soon as all input streams are done, unless extended/reduced by [-dur]().\n"
 	"In media-client mode, the special URL `gpid://` is used to locate PIDs in the scene description, in order to design scenes independently from source media.\n"\
-	"When such a pid is associated to a Background2D node in BIFS, the compositor operates in passthrough mode.\n"\
+	"When such a pid is associated to a `Background2D` node in BIFS (no SVG mapping yet), the compositor operates in passthrough mode.\n"\
 	"In this mode, only new input frames on the passthrough pid will generate new frames, and the scene clock matches the input packet time.\n"\
 	"The output size and pixel format will be set to the input size and pixel format, unless specified otherwise in the filter options.\n"\
 	"\n"\
@@ -829,6 +829,12 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"In this case, inplace processing (rasterizing over the input frame data) will be used whenever allowed by input data.\n"\
 	"\n"\
 	"If 3D graphics are used or display driver is forced, OpenGL will be used on offscreen surface and the output packet will be an OpenGL texture.\n"\
+	"\n"
+	"# Specific URL syntaxes\n"
+	"The compositor accpets any URL type supported by GPAC. It also accepts the following syntaxes for URLs:\n"
+	"- views: creates an auto-stereo scene of N views from `views://v1:.:vN`. vN can be any type of URL supported by GPAC."
+	"- mosaic: creates a mosaic of N views from `mosaic://v1:.:vN`. vN can be any type of URL supported by GPAC."
+	"\n"
 	)
 	.private_size = sizeof(GF_Compositor),
 	.flags = GF_FS_REG_MAIN_THREAD | GF_FS_REG_EXPLICIT_ONLY,

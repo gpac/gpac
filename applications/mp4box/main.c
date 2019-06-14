@@ -843,7 +843,7 @@ void PrintATSCUsage()
 void PrintCoreUsage()
 {
 	fprintf(stderr, "libgpac core options\n");
-	gf_sys_print_core_help(GF_ARGMODE_ALL, 0, NULL);
+	gf_sys_print_core_help(NULL, 0, GF_ARGMODE_ALL, 0);
 }
 
 void PrintUsage()

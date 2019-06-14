@@ -1272,32 +1272,95 @@ u32 gf_sys_is_gpac_arg(const char *arg_name)
 
 
 GF_EXPORT
-void gf_sys_print_arg(const GF_GPACArg *arg, const char *arg_subsystem)
+void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const char *arg_subsystem)
 {
-	fprintf(stderr, "-%s", arg->name);
-	if (arg->altname)
-		fprintf(stderr, " [alt. -%s]", arg->altname);
+	u32 gen_doc = 0;
+	if (flags & GF_PRINTARG_MD)
+		gen_doc = 1;
+	if (!helpout) helpout = stderr;
 
-	switch (arg->type) {
-	case GF_ARG_BOOL: fprintf(stderr, " (boolean)"); break;
-	case GF_ARG_INT: fprintf(stderr, " (int)"); break;
-	case GF_ARG_DOUBLE: fprintf(stderr, " (number)"); break;
-	case GF_ARG_STRING: fprintf(stderr, " (string)"); break;
-	case GF_ARG_STRINGS: fprintf(stderr, " (string list)"); break;
-	default: break;
+#ifdef GPAC_ENABLE_COVERAGE
+	if ((arg->name[0]>='A') && (arg->name[0]<='Z')) {
+		if ((arg->name[1]<'A') || (arg->name[1]>'Z')) {
+			fprintf(stderr, "\nWARNING: arg %s bad name format, should use lowercase\n", arg->name);
+			exit(1);
+		}
 	}
-	if (arg->val)
-		fprintf(stderr, " (default %s)", arg->val);
-	if (arg->values)
-		fprintf(stderr, " (values %s)", arg->values);
+	if (arg->description) {
+		char *sep;
+
+		if ((arg->description[0]>='A') && (arg->description[0]<='Z')) {
+			if ((arg->description[1]<'A') || (arg->description[1]>'Z')) {
+				fprintf(stderr, "\nWARNING: arg %s bad name format \"%s\", should use lowercase\n", arg->name, arg->description);
+				exit(1);
+			}
+		}
+		if (strchr(arg->description, '\t')) {
+			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not use tab\n", arg->name, arg->description);
+			exit(1);
+		}
+		u8 achar = arg->description[strlen(arg->description)-1];
+		if (achar == '.') {
+			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not end with .\n", arg->name, arg->description);
+			exit(1);
+		}
+		sep = strchr(arg->description, ' ');
+		if (sep) sep--;
+		if (sep[0] == 's') {
+			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should use infintive\n", arg->name, arg->description);
+			exit(1);
+		}
+	}
+#endif
+
+	if (arg->flags & GF_ARG_HINT_HIDE)
+		return;
+
+	if (gen_doc==1) {
+		gf_sys_format_help(helpout, flags, "<a id=\"%s\">", arg->name);
+		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg->name);
+		gf_sys_format_help(helpout, flags, "</a>");
+	} else {
+		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg->name);
+	}
+	if (arg->altname) {
+		gf_sys_format_help(helpout, flags, " ");
+		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg->altname);
+	}
+
+	if (arg->type==GF_ARG_INT && arg->values && strchr(arg->values, '|')) {
+		gf_sys_format_help(helpout, flags, " (Enum");
+		if (arg->val)
+			gf_sys_format_help(helpout, flags, ", default: **%s**", arg->val);
+		gf_sys_format_help(helpout, flags, ")");
+	} else {
+		gf_sys_format_help(helpout, flags, " (");
+		switch (arg->type) {
+		case GF_ARG_BOOL: gf_sys_format_help(helpout, flags, "boolean"); break;
+		case GF_ARG_INT: gf_sys_format_help(helpout, flags, "int"); break;
+		case GF_ARG_DOUBLE: gf_sys_format_help(helpout, flags, "number"); break;
+		case GF_ARG_STRING: gf_sys_format_help(helpout, flags, "string"); break;
+		case GF_ARG_STRINGS: gf_sys_format_help(helpout, flags, "string list"); break;
+		default: break;
+		}
+		if (arg->val)
+			gf_sys_format_help(helpout, flags, ", default: **%s**", arg->val);
+		if (arg->values)
+			gf_sys_format_help(helpout, flags, ", values: __%s__", arg->values);
+		gf_sys_format_help(helpout, flags, ")");
+	}
+
 	if (arg->description)
-		fprintf(stderr, ": %s", gf_sys_localized(arg_subsystem, arg->name, arg->description) );
-	fprintf(stderr, "\n");
+		gf_sys_format_help(helpout, flags | GF_PRINTARG_OPT_DESC, ": %s", gf_sys_localized(arg_subsystem, arg->name, arg->description) );
+	gf_sys_format_help(helpout, flags, "\n");
+
+	if ((gen_doc==1) && arg->description && strstr(arg->description, "- "))
+		gf_sys_format_help(helpout, flags, "\n");
 }
 
 
 GF_EXPORT
-void gf_sys_print_core_help(GF_SysArgMode mode, u32 subsystem_flags, void (*sys_print_arg)(const GF_GPACArg *arg, const char *arg_subsystem))
+void gf_sys_print_core_help(FILE *helpout, u32 flags, GF_SysArgMode mode, u32 subsystem_flags)
 {
 	u32 i=0;
 	const GF_GPACArg *args = gf_sys_get_options();
@@ -1315,10 +1378,349 @@ void gf_sys_print_core_help(GF_SysArgMode mode, u32 subsystem_flags, void (*sys_
 			else if ((mode==GF_ARGMODE_ADVANCED) && !(arg->flags & GF_ARG_HINT_ADVANCED)) continue;
 			else if ((mode==GF_ARGMODE_BASE) && (arg->flags & (GF_ARG_HINT_ADVANCED|GF_ARG_HINT_EXPERT) )) continue;
 		}
-		if (sys_print_arg)
-			sys_print_arg(arg, "core");
-		else
-			gf_sys_print_arg(arg, "core");
+		gf_sys_print_arg(helpout, flags, arg, "core");
+	}
+}
+
+
+#define LINE_OFFSET_DESCR 40
+
+static char *help_buf = NULL;
+static u32 help_buf_size=0;
+
+void gf_sys_cleanup_help()
+{
+	if (help_buf) gf_free(help_buf);
+}
+
+
+enum
+{
+	TOK_CODE,
+	TOK_BOLD,
+	TOK_ITALIC,
+	TOK_STRIKE,
+	TOK_OPTLINK,
+};
+struct _token {
+	char *tok;
+	GF_ConsoleCodes cmd_type;
+} Tokens[] =
+{
+ {"`", GF_CONSOLE_YELLOW|GF_CONSOLE_ITALIC},
+ {"**", GF_CONSOLE_BOLD},
+ {"__", GF_CONSOLE_ITALIC},
+ {"~~", GF_CONSOLE_STRIKE},
+ {"[-", GF_CONSOLE_YELLOW|GF_CONSOLE_ITALIC},
+};
+static u32 nb_tokens = sizeof(Tokens) / sizeof(struct _token);
+
+static u32 line_pos = 0;
+
+GF_EXPORT
+void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
+{
+	char *line;
+	u32 len;
+	va_list vlist;
+	u32 gen_doc = 0;
+	if (flags & GF_PRINTARG_MD)
+		gen_doc = 1;
+	if (!helpout) helpout = stderr;
+
+	va_start(vlist, fmt);
+	len=vsnprintf(NULL, 0, fmt, vlist);
+	va_end(vlist);
+	if (help_buf_size < len+2) {
+		help_buf_size = len+2;
+		help_buf = gf_realloc(help_buf, help_buf_size);
+	}
+	va_start(vlist, fmt);
+	vsprintf(help_buf, fmt, vlist);
+	va_end(vlist);
+
+
+	line = help_buf;
+	while (line[0]) {
+		u32 att_len = 0;
+		char *tok_sep = NULL;
+		GF_ConsoleCodes console_code = GF_CONSOLE_RESET;
+		Bool line_before = GF_FALSE;
+		Bool line_after = GF_FALSE;
+		const char *footer_string = NULL;
+		const char *header_string = NULL;
+		char *next_line = strchr(line, '\n');
+		Bool has_token=GF_FALSE;
+
+		if (next_line) next_line[0]=0;
+
+
+		if ((line[0]=='#') && (line[1]==' ')) {
+			if (!gen_doc)
+				line+=2;
+
+			console_code = GF_CONSOLE_GREEN;
+			line_after = line_before = GF_TRUE;
+		} else if ((line[0]=='#') && (line[1]=='#') && (line[2]==' ')) {
+			if (!gen_doc)
+				line+=3;
+			console_code = GF_CONSOLE_MAGENTA;
+			line_before = GF_TRUE;
+		} else if ((line[0]=='E') && (line[1]=='X') && (line[2]==' ')) {
+			line+=3;
+			console_code = GF_CONSOLE_YELLOW;
+			if (gen_doc) {
+				header_string = "Example\n```\n";
+				footer_string = "\n```";
+			} else {
+				header_string = "Example:\n";
+			}
+		} else if (!strncmp(line, "Note: ", 6)) {
+			console_code = GF_CONSOLE_CYAN | GF_CONSOLE_ITALIC;
+		} else if (!strncmp(line, "Warning: ", 9)) {
+			line_after = line_before = GF_TRUE;
+			console_code = GF_CONSOLE_RED | GF_CONSOLE_BOLD;
+		} else if ( (
+			 ((line[0]=='-') && (line[1]==' '))
+			 || ((line[0]==' ') && (line[1]=='-') && (line[2]==' '))
+			 || ((line[0]==' ') && (line[1]==' ') && (line[2]=='-') && (line[3]==' '))
+			)
+
+			//look for ": "
+			&& ((tok_sep=strstr(line, ": ")) != NULL )
+		) {
+			if (!gen_doc)
+				fprintf(helpout, "\t");
+			while (line[0] != '-') {
+				fprintf(helpout, " ");
+				line++;
+				line_pos++;
+
+			}
+			fprintf(helpout, "* ");
+			line_pos+=2;
+			if (!gen_doc)
+				gf_sys_set_console_code(helpout, GF_CONSOLE_YELLOW);
+			tok_sep[0] = 0;
+			fprintf(helpout, "%s", line+2);
+			line_pos += (u32) strlen(line+2);
+			tok_sep[0] = ':';
+			line = tok_sep;
+			if (!gen_doc)
+				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
+		} else if (flags & (GF_PRINTARG_HIGHLIGHT_FIRST | GF_PRINTARG_OPT_DESC)) {
+			char *sep = strchr(line, ' ');
+
+			if (sep) sep[0] = 0;
+
+			if (!gen_doc && !(flags & GF_PRINTARG_OPT_DESC) )
+				gf_sys_set_console_code(helpout, GF_CONSOLE_GREEN);
+
+			if ((gen_doc==1) && !(flags & GF_PRINTARG_OPT_DESC) ) {
+				fprintf(helpout, "__%s__", line);
+				line_pos += 4+ (u32) strlen(line);
+			} else {
+				fprintf(helpout, "%s", line);
+				line_pos += (u32) strlen(line);
+			}
+
+			if (!gen_doc && !(flags & GF_PRINTARG_OPT_DESC) )
+				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
+
+			if (flags & GF_PRINTARG_OPT_DESC) {
+				flags = 0;
+				att_len = line_pos;
+			}
+
+
+			if (sep) {
+				sep[0] = ' ';
+				line = sep;
+			} else {
+				line = NULL;
+			}
+		}
+		if (!line) break;
+
+		if (line_before) {
+			fprintf(helpout, "\n");
+			line_pos=0;
+		}
+
+		if (console_code != GF_CONSOLE_RESET) {
+			if (gen_doc==1) {
+				if (console_code & GF_CONSOLE_BOLD) {
+					fprintf(helpout, "__");
+					line_pos+=2;
+				}
+				else if (console_code & GF_CONSOLE_ITALIC) {
+					fprintf(helpout, "_");
+					line_pos++;
+				}
+			} else {
+				gf_sys_set_console_code(helpout, console_code);
+			}
+		}
+
+		if (att_len) {
+			while (att_len < LINE_OFFSET_DESCR) {
+				fprintf(helpout, " ");
+				att_len++;
+				line_pos++;
+			}
+		}
+
+
+		if (header_string) {
+			fprintf(helpout, "%s", header_string);
+			line_pos += (u32) strlen(header_string);
+		}
+
+		while (line) {
+			u32 tid=0, i;
+			char *next_token = NULL;
+			for (i=0; i<nb_tokens; i++) {
+				char *tok = strstr(line, Tokens[i].tok);
+				if (!tok) continue;
+				if (next_token && ((next_token-line) < (tok-line)) ) continue;
+				next_token=tok;
+				tid=i;
+			}
+			if (next_token) {
+				next_token[0]=0;
+			}
+			if ((gen_doc==1) && has_token) {
+				if (tid==TOK_CODE) {
+					fprintf(helpout, "`%s`", line);
+					line_pos+=2;
+				} else if (tid==TOK_ITALIC) {
+					fprintf(helpout, "_%s_", line);
+					line_pos+=2;
+				} else if (tid==TOK_BOLD) {
+					fprintf(helpout, "__%s__", line);
+					line_pos+=4;
+				} else {
+					fprintf(helpout, "%s", line);
+				}
+			} else {
+				fprintf(helpout, "%s", line);
+			}
+			line_pos+=(u32) strlen(line);
+
+			if (!next_token) break;
+			has_token = !has_token;
+
+			if (!gen_doc) {
+				if (has_token) {
+					u32 cmd;
+					if (Tokens[tid].cmd_type & 0xFFFF) {
+						cmd = Tokens[tid].cmd_type;
+					} else {
+						cmd = Tokens[tid].cmd_type | console_code;
+					}
+
+					if (console_code&GF_CONSOLE_ITALIC) {
+						if (Tokens[tid].cmd_type & GF_CONSOLE_ITALIC) {
+							cmd &= ~GF_CONSOLE_ITALIC;
+							cmd |= GF_CONSOLE_BOLD;
+						}
+					}
+					else if (console_code&GF_CONSOLE_BOLD) {
+						if (Tokens[tid].cmd_type & GF_CONSOLE_BOLD) {
+							cmd &= ~GF_CONSOLE_BOLD;
+							cmd |= GF_CONSOLE_ITALIC;
+						}
+					}
+					gf_sys_set_console_code(helpout, cmd);
+				} else {
+					gf_sys_set_console_code(helpout, console_code);
+				}
+			}
+			line = next_token + (u32) strlen(Tokens[tid].tok);
+
+			if (has_token && tid==TOK_OPTLINK) {
+				char *link = strchr(line, '(');
+				if (link) link++;
+				char *end_link = strchr(line, ')');
+				if (end_link) end_link[0] = 0;
+				char *end_tok = strchr(line, ']');
+				if (end_tok) end_tok[0] = 0;
+
+				if (gen_doc==1) {
+					if (!strncmp(link, "GPAC", 4)) {
+						fprintf(helpout, "[-%s](gpac_general/#%s)", line, line);
+						line_pos+=7 + 2*strlen(line) + strlen("gpac_general");
+					} else if (!strncmp(link, "LOG", 3)) {
+						fprintf(helpout, "[-%s](core_logs/#%s)", line, line);
+						line_pos+=7 + 2*strlen(line) + strlen("core_logs");
+					} else if (!strncmp(link, "CORE", 3)) {
+						fprintf(helpout, "[-%s](core_options/#%s)", line, line);
+						line_pos+=7 + 2*strlen(line) + strlen("core_options");
+					} else if (strlen(link)) {
+						fprintf(helpout, "[-%s](%s/#%s)", line, link, line);
+						line_pos+=7 + 2*strlen(line) + strlen(link);
+					} else if (!strcmp(line, "i") || !strcmp(line, "o") || !strcmp(line, "h")){
+						fprintf(helpout, "[-%s](#%s)", line, line);
+						line_pos+=5 + 2*strlen(line) + strlen(link);
+					} else {
+						//this is a filter opt, don't print '-'
+						fprintf(helpout, "[%s](#%s)", line, line);
+						line_pos+=4 + 2*strlen(line) + strlen(link);
+					}
+				} else {
+					if (!strncmp(link, "GPAC", 4)
+						|| !strncmp(link, "LOG", 3)
+						|| !strncmp(link, "CORE", 3)
+						|| strlen(link)
+						|| !strcmp(line, "i") || !strcmp(line, "o") || !strcmp(line, "h")
+					) {
+						fprintf(helpout, "-%s", line);
+						line_pos+=1+strlen(line);
+					} else {
+						fprintf(helpout, "%s", line);
+						line_pos+=strlen(line);
+					}
+					gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
+				}
+				if (!end_link) break;
+				line = end_link+1;
+				has_token = GF_FALSE;
+			}
+		}
+
+		if (has_token && !gen_doc)
+			gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
+
+		if (footer_string) {
+			fprintf(helpout, "%s", footer_string);
+			line_pos += (u32) strlen(footer_string);
+		}
+		if (console_code != GF_CONSOLE_RESET) {
+			if (gen_doc==1) {
+				if (console_code & GF_CONSOLE_BOLD) {
+					fprintf(helpout, "__");
+					line_pos+=2;
+				} else if (console_code & GF_CONSOLE_ITALIC) {
+					fprintf(helpout, "_");
+					line_pos++;
+				}
+			} else {
+				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
+			}
+		}
+
+		if (line_after) {
+			if (gen_doc==1) fprintf(helpout, "  ");
+			fprintf(helpout, (flags & GF_PRINTARG_NL_TO_BR) ? "<br/>" : "\n");
+			line_pos=0;
+		}
+
+		if (!next_line) break;
+		next_line[0]=0;
+		if (gen_doc==1) fprintf(helpout, "  ");
+		line = next_line+1;
+		fprintf(helpout, (line[0] && (flags & GF_PRINTARG_NL_TO_BR)) ? "<br/>" : "\n");
+		line_pos=0;
 	}
 }
 
