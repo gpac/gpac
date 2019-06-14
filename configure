@@ -1252,7 +1252,7 @@ if test "$cross_prefix" = "" ; then
 fi
 
 if test "$has_openjpeg" = "no" ; then
-    if docc -I$local_inc -L$local_lib -lopenjpeg ; then
+    if docc -I$local_inc/openjpeg -L$local_lib -lopenjpeg ; then
         has_openjpeg="local"
     fi
 fi
