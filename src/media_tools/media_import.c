@@ -1108,7 +1108,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		GF_Filter *isobmff_mux;
 
 		//mux args
-		e = gf_dynstrcat(&args, "mxisom:importer", ":");
+		e = gf_dynstrcat(&args, "mp4mx:importer", ":");
 
 		sprintf(szSubArg, "file=%p", importer->dest);
 		e |= gf_dynstrcat(&args, szSubArg, ":");

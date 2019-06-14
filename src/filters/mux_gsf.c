@@ -1099,7 +1099,7 @@ static const GF_FilterArgs GSFMxArgs[] =
 
 
 GF_FilterRegister GSFMxRegister = {
-	.name = "gsfm",
+	.name = "gsfmx",
 	GF_FS_SET_DESCRIPTION("GSF Muxer")
 	GF_FS_SET_HELP("This filter provides GSF (__GPAC Super/Simple/Serialized/Stream/State Format__) multiplexing.\n"
 			"It serializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs. "

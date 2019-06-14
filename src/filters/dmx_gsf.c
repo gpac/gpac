@@ -1220,7 +1220,7 @@ static const GF_FilterArgs GSFDemuxArgs[] =
 
 
 GF_FilterRegister GSFDemuxRegister = {
-	.name = "gsfd",
+	.name = "gsfdmx",
 	GF_FS_SET_DESCRIPTION("GSF Demuxer")
 	GF_FS_SET_HELP("Theis filter provides GSF (__GPAC Super/Simple/Serialized/Stream/State Format__) demultiplexing.\n"
 			"It deserializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"\
