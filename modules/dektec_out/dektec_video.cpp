@@ -139,7 +139,7 @@ static void OnNewFrameVideo(DtMxData *pData, const DtCbkCtx  *cbck)
 	pY = pU = pV = NULL;
 	pY = (unsigned char *) gf_filter_pck_get_data(pck, &pck_size);
 	if (!pY) {
-		GF_FilterHWFrame *hwframe = gf_filter_pck_get_hw_frame(pck);
+		GF_FilterFrameInterface *hwframe = gf_filter_pck_get_frame_interface(pck);
 		if (hwframe) {
 			hwframe->get_plane(hwframe, 0, (const u8 **) &pY, &stride);
 			if (ctx->nb_planes>1)
