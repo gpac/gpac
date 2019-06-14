@@ -1324,7 +1324,7 @@ static const GF_FilterArgs TSMuxArgs[] =
 
 
 GF_FilterRegister TSMuxRegister = {
-	.name = "mxts",
+	.name = "m2tsmx",
 	GF_FS_SET_DESCRIPTION("MPEG-2 TS muxer")
 	GF_FS_SET_HELP("GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.\n"\
 	 	"For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.\n"\

@@ -55,10 +55,9 @@ FILE *sidebar_md=NULL;
 static const char *auto_gen_md_warning = "<!-- automatically generated - do not edit, patch gpac/applications/gpac/main.c -->\n";
 
 
-#define FH_FIRST_IS_OPT	1
-#define FH_FIRST_IS_HL	1<<1
-#define FH_NEWLINE_TO_BR	1<<2
-#define FH_OPT_DESC	1<<3
+#define FH_FIRST_IS_HL	1
+#define FH_NEWLINE_TO_BR	1<<1
+#define FH_OPT_DESC	1<<2
 
 
 //uncomment to check argument description matches our conventions - see filter.h
@@ -443,7 +442,7 @@ static void gpac_alias_help(GF_SysArgMode argmode)
 			const char *alias_doc = gf_opts_get_key("gpac.aliasdoc", alias);
 			const char *alias_value = gf_opts_get_key("gpac.alias", alias);
 
-			format_help(FH_FIRST_IS_OPT, "%s", alias);
+			format_help(FH_FIRST_IS_HL, "%s", alias);
 			if (argmode>=GF_ARGMODE_ADVANCED)
 				format_help(0, " (%s)", alias_value);
 
@@ -1789,7 +1788,7 @@ static void dump_all_props(void)
 	const GF_BuiltInProperty *prop_info;
 
 	if (gen_doc==1) {
-		format_help(0, "Built-in properties for PIDs and packets, pixel formats and audio formats. See [GSF mux](gsfm) filter help for more info on dropable.\n  \n  ");
+		format_help(0, "Built-in properties for PIDs and packets, pixel formats and audio formats. See [GSF mux](gsfmx) filter help for more info on dropable.\n  \n  ");
 		format_help(0, "Name | 4CC | type | Dropable | Packet| Description  \n");
 		format_help(0, "--- | --- | --- | --- | --- | ---  \n");
 	} else {
@@ -1811,7 +1810,7 @@ static void dump_all_props(void)
 			if (prop_info->flags & GF_PROP_FLAG_GSF_REM) strcat(szFlags, "D");
 			if (prop_info->flags & GF_PROP_FLAG_PCK) strcat(szFlags, "P");
 
-			format_help(FH_FIRST_IS_OPT, "%s (%s %s %s):", prop_info->name, gf_4cc_to_str(prop_info->type), gf_props_get_type_name(prop_info->data_type), szFlags);
+			format_help(FH_FIRST_IS_HL, "%s (%s %s %s):", prop_info->name, gf_4cc_to_str(prop_info->type), gf_props_get_type_name(prop_info->data_type), szFlags);
 
 			format_help(0, "%s", prop_info->description);
 
@@ -1870,7 +1869,7 @@ static void dump_all_codec(GF_FilterSession *session)
 			if ( gf_fs_check_registry_cap(reg, GF_PROP_PID_CODECID, &cp, GF_PROP_PID_CODECID, &rawp)) dec_found = GF_TRUE;
 		}
 
-		format_help(FH_FIRST_IS_OPT, "%s (%c%c)", sname, dec_found ? 'I' : '-', enc_found ? 'O' : '-');
+		format_help(FH_FIRST_IS_HL, "%s (%c%c)", sname, dec_found ? 'I' : '-', enc_found ? 'O' : '-');
 		format_help(0, "%s\n", lname);
 	}
 	format_help(0, "\n");
@@ -2729,7 +2728,7 @@ static void format_help(u32 flags, const char *fmt, ...)
 			line = tok_sep;
 			if (!gen_doc)
 				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
-		} else if (flags & (FH_FIRST_IS_OPT | FH_FIRST_IS_HL | FH_OPT_DESC)) {
+		} else if (flags & (FH_FIRST_IS_HL | FH_OPT_DESC)) {
 			char *sep = strchr(line, ' ');
 
 			if (sep) sep[0] = 0;
@@ -2986,14 +2985,14 @@ static void print_sys_arg(const GF_GPACArg *arg, const char *arg_subsystem)
 
 	if (gen_doc==1) {
 		format_help(0, "<a id=\"%s\">", arg->name);
-		format_help(FH_FIRST_IS_OPT, "-%s", arg->name);
+		format_help(FH_FIRST_IS_HL, "-%s", arg->name);
 		format_help(0, "</a>");
 	} else {
-		format_help(FH_FIRST_IS_OPT, "-%s", arg->name);
+		format_help(FH_FIRST_IS_HL, "-%s", arg->name);
 	}
 	if (arg->altname) {
 		format_help(0, " ");
-		format_help(FH_FIRST_IS_OPT, "-%s", arg->altname);
+		format_help(FH_FIRST_IS_HL, "-%s", arg->altname);
 	}
 
 	if (arg->type==GF_ARG_INT && arg->values && strchr(arg->values, '|')) {

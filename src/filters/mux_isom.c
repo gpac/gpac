@@ -4141,7 +4141,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 
 
 GF_FilterRegister MP4MuxRegister = {
-	.name = "mxisom",
+	.name = "mp4mx",
 	GF_FS_SET_DESCRIPTION("ISOBMFF/QT muxer")
 	GF_FS_SET_HELP("Muxes file according to ISOBMFF (14496-12 and derived specifications) or QuickTime\n"
 	"\n"

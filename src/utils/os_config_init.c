@@ -1009,7 +1009,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-block", NULL, "disable blocking mode of filters", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reg", NULL, "disable regulation (no sleep) in session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reassign", NULL, "disable source filter reassignment in pid graph resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
- GF_DEF_ARG("sched", NULL, "set scheduler mode. Possible modes are:\n"\
+ GF_DEF_ARG("sched", NULL, "set scheduler mode\n"\
 		"- free: lock-free queues except for task list (default)\n"\
 		"- lock: mutexes for queues when several threads\n"\
 		"- freex: lock-free queues including for task lists (experimental)\n"\
@@ -1024,7 +1024,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-graph-cache", NULL, "disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory ungry but slower)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("switch-vres", NULL, "select smallest video resolution larger than scene size, otherwise use current video resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("hwvmem", NULL, "specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed. Possible values are:\n"
+ GF_DEF_ARG("hwvmem", NULL, "specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed.\n"
  "- always: always on hardware\n"
  "- never: always on system memory\n"
  "- auto: selected by GPAC based on content type (graphics or video)", "auto", "auto|always|never", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
