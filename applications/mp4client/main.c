@@ -65,7 +65,6 @@ static void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *URL);
 static void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 indent, char *root_name);
 
 static void ViewODs(GF_Terminal *term, Bool show_timing);
-static void PrintGPACConfig(Bool full_dump);
 static void MakeScreenshot(Bool for_coverage);
 static void PrintAVInfo(Bool final);
 
@@ -76,6 +75,9 @@ static Bool reload = GF_FALSE;
 Bool do_coverage = GF_FALSE;
 
 Bool no_prog = 0;
+
+static FILE *helpout = NULL;
+u32 help_flags = 0;
 
 #if defined(__DARWIN__) || defined(__APPLE__)
 #define VK_MOD  GF_KEY_MOD_ALT
@@ -159,130 +161,213 @@ void send_open_url(const char *url)
 	gf_term_send_event(term, &evt);
 }
 
-void PrintUsage()
+GF_GPACArg mp4client_args[] =
 {
-	fprintf(stderr, "Usage MP4Client [options] [filename]\n"
 #ifdef GPAC_MEMORY_TRACKING
-            "\t-mem-track:  enables memory tracker\n"
-            "\t-mem-track-stack:  enables memory tracker with stack dumping\n"
+ 	GF_DEF_ARG("mem-track", NULL, "enable memory tracker", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+ 	GF_DEF_ARG("mem-track-stack", NULL, "enable memory tracker with stack dumping", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 #endif
-	        "\t-rti fileName:  logs run-time info (FPS, CPU, Mem usage) to file\n"
-	        "\t-rtix fileName: same as -rti but driven by GPAC logs\n"
-	        "\t-size WxH:      specifies visual size (default: scene size)\n"
-	        "\t-no-thread:     disables thread usage (except for depending on driver audio)\n"
-	        "\t-no-audio:      disables audio \n"
-	        "\t-no-wnd:        uses windowless mode (Win32 only)\n"
-	        "\t-no-back:       uses transparent background for output window when no background is specified (Win32 only)\n"
-	        "\t-align vh:      specifies v and h alignment for windowless mode\n"
-	        "\t                 possible v values: t(op), m(iddle), b(ottom)\n"
-	        "\t                 possible h values: l(eft), m(iddle), r(ight)\n"
-	        "\t                 default alignment is top-left\n"
-	        "\t                 default alignment is top-left\n"
-	        "\t-pause:         pauses at first frame\n"
-	        "\t-play-from T:   starts from T seconds in media\n"
-	        "\t-speed S:       starts with speed S\n"
-	        "\t-loop:          loops presentation\n"
-	        "\t-bench:         disable a/v output and bench source decoding (as fast as possible)\n"
-	        "\t-vbench:        disable audio output, video sync bench source decoding/display (as fast as possible)\n"
-	        "\t-sbench:        disable all decoders and bench systems layer (as fast as possible)\n"
-	        "\t-fs:            starts in fullscreen mode\n"
-	        "\t-views v1:.:vN: creates an auto-stereo scene of N views. vN can be any type of URL supported by GPAC.\n"
-	        "\t                 in this mode, URL argument of GPAC is ignored, GUI as well.\n"
-	        "\t                 this is equivalent to using views://v1:.:N as an URL.\n"
-	        "\t-mosaic v1:.:vN: creates a mosaic of N views. vN can be any type of URL supported by GPAC.\n"
-	        "\t                 in this mode, URL argument of GPAC is ignored.\n"
-	        "\t                 this is equivalent to using mosaic://v1:.:N as an URL.\n"
-	        "\n"
-	        "\t-exit:          automatically exits when presentation is over\n"
-	        "\t-run-for TIME:  runs for TIME seconds and exits\n"
-	        "\t-service ID:    auto-tune to given service ID in a multiplex\n"
-	        "\t-no-save:       disable saving config file on exit\n"
-	        "\t-no-addon:      disable automatic loading of media addons declared in source URL\n"
-	        "\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
-	        "\t-ntp-shift T:   shifts NTP clock of T (signed int) milliseconds\n"
-	        "\n"
-	        "\t-p profile:    user-defined profile, either a name or path to an existing GPAC config file.\n"
-	        "\t-stats:        dumps filter session stats after playback.\n"
-	        "\t-graph:        dumps filter session graph after playback.\n"
-	        "\t-nk:           disables keyboard interaction.\n"
-	        "\t-h or -help:   shows this screen\n"
-	        "\t-hc:           shows libgpac core options\n"
-	        "\n"
-	        "MP4Client - GPAC command line player and dumper - version %s\n"
-	        "%s\n"
-	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
-	        "Features: %s %s\n",
-	        gf_gpac_version(),
-	        gf_gpac_copyright(),
-	        gf_enabled_features(), gf_disabled_features()
-	       );
+	 GF_DEF_ARG("rti", NULL, "log run-time info (FPS, CPU, Mem usage) to given file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	 GF_DEF_ARG("rtix", NULL, "same as -rti but driven by GPAC logs", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	 GF_DEF_ARG("size", NULL, "specifie visual size WxH? If not set, scene size or video size is used", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+
+ 	GF_DEF_ARG("no-thread", NULL, "disable thread usage (except for depending on driver audio)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+ 	GF_DEF_ARG("no-audio", NULL, "disable audio", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+
+#ifdef GPAC_CONFIG_WIN32
+ 	GF_DEF_ARG("no-wnd", NULL, "use windowless mode (Win32 only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERIMENTAL),
+ 	GF_DEF_ARG("no-back", NULL, "use transparent background for output window when no background is specified (Win32 only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERIMENTAL),
+ 	GF_DEF_ARG("align", NULL, "specifies v and h alignment for windowless mode\n"
+ 	"- tl: top/left\n"
+ 	"- tm: top/horizontal middle\n"
+ 	"- tr: top/right\n"
+ 	"- ml: vertical middle/left\n"
+ 	"- mm: vertical middle/horizontal middle\n"
+ 	"- mr: vertical middle/right\n"
+ 	"- bl: bottom/left\n"
+ 	"- bm: bottom/horizontal middle\n"
+ 	"- br: bottom/right", "tl", "tl|tm|tr|ml|mm|mr|bl|bm|br", GF_ARG_INT, GF_ARG_HINT_EXPERIMENTAL),
+#endif // GPAC_CONFIG_WIN32
+
+ 	GF_DEF_ARG("pause", NULL, "pause at first frame", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("play-from", NULL, "start playback from given time in seconds in media", NULL, NULL, GF_ARG_DOUBLE, 0),
+	GF_DEF_ARG("speed", NULL, "start playback wit given speed", NULL, NULL, GF_ARG_DOUBLE, 0),
+	GF_DEF_ARG("loop", NULL, "loop playback", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("fs", NULL, "start in fullscreen mode", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("exit", NULL, "exit when presentation is over", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("run-for", NULL, "run for indicated time in seconds and exits", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("service", NULL, "auto-tune to given service ID in a multiplex", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("no-save", NULL, "do not save configuration file on exit", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("no-addon", NULL, "disable automatic loading of media addons declared in source URL", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("gui", NULL, "start in GUI mode. The GUI is indicated in the [configuration](CFG) file __[General]StartupFile__", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("ntp-shift", NULL, "shift NTP clock of the given amount of milliseconds", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("p", NULL, "user-defined profile, either a name or path to an existing [GPAC configuration file](CFG)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("stats", NULL, "dump filter session stats after playback", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("graph", NULL, "dump filter session graph after playback", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("nk", NULL, "disable keyboard interaction", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("h", "help", "show this help. Use `-hx` to show expert help", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("hc", NULL, "show libgpac core options", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("hr", NULL, "show runtime options when keybard interaction is enabled", NULL, NULL, GF_ARG_BOOL, 0),
+	{0}
+};
+
+
+void PrintUsage(Bool show_all)
+{
+	u32 i=0;
+
+	gf_sys_format_help(helpout, help_flags, "Usage: MP4Client [options] [filename]\n"
+		"# General\n"
+		"The player accepts any URL supported by GPAC.\n"
+		"Specific URLs shortcuts are available, see [GPAC Compositor (gpac -h compositor)](compositor)\n"
+		"Version: %s\n"
+		"%s\n"
+		"For more info on GPAC configuration, use `gpac ` [-h](GPAC) `bin`)  \n  \n",
+		"# Options  \n  \n",
+		gf_gpac_version(),
+		gf_gpac_copyright()
+	);
+
+	while (mp4client_args[i].name) {
+		GF_GPACArg *arg = &mp4client_args[i];
+		i++;
+		if (!show_all && (arg->flags & (GF_ARG_HINT_EXPERIMENTAL|GF_ARG_HINT_EXPERT) ))
+			continue;
+		gf_sys_print_arg(helpout, help_flags, arg, "mp4client");
+	}
+}
+
+typedef enum
+{
+	MP4C_QUIT = 0,
+	MP4C_KILL,
+	MP4C_RELOAD,
+	MP4C_OPEN,
+	MP4C_OPEN_PL,
+	MP4C_PL_NEXT,
+	MP4C_PL_JUMP,
+	MP4C_DISCONNECT,
+	MP4C_SELECT,
+	MP4C_PAUSE_RESUME,
+	MP4C_STEP,
+	MP4C_SEEK,
+	MP4C_SEEK_TIME,
+	MP4C_TIME,
+	MP4C_UPDATE,
+	MP4C_EVALJS,
+	MP4C_SCREENSHOT,
+	MP4C_WORLDINFO,
+	MP4C_ODLIST,
+	MP4C_ODINFO_ID,
+	MP4C_ODINFO_NUM,
+	MP4C_ODTIME,
+	MP4C_ODBUF,
+	MP4C_DUMPSCENE,
+	MP4C_STRESSMODE,
+	MP4C_NAVMODE,
+	MP4C_LASTVP,
+	MP4C_OGL2D,
+	MP4C_AR_4_3,
+	MP4C_AR_16_9,
+	MP4C_AR_NONE,
+	MP4C_AR_ORIG,
+	MP4C_LOGS,
+	MP4C_RELOAD_OPTS,
+	MP4C_DISP_RTI,
+	MP4C_DISP_FPS,
+	MP4C_DISP_STATS,
+	MP4C_DISP_GRAPH,
+	MP4C_HELP,
+	MP4C_DOWNRATE,
+	MP4C_VMEM_CACHE,
+
+} MP4C_Command;
+
+struct _mp4c_key
+{
+ u8 char_code;
+ MP4C_Command cmd_type;
+ const char *cmd_help;
+ u32 flags;
+} MP4C_Keys[] = {
+	{'q', MP4C_QUIT, "quit", 0},
+	{'X', MP4C_KILL, "kill", 0},
+	{'r', MP4C_KILL, "reload current presentation", 0},
+	{'o', MP4C_OPEN, "connect to the specified URL", 0},
+	{'O', MP4C_OPEN_PL, "connect to the specified playlist", 0},
+	{'N', MP4C_PL_NEXT, "switch to the next URL in the playlist. Also works with `\\n`", 0},
+	{'P', MP4C_PL_JUMP, "jump to a given number ahead in the playlist", 0},
+	{'D', MP4C_DISCONNECT, "disconnect the current presentation", 0},
+	{'G', MP4C_SELECT, "select object or service ID", 0},
+	{'p', MP4C_PAUSE_RESUME, "play/pause the presentation", 0},
+	{'s', MP4C_STEP, "step one frame ahead", 0},
+	{'z', MP4C_SEEK, "seek into presentation by percentage", 0},
+	{'T', MP4C_SEEK_TIME, "seek into presentation by time", 0},
+	{'t', MP4C_TIME, "print current timing", 0},
+	{'u', MP4C_UPDATE, "send a command (BIFS or LASeR) to the main scene", 0},
+	{'e', MP4C_EVALJS, "evaluate JavaScript code in the main scene", 0},
+	{'Z', MP4C_SCREENSHOT, "dump current output frame to PNG", 0},
+	{'w', MP4C_WORLDINFO, "view world info", 0},
+	{ 'v', MP4C_ODLIST, "view list of active media objects in scene", 0},
+	{ 'i', MP4C_ODINFO_ID, "view Object Descriptor info (by ID)", 0},
+	{ 'j', MP4C_ODINFO_NUM, "view Object Descriptor info (by number)", 0},
+	{ 'b', MP4C_ODTIME, "view media objects timing and buffering info", 0},
+	{ 'm', MP4C_ODBUF, "view media objects buffering and memory info", 0},
+	{ 'd', MP4C_DUMPSCENE, "dump scene graph", 0},
+	{ 'k', MP4C_STRESSMODE, "turn stress mode on/off", 0},
+	{ 'n', MP4C_NAVMODE, "change navigation mode", 0},
+	{ 'x', MP4C_LASTVP, "reset to last active viewpoint", 0},
+	{ '3', MP4C_OGL2D, "switch OpenGL on or off for 2D scenes", 0},
+	{ '4', MP4C_AR_4_3, "force 4/3 Aspect Ratio", 0},
+	{ '5', MP4C_AR_16_9, "force 16/9 Aspect Ratio", 0},
+	{ '6', MP4C_AR_NONE, "force no Aspect Ratio (always fill screen)", 0},
+	{ '7', MP4C_AR_ORIG, "force original Aspect Ratio (default)", 0},
+	{ 'H', MP4C_DOWNRATE, "set HTTP max download rate", 0},
+	{ 'E', MP4C_RELOAD_OPTS, "force reload of compositor options", 0},
+
+	{ 'L', MP4C_LOGS, "change to new log tool/level. CF MP4Client usage for possible values", 0},
+	{ 'R', MP4C_DISP_RTI, "toggle run-time info display in window title bar on/off", 0},
+	{ 'F', MP4C_DISP_FPS, "toggle displaying of FPS in stderr on/off", 0},
+	{ 'f', MP4C_DISP_STATS, "print filter session stats", 0},
+	{ 'g', MP4C_DISP_GRAPH, "print filter session graph", 0},
+
+	{ 'h', MP4C_HELP, "print this message", 0},
+	//below this, only experimental features
+	{ 'M', MP4C_VMEM_CACHE, "specify video cache memory for 2D objects", 1},
+	{0}
+};
+
+MP4C_Command get_cmd(u8 char_code)
+{
+	u32 i=0;
+	while (MP4C_Keys[i].char_code) {
+		if (MP4C_Keys[i].char_code == char_code)
+			return MP4C_Keys[i].cmd_type;
+	}
+	return 0;
 }
 
 void PrintHelp()
 {
-	fprintf(stderr, "MP4Client command keys:\n"
-	        "\tq: quit\n"
-	        "\tX: kill\n"
-	        "\to: connect to the specified URL\n"
-	        "\tO: connect to the specified playlist\n"
-	        "\tN: switch to the next URL in the playlist. Also works with \\n\n"
-	        "\tP: jumps to a given number ahead in the playlist\n"
-	        "\tr: reload current presentation\n"
-	        "\tD: disconnects the current presentation\n"
-	        "\tG: selects object or service ID\n"
-	        "\n"
-	        "\tp: play/pause the presentation\n"
-	        "\ts: step one frame ahead\n"
-	        "\tz: seek into presentation by percentage\n"
-	        "\tT: seek into presentation by time\n"
-	        "\tt: print current timing\n"
-	        "\n"
-	        "\tu: sends a command (BIFS or LASeR) to the main scene\n"
-	        "\te: evaluates JavaScript code\n"
-	        "\tZ: dumps output video to PNG\n"
-	        "\n"
-	        "\tw: view world info\n"
-	        "\tv: view Object Descriptor list\n"
-	        "\ti: view Object Descriptor info (by ID)\n"
-	        "\tj: view Object Descriptor info (by number)\n"
-	        "\tb: view media objects timing and buffering info\n"
-	        "\tm: view media objects buffering and memory info\n"
-	        "\td: dumps scene graph\n"
-	        "\n"
-	        "\tk: turns stress mode on/off\n"
-	        "\tn: changes navigation mode\n"
-	        "\tx: reset to last active viewpoint\n"
-	        "\n"
-	        "\t3: switch OpenGL on or off for 2D scenes\n"
-	        "\n"
-	        "\t4: forces 4/3 Aspect Ratio\n"
-	        "\t5: forces 16/9 Aspect Ratio\n"
-	        "\t6: forces no Aspect Ratio (always fill screen)\n"
-	        "\t7: forces original Aspect Ratio (default)\n"
-	        "\n"
-	        "\tL: changes to new log level. CF MP4Client usage for possible values\n"
-	        "\tT: select new tools to log. CF MP4Client usage for possible values\n"
-	        "\n"
-	        "\tl: list available modules\n"
-	        "\tc: prints some GPAC configuration info\n"
-	        "\tE: forces reload of GPAC configuration\n"
-	        "\n"
-	        "\tR: toggles run-time info display in window title bar on/off\n"
-	        "\tF: toggle displaying of FPS in stderr on/off\n"
-	        "\tg: print GPAC allocated memory\n"
-	        "\th: print this message\n"
-	        "\n"
-	        "\tEXPERIMENTAL/UNSTABLE OPTIONS\n"
-	        "\tC: Enable Streaming Cache\n"
-	        "\tS: Stops Streaming Cache and save to file\n"
-	        "\tA: Aborts Streaming Cache\n"
-	        "\tM: specifies video cache memory for 2D objects\n"
-	        "\n"
-	        "MP4Client - GPAC command line player - version %s\n"
-	        "%s\n",
+	u32 i=0;
 
-	        gf_gpac_version(), gf_gpac_copyright()
-	       );
+	gf_sys_format_help(helpout, help_flags, "# MP4Client runtime commands\n"
+		"## Prompt Interaction\n"
+		"The following keys are used for prompt interaction:\n");
+
+	while (MP4C_Keys[i].char_code) {
+		struct _mp4c_key *k = &MP4C_Keys[i];
+		i++;
+		gf_sys_format_help(helpout, help_flags|GF_PRINTARG_HIGHLIGHT_FIRST, "%c: %s%s\n", k->char_code, k->cmd_help, k->flags ? " **! experimental !**" : "");
+	}
+
+	gf_sys_format_help(helpout, help_flags, "\n"
+		"## Content interaction\n"
+		"It is possible to interact with content (interactive or not) using mouse and keyboard.\n"
+		"The following commands are available:\n"
+		"TODO\n"
+		"\n"
+	);
 }
 
 
@@ -966,6 +1051,7 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 int mp4client_main(int argc, char **argv)
 {
 	char c;
+	MP4C_Command cmdtype;
 	const char *str;
 	int ret_val = 0;
 	GF_Err e;
@@ -985,11 +1071,13 @@ int mp4client_main(int argc, char **argv)
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
 #endif
 	Bool has_command;
-	char *url_arg, *out_arg, *profile, *rti_file, *views, *mosaic;
+	char *url_arg, *out_arg, *profile, *rti_file;
 	FILE *logfile = NULL;
 #ifndef WIN32
 	dlopen(NULL, RTLD_NOW|RTLD_GLOBAL);
 #endif
+
+	helpout = stdout;
 
 	/*by default use current dir*/
 	strcpy(the_url, ".");
@@ -997,7 +1085,7 @@ int mp4client_main(int argc, char **argv)
 	memset(&user, 0, sizeof(GF_User));
 
 	has_command = GF_FALSE;
-	url_arg = out_arg = profile = rti_file = views = mosaic = NULL;
+	url_arg = out_arg = profile = rti_file = NULL;
 
 	/*first identify profile and mem tracking */
 	for (i=1; i<(u32) argc; i++) {
@@ -1016,11 +1104,17 @@ int mp4client_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-guid")) {
 			gui_mode = 2;
 		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help")) {
-			PrintUsage();
+			PrintUsage(GF_FALSE);
+			return 0;
+		} else if (!strcmp(arg, "-hx")) {
+			PrintUsage(GF_TRUE);
+			return 0;
+		} else if (!strcmp(arg, "-hr")) {
+			PrintHelp();
 			return 0;
 		} else if (!strcmp(arg, "-hc")) {
 			fprintf(stderr, "libgpac options:\n");
-			gf_sys_print_core_help(GF_ARGMODE_ALL, 0, NULL);
+			gf_sys_print_core_help(helpout, help_flags, GF_ARGMODE_ALL, 0);
 			return 0;
 		}
 	}
@@ -1053,7 +1147,18 @@ int mp4client_main(int argc, char **argv)
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
 
-		if (!strcmp(arg, "-rti")) {
+		if (!strcmp(arg, "-genmd")) {
+			help_flags = GF_PRINTARG_MD;
+			helpout = gf_fopen("mp4client.md", "w");
+
+	 		fprintf(helpout, "[**HOME**](Home) » MP4Client  \n");
+	 		fprintf(helpout, "<!-- automatically generated - do not edit, patch gpac/applications/mp4client/main.c -->\n");
+			PrintUsage(GF_TRUE);
+			PrintHelp();
+			gf_fclose(helpout);
+			gf_sys_close();
+			return 0;
+		} else if (!strcmp(arg, "-rti")) {
 			rti_file = argv[i+1];
 			i++;
 		} else if (!strcmp(arg, "-rtix")) {
@@ -1079,10 +1184,6 @@ int mp4client_main(int argc, char **argv)
 			no_audio = GF_TRUE;
 		}
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
-		else if (!stricmp(arg, "-help")) {
-			PrintUsage();
-			return 1;
-		}
 		else if (!stricmp(arg, "-no-save") || !stricmp(arg, "--no-save") /*old versions used --n-save ...*/) {
 			no_cfg_save=1;
 		}
@@ -1153,14 +1254,6 @@ int mp4client_main(int argc, char **argv)
 				i++;
 			}
 			else if (!strcmp(arg, "-exit")) auto_exit = GF_TRUE;
-			else if (!stricmp(arg, "-views")) {
-				views = argv[i+1];
-				i++;
-			}
-			else if (!stricmp(arg, "-mosaic")) {
-				mosaic = argv[i+1];
-				i++;
-			}
 			else if (!stricmp(arg, "-com")) {
 				has_command = GF_TRUE;
 				i++;
@@ -1188,6 +1281,9 @@ int mp4client_main(int argc, char **argv)
 			i++;
 		}
  	}
+
+	//will run switch helpout to stderr
+	helpout = stderr;
 
 	if (!gui_mode && !url_arg && (gf_opts_get_key("General", "StartupFile") != NULL)) {
 		gui_mode=1;
@@ -1281,10 +1377,9 @@ int mp4client_main(int argc, char **argv)
 	}
 
 	if (rti_file) {
-		str = gf_opts_get_key("General", "RTIRefreshPeriod");
-		if (str) {
-			rti_update_time_ms = atoi(str);
-		} else {
+		rti_update_time_ms = gf_opts_get_int("General", "RTIRefreshPeriod");
+		if (!rti_update_time_ms) {
+			rti_update_time_ms = 200;
 			gf_opts_set_key("General", "RTIRefreshPeriod", "200");
 		}
 		UpdateRTInfo("At GPAC load time\n");
@@ -1292,9 +1387,7 @@ int mp4client_main(int argc, char **argv)
 
 	Run = 1;
 
-	if (views) {
-	}
-	else if (url_arg && !strcmp(url_arg, "NOGUI")) {
+	if (url_arg && !strcmp(url_arg, "NOGUI")) {
 		url_arg = NULL;
 	}
 	/*connect if requested*/
@@ -1359,16 +1452,6 @@ int mp4client_main(int argc, char **argv)
 
 	if (start_fs) gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
 
-	if (views) {
-		char szTemp[4046];
-		sprintf(szTemp, "views://%s", views);
-		gf_term_connect(term, szTemp);
-	}
-	if (mosaic) {
-		char szTemp[4046];
-		sprintf(szTemp, "mosaic://%s", mosaic);
-		gf_term_connect(term, szTemp);
-	}
 	if (bench_mode) {
 		rti_update_time_ms = 500;
 		bench_mode_start = gf_sys_clock();
@@ -1435,8 +1518,11 @@ int mp4client_main(int argc, char **argv)
 		c = gf_prompt_get_char();
 
 force_input:
-		switch (c) {
-		case 'q':
+		if (c=='\n') cmdtype=MP4C_PL_NEXT;
+		else cmdtype = get_cmd(c);
+
+		switch (cmdtype) {
+		case MP4C_QUIT:
 		{
 			GF_Event evt;
 			memset(&evt, 0, sizeof(GF_Event));
@@ -1445,12 +1531,11 @@ force_input:
 		}
 //			Run = 0;
 		break;
-		case 'X':
+		case MP4C_KILL:
 			exit(0);
 			break;
-		case 'Q':
-			break;
-		case 'o':
+
+		case MP4C_OPEN:
 			startup_file = 0;
 			gf_term_disconnect(term);
 			fprintf(stderr, "Enter the absolute URL\n");
@@ -1461,7 +1546,7 @@ force_input:
 			if (rti_file) init_rti_logs(rti_file, the_url, use_rtix);
 			gf_term_connect(term, the_url);
 			break;
-		case 'O':
+		case MP4C_OPEN_PL:
 			gf_term_disconnect(term);
 			fprintf(stderr, "Enter the absolute URL to the playlist\n");
 			if (1 > scanf("%s", the_url)) {
@@ -1479,8 +1564,7 @@ force_input:
 				gf_term_connect(term, the_url);
 			}
 			break;
-		case '\n':
-		case 'N':
+		case MP4C_PL_NEXT:
 			if (playlist) {
 				int res;
 				gf_term_disconnect(term);
@@ -1501,7 +1585,7 @@ force_input:
 				}
 			}
 			break;
-		case 'P':
+		case MP4C_PL_JUMP:
 			if (playlist) {
 				u32 count;
 				gf_term_disconnect(term);
@@ -1520,23 +1604,23 @@ force_input:
 				gf_term_connect(term, the_url);
 			}
 			break;
-		case 'r':
+		case MP4C_RELOAD:
 			if (is_connected)
 				reload = 1;
 			break;
 
-		case 'D':
+		case MP4C_DISCONNECT:
 			if (is_connected) gf_term_disconnect(term);
 			break;
 
-		case 'p':
+		case MP4C_PAUSE_RESUME:
 			if (is_connected) {
 				Bool is_pause = gf_term_get_option(term, GF_OPT_PLAY_STATE);
 				fprintf(stderr, "[Status: %s]\n", is_pause ? "Playing" : "Paused");
 				gf_term_set_option(term, GF_OPT_PLAY_STATE, is_pause ? GF_STATE_PLAYING : GF_STATE_PAUSED);
 			}
 			break;
-		case 's':
+		case MP4C_STEP:
 			if (is_connected) {
 				gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 				fprintf(stderr, "Step time: ");
@@ -1545,8 +1629,8 @@ force_input:
 			}
 			break;
 
-		case 'z':
-		case 'T':
+		case MP4C_SEEK:
+		case MP4C_SEEK_TIME:
 			if (!CanSeek || (Duration<=2000)) {
 				fprintf(stderr, "scene not seekable\n");
 			} else {
@@ -1555,7 +1639,7 @@ force_input:
 				fprintf(stderr, "Duration: ");
 				PrintTime(Duration);
 				res = gf_term_get_time_in_ms(term);
-				if (c=='z') {
+				if (cmdtype==MP4C_SEEK) {
 					res *= 100;
 					res /= (s64)Duration;
 					fprintf(stderr, " (current %.2f %%)\nEnter Seek percentage:\n", res);
@@ -1591,7 +1675,7 @@ force_input:
 			}
 			break;
 
-		case 't':
+		case MP4C_TIME:
 		{
 			if (is_connected) {
 				fprintf(stderr, "Current Time: ");
@@ -1602,13 +1686,13 @@ force_input:
 			}
 		}
 		break;
-		case 'w':
+		case MP4C_WORLDINFO:
 			if (is_connected) PrintWorldInfo(term);
 			break;
-		case 'v':
+		case MP4C_ODLIST:
 			if (is_connected) PrintODList(term, NULL, 0, 0, "Root");
 			break;
-		case 'i':
+		case MP4C_ODINFO_ID:
 			if (is_connected) {
 				u32 ID;
 				fprintf(stderr, "Enter OD ID (0 for main OD): ");
@@ -1622,7 +1706,7 @@ force_input:
 				}
 			}
 			break;
-		case 'j':
+		case MP4C_ODINFO_NUM:
 			if (is_connected) {
 				u32 num;
 				do {
@@ -1632,26 +1716,22 @@ force_input:
 				ViewOD(term, (u32)-1, num, NULL);
 			}
 			break;
-		case 'b':
+		case MP4C_ODTIME:
 			if (is_connected) ViewODs(term, 1);
 			break;
 
-		case 'm':
+		case MP4C_ODBUF:
 			if (is_connected) ViewODs(term, 0);
 			break;
 
-		case 'l':
-			list_modules();
-			break;
-
-		case 'n':
+		case MP4C_NAVMODE:
 			if (is_connected) set_navigation();
 			break;
-		case 'x':
+		case MP4C_LASTVP:
 			if (is_connected) gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
 			break;
 
-		case 'd':
+		case MP4C_DUMPSCENE:
 			if (is_connected) {
 				GF_ObjectManager *odm = NULL;
 				char radname[GF_MAX_PATH], *sExt;
@@ -1692,10 +1772,7 @@ force_input:
 			}
 			break;
 
-		case 'c':
-			PrintGPACConfig(GF_FALSE);
-			break;
-		case '3':
+		case MP4C_OGL2D:
 		{
 			Bool use_3d = !gf_term_get_option(term, GF_OPT_USE_OPENGL);
 			if (gf_term_set_option(term, GF_OPT_USE_OPENGL, use_3d)==GF_OK) {
@@ -1703,7 +1780,7 @@ force_input:
 			}
 		}
 		break;
-		case 'k':
+		case MP4C_STRESSMODE:
 		{
 			Bool opt = gf_term_get_option(term, GF_OPT_STRESS_MODE);
 			opt = !opt;
@@ -1711,36 +1788,35 @@ force_input:
 			gf_term_set_option(term, GF_OPT_STRESS_MODE, opt);
 		}
 		break;
-		case '4':
+		case MP4C_AR_4_3:
 			gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3);
 			break;
-		case '5':
+		case MP4C_AR_16_9:
 			gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9);
 			break;
-		case '6':
+		case MP4C_AR_NONE:
 			gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN);
 			break;
-		case '7':
+		case MP4C_AR_ORIG:
 			gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);
 			break;
 
-		case 'R':
+		case MP4C_DISP_RTI:
 			display_rti = !display_rti;
 			ResetCaption();
 			break;
-		case 'F':
+		case MP4C_DISP_FPS:
 			if (display_rti) display_rti = 0;
 			else display_rti = 2;
 			ResetCaption();
 			break;
-		case 'f':
+		case MP4C_DISP_STATS:
 			gf_term_print_stats(term);
 			break;
-		case 'g':
+		case MP4C_DISP_GRAPH:
 			gf_term_print_graph(term);
 			break;
-
-		case 'u':
+		case MP4C_UPDATE:
 		{
 			GF_Err e;
 			char szCom[8192];
@@ -1755,7 +1831,7 @@ force_input:
 			if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 		}
 		break;
-		case 'e':
+		case MP4C_EVALJS:
 		{
 			GF_Err e;
 			char jsCode[8192];
@@ -1771,7 +1847,7 @@ force_input:
 		}
 		break;
 
-		case 'L':
+		case MP4C_LOGS:
 		{
 			char szLog[1024], *cur_logs;
 			cur_logs = gf_log_get_tools_levels();
@@ -1785,7 +1861,7 @@ force_input:
 		}
 		break;
 
-		case 'M':
+		case MP4C_VMEM_CACHE:
 		{
 			u32 size;
 			do {
@@ -1795,7 +1871,7 @@ force_input:
 		}
 		break;
 
-		case 'H':
+		case MP4C_DOWNRATE:
 		{
 			u32 http_bitrate = gf_term_get_option(term, GF_OPT_HTTP_MAX_RATE);
 			do {
@@ -1806,34 +1882,16 @@ force_input:
 		}
 		break;
 
-		case 'E':
+		case MP4C_RELOAD_OPTS:
 			gf_term_set_option(term, GF_OPT_RELOAD_CONFIG, 1);
 			break;
 
-		case 'B':
-			switch_bench(!bench_mode);
-			break;
-
-		case 'Y':
-		{
-			char szOpt[8192];
-			fprintf(stderr, "Enter option to set (Section:Name=Value):\n");
-			fflush(stdin);
-			szOpt[0] = 0;
-			if (1 > scanf("%[^\t\n]", szOpt)) {
-				fprintf(stderr, "Cannot read option\n");
-				break;
-			}
-			gf_sys_set_cfg_option(szOpt);
-		}
-		break;
-
 		/*extract to PNG*/
-		case 'Z':
+		case MP4C_SCREENSHOT:
 			MakeScreenshot(GF_FALSE);
 			break;
 
-		case 'G':
+		case MP4C_SELECT:
 		{
 			GF_ObjectManager *root_od, *odm;
 			u32 index;
@@ -1864,7 +1922,7 @@ force_input:
 		}
 		break;
 
-		case 'h':
+		case MP4C_HELP:
 			PrintHelp();
 			break;
 		default:
@@ -1899,10 +1957,9 @@ force_input:
 		ViewODs(term, GF_FALSE);
 		ViewOD(term, 0, (u32) -1, NULL);
 		ViewOD(term, 0, 1, NULL);
-		PrintUsage();
+		PrintUsage(0);
 		PrintHelp();
 		PrintWorldInfo(term);
-		PrintGPACConfig(GF_TRUE);
 		gf_term_dump_scene(term, NULL, NULL, GF_FALSE, 0, NULL);
 		gf_term_get_current_service_id(term);
 		gf_term_toggle_addons(term, GF_FALSE);
@@ -2665,44 +2722,3 @@ static void ViewODs(GF_Terminal *term, Bool show_timing)
 	}
 	fprintf(stderr, "\n");
 }
-
-
-static void PrintGPACConfig(Bool full_dump)
-{
-	u32 i, j, cfg_count, key_count;
-	char szName[200];
-	char *secName = NULL;
-
-	if (full_dump) {
-		strcpy(szName, "*");
-	} else {
-		fprintf(stderr, "Enter section name (\"*\" for complete dump):\n");
-		if (1 > scanf("%s", szName)) {
-			fprintf(stderr, "No section name, aborting.\n");
-			return;
-		}
-		if (strcmp(szName, "*")) secName = szName;
-	}
-
-	fprintf(stderr, "\n\n*** GPAC Configuration ***\n\n");
-
-	cfg_count = gf_opts_get_section_count();
-	for (i=0; i<cfg_count; i++) {
-		const char *sec = gf_opts_get_section_name(i);
-		if (secName) {
-			if (stricmp(sec, secName)) continue;
-		} else {
-			if (!stricmp(sec, "General")) continue;
-			if (!stricmp(sec, "MimeTypes")) continue;
-		}
-		fprintf(stderr, "[%s]\n", sec);
-		key_count = gf_opts_get_key_count(sec);
-		for (j=0; j<key_count; j++) {
-			const char *key = gf_opts_get_key_name(sec, j);
-			const char *val = gf_opts_get_key(sec, key);
-			fprintf(stderr, "%s=%s\n", key, val);
-		}
-		fprintf(stderr, "\n");
-	}
-}
-

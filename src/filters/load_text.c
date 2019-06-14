@@ -2875,7 +2875,9 @@ static const GF_FilterArgs TXTInArgs[] =
 GF_FilterRegister TXTInRegister = {
 	.name = "txtin",
 	GF_FS_SET_DESCRIPTION("Subtitle loader")
-	GF_FS_SET_HELP("This filter reads subtitle data (srt/webvtt/ttxt/sub) to produce media PIDs and frames.")
+	GF_FS_SET_HELP("This filter reads subtitle data (srt/webvtt/ttxt/sub) to produce media PIDs and frames.\n"
+	"The TTXT documentation is available at https://github.com/gpac/gpac/wiki/TTXT-Format-Documentation\n"
+	)
 
 	.private_size = sizeof(GF_TXTIn),
 	.flags = GF_FS_REG_MAIN_THREAD,

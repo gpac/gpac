@@ -113,14 +113,17 @@ typedef struct
 #define GF_ARG_HINT_EXPERT		(1<<2)
 /*! argument should not be presented in UIs*/
 #define GF_ARG_HINT_HIDE 		(1<<3)
+/*! argument is highly experimental*/
+#define GF_ARG_HINT_EXPERIMENTAL	(1<<4)
+
 /*! argument applies to the libgpac core subsystem*/
-#define GF_ARG_SUBSYS_CORE 		(1<<4)
+#define GF_ARG_SUBSYS_CORE 		(1<<5)
 /*! argument applies to the log subsystem*/
-#define GF_ARG_SUBSYS_LOG 		(1<<5)
+#define GF_ARG_SUBSYS_LOG 		(1<<6)
 /*! argument applies to the filter subsystem*/
-#define GF_ARG_SUBSYS_FILTERS 	(1<<6)
+#define GF_ARG_SUBSYS_FILTERS 	(1<<7)
 /*! argument applies to the HTTP subsystem*/
-#define GF_ARG_SUBSYS_HTTP 		(1<<7)
+#define GF_ARG_SUBSYS_HTTP 		(1<<8)
 /*! argument applies to the video subsystem*/
 #define GF_ARG_SUBSYS_VIDEO 		(1<<9)
 /*! argument applies to the audio subsystem*/
@@ -166,18 +169,33 @@ typedef enum
 	GF_ARGMODE_ALL,
 } GF_SysArgMode;
 
-/*! prints a argument to stderr
+enum
+{
+ 	GF_PRINTARG_HIGHLIGHT_FIRST = 1,
+	GF_PRINTARG_NL_TO_BR = 1<<1,
+	GF_PRINTARG_OPT_DESC = 1<<2,
+
+	GF_PRINTARG_MD = 1<<16,
+	GF_PRINTARG_MAN = 1<<17,
+
+};
+
+
+/*! prints a argument
+\param helpout destination file - if NULL, uses stderr
+\param flags dump flags
 \param arg argument to print
 \param arg_subsystem name of subsystem of argument (core, gpac, filter name) for localization)
 */
-void gf_sys_print_arg(const GF_GPACArg *arg, const char *arg_subsystem);
+void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const char *arg_subsystem);
 
 /*! prints libgpac help for builton core options to stderr
+\param helpout destination file - if NULL, uses stderr
+\param flags dump flags
 \param mode filtering mode based on argument  type
 \param subsystem_flags filtering mode based on argument subsytem flags
-\param sys_print_arg custom callback function for printing the arg
 */
-void gf_sys_print_core_help(GF_SysArgMode mode, u32 subsystem_flags, void (*sys_print_arg)(const GF_GPACArg *arg, const char *arg_subsystem));
+void gf_sys_print_core_help(FILE *helpout, u32 flags, GF_SysArgMode mode, u32 subsystem_flags);
 
 /*! gets localized version of string identified by module name and identifier.
 \param sec_name name of the module to query, such as "gpac", "core", or filter name
@@ -186,6 +204,9 @@ void gf_sys_print_core_help(GF_SysArgMode mode, u32 subsystem_flags, void (*sys_
 \return localized version of the string
 */
 const char *gf_sys_localized(const char *sec_name, const char *str_name, const char *def_val);
+
+
+void gf_sys_format_help(FILE *outout, u32 flags, const char *fmt, ...);
 
 /*! @} */
 

@@ -68,6 +68,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_console_code) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_logs_color) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_logs_to_file) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_format_help) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_default_cache_directory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_4cc_to_str) )

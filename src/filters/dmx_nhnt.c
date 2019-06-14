@@ -472,7 +472,8 @@ static const GF_FilterCapability NHNTDmxCaps[] =
 GF_FilterRegister NHNTDmxRegister = {
 	.name = "nhntr",
 	GF_FS_SET_DESCRIPTION("NHNT reader")
-	GF_FS_SET_HELP("This filter reads NHNT files/data to produce a media PID and frames.")
+	GF_FS_SET_HELP("This filter reads NHNT files/data to produce a media PID and frames.\n"
+	"NHNT documentation is available at https://github.com/gpac/gpac/wiki/NHNT-Format\n")
 	.private_size = sizeof(GF_NHNTDmxCtx),
 	.args = GF_NHNTDmxArgs,
 	.initialize = nhntdmx_initialize,
