@@ -216,17 +216,21 @@ void PrintUsage(Bool show_all)
 {
 	u32 i=0;
 
-	gf_sys_format_help(helpout, help_flags, "Usage: MP4Client [options] [filename]\n"
-		"# General\n"
-		"The player accepts any URL supported by GPAC.\n"
-		"Specific URLs shortcuts are available, see [GPAC Compositor (gpac -h compositor)](compositor)\n"
-		"Version: %s\n"
-		"%s\n"
-		"For more info on GPAC configuration, use `gpac ` [-h](GPAC) `bin`)  \n  \n",
-		"# Options  \n  \n",
-		gf_gpac_version(),
-		gf_gpac_copyright()
-	);
+	if (help_flags & GF_PRINTARG_MAN) {
+		fprintf(helpout, ".SH \"DESCRIPTION\"\n.LP\nMP4Client is GPAC command-line media player. It supports all GPAC playback features (2D and 3D support, local playback, RTP streaming, HTTP faststart, many audio and video codecs ...).\n.br\nSpecific URLs shortcuts are available, see gpac -h compositor\n.\n.\n.SH OPTIONS\n");
+	} else {
+		gf_sys_format_help(helpout, help_flags, "Usage: MP4Client [options] [filename]\n"
+			"# General\n"
+			"The player accepts any URL supported by GPAC.\n"
+			"Specific URLs shortcuts are available, see [GPAC Compositor (gpac -h compositor)](compositor)\n"
+			"Version: %s\n"
+			"%s\n"
+			"For more info on GPAC configuration, use `gpac ` [-h](GPAC) `bin`)  \n  \n",
+			"# Options  \n  \n",
+			gf_gpac_version(),
+			gf_gpac_copyright()
+		);
+	}
 
 	while (mp4client_args[i].name) {
 		GF_GPACArg *arg = &mp4client_args[i];
@@ -1155,6 +1159,28 @@ int mp4client_main(int argc, char **argv)
 	 		fprintf(helpout, "<!-- automatically generated - do not edit, patch gpac/applications/mp4client/main.c -->\n");
 			PrintUsage(GF_TRUE);
 			PrintHelp();
+			gf_fclose(helpout);
+			gf_sys_close();
+			return 0;
+		} else if (!strcmp(arg, "-genman")) {
+			help_flags = GF_PRINTARG_MAN;
+			helpout = gf_fopen("mp4client.1", "w");
+
+
+	 		fprintf(helpout, ".TH MP4Client 1 2019 MP4Client GPAC\n");
+			fprintf(helpout, ".\n.SH NAME\n.LP\nMP4Client \\- GPAC command-line media player\n.SH SYNOPSIS\n.LP\n.B MP4Client\n.RI [options] \\ [file]\n.br\n.\n");
+
+	 		PrintUsage(GF_TRUE);
+			PrintHelp();
+
+			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://github.com/gpac/gpac/wiki/mp4client\n");
+			fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
+			".br\nFor bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac\n"
+			".br\nbuild: %s\n"
+			".br\nCopyright: %s\n.br\n"
+			".SH SEE ALSO\n"
+			".LP\ngpac(1), MP4Box(1)\n", gf_gpac_version(), gf_gpac_copyright());
+
 			gf_fclose(helpout);
 			gf_sys_close();
 			return 0;

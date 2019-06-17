@@ -1467,7 +1467,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	compositor->epow2 = 1;
 #endif
 
-	compositor->visual->nb_views = compositor->views;
+	compositor->visual->nb_views = compositor->nbviews;
 	compositor->visual->camlay = compositor->camlay;
 	compositor->visual->autostereo_type = compositor->stereo;
 	if (compositor->visual->autostereo_type == GF_3D_STEREO_5VSP19) {

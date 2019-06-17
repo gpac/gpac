@@ -1279,7 +1279,8 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 		gen_doc = 1;
 	if (!helpout) helpout = stderr;
 
-#ifdef GPAC_ENABLE_COVERAGE
+//#ifdef GPAC_ENABLE_COVERAGE
+#if 1
 	if ((arg->name[0]>='A') && (arg->name[0]<='Z')) {
 		if ((arg->name[1]<'A') || (arg->name[1]>'Z')) {
 			fprintf(stderr, "\nWARNING: arg %s bad name format, should use lowercase\n", arg->name);
@@ -1316,16 +1317,31 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 	if (arg->flags & GF_ARG_HINT_HIDE)
 		return;
 
-	if (gen_doc==1) {
-		gf_sys_format_help(helpout, flags, "<a id=\"%s\">", arg->name);
-		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg->name);
+	const char *syntax=strchr(arg->name, ' ');
+	char *arg_name=NULL;
+	if (syntax) {
+		arg_name = gf_strdup(arg->name);
+		char *sep = strchr(arg_name, ' ');
+		sep[0]=0;
+	}
+
+	if (flags & GF_PRINTARG_MAN) {
+		fprintf(helpout, ".TP\n.B \\-%s", arg_name ? arg_name : arg->name);
+	}
+	else if (gen_doc==1) {
+		gf_sys_format_help(helpout, flags, "<a id=\"%s\">", arg_name ? arg_name : arg->name);
+		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg_name ? arg_name : arg->name);
 		gf_sys_format_help(helpout, flags, "</a>");
 	} else {
-		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg->name);
+		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg_name ? arg_name : arg->name);
 	}
 	if (arg->altname) {
 		gf_sys_format_help(helpout, flags, " ");
 		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg->altname);
+	}
+	if (syntax) {
+		gf_sys_format_help(helpout, flags, " %s", syntax);
+		gf_free(arg_name);
 	}
 
 	if (arg->type==GF_ARG_INT && arg->values && strchr(arg->values, '|')) {
@@ -1350,9 +1366,14 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 		gf_sys_format_help(helpout, flags, ")");
 	}
 
-	if (arg->description)
-		gf_sys_format_help(helpout, flags | GF_PRINTARG_OPT_DESC, ": %s", gf_sys_localized(arg_subsystem, arg->name, arg->description) );
-	gf_sys_format_help(helpout, flags, "\n");
+	if (flags & GF_PRINTARG_MAN) {
+		gf_sys_format_help(helpout, flags, "\n%s\n", gf_sys_localized(arg_subsystem, arg->name, arg->description) );
+	} else {
+		if (arg->description) {
+			gf_sys_format_help(helpout, flags | GF_PRINTARG_OPT_DESC, ": %s", gf_sys_localized(arg_subsystem, arg->name, arg->description) );
+		}
+		gf_sys_format_help(helpout, flags, "\n");
+	}
 
 	if ((gen_doc==1) && arg->description && strstr(arg->description, "- "))
 		gf_sys_format_help(helpout, flags, "\n");
@@ -1401,6 +1422,7 @@ enum
 	TOK_ITALIC,
 	TOK_STRIKE,
 	TOK_OPTLINK,
+	TOK_LINKSTART,
 };
 struct _token {
 	char *tok;
@@ -1412,6 +1434,7 @@ struct _token {
  {"__", GF_CONSOLE_ITALIC},
  {"~~", GF_CONSOLE_STRIKE},
  {"[-", GF_CONSOLE_YELLOW|GF_CONSOLE_ITALIC},
+ {"[", GF_CONSOLE_YELLOW|GF_CONSOLE_ITALIC},
 };
 static u32 nb_tokens = sizeof(Tokens) / sizeof(struct _token);
 
@@ -1424,8 +1447,13 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 	u32 len;
 	va_list vlist;
 	u32 gen_doc = 0;
+	u32 is_app_opts = 0;
 	if (flags & GF_PRINTARG_MD)
 		gen_doc = 1;
+	if (flags & GF_PRINTARG_MAN)
+		gen_doc = 2;
+	if (flags & GF_PRINTARG_IS_APP)
+		is_app_opts = 1;
 	if (!helpout) helpout = stderr;
 
 	va_start(vlist, fmt);
@@ -1458,20 +1486,33 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 		if ((line[0]=='#') && (line[1]==' ')) {
 			if (!gen_doc)
 				line+=2;
+			else if (gen_doc==2) {
+				header_string = ".SH ";
+				footer_string = "\n.LP";
+				line+=2;
+			}
 
 			console_code = GF_CONSOLE_GREEN;
 			line_after = line_before = GF_TRUE;
 		} else if ((line[0]=='#') && (line[1]=='#') && (line[2]==' ')) {
 			if (!gen_doc)
 				line+=3;
+			else if (gen_doc==2) {
+				line+=3;
+				header_string = ".P\n.B\n";
+			}
+
 			console_code = GF_CONSOLE_MAGENTA;
 			line_before = GF_TRUE;
 		} else if ((line[0]=='E') && (line[1]=='X') && (line[2]==' ')) {
 			line+=3;
 			console_code = GF_CONSOLE_YELLOW;
-			if (gen_doc) {
+			if (gen_doc==1) {
 				header_string = "Example\n```\n";
 				footer_string = "\n```";
+			} else if (gen_doc==2) {
+				header_string = "Example\n.br\n";
+				footer_string = "\n.br\n";
 			} else {
 				header_string = "Example:\n";
 			}
@@ -1541,7 +1582,9 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 			}
 		}
 		if (!line) break;
-
+		if (gen_doc==2) {
+			line_before = line_after = GF_FALSE;
+		}
 		if (line_before) {
 			fprintf(helpout, "\n");
 			line_pos=0;
@@ -1557,7 +1600,7 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 					fprintf(helpout, "_");
 					line_pos++;
 				}
-			} else {
+			} else if (!gen_doc) {
 				gf_sys_set_console_code(helpout, console_code);
 			}
 		}
@@ -1577,12 +1620,29 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 		}
 
 		while (line) {
+			char *skip_url = NULL;
+			char *link_start = NULL;
 			u32 tid=0, i;
 			char *next_token = NULL;
 			for (i=0; i<nb_tokens; i++) {
 				char *tok = strstr(line, Tokens[i].tok);
 				if (!tok) continue;
 				if (next_token && ((next_token-line) < (tok-line)) ) continue;
+				if (i == TOK_LINKSTART) {
+					if (gen_doc!=1) {
+						char *link_end;
+						skip_url = strstr(tok, "](");
+						link_end = skip_url;
+						if (skip_url) skip_url = strstr(skip_url, ")");
+						if (skip_url) skip_url ++;
+
+						if (!skip_url) continue;
+						link_start = tok+1;
+						link_end[0] = 0;
+					} else {
+						continue;
+					}
+				}
 				next_token=tok;
 				tid=i;
 			}
@@ -1638,6 +1698,16 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 			}
 			line = next_token + (u32) strlen(Tokens[tid].tok);
 
+			if (skip_url) {
+				if (link_start)
+					fprintf(helpout, "%s", link_start);
+				if (!gen_doc)
+					gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
+				has_token = GF_FALSE;
+				line = skip_url;
+
+			}
+
 			if (has_token && tid==TOK_OPTLINK) {
 				char *link = strchr(line, '(');
 				if (link) link++;
@@ -1656,10 +1726,13 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 					} else if (!strncmp(link, "CORE", 3)) {
 						fprintf(helpout, "[-%s](core_options/#%s)", line, line);
 						line_pos+=7 + 2*strlen(line) + strlen("core_options");
+					} else if (!strncmp(link, "MP4B_GEN", 3)) {
+						fprintf(helpout, "[-%s](mp4box-gen-opts/#%s)", line, line);
+						line_pos+=7 + 2*strlen(line) + strlen("mp4box-gen-opts");
 					} else if (strlen(link)) {
 						fprintf(helpout, "[-%s](%s/#%s)", line, link, line);
 						line_pos+=7 + 2*strlen(line) + strlen(link);
-					} else if (!strcmp(line, "i") || !strcmp(line, "o") || !strcmp(line, "h")){
+					} else if (is_app_opts || !strcmp(line, "i") || !strcmp(line, "o") || !strcmp(line, "h")) {
 						fprintf(helpout, "[-%s](#%s)", line, line);
 						line_pos+=5 + 2*strlen(line) + strlen(link);
 					} else {
@@ -1668,6 +1741,9 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 						line_pos+=4 + 2*strlen(line) + strlen(link);
 					}
 				} else {
+					if (gen_doc==2)
+						fprintf(helpout, ".I ");
+
 					if (!strncmp(link, "GPAC", 4)
 						|| !strncmp(link, "LOG", 3)
 						|| !strncmp(link, "CORE", 3)
@@ -1680,7 +1756,8 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 						fprintf(helpout, "%s", line);
 						line_pos+=strlen(line);
 					}
-					gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
+					if (!gen_doc)
+						gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
 				}
 				if (!end_link) break;
 				line = end_link+1;
@@ -1704,7 +1781,7 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 					fprintf(helpout, "_");
 					line_pos++;
 				}
-			} else {
+			} else if (!gen_doc) {
 				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
 			}
 		}
@@ -1719,7 +1796,13 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 		next_line[0]=0;
 		if (gen_doc==1) fprintf(helpout, "  ");
 		line = next_line+1;
-		fprintf(helpout, (line[0] && (flags & GF_PRINTARG_NL_TO_BR)) ? "<br/>" : "\n");
+		if (gen_doc==2) {
+			if (line[0] != '.')
+				fprintf(helpout, "\n.br\n");
+			else
+				fprintf(helpout, "\n");
+		} else
+			fprintf(helpout, (line[0] && (flags & GF_PRINTARG_NL_TO_BR)) ? "<br/>" : "\n");
 		line_pos=0;
 	}
 }

@@ -134,6 +134,7 @@ endif
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac-filters.1 $(DESTDIR)$(mandir)/man1/
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons"
@@ -200,6 +201,7 @@ endif
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4box.1
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4client.1
 	rm -rf $(DESTDIR)$(mandir)/man1/gpac.1
+	rm -rf $(DESTDIR)$(mandir)/man1/gpac-filters.1
 	rm -rf $(DESTDIR)$(prefix)/share/gpac
 	rm -rf $(DESTDIR)$(prefix)/include/gpac
 

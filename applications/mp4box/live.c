@@ -50,38 +50,8 @@
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 
 
-void PrintLiveUsage()
-{
-	fprintf(stderr,
 
-	        "Live scene encoder options:\n"
-	        "-dst=IP    destination IP - default: NULL\n"
-	        "-port=PORT destination port - default: 7000\n"
-	        "-mtu=MTU   path MTU for RTP packets. Default is 1450 bytes\n"
-	        "-ifce=IFCE IP address of the physical interface to use. Default: NULL(ANY)\n"
-	        "-ttl=TTL   time to live for multicast packets. Default: 1\n"
-	        "-sdp=Name  output SDP file - default: session.sdp\n"
-	        "\n"
-	        "-dims      turns on DIMS mode for SVG input - default: off\n"
-	        "-no-rap    disabled RAP sending - this also disables carousel generation. Default: off\n"
-	        "-src=file  source of updates - default: null\n"
-	        "-rap=time  duration in ms of base carousel - default: 0 (off)\n"
-	        "            you can specify the RAP period of a single ESID (not in DIMS):\n"
-	        "                -rap=ESID=X:time\n"
-	        "\n"
-	        "Runtime options:\n"
-	        "q:         quits\n"
-	        "u:         inputs some commands to be sent\n"
-	        "U:         same as u but signals the updates as critical\n"
-	        "e:         inputs some commands to be sent without being aggregated\n"
-	        "E:         same as e but signals the updates as critical\n"
-	        "f:         forces RAP sending\n"
-	        "F:         forces RAP regeneration and sending\n"
-	        "p:         dumps current scene\n"
-	        "\n"
-	        "GPAC version: %s\n"
-	        , gf_gpac_version());
-}
+
 typedef struct
 {
 	GF_RTPStreamer *rtp;
