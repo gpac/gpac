@@ -965,7 +965,7 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	//detach pid - remove all packets in our pid instance and alos update filter pending_packets
 	count = gf_fq_count(pidinst->packets);
 	assert(count >= filter->pending_packets);
-	safe_int_sub(&filter->pending_packets, count);
+	safe_int_sub(&filter->pending_packets, (s32) count);
 	gf_filter_pid_inst_reset(pidinst);
 	pidinst->pid = NULL;
 	gf_list_del_item(pid->destinations, pidinst);

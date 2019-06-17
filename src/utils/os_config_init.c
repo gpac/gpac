@@ -1719,26 +1719,26 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 				if (gen_doc==1) {
 					if (!strncmp(link, "GPAC", 4)) {
 						fprintf(helpout, "[-%s](gpac_general/#%s)", line, line);
-						line_pos+=7 + 2*strlen(line) + strlen("gpac_general");
+						line_pos+=7 + 2*(u32)strlen(line) + (u32)strlen("gpac_general");
 					} else if (!strncmp(link, "LOG", 3)) {
 						fprintf(helpout, "[-%s](core_logs/#%s)", line, line);
-						line_pos+=7 + 2*strlen(line) + strlen("core_logs");
+						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("core_logs");
 					} else if (!strncmp(link, "CORE", 3)) {
 						fprintf(helpout, "[-%s](core_options/#%s)", line, line);
-						line_pos+=7 + 2*strlen(line) + strlen("core_options");
+						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("core_options");
 					} else if (!strncmp(link, "MP4B_GEN", 3)) {
 						fprintf(helpout, "[-%s](mp4box-gen-opts/#%s)", line, line);
-						line_pos+=7 + 2*strlen(line) + strlen("mp4box-gen-opts");
+						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("mp4box-gen-opts");
 					} else if (strlen(link)) {
 						fprintf(helpout, "[-%s](%s/#%s)", line, link, line);
-						line_pos+=7 + 2*strlen(line) + strlen(link);
+						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen(link);
 					} else if (is_app_opts || !strcmp(line, "i") || !strcmp(line, "o") || !strcmp(line, "h")) {
 						fprintf(helpout, "[-%s](#%s)", line, line);
-						line_pos+=5 + 2*strlen(line) + strlen(link);
+						line_pos+=5 + 2* (u32)strlen(line) + (u32)strlen(link);
 					} else {
 						//this is a filter opt, don't print '-'
 						fprintf(helpout, "[%s](#%s)", line, line);
-						line_pos+=4 + 2*strlen(line) + strlen(link);
+						line_pos+=4 + 2* (u32)strlen(line) + (u32)strlen(link);
 					}
 				} else {
 					if (gen_doc==2)
@@ -1751,10 +1751,10 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 						|| !strcmp(line, "i") || !strcmp(line, "o") || !strcmp(line, "h")
 					) {
 						fprintf(helpout, "-%s", line);
-						line_pos+=1+strlen(line);
+						line_pos+=1+ (u32)strlen(line);
 					} else {
 						fprintf(helpout, "%s", line);
-						line_pos+=strlen(line);
+						line_pos+= (u32)strlen(line);
 					}
 					if (!gen_doc)
 						gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
