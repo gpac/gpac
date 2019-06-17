@@ -216,7 +216,7 @@ Options: [defaults in brackets after descriptions]
 GPAC configuration options:
   --help                   print this message
   --prefix=PREFIX          install in PREFIX [$prefix]
-  --mandir=DIR             man documentation in DIR [PREFIX/man]
+  --mandir=DIR             man documentation in DIR [PREFIX/share/man]
 
   --verbose                enable verbose building [$verbose]
   --source-path=PATH       path of source code [$source_path]
@@ -2530,7 +2530,7 @@ fi
 
 #man dir
 if test x"$mandir" = x""; then
-    mandir="${prefix}/man"
+    mandir="${prefix}/share/man"
 fi
 
 if test "$static_mp4box" = "yes"; then

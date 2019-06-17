@@ -169,8 +169,7 @@ enum
 	/*! special flag for text import at run time (never set on probe), indicates to leave the text box empty
 	so that we dynamically adapt to display size*/
 	GF_IMPORT_SKIP_TXT_BOX = 1<<6,
-	/*! indicates to keep unknown tracks from .MOV/.IsoMedia files*/
-	GF_IMPORT_KEEP_ALL_TRACKS = 1<<7,
+
 	/*! uses compact size in .MOV/.IsoMedia files*/
 	GF_IMPORT_USE_COMPACT_SIZE = 1<<8,
 	/*! don't add a final empty sample when importing text tracks from srt*/

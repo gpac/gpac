@@ -426,7 +426,7 @@ struct __tag_compositor
 	u32 recompute_ar;
 
 	/*to copy!*/
-	u32 views, stereo, camlay;
+	u32 nbviews, stereo, camlay;
 	Bool rview;
 	Fixed dispdist;
 	char *mvshader;
