@@ -184,13 +184,9 @@ GF_GPACArg m4b_gen_args[] =
 	GF_DEF_ARG("udta ID:[OPTS]", NULL, "set udta for given track or movie if ID is 0. OPTS is a colon separated list of:\n"
 	        "- type=CODE: 4CC code of the UDTA (not needed for `box=` option)\n"
 	        "- box=FILE: location of the udta data, formatted as serialized boxes\n"
-#ifndef GPAC_DISABLE_CORE_TOOLS
 	        "- box=base64,DATA: base64 encoded udta data, formatted as serialized boxes\n"
-#endif
 	        "- src=FILE: location of the udta data (will be stored in a single box of type CODE)\n"
-#ifndef GPAC_DISABLE_CORE_TOOLS
 	        "- src=base64,DATA: base64 encoded udta data (will be stored in a single box of type CODE)\n"
-#endif
 	        "Note: If no source is set, UDTA of type CODE will be removed\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 	{0}
 };
