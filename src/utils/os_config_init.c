@@ -1726,6 +1726,10 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 					} else if (!strncmp(link, "CORE", 3)) {
 						fprintf(helpout, "[-%s](core_options/#%s)", line, line);
 						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("core_options");
+						line_pos+=7 + 2*(u32)strlen(line) + (u32)strlen("core_options");
+					} else if (!strncmp(link, "CFG", 3)) {
+						fprintf(helpout, "[-%s](core_config/#%s)", line, line);
+						line_pos+=7 + 2*(u32)strlen(line) + (u32)strlen("core_config");
 					} else if (!strncmp(link, "MP4B_GEN", 3)) {
 						fprintf(helpout, "[-%s](mp4box-gen-opts/#%s)", line, line);
 						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("mp4box-gen-opts");
