@@ -1434,15 +1434,13 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 			gf_isom_get_fragment_defaults(input, i+1,
 			                              &sample_duration, &defaultSize, &defaultDescriptionIndex,
 			                              &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
-			if (! dasher->no_fragments_defaults) {
-				e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum),
-				                                 defaultDescriptionIndex, sample_duration,
-				                                 defaultSize, (u8) defaultRandomAccess,
-				                                 defaultPadding, defaultDegradationPriority);
 
-			} else {
-				e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum), 0, 0, 0, 0, 0, 0);
-			}
+			e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum),
+											 defaultDescriptionIndex, sample_duration,
+											 defaultSize, (u8) defaultRandomAccess,
+											 defaultPadding, defaultDegradationPriority,
+											 dasher->no_fragments_defaults ? 1 : 0);
+
 			if (e) goto err_exit;
 		} else {
 			gf_isom_get_fragment_defaults(output, TrackNum,
@@ -1547,7 +1545,7 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 					if (e) goto err_exit;
 
 					e = gf_isom_change_track_fragment_defaults(output, tf->TrackID,
-					        defaultDescriptionIndex, sample_duration, defaultSize, defaultRandomAccess, defaultPadding, defaultDegradationPriority);
+					        defaultDescriptionIndex, sample_duration, defaultSize, defaultRandomAccess, defaultPadding, defaultDegradationPriority, dasher->no_fragments_defaults);
 					if (e) goto err_exit;
 				}
 
@@ -3754,7 +3752,7 @@ retry_track:
 				e = gf_isom_setup_track_fragment(init_seg, gf_isom_get_track_id(init_seg, track),
 				                                 defaultDescriptionIndex, sample_duration,
 				                                 defaultSize, (u8) defaultRandomAccess,
-				                                 defaultPadding, defaultDegradationPriority);
+				                                 defaultPadding, defaultDegradationPriority, 0);
 				if (e) break;
 			}
 			if (!e) {

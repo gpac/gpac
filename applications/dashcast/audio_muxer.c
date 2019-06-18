@@ -138,7 +138,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("time scale: %d  sample dur: %d \n", audio_codec_ctx->time_base.den, audio_output_file->codec_ctx->frame_size));
 
-	ret = gf_isom_setup_track_fragment(audio_output_file->isof, track, 1, audio_output_file->codec_ctx->frame_size, 0, 0, 0, 0);
+	ret = gf_isom_setup_track_fragment(audio_output_file->isof, track, 1, audio_output_file->codec_ctx->frame_size, 0, 0, 0, 0, 0);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_setup_track_fragment\n", gf_error_to_string(ret)));
 		return -1;
