@@ -174,6 +174,7 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 	gf_bs_write_u16(bs, ptr->packet_size);
 	gf_bs_write_u16(bs, ptr->samplerate_hi);
 	gf_bs_write_u16(bs, ptr->samplerate_lo);
+
 	if (ptr->is_qtff) {
 		GF_Box *esds = NULL;
 		if (ptr->is_qtff==1) {
@@ -182,44 +183,36 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 			}
 		}
 
-		if (!ptr->is_qtff) {
-			if (ptr->version==1) {
+		if (ptr->version==1) {
+			if (ptr->is_qtff==2) {
 				gf_bs_write_data(bs,  (char *) ptr->extensions, 16);
-			} else if (ptr->version==2) {
-				gf_bs_write_data(bs,  (char *) ptr->extensions, 36);
+			} else {
+				gf_bs_write_u32(bs, esds ? 1024 : 1);
+				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample);
+				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample*ptr->channel_count);
+				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample/8);
 			}
-		} else {
-			if (ptr->version==1) {
-				if (ptr->is_qtff==2) {
-					gf_bs_write_data(bs,  (char *) ptr->extensions, 16);
-				} else {
-					gf_bs_write_u32(bs, esds ? 1024 : 1);
-					gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample);
-					gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample*ptr->channel_count);
-					gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample/8);
-				}
-			} else if (ptr->version==2) {
-				gf_bs_write_data(bs,  (char *) ptr->extensions, 36);
-			}
+		} else if (ptr->version==2) {
+			gf_bs_write_data(bs,  (char *) ptr->extensions, 36);
+		}
 
-			if (ptr->is_qtff==1) {
-				u32 wave_size = 8 + 12 + 10 + 8;
-				if ((ptr->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)ptr)->esd) {
-					wave_size += esds->size;
-				}
-				gf_bs_write_u32(bs, wave_size);
-				gf_bs_write_u32(bs, GF_QT_BOX_TYPE_WAVE);
-				gf_bs_write_u32(bs, 12);
-				gf_bs_write_u32(bs, GF_QT_BOX_TYPE_FRMA);
-				gf_bs_write_u32(bs, ptr->type);
-				if (esds) gf_isom_box_write(esds, bs);
-
-				gf_bs_write_u32(bs, 10);
-				gf_bs_write_u32(bs, GF_QT_BOX_TYPE_ENDA);
-				gf_bs_write_u16(bs, 1);
-				gf_bs_write_u32(bs, 8);
-				gf_bs_write_u32(bs, GF_QT_BOX_TYPE_TERMINATOR);
+		if (ptr->is_qtff==1) {
+			u32 wave_size = 8 + 12 + 10 + 8;
+			if ((ptr->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)ptr)->esd) {
+				wave_size += esds->size;
 			}
+			gf_bs_write_u32(bs, wave_size);
+			gf_bs_write_u32(bs, GF_QT_BOX_TYPE_WAVE);
+			gf_bs_write_u32(bs, 12);
+			gf_bs_write_u32(bs, GF_QT_BOX_TYPE_FRMA);
+			gf_bs_write_u32(bs, ptr->type);
+			if (esds) gf_isom_box_write(esds, bs);
+
+			gf_bs_write_u32(bs, 10);
+			gf_bs_write_u32(bs, GF_QT_BOX_TYPE_ENDA);
+			gf_bs_write_u16(bs, 1);
+			gf_bs_write_u32(bs, 8);
+			gf_bs_write_u32(bs, GF_QT_BOX_TYPE_TERMINATOR);
 		}
 	}
 }
@@ -228,28 +221,20 @@ void gf_isom_audio_sample_entry_size(GF_AudioSampleEntryBox *ptr)
 {
 	ptr->size += 28;
 	if (ptr->is_qtff) {
-		if (!ptr->is_qtff) {
-			if (ptr->version==1) {
-				ptr->size+=16;
-			} else if (ptr->version==2) {
-				ptr->size += 36;
-			}
-		} else {
-			if (ptr->version==1) {
-				ptr->size+=16;
-			} else if (ptr->version==2) {
-				ptr->size += 36;
-			}
+		if (ptr->version==1) {
+			ptr->size+=16;
+		} else if (ptr->version==2) {
+			ptr->size += 36;
+		}
 
-			if (ptr->is_qtff==1) {
-				//add wave: 12 (frma) +10(enda)+8(term null)+ 8 header for wave
-				ptr->size += 8 + 12 + 10 + 8;
-				if ((ptr->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)ptr)->esd) {
-					GF_Box *esds = (GF_Box *) ((GF_MPEGAudioSampleEntryBox*)ptr)->esd;
-					gf_isom_box_size(esds);
-					ptr->size += esds->size;
-					ptr->compression_id=-2;
-				}
+		if (ptr->is_qtff==1) {
+			//add wave: 12 (frma) +10(enda)+8(term null)+ 8 header for wave
+			ptr->size += 8 + 12 + 10 + 8;
+			if ((ptr->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)ptr)->esd) {
+				GF_Box *esds = (GF_Box *) ((GF_MPEGAudioSampleEntryBox*)ptr)->esd;
+				gf_isom_box_size(esds);
+				ptr->size += esds->size;
+				ptr->compression_id=-2;
 			}
 		}
 	}
