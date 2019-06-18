@@ -3179,6 +3179,44 @@ GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 }
 
 GF_EXPORT
+GF_Err gf_isom_get_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 *colour_type, u16 *colour_primaries, u16 *transfer_characteristics, u16 *matrix_coefficients, Bool *full_range_flag)
+{
+	GF_TrackBox *trak;
+	GF_VisualSampleEntryBox *entry;
+	GF_SampleDescriptionBox *stsd;
+	u32 i, count;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
+	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->other_boxes)) return movie->LastError = GF_BAD_PARAM;
+
+	entry = (GF_VisualSampleEntryBox *)gf_list_get(stsd->other_boxes, StreamDescriptionIndex - 1);
+	//no support for generic sample entries (eg, no MPEG4 descriptor)
+	if (entry == NULL) return GF_OK;
+
+	//valid for MPEG visual, JPG and 3GPP H263
+	if (entry->internal_type!=GF_ISOM_SAMPLE_ENTRY_VIDEO) {
+		return GF_BAD_PARAM;
+	}
+	count = gf_list_count(entry->other_boxes);
+	for (i=0; i<count; i++) {
+		GF_ColourInformationBox *clr = gf_list_get(entry->other_boxes, i);
+		if (clr->type != GF_ISOM_BOX_TYPE_COLR) continue;
+
+		if (colour_type) *colour_type = clr->colour_type;
+		if (colour_primaries) *colour_primaries = clr->colour_primaries;
+		if (transfer_characteristics) *transfer_characteristics = clr->transfer_characteristics;
+		if (matrix_coefficients) *matrix_coefficients = clr->matrix_coefficients;
+		if (full_range_flag) *full_range_flag = clr->full_range_flag;
+		return GF_OK;
+	}
+	return GF_NOT_FOUND;
+}
+
+GF_EXPORT
 const char *gf_isom_get_filename(GF_ISOFile *movie)
 {
 	if (!movie) return NULL;
