@@ -2207,6 +2207,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	}
 
 	clone_flags = GF_ISOM_CLONE_TRACK_NO_QT;
+	if (import->asemode == GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) {
+		clone_flags = 0;
+	}
+
 	if (import->flags & GF_IMPORT_USE_DATAREF) clone_flags |= GF_ISOM_CLONE_TRACK_KEEP_DREF;
 	e = gf_isom_clone_track(import->orig, track_in, import->dest, clone_flags, &track);
 	if (e) goto exit;
