@@ -731,7 +731,7 @@ static GF_FilterArgs CompositorArgs[] =
 	"- none: no geometric conversion\n"
 	"- point: compute point cloud from pixel+depth\n"
 	"- strip: same as point but thins point set"
-	"", GF_PROP_UINT, "vbo", "none|point|strip", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	"", GF_PROP_UINT, "none", "none|point|strip", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nbviews), "number of views to use in stereo mode", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(stereo), "stereo output type. If your graphic card does not support OpenGL shaders, only `top` and `side` modes will be available.\n"\
 		"- side: images are displayed side by side from left to right.\n"\
