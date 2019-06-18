@@ -1662,7 +1662,8 @@ enum
 	GF_ISOM_CONV_TYPE_ISMA_EX,
 	GF_ISOM_CONV_TYPE_3GPP,
 	GF_ISOM_CONV_TYPE_IPOD,
-	GF_ISOM_CONV_TYPE_PSP
+	GF_ISOM_CONV_TYPE_PSP,
+	GF_ISOM_CONV_TYPE_MOV
 };
 
 
@@ -4825,6 +4826,8 @@ int mp4boxMain(int argc, char **argv)
 				conv_type = GF_ISOM_CONV_TYPE_IPOD;
 			else if (!stricmp(szExt, ".psp"))
 				conv_type = GF_ISOM_CONV_TYPE_PSP;
+			else if (!stricmp(szExt, ".mov"))
+				conv_type = GF_ISOM_CONV_TYPE_MOV;
 
 			//remove extension from outfile
 			*szExt = 0;
@@ -5274,6 +5277,13 @@ int mp4boxMain(int argc, char **argv)
 			e = gf_media_make_psp(file);
 			if (e) goto err_exit;
 			needSave = GF_TRUE;
+		}
+		if (conv_type == GF_ISOM_CONV_TYPE_MOV) {
+			fprintf(stderr, "Checking ProRes compliancy...\n");
+			e = gf_media_check_qt_prores(file);
+			if (e) goto err_exit;
+			needSave = GF_TRUE;
+			if (interleaving_time) interleaving_time = 0.5;
 		}
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 		if (conv_type == GF_ISOM_CONV_TYPE_IPOD) {

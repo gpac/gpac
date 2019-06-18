@@ -366,6 +366,7 @@ enum
 
 	/* on-screen colours */
 	GF_ISOM_SUBTYPE_NCLX 		= GF_4CC( 'n', 'c', 'l', 'x' ),
+	GF_ISOM_SUBTYPE_NCLC 		= GF_4CC( 'n', 'c', 'l', 'c' ),
 	GF_ISOM_SUBTYPE_PROF 		= GF_4CC( 'p', 'r', 'o', 'f' ),
 };
 
@@ -972,8 +973,11 @@ GF_Err gf_isom_get_track_layout_info(GF_ISOFile *the_file, u32 trackNumber, u32 
 /*returns track matrix info - all coord values are expressed as 16.16 fixed point floats*/
 GF_Err gf_isom_get_track_matrix(GF_ISOFile *the_file, u32 trackNumber, u32 matrix[9]);
 
-/*returns width and height of the given visual sample desc - error if not a visual track*/
+/*returns aspect ratio for the given visual sample desc - error if not a visual track*/
 GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 *hSpacing, u32 *vSpacing);
+
+/*returns color info for the given visual sample desc - error if not a visual track*/
+GF_Err gf_isom_get_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 *colour_type, u16 *colour_primaries, u16 *transfer_characteristics, u16 *matrix_coefficients, Bool *full_range_flag);
 
 /*gets RVC config of given sample description*/
 GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 *rvc_predefined, char **data, u32 *size, const char **mime);
@@ -1340,13 +1344,15 @@ GF_Err gf_isom_set_clean_aperture(GF_ISOFile *movie, u32 trackNumber, u32 Stream
 GF_Err gf_isom_set_image_sequence_coding_constraints(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, Bool remove, Bool all_ref_pics_intra, Bool intra_pred_used, u32 max_ref_per_pic);
 GF_Err gf_isom_set_image_sequence_alpha(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, Bool remove);
 
+GF_Err gf_isom_set_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 colour_type, u16 colour_primaries, u16 transfer_characteristics, u16 matrix_coefficients, Bool full_range_flag);
+
 /*set SR & nbChans for audio description*/
 typedef enum {
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET = 0,
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS = 1,
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2 = 2,
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG = 3,
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF = 4,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF
 } GF_AudioSampleEntryImportMode;
 
 GF_Err gf_isom_set_audio_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample, GF_AudioSampleEntryImportMode asemode);
@@ -1702,8 +1708,7 @@ for a same time, within a group of tracks, the track with the lowest inversePrio
 be written first*/
 GF_Err gf_isom_set_track_priority_in_group(GF_ISOFile *the_file, u32 trackNumber, u32 InversePriority);
 
-/*set the max SamplesPerChunk (for file optimization, mainly in FLAT and STREAMABLE modes)*/
-GF_Err gf_isom_set_max_samples_per_chunk(GF_ISOFile *the_file, u32 trackNumber, u32 maxSamplesPerChunk);
+GF_Err gf_isom_hint_max_chunk_size(GF_ISOFile *the_file, u32 trackNumber, u32 maxChunkSize);
 
 /*associate a given SL config with a given ESD while extracting the OD information
 all the SL params must be fixed by the calling app!

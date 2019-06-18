@@ -427,6 +427,13 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *file);
 */
 GF_Err gf_media_make_psp(GF_ISOFile *file);
 
+/*!
+ adjust file params for QT prores
+ \param file the target movie
+ \return error if any
+*/
+GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4);
+
 /*! @} */
 
 /*!

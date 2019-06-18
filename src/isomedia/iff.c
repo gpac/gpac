@@ -104,15 +104,23 @@ GF_Err colr_Read(GF_Box *s, GF_BitStream *bs)
 
 	p->colour_type = gf_bs_read_u32(bs);
 	p->size -= 4;
-	if (p->colour_type == GF_ISOM_SUBTYPE_NCLX) {
+	switch (p->colour_type) {
+	case GF_ISOM_SUBTYPE_NCLX:
 		p->colour_primaries = gf_bs_read_u16(bs);
 		p->transfer_characteristics = gf_bs_read_u16(bs);
 		p->matrix_coefficients = gf_bs_read_u16(bs);
 		p->full_range_flag = (gf_bs_read_u8(bs) & 0x80 ? GF_TRUE : GF_FALSE);
-	} else {
+		break;
+	case GF_ISOM_SUBTYPE_NCLC:
+		p->colour_primaries = gf_bs_read_u16(bs);
+		p->transfer_characteristics = gf_bs_read_u16(bs);
+		p->matrix_coefficients = gf_bs_read_u16(bs);
+		break;
+	default:
 		p->opaque = gf_malloc(sizeof(u8)*(size_t)p->size);
 		p->opaque_size = (u32) p->size;
 		gf_bs_read_data(bs, (char *) p->opaque, p->opaque_size);
+		break;
 	}
 	return GF_OK;
 }
@@ -125,15 +133,24 @@ GF_Err colr_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	if (p->colour_type != GF_ISOM_SUBTYPE_NCLX) {
-		gf_bs_write_u32(bs, p->colour_type);
-		gf_bs_write_data(bs, (char *)p->opaque, p->opaque_size);
-	} else {
+	switch (p->colour_type) {
+	case GF_ISOM_SUBTYPE_NCLX:
 		gf_bs_write_u32(bs, p->colour_type);
 		gf_bs_write_u16(bs, p->colour_primaries);
 		gf_bs_write_u16(bs, p->transfer_characteristics);
 		gf_bs_write_u16(bs, p->matrix_coefficients);
 		gf_bs_write_u8(bs, (p->full_range_flag == GF_TRUE ? 0x80 : 0));
+		break;
+	case GF_ISOM_SUBTYPE_NCLC:
+		gf_bs_write_u32(bs, p->colour_type);
+		gf_bs_write_u16(bs, p->colour_primaries);
+		gf_bs_write_u16(bs, p->transfer_characteristics);
+		gf_bs_write_u16(bs, p->matrix_coefficients);
+		break;
+	default:
+		gf_bs_write_u32(bs, p->colour_type);
+		gf_bs_write_data(bs, (char *)p->opaque, p->opaque_size);
+		break;
 	}
 	return GF_OK;
 }
@@ -142,10 +159,16 @@ GF_Err colr_Size(GF_Box *s)
 {
 	GF_ColourInformationBox *p = (GF_ColourInformationBox*)s;
 
-	if (p->colour_type != GF_ISOM_SUBTYPE_NCLX) {
-		p->size += 4 + p->opaque_size;
-	} else {
+	switch (p->colour_type) {
+	case GF_ISOM_SUBTYPE_NCLX:
 		p->size += 11;
+		break;
+	case GF_ISOM_SUBTYPE_NCLC:
+		p->size += 10;
+		break;
+	default:
+		p->size += 4 + p->opaque_size;
+		break;
 	}
 	return GF_OK;
 }
