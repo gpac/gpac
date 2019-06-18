@@ -159,6 +159,8 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 					char *sep = strchr(att->value, '=');
 					if (sep) tkc->sel_enc_range = atoi(sep+1);
 					tkc->sel_enc_type = GF_CRYPT_SELENC_CLEAR_FORCED;
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unrecognized selective mode %s, ignoring\n", att->value));
 				}
 			}
 			else if (!stricmp(att->name, "Preview")) {
@@ -175,6 +177,9 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				if (!strcmp(att->value, "AES_128_CBC")) tkc->encryption = 1;
 				else if (!strcmp(att->value, "None")) tkc->encryption = 0;
 				else if (!strcmp(att->value, "AES_128_CTR") || !strcmp(att->value, "default")) tkc->encryption = 2;
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unrecognized encryption algo %s, ignoring\n", att->value));
+				}
 			}
 			else if (!stricmp(att->name, "transactionID")) {
 				if (strlen(att->value)<=16) strcpy(tkc->TransactionID, att->value);
@@ -209,12 +214,18 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			else if (!stricmp(att->name, "saiSavedBox")) {
 				if (!stricmp(att->value, "uuid_psec")) tkc->sai_saved_box_type = GF_ISOM_BOX_UUID_PSEC;
 				else if (!stricmp(att->value, "senc")) tkc->sai_saved_box_type = GF_ISOM_BOX_TYPE_SENC;
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unrecognized SAI location %s, ignoring\n", att->value));
+				}
 			}
 			else if (!stricmp(att->name, "keyRoll")) {
 				if (!strncmp(att->value, "idx=", 4))
 					tkc->defaultKeyIdx = atoi(att->value+4);
 				else if (!strncmp(att->value, "roll=", 5))
 					tkc->keyRoll = atoi(att->value+5);
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unrecognized roll parameter %s, ignoring\n", att->value));
+				}
 			}
 			else if (!stricmp(att->name, "metadata")) {
 				u32 l = 2 * (u32) strlen(att->value);
