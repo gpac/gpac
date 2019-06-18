@@ -828,7 +828,7 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 GF_EXPORT
 GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 {
-	u32 i, count, timescale, def_dur, video_tk=0;
+	u32 i, count, timescale, def_dur=0, video_tk=0;
 	u32 target_ts = 0, w=0, h=0, chunk_size=0;
 	gf_isom_remove_root_od(mp4);
 	timescale = 0;
@@ -878,9 +878,9 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		}
 		gf_isom_get_visual_info(mp4, video_tk, 1, &w, &h);
 	}
-	if (!def_dur) {
+	if (!def_dur || !video_tk) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] No samples found in visual track\n"));
-		return GF_NON_COMPLIANT_BITSTREAM;
+		return GF_OK;
 	}
 	if (def_dur * 24000 == timescale * 1001) target_ts = 24000;
 	else if (def_dur * 2400 == timescale * 100) target_ts = 2400;
