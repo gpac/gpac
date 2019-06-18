@@ -896,6 +896,7 @@ const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
 	//by default no need to load option descriptions, everything is handled by av_set_opt in update_args
 	if (!load_meta_filters) {
 		FFDecodeRegister.args = FFDecodeArgs;
+		FFDecodeRegister.registry_free = NULL;
 		return &FFDecodeRegister;
 	}
 

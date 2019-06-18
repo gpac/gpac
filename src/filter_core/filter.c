@@ -689,7 +689,7 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 	gf_free(arg);
 }
 
-static const char *gf_filter_load_arg_config(const char *sec_name, const char *arg_name, const char *arg_val)
+static const char *gf_filter_load_arg_config(GF_FilterSession *session, const char *sec_name, const char *arg_name, const char *arg_val)
 {
 	Bool gf_sys_has_filter_global_args();
 	const char *opt;
@@ -704,6 +704,8 @@ static const char *gf_filter_load_arg_config(const char *sec_name, const char *a
 			if (arg[1]!='-') continue;
 			if (!strncmp(arg+2, arg_name, alen)) {
 				char *sep = strchr(arg, '=');
+				gf_fs_push_arg(session, arg_name, GF_TRUE, 0);
+
 				if (sep) return sep+1;
 				//no arg value means boolean true
 				else return "true";
@@ -822,7 +824,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			has_meta_args = GF_TRUE;
 			continue;
 		}
-		def_val = gf_filter_load_arg_config(szSecName, a->arg_name, a->arg_default_val);
+		def_val = gf_filter_load_arg_config(filter->session, szSecName, a->arg_name, a->arg_default_val);
 
 		if (!def_val) continue;
 
@@ -1106,9 +1108,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			}
 		}
 
-		if (!found && (arg_type==GF_FILTER_ARG_EXPLICIT) ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument \"%s\" not found in filter %s options, ignoring\n", szArg, filter->freg->name));
-		}
+		gf_fs_push_arg(filter->session, szArg, found, 0);
+
 skip_arg:
 		if (escaped) {
 			args=sep+6;
@@ -1331,6 +1332,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		//we directly detach the pid
 		else {
 			safe_int_inc(&dst_pidi->pid->filter->detach_pid_tasks_pending);
+			safe_int_inc(&filter->detach_pid_tasks_pending);
 			gf_fs_post_task(filter->session, gf_filter_pid_detach_task, filter_dst, dst_pidi->pid, "pidinst_detach", filter_dst);
 		}
 	}
@@ -3008,4 +3010,12 @@ GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus)
 	evt.progress.filter_idx = gf_list_find(filter->session->filters, filter);
 	gf_fs_ui_event(filter->session, &evt);
 	return GF_OK;
+}
+
+void gf_filter_report_unused_meta_option(GF_Filter *filter, const char *arg)
+{
+	if (!filter->session || filter->removed || filter->finalized) return;
+	gf_mx_p(filter->session->filters_mx);
+	gf_fs_push_arg(filter->session, arg, GF_FALSE, 2);
+	gf_mx_v(filter->session->filters_mx);
 }

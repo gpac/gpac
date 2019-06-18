@@ -1202,6 +1202,12 @@ const char *gf_opts_get_key_restricted(const char *secName, const char *keyName)
 GF_Err gf_opts_discard_changes();
 
 /*!
+ * Returns file name of global config
+ * \return file name of global config or NULL if libgpac is not initialized
+ */
+const char *gf_opts_get_filename();
+
+/*!
  * Blob structure used to pass data pointer around
  */
 typedef struct

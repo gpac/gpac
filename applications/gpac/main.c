@@ -62,7 +62,7 @@ static char separator_set[7] = GF_FS_DEFAULT_SEPS;
 #define SEP_FRAG	2
 #define SEP_LIST	3
 
-static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_SysArgMode argmode);
+static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_SysArgMode argmode);
 static void dump_all_props(void);
 static void dump_all_codec(GF_FilterSession *session);
 static void write_filters_options(GF_FilterSession *fsess);
@@ -967,6 +967,271 @@ static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
 
 #define gpac_exit(_code) return gpac_exit_fun(_code, alias_argv, alias_argc)
 
+#include <gpac/network.h>
+static void gpac_load_suggested_filter_args()
+{
+	u32 i, count, k;
+	GF_Config *opts = NULL;
+	GF_FilterSession *fsess;
+
+	const char *version;
+	const char *cfg_path = gf_opts_get_filename();
+	char *all_opts = gf_url_concatenate(cfg_path, "all_opts.txt");
+
+	opts = gf_cfg_force_new(NULL, all_opts);
+	gf_free(all_opts);
+
+	version = gf_cfg_get_key(opts, "version", "version");
+	if (version && !strcmp(version, gf_gpac_version()) ) {
+		gf_cfg_del(opts);
+		return;
+	}
+	gf_cfg_del_section(opts, "allopts");
+	gf_cfg_set_key(opts, "version", "version", gf_gpac_version());
+
+	fprintf(stderr, "Constructing all options database, this may take some time ... ");
+
+	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, GF_FS_FLAG_LOAD_META, NULL);
+	if (!fsess) {
+		gf_cfg_del(opts);
+		return;
+	}
+
+	count = gf_fs_filters_registry_count(fsess);
+	for (i=0; i<count; i++) {
+		const GF_FilterRegister *freg = gf_fs_get_filter_registry(fsess, i);
+
+		k=0;
+		while (freg->args) {
+			const char *old_val;
+			char *argn=NULL;
+			const GF_FilterArgs *arg = &freg->args[k];
+			if (!arg || !arg->arg_name) {
+				break;
+			}
+			k++;
+			if (arg->flags & GF_FS_ARG_HINT_HIDE) continue;
+
+			if (arg->flags & GF_FS_ARG_META) {
+				gf_dynstrcat(&argn, "-+", NULL);
+			} else {
+				gf_dynstrcat(&argn, "--", NULL);
+			}
+			gf_dynstrcat(&argn, arg->arg_name, NULL);
+
+			old_val = gf_cfg_get_key(opts, "allopts", argn);
+			if (old_val) {
+				char *newval = gf_strdup(freg->name);
+				gf_dynstrcat(&newval, old_val, " ");
+				gf_cfg_set_key(opts, "allopts", argn, newval);
+				gf_free(newval);
+			} else {
+				gf_cfg_set_key(opts, "allopts", argn, freg->name);
+			}
+			gf_free(argn);
+		}
+	}
+	gf_fs_del(fsess);
+	gf_cfg_del(opts);
+	fprintf(stderr, "done\n");
+}
+
+//very basic word match, check the number of source characters in order in dest
+static Bool word_match(const char *orig, const char *dst)
+{
+	s32 dist = 0;
+	u32 match = 0;
+	u32 i;
+	u32 olen = (u32) strlen(orig);
+	u32 dlen = (u32) strlen(dst);
+	u32 *run;
+	if (olen*2 < dlen) return GF_FALSE;
+
+	run = gf_malloc(sizeof(u32) * olen);
+	memset(run, 0, sizeof(u32) * olen);
+
+	for (i=0; i<dlen; i++) {
+		u32 dist_char;
+		char *pos = strchr(orig, dst[i]);
+		if (!pos) continue;
+		dist_char = pos - orig;
+		if (!run[dist_char]) {
+			run[dist_char] = i+1;
+			match++;
+		} else if (run[dist_char] > i) {
+			run[dist_char] = i+1;
+			match++;
+		}
+	}
+	if (match*2<olen) {
+		gf_free(run);
+		return 0;
+	}
+/*	if ((olen<=4) && (match>=3) && (dlen*2<olen*3) ) {
+		gf_free(run);
+		return GF_TRUE;
+	}
+*/
+	for (i=0; i<olen; i++) {
+		if (!i) {
+			if (run[0]==1)
+				dist++;
+		} else if (run[i-1] + 1 == run[i]) {
+			dist++;
+		}
+	}
+	gf_free(run);
+	//if half the characters are in order, consider a match
+	//if arg is small only check dst
+	if ((olen<=4) && (dist >= 2))
+		return GF_TRUE;
+	if ((dist*2 >= olen) && (dist*2 >= dlen))
+		return GF_TRUE;
+	return GF_FALSE;
+}
+
+static void gpac_suggest_arg(char *aname)
+{
+	u32 k;
+	const GF_GPACArg *args = gf_sys_get_options();
+	Bool found=GF_FALSE;
+	for (k=0; k<2; k++) {
+		u32 i=0;
+		if (k==0) args = gpac_args;
+		else args = gf_sys_get_options();
+
+		while (args[i].name) {
+			const GF_GPACArg *arg = &args[i];
+			i++;
+			if (word_match(aname, arg->name)) {
+				if (!found) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unrecognized option \"%s\", did you mean:\n", aname));
+					found = GF_TRUE;
+				}
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\t-%s (see gpac -hx%s)\n", arg->name, k ? " core" : ""));
+			}
+		}
+	}
+	if (!found) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unrecognized option \"%s\", check usage \"gpac -h\"\n", aname));
+	}
+}
+
+static void gpac_suggest_filter(char *fname, Bool is_help)
+{
+	char *doc_helps[] = {
+		"log", "core", "modules", "doc", "alias", "props", "cfg", "codecs", "links", "bin", "filters", "filters:*", NULL
+	};
+
+	Bool found = GF_FALSE;
+	u32 i, count = gf_fs_filters_registry_count(session);
+	for (i=0; i<count; i++) {
+		const GF_FilterRegister *freg = gf_fs_get_filter_registry(session, i);
+
+		if (word_match(fname, freg->name)) {
+			if (!found) {
+				found = GF_TRUE;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Closest filter names: \n"));
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("- %s\n", freg->name));
+		}
+	}
+	if (is_help) {
+		found = GF_FALSE;
+		i=0;
+		while (doc_helps[i]) {
+			if (word_match(fname, doc_helps[i])) {
+				if (!found) {
+					found = GF_TRUE;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Closest help command: \n"));
+				}
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("-h %s\n", doc_helps[i]));
+			}
+			i++;
+		}
+	}
+	if (!found) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter %swith similar name found, see gpac -h filters%s\n",
+			is_help ? "or help command " : "",
+			is_help ? " or gpac -h" : ""
+		));
+	}
+}
+
+static void gpac_suggest_filter_arg(GF_Config *opts, char *argname, u32 atype)
+{
+
+	u32 i, count, len, nb_filters, j;
+	Bool f_found = GF_FALSE;
+
+	len = (u32) strlen(argname);
+	nb_filters = gf_fs_get_filters_count(session);
+	count = gf_cfg_get_key_count(opts, "allopts");
+	for (i=0; i<count; i++) {
+		Bool ffound = GF_FALSE;
+		const char *arg = gf_cfg_get_key_name(opts, "allopts", i);
+		const char *aval = gf_cfg_get_key(opts, "allopts", arg);
+		if ((arg[1]=='+') && (atype!=2)) continue;
+		if ((arg[1]=='-') && (atype==2)) continue;
+
+		arg += 2;
+		u32 alen = (u32) strlen(arg);
+		if (alen>2*len) continue;
+
+		for (j=0; j<nb_filters; j++) {
+			GF_FilterStats stats;
+			stats.reg_name = NULL;
+			gf_fs_get_filter_stats(session, j, &stats);
+
+			if (stats.reg_name && strstr(aval, stats.reg_name)) {
+				ffound = GF_TRUE;
+				break;
+			}
+		}
+		if (!ffound) continue;
+
+		if (word_match(argname, arg)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("- %s in filters %s\n", arg, aval));
+			f_found = GF_TRUE;
+		}
+	}
+	if (!f_found) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No match in any of the loaded filters\n"));
+	}
+}
+
+static void gpac_check_session_args()
+{
+	GF_Config *opts = NULL;
+	u32 idx = 0;
+	char szSep[2];
+	char *argname;
+	u32 argtype;
+	szSep[0] = separator_set[0];
+	szSep[1] = 0;
+
+	while (1) {
+		if (gf_fs_enum_unmapped_options(session, &idx, &argname, &argtype)==GF_FALSE)
+			break;
+
+		if (!opts) {
+			const char *cfg_path = gf_opts_get_filename();
+			char *all_opts = gf_url_concatenate(cfg_path, "all_opts.txt");
+			opts = gf_cfg_new(NULL, all_opts);
+			gf_free(all_opts);
+		}
+		if (!opts) {
+			break;
+		}
+
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Argument \"%s%s\" was specified but not used by any filter in the chain - possible matches:\n",
+			(argtype==2) ? "-+" : (argtype ? "--" : szSep), argname));
+
+		gpac_suggest_filter_arg(opts, argname, argtype);
+	}
+	if (opts) gf_cfg_del(opts);
+}
+
 static int gpac_main(int argc, char **argv)
 {
 	GF_Err e=GF_OK;
@@ -1011,6 +1276,8 @@ static int gpac_main(int argc, char **argv)
 	}
 
 	gf_sys_init(mem_track, profile);
+
+	gpac_load_suggested_filter_args();
 
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 	gf_log_set_tool_level(GF_LOG_APP, GF_LOG_INFO);
@@ -1282,7 +1549,7 @@ static int gpac_main(int argc, char **argv)
 		} else if (arg[0]=='-') {
 			if (!strcmp(arg, "-i") || !strcmp(arg, "-src") || !strcmp(arg, "-o") || !strcmp(arg, "-dst") ) {
 			} else if (!gf_sys_is_gpac_arg(arg) ) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unrecognized option \"%s\", check usage \"gpac -h\"\n", arg));
+				gpac_suggest_arg(arg);
 				gpac_exit(1);
 			}
 		}
@@ -1321,7 +1588,8 @@ restart:
 	}
 
 	if (list_filters || print_filter_info) {
-		print_filters(argc, argv, session, argmode);
+		if (print_filters(argc, argv, session, argmode)==GF_FALSE)
+			e = GF_FILTER_NOT_FOUND;
 		goto exit;
 	}
 	if (view_filter_conn) {
@@ -1400,6 +1668,8 @@ restart:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load filter%s %s\n", is_simple ? "" : " for",  arg));
 			if (!e) e = GF_NOT_SUPPORTED;
 			nb_filters=0;
+			if (is_simple) gpac_suggest_filter(arg, GF_FALSE);
+
 			goto exit;
 		}
 		nb_filters++;
@@ -1460,6 +1730,7 @@ restart:
 		e = gf_fs_get_last_process_error(session);
 		if (e<0) fprintf(stderr, "session last process error %s\n", gf_error_to_string(e) );
 	}
+	gpac_check_session_args();
 
 	if (enable_reports) {
 		gf_sys_set_console_code(stderr, GF_CONSOLE_RESTORE);
@@ -1778,9 +2049,10 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 	gf_sys_format_help(helpout, help_flags, "\n");
 }
 
-static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_SysArgMode argmode)
+static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_SysArgMode argmode)
 {
 	Bool found = GF_FALSE;
+	char *fname = NULL;
 	u32 i, count = gf_fs_filters_registry_count(session);
 	if (!gen_doc && list_filters) gf_sys_format_help(helpout, help_flags, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
 	for (i=0; i<count; i++) {
@@ -1794,6 +2066,7 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 			for (k=1; k<(u32) argc; k++) {
 				char *arg = argv[k];
 				if (arg[0]=='-') continue;
+				fname = arg;
 
 				if (!strcmp(arg, reg->name) ) {
 					print_filter(reg, argmode);
@@ -1820,7 +2093,11 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 
 		}
 	}
-	if (!found) gf_sys_format_help(helpout, help_flags, "No such filter\n");
+	if (!found && fname) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter %s\n", fname));
+		gpac_suggest_filter(fname, GF_TRUE);
+	}
+	return found;
 }
 
 static void dump_all_props(void)

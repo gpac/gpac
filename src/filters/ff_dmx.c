@@ -645,6 +645,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 
 	if (!load_meta_filters) {
 		FFDemuxRegister.args = FFDemuxArgs;
+		FFDemuxRegister.registry_free = NULL;
 		return &FFDemuxRegister;
 	}
 
@@ -945,6 +946,7 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 
 	if (!load_meta_filters) {
 		FFAVInRegister.args = FFAVInArgs;
+		FFAVInRegister.registry_free = NULL;
 		return &FFAVInRegister;
 	}
 

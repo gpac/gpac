@@ -123,6 +123,9 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 GF_EXPORT
 GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u32 flags, const char *blacklist)
 {
+	Bool gf_sys_has_filter_global_args();
+	Bool gf_sys_has_filter_global_meta_args();
+
 	u32 i, count;
 	GF_FilterSession *fsess, *a_sess;
 
@@ -291,8 +294,72 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	gf_filter_sess_build_graph(fsess, NULL);
 
 	fsess->init_done = GF_TRUE;
+
+
+	if (gf_sys_has_filter_global_args() || gf_sys_has_filter_global_meta_args()) {
+		u32 i, nb_args = gf_sys_get_argc();
+		for (i=0; i<nb_args; i++) {
+			char *arg = (char *)gf_sys_get_arg(i);
+			if (arg[0]!='-') continue;
+			if ((arg[1]!='-') && (arg[1]!='+')) continue;
+			char *sep = strchr(arg, '=');
+			if (sep) sep[0] = 0;
+			gf_fs_push_arg(fsess, arg+2, GF_FALSE, (arg[1]!='-') ? 2 : 1);
+			if (sep) sep[0] = '=';
+		}
+	}
+
 	return fsess;
 }
+
+void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, u32 type)
+{
+	if (session->flags & GF_FS_FLAG_NO_ARG_CHECK)
+		return;
+
+	if (!was_found) {
+		Bool afound = GF_FALSE;
+		u32 k, acount;
+		if (!session->parsed_args) session->parsed_args = gf_list_new();
+		acount = gf_list_count(session->parsed_args);
+		for (k=0; k<acount; k++) {
+			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
+			if (!strcmp(ai->argname, szArg)) {
+				afound = GF_TRUE;
+				break;
+			}
+		}
+		if (!afound) {
+			GF_FSArgItem *ai;
+			GF_SAFEALLOC(ai, GF_FSArgItem);
+			ai->argname = gf_strdup(szArg);
+			ai->type = type;
+			gf_list_add(session->parsed_args, ai );
+		}
+	} else {
+		u32 k, acount;
+		Bool found = GF_FALSE;
+		if (!session->parsed_args) session->parsed_args = gf_list_new();
+		acount = gf_list_count(session->parsed_args);
+		for (k=0; k<acount; k++) {
+			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
+			if (!strcmp(ai->argname, szArg)) {
+				ai->found = GF_TRUE;
+				found = GF_TRUE;
+				break;
+			}
+		}
+		if (!found) {
+			GF_FSArgItem *ai;
+			GF_SAFEALLOC(ai, GF_FSArgItem);
+			ai->argname = gf_strdup(szArg);
+			ai->type = type;
+			ai->found = GF_TRUE;
+			gf_list_add(session->parsed_args, ai );
+		}
+	}
+}
+
 
 GF_EXPORT
 GF_FilterSession *gf_fs_new_defaults(u32 inflags)
@@ -337,6 +404,9 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 
 	if (gf_opts_get_bool("core", "no-probe"))
 		flags |= GF_FS_FLAG_NO_PROBE;
+
+	if (gf_opts_get_bool("core", "no-argchk"))
+		flags |= GF_FS_FLAG_NO_ARG_CHECK;
 
 	fsess = gf_fs_new(nb_threads, sched_type, flags, blacklist);
 	if (!fsess) return NULL;
@@ -424,6 +494,25 @@ void gf_propalloc_del(void *it)
 	gf_free(pe);
 }
 
+
+GF_EXPORT
+Bool gf_fs_enum_unmapped_options(GF_FilterSession *fsess, u32 *idx, char **argname, u32 *argtype)
+{
+	if (!fsess || !fsess->parsed_args) return GF_FALSE;
+	u32 i, count = gf_list_count(fsess->parsed_args);
+
+	for (i=*idx; i<count; i++) {
+		GF_FSArgItem *ai = gf_list_get(fsess->parsed_args, i);
+		(*idx)++;
+		if (ai->found) continue;
+		if (argname) *argname = ai->argname;
+		if (argtype) *argtype = ai->type;
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+
 GF_EXPORT
 void gf_fs_del(GF_FilterSession *fsess)
 {
@@ -431,6 +520,15 @@ void gf_fs_del(GF_FilterSession *fsess)
 
 	gf_fs_stop(fsess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session destroy begin\n"));
+
+	if (fsess->parsed_args) {
+		while (gf_list_count(fsess->parsed_args)) {
+			GF_FSArgItem *ai = gf_list_pop_back(fsess->parsed_args);
+			gf_free(ai->argname);
+			gf_free(ai);
+		}
+		gf_list_del(fsess->parsed_args);
+	}
 
 	//temporary until we don't introduce fsess_stop
 	assert(fsess->run_status != GF_OK);
@@ -847,7 +945,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
-		if (!strncmp(f_reg->name, name, len)) {
+		if ((strlen(f_reg->name)==len) && !strncmp(f_reg->name, name, len)) {
 			GF_FilterArgType argtype = GF_FILTER_ARG_EXPLICIT;
 			if (f_reg->flags & GF_FS_REG_ACT_AS_SOURCE) argtype = GF_FILTER_ARG_EXPLICIT_SOURCE;
 			return gf_filter_new(fsess, f_reg, args, NULL, argtype, NULL);
