@@ -1506,14 +1506,67 @@ GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
 
 	vent = (GF_VisualSampleEntryBox*)entry;
-	if (!hSpacing || !vSpacing || (hSpacing==vSpacing))  {
+	if (!hSpacing || !vSpacing || (((s32) hSpacing >0) && (hSpacing==vSpacing)))  {
 		if (vent->pasp) gf_isom_box_del((GF_Box*)vent->pasp);
 		vent->pasp = NULL;
 		return GF_OK;
 	}
 	if (!vent->pasp) vent->pasp = (GF_PixelAspectRatioBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_PASP);
-	vent->pasp->hSpacing = hSpacing;
-	vent->pasp->vSpacing = vSpacing;
+	if ((s32) hSpacing<0) {
+		vent->pasp->hSpacing = 1;
+		vent->pasp->vSpacing = 1;
+	} else {
+		vent->pasp->hSpacing = hSpacing;
+		vent->pasp->vSpacing = vSpacing;
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_set_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 colour_type, u16 colour_primaries, u16 transfer_characteristics, u16 matrix_coefficients, Bool full_range_flag)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_SampleEntryBox *entry;
+	GF_SampleDescriptionBox *stsd;
+	GF_ColourInformationBox *clr=NULL;
+	u32 i, count;
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
+	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->other_boxes)) {
+		return movie->LastError = GF_BAD_PARAM;
+	}
+	entry = (GF_SampleEntryBox *)gf_list_get(stsd->other_boxes, StreamDescriptionIndex - 1);
+	//no support for generic sample entries (eg, no MPEG4 descriptor)
+	if (entry == NULL) return GF_BAD_PARAM;
+	if (!movie->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
+
+	clr=NULL;
+	count = gf_list_count(entry->other_boxes);
+	for (i=0; i<count; i++) {
+		clr=gf_list_get(entry->other_boxes, i);
+		if (clr->type==GF_ISOM_BOX_TYPE_COLR) break;
+		clr=NULL;
+
+	}
+	if (!clr) {
+		clr = (GF_ColourInformationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_COLR);
+		gf_list_add(entry->other_boxes, clr);
+	}
+	clr->colour_primaries = colour_primaries;
+	clr->colour_type = colour_type;
+	clr->transfer_characteristics = transfer_characteristics;
+	clr->matrix_coefficients = matrix_coefficients;
+	clr->full_range_flag = full_range_flag;
 	return GF_OK;
 }
 
@@ -1654,6 +1707,7 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	GF_ChannelLayoutInfoBox *chan=NULL;
 	GF_OriginalFormatBox *frma=NULL;
 	GF_ChromaInfoBox *enda=NULL;
+	GF_ESDBox *esds=NULL;
 	GF_Box *terminator=NULL;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -1701,18 +1755,18 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 		aud_entry->channel_count = nbChannels;
 		break;
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF:
-	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF_FULL:
-		stsd->version = 1;
+		stsd->version = 0;
 		aud_entry->version = 1;
 		aud_entry->is_qtff = 1;
 		aud_entry->channel_count = nbChannels;
 		break;
 	}
-	//insert wave+children and chan for QTFF
+
+	//check for wave+children and chan for QTFF or remove them for isobmff
 	for (i=0; i<gf_list_count(aud_entry->other_boxes); i++) {
 		GF_Box *b = gf_list_get(aud_entry->other_boxes, i);
 		if ((b->type != GF_QT_BOX_TYPE_WAVE) && (b->type != GF_QT_BOX_TYPE_CHAN) ) continue;
-		if (asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF_FULL) {
+		if (asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) {
 			if (b->type == GF_QT_BOX_TYPE_WAVE) wave_box = b;
 			else chan = (GF_ChannelLayoutInfoBox *)b;
 		} else {
@@ -1723,21 +1777,22 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	}
 
 	//TODO: insert channelLayout for ISOBMFF
-	if (asemode!=GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF_FULL) return GF_OK;
+	if (asemode!=GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) return GF_OK;
 
 	if (!aud_entry->other_boxes) aud_entry->other_boxes = gf_list_new();
-	//qtff doesn't use v1 for stsd
-	stsd->version = 0;
+
 	if (!wave_box) {
 		wave_box = gf_isom_box_new(GF_QT_BOX_TYPE_WAVE);
 		gf_list_add(aud_entry->other_boxes, wave_box);
 	}
+#if 0
 	if (!chan) {
 		chan = (GF_ChannelLayoutInfoBox *) gf_isom_box_new(GF_QT_BOX_TYPE_CHAN);
 		gf_list_add(aud_entry->other_boxes, chan);
 	}
 	//TODO, proper channel mapping
 	chan->layout_tag = (nbChannels==2) ? 6750210 : 6553601;
+#endif
 
 	for (i=0; i<gf_list_count(wave_box->other_boxes); i++) {
 		GF_Box *b = gf_list_get(wave_box->other_boxes, i);
@@ -1748,6 +1803,9 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 		case GF_QT_BOX_TYPE_FRMA:
 			frma = (GF_OriginalFormatBox *)b;
 			break;
+		case GF_ISOM_BOX_TYPE_ESDS:
+			esds = (GF_ESDBox *)b;
+			break;
 		case 0:
 			terminator = b;
 			break;
@@ -1755,6 +1813,7 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	}
 	if (!wave_box->other_boxes) wave_box->other_boxes = gf_list_new();
 
+	aud_entry->is_qtff = 1;
 	if (!enda) {
 		enda = (GF_ChromaInfoBox *)gf_isom_box_new(GF_QT_BOX_TYPE_ENDA);
 		enda->chroma=1;
@@ -1764,6 +1823,10 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 		frma = (GF_OriginalFormatBox *)gf_isom_box_new(GF_QT_BOX_TYPE_FRMA);
 		gf_list_insert(wave_box->other_boxes, frma, 0);
 	}
+	if (!esds && (aud_entry->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)aud_entry)->esd) {
+		gf_list_add(wave_box->other_boxes, (GF_Box *) ((GF_MPEGAudioSampleEntryBox*)aud_entry)->esd);
+	}
+
 	if (!terminator) {
 		terminator = gf_isom_box_new(0);
 		gf_list_add(wave_box->other_boxes, terminator);
@@ -1773,6 +1836,7 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	} else {
 		frma->data_format = aud_entry->type;
 	}
+
 	return GF_OK;
 }
 
@@ -3233,6 +3297,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	gf_bs_get_content(bs, &data, &data_size);
 	gf_bs_del(bs);
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+	gf_bs_set_cookie(bs, (u64) bs);
 	e = gf_isom_box_parse((GF_Box **) &new_tk, bs);
 	gf_bs_del(bs);
 	gf_free(data);
@@ -4355,15 +4420,15 @@ GF_Err gf_isom_set_track_priority_in_group(GF_ISOFile *movie, u32 trackNumber, u
 
 //set the max SamplesPerChunk (for file optimization)
 GF_EXPORT
-GF_Err gf_isom_set_max_samples_per_chunk(GF_ISOFile *movie, u32 trackNumber, u32 maxSamplesPerChunk)
+GF_Err gf_isom_hint_max_chunk_size(GF_ISOFile *movie, u32 trackNumber, u32 maxChunkSize)
 {
 	GF_TrackBox *trak;
 
 	if (movie->openMode == GF_ISOM_OPEN_READ) return GF_ISOM_INVALID_MODE;
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !maxSamplesPerChunk) return GF_BAD_PARAM;
+	if (!trak || !maxChunkSize) return GF_BAD_PARAM;
 
-	trak->Media->information->sampleTable->MaxSamplePerChunk = maxSamplesPerChunk;
+	trak->Media->information->sampleTable->MaxChunkSize = maxChunkSize;
 	return GF_OK;
 }
 

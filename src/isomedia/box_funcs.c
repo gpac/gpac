@@ -1033,7 +1033,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MP4V, video_sample_entry, "stsd", "p14"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MP4A, audio_sample_entry, "stsd", "p14"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_M4DS, m4ds, "sample_entry", "p14"),
-	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_ESDS, esds, "mp4a mp4s mp4v encv enca encs resv", 0, "p14"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_ESDS, esds, "mp4a mp4s mp4v encv enca encs resv wave", 0, "p14"),
 
 	//part 15 boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_AVCC, avcc, "avc1 avc2 avc3 avc4 encv resv ipco", "p15"),

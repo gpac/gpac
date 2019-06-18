@@ -704,6 +704,9 @@ void base_audio_entry_dump(GF_AudioSampleEntryBox *p, FILE * trace)
 		fprintf(trace, " Version=\"%d\"", p->version);
 	fprintf(trace, " SampleRate=\"%d\"", p->samplerate_hi);
 	fprintf(trace, " Channels=\"%d\" BitsPerSample=\"%d\"", p->channel_count, p->bitspersample);
+	if (p->is_qtff)
+		fprintf(trace, " isQTFF=\"yes\"");
+
 }
 
 GF_Err audio_sample_entry_dump(GF_Box *a, FILE * trace)

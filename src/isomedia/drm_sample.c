@@ -1100,7 +1100,7 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 }
 #endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 
-GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, char *buf, u32 len, Bool use_subsamples)
+GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, char *buf, u32 len, Bool use_subsamples, char *clear_IV)
 {
 	u32 i;
 	GF_SampleEncryptionBox *senc;
@@ -1141,6 +1141,7 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 	} else if (len) {
 		u32 olen = len;
 		sai->IV_size = IV_size;
+		if (clear_IV) memcpy(sai->IV, clear_IV, sizeof(bin128));
 		if (use_subsamples) {
 			sai->subsample_count = 1;
 			if (sai->subsample_count) senc->flags = 0x00000002;

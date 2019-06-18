@@ -21,7 +21,7 @@ qt_prores_test ()
 
 
  #import media
- do_test "$MP4BOX -add $1 -no-iod -new $mp4file" "MediaImport"
+ do_test "$MP4BOX -add $1:asemode=v1-qt -no-iod -new $mp4file" "MediaImport"
  do_hash_test $mp4file "add"
 
  #remove media track media

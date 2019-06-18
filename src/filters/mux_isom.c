@@ -1634,7 +1634,7 @@ sample_entry_setup:
 		if (codec_id==GF_CODECID_RAW) {
 			udesc.is_qtff = GF_TRUE;
 			udesc.version = 1;
-			ase_mode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF_FULL;
+			ase_mode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF;
 		}
 
 		udesc.width = width;
@@ -2209,7 +2209,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		if (e) return e;
 	} else {
 		if (sai) {
-			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, IV_size, sai, sai_size, tkw->cenc_subsamples);
+			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, IV_size, sai, sai_size, tkw->cenc_subsamples, NULL);
 			if (e) return e;
 		}
 	}
@@ -2892,12 +2892,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 		//use 1 for the default sample description index. If no multi stsd, this is always the case
 		//otherwise we need to the stsd idx in the traf headers
-		if (! ctx->nofragdef) {
-			e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, 1, def_pck_dur, 0, (u8) def_is_rap, 0, 0);
-		} else {
-			e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, 0, 0, 0, 0, 0, 0);
-		}
-
+		e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, 1, def_pck_dur, 0, (u8) def_is_rap, 0, 0, ctx->nofragdef ? 1 : 0);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to setup fragmentation for track ID %d: %s\n", tkw->track_id, gf_error_to_string(e) ));
 			return e;

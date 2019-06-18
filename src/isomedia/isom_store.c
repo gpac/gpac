@@ -70,6 +70,7 @@ typedef struct
 	u32 timeScale;
 	/*this is for generic, time-based interleaving. Expressed in Media TimeScale*/
 	u32 chunkDur;
+	u32 chunkSize;
 	u32 constant_size, constant_dur;
 
 	u64 DTSprev;
@@ -115,6 +116,7 @@ void ResetWriters(GF_List *writers)
 	while ((writer = (TrackWriter *)gf_list_enum(writers, &i))) {
 		writer->isDone = 0;
 		writer->chunkDur = 0;
+		writer->chunkSize = 0;
 		writer->DTSprev = 0;
 		writer->sampleNumber = 1;
 		gf_isom_box_del((GF_Box *)writer->stsc);
@@ -158,6 +160,7 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 		writer->isDone = 0;
 		writer->DTSprev = 0;
 		writer->chunkDur = 0;
+		writer->chunkSize = 0;
 		writer->constant_size = writer->constant_dur = 0;
 		if (writer->stbl->SampleSize->sampleSize)
 			writer->constant_size = writer->stbl->SampleSize->sampleSize;
@@ -652,6 +655,7 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 			if (e) return e;
 
 			update_writer_constant_dur(movie, writer, stsc_ent, &nb_samp, &sampSize, GF_TRUE);
+
 			//update our chunks.
 			force = 0;
 			if (movie->openMode == GF_ISOM_OPEN_WRITE) {
@@ -659,6 +663,13 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 				if (predOffset != offset)
 					force = 1;
 			}
+
+			if (writer->stbl->MaxChunkSize && (writer->chunkSize + sampSize > writer->stbl->MaxChunkSize)) {
+				writer->chunkSize = 0;
+				force = 1;
+			}
+			writer->chunkSize += sampSize;
+
 			self_contained = ((writer->all_dref_mode==ISOM_DREF_SELF) || Media_IsSelfContained(writer->mdia, descIndex) ) ? GF_TRUE : GF_FALSE;
 
 			//update our global offset...
@@ -978,7 +989,7 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 		//proceed a group
 		while (writeGroup) {
 			u32 nb_samp = 1;
-			Bool self_contained;
+			Bool self_contained, chunked_forced=GF_FALSE;
 			//first get the appropriated sample for the min time in this group
 			curWriter = NULL;
 			DTStmp = (u64) -1;
@@ -1022,15 +1033,23 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 
 			update_writer_constant_dur(movie, curWriter, stsc_ent, &nb_samp, &sampSize, GF_FALSE);
 
+			if (curWriter->stbl->MaxChunkSize && (curWriter->chunkSize + sampSize > curWriter->stbl->MaxChunkSize)) {
+				curWriter->chunkSize = 0;
+				chunked_forced = forceNewChunk = 1;
+			}
+			curWriter->chunkSize += sampSize;
+
 			self_contained = ((curWriter->all_dref_mode==ISOM_DREF_SELF) || Media_IsSelfContained(curWriter->mdia, descIndex) ) ? GF_TRUE : GF_FALSE;
 
 			//do we actually write, or do we emulate ?
 			if (Emulation) {
 				//are we in the same track ??? If not, force a new chunk when adding this sample
-				if (curWriter != prevWriter) {
-					forceNewChunk = 1;
-				} else {
-					forceNewChunk = 0;
+				if (!chunked_forced) {
+					if (curWriter != prevWriter) {
+						forceNewChunk = 1;
+					} else {
+						forceNewChunk = 0;
+					}
 				}
 				//update our offsets...
 				if (self_contained) {
@@ -1044,7 +1063,7 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 
 					//we have a DataRef, so use the offset idicated in sampleToChunk
 					//and ChunkOffset tables...
-					e = stbl_SetChunkAndOffset(curWriter->stbl, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, 0, nb_samp);
+					e = stbl_SetChunkAndOffset(curWriter->stbl, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, chunked_forced, nb_samp);
 					if (e) return e;
 				}
 			} else {
@@ -1225,6 +1244,12 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 					self_contained = ((curWriter->all_dref_mode==ISOM_DREF_SELF) || Media_IsSelfContained(curWriter->mdia, descIndex)) ? GF_TRUE : GF_FALSE;
 
 					update_writer_constant_dur(movie, curWriter, stsc_ent, &nb_samp, &sampSize, GF_FALSE);
+
+					if (curWriter->stbl->MaxChunkSize && (curWriter->chunkSize + sampSize > curWriter->stbl->MaxChunkSize)) {
+						curWriter->chunkSize = 0;
+						forceNewChunk = 1;
+					}
+					curWriter->chunkSize += sampSize;
 
 					//do we actually write, or do we emulate ?
 					if (Emulation) {

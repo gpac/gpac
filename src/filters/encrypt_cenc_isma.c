@@ -1610,6 +1610,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	Bool all_rap=GF_FALSE;
 	u32 pck_size;
 	Bool key_changed = GF_FALSE;
+	Bool force_clear = GF_FALSE;
 	u8 sap = gf_filter_pck_get_sap(pck);
 
 	data = gf_filter_pck_get_data(pck, &pck_size);
@@ -1634,6 +1635,13 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	case GF_CRYPT_SELENC_CLEAR:
 		is_encrypted = GF_FALSE;
 		break;
+	case GF_CRYPT_SELENC_CLEAR_FORCED:
+		is_encrypted = GF_FALSE;
+		force_clear = GF_TRUE;
+		if (cstr->tci->sel_enc_range && (cstr->nb_pck+1 >= cstr->tci->sel_enc_range)) {
+			cstr->tci->sel_enc_type = GF_CRYPT_SELENC_NONE;
+		}
+		break;
 	default:
 		break;
 	}
@@ -1654,6 +1662,12 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 				subsample_count ++;
 			}
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			if (force_clear) {
+				bin128 NULL_IV;
+				memset(NULL_IV, 0, 16);
+				memcpy(NULL_IV, (char *) &cstr->nb_pck, 4);
+				gf_bs_write_data(bs, NULL_IV, cstr->tci->IV_size);
+			}
 			gf_bs_write_u16(bs, subsample_count);
 			olen = pck_size;
 			for (i = 0; i < subsample_count; i++) {
@@ -1671,7 +1685,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		if (sai)
 			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA_NO_COPY(sai, sai_size) );
 
-		gf_filter_pck_set_crypt_flags(dst_pck, 0);
+		gf_filter_pck_set_crypt_flags(dst_pck, force_clear ? GF_FILTER_PCK_CRYPT : 0);
 		gf_filter_pck_send(dst_pck);
 		return GF_OK;
 	}

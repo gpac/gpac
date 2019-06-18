@@ -1421,7 +1421,7 @@ typedef struct
 	u16 samplerate_hi;				\
 	u16 samplerate_lo;				\
 	u8 extensions[36];				\
-	u8 is_qtff;						\
+	u32 is_qtff;						\
 
 
 typedef struct
@@ -1762,7 +1762,7 @@ typedef struct
 	GF_List *sai_sizes;
 	GF_List *sai_offsets;
 
-	u32 MaxSamplePerChunk;
+	u32 MaxSamplePerChunk, MaxChunkSize;
 	u16 groupID;
 	u16 trackPriority;
 	u32 currentEntryIndex;
