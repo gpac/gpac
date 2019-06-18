@@ -4006,7 +4006,7 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
                 return gf_isom_box_add_default(s, a);
             }
 		}
- 		ptr->is_qtff &= ~(1<<16);
+ 		ptr->is_qtff = 2;
 		return gf_isom_box_add_default(s, a);
 	default:
 		return gf_isom_box_add_default(s, a);
