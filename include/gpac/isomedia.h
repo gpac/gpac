@@ -1537,7 +1537,9 @@ storage efficiency
 *DefaultSampleIsSync: default key-flag (RAP) of samples in this track
 *DefaultSamplePadding: default padding bits for samples in this track
 *DefaultDegradationPriority: default degradation priority for samples in this track
+*force_traf_flags: if 1, will ignore these default in each traf but will still write them in moov
 
+If all the defaults are 0, traf flags will alwaus be used to signal them.
 */
 GF_Err gf_isom_setup_track_fragment(GF_ISOFile *the_file, u32 TrackID,
                                     u32 DefaultStreamDescriptionIndex,
@@ -1545,7 +1547,8 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *the_file, u32 TrackID,
                                     u32 DefaultSampleSize,
                                     u8 DefaultSampleIsSync,
                                     u8 DefaultSamplePadding,
-                                    u16 DefaultDegradationPriority);
+                                    u16 DefaultDegradationPriority,
+									u8 force_traf_flags);
 
 /*change the default parameters of an existing trak fragment - should not be used if samples have
 already been added - semantics are the same as in gf_isom_setup_track_fragment*/
@@ -1555,7 +1558,8 @@ GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *movie, u32 TrackID,
         u32 DefaultSampleSize,
         u8 DefaultSampleIsSync,
         u8 DefaultSamplePadding,
-        u16 DefaultDegradationPriority);
+        u16 DefaultDegradationPriority,
+        u8 force_traf_flags);
 
 /*flushes data to disk and prepare movie fragmentation
 @media_segment_type: 0 if no segments, 1 if regular segment, 2 if single segment*/

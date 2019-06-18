@@ -3374,7 +3374,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 		e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum),
 										 defaultDescriptionIndex, defaultDuration,
 										 defaultSize, (u8) defaultRandomAccess,
-										 defaultPadding, defaultDegradationPriority);
+										 defaultPadding, defaultDegradationPriority, 0);
 		if (e) goto err_exit;
 
 		GF_SAFEALLOC(tf, GF_TrackFragmenter);

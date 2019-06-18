@@ -201,7 +201,8 @@ GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *movie, u32 TrackID,
         u32 DefaultSampleSize,
         u8 DefaultSampleIsSync,
         u8 DefaultSamplePadding,
-        u16 DefaultDegradationPriority)
+        u16 DefaultDegradationPriority,
+        u8 force_traf_flags)
 {
 	GF_MovieExtendsBox *mvex;
 	GF_TrackExtendsBox *trex;
@@ -228,7 +229,11 @@ GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *movie, u32 TrackID,
 	if (DefaultSampleIsSync) {
 		trex->def_sample_flags |= (2<<24);
 	}
-	if (DefaultSampleDescriptionIndex == 0 && DefaultSampleDuration == 0 && DefaultSampleSize == 0
+	trex->cannot_use_default = GF_FALSE;
+
+	if (force_traf_flags) {
+		trex->cannot_use_default = GF_TRUE;
+	} else if (DefaultSampleDescriptionIndex == 0 && DefaultSampleDuration == 0 && DefaultSampleSize == 0
 		&& DefaultSampleIsSync == 0 && DefaultSamplePadding == 0 && DefaultDegradationPriority == 0) {
 		trex->cannot_use_default = GF_TRUE;
 	}
@@ -242,7 +247,8 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, u32 TrackID,
                                     u32 DefaultSampleSize,
                                     u8 DefaultSampleIsSync,
                                     u8 DefaultSamplePadding,
-                                    u16 DefaultDegradationPriority)
+                                    u16 DefaultDegradationPriority,
+                                    u8 force_traf_flags)
 {
 	GF_MovieExtendsBox *mvex;
 	GF_TrackExtendsBox *trex;
@@ -276,7 +282,7 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, u32 TrackID,
 		mvex_AddBox((GF_Box*)mvex, (GF_Box *) trex);
 	}
 	trex->track = trak;
-	return gf_isom_change_track_fragment_defaults(movie, TrackID, DefaultSampleDescriptionIndex, DefaultSampleDuration, DefaultSampleSize, DefaultSampleIsSync, DefaultSamplePadding, DefaultDegradationPriority);
+	return gf_isom_change_track_fragment_defaults(movie, TrackID, DefaultSampleDescriptionIndex, DefaultSampleDuration, DefaultSampleSize, DefaultSampleIsSync, DefaultSamplePadding, DefaultDegradationPriority, force_traf_flags);
 }
 
 
@@ -333,7 +339,7 @@ void ComputeFragmentDefaults(GF_TrackFragmentBox *traf)
 	}
 escape_duration:
 	//store if #
-	if (DefValue && (DefValue != traf->trex->def_sample_duration)) {
+	if (DefValue && ((DefValue != traf->trex->def_sample_duration) || traf->trex->cannot_use_default ) ) {
 		traf->tfhd->def_sample_duration = DefValue;
 	}
 
@@ -467,7 +473,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 			gf_list_rem(traf->TrackRuns, 0);
 			gf_isom_box_del((GF_Box *)trun);
 		}
-		traf->tfhd->flags = GF_ISOM_TRAF_DUR_EMPTY;
+		traf->tfhd->flags |= GF_ISOM_TRAF_DUR_EMPTY;
 		if (traf->tfhd->EmptyDuration != traf->trex->def_sample_duration) {
 			traf->tfhd->def_sample_duration = traf->tfhd->EmptyDuration;
 			traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_DUR;
@@ -606,7 +612,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 		traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_DUR;
 	if (UseDefaultFlag==1)
 		traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_FLAGS;
-	if (traf->tfhd->sample_desc_index != traf->trex->def_sample_desc_index)
+	if (traf->trex->cannot_use_default || (traf->tfhd->sample_desc_index != traf->trex->def_sample_desc_index))
 		traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_DESC;
 
 
@@ -2375,7 +2381,8 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *the_file, u32 TrackID,
                                     u32 DefaultSampleSize,
                                     u8 DefaultSampleIsSync,
                                     u8 DefaultSamplePadding,
-                                    u16 DefaultDegradationPriority)
+                                    u16 DefaultDegradationPriority,
+                                    u8 u8 force_traf_flags)
 {
 	return GF_NOT_SUPPORTED;
 }
