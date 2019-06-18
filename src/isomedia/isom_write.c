@@ -1762,6 +1762,8 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 		break;
 	}
 
+	aud_entry->compression_id = 0;
+
 	//check for wave+children and chan for QTFF or remove them for isobmff
 	for (i=0; i<gf_list_count(aud_entry->other_boxes); i++) {
 		GF_Box *b = gf_list_get(aud_entry->other_boxes, i);
@@ -1779,6 +1781,9 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	//TODO: insert channelLayout for ISOBMFF
 	if (asemode!=GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) return GF_OK;
 
+	if (aud_entry->type==GF_ISOM_BOX_TYPE_MP4A)
+		aud_entry->compression_id = -2;
+		
 	if (!aud_entry->other_boxes) aud_entry->other_boxes = gf_list_new();
 
 	if (!wave_box) {
@@ -1814,23 +1819,33 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	if (!wave_box->other_boxes) wave_box->other_boxes = gf_list_new();
 
 	aud_entry->is_qtff = 1;
-	if (!enda) {
-		enda = (GF_ChromaInfoBox *)gf_isom_box_new(GF_QT_BOX_TYPE_ENDA);
-		enda->chroma=1;
-		gf_list_insert(wave_box->other_boxes, enda, 0);
-	}
 	if (!frma) {
 		frma = (GF_OriginalFormatBox *)gf_isom_box_new(GF_QT_BOX_TYPE_FRMA);
-		gf_list_insert(wave_box->other_boxes, frma, 0);
+	} else {
+		gf_list_del_item(wave_box->other_boxes, frma);
 	}
+	gf_list_add(wave_box->other_boxes, frma);
+
+	if (esds) gf_list_del_item(wave_box->other_boxes, esds);
 	if (!esds && (aud_entry->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)aud_entry)->esd) {
 		gf_list_add(wave_box->other_boxes, (GF_Box *) ((GF_MPEGAudioSampleEntryBox*)aud_entry)->esd);
 	}
 
+	if (!enda) {
+		enda = (GF_ChromaInfoBox *)gf_isom_box_new(GF_QT_BOX_TYPE_ENDA);
+	} else {
+		gf_list_del_item(wave_box->other_boxes, enda);
+	}
+	enda->chroma=1;
+	gf_list_add(wave_box->other_boxes, enda);
+
 	if (!terminator) {
 		terminator = gf_isom_box_new(0);
-		gf_list_add(wave_box->other_boxes, terminator);
+	} else {
+		gf_list_del_item(wave_box->other_boxes, terminator);
 	}
+	gf_list_add(wave_box->other_boxes, terminator);
+
 	if (aud_entry->type==GF_ISOM_BOX_TYPE_GNRA) {
 		frma->data_format = ((GF_GenericAudioSampleEntryBox*) aud_entry)->EntryType;
 	} else {

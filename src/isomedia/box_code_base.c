@@ -3956,12 +3956,14 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
  						if (ptr->is_qtff & 1<<16) {
                         	gf_list_rem(a->other_boxes, i);
                         	drop_wave=GF_TRUE;
+                        	ptr->compression_id = 0;
 						}
                     }
                 }
 				if (drop_wave) {
 					gf_isom_box_del(a);
                 	ptr->is_qtff = 0;
+					ptr->version = 0;
 					return GF_OK;
 				}
                 ptr->is_qtff = 2; //inidcate data in extensions() is valid
@@ -3995,6 +3997,8 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 				if (drop_wave) {
 					gf_isom_box_del(a);
                 	ptr->is_qtff = 0;
+					ptr->compression_id = 0;
+					ptr->version = 0;
 					return GF_OK;
 				}
                 ptr->is_qtff = 2; //inidcate data in extensions() is valid
