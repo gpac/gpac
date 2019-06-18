@@ -1600,6 +1600,11 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 		}
 		if (wave)
 			aud_entry->is_qtff=2;
+
+		if (aud_entry->type==GF_ISOM_BOX_TYPE_MP4A)
+			aud_entry->compression_id = -2;
+		else
+			aud_entry->compression_id = 0;
 	}
 	return GF_OK;
 }
