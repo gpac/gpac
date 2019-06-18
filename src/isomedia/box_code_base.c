@@ -6698,13 +6698,15 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_array_write(s, ptr->sai_offsets, bs);
 		if (e) return e;
 	}
-	e = gf_isom_box_array_write(s, ptr->TrackRuns, bs);
-	if (e) return e;
 
 	if (ptr->sample_encryption) {
 		e = gf_isom_box_write((GF_Box *) ptr->sample_encryption, bs);
 		if (e) return e;
 	}
+
+	e = gf_isom_box_array_write(s, ptr->TrackRuns, bs);
+	if (e) return e;
+
 	//tfxd should be last ...
 	if (ptr->tfxd) {
 		e = gf_isom_box_write((GF_Box *) ptr->tfxd, bs);
