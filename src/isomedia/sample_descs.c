@@ -175,13 +175,7 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 	gf_bs_write_u16(bs, ptr->samplerate_hi);
 	gf_bs_write_u16(bs, ptr->samplerate_lo);
 
-	if (!ptr->is_qtff) {
-		if (ptr->version==1) {
-			gf_bs_write_data(bs,  (char *) ptr->extensions, 16);
-		} else if (ptr->version==2) {
-			gf_bs_write_data(bs,  (char *) ptr->extensions, 36);
-		}
-	} else {
+	if (ptr->is_qtff) {
 		GF_Box *esds = NULL;
 		if (ptr->is_qtff==1) {
 			if ((ptr->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)ptr)->esd) {
@@ -209,18 +203,10 @@ void gf_isom_audio_sample_entry_size(GF_AudioSampleEntryBox *ptr)
 {
 	ptr->size += 28;
 	if (ptr->is_qtff) {
-		if (!ptr->is_qtff) {
-			if (ptr->version==1) {
-				ptr->size+=16;
-			} else if (ptr->version==2) {
-				ptr->size += 36;
-			}
-		} else {
-			if (ptr->version==1) {
-				ptr->size+=16;
-			} else if (ptr->version==2) {
-				ptr->size += 36;
-			}
+		if (ptr->version==1) {
+			ptr->size+=16;
+		} else if (ptr->version==2) {
+			ptr->size += 36;
 		}
 	}
 }
