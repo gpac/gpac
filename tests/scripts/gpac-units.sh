@@ -34,16 +34,16 @@ single_test "$GPAC -h codecs" "gpac-h-codecs"
 single_test "$GPAC -h alias" "gpac-h-alias"
 single_test "$GPAC -ha alias" "gpac-ha-alias"
 single_test "$GPAC -h links" "gpac-h-links"
-single_test "$GPAC -h links mxisom" "gpac-h-links-single"
+single_test "$GPAC -h links mp4mx" "gpac-h-links-single"
 single_test "$GPAC -h modules" "gpac-h-modules"
 single_test "$GPAC -h filters" "gpac-h-filters"
 single_test 'gpac -h filters:*' "gpac-h-filters-all"
 single_test 'gpac -h *:*' "gpac-h-all"
 single_test 'gpac -h ffdec:*' "gpac-h-subfilters-all"
 single_test "$GPAC -ltf -h UTFilter" "gpac-unit-info"
-single_test "$GPAC -ha mxisom" "gpac-mxisom-ha"
-single_test "$GPAC -hx mxisom" "gpac-mxisom-hx"
-single_test "$GPAC -hh mxisom" "gpac-mxisom-hh"
+single_test "$GPAC -ha mp4mx" "gpac-mp4mx-ha"
+single_test "$GPAC -hx mp4mx" "gpac-mp4mx-hx"
+single_test "$GPAC -hh mp4mx" "gpac-mp4mx-hh"
 single_test "$GPAC -hh core" "gpac-hh-core"
 single_test "$GPAC -mkl=test.unk" "gpac-lang-file"
 rm -f test.unk 2> /dev/null
@@ -114,11 +114,26 @@ test_end
 
 test_begin "gpac-genmd"
 if [ $test_skip != 1 ] ; then
-do_test "$GPAC -genmd" "genmd"
-rm filter*.md
-rm core*.md
-rm _Side*.md
-rm gpac*.md
+do_test "$GPAC -genmd" "gpac-genmd"
+do_test "$MP4BOX -genmd" "mp4box-genmd"
+do_test "$MP4CLIENT -genmd" "mp4client-genmd"
+for i in *.md ; do
+case i in
+README* )
+ continue;;
+esac;
+rm $i
+done
+
+fi
+test_end
+
+test_begin "gpac-genman"
+if [ $test_skip != 1 ] ; then
+do_test "$GPAC -genman" "gpac-genman"
+do_test "$MP4BOX -genman" "mp4box-genman"
+do_test "$MP4CLIENT -genman" "mp4client-genman"
+rm *.1
 fi
 test_end
 
