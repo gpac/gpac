@@ -1588,6 +1588,8 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 		u32 i, count = gf_list_count(aud_entry->other_boxes);
 		for (i=0; i<count; i++) {
 			wave = gf_list_get(aud_entry->other_boxes, i);
+			if (wave->type==GF_QT_BOX_TYPE_WAVE)
+				break;
 			if (wave->type != GF_ISOM_BOX_TYPE_UNKNOWN) {
 				wave = NULL;
 			} else if (wave->original_4cc!=GF_QT_BOX_TYPE_WAVE) {
