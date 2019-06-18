@@ -2419,10 +2419,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				gf_isom_cenc_samp_aux_info_del(sai);
 				gf_bs_get_content(bs, &buffer, &len);
 				gf_bs_del(bs);
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len, is_nalu_video);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len, is_nalu_video, NULL);
 				gf_free(buffer);
 			} else {
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, samp->dataLength, is_nalu_video);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, samp->dataLength, is_nalu_video, NULL);
 			}
 			if (e) goto exit;
 
