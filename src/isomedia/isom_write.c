@@ -1811,6 +1811,10 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 		case GF_ISOM_BOX_TYPE_ESDS:
 			esds = (GF_ESDBox *)b;
 			break;
+		case GF_ISOM_BOX_TYPE_UNKNOWN:
+			if ( ((GF_UnknownBox*)b)->original_4cc == 0)
+				terminator = b;
+			break;
 		case 0:
 			terminator = b;
 			break;
