@@ -3285,7 +3285,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 
 			gf_fclose(helpout);
 			gf_sys_close();
-			return 0;
+			return 1;
 		}
 
 		else if (!stricmp(arg, "-v")) verbose++;
