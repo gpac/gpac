@@ -1698,7 +1698,7 @@ GF_EXPORT
 GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample, GF_AudioSampleEntryImportMode asemode)
 {
 	GF_Err e;
-	u32 i;
+	u32 i, was_qtff=0;
 	GF_TrackBox *trak;
 	GF_SampleEntryBox *entry;
 	GF_AudioSampleEntryBox*aud_entry;
@@ -1757,8 +1757,9 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF:
 		stsd->version = 0;
 		aud_entry->version = 1;
-		aud_entry->is_qtff = 1;
 		aud_entry->channel_count = nbChannels;
+		was_qtff = aud_entry->is_qtff;
+		aud_entry->is_qtff = 1;
 		break;
 	}
 
@@ -1822,7 +1823,7 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	}
 	if (!wave_box->other_boxes) wave_box->other_boxes = gf_list_new();
 
-	aud_entry->is_qtff = 1;
+	aud_entry->is_qtff = was_qtff ? was_qtff : 1;
 	if (!frma) {
 		frma = (GF_OriginalFormatBox *)gf_isom_box_new(GF_QT_BOX_TYPE_FRMA);
 	} else {
