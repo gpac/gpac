@@ -155,6 +155,11 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				else if (!strnicmp(att->value, "Clear", 5)) {
 					tkc->sel_enc_type = GF_CRYPT_SELENC_CLEAR;
 				}
+				else if (!strnicmp(att->value, "ForceClear", 10)) {
+					char *sep = strchr(att->value, '=');
+					if (sep) tkc->sel_enc_range = atoi(sep+1);
+					tkc->sel_enc_type = GF_CRYPT_SELENC_CLEAR_FORCED;
+				}
 			}
 			else if (!stricmp(att->name, "Preview")) {
 				tkc->sel_enc_type = GF_CRYPT_SELENC_PREVIEW;

@@ -825,6 +825,87 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
+{
+	u32 i, count, timescale, def_dur, video_tk=0;
+	u32 target_ts = 0, w=0, h=0, chunk_size=0;
+	gf_isom_remove_root_od(mp4);
+	timescale = 0;
+	count = gf_isom_get_track_count(mp4);
+	for (i=0; i<count; i++) {
+		GF_Err e;
+		u32 colour_type=0;
+		u16 colour_primaries=0, transfer_characteristics=0, matrix_coefficients=0;
+		Bool full_range_flag=GF_FALSE;
+		u32 hspacing=0, vspacing=0;
+		u32 mtype = gf_isom_get_media_type(mp4, i+1);
+
+		if (mtype==GF_ISOM_MEDIA_AUDIO) {
+			u32 sr, nb_ch;
+			u8 bps;
+			gf_isom_get_audio_info(mp4, i+1, 1, &sr, &nb_ch, &bps);
+			gf_isom_set_audio_info(mp4, i+1, 1, sr, nb_ch, bps, GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF);
+			continue;
+		}
+		if (mtype!=GF_ISOM_MEDIA_VISUAL) continue;
+
+		if (video_tk) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] cannot adjust isobmf file params to prores, more than one video track\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		video_tk = i+1;
+		timescale = gf_isom_get_media_timescale(mp4, video_tk);
+		def_dur = gf_isom_get_constant_sample_duration(mp4, video_tk);
+		if (!def_dur) {
+			gf_isom_get_sample_duration(mp4, video_tk, 2);
+			if (!def_dur) {
+				gf_isom_get_sample_duration(mp4, video_tk, 1);
+			}
+		}
+
+		gf_isom_get_pixel_aspect_ratio(mp4, video_tk, 1, &hspacing, &vspacing);
+		if ((hspacing<=1) || (vspacing<=1))
+			gf_isom_set_pixel_aspect_ratio(mp4, video_tk, 1, -1, -1);
+
+		//todo: patch colr
+		e = gf_isom_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
+		if (e==GF_NOT_FOUND) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
+			gf_isom_set_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE);
+		} else if (e) {
+			return e;
+		}
+		gf_isom_get_visual_info(mp4, video_tk, 1, &w, &h);
+	}
+	if (!def_dur) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] No samples found in visual track\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	if (def_dur * 24000 == timescale * 1001) target_ts = 24000;
+	else if (def_dur * 2400 == timescale * 100) target_ts = 2400;
+	else if (def_dur * 2500 == timescale * 100) target_ts = 2500;
+	else if (def_dur * 30000 == timescale * 1001) target_ts = 30000;
+	else if (def_dur * 3000 == timescale * 100) target_ts = 3000;
+	else if (def_dur * 5000 == timescale * 100) target_ts = 5000;
+	else if (def_dur * 60000 == timescale * 1001) target_ts = 60000;
+	else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] Unrecognized frame rate %g\n", ((Double)timescale)/def_dur ));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	if (target_ts != timescale) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] Adjusting timescale to %d\n", target_ts));
+		gf_isom_set_media_timescale(mp4, video_tk, target_ts, GF_FALSE);
+	}
+	gf_isom_set_timescale(mp4, target_ts);
+	if ((w<=720) && (h<=576)) chunk_size = 2000000;
+	else chunk_size = 4000000;
+
+	gf_isom_set_interleave_time(mp4, 500);
+	gf_isom_hint_max_chunk_size(mp4, video_tk, chunk_size);
+
+	return GF_OK;
+}
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

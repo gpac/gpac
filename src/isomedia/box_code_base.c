@@ -3893,7 +3893,8 @@ void audio_sample_entry_del(GF_Box *s)
 	if (ptr == NULL) return;
 	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
 
-	if (ptr->esd) gf_isom_box_del((GF_Box *)ptr->esd);
+	if (ptr->esd && !ptr->is_qtff)
+		gf_isom_box_del((GF_Box *)ptr->esd);
 	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
 	if (ptr->cfg_opus) gf_isom_box_del((GF_Box *)ptr->cfg_opus);
 	if (ptr->cfg_ac3) gf_isom_box_del((GF_Box *)ptr->cfg_ac3);
@@ -3903,6 +3904,8 @@ void audio_sample_entry_del(GF_Box *s)
 
 GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 {
+	GF_UnknownBox *wave = NULL;
+	Bool drop_wave=GF_FALSE;
 	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_ESDS:
@@ -3938,10 +3941,9 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 		break;
 
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
+		wave = (GF_UnknownBox *)a;
 		/*HACK for QT files: get the esds box from the track*/
 		if (s->type == GF_ISOM_BOX_TYPE_MP4A) {
-			GF_UnknownBox *wave = (GF_UnknownBox *)a;
-
 			if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 
 			//wave subboxes may have been properly parsed
@@ -3951,32 +3953,55 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
                     GF_Box *inner_box = (GF_Box *)gf_list_get(wave->other_boxes, i);
                     if (inner_box->type == GF_ISOM_BOX_TYPE_ESDS) {
                         ptr->esd = (GF_ESDBox *)inner_box;
+ 						if (ptr->is_qtff & 1<<16) {
+                        	gf_list_rem(a->other_boxes, i);
+                        	drop_wave=GF_TRUE;
+						}
                     }
                 }
+				if (drop_wave) {
+					gf_isom_box_del(a);
+                	ptr->is_qtff = 0;
+					return GF_OK;
+				}
+                ptr->is_qtff = 2; //inidcate data in extensions() is valid
                 return gf_isom_box_add_default(s, a);
             }
-
-            //unknown fomat, look for 'es' (esds) and try to parse box
-            if (wave->data != NULL) {
-                u32 offset = 0;
-                while (offset + 5 < wave->dataSize && (wave->data[offset + 4] != 'e') && (wave->data[offset + 5] != 's')) {
-                    offset++;
-                }
-                if (offset + 5 < wave->dataSize) {
-                    GF_Box *a;
-                    GF_Err e;
-                    GF_BitStream *bs = gf_bs_new(wave->data + offset, wave->dataSize - offset, GF_BITSTREAM_READ);
-                    e = gf_isom_box_parse(&a, bs);
-                    gf_bs_del(bs);
-                    if (e) return e;
-                    ptr->esd = (GF_ESDBox *)a;
-                    gf_isom_box_add_for_dump_mode((GF_Box *)ptr, a);
-					gf_isom_box_del(a);
-					return GF_OK;
-                }
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Cannot process box %s!\n", gf_4cc_to_str(wave->original_4cc)));
-			}
 		}
+ 		ptr->is_qtff &= ~(1<<16);
+
+ 		if ((wave->original_4cc == GF_QT_BOX_TYPE_WAVE) && gf_list_count(wave->other_boxes)) {
+			ptr->is_qtff = 1;
+		}
+		return gf_isom_box_add_default(s, a);
+	case GF_QT_BOX_TYPE_WAVE:
+		if (s->type == GF_ISOM_BOX_TYPE_MP4A) {
+			if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
+
+			//wave subboxes may have been properly parsed
+ 			if (gf_list_count(a->other_boxes)) {
+ 				u32 i;
+                for (i =0; i<gf_list_count(a->other_boxes); i++) {
+                    GF_Box *inner_box = (GF_Box *)gf_list_get(a->other_boxes, i);
+                    if (inner_box->type == GF_ISOM_BOX_TYPE_ESDS) {
+                        ptr->esd = (GF_ESDBox *)inner_box;
+ 						if (ptr->is_qtff & 1<<16) {
+                        	gf_list_rem(a->other_boxes, i);
+                        	drop_wave=GF_TRUE;
+						}
+						break;
+                    }
+                }
+				if (drop_wave) {
+					gf_isom_box_del(a);
+                	ptr->is_qtff = 0;
+					return GF_OK;
+				}
+                ptr->is_qtff = 2; //inidcate data in extensions() is valid
+                return gf_isom_box_add_default(s, a);
+            }
+		}
+ 		ptr->is_qtff &= ~(1<<16);
 		return gf_isom_box_add_default(s, a);
 	default:
 		return gf_isom_box_add_default(s, a);
@@ -4020,6 +4045,12 @@ GF_Err audio_sample_entry_Read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	pos = gf_bs_get_position(bs);
 	size = (u32) s->size;
+
+	//when cookie is set on bs, always convert qtff-style mp4a to isobmff-style
+	//since the conversion is done in addBox and we don't have the bitstream there (arg...), flag the box
+ 	if (gf_bs_get_cookie(bs)) {
+ 		ptr->is_qtff |= 1<<16;
+ 	}
 
 	e = gf_isom_box_array_read(s, bs, audio_sample_entry_AddBox);
 	if (!e) return GF_OK;
@@ -4065,6 +4096,10 @@ GF_Err audio_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_isom_audio_sample_entry_write((GF_AudioSampleEntryBox*)s, bs);
+
+	if (ptr->is_qtff)
+		return gf_isom_box_array_write(s, ptr->protections, bs);
+
 	if (ptr->esd) {
 		e = gf_isom_box_write((GF_Box *)ptr->esd, bs);
 		if (e) return e;
@@ -4090,6 +4125,10 @@ GF_Err audio_sample_entry_Size(GF_Box *s)
 	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
 
 	gf_isom_audio_sample_entry_size((GF_AudioSampleEntryBox*)s);
+
+	if (ptr->is_qtff)
+		return gf_isom_box_array_size(s, ptr->protections);
+
 	if (ptr->esd) {
 		e = gf_isom_box_size((GF_Box *)ptr->esd);
 		if (e) return e;
@@ -6759,13 +6798,15 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_array_write(s, ptr->sai_offsets, bs);
 		if (e) return e;
 	}
-	e = gf_isom_box_array_write(s, ptr->TrackRuns, bs);
-	if (e) return e;
 
 	if (ptr->sample_encryption) {
 		e = gf_isom_box_write((GF_Box *) ptr->sample_encryption, bs);
 		if (e) return e;
 	}
+
+	e = gf_isom_box_array_write(s, ptr->TrackRuns, bs);
+	if (e) return e;
+
 	//tfxd should be last ...
 	if (ptr->tfxd) {
 		e = gf_isom_box_write((GF_Box *) ptr->tfxd, bs);

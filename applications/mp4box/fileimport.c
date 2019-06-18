@@ -606,6 +606,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				import.asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG;
 			else if (!stricmp(mode, "v1-qt"))
 				import.asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF;
+			else
+				fprintf(stderr, "Unrecognized audio sample entry mode %s, ignoring\n", mode);
 		}
 
 		else if (!strnicmp(ext+1, "audio_roll=", 11)) {

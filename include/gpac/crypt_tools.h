@@ -72,19 +72,21 @@ enum
 	/*! no selective encryption*/
 	GF_CRYPT_SELENC_NONE = 0,
 	/*! only encrypts RAP samples*/
-	GF_CRYPT_SELENC_RAP = 1,
+	GF_CRYPT_SELENC_RAP,
 	/*! only encrypts non-RAP samples*/
-	GF_CRYPT_SELENC_NON_RAP = 2,
+	GF_CRYPT_SELENC_NON_RAP,
 	/*! selective encryption of random samples*/
-	GF_CRYPT_SELENC_RAND = 3,
+	GF_CRYPT_SELENC_RAND,
 	/*! selective encryption of a random sample in given range*/
-	GF_CRYPT_SELENC_RAND_RANGE = 4,
+	GF_CRYPT_SELENC_RAND_RANGE,
 	/*! selective encryption of first sample in given range*/
-	GF_CRYPT_SELENC_RANGE = 5,
+	GF_CRYPT_SELENC_RANGE,
 	/*! encryption of all samples but the preview range*/
-	GF_CRYPT_SELENC_PREVIEW = 6,
-	/*! encryption of no samples*/
-	GF_CRYPT_SELENC_CLEAR = 7,
+	GF_CRYPT_SELENC_PREVIEW,
+	/*!no encryption of samples, signaled with sample group*/
+	GF_CRYPT_SELENC_CLEAR,
+	/*!no encryption of samples, signaled without sample group but bytesOfEncrypted = 0*/
+	GF_CRYPT_SELENC_CLEAR_FORCED,
 };
 
 typedef struct

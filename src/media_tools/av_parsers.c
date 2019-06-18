@@ -3370,7 +3370,9 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		frame_state->frame_type = gf_bs_read_int(bs, 2);
 		FrameIsIntra = (frame_state->frame_type == AV1_INTRA_ONLY_FRAME || frame_state->frame_type == AV1_KEY_FRAME);
 		frame_state->show_frame = gf_bs_read_int(bs, 1);
-		frame_state->key_frame = frame_state->seen_seq_header && frame_state->show_frame && frame_state->frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header;
+		if (frame_state->is_first_frame) {
+			frame_state->key_frame = frame_state->seen_seq_header && frame_state->show_frame && frame_state->frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header;
+		}
 		if (frame_state->show_frame && state->decoder_model_info_present_flag && !state->equal_picture_interval) {
 			/*frame_presentation_time = */gf_bs_read_int(bs, state->frame_presentation_time_length);
 		}
@@ -3976,6 +3978,8 @@ void av1_reset_state(AV1State *state, Bool is_destroy)
 	l1 = state->frame_state.frame_obus;
 	l2 = state->frame_state.header_obus;
 	memset(&state->frame_state, 0, sizeof(AV1StateFrame));
+	state->frame_state.is_first_frame = GF_TRUE;
+
 	if (is_destroy) {
 		gf_list_del(l1);
 		gf_list_del(l2);
@@ -4058,7 +4062,8 @@ static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 		state->frame_state.show_existing_frame = GF_FALSE;
 		frame_state->seen_frame_header = GF_TRUE;
 		av1_parse_uncompressed_header(bs, state);
-		state->frame_state.uncompressed_header_bytes = (u32)(gf_bs_get_position(bs) - pos);
+		state->frame_state.is_first_frame = GF_FALSE;
+		state->frame_state.uncompressed_header_bytes = (u32) (gf_bs_get_position(bs) - pos);
 
 		if (state->frame_state.show_existing_frame) {
 			av1_decode_frame_wrapup(state);

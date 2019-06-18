@@ -532,6 +532,7 @@ typedef enum {
 
 typedef struct
 {
+	Bool is_first_frame;
 	Bool seen_frame_header, seen_seq_header;
 	Bool key_frame, show_frame;
 	AV1FrameType frame_type;
