@@ -2537,7 +2537,7 @@ reparse:
 			//clone track
 			if (! sti[j].track_num) {
 				u32 track_id = gf_isom_get_track_id(file, track);
-				e = gf_isom_clone_track(file, track, file, GF_FALSE, &sti[j].track_num);
+				e = gf_isom_clone_track(file, track, file, 0, &sti[j].track_num);
 				if (e) goto exit;
 
 				if (! for_temporal_sublayers) {
@@ -3026,7 +3026,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 	for (i=0; i<nb_tiles; i++) {
 		if (! signal_mode) {
 			//first clone tracks
-			e = gf_isom_clone_track(file, track, file, GF_FALSE, &tiles[i].track );
+			e = gf_isom_clone_track(file, track, file, 0, &tiles[i].track );
 			if (e) goto err_exit;
 			tiles[i].track_id = gf_isom_get_track_id(file, tiles[i].track);
 			gf_isom_hevc_set_tile_config(file, tiles[i].track, 1, NULL, GF_FALSE);

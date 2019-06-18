@@ -3107,7 +3107,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 				GF_TrackBox *trak = (GF_TrackBox*)gf_list_get( orig_file->moov->trackList, i);
 				if (!trak) continue;
 				if (keep_hint_tracks || (trak->Media->handler->handlerType != GF_ISOM_MEDIA_HINT)) {
-					e = gf_isom_clone_track(orig_file, i+1, dest_file, GF_FALSE, &dstTrack);
+					e = gf_isom_clone_track(orig_file, i+1, dest_file, 0, &dstTrack);
 					if (e) return e;
 				}
 			}
@@ -3267,7 +3267,7 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u3
 }
 
 GF_EXPORT
-GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *dest_file, Bool keep_data_ref, u32 *dest_track)
+GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *dest_file, u32 flags, u32 *dest_track)
 {
 	GF_TrackBox *trak, *new_tk;
 	GF_BitStream *bs;
@@ -3312,7 +3312,8 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	gf_bs_get_content(bs, &data, &data_size);
 	gf_bs_del(bs);
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
-	gf_bs_set_cookie(bs, (u64) bs);
+	if (flags & GF_ISOM_CLONE_TRACK_NO_QT)
+		gf_bs_set_cookie(bs, (u64) bs);
 	e = gf_isom_box_parse((GF_Box **) &new_tk, bs);
 	gf_bs_del(bs);
 	gf_free(data);
@@ -3368,7 +3369,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	}
 
 	/*reset data ref*/
-	if (!keep_data_ref) {
+	if (! (flags & GF_ISOM_CLONE_TRACK_KEEP_DREF) ) {
 		gf_isom_box_array_del(new_tk->Media->information->dataInformation->dref->other_boxes);
 		new_tk->Media->information->dataInformation->dref->other_boxes = gf_list_new();
 		/*update data ref*/
