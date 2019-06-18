@@ -428,7 +428,7 @@ fi
 if [ $check_only = 0 ] ; then
 
 #check MP4Box, gpac and MP4Client (use default args, not custum ones because of -mem-track)
-MP4Box -h 2> /dev/null
+MP4Box -h > /dev/null 2>&1
 res=$?
 if [ $res != 0 ] ; then
 log $L_ERR "MP4Box not found (ret $res) - exiting"
@@ -437,7 +437,7 @@ fi
 
 GPAC_OSTYPE="unknown"
 
-gpac -h >/dev/null 2>&1
+gpac -h > /dev/null 2>&1
 res=$?
 if [ $res != 0 ] ; then
 log $L_ERR "gpac not found (ret $res) - exiting"
