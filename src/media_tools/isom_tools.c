@@ -878,7 +878,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	}
 	if (!def_dur) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] No samples found in visual track\n"));
-		return GF_NON_COMPLIANT_BITSTREAM;
+		return GF_OK;
 	}
 	if (def_dur * 24000 == timescale * 1001) target_ts = 24000;
 	else if (def_dur * 2400 == timescale * 100) target_ts = 2400;
