@@ -899,7 +899,6 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	if ((w<=720) && (h<=576)) chunk_size = 2000000;
 	else chunk_size = 4000000;
 
-	chunk_size = 1000;
 	gf_isom_set_interleave_time(mp4, 500);
 	gf_isom_hint_max_chunk_size(mp4, video_tk, chunk_size);
 
