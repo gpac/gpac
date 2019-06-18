@@ -89,7 +89,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				}
 				if ((a_len == len) && !strncmp(str_start, value, len))
 					break;
-				if (!sep) break;
+				if (!sep) {
+					str_start = NULL;
+					break;
+				}
 				str_start = sep+1;
 				val++;
 			}

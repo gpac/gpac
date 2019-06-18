@@ -523,6 +523,7 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 
 		//post detach task, we will reset the swap_pidinst only once truly deconnected from filter
 		safe_int_inc(&src->pid->filter->detach_pid_tasks_pending);
+		safe_int_inc(&filter->detach_pid_tasks_pending);
 		gf_fs_post_task(filter->session, gf_filter_pid_detach_task, src->filter, src->pid, "pidinst_detach", filter);
 	} else {
 		GF_Filter *src_filter = src->filter;
@@ -783,7 +784,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 							target->detached_pid_inst = gf_list_new();
 						}
 						filter->swap_pidinst_dst->pid = NULL;
-						gf_list_add(target->detached_pid_inst, filter->swap_pidinst_dst);
+						if (gf_list_find(target->detached_pid_inst, filter->swap_pidinst_dst)<0)
+							gf_list_add(target->detached_pid_inst, filter->swap_pidinst_dst);
 					}
 					filter->swap_pidinst_dst = NULL;
 					if (filter->on_setup_error) {
@@ -977,7 +979,8 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	if (!filter->detached_pid_inst) {
 		filter->detached_pid_inst = gf_list_new();
 	}
-	gf_list_add(filter->detached_pid_inst, pidinst);
+	if (gf_list_find(filter->detached_pid_inst, pidinst)<0)
+		gf_list_add(filter->detached_pid_inst, pidinst);
 
 	//we are done, reset filter swap instance so that connection can take place
 	if (new_chain_input->swap_needs_init) {
@@ -985,6 +988,8 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 		new_chain_input->swap_pidinst_src = NULL;
 		new_chain_input->swap_needs_init = GF_FALSE;
 	}
+	assert(new_chain_input->detach_pid_tasks_pending);
+	safe_int_dec(&new_chain_input->detach_pid_tasks_pending);
 }
 
 GF_EXPORT

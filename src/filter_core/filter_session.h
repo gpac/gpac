@@ -303,6 +303,15 @@ typedef struct __gf_fs_thread
 
 } GF_SessionThread;
 
+typedef struct
+{
+	char *argname;
+	u32 type;
+	Bool found;
+} GF_FSArgItem;
+
+void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, u32 type);
+
 struct __gf_filter_session
 {
 	u32 flags;
@@ -401,6 +410,9 @@ struct __gf_filter_session
 	//protect access to link bank
 	GF_Mutex *links_mx;
 	GF_List *links;
+
+
+	GF_List *parsed_args;
 
 	char sep_args, sep_name, sep_frag, sep_list, sep_neg;
 	const char *blacklist;

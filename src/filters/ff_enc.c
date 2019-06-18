@@ -1198,6 +1198,15 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 	ctx->remap_ts = (ctx->encoder->time_base.den != ctx->timescale) ? GF_TRUE : GF_FALSE;
 
+
+	AVDictionaryEntry *prev_e = NULL;
+	while (1) {
+		prev_e = av_dict_get(ctx->options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
+		if (!prev_e) break;
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[FFENC] meta-filter option %s=%s set but not used\n", prev_e->key, prev_e->value));
+		gf_filter_report_unused_meta_option(filter, prev_e->key);
+	}
+
 	ffenc_copy_pid_props(ctx);
 	return GF_OK;
 }
@@ -1307,6 +1316,7 @@ const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
 	//by default no need to load option descriptions, everything is handled by av_set_opt in update_args
 	if (!load_meta_filters) {
 		FFEncodeRegister.args = FFEncodeArgs;
+		FFEncodeRegister.registry_free = NULL;
 		return &FFEncodeRegister;
 	}
 

@@ -337,6 +337,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_discard_changes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_bool) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_int) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_filename) )
 
 
 #ifndef GPAC_DISABLE_PLAYER

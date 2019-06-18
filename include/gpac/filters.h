@@ -213,6 +213,8 @@ When set, all subfilters are exposed. This should only be set when inspecting fi
 #define GF_FS_FLAG_NO_REASSIGN	(1<<7)
 /*! Flag set to print enabled/disabled edges for debug of pid resolution*/
 #define GF_FS_FLAG_PRINT_CONNECTIONS	(1<<8)
+/*! Flag set to disable argument checking*/
+#define GF_FS_FLAG_NO_ARG_CHECK	(1<<9)
 
 
 /*! Creates a new filter session. This will also load all available filters not blacklisted.
@@ -519,6 +521,15 @@ typedef struct
 */
 GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats);
 
+
+/*! Enumerates filter and meta-filter arguments not matched in the session
+\param session filter session
+\param idx index of argument to query, 0 being first argument; this value is automatically incremented
+\param argname set to argument name
+\param argtype set to argument type: 0 was a filter param (eg:arg=val), 1 was a global arg (eg --arg=val) and 2 was a global meta arg (eg -+arg=val)
+\return GF_TRUE if success, GF_FALSE if nothing more to enumerate
+*/
+Bool gf_fs_enum_unmapped_options(GF_FilterSession *session, u32 *idx, char **argname, u32 *argtype);
 
 /*! @} */
 
@@ -2068,6 +2079,14 @@ should not contain any source or destination URL except for sources and sinks.
 \return error code if any
 */
 GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus);
+
+
+/*! used by meta-filters (ffmpeg and co) to report an option was set but not used by the filter. This is needed since these filters might not
+know the set of available options at initialize() time.
+\param filter target filter
+\param arg name of the argument not used/found
+*/
+void gf_filter_report_unused_meta_option(GF_Filter *filter, const char *arg);
 
 /*! @} */
 
