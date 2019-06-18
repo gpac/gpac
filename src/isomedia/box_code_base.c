@@ -3911,6 +3911,7 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_ESDS:
 		if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->esd = (GF_ESDBox *)a;
+		ptr->is_qtff = 0;
 		break;
 	case GF_ISOM_BOX_TYPE_SINF:
 		gf_list_add(ptr->protections, a);
@@ -4026,7 +4027,8 @@ GF_Err audio_sample_entry_Read(GF_Box *s, GF_BitStream *bs)
 	start = gf_bs_get_position(bs);
 	gf_bs_seek(bs, start + 8);
 	v = gf_bs_read_u16(bs);
-	if (v) ptr->is_qtff = 1;
+	if (v)
+		ptr->is_qtff = 1;
 
 	//try to disambiguate QTFF v1 and MP4 v1 audio sample entries ...
 	if (v==1) {
