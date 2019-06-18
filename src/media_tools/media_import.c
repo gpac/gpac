@@ -2094,6 +2094,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	GF_ESD *origin_esd;
 	GF_InitialObjectDescriptor *iod;
 	Bool is_cenc;
+	u32 clone_flags=0;
 	sampDTS = 0;
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		for (i=0; i<gf_isom_get_track_count(import->orig); i++) {
@@ -2205,7 +2206,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		gf_isom_set_timescale(import->dest, timescale);
 	}
 
-	e = gf_isom_clone_track(import->orig, track_in, import->dest, (import->flags & GF_IMPORT_USE_DATAREF) ? GF_TRUE : GF_FALSE, &track);
+	clone_flags = GF_ISOM_CLONE_TRACK_NO_QT;
+	if (import->flags & GF_IMPORT_USE_DATAREF) clone_flags |= GF_ISOM_CLONE_TRACK_KEEP_DREF;
+	e = gf_isom_clone_track(import->orig, track_in, import->dest, clone_flags, &track);
 	if (e) goto exit;
 
 	di = 1;

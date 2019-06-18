@@ -1353,7 +1353,7 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 				force_timescale = gf_isom_get_media_timescale(input, i+1);
 			}
 
-			e = gf_isom_clone_track(input, i+1, output, GF_FALSE, &TrackNum);
+			e = gf_isom_clone_track(input, i+1, output, 0, &TrackNum);
 			if (e) goto err_exit;
 
 			if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
@@ -3710,7 +3710,7 @@ retry_track:
 				u8 defaultPadding;
 				u16 defaultDegradationPriority;
 
-				gf_isom_clone_track(in, j+1, init_seg, GF_FALSE, &track);
+				gf_isom_clone_track(in, j+1, init_seg, 0, &track);
 
 				switch (gf_isom_get_media_subtype(in, j+1, 1)) {
 				case GF_ISOM_SUBTYPE_AVC_H264:
