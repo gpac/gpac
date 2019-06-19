@@ -177,7 +177,7 @@ GF_GPACArg mp4client_args[] =
 #ifdef GPAC_CONFIG_WIN32
  	GF_DEF_ARG("no-wnd", NULL, "use windowless mode (Win32 only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERIMENTAL),
  	GF_DEF_ARG("no-back", NULL, "use transparent background for output window when no background is specified (Win32 only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERIMENTAL),
- 	GF_DEF_ARG("align", NULL, "specifies v and h alignment for windowless mode\n"
+ 	GF_DEF_ARG("align", NULL, "specify v and h alignment for windowless mode\n"
  	"- tl: top/left\n"
  	"- tm: top/horizontal middle\n"
  	"- tr: top/right\n"

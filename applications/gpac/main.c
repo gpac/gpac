@@ -1055,7 +1055,7 @@ static Bool word_match(const char *orig, const char *dst)
 		u32 dist_char;
 		char *pos = strchr(orig, dst[i]);
 		if (!pos) continue;
-		dist_char = pos - orig;
+		dist_char = (u32) (pos - orig);
 		if (!run[dist_char]) {
 			run[dist_char] = i+1;
 			match++;
@@ -1086,7 +1086,7 @@ static Bool word_match(const char *orig, const char *dst)
 	//if arg is small only check dst
 	if ((olen<=4) && (dist >= 2))
 		return GF_TRUE;
-	if ((dist*2 >= olen) && (dist*2 >= dlen))
+	if ((dist*2 >= (s32) olen) && (dist*2 >= (s32) dlen))
 		return GF_TRUE;
 	return GF_FALSE;
 }
@@ -1851,7 +1851,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 					if (end_pos) {
 						sbbuf = gf_malloc(end_pos+1);
 						gf_fseek(sidebar_md, 0, SEEK_SET);
-						end_pos = fread(sbbuf, 1, end_pos, sidebar_md);
+						end_pos = (u32) fread(sbbuf, 1, end_pos, sidebar_md);
 						sbbuf[end_pos]=0;
 						gf_fclose(sidebar_md);
 					}
