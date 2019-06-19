@@ -1343,7 +1343,7 @@ static const GF_FilterArgs FFEncodeArgs[] =
 {
 	{ OFFS(c), "codec identifier. Can be any supported GPAC ID or ffmpeg ID or filter subclass name", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(pfmt), "pixel format for input video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, 0},
-	{ OFFS(fintra), "force intra / IDR frames at the given period in sec, eg `fintra=60000/1001` will force an intra every 2 seconds on 29.97 fps video; ignored for audio\n", GF_PROP_FRACTION, "0", NULL, 0},
+	{ OFFS(fintra), "force intra / IDR frames at the given period in sec, eg `fintra=60000/1001` will force an intra every 2 seconds on 29.97 fps video; ignored for audio", GF_PROP_FRACTION, "0", NULL, 0},
 
 	{ OFFS(all_intra), "only produce intra frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ls), "output log", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
