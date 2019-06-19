@@ -179,7 +179,10 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	if (src_striped && dst_striped) {
 		char *all_args;
+		const char *dbsep;
 		char *localarg_marker;
+		u32 nb_db_sep=0;
+		char szDBSep[3];
 		Bool insert_escape = GF_FALSE;
 		u32 len = 2 + (u32) strlen(src_striped) + (u32) strlen(dst_striped);
 		if ((strstr(src_striped, "src=") || strstr(src_striped, "dst=")) && strstr(src_striped, "://")){
@@ -190,11 +193,28 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 				len += 5;
 			}
 		}
-		all_args = gf_malloc(sizeof(char)*len);
+
+		szDBSep[0] = szDBSep[1] = filter->session->sep_args;
+		szDBSep[2] = 0;
+		dbsep = src_striped;
+		while (dbsep) {
+			char *next_dbsep = strstr(dbsep, szDBSep);
+			if (!next_dbsep) break;
+			nb_db_sep++;
+			dbsep = next_dbsep+2;
+		}
+		if (nb_db_sep % 2) nb_db_sep=1;
+		else nb_db_sep=0;
+
+		all_args = gf_malloc(sizeof(char)*(len+nb_db_sep));
+		if (!nb_db_sep) {
+			szDBSep[1] = 0;
+		}
+
 		if (insert_escape) {
-			sprintf(all_args, "%s%cgpac%c%s", src_striped, fsess->sep_args, fsess->sep_args, dst_striped);
+			sprintf(all_args, "%s%sgpac%c%s", src_striped, szDBSep, fsess->sep_args, dst_striped);
 		} else {
-			sprintf(all_args, "%s%c%s", src_striped, fsess->sep_args, dst_striped);
+			sprintf(all_args, "%s%s%s", src_striped, szDBSep, dst_striped);
 		}
 		localarg_marker = strstr(all_args, "locarg");
 		if (localarg_marker) {
@@ -1059,9 +1079,9 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			}
 			//little optim here, if no value check for enums
 			else if (!value && a->min_max_enum && strchr(a->min_max_enum, '|') ) {
-				char *found = strstr(a->min_max_enum, szArg);
-				if (found) {
-					char c = found[strlen(szArg)];
+				char *arg_found = strstr(a->min_max_enum, szArg);
+				if (arg_found) {
+					char c = arg_found[strlen(szArg)];
 					if (!c || (c=='|')) {
 						is_my_arg = GF_TRUE;
 						value = szArg;
@@ -1137,7 +1157,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			}
 		}
 
-		if (!internal_arg)
+		if (!internal_arg && !opaque_arg)
 			gf_fs_push_arg(filter->session, szArg, found, 0);
 
 skip_arg:
@@ -1145,6 +1165,8 @@ skip_arg:
 			args=sep+6;
 		} else if (sep) {
 			args=sep+1;
+			if (opaque_arg)
+				args += 1;
 		} else {
 			args=NULL;
 		}
