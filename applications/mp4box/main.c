@@ -5279,7 +5279,6 @@ int mp4boxMain(int argc, char **argv)
 			needSave = GF_TRUE;
 		}
 		if (conv_type == GF_ISOM_CONV_TYPE_MOV) {
-			fprintf(stderr, "Checking ProRes compliancy...\n");
 			e = gf_media_check_qt_prores(file);
 			if (e) goto err_exit;
 			needSave = GF_TRUE;
