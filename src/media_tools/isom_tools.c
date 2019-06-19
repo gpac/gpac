@@ -853,13 +853,13 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	if ((nb_video_tracks==1) && video_tk) {
 		u32 video_subtype = gf_isom_get_media_subtype(mp4, video_tk, 1);
 		switch (video_subtype) {
-		case GF_QT_BOX_TYPE_APCH:
-		case GF_QT_BOX_TYPE_APCO:
-		case GF_QT_BOX_TYPE_APCN:
-		case GF_QT_BOX_TYPE_APCS:
-		case GF_QT_BOX_TYPE_APCF:
-		case GF_QT_BOX_TYPE_AP4X:
-		case GF_QT_BOX_TYPE_AP4H:
+		case GF_QT_SUBTYPE_APCH:
+		case GF_QT_SUBTYPE_APCO:
+		case GF_QT_SUBTYPE_APCN:
+		case GF_QT_SUBTYPE_APCS:
+		case GF_QT_SUBTYPE_APCF:
+		case GF_QT_SUBTYPE_AP4X:
+		case GF_QT_SUBTYPE_AP4H:
 			is_prores=GF_TRUE;
 			break;
 		}
