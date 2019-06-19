@@ -484,7 +484,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		char *dst;
 		ctx->opid = gf_filter_pid_new(filter);
 
-		dst = gf_filter_get_dst_args(filter);
+		dst = gf_filter_get_dst_name(filter);
 		if (dst) {
 			char *ext = gf_file_ext_start(dst);
 			if (ext && (!stricmp(ext, ".mov") || !stricmp(ext, ".qt")) ) {

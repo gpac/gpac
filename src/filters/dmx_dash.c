@@ -229,8 +229,10 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 {
 	GF_DASHGroup *group;
 	GF_Err e;
+	u32 url_type=0;
 	Bool has_sep = GF_FALSE;
 	char *sURL = NULL;
+	const char *base_url;
 	if (!init_segment_name) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Error locating plugin for segment - mime type %s - name %s\n", mime, init_segment_name));
 		return GF_FILTER_NOT_FOUND;
@@ -242,25 +244,33 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	group->idx = group_index;
 	gf_dash_set_group_udta(ctx->dash, group_index, group);
 
+	base_url = gf_dash_get_url(ctx->dash);
+	if (!strnicmp(base_url, "http://", 7)) url_type=1;
+	else if (!strnicmp(base_url, "https://", 7)) url_type=2;
+	else url_type=0;
+
 	sURL = gf_malloc(sizeof(char) * (strlen(init_segment_name) + 200) );
 	strcpy(sURL, init_segment_name);
 	if (!strncmp(sURL, "isobmff://", 10)) {
-		const char *base_url = gf_dash_get_url(ctx->dash);
-		if (!strnicmp(base_url, "http://", 7))
+		if (url_type==1)
 			sprintf(sURL, "http://%s", init_segment_name);
-		else if (!strnicmp(base_url, "https://", 7))
+		else if (url_type==2)
 			sprintf(sURL, "http://%s", init_segment_name);
 		else
 			sprintf(sURL, "file://%s", init_segment_name);
 	}
-	if (!ctx->store) {
-		if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
-		strcat(sURL, ":cache=mem");
+	//not from file system, set cache option
+	if (url_type) {
+		if (!ctx->store) {
+			if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
+			strcat(sURL, ":cache=mem");
+		}
+		else if (ctx->store==2) {
+			if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
+			strcat(sURL, ":cache=keep");
+		}
 	}
-	else if (ctx->store==2) {
-		if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
-		strcat(sURL, ":cache=keep");
-	}
+
 	if (start_range || end_range) {
 		char szRange[500];
 		if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }

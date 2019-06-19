@@ -1223,7 +1223,8 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	else if (!strcmp(arg_name, "low_delay"))	ctx->low_delay = GF_TRUE;
 	//remap some options
 	else if (!strcmp(arg_name, "bitrate") || !strcmp(arg_name, "rate"))	arg_name = "b";
-	else if (!strcmp(arg_name, "gop"))	arg_name = "g";
+	else if (!strcmp(arg_name, "gop"))
+		arg_name = "g";
 
 	//disable low delay if these options are set
 	else if (!strcmp(arg_name, "x264opts")) ctx->low_delay = GF_FALSE;

@@ -1906,11 +1906,17 @@ typedef enum
 */
 u8 gf_filter_get_sep(GF_Filter *filter, GF_FilterSessionSepType sep_type);
 
-/*! Queries the arguments of the destination. The first output pid connected to a filter with non NULL args will be used (this is a recursive check until end of chain)
+/*! Queries the arguments of the destination arguments. The first output pid connected to a filter with non NULL args will be used (this is a recursive check until end of chain)
+\param filter the target filter
+\return the argument string of the destination args
+*/
+const char *gf_filter_get_dst_args(GF_Filter *filter);
+
+/*! Queries the destination name. The first output pid connected to a filter with non NULL args will be used (this is a recursive check until end of chain)
 \param filter the target filter
 \return the argument string of the destination (SHALL be freed by caller), NULL if none found
 */
-char *gf_filter_get_dst_args(GF_Filter *filter);
+char *gf_filter_get_dst_name(GF_Filter *filter);
 
 /*! Sends an event on all input pids
 \param filter the target filter

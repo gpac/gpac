@@ -73,7 +73,12 @@ static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const ch
 	return args_striped;
 }
 
-char *gf_filter_get_dst_args(GF_Filter *filter)
+const char *gf_filter_get_dst_args(GF_Filter *filter)
+{
+	return gf_filter_get_args_stripped(filter->session, filter->dst_args, GF_TRUE);
+}
+
+char *gf_filter_get_dst_name(GF_Filter *filter)
 {
 	char szDst[5];
 	char *dst, *arg_sep, *res;
@@ -876,6 +881,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		Bool opaque_arg = GF_FALSE;
 		Bool absolute_url = GF_FALSE;
 		Bool internal_url = GF_FALSE;
+		Bool internal_arg = GF_FALSE;
 		char *sep = NULL;
 
 		//look for our arg separator - if arg[0] is also a separator, consider the entire string until next double sep as the parameter
@@ -1100,22 +1106,27 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				if (arg_type != GF_FILTER_ARG_INHERIT)
 					gf_filter_set_id(filter, value);
 				found = GF_TRUE;
+				internal_arg = GF_TRUE;
 			}
 			else if (!strcmp("SID", szArg)) {
 				if (arg_type!=GF_FILTER_ARG_INHERIT)
 					gf_filter_set_sources(filter, value);
 				found = GF_TRUE;
+				internal_arg = GF_TRUE;
 			} else if (!strcmp("clone", szArg)) {
 				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT))
 					filter->clonable=GF_TRUE;
 				found = GF_TRUE;
+				internal_arg = GF_TRUE;
 			}
 			//codec for generic enc load
 			else if (!strcmp("c", szArg)) {
 				found = GF_TRUE;
+				internal_arg = GF_TRUE;
 			} else if (!strcmp("N", szArg)) {
 				gf_filter_set_name(filter, value);
 				found = GF_TRUE;
+				internal_arg = GF_TRUE;
 			}
 			else if (has_meta_args && filter->freg->update_arg) {
 				GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL, filter->session->sep_list);
@@ -1126,7 +1137,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			}
 		}
 
-		gf_fs_push_arg(filter->session, szArg, found, 0);
+		if (!internal_arg)
+			gf_fs_push_arg(filter->session, szArg, found, 0);
 
 skip_arg:
 		if (escaped) {

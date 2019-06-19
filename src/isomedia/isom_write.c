@@ -1725,7 +1725,9 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	GF_AudioSampleEntryBox*aud_entry;
 	GF_SampleDescriptionBox *stsd;
 	GF_Box *wave_box = NULL;
+#if 0
 	GF_ChannelLayoutInfoBox *chan=NULL;
+#endif
 	GF_OriginalFormatBox *frma=NULL;
 	GF_ChromaInfoBox *enda=NULL;
 	GF_ESDBox *esds=NULL;
@@ -1792,7 +1794,10 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 		if ((b->type != GF_QT_BOX_TYPE_WAVE) && (b->type != GF_QT_BOX_TYPE_CHAN) ) continue;
 		if (asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) {
 			if (b->type == GF_QT_BOX_TYPE_WAVE) wave_box = b;
+#if 0
 			else chan = (GF_ChannelLayoutInfoBox *)b;
+#endif
+
 		} else {
 			gf_isom_box_del(b);
 			gf_list_rem(aud_entry->other_boxes, i);
