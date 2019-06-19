@@ -258,6 +258,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
 	const char *szLan;
 	GF_Err e;
+	u32 tmcd_track = 0;
 	Bool keep_audelim = GF_FALSE;
 	GF_MediaImporter import;
 	char *ext, szName[1000], *handler_name, *rvc_config, *chapter_name;
@@ -768,8 +769,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (profile || level)
 				gf_media_change_pl(import.dest, i+1, profile, level);
 
-			if (gf_isom_get_media_subtype(import.dest, i+1, 1)== GF_ISOM_BOX_TYPE_MP4S)
+			switch (gf_isom_get_media_subtype(import.dest, i+1, 1)) {
+			case GF_ISOM_BOX_TYPE_MP4S:
 				keep_sys_tracks = 1;
+				break;
+			case GF_QT_BOX_TYPE_TMCD:
+				tmcd_track = i+1;
+				break;
+			}
 
 			gf_isom_set_composition_offset_mode(import.dest, i+1, negative_cts_offset);
 
@@ -872,6 +879,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 			if (gf_isom_is_video_subtype(import.tk_info[i].type) && (par_n>=-1) && (par_d>=-1)) {
 				e = gf_media_change_par(import.dest, track, par_n, par_d);
+			}
+			if (gf_isom_get_media_subtype(import.dest, track, 1) == GF_QT_BOX_TYPE_TMCD) {
+				tmcd_track = track;
 			}
 			if (rap_only || refs_only) {
 				e = gf_media_remove_non_rap(import.dest, track, refs_only);
@@ -1008,6 +1018,21 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			e = gf_media_import_chapters(import.dest, chapter_name, 0);
 		} else {
 			e = gf_isom_add_chapter(import.dest, 0, 0, chapter_name);
+		}
+	}
+
+	if (tmcd_track) {
+		u32 tmcd_id = gf_isom_get_track_id(import.dest, tmcd_track);
+		for (i=0; i < gf_isom_get_track_count(import.dest); i++) {
+			switch (gf_isom_get_media_type(import.dest, i+1)) {
+			case GF_ISOM_MEDIA_VISUAL:
+			case GF_ISOM_MEDIA_AUXV:
+			case GF_ISOM_MEDIA_PICT:
+				break;
+			default:
+				continue;
+			}
+			gf_isom_set_track_reference(import.dest, i+1, GF_ISOM_REF_TMCD, tmcd_id);
 		}
 	}
 
