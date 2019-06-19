@@ -2173,8 +2173,6 @@
 /*filter session exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_connect_from_time_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_disconnect) )
-
-#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_send_event) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_downloader) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_switch_quality) )
@@ -2245,6 +2243,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_add_event_listener ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_remove_event_listener ) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_release_property) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_udta ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_discard ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_ref ) )
