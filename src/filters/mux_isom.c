@@ -196,7 +196,7 @@ typedef struct
 	u64 current_offset;
 	u64 current_size;
 
-	u32 nb_segs;
+	u32 nb_segs, nb_frags, nb_frags_in_seg;
 
 	GF_FilterPacket *dst_pck;
 	char *seg_name;
@@ -3345,6 +3345,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			if (!ctx->fragment_started) {
 				e = mp4_mux_start_fragment(ctx);
 				if (e) return e;
+				ctx->nb_frags++;
+				if (ctx->dash_mode)
+					ctx->nb_frags_in_seg++;
 			}
 
 			if (ctx->dash_mode) {
@@ -3498,6 +3501,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			ctx->flush_seg = GF_FALSE;
 			ctx->dash_seg_num = 0;
 			ctx->nb_segs++;
+			ctx->nb_frags_in_seg=0;
 		}
 	}
 
@@ -3617,7 +3621,7 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 {
 	Bool status_changed=GF_FALSE;
 	u32 total_pc = 0;
-	char szStatus[1024], szTK[20];
+	char szStatus[2048], szTK[20];
 	if (!gf_filter_reporting_enabled(filter))
 		return;
 	if (!ctx->update_report)
@@ -3646,10 +3650,24 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 		}
 	} else {
 		u32 i, count = gf_list_count(ctx->tracks);
-		sprintf(szStatus, "%s", (ctx->store==MP4MX_MODE_FLAT) ? "mux" : "import");
+		Bool is_frag = GF_FALSE;
+
+		if (ctx->store>=MP4MX_MODE_FRAG) {
+			is_frag = GF_TRUE;
+			if (ctx->dash_mode) {
+				sprintf(szStatus, "mux segments %d (frags %d) next %02.02g", ctx->nb_segs, ctx->nb_frags_in_seg, ctx->next_frag_start);
+			} else {
+				sprintf(szStatus, "mux frags %d next %02.02g", ctx->nb_frags, ctx->next_frag_start);
+			}
+		} else {
+			sprintf(szStatus, "%s", (ctx->store==MP4MX_MODE_FLAT) ? "mux" : "import");
+		}
 		for (i=0; i<count; i++) {
 			u32 pc=0;
 			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+			if (is_frag) {
+
+			}
 			if (tkw->aborted) {
 				pc=10000;
 			} else if (ctx->idur.num) {
@@ -3668,6 +3686,7 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 					}
 				}
 			}
+			if (pc>10000) pc=0;
 			if (tkw->last_import_pc != pc + 1) {
 				status_changed = GF_TRUE;
 				tkw->last_import_pc = pc + 1;
@@ -3675,8 +3694,18 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 			if (!total_pc || (total_pc > pc))
 				total_pc = pc;
 
-			sprintf(szTK, " %s%d(%c): %d %%", tkw->is_item ? "IT" : "TK", tkw->track_id, tkw->status_type, pc);
-			strcat(szStatus, szTK);
+			if (is_frag) {
+				sprintf(szTK, " TK%d(%c): %d", tkw->track_id, tkw->status_type, tkw->samples_in_frag);
+				strcat(szStatus, szTK);
+				status_changed = GF_TRUE;
+				if (pc) {
+					sprintf(szTK, " %d %%", pc);
+					strcat(szStatus, szTK);
+				}
+			} else {
+				sprintf(szTK, " %s%d(%c): %d %%", tkw->is_item ? "IT" : "TK", tkw->track_id, tkw->status_type, pc);
+				strcat(szStatus, szTK);
+			}
 		}
 	}
 	if (status_changed) {
@@ -3703,8 +3732,10 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 
 	//in frag mode, force fetching a sample from each track before processing
 	if (ctx->store>=MP4MX_MODE_FRAG) {
+		u32 done=0;
 		GF_Err e = mp4_mux_process_fragmented(filter, ctx);
-		mp4_mux_format_report(filter, ctx, 0, 0);
+		if (e==GF_EOS) done=100;
+		mp4_mux_format_report(filter, ctx, done, done);
 		return e;
 	}
 
