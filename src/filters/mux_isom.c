@@ -3085,11 +3085,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 		/*because of movie fragments MOOF based offset, ISOM <4 is forbidden*/
 		if (!found) {
-			if (ctx->major_brand_set) {
-				gf_isom_modify_alternate_brand(ctx->file, ctx->dash_mode ? GF_ISOM_BRAND_ISO6 : GF_ISOM_BRAND_ISO5, 1);
-			} else {
-				gf_isom_set_brand_info(ctx->file, ctx->dash_mode ? GF_ISOM_BRAND_ISO6 : GF_ISOM_BRAND_ISO5, 1);
-			}
+			gf_isom_set_brand_info(ctx->file, ctx->dash_mode ? GF_ISOM_BRAND_ISO6 : GF_ISOM_BRAND_ISO5, 1);
 		}
 
 		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
