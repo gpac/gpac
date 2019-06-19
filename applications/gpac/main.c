@@ -774,7 +774,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	fprintf(stderr, "Active filters: %d\n", nb_active);
 
 	if (!logs_to_file) {
-		if (is_final && !static_logs[i].szMsg)
+		if (is_final && (!log_write || !static_logs[log_write-1].szMsg))
 			return;
 
 		fprintf(stderr, "\nLogs:\n");
@@ -1137,8 +1137,7 @@ static void gpac_suggest_filter(char *fname, Bool is_help)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("- %s\n", freg->name));
 		}
 	}
-	if (is_help) {
-		found = GF_FALSE;
+	if (!found && is_help) {
 		i=0;
 		while (doc_helps[i]) {
 			if (word_match(fname, doc_helps[i])) {
@@ -1161,11 +1160,26 @@ static void gpac_suggest_filter(char *fname, Bool is_help)
 
 static void gpac_suggest_filter_arg(GF_Config *opts, char *argname, u32 atype)
 {
-
+	char *keyname;
+	const char *keyval;
 	u32 i, count, len, nb_filters, j;
 	Bool f_found = GF_FALSE;
+	char szSep[2];
+
+	szSep[0] = separator_set[0];
+	szSep[1] = 0;
 
 	len = (u32) strlen(argname);
+	keyname = gf_malloc(sizeof(char)*(len+3));
+	sprintf(keyname, "-%c%s", (atype==2) ? '+' : '-', argname);
+	keyval = gf_cfg_get_key(opts, "allopts", keyname);
+	gf_free(keyname);
+	if (keyval) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Argument \"%s%s\" was set but not used by any filter\n",
+		(atype==2) ? "-+" : (atype ? "--" : szSep), argname));
+		return;
+	}
+
 	nb_filters = gf_fs_get_filters_count(session);
 	count = gf_cfg_get_key_count(opts, "allopts");
 	for (i=0; i<count; i++) {
@@ -1192,12 +1206,17 @@ static void gpac_suggest_filter_arg(GF_Config *opts, char *argname, u32 atype)
 		if (!ffound) continue;
 
 		if (word_match(argname, arg)) {
+			if (!f_found) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unknown argument \"%s%s\" set but not used by any filter - possible matches\n",
+					(atype==2) ? "-+" : (atype ? "--" : szSep), argname));
+				f_found = GF_TRUE;
+			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("- %s in filters %s\n", arg, aval));
-			f_found = GF_TRUE;
 		}
 	}
 	if (!f_found) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No match in any of the loaded filters\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unknown argument \"%s%s\" set but not used by any filter - no matching argument found\n",
+			(atype==2) ? "-+" : (atype ? "--" : szSep), argname));
 	}
 }
 
@@ -1224,10 +1243,6 @@ static void gpac_check_session_args()
 		if (!opts) {
 			break;
 		}
-
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Argument \"%s%s\" was specified but not used by any filter in the chain - possible matches:\n",
-			(argtype==2) ? "-+" : (argtype ? "--" : szSep), argname));
-
 		gpac_suggest_filter_arg(opts, argname, argtype);
 	}
 	if (opts) gf_cfg_del(opts);
