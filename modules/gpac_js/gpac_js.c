@@ -1168,9 +1168,11 @@ case GJS_OM_PROP_NB_QUALITIES:
 	*vp = INT_TO_JSVAL(1);
 	//use HAS qualities
 	if (odm->pid) {
-		const GF_PropertyValue *prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities");
+		GF_PropertyEntry *pe=NULL;
+		const GF_PropertyValue *prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities", &pe);
 		if (prop)
 			*vp = INT_TO_JSVAL(gf_list_count( prop->value.string_list) );
+		gf_filter_release_property(pe);
 	}
 	//use input channels
 	if (odm->extra_pids) {
@@ -1215,8 +1217,10 @@ case GJS_OM_PROP_SELECTED_SERVICE:
 	break;
 case GJS_OM_PROP_BANDWIDTH_DOWN:
 	{
-		const GF_PropertyValue *prop = gf_filter_get_info(odm->scene_ns->source_filter, GF_PROP_PID_DOWN_RATE);
+		GF_PropertyEntry *pe=NULL;
+		const GF_PropertyValue *prop = gf_filter_get_info(odm->scene_ns->source_filter, GF_PROP_PID_DOWN_RATE, &pe);
 		*vp = INT_TO_JSVAL(prop ? prop->value.uint/1000 : 0);
+		gf_filter_release_property(pe);
 	}
 	break;
 case GJS_OM_PROP_NB_HTTP:
@@ -1262,8 +1266,10 @@ case GJS_OM_PROP_TIMESHIFT_TIME:
 			pid = odm->pid;
 		}
 		if (pid) {
-			const GF_PropertyValue *p = gf_filter_pid_get_info(pid, GF_PROP_PID_TIMESHIFT_TIME);
+			GF_PropertyEntry *pe=NULL;
+			const GF_PropertyValue *p = gf_filter_pid_get_info(pid, GF_PROP_PID_TIMESHIFT_TIME, &pe);
 			if (p) res = p->value.number;
+			gf_filter_release_property(pe);
 		}
 	} else if (scene->main_addon_selected) {
 		GF_Clock *ck = scene->root_od->ck;
@@ -1412,6 +1418,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 	SMJS_ARGS
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
 	const GF_PropertyValue *prop;
+	GF_PropertyEntry *pe=NULL;
 	char *qdesc;
 	const char *id="", *mime="", *codec="";
 	u32 sr=0, ch=0, w=0, h=0, bw=0, par_n=1, par_d=1, tile_adaptation_mode=0,dependent_group_index=0;
@@ -1430,13 +1437,15 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 	if (argc>=2) dep_idx = JSVAL_TO_INT(argv[1]);
 #endif
 
-	prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities");
+	prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities", &pe);
 	if (!prop || (prop->type!=GF_PROP_STRING_LIST)) {
+		gf_filter_release_property(pe);
 		SMJS_SET_RVAL(JSVAL_NULL);
 		return JS_TRUE;
 	}
 	qdesc = gf_list_get(prop->value.string_list, idx);
 	if (!qdesc) {
+		gf_filter_release_property(pe);
 		SMJS_SET_RVAL(JSVAL_NULL);
 		return JS_TRUE;
 	}
@@ -1477,14 +1486,16 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 		sep[0]=':';
 		qdesc = sep+2;
 	}
-	prop = gf_filter_pid_get_info_str(odm->pid, "has:selected");
+	prop = gf_filter_pid_get_info_str(odm->pid, "has:selected", &pe);
 	if (prop && (prop->value.uint==idx))
 		selected = GF_TRUE;
-	prop = gf_filter_pid_get_info_str(odm->pid, "has:auto");
+	prop = gf_filter_pid_get_info_str(odm->pid, "has:auto", &pe);
 	if (prop && prop->value.boolean)
 		automatic = GF_TRUE;
-	prop = gf_filter_pid_get_info_str(odm->pid, "has:tilemode");
+	prop = gf_filter_pid_get_info_str(odm->pid, "has:tilemode", &pe);
 	if (prop) tile_adaptation_mode = prop->value.uint;
+
+	gf_filter_release_property(pe);
 
 	if (id)
 		JS_DefineProperty(c, a, "ID", STRING_TO_JSVAL(JS_NewStringCopyZ(c, id)) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);

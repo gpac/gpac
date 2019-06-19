@@ -1395,26 +1395,29 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	u32 bytes_per_sec = 0;
 	u64 file_size = 0, bytes_done = 0;
 	const GF_PropertyValue *p;
+	GF_PropertyEntry *pe=NULL;
 	Bool broadcast_flag = GF_FALSE;
 	if (group->stats_uploaded) return;
 	if (group->prev_is_init_segment) return;
 	if (!group->seg_filter_src) return;
 
-	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_FILE_CACHED);
-	if (!p || !p->value.boolean) return;
-
+	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_FILE_CACHED, &pe);
+	if (!p || !p->value.boolean) {
+		gf_filter_release_property(pe);
+		return;
+	}
 	group->stats_uploaded = GF_TRUE;
 
-	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_RATE);
+	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_RATE, &pe);
 	if (p) bytes_per_sec = p->value.uint / 8;
 
-	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_SIZE);
+	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_SIZE, &pe);
 	if (p) file_size = p->value.longuint;
 
-	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_BYTES);
+	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_BYTES, &pe);
 	if (p) bytes_done = p->value.longuint;
 
-	p = gf_filter_get_info_str(group->seg_filter_src, "x-atsc");
+	p = gf_filter_get_info_str(group->seg_filter_src, "x-atsc", &pe);
 	if (p && p->value.string && !strcmp(p->value.string, "yes")) {
 		broadcast_flag = GF_TRUE;
 	}
@@ -1425,9 +1428,11 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	if (ctx->abort)
 		gf_dash_group_check_bandwidth(ctx->dash, group->idx);
 
-	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_FILE_CACHED);
+	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_FILE_CACHED, &pe);
 	if (p && p->value.boolean)
 		group->stats_uploaded = GF_TRUE;
+
+	gf_filter_release_property(pe);
 }
 
 GF_Err dashdmx_process(GF_Filter *filter)

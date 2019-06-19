@@ -271,6 +271,7 @@ void aout_set_priority(GF_AudioOutCtx *ctx, u32 prio)
 static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
+	GF_PropertyEntry *pe=NULL;
 	u32 sr, nb_ch, afmt, ch_cfg, timescale;
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
 
@@ -296,13 +297,15 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (p) ch_cfg = p->value.uint;
 
 	if (ctx->audio_out->SetVolume) {
-		p = gf_filter_pid_get_info(pid, GF_PROP_PID_AUDIO_VOLUME);
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_AUDIO_VOLUME, &pe);
 		if (p) ctx->audio_out->SetVolume(ctx->audio_out, p->value.uint);
 	}
 	if (ctx->audio_out->SetPan) {
-		p = gf_filter_pid_get_info(pid, GF_PROP_PID_AUDIO_PAN);
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_AUDIO_PAN, &pe);
 		if (p) ctx->audio_out->SetPan(ctx->audio_out, p->value.uint);
 	}
+	gf_filter_release_property(pe);
+	
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_PRIORITY);
 	if (p) aout_set_priority(ctx, p->value.uint);
 

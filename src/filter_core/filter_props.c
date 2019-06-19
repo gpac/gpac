@@ -546,7 +546,7 @@ void gf_props_reset_single(GF_PropertyValue *p)
 		p->value.uint_list.nb_items = 0;
 	}
 }
-void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
+void gf_props_del_property(GF_PropertyEntry *it)
 {
 	assert(it->reference_count);
 	if (safe_int_dec(&it->reference_count) == 0 ) {
@@ -609,7 +609,7 @@ void gf_props_reset(GF_PropertyMap *prop)
 		if (prop->hash_table[i]) {
 			GF_List *l = prop->hash_table[i];
 			while (gf_list_count(l)) {
-				gf_props_del_property(prop, (GF_PropertyEntry *) gf_list_pop_back(l) );
+				gf_props_del_property((GF_PropertyEntry *) gf_list_pop_back(l) );
 			}
 			prop->hash_table[i] = NULL;
 			gf_fq_add(prop->session->prop_maps_list_reservoir, l);
@@ -617,7 +617,7 @@ void gf_props_reset(GF_PropertyMap *prop)
 	}
 #else
 	while (gf_list_count(prop->properties)) {
-		gf_props_del_property(prop, (GF_PropertyEntry *) gf_list_pop_back(prop->properties) );
+		gf_props_del_property( (GF_PropertyEntry *) gf_list_pop_back(prop->properties) );
 	}
 #endif
 }
@@ -642,7 +642,7 @@ void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const cha
 			GF_PropertyEntry *prop = gf_list_get(map->hash_table[hash], i);
 			if ((p4cc && (p4cc==prop->p4cc)) || (name && prop->pname && !strcmp(prop->pname, name)) ) {
 				gf_list_rem(map->hash_table[hash], i);
-				gf_props_del_property(map, prop);
+				gf_props_del_property(prop);
 				break;
 			}
 		}
@@ -653,7 +653,7 @@ void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const cha
 		GF_PropertyEntry *prop = gf_list_get(map->properties, i);
 		if ((p4cc && (p4cc==prop->p4cc)) || (name && prop->pname && !strcmp(prop->pname, name)) ) {
 			gf_list_rem(map->properties, i);
-			gf_props_del_property(map, prop);
+			gf_props_del_property(prop);
 			break;
 		}
 	}

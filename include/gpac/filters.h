@@ -153,6 +153,11 @@ typedef struct __gf_filter_register GF_FilterRegister;
 typedef struct __gf_prop_val GF_PropertyValue;
 
 /*!
+ *	Filter Property Reference object, used for info query only
+ */
+typedef struct __gf_prop_entry GF_PropertyEntry;
+
+/*!
  *\addtogroup fs_grp Filter Session
  *\ingroup filters_grp
  *\brief Filter Session
@@ -1913,22 +1918,56 @@ char *gf_filter_get_dst_args(GF_Filter *filter);
 */
 void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt);
 
-/*! Looks for a built-in property value on a filter on all pids (inputs and output)
-This is a recursive call on both input and ouput chain
+/*! Looks for a built-in property value marked as informative on a filter on all pids (inputs and output)
+This is a recursive call on both input and ouput chain.
+There is no guarantee that a queried property will still be valid at the setter side upon returning the call, the setter could have
+already reassigned it to NULL. To avoids random behaviour, the property returned is reference counted so that it is not
+destroyed by the setter while the caller uses it.
+
+Properties retrieved shall be released using \ref gf_filter_release_property. Failure to do so will cause memory leaks in the program.
+
+If the \ref propentry pointer references a non-null value, this value will be released using \ref gf_filter_release_property,
+so make sure to initialize the pointer to a NULL value on the first call.
+This avoid calling  \ref gf_filter_release_property after each get_info in the calling code:
+
+\code{.c}
+GF_PropertyEntry *pe=NULL;
+const GF_PropertyValue *p;
+p = gf_filter_get_info(filter, FOO, &pe);
+if (p) { }
+p = gf_filter_get_info_str(filter, "BAR", &pe);
+if (p) { }
+p = gf_filter_pid_get_info(pid, ABCD, &pe);
+if (p) { }
+p = gf_filter_pid_get_info_str(pid, "MyProp", &pe);
+if (p) { }
+gf_filter_release_property(pe);
+\endcode
+
+
+
 \param filter the target filter
 \param prop_4cc the code of the built-in property to fetch
-\return the property if found NULL otherwise
+\param propentry the property reference object for later release. SHALL not be NULL
+\return the property if found NULL otherwise.
 */
-const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc);
+const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc, GF_PropertyEntry **propentry);
 
 /*! Looks for a property value on a filter on all pids (inputs and output).
 This is a recursive call on both input and ouput chain
+Properties retrieved shall be released using \ref gf_filter_release_property. See \ref gf_filter_pid_get_info for more details.
 \param filter the target filter
 \param prop_name the name of the property to fetch
+\param propentry the property reference object for later release. See \ref gf_filter_pid_get_info for more details.
 \return the property if found NULL otherwise
 */
-const GF_PropertyValue *gf_filter_get_info_str(GF_Filter *filter, const char *prop_name);
+const GF_PropertyValue *gf_filter_get_info_str(GF_Filter *filter, const char *prop_name, GF_PropertyEntry **propentry);
 
+/*! Release a property previously queried, only used for []_get_info_[] functions.
+This is a recursive call on both input and ouput chain
+\param propentry the property reference object to be released
+*/
+void gf_filter_release_property(GF_PropertyEntry *propentry);
 
 /*! Sends a filter argument update
 \param filter the target filter
@@ -2176,9 +2215,9 @@ GF_Err gf_filter_pid_set_property_str(GF_FilterPid *pid, const char *name, const
 GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *pid, char *name, const GF_PropertyValue *value);
 
 /*! Sets a new info property on an output pid for built-in property names.
-Similar to \ref gf_filter_pid_set_property, but infos are not copied up the chain. First packet dispatched after calling
-this function will be marked , and its fetching by the consuming filter will trigger a process_event notification. If the
-consumming filter copies properties from source packet to output packet, the flag will be passed to such new output packet.
+Similar to \ref gf_filter_pid_set_property, but infos are not copied up the chain and to not trigger pid reconfiguration.
+First packet dispatched after calling this function will be marked, and its fetching by the consuming filter will trigger a process_event notification.
+If the consumming filter copies properties from source packet to output packet, the flag will be passed to such new output packet.
 Note: any property type can be used for info, except \ref GF_PROP_POINTER.
 
 \param pid the target filter pid
@@ -2496,18 +2535,22 @@ void gf_filter_pid_try_pull(GF_FilterPid *pid);
 
 /*! Looks for a built-in property value on a  pids. This is a recursive call on input chain
 Info query is NOT threadsafe in gpac, you
+Properties retrieved shall be released using \ref gf_filter_release_property. See \ref gf_filter_pid_get_info for more details.
 \param pid the target filter pid to query
 \param prop_4cc the code of the built-in property to fetch
+\param propentry the property reference object for later release. See \ref gf_filter_pid_get_info for more details.
 \return the property if found NULL otherwise
 */
-const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc);
+const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc, GF_PropertyEntry **propentry);
 
 /*! Looks for a property value on a  pids. This is a recursive call on both input and ouput chain
+Properties retrieved shall be released using \ref gf_filter_release_property. See \ref gf_filter_pid_get_info for more details.
 \param pid the target filter pid to query
 \param prop_name the name of the property to fetch
+\param propentry the property reference object for later release. See \ref gf_filter_pid_get_info for more details.
 \return the property if found NULL otherwise
 */
-const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *pid, const char *prop_name);
+const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *pid, const char *prop_name, GF_PropertyEntry **propentry);
 
 
 /*! Signals end of stream on a PID. Each filter needs to call this when EOS is reached on a given stream since there is no explicit link between input PIDs and output PIDs

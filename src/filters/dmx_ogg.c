@@ -333,8 +333,10 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 	}
 	if (ctx->global_rate && ctx->is_file && !ctx->file_loaded) {
 		if (!ctx->file_size) {
-			const GF_PropertyValue *p = gf_filter_pid_get_info(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
+			GF_PropertyEntry *pe=NULL;
+			const GF_PropertyValue *p = gf_filter_pid_get_info(ctx->ipid, GF_PROP_PID_DOWN_SIZE, &pe);
 			if (p) ctx->file_size = p->value.longuint;
+			gf_filter_release_property(pe);
 		}
 		if (ctx->file_size) {
 			ctx->duration.num = (u32) (8 * ctx->file_size);
