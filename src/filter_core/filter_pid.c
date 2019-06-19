@@ -4011,7 +4011,14 @@ exit:
 	if (first_call) {
 		gf_mx_v(pid->filter->session->info_mx);
 	}
-	*propentry = (GF_PropertyEntry *) prop_ent;
+	if (!prop_ent) {
+		*propentry = NULL;
+		return NULL;
+	}
+	if (! (*propentry)) {
+		*propentry = (GF_PropertyEntry *) prop_ent;
+		safe_int_inc(&prop_ent->reference_count);
+	}
 	return &prop_ent->prop;
 }
 
