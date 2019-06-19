@@ -1715,7 +1715,7 @@ static void timing_info(GF_BitStream *bs, AV1State *state) {
 	u32 num_ticks_per_picture_minus_1 = 0, time_scale = 0;
 	/*num_units_in_display_tick*/ gf_bs_read_int(bs, 32);
 	time_scale = gf_bs_read_int(bs, 32);
-	state->equal_picture_interval = gf_bs_read_int(bs, 3);
+	state->equal_picture_interval = gf_bs_read_int(bs, 1);
 	if (state->equal_picture_interval) {
 		num_ticks_per_picture_minus_1 = uvlc(bs);
 		state->tb_num = (num_ticks_per_picture_minus_1 + 1);

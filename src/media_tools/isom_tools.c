@@ -829,18 +829,51 @@ GF_EXPORT
 GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 {
 	u32 i, count, timescale, def_dur=0, video_tk=0;
+	Bool is_prores=GF_FALSE;
+	GF_Err e;
+	u32 colour_type=0;
+	u16 colour_primaries=0, transfer_characteristics=0, matrix_coefficients=0;
+	Bool full_range_flag=GF_FALSE;
+	u32 hspacing=0, vspacing=0;
+	u32 nb_video_tracks;
 	u32 target_ts = 0, w=0, h=0, chunk_size=0;
-	gf_isom_remove_root_od(mp4);
+
 	timescale = 0;
+	nb_video_tracks = 0;
+
 	count = gf_isom_get_track_count(mp4);
 	for (i=0; i<count; i++) {
-		GF_Err e;
-		u32 colour_type=0;
-		u16 colour_primaries=0, transfer_characteristics=0, matrix_coefficients=0;
-		Bool full_range_flag=GF_FALSE;
-		u32 hspacing=0, vspacing=0;
+		u32 mtype = gf_isom_get_media_type(mp4, i+1);
+		if (mtype!=GF_ISOM_MEDIA_VISUAL) continue;
+		nb_video_tracks++;
+		if (!video_tk)
+			video_tk = i+1;
+	}
+
+	if ((nb_video_tracks==1) && video_tk) {
+		u32 video_subtype = gf_isom_get_media_subtype(mp4, video_tk, 1);
+		switch (video_subtype) {
+		case GF_QT_BOX_TYPE_APCH:
+		case GF_QT_BOX_TYPE_APCO:
+		case GF_QT_BOX_TYPE_APCN:
+		case GF_QT_BOX_TYPE_APCS:
+		case GF_QT_BOX_TYPE_APCF:
+		case GF_QT_BOX_TYPE_AP4X:
+		case GF_QT_BOX_TYPE_AP4H:
+			is_prores=GF_TRUE;
+			break;
+		}
+	}
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[QTFF/ProRes] Adjusting %s compliancy\n", is_prores ? "ProRes" : "QTFF"));
+
+	//adjust audio tracks
+	for (i=0; i<count; i++) {
 		u32 mtype = gf_isom_get_media_type(mp4, i+1);
 
+		//remove bitrate info (isobmff)
+		gf_isom_update_bitrate(mp4, i+1, 1, 0, 0, 0);
+		
 		if (mtype==GF_ISOM_MEDIA_AUDIO) {
 			u32 sr, nb_ch;
 			u8 bps;
@@ -849,39 +882,55 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 			continue;
 		}
 		if (mtype!=GF_ISOM_MEDIA_VISUAL) continue;
-
-		if (video_tk) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] cannot adjust isobmf file params to prores, more than one video track\n"));
-			return GF_NON_COMPLIANT_BITSTREAM;
-		}
-		video_tk = i+1;
-		timescale = gf_isom_get_media_timescale(mp4, video_tk);
-		def_dur = gf_isom_get_constant_sample_duration(mp4, video_tk);
-		if (!def_dur) {
-			gf_isom_get_sample_duration(mp4, video_tk, 2);
-			if (!def_dur) {
-				gf_isom_get_sample_duration(mp4, video_tk, 1);
-			}
-		}
-
-		gf_isom_get_pixel_aspect_ratio(mp4, video_tk, 1, &hspacing, &vspacing);
-		if ((hspacing<=1) || (vspacing<=1))
-			gf_isom_set_pixel_aspect_ratio(mp4, video_tk, 1, -1, -1);
-
-		//todo: patch colr
-		e = gf_isom_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
-		if (e==GF_NOT_FOUND) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
-			gf_isom_set_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE);
-		} else if (e) {
-			return e;
-		}
-		gf_isom_get_visual_info(mp4, video_tk, 1, &w, &h);
 	}
-	if (!def_dur || !video_tk) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] No samples found in visual track\n"));
+	//make QT
+	gf_isom_remove_root_od(mp4);
+	gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_QT, 512);
+	gf_isom_reset_alt_brands(mp4);
+
+
+	if (!video_tk) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[QTFF] No visual track\n"));
 		return GF_OK;
 	}
+
+	if (video_tk && (nb_video_tracks>1)) {
+		if (is_prores) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("QTFF] cannot adjust params to prores, %d video tracks present\n", nb_video_tracks));
+			return GF_BAD_PARAM;
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ProRes] no prores codec found but %d video tracks, not adjusting file\n", nb_video_tracks));
+		return GF_OK;
+	}
+
+	timescale = gf_isom_get_media_timescale(mp4, video_tk);
+	def_dur = gf_isom_get_constant_sample_duration(mp4, video_tk);
+	if (!def_dur) {
+		gf_isom_get_sample_duration(mp4, video_tk, 2);
+		if (!def_dur) {
+			gf_isom_get_sample_duration(mp4, video_tk, 1);
+		}
+	}
+	if (!def_dur) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] cannot estimate default sample duration for video track\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	gf_isom_get_pixel_aspect_ratio(mp4, video_tk, 1, &hspacing, &vspacing);
+	if ((hspacing<=1) || (vspacing<=1))
+		gf_isom_set_pixel_aspect_ratio(mp4, video_tk, 1, -1, -1);
+
+	//todo: patch colr
+	e = gf_isom_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
+	if (e==GF_NOT_FOUND) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
+		gf_isom_set_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE);
+	} else if (e) {
+		return e;
+	}
+	gf_isom_get_visual_info(mp4, video_tk, 1, &w, &h);
+
+
 	if (def_dur * 24000 == timescale * 1001) target_ts = 24000;
 	else if (def_dur * 2400 == timescale * 100) target_ts = 2400;
 	else if (def_dur * 2500 == timescale * 100) target_ts = 2500;
@@ -889,9 +938,11 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	else if (def_dur * 3000 == timescale * 100) target_ts = 3000;
 	else if (def_dur * 5000 == timescale * 100) target_ts = 5000;
 	else if (def_dur * 60000 == timescale * 1001) target_ts = 60000;
-	else {
+	else if (is_prores) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] Unrecognized frame rate %g\n", ((Double)timescale)/def_dur ));
 		return GF_NON_COMPLIANT_BITSTREAM;
+	} else {
+		target_ts = timescale;
 	}
 	if (target_ts != timescale) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] Adjusting timescale to %d\n", target_ts));
