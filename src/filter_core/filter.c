@@ -808,6 +808,7 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 	key_count = gf_sys_get_argc();
 	for (i=0; i<key_count; i++) {
 		char szArg[100];
+		GF_Err e;
 		const char *sep, *arg = gf_sys_get_arg(i);
 		if (arg[0] != '-') continue;
 		if (arg[1] != '+') continue;
@@ -821,7 +822,8 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		} else {
 			strncpy(szArg, arg, sizeof(char)* strlen(arg) );
 		}
-		filter->freg->update_arg(filter, szArg, &argv);
+		e = filter->freg->update_arg(filter, szArg, &argv);
+		gf_fs_push_arg(filter->session, szArg, (e==GF_OK) ? GF_TRUE : GF_FALSE, 2);
 	}
 }
 

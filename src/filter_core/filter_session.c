@@ -326,6 +326,8 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
 			if (!strcmp(ai->argname, szArg)) {
 				afound = GF_TRUE;
+				if ((ai->type==2) && (type==2))
+					ai->found = GF_FALSE;
 				break;
 			}
 		}
