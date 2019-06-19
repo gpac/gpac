@@ -390,7 +390,7 @@ void PrintImportUsage()
 		"- `-add inputFile#audio`: adds the first audio track in `inputFile`. DOES NOT WORK for IsoMedia nor MPEG-2 TS files.\n"
 		"- `-add inputFile#trackID=ID` or `-add inputFile#ID`: adds the specified track. For IsoMedia files, ID is the track ID. For other media files, ID is the value indicated by `MP4Box -info inputFile`.\n"
 		"  \n"
-		"MP4Box can import a desired amount of the input file rather than the whole file. To do this, use the syntax `-add inputFile%N`, where N is the number of seconds you wish to import from input. MP4Box cannot start importing from a random point in the input, it always import from the begining.\n"
+		"MP4Box can import a desired amount of the input file rather than the whole file. To do this, use the syntax `-add inputFileN`, where N is the number of seconds you wish to import from input. MP4Box cannot start importing from a random point in the input, it always import from the begining.\n"
 		"Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likelly not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). Check [TTXT doc](Subtitling-with-GPAC) for more details.\n"
 		"  \n"
 		"When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options par stream, set per-file options using the syntax `-add stream[:opt1:...:optN]`.\n"
@@ -774,6 +774,7 @@ GF_GPACArg m4b_swf_args[] =
  	GF_DEF_ARG("quad", NULL, "use quadratic bezier curves instead of cubic ones", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("xlp", NULL, "support for lines transparency and scalability", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("flatten", NULL, "complementary angle below which 2 lines are merged, value `0`means no flattening", NULL, NULL, GF_ARG_DOUBLE, 0),
+	{0}
 };
 
 void PrintSWFUsage()
