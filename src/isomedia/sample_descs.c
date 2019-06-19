@@ -197,11 +197,11 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 		}
 
 		if (ptr->is_qtff==1) {
-			u32 wave_size = 8 + 12 + 10 + 8;
+			u64 wave_size = 8 + 12 + 10 + 8;
 			if ((ptr->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)ptr)->esd) {
 				wave_size += esds->size;
 			}
-			gf_bs_write_u32(bs, wave_size);
+			gf_bs_write_u32(bs, (u32) wave_size);
 			gf_bs_write_u32(bs, GF_QT_BOX_TYPE_WAVE);
 			gf_bs_write_u32(bs, 12);
 			gf_bs_write_u32(bs, GF_QT_BOX_TYPE_FRMA);
