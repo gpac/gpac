@@ -790,13 +790,15 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			//this should be removed and hashes regenerated
 			gf_isom_set_track_layout_info(ctx->file, tkw->track_num, 0, 0, 0, 0, 0);
 
-			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_URL);
-			if (tkw->track_num && p && p->value.string) {
-				char szHName[1025];
-				char *f = gf_file_basename(p->value.string);
-				szHName[1024]=0;
-				snprintf(szHName, 1024, "*%s@GPAC%s", f ? f : "", gf_gpac_version() );
-				gf_isom_set_handler_name(ctx->file, tkw->track_num, szHName);
+			if (!gf_sys_is_test_mode()) {
+				p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_URL);
+				if (tkw->track_num && p && p->value.string) {
+					char szHName[1025];
+					char *f = gf_file_basename(p->value.string);
+					szHName[1024]=0;
+					snprintf(szHName, 1024, "*%s@GPAC%s", f ? f : "", gf_gpac_version() );
+					gf_isom_set_handler_name(ctx->file, tkw->track_num, szHName);
+				}
 			}
 		}
 
