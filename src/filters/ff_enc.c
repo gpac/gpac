@@ -40,9 +40,12 @@ typedef struct _gf_ffenc_ctx
 	char *c, *ffc;
 	Bool ls;
 	u32 pfmt;
+	GF_Fraction fintra;
 
 	//internal data
 	Bool initialized;
+
+	u32 gop_size;
 
 	AVCodecContext *encoder;
 	//decode options
@@ -53,7 +56,7 @@ typedef struct _gf_ffenc_ctx
 	u32 type;
 	u32 timescale;
 
-	u32 nb_frames;
+	u32 nb_frames_out, nb_frames_in;
 	u64 time_spent;
 
 	Bool low_delay;
@@ -108,6 +111,11 @@ typedef struct _gf_ffenc_ctx
 
 	u32 gpac_pixel_fmt;
 	u32 gpac_audio_fmt;
+
+	Bool fintra_setup;
+	u64 orig_ts;
+	u32 nb_forced;
+
 } GF_FFEncodeCtx;
 
 static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
@@ -145,7 +153,7 @@ static void ffenc_finalize(GF_Filter *filter)
 }
 
 //TODO add more feedback
-static void ffenc_log_video(struct _gf_ffenc_ctx *ctx, AVPacket *pkt)
+static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPacket *pkt, Bool do_reporting)
 {
 	Double fps=0;
 	u64 errors[10];
@@ -154,6 +162,9 @@ static void ffenc_log_video(struct _gf_ffenc_ctx *ctx, AVPacket *pkt)
 	u8 pictype=0;
 	u8 nb_errors = 0;
 	const char *ptype;
+
+	if (!ctx->ls && !do_reporting) return;
+
 
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 	u32 sq_size;
@@ -171,7 +182,7 @@ static void ffenc_log_video(struct _gf_ffenc_ctx *ctx, AVPacket *pkt)
 	}
 #endif
 	if (ctx->time_spent) {
-		fps = ctx->nb_frames;
+		fps = ctx->nb_frames_out;
 		fps *= 1000000;
 		fps /= ctx->time_spent;
 	}
@@ -185,16 +196,24 @@ static void ffenc_log_video(struct _gf_ffenc_ctx *ctx, AVPacket *pkt)
 	default: ptype = "U"; break;
 	}
 
-	fprintf(stderr, "[FFEnc] FPS %.02f F %d DTS "LLD" CTS "LLD" Q %02.02f PT %s", fps, ctx->nb_frames, pkt->dts+ctx->ts_shift, pkt->pts+ctx->ts_shift, ((Double)q) /  FF_QP2LAMBDA, ptype);
-	if (nb_errors) {
-		fprintf(stderr, "PSNR");
-		for (i=0; i<nb_errors; i++) {
-			Double psnr = (Double) errors[i];
-			psnr /= ctx->width * ctx->height * 255.0 * 255.0;
-			fprintf(stderr, " %02.02f", psnr);
+	if (ctx->ls) {
+		fprintf(stderr, "[FFEnc] FPS %.02f F %d DTS "LLD" CTS "LLD" Q %02.02f PT %s (F_in %d)", fps, ctx->nb_frames_out, pkt->dts+ctx->ts_shift, pkt->pts+ctx->ts_shift, ((Double)q) /  FF_QP2LAMBDA, ptype, ctx->nb_frames_in);
+		if (nb_errors) {
+			fprintf(stderr, "PSNR");
+			for (i=0; i<nb_errors; i++) {
+				Double psnr = (Double) errors[i];
+				psnr /= ctx->width * ctx->height * 255.0 * 255.0;
+				fprintf(stderr, " %02.02f", psnr);
+			}
 		}
+		fprintf(stderr, "\r");
 	}
-	fprintf(stderr, "\r");
+
+	if (do_reporting) {
+		char szStatus[1024];
+		sprintf(szStatus, "[FFEnc] FPS %.02f F %d DTS "LLD" CTS "LLD" Q %02.02f PT %s (F_in %d)", fps, ctx->nb_frames_out, pkt->dts+ctx->ts_shift, pkt->pts+ctx->ts_shift, ((Double)q) /  FF_QP2LAMBDA, ptype, ctx->nb_frames_in);
+		gf_filter_update_status(filter, -1, szStatus);
+	}
 }
 
 static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
@@ -307,7 +326,33 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			ctx->cts_first_frame_plus_one = 1 + ctx->frame->pts;
 		}
 
+
+		ctx->frame->pict_type = AV_PICTURE_TYPE_NONE;
+
+		if (ctx->fintra.den && ctx->fintra.num) {
+			u64 cts = gf_filter_pck_get_cts(pck);
+			if (!ctx->fintra_setup) {
+				ctx->fintra_setup = GF_TRUE;
+				ctx->orig_ts = cts;
+				ctx->frame->pict_type = AV_PICTURE_TYPE_I;
+				ctx->nb_forced=1;
+			} else if (cts < ctx->orig_ts) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFEnc] timestamps not increasing monotonuously, reseting forced intra state !\n"));
+				ctx->orig_ts = cts;
+				ctx->frame->pict_type = AV_PICTURE_TYPE_I;
+				ctx->nb_forced=1;
+			} else {
+				u64 ts_diff = cts - ctx->orig_ts;
+				if (ts_diff * ctx->fintra.den >= ctx->nb_forced * ctx->fintra.num * ctx->timescale) {
+					ctx->frame->pict_type = AV_PICTURE_TYPE_I;
+					ctx->nb_forced++;
+					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[FFEnc] Forcing IDR at CTS %d / %d\n", cts, ctx->timescale));
+				}
+			}
+		}
+
 		res = avcodec_encode_video2(ctx->encoder, &pkt, ctx->frame, &gotpck);
+		ctx->nb_frames_in++;
 
 		//keep ref to ource properties
 		gf_filter_pck_ref_props(&pck);
@@ -349,7 +394,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	ctx->time_spent += now;
 
 	if (res<0) {
-		ctx->nb_frames++;
+		ctx->nb_frames_out++;
 		return GF_SERVICE_ERROR;
 	}
 
@@ -357,7 +402,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		return GF_OK;
 	}
 
-	ctx->nb_frames++;
+	ctx->nb_frames_out++;
 	if (ctx->init_cts_setup) {
 		ctx->init_cts_setup = GF_FALSE;
 		if (ctx->frame->pts != pkt.pts) {
@@ -468,16 +513,17 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		}
 	}
 
-	if (ctx->ls)
-		ffenc_log_video(ctx, &pkt);
+	ffenc_log_video(filter, ctx, &pkt, gf_filter_reporting_enabled(filter));
 
 	gf_filter_pck_set_cts(dst_pck, pkt.pts + ctx->ts_shift);
 	gf_filter_pck_set_dts(dst_pck, pkt.dts + ctx->ts_shift);
 
 	//this is not 100% correct since we don't have any clue if this is SAP1/2/3/4 ...
 	//since we send the output to our reframers we should be fine
-	if (pkt.flags & AV_PKT_FLAG_KEY)
+	if (pkt.flags & AV_PKT_FLAG_KEY) {
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+		fprintf(stderr, "ffenc frame %d is SAP\n", ctx->nb_frames_out);
+	}
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
 
@@ -1102,6 +1148,11 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->encoder->flags |= AV_CODEC_FLAG_LOW_DELAY;
 #endif
 		}
+
+		if (ctx->fintra.den && ctx->fintra.num) {
+			av_dict_set(&ctx->options, "forced-idr", "1", 0);
+		}
+
 		//we don't use out of band headers, since x264 in ffmpeg (and likely other) do not output in MP4 format but
 		//in annexB (extradata only contains SPS/PPS/etc in annexB)
 		//so we indicate unframed for these codecs and use our own filter for annexB->MP4
@@ -1191,10 +1242,12 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	ffmpeg_set_enc_dec_flags(ctx->options, ctx->encoder);
+	if (ctx->gop_size) ctx->encoder->gop_size = ctx->gop_size;
+
 	res = avcodec_open2(ctx->encoder, codec, &ctx->options );
 	if (res < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
-		return GF_NON_COMPLIANT_BITSTREAM;
+		return GF_BAD_PARAM;
 	}
 	ctx->remap_ts = (ctx->encoder->time_base.den != ctx->timescale) ? GF_TRUE : GF_FALSE;
 
@@ -1223,14 +1276,15 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	else if (!strcmp(arg_name, "low_delay"))	ctx->low_delay = GF_TRUE;
 	//remap some options
 	else if (!strcmp(arg_name, "bitrate") || !strcmp(arg_name, "rate"))	arg_name = "b";
-	else if (!strcmp(arg_name, "gop"))
-		arg_name = "g";
-
+//	else if (!strcmp(arg_name, "gop")) arg_name = "g";
 	//disable low delay if these options are set
 	else if (!strcmp(arg_name, "x264opts")) ctx->low_delay = GF_FALSE;
 	else if (!strcmp(arg_name, "vprofile")) ctx->low_delay = GF_FALSE;
 	else if (!strcmp(arg_name, "preset")) ctx->low_delay = GF_FALSE;
 	else if (!strcmp(arg_name, "tune")) ctx->low_delay = GF_FALSE;
+
+	if (!strcmp(arg_name, "g") || !strcmp(arg_name, "gop"))
+		ctx->gop_size = arg_val->value.string ? atoi(arg_val->value.string) : 25;
 
 	//initial parsing of arguments
 	if (!ctx->initialized) {
@@ -1289,6 +1343,8 @@ static const GF_FilterArgs FFEncodeArgs[] =
 {
 	{ OFFS(c), "codec identifier. Can be any supported GPAC ID or ffmpeg ID or filter subclass name", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(pfmt), "pixel format for input video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, 0},
+	{ OFFS(fintra), "force intra / IDR frames at the given period in sec, eg `fintra=60000/1001` will force an intra every 2 seconds on 29.97 fps video; ignored for audio\n", GF_PROP_FRACTION, "0", NULL, 0},
+
 	{ OFFS(all_intra), "only produce intra frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ls), "output log", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ffc), "ffmpeg codec name. This allows enforcing a given codec if multiple codecs support the codec ID set (eg aac vs vo_aacenc)", GF_PROP_STRING, NULL, NULL, 0},
