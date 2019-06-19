@@ -2148,12 +2148,15 @@ static Bool mp4_mux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	if (evt->base.on_pid && (evt->base.type==GF_FEVT_INFO_UPDATE) ) {
 		TrackWriter *tkw = gf_filter_pid_get_udta(evt->base.on_pid);
 		if (tkw) {
+			GF_PropertyEntry *pe=NULL;
 			const GF_PropertyValue *p;
-			p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_DOWN_BYTES);
+			p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_DOWN_BYTES, &pe);
 			if (p) tkw->down_bytes = p->value.longuint;
 
-			p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_DOWN_SIZE);
+			p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_DOWN_SIZE, &pe);
 			if (p) tkw->down_size = p->value.longuint;
+
+			gf_filter_release_property(pe);
 		}
 
 		return GF_FALSE;
@@ -3987,17 +3990,20 @@ static void mp4_mux_set_lhvc_base_layer(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 
 static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 {
-	const GF_PropertyValue *p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:oinf");
+	GF_PropertyEntry *pe=NULL;
+	const GF_PropertyValue *p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:oinf", &pe);
 	if (p) {
 		u32 gi=0;
 		gf_isom_add_sample_group_info(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_OINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
 
-		p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:linf");
+		p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:linf", &pe);
 		if (p) {
 			gf_isom_add_sample_group_info(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_LINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
 			gf_isom_set_track_group(ctx->file, tkw->track_num, 1000+gf_isom_get_track_id(ctx->file, tkw->track_num), GF_ISOM_BOX_TYPE_CSTG, GF_TRUE);
 		}
 	}
+
+	gf_filter_release_property(pe);
 
 	p = gf_filter_pid_get_property_str(tkw->ipid, "hevc:min_lid");
 	if (p && p->value.uint) {
@@ -4011,6 +4017,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 {
 	GF_Err e = GF_OK;
 	u32 i, count;
+	GF_PropertyEntry *pe=NULL;
 	const GF_PropertyValue *p;
 
 	count = gf_list_count(ctx->tracks);
@@ -4087,11 +4094,11 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 		mp4_mux_set_hevc_groups(ctx, tkw);
 
-		p = gf_filter_pid_get_info_str(tkw->ipid, "ttxt:rem_last");
+		p = gf_filter_pid_get_info_str(tkw->ipid, "ttxt:rem_last", &pe);
 		if (p && p->value.boolean)
 			gf_isom_remove_sample(ctx->file, tkw->track_num, tkw->nb_samples);
 
-		p = gf_filter_pid_get_info_str(tkw->ipid, "ttxt:last_dur");
+		p = gf_filter_pid_get_info_str(tkw->ipid, "ttxt:last_dur", &pe);
 		if (p)
 			gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, p->value.uint);
 
@@ -4099,7 +4106,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			u32 msize = 0;
 			Bool do_rewrite = GF_FALSE;
 			u32 i, count = gf_isom_get_sample_description_count(ctx->file, tkw->track_num);
-			const GF_PropertyValue *p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_MAX_NALU_SIZE);
+			const GF_PropertyValue *p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_MAX_NALU_SIZE, &pe);
 			msize = gf_get_bit_size(p->value.uint);
 			if (msize<8) msize = 8;
 			else if (msize<16) msize = 16;
@@ -4127,6 +4134,8 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		if (ctx->btrt && !tkw->skip_bitrate_update && ((tkw->nb_samples>1) || ctx->m4sys) )
 			gf_media_update_bitrate(ctx->file, tkw->track_num);
 	}
+
+	gf_filter_release_property(pe);
 
 	if (ctx->owns_mov) {
 		switch (ctx->store) {

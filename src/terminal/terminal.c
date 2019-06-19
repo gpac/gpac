@@ -1503,6 +1503,7 @@ Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_
 {
 	u32 nb_ch;
 	const GF_PropertyValue *p;
+	GF_PropertyEntry *pe=NULL;
 	GF_FilterPid *pid=NULL;
 	if (!term || !odm || !gf_term_check_odm(term, odm)) return GF_FALSE;
 	if (odm->scene_ns->owner != odm)
@@ -1527,19 +1528,23 @@ Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_
 
 	(*d_enum) ++;
 
-	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DOWN_RATE);
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DOWN_RATE, &pe);
 	if (p && bytes_per_sec) {
 		*bytes_per_sec = p->value.uint;
 		*bytes_per_sec /= 8;
 	}
-	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DOWN_BYTES);
+
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DOWN_BYTES, &pe);
 	if (p && bytes_done) *bytes_done = (u32) p->value.longuint;
 
-	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DOWN_SIZE);
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DOWN_SIZE, &pe);
 	if (p && total_bytes) *bytes_done = (u32) p->value.longuint;
 
-	p = gf_filter_pid_get_info(pid, GF_PROP_PID_URL);
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_URL, &pe);
 	if (p && url) *url = p->value.string;
+
+	gf_filter_release_property(pe);
+
 	return GF_TRUE;
 }
 
@@ -1548,6 +1553,7 @@ Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 
 {
 	u32 nb_ch;
 	const GF_PropertyValue *p;
+	GF_PropertyEntry *pe=NULL;
 	GF_FilterPid *pid;
 	if (!term || !odm || !gf_term_check_odm(term, odm)) return GF_FALSE;
 
@@ -1567,31 +1573,33 @@ Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 
 	(*ret_code) = GF_OK;
 
 	memset(net_stats, 0, sizeof(GF_TermNetStats));
-	p = gf_filter_pid_get_info_str(pid, "nets:loss");
+	p = gf_filter_pid_get_info_str(pid, "nets:loss", &pe);
 	if (p) net_stats->pck_loss_percentage = p->value.fnumber;
 
-	p = gf_filter_pid_get_info_str(pid, "nets:interleaved");
+	p = gf_filter_pid_get_info_str(pid, "nets:interleaved", &pe);
 	if (p) {
 		net_stats->multiplex_port = p->value.uint;
-		p = gf_filter_pid_get_info_str(pid, "nets:rtpid");
+		p = gf_filter_pid_get_info_str(pid, "nets:rtpid", &pe);
 		if (p) net_stats->port = p->value.uint;
-		p = gf_filter_pid_get_info_str(pid, "nets:rtcpid");
+		p = gf_filter_pid_get_info_str(pid, "nets:rtcpid", &pe);
 		if (p) net_stats->ctrl_port = p->value.uint;
 	} else {
-		p = gf_filter_pid_get_info_str(pid, "nets:rtpp");
+		p = gf_filter_pid_get_info_str(pid, "nets:rtpp", &pe);
 		if (p) net_stats->port = p->value.uint;
-		p = gf_filter_pid_get_info_str(pid, "nets:rtcpp");
+		p = gf_filter_pid_get_info_str(pid, "nets:rtcpp", &pe);
 		if (p) net_stats->ctrl_port = p->value.uint;
 	}
 
-	p = gf_filter_pid_get_info_str(pid, "nets:bw_down");
+	p = gf_filter_pid_get_info_str(pid, "nets:bw_down", &pe);
 	if (p) net_stats->bw_down = p->value.uint;
-	p = gf_filter_pid_get_info_str(pid, "nets:bw_up");
+	p = gf_filter_pid_get_info_str(pid, "nets:bw_up", &pe);
 	if (p) net_stats->bw_up = p->value.uint;
-	p = gf_filter_pid_get_info_str(pid, "nets:ctrl_bw_down");
+	p = gf_filter_pid_get_info_str(pid, "nets:ctrl_bw_down", &pe);
 	if (p) net_stats->ctrl_bw_down = p->value.uint;
-	p = gf_filter_pid_get_info_str(pid, "nets:ctrl_bw_up");
+	p = gf_filter_pid_get_info_str(pid, "nets:ctrl_bw_up", &pe);
 	if (p) net_stats->ctrl_bw_up = p->value.uint;
+
+	gf_filter_release_property(pe);
 	return GF_TRUE;
 }
 
@@ -1599,6 +1607,7 @@ GF_EXPORT
 GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, GF_TermURLInfo *urli)
 {
 	const GF_PropertyValue *p;
+	GF_PropertyEntry *pe=NULL;
 	GF_FilterPid *pid;
 	if (urli) memset(urli, 0, sizeof(GF_TermURLInfo));
 	if (!term || !odm || !urli || !gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
@@ -1613,29 +1622,30 @@ GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Ter
 
 	memset(urli, 0, sizeof(GF_TermURLInfo));
 
-	p = gf_filter_pid_get_info_str(pid, "info:name");
+	p = gf_filter_pid_get_info_str(pid, "info:name", &pe);
 	if (p) urli->name = p->value.string;
 
-	p = gf_filter_pid_get_info_str(pid, "info:artist");
+	p = gf_filter_pid_get_info_str(pid, "info:artist", &pe);
 	if (p) urli->artist = p->value.string;
 
-	p = gf_filter_pid_get_info_str(pid, "info:album");
+	p = gf_filter_pid_get_info_str(pid, "info:album", &pe);
 	if (p) urli->album = p->value.string;
 
-	p = gf_filter_pid_get_info_str(pid, "info:comment");
+	p = gf_filter_pid_get_info_str(pid, "info:comment", &pe);
 	if (p) urli->comment = p->value.string;
 
-	p = gf_filter_pid_get_info_str(pid, "info:composer");
+	p = gf_filter_pid_get_info_str(pid, "info:composer", &pe);
 	if (p) urli->composer = p->value.string;
 
-	p = gf_filter_pid_get_info_str(pid, "info:writer");
+	p = gf_filter_pid_get_info_str(pid, "info:writer", &pe);
 	if (p) urli->writer = p->value.string;
 
-	p = gf_filter_pid_get_info_str(pid, "info:track");
+	p = gf_filter_pid_get_info_str(pid, "info:track", &pe);
 	if (p) {
 		urli->track_num = p->value.frac.num;
 		urli->track_total = p->value.frac.den;
 	}
+	gf_filter_release_property(pe);
 	return GF_OK;
 }
 

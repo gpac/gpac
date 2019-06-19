@@ -503,7 +503,8 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		
 	case GF_FEVT_INFO_UPDATE:
 	{
-		GF_PropertyValue *p = (GF_PropertyValue *) gf_filter_pid_get_info(evt->base.on_pid, GF_PROP_PID_TIMESHIFT_STATE);
+		GF_PropertyEntry *pe=NULL;
+		GF_PropertyValue *p = (GF_PropertyValue *) gf_filter_pid_get_info(evt->base.on_pid, GF_PROP_PID_TIMESHIFT_STATE, &pe);
 		if (p && p->value.uint) {
 			GF_Event evt;
 			memset(&evt, 0, sizeof(evt));
@@ -517,6 +518,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 			p->value.uint = 0;
 		}
+		gf_filter_release_property(pe);
 	}
 		return GF_TRUE;
 

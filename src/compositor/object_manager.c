@@ -680,13 +680,16 @@ clock_setup:
 void gf_odm_update_duration(GF_ObjectManager *odm, GF_FilterPid *pid)
 {
 	u64 dur=0;
+	GF_PropertyEntry *pe = NULL;
 	const GF_PropertyValue *prop;
-	prop = gf_filter_pid_get_info(pid, GF_PROP_PID_DURATION);
+	prop = gf_filter_pid_get_info(pid, GF_PROP_PID_DURATION, &pe);
 	if (prop) {
 		dur = prop->value.frac.num;
 		dur *= 1000;
 		if (prop->value.frac.den) dur /= prop->value.frac.den;
 	}
+	gf_filter_release_property(pe);
+	
 	if ((u32) dur > odm->duration) {
 		odm->duration = (u32) dur;
 		/*update scene duration*/
@@ -1876,6 +1879,7 @@ void gf_odm_check_clock_mediatime(GF_ObjectManager *odm)
 	u32 timescale;
 	Double media_time, shift;
 	const GF_PropertyValue *p;
+	GF_PropertyEntry *pe=NULL;
 	if (!odm->owns_clock) return;
 
 	if (odm->ck->has_media_time_shift) return;
@@ -1883,11 +1887,12 @@ void gf_odm_check_clock_mediatime(GF_ObjectManager *odm)
 	timescale = gf_filter_pid_get_timescale(odm->pid);
 	if (!timescale) return;
 
-	p = gf_filter_pid_get_info_str(odm->pid, "time:timestamp");
+	p = gf_filter_pid_get_info_str(odm->pid, "time:timestamp", &pe);
 	if (!p) return;
 	timestamp = p->value.longuint;
-	p = gf_filter_pid_get_info_str(odm->pid, "time:media");
+	p = gf_filter_pid_get_info_str(odm->pid, "time:media", &pe);
 	if (!p) return;
+	gf_filter_release_property(pe);
 	media_time = p->value.number;
 
 	shift = (Double) timestamp;

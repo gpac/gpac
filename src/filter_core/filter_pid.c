@@ -3963,61 +3963,78 @@ const GF_PropertyEntry *gf_filter_pid_get_property_entry_str(GF_FilterPid *pid, 
 	return gf_props_get_property_entry(map, 0, prop_name);
 }
 
-static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name, Bool first_call)
+static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name, Bool first_call,  GF_PropertyEntry **propentry)
 {
 	u32 i, count;
-	const GF_PropertyValue * prop = NULL;
+	const GF_PropertyEntry *prop_ent = NULL;
 	GF_PropertyMap *map;
+	*propentry = NULL;
+	
 	if (first_call) {
 		gf_mx_p(pid->filter->session->info_mx);
 	}
 	map = filter_pid_get_prop_map(pid, GF_FALSE);
 
 	if (map) {
-		prop = gf_props_get_property(map, prop_4cc, prop_name);
-		if (prop) goto exit;
+		prop_ent = gf_props_get_property_entry(map, prop_4cc, prop_name);
+		if (prop_ent) goto exit;
 	}
 	if (pid->pid->infos) {
-		prop = gf_props_get_property(pid->pid->infos, prop_4cc, prop_name);
-		if (prop) goto exit;
+		prop_ent = gf_props_get_property_entry(pid->pid->infos, prop_4cc, prop_name);
+		if (prop_ent) goto exit;
 	}
 	if (PID_IS_OUTPUT(pid)) {
-		prop = NULL;
+		prop_ent = NULL;
 		goto exit;
 	}
 	pid = pid->pid;
 	if (pid->infos) {
-		prop = gf_props_get_property(pid->infos, prop_4cc, prop_name);
-		if (prop) goto exit;
+		prop_ent = gf_props_get_property_entry(pid->infos, prop_4cc, prop_name);
+		if (prop_ent) goto exit;
 	}
 
 	count = gf_list_count(pid->filter->input_pids);
 	for (i=0; i<count; i++) {
+		const GF_PropertyValue *prop;
 		GF_FilterPid *pidinst = gf_list_get(pid->filter->input_pids, i);
 		if (!pidinst->pid) continue;
 		
-		prop = gf_filter_pid_get_info_internal(pidinst->pid, prop_4cc, prop_name, GF_FALSE);
-		if (prop) goto exit;
+		prop = gf_filter_pid_get_info_internal(pidinst->pid, prop_4cc, prop_name, GF_FALSE, propentry);
+		if (prop) {
+			prop_ent = *propentry;
+			goto exit;
+		}
 	}
-	prop = NULL;
+	prop_ent = NULL;
 
 exit:
 	if (first_call) {
 		gf_mx_v(pid->filter->session->info_mx);
 	}
-	return prop;
+	*propentry = (GF_PropertyEntry *) prop_ent;
+	return &prop_ent->prop;
 }
 
 GF_EXPORT
-const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc)
+const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc, GF_PropertyEntry **propentry)
 {
-	return gf_filter_pid_get_info_internal(pid, prop_4cc, NULL, GF_TRUE);
+	if (!propentry) return NULL;
+	if (*propentry) {
+		gf_filter_release_property(*propentry);
+		*propentry = NULL;
+	}
+	return gf_filter_pid_get_info_internal(pid, prop_4cc, NULL, GF_TRUE, propentry);
 }
 
 GF_EXPORT
-const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *pid, const char *prop_name)
+const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *pid, const char *prop_name, GF_PropertyEntry **propentry)
 {
-	return gf_filter_pid_get_info_internal(pid, 0, prop_name, GF_TRUE);
+	if (!propentry) return NULL;
+	if (*propentry) {
+		gf_filter_release_property(*propentry);
+		*propentry = NULL;
+	}
+	return gf_filter_pid_get_info_internal(pid, 0, prop_name, GF_TRUE, propentry);
 }
 
 GF_EXPORT
@@ -4058,10 +4075,10 @@ const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32
 }
 
 
-static const GF_PropertyValue *gf_filter_get_info_internal(GF_Filter *filter, u32 prop_4cc, const char *prop_name)
+static const GF_PropertyValue *gf_filter_get_info_internal(GF_Filter *filter, u32 prop_4cc, const char *prop_name, GF_PropertyEntry **propentry)
 {
 	u32 i, count;
-	const GF_PropertyValue * prop;
+	const GF_PropertyValue *prop=NULL;
 
 	gf_mx_p(filter->session->info_mx);
 
@@ -4069,7 +4086,7 @@ static const GF_PropertyValue *gf_filter_get_info_internal(GF_Filter *filter, u3
 	count = gf_list_count(filter->output_pids);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
-		prop = gf_filter_pid_get_info_internal(pid, prop_4cc, prop_name, GF_FALSE);
+		prop = gf_filter_pid_get_info_internal(pid, prop_4cc, prop_name, GF_FALSE, propentry);
 		if (prop) {
 			gf_mx_v(filter->session->info_mx);
 			return prop;
@@ -4078,7 +4095,7 @@ static const GF_PropertyValue *gf_filter_get_info_internal(GF_Filter *filter, u3
 	count = gf_list_count(filter->input_pids);
 	for (i=0; i<count; i++) {
 		GF_FilterPidInst *pidinst = gf_list_get(filter->input_pids, i);
-		prop = gf_filter_pid_get_info_internal(pidinst->pid, prop_4cc, prop_name, GF_FALSE);
+		prop = gf_filter_pid_get_info_internal(pidinst->pid, prop_4cc, prop_name, GF_FALSE, propentry);
 		if (prop) {
 			gf_mx_v(filter->session->info_mx);
 			return prop;
@@ -4089,15 +4106,33 @@ static const GF_PropertyValue *gf_filter_get_info_internal(GF_Filter *filter, u3
 }
 
 GF_EXPORT
-const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc)
+const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc, GF_PropertyEntry **propentry)
 {
-	return gf_filter_get_info_internal(filter, prop_4cc, NULL);
+	if (!propentry) return NULL;
+	if (*propentry) {
+		gf_filter_release_property(*propentry);
+		*propentry = NULL;
+	}
+	return gf_filter_get_info_internal(filter, prop_4cc, NULL, propentry);
 }
 
 GF_EXPORT
-const GF_PropertyValue *gf_filter_get_info_str(GF_Filter *filter, const char *prop_name)
+const GF_PropertyValue *gf_filter_get_info_str(GF_Filter *filter, const char *prop_name, GF_PropertyEntry **propentry)
 {
-	return gf_filter_get_info_internal(filter, 0, prop_name);
+	if (!propentry) return NULL;
+	if (*propentry) {
+		gf_filter_release_property(*propentry);
+		*propentry = NULL;
+	}
+	return gf_filter_get_info_internal(filter, 0, prop_name, propentry);
+}
+
+GF_EXPORT
+void gf_filter_release_property(GF_PropertyEntry *propentry)
+{
+	if (propentry) {
+		gf_props_del_property(propentry);
+	}
 }
 
 GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid)

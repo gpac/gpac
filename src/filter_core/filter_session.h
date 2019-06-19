@@ -68,7 +68,7 @@
 
 #define FSESS_CHECK_THREAD(__f) assert( !(__f)->process_th_id || ( (__f)->process_th_id == gf_th_id() ) );
 
-typedef struct
+struct __gf_prop_entry
 {
 	//parent filter session for property reservoir
 	GF_FilterSession *session;
@@ -79,8 +79,7 @@ typedef struct
 
 	GF_PropertyValue prop;
 	u32 alloc_size;
-
-} GF_PropertyEntry;
+};
 
 #ifndef GF_PROPS_HASHTABLE_SIZE
 #define GF_PROPS_HASHTABLE_SIZE 0
@@ -125,6 +124,8 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name);
 
 Bool gf_props_4cc_check_props();
+
+void gf_props_del_property(GF_PropertyEntry *it);
 
 
 typedef struct __gf_filter_queue GF_FilterQueue;

@@ -638,6 +638,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	u32 service_id, codec_id, streamtype;
 	GF_M2TS_Mux_Stream *ts_stream;
 	const GF_PropertyValue *p;
+	GF_PropertyEntry *pe=NULL;
 	M2Pid *tspid=NULL;
 	char *sname, *pname;
 	GF_M2TS_Mux_Program *prog;
@@ -685,7 +686,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("ts") );
 
-	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DASH_MODE);
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DASH_MODE, &pe);
 	if (p) {
 		if (!ctx->dash_mode && p->value.uint) ctx->init_dash = GF_TRUE;
 		ctx->dash_mode = p->value.uint;
@@ -694,6 +695,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			gf_m2ts_mux_set_initial_pcr(ctx->mux, 0);
 		}
 	}
+	gf_filter_release_property(pe);
 
 	tspid = gf_filter_pid_get_udta(pid);
 	if (!tspid) {
