@@ -73,9 +73,27 @@ static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const ch
 	return args_striped;
 }
 
-const char *gf_filter_get_dst_args(GF_Filter *filter)
+char *gf_filter_get_dst_args(GF_Filter *filter)
 {
-	return gf_filter_get_args_stripped(filter->session, filter->dst_args, GF_TRUE);
+	char szDst[5];
+	char *dst, *arg_sep, *res;
+	sprintf(szDst, "dst%c", filter->session->sep_name);
+	dst = strstr(filter->dst_args, szDst);
+	if (!dst) return NULL;
+
+	arg_sep = strchr(dst, filter->session->sep_args);
+
+	if (arg_sep && (filter->session->sep_args==':') && !strncmp(arg_sep, "://", 3)) {
+		arg_sep = strchr(arg_sep+3, filter->session->sep_args);
+	}
+	if (arg_sep) {
+		arg_sep[0] = 0;
+		res = gf_strdup(dst+4);
+		arg_sep[0] = filter->session->sep_args;
+	} else {
+		res = gf_strdup(dst+4);
+	}
+	return res;
 }
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *src_args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err)

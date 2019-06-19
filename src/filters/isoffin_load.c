@@ -531,6 +531,25 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				/*com->info.genre = (tag[0]<<8) | tag[1];*/
 			}
 		}
+
+		const char *hdlr = NULL;
+		gf_isom_get_handler_name(read->mov, ch->track, &hdlr);
+		if (hdlr)
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_HANDLER, &PROP_STRING(hdlr));
+
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_TRACK_FLAGS, &PROP_UINT( gf_isom_get_track_flags(read->mov, ch->track) ));
+
+		if (streamtype==GF_STREAM_VISUAL) {
+			GF_PropertyValue p;
+			u32 vals[9];
+			memset(vals, 0, sizeof(u32)*9);
+			memset(&p, 0, sizeof(GF_PropertyValue));
+			p.type = GF_PROP_UINT_LIST;
+			p.value.uint_list.nb_items = 9;
+			p.value.uint_list.vals = vals;
+			gf_isom_get_track_matrix(read->mov, ch->track, vals);
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_TRACK_MATRIX, &p);
+		}
 	}
 
 	//update decoder configs
