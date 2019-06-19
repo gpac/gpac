@@ -1696,7 +1696,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	Bool has_strun=GF_FALSE;
 	char sep_args = gf_filter_get_sep(filter, GF_FS_SEP_ARGS);
 	char sep_name = gf_filter_get_sep(filter, GF_FS_SEP_NAME);
-	char *dst_args;
+	const char *dst_args;
 	char szDST[GF_MAX_PATH];
 	char szSRC[100];
 
@@ -1740,7 +1740,6 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 
 		sprintf(szKey, "%cstrun", sep_args);
 		if (strstr(dst_args, szKey)) has_strun = GF_TRUE;
-		gf_free(dst_args);
 	}
 	if (trash_init) {
 		sprintf(szSRC, "%cnoinit", sep_args);
