@@ -439,6 +439,9 @@ enum
 	GF_ISOM_BRAND_ISO5 = GF_4CC( 'i', 's', 'o', '5' ),
 	GF_ISOM_BRAND_ISO6 = GF_4CC( 'i', 's', 'o', '6' ),
 
+	/* QT brand*/
+	GF_ISOM_BRAND_QT  = GF_4CC( 'q', 't', ' ', ' ' ),
+
 	/* JPEG 2000 Image (.JP2) [ISO 15444-1] */
 	GF_ISOM_BRAND_JP2  = GF_4CC( 'j', 'p', '2', ' ' ),
 
