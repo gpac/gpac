@@ -989,10 +989,11 @@ static void gpac_load_suggested_filter_args()
 	gf_cfg_del_section(opts, "allopts");
 	gf_cfg_set_key(opts, "version", "version", gf_gpac_version());
 
-	fprintf(stderr, "Constructing all options database, this may take some time ... ");
+	gf_sys_format_help(stderr, 0, "__Constructing all options database, this may take some time ... ");
 
 	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, GF_FS_FLAG_LOAD_META, NULL);
 	if (!fsess) {
+		gf_sys_format_help(stderr, 0, "\nWarning: Error creating session\n");
 		gf_cfg_del(opts);
 		return;
 	}
@@ -1033,7 +1034,7 @@ static void gpac_load_suggested_filter_args()
 	}
 	gf_fs_del(fsess);
 	gf_cfg_del(opts);
-	fprintf(stderr, "done\n");
+	gf_sys_format_help(stderr, 0, "done\n");
 }
 
 //very basic word match, check the number of source characters in order in dest

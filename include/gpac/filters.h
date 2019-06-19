@@ -892,6 +892,9 @@ enum
 	GF_PROP_PID_CONSTANT_DURATION = GF_4CC('S','C','T','D'),
 	GF_PROP_PID_ISOM_TRACK_TEMPLATE = GF_4CC('I','T','K','T'),
 	GF_PROP_PID_ISOM_UDTA = GF_4CC('I','M','U','D'),
+	GF_PROP_PID_ISOM_HANDLER = GF_4CC('I','H','D','L'),
+	GF_PROP_PID_ISOM_TRACK_FLAGS = GF_4CC('I','T','K','F'),
+	GF_PROP_PID_ISOM_TRACK_MATRIX = GF_4CC('I','T','K','M'),
 	GF_PROP_PID_PERIOD_ID = GF_4CC('P','E','I','D'),
 	GF_PROP_PID_PERIOD_START = GF_4CC('P','E','S','T'),
 	GF_PROP_PID_PERIOD_DUR = GF_4CC('P','E','D','U'),
@@ -1900,9 +1903,9 @@ u8 gf_filter_get_sep(GF_Filter *filter, GF_FilterSessionSepType sep_type);
 
 /*! Queries the arguments of the destination. The first output pid connected to a filter with non NULL args will be used (this is a recursive check until end of chain)
 \param filter the target filter
-\return the argument string of the destination, NULL if none found
+\return the argument string of the destination (SHALL be freed by caller), NULL if none found
 */
-const char *gf_filter_get_dst_args(GF_Filter *filter);
+char *gf_filter_get_dst_args(GF_Filter *filter);
 
 /*! Sends an event on all input pids
 \param filter the target filter

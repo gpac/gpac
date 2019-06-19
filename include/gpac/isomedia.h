@@ -734,6 +734,9 @@ u32 gf_isom_get_track_original_id(GF_ISOFile *movie, u32 trackNumber);
 /*gets the enable flag of a track 0: NO, 1: yes, 2: error*/
 u8 gf_isom_is_track_enabled(GF_ISOFile *the_file, u32 trackNumber);
 
+/*gets track flags*/
+u32 gf_isom_get_track_flags(GF_ISOFile *the_file, u32 trackNumber);
+
 /* determines if the track is encrypted 0: NO, 1: yes, 2: error*/
 Bool gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber);
 
@@ -1191,6 +1194,15 @@ GF_Err gf_isom_remove_track(GF_ISOFile *the_file, u32 trackNumber);
 
 /*sets the enable flag of a track*/
 GF_Err gf_isom_set_track_enabled(GF_ISOFile *the_file, u32 trackNumber, u8 enableTrack);
+
+typedef enum
+{
+	GF_ISOM_TKFLAGS_SET = 0,
+	GF_ISOM_TKFLAGS_REM,
+	GF_ISOM_TKFLAGS_ADD,
+} GF_ISOMTrackFlagOp;
+
+GF_Err gf_isom_set_track_flags(GF_ISOFile *movie, u32 trackNumber, u32 flags, GF_ISOMTrackFlagOp op);
 
 /*sets creationTime and modificationTime of the movie to the specified date*/
 GF_Err gf_isom_set_creation_time(GF_ISOFile *movie, u64 time);
