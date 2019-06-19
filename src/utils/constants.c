@@ -228,9 +228,9 @@ u32 gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_APCS;
 	case GF_QT_SUBTYPE_APCF:
 		return GF_CODECID_APCF;
-	case GF_QT_BOX_TYPE_AP4X:
+	case GF_QT_SUBTYPE_AP4X:
 		return GF_CODECID_AP4X;
-	case GF_QT_BOX_TYPE_AP4H:
+	case GF_QT_SUBTYPE_AP4H:
 		return GF_CODECID_AP4H;
 
 	case GF_QT_SUBTYPE_TWOS:
