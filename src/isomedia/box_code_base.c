@@ -2551,8 +2551,8 @@ GF_Err payt_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err payt_Size(GF_Box *s)
 {
 	GF_PAYTBox *ptr = (GF_PAYTBox *)s;
-	s->size += 4;
-	if (ptr->payloadString) ptr->size += strlen(ptr->payloadString) + 1;
+	s->size += 4 + 1;
+	if (ptr->payloadString) ptr->size += strlen(ptr->payloadString);
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -10505,6 +10505,9 @@ GF_Err paen_Write(GF_Box *s, GF_BitStream *bs)
 	FDPartitionEntryBox *ptr = (FDPartitionEntryBox *) s;
 	if (!s) return GF_BAD_PARAM;
 
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
 	if (ptr->blocks_and_symbols) {
 		e = gf_isom_box_write((GF_Box *)ptr->blocks_and_symbols, bs);
 		if (e) return e;
@@ -10662,7 +10665,7 @@ GF_Err fpar_Size(GF_Box *s)
 {
 	FilePartitionBox *ptr = (FilePartitionBox *)s;
 
-	ptr->size+= 13 + ptr->version ? 8 : 4;
+	ptr->size += 13 + (ptr->version ? 8 : 4);
 	if (ptr->scheme_specific_info)
 		ptr->size += strlen(ptr->scheme_specific_info);
 
@@ -10793,8 +10796,12 @@ GF_Err segr_Read(GF_Box *s, GF_BitStream *bs)
 GF_Err segr_Write(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i, k;
+	GF_Err e;
 	FDSessionGroupBox *ptr = (FDSessionGroupBox *) s;
 	if (!s) return GF_BAD_PARAM;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
 
 	gf_bs_write_u16(bs, ptr->num_session_groups);
 	for (i=0; i<ptr->num_session_groups; i++) {
@@ -10968,10 +10975,14 @@ GF_Err fdpa_Read(GF_Box *s, GF_BitStream *bs)
 
 GF_Err fdpa_Write(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
 	u32 i;
 	GF_FDpacketBox *ptr = (GF_FDpacketBox *) s;
 	if (!s) return GF_BAD_PARAM;
 
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	
 	gf_bs_write_int(bs, ptr->info.sender_current_time_present, 1);
 	gf_bs_write_int(bs, ptr->info.expected_residual_time_present, 1);
 	gf_bs_write_int(bs, ptr->info.session_close_bit, 1);
@@ -11053,6 +11064,10 @@ GF_Err extr_Write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_ExtraDataBox *ptr = (GF_ExtraDataBox *) s;
 	if (!s) return GF_BAD_PARAM;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	
 	if (ptr->feci) {
 		e = gf_isom_box_write((GF_Box *)ptr->feci, bs);
 		if (e) return e;
@@ -11126,6 +11141,9 @@ GF_Err fdsa_Write(GF_Box *s, GF_BitStream *bs)
 	GF_HintSample *ptr = (GF_HintSample *) s;
 	if (!s) return GF_BAD_PARAM;
 
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	
 	e = gf_isom_box_array_write(s, ptr->packetTable, bs);
 	if (e) return e;
 	if (ptr->extra_data) {
@@ -11439,8 +11457,7 @@ GF_Err dvcC_Size(GF_Box *s)
 {
 	GF_DOVIConfigurationBox *ptr = (GF_DOVIConfigurationBox *)s;
 
-	ptr->size += sizeof(GF_DOVIDecoderConfigurationRecord);
-
+	ptr->size += 24;
 	return GF_OK;
 }
 

@@ -909,7 +909,7 @@ static struct box_registry_entry {
 	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_SUBS, subs, "stbl traf", 0, 7), //warning flags are not used as a bit mask but as an enum!!
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_TRGR, trgr, "trak"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_FTYP, ftyp, "file"),
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_PADB, padb, "stbl"),
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PADB, padb, "stbl", 0),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_BTRT, btrt, "sample_entry"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_PASP, pasp, "video_sample_entry ipco"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_CLAP, clap, "video_sample_entry ipco"),

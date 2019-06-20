@@ -2823,7 +2823,7 @@ GF_Err SmDm_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_SMPTE2086MasteringDisplayMetadataBox *p = (GF_SMPTE2086MasteringDisplayMetadataBox*)s;
-	e = gf_isom_box_write_header(s, bs);
+	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
 	gf_bs_write_u16(bs, p->primaryRChromaticity_x);
@@ -2877,7 +2877,7 @@ GF_Err CoLL_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_VPContentLightLevelBox *p = (GF_VPContentLightLevelBox*)s;
-	e = gf_isom_box_write_header(s, bs);
+	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
 	gf_bs_write_u16(bs, p->maxCLL);
