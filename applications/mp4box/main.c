@@ -547,7 +547,7 @@ void PrintImportUsage()
 	        " \"                       splitbase : all layers are merged in a track, and the AVC/HEVC base in another\n"
 	        " \"                       splitnox : each layer is in its own track, and no extractors are written\n"
 	        " \"                       splitnoxib : each layer is in its own track, no extractors are written, using inband param set signaling\n"
-	        " \":temporal\"          sets HEVC/LHVC temporal sublayer import mode:
+	        " \":temporal\"          sets HEVC/LHVC temporal sublayer import mode:\n"
 	        " \"                       split : each sublayer is in its own track\n"
 	        " \"                       splitbase : all sublayers are merged in a track, and the HEVC base in another\n"
 	        " \"                       splitnox : each layer is in its own track, and no extractors are written\n"
