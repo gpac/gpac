@@ -503,8 +503,11 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	if (mpd->type==GF_MPD_TYPE_STATIC)
 		return;
 
+	//always init clock even if active period is a remote one
+#if 0
 	if (group->period->origin_base_url && (group->period->type != GF_MPD_TYPE_DYNAMIC))
 		return;
+#endif
 
 	/*M3U8 does not use NTP sync */
 	if (group->dash->is_m3u8)
@@ -529,6 +532,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-dash-atsc");
 	if (val && !group->dash->utc_drift_estimate) {
 		u32 i;
+		GF_MPD_Period *dyn_period=NULL;
 		Bool found = GF_FALSE;
 		u64 timeline_offset_ms=0;
 		if (!group->dash->atsc_clock_state) {
@@ -536,7 +540,18 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			group->dash->atsc_clock_state = 1;
 		}
 
-		for (i=0; i<gf_list_count(group->period->adaptation_sets); i++) {
+		for (i=0; i<gf_list_count(group->dash->mpd->periods); i++) {
+			dyn_period = gf_list_get(group->dash->mpd->periods, i);
+			if (!dyn_period->xlink_href && !dyn_period->origin_base_url) break;
+			if (dyn_period->xlink_href && !dyn_period->origin_base_url && gf_list_count(dyn_period->adaptation_sets) ) break;
+			dyn_period = NULL;
+		}
+		if (!dyn_period) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] ATSC with no dynamic period, cannot init clock yet\n"));
+			return;
+		}
+
+		for (i=0; i<gf_list_count(dyn_period->adaptation_sets); i++) {
 			u64 sr, seg_dur;
 			u32 j, len, nb_space=0;
 			GF_MPD_AdaptationSet *set;
@@ -547,16 +562,16 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 				return;
 			}
 
-			set = gf_list_get(group->period->adaptation_sets, i);
+			set = gf_list_get(dyn_period->adaptation_sets, i);
 			for (j=0; j<gf_list_count(set->representations); j++) {
-				u64 dur = group->period->duration;
+				u64 dur = dyn_period->duration;
 				rep = gf_list_get(set->representations, j);
 
-				group->period->duration = 0;
+				dyn_period->duration = 0;
 
-				gf_mpd_resolve_url(group->dash->mpd, rep, set, group->period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur, NULL, NULL, NULL);
+				gf_mpd_resolve_url(group->dash->mpd, rep, set, dyn_period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur, NULL, NULL, NULL);
 
-				group->period->duration = dur;
+				dyn_period->duration = dur;
 
 				sep = seg_url ? strstr(seg_url, "987") : NULL;
 				if (!sep) {
@@ -586,7 +601,9 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 					strcat(szTemplate, end);
 					if (sscanf(val, szTemplate, &number) == 1) {
 						u32 startNum = 1;
-						if (group->period->segment_template) startNum = group->period->segment_template->start_number;
+						//safety check for now, in case one of the segment is send too early compared to the rest
+						if (number) number--;
+						if (dyn_period->segment_template) startNum = dyn_period->segment_template->start_number;
 						if (set->segment_template) startNum = set->segment_template->start_number;
 						if (rep->segment_template) startNum = rep->segment_template->start_number;
 						if (number+1>=startNum) {
@@ -609,7 +626,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			//so group->dash->utc_drift_estimate = fetch - (mpd->availabilityStartTime + nb_seg*seg_dur)
 
 
-			u64 utc = mpd->availabilityStartTime + group->period->start + timeline_offset_ms;
+			u64 utc = mpd->availabilityStartTime + dyn_period->start + timeline_offset_ms;
 			group->dash->utc_drift_estimate = ((s64) fetch_time - (s64) utc);
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff of ATSC broadcast "LLD" ms (UTC fetch "LLU" - server UTC "LLU" - MPD AST "LLU" - MPD PublishTime "LLU" - bootstraping on segment %s\n", group->dash->utc_drift_estimate, fetch_time, utc, group->dash->mpd->availabilityStartTime, group->dash->mpd->publishTime, val));
 
@@ -737,6 +754,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		} else {
 			//initial period was setup, consider we are moving to a new period, so time in this period is 0
 			current_time = 0;
+			if (group->start_playback_range) current_time = group->start_playback_range*1000;
 		}
 	}
 
@@ -2591,7 +2609,8 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 
 	if (!group->timeline_setup) {
 		gf_dash_group_timeline_setup(mpd, group, 0);
-		if (!period->xlink_href && !period->origin_base_url && (group->dash->atsc_clock_state==1))
+		//we must wait for ATSC 3.0 clock to initialize, even if first period is static remote (we need to know when to tune)
+		if (group->dash->atsc_clock_state==1)
 			return GF_IP_NETWORK_EMPTY;
 
 		if (group->dash->reinit_period_index)
@@ -4663,7 +4682,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 	gf_mx_p(dash->dash_mutex);
 
 	period = gf_list_get(period_list, period_idx);
-	if (!period->xlink_href) {
+	if (!period->xlink_href || (dash->atsc_clock_state==1)) {
 		gf_mx_v(dash->dash_mutex);
 		return;
 	}
@@ -4936,7 +4955,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 		retry --;
 	}
 	period = gf_list_get(dash->mpd->periods, dash->active_period_index);
-	if (period->xlink_href) {
+	if (period->xlink_href && (dash->atsc_clock_state!=1) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many xlink indirections on the same period - not supported\n"));
 		return GF_NOT_SUPPORTED;
 	}
