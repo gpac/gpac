@@ -230,6 +230,11 @@ blacklist the filters listed in the given string (comma-seperated list)
 .br
 disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory ungry but slower)
 .br
+.TP
+.B \-no-reservoir (boolean)
+.br
+disable memory recycling for packets and properties.This uses much less memory but stresses the system memory allocator much more
+.br
 .SH Using Aliases
 .PL
 The gpac command line can become quite complex when many sources or filters are used. In order to simplify this, an alias system is provided.
@@ -627,6 +632,11 @@ blacklist the filters listed in the given string (comma-seperated list)
 disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory ungry but slower)
 .br
 .TP
+.B \-no-reservoir (boolean)
+.br
+disable memory recycling for packets and properties.This uses much less memory but stresses the system memory allocator much more
+.br
+.TP
 .B \-switch-vres (boolean)
 .br
 select smallest video resolution larger than scene size, otherwise use current video resolution
@@ -927,9 +937,13 @@ Each filter exposes a set of argument to configure itself, using property types 
 .br
 * data: formatted as:
 .br
--- size@address: constant data block, not internally copied; size gives the size of the block, address the data pointer.
+ * `size@address`: constant data block, not internally copied; size gives the size of the block, address the data pointer.
 .br
--- 0xBYTESTRING: data block specified in hexadecimal, internally copied.
+ * `0xBYTESTRING`: data block specified in hexadecimal, internally copied.
+.br
+ * `file@FILE`: load data from local FILE(opened in binary mode).
+.br
+ * `bxml@FILE`: binarize XML from local FILE, see https://github.com/gpac/gpac/wiki/NHML-Format.
 .br
 * pointer: are formatted as address giving the pointer address (32 or 64 bit depending on platforms).
 .br
@@ -2464,7 +2478,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-ALPHA-rev3476-gcf7eb34bd-buildbot-filters
+build: 0.9.0-ALPHA-rev3490-g34320d7e6-buildbot-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
