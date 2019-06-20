@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2017
+ *			Copyright (c) Telecom ParisTech 2017-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / tile aggregrator filter
@@ -33,7 +33,7 @@
 typedef struct
 {
 	//options
-	GF_PropUIntList drop;
+	GF_PropUIntList tiledrop;
 
 	//internal
 	GF_FilterPid *opid;
@@ -144,10 +144,12 @@ static GF_Err tileagg_process(GF_Filter *filter)
 				break;
 			}
 		}
+		assert(pck);
 		if (cts > min_cts) continue;
 
-		for (j=0; j<ctx->drop.nb_items; j++) {
-			if (ctx->drop.vals[j] == i) do_drop=GF_TRUE;
+		for (j=0; j<ctx->tiledrop.nb_items; j++) {
+			if (ctx->tiledrop.vals[j] == i)
+				do_drop=GF_TRUE;
 		}
 		if (do_drop) {
 			gf_filter_pid_drop_packet(pid);
@@ -188,7 +190,9 @@ static GF_Err tileagg_process(GF_Filter *filter)
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
 		if (pid==ctx->base_ipid) continue;
 		pck = gf_filter_pid_get_packet(pid);
-		assert(pck);
+		//can happen if we drop one tile
+		if (!pck) continue;
+
 		cts = gf_filter_pck_get_cts(pck);
 		if (cts != min_cts) continue;
 
@@ -260,7 +264,7 @@ static const GF_FilterCapability TileAggCaps[] =
 
 static const GF_FilterArgs TileAggArgs[] =
 {
-	{ OFFS(drop), "specify indexes of tiles to drop", GF_PROP_UINT_LIST, "", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(tiledrop), "specify indexes of tiles to drop", GF_PROP_UINT_LIST, "", NULL, GF_FS_ARG_UPDATE},
 	{0}
 };
 
