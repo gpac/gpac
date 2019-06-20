@@ -230,6 +230,9 @@ struct __gf_filter_pck
 	//by the filter upon destruction. Set to NULL once the packet is dispatched
 	GF_Filter *src_filter;
 
+	//parent session, used to collect packet props references
+	GF_FilterSession *session;
+
 	//nb references of this packet
 	volatile u32 reference_count;
 
@@ -348,6 +351,11 @@ struct __gf_filter_session
 	//reservoir for property maps hash table entries (GF_Lists) for PID and packets properties
 	GF_FilterQueue *prop_maps_list_reservoir;
 #endif
+	//reservoir for reference property packets - we mutualize at session level to collect them
+	//it is not possible to do so at filter or pid level because a prop ref packet may be destroyed after the source
+	//pid/packet is destroyed, and we don't want to track them per pid/filter
+	GF_FilterQueue *pcks_refprops_reservoir;
+
 
 	GF_Mutex *props_mx;
 

@@ -220,6 +220,8 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	fsess->prop_maps_reservoir = gf_fq_new(fsess->props_mx);
 	fsess->prop_maps_entry_reservoir = gf_fq_new(fsess->props_mx);
 	fsess->prop_maps_entry_data_alloc_reservoir = gf_fq_new(fsess->props_mx);
+	//we also use the props mutex for the this one
+	fsess->pcks_refprops_reservoir = gf_fq_new(fsess->props_mx);
 
 #ifndef GPAC_DISABLE_REMOTERY
 	sprintf(fsess->main_th.rmt_name, "FSThread0");
@@ -618,6 +620,9 @@ void gf_fs_del(GF_FilterSession *fsess)
 #endif
 	gf_fq_del(fsess->prop_maps_entry_reservoir, gf_void_del);
 	gf_fq_del(fsess->prop_maps_entry_data_alloc_reservoir, gf_propalloc_del);
+
+	gf_fq_del(fsess->pcks_refprops_reservoir, gf_void_del);
+
 
 	if (fsess->props_mx)
 		gf_mx_del(fsess->props_mx);

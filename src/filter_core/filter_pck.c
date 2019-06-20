@@ -33,6 +33,7 @@ static void gf_filter_pck_reset_props(GF_FilterPacket *pck, GF_FilterPid *pid)
 	pck->info.flags = GF_PCKF_BLOCK_START | GF_PCKF_BLOCK_END;
 	pck->pid = pid;
 	pck->src_filter = pid->filter;
+	pck->session = pid->filter->session;
 }
 
 GF_EXPORT
@@ -301,17 +302,37 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 {
 	Bool is_filter_destroyed = GF_FALSE;
 	GF_FilterPid *pid = pck->pid;
+	Bool is_ref_props_packet = GF_FALSE;
 
-	if (pck->src_filter)
+	//this is a ref props packet, its destruction can happen at any time, included after destruction
+	//of source filter/pid.  pck->src_filter or pck->pid shall not be trusted !
+	if (pck->info.flags & GF_PCKF_PROPS_REFERENCE) {
+		is_ref_props_packet = GF_TRUE;
+		is_filter_destroyed = GF_TRUE;
+		pck->src_filter = NULL;
+		pck->pid = NULL;
+		assert(!pck->destructor);
+		assert(!pck->filter_owns_mem);
+		assert(!pck->reference);
+
+		if (pck->info.cts != GF_FILTER_NO_TS) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Destroying packet property reference CTS "LLU" size %d\n", pck->info.cts, pck->data_length));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Destroying packet property reference size %d\n", pck->data_length));
+		}
+	}
+	//if not null, we discard a non-sent packet
+	else if (pck->src_filter) {
 		is_filter_destroyed = pck->src_filter->finalized;
+	}
 
 	if (!is_filter_destroyed) {
 		assert(pck->pid);
 		if (pck->pid->filter) {
 			if (pck->info.cts != GF_FILTER_NO_TS) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet%s CTS "LLU"\n", pck->pid->filter->name, pck->pid->name, (pck->info.flags&GF_PCKF_PROPS_REFERENCE) ? " property reference" : "", pck->info.cts));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet CTS "LLU"\n", pck->pid->filter->name, pck->pid->name, pck->info.cts));
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet%s\n", pck->pid->filter->name, pck->pid->name, (pck->info.flags&GF_PCKF_PROPS_REFERENCE) ? " property reference" : ""));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet\n", pck->pid->filter->name, pck->pid->name));
 			}
 		}
 	}
@@ -321,7 +342,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 		GF_PropertyMap *props = pck->pid_props;
 		pck->pid_props = NULL;
 
-		if (pck->info.flags&GF_PCKF_PROPS_REFERENCE) {
+		if (is_ref_props_packet) {
 			assert(props->pckrefs_reference_count);
 			if (safe_int_dec(&props->pckrefs_reference_count) == 0) {
 				gf_props_del(props);
@@ -366,10 +387,13 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 		}
 		pck->reference = NULL;
 	}
-	if (is_filter_destroyed) {
+	/*this is a property reference packet, its destruction may happen at ANY time*/
+	if (is_ref_props_packet) {
+		gf_fq_add(pck->session->pcks_refprops_reservoir, pck);
+	} else if (is_filter_destroyed) {
 		if (!pck->filter_owns_mem && pck->data) gf_free(pck->data);
 		gf_free(pck);
-	} else if (pck->filter_owns_mem || (pck->info.flags & GF_PCKF_PROPS_REFERENCE) ) {
+	} else if (pck->filter_owns_mem ) {
 		gf_fq_add(pid->filter->pcks_shared_reservoir, pck);
 	} else {
 		gf_fq_add(pid->filter->pcks_alloc_reservoir, pck);
@@ -1036,7 +1060,8 @@ GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 
 	srcpck = (*pck)->pck;
 	pid = srcpck->pid;
-	npck = gf_fq_pop( pid->filter->pcks_shared_reservoir);
+
+	npck = gf_fq_pop( pid->filter->session->pcks_refprops_reservoir);
 	if (!npck) {
 		GF_SAFEALLOC(npck, GF_FilterPacket);
 		if (!npck) return GF_OUT_OF_MEM;
