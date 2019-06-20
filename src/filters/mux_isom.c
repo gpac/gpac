@@ -219,7 +219,7 @@ typedef struct
 	u32 nb_seg_sizes, alloc_seg_sizes;
 	Bool config_timing;
 
-	Bool major_brand_set;
+	u32 major_brand_set;
 	Bool def_brand_patched;
 
 	Bool force_play;
@@ -661,7 +661,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_QT, 512);
 		gf_isom_reset_alt_brands(ctx->file);
 		tkw->has_brands = GF_TRUE;
-		ctx->major_brand_set = GF_TRUE;
+		ctx->major_brand_set = GF_ISOM_BRAND_QT;
 		ctx->btrt = GF_FALSE;
 
 		if (is_prores && !ctx->prores_track) {
@@ -868,7 +868,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		if (p) {
 			if (!ctx->major_brand_set) {
 				gf_isom_set_brand_info(ctx->file, p->value.uint, 1);
-				ctx->major_brand_set = GF_TRUE;
+				ctx->major_brand_set = p->value.uint;
 			} else {
 				gf_isom_modify_alternate_brand(ctx->file, p->value.uint, GF_TRUE);
 			}
@@ -878,7 +878,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		if (p && p->value.uint_list.nb_items) {
 			tkw->has_brands = GF_TRUE;
 			if (!ctx->major_brand_set) {
-				ctx->major_brand_set = GF_TRUE;
+				ctx->major_brand_set = p->value.uint_list.vals[0];
 				gf_isom_set_brand_info(ctx->file, p->value.uint_list.vals[0], 1);
 			}
 
@@ -1480,7 +1480,12 @@ sample_entry_setup:
 			}
 			//pacth for old arch
 			else if (ctx->dash_mode) {
-				if (ctx->major_brand_set) {
+				Bool force_brand=GF_FALSE;
+				if (((ctx->major_brand_set>>24)=='i') && (((ctx->major_brand_set>>16)&0xFF)=='s') && (((ctx->major_brand_set>>8)&0xFF)=='o')) {
+					if ( (ctx->major_brand_set&0xFF) <'6') force_brand=GF_TRUE;
+				}
+
+				if (!force_brand && ctx->major_brand_set) {
 					gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO6, 1);
 				} else {
 					gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO6, 1);
