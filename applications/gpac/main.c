@@ -1224,11 +1224,8 @@ static void gpac_check_session_args()
 {
 	GF_Config *opts = NULL;
 	u32 idx = 0;
-	char szSep[2];
 	char *argname;
 	u32 argtype;
-	szSep[0] = separator_set[0];
-	szSep[1] = 0;
 
 	while (1) {
 		if (gf_fs_enum_unmapped_options(session, &idx, &argname, &argtype)==GF_FALSE)
