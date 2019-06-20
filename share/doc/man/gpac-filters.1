@@ -504,7 +504,7 @@ yuvgl (boolean, default: true, updatable): enable YUV open GL pixel format suppo
 .br
 depth_gl_scale (float, default: 100, updatable): set depth scaler
 .br
-depth_gl_type (enum, default: vbo, updatable): set geometry type used to draw depth video
+depth_gl_type (enum, default: none, updatable): set geometry type used to draw depth video
 .br
 * none: no geometric conversion
 .br
@@ -1522,7 +1522,11 @@ store (enum, default: inter):            file storage mode
 .br
 
 .br
-cdur (number, default: 1.0):             chunk duration for interleaving and fragmentation modes
+cdur (number, default: -1.0):            chunk duration for interleaving and fragmentation modes
+.br
+* 0: no specific interleaving but moov first
+.br
+* negative: defaults to 1.0 unless overriden by storage profile
 .br
 moovts (int, default: 600):              timescale to use for movie. A negative value picks the media timescale of the first track added
 .br
@@ -1615,6 +1619,8 @@ ase (enum, default: v0):                 set audio sample entry mode for more th
 ssix (boolean, default: false):          create ssix when sidx is present, level 1 mappping I-frames byte ranges, level 0xFF mapping the rest
 .br
 ccst (boolean, default: false):          insert coding constraint box for video tracks
+.br
+maxchunk (unsigned int, default: 0):     set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints
 .br
 block_size (unsigned int, default: 10000): target output block size, 0 for default internal value (10k)
 .br
@@ -4158,6 +4164,8 @@ c (string, no default):                  codec identifier. Can be any supported 
 .br
 pfmt (pixel format, default: none):      pixel format for input video. When not set, input format is used
 .br
+fintra (fraction, default: 0):           force intra / IDR frames at the given period in sec, eg fintra=60000/1001 will force an intra every 2 seconds on 29.97 fps video; ignored for audio
+.br
 all_intra (boolean, default: false, updatable): only produce intra frames
 .br
 ls (boolean, default: false):            output log
@@ -4215,7 +4223,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-ALPHA-rev3408-g2dc1ff364-buildbot-filters
+build: 0.9.0-ALPHA-rev3476-gcf7eb34bd-buildbot-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
