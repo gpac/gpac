@@ -754,7 +754,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		} else {
 			//initial period was setup, consider we are moving to a new period, so time in this period is 0
 			current_time = 0;
-			if (group->start_playback_range) current_time = group->start_playback_range*1000;
+			if (group->start_playback_range) current_time = (u64) (group->start_playback_range*1000);
 		}
 	}
 
