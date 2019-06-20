@@ -420,7 +420,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			else if (!stricmp(mode, "merged"))
 				svc_mode = 0;
 		}
-		/*split SVC layers*/
+		/*split SHVC temporal sublayers*/
 		else if (!strnicmp(ext+1, "temporal=", 9)) {
 			char *mode = ext+10;
 			if (!stricmp(mode, "split"))
