@@ -343,9 +343,9 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	{
 		char *v = (char *) value;
 		if (!list_sep_char) list_sep_char = ',';
-		while (v) {
+		while (v && v[0]) {
 			char szV[100];
-			u32 val_uint, len=0;
+			u32 val_uint=0, len=0;
 			char *sep = strchr(v, list_sep_char);
 			if (sep) {
 				len = (u32) (sep - v);
