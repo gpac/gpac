@@ -499,7 +499,7 @@ void PrintImportUsage()
 		"- :rate=VAL: force average rate and max rate to VAL (in bps) in btrt box. If 0, removes btrt box\n"
 		"- :stz2: use compact size table (for low-bitrates)\n"
 		"- :bitdepth=VAL: set bit depth to VAL for imported video content (default is 24)\n"
-		"- :clr=OPT: set color profile for imported video content (see ISO/IEC 23001-8). `OPT` is formatted as:\n"
+		"- :colr=OPT: set color profile for imported video content (see ISO/IEC 23001-8). `OPT` is formatted as:\n"
 		" - nclc,p,t,m: with p colour primary, t transfer characteristics and m matrix coef\n"
 		" - nclx,p,t,m,r: same as `nclx` with r full range flag\n"
 		" - prof,path: with path indicating the file containing the ICC color profile\n"
