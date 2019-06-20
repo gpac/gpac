@@ -2009,7 +2009,7 @@ sample_entry_done:
 					full_range_flag = GF_FALSE;
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
 				}
-				gf_isom_set_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE);
+				gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE, NULL, 0);
 
 				if ((width<=720) && (height<=576)) chunk_size = 2000000;
 				else chunk_size = 4000000;

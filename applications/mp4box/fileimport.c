@@ -256,6 +256,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	Bool use_stz2=GF_FALSE;
 	Bool has_mx=GF_FALSE;
 	s32 mx[9];
+	u32 bitdepth=0;
+	u32 clr_type=0;
+	u32 clr_prim;
+	u32 clr_tranf;
+	u32 clr_mx;
+	u32 clr_full_range=GF_FALSE;
+	Bool fmt_ok = GF_TRUE;
+	u32 icc_size=0;
+	char *icc_data = NULL;
 
 	clap_wn = clap_wd = clap_hn = clap_hd = clap_hon = clap_hod = clap_von = clap_vod = 0;
 
@@ -431,7 +440,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			else if (!stricmp(mode, "merged"))
 				svc_mode = 0;
 		}
-		/*split SVC layers*/
+		/*split SHVC temporal sublayers*/
 		else if (!strnicmp(ext+1, "temporal=", 9)) {
 			char *mode = ext+10;
 			if (!stricmp(mode, "split"))
@@ -617,6 +626,45 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 		else if (!strcmp(ext+1, "stz2")) {
 			use_stz2 = GF_TRUE;
+		} else if (!strnicmp(ext+1, "bitdepth=", 9)) {
+			bitdepth=atoi(ext+10);
+		}
+		else if (!strnicmp(ext+1, "clr=", 4)) {
+			if (strlen(ext+5)<5) {
+				fmt_ok = GF_FALSE;
+			} else {
+				clr_type = GF_4CC(ext[5],ext[6],ext[7],ext[8]);
+				if (clr_type==GF_ISOM_SUBTYPE_NCLX) {
+					if (sscanf(ext+10, "%d,%d,%d,%d", &clr_prim, &clr_tranf, &clr_mx, &clr_full_range) != 4)
+						fmt_ok=GF_FALSE;
+				}
+				else if (clr_type==GF_ISOM_SUBTYPE_NCLC) {
+					if (sscanf(ext+10, "%d,%d,%d", &clr_prim, &clr_tranf, &clr_mx) != 3)
+						fmt_ok=GF_FALSE;
+				}
+				else if ((clr_type==GF_ISOM_SUBTYPE_RICC) || (clr_type==GF_ISOM_SUBTYPE_PROF)) {
+					FILE *f = gf_fopen(ext+10, "rb");
+					if (!f) {
+						fprintf(stderr, "Failed to open file %s\n", ext+10);
+						fmt_ok = GF_FALSE;
+					} else {
+						gf_fseek(f, 0, SEEK_END);
+						icc_size = (u32) gf_ftell(f);
+						icc_data = gf_malloc(sizeof(char)*icc_size);
+						gf_fseek(f, 0, SEEK_SET);
+						icc_size = (u32) gf_fread(icc_data, 1, icc_size, f);
+						gf_fclose(f);
+					}
+				} else {
+					fprintf(stderr, "unrecognized profile %s\n", gf_4cc_to_str(clr_type) );
+					fmt_ok = GF_FALSE;
+				}
+			}
+			if (!fmt_ok) {
+				fprintf(stderr, "Bad format for clr option, check help\n");
+				e = GF_BAD_PARAM;
+				goto exit;
+			}
 		}
 
 		/*unrecognized, assume name has colon in it*/
@@ -814,6 +862,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (is_chap && chap_ref) {
 				set_chapter_track(import.dest, i+1, chap_ref);
 			}
+			if (bitdepth) {
+				gf_isom_set_visual_bit_depth(import.dest, i+1, 1, bitdepth);
+			}
+			if (clr_type) {
+				gf_isom_set_visual_color_info(import.dest, i+1, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
+			}
 
 			for (j = 0; j < gf_list_count(kinds); j+=2) {
 				char *kind_scheme = (char *)gf_list_get(kinds, j);
@@ -977,6 +1031,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (is_chap && chap_ref) {
 				set_chapter_track(import.dest, track, chap_ref);
+			}
+
+			if (bitdepth) {
+				gf_isom_set_visual_bit_depth(import.dest, track, 1, bitdepth);
+			}
+			if (clr_type) {
+				gf_isom_set_visual_color_info(import.dest, track, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
 			}
 
 			for (j = 0; j < gf_list_count(kinds); j+=2) {
@@ -1163,6 +1224,7 @@ exit:
 	if (import.force_ext) gf_free(import.force_ext);
 	if (rvc_config) gf_free(rvc_config);
 	if (szLan) gf_free((char *)szLan);
+	if (icc_data) gf_free(icc_data);
 	return e;
 }
 

@@ -903,6 +903,10 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		return GF_OK;
 	}
 
+	if (is_prores) {
+		gf_isom_update_video_sample_entry_fields(mp4, video_tk, 1, 0, GF_4CC('a','p','p','l'), 0, 0x3FF, 72<<16, 72<<16, 1, NULL, -1);
+	}
+
 	timescale = gf_isom_get_media_timescale(mp4, video_tk);
 	def_dur = gf_isom_get_constant_sample_duration(mp4, video_tk);
 	if (!def_dur) {
@@ -924,26 +928,35 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	e = gf_isom_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
 	if (e==GF_NOT_FOUND) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
-		gf_isom_set_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE);
+		gf_isom_set_visual_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE, NULL, 0);
 	} else if (e) {
 		return e;
 	}
 	gf_isom_get_visual_info(mp4, video_tk, 1, &w, &h);
 
+	u32 ifps;
+	Double FPS = timescale;
+	FPS /= def_dur;
+	FPS *= 100;
+	ifps = (u32) FPS;
+	if (ifps>= 2996 && ifps<=2998) target_ts = 30000;	//29.97
+	else if (ifps>= 2999 && ifps<=3001) target_ts = 3000; //30
+	else if (ifps>= 2495 && ifps<=2505) target_ts = 2500; //25
+	else if (ifps >= 2396 && ifps<=2398) target_ts = 24000; //23.97
+	else if ((ifps>=2399) && (ifps<=2401)) target_ts = 2400; //24
+	else if (ifps>= 4990 && ifps<=5010) target_ts = 5000; //50
+	else if (ifps>= 5993 && ifps<=5995) target_ts = 60000; //59.94
+	else if (ifps>= 5996 && ifps<=6004) target_ts = 6000; //60
 
-	if (def_dur * 24000 == timescale * 1001) target_ts = 24000;
-	else if (def_dur * 2400 == timescale * 100) target_ts = 2400;
-	else if (def_dur * 2500 == timescale * 100) target_ts = 2500;
-	else if (def_dur * 30000 == timescale * 1001) target_ts = 30000;
-	else if (def_dur * 3000 == timescale * 100) target_ts = 3000;
-	else if (def_dur * 5000 == timescale * 100) target_ts = 5000;
-	else if (def_dur * 60000 == timescale * 1001) target_ts = 60000;
-	else if (is_prores) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] Unrecognized frame rate %g\n", ((Double)timescale)/def_dur ));
-		return GF_NON_COMPLIANT_BITSTREAM;
-	} else {
-		target_ts = timescale;
+	if (!target_ts) {
+		if (is_prores) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] Unrecognized frame rate %g\n", ((Double)timescale)/def_dur ));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		} else {
+			target_ts = timescale;
+		}
 	}
+
 	if (target_ts != timescale) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] Adjusting timescale to %d\n", target_ts));
 		gf_isom_set_media_timescale(mp4, video_tk, target_ts, GF_FALSE);
