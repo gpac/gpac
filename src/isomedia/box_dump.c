@@ -652,6 +652,7 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 		break;
 	case GF_ISOM_SUBTYPE_MJP2:
 		name = "MJ2KSampleDescriptionBox";
+		break;
 	case GF_QT_SUBTYPE_APCH:
 	case GF_QT_SUBTYPE_APCO:
 	case GF_QT_SUBTYPE_APCN:
@@ -665,6 +666,7 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 	default:
 		//DO NOT TOUCH FOR NOW, this breaks all hashes
 		name = "MPEGVisualSampleDescriptionBox";
+		break;
 	}
 
 
