@@ -6296,7 +6296,7 @@ GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *file, u32 track, u32
 
 	/*get orig sample desc and clone it*/
 	trak = gf_isom_get_track_from_file(file, track);
-	if (!trak) return GF_BAD_PARAM;
+	if (!trak || !stsd_idx) return GF_BAD_PARAM;
 
 	if (!trak->Media || !trak->Media->handler || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->SampleDescription)
 		return GF_ISOM_INVALID_FILE;
@@ -6309,7 +6309,7 @@ GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *file, u32 track, u32
 	default:
 		return GF_BAD_PARAM;
 	}
-	vid_ent = gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, stsd_idx);
+	vid_ent = gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, stsd_idx-1);
 	if (!vid_ent)
 		return GF_BAD_PARAM;
 
