@@ -1990,6 +1990,7 @@ force_input:
 		gf_term_get_current_service_id(term);
 		gf_term_toggle_addons(term, GF_FALSE);
 		set_navigation();
+		get_cmd('v');
 
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_MOUSEUP;
