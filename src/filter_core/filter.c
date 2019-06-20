@@ -1386,7 +1386,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		//we directly detach the pid
 		else {
 			safe_int_inc(&dst_pidi->pid->filter->detach_pid_tasks_pending);
-			safe_int_inc(&filter->detach_pid_tasks_pending);
+			safe_int_inc(&filter_dst->detach_pid_tasks_pending);
 			gf_fs_post_task(filter->session, gf_filter_pid_detach_task, filter_dst, dst_pidi->pid, "pidinst_detach", filter_dst);
 		}
 	}
