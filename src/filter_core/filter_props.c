@@ -583,9 +583,18 @@ void gf_props_del_property(GF_PropertyEntry *it)
 		it->prop.value.data.size = 0;
 		if (it->alloc_size) {
 			assert(it->prop.type==GF_PROP_DATA);
-			gf_fq_add(it->session->prop_maps_entry_data_alloc_reservoir, it);
+			if (it->session->prop_maps_entry_data_alloc_reservoir) {
+				gf_fq_add(it->session->prop_maps_entry_data_alloc_reservoir, it);
+			} else {
+				if (it->prop.value.data.ptr) gf_free(it->prop.value.data.ptr);
+				gf_free(it);
+			}
 		} else {
-			gf_fq_add(it->session->prop_maps_entry_reservoir, it);
+			if (it->session->prop_maps_entry_reservoir) {
+				gf_fq_add(it->session->prop_maps_entry_reservoir, it);
+			} else {
+				gf_free(it);
+			}
 		}
 	}
 }
@@ -612,7 +621,11 @@ void gf_props_reset(GF_PropertyMap *prop)
 				gf_props_del_property((GF_PropertyEntry *) gf_list_pop_back(l) );
 			}
 			prop->hash_table[i] = NULL;
-			gf_fq_add(prop->session->prop_maps_list_reservoir, l);
+			if (prop->session->prop_maps_list_reservoir) {
+				gf_fq_add(prop->session->prop_maps_list_reservoir, l);
+			} else {
+				gf_list_del(l);
+			}
 		}
 	}
 #else
@@ -622,15 +635,20 @@ void gf_props_reset(GF_PropertyMap *prop)
 #endif
 }
 
-void gf_props_del(GF_PropertyMap *prop)
+void gf_props_del(GF_PropertyMap *map)
 {
-	assert(!prop->pckrefs_reference_count || !prop->reference_count);
+	assert(!map->pckrefs_reference_count || !map->reference_count);
 	//we still have a ref
-	if (prop->pckrefs_reference_count || prop->reference_count) return;
+	if (map->pckrefs_reference_count || map->reference_count) return;
 
-	gf_props_reset(prop);
-	prop->reference_count = 0;
-	gf_fq_add(prop->session->prop_maps_reservoir, prop);
+	gf_props_reset(map);
+	map->reference_count = 0;
+	if (map->session->prop_maps_reservoir) {
+		gf_fq_add(map->session->prop_maps_reservoir, map);
+	} else {
+		gf_list_del(map->properties);
+		gf_free(map);
+	}
 }
 
 

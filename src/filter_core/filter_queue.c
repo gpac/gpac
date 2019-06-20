@@ -173,6 +173,7 @@ static void *gf_fq_lockfree_dequeue(GF_LFQItem **head_ptr, GF_LFQItem **tail_ptr
 void gf_lfq_add(GF_FilterQueue *q, void *item)
 {
 	GF_LFQItem *it=NULL;
+	assert(q);
 
 	gf_fq_lockfree_dequeue( &q->res_head, &q->res_tail, &it);
 	if (!it) {
@@ -189,6 +190,8 @@ void gf_lfq_add(GF_FilterQueue *q, void *item)
 void *gf_lfq_pop(GF_FilterQueue *q)
 {
 	GF_LFQItem *slot=NULL;
+	if (!q) return NULL;
+
 	void *data = gf_fq_lockfree_dequeue( &q->head, &q->tail, &slot);
 	if (!data) return NULL;
 	safe_int_dec(&q->nb_items);
@@ -203,13 +206,14 @@ void *gf_lfq_pop(GF_FilterQueue *q)
 
 u32 gf_fq_count(GF_FilterQueue *q)
 {
-	return q->nb_items;
+	return q ? q->nb_items : 0;
 }
 
 //TODO - check performances vs function pointer
 void gf_fq_add(GF_FilterQueue *fq, void *item)
 {
 	GF_LFQItem *it;
+	assert(fq);
 
 #if 0
 	u32 k;
@@ -249,6 +253,9 @@ void gf_fq_add(GF_FilterQueue *fq, void *item)
 void *gf_fq_pop(GF_FilterQueue *fq)
 {
 	GF_LFQItem *it;
+	if (!fq)
+		return NULL;
+
 	void *data=NULL;
 	if (! fq->mx) {
 		return gf_lfq_pop(fq);
@@ -283,6 +290,8 @@ void *gf_fq_pop(GF_FilterQueue *fq)
 void *gf_fq_head(GF_FilterQueue *fq)
 {
 	void *data;
+	if (!fq) return NULL;
+
 	if (fq->mx) {
 		gf_mx_p(fq->mx);
 		data = fq->head ? fq->head->data : NULL;
@@ -298,6 +307,7 @@ void *gf_fq_get(GF_FilterQueue *fq, u32 idx)
 {
 	void *data;
 	GF_LFQItem *it;
+	assert(fq);
 
 	if (fq->mx) {
 		gf_mx_p(fq->mx);

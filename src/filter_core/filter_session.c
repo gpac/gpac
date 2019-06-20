@@ -174,7 +174,9 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 		fsess->main_thread_tasks = fsess->tasks;
 	}
 
-	fsess->tasks_reservoir = gf_fq_new(fsess->tasks_mx);
+	if (!(flags & GF_FS_FLAG_NO_RESERVOIR)) {
+		fsess->tasks_reservoir = gf_fq_new(fsess->tasks_mx);
+	}
 
 	if (nb_threads || (sched_type==GF_FS_SCHEDULER_LOCK_FORCE) ) {
 		fsess->semaphore_main = fsess->semaphore_other = gf_sema_new(GF_INT_MAX, 0);
@@ -214,20 +216,23 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	if (fsess->use_locks)
 		fsess->props_mx = gf_mx_new("FilterSessionProps");
 
+	if (!(flags & GF_FS_FLAG_NO_RESERVOIR)) {
 #if GF_PROPS_HASHTABLE_SIZE
-	fsess->prop_maps_list_reservoir = gf_fq_new(fsess->props_mx);
+		fsess->prop_maps_list_reservoir = gf_fq_new(fsess->props_mx);
 #endif
-	fsess->prop_maps_reservoir = gf_fq_new(fsess->props_mx);
-	fsess->prop_maps_entry_reservoir = gf_fq_new(fsess->props_mx);
-	fsess->prop_maps_entry_data_alloc_reservoir = gf_fq_new(fsess->props_mx);
-	//we also use the props mutex for the this one
-	fsess->pcks_refprops_reservoir = gf_fq_new(fsess->props_mx);
+		fsess->prop_maps_reservoir = gf_fq_new(fsess->props_mx);
+		fsess->prop_maps_entry_reservoir = gf_fq_new(fsess->props_mx);
+		fsess->prop_maps_entry_data_alloc_reservoir = gf_fq_new(fsess->props_mx);
+		//we also use the props mutex for the this one
+		fsess->pcks_refprops_reservoir = gf_fq_new(fsess->props_mx);
+	}
+
 
 #ifndef GPAC_DISABLE_REMOTERY
 	sprintf(fsess->main_th.rmt_name, "FSThread0");
 #endif
 
-	if (!fsess->filters || !fsess->tasks || !fsess->tasks_reservoir) {
+	if (!fsess->filters || !fsess->tasks) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to alloc media session\n"));
 		fsess->run_status = GF_OUT_OF_MEM;
 		gf_fs_del(fsess);
@@ -411,6 +416,10 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 
 	if (gf_opts_get_bool("core", "no-argchk"))
 		flags |= GF_FS_FLAG_NO_ARG_CHECK;
+
+	if (gf_opts_get_bool("core", "no-reservoir"))
+		flags |= GF_FS_FLAG_NO_RESERVOIR;
+
 
 	fsess = gf_fs_new(nb_threads, sched_type, flags, blacklist);
 	if (!fsess) return NULL;
@@ -614,14 +623,18 @@ void gf_fs_del(GF_FilterSession *fsess)
 		gf_list_del(fsess->threads);
 	}
 
-	gf_fq_del(fsess->prop_maps_reservoir, gf_propmap_del);
+	if (fsess->prop_maps_reservoir)
+		gf_fq_del(fsess->prop_maps_reservoir, gf_propmap_del);
 #if GF_PROPS_HASHTABLE_SIZE
-	gf_fq_del(fsess->prop_maps_list_reservoir, (gf_destruct_fun) gf_list_del);
+	if (fsess->prop_maps_list_reservoir)
+		gf_fq_del(fsess->prop_maps_list_reservoir, (gf_destruct_fun) gf_list_del);
 #endif
-	gf_fq_del(fsess->prop_maps_entry_reservoir, gf_void_del);
-	gf_fq_del(fsess->prop_maps_entry_data_alloc_reservoir, gf_propalloc_del);
-
-	gf_fq_del(fsess->pcks_refprops_reservoir, gf_void_del);
+	if (fsess->prop_maps_entry_reservoir)
+		gf_fq_del(fsess->prop_maps_entry_reservoir, gf_void_del);
+	if (fsess->prop_maps_entry_data_alloc_reservoir)
+		gf_fq_del(fsess->prop_maps_entry_data_alloc_reservoir, gf_propalloc_del);
+	if (fsess->pcks_refprops_reservoir)
+		gf_fq_del(fsess->pcks_refprops_reservoir, gf_void_del);
 
 
 	if (fsess->props_mx)
@@ -682,10 +695,12 @@ const GF_FilterRegister * gf_fs_get_filter_registry(GF_FilterSession *fsess, u32
 #ifdef CHECK_TASK_LIST_INTEGRITY
 static void check_task_list(GF_FilterQueue *fq, GF_FSTask *task)
 {
-	u32 k, c = gf_fq_count(fq);
-	for (k=0; k<c; k++) {
-		GF_FSTask *a = gf_fq_get(fq, k);
-		assert(a != task);
+	if (fq) {
+		u32 k, c = gf_fq_count(fq);
+		for (k=0; k<c; k++) {
+			GF_FSTask *a = gf_fq_get(fq, k);
+			assert(a != task);
+		}
 	}
 }
 #endif
@@ -1512,8 +1527,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 #endif
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u task#%d %p pushed to reservoir\n", sys_thid, sess_thread->nb_tasks, task));
 
-			memset(task, 0, sizeof(GF_FSTask));
-			gf_fq_add(fsess->tasks_reservoir, task);
+			if (fsess->tasks_reservoir) {
+				memset(task, 0, sizeof(GF_FSTask));
+				gf_fq_add(fsess->tasks_reservoir, task);
+			} else {
+				gf_free(task);
+			}
 		}
 
 		//decrement task counter

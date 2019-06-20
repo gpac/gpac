@@ -220,7 +220,8 @@ When set, all subfilters are exposed. This should only be set when inspecting fi
 #define GF_FS_FLAG_PRINT_CONNECTIONS	(1<<8)
 /*! Flag set to disable argument checking*/
 #define GF_FS_FLAG_NO_ARG_CHECK	(1<<9)
-
+/*disables reservoir for packets and properties, uses much less memory but much more alloc/free*/
+#define GF_FS_FLAG_NO_RESERVOIR (1<<10)
 
 /*! Creates a new filter session. This will also load all available filters not blacklisted.
 \param nb_threads number of extra threads to allocate. A negative value means all core used by session (eg nb_cores-1 extra threads)

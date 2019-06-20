@@ -4615,9 +4615,11 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	}
 #endif
 
-
-	gf_fq_add(pid->filter->pcks_inst_reservoir, pcki);
-
+	if (pid->filter->pcks_inst_reservoir) {
+		gf_fq_add(pid->filter->pcks_inst_reservoir, pcki);
+	} else {
+		gf_free(pcki);
+	}
 	//unref pck
 	assert(pck->reference_count);
 	if (safe_int_dec(&pck->reference_count) == 0) {

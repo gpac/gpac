@@ -133,9 +133,11 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	filter->tasks = gf_fq_new(filter->tasks_mx);
 
-	filter->pcks_shared_reservoir = gf_fq_new(filter->pcks_mx);
-	filter->pcks_alloc_reservoir = gf_fq_new(filter->pcks_mx);
-	filter->pcks_inst_reservoir = gf_fq_new(filter->pcks_mx);
+	if (! (filter->session->flags & GF_FS_FLAG_NO_RESERVOIR)) {
+		filter->pcks_shared_reservoir = gf_fq_new(filter->pcks_mx);
+		filter->pcks_alloc_reservoir = gf_fq_new(filter->pcks_mx);
+		filter->pcks_inst_reservoir = gf_fq_new(filter->pcks_mx);
+	}
 
 	filter->pending_pids = gf_fq_new(NULL);
 
@@ -355,9 +357,12 @@ void gf_filter_del(GF_Filter *filter)
 	reset_filter_args(filter);
 	if (filter->src_args) gf_free(filter->src_args);
 
-	gf_fq_del(filter->pcks_shared_reservoir, gf_void_del);
-	gf_fq_del(filter->pcks_inst_reservoir, gf_void_del);
-	gf_fq_del(filter->pcks_alloc_reservoir, gf_filterpacket_del);
+	if (filter->pcks_shared_reservoir)
+		gf_fq_del(filter->pcks_shared_reservoir, gf_void_del);
+	if (filter->pcks_inst_reservoir)
+		gf_fq_del(filter->pcks_inst_reservoir, gf_void_del);
+	if (filter->pcks_alloc_reservoir)
+		gf_fq_del(filter->pcks_alloc_reservoir, gf_filterpacket_del);
 
 	gf_mx_del(filter->pcks_mx);
 	if (filter->tasks_mx)
