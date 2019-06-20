@@ -12,6 +12,12 @@ svg_test()
   ;;
  esac
 
+
+# hash do not work on linux due to rounding errors of floats -> different rasterization
+if [ $GPAC_OSTYPE == "lin32" ] ; then
+  do_hash=0
+fi
+
  #start our test, specifying all hash names we will check
  test_begin "svg-$name"
  if [ $test_skip  = 1 ] ; then
