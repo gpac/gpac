@@ -25,6 +25,8 @@
 
 #include "filter_session.h"
 #include <gpac/constants.h>
+//for binxml parsing
+#include <gpac/xml.h>
 
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char)
 {
@@ -292,6 +294,31 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				szV[1] = value[2*i + 1];
 				szV[2] = 0;
 				sscanf(szV, "%c", &p.value.data.ptr[i]);
+			}
+		} else if (!strnicmp(value, "bxml@", 5) ) {
+			GF_Err e = GF_OK;
+			GF_XMLNode *root;
+			GF_DOMParser *dom = gf_xml_dom_new();
+			e = gf_xml_dom_parse(dom, value+5, NULL, NULL);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot parse XML from file %s\n", value+5));
+			} else {
+				root = gf_xml_dom_get_root_idx(dom, 0);
+				//if no root, assume NULL
+				if (root) {
+					e = gf_xml_parse_bit_sequence(root, value+5, &p.value.data.ptr, &p.value.data.size);
+				}
+				if (e<0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to binarize XML file %s: %s\n", value+5, gf_error_to_string(e) ));
+				}
+			}
+			gf_xml_dom_del(dom);
+		} else if (!strnicmp(value, "file@", 5) ) {
+			GF_Err e = gf_file_load_data(value+5, (u8 **) &p.value.data.ptr, &p.value.data.size);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot load data from file %s\n", value+5));
+				p.value.data.ptr=NULL;
+				p.value.data.size=0;
 			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for data arg %s - using 0\n", value, name));
