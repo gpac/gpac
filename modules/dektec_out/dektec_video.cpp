@@ -838,9 +838,9 @@ static const GF_FilterArgs DTOutArgs[] =
 	{ OFFS(bus), "PCI bus number - if not set, device discovery is used", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(slot), "PCI bus number - if not set, device discovery is used", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT },
 	{ OFFS(fps), "default FPS to use if input stream fps cannot be detected", GF_PROP_FRACTION, "30/1", NULL, GF_FS_ARG_HINT_ADVANCED },
-	{ OFFS(clip), "clips YUV data to valid SDI range, slower", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED },
-	{ OFFS(port), "sets sdi output port of card", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED },
-	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_NORMAL },
+	{ OFFS(clip), "clip YUV data to valid SDI range, slower", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED },
+	{ OFFS(port), "set sdi output port of card", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED },
+	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_NORMAL },
 	{ 0 }
 };
 
@@ -872,7 +872,8 @@ GF_FilterRegister *RegisterFilter(GF_FilterSession *session)
 	memset(&DTOutRegister, 0, sizeof(GF_FilterRegister));
 	DTOutRegister.name = "dtout";
 #ifndef GPAC_DISABLE_DOC
-	DTOutRegister.description = "DekTec card output, to be used with DTA 2174 or 2154";
+	DTOutRegister.description = "DekTec SDIOut";
+	DTOutRegister.help = "This filter provides SDI output, to be used with DTA 2174 or 2154";
 #endif
 	DTOutRegister.private_size = sizeof(GF_DTOutCtx);
 	DTOutRegister.args = DTOutArgs;
