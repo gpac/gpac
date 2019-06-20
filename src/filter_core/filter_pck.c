@@ -320,12 +320,20 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 	if (pck->pid_props) {
 		GF_PropertyMap *props = pck->pid_props;
 		pck->pid_props = NULL;
-		assert(props->reference_count);
-		if (safe_int_dec(&props->reference_count) == 0) {
-			if (!is_filter_destroyed) {
-				gf_list_del_item(pck->pid->properties, props);
+
+		if (pck->info.flags&GF_PCKF_PROPS_REFERENCE) {
+			assert(props->pckrefs_reference_count);
+			if (safe_int_dec(&props->pckrefs_reference_count) == 0) {
+				gf_props_del(props);
 			}
-			gf_props_del(props);
+		} else {
+			assert(props->reference_count);
+			if (safe_int_dec(&props->reference_count) == 0) {
+				if (!is_filter_destroyed) {
+					gf_list_del_item(pck->pid->properties, props);
+				}
+				gf_props_del(props);
+			}
 		}
 	}
 
@@ -1048,7 +1056,7 @@ GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 	}
 	if (srcpck->pid_props) {
 		npck->pid_props = srcpck->pid_props;
-		safe_int_inc(& npck->pid_props->reference_count);
+		safe_int_inc(& npck->pid_props->pckrefs_reference_count);
 	}
 
 	safe_int_inc(& npck->reference_count);

@@ -624,7 +624,10 @@ void gf_props_reset(GF_PropertyMap *prop)
 
 void gf_props_del(GF_PropertyMap *prop)
 {
-	assert(prop->reference_count == 0);
+	assert(!prop->pckrefs_reference_count || !prop->reference_count);
+	//we still have a ref
+	if (prop->pckrefs_reference_count || prop->reference_count) return;
+
 	gf_props_reset(prop);
 	prop->reference_count = 0;
 	gf_fq_add(prop->session->prop_maps_reservoir, prop);

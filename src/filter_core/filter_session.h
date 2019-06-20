@@ -95,6 +95,9 @@ typedef struct
 	GF_List *properties;
 #endif
 	volatile u32 reference_count;
+	//number of references hold by packet references - since these may be destroyed at the end of the refering filter
+	//the pid might be dead. This is only used for pid props maps
+	volatile u32 pckrefs_reference_count;
 	GF_FilterSession *session;
 	//current timescale, cached for duration/buffer compute
 	u32 timescale;
