@@ -30,7 +30,7 @@ qt_prores_test ()
 
  #import media as mov, force bit depth to 32 and set color profile
  movfile="$TEMP_DIR/$name.mov"
- do_test "$MP4BOX -add $1:bitdepth=32:clr=nclc,1,1,1 -new $movfile" "MediaImportMoov"
+ do_test "$MP4BOX -add $1:bitdepth=32:colr=nclc,1,1,1 -new $movfile" "MediaImportMoov"
  do_hash_test $movfile "addmov"
 
  test_end
