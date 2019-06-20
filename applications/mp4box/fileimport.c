@@ -590,23 +590,28 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "bitdepth=", 9)) {
 			bitdepth=atoi(ext+10);
 		}
-		else if (!strnicmp(ext+1, "clr=", 4)) {
-			if (strlen(ext+5)<5) {
+		else if (!strnicmp(ext+1, "colr=", 5)) {
+			char *cval = ext+6;
+			if (strlen(cval)<6) {
 				fmt_ok = GF_FALSE;
 			} else {
-				clr_type = GF_4CC(ext[5],ext[6],ext[7],ext[8]);
-				if (clr_type==GF_ISOM_SUBTYPE_NCLX) {
-					if (sscanf(ext+10, "%d,%d,%d,%d", &clr_prim, &clr_tranf, &clr_mx, &clr_full_range) != 4)
+				clr_type = GF_4CC(cval[0],cval[1],cval[2],cval[3]);
+				cval+=4;
+				if (cval[0] != ',') {
+					fmt_ok = GF_FALSE;
+				}
+				else if (clr_type==GF_ISOM_SUBTYPE_NCLX) {
+					if (sscanf(cval+1, "%d,%d,%d,%d", &clr_prim, &clr_tranf, &clr_mx, &clr_full_range) != 4)
 						fmt_ok=GF_FALSE;
 				}
 				else if (clr_type==GF_ISOM_SUBTYPE_NCLC) {
-					if (sscanf(ext+10, "%d,%d,%d", &clr_prim, &clr_tranf, &clr_mx) != 3)
+					if (sscanf(cval+1, "%d,%d,%d", &clr_prim, &clr_tranf, &clr_mx) != 3)
 						fmt_ok=GF_FALSE;
 				}
 				else if ((clr_type==GF_ISOM_SUBTYPE_RICC) || (clr_type==GF_ISOM_SUBTYPE_PROF)) {
-					FILE *f = gf_fopen(ext+10, "rb");
+					FILE *f = gf_fopen(cval+1, "rb");
 					if (!f) {
-						fprintf(stderr, "Failed to open file %s\n", ext+10);
+						fprintf(stderr, "Failed to open file %s\n", cval+1);
 						fmt_ok = GF_FALSE;
 					} else {
 						gf_fseek(f, 0, SEEK_END);
