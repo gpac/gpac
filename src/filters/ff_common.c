@@ -569,8 +569,18 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		arg.min_max_enum = enum_val;
 		}
 		break;
+	case AV_OPT_TYPE_DICT:
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unhandled option type dict (%d)\n", opt->type));
+		break;
+	case AV_OPT_TYPE_COLOR:
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unhandled option type color (%d)\n", opt->type));
+		break;
+	case AV_OPT_TYPE_CHANNEL_LAYOUT:
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unhandled option type chanLayout (%d)\n", opt->type));
+		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unhandled option type %d\n", opt->type));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unknown ffmpeg option type %d\n", opt->type));
+		break;
 	}
 	return arg;
 }
