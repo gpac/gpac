@@ -873,7 +873,7 @@ GF_FilterRegister *RegisterFilter(GF_FilterSession *session)
 	DTOutRegister.name = "dtout";
 #ifndef GPAC_DISABLE_DOC
 	DTOutRegister.description = "DekTec SDIOut";
-	DTOutRegister.help = "This filter provides SDI output, to be used with DTA 2174 or 2154";
+	DTOutRegister.help = "This filter provides SDI output to be used with __DTA 2174__ or __DTA 2154__ cards.";
 #endif
 	DTOutRegister.private_size = sizeof(GF_DTOutCtx);
 	DTOutRegister.args = DTOutArgs;
