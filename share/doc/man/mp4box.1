@@ -1168,6 +1168,14 @@ Allowed per-file options:
 .br
  * splitnoxib: each layer is in its own track, no extractors are written, using inband param set signaling
 .br
+* :temporal: set HEVC/LHVC temporal sublayer import mode
+.br
+ * split: each sublayer is in its own track
+.br
+ * splitbase: all sublayers are merged in a track, and the HEVC base in another
+.br
+ * splitnox: each layer is in its own track, and no extractors are written
+.br
 * :subsamples: add SubSample information for AVC+SVC
 .br
 * :deps: import sample dependency information for AVC and HEVC
@@ -1269,6 +1277,18 @@ Warning: THIS MAY BREAK THE FILE WRITING !!
 * :rate=VAL: force average rate and max rate to VAL (in bps) in btrt box. If 0, removes btrt box
 .br
 * :stz2: use compact size table (for low-bitrates)
+.br
+* :bitdepth=VAL: set bit depth to VAL for imported video content (default is 24)
+.br
+* :clr=OPT: set color profile for imported video content (see ISO/IEC 23001-8). OPT is formatted as:
+.br
+ * nclc,p,t,m: with p colour primary, t transfer characteristics and m matrix coef
+.br
+ * nclx,p,t,m,r: same as nclx with r full range flag
+.br
+ * prof,path: with path indicating the file containing the ICC color profile
+.br
+ * rICC,path: with path indicating the file containing the restricted ICC color profile
 .br
 * :fstat: print filter session stats after import
 .br
@@ -1768,44 +1788,6 @@ support for lines transparency and scalability
 .br
 complementary angle below which 2 lines are merged, value 0means no flattening
 .br
-.TP
-.B \-atsc (boolean)
-.br
-enable ATSC 3.O reader
-.br
-.TP
-.B \-ifce (string)
-.br
-IP address of network interface to use
-.br
-.TP
-.B \-dir (string)
-.br
-local filesystem path to which the files are written. If not set, nothing is written to disk
-.br
-.TP
-.B \-service (int)
-.br
-ID of the service to grab
-.br
-* not set or -1: all services are dumped
-.br
-* 0: no services are dumped
-.br
-* -2: the first service found is used
-.br
-* positive: tunes to given service ID
-.br
-.TP
-.B \-nb-segs (int, default: -1)
-.br
-set max segments to keep on disk per stream, -1 keeps all
-.br
-.TP
-.B \-atsc-stats (int)
-.br
-print stats every N seconds
-.br
 .SH ATSC 3.0 Grabber Options
 .LP
 .br
@@ -1951,7 +1933,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-ALPHA-rev3408-g2dc1ff364-buildbot-filters
+build: 0.9.0-ALPHA-rev3476-gcf7eb34bd-buildbot-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

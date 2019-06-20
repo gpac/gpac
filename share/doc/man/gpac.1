@@ -216,6 +216,11 @@ set N extra thread for the session. -1 means use all available cores
 disable data probing on sources and relies on extension (faster load but more error-prone)
 .br
 .TP
+.B \-no-argchk (boolean)
+.br
+disable tracking of argument usage (all arguments will be considered as used)
+.br
+.TP
 .B \-blacklist (string)
 .br
 blacklist the filters listed in the given string (comma-seperated list)
@@ -605,6 +610,11 @@ set N extra thread for the session. -1 means use all available cores
 .B \-no-probe (boolean)
 .br
 disable data probing on sources and relies on extension (faster load but more error-prone)
+.br
+.TP
+.B \-no-argchk (boolean)
+.br
+disable tracking of argument usage (all arguments will be considered as used)
 .br
 .TP
 .B \-blacklist (string)
@@ -2066,6 +2076,21 @@ ISOBMFF serialized track box for this PID, without any sample info (empty stbl a
 ISOBMFF serialized moov UDTA and other moov-level boxes (list) for this PID - used by isomuxer to reinject specific boxes of input ISOBMFF moov
 .br
 .TP
+.B TrackHandler (IHDL,string,D )
+.br
+ISOBMFF track handler name
+.br
+.TP
+.B TrackFlags (ITKF,unsigned int,D )
+.br
+ISOBMFF track header flags
+.br
+.TP
+.B TrackMatrix (ITKM,uint list,D )
+.br
+ISOBMFF track header matrix
+.br
+.TP
 .B Period (PEID,string,D )
 .br
 ID of DASH period
@@ -2439,7 +2464,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-ALPHA-rev3408-g2dc1ff364-buildbot-filters
+build: 0.9.0-ALPHA-rev3476-gcf7eb34bd-buildbot-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
