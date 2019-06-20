@@ -1022,7 +1022,7 @@ GF_Err dimC_Read(GF_Box *s, GF_BitStream *bs)
 GF_Err dimC_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
-	GF_Err e = gf_isom_full_box_write(s, bs);
+	GF_Err e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_bs_write_u8(bs, p->profile);
 	gf_bs_write_u8(bs, p->level);
