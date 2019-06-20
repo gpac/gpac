@@ -706,7 +706,7 @@ GF_Err grptype_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err grptype_Size(GF_Box *s)
 {
 	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
-	ptr->size += 8 * (ptr->entity_id_count * sizeof(u32));
+	ptr->size += 8 + 4*ptr->entity_id_count;
 	return GF_OK;
 }
 
@@ -989,7 +989,7 @@ GF_Err mdcv_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err mdcv_Size(GF_Box *s)
 {
 	GF_MasteringDisplayColourVolumeBox *p = (GF_MasteringDisplayColourVolumeBox*)s;
-	p->size += 28;
+	p->size += 24;
 	return GF_OK;
 }
 
