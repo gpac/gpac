@@ -368,6 +368,7 @@ enum
 	GF_ISOM_SUBTYPE_NCLX 		= GF_4CC( 'n', 'c', 'l', 'x' ),
 	GF_ISOM_SUBTYPE_NCLC 		= GF_4CC( 'n', 'c', 'l', 'c' ),
 	GF_ISOM_SUBTYPE_PROF 		= GF_4CC( 'p', 'r', 'o', 'f' ),
+	GF_ISOM_SUBTYPE_RICC 		= GF_4CC( 'r', 'I', 'C', 'C' ),
 };
 
 
@@ -1332,6 +1333,8 @@ GF_Err gf_isom_set_sample_padding_bits(GF_ISOFile *the_file, u32 trackNumber, u3
 
 /*since v2 you must specify w/h of video tracks for authoring tools (no decode the video cfg / first sample)*/
 GF_Err gf_isom_set_visual_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 Width, u32 Height);
+/*since v2 you must specify w/h of video tracks for authoring tools (no decode the video cfg / first sample)*/
+GF_Err gf_isom_set_visual_bit_depth(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u16 bitDepth);
 
 /*mainly used for 3GPP text since most ISO-based formats ignore these (except MJ2K)
 all coord values are expressed as 16.16 fixed point floats*/
@@ -1347,7 +1350,7 @@ GF_Err gf_isom_set_clean_aperture(GF_ISOFile *movie, u32 trackNumber, u32 Stream
 GF_Err gf_isom_set_image_sequence_coding_constraints(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, Bool remove, Bool all_ref_pics_intra, Bool intra_pred_used, u32 max_ref_per_pic);
 GF_Err gf_isom_set_image_sequence_alpha(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, Bool remove);
 
-GF_Err gf_isom_set_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 colour_type, u16 colour_primaries, u16 transfer_characteristics, u16 matrix_coefficients, Bool full_range_flag);
+GF_Err gf_isom_set_visual_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 colour_type, u16 colour_primaries, u16 transfer_characteristics, u16 matrix_coefficients, Bool full_range_flag, char *icc_data, u32 icc_size);
 
 /*set SR & nbChans for audio description*/
 typedef enum {
@@ -1431,6 +1434,9 @@ GF_Err gf_isom_add_desc_to_description(GF_ISOFile *the_file, u32 trackNumber, u3
 
 /*updates average and max bitrate - if 0 for max and avg, removes bitrate info*/
 GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size);
+
+/*updates fields of given visual sample description - these fields are reserved in ISOBMFF, this should only be used for QT*/
+GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *file, u32 track, u32 stsd_idx, u16 revision, u32 vendor, u32 temporalQ, u32 spatialQ, u32 horiz_res, u32 vert_res, u16 frames_per_sample, char *compressor_name, s16 color_table_index);
 
 
 /*Default extensions*/

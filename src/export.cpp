@@ -992,6 +992,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_alt_brands) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sample_padding_bits) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_visual_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_visual_color_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_visual_bit_depth) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_pixel_aspect_ratio) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_layout_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_matrix) )
