@@ -16,7 +16,7 @@ do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:allp:deep:interleave=false:log=$myi
 do_hash_test $myinspect "inspect-tiles"
 
 #also do a playback test for coverage
-do_test "$MP4CLIENT -blacklist=vtbdec,nvdec -i $TEMP_DIR/file.mpd#VR -run-for 1" "play-tiles"
+do_test "$MP4CLIENT -blacklist=vtbdec,nvdec $TEMP_DIR/file.mpd#VR -run-for 1" "play-tiles"
 
 myinspect=$TEMP_DIR/inspect_agg.txt
 do_test "$GPAC -i $TEMP_DIR/file.mpd tileagg @ inspect:allp:deep:interleave=false:log=$myinspect" "inspect-tileagg"
