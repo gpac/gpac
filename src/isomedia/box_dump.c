@@ -611,6 +611,7 @@ GF_Err mp4s_dump(GF_Box *a, FILE * trace)
 
 GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 {
+	Bool full_dump=GF_FALSE;
 	GF_MPEGVisualSampleEntryBox *p = (GF_MPEGVisualSampleEntryBox *)a;
 	const char *name;
 
@@ -643,7 +644,18 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_SUBTYPE_3GP_H263:
 		name = "H263SampleDescriptionBox";
 		break;
+	case GF_QT_BOX_TYPE_APCH:
+	case GF_QT_BOX_TYPE_APCO:
+	case GF_QT_BOX_TYPE_APCN:
+	case GF_QT_BOX_TYPE_APCS:
+	case GF_QT_BOX_TYPE_APCF:
+	case GF_QT_BOX_TYPE_AP4X:
+	case GF_QT_BOX_TYPE_AP4H:
+		name = "ProResSampleEntryBox";
+		full_dump=GF_TRUE;
+		break;
 	default:
+		//DO NOT TOUCH FOR NOW, this breaks all hashes
 		name = "MPEGVisualSampleDescriptionBox";
 	}
 
@@ -652,8 +664,14 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, " DataReferenceIndex=\"%d\" Width=\"%d\" Height=\"%d\"", p->dataReferenceIndex, p->Width, p->Height);
 
-	//dump reserved info
-	fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
+	if (full_dump) {
+		fprintf(trace, " Version=\"%d\" Revision=\"%d\" Vendor=\"%s\" TemporalQuality=\"%d\" SpatialQuality=\"%d\" FramesPerSample=\"%d\" ColorTableIndex=\"%d\"",
+			p->version, p->revision, gf_4cc_to_str(p->vendor), p->temporal_quality, p->spatial_quality, p->frames_per_sample, p->color_table_index);
+		fprintf(trace, " XDPI=\"%d.%d\" YDPI=\"%d.%d\" BitDepth=\"%d\"", p->horiz_res>>16, p->horiz_res&0xFFFF, p->vert_res>>16, p->vert_res&0xFFFF, p->bit_depth);
+	} else {
+		//dump reserved info
+		fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
+	}
 	if (strlen((const char*)p->compressor_name) )
 		fprintf(trace, " CompressorName=\"%s\"\n", p->compressor_name+1);
 
