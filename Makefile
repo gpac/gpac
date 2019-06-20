@@ -66,6 +66,9 @@ distclean:
 doc:
 	@cd $(SRC_PATH)/share/doc && doxygen
 
+man:
+	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && MP4Client -genman && gpac -genman
+
 test_suite:
 	@cd $(SRC_PATH)/tests && ./make_tests.sh
 
@@ -305,6 +308,7 @@ endif
 	@echo "tests: run all tests. For more info, check gpac/regression_tests/test_suite_make.sh -h"
 	@echo
 	@echo "doc:  build libgpac documentation in gpac/doc"
+	@echo "man:  build gpac man files in gpac/doc/man (must have latest build binaries installed)"
 	@echo
 	@echo "lcov: generate lcov files"
 	@echo "lcov_clean: clean all lcov/gcov files"
