@@ -56,9 +56,15 @@ print graph after execution
 enable keyboard interaction from command line
 .br
 .TP
-.B \-r (boolean)
+.B \-r (string)
 .br
-enable reports
+enable reporting
+.br
+* r: runtime reporting
+.br
+* r=FA[,FB]: runtime reporting but only print given filters, eg r=mp4mxfor ISOBMFF muxer only
+.br
+* r=: only print final report
 .br
 .TP
 .B \-seps (string, default: :=#,!@)
@@ -2478,7 +2484,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-ALPHA-rev3495-gbf64a088d-buildbot-filters
+build: 0.9.0-ALPHA-rev3519-g883e39b8c-buildbot-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
