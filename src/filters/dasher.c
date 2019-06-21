@@ -4606,6 +4606,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 					gf_filter_pid_drop_packet(ds->ipid);
 					break;
 				}
+				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DELAY);
+				if (p) ds->pts_minus_cts = p->value.sint;
+
 				set_start_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
 				if (!ds->muxed_base) {
 					//set AS sap type
@@ -4624,21 +4627,21 @@ static GF_Err dasher_process(GF_Filter *filter)
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Segments do not start with the same SAP types: set initialized with %d but first packet got %d - bitstream will not be compliant\n", set_start_with_sap, sap_type));
 					}
 					//TODO setup proper PTO, the code below will break sync by realigning first AU of each stream
-					if (ds->rep->segment_list)
-						ds->rep->segment_list->presentation_time_offset = cts;
-					else if (ds->rep->segment_template)
-						ds->rep->segment_template->presentation_time_offset = cts;
-					else if (ds->set->segment_template)
-						ds->set->segment_template->presentation_time_offset = cts;
+					if (cts > ds->pts_minus_cts) {
+						u64 pto = cts - ds->pts_minus_cts;
+						if (ds->rep->segment_list)
+							ds->rep->segment_list->presentation_time_offset = pto;
+						else if (ds->rep->segment_template)
+							ds->rep->segment_template->presentation_time_offset = pto;
+						else if (ds->set->segment_template)
+							ds->set->segment_template->presentation_time_offset = pto;
+					}
 				}
 
 				ds->first_cts = cts;
 				ds->first_dts = dts;
 				ds->rep_init++;
 				has_init++;
-
-				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DELAY);
-				if (p) ds->pts_minus_cts = p->value.sint;
 			}
 			nb_init++;
 
