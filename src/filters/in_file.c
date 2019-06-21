@@ -46,6 +46,7 @@ typedef struct
 	Bool full_file_only;
 	Bool do_reconfigure;
 	char *block;
+	u32 is_random;
 } GF_FileInCtx;
 
 
@@ -63,6 +64,15 @@ static GF_Err filein_initialize(GF_Filter *filter)
 		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
 		gf_filter_pid_set_eos(ctx->pid);
 		ctx->is_end = GF_TRUE;
+		return GF_OK;
+	}
+	if (!strcmp(ctx->src, "rand") || !strcmp(ctx->src, "randsc")) {
+		gf_rand_init(GF_FALSE);
+		ctx->is_random = 1;
+		if (!strcmp(ctx->src, "randsc")) ctx->is_random = 2;
+		if (!ctx->block_size) ctx->block_size = 5000;
+		while (ctx->block_size % 4) ctx->block_size++;
+		ctx->block = gf_malloc(ctx->block_size +1);
 		return GF_OK;
 	}
 
@@ -121,9 +131,13 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	if (frag_par) frag_par[0] = '#';
 	if (cgi_par) cgi_par[0] = '?';
 
-	if (!ctx->block)
+	if (!ctx->block) {
+		if (!ctx->block_size) {
+			if (ctx->file_size>500000000) ctx->block_size = 1000000;
+			else ctx->block_size = 5000;
+		}
 		ctx->block = gf_malloc(ctx->block_size +1);
-
+	}
 	return GF_OK;
 }
 
@@ -146,6 +160,8 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 	else if (!strnicmp(url, "file:", 5)) src += 5;
 
 	if (!strcmp(url, "null")) return GF_FPROBE_SUPPORTED;
+	if (!strcmp(url, "rand")) return GF_FPROBE_SUPPORTED;
+	if (!strcmp(url, "randsc")) return GF_FPROBE_SUPPORTED;
 
 	//strip any fragment identifer
 	frag_par = strchr(url, '#');
@@ -178,6 +194,8 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		gf_filter_pid_set_eos(ctx->pid);
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SEEK:
+		if (ctx->is_random)
+			return GF_TRUE;
 		if (evt->seek.start_offset >= ctx->file_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileIn] Seek request outside of file %s range ("LLU" vs size "LLU")\n", ctx->src, evt->seek.start_offset, ctx->file_size));
 			return GF_TRUE;
@@ -199,6 +217,9 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
+		if (ctx->is_random)
+			return GF_TRUE;
+
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] Asked to switch source to %s (range "LLU"-"LLU")\n", evt->seek.source_switch ? evt->seek.source_switch : "self", evt->seek.start_offset, evt->seek.end_offset));
 		assert(ctx->is_end);
 		ctx->range.num = evt->seek.start_offset;
@@ -258,6 +279,39 @@ static GF_Err filein_process(GF_Filter *filter)
 		gf_filter_pid_set_eos(ctx->pid);
 		return GF_OK;
 	}
+	if (ctx->is_random) {
+		u32 i;
+		if (ctx->is_random==2) {
+			for (i=0; i<ctx->block_size; i+= 4) {
+				u32 val = gf_rand();
+				if (val % 20)
+					val &= 0x000000FF;
+				* ((u32 *) (ctx->block + i)) = val;
+			}
+		} else {
+			for (i=0; i<ctx->block_size; i+= 4) {
+				* ((u32 *) (ctx->block + i)) = gf_rand();
+			}
+		}
+		ctx->block[ctx->block_size]=0;
+
+		if (!ctx->pid) {
+			e = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, ctx->mime, ctx->ext, ctx->block, ctx->block_size, &ctx->pid);
+			if (e) return e;
+		}
+		pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, ctx->block_size, filein_pck_destructor);
+		if (!pck)
+			return GF_OK;
+
+		gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, GF_FALSE);
+		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+		ctx->file_pos += ctx->block_size;
+
+		ctx->pck_out = GF_TRUE;
+		gf_filter_pck_send(pck);
+		return GF_OK;
+	}
+
 
 	if (ctx->end_pos > ctx->file_pos)
 		to_read = (u32) (ctx->end_pos - ctx->file_pos);
@@ -329,7 +383,7 @@ static GF_Err filein_process(GF_Filter *filter)
 static const GF_FilterArgs FileInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(block_size), "block size used to read file. 0 means 5000 if file less than 500m, 1M otherwise.", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(range), "byte range", GF_PROP_FRACTION64, "0-0", NULL, 0},
 	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},
@@ -347,7 +401,11 @@ GF_FilterRegister FileInRegister = {
 	GF_FS_SET_HELP("This filter dispatch raw blocks from input file into a filter chain.\n"
 	"Block size can be adjusted using [-block_size]().\n"
 	"Content format can be forced through [-mime]() and file extension can be changed through [-ext]().\n"
-	"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.")
+	"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.\n"
+	"The special file name \"null\" is used for creating a file with no data, needed by some filters such as [dasher](dasher).\n"
+	"The special file name \"rand\" is used to generate random data.\n"
+	"The special file name \"randsc\" is used to generate random data with fake startcodes (0x000001).\n"
+	)
 	.private_size = sizeof(GF_FileInCtx),
 	.args = FileInArgs,
 	.initialize = filein_initialize,
