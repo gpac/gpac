@@ -719,6 +719,14 @@ Content format can be forced through -mime and file extension can be changed thr
 .br
 Note: Unless disabled at session level (see -no-probe ), file extensions are usually ignored and format probing is done on the first data block.
 .br
+The special file name "null" is used for creating a file with no data, needed by some filters such as dasher.
+.br
+The special file name "rand" is used to generate random data.
+.br
+The special file name "randsc" is used to generate random data with fake startcodes (0x000001).
+.br
+
+.br
 
 .br
 .SH Options (expert):
@@ -726,7 +734,7 @@ Note: Unless disabled at session level (see -no-probe ), file extensions are usu
 .br
 src (string, no default):                location of source content
 .br
-block_size (unsigned int, default: 5000): block size used to read file
+block_size (unsigned int, default: 0):   block size used to read file. 0 means 5000 if file less than 500m, 1M otherwise.
 .br
 range (64-bit fraction, default: 0-0):   byte range
 .br
@@ -869,7 +877,7 @@ This filter parses AAC files/data and outputs corresponding audio PID and frames
 .br
 frame_size (unsigned int, default: 1024): size of AAC frame in audio samples
 .br
-index_dur (number, default: 1.0):        indexing window length
+index (number, default: 1.0):            indexing window length
 .br
 mpeg4 (boolean, default: false):         force signaling as MPEG-4 AAC
 .br
@@ -913,7 +921,7 @@ This filter parses AAC in LATM files/data and outputs corresponding audio PID an
 .br
 frame_size (unsigned int, default: 1024): size of AAC frame in audio samples
 .br
-index_dur (number, default: 1.0):        indexing window length
+index (number, default: 1.0):            indexing window length
 .br
 
 .br
@@ -931,7 +939,7 @@ This filter parses MPEG-1/2 audio files/data and outputs corresponding audio PID
 .SH Options (expert):
 .LP
 .br
-index_dur (number, default: 1.0):        indexing window length
+index (number, default: 1.0):            indexing window length
 .br
 expart (boolean, default: false):        expose pictures as a dedicated video pid
 .br
@@ -1022,7 +1030,7 @@ This filter parses AC3 and E-AC3 files/data and outputs corresponding audio PID 
 .SH Options (expert):
 .LP
 .br
-index_dur (number, default: 1.0):        indexing window length
+index (number, default: 1.0):            indexing window length
 .br
 
 .br
@@ -1055,7 +1063,7 @@ This filter parses AMR, AMR Wideband, EVRC and SMV files/data and outputs corres
 .SH Options (expert):
 .LP
 .br
-index_dur (number, default: 1.0):        indexing window length
+index (number, default: 1.0):            indexing window length
 .br
 
 .br
@@ -1073,7 +1081,7 @@ This filter demultiplexes OGG files/data into a set of media PIDs and frames.
 .SH Options (expert):
 .LP
 .br
-index_dur (number, default: 1.0):        indexing window length (unimplemented, only 0 disables stream probing for duration), 
+index (number, default: 1.0):            indexing window length (unimplemented, only 0 disables stream probing for duration), 
 .br
 
 .br
@@ -1640,7 +1648,7 @@ This filter parses QCP files/data and outputs corresponding audio PID and frames
 .SH Options (expert):
 .LP
 .br
-index_dur (number, default: 1.0):        indexing window length
+index (number, default: 1.0):            indexing window length
 .br
 
 .br
@@ -1660,7 +1668,7 @@ This filter parses H263 files/data and outputs corresponding visual PID and fram
 .br
 fps (fraction, default: 15000/1000):     import frame rate
 .br
-index_dur (number, default: 1.0):        indexing window length
+index (number, default: 1.0):            indexing window length
 .br
 
 .br
@@ -1682,7 +1690,7 @@ Note: The demux uses negative CTS offsets: CTS is corrrect, but some frames may 
 .br
 fps (fraction, default: 25000/1000):     import frame rate
 .br
-index_dur (number, default: 1.0):        indexing window length
+index (number, default: 1.0):            indexing window length
 .br
 vfr (boolean, default: false):           set variable frame rate import
 .br
@@ -1710,7 +1718,7 @@ NHNT documentation is available at https://github.com/gpac/gpac/wiki/NHNT-Format
 .br
 reframe (boolean, default: false):       force reparsing of referenced content
 .br
-index_dur (number, default: 1.0):        indexing window length
+index (number, default: 1.0):            indexing window length
 .br
 
 .br
@@ -1734,7 +1742,7 @@ NHML documentation is available at https://github.com/gpac/gpac/wiki/NHML-Format
 .br
 reframe (boolean, default: false):       force reparsing of referenced content
 .br
-index_dur (number, default: 1.0):        indexing window length
+index (number, default: 1.0):            indexing window length
 .br
 
 .br
@@ -1760,7 +1768,7 @@ fps (fraction, default: 25000/1000):     import frame rate
 .br
 autofps (boolean, default: true):        detect FPS from bitstream, fallback to -fps option if not possible
 .br
-index_dur (number, default: 1.0):        indexing window length. If 0, bitstream is not probed for duration
+index (number, default: -1.0):           indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value
 .br
 explicit (boolean, default: false):      use explicit layered (SVC/LHVC) import
 .br
@@ -2007,7 +2015,7 @@ start (number, default: 0.0):            set playback start offset. Negative val
 .br
 speed (number, default: 1.0):            set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1
 .br
-fext (string, no default):               set extension for graph resolution, regardless of file extension
+ext (string, no default):                set extension for graph resolution, regardless of file extension
 .br
 cat (boolean, default: false):           cat each file of input pid rather than creating one file per filename
 .br
@@ -3222,7 +3230,7 @@ vpxp (string, no default):               profile to use for VP8/9 if no profile 
 .br
 template (string, no default):           template string to use to generate segment name - see filter help
 .br
-ext (string, default: m4s):              file extension to use for segments
+segext (string, default: m4s):           file extension to use for segments
 .br
 asto (unsigned int, default: 0):         availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations
 .br
@@ -3718,7 +3726,7 @@ fps (fraction, default: 25000/1000):     import frame rate
 .br
 autofps (boolean, default: true):        detect FPS from bitstream, fallback to -fps option if not possible
 .br
-index_dur (number, default: 1.0):        indexing window length
+index (number, default: -1.0):           indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value
 .br
 importer (boolean, default: false):      compatibility with old importer
 .br
@@ -4223,7 +4231,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-ALPHA-rev3495-gbf64a088d-buildbot-filters
+build: 0.9.0-ALPHA-rev3519-g883e39b8c-buildbot-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
