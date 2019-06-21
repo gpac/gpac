@@ -4471,7 +4471,7 @@ static void gf_filter_pidinst_update_stats(GF_FilterPidInst *pidi, GF_FilterPack
 	u64 now = gf_sys_clock_high_res();
 	u64 dec_time = now - pidi->last_pck_fetch_time;
 	if (pck->info.flags & GF_PCK_CMD_MASK) return;
-	if (pidi->pid->filter->removed) return;
+	if (!pidi->filter || pidi->pid->filter->removed) return;
 
 	pidi->filter->nb_pck_processed++;
 	pidi->filter->nb_bytes_processed += pck->data_length;
