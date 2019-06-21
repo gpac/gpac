@@ -2871,7 +2871,10 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 			widestTileSb = MAX(sizeSb, widestTileSb);
 			startSb += sizeSb;
 		}
-
+		if (!widestTileSb) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] widest tile is 0, broken bitstream\n"));
+			return;
+		}
 		state->tileCols = i;
 		state->tileColsLog2 = aom_av1_tile_log2(1, state->tileCols);
 
@@ -4662,7 +4665,7 @@ u32 gf_media_nalu_is_start_code(GF_BitStream *bs)
 }
 
 /*read that amount of data at each IO access rather than fetching byte by byte...*/
-#define AVC_CACHE_SIZE	512
+#define AVC_CACHE_SIZE	4096
 
 static u32 gf_media_nalu_locate_start_code_bs(GF_BitStream *bs, Bool locate_trailing)
 {
