@@ -1567,10 +1567,10 @@ static int gpac_main(int argc, char **argv)
 			enable_prompt = GF_TRUE;
 		} else if (!strcmp(arg, "-r")) {
 			enable_reports = 2;
-			if (arg_val && strlen(arg_val)) {
-				report_filter = arg_val;
-			} else {
+			if (arg_val && !strlen(arg_val)) {
 				enable_reports = 1;
+			} else {
+				report_filter = arg_val;
 			}
 		} else if (!strcmp(arg, "-unit-tests")) {
 			do_unit_tests = GF_TRUE;
