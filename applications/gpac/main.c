@@ -1294,7 +1294,7 @@ static int gpac_main(int argc, char **argv)
 
 	gpac_load_suggested_filter_args();
 
-	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+//	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 	gf_log_set_tool_level(GF_LOG_APP, GF_LOG_INFO);
 
 	if (gf_opts_get_key_count("gpac.alias")) {

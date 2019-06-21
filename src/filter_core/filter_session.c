@@ -1722,19 +1722,24 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 
 static GFINLINE void print_filter_name(GF_Filter *f, Bool skip_id)
 {
-	fprintf(stderr, "%s", f->name);
-	if (!skip_id && f->id) fprintf(stderr, " ID %s", f->id);
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s", f->name));
+	if (!skip_id && f->id) GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" ID %s", f->id));
 	if (f->dynamic_filter) return;
 
 	if (!f->src_args && !f->orig_args && !f->dst_args && !f->dynamic_source_ids) return;
-	fprintf(stderr, " (");
-	if (f->src_args) fprintf(stderr, "%s", f->src_args);
-	else if (f->orig_args) fprintf(stderr, "%s", f->orig_args);
-	else if (f->dst_args) fprintf(stderr, "%s", f->dst_args);
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" ("));
+	if (f->src_args) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s", f->src_args));
+	}
+	else if (f->orig_args) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s", f->orig_args));
+	}
+	else if (f->dst_args) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s", f->dst_args));
+	}
 
-
-	if (f->dynamic_source_ids) fprintf(stderr, ",resolved SID:%s", f->source_ids);
-	fprintf(stderr, ")");
+	if (f->dynamic_source_ids) GF_LOG(GF_LOG_INFO, GF_LOG_APP, (",resolved SID:%s", f->source_ids));
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, (")"));
 }
 
 GF_EXPORT
@@ -1743,62 +1748,62 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	u64 run_time=0, active_time=0, nb_tasks=0;
 	u32 i, count;
 
-	fprintf(stderr, "\n");
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 
 	count=gf_list_count(fsess->filters);
-	fprintf(stderr, "Filter stats - %d filters\n", count);
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filter stats - %d filters\n", count));
 	for (i=0; i<count; i++) {
 		u32 k, ipids, opids;
 		GF_Filter *f = gf_list_get(fsess->filters, i);
 		ipids = f->num_input_pids;
 		opids = f->num_output_pids;
-		fprintf(stderr, "\tFilter ");
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\tFilter "));
 		print_filter_name(f, GF_FALSE);
-		fprintf(stderr, " : %d input pids %d output pids "LLU" tasks "LLU" us process time\n", ipids, opids, f->nb_tasks_done, f->time_process);
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" : %d input pids %d output pids "LLU" tasks "LLU" us process time\n", ipids, opids, f->nb_tasks_done, f->time_process));
 
 		if (ipids) {
-			fprintf(stderr, "\t\t"LLU" packets processed "LLU" bytes processed", f->nb_pck_processed, f->nb_bytes_processed);
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t"LLU" packets processed "LLU" bytes processed", f->nb_pck_processed, f->nb_bytes_processed));
 			if (f->time_process) {
-				fprintf(stderr, " (%g pck/sec %g mbps)", (Double) f->nb_pck_processed*1000000/f->time_process, (Double) f->nb_bytes_processed*8/f->time_process);
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" (%g pck/sec %g mbps)", (Double) f->nb_pck_processed*1000000/f->time_process, (Double) f->nb_bytes_processed*8/f->time_process));
 			}
-			fprintf(stderr, "\n");
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 		}
 		if (opids) {
 			if (f->nb_hw_pck_sent) {
-				fprintf(stderr, "\t\t"LLU" hardware frames sent", f->nb_hw_pck_sent);
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t"LLU" hardware frames sent", f->nb_hw_pck_sent));
 				if (f->time_process) {
-					fprintf(stderr, " (%g pck/sec)", (Double) f->nb_hw_pck_sent*1000000/f->time_process);
+					GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" (%g pck/sec)", (Double) f->nb_hw_pck_sent*1000000/f->time_process));
 				}
 
 			} else if (f->nb_pck_sent) {
-				fprintf(stderr, "\t\t"LLU" packets sent "LLU" bytes sent", f->nb_pck_sent, f->nb_bytes_sent);
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t"LLU" packets sent "LLU" bytes sent", f->nb_pck_sent, f->nb_bytes_sent));
 				if (f->time_process) {
-					fprintf(stderr, " (%g pck/sec %g mbps)", (Double) f->nb_pck_sent*1000000/f->time_process, (Double) f->nb_bytes_sent*8/f->time_process);
+					GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" (%g pck/sec %g mbps)", (Double) f->nb_pck_sent*1000000/f->time_process, (Double) f->nb_bytes_sent*8/f->time_process));
 				}
 			}
-			fprintf(stderr, "\n");
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 		}
 
 		for (k=0; k<ipids; k++) {
 			GF_FilterPidInst *pid = gf_list_get(f->input_pids, k);
 			if (!pid->pid) continue;
-			fprintf(stderr, "\t\t* input PID %s: %d packets received\n", pid->pid->name, pid->pid->nb_pck_sent);
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* input PID %s: %d packets received\n", pid->pid->name, pid->pid->nb_pck_sent));
 		}
 		for (k=0; k<opids; k++) {
 			GF_FilterPid *pid = gf_list_get(f->output_pids, k);
-			fprintf(stderr, "\t\t* output PID %s: %d packets sent\n", pid->name, pid->nb_pck_sent);
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* output PID %s: %d packets sent\n", pid->name, pid->nb_pck_sent));
 		}
 		if (f->nb_errors) {
-			fprintf(stderr, "\t\t%d errors while processing\n", f->nb_errors);
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t%d errors while processing\n", f->nb_errors));
 		}
 	}
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 
 	count=gf_list_count(fsess->threads);
-	fprintf(stderr, "Session stats - threads %d\n", 1+count);
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Session stats - threads %d\n", 1+count));
 
-	fprintf(stderr, "\tThread %u: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", 1, fsess->main_th.run_time, fsess->main_th.active_time, fsess->main_th.nb_tasks);
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\tThread %u: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", 1, fsess->main_th.run_time, fsess->main_th.active_time, fsess->main_th.nb_tasks));
 
 	run_time+=fsess->main_th.run_time;
 	active_time+=fsess->main_th.active_time;
@@ -1807,13 +1812,13 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	for (i=0; i<count; i++) {
 		GF_SessionThread *s = gf_list_get(fsess->threads, i);
 
-		fprintf(stderr, "\tThread %u: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", i+2, s->run_time, s->active_time, s->nb_tasks);
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\tThread %u: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", i+2, s->run_time, s->active_time, s->nb_tasks));
 
 		run_time+=s->run_time;
 		active_time+=s->active_time;
 		nb_tasks+=s->nb_tasks;
 	}
-	fprintf(stderr, "\nTotal: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", run_time, active_time, nb_tasks);
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\nTotal: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", run_time, active_time, nb_tasks));
 }
 
 static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 indent, GF_FilterPid *pid)
@@ -1821,18 +1826,18 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 	u32 i=0;
 
 	while (i<indent) {
-		fprintf(stderr, "-");
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("-"));
 		i++;
 	}
 	if (pid) {
-		fprintf(stderr, "(PID %s) ", pid->name);
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("(PID %s) ", pid->name));
 	}
 	print_filter_name(f, GF_TRUE);
-	if (f->id)
-		fprintf(stderr, " (%s)\n", f->id);
-	else
-		fprintf(stderr, " (%p)\n", f);
-
+	if (f->id) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" (%s)\n", f->id));
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" (%p)\n", f));
+	}
 	if (gf_list_find(filters_done, f)>=0)
 		return;
 
@@ -1856,7 +1861,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 	Bool has_connected=GF_FALSE;
 	Bool has_unconnected=GF_FALSE;
 	GF_List *filters_done;
-	fprintf(stderr, "\n");
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 
 	filters_done = gf_list_new();
@@ -1869,7 +1874,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 		if (!f->num_output_pids) continue;
 		if (!has_connected) {
 			has_connected = GF_TRUE;
-			fprintf(stderr, "Filters connected:\n");
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filters connected:\n"));
 		}
 		gf_fs_print_filter_outputs(f, filters_done, 0, NULL);
 	}
@@ -1879,7 +1884,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 		if (f->num_input_pids || f->num_output_pids) continue;
 		if (!has_unconnected) {
 			has_unconnected = GF_TRUE;
-			fprintf(stderr, "Filters not connected:\n");
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filters not connected:\n"));
 		}
 		gf_fs_print_filter_outputs(f, filters_done, 0, NULL);
 	}
@@ -1888,7 +1893,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 		if (gf_list_find(filters_done, f)>=0) continue;
 		if (!has_undefined) {
 			has_undefined = GF_TRUE;
-			fprintf(stderr, "Filters in unknown connection state:\n");
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filters in unknown connection state:\n"));
 		}
 		gf_fs_print_filter_outputs(f, filters_done, 0, NULL);
 	}
@@ -2205,37 +2210,41 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 		if (!src->nb_edges) {
 			if (print_fn)
 				print_fn(stderr, 1, "%s: no sources\n", src->freg->name);
-			else
-				fprintf(stderr, "%s: no sources\n", src->freg->name);
+			else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s: no sources\n", src->freg->name));
+			}
 			continue;
 		}
 		found = GF_TRUE;
 		if (print_fn)
 			print_fn(stderr, 1, "%s sources:", src->freg->name);
-		else
-			fprintf(stderr, "%s sources:", src->freg->name);
+		else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s sources:", src->freg->name));
+		}
 
 		for (j=0; j<src->nb_edges; j++) {
 			if (gf_list_find(done, (void *) src->edges[j].src_reg->freg->name)<0) {
 				if (print_fn)
 					print_fn(stderr, 0, " %s", src->edges[j].src_reg->freg->name);
-				else
-					fprintf(stderr, " %s", src->edges[j].src_reg->freg->name);
+				else {
+					GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" %s", src->edges[j].src_reg->freg->name));
+				}
 				gf_list_add(done, (void *) src->edges[j].src_reg->freg->name);
 			}
 		}
 		if (print_fn)
 			print_fn(stderr, 0, "\n");
-		else
-			fprintf(stderr, "\n");
+		else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
+		}
 		gf_list_reset(done);
 	}
 	if (found && filter_name) {
 		if (print_fn)
 			print_fn(stderr, 1, "%s sinks:", filter_name);
-		else
-			fprintf(stderr, "%s sinks:", filter_name);
-
+		else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s sinks:", filter_name));
+		}
 		for (i=0; i<count; i++) {
 			const GF_FilterRegDesc *src = gf_list_get(session->links, i);
 			if (!strcmp(src->freg->name, filter_name)) continue;
@@ -2246,8 +2255,9 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 				if (gf_list_find(done, (void *) src->freg->name)<0) {
 					if (print_fn)
 						print_fn(stderr, 1, " %s", src->freg->name);
-					else
-						fprintf(stderr, " %s", src->freg->name);
+					else {
+						GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" %s", src->freg->name));
+					}
 					gf_list_add(done, (void *) src->freg->name);
 				}
 			}
@@ -2255,8 +2265,9 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 		}
 		if (print_fn)
 			print_fn(stderr, 1, "\n");
-		else
-			fprintf(stderr, "\n");
+		else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
+		}
 	}
 	gf_list_del(done);
 }
