@@ -689,7 +689,7 @@ void CNativeWrapper::SetupLogs() {
 	debug_log("SetupLogs()");
 
 	gf_mx_p(m_mx);
-	gf_log_set_tools_levels( gf_opts_get_key("core", "logs") );
+	gf_log_set_tools_levels( gf_opts_get_key("core", "logs"), GF_TRUE );
 	gf_log_set_callback(this, on_gpac_log);
 	opt = gf_opts_get_key("core", "log-file");
 	if (opt) {
@@ -1105,7 +1105,7 @@ void CNativeWrapper::onOrientationChange(float x, float y, float z) {
 //-----------------------------------------------------
 void CNativeWrapper::setGpacLogs(const char *tools_at_level)
 {
-	gf_log_set_tools_levels(tools_at_level);
+	gf_log_set_tools_levels(tools_at_level, GF_TRUE);
 }
 
 //---------------------------------------------------------------------------------------------------
