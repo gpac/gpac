@@ -1220,7 +1220,10 @@ void gf_filter_check_output_reconfig(GF_Filter *filter)
 					//unassign old property list and set the new one
 					assert(pidi->props->reference_count);
 					if (safe_int_dec(& pidi->props->reference_count) == 0) {
+						//see \ref gf_filter_pid_merge_properties_internal for mutex
+						gf_mx_p(pidi->pid->filter->tasks_mx);
 						gf_list_del_item(pidi->pid->properties, pidi->props);
+						gf_mx_v(pidi->pid->filter->tasks_mx);
 						gf_props_del(pidi->props);
 					}
 					pidi->props = pidi->reconfig_pid_props;
@@ -2394,7 +2397,13 @@ void gf_filter_forward_clock(GF_Filter *filter)
 	for (i=0; i<filter->num_output_pids; i++) {
 		Bool req_props_map, info_modified;
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
-		GF_PropertyMap *map = gf_list_last(pid->properties);
+		GF_PropertyMap *map;
+
+		//see \ref gf_filter_pid_merge_properties_internal for mutex
+		gf_mx_p(pid->filter->tasks_mx);
+		map = gf_list_last(pid->properties);
+		gf_mx_v(pid->filter->tasks_mx);
+
 		clock_val = filter->next_clock_dispatch;
 		if (map->timescale != filter->next_clock_dispatch_timescale) {
 			clock_val *= map->timescale;
