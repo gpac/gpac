@@ -351,7 +351,10 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 			assert(props->reference_count);
 			if (safe_int_dec(&props->reference_count) == 0) {
 				if (!is_filter_destroyed) {
+					//see \ref gf_filter_pid_merge_properties_internal for mutex
+					gf_mx_p(pck->pid->filter->tasks_mx);
 					gf_list_del_item(pck->pid->properties, props);
+					gf_mx_v(pck->pid->filter->tasks_mx);
 				}
 				gf_props_del(props);
 			}
@@ -826,7 +829,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				if (dst->props) {
 					assert(dst->props->reference_count);
 					if (safe_int_dec(& dst->props->reference_count) == 0) {
+						//see \ref gf_filter_pid_merge_properties_internal for mutex
+						gf_mx_p(dst->pid->filter->tasks_mx);
 						gf_list_del_item(dst->pid->properties, dst->props);
+						gf_mx_v(dst->pid->filter->tasks_mx);
 						gf_props_del(dst->props);
 					}
 				}
@@ -991,35 +997,19 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			post_task = GF_TRUE;
 		}
 		if (post_task) {
-#if 0
-			u32 nb_pck_before, nb_pck_after;
 
-			nb_pck_before = gf_fq_count(dst->packets);
-			//do stats after post_process, since we may process and drop the packet during this call in direct scheduling or multithread modes
-			gf_filter_post_process_task(dst->filter);
-
-			nb_pck_after = gf_fq_count(dst->packets);
-
-			if (nb_pck_after<nb_pck_before) {
-				//we have less packets in destination pid instance than in pid, the packet has been consummed, update pid nb packet
-				if (pid->nb_buffer_unit > nb_pck_after) pid->nb_buffer_unit = nb_pck_after;
-				//we have less buffer in destination pid instance than in pid, the packet has ben consummed, update pid duration
-				if ((s64) pid->buffer_duration > dst->buffer_duration) pid->buffer_duration = dst->buffer_duration;
-			} else {
-				if (pid->nb_buffer_unit < nb_pck_after) pid->nb_buffer_unit = nb_pck_after;
-				if ((s64) pid->buffer_duration < dst->buffer_duration) pid->buffer_duration = dst->buffer_duration;
-			}
-#else
+			//make sure we lock the tasks mutex before getting the packet count, otherwise we might end up with a wrong number of packets
+			//if one thread consumes one packet while the dispatching thread  (the caller here) is still upddating the state for that pid
+			gf_mx_p(pid->filter->tasks_mx);
 			u32 nb_pck = gf_fq_count(dst->packets);
 			//update buffer occupancy before dispatching the task - if target pid is processed before we are done disptching his packet, pid buffer occupancy
 			//will be updated during packet drop of target
 			if (pid->nb_buffer_unit < nb_pck) pid->nb_buffer_unit = nb_pck;
 			if ((s64) pid->buffer_duration < dst->buffer_duration) pid->buffer_duration = dst->buffer_duration;
+			gf_mx_v(pid->filter->tasks_mx);
 
 			//post process task
 			gf_filter_post_process_task_internal(dst->filter, pid->direct_dispatch);
-
-#endif
 		}
 	}
 

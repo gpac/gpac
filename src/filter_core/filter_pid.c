@@ -60,7 +60,10 @@ void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst)
 	if (pidinst->props) {
 		assert(pidinst->props->reference_count);
 		if (safe_int_dec(&pidinst->props->reference_count) == 0) {
+			//see \ref gf_filter_pid_merge_properties_internal for mutex
+			gf_mx_p(pidinst->pid->filter->tasks_mx);
 			gf_list_del_item(pidinst->pid->properties, pidinst->props);
+			gf_mx_v(pidinst->pid->filter->tasks_mx);
 			gf_props_del(pidinst->props);
 		}
 	}
@@ -957,7 +960,10 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	if (pidinst->props) {
 		assert(pidinst->props->reference_count);
 		if (safe_int_dec(& pidinst->props->reference_count) == 0) {
+			//see \ref gf_filter_pid_merge_properties_internal for mutex
+			gf_mx_p(pidinst->pid->filter->tasks_mx);
 			gf_list_del_item(pidinst->pid->properties, pidinst->props);
+			gf_mx_v(pidinst->pid->filter->tasks_mx);
 			gf_props_del(pidinst->props);
 		}
 	}
@@ -3723,18 +3729,28 @@ void gf_filter_pid_del_task(GF_FSTask *task)
 static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
 {
 	u32 i, nb_recf;
-	GF_PropertyMap *old_map = gf_list_last(pid->properties);
+	GF_PropertyMap *old_map;
 	GF_PropertyMap *map;
+
+	//see \ref gf_filter_pid_merge_properties_internal for mutex
+	gf_mx_p(pid->filter->tasks_mx);
+	old_map = gf_list_last(pid->properties);
+	gf_mx_v(pid->filter->tasks_mx);
 
 	pid->props_changed_since_connect = GF_TRUE;
 	if (old_map && !pid->request_property_map) {
 		return old_map;
 	}
+	map = gf_props_new(pid->filter);
+	if (!map)
+		return NULL;
+	//see \ref gf_filter_pid_merge_properties_internal for mutex
+	gf_mx_p(pid->filter->tasks_mx);
+	gf_list_add(pid->properties, map);
+	gf_mx_v(pid->filter->tasks_mx);
+
 	pid->request_property_map = GF_FALSE;
 	pid->pid_info_changed = GF_FALSE;
-	map = gf_props_new(pid->filter);
-	if (!map) return NULL;
-	gf_list_add(pid->properties, map);
 
 	//when creating a new map, ref_count of old map is decremented
 	if (old_map) {
@@ -3743,7 +3759,10 @@ static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
 
 		assert(old_map->reference_count);
 		if (safe_int_dec(&old_map->reference_count) == 0) {
+			//see \ref gf_filter_pid_merge_properties_internal for mutex
+			gf_mx_p(pid->filter->tasks_mx);
 			gf_list_del_item(pid->properties, old_map);
+			gf_mx_v(pid->filter->tasks_mx);
 			gf_props_del(old_map);
 		}
 	}
@@ -3895,19 +3914,27 @@ static GF_PropertyMap *filter_pid_get_prop_map(GF_FilterPid *pid, Bool first_pro
 		GF_FilterPidInst *pidi = (GF_FilterPidInst *) pid;
 		//first time we access the props, use the first entry in the property list
 		if (!pidi->props) {
+			//see \ref gf_filter_pid_merge_properties_internal for mutex
+			gf_mx_p(pid->filter->tasks_mx);
 			pidi->props = gf_list_get(pid->pid->properties, 0);
+			gf_mx_v(pid->filter->tasks_mx);
 			assert(pidi->props);
 			safe_int_inc(&pidi->props->reference_count);
 		}
 		return pidi->props;
 	} else {
+		GF_PropertyMap *res_map = NULL;
 		pid = pid->pid;
 		if (pid->local_props) return pid->local_props;
 
+		//see \ref gf_filter_pid_merge_properties_internal for mutex
+		gf_mx_p(pid->filter->tasks_mx);
 		if (first_prop_if_output)
-			return gf_list_get(pid->properties, 0);
-
-		return gf_list_last(pid->properties);
+			res_map = gf_list_get(pid->properties, 0);
+		else
+			res_map = gf_list_last(pid->properties);
+		gf_mx_v(pid->filter->tasks_mx);
+		return res_map;
 	}
 	return NULL;
 }
@@ -4170,8 +4197,11 @@ static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to reset all properties on input PID in filter %s - ignoring\n", dst_pid->filter->name));
 		return GF_BAD_PARAM;
 	}
-	if (do_copy)
+	if (do_copy) {
+		gf_mx_p(src_pid->filter->tasks_mx);
 		old_dst_props = gf_list_last(dst_pid->properties);
+		gf_mx_v(src_pid->filter->tasks_mx);
+	}
 
 	//don't merge properties with old state we merge with source pid
 	dst_props = check_new_pid_props(dst_pid, GF_FALSE);
@@ -4182,7 +4212,11 @@ static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_
 	}
 
 	src_pid = src_pid->pid;
+	//our list is not thread-safe, so we must lock the filter when destroying the props
+	//otherwise gf_list_last() (this caller) might use the last entry while another threads sets this last entry to NULL
+	gf_mx_p(src_pid->filter->tasks_mx);
 	src_props = gf_list_last(src_pid->properties);
+	gf_mx_v(src_pid->filter->tasks_mx);
 	if (!src_props) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for source pid in filter %s, ignoring merge\n", src_pid->filter->name));
 		return GF_OK;
@@ -4318,7 +4352,10 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 				//only remove if last about to be destroyed, since we may have several pid instances consuming from this pid
 				assert(pidinst->props->reference_count);
 				if (safe_int_dec(& pidinst->props->reference_count) == 0) {
+					//see \ref gf_filter_pid_merge_properties_internal for mutex
+					gf_mx_p(pidinst->pid->filter->tasks_mx);
 					gf_list_del_item(pidinst->pid->properties, pidinst->props);
+					gf_mx_v(pidinst->pid->filter->tasks_mx);
 					gf_props_del(pidinst->props);
 				}
 				pidinst->force_reconfig = GF_FALSE;
@@ -4558,11 +4595,12 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	//move to source pid
 	pid = pid->pid;
 
-	nb_pck=gf_fq_count(pidinst->packets);
-
 	gf_filter_pidinst_update_stats(pidinst, pck);
 
+	//make sure we lock the tasks mutex before getting the packet count, otherwise we might end up with a wrong number of packets
+	//if one thread (the caller here) consumes one packet while the dispatching thread is still upddating the state for that pid
 	gf_mx_p(pid->filter->tasks_mx);
+	nb_pck=gf_fq_count(pidinst->packets);
 
 	if (nb_pck<pid->nb_buffer_unit) {
 		pid->nb_buffer_unit = nb_pck;
@@ -4701,7 +4739,9 @@ const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *id
 	GF_PropertyMap *props;
 
 	if (PID_IS_INPUT(pid)) {
+		gf_mx_p(pid->filter->tasks_mx);
 		props = gf_list_last(pid->pid->properties);
+		gf_mx_v(pid->filter->tasks_mx);
 	} else {
 		props = check_new_pid_props(pid, GF_FALSE);
 	}
