@@ -691,6 +691,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;;
+	FILE *stream = NULL;
 	GF_M2TSDmxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -703,7 +704,10 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (p && p->value.string && !ctx->duration.num) {
-		FILE *stream = gf_fopen(p->value.string, "rb");
+		stream = gf_fopen(p->value.string, "rb");
+	}
+
+	if (stream) {
 		ctx->ipid = pid;
 		ctx->is_file = GF_TRUE;
 		ctx->ts->seek_mode = GF_TRUE;

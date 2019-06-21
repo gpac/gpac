@@ -38,7 +38,7 @@ typedef struct
 {
 	//filter args
 	u32 frame_size;
-	Double index_dur;
+	Double index;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -71,19 +71,23 @@ typedef struct
 } GF_LATMDmxCtx;
 
 
-static Bool latm_dmx_sync_frame_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u32 *nb_bytes, u8 *buffer)
+static Bool latm_dmx_sync_frame_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u32 *nb_bytes, u8 *buffer, u32 *nb_skipped)
 {
 	u32 val, size;
 	u64 pos, mux_size;
+	if (nb_skipped) *nb_skipped = 0;
 	if (!acfg) return 0;
 
 	while (gf_bs_available(bs)>3) {
 		val = gf_bs_read_u8(bs);
-		if (val!=0x56)
+		if (val!=0x56) {
+			if (nb_skipped) (*nb_skipped) ++;
 			continue;
+		}
 		val = gf_bs_read_int(bs, 3);
 		if (val != 0x07) {
 			gf_bs_read_int(bs, 5);
+			if (nb_skipped) (*nb_skipped) ++;
 			continue;
 		}
 		mux_size = gf_bs_read_int(bs, 13);
@@ -169,6 +173,7 @@ static Bool latm_dmx_sync_frame_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u3
 
 		if ((gf_bs_available(bs)>2) && gf_bs_peek_bits(bs, 11, 0) != 0x2B7) {
 			gf_bs_seek(bs, pos + 1);
+			if (nb_skipped) (*nb_skipped) ++;
 			continue;
 		}
 
@@ -234,7 +239,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	duration = 0;
 	cur_dur = 0;
 	cur_pos = gf_bs_get_position(bs);
-	while (latm_dmx_sync_frame_bs(bs, &acfg, 0, NULL)) {
+	while (latm_dmx_sync_frame_bs(bs, &acfg, 0, NULL, NULL)) {
 		if ((sr_idx>=0) && (sr_idx != acfg.base_sr_index)) {
 			duration *= GF_M4ASampleRates[acfg.base_sr_index];
 			duration /= GF_M4ASampleRates[sr_idx];
@@ -245,7 +250,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 		sr_idx = acfg.base_sr_index;
 		duration += ctx->frame_size;
 		cur_dur += ctx->frame_size;
-		if (cur_dur > ctx->index_dur * GF_M4ASampleRates[sr_idx]) {
+		if (cur_dur > ctx->index * GF_M4ASampleRates[sr_idx]) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(LATMIdx)*ctx->index_alloc_size);
@@ -292,7 +297,7 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_AAC_MPEG4));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->frame_size) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
-	if (ctx->is_file && ctx->index_dur) {
+	if (ctx->is_file && ctx->index) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 	if (ctx->duration.num)
@@ -469,7 +474,7 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 		u32 pos = (u32) gf_bs_get_position(ctx->bs);
 		u8 latm_buffer[4096];
 		u32 latm_frame_size = 4096;
-		if (!latm_dmx_sync_frame_bs(ctx->bs,&ctx->acfg, &latm_frame_size, latm_buffer)) break;
+		if (!latm_dmx_sync_frame_bs(ctx->bs,&ctx->acfg, &latm_frame_size, latm_buffer, NULL)) break;
 
 		if (ctx->in_seek) {
 			u64 nb_samples_at_seek = (u64) (ctx->start_range * GF_M4ASampleRates[ctx->sr_idx]);
@@ -552,7 +557,10 @@ static const char *latm_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	GF_M4ADecSpecInfo acfg;
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	while (1) {
-		if (!latm_dmx_sync_frame_bs(bs, &acfg, 0, NULL)) break;
+		u32 nb_skipped = 0;
+		if (!latm_dmx_sync_frame_bs(bs, &acfg, 0, NULL, &nb_skipped)) break;
+		if (nb_skipped)
+			nb_frames=0;
 		nb_frames++;
 	}
 	gf_bs_del(bs);
@@ -588,7 +596,7 @@ static const GF_FilterCapability LATMDmxCaps[] =
 static const GF_FilterArgs LATMDmxArgs[] =
 {
 	{ OFFS(frame_size), "size of AAC frame in audio samples", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };
 

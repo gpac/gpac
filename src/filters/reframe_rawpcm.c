@@ -131,6 +131,10 @@ static Bool pcmreframe_process_event(GF_Filter *filter, const GF_FilterEvent *ev
 			ctx->cts = 0;
 		}
 		ctx->done = GF_FALSE;
+
+		if (!ctx->total_frames)
+			return GF_TRUE;
+
 		if (evt->play.start_range>=0) {
 			ctx->cts = (u64) (evt->play.start_range * ctx->sr);
 		} else {

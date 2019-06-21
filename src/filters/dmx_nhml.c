@@ -41,7 +41,7 @@ typedef struct
 {
 	//opts
 	Bool reframe;
-	Double index_dur;
+	Double index;
 
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
@@ -1361,7 +1361,7 @@ void nhmldmx_finalize(GF_Filter *filter)
 static const GF_FilterArgs GF_NHMLDmxArgs[] =
 {
 	{ OFFS(reframe), "force reparsing of referenced content", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };
 

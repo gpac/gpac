@@ -76,7 +76,7 @@ typedef struct
 
 typedef struct
 {
-	Double index_dur;
+	Double index;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -383,7 +383,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 	u64 recompute_ts;
 	GF_Fraction dur;
 
-	if (!ctx->index_dur || ctx->duration.num) return;
+	if (!ctx->index || ctx->duration.num) return;
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
@@ -771,7 +771,7 @@ static const GF_FilterCapability OGGDmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_OGGDmxCtx, _n)
 static const GF_FilterArgs OGGDmxArgs[] =
 {
-	{ OFFS(index_dur), "indexing window length (unimplemented, only 0 disables stream probing for duration), ", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length (unimplemented, only 0 disables stream probing for duration), ", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };
 

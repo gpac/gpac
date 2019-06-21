@@ -46,7 +46,7 @@ typedef struct
 {
 	//filter args
 	GF_Fraction fps;
-	Double index_dur;
+	Double index;
 	Bool autofps;
 	Bool importer;
 	Bool deps;
@@ -239,11 +239,21 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
 	if (!p || !p->value.string) {
 		ctx->is_file = GF_FALSE;
+		ctx->file_loaded = GF_FALSE;
 		return;
 	}
 	ctx->is_file = GF_TRUE;
 
-	if (!ctx->index_dur) return;
+	if (ctx->index<0) {
+		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
+		if (!p || (p->value.longuint > 100000000)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[VP9Dmx] Source file larger than 100M, skipping indexing\n"));
+		} else {
+			ctx->index = -ctx->index;
+		}
+	}
+	if (ctx->index<=0)
+		return;
 
 	stream = gf_fopen(p->value.string, "rb");
 	if (!stream) return;
@@ -302,7 +312,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		 	is_sap = GF_TRUE;
 
 		//only index at I-frame start
-		if (frame_start && is_sap && (cur_dur > ctx->index_dur * ctx->fps.num) ) {
+		if (frame_start && is_sap && (cur_dur > ctx->index * ctx->fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(AV1Idx)*ctx->index_alloc_size);
@@ -353,6 +363,15 @@ static Bool av1dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->in_seek = GF_TRUE;
 
 		if (ctx->start_range) {
+
+			if (ctx->index<0) {
+				ctx->index = -ctx->index;
+				ctx->file_loaded = GF_FALSE;
+				ctx->duration.den = ctx->duration.num = 0;
+				GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[AV1/VP9Demx] Play request from %d, building index\n", ctx->start_range));
+				av1dmx_check_dur(filter, ctx);
+			}
+
 			for (i=1; i<ctx->index_size; i++) {
 				if (ctx->indexes[i].duration>ctx->start_range) {
 					ctx->cts = (u64) (ctx->indexes[i-1].duration * ctx->fps.num);
@@ -467,7 +486,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (dsi && dsi_size)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi, dsi_size));
 
-	if (ctx->is_file && ctx->index_dur) {
+	if (ctx->is_file && ctx->index) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 }
@@ -940,7 +959,8 @@ static const GF_FilterArgs AV1DmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, 0},
 	{ OFFS(autofps), "detect FPS from bitstream, fallback to [-fps]() option if not possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value", GF_PROP_DOUBLE, "-1.0", NULL, 0},
+
 	{ OFFS(importer), "compatibility with old importer", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}

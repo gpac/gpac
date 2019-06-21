@@ -37,7 +37,7 @@ typedef struct
 typedef struct
 {
 	//filter args
-	Double index_dur;
+	Double index;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -180,7 +180,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 		
 		duration += ctx->block_size;
 		cur_dur += ctx->block_size;
-		if (cur_dur > ctx->index_dur * ctx->sample_rate) {
+		if (cur_dur > ctx->index * ctx->sample_rate) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(QCPIdx)*ctx->index_alloc_size);
@@ -695,7 +695,7 @@ static const GF_FilterCapability QCPDmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_QCPDmxCtx, _n)
 static const GF_FilterArgs QCPDmxArgs[] =
 {
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };
 

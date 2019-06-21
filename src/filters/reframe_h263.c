@@ -37,7 +37,7 @@ typedef struct
 {
 	//filter args
 	GF_Fraction fps;
-	Double index_dur;
+	Double index;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -166,7 +166,7 @@ static void h263dmx_check_dur(GF_Filter *filter, GF_H263DmxCtx *ctx)
 		duration += ctx->fps.den;
 		cur_dur += ctx->fps.den;
 		//only index at I-frame start
-		if (pos && type && (cur_dur > ctx->index_dur * ctx->fps.num) ) {
+		if (pos && type && (cur_dur > ctx->index * ctx->fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(H263Idx)*ctx->index_alloc_size);
@@ -219,7 +219,7 @@ static void h263dmx_check_pid(GF_Filter *filter, GF_H263DmxCtx *ctx, u32 width, 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT( width));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT( height));
 
-	if (ctx->is_file && ctx->index_dur) {
+	if (ctx->is_file && ctx->index) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 }
@@ -681,7 +681,7 @@ static const GF_FilterCapability H263DmxCaps[] =
 static const GF_FilterArgs H263DmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "15000/1000", NULL, 0},
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };
 

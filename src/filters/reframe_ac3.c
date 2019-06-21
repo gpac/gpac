@@ -38,7 +38,7 @@ typedef struct
 typedef struct
 {
 	//filter args
-	Double index_dur;
+	Double index;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -151,7 +151,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 		sr = hdr.sample_rate;
 		duration += AC3_FRAME_SIZE;
 		cur_dur += AC3_FRAME_SIZE;
-		if (cur_dur > ctx->index_dur * sr) {
+		if (cur_dur > ctx->index * sr) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(AC3Idx)*ctx->index_alloc_size);
@@ -232,7 +232,7 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	gf_bs_del(bs);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(data, size) );
 
-	if (ctx->is_file && ctx->index_dur) {
+	if (ctx->is_file && ctx->index) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 }
@@ -535,21 +535,21 @@ static void ac3dmx_finalize(GF_Filter *filter)
 static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	u32 nb_frames=0;
-	u32 pos=0, nb_not_contig=0;
+	u32 pos=0;
 	while (1) {
 		GF_AC3Header ahdr;
 		if (! gf_ac3_parser((u8 *) data, size, &pos, &ahdr, GF_FALSE) )
 		 	break;
 		u32 fsize = ahdr.framesize;
 		if (fsize > size+pos) break;
-		if (pos) nb_not_contig++;
+		if (pos) nb_frames=0;
 		nb_frames++;
 		if (nb_frames>4) break;
 		if (size < fsize+pos) break;
 		size -= fsize+pos;
 		data += fsize+pos;
 	}
-	if (!nb_not_contig && (nb_frames>=2)) {
+	if (nb_frames>2) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/ac3";
 	}
@@ -579,7 +579,7 @@ static const GF_FilterCapability AC3DmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_AC3DmxCtx, _n)
 static const GF_FilterArgs AC3DmxArgs[] =
 {
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };
 
