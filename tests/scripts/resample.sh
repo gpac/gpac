@@ -17,7 +17,7 @@ return
 fi
 
 dumpfile=$TEMP_DIR/dump.pcm
-do_test "$GPAC -blacklist=ffdec -i $1:index_dur=0 resample$2 @ -o $dumpfile:sstart=1:send=250"  "resample"
+do_test "$GPAC -blacklist=ffdec -i $1:index=0 resample$2 @ -o $dumpfile:sstart=1:send=250"  "resample"
 
 myinspect=$TEMP_DIR/inspect.txt
 do_test "$GPAC -i $dumpfile$3 inspect:deep:allp:fmt=%pn%-%cts%-%size%%lf%:log=$myinspect"  "inspect"
