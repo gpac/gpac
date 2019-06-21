@@ -415,17 +415,17 @@ Bool gf_fs_mime_supported(GF_FilterSession *session, const char *mime);
 */
 void gf_fs_set_ui_callback(GF_FilterSession *session, Bool (*ui_event_proc)(void *opaque, GF_Event *event), void *cbk_udta);
 
-/*! Prints stats to stderr
+/*! Prints stats to logs using LOG_APP@LOG_INFO
 \param session filter session
 */
 void gf_fs_print_stats(GF_FilterSession *session);
 
-/*! Prints connections between loaded filters in the session
+/*! Prints connections between loaded filters in the session to logs using LOG_APP@LOG_INFO
 \param session filter session
 */
 void gf_fs_print_connections(GF_FilterSession *session);
 
-/*! Prints all possible connections between filter registries to stderr
+/*! Prints all possible connections between filter registries to logs using LOG_APP@LOG_INFO
 \param session filter session
 \param filter_name if not null, only prints input connection for this filter registry
 \param print_fn optionnal callback function for print, otherwise print to stderr

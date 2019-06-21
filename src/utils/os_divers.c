@@ -815,7 +815,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				gpac_log_file_name = arg_val;
 				if (!use_sep) i += 1;
 			} else if (!strcmp(arg, "-logs") ) {
-				e = gf_log_set_tools_levels(arg_val);
+				e = gf_log_set_tools_levels(arg_val, GF_FALSE);
 				if (e) return e;
 				
 				if (!use_sep) i += 1;

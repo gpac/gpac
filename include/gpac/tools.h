@@ -501,11 +501,12 @@ u32 gf_log_get_tool_level(GF_LOG_Tool log_tool);
 /*!
  *	\brief Set log tools and levels
  *
- *	Set log tools and levels according to the log_tools_levels string. All previous log settings are discarded.
+ *	Set log tools and levels according to the log_tools_levels string.
  *	\param log_tools_levels string specifying the tools and levels. It is formatted as logToolX\@logLevelX:logToolZ\@logLevelZ:...
+ *	\param reset_all if GF_TRUE, all previous log settings are discarded.
  *	\return GF_OK or GF_BAD_PARAM
 */
-GF_Err gf_log_set_tools_levels(const char *log_tools_levels);
+GF_Err gf_log_set_tools_levels(const char *log_tools_levels, Bool reset_all);
 
 /*!
  *	\brief Modify log tools and levels

@@ -299,13 +299,14 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 }
 
 GF_EXPORT
-GF_Err gf_log_set_tools_levels(const char *val)
+GF_Err gf_log_set_tools_levels(const char *val, Bool reset_all)
 {
 #ifndef GPAC_DISABLE_LOG
 	u32 i;
-	for (i=0; i<GF_LOG_TOOL_MAX; i++)
-		global_log_tools[i].level = GF_LOG_WARNING;
-
+	if (reset_all) {
+		for (i=0; i<GF_LOG_TOOL_MAX; i++)
+			global_log_tools[i].level = GF_LOG_WARNING;
+	}
 	return gf_log_modify_tools_levels(val);
 #else
 	return GF_OK;
@@ -606,7 +607,7 @@ void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool
 		gf_sys_set_console_code(stderr, GF_CONSOLE_YELLOW);
 		break;
 	case GF_LOG_INFO:
-		gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
+		gf_sys_set_console_code(stderr, (tool==GF_LOG_APP) ? GF_CONSOLE_WHITE : GF_CONSOLE_GREEN);
 		break;
 	case GF_LOG_DEBUG:
 		gf_sys_set_console_code(stderr, GF_CONSOLE_CYAN);
@@ -733,7 +734,7 @@ u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
 	return 0;
 }
 
-GF_Err gf_log_set_tools_levels(const char *val)
+GF_Err gf_log_set_tools_levels(const char *val, Bool reset_all)
 {
 	return GF_OK;
 }
