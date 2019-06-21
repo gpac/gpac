@@ -466,7 +466,7 @@ typedef struct
 
 	u32 pck_offset;
 	u64 first_cts;
-	u64 clock_at_first_cts, last_frame_clock;
+	u64 clock_at_first_cts, last_frame_clock, clock_at_first_frame;
 	Bool aborted;
 	u32 display_width, display_height;
 	Bool display_changed;
@@ -2192,8 +2192,16 @@ draw_frame:
 	if (ctx->last_pck && gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
 		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
-		sprintf(szStatus, "%dx%d->%dx%d %s frame TS "LLU"/%d buffer %d / %d ms", ctx->width, ctx->height, ctx->display_width, ctx->display_height,
-		 	gf_pixel_fmt_name(ctx->pfmt), gf_filter_pck_get_cts(ctx->last_pck), ctx->timescale, (u32) (dur/1000), ctx->buffer);
+		Double fps = 0;
+		if (ctx->clock_at_first_frame) {
+			fps = ctx->nb_frames;
+			fps *= 1000000;
+			fps /= (1 + gf_sys_clock_high_res() - ctx->clock_at_first_cts);
+		} else {
+			ctx->clock_at_first_frame = gf_sys_clock_high_res();
+		}
+		sprintf(szStatus, "%dx%d->%dx%d %s frame TS "LLU"/%d buffer %d / %d ms %02.02f FPS", ctx->width, ctx->height, ctx->display_width, ctx->display_height,
+		 	gf_pixel_fmt_name(ctx->pfmt), gf_filter_pck_get_cts(ctx->last_pck), ctx->timescale, (u32) (dur/1000), ctx->buffer, fps);
 		gf_filter_update_status(filter, -1, szStatus);
 	}
 
