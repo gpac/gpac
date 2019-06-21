@@ -32,7 +32,7 @@ typedef struct
 {
 	//options
 	Double start, speed;
-	char *dst, *mime, *fext;
+	char *dst, *mime, *ext;
 	Bool append, dynext, cat, ow;
 
 	//only one input pid
@@ -171,7 +171,7 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 	if (!stricmp(ctx->dst, "null") ) {
 		ctx->is_null = GF_TRUE;
 		//null and no format specified, we accept any kind
-		if (!ctx->fext) {
+		if (!ctx->ext) {
 			ctx->in_caps[0].code = GF_PROP_PID_STREAM_TYPE;
 			ctx->in_caps[0].val = PROP_UINT(GF_STREAM_UNKNOWN);
 			ctx->in_caps[0].flags = GF_CAPS_INPUT_EXCLUDED;
@@ -181,7 +181,7 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 	}
 	if (ctx->dynext) return GF_OK;
 
-	if (ctx->fext) ext = ctx->fext;
+	if (ctx->ext) ext = ctx->ext;
 	else {
 		ext = strrchr(ctx->dst, '.');
 		if (!ext) ext = ".*";
@@ -221,7 +221,7 @@ static void fileout_finalize(GF_Filter *filter)
 static GF_Err fileout_process(GF_Filter *filter)
 {
 	GF_FilterPacket *pck;
-	const GF_PropertyValue *fname, *fext, *fnum, *p;
+	const GF_PropertyValue *fname, *ext, *fnum, *p;
 	Bool start, end;
 	const char *pck_data;
 	u32 pck_size, nb_write;
@@ -271,25 +271,25 @@ static GF_Err fileout_process(GF_Filter *filter)
 	if (start) {
 		Bool explicit_overwrite = GF_FALSE;
 		const char *name = NULL;
-		fname = fext = NULL;
+		fname = ext = NULL;
 		//file num increased per packet, open new file
 		fnum = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 		if (fnum) {
 			fname = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_OUTPATH);
-			fext = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
+			ext = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
 			if (!fname) name = ctx->dst;
 		}
 		//filename change at packet start, open new file
 		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PID_OUTPATH);
-		if (!fext) fext = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_EXT);
+		if (!ext) ext = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_EXT);
 		if (fname) name = fname->value.string;
 
 		if (end && gf_filter_pck_get_seek_flag(pck))
 			explicit_overwrite = GF_TRUE;
 
 		if (name) {
-			fileout_open_close(ctx, name, fext ? fext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite);
+			fileout_open_close(ctx, name, ext ? ext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite);
 		} else if (!ctx->file) {
 			fileout_setup_file(ctx, explicit_overwrite);
 		}
@@ -398,7 +398,7 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(dynext), "indicate the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(fext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cat), "cat each file of input pid rather than creating one file per filename", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ow), "overwrite output if existing", GF_PROP_BOOL, "true", NULL, 0},
 	{0}

@@ -541,7 +541,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->seg_ext) {
-		sprintf(szArg, "ext=%s", dasher->seg_ext);
+		sprintf(szArg, "segext=%s", dasher->seg_ext);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->ast_offset_ms) {

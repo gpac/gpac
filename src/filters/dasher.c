@@ -72,7 +72,7 @@ typedef struct
 	char *av1p;
 	char *vpxp;
 	char *template;
-	char *ext;
+	char *segext;
 	char *profX;
 	s32 asto;
 	char *ast;
@@ -317,7 +317,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	if (!ctx->opid) {
-		char *ext=NULL;
+		char *segext=NULL;
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_name(ctx->opid, "MANIFEST");
 		//copy properties at init or reconfig
@@ -330,17 +330,17 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_FILE_EXT);
 		if (p) {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, p );
-			ext = p->value.string;
+			segext = p->value.string;
 		} else {
 			if (!ctx->out_path) ctx->out_path = gf_filter_pid_get_destination(ctx->opid);
-			ext = ctx->out_path ? strrchr(ctx->out_path, '.') : NULL;
-			if (!ext) ext = "mpd";
-			else ext++;
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext) );
+			segext = ctx->out_path ? strrchr(ctx->out_path, '.') : NULL;
+			if (!segext) segext = "mpd";
+			else segext++;
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(segext) );
 		}
 		gf_filter_pid_set_name(ctx->opid, "manifest" );
 
-		if (!strcmp(ext, "m3u8")) ctx->do_m3u8 = GF_TRUE;
+		if (!strcmp(segext, "m3u8")) ctx->do_m3u8 = GF_TRUE;
 		else ctx->do_mpd = GF_TRUE;
 
 		ctx->store_seg_states = GF_FALSE;
@@ -676,13 +676,13 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 
 	if (ctx->profile==GF_DASH_PROFILE_LIVE) {
 		if (ctx->use_xlink && !ctx->m2ts) {
-			strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-ext-live:2014");
+			strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-segext-live:2014");
 		} else {
 			sprintf(profiles_string, "urn:mpeg:dash:profile:%s:2011", ctx->m2ts ? "mp2t-simple" : "isoff-live");
 		}
 	} else if (ctx->profile==GF_DASH_PROFILE_ONDEMAND) {
 		if (ctx->use_xlink) {
-			strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-ext-on-demand:2014");
+			strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-segext-on-demand:2014");
 		} else {
 			strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-on-demand:2011");
 		}
@@ -2267,8 +2267,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (!ctx->do_m3u8 && (ctx->subs_sidx>=0) )
 				idx_ext = "idx";
 		} else {
-			seg_ext = (ctx->ext && !stricmp(ctx->ext, "null")) ? NULL : ctx->ext;
-			init_ext = (ctx->ext && !stricmp(ctx->ext, "null")) ? NULL : "mp4";
+			seg_ext = (ctx->segext && !stricmp(ctx->segext, "null")) ? NULL : ctx->segext;
+			init_ext = (ctx->segext && !stricmp(ctx->segext, "null")) ? NULL : "mp4";
 		}
 
 		is_bs_switch = set->bitstream_switching;
@@ -2380,11 +2380,11 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		/*we are using a single file or segment, use base url*/
 		else if (ctx->sseg || ctx->sfile) {
 			GF_MPD_BaseURL *baseURL;
-/*			char *ext = (ctx->ext && !stricmp(ctx->ext, "null")) ? NULL : "mp4";
-			if (ctx->m2ts) ext = "ts";
+/*			char *segext = (ctx->segext && !stricmp(ctx->segext, "null")) ? NULL : "mp4";
+			if (ctx->m2ts) segext = "ts";
 
 			//use GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT to get rid of default "init" added for init templates
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, set->bitstream_switching, szInitSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, ext, 0, 0, 0, ctx->stl);
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, set->bitstream_switching, szInitSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, segext, 0, 0, 0, ctx->stl);
 */
 
 			if (ds->init_seg) gf_free(ds->init_seg);
@@ -5292,7 +5292,7 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 	e = dasher_setup_profile(ctx);
 	if (e) return e;
 
-	if (!ctx->ext) ctx->ext = "m4s";
+	if (!ctx->segext) ctx->segext = "m4s";
 	if (ctx->sfile && ctx->tpl)
 		ctx->tpl = GF_FALSE;
 
@@ -5395,7 +5395,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(av1p), "profile to use for AV1 if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(vpxp), "profile to use for VP8/9 if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(template), "template string to use to generate segment name - see filter help", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(ext), "file extension to use for segments", GF_PROP_STRING, "m4s", NULL, 0},
+	{ OFFS(segext), "file extension to use for segments", GF_PROP_STRING, "m4s", NULL, 0},
 	{ OFFS(asto), "availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(profile), "target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main.\n"
 		"- auto: turns profile to live for dynamic and full for non-dynamic\n"
