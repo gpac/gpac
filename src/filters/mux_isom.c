@@ -3670,9 +3670,6 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 		for (i=0; i<count; i++) {
 			u32 pc=0;
 			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
-			if (is_frag) {
-
-			}
 			if (tkw->aborted) {
 				pc=10000;
 			} else if (ctx->idur.num) {
@@ -3687,11 +3684,12 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 					if (tkw->pid_dur.num && tkw->pid_dur.den) {
 						pc = (u32) ((tkw->sample.DTS*10000 * tkw->pid_dur.den) / (tkw->pid_dur.num * tkw->tk_timescale));
 					} else if (tkw->down_bytes && tkw->down_size) {
-						pc = (u32) ((tkw->down_bytes*10000) / tkw->down_size);
+						pc = (u32) (((tkw->down_bytes*10000) / tkw->down_size));
 					}
 				}
 			}
-			if (pc>10000) pc=0;
+			if (pc>10000)
+				pc=0;
 			if (tkw->last_import_pc != pc + 1) {
 				status_changed = GF_TRUE;
 				tkw->last_import_pc = pc + 1;
@@ -3708,7 +3706,7 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 					strcat(szStatus, szTK);
 				}
 			} else {
-				sprintf(szTK, " %s%d(%c): %d %%", tkw->is_item ? "IT" : "TK", tkw->track_id, tkw->status_type, pc);
+				sprintf(szTK, " %s%d(%c): %d %%", tkw->is_item ? "IT" : "TK", tkw->track_id, tkw->status_type, pc/100);
 				strcat(szStatus, szTK);
 			}
 		}
