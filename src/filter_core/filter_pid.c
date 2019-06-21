@@ -1316,8 +1316,9 @@ sourceid_reassign:
 		if (source_ids[0]=='*') { }
 		// id does not match
 		else if (strncmp(id, source_ids, sublen)) {
-			source_ids += len;
+			source_ids += len+1;
 			if (last) break;
+			continue;
 		}
 		//no fragment or fragment match pid name, OK
 		if (!frag_name || !strcmp(src_pid->name, frag_name)) {
