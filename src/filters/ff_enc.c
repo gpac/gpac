@@ -346,7 +346,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				if (ts_diff * ctx->fintra.den >= ctx->nb_forced * ctx->fintra.num * ctx->timescale) {
 					ctx->frame->pict_type = AV_PICTURE_TYPE_I;
 					ctx->nb_forced++;
-					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[FFEnc] Forcing IDR at CTS %d / %d\n", cts, ctx->timescale));
+					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[FFEnc] Forcing IDR at frame %d (CTS %d / %d)\n", ctx->nb_frames_in, cts, ctx->timescale));
 				}
 			}
 		}
@@ -522,7 +522,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	//since we send the output to our reframers we should be fine
 	if (pkt.flags & AV_PKT_FLAG_KEY) {
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
-		fprintf(stderr, "ffenc frame %d is SAP\n", ctx->nb_frames_out);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] frame %d is SAP\n", ctx->nb_frames_out));
 	}
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
