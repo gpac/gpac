@@ -38,7 +38,8 @@ static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
 static s32 runfor = 0;
 Bool enable_prompt = GF_FALSE;
-Bool enable_reports = GF_FALSE;
+u32 enable_reports = 0;
+char *report_filter = NULL;
 Bool do_unit_tests = GF_FALSE;
 static int alias_argc = 0;
 static char **alias_argv = NULL;
@@ -481,7 +482,11 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("stats", NULL, "print stats after execution", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("graph", NULL, "print graph after execution", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("k", NULL, "enable keyboard interaction from command line", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("r", NULL, "enable reports", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("r", NULL, "enable reporting\n"
+			"- r: runtime reporting\n"
+			"- r=FA[,FB]: runtime reporting but only print given filters, eg `r=mp4mx`for ISOBMFF muxer only\n"
+			"- r=: only print final report"
+			, NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("seps", NULL, "set the default character sets used to seperate various arguments\n"\
 		"- the first char is used to seperate argument names\n"\
 		"- the second char, if present, is used to seperate names and values\n"\
@@ -703,10 +708,11 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	GF_SystemRTInfo rti;
 
 	if (is_init) {
-		gf_sys_set_console_code(stderr, GF_CONSOLE_SAVE);
+		if (enable_reports==2)
+			gf_sys_set_console_code(stderr, GF_CONSOLE_SAVE);
 
 		logs_to_file = gf_sys_logs_to_file();
-		if (!logs_to_file) {
+		if (!logs_to_file && (enable_reports==2) ) {
 			if (!nb_log_entries) nb_log_entries = 1;
 			static_logs = gf_malloc(sizeof(struct _logentry) * nb_log_entries);
 			memset(static_logs, 0, sizeof(struct _logentry) * nb_log_entries);
@@ -741,6 +747,8 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 			nb_active--;
 			continue;
 		}
+		if (report_filter && (!strstr(report_filter, stats.reg_name)))
+			continue;
 		if (stats.status) {
 			gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
 			fprintf(stderr, "%s", stats.name ? stats.name : stats.reg_name);
@@ -775,7 +783,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	}
 	fprintf(stderr, "Active filters: %d\n", nb_active);
 
-	if (!logs_to_file) {
+	if (static_logs) {
 		if (is_final && (!log_write || !static_logs[log_write-1].szMsg))
 			return;
 
@@ -1558,7 +1566,12 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-k")) {
 			enable_prompt = GF_TRUE;
 		} else if (!strcmp(arg, "-r")) {
-			enable_reports = GF_TRUE;
+			enable_reports = 2;
+			if (arg_val && strlen(arg_val)) {
+				report_filter = arg_val;
+			} else {
+				enable_reports = 1;
+			}
 		} else if (!strcmp(arg, "-unit-tests")) {
 			do_unit_tests = GF_TRUE;
 		} else if (arg[0]=='-') {
@@ -1713,7 +1726,9 @@ restart:
 		goto exit;
 	}
 	if (enable_reports) {
-		gf_fs_set_ui_callback(session, gpac_event_proc, session);
+		if (enable_reports==2)
+			gf_fs_set_ui_callback(session, gpac_event_proc, session);
+
 		gf_fs_enable_reporting(session, GF_TRUE);
 	}
 
@@ -1748,11 +1763,17 @@ restart:
 	gpac_check_session_args();
 
 	if (enable_reports) {
-		gf_sys_set_console_code(stderr, GF_CONSOLE_RESTORE);
+		if (enable_reports==2) {
+			gf_sys_set_console_code(stderr, GF_CONSOLE_RESTORE);
+		}
 		gpac_print_report(session, GF_FALSE, GF_TRUE);
 	}
 
 exit:
+	if (enable_reports==2) {
+		gf_log_set_callback(session, NULL);
+	}
+
 	if (e && nb_filters) {
 		gf_fs_run(session);
 	}
