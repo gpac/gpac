@@ -473,14 +473,14 @@ int main (int argc, char *argv[])
  	}
 
 	if (logs_settings) {
-		if (gf_log_set_tools_levels(logs_settings) != GF_OK) {
+		if (gf_log_set_tools_levels(logs_settings, GF_TRUE) != GF_OK) {
 			return 1;
 		}
 		logs_set = GF_TRUE;
 	}
 
 	if (!logs_set)
-		gf_log_set_tools_levels( gf_opts_get_key("core", "logs") );
+		gf_log_set_tools_levels( gf_opts_get_key("core", "logs"), GF_TRUE);
 
 	gf_opts_set_key("filter@compositor", "ogl", "hybrid");
 
