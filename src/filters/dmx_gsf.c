@@ -1138,15 +1138,18 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 
 static const char *gsfdmx_probe_data(const u8 *data, u32 data_size, GF_FilterProbeScore *score)
 {
-	u32 i;
 	if (data_size < 10) return NULL;
-	for (i = 1; i < data_size - 4; i++) {
-		if (strncmp(data + i, "GS5F", 4)) continue;
-		//signature found, check bersion is 1
-		if (data[i + 4] == 1) {
+	char *buf = (char *) data;
+	while (buf) {
+		char *start_sig = memchr(buf, 'G', data_size);
+		if (!start_sig) return NULL;
+		//signature found and version is 1
+		if (start_sig && !strncmp(start_sig, "GS5F", 4) && (start_sig[4] == 1)) {
 			*score = GF_FPROBE_SUPPORTED;
 			return "application/x-gpac-sf";
 		}
+		buf = start_sig+1;
+		data_size = (u32) ( buf - (char *) data);
 	}
 	return NULL;
 }

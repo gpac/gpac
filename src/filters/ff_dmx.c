@@ -579,13 +579,21 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 
 	av_register_all();
 
+
 	memset(&pb, 0, sizeof(AVProbeData));
+	//not setting this crashes some probers in ffmpeg
 	pb.filename = "";
-	pb.buf = gf_malloc(sizeof(char)*(size+AVPROBE_PADDING_SIZE) );
-	memcpy(pb.buf, data, sizeof(char)*size);
-	pb.buf_size = size;
-	probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
-	gf_free(pb.buf);
+	if (size <= AVPROBE_PADDING_SIZE) {
+		pb.buf = gf_malloc(sizeof(char)*(size+AVPROBE_PADDING_SIZE) );
+		memcpy(pb.buf, data, sizeof(char)*size);
+		pb.buf_size = size;
+		probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
+		gf_free(pb.buf);
+	} else {
+		pb.buf =  (char *) data;
+		pb.buf_size = size - AVPROBE_PADDING_SIZE;
+		probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
+	}
 
 	if (!probe_fmt) return NULL;
 	if (probe_fmt->mime_type) {

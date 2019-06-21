@@ -36,7 +36,7 @@ typedef struct
 typedef struct
 {
 	//filter args
-	Double index_dur;
+	Double index;
 	Bool expart;
 
 	//only one input pid declared
@@ -147,7 +147,7 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 		duration += dur;
 		cur_dur += dur;
 		pos = gf_ftell(stream);
-		if (cur_dur > ctx->index_dur * prev_sr) {
+		if (cur_dur > ctx->index * prev_sr) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(MP3Idx)*ctx->index_alloc_size);
@@ -341,7 +341,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL );
-	if (ctx->is_file && ctx->index_dur) {
+	if (ctx->is_file && ctx->index) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 	if (ctx->duration.num)
@@ -770,7 +770,7 @@ static const GF_FilterCapability MP3DmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_MP3DmxCtx, _n)
 static const GF_FilterArgs MP3DmxArgs[] =
 {
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(expart), "expose pictures as a dedicated video pid", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };

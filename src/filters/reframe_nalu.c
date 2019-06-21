@@ -55,7 +55,7 @@ typedef struct
 {
 	//filter args
 	GF_Fraction fps;
-	Double index_dur;
+	Double index;
 	Bool explicit, autofps, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze;
 	u32 nal_length;
 
@@ -306,11 +306,20 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
 	if (!p || !p->value.string) {
 		ctx->is_file = GF_FALSE;
+		ctx->file_loaded = GF_TRUE;
 		return;
 	}
 	ctx->is_file = GF_TRUE;
 
-	if (!ctx->index_dur) {
+	if (ctx->index<0) {
+		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
+		if (!p || (p->value.longuint > 100000000)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Source file larger than 100M, skipping indexing\n", ctx->log_name));
+		} else {
+			ctx->index = -ctx->index;
+		}
+	}
+	if (ctx->index<=0) {
 		ctx->duration.num = 1;
 		ctx->file_loaded = GF_TRUE;
 		return;
@@ -408,7 +417,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 			}
 		}
 
-		if (is_rap && first_slice_in_pic && (cur_dur >= ctx->index_dur * ctx->fps.num) ) {
+		if (is_rap && first_slice_in_pic && (cur_dur >= ctx->index * ctx->fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(NALUIdx)*ctx->index_alloc_size);
@@ -1144,7 +1153,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	if (ctx->duration.num)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 
-	if (ctx->is_file && ctx->index_dur) {
+	if (ctx->is_file /* && ctx->index*/) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 }
@@ -1171,6 +1180,13 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 			ctx->resume_from = 0;
 			return GF_FALSE;
+		}
+		if (ctx->start_range && (ctx->index<0)) {
+			ctx->index = -ctx->index;
+			ctx->file_loaded = GF_FALSE;
+			ctx->duration.den = ctx->duration.num = 0;
+			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Play request from %d, building index\n", ctx->log_name, ctx->start_range));
+			naludmx_check_dur(filter, ctx);
 		}
 		ctx->start_range = evt->play.start_range;
 		ctx->in_seek = GF_TRUE;
@@ -1939,6 +1955,8 @@ GF_Err naludmx_process(GF_Filter *filter)
 			start = data = ctx->hdr_store + ctx->resume_from;
 			remain = pck_size = ctx->hdr_store_size - ctx->resume_from;
 		} else {
+			assert((s32)ctx->resume_from >0);
+			
 			start += ctx->resume_from;
 			remain -= ctx->resume_from;
 		}
@@ -2946,7 +2964,7 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	if (nb_hevc==nb_hevc_zero) nb_hevc=0;
 
 	if (!nb_hevc && !nb_avc) return NULL;
-	*score = GF_FPROBE_MAYBE_SUPPORTED;
+	*score = GF_FPROBE_SUPPORTED;
 	if (!nb_hevc) return "video/avc";
 	if (!nb_avc) return "video/hevc";
 	if (nb_hevc>nb_avc) return "video/hevc";
@@ -2980,7 +2998,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, 0},
 	{ OFFS(autofps), "detect FPS from bitstream, fallback to [-fps]() option if not possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(index_dur), "indexing window length. If 0, bitstream is not probed for duration", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value", GF_PROP_DOUBLE, "-1.0", NULL, 0},
 	{ OFFS(explicit), "use explicit layered (SVC/LHVC) import", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosei), "remove all sei messages", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

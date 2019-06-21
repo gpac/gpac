@@ -50,7 +50,7 @@ typedef struct
 {
 	//opts
 	Bool reframe;
-	Double index_dur;
+	Double index;
 
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
@@ -150,7 +150,7 @@ static void nhntdmx_check_dur(GF_NHNTDmxCtx *ctx)
 
 		cur_dur += prev_dur;
 		//only index at I-frame start
-		if (is_rap && (cur_dur >= ctx->index_dur * ctx->timescale) ) {
+		if (is_rap && (cur_dur >= ctx->index * ctx->timescale) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(NHNTIdx)*ctx->index_alloc_size);
@@ -451,7 +451,7 @@ void nhntdmx_finalize(GF_Filter *filter)
 static const GF_FilterArgs GF_NHNTDmxArgs[] =
 {
 	{ OFFS(reframe), "force reparsing of referenced content", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };
 

@@ -35,7 +35,7 @@ typedef struct
 typedef struct
 {
 	//filter args
-	Double index_dur;
+	Double index;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -193,7 +193,7 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 		duration += ctx->block_size;
 		cur_dur += ctx->block_size;
 		pos = gf_ftell(stream);
-		if (cur_dur > ctx->index_dur * ctx->sample_rate) {
+		if (cur_dur > ctx->index * ctx->sample_rate) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(AMRIdx)*ctx->index_alloc_size);
@@ -241,7 +241,7 @@ static void amrdmx_check_pid(GF_Filter *filter, GF_AMRDmxCtx *ctx, u16 amr_mode_
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->block_size ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AMR_MODE_SET, & PROP_UINT(ctx->amr_mode_set));
 
-	if (ctx->is_file && ctx->index_dur) {
+	if (ctx->is_file && ctx->index) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 }
@@ -570,7 +570,7 @@ static const GF_FilterCapability AMRDmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_AMRDmxCtx, _n)
 static const GF_FilterArgs AMRDmxArgs[] =
 {
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };
 

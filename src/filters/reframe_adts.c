@@ -50,7 +50,7 @@ typedef struct
 {
 	//filter args
 	u32 frame_size;
-	Double index_dur;
+	Double index;
 	u32 sbr;
 	u32 ps;
 	Bool mpeg4;
@@ -214,7 +214,7 @@ static void adts_dmx_check_dur(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 		sr_idx = hdr.sr_idx;
 		duration += ctx->frame_size;
 		cur_dur += ctx->frame_size;
-		if (cur_dur > ctx->index_dur * GF_M4ASampleRates[sr_idx]) {
+		if (cur_dur > ctx->index * GF_M4ASampleRates[sr_idx]) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(ADTSIdx)*ctx->index_alloc_size);
@@ -263,7 +263,7 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_AAC_MPEG4));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->frame_size) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
-	if (ctx->is_file && ctx->index_dur) {
+	if (ctx->is_file && ctx->index) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 
@@ -760,7 +760,7 @@ static const GF_FilterCapability ADTSDmxCaps[] =
 static const GF_FilterArgs ADTSDmxArgs[] =
 {
 	{ OFFS(frame_size), "size of AAC frame in audio samples", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(mpeg4), "force signaling as MPEG-4 AAC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ovsbr), "force oversampling SBR (does not multiply timescales by 2)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sbr), "set SBR signaling\n"\
