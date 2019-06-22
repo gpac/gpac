@@ -1391,7 +1391,7 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 		//we use the carrousel flag temporarly to indicate the cts must be recomputed
 		gf_filter_pck_set_carousel_version(ctx->first_pck_in_au, 1);
 	} else {
-		assert(ctx->timescale);
+        GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[%s] failed to recompute timestamp for frame, corrupted SPS/PPS ?\n", ctx->log_name));
 	}
 
 	if (ctx->subsamp_buffer_size) {
@@ -1829,21 +1829,23 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 			}
 		}
 		*is_slice = GF_TRUE;
-		switch (ctx->avc_state->s_info.slice_type) {
-		case GF_AVC_TYPE_P:
-		case GF_AVC_TYPE2_P:
-			ctx->avc_state->s_info.sps->nb_ep++;
-			break;
-		case GF_AVC_TYPE_I:
-		case GF_AVC_TYPE2_I:
-			ctx->avc_state->s_info.sps->nb_ei++;
-			break;
-		case GF_AVC_TYPE_B:
-		case GF_AVC_TYPE2_B:
-			ctx->avc_state->s_info.sps->nb_eb++;
-			break;
-		}
-		break;
+        if (ctx->avc_state->s_info.sps) {
+            switch (ctx->avc_state->s_info.slice_type) {
+            case GF_AVC_TYPE_P:
+            case GF_AVC_TYPE2_P:
+                ctx->avc_state->s_info.sps->nb_ep++;
+                break;
+            case GF_AVC_TYPE_I:
+            case GF_AVC_TYPE2_I:
+                ctx->avc_state->s_info.sps->nb_ei++;
+                break;
+            case GF_AVC_TYPE_B:
+            case GF_AVC_TYPE2_B:
+                ctx->avc_state->s_info.sps->nb_eb++;
+                break;
+            }
+        }
+        break;
 	case GF_AVC_NALU_SLICE_AUX:
 		*is_slice = GF_TRUE;
 		break;
@@ -1956,9 +1958,12 @@ GF_Err naludmx_process(GF_Filter *filter)
 			remain = pck_size = ctx->hdr_store_size - ctx->resume_from;
 		} else {
 			assert((s32)ctx->resume_from >0);
-			
-			start += ctx->resume_from;
-			remain -= ctx->resume_from;
+            if (ctx->resume_from>remain) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] something wrong, resuming parsing at %d bytes but only %d bytes in packet, discarding data\n", ctx->log_name, ctx->resume_from, remain));
+            } else {
+                start += ctx->resume_from;
+                remain -= ctx->resume_from;
+            }
 		}
 		ctx->resume_from = 0;
 	}
@@ -1970,6 +1975,8 @@ naldmx_flush:
 		gf_bs_reassign_buffer(ctx->bs_r, start, remain);
 	}
 
+    assert(remain>=0);
+    
 	while (remain) {
 		char *pck_data;
 		char *hdr_start;
@@ -2144,6 +2151,8 @@ naldmx_flush:
 		//skip if no output pid
 		if (!ctx->opid && current) {
 			assert(remain>=current);
+            assert((s32) current >= 0);
+            
 			start += current;
 			remain -= current;
 			current = 0;
@@ -2166,7 +2175,8 @@ naldmx_flush:
 					//we are done, the nal header and start code is completely in the new packet
 					u32 shift = current - bytes_from_store;
 //					bytes_from_store = 0;
-					assert(remain >= (s32) shift);
+                    assert(remain >= (s32) shift);
+                    assert((s32) shift >= 0);
 					start += shift;
 					remain -= shift;
 					nal_sc_in_store = 0;
@@ -2179,6 +2189,7 @@ naldmx_flush:
 					memcpy(pck_data, start, current);
 				}
 				assert(remain>=current);
+                assert((s32) current>=0);
 				start += current;
 				remain -= current;
 				current = 0;
@@ -2378,6 +2389,7 @@ naldmx_flush:
 			}
 			assert(remain >= next);
 			start = pck_start + next;
+            assert((u32) (start - (u8*)data) <= pck_size);
 			remain = pck_size - (u32) (start - (u8*)data);
 			if (nal_hdr_in_store) {
 				if (full_nal && ctx->bytes_in_header) {
@@ -2393,9 +2405,14 @@ naldmx_flush:
 
 		naludmx_check_pid(filter, ctx);
 		if (!ctx->opid) {
-			assert(remain >= (s32) sc_size+next);
-			start += sc_size+next;
-			remain -= sc_size+next;
+            u32 skip = sc_size+next;
+			assert(remain >= (s32) skip);
+            if (skip) {
+                start += sc_size+next;
+                remain -= sc_size+next;
+            } else {
+                ctx->bytes_in_header = 0;
+            }
 			continue;
 		}
 
@@ -2405,6 +2422,7 @@ naldmx_flush:
 
 		if (!ctx->is_playing) {
 			ctx->resume_from = (u32) ( (char *)start -  (char *)data);
+            assert(ctx->resume_from<=pck_size);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] not yet playing\n", ctx->log_name));
 			return GF_OK;
 		}
@@ -2488,7 +2506,10 @@ naldmx_flush:
 				avc_svc_subs_priority = (63 - (p[1] & 0x3F)) << 2;
 
 				if (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) {
-					assert(ctx->svc_prefix_buffer_size == 0);
+                    if (ctx->svc_prefix_buffer_size) {
+                        GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] broken bitstream, two consecutive SVC prefix NALU without SVC slice inbetween\n", ctx->log_name));
+                        ctx->svc_prefix_buffer_size = 0;
+                    }
 
 					/* remember reserved and priority value */
 					ctx->svc_nalu_prefix_reserved = avc_svc_subs_reserved;
@@ -2750,6 +2771,7 @@ naldmx_flush:
 
 		assert(remain >= size);
 		start = pck_start + size;
+        assert((u32) (start - (u8*)data) <= pck_size);
 		remain = pck_size - (u32) (start - (u8*)data);
 
 
@@ -2760,7 +2782,9 @@ naldmx_flush:
 			if (data == ctx->hdr_store) {
 				assert(ctx->resume_from > hdr_size_at_resume);
 				ctx->resume_from -= hdr_size_at_resume;
-			}
+            } else {
+                assert(ctx->resume_from<=pck_size);
+            }
 			return GF_OK;
 		}
 	}
