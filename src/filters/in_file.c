@@ -284,8 +284,8 @@ static GF_Err filein_process(GF_Filter *filter)
 		if (ctx->is_random==2) {
 			for (i=0; i<ctx->block_size; i+= 4) {
 				u32 val = gf_rand();
-				if (val % 20)
-					val &= 0x000000FF;
+				if (!(val % 100))
+					val = 0x00000001;
 				* ((u32 *) (ctx->block + i)) = val;
 			}
 		} else {

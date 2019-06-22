@@ -1176,6 +1176,20 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 			nal_size = gf_media_nalu_next_start_code((const u8 *) ptr, inBufferLength, &sc_size);
 		}
 
+        if (nal_size==0) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error parsing NAL: size 0 shall never happen\n", nal_size));
+
+            if (ctx->nalu_size_length) {
+                if (inBufferLength < ctx->nalu_size_length) break;
+                inBufferLength -= ctx->nalu_size_length;
+            } else {
+                if (!sc_size || (inBufferLength < sc_size)) break;
+                inBufferLength -= sc_size;
+                ptr += sc_size;
+            }
+            continue;
+        }
+        
 		if (ctx->is_avc) {
 			if (!ctx->nal_bs) ctx->nal_bs = gf_bs_new(ptr, nal_size, GF_BITSTREAM_READ);
 			else gf_bs_reassign_buffer(ctx->nal_bs, ptr, nal_size);
