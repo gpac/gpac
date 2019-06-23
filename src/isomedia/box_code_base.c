@@ -6885,11 +6885,13 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 	if (!trak->Media->information->sampleTable) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no sample table !\n" ));
 		trak->Media->information->sampleTable = (GF_SampleTableBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STBL);
+		gf_isom_box_add_for_dump_mode((GF_Box *)trak->Media->information, (GF_Box *)trak->Media->information->sampleTable);
 	}
 
 	if (!trak->Media->information->sampleTable->SampleDescription) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no sample description box !\n" ));
 		trak->Media->information->sampleTable->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSD);
+		gf_isom_box_add_for_dump_mode((GF_Box *)trak->Media->information->sampleTable, (GF_Box *)trak->Media->information->sampleTable->SampleDescription);
 		return;
 	}
 
@@ -11023,7 +11025,7 @@ GF_Err fdpa_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	
+
 	gf_bs_write_int(bs, ptr->info.sender_current_time_present, 1);
 	gf_bs_write_int(bs, ptr->info.expected_residual_time_present, 1);
 	gf_bs_write_int(bs, ptr->info.session_close_bit, 1);
@@ -11108,7 +11110,7 @@ GF_Err extr_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	
+
 	if (ptr->feci) {
 		e = gf_isom_box_write((GF_Box *)ptr->feci, bs);
 		if (e) return e;
@@ -11184,7 +11186,7 @@ GF_Err fdsa_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	
+
 	e = gf_isom_box_array_write(s, ptr->packetTable, bs);
 	if (e) return e;
 	if (ptr->extra_data) {
