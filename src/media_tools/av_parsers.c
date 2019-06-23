@@ -1858,10 +1858,10 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, int *width, int *height,
 	}
 
 	*codec_fourcc = gf_bs_read_u32(bs);
-	
+
 	*width  = gf_bs_read_u16_le(bs);
 	*height = gf_bs_read_u16_le(bs);
-	
+
 	*frame_rate = gf_bs_read_u32_le(bs);
 	*time_scale = gf_bs_read_u32_le(bs);
 
@@ -1912,7 +1912,7 @@ GF_Err vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, int *num_frame
 	u8 byte, bytes_per_framesize;
 	u64 pos = gf_bs_get_position(bs), i = 0;
 	GF_Err e = GF_OK;
-	
+
 	assert(bs && num_frames_in_superframe);
 
 	/*initialize like there is no superframe*/
@@ -2149,7 +2149,7 @@ static int calc_max_log2_tile_cols(int Sb64Cols) {
 	int maxLog2 = 1;
 	while ((Sb64Cols >> maxLog2) >= VP9_MIN_TILE_WIDTH_B64)
 		maxLog2++;
-	
+
 	return maxLog2 - 1;
 }
 
@@ -2192,7 +2192,7 @@ static void vp9_frame_size_with_refs(GF_BitStream *bs, int *FrameWidth, int *Fra
 	} else {
 		vp9_compute_image_size(*FrameWidth, *FrameHeight, Sb64Cols, Sb64Rows);
 	}
-	
+
 	vp9_render_size(bs, *FrameWidth, *FrameHeight, RenderWidth, RenderHeight);
 }
 
@@ -2214,7 +2214,7 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 	int Sb64Cols = 0, Sb64Rows = 0;
 
 	assert(bs && key_frame);
-	
+
 	/*uncompressed header*/
 	/*frame_marker =*/ gf_bs_read_int(bs, 2);
 	profile_low_bit = gf_bs_read_int(bs, 1);
@@ -2227,7 +2227,7 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
-	
+
 	show_existing_frame = gf_bs_read_int(bs, 1);
 	if (show_existing_frame == GF_TRUE) {
 		/*frame_to_show_map_idx = */gf_bs_read_int(bs, 3);
@@ -2250,7 +2250,7 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 	} else {
 		Bool intra_only = GF_FALSE;
 		*key_frame = GF_FALSE;
-		
+
 		if (show_frame == GF_FALSE) {
 			intra_only = gf_bs_read_int(bs, 1);
 		}
@@ -3506,7 +3506,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			CodedLossless = 0;
 	}
 	Bool AllLossless = CodedLossless && (state->width == state->UpscaledWidth );
-	
+
 	//loop_filter_params():
 	if (!CodedLossless && !allow_intrabc) {
 		u8 loop_filter_level_0 = gf_bs_read_int(bs, 6);
@@ -3828,7 +3828,7 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			break;
 		}
-		
+
 		state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].obu_start_offset = tile_start_offset;
 		state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].size = tile_size;
 		gf_bs_skip_bytes(bs, tile_size);
@@ -7404,7 +7404,7 @@ static s32 gf_media_hevc_read_sps_bs(GF_BitStream *bs, HEVCState *hevc, u8 layer
 		if (flag) {
 			/*video_format = */gf_bs_read_int(bs, 3);
 			sps->video_full_range_flag = gf_bs_read_int(bs, 1);
-			if (sps->colour_description_present_flag = gf_bs_read_int(bs, 1)) {
+			if ((sps->colour_description_present_flag = gf_bs_read_int(bs, 1))) {
 				sps->colour_primaries = gf_bs_read_int(bs, 8);
 				sps->transfer_characteristic = gf_bs_read_int(bs, 8);
 				sps->matrix_coeffs = gf_bs_read_int(bs, 8);

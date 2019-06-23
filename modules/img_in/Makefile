@@ -29,7 +29,7 @@ OBJS=img_dec.o img_in.o bmp_dec.o png_dec.o jpeg_dec.o
 ifeq ($(CONFIG_JP2), no)
 else
 OBJS+=jp2_dec.o
-LINKLIBS+= -lopenjpeg
+LINKLIBS+= -lopenjpeg -lm
 CFLAGS+=-DGPAC_HAS_JP2
 #local openjpeg lib
 ifeq ($(CONFIG_JP2), local)
