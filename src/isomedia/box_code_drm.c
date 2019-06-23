@@ -488,7 +488,7 @@ GF_Err iSLT_Write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	
+
 	gf_bs_write_u64(bs, ptr->salt);
 	return GF_OK;
 }
@@ -1363,6 +1363,10 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				sai->subsample_count = gf_bs_read_u16(bs);
 				sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
 				for (j = 0; j < sai->subsample_count; j++) {
+					if (gf_bs_get_size(bs) - gf_bs_get_position(bs) < 6) {
+						gf_isom_cenc_samp_aux_info_del(sai);
+						return GF_ISOM_INVALID_FILE;
+					}
 					sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(bs);
 					sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
 				}
