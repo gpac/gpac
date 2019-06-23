@@ -2371,8 +2371,9 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	        || (msub_type==GF_ISOM_SUBTYPE_HVT1)
 	   )  {
 		esd = gf_isom_get_esd(file, trackNum, 1);
-		if (!esd) {
+		if (!esd || !esd->decoderConfig) {
 			fprintf(stderr, "WARNING: Broken MPEG-4 Track\n");
+			if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 		} else {
 			const char *st = gf_odf_stream_type_name(esd->decoderConfig->streamType);
 			if (st) {
@@ -2796,7 +2797,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		u32 w, h, i, count;
 		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 		fprintf(stderr, "\tAOM AV1 stream - Resolution %d x %d\n", w, h);
-		
+
 		av1c = gf_isom_av1_config_get(file, trackNum, 1);
 		fprintf(stderr, "\tversion=%u, profile=%u, level_idx0=%u, tier=%u\n", (u32)av1c->version, (u32)av1c->seq_profile, (u32)av1c->seq_level_idx_0, (u32)av1c->seq_tier_0);
 		fprintf(stderr, "\thigh_bitdepth=%u, twelve_bit=%u, monochrome=%u\n", (u32)av1c->high_bitdepth, (u32)av1c->twelve_bit, (u32)av1c->monochrome);

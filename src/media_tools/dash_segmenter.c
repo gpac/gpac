@@ -476,7 +476,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	switch (subtype) {
 	case GF_ISOM_SUBTYPE_MPEG4:
 		esd = gf_isom_get_esd(movie, track, 1);
-		if (esd) {
+		if (esd && esd->decoderConfig) {
 			switch (esd->decoderConfig->streamType) {
 			case GF_STREAM_AUDIO:
 				if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
@@ -528,6 +528,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			return GF_OK;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] Cannot find ESD. Aborting.\n"));
+			if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 			return GF_ISOM_INVALID_FILE;
 		}
 	case GF_ISOM_SUBTYPE_AVC_H264:
@@ -685,7 +686,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%02u%c.%02u", gf_4cc_to_str(subtype),
 			av1_state.config->seq_profile, av1_state.config->seq_level_idx_0, av1_state.config->seq_tier_0 ? 'H' : 'M',
 			av1_state.bit_depth);
-		
+
 		/* "All the other fields [...] are optional, mutually inclusive (all or none) fields." https://aomediacodec.github.io/av1-isobmff/ */
 		if (av1_state.color_description_present_flag) {
 			char tmp[RFC6381_CODEC_NAME_SIZE_MAX];
@@ -1698,7 +1699,7 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 
 	if (force_timescale)
 		gf_isom_set_timescale(output, force_timescale);
-		
+
 	//flush movie
 	e = gf_isom_finalize_for_fragment(output, 1);
 	if (e) goto err_exit;

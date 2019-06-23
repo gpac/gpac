@@ -1096,8 +1096,14 @@ static void DelGF_IPMPX_RemoveToolNotificationListener(GF_IPMPX_Data *_p)
 static GF_Err ReadGF_IPMPX_RemoveToolNotificationListener(GF_BitStream *bs, GF_IPMPX_Data *_p, u32 size)
 {
 	u32 i;
+	u8 count;
 	GF_IPMPX_RemoveToolNotificationListener*p = (GF_IPMPX_RemoveToolNotificationListener*)_p;
-	p->eventTypeCount = gf_bs_read_int(bs, 8);
+	p->eventTypeCount = 0;
+	count = gf_bs_read_int(bs, 8);
+	if (count > ARRAY_LENGTH(p->eventType))
+		return GF_CORRUPTED_DATA;
+
+	p->eventTypeCount = count;
 	for (i=0; i<p->eventTypeCount; i++) p->eventType[i] = gf_bs_read_int(bs, 8);
 	return GF_OK;
 }
