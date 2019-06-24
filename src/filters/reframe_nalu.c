@@ -1958,7 +1958,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			remain = pck_size = ctx->hdr_store_size - ctx->resume_from;
 		} else {
 			assert((s32)ctx->resume_from >0);
-            if (ctx->resume_from>remain) {
+            if (ctx->resume_from > (u32) remain) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] something wrong, resuming parsing at %d bytes but only %d bytes in packet, discarding data\n", ctx->log_name, ctx->resume_from, remain));
             } else {
                 start += ctx->resume_from;
