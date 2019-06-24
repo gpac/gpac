@@ -1506,6 +1506,7 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 /*updates fields of given visual sample description - these fields are reserved in ISOBMFF, this should only be used for QT*/
 GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *file, u32 track, u32 stsd_idx, u16 revision, u32 vendor, u32 temporalQ, u32 spatialQ, u32 horiz_res, u32 vert_res, u16 frames_per_sample, char *compressor_name, s16 color_table_index);
 
+GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 track, u32 sampleDescriptionIndex, char *data, u32 size);
 
 /*Default extensions*/
 
@@ -1536,6 +1537,8 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig, GF_ISOFile *dest);
 
 GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u32 *output_size);
+
+GF_Err gf_isom_get_stsd_template(GF_ISOFile *file, u32 track, u32 stsd_idx, char **output, u32 *output_size);
 
 GF_Err gf_isom_get_raw_user_data(GF_ISOFile *file, char **output, u32 *output_size);
 

@@ -70,7 +70,7 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	}
 
 	if (entry->avc_config || entry->svc_config || entry->mvc_config || entry->hevc_config || entry->lhvc_config) {
-		GF_ProtectionSchemeInfoBox *schi = gf_list_get(entry->protections, 0);
+		GF_ProtectionSchemeInfoBox *schi = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->other_boxes, GF_ISOM_BOX_TYPE_SINF);
 		if (!schi || !schi->scheme_type) return GF_TRUE;
 		switch (schi->scheme_type->scheme_type) {
 		case GF_ISOM_CENC_SCHEME:
@@ -1057,11 +1057,12 @@ void AVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *md
 		avc->emul_esd->decoderConfig->avgBitrate = btrt->avgBitrate;
 		avc->emul_esd->decoderConfig->maxBitrate = btrt->maxBitrate;
 	}
-	if (avc->descr) {
+	GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_find_child(avc->other_boxes, GF_ISOM_BOX_TYPE_M4DS);
+	if (mdesc) {
 		u32 i=0;
 		GF_Descriptor *desc,*clone;
 		i=0;
-		while ((desc = (GF_Descriptor *)gf_list_enum(avc->descr->descriptors, &i))) {
+		while ((desc = (GF_Descriptor *)gf_list_enum(mdesc->descriptors, &i))) {
 			clone = NULL;
 			gf_odf_desc_copy(desc, &clone);
 			if (gf_odf_desc_add_desc((GF_Descriptor *)avc->emul_esd, clone) != GF_OK)
@@ -1121,11 +1122,12 @@ void HEVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *hevc, GF_MediaBox *
 		hevc->emul_esd->decoderConfig->avgBitrate = btrt->avgBitrate;
 		hevc->emul_esd->decoderConfig->maxBitrate = btrt->maxBitrate;
 	}
-	if (hevc->descr) {
+	GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_find_child(hevc->other_boxes, GF_ISOM_BOX_TYPE_M4DS);
+	if (mdesc) {
 		u32 i=0;
 		GF_Descriptor *desc,*clone;
 		i=0;
-		while ((desc = (GF_Descriptor *)gf_list_enum(hevc->descr->descriptors, &i))) {
+		while ((desc = (GF_Descriptor *)gf_list_enum(mdesc->descriptors, &i))) {
 			clone = NULL;
 			gf_odf_desc_copy(desc, &clone);
 			if (gf_odf_desc_add_desc((GF_Descriptor *)hevc->emul_esd, clone) != GF_OK)
@@ -1162,8 +1164,10 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 {
 	GF_BitRateBox *btrt = gf_isom_sample_entry_get_bitrate((GF_SampleEntryBox *)avc, GF_TRUE);
 
-	if (avc->descr) gf_isom_box_del((GF_Box *) avc->descr);
-	avc->descr = NULL;
+	GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_find_child(avc->other_boxes, GF_ISOM_BOX_TYPE_M4DS);
+	if (mdesc) {
+		gf_isom_box_del_parent(&avc->other_boxes, (GF_Box *) mdesc);
+	}
 	btrt->avgBitrate = esd->decoderConfig->avgBitrate;
 	btrt->maxBitrate = esd->decoderConfig->maxBitrate;
 	btrt->bufferSizeDB = esd->decoderConfig->bufferSizeDB;
@@ -1174,38 +1178,39 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 	        || gf_list_count(esd->extensionDescriptors)
 	        || esd->ipiPtr || esd->qos || esd->RegDescriptor) {
 
-		avc->descr = (GF_MPEG4ExtensionDescriptorsBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_M4DS);
+		GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_new_parent(&avc->other_boxes, GF_ISOM_BOX_TYPE_M4DS);
+
 		if (esd->RegDescriptor) {
-			gf_list_add(avc->descr->descriptors, esd->RegDescriptor);
+			gf_list_add(mdesc->descriptors, esd->RegDescriptor);
 			esd->RegDescriptor = NULL;
 		}
 		if (esd->qos) {
-			gf_list_add(avc->descr->descriptors, esd->qos);
+			gf_list_add(mdesc->descriptors, esd->qos);
 			esd->qos = NULL;
 		}
 		if (esd->ipiPtr) {
-			gf_list_add(avc->descr->descriptors, esd->ipiPtr);
+			gf_list_add(mdesc->descriptors, esd->ipiPtr);
 			esd->ipiPtr= NULL;
 		}
 
 		while (gf_list_count(esd->IPIDataSet)) {
 			GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(esd->IPIDataSet, 0);
 			gf_list_rem(esd->IPIDataSet, 0);
-			gf_list_add(avc->descr->descriptors, desc);
+			gf_list_add(mdesc->descriptors, desc);
 		}
 		while (gf_list_count(esd->IPMPDescriptorPointers)) {
 			GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(esd->IPMPDescriptorPointers, 0);
 			gf_list_rem(esd->IPMPDescriptorPointers, 0);
-			gf_list_add(avc->descr->descriptors, desc);
+			gf_list_add(mdesc->descriptors, desc);
 		}
 		if (esd->langDesc) {
-			gf_list_add(avc->descr->descriptors, esd->langDesc);
+			gf_list_add(mdesc->descriptors, esd->langDesc);
 			esd->langDesc = NULL;
 		}
 		while (gf_list_count(esd->extensionDescriptors)) {
 			GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(esd->extensionDescriptors, 0);
 			gf_list_rem(esd->extensionDescriptors, 0);
-			gf_list_add(avc->descr->descriptors, desc);
+			gf_list_add(mdesc->descriptors, desc);
 		}
 	}
 
@@ -1280,17 +1285,6 @@ void AV1_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *av1, GF_MediaBox *md
 		av1->emul_esd->decoderConfig->avgBitrate = btrt->avgBitrate;
 		av1->emul_esd->decoderConfig->maxBitrate = btrt->maxBitrate;
 	}
-	if (av1->descr) {
-		GF_Descriptor *desc, *clone;
-		u32 i = 0;
-		while ((desc = (GF_Descriptor *)gf_list_enum(av1->descr->descriptors, &i))) {
-			clone = NULL;
-			gf_odf_desc_copy(desc, &clone);
-			if (gf_odf_desc_add_desc((GF_Descriptor *)av1->emul_esd, clone) != GF_OK)
-				gf_odf_desc_del(clone);
-		}
-	}
-
 	if (av1->av1_config) {
 		GF_AV1Config *av1_cfg = AV1_DuplicateConfig(av1->av1_config->config);
 		if (av1_cfg) {
@@ -1337,16 +1331,6 @@ void VP9_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *vp9, GF_MediaBox *md
 		vp9->emul_esd->decoderConfig->bufferSizeDB = btrt->bufferSizeDB;
 		vp9->emul_esd->decoderConfig->avgBitrate = btrt->avgBitrate;
 		vp9->emul_esd->decoderConfig->maxBitrate = btrt->maxBitrate;
-	}
-	if (vp9->descr) {
-		GF_Descriptor *desc, *clone;
-		u32 i = 0;
-		while ((desc = (GF_Descriptor *)gf_list_enum(vp9->descr->descriptors, &i))) {
-			clone = NULL;
-			gf_odf_desc_copy(desc, &clone);
-			if (gf_odf_desc_add_desc((GF_Descriptor *)vp9->emul_esd, clone) != GF_OK)
-				gf_odf_desc_del(clone);
-		}
 	}
 
 	if (vp9->vp_config) {
@@ -2148,7 +2132,7 @@ u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descript
 	type = entry->type;
 
 	if (type == GF_ISOM_BOX_TYPE_ENCV) {
-		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_list_get(entry->protections, 0);
+		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->other_boxes, GF_ISOM_BOX_TYPE_SINF);
 		if (sinf && sinf->original_format) type = sinf->original_format->data_format;
 	}
 	else if (type == GF_ISOM_BOX_TYPE_RESV) {
@@ -2189,7 +2173,7 @@ u32 gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descri
 	type = entry->type;
 
 	if (type == GF_ISOM_BOX_TYPE_ENCV) {
-		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_list_get(entry->protections, 0);
+		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->other_boxes, GF_ISOM_BOX_TYPE_SINF);
 		if (sinf && sinf->original_format) type = sinf->original_format->data_format;
 	}
 	else if (type == GF_ISOM_BOX_TYPE_RESV) {

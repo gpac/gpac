@@ -1765,4 +1765,36 @@ Bool gf_isom_box_is_file_level(GF_Box *s)
 #endif
 
 
+GF_Box *gf_isom_box_find_child(GF_List *children, u32 code)
+{
+	u32 i, count;
+	if (!children) return NULL;
+	count = gf_list_count(children);
+	for (i=0; i<count; i++) {
+		GF_Box *c = gf_list_get(children, i);
+		if (c->type==code) return c;
+	}
+	return NULL;
+}
+
+void gf_isom_box_del_parent(GF_List **other_boxes, GF_Box*b)
+{
+	if (other_boxes) {
+		gf_list_del_item(*other_boxes, b);
+		if (!gf_list_count(*other_boxes)) {
+			gf_list_del(*other_boxes);
+			*other_boxes = NULL;
+		}
+	}
+	gf_isom_box_del(b);
+}
+
+GF_Box *gf_isom_box_new_parent(GF_List **parent, u32 code)
+{
+	GF_Box *b = gf_isom_box_new(code);
+	if (!b) return NULL;
+	if (! (*parent) ) (*parent)  = gf_list_new();
+	gf_list_add(*parent, b);
+	return b;
+}
 #endif /*GPAC_DISABLE_ISOM*/

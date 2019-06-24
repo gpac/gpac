@@ -703,6 +703,17 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	if (stxtcfg) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)stxtcfg, (u32) strlen(stxtcfg) ));
 
 
+#if !defined(GPAC_DISABLE_ISOM_WRITE)
+	tk_template=NULL;
+	tk_template_size=0;
+	e = gf_isom_get_stsd_template(read->mov, ch->track, stsd_idx, &tk_template, &tk_template_size);
+	if (e == GF_OK) {
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_STSD_TEMPLATE, &PROP_DATA_NO_COPY(tk_template, tk_template_size) );
+	} else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Failed to serialize stsd box: %s\n", gf_error_to_string(e) ));
+	}
+#endif
+
 	if (codec_id == GF_CODECID_DIMS) {
 		GF_DIMSDescription dims;
 		memset(&dims, 0, sizeof(GF_DIMSDescription));

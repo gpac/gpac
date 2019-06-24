@@ -41,12 +41,10 @@ GF_Err gf_isom_base_sample_entry_read(GF_SampleEntryBox *ptr, GF_BitStream *bs)
 
 void gf_isom_sample_entry_predestroy(GF_SampleEntryBox *ptr)
 {
-	if (ptr->protections) gf_isom_box_array_del(ptr->protections);
 }
 
 void gf_isom_sample_entry_init(GF_SampleEntryBox *ent)
 {
-	ent->protections = gf_list_new();
 }
 
 void gf_isom_video_sample_entry_init(GF_VisualSampleEntryBox *ent)
@@ -105,6 +103,63 @@ void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ptr, GF_BitStream
 	gf_bs_write_data(bs, ptr->compressor_name, 32);
 	gf_bs_write_u16(bs, ptr->bit_depth);
 	gf_bs_write_u16(bs, ptr->color_table_index);
+
+
+	if (gf_sys_is_test_mode()) {
+		//pacth for old export
+		GF_Box *clap = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_CLAP);
+		GF_Box *pasp = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_PASP);
+		GF_Box *colr = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_COLR);
+		GF_Box *mdcv = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_MDCV);
+		GF_Box *clli = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_CLLI);
+		GF_Box *ccst = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_CCST);
+		GF_Box *auxi = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_AUXI);
+		GF_Box *rvcc = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_RVCC);
+		GF_Box *sinf = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_SINF);
+		GF_Box *btrt = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_BTRT);
+
+		if (clap) {
+			gf_list_del_item(ptr->other_boxes, clap);
+			gf_list_add(ptr->other_boxes, clap);
+		}
+		if (pasp) {
+			gf_list_del_item(ptr->other_boxes, pasp);
+			gf_list_add(ptr->other_boxes, pasp);
+		}
+		if (colr) {
+			gf_list_del_item(ptr->other_boxes, colr);
+			gf_list_add(ptr->other_boxes, colr);
+		}
+		if (mdcv) {
+			gf_list_del_item(ptr->other_boxes, mdcv);
+			gf_list_add(ptr->other_boxes, mdcv);
+		}
+		if (clli) {
+			gf_list_del_item(ptr->other_boxes, clli);
+			gf_list_add(ptr->other_boxes, clli);
+		}
+		if (ccst) {
+			gf_list_del_item(ptr->other_boxes, ccst);
+			gf_list_add(ptr->other_boxes, ccst);
+		}
+		if (auxi) {
+			gf_list_del_item(ptr->other_boxes, auxi);
+			gf_list_add(ptr->other_boxes, auxi);
+		}
+		if (rvcc) {
+			gf_list_del_item(ptr->other_boxes, rvcc);
+			gf_list_add(ptr->other_boxes, rvcc);
+		}
+		if (sinf) {
+			gf_list_del_item(ptr->other_boxes, sinf);
+			gf_list_add(ptr->other_boxes, sinf);
+		}
+		if (btrt) {
+			gf_list_del_item(ptr->other_boxes, btrt);
+			gf_list_add(ptr->other_boxes, btrt);
+		}
+	}
+
 }
 
 void gf_isom_video_sample_entry_size(GF_VisualSampleEntryBox *ent)
@@ -1205,7 +1260,7 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 		case GF_ISOM_BOX_TYPE_ENCV:
 		case GF_ISOM_BOX_TYPE_ENCA:
 		case GF_ISOM_BOX_TYPE_ENCS:
-			sinf = gf_list_get(ent->protections, 0);
+			sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(ent->other_boxes, GF_ISOM_BOX_TYPE_SINF);
 			if (sinf && sinf->original_format)
 				ent_type = sinf->original_format->data_format;
 			break;

@@ -1193,11 +1193,9 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		if (!entry) return GF_ISOM_INVALID_FILE;
 
 		entry_type = entry->type;
-		if (gf_list_count(entry->protections)) {
-			GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_list_get(entry->protections, 0);
-			if (sinf && sinf->original_format) entry_type = sinf->original_format->data_format;
-		}
-
+		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->other_boxes, GF_ISOM_BOX_TYPE_SINF);
+		if (sinf && sinf->original_format) entry_type = sinf->original_format->data_format;
+		
 		switch (entry_type) {
 		case GF_ISOM_BOX_TYPE_MP4S:
 			//OK, delete the previous ESD

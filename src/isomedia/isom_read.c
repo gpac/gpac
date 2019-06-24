@@ -3297,9 +3297,10 @@ GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 
 	//valid for MPEG visual, JPG and 3GPP H263
 	if (entry->internal_type==GF_ISOM_SAMPLE_ENTRY_VIDEO) {
-		if (entry->pasp) {
-			*hSpacing = entry->pasp->hSpacing;
-			*vSpacing = entry->pasp->vSpacing;
+		GF_PixelAspectRatioBox *pasp = (GF_PixelAspectRatioBox *) gf_isom_box_find_child(entry->other_boxes, GF_ISOM_BOX_TYPE_PASP);
+		if (pasp) {
+			*hSpacing = pasp->hSpacing;
+			*vSpacing = pasp->vSpacing;
 		}
 		return GF_OK;
 	} else {
@@ -3313,7 +3314,6 @@ GF_Err gf_isom_get_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	GF_TrackBox *trak;
 	GF_VisualSampleEntryBox *entry;
 	GF_SampleDescriptionBox *stsd;
-	u32 i, count;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -3330,19 +3330,16 @@ GF_Err gf_isom_get_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	if (entry->internal_type!=GF_ISOM_SAMPLE_ENTRY_VIDEO) {
 		return GF_BAD_PARAM;
 	}
-	count = gf_list_count(entry->other_boxes);
-	for (i=0; i<count; i++) {
-		GF_ColourInformationBox *clr = gf_list_get(entry->other_boxes, i);
-		if (clr->type != GF_ISOM_BOX_TYPE_COLR) continue;
 
-		if (colour_type) *colour_type = clr->colour_type;
-		if (colour_primaries) *colour_primaries = clr->colour_primaries;
-		if (transfer_characteristics) *transfer_characteristics = clr->transfer_characteristics;
-		if (matrix_coefficients) *matrix_coefficients = clr->matrix_coefficients;
-		if (full_range_flag) *full_range_flag = clr->full_range_flag;
-		return GF_OK;
-	}
-	return GF_NOT_FOUND;
+	GF_ColourInformationBox *clr = (GF_ColourInformationBox *) gf_isom_box_find_child(entry->other_boxes, GF_ISOM_BOX_TYPE_COLR);
+	if (!clr) return GF_NOT_FOUND;
+
+	if (colour_type) *colour_type = clr->colour_type;
+	if (colour_primaries) *colour_primaries = clr->colour_primaries;
+	if (transfer_characteristics) *transfer_characteristics = clr->transfer_characteristics;
+	if (matrix_coefficients) *matrix_coefficients = clr->matrix_coefficients;
+	if (full_range_flag) *full_range_flag = clr->full_range_flag;
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -3799,12 +3796,13 @@ GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	if (!entry ) return GF_BAD_PARAM;
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
 
-	if (!entry->rvcc) return GF_BAD_PARAM;
+	GF_RVCConfigurationBox *rvcc = (GF_RVCConfigurationBox *)gf_isom_box_find_child(entry->other_boxes, GF_ISOM_BOX_TYPE_RVCC);
+	if (!rvcc) return GF_NOT_FOUND;
 
-	*rvc_predefined = entry->rvcc->predefined_rvc_config;
-	if (entry->rvcc->rvc_meta_idx) {
+	*rvc_predefined = rvcc->predefined_rvc_config;
+	if (rvcc->rvc_meta_idx) {
 		if (!data || !size) return GF_OK;
-		return gf_isom_extract_meta_item_mem(movie, GF_FALSE, track, entry->rvcc->rvc_meta_idx, data, size, NULL, mime, GF_FALSE);
+		return gf_isom_extract_meta_item_mem(movie, GF_FALSE, track, rvcc->rvc_meta_idx, data, size, NULL, mime, GF_FALSE);
 	}
 	return GF_OK;
 }
@@ -4554,7 +4552,7 @@ GF_Err gf_isom_get_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescInd
 		case GF_ISOM_BOX_TYPE_ENCV:
 		case GF_ISOM_BOX_TYPE_ENCA:
 		case GF_ISOM_BOX_TYPE_ENCS:
-			sinf = gf_list_get(ent->protections, 0);
+			sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(ent->other_boxes, GF_ISOM_BOX_TYPE_SINF);
 			if (sinf && sinf->original_format) type = sinf->original_format->data_format;
 			break;
 		}
