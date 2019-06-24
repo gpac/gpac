@@ -2665,7 +2665,7 @@ rbuffer (unsigned int, default: 100):    size of video rewind buffer in frames. 
 .SH flist
 .LP
 .br
-Description: sources concatenator
+Description: Sources concatenator
 .br
 
 .br
@@ -2689,7 +2689,7 @@ At each new source, the filter tries to remap input PIDs to already declared out
 .br
 
 .br
-When using a playlist, directives can be given in a comment line (starting with '#' before the file name)
+When using a playlist, directives can be given in a comment line (starting with '#' before the file name).
 .br
 The following directives (separated with space or comma) are supported:
 .br
@@ -2701,17 +2701,17 @@ Warning: This may not work with some files/formats not supporting seeking
 .br
 * stop=T: stops source playback after T seconds (double format only)
 .br
-This works on any source (implemented independetly from seek support)
+This works on any source (implemented independetly from seek support).
 .br
 
 .br
-The source lines follow the usual source syntax, see main help
+The source lines follow the usual source syntax, see gpac -h.
 .br
-Additionnal pid properties can be added per source, but are valid only for the current source, and reset at next source
+Additionnal pid properties can be added per source (see gpac -h doc), but are valid only for the current source, and reset at next source.
 .br
-The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist
+The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.
 .br
-If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded
+If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.
 .br
 
 .br
@@ -4231,7 +4231,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-ALPHA-rev3559-g8b73b94ef-buildbot-filters
+build: 0.9.0-ALPHA-rev3560-gf47e2adca-buildbot-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

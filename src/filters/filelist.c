@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / file concatenator filter
@@ -692,7 +692,7 @@ static const GF_FilterCapability FileListCaps[] =
 
 GF_FilterRegister FileListRegister = {
 	.name = "flist",
-	GF_FS_SET_DESCRIPTION("sources concatenator")
+	GF_FS_SET_DESCRIPTION("Sources concatenator")
 	GF_FS_SET_HELP("This filter can be used to play playlist files (extension txt or m3u) or a list of sources using flist:l=\"f1[,f2]\", where f1 can be a file or a directory to enum.\n"\
 		"Syntax for directory is:\n"\
 		"- dir/*: enumerates everything in dir\n"\
@@ -703,18 +703,18 @@ GF_FilterRegister FileListRegister = {
 		"The filter forces input demultiplex (no streamtype FILE) and recomputes the input timestamps into a continuous timeline.\n"\
 		"At each new source, the filter tries to remap input PIDs to already declared output PIDs of the same type, if any, or declares new output PIDs otherwise. If no input PID matches the type of an output, no packets are send for that PID.\n"\
 		"\n"\
-		"When using a playlist, directives can be given in a comment line (starting with '#' before the file name)\n"\
+		"When using a playlist, directives can be given in a comment line (starting with '#' before the file name).\n"\
 		"The following directives (separated with space or comma) are supported:\n"\
 		"- repeat=N: repeats N times the content (hence played N+1)\n"\
 		"- start=T: tries to play the file from start time T seconds (double format only)\n"\
 		"Warning: This may not work with some files/formats not supporting seeking\n"
 		"- stop=T: stops source playback after T seconds (double format only)\n"\
-		"This works on any source (implemented independetly from seek support)\n"
+		"This works on any source (implemented independetly from seek support).\n"
 		"\n"\
-		"The source lines follow the usual source syntax, see main help\n"\
-		"Additionnal pid properties can be added per source, but are valid only for the current source, and reset at next source\n"
-		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist\n"\
-		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded\n")
+		"The source lines follow the usual source syntax, see `gpac -h`.\n"\
+		"Additionnal pid properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"
+		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.\n"\
+		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.\n")
 	.private_size = sizeof(GF_FileListCtx),
 	.max_extra_pids = -1,
 	.flags = GF_FS_REG_ACT_AS_SOURCE,
