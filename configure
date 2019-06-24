@@ -246,10 +246,7 @@ GPAC configuration options:
   --static-modules         includes static modules in libgpac whenever possible
   --enable-mem-track       enable tracking of all memory allocated by gpac
   --enable-sanitizer       enable adress sanitizer
-<<<<<<< HEAD
-=======
   --enable-afl             enable instrumentation for American Fuzzy Lop
->>>>>>> master
   --disable-opt            disable GCC optimizations
   --disable-ipv6           disable IPV6 support
   --disable-wx             disable wxWidgets support
@@ -2999,16 +2996,9 @@ if test "$darwin" = "yes" ; then
     CFLAGS="$CFLAGS_DIR $CFLAGS -Wno-deprecated"
 fi
 
-<<<<<<< HEAD
-
-if test "$enable_sanitizer" = "yes" ; then
-CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover"
-LDFLAGS="$LDFLAGS -fsanitize=address,undefined -ldl"
-=======
 if test "$enable_sanitizer" = "yes" ; then
     CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g"
     LDFLAGS="$LDFLAGS -fsanitize=address,undefined -ldl"
->>>>>>> master
 fi
 
 
