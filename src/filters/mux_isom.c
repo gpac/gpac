@@ -190,7 +190,7 @@ typedef struct
 
 	GF_BitStream *bs_r;
 	//fragmentation state
-	Bool init_movie_done, fragment_started, segment_started, insert_tfdt, insert_pssh;
+	Bool init_movie_done, fragment_started, segment_started, insert_tfdt, insert_pssh, cdur_set;
 	Double next_frag_start, adjusted_next_frag_start;
 
 	u64 current_offset;
@@ -678,16 +678,19 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		}
 	}
 
-	if (ctx->cdur<0) {
-		if (ctx->make_qt)
-			ctx->cdur = 0.5;
-		else {
-			ctx->cdur = 1.0;
-			if (ctx->dash_mode)
-				ctx->fdur = GF_FALSE;
-		}
-	} else if (ctx->dash_mode)
-		ctx->fdur = GF_TRUE;
+	if (!ctx->cdur_set) {
+		ctx->cdur_set = GF_TRUE;
+		if (ctx->cdur<0) {
+			if (ctx->make_qt)
+				ctx->cdur = 0.5;
+			else {
+				ctx->cdur = 1.0;
+				if (ctx->dash_mode)
+					ctx->fdur = GF_FALSE;
+			}
+		} else if (ctx->dash_mode)
+			ctx->fdur = GF_TRUE;
+	}
 
 	if (needs_track) {
 		if (ctx->init_movie_done) {
