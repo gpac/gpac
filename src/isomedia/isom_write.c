@@ -1395,7 +1395,6 @@ GF_Err gf_isom_set_visual_color_info(GF_ISOFile *movie, u32 trackNumber, u32 Str
 	GF_SampleEntryBox *entry;
 	GF_SampleDescriptionBox *stsd;
 	GF_ColourInformationBox *clr=NULL;
-	u32 i, count;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
@@ -1415,18 +1414,15 @@ GF_Err gf_isom_set_visual_color_info(GF_ISOFile *movie, u32 trackNumber, u32 Str
 
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_OK;
 
-	clr=NULL;
-	count = gf_list_count(entry->other_boxes);
-	for (i=0; i<count; i++) {
-		clr=gf_list_get(entry->other_boxes, i);
-		if (clr->type==GF_ISOM_BOX_TYPE_COLR) break;
-		clr=NULL;
-
+	clr = ((GF_MPEGVisualSampleEntryBox *)entry)->colr;
+	if (!colour_type) {
+		if (clr) gf_isom_box_del((GF_Box *)clr);
+		((GF_MPEGVisualSampleEntryBox *)entry)->colr = NULL;
+		return GF_OK;
 	}
 	if (!clr) {
 		clr = (GF_ColourInformationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_COLR);
-		if (!entry->other_boxes) entry->other_boxes = gf_list_new();
-		gf_list_add(entry->other_boxes, clr);
+		((GF_MPEGVisualSampleEntryBox *)entry)->colr = clr;
 	}
 	clr->colour_type = colour_type;
 	clr->colour_primaries = colour_primaries;
