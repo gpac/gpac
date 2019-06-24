@@ -27,6 +27,15 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 
+enum{
+	FILE_RAND_NONE=0,
+	FILE_RAND_ANY,
+	FILE_RAND_SC_ANY,
+	FILE_RAND_SC_AVC,
+	FILE_RAND_SC_HEVC,
+	FILE_RAND_SC_AV1
+};
+
 typedef struct
 {
 	//options
@@ -68,8 +77,16 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	}
 	if (!strcmp(ctx->src, "rand") || !strcmp(ctx->src, "randsc")) {
 		gf_rand_init(GF_FALSE);
-		ctx->is_random = 1;
-		if (!strcmp(ctx->src, "randsc")) ctx->is_random = 2;
+		ctx->is_random = FILE_RAND_ANY;
+		if (!strcmp(ctx->src, "randsc")) {
+			ctx->is_random = FILE_RAND_SC_ANY;
+			if (ctx->mime) {
+				if (!strcmp(ctx->mime, "video/avc")) ctx->is_random = FILE_RAND_SC_AVC;
+				if (!strcmp(ctx->mime, "video/hevc")) ctx->is_random = FILE_RAND_SC_HEVC;
+				if (!strcmp(ctx->mime, "video/av1")) ctx->is_random = FILE_RAND_SC_AV1;
+			}
+		}
+
 		if (!ctx->block_size) ctx->block_size = 5000;
 		while (ctx->block_size % 4) ctx->block_size++;
 		ctx->block = gf_malloc(ctx->block_size +1);
@@ -84,7 +101,7 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	if (path) path += 3;
 	if (path && strstr(path, "://")) {
 		ctx->is_end = GF_TRUE;
-		return gf_filter_pid_raw_new(filter, path, path, NULL, NULL, NULL, 0, &ctx->pid);
+		return gf_filter_pid_raw_new(filter, path, path, NULL, NULL, NULL, 0, GF_TRUE, &ctx->pid);
 	}
 
 	//local file
@@ -281,12 +298,43 @@ static GF_Err filein_process(GF_Filter *filter)
 	}
 	if (ctx->is_random) {
 		u32 i;
-		if (ctx->is_random==2) {
+		if (ctx->is_random>=FILE_RAND_SC_ANY) {
 			for (i=0; i<ctx->block_size; i+= 4) {
 				u32 val = gf_rand();
-				if (!(val % 100))
-					val = 0x00000001;
-				* ((u32 *) (ctx->block + i)) = val;
+
+				if (i+4>=ctx->block_size) {
+					* ((u32 *) (ctx->block + i)) = val;
+					continue;
+				}
+				if (val % 100) {
+					* ((u32 *) (ctx->block + i)) = val;
+					continue;
+				}
+				if (ctx->is_random==FILE_RAND_SC_AVC) {
+					u32 rand_high = val>>24;
+					* ((u32 *) (ctx->block + i)) = 0x00000001;
+					i += 4;
+					val &= 0x00FFFFFF;
+					rand_high = rand_high%31;
+					rand_high <<= 24;
+					val |= rand_high;
+					* ((u32 *) (ctx->block + i)) = val;
+				} else if (ctx->is_random==FILE_RAND_SC_HEVC) {
+					u32 rand_high = val>>16;
+					* ((u32 *) (ctx->block + i)) = 0x00000001;
+					i += 4;
+					val &= 0x0000FFFF;
+					rand_high = rand_high % 63;
+					rand_high <<= 8;
+					rand_high |= 1; //end of layerid (=0) and temporal sublayer (=1)
+					rand_high <<= 16;
+					val |= rand_high;
+					* ((u32 *) (ctx->block + i)) = val;
+				}
+				else {
+					val &= 0x000001FF;
+					* ((u32 *) (ctx->block + i)) = val;
+				}
 			}
 		} else {
 			for (i=0; i<ctx->block_size; i+= 4) {
@@ -296,7 +344,7 @@ static GF_Err filein_process(GF_Filter *filter)
 		ctx->block[ctx->block_size]=0;
 
 		if (!ctx->pid) {
-			e = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, ctx->mime, ctx->ext, ctx->block, ctx->block_size, &ctx->pid);
+			e = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, ctx->mime, ctx->ext, ctx->block, ctx->block_size, GF_TRUE,  &ctx->pid);
 			if (e) return e;
 		}
 		pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, ctx->block_size, filein_pck_destructor);
@@ -326,7 +374,7 @@ static GF_Err filein_process(GF_Filter *filter)
 	ctx->block[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
 		ctx->do_reconfigure = GF_FALSE;
-		e = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, ctx->mime, ctx->ext, ctx->block, nb_read, &ctx->pid);
+		e = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, ctx->mime, ctx->ext, ctx->block, nb_read, GF_TRUE, &ctx->pid);
 		if (e) return e;
 		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );

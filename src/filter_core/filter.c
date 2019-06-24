@@ -2644,7 +2644,7 @@ Bool gf_filter_block_enabled(GF_Filter *filter)
 }
 
 GF_EXPORT
-GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, GF_FilterPid **out_pid)
+GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid)
 {
 	char *sep;
 	char tmp_ext[50];
@@ -2710,7 +2710,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	
 	ext_not_trusted = GF_FALSE;
 	//probe data
-	if (!mime_type && !filter->no_probe && is_new_pid && probe_data && probe_size && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
+	if ((!mime_type || !trust_mime) && !filter->no_probe && is_new_pid && probe_data && probe_size && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
 		u32 i, count;
 		GF_FilterProbeScore score, max_score = GF_FPROBE_NOT_SUPPORTED;
 		const char *probe_mime = NULL;

@@ -103,7 +103,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 	if (server) server += 3;
 	if (server && strstr(server, "://")) {
 		ctx->is_end = GF_TRUE;
-		return gf_filter_pid_raw_new(filter, server, server, NULL, NULL, NULL, 0, &ctx->pid);
+		return gf_filter_pid_raw_new(filter, server, server, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
 	}
 
 	ctx->sess = gf_dm_sess_new(ctx->dm, ctx->src, flags, NULL, NULL, &e);
@@ -344,7 +344,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 			}
 			ctx->file_size = total_size;
 			ctx->block[nb_read] = 0;
-			e = gf_filter_pid_raw_new(filter, ctx->src, cached, ctx->mime ? ctx->mime : gf_dm_sess_mime_type(ctx->sess), ctx->ext, ctx->block, nb_read, &ctx->pid);
+			e = gf_filter_pid_raw_new(filter, ctx->src, cached, ctx->mime ? ctx->mime : gf_dm_sess_mime_type(ctx->sess), ctx->ext, ctx->block, nb_read, ctx->mime ? GF_TRUE : GF_FALSE, &ctx->pid);
 			if (e) return e;
 
 			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_FALSE) );

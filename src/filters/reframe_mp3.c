@@ -286,7 +286,7 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 					pic_size = (u32) ( (sep_desc + 1) - buf);
 					pic_size = fsize - pic_size;
 
-					e = gf_filter_pid_raw_new(filter, NULL, NULL, buf+1, NULL, sep_desc+1, pic_size, &ctx->vpid);
+					e = gf_filter_pid_raw_new(filter, NULL, NULL, buf+1, NULL, sep_desc+1, pic_size, GF_FALSE, &ctx->vpid);
 					if (e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[MP3Dmx] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
 					}
