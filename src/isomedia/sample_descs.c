@@ -117,6 +117,8 @@ void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ptr, GF_BitStream
 		GF_Box *rvcc = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_RVCC);
 		GF_Box *sinf = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_SINF);
 		GF_Box *btrt = gf_isom_box_find_child(ptr->other_boxes, GF_ISOM_BOX_TYPE_BTRT);
+		GF_Box *fiel = gf_isom_box_find_child(ptr->other_boxes, GF_QT_BOX_TYPE_FIEL);
+		GF_Box *gamma = gf_isom_box_find_child(ptr->other_boxes, GF_QT_BOX_TYPE_GAMA);
 
 		if (clap) {
 			gf_list_del_item(ptr->other_boxes, clap);
@@ -129,6 +131,14 @@ void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ptr, GF_BitStream
 		if (colr) {
 			gf_list_del_item(ptr->other_boxes, colr);
 			gf_list_add(ptr->other_boxes, colr);
+		}
+		if (fiel) {
+			gf_list_del_item(ptr->other_boxes, fiel);
+			gf_list_add(ptr->other_boxes, fiel);
+		}
+		if (gamma) {
+			gf_list_del_item(ptr->other_boxes, gamma);
+			gf_list_add(ptr->other_boxes, gamma);
 		}
 		if (mdcv) {
 			gf_list_del_item(ptr->other_boxes, mdcv);
