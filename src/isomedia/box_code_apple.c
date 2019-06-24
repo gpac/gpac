@@ -535,14 +535,14 @@ GF_Err tmcd_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->frames_per_sec);
 	gf_bs_write_u8(bs, 0); //reserved
 
-	return gf_isom_box_array_write(s, ptr->protections, bs);
+	return GF_OK;
 }
 
 GF_Err tmcd_Size(GF_Box *s)
 {
 	GF_SampleEntryBox *ptr = (GF_SampleEntryBox *)s;
 	ptr->size += 8 + 18;
-	return gf_isom_box_array_size(s, ptr->protections);
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

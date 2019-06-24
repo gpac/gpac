@@ -130,7 +130,9 @@ static GF_ProtectionSchemeInfoBox *isom_get_sinf_entry(GF_TrackBox *trak, u32 sa
 	if (!sea) return NULL;
 
 	i = 0;
-	while ((sinf = (GF_ProtectionSchemeInfoBox*)gf_list_enum(sea->protections, &i))) {
+	while ((sinf = (GF_ProtectionSchemeInfoBox*)gf_list_enum(sea->other_boxes, &i))) {
+		if (sinf->type != GF_ISOM_BOX_TYPE_SINF) continue;
+
 		if (sinf->original_format && sinf->scheme_type && sinf->info) {
 			if (!scheme_type || (sinf->scheme_type->scheme_type == scheme_type)) {
 				if (out_sea)
@@ -342,8 +344,11 @@ GF_Err gf_isom_remove_track_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	if (!sinf) return GF_OK;
 
 	sea->type = sinf->original_format->data_format;
-	gf_isom_box_array_del(sea->protections);
-	sea->protections = gf_list_new();
+	while (1) {
+		GF_Box *b = gf_isom_box_find_child(sea->other_boxes, GF_ISOM_BOX_TYPE_SINF);
+		if (!b) break;
+		gf_isom_box_del_parent(&sea->other_boxes, b);
+	}
 	if (sea->type == GF_ISOM_BOX_TYPE_264B) sea->type = GF_ISOM_BOX_TYPE_AVC1;
 	if (sea->type == GF_ISOM_BOX_TYPE_265B) sea->type = GF_ISOM_BOX_TYPE_HVC1;
 	if (sea->type == GF_ISOM_BOX_TYPE_AV1B) sea->type = GF_ISOM_BOX_TYPE_AV01;
@@ -464,8 +469,7 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 		return GF_BAD_PARAM;
 	}
 
-	sinf = (GF_ProtectionSchemeInfoBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SINF);
-	gf_list_add(sea->protections, sinf);
+	sinf = (GF_ProtectionSchemeInfoBox *)gf_isom_box_new_parent(&sea->other_boxes, GF_ISOM_BOX_TYPE_SINF);
 
 	sinf->scheme_type = (GF_SchemeTypeBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SCHM);
 	sinf->scheme_type->version = version;
@@ -580,7 +584,7 @@ GF_Err gf_isom_get_original_format_type(GF_ISOFile *the_file, u32 trackNumber, u
 	Media_GetSampleDesc(trak->Media, sampleDescriptionIndex, &sea, NULL);
 	if (!sea) return GF_BAD_PARAM;
 
-	sinf = (GF_ProtectionSchemeInfoBox*)gf_list_get(sea->protections, 0);
+	sinf = (GF_ProtectionSchemeInfoBox*) gf_isom_box_find_child(sea->other_boxes, GF_ISOM_BOX_TYPE_SINF);
 	if (outOriginalFormat && sinf->original_format) {
 		*outOriginalFormat = sinf->original_format->data_format;
 	}

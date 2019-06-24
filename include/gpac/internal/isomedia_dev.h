@@ -1036,7 +1036,6 @@ typedef struct
 	u16 dataReferenceIndex;				\
 	char reserved[ 6 ];					\
 	u32 internal_type;					\
-	GF_List *protections;
 
 /*base sample entry box - used by some generic media sample descriptions of QT*/
 typedef struct
@@ -1248,7 +1247,7 @@ typedef struct {
 } GF_ColourInformationBox;
 
 
-
+//do NOT extend this structure with boxes, children boxes shall go into the other_box field of the parent
 #define GF_ISOM_VISUAL_SAMPLE_ENTRY		\
 	GF_ISOM_SAMPLE_ENTRY_FIELDS			\
 	u16 version;						\
@@ -1263,16 +1262,7 @@ typedef struct {
 	char compressor_name[33];			\
 	u16 bit_depth;						\
 	s16 color_table_index;				\
-	GF_PixelAspectRatioBox *pasp;		\
-	GF_CleanApertureBox *clap;			\
-	GF_CodingConstraintsBox *ccst;		\
-	GF_AuxiliaryTypeInfoBox *auxi;		\
-	struct __tag_protect_box *rinf;		\
-	GF_RVCConfigurationBox *rvcc;		\
-	GF_ColourInformationBox *colr;		\
-	GF_MasteringDisplayColourVolumeBox *mdcv;	\
-	GF_ContentLightLevelBox *clli;		\
-
+	struct __tag_protect_box *rinf; 	\
 
 typedef struct
 {
@@ -1287,6 +1277,11 @@ void gf_isom_video_sample_entry_size(GF_VisualSampleEntryBox *ent);
 #endif
 
 void gf_isom_sample_entry_predestroy(GF_SampleEntryBox *ptr);
+
+
+GF_Box *gf_isom_box_find_child(GF_List *parent_child_list, u32 code);
+void gf_isom_box_del_parent(GF_List **parent_child_list, GF_Box*b);
+GF_Box *gf_isom_box_new_parent(GF_List **parent_child_list, u32 code);
 
 typedef struct
 {
@@ -1402,8 +1397,6 @@ typedef struct
 	/*vp8-9 extension*/
 	GF_J2KHeaderBox *jp2h;
 
-	/*ext descriptors*/
-	GF_MPEG4ExtensionDescriptorsBox *descr;
 	/*internally emulated esd*/
 	GF_ESD *emul_esd;
 

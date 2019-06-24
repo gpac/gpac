@@ -1130,8 +1130,7 @@ static GF_Err dims_AddBox(GF_Box *s, GF_Box *a)
 			ptr->scripts = (GF_DIMSScriptTypesBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_SINF:
-		gf_list_add(ptr->protections, a);
-		break;
+		return gf_isom_box_add_default(s, a);
 	default:
 		return gf_isom_box_add_default(s, a);
 	}
@@ -1165,7 +1164,7 @@ GF_Err dims_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)p->scripts, bs);
 		if (e) return e;
 	}
-	return gf_isom_box_array_write(s, p->protections, bs);
+	return GF_OK;
 }
 
 GF_Err dims_Size(GF_Box *s)
@@ -1185,7 +1184,7 @@ GF_Err dims_Size(GF_Box *s)
 		if (e) return e;
 		p->size += p->scripts->size;
 	}
-	return gf_isom_box_array_size(s, p->protections);
+	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

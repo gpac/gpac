@@ -2053,6 +2053,12 @@ sample_entry_done:
 		}
 
 		if (lang_name) gf_isom_set_media_language(ctx->file, tkw->track_num, (char*)lang_name);
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_STSD_TEMPLATE);
+		if (ctx->tktpl && p && p->value.data.ptr) {
+			gf_isom_update_sample_description_from_template(ctx->file, tkw->track_num, tkw->stsd_idx, p->value.data.ptr, p->value.data.size);
+		}
+
 	}
 
 	if (is_true_pid && ctx->importer && !tkw->import_msg_header_done) {

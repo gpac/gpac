@@ -607,9 +607,6 @@ GF_Err mp4s_dump(GF_Box *a, FILE * trace)
 	} else if (p->size) {
 		fprintf(trace, "<!--INVALID MP4 FILE: ESDBox not present in MPEG Sample Description or corrupted-->\n");
 	}
-	if (a->type == GF_ISOM_BOX_TYPE_ENCS) {
-		gf_isom_box_array_dump(p->protections, trace);
-	}
 	gf_isom_box_dump_done("MPEGSystemsSampleDescriptionBox", a, trace);
 	return GF_OK;
 }
@@ -694,26 +691,12 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 		if (p->hevc_config) gf_isom_box_dump(p->hevc_config, trace);
 		if (p->avc_config) gf_isom_box_dump(p->avc_config, trace);
 		if (p->ipod_ext) gf_isom_box_dump(p->ipod_ext, trace);
-		if (p->descr) gf_isom_box_dump(p->descr, trace);
 		if (p->svc_config) gf_isom_box_dump(p->svc_config, trace);
 		if (p->mvc_config) gf_isom_box_dump(p->mvc_config, trace);
 		if (p->lhvc_config) gf_isom_box_dump(p->lhvc_config, trace);
 		if (p->av1_config) gf_isom_box_dump(p->av1_config, trace);
 		if (p->cfg_3gpp) gf_isom_box_dump(p->cfg_3gpp, trace);
 	}
-	if (a->type == GF_ISOM_BOX_TYPE_ENCV) {
-		gf_isom_box_array_dump(p->protections, trace);
-	}
-	if (p->pasp) gf_isom_box_dump(p->pasp, trace);
-	if (p->mdcv) gf_isom_box_dump(p->colr, trace);
-	if (p->mdcv) gf_isom_box_dump(p->mdcv, trace);
-	if (p->clli) gf_isom_box_dump(p->clli, trace);
-	if (p->clap) gf_isom_box_dump(p->clap, trace);
-	if (p->ccst) gf_isom_box_dump(p->ccst, trace);
-	if (p->auxi) gf_isom_box_dump(p->auxi, trace);
-	if (p->rvcc) gf_isom_box_dump(p->rvcc, trace);
-	if (p->rinf) gf_isom_box_dump(p->rinf, trace);
-
 	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
@@ -813,10 +796,6 @@ GF_Err audio_sample_entry_dump(GF_Box *a, FILE * trace)
 		if (p->cfg_mha)
 			gf_isom_box_dump(p->cfg_mha, trace);
 	}
-
-	if (a->type == GF_ISOM_BOX_TYPE_ENCA) {
-		gf_isom_box_array_dump(p->protections, trace);
-	}
 	gf_isom_box_dump_done(szName, a, trace);
 	return GF_OK;
 }
@@ -837,10 +816,6 @@ GF_Err gen_sample_entry_dump(GF_Box *a, FILE * trace)
 
 	gf_isom_box_dump_start(a, szName, trace);
 	fprintf(trace, ">\n");
-
-	if (p->protections && gf_list_count(p->protections) ) {
-		gf_isom_box_array_dump(p->protections, trace);
-	}
 	gf_isom_box_dump_done(szName, a, trace);
 	return GF_OK;
 }
@@ -3975,7 +3950,6 @@ GF_Err metx_dump(GF_Box *a, FILE * trace)
 	if ((ptr->type!=GF_ISOM_BOX_TYPE_METX) && (ptr->type!=GF_ISOM_BOX_TYPE_STPP) ) {
 		if (ptr->config) gf_isom_box_dump(ptr->config, trace);
 	}
-	gf_isom_box_array_dump(ptr->protections, trace);
 
 	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
@@ -4002,7 +3976,7 @@ GF_Err dims_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "dataReferenceIndex=\"%d\">\n", p->dataReferenceIndex);
 	if (p->config) gf_isom_box_dump(p->config, trace);
 	if (p->scripts) gf_isom_box_dump(p->scripts, trace);
-	gf_isom_box_array_dump(p->protections, trace);
+
 	gf_isom_box_dump_done("DIMSSampleEntryBox", a, trace);
 	return GF_OK;
 }
