@@ -301,6 +301,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	HEVCState *hevc_state = NULL;
 	Bool first_slice_in_pic = GF_TRUE;
 	const GF_PropertyValue *p;
+	const char *filepath = NULL;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
@@ -309,6 +310,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		ctx->file_loaded = GF_TRUE;
 		return;
 	}
+	filepath = p->value.string;
 	ctx->is_file = GF_TRUE;
 
 	if (ctx->index<0) {
@@ -325,7 +327,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		return;
 	}
 
-	stream = gf_fopen(p->value.string, "rb");
+	stream = gf_fopen(filepath, "rb");
 	if (!stream) return;
 
 	ctx->index_size = 0;

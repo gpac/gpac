@@ -230,6 +230,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	GF_BitStream *bs;
 	u64 duration, cur_dur, last_cdur;
 	AV1State av1state;
+	const char *filepath=NULL;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
@@ -242,6 +243,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		ctx->file_loaded = GF_FALSE;
 		return;
 	}
+	filepath = p->value.string;
 	ctx->is_file = GF_TRUE;
 
 	if (ctx->index<0) {
@@ -255,7 +257,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (ctx->index<=0)
 		return;
 
-	stream = gf_fopen(p->value.string, "rb");
+	stream = gf_fopen(filepath, "rb");
 	if (!stream) return;
 
 	ctx->index_size = 0;
