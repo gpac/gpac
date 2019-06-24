@@ -2091,6 +2091,11 @@ Constant duration of samples, 0 means variable duration (isobmff only, static pr
 ISOBMFF serialized track box for this PID, without any sample info (empty stbl and empty dref) - used by isomuxer to reinject specific boxes of input ISOBMFF track
 .br
 .TP
+.B STSDTemplate (ISTD,data,D )
+.br
+ISOBMFF serialized stsd box for this PID - used by isomuxer to reinject specific boxes of input ISOBMFF track
+.br
+.TP
 .B MovieUserData (IMUD,data,D )
 .br
 ISOBMFF serialized moov UDTA and other moov-level boxes (list) for this PID - used by isomuxer to reinject specific boxes of input ISOBMFF moov
@@ -2224,6 +2229,26 @@ Indicates the PID packets come from source with losses and reordering happening 
 .B Primary (PITM,boolean,D )
 .br
 Indicates this is a primary item in isobmf
+.br
+.TP
+.B ColorPrimaries (CPRM,unsigned int,D )
+.br
+Indicate color primaries for a visual pid (see ISO/IEC 23001-8)
+.br
+.TP
+.B ColorTransfer (CTRC,unsigned int,D )
+.br
+Indicate color transfer characteristics for a visual pid (see ISO/IEC 23001-8)
+.br
+.TP
+.B ColorMatrixCoef (CMXC,unsigned int,D )
+.br
+Indicate color matrix coeficient for a visual pid (see ISO/IEC 23001-8)
+.br
+.TP
+.B FullRange (CFRA,unsigned int,D )
+.br
+Indicate color full range flag for a visual pid (see ISO/IEC 23001-8)
 .br
 .SH Pixel formats
 .LP
@@ -2484,7 +2509,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-ALPHA-rev3519-g883e39b8c-buildbot-filters
+build: 0.9.0-ALPHA-rev3559-g8b73b94ef-buildbot-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
