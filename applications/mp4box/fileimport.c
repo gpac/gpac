@@ -3377,9 +3377,9 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, char *file_name)
 			}
 		}
 
-		e = gf_isom_set_hdr(movie, id, 1, &mdcv, &clli);
+		e = gf_isom_set_high_dynamic_range_info(movie, id, 1, &mdcv, &clli);
 		if (e) {
-			fprintf(stderr, "HDR XML: error in gf_isom_set_hdr()\n");
+			fprintf(stderr, "HDR XML: error in gf_isom_set_high_dynamic_range_info()\n");
 			break;
 		}
 	}
