@@ -1073,6 +1073,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	u32 crc_cfg, crc_cfg_enh;
 	GF_Fraction sar;
 	Bool has_hevc_base = GF_TRUE;
+	Bool has_colr_info = GF_FALSE;
 
 	if (ctx->analyze) {
 		if (ctx->opid && !ctx->ps_modified) return;
@@ -1157,6 +1158,36 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 	if (ctx->is_file /* && ctx->index*/) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
+	}
+
+	if (ctx->is_hevc) {
+		HEVC_SPS *sps = &ctx->hevc_state->sps[ctx->hevc_state->sps_active_idx];
+		if (sps->colour_description_present_flag) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_PRIMARIES, & PROP_UINT(sps->colour_primaries) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, & PROP_UINT(sps->transfer_characteristic) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(sps->matrix_coeffs) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(sps->video_full_range_flag) );
+			has_colr_info = GF_TRUE;
+		}
+	} else {
+		/*use the last active SPS*/
+		if (ctx->avc_state->sps[ctx->avc_state->sps_active_idx].vui_parameters_present_flag
+		&& ctx->avc_state->sps[ctx->avc_state->sps_active_idx].vui.colour_description_present_flag) {
+			AVC_VUI *vui = &ctx->avc_state->sps[ctx->avc_state->sps_active_idx].vui;
+
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_PRIMARIES, & PROP_UINT(vui->colour_primaries) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, & PROP_UINT(vui->transfer_characteristics) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(vui->matrix_coefficients) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(vui->video_full_range_flag) );
+			has_colr_info = GF_TRUE;
+		}
+	}
+
+	if (!has_colr_info) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_PRIMARIES, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, NULL);
 	}
 }
 

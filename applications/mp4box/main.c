@@ -150,7 +150,7 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("timescale", NULL, "set movie timescale to given value (ticks per second)", "600", NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("lang `[ID=]LAN`", NULL, "set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("delay `ID=TIME`", NULL, "set track start delay in ms", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("par `ID=PAR`", NULL, "set visual track pixel aspect ratio. PAR is `N:D` or `none`", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("par `ID=PAR`", NULL, "set visual track pixel aspect ratio. PAR is `N:D` or `none` or `force` to write anyway", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("clap `ID=CLAP`", NULL, "set visual track clean aperture. CLAP is `Wn:Wd:Hn:Hd:HOn:HOd:VOn:VOd` or `none`\n"
  			"- n, d: numerator, denominator\n"
 	        "- W, H, HO, VO: clap width, clap height, clap horizontal offset, clap vertical offset\n"
@@ -2183,7 +2183,7 @@ GF_SceneDumpFormat dump_mode;
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
 Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, hls_clock, do_mpd_rip, merge_vtt_cues;
-char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes;
+char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *high_dynamc_range_filename;
 u32 track_dump_type, dump_isom, dump_timestamps;
 u32 trackID;
 Bool comp_lzma=GF_FALSE;
@@ -2678,7 +2678,13 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			open_edit = GF_TRUE;
 			nb_track_act++;
 			i++;
-		}		else if (!stricmp(arg, "-lang")) {
+		}
+		else if (!stricmp(arg, "-hdr")) {
+			CHECK_NEXT_ARG
+			high_dynamc_range_filename = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-lang")) {
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
@@ -4089,7 +4095,7 @@ int mp4boxMain(int argc, char **argv)
 	program_number = 0;
 	info_track_id = 0;
 	do_flat = GF_FALSE;
-	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = NULL;
+	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = high_dynamc_range_filename = NULL;
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
 	swf_flags = GF_SM_SWF_SPLIT_TIMELINE;
@@ -4934,6 +4940,11 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 
+	if (high_dynamc_range_filename) {
+		e = parse_high_dynamc_range_xml_desc(file, high_dynamc_range_filename);
+		if (e) goto err_exit;
+	}
+
 	if (file && keep_utc && open_edit) {
 		gf_isom_keep_utc_times(file, 1);
 	}
@@ -5592,7 +5603,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 			break;
 		case TRAC_ACTION_SET_PAR:
-			e = gf_media_change_par(file, track, tka->par_num, tka->par_den);
+			e = gf_media_change_par(file, track, tka->par_num, tka->par_den, GF_FALSE);
 			needSave = GF_TRUE;
 			break;
 		case TRAC_ACTION_SET_CLAP:

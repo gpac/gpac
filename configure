@@ -246,6 +246,10 @@ GPAC configuration options:
   --static-modules         includes static modules in libgpac whenever possible
   --enable-mem-track       enable tracking of all memory allocated by gpac
   --enable-sanitizer       enable adress sanitizer
+<<<<<<< HEAD
+=======
+  --enable-afl             enable instrumentation for American Fuzzy Lop
+>>>>>>> master
   --disable-opt            disable GCC optimizations
   --disable-ipv6           disable IPV6 support
   --disable-wx             disable wxWidgets support
@@ -377,6 +381,8 @@ for opt do
         --enable-pic) want_pic="yes";
             ;;
         --enable-gcov) want_gcov="yes";
+            ;;
+        --enable-afl) cc_orig="afl-gcc"; cxx_orig="afl-g++"
             ;;
         --verbose) verbose="yes";
             ;;
@@ -2643,6 +2649,7 @@ echo "debug version: $debuginfo"
 echo "GProf enabled: $gprof_build"
 echo "Static build enabled: $static_build"
 echo "Memory tracking enabled: $use_memory_tracking"
+echo "Sanitizer enabled: $enable_sanitizer"
 echo "Fixed-Point Version: $use_fixed_point"
 echo "IPV6 Support: $has_ipv6"
 echo "Static Modules: $static_modules"
@@ -2992,10 +2999,16 @@ if test "$darwin" = "yes" ; then
     CFLAGS="$CFLAGS_DIR $CFLAGS -Wno-deprecated"
 fi
 
+<<<<<<< HEAD
 
 if test "$enable_sanitizer" = "yes" ; then
 CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover"
 LDFLAGS="$LDFLAGS -fsanitize=address,undefined -ldl"
+=======
+if test "$enable_sanitizer" = "yes" ; then
+    CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g"
+    LDFLAGS="$LDFLAGS -fsanitize=address,undefined -ldl"
+>>>>>>> master
 fi
 
 

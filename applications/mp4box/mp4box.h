@@ -52,6 +52,8 @@ typedef enum {
 void convert_file_info(char *inName, u32 trackID);
 #endif
 
+GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile* movie, char* file_name);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT

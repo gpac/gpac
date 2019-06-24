@@ -1190,6 +1190,25 @@ typedef struct
 	u32 vertOffD;
 } GF_CleanApertureBox;
 
+
+typedef struct __ContentLightLevel {
+	GF_ISOM_BOX
+	u16 max_content_light_level;
+	u16 max_pic_average_light_level;
+} GF_ContentLightLevelBox;
+
+typedef struct ___MasteringDisplayColourVolume {
+	GF_ISOM_BOX
+	struct {
+		u16 x;
+		u16 y;
+	} display_primaries[3];
+	u16 white_point_x;
+	u16 white_point_y;
+	u32 max_display_mastering_luminance;
+	u32 min_display_mastering_luminance;
+} GF_MasteringDisplayColourVolumeBox;
+
 typedef struct
 {
 	GF_ISOM_FULL_BOX
@@ -1212,6 +1231,24 @@ typedef struct
 	u32 rvc_meta_idx;
 } GF_RVCConfigurationBox;
 
+
+typedef struct {
+	GF_ISOM_BOX
+	Bool is_jp2;
+
+	u32 colour_type;
+	u16 colour_primaries;
+	u16 transfer_characteristics;
+	u16 matrix_coefficients;
+	Bool full_range_flag;
+	u8 *opaque;
+	u32 opaque_size;
+
+	u8 method, precedence, approx;
+} GF_ColourInformationBox;
+
+
+
 #define GF_ISOM_VISUAL_SAMPLE_ENTRY		\
 	GF_ISOM_SAMPLE_ENTRY_FIELDS			\
 	u16 version;						\
@@ -1227,11 +1264,14 @@ typedef struct
 	u16 bit_depth;						\
 	s16 color_table_index;				\
 	GF_PixelAspectRatioBox *pasp;		\
-	GF_CleanApertureBox *clap;		\
+	GF_CleanApertureBox *clap;			\
 	GF_CodingConstraintsBox *ccst;		\
 	GF_AuxiliaryTypeInfoBox *auxi;		\
-	struct __tag_protect_box *rinf;				\
+	struct __tag_protect_box *rinf;		\
 	GF_RVCConfigurationBox *rvcc;		\
+	GF_ColourInformationBox *colr;		\
+	GF_MasteringDisplayColourVolumeBox *mdcv;	\
+	GF_ContentLightLevelBox *clli;		\
 
 
 typedef struct
@@ -1324,23 +1364,6 @@ typedef struct
 	GF_ISOM_BOX
 	GF_3GPConfig cfg;
 } GF_3GPPConfigBox;
-
-
-typedef struct {
-	GF_ISOM_BOX
-	Bool is_jp2;
-
-	u32 colour_type;
-	u16 colour_primaries;
-	u16 transfer_characteristics;
-	u16 matrix_coefficients;
-	Bool full_range_flag;
-	u8 *opaque;
-	u32 opaque_size;
-
-	u8 method, precedence, approx;
-} GF_ColourInformationBox;
-
 
 typedef struct
 {
@@ -3210,7 +3233,6 @@ typedef struct {
 	u32 image_height;
 } GF_ImageSpatialExtentsPropertyBox;
 
-
 typedef struct {
 	GF_ISOM_FULL_BOX
 	u8 num_channels;
@@ -3227,24 +3249,6 @@ typedef struct {
 	GF_ISOM_BOX
 	u8 angle;
 } GF_ImageRotationBox;
-
-typedef struct {
-	GF_ISOM_BOX
-	u16 max_content_light_level;
-	u16 max_pic_average_light_level;
-} GF_ContentLightLevelBox;
-
-typedef struct {
-	GF_ISOM_BOX
-	struct {
-		u16 x;
-		u16 y;
-	} display_primaries[3];
-	u16 white_point_x;
-	u16 white_point_y;
-	u32 max_display_mastering_luminance;
-	u32 min_display_mastering_luminance;
-} GF_MasteringDisplayColourVolumeBox;
 
 typedef struct {
 	u32 item_id;
@@ -4068,10 +4072,11 @@ GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample_from_data(char *
 
 /*do not throw fatal errors if boxes are duplicated, just warn and remove extra ones*/
 #define ERROR_ON_DUPLICATED_BOX(__abox, __parent) {	\
+		extern Bool use_dump_mode;\
 		char __ptype[5];\
 		strcpy(__ptype, gf_4cc_to_str(__parent->type) );\
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] extra box %s found in %s, deleting\n", gf_4cc_to_str(__abox->type), __ptype)); \
-		gf_isom_box_del(__abox);\
+		if (!use_dump_mode) gf_isom_box_del(__abox);\
 		__abox=NULL;\
 		return GF_OK;\
 	}

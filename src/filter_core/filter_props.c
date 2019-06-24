@@ -1165,6 +1165,12 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_SINGLE_SCALE, "SingleScale", "Indicates the movie header should use the media timescale of the first track added", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_UDP, "RequireReorder", "Indicates the PID packets come from source with losses and reordering happening (UDP)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_PRIMARY_ITEM, "Primary", "Indicates this is a primary item in isobmf", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
+
+	{ GF_PROP_PID_COLR_PRIMARIES, "ColorPrimaries", "Indicate color primaries for a visual pid (see ISO/IEC 23001-8)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_COLR_TRANSFER, "ColorTransfer", "Indicate color transfer characteristics for a visual pid (see ISO/IEC 23001-8)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_COLR_MX, "ColorMatrixCoef", "Indicate color matrix coeficient for a visual pid (see ISO/IEC 23001-8)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_COLR_RANGE, "FullRange", "Indicate color full range flag for a visual pid (see ISO/IEC 23001-8)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+
 };
 
 GF_EXPORT

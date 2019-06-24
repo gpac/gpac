@@ -928,6 +928,11 @@ enum
 	GF_PROP_PID_UDP = GF_4CC('P','U','D','P'),
 
 	GF_PROP_PID_PRIMARY_ITEM = GF_4CC('P','I','T','M'),
+
+	GF_PROP_PID_COLR_PRIMARIES = GF_4CC('C','P','R','M'),
+	GF_PROP_PID_COLR_TRANSFER = GF_4CC('C','T','R','C'),
+	GF_PROP_PID_COLR_MX = GF_4CC('C','M','X','C'),
+	GF_PROP_PID_COLR_RANGE = GF_4CC('C','F','R','A'),
 };
 
 /*! Gets readable name of built-in property
