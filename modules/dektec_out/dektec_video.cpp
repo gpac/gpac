@@ -29,7 +29,11 @@
 
 #ifdef GPAC_HAS_DTAPI
 
+//#define FAKE_DT_API
+
+#ifndef FAKE_DT_API
 #include <DTAPI.h>
+#endif
 
 #include <gpac/constants.h>
 #include <gpac/color.h>
@@ -61,9 +65,11 @@ typedef struct _dtout_ctx
 	GF_Fraction framerate;
 	Bool is_sending, is_configured, is_10b, is_eos;
 
+#ifndef FAKE_DT_API
 	DtMxProcess *dt_matrix;
 	DtDevice *dt_device;
 	DtCbkCtx audio_cbk, video_cbk;
+#endif
 
 	s64 frameNum;
 	u64 init_clock, last_frame_time;
@@ -71,6 +77,8 @@ typedef struct _dtout_ctx
 	u32 frame_dur, frame_scale;
 	Bool needs_reconfigure;
 } GF_DTOutCtx;
+
+#ifndef FAKE_DT_API
 
 static void OnNewFrameAudio(DtMxData *pData, const DtCbkCtx *ctx) {
 	DTAPI_RESULT  dr;
@@ -815,13 +823,16 @@ static void dtout_finalize(GF_Filter *filter)
 	delete(ctx->dt_device);
 }
 
+#endif //FAKE_DT_API
 
 static GF_Err dtout_process(GF_Filter *filter)
 {
 	GF_DTOutCtx *ctx = (GF_DTOutCtx*)gf_filter_get_udta(filter);
 	if (!ctx->is_configured && !ctx->is_sending) {
+#ifndef FAKE_DT_API
 		if (ctx->audio_cbk.audio) gf_filter_pid_get_packet(ctx->audio_cbk.audio);
 		if (ctx->video_cbk.video) gf_filter_pid_get_packet(ctx->video_cbk.video);
+#endif
 	}
 	if (ctx->is_eos)
 		return GF_EOS;
@@ -879,9 +890,11 @@ GF_FilterRegister *RegisterFilter(GF_FilterSession *session)
 	DTOutRegister.args = DTOutArgs;
 	DTOutRegister.caps = DTOutCaps;
 	DTOutRegister.nb_caps = 3;
+#ifndef FAKE_DT_API
 	DTOutRegister.initialize = dtout_initialize;
 	DTOutRegister.finalize = dtout_finalize;
 	DTOutRegister.configure_pid = dtout_configure_pid;
+#endif
 	DTOutRegister.process = dtout_process;
 
 

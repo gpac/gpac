@@ -1634,6 +1634,12 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 				char *tok = strstr(line, Tokens[i].tok);
 				if (!tok) continue;
 				if (next_token && ((next_token-line) < (tok-line)) ) continue;
+				//check we have an end of token, otherwise consider this regular text
+				if ((i == TOK_LINKSTART) || (i == TOK_OPTLINK)) {
+					char *end_tok = strstr(tok, "](");
+					if (!end_tok) continue;
+				}
+
 				if (i == TOK_LINKSTART) {
 					if (gen_doc!=1) {
 						char *link_end;
@@ -1716,7 +1722,8 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 
 			if (has_token && tid==TOK_OPTLINK) {
 				char *link = strchr(line, '(');
-				if (link) link++;
+				assert(link);
+				link++;
 				char *end_link = strchr(line, ')');
 				if (end_link) end_link[0] = 0;
 				char *end_tok = strchr(line, ']');
