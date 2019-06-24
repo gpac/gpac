@@ -1104,7 +1104,9 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IPRP, iprp, "meta", "iff"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IPCO, ipco, "iprp", "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_ISPE, ispe, "ipco", 0, "iff"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_COLR, colr, "video_sample_entry ipco encv resv jp2h", "iff"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_COLR, colr, "video_sample_entry ipco encv resv", "iff"),
+	//defined as a secondary box for now to avoid conflicts with master hashes
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_COLR, colr, "jp2h", "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_PIXI, pixi, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_RLOC, rloc, "ipco", 0, "iff"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IROT, irot, "ipco", "iff"),
