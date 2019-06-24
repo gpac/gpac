@@ -1423,8 +1423,6 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 		gf_filter_pck_set_cts(ctx->first_pck_in_au, CTS_POC_OFFSET_SAFETY + ctx->last_poc - ctx->poc_shift);
 		//we use the carrousel flag temporarly to indicate the cts must be recomputed
 		gf_filter_pck_set_carousel_version(ctx->first_pck_in_au, 1);
-	} else {
-        GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[%s] failed to recompute timestamp for frame, corrupted SPS/PPS ?\n", ctx->log_name));
 	}
 
 	if (ctx->subsamp_buffer_size) {
