@@ -2965,7 +2965,7 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		}
 
 		avc_type = data[0] & 0x1F;
-		if (avc_type && avc_type<=23) {
+		if (avc_type && avc_type<=24) {
 			nb_avc++;
 			switch (avc_type) {
 			case GF_AVC_NALU_PIC_PARAM:
@@ -2984,6 +2984,8 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	}
 	if (!nb_sps_avc || !nb_pps_avc) nb_avc=0;
 	if (!nb_sps_hevc || !nb_pps_hevc || !nb_vps_hevc) nb_hevc=0;
+	if (not_avc) nb_avc=0;
+	if (not_hevc) nb_hevc=0;
 
 	if (not_avc && not_hevc) return NULL;
 	if (nb_avc==nb_avc_zero) nb_avc=0;
