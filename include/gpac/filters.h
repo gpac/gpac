@@ -2188,10 +2188,11 @@ void gf_filter_pid_remove(GF_FilterPid *pid);
 \param fext file extension of the content. If NULL, will be extracted from URL
 \param probe_data data of the stream to probe in order to solve its mime type
 \param probe_size size of the probe data
+\param trust_mime if set and mime_type is set, disables data probing
 \param out_pid the output pid to create or update. If no referer pid, a new pid will be created otherwise the pid will be updated
 \return error code if any
 */
-GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, GF_FilterPid **out_pid);
+GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid);
 
 /*! Sets a new property on an output pid for built-in property names.
 Previous properties (ones set before last packet dispatch) will still be valid. Property with same type/name will be reassigned
