@@ -5825,7 +5825,7 @@ restart_import:
 	if (e) goto exit;
 	/*arbitrary: use the last active SPS*/
 	if (avc.sps[avc.sps_active_idx].vui_parameters_present_flag && avc.sps[avc.sps_active_idx].vui.colour_description_present_flag) {
-		e = gf_isom_set_colr_nclx(import->dest, track, di, avc.sps[avc.sps_active_idx].vui.colour_primaries, avc.sps[avc.sps_active_idx].vui.transfer_characteristics, avc.sps[avc.sps_active_idx].vui.matrix_coefficients, avc.sps[avc.sps_active_idx].vui.video_full_range_flag);
+		e = gf_isom_set_visual_color_info(import->dest, track, di, GF_ISOM_SUBTYPE_NCLX, avc.sps[avc.sps_active_idx].vui.colour_primaries, avc.sps[avc.sps_active_idx].vui.transfer_characteristics, avc.sps[avc.sps_active_idx].vui.matrix_coefficients, avc.sps[avc.sps_active_idx].vui.video_full_range_flag, NULL, 0);
 		if (e) goto exit;
 	}
 	gf_media_update_bitrate(import->dest, track);
@@ -7194,7 +7194,7 @@ next_nal:
 	{
 		/*arbitrary: use the last active SPS*/
 		if (hevc.sps[hevc.sps_active_idx].colour_description_present_flag) {
-			e = gf_isom_set_colr_nclx(import->dest, track, di, hevc.sps[hevc.sps_active_idx].colour_primaries, hevc.sps[hevc.sps_active_idx].transfer_characteristic, hevc.sps[hevc.sps_active_idx].matrix_coeffs, hevc.sps[hevc.sps_active_idx].video_full_range_flag);
+			e = gf_isom_set_visual_color_info(import->dest, track, di, GF_ISOM_SUBTYPE_NCLX, hevc.sps[hevc.sps_active_idx].colour_primaries, hevc.sps[hevc.sps_active_idx].transfer_characteristic, hevc.sps[hevc.sps_active_idx].matrix_coeffs, hevc.sps[hevc.sps_active_idx].video_full_range_flag, NULL, 0);
 			if (e) goto exit;
 		}
 	}
@@ -7565,7 +7565,8 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	if (e) goto exit;
 	e = gf_media_update_par(import->dest, track_num);
 	if (e) goto exit;
-	e = gf_isom_set_colr_nclx(import->dest, track_num, di, state.color_primaries, state.transfer_characteristics, state.matrix_coefficients, state.color_range);
+
+	e = gf_isom_set_visual_color_info(import->dest, track_num, di, GF_ISOM_SUBTYPE_NCLX, state.color_primaries, state.transfer_characteristics, state.matrix_coefficients, state.color_range, NULL, 0);
 	if (e) goto exit;
 
 	gf_media_update_bitrate(import->dest, track_num);
