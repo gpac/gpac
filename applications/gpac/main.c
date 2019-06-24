@@ -2142,9 +2142,14 @@ static void dump_all_props(void)
 	const GF_BuiltInProperty *prop_info;
 
 	if (gen_doc==1) {
-		gf_sys_format_help(helpout, help_flags, "Built-in properties for PIDs and packets, pixel formats and audio formats. See [GSF mux](gsfmx) filter help for more info on dropable.\n  \n  ");
-		gf_sys_format_help(helpout, help_flags, "Name | 4CC | type | Dropable | Packet| Description  \n");
-		gf_sys_format_help(helpout, help_flags, "--- | --- | --- | --- | --- | ---  \n");
+		gf_sys_format_help(helpout, help_flags, "Built-in properties for PIDs and packets, pixel formats and audio formats.\n"
+		"  \n"
+		"Flags can be:\n"
+		"- D: dropable property, see [GSF mux](gsfmx) filter help for more info\n"
+		"- P: property applying to packet\n"
+		"  \n");
+		gf_sys_format_help(helpout, help_flags, "Name | type | Flags | Description | 4CC  \n");
+		gf_sys_format_help(helpout, help_flags, "--- | --- | --- | --- | ---  \n");
 	} else {
 		gf_sys_format_help(helpout, help_flags, "Built-in properties for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (dropable - see GSF mux filter help), P (packet property)\n");
 	}
@@ -2154,10 +2159,14 @@ static void dump_all_props(void)
 		if (! prop_info->name) continue;
 
 		if (gen_doc==1) {
-			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s | %s | %s | %s | %s  \n", prop_info->name, gf_4cc_to_str(prop_info->type), gf_props_get_type_name(prop_info->data_type),
-			 	(prop_info->flags & GF_PROP_FLAG_GSF_REM) ? "yes" : "no",
-			 	(prop_info->flags & GF_PROP_FLAG_PCK) ? "yes" : "no",
-			 	prop_info->description
+			strcpy(szFlags, "");
+			if (prop_info->flags & GF_PROP_FLAG_GSF_REM) strcat(szFlags, "D");
+			if (prop_info->flags & GF_PROP_FLAG_PCK) strcat(szFlags, "P");
+
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s | %s | %s | %s  \n", prop_info->name,  gf_props_get_type_name(prop_info->data_type),
+				szFlags,
+			 	prop_info->description,
+			 	gf_4cc_to_str(prop_info->type)
 			);
 		} else if (gen_doc==2) {
 			gf_sys_format_help(helpout, help_flags, ".TP\n.B %s (%s,%s,%s%s)\n%s\n", prop_info->name, gf_4cc_to_str(prop_info->type), gf_props_get_type_name(prop_info->data_type),
