@@ -1985,9 +1985,13 @@ sample_entry_done:
 			gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps, ctx->make_qt ? GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF : ase_mode);
 		}
 		else if (width) {
+			u32 colour_type=0;
+			u16 colour_primaries=0, transfer_characteristics=0, matrix_coefficients=0;
+			Bool full_range_flag=GF_FALSE;
+
 			gf_isom_set_visual_info(ctx->file, tkw->track_num, tkw->stsd_idx, width, height);
 			if (sar.den && (sar.num != sar.den)) {
-				gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, sar.num, sar.den);
+				gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, sar.num, sar.den, GF_FALSE);
 				width = width * sar.num / sar.den;
 			}
 
@@ -1999,31 +2003,45 @@ sample_entry_done:
 				}
 			}
 
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_COLR_PRIMARIES);
+			if (p) colour_primaries = p->value.uint;
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_COLR_TRANSFER);
+			if (p) transfer_characteristics = p->value.uint;
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_COLR_MX);
+			if (p) matrix_coefficients = p->value.uint;
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_COLR_RANGE);
+			if (p) full_range_flag = p->value.boolean;
+
 			if (ctx->prores_track == tkw) {
 				u32 chunk_size;
-				u32 colour_type=0;
-				u16 colour_primaries=0, transfer_characteristics=0, matrix_coefficients=0;
-				Bool full_range_flag=GF_FALSE;
 
 				//other conditions were set above, here we force 1:1 pasp box even if no sar or 1:1
 				if (!sar.den || (sar.num == 1)) {
-					gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, -1, -1);
+					gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, -1, -1, GF_TRUE);
 				}
 
-				//todo: patch colr
-				e = gf_isom_get_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
-				if (e==GF_NOT_FOUND) {
-					colour_primaries = 1;
-					transfer_characteristics = 1;
-					matrix_coefficients = 1;
-					full_range_flag = GF_FALSE;
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
+				if (colour_primaries || transfer_characteristics || matrix_coefficients) {
+					gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','c'), colour_primaries, transfer_characteristics, matrix_coefficients, GF_FALSE, NULL, 0);
+				} else {
+					e = gf_isom_get_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
+					if (e==GF_NOT_FOUND) {
+						colour_primaries = 1;
+						transfer_characteristics = 1;
+						matrix_coefficients = 1;
+						full_range_flag = GF_FALSE;
+						GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
+					}
+					gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE, NULL, 0);
 				}
-				gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE, NULL, 0);
 
 				if ((width<=720) && (height<=576)) chunk_size = 2000000;
 				else chunk_size = 4000000;
 				gf_isom_hint_max_chunk_size(ctx->file, tkw->track_num, chunk_size);
+
+			} else {
+				if (colour_primaries || transfer_characteristics || matrix_coefficients) {
+					gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','x'), colour_primaries, transfer_characteristics, matrix_coefficients, full_range_flag, NULL, 0);
+				}
 
 			}
 		}

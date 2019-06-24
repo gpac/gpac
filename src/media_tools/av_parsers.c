@@ -7602,6 +7602,11 @@ static s32 gf_media_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc,
 	sps->ptl = ptl;
 	vps = &hevc->vps[vps_id];
 
+	/* default values */
+	sps->colour_primaries = 2;
+	sps->transfer_characteristic = 2;
+	sps->matrix_coeffs = 2;
+
 	//sps_rep_format_idx = 0;
 	if (multiLayerExtSpsFlag) {
 		u8 update_rep_format_flag = gf_bs_read_int(bs, 1);
@@ -7762,11 +7767,11 @@ static s32 gf_media_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc,
 		/*video_signal_type_present_flag = */flag = gf_bs_read_int(bs, 1);
 		if (flag) {
 			/*video_format = */gf_bs_read_int(bs, 3);
-			/*video_full_range_flag = */gf_bs_read_int(bs, 1);
-			if (/*colour_description_present_flag = */gf_bs_read_int(bs, 1)) {
-				/*colour_primaries = */ gf_bs_read_int(bs, 8);
-				/* transfer_characteristic = */ gf_bs_read_int(bs, 8);
-				/* matrix_coeffs = */ gf_bs_read_int(bs, 8);
+			sps->video_full_range_flag = gf_bs_read_int(bs, 1);
+			if ((sps->colour_description_present_flag = gf_bs_read_int(bs, 1))) {
+				sps->colour_primaries = gf_bs_read_int(bs, 8);
+				sps->transfer_characteristic = gf_bs_read_int(bs, 8);
+				sps->matrix_coeffs = gf_bs_read_int(bs, 8);
 			}
 		}
 

@@ -4323,6 +4323,9 @@ void video_sample_entry_del(GF_Box *s)
 
 	if (ptr->pasp) gf_isom_box_del((GF_Box *)ptr->pasp);
 	if (ptr->clap) gf_isom_box_del((GF_Box *)ptr->clap);
+	if (ptr->colr) gf_isom_box_del((GF_Box*)ptr->colr);
+	if (ptr->mdcv) gf_isom_box_del((GF_Box*)ptr->mdcv);
+	if (ptr->clli) gf_isom_box_del((GF_Box*)ptr->clli);
 	if (ptr->rinf) gf_isom_box_del((GF_Box *)ptr->rinf);
 	if (ptr->ccst) gf_isom_box_del((GF_Box *)ptr->ccst);
 
@@ -4392,7 +4395,6 @@ GF_Err video_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 		/*for 3GP config, remember sample entry type in config*/
 		ptr->cfg_3gpp->cfg.type = ptr->type;
 		break;
-		break;
 
 	case GF_ISOM_BOX_TYPE_PASP:
 		if (ptr->pasp) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -4401,6 +4403,18 @@ GF_Err video_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_CLAP:
 		if (ptr->clap) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->clap = (GF_CleanApertureBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_COLR:
+		if (ptr->colr) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->colr = (GF_ColourInformationBox*)a;
+		break;
+	case GF_ISOM_BOX_TYPE_MDCV:
+		if (ptr->mdcv) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->mdcv = (GF_MasteringDisplayColourVolumeBox*)a;
+		break;
+	case GF_ISOM_BOX_TYPE_CLLI:
+		if (ptr->clli) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->clli = (GF_ContentLightLevelBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_CCST:
 		if (ptr->ccst) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -4519,12 +4533,24 @@ GF_Err video_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 		if (e) return e;
 	}
 
+	if (ptr->clap) {
+		e = gf_isom_box_write((GF_Box*)ptr->clap, bs);
+		if (e) return e;
+	}
 	if (ptr->pasp) {
 		e = gf_isom_box_write((GF_Box *)ptr->pasp, bs);
 		if (e) return e;
 	}
-	if (ptr->clap) {
-		e = gf_isom_box_write((GF_Box *)ptr->clap, bs);
+	if (ptr->colr) {
+		e = gf_isom_box_write((GF_Box*)ptr->colr, bs);
+		if (e) return e;
+	}
+	if (ptr->mdcv) {
+		e = gf_isom_box_write((GF_Box*)ptr->mdcv, bs);
+		if (e) return e;
+	}
+	if (ptr->clli) {
+		e = gf_isom_box_write((GF_Box*)ptr->clli, bs);
 		if (e) return e;
 	}
 	if (ptr->ccst) {
@@ -4668,6 +4694,21 @@ GF_Err video_sample_entry_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *)ptr->pasp);
 		if (e) return e;
 		ptr->size += ptr->pasp->size;
+	}
+	if (ptr->colr) {
+		e = gf_isom_box_size((GF_Box*)ptr->colr);
+		if (e) return e;
+		ptr->size += ptr->colr->size;
+	}
+	if (ptr->mdcv) {
+		e = gf_isom_box_size((GF_Box*)ptr->mdcv);
+		if (e) return e;
+		ptr->size += ptr->mdcv->size;
+	}
+	if (ptr->clli) {
+		e = gf_isom_box_size((GF_Box*)ptr->clli);
+		if (e) return e;
+		ptr->size += ptr->clli->size;
 	}
 	if (ptr->clap) {
 		e = gf_isom_box_size((GF_Box *)ptr->clap);
@@ -6908,11 +6949,13 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 	if (!trak->Media->information->sampleTable) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no sample table !\n" ));
 		trak->Media->information->sampleTable = (GF_SampleTableBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STBL);
+		gf_isom_box_add_for_dump_mode((GF_Box *)trak->Media->information, (GF_Box *)trak->Media->information->sampleTable);
 	}
 
 	if (!trak->Media->information->sampleTable->SampleDescription) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no sample description box !\n" ));
 		trak->Media->information->sampleTable->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSD);
+		gf_isom_box_add_for_dump_mode((GF_Box *)trak->Media->information->sampleTable, (GF_Box *)trak->Media->information->sampleTable->SampleDescription);
 		return;
 	}
 
@@ -11044,7 +11087,7 @@ GF_Err fdpa_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	
+
 	gf_bs_write_int(bs, ptr->info.sender_current_time_present, 1);
 	gf_bs_write_int(bs, ptr->info.expected_residual_time_present, 1);
 	gf_bs_write_int(bs, ptr->info.session_close_bit, 1);
@@ -11129,7 +11172,7 @@ GF_Err extr_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	
+
 	if (ptr->feci) {
 		e = gf_isom_box_write((GF_Box *)ptr->feci, bs);
 		if (e) return e;
@@ -11205,7 +11248,7 @@ GF_Err fdsa_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	
+
 	e = gf_isom_box_array_write(s, ptr->packetTable, bs);
 	if (e) return e;
 	if (ptr->extra_data) {

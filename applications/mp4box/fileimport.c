@@ -240,7 +240,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode, temporal_mode;
 	s32 par_d, par_n, prog_id, delay, force_rate, moov_timescale;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
-	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only, print_stats_graph=0;
+	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only, print_stats_graph=0, force_par;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
 	const char *szLan;
 	GF_Err e;
@@ -315,6 +315,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 	tw = th = tx = ty = txtw = txth = txtx = txty = 0;
 	par_d = par_n = -2;
+	force_par = GF_FALSE;
 	/*use ':' as separator, but beware DOS paths...*/
 	ext = strchr(szName, ':');
 	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
@@ -349,8 +350,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
 		else if (!strnicmp(ext+1, "par=", 4)) {
-			if (!stricmp(ext+5, "none")) {
+			if (!stricmp(ext + 5, "none")) {
 				par_n = par_d = -1;
+			} else if (!stricmp(ext + 5, "force")) {
+				force_par = GF_TRUE;
 			} else {
 				if (ext2) ext2[0] = ':';
 				if (ext2) ext2 = strchr(ext2+1, ':');
@@ -824,8 +827,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 					}
 				}
 			}
-			if ((par_n>=0) && (par_d>=0)) {
-				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
+			if (((par_n>=0) && (par_d>=0)) || force_par) {
+				e = gf_media_change_par(import.dest, i+1, par_n, par_d, force_par);
 			}
 			if (has_clap) {
 				e = gf_isom_set_clean_aperture(import.dest, i+1, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
@@ -993,7 +996,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 			if (gf_isom_is_video_subtype(import.tk_info[i].stream_type)) {
 				if ((par_n>=-1) && (par_d>=-1)) {
-					e = gf_media_change_par(import.dest, track, par_n, par_d);
+					e = gf_media_change_par(import.dest, track, par_n, par_d, force_par);
 				}
 				if (has_clap) {
 					e = gf_isom_set_clean_aperture(import.dest, track, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
@@ -3293,11 +3296,109 @@ exit:
 	}
 	return file;
 }
+
+GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, char *file_name)
+{
+	GF_DOMParser *parser;
+	GF_XMLNode *root, *stream;
+	GF_Err e;
+	u32 i;
+	GF_MasteringDisplayColourVolumeBox mdcv;
+	GF_ContentLightLevelBox clli;
+
+	memset(&mdcv, 0, sizeof(GF_MasteringDisplayColourVolumeBox));
+	memset(&clli, 0, sizeof(GF_ContentLightLevelBox));
+
+	parser = gf_xml_dom_new();
+	e = gf_xml_dom_parse(parser, file_name, NULL, NULL);
+	if (e) {
+		fprintf(stderr, "Error parsing HDR XML file: Line %d - %s. Abort.\n", gf_xml_dom_get_line(parser), gf_xml_dom_get_error(parser));
+		gf_xml_dom_del(parser);
+		return e;
+	}
+	root = gf_xml_dom_get_root(parser);
+	if (!root) {
+		fprintf(stderr, "Error parsing HDR XML file: no \"root\" found. Abort.\n");
+		gf_xml_dom_del(parser);
+		return e;
+	}
+	if (strcmp(root->name, "HDR")) {
+		fprintf(stderr, "Error parsing HDR XML file: root name is \"%s\", expecting \"HDR\"\n", root->name);
+		gf_xml_dom_del(parser);
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	i = 0;
+	while ((stream = gf_list_enum(root->content, &i))) {
+		u32 id = 0, j;
+		GF_XMLAttribute* att = NULL;
+		GF_XMLNode *box = NULL;
+
+		if (stream->type != GF_XML_NODE_TYPE) continue;
+		if (strcmp(stream->name, "Track")) continue;
+
+		j = 0;
+		while ((att = gf_list_enum(stream->attributes, &j))) {
+			if (!strcmp(att->name, "id")) id = atoi(att->value);
+			else fprintf(stderr, "HDR XML: ignoring track attribute \"%s\"\n", att->name);
+		}
+
+		j = 0;
+		while ((box = gf_list_enum(stream->content, &j))) {
+			u32 k;
+
+			if (box->type != GF_XML_NODE_TYPE) continue;
+
+			if (!strcmp(box->name, "mdcv")) {
+				k = 0;
+				while ((att = gf_list_enum(box->attributes, &k))) {
+					if (!strcmp(att->name, "display_primaries_0_x")) mdcv.display_primaries[0].x = atoi(att->value);
+					else if (!strcmp(att->name, "display_primaries_0_y")) mdcv.display_primaries[0].y = atoi(att->value);
+					else if (!strcmp(att->name, "display_primaries_1_x")) mdcv.display_primaries[1].x = atoi(att->value);
+					else if (!strcmp(att->name, "display_primaries_1_y")) mdcv.display_primaries[1].y = atoi(att->value);
+					else if (!strcmp(att->name, "display_primaries_2_x")) mdcv.display_primaries[2].x = atoi(att->value);
+					else if (!strcmp(att->name, "display_primaries_2_y")) mdcv.display_primaries[2].y = atoi(att->value);
+					else if (!strcmp(att->name, "white_point_x")) mdcv.white_point_x = atoi(att->value);
+					else if (!strcmp(att->name, "white_point_y")) mdcv.white_point_y = atoi(att->value);
+					else if (!strcmp(att->name, "max_display_mastering_luminance")) mdcv.max_display_mastering_luminance = atoi(att->value);
+					else if (!strcmp(att->name, "min_display_mastering_luminance")) mdcv.min_display_mastering_luminance = atoi(att->value);
+					else fprintf(stderr, "HDR XML: ignoring box \"%s\" attribute \"%s\"\n", box->name, att->name);
+				}
+			} else if (!strcmp(box->name, "clli")) {
+				k = 0;
+				while ((att = gf_list_enum(box->attributes, &k))) {
+					if (!strcmp(att->name, "max_content_light_level")) clli.max_content_light_level = atoi(att->value);
+					else if (!strcmp(att->name, "max_pic_average_light_level")) clli.max_pic_average_light_level = atoi(att->value);
+					else fprintf(stderr, "HDR XML: ignoring box \"%s\" attribute \"%s\"\n", box->name, att->name);
+				}
+			} else {
+				fprintf(stderr, "HDR XML: ignoring box element \"%s\"\n", box->name);
+				continue;
+			}
+		}
+
+		e = gf_isom_set_hdr(movie, id, 1, &mdcv, &clli);
+		if (e) {
+			fprintf(stderr, "HDR XML: error in gf_isom_set_hdr()\n");
+			break;
+		}
+	}
+
+	gf_xml_dom_del(parser);
+	return e;
+}
+
 #else
 GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool make_wgt)
 {
 	fprintf(stderr, "XML Not supported in this build of GPAC - cannot package file\n");
 	return NULL;
+}
+
+GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile* movie, char* file_name)
+{
+	fprintf(stderr, "XML Not supported in this build of GPAC - cannot process HDR parameter file\n");
+	return GF_OK;
 }
 #endif //#ifndef GPAC_DISABLE_CORE_TOOLS
 
