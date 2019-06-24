@@ -1230,7 +1230,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				e |= gf_dynstrcat(&args, dumper->out_name, NULL);
 				e |= gf_dynstrcat(&args, szExt, ".");
 			} else {
-				e |= gf_dynstrcat(&args, ":fext=", NULL);
+				e |= gf_dynstrcat(&args, ":ext=", NULL);
 				e |= gf_dynstrcat(&args, szExt, NULL);
 			}
 		}
