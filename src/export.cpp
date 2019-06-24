@@ -1128,7 +1128,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_set_tile_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_mvc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_mvc_config_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_hdr) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_high_dynamic_range_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_clean_aperture) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_image_sequence_alpha) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_image_sequence_coding_constraints) )
