@@ -541,9 +541,9 @@ static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSco
 		if (! gf_ac3_parser((u8 *) data, size, &pos, &ahdr, GF_FALSE) )
 		 	break;
 		u32 fsize = ahdr.framesize;
-		if (fsize > size+pos) break;
 		if (pos) nb_frames=0;
 		nb_frames++;
+		if (fsize > size+pos) break;
 		if (nb_frames>4) break;
 		if (size < fsize+pos) break;
 		size -= fsize+pos;
