@@ -110,7 +110,7 @@ u32 gf_isom_probe_file(const char *fileName)
 		type = 0;
 		if (fread(data, 1, 4, f) == 4) {
 			if (fread(data, 1, 4, f) == 4) {
-				type = GF_4CC(data[0], data[1], data[2], data[3]);
+				type = GF_4CC((u32)data[0], (u8)data[1], (u8)data[2], (u8)data[3]);
 			}
 		}
 		gf_fclose(f);
@@ -471,7 +471,7 @@ GF_Err gf_isom_write(GF_ISOFile *movie) {
 			if (movie->mfra) {
 				if (!movie->mfra->mfro)
 					movie->mfra->mfro = (GF_MovieFragmentRandomAccessOffsetBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_MFRO);
-				
+
 				e = gf_isom_box_size((GF_Box *)movie->mfra);
 				if (e) return e;
 				movie->mfra->mfro->container_size = (u32) movie->mfra->size;
