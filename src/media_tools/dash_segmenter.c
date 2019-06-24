@@ -663,8 +663,13 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 	//append ISOBMFF options
 	if (dasher->fragment_duration) {
-		sprintf(szArg, "cdur=%g", dasher->fragment_duration);
-		e |= gf_dynstrcat(&args, szArg, ":");
+		Double diff = dasher->fragment_duration;
+		diff -= dasher->segment_duration;
+		if (diff<0) diff = -diff;
+		if (diff > 0.01) {
+			sprintf(szArg, "cdur=%g", dasher->fragment_duration);
+			e |= gf_dynstrcat(&args, szArg, ":");
+		}
 	}
 	if (dasher->segment_marker_4cc) {
 		sprintf(szArg, "m4cc=%s", gf_4cc_to_str(dasher->segment_marker_4cc) );

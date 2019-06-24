@@ -493,10 +493,6 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			gf_free(dst);
 		}
 	}
-	if (ctx->cdur<0) {
-		if (ctx->make_qt) ctx->cdur = 0.5;
-		else ctx->cdur = 1.0;
-	}
 	//copy properties at init or reconfig
 	if (ctx->opid && is_true_pid) {
 		gf_filter_pid_copy_properties(ctx->opid, pid);
@@ -681,6 +677,17 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			if (e) return e;
 		}
 	}
+
+	if (ctx->cdur<0) {
+		if (ctx->make_qt)
+			ctx->cdur = 0.5;
+		else {
+			ctx->cdur = 1.0;
+			if (ctx->dash_mode)
+				ctx->fdur = GF_FALSE;
+		}
+	} else if (ctx->dash_mode)
+		ctx->fdur = GF_TRUE;
 
 	if (needs_track) {
 		if (ctx->init_movie_done) {
@@ -3220,6 +3227,7 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx)
 		}
 		tkw->fragment_done = GF_FALSE;
 		tkw->insert_tfdt = ctx->tfdt_traf ? GF_TRUE : ctx->insert_tfdt;
+		tkw->dur_in_frag = 0;
 
 		if (ctx->insert_pssh)
 			mp4_mux_cenc_insert_pssh(ctx, tkw);
@@ -3399,7 +3407,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				tkw->cts_next = ncts;
 
 
-			if (ctx->fdur) {
+			if (ctx->fdur && (!ctx->dash_mode || !tkw->fragment_done) ) {
 				u32 dur = gf_filter_pck_get_duration(pck);
 				if (tkw->dur_in_frag && (tkw->dur_in_frag >= ctx->cdur * tkw->src_timescale)) {
 					tkw->fragment_done = GF_TRUE;
@@ -3494,9 +3502,11 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			}
 		}
 		//cannot flush in DASH mode if using sidx (vod single sidx or live 1 sidx/seg)
-		else if (!ctx->dash_mode || (!ctx->subs_sidx && (ctx->dash_mode<MP4MX_DASH_VOD) )) {
+		else if (!ctx->dash_mode || ((ctx->subs_sidx<0) && (ctx->dash_mode<MP4MX_DASH_VOD) )) {
 			gf_isom_flush_fragments(ctx->file, GF_FALSE);
-			mp4_mux_flush_frag(ctx, 0, 0, 0);
+
+			if (!ctx->dash_mode || ctx->flush_seg)
+				mp4_mux_flush_frag(ctx, 0, 0, 0);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ctx->next_frag_start ));
 		}
