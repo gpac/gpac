@@ -1503,7 +1503,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 
 					//wait until all our inputs are done
 					if (group->nb_eos == group->nb_pids) {
-						Bool postponed = GF_FALSE;
+						u32 nb_block = 0;
 						//check all pids in this group, postpone segment switch if blocking
 						for (i=0; i<count; i++) {
 							GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
@@ -1513,14 +1513,15 @@ GF_Err dashdmx_process(GF_Filter *filter)
 							agroup = gf_filter_pid_get_udta(opid);
 							if (!agroup || (agroup != group)) continue;
 
-							if (!group->current_group_dep && gf_filter_pid_would_block(opid)) {
-								GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d but output pid would block, postponing\n", group->idx));
-								postponed = GF_TRUE;
-								break;
+							if (gf_filter_pid_would_block(opid)) {
+								nb_block++;
 							}
 						}
-						if (postponed)
+						if (nb_block == group->nb_pids) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d but %d output pid(s) would block, postponing\n", nb_block, group->idx));
+							gf_filter_ask_rt_reschedule(ctx->filter, 10000);
 							break;
+						}
 
 						//good to switch, cancel all end of stream signals on pids from this group and switch
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d, updating stats and switching segment\n", group->idx));
