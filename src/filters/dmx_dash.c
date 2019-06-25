@@ -1501,7 +1501,8 @@ GF_Err dashdmx_process(GF_Filter *filter)
 				if (gf_filter_pid_is_eos(ipid) || !gf_filter_pid_is_playing(opid)) {
 					group->nb_eos++;
 
-					if (group->nb_eos * (1 + group->nb_group_deps) ==group->nb_pids) {
+					//wait until all our inputs are done
+					if (group->nb_eos == group->nb_pids) {
 						Bool postponed = GF_FALSE;
 						//check all pids in this group, postpone segment switch if blocking
 						for (i=0; i<count; i++) {
@@ -1531,8 +1532,9 @@ GF_Err dashdmx_process(GF_Filter *filter)
 							agroup = gf_filter_pid_get_udta(opid);
 							if (!agroup || (agroup != group)) continue;
 
-							if (gf_filter_pid_is_eos(ipid))
+							if (gf_filter_pid_is_eos(ipid)) {
 								gf_filter_pid_clear_eos(ipid, GF_TRUE);
+							}
 						}
 						dashdmx_update_group_stats(ctx, group);
 						dashdmx_switch_segment(ctx, group);

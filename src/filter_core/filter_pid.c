@@ -4724,7 +4724,6 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 		return;
 	}
 	if (pid->has_seen_eos) return;
-	if (pid->prevent_eos_dispatch) return;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("EOS signaled on PID %s in filter %s\n", pid->name, pid->filter->name));
 	//we create a fake packet for eos signaling
@@ -5566,8 +5565,6 @@ void gf_filter_pid_clear_eos(GF_FilterPid *pid, Bool clear_all)
 			if (apid->has_seen_eos) {
 				apid->has_seen_eos = GF_FALSE;
 				gf_filter_pid_check_unblock(apid);
-				//prevents further dispatch of eos packets by source filter
-				apid->prevent_eos_dispatch = GF_TRUE;
 			}
 
 			if (apidi->pid->filter->would_block && apidi->pid->filter->num_input_pids) {
