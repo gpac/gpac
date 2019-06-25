@@ -976,6 +976,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				isor_reader_release_sample(ch);
 			} else if (ch->last_state==GF_EOS) {
 				if (in_is_eos && (ch->play_state==1)) {
+					assert(!read->pid || gf_filter_pid_is_eos(read->pid));
 					ch->play_state = 2;
 					gf_filter_pid_set_eos(ch->pid);
 					read->eos_signaled = GF_TRUE;
