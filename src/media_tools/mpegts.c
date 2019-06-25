@@ -233,9 +233,10 @@ static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, char *data, u32 size, Bool simple_c
 	if (simple_check && (data[i]==0x47)) return 0;
 
 	while (i < size) {
-		if (i+188 > size) return size;
+		if (i+192 >= size) return size;
 		if ((data[i]==0x47) && (data[i+188]==0x47))
 			break;
+		if (i+192 >= size) return size;
 		if ((data[i]==0x47) && (data[i+192]==0x47)) {
 			ts->prefix_present = 1;
 			break;

@@ -585,7 +585,7 @@ GF_Err gf_isom_get_original_format_type(GF_ISOFile *the_file, u32 trackNumber, u
 	if (!sea) return GF_BAD_PARAM;
 
 	sinf = (GF_ProtectionSchemeInfoBox*) gf_isom_box_find_child(sea->other_boxes, GF_ISOM_BOX_TYPE_SINF);
-	if (outOriginalFormat && sinf->original_format) {
+	if (outOriginalFormat && sinf && sinf->original_format) {
 		*outOriginalFormat = sinf->original_format->data_format;
 	}
 	return GF_OK;

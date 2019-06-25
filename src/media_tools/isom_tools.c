@@ -3391,7 +3391,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	switch (subtype) {
 	case GF_ISOM_SUBTYPE_MPEG4:
 		esd = gf_isom_get_esd(movie, track, 1);
-		if (esd) {
+		if (esd && esd->decoderConfig) {
 			switch (esd->decoderConfig->streamType) {
 			case GF_STREAM_AUDIO:
 				if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
