@@ -437,13 +437,18 @@ static void gf_register_file_handle(const char *filename, FILE *ptr)
 	gpac_file_handles++;
 }
 
+#include <gpac/thread.h>
+extern GF_Mutex *logs_mx;
+
 static void gf_unregister_file_handle(FILE *ptr)
 {
 	assert(gpac_file_handles);
 	gpac_file_handles--;
 #ifdef GPAC_MEMORY_TRACKING
 	if (gf_mem_track_enabled) {
-		u32 i, count = gf_list_count(gpac_open_files);
+		u32 i, count;
+		gf_mx_p(logs_mx);
+		count = gf_list_count(gpac_open_files);
 		for (i=0; i<count; i++) {
 			GF_FileHandle *h = gf_list_get(gpac_open_files, i);
 			if (h->ptr==ptr) {
@@ -454,9 +459,11 @@ static void gf_unregister_file_handle(FILE *ptr)
 					gf_list_del(gpac_open_files);
 					gpac_open_files = NULL;
 				}
+				gf_mx_v(logs_mx);
 				return;
 			}
 		}
+		gf_mx_v(logs_mx);
 	}
 #endif
 }
