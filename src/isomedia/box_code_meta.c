@@ -37,27 +37,33 @@ GF_Box *meta_New()
 
 void meta_reset(GF_Box *s)
 {
+	extern Bool use_dump_mode;
+
 	GF_MetaBox *ptr = (GF_MetaBox *)s;
 	if (ptr == NULL) return;
 
-	gf_isom_box_del((GF_Box *)ptr->handler);
+	if (!use_dump_mode) {
+		gf_isom_box_del((GF_Box *)ptr->handler);
+		if (ptr->primary_resource) gf_isom_box_del((GF_Box *)ptr->primary_resource);
+		if (ptr->file_locations) gf_isom_box_del((GF_Box *)ptr->file_locations);
+		if (ptr->item_locations) gf_isom_box_del((GF_Box *)ptr->item_locations);
+		if (ptr->protections) gf_isom_box_del((GF_Box *)ptr->protections);
+		if (ptr->item_infos) gf_isom_box_del((GF_Box *)ptr->item_infos);
+		if (ptr->IPMP_control) gf_isom_box_del((GF_Box *)ptr->IPMP_control);
+		if (ptr->item_refs) gf_isom_box_del((GF_Box *)ptr->item_refs);
+		if (ptr->item_props) gf_isom_box_del((GF_Box *)ptr->item_props);
+	}
+
 	ptr->handler = NULL;
-	if (ptr->primary_resource) gf_isom_box_del((GF_Box *)ptr->primary_resource);
 	ptr->primary_resource = NULL;
-	if (ptr->file_locations) gf_isom_box_del((GF_Box *)ptr->file_locations);
 	ptr->file_locations = NULL;
-	if (ptr->item_locations) gf_isom_box_del((GF_Box *)ptr->item_locations);
 	ptr->item_locations = NULL;
-	if (ptr->protections) gf_isom_box_del((GF_Box *)ptr->protections);
 	ptr->protections = NULL;
-	if (ptr->item_infos) gf_isom_box_del((GF_Box *)ptr->item_infos);
 	ptr->item_infos = NULL;
-	if (ptr->IPMP_control) gf_isom_box_del((GF_Box *)ptr->IPMP_control);
 	ptr->IPMP_control = NULL;
-	if (ptr->item_refs) gf_isom_box_del((GF_Box *)ptr->item_refs);
 	ptr->item_refs = NULL;
-	if (ptr->item_props) gf_isom_box_del((GF_Box *)ptr->item_props);
 	ptr->item_props = NULL;
+
 	if (ptr->other_boxes) gf_isom_box_array_del(ptr->other_boxes);
 	ptr->other_boxes = NULL;
 }
