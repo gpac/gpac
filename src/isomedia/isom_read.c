@@ -495,7 +495,7 @@ GF_Err gf_isom_write(GF_ISOFile *movie) {
 			if (movie->mfra) {
 				if (!movie->mfra->mfro)
 					movie->mfra->mfro = (GF_MovieFragmentRandomAccessOffsetBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_MFRO);
-				
+
 				e = gf_isom_box_size((GF_Box *)movie->mfra);
 				if (e) return e;
 				movie->mfra->mfro->container_size = (u32) movie->mfra->size;

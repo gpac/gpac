@@ -1224,6 +1224,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_FIEL, fiel, "video_sample_entry", "apple"),
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_GAMA, gama, "video_sample_entry", "apple"),
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_CHRM, chrm, "video_sample_entry", "apple"),
+	BOX_DEFINE_S( GF_ISOM_SUBTYPE_TEXT, unkn, "gmhd", "apple"),
 
 	//QT and prores sample entry types
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_TMCD, tmcd, "stsd", "apple"),
