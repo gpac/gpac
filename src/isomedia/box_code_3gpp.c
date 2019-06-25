@@ -338,8 +338,9 @@ GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_read_data(bs, ptr->foreground_color, 6);	/*Foreground color*/
 	ISOM_DECREASE_SIZE(ptr, 51);
 
+	/*ffmpeg compatibility with iPod streams: no pascal string*/
 	if (!ptr->size)
-		return GF_OK; /*ffmpeg compatibility with iPod streams: no pascal string*/
+		return GF_OK;
 
 	pSize = gf_bs_read_u8(bs); /*a Pascal string begins with its size: get textName size*/
 	ISOM_DECREASE_SIZE(ptr, 1);
@@ -382,8 +383,7 @@ GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->textName[pSize] = '\0';				/*Font name*/
 	}
 	ISOM_DECREASE_SIZE(ptr, pSize);
-
-	return GF_OK;
+	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
 }
 
 void gpp_write_rgba(GF_BitStream *bs, u32 col)
