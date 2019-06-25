@@ -1780,10 +1780,11 @@ static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand
 			}
 			gf_list_del(ar->nalus);
 			gf_free(ar);
+			ar=NULL;
 			gf_list_rem(cfg->param_array, i);
 			i--;
 		}
-		if (!ar->array_completeness)
+		if (ar && !ar->array_completeness)
 			array_incomplete = 1;
 	}
 	return array_incomplete;
@@ -2759,7 +2760,7 @@ GF_Err vpcc_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	
+
 	return gf_odf_vp_cfg_write_bs(ptr->config, bs, ptr->version == 0);
 }
 #endif
