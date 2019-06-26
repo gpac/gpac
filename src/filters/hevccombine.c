@@ -546,7 +546,7 @@ static GF_Err hevccombine_rebuild_grid(GF_HEVCSplitCtx *ctx)
 			} else if (ctx->grid[max_cols-1].pos_x != tile1->pos_x) {
 				if (nb_rel_pos) {
 					//append
-					if (ctx->grid[max_cols-1].pos_x < tile1->pos_x) {
+					if (ctx->grid[max_cols-1].pos_x < -tile1->pos_x) {
 						ctx->grid = gf_realloc(ctx->grid, sizeof(struct gridInfo) * (max_cols+1) );
 						memset(&ctx->grid[max_cols], 0, sizeof(struct gridInfo));
 						ctx->grid[max_cols].width = tile1->width;
@@ -555,15 +555,24 @@ static GF_Err hevccombine_rebuild_grid(GF_HEVCSplitCtx *ctx)
 					}
 					//insert
 					else {
+						Bool found=GF_FALSE;
 						for (j=0; j<max_cols; j++) {
-							if (ctx->grid[j].pos_x > tile1->pos_x) {
-								ctx->grid = gf_realloc(ctx->grid, sizeof(struct gridInfo) * (max_cols+1) );
-								memmove(&ctx->grid[j+1], &ctx->grid[j], sizeof(struct gridInfo) * (max_cols-j));
-								memset(&ctx->grid[j], 0, sizeof(struct gridInfo));
-								ctx->grid[j].width = tile1->width;
-								ctx->grid[j].pos_x = -tile1->pos_x;
-								max_cols+=1;
+							if (ctx->grid[j].pos_x == -tile1->pos_x) {
+								found=GF_TRUE;
 								break;
+							}
+						}
+						if (!found) {
+							for (j=0; j<max_cols; j++) {
+								if (ctx->grid[j].pos_x > -tile1->pos_x) {
+									ctx->grid = gf_realloc(ctx->grid, sizeof(struct gridInfo) * (max_cols+1) );
+									memmove(&ctx->grid[j+1], &ctx->grid[j], sizeof(struct gridInfo) * (max_cols-j));
+									memset(&ctx->grid[j], 0, sizeof(struct gridInfo));
+									ctx->grid[j].width = tile1->width;
+									ctx->grid[j].pos_x = -tile1->pos_x;
+									max_cols+=1;
+									break;
+								}
 							}
 						}
 					}
@@ -614,6 +623,12 @@ static GF_Err hevccombine_rebuild_grid(GF_HEVCSplitCtx *ctx)
 		}
 
 		//assign cols and rows
+		for (i=0; i<nb_pids; i++) {
+			HEVCTilePidCtx *tile = gf_list_get(ctx->pids, i);
+			tile->pos_col=0;
+			tile->pos_row=0;
+		}
+
 		for (j=0; j<max_cols; j++) {
 			if (nb_rel_pos) {
 				ctx->grid[j].height = 0;
@@ -649,8 +664,9 @@ static GF_Err hevccombine_rebuild_grid(GF_HEVCSplitCtx *ctx)
 				if (tile->pos_row > ctx->grid[j].max_row_pos)
 					ctx->grid[j].max_row_pos = tile->pos_row;
 			}
-
-			//check non-last rows are multiple of max CU height
+		}
+		//check non-last rows are multiple of max CU height
+		for (j=0; j<max_cols; j++) {
 			for (i=0; i<nb_pids; i++) {
 				HEVCTilePidCtx *tile = gf_list_get(ctx->pids, i);
 				if (tile->pos_col != j) continue;
@@ -1144,7 +1160,7 @@ static void hevccombine_finalize(GF_Filter *filter)
 	gf_list_del(ctx->ordered_pids);
 
 	if (ctx->sei_suffix_buf) gf_free(ctx->sei_suffix_buf);
-	
+
 //	// Mecanism to ensure the file creation for each execution of the program
 //	int r = rename("LuT.txt", "LuT.txt");
 //	if (r == 0) remove("LuT.txt");
