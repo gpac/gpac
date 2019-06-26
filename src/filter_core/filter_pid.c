@@ -730,9 +730,20 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		else if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID %s to filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 
-			if (filter->session->flags & GF_FS_FLAG_NO_REASSIGN) {
+			if ((e==GF_BAD_PARAM) || (filter->session->flags & GF_FS_FLAG_NO_REASSIGN)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter reassignment disabled, skippping chain reload for filter %s PID %s\n", pid->filter->name, pid->name ));
 				filter->session->last_connect_error = e;
+
+				if (ctype==GF_PID_CONF_CONNECT) {
+					GF_FilterEvent evt;
+					GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+					gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
+
+					GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+					gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
+
+					gf_filter_pid_set_eos(pid);
+				}
 			} else if (filter->has_out_caps) {
 				Bool unload_filter = GF_TRUE;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Blacklisting %s as output from %s and retrying connections\n", filter->name, pid->filter->name));
@@ -847,10 +858,12 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		assert(pid->filter->out_pid_connection_pending);
 		if (safe_int_dec(&pid->filter->out_pid_connection_pending) == 0) {
 
-			//postponed packets dispatched by source while setting up PID, flush through process()
-			//pending packets (not yet consumed but in PID buffer), start processing
-			if (pid->filter->postponed_packets || pid->filter->pending_packets || pid->filter->nb_caps_renegociate) {
-				gf_filter_post_process_task(pid->filter);
+			if (e==GF_OK) {
+				//postponed packets dispatched by source while setting up PID, flush through process()
+				//pending packets (not yet consumed but in PID buffer), start processing
+				if (pid->filter->postponed_packets || pid->filter->pending_packets || pid->filter->nb_caps_renegociate) {
+					gf_filter_post_process_task(pid->filter);
+				}
 			}
 		}
 	}
@@ -877,11 +890,13 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 			return;
 		}
 	}
-	gf_filter_pid_configure(filter, task->pid->pid, GF_PID_CONF_CONNECT);
-	//once connected, any set_property before the first packet dispatch will have to trigger a reconfigure
-	if (!task->pid->pid->nb_pck_sent) {
-		task->pid->pid->request_property_map = GF_TRUE;
-		task->pid->pid->pid_info_changed = GF_FALSE;
+	if (task->pid->pid) {
+		gf_filter_pid_configure(filter, task->pid->pid, GF_PID_CONF_CONNECT);
+		//once connected, any set_property before the first packet dispatch will have to trigger a reconfigure
+		if (!task->pid->pid->nb_pck_sent) {
+			task->pid->pid->request_property_map = GF_TRUE;
+			task->pid->pid->pid_info_changed = GF_FALSE;
+		}
 	}
 	
 	//filter may now be the clone, decrement on original filter

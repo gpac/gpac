@@ -7,7 +7,7 @@
  *			Copyright (c) Telecom ParisTech 2019
  *					All rights reserved
  *
- *  This file is part of GPAC / HEVC tile split and rewrite filter
+ *  This file is part of GPAC / HEVC tile merger filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -32,216 +32,183 @@
 #include <gpac/internal/media_dev.h>
 #include <math.h>
 
-#define SEI_PREFIX 39
-#define SEI_SUFFIX 40
 typedef struct
 {
-	u32 width, height;
-	
-} HEVCTilePidProp;
+	GF_FilterPid *pid;
+	u32 slice_segment_address, width, height;
 
-typedef struct
-{
-	Bool address_computed;
-	char *out_slice_header, nal_pck;
-	u32 slice_segment_address, width, height, buffer_nal_alloc;
-	HEVCTilePidProp tile_pid_prop[2];
-	u32 nal_pck_alloc, sum_height, sum_width;
-	u32 hevc_nalu_size_length;
+	u32 nalu_size_length;
 	u32 dsi_crc;
 	HEVCState hevc_state;
-	u8 pid_idx, tile_pos_row, tile_pos_col;
+
+	//final position in grid - the row index is only used to push non multiple of CU height at the bottom of the grid
+	u32 pos_row, pos_col;
+
+	//positionning in pixel in the Y plane as given by CropOrigin, or 0 otherwise
+	Bool has_pos;
+	s32 pos_x, pos_y;
 } HEVCTilePidCtx;
+
+struct gridInfo {
+	//width of column
+	u32 width;
+	//cumulated height of all slices in column
+	u32 height;
+	//only used while computing the grid, current position in rows in the column
+	u32 row_pos, max_row_pos;
+	u32 last_row_idx;
+	u32 pos_x;
+};
 
 typedef struct
 {
 	GF_FilterPid *opid;
-	Bool add_column, found_sei_prefix, found_sei_suffix;
-	u32 num_tiles;
 	s32 base_pps_init_qp_delta_minus26;
-	u32 out_width, out_height, grid_height;
-	char *buffer_nal, data_without_emulation_bytes;
-	char *dsi_ptr;
-	u32 buffer_nal_alloc, num_CTU_width_tot, dsi_size;
+	u32 out_width, out_height;
+	char *buffer_nal, *buffer_nal_no_epb, *buffer_nal_in_no_epb;
+	u32 buffer_nal_alloc, buffer_nal_no_epb_alloc, buffer_nal_in_no_epb_alloc;
+	GF_BitStream *bs_au_in;
+
 	GF_BitStream *bs_nal_in;
-	HEVCTilePidProp tile_prop[2];
-	int *tile_width, *tile_height;
-	u8 num_video_counter, num_video_per_height, nb_ipid;
-	u8 *on_row, *on_col, hevc_nalu_size_length, pid_idx;
-	HEVCTilePidCtx *addr_tile_pid[25];
+	GF_BitStream *bs_nal_out;
+
+ 	struct gridInfo *grid;
+ 	u32 nb_cols;
+
+	char *sei_suffix_buf;
+	u32 sei_suffix_len, sei_suffix_alloc;
+	u32 hevc_nalu_size_length;
+	u32 max_CU_width, max_CU_height;
+
+	GF_List *pids, *ordered_pids;
+	Bool in_error;
 } GF_HEVCSplitCtx;
-
-u32 bs_get_ue(GF_BitStream *bs);
-
-s32 bs_get_se(GF_BitStream *bs);
 
 //in src/filters/hevcsplit.c
 void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, char **out_SPS, u32 *out_SPS_length);
 
-static void rewrite_pps_tile_grid(char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length, u8 num_tile_rows_minus1, u8 num_tile_columns_minus1, u32 uniform_spacing_flag, GF_HEVCSplitCtx *ctx);
-
-static void bs_set_ue(GF_BitStream *bs, u32 num) {
-	s32 length = 1;
-	s32 temp = ++num;
-
-	while (temp != 1) {
-		temp >>= 1;
-		length += 2;
-	}
-
-	gf_bs_write_int(bs, 0, length >> 1);
-	gf_bs_write_int(bs, num, (length + 1) >> 1);
-}
-
-static void bs_set_se(GF_BitStream *bs, s32 num)
-{
-	u32 v;
-	if (num <= 0)
-		v = (-1 * num) << 1;
-	else
-		v = (num << 1) - 1;
-
-	bs_set_ue(bs, v);
-}
-
 #if 0 //todo
 //rewrite the profile and level
-static void write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, Bool ProfilePresentFlag, u8 MaxNumSubLayersMinus1)
+static void write_profile_tier_level(GF_BitStream *ctx->bs_nal_in, GF_BitStream *ctx->bs_nal_out, Bool ProfilePresentFlag, u8 MaxNumSubLayersMinus1)
 {
 	u8 j;
 	Bool sub_layer_profile_present_flag[8], sub_layer_level_present_flag[8];
 	if (ProfilePresentFlag) {
-		gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 8), 8);
-		gf_bs_write_long_int(bs_out, gf_bs_read_long_int(bs_in, 32), 32);
-		gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 4), 4);
-		gf_bs_write_long_int(bs_out, gf_bs_read_long_int(bs_in, 44), 44);
+		gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 8), 8);
+		gf_bs_write_long_int(ctx->bs_nal_out, gf_bs_read_long_int(ctx->bs_nal_in, 32), 32);
+		gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 4), 4);
+		gf_bs_write_long_int(ctx->bs_nal_out, gf_bs_read_long_int(ctx->bs_nal_in, 44), 44);
 	}
-	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 8), 8);
+	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 8), 8);
 
 	for (j = 0; j < MaxNumSubLayersMinus1; j++) {
-		sub_layer_profile_present_flag[j] = gf_bs_read_int(bs_in, 1);
-		gf_bs_write_int(bs_out, sub_layer_profile_present_flag[j], 1);
-		sub_layer_level_present_flag[j] = gf_bs_read_int(bs_in, 1);
-		gf_bs_write_int(bs_out, sub_layer_level_present_flag[j], 1);
+		sub_layer_profile_present_flag[j] = gf_bs_read_int(ctx->bs_nal_in, 1);
+		gf_bs_write_int(ctx->bs_nal_out, sub_layer_profile_present_flag[j], 1);
+		sub_layer_level_present_flag[j] = gf_bs_read_int(ctx->bs_nal_in, 1);
+		gf_bs_write_int(ctx->bs_nal_out, sub_layer_level_present_flag[j], 1);
 	}
 	if (MaxNumSubLayersMinus1 > 0)
 		for (j = MaxNumSubLayersMinus1; j < 8; j++)
-			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 2), 2);
+			gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 2), 2);
 
 
 	for (j = 0; j < MaxNumSubLayersMinus1; j++) {
 		if (sub_layer_profile_present_flag[j]) {
-			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 8), 8);
-			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 32), 32);
-			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 4), 4);
-			gf_bs_write_long_int(bs_out, gf_bs_read_long_int(bs_in, 44), 44);
+			gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 8), 8);
+			gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 32), 32);
+			gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 4), 4);
+			gf_bs_write_long_int(ctx->bs_nal_out, gf_bs_read_long_int(ctx->bs_nal_in, 44), 44);
 		}
 		if (sub_layer_level_present_flag[j])
-			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 8), 8);
+			gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 8), 8);
 	}
 }
 #endif
 
-static void rewrite_pps_tile_grid(char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length, u8 num_tile_rows_minus1, u8 num_tile_columns_minus1, u32 uniform_spacing_flag, GF_HEVCSplitCtx *ctx)
+static void hevccombine_rewrite_pps(GF_HEVCSplitCtx *ctx, char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length)
 {
-	u64 length_no_use = 0;
 	u8 cu_qp_delta_enabled_flag;
 	u32 loop_filter_flag;
+	u32 pps_size_no_epb;
 
-	GF_BitStream *bs_in;
-	GF_BitStream *bs_out;
-
-	char *data_without_emulation_bytes = NULL;
-	u32 data_without_emulation_bytes_size = 0;
-	
-
-	bs_in = gf_bs_new(in_PPS, in_PPS_length, GF_BITSTREAM_READ);
-	gf_bs_enable_emulation_byte_removal(bs_in, GF_TRUE);
-	bs_out = gf_bs_new(NULL, length_no_use, GF_BITSTREAM_WRITE);
-	if (!bs_in) goto exit;
+	gf_bs_reassign_buffer(ctx->bs_nal_in, in_PPS, in_PPS_length);
+	gf_bs_enable_emulation_byte_removal(ctx->bs_nal_in, GF_TRUE);
+	if (!ctx->bs_nal_out) ctx->bs_nal_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	else gf_bs_reassign_buffer(ctx->bs_nal_out, ctx->buffer_nal_no_epb, ctx->buffer_nal_no_epb_alloc);
 
 	//Read and write NAL header bits
-	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 16), 16);
-	bs_set_ue(bs_out, bs_get_ue(bs_in)); //pps_pic_parameter_set_id
-	bs_set_ue(bs_out, bs_get_ue(bs_in)); //pps_seq_parameter_set_id
-	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 7), 7); //from dependent_slice_segments_enabled_flag to cabac_init_present_flag
-	bs_set_ue(bs_out, bs_get_ue(bs_in)); //num_ref_idx_l0_default_active_minus1
-	bs_set_ue(bs_out, bs_get_ue(bs_in)); //num_ref_idx_l1_default_active_minus1
-	bs_set_se(bs_out, bs_get_se(bs_in)); //init_qp_minus26
-	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 2), 2); //from constrained_intra_pred_flag to transform_skip_enabled_flag
-	cu_qp_delta_enabled_flag = gf_bs_read_int(bs_in, 1); //cu_qp_delta_enabled_flag
-	gf_bs_write_int(bs_out, cu_qp_delta_enabled_flag, 1); //
+	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 16), 16);
+	gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); //pps_pic_parameter_set_id
+	gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); //pps_seq_parameter_set_id
+	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 7), 7); //from dependent_slice_segments_enabled_flag to cabac_init_present_flag
+	gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); //num_ref_idx_l0_default_active_minus1
+	gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); //num_ref_idx_l1_default_active_minus1
+	gf_bs_set_se(ctx->bs_nal_out, gf_bs_get_se(ctx->bs_nal_in)); //init_qp_minus26
+	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 2), 2); //from constrained_intra_pred_flag to transform_skip_enabled_flag
+	cu_qp_delta_enabled_flag = gf_bs_read_int(ctx->bs_nal_in, 1); //cu_qp_delta_enabled_flag
+	gf_bs_write_int(ctx->bs_nal_out, cu_qp_delta_enabled_flag, 1); //
 	if (cu_qp_delta_enabled_flag)
-		bs_set_ue(bs_out, bs_get_ue(bs_in)); // diff_cu_qp_delta_depth
-	bs_set_se(bs_out, bs_get_se(bs_in)); // pps_cb_qp_offset
-	bs_set_se(bs_out, bs_get_se(bs_in)); // pps_cr_qp_offset
-	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 4), 4); // from pps_slice_chroma_qp_offsets_present_flag to transquant_bypass_enabled_flag
+		gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); // diff_cu_qp_delta_depth
+	gf_bs_set_se(ctx->bs_nal_out, gf_bs_get_se(ctx->bs_nal_in)); // pps_cb_qp_offset
+	gf_bs_set_se(ctx->bs_nal_out, gf_bs_get_se(ctx->bs_nal_in)); // pps_cr_qp_offset
+	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 4), 4); // from pps_slice_chroma_qp_offsets_present_flag to transquant_bypass_enabled_flag
 
 
-	gf_bs_read_int(bs_in, 1);
-	gf_bs_write_int(bs_out, 1, 1);
-	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1);//entropy_coding_sync_enabled_flag
-	bs_set_ue(bs_out, num_tile_columns_minus1);//write num_tile_columns_minus1
-	bs_set_ue(bs_out, num_tile_rows_minus1);//num_tile_rows_minus1
-	gf_bs_write_int(bs_out, uniform_spacing_flag, 1);  //uniform_spacing_flag
+	gf_bs_read_int(ctx->bs_nal_in, 1);
+	gf_bs_write_int(ctx->bs_nal_out, 1, 1);
+	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);//entropy_coding_sync_enabled_flag
+	gf_bs_set_ue(ctx->bs_nal_out, ctx->nb_cols-1);//write num_tile_columns_minus1
+	gf_bs_set_ue(ctx->bs_nal_out, 0);//num_tile_rows_minus1
+	gf_bs_write_int(ctx->bs_nal_out, 0, 1);  //uniform_spacing_flag
 
-	if (!uniform_spacing_flag)
+//	if (!uniform_spacing_flag) //always 0
 	{
-		u8 i;
-		for (i = 0; i < num_tile_columns_minus1; i++)
-			bs_set_ue(bs_out, (ctx->tile_prop[i].width / 64 - 1)); // column_width_minus1[i], todo: not a ctu size
-		i = 0;
-		for (i = 0; i < num_tile_rows_minus1; i++)
-			bs_set_ue(bs_out, (ctx->tile_prop[i].height / 64 - 1)); // row_height_minus1[i]
+		u32 i;
+		for (i = 0; i < ctx->nb_cols-1; i++)
+			gf_bs_set_ue(ctx->bs_nal_out, (ctx->grid[i].width / ctx->max_CU_width - 1));
+
+#if 0	//kept for clarity, but not used by the filter since we only use a single row
+		for (i = 0; i < 1-1; i++) //num_tile_rows_minus1
+			gf_bs_set_ue(ctx->bs_nal_out, (ctx->out_height / ctx->max_CU_height - 1)); // row_height_minus1[i]
+#endif
+
 	}
 	loop_filter_flag = 1;
-	gf_bs_write_int(bs_out, loop_filter_flag, 1);
+	gf_bs_write_int(ctx->bs_nal_out, loop_filter_flag, 1);
 
-	loop_filter_flag = gf_bs_read_int(bs_in, 1);
-	gf_bs_write_int(bs_out, loop_filter_flag, 1);
+	loop_filter_flag = gf_bs_read_int(ctx->bs_nal_in, 1);
+	gf_bs_write_int(ctx->bs_nal_out, loop_filter_flag, 1);
 
 	// copy and write the rest of the bits in the byte
-	while (gf_bs_get_bit_position(bs_in) != 8) {
-		gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1);
+	while (gf_bs_get_bit_position(ctx->bs_nal_in) != 8) {
+		gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
 	}
 
 	//copy and write the rest of the bytes
-	while (gf_bs_get_size(bs_in) != gf_bs_get_position(bs_in)) {
-		gf_bs_write_int(bs_out, gf_bs_read_u8(bs_in), 8); //watchout, not aligned in destination bitstream
+	while (gf_bs_get_size(ctx->bs_nal_in) != gf_bs_get_position(ctx->bs_nal_in)) {
+		gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_u8(ctx->bs_nal_in), 8); //watchout, not aligned in destination bitstream
 	}
 
-	gf_bs_align(bs_out);						//align
-	gf_free(data_without_emulation_bytes);
-	data_without_emulation_bytes = NULL;
-	data_without_emulation_bytes_size = 0;
+	gf_bs_align(ctx->bs_nal_out);
 
-	gf_bs_get_content(bs_out, &data_without_emulation_bytes, &data_without_emulation_bytes_size);
+	gf_bs_get_content_no_truncate(ctx->bs_nal_out, &ctx->buffer_nal_no_epb, &pps_size_no_epb, &ctx->buffer_nal_no_epb_alloc);
 
-	*out_PPS_length = data_without_emulation_bytes_size + gf_media_nalu_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
+	*out_PPS_length = pps_size_no_epb + gf_media_nalu_emulation_bytes_add_count(ctx->buffer_nal_no_epb, pps_size_no_epb);
 	*out_PPS = gf_malloc(*out_PPS_length);
-	gf_media_nalu_add_emulation_bytes(data_without_emulation_bytes, *out_PPS, data_without_emulation_bytes_size);
-
-exit:
-	gf_bs_del(bs_in);
-	gf_bs_del(bs_out);
-	gf_free(data_without_emulation_bytes);
+	gf_media_nalu_add_emulation_bytes(ctx->buffer_nal_no_epb, *out_PPS, pps_size_no_epb);
 }
 
-static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pid, u32 new_address, char *in_slice, u32 in_slice_length, char **out_slice, u32 *out_slice_length, u32 final_width, u32 final_height)
+u32 hevccombine_rewrite_slice(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pid, char *in_slice, u32 in_slice_length)
 {
-	char *data_without_emulation_bytes = NULL;
-	u32 data_without_emulation_bytes_size = 0;
 	u64 header_end;
-	u32 dst_buf_size = 0;
-	char *dst_buf = NULL;
+	u32 out_slice_size_no_epb = 0, out_slice_length;
 	u32 num_entry_point_start;
 	u32 pps_id;
-	GF_BitStream *bs_ori, *bs_rw; // *pre_bs_ori;
 	Bool RapPicFlag = GF_FALSE;
 	u32 nb_bits_per_adress_dst = 0, slice_qp_delta_start;
 	HEVC_PPS *pps;
 	HEVC_SPS *sps;
-	u32 al, slice_size, slice_offset_orig, slice_offset_dst;
+	u32 al, slice_size, in_slice_size_no_epb, slice_offset_orig, slice_offset_dst;
 	u32 first_slice_segment_in_pic_flag;
 	u32 dependent_slice_segment_flag;
 	u8 nal_unit_type;
@@ -249,11 +216,18 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 
 	HEVCState *hevc = &tile_pid->hevc_state;
 
-	data_without_emulation_bytes = gf_malloc(in_slice_length * sizeof(char)); // In slice content shall be written as a character, sizeof(char) is the length on which each character is coded.
-	data_without_emulation_bytes_size = gf_media_nalu_remove_emulation_bytes(in_slice, data_without_emulation_bytes, in_slice_length);
-	bs_ori = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
-
-	bs_rw = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	//we remove EPB directly rather than from bs reader, since we will have to copy the entire payload without EPB
+	//and gf_bs_read_data does not check for EPB
+	if (ctx->buffer_nal_in_no_epb_alloc<in_slice_length) {
+		ctx->buffer_nal_in_no_epb_alloc = in_slice_length;
+		ctx->buffer_nal_in_no_epb = gf_realloc(ctx->buffer_nal_in_no_epb, in_slice_length);
+	}
+	in_slice_size_no_epb = gf_media_nalu_remove_emulation_bytes(in_slice, ctx->buffer_nal_in_no_epb, in_slice_length);
+	gf_bs_reassign_buffer(ctx->bs_nal_in, ctx->buffer_nal_in_no_epb, in_slice_size_no_epb);
+	//disable EPB removal
+	gf_bs_enable_emulation_byte_removal(ctx->bs_nal_in, GF_FALSE);
+	if (!ctx->bs_nal_out) ctx->bs_nal_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	else gf_bs_reassign_buffer(ctx->bs_nal_out, ctx->buffer_nal_no_epb, ctx->buffer_nal_no_epb_alloc);
 
 	assert(hevc->s_info.header_size_bits >= 0);
 	assert(hevc->s_info.entry_point_start_bits >= 0);
@@ -263,16 +237,16 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 	slice_qp_delta_start = (u32)hevc->s_info.slice_qp_delta_start_bits;
 
 	// nal_unit_header			 
-	gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 1), 1);
-	nal_unit_type = gf_bs_read_int(bs_ori, 6);
-	gf_bs_write_int(bs_rw, nal_unit_type, 6);
-	gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 9), 9);
+	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
+	nal_unit_type = gf_bs_read_int(ctx->bs_nal_in, 6);
+	gf_bs_write_int(ctx->bs_nal_out, nal_unit_type, 6);
+	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 9), 9);
 
-	first_slice_segment_in_pic_flag = gf_bs_read_int(bs_ori, 1);    //first_slice_segment_in_pic_flag
-	if (new_address == 0)
-		gf_bs_write_int(bs_rw, 1, 1);
+	first_slice_segment_in_pic_flag = gf_bs_read_int(ctx->bs_nal_in, 1);    //first_slice_segment_in_pic_flag
+	if (tile_pid->slice_segment_address == 0)
+		gf_bs_write_int(ctx->bs_nal_out, 1, 1);
 	else
-		gf_bs_write_int(bs_rw, 0, 1);
+		gf_bs_write_int(ctx->bs_nal_out, 0, 1);
 
 	switch (nal_unit_type) {
 	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
@@ -289,120 +263,110 @@ static char* rewrite_slice_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pi
 
 	if (RapPicFlag) {
 		//no_output_of_prior_pics_flag
-		gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 1), 1);
+		gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
 	}
 
-	pps_id = bs_get_ue(bs_ori);					 //pps_id
-	bs_set_ue(bs_rw, pps_id);
+	pps_id = gf_bs_get_ue(ctx->bs_nal_in);
+	gf_bs_set_ue(ctx->bs_nal_out, pps_id);
 
 	pps = &hevc->pps[pps_id];
 	sps = &hevc->sps[pps->sps_id];
 
 	dependent_slice_segment_flag = 0;
-	if (!first_slice_segment_in_pic_flag && pps->dependent_slice_segments_enabled_flag) //dependent_slice_segment_flag READ
-	{
-		dependent_slice_segment_flag = gf_bs_read_int(bs_ori, 1);
-	}
-	else
-	{
+	if (!first_slice_segment_in_pic_flag && pps->dependent_slice_segments_enabled_flag) {
+		dependent_slice_segment_flag = gf_bs_read_int(ctx->bs_nal_in, 1);
+	} else {
 		dependent_slice_segment_flag = GF_FALSE;
 	}
-	if (!first_slice_segment_in_pic_flag) 						    //slice_segment_address READ
-	{
-		/*address_ori = */gf_bs_read_int(bs_ori, sps->bitsSliceSegmentAddress);
+	if (!first_slice_segment_in_pic_flag) {
+		/*address_ori = */gf_bs_read_int(ctx->bs_nal_in, sps->bitsSliceSegmentAddress);
 	}
-	else {} 	//original slice segment address = 0
+	//else original slice segment address = 0
 
-	if (new_address > 0) //new address != 0
-	{
-		if (pps->dependent_slice_segments_enabled_flag)				    //dependent_slice_segment_flag WRITE
-		{
-			gf_bs_write_int(bs_rw, dependent_slice_segment_flag, 1);
+	if (tile_pid->slice_segment_address > 0) {
+		u32 nb_CTUs = ((ctx->out_width + sps->max_CU_width - 1) / sps->max_CU_width) * ((ctx->out_height + sps->max_CU_height - 1) / sps->max_CU_height);
+		if (pps->dependent_slice_segments_enabled_flag) {
+			gf_bs_write_int(ctx->bs_nal_out, dependent_slice_segment_flag, 1);
+		}
+		nb_bits_per_adress_dst = 0;
+		while (nb_CTUs > (u32)(1 << nb_bits_per_adress_dst)) {
+			nb_bits_per_adress_dst++;
 		}
 
-		if (final_width && final_height) {
-			u32 nb_CTUs = ((final_width + sps->max_CU_width - 1) / sps->max_CU_width) * ((final_height + sps->max_CU_height - 1) / sps->max_CU_height);
-			nb_bits_per_adress_dst = 0;
-			while (nb_CTUs > (u32)(1 << nb_bits_per_adress_dst)) {
-				nb_bits_per_adress_dst++;
-			}
-		}
-		else {
-			nb_bits_per_adress_dst = sps->bitsSliceSegmentAddress;
-		}
-
-		gf_bs_write_int(bs_rw, new_address, nb_bits_per_adress_dst);	    //slice_segment_address WRITE
+		gf_bs_write_int(ctx->bs_nal_out, tile_pid->slice_segment_address, nb_bits_per_adress_dst);	    //slice_segment_address WRITE
 	}
-	else {} //new_address = 0
-	
+	//else first slice in pic, no adress
+
 	//copy over bits until start of slice_qp_delta
-	while (slice_qp_delta_start != (gf_bs_get_position(bs_ori) - 1) * 8 + gf_bs_get_bit_position(bs_ori))
-	{
-		gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 1), 1);
+	while (slice_qp_delta_start != (gf_bs_get_position(ctx->bs_nal_in) - 1) * 8 + gf_bs_get_bit_position(ctx->bs_nal_in)) {
+		gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
 	}
-	new_slice_qp_delta = hevc->pps->pic_init_qp_minus26 + hevc->s_info.slice_qp_delta - ctx->base_pps_init_qp_delta_minus26; // no restriction for first tlie cause the result is correct
-	bs_set_se(bs_rw, new_slice_qp_delta);
-	bs_get_se(bs_ori);
+	//compute new qp delta
+	new_slice_qp_delta = hevc->pps->pic_init_qp_minus26 + hevc->s_info.slice_qp_delta - ctx->base_pps_init_qp_delta_minus26;
+	gf_bs_set_se(ctx->bs_nal_out, new_slice_qp_delta);
+	gf_bs_get_se(ctx->bs_nal_in);
 	
 	//copy over until num_entry_points
-	while (num_entry_point_start != (gf_bs_get_position(bs_ori) - 1) * 8 + gf_bs_get_bit_position(bs_ori)) //Copy till the end of the header
-	{
-		gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 1), 1);
+	while (num_entry_point_start != (gf_bs_get_position(ctx->bs_nal_in) - 1) * 8 + gf_bs_get_bit_position(ctx->bs_nal_in)) {
+		gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
 	}
 	//write num_entry_points to 0 (always present since we use tiling)
-	bs_set_ue(bs_rw, 0);
+	gf_bs_set_ue(ctx->bs_nal_out, 0);
 
 	//write slice extension to 0
 	if (pps->slice_segment_header_extension_present_flag)
-		gf_bs_write_int(bs_rw, 0, 1);
+		gf_bs_write_int(ctx->bs_nal_out, 0, 1);
 
 
 	//we may have unparsed data in the source bitstream (slice header) due to entry points or slice segment extensions
 	//TODO: we might want to copy over the slice extension header bits
-	while (header_end != (gf_bs_get_position(bs_ori) - 1) * 8 + gf_bs_get_bit_position(bs_ori))
-		gf_bs_read_int(bs_ori, 1);
+	while (header_end != (gf_bs_get_position(ctx->bs_nal_in) - 1) * 8 + gf_bs_get_bit_position(ctx->bs_nal_in))
+		gf_bs_read_int(ctx->bs_nal_in, 1);
 
 	//read byte_alignment() is bit=1 + x bit=0
-	al = gf_bs_read_int(bs_ori, 1);
+	al = gf_bs_read_int(ctx->bs_nal_in, 1);
 	if (al != 1) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCCombine] source slice header not properly aligned\n"));
 	}
-	gf_bs_align(bs_ori);
+	gf_bs_align(ctx->bs_nal_in);
 
 	//write byte_alignment() is bit=1 + x bit=0
-	gf_bs_write_int(bs_rw, 1, 1);
-	gf_bs_align(bs_rw);	// align
-	gf_bs_get_content(bs_rw, &dst_buf, &dst_buf_size); /* bs_rw: header.*/
-	slice_size = (u32) gf_bs_available(bs_ori); /* Slice_size: the rest of the slice after the header (no_emulation_bytes in it). */
-	slice_offset_orig = (u32) gf_bs_get_position(bs_ori); /* Slice_offset_orig: Immediate next byte after header_end (start of the slice_payload) */
-	slice_offset_dst = dst_buf_size;/* Slice_offset_dst: bs_rw_size (size of our new header). */
-	dst_buf_size += slice_size;/* Size of our new header plus the payload itself.*/
-	dst_buf = gf_realloc(dst_buf, sizeof(char) * dst_buf_size);/* A buffer for our new header plus the payload. */
-	memcpy(dst_buf + slice_offset_dst, data_without_emulation_bytes + slice_offset_orig, sizeof(char) * slice_size);
+	gf_bs_write_int(ctx->bs_nal_out, 1, 1);
+	gf_bs_align(ctx->bs_nal_out);	// align
 
-	gf_free(data_without_emulation_bytes);
-	data_without_emulation_bytes = dst_buf;
-	data_without_emulation_bytes_size = dst_buf_size;
+	//get the final slice header
+	gf_bs_get_content_no_truncate(ctx->bs_nal_out, &ctx->buffer_nal_no_epb, &out_slice_size_no_epb, &ctx->buffer_nal_no_epb_alloc);
 
-	u32 slice_length = data_without_emulation_bytes_size + gf_media_nalu_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
-	if (*out_slice_length < slice_length)
-		*out_slice = gf_realloc (*out_slice, slice_length);
-	
-	*out_slice_length = slice_length;
-	gf_media_nalu_add_emulation_bytes(data_without_emulation_bytes, *out_slice, data_without_emulation_bytes_size);
+ 	//get the slice payload size (no EPB in it) and offset in payload
+	slice_size = (u32) gf_bs_available(ctx->bs_nal_in);
+	slice_offset_orig = (u32) gf_bs_get_position(ctx->bs_nal_in);
+	//slice data offset in output slice
+	slice_offset_dst = out_slice_size_no_epb;
+	//update output slice size
+	out_slice_size_no_epb += slice_size;
 
-	gf_bs_del(bs_ori);
-	gf_bs_del(bs_rw);
-	gf_free(data_without_emulation_bytes);
-	return *out_slice;
+	//copy slice data
+	if (ctx->buffer_nal_no_epb_alloc < out_slice_size_no_epb) {
+		ctx->buffer_nal_no_epb_alloc = out_slice_size_no_epb;
+		ctx->buffer_nal_no_epb = gf_realloc(ctx->buffer_nal_no_epb, out_slice_size_no_epb);
+	}
+	memcpy(ctx->buffer_nal_no_epb + slice_offset_dst, ctx->buffer_nal_in_no_epb + slice_offset_orig, sizeof(char) * slice_size);
+
+	//insert epb
+	out_slice_length = out_slice_size_no_epb + gf_media_nalu_emulation_bytes_add_count(ctx->buffer_nal_no_epb, out_slice_size_no_epb);
+	if (ctx->buffer_nal_alloc < out_slice_length) {
+		ctx->buffer_nal_alloc = out_slice_length;
+		ctx->buffer_nal = gf_realloc(ctx->buffer_nal, out_slice_length);
+	}
+	gf_media_nalu_add_emulation_bytes(ctx->buffer_nal_no_epb, ctx->buffer_nal, out_slice_size_no_epb);
+	return out_slice_length;
 }
 
-static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *data, u32 size, u32 new_width, u32 new_height, u8 num_tile_rows_minus1, u8 num_tile_columns_minus1)
+static GF_Err hevccombine_rewrite_config(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *data, u32 size)
 {
 	u32 i, j;
 	char *new_dsi;
 	u32 new_size;
-	Bool uniform_spacing_flag = GF_FALSE;
 	GF_HEVCConfig *hvcc = NULL;
 	// Profile, tier and level syntax ( nal class: Reserved and unspecified)
 	hvcc = gf_odf_hevc_cfg_read(data, size, GF_FALSE);
@@ -418,7 +382,7 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *d
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
 				char *outSPS=NULL;
 				u32 outSize=0;
-				hevc_rewrite_sps(sl->data, sl->size, new_width, new_height, &outSPS, &outSize);
+				hevc_rewrite_sps(sl->data, sl->size, ctx->out_width, ctx->out_height, &outSPS, &outSize);
 				gf_free(sl->data);
 				sl->data = outSPS;
 				sl->size = outSize;
@@ -428,7 +392,7 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *d
 			else if (ar->type == GF_HEVC_NALU_PIC_PARAM) {
 				char *outPPS=NULL;
 				u32 outSize=0;
-				rewrite_pps_tile_grid(sl->data, sl->size, &outPPS, &outSize, num_tile_rows_minus1, num_tile_columns_minus1, uniform_spacing_flag, ctx);
+				hevccombine_rewrite_pps(ctx, sl->data, sl->size, &outPPS, &outSize);
 				gf_free(sl->data);
 				sl->data = outPPS;
 				sl->size = outSize;
@@ -442,89 +406,428 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *d
 	return GF_OK;
 }
 
-static void bsnal(char *output_nal, char *rewritten_nal, u32 out_nal_size, u32 hevc_nalu_size_length)
+static void hevccombine_write_nal(GF_HEVCSplitCtx *ctx, char *output_nal, char *rewritten_nal, u32 out_nal_size)
 {
-	GF_BitStream *bsnal = gf_bs_new(output_nal, hevc_nalu_size_length, GF_BITSTREAM_WRITE);
-	gf_bs_write_int(bsnal, out_nal_size, 8 * hevc_nalu_size_length); 
-	memcpy(output_nal + hevc_nalu_size_length, rewritten_nal, out_nal_size);
-	gf_bs_del(bsnal);
+	u32 n = 8*(ctx->hevc_nalu_size_length);
+	while (n) {
+		u32 v = (out_nal_size >> (n-8)) & 0xFF;
+		*output_nal = v;
+		output_nal++;
+		n-=8;
+	}
+	memcpy(output_nal, rewritten_nal, out_nal_size);
 }
 
-static u32 compute_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pid)
+static u32 hevccombine_compute_address(GF_HEVCSplitCtx *ctx, HEVCTilePidCtx *tile_pid, Bool use_y_coord)
 {
-	u32 i, j, new_address = 0, sum_height = 0, sum_width = 0;
-	HEVCTilePidCtx *ptr = NULL, *current_pid = ctx->addr_tile_pid[tile_pid->pid_idx];
+	u32 i, nb_pids, sum_height = 0, sum_width = 0;
+	for (i=0; i<tile_pid->pos_col; i++) {
+		sum_width += ctx->grid[i].width / ctx->max_CU_width;
+	}
 
-	if (ctx->pid_idx > 0)
-	{
-		HEVCTilePidCtx *previous_pid = ctx->addr_tile_pid[tile_pid->pid_idx - 1];
-		if ((current_pid->tile_pos_row == previous_pid->tile_pos_row) && (current_pid->tile_pos_col == previous_pid->tile_pos_col))
-		{
-			for (j = 0; j < current_pid->tile_pos_col; j++) {
-				ptr = ctx->addr_tile_pid[j];
-				sum_width += ptr->width / 64; // num_CTU_width[j]
+	if (use_y_coord) {
+		sum_height = tile_pid->pos_y / ctx->max_CU_height;
+ 	} else {
+		nb_pids = gf_list_count(ctx->pids);
+		for (i=0; i<nb_pids; i++) {
+			HEVCTilePidCtx *actx = gf_list_get(ctx->pids, i);
+			if (actx->pos_col == tile_pid->pos_col) {
+				if (actx->pos_row<tile_pid->pos_row) {
+					sum_height += actx->height / ctx->max_CU_height;
+				}
 			}
-			while (current_pid->tile_pos_row == previous_pid->tile_pos_row && current_pid->tile_pos_col == previous_pid->tile_pos_col)
-			{
-				ptr = ctx->addr_tile_pid[tile_pid->pid_idx - 1];
-				sum_height += ptr->height / 64; // dim_ctu_height[k - 1]
-				if (ctx->pid_idx == 1) break;// don't seek for position_col[-1]
-				ctx->pid_idx--;
-			}
-			new_address = sum_height * (ctx->out_width / 64) + sum_width; // ctx->num_CTU_width_tot
-		}
-		else
-		{
-			for (i = 0; i < current_pid->tile_pos_row; i++) {
-				ptr = ctx->addr_tile_pid[i];
-				sum_height += ptr->height / 64; // num_CTU_height[i]
-			}
-			for (j = 0; j < current_pid->tile_pos_col; j++) {
-				ptr = ctx->addr_tile_pid[i];
-				sum_width += ptr->width / 64; // num_CTU_width[j]
-			}
-			new_address = sum_height * (ctx->out_width / 64) + sum_width;
 		}
 	}
-	else
-	{
-		
-		for (i = 0; i < current_pid->tile_pos_row; i++) {
-			ptr = ctx->addr_tile_pid[i];
-			sum_height += ptr->height / 64; // num_CTU_height[i]
-		}
-		for (j = 0; j < current_pid->tile_pos_col; j++) {
-			ptr = ctx->addr_tile_pid[i];
-			sum_width += ptr->width / 64; // num_CTU_width[j]
-		}
-		new_address = sum_height * (ctx->out_width / 64) + sum_width; 
-	}
-	current_pid->sum_height = sum_height;
-	current_pid->sum_width = sum_width;
-	return new_address;
+	return sum_height * (ctx->out_width / ctx->max_CU_width) + sum_width;
 }
 
+static GF_Err hevccombine_rebuild_grid(GF_HEVCSplitCtx *ctx)
+{
+	u32 nb_cols=0;
+	u32 nb_rows=0;
+	Bool reorder_rows=GF_FALSE;
+	u32 force_last_col_plus_one=0;
+	u32 nb_has_pos=0, nb_no_pos=0, nb_rel_pos=0, nb_abs_pos=0;
+	u32 min_rel_pos_x = (u32) -1;
+	u32 min_rel_pos_y = (u32) -1;
+	u32 i, j, max_cols, nb_pids = gf_list_count(ctx->pids);
+
+	for (i=0; i<nb_pids; i++) {
+		HEVCTilePidCtx *apidctx = gf_list_get(ctx->pids, i);
+		if (apidctx->width % ctx->max_CU_width) nb_cols++;
+		if (apidctx->height % ctx->max_CU_height) nb_rows++;
+		if (apidctx->has_pos) {
+			nb_has_pos++;
+			if ((apidctx->pos_x<0) || (apidctx->pos_y<0)) {
+				nb_rel_pos++;
+			}
+			else if ((apidctx->pos_x>0) || (apidctx->pos_y>0)) nb_abs_pos++;
+
+			if ((apidctx->pos_x<=0) && (-apidctx->pos_x > min_rel_pos_x))
+				min_rel_pos_x = -apidctx->pos_x;
+			if ((apidctx->pos_y<=0) && (-apidctx->pos_y > min_rel_pos_y))
+				min_rel_pos_y = -apidctx->pos_y;
+		} else {
+			nb_no_pos++;
+		}
+	}
+	if ((nb_cols>1) && (nb_rows>1)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCCombine] Cannot combine more than one tile not a multiple of CTUs in both width and height, not possible in standard\n"));
+		return GF_BAD_PARAM;
+	}
+	if (nb_has_pos && nb_no_pos) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCCombine] Cannot combine tiles with explicit positionning and tiles with implicit positioning, not supported\n"));
+		return GF_BAD_PARAM;
+	}
+	if (nb_rel_pos && nb_abs_pos) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCCombine] Cannot combine tiles with both relative explicit positionning and absolute explicit positioning, not supported\n"));
+		return GF_BAD_PARAM;
+	}
+	if (ctx->grid) gf_free(ctx->grid);
+	ctx->grid = NULL;
+
+	if (min_rel_pos_x == (u32)-1) min_rel_pos_x=0;
+	if (min_rel_pos_y == (u32)-1) min_rel_pos_y=0;
+
+	max_cols = nb_pids;
+	if (nb_has_pos) {
+		max_cols = 0;
+		for (i=0; i<nb_pids; i++) {
+			HEVCTilePidCtx *tile1 = gf_list_get(ctx->pids, i);
+			if (!tile1->has_pos) continue;
+
+			for (j=0; j<nb_pids; j++) {
+				Bool overlap = GF_FALSE;
+				HEVCTilePidCtx *tile2 = gf_list_get(ctx->pids, j);
+				if (tile2 == tile1) continue;
+				if (!tile2->has_pos) continue;
+
+				//for relative positioning, only check we don't have the same indexes
+				if (nb_rel_pos) {
+					if ((tile1->pos_x==tile2->pos_x) && (tile1->pos_y == tile2->pos_y)) {
+						overlap = GF_TRUE;
+					}
+					continue;
+				}
+
+				//make sure we are aligned
+				if ((tile1->pos_x<tile2->pos_x) && (tile1->pos_x + tile1->width > tile2->pos_x)) {
+					overlap = GF_TRUE;
+				}
+				else if ((tile1->pos_x==tile2->pos_x) && (tile1->width != tile2->width)) {
+					overlap = GF_TRUE;
+				}
+				if (tile1->pos_x==tile2->pos_x) {
+					if ((tile1->pos_y<tile2->pos_y) && (tile1->pos_y + tile1->height > tile2->pos_y)) {
+						overlap = GF_TRUE;
+					}
+					else if ((tile1->pos_y==tile2->pos_y) && (tile1->height != tile2->height)) {
+						overlap = GF_TRUE;
+					}
+				}
+
+				if (overlap) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCCombine] Overlapping tiles detected, cannot combine\n"));
+					return GF_BAD_PARAM;
+				}
+			}
+
+			if (!max_cols) {
+				ctx->grid = gf_malloc(sizeof(struct gridInfo));
+				memset(&ctx->grid[0], 0, sizeof(struct gridInfo));
+
+				ctx->grid[0].width = tile1->width;
+				if (nb_rel_pos) {
+					ctx->grid[0].pos_x = -tile1->pos_x - min_rel_pos_x;
+				} else {
+					ctx->grid[0].pos_x = tile1->pos_x;
+				}
+				max_cols=1;
+			} else if (ctx->grid[max_cols-1].pos_x != tile1->pos_x) {
+				if (nb_rel_pos) {
+					//append
+					if (ctx->grid[max_cols-1].pos_x < tile1->pos_x) {
+						ctx->grid = gf_realloc(ctx->grid, sizeof(struct gridInfo) * (max_cols+1) );
+						memset(&ctx->grid[max_cols], 0, sizeof(struct gridInfo));
+						ctx->grid[max_cols].width = tile1->width;
+						ctx->grid[max_cols].pos_x = -tile1->pos_x;
+						max_cols+=1;
+					}
+					//insert
+					else {
+						for (j=0; j<max_cols; j++) {
+							if (ctx->grid[j].pos_x > tile1->pos_x) {
+								ctx->grid = gf_realloc(ctx->grid, sizeof(struct gridInfo) * (max_cols+1) );
+								memmove(&ctx->grid[j+1], &ctx->grid[j], sizeof(struct gridInfo) * (max_cols-j));
+								memset(&ctx->grid[j], 0, sizeof(struct gridInfo));
+								ctx->grid[j].width = tile1->width;
+								ctx->grid[j].pos_x = -tile1->pos_x;
+								max_cols+=1;
+								break;
+							}
+						}
+					}
+				} else {
+					//append
+					if (ctx->grid[max_cols-1].pos_x + ctx->grid[max_cols-1].width <= tile1->pos_x) {
+						ctx->grid = gf_realloc(ctx->grid, sizeof(struct gridInfo) * (max_cols+1) );
+						memset(&ctx->grid[max_cols], 0, sizeof(struct gridInfo));
+						ctx->grid[max_cols].width = tile1->width;
+						ctx->grid[max_cols].pos_x = tile1->pos_x;
+						max_cols+=1;
+					}
+					//insert
+					else {
+						for (j=0; j<max_cols; j++) {
+							if (ctx->grid[j].pos_x > tile1->pos_x) {
+								ctx->grid = gf_realloc(ctx->grid, sizeof(struct gridInfo) * (max_cols+1) );
+								memmove(&ctx->grid[j+1], &ctx->grid[j], sizeof(struct gridInfo) * (max_cols-j));
+								memset(&ctx->grid[j], 0, sizeof(struct gridInfo));
+								ctx->grid[j].width = tile1->width;
+								ctx->grid[j].pos_x = tile1->pos_x;
+								max_cols+=1;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		// pass on the grid to insert empty columns
+		if (!nb_rel_pos) {
+			for (j=0; j<max_cols-1; j++) {
+				assert(ctx->grid[j].pos_x + ctx->grid[j].width <= ctx->grid[j+1].pos_x);
+				if (ctx->grid[j].pos_x + ctx->grid[j].width != ctx->grid[j+1].pos_x) {
+					u32 new_width = ctx->grid[j+1].pos_x - ctx->grid[j].pos_x - ctx->grid[j].width;
+					u32 new_x = ctx->grid[j].pos_x + ctx->grid[j].width;
+
+					ctx->grid = gf_realloc(ctx->grid, sizeof(struct gridInfo) * (max_cols+1) );
+					memmove(&ctx->grid[j+2], &ctx->grid[j+1], sizeof(struct gridInfo) * (max_cols-j-1));
+
+					memset(&ctx->grid[j+1], 0, sizeof(struct gridInfo));
+					ctx->grid[j+1].width = new_width;
+					ctx->grid[j+1].pos_x = new_x;
+					max_cols+=1;
+					j++;
+				}
+			}
+		}
+
+		//assign cols and rows
+		for (j=0; j<max_cols; j++) {
+			if (nb_rel_pos) {
+				ctx->grid[j].height = 0;
+			}
+			//check non-last colums are multiple of max CU width
+			if ((j+1<max_cols) && (ctx->grid[j].width % ctx->max_CU_height) ) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCCombine] Invalid grid specification, column %d width %d not a multiple of max CU width and not the last one\n", j+1, ctx->grid[j].width));
+				return GF_BAD_PARAM;
+			}
+			for (i=0; i<nb_pids; i++) {
+				HEVCTilePidCtx *tile = gf_list_get(ctx->pids, i);
+				if (nb_rel_pos) {
+					if (-tile->pos_x != ctx->grid[j].pos_x) continue;
+					if (ctx->grid[j].width != tile->width) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCCombine] Invalid relative positioning in the same column of tiles with different width %d vs %d\n", tile->width, ctx->grid[j].width));
+						return GF_BAD_PARAM;
+					}
+					tile->pos_col = j;
+					tile->pos_row = -tile->pos_y;
+					ctx->grid[j].height += tile->height;
+				} else {
+					if (tile->pos_x != ctx->grid[j].pos_x) continue;
+					tile->pos_col = j;
+					tile->pos_row = tile->pos_y / ctx->max_CU_height;
+					if (tile->pos_row * ctx->max_CU_height != tile->pos_y) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVCCombine] Tile y %d not a multiple of CU height %d, adjusting to next boundary\n", tile->pos_y, ctx->max_CU_height));
+						tile->pos_row++;
+					}
+					if (tile->pos_y + tile->height > ctx->grid[j].height)
+						ctx->grid[j].height = tile->pos_y + tile->height;
+				}
+
+				if (tile->pos_row > ctx->grid[j].max_row_pos)
+					ctx->grid[j].max_row_pos = tile->pos_row;
+			}
+
+			//check non-last rows are multiple of max CU height
+			for (i=0; i<nb_pids; i++) {
+				HEVCTilePidCtx *tile = gf_list_get(ctx->pids, i);
+				if (tile->pos_col != j) continue;
+				if ((tile->pos_row < ctx->grid[j].max_row_pos) && (tile->height % ctx->max_CU_height)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCCombine] Invalid grid specification, row %d in column %d height %d not a multiple of max CU height and not the last one\n", tile->pos_row, j+1, tile->height));
+					return GF_BAD_PARAM;
+				}
+			}
+		}
+		nb_cols = max_cols;
+
+	} else {
+		//gather tiles per columns
+		ctx->grid = gf_malloc(sizeof(struct gridInfo)*nb_pids);
+		memset(ctx->grid, 0, sizeof(struct gridInfo)*nb_pids);
+
+
+		nb_cols=0;
+		nb_rows=0;
+		for (i=0; i<nb_pids; i++) {
+			Bool found = GF_FALSE;
+			HEVCTilePidCtx *apidctx = gf_list_get(ctx->pids, i);
+			//do we fit on a col
+			for (j=0; j<nb_cols; j++) {
+				if (ctx->grid[j].width == apidctx->width) {
+					found = GF_TRUE;
+					break;
+				}
+			}
+			//force new column
+			if ((apidctx->height % ctx->max_CU_height) && found && ctx->grid[j].last_row_idx)
+				found = GF_FALSE;
+
+			if (!found) {
+				ctx->grid[nb_cols].width = apidctx->width;
+				ctx->grid[nb_cols].height = apidctx->height;
+				if (apidctx->width % ctx->max_CU_width) {
+					assert(!force_last_col_plus_one);
+					force_last_col_plus_one = nb_cols+1;
+				}
+				if (apidctx->height % ctx->max_CU_height) {
+					ctx->grid[nb_cols].last_row_idx = ctx->grid[nb_cols].row_pos +1 ;
+					reorder_rows=GF_TRUE;
+				}
+
+				ctx->grid[nb_cols].row_pos = 1;
+				nb_cols++;
+				j=nb_cols-1;
+			} else {
+				ctx->grid[j].height += apidctx->height;
+				if (apidctx->height % ctx->max_CU_height) {
+					ctx->grid[j].last_row_idx = ctx->grid[j].row_pos+1;
+					reorder_rows=GF_TRUE;
+				}
+				ctx->grid[j].row_pos ++;
+			}
+			assert(ctx->grid[j].row_pos);
+			apidctx->pos_row = ctx->grid[j].row_pos - 1;
+			apidctx->pos_col = j;
+		}
+		//move last column at end if not a multiple of CTU
+		if (force_last_col_plus_one) {
+			for (i=0; i<nb_pids; i++) {
+				HEVCTilePidCtx *apidctx = gf_list_get(ctx->pids, i);
+				//do we fit on a col
+				if (apidctx->pos_col == force_last_col_plus_one - 1) {
+					apidctx->pos_col = nb_cols-1;
+				} else if (apidctx->pos_col > force_last_col_plus_one - 1) {
+					apidctx->pos_col -= 1;
+				}
+			}
+		}
+		//in each column, push the last_row_idx if any to the bottom and move up other tiles accordingly
+		//this ensures that slices with non multiple of maxCTU height are always at the bottom of the grid
+		if (reorder_rows) {
+			for (i=0; i<nb_cols; i++) {
+				if (!ctx->grid[j].last_row_idx) continue;
+
+				for (j=0; j<nb_pids; j++) {
+					HEVCTilePidCtx *apidctx = gf_list_get(ctx->pids, j);
+
+					if (apidctx->pos_col != i) continue;
+
+					if (apidctx->pos_row==ctx->grid[i].last_row_idx-1) {
+						apidctx->pos_row = ctx->grid[i].row_pos;
+					} else if (apidctx->pos_row > ctx->grid[i].last_row_idx-1) {
+						apidctx->pos_row -= 1;
+					}
+				}
+			}
+		}
+	}
+
+	//update final pos
+	ctx->out_width = 0;
+	ctx->out_height = 0;
+	for (i=0; i<nb_cols; i++) {
+		ctx->out_width += ctx->grid[i].width;
+		if (ctx->grid[i].height > ctx->out_height)
+			ctx->out_height = ctx->grid[i].height;
+	}
+	ctx->nb_cols = nb_cols;
+
+	//recompute slice adresses
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[HEVCCombine] Grid reconfigured: \n"));
+	for (i=0; i<nb_pids; i++) {
+		HEVCTilePidCtx *pidctx = gf_list_get(ctx->pids, i);
+		pidctx->slice_segment_address = hevccombine_compute_address(ctx, pidctx, nb_abs_pos ? GF_TRUE : GF_FALSE);
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("- pid %s (pos %dx%d) size %dx%d new adress %d\n",
+				gf_filter_pid_get_name(pidctx->pid),
+				nb_has_pos ? pidctx->pos_x : pidctx->pos_row,
+				nb_has_pos ? pidctx->pos_y : pidctx->pos_col,
+				pidctx->width, pidctx->height, pidctx->slice_segment_address));
+	}
+
+	//sort pids according to columns (tiles) and slice adresses
+	gf_list_reset(ctx->ordered_pids);
+	for (i=0; i<nb_cols; i++) {
+		for (j=0; j<nb_pids; j++) {
+			u32 k;
+			Bool inserted = GF_FALSE;
+			HEVCTilePidCtx *tile = gf_list_get(ctx->pids, j);
+			if (tile->pos_col != i) continue;
+			for (k=0; k<gf_list_count(ctx->ordered_pids); k++) {
+				HEVCTilePidCtx *tile2 = gf_list_get(ctx->ordered_pids, k);
+				if (tile2->pos_col != i) continue;
+				if (tile2->slice_segment_address > tile->slice_segment_address) {
+					inserted = GF_TRUE;
+					gf_list_insert(ctx->ordered_pids, tile, k);
+					break;
+				}
+			}
+			if (!inserted) {
+				for (k=0; k<gf_list_count(ctx->ordered_pids); k++) {
+					HEVCTilePidCtx *tile2 = gf_list_get(ctx->ordered_pids, k);
+					if (tile2->pos_col > tile->pos_col) {
+						inserted = GF_TRUE;
+						gf_list_insert(ctx->ordered_pids, tile, k);
+						break;
+					}
+				}
+				if (!inserted)
+					gf_list_add(ctx->ordered_pids, tile);
+			}
+		}
+	}
+	assert(gf_list_count(ctx->ordered_pids) == gf_list_count(ctx->pids));
+	return GF_OK;
+}
 static GF_Err hevccombine_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	Bool grid_config_changed = GF_FALSE;
 	u32 cfg_crc = 0, pid_width, pid_height;
 	const GF_PropertyValue *p, *dsi;
 	GF_Err e;
-	u32 num_tile_rows_minus1 = 0, num_tile_columns_minus1 = 0;
 	u8 j, i;
-	
-	// private stack of the filter returned as an object GF_HEVCSplitCtx.
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx*)gf_filter_get_udta(filter);
 	HEVCTilePidCtx *tile_pid;
+
+	if (ctx->in_error)
+		return GF_BAD_PARAM;
 	
-	if (is_remove) { // Todo: manage tile_pid removal 
-		/*tile_pid = gf_filter_pid_get_udta(pid);
-		if (tile_pid) gf_free(tile_pid);*/
-		//todo: 
-		//1: need to reconfigure the grid ?
-		//2: if last pid , remove output pid
-		return GF_OK;
+	if (is_remove) { // Todo: manage tile_pid removal
+		tile_pid = gf_filter_pid_get_udta(pid);
+		gf_list_del_item(ctx->pids, tile_pid);
+		gf_free(tile_pid);
+		if (!gf_list_count(ctx->pids)) {
+			if (ctx->opid)
+				gf_filter_pid_remove(ctx->opid);
+
+			return GF_OK;
+		}
+		grid_config_changed = GF_TRUE;
+		goto reconfig_grid;
 	}
+
 	// checks if input pid matchs its destination filter.
 	if (!gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
@@ -537,16 +840,16 @@ static GF_Err hevccombine_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bo
 	pid_height = p->value.uint;
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (!dsi) return GF_OK;
-	// Good to go
 
 	tile_pid = gf_filter_pid_get_udta(pid);
 	if (!tile_pid) { // Is it forcing or tile_pid needs it ?
 		GF_SAFEALLOC(tile_pid, HEVCTilePidCtx);
 		gf_filter_pid_set_udta(pid, tile_pid);
-		tile_pid->pid_idx = ctx->pid_idx;
+		tile_pid->pid = pid;
 		tile_pid->hevc_state.full_slice_header_parse = GF_TRUE;
-		ctx->base_pps_init_qp_delta_minus26 = tile_pid->hevc_state.pps->pic_init_qp_minus26;
-		ctx->addr_tile_pid[ctx->pid_idx] = tile_pid; // So we can free the address of tile_pid in finalize
+		gf_list_add(ctx->pids, tile_pid);
+
+		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	}
 	assert(tile_pid);
 
@@ -559,12 +862,12 @@ static GF_Err hevccombine_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bo
 	if (cfg_crc == tile_pid->dsi_crc) return GF_OK;
 	tile_pid->dsi_crc = cfg_crc;
 	// We have new_width and new_height for the combination of the streams.
-	// check if we already saw the pid with the same width, height and decoder config. If so, do nothing (no rewrite_hevc_dsi()), else ...
+	// check if we already saw the pid with the same width, height and decoder config. If so, do nothing (no hevccombine_rewrite_config()), else ...
 	// parse otherwise they should refer to something else
 	GF_HEVCConfig *hvcc = NULL;
 	hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 	if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
-	tile_pid->hevc_nalu_size_length = hvcc->nal_unit_size;
+	tile_pid->nalu_size_length = hvcc->nal_unit_size;
 	ctx->hevc_nalu_size_length = 4;
 	e = GF_OK;
 	for (i = 0; i < gf_list_count(hvcc->param_array); i++) { 
@@ -575,6 +878,22 @@ static GF_Err hevccombine_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bo
 
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
 				idx = gf_media_hevc_read_sps(sl->data, sl->size, &tile_pid->hevc_state);
+				if (idx>=0) {
+					if (!ctx->max_CU_width) {
+						ctx->max_CU_width = tile_pid->hevc_state.sps[idx].max_CU_width;
+					} else if (ctx->max_CU_width != tile_pid->hevc_state.sps[idx].max_CU_width) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCCombine] Cannot combine tiles not using the same max CU width (%d vs %d)\n", ctx->max_CU_width, tile_pid->hevc_state.sps[idx].max_CU_width));
+						e = GF_BAD_PARAM;
+						break;
+					}
+					if (!ctx->max_CU_height) {
+						ctx->max_CU_height = tile_pid->hevc_state.sps[idx].max_CU_height;
+					} else if (ctx->max_CU_height != tile_pid->hevc_state.sps[idx].max_CU_height) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCCombine] Cannot combine tiles not using the same max CU height (%d vs %d)\n", ctx->max_CU_height, tile_pid->hevc_state.sps[idx].max_CU_height));
+						e = GF_BAD_PARAM;
+						break;
+					}
+				}
 			}
 			else if (ar->type == GF_HEVC_NALU_VID_PARAM) {
 				idx = gf_media_hevc_read_vps(sl->data, sl->size, &tile_pid->hevc_state);
@@ -596,48 +915,73 @@ static GF_Err hevccombine_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bo
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, pid);
 	}
+
 	if ((pid_width != tile_pid->width) || (pid_height != tile_pid->height)) {
 		tile_pid->width = pid_width;
 		tile_pid->height = pid_height;
-		ctx->tile_prop[ctx->pid_idx].width = tile_pid->width;
-		ctx->tile_prop[ctx->pid_idx].height = tile_pid->height;
 		grid_config_changed = GF_TRUE;
 	}
-	// Update grid
-	if (grid_config_changed) {
-		
-		if(ctx->out_height + tile_pid->height <= 500){
-			ctx->out_height += tile_pid->height;
-			ctx->out_width = tile_pid->width;
-			ctx->num_video_per_height++;
-			num_tile_rows_minus1 = ctx->pid_idx; 
-			num_tile_columns_minus1 = 0;
-			ctx->add_column = GF_TRUE;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CROP_POS);
+	if (p) {
+		s32 pos_x, pos_y;
+		if (!tile_pid->has_pos)
+			grid_config_changed = GF_TRUE;
+
+		tile_pid->has_pos = GF_TRUE;
+		if (p->value.vec2i.x>0) {
+			pos_x = p->value.vec2i.x / ctx->max_CU_width;
+			if (pos_x * ctx->max_CU_width != p->value.vec2i.x) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVCCombine] CropOrigin X %d is not a multiple of max CU width %d, adjusting to next boundary\n", p->value.vec2i.x, ctx->max_CU_width));
+				pos_x++;
+			}
+			pos_x *= ctx->max_CU_width;
+		} else {
+			pos_x = p->value.vec2i.x;
 		}
-		else {
-				if(ctx->add_column) {
-					num_tile_columns_minus1++;
-					ctx->out_width += tile_pid->width;
-					ctx->add_column = GF_FALSE;
-				}
-				num_tile_rows_minus1 = (ctx->pid_idx) % ctx->num_video_per_height;
-				if (ctx->pid_idx >= ctx->num_video_per_height)
-					num_tile_rows_minus1 = ctx->num_video_per_height - 1;
-				ctx->grid_height += tile_pid->height;
-				if (ctx->grid_height >= 2160) ctx->add_column = GF_TRUE;
+
+		if (p->value.vec2i.y>0) {
+			pos_y = p->value.vec2i.y / ctx->max_CU_height;
+			if (pos_y * ctx->max_CU_height != p->value.vec2i.y) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVCCombine] CropOrigin Y %d is not a multiple of max CU height %d, adjusting to next boundary\n", p->value.vec2i.y, ctx->max_CU_height));
+				pos_y++;
+			}
+			pos_y *= ctx->max_CU_height;
+		} else {
+			pos_y = p->value.vec2i.y;
 		}
-		tile_pid->tile_pos_row = num_tile_rows_minus1;
-		tile_pid->tile_pos_col = num_tile_columns_minus1;
+		if ((pos_x != tile_pid->pos_x) || (pos_y != tile_pid->pos_y))
+			grid_config_changed = GF_TRUE;
+		tile_pid->pos_x = pos_x;
+		tile_pid->pos_y = pos_y;
+	} else {
+		if (tile_pid->has_pos)
+			grid_config_changed = GF_TRUE;
+		tile_pid->has_pos = GF_FALSE;
+		tile_pid->pos_x = tile_pid->pos_y = 0;
 	}
 
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->out_width));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->out_height));
-		e = rewrite_hevc_dsi(ctx, ctx->opid, dsi->value.data.ptr, dsi->value.data.size, ctx->out_width, ctx->out_height, num_tile_rows_minus1, num_tile_columns_minus1);
-		if (e) return e;
 
-	ctx->pid_idx++;
-	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
-	return GF_OK;
+reconfig_grid:
+	// Update grid
+	if (grid_config_changed) {
+		e = hevccombine_rebuild_grid(ctx);
+		if (e) {
+			ctx->in_error = GF_TRUE;
+			return e;
+		}
+	}
+
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->out_width));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->out_height));
+
+	//recreate DSI based on first pid we have
+	tile_pid = gf_list_get(ctx->pids, 0);
+	ctx->base_pps_init_qp_delta_minus26 = tile_pid->hevc_state.pps->pic_init_qp_minus26;
+	dsi = gf_filter_pid_get_property(tile_pid->pid, GF_PROP_PID_DECODER_CONFIG);
+	if (!dsi) return GF_OK;
+
+	return hevccombine_rewrite_config(ctx, ctx->opid, dsi->value.data.ptr, dsi->value.data.size);
 }
 
 static GF_Err hevccombine_process(GF_Filter *filter)
@@ -645,23 +989,24 @@ static GF_Err hevccombine_process(GF_Filter *filter)
 	char *data;
 	u32 pos, nal_length, data_size;
 	u8 temporal_id, layer_id, nal_unit_type, i; 
-	char *output_nal;
-	u32 out_nal_size;
 	u32 nb_eos, nb_ipid;
+	Bool found_sei_prefix=GF_FALSE, found_sei_suffix=GF_FALSE;
 	u64 min_dts = GF_FILTER_NO_TS;
 	GF_FilterPacket *output_pck = NULL;
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx*) gf_filter_get_udta (filter);
-	ctx->pid_idx = 0;
-	
+
+	if (ctx->in_error)
+		return GF_BAD_PARAM;
 	nb_eos = 0;
-	nb_ipid = gf_filter_get_ipid_count(filter);
-	
+	nb_ipid = gf_list_count(ctx->pids);
+
+	//probe input for at least one packet on each
 	for (i = 0; i < nb_ipid; i++) {
 		u64 dts;
-		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FilterPacket *pck_src = gf_filter_pid_get_packet(ipid);
+		HEVCTilePidCtx *tile_pid = gf_list_get(ctx->pids, i);
+		GF_FilterPacket *pck_src = gf_filter_pid_get_packet(tile_pid->pid);
 		if (!pck_src) {
-			if (gf_filter_pid_is_eos(ipid)) {
+			if (gf_filter_pid_is_eos(tile_pid->pid)) {
 				nb_eos++;
 				continue;
 			}
@@ -674,13 +1019,13 @@ static GF_Err hevccombine_process(GF_Filter *filter)
 		gf_filter_pid_set_eos(ctx->opid);
 		return GF_EOS;
 	}
-	//get first packet in every input
-	ctx->nb_ipid = nb_ipid;
+
+	//reassemble based on the ordered list of pids
 	for (i = 0; i < nb_ipid; i++) {
 		u64 dts;
-		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		HEVCTilePidCtx *tile_pid = gf_filter_pid_get_udta(ipid); 
-		GF_FilterPacket *pck_src = gf_filter_pid_get_packet(ipid);
+		HEVCTilePidCtx *tile_pid = gf_list_get(ctx->ordered_pids, i);
+		assert(tile_pid);
+		GF_FilterPacket *pck_src = gf_filter_pid_get_packet(tile_pid->pid);
 		assert(pck_src);
 
 		dts = gf_filter_pck_get_dts(pck_src);
@@ -688,58 +1033,47 @@ static GF_Err hevccombine_process(GF_Filter *filter)
 		data = (char *)gf_filter_pck_get_data(pck_src, &data_size); // data contains only a packet 
 		// TODO: this is a clock signaling, for now just trash ..
 		if (!data) {
-			gf_filter_pid_drop_packet(ipid);
+			gf_filter_pid_drop_packet(tile_pid->pid);
 			continue;
 		}
-		/*create a bitstream reader from data
-		 read from there.
-		 data is the whole image cut out into "slice_in_pic"
-		*/
-		gf_bs_reassign_buffer(ctx->bs_nal_in, data, data_size);
 
-		/* TODO: keep logging during the process */
+		//parse the access unit for this pid
+		gf_bs_reassign_buffer(ctx->bs_au_in, data, data_size);
 
-		while (gf_bs_available(ctx->bs_nal_in))  
-		{
+		while (gf_bs_available(ctx->bs_au_in)) {
+			char *output_nal;
 			char *nal_pck;
 			u32 nal_pck_size;
 
-			nal_length = gf_bs_read_int(ctx->bs_nal_in, tile_pid->hevc_nalu_size_length * 8);
-			pos = (u32) gf_bs_get_position(ctx->bs_nal_in);
+			nal_length = gf_bs_read_int(ctx->bs_au_in, tile_pid->nalu_size_length * 8);
+			pos = (u32) gf_bs_get_position(ctx->bs_au_in);
 			gf_media_hevc_parse_nalu(data + pos, nal_length, &tile_pid->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
-			gf_bs_skip_bytes(ctx->bs_nal_in, nal_length); //skip nal in bs
-			if (nal_unit_type < 32) {
-				if (!tile_pid->address_computed) { // if each tile comes with a different Id
-					tile_pid->slice_segment_address = compute_address(ctx, tile_pid);
-					tile_pid->address_computed = GF_TRUE;
-					ctx->pid_idx++;
-					out_nal_size = ctx->buffer_nal_alloc;
-					rewrite_slice_address(ctx, tile_pid, tile_pid->slice_segment_address, data + pos, nal_length, &ctx->buffer_nal, &out_nal_size, ctx->out_width, ctx->out_height);
-					nal_pck_size = out_nal_size;
-					nal_pck = ctx->buffer_nal;
-				}
-				else {
-					out_nal_size = ctx->buffer_nal_alloc;
-					rewrite_slice_address(ctx, tile_pid, tile_pid->slice_segment_address, data + pos, nal_length, &ctx->buffer_nal, &out_nal_size, ctx->out_width, ctx->out_height);
-					nal_pck_size = out_nal_size;
-					nal_pck = ctx->buffer_nal;
-				}
+			gf_bs_skip_bytes(ctx->bs_au_in, nal_length); //skip nal in bs
 
-				if (out_nal_size > ctx->buffer_nal_alloc)
-					ctx->buffer_nal_alloc = out_nal_size;
+			//VCL nal rewrite dlice header
+			if (nal_unit_type < 32) {
+				nal_pck_size = hevccombine_rewrite_slice(ctx, tile_pid, data + pos, nal_length);
+				nal_pck = ctx->buffer_nal;
 			}
+			//NON-vcl, copy for SEI or drop (we should not have any SPS/PPS/VPS in the bitstream, they are in the decoder config prop)
 			else {
 				gf_media_hevc_parse_nalu(data + pos, nal_length, &tile_pid->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
 				// Copy SEI_PREFIX only for the first sample.
-				if (nal_unit_type == SEI_PREFIX && !ctx->found_sei_prefix) {
-					ctx->found_sei_prefix = GF_TRUE;
+				if (nal_unit_type == GF_HEVC_NALU_SEI_PREFIX && !found_sei_prefix) {
+					found_sei_prefix = GF_TRUE;
 					nal_pck = data + pos;
 					nal_pck_size = nal_length;
 				}
 				// Copy SEI_SUFFIX only as last nalu of the sample.
-				else if (nal_unit_type == SEI_SUFFIX && i == nb_ipid - 1) {
-					nal_pck = data + pos;
-					nal_pck_size = nal_length;
+				else if (nal_unit_type == GF_HEVC_NALU_SEI_SUFFIX && ((i+1 == nb_ipid) || !found_sei_suffix) ) {
+					found_sei_suffix = GF_TRUE;
+					if (ctx->sei_suffix_alloc<nal_length) {
+						ctx->sei_suffix_alloc = nal_length;
+						ctx->sei_suffix_buf = gf_realloc(ctx->sei_suffix_buf, nal_length);
+					}
+					ctx->sei_suffix_len = nal_length;
+					memcpy(ctx->sei_suffix_buf, data+pos, nal_length);
+					continue;
 				}
 				else continue;
 			}
@@ -753,12 +1087,25 @@ static GF_Err hevccombine_process(GF_Filter *filter)
 				u32 new_size;
  				gf_filter_pck_expand(output_pck, ctx->hevc_nalu_size_length + nal_pck_size, &data_start, &output_nal, &new_size);
 			}
-			bsnal(output_nal, nal_pck, nal_pck_size, ctx->hevc_nalu_size_length);
+			hevccombine_write_nal(ctx, output_nal, nal_pck, nal_pck_size);
 		}
-		gf_filter_pid_drop_packet(ipid);
+		gf_filter_pid_drop_packet(tile_pid->pid);
 	}
 	// end of loop on inputs
-	if (output_pck) 
+
+	//if we had a SEI suffix, append it
+	if (ctx->sei_suffix_len) {
+		if (output_pck) {
+			char *output_nal;
+			char *data_start;
+			u32 new_size;
+			gf_filter_pck_expand(output_pck, ctx->hevc_nalu_size_length + ctx->sei_suffix_len, &data_start, &output_nal, &new_size);
+			hevccombine_write_nal(ctx, output_nal, ctx->sei_suffix_buf, ctx->sei_suffix_len);
+		}
+		ctx->sei_suffix_len = 0;
+	}
+
+	if (output_pck)
 		gf_filter_pck_send(output_pck);
 
 	return GF_OK;
@@ -768,7 +1115,11 @@ static GF_Err hevccombine_initialize(GF_Filter *filter)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Combine] hevccombine_initialize started.\n"));
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx *)gf_filter_get_udta(filter);
+	ctx->bs_au_in = gf_bs_new((char *)ctx, 1, GF_BITSTREAM_READ);
 	ctx->bs_nal_in = gf_bs_new((char *)ctx, 1, GF_BITSTREAM_READ);
+
+	ctx->pids = gf_list_new();
+	ctx->ordered_pids = gf_list_new();
 	return GF_OK;
 }
 
@@ -777,8 +1128,23 @@ static void hevccombine_finalize(GF_Filter *filter)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Combine] hevccombine_finalize.\n"));
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx *)gf_filter_get_udta(filter);
 	if (ctx->buffer_nal) gf_free(ctx->buffer_nal);
+	if (ctx->buffer_nal_no_epb) gf_free(ctx->buffer_nal_no_epb);
+	if (ctx->buffer_nal_in_no_epb) gf_free(ctx->buffer_nal_in_no_epb);
+	gf_bs_del(ctx->bs_au_in);
 	gf_bs_del(ctx->bs_nal_in);
+	if (ctx->bs_nal_out)
+		gf_bs_del(ctx->bs_nal_out);
 
+	if (ctx->grid) gf_free(ctx->grid);
+	while (gf_list_count(ctx->pids)) {
+		HEVCTilePidCtx *pctx = gf_list_pop_back(ctx->pids);
+		gf_free(pctx);
+	}
+	gf_list_del(ctx->pids);
+	gf_list_del(ctx->ordered_pids);
+
+	if (ctx->sei_suffix_buf) gf_free(ctx->sei_suffix_buf);
+	
 //	// Mecanism to ensure the file creation for each execution of the program
 //	int r = rename("LuT.txt", "LuT.txt");
 //	if (r == 0) remove("LuT.txt");
@@ -811,8 +1177,20 @@ static const GF_FilterArgs hevccombineArgs[] =
 
 GF_FilterRegister HevccombineRegister = {
 	.name = "hevccombine",
-	GF_FS_SET_DESCRIPTION("HEVC tile merger")
-	GF_FS_SET_HELP("This filter merges a set of HEVC PIDs into a single motion-constrained tiled HEVC PID.")
+	GF_FS_SET_DESCRIPTION("HEVC Tile merger")
+	GF_FS_SET_HELP("This filter merges a set of HEVC PIDs into a single motion-constrained tiled HEVC PID.\n"
+		"The filter creates a tiling grid with a single row and as many columns as needed.\n"
+		"Positioning of tiles can be automatic (implicit) or explicit.\n"
+		"## Implicit Positioning\n"
+		"In implicit positioning, results may vary based on the order of input pids declaration.\n"
+		"In this mode the filter will automatically allocate new columns for tiles with height not a multiple of max CU height.\n"
+		"## Explicit Positioning\n"
+		"In explicit positioning, the `CropOrigin` property on input PIDs is used to setup the tile grid. In this case, tiles shall not overlap in the final output.\n"
+		"If `CropOrigin` is used, it shall be set on all input sources.\n"
+		"If positive coordinates are used, they specify absolute positionning in pixels of the tiles. The coordinates are automatically adjusted to the next multiple of max CU width and height. If a blank is detected in the layout, an empty column in the tiling grid will be inserted.\n"
+		"If negative coordinates are used, they specify relative positioning (eg `0x-1` indicates to place the tile below the tile 0x0).\n"
+		"In this mode, it is the caller responsability to set coordinates so that all tiles in a column have the same width and only the last row/column uses non-multiple of max CU width/height values. The filter will complain and abort if this is not respected.\n"
+		)
 	.private_size = sizeof(GF_HEVCSplitCtx),
 	SETCAPS(hevccombineCaps),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
@@ -826,6 +1204,5 @@ GF_FilterRegister HevccombineRegister = {
 
 const GF_FilterRegister *hevccombine_register(GF_FilterSession *session)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Combine] hevccombine_register started.\n"));
 	return &HevccombineRegister;
 }
