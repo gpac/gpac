@@ -257,7 +257,7 @@
 		92AAF16F18D6F66300E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92B02F4F1DD2004400F85E77 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B02F4E1DD2004400F85E77 /* OpenGL.framework */; };
 		92B2A4A52297FD9E002A65A7 /* out_rtsp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B2A4A42297FD9E002A65A7 /* out_rtsp.c */; };
-		92B2A4AA229D64EF002A65A7 /* hevccombine.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B2A4A8229D64EF002A65A7 /* hevccombine.c */; };
+		92B2A4AA229D64EF002A65A7 /* hevcmerge.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B2A4A8229D64EF002A65A7 /* hevcmerge.c */; };
 		92B2A4AB229D64EF002A65A7 /* hevcsplit.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B2A4A9229D64EF002A65A7 /* hevcsplit.c */; };
 		92B9A5071F83FD7800A24FE4 /* in_dvb4linux.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A5061F83FD7700A24FE4 /* in_dvb4linux.c */; };
 		92B9A50A1F840A6800A24FE4 /* dec_vtb.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A5081F840A6700A24FE4 /* dec_vtb.c */; };
@@ -883,7 +883,7 @@
 		92AAF16518D6F40400E2FF12 /* gm_ft_font.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_ft_font.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92B02F4E1DD2004400F85E77 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		92B2A4A42297FD9E002A65A7 /* out_rtsp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtsp.c; path = filters/out_rtsp.c; sourceTree = "<group>"; };
-		92B2A4A8229D64EF002A65A7 /* hevccombine.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hevccombine.c; path = filters/hevccombine.c; sourceTree = "<group>"; };
+		92B2A4A8229D64EF002A65A7 /* hevcmerge.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hevcmerge.c; path = filters/hevcmerge.c; sourceTree = "<group>"; };
 		92B2A4A9229D64EF002A65A7 /* hevcsplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hevcsplit.c; path = filters/hevcsplit.c; sourceTree = "<group>"; };
 		92B9A5061F83FD7700A24FE4 /* in_dvb4linux.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_dvb4linux.c; path = filters/in_dvb4linux.c; sourceTree = "<group>"; };
 		92B9A5081F840A6700A24FE4 /* dec_vtb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_vtb.c; path = filters/dec_vtb.c; sourceTree = "<group>"; };
@@ -1918,7 +1918,7 @@
 				92E9167B2073F1DB00EE92FB /* ff_enc.c */,
 				92E318CE20645036007BE021 /* ff_rescale.c */,
 				92754D5F207D24F600170383 /* filelist.c */,
-				92B2A4A8229D64EF002A65A7 /* hevccombine.c */,
+				92B2A4A8229D64EF002A65A7 /* hevcmerge.c */,
 				92B2A4A9229D64EF002A65A7 /* hevcsplit.c */,
 				92A505B920FC833800049B29 /* in_atsc.c */,
 				92B9A5061F83FD7700A24FE4 /* in_dvb4linux.c */,
@@ -2592,7 +2592,7 @@
 				9239B8D82073AFEF005F7264 /* enc_png.c in Sources */,
 				9201017218D5A445003D1ACA /* scene_engine.c in Sources */,
 				928A7F812059372C00E02E89 /* out_video.c in Sources */,
-				92B2A4AA229D64EF002A65A7 /* hevccombine.c in Sources */,
+				92B2A4AA229D64EF002A65A7 /* hevcmerge.c in Sources */,
 				9201017318D5A445003D1ACA /* scene_manager.c in Sources */,
 				926CE14F1FE81865002B3CF6 /* constants.c in Sources */,
 				9201017418D5A445003D1ACA /* scene_stats.c in Sources */,
