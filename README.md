@@ -38,3 +38,4 @@ For GPAC configuration instruction, check gpac/doc/configuration.html or gpac/do
 
 For more information, visit the GPAC website:
 	http://gpac.io
+
