@@ -3964,6 +3964,9 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
                 ptr->is_qtff = 2; //inidcate data in extensions() is valid
                 return gf_isom_box_add_default(s, a);
             }
+            gf_isom_box_del(a);
+            return GF_ISOM_INVALID_MEDIA;
+
 		}
  		ptr->is_qtff &= ~(1<<16);
 
@@ -5759,7 +5762,7 @@ GF_Err stsd_AddBox(GF_Box *s, GF_Box *a)
 		/*we need at least 8 bytes for unknown sample entries*/
 		if (def->dataSize < 8) {
 			gf_isom_box_del(a);
-			return GF_OK;
+			return GF_ISOM_INVALID_MEDIA;
 		}
 		return gf_isom_box_add_default((GF_Box*)ptr, a);
 

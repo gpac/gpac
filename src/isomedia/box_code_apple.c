@@ -45,7 +45,17 @@ GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
 		sub_type = gf_bs_peek_bits(bs, 32, 0);
 		if (sub_type) {
 			e = gf_isom_box_parse_ex(&a, bs, s->type, GF_FALSE);
-			if (e) return e;
+
+			/* the macro will return in this case before we can free */
+			if (!e && ptr->size < a->size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] not enough bytes in box %s: %d left, reading %d (file %s, line %d)\n", gf_4cc_to_str(ptr->type), ptr->size, a->size, __FILE__, __LINE__ )); \
+				e = GF_ISOM_INVALID_FILE;
+			}
+			if (e) {
+				if (a) gf_isom_box_del(a);
+				return e;
+			}
+
 			ISOM_DECREASE_SIZE(ptr, a->size);
 			gf_list_add(ptr->other_boxes, a);
 		} else {
@@ -101,16 +111,31 @@ GF_Err ilst_item_Read(GF_Box *s,GF_BitStream *bs)
 	u32 sub_type;
 	GF_Box *a = NULL;
 	GF_ListItemBox *ptr = (GF_ListItemBox *)s;
-
 	/*iTunes way: there's a data atom containing the data*/
 	sub_type = gf_bs_peek_bits(bs, 32, 4);
 	if (sub_type == GF_ISOM_BOX_TYPE_DATA ) {
 		e = gf_isom_box_parse(&a, bs);
-		if (e) return e;
+
+		if (!e && ptr->size < a->size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] not enough bytes in box %s: %d left, reading %d (file %s, line %d)\n", gf_4cc_to_str(ptr->type), ptr->size, a->size, __FILE__, __LINE__ )); \
+			e = GF_ISOM_INVALID_FILE;
+		}
+		if (e) {
+			if (a) gf_isom_box_del(a);
+			return e;
+		}
+
 		ISOM_DECREASE_SIZE(ptr, a->size);
 
 		if (a && ptr->data) gf_isom_box_del((GF_Box *) ptr->data);
-		ptr->data = (GF_DataBox *)a;
+
+		/* otherwise a->data will always overflow */
+		if (a && a->size > 4 && a->type != GF_ISOM_BOX_TYPE_VOID)
+			ptr->data = (GF_DataBox *)a;
+		else {
+			ptr->data = NULL;
+			gf_isom_box_del(a);
+		}
 	}
 	/*QT way*/
 	else {
