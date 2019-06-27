@@ -21,7 +21,7 @@
 
 ![License](https://img.shields.io/badge/license-LGPL-blue.svg)
 
-README for GPAC version 0.7.2-DEV
+README for GPAC version 0.8.0
 
 GPAC is a multimedia framework oriented towards rich media and distributed under the LGPL license (see COPYING).
 
