@@ -791,13 +791,14 @@ Selects buffer mode:
 <li>none: uses the  player settings for buffering.</li> 
 </ul>
 </p>
-<b>NetworkAdaptation</b> [value: <i>disabled, bandwidth, buffer</i>]
+<b>NetworkAdaptation</b> [value: <i>disabled, bandwidth, buffer, BBA-0, BOLA_FINITE, BOLA_BASIC, BOLA_U, BOLA_O</i>]
 <p style="text-indent: 5%">
 Sets automatic adaptation logic mode:
 <ul>
 <li>disabled: no adaptation to network condition is used.</li>
 <li>bandwidth: network adaptation is based only on available download rate.</li> 
 <li>buffer: network adaptation is based on available download rate for quality increase and buffer levels for quality drops. Default mode.</li> 
+<li>Other values: use algorithms as defined in their respective papers.</li> 
 </ul>
 
 </p>
