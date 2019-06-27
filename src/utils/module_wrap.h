@@ -38,7 +38,7 @@ typedef struct __tag_mod_man GF_ModuleManager;
 typedef const u32 *(*QueryInterfaces) ();
 typedef void * (*LoadInterface) (u32 InterfaceType);
 typedef void (*ShutdownInterface) (void *interface_obj);
-typedef void * (*LoadFilterRegistry) (void *fsess);
+typedef void * (*LoadFilterRegister) (void *fsess);
 
 
 typedef struct
@@ -55,7 +55,7 @@ typedef struct
 	QueryInterfaces query_func;
 	LoadInterface load_func;
 	ShutdownInterface destroy_func;
-	LoadFilterRegistry filterreg_func;
+	LoadFilterRegister filterreg_func;
 	char* dir;
 } ModuleInstance;
 

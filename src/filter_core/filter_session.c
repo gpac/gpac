@@ -81,7 +81,7 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool ma
 	}
 }
 
-void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg)
+void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister *freg)
 {
 	if (!freg) return;
 
@@ -273,7 +273,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 		GF_FilterRegister *freg = (GF_FilterRegister *) gf_modules_load_filter(i, a_sess);
 		if (freg) {
 			freg->flags |= 0x80000000;
-			gf_fs_add_filter_registry(fsess, freg);
+			gf_fs_add_filter_register(fsess, freg);
 		}
 	}
 
@@ -481,7 +481,7 @@ u32 gf_fs_get_max_resolution_chain_length(GF_FilterSession *session)
 	return session->max_resolve_chain_len;
 }
 
-void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg)
+void gf_fs_remove_filter_register(GF_FilterSession *session, GF_FilterRegister *freg)
 {
 	gf_list_del_item(session->registry, freg);
 	gf_filter_sess_reset_graph(session, freg);
@@ -600,7 +600,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 	if (fsess->registry) {
 		while (gf_list_count(fsess->registry)) {
 			GF_FilterRegister *freg = gf_list_pop_back(fsess->registry);
-			if (freg->registry_free) freg->registry_free(fsess, freg);
+			if (freg->register_free) freg->register_free(fsess, freg);
 		}
 		gf_list_del(fsess->registry);
 	}
@@ -681,13 +681,13 @@ void gf_fs_del(GF_FilterSession *fsess)
 }
 
 GF_EXPORT
-u32 gf_fs_filters_registry_count(GF_FilterSession *fsess)
+u32 gf_fs_filters_registers_count(GF_FilterSession *fsess)
 {
 	return fsess ? gf_list_count(fsess->registry) : 0;
 }
 
 GF_EXPORT
-const GF_FilterRegister * gf_fs_get_filter_registry(GF_FilterSession *fsess, u32 idx)
+const GF_FilterRegister * gf_fs_get_filter_register(GF_FilterSession *fsess, u32 idx)
 {
 	return gf_list_get(fsess->registry, idx);
 }
@@ -818,7 +818,7 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 }
 
 GF_EXPORT
-Bool gf_fs_check_registry_cap(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output)
+Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output)
 {
 	u32 j;
 	u32 has_raw_in = 0;
@@ -905,7 +905,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	for (i=0; i<count; i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 
-		if ( gf_fs_check_registry_cap(f_reg, GF_PROP_PID_CODECID, &cap_in, GF_PROP_PID_CODECID, &cap_out)) {
+		if ( gf_fs_check_filter_register_cap(f_reg, GF_PROP_PID_CODECID, &cap_in, GF_PROP_PID_CODECID, &cap_out)) {
 			if (!candidate || (candidate->priority>f_reg->priority))
 				candidate = f_reg;
 		}

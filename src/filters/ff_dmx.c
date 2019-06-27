@@ -632,7 +632,7 @@ GF_FilterRegister FFDemuxRegister = {
 
 void ffdmx_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
 {
-	ffmpeg_registry_free(session, reg, 1);
+	ffmpeg_register_free(session, reg, 1);
 }
 
 static const GF_FilterArgs FFDemuxArgs[] =
@@ -653,11 +653,11 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 
 	if (!load_meta_filters) {
 		FFDemuxRegister.args = FFDemuxArgs;
-		FFDemuxRegister.registry_free = NULL;
+		FFDemuxRegister.register_free = NULL;
 		return &FFDemuxRegister;
 	}
 
-	FFDemuxRegister.registry_free = ffdmx_regfree;
+	FFDemuxRegister.register_free = ffdmx_regfree;
 	dmx_ctx = avformat_alloc_context();
 
 	while (dmx_ctx->av_class->option) {
@@ -682,7 +682,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 
 	avformat_free_context(dmx_ctx);
 
-	ffmpeg_expand_registry(session, &FFDemuxRegister, FF_REG_TYPE_DEMUX);
+	ffmpeg_expand_register(session, &FFDemuxRegister, FF_REG_TYPE_DEMUX);
 
 	return &FFDemuxRegister;
 }
@@ -942,7 +942,7 @@ const int FFAVIN_STATIC_ARGS = (sizeof (FFAVInArgs) / sizeof (GF_FilterArgs)) - 
 
 void ffavin_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
 {
-	ffmpeg_registry_free(session, reg, FFAVIN_STATIC_ARGS-1);
+	ffmpeg_register_free(session, reg, FFAVIN_STATIC_ARGS-1);
 }
 
 const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
@@ -954,11 +954,11 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 
 	if (!load_meta_filters) {
 		FFAVInRegister.args = FFAVInArgs;
-		FFAVInRegister.registry_free = NULL;
+		FFAVInRegister.register_free = NULL;
 		return &FFAVInRegister;
 	}
 
-	FFAVInRegister.registry_free = ffavin_regfree;
+	FFAVInRegister.register_free = ffavin_regfree;
 	args = gf_malloc(sizeof(GF_FilterArgs)*(FFAVIN_STATIC_ARGS+1));
 	memset(args, 0, sizeof(GF_FilterArgs)*(FFAVIN_STATIC_ARGS+1));
 	for (i=0; (s32) i<FFAVIN_STATIC_ARGS; i++)
@@ -966,7 +966,7 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 
 	FFAVInRegister.args = args;
 
-	ffmpeg_expand_registry(session, &FFAVInRegister, FF_REG_TYPE_DEV_IN);
+	ffmpeg_expand_register(session, &FFAVInRegister, FF_REG_TYPE_DEV_IN);
 	return &FFAVInRegister;
 }
 

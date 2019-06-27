@@ -880,7 +880,7 @@ static const GF_FilterArgs FFDecodeArgs[] =
 
 void ffdec_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
 {
-	ffmpeg_registry_free(session, reg, 0);
+	ffmpeg_register_free(session, reg, 0);
 }
 
 const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
@@ -896,11 +896,11 @@ const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
 	//by default no need to load option descriptions, everything is handled by av_set_opt in update_args
 	if (!load_meta_filters) {
 		FFDecodeRegister.args = FFDecodeArgs;
-		FFDecodeRegister.registry_free = NULL;
+		FFDecodeRegister.register_free = NULL;
 		return &FFDecodeRegister;
 	}
 
-	FFDecodeRegister.registry_free = ffdec_regfree;
+	FFDecodeRegister.register_free = ffdec_regfree;
 	dec_ctx = avcodec_alloc_context3(NULL);
 
 	idx=0;
@@ -935,7 +935,7 @@ const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
 	av_free(dec_ctx);
 #endif
 
-	ffmpeg_expand_registry(session, &FFDecodeRegister, FF_REG_TYPE_DECODE);
+	ffmpeg_expand_register(session, &FFDecodeRegister, FF_REG_TYPE_DECODE);
 
 	return &FFDecodeRegister;
 }
