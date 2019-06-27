@@ -289,7 +289,7 @@ const char *gpac_doc =
 "graph with different properties than other parts (for example `ServiceID`). "
 "The syntax is the same as filter option, and uses the fragment separator to identify properties, eg #Name=Value. "
 "This sets output pids property (4cc, built-in name or any name) to the given value. Value can be omitted for booleans "
-"(defaults to true, eg `:#Alpha`). If a non built-in property is used, the value will be delared as string.\n"
+"(defaults to true, eg `:#Alpha`). If a non built-in property is used, the value will be declared as string.\n"
 "Warning: Properties are not filtered and override the source props, be carefull not to break the session by overriding core "
 "properties such as width/height/samplerate/... !\n"
 "EX -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
