@@ -1008,9 +1008,9 @@ static void gpac_load_suggested_filter_args()
 		return;
 	}
 
-	count = gf_fs_filters_registry_count(fsess);
+	count = gf_fs_filters_registers_count(fsess);
 	for (i=0; i<count; i++) {
-		const GF_FilterRegister *freg = gf_fs_get_filter_registry(fsess, i);
+		const GF_FilterRegister *freg = gf_fs_get_filter_register(fsess, i);
 
 		k=0;
 		while (freg->args) {
@@ -1135,9 +1135,9 @@ static void gpac_suggest_filter(char *fname, Bool is_help)
 	};
 
 	Bool found = GF_FALSE;
-	u32 i, count = gf_fs_filters_registry_count(session);
+	u32 i, count = gf_fs_filters_registers_count(session);
 	for (i=0; i<count; i++) {
-		const GF_FilterRegister *freg = gf_fs_get_filter_registry(session, i);
+		const GF_FilterRegister *freg = gf_fs_get_filter_register(session, i);
 
 		if (word_match(fname, freg->name)) {
 			if (!found) {
@@ -1901,7 +1901,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 
 		gf_sys_format_help(helpout, help_flags, "# %s\n", reg->description);
 #ifndef GPAC_DISABLE_DOC
-		gf_sys_format_help(helpout, help_flags, "Registry name used to load filter: **%s**\n", reg->name);
+		gf_sys_format_help(helpout, help_flags, "Register name used to load filter: **%s**\n", reg->name);
 #endif
 
 	} else {
@@ -2089,10 +2089,10 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 {
 	Bool found = GF_FALSE;
 	char *fname = NULL;
-	u32 i, count = gf_fs_filters_registry_count(session);
+	u32 i, count = gf_fs_filters_registers_count(session);
 	if (!gen_doc && list_filters) gf_sys_format_help(helpout, help_flags, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
 	for (i=0; i<count; i++) {
-		const GF_FilterRegister *reg = gf_fs_get_filter_registry(session, i);
+		const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
 		if (gen_doc) {
 			print_filter(reg, argmode);
 			found = GF_TRUE;
@@ -2227,7 +2227,7 @@ static void dump_all_codec(GF_FilterSession *session)
 	GF_PropertyValue rawp;
 	GF_PropertyValue cp;
 	u32 cidx=0;
-	u32 count = gf_fs_filters_registry_count(session);
+	u32 count = gf_fs_filters_registers_count(session);
 	gf_sys_format_help(helpout, help_flags, "Codec names listed as built_in_name[|variant](I: Filter Input support, O: Filter Output support): full_name\n");
 	rawp.type = cp.type = GF_PROP_UINT;
 	rawp.value.uint = GF_CODECID_RAW;
@@ -2244,9 +2244,9 @@ static void dump_all_codec(GF_FilterSession *session)
 		if (!sname) break;
 
 		for (i=0; i<count; i++) {
-			const GF_FilterRegister *reg = gf_fs_get_filter_registry(session, i);
-			if ( gf_fs_check_registry_cap(reg, GF_PROP_PID_CODECID, &rawp, GF_PROP_PID_CODECID, &cp)) enc_found = GF_TRUE;
-			if ( gf_fs_check_registry_cap(reg, GF_PROP_PID_CODECID, &cp, GF_PROP_PID_CODECID, &rawp)) dec_found = GF_TRUE;
+			const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
+			if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_CODECID, &rawp, GF_PROP_PID_CODECID, &cp)) enc_found = GF_TRUE;
+			if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_CODECID, &cp, GF_PROP_PID_CODECID, &rawp)) dec_found = GF_TRUE;
 		}
 
 		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%c%c)", sname, dec_found ? 'I' : '-', enc_found ? 'O' : '-');
@@ -2292,13 +2292,13 @@ static void write_file_extensions()
 static void write_filters_options(GF_FilterSession *fsess)
 {
 	u32 i, count;
-	count = gf_fs_filters_registry_count(fsess);
+	count = gf_fs_filters_registers_count(fsess);
 	for (i=0; i<count; i++) {
 		char *meta_sep;
 		u32 j=0;
 		char szSecName[200];
 
-		const GF_FilterRegister *freg = gf_fs_get_filter_registry(fsess, i);
+		const GF_FilterRegister *freg = gf_fs_get_filter_register(fsess, i);
 		sprintf(szSecName, "filter@%s", freg->name);
 		meta_sep = strchr(szSecName + 7, ':');
 		if (meta_sep) meta_sep[0] = 0;
@@ -2402,10 +2402,10 @@ static int gpac_make_lang(char *filename)
 	}
 
 	//print filters
-	u32 count = gf_fs_filters_registry_count(session);
+	u32 count = gf_fs_filters_registers_count(session);
 	for (i=0; i<count; i++) {
 		u32 j=0;
-		const GF_FilterRegister *reg = gf_fs_get_filter_registry(session, i);
+		const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
 
 		if (reg->description) {
 			gpac_lang_set_key(cfg, reg->name, "desc", reg->description);

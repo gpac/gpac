@@ -132,7 +132,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	inst->query_func = (QueryInterfaces) GetProcAddress((HMODULE)inst->lib_handle, "QueryInterfaces");
 	inst->load_func = (LoadInterface) GetProcAddress((HMODULE)inst->lib_handle, "LoadInterface");
 	inst->destroy_func = (ShutdownInterface) GetProcAddress((HMODULE)inst->lib_handle, "ShutdownInterface");
-	inst->filterreg_func = (LoadFilterRegistry) GetProcAddress((HMODULE)inst->lib_handle, "RegisterFilter");
+	inst->filterreg_func = (LoadFilterRegister) GetProcAddress((HMODULE)inst->lib_handle, "RegisterFilter");
 #endif
 
 #else
@@ -153,7 +153,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	inst->query_func = (QueryInterfaces) dlsym(inst->lib_handle, "QueryInterfaces");
 	inst->load_func = (LoadInterface) dlsym(inst->lib_handle, "LoadInterface");
 	inst->destroy_func = (ShutdownInterface) dlsym(inst->lib_handle, "ShutdownInterface");
-	inst->filterreg_func = (LoadFilterRegistry) dlsym(inst->lib_handle, "RegisterFilter");
+	inst->filterreg_func = (LoadFilterRegister) dlsym(inst->lib_handle, "RegisterFilter");
 #endif
 	if (!inst->filterreg_func && (!inst->load_func || !inst->query_func || !inst->destroy_func) ) {
 
@@ -196,7 +196,7 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	QueryInterface query_func;
 	LoadInterface load_func;
 	ShutdownInterface del_func;
-	LoadFilterRegistry filterreg_func;
+	LoadFilterRegister filterreg_func;
 #ifdef WIN32
 	HMODULE ModuleLib;
 #else
@@ -225,13 +225,13 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	query_func = (QueryInterface) GetProcAddress(ModuleLib, _T("QueryInterface"));
 	load_func = (LoadInterface) GetProcAddress(ModuleLib, _T("LoadInterface"));
 	del_func = (ShutdownInterface) GetProcAddress(ModuleLib, _T("ShutdownInterface"));
-	filterreg_func = (LoadFilterRegistry) GetProcAddress(ModuleLib, _T("RegisterFilter"));
+	filterreg_func = (LoadFilterRegister) GetProcAddress(ModuleLib, _T("RegisterFilter"));
 
 #else
 	query_func = (QueryInterface) GetProcAddress(ModuleLib, "QueryInterface");
 	load_func = (LoadInterface) GetProcAddress(ModuleLib, "LoadInterface");
 	del_func = (ShutdownInterface) GetProcAddress(ModuleLib, "ShutdownInterface");
-	filterreg_func = (LoadFilterRegistry) GetProcAddress(ModuleLib, "RegisterFilter");
+	filterreg_func = (LoadFilterRegister) GetProcAddress(ModuleLib, "RegisterFilter");
 #endif
 	FreeLibrary(ModuleLib);
 
@@ -252,7 +252,7 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	query_func = (QueryInterface) dlsym(ModuleLib, "QueryInterface");
 	load_func = (LoadInterface) dlsym(ModuleLib, "LoadInterface");
 	del_func = (ShutdownInterface) dlsym(ModuleLib, "ShutdownInterface");
-	filterreg_func = (LoadFilterRegistry) dlsym(ModuleLib, "RegisterFilter");
+	filterreg_func = (LoadFilterRegister) dlsym(ModuleLib, "RegisterFilter");
 	dlclose(ModuleLib);
 #endif
 

@@ -1981,7 +1981,7 @@ Bool gf_filter_pid_check_caps(GF_FilterPid *pid)
 }
 
 
-static void concat_reg(GF_FilterSession *sess, char prefRegistry[1001], const char *reg_key, const char *args)
+static void concat_reg(GF_FilterSession *sess, char prefRegister[1001], const char *reg_key, const char *args)
 {
 	u32 len;
 	char *forced_reg, *sep;
@@ -1991,16 +1991,16 @@ static void concat_reg(GF_FilterSession *sess, char prefRegistry[1001], const ch
 	forced_reg += 6;
 	sep = strchr(forced_reg, sess->sep_args);
 	len = sep ? (u32) (sep-forced_reg) : (u32) strlen(forced_reg);
-	if (len+2+strlen(prefRegistry)>1000) {
+	if (len+2+strlen(prefRegister)>1000) {
 		return;
 	}
-	if (prefRegistry[0]) {
+	if (prefRegister[0]) {
 		char szSepChar[2];
 		szSepChar[0] = sess->sep_args;
 		szSepChar[1] = 0;
-		strcat(prefRegistry, szSepChar);
+		strcat(prefRegister, szSepChar);
 	}
-	strncat(prefRegistry, forced_reg, len);
+	strncat(prefRegister, forced_reg, len);
 }
 
 static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *freg, u32 bundle_idx)
@@ -2186,7 +2186,7 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 	nb_dst_caps = gf_filter_caps_bundle_count(freg->caps, freg->nb_caps);
 
 
-	//we are building a registry descriptor acting as destination, ignore any output caps
+	//we are building a register descriptor acting as destination, ignore any output caps
 	if (src_pid || dst_filter) freg_has_output = GF_FALSE;
 
 	//setup all connections
@@ -2349,7 +2349,7 @@ void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister
 }
 
 
-static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *dst, const char *prefRegistry, Bool reconfigurable_only, GF_List *out_reg_chain)
+static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *dst, const char *prefRegister, Bool reconfigurable_only, GF_List *out_reg_chain)
 {
 	GF_FilterRegDesc *reg_dst, *result;
 	GF_List *dijkstra_nodes;
@@ -2639,7 +2639,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 			if (dist < redge->src_reg->dist) do_switch = GF_TRUE;
 			else if (dist == redge->src_reg->dist) {
-				if (prefRegistry[0] && (redge->src_reg->destination != current_node) && strstr(prefRegistry, current_node->freg->name)) {
+				if (prefRegister[0] && (redge->src_reg->destination != current_node) && strstr(prefRegister, current_node->freg->name)) {
 					do_switch = GF_TRUE;
 					priority = 0;
 				} else if ( (dist == redge->src_reg->dist) && (priority < redge->src_reg->priority) )
@@ -2699,7 +2699,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	GF_FilterSession *fsess = pid->filter->session;
 	GF_List *filter_chain;
 	u32 i, count;
-	char prefRegistry[1001];
+	char prefRegister[1001];
 	char szForceReg[20];
 
 	if (!fsess->max_resolve_chain_len) return NULL;
@@ -2709,15 +2709,15 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	if (!dst) return NULL;
 
 	sprintf(szForceReg, "gfreg%c", pid->filter->session->sep_name);
-	prefRegistry[0]=0;
+	prefRegister[0]=0;
 	//look for reg given in
-	concat_reg(pid->filter->session, prefRegistry, szForceReg, pid->filter->orig_args ? pid->filter->orig_args : pid->filter->src_args);
-	concat_reg(pid->filter->session, prefRegistry, szForceReg, pid->filter->dst_args);
-	concat_reg(pid->filter->session, prefRegistry, szForceReg, dst->src_args);
-	concat_reg(pid->filter->session, prefRegistry, szForceReg, dst->dst_args);
+	concat_reg(pid->filter->session, prefRegister, szForceReg, pid->filter->orig_args ? pid->filter->orig_args : pid->filter->src_args);
+	concat_reg(pid->filter->session, prefRegister, szForceReg, pid->filter->dst_args);
+	concat_reg(pid->filter->session, prefRegister, szForceReg, dst->src_args);
+	concat_reg(pid->filter->session, prefRegister, szForceReg, dst->dst_args);
 
 	gf_mx_p(fsess->links_mx);
-	gf_filter_pid_resolve_link_dijkstra(pid, dst, prefRegistry, reconfigurable_only, filter_chain);
+	gf_filter_pid_resolve_link_dijkstra(pid, dst, prefRegister, reconfigurable_only, filter_chain);
 	gf_mx_v(fsess->links_mx);
 
 	count = gf_list_count(filter_chain);
@@ -2747,7 +2747,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		//if source filter, try to load another filter - we should complete this with a cache of filter sources
 		if (filter_reassigned && can_reassign) {
 			if (! *filter_reassigned) {
-				if (! gf_filter_swap_source_registry(pid->filter) ) {
+				if (! gf_filter_swap_source_register(pid->filter) ) {
 					//no filter found for this pid !
 					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("No suitable filter chain found\n"));
 				} else {
@@ -3216,8 +3216,8 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 
 	//we use at max 3 passes:
 	//pass 1: try direct connections without loading intermediate filter chains. If PID gets connected, skip other passes
-	//pass 2: try loading intermediate filter chains, but disable filter registry swapping. If PID gets connected, skip last
-	//pass 3: try loading intermediate filter chains, potentially swapping the source registry
+	//pass 2: try loading intermediate filter chains, but disable filter register swapping. If PID gets connected, skip last
+	//pass 3: try loading intermediate filter chains, potentially swapping the source register
 restart:
 
 	if (num_pass) {

@@ -424,7 +424,7 @@ void ffmpeg_initialize()
 	ffmpeg_init = GF_TRUE;
 }
 
-void ffmpeg_registry_free(GF_FilterSession *session, GF_FilterRegister *reg, u32 nb_skip_begin)
+void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *reg, u32 nb_skip_begin)
 {
 	u32 i;
 	GF_List *all_filters = reg->udta;
@@ -445,7 +445,7 @@ void ffmpeg_registry_free(GF_FilterSession *session, GF_FilterRegister *reg, u32
 				if (arg->min_max_enum) gf_free((void *) arg->min_max_enum);
 			}
 			gf_free((void *) f->args);
-			gf_fs_remove_filter_registry(session, f);
+			gf_fs_remove_filter_register(session, f);
 			gf_free(f);
 		}
 		gf_list_del(all_filters);
@@ -596,7 +596,7 @@ static u32 ff_streamtype(u32 st)
 	return GF_STREAM_UNKNOWN;
 }
 
-void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type)
+void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type)
 {
 	u32 i=0, idx=0, flags=0;
 	const struct AVOption *opt;
@@ -811,7 +811,7 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 			}
 		}
 
-		gf_fs_add_filter_registry(session, freg);
+		gf_fs_add_filter_register(session, freg);
 	}
 }
 

@@ -101,7 +101,7 @@ char *gf_filter_get_dst_name(GF_Filter *filter)
 	return res;
 }
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *src_args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err)
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *src_args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err)
 {
 	char szName[200];
 	const char *dst_striped = NULL;
@@ -113,12 +113,12 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	GF_SAFEALLOC(filter, GF_Filter);
 	if (!filter) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to alloc filter for %s\n", registry->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to alloc filter for %s\n", freg->name));
 		return NULL;
 	}
-	filter->freg = registry;
+	filter->freg = freg;
 	filter->session = fsess;
-	filter->max_extra_pids = registry->max_extra_pids;
+	filter->max_extra_pids = freg->max_extra_pids;
 
 	if (fsess->use_locks) {
 		snprintf(szName, 200, "Filter%sPackets", filter->freg->name);
@@ -238,7 +238,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	if (e) {
 		if (!filter->setup_notified) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e),registry->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e),freg->name));
 			gf_filter_setup_failure(filter, e);
 		}
 		if (err) *err = e;
@@ -246,14 +246,14 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	}
 	if (filter && src_striped) filter->orig_args = gf_strdup(src_striped);
 
-	for (i=0; i<registry->nb_caps; i++) {
-		if (registry->caps[i].flags & GF_CAPFLAG_OUTPUT) {
+	for (i=0; i<freg->nb_caps; i++) {
+		if (freg->caps[i].flags & GF_CAPFLAG_OUTPUT) {
 			filter->has_out_caps = GF_TRUE;
 			break;
 		}
 	}
 	if (filter) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Created filter registry %s args %s\n", registry->name, filter->orig_args ? filter->orig_args : "none"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Created filter register %s args %s\n", freg->name, filter->orig_args ? filter->orig_args : "none"));
 	}
 	return filter;
 }
@@ -1924,7 +1924,7 @@ GF_Filter *gf_filter_clone(GF_Filter *filter)
 	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, NULL, filter->arg_type, NULL);
 	if (!new_filter) return NULL;
 	new_filter->cloned_from = filter;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter cloned (registry %s, args %s)\n", filter->freg->name, filter->orig_args ? filter->orig_args : "none"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter cloned (register %s, args %s)\n", filter->freg->name, filter->orig_args ? filter->orig_args : "none"));
 
 	return new_filter;
 }
@@ -2296,7 +2296,7 @@ void gf_filter_remove_dst(GF_Filter *filter, GF_Filter *dst_filter)
 }
 #endif
 
-Bool gf_filter_swap_source_registry(GF_Filter *filter)
+Bool gf_filter_swap_source_register(GF_Filter *filter)
 {
 	u32 i;
 	char *src_url=NULL;
@@ -2361,7 +2361,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 	}
 	if (!filter->finalized) {
 		gf_free(src_url);
-		return gf_filter_swap_source_registry(filter);
+		return gf_filter_swap_source_register(filter);
 	}
 
 	for (i=0; i<gf_list_count(filter->destination_links); i++) {
