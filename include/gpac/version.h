@@ -41,9 +41,9 @@
  * SONAME versions must be digits (not strings)
  */
 /*! Macro giving GPAC version name expressed as a printable string*/
-#define GPAC_VERSION          "0.9.0-ALPHA"
+#define GPAC_VERSION          "0.9.0-DEV"
 /*! ABI Major number of libgpac */
-#define GPAC_VERSION_MAJOR 8
+#define GPAC_VERSION_MAJOR 9
 /*! ABI Minor number of libgpac */
 #define GPAC_VERSION_MINOR 0
 /*! ABI Micro number of libgpac */

@@ -21,7 +21,7 @@
 
 ![License](https://img.shields.io/badge/license-LGPL-blue.svg)
 
-README for GPAC version 0.9.0-ALPHA
+README for GPAC version 0.9.0-DEV
 
 # Introduction
 
@@ -45,6 +45,7 @@ MP4Box documentation is [available online](https://gpac.wp.imt.fr/mp4box/)
 MP4Client is a media player built upon libgpac, featuring a rich media interactive composition engine with MPEG-4 BIFS, SVG, VRML/X3D support.
 For GPAC configuration instruction, check gpac/doc/configuration.html or gpac/doc/man/gpac.1 (man gpac when installed)
 
+<<<<<<< HEAD
 ## gpac 
 As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC. For API backward compatibility, old apps (MP4Box, MP4Client, ...) have been kept but rewritten to match the new filter architecture.
 They do not however expose all possible filter connections. The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filers not enabled by other apps. See gpac -h for more details, and check libgpac filter documentation.
@@ -168,4 +169,8 @@ This is a short overview of the gpac source repository.
 - *gpac/src/utils/* all generic objects used throughout the lib (list, bitstream, thread, mutex...). The OS specific files are prefixed os_* . Porting libgpac to new platforms usually means porting only these files and updating the makefile
 - *gpac/tests/* tests suite for GPAC. See gpac/tests/README.md
 
+=======
+For more information, visit the GPAC website:
+	http://gpac.io
+>>>>>>> master
 
