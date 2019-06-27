@@ -463,9 +463,9 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 			}
 			else if ((apidctx->pos_x>0) || (apidctx->pos_y>0)) nb_abs_pos++;
 
-			if ((apidctx->pos_x<=0) && (-apidctx->pos_x > min_rel_pos_x))
+			if ((apidctx->pos_x<=0) && (-apidctx->pos_x > (s32) min_rel_pos_x))
 				min_rel_pos_x = -apidctx->pos_x;
-			if ((apidctx->pos_y<=0) && (-apidctx->pos_y > min_rel_pos_y))
+			if ((apidctx->pos_y<=0) && (-apidctx->pos_y > (s32) min_rel_pos_y))
 				min_rel_pos_y = -apidctx->pos_y;
 		} else {
 			nb_no_pos++;
@@ -511,14 +511,14 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 				}
 
 				//make sure we are aligned
-				if ((tile1->pos_x<tile2->pos_x) && (tile1->pos_x + tile1->width > tile2->pos_x)) {
+				if ((tile1->pos_x<tile2->pos_x) && (tile1->pos_x + (s32) tile1->width > tile2->pos_x)) {
 					overlap = GF_TRUE;
 				}
 				else if ((tile1->pos_x==tile2->pos_x) && (tile1->width != tile2->width)) {
 					overlap = GF_TRUE;
 				}
 				if (tile1->pos_x==tile2->pos_x) {
-					if ((tile1->pos_y<tile2->pos_y) && (tile1->pos_y + tile1->height > tile2->pos_y)) {
+					if ((tile1->pos_y<tile2->pos_y) && (tile1->pos_y + (s32) tile1->height > tile2->pos_y)) {
 						overlap = GF_TRUE;
 					}
 					else if ((tile1->pos_y==tile2->pos_y) && (tile1->height != tile2->height)) {
@@ -546,7 +546,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 			} else if (ctx->grid[max_cols-1].pos_x != tile1->pos_x) {
 				if (nb_rel_pos) {
 					//append
-					if (ctx->grid[max_cols-1].pos_x < -tile1->pos_x) {
+					if (ctx->grid[max_cols-1].pos_x <(u32) -tile1->pos_x) {
 						ctx->grid = gf_realloc(ctx->grid, sizeof(struct gridInfo) * (max_cols+1) );
 						memset(&ctx->grid[max_cols], 0, sizeof(struct gridInfo));
 						ctx->grid[max_cols].width = tile1->width;
@@ -564,7 +564,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 						}
 						if (!found) {
 							for (j=0; j<max_cols; j++) {
-								if (ctx->grid[j].pos_x > -tile1->pos_x) {
+								if (ctx->grid[j].pos_x > (u32) -tile1->pos_x) {
 									ctx->grid = gf_realloc(ctx->grid, sizeof(struct gridInfo) * (max_cols+1) );
 									memmove(&ctx->grid[j+1], &ctx->grid[j], sizeof(struct gridInfo) * (max_cols-j));
 									memset(&ctx->grid[j], 0, sizeof(struct gridInfo));
@@ -578,7 +578,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 					}
 				} else {
 					//append
-					if (ctx->grid[max_cols-1].pos_x + ctx->grid[max_cols-1].width <= tile1->pos_x) {
+					if (ctx->grid[max_cols-1].pos_x + ctx->grid[max_cols-1].width <= (u32) tile1->pos_x) {
 						ctx->grid = gf_realloc(ctx->grid, sizeof(struct gridInfo) * (max_cols+1) );
 						memset(&ctx->grid[max_cols], 0, sizeof(struct gridInfo));
 						ctx->grid[max_cols].width = tile1->width;
@@ -588,7 +588,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 					//insert
 					else {
 						for (j=0; j<max_cols; j++) {
-							if (ctx->grid[j].pos_x > tile1->pos_x) {
+							if (ctx->grid[j].pos_x > (u32) tile1->pos_x) {
 								ctx->grid = gf_realloc(ctx->grid, sizeof(struct gridInfo) * (max_cols+1) );
 								memmove(&ctx->grid[j+1], &ctx->grid[j], sizeof(struct gridInfo) * (max_cols-j));
 								memset(&ctx->grid[j], 0, sizeof(struct gridInfo));
