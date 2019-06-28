@@ -955,9 +955,11 @@ void gf_bs_get_content_no_truncate(GF_BitStream *bs, char **output, u32 *outSize
 	/*only in WRITE MEM mode*/
 	if (bs->bsmode != GF_BITSTREAM_WRITE_DYN) return;
 	if (!bs->position && !bs->nbBits) {
-		*output = NULL;
+		if (!alloc_size) {
+			*output = NULL;
+			gf_free(bs->original);
+		}
 		*outSize = 0;
-		gf_free(bs->original);
 	} else {
 		if (alloc_size) {
 			/*Align our buffer or we're dead!*/
