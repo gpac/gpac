@@ -180,7 +180,7 @@ typedef struct
 	s32 mediats;
 	GF_AudioSampleEntryImportMode ase;
 	char *styp;
-	
+
 	//internal
 	Bool owns_mov;
 	GF_FilterPid *opid;
@@ -3187,6 +3187,15 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	}
 	assert(!ctx->dst_pck);
 
+	//change major brand for segments
+	if (ctx->styp && (strlen(ctx->styp)>=4)) {
+		u32 styp_brand = GF_4CC(ctx->styp[0], ctx->styp[1], ctx->styp[2], ctx->styp[3]);
+		u32 version = 0;
+		char *sep = strchr(ctx->styp, '.');
+		if (sep) version = atoi(sep+1);
+		gf_isom_set_brand_info(ctx->file, styp_brand, version);
+	}
+
 	if (ctx->dash_mode==MP4MX_DASH_VOD) {
 		if (!ctx->cache && (!ctx->media_dur || !ctx->dash_dur) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Media duration unknown, cannot use nocache mode, using temp file for VoD storage\n"));
@@ -4354,7 +4363,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(tkid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fdur), "fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(btrt), "set btrt box in sample description", GF_PROP_BOOL, "true", NULL, 0},
-	{ OFFS(styp), "set segment styp major brand to the given 4CC", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(styp), "set segment styp major brand to the given 4CC[.version]", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mediats), "set media timescale. A value of 0 means inherit from pid, a value of -1 means derive from samplerate or frame rate", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(ase), "set audio sample entry mode for more than stereo layouts\n"\
 			"- v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"\

@@ -790,7 +790,8 @@ void isor_update_channel_config(ISOMChannel *ch)
 	isor_declare_track(ch->owner, ch, ch->track, ch->last_sample_desc_index, GF_STREAM_UNKNOWN, GF_FALSE);
 
 }
-void isor_declare_objects(ISOMReader *read)
+
+GF_Err isor_declare_objects(ISOMReader *read)
 {
 	const char *tag;
 	u32 tlen;
@@ -814,6 +815,25 @@ void isor_declare_objects(ISOMReader *read)
 		u32 mtype, m_subtype, streamtype, stsd_idx;
 
 		mtype = gf_isom_get_media_type(read->mov, i+1);
+
+		if (read->tkid) {
+			u32 for_id=0;
+			if (sscanf(read->tkid, "%d", &for_id)) {
+				u32 id = gf_isom_get_track_id(read->mov, i+1);
+				if (id != for_id) continue;
+			} else if (!strcmp(read->tkid, "audio")) {
+				if (mtype!=GF_ISOM_MEDIA_AUDIO) continue;
+			} else if (!strcmp(read->tkid, "video")) {
+				if (mtype!=GF_ISOM_MEDIA_VISUAL) continue;
+			} else if (strlen(read->tkid)==4) {
+				u32 t = GF_4CC(read->tkid[0], read->tkid[1], read->tkid[2], read->tkid[3]);
+				if (mtype!=t) continue;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Bad format for tkid option %s, no match\n", read->tkid));
+				return GF_BAD_PARAM;
+			}
+		}
+
 		switch (mtype) {
 		case GF_ISOM_MEDIA_AUDIO:
 			streamtype = GF_STREAM_AUDIO;
@@ -856,7 +876,7 @@ void isor_declare_objects(ISOMReader *read)
 			break;
 		}
 
-		if (!read->alltk && !gf_isom_is_track_enabled(read->mov, i+1)) {
+		if (!read->alltk && !read->tkid && !gf_isom_is_track_enabled(read->mov, i+1)) {
 			if (count>1) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d is disabled, ignoring track - you may retry by specifying allt option\n", i+1));
 				continue;
@@ -905,16 +925,22 @@ void isor_declare_objects(ISOMReader *read)
 
 
 		isor_declare_track(read, NULL, i+1, stsd_idx, streamtype, use_iod);
-	}
-	/*declare image items*/
-	count = gf_isom_get_meta_item_count(read->mov, GF_TRUE, 0);
-	for (i=0; i<count; i++) {
-		if (! isor_declare_item_properties(read, NULL, i+1))
-			continue;
 
-		if (read->itt) break;
+		if (read->tkid)
+			break;
 	}
 
+	if (!read->tkid) {
+		/*declare image items*/
+		count = gf_isom_get_meta_item_count(read->mov, GF_TRUE, 0);
+		for (i=0; i<count; i++) {
+			if (! isor_declare_item_properties(read, NULL, i+1))
+				continue;
+
+			if (read->itt) break;
+		}
+	}
+	
 	/*if cover art, declare a video pid*/
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
 
@@ -942,6 +968,7 @@ void isor_declare_objects(ISOMReader *read)
 			}
 		}
 	}
+	return GF_OK;
 }
 
 Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_idx)
