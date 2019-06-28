@@ -1287,7 +1287,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			GF_SAFEALLOC(pctx->hevc_state, HEVCState);
 		}
 		if (dsi) {
-			if (is_enh) {
+			if (is_enh && !dsi_enh) {
 				lhcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_TRUE);
 				if (lhcc)
 					pctx->nalu_size_length = lhcc->nal_unit_size;
@@ -1298,7 +1298,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			}
 		}
 		if (dsi_enh && !lhcc) {
-			lhcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_TRUE);
+			lhcc = gf_odf_hevc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size, GF_TRUE);
 			if (lhcc)
 				pctx->nalu_size_length = lhcc->nal_unit_size;
 		}
