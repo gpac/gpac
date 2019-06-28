@@ -698,6 +698,8 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	u32 pos=0;
 	u32 prev_pos=0;
 
+	//don't trust id3 to be set only for mp3 files
+#if 0
 	if (size>= 10) {
 		/* Did we read an ID3v2 ? */
 		if (data[0] == 'I' && data[1] == 'D' && data[2] == '3') {
@@ -705,6 +707,7 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			return "audio/mp3";
 		}
 	}
+#endif
 
 	while (1) {
 		u32 hdr = gf_mp3_get_next_header_mem(data, size, &pos);
