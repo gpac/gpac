@@ -3101,6 +3101,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	return GF_OK;
 }
 
+#include <gpac/webvtt.h>
 static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump)
 {
 	u32 i, j, k, count, di, len, ts, cur_frame;
@@ -3108,8 +3109,8 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	GF_Tx3gSampleEntryBox *txtd;
 	GF_BitStream *bs;
 	char szDur[100];
-
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	u32 subtype = gf_isom_get_media_subtype(the_file, track, 1);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:
@@ -3122,6 +3123,16 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	ts = trak->Media->mediaHeader->timeScale;
 	cur_frame = 0;
 	end = 0;
+
+	switch (subtype) {
+	case GF_ISOM_SUBTYPE_TX3G:
+	case GF_ISOM_SUBTYPE_TEXT:
+	case GF_ISOM_SUBTYPE_STXT:
+	case GF_ISOM_SUBTYPE_WVTT:
+		break;
+	default:
+		return GF_NOT_SUPPORTED;
+	}
 
 	count = gf_isom_get_sample_count(the_file, track);
 	for (i=0; i<count; i++) {
@@ -3150,13 +3161,51 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		tx3g_format_time(end, ts, szDur, GF_TRUE);
 		fprintf(dump, "%s\n", szDur);
 
+		if (subtype == GF_ISOM_SUBTYPE_WVTT) {
+			u32 j;
+			u64 start_ts;
+			void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue);
+			GF_List *cues;
+			char *data;
+			u32 data_len;
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+			start_ts = s->DTS * 1000;
+			start_ts /= trak->Media->mediaHeader->timeScale;
+			cues = gf_webvtt_parse_cues_from_data(s->data, s->dataLength, start_ts);
+			for (j = 0; j < gf_list_count(cues); j++) {
+				GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, j);
+				webvtt_write_cue(bs, cue);
+				gf_webvtt_cue_del(cue);
+			}
+			gf_list_del(cues);
+			gf_bs_write_u16(bs, 0);
+			gf_bs_get_content(bs, &data, &data_len);
+			gf_bs_del(bs);
+
+			if (data) {
+				fprintf(dump, "%s\n", data);
+				gf_free(data);
+			} else {
+				fprintf(dump, "\n");
+			}
+			continue;
+		} else if (subtype == GF_ISOM_SUBTYPE_STXT) {
+			if (s->dataLength)
+			fprintf(dump, "%s\n", s->data);
+			continue;
+		}
+		else if ((subtype!=GF_ISOM_SUBTYPE_TX3G) && (subtype!=GF_ISOM_SUBTYPE_TEXT)) {
+			fprintf(dump, "unknwon\n");
+			continue;
+		}
 		bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
 		txt = gf_isom_parse_texte_sample(bs);
 		gf_bs_del(bs);
 
 		txtd = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, di-1);
 
-		if (!txt->len) {
+		if (!txt || !txt->len) {
 			fprintf(dump, "\n");
 		} else {
 			u32 styles, char_num, new_styles, color, new_color;
