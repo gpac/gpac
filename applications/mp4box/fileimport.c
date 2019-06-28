@@ -265,6 +265,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	Bool fmt_ok = GF_TRUE;
 	u32 icc_size=0;
 	char *icc_data = NULL;
+	char *ext_start;
 
 	clap_wn = clap_wd = clap_hn = clap_hd = clap_hon = clap_hod = clap_von = clap_vod = 0;
 
@@ -703,7 +704,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	do_audio = do_video = do_auxv = do_pict = 0;
 	track_id = prog_id = 0;
 	do_all = 1;
-	ext = strrchr(szName, '#');
+
+	ext_start = gf_file_ext_start(szName);
+	ext = strrchr(ext_start ? ext_start : szName, '#');
 	if (ext) ext[0] = 0;
 
 	keep_handler = gf_isom_probe_file(szName);

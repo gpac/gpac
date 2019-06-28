@@ -62,6 +62,7 @@ typedef struct
 static GF_Err filein_initialize(GF_Filter *filter)
 {
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
+	char *ext_start = NULL;
 	char *frag_par = NULL;
 	char *cgi_par = NULL;
 	char *src, *path;
@@ -107,7 +108,8 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	//local file
 
 	//strip any fragment identifer
-	frag_par = strchr(ctx->src, '#');
+	ext_start = gf_file_ext_start(ctx->src);
+	frag_par = strchr(ext_start ? ext_start : ctx->src, '#');
 	if (frag_par) frag_par[0] = 0;
 	cgi_par = strchr(ctx->src, '?');
 	if (cgi_par) cgi_par[0] = 0;
@@ -169,6 +171,7 @@ static void filein_finalize(GF_Filter *filter)
 
 static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_type)
 {
+	char *ext_start = NULL;
 	char *frag_par = NULL;
 	char *cgi_par = NULL;
 	char *src = (char *) url;
@@ -181,7 +184,8 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 	if (!strcmp(url, "randsc")) return GF_FPROBE_SUPPORTED;
 
 	//strip any fragment identifer
-	frag_par = strchr(url, '#');
+	ext_start = gf_file_ext_start(url);
+	frag_par = strchr(ext_start ? ext_start : url, '#');
 	if (frag_par) frag_par[0] = 0;
 	cgi_par = strchr(url, '?');
 	if (cgi_par) cgi_par[0] = 0;
