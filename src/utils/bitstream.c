@@ -958,6 +958,9 @@ void gf_bs_get_content_no_truncate(GF_BitStream *bs, char **output, u32 *outSize
 		if (!alloc_size) {
 			*output = NULL;
 			gf_free(bs->original);
+		} else {
+			*alloc_size = (u32) bs->size;
+			*output = bs->original;
 		}
 		*outSize = 0;
 	} else {
