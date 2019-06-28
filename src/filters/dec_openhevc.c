@@ -122,13 +122,13 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 	char *data;
 	u32 data_len;
 	GF_BitStream *bs;
-	Bool is_lhvc = GF_FALSE;
+	Bool is_lhvc = GF_TRUE;
 	u32 i, j;
-	const GF_PropertyValue *dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	const GF_PropertyValue *dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
 
 	if (!dsi) {
-		dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
-		is_lhvc = GF_TRUE;
+		dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+		is_lhvc = GF_FALSE;
 	}
 
 	if (!ctx->codec) return GF_NOT_SUPPORTED;
