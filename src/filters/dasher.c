@@ -1503,7 +1503,7 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	//according to DASH spec mixing interlaced and progressive is OK
 	//if (ds->interlaced != ds_test->interlaced) return GF_FALSE;
 	if (ds->nb_ch != ds_test->nb_ch) return GF_FALSE;
-	if (ds->lang != ds_test->lang) return GF_FALSE;
+	if (strcmp(ds->lang, ds_test->lang)) return GF_FALSE;
 
 	if (ds->stream_type==GF_STREAM_VISUAL) {
 		u32 w, h, tw, th;
@@ -4688,6 +4688,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 					//this sample starts in the current segment - split it
 					if (cts * base_ds->timescale < base_ds->adjusted_next_seg_start * ds->timescale ) {
 						split_dur = (u32) (base_ds->adjusted_next_seg_start * ds->timescale / base_ds->timescale - ds->last_cts);
+						//we should patch the above >= once we get rid of master, but changing it might break some hashes
+						if (split_dur==dur) split_dur=0;
 					}
 				}
 			}
