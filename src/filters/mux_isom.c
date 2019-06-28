@@ -520,12 +520,23 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	if (is_true_pid && !is_tile_base) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MULTI_TRACK);
 		if (p) {
-			u32 i, count;
+			u32 i, count, j, count2;
 			GF_List *multi_tracks = p->value.ptr;
 			count = gf_list_count(multi_tracks);
 			for (i=0; i<count; i++) {
 				GF_FilterPid *a_ipid = gf_list_get(multi_tracks, i);
-				mp4_mux_setup_pid(filter, a_ipid, GF_FALSE);
+				const GF_PropertyValue *a_pidid = gf_filter_pid_get_property(a_ipid, GF_PROP_PID_ID);
+				count2 = gf_list_count(ctx->tracks);
+				for (j=0; j<count2; j++) {
+					TrackWriter *atkw = gf_list_get(ctx->tracks, j);
+					const GF_PropertyValue *c_pidid = gf_filter_pid_get_property(atkw->ipid, GF_PROP_PID_ID);
+					if (gf_props_equal(a_pidid, c_pidid)) {
+						a_ipid = NULL;
+						break;
+					}
+				}
+				if (a_ipid)
+					mp4_mux_setup_pid(filter, a_ipid, GF_FALSE);
 			}
 		}
 	}
