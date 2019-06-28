@@ -85,6 +85,7 @@ typedef struct
 	u64 *_p_gentime, *_p_mpdtime;
 	Bool m2ts;
 	Bool cmpd;
+	char *styp;
 
 	//internal
 
@@ -1755,6 +1756,10 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	}
 	if (ctx->cues && !has_strun) {
 		sprintf(szSRC, "%cstrun", sep_args);
+		strcat(szDST, szSRC);
+	}
+	if (ctx->styp) {
+		sprintf(szSRC, "%cstyp=%s", sep_args, ctx->styp);
 		strcat(szDST, szSRC);
 	}
 	//override xps inband declaration in args
@@ -5443,6 +5448,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(strict_cues), "strict mode for cues, complains if spliting is not on SAP type 1/2/3 or if unused cue is found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cmpd), "skip line feed and spaces in MPD XML for more compacity", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(styp), "indicate the 4CC to use for styp boxes when using ISOBMFF output", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(_p_mpdtime), "pointer to u64 holding the mpd time in ms of the last generated segment", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{0}

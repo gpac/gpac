@@ -323,7 +323,7 @@ void PrintDASHUsage()
 		"# Specifying input files\n"
 		"Input media files to dash can use the following modifiers\n"
 		"- #trackID=N: only use the track ID N from the source file\n"
-		"- #N: only use the track ID N from the source file\n"
+		"- #N: only use the track ID N from the source file - mapped to [-tkid](mp4dmx)\n"
 		"- #video: only use the first video track from the source file\n"
 		"- #audio: only use the first audio track from the source file\n"
 		"- :id=NAME: set the representation ID to NAME\n"
@@ -340,6 +340,7 @@ void PrintDASHUsage()
 		"- :desc_as_c=VALUE: add a descriptor at the AdaptationSet level. Value must be a properly formatted XML element. Value is ignored while creating AdaptationSet elements.\n"
 		"- :desc_rep=VALUE: add a descriptor at the Representation level. Value must be a properly formatted XML element. Value is ignored while creating AdaptationSet elements.\n"
 		"- :sscale: force movie timescale to match media timescale of the first track in the segment.\n"
+		"- :trackID=N: only use the track ID N from the source file\n"
 		"\n"
 		"# Options\n"
 		);
@@ -1673,7 +1674,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				        !strnicmp(sep, ":asID=", 6) ||
 				        !strnicmp(sep, ":sn=", 4) ||
 				        !strnicmp(sep, ":tpl=", 5) ||
-				        !strnicmp(sep, ":hls=", 5)
+				        !strnicmp(sep, ":hls=", 5) ||
+				        !strnicmp(sep, ":trackID=", 9)
 				        ) {
 					break;
 				} else {
@@ -1758,6 +1760,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			else if (!strnicmp(opts, "sn=", 3)) di->startNumber = atoi(opts+3);
 			else if (!strnicmp(opts, "tpl=", 4)) di->seg_template = gf_strdup(opts+4);
 			else if (!strnicmp(opts, "hls=", 4)) di->hls_pl = gf_strdup(opts+4);
+			else if (!strnicmp(opts, "trackID=", 8)) di->track_id = atoi(opts+8);
 
 			if (!sep) break;
 			sep[0] = ':';

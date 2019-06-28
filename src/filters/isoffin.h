@@ -58,6 +58,7 @@ typedef struct
 	Bool expart;
 	Bool alltk;
 	u32 frame_size;
+	char* tkid;
 
 	//internal
 
@@ -192,7 +193,7 @@ void isor_check_producer_ref_time(ISOMReader *read);
 //ISOMChannel *isor_get_channel(ISOMReader *reader, GF_FilterPid *pid);
 ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track, u32 item_id, Bool force_no_extractors);
 
-void isor_declare_objects(ISOMReader *read);
+GF_Err isor_declare_objects(ISOMReader *read);
 
 void isor_reader_get_sample_from_item(ISOMChannel *ch);
 void isor_set_crypt_config(ISOMChannel *ch);

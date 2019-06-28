@@ -601,6 +601,8 @@ typedef struct
 	char *hls_pl;
 	/*! if true and only one media stream in target segment, the moov will use the media stream timescale*/
 	Bool sscale;
+	/*! only imports this track from the source*/
+	u32 track_id;
 	/*! non legacy options passed to dasher */
 	char *other_opts;
 } GF_DashSegmenterInput;

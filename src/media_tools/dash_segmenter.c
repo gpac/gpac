@@ -749,6 +749,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		GF_Filter *src = NULL;
 		GF_Filter *rt = NULL;
 		const char *url = "null";
+		char *frag=NULL;
 		GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
 
 		if (dasher->real_time) {
@@ -756,11 +757,27 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 		if (di->file_name && strlen(di->file_name)) url = di->file_name;
 		if (!stricmp(url, "null")) url = NULL;
+		if (url) {
+			frag = strrchr(di->file_name, '#');
+			if (frag) frag[0] = 0;
+		}
 
 		args = NULL;
 
 		//if source is isobmf using extractors, we want to keep the extractors
 		e = gf_dynstrcat(&args, "smode=splitx", ":");
+
+		if (frag) {
+			if (!strncmp(frag+1, "trackID=", 8)) {
+				sprintf(szArg, "tkid=%s", frag+9 );
+			} else {
+				sprintf(szArg, "tkid=%s", frag+1);
+			}
+			e |= gf_dynstrcat(&args, szArg, ":");
+		} else if (di->track_id) {
+			sprintf(szArg, "tkid=%d", di->track_id );
+			e |= gf_dynstrcat(&args, szArg, ":");
+		}
 
 		if (di->other_opts) {
 			e |= gf_dynstrcat(&args, di->other_opts, ":");
@@ -876,6 +893,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to setup source arguments for %s\n", di->file_name));
+			if (frag) frag[0] = '#';
 			if (args) gf_free(args);
 			return e;
 		}
@@ -884,6 +902,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Instantiating dasher source %s with args %s\n", url, args));
 		src = gf_fs_load_source(dasher->fsess, url, args, NULL, &e);
 		if (args) gf_free(args);
+		if (frag) frag[0] = '#';
 
 		if (!src) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to load source filer for %s\n", di->file_name));

@@ -132,9 +132,7 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 
 	read->time_scale = gf_isom_get_timescale(read->mov);
 
-	isor_declare_objects(read);
-
-	return GF_OK;
+	return isor_declare_objects(read);
 }
 
 static void isoffin_delete_channel(ISOMChannel *ch)
@@ -368,7 +366,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 GF_Err isoffin_initialize(GF_Filter *filter)
 {
 	ISOMReader *read = gf_filter_get_udta(filter);
-
+	GF_Err e = GF_OK;
 	read->filter = filter;
 	read->channels = gf_list_new();
 
@@ -381,10 +379,10 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 		read->input_loaded = GF_TRUE;
 		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
 		read->time_scale = gf_isom_get_timescale(read->mov);
-		isor_declare_objects(read);
+		e = isor_declare_objects(read);
 		gf_filter_post_process_task(filter);
 	}
-	return GF_OK;
+	return e;
 }
 
 
@@ -797,7 +795,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		if (read->nb_playing) read->nb_playing--;
 		isor_reset_reader(ch);
 		//cancel event
-		return GF_FALSE;
+		return GF_TRUE;
 
 	case GF_FEVT_SET_SPEED:
 		ch->speed = com->play.speed;
@@ -1020,6 +1018,11 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(frame_size), "frame size for raw audio samples (dispatches frame_size samples per packet)", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(expart), "expose cover art as a dedicated video pid", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 
+	{ OFFS(tkid), "declare only track based on given param"
+	"- integer value: declares track with the given ID\n"
+	"- audio: declares first audio track\n"
+	"- video: declares first video track\n"
+	"- 4CC: declares first track with matching 4CC for handler type", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(stsd), "only extract sample mapped to the given sample desciption index. 0 means no filter", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mov), "pointer to a read/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
