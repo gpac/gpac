@@ -583,51 +583,51 @@ GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs)
 	while (gf_bs_available(bs)) {
 		GF_Box *a;
 		GF_Err e = gf_isom_box_parse(&a, bs);
-		if (!e) {
-			switch (a->type) {
-			case GF_ISOM_BOX_TYPE_STYL:
-				if (s->styles) {
-					GF_TextStyleBox *st2 = (GF_TextStyleBox *)a;
-					if (!s->styles->entry_count) {
-						gf_isom_box_del((GF_Box*)s->styles);
-						s->styles = st2;
-					} else {
-						s->styles->styles = (GF_StyleRecord*)gf_realloc(s->styles->styles, sizeof(GF_StyleRecord) * (s->styles->entry_count + st2->entry_count));
-						memcpy(&s->styles->styles[s->styles->entry_count], st2->styles, sizeof(GF_StyleRecord) * st2->entry_count);
-						s->styles->entry_count += st2->entry_count;
-						gf_isom_box_del(a);
-					}
+		if (e) break;
+
+		switch (a->type) {
+		case GF_ISOM_BOX_TYPE_STYL:
+			if (s->styles) {
+				GF_TextStyleBox *st2 = (GF_TextStyleBox *)a;
+				if (!s->styles->entry_count) {
+					gf_isom_box_del((GF_Box*)s->styles);
+					s->styles = st2;
 				} else {
-					s->styles = (GF_TextStyleBox*)a;
+					s->styles->styles = (GF_StyleRecord*)gf_realloc(s->styles->styles, sizeof(GF_StyleRecord) * (s->styles->entry_count + st2->entry_count));
+					memcpy(&s->styles->styles[s->styles->entry_count], st2->styles, sizeof(GF_StyleRecord) * st2->entry_count);
+					s->styles->entry_count += st2->entry_count;
+					gf_isom_box_del(a);
 				}
-				break;
-			case GF_ISOM_BOX_TYPE_KROK:
-				s->cur_karaoke = (GF_TextKaraokeBox*)a;
-			case GF_ISOM_BOX_TYPE_HLIT:
-			case GF_ISOM_BOX_TYPE_HREF:
-			case GF_ISOM_BOX_TYPE_BLNK:
-				gf_list_add(s->others, a);
-				break;
-			case GF_ISOM_BOX_TYPE_HCLR:
-				if (s->highlight_color) gf_isom_box_del(a);
-				else s->highlight_color = (GF_TextHighlightColorBox *) a;
-				break;
-			case GF_ISOM_BOX_TYPE_DLAY:
-				if (s->scroll_delay) gf_isom_box_del(a);
-				else s->scroll_delay= (GF_TextScrollDelayBox*) a;
-				break;
-			case GF_ISOM_BOX_TYPE_TBOX:
-				if (s->box) gf_isom_box_del(a);
-				else s->box= (GF_TextBoxBox *) a;
-				break;
-			case GF_ISOM_BOX_TYPE_TWRP:
-				if (s->wrap) gf_isom_box_del(a);
-				else s->wrap= (GF_TextWrapBox*) a;
-				break;
-			default:
-				gf_isom_box_del(a);
-				break;
+			} else {
+				s->styles = (GF_TextStyleBox*)a;
 			}
+			break;
+		case GF_ISOM_BOX_TYPE_KROK:
+			s->cur_karaoke = (GF_TextKaraokeBox*)a;
+		case GF_ISOM_BOX_TYPE_HLIT:
+		case GF_ISOM_BOX_TYPE_HREF:
+		case GF_ISOM_BOX_TYPE_BLNK:
+			gf_list_add(s->others, a);
+			break;
+		case GF_ISOM_BOX_TYPE_HCLR:
+			if (s->highlight_color) gf_isom_box_del(a);
+			else s->highlight_color = (GF_TextHighlightColorBox *) a;
+			break;
+		case GF_ISOM_BOX_TYPE_DLAY:
+			if (s->scroll_delay) gf_isom_box_del(a);
+			else s->scroll_delay= (GF_TextScrollDelayBox*) a;
+			break;
+		case GF_ISOM_BOX_TYPE_TBOX:
+			if (s->box) gf_isom_box_del(a);
+			else s->box= (GF_TextBoxBox *) a;
+			break;
+		case GF_ISOM_BOX_TYPE_TWRP:
+			if (s->wrap) gf_isom_box_del(a);
+			else s->wrap= (GF_TextWrapBox*) a;
+			break;
+		default:
+			gf_isom_box_del(a);
+			break;
 		}
 	}
 	return s;
