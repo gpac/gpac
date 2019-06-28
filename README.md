@@ -33,21 +33,20 @@ GPAC currently supports local file playback, HTTP progressive download, Adaptive
 
 For more information, visit the [GPAC website](http://gpac.io)
 
-GPAC is being developped at [Telecom ParisTech](https://www.telecom-paristech.fr/), in the [MultiMedia group](http://www.tsi.telecom-paristech.fr/mm/), by many [great contributors](https://github.com/gpac/gpac/graphs/contributors)
+GPAC is being developped at [Telecom Paris](https://www.telecom-paris.fr/), in the [MultiMedia group](http://www.tsi.telecom-paristech.fr/mm/), by many [great contributors](https://github.com/gpac/gpac/graphs/contributors)
 
 GPAC includes the following applications built by default:
 ## MP4Box
-MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See MP4Box -h for more info on the tool
-MP4Box documentation is [available online](https://gpac.wp.imt.fr/mp4box/)
+MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See `MP4Box -h`, `man MP4Box` or [our wiki](https://github.com/gpac/gpac/wiki/MP4Box-Introduction).
 
 
 ## MP4Client
 MP4Client is a media player built upon libgpac, featuring a rich media interactive composition engine with MPEG-4 BIFS, SVG, VRML/X3D support.
-For GPAC configuration instruction, check gpac/doc/configuration.html or gpac/doc/man/gpac.1 (man gpac when installed)
+For GPAC configuration instruction, check `MP4Client -h` ,  `man MP4Client` or [our wiki](https://github.com/gpac/gpac/wiki/mp4client).
 
 ## gpac 
-As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC. For API backward compatibility, old apps (MP4Box, MP4Client, ...) have been kept but rewritten to match the new filter architecture.
-They do not however expose all possible filter connections. The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filers not enabled by other apps. See gpac -h for more details, and check libgpac filter documentation.
+As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [check this](https://github.com/gpac/gpac/wiki/Rearchitecture) for more dicussion on how this impacts MP4Box and MP4Client.
+The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filers not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://github.com/gpac/gpac/wiki/Filters) for more details.
 
 
 # Roadmap
