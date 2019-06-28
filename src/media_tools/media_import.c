@@ -533,6 +533,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			}
 			samp->DTS -= dts_offset;
 
+			/*if packed samples (raw) and import duration is set, adjust the number of samples to add*/
 			if (samp->nb_pack && duration && (samp->DTS + samp->nb_pack*cdur > duration) ) {
 				u32 nb_samp = (u32) ( (duration - samp->DTS) / cdur);
 				u32 csize = samp->dataLength / samp->nb_pack;
@@ -544,7 +545,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				samp->nb_pack = nb_samp;
 				duration = samp->DTS-1;
 			}
-			
+
 			/*if not first sample and same DTS as previous sample, force DTS++*/
 			if (i && (samp->DTS<=sampDTS)) {
 				if (i+1 < num_samples) {
