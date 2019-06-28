@@ -123,8 +123,8 @@ endif
 	fi
 	$(INSTALL) -d "$(DESTDIR)$(moddir)"
 ifneq ($(MP4BOX_STATIC),yes)
-	$(INSTALL) bin/gcc/gm_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
-	$(INSTALL) bin/gcc/gf_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
+	$(INSTALL) bin/gcc/gm_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)" || true
+	$(INSTALL) bin/gcc/gf_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)" || true
 	#rm -f $(DESTDIR)$(moddir)/libgpac$(DYN_LIB_SUFFIX)
 	#rm -f $(DESTDIR)$(moddir)/nposmozilla$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_OPENHEVC),yes)
@@ -273,7 +273,8 @@ ifeq ($(CONFIG_LINUX),yes)
 deb:
 	git checkout --	debian/changelog
 	fakeroot debian/rules clean
-	sed -i -r "s/-(DEV|ALPHA)/-\1-rev$(VERSION)-$(BRANCH)/" debian/changelog
+	# add version to changelog for final filename
+	sed -i -r "s/^(\w+) \(([0-9\.]+)(-[A-Z]+)?\)/\1 (\2\3-rev$(VERSION)-$(BRANCH))/" debian/changelog
 	fakeroot debian/rules configure
 	fakeroot debian/rules binary
 	rm -rf debian/
