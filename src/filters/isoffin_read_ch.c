@@ -345,6 +345,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	}
 
 	if (!ch->sample) {
+		u32 sample_count = gf_isom_get_sample_count(ch->owner->mov, ch->track);
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;
@@ -355,7 +356,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			}
 		}
 		else if (!ch->sample_num
-		         || ((ch->speed >= 0) && (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track)))
+		         || ((ch->speed >= 0) && (ch->sample_num >= sample_count))
 		         || ((ch->speed < 0) && (ch->sample_time == gf_isom_get_current_tfdt(ch->owner->mov, ch->track) ))
 		        ) {
 
@@ -366,6 +367,9 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			} else if (ch->last_state != GF_EOS) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Track #%d end of stream reached\n", ch->track));
 				ch->last_state = GF_EOS;
+				if (ch->sample_num>sample_count) ch->sample_num = sample_count;
+			} else {
+				if (ch->sample_num>sample_count) ch->sample_num = sample_count;
 			}
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d fail to fetch sample %d / %d: %s\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track), gf_error_to_string(gf_isom_last_error(ch->owner->mov)) ));
