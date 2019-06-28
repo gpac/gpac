@@ -766,7 +766,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				if (check_cra_bla && !sample->IsRAP) {
 					sample->IsRAP = sap_type_from_nal_type(nal_type);
 					if (sei_suffix_bs) gf_bs_del(sei_suffix_bs);
-					gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &sample->data, &sample->dataLength, &sample->alloc_size);
 					return gf_isom_nalu_sample_rewrite(mdia, sample, sampleNumber, entry);
 				}
 			default:
