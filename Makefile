@@ -289,7 +289,8 @@ ifeq ($(CONFIG_LINUX),yes)
 deb:
 	git checkout --	debian/changelog
 	fakeroot debian/rules clean
-	sed -i "s/-DEV/-DEV-rev$(VERSION)-$(BRANCH)/" debian/changelog
+	# add version to changelog for final filename
+	sed -i -r "s/^(\w+) \(([0-9\.]+)(-[A-Z]+)?\)/\1 (\2\3-rev$(VERSION)-$(BRANCH))/" debian/changelog
 	fakeroot debian/rules configure
 	fakeroot debian/rules binary
 	rm -rf debian/
