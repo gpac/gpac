@@ -179,7 +179,8 @@ typedef struct
 	Bool ccst;
 	s32 mediats;
 	GF_AudioSampleEntryImportMode ase;
-
+	char *styp;
+	
 	//internal
 	Bool owns_mov;
 	GF_FilterPid *opid;
@@ -4353,6 +4354,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(tkid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fdur), "fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(btrt), "set btrt box in sample description", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(styp), "set segment styp major brand to the given 4CC", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mediats), "set media timescale. A value of 0 means inherit from pid, a value of -1 means derive from samplerate or frame rate", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(ase), "set audio sample entry mode for more than stereo layouts\n"\
 			"- v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"\

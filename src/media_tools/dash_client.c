@@ -408,15 +408,18 @@ static u32 gf_dash_group_count_rep_needed(GF_DASH_Group *group)
 	return nb_rep_need;
 }
 
-GF_EXPORT
-Bool gf_dash_check_mpd_root_type(const char *local_url)
+static
+u32 gf_dash_check_mpd_root_type(const char *local_url)
 {
 	if (local_url) {
 		char *rtype = gf_xml_get_root_type(local_url, NULL);
 		if (rtype) {
-			Bool handled = GF_FALSE;
+			u32 handled = 0;
 			if (!strcmp(rtype, "MPD")) {
-				handled = GF_TRUE;
+				handled = 1;
+			}
+			else if (!strcmp(rtype, "SmoothStreamingMedia")) {
+				handled = 2;
 			}
 			gf_free(rtype);
 			return handled;
@@ -1778,7 +1781,11 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 
 	// parse the mpd file for filling the GF_MPD structure. Note: for m3u8, MPD has been fetched above
 	if (!new_mpd) {
-		if (!gf_dash_check_mpd_root_type(local_url)) {
+		u32 res = gf_dash_check_mpd_root_type(local_url);
+		if ((res==1) && dash->is_smooth) res = 0;
+		else if ((res==2) && !dash->is_smooth) res = 0;
+
+		if (!res) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: MPD file type is not correct %s\n", local_url));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -7117,7 +7124,11 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			e = gf_m3u8_to_mpd(local_url, redirected_url, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, dash->mpd, GF_FALSE, dash->keep_files);
 		}
 	} else {
-		if (!dash->is_smooth && !gf_dash_check_mpd_root_type(local_url)) {
+		u32 res = gf_dash_check_mpd_root_type(local_url);
+		if (res==2) {
+			dash->is_smooth = 1;
+		}
+		if (!dash->is_smooth && !res) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: wrong file type %s\n", local_url));
 			dash->dash_io->del(dash->dash_io, dash->mpd_dnload);
 			dash->mpd_dnload = NULL;

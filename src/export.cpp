@@ -2066,7 +2066,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_switch_quality) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_time_shift_buffer_depth) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dash_check_mpd_root_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_init_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_init_keys) )

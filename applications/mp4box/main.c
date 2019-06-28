@@ -457,7 +457,6 @@ void PrintImportUsage()
 		"- :tiles: add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks.\n"
 		"- :split_tiles: split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track.\n"
 		"- :negctts: use negative CTS-DTS offsets (ISO4 brand)\n"
-		"- :stype=A4CC: force the sample description type to `A4CC`\nWarning: THIS MAY BREAK THE FILE WRITING !!\n"
 		"- :chap: specify the track is a chapter track\n"
 		"- :chapter=NAME: add a single chapter (old nero format) with given name lasting the entire file"
 		"- :chapfile=file: adds a chapter file (old nero format)"
