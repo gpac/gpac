@@ -266,6 +266,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 icc_size=0;
 	char *icc_data = NULL;
 	char *ext_start;
+	u32 xps_inband=0;
 
 	clap_wn = clap_wd = clap_hn = clap_hd = clap_hon = clap_hod = clap_von = clap_vod = 0;
 
@@ -463,7 +464,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "ccst")) import_flags |= GF_IMPORT_USE_CCST;
 		else if (!stricmp(ext+1, "alpha")) import.is_alpha = GF_TRUE;
 		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
-		else if (!stricmp(ext+1, "xps_inband")) import_flags |= GF_IMPORT_FORCE_XPS_INBAND;
+		else if (!stricmp(ext+1, "xps_inband")) xps_inband = 1;
+		else if (!stricmp(ext+1, "xps_inbandx")) xps_inband = 2;
 		else if (!stricmp(ext+1, "au_delim")) keep_audelim = GF_TRUE;
 		else if (!strnicmp(ext+1, "max_lid=", 8) || !strnicmp(ext+1, "max_tid=", 8)) {
 			s32 val = atoi(ext+9);
@@ -796,6 +798,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.flags = import_flags;
 	import.keep_audelim = keep_audelim;
 	import.print_stats_graph = print_stats_graph;
+	import.xps_inband = xps_inband;
 
 	if (!import.nb_tracks) {
 		u32 count, o_count;
@@ -1959,7 +1962,7 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 s
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
 		gf_isom_set_nalu_extract_mode(orig, src_track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 		if (!force_cat) {
-			gf_isom_avc_set_inband_config(dest, dst_tk, 1);
+			gf_isom_avc_set_inband_config(dest, dst_tk, 1, GF_FALSE);
 		} else {
 			fprintf(stderr, "WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id);
 		}
@@ -2013,7 +2016,7 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
 		gf_isom_set_nalu_extract_mode(orig, src_track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 		if (!force_cat) {
-			gf_isom_hevc_set_inband_config(dest, dst_tk, 1);
+			gf_isom_hevc_set_inband_config(dest, dst_tk, 1, GF_FALSE);
 		} else {
 			fprintf(stderr, "WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id);
 		}

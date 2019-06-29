@@ -1089,7 +1089,7 @@ sample_entry_setup:
 		break;
 	case GF_CODECID_AVC:
 	case GF_CODECID_SVC:
-		m_subtype = (ctx->xps_inband==1) ? GF_ISOM_SUBTYPE_AVC3_H264 : GF_ISOM_SUBTYPE_AVC_H264;
+		m_subtype = ((ctx->xps_inband==1) || (ctx->xps_inband==2)) ? GF_ISOM_SUBTYPE_AVC3_H264 : GF_ISOM_SUBTYPE_AVC_H264;
 		use_avc = GF_TRUE;
 		comp_name = (codec_id == GF_CODECID_SVC) ? "MPEG-4 SVC" : "MPEG-4 AVC";
 		use_gen_sample_entry = GF_FALSE;
@@ -1097,7 +1097,7 @@ sample_entry_setup:
 		break;
 	case GF_CODECID_HEVC:
 	case GF_CODECID_LHVC:
-		m_subtype = (ctx->xps_inband==1) ? GF_ISOM_SUBTYPE_HEV1  : GF_ISOM_SUBTYPE_HVC1;
+		m_subtype = ((ctx->xps_inband==1) || (ctx->xps_inband==2)) ? GF_ISOM_SUBTYPE_HEV1  : GF_ISOM_SUBTYPE_HVC1;
 		use_hevc = GF_TRUE;
 		comp_name = (codec_id == GF_CODECID_LHVC) ? "L-HEVC" : "HEVC";
 		use_gen_sample_entry = GF_FALSE;
@@ -1303,7 +1303,7 @@ sample_entry_setup:
 		if ((needs_sample_entry==2) && (ctx->xps_inband==2)) {
 			force_mix_xps = GF_TRUE;
 		}
-		else if ((needs_sample_entry==2) && (ctx->xps_inband==1)) {
+		else if ((needs_sample_entry==2) && ((ctx->xps_inband==1)||(ctx->xps_inband==3)) ) {
 			needs_sample_entry = 0;
 			make_inband_headers = GF_TRUE;
 		}
@@ -1438,7 +1438,7 @@ sample_entry_setup:
 					}
 
 					if (!dsi && ctx->xps_inband) {
-						gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx);
+						gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
 					}
 				}
 			}
@@ -1450,7 +1450,8 @@ sample_entry_setup:
 		
 		if (dsi && ctx->xps_inband) {
 			//this will cleanup all PS in avcC / svcC
-			gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx);
+			gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
+			if (ctx->xps_inband==2) make_inband_headers = GF_TRUE;
 		} else {
 			gf_odf_avc_cfg_del(tkw->avcc);
 			tkw->avcc = NULL;
@@ -1526,7 +1527,7 @@ sample_entry_setup:
 					}
 
 					if (!dsi && ctx->xps_inband) {
-						gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx);
+						gf_isom_hevc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
 					}
 				}
 			} else if (codec_id == GF_CODECID_LHVC) {
@@ -1542,7 +1543,7 @@ sample_entry_setup:
 
 		if (dsi && ctx->xps_inband) {
 			//this will cleanup all PS in avcC / svcC
-			gf_isom_hevc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx);
+			gf_isom_hevc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
 		} else {
 			gf_odf_hevc_cfg_del(tkw->hvcc);
 			tkw->hvcc = NULL;
@@ -4317,7 +4318,8 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(xps_inband), "use inband (in sample data) param set for AVC/HEVC/...\n"
 	"- no: paramater sets are not inband, several sample descriptions might be created\n"
 	"- all: paramater sets are inband, no param sets in sample description\n"
-	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|mix", 0},
+	"- both: paramater sets are inband, signaled as inband, and also first set is kept in sample descripton\n"
+	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|both|mix|", 0},
 	{ OFFS(store), "file storage mode\n"
 	"- inter: uses cdur to interleave the file\n"
 	"- flat: writes a flat file, moov at end\n"

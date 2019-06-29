@@ -670,6 +670,14 @@ frame_size (unsigned int, default: 1024): frame size for raw audio samples (disp
 .br
 expart (boolean, default: true):         expose cover art as a dedicated video pid
 .br
+tkid (string, no default):               declare only track based on given param- integer value: declares track with the given ID
+.br
+* audio: declares first audio track
+.br
+* video: declares first video track
+.br
+* 4CC: declares first track with matching 4CC for handler type
+.br
 stsd (unsigned int, default: 0):         only extract sample mapped to the given sample desciption index. 0 means no filter
 .br
 
@@ -1510,6 +1518,8 @@ xps_inband (enum, default: no):          use inband (in sample data) param set f
 .br
 * all: paramater sets are inband, no param sets in sample description
 .br
+* both: paramater sets are inband, signaled as inband, and also first set is kept in sample descripton
+.br
 * mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband
 .br
 
@@ -1609,6 +1619,8 @@ tkid (unsigned int, default: 0):         track ID of created track for single tr
 fdur (boolean, default: false):          fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option
 .br
 btrt (boolean, default: true):           set btrt box in sample description
+.br
+styp (string, no default):               set segment styp major brand to the given 4CC[.version]
 .br
 mediats (int, default: 0):               set media timescale. A value of 0 means inherit from pid, a value of -1 means derive from samplerate or frame rate
 .br
@@ -3328,6 +3340,10 @@ subs_sidx (int, default: -1):            number of subsegments per sidx. negativ
 .br
 cmpd (boolean, default: false):          skip line feed and spaces in MPD XML for more compacity
 .br
+styp (string, no default):               indicate the 4CC to use for styp boxes when using ISOBMFF output
+.br
+dual (boolean, no default):              indicate to produce both MPD and M3U files
+.br
 
 .br
 .SH tileagg
@@ -4259,7 +4275,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3574-g185bc127f-buildbot-filters
+build: 0.9.0-DEV-rev2428-g3c791dd73-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

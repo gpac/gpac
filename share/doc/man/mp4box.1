@@ -445,7 +445,7 @@ Input media files to dash can use the following modifiers
 .br
 * #trackID=N: only use the track ID N from the source file
 .br
-* #N: only use the track ID N from the source file
+* #N: only use the track ID N from the source file - mapped to -tkid
 .br
 * #video: only use the first video track from the source file
 .br
@@ -480,6 +480,8 @@ Warning: This does not modify generated files location (see segment template).
 * :desc_rep=VALUE: add a descriptor at the Representation level. Value must be a properly formatted XML element. Value is ignored while creating AdaptationSet elements.
 .br
 * :sscale: force movie timescale to match media timescale of the first track in the segment.
+.br
+* :trackID=N: only use the track ID N from the source file
 .br
 
 .br
@@ -1186,6 +1188,8 @@ Allowed per-file options:
 .br
 Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players- :xps_inband: set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)
 .br
+* :xps_inbandx: same as xps_inband and also keep first xPS in sample desciption
+.br
 * :au_delim: keep AU delimiter NAL units in the imported file
 .br
 * :max_lid=N: set HEVC max layer ID to be imported to N (by default imports all layers).
@@ -1197,10 +1201,6 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 * :split_tiles: split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track.
 .br
 * :negctts: use negative CTS-DTS offsets (ISO4 brand)
-.br
-* :stype=A4CC: force the sample description type to A4CC
-.br
-Warning: THIS MAY BREAK THE FILE WRITING !!
 .br
 * :chap: specify the track is a chapter track
 .br
@@ -1933,7 +1933,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3574-g185bc127f-buildbot-filters
+build: 0.9.0-DEV-rev2428-g3c791dd73-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -1385,7 +1385,7 @@ GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfi
 	return e;
 }
 
-static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg, u32 op_type)
+static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg, u32 op_type, Bool keep_xps)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -1443,33 +1443,34 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 	case 3:
 		if (!entry->avc_config || !entry->avc_config->config)
 			return GF_BAD_PARAM;
+		if (!keep_xps) {
+			for (i=0; i<3; i++) {
+				GF_AVCConfigurationBox *cfg = entry->avc_config;
+				if (i==1) cfg = entry->svc_config;
+				else if (i==2) cfg = entry->mvc_config;
+				if (!cfg) continue;
 
-		for (i=0; i<3; i++) {
-			GF_AVCConfigurationBox *cfg = entry->avc_config;
-			if (i==1) cfg = entry->svc_config;
-			else if (i==2) cfg = entry->mvc_config;
-			if (!cfg) continue;
 
+				while (gf_list_count(cfg->config->sequenceParameterSets)) {
+					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(cfg->config->sequenceParameterSets, 0);
+					gf_list_rem(cfg->config->sequenceParameterSets, 0);
+					if (sl->data) gf_free(sl->data);
+					gf_free(sl);
+				}
 
-			while (gf_list_count(cfg->config->sequenceParameterSets)) {
-				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(cfg->config->sequenceParameterSets, 0);
-				gf_list_rem(cfg->config->sequenceParameterSets, 0);
-				if (sl->data) gf_free(sl->data);
-				gf_free(sl);
-			}
+				while (gf_list_count(cfg->config->pictureParameterSets)) {
+					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(cfg->config->pictureParameterSets, 0);
+					gf_list_rem(cfg->config->pictureParameterSets, 0);
+					if (sl->data) gf_free(sl->data);
+					gf_free(sl);
+				}
 
-			while (gf_list_count(cfg->config->pictureParameterSets)) {
-				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(cfg->config->pictureParameterSets, 0);
-				gf_list_rem(cfg->config->pictureParameterSets, 0);
-				if (sl->data) gf_free(sl->data);
-				gf_free(sl);
-			}
-
-			while (gf_list_count(cfg->config->sequenceParameterSetExtensions)) {
-				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(cfg->config->sequenceParameterSetExtensions, 0);
-				gf_list_rem(cfg->config->sequenceParameterSetExtensions, 0);
-				if (sl->data) gf_free(sl->data);
-				gf_free(sl);
+				while (gf_list_count(cfg->config->sequenceParameterSetExtensions)) {
+					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(cfg->config->sequenceParameterSetExtensions, 0);
+					gf_list_rem(cfg->config->sequenceParameterSetExtensions, 0);
+					if (sl->data) gf_free(sl->data);
+					gf_free(sl);
+				}
 			}
 		}
 
@@ -1504,26 +1505,26 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 }
 
 GF_EXPORT
-GF_Err gf_isom_avc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
+GF_Err gf_isom_avc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, Bool keep_xps)
 {
-	return gf_isom_avc_config_update_ex(the_file, trackNumber, DescriptionIndex, NULL, 3);
+	return gf_isom_avc_config_update_ex(the_file, trackNumber, DescriptionIndex, NULL, 3, keep_xps);
 }
 
 GF_EXPORT
 GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg)
 {
-	return gf_isom_avc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, 0);
+	return gf_isom_avc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, 0, GF_FALSE);
 }
 
 GF_EXPORT
 GF_Err gf_isom_svc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg, Bool is_add)
 {
-	return gf_isom_avc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, is_add ? 1 : 2);
+	return gf_isom_avc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, is_add ? 1 : 2, GF_FALSE);
 }
 
 GF_Err gf_isom_mvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg, Bool is_add)
 {
-	return gf_isom_avc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, is_add ? 4 : 5);
+	return gf_isom_avc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, is_add ? 4 : 5, GF_FALSE);
 }
 
 static GF_Err gf_isom_svc_mvc_config_del(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, Bool is_mvc)
@@ -1786,7 +1787,7 @@ typedef enum
 	GF_ISOM_LHCC_SET_INBAND
 } HevcConfigUpdateType;
 
-static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand_type)
+static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand_type, Bool keep_xps)
 {
 	u32 i;
 	Bool array_incomplete = (operand_type==GF_ISOM_HVCC_SET_INBAND) ? 1 : 0;
@@ -1798,6 +1799,10 @@ static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand
 		/*we want to force hev1*/
 		if (operand_type==GF_ISOM_HVCC_SET_INBAND) {
 			ar->array_completeness = 0;
+			if (keep_xps) {
+				array_incomplete=1;
+				continue;
+			}
 
 			while (gf_list_count(ar->nalus)) {
 				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(ar->nalus, 0);
@@ -1819,7 +1824,7 @@ static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand
 }
 
 static
-GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, u32 operand_type)
+GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, u32 operand_type, Bool keep_xps)
 {
 	u32 array_incomplete;
 	GF_TrackBox *trak;
@@ -1867,10 +1872,11 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 			operand_type=GF_ISOM_HVCC_SET_INBAND;
 		}
 		array_incomplete = (operand_type==GF_ISOM_HVCC_SET_INBAND) ? 1 : 0;
-		if (entry->hevc_config && hevc_cleanup_config(entry->hevc_config->config, operand_type))
+		if (entry->hevc_config && hevc_cleanup_config(entry->hevc_config->config, operand_type, keep_xps)) {
 			array_incomplete=1;
+		}
 
-		if (entry->lhvc_config && hevc_cleanup_config(entry->lhvc_config->config, operand_type))
+		if (entry->lhvc_config && hevc_cleanup_config(entry->lhvc_config->config, operand_type, keep_xps))
 			array_incomplete=1;
 
 		switch (entry->type) {
@@ -1944,26 +1950,26 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 GF_EXPORT
 GF_Err gf_isom_hevc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg)
 {
-	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_UPDATE);
+	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_UPDATE, GF_FALSE);
 }
 
 GF_EXPORT
-GF_Err gf_isom_hevc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
+GF_Err gf_isom_hevc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, Bool keep_xps)
 {
-	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, NULL, GF_ISOM_HVCC_SET_INBAND);
+	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, NULL, GF_ISOM_HVCC_SET_INBAND, keep_xps);
 }
 
 GF_EXPORT
 GF_Err gf_isom_lhvc_force_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
 {
-	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, NULL, GF_ISOM_LHCC_SET_INBAND);
+	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, NULL, GF_ISOM_LHCC_SET_INBAND, GF_FALSE);
 }
 
 
 GF_EXPORT
 GF_Err gf_isom_hevc_set_tile_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, Bool is_base_track)
 {
-	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, is_base_track ? GF_ISOM_HVCC_SET_TILE_BASE_TRACK : GF_ISOM_HVCC_SET_TILE);
+	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, is_base_track ? GF_ISOM_HVCC_SET_TILE_BASE_TRACK : GF_ISOM_HVCC_SET_TILE, GF_FALSE);
 }
 
 GF_EXPORT
@@ -1972,13 +1978,13 @@ GF_Err gf_isom_lhvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Des
 	if (cfg) cfg->is_lhvc = GF_TRUE;
 	switch (track_type) {
 	case GF_ISOM_LEHVC_ONLY:
-		return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_LHVC);
+		return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_LHVC, GF_FALSE);
 	case GF_ISOM_LEHVC_WITH_BASE:
-		return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_LHVC_WITH_BASE);
+		return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_LHVC_WITH_BASE, GF_FALSE);
 	case GF_ISOM_LEHVC_WITH_BASE_BACKWARD:
-		return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_LHVC_WITH_BASE_BACKWARD);
+		return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_LHVC_WITH_BASE_BACKWARD, GF_FALSE);
 	case GF_ISOM_HEVC_TILE_BASE:
-		return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_HEVC_TILE_BASE);
+		return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_HEVC_TILE_BASE, GF_FALSE);
 	default:
 		return GF_BAD_PARAM;
 	}

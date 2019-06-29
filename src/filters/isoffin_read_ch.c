@@ -572,6 +572,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 {
 	u32 nalu_len = 0;
 	u32 reset_state = 0;
+	if (ch->owner->analyze) return;
 	if (!ch->check_hevc_ps && !ch->check_avc_ps) return;
 
 	if (!ch->sample) return;

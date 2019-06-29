@@ -193,8 +193,7 @@ enum
 	GF_IMPORT_FORCE_SYNC = 1<<16,
 	/*! keep trailing 0 bytes in AU payloads when any*/
 	GF_IMPORT_KEEP_TRAILING = 1<<17,
-	/*! forces inband parameter sets*/
-	GF_IMPORT_FORCE_XPS_INBAND = 1<<18,
+
 	/*! do not compute edit list for B-frames video tracks*/
 	GF_IMPORT_NO_EDIT_LIST = 1<<19,
 	/*! when set, only updates tracks info and return*/
@@ -392,6 +391,7 @@ typedef struct __track_import
 
 	Bool is_alpha;
 	Bool keep_audelim;
+	u32 xps_inband;
 	u32 print_stats_graph;
 } GF_MediaImporter;
 
