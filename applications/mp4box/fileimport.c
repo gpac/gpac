@@ -267,6 +267,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	char *icc_data = NULL;
 	char *ext_start;
 	u32 xps_inband=0;
+	char *opt_src = NULL;
+	char *opt_dst = NULL;
+	char *fchain = NULL;
 
 	clap_wn = clap_wd = clap_hn = clap_hd = clap_hon = clap_hod = clap_von = clap_vod = 0;
 
@@ -338,7 +341,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			ext2[0] = ':';
 			ext2 = strchr(ext2+1, ':');
 		}
-
 		if (ext2) ext2[0] = 0;
 
 		/*all extensions for track-based importing*/
@@ -589,25 +591,19 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			print_stats_graph |= 1;
 		else if (!stricmp(ext+1, "fgraph"))
 			print_stats_graph |= 2;
-		else if (!strncmp(ext+1, "sopt", 4)) {
+		else if (!strncmp(ext+1, "sopt", 4) || !strncmp(ext+1, "dopt", 4) || !strncmp(ext+1, "@@", 2)) {
 			if (ext2) ext2[0] = ':';
-			char *opt_dest = strstr(ext+1, "dopt");
-			if (opt_dest) {
-				* (opt_dest - 1) = 0;
-				import.filter_dst_opts = opt_dest;
-			}
-			import.filter_src_opts = ext2+1;
-			ext = NULL;
-			break;
-		}
-		else if (!strncmp(ext+1, "dopt", 4)) {
-			if (ext2) ext2[0] = ':';
-			char *opt_src = strstr(ext+1, "sopt");
-			if (opt_src) {
-				* (opt_src - 1) = 0;
-				import.filter_src_opts = opt_src;
-			}
-			import.filter_dst_opts = ext2+1;
+			opt_src = strstr(ext, ":sopt=");
+			opt_dst = strstr(ext, ":dopt=");
+			fchain = strstr(ext, ":@@");
+			if (opt_src) opt_src[0] = 0;
+			if (opt_dst) opt_dst[0] = 0;
+			if (fchain) fchain[0] = 0;
+
+			if (opt_src) import.filter_src_opts = opt_src+6;
+			if (opt_dst) import.filter_dst_opts = opt_dst+6;
+			if (fchain) import.filter_chain = fchain+3;
+
 			ext = NULL;
 			break;
 		}
@@ -1230,6 +1226,10 @@ exit:
 		gf_list_rem(kinds, 0);
 		if (kind) gf_free(kind);
 	}
+	if (opt_src) opt_src[0] = ':';
+	if (opt_dst) opt_dst[0] = ':';
+	if (fchain) fchain[0] = ':';
+
 	gf_list_del(kinds);
 	if (handler_name) gf_free(handler_name);
 	if (chapter_name ) gf_free(chapter_name);

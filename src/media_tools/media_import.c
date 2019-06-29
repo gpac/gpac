@@ -995,8 +995,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 	if (importer->streamFormat) fmt = importer->streamFormat;
 
-	/*always try with MP4 - this allows using .m4v extension for both raw CMP and iPod's files*/
-	if (gf_isom_probe_file(importer->in_name)) {
+	/*if isobmf and probing or no filter, direct copy*/
+	if (gf_isom_probe_file(importer->in_name) && (!importer->filter_chain || (importer->flags & GF_IMPORT_PROBE_ONLY) ) ) {
 		importer->orig = gf_isom_open(importer->in_name, GF_ISOM_OPEN_READ, NULL);
 		if (importer->orig) {
 			e = gf_import_isomedia(importer);
@@ -1110,7 +1110,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	} else {
 		char *args = NULL;
 		char szSubArg[1024];
-		GF_Filter *isobmff_mux;
+		Bool source_id_set = GF_FALSE;
+		GF_Filter *isobmff_mux, *source;
+		GF_Filter *filter_orig=NULL;
 
 		//mux args
 		e = gf_dynstrcat(&args, "mp4mx:importer", ":");
@@ -1168,9 +1170,44 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			return gf_import_message(importer, GF_FILTER_NOT_FOUND, "[Importer] Cannot load ISOBMFF muxer");
 		}
 
+		//filter chain
+		if (importer->filter_chain) {
+			GF_Filter *prev_filter=NULL;
+			char *fargs = (char *) importer->filter_chain;
+			while (fargs) {
+				GF_Filter *f;
+				char *sep = strstr(fargs, "@@");
+				if (sep) sep[0] = 0;
+				f = gf_fs_load_filter(fsess, fargs);
+				if (!f) {
+					gf_fs_del(fsess);
+					return gf_import_message(importer, GF_FILTER_NOT_FOUND, "[Importer] Cannot load filter %s", fargs);
+				}
+				if (prev_filter) {
+					gf_filter_set_source(f, prev_filter, NULL);
+				}
+				prev_filter = f;
+				if (!filter_orig) filter_orig = f;
+				if (!sep) break;
+				sep[0] = '@';
+				fargs = sep+2;
+			}
+			if (prev_filter) {
+				if (importer->trackID) {
+					if (gf_filter_get_id(prev_filter)) {
+						gf_fs_del(fsess);
+						return gf_import_message(importer, GF_FILTER_NOT_FOUND, "[Importer] last filter in chain cannot use filter ID (%s)", fargs);
+					}
+					gf_filter_assign_id(prev_filter, "1");
+					source_id_set=GF_TRUE;
+				}
+				gf_filter_set_source(isobmff_mux, prev_filter, NULL);
+			}
+		}
+
 		//source args
 		e = gf_dynstrcat(&args, "importer:index_dur=0", ":");
-		if (importer->trackID) e |= gf_dynstrcat(&args, "FID=1", ":");
+		if (importer->trackID && !source_id_set) e |= gf_dynstrcat(&args, "FID=1", ":");
 		if (importer->filter_src_opts) e |= gf_dynstrcat(&args, importer->filter_src_opts, ":");
 
 		if (importer->flags & GF_IMPORT_SBR_IMPLICIT) e |= gf_dynstrcat(&args, "sbr=imp", ":");
@@ -1195,7 +1232,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			return gf_import_message(importer, e, "[Importer] Cannot load arguments for input %s", importer->in_name);
 		}
 
-		gf_fs_load_source(fsess, importer->in_name, args, NULL, &e);
+		source = gf_fs_load_source(fsess, importer->in_name, args, NULL, &e);
 		gf_free(args);
 		args = NULL;
 
@@ -1203,6 +1240,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			gf_fs_del(fsess);
 			return gf_import_message(importer, e, "[Importer] Cannot load filter for input file \"%s\"", importer->in_name);
 		}
+
+		if (filter_orig)
+			gf_filter_set_source(filter_orig, source, NULL);
+
 		gf_fs_run(fsess);
 		if (!importer->last_error) importer->last_error = gf_fs_get_last_connect_error(fsess);
 		if (!importer->last_error) importer->last_error = gf_fs_get_last_process_error(fsess);

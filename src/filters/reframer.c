@@ -40,7 +40,7 @@ typedef struct
 	u32 timescale;
 	u64 cts_at_init;
 	u64 sys_clock_at_init;
-
+	u32 nb_frames;
 } RTStream;
 
 typedef struct
@@ -48,6 +48,7 @@ typedef struct
 	//args
 	Bool exporter;
 	GF_PropUIntList saps;
+	GF_PropUIntList frames;
 	Bool refs;
 	u32 rt;
 	Double speed;
@@ -118,6 +119,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 {
 	Bool do_send = GF_FALSE;
 
+
 	if (!ctx->rt) {
 		do_send = GF_TRUE;
 	} else {
@@ -150,9 +152,27 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		}
 	}
 
+	if (ctx->frames.nb_items) {
+		u32 i;
+		Bool found=GF_FALSE;
+		for (i=0; i<ctx->frames.nb_items; i++) {
+			if (ctx->frames.vals[i] == st->nb_frames + 1) {
+				found=GF_TRUE;
+				break;
+			}
+		}
+		if (!found) {
+			//drop
+			gf_filter_pid_drop_packet(st->ipid);
+			st->nb_frames++;
+			return GF_TRUE;
+		}
+	}
+
 	if (do_send) {
 		gf_filter_pck_forward(pck, st->opid);
 		gf_filter_pid_drop_packet(st->ipid);
+		st->nb_frames++;
 		return GF_TRUE;
 	}
 	if (ctx->rt) {
@@ -215,6 +235,7 @@ GF_Err reframer_process(GF_Filter *filter)
 
 			if (!forward) {
 				gf_filter_pid_drop_packet(ipid);
+				st->nb_frames++;
 				continue;
 			}
 
@@ -281,10 +302,11 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- off: disables real-time regulation\n"
 	"- on: enables real-time regulation, one clock per pid\n"
 	"- sync: enables real-time regulation one clock for all pids", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(saps), "drop non-SAP packets, off by default. The string contains the list (whitespace or comma-separated) of SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(saps), "drop non-SAP packets, off by default. The list gives the SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(refs), "forward only frames used as reference frames, if indicated in the input stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(speed), "speed for real-time regulation mode - only positive value", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(raw), "force input streams to be in raw format (i.e. forces decoding of input)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(frames), "drop all except listed frames (first being 1), off by default", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
