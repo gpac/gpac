@@ -159,7 +159,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 
 	if (!pathName && !parentName) return NULL;
 	if (!pathName) return gf_strdup(parentName);
-	if (!parentName) return gf_strdup(pathName);
+	if (!parentName || !strlen(parentName)) return gf_strdup(pathName);
 
 	if (!strncmp(pathName, "data:", 5)) return gf_strdup(pathName);
 

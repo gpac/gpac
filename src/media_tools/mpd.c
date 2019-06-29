@@ -1853,7 +1853,9 @@ try_next_segment:
 				url->URL = gf_strdup(byte_range_media_file);
 			} else {
 				u32 url_len = (u32) strlen(base_url);
-				if (strncmp(base_url, mpd_file, url_len)) {
+				if (!strcmp(base_url, "./") || !strcmp(base_url, ".")) {
+
+				} else if (strncmp(base_url, mpd_file, url_len)) {
 					GF_MPD_BaseURL *url;
 					GF_SAFEALLOC(url, GF_MPD_BaseURL);
 					if (! url) return GF_OUT_OF_MEM;
@@ -1867,7 +1869,7 @@ try_next_segment:
 			if (!rep->segment_list) return GF_OUT_OF_MEM;
 			// doesn't parse sub-playlists, we need to save URL to these sub-playlist in xlink:href so that we can get the segment URL when we need
 			// note: for MPD type static, always parse all sub-playlist because we just do it once in a period
-			if ((mpd->type == GF_MPD_TYPE_DYNAMIC) && !parse_sub_playlist) {
+			if (/*(mpd->type == GF_MPD_TYPE_DYNAMIC) && */ !parse_sub_playlist) {
 				rep->segment_list->xlink_href = pe->url;
 				pe->url=NULL;
 				gf_free(base_url);
@@ -2176,6 +2178,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	count_elements = gf_list_count(pe->element.playlist.elements);
 	for (k=0; k<count_elements; k++) {
 		GF_MPD_SegmentURL *segment_url;
+		char *last_sep=NULL;
+		u32 check_len=0;
 		PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
 		if (!elt)
 			continue;
@@ -2191,7 +2195,15 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 			return GF_OUT_OF_MEM;
 		}
 		gf_list_add(rep->segment_list->segment_URLs, segment_url);
-		segment_url->media = gf_url_concatenate(pe->url, elt->url);
+		last_sep = strrchr(pe->url, '/');
+		if (last_sep)
+			check_len = (u32) (last_sep - pe->url);
+
+		if (check_len && !strncmp(pe->url, elt->url, check_len)) {
+			segment_url->media = gf_strdup(elt->url + check_len + 1);
+		} else {
+			segment_url->media = gf_url_concatenate(pe->url, elt->url);
+		}
 
 		if (! elt->utc_start_time) elt->utc_start_time = start_time;
 		segment_url->hls_utc_start_time = elt->utc_start_time;
