@@ -452,6 +452,7 @@ void PrintImportUsage()
 		"- :forcesync: force non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
 		"Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players"
 		"- :xps_inband: set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)\n"
+		"- :xps_inbandx: same as xps_inband and also keep first xPS in sample desciption\n"
 		"- :au_delim: keep AU delimiter NAL units in the imported file\n"
 		"- :max_lid=N: set HEVC max layer ID to be imported to `N` (by default imports all layers).\n"
 		"- :max_tid=N: set HEVC max temporal ID to be imported to `N` (by default imports all temporal sublayers)\n"

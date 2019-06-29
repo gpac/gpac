@@ -2099,10 +2099,10 @@ GF_Err gf_isom_mvc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfi
 GF_Err gf_isom_mvc_config_del(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
 /*sets avc3 entry type (inband SPS/PPS) instead of avc1 (SPS/PPS in avcC box)*/
-GF_Err gf_isom_avc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+GF_Err gf_isom_avc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, Bool keep_xps);
 
 /*sets hev1 entry type (inband SPS/PPS) instead of hvc1 (SPS/PPS in hvcC box)*/
-GF_Err gf_isom_hevc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+GF_Err gf_isom_hevc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, Bool keep_xps);
 
 /*sets lhe1 entry type instead of lhc1 but keep lhcC box intact*/
 GF_Err gf_isom_lhvc_force_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);

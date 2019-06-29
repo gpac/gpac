@@ -59,6 +59,7 @@ typedef struct
 	Bool alltk;
 	u32 frame_size;
 	char* tkid;
+	Bool analyze;
 
 	//internal
 

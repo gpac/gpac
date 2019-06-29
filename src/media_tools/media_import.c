@@ -471,7 +471,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
 
-	if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+	if (import->xps_inband) {
 		if (is_cenc ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] CENC media detected - cannot switch parameter set storage mode\n"));
 		} else if (import->flags & GF_IMPORT_USE_DATAREF) {
@@ -480,11 +480,11 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			switch (mstype) {
 			case GF_ISOM_SUBTYPE_AVC_H264:
 				gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
-				gf_isom_avc_set_inband_config(import->dest, track, 1);
+				gf_isom_avc_set_inband_config(import->dest, track, 1, (import->xps_inband==2) ? GF_TRUE : GF_FALSE);
 				break;
 			case GF_ISOM_SUBTYPE_HVC1:
 				gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
-				gf_isom_hevc_set_inband_config(import->dest, track, 1);
+				gf_isom_hevc_set_inband_config(import->dest, track, 1, (import->xps_inband==2) ? GF_TRUE : GF_FALSE);
 				break;
 			}
 		}
@@ -1132,8 +1132,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			e |= gf_dynstrcat(&args, "noedit", ":");
 		if (importer->flags & GF_IMPORT_FORCE_PACKED)
 			e |= gf_dynstrcat(&args, "pack_nal", ":");
-		if (importer->flags & GF_IMPORT_FORCE_XPS_INBAND)
+		if (importer->xps_inband==1)
 			e |= gf_dynstrcat(&args, "xps_inband=all", ":");
+		else if (importer->xps_inband==2)
+			e |= gf_dynstrcat(&args, "xps_inband=both", ":");
 		if (importer->esd && importer->esd->ESID) {
 			sprintf(szSubArg, "tkid=%d", importer->esd->ESID);
 			e |= gf_dynstrcat(&args, szSubArg, ":");
