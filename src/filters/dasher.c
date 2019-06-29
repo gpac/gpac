@@ -84,13 +84,17 @@ typedef struct
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
 	Bool m2ts;
-	Bool cmpd;
+	Bool cmpd, dual;
 	char *styp;
 
 	//internal
 
-	//MPD output pid
+	//Manifest output pid
 	GF_FilterPid *opid;
+
+	GF_FilterPid *opid_alt;
+	GF_Filter *alt_dst;
+	Bool opid_alt_m3u8;
 
 	GF_MPD *mpd;
 
@@ -318,31 +322,92 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	if (!ctx->opid) {
-		char *segext=NULL;
-		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_set_name(ctx->opid, "MANIFEST");
-		//copy properties at init or reconfig
-		gf_filter_pid_copy_properties(ctx->opid, pid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_FILE_EXT);
-		if (p) {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, p );
-			segext = p->value.string;
-		} else {
-			if (!ctx->out_path) ctx->out_path = gf_filter_pid_get_destination(ctx->opid);
-			segext = ctx->out_path ? strrchr(ctx->out_path, '.') : NULL;
-			if (!segext) segext = "mpd";
-			else segext++;
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(segext) );
-		}
-		gf_filter_pid_set_name(ctx->opid, "manifest" );
+		u32 i;
+		for (i=0; i < (ctx->dual ? 2 : 1); i++) {
+			char *segext=NULL;
+			char *force_ext=NULL;
+			GF_FilterPid *opid;
+			if (i==0) {
+				ctx->opid = gf_filter_pid_new(filter);
+				gf_filter_pid_set_name(ctx->opid, "MANIFEST");
+				opid = ctx->opid;
+			} else {
+				GF_Err e;
+				if (!ctx->alt_dst) {
+					char szSRC[100];
+					u32 len = strlen(ctx->out_path);
+					char *out_path = gf_malloc(len+10);
+					memcpy(out_path, ctx->out_path, len);
+					out_path[len]=0;
+					char *sep = gf_file_ext_start(out_path);
+					if (sep) sep[0] = 0;
+					if (ctx->do_m3u8) {
+						strcat(out_path, ".mpd");
+						force_ext = "mpd";
+					} else {
+						ctx->opid_alt_m3u8 = GF_TRUE;
+						ctx->do_m3u8 = GF_TRUE;
+						strcat(out_path, ".m3u8");
+						force_ext = "m3u8";
+					}
 
-		if (!strcmp(segext, "m3u8")) ctx->do_m3u8 = GF_TRUE;
-		else ctx->do_mpd = GF_TRUE;
+					ctx->alt_dst = gf_filter_connect_destination(filter, out_path, &e);
+					if (e) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't create secondary manifest output %s: %s\n", out_path, gf_error_to_string(e) ));
+						gf_free(out_path);
+						break;
+					}
+					gf_free(out_path);
+					snprintf(szSRC, 100, "MuxSrc%cdasher_%p", gf_filter_get_sep(filter, GF_FS_SEP_NAME), ctx->alt_dst);
+					//assign sourceID to be this
+					gf_filter_set_source(ctx->alt_dst, filter, szSRC);
+
+					ctx->opid_alt = gf_filter_pid_new(filter);
+					gf_filter_pid_set_name(ctx->opid_alt, "MANIFEST_ALT");
+
+					snprintf(szSRC, 100, "dasher_%p", ctx->alt_dst);
+					gf_filter_pid_set_property(ctx->opid_alt, GF_PROP_PID_MUX_SRC, &PROP_STRING(szSRC) );
+					//we also need to set the property on main output just to avoid the connection
+					snprintf(szSRC, 100, "dasher_%p", ctx);
+					gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MUX_SRC, &PROP_STRING(szSRC) );
+				}
+				opid = ctx->opid_alt;
+			}
+			if (!opid)
+				continue;
+
+			//copy properties at init or reconfig
+			gf_filter_pid_copy_properties(opid, pid);
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
+			gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, NULL);
+			gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED, NULL);
+			gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+
+			if (!ctx->out_path)
+				ctx->out_path = gf_filter_pid_get_destination(ctx->opid);
+
+			p = gf_filter_pid_caps_query(pid, GF_PROP_PID_FILE_EXT);
+			if (p) {
+				gf_filter_pid_set_property(opid, GF_PROP_PID_FILE_EXT, p );
+				segext = p->value.string;
+			} else {
+				segext = ctx->out_path ? strrchr(ctx->out_path, '.') : NULL;
+				if (!segext) segext = "mpd";
+				else segext++;
+				if (force_ext)
+					segext = force_ext;
+				gf_filter_pid_set_property(opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(segext) );
+			}
+
+			if (!strcmp(segext, "m3u8")) {
+				ctx->do_m3u8 = GF_TRUE;
+				gf_filter_pid_set_name(opid, "manifest_m3u8" );
+			} else {
+				ctx->do_mpd = GF_TRUE;
+				gf_filter_pid_set_name(opid, "manifest_mpd" );
+			}
+		}
 
 		ctx->store_seg_states = GF_FALSE;
 		//in m3u8 mode, always store all seg states. In MPD only if state, not ondemand
@@ -2668,6 +2733,7 @@ static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name)
 GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_only)
 {
 	GF_Err e;
+	u32 i, max_opid;
 	FILE *tmp;
 	u64 store_mpd_dur=0;
 	u64 max_seg_dur=0;
@@ -2678,9 +2744,6 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		ctx->mpd->max_segment_duration = 1080;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] patch for old regression tests hit, changing max seg dur from 1022 to 1080\nPlease notify GPAC devs to remove this, and do not use fot_test modes in dash filter\n"));
 	}
-
-
-	tmp = gf_temp_file_new(NULL);
 
 	ctx->mpd->publishTime = gf_net_get_utc();
 	dasher_update_mpd(ctx);
@@ -2698,13 +2761,39 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		ctx->mpd->max_segment_duration = 0;
 	}
 
-	if (ctx->do_m3u8) {
-		if (for_mpd_only) return GF_OK;
-		ctx->mpd->m3u8_time = ctx->hlsc;
-		e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_get(ctx->mpd->periods, 0) );
-	} else {
-		e = gf_mpd_write(ctx->mpd, tmp, ctx->cmpd);
+	max_opid = (ctx->dual && ctx->opid_alt) ? 2 : 1;
+	for (i=0; i < max_opid; i++) {
+		Bool do_m3u8 = GF_FALSE;
+		tmp = gf_temp_file_new(NULL);
+		GF_FilterPid *opid;
+
+		if (i==0) {
+			do_m3u8 = ctx->opid_alt_m3u8 ? GF_FALSE : GF_TRUE;
+			opid = ctx->opid;
+		} else {
+			do_m3u8 = ctx->opid_alt_m3u8;
+			opid = ctx->opid_alt;
+		}
+
+		if (do_m3u8) {
+			if (for_mpd_only) return GF_OK;
+			ctx->mpd->m3u8_time = ctx->hlsc;
+			e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_get(ctx->mpd->periods, 0) );
+		} else {
+			e = gf_mpd_write(ctx->mpd, tmp, ctx->cmpd);
+		}
+
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to write %s file: %s\n", do_m3u8 ? "M3U8" : "MPD", gf_error_to_string(e) ));
+			gf_fclose(tmp);
+			return e;
+		}
+
+		dasher_transfer_file(tmp, opid, NULL);
+		gf_fclose(tmp);
 	}
+
+
 	if (store_mpd_dur) {
 		ctx->mpd->media_presentation_duration = store_mpd_dur;
 	}
@@ -2712,15 +2801,6 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		ctx->mpd->max_segment_duration = (u32) max_seg_dur;
 		ctx->mpd->max_subsegment_duration = 0;
 	}
-
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to write MPD file: %s\n", gf_error_to_string(e) ));
-		gf_fclose(tmp);
-		return e;
-	}
-
-	dasher_transfer_file(tmp, ctx->opid, NULL);
-	gf_fclose(tmp);
 
 	if (ctx->do_m3u8) {
 		u32 i, j;
@@ -5451,6 +5531,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cmpd), "skip line feed and spaces in MPD XML for more compacity", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(styp), "indicate the 4CC to use for styp boxes when using ISOBMFF output", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dual), "indicate to produce both MPD and M3U files", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(_p_mpdtime), "pointer to u64 holding the mpd time in ms of the last generated segment", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
