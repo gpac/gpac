@@ -1866,7 +1866,7 @@ void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media
 */
 void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp);
 
-/*! Explicietly assigns a source ID to a filter. This shall be called before connecting the link_from filter
+/*! Explicitly assigns a source ID to a filter. This shall be called before connecting the link_from filter
 If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (using the filter mem adress) will be used
 \param filter the target filter
 \param link_from the filter to link from
@@ -1881,6 +1881,19 @@ If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (
 \return error code if any
 */
 GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char *link_ext);
+
+/*! Explicitly assigns an ID to a filter. This shall be called before running the session, and cannot be called on a filter with ID assign
+\param filter the target filter
+\param filter_id the ID to assign
+\return error code if any
+*/
+GF_Err gf_filter_assign_id(GF_Filter *filter, const char *filter_id);
+
+/*! Gets the ID of a filter
+\param filter the target filter
+\return ID of the filter, NULL if not defined
+*/
+const char *gf_filter_get_id(GF_Filter *filter);
 
 
 /*! Overrides the filter register caps with new caps for this instance. Typically used when an option of the filter changes the capabilities

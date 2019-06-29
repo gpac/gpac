@@ -997,8 +997,7 @@ GF_Err mdcv_Size(GF_Box *s)
 
 
 
-GF_EXPORT
-GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs) {
+static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs, u32 sample_number) {
 	GF_Err e;
 	u32 imported_sample_desc_index = 1;
 //	u32 sample_index = 1;
@@ -1065,157 +1064,185 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 		gf_list_del(tile_item_ids);
 		return GF_OK;
 	}
-	else {
-		/* Check if the track type is supported as item type */
-		/* Get the config box if needed */
-		subtype = gf_isom_get_media_subtype(movie, imported_track, imported_sample_desc_index);
-		switch (subtype) {
-		case GF_ISOM_SUBTYPE_AVC_H264:
-		case GF_ISOM_SUBTYPE_AVC2_H264:
-		case GF_ISOM_SUBTYPE_AVC3_H264:
-		case GF_ISOM_SUBTYPE_AVC4_H264:
-			//FIXME: in avc1 with multiple descriptor, we should take the right description index
-			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
-			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_avc_config_get(movie, imported_track, imported_sample_desc_index);
-			item_type = GF_ISOM_SUBTYPE_AVC_H264;
-			config_needed = 1;
-			num_channels = 3;
-			bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
-			bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
-			bits_per_channel[2] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
-			break;
-		case GF_ISOM_SUBTYPE_SVC_H264:
-			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_SVCC);
-			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_svc_config_get(movie, imported_track, imported_sample_desc_index);
-			item_type = GF_ISOM_SUBTYPE_SVC_H264;
-			config_needed = 1;
-			num_channels = 3;
-			bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
-			bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
-			bits_per_channel[2] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
-			break;
-		case GF_ISOM_SUBTYPE_MVC_H264:
-			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_MVCC);
-			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_mvc_config_get(movie, imported_track, imported_sample_desc_index);
-			item_type = GF_ISOM_SUBTYPE_MVC_H264;
-			config_needed = 1;
-			num_channels = 3;
-			bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
-			bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
-			bits_per_channel[2] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
-			break;
-		case GF_ISOM_SUBTYPE_HVC1:
-		case GF_ISOM_SUBTYPE_HEV1:
-		case GF_ISOM_SUBTYPE_HVC2:
-		case GF_ISOM_SUBTYPE_HEV2:
-		case GF_ISOM_SUBTYPE_HVT1:
-		case GF_ISOM_SUBTYPE_LHV1:
-		case GF_ISOM_SUBTYPE_LHE1:
-			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
-			((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_hevc_config_get(movie, imported_track, imported_sample_desc_index);
-			if (subtype == GF_ISOM_SUBTYPE_HVT1) {
-				item_type = GF_ISOM_SUBTYPE_HVT1;
-			}
-			else {
-				item_type = GF_ISOM_SUBTYPE_HVC1;
-			}
-			config_needed = 1;
-			if (!((GF_HEVCConfigurationBox *)config_box)->config) {
-				((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_lhvc_config_get(movie, imported_track, imported_sample_desc_index);
-				item_type = GF_ISOM_SUBTYPE_LHV1;
-			}
-			num_channels = 3;
-			bits_per_channel[0] = ((GF_HEVCConfigurationBox *)config_box)->config->luma_bit_depth;
-			bits_per_channel[1] = ((GF_HEVCConfigurationBox *)config_box)->config->chroma_bit_depth;
-			bits_per_channel[2] = ((GF_HEVCConfigurationBox *)config_box)->config->chroma_bit_depth;
-			//media_brand = GF_ISOM_BRAND_HEIC;
-			break;
-		case GF_ISOM_SUBTYPE_AV01:
-			{
-				config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AV1C);
-				((GF_AV1ConfigurationBox *)config_box)->config = gf_isom_av1_config_get(movie, imported_track, imported_sample_desc_index);
-				item_type = GF_ISOM_SUBTYPE_AV01;
-				config_needed = 1;
-				u8 depth = ((GF_AV1ConfigurationBox *)config_box)->config->high_bitdepth ? (((GF_AV1ConfigurationBox *)config_box)->config->twelve_bit ? 12 : 10 ) : 8;
-				if (((GF_AV1ConfigurationBox *)config_box)->config->monochrome) {
-					num_channels = 1;
-					bits_per_channel[0] = depth;
-					bits_per_channel[1] = 0;
-					bits_per_channel[2] = 0;
-				} else {
-					num_channels = 3;
-					bits_per_channel[0] = depth;
-					bits_per_channel[1] = depth;
-					bits_per_channel[2] = depth;
-				}
-				//media_brand = GF_ISOM_BRAND_AVIF;
-			}
-			break;
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Codec not supported to create HEIF image items\n"));
-			return GF_NOT_SUPPORTED;
-		}
-		if (config_needed && !config_box && !((GF_AVCConfigurationBox *)config_box)->config) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Image type %s requires a missing configuration box\n", gf_4cc_to_str(item_type)));
-			return GF_BAD_PARAM;
-		}
-		/* Get some images properties from the track data */
-		e = gf_isom_get_visual_info(movie, imported_track, imported_sample_desc_index, &w, &h);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error determining image size\n"));
-			if (config_box) gf_isom_box_del(config_box);
-			return e;
-		}
-		e = gf_isom_get_pixel_aspect_ratio(movie, imported_track, imported_sample_desc_index, &hSpacing, &vSpacing);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error determining image aspect ratio\n"));
-			if (config_box) gf_isom_box_del(config_box);
-			return e;
-		}
-		if (!image_props) {
-			image_props = &local_image_props;
-			memset(image_props, 0, sizeof(GF_ImageItemProperties));
-		}
-		if (!image_props->width && !image_props->height) {
-			image_props->width = w;
-			image_props->height = h;
-		}
-		if (!image_props->hSpacing && !image_props->vSpacing) {
-			image_props->hSpacing = hSpacing;
-			image_props->vSpacing = vSpacing;
-		}
-		image_props->config = config_box;
-		if (!image_props->num_channels) {
-			image_props->num_channels = num_channels;
-			image_props->bits_per_channel[0] = bits_per_channel[0];
-			image_props->bits_per_channel[1] = bits_per_channel[1];
-			image_props->bits_per_channel[2] = bits_per_channel[2];
-		}
 
-		timescale = gf_isom_get_media_timescale(movie, imported_track);
-		e = gf_isom_get_sample_for_media_time(movie, imported_track, (u64)(image_props->time*timescale), &sample_desc_index, GF_ISOM_SEARCH_SYNC_FORWARD, &sample, NULL, NULL);
-		if (sample_desc_index != imported_sample_desc_index) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Warning sample description index for sync sample differ from config\n"));
-		}
-		if (e || !sample || !sample->IsRAP) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error no sync sample found after time %g\n", image_props->time));
-			if (sample) gf_isom_sample_del(&sample);
-			if (config_box) gf_isom_box_del(config_box);
-			return GF_BAD_PARAM;
-		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Adding sample from time %.3f as item %d\n", sample->DTS*1.0/timescale, item_id));
-		e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name) ? "Image" : item_name), item_id, item_type, NULL, NULL, image_props, sample->data, sample->dataLength, item_extent_refs);
+import_next_sample:
 
-		gf_isom_set_brand_info(movie, GF_ISOM_BRAND_MIF1, 0);
-		gf_isom_reset_alt_brands(movie);
-		// TODO Analyze configuration to determine the brand */
-		//if (media_brand) {
-		//	gf_isom_modify_alternate_brand(movie, media_brand, 1);
-		//}
-		gf_isom_sample_del(&sample);
+	/* Check if the track type is supported as item type */
+	/* Get the config box if needed */
+	subtype = gf_isom_get_media_subtype(movie, imported_track, imported_sample_desc_index);
+	switch (subtype) {
+	case GF_ISOM_SUBTYPE_AVC_H264:
+	case GF_ISOM_SUBTYPE_AVC2_H264:
+	case GF_ISOM_SUBTYPE_AVC3_H264:
+	case GF_ISOM_SUBTYPE_AVC4_H264:
+		//FIXME: in avc1 with multiple descriptor, we should take the right description index
+		config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
+		((GF_AVCConfigurationBox *)config_box)->config = gf_isom_avc_config_get(movie, imported_track, imported_sample_desc_index);
+		item_type = GF_ISOM_SUBTYPE_AVC_H264;
+		config_needed = 1;
+		num_channels = 3;
+		bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
+		bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+		bits_per_channel[2] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+		break;
+	case GF_ISOM_SUBTYPE_SVC_H264:
+		config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_SVCC);
+		((GF_AVCConfigurationBox *)config_box)->config = gf_isom_svc_config_get(movie, imported_track, imported_sample_desc_index);
+		item_type = GF_ISOM_SUBTYPE_SVC_H264;
+		config_needed = 1;
+		num_channels = 3;
+		bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
+		bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+		bits_per_channel[2] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+		break;
+	case GF_ISOM_SUBTYPE_MVC_H264:
+		config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_MVCC);
+		((GF_AVCConfigurationBox *)config_box)->config = gf_isom_mvc_config_get(movie, imported_track, imported_sample_desc_index);
+		item_type = GF_ISOM_SUBTYPE_MVC_H264;
+		config_needed = 1;
+		num_channels = 3;
+		bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
+		bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+		bits_per_channel[2] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+		break;
+	case GF_ISOM_SUBTYPE_HVC1:
+	case GF_ISOM_SUBTYPE_HEV1:
+	case GF_ISOM_SUBTYPE_HVC2:
+	case GF_ISOM_SUBTYPE_HEV2:
+	case GF_ISOM_SUBTYPE_HVT1:
+	case GF_ISOM_SUBTYPE_LHV1:
+	case GF_ISOM_SUBTYPE_LHE1:
+		config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
+		((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_hevc_config_get(movie, imported_track, imported_sample_desc_index);
+		if (subtype == GF_ISOM_SUBTYPE_HVT1) {
+			item_type = GF_ISOM_SUBTYPE_HVT1;
+		}
+		else {
+			item_type = GF_ISOM_SUBTYPE_HVC1;
+		}
+		config_needed = 1;
+		if (!((GF_HEVCConfigurationBox *)config_box)->config) {
+			((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_lhvc_config_get(movie, imported_track, imported_sample_desc_index);
+			item_type = GF_ISOM_SUBTYPE_LHV1;
+		}
+		num_channels = 3;
+		bits_per_channel[0] = ((GF_HEVCConfigurationBox *)config_box)->config->luma_bit_depth;
+		bits_per_channel[1] = ((GF_HEVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+		bits_per_channel[2] = ((GF_HEVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+		//media_brand = GF_ISOM_BRAND_HEIC;
+		break;
+	case GF_ISOM_SUBTYPE_AV01:
+		{
+			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AV1C);
+			((GF_AV1ConfigurationBox *)config_box)->config = gf_isom_av1_config_get(movie, imported_track, imported_sample_desc_index);
+			item_type = GF_ISOM_SUBTYPE_AV01;
+			config_needed = 1;
+			u8 depth = ((GF_AV1ConfigurationBox *)config_box)->config->high_bitdepth ? (((GF_AV1ConfigurationBox *)config_box)->config->twelve_bit ? 12 : 10 ) : 8;
+			if (((GF_AV1ConfigurationBox *)config_box)->config->monochrome) {
+				num_channels = 1;
+				bits_per_channel[0] = depth;
+				bits_per_channel[1] = 0;
+				bits_per_channel[2] = 0;
+			} else {
+				num_channels = 3;
+				bits_per_channel[0] = depth;
+				bits_per_channel[1] = depth;
+				bits_per_channel[2] = depth;
+			}
+			//media_brand = GF_ISOM_BRAND_AVIF;
+		}
+		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Codec not supported to create HEIF image items\n"));
+		return GF_NOT_SUPPORTED;
+	}
+	if (config_needed && !config_box && !((GF_AVCConfigurationBox *)config_box)->config) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Image type %s requires a missing configuration box\n", gf_4cc_to_str(item_type)));
+		return GF_BAD_PARAM;
+	}
+	/* Get some images properties from the track data */
+	e = gf_isom_get_visual_info(movie, imported_track, imported_sample_desc_index, &w, &h);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error determining image size\n"));
 		if (config_box) gf_isom_box_del(config_box);
 		return e;
 	}
+	e = gf_isom_get_pixel_aspect_ratio(movie, imported_track, imported_sample_desc_index, &hSpacing, &vSpacing);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error determining image aspect ratio\n"));
+		if (config_box) gf_isom_box_del(config_box);
+		return e;
+	}
+	if (!image_props) {
+		image_props = &local_image_props;
+		memset(image_props, 0, sizeof(GF_ImageItemProperties));
+	}
+	if (!image_props->width && !image_props->height) {
+		image_props->width = w;
+		image_props->height = h;
+	}
+	if (!image_props->hSpacing && !image_props->vSpacing) {
+		image_props->hSpacing = hSpacing;
+		image_props->vSpacing = vSpacing;
+	}
+	image_props->config = config_box;
+	if (!image_props->num_channels) {
+		image_props->num_channels = num_channels;
+		image_props->bits_per_channel[0] = bits_per_channel[0];
+		image_props->bits_per_channel[1] = bits_per_channel[1];
+		image_props->bits_per_channel[2] = bits_per_channel[2];
+	}
+
+	timescale = gf_isom_get_media_timescale(movie, imported_track);
+	if (image_props->time<0) {
+		sample = gf_isom_get_sample(movie, imported_track, sample_number, &sample_desc_index);
+	} else {
+		e = gf_isom_get_sample_for_media_time(movie, imported_track, (u64)(image_props->time*timescale), &sample_desc_index, GF_ISOM_SEARCH_SYNC_FORWARD, &sample, NULL, NULL);
+	}
+	if (sample_desc_index != imported_sample_desc_index) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Warning sample description index for sync sample differ from config\n"));
+	}
+	if (e || !sample || !sample->IsRAP) {
+		if (image_props->time<0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error some imported samples are not sync samples\n", image_props->time));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error no sync sample found after time %g\n", image_props->time));
+		}
+		if (sample) gf_isom_sample_del(&sample);
+		if (config_box) gf_isom_box_del(config_box);
+		return GF_BAD_PARAM;
+	}
+
+	if (!item_id) {
+		e = gf_isom_meta_get_next_item_id(movie, root_meta, meta_track_number, &item_id);
+	}
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Adding sample from time %.3f as item %d\n", sample->DTS*1.0/timescale, item_id));
+	e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name) ? "Image" : item_name), item_id, item_type, NULL, NULL, image_props, sample->data, sample->dataLength, item_extent_refs);
+
+	gf_isom_set_brand_info(movie, GF_ISOM_BRAND_MIF1, 0);
+	gf_isom_reset_alt_brands(movie);
+	// TODO Analyze configuration to determine the brand */
+	//if (media_brand) {
+	//	gf_isom_modify_alternate_brand(movie, media_brand, 1);
+	//}
+	gf_isom_sample_del(&sample);
+	if (config_box) gf_isom_box_del(config_box);
+
+	if (image_props->time<0) {
+		if (sample_number >= gf_isom_get_sample_count(movie, imported_track)) return e;
+		sample_number++;
+		item_id=0;
+		//avoid recursion this could get quite big
+		goto import_next_sample;
+	}
+	return e;
 }
 
+GF_EXPORT
+GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs)
+{
+
+ 	return gf_isom_iff_create_image_item_from_track_internal(movie, root_meta, meta_track_number, imported_track, item_name, item_id, image_props, item_extent_refs, 1);
+}
 #endif /*GPAC_DISABLE_ISOM*/

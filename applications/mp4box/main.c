@@ -509,6 +509,7 @@ void PrintImportUsage()
 		"- :fgraph: print filter session graph after import\n"
 		"- :sopt:[OPTS]: set `OPTS` as additionnal arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
 		"- :dopt:[OPTS]: set `OPTS` as additionnal arguments to [destination filter](mp4mx). OPTS can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
+		"- @@f1[[:args]@@fN[/args]]: set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). If several filters are set, they will be chained in the given order. The last filter shall not have any ID specified\n"
 		"\n"
 		"# Global import options\n"
 	);
@@ -741,13 +742,14 @@ GF_GPACArg m4b_meta_args[] =
 		"- name=str: see [-add-item]()\n"
 		"- id=id: see [-add-item]()\n"
 		"- ref=4cc, id: see [-add-item]()\n"
-		"- primary: indicate that this item should be the primary item.\n"
-		"- time=t: use the next sync sample after time t (float, in sec, default 0)\n"
+		"- primary: indicate that this item should be the primary item\n"
+		"- time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL frames as items\n"
 		"- split_tiles: for an HEVC tiled image, each tile is stored as a separate item\n"
-		"- rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise.\n"
-		"- hidden: indicate that this image item should be hidden.\n"
-		"- icc_path: path to icc to add as colr.\n"
-		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)", NULL, NULL, GF_ARG_STRING, 0),
+		"- rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise\n"
+		"- hidden: indicate that this image item should be hidden\n"
+		"- icc_path: path to icc to add as colr\n"
+		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
+		"- any other option will be passed as options to the media importer, see [-add]()", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("rem-item `item_ID[:tk=ID]`", NULL, "remove resource from meta", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("set-primary `item_ID[:tk=ID]`", NULL, "set item as primary for meta", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("set-xml `xml_file_path[:tk=ID][:binary]`", NULL, "set meta XML data", NULL, NULL, GF_ARG_STRING, 0),
@@ -1307,8 +1309,7 @@ typedef struct
 	Bool root_meta, use_dref;
 	u32 trackID;
 	u32 meta_4cc;
-	char szPath[GF_MAX_PATH];
-	char szName[1024], mime_type[1024], enc_type[1024];
+	char *szPath, *szName, *mime_type, *enc_type;
 	u32 item_id;
 	Bool primary;
 	u32 item_type;
@@ -1321,23 +1322,21 @@ typedef struct
 static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opts)
 {
 	Bool ret = 0;
-	char szSlot[1024], *next;
+	char *next;
 
 	memset(meta, 0, sizeof(MetaAction));
 	meta->act_type = act_type;
-	meta->mime_type[0] = 0;
-	meta->enc_type[0] = 0;
-	meta->szName[0] = 0;
-	meta->szPath[0] = 0;
 	meta->trackID = 0;
 	meta->root_meta = 1;
 
 	if (!opts) return 0;
 	while (1) {
+		char *szSlot;
 		if (!opts || !opts[0]) return ret;
 		if (opts[0]==':') opts += 1;
-		strcpy(szSlot, opts);
-		next = strchr(szSlot, ':');
+
+		szSlot = opts;
+		next = strchr(opts, ':');
 		/*use ':' as separator, but beware DOS paths...*/
 		if (next && next[1]=='\\') next = strchr(next+2, ':');
 		if (next) next[0] = 0;
@@ -1362,20 +1361,20 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "name=", 5)) {
-			strcpy(meta->szName, szSlot+5);
+			meta->szName = gf_strdup(szSlot+5);
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "path=", 5)) {
-			strcpy(meta->szPath, szSlot+5);
+			meta->szPath = gf_strdup(szSlot+5);
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "mime=", 5)) {
 			meta->item_type = GF_META_ITEM_TYPE_MIME;
-			strcpy(meta->mime_type, szSlot+5);
+			meta->mime_type = gf_strdup(szSlot+5);
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "encoding=", 9)) {
-			strcpy(meta->enc_type, szSlot+9);
+			meta->enc_type = gf_strdup(szSlot+9);
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "image-size=", 11)) {
@@ -1464,7 +1463,12 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			case META_ACTION_ADD_IMAGE_ITEM:
 			case META_ACTION_SET_XML:
 			case META_ACTION_DUMP_XML:
-				strcpy(meta->szPath, szSlot);
+				if (!strncmp(szSlot, "dopt", 4) || !strncmp(szSlot, "sopt", 4) || !strncmp(szSlot, "@@", 2)) {
+					if (next) next[0]=':';
+					next=NULL;
+				}
+				//cat as -add arg
+				gf_dynstrcat(&meta->szPath, szSlot, ":");
 				ret = 1;
 				break;
 			case META_ACTION_REM_ITEM:
@@ -1477,7 +1481,9 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 				break;
 			}
 		}
+		if (!next) break;
 		opts += strlen(szSlot);
+		next[0] = ':';
 	}
 	return ret;
 }
@@ -2282,6 +2288,13 @@ u32 mp4box_cleanup(u32 ret_code) {
 		sdp_lines = NULL;
 	}
 	if (metas) {
+		u32 i;
+		for (i=0; i<nb_meta_act; i++) {
+			if (metas[i].enc_type) gf_free(metas[i].enc_type);
+			if (metas[i].mime_type) gf_free(metas[i].mime_type);
+			if (metas[i].szName) gf_free(metas[i].szName);
+			if (metas[i].szPath) gf_free(metas[i].szPath);
+		}
 		gf_free(metas);
 		metas = NULL;
 	}
@@ -5203,11 +5216,11 @@ int mp4boxMain(int argc, char **argv)
 		case META_ACTION_ADD_ITEM:
 			self_ref = !stricmp(meta->szPath, "NULL") || !stricmp(meta->szPath, "this") || !stricmp(meta->szPath, "self");
 			e = gf_isom_add_meta_item(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath,
-			                          strlen(meta->szName) ? meta->szName : NULL,
+			                          meta->szName,
 			                          meta->item_id,
 									  meta->item_type,
-			                          strlen(meta->mime_type) ? meta->mime_type : NULL,
-			                          strlen(meta->enc_type) ? meta->enc_type : NULL,
+			                          meta->mime_type,
+			                          meta->enc_type,
 			                          meta->use_dref ? meta->szPath : NULL,  NULL,
 			                          meta->image_props);
 			if (meta->ref_type) {
@@ -5235,7 +5248,7 @@ int mp4boxMain(int argc, char **argv)
 					}
 					if (e == GF_OK) {
 						e = gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, 1,
-								strlen(meta->szName) ? meta->szName : NULL,
+								meta->szName,
 								meta->item_id,
 								meta->image_props, NULL);
 						if (e == GF_OK && meta->primary) {
