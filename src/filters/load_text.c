@@ -625,27 +625,31 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 		switch (ctx->state) {
 		case 0:
 			if (sscanf(szLine, "%u", &line) != 1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Bad SRT formatting - expecting number got \"%s\"", szLine));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Bad SRT formatting - expecting number got \"%s\"\n", szLine));
 				break;
 			}
 			if (line != ctx->curLine + 1) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Corrupted SRT frame %d after frame %d", line, ctx->curLine));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Corrupted SRT frame %d after frame %d\n", line, ctx->curLine));
 			}
 			ctx->curLine = line;
 			ctx->state = 1;
 			break;
 		case 1:
 			if (sscanf(szLine, "%u:%u:%u,%u --> %u:%u:%u,%u", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems) != 8) {
-				sh = eh = 0;
-				if (sscanf(szLine, "%u:%u,%u --> %u:%u,%u", &sm, &ss, &sms, &em, &es, &ems) != 6) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Error scanning SRT frame %d timing", ctx->curLine));
-				    ctx->state = 0;
-					break;
+				if (sscanf(szLine, "%u:%u:%u.%u --> %u:%u:%u.%u", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems) != 8) {
+					sh = eh = 0;
+					if (sscanf(szLine, "%u:%u,%u --> %u:%u,%u", &sm, &ss, &sms, &em, &es, &ems) != 6) {
+						if (sscanf(szLine, "%u:%u.%u --> %u:%u.%u", &sm, &ss, &sms, &em, &es, &ems) != 6) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Error scanning SRT frame %d timing\n", ctx->curLine));
+				    		ctx->state = 0;
+							break;
+						}
+					}
 				}
 			}
 			ctx->start = (3600*sh + 60*sm + ss)*1000 + sms;
 			if (ctx->start < ctx->end) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d - starts "LLD" ms is before end of previous one "LLD" ms - adjusting time stamps", ctx->curLine, ctx->start, ctx->end));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d - starts "LLD" ms is before end of previous one "LLD" ms - adjusting time stamps\n", ctx->curLine, ctx->start, ctx->end));
 				ctx->start = ctx->end;
 			}
 
@@ -657,7 +661,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 			ctx->style.style_flags = 0;
 			ctx->state = 2;
 			if (ctx->end <= ctx->prev_end) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d end "LLD" is at or before previous end "LLD" - removing", ctx->curLine, ctx->end, ctx->prev_end));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d end "LLD" is at or before previous end "LLD" - removing\n", ctx->curLine, ctx->end, ctx->prev_end));
 				ctx->start = ctx->end;
 				ctx->state = 3;
 			}
@@ -677,7 +681,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 			{
 				size_t _len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
 				if (_len == (size_t) -1) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)", ctx->curLine));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)\n", ctx->curLine));
 					ctx->state = 0;
 				}
 				len = (u32) _len;
