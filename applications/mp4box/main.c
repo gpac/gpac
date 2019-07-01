@@ -2192,7 +2192,7 @@ GF_SceneDumpFormat dump_mode;
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
 Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, hls_clock, do_mpd_rip, merge_vtt_cues;
-char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *high_dynamc_range_filename;
+char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *high_dynamc_range_filename, *use_init_seg;
 u32 track_dump_type, dump_isom, dump_timestamps;
 u32 trackID;
 Bool comp_lzma=GF_FALSE;
@@ -3594,6 +3594,11 @@ Bool mp4box_parse_args(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-mpd-rip")) do_mpd_rip = GF_TRUE;
+		else if (!strcmp(arg, "-init-seg")) {
+			CHECK_NEXT_ARG
+			use_init_seg = argv[i + 1];
+			i += 1;
+		}
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
 		else if (!stricmp(arg, "-bin")) do_bin_xml = GF_TRUE;
@@ -4111,7 +4116,7 @@ int mp4boxMain(int argc, char **argv)
 	program_number = 0;
 	info_track_id = 0;
 	do_flat = GF_FALSE;
-	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = high_dynamc_range_filename = NULL;
+	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = high_dynamc_range_filename = use_init_seg = NULL;
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
 	swf_flags = GF_SM_SWF_SPLIT_TIMELINE;
@@ -4851,13 +4856,34 @@ int mp4boxMain(int argc, char **argv)
 	        ) {
 		FILE *st = gf_fopen(inName, "rb");
 		Bool file_exists = 0;
+		u8 omode;
 		if (st) {
 			file_exists = 1;
 			gf_fclose(st);
 		}
 		switch (get_file_type_by_ext(inName)) {
 		case 1:
-			file = gf_isom_open(inName, (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) ), tmpdir);
+			omode =  (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) );
+
+			if (crypt) {
+				omode = GF_ISOM_OPEN_CAT_FRAGMENTS;
+				if (use_init_seg)
+					file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ, tmpdir);
+			}
+			if (!crypt && use_init_seg) {
+				file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ_DUMP, tmpdir);
+				if (file) {
+					e = gf_isom_open_segment(file, inName, 0, 0, 0);
+					if (e) {
+						fprintf(stderr, "Error opening segment %s: %s\n", inName, gf_error_to_string(e) );
+						gf_isom_delete(file);
+						file = NULL;
+					}
+				}
+			}
+			if (!file)
+				file = gf_isom_open(inName, omode, tmpdir);
+
 			if (!file && (gf_isom_last_error(NULL) == GF_ISOM_INCOMPLETE_FILE) && !open_edit) {
 				u64 missing_bytes;
 				e = gf_isom_open_progressive(inName, 0, 0, &file, &missing_bytes);
@@ -5063,7 +5089,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 #ifndef GPAC_DISABLE_ISOM_DUMP
 	if (dump_isom) {
-		e = dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_isom==2) ? GF_TRUE : GF_FALSE, merge_vtt_cues);
+		e = dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_isom==2) ? GF_TRUE : GF_FALSE, merge_vtt_cues, use_init_seg ? GF_TRUE : GF_FALSE);
 		if (e) goto err_exit;
 	}
 	if (dump_cr) dump_isom_ismacryp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
@@ -5842,7 +5868,11 @@ int mp4boxMain(int argc, char **argv)
 			goto err_exit;
 		}
 		if (crypt == 1) {
-			e = gf_crypt_file(file, drm_file, outfile, interleaving_time);
+			if (use_init_seg) {
+				e = gf_crypt_fragment(file, drm_file, outfile, inName);
+			} else {
+				e = gf_crypt_file(file, drm_file, outfile, interleaving_time);
+			}
 		} else if (crypt ==2) {
 			e = gf_decrypt_file(file, drm_file, outfile, interleaving_time);
 		}

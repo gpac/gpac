@@ -60,7 +60,8 @@ typedef struct
 	u32 frame_size;
 	char* tkid;
 	Bool analyze;
-
+	char *catseg;
+	
 	//internal
 
 	GF_Filter *filter;

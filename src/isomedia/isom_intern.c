@@ -634,6 +634,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 		gf_isom_delete_movie(mov);
 		return NULL;
 	}
+	mov->nb_box_init_seg = gf_list_count(mov->TopBoxes);
 	use_dump_mode = GF_FALSE;
 	return mov;
 }

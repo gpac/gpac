@@ -2979,6 +2979,8 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 	return GF_OK;
 }
 
+extern Bool use_dump_mode;
+
 GF_EXPORT
 GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range, u32 flags)
 {
@@ -3034,9 +3036,13 @@ GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_r
 	}
 	if (no_order_check) movie->NextMoofNumber = 0;
 
+	//we really need to get rid of this ugly patch
+	use_dump_mode = movie->dump_mode_alloc;
 
 	//ok parse root boxes
 	e = gf_isom_parse_movie_boxes(movie, &MissingBytes, GF_TRUE);
+
+	use_dump_mode = GF_FALSE;
 
 	if (!is_scalable_segment)
 		return e;

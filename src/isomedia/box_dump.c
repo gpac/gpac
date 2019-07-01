@@ -112,7 +112,7 @@ GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace)
 extern Bool use_dump_mode;
 
 GF_EXPORT
-GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
+GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init)
 {
 	u32 i;
 	const char *fname;
@@ -129,6 +129,9 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 	fprintf(trace, "<IsoMediaFile xmlns=\"urn:mpeg:isobmff:schema:file:2016\" Name=\"%s\">\n", fname);
 
 	i=0;
+	if (skip_init)
+		i = mov->nb_box_init_seg;
+
 	while ((box = (GF_Box *)gf_list_enum(mov->TopBoxes, &i))) {
 		if (box->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
 			fprintf(trace, "<!--WARNING: Unknown Top-level Box Found -->\n");
