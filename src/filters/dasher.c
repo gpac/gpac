@@ -2768,7 +2768,11 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		GF_FilterPid *opid;
 
 		if (i==0) {
-			do_m3u8 = ctx->opid_alt_m3u8 ? GF_FALSE : GF_TRUE;
+			if (max_opid>1) {
+				do_m3u8 = ctx->opid_alt_m3u8 ? GF_FALSE : GF_TRUE;
+			} else {
+				do_m3u8 = ctx->do_m3u8;
+			}
 			opid = ctx->opid;
 		} else {
 			do_m3u8 = ctx->opid_alt_m3u8;
