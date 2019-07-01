@@ -227,8 +227,9 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #endif
 		{
 			read = (u32) fread(block, 1, 4096, in);
-			if ((s32) read < 0) {
-				e = GF_IO_ERR;
+			if ((s32) read <= 0) {
+				if (ferror(in))
+					e = GF_IO_ERR;
 				break;
 			}
 			gf_sha1_update(ctx, block, read);
