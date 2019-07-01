@@ -45,7 +45,7 @@ typedef struct
 	GF_DASHAdaptationAlgorithm algo;
 	Bool max_res, immediate, abort, use_bmin;
 	char *query;
-	Bool noxlink;
+	Bool noxlink, split_as;
 
 	GF_FilterPid *mpd_pid;
 	GF_Filter *filter;
@@ -1074,6 +1074,8 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	gf_dash_disable_speed_adaptation(ctx->dash, ctx->speedadapt);
 	gf_dash_ignore_xlink(ctx->dash, ctx->noxlink);
 	gf_dash_set_period_xlink_query_string(ctx->dash, ctx->query);
+	if (ctx->split_as)
+		gf_dash_split_adaptation_sets(ctx->dash);
 
 	ctx->initial_play = GF_TRUE;
 
@@ -1681,6 +1683,8 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(speedadapt), "enable adaptation based on playback speed", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noxlink), "disable xlink if period has both xlink and adaptation sets", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(query), "set query string (without initial '?') to append to xlink of periods", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(split_as), "seperate all qualities into different adaptation sets and stream all qualities", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
+
 	{0}
 };
 
@@ -1713,7 +1717,7 @@ static const GF_FilterCapability DASHDmxCaps[] =
 GF_FilterRegister DASHDmxRegister = {
 	.name = "dashin",
 	GF_FS_SET_DESCRIPTION("MPEG-DASH and HLS client")
-	GF_FS_SET_HELP("This filter reads MPEG-DASH, HLS and MS Smooth (on demand only) manifests and produces media PIDs and frames.")
+	GF_FS_SET_HELP("This filter reads MPEG-DASH, HLS and MS Smooth (on demand only for now) manifests and produces media PIDs and frames.")
 	.private_size = sizeof(GF_DASHDmxCtx),
 	.initialize = dashdmx_initialize,
 	.finalize = dashdmx_finalize,

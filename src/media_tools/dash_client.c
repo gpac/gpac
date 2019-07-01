@@ -83,7 +83,7 @@ struct __dash_client
 	u32 auto_switch_count;
 	Bool keep_files, disable_switching, allow_local_mpd_update, estimate_utc_drift, ntp_forced;
 	Bool is_m3u8, is_smooth;
-
+	Bool split_adaptation_set;
 	//set when MPD downloading fails. Will resetup DASH live once MPD is sync again
 	Bool in_error;
 
@@ -1836,6 +1836,10 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		}
 		if (dash->ignore_xlink)
 			dash_purge_xlink(new_mpd);
+
+		if (!e && dash->split_adaptation_set)
+			gf_mpd_split_adaptation_sets(new_mpd);
+
 	}
 
 	assert(new_mpd);
@@ -4849,6 +4853,9 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 
 	gf_list_rem(period_list, period_idx);
 
+	if (!e && dash->split_adaptation_set)
+		gf_mpd_split_adaptation_sets(new_mpd);
+
 	if (!period->duration) {
 		GF_MPD_Period *next_period = gf_list_get(period_list, period_idx);
 		if (next_period && next_period->start)
@@ -7159,6 +7166,9 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		}
 		gf_xml_dom_del(mpd_parser);
 
+		if (!e && dash->split_adaptation_set)
+			gf_mpd_split_adaptation_sets(dash->mpd);
+
 		if (dash->ignore_xlink)
 			dash_purge_xlink(dash->mpd);
 
@@ -8462,6 +8472,12 @@ GF_EXPORT
 void gf_dash_debug_group(GF_DashClient *dash, s32 group_index)
 {
 	dash->debug_group_index = group_index;
+}
+
+GF_EXPORT
+void gf_dash_split_adaptation_sets(GF_DashClient *dash)
+{
+	dash->split_adaptation_set = GF_TRUE;
 }
 
 GF_EXPORT
