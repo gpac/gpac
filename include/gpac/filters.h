@@ -1255,6 +1255,8 @@ typedef struct
 	FILTER_EVENT_BASE
 	/*! gives minimun and maximum coordinates of the visible rectangle associated with channels. min_x may be greater than max_x in case of 360 videos */
 	u32 min_x, max_x, min_y, max_y;
+	/*! if set, only min_x, min_y are used and indicate the gaze direction in pixels in the visual with/height frame (0,0) being top-left*/
+	Bool is_gaze;
 } GF_FEVT_VisibililityHint;
 
 

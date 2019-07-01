@@ -470,7 +470,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 
 			//these are not used yet in the test suite (require tiling + long run)
 			gf_dash_group_set_quality_degradation_hint(ctx->dash, 0, 0);
-			gf_dash_group_set_visible_rect(ctx->dash, 0, 0, 0, 0, 0);
+			gf_dash_group_set_visible_rect(ctx->dash, 0, 0, 0, 0, 0, 0);
 			//this happen only when error downloading a segment
 			gf_dash_set_group_download_state(ctx->dash, 0, GF_OK);
 		}
@@ -1166,7 +1166,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		group = gf_filter_pid_get_udta(fevt->base.on_pid);
 		if (!group) return GF_TRUE;
 
-		gf_dash_group_set_visible_rect(ctx->dash, group->idx, fevt->visibility_hint.min_x, fevt->visibility_hint.max_x, fevt->visibility_hint.min_y, fevt->visibility_hint.max_y);
+		gf_dash_group_set_visible_rect(ctx->dash, group->idx, fevt->visibility_hint.min_x, fevt->visibility_hint.max_x, fevt->visibility_hint.min_y, fevt->visibility_hint.max_y, fevt->visibility_hint.is_gaze);
 		return GF_TRUE;
 
 	case GF_FEVT_PLAY:

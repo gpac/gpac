@@ -315,6 +315,8 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 		else if (v2 && v2->value.vec2i.x && v2->value.vec2i.y) {
 			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->srd_type) {
 				mo->odm->parentscene->is_tiled_srd = GF_TRUE;
+				mo->srd_full_w = v2->value.vec2i.x;
+				mo->srd_full_h = v2->value.vec2i.y;
 			}
 		}
 	} else if (mo->odm->type==GF_STREAM_AUDIO) {
@@ -1411,7 +1413,9 @@ Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
 	
 	gf_sg_get_scene_size_info(scene->graph, &vr_info->scene_width, &vr_info->scene_height);
 
-	return (!scene->vr_type && !scene->srd_type) ? GF_FALSE : GF_TRUE;
+	if (mo->srd_w && mo->srd_h) return GF_TRUE;
+	if (mo->srd_full_w && mo->srd_full_w) return GF_TRUE;
+	return GF_FALSE;
 }
 
 /*sets quality hint for this media object  - quality_rank is between 0 (min quality) and 100 (max quality)*/
@@ -1448,6 +1452,26 @@ void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y
 		evt.visibility_hint.max_x = max_x;
 		evt.visibility_hint.min_y = min_y;
 		evt.visibility_hint.max_y = max_y;
+
+		gf_filter_pid_send_event(mo->odm->pid, &evt);
+	}
+}
+
+void gf_mo_hint_gaze(GF_MediaObject *mo, u32 gaze_x, u32 gaze_y)
+{
+	if (!mo->odm || !mo->odm || !mo->odm->pid) {
+		return;
+	}
+
+	if ((mo->view_min_x!=gaze_x) || (mo->view_min_y!=gaze_y) ) {
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_VISIBILITY_HINT, mo->odm->pid);
+		mo->view_min_x = gaze_x;
+		mo->view_min_y = gaze_y;
+
+		evt.visibility_hint.min_x = gaze_x;
+		evt.visibility_hint.min_y = gaze_y;
+		evt.visibility_hint.is_gaze = GF_TRUE;
 
 		gf_filter_pid_send_event(mo->odm->pid, &evt);
 	}

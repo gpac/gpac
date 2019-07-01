@@ -323,7 +323,7 @@ Bool rectangle_check_adaptation(GF_Node *node, Drawable *stack, GF_TraverseState
 {
 	GF_TextureHandler *txh;
 	GF_MediaObjectVRInfo vrinfo;
-	s32 tx, ty;
+	s32 gaze_x, gaze_y;
 	Bool is_visible = GF_FALSE;
 	if (! tr_state->visual->compositor->gazer_enabled)
 		return GF_TRUE;
@@ -337,16 +337,32 @@ Bool rectangle_check_adaptation(GF_Node *node, Drawable *stack, GF_TraverseState
 	if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
 		return GF_TRUE;
 
-	tx = tr_state->visual->compositor->gaze_x;
-	tx *= vrinfo.srd_max_x;
-	tx /= tr_state->visual->width;
+	if (!vrinfo.srd_w && !vrinfo.srd_h && vrinfo.is_tiled_srd) {
+		if (txh->stream->srd_full_w && txh->stream->srd_full_h) {
+			gaze_x = tr_state->visual->compositor->gaze_x;
+			gaze_x *= txh->stream->srd_full_w;
+			gaze_x /= tr_state->visual->width;
 
-	ty = tr_state->visual->compositor->gaze_y;
-	ty *= vrinfo.srd_max_y;
-	ty /= tr_state->visual->height;
+			gaze_y = tr_state->visual->compositor->gaze_y;
+			gaze_y *= txh->stream->srd_full_h;
+			gaze_y /= tr_state->visual->height;
+
+			gf_mo_hint_gaze(txh->stream, gaze_x, gaze_y);
+		}
+
+		return GF_TRUE;
+	}
+
+	gaze_x = tr_state->visual->compositor->gaze_x;
+	gaze_x *= vrinfo.srd_max_x;
+	gaze_x /= tr_state->visual->width;
+
+	gaze_y = tr_state->visual->compositor->gaze_y;
+	gaze_y *= vrinfo.srd_max_y;
+	gaze_y /= tr_state->visual->height;
 
 	//simple test condition: only keep the first row
-	if ((tx>=vrinfo.srd_x) && (tx<=vrinfo.srd_x+vrinfo.srd_w) && (ty>=vrinfo.srd_y) && (ty<=vrinfo.srd_y+vrinfo.srd_h)) {
+	if ((gaze_x>=vrinfo.srd_x) && (gaze_x<=vrinfo.srd_x+vrinfo.srd_w) && (gaze_y>=vrinfo.srd_y) && (gaze_y<=vrinfo.srd_y+vrinfo.srd_h)) {
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d Partial plane is under gaze coord %d %d\n", txh->stream->OD_ID, tr_state->visual->compositor->gaze_x, tr_state->visual->compositor->gaze_y));
 		is_visible = GF_TRUE;
