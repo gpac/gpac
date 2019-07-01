@@ -1427,6 +1427,7 @@
 #if !defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_ISOM_WRITE)
 /*crypt_tools.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_file) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_crypt_fragment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_decrypt_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_info_load) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_info_del) )

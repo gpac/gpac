@@ -1134,6 +1134,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_MAX_CTS_OFFSET, "MaxCTSOffset", "Maximum absolute CTS offset (isobmff only, static property)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_CONSTANT_DURATION, "ConstantDuration", "Constant duration of samples, 0 means variable duration (isobmff only, static property)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_TRACK_TEMPLATE, "TrackTemplate", "ISOBMFF serialized track box for this PID, without any sample info (empty stbl and empty dref) - used by isomuxer to reinject specific boxes of input ISOBMFF track", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ISOM_TREX_TEMPLATE, "TrexTemplate", "ISOBMFF serialized trex box for this PID - used by isomuxer to remux empty init segments", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_STSD_TEMPLATE, "STSDTemplate", "ISOBMFF serialized sample description box (stsd entry) for this PID - used by isomuxer to reinject specific boxes of input ISOBMFF track", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
 
 	{ GF_PROP_PID_ISOM_UDTA, "MovieUserData", "ISOBMFF serialized moov UDTA and other moov-level boxes (list) for this PID - used by isomuxer to reinject specific boxes of input ISOBMFF moov", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},

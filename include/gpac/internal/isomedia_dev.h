@@ -3591,6 +3591,8 @@ struct __tag_isom {
 	u32 on_block_out_block_size;
 	//in block disptach mode we don't have the full file, keep the position
 	u64 fragmented_file_pos;
+
+	u32 nb_box_init_seg;
 };
 
 /*time function*/

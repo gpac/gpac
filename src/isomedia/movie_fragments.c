@@ -293,6 +293,55 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, u32 TrackID,
 	return gf_isom_change_track_fragment_defaults(movie, TrackID, DefaultSampleDescriptionIndex, DefaultSampleDuration, DefaultSampleSize, DefaultSampleIsSync, DefaultSamplePadding, DefaultDegradationPriority, force_traf_flags);
 }
 
+GF_EXPORT
+GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *movie, u32 TrackID, u8 *boxes, u32 boxes_size, u8 force_traf_flags)
+{
+	GF_MovieExtendsBox *mvex;
+	GF_TrackBox *trak;
+	GF_BitStream *bs;
+	GF_Err e=GF_OK;
+	trak = gf_isom_get_track_from_id(movie->moov, TrackID);
+	if (!trak) return GF_BAD_PARAM;
+
+	bs = gf_bs_new(boxes, boxes_size, GF_BITSTREAM_READ);
+	while (gf_bs_available(bs)) {
+		GF_Box *box=NULL;
+		gf_isom_box_parse(&box, bs);
+		if (!box) {
+			e = GF_BAD_PARAM;
+			break;
+		}
+
+		if (box->type==GF_ISOM_BOX_TYPE_TREX) {
+			GF_TrackExtendsBox *trex_o=NULL;
+			GF_TrackExtendsBox *trex = (GF_TrackExtendsBox *) box;
+
+			//create MVEX if needed
+			if (!movie->moov->mvex) {
+				mvex = (GF_MovieExtendsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MVEX);
+				moov_AddBox((GF_Box*)movie->moov, (GF_Box *) mvex);
+			} else {
+				mvex = movie->moov->mvex;
+			}
+			if (!mvex->mehd) {
+				mvex->mehd = (GF_MovieExtendsHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MEHD);
+			}
+
+			trex_o = GetTrex(movie->moov, TrackID);
+			if (trex_o) {
+				gf_list_del_item(movie->moov->mvex->TrackExList, trex_o);
+				gf_isom_box_del((GF_Box *)trex_o);
+			}
+			trex->trackID = TrackID;
+			trex->track = trak;
+			if (force_traf_flags) trex->cannot_use_default = GF_TRUE;
+			mvex_AddBox((GF_Box*)mvex, (GF_Box *) trex);
+		}
+	}
+	gf_bs_del(bs);
+	return e;
+}
+
 
 u32 GetNumUsedValues(GF_TrackFragmentBox *traf, u32 value, u32 index)
 {

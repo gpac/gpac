@@ -379,7 +379,13 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 		read->input_loaded = GF_TRUE;
 		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
 		read->time_scale = gf_isom_get_timescale(read->mov);
-		e = isor_declare_objects(read);
+
+		if (read->catseg) {
+			e = gf_isom_open_segment(read->mov, read->catseg, 0, 0, 0);
+		}
+		if (!e)
+			e = isor_declare_objects(read);
+
 		gf_filter_post_process_task(filter);
 	}
 	return e;
@@ -1026,6 +1032,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(stsd), "only extract sample mapped to the given sample desciption index. 0 means no filter", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mov), "pointer to a read/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(catseg), "append the given segment to the movie at init time (only local file supported)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 
