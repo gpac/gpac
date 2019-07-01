@@ -561,6 +561,8 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
 void gf_mpd_del_list(GF_List *list, void (*__destructor)(void *), Bool reset_only);
 void gf_mpd_descriptor_free(void *item);
 
+GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd);
+
 
 GF_Err gf_mpd_smooth_to_mpd(char * smooth_file, GF_MPD *mpd, const char *default_base_url);
 

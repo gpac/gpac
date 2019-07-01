@@ -4677,6 +4677,89 @@ GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescal
 	return GF_OK;
 }
 
+GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
+{
+	u32 i, nb_periods, next_as_id=0;;
+	if (!mpd) return GF_BAD_PARAM;
+
+	nb_periods = gf_list_count(mpd->periods);
+
+	nb_periods = gf_list_count(mpd->periods);
+	for (i=0; i<nb_periods; i++) {
+		u32 j, nb_as;
+		GF_MPD_Period *period = gf_list_get(mpd->periods, i);
+		nb_as = gf_list_count(period->adaptation_sets);
+		for (j=0; j<nb_as; j++) {
+			GF_MPD_AdaptationSet *set = gf_list_get(period->adaptation_sets, j);
+			if (set->id > next_as_id)
+				next_as_id = set->id;
+		}
+	}
+	next_as_id++;
+
+	for (i=0; i<nb_periods; i++) {
+		u32 j, nb_as;
+		GF_MPD_Period *period = gf_list_get(mpd->periods, i);
+		GF_List *new_as = gf_list_new();
+
+		nb_as = gf_list_count(period->adaptation_sets);
+		for (j=0; j<nb_as; j++) {
+			GF_MPD_AdaptationSet *set = gf_list_get(period->adaptation_sets, j);
+			GF_List *reps = set->representations;
+			u32 nb_reps = gf_list_count(set->representations);
+
+			gf_list_add(new_as, set);
+			if (nb_reps<=1) {
+				continue;
+			}
+			while (gf_list_count(set->representations)>1) {
+				FILE *f = gf_temp_file_new(NULL);
+				u32 size;
+				char *data, szAdd[100];
+				GF_Blob blob;
+				GF_DOMParser *dom;
+				GF_XMLNode *root;
+				GF_MPD_Representation *rep = gf_list_get(reps, 1);
+				gf_list_rem(reps, 1);
+				set->representations = gf_list_new();
+				gf_list_add(set->representations, rep);
+
+				if (set->id) {
+					set->id = next_as_id;
+					next_as_id++;
+				}
+
+				//serialize
+				gf_mpd_print_adaptation_set(set, f, GF_FALSE, 0);
+				size = gf_ftell(f);
+				data = gf_malloc(size+1);
+				gf_fseek(f, 0, SEEK_SET);
+				size = fread(data, 1, size, f);
+				data[size]=0;
+				blob.data = data;
+				blob.size = size;
+				sprintf(szAdd, "gmem://%p", &blob);
+
+				//parse
+				dom = gf_xml_dom_new();
+				gf_xml_dom_parse(dom, szAdd, NULL, NULL);
+				root = gf_xml_dom_get_root(dom);
+				gf_mpd_parse_adaptation_set(mpd, new_as, root);
+				gf_xml_dom_del(dom);
+				gf_free(data);
+				gf_fclose(f);
+
+				
+				gf_mpd_representation_free(rep);
+				gf_list_del(set->representations);
+				set->representations = reps;
+			}
+		}
+		gf_list_del(period->adaptation_sets);
+		period->adaptation_sets = new_as;
+	}
+	return GF_OK;
+}
 
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
