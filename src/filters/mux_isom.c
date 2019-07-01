@@ -3650,6 +3650,8 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		GF_FilterPacket *pck;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		if (tkw->fake_track) continue;
+		pck = gf_filter_pid_get_packet(tkw->ipid);
+		//check this after fetching a packet since it may reconfigure the track
 		if (!tkw->track_num) return;
 
 		pck = gf_filter_pid_get_packet(tkw->ipid);
