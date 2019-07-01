@@ -2090,7 +2090,11 @@ Passthrough filter ensuring reframing, and optionnally decoding, of inputs
 .br
 This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.
 .br
-The filter can be used to filter out packets based on SAP types, for example to extract only the key frames (SAP 1,2,3) of a video
+The filter can be used to filter out packets based on SAP types, for example to extract only the key frame (SAP 1,2,3) of a video.
+.br
+The filter can be used to only keep specific -frames of the source.
+.br
+The filter can be used to force input media to be decoded.
 .br
 The filter can be used to add real-time regulation of input packets. For example to simulate a live DASH:
 .br
@@ -2119,7 +2123,7 @@ rt (enum, default: off):                 real-time regulation mode of input
 .br
 
 .br
-saps (uint list, no default, minmax: 0|1|2|3|4): drop non-SAP packets, off by default. The string contains the list (whitespace or comma-separated) of SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding
+saps (uint list, no default, minmax: 0|1|2|3|4): drop non-SAP packets, off by default. The list gives the SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding
 .br
 
 .br
@@ -2128,6 +2132,10 @@ refs (boolean, default: false):          forward only frames used as reference f
 speed (number, default: 1.0):            speed for real-time regulation mode - only positive value
 .br
 raw (boolean, default: false):           force input streams to be in raw format (i.e. forces decoding of input)
+.br
+frames (uint list, no default, minmax: 0|1|2|3|4): drop all except listed frames (first being 1), off by default
+.br
+
 .br
 
 .br
@@ -3336,6 +3344,8 @@ cues (string, no default):               set cue file - see filter help
 .br
 strict_cues (boolean, default: false):   strict mode for cues, complains if spliting is not on SAP type 1/2/3 or if unused cue is found
 .br
+strict_sap (boolean, default: false):    strict mode for sap, complains if any PID uses SAP 3 or 4 but dasher not in FULL profile. If not set, only complains for video PIDs
+.br
 subs_sidx (int, default: -1):            number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination
 .br
 cmpd (boolean, default: false):          skip line feed and spaces in MPD XML for more compacity
@@ -4275,7 +4285,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2428-g3c791dd73-filters
+build: 0.9.0-DEV-rev2444-gfcd72ae23-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
