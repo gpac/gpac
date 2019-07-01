@@ -1977,20 +1977,8 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		if (gf_url_is_local(sURL))
 			gf_url_to_fs_path(sURL);
 	}
+	sep = (char *)gf_fs_path_escape_colon(fsess, sURL);
 
-	sep = strchr(sURL, fsess->sep_args);
-	//special case here, need to escape ://
-	if (sep && (fsess->sep_args==':'))  {
-		if (!strnicmp(sep, "://", 3)) {
-			char *sep2 = strchr(sep+3, '/'); // why??
-			if (sep2) sep = strstr(sep2+1, ":gpac:");
-			else sep = strchr(sep+3, ':');
-
-		// windows drive letter
-		} else if (!strnicmp(sep, ":\\", 2) || !strnicmp(sep, ":/", 2)) {
-			sep = strchr(sep + 2, ':');
-		}
-	}
 	sprintf(szForceReg, "gfreg%c", fsess->sep_name);
 	force_freg = NULL;
 	if (sep) {

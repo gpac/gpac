@@ -39,6 +39,35 @@ void gf_filterpacket_del(void *p)
 
 static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
 
+const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
+{
+	char *sep;
+	if (!path) return NULL;
+	if (sess->sep_args != ':')
+		return strchr(path, sess->sep_args);
+
+	sep = strchr(path, ':');
+	if (!sep)
+		return NULL;
+
+	//escape win path
+	if ((strlen(path) > 3) && (path[1] == ':') && ( (path[2] == '/') || (path[2] == '\\') ) ) {
+		sep = strchr(path + 3, ':');
+	}
+	//escape absolute url
+	else if (!strncmp(sep, "://", 3)) {
+		sep = strchr(sep + 3, ':');
+		//escape port in IP:PORT/ scheme
+		char *sep2 = strchr(sep + 3, '/');
+		if (sep2) {
+			sep= strchr(sep2, ':');
+		} else {
+			sep = strchr(sep + 3, ':');
+		}
+	}
+	return sep;
+}
+
 static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const char *in_args, Bool is_dst)
 {
 	char szEscape[7];
@@ -52,15 +81,7 @@ static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const ch
 		}
 		args_striped = strstr(in_args, szDst);
 		if (args_striped) {
-			args_striped = strchr(args_striped+5, fsess->sep_args);
-			if (args_striped && (fsess->sep_args==':') && !strncmp(args_striped, "://", 3) ) {
-				char *sep2 = strchr(args_striped+3, '/');
-				if (sep2) {
-					args_striped = strchr(sep2, fsess->sep_args);
-				} else {
-					args_striped = strchr(args_striped+3, fsess->sep_args);
-				}
-			}
+			args_striped = (char *)gf_fs_path_escape_colon(fsess, args_striped+4);
 			if (args_striped) args_striped ++;
 		} else {
 			args_striped = (char *)in_args;
@@ -86,11 +107,8 @@ char *gf_filter_get_dst_name(GF_Filter *filter)
 	dst = strstr(filter->dst_args, szDst);
 	if (!dst) return NULL;
 
-	arg_sep = strchr(dst, filter->session->sep_args);
+	arg_sep = (char*) gf_fs_path_escape_colon(filter->session, dst+4);
 
-	if (arg_sep && (filter->session->sep_args==':') && !strncmp(arg_sep, "://", 3)) {
-		arg_sep = strchr(arg_sep+3, filter->session->sep_args);
-	}
 	if (arg_sep) {
 		arg_sep[0] = 0;
 		res = gf_strdup(dst+4);
@@ -187,6 +205,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		char szDBSep[3];
 		Bool insert_escape = GF_FALSE;
 		u32 len = 2 + (u32) strlen(src_striped) + (u32) strlen(dst_striped);
+		//source has a URL (locat or not), escape it to make sure we don't pass dst args as params to the URL
 		if ((strstr(src_striped, "src=") || strstr(src_striped, "dst=")) && strstr(src_striped, "://")){
 			char szEscape[10];
 			sprintf(szEscape, "%cgpac", fsess->sep_args);
@@ -931,6 +950,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		}
 
 		if (!opaque_arg) {
+			//we don't use gf_fs_path_escape_colon here because we also analyse whether the URL is internal or not, and we don't want to do that on each arg
 
 			if (filter->session->sep_args == ':') {
 				while (sep && !strncmp(sep, "://", 3)) {
