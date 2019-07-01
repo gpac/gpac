@@ -223,9 +223,6 @@ enum
 };
 
 
-
-#define GF_IMPORT_AUTO_FPS		10000.0
-
 #define GF_IMPORT_MAX_TRACKS	100
 	/*!
 	 * Track info for video media
@@ -330,7 +327,7 @@ typedef struct __track_import
 	/*! importer swf flatten angle when converting curves*/
 	Float swf_flatten_angle;
 	/*! Forced video FPS (CMP, AVI, OGG, H264) - also used by SUB import. Ignored if 0*/
-	Double video_fps;
+	GF_Fraction video_fps;
 	/*! optional ESD to be updated by the importer (used for BT/XMT import)*/
 	GF_ESD *esd;
 	/*! optional format indication for media source (used in IM1 reference software)*/
@@ -413,7 +410,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer);
  \param import_fps specifies the chapter frame rate (optional, ignored if 0 - defaults to 25). Most formats don't use this feature
  \return error if any
  */
-GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import_fps);
+GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, GF_Fraction import_fps);
 
 /*!
   Make the file ISMA compliant: creates ISMA BIFS / OD tracks if needed, and update audio/video IDs

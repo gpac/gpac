@@ -57,14 +57,14 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile* movie, char* file_name);
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
+GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample);
 #else
-GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample) {
+GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample) {
 	return GF_NOT_SUPPORTED;
 }
 #endif
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double interleaving_time, Double chunk_start, Bool adjust_split_end, char *outName, const char *tmpdir);
-GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl);
+GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl);
 
 #if !defined(GPAC_DISABLE_SCENE_ENCODER)
 GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *logs);
@@ -140,7 +140,7 @@ u32 grab_atsc3_session(const char *dir, s32 serviceID, s32 max_segs, u32 stats_r
 
 GF_Err rip_mpd(const char *mpd, const char *dst_file);
 
-GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
+GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
 
 #endif // _MP4BOX_H
 

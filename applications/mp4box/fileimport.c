@@ -235,7 +235,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 	}
 }
 
-GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
+GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample)
 {
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode, temporal_mode;
 	s32 par_d, par_n, prog_id, delay, force_rate, moov_timescale;
@@ -403,15 +403,17 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (!group) group = gf_isom_get_next_alternate_group_id(dest);
 		}
 		else if (!strnicmp(ext+1, "fps=", 4)) {
-			if (!strcmp(ext+5, "auto")) force_fps = GF_IMPORT_AUTO_FPS;
-			else if (strchr(ext+5, '-')) {
-				u32 ticks, dts_inc;
-				sscanf(ext+5, "%u-%u", &ticks, &dts_inc);
+			u32 ticks, dts_inc;
+			if (!strcmp(ext+5, "auto")) {
+				fprintf(stderr, "Warning, fps=auto option is deprecated\n");
+			} else if ((sscanf(ext+5, "%u-%u", &ticks, &dts_inc) == 2) || (sscanf(ext+5, "%u/%u", &ticks, &dts_inc) == 2)) {
 				if (!dts_inc) dts_inc=1;
-				force_fps = ticks;
-				force_fps /= dts_inc;
+				force_fps.num = ticks;
+				force_fps.den = dts_inc;
+			} else {
+				force_fps.num = (u32) (atof(ext+5));
+				force_fps.den = 1000;
 			}
-			else force_fps = atof(ext+5);
 		}
 		else if (!stricmp(ext+1, "rap")) rap_only = 1;
 		else if (!stricmp(ext+1, "refs")) refs_only = 1;
@@ -1143,7 +1145,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 	if (chapter_name) {
 		if (is_chap_file) {
-			e = gf_media_import_chapters(import.dest, chapter_name, 0);
+			GF_Fraction a_fps = {0,0};
+			e = gf_media_import_chapters(import.dest, chapter_name, a_fps);
 		} else {
 			e = gf_isom_add_chapter(import.dest, 0, 0, chapter_name);
 		}
@@ -1902,7 +1905,7 @@ err_exit:
 	return e;
 }
 
-GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
+GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
 
 static Bool merge_parameter_set(GF_List *src, GF_List *dst, const char *name)
 {
@@ -2025,9 +2028,9 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 
 }
 #endif /*GPAC_DISABLE_HEVC */
 
-GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
+GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
 
-GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl)
+GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl)
 {
 	u32 i, j, count, nb_tracks, nb_samp, nb_done;
 	GF_ISOFile *orig;
@@ -2540,7 +2543,7 @@ typedef struct
 	char szRad1[1024], szRad2[1024], szOpt[200];
 	GF_ISOFile *dest;
 	u32 import_flags;
-	Double force_fps;
+	GF_Fraction force_fps;
 	u32 frames_per_sample;
 	char *tmp_dir;
 	Bool force_cat, align_timelines, allow_add_in_command;
@@ -2564,7 +2567,7 @@ Bool cat_enumerate(void *cbk, char *szName, char *szPath, GF_FileEnumInfo *file_
 	return 0;
 }
 
-GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
+GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
 {
 	CATEnum cat_enum;
 	char *sep;
@@ -2623,7 +2626,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Do
 	return gf_enum_directory(cat_enum.szPath, 0, cat_enumerate, &cat_enum, NULL);
 }
 
-GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
+GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
 {
 	GF_Err e;
 	FILE *pl = gf_fopen(playlistName, "r");
