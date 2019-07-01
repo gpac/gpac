@@ -8858,7 +8858,7 @@ GF_Err gf_dash_group_set_quality_degradation_hint(GF_DashClient *dash, u32 idx, 
 
 
 GF_EXPORT
-GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u32 max_x, u32 min_y, u32 max_y)
+GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u32 max_x, u32 min_y, u32 max_y, Bool is_gaze)
 {
 	u32 i, count;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
@@ -8880,16 +8880,31 @@ GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u
 		GF_DASH_Group *a_group = gf_list_get(group->groups_depending_on, i);
 		if (!a_group->srd_w || !a_group->srd_h) continue;
 
-		//single rectangle case
-		if (min_x<max_x) {
-			if (a_group->srd_x+a_group->srd_h <min_x) is_visible = GF_FALSE;
-			else if (a_group->srd_x>max_x) is_visible = GF_FALSE;
-		} else {
-			if ( (a_group->srd_x>max_x) && (a_group->srd_x+a_group->srd_w<min_x)) is_visible = GF_FALSE;
-		}
+		if (is_gaze) {
 
-		if (a_group->srd_y>max_y) is_visible = GF_FALSE;
-		else if (a_group->srd_y+a_group->srd_h < min_y) is_visible = GF_FALSE;
+			if (min_x < a_group->srd_x)
+				is_visible = GF_FALSE;
+			else if (min_x > a_group->srd_x + a_group->srd_w)
+				is_visible = GF_FALSE;
+			else if (min_y < a_group->srd_y)
+				is_visible = GF_FALSE;
+			else if (min_y > a_group->srd_y + a_group->srd_h)
+				is_visible = GF_FALSE;
+
+		} else {
+
+			//single rectangle case
+			if (min_x<max_x) {
+				if (a_group->srd_x+a_group->srd_w <min_x) is_visible = GF_FALSE;
+				else if (a_group->srd_x>max_x) is_visible = GF_FALSE;
+			} else {
+				if ( (a_group->srd_x>max_x) && (a_group->srd_x+a_group->srd_w<min_x)) is_visible = GF_FALSE;
+			}
+
+			if (a_group->srd_y>max_y) is_visible = GF_FALSE;
+			else if (a_group->srd_y+a_group->srd_h < min_y) is_visible = GF_FALSE;
+
+		}
 
 		a_group->quality_degradation_hint = is_visible ? 0 : 100;
 

@@ -213,6 +213,8 @@ void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation)
 /*sets visible rectangle for the object - only used in 360 videos for now*/
 void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y, u32 max_y);
 
+void gf_mo_hint_gaze(GF_MediaObject *mo, u32 gaze_x, u32 gaze_y);
+
 #include <gpac/scenegraph_svg.h>
 void gf_mo_del(GF_MediaObject *mo);
 
