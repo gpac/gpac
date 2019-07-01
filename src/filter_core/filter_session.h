@@ -968,6 +968,9 @@ size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsig
 
 void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dispatch);
 
+//get next option after path, NULL if not found
+const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path);
+
 #endif //_GF_FILTER_SESSION_H_
 
 

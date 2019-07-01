@@ -2987,21 +2987,8 @@ static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 		char *eq;
 		char *value, *name;
 		//look for our arg separator
-		char *sep = strchr(args, filter->session->sep_args);
 
-		if (filter->session->sep_args == ':') {
-			while (sep && !strncmp(sep, "://", 3)) {
-				//get root /
-				sep = strchr(sep+3, '/');
-				//get first : after root
-				if (sep) sep = strchr(sep+1, ':');
-			}
-
-			//watchout for "C:\\"
-			while (sep && (sep[1]=='\\')) {
-				sep = strchr(sep+1, ':');
-			}
-		}
+		char *sep = (char *)gf_fs_path_escape_colon(filter->session, args);
 
 		if (sep) {
 			char *xml_start = strchr(args, '<');
@@ -6014,12 +6001,7 @@ static char *gf_filter_pid_get_dst_string(GF_FilterSession *sess, const char *ds
 	dst = strstr(dst_args, szKey);
 	if (!dst) return NULL;
 
-	sep = strchr(dst, sess->sep_args);
-	if (sep && (sess->sep_args==':') && !strncmp(sep, "://", 3)) {
-		char *sep2 = strchr(sep+3, '/');
-		if (sep2) sep = strchr(sep+1, ':');
-		else sep = strchr(sep+3, ':');
-	}
+	sep = (char *) gf_fs_path_escape_colon(sess, dst + 4);
 	dst += 4;
 	if (sep) len = (u32) (sep - dst);
 	else len = (u32) strlen(dst);
