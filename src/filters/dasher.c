@@ -86,6 +86,7 @@ typedef struct
 	Bool m2ts;
 	Bool cmpd, dual;
 	char *styp;
+	Bool in_error;
 
 	//internal
 
@@ -322,8 +323,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	if (!ctx->opid) {
-		u32 i;
-		for (i=0; i < (ctx->dual ? 2 : 1); i++) {
+		u32 i, nb_opids = ctx->dual ? 2 : 1;
+		for (i=0; i < nb_opids; i++) {
 			char *segext=NULL;
 			char *force_ext=NULL;
 			GF_FilterPid *opid;
@@ -335,7 +336,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				GF_Err e;
 				if (!ctx->alt_dst) {
 					char szSRC[100];
-					u32 len = strlen(ctx->out_path);
+					u32 len = (u32) strlen(ctx->out_path);
 					char *out_path = gf_malloc(len+10);
 					memcpy(out_path, ctx->out_path, len);
 					out_path[len]=0;
@@ -1767,13 +1768,13 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	char sep_args = gf_filter_get_sep(filter, GF_FS_SEP_ARGS);
 	char sep_name = gf_filter_get_sep(filter, GF_FS_SEP_NAME);
 	const char *dst_args;
-	char szDST[GF_MAX_PATH];
+	char *szDST = NULL;
 	char szSRC[100];
 
 	GF_DashStream *ds = rep->playback.udta;
 	if (ds->muxed_base) return;
 
-	strcpy(szDST, szInitURL);
+	gf_dynstrcat(&szDST, szInitURL, NULL);
 	if (ctx->out_path) {
 		char *rel = NULL;
 		if (ctx->do_m3u8 && ds->hls_vp_name) {
@@ -1786,8 +1787,8 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		if (!rel)
 			rel = gf_url_concatenate(ctx->out_path, szInitURL);
 		if (rel) {
-			strcpy(szDST, rel);
-			gf_free(rel);
+			gf_free(szDST);
+			szDST = rel;
 		}
 	}
 
@@ -1795,8 +1796,8 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	if (dst_args) {
 		char szKey[20];
 		sprintf(szSRC, "%c", sep_args);
-		strcat(szDST, szSRC);
-		strcat(szDST, dst_args);
+		gf_dynstrcat(&szDST, szSRC, NULL);
+		gf_dynstrcat(&szDST, dst_args, NULL);
 		//look for frag arg
 		sprintf(szKey, "%cfrag", sep_args);
 		if (strstr(dst_args, szKey)) has_frag = GF_TRUE;
@@ -1813,31 +1814,31 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	}
 	if (trash_init) {
 		sprintf(szSRC, "%cnoinit", sep_args);
-		strcat(szDST, szSRC);
+		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 	if (!has_frag) {
 		sprintf(szSRC, "%cfrag", sep_args);
-		strcat(szDST, szSRC);
+		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 	if (!has_subs && ctx->sseg) {
 		sprintf(szSRC, "%csubs_sidx%c0", sep_args, sep_name);
-		strcat(szDST, szSRC);
+		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 	if (ctx->cues && !has_strun) {
 		sprintf(szSRC, "%cstrun", sep_args);
-		strcat(szDST, szSRC);
+		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 	if (ctx->styp) {
 		sprintf(szSRC, "%cstyp=%s", sep_args, ctx->styp);
-		strcat(szDST, szSRC);
+		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 	//override xps inband declaration in args
 	sprintf(szSRC, "%cxps_inband%c%s", sep_args, sep_name, ds->inband_params ? "all" : "no");
-	strcat(szDST, szSRC);
+	gf_dynstrcat(&szDST, szSRC, NULL);
 
 	if (ctx->no_fragments_defaults) {
 		sprintf(szSRC, "%cnofragdef", sep_args );
-		strcat(szDST, szSRC);
+		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 	switch (ctx->pssh) {
 	case GF_DASH_PSSH_MPD:
@@ -1851,28 +1852,30 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		sprintf(szSRC, "%cpsshs%cmoov", sep_args, sep_name);
 		break;
 	}
-	strcat(szDST, szSRC);
+	gf_dynstrcat(&szDST, szSRC, NULL);
 
 	//patch for old arch: make sure we don't have any extra free box after the sidx
 	if (gf_sys_is_test_mode() && ctx->sseg) {
 		sprintf(szSRC, "%ccache", sep_args );
-		strcat(szDST, szSRC);
+		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 
 
 	if (ds->moof_sn>1) {
 		sprintf(szSRC, "%cmsn%c%d", sep_args, sep_name, ds->moof_sn);
-		strcat(szDST, szSRC);
+		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 	if (ds->moof_sn_inc>1) {
 		sprintf(szSRC, "%cmsninc%c%d", sep_args, sep_name, ds->moof_sn_inc);
-		strcat(szDST, szSRC);
+		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 	if (ds->sscale) {
 		sprintf(szSRC, "%cmoovts%c-1", sep_args, sep_name);
-		strcat(szDST, szSRC);
+		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 	ds->dst_filter = gf_filter_connect_destination(filter, szDST, &e);
+	gf_free(szDST);
+	szDST = NULL;
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't create output file %s: %s\n", szInitURL, gf_error_to_string(e) ));
 		return;
@@ -4570,6 +4573,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err e;
 
+	if (ctx->in_error)
+		return GF_EOS;
+
 	if (ctx->streams_not_ready) {
 		if (! dasher_check_streams_ready(ctx)) return GF_OK;
 	}
@@ -4992,7 +4998,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				u32 cumulated_split_dur = split_dur;
 				gf_filter_pck_set_duration(dst, split_dur);
 				//adjust dur
-				cumulated_split_dur += cts - orig_cts;
+				cumulated_split_dur += (u32) (cts - orig_cts);
 				assert( dur > split_dur);
 				ds->split_dur_next = cumulated_split_dur;
 				dur = split_dur;
@@ -5166,6 +5172,10 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	if (evt->base.type == GF_FEVT_RESUME) {
 		dasher_resume_subdur(filter, ctx);
+		return GF_TRUE;
+	}
+	if (evt->base.type == GF_FEVT_CONNECT_FAIL) {
+		ctx->in_error = GF_TRUE;
 		return GF_TRUE;
 	}
 
