@@ -1533,6 +1533,7 @@ static Bool dasher_same_roles(GF_DashStream *ds1, GF_DashStream *ds2)
 
 static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_DashStream *ds_test)
 {
+	const char *lang1, *lang2;
 	//muxed representations
 	if (ds_test->muxed_base == ds) return GF_TRUE;
 	//otherwise we have to be of same type
@@ -1568,7 +1569,10 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	//according to DASH spec mixing interlaced and progressive is OK
 	//if (ds->interlaced != ds_test->interlaced) return GF_FALSE;
 	if (ds->nb_ch != ds_test->nb_ch) return GF_FALSE;
-	if (strcmp(ds->lang, ds_test->lang)) return GF_FALSE;
+
+	lang1 = ds->lang ? ds->lang : "und";
+	lang2 = ds_test->lang ? ds_test->lang : "und";
+	if (strcmp(lang1, lang2)) return GF_FALSE;
 
 	if (ds->stream_type==GF_STREAM_VISUAL) {
 		u32 w, h, tw, th;
