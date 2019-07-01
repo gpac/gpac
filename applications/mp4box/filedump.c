@@ -1525,7 +1525,7 @@ void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name)
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
-GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump, Bool merge_vtt_cues)
+GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump, Bool merge_vtt_cues, Bool skip_init)
 {
 	GF_Err e;
 	FILE *dump = stdout;
@@ -1550,7 +1550,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 	if (do_track_dump) {
 		fprintf(dump, "<ISOBaseMediaFileTrace>\n");
 	}
-	e = gf_isom_dump(file, dump);
+	e = gf_isom_dump(file, dump, skip_init);
 	if (e) {
 		fprintf(stderr, "Error dumping ISO structure\n");
 	}

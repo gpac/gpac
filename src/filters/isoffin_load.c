@@ -439,6 +439,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Failed to serialize track box: %s\n", gf_error_to_string(e) ));
 		}
 
+		e = gf_isom_get_trex_template(read->mov, ch->track, &tk_template, &tk_template_size);
+		if (e == GF_OK) {
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_TREX_TEMPLATE, &PROP_DATA_NO_COPY(tk_template, tk_template_size) );
+		}
+
 		e = gf_isom_get_raw_user_data(read->mov, &tk_template, &tk_template_size);
 		if (e==GF_OK) {
 			if (tk_template_size)
