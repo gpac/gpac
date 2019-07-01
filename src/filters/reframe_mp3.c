@@ -698,23 +698,25 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	u32 pos=0;
 	u32 prev_pos=0;
 
-	//don't trust id3 to be set only for mp3 files
-#if 0
+	//For new we assume id3 to be set only for mp3 files
+	//FIXME this isn't really true, we have seen ADTS with ID3 header in front - we would need a bigger probe size
+	//to detect the format ...
 	if (size>= 10) {
 		/* Did we read an ID3v2 ? */
 		if (data[0] == 'I' && data[1] == 'D' && data[2] == '3') {
-			*score = GF_FPROBE_SUPPORTED;
+			*score = GF_FPROBE_MAYBE_SUPPORTED;
 			return "audio/mp3";
 		}
 	}
-#endif
 
 	while (1) {
 		u32 hdr = gf_mp3_get_next_header_mem(data, size, &pos);
 		if (!hdr) break;
-		if (gf_mp3_version(hdr) > 3) break;
+		if (gf_mp3_version(hdr) > 3)
+			break;
 		u8 sampleRateIndex = (hdr >> 10) & 0x3;
-		if (sampleRateIndex>2) break;
+		if (sampleRateIndex>2)
+			break;
 		u32 fsize = gf_mp3_frame_size(hdr);
 		if (prev_pos && pos) {
 			nb_frames=0;
