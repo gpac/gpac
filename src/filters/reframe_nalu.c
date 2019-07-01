@@ -169,6 +169,8 @@ typedef struct
 
 	Bool next_nal_end_skip;
 
+	Bool last_frame_is_idr;
+
 	//buffer to store SEI messages
 	//for AVC: we have to rewrite the SEI to remove some of the messages according to the spec
 	//for HEVC: we store prefix SEI here and dispatch them once the first VCL is found
@@ -2666,6 +2668,8 @@ naldmx_flush:
 			/*ref slice, reset poc*/
 			if (slice_is_ref) {
 				if (first_in_au) {
+					//two consecutive IDRs, force poc_diff to 0 to force frame dispatch
+					if (ctx->last_frame_is_idr) ctx->poc_diff=1;
 					//new ref frame, dispatch all pending packets
 					naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 
@@ -2673,10 +2677,12 @@ naldmx_flush:
 					ctx->poc_shift = 0;
 					//force probing of POC diff, this will prevent dispatching frames with wrong CTS until we have a clue of min poc_diff used
 					ctx->poc_probe_done = 0;
+					ctx->last_frame_is_idr = GF_TRUE;
 				}
 			}
 			/*forced ref slice*/
 			else if (slice_force_ref) {
+				ctx->last_frame_is_idr = GF_FALSE;
 				if (first_in_au) {
 					//new ref frame, dispatch all pending packets
 					naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
@@ -2692,9 +2698,11 @@ naldmx_flush:
 			else if (ctx->max_last_poc < ctx->last_poc) {
 				ctx->max_last_b_poc = 0;
 				ctx->max_last_poc = ctx->last_poc;
+				ctx->last_frame_is_idr = GF_FALSE;
 			}
 			/*stricly greater*/
 			else if (slice_is_b && (ctx->max_last_poc > ctx->last_poc)) {
+				ctx->last_frame_is_idr = GF_FALSE;
 				if (!ctx->max_last_b_poc) {
 					ctx->max_last_b_poc = ctx->last_poc;
 				}
@@ -2703,7 +2711,10 @@ naldmx_flush:
 					ctx->max_last_b_poc = ctx->last_poc;
 				}
 				/*otherwise we had a B-slice reference: do nothing*/
+			} else {
+				ctx->last_frame_is_idr = GF_FALSE;
 			}
+
 
 			if (ctx->deps) {
 				if (nal_ref_idc) {
