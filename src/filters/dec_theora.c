@@ -141,10 +141,9 @@ static GF_Err theoradec_process(GF_Filter *filter)
 	if (!pck && !gf_filter_pid_is_eos(ctx->ipid))
 		return GF_OK;
 
+	memset(&yuv, 0, sizeof(yuv_buffer));
+	memset(&op, 0, sizeof(ogg_packet));
 	op.granulepos = -1;
-	op.b_o_s = 0;
-	op.e_o_s = 0;
-	op.packetno = 0;
 
 	if (pck) {
 		u64 cts = gf_filter_pck_get_cts(pck);
@@ -175,13 +174,17 @@ static GF_Err theoradec_process(GF_Filter *filter)
 		if (!src_pck)
 			gf_list_add(ctx->src_packets, pck_ref);
 
-
 	} else {
+		//weird bug in theora dec: even though we feed empty packets, we still keep getting frames !
+		if (!gf_list_count(ctx->src_packets)) {
+			gf_filter_pid_set_eos(ctx->opid);
+			return GF_EOS;
+		}
 		op.packet = NULL;
 		op.bytes = 0;
 	}
 
-	if (theora_decode_packetin(&ctx->td, &op)<0) {
+	if (theora_decode_packetin(&ctx->td, &op) != 0) {
 		src_pck = gf_list_pop_front(ctx->src_packets);
 		gf_filter_pck_unref(src_pck);
 		if (pck) {
@@ -192,7 +195,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 		return GF_EOS;
 	}
 	//no frame
-	if (theora_decode_YUVout(&ctx->td, &yuv)<0) {
+	if (theora_decode_YUVout(&ctx->td, &yuv) != 0) {
 		if (pck) {
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
