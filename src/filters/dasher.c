@@ -4598,7 +4598,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 		while (1) {
 			u32 sap_type, dur, o_dur, split_dur;
 			s32 check_dur;
-			u64 cts, dts, ncts, split_dur_next;
+			u64 cts, orig_cts, dts, ncts, split_dur_next;
 			Bool seg_over = GF_FALSE;
 			Bool is_split = GF_FALSE;
 			GF_FilterPacket *pck;
@@ -4757,6 +4757,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				check_dur = dur;
 
 			//adjust duration and cts
+			orig_cts = cts;
 			if (ds->split_dur_next) {
 				cts += ds->split_dur_next;
 				assert(dur > ds->split_dur_next);
@@ -4890,7 +4891,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 				gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
 				ds->clamp_done = GF_TRUE;
 				continue;
-			} else if ((cts + check_dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) {
+			}
+			//we exceed segment duration - if segment was started, check if we need to stop segment
+			//if segment was not started we insert the packet anyway
+			else if (ds->segment_started && ((cts + check_dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) ) {
 				//no sap, segment is over
 				if (! ctx->sap) {
 					seg_over = GF_TRUE;
@@ -4949,7 +4953,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				dts = ds->last_dts;
 			} else {
 
-				ncts = cts + dur;
+				ncts = cts + (split_dur ? split_dur : dur);
 				if (ncts>ds->est_first_cts_in_next_seg)
 					ds->est_first_cts_in_next_seg = ncts;
 
@@ -4981,9 +4985,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//if split, adjust duration
 			if (split_dur) {
+				u32 cumulated_split_dur = split_dur;
 				gf_filter_pck_set_duration(dst, split_dur);
+				//adjust dur
+				cumulated_split_dur += cts - orig_cts;
 				assert( dur > split_dur);
-				ds->split_dur_next = split_dur;
+				ds->split_dur_next = cumulated_split_dur;
 				dur = split_dur;
 			}
 			//prev packet was split
