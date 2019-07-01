@@ -219,7 +219,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				}
 			}
 			else if (!stricmp(att->name, "keyRoll")) {
-				if (!strncmp(att->value, "idx=", 4))
+				if (!strnicmp(att->value, "idx=", 4))
 					tkc->defaultKeyIdx = atoi(att->value+4);
 				else if (!strncmp(att->value, "roll=", 5))
 					tkc->keyRoll = atoi(att->value+5);
@@ -437,10 +437,11 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	return e;
 }
 
-GF_EXPORT
-GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time)
+static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time, const char *fragment_name)
 {
-	char szArgs[4096];
+	char *szArgs=NULL;
+	char an_arg[100];
+
 	GF_Filter *src, *dst, *crypt;
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
@@ -451,8 +452,17 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file
 		return GF_OUT_OF_MEM;
 	}
 
-	sprintf(szArgs, "mp4dmx:mov=%p", mp4);
+	sprintf(an_arg, "mp4dmx:mov=%p", mp4);
+	gf_dynstrcat(&szArgs, an_arg, NULL);
+	if (fragment_name) {
+		gf_dynstrcat(&szArgs, ":catseg=", NULL);
+		gf_dynstrcat(&szArgs, fragment_name, NULL);
+	}
 	src = gf_fs_load_filter(fsess, szArgs);
+
+	gf_free(szArgs);
+	szArgs = NULL;
+
 
 	if (!src) {
 		gf_fs_del(fsess);
@@ -460,17 +470,31 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file
 		return GF_FILTER_NOT_FOUND;
 	}
 
-	sprintf(szArgs, "cecrypt:FID=1:cfile=%s", drm_file);
+	gf_dynstrcat(&szArgs, "cecrypt:FID=1:cfile=", NULL);
+	gf_dynstrcat(&szArgs, drm_file, NULL);
 	crypt = gf_fs_load_filter(fsess, szArgs);
+
+	gf_free(szArgs);
+	szArgs = NULL;
+
 	if (!crypt) {
 		gf_fs_del(fsess);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Encrypter] Cannot load encryptor\n"));
 		return GF_FILTER_NOT_FOUND;
 	}
 
-	sprintf(szArgs, "SID=1:cdur=%g", interleave_time);
-		
+	gf_dynstrcat(&szArgs, "SID=1", NULL);
+	if (fragment_name)
+		gf_dynstrcat(&szArgs, ":sseg", NULL);
+	else {
+		sprintf(an_arg, ":cdur=%g", interleave_time);
+		gf_dynstrcat(&szArgs, an_arg, NULL);
+	}
+
 	dst = gf_fs_load_destination(fsess, dst_file, szArgs, NULL, &e);
+
+	gf_free(szArgs);
+	szArgs = NULL;
 	if (!dst) {
 		gf_fs_del(fsess);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Encrypter] Cannot load destination muxer\n"));
@@ -486,5 +510,18 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file
 	return e;
 }
 
+GF_EXPORT
+GF_Err gf_crypt_fragment(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, const char *fragment_name)
+{
+	return gf_crypt_file_ex(mp4, drm_file, dst_file, 0, fragment_name);
+
+}
+
+GF_EXPORT
+GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time)
+{
+	return gf_crypt_file_ex(mp4, drm_file, dst_file, interleave_time, NULL);
+
+}
 #endif /* !defined(GPAC_DISABLE_ISOM_WRITE)*/
 

@@ -1538,6 +1538,8 @@ GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig, GF_ISOFile *dest);
 
 GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u32 *output_size);
 
+GF_Err gf_isom_get_trex_template(GF_ISOFile *file, u32 track, char **output, u32 *output_size);
+
 GF_Err gf_isom_get_stsd_template(GF_ISOFile *file, u32 track, u32 stsd_idx, char **output, u32 *output_size);
 
 GF_Err gf_isom_get_raw_user_data(GF_ISOFile *file, char **output, u32 *output_size);
@@ -1684,6 +1686,9 @@ the pre-allocated SIDX is destroyed and sucessive calls to gf_isom_close_segment
 frags_per_sidx, daisy_chain_sidx and frags_per_segment are currently ignored and reserved for future usages where multiple SIDX could be written
 if not NULL, start_range and end_range will contain the byte range of the SIDX box in the movie*/
 GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy_chain_sidx, u32 nb_segs, u32 *frags_per_segment, u32 *start_range, u32 *end_range, Bool use_ssix);
+
+GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *movie, u32 TrackID, u8 *boxes, u32 boxes_size, u8 force_traf_flags);
+
 
 enum
 {
@@ -1940,7 +1945,7 @@ GF_Err gf_isom_sdp_clean(GF_ISOFile *the_file);
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
 /*dumps file structures into XML trace file */
-GF_Err gf_isom_dump(GF_ISOFile *file, FILE *trace);
+GF_Err gf_isom_dump(GF_ISOFile *file, FILE *trace, Bool skip_init);
 /*gets number of implemented boxes in GPAC. There can be several times the same type returned due to variation of the box (versions or flags)*/
 u32 gf_isom_get_num_supported_boxes();
 /*gets 4cc of box given its index. Index 0 is GPAC internal unknown box handler.*/

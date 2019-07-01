@@ -201,6 +201,15 @@ GF_Err gf_decrypt_file(GF_ISOFile *infile, const char *drm_file, const char *out
 */
 GF_Err gf_crypt_file(GF_ISOFile *infile, const char *drm_file, const char *outname, Double interleave_time);
 
+/*! encrypts a fragment
+\param infile init segment of the MP4 file to encrypt - this SHALL NOT be encrypted
+\param drm_file location of crypt info data
+\param outname location of destination file
+\param frag_name name of fragment to encrypt
+\return error code if any
+*/
+GF_Err gf_crypt_fragment(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, const char *frag_name);
+
 #endif /*!defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
 /*! @} */
