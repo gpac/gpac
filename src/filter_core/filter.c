@@ -56,8 +56,7 @@ const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 	}
 	//escape absolute url
 	else if (!strncmp(sep, "://", 3)) {
-		sep = strchr(sep + 3, ':');
-		//escape port in IP:PORT/ scheme
+		//escape port in IP:PORT/ scheme, move to server path
 		char *sep2 = strchr(sep + 3, '/');
 		if (sep2) {
 			sep= strchr(sep2, ':');
