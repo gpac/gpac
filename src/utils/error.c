@@ -542,6 +542,7 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 	}
 
 	SetConsoleTextAttribute(console, attribs);
+	return;
 
 win32_ismtty:
 #endif
