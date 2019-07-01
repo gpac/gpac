@@ -66,7 +66,7 @@ typedef struct tagBITMAPINFOHEADER {
 typedef struct
 {
 	//options
-	u32 timescale, dur;
+	GF_Fraction fps;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -223,6 +223,10 @@ GF_Err img_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_SERVICE_ERROR;
 		}
+		if (!ctx->fps.num*ctx->fps.den) {
+			ctx->fps.num = 1000;
+			ctx->fps.den = 1000;
+		}
 		//we don't have input reconfig for now
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
@@ -232,7 +236,7 @@ GF_Err img_process(GF_Filter *filter)
 		if (h) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(h));
 		if (dsi) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi, dsi_size));
 		if (! gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_TIMESCALE)) {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num) );
 			ctx->owns_timescale = GF_TRUE;
 		}
 
@@ -275,7 +279,7 @@ GF_Err img_process(GF_Filter *filter)
 		if (ctx->owns_timescale) {
 			gf_filter_pck_set_cts(dst_pck, 0);
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1 );
-			gf_filter_pck_set_duration(dst_pck, ctx->dur);
+			gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
 		}
 		gf_filter_pck_send(dst_pck);
 		gf_filter_pid_drop_packet(ctx->ipid);
@@ -314,7 +318,7 @@ GF_Err img_process(GF_Filter *filter)
 	if (ctx->owns_timescale) {
 		gf_filter_pck_set_cts(dst_pck, 0);
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1 );
-		gf_filter_pck_set_duration(dst_pck, ctx->dur);
+		gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
 	}
 
 	in_stride = out_stride;
@@ -404,8 +408,7 @@ static const GF_FilterCapability ReframeImgCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_ReframeImgCtx, _n)
 static const GF_FilterArgs ReframeImgArgs[] =
 {
-	{ OFFS(timescale), "timescale for media timestamps when loading from file not stream", GF_PROP_UINT, "1000", NULL, 0},
-	{ OFFS(dur), "duration of image when loading from file not stream", GF_PROP_UINT, "1000", NULL, 0},
+	{ OFFS(fps), "import frame rate (0 default to 1 Hz)", GF_PROP_FRACTION, "0/1000", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 

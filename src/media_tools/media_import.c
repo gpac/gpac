@@ -778,7 +778,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 	e = gf_isom_remove_chapter(import->dest, 0, 0);
 	if (e) goto err_exit;
 
-	if (!import->video_fps) {
+	if (!import->video_fps.num || !import->video_fps.den ) {
 		/*try to figure out the frame rate*/
 		for (i=0; i<gf_isom_get_track_count(import->dest); i++) {
 			GF_ISOSample *samp;
@@ -790,14 +790,16 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			inc = (u32) samp->DTS;
 			if (!inc) inc=1;
 			ts = gf_isom_get_media_timescale(import->dest, i+1);
-			import->video_fps = ts;
-			import->video_fps /= inc;
+			import->video_fps.num = ts;
+			import->video_fps.den = inc;
 			gf_isom_sample_del(&samp);
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Chapter import] Guessed video frame rate %g (%u:%u)\n", import->video_fps, ts, inc));
 			break;
 		}
-		if (!import->video_fps)
-			import->video_fps = 25;
+		if (!import->video_fps.num || import->video_fps.den) {
+			import->video_fps.num = 25;
+			import->video_fps.den = 1;
+		}
 	}
 
 	cur_chap = 0;
@@ -832,7 +834,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			sscanf(sL, "AddChapter(%u,%s)", &nb_fr, szTitle);
 			ts = nb_fr;
 			ts *= 1000;
-			ts = (u64) (((s64) ts ) / import->video_fps);
+			ts = (u64) (((s64) ts )  *import->video_fps.den / import->video_fps.num);
 			sL = strchr(sL, ',');
 			strcpy(szTitle, sL+1);
 			sL = strrchr(szTitle, ')');
@@ -882,7 +884,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 					ts = (h*3600 + m*60+s)*1000 + 1000*fr/fps;
 				} else if (sscanf(szTS, "%u:%u:%u;%u", &h, &m, &s, &fr)==4) {
 					ts = (h*3600 + m*60+s);
-					ts = (s64) (((import->video_fps*((s64)ts) + fr) * 1000 ) / import->video_fps);
+					ts = (s64) (((import->video_fps.num*((s64)ts) + import->video_fps.den*fr) * 1000 ) / import->video_fps.num ) ;
 				} else if (sscanf(szTS, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 					ts = (h*3600 + m*60+s)*1000+ms;
 				} else if (sscanf(szTS, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
@@ -955,7 +957,7 @@ err_exit:
 }
 
 GF_EXPORT
-GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import_fps)
+GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, GF_Fraction import_fps)
 {
 	GF_MediaImporter import;
 	memset(&import, 0, sizeof(GF_MediaImporter));
@@ -1223,6 +1225,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (importer->flags & GF_IMPORT_SAMPLE_DEPS) e |= gf_dynstrcat(&args, "deps", ":");
 		if (importer->flags & GF_IMPORT_FORCE_MPEG4) e |= gf_dynstrcat(&args, "mpeg4", ":");
 		if (importer->keep_audelim) e |= gf_dynstrcat(&args, "audelim", ":");
+		if (importer->video_fps.num && importer->video_fps.den) {
+			sprintf(szSubArg, "fps=%d/%d", importer->video_fps.num, importer->video_fps.den);
+			e |= gf_dynstrcat(&args, szSubArg, ":");
+		}
 		if (importer->is_alpha) e |= gf_dynstrcat(&args, "#Alpha", ":");
 
 		if (importer->streamFormat && !strcmp(importer->streamFormat, "VTT")) e |= gf_dynstrcat(&args, "webvtt", ":");

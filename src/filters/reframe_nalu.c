@@ -56,7 +56,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index;
-	Bool explicit, autofps, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze;
+	Bool explicit, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze;
 	u32 nal_length;
 
 	//only one input pid declared
@@ -76,6 +76,7 @@ typedef struct
 	u32 width, height;
 	u32 crc_cfg, crc_cfg_enh;
 	GF_Fraction sar;
+	GF_Fraction cur_fps;
 
 	//duration of the file if known
 	GF_Fraction duration;
@@ -222,8 +223,8 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) {
 		ctx->timescale = p->value.uint;
-		ctx->fps.den = 0;
-		ctx->fps.num = ctx->timescale;
+		ctx->cur_fps.den = 0;
+		ctx->cur_fps.num = ctx->timescale;
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
@@ -421,20 +422,20 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 			}
 		}
 
-		if (is_rap && first_slice_in_pic && (cur_dur >= ctx->index * ctx->fps.num) ) {
+		if (is_rap && first_slice_in_pic && (cur_dur >= ctx->index * ctx->cur_fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(NALUIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = start_code_pos;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
-			ctx->indexes[ctx->index_size].duration /= ctx->fps.num;
+			ctx->indexes[ctx->index_size].duration /= ctx->cur_fps.num;
 			ctx->index_size ++;
 			cur_dur = 0;
 		}
 
 		if (is_slice && first_slice_in_pic) {
-			duration += ctx->fps.den;
-			cur_dur += ctx->fps.den;
+			duration += ctx->cur_fps.den;
+			cur_dur += ctx->cur_fps.den;
 			first_slice_in_pic = GF_FALSE;
 		}
 
@@ -458,9 +459,9 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	if (hevc_state) gf_free(hevc_state);
 	if (avc_state) gf_free(avc_state);
 
-	if (!ctx->duration.num || (ctx->duration.num  * ctx->fps.num != duration * ctx->duration.den)) {
+	if (!ctx->duration.num || (ctx->duration.num  * ctx->cur_fps.num != duration * ctx->duration.den)) {
 		ctx->duration.num = (s32) duration;
-		ctx->duration.den = ctx->fps.num;
+		ctx->duration.den = ctx->cur_fps.num;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 	}
@@ -503,7 +504,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 				assert(poc_ts != GF_FILTER_NO_TS);
 				poc = (s32) ((s64) poc_ts - CTS_POC_OFFSET_SAFETY);
 				//poc is stored as diff since last IDR which has min_poc
-				cts = ( (ctx->min_poc + (s32) poc) * ctx->fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
+				cts = ( (ctx->min_poc + (s32) poc) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
 
 				/*old importer code, seems wrong so commented for now*/
 #if 0
@@ -511,8 +512,8 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 				if (ctx->is_paff) {
 					cts /= 2;
 					/*in some cases the poc is not on the top field - if that is the case, round up*/
-					if (cts % ctx->fps.den) {
-						cts = ((cts/ctx->fps.den)+1) * ctx->fps.den;
+					if (cts % ctx->cur_fps.den) {
+						cts = ((cts/ctx->cur_fps.den)+1) * ctx->cur_fps.den;
 					}
 				}
 #endif
@@ -522,7 +523,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 				if (ctx->importer) {
 					poc = (s32) ( (s64) cts - (s64) dts);
 					if (poc<0) poc = -poc;
-					poc /= ctx->fps.den;
+					poc /= ctx->cur_fps.den;
 					if (poc > ctx->max_total_delay)
 						ctx->max_total_delay = poc;
 				}
@@ -853,14 +854,14 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u
 			}
 
 			/*disable frame rate scan, most bitstreams have wrong values there*/
-			if (!ctx->timescale && first && ctx->autofps && sps->has_timing_info
+			if (!ctx->timescale && first && !ctx->fps.num*ctx->fps.den && sps->has_timing_info
 				/*if detected FPS is greater than 1000, assume wrong timing info*/
 				&& (sps->time_scale <= 1000*sps->num_units_in_tick)
 			) {
-				ctx->fps.num = sps->time_scale;
-				ctx->fps.den = sps->num_units_in_tick;
+				ctx->cur_fps.num = sps->time_scale;
+				ctx->cur_fps.den = sps->num_units_in_tick;
 			}
-			ctx->autofps = GF_FALSE;
+			ctx->fps = ctx->cur_fps;
 		}
 		first = GF_FALSE;
 		if (is_lhvc) {
@@ -978,7 +979,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u32 *dsi_
 			}
 
 			/*disable frame rate scan, most bitstreams have wrong values there*/
-			if (first && ctx->autofps && sps->vui.timing_info_present_flag
+			if (first && !ctx->fps.num*ctx->fps.den && sps->vui.timing_info_present_flag
 				/*if detected FPS is greater than 1000, assume wrong timing info*/
 				&& (sps->vui.time_scale <= 1000*sps->vui.num_units_in_tick)
 			) {
@@ -996,13 +997,13 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u32 *dsi_
 						DeltaTfiDivisorIdx = (ctx->avc_state->sei.pic_timing.pic_struct+1) / 2;
 				}
 				if (!ctx->timescale) {
-					ctx->fps.num = 2 * sps->vui.time_scale;
-					ctx->fps.den =  2 * sps->vui.num_units_in_tick * DeltaTfiDivisorIdx;
+					ctx->cur_fps.num = 2 * sps->vui.time_scale;
+					ctx->cur_fps.den =  2 * sps->vui.num_units_in_tick * DeltaTfiDivisorIdx;
 				}
 				if (! sps->vui.fixed_frame_rate_flag)
 					GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Possible Variable Frame Rate: VUI \"fixed_frame_rate_flag\" absent\n", ctx->log_name));
 			}
-			ctx->autofps = GF_FALSE;
+			ctx->fps = ctx->cur_fps;
 		}
 		first = GF_FALSE;
 		if (is_svc) {
@@ -1086,6 +1087,12 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 	dsi = dsi_enh = NULL;
 
+	ctx->cur_fps = ctx->fps;
+	if (!ctx->cur_fps.num*ctx->cur_fps.den) {
+		ctx->cur_fps.num = 25000;
+		ctx->cur_fps.den = 1000;
+	}
+
 	if (ctx->is_hevc) {
 		naludmx_create_hevc_decoder_config(ctx, &dsi, &dsi_size, &dsi_enh, &dsi_enh_size, &w, &h, &ew, &eh, &sar, &has_hevc_base);
 	} else {
@@ -1136,8 +1143,8 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT_MAX, & PROP_UINT( eh ));
 	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, & PROP_FRAC(ctx->sar));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->fps));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->fps.num));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->cur_fps.num));
 
 	if (ctx->explicit || !has_hevc_base) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->is_hevc ? GF_CODECID_LHVC : GF_CODECID_SVC));
@@ -1229,7 +1236,7 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->start_range) {
 			for (i=1; i<ctx->index_size; i++) {
 				if (ctx->indexes[i].duration>ctx->start_range) {
-					ctx->cts = ctx->dts = (u64) (ctx->indexes[i-1].duration * ctx->fps.num);
+					ctx->cts = ctx->dts = (u64) (ctx->indexes[i-1].duration * ctx->cur_fps.num);
 					file_pos = ctx->indexes[i-1].pos;
 					break;
 				}
@@ -1268,17 +1275,17 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GFINLINE void naludmx_update_time(GF_NALUDmxCtx *ctx)
 {
-	assert(ctx->fps.num);
+	assert(ctx->cur_fps.num);
 
 	if (ctx->timescale) {
 		//very first frame, no dts diff, assume 3000/90k. It should only hurt if we have several frames packet in the first packet sent
-		u64 dts_inc = ctx->fps.den ? ctx->fps.den : 3000;
+		u64 dts_inc = ctx->cur_fps.den ? ctx->cur_fps.den : 3000;
 		ctx->cts += dts_inc;
 		ctx->dts += dts_inc;
 	} else {
-		assert(ctx->fps.den);
-		ctx->cts += ctx->fps.den;
-		ctx->dts += ctx->fps.den;
+		assert(ctx->cur_fps.den);
+		ctx->cts += ctx->cur_fps.den;
+		ctx->dts += ctx->cur_fps.den;
 	}
 }
 
@@ -1526,7 +1533,7 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 		//we use the carrousel flag temporarly to indicate the cts must be recomputed
 		gf_filter_pck_set_carousel_version(dst_pck, ctx->timescale ? 0 : 1);
 
-		gf_filter_pck_set_duration(dst_pck, ctx->pck_duration ? ctx->pck_duration : ctx->fps.den);
+		gf_filter_pck_set_duration(dst_pck, ctx->pck_duration ? ctx->pck_duration : ctx->cur_fps.den);
 		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
 
 		naludmx_update_time(ctx);
@@ -1950,10 +1957,10 @@ GF_Err naludmx_process(GF_Filter *filter)
 			else if (ctx->prev_dts != ts) {
 				u64 diff = ts;
 				diff -= ctx->prev_dts;
-				if (!ctx->fps.den)
-					ctx->fps.den = (u32) diff;
-				else if (ctx->fps.den > diff)
-					ctx->fps.den = (u32) diff;
+				if (!ctx->cur_fps.den)
+					ctx->cur_fps.den = (u32) diff;
+				else if (ctx->cur_fps.den > diff)
+					ctx->cur_fps.den = (u32) diff;
 
 				ctx->prev_dts = ts;
 			}
@@ -2460,8 +2467,8 @@ naldmx_flush:
 			return GF_OK;
 		}
 		if (ctx->in_seek) {
-			u64 nb_frames_at_seek = (u64) (ctx->start_range * ctx->fps.num);
-			if (ctx->cts + ctx->fps.den >= nb_frames_at_seek) {
+			u64 nb_frames_at_seek = (u64) (ctx->start_range * ctx->cur_fps.num);
+			if (ctx->cts + ctx->cur_fps.den >= nb_frames_at_seek) {
 				//u32 samples_to_discard = (ctx->cts + ctx->dts_inc) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
 			}
@@ -2890,7 +2897,7 @@ static void naludmx_del_param_list(GF_List *ps)
 static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
 {
 	u32 i, count;
-	u32 nb_frames = (u32) (ctx->dts / ctx->fps.den);
+	u32 nb_frames = (u32) (ctx->dts / ctx->cur_fps.den);
 
 	if (ctx->nb_si || ctx->nb_sp) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s Import results: %d frames (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR\n", ctx->log_name, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sp, ctx->nb_si, ctx->nb_sei, ctx->nb_idr ));
@@ -3064,8 +3071,7 @@ static const GF_FilterCapability NALUDmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_NALUDmxCtx, _n)
 static const GF_FilterArgs NALUDmxArgs[] =
 {
-	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, 0},
-	{ OFFS(autofps), "detect FPS from bitstream, fallback to [-fps]() option if not possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fps), "import frame rate (0 default to FPS from bitstream or 25 Hz)", GF_PROP_FRACTION, "0/1000", NULL, 0},
 	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value", GF_PROP_DOUBLE, "-1.0", NULL, 0},
 	{ OFFS(explicit), "use explicit layered (SVC/LHVC) import", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

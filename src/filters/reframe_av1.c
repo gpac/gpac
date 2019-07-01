@@ -47,7 +47,6 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index;
-	Bool autofps;
 	Bool importer;
 	Bool deps;
 	
@@ -65,6 +64,7 @@ typedef struct
 	Double start_range;
 	Bool in_seek;
 	u32 timescale;
+	GF_Fraction cur_fps;
 
 	u32 resume_from;
 
@@ -136,6 +136,11 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 	ctx->codecid = 0;
 	if (ctx->vp_cfg) gf_odf_vp_cfg_del(ctx->vp_cfg);
 	ctx->vp_cfg = NULL;
+	ctx->cur_fps = ctx->fps;
+	if (!ctx->fps.num*ctx->fps.den) {
+		ctx->cur_fps.num = 25000;
+		ctx->cur_fps.den = 1000;
+	}
 
 	ctx->pts_from_file = GF_FALSE;
 	if (gf_media_probe_ivf(bs)) {
@@ -183,10 +188,10 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		ctx->state.tb_num = frame_rate; //time_base.numerator
 		ctx->state.tb_den = time_scale; //time_base.denominator
 
-		if (ctx->autofps && ctx->state.tb_num && ctx->state.tb_den && ! ( (ctx->state.tb_num<=1) && (ctx->state.tb_den<=1) ) ) {
-			ctx->fps.num = ctx->state.tb_num;
-			ctx->fps.den = ctx->state.tb_den;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[AV1Dmx] Detected IVF format FPS %d/%d\n", ctx->fps.num, ctx->fps.den));
+		if (!ctx->fps.num*ctx->fps.den && ctx->state.tb_num && ctx->state.tb_den && ! ( (ctx->state.tb_num<=1) && (ctx->state.tb_den<=1) ) ) {
+			ctx->cur_fps.num = ctx->state.tb_num;
+			ctx->cur_fps.den = ctx->state.tb_den;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[AV1Dmx] Detected IVF format FPS %d/%d\n", ctx->cur_fps.num, ctx->cur_fps.den));
 			ctx->pts_from_file = GF_TRUE;
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[AV1Dmx] Detected IVF format\n"));
@@ -307,20 +312,20 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			duration = pts;
 			cur_dur = pts - last_cdur;
 		} else {
-			duration += ctx->fps.den;
-			cur_dur += ctx->fps.den;
+			duration += ctx->cur_fps.den;
+			cur_dur += ctx->cur_fps.den;
 		}
 		if (av1state.frame_state.key_frame)
 		 	is_sap = GF_TRUE;
 
 		//only index at I-frame start
-		if (frame_start && is_sap && (cur_dur > ctx->index * ctx->fps.num) ) {
+		if (frame_start && is_sap && (cur_dur > ctx->index * ctx->cur_fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(AV1Idx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = frame_start;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
-			ctx->indexes[ctx->index_size].duration /= ctx->fps.num;
+			ctx->indexes[ctx->index_size].duration /= ctx->cur_fps.num;
 			ctx->index_size ++;
 			last_cdur = cur_dur;
 			cur_dur = 0;
@@ -331,9 +336,9 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	av1_reset_state(&av1state, GF_TRUE);
 	gf_odf_av1_cfg_del(av1state.config);
 
-	if (!ctx->duration.num || (ctx->duration.num  * ctx->fps.num != duration * ctx->duration.den)) {
+	if (!ctx->duration.num || (ctx->duration.num  * ctx->cur_fps.num != duration * ctx->duration.den)) {
 		ctx->duration.num = (s32) duration;
-		ctx->duration.den = ctx->fps.num;
+		ctx->duration.den = ctx->cur_fps.num;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 	}
@@ -376,7 +381,7 @@ static Bool av1dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 			for (i=1; i<ctx->index_size; i++) {
 				if (ctx->indexes[i].duration>ctx->start_range) {
-					ctx->cts = (u64) (ctx->indexes[i-1].duration * ctx->fps.num);
+					ctx->cts = (u64) (ctx->indexes[i-1].duration * ctx->cur_fps.num);
 					file_pos = ctx->indexes[i-1].pos;
 					break;
 				}
@@ -417,16 +422,16 @@ static Bool av1dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GFINLINE void av1dmx_update_cts(GF_AV1DmxCtx *ctx)
 {
-	assert(ctx->fps.num);
-	assert(ctx->fps.den);
+	assert(ctx->cur_fps.num);
+	assert(ctx->cur_fps.den);
 
 	if (ctx->timescale) {
-		u64 inc = ctx->fps.den;
+		u64 inc = ctx->cur_fps.den;
 		inc *= ctx->timescale;
-		inc /= ctx->fps.num;
+		inc /= ctx->cur_fps.num;
 		ctx->cts += inc;
 	} else {
-		ctx->cts += ctx->fps.den;
+		ctx->cts += ctx->cur_fps.den;
 	}
 }
 
@@ -462,6 +467,12 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			gf_list_rem(ctx->state.frame_state.header_obus, 0);
 		}
 		gf_odf_av1_cfg_write(ctx->state.config, &dsi, &dsi_size);
+
+		if (!ctx->fps.num*ctx->fps.den && ctx->state.tb_num && ctx->state.tb_den && ! ( (ctx->state.tb_num<=1) && (ctx->state.tb_den<=1) ) ) {
+			ctx->cur_fps.num = ctx->state.tb_num;
+			ctx->cur_fps.den = ctx->state.tb_den;
+		}
+
 	}
 	crc = gf_crc_32(dsi, dsi_size);
 
@@ -477,8 +488,8 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid));
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->fps.num));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->fps));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->cur_fps.num));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT(ctx->state.width));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(ctx->state.height));
 
@@ -966,8 +977,7 @@ static const GF_FilterCapability AV1DmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_AV1DmxCtx, _n)
 static const GF_FilterArgs AV1DmxArgs[] =
 {
-	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, 0},
-	{ OFFS(autofps), "detect FPS from bitstream, fallback to [-fps]() option if not possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fps), "import frame rate (0 default to FPS from from bitstream or 25 Hz)", GF_PROP_FRACTION, "0/1000", NULL, 0},
 	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value", GF_PROP_DOUBLE, "-1.0", NULL, 0},
 
 	{ OFFS(importer), "compatibility with old importer", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

@@ -55,6 +55,7 @@ typedef struct
 	u32 timescale;
 
 	u32 resume_from;
+	GF_Fraction cur_fps;
 
 	Bool is_mpg12, forced_packed;
 	GF_M4VParser *vparser;
@@ -100,13 +101,19 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		return GF_NOT_SUPPORTED;
 
 	ctx->ipid = pid;
+	ctx->cur_fps = ctx->fps;
+	if (!ctx->fps.num*ctx->fps.den) {
+		ctx->cur_fps.num = 25000;
+		ctx->cur_fps.den = 1000;
+	}
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) {
-		ctx->timescale = ctx->fps.num = p->value.uint;
-		ctx->fps.den = 0;
+		ctx->timescale = ctx->cur_fps.num = p->value.uint;
+		ctx->cur_fps.den = 0;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (p) {
-			ctx->fps = p->value.frac;
+			ctx->cur_fps = p->value.frac;
 		}
 		p = gf_filter_pid_get_property_str(pid, "nocts");
 		if (p && p->value.boolean) ctx->recompute_cts = GF_TRUE;
@@ -200,16 +207,16 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 			continue;
 		}
 
-		duration += ctx->fps.den;
-		cur_dur += ctx->fps.den;
+		duration += ctx->cur_fps.den;
+		cur_dur += ctx->cur_fps.den;
 		//only index at I-frame start
-		if (pos && (ftype==0) && (cur_dur >= ctx->index * ctx->fps.num) ) {
+		if (pos && (ftype==0) && (cur_dur >= ctx->index * ctx->cur_fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(MPGVidIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = pos;
-			ctx->indexes[ctx->index_size].start_time = (Double) (duration-ctx->fps.den);
-			ctx->indexes[ctx->index_size].start_time /= ctx->fps.num;
+			ctx->indexes[ctx->index_size].start_time = (Double) (duration-ctx->cur_fps.den);
+			ctx->indexes[ctx->index_size].start_time /= ctx->cur_fps.num;
 			ctx->index_size ++;
 			cur_dur = 0;
 		}
@@ -217,9 +224,9 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 	gf_m4v_parser_del(vparser);
 	gf_fclose(stream);
 
-	if (!ctx->duration.num || (ctx->duration.num  * ctx->fps.num != duration * ctx->duration.den)) {
+	if (!ctx->duration.num || (ctx->duration.num  * ctx->cur_fps.num != duration * ctx->duration.den)) {
 		ctx->duration.num = (s32) duration;
-		ctx->duration.den = ctx->fps.num;
+		ctx->duration.den = ctx->cur_fps.num;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 	}
@@ -251,12 +258,12 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 			if (cts != GF_FILTER_NO_TS) {
 				//offset the cts of the ref frame to the number of B frames inbetween
 				if (ctx->last_ref_cts == cts) {
-					cts += ctx->b_frames * ctx->fps.den;
+					cts += ctx->b_frames * ctx->cur_fps.den;
 					gf_filter_pck_set_cts(q_pck, cts);
 				} else {
 					//shift all other frames (i.e. pending Bs) by 1 frame in the past since we move the ref frame after them
-					assert(cts >= ctx->fps.den);
-					cts -= ctx->fps.den;
+					assert(cts >= ctx->cur_fps.den);
+					cts -= ctx->cur_fps.den;
 					gf_filter_pck_set_cts(q_pck, cts);
 				}
 			}
@@ -287,8 +294,8 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 
 	//copy properties at init or reconfig
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->fps.num));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->fps));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->cur_fps.num));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	if (ctx->duration.num)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
@@ -384,7 +391,7 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 		if (ctx->start_range) {
 			for (i=1; i<ctx->index_size; i++) {
 				if ((ctx->indexes[i].start_time > ctx->start_range) || (i+1==ctx->index_size)) {
-					ctx->cts = (u64) (ctx->indexes[i-1].start_time * ctx->fps.num);
+					ctx->cts = (u64) (ctx->indexes[i-1].start_time * ctx->cur_fps.num);
 					file_pos = ctx->indexes[i-1].pos;
 					break;
 				}
@@ -432,23 +439,23 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 
 static GFINLINE void mpgviddmx_update_time(GF_MPGVidDmxCtx *ctx)
 {
-	assert(ctx->fps.num);
+	assert(ctx->cur_fps.num);
 
 	if (ctx->timescale) {
 		u64 inc = 3000;
-		if (ctx->fps.den && ctx->fps.num) {
-			inc = ctx->fps.den;
-			if (ctx->fps.num != ctx->timescale) {
+		if (ctx->cur_fps.den && ctx->cur_fps.num) {
+			inc = ctx->cur_fps.den;
+			if (ctx->cur_fps.num != ctx->timescale) {
 				inc *= ctx->timescale;
-				inc /= ctx->fps.num;
+				inc /= ctx->cur_fps.num;
 			}
 		}
 		ctx->cts += inc;
 		ctx->dts += inc;
 	} else {
-		assert(ctx->fps.den);
-		ctx->cts += ctx->fps.den;
-		ctx->dts += ctx->fps.den;
+		assert(ctx->cur_fps.den);
+		ctx->cts += ctx->cur_fps.den;
+		ctx->dts += ctx->cur_fps.den;
 	}
 }
 
@@ -533,9 +540,9 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			else if (ctx->prev_dts != ts) {
 				u64 diff = ts;
 				diff -= ctx->prev_dts;
-				if (!ctx->fps.den) ctx->fps.den = (u32) diff;
-				else if (ctx->fps.den > diff)
-					ctx->fps.den = (u32) diff;
+				if (!ctx->cur_fps.den) ctx->cur_fps.den = (u32) diff;
+				else if (ctx->cur_fps.den > diff)
+					ctx->cur_fps.den = (u32) diff;
 			}
 		}
 		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, &ctx->input_is_au_end);
@@ -861,8 +868,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		ctx->hdr_store_size = 0;
 
 		if (ctx->in_seek) {
-			u64 nb_frames_at_seek = (u64) (ctx->start_range * ctx->fps.num);
-			if (ctx->cts + ctx->fps.den >= nb_frames_at_seek) {
+			u64 nb_frames_at_seek = (u64) (ctx->start_range * ctx->cur_fps.num);
+			if (ctx->cts + ctx->cur_fps.den >= nb_frames_at_seek) {
 				//u32 samples_to_discard = (ctx->cts + ctx->dts_inc) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
 			}
@@ -972,7 +979,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			gf_filter_pck_set_carousel_version(dst_pck, 1);
 		}
 		gf_filter_pck_set_sap(dst_pck, ftype ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1);
-		gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
+		gf_filter_pck_set_duration(dst_pck, ctx->cur_fps.den);
 		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
 		ctx->frame_started = GF_TRUE;
 
@@ -1129,7 +1136,7 @@ static const GF_FilterCapability MPGVidDmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_MPGVidDmxCtx, _n)
 static const GF_FilterArgs MPGVidDmxArgs[] =
 {
-	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, 0},
+	{ OFFS(fps), "import frame rate (0 default to FPS from bitstream or 25 Hz)", GF_PROP_FRACTION, "0/1000", NULL, 0},
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(vfr), "set variable frame rate import", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

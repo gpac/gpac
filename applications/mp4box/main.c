@@ -2174,7 +2174,8 @@ GF_Err e;
 GF_SMEncodeOptions opts;
 #endif
 SDPLine *sdp_lines = NULL;
-Double interleaving_time, split_duration, split_start, import_fps, dash_duration, dash_subduration;
+Double interleaving_time, split_duration, split_start, dash_duration, dash_subduration;
+GF_Fraction import_fps;
 Bool dash_duration_strict;
 MetaAction *metas = NULL;
 TrackAction *tracks = NULL;
@@ -2865,15 +2866,17 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-ovsbr")) import_flags |= GF_IMPORT_OVSBR;
 		else if (!stricmp(arg, "-fps")) {
 			CHECK_NEXT_ARG
-			if (!strcmp(argv[i + 1], "auto")) import_fps = GF_IMPORT_AUTO_FPS;
+			if (!strcmp(argv[i + 1], "auto")) { fprintf(stderr, "Warning, fps=auto option is deprecated\n"); }
 			else if (strchr(argv[i + 1], '-')) {
 				u32 ticks, dts_inc;
 				sscanf(argv[i + 1], "%u-%u", &ticks, &dts_inc);
 				if (!dts_inc) dts_inc = 1;
-				import_fps = ticks;
-				import_fps /= dts_inc;
+				import_fps.num = ticks;
+				import_fps.den = dts_inc;
+			} else {
+				import_fps.num = 1000 * atof(argv[i + 1]);
+				import_fps.den = 0;
 			}
-			else import_fps = atof(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-agg")) {
@@ -4079,7 +4082,7 @@ int mp4boxMain(int argc, char **argv)
 	split_start = -1.0;
 	interleaving_time = 0;
 	dash_duration = dash_subduration = 0.0;
-	import_fps = 0;
+	import_fps.num = import_fps.den = 0;
 	import_flags = 0;
 	split_size = 0;
 	movie_time = 0;
@@ -5257,7 +5260,8 @@ int mp4boxMain(int argc, char **argv)
 		case META_ACTION_ADD_IMAGE_ITEM:
 		{
 			u32 old_tk_count = gf_isom_get_track_count(file);
-			e = import_file(file, meta->szPath, 0, 0, 0);
+			GF_Fraction _frac = {0,0};
+			e = import_file(file, meta->szPath, 0, _frac, 0);
 			if (e == GF_OK) {
 				u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
 				if (!meta_type) {
