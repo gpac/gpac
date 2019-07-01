@@ -568,7 +568,10 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	GF_FilterPidInst *pidinst=NULL;
 
 	assert(filter->freg->configure_pid);
-	assert(!filter->finalized);
+	if (filter->finalized) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to configure PID %s in filnalized filter %s\n",  pid->name, filter->name));
+		return GF_SERVICE_ERROR;
+	}
 
 	if (filter->detached_pid_inst) {
 		count = gf_list_count(filter->detached_pid_inst);
@@ -3394,7 +3397,9 @@ single_retry:
 		//we have a match, check if caps are OK
 		cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1);
 
-		if (!cap_matched && filter_dst->clonable) {
+		//if clonable filter and no match, check if we would match the caps without caps override of dest
+		//note we don't do this on sources for the time being, since this might trigger undesired resolution of file->file
+		if (!cap_matched && filter_dst->clonable && pid->filter->num_input_pids) {
 			cap_matched  = gf_filter_pid_caps_match(pid, filter_dst->freg, NULL, NULL, NULL, pid->filter->dst_filter, -1);
 		}
 
