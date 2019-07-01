@@ -4872,14 +4872,14 @@ static GF_Err dasher_process(GF_Filter *filter)
 						for now we only complain for video*/
 						&& ((ds->stream_type==GF_STREAM_VISUAL) || ctx->strict_sap)
 					) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
-							ctx->profile = GF_DASH_PROFILE_FULL;
-							if (ctx->sseg)
-								ds->set->subsegment_starts_with_sap = sap_type;
-							else
-								ds->set->starts_with_sap = sap_type;
-						}
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
+						ctx->profile = GF_DASH_PROFILE_FULL;
+						if (ctx->sseg)
+							ds->set->subsegment_starts_with_sap = sap_type;
+						else
+							ds->set->starts_with_sap = sap_type;
 					}
+
 
 					seg_over = GF_TRUE;
 					if (ds == base_ds) {
