@@ -1047,11 +1047,14 @@ GF_EXPORT
 const char *gf_filter_pid_orig_src_args(GF_FilterPid *pid)
 {
 	u32 i;
-	const char *args = pid->pid->filter->src_args;
+	const char *args;
+	//move to true source pid
+	pid = pid->pid;
+	args = pid->filter->src_args;
 	if (args && strstr(args, "src")) return args;
 	if (!pid->filter->num_input_pids) return args;
-	for (i=0; i<pid->pid->filter->num_input_pids; i++) {
-		GF_FilterPidInst *pidi = gf_list_get(pid->pid->filter->input_pids, i);
+	for (i=0; i<pid->filter->num_input_pids; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
 		const char *arg_src = gf_filter_pid_orig_src_args(pidi->pid);
 		if (arg_src) return arg_src;
 	}
