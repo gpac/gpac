@@ -25,7 +25,6 @@
 
 #include <gpac/main.h>
 #include <gpac/filters.h>
-#include <time.h>
 
 static GF_SystemRTInfo rti;
 static GF_FilterSession *session=NULL;
@@ -696,7 +695,7 @@ static void print_date(u64 time)
 	gtime = time / 1000;
 	sec = (u32)(time / 1000);
 	ms = (u32)(time - ((u64)sec) * 1000);
-	t = gmtime(&gtime);
+	t = gf_gmtime(&gtime);
 //	fprintf(stderr, "[%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, ms);
 	fprintf(stderr, "[%02d:%02d:%02d.%03dZ] ", t->tm_hour, t->tm_min, t->tm_sec, ms);
 }

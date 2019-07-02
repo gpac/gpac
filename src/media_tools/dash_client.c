@@ -33,12 +33,6 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#ifdef _WIN32_WCE
-#include <winbase.h>
-#else
-#include <time.h>
-#endif
-
 #include <math.h>
 
 
@@ -623,9 +617,9 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			time_t gtime1, gtime2;
 			struct tm *t1, *t2;
 			gtime1 = current_time / 1000;
-			t1 = gmtime(&gtime1);
+			t1 = gf_gmtime(&gtime1);
 			gtime2 = availabilityStartTime / 1000;
-			t2 = gmtime(&gtime2);
+			t2 = gf_gmtime(&gtime2);
 			if (t1 == t2) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Slight drift in UTC clock at time %d-%02d-%02dT%02d:%02d:%02dZ: diff AST - now %d ms\n", 1900+t1->tm_year, t1->tm_mon+1, t1->tm_mday, t1->tm_hour, t1->tm_min, t1->tm_sec, (s32) (availabilityStartTime - current_time) ));
 				current_time = 0;

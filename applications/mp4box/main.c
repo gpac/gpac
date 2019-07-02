@@ -53,8 +53,6 @@
 
 #include <gpac/internal/mpd.h>
 
-#include <time.h>
-
 #define BUFFSIZE	8192
 #define DEFAULT_INTERLEAVING_IN_SEC 0.5
 

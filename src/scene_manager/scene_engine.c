@@ -43,8 +43,6 @@
 #include <gpac/constants.h>
 #include <gpac/base_coding.h>
 
-#include <time.h>
-
 
 struct __tag_scene_engine
 {

@@ -299,8 +299,6 @@ enum
 
 #ifndef GPAC_DISABLE_MPEG2TS
 
-#include <time.h>
-
 typedef struct tag_m2ts_demux GF_M2TS_Demuxer;
 typedef struct tag_m2ts_es GF_M2TS_ES;
 typedef struct tag_m2ts_section_es GF_M2TS_SECTION_ES;

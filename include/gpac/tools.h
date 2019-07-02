@@ -32,6 +32,7 @@ extern "C" {
 
 #include <gpac/setup.h>
 #include <gpac/version.h>
+#include <time.h>
 
 
 /*! \file "gpac/tools.h"
@@ -932,6 +933,14 @@ u64 gf_net_get_utc_ts(u32 year, u32 month, u32 day, u32 hour, u32 min, u32 sec);
  * \return timezone shift in seconds
  */
 s32 gf_net_get_timezone();
+
+/*!
+ *\brief gets time from UTC timestamp
+ *
+ * Gets time from UTC timestamp
+ * \return time description structure
+ */
+struct tm *gf_gmtime(const time_t *time);
 
 /*!\brief run-time system info object
  *

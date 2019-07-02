@@ -29,13 +29,6 @@
 #include <gpac/network.h>
 #include <gpac/maths.h>
 
-#ifdef _WIN32_WCE
-#include <winbase.h>
-#else
-/*for mktime*/
-#include <time.h>
-#endif
-
 #ifndef GPAC_DISABLE_CORE_TOOLS
 
 static Bool gf_mpd_parse_bool(const char * const attr)
@@ -2328,15 +2321,12 @@ void gf_mpd_print_date(FILE *out, char *name, u64 time)
 	if (name) {
 		fprintf(out, " %s=\"", name);
 	}
-
-#ifdef _WIN32_WCE
-	*(LONGLONG *) &filet = (sec/* - GF_NTP_SEC_1900_TO_1970*/) * 10000000 + TIMESPEC_TO_FILETIME_OFFSET;
-	FileTimeToSystemTime(&filet, &syst);
-	fprintf(out, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond, (u32) ms);
-#else
-	t = gmtime(&gtime);
-	fprintf(out, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, ms);
-#endif
+	t = gf_gmtime(&gtime);
+	sec = t->tm_sec;
+	//see issue #859, no clue how this happened...
+	if (sec > 60)
+		sec = 60;
+	fprintf(out, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, sec, ms);
 
 	if (name) {
 		fprintf(out, "\"");
@@ -2963,7 +2953,7 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 	assert(time_ms<1000);
 
 	gtime = sec;
-	t = gmtime(&gtime);
+	t = gf_gmtime(&gtime);
 	if (! gf_sys_is_test_mode() ){
 		fprintf(out, "<!-- MPD file Generated with GPAC version %s at %d-%02d-%02dT%02d:%02d:%02d.%03dZ -->\n", gf_gpac_version(), 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32)time_ms);
 	}

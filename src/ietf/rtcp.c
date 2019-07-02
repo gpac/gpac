@@ -30,10 +30,6 @@
 
 #include <gpac/bitstream.h>
 
-#ifndef _WIN32_WCE
-#include <time.h>
-#endif
-
 GF_EXPORT
 u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 {
@@ -128,7 +124,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 			if (gf_log_tool_level_on(GF_LOG_RTP, GF_LOG_INFO))  {
 #ifndef _WIN32_WCE
 				time_t gtime = ch->last_SR_NTP_sec - GF_NTP_SEC_1900_TO_1970;
-				const char *ascTime = asctime(gmtime(&gtime));
+				const char *ascTime = asctime(gf_gmtime(&gtime));
 #else
 				const char *ascTime = "Not Available";
 #endif
@@ -363,7 +359,7 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 	if (gf_log_tool_level_on(GF_LOG_RTP, GF_LOG_DEBUG))  {
 #ifndef _WIN32_WCE
 		time_t gtime = ch->last_SR_NTP_sec - GF_NTP_SEC_1900_TO_1970;
-		const char *ascTime = asctime(gmtime(&gtime));
+		const char *ascTime = asctime(gf_gmtime(&gtime));
 #else
 		const char *ascTime = "Not Available";
 #endif
