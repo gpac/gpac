@@ -4925,7 +4925,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 						ds->nb_sap_4 ++;
 
 					/*check requested profiles can be generated, or adjust them*/
-					if ((ctx->profile != GF_DASH_PROFILE_FULL) && (ds->nb_sap_4 || (ds->nb_sap_3 > 1)) ) {
+					if ((ctx->profile != GF_DASH_PROFILE_FULL)
+						&& (ds->nb_sap_4 || (ds->nb_sap_3 > 1))
+						/*TODO: store at DS level whether the usage of sap4 is ok or not (eg roll info for AAC is OK, not for xHEAAC-v2)
+						for now we only complain for video*/
+						&& ((ds->stream_type==GF_STREAM_VISUAL) || ctx->strict_sap)
+					) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
 						ctx->profile = GF_DASH_PROFILE_FULL;
 						if (ctx->sseg)
