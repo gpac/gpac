@@ -1413,7 +1413,7 @@ void gf_mpd_getter_del_session(GF_FileDownload *getter) {
 }
 
 static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file, const char *src_base_url, const char *mpd_file, char *title, Double update_interval,
-                                      char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, Bool is_end, u32 max_dur, GF_MPD *mpd, Bool parse_sub_playlist)
+                                      char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, Bool use_segment_timeline, Bool is_end, u32 max_dur, GF_MPD *mpd, Bool parse_sub_playlist)
 {
 	char *sep, *template_base=NULL, *template_ext;
 	u32 nb_streams, i, j, k, template_width, template_idx_start;
@@ -1676,10 +1676,12 @@ try_next_segment:
 				base_url = gf_strdup("./");
 			}
 
-
 			width = pe->width;
 			height = pe->height;
 			samplerate = num_channels = 0;
+
+retry_import:
+
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 			if (elt && import_file) {
 				GF_Err e;
@@ -1710,11 +1712,17 @@ try_next_segment:
 				} else {
 					import.in_name = elt_url;
 				}
+
+				if (!strstr(elt_url, "://") && !gf_file_exists(elt_url)) {
+					import_file = GF_FALSE;
+					goto retry_import;
+				}
 				e = gf_media_import(&import);
 
 				if (e != GF_OK) {
 //					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] M3U8 missing Media Element %s< (Playlist %s) %s \n", import.in_name, base_url));
 					k++;
+					if (elt_url) gf_free(elt_url);
 					goto try_next_segment;
 				}
 
@@ -1882,6 +1890,7 @@ try_next_segment:
 			}
 			rep->segment_list->segment_URLs = gf_list_new();
 			rep->segment_list->duration = (u64) (pe->duration_info * 1000);
+			rep->segment_list->timescale = 1000;
 			if (elt && elt->init_segment_url) {
 				u32 len = (u32) strlen(base_url);
 				GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
@@ -1898,10 +1907,34 @@ try_next_segment:
 				}
 			}
 
-//			update_interval = (count_elements - 1) * pe->duration_info * 1000;
+
+			Double avg_dur = 0;
+			Double cur_start=0;
+			Bool do_seg_timeline = use_segment_timeline;
+
 			for (k=0; k<count_elements; k++) {
+				Double diff, seg_start;
 				GF_MPD_SegmentURL *segment_url;
 				elt = gf_list_get(pe->element.playlist.elements, k);
+
+				if (!avg_dur) avg_dur = elt->duration_info;
+				else if (elt->duration_info) {
+					diff = elt->duration_info - avg_dur;
+					if (diff<0) diff = -diff;
+					if (diff > avg_dur/2) {
+						do_seg_timeline = GF_TRUE;
+					}
+				}
+				seg_start = ((Double)k*rep->segment_list->duration) / rep->segment_list->timescale;
+				if (k) {
+					diff = cur_start - seg_start;
+					if (diff<0) diff = -diff;
+					if (diff > avg_dur/2) {
+						do_seg_timeline = GF_TRUE;
+					}
+				}
+
+				cur_start += elt->duration_info;
 
 				GF_SAFEALLOC(segment_url, GF_MPD_SegmentURL);
 				if (!segment_url) return GF_OUT_OF_MEM;
@@ -1923,6 +1956,7 @@ try_next_segment:
 						elt->url=NULL;
 					}
 				}
+
 				if (elt->drm_method != DRM_NONE) {
 					//segment_url->key_url = "aes-128";
 					if (elt->key_uri) {
@@ -1930,6 +1964,22 @@ try_next_segment:
 						elt->key_uri=NULL;
 						memcpy(segment_url->key_iv, elt->key_iv, sizeof(bin128));
 					}
+				}
+			}
+			if (do_seg_timeline) {
+				u64 start_time = 0;
+				GF_SAFEALLOC(rep->segment_list->segment_timeline, GF_MPD_SegmentTimeline);
+				rep->segment_list->segment_timeline->entries = gf_list_new();
+				for (k=0; k<count_elements; k++) {
+					u64 dur;
+					GF_MPD_SegmentTimelineEntry *se;
+					elt = gf_list_get(pe->element.playlist.elements, k);
+					GF_SAFEALLOC(se, GF_MPD_SegmentTimelineEntry);
+					dur = elt->duration_info * rep->segment_list->timescale;
+					se->duration = dur;
+					se->start_time = start_time;
+					start_time += dur;
+					gf_list_add(rep->segment_list->segment_timeline->entries, se);
 				}
 			}
 			gf_free(base_url);
@@ -1953,7 +2003,7 @@ try_next_segment:
 GF_EXPORT
 GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
                       const char *mpd_file,
-                      u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, GF_FileDownload *getter,
+                      u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, Bool use_segment_timeline, GF_FileDownload *getter,
                       GF_MPD *mpd, Bool parse_sub_playlist, Bool keep_files)
 {
 	GF_Err e;
@@ -2090,7 +2140,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	assert(mpd_file);
 	assert(mpd);
 
-	e = gf_m3u8_fill_mpd_struct(pl, m3u8_file, base_url, mpd_file, title, update_interval, mimeTypeForM3U8Segments, do_import, use_mpd_templates, is_end,  max_dur, mpd, parse_sub_playlist);
+	e = gf_m3u8_fill_mpd_struct(pl, m3u8_file, base_url, mpd_file, title, update_interval, mimeTypeForM3U8Segments, do_import, use_mpd_templates, use_segment_timeline, is_end,  max_dur, mpd, parse_sub_playlist);
 
 	gf_m3u8_master_playlist_del(&pl);
 
@@ -2373,6 +2423,7 @@ static void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, s32 inde
 static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl, s32 indent)
 {
 	u32 i;
+	u64 start_time=0;
 	GF_MPD_SegmentTimelineEntry *se;
 
 	gf_mpd_nl(out, indent);
@@ -2383,7 +2434,12 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 	while ( (se = gf_list_enum(tl->entries, &i))) {
 		gf_mpd_nl(out, indent+1);
 		fprintf(out, "<S");
-		fprintf(out, " t=\""LLD"\"", se->start_time);
+		if (!start_time || (se->start_time != start_time)) {
+			fprintf(out, " t=\""LLD"\"", se->start_time);
+			start_time = se->start_time;
+		}
+		start_time += (se->repeat_count+1) * se->duration;
+
 		if (se->duration) fprintf(out, " d=\"%d\"", se->duration);
 		if (se->repeat_count) fprintf(out, " r=\"%d\"", se->repeat_count);
 		fprintf(out, "/>");
