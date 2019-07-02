@@ -699,6 +699,27 @@ sh4_change_fpscr(int off, int on)
 
 #endif
 
+GF_EXPORT
+struct tm *gf_gmtime(const time_t *time)
+{
+#ifdef _WIN32_WCE
+	FILETIME filet;
+	LPSYSTEMTIME syst;
+	*(LONGLONG *) &filet = (sec/* - GF_NTP_SEC_1900_TO_1970*/) * 10000000 + TIMESPEC_TO_FILETIME_OFFSET;
+	FileTimeToSystemTime(&filet, &syst);
+	if (syst.wSecond>60)
+		syst.wSecond=60;
+//	fprintf(out, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond, (u32) ms);
+#endif
+
+	struct tm *tm = gmtime(time);
+	//see issue #859, no clue how this happened...
+	if (tm->tm_sec>60)
+		tm->tm_sec = 60;
+	return tm;
+}
+
+
 #ifdef GPAC_MEMORY_TRACKING
 void gf_mem_enable_tracker(Bool enable_backtrace);
 #endif
@@ -733,7 +754,7 @@ static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *
 		u64 utc_clock = gf_net_get_utc() ;
 		time_t secs = utc_clock/1000;
 		struct tm t;
-		t = *gmtime(&secs);
+		t = *gf_gmtime(&secs);
 		fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS "LLU") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
 	}
 	vfprintf(logs, fmt, list);
@@ -2109,7 +2130,7 @@ s32 gf_net_get_timezone()
 	struct tm t_gmt, t_local;
 	time_t t_time;
 	t_time = time(NULL);
-	t_gmt = *gmtime(&t_time);
+	t_gmt = *gf_gmtime(&t_time);
 	t_local = *localtime(&t_time);
 
 	t_timezone = (t_gmt.tm_hour - t_local.tm_hour) * 3600 + (t_gmt.tm_min - t_local.tm_min) * 60;

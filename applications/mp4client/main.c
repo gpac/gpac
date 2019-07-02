@@ -36,7 +36,6 @@
 #include <gpac/avparse.h>
 #include <gpac/network.h>
 #include <gpac/utf.h>
-#include <time.h>
 
 /*ISO 639 languages*/
 #include <gpac/iso639.h>

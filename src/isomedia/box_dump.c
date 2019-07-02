@@ -29,7 +29,6 @@
 #include <gpac/color.h>
 #include <gpac/avparse.h>
 #include <gpac/base_coding.h>
-#include <time.h>
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
@@ -4897,7 +4896,7 @@ GF_Err prft_dump(GF_Box *a, FILE * trace)
 		}
 		secs = 0;
 	}
-	t = *gmtime(&secs);
+	t = *gf_gmtime(&secs);
 	fracs = (Double) (ptr->ntp & 0xFFFFFFFFULL);
 	fracs /= 0xFFFFFFFF;
 	fracs *= 1000;

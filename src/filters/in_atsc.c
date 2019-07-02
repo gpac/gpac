@@ -26,8 +26,6 @@
 #include <gpac/filters.h>
 #include <gpac/atsc.h>
 
-#include <time.h>
-
 #ifndef GPAC_DISABLE_ATSC
 
 typedef struct

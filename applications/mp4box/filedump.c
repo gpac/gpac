@@ -43,8 +43,6 @@
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
 #include <gpac/internal/media_dev.h>
-/*for asctime and gmtime*/
-#include <time.h>
 /*ISO 639 languages*/
 #include <gpac/iso639.h>
 #include <gpac/mpegts.h>
@@ -1666,7 +1664,7 @@ static char *format_date(u64 time, char *szTime)
 	} else {
 		time -= 2082844800;
 		now = (u32) time;
-		sprintf(szTime, "GMT %s", asctime(gmtime(&now)) );
+		sprintf(szTime, "GMT %s", asctime(gf_gmtime(&now)) );
 	}
 	return szTime;
 }

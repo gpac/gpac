@@ -44,7 +44,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
-#include <time.h>
 #include <sys/time.h>
 
 #ifndef __BEOS__
@@ -738,7 +737,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		file_info.size = st.st_size;
 
 		{
-			struct tm _t = * gmtime(& st.st_mtime);
+			struct tm _t = * gf_gmtime(& st.st_mtime);
 			file_info.last_modified = mktime(&_t);
 		}
 		file = the_file->d_name;
