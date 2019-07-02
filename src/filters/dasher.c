@@ -580,6 +580,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		ds->dash_dur = ctx->dur;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_DUR);
 		if (p) ds->dash_dur = p->value.number;
+		//this avoids very weird cases where (u64) (dash_dur*timescale) is 0. we limit the max segment duration to 1M sec, a bit more than 11.5 days
+		if (ds->dash_dur>1000000)
+			ds->dash_dur=1000000;
 
 		ds->splitable = GF_FALSE;
 		switch (ds->stream_type) {
@@ -4381,7 +4384,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		seg_start /= ds->mpd_timescale;
 		drift = seg_start - (ds->seg_number - ds->startNumber) * ds->dash_dur;
 
-		if (ABS(drift) > ds->dash_dur/2) {
+		if ((ds->dash_dur>0) && (ABS(drift) > ds->dash_dur/2)) {
 			u64 cts = gf_filter_pck_get_cts(pck);
 			cts -= ds->first_cts;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] First CTS "LLU" in segment %d drifting by %g (more than half a second duration) from segment time, consider reencoding or using segment timeline\n", cts, ds->seg_number,  drift));
