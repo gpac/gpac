@@ -595,8 +595,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			print_stats_graph |= 2;
 		else if (!strncmp(ext+1, "sopt", 4) || !strncmp(ext+1, "dopt", 4) || !strncmp(ext+1, "@@", 2)) {
 			if (ext2) ext2[0] = ':';
-			opt_src = strstr(ext, ":sopt=");
-			opt_dst = strstr(ext, ":dopt=");
+			opt_src = strstr(ext, ":sopt:");
+			opt_dst = strstr(ext, ":dopt:");
 			fchain = strstr(ext, ":@@");
 			if (opt_src) opt_src[0] = 0;
 			if (opt_dst) opt_dst[0] = 0;
