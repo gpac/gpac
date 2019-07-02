@@ -22,7 +22,7 @@ Description: Inspect packets
 .br
 
 .br
-The inspector filter can be used to dump pid and packets. It may be used to also check parts of payload of the packets. The default options inspect only pid changes.
+The inspect filter can be used to dump pid and packets. It may also be used to check parts of payload of the packets. The default options inspect only pid changes.
 .br
 The packet inspector can be configured to dump specific properties of packets using -fmt.
 .br
@@ -42,7 +42,17 @@ When the option is not present, all properties are dumped. Otherwise, only prope
 .br
 * dur: duration in stream timescale
 .br
-* frame: framing status: frame_full (complete AU), frame_start, frame_end, frame_cont
+* frame: framing status
+.br
+ * interface: complete AU, interface object (no size info). Typically a GL texture
+.br
+ * frame_full: complete AU
+.br
+ * frame_start: begining of frame
+.br
+ * frame_end: end of frame
+.br
+ * frame_cont: frame continuation (not begining, not end)
 .br
 * sap or rap: SAP type of the frame
 .br
@@ -115,25 +125,25 @@ log (string, default: stderr, minmax: fileName or stderr or stdout): set inspect
 .br
 mode (enum, default: pck):               dump mode
 .br
-* pck: dumps full packet
+* pck: dump full packet
 .br
-* blk: dumps packets before reconstruction
+* blk: dump packets before reconstruction
 .br
 * frame: force reframer
 .br
-* raw: dumps source packets without demuxing
+* raw: dump source packets without demuxing
 .br
 
 .br
 interleave (boolean, default: true):     dump packets as they are received on each pid. If false, report per pid is generated
 .br
-deep (boolean, default: false):          dump packets along with PID state change - implied when -fmt is set
+deep (boolean, default: false):          dump packets along with PID state change, implied when -fmt is set
 .br
-props (boolean, default: true):          dump packet properties - ignored when  -fmt is set, see filter help
+props (boolean, default: true):          dump packet properties, ignored when -fmt is set (see filter help)
 .br
-dump_data (boolean, default: false, updatable): enable full data dump, WARNING heavy - ignored when  -fmt is set, see filter help
+dump_data (boolean, default: false, updatable): enable full data dump (WARNING heavy!), ignored when -fmt is set (see filter help)
 .br
-fmt (string, no default, updatable):     set packet dump format - see filter help
+fmt (string, no default, updatable):     set packet dump format (see filter help)
 .br
 hdr (boolean, default: true):            print a header corresponding to fmt string without '$ 'or "pid."
 .br
@@ -149,11 +159,11 @@ start (number, default: 0.0):            set playback start offset. Negative val
 .br
 dur (fraction, default: 0/0):            set inspect duration
 .br
-analyze (boolean, default: false):       analyze sample content (NALU, OBU). This will force XML formatting
+analyze (boolean, default: false):       analyze sample content (NALU, OBU)
 .br
-xml (boolean, default: false):           use xml formatting. This disables any custom format set through fmt option
+xml (boolean, default: false):           use xml formatting (implied if (-analyze]() is set) and disable -fmt
 .br
-test (enum, default: no):                skip predefined stes of properties, used for test mode
+test (enum, default: no):                skip predefined set of properties, used for test mode
 .br
 * no: no properties skipped
 .br
@@ -187,25 +197,25 @@ log (string, default: stderr, minmax: fileName or stderr or stdout): set inspect
 .br
 mode (enum, default: pck):               dump mode
 .br
-* pck: dumps full packet
+* pck: dump full packet
 .br
-* blk: dumps packets before reconstruction
+* blk: dump packets before reconstruction
 .br
 * frame: force reframer
 .br
-* raw: dumps source packets without demuxing
+* raw: dump source packets without demuxing
 .br
 
 .br
 interleave (boolean, default: true):     dump packets as they are received on each pid. If false, report per pid is generated
 .br
-deep (boolean, default: false):          dump packets along with PID state change - implied when -fmt is set
+deep (boolean, default: false):          dump packets along with PID state change, implied when -fmt is set
 .br
-props (boolean, default: true):          dump packet properties - ignored when  -fmt is set, see filter help
+props (boolean, default: true):          dump packet properties, ignored when -fmt is set (see filter help)
 .br
-dump_data (boolean, default: false, updatable): enable full data dump, WARNING heavy - ignored when  -fmt is set, see filter help
+dump_data (boolean, default: false, updatable): enable full data dump (WARNING heavy!), ignored when -fmt is set (see filter help)
 .br
-fmt (string, no default, updatable):     set packet dump format - see filter help
+fmt (string, no default, updatable):     set packet dump format (see filter help)
 .br
 hdr (boolean, default: true):            print a header corresponding to fmt string without '$ 'or "pid."
 .br
@@ -221,11 +231,11 @@ start (number, default: 0.0):            set playback start offset. Negative val
 .br
 dur (fraction, default: 0/0):            set inspect duration
 .br
-analyze (boolean, default: false):       analyze sample content (NALU, OBU). This will force XML formatting
+analyze (boolean, default: false):       analyze sample content (NALU, OBU)
 .br
-xml (boolean, default: false):           use xml formatting. This disables any custom format set through fmt option
+xml (boolean, default: false):           use xml formatting (implied if (-analyze]() is set) and disable -fmt
 .br
-test (enum, default: no):                skip predefined stes of properties, used for test mode
+test (enum, default: no):                skip predefined set of properties, used for test mode
 .br
 * no: no properties skipped
 .br
@@ -4285,7 +4295,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2463-g9fe528590-filters
+build: 0.9.0-DEV-rev2464-g9ffdf405a-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
