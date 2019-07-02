@@ -289,10 +289,12 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->type);
 	if (ptr->type == GF_ISOM_BOX_TYPE_UUID) {
 		u32 i;
+		Bool conv_uuid = GF_TRUE;
+		GF_UUIDBox *uuidb = (GF_UUIDBox *)ptr;
 		char uuid[16];
 		char strUUID[32];
 
-		switch (((GF_UUIDBox*)ptr)->internal_4cc) {
+		switch (uuidb->internal_4cc) {
 		case GF_ISOM_BOX_UUID_TENC:
 			memcpy(strUUID, "8974dbce7be74c5184f97148f9882554", 32);
 			break;
@@ -309,19 +311,22 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 			memcpy(strUUID, "6D1D9B0542D544E680E2141DAFF757B2", 32);
 			break;
 		default:
-			memset(strUUID, 0, 32);
+			conv_uuid = GF_FALSE;
 			break;
 		}
 
-		for (i = 0; i < 16; i++) {
-			char t[3];
-			t[2] = 0;
-			t[0] = strUUID[2*i];
-			t[1] = strUUID[2*i+1];
-			uuid[i] = (u8) strtol(t, NULL, 16);
+		if (conv_uuid) {
+			for (i = 0; i < 16; i++) {
+				char t[3];
+				t[2] = 0;
+				t[0] = strUUID[2*i];
+				t[1] = strUUID[2*i+1];
+				uuid[i] = (u8) strtol(t, NULL, 16);
+			}
+			gf_bs_write_data(bs, uuid, 16);
+		} else {
+			gf_bs_write_data(bs, uuidb->uuid, 16);
 		}
-
-		gf_bs_write_data(bs, uuid, 16);
 	}
 	if (ptr->size > 0xFFFFFFFF)
 		gf_bs_write_u64(bs, ptr->size);
@@ -1353,12 +1358,13 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 	s32 idx = get_box_reg_idx(boxType, parentType);
 	if (idx==0) {
 #ifndef GPAC_DISABLE_LOGS
-		if (!skip_logs && (boxType != GF_ISOM_BOX_TYPE_UNKNOWN)) {
+		if (!skip_logs && (boxType != GF_ISOM_BOX_TYPE_UNKNOWN) && (boxType != GF_ISOM_BOX_TYPE_UUID)) {
 			switch (parentType) {
 			case GF_ISOM_BOX_TYPE_ILST:
 			case GF_ISOM_BOX_TYPE_META:
 			case GF_ISOM_BOX_TYPE_UDTA:
 			case GF_ISOM_BOX_TYPE_UNKNOWN:
+			case GF_ISOM_BOX_TYPE_iTunesSpecificInfo:
 				break;
 			default:
 				if (is_root_box) {
@@ -1554,7 +1560,11 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	GF_Err e;
 	u64 pos = gf_bs_get_position(bs);
 	if (!a) return GF_BAD_PARAM;
-	if (a->registry->disabled) return GF_OK;
+	if (a->registry->disabled) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box %s disabled registry, skip write\n", gf_4cc_to_str(a->type)));
+		return GF_OK;
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box %s size %d write\n", gf_4cc_to_str(a->type), a->size));
 	e = gf_isom_box_write_listing(a, bs);
 	if (e) return e;
 	if (a->other_boxes) {

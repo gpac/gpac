@@ -139,9 +139,22 @@ GF_Err ilst_item_Read(GF_Box *s,GF_BitStream *bs)
 	}
 	/*QT way*/
 	else {
+		u64 pos = gf_bs_get_position(bs);
+		u32 prev_size = s->size;
+		/*try parsing as generic box list*/
+		e = gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
+		if (e==GF_OK) return GF_OK;
+		gf_isom_box_array_del(s->other_boxes);
+		s->other_boxes=NULL;
+		gf_bs_seek(bs, pos);
+		s->size = prev_size;
+		
+		//nope, check qt-style
 		ptr->data->type = 0;
+		ISOM_DECREASE_SIZE(ptr, 2);
 		ptr->data->dataSize = gf_bs_read_u16(bs);
 		gf_bs_read_u16(bs);
+
 		ptr->data->data = (char *) gf_malloc(sizeof(char)*(ptr->data->dataSize + 1));
 		gf_bs_read_data(bs, ptr->data->data, ptr->data->dataSize);
 		ptr->data->data[ptr->data->dataSize] = 0;
@@ -174,9 +187,13 @@ GF_Err ilst_item_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	/*iTune way*/
+	/*generic box list*/
+	if (ptr->other_boxes)
+		return GF_OK;
+
+	/*iTune way: data-box-encapsulated box list*/
 	if (ptr->data->type) return gf_isom_box_write((GF_Box* )ptr->data, bs);
-	/*QT way*/
+	/*QT way: raw data*/
 	gf_bs_write_u16(bs, ptr->data->dataSize);
 	gf_bs_write_u16(bs, 0);
 	gf_bs_write_data(bs, ptr->data->data, ptr->data->dataSize);
@@ -188,13 +205,16 @@ GF_Err ilst_item_Size(GF_Box *s)
 	GF_Err e;
 	GF_ListItemBox *ptr = (GF_ListItemBox *)s;
 
-	/*iTune way*/
+	/*generic box list*/
+	if (ptr->other_boxes)
+		return GF_OK;
+	/*iTune way: data-box-encapsulated box list*/
 	if (ptr->data && ptr->data->type) {
 		e = gf_isom_box_size((GF_Box *)ptr->data);
 		if (e) return e;
 		ptr->size += ptr->data->size;
 	}
-	/*QT way*/
+	/*QT way: raw data*/
 	else if (ptr->data) {
 		ptr->size += ptr->data->dataSize + 4;
 	}
