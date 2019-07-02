@@ -793,10 +793,10 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			import->video_fps.num = ts;
 			import->video_fps.den = inc;
 			gf_isom_sample_del(&samp);
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Chapter import] Guessed video frame rate %g (%u:%u)\n", import->video_fps, ts, inc));
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Chapter import] Guessed video frame rate %u/%u\n", ts, inc));
 			break;
 		}
-		if (!import->video_fps.num || import->video_fps.den) {
+		if (!import->video_fps.num || !import->video_fps.den) {
 			import->video_fps.num = 25;
 			import->video_fps.den = 1;
 		}
@@ -886,10 +886,16 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 					ts = (h*3600 + m*60+s);
 					ts = (s64) (((import->video_fps.num*((s64)ts) + import->video_fps.den*fr) * 1000 ) / import->video_fps.num ) ;
 				} else if (sscanf(szTS, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+					//microseconds used
+					if (ms>=1000) ms /= 1000;
 					ts = (h*3600 + m*60+s)*1000+ms;
 				} else if (sscanf(szTS, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+					//microseconds used
+					if (ms>=1000) ms /= 1000;
 					ts = (h*3600 + m*60+s)*1000+ms;
 				} else if (sscanf(szTS, "%u:%u:%u:%u", &h, &m, &s, &ms) == 4) {
+					//microseconds used
+					if (ms>=1000) ms /= 1000;
 					ts = (h*3600 + m*60+s)*1000+ms;
 				} else if (sscanf(szTS, "%u:%u:%u", &h, &m, &s) == 3) {
 					ts = (h*3600 + m*60+s) * 1000;
@@ -927,8 +933,12 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 				ts = 0;
 				h = m = s = ms = 0;
 				if (sscanf(str, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+					//microseconds used
+					if (ms>=1000) ms/=1000;
 					ts = (h*3600 + m*60+s)*1000+ms;
 				} else if (sscanf(str, "%u:%u:%u:%u", &h, &m, &s, &ms) == 4) {
+					//microseconds used
+					if (ms>=1000) ms/=1000;
 					ts = (h*3600 + m*60+s)*1000+ms;
 				} else if (sscanf(str, "%u:%u:%u", &h, &m, &s) == 3) {
 					ts = (h*3600 + m*60+s) * 1000;
