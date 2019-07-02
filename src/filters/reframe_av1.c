@@ -118,6 +118,11 @@ GF_Err av1dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
+	if (ctx->timescale) {
+		//if we have a FPS prop, use it
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+		if (p) ctx->cur_fps = p->value.frac;
+	}
 	return GF_OK;
 }
 
