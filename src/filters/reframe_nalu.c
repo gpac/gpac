@@ -1087,10 +1087,12 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 	dsi = dsi_enh = NULL;
 
-	ctx->cur_fps = ctx->fps;
-	if (!ctx->cur_fps.num*ctx->cur_fps.den) {
-		ctx->cur_fps.num = 25000;
-		ctx->cur_fps.den = 1000;
+	if (!ctx->timescale) {
+		ctx->cur_fps = ctx->fps;
+		if (!ctx->cur_fps.num*ctx->cur_fps.den) {
+			ctx->cur_fps.num = 25000;
+			ctx->cur_fps.den = 1000;
+		}
 	}
 
 	if (ctx->is_hevc) {
