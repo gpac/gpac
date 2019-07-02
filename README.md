@@ -18,6 +18,7 @@
 [![Build Status](https://tests.gpac.io/testres/badge/build/android_bb?branch=filters)](https://buildbot.gpac.io/#/grid?branch=filters)
 
 [![Coverage](https://tests.gpac.io/testres/badge/cov/linux64?branch=filters)](https://tests.gpac.io/testres/filters)
+[![Coverage](https://tests.gpac.io/testres/badge/covfn/linux64?branch=filters)](https://tests.gpac.io/testres/filters)
 
 ![License](https://img.shields.io/badge/license-LGPL-blue.svg)
 
