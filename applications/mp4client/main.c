@@ -346,6 +346,7 @@ MP4C_Command get_cmd(u8 char_code)
 	while (MP4C_Keys[i].char_code) {
 		if (MP4C_Keys[i].char_code == char_code)
 			return MP4C_Keys[i].cmd_type;
+		i++;
 	}
 	return 0;
 }
@@ -1357,7 +1358,7 @@ int mp4client_main(int argc, char **argv)
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = &user;
 
-	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;	
+	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 
 	if (bench_mode) {
 		gf_opts_discard_changes();
