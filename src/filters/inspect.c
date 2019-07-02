@@ -920,6 +920,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	u64 ts;
 	u8 dflags = 0;
 	GF_FilterClockType ck_type;
+	GF_FilterFrameInterface *fifce=NULL;
 	Bool start, end;
 	const char *data;
 
@@ -929,7 +930,10 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	gf_filter_pck_get_framing(pck, &start, &end);
 
 	ck_type = ctx->pcr ? gf_filter_pck_get_clock_type(pck) : 0;
-	if (!size && !ck_type) return;
+	if (!size && !ck_type) {
+		fifce = gf_filter_pck_get_frame_interface(pck);
+		if (!fifce) return;
+	}
 
 	if (ctx->xml) {
 		fprintf(dump, "<Packet number=\""LLU"\"", pck_num);
@@ -952,12 +956,14 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 		return;
 	}
 	if (ctx->xml) {
-		if (start && end) fprintf(dump, " framing=\"complete\"");
+		if (fifce) fprintf(dump, " framing=\"interface\"");
+		else if (start && end) fprintf(dump, " framing=\"complete\"");
 		else if (start) fprintf(dump, " framing=\"start\"");
 		else if (end) fprintf(dump, " framing=\"end\"");
 		else fprintf(dump, " framing=\"continuation\"");
 	} else {
-		if (start && end) fprintf(dump, "full frame");
+		if (fifce) fprintf(dump, "interface");
+		else if (start && end) fprintf(dump, "full frame");
 		else if (start) fprintf(dump, "frame start");
 		else if (end) fprintf(dump, "frame end");
 		else fprintf(dump, "frame continuation");
@@ -984,7 +990,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	DUMP_ATT_U("crypt", gf_filter_pck_get_crypt_flags(pck) )
 	DUMP_ATT_U("vers", gf_filter_pck_get_carousel_version(pck) )
 
-	if (!ck_type) {
+	if (!ck_type && !fifce) {
 		DUMP_ATT_U("size", size )
 	}
 	dflags = gf_filter_pck_get_dependency_flags(pck);
@@ -1623,15 +1629,15 @@ static const GF_FilterArgs InspectArgs[] =
 {
 	{ OFFS(log), "set inspect log filename", GF_PROP_STRING, "stderr", "fileName or stderr or stdout", 0},
 	{ OFFS(mode), "dump mode\n"
-	"- pck: dumps full packet\n"
-	"- blk: dumps packets before reconstruction\n"
+	"- pck: dump full packet\n"
+	"- blk: dump packets before reconstruction\n"
 	"- frame: force reframer\n"
-	"- raw: dumps source packets without demuxing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
+	"- raw: dump source packets without demuxing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
 	{ OFFS(interleave), "dump packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(deep), "dump packets along with PID state change - implied when [-fmt]() is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(props), "dump packet properties - ignored when  [-fmt]() is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(dump_data), "enable full data dump, WARNING heavy - ignored when  [-fmt]() is set, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(fmt), "set packet dump format - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(deep), "dump packets along with PID state change, implied when [-fmt]() is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(props), "dump packet properties, ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dump_data), "enable full data dump (__WARNING__ heavy!), ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fmt), "set packet dump format (see filter help)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hdr), "print a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(allp), "analyse for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(info), "monitor PID info changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1639,9 +1645,9 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(speed), "set playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(dur), "set inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
-	{ OFFS(analyze), "analyze sample content (NALU, OBU). This will force XML formatting", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(xml), "use xml formatting. This disables any custom format set through fmt option", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(test), "skip predefined stes of properties, used for test mode\n"
+	{ OFFS(analyze), "analyze sample content (NALU, OBU)", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(xml), "use xml formatting (implied if (-analyze]() is set) and disable [-fmt]()", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(test), "skip predefined set of properties, used for test mode\n"
 		"- no: no properties skipped\n"
 		"- noprop: all properties/info changes on pid are skipped, only packets are dumped\n"
 		"- network: URL/path dump, cache state, file size properties skipped (used for hashing network results)\n"
@@ -1658,7 +1664,7 @@ static const GF_FilterCapability InspectCaps[] =
 const GF_FilterRegister InspectRegister = {
 	.name = "inspect",
 	GF_FS_SET_DESCRIPTION("Inspect packets")
-	GF_FS_SET_HELP("The inspector filter can be used to dump pid and packets. It may be used to also check parts of payload of the packets. The default options inspect only pid changes.\n"\
+	GF_FS_SET_HELP("The inspect filter can be used to dump pid and packets. It may also be used to check parts of payload of the packets. The default options inspect only pid changes.\n"\
 				"The packet inspector can be configured to dump specific properties of packets using [-fmt]().\n"\
 	 			"When the option is not present, all properties are dumped. Otherwise, only properties identified by `$TOKEN$` "
 	 			"are printed. You may use '$', '@' or '%' for `TOKEN` separator. `TOKEN` can be:\n"\
@@ -1669,7 +1675,12 @@ const GF_FilterRegister InspectRegister = {
 				"- dcts: difference between current and previous packets composition time stamp in stream timescale, N/A if not available\n"\
 				"- ctso: difference between composition time stamp and decoding time stamp in stream timescale, N/A if not available\n"\
 				"- dur: duration in stream timescale\n"\
-				"- frame: framing status: frame_full (complete AU), frame_start, frame_end, frame_cont\n"
+				"- frame: framing status\n"
+				" - interface: complete AU, interface object (no size info). Typically a GL texture\n"
+				" - frame_full: complete AU\n"
+				" - frame_start: begining of frame\n"
+				" - frame_end: end of frame\n"
+				" - frame_cont: frame continuation (not begining, not end)\n"
 				"- sap or rap: SAP type of the frame\n"\
 				"- ilace: interlacing flag (0: progressive, 1: top field, 2: bottom field)\n"\
 				"- corr: corrupted packet flag\n"\
