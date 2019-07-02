@@ -254,7 +254,7 @@ typedef struct _dash_stream
 	u64 seek_to_pck;
 	u64 ts_offset;
 	u32 nb_repeat;
-	
+
 	Bool splitable;
 	u32 loop_state;
 	u32 split_dur_next;
@@ -839,7 +839,7 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 	if (ctx->source) info->source = gf_strdup(ctx->source);
 	if (ctx->lang) info->lang = gf_strdup(ctx->lang);
 
-	
+
 	count = ctx->location ? gf_list_count(ctx->location) : 0;
 	for (i=0; i<count; i++) {
 		char *l = gf_list_get(ctx->location, i);
@@ -1167,7 +1167,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			if (!vpcc) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 			} else {
-				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02x.%02u.%02u.%02u.%02u.%02u.%02u", gf_4cc_to_str(subtype),
+				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u.%02u.%02u.%02u.%02u.%02u.%02u", gf_4cc_to_str(subtype),
 					vpcc->profile,
 					vpcc->level,
 					vpcc->bit_depth,
@@ -2220,7 +2220,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			ds->pid_id = ds->id;
 		}
 	}
-	
+
 	for (i=0; i<count; i++) {
 		u32 j;
 		rep = gf_list_get(set->representations, i);
@@ -3105,7 +3105,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	if (!ctx->mpd->xml_namespace)
 		ctx->mpd->xml_namespace = "urn:mpeg:dash:schema:mpd:2011";
-	
+
 	if (e != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Cannot reload MPD state %s: %s\n", ctx->state, gf_error_to_string(e) ));
 		gf_mpd_del(ctx->mpd);
@@ -3307,7 +3307,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 			} else {
 				gf_list_add(ctx->current_period->streams, ds);
 			}
-			
+
 			if (rep->dasher_ctx->mux_pids) {
 				e = dasher_reload_muxed_comp(ctx, ds, rep->dasher_ctx->mux_pids, GF_FALSE);
 				if (e) return e;
@@ -3813,7 +3813,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			}
 		}
 	}
-	
+
 	//we need a pass on adaptation sets to figure out if they share the same source URL
 	//in case we use file name in templates
 	nb_sets = gf_list_count(ctx->current_period->period->adaptation_sets);
@@ -3877,7 +3877,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 		ctx->mpd->gpac_init_ntp_ms = gf_net_get_ntp_ms();
 		ctx->mpd->availabilityStartTime = gf_net_get_utc();
-		
+
 		if (dash_start_date && (dash_start_date < ctx->mpd->availabilityStartTime)) {
 			u64 start_date_sec_ntp, secs;
 			Double ms;
@@ -4269,7 +4269,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] Rep#%s flush seg %d start %g duration %g next seg end time %g\n", ds_log->rep->id, ds_log->seg_number-1, ((Double)first_cts_in_cur_seg)/ds_log->timescale, ((Double)seg_dur_ms)/1000, ((Double)ds_log->adjusted_next_seg_start)/ds_log->timescale));
 	}
 
-	//muxed representation with unaligned duration, 
+	//muxed representation with unaligned duration,
 	if (has_ds_done) {
 		for (i=0; i<count; i++) {
 			ds = gf_list_get(ctx->current_period->streams, i);
@@ -4488,7 +4488,7 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 		if (a_ds->subdur_done)
 			continue;
-			
+
 		//wait for each input to query loop
 		if (!a_ds->loop_state) {
 			a_ds->done = 0;
@@ -4636,7 +4636,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					}
 
 					ds->clamp_done = GF_FALSE;
-					
+
 					gf_filter_pid_set_eos(ds->opid);
 					if (!ds->done) ds->done = ds_done;
 					ds->seg_done = GF_TRUE;
@@ -5076,7 +5076,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 		gf_filter_post_process_task(filter);
 		return GF_OK;
 	}
-	
+
 	//in subdur mode once we are done, flush outpud pids and discard all input packets
 	//this is done at the end to be able to resume dashing when loop is requested
 	if (ctx->subdur) {
