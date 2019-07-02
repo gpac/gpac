@@ -1676,11 +1676,11 @@ const GF_FilterRegister InspectRegister = {
 				"- ctso: difference between composition time stamp and decoding time stamp in stream timescale, N/A if not available\n"\
 				"- dur: duration in stream timescale\n"\
 				"- frame: framing status\n"
-				" - interface: complete AU, interface object (no size info). Typically a GL texture\n"
-				" - frame_full: complete AU\n"
-				" - frame_start: begining of frame\n"
-				" - frame_end: end of frame\n"
-				" - frame_cont: frame continuation (not begining, not end)\n"
+				"  - interface: complete AU, interface object (no size info). Typically a GL texture\n"
+				"  - frame_full: complete AU\n"
+				"  - frame_start: begining of frame\n"
+				"  - frame_end: end of frame\n"
+				"  - frame_cont: frame continuation (not begining, not end)\n"
 				"- sap or rap: SAP type of the frame\n"\
 				"- ilace: interlacing flag (0: progressive, 1: top field, 2: bottom field)\n"\
 				"- corr: corrupted packet flag\n"\
