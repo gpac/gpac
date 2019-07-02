@@ -848,10 +848,6 @@ This filter parses JPG/J2K/PNG/BMP files/data and outputs corresponding visual P
 .SH Options (expert):
 .LP
 .br
-timescale (unsigned int, default: 1000): timescale for media timestamps when loading from file not stream
-.br
-dur (unsigned int, default: 1000):       duration of image when loading from file not stream
-.br
 
 .br
 .SH imgdec
@@ -1283,7 +1279,7 @@ Description: MPEG-DASH and HLS client
 .br
 
 .br
-This filter reads MPEG-DASH, HLS and MS Smooth (on demand only) manifests and produces media PIDs and frames.
+This filter reads MPEG-DASH, HLS and MS Smooth (on demand only for now) manifests and produces media PIDs and frames.
 .br
 
 .br
@@ -1393,6 +1389,8 @@ speedadapt (boolean, default: no):       enable adaptation based on playback spe
 noxlink (boolean, default: no):          disable xlink if period has both xlink and adaptation sets
 .br
 query (string, no default):              set query string (without initial '?') to append to xlink of periods
+.br
+split_as (boolean, default: no):         seperate all qualities into different adaptation sets and stream all qualities
 .br
 
 .br
@@ -1700,7 +1698,7 @@ Note: The demux uses negative CTS offsets: CTS is corrrect, but some frames may 
 .SH Options (expert):
 .LP
 .br
-fps (fraction, default: 25000/1000):     import frame rate
+fps (fraction, default: 0/1000):         import frame rate (0 default to FPS from bitstream or 25 Hz)
 .br
 index (number, default: 1.0):            indexing window length
 .br
@@ -1776,9 +1774,7 @@ Note: The demux uses negative CTS offsets: CTS is corrrect, but some frames may 
 .SH Options (expert):
 .LP
 .br
-fps (fraction, default: 25000/1000):     import frame rate
-.br
-autofps (boolean, default: true):        detect FPS from bitstream, fallback to -fps option if not possible
+fps (fraction, default: 0/1000):         import frame rate (0 default to FPS from bitstream or 25 Hz)
 .br
 index (number, default: -1.0):           indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value
 .br
@@ -3344,7 +3340,13 @@ cues (string, no default):               set cue file - see filter help
 .br
 strict_cues (boolean, default: false):   strict mode for cues, complains if spliting is not on SAP type 1/2/3 or if unused cue is found
 .br
-strict_sap (boolean, default: false):    strict mode for sap, complains if any PID uses SAP 3 or 4 but dasher not in FULL profile. If not set, only complains for video PIDs
+strict_sap (enum, default: off):         strict mode for sap- off: ignore SAP types for PID other than video, enforcing _startsWithSAP=1_
+.br
+* sig: same as -off but keep _startsWithSAP_ to the true SAP value
+.br
+* on: warn if any PID uses SAP 3 or 4 and switch to FULL profile
+.br
+
 .br
 subs_sidx (int, default: -1):            number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination
 .br
@@ -3748,9 +3750,7 @@ This filter parses AV1 OBU, AV1 AnnexB or IVF with AV1 or VP9 files/data and out
 .SH Options (expert):
 .LP
 .br
-fps (fraction, default: 25000/1000):     import frame rate
-.br
-autofps (boolean, default: true):        detect FPS from bitstream, fallback to -fps option if not possible
+fps (fraction, default: 0/1000):         import frame rate (0 default to FPS from from bitstream or 25 Hz)
 .br
 index (number, default: -1.0):           indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value
 .br
@@ -4285,7 +4285,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2444-gfcd72ae23-filters
+build: 0.9.0-DEV-rev2463-g9fe528590-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

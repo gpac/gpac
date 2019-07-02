@@ -57,12 +57,20 @@ enum
 	DASHER_NTP_KEEP,
 };
 
+enum
+{
+	DASHER_SAP_OFF=0,
+	DASHER_SAP_SIG,
+	DASHER_SAP_ON,
+};
+
 typedef struct
 {
 	u32 bs_switch, profile, cp, ntp;
 	s32 subs_sidx;
 	s32 buf, timescale;
-	Bool forcep, sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues, strict_sap;
+	Bool forcep, sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues;
+	u32 strict_sap;
 	u32 pssh;
 	Double dur;
 	u32 dmode;
@@ -4715,6 +4723,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (!ds->muxed_base) {
 					//set AS sap type
 					if (!set_start_with_sap) {
+
+						if ((ds->stream_type!=GF_STREAM_VISUAL) && (ctx->strict_sap==DASHER_SAP_OFF) ) {
+							sap_type = 1;
+						}
+
 						//don't set SAP type if not a base rep - could be further checked
 						//if (!gf_list_count(ds->complementary_streams) )
 						{
@@ -4873,7 +4886,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 						&& (ctx->profile != GF_DASH_PROFILE_FULL)
 						/*TODO: store at DS level whether the usage of sap4 is ok or not (eg roll info for AAC is OK, not for xHEAAC-v2)
 						for now we only complain for video*/
-						&& ((ds->stream_type==GF_STREAM_VISUAL) || ctx->strict_sap)
+						&& ((ds->stream_type==GF_STREAM_VISUAL) || (ctx->strict_sap==DASHER_SAP_ON) )
 					) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
 						ctx->profile = GF_DASH_PROFILE_FULL;
@@ -4932,7 +4945,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 						&& (ds->nb_sap_4 || (ds->nb_sap_3 > 1))
 						/*TODO: store at DS level whether the usage of sap4 is ok or not (eg roll info for AAC is OK, not for xHEAAC-v2)
 						for now we only complain for video*/
-						&& ((ds->stream_type==GF_STREAM_VISUAL) || ctx->strict_sap)
+						&& ((ds->stream_type==GF_STREAM_VISUAL) || (ctx->strict_sap==DASHER_SAP_ON) )
 					) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
 						ctx->profile = GF_DASH_PROFILE_FULL;
@@ -5568,7 +5581,10 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(hlsc), "insert clock reference in variant playlist in live HLS", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cues), "set cue file - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strict_cues), "strict mode for cues, complains if spliting is not on SAP type 1/2/3 or if unused cue is found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(strict_sap), "strict mode for sap, complains if any PID uses SAP 3 or 4 but dasher not in FULL profile. If not set, only complains for video PIDs", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(strict_sap), "strict mode for sap"
+	"- off: ignore SAP types for PID other than video, enforcing _startsWithSAP=1_\n"
+	"- sig: same as [-off]() but keep _startsWithSAP_ to the true SAP value\n"
+	"- on: warn if any PID uses SAP 3 or 4 and switch to FULL profile", GF_PROP_UINT, "off", "off|sig|on", GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cmpd), "skip line feed and spaces in MPD XML for more compacity", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
