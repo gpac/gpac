@@ -140,7 +140,7 @@ GF_Err ilst_item_Read(GF_Box *s,GF_BitStream *bs)
 	/*QT way*/
 	else {
 		u64 pos = gf_bs_get_position(bs);
-		u32 prev_size = s->size;
+		u64 prev_size = s->size;
 		/*try parsing as generic box list*/
 		e = gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
 		if (e==GF_OK) return GF_OK;
