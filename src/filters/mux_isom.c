@@ -4402,7 +4402,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- no: disables import\n"
 	"- yes: clones all extension boxes\n"
 	"- udta: only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(tmpd), "set temp dire for intermediate file(s)", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(tmpd), "set temp directory for intermediate file(s)", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mvex), "set mvex after tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tkid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fdur), "fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
