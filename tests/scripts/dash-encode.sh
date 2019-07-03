@@ -82,3 +82,17 @@ fi
 
 test_end
 
+test_begin "dash-encode-mp4box"
+if [ $test_skip = 0 ] ; then
+mp4file=$TEMP_DIR/source.mp4
+$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -new $mp4file 2> /dev/null
+
+do_test "$MP4BOX -dash 1000 -profile live -out $TEMP_DIR/file.mpd $mp4file:@@enc:c=avc:fintra=1" "dash"
+do_hash_test $TEMP_DIR/file.mpd "mpd"
+do_hash_test $TEMP_DIR/source_dash1.m4s "init-seg"
+do_hash_test $TEMP_DIR/source_dash1.m4s "seg1"
+do_hash_test $TEMP_DIR/source_dash6.m4s "seg6"
+
+
+fi
+test_end

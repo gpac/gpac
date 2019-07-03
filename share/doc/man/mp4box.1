@@ -483,6 +483,12 @@ Warning: This does not modify generated files location (see segment template).
 .br
 * :trackID=N: only use the track ID N from the source file
 .br
+* @@f1[[:args]@@fN[/args]]: set a filter chain to insert between the source and the dasher. Each filter in the chain is formatted as a regular filter, see filter doc `gpac -h doc`. If several filters are set, they will be chained in the given order.
+.br
+
+.br
+Note: @@f must be placed after all other options.
+.br
 
 .br
 .SH Options
@@ -1302,6 +1308,8 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
 
 .br
+Note: sopt, dopt and @@f must be placed after all other options.
+.br
 .SH Global import options
 .LP
 .br
@@ -1937,7 +1945,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2464-g9ffdf405a-filters
+build: 0.9.0-DEV-rev2482-gd30f77625-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

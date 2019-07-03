@@ -339,6 +339,9 @@ void PrintDASHUsage()
 		"- :desc_rep=VALUE: add a descriptor at the Representation level. Value must be a properly formatted XML element. Value is ignored while creating AdaptationSet elements.\n"
 		"- :sscale: force movie timescale to match media timescale of the first track in the segment.\n"
 		"- :trackID=N: only use the track ID N from the source file\n"
+		"- @@f1[[:args]@@fN[/args]]: set a filter chain to insert between the source and the dasher. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). If several filters are set, they will be chained in the given order.\n"
+		"\n"
+		"Note: `@@f` must be placed after all other options.\n"
 		"\n"
 		"# Options\n"
 		);
@@ -509,6 +512,7 @@ void PrintImportUsage()
 		"- :dopt:[OPTS]: set `OPTS` as additionnal arguments to [destination filter](mp4mx). OPTS can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
 		"- @@f1[[:args]@@fN[/args]]: set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). If several filters are set, they will be chained in the given order. The last filter shall not have any ID specified\n"
 		"\n"
+		"Note: `sopt`, `dopt` and `@@f` must be placed after all other options.\n"
 		"# Global import options\n"
 	);
 	while (m4b_imp_args[i].name) {
@@ -1680,7 +1684,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				        !strnicmp(sep, ":sn=", 4) ||
 				        !strnicmp(sep, ":tpl=", 5) ||
 				        !strnicmp(sep, ":hls=", 5) ||
-				        !strnicmp(sep, ":trackID=", 9)
+				        !strnicmp(sep, ":trackID=", 9) ||
+				        !strnicmp(sep, ":@@", 3)
 				        ) {
 					break;
 				} else {
@@ -1696,7 +1701,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					sep = strchr(sep+1, ':');
 				}
 			}
-			if (sep && !strncmp(sep, "://", 3)) sep = strchr(sep+3, ':');
+			if (sep && !strncmp(sep, "://", 3) && strnicmp(sep, ":@@", 3)) sep = strchr(sep+3, ':');
 			if (sep) sep[0] = 0;
 
 			if (!strnicmp(opts, "id=", 3)) {
@@ -1766,6 +1771,11 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			else if (!strnicmp(opts, "tpl=", 4)) di->seg_template = gf_strdup(opts+4);
 			else if (!strnicmp(opts, "hls=", 4)) di->hls_pl = gf_strdup(opts+4);
 			else if (!strnicmp(opts, "trackID=", 8)) di->track_id = atoi(opts+8);
+			else if (!strnicmp(opts, "@@", 2)) {
+				di->filter_chain = gf_strdup(opts+2);
+				if (sep) sep[0] = ':';
+				sep = NULL;
+			}
 
 			if (!sep) break;
 			sep[0] = ':';
@@ -1774,7 +1784,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 		first_opt[0] = '\0';
 	}
 	di->file_name = name;
-	di->other_opts = other_opts;
+	di->source_opts = other_opts;
 
 	if (!di->representationID) {
 		char szRep[100];
@@ -2362,7 +2372,8 @@ u32 mp4box_cleanup(u32 ret_code) {
 			if (di->xlink) gf_free(di->xlink);
 			if (di->seg_template) gf_free(di->seg_template);
 			if (di->hls_pl) gf_free(di->hls_pl);
-			if (di->other_opts) gf_free(di->other_opts);
+			if (di->source_opts) gf_free(di->source_opts);
+			if (di->filter_chain) gf_free(di->filter_chain);
 
 			if (di->roles) {
 				for (j = 0; j<di->nb_roles; j++) {

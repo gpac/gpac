@@ -779,8 +779,8 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 
-		if (di->other_opts) {
-			e |= gf_dynstrcat(&args, di->other_opts, ":");
+		if (di->source_opts) {
+			e |= gf_dynstrcat(&args, di->source_opts, ":");
 		}
 
 		//set all args
@@ -911,6 +911,35 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 		if (rt) {
 			gf_filter_set_source(rt, src, NULL);
+			src = rt;
+		}
+
+		if (!di->filter_chain) continue;
+
+		//create the filter chain between source (or rt if it was set) and dasher
+
+		//filter chain
+		GF_Filter *prev_filter=src;
+		char *fargs = (char *) di->filter_chain;
+		while (fargs) {
+			GF_Filter *f;
+			char *sep = strstr(fargs, "@@");
+			if (sep) sep[0] = 0;
+			f = gf_fs_load_filter(dasher->fsess, fargs);
+			if (!f) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to load filter %s\n", fargs));
+				return GF_BAD_PARAM;
+			}
+			if (prev_filter) {
+				gf_filter_set_source(f, prev_filter, NULL);
+			}
+			prev_filter = f;
+			if (!sep) break;
+			sep[0] = '@';
+			fargs = sep+2;
+		}
+		if (prev_filter) {
+			gf_filter_set_source(dasher->output, prev_filter, NULL);
 		}
 	}
 
@@ -970,7 +999,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 
 	e = gf_fs_run(dasher->fsess);
 	if (e>0) e = GF_OK;
-	
+
+	gf_fs_print_connections(dasher->fsess);
 	if (!e) e = gf_fs_get_last_connect_error(dasher->fsess);
 	if (!e) e = gf_fs_get_last_process_error(dasher->fsess);
 	if (e<0) return e;

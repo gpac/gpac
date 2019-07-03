@@ -603,8 +603,10 @@ typedef struct
 	Bool sscale;
 	/*! only imports this track from the source*/
 	u32 track_id;
-	/*! non legacy options passed to dasher */
-	char *other_opts;
+	/*! non legacy options passed to dasher for source */
+	char *source_opts;
+	/*filter chain to instantiate between this source and the dasher*/
+	char *filter_chain;
 } GF_DashSegmenterInput;
 
 /*!
