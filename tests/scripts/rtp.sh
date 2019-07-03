@@ -26,7 +26,7 @@ if [ $inspect_only = 1 ] ; then
 
 myinspect=$TEMP_DIR/inspect.txt
 
-do_test "$GPAC -for-test -runfor=2000 -i $TEMP_DIR/session.sdp:ifce=$IFCE inspect:deep:allp:log=$myinspect -stats -graph" "dump" &
+do_test "$GPAC -for-test -runfor=2500 -i $TEMP_DIR/session.sdp:ifce=$IFCE inspect:deep:allp:log=$myinspect -stats -graph" "dump" &
 
 sleep .5
 #run without loop and tso=100000 to avoid a rand() that might impact TS rounding differently (hence slightly different durations->different hashes)
