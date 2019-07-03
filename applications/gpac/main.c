@@ -1907,6 +1907,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 		gf_sys_format_help(helpout, help_flags, "# %s\n", reg->name);
 #ifndef GPAC_DISABLE_DOC
 		if (reg->description) gf_sys_format_help(helpout, help_flags, "Description: %s\n", reg->description);
+		if (reg->version) gf_sys_format_help(helpout, help_flags, "Version: %s\n", reg->version);
 #endif
 	}
 

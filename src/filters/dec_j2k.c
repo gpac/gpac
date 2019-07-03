@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2019
 *					All rights reserved
 *
 *  This file is part of GPAC / openjpeg2k decoder filter
@@ -28,6 +28,14 @@
 
 #ifdef GPAC_HAS_JP2
 
+#include <openjpeg.h>
+
+#ifdef ENUMCS_SRGB
+#define OPENJP2	0
+#else
+#define OPENJP2	1
+#endif
+
 #if !defined(__GNUC__)
 # if defined(_WIN32_WCE) || defined (WIN32)
 #  define OPJ_STATIC
@@ -39,7 +47,6 @@
 # endif
 #endif
 
-#include <openjpeg.h>
 #include <gpac/isomedia.h>
 
 typedef struct
@@ -198,16 +205,72 @@ static int int_ceildivpow2(int a, int b) {
 	return (a + (1 << b) - 1) >> b;
 }
 
+typedef struct
+{
+	char *data;
+	u32 len, pos;
+} OJP2Frame;
+
+static OPJ_SIZE_T j2kdec_stream_read(void *out_buffer, OPJ_SIZE_T nb_bytes, void *user_data)
+{
+    OJP2Frame *frame = user_data;
+    u32 remain;
+    if (frame->pos == frame->len) return (OPJ_SIZE_T)-1;
+    remain = frame->len - frame->pos;
+    if (nb_bytes > remain) nb_bytes = remain;
+    memcpy(out_buffer, frame->data + frame->pos, nb_bytes);
+    frame->pos += (u32) nb_bytes;
+    return nb_bytes;
+}
+
+static OPJ_OFF_T j2kdec_stream_skip(OPJ_OFF_T nb_bytes, void *user_data)
+{
+    OJP2Frame *frame = user_data;
+    if (nb_bytes < 0) {
+        if (frame->pos == 0) return (OPJ_SIZE_T)-1;
+        if (nb_bytes + (s32) frame->pos < 0) {
+            nb_bytes = -frame->pos;
+        }
+    } else {
+        u32 remain;
+        if (frame->pos == frame->len) {
+            return (OPJ_SIZE_T)-1;
+        }
+        remain = frame->len - frame->pos;
+        if (nb_bytes > remain) {
+            nb_bytes = remain;
+        }
+    }
+    frame->pos += (u32) nb_bytes;
+    return nb_bytes;
+}
+
+static OPJ_BOOL j2kdec_stream_seek(OPJ_OFF_T nb_bytes, void *user_data)
+{
+    OJP2Frame *frame = user_data;
+    if (nb_bytes < 0 || nb_bytes > frame->pos) return OPJ_FALSE;
+    frame->pos = (u32)nb_bytes;
+    return OPJ_TRUE;
+}
+
+
 static GF_Err j2kdec_process(GF_Filter *filter)
 {
 	u32 i, w, wr, h, hr, wh, size, pf;
 	char *data, *buffer;
 	opj_dparameters_t parameters;	/* decompression parameters */
+#if OPENJP2
+	s32 res;
+	opj_codec_t *codec = NULL;
+	opj_stream_t * stream = NULL;
+#else
 	opj_event_mgr_t event_mgr;		/* event manager */
 	opj_dinfo_t* dinfo = NULL;	/* handle to a decompressor */
 	opj_cio_t *cio = NULL;
-	opj_image_t *image = NULL;
 	opj_codestream_info_t cinfo;
+#endif
+	OJP2Frame ojp2frame;
+	opj_image_t *image = NULL;
 	u32 start_offset=0;
 	GF_J2KCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *pck_dst;
@@ -224,17 +287,49 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 		return GF_IO_ERR;
 	}
 
+	if (size>=8) {
+		if ((data[4]=='j') && (data[5]=='p') && (data[6]=='2') && (data[7]=='c'))
+			start_offset = 8;
+	}
+
+	/* set decoding parameters to default values */
+	opj_set_default_decoder_parameters(&parameters);
+
+#if OPENJP2
+	codec = opj_create_decompress(OPJ_CODEC_J2K);
+	if (codec) res = 1;
+	else res=0;
+
+	if (res) res = opj_set_info_handler(codec, info_callback, NULL);
+	if (res) res = opj_set_warning_handler(codec, warning_callback, NULL);
+	if (res) res = opj_set_error_handler(codec, error_callback, NULL);
+
+	if (res) res = opj_setup_decoder(codec, &parameters);
+
+	stream = opj_stream_default_create(OPJ_STREAM_READ);
+    opj_stream_set_read_function(stream, j2kdec_stream_read);
+    opj_stream_set_skip_function(stream, j2kdec_stream_skip);
+    opj_stream_set_seek_function(stream, j2kdec_stream_seek);
+    ojp2frame.data = data+start_offset;
+    ojp2frame.len = size-start_offset;
+    ojp2frame.pos = 0;
+    if (res) opj_stream_set_user_data(stream, &ojp2frame, NULL);
+    if (res) opj_stream_set_user_data_length(stream, ojp2frame.len);
+
+	if (res) res = opj_read_header(stream, codec, &image);
+	if (res) res = opj_set_decode_area(codec, image, 0, 0, image->x1, image->y1);
+	if (res) res = opj_decode(codec, stream, image);
+
+#else
+
+	/* get a decoder handle for raw J2K frames*/
+	dinfo = opj_create_decompress(CODEC_J2K);
+
 	/* configure the event callbacks (not required) */
 	memset(&event_mgr, 0, sizeof(opj_event_mgr_t));
 	event_mgr.error_handler = error_callback;
 	event_mgr.warning_handler = warning_callback;
 	event_mgr.info_handler = info_callback;
-
-	/* set decoding parameters to default values */
-	opj_set_default_decoder_parameters(&parameters);
-
-	/* get a decoder handle for raw J2K frames*/
-	dinfo = opj_create_decompress(CODEC_J2K);
 
 	/* catch events using our callbacks and give a local context */
 	opj_set_event_mgr((opj_common_ptr)dinfo, &event_mgr, stderr);
@@ -242,24 +337,32 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	/* setup the decoder decoding parameters using the current image and user parameters */
 	opj_setup_decoder(dinfo, &parameters);
 
-	if (size>=8) {
-		if ((data[4]=='j') && (data[5]=='p') && (data[6]=='2') && (data[7]=='c'))
-			start_offset = 8;
-	}
 	cio = opj_cio_open((opj_common_ptr)dinfo, data+start_offset, size-start_offset);
 	/* decode the stream and fill the image structure */
 	image = opj_decode_with_info(dinfo, cio, &cinfo);
+#endif
 
 	if (!image) {
+#if OPENJP2
+		opj_stream_destroy(stream);
+		opj_destroy_codec(codec);
+#else
 		opj_destroy_decompress(dinfo);
 		opj_cio_close(cio);
+#endif
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_IO_ERR;
 	}
 
+#if OPENJP2
+	ctx->nb_comp = image->numcomps;
+	w = image->x1;
+	h = image->y1;
+#else
 	ctx->nb_comp = cinfo.numcomps;
 	w = cinfo.image_w;
 	h = cinfo.image_h;
+#endif
 	ctx->bpp = ctx->nb_comp * 8;
 	ctx->out_size = ctx->width * ctx->height * ctx->nb_comp /* * ctx->bpp / 8 */;
 
@@ -306,6 +409,14 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	if (changed) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT( (ctx->pixel_format == GF_PIXEL_YUV) ? ctx->width : ctx->width * ctx->nb_comp) );
 	}
+
+#if OPENJP2
+	opj_end_decompress(codec, stream);
+	opj_stream_destroy(stream);
+	stream = NULL;
+	opj_destroy_codec(codec);
+	codec = NULL;
+#else
 	/* close the byte stream */
 	opj_cio_close(cio);
 	cio = NULL;
@@ -315,6 +426,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 		opj_destroy_decompress(dinfo);
 		dinfo = NULL;
 	}
+#endif
 
 	pck_dst = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &buffer);
 
@@ -458,6 +570,10 @@ GF_FilterRegister J2KRegister = {
 	.name = "j2kdec",
 #ifdef OPENJPEG_VERSION
 	.version = ""OPENJPEG_VERSION,
+#elif OPENJP2
+	.version = "2.x",
+#else
+	.version = "1.x",
 #endif
 	GF_FS_SET_DESCRIPTION("OpenJPEG2000 decoder")
 	GF_FS_SET_HELP("This filter decodes JPEG2000 streams through OpenJPEG2000 library.")
