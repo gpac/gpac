@@ -1042,6 +1042,7 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 #ifndef GPAC_DISABLE_LOG
 		/*by default log subsystem is initialized to error on all tools, and info on console to debug scripts*/
 		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+		gf_log_set_tool_level(GF_LOG_APP, GF_LOG_INFO);
 		gf_log_set_tool_level(GF_LOG_CONSOLE, GF_LOG_INFO);
 #endif
 
