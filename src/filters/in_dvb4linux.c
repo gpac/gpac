@@ -369,7 +369,7 @@ static GF_Err dvblin_process(GF_Filter *filter)
 {
 	u32 nb_read=0;
 	GF_FilterPacket *dst_pck;
-	char *out_data;
+	u8 *out_data;
 	GF_DVBLinuxCtx *ctx = (GF_DVBLinuxCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx->freq) return GF_EOS;

@@ -141,11 +141,11 @@ static void OnNewFrameVideo(DtMxData *pData, const DtCbkCtx  *cbck)
 	}
 	ctx->is_eos = GF_FALSE;
 
-	unsigned char *pY, *pU, *pV;
+	u8 *pY, *pU, *pV;
 	u32 pck_size = 0;
 	u32 stride = ctx->stride, stride_uv= ctx->stride_uv;
 	pY = pU = pV = NULL;
-	pY = (unsigned char *) gf_filter_pck_get_data(pck, &pck_size);
+	pY = gf_filter_pck_get_data(pck, &pck_size);
 	if (!pY) {
 		GF_FilterFrameInterface *hwframe = gf_filter_pck_get_frame_interface(pck);
 		if (hwframe) {
@@ -171,9 +171,9 @@ static void OnNewFrameVideo(DtMxData *pData, const DtCbkCtx  *cbck)
 	//TODO - move all this into color convertion code in libgpac !
 
 	DtMxVideoBuf&  VideoBuf = OurRow.m_CurFrame->m_Video[0];
-	unsigned char* pDstY = VideoBuf.m_Planes[0].m_pBuf;
-	unsigned char* pDstU = VideoBuf.m_Planes[1].m_pBuf;
-	unsigned char* pDstV = VideoBuf.m_Planes[2].m_pBuf;
+	u8* pDstY = VideoBuf.m_Planes[0].m_pBuf;
+	u8* pDstU = VideoBuf.m_Planes[1].m_pBuf;
+	u8* pDstV = VideoBuf.m_Planes[2].m_pBuf;
 
 	if (ctx->is_10b) {
 		u32 nb_pix = 2 * ctx->width*ctx->height;
