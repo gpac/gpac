@@ -24,30 +24,43 @@
 */
 
 #include <gpac/filters.h>
-#include <gpac/constants.h>
 
 #ifdef GPAC_HAS_JP2
+
+//we MUST set OPJ_STATIC before including openjpeg.h
+#if !defined(__GNUC__) && (defined(_WIN32_WCE) || defined (WIN32))
+#  define OPJ_STATIC
+#endif
+
+#include <gpac/constants.h>
+#include <gpac/isomedia.h>
 
 #include <openjpeg.h>
 
 #ifdef OPJ_PROFILE_NONE
 #define OPENJP2	1
-#else
-#define OPENJP2	0
-#endif
 
-#if !defined(__GNUC__)
-# if defined(_WIN32_WCE) || defined (WIN32)
-#  define OPJ_STATIC
+# if !defined(__GNUC__) && (defined(_WIN32_WCE) || defined (WIN32))
+#  if defined(_DEBUG)
+#   pragma comment(lib, "libopenjp2d")
+#  else
+#   pragma comment(lib, "libopenjp2")
+#  endif
+# endif
+
+#else
+
+#define OPENJP2	0
+
+# if !defined(__GNUC__) && (defined(_WIN32_WCE) || defined (WIN32))
 #  if defined(_DEBUG)
 #   pragma comment(lib, "LibOpenJPEGd")
 #  else
 #   pragma comment(lib, "LibOpenJPEG")
 #  endif
 # endif
-#endif
 
-#include <gpac/isomedia.h>
+#endif
 
 typedef struct
 {

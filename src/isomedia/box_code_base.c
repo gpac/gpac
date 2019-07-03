@@ -1652,7 +1652,7 @@ GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs)
 		//we had this issue with encryption_import test
 		//we therefore only check if last char is null, and if not so assume old QT style
 		if (ptr->nameUTF8[ptr->size-1]) {
-			memmove(ptr->nameUTF8, ptr->nameUTF8+1, ptr->size-1);
+			memmove(ptr->nameUTF8, ptr->nameUTF8+1, sizeof(char) * (u32) (ptr->size-1) );
 			ptr->nameUTF8[ptr->size-1] = 0;
 			ptr->store_counted_string = GF_TRUE;
 		}
