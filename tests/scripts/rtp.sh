@@ -28,7 +28,7 @@ myinspect=$TEMP_DIR/inspect.txt
 
 do_test "$GPAC -for-test -runfor=2500 -i $TEMP_DIR/session.sdp:ifce=$IFCE inspect:deep:allp:log=$myinspect -stats -graph" "dump" &
 
-sleep .5
+sleep 1
 #run without loop and tso=100000 to avoid a rand() that might impact TS rounding differently (hence slightly different durations->different hashes)
 do_test "$GPAC -i $2 -o $TEMP_DIR/session.sdp:loop=no:ip=$DST:ifce=$IFCE:tso=100000 -stats" "stream"
 
