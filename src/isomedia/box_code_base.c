@@ -1643,7 +1643,6 @@ GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 20);
 
 	if (ptr->size) {
-		size_t len;
 		ptr->nameUTF8 = (char*)gf_malloc((u32) ptr->size);
 		if (ptr->nameUTF8 == NULL) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->nameUTF8, (u32) ptr->size);
@@ -1653,10 +1652,9 @@ GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs)
 		//we had this issue with encryption_import test
 		//we therefore only check if last char is null, and if not so assume old QT style
 		if (ptr->nameUTF8[ptr->size-1]) {
-				len = strlen(ptr->nameUTF8 + 1);
-				memmove(ptr->nameUTF8, ptr->nameUTF8+1, len );
-				ptr->nameUTF8[len] = 0;
-				ptr->store_counted_string = GF_TRUE;
+			memmove(ptr->nameUTF8, ptr->nameUTF8+1, ptr->size-1);
+			ptr->nameUTF8[ptr->size-1] = 0;
+			ptr->store_counted_string = GF_TRUE;
 		}
 	}
 	return GF_OK;
