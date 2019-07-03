@@ -397,7 +397,7 @@ GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixe
 #else
 
 GF_EXPORT
-GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size, u32 dst_nb_comp)
+GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size, u32 dst_nb_comp)
 {
 	return GF_NOT_SUPPORTED;
 }
@@ -689,12 +689,12 @@ GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_for
 
 #else
 GF_EXPORT
-GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size)
+GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size)
 {
 	return GF_NOT_SUPPORTED;
 }
 GF_EXPORT
-GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size)
+GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_format, u8 *dst, u32 *dst_size)
 {
 	return GF_NOT_SUPPORTED;
 }
