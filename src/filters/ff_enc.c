@@ -314,6 +314,11 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 #define UNSCALE_TS(_ts) if (_ts != AV_NOPTS_VALUE)  { _ts *= ctx->encoder->time_base.num; _ts *= ctx->timescale; _ts /= ctx->encoder->time_base.den; }
 #define UNSCALE_DUR(_ts) { _ts *= ctx->encoder->time_base.num; _ts *= ctx->timescale; _ts /= ctx->encoder->time_base.den; }
 
+		//store first frame CTS before rescaling, we use it after rescaling the output packet timing to compute CTS-DTS
+		if (!ctx->cts_first_frame_plus_one) {
+			ctx->cts_first_frame_plus_one = 1 + ctx->frame->pts;
+		}
+
 		if (ctx->remap_ts) {
 			SCALE_TS(ctx->frame->pts);
 
@@ -321,11 +326,6 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		}
 
 		ctx->frame->pkt_dts = ctx->frame->pkt_pts = ctx->frame->pts;
-
-		if (!ctx->cts_first_frame_plus_one) {
-			ctx->cts_first_frame_plus_one = 1 + ctx->frame->pts;
-		}
-
 
 		ctx->frame->pict_type = AV_PICTURE_TYPE_NONE;
 
@@ -368,7 +368,6 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			UNSCALE_TS(pkt.pts);
 			UNSCALE_DUR(pkt.duration);
 		}
-
 	} else {
 		res = avcodec_encode_video2(ctx->encoder, &pkt, NULL, &gotpck);
 		if (!gotpck) {
