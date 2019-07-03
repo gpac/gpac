@@ -1968,7 +1968,7 @@ retry_import:
 					GF_MPD_SegmentTimelineEntry *se;
 					elt = gf_list_get(pe->element.playlist.elements, k);
 					GF_SAFEALLOC(se, GF_MPD_SegmentTimelineEntry);
-					dur = elt->duration_info * rep->segment_list->timescale;
+					dur = (u64) ( elt->duration_info * rep->segment_list->timescale);
 					se->duration = (u32) dur;
 					se->start_time = start_time;
 					start_time += dur;

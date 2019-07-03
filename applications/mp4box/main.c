@@ -2872,7 +2872,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				import_fps.num = ticks;
 				import_fps.den = dts_inc;
 			} else {
-				import_fps.num = 1000 * atof(argv[i + 1]);
+				import_fps.num = (s32) (1000 * atof(argv[i + 1]));
 				import_fps.den = 0;
 			}
 			i++;

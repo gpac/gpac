@@ -30,10 +30,10 @@
 
 #include <openjpeg.h>
 
-#ifdef ENUMCS_SRGB
-#define OPENJP2	0
-#else
+#ifdef OPJ_PROFILE_NONE
 #define OPENJP2	1
+#else
+#define OPENJP2	0
 #endif
 
 #if !defined(__GNUC__)

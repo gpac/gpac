@@ -667,7 +667,7 @@ void gf_isom_fmo_del(GF_FileMappingDataMap *ptr)
 }
 
 
-u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, char *buffer, u32 bufferLength, u64 fileOffset)
+u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset)
 {
 	//can we seek till that point ???
 	if (fileOffset > ptr->file_size) return 0;
