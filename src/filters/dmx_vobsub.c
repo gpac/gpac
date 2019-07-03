@@ -249,7 +249,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 
 	for (; c<count; c++) {
 		u32		i, left, size, psize, dsize, hsize, duration;
-		char *packet;
+		u8 *packet;
 		vobsub_pos *pos = (vobsub_pos*)gf_list_get(subpic, c);
 
 		if (vslang->is_seek) {

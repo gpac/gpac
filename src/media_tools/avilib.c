@@ -1598,7 +1598,7 @@ static int avi_write_data(avi_t *AVI, char *data, unsigned int length, int audio
 }
 
 GF_EXPORT
-int AVI_write_frame(avi_t *AVI, char *data, int bytes, int keyframe)
+int AVI_write_frame(avi_t *AVI, u8 *data, int bytes, int keyframe)
 {
 	s64 pos;
 
@@ -1634,7 +1634,7 @@ int AVI_dup_frame(avi_t *AVI)
 #endif
 
 GF_EXPORT
-int AVI_write_audio(avi_t *AVI, char *data, int bytes)
+int AVI_write_audio(avi_t *AVI, u8 *data, int bytes)
 {
 	if(AVI->mode==AVI_MODE_READ) {
 		AVI_errno = AVI_ERR_NOT_PERM;
@@ -1649,7 +1649,7 @@ int AVI_write_audio(avi_t *AVI, char *data, int bytes)
 
 #if 0 //unused
 
-int AVI_append_audio(avi_t *AVI, char *data, int bytes)
+int AVI_append_audio(avi_t *AVI, u8 *data, int bytes)
 {
 
 	// won't work for >2gb
@@ -2893,7 +2893,7 @@ int AVI_set_audio_bitrate(avi_t *AVI, int bitrate)
 }
 #endif
 
-int AVI_read_frame(avi_t *AVI, char *vidbuf, int *keyframe)
+int AVI_read_frame(avi_t *AVI, u8 *vidbuf, int *keyframe)
 {
 	int n;
 
@@ -3003,7 +3003,7 @@ int AVI_set_audio_position(avi_t *AVI, int byte)
 #endif
 
 
-int AVI_read_audio(avi_t *AVI, char *audbuf, int bytes, int *continuous)
+int AVI_read_audio(avi_t *AVI, u8 *audbuf, int bytes, int *continuous)
 {
 	int nr, left, todo;
 	s64 pos;

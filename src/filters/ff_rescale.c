@@ -57,7 +57,7 @@ typedef struct
 static GF_Err ffsws_process(GF_Filter *filter)
 {
 	const char *data;
-	char *output;
+	u8 *output;
 	u32 osize;
 	s32 res;
 	u8 *src_planes[5];

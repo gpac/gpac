@@ -870,14 +870,14 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 	if (!tspid) tspid = gf_list_get(ctx->pids, 0);
 
 	if (ctx->nb_sidx_entries) {
+		GF_FilterPacket *idx_pck;
+		u8 *output;
 		Bool large_sidx = GF_FALSE;
 		u32 segidx_size=0;
 		u64 last_pck_dur = tspid->pck_duration;
 		last_pck_dur *= 90000;
 		last_pck_dur /= tspid->esi.timescale;
 
-		GF_FilterPacket *idx_pck;
-		char *output;
 		if (ctx->sidx_entries[ctx->nb_sidx_entries-1].sap_time > 0xFFFFFFFFUL)
 			large_sidx = GF_TRUE;
 		if (ctx->sidx_entries[0].offset*188 > 0xFFFFFFFFUL)
@@ -1065,7 +1065,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 	nb_pck_in_call = 0;
 	nb_pck_in_pack=0;
 	while (1) {
-		char *output;
+		u8 *output;
 		u32 osize;
 		Bool is_pack_flush = GF_FALSE;
 

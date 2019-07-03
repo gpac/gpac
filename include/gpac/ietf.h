@@ -451,7 +451,7 @@ GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com);
 
 
 GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess,
-                                       GF_Err (*SignalData)(GF_RTSPSession *sess, void *cbk_ptr, char *buffer, u32 bufferSize, Bool IsRTCP)
+                                       GF_Err (*SignalData)(GF_RTSPSession *sess, void *cbk_ptr, u8 *buffer, u32 bufferSize, Bool IsRTCP)
                                       );
 
 
@@ -487,7 +487,7 @@ GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char *buffer);
 /*gets the IP address of the connected peer - buffer shall be GF_MAX_IP_NAME_LEN long*/
 GF_Err gf_rtsp_get_remote_address(GF_RTSPSession *sess, char *buffer);
 
-GF_Err gf_rtsp_session_write_interleaved(GF_RTSPSession *sess, u32 idx, char *pck, u32 pck_size);
+GF_Err gf_rtsp_session_write_interleaved(GF_RTSPSession *sess, u32 idx, u8 *pck, u32 pck_size);
 
 /*
 		RTP LIB EXPORTS
@@ -608,18 +608,18 @@ void gf_rtp_reset_ssrc(GF_RTPChannel *ch);
 
 /*read any data on UDP only (not valid for TCP). Performs re-ordering if configured for it
 returns amount of data read (raw UDP packet size)*/
-u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
-u32 gf_rtp_flush_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
+u32 gf_rtp_read_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size);
+u32 gf_rtp_flush_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size);
 
-u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
+u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size);
 //flush RTP reorderer
-u32 gf_rtp_read_flush(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
+u32 gf_rtp_read_flush(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size);
 
 /*decodes an RTP packet and gets the beginning of the RTP payload*/
-GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart);
+GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart);
 
 /*decodes an RTCP packet and update timing info, send RR too*/
-GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_sr);
+GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, Bool *has_sr);
 
 /*computes and send Receiver report. If the channel is a TCP channel, you must specify
 the callback function. NOTE: many RTP implementation do NOT process RTCP info received on TCP...
@@ -633,9 +633,9 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch);
 
 /*send RTP packet. In fast_send mode, user passes a pck pointer with 12 bytes available BEFORE pck to
 write the header in place*/
-GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u32 pck_size, Bool fast_send);
+GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, u8 *pck, u32 pck_size, Bool fast_send);
 
-GF_Err gf_rtp_set_interleave_callbacks(GF_RTPChannel *ch, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, char *pck, u32 pck_size), void *cbk1, void *cbk2);
+GF_Err gf_rtp_set_interleave_callbacks(GF_RTPChannel *ch, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, u8 *pck, u32 pck_size), void *cbk1, void *cbk2);
 
 
 enum
@@ -936,7 +936,7 @@ typedef struct
 	char mode[30];
 
 	/*config of the stream if carried in SDP*/
-	char *config;
+	u8 *config;
 	u32 configSize;
 	/* Stream Type*/
 	u8 StreamType;
@@ -945,7 +945,7 @@ typedef struct
 
 	/*rvc config of the stream if carried in SDP*/
 	u16 rvc_predef;
-	char *rvc_config;
+	u8 *rvc_config;
 	u32 rvc_config_size;
 
 	/*2 - optional options*/
@@ -1175,7 +1175,7 @@ struct __tag_rtp_packetizer
 	void (*OnNewPacket)(void *cbk_obj, GF_RTPHeader *header);
 	void (*OnPacketDone)(void *cbk_obj, GF_RTPHeader *header);
 	void (*OnDataReference)(void *cbk_obj, u32 payload_size, u32 offset_from_orig);
-	void (*OnData)(void *cbk_obj, char *data, u32 data_size, Bool is_header);
+	void (*OnData)(void *cbk_obj, u8 *data, u32 data_size, Bool is_header);
 	void *cbk_obj;
 
 	/*********************************
@@ -1253,7 +1253,7 @@ GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt,
                                      void (*OnNewPacket)(void *cbk, GF_RTPHeader *header),
                                      void (*OnPacketDone)(void *cbk, GF_RTPHeader *header),
                                      void (*OnDataReference)(void *cbk, u32 payload_size, u32 offset_from_orig),
-                                     void (*OnData)(void *cbk, char *data, u32 data_size, Bool is_head)
+                                     void (*OnData)(void *cbk, u8 *data, u32 data_size, Bool is_head)
                                     );
 
 /*destroy builder*/
@@ -1304,7 +1304,7 @@ void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 @duration: sample duration in rtp timescale (only needed for 3GPP text streams)
 @descIndex: sample description index (only needed for 3GPP text streams)
 */
-GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex);
+GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex);
 
 /*format the "fmtp: " attribute for the MPEG-4 generic packetizer. sdpline shall be at least 2000 char*/
 GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, char *dsi, u32 dsi_size);
@@ -1350,7 +1350,7 @@ typedef struct rtp_static_payt {
 struct __tag_rtp_depacketizer
 {
 	/*depacketize routine*/
-	void (*depacketize)(struct __tag_rtp_depacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size);
+	void (*depacketize)(struct __tag_rtp_depacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size);
 
 	/*output packet sl header cfg*/
 	GF_SLHeader sl_hdr;
@@ -1364,7 +1364,7 @@ struct __tag_rtp_depacketizer
 	const GF_RTPStaticMap *static_map;
 
 	/*callback routine*/
-	void (*on_sl_packet)(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e);
+	void (*on_sl_packet)(void *udta, u8 *payload, u32 size, GF_SLHeader *hdr, GF_Err e);
 	void *udta;
 
 	/*SL <-> RTP map*/
@@ -1391,10 +1391,10 @@ struct __tag_rtp_depacketizer
 /*generic rtp builder (packetizer)*/
 typedef struct __tag_rtp_depacketizer GF_RTPDepacketizer;
 
-GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet_cbk)(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e), void *udta);
+GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet_cbk)(void *udta, u8 *payload, u32 size, GF_SLHeader *hdr, GF_Err e), void *udta);
 void gf_rtp_depacketizer_del(GF_RTPDepacketizer *rtp);
 void gf_rtp_depacketizer_reset(GF_RTPDepacketizer *rtp, Bool full_reset);
-void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size);
+void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size);
 
 #endif /*GPAC_DISABLE_STREAMING*/
 

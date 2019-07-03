@@ -41,7 +41,7 @@ GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt, GF_SLConfig *slc, u32 flags,
                                      void (*OnNewPacket)(void *cbk, GF_RTPHeader *header),
                                      void (*OnPacketDone)(void *cbk, GF_RTPHeader *header),
                                      void (*OnDataReference)(void *cbk, u32 payload_size, u32 offset_from_orig),
-                                     void (*OnData)(void *cbk, char *data, u32 data_size, Bool is_head)
+                                     void (*OnData)(void *cbk, u8 *data, u32 data_size, Bool is_head)
                                     )
 {
 	GP_RTPPacketizer *tmp;
@@ -84,7 +84,7 @@ void gf_rtp_builder_del(GP_RTPPacketizer *builder)
 }
 
 GF_EXPORT
-GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex)
+GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex)
 {
 	if (!builder) return GF_BAD_PARAM;
 

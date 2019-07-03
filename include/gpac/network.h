@@ -313,7 +313,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *peer_name, u16 port, const cha
  *\param buffer the data buffer to send
  *\param length the data length to send
  */
-GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length);
+GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length);
 /*!
  *\brief data reception
  *
@@ -324,7 +324,7 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length);
  *\param read the actual number of bytes received
  *\return error if any, GF_IP_NETWORK_EMPTY if nothing to read
  */
-GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 *read);
+GF_Err gf_sk_receive(GF_Socket *sock, u8 *buffer, u32 length, u32 *read);
 
 /*!
  *\brief socket listening
@@ -429,7 +429,7 @@ u32 gf_sk_is_multicast_address(const char *multi_ip_add);
  *\param delay_sec the maximum delay in second to wait before aborting
  *\return If the operation timed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
  */
-GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 delay_sec);
+GF_Err gf_sk_send_wait(GF_Socket *sock, const u8 *buffer, u32 length, u32 delay_sec);
 /* receive data with a max wait delay of Second - used for http / ftp sockets mainly*/
 /*!
  *\brief receive data with wait delay
@@ -442,7 +442,7 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 dela
  *\param delay_sec the maximum delay in second to wait before aborting
  *\return If the operation timed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
  */
-GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 *read, u32 delay_sec);
+GF_Err gf_sk_receive_wait(GF_Socket *sock, u8 *buffer, u32 length, u32 *read, u32 delay_sec);
 
 /*!
  *\brief gets socket handle
@@ -506,7 +506,7 @@ Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk);
  *\param read the actual number of bytes received
  *\return error if any, GF_IP_NETWORK_EMPTY if nothing to read
  */
-GF_Err gf_sk_receive_no_select(GF_Socket *sock, char *buffer, u32 length, u32 *read);
+GF_Err gf_sk_receive_no_select(GF_Socket *sock, u8 *buffer, u32 length, u32 *read);
 
 
 /*!

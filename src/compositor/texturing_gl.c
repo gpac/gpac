@@ -74,7 +74,7 @@ struct __texture_wrapper
 	//0: not paused, 1: paused, 2: initial pause has been done
 	u32 init_pause_status;
 	Bool conv_to_8bit;
-	char *conv_data;
+	u8 *conv_data;
 	GF_Matrix texcoordmatrix;
 
 	/*3D texturing*/

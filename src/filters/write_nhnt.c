@@ -161,8 +161,8 @@ GF_Err nhntdump_process(GF_Filter *filter)
 {
 	GF_NHNTDumpCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	char *data;
-	char *output;
+	u8 *data;
+	u8 *output;
 	u32 size, pck_size;
 	u64 dts, cts;
 

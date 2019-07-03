@@ -529,7 +529,7 @@ GF_Err swf_to_svg_init(SWFReader *read, u32 swf_flags, Float swf_flatten_angle)
 	return GF_OK;
 }
 
-GF_Err swf_svg_write_text_sample(void *user, const char *data, u32 length, u64 timestamp, Bool isRap)
+GF_Err swf_svg_write_text_sample(void *user, const u8 *data, u32 length, u64 timestamp, Bool isRap)
 {
 	FILE *svgFile = (FILE *)user;
 	u32  lengthWritten;
@@ -542,7 +542,7 @@ GF_Err swf_svg_write_text_sample(void *user, const char *data, u32 length, u64 t
 	}
 }
 
-GF_Err swf_svg_write_text_header(void *user, const char *data, u32 length, Bool isHeader)
+GF_Err swf_svg_write_text_header(void *user, const u8 *data, u32 length, Bool isHeader)
 {
 	FILE *svgFile = (FILE *)user;
 	u32  lengthWritten;

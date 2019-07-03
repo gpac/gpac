@@ -42,7 +42,7 @@ typedef struct
 	u32 frame_size, nb_bytes_in_frame, Bps;
 	u64 filepos, total_frames;
 	GF_FilterPacket *out_pck;
-	char *out_data;
+	u8 *out_data;
 	Bool reverse_play, done;
 } GF_PCMReframeCtx;
 
@@ -202,7 +202,7 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 	GF_PCMReframeCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	u64 byte_offset;
-	char *data;
+	u8 *data;
 	u32 pck_size;
 
 	if (ctx->done) return GF_EOS;

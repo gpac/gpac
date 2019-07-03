@@ -112,7 +112,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 	u32 pos;
 	Bool has_sei_suffix = GF_FALSE;
 	const char *data;
-	char *output;
+	u8 *output;
 	if (!ctx->base_ipid) return GF_EOS;
 
 	pck = gf_filter_pid_get_packet(ctx->base_ipid);

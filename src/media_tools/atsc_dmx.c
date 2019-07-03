@@ -130,9 +130,9 @@ struct __gf_atscdmx {
 	const char *ip_ifce;
 	const char *base_dir;
 	GF_Socket *sock;
-	char *buffer;
+	u8 *buffer;
 	u32 buffer_size;
-	char *unz_buffer;
+	u8 *unz_buffer;
 	u32 unz_buffer_size;
 
 	u32 max_seg_store;

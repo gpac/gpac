@@ -590,7 +590,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	}
 	//setup ouput
 	if (!mdia->nalu_out_bs) {
-		char *output;
+		u8 *output;
 		u32 outSize;
 		mdia->nalu_out_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_get_content(mdia->nalu_out_bs, &output, &outSize);
@@ -853,7 +853,7 @@ exit:
 
 GF_HEVCConfig *HEVC_DuplicateConfig(GF_HEVCConfig *cfg)
 {
-	char *data;
+	u8 *data;
 	u32 data_size;
 	GF_HEVCConfig *new_cfg;
 	GF_BitStream *bs;
@@ -2315,7 +2315,7 @@ GF_Box *m4ds_New()
 GF_Err m4ds_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	char *enc_ods;
+	u8 *enc_ods;
 	u32 enc_od_size;
 	GF_MPEG4ExtensionDescriptorsBox *ptr = (GF_MPEG4ExtensionDescriptorsBox *) s;
 	if (!s) return GF_BAD_PARAM;

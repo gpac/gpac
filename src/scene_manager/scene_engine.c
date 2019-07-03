@@ -70,7 +70,7 @@ struct __tag_scene_engine
 #ifndef GPAC_DISABLE_BIFS_ENC
 static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF_ESD *esd)
 {
-	char *data;
+	u8 *data;
 	u32 data_len;
 	u32	nbb;
 	Bool encode_names, delete_bcfg;
@@ -145,7 +145,7 @@ static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF
 #ifndef GPAC_DISABLE_LASER
 static GF_Err gf_sm_setup_lsrenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF_ESD *esd)
 {
-	char *data;
+	u8 *data;
 	u32 data_len;
 	GF_LASERConfig lsr_cfg;
 
@@ -284,7 +284,7 @@ GF_Err gf_seng_enable_aggregation(GF_SceneEngine *seng, u16 ESID, u16 onESID)
 /* Set to 1 if you want every dump with a timed file name */
 //#define DUMP_DIMS_LOG_WITH_TIME
 
-static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *commands, char **data, u32 *size)
+static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *commands, u8 **data, u32 *size)
 {
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	GF_SceneDumper *dumper = NULL;
@@ -293,7 +293,7 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	char rad_name[4096];
 	char file_name[4096];
 	u32 fsize;
-	char *buffer = NULL;
+	u8 *buffer = NULL;
 	GF_BitStream *bs = NULL;
 	u8 dims_header;
 	Bool compress_dims;
@@ -508,7 +508,7 @@ static GF_Err gf_sm_live_encode_scene_au(GF_SceneEngine *seng, gf_seng_callback 
 {
 	GF_Err e;
 	u32	i, j, size, count, nb_streams;
-	char *data;
+	u8 *data;
 	GF_AUContext *au;
 
 	if (!callback) return GF_BAD_PARAM;
@@ -823,7 +823,7 @@ void gf_seng_terminate(GF_SceneEngine *seng)
 }
 
 GF_EXPORT
-GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, char ** const config, u32 *config_len, u32 *streamType, u32 *codec_id, u32 *timeScale)
+GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, u8 **config, u32 *config_len, u32 *streamType, u32 *codec_id, u32 *timeScale)
 {
 	GF_StreamContext *sc = gf_list_get(seng->ctx->streams, idx);
 	if (!sc || !ESID || !config || !config_len) return GF_BAD_PARAM;
@@ -1091,7 +1091,7 @@ GF_EXPORT
 char *gf_seng_get_base64_iod(GF_SceneEngine *seng)
 {
 	u32 size, size64;
-	char *buffer, *buf64;
+	u8 *buffer, *buf64;
 	u32 i=0;
 	GF_StreamContext*sc = NULL;
 

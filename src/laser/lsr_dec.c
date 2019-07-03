@@ -105,7 +105,7 @@ static LASeRStreamInfo *lsr_get_stream(GF_LASeRCodec *codec, u16 ESID)
 
 
 GF_EXPORT
-GF_Err gf_laser_decoder_configure_stream(GF_LASeRCodec *codec, u16 ESID, char *dsi, u32 dsi_len)
+GF_Err gf_laser_decoder_configure_stream(GF_LASeRCodec *codec, u16 ESID, u8 *dsi, u32 dsi_len)
 {
 	LASeRStreamInfo *info;
 	GF_BitStream *bs;
@@ -167,7 +167,7 @@ void lsr_end_of_stream(void *co)
 }
 
 GF_EXPORT
-GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, const char *data, u32 data_len)
+GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, const u8 *data, u32 data_len)
 {
 	GF_Err e;
 	if (!codec || !data || !data_len) return GF_BAD_PARAM;
@@ -193,7 +193,7 @@ GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, const char *data, u32 
 }
 
 GF_EXPORT
-GF_Err gf_laser_decode_command_list(GF_LASeRCodec *codec, u16 ESID, char *data, u32 data_len, GF_List *com_list)
+GF_Err gf_laser_decode_command_list(GF_LASeRCodec *codec, u16 ESID, u8 *data, u32 data_len, GF_List *com_list)
 {
 	GF_Err e;
 	u32 i;

@@ -35,7 +35,7 @@ since the drift may be high on TS for example, where PTS-PCR>500ms is quite comm
 #define MIN_DRIFT_ADJUST	75
 
 
-static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_size, u32 audio_delay_ms)
+static u8 *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_size, u32 audio_delay_ms)
 {
 	char *frame;
 	u32 obj_time, ts;

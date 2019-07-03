@@ -433,7 +433,7 @@ static void audiobuffer_update_time(GF_TimeNode *tn)
 
 
 
-static char *audiobuffer_fetch_frame(void *callback, u32 *size, u32 *planar_stride, u32 audio_delay_ms)
+static u8 *audiobuffer_fetch_frame(void *callback, u32 *size, u32 *planar_stride, u32 audio_delay_ms)
 {
 	u32 blockAlign;
 	AudioBufferStack *st = (AudioBufferStack *) gf_node_get_private( ((GF_AudioInput *) callback)->owner);

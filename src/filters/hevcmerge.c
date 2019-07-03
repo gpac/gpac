@@ -65,7 +65,7 @@ typedef struct
 	GF_FilterPid *opid;
 	s32 base_pps_init_qp_delta_minus26;
 	u32 out_width, out_height;
-	char *buffer_nal, *buffer_nal_no_epb, *buffer_nal_in_no_epb;
+	u8 *buffer_nal, *buffer_nal_no_epb, *buffer_nal_in_no_epb;
 	u32 buffer_nal_alloc, buffer_nal_no_epb_alloc, buffer_nal_in_no_epb_alloc;
 	GF_BitStream *bs_au_in;
 
@@ -75,7 +75,7 @@ typedef struct
  	struct gridInfo *grid;
  	u32 nb_cols;
 
-	char *sei_suffix_buf;
+	u8 *sei_suffix_buf;
 	u32 sei_suffix_len, sei_suffix_alloc;
 	u32 hevc_nalu_size_length;
 	u32 max_CU_width, max_CU_height;
@@ -365,7 +365,7 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, char
 static GF_Err hevcmerge_rewrite_config(GF_HEVCMergeCtx *ctx, GF_FilterPid *opid, char *data, u32 size)
 {
 	u32 i, j;
-	char *new_dsi;
+	u8 *new_dsi;
 	u32 new_size;
 	GF_HEVCConfig *hvcc = NULL;
 	// Profile, tier and level syntax ( nal class: Reserved and unspecified)
@@ -1057,8 +1057,8 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 		gf_bs_reassign_buffer(ctx->bs_au_in, data, data_size);
 
 		while (gf_bs_available(ctx->bs_au_in)) {
-			char *output_nal;
-			char *nal_pck;
+			u8 *output_nal;
+			u8 *nal_pck;
 			u32 nal_pck_size;
 
 			nal_length = gf_bs_read_int(ctx->bs_au_in, tile_pid->nalu_size_length * 8);
@@ -1099,7 +1099,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 				gf_filter_pck_merge_properties(pck_src, output_pck);
 			}
 			else {
-				char *data_start;
+				u8 *data_start;
 				u32 new_size;
  				gf_filter_pck_expand(output_pck, ctx->hevc_nalu_size_length + nal_pck_size, &data_start, &output_nal, &new_size);
 			}
@@ -1112,8 +1112,8 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 	//if we had a SEI suffix, append it
 	if (ctx->sei_suffix_len) {
 		if (output_pck) {
-			char *output_nal;
-			char *data_start;
+			u8 *output_nal;
+			u8 *data_start;
 			u32 new_size;
 			gf_filter_pck_expand(output_pck, ctx->hevc_nalu_size_length + ctx->sei_suffix_len, &data_start, &output_nal, &new_size);
 			hevcmerge_write_nal(ctx, output_nal, ctx->sei_suffix_buf, ctx->sei_suffix_len);

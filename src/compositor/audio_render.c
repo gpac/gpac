@@ -288,7 +288,7 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 	}
 
 	while (max_send) {
-		char *data;
+		u8 *data;
 		u32 dur;
 		u32 delay_ms = 0;
 		GF_FilterPacket *pck;

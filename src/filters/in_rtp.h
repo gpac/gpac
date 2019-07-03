@@ -292,7 +292,7 @@ GF_Err rtpin_stream_init(GF_RTPInStream *stream, Bool ResetOnly);
 void rtpin_stream_reset_queue(GF_RTPInStream *stream);
 
 /*RTSP -> RTP de-interleaving callback*/
-GF_Err rtpin_rtsp_data_cbk(GF_RTSPSession *sess, void *cbck, char *buffer, u32 bufferSize, Bool IsRTCP);
+GF_Err rtpin_rtsp_data_cbk(GF_RTSPSession *sess, void *cbck, u8 *buffer, u32 bufferSize, Bool IsRTCP);
 /*send confirmation of connection - if no error, also setup SL based on payload*/
 void rtpin_stream_ack_connect(GF_RTPInStream *stream, GF_Err e);
 

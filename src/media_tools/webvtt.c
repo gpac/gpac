@@ -1161,7 +1161,7 @@ GF_List *gf_webvtt_parse_iso_cues(GF_ISOSample *iso_sample, u64 start)
 }
 
 GF_EXPORT
-GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 start)
+GF_List *gf_webvtt_parse_cues_from_data(const u8 *data, u32 dataLength, u64 start)
 {
 	GF_List *cues;
 	GF_WebVTTCue *cue;
@@ -1171,7 +1171,7 @@ GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 st
 	cue = NULL;
 	pre_text = NULL;
 	cues = gf_list_new();
-	bs = gf_bs_new(data, dataLength, GF_BITSTREAM_READ);
+	bs = gf_bs_new((u8 *)data, dataLength, GF_BITSTREAM_READ);
 	while(gf_bs_available(bs))
 	{
 		GF_Err  e;
@@ -1357,7 +1357,7 @@ void gf_webvtt_timestamp_dump(GF_WebVTTTimestamp *ts, FILE *dump, Bool dump_hour
 
 	fprintf(dump, "%02u:%02u.%03u", ts->min, ts->sec, ts->ms);
 }
-GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength, u32 *dumpedLength)
+GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const u8 *data, u32 dataLength, u32 *dumpedLength)
 {
 #ifdef GPAC_DISABLE_ISOM
 	return GF_NOT_SUPPORTED;
@@ -1367,7 +1367,7 @@ GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength,
 	GF_StringBox *config;
 	GF_BitStream *bs;
 	*dumpedLength = 0;
-	bs = gf_bs_new(data, dataLength, GF_BITSTREAM_READ);
+	bs = gf_bs_new((u8 *)data, dataLength, GF_BITSTREAM_READ);
 	e = gf_isom_box_parse(&box, bs);
 	if (!box || (box->type != GF_ISOM_BOX_TYPE_VTTC_CONFIG)) {
 		gf_bs_del(bs);

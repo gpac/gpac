@@ -84,7 +84,7 @@ static const char *GetLanguage(char *lcode)
 
 GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name)
 {
-	const char *tag;
+	const u8 *tag;
 	char szName[1024];
 	FILE *t;
 	u32 tag_len;
@@ -953,7 +953,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 
 
 
-static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
+static u32 read_nal_size_hdr(u8 *ptr, u32 nalh_size)
 {
 	u32 nal_size=0;
 	u32 v = nalh_size;
@@ -966,7 +966,7 @@ static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
 	return nal_size;
 }
 
-void gf_inspect_dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc);
+void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc);
 
 
 void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
@@ -1007,7 +1007,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "   <NALU size=\"%d\" ", slc->size);\
-			gf_inspect_dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);\
+			gf_inspect_dump_nalu(dump, (u8 *) slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);\
 			fprintf(dump, "/>\n");\
 		}\
 		fprintf(dump, "  </%sArray>\n", name);\
@@ -1130,7 +1130,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 		u64 dts, cts;
 		Bool is_rap;
 		u32 size, nal_size, idx, di;
-		char *ptr;
+		u8 *ptr;
 		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, &di);
 		if (!samp) {
 			fprintf(dump, "<!-- Unable to fetch sample %d -->\n", i+1);
@@ -1225,7 +1225,7 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	if (inName) gf_fclose(dump);
 }
 
-void gf_inspect_dump_obu(FILE *dump, AV1State *av1, char *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc);
+void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc);
 
 void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 {
@@ -1256,9 +1256,9 @@ void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 
 	for (i=0; i<gf_list_count(av1.config->obu_array); i++) {
 		GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
-		bs = gf_bs_new((const char *)obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
+		bs = gf_bs_new(obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
 		gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
-		gf_inspect_dump_obu(dump, &av1, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, dump_crc);
+		gf_inspect_dump_obu(dump, &av1, obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, dump_crc);
 		gf_bs_del(bs);
 	}
 	fprintf(dump, " </OBUConfig>\n");
@@ -1268,7 +1268,7 @@ void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 	for (i=0; i<count; i++) {
 		u64 dts, cts;
 		u32 size;
-		char *ptr;
+		u8 *ptr;
 		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, NULL);
 		if (!samp) {
 			fprintf(dump, "<!-- Unable to fetch sample %d -->\n", i+1);
@@ -1689,7 +1689,8 @@ void print_udta(GF_ISOFile *file, u32 track_number)
 
 GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_udta_type, u32 dump_udta_track)
 {
-	char szName[1024], *data;
+	char szName[1024];
+	u8 *data;
 	FILE *t;
 	bin128 uuid;
 	u32 count, res;
@@ -2146,7 +2147,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					lhvccfg = gf_isom_lhvc_config_get(file, trackNum, 1);
 
 					if (msub_type==GF_ISOM_SUBTYPE_HVT1) {
-						const char *data;
+						const u8 *data;
 						u32 size;
 						u32  is_default, x,y,w,h, id, independent;
 						Bool full_frame;
@@ -2202,7 +2203,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					char *szName;
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					if (full_dump) fprintf(stderr, "\t");
-					if (!strnicmp(&esd->decoderConfig->decoderSpecificInfo->data[3], "theora", 6)) szName = "Theora";
+					if (!strnicmp((char *) &esd->decoderConfig->decoderSpecificInfo->data[3], "theora", 6)) szName = "Theora";
 					else szName = "Unknown";
 					fprintf(stderr, "Ogg/%s video / GPAC Mux  - Visual Size %d x %d\n", szName, w, h);
 				}
@@ -2311,7 +2312,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				/*packetVideo hack for EVRC...*/
 				case GF_CODECID_EVRC_PV:
 					if (esd->decoderConfig->decoderSpecificInfo && (esd->decoderConfig->decoderSpecificInfo->dataLength==8)
-					        && !strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "pvmm", 4)) {
+					        && !strnicmp((char *)esd->decoderConfig->decoderSpecificInfo->data, "pvmm", 4)) {
 						if (full_dump) fprintf(stderr, "\t");
 						fprintf(stderr, "EVRC Audio (PacketVideo Mux) - Sample Rate 8000 - 1 channel\n");
 					}
@@ -2798,7 +2799,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 {
 	GF_InitialObjectDescriptor *iod;
 	u32 i, brand, min, timescale, count, tag_len;
-	const char *tag;
+	const u8 *tag;
 	u64 create, modif;
 	char szDur[50];
 
@@ -3171,7 +3172,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 {
-	char data[188];
+	u8 data[188];
 	GF_M2TS_Dump dumper;
 
 	u32 size;

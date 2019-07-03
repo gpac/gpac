@@ -397,7 +397,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 	GF_QCPDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u64 byte_offset;
-	char *data, *output;
+	u8 *data, *output;
 	u8 *start;
 	u32 pck_size, remain;
 	GF_Err e;
@@ -478,7 +478,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 		u64 b_offset;
 		GF_FilterPacket *dst_pck;
 		char magic[4];
-		char *pck_data;
+		u8 *pck_data;
 		Bool has_pad;
 
 		if (!ctx->hdr_processed) {

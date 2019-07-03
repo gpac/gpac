@@ -74,7 +74,7 @@ static GF_Err imgdec_process(GF_Filter *filter)
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_Err e;
 	GF_FilterPacket *pck, *dst_pck;
-	char *data, *output;
+	u8 *data, *output;
 	u32 size;
 	GF_IMGDecCtx *ctx = (GF_IMGDecCtx *) gf_filter_get_udta(filter);
 

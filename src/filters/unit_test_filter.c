@@ -150,7 +150,7 @@ static void ut_filter_send_update(GF_Filter *filter, u32 nb_pck)
 
 static GF_Err ut_filter_process_filter(GF_Filter *filter)
 {
-	const char *data;
+	const u8 *data;
 	u32 size, i, j, count, nb_loops;
 	u32 fwd;
 	GF_FilterPacket *pck_dst;
@@ -172,7 +172,7 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 	//loop on each PID
 	for (i=0; i<count; i++) {
 	u32 pck_size;
-	char *data_ptr;
+	u8 *data_ptr;
 	PIDCtx *pidctx = gf_list_get(stack->pids, i);
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(pidctx->src_pid);
 	assert (pck);
@@ -183,7 +183,7 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 
 	nb_loops = stack->framing ? 3 : 1;
 	pck_size = stack->framing ? size/nb_loops : size;
-	data_ptr = (char *)data;
+	data_ptr = (u8 *)data;
 
 	for (j=0; j<nb_loops; j++) {
 
@@ -201,7 +201,7 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 	}
 	//copy memory
 	else if (fwd==1) {
-		char *data_dst;
+		u8 *data_dst;
 		pck_dst = gf_filter_pck_new_alloc(pidctx->dst_pid, pck_size, &data_dst);
 		if (pck_dst) {
 			memcpy(data_dst, data_ptr, pck_size);
@@ -294,7 +294,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			pidctx->frame_ifce.user_data = pidctx;
 			pck = gf_filter_pck_new_frame_interface(pidctx->dst_pid, &pidctx->frame_ifce, ut_source_pck_del);
 		} else if (stack->alloc) {
-			char *data;
+			u8 *data;
 			pck = gf_filter_pck_new_alloc(pidctx->dst_pid, 10, &data);
 			memcpy(data, "PacketCopy", 10);
 			gf_sha1_update(pidctx->sha_ctx, "PacketCopy", 10);
@@ -512,7 +512,7 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	
 	//coverage mode
 	if (stack->cov) {
-		char *data;
+		u8 *data;
 		Bool old_strict = gf_log_set_strict_error(GF_FALSE);
 		gf_filter_pid_set_property(pidctx->src_pid, GF_4CC('s','h','a','1'), format);
 		gf_filter_pid_reset_properties(pidctx->src_pid);
@@ -686,7 +686,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing data value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", szFmt, NULL, 0);
-		if ((p.value.data.ptr != (char *) stack) || (p.value.data.size != (u32) sizeof(stack))) {
+		if ((p.value.data.ptr != (u8 *) stack) || (p.value.data.size != (u32) sizeof(stack))) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing data value\n"));
 		}
 		sprintf(szFmt, "%p", stack);

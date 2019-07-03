@@ -63,7 +63,7 @@ typedef struct
 	/*! original file name*/
 	const char *filename;
 	/*! data pointer*/
-	char *data;
+	u8 *data;
 	/*! data size*/
 	u32 size;
 	/*! object TSI*/

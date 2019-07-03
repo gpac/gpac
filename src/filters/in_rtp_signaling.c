@@ -176,7 +176,7 @@ GF_Err rtpin_stream_setup(GF_RTPInStream *stream, RTPIn_StreamDescribe *ch_desc)
 	return GF_OK;
 }
 
-static GF_Err rtpin_rtsp_tcp_send_report(void *par, void *par2, Bool is_rtcp, char *pck, u32 pck_size)
+static GF_Err rtpin_rtsp_tcp_send_report(void *par, void *par2, Bool is_rtcp, u8 *pck, u32 pck_size)
 {
 	return GF_OK;
 }

@@ -85,7 +85,8 @@ static void atscin_finalize(GF_Filter *filter)
 static void atscin_send_file(ATSCInCtx *ctx, u32 service_id, GF_ATSCEventFileInfo *finfo, u32 evt_type)
 {
 	if (!ctx->kc || !finfo->corrupted) {
-		char *output, *ext;
+		u8 *output;
+		char *ext;
 		GF_FilterPid *pid, **p_pid;
 		GF_FilterPacket *pck;
 		TSI_Output *tsio = NULL;

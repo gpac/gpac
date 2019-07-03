@@ -165,7 +165,7 @@ static GFINLINE void vorbis_to_intern(u32 samples, Float **pcm, char *buf, u32 c
 static GF_Err vorbisdec_process(GF_Filter *filter)
 {
 	ogg_packet op;
-	char *buffer=NULL;
+	u8 *buffer=NULL;
 	Float **pcm;
 	u32 samples, total_samples, total_bytes, size;
 	GF_VorbisDecCtx *ctx = gf_filter_get_udta(filter);

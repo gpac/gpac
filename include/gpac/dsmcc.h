@@ -66,7 +66,7 @@ typedef struct {
 	u8 descriptor_length;
 	u32 carousel_id;
 	u8 FormatID;
-	char *private_data_byte;
+	u8 *private_data_byte;
 	u8 ModuleVersion;
 	u8 ModuleId;
 	u16 BlockSize;
@@ -75,7 +75,7 @@ typedef struct {
 	u32 OriginalSize;
 	u8 TimeOut;
 	u8 ObjectKeyLength;
-	char* ObjectKeyData;
+	u8* ObjectKeyData;
 } GF_M2TS_CAROUSEL_INDENTIFIER_DESCRIPTOR;
 
 typedef struct
@@ -184,7 +184,7 @@ typedef struct
 {
 	u8 subDescriptorType;
 	u8 subDescriptorLength;
-	char *additionalInformation;
+	u8 *additionalInformation;
 
 } GF_M2TS_DSMCC_SUBDESCRIPTOR;
 

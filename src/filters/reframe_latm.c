@@ -280,7 +280,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 
 static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 {
-	char *dsi_b;
+	u8 *dsi_b;
 	u32 dsi_s, sr, timescale=0;
 
 	if (!ctx->opid) {
@@ -415,7 +415,7 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 	GF_LATMDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u32 pos;
-	char *data, *output;
+	u8 *data, *output;
 	u32 pck_size, prev_pck_size;
 	u64 cts = GF_FILTER_NO_TS;
 

@@ -120,7 +120,7 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 		}
 		gf_isom_box_del((GF_Box*)dops);
 
-		gf_bs_get_content(bs_out, (char **) &op.packet, &op.bytes);
+		gf_bs_get_content(bs_out, &op.packet, &op.bytes);
 		gf_bs_del(bs_out);
 		ogg_stream_packetin(&os, &op);
 		gf_free(op.packet);
@@ -943,7 +943,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 	u32 count, i, s_count, di, tot_samp, samp_done;
 	char out_file[GF_MAX_PATH];
 	GF_SAFMuxer *mux;
-	char *data;
+	u8 *data;
 	u32 size;
 	Bool is_stdout = 0;
 	FILE *saf_f;

@@ -309,8 +309,8 @@ typedef struct
 avi_t* AVI_open_output_file(char * filename);
 void AVI_set_video(avi_t *AVI, int width, int height, double fps, char *compressor);
 void AVI_set_audio(avi_t *AVI, int channels, int rate, int bits, int format, int mp3rate);
-int  AVI_write_frame(avi_t *AVI, char *data, int bytes, int keyframe);
-int  AVI_write_audio(avi_t *AVI, char *data, int bytes);
+int  AVI_write_frame(avi_t *AVI, u8 *data, int bytes, int keyframe);
+int  AVI_write_audio(avi_t *AVI, u8 *data, int bytes);
 int  AVI_close(avi_t *AVI);
 
 avi_t *AVI_open_input_file(char *filename, int getIndex);
@@ -336,9 +336,9 @@ int AVI_frame_size(avi_t *AVI, int frame);
 int AVI_audio_size(avi_t *AVI, int frame);
 
 u64 AVI_get_video_position(avi_t *AVI, int frame);
-int AVI_read_frame(avi_t *AVI, char *vidbuf, int *keyframe);
+int AVI_read_frame(avi_t *AVI, u8 *vidbuf, int *keyframe);
 
-int AVI_read_audio(avi_t *AVI, char *audbuf, int bytes, int *continuous);
+int AVI_read_audio(avi_t *AVI, u8 *audbuf, int bytes, int *continuous);
 
 
 int AVI_scan(char *name);

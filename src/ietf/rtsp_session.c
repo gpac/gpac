@@ -293,7 +293,7 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 }
 
 
-GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, char *buffer, u32 Size)
+GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, u8 *buffer, u32 Size)
 {
 	GF_Err e;
 	u32 Size64;
@@ -476,7 +476,7 @@ GF_Err gf_rtsp_register_interleave(GF_RTSPSession *sess, void *the_ch, u8 LowInt
 
 GF_EXPORT
 GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess,
-                                       GF_Err (*SignalData)(GF_RTSPSession *sess, void *chan, char *buffer, u32 bufferSize, Bool IsRTCP)
+                                       GF_Err (*SignalData)(GF_RTSPSession *sess, void *chan, u8 *buffer, u32 bufferSize, Bool IsRTCP)
                                       )
 {
 	if (!sess) return GF_BAD_PARAM;
@@ -714,7 +714,7 @@ GF_Err gf_rtsp_get_remote_address(GF_RTSPSession *sess, char *buf)
 }
 
 GF_EXPORT
-GF_Err gf_rtsp_session_write_interleaved(GF_RTSPSession *sess, u32 idx, char *pck, u32 pck_size)
+GF_Err gf_rtsp_session_write_interleaved(GF_RTSPSession *sess, u32 idx, u8 *pck, u32 pck_size)
 {
 	GF_Err e;
 	char streamID[4];

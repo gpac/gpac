@@ -704,8 +704,8 @@ static GF_Err nvdec_process(GF_Filter *filter)
 	unsigned int pitch = 0;
 	GF_Err e;
 	u32 pck_size;
-	const char *data;
-	char *output;
+	const u8 *data;
+	u8 *output;
 	GF_FilterPacket *ipck, *dst_pck;
     CUVIDSOURCEDATAPACKET cu_pkt;
 	CUresult res;

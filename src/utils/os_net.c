@@ -867,7 +867,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 
 //send length bytes of a buffer
 GF_EXPORT
-GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
+GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length)
 {
 	u32 count;
 	s32 res;
@@ -1350,13 +1350,13 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 }
 
 GF_EXPORT
-GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 *BytesRead)
+GF_Err gf_sk_receive(GF_Socket *sock, u8 *buffer, u32 length, u32 *BytesRead)
 {
 	return gf_sk_receive_internal(sock, buffer, length, BytesRead, GF_TRUE);
 }
 
 GF_EXPORT
-GF_Err gf_sk_receive_no_select(GF_Socket *sock, char *buffer, u32 length, u32 *BytesRead)
+GF_Err gf_sk_receive_no_select(GF_Socket *sock, u8 *buffer, u32 length, u32 *BytesRead)
 {
 	return gf_sk_receive_internal(sock, buffer, length, BytesRead, GF_FALSE);
 }
@@ -1619,7 +1619,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 
 
 GF_EXPORT
-GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 *BytesRead, u32 Second )
+GF_Err gf_sk_receive_wait(GF_Socket *sock, u8 *buffer, u32 length, u32 *BytesRead, u32 Second )
 {
 	s32 res;
 #ifndef __SYMBIAN32__
@@ -1671,7 +1671,7 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 *BytesR
 
 //send length bytes of a buffer
 GF_EXPORT
-GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 Second )
+GF_Err gf_sk_send_wait(GF_Socket *sock, const u8 *buffer, u32 length, u32 Second )
 {
 	u32 count;
 	s32 res;

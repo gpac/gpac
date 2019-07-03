@@ -2794,7 +2794,7 @@ exit:
 	for (j=0; j<=max_layer_id; j++) {
 		GF_BitStream *bs;
 		u32 count, data_size;
-		char *data=NULL;
+		u8 *data=NULL;
 		if (sti[j].lhvccfg) gf_odf_hevc_cfg_del(sti[j].lhvccfg);
 		//set linf group
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -3255,7 +3255,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 				if (e) goto err_exit;
 			}
 		} else {
-			char *data=NULL;
+			u8 *data=NULL;
 			u32 size=0;
 			u32 sdesc;
 			gf_bs_get_content(bs, &data, &size);

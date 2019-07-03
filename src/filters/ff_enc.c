@@ -224,7 +224,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	u32 size=0, i, count, offset, to_copy;
 	s32 res;
 	u64 now;
-	char *output;
+	u8 *output;
 	Bool insert_jp2c = GF_FALSE;
 	GF_FilterPacket *dst_pck, *src_pck;
 	GF_FilterPacket *pck;
@@ -466,7 +466,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			size += 8;
 
 			if (!ctx->dsi_crc) {
-				char *dsi;
+				u8 *dsi;
 				u32 dsi_len;
 				GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 				gf_bs_write_u32(bs, 14+8);
@@ -602,7 +602,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	Bool from_buffer_only = GF_FALSE;
 	s32 res;
 	u32 nb_samples=0;
-	char *output;
+	u8 *output;
 	GF_FilterPacket *dst_pck, *src_pck;
 	GF_FilterPacket *pck;
 
@@ -1225,7 +1225,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		case GF_CODECID_AAC_MPEG2_SSRP:
 		{
 			GF_M4ADecSpecInfo acfg;
-			char *dsi;
+			u8 *dsi;
 			u32 dsi_len;
 			memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
 			acfg.base_object_type = GF_M4A_AAC_LC;

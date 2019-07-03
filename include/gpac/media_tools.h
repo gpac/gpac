@@ -1231,7 +1231,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
  \param streamType systems stream type needed to signal data mime-type (OD, BIFS or any)
  \return GF_TRUE if the encoded data fits in an ESD url
  */
-Bool gf_hinter_can_embbed_data(char *data, u32 data_size, u32 streamType);
+Bool gf_hinter_can_embbed_data(u8 *data, u32 data_size, u32 streamType);
 
 #endif /*GPAC_DISABLE_ISOM_HINTING*/
 
@@ -1300,7 +1300,7 @@ GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u
  \param out_size output SAF data size
  \return error if any
  */
-GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_session, char **out_data, u32 *out_size);
+GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_session, u8 **out_data, u32 *out_size);
 
 /*!
   Gets timescale and TS increment from double FPS value.

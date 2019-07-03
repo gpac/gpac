@@ -246,7 +246,7 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 {
 	GF_BitStream *dsi;
 	GF_M4ADecSpecInfo acfg;
-	char *dsi_b;
+	u8 *dsi_b;
 	u32 i, sbr_sr_idx, dsi_s, sr, sbr_sr, codecid, timescale=0;
 
 	if (!ctx->opid) {
@@ -469,7 +469,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 {
 	GF_ADTSDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	char *data, *output;
+	u8 *data, *output;
 	u8 *start;
 	u32 pck_size, remain, prev_pck_size;
 	u64 cts = GF_FILTER_NO_TS;

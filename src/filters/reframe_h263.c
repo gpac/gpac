@@ -419,7 +419,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 	while (remain) {
 		u32 size=0;
 		Bool full_frame;
-		char *pck_data;
+		u8 *pck_data;
 		s32 current, next;
 		u32 fmt, w, h;
 
@@ -621,7 +621,7 @@ static const char * h263dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		data += current;
 		size -= current;
 
-		GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		GF_BitStream *bs = gf_bs_new((u8 *)data, size, GF_BITSTREAM_READ);
 
 		/*parse header*/
 		gf_bs_read_int(bs, 22);

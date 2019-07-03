@@ -224,7 +224,7 @@ void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table
 			gf_bs_write_u32(bs, 0);
 		}
 
-		gf_bs_get_content(bs, (char**) &section->data, &section->length);
+		gf_bs_get_content(bs, &section->data, &section->length);
 		gf_bs_del(bs);
 
 		if (use_syntax_indicator) {
@@ -355,7 +355,7 @@ void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16
 	hdr = stream->sl_header;
 	while (offset < table_payload_length) {
 		u32 remain;
-		char *slhdr;
+		u8 *slhdr;
 		u32 slhdr_size;
 		GF_SAFEALLOC(section, GF_M2TS_Mux_Section);
 		if (!section) {
@@ -407,7 +407,7 @@ void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16
 			gf_bs_write_u32(bs, 0);
 		}
 
-		gf_bs_get_content(bs, (char**) &section->data, &section->length);
+		gf_bs_get_content(bs, &section->data, &section->length);
 		gf_bs_del(bs);
 
 		if (use_syntax_indicator) {
@@ -658,7 +658,7 @@ u32 gf_m2ts_stream_process_sdt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			}
 			prog = prog->next;
 		}
-		gf_bs_get_content(bs, (char**)&payload, &size);
+		gf_bs_get_content(bs, &payload, &size);
 		gf_bs_del(bs);
 		gf_m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_SDT_ACTUAL, muxer->ts_id, payload, size, GF_TRUE, GF_FALSE, GF_FALSE);
 		stream->table_needs_update = GF_FALSE;
@@ -688,7 +688,7 @@ u32 gf_m2ts_stream_process_pat(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			gf_bs_write_int(bs, prog->pmt->pid, 13);	/*reserved*/
 			prog = prog->next;
 		}
-		gf_bs_get_content(bs, (char**)&payload, &size);
+		gf_bs_get_content(bs, &payload, &size);
 		gf_bs_del(bs);
 		gf_m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_PAT, muxer->ts_id, payload, size, GF_TRUE, GF_FALSE, GF_FALSE);
 		stream->table_needs_update = GF_FALSE;
@@ -732,7 +732,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			u32 len, i;
 			GF_ESD *esd;
 			GF_BitStream *bs_iod;
-			char *iod_data;
+			u8 *iod_data;
 			u32 iod_data_len;
 
 			/*rewrite SL config in IOD streams*/
@@ -893,7 +893,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			es = es->next;
 		}
 
-		gf_bs_get_content(bs, (char**)&payload, &length);
+		gf_bs_get_content(bs, &payload, &length);
 		gf_bs_del(bs);
 
 		gf_m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_PMT, stream->program->number, payload, length, GF_TRUE, GF_FALSE, GF_FALSE);
@@ -979,7 +979,7 @@ void id3_write_size(GF_BitStream *bs, u32 len)
 	gf_bs_write_int(bs, size, 7);
 }
 
-static void id3_tag_create(char **input, u32 *len)
+static void id3_tag_create(u8 **input, u32 *len)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u8(bs, 'I');
@@ -2729,7 +2729,7 @@ GF_Err gf_m2ts_mux_enable_pcr_only_packets(GF_M2TS_Mux *muxer, Bool enable_force
 
 
 GF_EXPORT
-const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_next)
+const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_next)
 {
 	GF_M2TS_Mux_Program *program;
 	GF_M2TS_Mux_Stream *stream, *stream_to_process;

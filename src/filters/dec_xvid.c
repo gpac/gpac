@@ -239,7 +239,7 @@ static GF_Err xviddec_process(GF_Filter *filter)
 #else
 	xvid_dec_frame_t frame;
 #endif
-	char *buffer;
+	u8 *buffer;
 	u32 i, count;
 	Bool is_seek;
 #if 0

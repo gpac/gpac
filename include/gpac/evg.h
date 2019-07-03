@@ -148,7 +148,7 @@ GF_Err gf_evg_stencil_set_alpha(GF_EVGStencil *stencil, u8 alpha);
 NOTE: this stencil acts as a data wrapper, the pixel data is not required to be locally copied
 data is not required to be available for texturing until the stencil is used in a draw operation
 */
-GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat);
+GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, u8 *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat);
 
 /*set stencil texture
 	@pixels: texture data, from top to bottom
@@ -162,7 +162,7 @@ GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, char *pixels, u32 widt
 NOTE: this stencil acts as a data wrapper, the pixel data is not required to be locally copied
 data is not required to be available for texturing until the stencil is used in a draw operation
 */
-GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, const char *y_or_rgb, u32 stride, const char *u_plane, const char *v_plane, u32 uv_stride, const char *alpha_plane);
+GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, const u8 *y_or_rgb, u32 stride, const u8 *u_plane, const u8 *v_plane, u32 uv_stride, const u8 *alpha_plane);
 
 
 /*sets texture tile mode*/
@@ -191,7 +191,7 @@ GF_Err gf_evg_surface_attach_to_texture(GF_EVGSurface *_this, GF_EVGStencil *ste
 	@pitch_y: texture vertical pitch (bytes to skip to get to next line)
 	@pixelFormat: texture pixel format
 */
-GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *_this, char *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat);
+GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *_this, u8 *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat);
 
 /*sets rasterizer precision */
 GF_Err gf_evg_surface_set_raster_level(GF_EVGSurface *_this, GF_RasterLevel RasterSetting);

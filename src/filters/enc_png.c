@@ -46,7 +46,7 @@ typedef struct
 	png_bytep *row_pointers;
 
 	GF_FilterPacket *dst_pck;
-	char *output;
+	u8 *output;
 
 } GF_PNGEncCtx;
 
@@ -143,7 +143,7 @@ static void pngenc_write(png_structp png, png_bytep data, png_size_t size)
 		while (ctx->alloc_size<size) ctx->alloc_size+=PNG_BLOCK_SIZE;
 		ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->alloc_size, &ctx->output);
 	} else if (ctx->pos + size > ctx->alloc_size) {
-		char *data;
+		u8 *data;
 		u32 new_size;
 		u32 old_size = ctx->alloc_size;
 		while (ctx->pos + size > ctx->alloc_size)

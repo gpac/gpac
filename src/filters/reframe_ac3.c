@@ -182,7 +182,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 {
 	GF_BitStream *bs;
-	char *data;
+	u8 *data;
 	u32 size;
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
@@ -312,7 +312,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 	GF_AC3DmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u64 byte_offset;
-	char *data, *output;
+	u8 *data, *output;
 	u8 *start;
 	u32 pck_size, remain;
 	u32 alread_sync = 0;
@@ -335,7 +335,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = (u8 *) gf_filter_pck_get_data(pck, &pck_size);
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
 
 	start = data;
@@ -503,7 +503,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 				if (alread_sync) {
 					boffset -= (6-alread_sync);
 				} else {
-					boffset += (char *) sync - data;
+					boffset += sync - data;
 				}
 				gf_filter_pck_set_byte_offset(dst_pck, boffset);
 			}

@@ -1955,7 +1955,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 
 	if (need_copy) {
 		GF_VideoSurface dst_v;
-		char *pixels;
+		u8 *pixels;
 		int pitch;
 		GF_Window swnd;
 		/*copy pixels*/

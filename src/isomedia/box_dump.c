@@ -3168,7 +3168,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			u64 start_ts;
 			void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue);
 			GF_List *cues;
-			char *data;
+			u8 *data;
 			u32 data_len;
 			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 

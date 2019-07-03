@@ -1353,7 +1353,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 				bin128 sysID;
 				GF_XMLNode *node, *pnode;
 				u32 version, k_count;
-				char *pssh_data=NULL;
+				u8 *pssh_data=NULL;
 				u32 pssh_len, size_64;
 				GF_BitStream *bs_w = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
@@ -2729,7 +2729,7 @@ static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name)
 {
 	GF_FilterPacket *pck;
 	u32 size, nb_read;
-	char *output;
+	u8 *output;
 
 	gf_fseek(f, 0, SEEK_END);
 	size = (u32) gf_ftell(f);

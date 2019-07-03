@@ -363,7 +363,7 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 {
 	GF_FilterPid *opid;
 	GF_FilterPacket *dst_pck;
-	char * data;
+	u8 * data;
 
 	/*pcr not initialized, don't send any data*/
 //	if (! pck->stream->program->first_dts) return;
@@ -404,7 +404,7 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 	GF_SLConfig *slc = ((GF_M2TS_ES*)pck->stream)->slcfg;
 	GF_FilterPid *opid;
 	GF_FilterPacket *dst_pck;
-	char * data;
+	u8 * data;
 	Bool start, end;
 	GF_SLHeader slh;
 	u32 slh_len = 0;
@@ -557,7 +557,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_DVB_GENERAL:
 		if (ctx->eit_pid) {
 			GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK *)param;
-			char *data;
+			u8 *data;
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->eit_pid, pck->data_len, &data);
 			memcpy(data, pck->data, pck->data_len);
 			gf_filter_pck_send(dst_pck);

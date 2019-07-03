@@ -45,7 +45,7 @@ typedef struct
 	u32 frame_size, nb_bytes_in_frame;
 	u64 filepos, total_frames;
 	GF_FilterPacket *out_pck;
-	char *out_data;
+	u8 *out_data;
 	Bool reverse_play, done;
 } GF_RawVidReframeCtx;
 

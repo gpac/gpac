@@ -61,7 +61,7 @@ typedef struct
 	Bool uncompress, is_dims, is_stpp;
 
 	GF_BitStream *bs_w, *bs_r;
-	char *nhml_buffer;
+	u8 *nhml_buffer;
 	u32 nhml_buffer_size;
 	char *b64_buffer;
 	u32 b64_buffer_size;
@@ -252,7 +252,7 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	GF_FilterPacket *dst_pck;
 	char nhml[1024];
 	u32 size;
-	char *output;
+	u8 *output;
 	const GF_PropertyValue *p;
 
 	ctx->szRootName = "NHNTStream";
@@ -405,7 +405,7 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 {
 	char nhml[1024];
 	u32 size;
-	char *output;
+	u8 *output;
 	GF_FilterPacket *dst_pck;
 	u64 dts = gf_filter_pck_get_dts(pck);
 	u64 cts = gf_filter_pck_get_cts(pck);
@@ -556,7 +556,7 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	char nhml[1024];
 	const GF_PropertyValue *p;
 	u32 size;
-	char *output;
+	u8 *output;
 	GF_FilterSAPType sap = gf_filter_pck_get_sap(pck);
 	u64 dts = gf_filter_pck_get_dts(pck);
 	u64 cts = gf_filter_pck_get_cts(pck);
@@ -742,7 +742,7 @@ GF_Err nhmldump_process(GF_Filter *filter)
 			if (ctx->bs_w && ctx->szRootName) {
 				char nhml[1024];
 				u32 size;
-				char *output;
+				u8 *output;
 				GF_FilterPacket *dst_pck;
 				gf_bs_reassign_buffer(ctx->bs_w, ctx->nhml_buffer, ctx->nhml_buffer_size);
 				sprintf(nhml, "</%s>\n", ctx->szRootName);

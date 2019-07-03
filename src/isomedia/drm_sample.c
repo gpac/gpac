@@ -44,7 +44,7 @@ void gf_isom_ismacryp_delete_sample(GF_ISMASample *samp)
 }
 
 
-GF_ISMASample *gf_isom_ismacryp_sample_from_data(char *data, u32 dataLength, Bool use_selective_encryption, u8 KI_length, u8 IV_length)
+GF_ISMASample *gf_isom_ismacryp_sample_from_data(u8 *data, u32 dataLength, Bool use_selective_encryption, u8 KI_length, u8 IV_length)
 {
 	GF_ISMASample *s;
 	GF_BitStream *bs;
@@ -779,7 +779,7 @@ GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 	return GF_OK;
 }
 
-GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, char *data, u32 len)
+GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, u8 *data, u32 len)
 {
 	GF_ProtectionSystemHeaderBox *pssh = NULL;
 	u32 i=0;
@@ -1104,7 +1104,7 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 }
 #endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 
-GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, char *buf, u32 len, Bool use_subsamples, char *clear_IV)
+GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, u8 *buf, u32 len, Bool use_subsamples, u8 *clear_IV)
 {
 	u32 i;
 	GF_SampleEncryptionBox *senc;
@@ -1264,7 +1264,7 @@ Bool gf_isom_cenc_has_saiz_saio_traf(GF_TrackFragmentBox *traf, u32 scheme_type)
 #endif
 
 
-static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber, u32 scheme_type, u8 IV_size, GF_CENCSampleAuxInfo **sai, char **out_buffer, u32 *out_size)
+static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber, u32 scheme_type, u8 IV_size, GF_CENCSampleAuxInfo **sai, u8 **out_buffer, u32 *out_size)
 {
 	u32  prev_sai_size, size, i, j, nb_saio;
 	u64 cur_position, offset;
@@ -1351,7 +1351,7 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 }
 
 
-static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, GF_CENCSampleAuxInfo **sai, u32 *container_type, char **out_buffer, u32 *outSize)
+static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, GF_CENCSampleAuxInfo **sai, u32 *container_type, u8 **out_buffer, u32 *outSize)
 {
 	GF_TrackBox *trak;
 	GF_SampleTableBox *stbl;
@@ -1443,7 +1443,7 @@ static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u3
 }
 
 GF_EXPORT
-GF_Err gf_isom_cenc_get_sample_aux_info_buffer(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *container_type, char **out_buffer, u32 *outSize)
+GF_Err gf_isom_cenc_get_sample_aux_info_buffer(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *container_type, u8 **out_buffer, u32 *outSize)
 {
 	return gf_isom_cenc_get_sample_aux_info_internal(the_file, trackNumber, sampleNumber, NULL, container_type, out_buffer, outSize);
 }

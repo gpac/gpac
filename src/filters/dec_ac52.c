@@ -189,7 +189,7 @@ static GF_Err a52dec_process(GF_Filter *filter)
 	int i, len, bit_rate;
 	u32 size;
 	const char *data;
-	char *buffer;
+	u8 *buffer;
 	u32 sample_rate, flags;
 	u8 num_channels;
 	sample_t level;

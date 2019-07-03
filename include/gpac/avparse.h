@@ -70,9 +70,9 @@ void gf_media_reduce_aspect_ratio(u32 *width, u32 *height);
 void gf_media_get_reduced_frame_rate(u32 *timescale, u32 *sample_dur);
 
 /*inserts emulation prevention bytes from buffer_src into buffer_dst*/
-u32 gf_media_nalu_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size);
+u32 gf_media_nalu_add_emulation_bytes(const u8 *buffer_src, u8 *buffer_dst, u32 nal_size);
 /*returns the nal_size without emulation prevention bytes*/
-u32 gf_media_nalu_emulation_bytes_add_count(char *buffer, u32 nal_size);
+u32 gf_media_nalu_emulation_bytes_add_count(u8 *buffer, u32 nal_size);
 
 /*basic MPEG (1,2,4) visual object parser (DSI extraction and timing/framing)*/
 typedef struct
@@ -99,7 +99,7 @@ typedef struct __tag_m4v_parser GF_M4VParser;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-GF_M4VParser *gf_m4v_parser_new(char *data, u64 data_size, Bool mpeg12video);
+GF_M4VParser *gf_m4v_parser_new(u8 *data, u64 data_size, Bool mpeg12video);
 GF_M4VParser *gf_m4v_parser_bs_new(GF_BitStream *bs, Bool mpeg12video);
 void gf_m4v_parser_del(GF_M4VParser *m4v);
 void gf_m4v_parser_del_no_bs(GF_M4VParser *m4v);
@@ -113,14 +113,14 @@ GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi, u8 *frame_t
 /*returns current object start in bitstream*/
 u64 gf_m4v_get_object_start(GF_M4VParser *m4v);
 /*decodes DSI/VOSHeader for MPEG4*/
-GF_Err gf_m4v_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
+GF_Err gf_m4v_get_config(u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
 /*decodes DSI/VOSHeader for MPEG12*/
-GF_Err gf_mpegv12_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
+GF_Err gf_mpegv12_get_config(u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
 
 /*rewrites PL code in DSI*/
-void gf_m4v_rewrite_pl(char **io_dsi, u32 *io_dsi_len, u8 PL);
+void gf_m4v_rewrite_pl(u8 **io_dsi, u32 *io_dsi_len, u8 PL);
 /*rewrites PAR code in DSI. Negative values will remove the par*/
-GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d);
+GF_Err gf_m4v_rewrite_par(u8 **o_data, u32 *o_dataLen, s32 par_n, s32 par_d);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
@@ -128,8 +128,8 @@ GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d);
 const char *gf_m4v_get_profile_name(u8 video_pl);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-s32 gf_mv12_next_start_code(unsigned char *pbuffer, u32 buflen, u32 *optr, u32 *scode);
-s32 gf_mv12_next_slice_start(unsigned char *pbuffer, u32 startoffset, u32 buflen, u32 *slice_offset);
+s32 gf_mv12_next_start_code(u8 *pbuffer, u32 buflen, u32 *optr, u32 *scode);
+s32 gf_mv12_next_slice_start(u8 *pbuffer, u32 startoffset, u32 buflen, u32 *slice_offset);
 
 #endif /* GPAC_DISABLE_AV_PARSERS*/
 
@@ -144,7 +144,7 @@ u8 gf_mp3_object_type_indication(u32 hdr);
 u8 gf_mp3_layer(u32 hdr);
 u16 gf_mp3_frame_size(u32 hdr);
 u32 gf_mp3_get_next_header(FILE* in);
-u32 gf_mp3_get_next_header_mem(const char *buffer, u32 size, u32 *pos);
+u32 gf_mp3_get_next_header_mem(const u8 *buffer, u32 size, u32 *pos);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
@@ -164,7 +164,7 @@ typedef struct ogg_audio_codec_desc_t
 	int sample_rate;
 
 	/*process the data and returns the sample block_size (i.e. duration)*/
-	GF_Err (*process)(struct ogg_audio_codec_desc_t *parserState, char *data, u32 data_length, void *importer, Bool *destroy_esd, u32 *track, u32 *di, u64 *duration, int *block_size);
+	GF_Err (*process)(struct ogg_audio_codec_desc_t *parserState, u8 *data, u32 data_length, void *importer, Bool *destroy_esd, u32 *track, u32 *di, u64 *duration, int *block_size);
 	/*release private state*/
 	void (*release)(struct ogg_audio_codec_desc_t *parserState);
 } ogg_audio_codec_desc;
@@ -187,11 +187,11 @@ typedef struct
 
 /*call with vorbis header packets - initializes the parser on success, leave it to NULL otherwise
 returns 1 if success, 0 if error.*/
-Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len);
+Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len);
 
 /*returns 0 if init error or not a vorbis frame, otherwise returns the number of audio samples
 in this frame*/
-u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length);
+u32 gf_vorbis_check_frame(GF_VorbisParser *vp, u8 *data, u32 data_length);
 
 /*opus tools*/
 typedef struct
@@ -210,11 +210,11 @@ typedef struct
 
 /*call with vorbis header packets - initializes the parser on success, leave it to NULL otherwise
 returns 1 if success, 0 if error.*/
-Bool gf_opus_parse_header(GF_OpusParser *op, char *data, u32 data_len);
+Bool gf_opus_parse_header(GF_OpusParser *op, u8 *data, u32 data_len);
 
 /*returns 0 if init error or not a vorbis frame, otherwise returns the number of audio samples
 in this frame*/
-u32 gf_opus_check_frame(GF_OpusParser *op, char *data, u32 data_length);
+u32 gf_opus_check_frame(GF_OpusParser *op, u8 *data, u32 data_length);
 
 #endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/
 
@@ -303,11 +303,11 @@ typedef struct
 } GF_M4ADecSpecInfo;
 
 /*parses dsi and updates audioPL*/
-GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg);
+GF_Err gf_m4a_get_config(u8 *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg);
 /*gets audioPL for given cfg*/
 u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg);
 
-GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size);
+GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, u8 **dsi, u32 *dsi_size);
 GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg);
 GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_known);
 
@@ -336,11 +336,11 @@ Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse);
 u32 gf_ac3_get_channels(u32 acmod);
 u32 gf_ac3_get_bitrate(u32 brcode);
 
-GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
-GF_Err gf_avc_get_pps_info(char *pps, u32 pps_size, u32 *pps_id, u32 *sps_id);
+GF_Err gf_avc_get_sps_info(u8 *sps, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
+GF_Err gf_avc_get_pps_info(u8 *pps, u32 pps_size, u32 *pps_id, u32 *sps_id);
 
 //hevc_state is optional but shall be used for layer extensions since all size info is in VPS and not SPS
-GF_Err gf_hevc_get_sps_info(char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
+GF_Err gf_hevc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
@@ -357,13 +357,13 @@ const char *gf_hevc_get_profile_name(u8 profile_idc);
 /*gets image size (bs must contain the whole image)
 @codecid: image type (JPEG=0x6C, PNG=0x6D)
 @width, height: image resolution - for jpeg max size if thumbnail included*/
-void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, char **dsi, u32 *dsi_len);
+void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **dsi, u32 *dsi_len);
 
-GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size, u32 dst_nb_comp);
+GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size, u32 dst_nb_comp);
 
-GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size);
-GF_Err gf_img_file_dec(char *png_file, u32 *codecid, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size);
-GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size);
+GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size);
+GF_Err gf_img_file_dec(char *png_file, u32 *codecid, u32 *width, u32 *height, u32 *pixel_format, u8 **dst, u32 *dst_size);
+GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_format, u8 *dst, u32 *dst_size);
 
 
 

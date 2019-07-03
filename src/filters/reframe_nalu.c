@@ -602,7 +602,7 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 {
 	GF_OperatingPointsInformation *oinf;
 	GF_BitStream *bs;
-	char *data;
+	u8 *data;
 	u32 data_size;
 	u32 i;
 	HEVC_VPS *vps;
@@ -734,7 +734,7 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 static void naludmx_set_hevc_linf(GF_NALUDmxCtx *ctx)
 {
 	u32 i, nb_layers=0, nb_sublayers=0;
-	char *data;
+	u8 *data;
 	u32 data_size;
 	GF_BitStream *bs;
 
@@ -764,7 +764,7 @@ static void naludmx_set_hevc_linf(GF_NALUDmxCtx *ctx)
 	gf_filter_pid_set_info_str(ctx->opid, "hevc:linf", &PROP_DATA_NO_COPY(data, data_size) );
 }
 
-static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u32 *dsi_size, char **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar, Bool *has_hevc_base)
+static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar, Bool *has_hevc_base)
 {
 	u32 i, count;
 	u8 layer_id;
@@ -926,7 +926,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u
 	gf_odf_hevc_cfg_del(lvcc);
 }
 
-void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u32 *dsi_size, char **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar)
+void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar)
 {
 	u32 i, count;
 	Bool first = GF_TRUE;
@@ -1077,7 +1077,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u32 *dsi_
 static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 {
 	u32 w, h, ew, eh;
-	char *dsi, *dsi_enh;
+	u8 *dsi, *dsi_enh;
 	u32 dsi_size, dsi_enh_size;
 	u32 crc_cfg, crc_cfg_enh;
 	GF_Fraction sar;
@@ -1482,10 +1482,10 @@ static void naludmx_update_nalu_maxsize(GF_NALUDmxCtx *ctx, u32 size)
 }
 
 
-GF_Err naludmx_realloc_last_pck(GF_NALUDmxCtx *ctx, u32 nb_bytes_to_add, char **data_ptr)
+GF_Err naludmx_realloc_last_pck(GF_NALUDmxCtx *ctx, u32 nb_bytes_to_add, u8 **data_ptr)
 {
 	GF_Err e;
-	char *pck_data;
+	u8 *pck_data;
 	u32 full_size;
 	GF_FilterPacket *pck = gf_list_last(ctx->pck_queue);
 	*data_ptr = NULL;
@@ -1514,7 +1514,7 @@ GF_Err naludmx_realloc_last_pck(GF_NALUDmxCtx *ctx, u32 nb_bytes_to_add, char **
 	return GF_OK;
 }
 
-GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_nal_field, Bool *au_start, char **pck_data)
+GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_nal_field, Bool *au_start, u8 **pck_data)
 {
 	GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, nal_size + (skip_nal_field ? 0 : ctx->nal_length), pck_data);
 
@@ -2026,10 +2026,10 @@ naldmx_flush:
     assert(remain>=0);
     
 	while (remain) {
-		char *pck_data;
-		char *hdr_start;
+		u8 *pck_data;
+		u8 *hdr_start;
 		u32 hdr_avail;
-		char *pck_start;
+		u8 *pck_start;
 		u32 pck_avail;
 		s32 current;
 		Bool nal_hdr_in_store = GF_FALSE;

@@ -933,7 +933,7 @@ static Bool mpeg2ps_stream_find_mp3_frame (mpeg2ps_stream_t *sptr)
 			return 0;
 		}
 	}
-	while ((hdr=gf_mp3_get_next_header_mem((char*)sptr->pes_buffer + sptr->pes_buffer_on,
+	while ((hdr=gf_mp3_get_next_header_mem(sptr->pes_buffer + sptr->pes_buffer_on,
 	                                       sptr->pes_buffer_size - sptr->pes_buffer_on,
 	                                       &diff) ) == 0) {
 		// don't have frame

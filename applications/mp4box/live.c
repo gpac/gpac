@@ -58,7 +58,7 @@ typedef struct
 	Bool manual_rtcp;
 	u16 ESID;
 
-	char *carousel_data;
+	u8 *carousel_data;
 	u32 carousel_size, carousel_alloc;
 	u32 last_carousel_time;
 	u64 carousel_ts, time_at_carousel_store;
@@ -115,7 +115,7 @@ RTPChannel *next_carousel(LiveSession *sess, u32 *timeout)
 }
 
 
-static void live_session_callback(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
+static void live_session_callback(void *calling_object, u16 ESID, u8 *data, u32 size, u64 ts)
 {
 	LiveSession *livesess = (LiveSession *) calling_object;
 	RTPChannel *rtpch;
@@ -214,7 +214,7 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 	for (i=0; i<count; i++) {
 		u16 ESID;
 		u32 st, oti, ts;
-		char *config = NULL;
+		u8 *config = NULL;
 		u32 config_len;
 		gf_seng_get_stream_config(livesess->seng, i, &ESID, &config, &config_len, &st, &oti, &ts);
 
@@ -230,7 +230,7 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 		case GF_STREAM_OD:
 		case GF_STREAM_SCENE:
 			rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr,
-			             GP_RTP_PCK_SYSTEMS_CAROUSEL, (char *) config, config_len,
+			             GP_RTP_PCK_SYSTEMS_CAROUSEL, config, config_len,
 			             96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, GF_FALSE);
 
 			if (rtpch->rtp) {
@@ -239,14 +239,14 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 			}
 			break;
 		default:
-			rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr, GP_RTP_PCK_SIGNAL_RAP, (char *) config, config_len, 96, 0, 0, GF_FALSE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, GF_FALSE);
+			rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr, GP_RTP_PCK_SIGNAL_RAP, config, config_len, 96, 0, 0, GF_FALSE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, GF_FALSE);
 			break;
 		}
 		rtpch->ESID = ESID;
 		rtpch->adjust_carousel_time = 1;
 		gf_list_add(livesess->streams, rtpch);
 
-		gf_rtp_streamer_append_sdp(rtpch->rtp, ESID, (char *) config, config_len, NULL, &sdp);
+		gf_rtp_streamer_append_sdp(rtpch->rtp, ESID, config, config_len, NULL, &sdp);
 
 		/*fetch initial config of the broadcast*/
 		gf_seng_get_stream_carousel_info(livesess->seng, ESID, &rtpch->carousel_period, &rtpch->aggregate_on_stream);
@@ -628,7 +628,7 @@ int live_session(int argc, char **argv)
 
 		/*process updates from socket source*/
 		if (sk) {
-			char buffer[2049];
+			u8 buffer[2049];
 			u32 bytes_read;
 			u32 update_length;
 			u32 bytes_received;

@@ -61,17 +61,17 @@ GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec)
 void gf_bifs_decoder_del(GF_BifsDecoder *codec);
 
 /*setup a stream*/
-GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder *codec, u16 ESID, char *DecoderSpecificInfo, u32 DecoderSpecificInfoLength, u32 objectTypeIndication);
+GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder *codec, u16 ESID, u8 *DecoderSpecificInfo, u32 DecoderSpecificInfoLength, u32 objectTypeIndication);
 
 /*decode a BIFS AU and applies it to the graph (non-memory mode only)*/
-GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, const char *data, u32 data_length, Double ts_offset);
+GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, const u8 *data, u32 data_length, Double ts_offset);
 
 /*Memory BIFS decoding - fills the command list with the content of the AU - cf scenegraph_vrml.h for commands usage
 	@ESID: ID of input stream
 	@data, @data_length: BIFS AU
 	@com_list: target list for decoded commands
 */
-GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_length, GF_List *com_list);
+GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, u8 *data, u32 data_length, GF_List *com_list);
 
 
 #ifndef GPAC_DISABLE_BIFS_ENC
@@ -87,14 +87,14 @@ GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig
 /*encodes a list of commands for the given stream in the output buffer - data is dynamically allocated for output
 the scenegraph used is the one described in SceneReplace command, hence scalable streams shall be encoded in time order
 */
-GF_Err gf_bifs_encode_au(GF_BifsEncoder *codec, u16 ESID, GF_List *command_list, char **out_data, u32 *out_data_length);
+GF_Err gf_bifs_encode_au(GF_BifsEncoder *codec, u16 ESID, GF_List *command_list, u8 **out_data, u32 *out_data_length);
 /*returns encoded config desc*/
-GF_Err gf_bifs_encoder_get_config(GF_BifsEncoder *codec, u16 ESID, char **out_data, u32 *out_data_length);
+GF_Err gf_bifs_encoder_get_config(GF_BifsEncoder *codec, u16 ESID, u8 **out_data, u32 *out_data_length);
 /*returns BIFS version used by codec for given stream*/
 u8 gf_bifs_encoder_get_version(GF_BifsEncoder *codec, u16 ESID);
 
 /*Encodes current graph as a scene replace*/
-GF_Err gf_bifs_encoder_get_rap(GF_BifsEncoder *codec, char **out_data, u32 *out_data_length);
+GF_Err gf_bifs_encoder_get_rap(GF_BifsEncoder *codec, u8 **out_data, u32 *out_data_length);
 
 GF_Err gf_bifs_encoder_set_source_url(GF_BifsEncoder *codec, const char *src_url);
 

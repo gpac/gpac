@@ -172,7 +172,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 }
 
 GF_EXPORT
-void gf_inspect_dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc)
+void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc)
 {
 	s32 res;
 	u8 type, nal_ref_idc;
@@ -493,7 +493,7 @@ void gf_inspect_dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVC
 }
 
 GF_EXPORT
-void gf_inspect_dump_obu(FILE *dump, AV1State *av1, char *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc)
+void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc)
 {
 #define DUMP_OBU_INT(_v) fprintf(dump, #_v"=\"%d\" ", av1->_v);
 #define DUMP_OBU_INT2(_n, _v) fprintf(dump, _n"=\"%d\" ", _v);
@@ -922,11 +922,11 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	GF_FilterClockType ck_type;
 	GF_FilterFrameInterface *fifce=NULL;
 	Bool start, end;
-	const char *data;
+	u8 *data;
 
 	if (!ctx->deep && !ctx->fmt) return;
 
-	data = gf_filter_pck_get_data(pck, &size);
+	data = (u8 *) gf_filter_pck_get_data(pck, &size);
 	gf_filter_pck_get_framing(pck, &start, &end);
 
 	ck_type = ctx->pcr ? gf_filter_pck_get_clock_type(pck) : 0;
@@ -1061,7 +1061,7 @@ props_done:
 				break;
 			} else {
 				fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
-				gf_inspect_dump_nalu(dump, (char*) data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->nalu_size_length, ctx->dump_crc);
+				gf_inspect_dump_nalu(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->nalu_size_length, ctx->dump_crc);
 				fprintf(dump, "/>\n");
 			}
 			idx++;

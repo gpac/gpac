@@ -146,12 +146,12 @@ typedef struct
 
 
 /*packetize SL-PDU. If PDU is NULL or size 0, only writes the SL header*/
-void gf_sl_packetize(GF_SLConfig* slConfig, GF_SLHeader *Header, char *PDU, u32 size, char **outPacket, u32 *OutSize);
+void gf_sl_packetize(GF_SLConfig* slConfig, GF_SLHeader *Header, u8 *PDU, u32 size, u8 **outPacket, u32 *OutSize);
 /*gets SL header size in bytes*/
 u32 gf_sl_get_header_size(GF_SLConfig* slConfig, GF_SLHeader *Header);
 
 /*depacketize SL-PDU*/
-void gf_sl_depacketize(GF_SLConfig *slConfig, GF_SLHeader *Header, const char *PDU, u32 PDULength, u32 *HeaderLen);
+void gf_sl_depacketize(GF_SLConfig *slConfig, GF_SLHeader *Header, const u8 *PDU, u32 PDULength, u32 *HeaderLen);
 
 /*! @} */
 

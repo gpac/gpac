@@ -51,7 +51,7 @@
 #endif	/*GPAC_HAS_JPEG*/
 
 GF_EXPORT
-void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, char **dsi, u32 *dsi_len)
+void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **dsi, u32 *dsi_len)
 {
 	u8 b1, b2, b3;
 	u32 size, type;
@@ -264,7 +264,7 @@ static void gf_jpeg_skip_input_data(j_decompress_ptr cinfo, long num_bytes)
 #define JPEG_MAX_SCAN_BLOCK_HEIGHT		16
 
 GF_EXPORT
-GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size, u32 dst_nb_comp)
+GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size, u32 dst_nb_comp)
 {
 	s32 i, j, scans, k;
 	u32 stride;
@@ -435,7 +435,7 @@ static void gf_png_user_error_fn(png_structp png_ptr,png_const_charp error_msg)
 
 
 GF_EXPORT
-GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size)
+GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size)
 {
 	GFpng udta;
 	png_struct *png_ptr;
@@ -551,7 +551,7 @@ void gf_png_flush(png_structp png)
 
 /* write a png file */
 GF_EXPORT
-GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size)
+GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_format, u8 *dst, u32 *dst_size)
 {
 	GFpng udta;
 	png_color_8 sig_bit;

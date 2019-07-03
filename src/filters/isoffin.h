@@ -173,7 +173,7 @@ typedef struct
 	bin128 KID;
 	Bool pck_encrypted;
 
-	char *sai_buffer;
+	u8 *sai_buffer;
 	u32 sai_alloc_size, sai_buffer_size;
 
 	Bool check_avc_ps, check_hevc_ps;

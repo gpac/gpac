@@ -150,7 +150,7 @@ u32 aout_th_proc(void *p)
 }
 
 
-static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
+static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 {
 	u32 done = 0;
 	GF_AudioOutCtx *ctx = ptr;

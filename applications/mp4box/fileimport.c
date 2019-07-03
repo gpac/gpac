@@ -58,7 +58,7 @@ typedef struct
 
 GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, Bool is_box_array)
 {
-	char *data = NULL;
+	u8 *data = NULL;
 	GF_Err res = GF_OK;
 	u32 size;
 	bin128 uuid;
@@ -75,7 +75,7 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 		src += 7;
 		size = (u32) strlen(src);
 		data = gf_malloc(sizeof(char) * size);
-		size = gf_base64_decode(src, size, data, size);
+		size = gf_base64_decode((u8 *)src, size, data, size);
 	} else
 #endif
 	{
@@ -264,7 +264,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	u32 clr_full_range=GF_FALSE;
 	Bool fmt_ok = GF_TRUE;
 	u32 icc_size=0;
-	char *icc_data = NULL;
+	u8 *icc_data = NULL;
 	char *ext_start;
 	u32 xps_inband=0;
 	char *opt_src = NULL;
@@ -1080,7 +1080,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 
 			if (rvc_config) {
-				char *data;
+				u8 *data;
 				u32 size;
 				e = gf_file_load_data(rvc_config, (u8 **) &data, &size);
 				if (e) {
@@ -2828,7 +2828,7 @@ static u32 GetNbBits(u32 MaxVal)
 GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCallback)(GF_ISOSample *))
 {
 	GF_Err			e;
-	char *data;
+	u8 *data;
 	u32 data_len;
 	GF_BifsEncoder *bifsenc;
 	GF_InitialObjectDescriptor *iod;
@@ -2946,7 +2946,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		esd->decoderConfig->objectTypeIndication = gf_bifs_encoder_get_version(bifsenc, sc->ESID);
 
 		for (j=1; j<gf_list_count(sc->AUs); j++) {
-			char *data;
+			u8 *data;
 			u32 data_len;
 			au = gf_list_get(sc->AUs, j);
 			e = gf_bifs_encode_au(bifsenc, sc->ESID, au->commands, &data, &data_len);

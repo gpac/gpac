@@ -476,10 +476,10 @@ void vobsub_free(vobsub_file *vobsub)
 	gf_free(vobsub);
 }
 
-GF_Err vobsub_get_subpic_duration(char *_data, u32 psize, u32 dsize, u32 *duration)
+GF_Err vobsub_get_subpic_duration(u8 *_data, u32 psize, u32 dsize, u32 *duration)
 {
 	u32 i, dcsq_stm, nxt_dcsq, start_stm, stop_stm;
-	unsigned char *data = (unsigned char *)_data;
+	u8 *data = (u8 *)_data;
 	start_stm = 0;
 	stop_stm  = 0;
 	nxt_dcsq  = dsize;
@@ -551,7 +551,7 @@ GF_Err vobsub_get_subpic_duration(char *_data, u32 psize, u32 dsize, u32 *durati
 	return GF_OK;
 }
 
-GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, char *data, u32 dataSize)
+GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, u8 *data, u32 dataSize)
 {
 	u8	buf[0x800], ptsbuf[5];
 	u8	*p;

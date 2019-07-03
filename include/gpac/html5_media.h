@@ -373,8 +373,8 @@ void gf_html_media_controller_del(GF_HTML_MediaController *mc);
 /*
  * HTML5 Array Buffer
  */
-GF_HTML_ArrayBuffer *gf_arraybuffer_new(char *data, u32 length);
-JSObject *gf_arraybuffer_js_new(JSContext *c, char *data, u32 length, JSObject *parent);
+GF_HTML_ArrayBuffer *gf_arraybuffer_new(u8 *data, u32 length);
+JSObject *gf_arraybuffer_js_new(JSContext *c, u8 *data, u32 length, JSObject *parent);
 void gf_arraybuffer_del(GF_HTML_ArrayBuffer *buffer, Bool del_js);
 
 

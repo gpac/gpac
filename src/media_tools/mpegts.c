@@ -250,7 +250,7 @@ static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, char *data, u32 size, Bool simple_c
 }
 
 GF_EXPORT
-Bool gf_m2ts_crc32_check(char *data, u32 len)
+Bool gf_m2ts_crc32_check(u8 *data, u32 len)
 {
 	u32 crc = gf_crc_32(data, len);
 	u32 crc_val = GF_4CC((u8) data[len], (u8) data[len+1], (u8) data[len+2], (u8) data[len+3]);
@@ -2458,7 +2458,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 }
 
 GF_EXPORT
-GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
+GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 {
 	GF_Err e=GF_OK;
 	u32 pos, pck_size;
@@ -2949,7 +2949,7 @@ static void rewrite_pts_dts(unsigned char *ptr, u64 TS)
 	while (_TS > pcr_mod) _TS -= pcr_mod; \
 
 GF_EXPORT
-GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes)
+GF_Err gf_m2ts_restamp(u8 *buffer, u32 size, s64 ts_shift, u8 *is_pes)
 {
 	u32 done = 0;
 	u64 pcr_mod;

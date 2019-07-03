@@ -2331,7 +2331,7 @@ static void gpac_lang_set_key(GF_Config *cfg, const char *sec_name,  const char 
 		const char *crc_opt = gf_cfg_get_key(cfg, sec_name, szKeyCRC);
 		if (crc_opt) {
 			u32 old_crc = atoi(crc_opt);
-			crc_key = gf_crc_32(key_val, (u32) strlen(key_val));
+			crc_key = gf_crc_32((u8*)key_val, (u32) strlen(key_val));
 			if (old_crc != crc_key) {
 				gf_sys_format_help(helpout, help_flags, "Warning: description has changed for %s:%s (crc %d - crc in file %d) - please check translation\n", sec_name, key_name, crc_key, old_crc);
 			}
@@ -2341,7 +2341,7 @@ static void gpac_lang_set_key(GF_Config *cfg, const char *sec_name,  const char 
 	if (!opt) {
 		if (!crc_key) {
 			sprintf(szKeyCRC, "%s_crc", key_name);
-			crc_key = gf_crc_32(key_val, (u32) strlen(key_val));
+			crc_key = gf_crc_32((u8*)key_val, (u32) strlen(key_val));
 		}
 		sprintf(szKeyCRCVal, "%u", crc_key);
 		gf_cfg_set_key(cfg, sec_name, key_name, key_val);

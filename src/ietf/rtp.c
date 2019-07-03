@@ -340,7 +340,7 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch)
 }
 
 GF_EXPORT
-u32 gf_rtp_read_flush(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
+u32 gf_rtp_read_flush(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 {
 	char *pck;
 	u32 res = 0;
@@ -356,7 +356,7 @@ u32 gf_rtp_read_flush(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 }
 
 GF_EXPORT
-u32 gf_rtp_flush_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
+u32 gf_rtp_flush_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 {
 	u32 res;
 	char *pck;
@@ -375,7 +375,7 @@ u32 gf_rtp_flush_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 }
 
 GF_EXPORT
-u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
+u32 gf_rtp_read_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 {
 	GF_Err e;
 	u32 seq_num, res;
@@ -447,7 +447,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 
 
 GF_EXPORT
-GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart)
+GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart)
 {
 	GF_Err e;
 	s32 deviance, delta;
@@ -617,7 +617,7 @@ Double gf_rtp_get_current_time(GF_RTPChannel *ch)
 
 
 GF_EXPORT
-GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u32 pck_size, Bool fast_send)
+GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, u8 *pck, u32 pck_size, Bool fast_send)
 {
 	GF_Err e;
 	u32 i, Start;
@@ -1046,7 +1046,7 @@ send_it:
 	return ret;
 }
 
-GF_Err gf_rtp_set_interleave_callbacks(GF_RTPChannel *ch, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, char *pck, u32 pck_size), void *cbk1, void *cbk2)
+GF_Err gf_rtp_set_interleave_callbacks(GF_RTPChannel *ch, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, u8 *pck, u32 pck_size), void *cbk1, void *cbk2)
 {
 	if (!ch) return GF_BAD_PARAM;
 	ch->send_interleave = RTP_TCPCallback;
