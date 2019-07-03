@@ -1230,15 +1230,11 @@ if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
   if $pkg_config --exists libopenjp2 ; then
     has_openjpeg="system"
     openjpeg_cflags=`$pkg_config --cflags libopenjp2`
-    CFLAGS_DIR="$CFLAGS_DIR $openjpeg_cflags"
-    openjpeg_ldfags=`$pkg_config --libs libopenjp2`
-    extralibs="$extralibs $openjpeg_ldfags"
+    openjpeg_ldflags=`$pkg_config --libs libopenjp2`
   elif $pkg_config --exists libopenjpeg ; then
     has_openjpeg="system"
     openjpeg_cflags=`$pkg_config --cflags libopenjpeg`
-    CFLAGS_DIR="$CFLAGS_DIR $openjpeg_cflags"
-    openjpeg_ldfags=`$pkg_config --libs libopenjpeg`
-    extralibs="$extralibs $openjpeg_ldfags"
+    openjpeg_ldflags=`$pkg_config --libs libopenjpeg`
   fi
 fi
 
@@ -1251,12 +1247,14 @@ EOF
 
 if docc $LDFLAGS -lopenjpeg ; then
     has_openjpeg="system"
+    openjpeg_ldflags="-lopenjpeg"
 fi
 if test "$cross_prefix" = "" ; then
     if test "$has_openjpeg" = "no" ; then
         if test "$alt_macosx_dir" != "" ; then
-            if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -ljpeg 2>>$logs ; then
+            if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lopenjpeg 2>>$logs ; then
                 has_openjpeg="system"
+		openjpeg_ldflags="-lopenjpeg"
             fi
         fi
     fi
@@ -1265,6 +1263,7 @@ fi
 if test "$has_openjpeg" = "no" ; then
     if docc -I$local_inc/openjpeg -L$local_lib -lopenjpeg ; then
         has_openjpeg="local"
+	openjpeg_ldflags="-lopenjpeg"
     fi
 fi
 
@@ -3211,6 +3210,8 @@ fi
 
 echo "CONFIG_JP2=$has_openjpeg" >> config.mak
 if test "$has_openjpeg" != "no" ; then
+    echo "JP2_CFLAGS=$openjpeg_cflags" >> config.mak
+    echo "JP2_LDFLAGS=$openjpeg_ldflags" >> config.mak
     echo "#define GPAC_HAS_JP2" >> $TMPH
 fi
 echo "CONFIG_FAAD=$has_faad" >> config.mak
