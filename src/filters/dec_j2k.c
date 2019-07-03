@@ -205,6 +205,7 @@ static int int_ceildivpow2(int a, int b) {
 	return (a + (1 << b) - 1) >> b;
 }
 
+#if OPENJP2
 typedef struct
 {
 	char *data;
@@ -252,6 +253,7 @@ static OPJ_BOOL j2kdec_stream_seek(OPJ_OFF_T nb_bytes, void *user_data)
     frame->pos = (u32)nb_bytes;
     return OPJ_TRUE;
 }
+#endif
 
 
 static GF_Err j2kdec_process(GF_Filter *filter)
@@ -263,13 +265,13 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	s32 res;
 	opj_codec_t *codec = NULL;
 	opj_stream_t * stream = NULL;
+	OJP2Frame ojp2frame;
 #else
 	opj_event_mgr_t event_mgr;		/* event manager */
 	opj_dinfo_t* dinfo = NULL;	/* handle to a decompressor */
 	opj_cio_t *cio = NULL;
 	opj_codestream_info_t cinfo;
 #endif
-	OJP2Frame ojp2frame;
 	opj_image_t *image = NULL;
 	u32 start_offset=0;
 	GF_J2KCtx *ctx = gf_filter_get_udta(filter);
