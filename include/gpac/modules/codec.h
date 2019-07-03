@@ -268,7 +268,7 @@ typedef struct __input_device
 
 	/*this is set upon loading and shall not be modified*/
 	void *input_stream_context;
-	void (*DispatchFrame)(struct __input_device *, const char *data, u32 data_len);
+	void (*DispatchFrame)(struct __input_device *, const u8 *data, u32 data_len);
 } GF_InputSensorDevice;
 
 

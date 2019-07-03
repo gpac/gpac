@@ -2128,7 +2128,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		osize = w*h*4;
 		raw = gf_malloc(sizeof(char)*osize);
 		memset(raw, 0, sizeof(char)*osize);
-		e = gf_img_jpeg_dec( (char *) buf+skip, size-skip, &w, &h, &pf, raw, &osize, 4);
+		e = gf_img_jpeg_dec(buf+skip, size-skip, &w, &h, &pf, raw, &osize, 4);
 		if (e != GF_OK) {
 			swf_report(read, e, "Cannopt decode JPEG image");
 		}

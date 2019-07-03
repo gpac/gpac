@@ -306,7 +306,7 @@ Bool MPEGVS_RegisterDevice(struct __input_device *dr, const char *urn, const cha
 u32 MPEGVS_OnData(struct __input_device * dr, const char* data)
 {
 	GF_BitStream *bs;
-	char *buf;
+	u8 *buf;
 	u32 buf_size;
 	float x, y, z, q, a, b;
 	MPEGVSCTX;

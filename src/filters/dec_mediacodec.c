@@ -86,7 +86,7 @@ typedef struct
 
 typedef struct {
 	GF_FilterFrameInterface frame_ifce;
-	char * frame;
+	u8 * frame;
 	GF_MCDecCtx * ctx;
 	ssize_t outIndex;
 	Bool flushed;
@@ -204,7 +204,7 @@ GF_Err mcdec_init_m4vp2_dec(GF_MCDecCtx *ctx)
 	GF_ESD *esd;
 	GF_M4VDecSpecInfo vcfg;
 	GF_BitStream *bs;
-	char *dsi_data;
+	u8 *dsi_data;
 	u32 dsi_size;
 	GF_FilterPid *ipid = gf_list_get(ctx->streams, 0);
 	const GF_PropertyValue *dcd = gf_filter_pid_get_property(ipid, GF_PROP_PID_DECODER_CONFIG);
@@ -415,7 +415,7 @@ static GF_Err mcdec_init_decoder(GF_MCDecCtx *ctx) {
 	return GF_OK;
 }
 
-static void mcdec_register_avc_param_set(GF_MCDecCtx *ctx, char *data, u32 size, u8 xps)
+static void mcdec_register_avc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, u8 xps)
 {
 	Bool add = GF_TRUE;
 	u32 i, count;
@@ -461,7 +461,7 @@ static void mcdec_register_avc_param_set(GF_MCDecCtx *ctx, char *data, u32 size,
 	}
 }
 
-static void mcdec_register_hevc_param_set(GF_MCDecCtx *ctx, char *data, u32 size, u8 xps)
+static void mcdec_register_hevc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, u8 xps)
 {
 	Bool add = GF_TRUE;
 	u32 i, count;
@@ -725,10 +725,10 @@ static void mcdec_write_ps(GF_BitStream *bs, GF_List *ps, s32 active_ps)
 }
 
 
-static GF_Err mcdec_rewrite_annex_b(GF_MCDecCtx *ctx, char *inBuffer, u32 inBufferLength, char **out_buffer, u32 *out_size)
+static GF_Err mcdec_rewrite_annex_b(GF_MCDecCtx *ctx, u8 *inBuffer, u32 inBufferLength, u8 **out_buffer, u32 *out_size)
 {
 	u32 i;
-	char *ptr = inBuffer;
+	u8 *ptr = inBuffer;
 	u32 nal_size;
 	GF_Err e = GF_OK;
 	GF_BitStream *bs = NULL;
@@ -768,7 +768,7 @@ static GF_Err mcdec_rewrite_annex_b(GF_MCDecCtx *ctx, char *inBuffer, u32 inBuff
 	return e;
 }
 
-static GF_Err mcdec_check_ps_state(GF_MCDecCtx *ctx, char *inBuffer, u32 inBufferLength)
+static GF_Err mcdec_check_ps_state(GF_MCDecCtx *ctx, u8 *inBuffer, u32 inBufferLength)
 {
 	u32 nal_size;
 	GF_Err e = GF_OK;
@@ -835,19 +835,19 @@ static GF_Err mcdec_check_ps_state(GF_MCDecCtx *ctx, char *inBuffer, u32 inBuffe
 	return e;
 }
 
-static GF_Err mcdec_send_frame(GF_MCDecCtx *ctx, char *frame_buffer, u64 cts);
+static GF_Err mcdec_send_frame(GF_MCDecCtx *ctx, u8 *frame_buffer, u64 cts);
 
 static GF_Err mcdec_process(GF_Filter *filter)
 {
 	u64 cts=0;
-	char *in_buffer;
+	u8 *in_buffer;
 	u32 in_buffer_size, i, count, nb_eos;
 	u64 min_dts;
 	GF_Err e;
 	GF_MCDecCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	GF_FilterPid *ref_pid = NULL;
-	char *dec_frame=NULL;
+	u8 *dec_frame=NULL;
 
 	Bool mcdec_buffer_available = GF_FALSE;
 
@@ -895,7 +895,7 @@ static GF_Err mcdec_process(GF_Filter *filter)
 		pck = gf_filter_pid_get_packet(ref_pid);
 		assert(pck);
 
-		in_buffer = (char *) gf_filter_pck_get_data(pck, &in_buffer_size);
+		in_buffer = (u8 *) gf_filter_pck_get_data(pck, &in_buffer_size);
 		cts = gf_filter_pck_get_cts(pck);
 
 		//no reconfig but no adaptive, parse NALUs to figure out active ps
@@ -923,9 +923,9 @@ static GF_Err mcdec_process(GF_Filter *filter)
             size_t inSize;
             u32 flags = 0;
             Bool do_free = GF_TRUE;
-			char *in_data=NULL;
+			u8 *in_data=NULL;
 			u32 in_data_size=0;
-            char *buffer = (char *)AMediaCodec_getInputBuffer(ctx->codec, inIndex, &inSize);
+            u8 *buffer = (u8 *)AMediaCodec_getInputBuffer(ctx->codec, inIndex, &inSize);
 
             //rewrite input from isobmf to annexB - this will write the param sets if needed
             if (in_buffer) {
@@ -1087,7 +1087,7 @@ GF_Err mcdec_hw_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u3
 	return GF_OK;
 }
 
-static GF_Err mcdec_send_frame(GF_MCDecCtx *ctx, char *frame_buffer, u64 cts)
+static GF_Err mcdec_send_frame(GF_MCDecCtx *ctx, u8 *frame_buffer, u64 cts)
 {
 	GF_MCDecFrame *mc_frame;
 	GF_FilterPacket *dst_pck;

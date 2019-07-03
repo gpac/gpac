@@ -111,7 +111,7 @@ static void isdev_add_field(GF_InputSensorDevice *dev, u32 fieldType, const char
 	}
 }
 
-static void isdev_dispatch_frame(struct __input_device *dev, const char *data, u32 data_len)
+static void isdev_dispatch_frame(struct __input_device *dev, const u8 *data, u32 data_len)
 {
 	u32 i;
 	GF_InputSensorCtx *is_ctx;

@@ -316,14 +316,14 @@ static void imagetexture_update(GF_TextureHandler *txh)
 			switch (ct->objectTypeIndication) {
 			case GF_CODECID_JPEG:
 				out_size = 0;
-				e = gf_img_jpeg_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size, 3);
+				e = gf_img_jpeg_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size, 3);
 				if (e==GF_BUFFER_TOO_SMALL) {
 					u32 BPP;
 					txh->data = gf_malloc(sizeof(char) * out_size);
 					if (txh->pixelformat==GF_PIXEL_GREYSCALE) BPP = 1;
 					else BPP = 3;
 
-					e = gf_img_jpeg_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size, BPP);
+					e = gf_img_jpeg_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size, BPP);
 					if (e==GF_OK) {
 						gf_sc_texture_allocate(txh);
 						gf_sc_texture_set_data(txh);
@@ -334,10 +334,10 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				break;
 			case GF_CODECID_PNG:
 				out_size = 0;
-				e = gf_img_png_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size);
+				e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size);
 				if (e==GF_BUFFER_TOO_SMALL) {
 					txh->data = gf_malloc(sizeof(char) * out_size);
-					e = gf_img_png_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size);
+					e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size);
 					if (e==GF_OK) {
 						gf_sc_texture_allocate(txh);
 						gf_sc_texture_set_data(txh);
