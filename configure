@@ -1227,10 +1227,18 @@ fi
 #look for OpenJPEG support
 
 if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
-  if $pkg_config --exists libopenjpeg ; then
+  if $pkg_config --exists libopenjp2 ; then
+    has_openjpeg="system"
+    openjpeg_cflags=`$pkg_config --cflags libopenjp2`
+    CFLAGS_DIR="$CFLAGS_DIR $openjpeg_cflags"
+    openjpeg_ldfags=`$pkg_config --libs libopenjp2`
+    extralibs="$extralibs $openjpeg_ldfags"
+  elif $pkg_config --exists libopenjpeg ; then
     has_openjpeg="system"
     openjpeg_cflags=`$pkg_config --cflags libopenjpeg`
     CFLAGS_DIR="$CFLAGS_DIR $openjpeg_cflags"
+    openjpeg_ldfags=`$pkg_config --libs libopenjpeg`
+    extralibs="$extralibs $openjpeg_ldfags"
   fi
 fi
 

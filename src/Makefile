@@ -248,7 +248,7 @@ EXTRALIBS+=-ltheora
 endif
 
 ifneq ($(CONFIG_JP2),no)
-EXTRALIBS+=-lopenjpeg
+#EXTRALIBS+=-lopenjpeg
 ifeq ($(CONFIG_JP2), local)
 CFLAGS+= -I"$(LOCAL_INC_PATH)/openjpeg"
 endif
