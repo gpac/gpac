@@ -128,7 +128,7 @@ typedef struct
 	GF_BitStream *ps_bs;
 
 	GF_BitStream *nalu_rewrite_bs;
-	char *nalu_buffer;
+	u8 *nalu_buffer;
 	u32 nalu_buffer_alloc;
 
 	Bool is_avc;
@@ -296,7 +296,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	OSType kColorSpace;
 	const GF_PropertyValue *p;
 	CFDataRef data = NULL;
-	char *dsi_data=NULL;
+	u8 *dsi_data=NULL;
 	u32 dsi_data_size=0;
 	u32 w, h, stride;
 	GF_FilterPid *pid;
@@ -1355,7 +1355,7 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		|| (type==kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)
 	) {
         u32 i, j, nb_planes = (u32) CVPixelBufferGetPlaneCount(vtbframe->frame);
-		char *dst;
+		u8 *dst;
 		u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(vtbframe->frame, 0);
 
 		GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &dst);

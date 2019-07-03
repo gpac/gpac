@@ -282,9 +282,9 @@ for this PDU. AUs must be split in PDUs by another process if needed (packetizer
 GF_EXPORT
 void gf_sl_packetize(GF_SLConfig* slConfig,
                      GF_SLHeader *Header,
-                     char *PDU,
+                     u8 *PDU,
                      u32 size,
-                     char **outPacket,
+                     u8 **outPacket,
                      u32 *OutSize)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -374,7 +374,7 @@ u32 gf_sl_get_header_size(GF_SLConfig* slConfig, GF_SLHeader *Header)
 
 
 GF_EXPORT
-void gf_sl_depacketize (GF_SLConfig *slConfig, GF_SLHeader *Header, const char *PDU, u32 PDULength, u32 *HeaderLen)
+void gf_sl_depacketize (GF_SLConfig *slConfig, GF_SLHeader *Header, const u8 *PDU, u32 PDULength, u32 *HeaderLen)
 {
 	GF_BitStream *bs;
 	*HeaderLen = 0;

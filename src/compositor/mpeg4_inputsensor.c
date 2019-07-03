@@ -276,7 +276,7 @@ static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const char *inBuffer, u3
 	GF_Err e = GF_OK;
 
 	/*decode data frame except if local stringSensor*/
-	bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
+	bs = gf_bs_new((u8 *)inBuffer, inBufferLength, GF_BITSTREAM_READ);
 	i=0;
 	while ((field = (GF_FieldInfo *)gf_list_enum(is_ctx->ddf, &i))) {
 		/*store present flag in eventIn for command skip - this is an ugly hack but it works since DDF don't have event types*/
@@ -550,7 +550,7 @@ void gf_sc_input_sensor_mouse_input(GF_Compositor *compositor, GF_EventMouse *ev
 	SFFloat wheel_pos;
 	u32 i;
 	GF_BitStream *bs;
-	char *buf;
+	u8 *buf;
 	u32 buf_size;
 	Fixed bX, bY;
 	GF_InputSensorCtx *is_ctx;
@@ -629,7 +629,7 @@ Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, 
 	u32 i;
 	GF_BitStream *bs;
 	GF_SLHeader slh;
-	char *buf;
+	u8 *buf;
 #ifndef GPAC_DISABLE_X3D
 	X_KeySensor *n;
 #endif
@@ -851,7 +851,7 @@ void gf_sc_input_sensor_string_input(GF_Compositor *compositor, u32 character)
 	X_StringSensor *n;
 #endif
 	GF_InputSensorCtx *is_ctx;
-	char *buf;
+	u8 *buf;
 	u32 buf_size;
 
 	if (!character) return;

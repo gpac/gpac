@@ -68,7 +68,7 @@ GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket 
 	return gf_filter_pck_merge_properties_filter(pck_src, pck_dst, NULL, NULL);
 }
 
-static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 data_size, char **data, Bool no_block_check)
+static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 data_size, u8 **data, Bool no_block_check)
 {
 	GF_FilterPacket *pck=NULL;
 	GF_FilterPacket *closest=NULL;
@@ -142,13 +142,13 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 }
 
 GF_EXPORT
-GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char **data)
+GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, u8 **data)
 {
 	return gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
 }
 
 GF_EXPORT
-GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck_source, char **data)
+GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck_source, u8 **data)
 {
 	GF_FilterPacket *dst, *ref;
 	u32 max_ref = 0;
@@ -187,7 +187,7 @@ GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck
 }
 
 GF_EXPORT
-GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_size, char **data, gf_fsess_packet_destructor destruct)
+GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_size, u8 **data, gf_fsess_packet_destructor destruct)
 {
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
 	if (pck) pck->destructor = destruct;
@@ -195,7 +195,7 @@ GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_
 }
 
 GF_EXPORT
-GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char *data, u32 data_size, gf_fsess_packet_destructor destruct, Bool intern_pck)
+GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct, Bool intern_pck)
 {
 	GF_FilterPacket *pck;
 
@@ -226,14 +226,14 @@ GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char
 }
 
 GF_EXPORT
-GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u32 data_size, gf_fsess_packet_destructor destruct)
+GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct)
 {
 	return gf_filter_pck_new_shared_internal(pid, data, data_size, destruct, GF_FALSE);
 
 }
 
 GF_EXPORT
-GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 data_size, GF_FilterPacket *reference)
+GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const u8 *data, u32 data_size, GF_FilterPacket *reference)
 {
 	GF_FilterPacket *pck;
 	if (!reference) return NULL;
@@ -421,7 +421,7 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 	u32 size=0, pos=0;
 	u64 byte_offset = 0;
 	u64 first_offset = 0;
-	char *data;
+	u8 *data;
 	GF_FilterPacket *final;
 	u32 i, count;
 	GF_FilterPckInfo info;
@@ -928,7 +928,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				//if packet mem is hold by filter we must copy the packet since it is no longer
 				//consumable until end of block is received, and source might be waiting for this packet to be freed to dispatch further packets
 				if (inst->pck->filter_owns_mem) {
-					char *data;
+					u8 *data;
 					u32 alloc_size;
 					inst->pck = gf_filter_pck_new_alloc_internal(pck->pid, pck->data_length, &data, GF_TRUE);
 					alloc_size = inst->pck->alloc_size;
@@ -1108,7 +1108,7 @@ void gf_filter_pck_unref(GF_FilterPacket *pck)
 }
 
 GF_EXPORT
-const char *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size)
+const u8 *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size)
 {
 	assert(pck);
 	assert(size);
@@ -1462,7 +1462,7 @@ GF_FilterFrameInterface *gf_filter_pck_get_frame_interface(GF_FilterPacket *pck)
 }
 
 GF_EXPORT
-GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, char **data_start, char **new_range_start, u32 *new_size)
+GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, u8 **data_start, u8 **new_range_start, u32 *new_size)
 {
 	assert(pck);
 	if (PCK_IS_INPUT(pck)) {

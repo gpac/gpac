@@ -199,7 +199,7 @@ default_sync:
 
 	{
 		u16 rvc_predefined;
-		char *rvc_cfg_data;
+		u8 *rvc_cfg_data;
 		const char *mime_type;
 		u32 rvc_cfg_size;
 		e = gf_isom_get_rvc_config(moov->mov, track_num, 1, &rvc_predefined, &rvc_cfg_data, &rvc_cfg_size, &mime_type);

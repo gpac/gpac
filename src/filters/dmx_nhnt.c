@@ -382,7 +382,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 
 	while (gf_bs_available(ctx->bs) >= 16 ) {
 		GF_FilterPacket *dst_pck;
-		char *data;
+		u8 *data;
 		u64 dts, cts, offset;
 		u32 res, len = gf_bs_read_u24(ctx->bs);
 		Bool is_rap = gf_bs_read_int(ctx->bs, 1);

@@ -540,7 +540,7 @@ u32 gf_isom_get_last_created_track_id(GF_ISOFile *movie)
 
 
 GF_EXPORT
-GF_Err gf_isom_load_extra_boxes(GF_ISOFile *movie, char *moov_boxes, u32 moov_boxes_size, Bool udta_only)
+GF_Err gf_isom_load_extra_boxes(GF_ISOFile *movie, u8 *moov_boxes, u32 moov_boxes_size, Bool udta_only)
 {
 	GF_BitStream *bs;
 
@@ -574,7 +574,7 @@ exit:
 //creates a new Track. If trackID = 0, the trackID is chosen by the API
 //returns the track number or 0 if error
 GF_EXPORT
-u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScale, char *tk_box, u32 tk_box_size, Bool udta_only)
+u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScale, u8 *tk_box, u32 tk_box_size, Bool udta_only)
 {
 	GF_Err e;
 	u64 now;
@@ -981,7 +981,7 @@ GF_Err gf_isom_add_sample_shadow(GF_ISOFile *movie, u32 trackNumber, GF_ISOSampl
 }
 
 GF_EXPORT
-GF_Err gf_isom_append_sample_data(GF_ISOFile *movie, u32 trackNumber, char *data, u32 data_size)
+GF_Err gf_isom_append_sample_data(GF_ISOFile *movie, u32 trackNumber, u8 *data, u32 data_size)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -1578,7 +1578,7 @@ GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_visual_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 colour_type, u16 colour_primaries, u16 transfer_characteristics, u16 matrix_coefficients, Bool full_range_flag, char *icc_data, u32 icc_size)
+GF_Err gf_isom_set_visual_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 colour_type, u16 colour_primaries, u16 transfer_characteristics, u16 matrix_coefficients, Bool full_range_flag, u8 *icc_data, u32 icc_size)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -3029,7 +3029,7 @@ found:
 }
 
 GF_EXPORT
-GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataType, bin128 UUID, char *data, u32 DataLength)
+GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataType, bin128 UUID, u8 *data, u32 DataLength)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -3075,7 +3075,7 @@ GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 }
 
 GF_EXPORT
-GF_Err gf_isom_add_user_data_boxes(GF_ISOFile *movie, u32 trackNumber, char *data, u32 DataLength)
+GF_Err gf_isom_add_user_data_boxes(GF_ISOFile *movie, u32 trackNumber, u8 *data, u32 DataLength)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -3138,7 +3138,7 @@ GF_EXPORT
 GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst)
 {
 	GF_Err e;
-	char *data;
+	u8 *data;
 	u32 data_size;
 	GF_BitStream *bs;
 
@@ -3284,7 +3284,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 
 
 GF_EXPORT
-GF_Err gf_isom_get_raw_user_data(GF_ISOFile *file, char **output, u32 *output_size)
+GF_Err gf_isom_get_raw_user_data(GF_ISOFile *file, u8 **output, u32 *output_size)
 {
 	GF_BitStream *bs;
 	GF_Err e;
@@ -3318,7 +3318,7 @@ exit:
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u32 *output_size)
+GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, u8 **output, u32 *output_size)
 {
 	GF_TrackBox *trak;
 	GF_BitStream *bs;
@@ -3382,7 +3382,7 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u3
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_trex_template(GF_ISOFile *file, u32 track, char **output, u32 *output_size)
+GF_Err gf_isom_get_trex_template(GF_ISOFile *file, u32 track, u8 **output, u32 *output_size)
 {
 	GF_TrackBox *trak;
 	GF_BitStream *bs;
@@ -3425,7 +3425,7 @@ GF_Err gf_isom_get_trex_template(GF_ISOFile *file, u32 track, char **output, u32
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_stsd_template(GF_ISOFile *file, u32 track, u32 stsd_idx, char **output, u32 *output_size)
+GF_Err gf_isom_get_stsd_template(GF_ISOFile *file, u32 track, u32 stsd_idx, u8 **output, u32 *output_size)
 {
 	GF_TrackBox *trak;
 	GF_BitStream *bs;
@@ -3456,8 +3456,8 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 {
 	GF_TrackBox *trak, *new_tk;
 	GF_BitStream *bs;
-	char *data;
-	const char *buffer;
+	u8 *data;
+	const u8 *buffer;
 	u32 data_size;
 	Double ts_scale;
 	GF_Err e;
@@ -3618,7 +3618,7 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 {
 	GF_TrackBox *trak;
 	GF_BitStream *bs;
-	char *data;
+	u8 *data;
 	u32 data_size;
 	GF_Box *entry;
 	GF_Err e;
@@ -4305,7 +4305,7 @@ GF_EXPORT
 Bool gf_isom_box_equal(GF_Box *a, GF_Box *b)
 {
 	Bool ret;
-	char *data1, *data2;
+	u8 *data1, *data2;
 	u32 data1_size, data2_size;
 	GF_BitStream *bs;
 
@@ -4946,7 +4946,7 @@ GF_Err gf_isom_remove_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID)
 }
 
 GF_EXPORT
-GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const char *data, u32 data_size)
+GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const u8 *data, u32 data_size)
 {
 	GF_List *list;
     u32 btype;
@@ -4984,7 +4984,7 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const c
 /*Apple extensions*/
 
 GF_EXPORT
-GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 data_len)
+GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const u8 *data, u32 data_len)
 {
 	GF_BitStream *bs;
 	GF_Err e;
@@ -5289,7 +5289,7 @@ GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32
 
 
 GF_EXPORT
-GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 rvc_predefined, char *mime, char *data, u32 size)
+GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 rvc_predefined, char *mime, u8 *data, u32 size)
 {
 	GF_MPEGVisualSampleEntryBox *entry;
 	GF_Err e;
@@ -5961,7 +5961,7 @@ Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
 	Bool res = GF_FALSE;
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	GF_BitStream *bs1, *bs2;
-	char *buf1, *buf2;
+	u8 *buf1, *buf2;
 	u32 len1, len2;
 
 	if (!ptr1 || !ptr2)
@@ -6452,7 +6452,7 @@ GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *file, u32 track, u32
 }
 
 
-GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 track, u32 sampleDescriptionIndex, char *data, u32 size)
+GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 track, u32 sampleDescriptionIndex, u8 *data, u32 size)
 {
 	GF_BitStream *bs;
 	GF_TrackBox *trak;

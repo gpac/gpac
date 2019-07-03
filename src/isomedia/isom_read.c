@@ -2421,7 +2421,7 @@ u32 gf_isom_get_user_data_count(GF_ISOFile *movie, u32 trackNumber, u32 UserData
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataType, bin128 UUID, u32 UserDataIndex, char **userData, u32 *userDataSize)
+GF_Err gf_isom_get_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataType, bin128 UUID, u32 UserDataIndex, u8 **userData, u32 *userDataSize)
 {
 	GF_UserDataMap *map;
 	GF_UnknownBox *ptr;
@@ -3664,7 +3664,7 @@ GF_ItemListBox *gf_ismo_locate_box(GF_List *list, u32 boxType, bin128 UUID)
 
 
 GF_EXPORT
-GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, u32 tag, const char **data, u32 *data_len)
+GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, u32 tag, const u8 **data, u32 *data_len)
 {
 	u32 i;
 	GF_ListItemBox *info;
@@ -3786,7 +3786,7 @@ GF_Err gf_isom_sample_get_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumb
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 *rvc_predefined, char **data, u32 *size, const char **mime)
+GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 *rvc_predefined, u8 **data, u32 *size, const char **mime)
 {
 	GF_MPEGVisualSampleEntryBox *entry;
 	GF_TrackBox *trak;
@@ -4001,7 +4001,7 @@ GF_DefaultSampleGroupDescriptionEntry * gf_isom_get_sample_group_info_entry(GF_I
 }
 
 GF_EXPORT
-Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_description_index, u32 grouping_type, u32 *default_index, const char **data, u32 *size)
+Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_description_index, u32 grouping_type, u32 *default_index, const u8 **data, u32 *size)
 {
 	GF_DefaultSampleGroupDescriptionEntry *sg_entry;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -4199,7 +4199,7 @@ GF_Err gf_isom_get_pssh(GF_ISOFile *file, u32 pssh_index, u8 **pssh_data, u32 *p
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	e = gf_isom_box_write(pssh, bs);
 	if (!e) {
-		gf_bs_get_content(bs, (char **)pssh_data, pssh_size);
+		gf_bs_get_content(bs, pssh_data, pssh_size);
 	}
 	gf_bs_del(bs);
 	return e;
@@ -4415,7 +4415,7 @@ Bool gf_isom_is_smooth_streaming_moov(GF_ISOFile *the_file)
 }
 
 
-void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independent, Bool *full_picture, u32 *x, u32 *y, u32 *w, u32 *h)
+void gf_isom_parse_trif_info(const u8 *data, u32 size, u32 *id, u32 *independent, Bool *full_picture, u32 *x, u32 *y, u32 *w, u32 *h)
 {
 	GF_BitStream *bs;
 	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
@@ -4441,7 +4441,7 @@ void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independe
 GF_EXPORT
 Bool gf_isom_get_tile_info(GF_ISOFile *file, u32 trackNumber, u32 sample_description_index, u32 *default_sample_group_index, u32 *id, u32 *independent, Bool *full_picture, u32 *x, u32 *y, u32 *w, u32 *h)
 {
-	const char *data;
+	const u8 *data;
 	u32 size;
 
 	if (!gf_isom_get_sample_group_info(file, trackNumber, sample_description_index, GF_ISOM_SAMPLE_GROUP_TRIF, default_sample_group_index, &data, &size))
@@ -4607,7 +4607,7 @@ Bool gf_isom_sample_was_traf_start(GF_ISOFile *movie, u32 trackNumber, u32 sampl
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_jp2_config(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc, char **out_dsi, u32 *out_size)
+GF_Err gf_isom_get_jp2_config(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc, u8 **out_dsi, u32 *out_size)
 {
 	GF_TrackBox *trak;
 	GF_MPEGVisualSampleEntryBox *entry;

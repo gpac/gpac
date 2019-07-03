@@ -130,9 +130,9 @@ static GF_Err theoradec_process(GF_Filter *filter)
 	ogg_packet op;
 	yuv_buffer yuv;
 	u32 i, count;
-	char *buffer;
-	char *pYO, *pUO, *pVO;
-	unsigned char *pYD, *pUD, *pVD;
+	u8 *buffer;
+	u8 *pYO, *pUO, *pVO;
+	u8 *pYD, *pUD, *pVD;
 	GF_TheoraDecCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck, *src_pck, *pck_ref;
 	Bool is_seek;

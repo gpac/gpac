@@ -574,7 +574,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			u8 constant_IV_size;
 			bin128 constant_IV;
 			GF_BitStream *bs;
-			char *buffer;
+			u8 *buffer;
 
 			sai = NULL;
 			e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, &sai, &container_type);

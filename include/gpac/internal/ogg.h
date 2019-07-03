@@ -38,17 +38,17 @@ typedef struct {
 	s32 endbyte;
 	s32  endbit;
 
-	unsigned char *buffer;
-	unsigned char *ptr;
+	u8 *buffer;
+	u8 *ptr;
 	s32 storage;
 } oggpack_buffer;
 
 /* ogg_page is used to encapsulate the data in one Ogg bitstream page *****/
 
 typedef struct {
-	unsigned char *header;
+	u8 *header;
 	s32 header_len;
-	unsigned char *body;
+	u8 *body;
 	s32 body_len;
 } ogg_page;
 
@@ -93,7 +93,7 @@ typedef struct {
    to a single raw Ogg/Vorbis packet *************************************/
 
 typedef struct {
-	unsigned char *packet;
+	u8 *packet;
 	s32  bytes;
 	s32  b_o_s;
 	s32  e_o_s;
@@ -108,7 +108,7 @@ typedef struct {
 } ogg_packet;
 
 typedef struct {
-	unsigned char *data;
+	u8 *data;
 	s32 storage;
 	s32 fill;
 	s32 returned;
@@ -128,7 +128,7 @@ void oggpack_writealign(oggpack_buffer *b);
 void oggpack_writecopy(oggpack_buffer *b,void *source,s32 bits);
 void oggpack_reset(oggpack_buffer *b);
 void oggpack_writeclear(oggpack_buffer *b);
-void oggpack_readinit(oggpack_buffer *b,unsigned char *buf,s32 bytes);
+void oggpack_readinit(oggpack_buffer *b,u8 *buf,s32 bytes);
 void oggpack_write(oggpack_buffer *b,u32 value,s32 bits);
 s32 oggpack_look(oggpack_buffer *b,s32 bits);
 s32 oggpack_look1(oggpack_buffer *b);
@@ -138,7 +138,7 @@ s32 oggpack_read(oggpack_buffer *b,s32 bits);
 s32 oggpack_read1(oggpack_buffer *b);
 s32 oggpack_bytes(oggpack_buffer *b);
 s32 oggpack_bits(oggpack_buffer *b);
-unsigned char *oggpack_get_buffer(oggpack_buffer *b);
+u8 *oggpack_get_buffer(oggpack_buffer *b);
 
 void oggpackB_writeinit(oggpack_buffer *b);
 void oggpackB_writetrunc(oggpack_buffer *b,s32 bits);
@@ -146,7 +146,7 @@ void oggpackB_writealign(oggpack_buffer *b);
 void oggpackB_writecopy(oggpack_buffer *b,void *source,s32 bits);
 void oggpackB_reset(oggpack_buffer *b);
 void oggpackB_writeclear(oggpack_buffer *b);
-void oggpackB_readinit(oggpack_buffer *b,unsigned char *buf,s32 bytes);
+void oggpackB_readinit(oggpack_buffer *b,u8 *buf,s32 bytes);
 void oggpackB_write(oggpack_buffer *b,u32 value,s32 bits);
 s32 oggpackB_look(oggpack_buffer *b,s32 bits);
 s32 oggpackB_look1(oggpack_buffer *b);
@@ -156,7 +156,7 @@ s32 oggpackB_read(oggpack_buffer *b,s32 bits);
 s32 oggpackB_read1(oggpack_buffer *b);
 s32 oggpackB_bytes(oggpack_buffer *b);
 s32 oggpackB_bits(oggpack_buffer *b);
-unsigned char *oggpackB_get_buffer(oggpack_buffer *b);
+u8 *oggpackB_get_buffer(oggpack_buffer *b);
 
 /* Ogg BITSTREAM PRIMITIVES: encoding **************************/
 
@@ -171,7 +171,7 @@ s32 ogg_sync_clear(ogg_sync_state *oy);
 s32 ogg_sync_reset(ogg_sync_state *oy);
 s32 ogg_sync_destroy(ogg_sync_state *oy);
 
-char *ogg_sync_buffer(ogg_sync_state *oy, s32 size);
+u8 *ogg_sync_buffer(ogg_sync_state *oy, s32 size);
 s32 ogg_sync_wrote(ogg_sync_state *oy, s32 bytes);
 s32 ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og);
 s32 ogg_sync_pageout(ogg_sync_state *oy, ogg_page *og);

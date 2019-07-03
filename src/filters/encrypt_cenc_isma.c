@@ -401,7 +401,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 		u32 version, cypherMode, specInfoSize, len, KID_count, j;
 		bin128 cypherKey, cypherIV, systemID;
 		GF_XMLAttribute *att;
-		char *data, *specInfo;
+		u8 *data, *specInfo;
 		GF_BitStream *bs;
 		bin128 *KIDs;
 		s32 cypherOffset = -1;
@@ -513,7 +513,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 	gf_xml_dom_del(parser);
 
 	if (nb_pssh) {
-		char *pssh=NULL;
+		u8 *pssh=NULL;
 		u32 pssh_size=0;
 		u32 pos = (u32) gf_bs_get_position(pssh_bs);
 		gf_bs_seek(pssh_bs, 0);
@@ -909,7 +909,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	u32 isma_hdr_size=0;
 	GF_FilterPacket *dst_pck;
 	const u8 *data;
-	char *output;
+	u8 *output;
 	u32 size, rand, flags;
 	u64 cts = gf_filter_pck_get_cts(pck);
 	Bool has_crypted_samp = GF_FALSE;
@@ -1042,7 +1042,7 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 	Bool is_encrypted = GF_TRUE;
 	GF_FilterPacket *dst_pck;
 	const u8 *data;
-	char *output;
+	u8 *output;
 	GF_Err e;
 	bin128 IV;
 	u32 size, adobe_hdr_size;
@@ -1230,7 +1230,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 	u32 pck_size;
 	GF_FilterPacket *dst_pck;
 	const u8 *data;
-	char *output;
+	u8 *output;
 	u32 sai_size = cstr->tci->IV_size;
 	u32 nb_subsamples=0;
 
@@ -1585,7 +1585,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 		cenc_resync_IV(cstr->crypt, cstr->IV, cstr->tci->IV_size);
 
 	if (sai_size) {
-		char *sai=NULL;
+		u8 *sai=NULL;
 		sai_size = (u32) gf_bs_get_position(sai_bs);
 		gf_bs_seek(sai_bs, cstr->tci->IV_size);
 		gf_bs_write_u16(sai_bs, nb_subsamples);
@@ -1647,7 +1647,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	}
 
 	if (!is_encrypted) {
-		char *sai=NULL;
+		u8 *sai=NULL;
 		u32 i, sai_size = 0;
 		dst_pck = gf_filter_pck_new_ref(cstr->opid, NULL, 0, pck);
 		gf_filter_pck_merge_properties(pck, dst_pck);

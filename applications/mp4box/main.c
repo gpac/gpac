@@ -1843,7 +1843,7 @@ static GF_Err xml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 {
 	GF_Err e;
 	GF_XMLNode *root;
-	char *data = NULL;
+	u8 *data = NULL;
 	u32 data_size;
 
 	GF_DOMParser *dom = gf_xml_dom_new();
@@ -1898,7 +1898,7 @@ static GF_Err xml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_top_boxes, u32 comp_top_box_version, Bool use_lzma)
 {
 	FILE *in, *out;
-	char *buf;
+	u8 *buf;
 	u32 buf_alloc, comp_size, start_offset;
 	s32 bytes_comp=0;
 	s32 bytes_uncomp=0;
@@ -2004,7 +2004,7 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 		u32 size = gf_bs_read_u32(bs_in);
 		u32 type = gf_bs_read_u32(bs_in);
 		const char *b4cc = gf_4cc_to_str(type);
-		const char *replace = strstr(compress_top_boxes, b4cc);
+		const u8 *replace = (const u8 *) strstr(compress_top_boxes, b4cc);
 		if (!strcmp(b4cc, "moov")) has_mov = GF_TRUE;
 
 		if (!replace && !replace_all) {
@@ -4291,7 +4291,7 @@ int mp4boxMain(int argc, char **argv)
 		if (sep) sep[0] = ':';
 		if (e) fprintf(stderr, "Failed to bind socket to %s: %s\n", udp_dest, gf_error_to_string(e) );
 		else {
-			e = gf_sk_send(sock, inName, (u32)strlen(inName));
+			e = gf_sk_send(sock, (u8 *) inName, (u32)strlen(inName));
 			if (e) fprintf(stderr, "Failed to send datagram: %s\n", gf_error_to_string(e) );
 		}
 		gf_sk_del(sock);
@@ -5151,7 +5151,7 @@ int mp4boxMain(int argc, char **argv)
 			if (!iodf) {
 				fprintf(stderr, "Cannot open destination %s\n", szName);
 			} else {
-				char *desc;
+				u8 *desc;
 				u32 size;
 				bs = gf_bs_from_file(iodf, GF_BITSTREAM_WRITE);
 				if (gf_odf_desc_write((GF_Descriptor *)iod, &desc, &size)==GF_OK) {
@@ -5746,8 +5746,9 @@ int mp4boxMain(int argc, char **argv)
 			switch (itag) {
 			case GF_ISOM_ITUNE_COVER_ART:
 			{
-				char *d, *ext;
-				d=NULL;
+				u8 *d=NULL;
+				char *ext;
+
 				if (val) {
 					gf_file_load_data(val, (u8 **) &d, &tlen);
 
@@ -5768,7 +5769,7 @@ int mp4boxMain(int argc, char **argv)
 					gf_isom_apple_set_tag(file, itag, NULL, _v);
 				} else {
 					if (!val) val="";
-					gf_isom_apple_set_tag(file, itag, val, (u32) strlen(val) );
+					gf_isom_apple_set_tag(file, itag, (u8 *) val, (u32) strlen(val) );
 				}
 			}
 			break;
@@ -5793,20 +5794,20 @@ int mp4boxMain(int argc, char **argv)
 					}
 					else tlen = 0;
 				}
-				if (!val || tlen) gf_isom_apple_set_tag(file, itag, val ? _t : NULL, tlen);
+				if (!val || tlen) gf_isom_apple_set_tag(file, itag, val ? (u8 *)_t : NULL, tlen);
 			}
 			break;
 			case GF_ISOM_ITUNE_GAPLESS:
 			case GF_ISOM_ITUNE_COMPILATION:
 			{
-				char _t[1];
+				u8 _t[1];
 				if (val && !stricmp(val, "yes")) _t[0] = 1;
 				else  _t[0] = 0;
 				gf_isom_apple_set_tag(file, itag, _t, 1);
 			}
 			break;
 			default:
-				gf_isom_apple_set_tag(file, itag, val, tlen);
+				gf_isom_apple_set_tag(file, itag, (u8 *)val, tlen);
 				break;
 			}
 			needSave = GF_TRUE;

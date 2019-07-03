@@ -33,7 +33,7 @@
 #include <gpac/mpeg4_odf.h>
 #include <gpac/avparse.h>
 
-static void gf_rtp_parse_pass_through(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_pass_through(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	if (!rtp) return;
 
@@ -48,7 +48,7 @@ static void gf_rtp_parse_pass_through(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr
 	rtp->on_sl_packet(rtp->udta, payload, size, &rtp->sl_hdr, GF_OK);
 }
 
-static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u32 aux_size, first_idx, au_hdr_size, num_au;
 	u64 pay_start, au_size;
@@ -254,7 +254,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-static void gf_rtp_parse_mpeg12_audio(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_mpeg12_audio(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u16 offset;
 	u32 mp3hdr, ts;
@@ -323,7 +323,7 @@ static void gf_rtp_parse_mpeg12_audio(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr
 
 #endif
 
-static void gf_rtp_parse_mpeg12_video(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_mpeg12_video(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u8 pic_type;
 
@@ -356,7 +356,7 @@ static void gf_rtp_parse_mpeg12_video(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr
 	}
 }
 
-static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	unsigned char c, type;
 	char *data;
@@ -402,7 +402,7 @@ static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *p
 }
 
 
-static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	GF_BitStream *bs;
 	Bool P_bit, V_bit;
@@ -461,7 +461,7 @@ static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 static void gf_rtp_ttxt_flush(GF_RTPDepacketizer *rtp, u32 ts)
 {
 	GF_BitStream *bs;
-	char *data;
+	u8 *data;
 	u32 data_size;
 	if (!rtp->inter_bs) return;
 
@@ -496,7 +496,7 @@ static void gf_rtp_ttxt_flush(GF_RTPDepacketizer *rtp, u32 ts)
 	rtp->nb_txt_frag = rtp->cur_txt_frag = rtp->sidx = rtp->txt_len = rtp->nb_mod_frag = 0;
 }
 
-static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	Bool is_utf_16;
 	u32 type, ttu_len, duration, ts, sidx, txt_size;
@@ -608,7 +608,7 @@ static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 
 static void gf_rtp_h264_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool missed_end)
 {
-	char *data;
+	u8 *data;
 	u32 data_size, nal_s;
 	if (!rtp->inter_bs) return;
 
@@ -642,7 +642,7 @@ static void gf_rtp_h264_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool m
 	gf_free(data);
 }
 
-void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	char nalhdr[4];
 	u32 nal_type;
@@ -766,7 +766,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 
 static void gf_rtp_hevc_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool missed_end)
 {
-	char *data;
+	u8 *data;
 	u32 data_size, nal_s;
 	if (!rtp->inter_bs) return;
 
@@ -794,7 +794,7 @@ static void gf_rtp_hevc_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool m
 	gf_free(data);
 }
 
-static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u32 nal_type;
 	char nalu_size[4];
@@ -901,7 +901,7 @@ static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-static void gf_rtp_parse_latm(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_latm(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u32 remain, latm_hdr_size, latm_size;
 
@@ -1012,7 +1012,7 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u8 ft;
 
@@ -1742,7 +1742,7 @@ static const GF_RTPStaticMap *gf_rtp_is_valid_static_payt(u32 payt)
 
 
 GF_EXPORT
-GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet_cbk)(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e), void *udta)
+GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet_cbk)(void *udta, u8 *payload, u32 size, GF_SLHeader *hdr, GF_Err e), void *udta)
 {
 	GF_Err e;
 	GF_RTPMap *map;
@@ -1818,7 +1818,7 @@ void gf_rtp_depacketizer_del(GF_RTPDepacketizer *rtp)
 }
 
 GF_EXPORT
-void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	assert(rtp && rtp->depacketize);
 	rtp->sl_hdr.sender_ntp = hdr->recomputed_ntp_ts;

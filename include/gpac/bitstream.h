@@ -70,7 +70,7 @@ typedef struct __tag_bitstream GF_BitStream;
  *	\note In write mode on an existing data buffer, data overflow is never signaled but simply ignored, it is the caller responsability to ensure it
  *	does not write more than possible.
  */
-GF_BitStream *gf_bs_new(const char *buffer, u64 size, u32 mode);
+GF_BitStream *gf_bs_new(const u8 *buffer, u64 size, u32 mode);
 
 /*!
  *	\brief bitstream reassignment
@@ -81,7 +81,7 @@ GF_BitStream *gf_bs_new(const char *buffer, u64 size, u32 mode);
  *	\param size size of the buffer given.
  *	\return error code if any
  */
-GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const char *buffer, u64 size);
+GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const u8 *buffer, u64 size);
 
 /*!
  *	\brief bitstream constructor from file handle
@@ -123,7 +123,7 @@ GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size);
  * \param block_size internal buffer size used while dispatching bytes. If 0, defaults to 40k.
  *	\return new bitstream object
  */
-GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size), void *usr_data, u32 block_size);
+GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size), void *usr_data, u32 block_size);
 
 /*!
  * Prevents byte dispatching in callback mode. This is used when seek operations are used.
@@ -186,7 +186,7 @@ Double gf_bs_read_double(GF_BitStream *bs);
  *	\return the number of bytes actually read.
  *	\warning the data buffer passed must be large enough to hold the desired amount of bytes.
  */
-u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes);
+u32 gf_bs_read_data(GF_BitStream *bs, u8 *data, u32 nbBytes);
 
 /*!
  *	\brief align char reading
@@ -339,7 +339,7 @@ void gf_bs_write_double(GF_BitStream *bs, Double value);
  *	\param data the data to write
  *	\param nbBytes number of data bytes to write
  */
-u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes);
+u32 gf_bs_write_data(GF_BitStream *bs, const u8 *data, u32 nbBytes);
 
 /*!
  *	\brief align char writing
@@ -464,7 +464,7 @@ u64 gf_bs_available(GF_BitStream *bs);
 	* It is the user responsability to destroy the allocated buffer
 	* Once this function has been called, the internal bitstream buffer is reseted.
  */
-void gf_bs_get_content(GF_BitStream *bs, char **output, u32 *outSize);
+void gf_bs_get_content(GF_BitStream *bs, u8 **output, u32 *outSize);
 
 /*!
  *	\brief buffer fetching
@@ -478,7 +478,7 @@ void gf_bs_get_content(GF_BitStream *bs, char **output, u32 *outSize);
 	* It is the user responsability to destroy the allocated buffer
 	* Once this function has been called, the internal bitstream buffer is reseted.
  */
-void gf_bs_get_content_no_truncate(GF_BitStream *bs, char **output, u32 *outSize, u32 *allocSize);
+void gf_bs_get_content_no_truncate(GF_BitStream *bs, u8 **output, u32 *outSize, u32 *allocSize);
 
 /*!
  *	\brief byte skipping

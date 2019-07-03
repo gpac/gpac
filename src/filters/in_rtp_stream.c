@@ -118,12 +118,12 @@ static void rtpin_stream_queue_pck(GF_RTPInStream *stream, GF_FilterPacket *pck,
 	gf_list_add(stream->pck_queue, pck);
 }
 
-static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e)
+static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hdr, GF_Err e)
 {
 	u64 cts, dts;
 	s64 diff;
 	GF_FilterPacket *pck;
-	char *pck_data;
+	u8 *pck_data;
 	GF_RTPInStream *stream = (GF_RTPInStream *)udta;
 
 
@@ -651,7 +651,7 @@ static void rtpin_stream_on_rtcp_pck(GF_RTPInStream *stream, char *pck, u32 size
 	}
 }
 
-GF_Err rtpin_rtsp_data_cbk(GF_RTSPSession *sess, void *cbk, char *buffer, u32 bufferSize, Bool IsRTCP)
+GF_Err rtpin_rtsp_data_cbk(GF_RTSPSession *sess, void *cbk, u8 *buffer, u32 bufferSize, Bool IsRTCP)
 {
 	GF_RTPInStream *stream = (GF_RTPInStream *) cbk;
 	if (!stream || stream->rtpin->done) return GF_OK;

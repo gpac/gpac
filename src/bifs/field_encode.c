@@ -190,7 +190,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			GF_BitStream *bs_cond = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] /*SFCommandBuffer*/\n" ));
 			e = gf_bifs_enc_commands(codec, cb->commandList, bs_cond);
-			if (!e) gf_bs_get_content(bs_cond, (char**)&cb->buffer, &cb->bufferSize);
+			if (!e) gf_bs_get_content(bs_cond, &cb->buffer, &cb->bufferSize);
 			gf_bs_del(bs_cond);
 			if (e) return e;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] /*End SFCommandBuffer*/\n"));

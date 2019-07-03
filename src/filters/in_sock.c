@@ -249,7 +249,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	u64 bitrate;
 	GF_Err e;
 	GF_FilterPacket *dst_pck;
-	char *out_data, *in_data;
+	u8 *out_data, *in_data;
 
 	if (!sock_c->socket)
 		return GF_EOS;

@@ -175,7 +175,7 @@ static void evg_surface_set_components_idx(GF_EVGSurface *surf)
 }
 
 GF_EXPORT
-GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, char *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat)
+GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat)
 {
 	u32 BPP;
 	if (!surf || !pixels) return GF_BAD_PARAM;

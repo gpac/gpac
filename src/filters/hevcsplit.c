@@ -246,7 +246,7 @@ void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, ch
 {
 	GF_BitStream *bs_in, *bs_out;
 	u64 length_no_use = 4096;
-	char *data_without_emulation_bytes = NULL;
+	u8 *data_without_emulation_bytes = NULL;
 	u32 data_without_emulation_bytes_size = 0, sps_ext_or_max_sub_layers_minus1;
 	u8 max_sub_layers_minus1 = 0, layer_id;
 	Bool conformance_window_flag, multiLayerExtSpsFlag;
@@ -355,7 +355,7 @@ static void rewrite_pps_no_grid(char *in_PPS, u32 in_PPS_length, char **out_PPS,
 	GF_BitStream *bs_in;
 	GF_BitStream *bs_out;
 
-	char *data_without_emulation_bytes = NULL;
+	u8 *data_without_emulation_bytes = NULL;
 	u32 data_without_emulation_bytes_size = 0;
 
 	bs_in = gf_bs_new(in_PPS, in_PPS_length, GF_BITSTREAM_READ);
@@ -435,7 +435,7 @@ static void rewrite_slice_address(GF_HEVCSplitCtx *ctx, s32 new_address, char *i
 	u32 data_without_emulation_bytes_size = 0;
 	u64 header_end;
 	u32 dst_buf_size = 0;
-	char *dst_buf = NULL;
+	u8 *dst_buf = NULL;
 	u32 num_entry_point_start;
 	u32 pps_id;
 	GF_BitStream *bs_ori, *bs_rw;
@@ -641,7 +641,7 @@ static char* extract(GF_Filter *filter, GF_HEVCSplitCtx *ctx, char *buffer, u32 
 static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx , GF_FilterPid *opid, char *data, u32 size, u32 new_width, u32 new_height)
 {
 	u32 i, j;
-	char *new_dsi;
+	u8 *new_dsi;
 	u32 new_size;
 	GF_HEVCConfig *hvcc = NULL;
 	// Profile, tier and level syntax ( nal class: Reserved and unspecified)
@@ -854,7 +854,7 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 	/*TODO: keep logging during the process*/
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] splitting frame DTS "LLU" CTS "LLU"\n", gf_filter_pck_get_dts(pck_src), gf_filter_pck_get_cts(pck_src)));
 
-	char *output_nal, *rewritten_nal;
+	u8 *output_nal, *rewritten_nal;
 	u32 out_nal_size;
 	//gf_filter_get_opid_count
 	GF_FilterPid * opid;
@@ -892,7 +892,7 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 					gf_filter_pck_merge_properties(pck_src, tpid->cur_pck);
 				}
 				else { // to be reexamined !
-					char *data_start;
+					u8 *data_start;
 					u32 new_size;
 					gf_filter_pck_expand(tpid->cur_pck, ctx->hevc_nalu_size_length + out_nal_size, &data_start, &output_nal, &new_size);
 				}
@@ -913,7 +913,7 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 				// TODO: might need to rewrite crypto info
 			}
 			else { // TODO to be reexamined !
-				char *data_start;
+				u8 *data_start;
 				u32 new_size;
 				gf_filter_pck_expand(tpid->cur_pck, ctx->hevc_nalu_size_length + out_nal_size, &data_start, &output_nal, &new_size); // just the alloc
 			}

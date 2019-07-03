@@ -993,7 +993,7 @@ s32 ogg_sync_destroy(ogg_sync_state *oy) {
 #endif
 
 
-char *ogg_sync_buffer(ogg_sync_state *oy, s32 size) {
+u8 *ogg_sync_buffer(ogg_sync_state *oy, s32 size) {
 
 	/* first, clear out any space that has been previously returned */
 	if(oy->returned) {

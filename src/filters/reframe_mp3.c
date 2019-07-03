@@ -291,7 +291,7 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[MP3Dmx] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
 					}
 					if (ctx->vpid) {
-						char *out_buffer;
+						u8 *out_buffer;
 						GF_FilterPacket *dst_pck;
 						gf_filter_pid_set_name(ctx->vpid, "CoverArt");
 						dst_pck = gf_filter_pck_new_alloc(ctx->vpid, pic_size, &out_buffer);
@@ -458,7 +458,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 {
 	GF_MP3DmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	char *data, *output;
+	u8 *data, *output;
 	u8 *start;
 	u32 pck_size, remain, prev_pck_size;
 	u64 cts = GF_FILTER_NO_TS;

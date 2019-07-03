@@ -45,7 +45,7 @@ typedef struct
 	u32 width, height, pixel_format, stride, stride_uv, nb_planes, uv_height;
 
 	GF_FilterPacket *dst_pck;
-	char *output;
+	u8 *output;
 
 	/*io manager*/
 	struct jpeg_destination_mgr dst;
@@ -177,7 +177,7 @@ static void jpgenc_init_dest(j_compress_ptr cinfo)
 
 static boolean jpgenc_empty_output(j_compress_ptr cinfo)
 {
-	char *data;
+	u8 *data;
 	u32 new_size;
 	GF_JPGEncCtx *ctx = (GF_JPGEncCtx *) cinfo->client_data;
 

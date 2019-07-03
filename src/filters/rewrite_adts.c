@@ -158,7 +158,7 @@ GF_Err adtsmx_process(GF_Filter *filter)
 {
 	GF_ADTSMxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	char *data, *output;
+	u8 *data, *output;
 	u32 pck_size, size;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);

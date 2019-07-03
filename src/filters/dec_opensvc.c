@@ -296,7 +296,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	u32 i, count, idx, nalu_size, sc_size, nb_eos=0;
 	u8 *ptr;
 	u32 data_size;
-	char *data;
+	u8 *data;
 	Bool has_pic = GF_FALSE;
 	GF_OSVCDecCtx *ctx = (GF_OSVCDecCtx*) gf_filter_get_udta(filter);
 	GF_FilterPacket *dst_pck, *src_pck, *pck_ref = NULL;

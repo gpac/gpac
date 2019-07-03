@@ -326,7 +326,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 	GF_AMRDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u64 byte_offset;
-	char *data, *output;
+	u8 *data, *output;
 	u8 *start;
 	u32 pck_size, remain;
 
@@ -493,7 +493,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 
 			if (byte_offset != GF_FILTER_NO_BO) {
 				u64 boffset = byte_offset;
-				boffset += (char *) start - data;
+				boffset += start - data;
 				gf_filter_pck_set_byte_offset(dst_pck, boffset);
 			}
 

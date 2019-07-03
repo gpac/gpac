@@ -63,19 +63,19 @@ void gf_laser_decoder_del(GF_LASeRCodec *codec);
 void gf_laser_decoder_set_clock(GF_LASeRCodec *codec, Double (*GetSceneTime)(void *st_cbk), void *st_cbk );
 
 /*setup a stream*/
-GF_Err gf_laser_decoder_configure_stream(GF_LASeRCodec *codec, u16 ESID, char *DecoderSpecificInfo, u32 DecoderSpecificInfoLength);
+GF_Err gf_laser_decoder_configure_stream(GF_LASeRCodec *codec, u16 ESID, u8 *DecoderSpecificInfo, u32 DecoderSpecificInfoLength);
 /*removes a stream*/
 GF_Err gf_laser_decoder_remove_stream(GF_LASeRCodec *codec, u16 ESID);
 
 /*decode a laser AU and applies it to the graph (non-memory mode only)*/
-GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, const char *data, u32 data_length);
+GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, const u8 *data, u32 data_length);
 
 /*Memory laser decoding - fills the command list with the content of the AU - cf scenegraph_vrml.h for commands usage
 	@ESID: ID of input stream
 	@data, @data_length: BIFS AU
 	@com_list: target list for decoded commands
 */
-GF_Err gf_laser_decode_command_list(GF_LASeRCodec *codec, u16 ESID, char *data, u32 data_length, GF_List *com_list);
+GF_Err gf_laser_decode_command_list(GF_LASeRCodec *codec, u16 ESID, u8 *data, u32 data_length, GF_List *com_list);
 
 
 /*constructor - @graph: scene graph being encoded*/
@@ -85,12 +85,12 @@ void gf_laser_encoder_del(GF_LASeRCodec *codec);
 /*setup a destination stream*/
 GF_Err gf_laser_encoder_new_stream(GF_LASeRCodec *codec, u16 ESID, GF_LASERConfig *cfg);
 /*encodes a list of commands for the given stream in the output buffer - data is dynamically allocated for output*/
-GF_Err gf_laser_encode_au(GF_LASeRCodec *codec, u16 ESID, GF_List *command_list, Bool reset_encoding_context, char **out_data, u32 *out_data_length);
+GF_Err gf_laser_encode_au(GF_LASeRCodec *codec, u16 ESID, GF_List *command_list, Bool reset_encoding_context, u8 **out_data, u32 *out_data_length);
 /*returns encoded config desc*/
-GF_Err gf_laser_encoder_get_config(GF_LASeRCodec *codec, u16 ESID, char **out_data, u32 *out_data_length);
+GF_Err gf_laser_encoder_get_config(GF_LASeRCodec *codec, u16 ESID, u8 **out_data, u32 *out_data_length);
 
 /*Encodes current graph as a scene replace*/
-GF_Err gf_laser_encoder_get_rap(GF_LASeRCodec *codec, char **out_data, u32 *out_data_length);
+GF_Err gf_laser_encoder_get_rap(GF_LASeRCodec *codec, u8 **out_data, u32 *out_data_length);
 
 
 #endif /*GPAC_DISABLE_LASER*/

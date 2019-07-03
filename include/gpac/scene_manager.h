@@ -107,7 +107,7 @@ typedef struct _stream_context
 	Bool in_root_od;
 	/*number of previous AUs (used in live scene encoder only)*/
 	u32 current_au_count;
-	char *dec_cfg;
+	u8 *dec_cfg;
 	u32 dec_cfg_len;
 
 	/*time offset when exporting (dumping), max AU time created when importing*/

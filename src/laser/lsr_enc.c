@@ -108,7 +108,7 @@ GF_Err gf_laser_encoder_new_stream(GF_LASeRCodec *codec, u16 ESID, GF_LASERConfi
 }
 
 GF_EXPORT
-GF_Err gf_laser_encoder_get_config(GF_LASeRCodec *codec, u16 ESID, char **out_data, u32 *out_data_length)
+GF_Err gf_laser_encoder_get_config(GF_LASeRCodec *codec, u16 ESID, u8 **out_data, u32 *out_data_length)
 {
 	GF_BitStream *bs;
 	if (!codec || !out_data || !out_data_length) return GF_BAD_PARAM;
@@ -150,7 +150,7 @@ GF_Err gf_laser_encoder_get_config(GF_LASeRCodec *codec, u16 ESID, char **out_da
 }
 
 GF_EXPORT
-GF_Err gf_laser_encode_au(GF_LASeRCodec *codec, u16 ESID, GF_List *command_list, Bool reset_context, char **out_data, u32 *out_data_length)
+GF_Err gf_laser_encode_au(GF_LASeRCodec *codec, u16 ESID, GF_List *command_list, Bool reset_context, u8 **out_data, u32 *out_data_length)
 {
 	GF_Err e;
 	if (!codec || !command_list || !out_data || !out_data_length) return GF_BAD_PARAM;
@@ -178,7 +178,7 @@ GF_Err gf_laser_encode_au(GF_LASeRCodec *codec, u16 ESID, GF_List *command_list,
 }
 
 GF_EXPORT
-GF_Err gf_laser_encoder_get_rap(GF_LASeRCodec *codec, char **out_data, u32 *out_data_length)
+GF_Err gf_laser_encoder_get_rap(GF_LASeRCodec *codec, u8 **out_data, u32 *out_data_length)
 {
 	GF_Err e;
 	if (!codec->info) codec->info = (LASeRStreamInfo*)gf_list_get(codec->streamInfo, 0);
@@ -4169,7 +4169,7 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_
 exit:
 	/*script is aligned*/
 	if (cond)	{
-		char *data;
+		u8 *data;
 		u32 data_size;
 		gf_bs_get_content(lsr->bs, &data, &data_size);
 		gf_bs_del(lsr->bs);

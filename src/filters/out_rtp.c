@@ -487,7 +487,7 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 	u32 fsize;
 	GF_Err e;
 	u64 sess_id=0;
-	char *output;
+	u8 *output;
 	const char *ip = ctx->ip;
 	if (!ip) ip = "127.0.0.1";
 

@@ -168,7 +168,7 @@ typedef struct {
 } SFImage;
 typedef struct {
 	u32 bufferSize;
-	unsigned char* buffer;
+	u8* buffer;
 	/*uncompressed command list*/
 	GF_List *commandList;
 } SFCommandBuffer;
@@ -190,7 +190,7 @@ typedef struct {
 this structure to safely typecast MF field pointers*/
 typedef struct {
 	u32 count;
-	char *array;
+	u8 *array;
 } GenMFField;
 
 typedef struct {

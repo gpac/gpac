@@ -625,7 +625,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 	}
 
 	if (reset_state) {
-		char *dsi=NULL;
+		u8 *dsi=NULL;
 		u32 dsi_size=0;
 		if (ch->check_avc_ps) {
 			gf_odf_avc_cfg_write(ch->avcc, &dsi, &dsi_size);

@@ -338,7 +338,7 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 	for (i=0; i<count;i++) {
 		u8 *buf;
 		u32 buf_len;
-		char *pck_data;
+		u8 *pck_data;
 		GF_FilterPacket *dst_pck;
 		M2PSStream *st = gf_list_get(ctx->streams, i);
 		if (!st->in_use) {

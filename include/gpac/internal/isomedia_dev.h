@@ -599,7 +599,7 @@ typedef struct
 	u64 dataSize;
 	/* store the file offset when parsing to access the raw data */
 	u64 bsOffset;
-	char *data;
+	u8 *data;
 } GF_MediaDataBox;
 
 typedef struct
@@ -638,7 +638,7 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_BOX
-	char *data;
+	u8 *data;
 	u32 dataSize;
 	u32 original_4cc;
 } GF_UnknownBox;
@@ -646,11 +646,11 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_UUID_BOX
-	char *data;
+	u8 *data;
 	u32 dataSize;
 } GF_UnknownUUIDBox;
 
-u32 gf_isom_solve_uuid_box(char *UUID);
+u32 gf_isom_solve_uuid_box(u8 *UUID);
 
 typedef struct
 {
@@ -851,9 +851,9 @@ typedef struct __tag_media_box
 
 	GF_BitStream *nalu_out_bs;
 	GF_BitStream *nalu_ps_bs;
-	char *in_sample_buffer;
+	u8 *in_sample_buffer;
 	u32 in_sample_buffer_alloc;
-	char *tmp_nal_copy_buffer;
+	u8 *tmp_nal_copy_buffer;
 	u32 tmp_nal_copy_buffer_alloc;
 
 	GF_ISOSample *extracted_samp;
@@ -1053,7 +1053,7 @@ typedef struct
 	/*box type as specified in the file (not this box's type!!)*/
 	u32 EntryType;
 
-	char *data;
+	u8 *data;
 	u32 data_size;
 } GF_GenericSampleEntryBox;
 
@@ -1150,7 +1150,7 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_BOX
-	char *hdr;
+	u8 *hdr;
 	u32 hdr_size;
 } GF_LASERConfigurationBox;
 
@@ -1420,7 +1420,7 @@ typedef struct
 	/*box type as specified in the file (not this box's type!!)*/
 	u32 EntryType;
 	/*opaque description data (ESDS in MP4, SMI in SVQ3, ...)*/
-	char *data;
+	u8 *data;
 	u32 data_size;
 } GF_GenericVisualSampleEntryBox;
 
@@ -1517,7 +1517,7 @@ typedef struct
 	/*box type as specified in the file (not this box's type!!)*/
 	u32 EntryType;
 	/*opaque description data (ESDS in MP4, ...)*/
-	char *data;
+	u8 *data;
 	u32 data_size;
 } GF_GenericAudioSampleEntryBox;
 
@@ -1807,7 +1807,7 @@ GF_Err stbl_AddDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isL
 typedef struct
 {
 	GF_ISOM_BOX
-	char *data;
+	u8 *data;
 	u32 dataSize;
 	u32 original_4cc;
 } GF_FreeSpaceBox;
@@ -2034,7 +2034,7 @@ typedef struct
 {
 	GF_ISOM_FULL_BOX
 	u32 data_length;
-	char *data;
+	u8 *data;
 } GF_BinaryXMLBox;
 
 typedef struct
@@ -2293,7 +2293,7 @@ typedef struct
 	/*offset in the file of moof or mdat (whichever comes first) for this fragment*/
 	u64 fragment_offset;
 	u32 mdat_size;
-	char *mdat;
+	u8 *mdat;
 
 	//temp storage of prft box
 	u32 reference_track_ID;
@@ -2647,7 +2647,7 @@ typedef struct
 {
 	GF_ISOM_FULL_BOX
 	u32 reserved;
-	char *data;
+	u8 *data;
 	u32 dataSize;
 } GF_DataBox;
 
@@ -2726,7 +2726,7 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
-	char *oma_ro;
+	u8 *oma_ro;
 	u32 oma_ro_size;
 } GF_OMADRMRightsObjectBox;
 
@@ -3173,7 +3173,7 @@ typedef struct __adobe_enc_info_box
 typedef struct __adobe_flash_access_params_box
 {
 	GF_ISOM_BOX
-	char *metadata; /*base-64 encoded metadata used by the DRM client to retrieve decrypted key*/
+	u8 *metadata; /*base-64 encoded metadata used by the DRM client to retrieve decrypted key*/
 } GF_AdobeFlashAccessParamsBox;
 
 typedef struct __adobe_key_info_box
@@ -3259,7 +3259,7 @@ typedef struct {
 	GF_ISOM_FULL_BOX
 	char *aux_urn;
 	u32 data_size;
-	char *data;
+	u8 *data;
 } GF_AuxiliaryTypePropertyBox;
 
 typedef struct {
@@ -3431,7 +3431,7 @@ typedef struct
 	GF_ISOM_BASE_DATA_HANDLER
 	char *name;
 	u64 file_size;
-	char *byte_map;
+	u8 *byte_map;
 	u64 byte_pos;
 } GF_FileMappingDataMap;
 
@@ -3439,12 +3439,12 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 void gf_isom_datamap_del(GF_DataMap *ptr);
 GF_Err gf_isom_datamap_open(GF_MediaBox *minf, u32 dataRefIndex, u8 Edit);
 void gf_isom_datamap_close(GF_MediaInformationBox *minf);
-u32 gf_isom_datamap_get_data(GF_DataMap *map, char *buffer, u32 bufferLength, u64 Offset);
+u32 gf_isom_datamap_get_data(GF_DataMap *map, u8 *buffer, u32 bufferLength, u64 Offset);
 
 /*File-based data map*/
 GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode);
 void gf_isom_fdm_del(GF_FileDataMap *ptr);
-u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, char *buffer, u32 bufferLength, u64 fileOffset);
+u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_DataMap *gf_isom_fdm_new_temp(const char *sTempPath);
@@ -3453,11 +3453,11 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sTempPath);
 /*file-mapping, read only*/
 GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode);
 void gf_isom_fmo_del(GF_FileMappingDataMap *ptr);
-u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, char *buffer, u32 bufferLength, u64 fileOffset);
+u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 u64 gf_isom_datamap_get_offset(GF_DataMap *map);
-GF_Err gf_isom_datamap_add_data(GF_DataMap *ptr, char *data, u32 dataSize);
+GF_Err gf_isom_datamap_add_data(GF_DataMap *ptr, u8 *data, u32 dataSize);
 #endif
 
 void gf_isom_datamap_flush(GF_DataMap *map);
@@ -3585,8 +3585,8 @@ struct __tag_isom {
 
 	Bool is_smooth;
 
-	GF_Err (*on_block_out)(void *usr_data, char *block, u32 block_size);
-	GF_Err (*on_block_patch)(void *usr_data, char *block, u32 block_size, u64 block_offset);
+	GF_Err (*on_block_out)(void *usr_data, u8 *block, u32 block_size);
+	GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset);
 	void *on_block_out_usr_data;
 	u32 on_block_out_block_size;
 	//in block disptach mode we don't have the full file, keep the position
@@ -3613,8 +3613,8 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 void gf_isom_delete_movie(GF_ISOFile *mov);
 
 GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
- 			GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size),
-			GF_Err (*on_block_patch)(void *usr_data, char *block, u32 block_size, u64 block_offset),
+ 			GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size),
+			GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset),
  			void *usr_data,
  			u32 block_size);
 
@@ -3809,7 +3809,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 #endif
 void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u64 offset, u32 len);
 
-void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independent, Bool *full_picture, u32 *x, u32 *y, u32 *w, u32 *h);
+void gf_isom_parse_trif_info(const u8 *data, u32 size, u32 *id, u32 *independent, Bool *full_picture, u32 *x, u32 *y, u32 *w, u32 *h);
 
 Bool gf_isom_is_encrypted_entry(u32 entryType);
 
@@ -3837,7 +3837,7 @@ typedef struct
 	u8 header_extension_type;
 	u8 content[3];
 	u32 data_length;
-	char *data;
+	u8 *data;
 } GF_LCTheaderExtension;
 
 typedef struct
@@ -3869,7 +3869,7 @@ typedef struct
 
 	GF_FECInformationBox *feci;
 	u32 data_length;
-	char *data;
+	u8 *data;
 } GF_ExtraDataBox;
 
 
@@ -3942,7 +3942,7 @@ typedef struct __tag_hint_sample
 	u16 packetCount;
 	u16 reserved;
 	GF_List *packetTable;
-	char *AdditionalData;
+	u8 *AdditionalData;
 	u32 dataLength;
 	/*used internally for hinting*/
 	u64 TransmissionTime;
@@ -4023,7 +4023,7 @@ typedef struct
 	//RTCP report
 	u8 Version, Padding, Count, PayloadType;
 	u32 length;
-	char *data;
+	u8 *data;
 } GF_RTCPPacket;
 
 GF_RTCPPacket *gf_isom_hint_rtcp_new();
@@ -4054,7 +4054,7 @@ struct _3gpp_text_sample
 };
 
 GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs);
-GF_TextSample *gf_isom_parse_texte_sample_from_data(char *data, u32 dataLength);
+GF_TextSample *gf_isom_parse_texte_sample_from_data(u8 *data, u32 dataLength);
 
 struct _generic_subtitle_sample
 {
@@ -4062,7 +4062,7 @@ struct _generic_subtitle_sample
 	u32 len;
 };
 GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample(GF_BitStream *bs);
-GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample_from_data(char *data, u32 dataLength);
+GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample_from_data(u8 *data, u32 dataLength);
 
 
 /*do not throw fatal errors if boxes are duplicated, just warn and remove extra ones*/

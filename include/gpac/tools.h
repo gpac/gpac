@@ -1127,7 +1127,7 @@ u32 gf_file_handles_count();
  *	\param size buffer size
  *	\return computed CRC32
  */
-u32 gf_crc_32(const char *data, u32 size);
+u32 gf_crc_32(const u8 *data, u32 size);
 
 
 /**
@@ -1137,7 +1137,7 @@ u32 gf_crc_32(const char *data, u32 size);
  * \param out_size pointer for output buffer size
  * \return GF_OK if evertything went fine
  */
-GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *out_size);
+GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *out_size);
 
 /**
  * Decompresses a data buffer using zlib/deflate.
@@ -1147,7 +1147,7 @@ GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *out_size);
  * \param out_size size of the uncompressed buffer
  * \return GF_OK if evertything went fine
  */
-GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size);
+GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size);
 
 /**
  * Compresses a data buffer in place using LZMA. Buffer may be reallocated in the process.
@@ -1156,7 +1156,7 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
  * \param out_size pointer for output buffer size
  * \return GF_OK if evertything went fine
  */
-GF_Err gf_lz_compress_payload(char **data, u32 data_len, u32 *out_size);
+GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *out_size);
 
 /**
  * Decompresses a data buffer using LZMA.
@@ -1166,7 +1166,7 @@ GF_Err gf_lz_compress_payload(char **data, u32 data_len, u32 *out_size);
  * \param out_size size of the uncompressed buffer
  * \return GF_OK if evertything went fine
  */
-GF_Err gf_lz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size);
+GF_Err gf_lz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size);
 
 
 /*SHA1*/

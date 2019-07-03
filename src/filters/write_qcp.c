@@ -165,7 +165,7 @@ static void qcpmx_send_header(GF_QCPMxCtx *ctx, u32 data_size, u32 frame_count)
 	u32 block_size = 160;
 	u32 sample_rate = 8000;
 	GF_BitStream *bs;
-	char *output;
+	u8 *output;
 	GF_FilterPacket *dst_pck;
 
 	if (ctx->qcp_type==1) {
@@ -264,7 +264,7 @@ GF_Err qcpmx_process(GF_Filter *filter)
 {
 	GF_QCPMxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	char *data, *output;
+	u8 *data, *output;
 	u32 pck_size, size;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);

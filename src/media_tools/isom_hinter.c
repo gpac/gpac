@@ -173,7 +173,7 @@ void MP4T_OnDataRef(void *cbk, u32 payload_size, u32 offset_from_orig)
 	                         NULL, 0);
 }
 
-void MP4T_OnData(void *cbk, char *data, u32 data_size, Bool is_header)
+void MP4T_OnData(void *cbk, u8 *data, u32 data_size, Bool is_header)
 {
 	u8 at_begin;
 	GF_RTPHinter *tkHint = (GF_RTPHinter *)cbk;
@@ -907,7 +907,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 
 		strcat(sdpLine, "; tx3g=");
 		for (i=0; i<gf_isom_get_sample_description_count(tkHint->file, tkHint->TrackNum); i++) {
-			char *tx3g;
+			u8 *tx3g;
 			char buffer[2000];
 			u32 tx3g_len, len;
 			gf_isom_text_get_encoded_tx3g(tkHint->file, tkHint->TrackNum, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
@@ -969,7 +969,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	/*MPEG-4 Audio LATM*/
 	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_LATM) {
 		GF_BitStream *bs;
-		char *config_bytes;
+		u8 *config_bytes;
 		u32 config_size;
 
 		/* form config string */
@@ -1060,7 +1060,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 }
 
 GF_EXPORT
-Bool gf_hinter_can_embbed_data(char *data, u32 data_size, u32 streamType)
+Bool gf_hinter_can_embbed_data(u8 *data, u32 data_size, u32 streamType)
 {
 	char data64[5000];
 	u32 size64;
@@ -1093,7 +1093,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 	GF_ESD *esd;
 	GF_ISOSample *samp;
 	Bool remove_ocr;
-	char *buffer;
+	u8 *buffer;
 	char buf64[5000], sdpLine[2300];
 
 

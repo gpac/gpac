@@ -93,7 +93,7 @@ static GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len)
 static GF_Err svgin_process(GF_Filter *filter)
 {
 	Bool start, end;
-	const char *data;
+	const u8 *data;
 	u32 size;
 	GF_Err e = GF_OK;
 	GF_FilterPacket *pck;
@@ -153,7 +153,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 		data = gf_filter_pck_get_data(pck, &size);
 
 		buf2 = gf_malloc(size);
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		bs = gf_bs_new((u8 *)data, size, GF_BITSTREAM_READ);
 		memcpy(buf2, data, size);
 
 		gf_filter_pid_drop_packet(svgin->in_pid);

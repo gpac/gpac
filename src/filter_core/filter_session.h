@@ -904,7 +904,7 @@ void gf_filter_relink_dst(GF_FilterPidInst *pidinst);
 
 void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool keep_end_connections);
 
-GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char *data, u32 data_size, gf_fsess_packet_destructor destruct, Bool intern_pck);
+GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct, Bool intern_pck);
 
 void gf_props_reset_single(GF_PropertyValue *p);
 

@@ -573,7 +573,7 @@ static GF_Err rtspout_process_rtp(GF_Filter *filter, GF_RTSPOutCtx *ctx, GF_RTSP
 	return GF_OK;
 }
 
-static GF_Err rtspout_interleave_packet(void *cbk1, void *cbk2, Bool is_rtcp, char *pck, u32 pck_size)
+static GF_Err rtspout_interleave_packet(void *cbk1, void *cbk2, Bool is_rtcp, u8 *pck, u32 pck_size)
 {
 	GF_RTSPOutSession *sess = (GF_RTSPOutSession *)cbk1;
 	GF_RTPOutStream *stream = (GF_RTPOutStream *)cbk2;

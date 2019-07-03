@@ -215,7 +215,7 @@ static void vertical_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 he
 static GF_Err vflip_process(GF_Filter *filter)
 {
 	const char *data;
-	char *output;
+	u8 *output;
 	u32 size;
 	u32 i;
 	u32 wiB, height; //wiB: width in Bytes of a plane

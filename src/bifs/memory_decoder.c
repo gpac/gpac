@@ -985,7 +985,7 @@ GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec)
 }
 
 GF_EXPORT
-GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_length, GF_List *com_list)
+GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, u8 *data, u32 data_length, GF_List *com_list)
 {
 	GF_BitStream *bs;
 	GF_Err e;

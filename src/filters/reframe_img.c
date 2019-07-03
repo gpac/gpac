@@ -148,9 +148,9 @@ GF_Err img_process(GF_Filter *filter)
 	GF_ReframeImgCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	GF_Err e;
-	char *data, *output;
+	u8 *data, *output;
 	u32 size, w=0, h=0, pf=0;
-	char *pix;
+	u8 *pix;
 	u32 i, j, irow, in_stride, out_stride;
 	GF_BitStream *bs;
 	BITMAPFILEHEADER fh;
@@ -170,7 +170,7 @@ GF_Err img_process(GF_Filter *filter)
 	if (!ctx->opid || !ctx->codec_id) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		u32 dsi_size;
-		char *dsi=NULL;
+		u8 *dsi=NULL;
 #endif
 		const char *ext, *mime;
 		const GF_PropertyValue *prop;

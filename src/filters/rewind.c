@@ -151,8 +151,8 @@ static GF_Err rewind_process_video(GF_RewindCtx *ctx, GF_FilterPacket *pck)
 
 static GF_Err rewind_process(GF_Filter *filter)
 {
-	char *output;
-	const char *data;
+	u8 *output;
+	const u8 *data;
 	u32 size;
 	GF_FilterPacket *pck, *dstpck;
 	GF_RewindCtx *ctx = gf_filter_get_udta(filter);

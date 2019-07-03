@@ -894,7 +894,7 @@ static const u32 gf_crc_table[256] = {
 };
 
 GF_EXPORT
-u32 gf_crc_32(const char *data, u32 len)
+u32 gf_crc_32(const u8 *data, u32 len)
 {
 	register u32 i;
 	u32 crc = 0xffffffff;

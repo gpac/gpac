@@ -158,7 +158,7 @@ static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	{
 #ifndef GPAC_DISABLE_AV_PARSERS
 		s8 res;
-		char *dsi, *s_base_object_type;
+		u8 *dsi, *s_base_object_type;
 		u32 dsi_len;
 		switch (a_cfg.base_object_type) {
 		case GF_M4A_AAC_MAIN:
@@ -263,7 +263,7 @@ static GF_Err faaddec_process(GF_Filter *filter)
 {
 	GF_FAADCtx *ctx = gf_filter_get_udta(filter);
 	void *buffer;
-	char *output;
+	u8 *output;
 	unsigned short *conv_in, *conv_out;
 	u32 i, j;
 	Bool is_eos = GF_FALSE;

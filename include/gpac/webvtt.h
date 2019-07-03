@@ -78,10 +78,10 @@ typedef struct _webvtt_cue
 void gf_webvtt_cue_del(GF_WebVTTCue * cue);
 
 #ifndef GPAC_DISABLE_VTT
-GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength, u32 *printLength);
+GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const u8 *data, u32 dataLength, u32 *printLength);
 #endif
 
-GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 start);
+GF_List *gf_webvtt_parse_cues_from_data(const u8 *data, u32 dataLength, u64 start);
 
 /*! @} */
 

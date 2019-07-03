@@ -31,7 +31,7 @@
 #include <gpac/bitstream.h>
 
 GF_EXPORT
-u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
+u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 {
 	GF_Err e;
 	u32 res;
@@ -48,7 +48,7 @@ u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 }
 
 GF_EXPORT
-GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_sr)
+GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, Bool *has_sr)
 {
 	GF_RTCPHeader rtcp_hdr;
 	char sdes_buffer[300];
@@ -452,7 +452,7 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch)
 {
 	GF_BitStream *bs;
 	u32 report_size;
-	char *report_buf;
+	u8 *report_buf;
 	GF_Err e = GF_OK;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -491,7 +491,7 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch)
 {
 	u32 Time, report_size;
 	GF_BitStream *bs;
-	char *report_buf;
+	u8 *report_buf;
 	GF_Err e = GF_OK;
 	
 

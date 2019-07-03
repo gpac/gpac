@@ -72,7 +72,7 @@ typedef struct
 	u64 last_dts;
 	u32 dts_inc;
 
-	char *samp_buffer;
+	u8 *samp_buffer;
 	u32 samp_buffer_alloc, samp_buffer_size;
 	char *zlib_buffer;
 	u32 zlib_buffer_alloc, zlib_buffer_size;
@@ -461,7 +461,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	const GF_PropertyValue *p;
 	char *auxiliary_mime_types = NULL;
 	char *ext, szName[1000], szInfo[GF_MAX_PATH], szXmlFrom[1000], szXmlHeaderEnd[1000];
-	char *specInfo;
+	u8 *specInfo;
 	char compressor_name[100];
 	GF_XMLNode *node;
 	u64 media_size, last_dts;
@@ -927,7 +927,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	char *szSubSampleName = ctx->is_dims ? "DIMSSubUnit" : "NHNTSubSample";
 
 	while ((node = (GF_XMLNode *) gf_list_enum(ctx->root->content, &ctx->current_child_idx))) {
-		char *data;
+		u8 *data;
 		GF_FilterPacket *pck;
 		u32 j, dims_flags;
 		GF_FilterSAPType sap_type;

@@ -176,7 +176,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 		case 4:
 			if (st) {
 				GF_FilterPacket *pck;
-				char *pck_data;
+				u8 *pck_data;
 				bs_pos = gf_bs_get_position(bs);
 				pck = gf_filter_pck_new_alloc(st->opid, au_size, &pck_data);
 				memcpy(pck_data, ctx->saf_data+bs_pos, au_size);

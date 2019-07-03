@@ -1302,7 +1302,7 @@ GF_Box *esds_New()
 GF_Err esds_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	char *enc_desc;
+	u8 *enc_desc;
 	u32 descSize = 0;
 	GF_ESDBox *ptr = (GF_ESDBox *)s;
 	//make sure we write with no ESID and no OCRESID
@@ -2812,7 +2812,7 @@ GF_Err iods_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 descSize;
-	char *desc;
+	u8 *desc;
 	GF_ObjectDescriptorBox *ptr = (GF_ObjectDescriptorBox *)s;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;

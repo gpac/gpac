@@ -43,11 +43,11 @@ void sdl_fill_audio(void *udata, Uint8 *stream, int len)
 			ctx->alloc_size = len;
 		}
 		memset(stream, 0, len);
-		written = dr->FillBuffer(dr->audio_renderer, (char *) ctx->audioBuff, (u32) len);
+		written = dr->FillBuffer(dr->audio_renderer, ctx->audioBuff, (u32) len);
 		if (written)
 			SDL_MixAudio(stream, ctx->audioBuff, len, ctx->volume);
 	} else {
-		dr->FillBuffer(dr->audio_renderer, (char *) stream, (u32) len);
+		dr->FillBuffer(dr->audio_renderer, stream, (u32) len);
 	}
 }
 

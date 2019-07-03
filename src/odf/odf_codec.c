@@ -120,7 +120,7 @@ err_exit:
 }
 
 GF_EXPORT
-GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, char **outAU, u32 *au_length)
+GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, u8 **outAU, u32 *au_length)
 {
 	if (!codec || !codec->bs || !outAU || *outAU) return GF_BAD_PARAM;
 	gf_bs_get_content(codec->bs, outAU, au_length);
@@ -136,7 +136,7 @@ GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, char **outAU, u32 *au_length)
 ************************************************************/
 
 GF_EXPORT
-GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, const char *au, u32 au_length)
+GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, const u8 *au, u32 au_length)
 {
 	if (!codec ) return GF_BAD_PARAM;
 	if (!au || !au_length) return GF_OK;
@@ -288,7 +288,7 @@ GF_ESD *gf_odf_desc_esd_new(u32 sl_predefined)
 //use this function to decode a standalone descriptor
 //the desc MUST be formatted with tag and size field!!!
 GF_EXPORT
-GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor **outDesc)
+GF_Err gf_odf_desc_read(u8 *raw_desc, u32 descSize, GF_Descriptor **outDesc)
 {
 	GF_Err e;
 	u32 size;
@@ -330,7 +330,7 @@ GF_Err gf_odf_desc_write_bs(GF_Descriptor *desc, GF_BitStream *bs)
 }
 
 GF_EXPORT
-GF_Err gf_odf_desc_write(GF_Descriptor *desc, char **outEncDesc, u32 *outSize)
+GF_Err gf_odf_desc_write(GF_Descriptor *desc, u8 **outEncDesc, u32 *outSize)
 {
 	GF_Err e;
 	GF_BitStream *bs;
@@ -372,7 +372,7 @@ GF_EXPORT
 GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc)
 {
 	GF_Err e;
-	char *desc;
+	u8 *desc;
 	u32 size, oti=0;
 
 	//patch for esd copy, we now signal codecid (32 bit) in OTI (8 bits)
@@ -485,7 +485,7 @@ GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc)
 *****************************************************************************************/
 
 GF_EXPORT
-GF_Err gf_odf_desc_list_read(char *raw_list, u32 raw_size, GF_List *descList)
+GF_Err gf_odf_desc_list_read(u8 *raw_list, u32 raw_size, GF_List *descList)
 {
 	GF_BitStream *bs;
 	u32 size, desc_size;
@@ -514,7 +514,7 @@ exit:
 
 
 GF_EXPORT
-GF_Err gf_odf_desc_list_write(GF_List *descList, char **outEncList, u32 *outSize)
+GF_Err gf_odf_desc_list_write(GF_List *descList, u8 **outEncList, u32 *outSize)
 {
 	GF_BitStream *bs;
 	GF_Err e;

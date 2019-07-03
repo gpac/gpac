@@ -71,11 +71,11 @@ typedef struct
 	/*!Pixel format of the video framebuffer*/
 	u32 pixel_format;
 	/*!pointer to the beginning of the video memory (top-left corner)*/
-	char *video_buffer;
+	u8 *video_buffer;
 	/*!indicates that the video data reside on systems memory or video card one*/
 	Bool is_hardware_memory;
 	/*!indicates U and V (and optional alpha) buffers in case of planar video with separated component. If not set, all components are in the video_buffer pointer*/
-	char *u_ptr, *v_ptr, *a_ptr;
+	u8 *u_ptr, *v_ptr, *a_ptr;
 	/*! alpha value for this surface*/
 	u8 global_alpha;
 } GF_VideoSurface;
@@ -275,7 +275,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
  *\param swap_uv If GF_TRUE, swaps U and V components.
  *\return error code if any
  */
-GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
+GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  u8 *pY, u8 *pU, u8 *pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
 
 /*! copies YUV NV12 10 bits to YUV destination (only YUV420 8 bits supported)
  *
@@ -289,15 +289,15 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
  *\param swap_uv If GF_TRUE, swaps U and V components.
  *\return error code if any
  */
-GF_Err gf_color_write_nv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pUV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
+GF_Err gf_color_write_nv12_10_to_yuv(GF_VideoSurface *vs_dst,  u8 *pY, u8 *pUV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
 
 /*! @} */
 
 
-GF_Err gf_color_write_yuv422_10_to_yuv422(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
-GF_Err gf_color_write_yuv444_10_to_yuv444(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
-GF_Err gf_color_write_yuv422_10_to_yuv(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
-GF_Err gf_color_write_yuv444_10_to_yuv(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
+GF_Err gf_color_write_yuv422_10_to_yuv422(GF_VideoSurface *vs_dst,  u8 *pY, u8 *pU, u8 *pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
+GF_Err gf_color_write_yuv444_10_to_yuv444(GF_VideoSurface *vs_dst,  u8 *pY, u8 *pU, u8 *pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
+GF_Err gf_color_write_yuv422_10_to_yuv(GF_VideoSurface *vs_dst, u8 *pY, u8 *pU, u8 *pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
+GF_Err gf_color_write_yuv444_10_to_yuv(GF_VideoSurface *vs_dst, u8 *pY, u8 *pU, u8 *pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
 
 
 #ifdef __cplusplus

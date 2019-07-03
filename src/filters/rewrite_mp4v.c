@@ -87,7 +87,7 @@ GF_Err m4vmx_process(GF_Filter *filter)
 {
 	GF_M4VMxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	char *data, *output;
+	u8 *data, *output;
 	u32 pck_size, size, sap_type;
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {

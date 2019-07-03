@@ -259,7 +259,7 @@ static OPJ_BOOL j2kdec_stream_seek(OPJ_OFF_T nb_bytes, void *user_data)
 static GF_Err j2kdec_process(GF_Filter *filter)
 {
 	u32 i, w, wr, h, hr, wh, size, pf;
-	char *data, *buffer;
+	u8 *data, *buffer;
 	opj_dparameters_t parameters;	/* decompression parameters */
 #if OPENJP2
 	s32 res;

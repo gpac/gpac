@@ -139,7 +139,7 @@ GF_Err gf_rtsp_fill_buffer(GF_RTSPSession *sess)
 }
 
 
-GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
+GF_RTSPTransport *gf_rtsp_transport_parse(u8 *buffer)
 {
 	Bool IsFirst;
 	char buf[100], param_name[100], param_val[100];
@@ -220,7 +220,7 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 
 
 
-GF_Err gf_rtsp_parse_header(char *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCommand *com, GF_RTSPResponse *rsp)
+GF_Err gf_rtsp_parse_header(u8 *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCommand *com, GF_RTSPResponse *rsp)
 {
 	char LineBuffer[1024];
 	char HeaderBuf[100], ValBuf[1024], temp[400];

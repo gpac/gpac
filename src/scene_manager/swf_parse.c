@@ -2566,8 +2566,8 @@ SWFReader *gf_swf_reader_new(const char *localPath, const char *inputName)
 }
 
 GF_Err gf_swf_reader_set_user_mode(SWFReader *read, void *user,
-                                   GF_Err (*add_sample)(void *user, const char *data, u32 length, u64 timestamp, Bool isRap),
-                                   GF_Err (*add_header)(void *user, const char *data, u32 length, Bool isHeader))
+                                   GF_Err (*add_sample)(void *user, const u8 *data, u32 length, u64 timestamp, Bool isRap),
+                                   GF_Err (*add_header)(void *user, const u8 *data, u32 length, Bool isHeader))
 {
 	if (!read) return GF_BAD_PARAM;
 	read->user = user;

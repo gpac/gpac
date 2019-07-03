@@ -61,7 +61,7 @@ GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpec
 	return ret;
 }
 
-u32 gf_isom_solve_uuid_box(char *UUID)
+u32 gf_isom_solve_uuid_box(u8 *UUID)
 {
 	u32 i;
 	char strUUID[33], strChar[3];

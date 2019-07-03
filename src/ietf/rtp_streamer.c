@@ -68,7 +68,7 @@ static void rtp_stream_on_packet_done(void *cbk, GF_RTPHeader *header)
 	rtp->payload_len = 0;
 }
 
-static void rtp_stream_on_data(void *cbk, char *data, u32 data_size, Bool is_head)
+static void rtp_stream_on_data(void *cbk, u8 *data, u32 data_size, Bool is_head)
 {
 	GF_RTPStreamer *rtp = (GF_RTPStreamer*)cbk;
 	if (!data ||!data_size) return;
@@ -151,7 +151,7 @@ static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const c
 GF_EXPORT
 GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
         const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
-        u32 flags, char *dsi, u32 dsi_len,
+        u32 flags, u8 *dsi, u32 dsi_len,
         u32 PayloadType, u32 sample_rate, u32 nb_ch,
         Bool is_crypted, u32 IV_length, u32 KI_length,
         u32 MinSize, u32 MaxSize, u32 avgTS, u32 maxDTSDelta, u32 const_dur, u32 bandwidth, u32 max_ptime,
@@ -504,7 +504,7 @@ void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, cha
 
 
 GF_EXPORT
-GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *dsi, u32 dsi_len, char *dsi_enh, u32 dsi_enh_len, char *KMS_URI, u32 width, u32 height, u32 tw, u32 th, s32 tx, s32 ty, s16 tl, Bool for_rtsp, char **out_sdp_buffer)
+GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, u8 *dsi, u32 dsi_len, u8 *dsi_enh, u32 dsi_enh_len, char *KMS_URI, u32 width, u32 height, u32 tw, u32 th, s32 tx, s32 ty, s16 tl, Bool for_rtsp, char **out_sdp_buffer)
 {
 	u32 size;
 	u16 port=0;
@@ -645,7 +645,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 	/*MPEG-4 Audio LATM*/
 	else if (rtp->packetizer->rtp_payt==GF_RTP_PAYT_LATM) {
 		GF_BitStream *bs;
-		char *config_bytes;
+		u8 *config_bytes;
 		u32 config_size;
 
 		/* form config string */
@@ -719,13 +719,13 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 }
 
 GF_EXPORT
-GF_Err gf_rtp_streamer_append_sdp(GF_RTPStreamer *rtp, u16 ESID, char *dsi, u32 dsi_len, char *KMS_URI, char **out_sdp_buffer)
+GF_Err gf_rtp_streamer_append_sdp(GF_RTPStreamer *rtp, u16 ESID, u8 *dsi, u32 dsi_len, char *KMS_URI, char **out_sdp_buffer)
 {
 	return gf_rtp_streamer_append_sdp_extended(rtp, ESID, dsi, dsi_len, NULL, 0, KMS_URI, 0, 0, 0, 0, 0, 0, 0, GF_FALSE, out_sdp_buffer);
 }
 
 GF_EXPORT
-GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, char *data, u32 size, u32 fullsize, u64 cts, u64 dts, Bool is_rap, Bool au_start, Bool au_end, u32 au_sn, u32 sampleDuration, u32 sampleDescIndex)
+GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, u8 *data, u32 size, u32 fullsize, u64 cts, u64 dts, Bool is_rap, Bool au_start, Bool au_end, u32 au_sn, u32 sampleDuration, u32 sampleDescIndex)
 {
 	rtp->packetizer->sl_header.compositionTimeStamp = (u64) (cts*rtp->ts_scale);
 	rtp->packetizer->sl_header.decodingTimeStamp = (u64) (dts*rtp->ts_scale);
@@ -741,13 +741,13 @@ GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, char *data, u32 size, u32 
 }
 
 GF_EXPORT
-GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap)
+GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, u8 *data, u32 size, u64 cts, u64 dts, Bool is_rap)
 {
 	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, GF_TRUE, GF_TRUE, 0, 0, 0);
 }
 
 GF_EXPORT
-GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap, u32 inc_au_sn)
+GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, u8 *data, u32 size, u64 cts, u64 dts, Bool is_rap, u32 inc_au_sn)
 {
 	if (inc_au_sn) rtp->packetizer->sl_header.AU_sequenceNumber += inc_au_sn;
 	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, GF_TRUE, GF_TRUE, rtp->packetizer->sl_header.AU_sequenceNumber, 0, 0);
@@ -789,7 +789,7 @@ u16 gf_rtp_streamer_get_next_rtp_sn(GF_RTPStreamer *streamer)
 }
 
 GF_EXPORT
-GF_Err gf_rtp_streamer_set_interleave_callbacks(GF_RTPStreamer *streamer, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, char *pck, u32 pck_size), void *cbk1, void *cbk2)
+GF_Err gf_rtp_streamer_set_interleave_callbacks(GF_RTPStreamer *streamer, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, u8 *pck, u32 pck_size), void *cbk1, void *cbk2)
 {
 
  	return gf_rtp_set_interleave_callbacks(streamer->channel, RTP_TCPCallback, cbk1, cbk2);

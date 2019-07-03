@@ -178,7 +178,7 @@ GF_Err obumx_process(GF_Filter *filter)
 	u32 frame_sizes[128], max_frames;
 	GF_OBUMxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	char *data, *output;
+	u8 *data, *output;
 	u32 pck_size, size, sap_type, hdr_size, av1b_frame_size=0;
 
 

@@ -54,7 +54,7 @@ GF_Err DumpDescList(GF_List *list, FILE *trace, u32 indent, const char *ListName
 
 /*IPMPX tools*/
 u32 gf_ipmpx_array_size(GF_BitStream *bs, u32 *array_size);
-void gf_ipmpx_write_array(GF_BitStream *bs, char *data, u32 data_len);
+void gf_ipmpx_write_array(GF_BitStream *bs, u8 *data, u32 data_len);
 
 /*QoS qualifiers base functions*/
 GF_Err gf_odf_parse_qos_qual(GF_BitStream *bs, GF_QoS_Default **qos_qual, u32 *qos_size);

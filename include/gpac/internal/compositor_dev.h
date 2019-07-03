@@ -324,7 +324,7 @@ struct __tag_compositor
 	//output pixel format option for passthrough mode, none by default
 	u32 opfmt;
 	//allocated framebuffer and size for passthrough mode
-	char *framebuffer;
+	u8 *framebuffer;
 	u32 framebuffer_size, framebuffer_alloc;
 
 	//passthrough texture object - only assigned by background2D
@@ -334,7 +334,7 @@ struct __tag_compositor
 	//otherwise, the resulting packet needs to be created from the framebuffer
 	GF_FilterPacket *passthrough_pck;
 	//data associated with the passthrough output - can be the same pointer as input packet or a clone
-	char *passthrough_data;
+	u8 *passthrough_data;
 	//timescale of the passthrough pid
 	u32 passthrough_timescale;
 	//pixel format of the passthrough pid at last emitted frame
@@ -644,7 +644,7 @@ struct __tag_compositor
 	GF_Mesh *hybgl_mesh_background;
 
 	Bool force_type_3d;
-	char *screen_buffer, *line_buffer;
+	u8 *screen_buffer, *line_buffer;
 	u32 screen_buffer_alloc_size;
 
 	u32 tvtn, tvtt;
@@ -812,7 +812,7 @@ typedef struct _gf_sc_texture_handler
 	void (*compute_gradient_matrix)(struct _gf_sc_texture_handler *txh, GF_Rect *bounds, GF_Matrix2D *mat, Bool for_3d);
 
 	/*image data for natural media*/
-	char *data;
+	u8 *data;
 	//we need a local copy of width/height/etc since some textures may be defined without a stream object
 	u32 size, width, height, pixelformat, pixel_ar, stride, stride_chroma, nb_planes;
 	Bool is_flipped;
@@ -1157,7 +1157,7 @@ typedef struct _audiointerface
 {
 	/*fetch audio data for a given audio delay (~soundcard drift) - if delay is 0 sync should not be performed
 	(eg intermediate mix) */
-	char *(*FetchFrame) (void *callback, u32 *size, u32 *planar_stride, u32 audio_delay_ms);
+	u8 *(*FetchFrame) (void *callback, u32 *size, u32 *planar_stride, u32 audio_delay_ms);
 	/*release a number of bytes in the indicated frame (ts)*/
 	void (*ReleaseFrame) (void *callback, u32 nb_bytes);
 	/*get media speed*/
@@ -2290,7 +2290,7 @@ struct _mediaobj
 	/*data frame size*/
 	u32 size, framesize;
 	/*pointer to data frame */
-	char *frame;
+	u8 *frame;
 	/* Objects implementing the DOM Event Target interface
 	   used to dispatch HTML5 Media and Media Source Events */
 	GF_List *evt_targets;

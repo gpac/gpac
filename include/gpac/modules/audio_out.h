@@ -120,7 +120,7 @@ typedef struct _audiooutput
 	/*these are assigned by the audio renderer once module is loaded*/
 
 	/*fills the buffer with audio data, returns effective bytes written - the rest is filled with 0*/
-	u32 (*FillBuffer) (void *audio_renderer, char *buffer, u32 buffer_size);
+	u32 (*FillBuffer) (void *audio_renderer, u8 *buffer, u32 buffer_size);
 	void *audio_renderer;
 
 } GF_AudioOutput;

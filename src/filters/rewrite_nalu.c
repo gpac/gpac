@@ -42,7 +42,7 @@ typedef struct
 	Bool is_hevc;
 
 	u32 nal_hdr_size, crc, crc_enh;
-	char *dsi;
+	u8 *dsi;
 	u32 dsi_size;
 
 	GF_BitStream *bs_w, *bs_r;
@@ -257,7 +257,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 {
 	GF_NALUMxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	char *data, *output;
+	u8 *data, *output;
 	u32 pck_size, size, sap, temporal_id, layer_id;
 	u8 avc_hdr;
 	Bool insert_dsi = GF_FALSE;

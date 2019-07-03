@@ -93,8 +93,8 @@ void vcrop_packet_destruct(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 
 static GF_Err vcrop_process(GF_Filter *filter)
 {
-	const char *data;
-	char *output;
+	const u8 *data;
+	u8 *output;
 	u32 size;
 	u32 bps;
 	u32 s_off_x, s_off_y, d_off_x, d_off_y, i, copy_w, copy_h;

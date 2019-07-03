@@ -51,7 +51,7 @@ typedef struct
 } GF_ResampleCtx;
 
 
-static char *resample_fetch_frame(void *callback, u32 *size, u32 *planar_stride, u32 audio_delay_ms)
+static u8 *resample_fetch_frame(void *callback, u32 *size, u32 *planar_stride, u32 audio_delay_ms)
 {
 	u32 sample_offset;
 	GF_ResampleCtx *ctx = (GF_ResampleCtx *) callback;
@@ -217,7 +217,7 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 static GF_Err resample_process(GF_Filter *filter)
 {
-	char *output;
+	u8 *output;
 	u32 osize, written;
 	GF_FilterPacket *dstpck;
 	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);

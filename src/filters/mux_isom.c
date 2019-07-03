@@ -79,7 +79,7 @@ typedef struct
 	GF_AVCConfig *avcc, *svcc;
 	GF_HEVCConfig *hvcc, *lvcc;
 
-	char *inband_hdr;
+	u8 *inband_hdr;
 	u32 inband_hdr_size;
 	u32 is_nalu;
 	Bool is_av1, is_vpx;
@@ -3220,7 +3220,8 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 		if (!ctx->cache) {
 			GF_BitStream *bs;
-			char *output, *msg;
+			u8 *output;
+			char *msg;
 			GF_FilterPacket *pck;
 			u32 len, nb_segs = (u32) ( ctx->media_dur / ctx->dash_dur);
 			//always add an extra segment
@@ -3304,7 +3305,7 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx)
 static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 {
 	GF_FilterPacket *pck;
-	char *output;
+	u8 *output;
 	u32 nb_read, blocksize = ctx->block_size;
 	if (ctx->flush_done + blocksize>ctx->flush_size) {
 		blocksize = (u32) (ctx->flush_size - ctx->flush_done);
@@ -3875,10 +3876,10 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static GF_Err mp4_mux_on_data_patch(void *cbk, char *data, u32 block_size, u64 file_offset)
+static GF_Err mp4_mux_on_data_patch(void *cbk, u8 *data, u32 block_size, u64 file_offset)
 {
 	GF_Filter *filter = (GF_Filter *) cbk;
-	char *output;
+	u8 *output;
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, block_size, &output);
@@ -3890,10 +3891,10 @@ static GF_Err mp4_mux_on_data_patch(void *cbk, char *data, u32 block_size, u64 f
 	return GF_OK;
 }
 
-static GF_Err mp4_mux_on_data(void *cbk, char *data, u32 block_size)
+static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 {
 	GF_Filter *filter = (GF_Filter *) cbk;
-	char *output;
+	u8 *output;
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 
 	ctx->total_bytes_out += block_size;

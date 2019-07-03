@@ -838,7 +838,7 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 	u64 moof_start, pos;
 	u32 size, i, s_count, mdat_size;
 	s32 offset;
-	char *buffer;
+	u8 *buffer;
 	GF_TrackFragmentBox *traf;
 	GF_TrackFragmentRunBox *trun;
 	GF_BitStream *bs, *bs_orig;
@@ -2120,7 +2120,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
                                    u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redundant_coding)
 {
 	u32 count, buffer_size;
-	char *buffer;
+	u8 *buffer;
 	u64 pos;
 	GF_ISOSample *od_sample = NULL;
 	GF_TrunEntry *ent, *prev_ent;
@@ -2272,7 +2272,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 }
 
 GF_EXPORT
-GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, u32 TrackID, u32 IV_size, char *sai_b, u32 sai_b_size, Bool use_subsamples)
+GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, u32 TrackID, u32 IV_size, u8 *sai_b, u32 sai_b_size, Bool use_subsamples)
 {
 	GF_CENCSampleAuxInfo *sai;
 	GF_TrackFragmentBox  *traf = GetTraf(output, TrackID);
@@ -2353,7 +2353,7 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, u32 TrackID, u32 IV_siz
 }
 
 GF_EXPORT
-GF_Err gf_isom_fragment_append_data(GF_ISOFile *movie, u32 TrackID, char *data, u32 data_size, u8 PaddingBits)
+GF_Err gf_isom_fragment_append_data(GF_ISOFile *movie, u32 TrackID, u8 *data, u32 data_size, u8 PaddingBits)
 {
 	u32 count;
 	u8 rap;

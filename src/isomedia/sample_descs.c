@@ -515,7 +515,7 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 
 
 GF_EXPORT
-GF_Err gf_isom_new_mj2k_description(GF_ISOFile *the_file, u32 trackNumber, char *URLname, char *URNname, u32 *outDescriptionIndex, char *dsi, u32 dsi_len)
+GF_Err gf_isom_new_mj2k_description(GF_ISOFile *the_file, u32 trackNumber, char *URLname, char *URNname, u32 *outDescriptionIndex, u8 *dsi, u32 dsi_len)
 {
 	GF_TrackBox *trak;
 	GF_Err e;

@@ -633,7 +633,7 @@ GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs)
 	return s;
 }
 
-GF_TextSample *gf_isom_parse_texte_sample_from_data(char *data, u32 dataLength)
+GF_TextSample *gf_isom_parse_texte_sample_from_data(u8 *data, u32 dataLength)
 {
 	GF_TextSample *s;
 	GF_BitStream *bs;
@@ -819,7 +819,7 @@ GF_Err gf_isom_rewrite_text_sample(GF_ISOSample *samp, u32 sampleDescriptionInde
 }
 
 
-GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 sidx_offset, char **tx3g, u32 *tx3g_size)
+GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 sidx_offset, u8 **tx3g, u32 *tx3g_size)
 {
 	GF_BitStream *bs;
 	GF_TrackBox *trak;

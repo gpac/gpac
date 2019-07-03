@@ -134,14 +134,14 @@ u32 gf_odf_get_tag_by_name(char *descName)
 
 #include <gpac/internal/odf_parse_common.h>
 
-void OD_ParseBinData(char *val, char **out_data, u32 *out_data_size)
+void OD_ParseBinData(u8 *val, u8 **out_data, u32 *out_data_size)
 {
 	u32 i, c;
 	char s[3];
 	u32 len = (u32) strlen(val) / 3;
 	if (*out_data) gf_free(*out_data);
 	*out_data_size = len;
-	*out_data = (char*)gf_malloc(sizeof(char) * len);
+	*out_data = gf_malloc(sizeof(char) * len);
 	s[2] = 0;
 	for (i=0; i<len; i++) {
 		s[0] = val[3*i+1];
@@ -153,7 +153,7 @@ void OD_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 
 GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 {
-	Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size);
+	Bool OD_ParseUIConfig(u8 *val, u8 **out_data, u32 *out_data_size);
 	u32 ret = 0;
 
 	if (!stricmp(val, "auto")) return GF_OK;
@@ -688,7 +688,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	return ret ? GF_OK : GF_BAD_PARAM;
 }
 
-Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
+Bool OD_ParseUIConfig(u8 *val, u8 **out_data, u32 *out_data_size)
 {
 #ifndef GPAC_MINIMAL_ODF
 	GF_BitStream *bs;

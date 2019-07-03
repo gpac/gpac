@@ -576,7 +576,7 @@ GF_Err gf_odf_avc_cfg_write_bs(GF_AVCConfig *cfg, GF_BitStream *bs)
 }
 
 GF_EXPORT
-GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize)
+GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, u8 **outData, u32 *outSize)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_odf_avc_cfg_write_bs(cfg, bs);
@@ -588,7 +588,7 @@ GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize)
 }
 
 GF_EXPORT
-GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size)
+GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 {
 	u32 i, count;
 	GF_AVCConfig *avcc = gf_odf_avc_cfg_new();
@@ -662,7 +662,7 @@ GF_Err gf_odf_del_tx3g(GF_TextSampleDescriptor *sd)
 }
 
 GF_EXPORT
-GF_TextSampleDescriptor *gf_odf_tx3g_read(char *dsi, u32 dsi_size)
+GF_TextSampleDescriptor *gf_odf_tx3g_read(u8 *dsi, u32 dsi_size)
 {
 	u32 i;
 	u32 gpp_read_rgba(GF_BitStream *bs);
@@ -691,7 +691,7 @@ GF_TextSampleDescriptor *gf_odf_tx3g_read(char *dsi, u32 dsi_size)
 	return txtc;
 }
 
-GF_Err gf_odf_tx3g_write(GF_TextSampleDescriptor *a, char **outData, u32 *outSize)
+GF_Err gf_odf_tx3g_write(GF_TextSampleDescriptor *a, u8 **outData, u32 *outSize)
 {
 	u32 j;
 	void gpp_write_rgba(GF_BitStream *bs, u32 col);
@@ -761,7 +761,7 @@ GF_Err gf_odf_del_text_cfg(GF_TextConfig *desc)
 /*we need box parsing*/
 #include <gpac/internal/isomedia_dev.h>
 GF_EXPORT
-GF_Err gf_odf_get_text_config(char *data, u32 data_len, u32 codecid, GF_TextConfig *cfg)
+GF_Err gf_odf_get_text_config(u8 *data, u32 data_len, u32 codecid, GF_TextConfig *cfg)
 {
 	u32 i;
 	Bool has_alt_format;
@@ -969,7 +969,7 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 }
 
 GF_EXPORT
-GF_Err gf_odf_hevc_cfg_write(GF_HEVCConfig *cfg, char **outData, u32 *outSize)
+GF_Err gf_odf_hevc_cfg_write(GF_HEVCConfig *cfg, u8 **outData, u32 *outSize)
 {
 	GF_Err e;
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -1074,7 +1074,7 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 }
 
 GF_EXPORT
-GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_lhvc)
+GF_HEVCConfig *gf_odf_hevc_cfg_read(u8 *dsi, u32 dsi_size, Bool is_lhvc)
 {
 	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
 	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_read_bs(bs, is_lhvc);
@@ -1136,7 +1136,7 @@ GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs)
 }
 
 GF_EXPORT
-GF_Err gf_odf_av1_cfg_write(GF_AV1Config *cfg, char **outData, u32 *outSize) {
+GF_Err gf_odf_av1_cfg_write(GF_AV1Config *cfg, u8 **outData, u32 *outSize) {
 	GF_Err e;
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	*outSize = 0;
@@ -1197,7 +1197,7 @@ GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs, Bool is_v0)
 }
 
 GF_EXPORT
-GF_Err gf_odf_vp_cfg_write(GF_VPConfig *cfg, char **outData, u32 *outSize, Bool is_v0)
+GF_Err gf_odf_vp_cfg_write(GF_VPConfig *cfg, u8 **outData, u32 *outSize, Bool is_v0)
 {
 	GF_Err e;
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -1243,7 +1243,7 @@ GF_VPConfig *gf_odf_vp_cfg_read_bs(GF_BitStream *bs, Bool is_v0)
 }
 
 GF_EXPORT
-GF_VPConfig *gf_odf_vp_cfg_read(char *dsi, u32 dsi_size)
+GF_VPConfig *gf_odf_vp_cfg_read(u8 *dsi, u32 dsi_size)
 {
 	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
 	GF_VPConfig *cfg = gf_odf_vp_cfg_read_bs(bs, GF_FALSE);
@@ -1334,7 +1334,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs(GF_BitStream *bs)
 
 }
 GF_EXPORT
-GF_AV1Config *gf_odf_av1_cfg_read(char *dsi, u32 dsi_size)
+GF_AV1Config *gf_odf_av1_cfg_read(u8 *dsi, u32 dsi_size)
 {
 	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
 	GF_AV1Config *cfg = gf_odf_av1_cfg_read_bs(bs);

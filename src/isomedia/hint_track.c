@@ -431,7 +431,7 @@ GF_Err gf_isom_hint_blank_data(GF_ISOFile *the_file, u32 trackNumber, u8 AtBegin
 //adds a chunk of data (max 14 bytes) in the packet that is directly copied
 //while streaming
 GF_EXPORT
-GF_Err gf_isom_hint_direct_data(GF_ISOFile *the_file, u32 trackNumber, char *data, u32 dataLength, u8 AtBegin)
+GF_Err gf_isom_hint_direct_data(GF_ISOFile *the_file, u32 trackNumber, u8 *data, u32 dataLength, u8 AtBegin)
 {
 	GF_TrackBox *trak;
 	GF_HintSampleEntryBox *entry;
@@ -459,7 +459,7 @@ GF_Err gf_isom_hint_direct_data(GF_ISOFile *the_file, u32 trackNumber, char *dat
 }
 
 GF_EXPORT
-GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 SourceTrackID, u32 SampleNumber, u16 DataLength, u32 offsetInSample, char *extra_data, u8 AtBegin)
+GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 SourceTrackID, u32 SampleNumber, u16 DataLength, u32 offsetInSample, u8 *extra_data, u8 AtBegin)
 {
 	GF_TrackBox *trak;
 	GF_HintSampleEntryBox *entry;

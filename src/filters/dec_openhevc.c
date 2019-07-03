@@ -49,7 +49,7 @@ typedef struct
 	u32 codec_id;
 	Bool sublayer;
 
-	char *inject_hdr;
+	u8 *inject_hdr;
 	u32 inject_hdr_size;
 } GF_HEVCStream;
 
@@ -75,7 +75,7 @@ typedef struct
 	u32 width, stride, height, out_size, luma_bpp, chroma_bpp;
 	GF_Fraction sar;
 	GF_FilterPacket *packed_pck;
-	char *packed_data;
+	u8 *packed_data;
 
 	u32 hevc_nalu_size_length;
 	Bool has_pic;
@@ -119,7 +119,7 @@ typedef struct
 static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid *pid, u32 codecid)
 {
 	GF_HEVCConfig *cfg = NULL;
-	char *data;
+	u8 *data;
 	u32 data_len;
 	GF_BitStream *bs;
 	Bool is_lhvc = GF_TRUE;
@@ -287,7 +287,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	u32 i, dep_id=0, id=0, cfg_crc=0, codecid;
 	Bool has_scalable = GF_FALSE;
 	Bool is_sublayer = GF_FALSE;
-	char *patched_dsi=NULL;
+	u8 *patched_dsi=NULL;
 	u32 patched_dsi_size=0;
 	GF_HEVCStream *stream;
 	const GF_PropertyValue *p, *dsi, *dsi_enh=NULL;
@@ -762,7 +762,7 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 {
 	GF_FilterPacket *pck, *src_pck;
-	char *data;
+	u8 *data;
 	u32 a_w, a_h, a_stride, bit_depth, i, count;
 	u64 cts;
 	OHFrame_cpy openHevcFrame_FL, openHevcFrame_SL;

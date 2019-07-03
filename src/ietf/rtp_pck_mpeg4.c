@@ -202,9 +202,9 @@ u32 gf_rtp_build_au_hdr_write(GP_RTPPacketizer *builder, u32 PayloadSize, u32 RT
 }
 
 
-GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
+GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
 {
-	char *sl_buffer, *payl_buffer;
+	u8 *sl_buffer, *payl_buffer;
 	u32 sl_buffer_size, payl_buffer_size;
 	u32 auh_size_tmp, bytesLeftInPacket, infoSize, pckSize;
 	u64 pos;
@@ -399,7 +399,7 @@ flush_packet:
 }
 
 
-GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_size, u8 IsAUEnd, u32 FullAUSize)
+GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, u8 *nalu, u32 nalu_size, u8 IsAUEnd, u32 FullAUSize)
 {
 	u32 do_flush, bytesLeft, size, nal_type;
 	char shdr[2];
@@ -535,7 +535,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 	return GF_OK;
 }
 
-GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_size, u8 IsAUEnd, u32 FullAUSize)
+GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, u8 *nalu, u32 nalu_size, u8 IsAUEnd, u32 FullAUSize)
 {
 	u32 do_flush, bytesLeft, size;
 
@@ -699,7 +699,7 @@ void latm_flush(GP_RTPPacketizer *builder)
 	builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
 }
 
-GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration)
+GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration)
 {
 	u32 size, latm_hdr_size, i, data_offset;
 	Bool fragmented;

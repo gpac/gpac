@@ -31,7 +31,7 @@
 static const char base_64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 GF_EXPORT
-u32 gf_base64_encode(const char *_in, u32 inSize, char *_out, u32 outSize)
+u32 gf_base64_encode(const u8 *_in, u32 inSize, u8 *_out, u32 outSize)
 {
 	s32 padding;
 	u32 i = 0, j = 0;
@@ -103,7 +103,7 @@ u32 load_block(char *in, u32 size, u32 pos, char *out)
 }
 
 GF_EXPORT
-u32 gf_base64_decode(char *in_buf, u32 inSize, char *out, u32 outSize)
+u32 gf_base64_decode(u8 *in_buf, u32 inSize, u8 *out, u32 outSize)
 {
 	u32 i = 0, j = 0, padding;
 	unsigned char c[4], in[4];
@@ -141,7 +141,7 @@ u32 gf_base64_decode(char *in_buf, u32 inSize, char *out, u32 outSize)
 static const char base_16[] = "0123456789abcdef";
 
 GF_EXPORT
-u32 gf_base16_encode(char *_in, u32 inSize, char *_out, u32 outSize)
+u32 gf_base16_encode(u8 *_in, u32 inSize, u8 *_out, u32 outSize)
 {
 	u32 i = 0;
 	unsigned char *in = (unsigned char *)_in;
@@ -161,7 +161,7 @@ u32 gf_base16_encode(char *_in, u32 inSize, char *_out, u32 outSize)
 #define char16(nb) (((nb) < 97) ? ((nb)-48) : ((nb)-87))
 
 GF_EXPORT
-u32 gf_base16_decode(char *in, u32 inSize, char *out, u32 outSize)
+u32 gf_base16_decode(u8 *in, u32 inSize, u8 *out, u32 outSize)
 {
 	u32 j=0;
 	u32 c[2] = {0,0};
@@ -187,7 +187,7 @@ u32 gf_base16_decode(char *in, u32 inSize, char *out, u32 outSize)
 #define ZLIB_COMPRESS_SAFE	4
 
 GF_EXPORT
-GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *max_size)
+GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 {
 	z_stream stream;
 	int err;
@@ -231,7 +231,7 @@ GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *max_size)
 }
 
 GF_EXPORT
-GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size)
+GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size)
 {
 	z_stream d_stream;
 	GF_Err e = GF_OK;
@@ -286,13 +286,13 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 }
 #else
 GF_EXPORT
-GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size)
+GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size)
 {
 	*out_size = 0;
 	return GF_NOT_SUPPORTED;
 }
 GF_EXPORT
-GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *max_size)
+GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 {
 	*max_size = 0;
 	return GF_NOT_SUPPORTED;
@@ -307,7 +307,7 @@ GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *max_size)
 #define LZMA_COMPRESS_SAFE	2
 
 GF_EXPORT
-GF_Err gf_lz_compress_payload(char **data, u32 data_len, u32 *max_size)
+GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 {
 	u32 block_size, comp_size;
 	lzma_options_lzma opt_lzma2;
@@ -357,7 +357,7 @@ GF_Err gf_lz_compress_payload(char **data, u32 data_len, u32 *max_size)
 }
 
 GF_EXPORT
-GF_Err gf_lz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size)
+GF_Err gf_lz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size)
 {
 	lzma_stream strm = LZMA_STREAM_INIT;
 	lzma_ret ret = lzma_stream_decoder(&strm, UINT64_MAX, 0);
@@ -408,19 +408,19 @@ GF_Err gf_lz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 		}
 	}
 
-	*uncompressed_data = (char *) dst_buffer;
+	*uncompressed_data = dst_buffer;
 	*out_size = done;
 	return GF_OK;
 }
 #else
 GF_EXPORT
-GF_Err gf_lz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size)
+GF_Err gf_lz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size)
 {
 	*out_size = 0;
 	return GF_NOT_SUPPORTED;
 }
 GF_EXPORT
-GF_Err gf_lz_compress_payload(char **data, u32 data_len, u32 *max_size)
+GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 {
 	*max_size = 0;
 	return GF_NOT_SUPPORTED;

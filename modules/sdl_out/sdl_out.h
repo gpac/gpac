@@ -81,7 +81,7 @@ typedef struct
 	SDL_Window *screen;
 
 	SDL_Texture *tx_back_buffer;
-	char *back_buffer_pixels;
+	u8 *back_buffer_pixels;
 
 	SDL_Texture *pool_rgb, *pool_rgba, *pool_yuv;
 
@@ -119,7 +119,7 @@ typedef struct
 {
 	u32 num_buffers, total_duration, delay_ms, total_size, volume, alloc_size;
 	Bool is_init, is_running;
-	Uint8 * audioBuff;
+	u8 * audioBuff;
 } SDLAudCtx;
 
 void SDL_DeleteAudio(void *ifce);

@@ -184,7 +184,7 @@ typedef struct
 	/*error code if any. Valid for all message types.*/
 	GF_Err error;
 	/*!data received or data to send. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE (when no cache is setup) messages*/
-	const char *data;
+	const u8 *data;
 	/*!size of associated data. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE messages*/
 	u32 size;
 	/*protocol header. Only valid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_GET_METHOD*/
@@ -512,7 +512,7 @@ GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_
  *\param download_time_ms indicates the download time of the associated resource, if known, 0 otherwise.
  *\return a cache entry structure
  */
-const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, char *data, u64 size, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms);
+const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, u8 *data, u64 size, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms);
 
 /*
  *Forces HTTP headers for a given cache entry

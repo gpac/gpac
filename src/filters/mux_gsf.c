@@ -60,7 +60,7 @@ typedef struct
 
 	GF_List *streams;
 
-	char *buffer;
+	u8 *buffer;
 	u32 alloc_size;
 	GF_BitStream *bs_w;
 
@@ -204,7 +204,7 @@ static void gsfmx_send_packets(GSFMxCtx *ctx, GSFStream *gst, GF_GSFPacketType p
 	}
 
 	while (bytes_remain) {
-		char *output;
+		u8 *output;
 		GF_FilterPacket *dst_pck;
 		Bool do_encrypt = GF_FALSE;
 		u32 crypt_offset=0;

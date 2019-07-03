@@ -238,7 +238,7 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 	}
 
 	if (st->dsi_bs) {
-		char *data;
+		u8 *data;
 		u32 size;
 		gf_bs_get_content(st->dsi_bs, &data, &size);
 		gf_bs_del(st->dsi_bs);
@@ -673,7 +673,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 			} else if (!st->opid) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGG] Channel %d packet before configure done - discarding\n", st->serial_no));
 			} else {
-				char *output;
+				u8 *output;
 				GF_FilterPacket *dst_pck;
 
 				if (st->info.type==GF_CODECID_THEORA) {

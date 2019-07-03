@@ -1611,12 +1611,12 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 }
 
 GF_EXPORT
-GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, const char *y_or_rgb, u32 stride, const char *u_plane, const char *v_plane, u32 uv_stride, const char *alpha_plane)
+GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, const u8 *y_or_rgb, u32 stride, const u8 *u_plane, const u8 *v_plane, u32 uv_stride, const u8 *alpha_plane)
 {
  	return gf_evg_stencil_set_texture_internal(stencil, width, height, pixelFormat, y_or_rgb, stride, u_plane, v_plane, uv_stride, alpha_plane);
 }
 GF_EXPORT
-GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
+GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, u8 *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
 {
 	return gf_evg_stencil_set_texture_internal(stencil, width, height, pixelFormat, pixels, stride, NULL, NULL, 0, NULL);
 }

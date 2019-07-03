@@ -40,7 +40,7 @@ typedef struct
 typedef struct
 {
 	GF_FilterPacket *pck;
-	char *output;
+	u8 *output;
 	u32 full_block_size, nb_bytes, recv_bytes;
 	Bool corrupted;
 	u16 frame_sn;

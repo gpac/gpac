@@ -47,7 +47,7 @@ typedef struct
 	char *dcd;
 
 	GF_BitStream *bs_w;
-	char *cues_buffer;
+	u8 *cues_buffer;
 	u32 cues_buffer_size;
 
 	GF_WebVTTParser *parser;
@@ -164,7 +164,7 @@ void vttmx_parser_flush(GF_WebVTTMxCtx *ctx)
 {
 	GF_FilterPacket *dst_pck;
 	u32 size;
-	char *output;
+	u8 *output;
 	u64 duration = ctx->duration.num;
 	duration *= 1000;
 	duration /= ctx->duration.den;
@@ -194,7 +194,7 @@ GF_Err vttmx_process(GF_Filter *filter)
 {
 	GF_WebVTTMxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	char *data, *output;
+	u8 *data, *output;
 	u64 start_ts;
 	u32 i, pck_size, size, timescale;
 	GF_List *cues;

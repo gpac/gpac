@@ -387,7 +387,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 static GF_FilterPacket *writegen_write_j2k(GF_GenDumpCtx *ctx, char *data, u32 data_size, GF_FilterPacket *in_pck)
 {
 	u32 size;
-	char *output;
+	u8 *output;
 	GF_FilterPacket *dst_pck;
 	char sig[8];
 	sig[0] = sig[1] = sig[2] = 0;
@@ -461,7 +461,7 @@ typedef struct tagBITMAPINFOHEADER {
 static GF_FilterPacket *writegen_write_bmp(GF_GenDumpCtx *ctx, char *data, u32 data_size)
 {
 	u32 size;
-	char *output;
+	u8 *output;
 	BITMAPFILEHEADER fh;
 	BITMAPINFOHEADER fi;
 	GF_FilterPacket *dst_pck;
@@ -507,7 +507,7 @@ static GF_FilterPacket *writegen_write_bmp(GF_GenDumpCtx *ctx, char *data, u32 d
 static void writegen_write_wav_header(GF_GenDumpCtx *ctx)
 {
 	u32 size;
-	char *output;
+	u8 *output;
 	GF_FilterPacket *dst_pck;
 	const GF_PropertyValue *p;
 	u32 nb_ch, sample_rate, afmt, bps;
@@ -617,7 +617,7 @@ GF_Err writegen_process(GF_Filter *filter)
 	} else if (ctx->is_bmp) {
 		dst_pck = writegen_write_bmp(ctx, data, pck_size);
 	} else if (ctx->is_wav && ctx->first) {
-		char * output;
+		u8 * output;
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, 44, &output);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);

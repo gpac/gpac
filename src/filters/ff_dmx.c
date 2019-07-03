@@ -103,7 +103,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	GF_Err e;
 	u32 i;
 	u64 sample_time;
-	char *data_dst;
+	u8 *data_dst;
 	Bool copy = GF_TRUE;
 	GF_FilterPacket *pck_dst;
 	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *) gf_filter_get_udta(filter);

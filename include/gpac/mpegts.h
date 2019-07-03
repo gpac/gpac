@@ -332,7 +332,7 @@ Bool gf_m2ts_probe_data(const u8 *data, u32 size);
 /*shifts all timing by the given value
 @is_pes: array of GF_M2TS_MAX_STREAMS u8 set to 1 for PES PIDs to be restamped
 */
-GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes);
+GF_Err gf_m2ts_restamp(u8 *buffer, u32 size, s64 ts_shift, u8 *is_pes);
 
 /*PES data framing modes*/
 enum
@@ -459,7 +459,7 @@ typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 
 typedef struct __m2ts_demux_section
 {
-	unsigned char *data;
+	u8 *data;
 	u32 data_size;
 } GF_M2TS_Section;
 
@@ -494,7 +494,7 @@ typedef struct GF_M2TS_SectionFilter
 	/*section reassembler*/
 	s16 cc;
 	/*section buffer (max 4096)*/
-	char *section;
+	u8 *section;
 	/*current section length as indicated in section header*/
 	u16 length;
 	/*number of bytes received from current section*/
@@ -538,7 +538,7 @@ typedef struct tag_m2ts_metadata_pointer_descriptor {
 	u16 program_number;
 	u16 ts_location;
 	u16 ts_id;
-	char *data;
+	u8 *data;
 	u32 data_size;
 } GF_M2TS_MetadataPointerDescriptor;
 
@@ -705,9 +705,9 @@ typedef struct tag_m2ts_metadata_descriptor {
 	u8 service_id_record_length;
 	char *service_id_record;
 	u8 decoder_config_length;
-	char *decoder_config;
+	u8 *decoder_config;
 	u8 decoder_config_id_length;
-	char *decoder_config_id;
+	u8 *decoder_config_id;
 	u8 decoder_config_service_id;
 } GF_M2TS_MetadataDescriptor;
 
@@ -729,7 +729,7 @@ typedef struct tag_m2ts_pes
 
 	/*mpegts lib private - do not touch :)*/
 	/*PES re-assembler*/
-	unsigned char *pck_data;
+	u8 *pck_data;
 	/*amount of bytes allocated for data */
 	u32 pck_alloc_len;
 	/*amount of bytes received in the current PES packet (NOT INCLUDING ANY PENDING BYTES)*/
@@ -740,7 +740,7 @@ typedef struct tag_m2ts_pes
 	u64 PTS, DTS;
 	u32 pes_end_packet_number;
 	/*bytes not consumed from previous PES - shall be less than 9*/
-	unsigned char *prev_data;
+	u8 *prev_data;
 	/*number of bytes not consumed from previous PES - shall be less than 9*/
 	u32 prev_data_len;
 
@@ -757,12 +757,12 @@ typedef struct tag_m2ts_pes
 
 	/*PES reframer - if NULL, pes processing is skiped*/
 	/*returns the number of bytes NOT consummed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
-	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *hdr);
+	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, Bool same_pts, u8 *data, u32 data_len, GF_M2TS_PESHeader *hdr);
 
 	/*used by several reframers to store their parsing state*/
 	u32 frame_state;
 	/*LATM stuff - should be moved out of mpegts*/
-	unsigned char *buf, *reassemble_buf;
+	u8 *buf, *reassemble_buf;
 	u32 buf_len;
 	u32 reassemble_len, reassemble_alloc;
 	u64 prev_PTS;
@@ -771,7 +771,7 @@ typedef struct tag_m2ts_pes
 	GF_M2TS_MetadataDescriptor *metadata_descriptor;
 
 	//pointer to last received temi
-	char *temi_tc_desc;
+	u8 *temi_tc_desc;
 	u32 temi_tc_desc_len, temi_tc_desc_alloc_size;
 
 	//last decoded temi (may be one ahead of time as the last received TEMI)
@@ -904,7 +904,7 @@ typedef struct
 /*MPEG-2 TS packet*/
 typedef struct
 {
-	char *data;
+	u8 *data;
 	u32 data_len;
 	u32 flags;
 	u64 PTS, DTS;
@@ -915,7 +915,7 @@ typedef struct
 /*MPEG-4 SL packet from MPEG-2 TS*/
 typedef struct
 {
-	char *data;
+	u8 *data;
 	u32 data_len;
 	u8 version_number;
 	/*parent stream */
@@ -940,7 +940,7 @@ struct tag_m2ts_demux
 	void *user;
 
 	/*private resync buffer*/
-	char *buffer;
+	u8 *buffer;
 	u32 buffer_size, alloc_size;
 	/*default transport PID filters*/
 	GF_M2TS_SectionFilter *pat, *cat, *nit, *sdt, *eit, *tdt_tot;
@@ -986,13 +986,13 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts);
 void gf_m2ts_reset_parsers_for_program(GF_M2TS_Demuxer *ts, GF_M2TS_Program *prog);
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode);
 void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts);
-GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size);
+GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size);
 u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url);
 void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts);
 
 GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *ts, u32 program_id);
 
-Bool gf_m2ts_crc32_check(char *data, u32 len);
+Bool gf_m2ts_crc32_check(u8 *data, u32 len);
 
 
 typedef struct
@@ -1097,7 +1097,7 @@ typedef struct __data_packet_ifce
 {
 	u16 flags;
 	u8 sap_type;
-	char *data;
+	u8 *data;
 	u32 data_len;
 	/*DTS, CTS/PTS and duration expressed in media timescale*/
 	u64 dts, cts;
@@ -1108,7 +1108,7 @@ typedef struct __data_packet_ifce
 	/*for packets using ISMACrypt/OMA/3GPP based crypto*/
 	u32 isma_bso;
 
-	char *mpeg2_af_descriptors;
+	u8 *mpeg2_af_descriptors;
 	u32 mpeg2_af_descriptors_size;
 } GF_ESIPacket;
 
@@ -1154,7 +1154,7 @@ typedef struct __elementary_stream_ifce
 	/*repeat rate in ms for carrouseling - 0 if no repeat*/
 	u32 repeat_rate;
 
-	char *decoder_config;
+	u8 *decoder_config;
 	u32 decoder_config_size;
 
 	/* MPEG-4 SL Config if any*/
@@ -1215,14 +1215,14 @@ typedef struct
 typedef struct __m2ts_mux_pck
 {
 	struct __m2ts_mux_pck *next;
-	char *data;
+	u8 *data;
 	u32 data_len;
 	u16 flags;
 	u8 sap_type;
 	u64 cts, dts;
 	u32 duration;
 
-	char *mpeg2_af_descriptors;
+	u8 *mpeg2_af_descriptors;
 	u32 mpeg2_af_descriptors_size;
 } GF_M2TS_Packet;
 
@@ -1324,7 +1324,7 @@ typedef struct __m2ts_base_descriptor
 {
 	u8 tag;
 	u8 data_len;
-	char *data;
+	u8 *data;
 } GF_M2TSDescriptor;
 
 struct __m2ts_mux_program {
@@ -1481,7 +1481,7 @@ u32 gf_m2ts_mux_program_get_stream_count(GF_M2TS_Mux_Program *prog);
 u32 gf_m2ts_mux_program_get_pmt_pid(GF_M2TS_Mux_Program *prog);
 u32 gf_m2ts_mux_program_get_pcr_pid(GF_M2TS_Mux_Program *prog);
 
-const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_next);
+const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_next);
 u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer);
 u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer);
 

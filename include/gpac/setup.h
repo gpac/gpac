@@ -414,7 +414,6 @@ char* gf_strdup(const char *str);
 #define LLU_SUF "llu"
 #define LLX_SUF "llx"
 
-
 #ifdef __LP64__ /* Mac OS 64 bits */
 #define PTR_TO_U_CAST (u64)
 #else

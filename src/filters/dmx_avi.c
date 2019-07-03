@@ -399,7 +399,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 		GF_FilterPacket *dst_pck;
 		u32 key;
 		u64 file_offset, cts;
-		char *pck_data;
+		u8 *pck_data;
 		s32 size = AVI_frame_size(ctx->avi, ctx->cur_frame);
 		if (!size) {
 			AVI_read_frame(ctx->avi, NULL, &key);
@@ -443,7 +443,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 		size = AVI_audio_size(ctx->avi, st->aud_frame);
 		if (size>0) {
 			int continuous;
-			char *pck_data;
+			u8 *pck_data;
 			u64 file_offset;
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(st->opid, size, &pck_data);
 

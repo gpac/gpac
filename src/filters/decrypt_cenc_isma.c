@@ -308,7 +308,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 {
 	u32 data_size;
 	const char *in_data;
-	char *out_data;
+	u8 *out_data;
 	u64 isma_BSO = 0;
 	u32 offset=0;
 	GF_FilterPacket *out_pck;
@@ -712,7 +712,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	bin128 KID;
 	u32 i, subsample_count;
 	u32 data_size;
-	char *out_data;
+	u8 *out_data;
 	const char *sai_payload=NULL;
 	u32 saiz=0;
 	u32 IV_size;
@@ -926,8 +926,8 @@ exit:
 static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, GF_FilterPacket *in_pck)
 {
 	u32 data_size;
-	const char *in_data;
-	char *out_data;
+	const u8 *in_data;
+	u8 *out_data;
 	GF_FilterPacket *out_pck;
 	char IV[17];
 	GF_Err e;

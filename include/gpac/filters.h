@@ -618,7 +618,7 @@ typedef enum
 typedef struct
 {
 	/*! data pointer */
-	char *ptr;
+	u8 *ptr;
 	/*! data size */
 	u32 size;
 } GF_PropData;
@@ -2214,7 +2214,7 @@ void gf_filter_pid_remove(GF_FilterPid *PID);
 \param out_pid the output PID to create or update. If no referer PID, a new PID will be created otherwise the PID will be updated
 \return error code if any
 */
-GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid);
+GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, u8 *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid);
 
 /*! Sets a new property on an output PID for built-in property names.
 Previous properties (ones set before last packet dispatch) will still be valid. Property with same type/name will be reassigned
@@ -2847,7 +2847,7 @@ The packet has by default no DTS, no CTS, no duration framing set to full frame 
 \param data set to the writable buffer of the created packet
 \return new packet or NULL if error
 */
-GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *PID, u32 data_size, char **data);
+GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *PID, u32 data_size, u8 **data);
 
 
 /*! Allocates a new packet on the output PID referencing internal data.
@@ -2858,7 +2858,7 @@ The packet has by default no DTS, no CTS, no duration framing set to full frame 
 \param destruct the callback function used to destroy the packet when no longer used - may be NULL
 \return new packet or NULL if error
 */
-GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *PID, const char *data, u32 data_size, gf_fsess_packet_destructor destruct);
+GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *PID, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct);
 
 /*! Allocates a new packet on the output PID referencing data of some input packet.
 The packet has by default no DTS, no CTS, no duration framing set to full frame (start=end=1) and all other flags set to 0 (including SAP type).
@@ -2868,7 +2868,7 @@ The packet has by default no DTS, no CTS, no duration framing set to full frame 
 \param source_packet the source packet this data belongs to (at least from the filter point of view).
 \return new packet or NULL if error
 */
-GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *PID, const char *data, u32 data_size, GF_FilterPacket *source_packet);
+GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *PID, const u8 *data, u32 data_size, GF_FilterPacket *source_packet);
 
 /*! Allocates a new packet on the output PID with associated allocated data.
 The packet has by default no DTS, no CTS, no duration framing set to full frame (start=end=1) and all other flags set to 0 (including SAP type).
@@ -2878,7 +2878,7 @@ The packet has by default no DTS, no CTS, no duration framing set to full frame 
 \param destruct the callback function used to destroy the packet when no longer used - may be NULL
 \return new packet or NULL if error
 */
-GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *PID, u32 data_size, char **data, gf_fsess_packet_destructor destruct);
+GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *PID, u32 data_size, u8 **data, gf_fsess_packet_destructor destruct);
 
 /*! Clones a new packet from a source packet.
 If the source packet uses a frame interface object or has no associated data, returns NULL.
@@ -2890,7 +2890,7 @@ Otherwise, the source data is assigned to the output packet.
 \param data set to the writable buffer of the created packet
 \return new packet or NULL if error
 */
-GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *PID, GF_FilterPacket *pck_source, char **data);
+GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *PID, GF_FilterPacket *pck_source, u8 **data);
 
 
 /*! Marks memory of a shared packet as non-writable. By default \ref gf_filter_pck_new_shared and \ref gf_filter_pck_new_ref allow
@@ -2926,7 +2926,7 @@ GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *PID);
 \param size set to the packet data size
 \return packet data if any, NULL if empty or if the packet uses a frame interface object. see \ref gf_filter_pck_get_frame_interface
 */
-const char *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size);
+const u8 *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size);
 
 /*! Sets a built-in property of a packet
 \param pck the target packet
@@ -3061,7 +3061,7 @@ u32 gf_filter_pck_get_duration(GF_FilterPacket *pck);
 \param new_size full size of allocated block. - shall not be NULL
 \return error code if any
 */
-GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, char **data_start, char **new_range_start, u32 *new_size);
+GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, u8 **data_start, u8 **new_range_start, u32 *new_size);
 
 /*! Truncates packet not yet sent to given size
 \param pck target packet
