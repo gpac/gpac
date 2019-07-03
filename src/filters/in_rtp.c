@@ -431,11 +431,9 @@ static GF_Err rtpin_process(GF_Filter *filter)
 	if (ctx->is_eos) return GF_EOS;
 
 	if (ctx->ipid) {
-		GF_FilterPacket *pck = NULL;
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 
-		if (!ctx->sdp_loaded) pck = gf_filter_pid_get_packet(ctx->ipid);
-
-		if (pck) {
+		if (!ctx->sdp_loaded && pck) {
 			Bool start, end;
 			u32 sdp_len;
 			const char *sdp_data;
