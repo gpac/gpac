@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -70,7 +70,7 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	}
 
 	if (entry->avc_config || entry->svc_config || entry->mvc_config || entry->hevc_config || entry->lhvc_config) {
-		GF_ProtectionSchemeInfoBox *schi = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->other_boxes, GF_ISOM_BOX_TYPE_SINF);
+		GF_ProtectionSchemeInfoBox *schi = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
 		if (!schi || !schi->scheme_type) return GF_TRUE;
 		switch (schi->scheme_type->scheme_type) {
 		case GF_ISOM_CENC_SCHEME:
@@ -511,11 +511,11 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	if ( gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_TBAS) >= 1) {
 		u32 ref_track;
-		u32 idx = gf_list_find(mdia->information->sampleTable->SampleDescription->other_boxes, entry);
+		u32 idx = gf_list_find(mdia->information->sampleTable->SampleDescription->child_boxes, entry);
 		GF_TrackBox *tbas;
 		gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_TBAS, 1, &ref_track);
 		tbas = (GF_TrackBox *)gf_list_get(mdia->mediaTrack->moov->trackList, ref_track-1);
-		entry = gf_list_get(tbas->Media->information->sampleTable->SampleDescription->other_boxes, idx);
+		entry = gf_list_get(tbas->Media->information->sampleTable->SampleDescription->child_boxes, idx);
 	}
 
 
@@ -645,7 +645,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 					GF_TrackBox *a_track = GetTrackbyID(mdia->mediaTrack->moov, scal->trackIDs[i]);
 					GF_MPEGVisualSampleEntryBox *an_entry = NULL;
 					if (a_track && a_track->Media && a_track->Media->information && a_track->Media->information->sampleTable && a_track->Media->information->sampleTable->SampleDescription)
-						an_entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(a_track->Media->information->sampleTable->SampleDescription->other_boxes, 0);
+						an_entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(a_track->Media->information->sampleTable->SampleDescription->child_boxes, 0);
 
 					if (an_entry)
 						nalu_merge_ps(mdia->nalu_ps_bs, rewrite_start_codes, nal_unit_size_field, an_entry, is_hevc, &has_vps);
@@ -1011,7 +1011,7 @@ void merge_all_config(GF_AVCConfig *avc_cfg, GF_HEVCConfig *hevc_cfg, GF_MediaBo
 		GF_TrackBox *a_track = GetTrackbyID(mdia->mediaTrack->moov, scal->trackIDs[i]);
 		GF_MPEGVisualSampleEntryBox *an_entry = NULL;
 		if (a_track && a_track->Media && a_track->Media->information && a_track->Media->information->sampleTable && a_track->Media->information->sampleTable->SampleDescription)
-			an_entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(a_track->Media->information->sampleTable->SampleDescription->other_boxes, 0);
+			an_entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(a_track->Media->information->sampleTable->SampleDescription->child_boxes, 0);
 
 		if (!an_entry) continue;
 
@@ -1056,7 +1056,7 @@ void AVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *md
 		avc->emul_esd->decoderConfig->avgBitrate = btrt->avgBitrate;
 		avc->emul_esd->decoderConfig->maxBitrate = btrt->maxBitrate;
 	}
-	GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_find_child(avc->other_boxes, GF_ISOM_BOX_TYPE_M4DS);
+	GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_find_child(avc->child_boxes, GF_ISOM_BOX_TYPE_M4DS);
 	if (mdesc) {
 		u32 i=0;
 		GF_Descriptor *desc,*clone;
@@ -1121,7 +1121,7 @@ void HEVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *hevc, GF_MediaBox *
 		hevc->emul_esd->decoderConfig->avgBitrate = btrt->avgBitrate;
 		hevc->emul_esd->decoderConfig->maxBitrate = btrt->maxBitrate;
 	}
-	GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_find_child(hevc->other_boxes, GF_ISOM_BOX_TYPE_M4DS);
+	GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_find_child(hevc->child_boxes, GF_ISOM_BOX_TYPE_M4DS);
 	if (mdesc) {
 		u32 i=0;
 		GF_Descriptor *desc,*clone;
@@ -1163,9 +1163,9 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 {
 	GF_BitRateBox *btrt = gf_isom_sample_entry_get_bitrate((GF_SampleEntryBox *)avc, GF_TRUE);
 
-	GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_find_child(avc->other_boxes, GF_ISOM_BOX_TYPE_M4DS);
+	GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_find_child(avc->child_boxes, GF_ISOM_BOX_TYPE_M4DS);
 	if (mdesc) {
-		gf_isom_box_del_parent(&avc->other_boxes, (GF_Box *) mdesc);
+		gf_isom_box_del_parent(&avc->child_boxes, (GF_Box *) mdesc);
 	}
 	btrt->avgBitrate = esd->decoderConfig->avgBitrate;
 	btrt->maxBitrate = esd->decoderConfig->maxBitrate;
@@ -1177,7 +1177,7 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 	        || gf_list_count(esd->extensionDescriptors)
 	        || esd->ipiPtr || esd->qos || esd->RegDescriptor) {
 
-		GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_new_parent(&avc->other_boxes, GF_ISOM_BOX_TYPE_M4DS);
+		GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_new_parent(&avc->child_boxes, GF_ISOM_BOX_TYPE_M4DS);
 
 		if (esd->RegDescriptor) {
 			gf_list_add(mdesc->descriptors, esd->RegDescriptor);
@@ -1215,14 +1215,14 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 
 
 	if (!avc->lhvc_config && (esd->decoderConfig->objectTypeIndication==GF_CODECID_HEVC)) {
-		if (!avc->hevc_config) avc->hevc_config = (GF_HEVCConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
+		if (!avc->hevc_config) avc->hevc_config = (GF_HEVCConfigurationBox *)gf_isom_box_new_parent(&avc->child_boxes, GF_ISOM_BOX_TYPE_HVCC);
 		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 			if (avc->hevc_config->config) gf_odf_hevc_cfg_del(avc->hevc_config->config);
 			avc->hevc_config->config = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
 		}
 	}
 	else if (!avc->svc_config && !avc->mvc_config && (esd->decoderConfig->objectTypeIndication==GF_CODECID_AVC)) {
-		if (!avc->avc_config) avc->avc_config = (GF_AVCConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
+		if (!avc->avc_config) avc->avc_config = (GF_AVCConfigurationBox *)gf_isom_box_new_parent(&avc->child_boxes, GF_ISOM_BOX_TYPE_AVCC);
 		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 			if (avc->avc_config->config) gf_odf_avc_cfg_del(avc->avc_config->config);
 			avc->avc_config->config = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
@@ -1354,6 +1354,7 @@ GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfi
 {
 	GF_TrackBox *trak;
 	GF_Err e;
+	GF_SampleDescriptionBox *stsd;
 	u32 dataRefIndex;
 	GF_MPEGVisualSampleEntryBox *entry;
 
@@ -1373,14 +1374,16 @@ GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfi
 	if (!the_file->keep_utc && !gf_sys_is_test_mode() )
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+
 	//create a new entry
-	entry = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AVC1);
+	entry = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new_parent(&stsd->child_boxes, GF_ISOM_BOX_TYPE_AVC1);
 	if (!entry) return GF_OUT_OF_MEM;
-	entry->avc_config = (GF_AVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
+	*outDescriptionIndex = gf_list_count(stsd->child_boxes);
+
+	entry->avc_config = (GF_AVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_AVCC);
 	entry->avc_config->config = AVC_DuplicateConfig(cfg);
 	entry->dataReferenceIndex = dataRefIndex;
-	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
-	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	AVC_RewriteESDescriptor(entry);
 	return e;
 }
@@ -1396,7 +1399,7 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 	if (e) return e;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return GF_BAD_PARAM;
-	entry = (GF_MPEGVisualSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	entry = (GF_MPEGVisualSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex-1);
 	if (!entry) return GF_BAD_PARAM;
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_AVC1:
@@ -1414,7 +1417,7 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 	/*AVCC replacement*/
 	case 0:
 		if (!cfg) return GF_BAD_PARAM;
-		if (!entry->avc_config) entry->avc_config = (GF_AVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
+		if (!entry->avc_config) entry->avc_config = (GF_AVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_AVCC);
 		if (entry->avc_config->config) gf_odf_avc_cfg_del(entry->avc_config->config);
 		entry->avc_config->config = AVC_DuplicateConfig(cfg);
 		entry->type = GF_ISOM_BOX_TYPE_AVC1;
@@ -1422,7 +1425,7 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 	/*SVCC replacement*/
 	case 1:
 		if (!cfg) return GF_BAD_PARAM;
-		if (!entry->svc_config) entry->svc_config = (GF_AVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_SVCC);
+		if (!entry->svc_config) entry->svc_config = (GF_AVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_SVCC);
 		if (entry->svc_config->config) gf_odf_avc_cfg_del(entry->svc_config->config);
 		entry->svc_config->config = AVC_DuplicateConfig(cfg);
 		entry->type = GF_ISOM_BOX_TYPE_AVC1;
@@ -1431,10 +1434,10 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 	case 2:
 		if (!cfg) return GF_BAD_PARAM;
 		if (entry->avc_config) {
-			gf_isom_box_del((GF_Box*)entry->avc_config);
+			gf_isom_box_del_parent(&entry->child_boxes, (GF_Box*)entry->avc_config);
 			entry->avc_config = NULL;
 		}
-		if (!entry->svc_config) entry->svc_config = (GF_AVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_SVCC);
+		if (!entry->svc_config) entry->svc_config = (GF_AVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_SVCC);
 		if (entry->svc_config->config) gf_odf_avc_cfg_del(entry->svc_config->config);
 		entry->svc_config->config = AVC_DuplicateConfig(cfg);
 		entry->type = GF_ISOM_BOX_TYPE_SVC1;
@@ -1482,7 +1485,7 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 	/*MVCC replacement*/
 	case 4:
 		if (!cfg) return GF_BAD_PARAM;
-		if (!entry->mvc_config) entry->mvc_config = (GF_AVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_MVCC);
+		if (!entry->mvc_config) entry->mvc_config = (GF_AVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_MVCC);
 		if (entry->mvc_config->config) gf_odf_avc_cfg_del(entry->mvc_config->config);
 		entry->mvc_config->config = AVC_DuplicateConfig(cfg);
 		entry->type = GF_ISOM_BOX_TYPE_AVC1;
@@ -1491,10 +1494,10 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 	case 5:
 		if (!cfg) return GF_BAD_PARAM;
 		if (entry->avc_config) {
-			gf_isom_box_del((GF_Box*)entry->avc_config);
+			gf_isom_box_del_parent(&entry->child_boxes, (GF_Box*)entry->avc_config);
 			entry->avc_config = NULL;
 		}
-		if (!entry->mvc_config) entry->mvc_config = (GF_AVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_MVCC);
+		if (!entry->mvc_config) entry->mvc_config = (GF_AVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_MVCC);
 		if (entry->mvc_config->config) gf_odf_avc_cfg_del(entry->mvc_config->config);
 		entry->mvc_config->config = AVC_DuplicateConfig(cfg);
 		entry->type = GF_ISOM_BOX_TYPE_MVC1;
@@ -1537,7 +1540,7 @@ static GF_Err gf_isom_svc_mvc_config_del(GF_ISOFile *the_file, u32 trackNumber, 
 	if (e) return e;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return GF_BAD_PARAM;
-	entry = (GF_MPEGVisualSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	entry = (GF_MPEGVisualSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex-1);
 	if (!entry) return GF_BAD_PARAM;
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_AVC1:
@@ -1552,11 +1555,11 @@ static GF_Err gf_isom_svc_mvc_config_del(GF_ISOFile *the_file, u32 trackNumber, 
 	}
 
 	if (is_mvc && entry->mvc_config) {
-		gf_isom_box_del((GF_Box*)entry->mvc_config);
+		gf_isom_box_del_parent(&entry->child_boxes, (GF_Box*)entry->mvc_config);
 		entry->mvc_config = NULL;
 	}
 	else if (!is_mvc && entry->svc_config) {
-		gf_isom_box_del((GF_Box*)entry->svc_config);
+		gf_isom_box_del_parent(&entry->child_boxes, (GF_Box*)entry->svc_config);
 		entry->svc_config = NULL;
 	}
 	AVC_RewriteESDescriptor(entry);
@@ -1585,7 +1588,7 @@ GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber)
 	if (e) return e;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
-	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, 0);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, 0);
 	if (!entry) return GF_OK;
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_AVC1:
@@ -1602,7 +1605,7 @@ GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber)
 		return GF_OK;
 	}
 
-	if (!entry->ipod_ext) entry->ipod_ext = (GF_UnknownUUIDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UUID);
+	if (!entry->ipod_ext) entry->ipod_ext = (GF_UnknownUUIDBox *) gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_UUID);
 	memcpy(entry->ipod_ext->uuid, GF_ISOM_IPOD_EXT, sizeof(u8)*16);
 	entry->ipod_ext->dataSize = 0;
 	return GF_OK;
@@ -1613,6 +1616,7 @@ static GF_Err gf_isom_svc_mvc_config_new(GF_ISOFile *the_file, u32 trackNumber, 
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 dataRefIndex;
+	GF_SampleDescriptionBox *stsd;
 	GF_MPEGVisualSampleEntryBox *entry;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
@@ -1631,21 +1635,21 @@ static GF_Err gf_isom_svc_mvc_config_new(GF_ISOFile *the_file, u32 trackNumber, 
 	if (!the_file->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
+	stsd = trak->Media->information->sampleTable->SampleDescription;
 	//create a new entry
 	if (is_mvc) {
-		entry = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MVC1);
+		entry = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new_parent(&stsd->child_boxes, GF_ISOM_BOX_TYPE_MVC1);
 		if (!entry) return GF_OUT_OF_MEM;
-		entry->mvc_config = (GF_AVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_MVCC);
+		entry->mvc_config = (GF_AVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_MVCC);
 		entry->mvc_config->config = AVC_DuplicateConfig(cfg);
 	} else {
-		entry = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SVC1);
+		entry = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new_parent(&stsd->child_boxes,GF_ISOM_BOX_TYPE_SVC1);
 		if (!entry) return GF_OUT_OF_MEM;
-		entry->svc_config = (GF_AVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_SVCC);
+		entry->svc_config = (GF_AVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes,GF_ISOM_BOX_TYPE_SVCC);
 		entry->svc_config->config = AVC_DuplicateConfig(cfg);
 	}
 	entry->dataReferenceIndex = dataRefIndex;
-	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
-	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+	*outDescriptionIndex = gf_list_count(stsd->child_boxes);
 	AVC_RewriteESDescriptor(entry);
 	return e;
 }
@@ -1669,6 +1673,7 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 dataRefIndex;
+	GF_SampleDescriptionBox *stsd;
 	GF_MPEGVisualSampleEntryBox *entry;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
@@ -1687,14 +1692,14 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 	if (!the_file->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
+	stsd = trak->Media->information->sampleTable->SampleDescription;
 	//create a new entry
-	entry = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HVC1);
+	entry = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new_parent(&stsd->child_boxes, GF_ISOM_BOX_TYPE_HVC1);
 	if (!entry) return GF_OUT_OF_MEM;
-	entry->hevc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
+	entry->hevc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_HVCC);
 	entry->hevc_config->config = HEVC_DuplicateConfig(cfg);
 	entry->dataReferenceIndex = dataRefIndex;
-	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
-	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+	*outDescriptionIndex = gf_list_count(stsd->child_boxes);
 	HEVC_RewriteESDescriptor(entry);
 	return e;
 }
@@ -1705,6 +1710,7 @@ GF_Err gf_isom_vp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_VPConfig 
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 dataRefIndex;
+	GF_SampleDescriptionBox *stsd;
 	GF_MPEGVisualSampleEntryBox *entry;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
@@ -1723,17 +1729,17 @@ GF_Err gf_isom_vp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_VPConfig 
 	if (!the_file->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
+	stsd = trak->Media->information->sampleTable->SampleDescription;
 	//create a new entry
-	entry = (GF_MPEGVisualSampleEntryBox *)gf_isom_box_new(vpx_type);
+	entry = (GF_MPEGVisualSampleEntryBox *)gf_isom_box_new_parent(&stsd->child_boxes, vpx_type);
 	if (!entry) return GF_OUT_OF_MEM;
 	
-	entry->vp_config = (GF_VPConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_VPCC);
+	entry->vp_config = (GF_VPConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_VPCC);
 	if (!entry->vp_config) return GF_OUT_OF_MEM;
 	entry->vp_config->config = VP_DuplicateConfig(cfg);
 	strncpy(entry->compressor_name, "\012VPC Coding", sizeof(entry->compressor_name)-1);
 	entry->dataReferenceIndex = dataRefIndex;
-	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
-	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+	*outDescriptionIndex = gf_list_count(stsd->child_boxes);
 	return e;
 }
 
@@ -1744,6 +1750,7 @@ GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Confi
 	GF_Err e;
 	u32 dataRefIndex;
 	GF_MPEGVisualSampleEntryBox *entry;
+	GF_SampleDescriptionBox *stsd;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -1761,15 +1768,15 @@ GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Confi
 	if (!the_file->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
+	stsd = trak->Media->information->sampleTable->SampleDescription;
 	//create a new entry
-	entry = (GF_MPEGVisualSampleEntryBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AV01);
+	entry = (GF_MPEGVisualSampleEntryBox *)gf_isom_box_new_parent(&stsd->child_boxes, GF_ISOM_BOX_TYPE_AV01);
 	if (!entry) return GF_OUT_OF_MEM;
-	entry->av1_config = (GF_AV1ConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_AV1C);
+	entry->av1_config = (GF_AV1ConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_AV1C);
 	if (!entry->av1_config) return GF_OUT_OF_MEM;
 	entry->av1_config->config = AV1_DuplicateConfig(cfg);
 	entry->dataReferenceIndex = dataRefIndex;
-	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
-	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+	*outDescriptionIndex = gf_list_count(stsd->child_boxes);
 	return e;
 }
 
@@ -1830,12 +1837,14 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 	GF_TrackBox *trak;
 	GF_Err e;
 	GF_MPEGVisualSampleEntryBox *entry;
+	GF_SampleDescriptionBox *stsd;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return GF_BAD_PARAM;
-	entry = (GF_MPEGVisualSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	entry = (GF_MPEGVisualSampleEntryBox *)gf_list_get(stsd->child_boxes, DescriptionIndex-1);
 	if (!entry) return GF_BAD_PARAM;
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_HVC1:
@@ -1857,13 +1866,13 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 		else if (entry->type==GF_ISOM_BOX_TYPE_HEV1)
 			entry->type = GF_ISOM_BOX_TYPE_HEV2;
 	} else if (operand_type == GF_ISOM_HVCC_SET_TILE) {
-		if (!entry->hevc_config) entry->hevc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
+		if (!entry->hevc_config) entry->hevc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_HVCC);
 		if (entry->hevc_config->config) gf_odf_hevc_cfg_del(entry->hevc_config->config);
 		entry->hevc_config->config = NULL;
 		entry->type = GF_ISOM_BOX_TYPE_HVT1;
 	} else if (operand_type < GF_ISOM_HVCC_SET_LHVC) {
 		if ((operand_type != GF_ISOM_HVCC_SET_INBAND) && !entry->hevc_config)
-			entry->hevc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
+			entry->hevc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_HVCC);
 
 		if (cfg) {
 			if (entry->hevc_config->config) gf_odf_hevc_cfg_del(entry->hevc_config->config);
@@ -1900,7 +1909,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 			if (!entry->hevc_config) return GF_BAD_PARAM;
 			if (!cfg) {
 				if (entry->lhvc_config) {
-					gf_isom_box_del((GF_Box*)entry->lhvc_config);
+					gf_isom_box_del_parent(&entry->child_boxes, (GF_Box*)entry->lhvc_config);
 					entry->lhvc_config = NULL;
 				}
 				if (entry->type==GF_ISOM_BOX_TYPE_LHE1) entry->type = (operand_type==GF_ISOM_HVCC_SET_LHVC_WITH_BASE) ? GF_ISOM_BOX_TYPE_HEV2 : GF_ISOM_BOX_TYPE_HEV1;
@@ -1908,7 +1917,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 				else entry->type =  (operand_type==GF_ISOM_HVCC_SET_LHVC_WITH_BASE) ? GF_ISOM_BOX_TYPE_HVC2 : GF_ISOM_BOX_TYPE_HVC1;
 			} else {
 				if (operand_type != GF_ISOM_HVCC_SET_HEVC_TILE_BASE) {
-					if (!entry->lhvc_config) entry->lhvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_LHVC);
+					if (!entry->lhvc_config) entry->lhvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_LHVC);
 					if (entry->lhvc_config->config) gf_odf_hevc_cfg_del(entry->lhvc_config->config);
 					entry->lhvc_config->config = HEVC_DuplicateConfig(cfg);
 				}
@@ -1925,12 +1934,12 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 		/*LHEVC track without base*/
 		else if (operand_type==GF_ISOM_HVCC_SET_LHVC) {
 			if (entry->hevc_config) {
-				gf_isom_box_del((GF_Box*)entry->hevc_config);
+				gf_isom_box_del_parent(&entry->child_boxes, (GF_Box*)entry->hevc_config);
 				entry->hevc_config=NULL;
 			}
 			if (!cfg) return GF_BAD_PARAM;
 
-			if (!entry->lhvc_config) entry->lhvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_LHVC);
+			if (!entry->lhvc_config) entry->lhvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_LHVC);
 			if (entry->lhvc_config->config) gf_odf_hevc_cfg_del(entry->lhvc_config->config);
 			entry->lhvc_config->config = HEVC_DuplicateConfig(cfg);
 
@@ -1995,27 +2004,26 @@ GF_Err gf_isom_lhvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Des
 GF_EXPORT
 GF_Box *gf_isom_clone_config_box(GF_Box *box)
 {
-	GF_Box *clone;
-	switch (box->type)
-	{
-	case GF_ISOM_BOX_TYPE_AVCC:
-	case GF_ISOM_BOX_TYPE_SVCC:
-	case GF_ISOM_BOX_TYPE_MVCC:
-		clone = gf_isom_box_new(box->type);
-		((GF_AVCConfigurationBox *)clone)->config = AVC_DuplicateConfig(((GF_AVCConfigurationBox *)box)->config);
-		break;
-	case GF_ISOM_BOX_TYPE_HVCC:
-		clone = gf_isom_box_new(box->type);
-		((GF_HEVCConfigurationBox *)clone)->config = HEVC_DuplicateConfig(((GF_HEVCConfigurationBox *)box)->config);
-		break;
-	case GF_ISOM_BOX_TYPE_AV1C:
-		clone = gf_isom_box_new(box->type);
-		((GF_AV1ConfigurationBox *)clone)->config = AV1_DuplicateConfig(((GF_AV1ConfigurationBox *)box)->config);
-		break;
-	default:
+	u8 *data=NULL;
+	u32 size=0;
+	GF_Err e;
+	GF_Box *clone=NULL;
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	e = gf_isom_box_size(box);
+	e = gf_isom_box_write(box, bs);
+	gf_bs_get_content(bs, &data, &size);
+	gf_bs_del(bs);
+	if (!e) {
+		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		e = gf_isom_box_parse(&clone, bs);
+		gf_bs_del(bs);
+	}
+	if (data)
+		gf_free(data);
+	if (e) {
+		if (clone)
+			gf_isom_box_del(clone);
 		clone = NULL;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Cloning of config not supported for type %s\n", gf_4cc_to_str(box->type)));
-		break;
 	}
 	return clone;
 }
@@ -2030,7 +2038,7 @@ GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	if (gf_isom_get_avc_svc_type(the_file, trackNumber, DescriptionIndex)==GF_ISOM_AVCTYPE_NONE)
 		return NULL;
 
-	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex-1);
 	if (!entry) return NULL;
 
 	if (!entry->avc_config) return NULL;
@@ -2053,7 +2061,7 @@ GF_HEVCConfig *gf_isom_hevc_config_get(GF_ISOFile *the_file, u32 trackNumber, u3
 	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
 	if (gf_isom_get_hevc_lhvc_type(the_file, trackNumber, DescriptionIndex)==GF_ISOM_HEVCTYPE_NONE)
 		return NULL;
-	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex-1);
 	if (!entry) return NULL;
 	if (!entry->hevc_config) return NULL;
 	return HEVC_DuplicateConfig(entry->hevc_config->config);
@@ -2068,7 +2076,7 @@ GF_AVCConfig *gf_isom_svc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
 	if (gf_isom_get_avc_svc_type(the_file, trackNumber, DescriptionIndex)==GF_ISOM_AVCTYPE_NONE)
 		return NULL;
-	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex-1);
 	if (!entry) return NULL;
 	if (!entry->svc_config) return NULL;
 	return AVC_DuplicateConfig(entry->svc_config->config);
@@ -2084,7 +2092,7 @@ GF_AVCConfig *gf_isom_mvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
 	if (gf_isom_get_avc_svc_type(the_file, trackNumber, DescriptionIndex)==GF_ISOM_AVCTYPE_NONE)
 		return NULL;
-	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex-1);
 	if (!entry) return NULL;
 	if (!entry->mvc_config) return NULL;
 	return AVC_DuplicateConfig(entry->mvc_config->config);
@@ -2104,7 +2112,7 @@ GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	}
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
-	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex - 1);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex - 1);
 	if (!entry || !entry->av1_config) return NULL;
 	return AV1_DuplicateConfig(entry->av1_config->config);
 }
@@ -2116,7 +2124,7 @@ GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 De
 	GF_MPEGVisualSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
-	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex - 1);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex - 1);
 	if (!entry || !entry->vp_config) return NULL;
 	return VP_DuplicateConfig(entry->vp_config->config);
 }
@@ -2132,13 +2140,13 @@ u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descript
 	if (!gf_isom_is_video_subtype(trak->Media->handler->handlerType))
 		return GF_ISOM_AVCTYPE_NONE;
 
-	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex-1);
 	if (!entry) return GF_ISOM_AVCTYPE_NONE;
 
 	type = entry->type;
 
 	if (type == GF_ISOM_BOX_TYPE_ENCV) {
-		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->other_boxes, GF_ISOM_BOX_TYPE_SINF);
+		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
 		if (sinf && sinf->original_format) type = sinf->original_format->data_format;
 	}
 	else if (type == GF_ISOM_BOX_TYPE_RESV) {
@@ -2174,12 +2182,12 @@ u32 gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descri
 	if (!trak || !trak->Media || !DescriptionIndex) return GF_ISOM_HEVCTYPE_NONE;
 	if (!gf_isom_is_video_subtype(trak->Media->handler->handlerType))
 		return GF_ISOM_HEVCTYPE_NONE;
-	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex-1);
 	if (!entry) return GF_ISOM_AVCTYPE_NONE;
 	type = entry->type;
 
 	if (type == GF_ISOM_BOX_TYPE_ENCV) {
-		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->other_boxes, GF_ISOM_BOX_TYPE_SINF);
+		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
 		if (sinf && sinf->original_format) type = sinf->original_format->data_format;
 	}
 	else if (type == GF_ISOM_BOX_TYPE_RESV) {
@@ -2215,7 +2223,7 @@ GF_HEVCConfig *gf_isom_lhvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u3
 	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
 	if (gf_isom_get_hevc_lhvc_type(the_file, trackNumber, DescriptionIndex)==GF_ISOM_HEVCTYPE_NONE)
 		return NULL;
-	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex-1);
 	if (!entry) return NULL;
 	if (!entry->lhvc_config) return NULL;
 	lhvc = HEVC_DuplicateConfig(entry->lhvc_config->config);
@@ -2236,12 +2244,12 @@ GF_HEVCConfig *gf_isom_lhvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u3
 }
 
 
-void btrt_del(GF_Box *s)
+void btrt_box_del(GF_Box *s)
 {
 	GF_BitRateBox *ptr = (GF_BitRateBox *)s;
 	if (ptr) gf_free(ptr);
 }
-GF_Err btrt_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err btrt_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_BitRateBox *ptr = (GF_BitRateBox *)s;
 	ptr->bufferSizeDB = gf_bs_read_u32(bs);
@@ -2249,7 +2257,7 @@ GF_Err btrt_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->avgBitrate = gf_bs_read_u32(bs);
 	return GF_OK;
 }
-GF_Box *btrt_New()
+GF_Box *btrt_box_new()
 {
 	GF_BitRateBox *tmp = (GF_BitRateBox *) gf_malloc(sizeof(GF_BitRateBox));
 	if (tmp == NULL) return NULL;
@@ -2259,7 +2267,7 @@ GF_Box *btrt_New()
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_Err btrt_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err btrt_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_BitRateBox *ptr = (GF_BitRateBox *) s;
@@ -2271,7 +2279,7 @@ GF_Err btrt_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->avgBitrate);
 	return GF_OK;
 }
-GF_Err btrt_Size(GF_Box *s)
+GF_Err btrt_box_size(GF_Box *s)
 {
 	GF_BitRateBox *ptr = (GF_BitRateBox *)s;
 	ptr->size += 12;
@@ -2281,14 +2289,14 @@ GF_Err btrt_Size(GF_Box *s)
 
 
 
-void m4ds_del(GF_Box *s)
+void m4ds_box_del(GF_Box *s)
 {
 	GF_MPEG4ExtensionDescriptorsBox *ptr = (GF_MPEG4ExtensionDescriptorsBox *)s;
 	gf_odf_desc_list_del(ptr->descriptors);
 	gf_list_del(ptr->descriptors);
 	gf_free(ptr);
 }
-GF_Err m4ds_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err m4ds_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	char *enc_od;
@@ -2301,7 +2309,7 @@ GF_Err m4ds_Read(GF_Box *s, GF_BitStream *bs)
 	gf_free(enc_od);
 	return e;
 }
-GF_Box *m4ds_New()
+GF_Box *m4ds_box_new()
 {
 	GF_MPEG4ExtensionDescriptorsBox *tmp = (GF_MPEG4ExtensionDescriptorsBox *) gf_malloc(sizeof(GF_MPEG4ExtensionDescriptorsBox));
 	if (tmp == NULL) return NULL;
@@ -2312,7 +2320,7 @@ GF_Box *m4ds_New()
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_Err m4ds_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err m4ds_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u8 *enc_ods;
@@ -2331,7 +2339,7 @@ GF_Err m4ds_Write(GF_Box *s, GF_BitStream *bs)
 	}
 	return GF_OK;
 }
-GF_Err m4ds_Size(GF_Box *s)
+GF_Err m4ds_box_size(GF_Box *s)
 {
 	GF_Err e;
 	u32 descSize = 0;
@@ -2344,7 +2352,7 @@ GF_Err m4ds_Size(GF_Box *s)
 
 
 
-void avcc_del(GF_Box *s)
+void avcc_box_del(GF_Box *s)
 {
 	GF_AVCConfigurationBox *ptr = (GF_AVCConfigurationBox *)s;
 	if (ptr->config) gf_odf_avc_cfg_del(ptr->config);
@@ -2352,7 +2360,7 @@ void avcc_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i, count;
 	GF_AVCConfigurationBox *ptr = (GF_AVCConfigurationBox *)s;
@@ -2456,7 +2464,7 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *avcc_New()
+GF_Box *avcc_box_new()
 {
 	GF_AVCConfigurationBox *tmp = (GF_AVCConfigurationBox *) gf_malloc(sizeof(GF_AVCConfigurationBox));
 	if (tmp == NULL) return NULL;
@@ -2466,7 +2474,7 @@ GF_Box *avcc_New()
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err avcc_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i, count;
 	GF_Err e;
@@ -2525,7 +2533,7 @@ GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs)
 	}
 	return GF_OK;
 }
-GF_Err avcc_Size(GF_Box *s)
+GF_Err avcc_box_size(GF_Box *s)
 {
 	u32 i, count;
 	GF_AVCConfigurationBox *ptr = (GF_AVCConfigurationBox *)s;
@@ -2557,14 +2565,14 @@ GF_Err avcc_Size(GF_Box *s)
 
 
 
-void hvcc_del(GF_Box *s)
+void hvcc_box_del(GF_Box *s)
 {
 	GF_HEVCConfigurationBox *ptr = (GF_HEVCConfigurationBox*)s;
 	if (ptr->config) gf_odf_hevc_cfg_del(ptr->config);
 	gf_free(ptr);
 }
 
-GF_Err hvcc_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err hvcc_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u64 pos;
 	GF_HEVCConfigurationBox *ptr = (GF_HEVCConfigurationBox *)s;
@@ -2580,7 +2588,7 @@ GF_Err hvcc_Read(GF_Box *s, GF_BitStream *bs)
 	return ptr->config ? GF_OK : GF_ISOM_INVALID_FILE;
 }
 
-GF_Box *hvcc_New()
+GF_Box *hvcc_box_new()
 {
 	GF_HEVCConfigurationBox *tmp = (GF_HEVCConfigurationBox *) gf_malloc(sizeof(GF_HEVCConfigurationBox));
 	if (tmp == NULL) return NULL;
@@ -2590,7 +2598,7 @@ GF_Box *hvcc_New()
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_Err hvcc_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err hvcc_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_HEVCConfigurationBox *ptr = (GF_HEVCConfigurationBox *) s;
@@ -2602,7 +2610,7 @@ GF_Err hvcc_Write(GF_Box *s, GF_BitStream *bs)
 	return gf_odf_hevc_cfg_write_bs(ptr->config, bs);
 }
 
-GF_Err hvcc_Size(GF_Box *s)
+GF_Err hvcc_box_size(GF_Box *s)
 {
 	u32 i, count, j, subcount;
 	GF_HEVCConfigurationBox *ptr = (GF_HEVCConfigurationBox *)s;
@@ -2629,7 +2637,7 @@ GF_Err hvcc_Size(GF_Box *s)
 	return GF_OK;
 }
 
-GF_Box *av1c_New() {
+GF_Box *av1c_box_new() {
 	GF_AV1ConfigurationBox *tmp = (GF_AV1ConfigurationBox *)gf_malloc(sizeof(GF_AV1ConfigurationBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_AV1ConfigurationBox));
@@ -2637,13 +2645,13 @@ GF_Box *av1c_New() {
 	return (GF_Box *)tmp;
 }
 
-void av1c_del(GF_Box *s) {
+void av1c_box_del(GF_Box *s) {
 	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)s;
 	if (ptr->config) gf_odf_av1_cfg_del(ptr->config);
 	gf_free(ptr);
 }
 
-GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err av1c_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u64 pos, read;
 	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)s;
@@ -2664,7 +2672,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err av1c_Write(GF_Box *s, GF_BitStream *bs) {
+GF_Err av1c_box_write(GF_Box *s, GF_BitStream *bs) {
 	GF_Err e;
 	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)s;
 	if (!s) return GF_BAD_PARAM;
@@ -2675,7 +2683,7 @@ GF_Err av1c_Write(GF_Box *s, GF_BitStream *bs) {
 	return gf_odf_av1_cfg_write_bs(ptr->config, bs);
 }
 
-GF_Err av1c_Size(GF_Box *s) {
+GF_Err av1c_box_size(GF_Box *s) {
 	u32 i;
 	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox *)s;
 
@@ -2699,7 +2707,7 @@ GF_Err av1c_Size(GF_Box *s) {
 
 
 
-void vpcc_del(GF_Box *s)
+void vpcc_box_del(GF_Box *s)
 {
 	GF_VPConfigurationBox *ptr = (GF_VPConfigurationBox*)s;
 	if (ptr->config) gf_odf_vp_cfg_del(ptr->config);
@@ -2707,7 +2715,7 @@ void vpcc_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err vpcc_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err vpcc_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u64 pos;
 	GF_VPConfigurationBox *ptr = (GF_VPConfigurationBox *)s;
@@ -2727,7 +2735,7 @@ GF_Err vpcc_Read(GF_Box *s, GF_BitStream *bs)
 	return ptr->config ? GF_OK : GF_ISOM_INVALID_FILE;
 }
 
-GF_Box *vpcc_New()
+GF_Box *vpcc_box_new()
 {
 	GF_VPConfigurationBox *tmp = (GF_VPConfigurationBox *) gf_malloc(sizeof(GF_VPConfigurationBox));
 	if (tmp == NULL) return NULL;
@@ -2738,7 +2746,7 @@ GF_Box *vpcc_New()
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_Err vpcc_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err vpcc_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_VPConfigurationBox *ptr = (GF_VPConfigurationBox *) s;
@@ -2752,7 +2760,7 @@ GF_Err vpcc_Write(GF_Box *s, GF_BitStream *bs)
 }
 #endif
 
-GF_Err vpcc_Size(GF_Box *s)
+GF_Err vpcc_box_size(GF_Box *s)
 {
 	GF_VPConfigurationBox *ptr = (GF_VPConfigurationBox *)s;
 
@@ -2776,19 +2784,19 @@ GF_Err vpcc_Size(GF_Box *s)
 }
 
 
-GF_Box *SmDm_New()
+GF_Box *SmDm_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_SMPTE2086MasteringDisplayMetadataBox, GF_ISOM_BOX_TYPE_SMDM);
 	return (GF_Box *)tmp;
 }
 
-void SmDm_del(GF_Box *a)
+void SmDm_box_del(GF_Box *a)
 {
 	GF_SMPTE2086MasteringDisplayMetadataBox *p = (GF_SMPTE2086MasteringDisplayMetadataBox *)a;
 	gf_free(p);
 }
 
-GF_Err SmDm_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err SmDm_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_SMPTE2086MasteringDisplayMetadataBox *p = (GF_SMPTE2086MasteringDisplayMetadataBox *)s;
 	p->primaryRChromaticity_x = gf_bs_read_u16(bs);
@@ -2807,7 +2815,7 @@ GF_Err SmDm_Read(GF_Box *s, GF_BitStream *bs)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err SmDm_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err SmDm_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_SMPTE2086MasteringDisplayMetadataBox *p = (GF_SMPTE2086MasteringDisplayMetadataBox*)s;
@@ -2828,7 +2836,7 @@ GF_Err SmDm_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err SmDm_Size(GF_Box *s)
+GF_Err SmDm_box_size(GF_Box *s)
 {
 	GF_SMPTE2086MasteringDisplayMetadataBox *p = (GF_SMPTE2086MasteringDisplayMetadataBox*)s;
 	p->size += 24;
@@ -2838,19 +2846,19 @@ GF_Err SmDm_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-GF_Box *CoLL_New()
+GF_Box *CoLL_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_VPContentLightLevelBox, GF_ISOM_BOX_TYPE_COLL);
 	return (GF_Box *)tmp;
 }
 
-void CoLL_del(GF_Box *a)
+void CoLL_box_del(GF_Box *a)
 {
 	GF_VPContentLightLevelBox *p = (GF_VPContentLightLevelBox *)a;
 	gf_free(p);
 }
 
-GF_Err CoLL_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err CoLL_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_VPContentLightLevelBox *p = (GF_VPContentLightLevelBox *)s;
 	p->maxCLL = gf_bs_read_u16(bs);
@@ -2861,7 +2869,7 @@ GF_Err CoLL_Read(GF_Box *s, GF_BitStream *bs)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err CoLL_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err CoLL_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_VPContentLightLevelBox *p = (GF_VPContentLightLevelBox*)s;
@@ -2874,7 +2882,7 @@ GF_Err CoLL_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err CoLL_Size(GF_Box *s)
+GF_Err CoLL_box_size(GF_Box *s)
 {
 	GF_VPContentLightLevelBox *p = (GF_VPContentLightLevelBox*)s;
 	p->size += 4;

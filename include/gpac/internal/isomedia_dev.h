@@ -512,16 +512,16 @@ enum
 
 	/*the default size is 64, cause we need to handle large boxes...
 
-	the other_boxes container is by default NOT created. When parsing a box and adding
-	a sub-box with gf_isom_box_add_default, the list is created.
-	This list is destroyed befaore calling the final box destructor
+	the other_boxes container is by default NOT created. When parsing a box and sub-boxes are detected, the list is created.
+	This list is destroyed before calling the final box destructor
 	This list is automatically taken into account during size() and write() functions
+	
 	*/
 #define GF_ISOM_BOX			\
 	u32 type;			\
 	u64 size;			\
 	const struct box_registry_entry *registry;\
-	GF_List *other_boxes;
+	GF_List *child_boxes;
 
 #define GF_ISOM_FULL_BOX		\
 	GF_ISOM_BOX			\
@@ -575,7 +575,7 @@ GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst);
 GF_Err gf_isom_box_parse(GF_Box **outBox, GF_BitStream *bs);
 GF_Err gf_isom_box_array_read(GF_Box *s, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b));
 GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type);
-GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox);
+
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box);
 
 //writes box header - shall be called at the beginning of each xxxx_Write function
@@ -589,8 +589,12 @@ void gf_isom_box_array_del(GF_List *other_boxes);
 GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs);
 GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list);
 
+void gf_isom_check_write_pos(GF_Box *s, GF_Box *child, u32 *pos);
+void gf_isom_check_write_pos_list(GF_Box *s, GF_List *childlist, u32 *pos);
+
 Bool gf_box_valid_in_parent(GF_Box *a, const char *parent_4cc);
 
+void gf_isom_box_array_del_parent(GF_List **other_boxes, GF_List *boxlist);
 
 typedef struct
 {
@@ -714,7 +718,7 @@ typedef struct
 {
 	u32 boxType;
 	u8 uuid[16];
-	GF_List *other_boxes;
+	GF_List *boxes;
 } GF_UserDataMap;
 
 typedef struct
@@ -1282,6 +1286,7 @@ void gf_isom_sample_entry_predestroy(GF_SampleEntryBox *ptr);
 GF_Box *gf_isom_box_find_child(GF_List *parent_child_list, u32 code);
 void gf_isom_box_del_parent(GF_List **parent_child_list, GF_Box*b);
 GF_Box *gf_isom_box_new_parent(GF_List **parent_child_list, u32 code);
+Bool gf_isom_box_check_unique(GF_List *children, GF_Box *a);
 
 typedef struct
 {
@@ -1773,7 +1778,7 @@ typedef struct
 	GF_List *sampleGroups;
 	GF_List *sampleGroupsDescription;
 	u32 nb_sgpd_in_stbl;
-	u32 nb_other_boxes_in_stbl;
+	u32 nb_stbl_boxes;
 
 	GF_List *sai_sizes;
 	GF_List *sai_offsets;
@@ -2649,6 +2654,7 @@ typedef struct
 	u32 reserved;
 	u8 *data;
 	u32 dataSize;
+	Bool qt_style;
 } GF_DataBox;
 
 typedef struct
@@ -2857,6 +2863,7 @@ typedef struct __adobe_bootstrap_info_box
 	GF_List *quality_entry_table;
 	char *drm_data;
 	char *meta_data;
+	//entries in these two lists are NOT registered with the box child_boxes because of the inbetween 8 bits !!
 	u8 segment_run_table_count;
 	GF_List *segment_run_table_entries;
 	u8 fragment_run_table_count;
@@ -3536,8 +3543,6 @@ struct __tag_isom {
 	/*meta box if any*/
 	GF_MetaBox *meta;
 
-	Bool dump_mode_alloc;
-
 	u64 read_byte_offset;
 
 	void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total);
@@ -3767,27 +3772,23 @@ Bool IsHintTrack(GF_TrackBox *trak);
 Bool CheckHintFormat(GF_TrackBox *trak, u32 HintType);
 u32 GetHintFormat(GF_TrackBox *trak);
 
-
-void gf_isom_box_add_for_dump_mode(GF_Box *parent, GF_Box *a);
-
 /*locate a box by its type or UUID*/
 GF_ItemListBox *gf_ismo_locate_box(GF_List *list, u32 boxType, bin128 UUID);
 
-GF_Err moov_AddBox(GF_Box *ptr, GF_Box *a);
-GF_Err tref_AddBox(GF_Box *ptr, GF_Box *a);
-GF_Err trak_AddBox(GF_Box *ptr, GF_Box *a);
-GF_Err mvex_AddBox(GF_Box *ptr, GF_Box *a);
-GF_Err stsd_AddBox(GF_Box *ptr, GF_Box *a);
-GF_Err hnti_AddBox(GF_Box *hnti, GF_Box *a);
-GF_Err udta_AddBox(GF_Box *ptr, GF_Box *a);
-GF_Err edts_AddBox(GF_Box *s, GF_Box *a);
-GF_Err stdp_Read(GF_Box *s, GF_BitStream *bs);
-GF_Err stbl_AddBox(GF_Box *ptr, GF_Box *a);
-GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs);
-GF_Err dinf_AddBox(GF_Box *s, GF_Box *a);
-GF_Err minf_AddBox(GF_Box *s, GF_Box *a);
-GF_Err mdia_AddBox(GF_Box *s, GF_Box *a);
-GF_Err traf_AddBox(GF_Box *s, GF_Box *a);
+GF_Err moov_on_child_box(GF_Box *ptr, GF_Box *a);
+GF_Err trak_on_child_box(GF_Box *ptr, GF_Box *a);
+GF_Err mvex_on_child_box(GF_Box *ptr, GF_Box *a);
+GF_Err stsd_on_child_box(GF_Box *ptr, GF_Box *a);
+GF_Err hnti_on_child_box(GF_Box *hnti, GF_Box *a);
+GF_Err udta_on_child_box(GF_Box *ptr, GF_Box *a);
+GF_Err edts_on_child_box(GF_Box *s, GF_Box *a);
+GF_Err stdp_box_read(GF_Box *s, GF_BitStream *bs);
+GF_Err stbl_on_child_box(GF_Box *ptr, GF_Box *a);
+GF_Err sdtp_box_read(GF_Box *s, GF_BitStream *bs);
+GF_Err dinf_on_child_box(GF_Box *s, GF_Box *a);
+GF_Err minf_on_child_box(GF_Box *s, GF_Box *a);
+GF_Err mdia_on_child_box(GF_Box *s, GF_Box *a);
+GF_Err traf_on_child_box(GF_Box *s, GF_Box *a);
 
 /*rewrites avcC based on the given esd - this destroys the esd*/
 GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd);
@@ -3866,7 +3867,7 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_BOX
-
+	//not registered with child list !!
 	GF_FECInformationBox *feci;
 	u32 data_length;
 	u8 *data;
@@ -4067,12 +4068,10 @@ GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample_from_data(u8 *da
 
 /*do not throw fatal errors if boxes are duplicated, just warn and remove extra ones*/
 #define ERROR_ON_DUPLICATED_BOX(__abox, __parent) {	\
-		extern Bool use_dump_mode;\
 		char __ptype[5];\
 		strcpy(__ptype, gf_4cc_to_str(__parent->type) );\
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] extra box %s found in %s, deleting\n", gf_4cc_to_str(__abox->type), __ptype)); \
-		if (!use_dump_mode) gf_isom_box_del(__abox);\
-		__abox=NULL;\
+		gf_isom_box_del_parent(& (__parent->child_boxes), __abox);\
 		return GF_OK;\
 	}
 
@@ -4123,7 +4122,7 @@ void gf_isom_box_dump_done(const char *name, GF_Box *ptr, FILE *trace);
 Bool gf_isom_box_is_file_level(GF_Box *s);
 #endif
 
-GF_Box *boxstring_new_with_data(u32 type, const char *string);
+GF_Box *boxstring_new_with_data(u32 type, const char *string, GF_List **parent);
 
 GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size, char **out_str);
 

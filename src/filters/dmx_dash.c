@@ -1520,7 +1520,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 							}
 						}
 						if (nb_block == group->nb_pids) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d but %d output pid(s) would block, postponing\n", nb_block, group->idx));
+							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d but %d output pid(s) would block, postponing\n", nb_block, group->idx));
 							gf_filter_ask_rt_reschedule(ctx->filter, 10000);
 							break;
 						}

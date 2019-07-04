@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -490,7 +490,7 @@ GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber)
 	GF_SampleDependencyTypeBox *sdtp;
 
 	if (stbl->SampleDep == NULL) {
-		stbl->SampleDep = (GF_SampleDependencyTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SDTP);
+		stbl->SampleDep = (GF_SampleDependencyTypeBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_SDTP);
 		if (!stbl->SampleDep) return GF_OUT_OF_MEM;
 	}
 	sdtp = stbl->SampleDep;
@@ -527,7 +527,7 @@ GF_Err stbl_SetDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isL
 	GF_SampleDependencyTypeBox *sdtp;
 	u32 flags;
 	if (stbl->SampleDep == NULL) {
-		stbl->SampleDep = (GF_SampleDependencyTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SDTP);
+		stbl->SampleDep = (GF_SampleDependencyTypeBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_SDTP);
 		if (!stbl->SampleDep) return GF_OUT_OF_MEM;
 	}
 	sdtp = stbl->SampleDep;
@@ -558,7 +558,7 @@ GF_Err stbl_AddDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isL
 	GF_SampleDependencyTypeBox *sdtp;
 
 	if (stbl->SampleDep == NULL) {
-		stbl->SampleDep = (GF_SampleDependencyTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SDTP);
+		stbl->SampleDep = (GF_SampleDependencyTypeBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_SDTP);
 		if (!stbl->SampleDep) return GF_OUT_OF_MEM;
 	}
 	sdtp = stbl->SampleDep;
@@ -605,7 +605,7 @@ GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dep
 	GF_SampleDependencyTypeBox *sdtp;
 	u32 flags;
 	if (stbl->SampleDep == NULL) {
-		stbl->SampleDep = (GF_SampleDependencyTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SDTP);
+		stbl->SampleDep = (GF_SampleDependencyTypeBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_SDTP);
 		if (!stbl->SampleDep) return GF_OUT_OF_MEM;
 	}
 	sdtp = stbl->SampleDep;
@@ -751,7 +751,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 		stco = (GF_ChunkOffsetBox *)stbl->ChunkOffset;
 		//if the new offset is a large one, we have to rewrite our table entry by entry (32->64 bit conv)...
 		if (offset > 0xFFFFFFFF) {
-			co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
+			co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_CO64);
 			co64->nb_entries = stco->nb_entries + 1;
 			co64->alloc_size = co64->nb_entries;
 			co64->offsets = (u64*)gf_malloc(sizeof(u64) * co64->nb_entries);
@@ -765,7 +765,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 				co64->offsets[i+k] = (u64) stco->offsets[i];
 			}
 			if (!k) co64->offsets[co64->nb_entries - 1] = offset;
-			gf_isom_box_del(stbl->ChunkOffset);
+			gf_isom_box_del_parent(&stbl->child_boxes, stbl->ChunkOffset);
 			stbl->ChunkOffset = (GF_Box *) co64;
 		} else {
 			//no, we can use this one.
@@ -855,7 +855,7 @@ GF_Err stbl_SetChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u64 offset)
 	if (stbl->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
 		//if the new offset is a large one, we have to rewrite our table...
 		if (offset > 0xFFFFFFFF) {
-			co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
+			co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_CO64);
 			co64->nb_entries = ((GF_ChunkOffsetBox *)stbl->ChunkOffset)->nb_entries;
 			co64->alloc_size = co64->nb_entries;
 			co64->offsets = (u64*)gf_malloc(sizeof(u64)*co64->nb_entries);
@@ -864,7 +864,7 @@ GF_Err stbl_SetChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u64 offset)
 				co64->offsets[i] = (u64) ((GF_ChunkOffsetBox *)stbl->ChunkOffset)->offsets[i];
 			}
 			co64->offsets[ent->firstChunk - 1] = offset;
-			gf_isom_box_del(stbl->ChunkOffset);
+			gf_isom_box_del_parent(&stbl->child_boxes, stbl->ChunkOffset);
 			stbl->ChunkOffset = (GF_Box *) co64;
 			return GF_OK;
 		}
@@ -1090,7 +1090,7 @@ GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber)
 
 	//last one...
 	if (stbl->SampleSize->sampleCount == 1) {
-		gf_isom_box_del((GF_Box *) ctts);
+		gf_isom_box_del_parent(&stbl->child_boxes, (GF_Box *) ctts);
 		stbl->CompositionOffset = NULL;
 		return GF_OK;
 	}
@@ -1275,7 +1275,7 @@ GF_Err stbl_SetPaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber, u8 bits)
 	if (SampleNumber > stbl->SampleSize->sampleCount) return GF_BAD_PARAM;
 
 	//create the table
-	if (!stbl->PaddingBits) stbl->PaddingBits = (GF_PaddingBitsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_PADB);
+	if (!stbl->PaddingBits) stbl->PaddingBits = (GF_PaddingBitsBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_PADB);
 
 	//alloc
 	if (!stbl->PaddingBits->padbits || !stbl->PaddingBits->SampleCount) {
@@ -1310,7 +1310,7 @@ GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber)
 
 	//last sample - remove the table
 	if (stbl->PaddingBits->SampleCount == 1) {
-		gf_isom_box_del((GF_Box *) stbl->PaddingBits);
+		gf_isom_box_del_parent(&stbl->child_boxes, (GF_Box *) stbl->PaddingBits);
 		stbl->PaddingBits = NULL;
 		return GF_OK;
 	}
@@ -1393,7 +1393,7 @@ GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber)
 			gf_list_rem(stbl->sampleGroups, i);
 			i--;
 			count--;
-			gf_isom_box_del((GF_Box *) e);
+			gf_isom_box_del_parent(&stbl->child_boxes, (GF_Box *) e);
 		}
 	}
 	return GF_OK;
@@ -1513,14 +1513,14 @@ void stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset)
 		stco = (GF_ChunkOffsetBox *)stbl->ChunkOffset;
 
 		if (offset>0xFFFFFFFF) {
-			co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
+			co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_CO64);
 			co64->nb_entries = stco->nb_entries + 1;
 			co64->alloc_size = co64->nb_entries;
 			co64->offsets = (u64*)gf_malloc(sizeof(u64) * co64->nb_entries);
 			if (!co64->offsets) return;
 			for (i=0; i<stco->nb_entries; i++) co64->offsets[i] = stco->offsets[i];
 			co64->offsets[i] = offset;
-			gf_isom_box_del(stbl->ChunkOffset);
+			gf_isom_box_del_parent(&stbl->child_boxes, stbl->ChunkOffset);
 			stbl->ChunkOffset = (GF_Box *) co64;
 			return;
 		}
@@ -1591,7 +1591,7 @@ void stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap)
 		if (isRap) return;
 
 		//nope, create one
-		stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
+		stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSS);
 		if (stbl->SampleSize->sampleCount > 1) {
 			stbl->SyncSample->sampleNumbers = (u32*)gf_malloc(sizeof(u32) * (stbl->SampleSize->sampleCount-1));
 			if (!stbl->SyncSample->sampleNumbers) return;
@@ -1640,7 +1640,7 @@ void stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding)
 {
 	u32 i;
 	u8 *pad_bits;
-	if (!stbl->PaddingBits) stbl->PaddingBits = (GF_PaddingBitsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_PADB);
+	if (!stbl->PaddingBits) stbl->PaddingBits = (GF_PaddingBitsBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_PADB);
 
 	pad_bits = (u8*)gf_malloc(sizeof(u8) * stbl->SampleSize->sampleCount);
 	if (!pad_bits) return;
@@ -1656,7 +1656,7 @@ void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 offset)
 {
 	GF_CompositionOffsetBox *ctts;
 
-	if (!stbl->CompositionOffset) stbl->CompositionOffset = (GF_CompositionOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CTTS);
+	if (!stbl->CompositionOffset) stbl->CompositionOffset = (GF_CompositionOffsetBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_CTTS);
 
 	ctts = stbl->CompositionOffset;
 
@@ -1680,7 +1680,7 @@ void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 offset)
 
 void stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority)
 {
-	if (!stbl->DegradationPriority) stbl->DegradationPriority = (GF_DegradationPriorityBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STDP);
+	if (!stbl->DegradationPriority) stbl->DegradationPriority = (GF_DegradationPriorityBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STDP);
 
 	stbl->DegradationPriority->priorities = (u16 *)gf_realloc(stbl->DegradationPriority->priorities, sizeof(u16) * stbl->SampleSize->sampleCount);
 	stbl->DegradationPriority->priorities[stbl->SampleSize->sampleCount-1] = DegradationPriority;
@@ -1689,7 +1689,7 @@ void stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority)
 
 void stbl_AppendDepType(GF_SampleTableBox *stbl, u32 DepType)
 {
-	if (!stbl->SampleDep) stbl->SampleDep= (GF_SampleDependencyTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SDTP);
+	if (!stbl->SampleDep) stbl->SampleDep = (GF_SampleDependencyTypeBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_SDTP);
 	stbl->SampleDep->sample_info = (u8*)gf_realloc(stbl->SampleDep->sample_info, sizeof(u8)*stbl->SampleSize->sampleCount );
 	stbl->SampleDep->sample_info[stbl->SampleDep->sampleCount] = DepType;
 	stbl->SampleDep->sampleCount = stbl->SampleSize->sampleCount;
@@ -1786,6 +1786,8 @@ GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl)
 
 
 	//done, remove our previous tables
+	gf_list_del_item(stbl->child_boxes, stbl->ChunkOffset);
+	gf_list_del_item(stbl->child_boxes, stbl->SampleToChunk);
 	gf_isom_box_del(stbl->ChunkOffset);
 	gf_isom_box_del((GF_Box *)stbl->SampleToChunk);
 	//and set these ones...
@@ -1795,6 +1797,9 @@ GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl)
 		stbl->ChunkOffset = (GF_Box *)co64_tmp;
 	}
 	stbl->SampleToChunk = stsc_tmp;
+	gf_list_add(stbl->child_boxes, stbl->ChunkOffset);
+	gf_list_add(stbl->child_boxes, stbl->SampleToChunk);
+
 	stbl->SampleToChunk->currentIndex = 0;
 	stbl->SampleToChunk->currentChunk = 0;
 	stbl->SampleToChunk->firstSampleInCurrentChunk = 0;
@@ -1809,14 +1814,14 @@ err_exit:
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-static GFINLINE GF_Err stbl_AddOffset(GF_Box **a, u64 offset)
+static GFINLINE GF_Err stbl_AddOffset(GF_SampleTableBox *stbl, GF_Box **old_stco, u64 offset)
 {
 	GF_ChunkOffsetBox *stco;
 	GF_ChunkLargeOffsetBox *co64;
 	u32 i;
 
-	if ((*a)->type == GF_ISOM_BOX_TYPE_STCO) {
-		stco = (GF_ChunkOffsetBox *) *a;
+	if ((*old_stco)->type == GF_ISOM_BOX_TYPE_STCO) {
+		stco = (GF_ChunkOffsetBox *) *old_stco;
 		//if dataOffset is bigger than 0xFFFFFFFF, move to LARGE offset
 		if (offset > 0xFFFFFFFF) {
 			co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
@@ -1833,8 +1838,11 @@ static GFINLINE GF_Err stbl_AddOffset(GF_Box **a, u64 offset)
 			}
 			co64->offsets[i] = offset;
 			//delete the box...
-			gf_isom_box_del(*a);
-			*a = (GF_Box *)co64;
+			gf_isom_box_del_parent(&stbl->child_boxes, *old_stco);
+			*old_stco = (GF_Box *)co64;
+
+			assert (stbl->child_boxes);
+			gf_list_add(stbl->child_boxes, *old_stco);
 			return GF_OK;
 		}
 		//OK, stick with regular...
@@ -1849,7 +1857,7 @@ static GFINLINE GF_Err stbl_AddOffset(GF_Box **a, u64 offset)
 		stco->nb_entries += 1;
 	} else {
 		//this is a large offset
-		co64 = (GF_ChunkLargeOffsetBox *) *a;
+		co64 = (GF_ChunkLargeOffsetBox *) *old_stco;
 		if (co64->nb_entries==co64->alloc_size) {
 			ALLOC_INC(co64->alloc_size);
 			co64->offsets = (u64*)gf_realloc(co64->offsets, co64->alloc_size * sizeof(u64));
@@ -1917,7 +1925,7 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 	}
 
 	//add our offset
-	e = stbl_AddOffset(the_stco, data_offset);
+	e = stbl_AddOffset(stbl, the_stco, data_offset);
 	if (e) return e;
 
 	if (the_stsc->nb_entries==the_stsc->alloc_size) {

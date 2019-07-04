@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2006-2012
+ *			Copyright (c) Telecom ParisTech 2006-2019
  *				All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -27,14 +27,14 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
-void ilst_del(GF_Box *s)
+void ilst_box_del(GF_Box *s)
 {
 	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
 	if (ptr == NULL) return;
 	gf_free(ptr);
 }
 
-GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err ilst_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 sub_type;
@@ -57,7 +57,7 @@ GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
 			}
 
 			ISOM_DECREASE_SIZE(ptr, a->size);
-			gf_list_add(ptr->other_boxes, a);
+			gf_list_add(ptr->child_boxes, a);
 		} else {
 			gf_bs_read_u32(bs);
 			ISOM_DECREASE_SIZE(ptr, 4);
@@ -66,16 +66,16 @@ GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *ilst_New()
+GF_Box *ilst_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_ItemListBox, GF_ISOM_BOX_TYPE_ILST);
-	tmp->other_boxes = gf_list_new();
+	tmp->child_boxes = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err ilst_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err ilst_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 //	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
@@ -87,25 +87,21 @@ GF_Err ilst_Write(GF_Box *s, GF_BitStream *bs)
 }
 
 
-GF_Err ilst_Size(GF_Box *s)
+GF_Err ilst_box_size(GF_Box *s)
 {
 	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void ilst_item_del(GF_Box *s)
+void ilst_item_box_del(GF_Box *s)
 {
 	GF_ListItemBox *ptr = (GF_ListItemBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->data != NULL) {
-		if (ptr->data->data) gf_free(ptr->data->data);
-		gf_free(ptr->data);
-	}
 	gf_free(ptr);
 }
 
-GF_Err ilst_item_Read(GF_Box *s,GF_BitStream *bs)
+GF_Err ilst_item_box_read(GF_Box *s,GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 sub_type;
@@ -127,12 +123,14 @@ GF_Err ilst_item_Read(GF_Box *s,GF_BitStream *bs)
 
 		ISOM_DECREASE_SIZE(ptr, a->size);
 
-		if (a && ptr->data) gf_isom_box_del((GF_Box *) ptr->data);
+		if (a && ptr->data) gf_isom_box_del_parent(&ptr->child_boxes, (GF_Box *) ptr->data);
 
 		/* otherwise a->data will always overflow */
-		if (a && a->size > 4 && a->type != GF_ISOM_BOX_TYPE_VOID)
+		if (a && a->size > 4 && a->type != GF_ISOM_BOX_TYPE_VOID) {
 			ptr->data = (GF_DataBox *)a;
-		else {
+			if (!ptr->child_boxes) ptr->child_boxes = gf_list_new();
+			gf_list_add(ptr->child_boxes, ptr->data);
+		} else {
 			ptr->data = NULL;
 			gf_isom_box_del(a);
 		}
@@ -142,15 +140,17 @@ GF_Err ilst_item_Read(GF_Box *s,GF_BitStream *bs)
 		u64 pos = gf_bs_get_position(bs);
 		u64 prev_size = s->size;
 		/*try parsing as generic box list*/
-		e = gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
+		e = gf_isom_box_array_read(s, bs, NULL);
 		if (e==GF_OK) return GF_OK;
-		gf_isom_box_array_del(s->other_boxes);
-		s->other_boxes=NULL;
+		//reset content and retry - this deletes ptr->data !!
+		gf_isom_box_array_del(s->child_boxes);
+		s->child_boxes=NULL;
 		gf_bs_seek(bs, pos);
 		s->size = prev_size;
-		
+
+		ptr->data = (GF_DataBox *)gf_isom_box_new_parent(&ptr->child_boxes, GF_ISOM_BOX_TYPE_DATA);
 		//nope, check qt-style
-		ptr->data->type = 0;
+		ptr->data->qt_style = GF_TRUE;
 		ISOM_DECREASE_SIZE(ptr, 2);
 		ptr->data->dataSize = gf_bs_read_u16(bs);
 		gf_bs_read_u16(bs);
@@ -163,23 +163,21 @@ GF_Err ilst_item_Read(GF_Box *s,GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *ilst_item_New()
+GF_Box *ilst_item_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_ListItemBox, GF_ISOM_BOX_TYPE_CPIL); //type will be overwrite
-
-	tmp->data = (GF_DataBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_DATA);
-
+	tmp->data = (GF_DataBox *)gf_isom_box_new_parent(&tmp->child_boxes, GF_ISOM_BOX_TYPE_DATA);
 	if (tmp->data == NULL) {
+		if (tmp->child_boxes) gf_list_del(tmp->child_boxes);
 		gf_free(tmp);
 		return NULL;
 	}
-
 	return (GF_Box *)tmp;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err ilst_item_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err ilst_item_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_ListItemBox *ptr = (GF_ListItemBox *) s;
@@ -188,31 +186,32 @@ GF_Err ilst_item_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	/*generic box list*/
-	if (ptr->other_boxes)
-		return GF_OK;
-
+	if (ptr->child_boxes && !ptr->data) {
+	}
 	/*iTune way: data-box-encapsulated box list*/
-	if (ptr->data->type) return gf_isom_box_write((GF_Box* )ptr->data, bs);
+	else if (!ptr->data->qt_style) {
+		u32 pos=0;
+		gf_isom_check_write_pos(s, (GF_Box* ) ptr->data, &pos);
+	}
 	/*QT way: raw data*/
-	gf_bs_write_u16(bs, ptr->data->dataSize);
-	gf_bs_write_u16(bs, 0);
-	gf_bs_write_data(bs, ptr->data->data, ptr->data->dataSize);
+	else {
+		gf_bs_write_u16(bs, ptr->data->dataSize);
+		gf_bs_write_u16(bs, 0);
+		gf_bs_write_data(bs, ptr->data->data, ptr->data->dataSize);
+		ptr->size = 0; //abort
+	}
 	return GF_OK;
 }
 
-GF_Err ilst_item_Size(GF_Box *s)
+GF_Err ilst_item_box_size(GF_Box *s)
 {
-	GF_Err e;
 	GF_ListItemBox *ptr = (GF_ListItemBox *)s;
 
 	/*generic box list*/
-	if (ptr->other_boxes)
-		return GF_OK;
+	if (ptr->child_boxes && !ptr->data) {
+	}
 	/*iTune way: data-box-encapsulated box list*/
-	if (ptr->data && ptr->data->type) {
-		e = gf_isom_box_size((GF_Box *)ptr->data);
-		if (e) return e;
-		ptr->size += ptr->data->size;
+	else if (ptr->data && !ptr->data->qt_style) {
 	}
 	/*QT way: raw data*/
 	else if (ptr->data) {
@@ -223,7 +222,7 @@ GF_Err ilst_item_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void databox_del(GF_Box *s)
+void databox_box_del(GF_Box *s)
 {
 	GF_DataBox *ptr = (GF_DataBox *) s;
 	if (ptr == NULL) return;
@@ -233,7 +232,7 @@ void databox_del(GF_Box *s)
 
 }
 
-GF_Err databox_Read(GF_Box *s,GF_BitStream *bs)
+GF_Err databox_box_read(GF_Box *s,GF_BitStream *bs)
 {
 	GF_DataBox *ptr = (GF_DataBox *)s;
 
@@ -251,7 +250,7 @@ GF_Err databox_Read(GF_Box *s,GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *databox_New()
+GF_Box *databox_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_DataBox, GF_ISOM_BOX_TYPE_DATA);
 
@@ -260,7 +259,7 @@ GF_Box *databox_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err databox_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err databox_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_DataBox *ptr = (GF_DataBox *) s;
@@ -274,7 +273,7 @@ GF_Err databox_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err databox_Size(GF_Box *s)
+GF_Err databox_box_size(GF_Box *s)
 {
 	GF_DataBox *ptr = (GF_DataBox *)s;
 
@@ -287,20 +286,20 @@ GF_Err databox_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void alis_del(GF_Box *s)
+void alis_box_del(GF_Box *s)
 {
 	GF_DataEntryAliasBox *ptr = (GF_DataEntryAliasBox *)s;
 	if (ptr == NULL) return;
 	gf_free(ptr);
 }
 
-GF_Err alis_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err alis_box_read(GF_Box *s, GF_BitStream *bs)
 {
 //	GF_DataEntryAliasBox *ptr = (GF_DataEntryAliasBox *)s;
 	return GF_OK;
 }
 
-GF_Box *alis_New()
+GF_Box *alis_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_DataEntryAliasBox, GF_QT_BOX_TYPE_ALIS);
 	return (GF_Box *)tmp;
@@ -308,7 +307,7 @@ GF_Box *alis_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err alis_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err alis_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 //	GF_DataEntryAliasBox *ptr = (GF_DataEntryAliasBox *)s;
@@ -318,28 +317,28 @@ GF_Err alis_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err alis_Size(GF_Box *s)
+GF_Err alis_box_size(GF_Box *s)
 {
 	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void wide_del(GF_Box *s)
+void wide_box_del(GF_Box *s)
 {
 	if (s == NULL) return;
 	gf_free(s);
 }
 
 
-GF_Err wide_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err wide_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	gf_bs_skip_bytes(bs, s->size);
 	s->size = 0;
 	return GF_OK;
 }
 
-GF_Box *wide_New()
+GF_Box *wide_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_WideBox, GF_QT_BOX_TYPE_WIDE);
 	return (GF_Box *)tmp;
@@ -347,7 +346,7 @@ GF_Box *wide_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err wide_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err wide_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	e = gf_isom_box_write_header(s, bs);
@@ -355,7 +354,7 @@ GF_Err wide_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err wide_Size(GF_Box *s)
+GF_Err wide_box_size(GF_Box *s)
 {
 	return GF_OK;
 }
@@ -374,8 +373,8 @@ GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov)
 	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_META, NULL);
 	if (!map) return NULL;
 
-	for(i = 0; i < gf_list_count(map->other_boxes); i++) {
-		meta = (GF_MetaBox*)gf_list_get(map->other_boxes, i);
+	for(i = 0; i < gf_list_count(map->boxes); i++) {
+		meta = (GF_MetaBox*)gf_list_get(map->boxes, i);
 
 		if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return meta;
 	}
@@ -394,31 +393,31 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 	if (!mov || !mov->moov) return NULL;
 
 	if (!mov->moov->udta) {
-		e = moov_AddBox((GF_Box*)mov->moov, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
+		e = moov_on_child_box((GF_Box*)mov->moov, gf_isom_box_new_parent(&mov->moov->child_boxes, GF_ISOM_BOX_TYPE_UDTA));
 		if (e) return NULL;
 	}
 
 	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_META, NULL);
 	if (map) {
-		for(i = 0; i < gf_list_count(map->other_boxes); i++) {
-			meta = (GF_MetaBox*)gf_list_get(map->other_boxes, i);
+		for(i = 0; i < gf_list_count(map->boxes); i++) {
+			meta = (GF_MetaBox*)gf_list_get(map->boxes, i);
 
 			if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return meta;
 		}
 	}
 
+	//udta handles children boxes through maps
 	meta = (GF_MetaBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_META);
 
 	if(meta != NULL) {
-		meta->handler = (GF_HandlerBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_HDLR);
+		meta->handler = (GF_HandlerBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
 		if(meta->handler == NULL) {
 			gf_isom_box_del((GF_Box *)meta);
 			return NULL;
 		}
 		meta->handler->handlerType = GF_ISOM_HANDLER_TYPE_MDIR;
-		if (!meta->other_boxes) meta->other_boxes = gf_list_new();
-		gf_list_add(meta->other_boxes, gf_isom_box_new(GF_ISOM_BOX_TYPE_ILST));
-		udta_AddBox((GF_Box *)mov->moov->udta, (GF_Box *)meta);
+		gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_ILST);
+		udta_on_child_box((GF_Box *)mov->moov->udta, (GF_Box *)meta);
 	}
 
 	return meta;
@@ -427,12 +426,12 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 
 
 
-void gmin_del(GF_Box *s)
+void gmin_box_del(GF_Box *s)
 {
 	gf_free(s);
 }
 
-GF_Err gmin_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err gmin_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_GenericMediaHeaderInfoBox *ptr = (GF_GenericMediaHeaderInfoBox *)s;
 	ISOM_DECREASE_SIZE(ptr, 12);
@@ -445,7 +444,7 @@ GF_Err gmin_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *gmin_New()
+GF_Box *gmin_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_GenericMediaHeaderInfoBox, GF_QT_BOX_TYPE_GMIN);
 	return (GF_Box *)tmp;
@@ -455,7 +454,7 @@ GF_Box *gmin_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err gmin_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err gmin_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_GenericMediaHeaderInfoBox *ptr = (GF_GenericMediaHeaderInfoBox *)s;
@@ -472,7 +471,7 @@ GF_Err gmin_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err gmin_Size(GF_Box *s)
+GF_Err gmin_box_size(GF_Box *s)
 {
 	GF_VideoMediaHeaderBox *ptr = (GF_VideoMediaHeaderBox *)s;
 	ptr->size += 12;
@@ -484,12 +483,12 @@ GF_Err gmin_Size(GF_Box *s)
 
 
 
-void clef_del(GF_Box *s)
+void clef_box_del(GF_Box *s)
 {
 	gf_free(s);
 }
 
-GF_Err clef_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err clef_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ApertureBox *ptr = (GF_ApertureBox *)s;
 	ISOM_DECREASE_SIZE(ptr, 8);
@@ -498,7 +497,7 @@ GF_Err clef_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *clef_New()
+GF_Box *clef_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_ApertureBox, GF_QT_BOX_TYPE_CLEF);
 	return (GF_Box *)tmp;
@@ -507,7 +506,7 @@ GF_Box *clef_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err clef_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err clef_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_ApertureBox *ptr = (GF_ApertureBox *)s;
@@ -519,7 +518,7 @@ GF_Err clef_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err clef_Size(GF_Box *s)
+GF_Err clef_box_size(GF_Box *s)
 {
 	s->size += 8;
 	return GF_OK;
@@ -528,7 +527,7 @@ GF_Err clef_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-void tmcd_del(GF_Box *s)
+void tmcd_box_del(GF_Box *s)
 {
 	if (s == NULL) return;
 	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
@@ -536,7 +535,7 @@ void tmcd_del(GF_Box *s)
 }
 
 
-GF_Err tmcd_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err tmcd_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TimeCodeSampleEntryBox *ptr = (GF_TimeCodeSampleEntryBox *)s;
 	GF_Err e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)s, bs);
@@ -550,10 +549,10 @@ GF_Err tmcd_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->frames_per_sec = gf_bs_read_u8(bs);
 	gf_bs_read_u8(bs); //reserved
 
-	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
+	return gf_isom_box_array_read(s, bs, NULL);
 }
 
-GF_Box *tmcd_New()
+GF_Box *tmcd_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_TimeCodeSampleEntryBox, GF_QT_BOX_TYPE_TMCD);
 	gf_isom_sample_entry_init((GF_SampleEntryBox*)tmp);
@@ -563,7 +562,7 @@ GF_Box *tmcd_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err tmcd_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err tmcd_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_TimeCodeSampleEntryBox *ptr = (GF_TimeCodeSampleEntryBox *)s;
@@ -583,7 +582,7 @@ GF_Err tmcd_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err tmcd_Size(GF_Box *s)
+GF_Err tmcd_box_size(GF_Box *s)
 {
 	GF_SampleEntryBox *ptr = (GF_SampleEntryBox *)s;
 	ptr->size += 8 + 18;
@@ -593,7 +592,7 @@ GF_Err tmcd_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-void tcmi_del(GF_Box *s)
+void tcmi_box_del(GF_Box *s)
 {
 	GF_TimeCodeMediaInformationBox *ptr = (GF_TimeCodeMediaInformationBox *)s;
 	if (ptr->font) gf_free(ptr->font);
@@ -601,7 +600,7 @@ void tcmi_del(GF_Box *s)
 }
 
 
-GF_Err tcmi_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err tcmi_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 len;
 	GF_TimeCodeMediaInformationBox *ptr = (GF_TimeCodeMediaInformationBox *)s;
@@ -630,7 +629,7 @@ GF_Err tcmi_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *tcmi_New()
+GF_Box *tcmi_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_TimeCodeMediaInformationBox, GF_QT_BOX_TYPE_TMCD);
 	tmp->text_size = 12;
@@ -643,7 +642,7 @@ GF_Box *tcmi_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err tcmi_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err tcmi_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 len;
@@ -669,7 +668,7 @@ GF_Err tcmi_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err tcmi_Size(GF_Box *s)
+GF_Err tcmi_box_size(GF_Box *s)
 {
 	GF_TimeCodeMediaInformationBox *ptr = (GF_TimeCodeMediaInformationBox *)s;
 	ptr->size += 21;
@@ -681,13 +680,13 @@ GF_Err tcmi_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-void fiel_del(GF_Box *s)
+void fiel_box_del(GF_Box *s)
 {
 	gf_free(s);
 }
 
 
-GF_Err fiel_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err fiel_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_FieldInfoBox *ptr = (GF_FieldInfoBox *)s;
 
@@ -698,7 +697,7 @@ GF_Err fiel_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *fiel_New()
+GF_Box *fiel_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_FieldInfoBox, GF_QT_BOX_TYPE_FIEL);
 	return (GF_Box *)tmp;
@@ -707,7 +706,7 @@ GF_Box *fiel_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err fiel_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err fiel_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_FieldInfoBox *ptr = (GF_FieldInfoBox *)s;
@@ -718,7 +717,7 @@ GF_Err fiel_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err fiel_Size(GF_Box *s)
+GF_Err fiel_box_size(GF_Box *s)
 {
 	s->size += 2;
 	return GF_OK;
@@ -727,13 +726,13 @@ GF_Err fiel_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-void gama_del(GF_Box *s)
+void gama_box_del(GF_Box *s)
 {
 	gf_free(s);
 }
 
 
-GF_Err gama_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err gama_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_GamaInfoBox *ptr = (GF_GamaInfoBox *)s;
 
@@ -743,7 +742,7 @@ GF_Err gama_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *gama_New()
+GF_Box *gama_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_GamaInfoBox, GF_QT_BOX_TYPE_GAMA);
 	return (GF_Box *)tmp;
@@ -752,7 +751,7 @@ GF_Box *gama_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err gama_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err gama_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_GamaInfoBox *ptr = (GF_GamaInfoBox *)s;
 	GF_Err e = gf_isom_box_write_header(s, bs);
@@ -761,7 +760,7 @@ GF_Err gama_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err gama_Size(GF_Box *s)
+GF_Err gama_box_size(GF_Box *s)
 {
 	s->size += 4;
 	return GF_OK;
@@ -770,13 +769,13 @@ GF_Err gama_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-void chrm_del(GF_Box *s)
+void chrm_box_del(GF_Box *s)
 {
 	gf_free(s);
 }
 
 
-GF_Err chrm_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err chrm_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ChromaInfoBox *ptr = (GF_ChromaInfoBox *)s;
 
@@ -786,7 +785,7 @@ GF_Err chrm_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *chrm_New()
+GF_Box *chrm_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_ChromaInfoBox, GF_QT_BOX_TYPE_CHRM);
 	return (GF_Box *)tmp;
@@ -795,7 +794,7 @@ GF_Box *chrm_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err chrm_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err chrm_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ChromaInfoBox *ptr = (GF_ChromaInfoBox *)s;
 	GF_Err e = gf_isom_box_write_header(s, bs);
@@ -804,7 +803,7 @@ GF_Err chrm_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err chrm_Size(GF_Box *s)
+GF_Err chrm_box_size(GF_Box *s)
 {
 	s->size += 2;
 	return GF_OK;
@@ -813,7 +812,7 @@ GF_Err chrm_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-void chan_del(GF_Box *s)
+void chan_box_del(GF_Box *s)
 {
 	GF_ChannelLayoutInfoBox *ptr = (GF_ChannelLayoutInfoBox *)s;
 	if (ptr->audio_descs) gf_free(ptr->audio_descs);
@@ -821,7 +820,7 @@ void chan_del(GF_Box *s)
 }
 
 
-GF_Err chan_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err chan_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
 	GF_ChannelLayoutInfoBox *ptr = (GF_ChannelLayoutInfoBox *)s;
@@ -849,7 +848,7 @@ GF_Err chan_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *chan_New()
+GF_Box *chan_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_ChannelLayoutInfoBox, GF_QT_BOX_TYPE_CHAN);
 	return (GF_Box *)tmp;
@@ -858,7 +857,7 @@ GF_Box *chan_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err chan_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err chan_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 i;
@@ -883,7 +882,7 @@ GF_Err chan_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err chan_Size(GF_Box *s)
+GF_Err chan_box_size(GF_Box *s)
 {
 	GF_ChannelLayoutInfoBox *ptr = (GF_ChannelLayoutInfoBox *)s;
 	s->size += 12 + 20 * ptr->num_audio_description;

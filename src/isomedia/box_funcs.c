@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -26,10 +26,6 @@
 #include <gpac/internal/isomedia_dev.h>
 
 #ifndef GPAC_DISABLE_ISOM
-
-//only used in dump mode
-static Bool skip_box_dump_del = GF_FALSE;
-Bool use_dump_mode = GF_FALSE;
 
 //Add this funct to handle incomplete files...
 //bytesExpected is 0 most of the time. If the file is incomplete, bytesExpected
@@ -252,17 +248,30 @@ GF_Err gf_isom_box_parse(GF_Box **outBox, GF_BitStream *bs)
 	return gf_isom_box_parse_ex(outBox, bs, 0, GF_FALSE);
 }
 
-void gf_isom_box_array_del(GF_List *other_boxes)
+void gf_isom_box_array_del(GF_List *boxlist)
 {
 	u32 count, i;
 	GF_Box *a;
-	if (!other_boxes) return;
-	count = gf_list_count(other_boxes);
+	if (!boxlist) return;
+	count = gf_list_count(boxlist);
 	for (i = 0; i < count; i++) {
-		a = (GF_Box *)gf_list_get(other_boxes, i);
+		a = (GF_Box *)gf_list_get(boxlist, i);
 		if (a) gf_isom_box_del(a);
 	}
-	gf_list_del(other_boxes);
+	gf_list_del(boxlist);
+}
+
+void gf_isom_box_array_del_parent(GF_List **other_boxes, GF_List *boxlist)
+{
+	u32 count, i;
+	GF_Box *a;
+	if (!boxlist) return;
+	count = gf_list_count(boxlist);
+	for (i = 0; i < count; i++) {
+		a = (GF_Box *)gf_list_get(boxlist, i);
+		if (a) gf_isom_box_del_parent(other_boxes, a);
+	}
+	gf_list_del(boxlist);
 }
 
 
@@ -353,7 +362,7 @@ GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs)
 	u32 count, i;
 	GF_Box *a;
 	GF_Err e;
-	if (!list) return GF_BAD_PARAM;
+	if (!list) return GF_OK;
 	count = gf_list_count(list);
 	for (i = 0; i < count; i++) {
 		a = (GF_Box *)gf_list_get(list, i);
@@ -374,7 +383,7 @@ GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list)
 	GF_Err e;
 	u32 count, i;
 	GF_Box *a;
-	if (! list) return GF_BAD_PARAM;
+	if (! list) return GF_OK;
 
 	count = gf_list_count(list);
 	for (i = 0; i < count; i++) {
@@ -395,23 +404,23 @@ GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list)
 
 
 
-GF_Box * unkn_New();
-void unkn_del(GF_Box *);
-GF_Err unkn_Read(GF_Box *s, GF_BitStream *bs);
-GF_Err unkn_Write(GF_Box *s, GF_BitStream *bs);
-GF_Err unkn_Size(GF_Box *s);
-GF_Err unkn_dump(GF_Box *a, FILE * trace);
+GF_Box * unkn_box_new();
+void unkn_box_del(GF_Box *);
+GF_Err unkn_box_read(GF_Box *s, GF_BitStream *bs);
+GF_Err unkn_box_write(GF_Box *s, GF_BitStream *bs);
+GF_Err unkn_box_size(GF_Box *s);
+GF_Err unkn_box_dump(GF_Box *a, FILE * trace);
 
 //definition of boxes new/del/read/write/size. For now still exported since some files other than box_funcs.c call them
 //this should be fixed by only using gf_isom_box_new
 
 #define ISOM_BOX_IMPL_DECL(a_name) \
-		GF_Box * a_name##_New(); \
-		void a_name##_del(GF_Box *); \
-		GF_Err a_name##_Read(GF_Box *s, GF_BitStream *bs); \
-		GF_Err a_name##_Write(GF_Box *s, GF_BitStream *bs); \
-		GF_Err a_name##_Size(GF_Box *s);\
-		GF_Err a_name##_dump(GF_Box *a, FILE * trace);
+		GF_Box * a_name##_box_new(); \
+		void a_name##_box_del(GF_Box *); \
+		GF_Err a_name##_box_read(GF_Box *s, GF_BitStream *bs); \
+		GF_Err a_name##_box_write(GF_Box *s, GF_BitStream *bs); \
+		GF_Err a_name##_box_size(GF_Box *s);\
+		GF_Err a_name##_box_dump(GF_Box *a, FILE * trace);
 
 ISOM_BOX_IMPL_DECL(reftype)
 ISOM_BOX_IMPL_DECL(ireftype)
@@ -735,23 +744,23 @@ ISOM_BOX_IMPL_DECL(dvhe)
 
 
 
-#define BOX_DEFINE(__type, b_rad, __par) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 0, 0, __par, "p12", GF_FALSE}
+#define BOX_DEFINE(__type, b_rad, __par) { __type, b_rad##_box_new, b_rad##_box_del, b_rad##_box_read, b_rad##_box_write, b_rad##_box_size, b_rad##_box_dump, 0, 0, 0, __par, "p12", GF_FALSE}
 
-#define BOX_DEFINE_S(__type, b_rad, __par, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 0, 0, __par, __spec, GF_FALSE }
+#define BOX_DEFINE_S(__type, b_rad, __par, __spec) { __type, b_rad##_box_new, b_rad##_box_del, b_rad##_box_read, b_rad##_box_write, b_rad##_box_size, b_rad##_box_dump, 0, 0, 0, __par, __spec, GF_FALSE }
 
-#define FBOX_DEFINE(__type, b_rad, __par, __max_v) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 1+__max_v, 0, __par, "p12", GF_FALSE }
+#define FBOX_DEFINE(__type, b_rad, __par, __max_v) { __type, b_rad##_box_new, b_rad##_box_del, b_rad##_box_read, b_rad##_box_write, b_rad##_box_size, b_rad##_box_dump, 0, 1+__max_v, 0, __par, "p12", GF_FALSE }
 
-#define FBOX_DEFINE_FLAGS(__type, b_rad, __par, __max_v, flags) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 1+__max_v, flags, __par, "p12", GF_FALSE }
+#define FBOX_DEFINE_FLAGS(__type, b_rad, __par, __max_v, flags) { __type, b_rad##_box_new, b_rad##_box_del, b_rad##_box_read, b_rad##_box_write, b_rad##_box_size, b_rad##_box_dump, 0, 1+__max_v, flags, __par, "p12", GF_FALSE }
 
-#define FBOX_DEFINE_FLAGS_S(__type, b_rad, __par, __max_v, flags, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 1+__max_v, flags, __par, __spec, GF_FALSE }
+#define FBOX_DEFINE_FLAGS_S(__type, b_rad, __par, __max_v, flags, __spec) { __type, b_rad##_box_new, b_rad##_box_del, b_rad##_box_read, b_rad##_box_write, b_rad##_box_size, b_rad##_box_dump, 0, 1+__max_v, flags, __par, __spec, GF_FALSE }
 
-#define FBOX_DEFINE_S(__type, b_rad, __par, __max_v, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 1+__max_v, 0, __par, __spec, GF_FALSE }
+#define FBOX_DEFINE_S(__type, b_rad, __par, __max_v, __spec) { __type, b_rad##_box_new, b_rad##_box_del, b_rad##_box_read, b_rad##_box_write, b_rad##_box_size, b_rad##_box_dump, 0, 1+__max_v, 0, __par, __spec, GF_FALSE }
 
-#define TREF_DEFINE(__type, b_rad, __par, __4cc, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, __4cc, 0, 0, __par, __spec, GF_FALSE }
+#define TREF_DEFINE(__type, b_rad, __par, __4cc, __spec) { __type, b_rad##_box_new, b_rad##_box_del, b_rad##_box_read, b_rad##_box_write, b_rad##_box_size, b_rad##_box_dump, __4cc, 0, 0, __par, __spec, GF_FALSE }
 
-#define TRGT_DEFINE(__type, b_rad, __par, __4cc, max_version, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, __4cc, 1+max_version, 0, __par, __spec, GF_FALSE }
+#define TRGT_DEFINE(__type, b_rad, __par, __4cc, max_version, __spec) { __type, b_rad##_box_new, b_rad##_box_del, b_rad##_box_read, b_rad##_box_write, b_rad##_box_size, b_rad##_box_dump, __4cc, 1+max_version, 0, __par, __spec, GF_FALSE }
 
-#define SGPD_DEFINE(__type, b_rad, __par, __4cc, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, __4cc, 1, 0, __par, __spec, GF_FALSE }
+#define SGPD_DEFINE(__type, b_rad, __par, __4cc, __spec) { __type, b_rad##_box_new, b_rad##_box_del, b_rad##_box_read, b_rad##_box_write, b_rad##_box_size, b_rad##_box_dump, __4cc, 1, 0, __par, __spec, GF_FALSE }
 
 static struct box_registry_entry {
 	u32 box_4cc;
@@ -1262,7 +1271,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_AC3, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EC3, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DAC3, dac3, "ac-3", "dolby"),
-	{GF_ISOM_BOX_TYPE_DEC3, dec3_New, dac3_del, dac3_Read, dac3_Write, dac3_Size, dac3_dump, 0, 0, 0, "ec-3", "dolby" },
+	{GF_ISOM_BOX_TYPE_DEC3, dec3_box_new, dac3_box_del, dac3_box_read, dac3_box_write, dac3_box_size, dac3_box_dump, 0, 0, 0, "ec-3", "dolby" },
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVCC, dvcC, "dvhe dvav dva1 dvh1 avc1 avc2 avc3 avc4 hev1 encv resv", "DolbyVision"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVHE, video_sample_entry, "stsd", "DolbyVision"),
 
@@ -1381,10 +1390,10 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 		}
 #endif
         if (boxType==GF_ISOM_BOX_TYPE_UUID) {
-            a = uuid_New();
+            a = uuid_box_new();
             if (a) a->registry = &box_registry[1];
         } else {
-            a = unkn_New();
+            a = unkn_box_new();
             ((GF_UnknownBox *)a)->original_4cc = boxType;
             if (a) a->registry = &box_registry[0];
         }
@@ -1414,12 +1423,6 @@ GF_EXPORT
 GF_Box *gf_isom_box_new(u32 boxType)
 {
 	return gf_isom_box_new_ex(boxType, 0, 0, GF_FALSE);
-}
-
-void gf_isom_box_add_for_dump_mode(GF_Box *parent, GF_Box *a)
-{
-	if (use_dump_mode && a && (!parent->other_boxes || (gf_list_find(parent->other_boxes, a)<0) ) )
-		gf_isom_box_add_default(parent, a);
 }
 
 GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type)
@@ -1482,52 +1485,47 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 			}
 		}
 
-		e = add_box(parent, a);
-		if (e) {
-			if (e == GF_ISOM_INVALID_MEDIA) return GF_OK;
-			gf_isom_box_del(a);
-			return e;
+		//always register boxes
+		if (!parent->child_boxes) {
+			parent->child_boxes = gf_list_new();
+			if (!parent->child_boxes) return GF_OUT_OF_MEM;
 		}
-		//in dump mode store all boxes in other_boxes if not done, so that we can dump the original order
-		gf_isom_box_add_for_dump_mode(parent, a);
+		e = gf_list_add(parent->child_boxes, a);
+
+
+		if (add_box) {
+			e = add_box(parent, a);
+			if (e) {
+				if (e == GF_ISOM_INVALID_MEDIA) return GF_OK;
+				//if the box is no longer present, consider it destroyed
+				if (gf_list_find(parent->child_boxes, a) >=0) {
+					gf_isom_box_del_parent(&parent->child_boxes, a);
+				}
+				return e;
+			}
+		}
 	}
 	return GF_OK;
 }
 
 GF_EXPORT
-GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox)
-{
-	if (!a->other_boxes) {
-		a->other_boxes = gf_list_new();
-		if (!a->other_boxes) return GF_OUT_OF_MEM;
-	}
-	return gf_list_add(a->other_boxes, subbox);
-}
-
-GF_EXPORT
 void gf_isom_box_del(GF_Box *a)
 {
-	GF_List *other_boxes;
+	GF_List *child_boxes;
 	if (!a) return;
-	if (skip_box_dump_del) return;
 
-	other_boxes	= a->other_boxes;
-	a->other_boxes = NULL;
+	child_boxes	= a->child_boxes;
+	a->child_boxes = NULL;
 
 	if (!a->registry) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Delete invalid box type %s without registry\n", gf_4cc_to_str(a->type) ));
 	} else {
-		if (use_dump_mode) {
-			skip_box_dump_del = GF_TRUE;
-			a->registry->del_fn(a);
-			skip_box_dump_del = GF_FALSE;
-		} else {
-			a->registry->del_fn(a);
-		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Delete box type %s\n", gf_4cc_to_str(a->type) ));
+		a->registry->del_fn(a);
 	}
 	//delet the other boxes after deleting the box for dumper case where all child boxes are stored in otherbox
-	if (other_boxes) {
-		gf_isom_box_array_del(other_boxes);
+	if (child_boxes) {
+		gf_isom_box_array_del(child_boxes);
 	}
 }
 
@@ -1554,21 +1552,65 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	return a->registry->write_fn(a, bs);
 }
 
+
+void gf_isom_check_write_pos(GF_Box *s, GF_Box *child, u32 *pos)
+{
+	if (!s || !s->child_boxes || !child || !pos) return;
+	s32 cur_pos = gf_list_find(s->child_boxes, child);
+
+	assert (cur_pos >= 0);
+
+	if (cur_pos != (s32) *pos) {
+		gf_list_del_item(s->child_boxes, child);
+		gf_list_insert(s->child_boxes, child, *pos);
+	}
+	(*pos)++;
+}
+
+void gf_isom_check_write_pos_list(GF_Box *s, GF_List *childlist, u32 *pos)
+{
+	u32 i, count = gf_list_count(childlist);
+	for (i=0; i<count; i++) {
+		GF_Box *child = gf_list_get(childlist, i);
+		gf_isom_check_write_pos(s, child, pos);
+	}
+}
+
+
+u32 in_write=0;
 GF_EXPORT
 GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 {
 	GF_Err e;
 	u64 pos = gf_bs_get_position(bs);
 	if (!a) return GF_BAD_PARAM;
+	//box has been disabled, do not write
+	if (!a->size) return GF_OK;
+	
 	if (a->registry->disabled) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box %s disabled registry, skip write\n", gf_4cc_to_str(a->type)));
 		return GF_OK;
 	}
+
+	if (in_write) {
+		switch (in_write) {
+		case GF_ISOM_BOX_TYPE_UDTA:
+		case GF_ISOM_BOX_TYPE_EXTR:
+		case GF_ISOM_BOX_TYPE_ABST:
+			break;
+		default:
+			assert(!in_write);
+			break;
+		}
+	}
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box %s size %d write\n", gf_4cc_to_str(a->type), a->size));
+	in_write = a->type;
 	e = gf_isom_box_write_listing(a, bs);
+	in_write = 0;
 	if (e) return e;
-	if (a->other_boxes) {
-		e = gf_isom_box_array_write(a, a->other_boxes, bs);
+	if (a->child_boxes) {
+		e = gf_isom_box_array_write(a, a->child_boxes, bs);
 	}
 	pos = gf_bs_get_position(bs) - pos;
 	if (pos != a->size) {
@@ -1600,7 +1642,7 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	return a->registry->size_fn(a);
 }
 
-
+static u32 in_size = 0;
 GF_EXPORT
 GF_Err gf_isom_box_size(GF_Box *a)
 {
@@ -1609,10 +1651,27 @@ GF_Err gf_isom_box_size(GF_Box *a)
 		a->size = 0;
 		return GF_OK;
 	}
+	if (in_size) {
+		switch (in_size) {
+		case GF_ISOM_BOX_TYPE_UDTA:
+		case GF_ISOM_BOX_TYPE_EXTR:
+		case GF_ISOM_BOX_TYPE_ABST:
+			break;
+		default:
+			assert(!in_size);
+			break;
+		}
+	}
+
+	in_size = a->type;
 	e = gf_isom_box_size_listing(a);
+	in_size = 0;
 	if (e) return e;
-	if (a->other_boxes) {
-		e = gf_isom_box_array_size(a, a->other_boxes);
+	//box size set to 0 (not even a header), abort traversal
+	if (!a->size) return GF_OK;
+
+	if (a->child_boxes) {
+		e = gf_isom_box_array_size(a, a->child_boxes);
 		if (e) return e;
 	}
 	return GF_OK;
@@ -1728,25 +1787,15 @@ GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
 
 	fprintf(trace, "Specification=\"%s\" ", a->registry->spec);
 	fprintf(trace, "Container=\"%s\" ", a->registry->parents_4cc);
-	//disable all box dumping until end of this box
-	if (use_dump_mode) {
-		skip_box_dump_del = GF_TRUE;
-	}
 	return GF_OK;
 }
 
-GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
+GF_Err gf_isom_box_dump(void *ptr, FILE * trace)
 {
 	GF_Box *a = (GF_Box *) ptr;
 
-	if (skip_box_dump_del) return GF_OK;
-
 	if (!a) {
-		if (box_4cc) {
-			fprintf(trace, "<!--ERROR: NULL Box Found, expecting %s -->\n", gf_4cc_to_str(box_4cc) );
-		} else {
-			fprintf(trace, "<!--ERROR: NULL Box Found-->\n");
-		}
+		fprintf(trace, "<!--ERROR: NULL Box Found-->\n");
 		return GF_OK;
 	}
 	if (!a->registry) {
@@ -1759,10 +1808,8 @@ GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 
 void gf_isom_box_dump_done(const char *name, GF_Box *ptr, FILE *trace)
 {
-	//enable box dumping and dump other_boxes which contains all source boxes in order
-	skip_box_dump_del = GF_FALSE;
-	if (ptr && ptr->other_boxes) {
-		gf_isom_box_array_dump(ptr->other_boxes, trace);
+	if (ptr && ptr->child_boxes) {
+		gf_isom_box_array_dump(ptr->child_boxes, trace);
 	}
 	if (name)
 		fprintf(trace, "</%s>\n", name);
@@ -1788,6 +1835,19 @@ GF_Box *gf_isom_box_find_child(GF_List *children, u32 code)
 		if (c->type==code) return c;
 	}
 	return NULL;
+}
+
+Bool gf_isom_box_check_unique(GF_List *children, GF_Box *a)
+{
+	u32 i, count;
+	if (!children) return GF_TRUE;
+	count = gf_list_count(children);
+	for (i=0; i<count; i++) {
+		GF_Box *c = gf_list_get(children, i);
+		if (c==a) continue;
+		if (c->type==a->type) return GF_FALSE;
+	}
+	return GF_TRUE;
 }
 
 void gf_isom_box_del_parent(GF_List **other_boxes, GF_Box*b)

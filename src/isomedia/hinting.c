@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -27,7 +27,7 @@
 
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_HINTING)
 
-GF_Box *ghnt_New()
+GF_Box *ghnt_box_new()
 {
 	GF_HintSampleEntryBox *tmp;
 	GF_SAFEALLOC(tmp, GF_HintSampleEntryBox);
@@ -41,7 +41,7 @@ GF_Box *ghnt_New()
 	return (GF_Box *)tmp;
 }
 
-void ghnt_del(GF_Box *s)
+void ghnt_box_del(GF_Box *s)
 {
 	GF_HintSampleEntryBox *ptr;
 
@@ -50,7 +50,7 @@ void ghnt_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err ghnt_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_HintSampleEntryBox *ptr = (GF_HintSampleEntryBox *)s;
@@ -74,12 +74,12 @@ GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->size -= 4;
 
 	}
-	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
+	return gf_isom_box_array_read(s, bs, NULL);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err ghnt_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err ghnt_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_HintSampleEntryBox *ptr = (GF_HintSampleEntryBox *)s;
@@ -94,7 +94,7 @@ GF_Err ghnt_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err ghnt_Size(GF_Box *s)
+GF_Err ghnt_box_size(GF_Box *s)
 {
 	GF_HintSampleEntryBox *ptr = (GF_HintSampleEntryBox *)s;
 	ptr->size += 16;
@@ -155,8 +155,8 @@ void gf_isom_hint_sample_del(GF_HintSample *ptr)
 	}
 	if (ptr->extra_data)
 		gf_isom_box_del((GF_Box*)ptr->extra_data);
-	if (ptr->other_boxes)
-		gf_isom_box_array_del(ptr->other_boxes);
+	if (ptr->child_boxes)
+		gf_isom_box_array_del(ptr->child_boxes);
 
 	gf_free(ptr);
 }
