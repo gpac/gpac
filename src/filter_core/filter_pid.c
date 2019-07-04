@@ -688,7 +688,12 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	//failure on reconfigure, try reloading a filter chain
 	else if ((ctype==GF_PID_CONF_RECONFIG) && (e != GF_FILTER_NOT_SUPPORTED)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s, reloading filter graph\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
-		gf_filter_relink_dst(pidinst);
+
+		if (e==GF_BAD_PARAM) {
+			filter->session->last_connect_error = e;
+		} else {
+			gf_filter_relink_dst(pidinst);
+		}
 	} else {
 
 		//error, remove from input and output
