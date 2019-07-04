@@ -1174,6 +1174,11 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
+			//codec for generic enc load
+			else if (!strcmp("gfreg", szArg)) {
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
+			}
 			else if (has_meta_args && filter->freg->update_arg) {
 				GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL, filter->session->sep_list);
 				FSESS_CHECK_THREAD(filter)
