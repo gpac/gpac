@@ -207,8 +207,6 @@ GF_Err mdat_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err moov_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_MovieBox *p;
-	p = (GF_MovieBox *)a;
 	gf_isom_box_dump_start(a, "MovieBox", trace);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("MovieBox", a, trace);
@@ -314,8 +312,6 @@ GF_Err nmhd_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err stbl_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_SampleTableBox *p;
-	p = (GF_SampleTableBox *)a;
 	gf_isom_box_dump_start(a, "SampleTableBox", trace);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("SampleTableBox", a, trace);
@@ -324,8 +320,6 @@ GF_Err stbl_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err dinf_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_DataInformationBox *p;
-	p = (GF_DataInformationBox *)a;
 	gf_isom_box_dump_start(a, "DataInformationBox", trace);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("DataInformationBox", a, trace);
@@ -763,9 +757,6 @@ GF_Err gnra_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err edts_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_EditBox *p;
-
-	p = (GF_EditBox *)a;
 	gf_isom_box_dump_start(a, "EditBox", trace);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("EditBox", a, trace);
@@ -1156,9 +1147,6 @@ GF_Err esds_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err minf_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_MediaInformationBox *p;
-
-	p = (GF_MediaInformationBox *)a;
 	gf_isom_box_dump_start(a, "MediaInformationBox", trace);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("MediaInformationBox", a, trace);
@@ -1800,8 +1788,6 @@ GF_Err twrp_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err meta_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_MetaBox *p;
-	p = (GF_MetaBox *)a;
 	gf_isom_box_dump_start(a, "MetaBox", trace);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("MetaBox", a, trace);
@@ -2207,8 +2193,6 @@ GF_Err rtpo_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err mvex_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_MovieExtendsBox *p;
-	p = (GF_MovieExtendsBox *)a;
 	gf_isom_box_dump_start(a, "MovieExtendsBox", trace);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("MovieExtendsBox", a, trace);
@@ -2281,8 +2265,6 @@ GF_Err mfhd_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err traf_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_TrackFragmentBox *p;
-	p = (GF_TrackFragmentBox *)a;
 	gf_isom_box_dump_start(a, "TrackFragmentBox", trace);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("TrackFragmentBox", a, trace);
@@ -3255,8 +3237,6 @@ GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDum
 /* ISMA 1.0 Encryption and Authentication V 1.0  dump */
 GF_Err sinf_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_ProtectionSchemeInfoBox *p;
-	p = (GF_ProtectionSchemeInfoBox *)a;
 	gf_isom_box_dump_start(a, "ProtectionSchemeInfoBox", trace);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("ProtectionSchemeInfoBox", a, trace);
@@ -3288,8 +3268,6 @@ GF_Err schm_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err schi_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_SchemeInformationBox *p;
-	p = (GF_SchemeInformationBox *)a;
 	gf_isom_box_dump_start(a, "SchemeInformationBox", trace);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("SchemeInformationBox", a, trace);
