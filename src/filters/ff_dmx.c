@@ -516,6 +516,14 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		return e;
 	}
 
+	AVDictionaryEntry *prev_e = NULL;
+	while (1) {
+		prev_e = av_dict_get(ctx->options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
+		if (!prev_e) break;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] meta-filter option %s=%s set but not used, see gpac -h ffdmx and gpac -h ffdmx:%s for allowed options\n", ctx->fname, prev_e->key, prev_e->value, ctx->demuxer->iformat->priv_class->class_name));
+		gf_filter_report_unused_meta_option(filter, prev_e->key);
+	}
+
 	res = avformat_find_stream_info(ctx->demuxer, ctx->options ? &ctx->options : NULL);
 
 	if (res <0) {
@@ -814,6 +822,15 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Cannot open device %s:%s\n", ctx->fname, dev_fmt->priv_class->class_name, ctx->dev));
 		return -1;
 	}
+
+	AVDictionaryEntry *prev_e = NULL;
+	while (1) {
+		prev_e = av_dict_get(ctx->options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
+		if (!prev_e) break;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] meta-filter option %s=%s set but not used, see gpac -h ffavin and gpac -h ffavin:%s for allowed options\n", ctx->fname, prev_e->key, prev_e->value, ctx->demuxer->iformat->priv_class->class_name));
+		gf_filter_report_unused_meta_option(filter, prev_e->key);
+	}
+
 	av_dump_format(ctx->demuxer, 0, ctx->dev, 0);
 	ctx->raw_data = GF_TRUE;
 	ctx->audio_idx = ctx->video_idx = -1;
