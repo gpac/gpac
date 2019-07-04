@@ -13,7 +13,7 @@ do_test "$GPAC -i $MEDIA_DIR/auxiliary_files/enst_video.h264:FID=1 ffsws:osize=5
 do_hash_test $TEMP_DIR/file.mpd "mpd"
 do_hash_test $TEMP_DIR/enst_video_dashinit.mp4 "init-v"
 
-#we don't want to test encoder result so hash the inspect timing
+#we don't want to test encoder result so hash the inspect timing, dts only: CTS and SAP might change due to reference frame selection by encoder
 myinspect=$TEMP_DIR/inspect.txt
 do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:allp:interleave=false:fmt=%pn%-%dts%%lf%:log=$myinspect"
 do_hash_test $myinspect "inspect"
@@ -50,7 +50,7 @@ do_hash_test $TEMP_DIR/file.mpd "mpd"
 do_hash_test $TEMP_DIR/enst_video_dashinit_rep1.mp4 "init-v1"
 do_hash_test $TEMP_DIR/enst_video_dashinit_rep2.mp4 "init-v2"
 
-#we don't want to test encoder result so hash the inspect timing and sap
+#we don't want to test encoder result so hash the inspect timing, dts only: CTS and SAP might change due to reference frame selection by encoder
 myinspect=$TEMP_DIR/inspect.txt
 do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:allp:interleave=false:fmt=%pn%-%dts%%lf%:log=$myinspect"
 do_hash_test $myinspect "inspect"
@@ -73,7 +73,7 @@ do_hash_test $TEMP_DIR/count_video_dashinit_rep1.mp4 "init-v1"
 do_hash_test $TEMP_DIR/count_video_dashinit_rep2.mp4 "init-v2"
 do_hash_test $TEMP_DIR/count_english_dashinit.mp4 "init-a"
 
-#we don't want to test encoder result so hash the inspect timing and sap
+#we don't want to test encoder result so hash the inspect timing, dts only: CTS and SAP might change due to reference frame selection by encoder
 myinspect=$TEMP_DIR/inspect.txt
 do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:allp:interleave=false:fmt=%pn%-%dts%%lf%:log=$myinspect"
 do_hash_test $myinspect "inspect"
@@ -89,10 +89,12 @@ $MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -new $mp4file 2> /dev/nu
 
 do_test "$MP4BOX -dash 1000 -profile live -out $TEMP_DIR/file.mpd $mp4file:@@enc:c=avc:fintra=1" "dash"
 do_hash_test $TEMP_DIR/file.mpd "mpd"
-do_hash_test $TEMP_DIR/source_dash1.m4s "init-seg"
-do_hash_test $TEMP_DIR/source_dash1.m4s "seg1"
-do_hash_test $TEMP_DIR/source_dash6.m4s "seg6"
+do_hash_test $TEMP_DIR/source_dashinit.mp4 "init-seg"
 
+#we don't want to test encoder result so hash the inspect timing, dts only: CTS and SAP might change due to reference frame selection by encoder
+myinspect=$TEMP_DIR/inspect.txt
+do_test "$GPAC -i $TEMP_DIR/file.mpd inspect:allp:interleave=false:fmt=%pn%-%dts%%lf%:log=$myinspect"
+do_hash_test $myinspect "inspect"
 
 fi
 test_end
