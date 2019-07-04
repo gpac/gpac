@@ -573,8 +573,8 @@ GF_Err gf_isom_box_size(GF_Box *ptr);
 GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst);
 
 GF_Err gf_isom_box_parse(GF_Box **outBox, GF_BitStream *bs);
-GF_Err gf_isom_box_array_read(GF_Box *s, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b));
-GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type);
+GF_Err gf_isom_box_array_read(GF_Box *s, GF_BitStream *bs, GF_Err (*check_child_box)(GF_Box *par, GF_Box *b));
+GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*check_child_box)(GF_Box *par, GF_Box *b), u32 parent_type);
 
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box);
 

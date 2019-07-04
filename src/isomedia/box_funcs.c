@@ -275,9 +275,9 @@ void gf_isom_box_array_del_parent(GF_List **other_boxes, GF_List *boxlist)
 }
 
 
-GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b))
+GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs, GF_Err (*check_child_box)(GF_Box *par, GF_Box *b))
 {
-	return gf_isom_box_array_read_ex(parent, bs, add_box, parent->type);
+	return gf_isom_box_array_read_ex(parent, bs, check_child_box, parent->type);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1425,7 +1425,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	return gf_isom_box_new_ex(boxType, 0, 0, GF_FALSE);
 }
 
-GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type)
+GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*check_child_box)(GF_Box *par, GF_Box *b), u32 parent_type)
 {
 	GF_Err e;
 	GF_Box *a = NULL;
@@ -1493,8 +1493,8 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 		e = gf_list_add(parent->child_boxes, a);
 
 
-		if (add_box) {
-			e = add_box(parent, a);
+		if (check_child_box) {
+			e = check_child_box(parent, a);
 			if (e) {
 				if (e == GF_ISOM_INVALID_MEDIA) return GF_OK;
 				//if the box is no longer present, consider it destroyed

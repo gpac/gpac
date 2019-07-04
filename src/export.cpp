@@ -1116,7 +1116,6 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_av1_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_av1_config_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_add_default) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_equal) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_write_header) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_cenc_is_pattern_mode) )
