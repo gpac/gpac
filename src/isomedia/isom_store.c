@@ -318,8 +318,12 @@ static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream
 			//don't delete them !!!
 			stsc = writer->stbl->SampleToChunk;
 			stco = writer->stbl->ChunkOffset;
+			gf_list_del_item(writer->stbl->child_boxes, stsc);
+			gf_list_del_item(writer->stbl->child_boxes, stco);
 			writer->stbl->SampleToChunk = writer->stsc;
 			writer->stbl->ChunkOffset = writer->stco;
+			gf_list_add(writer->stbl->child_boxes, writer->stsc);
+			gf_list_add(writer->stbl->child_boxes, writer->stco);
 			writer->stco = stco;
 			writer->stsc = stsc;
 		}
@@ -336,8 +340,13 @@ static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream
 			stco = writer->stco;
 			writer->stsc = writer->stbl->SampleToChunk;
 			writer->stco = writer->stbl->ChunkOffset;
+			gf_list_del_item(writer->stbl->child_boxes, writer->stsc);
+			gf_list_del_item(writer->stbl->child_boxes, writer->stco);
+
 			writer->stbl->SampleToChunk = stsc;
 			writer->stbl->ChunkOffset = stco;
+			gf_list_add(writer->stbl->child_boxes, stsc);
+			gf_list_add(writer->stbl->child_boxes, stco);
 		}
 		if (e) return e;
 	}

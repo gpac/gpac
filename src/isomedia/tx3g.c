@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -48,7 +48,7 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 		return GF_BAD_PARAM;
 	}
 
-	txt = (GF_Tx3gSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
+	txt = (GF_Tx3gSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, descriptionIndex - 1);
 	if (!txt) return GF_BAD_PARAM;
 	switch (txt->type) {
 	case GF_ISOM_BOX_TYPE_TX3G:
@@ -100,7 +100,7 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 		return GF_BAD_PARAM;
 	}
 
-	txt = (GF_Tx3gSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
+	txt = (GF_Tx3gSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, descriptionIndex - 1);
 	if (!txt) return GF_BAD_PARAM;
 	switch (txt->type) {
 	case GF_ISOM_BOX_TYPE_TX3G:
@@ -119,9 +119,9 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 	txt->displayFlags = desc->displayFlags;
 	txt->vertical_justification = desc->vert_justif;
 	txt->horizontal_justification = desc->horiz_justif;
-	if (txt->font_table) gf_isom_box_del((GF_Box*)txt->font_table);
+	if (txt->font_table) gf_isom_box_del_parent(&txt->child_boxes, (GF_Box*)txt->font_table);
 
-	txt->font_table = (GF_FontTableBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FTAB);
+	txt->font_table = (GF_FontTableBox *)gf_isom_box_new_parent(&txt->child_boxes, GF_ISOM_BOX_TYPE_FTAB);
 	txt->font_table->entry_count = desc->font_count;
 	txt->font_table->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * desc->font_count);
 	for (i=0; i<desc->font_count; i++) {
@@ -165,8 +165,8 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 
 	txt = (GF_Tx3gSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TX3G);
 	txt->dataReferenceIndex = dataRefIndex;
-	gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, txt);
-	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+	gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, txt);
+	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
 
 	txt->back_color = desc->back_color;
 	txt->default_box = desc->default_pos;
@@ -174,7 +174,7 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 	txt->displayFlags = desc->displayFlags;
 	txt->vertical_justification = desc->vert_justif;
 	txt->horizontal_justification = desc->horiz_justif;
-	txt->font_table = (GF_FontTableBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FTAB);
+	txt->font_table = (GF_FontTableBox *)gf_isom_box_new_parent(&txt->child_boxes, GF_ISOM_BOX_TYPE_FTAB);
 	txt->font_table->entry_count = desc->font_count;
 
 	txt->font_table->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * desc->font_count);
@@ -482,10 +482,10 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 		return GF_BAD_PARAM;
 	}
 
-	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
 	for (i=0; i<count; i++) {
 		Bool same_fonts;
-		txt = (GF_Tx3gSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, i);
+		txt = (GF_Tx3gSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, i);
 		if (!txt) continue;
 		if ((txt->type != GF_ISOM_BOX_TYPE_TX3G) && (txt->type != GF_ISOM_BOX_TYPE_TEXT)) continue;
 		if (txt->back_color != desc->back_color) continue;
@@ -713,7 +713,7 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
 	GF_TrackBox *tk;
 
 	*out_esd = NULL;
-	sampleDesc = mdia->information->sampleTable->SampleDescription->other_boxes;
+	sampleDesc = mdia->information->sampleTable->SampleDescription->child_boxes;
 	count = gf_list_count(sampleDesc);
 	if (!count) return GF_ISOM_INVALID_MEDIA;
 
@@ -828,7 +828,7 @@ GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 
 	trak = gf_isom_get_track_from_file(file, track);
 	if (!trak) return GF_BAD_PARAM;
 
-	a = (GF_Tx3gSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, sidx-1);
+	a = (GF_Tx3gSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, sidx-1);
 	if (!a) return GF_BAD_PARAM;
 	if ((a->type != GF_ISOM_BOX_TYPE_TX3G) && (a->type != GF_ISOM_BOX_TYPE_TEXT)) return GF_BAD_PARAM;
 

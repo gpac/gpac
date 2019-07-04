@@ -1549,7 +1549,6 @@
 		9201FFF118D5A444003D1ACA /* isomedia */ = {
 			isa = PBXGroup;
 			children = (
-				924FEE811BA6C63A003F77A6 /* iff.c */,
 				9201FFF218D5A444003D1ACA /* avc_ext.c */,
 				9201FFF318D5A444003D1ACA /* box_code_3gpp.c */,
 				9201FFF418D5A444003D1ACA /* box_code_adobe.c */,
@@ -1563,6 +1562,7 @@
 				9201FFFC18D5A444003D1ACA /* drm_sample.c */,
 				9201FFFE18D5A444003D1ACA /* hint_track.c */,
 				9201FFFF18D5A444003D1ACA /* hinting.c */,
+				924FEE811BA6C63A003F77A6 /* iff.c */,
 				9201000018D5A444003D1ACA /* isom_intern.c */,
 				9201000118D5A444003D1ACA /* isom_read.c */,
 				9201000218D5A444003D1ACA /* isom_store.c */,

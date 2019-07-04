@@ -55,9 +55,9 @@ u32 gf_isom_has_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num)
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta) return 0;
 
-	count = gf_list_count(meta->other_boxes);
+	count = gf_list_count(meta->child_boxes);
 	for (i=0; i<count; i++) {
-		GF_Box *a = (GF_Box *)gf_list_get(meta->other_boxes, i);
+		GF_Box *a = (GF_Box *)gf_list_get(meta->child_boxes, i);
 		if (a->type == GF_ISOM_BOX_TYPE_XML) return 1;
 		if (a->type == GF_ISOM_BOX_TYPE_BXML) return 2;
 	}
@@ -74,9 +74,9 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	if (!meta) return GF_BAD_PARAM;
 
 	/*Find XMLBox*/
-	count = gf_list_count(meta->other_boxes);
+	count = gf_list_count(meta->child_boxes);
 	for (i = 0; i <count; i++) {
-		GF_Box *a = (GF_Box *)gf_list_get(meta->other_boxes, i);
+		GF_Box *a = (GF_Box *)gf_list_get(meta->child_boxes, i);
 		if ((a->type == GF_ISOM_BOX_TYPE_XML) || (a->type == GF_ISOM_BOX_TYPE_BXML) ) {
 			xml = (GF_XMLBox *)a;
 			break;
@@ -100,9 +100,9 @@ GF_XMLBox *gf_isom_get_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	if (!meta) return NULL;
 
 	/*Find XMLBox*/
-	count = gf_list_count(meta->other_boxes);
+	count = gf_list_count(meta->child_boxes);
 	for (i = 0; i <count; i++) {
-		GF_Box *a = (GF_Box *)gf_list_get(meta->other_boxes, i);
+		GF_Box *a = (GF_Box *)gf_list_get(meta->child_boxes, i);
 		if (a->type == GF_ISOM_BOX_TYPE_XML) {
 			*is_binary = 0;
 			return (GF_XMLBox *)a;
@@ -154,7 +154,7 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 		GF_ItemLocationEntry *iloc = (GF_ItemLocationEntry *)gf_list_get(meta->item_locations->location_entries, i);
 		if (iloc->item_ID==iinf->item_ID) {
 			if (iloc->data_reference_index) {
-				GF_Box *a = (GF_Box *)gf_list_get(meta->file_locations->dref->other_boxes, iloc->data_reference_index-1);
+				GF_Box *a = (GF_Box *)gf_list_get(meta->file_locations->dref->child_boxes, iloc->data_reference_index-1);
 				if (a->type==GF_ISOM_BOX_TYPE_URL) {
 					if (item_url) (*item_url) = ((GF_DataEntryURLBox*)a)->location;
 				} else if (a->type==GF_ISOM_BOX_TYPE_URN) {
@@ -243,9 +243,9 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 	if (location_entry->construction_method == 1) {
 		Bool found = GF_FALSE;
 
-		count = gf_list_count(meta->other_boxes);
+		count = gf_list_count(meta->child_boxes);
 		for (i = 0; i <count; i++) {
-			GF_Box *a = (GF_Box *)gf_list_get(meta->other_boxes, i);
+			GF_Box *a = (GF_Box *)gf_list_get(meta->child_boxes, i);
 
 			if (a->type == GF_ISOM_BOX_TYPE_IDAT) {
 				GF_MediaDataBox *p = (GF_MediaDataBox *)a;
@@ -263,7 +263,7 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 	/*FIXME*/
 	else if (location_entry->data_reference_index) {
 		char *item_url = NULL, *item_urn = NULL;
-		GF_Box *a = (GF_Box *)gf_list_get(meta->file_locations->dref->other_boxes, location_entry->data_reference_index-1);
+		GF_Box *a = (GF_Box *)gf_list_get(meta->file_locations->dref->child_boxes, location_entry->data_reference_index-1);
 		if (a->type==GF_ISOM_BOX_TYPE_URL) {
 			item_url = ((GF_DataEntryURLBox*)a)->location;
 		} else if (a->type==GF_ISOM_BOX_TYPE_URN) {
@@ -322,7 +322,7 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 			for (j=0; j<c2; j++) {
 				u32 *idx = gf_list_get(e->property_index, j);
 				if (! (*idx) ) continue;
-				hvcc = gf_list_get(meta->item_props->property_container->other_boxes, (*idx) - 1);
+				hvcc = gf_list_get(meta->item_props->property_container->child_boxes, (*idx) - 1);
 				if (!hvcc) {
 					if (item_bs) gf_bs_del(item_bs);
 					return GF_NON_COMPLIANT_BITSTREAM;
@@ -448,12 +448,16 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 			gf_isom_insert_moov(file);
 			if (!track_num) {
 				file->moov->meta = meta;
+				if (!file->moov->child_boxes) file->moov->child_boxes = gf_list_new();
+				gf_list_add(file->moov->child_boxes, meta);
 			} else {
 				GF_TrackBox *tk = (GF_TrackBox *)gf_list_get(file->moov->trackList, track_num-1);
 				if (!tk) {
 					gf_isom_box_del((GF_Box *)meta);
 					return GF_BAD_PARAM;
 				}
+				if (!tk->child_boxes) tk->child_boxes = gf_list_new();
+				gf_list_add(tk->child_boxes, meta);
 				tk->meta = meta;
 			}
 		}
@@ -464,12 +468,12 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 			file->meta = NULL;
 		} else if (file->moov) {
 			if (!track_num) {
-				gf_isom_box_del((GF_Box *)file->moov->meta);
+				gf_isom_box_del_parent(&file->moov->child_boxes, (GF_Box *)file->moov->meta);
 				file->moov->meta = NULL;
 			} else {
 				GF_TrackBox *tk = (GF_TrackBox *)gf_list_get(file->moov->trackList, track_num-1);
 				if (!tk) return GF_BAD_PARAM;
-				gf_isom_box_del((GF_Box *)tk->meta);
+				gf_isom_box_del_parent(&tk->child_boxes, (GF_Box *)tk->meta);
 				tk->meta = NULL;
 			}
 		}
@@ -477,7 +481,7 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 	}
 
 	if (!meta->handler)
-		meta->handler = (GF_HandlerBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_HDLR);
+		meta->handler = (GF_HandlerBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
 
 	if (meta->handler->nameUTF8) gf_free(meta->handler->nameUTF8);
 	meta->handler->handlerType = metaType;
@@ -494,12 +498,12 @@ GF_Err gf_isom_remove_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num)
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta) return GF_BAD_PARAM;
 	i=0;
-	while ((a = (GF_Box*)gf_list_enum(meta->other_boxes, &i))) {
+	while ((a = (GF_Box*)gf_list_enum(meta->child_boxes, &i))) {
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_XML:
 		case GF_ISOM_BOX_TYPE_BXML:
-			gf_list_rem(meta->other_boxes, i-1);
-			gf_isom_box_del(a);
+			gf_isom_box_del_parent(&meta->child_boxes, a);
+			i--;
 			return GF_OK;
 		}
 	}
@@ -523,9 +527,8 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	e = gf_isom_remove_meta_xml(file, root_meta, track_num);
 	if (e) return e;
 
-	xml = (GF_XMLBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_XML);
+	xml = (GF_XMLBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_XML);
 	if (!xml) return GF_OUT_OF_MEM;
-	gf_list_add(meta->other_boxes, xml);
 	if (IsBinaryXML) xml->type = GF_ISOM_BOX_TYPE_BXML;
 
 
@@ -549,9 +552,8 @@ GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_n
 	e = gf_isom_remove_meta_xml(file, root_meta, track_num);
 	if (e) return e;
 
-	xml = (GF_XMLBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_XML);
+	xml = (GF_XMLBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_XML);
 	if (!xml) return GF_OUT_OF_MEM;
-	gf_list_add(meta->other_boxes, xml);
 	if (IsBinaryXML) xml->type = GF_ISOM_BOX_TYPE_BXML;
 
 
@@ -583,7 +585,7 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 			count2 = gf_list_count(entry->property_index);
 			for (j = 0; j < count2; j++) {
 				u32 *index = (u32 *)gf_list_get(entry->property_index, j);
-				GF_Box *b = (GF_Box *)gf_list_get(ipco->other_boxes, *index - 1);
+				GF_Box *b = (GF_Box *)gf_list_get(ipco->child_boxes, *index - 1);
 				if (!b) continue;
 				switch (b->type) {
 				case GF_ISOM_BOX_TYPE_ISPE:
@@ -638,9 +640,9 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProperties *prop) {
 	u32 i;
 	u32 count;
-	count = gf_list_count(boxes->other_boxes);
+	count = gf_list_count(boxes->child_boxes);
 	for (i = 0; i < count; i++) {
-		GF_Box *b = (GF_Box *)gf_list_get(boxes->other_boxes, i);
+		GF_Box *b = (GF_Box *)gf_list_get(boxes->child_boxes, i);
 		switch(b->type) {
 		case GF_ISOM_BOX_TYPE_ISPE:
 		{
@@ -734,15 +736,17 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 	memset(&searchprop, 0, sizeof(GF_ImageItemProperties));
 
 	if (!meta->item_props) {
-		meta->item_props = (GF_ItemPropertiesBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IPRP);
-		meta->item_props->property_container = (GF_ItemPropertyContainerBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IPCO);
+		meta->item_props = (GF_ItemPropertiesBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_IPRP);
+		meta->item_props->property_container = (GF_ItemPropertyContainerBox *)gf_isom_box_new_parent(&meta->item_props->child_boxes, GF_ISOM_BOX_TYPE_IPCO);
 		ipco = meta->item_props->property_container;
-		ipma = (GF_ItemPropertyAssociationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IPMA);
+		ipma = (GF_ItemPropertyAssociationBox *)gf_isom_box_new_parent(&meta->item_props->child_boxes, GF_ISOM_BOX_TYPE_IPMA);
 		meta->item_props->property_association = ipma;
 	} else {
 		ipco = meta->item_props->property_container;
 		ipma = meta->item_props->property_association;
 	}
+	if (!ipco->child_boxes)
+		ipco->child_boxes = gf_list_new();
 
 	if (strlen(image_props->iccPath) > 0) {
 		u32 size;
@@ -753,14 +757,13 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 
 		} else {
 
-			GF_ColourInformationBox *colr = (GF_ColourInformationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_COLR);
+			GF_ColourInformationBox *colr = (GF_ColourInformationBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_COLR);
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] reading ICC colour profile from file %s\n", &image_props->iccPath));
 			colr->colour_type = GF_ISOM_SUBTYPE_PROF;
 			colr->opaque_size = size;
 			colr->opaque = data;
 
-			gf_list_add(ipco->other_boxes, colr);
-			prop_index = gf_list_count(ipco->other_boxes) - 1;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
 			meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_FALSE);
 		}
 	}
@@ -770,11 +773,10 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 		searchprop.height = image_props->height;
 		prop_index = meta_find_prop(ipco, &searchprop);
 		if (prop_index < 0) {
-			GF_ImageSpatialExtentsPropertyBox *ispe = (GF_ImageSpatialExtentsPropertyBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_ISPE);
+			GF_ImageSpatialExtentsPropertyBox *ispe = (GF_ImageSpatialExtentsPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_ISPE);
 			ispe->image_width = image_props->width;
 			ispe->image_height = image_props->height;
-			gf_list_add(ipco->other_boxes, ispe);
-			prop_index = gf_list_count(ipco->other_boxes) - 1;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_FALSE);
 		searchprop.width = 0;
@@ -785,11 +787,10 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 		searchprop.vOffset = image_props->vOffset;
 		prop_index = meta_find_prop(ipco, &searchprop);
 		if (prop_index < 0) {
-			GF_RelativeLocationPropertyBox *rloc = (GF_RelativeLocationPropertyBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_RLOC);
+			GF_RelativeLocationPropertyBox *rloc = (GF_RelativeLocationPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_RLOC);
 			rloc->horizontal_offset = image_props->hOffset;
 			rloc->vertical_offset = image_props->vOffset;
-			gf_list_add(ipco->other_boxes, rloc);
-			prop_index = gf_list_count(ipco->other_boxes) - 1;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		searchprop.hOffset = 0;
@@ -800,11 +801,10 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 		searchprop.vSpacing = image_props->vSpacing;
 		prop_index = meta_find_prop(ipco, &searchprop);
 		if (prop_index < 0) {
-			GF_PixelAspectRatioBox *pasp = (GF_PixelAspectRatioBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_PASP);
+			GF_PixelAspectRatioBox *pasp = (GF_PixelAspectRatioBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_PASP);
 			pasp->hSpacing = image_props->hSpacing;
 			pasp->vSpacing = image_props->vSpacing;
-			gf_list_add(ipco->other_boxes, pasp);
-			prop_index = gf_list_count(ipco->other_boxes) - 1;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_FALSE);
 		searchprop.hSpacing = 0;
@@ -814,10 +814,9 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 		searchprop.angle = image_props->angle;
 		prop_index = meta_find_prop(ipco, &searchprop);
 		if (prop_index < 0) {
-			GF_ImageRotationBox *irot = (GF_ImageRotationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IROT);
+			GF_ImageRotationBox *irot = (GF_ImageRotationBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IROT);
 			irot->angle = image_props->angle/90;
-			gf_list_add(ipco->other_boxes, irot);
-			prop_index = gf_list_count(ipco->other_boxes) - 1;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		searchprop.angle = 0;
@@ -826,8 +825,8 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 		searchprop.config = image_props->config;
 		prop_index = meta_find_prop(ipco, &searchprop);
 		if (prop_index < 0) {
-			gf_list_add(ipco->other_boxes, gf_isom_clone_config_box(image_props->config));
-			prop_index = gf_list_count(ipco->other_boxes) - 1;
+			gf_list_add(ipco->child_boxes, gf_isom_clone_config_box(image_props->config));
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		searchprop.config = NULL;
@@ -836,10 +835,9 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 		searchprop.alpha = image_props->alpha;
 		prop_index = meta_find_prop(ipco, &searchprop);
 		if (prop_index < 0) {
-			GF_AuxiliaryTypePropertyBox *auxC = (GF_AuxiliaryTypePropertyBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AUXC);
+			GF_AuxiliaryTypePropertyBox *auxC = (GF_AuxiliaryTypePropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_AUXC);
 			auxC->aux_urn = gf_strdup("urn:mpeg:mpegB:cicp:systems:auxiliary:alpha");
-			gf_list_add(ipco->other_boxes, auxC);
-			prop_index = gf_list_count(ipco->other_boxes) - 1;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		searchprop.alpha = GF_FALSE;
@@ -849,12 +847,11 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 		memcpy(searchprop.bits_per_channel, image_props->bits_per_channel, 3);
 		prop_index = meta_find_prop(ipco, &searchprop);
 		if (prop_index < 0) {
-			GF_PixelInformationPropertyBox *pixi = (GF_PixelInformationPropertyBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_PIXI);
+			GF_PixelInformationPropertyBox *pixi = (GF_PixelInformationPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_PIXI);
 			pixi->num_channels = image_props->num_channels;
 			pixi->bits_per_channel = gf_malloc(pixi->num_channels);
 			memcpy(pixi->bits_per_channel, image_props->bits_per_channel, image_props->num_channels);
-			gf_list_add(ipco->other_boxes, pixi);
-			prop_index = gf_list_count(ipco->other_boxes) - 1;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		searchprop.num_channels = 0;
@@ -931,9 +928,15 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 				item_id = 0;
 			}
 		}
+	} else {
+		meta->item_infos = (GF_ItemInfoBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_IINF);
 	}
 
-	infe = (GF_ItemInfoEntryBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_INFE);
+	/*Creation an ItemLocation Box if it does not exist*/
+	if (!meta->item_locations)
+		meta->item_locations = (GF_ItemLocationBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_ILOC);
+
+	infe = (GF_ItemInfoEntryBox *)gf_isom_box_new_parent(&meta->item_infos->child_boxes, GF_ISOM_BOX_TYPE_INFE);
 	if (item_id) {
 		infe->item_ID = item_id;
 	} else {
@@ -959,7 +962,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	/*Creation of the ItemLocation */
 	location_entry = (GF_ItemLocationEntry*)gf_malloc(sizeof(GF_ItemLocationEntry));
 	if (!location_entry) {
-		gf_isom_box_del((GF_Box *)infe);
+		gf_isom_box_del_parent(&meta->item_infos->child_boxes, (GF_Box *)infe);
 		return GF_OUT_OF_MEM;
 	}
 	memset(location_entry, 0, sizeof(GF_ItemLocationEntry));
@@ -971,12 +974,9 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 		gf_list_add(file->TopBoxes, file->mdat);
 	}
 
-	/*Creation an ItemLocation Box if it does not exist*/
-	if (!meta->item_locations) meta->item_locations = (GF_ItemLocationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_ILOC);
 	gf_list_add(meta->item_locations->location_entries, location_entry);
 	location_entry->item_ID = infe->item_ID;
 
-	if (!meta->item_infos) meta->item_infos = (GF_ItemInfoBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IINF);
 	e = gf_list_add(meta->item_infos->item_infos, infe);
 	if (e) return e;
 
@@ -1000,8 +1000,8 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	/*file not copied, just referenced*/
 	if (URL || URN) {
 		u32 dataRefIndex;
-		if (!meta->file_locations) meta->file_locations = (GF_DataInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DINF);
-		if (!meta->file_locations->dref) meta->file_locations->dref = (GF_DataReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DREF);
+		if (!meta->file_locations) meta->file_locations = (GF_DataInformationBox *) gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_DINF);
+		if (!meta->file_locations->dref) meta->file_locations->dref = (GF_DataReferenceBox *) gf_isom_box_new_parent(&meta->file_locations->child_boxes, GF_ISOM_BOX_TYPE_DREF);
 		e = Media_FindDataRef(meta->file_locations->dref, (char *) URL, (char *) URN, &dataRefIndex);
 		if (e) return e;
 		if (!dataRefIndex) {
@@ -1129,7 +1129,7 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 			break;
 		}
 	}
-	gf_isom_box_del((GF_Box *)iinf);
+	gf_isom_box_del_parent(&meta->item_infos->child_boxes, (GF_Box *)iinf);
 	return GF_OK;
 }
 
@@ -1141,8 +1141,8 @@ GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track
 	/*either one or the other*/
 	if (gf_isom_has_meta_xml(file, root_meta, track_num)) return GF_BAD_PARAM;
 
-	if (meta->primary_resource) gf_isom_box_del((GF_Box*)meta->primary_resource);
-	meta->primary_resource = (GF_PrimaryItemBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_PITM);
+	if (meta->primary_resource) gf_isom_box_del_parent(&meta->child_boxes, (GF_Box*)meta->primary_resource);
+	meta->primary_resource = (GF_PrimaryItemBox*) gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_PITM);
 	meta->primary_resource->item_ID = item_id;
 	return GF_OK;
 }
@@ -1159,7 +1159,7 @@ GF_Err gf_isom_meta_add_item_ref(GF_ISOFile *file, Bool root_meta, u32 track_num
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta) return GF_BAD_PARAM;
 	if (!meta->item_refs) {
-		meta->item_refs = (GF_ItemReferenceBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IREF);
+		meta->item_refs = (GF_ItemReferenceBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_IREF);
 	}
 	count = gf_list_count(meta->item_refs->references);
 	for (i = 0; i < count; i++) {
@@ -1170,7 +1170,7 @@ GF_Err gf_isom_meta_add_item_ref(GF_ISOFile *file, Bool root_meta, u32 track_num
 		}
 	}
 	if (index < 0) {
-		ref = (GF_ItemReferenceTypeBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_REFI);
+		ref = (GF_ItemReferenceTypeBox *)gf_isom_box_new_parent(&meta->item_refs->child_boxes, GF_ISOM_BOX_TYPE_REFI);
 		gf_list_add(meta->item_refs->references, ref);
 		ref->reference_type = type;
 		ref->from_item_id = from_id;

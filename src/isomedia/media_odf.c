@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -254,18 +254,16 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 	//First find the references, and create them if none
 	tref = mdia->mediaTrack->References;
 	if (!tref) {
-		tref = (GF_TrackReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREF);
-		e = trak_AddBox((GF_Box*)mdia->mediaTrack, (GF_Box *) tref);
+		tref = (GF_TrackReferenceBox *) gf_isom_box_new_parent(&mdia->mediaTrack->child_boxes, GF_ISOM_BOX_TYPE_TREF);
+		e = trak_on_child_box((GF_Box*)mdia->mediaTrack, (GF_Box *) tref);
 		if (e) return e;
 	}
 	//then find the OD reference, and create it if none
 	e = Track_FindRef(mdia->mediaTrack, GF_ISOM_BOX_TYPE_MPOD, &mpod);
 	if (e) return e;
 	if (!mpod) {
-		mpod = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
+		mpod = (GF_TrackReferenceTypeBox *) gf_isom_box_new_parent(&tref->child_boxes, GF_ISOM_BOX_TYPE_REFT);
 		mpod->reference_type = GF_ISOM_BOX_TYPE_MPOD;
-		e = tref_AddBox((GF_Box*)tref, (GF_Box *)mpod);
-		if (e) return e;
 	}
 
 	//OK, create our codecs
