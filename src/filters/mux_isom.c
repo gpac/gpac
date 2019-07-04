@@ -181,6 +181,7 @@ typedef struct
 	GF_AudioSampleEntryImportMode ase;
 	char *styp;
 	Bool sseg;
+	Bool noroll;
 
 
 	//internal
@@ -2630,19 +2631,21 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 		tkw->has_open_gop = GF_TRUE;
 	}
-	if ((sap_type==4) || tkw->has_gdr) {
-		s16 roll = gf_filter_pck_get_roll_info(pck);
-		if (for_fragment) {
-			e = gf_isom_fragment_set_sample_roll_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==4) ? GF_TRUE : GF_FALSE, roll);
-		} else {
-			e = gf_isom_set_sample_roll_group(ctx->file, tkw->track_num, tkw->nb_samples, (sap_type==4) ? GF_TRUE : GF_FALSE, roll);
+	if (!ctx->noroll) {
+		if ((sap_type==4) || tkw->has_gdr) {
+			s16 roll = gf_filter_pck_get_roll_info(pck);
+			if (for_fragment) {
+				e = gf_isom_fragment_set_sample_roll_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==4) ? GF_TRUE : GF_FALSE, roll);
+			} else {
+				e = gf_isom_set_sample_roll_group(ctx->file, tkw->track_num, tkw->nb_samples, (sap_type==4) ? GF_TRUE : GF_FALSE, roll);
+			}
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 4 roll %s in roll group: %s\n", tkw->sample.DTS, roll, gf_error_to_string(e) ));
+			}
+			tkw->has_gdr = GF_TRUE;
 		}
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 4 roll %s in roll group: %s\n", tkw->sample.DTS, roll, gf_error_to_string(e) ));
-		}
-		tkw->has_gdr = GF_TRUE;
 	}
-
+	
 	if (subs) {
 		//if no AUDelim nal and inband header injection, push new subsample
 		if (!first_nal_is_audelim && insert_subsample_dsi) {
@@ -4418,7 +4421,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(ssix), "create ssix when sidx is present, level 1 mappping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ccst), "insert coding constraint box for video tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-
+	{ OFFS(noroll), "disable roll sample grouping", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sseg), "set single segment mode for dash", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
