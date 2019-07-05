@@ -6721,10 +6721,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, u32 trackID, char *box_patch_fi
 						gf_list_insert(*parent_list, new_box, insert_pos);
 					}
 				} else {
-					u32 parent_type = 0;
 					u32 box_idx = 0;
-					if (insert_pos<0) parent_type = box->type;
-					else if (parent_box) parent_type = parent_box->type;
 
 					gf_bs_seek(bs, 0);
 					while (gf_bs_available(bs)) {
