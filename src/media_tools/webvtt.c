@@ -210,16 +210,7 @@ GF_Err boxstring_box_write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err vtcu_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_VTTCueBox *cuebox = (GF_VTTCueBox *)s;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-	gf_isom_check_write_pos(s, (GF_Box*)cuebox->id, &pos);
-	gf_isom_check_write_pos(s, (GF_Box*)cuebox->time, &pos);
-	gf_isom_check_write_pos(s, (GF_Box*)cuebox->settings, &pos);
-	gf_isom_check_write_pos(s, (GF_Box*)cuebox->payload, &pos);
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err vtte_box_write(GF_Box *s, GF_BitStream *bs)
@@ -232,13 +223,10 @@ GF_Err vtte_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err wvtt_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 pos=0;
 	GF_WebVTTSampleEntryBox *wvtt = (GF_WebVTTSampleEntryBox *)s;
 	e = gf_isom_box_write_header(s, bs);
 	gf_bs_write_data(bs, wvtt->reserved, 6);
 	gf_bs_write_u16(bs, wvtt->dataReferenceIndex);
-
-	gf_isom_check_write_pos(s, (GF_Box *)wvtt->config, &pos);
 	return e;
 }
 
@@ -252,6 +240,12 @@ GF_Err boxstring_box_size(GF_Box *s)
 
 GF_Err vtcu_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_VTTCueBox *cuebox = (GF_VTTCueBox *)s;
+	gf_isom_check_position(s, (GF_Box*)cuebox->id, &pos);
+	gf_isom_check_position(s, (GF_Box*)cuebox->time, &pos);
+	gf_isom_check_position(s, (GF_Box*)cuebox->settings, &pos);
+	gf_isom_check_position(s, (GF_Box*)cuebox->payload, &pos);
 	return GF_OK;
 }
 
@@ -262,7 +256,10 @@ GF_Err vtte_box_size(GF_Box *s)
 
 GF_Err wvtt_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_WebVTTSampleEntryBox *wvtt = (GF_WebVTTSampleEntryBox *)s;
 	s->size += 8; // reserved and dataReferenceIndex
+	gf_isom_check_position(s, (GF_Box *)wvtt->config, &pos);
 	return GF_OK;
 }
 

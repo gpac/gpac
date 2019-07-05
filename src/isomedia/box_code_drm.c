@@ -67,21 +67,16 @@ GF_Err sinf_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err sinf_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_ProtectionSchemeInfoBox *ptr = (GF_ProtectionSchemeInfoBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->original_format, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->scheme_type, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->info, &pos);
-    return GF_OK;
+	return  gf_isom_box_write_header(s, bs);
 }
 
 GF_Err sinf_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_ProtectionSchemeInfoBox *ptr = (GF_ProtectionSchemeInfoBox *)s;
+	gf_isom_check_position(s, (GF_Box *)ptr->original_format, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->scheme_type, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->info, &pos);
     return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -243,25 +238,21 @@ GF_Err schi_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err schi_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_SchemeInformationBox *ptr = (GF_SchemeInformationBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->ikms, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->isfm, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->islt, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->odkm, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->tenc, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->adkm, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->piff_tenc, &pos);
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err schi_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_SchemeInformationBox *ptr = (GF_SchemeInformationBox *)s;
+
+	gf_isom_check_position(s, (GF_Box *)ptr->ikms, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->isfm, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->islt, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->odkm, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->tenc, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->adkm, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->piff_tenc, &pos);
 	return GF_OK;
 }
 
@@ -737,20 +728,15 @@ GF_Err odkm_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err odkm_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	u32 pos=0;
-	GF_Err e;
-	GF_OMADRMKMSBox *ptr = (GF_OMADRMKMSBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_full_box_write(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->hdr, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->fmt, &pos);
-	return GF_OK;
+	return gf_isom_full_box_write(s, bs);
 }
 
 GF_Err odkm_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_OMADRMKMSBox *ptr = (GF_OMADRMKMSBox *)s;
+	gf_isom_check_position(s, (GF_Box *)ptr->hdr, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->fmt, &pos);
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -1451,20 +1437,15 @@ GF_Err adkm_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err adkm_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_AdobeDRMKeyManagementSystemBox *ptr = (GF_AdobeDRMKeyManagementSystemBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_full_box_write(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->header, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->au_format, &pos);
-	return GF_OK;
+	return gf_isom_full_box_write(s, bs);
 }
 
 GF_Err adkm_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_AdobeDRMKeyManagementSystemBox *ptr = (GF_AdobeDRMKeyManagementSystemBox *)s;
+	gf_isom_check_position(s, (GF_Box *)ptr->header, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->au_format, &pos);
     return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
@@ -1503,19 +1484,14 @@ GF_Err ahdr_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err ahdr_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_AdobeDRMHeaderBox *ptr = (GF_AdobeDRMHeaderBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_full_box_write(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->std_enc_params, &pos);
-	return GF_OK;
+	return gf_isom_full_box_write(s, bs);
 }
 
 GF_Err ahdr_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_AdobeDRMHeaderBox *ptr = (GF_AdobeDRMHeaderBox *)s;
+	gf_isom_check_position(s, (GF_Box *)ptr->std_enc_params, &pos);
     return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
@@ -1557,20 +1533,15 @@ GF_Err aprm_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err aprm_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_AdobeStdEncryptionParamsBox *ptr = (GF_AdobeStdEncryptionParamsBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_full_box_write(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->enc_info, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->key_info, &pos);
-	return GF_OK;
+	return gf_isom_full_box_write(s, bs);
 }
 
 GF_Err aprm_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_AdobeStdEncryptionParamsBox *ptr = (GF_AdobeStdEncryptionParamsBox *)s;
+	gf_isom_check_position(s, (GF_Box *)ptr->enc_info, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->key_info, &pos);
     return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
@@ -1667,18 +1638,14 @@ GF_Err akey_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err akey_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_AdobeKeyInfoBox *ptr = (GF_AdobeKeyInfoBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_full_box_write(s, bs);
-	if (e) return e;
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->params, &pos);
-	return GF_OK;
+	return gf_isom_full_box_write(s, bs);
 }
 
 GF_Err akey_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_AdobeKeyInfoBox *ptr = (GF_AdobeKeyInfoBox *)s;
+	gf_isom_check_position(s, (GF_Box *)ptr->params, &pos);
     return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE

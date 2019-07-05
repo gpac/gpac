@@ -429,20 +429,15 @@ GF_Err iprp_box_read(GF_Box *s, GF_BitStream *bs)
 
 GF_Err iprp_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_ItemPropertiesBox *p = (GF_ItemPropertiesBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos(s, (GF_Box*)p->property_container, &pos);
-	gf_isom_check_write_pos(s, (GF_Box*)p->property_association, &pos);
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err iprp_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_ItemPropertiesBox *p = (GF_ItemPropertiesBox *)s;
+	gf_isom_check_position(s, (GF_Box*)p->property_container, &pos);
+	gf_isom_check_position(s, (GF_Box*)p->property_association, &pos);
 	return GF_OK;
 }
 

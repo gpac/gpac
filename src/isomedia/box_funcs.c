@@ -126,7 +126,6 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box type %s (0x%08X) at position "LLU" has size 0 but is not at root/file level, skipping\n", gf_4cc_to_str(type), type, start));
 				}
 				return GF_OK;
-//				return GF_ISOM_INVALID_FILE;
 			}
 		}
 	}
@@ -1553,9 +1552,12 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 }
 
 
-void gf_isom_check_write_pos(GF_Box *s, GF_Box *child, u32 *pos)
+void gf_isom_check_position(GF_Box *s, GF_Box *child, u32 *pos)
 {
 	if (!s || !s->child_boxes || !child || !pos) return;
+	if (s->internal_flags & GF_ISOM_ORDER_FREEZE)
+		return;
+
 	s32 cur_pos = gf_list_find(s->child_boxes, child);
 
 	assert (cur_pos >= 0);
@@ -1567,12 +1569,15 @@ void gf_isom_check_write_pos(GF_Box *s, GF_Box *child, u32 *pos)
 	(*pos)++;
 }
 
-void gf_isom_check_write_pos_list(GF_Box *s, GF_List *childlist, u32 *pos)
+void gf_isom_check_position_list(GF_Box *s, GF_List *childlist, u32 *pos)
 {
-	u32 i, count = gf_list_count(childlist);
+	u32 i, count;
+	if (!s || (s->internal_flags & GF_ISOM_ORDER_FREEZE))
+		return;
+	count = gf_list_count(childlist);
 	for (i=0; i<count; i++) {
 		GF_Box *child = gf_list_get(childlist, i);
-		gf_isom_check_write_pos(s, child, pos);
+		gf_isom_check_position(s, child, pos);
 	}
 }
 
@@ -1664,6 +1669,7 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	}
 
 	in_size = a->type;
+
 	e = gf_isom_box_size_listing(a);
 	in_size = 0;
 	if (e) return e;
@@ -1833,6 +1839,15 @@ GF_Box *gf_isom_box_find_child(GF_List *children, u32 code)
 	for (i=0; i<count; i++) {
 		GF_Box *c = gf_list_get(children, i);
 		if (c->type==code) return c;
+
+		if (c->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
+			if (((GF_UnknownBox*)c)->original_4cc==code)
+				return c;
+		}
+		if (c->type==GF_ISOM_BOX_TYPE_UUID) {
+			if (((GF_UUIDBox*)c)->internal_4cc==code)
+				return c;
+		}
 	}
 	return NULL;
 }
@@ -1869,5 +1884,18 @@ GF_Box *gf_isom_box_new_parent(GF_List **parent, u32 code)
 	if (! (*parent) ) (*parent)  = gf_list_new();
 	gf_list_add(*parent, b);
 	return b;
+}
+
+void gf_isom_box_freeze_order(GF_Box *box)
+{
+	u32 i=0;
+	GF_Box *child;
+	if (!box) return;
+	box->internal_flags |= GF_ISOM_ORDER_FREEZE;
+
+	while ((child = gf_list_enum(box->child_boxes, &i))) {
+		gf_isom_box_freeze_order(child);
+	}
+
 }
 #endif /*GPAC_DISABLE_ISOM*/

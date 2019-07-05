@@ -2655,7 +2655,6 @@ GF_Box *srpp_box_new()
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err srpp_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	u32 pos = 0;
 	GF_Err e;
 	GF_SRTPProcessBox *ptr = (GF_SRTPProcessBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
@@ -2667,13 +2666,15 @@ GF_Err srpp_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->integrity_algorithm_rtp);
 	gf_bs_write_u32(bs, ptr->integrity_algorithm_rtcp);
 
-	gf_isom_check_write_pos(s, (GF_Box*)ptr->info, &pos);
-	gf_isom_check_write_pos(s, (GF_Box*)ptr->scheme_type, &pos);
 	return GF_OK;
 }
 GF_Err srpp_box_size(GF_Box *s)
 {
+	u32 pos = 0;
+	GF_SRTPProcessBox *ptr = (GF_SRTPProcessBox *)s;
 	s->size += 16;
+	gf_isom_check_position(s, (GF_Box*)ptr->info, &pos);
+	gf_isom_check_position(s, (GF_Box*)ptr->scheme_type, &pos);
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -3001,23 +3002,19 @@ GF_Box *mdia_box_new()
 
 GF_Err mdia_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos = 0;
-	GF_MediaBox *ptr = (GF_MediaBox *)s;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	//Header first
-	gf_isom_check_write_pos(s, (GF_Box*)ptr->mediaHeader, &pos);
-	//then handler
-	gf_isom_check_write_pos(s, (GF_Box*)ptr->handler, &pos);
-	//then info
-	gf_isom_check_write_pos(s, (GF_Box*)ptr->information, &pos);
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err mdia_box_size(GF_Box *s)
 {
+	u32 pos = 0;
+	GF_MediaBox *ptr = (GF_MediaBox *)s;
+	//Header first
+	gf_isom_check_position(s, (GF_Box*)ptr->mediaHeader, &pos);
+	//then handler
+	gf_isom_check_position(s, (GF_Box*)ptr->handler, &pos);
+	//then info
+	gf_isom_check_position(s, (GF_Box*)ptr->information, &pos);
 	return GF_OK;
 }
 
@@ -3061,19 +3058,15 @@ GF_Err mfra_box_read(GF_Box *s, GF_BitStream *bs)
 
 GF_Err mfra_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	u32 pos=0;
-	GF_Err e;
-	GF_MovieFragmentRandomAccessBox *ptr = (GF_MovieFragmentRandomAccessBox *)s;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos_list(s, ptr->tfra_list, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->mfro, &pos);
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err mfra_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_MovieFragmentRandomAccessBox *ptr = (GF_MovieFragmentRandomAccessBox *)s;
+	gf_isom_check_position_list(s, ptr->tfra_list, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->mfro, &pos);
 	return GF_OK;
 }
 
@@ -3441,25 +3434,19 @@ GF_Box *minf_box_new()
 
 GF_Err minf_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_MediaInformationBox *ptr = (GF_MediaInformationBox *)s;
-	if (!s) return GF_BAD_PARAM;
-
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	//Header first
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->InfoHeader, &pos);
-	//then dataInfo
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->dataInformation, &pos);
-	//then sampleTable
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->sampleTable, &pos);
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err minf_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_MediaInformationBox *ptr = (GF_MediaInformationBox *)s;
+	//Header first
+	gf_isom_check_position(s, (GF_Box *)ptr->InfoHeader, &pos);
+	//then dataInfo
+	gf_isom_check_position(s, (GF_Box *)ptr->dataInformation, &pos);
+	//then sampleTable
+	gf_isom_check_position(s, (GF_Box *)ptr->sampleTable, &pos);
 	return GF_OK;
 }
 
@@ -3512,27 +3499,22 @@ GF_Box *moof_box_new()
 
 GF_Err moof_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_MovieFragmentBox *ptr = (GF_MovieFragmentBox *) s;
-	if (!s) return GF_BAD_PARAM;
-
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-	//Header First
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->mfhd, &pos);
-	//then PSSH
-	gf_isom_check_write_pos_list(s, ptr->PSSHs, &pos);
-	//then the track list
-	gf_isom_check_write_pos_list(s, ptr->TrackList, &pos);
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err moof_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_MovieFragmentBox *ptr = (GF_MovieFragmentBox *) s;
+	if (!s) return GF_BAD_PARAM;
+	//Header First
+	gf_isom_check_position(s, (GF_Box *)ptr->mfhd, &pos);
+	//then PSSH
+	gf_isom_check_position_list(s, ptr->PSSHs, &pos);
+	//then the track list
+	gf_isom_check_position_list(s, ptr->TrackList, &pos);
 	return GF_OK;
 }
-
 
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -3616,33 +3598,29 @@ GF_Box *moov_box_new()
 
 GF_Err moov_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_MovieBox *ptr = (GF_MovieBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos(s, (GF_Box *) ptr->mvhd, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *) ptr->iods, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *) ptr->meta, &pos);
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	if (ptr->mvex && !ptr->mvex_after_traks) {
-		gf_isom_check_write_pos(s, (GF_Box *) ptr->mvex, &pos);
-	}
-#endif
-	gf_isom_check_write_pos_list(s, ptr->trackList, &pos);
-
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	if (ptr->mvex && ptr->mvex_after_traks) {
-		gf_isom_check_write_pos(s, (GF_Box *) ptr->mvex, &pos);
-	}
-#endif
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err moov_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_MovieBox *ptr = (GF_MovieBox *)s;
+
+	gf_isom_check_position(s, (GF_Box *) ptr->mvhd, &pos);
+	gf_isom_check_position(s, (GF_Box *) ptr->iods, &pos);
+	gf_isom_check_position(s, (GF_Box *) ptr->meta, &pos);
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (ptr->mvex && !ptr->mvex_after_traks) {
+		gf_isom_check_position(s, (GF_Box *) ptr->mvex, &pos);
+	}
+#endif
+	gf_isom_check_position_list(s, ptr->trackList, &pos);
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (ptr->mvex && ptr->mvex_after_traks) {
+		gf_isom_check_position(s, (GF_Box *) ptr->mvex, &pos);
+	}
+#endif
 	return GF_OK;
 }
 
@@ -3861,25 +3839,24 @@ GF_Box *enca_box_new()
 GF_Err audio_sample_entry_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 pos=0;
-	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_isom_audio_sample_entry_write((GF_AudioSampleEntryBox*)s, bs);
-
-	if (ptr->is_qtff)
-		return GF_OK;
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->esd, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->cfg_3gpp, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->cfg_opus, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->cfg_ac3, &pos);
 	return GF_OK;
 }
 
 GF_Err audio_sample_entry_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
 	gf_isom_audio_sample_entry_size((GF_AudioSampleEntryBox*)s);
+	if (ptr->is_qtff)
+		return GF_OK;
+
+	gf_isom_check_position(s, (GF_Box *)ptr->esd, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->cfg_3gpp, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->cfg_opus, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->cfg_ac3, &pos);
 	return GF_OK;
 }
 
@@ -3987,20 +3964,21 @@ GF_Box *encs_box_new()
 GF_Err mp4s_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 pos=0;
 	GF_MPEGSampleEntryBox *ptr = (GF_MPEGSampleEntryBox *)s;
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_bs_write_data(bs, ptr->reserved, 6);
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->esd, &pos);
     return GF_OK;
 }
 
 GF_Err mp4s_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_MPEGSampleEntryBox *ptr = (GF_MPEGSampleEntryBox *)s;
 	s->size += 8;
+	gf_isom_check_position(s, (GF_Box *)ptr->esd, &pos);
     return GF_OK;
 }
 
@@ -4133,41 +4111,41 @@ GF_Box *video_sample_entry_box_new()
 GF_Err video_sample_entry_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 pos=0;
-	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_isom_video_sample_entry_write((GF_VisualSampleEntryBox *)s, bs);
-
-	/*make sure we write the config box first, we don't care about the rest*/
-
-	/*mp4v*/
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->esd, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->cfg_3gpp, &pos);
-	/*avc / SVC + MVC*/
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->avc_config, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->svc_config, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->mvc_config, &pos);
-
-	/*HEVC*/
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->hevc_config, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->lhvc_config, &pos);
-
-	/*AV1*/
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->av1_config, &pos);
-
-	/*VPx*/
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->vp_config, &pos);
-
-	/*JP2H*/
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->jp2h, &pos);
-
 	return GF_OK;
 }
 
 GF_Err video_sample_entry_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
 	gf_isom_video_sample_entry_size((GF_VisualSampleEntryBox *)s);
+
+	/*make sure we write the config box first, we don't care about the rest*/
+
+	/*mp4v*/
+	gf_isom_check_position(s, (GF_Box *)ptr->esd, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->cfg_3gpp, &pos);
+	/*avc / SVC + MVC*/
+	gf_isom_check_position(s, (GF_Box *)ptr->avc_config, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->svc_config, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->mvc_config, &pos);
+
+	/*HEVC*/
+	gf_isom_check_position(s, (GF_Box *)ptr->hevc_config, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->lhvc_config, &pos);
+
+	/*AV1*/
+	gf_isom_check_position(s, (GF_Box *)ptr->av1_config, &pos);
+
+	/*VPx*/
+	gf_isom_check_position(s, (GF_Box *)ptr->vp_config, &pos);
+
+	/*JP2H*/
+	gf_isom_check_position(s, (GF_Box *)ptr->jp2h, &pos);
+
 	return GF_OK;
 }
 
@@ -4235,21 +4213,16 @@ GF_Box *mvex_box_new()
 
 GF_Err mvex_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	u32 pos=0;
-	GF_Err e;
-	GF_MovieExtendsBox *ptr = (GF_MovieExtendsBox *) s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->mehd, &pos);
-	gf_isom_check_write_pos_list(s, ptr->TrackExList, &pos);
-	gf_isom_check_write_pos_list(s, ptr->TrackExPropList, &pos);
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err mvex_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_MovieExtendsBox *ptr = (GF_MovieExtendsBox *) s;
+	gf_isom_check_position(s, (GF_Box *)ptr->mehd, &pos);
+	gf_isom_check_position_list(s, ptr->TrackExList, &pos);
+	gf_isom_check_position_list(s, ptr->TrackExPropList, &pos);
 	return GF_OK;
 }
 
@@ -4859,46 +4832,42 @@ GF_Box *stbl_box_new()
 
 GF_Err stbl_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	u32 pos=0;
-	GF_Err e;
-	GF_SampleTableBox *ptr = (GF_SampleTableBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->SampleDescription, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->TimeToSample, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->CompositionOffset, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->CompositionToDecode, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->SyncSample, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->ShadowSync, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->SampleToChunk, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->SampleSize, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->ChunkOffset, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->DegradationPriority, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->SampleDep, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->PaddingBits, &pos);
-
-	if (ptr->sub_samples) {
-		gf_isom_check_write_pos_list(s, ptr->sub_samples, &pos);
-	}
-	if (ptr->sampleGroupsDescription && !ptr->skip_sample_groups) {
-		gf_isom_check_write_pos_list(s, ptr->sampleGroupsDescription, &pos);
-	}
-	if (ptr->sampleGroups) {
-		gf_isom_check_write_pos_list(s, ptr->sampleGroups, &pos);
-	}
-	if (ptr->sai_sizes) {
-		gf_isom_check_write_pos_list(s, ptr->sai_sizes, &pos);
-	}
-	if (ptr->sai_offsets) {
-		gf_isom_check_write_pos_list(s, ptr->sai_offsets, &pos);
-	}
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err stbl_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_SampleTableBox *ptr = (GF_SampleTableBox *)s;
+
+	gf_isom_check_position(s, (GF_Box *)ptr->SampleDescription, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->TimeToSample, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->CompositionOffset, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->CompositionToDecode, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->SyncSample, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->ShadowSync, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->SampleToChunk, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->SampleSize, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->ChunkOffset, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->DegradationPriority, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->SampleDep, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->PaddingBits, &pos);
+
+	if (ptr->sub_samples) {
+		gf_isom_check_position_list(s, ptr->sub_samples, &pos);
+	}
+	if (ptr->sampleGroupsDescription && !ptr->skip_sample_groups) {
+		gf_isom_check_position_list(s, ptr->sampleGroupsDescription, &pos);
+	}
+	if (ptr->sampleGroups) {
+		gf_isom_check_position_list(s, ptr->sampleGroups, &pos);
+	}
+	if (ptr->sai_sizes) {
+		gf_isom_check_position_list(s, ptr->sai_sizes, &pos);
+	}
+	if (ptr->sai_offsets) {
+		gf_isom_check_position_list(s, ptr->sai_offsets, &pos);
+	}
 	return GF_OK;
 }
 
@@ -6068,42 +6037,37 @@ GF_Err tfxd_box_size(GF_Box *s)
 
 GF_Err traf_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos;
-	GF_TrackFragmentBox *ptr = (GF_TrackFragmentBox *) s;
-	if (!s) return GF_BAD_PARAM;
-
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	//Header first
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->tfhd, &pos);
-	gf_isom_check_write_pos_list(s, ptr->sub_samples, &pos);
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->tfdt, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->sdtp, &pos);
-	if (ptr->sampleGroupsDescription)
-		gf_isom_check_write_pos_list(s, ptr->sampleGroupsDescription, &pos);
-	if (ptr->sampleGroups)
-		gf_isom_check_write_pos_list(s, ptr->sampleGroups, &pos);
-	if (ptr->sai_sizes)
-		gf_isom_check_write_pos_list(s, ptr->sai_sizes, &pos);
-	if (ptr->sai_offsets)
-		gf_isom_check_write_pos_list(s, ptr->sai_offsets, &pos);
-
-	if (ptr->sample_encryption)
-		gf_isom_check_write_pos(s, (GF_Box *)ptr->sample_encryption, &pos);
-
-	gf_isom_check_write_pos_list(s, ptr->TrackRuns, &pos);
-
-	//tfxd should be last ...
-	if (ptr->tfxd)
-		gf_isom_check_write_pos(s, (GF_Box *)ptr->tfxd, &pos);
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err traf_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_TrackFragmentBox *ptr = (GF_TrackFragmentBox *) s;
+
+	//Header first
+	gf_isom_check_position(s, (GF_Box *)ptr->tfhd, &pos);
+	gf_isom_check_position_list(s, ptr->sub_samples, &pos);
+
+	gf_isom_check_position(s, (GF_Box *)ptr->tfdt, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->sdtp, &pos);
+	if (ptr->sampleGroupsDescription)
+		gf_isom_check_position_list(s, ptr->sampleGroupsDescription, &pos);
+	if (ptr->sampleGroups)
+		gf_isom_check_position_list(s, ptr->sampleGroups, &pos);
+	if (ptr->sai_sizes)
+		gf_isom_check_position_list(s, ptr->sai_sizes, &pos);
+	if (ptr->sai_offsets)
+		gf_isom_check_position_list(s, ptr->sai_offsets, &pos);
+
+	if (ptr->sample_encryption)
+		gf_isom_check_position(s, (GF_Box *)ptr->sample_encryption, &pos);
+
+	gf_isom_check_position_list(s, ptr->TrackRuns, &pos);
+
+	//tfxd should be last ...
+	if (ptr->tfxd)
+		gf_isom_check_position(s, (GF_Box *)ptr->tfxd, &pos);
 	return GF_OK;
 }
 
@@ -6414,24 +6378,20 @@ GF_Box *trak_box_new()
 
 GF_Err trak_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_TrackBox *ptr = (GF_TrackBox *)s;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->Header, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->References, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->editBox, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->Media, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->meta, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->groups, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->udta, &pos);
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err trak_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_TrackBox *ptr = (GF_TrackBox *)s;
+	gf_isom_check_position(s, (GF_Box *)ptr->Header, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->References, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->editBox, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->Media, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->meta, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->groups, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->udta, &pos);
 	return GF_OK;
 }
 
@@ -8025,21 +7985,21 @@ GF_Box *lsr1_box_new()
 GF_Err lsr1_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 pos=0;
 	GF_LASeRSampleEntryBox *ptr = (GF_LASeRSampleEntryBox *)s;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
 	gf_bs_write_data(bs, ptr->reserved, 6);
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->lsr_config, &pos);
 	return e;
 }
 
 GF_Err lsr1_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_LASeRSampleEntryBox *ptr = (GF_LASeRSampleEntryBox *)s;
 	s->size += 8;
+	gf_isom_check_position(s, (GF_Box *)ptr->lsr_config, &pos);
 	return GF_OK;
 }
 
@@ -9397,18 +9357,14 @@ GF_Err trgr_box_read(GF_Box *s, GF_BitStream *bs)
 
 GF_Err trgr_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_TrackGroupBox *ptr = (GF_TrackGroupBox *) s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-	gf_isom_check_write_pos_list(s, ptr->groups, &pos);
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err trgr_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_TrackGroupBox *ptr = (GF_TrackGroupBox *) s;
+	gf_isom_check_position_list(s, ptr->groups, &pos);
 	return GF_OK;
 }
 
@@ -9574,20 +9530,21 @@ GF_Err fiin_box_read(GF_Box *s, GF_BitStream *bs)
 GF_Err fiin_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 pos=0;
 	FDItemInformationBox *ptr = (FDItemInformationBox *) s;
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
 	gf_bs_write_u16(bs, gf_list_count(ptr->partition_entries) );
-	gf_isom_check_write_pos_list(s, ptr->partition_entries, &pos);
 	return GF_OK;
 }
 
 GF_Err fiin_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	FDItemInformationBox *ptr = (FDItemInformationBox *) s;
 	s->size+= 2;
+	gf_isom_check_position_list(s, ptr->partition_entries, &pos);
 	return GF_OK;
 }
 

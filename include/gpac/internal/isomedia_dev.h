@@ -510,22 +510,30 @@ enum
 #define GPAC_DISABLE_ISOM_ADOBE
 #endif
 
+//internal flags (up to 16)
+//if flag is set, position checking of child boxes is ignored
+#define GF_ISOM_ORDER_FREEZE 1
+
 	/*the default size is 64, cause we need to handle large boxes...
 
-	the other_boxes container is by default NOT created. When parsing a box and sub-boxes are detected, the list is created.
+	the child_boxes container is by default NOT created. When parsing a box and sub-boxes are detected, the list is created.
 	This list is destroyed before calling the final box destructor
-	This list is automatically taken into account during size() and write() functions
-	
+	This list is automatically taken into account during size() and write() functions, and
+	gf_isom_box_write shall not be called in XXXX_box_write on any box registered with the child list
+
+	the full box version field is moved in the base box since we also need some internal flags, as u16 to
+	also be used for audio and video sample entries version field
 	*/
 #define GF_ISOM_BOX			\
-	u32 type;			\
-	u64 size;			\
+	u32 type;				\
+	u64 size;				\
 	const struct box_registry_entry *registry;\
-	GF_List *child_boxes;
+	GF_List *child_boxes; 	\
+	u16 internal_flags;		\
+	u16 version;				\
 
 #define GF_ISOM_FULL_BOX		\
 	GF_ISOM_BOX			\
-	u8 version;			\
 	u32 flags;			\
 
 #define GF_ISOM_UUID_BOX	\
@@ -589,12 +597,15 @@ void gf_isom_box_array_del(GF_List *other_boxes);
 GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs);
 GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list);
 
-void gf_isom_check_write_pos(GF_Box *s, GF_Box *child, u32 *pos);
-void gf_isom_check_write_pos_list(GF_Box *s, GF_List *childlist, u32 *pos);
+void gf_isom_check_position(GF_Box *s, GF_Box *child, u32 *pos);
+void gf_isom_check_position_list(GF_Box *s, GF_List *childlist, u32 *pos);
 
 Bool gf_box_valid_in_parent(GF_Box *a, const char *parent_4cc);
 
 void gf_isom_box_array_del_parent(GF_List **other_boxes, GF_List *boxlist);
+
+void gf_isom_box_freeze_order(GF_Box *box);
+
 
 typedef struct
 {
@@ -1254,7 +1265,6 @@ typedef struct {
 //do NOT extend this structure with boxes, children boxes shall go into the other_box field of the parent
 #define GF_ISOM_VISUAL_SAMPLE_ENTRY		\
 	GF_ISOM_SAMPLE_ENTRY_FIELDS			\
-	u16 version;						\
 	u16 revision;						\
 	u32 vendor;							\
 	u32 temporal_quality;				\
@@ -1432,7 +1442,6 @@ typedef struct
 
 #define GF_ISOM_AUDIO_SAMPLE_ENTRY	\
 	GF_ISOM_SAMPLE_ENTRY_FIELDS		\
-	u16 version;					\
 	u16 revision;					\
 	u32 vendor;						\
 	u16 channel_count;				\
@@ -1468,7 +1477,7 @@ typedef struct
 	GF_ISOM_BOX
 
 	/*OpusSpecificBox*/
-	u8 version;              //1
+	/*u8 version;              //1, field included in base box structure */
 	u8 OutputChannelCount;   //same value as the *Output Channel Count* field in the identification header defined in Ogg Opus [3]
 	u16 PreSkip;             //The value of the PreSkip field shall be at least 80 milliseconds' worth of PCM samples even when removing any number of Opus samples which may or may not contain the priming samples. The PreSkip field is not used for discarding the priming samples at the whole playback at all since it is informative only, and that task falls on the Edit List Box.
 	u32 InputSampleRate;     //The InputSampleRate field shall be set to the same value as the *Input Sample Rate* field in the identification header defined in Ogg Opus
@@ -3096,7 +3105,7 @@ typedef struct __cenc_tenc_box
 typedef struct __piff_tenc_box
 {
 	GF_ISOM_UUID_BOX
-	u8 version;
+	/*u8 version; field in included in base box version */
 	u32 flags;
 
 	u32 AlgorithmID;
@@ -3107,7 +3116,7 @@ typedef struct __piff_tenc_box
 typedef struct
 {
 	GF_ISOM_UUID_BOX
-	u8 version;
+	/*u8 version; field in included in base box version */
 	u32 flags;
 
 	bin128 SystemID;
@@ -3119,7 +3128,7 @@ typedef struct
 typedef struct __sample_encryption_box
 {
 	GF_ISOM_UUID_BOX
-	u8 version;
+	/*u8 version; field in included in base box version */
 	u32 flags;
 
 	Bool is_piff;
@@ -3145,7 +3154,7 @@ typedef struct __sample_encryption_box
 typedef struct __traf_mss_timeext_box
 {
 	GF_ISOM_UUID_BOX
-	u8 version;
+	/*u8 version; field in included in base box version */
 	u32 flags;
 
 	u64 absolute_time_in_track_timescale;

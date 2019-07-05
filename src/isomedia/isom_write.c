@@ -6573,6 +6573,191 @@ GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 tra
 	return GF_OK;
 }
 
+#include <gpac/xml.h>
+GF_EXPORT
+GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, u32 trackID, char *box_patch_filename)
+{
+	GF_Err e;
+	GF_DOMParser *dom;
+	u32 i;
+	GF_XMLNode *root;
+	u8 *box_data=NULL;
+	u32 box_data_size;
+	if (!file || !box_patch_filename) return GF_BAD_PARAM;
+	dom = gf_xml_dom_new();
+	e = gf_xml_dom_parse(dom, box_patch_filename, NULL, NULL);
+	if (e) goto err_exit;
+
+	root = gf_xml_dom_get_root(dom);
+	if (!root || strcmp(root->name, "GPACBOXES")) {
+		e = GF_NON_COMPLIANT_BITSTREAM;
+		goto err_exit;
+	}
+
+	//compute size of each boxes
+	for (i=0; i<gf_list_count(file->TopBoxes); i++) {
+		GF_Box *box = gf_list_get(file->TopBoxes, i);
+		if (!(box->internal_flags & GF_ISOM_ORDER_FREEZE)) {
+			gf_isom_box_size(box);
+			gf_isom_box_freeze_order(box);
+		}
+	}
+
+	for (i=0; i<gf_list_count(root->content); i++) {
+		u32 j;
+		u32 path_len;
+		char *box_path=NULL;
+		GF_Box *parent_box = NULL;
+		GF_XMLNode *box_edit = gf_list_get(root->content, i);
+		if (!box_edit->name || strcmp(box_edit->name, "Box")) continue;
+
+		for (j=0; j<gf_list_count(box_edit->attributes);j++) {
+			GF_XMLAttribute *att = gf_list_get(box_edit->attributes, j);
+			if (!strcmp(att->name, "path")) box_path = att->value;
+		}
+
+		if (!box_path) continue;
+		path_len = box_path ? strlen(box_path) : 0;
+
+		gf_xml_parse_bit_sequence(box_edit, box_patch_filename, &box_data, &box_data_size);
+		if (box_data_size && (box_data_size<4) ) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Wrong BS specification for box, shall either be empty or at least 4 bytes for box type\n"));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			goto err_exit;
+		}
+
+		while (path_len>=4) {
+			GF_List **parent_list;
+			u32 box_type = GF_4CC(box_path[0],box_path[1],box_path[2],box_path[3]);
+			GF_Box *box=NULL;
+			GF_BitStream *bs;
+			s32 insert_pos = -1;
+			box_path+=4;
+			path_len-=4;
+
+			if (!parent_box) {
+				box=gf_isom_box_find_child(file->TopBoxes, box_type);
+				if (!box && (box_type==GF_ISOM_BOX_TYPE_TRAK)) {
+					if (trackID) {
+						box = (GF_Box *) gf_isom_get_track_from_file(file, gf_isom_get_track_by_id(file, trackID) );
+					}
+					if (!box && gf_list_count(file->moov->trackList)==1) {
+						box = gf_list_get(file->moov->trackList, 0);
+					}
+				}
+				if (!box) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Cannot locate box type %s at root or as track\n", gf_4cc_to_str(box_type) ));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto err_exit;
+				}
+			} else {
+				box = gf_isom_box_find_child(parent_box->child_boxes, box_type);
+				if (!box) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Cannot locate box type %s at child of %s\n", gf_4cc_to_str(box_type), gf_4cc_to_str(parent_box->type)));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto err_exit;
+				}
+			}
+			// '.' is child access
+			if (path_len && (box_path[0]=='.')) {
+				box_path += 1;
+				path_len-=1;
+				parent_box = box;
+				continue;
+			}
+
+			if (parent_box && !parent_box->child_boxes) parent_box->child_boxes = gf_list_new();
+			parent_list = parent_box ? &parent_box->child_boxes : &file->TopBoxes;
+
+			// '+' is append after, '-' is insert before
+			if (path_len && ((box_path[0]=='-') || (box_path[0]=='+')) ) {
+				s32 idx = gf_list_find(*parent_list, box);
+				assert(idx>=0);
+				if (box_path[0]=='+') insert_pos = idx+1;
+				else insert_pos = idx;
+			}
+			else if (path_len) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Invalid path %s, expecting either '-', '+' or '.' as separators\n", box_path));
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				goto err_exit;
+			}
+
+			if (!box_data) {
+				if (insert_pos>=0) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMFF] Invalid path %s for box removal, ignoring position\n", box_path));
+				}
+				switch (box->type) {
+				case GF_ISOM_BOX_TYPE_MOOV:
+					file->moov = NULL;
+					break;
+				case GF_ISOM_BOX_TYPE_MDAT:
+					file->mdat = NULL;
+					break;
+				case GF_ISOM_BOX_TYPE_PDIN:
+					file->pdin = NULL;
+					break;
+				case GF_ISOM_BOX_TYPE_FTYP:
+					file->brand = NULL;
+					break;
+				case GF_ISOM_BOX_TYPE_META:
+					if ((GF_Box *) file->meta == box) file->meta = NULL;
+					break;
+				}
+				gf_isom_box_del_parent(parent_list, box);
+			} else {
+				u32 size;
+
+				bs = gf_bs_new(box_data, box_data_size, GF_BITSTREAM_READ);
+				size = gf_bs_read_u32(bs);
+				if (size != box_data_size) {
+					GF_UnknownBox *new_box = (GF_UnknownBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UNKNOWN);
+					new_box->original_4cc = size;
+					new_box->dataSize = gf_bs_available(bs);
+					new_box->data = gf_malloc(sizeof(u8)*new_box->dataSize);
+					gf_bs_read_data(bs, new_box->data, new_box->dataSize);
+					if (insert_pos<0) {
+						gf_list_add(box->child_boxes, new_box);
+					} else {
+						gf_list_insert(*parent_list, new_box, insert_pos);
+					}
+				} else {
+					u32 parent_type = 0;
+					u32 box_idx = 0;
+					if (insert_pos<0) parent_type = box->type;
+					else if (parent_box) parent_type = parent_box->type;
+
+					gf_bs_seek(bs, 0);
+					while (gf_bs_available(bs)) {
+						GF_Box *new_box;
+						e = gf_isom_box_parse_ex(&new_box, bs, box->type, parent_box ? GF_FALSE : GF_TRUE);
+						if (e) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] failed to parse box\n", box_path));
+							gf_bs_del(bs);
+							goto err_exit;
+						}
+						if (insert_pos<0) {
+							gf_list_add(box->child_boxes, new_box);
+						} else {
+							gf_list_insert(*parent_list, new_box, insert_pos+box_idx);
+							box_idx++;
+						}
+					}
+				}
+				gf_bs_del(bs);
+			}
+			gf_free(box_data);
+			box_data = NULL;
+			box_path = NULL;
+		}
+	}
+
+err_exit:
+
+	gf_xml_dom_del(dom);
+	if (box_data) gf_free(box_data);
+	return e;
+}
+
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
 

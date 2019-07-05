@@ -636,6 +636,11 @@ u64 gf_isom_get_file_size(GF_ISOFile *the_file);
 
 Bool gf_isom_moov_first(GF_ISOFile *movie);
 
+/*freeze order of the current box tree in the file.
+By default the library always reorder boxes in the recommended order in the various specifications implemented.
+New created tracks or meta items will not have a frozen order of boxes, but the function can be called several time*/
+GF_Err gf_isom_freeze_order(GF_ISOFile *file);
+
 /*sets write cache size for files when creating them. If size is 0, writing
 only relies on the underlying OS fwrite/fgetc
 If movie is NULL, assigns the default write cache size for any new movie*/
@@ -1456,6 +1461,8 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *the_file, u32 trackNumber, char *c
 GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 rvc_predefined, char *mime, u8 *data, u32 size);
 
 u32 gf_isom_get_last_created_track_id(GF_ISOFile *movie);
+
+GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, u32 trackID, char *box_patch_filename);
 
 
 /*
