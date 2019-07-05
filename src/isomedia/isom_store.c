@@ -1017,7 +1017,7 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 	//then the rest
 	i=0;
 	while ((a = (GF_Box*)gf_list_enum(movie->TopBoxes, &i))) {
-		if ((i-1<=moov_meta_pos) && (a!=cprt_box)) continue;
+		if ((i-1<= (u32) moov_meta_pos) && (a!=cprt_box)) continue;
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_MOOV:
 		case GF_ISOM_BOX_TYPE_META:
@@ -1506,7 +1506,7 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	//then the rest
 	i=0;
 	while ((a = (GF_Box*)gf_list_enum(movie->TopBoxes, &i))) {
-		if ((i-1 < moov_meta_pos) && (a != cprt_box))
+		if ((i-1 < (u32) moov_meta_pos) && (a != cprt_box))
 			continue;
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_MOOV:
