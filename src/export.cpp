@@ -708,6 +708,7 @@
 #endif
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_progressive) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_missing_bytes) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_freeze_order) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_fragmented) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_fragmented_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_fragments_count) )
@@ -1042,7 +1043,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_sample_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_progress_callback) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_apply_box_patch) )
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_hint_track) )

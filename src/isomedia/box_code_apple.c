@@ -190,8 +190,6 @@ GF_Err ilst_item_box_write(GF_Box *s, GF_BitStream *bs)
 	}
 	/*iTune way: data-box-encapsulated box list*/
 	else if (!ptr->data->qt_style) {
-		u32 pos=0;
-		gf_isom_check_write_pos(s, (GF_Box* ) ptr->data, &pos);
 	}
 	/*QT way: raw data*/
 	else {
@@ -212,6 +210,8 @@ GF_Err ilst_item_box_size(GF_Box *s)
 	}
 	/*iTune way: data-box-encapsulated box list*/
 	else if (ptr->data && !ptr->data->qt_style) {
+		u32 pos=0;
+		gf_isom_check_position(s, (GF_Box* ) ptr->data, &pos);
 	}
 	/*QT way: raw data*/
 	else if (ptr->data) {

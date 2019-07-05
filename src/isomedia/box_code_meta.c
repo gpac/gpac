@@ -121,26 +121,22 @@ GF_Err meta_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err meta_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_MetaBox *ptr = (GF_MetaBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_full_box_write(s, bs);
-	if (e) return e;
-
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->handler, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->primary_resource, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->file_locations, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->item_locations, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->protections, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->item_infos, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->item_refs, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *)ptr->item_props, &pos);
-	return GF_OK;
+	return gf_isom_full_box_write(s, bs);
 }
 
 GF_Err meta_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_MetaBox *ptr = (GF_MetaBox *)s;
+
+	gf_isom_check_position(s, (GF_Box *)ptr->handler, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->primary_resource, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->file_locations, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->item_locations, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->protections, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->item_infos, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->item_refs, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->item_props, &pos);
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -494,14 +490,14 @@ GF_Err ipro_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	count = gf_list_count(ptr->protection_information);
 	gf_bs_write_u16(bs, count);
-
-	count=0;
-	gf_isom_check_write_pos_list(s, ptr->protection_information, &count);
 	return GF_OK;
 }
 
 GF_Err ipro_box_size(GF_Box *s)
 {
+	GF_ItemProtectionBox *ptr = (GF_ItemProtectionBox *)s;
+	u32 pos=0;
+	gf_isom_check_position_list(s, ptr->protection_information, &pos);
 	s->size += 2;
 	return GF_OK;
 }
@@ -707,16 +703,16 @@ GF_Err iinf_box_write(GF_Box *s, GF_BitStream *bs)
 	else
 		gf_bs_write_u32(bs, count);
 
-	count = 0;
-	gf_isom_check_write_pos_list(s, ptr->item_infos, &count);
 	return GF_OK;
 }
 
 GF_Err iinf_box_size(GF_Box *s)
 {
+	u32 pos=0;
 	GF_ItemInfoBox *ptr = (GF_ItemInfoBox *)s;
 	if (!s) return GF_BAD_PARAM;
 	ptr->size += (ptr->version == 0) ? 2 : 4;
+	gf_isom_check_position_list(s, ptr->item_infos, &pos);
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -752,18 +748,14 @@ GF_Box *iref_box_new()
 
 GF_Err iref_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 pos=0;
-	GF_ItemReferenceBox *ptr = (GF_ItemReferenceBox *)s;
-	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_full_box_write(s, bs);
-	if (e) return e;
-	gf_isom_check_write_pos_list(s, ptr->references, &pos);
-	return GF_OK;
+	return gf_isom_full_box_write(s, bs);
 }
 
 GF_Err iref_box_size(GF_Box *s)
 {
+	u32 pos=0;
+	GF_ItemReferenceBox *ptr = (GF_ItemReferenceBox *)s;
+	gf_isom_check_position_list(s, ptr->references, &pos);
 	return GF_OK;
 }
 

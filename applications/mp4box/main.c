@@ -186,6 +186,8 @@ GF_GPACArg m4b_gen_args[] =
 	        "- src=FILE: location of the udta data (will be stored in a single box of type CODE)\n"
 	        "- src=base64,DATA: base64 encoded udta data (will be stored in a single box of type CODE)\n"
 	        "Note: If no source is set, UDTA of type CODE will be removed\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("patch", NULL, "apply box patch in the given file\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("bo", NULL, "freeze the order of boxes in input file\n", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
 	{0}
 };
 
@@ -2201,10 +2203,11 @@ GF_SceneDumpFormat dump_mode;
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
 Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, hls_clock, do_mpd_rip, merge_vtt_cues;
-char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *high_dynamc_range_filename, *use_init_seg;
+char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *high_dynamc_range_filename, *use_init_seg, *box_patch_filename;
 u32 track_dump_type, dump_isom, dump_timestamps;
-u32 trackID;
+u32 trackID, box_patch_trackID=0;
 Bool comp_lzma=GF_FALSE;
+Bool freeze_box_order=GF_FALSE;
 Double min_buffer = 1.5;
 u32 comp_top_box_version = 0;
 s32 ast_offset_ms = 0;
@@ -2708,6 +2711,22 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-hdr")) {
 			CHECK_NEXT_ARG
 			high_dynamc_range_filename = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-bo")) {
+			freeze_box_order = GF_TRUE;
+		}
+		else if (!stricmp(arg, "-patch")) {
+			CHECK_NEXT_ARG
+			box_patch_filename = argv[i + 1];
+			char *sep = strchr(box_patch_filename, '=');
+			if (sep) {
+				sep[0] = 0;
+				box_patch_trackID = atoi(box_patch_filename);
+				sep[0] = '=';
+				box_patch_filename = sep+1;
+			}
+ 			open_edit = GF_TRUE;
 			i++;
 		}
 		else if (!stricmp(arg, "-lang")) {
@@ -4128,7 +4147,7 @@ int mp4boxMain(int argc, char **argv)
 	program_number = 0;
 	info_track_id = 0;
 	do_flat = GF_FALSE;
-	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = high_dynamc_range_filename = use_init_seg = NULL;
+	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = high_dynamc_range_filename = use_init_seg = box_patch_filename = NULL;
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
 	swf_flags = GF_SM_SWF_SPLIT_TIMELINE;
@@ -4499,6 +4518,8 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
 			return mp4box_cleanup(1);
 		}
+		if (freeze_box_order)
+			gf_isom_freeze_order(file);
 
 		for (i=0; i<(u32) argc; i++) {
 			if (!strcmp(argv[i], "-add")) {
@@ -4556,6 +4577,8 @@ int mp4boxMain(int argc, char **argv)
 				fprintf(stderr, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
 				return mp4box_cleanup(1);
 			}
+			if (freeze_box_order)
+				gf_isom_freeze_order(file);
 		}
 		for (i=0; i<(u32)argc; i++) {
 			if (!strcmp(argv[i], "-cat") || !strcmp(argv[i], "-catx") || !strcmp(argv[i], "-catpl")) {
@@ -4913,6 +4936,8 @@ int mp4boxMain(int argc, char **argv)
 					return mp4box_cleanup(1);
 				}
 			}
+			if (freeze_box_order)
+					gf_isom_freeze_order(file);
 			break;
 		/*allowed for bt<->xmt*/
 		case 2:
@@ -5866,6 +5891,14 @@ int mp4boxMain(int argc, char **argv)
 	}
 	for (i=0; i<nb_alt_brand_rem; i++) {
 		gf_isom_modify_alternate_brand(file, brand_rem[i], 0);
+		needSave = GF_TRUE;
+	}
+	if (box_patch_filename) {
+		e = gf_isom_apply_box_patch(file, box_patch_trackID, box_patch_filename);
+		if (e) {
+			fprintf(stderr, "Failed to apply box patch %s: %s\n", box_patch_filename, gf_error_to_string(e) );
+			goto err_exit;
+		}
 		needSave = GF_TRUE;
 	}
 

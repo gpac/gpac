@@ -1130,21 +1130,21 @@ GF_Err dims_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err dims_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	u32 pos = 0;
 	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox *)s;
 	GF_Err e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_bs_write_data(bs, p->reserved, 6);
 	gf_bs_write_u16(bs, p->dataReferenceIndex);
-
-	gf_isom_check_write_pos(s, (GF_Box *) p->config, &pos);
-	gf_isom_check_write_pos(s, (GF_Box *) p->scripts, &pos);
 	return GF_OK;
 }
 
 GF_Err dims_box_size(GF_Box *s)
 {
+	u32 pos = 0;
+	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox *)s;
 	s->size += 8;
+	gf_isom_check_position(s, (GF_Box *) p->config, &pos);
+	gf_isom_check_position(s, (GF_Box *) p->scripts, &pos);
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
