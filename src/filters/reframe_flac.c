@@ -300,12 +300,11 @@ static u32 flac_dmx_samplerates[] =
 
 static Bool flac_parse_header(GF_FLACDmxCtx *ctx, char *data, u32 size, FLACHeader *hdr)
 {
-	Bool block_strategy;
 	u32 block_size, sample_rate, res, top, pos, crc, crc_hdr;
 
 	gf_bs_reassign_buffer(ctx->bs, data, size);
 	gf_bs_read_int(ctx->bs, 15);
-	block_strategy = gf_bs_read_int(ctx->bs, 1);
+	/*block_strategy = */gf_bs_read_int(ctx->bs, 1);
 	block_size = gf_bs_read_int(ctx->bs, 4);
 	sample_rate = gf_bs_read_int(ctx->bs, 4);
 	/*u32 channel_layout = */gf_bs_read_int(ctx->bs, 4);
