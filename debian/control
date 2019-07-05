@@ -1,33 +1,33 @@
 Source: gpac
 Section: graphics
 Priority: optional
-Maintainer: Jean Le Feuvre <jeanlf@users.sourceforge.net>
-Bugs: mailto:jeanlf@users.sourceforge.net
+Maintainer: Jean Le Feuvre <jeanlf@gpac.io>
+Bugs: mailto:jeanlf@gpac.io
 Homepage: http://gpac.io
 Standards-Version: 3.8.0
 Build-Conflicts: libgpac-dev
-Build-Depends: debhelper (>= 6), libc6, libc6-dev, libx11-dev (>= 1.3), zlib1g-dev (>= 1), xulrunner-dev, libfreetype6-dev, libjpeg62-dev, libpng12-dev, libopenjpeg-dev, libmad0-dev, libfaad-dev, libogg-dev, libvorbis-dev, libtheora-dev, liba52-dev, libavcodec-dev, libavformat-dev, libswscale-dev, libxv-dev, x11proto-video-dev, libgl1-mesa-dev, x11proto-gl-dev, linux-sound-base (>= 1.0), libxvidcore-dev, libssl-dev (>= 0.9.8), libjack-dev (>= 0.118), libasound2-dev (>= 1.0), libpulse-dev (>= 0.9), libsdl-dev (>= 1.2), ccache
+Build-Depends: debhelper (>= 6), libc6, libc6-dev, libx11-dev (>= 1.3), zlib1g-dev (>= 1), libfreetype6-dev, libjpeg62-dev | libjpeg62-turbo-dev, libpng-dev, libmad0-dev, libfaad-dev, libogg-dev, libvorbis-dev, libtheora-dev, liba52-dev | liba52-0.7.4-dev, libavcodec-dev, libavformat-dev, libavutil-dev, libswscale-dev, libavdevice-dev, libxv-dev, x11proto-video-dev, libgl1-mesa-dev, x11proto-gl-dev, libxvidcore-dev, libssl-dev (>= 0.9.8), libjack-dev (>= 0.118), libasound2-dev (>= 1.0), libpulse-dev (>= 0.9), libsdl-dev (>= 1.2) | libsdl2-dev, ccache
 
 Package: gpac
 Architecture: any
 Depends: ${shlibs:Depends}
-Description: multimedia framework based on the MPEG-4 Systems standard
- The main development goal is to provide a clean (a.k.a. readable by as many
- people as possible), small and flexible alternative to the MPEG-4 Systems
- reference software (known as IM1 and distributed in ISO/IEC 14496-5). The
- MPEG-4 Reference software is indeed a very large piece of software,
- designed to verify the standard rather than provide a small,
- production-stable software.
+Description: multimedia framework oriented towards rich media
+ GPAC supports many multimedia formats, from simple audiovisual containers (avi, mov, mpg) to complex
+ presentation formats (MPEG-4 Systems, SVG Tiny 1.2, VRML/X3D) and 360 videos.
+ GPAC supports presentation scripting for MPEG4/VRML/X3D through javascript.
+ GPAC currently supports local file playback, HTTP progressive download, Adaptive HTTP Streaming (MPEG-DASH, HLS),
+ RTP/RTSP streaming over UDP (unicast or multicast) or TCP, TS demuxing (from file, IP or DVB4Linux), 
+ ATSC 3.0 ROUTE sessions, desktop grabbing, camera/microphone inputs and any input format supported by FFmpeg
 
 Package: libgpac-dev
 Architecture: any
 Section: libdevel
 Depends: gpac
-Replaces: gpac (<= 0.5.0)
-Description: multimedia framework based on the MPEG-4 Systems standard
- The main development goal is to provide a clean (a.k.a. readable by as many
- people as possible), small and flexible alternative to the MPEG-4 Systems
- reference software (known as IM1 and distributed in ISO/IEC 14496-5). The
- MPEG-4 Reference software is indeed a very large piece of software,
- designed to verify the standard rather than provide a small,
- production-stable software.
+Replaces: gpac (<= 0.8.0)
+Description: multimedia framework oriented towards rich media
+ GPAC supports many multimedia formats, from simple audiovisual containers (avi, mov, mpg) to complex
+ presentation formats (MPEG-4 Systems, SVG Tiny 1.2, VRML/X3D) and 360 videos.
+ GPAC supports presentation scripting for MPEG4/VRML/X3D through javascript.
+ GPAC currently supports local file playback, HTTP progressive download, Adaptive HTTP Streaming (MPEG-DASH, HLS),
+ RTP/RTSP streaming over UDP (unicast or multicast) or TCP, TS demuxing (from file, IP or DVB4Linux), 
+ ATSC 3.0 ROUTE sessions, desktop grabbing, camera/microphone inputs and any input format supported by FFmpeg

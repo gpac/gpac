@@ -2202,10 +2202,10 @@ GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
-Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, hls_clock, do_mpd_rip, merge_vtt_cues;
+Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, hls_clock, do_mpd_rip, merge_vtt_cues;
 char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *high_dynamc_range_filename, *use_init_seg, *box_patch_filename;
 u32 track_dump_type, dump_isom, dump_timestamps;
-u32 trackID, box_patch_trackID=0;
+u32 trackID, do_flat, box_patch_trackID=0;
 Bool comp_lzma=GF_FALSE;
 Bool freeze_box_order=GF_FALSE;
 Double min_buffer = 1.5;
@@ -2527,7 +2527,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-iod")) regular_iod = 1;
 		else if (!stricmp(arg, "-flat")) {
 			open_edit = GF_TRUE;
-			do_flat = GF_TRUE;
+			do_flat = 1;
 		}
 		else if (!stricmp(arg, "-keep-utc")) keep_utc = GF_TRUE;
 		else if (!stricmp(arg, "-new")) force_new = GF_TRUE;
@@ -3805,7 +3805,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
 			CHECK_NEXT_ARG
 			interleaving_time = atof(argv[i + 1]) / 1000;
-			if (!interleaving_time) do_flat = GF_TRUE;
+			if (!interleaving_time) do_flat = 2;
 			open_edit = GF_TRUE;
 			needSave = GF_TRUE;
 			if (!stricmp(arg, "-old-inter")) old_interleave = 1;
@@ -4146,7 +4146,7 @@ int mp4boxMain(int argc, char **argv)
 	trackID = stat_level = hint_flags = 0;
 	program_number = 0;
 	info_track_id = 0;
-	do_flat = GF_FALSE;
+	do_flat = 0;
 	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = high_dynamc_range_filename = use_init_seg = box_patch_filename = NULL;
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
@@ -6004,11 +6004,8 @@ int mp4boxMain(int argc, char **argv)
 	/*full interleave (sample-based) if just hinted*/
 	if (FullInter) {
 		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_TIGHT);
-	} else if (!interleaving_time) {
-		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_STREAMABLE);
-		needSave = GF_TRUE;
 	} else if (do_flat) {
-		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_FLAT);
+		e = gf_isom_set_storage_mode(file, (do_flat==1) ? GF_ISOM_STORE_FLAT : GF_ISOM_STORE_STREAMABLE);
 		needSave = GF_TRUE;
 	} else {
 		e = gf_isom_make_interleave(file, interleaving_time);
