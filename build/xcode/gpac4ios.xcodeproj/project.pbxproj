@@ -359,6 +359,7 @@
 		9292BEFF1CFC93C10070EB05 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9292BEFE1CFC93C10070EB05 /* VideoToolbox.framework */; };
 		9292BF011CFC93D50070EB05 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9292BF001CFC93D50070EB05 /* CoreVideo.framework */; };
 		9292BF031CFC94060070EB05 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9292BF021CFC94060070EB05 /* CoreMedia.framework */; };
+		9296BF2422CFBB3900DC9742 /* reframe_flac.c in Sources */ = {isa = PBXBuildFile; fileRef = 9296BF2322CFBB3900DC9742 /* reframe_flac.c */; };
 		929A929C16EF8BC200B7C64F /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929616EF8BC200B7C64F /* Default-568h@2x.png */; };
 		929A929D16EF8BC200B7C64F /* icon_ipad_retina.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929716EF8BC200B7C64F /* icon_ipad_retina.png */; };
 		929A929E16EF8BC200B7C64F /* icon_ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929816EF8BC200B7C64F /* icon_ipad.png */; };
@@ -918,6 +919,7 @@
 		9292BEFE1CFC93C10070EB05 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		9292BF001CFC93D50070EB05 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		9292BF021CFC94060070EB05 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+		9296BF2322CFBB3900DC9742 /* reframe_flac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_flac.c; path = ../../src/filters/reframe_flac.c; sourceTree = "<group>"; };
 		929A929616EF8BC200B7C64F /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-568h@2x.png"; path = "../../applications/osmo4_ios/Resources/Default-568h@2x.png"; sourceTree = SOURCE_ROOT; };
 		929A929716EF8BC200B7C64F /* icon_ipad_retina.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_ipad_retina.png; path = ../../applications/osmo4_ios/Resources/icon_ipad_retina.png; sourceTree = SOURCE_ROOT; };
 		929A929816EF8BC200B7C64F /* icon_ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_ipad.png; path = ../../applications/osmo4_ios/Resources/icon_ipad.png; sourceTree = SOURCE_ROOT; };
@@ -1857,6 +1859,7 @@
 				92EB6D8920E4E19300A97A49 /* reframe_adts.c */,
 				92EB6D8420E4E19300A97A49 /* reframe_amr.c */,
 				8959AC78211C9B29004D2C87 /* reframe_av1.c */,
+				9296BF2322CFBB3900DC9742 /* reframe_flac.c */,
 				92EB6DBA20E4E19700A97A49 /* reframe_h263.c */,
 				92EB6D8520E4E19300A97A49 /* reframe_img.c */,
 				929FA64221A3E83E000455A7 /* reframe_latm.c */,
@@ -2430,6 +2433,7 @@
 				71CCF3121277045100339E12 /* vrml_smjs.c in Sources */,
 				71CCF3131277045100339E12 /* vrml_tools.c in Sources */,
 				92EB6DE720E4E19700A97A49 /* enc_png.c in Sources */,
+				9296BF2422CFBB3900DC9742 /* reframe_flac.c in Sources */,
 				71CCF3141277045100339E12 /* x3d_nodes.c in Sources */,
 				71CCF3161277045100339E12 /* xml_ns.c in Sources */,
 				92EB6E1A20E4E19700A97A49 /* in_http.c in Sources */,

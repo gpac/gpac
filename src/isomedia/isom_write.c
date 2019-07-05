@@ -6617,7 +6617,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, u32 trackID, char *box_patch_fi
 		}
 
 		if (!box_path) continue;
-		path_len = box_path ? strlen(box_path) : 0;
+		path_len = box_path ? (u32) strlen(box_path) : 0;
 
 		gf_xml_parse_bit_sequence(box_edit, box_patch_filename, &box_data, &box_data_size);
 		if (box_data_size && (box_data_size<4) ) {
@@ -6712,7 +6712,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, u32 trackID, char *box_patch_fi
 				if (size != box_data_size) {
 					GF_UnknownBox *new_box = (GF_UnknownBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UNKNOWN);
 					new_box->original_4cc = size;
-					new_box->dataSize = gf_bs_available(bs);
+					new_box->dataSize = (u32) gf_bs_available(bs);
 					new_box->data = gf_malloc(sizeof(u8)*new_box->dataSize);
 					gf_bs_read_data(bs, new_box->data, new_box->dataSize);
 					if (insert_pos<0) {

@@ -3259,7 +3259,7 @@ GF_Err gf_isom_get_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 *SampleRate, u32 *Channels, u8 *bitsPerSample)
+GF_Err gf_isom_get_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 *SampleRate, u32 *Channels, u32 *bitsPerSample)
 {
 	GF_TrackBox *trak;
 	GF_SampleEntryBox *entry;

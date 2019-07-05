@@ -313,6 +313,7 @@
     <ClCompile Include="..\..\src\filters\reframe_adts.c" />
     <ClCompile Include="..\..\src\filters\reframe_amr.c" />
     <ClCompile Include="..\..\src\filters\reframe_av1.c" />
+    <ClCompile Include="..\..\src\filters\reframe_flac.c" />
     <ClCompile Include="..\..\src\filters\reframe_h263.c" />
     <ClCompile Include="..\..\src\filters\reframe_img.c" />
     <ClCompile Include="..\..\src\filters\reframe_latm.c" />

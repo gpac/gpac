@@ -5377,5 +5377,13 @@ GF_Err ihdr_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err dfla_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_FLACConfigBox *ptr = (GF_FLACConfigBox *)a;
+	gf_isom_box_dump_start(a, "FLACSpecificBox", trace);
+	fprintf(trace, " dataSize=\"%d\">\n", ptr->dataSize);
+	gf_isom_box_dump_done("FLACSpecificBox", a, trace);
+	return GF_OK;
+}
 
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

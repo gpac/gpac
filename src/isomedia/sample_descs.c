@@ -335,6 +335,27 @@ GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	return res;
 }
 
+GF_EXPORT
+GF_Err gf_isom_flac_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u8 **dsi, u32 *dsi_size)
+{
+	GF_TrackBox *trak;
+	GF_MPEGAudioSampleEntryBox *entry;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (dsi) *dsi = NULL;
+	if (dsi_size) *dsi_size = 0;
+	if (!trak || !StreamDescriptionIndex) return GF_BAD_PARAM;
+
+	entry = (GF_MPEGAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex-1);
+	if (entry->type!=GF_ISOM_BOX_TYPE_FLAC) return GF_BAD_PARAM;
+	if (!entry->cfg_flac) return GF_OK;
+	if (dsi) {
+		*dsi = gf_malloc(sizeof(u8)*entry->cfg_flac->dataSize);
+		memcpy(*dsi, entry->cfg_flac->data, entry->cfg_flac->dataSize);
+	}
+	if (dsi_size) *dsi_size = entry->cfg_flac->dataSize;
+	return GF_OK;
+}
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_EXPORT
@@ -513,6 +534,49 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
 	return e;
 }
+
+GF_EXPORT
+GF_Err gf_isom_flac_config_new(GF_ISOFile *the_file, u32 trackNumber, u8 *metadata, u32 metadata_size, char *URLname, char *URNname, u32 *outDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	u32 dataRefIndex;
+	GF_MPEGAudioSampleEntryBox *entry;
+
+	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
+
+	//get or create the data ref
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	if (e) return e;
+	if (!dataRefIndex) {
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		if (e) return e;
+	}
+	if (!the_file->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	entry = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_FLAC);
+	if (!entry) return GF_OUT_OF_MEM;
+	entry->cfg_flac = (GF_FLACConfigBox *) gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_DFLA);
+
+	if (!entry->cfg_flac) {
+		gf_isom_box_del((GF_Box *) entry);
+		return GF_OUT_OF_MEM;
+	}
+	entry->cfg_flac->dataSize = metadata_size;
+	entry->cfg_flac->data = gf_malloc(sizeof(u8)*metadata_size);
+	memcpy(entry->cfg_flac->data, metadata, sizeof(u8)*metadata_size);
+	entry->samplerate_hi = trak->Media->mediaHeader->timeScale;
+	entry->dataReferenceIndex = dataRefIndex;
+	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, entry);
+	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
+	return e;
+}
+
 
 
 GF_EXPORT

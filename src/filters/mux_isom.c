@@ -433,6 +433,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool use_gen_sample_entry = GF_FALSE;
 	Bool use_3gpp_config = GF_FALSE;
 	Bool use_ac3_entry = GF_FALSE;
+	Bool use_flac_entry = GF_FALSE;
 	Bool use_avc = GF_FALSE;
 	Bool use_hevc = GF_FALSE;
 	Bool use_hvt1 = GF_FALSE;
@@ -968,6 +969,8 @@ sample_entry_setup:
 	if (p) sr = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (p) nb_chan = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_BPS);
+	if (p) nb_bps = p->value.uint;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
 	if (p) lang_name = p->value.string;
@@ -1082,6 +1085,11 @@ sample_entry_setup:
 		m_subtype = GF_ISOM_SUBTYPE_AC3;
 		comp_name = "EAC-3";
 		use_ac3_entry = GF_TRUE;
+		break;
+	case GF_CODECID_FLAC:
+		m_subtype = GF_ISOM_SUBTYPE_FLAC;
+		comp_name = "FLAC";
+		use_flac_entry = GF_TRUE;
 		break;
 	case GF_CODECID_OPUS:
 		m_subtype = GF_ISOM_SUBTYPE_OPUS;
@@ -1664,6 +1672,13 @@ sample_entry_setup:
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
+	} else if (use_flac_entry) {
+		e = gf_isom_flac_config_new(ctx->file, tkw->track_num, dsi ? dsi->value.data.ptr : NULL, dsi ? dsi->value.data.size : 0, (char *)src_url, NULL, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new FLAC audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
+			return e;
+		}
+		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
 	} else if (use_opus) {
 		GF_OpusSpecificBox *opus_cfg = NULL;
 		GF_BitStream *bs;
@@ -2002,6 +2017,16 @@ sample_entry_done:
 			gf_isom_hint_max_chunk_size(ctx->file, tkw->track_num, ctx->maxchunk);
 
 		if (sr) {
+			if (use_flac_entry) {
+				while (sr>65535) {
+					u32 val = sr/2;
+					if (val*2 != sr) {
+						sr=65535;
+						break;
+					}
+					sr = val;
+				}
+			}
 			gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps, ctx->make_qt ? GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF : ase_mode);
 		}
 		else if (width) {

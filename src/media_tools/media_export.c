@@ -672,8 +672,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 			fprintf(vtt, "height:%d\n", h);
 		}
 		else if (mtype==GF_ISOM_MEDIA_AUDIO) {
-			u32 sr, nb_ch;
-			u8 bps;
+			u32 sr, nb_ch, bps;
 			gf_isom_get_audio_info(dumper->file, track, 1, &sr, &nb_ch, &bps);
 			fprintf(vtt, "sampleRate: %d\n", sr);
 			fprintf(vtt, "numChannels: %d\n", nb_ch);

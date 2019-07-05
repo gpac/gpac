@@ -221,6 +221,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/reframe_adts.c \
 	../../../../src/filters/reframe_amr.c \
 	../../../../src/filters/reframe_av1.c \
+	../../../../src/filters/reframe_flac.c \
 	../../../../src/filters/reframe_h263.c \
 	../../../../src/filters/reframe_img.c \
 	../../../../src/filters/reframe_latm.c \

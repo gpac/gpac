@@ -73,7 +73,7 @@ typedef struct
 
 GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 cid, chan, sr, w, h, stype, pf, sfmt, av1mode;
+	u32 cid, chan, sr, w, h, stype, pf, sfmt, av1mode, nb_bps;
 	const char *name, *mimetype;
 	char szExt[10], szCodecExt[30], *sep;
 	const GF_PropertyValue *p;
@@ -113,6 +113,10 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	chan = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
 	sfmt = p ? p->value.uint : GF_AUDIO_FMT_S16;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_BPS);
+	nb_bps = p ? p->value.uint : 0;
+
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 	ctx->w = w = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
@@ -190,6 +194,12 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		ctx->dcfg_size = 7;
 		ctx->decinfo = DECINFO_FIRST;
 		break;
+
+	case GF_CODECID_FLAC:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
+		ctx->decinfo = DECINFO_FIRST;
+		break;
+
 
 	case GF_CODECID_SIMPLE_TEXT:
 		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_MIME))
@@ -359,7 +369,10 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			if (cid==GF_CODECID_RAW) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting PCM %s SampleRate %d %d channels %d bits per sample\n", gf_audio_fmt_name(sfmt), sr, chan, gf_audio_fmt_bit_depth(sfmt) ));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - SampleRate %d %d channels %d bits per sample\n", name, sr, chan, gf_audio_fmt_bit_depth(sfmt) ));
+				if (!nb_bps)
+					nb_bps = gf_audio_fmt_bit_depth(sfmt);
+
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - SampleRate %d %d channels %d bits per sample\n", name, sr, chan, nb_bps ));
 			}
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s\n", name));

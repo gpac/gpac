@@ -1910,9 +1910,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 {
 	Float scale;
 	Bool is_od_track = 0;
-	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits, cdur, csize;
+	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits, cdur, csize, bps;
 	u64 time_slice, dur, size;
-	u8 bps;
 	GF_ESD *esd;
 	char szDur[50];
 	char *lang;

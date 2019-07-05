@@ -257,10 +257,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
 	Bool is_nalu_video=GF_FALSE, has_seig;
-	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode, cdur;
+	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode, cdur, bps;
 	s32 trans_x, trans_y;
 	s16 layer;
-	u8 bps;
 	char *lang;
 	const char *orig_name = gf_url_get_resource_name(gf_isom_get_filename(import->orig));
 	Bool sbr, ps;

@@ -136,3 +136,4 @@ test_decoder "theora" $EXTERNAL_MEDIA_DIR/import/dead_ogg.ogg "test.yuv" "-black
 #test aac multichannel decode to raw
 test_decoder "aac-faad-mc" $EXTERNAL_MEDIA_DIR/import/aac_vbr_51_128k.aac "test.pcm" "-blacklist=ffdec" 1
 
+test_decoder "flac-ffdec" $EXTERNAL_MEDIA_DIR/import/enst_audio.flac "test.pcm" "" 0

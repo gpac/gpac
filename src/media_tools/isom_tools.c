@@ -876,8 +876,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		gf_isom_update_bitrate(mp4, i+1, 1, 0, 0, 0);
 		
 		if (mtype==GF_ISOM_MEDIA_AUDIO) {
-			u32 sr, nb_ch;
-			u8 bps;
+			u32 sr, nb_ch, bps;
 			gf_isom_get_audio_info(mp4, i+1, 1, &sr, &nb_ch, &bps);
 			gf_isom_set_audio_info(mp4, i+1, 1, sr, nb_ch, bps, GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF);
 			continue;
