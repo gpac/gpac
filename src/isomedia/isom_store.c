@@ -1404,7 +1404,7 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	GF_Err e;
 	u32 i;
 	s32 moov_meta_pos=-1;
-	GF_Box *a;
+	GF_Box *a, *cprt_box;
 	u64 firstSize, finalSize, offset, finalOffset;
 	GF_List *writers = gf_list_new();
 	GF_ISOFile *movie = mw->movie;
@@ -1444,6 +1444,15 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 		case GF_ISOM_BOX_TYPE_PDIN:
 		case GF_ISOM_BOX_TYPE_MDAT:
 			break;
+		case GF_ISOM_BOX_TYPE_FREE:
+			//for backward compat with old arch, keep copyright before moov
+			if (((GF_FreeSpaceBox*)a)->dataSize>4) {
+				GF_FreeSpaceBox *fr = (GF_FreeSpaceBox*) a;
+				if ((fr->dataSize>20) && !strncmp(fr->data, "IsoMedia File", 13)) {
+					cprt_box = a;
+					break;
+				}
+			}
 		default:
 			if (moov_meta_pos<0) {
 				e = gf_isom_box_size(a);
@@ -1495,8 +1504,10 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 
 
 	//then the rest
-	i=(u32) (moov_meta_pos+1);
+	i=0;
 	while ((a = (GF_Box*)gf_list_enum(movie->TopBoxes, &i))) {
+		if ((i-1 < moov_meta_pos) && (a != cprt_box))
+			continue;
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_MOOV:
 		case GF_ISOM_BOX_TYPE_META:

@@ -22,11 +22,11 @@ do_test "$MP4BOX -patch $MEDIA_DIR/boxpatch/box_rem_root.xml $mp4file1 -out $mp4
 do_hash_test $mp4file2 "rem-box-root"
 
 mp4file1="$TEMP_DIR/add-root-flat.mp4"
-do_test "$MP4BOX -inter 100 -flat -patch $MEDIA_DIR/boxpatch/box_add_root.xml $mp4file2 -out $mp4file1" "add-box-root-flat"
+do_test "$MP4BOX -flat -patch $MEDIA_DIR/boxpatch/box_add_root.xml $mp4file2 -out $mp4file1" "add-box-root-flat"
 do_hash_test $mp4file1 "add-box-root-flat"
 
 mp4file1="$TEMP_DIR/add-root-streamable.mp4"
-do_test "$MP4BOX -flat -patch $MEDIA_DIR/boxpatch/box_add_root.xml $mp4file2 -out $mp4file1" "add-box-root-streamable"
+do_test "$MP4BOX -inter 0 -patch $MEDIA_DIR/boxpatch/box_add_root.xml $mp4file2 -out $mp4file1" "add-box-root-streamable"
 do_hash_test $mp4file1 "add-box-root-streamable"
 
 
