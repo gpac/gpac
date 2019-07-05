@@ -210,7 +210,8 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (p) ctx->duration = p->value.frac;
 
 
-	gf_filter_pid_set_name(ctx->opid_nhml, "nhml");
+	if (ctx->opid_nhml)
+		gf_filter_pid_set_name(ctx->opid_nhml, "nhml");
 	if (ctx->opid_mdia)
 		gf_filter_pid_set_name(ctx->opid_mdia, "media");
 	if (ctx->opid_info)
