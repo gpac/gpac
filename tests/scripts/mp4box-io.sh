@@ -92,6 +92,8 @@ mp4_test ()
   do_hint=0 ;;
  *.png )
   do_hint=0 ;;
+ *.flac )
+  do_hint=0 ;;
  *.qcp )
   do_play=0 ;;
   #mpg, ogg and avi import is broken in master, disable hash until we move to filters

@@ -690,9 +690,17 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		//we may have a dsi here!
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 		if (prop && prop->value.data.ptr && prop->value.data.size) {
-			ctx->decoder->extradata_size = prop->value.data.size;
-			ctx->decoder->extradata = gf_malloc(sizeof(char) * prop->value.data.size);
-			memcpy(ctx->decoder->extradata, prop->value.data.ptr, prop->value.data.size);
+			//looks loke ffmpeg wants the fLaC keyword
+			if (gpac_codecid==GF_CODECID_FLAC) {
+				ctx->decoder->extradata_size = prop->value.data.size+4;
+				ctx->decoder->extradata = gf_malloc(sizeof(char) * prop->value.data.size+4);
+				memcpy(ctx->decoder->extradata, "fLaC", 4);
+				memcpy(ctx->decoder->extradata+4, prop->value.data.ptr, prop->value.data.size);
+			} else {
+				ctx->decoder->extradata_size = prop->value.data.size;
+				ctx->decoder->extradata = gf_malloc(sizeof(char) * prop->value.data.size);
+				memcpy(ctx->decoder->extradata, prop->value.data.ptr, prop->value.data.size);
+			}
 			ctx->extra_data_crc = gf_crc_32(prop->value.data.ptr, prop->value.data.size);
 		}
 

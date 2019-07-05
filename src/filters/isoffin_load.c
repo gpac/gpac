@@ -78,7 +78,7 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 
 static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32 stsd_idx, u32 streamtype, Bool use_iod)
 {
-	u32 w, h, sr, nb_ch, codec_id, depends_on_id, esid, avg_rate, max_rate, buffer_size, sample_count, max_size, nb_refs, exp_refs, base_track, audio_fmt;
+	u32 w, h, sr, nb_ch, nb_bps, codec_id, depends_on_id, esid, avg_rate, max_rate, buffer_size, sample_count, max_size, nb_refs, exp_refs, base_track, audio_fmt;
 	GF_ESD *an_esd;
 	const char *mime, *encoding, *stxtcfg, *namespace, *schemaloc;
 	u8 *tk_template;
@@ -191,6 +191,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				gf_odf_desc_del((GF_Descriptor *) txtcfg);
 			}
 		}
+			break;
+
+		case GF_ISOM_SUBTYPE_FLAC:
+			codec_id = GF_CODECID_FLAC;
+			gf_isom_flac_config_get(read->mov, track, stsd_idx, &dsi, &dsi_size);
 			break;
 
 		case GF_QT_SUBTYPE_TWOS:
@@ -668,12 +673,17 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (hspace != vspace)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAR, &PROP_FRAC_INT(hspace, vspace) );
 	}
-	sr = nb_ch = 0;
-	gf_isom_get_audio_info(read->mov,track, stsd_idx, &sr, &nb_ch, NULL);
+	sr = nb_ch = nb_bps = 0;
+	gf_isom_get_audio_info(read->mov,track, stsd_idx, &sr, &nb_ch, &nb_bps);
 	if (sr && nb_ch) {
 		u32 d1, d2;
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
+
+		//to remove once we deprecate master
+		if (!gf_sys_is_test_mode())
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_AUDIO_BPS, &PROP_UINT(nb_bps));
+
 		if (first_config ) {
 			d1 = gf_isom_get_sample_duration(read->mov, ch->track, 1);
 			d2 = gf_isom_get_sample_duration(read->mov, ch->track, 2);

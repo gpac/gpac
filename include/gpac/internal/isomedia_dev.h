@@ -494,6 +494,9 @@ enum
 
 	GF_ISOM_BOX_TYPE_AUXV 	= GF_4CC('A','U','X','V'),
 
+	GF_ISOM_BOX_TYPE_FLAC	= GF_4CC( 'f', 'L', 'a', 'C' ),
+	GF_ISOM_BOX_TYPE_DFLA	= GF_4CC( 'd', 'f', 'L', 'a' ),
+
 };
 
 enum
@@ -1474,6 +1477,13 @@ typedef struct
 
 typedef struct
 {
+	GF_ISOM_FULL_BOX
+	u8 *data;
+	u32 dataSize;
+} GF_FLACConfigBox;
+
+typedef struct
+{
 	GF_ISOM_BOX
 
 	/*OpusSpecificBox*/
@@ -1522,6 +1532,10 @@ typedef struct
 
 	//for MPEG-H audio
 	GF_MHAConfigBox *cfg_mha;
+
+	//for FLAC
+	GF_FLACConfigBox *cfg_flac;
+
 } GF_MPEGAudioSampleEntryBox;
 
 /*this is the default visual sdst (to handle unknown media)*/

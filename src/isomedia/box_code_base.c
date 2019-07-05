@@ -3676,6 +3676,10 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 		if (ptr->cfg_mha) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_mha = (GF_MHAConfigBox *) a;
 		break;
+	case GF_ISOM_BOX_TYPE_DFLA:
+		if (ptr->cfg_flac) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->cfg_flac = (GF_FLACConfigBox *) a;
+		break;
 
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
 		wave = (GF_UnknownBox *)a;
@@ -3857,6 +3861,7 @@ GF_Err audio_sample_entry_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_3gpp, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_opus, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_ac3, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->cfg_flac, &pos);
 	return GF_OK;
 }
 
@@ -10706,5 +10711,51 @@ GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusSpe
 	*outDescriptionIndex = gf_list_count(stsd->child_boxes);
 	return e;
 }
+
+
+void dfla_box_del(GF_Box *s)
+{
+	GF_FLACConfigBox *ptr = (GF_FLACConfigBox *) s;
+	if (ptr->data) gf_free(ptr->data);
+	gf_free(ptr);
+}
+
+GF_Err dfla_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_FLACConfigBox *ptr = (GF_FLACConfigBox *) s;
+	ptr->dataSize = (u32) ptr->size;
+	ptr->size=0;
+	ptr->data = gf_malloc(ptr->dataSize);
+	gf_bs_read_data(bs, ptr->data, ptr->dataSize);
+	return GF_OK;
+}
+
+GF_Box *dfla_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ChunkLargeOffsetBox, GF_ISOM_BOX_TYPE_DFLA);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err dfla_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_FLACConfigBox *ptr = (GF_FLACConfigBox *) s;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_data(bs, ptr->data, ptr->dataSize);
+	return GF_OK;
+}
+
+GF_Err dfla_box_size(GF_Box *s)
+{
+	GF_FLACConfigBox *ptr = (GF_FLACConfigBox *) s;
+	ptr->size += ptr->dataSize;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 
 #endif /*GPAC_DISABLE_ISOM*/

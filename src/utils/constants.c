@@ -115,7 +115,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_THEORA, 0xDF, GF_STREAM_VISUAL, "Theora Video", "theo|theora", NULL, "video/theora"},
 	{GF_CODECID_VORBIS, 0xDD, GF_STREAM_AUDIO, "Vorbis Audio", "vorb|vorbis", NULL, "audio/vorbis"},
 	{GF_CODECID_OPUS, 0xDE, GF_STREAM_AUDIO, "Opus  Audio", "opus", NULL, "audio/opus"},
-	{GF_CODECID_FLAC, 0, GF_STREAM_AUDIO, "Flac Audio", "flac", NULL, "audio/flac"},
+	{GF_CODECID_FLAC, 0, GF_STREAM_AUDIO, "Flac Audio", "flac", "fLaC", "audio/flac"},
 	{GF_CODECID_SPEEX, 0, GF_STREAM_AUDIO, "Speex Audio", "spx|speex", NULL, "audio/speex"},
 	{GF_CODECID_SUBPIC, 0xE0, GF_STREAM_TEXT, "VobSub Subtitle", "vobsub", NULL, "text/x-vobsub"},
 	{GF_CODECID_SUBPIC, 0xE0, GF_STREAM_ND_SUBPIC, "VobSub Subtitle", "vobsub", NULL, "text/x-vobsub"},
@@ -190,6 +190,8 @@ u32 gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_AC3;
 	case GF_ISOM_SUBTYPE_EC3:
 		return GF_CODECID_EAC3;
+	case GF_ISOM_SUBTYPE_FLAC:
+		return GF_CODECID_FLAC;
 	case GF_ISOM_SUBTYPE_MP3:
 		return GF_CODECID_MPEG_AUDIO;
 	case GF_ISOM_SUBTYPE_JPEG:

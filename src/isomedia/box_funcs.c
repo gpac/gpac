@@ -739,6 +739,7 @@ ISOM_BOX_IMPL_DECL(ihdr)
 /* Dolby Vision */
 ISOM_BOX_IMPL_DECL(dvcC)
 ISOM_BOX_IMPL_DECL(dvhe)
+ISOM_BOX_IMPL_DECL(dfla)
 
 
 
@@ -1313,7 +1314,13 @@ static struct box_registry_entry {
 	/* Image tracks */
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JPEG, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JP2K, video_sample_entry, "stsd", "apple"),
-	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_PNG, video_sample_entry, "stsd", "apple")
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_PNG, video_sample_entry, "stsd", "apple"),
+
+
+	//Opus in ISOBMFF boxes
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_FLAC, audio_sample_entry, "stsd", "Flac"),
+	FBOX_DEFINE_S(GF_ISOM_BOX_TYPE_DFLA, dfla, "fLaC", 0, "Flac"),
+
 };
 
 Bool gf_box_valid_in_parent(GF_Box *a, const char *parent_4cc)

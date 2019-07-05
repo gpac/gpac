@@ -343,8 +343,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					}
 					/*encrypted MP3 must be sent through MPEG-4 generic to signal all ISMACryp stuff*/
 					else {
-						u8 bps;
-						gf_isom_get_audio_info(file, TrackNum, 1, &sample_rate, &nb_ch, &bps);
+						gf_isom_get_audio_info(file, TrackNum, 1, &sample_rate, &nb_ch, NULL);
 						required_rate = sample_rate;
 					}
 				}
