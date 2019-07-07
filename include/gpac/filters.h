@@ -2736,11 +2736,17 @@ This is currently only used by DASH segmenter to enforce loading muxers with das
 */
 GF_Err gf_filter_pid_force_cap(GF_FilterPid *PID, u32 cap_4cc);
 
-/*! Gets URL and argument of first destination of PID if any - memory shall be freed by caller.
+/*! Gets URL argument of first destination of PID if any - memory shall be freed by caller.
 \param PID the target filter PID
-\return destination string or NULL if error
+\return destination URL string or NULL if error
 */
 char *gf_filter_pid_get_destination(GF_FilterPid *PID);
+
+/*! Gets URL  argument of first source of PID if any - memory shall be freed by caller.
+\param PID the target filter PID
+\return source URL string or NULL if error
+*/
+char *gf_filter_pid_get_source(GF_FilterPid *PID);
 
 /*! Indicates that this output PID requires a sourceID on the destination filter to be present. This prevents trying to link to other filters with no source IDs but
 accepting the PID

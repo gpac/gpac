@@ -260,13 +260,150 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 			idx = gf_media_hevc_read_sps(ptr, ptr_size, hevc);
 			fputs("Sequence Parameter Set", dump);
 			if (idx<0) fprintf(dump, "\" sps_id=\"PARSING FAILURE");
-			else fprintf(dump, "\" sps_id=\"%d", idx);
+			else {
+				HEVC_SPS *sps= &hevc->sps[idx];
+				fprintf(dump, "\" sps_id=\"%d", idx);
+				if (gf_sys_is_test_mode()) break;
+
+				fprintf(dump, "\" aspect_ratio_info_present_flag=\"%d", sps->aspect_ratio_info_present_flag);
+				fprintf(dump, "\" bit_depth_chroma=\"%d", sps->bit_depth_chroma);
+				fprintf(dump, "\" bit_depth_luma=\"%d", sps->bit_depth_luma);
+				fprintf(dump, "\" chroma_format_idc=\"%d", sps->chroma_format_idc);
+				fprintf(dump, "\" colour_description_present_flag=\"%d", sps->colour_description_present_flag);
+				fprintf(dump, "\" colour_primaries=\"%d", sps->colour_primaries);
+				fprintf(dump, "\" cw_flag=\"%d", sps->cw_flag);
+				if (sps->cw_flag) {
+					fprintf(dump, "\" cw_bottom=\"%d", sps->cw_bottom);
+					fprintf(dump, "\" cw_top=\"%d", sps->cw_top);
+					fprintf(dump, "\" cw_left=\"%d", sps->cw_left);
+					fprintf(dump, "\" cw_bottom=\"%d", sps->cw_bottom);
+				}
+				fprintf(dump, "\" height=\"%d", sps->height);
+				fprintf(dump, "\" width=\"%d", sps->width);
+				fprintf(dump, "\" log2_max_pic_order_cnt_lsb=\"%d", sps->log2_max_pic_order_cnt_lsb);
+				fprintf(dump, "\" long_term_ref_pics_present_flag=\"%d", sps->long_term_ref_pics_present_flag);
+				fprintf(dump, "\" matrix_coeffs=\"%d", sps->matrix_coeffs);
+				fprintf(dump, "\" max_CU_depth=\"%d", sps->max_CU_depth);
+				fprintf(dump, "\" max_CU_width=\"%d", sps->max_CU_width);
+				fprintf(dump, "\" max_CU_height=\"%d", sps->max_CU_height);
+				fprintf(dump, "\" num_long_term_ref_pic_sps=\"%d", sps->num_long_term_ref_pic_sps);
+				fprintf(dump, "\" num_short_term_ref_pic_sets=\"%d", sps->num_short_term_ref_pic_sets);
+				fprintf(dump, "\" has_timing_info=\"%d", sps->has_timing_info);
+				if (sps->has_timing_info) {
+					fprintf(dump, "\" time_scale=\"%d", sps->time_scale);
+					fprintf(dump, "\" num_ticks_poc_diff_one_minus1=\"%d", sps->num_ticks_poc_diff_one_minus1);
+					fprintf(dump, "\" num_units_in_tick=\"%d", sps->num_units_in_tick);
+					fprintf(dump, "\" poc_proportional_to_timing_flag=\"%d", sps->poc_proportional_to_timing_flag);
+				}
+				fprintf(dump, "\" rep_format_idx=\"%d", sps->rep_format_idx);
+				fprintf(dump, "\" sample_adaptive_offset_enabled_flag=\"%d", sps->sample_adaptive_offset_enabled_flag);
+				fprintf(dump, "\" sar_idc=\"%d", sps->sar_idc);
+				fprintf(dump, "\" separate_colour_plane_flag=\"%d", sps->separate_colour_plane_flag);
+				fprintf(dump, "\" temporal_mvp_enable_flag=\"%d", sps->temporal_mvp_enable_flag);
+				fprintf(dump, "\" transfer_characteristic=\"%d", sps->transfer_characteristic);
+				fprintf(dump, "\" video_full_range_flag=\"%d", sps->video_full_range_flag);
+				fprintf(dump, "\" sps_ext_or_max_sub_layers_minus1=\"%d", sps->sps_ext_or_max_sub_layers_minus1);
+				fprintf(dump, "\" max_sub_layers_minus1=\"%d", sps->max_sub_layers_minus1);
+				fprintf(dump, "\" update_rep_format_flag=\"%d", sps->update_rep_format_flag);
+				fprintf(dump, "\" sub_layer_ordering_info_present_flag=\"%d", sps->sub_layer_ordering_info_present_flag);
+				fprintf(dump, "\" scaling_list_enable_flag=\"%d", sps->scaling_list_enable_flag);
+				fprintf(dump, "\" infer_scaling_list_flag=\"%d", sps->infer_scaling_list_flag);
+				fprintf(dump, "\" scaling_list_ref_layer_id=\"%d", sps->scaling_list_ref_layer_id);
+				fprintf(dump, "\" scaling_list_data_present_flag=\"%d", sps->scaling_list_data_present_flag);
+				fprintf(dump, "\" asymmetric_motion_partitions_enabled_flag=\"%d", sps->asymmetric_motion_partitions_enabled_flag);
+				fprintf(dump, "\" pcm_enabled_flag=\"%d", sps->pcm_enabled_flag);
+				fprintf(dump, "\" strong_intra_smoothing_enable_flag=\"%d", sps->strong_intra_smoothing_enable_flag);
+				fprintf(dump, "\" vui_parameters_present_flag=\"%d", sps->vui_parameters_present_flag);
+				fprintf(dump, "\" log2_diff_max_min_luma_coding_block_size=\"%d", sps->log2_diff_max_min_luma_coding_block_size);
+				fprintf(dump, "\" log2_min_transform_block_size=\"%d", sps->log2_min_transform_block_size);
+				fprintf(dump, "\" log2_min_luma_coding_block_size=\"%d", sps->log2_min_luma_coding_block_size);
+				fprintf(dump, "\" log2_max_transform_block_size=\"%d", sps->log2_max_transform_block_size);
+				fprintf(dump, "\" max_transform_hierarchy_depth_inter=\"%d", sps->max_transform_hierarchy_depth_inter);
+				fprintf(dump, "\" max_transform_hierarchy_depth_intra=\"%d", sps->max_transform_hierarchy_depth_intra);
+				fprintf(dump, "\" pcm_sample_bit_depth_luma_minus1=\"%d", sps->pcm_sample_bit_depth_luma_minus1);
+				fprintf(dump, "\" pcm_sample_bit_depth_chroma_minus1=\"%d", sps->pcm_sample_bit_depth_chroma_minus1);
+				fprintf(dump, "\" pcm_loop_filter_disable_flag=\"%d", sps->pcm_loop_filter_disable_flag);
+				fprintf(dump, "\" log2_min_pcm_luma_coding_block_size_minus3=\"%d", sps->log2_min_pcm_luma_coding_block_size_minus3);
+				fprintf(dump, "\" log2_diff_max_min_pcm_luma_coding_block_size=\"%d", sps->log2_diff_max_min_pcm_luma_coding_block_size);
+				fprintf(dump, "\" overscan_info_present=\"%d", sps->overscan_info_present);
+				fprintf(dump, "\" overscan_appropriate=\"%d", sps->overscan_appropriate);
+				fprintf(dump, "\" video_signal_type_present_flag=\"%d", sps->video_signal_type_present_flag);
+				fprintf(dump, "\" video_format=\"%d", sps->video_format);
+				fprintf(dump, "\" chroma_loc_info_present_flag=\"%d", sps->chroma_loc_info_present_flag);
+				fprintf(dump, "\" chroma_sample_loc_type_top_field=\"%d", sps->chroma_sample_loc_type_top_field);
+				fprintf(dump, "\" chroma_sample_loc_type_bottom_field=\"%d", sps->chroma_sample_loc_type_bottom_field);
+				fprintf(dump, "\" neutra_chroma_indication_flag=\"%d", sps->neutra_chroma_indication_flag);
+				fprintf(dump, "\" field_seq_flag=\"%d", sps->field_seq_flag);
+				fprintf(dump, "\" frame_field_info_present_flag=\"%d", sps->frame_field_info_present_flag);
+				fprintf(dump, "\" default_display_window_flag=\"%d", sps->default_display_window_flag);
+				fprintf(dump, "\" left_offset=\"%d", sps->left_offset);
+				fprintf(dump, "\" right_offset=\"%d", sps->right_offset);
+				fprintf(dump, "\" top_offset=\"%d", sps->top_offset);
+				fprintf(dump, "\" bottom_offset=\"%d", sps->bottom_offset);
+				fprintf(dump, "\" hrd_parameters_present_flag=\"%d", sps->hrd_parameters_present_flag);
+			}
 			break;
 		case GF_HEVC_NALU_PIC_PARAM:
 			idx = gf_media_hevc_read_pps(ptr, ptr_size, hevc);
 			fputs("Picture Parameter Set", dump);
 			if (idx<0) fprintf(dump, "\" pps_id=\"PARSING FAILURE");
-			else fprintf(dump, "\" pps_id=\"%d", idx);
+			else {
+				HEVC_PPS *pps= &hevc->pps[idx];
+				fprintf(dump, "\" pps_id=\"%d", idx);
+
+				if (gf_sys_is_test_mode()) break;
+
+				fprintf(dump, "\" cabac_init_present_flag=\"%d", pps->cabac_init_present_flag);
+				fprintf(dump, "\" dependent_slice_segments_enabled_flag=\"%d", pps->dependent_slice_segments_enabled_flag);
+				fprintf(dump, "\" entropy_coding_sync_enabled_flag=\"%d", pps->entropy_coding_sync_enabled_flag);
+				fprintf(dump, "\" lists_modification_present_flag=\"%d", pps->lists_modification_present_flag);
+				fprintf(dump, "\" loop_filter_across_slices_enabled_flag=\"%d", pps->loop_filter_across_slices_enabled_flag);
+				fprintf(dump, "\" loop_filter_across_tiles_enabled_flag=\"%d", pps->loop_filter_across_tiles_enabled_flag);
+				fprintf(dump, "\" num_extra_slice_header_bits=\"%d", pps->num_extra_slice_header_bits);
+				fprintf(dump, "\" num_ref_idx_l0_default_active=\"%d", pps->num_ref_idx_l0_default_active);
+				fprintf(dump, "\" num_ref_idx_l1_default_active=\"%d", pps->num_ref_idx_l1_default_active);
+				fprintf(dump, "\" tiles_enabled_flag=\"%d", pps->tiles_enabled_flag);
+				if (pps->tiles_enabled_flag) {
+					fprintf(dump, "\" uniform_spacing_flag=\"%d", pps->uniform_spacing_flag);
+					if (!pps->uniform_spacing_flag) {
+						u32 k;
+						fprintf(dump, "\" num_tile_columns=\"%d", pps->num_tile_columns);
+						fprintf(dump, "\" num_tile_rows=\"%d", pps->num_tile_rows);
+						fprintf(dump, "\" colomns_width=\"");
+						for (k=0; k<pps->num_tile_columns-1; k++)
+							fprintf(dump, "%d ", pps->column_width[k]);
+						fprintf(dump, "\" rows_height=\"");
+						for (k=0; k<pps->num_tile_rows-1; k++)
+							fprintf(dump, "%d ", pps->row_height[k]);
+					}
+				}
+				fprintf(dump, "\" output_flag_present_flag=\"%d", pps->output_flag_present_flag);
+				fprintf(dump, "\" pic_init_qp_minus26=\"%d", pps->pic_init_qp_minus26);
+				fprintf(dump, "\" slice_chroma_qp_offsets_present_flag=\"%d", pps->slice_chroma_qp_offsets_present_flag);
+				fprintf(dump, "\" slice_segment_header_extension_present_flag=\"%d", pps->slice_segment_header_extension_present_flag);
+				fprintf(dump, "\" weighted_pred_flag=\"%d", pps->weighted_pred_flag);
+				fprintf(dump, "\" weighted_bipred_flag=\"%d", pps->weighted_bipred_flag);
+
+				fprintf(dump, "\" sign_data_hiding_flag=\"%d", pps->sign_data_hiding_flag);
+				fprintf(dump, "\" constrained_intra_pred_flag=\"%d", pps->constrained_intra_pred_flag);
+				fprintf(dump, "\" transform_skip_enabled_flag=\"%d", pps->transform_skip_enabled_flag);
+				fprintf(dump, "\" cu_qp_delta_enabled_flag=\"%d", pps->cu_qp_delta_enabled_flag);
+				if (pps->cu_qp_delta_enabled_flag)
+					fprintf(dump, "\" diff_cu_qp_delta_depth=\"%d", pps->diff_cu_qp_delta_depth);
+				fprintf(dump, "\" transquant_bypass_enable_flag=\"%d", pps->transquant_bypass_enable_flag);
+				fprintf(dump, "\" pic_cb_qp_offset=\"%d", pps->pic_cb_qp_offset);
+				fprintf(dump, "\" pic_cr_qp_offset=\"%d", pps->pic_cr_qp_offset);
+
+				fprintf(dump, "\" deblocking_filter_control_present_flag=\"%d", pps->deblocking_filter_control_present_flag);
+				if (pps->deblocking_filter_control_present_flag) {
+					fprintf(dump, "\" deblocking_filter_override_enabled_flag=\"%d", pps->deblocking_filter_override_enabled_flag);
+					fprintf(dump, "\" pic_disable_deblocking_filter_flag=\"%d", pps->pic_disable_deblocking_filter_flag);
+					fprintf(dump, "\" beta_offset_div2=\"%d", pps->beta_offset_div2);
+					fprintf(dump, "\" tc_offset_div2=\"%d", pps->tc_offset_div2);
+				}
+				fprintf(dump, "\" pic_scaling_list_data_present_flag=\"%d", pps->pic_scaling_list_data_present_flag);
+				fprintf(dump, "\" log2_parallel_merge_level_minus2=\"%d", pps->log2_parallel_merge_level_minus2);
+			}
 			break;
 		case GF_HEVC_NALU_ACCESS_UNIT:
 			fputs("AU Delimiter", dump);
@@ -343,6 +480,13 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 			fprintf(dump, " slice=\"%s\" poc=\"%d\"", (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_I) ? "I" : (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_P) ? "P" : (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_B) ? "B" : "Unknown", hevc->s_info.poc);
 			fprintf(dump, " first_slice_in_pic=\"%d\"", hevc->s_info.first_slice_segment_in_pic_flag);
 			fprintf(dump, " dependent_slice_segment=\"%d\"", hevc->s_info.dependent_slice_segment_flag);
+
+			if (!gf_sys_is_test_mode()) {
+				fprintf(dump, " redundant_pic_cnt=\"%d\"", hevc->s_info.redundant_pic_cnt);
+				fprintf(dump, " slice_qp_delta=\"%d\"", hevc->s_info.slice_qp_delta);
+				fprintf(dump, " slice_segment_address=\"%d\"", hevc->s_info.slice_segment_address);
+				fprintf(dump, " slice_type=\"%d\"", hevc->s_info.slice_type);
+			}
 		}
 
 		fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", quality_id, temporal_id);

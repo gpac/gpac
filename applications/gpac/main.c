@@ -1062,7 +1062,11 @@ static Bool word_match(const char *orig, const char *dst)
 
 	for (i=0; i<dlen; i++) {
 		u32 dist_char;
-		char *pos = strchr(orig, dst[i]);
+		u32 offset=0;
+		char *pos;
+
+retry_char:
+		pos = strchr(orig+offset, dst[i]);
 		if (!pos) continue;
 		dist_char = (u32) (pos - orig);
 		if (!run[dist_char]) {
@@ -1071,6 +1075,11 @@ static Bool word_match(const char *orig, const char *dst)
 		} else if (run[dist_char] > i) {
 			run[dist_char] = i+1;
 			match++;
+		} else {
+			//this can be a repeated character
+			offset++;
+			goto retry_char;
+
 		}
 	}
 	if (match*2<olen) {
