@@ -1204,7 +1204,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 	u32 nb_eos, nb_ipid;
 	Bool found_sei_prefix=GF_FALSE, found_sei_suffix=GF_FALSE;
 	u64 min_dts = GF_FILTER_NO_TS;
-	u32 min_dts_timecale;
+	u32 min_dts_timecale=0;
 	GF_FilterPacket *output_pck = NULL;
 	GF_HEVCMergeCtx *ctx = (GF_HEVCMergeCtx*) gf_filter_get_udta (filter);
 
