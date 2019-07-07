@@ -112,7 +112,7 @@ GF_Err ilst_item_box_read(GF_Box *s,GF_BitStream *bs)
 	if (sub_type == GF_ISOM_BOX_TYPE_DATA ) {
 		e = gf_isom_box_parse(&a, bs);
 
-		if (!e && ptr->size < a->size) {
+		if (!e && a && (ptr->size < a->size)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] not enough bytes in box %s: %d left, reading %d (file %s, line %d)\n", gf_4cc_to_str(ptr->type), ptr->size, a->size, __FILE__, __LINE__ )); \
 			e = GF_ISOM_INVALID_FILE;
 		}
@@ -120,6 +120,7 @@ GF_Err ilst_item_box_read(GF_Box *s,GF_BitStream *bs)
 			if (a) gf_isom_box_del(a);
 			return e;
 		}
+		if (!a) return GF_NON_COMPLIANT_BITSTREAM;
 
 		ISOM_DECREASE_SIZE(ptr, a->size);
 
