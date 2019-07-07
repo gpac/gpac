@@ -596,6 +596,29 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 		if (sOK) REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
 		if (!sOK || !strlen(szLine)) {
+			u32 nb_empty = 1;
+			u32 pos = (u32) gf_ftell(ctx->src);
+			if (ctx->state) {
+				while (!feof(ctx->src)) {
+					sOK = gf_text_get_utf8_line(szLine+nb_empty, 2048-nb_empty, ctx->src, ctx->unicode_type);
+					if (sOK) REM_TRAIL_MARKS((szLine+nb_empty), "\r\n\t ")
+
+					if (!sOK) {
+						gf_fseek(ctx->src, pos, SEEK_SET);
+						break;
+					} else if (!strlen(szLine+nb_empty)) {
+						nb_empty++;
+						continue;
+					} else if (	sscanf(szLine+nb_empty, "%u", &line) == 1) {
+						gf_fseek(ctx->src, pos, SEEK_SET);
+						break;
+					} else {
+						u32 k;
+						for (k=0; k<nb_empty; k++) szLine[k] = '\n';
+						goto force_line;
+					}
+				}
+			}
 			ctx->style.style_flags = 0;
 			ctx->style.startCharOffset = ctx->style.endCharOffset = 0;
 			if (txt_line) {
@@ -622,6 +645,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 			continue;
 		}
 
+force_line:
 		switch (ctx->state) {
 		case 0:
 			if (sscanf(szLine, "%u", &line) != 1) {
