@@ -5998,27 +5998,32 @@ GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on)
 	return GF_OK;
 }
 
-static char *gf_filter_pid_get_dst_string(GF_FilterSession *sess, const char *dst_args)
+static char *gf_filter_pid_get_dst_string(GF_FilterSession *sess, const char *_args, Bool is_dst)
 {
-	char *dst, *sep;
+	char *target, *sep;
 	char szKey[6];
 	u32 len;
-	if (!dst_args) return NULL;
+	if (!_args) return NULL;
 
-	sprintf(szKey, "dst%c", sess->sep_name);
-	dst = strstr(dst_args, szKey);
-	if (!dst) return NULL;
+	if (is_dst)
+		sprintf(szKey, "dst%c", sess->sep_name);
+	else
+		sprintf(szKey, "src%c", sess->sep_name);
 
-	sep = (char *) gf_fs_path_escape_colon(sess, dst + 4);
-	dst += 4;
-	if (sep) len = (u32) (sep - dst);
-	else len = (u32) strlen(dst);
+	target = strstr(_args, szKey);
+	if (!target) return NULL;
+
+	sep = (char *) gf_fs_path_escape_colon(sess, target + 4);
+	target += 4;
+	if (sep) len = (u32) (sep - target);
+	else len = (u32) strlen(target);
 
 	char *res = gf_malloc(sizeof(char)* (len+1));
-	memcpy(res, dst, sizeof(char)* len);
+	memcpy(res, target, sizeof(char)* len);
 	res[len]=0;
 	return res;
 }
+
 
 GF_EXPORT
 char *gf_filter_pid_get_destination(GF_FilterPid *pid)
@@ -6033,7 +6038,7 @@ char *gf_filter_pid_get_destination(GF_FilterPid *pid)
 
 	dst_args = pid->filter->dst_args;
 	if (!dst_args) dst_args = pid->filter->src_args;
-	res = gf_filter_pid_get_dst_string(pid->filter->session, dst_args);
+	res = gf_filter_pid_get_dst_string(pid->filter->session, dst_args, GF_TRUE);
 	if (res) return res;
 
 	//if not set this means we have explicetly loaded the filter
@@ -6042,7 +6047,7 @@ char *gf_filter_pid_get_destination(GF_FilterPid *pid)
 
 		dst_args = pidi->filter->dst_args;
 		if (!dst_args) dst_args = pidi->filter->src_args;
-		res = gf_filter_pid_get_dst_string(pid->filter->session, dst_args);
+		res = gf_filter_pid_get_dst_string(pid->filter->session, dst_args, GF_TRUE);
 		if (res) return res;
 
 		for (j=0; j<pidi->filter->num_output_pids; j++) {
@@ -6054,6 +6059,35 @@ char *gf_filter_pid_get_destination(GF_FilterPid *pid)
 	return NULL;
 }
 
+GF_EXPORT
+char *gf_filter_pid_get_source(GF_FilterPid *pid)
+{
+	const char *src_args;
+	char *res;
+//	GF_FilterPidInst *pidi = (GF_FilterPidInst *) pid;
+	u32 i;
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query source on output PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return NULL;
+	}
+	pid = pid->pid;
+
+	src_args = pid->filter->src_args;
+	if (!src_args) src_args = pid->filter->dst_args;
+	res = gf_filter_pid_get_dst_string(pid->filter->session, src_args, GF_FALSE);
+	if (res) return res;
+
+	//if not set this means we have explicetly loaded the filter
+	for (i=0; i<pid->filter->num_input_pids; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
+
+		src_args = pidi->pid->filter->src_args;
+		if (!src_args) src_args = pidi->pid->filter->dst_args;
+		res = gf_filter_pid_get_dst_string(pid->filter->session, src_args, GF_FALSE);
+		if (res) return res;
+	}
+	return NULL;
+}
 
 GF_EXPORT
 void gf_filter_pid_discard_block(GF_FilterPid *pid)

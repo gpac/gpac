@@ -46,7 +46,7 @@ typedef struct
 	GF_List *tpidstack;
 	u32 num_tiles, got_p, did_it;
 	HEVCState hevc_state;
-	u32 hevc_nalu_size_length, cfg_crc;
+	u32 hevc_nalu_size_length, cfg_crc, nb_pck;
 	char *buffer_nal; // writes some comments
 
 	u32 buffer_nal_alloc;
@@ -612,7 +612,7 @@ static char* extract(GF_Filter *filter, GF_HEVCSplitCtx *ctx, char *buffer, u32 
 	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
 	case GF_HEVC_NALU_SLICE_CRA:
-
+		i = j = 0;
 		/*newAddress =*/ get_new_slice_address_and_tiles_coordinates(&i, &j, hevc);
 		// matching_opid (or *original_coord = newAddress)
 		*original_coord = i * hevc->s_info.pps->num_tile_columns + j; 
@@ -851,8 +851,8 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 	 data is the whole image cut out into "slice_in_pic"
 	 */
 	gf_bs_reassign_buffer(ctx->bs_nal_in, data, data_size);
-	/*TODO: keep logging during the process*/
-	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] splitting frame DTS "LLU" CTS "LLU"\n", gf_filter_pck_get_dts(pck_src), gf_filter_pck_get_cts(pck_src)));
+	ctx->nb_pck++;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] splitting frame %d DTS "LLU" CTS "LLU"\n", ctx->nb_pck, gf_filter_pck_get_dts(pck_src), gf_filter_pck_get_cts(pck_src)));
 
 	u8 *output_nal, *rewritten_nal;
 	u32 out_nal_size;

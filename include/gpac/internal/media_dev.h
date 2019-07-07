@@ -347,8 +347,24 @@ typedef struct
 	Bool video_full_range_flag;
 	Bool colour_description_present_flag;
 	u8 colour_primaries, transfer_characteristic, matrix_coeffs;
-
 	u32 rep_format_idx;
+
+	u8 sps_ext_or_max_sub_layers_minus1, max_sub_layers_minus1, update_rep_format_flag, sub_layer_ordering_info_present_flag, scaling_list_enable_flag, infer_scaling_list_flag, scaling_list_ref_layer_id, scaling_list_data_present_flag, asymmetric_motion_partitions_enabled_flag, pcm_enabled_flag, strong_intra_smoothing_enable_flag, vui_parameters_present_flag;
+	u32 log2_diff_max_min_luma_coding_block_size;
+	u32 log2_min_transform_block_size, log2_min_luma_coding_block_size, log2_max_transform_block_size;
+	u32 max_transform_hierarchy_depth_inter, max_transform_hierarchy_depth_intra;
+
+	u8 pcm_sample_bit_depth_luma_minus1, pcm_sample_bit_depth_chroma_minus1, pcm_loop_filter_disable_flag;
+	u32 log2_min_pcm_luma_coding_block_size_minus3, log2_diff_max_min_pcm_luma_coding_block_size;
+	u8 overscan_info_present, overscan_appropriate, video_signal_type_present_flag, video_format;
+
+	u8 chroma_loc_info_present_flag;
+	u32 chroma_sample_loc_type_top_field, chroma_sample_loc_type_bottom_field;
+
+	u8 neutra_chroma_indication_flag, field_seq_flag, frame_field_info_present_flag;
+	u8 default_display_window_flag;
+	u32 left_offset, right_offset, top_offset, bottom_offset;
+	u8 hrd_parameters_present_flag;
 } HEVC_SPS;
 
 typedef struct
@@ -367,6 +383,13 @@ typedef struct
 	s32 pic_init_qp_minus26;
 	u32 num_tile_columns, num_tile_rows;
 	u32 column_width[22], row_height[20];
+
+	Bool sign_data_hiding_flag, constrained_intra_pred_flag, transform_skip_enabled_flag, cu_qp_delta_enabled_flag, transquant_bypass_enable_flag;
+	u32 diff_cu_qp_delta_depth, pic_cb_qp_offset, pic_cr_qp_offset;
+
+	Bool deblocking_filter_control_present_flag, pic_disable_deblocking_filter_flag, pic_scaling_list_data_present_flag;
+	u32 beta_offset_div2, tc_offset_div2, log2_parallel_merge_level_minus2;
+
 } HEVC_PPS;
 
 typedef struct RepFormat

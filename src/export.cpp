@@ -2345,6 +2345,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_resolve_file_template ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_discard ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_destination ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_source ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_property ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_property_str ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_info) )

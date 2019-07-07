@@ -1102,8 +1102,12 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	}
 
 	if (ctx->is_hevc) {
+		if (!gf_list_count(ctx->vps) || !gf_list_count(ctx->sps) || !gf_list_count(ctx->pps) )
+			return;
 		naludmx_create_hevc_decoder_config(ctx, &dsi, &dsi_size, &dsi_enh, &dsi_enh_size, &w, &h, &ew, &eh, &sar, &has_hevc_base);
 	} else {
+		if (!gf_list_count(ctx->sps) || !gf_list_count(ctx->pps) )
+			return;
 		naludmx_create_avc_decoder_config(ctx, &dsi, &dsi_size, &dsi_enh, &dsi_enh_size, &w, &h, &ew, &eh, &sar);
 	}
 	crc_cfg = crc_cfg_enh = 0;
@@ -2743,7 +2747,7 @@ naldmx_flush:
 
 		//we skipped bytes already in store + end of start code present in packet, so the size of the first object
 		//needs adjustement
-		if (nal_hdr_in_store && !next_size) {
+		if (nal_hdr_in_store && !next_size && !full_nal_required) {
 			size += nal_bytes_from_store;
 		}
 
