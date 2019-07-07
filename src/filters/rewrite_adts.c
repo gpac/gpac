@@ -91,15 +91,14 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 			break;
 		}
 	}
-	ctx->channels = 2;
+	ctx->channels = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
-	if (p && (p->value.uint<=7) ) {
+	if (p)
 		ctx->channels = p->value.uint;
-	} else if (p) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("RFADTS] Invalid channel config %d for ADTS, forcing stereo\n", p->value.uint));
-	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("RFADTS] no channel config found for ADTS, forcing stereo\n"));
-	}
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+	memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
+#endif
 
 	ctx->aac_type = 0;
 	if (ctx->is_latm) {
@@ -123,7 +122,6 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	} else if (ctx->codecid==GF_CODECID_AAC_MPEG4) {
 		if (!ctx->mpeg2) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-			memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 			if (p) {
 				gf_m4a_get_config(p->value.data.ptr, p->value.data.size, &acfg);
@@ -136,6 +134,20 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 #endif
 	} else {
 		ctx->aac_type = ctx->codecid - GF_CODECID_AAC_MPEG2_MP;
+	}
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+	if (ctx->channels && acfg.nb_chan && (ctx->channels != acfg.nb_chan)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("RFADTS] Mismatch betwwen container number of channels (%d) and AAC config (%d), using AAC config\n", ctx->channels, acfg.nb_chan));
+		ctx->channels = acfg.nb_chan;
+	}
+#endif
+
+	if (ctx->channels>7) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("RFADTS] Invalid channel config %d for ADTS, forcing 7\n", ctx->channels));
+		ctx->channels = 7;
+	} else if (!ctx->channels) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("RFADTS] no channel config found for ADTS, forcing stereo\n"));
 	}
 
 	if (!ctx->opid) {
