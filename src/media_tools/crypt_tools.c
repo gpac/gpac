@@ -441,6 +441,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 {
 	char *szArgs=NULL;
 	char an_arg[100];
+	char *arg_dst=NULL;
 
 	GF_Filter *src, *dst, *crypt;
 	GF_FilterSession *fsess;
@@ -491,6 +492,11 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 		gf_dynstrcat(&szArgs, an_arg, NULL);
 	}
 
+	arg_dst = strchr(dst_file, ':');
+	if (arg_dst) {
+		gf_dynstrcat(&szArgs, arg_dst, NULL);
+		arg_dst[0]=0;
+	}
 	dst = gf_fs_load_destination(fsess, dst_file, szArgs, NULL, &e);
 
 	gf_free(szArgs);

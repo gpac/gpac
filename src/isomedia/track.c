@@ -774,7 +774,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 				if ((aux_info_type == GF_ISOM_CENC_SCHEME) || (aux_info_type == GF_ISOM_CBC_SCHEME) ||
 					(aux_info_type == GF_ISOM_CENS_SCHEME) || (aux_info_type == GF_ISOM_CBCS_SCHEME) ||
 					(gf_list_count(traf->sai_offsets) == 1)) {
-					offset = (saio->version ? saio->offsets_large[0] : saio->offsets[0]) + moof_offset;
+					offset = saio->offsets[0] + moof_offset;
 					nb_saio = saio->entry_count;
 					break;
 				}
@@ -796,7 +796,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 					u64 cur_position;
 					if (nb_saio != 1)
-						offset = (saio->version ? saio->offsets_large[i] : saio->offsets[i]) + moof_offset;
+						offset = saio->offsets[i] + moof_offset;
 					size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[i];
 
 

@@ -2272,7 +2272,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 }
 
 GF_EXPORT
-GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, u32 IV_size, u8 *sai_b, u32 sai_b_size, Bool use_subsamples)
+GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, u32 IV_size, u8 *sai_b, u32 sai_b_size, Bool use_subsamples, Bool use_saio_32bit)
 {
 	GF_CENCSampleAuxInfo *sai;
 	GF_TrackFragmentBox  *traf = GetTraf(output, TrackID);
@@ -2346,11 +2346,11 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, 
 
 	//no subsample (not NAL-based data), saiz is IV size only
 	if (! sai->subsample_count) {
-		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size);
+		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size, use_saio_32bit);
 	}
 	// subsamples ( NAL-based data), saiz is IV size + nb subsamples (2 bytes) + 6 bytes per subsample
 	else {
-		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size + 2+6*sai->subsample_count);
+		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size + 2+6*sai->subsample_count, use_saio_32bit);
 	}
 	return GF_OK;
 }
