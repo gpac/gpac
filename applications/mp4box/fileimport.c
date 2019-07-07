@@ -102,7 +102,7 @@ extern Bool keep_sys_tracks;
 
 void scene_coding_log(void *cbk, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char *fmt, va_list vlist);
 
-void convert_file_info(char *inName, u32 trackID)
+void convert_file_info(char *inName, GF_ISOTrackID trackID)
 {
 	GF_Err e;
 	u32 i;

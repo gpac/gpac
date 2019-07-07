@@ -683,7 +683,7 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 	gf_free(mov);
 }
 
-GF_TrackBox *gf_isom_get_track_from_id(GF_MovieBox *moov, u32 trackID)
+GF_TrackBox *gf_isom_get_track_from_id(GF_MovieBox *moov, GF_ISOTrackID trackID)
 {
 	u32 i, count;
 	GF_TrackBox *trak;

@@ -137,7 +137,7 @@ typedef struct
 
 typedef struct
 {
-	u32 trackID;
+	u32 trackID; //ID of track/pid/etc
 	char *stsd;
 	s64 mediaOffset;
 } GF_MPD_ISOBMFInfo;

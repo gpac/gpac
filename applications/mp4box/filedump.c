@@ -969,7 +969,7 @@ static u32 read_nal_size_hdr(u8 *ptr, u32 nalh_size)
 void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc);
 
 
-void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
+void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
 {
 	u32 i, j, count, nb_descs, track, nalh_size, timescale, cur_extract_mode;
 	s32 countRef;
@@ -1112,7 +1112,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 	countRef = gf_isom_get_reference_count(file, track, GF_ISOM_REF_SCAL);
 	if (countRef > 0)
 	{
-		u32 refTrackID;
+		GF_ISOTrackID refTrackID;
 		fprintf(dump, " <SCALReferences>\n");
 		for (i = 1; i <= (u32) countRef; i++)
 		{
@@ -1191,9 +1191,9 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 }
 
-void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc);
+void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc);
 
-void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name, Bool dump_crc)
+void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool is_final_name, Bool dump_crc)
 {
 	Bool is_av1 = GF_FALSE;
 
@@ -1227,7 +1227,7 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 
 void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc);
 
-void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
+void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	u32 i, count, track, timescale;
@@ -1310,7 +1310,7 @@ void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 #endif
 }
 
-void dump_isom_saps(GF_ISOFile *file, u32 trackID, u32 dump_saps_mode, char *inName, Bool is_final_name)
+void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode, char *inName, Bool is_final_name)
 {
 	FILE *dump;
 	u32 i, count;
@@ -1429,7 +1429,7 @@ void dump_isom_ismacryp(GF_ISOFile *file, char *inName, Bool is_final_name)
 }
 
 
-void dump_isom_timed_text(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name, Bool is_convert, GF_TextDumpType dump_type)
+void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool is_final_name, Bool is_convert, GF_TextDumpType dump_type)
 {
 	FILE *dump;
 	GF_Err e;
@@ -1563,7 +1563,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 		for (i=0; i<tcount; i++) {
 			GF_MediaExporter dumper;
-			u32 trackID = gf_isom_get_track_id(the_file, i+1);
+			GF_ISOTrackID trackID = gf_isom_get_track_id(the_file, i+1);
 			u32 mtype = gf_isom_get_media_type(the_file, i+1);
 			u32 msubtype = gf_isom_get_media_subtype(the_file, i+1, 1);
 			Bool fmt_handled = GF_FALSE;
@@ -1906,7 +1906,7 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 #endif
 
 
-void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
+void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump)
 {
 	Float scale;
 	Bool is_od_track = 0;

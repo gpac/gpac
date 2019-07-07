@@ -49,7 +49,7 @@ typedef enum {
 
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-void convert_file_info(char *inName, u32 trackID);
+void convert_file_info(char *inName, GF_ISOTrackID trackID);
 #endif
 
 GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile* movie, char* file_name);
@@ -107,16 +107,16 @@ void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name);
 #endif
 
 void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, Bool skip_offset);
-void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name, Bool dump_crc);
-void dump_isom_saps(GF_ISOFile *file, u32 trackID, u32 dump_saps_mode, char *inName, Bool is_final_name);
+void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool is_final_name, Bool dump_crc);
+void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode, char *inName, Bool is_final_name);
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 void dump_isom_ismacryp(GF_ISOFile *file, char *inName, Bool is_final_name);
-void dump_isom_timed_text(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name, Bool is_convert, GF_TextDumpType dump_type);
+void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool is_final_name, Bool is_convert, GF_TextDumpType dump_type);
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
 
 
-void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump);
+void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump);
 void DumpMovieInfo(GF_ISOFile *file);
 void PrintLanguages();
 

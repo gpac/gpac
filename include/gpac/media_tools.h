@@ -1094,7 +1094,7 @@ typedef struct __track_exporter
 {
 	/*! source ISOBMF file */
 	GF_ISOFile *file;
-	/*! ID of track to be dumped*/
+	/*! ID of track/PID/... to be dumped*/
 	u32 trackID;
 	/*! sample number to export for GF_EXPORT_RAW_SAMPLES only*/
 	u32 sample_num;

@@ -672,7 +672,7 @@ u32 gf_isom_get_track_count(GF_ISOFile *movie)
 
 
 GF_EXPORT
-u32 gf_isom_get_track_id(GF_ISOFile *movie, u32 trackNumber)
+GF_ISOTrackID gf_isom_get_track_id(GF_ISOFile *movie, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	if (!movie) return 0;
@@ -683,7 +683,7 @@ u32 gf_isom_get_track_id(GF_ISOFile *movie, u32 trackNumber)
 
 
 GF_EXPORT
-u32 gf_isom_get_track_by_id(GF_ISOFile *the_file, u32 trackID)
+u32 gf_isom_get_track_by_id(GF_ISOFile *the_file, GF_ISOTrackID trackID)
 {
 	GF_TrackBox *trak;
 	u32 count;
@@ -701,7 +701,7 @@ u32 gf_isom_get_track_by_id(GF_ISOFile *the_file, u32 trackID)
 }
 
 GF_EXPORT
-u32 gf_isom_get_track_original_id(GF_ISOFile *movie, u32 trackNumber)
+GF_ISOTrackID gf_isom_get_track_original_id(GF_ISOFile *movie, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	if (!movie) return 0;
@@ -853,7 +853,7 @@ GF_EXPORT
 u8 gf_isom_is_track_in_root_od(GF_ISOFile *movie, u32 trackNumber)
 {
 	u32 i;
-	u32 trackID;
+	GF_ISOTrackID trackID;
 	GF_Descriptor *desc;
 	GF_ES_ID_Inc *inc;
 	GF_List *inc_list;
@@ -876,7 +876,7 @@ u8 gf_isom_is_track_in_root_od(GF_ISOFile *movie, u32 trackNumber)
 	if (!trackID) return 2;
 	i=0;
 	while ((inc = (GF_ES_ID_Inc*)gf_list_enum(inc_list, &i))) {
-		if (inc->trackID == trackID) return 1;
+		if (inc->trackID == (u32) trackID) return 1;
 	}
 	return 0;
 }
@@ -1041,7 +1041,7 @@ GF_Err gf_isom_get_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceTy
 	GF_Err e;
 	GF_TrackBox *trak;
 	GF_TrackReferenceTypeBox *dpnd;
-	u32 refTrackNum;
+	GF_ISOTrackID refTrackNum;
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 
 	*refTrack = 0;
@@ -1069,7 +1069,7 @@ GF_Err gf_isom_get_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceTy
 //Return the referenced track ID for a track and a given ReferenceType and Index
 //return -1 if error, 0 if the reference is a NULL one, or the trackNumber
 GF_EXPORT
-GF_Err gf_isom_get_reference_ID(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, u32 referenceIndex, u32 *refTrackID)
+GF_Err gf_isom_get_reference_ID(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, u32 referenceIndex, GF_ISOTrackID *refTrackID)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -1094,7 +1094,7 @@ GF_Err gf_isom_get_reference_ID(GF_ISOFile *movie, u32 trackNumber, u32 referenc
 //Return referenceIndex if the given track has a reference to the given TreckID of a given ReferenceType
 //return 0 if error
 GF_EXPORT
-u32 gf_isom_has_track_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, u32 refTrackID)
+u32 gf_isom_has_track_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, GF_ISOTrackID refTrackID)
 {
 	u32 i;
 	GF_TrackBox *trak;
@@ -4063,7 +4063,7 @@ u32 gf_isom_get_fragments_count(GF_ISOFile *movie, Bool segments_only)
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, u32 trackID, u32 *nb_samples, u64 *duration)
+GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, GF_ISOTrackID trackID, u32 *nb_samples, u64 *duration)
 {
 	u32 i=0;
 	u32 k, l;
@@ -4379,7 +4379,7 @@ GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_num
 }
 
 GF_EXPORT
-Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, u32 *refTrackID, u64 *ntp, u64 *timestamp, Bool reset_info)
+Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, GF_ISOTrackID *refTrackID, u64 *ntp, u64 *timestamp, Bool reset_info)
 {
 	if (!file) return GF_FALSE;
 	if (refTrackID) *refTrackID = 0;

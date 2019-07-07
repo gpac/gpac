@@ -6633,7 +6633,7 @@ GF_Err reftype_box_read(GF_Box *s, GF_BitStream *bs)
 	if (!bytesToRead) return GF_OK;
 
 	ptr->trackIDCount = (u32) (bytesToRead) / sizeof(u32);
-	ptr->trackIDs = (u32 *) gf_malloc(ptr->trackIDCount * sizeof(u32));
+	ptr->trackIDs = (GF_ISOTrackID *) gf_malloc(ptr->trackIDCount * sizeof(GF_ISOTrackID));
 	if (!ptr->trackIDs) return GF_OUT_OF_MEM;
 
 	for (i = 0; i < ptr->trackIDCount; i++) {
@@ -6649,7 +6649,7 @@ GF_Box *reftype_box_new()
 }
 
 
-GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex)
+GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, GF_ISOTrackID trackID, u16 *outRefIndex)
 {
 	u32 i;
 	if (!ref || !trackID) return GF_BAD_PARAM;
@@ -6663,7 +6663,7 @@ GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outR
 		}
 	}
 
-	ref->trackIDs = (u32 *) gf_realloc(ref->trackIDs, (ref->trackIDCount + 1) * sizeof(u32) );
+	ref->trackIDs = (GF_ISOTrackID *) gf_realloc(ref->trackIDs, (ref->trackIDCount + 1) * sizeof(GF_ISOTrackID) );
 	if (!ref->trackIDs) return GF_OUT_OF_MEM;
 	ref->trackIDs[ref->trackIDCount] = trackID;
 	ref->trackIDCount++;

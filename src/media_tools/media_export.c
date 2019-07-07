@@ -365,7 +365,8 @@ static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *in
 {
 	GF_ESD *esd;
 	GF_InitialObjectDescriptor *iod;
-	u32 TrackID, newTk, descIndex, i, ts, rate, pos, di, count, msubtype;
+	GF_ISOTrackID TrackID;
+	u32 newTk, descIndex, i, ts, rate, pos, di, count, msubtype;
 	u64 dur;
 	GF_ISOSample *samp;
 

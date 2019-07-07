@@ -540,6 +540,9 @@ enum
 /*the isomedia file*/
 typedef struct __tag_isom GF_ISOFile;
 
+/*a track ID value - just a 32 bit value but typedefed for API safety*/
+typedef u32 GF_ISOTrackID;
+
 /*Random Access Point flag*/
 typedef enum {
 	RAP_REDUNDANT = -1,
@@ -678,7 +681,7 @@ u64 gf_isom_get_missing_bytes(GF_ISOFile *the_file, u32 trackNumber);
 /*return 0 if movie isn't fragmented, 1 otherwise*/
 u32 gf_isom_is_fragmented(GF_ISOFile *the_file);
 /*return 0 if track isn't fragmented, 1 otherwise*/
-u32 gf_isom_is_track_fragmented(GF_ISOFile *the_file, u32 TrackID);
+u32 gf_isom_is_track_fragmented(GF_ISOFile *the_file, GF_ISOTrackID TrackID);
 
 /*a file being downloaded may be a fragmented file. In this case only partial info
 is available once the file is successfully open (gf_isom_open_progressive), and since there is
@@ -729,13 +732,13 @@ u64 gf_isom_get_original_duration(GF_ISOFile *movie);
 GF_Err gf_isom_get_creation_time(GF_ISOFile *the_file, u64 *creationTime, u64 *modificationTime);
 
 /*return the trackID of track number n, or 0 if error*/
-u32 gf_isom_get_track_id(GF_ISOFile *the_file, u32 trackNumber);
+GF_ISOTrackID gf_isom_get_track_id(GF_ISOFile *the_file, u32 trackNumber);
 
 /*return the track number of the track of specified ID, or 0 if error*/
-u32 gf_isom_get_track_by_id(GF_ISOFile *the_file, u32 trackID);
+u32 gf_isom_get_track_by_id(GF_ISOFile *the_file, GF_ISOTrackID trackID);
 
 /*return the original trackID of the track number n, or 0 if error*/
-u32 gf_isom_get_track_original_id(GF_ISOFile *movie, u32 trackNumber);
+GF_ISOTrackID gf_isom_get_track_original_id(GF_ISOFile *movie, u32 trackNumber);
 
 /*gets the enable flag of a track 0: NO, 1: yes, 2: error*/
 u8 gf_isom_is_track_enabled(GF_ISOFile *the_file, u32 trackNumber);
@@ -1001,10 +1004,10 @@ GF_Err gf_isom_get_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenc
 /*Return the referenced track ID for a track and a given ReferenceType and Index
 return -1 if error, 0 if the reference is a NULL one, or the trackNumber
 */
-GF_Err gf_isom_get_reference_ID(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 referenceIndex, u32 *refTrackID);
+GF_Err gf_isom_get_reference_ID(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 referenceIndex, GF_ISOTrackID *refTrackID);
 
 /*Return referenceIndex if the given track has a reference to the given TreckID of a given ReferenceType, 0 otherwise*/
-u32 gf_isom_has_track_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, u32 refTrackID);
+u32 gf_isom_has_track_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, GF_ISOTrackID refTrackID);
 
 u8 gf_isom_get_pl_indication(GF_ISOFile *the_file, u8 PL_Code);
 
@@ -1158,7 +1161,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file);
 void gf_isom_keep_utc_times(GF_ISOFile *file, Bool keep_utc);
 
 /*gets last UTC/timestamp values indicated for the reference track in the file if any. Returns 0 if no info found*/
-Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, u32 *refTrackID, u64 *ntp, u64 *timestamp, Bool reset_info);
+Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, GF_ISOTrackID *refTrackID, u64 *ntp, u64 *timestamp, Bool reset_info);
 
 /*gets the nalu_length_field size used for this sample description if NALU-based (AVC/HEVC/...), else returns 0 */
 u32 gf_isom_get_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDescriptionIndex);
@@ -1187,11 +1190,11 @@ GF_Err gf_isom_load_extra_boxes(GF_ISOFile *movie, u8 *moov_boxes, u32 moov_boxe
 
 /*creates a new Track. If trackID = 0, the trackID is chosen by the API
 returns the track number or 0 if error*/
-u32 gf_isom_new_track(GF_ISOFile *the_file, u32 trackID, u32 MediaType, u32 TimeScale);
+u32 gf_isom_new_track(GF_ISOFile *the_file, GF_ISOTrackID trackID, u32 MediaType, u32 TimeScale);
 
 /*creates a new Track from an encoded trak box. If udta_only, only keeps the udta box from the template. If trackID = 0, the trackID is chosen by the API
 returns the track number or 0 if error*/
-u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScale, u8 *tk_box, u32 tk_box_size, Bool udta_only);
+u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32 MediaType, u32 TimeScale, u8 *tk_box, u32 tk_box_size, Bool udta_only);
 
 /*removes the desired track - internal cross dependencies will be updated.
 WARNING: any OD streams with references to this track through  ODUpdate, ESDUpdate, ESDRemove commands
@@ -1217,7 +1220,7 @@ GF_Err gf_isom_set_track_creation_time(GF_ISOFile *movie,u32 trackNumber, u64 ti
 
 /*changes the trackID - all track references present in the file are updated
 returns error if trackID is already in used in the file*/
-GF_Err gf_isom_set_track_id(GF_ISOFile *the_file, u32 trackNumber, u32 trackID);
+GF_Err gf_isom_set_track_id(GF_ISOFile *the_file, u32 trackNumber, GF_ISOTrackID trackID);
 
 /*force to rewrite all dependencies when trackID changes*/
 GF_Err gf_isom_rewrite_track_dependencies(GF_ISOFile *movie, u32 trackNumber);
@@ -1254,7 +1257,7 @@ GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u
 GF_Err gf_isom_patch_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u64 next_dts);
 
 /*sets a track reference*/
-GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferencedTrackID);
+GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, GF_ISOTrackID ReferencedTrackID);
 
 /*removes all track references*/
 GF_Err gf_isom_remove_track_references(GF_ISOFile *the_file, u32 trackNumber);
@@ -1461,9 +1464,9 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *the_file, u32 trackNumber, char *c
 /*sets the RVC config for the given track sample description*/
 GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 rvc_predefined, char *mime, u8 *data, u32 size);
 
-u32 gf_isom_get_last_created_track_id(GF_ISOFile *movie);
+GF_ISOTrackID gf_isom_get_last_created_track_id(GF_ISOFile *movie);
 
-GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, u32 trackID, char *box_patch_filename);
+GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID trackID, char *box_patch_filename);
 
 
 /*
@@ -1630,7 +1633,7 @@ storage efficiency
 
 If all the defaults are 0, traf flags will alwaus be used to signal them.
 */
-GF_Err gf_isom_setup_track_fragment(GF_ISOFile *the_file, u32 TrackID,
+GF_Err gf_isom_setup_track_fragment(GF_ISOFile *the_file, GF_ISOTrackID TrackID,
                                     u32 DefaultStreamDescriptionIndex,
                                     u32 DefaultSampleDuration,
                                     u32 DefaultSampleSize,
@@ -1641,7 +1644,7 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *the_file, u32 TrackID,
 
 /*change the default parameters of an existing trak fragment - should not be used if samples have
 already been added - semantics are the same as in gf_isom_setup_track_fragment*/
-GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *movie, u32 TrackID,
+GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *movie, GF_ISOTrackID TrackID,
         u32 DefaultSampleDescriptionIndex,
         u32 DefaultSampleDuration,
         u32 DefaultSampleSize,
@@ -1665,19 +1668,19 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first);
 GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory_mode);
 
 /*sets the baseMediaDecodeTime of the first sample of the given track*/
-GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u64 decode_time);
+GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, GF_ISOTrackID TrackID, u64 decode_time);
 
 /*enables mfra when writing movie fragments*/
 GF_Err gf_isom_enable_mfra(GF_ISOFile *file);
 
 /*sets Microsoft Smooth Streaming traf 'tfxd' box info, written at the end of each traf*/
-GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u64 ntp_in_10mhz, u64 traf_duration_in_10mhz);
+GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, GF_ISOTrackID reference_track_ID, u64 ntp_in_10mhz, u64 traf_duration_in_10mhz);
 
 /*closes current segment - if fragments_per_sidx is <0, no sidx is used - if fragments_per_sidx is ==0, a single sidx is used
 timestamp_shift is the constant difference between media time and presentation time (derived from edit list)
 out_seg_size is optional, holds the segment size in bytes
 */
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool use_ssix, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size);
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, GF_ISOTrackID referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool use_ssix, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size);
 
 /*writes any pending fragment to file for low-latency output. shall only be used if no SIDX is used (subsegs_per_sidx<0 or flushing all fragments before calling gf_isom_close_segment)*/
 GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment);
@@ -1686,7 +1689,7 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment);
 const char *gf_isom_get_segment_name(GF_ISOFile *movie);
 
 /*sets fragment prft box info, written just before the moof*/
-GF_Err gf_isom_set_fragment_reference_time(GF_ISOFile *movie, u32 reference_track_ID, u64 ntp, u64 timestamp);
+GF_Err gf_isom_set_fragment_reference_time(GF_ISOFile *movie, GF_ISOTrackID reference_track_ID, u64 ntp, u64 timestamp);
 
 /*writes an empty sidx in the current movie. The SIDX will be forced to have nb_segs entries - nb_segs shall match the number of calls to
 gf_isom_close_segment that will follow. This avoids wasting time and disk space moving data around. Once gf_isom_close_segment has then been called nb_segs times,
@@ -1695,7 +1698,7 @@ frags_per_sidx, daisy_chain_sidx and frags_per_segment are currently ignored and
 if not NULL, start_range and end_range will contain the byte range of the SIDX box in the movie*/
 GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy_chain_sidx, u32 nb_segs, u32 *frags_per_segment, u32 *start_range, u32 *end_range, Bool use_ssix);
 
-GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *movie, u32 TrackID, u8 *boxes, u32 boxes_size, u8 force_traf_flags);
+GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *movie, GF_ISOTrackID TrackID, u8 *boxes, u32 boxes_size, u8 force_traf_flags);
 
 
 enum
@@ -1720,7 +1723,7 @@ enum
 
 /*set options. Options can be set at the beginning of each new fragment only, and for the
 lifetime of the fragment*/
-GF_Err gf_isom_set_fragment_option(GF_ISOFile *the_file, u32 TrackID, u32 Code, u32 param);
+GF_Err gf_isom_set_fragment_option(GF_ISOFile *the_file, GF_ISOTrackID TrackID, u32 Code, u32 param);
 
 
 /*adds a sample to a fragmented track
@@ -1738,13 +1741,13 @@ MUST be provided (in case of regular tracks, this was computed internally by the
 
 */
 
-GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, const GF_ISOSample *sample,
+GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, GF_ISOTrackID TrackID, const GF_ISOSample *sample,
                                    u32 StreamDescriptionIndex,
                                    u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redundantCoding);
 
 /*appends data into last sample of track for video fragments/other media
 CANNOT be used with OD tracks*/
-GF_Err gf_isom_fragment_append_data(GF_ISOFile *the_file, u32 TrackID, u8 *data, u32 data_size, u8 PaddingBits);
+GF_Err gf_isom_fragment_append_data(GF_ISOFile *the_file, GF_ISOTrackID TrackID, u8 *data, u32 data_size, u8 PaddingBits);
 
 /*reset internal info used with fragments and segment. Should be called when seeking (with keep_sample_count=0) or when loading a media segments with the same timing as the previously loaded segment*/
 void gf_isom_reset_fragment_info(GF_ISOFile *movie, Bool keep_sample_count);
@@ -1760,15 +1763,15 @@ u64 gf_isom_get_fragmented_duration(GF_ISOFile *movie);
 /*returns the number of sidx boxes*/
 u32 gf_isom_get_fragments_count(GF_ISOFile *movie, Bool segments_only);
 /*gets total sample number and duration*/
-GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, u32 trackID, u32 *nb_samples, u64 *duration);
+GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, GF_ISOTrackID trackID, u32 *nb_samples, u64 *duration);
 
-GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, u32 TrackID, u32 IV_size, u8 *sai_b, u32 sai_b_size, Bool use_subsample);
+GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID trackID, u32 IV_size, u8 *sai_b, u32 sai_b_size, Bool use_subsample);
 
 GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof);
 
-GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *movie, u32 trackID, u32 sample_number, Bool is_roll, s16 roll_distance);
-GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, u32 trackID, u32 sample_number_in_frag, Bool is_rap, u32 num_leading_samples);
-GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, u32 trackID, u32 is_leading, u32 dependsOn, u32 dependedOn, u32 redundant);
+GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *movie, GF_ISOTrackID trackID, u32 sample_number, Bool is_roll, s16 roll_distance);
+GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, GF_ISOTrackID trackID, u32 sample_number_in_frag, Bool is_rap, u32 num_leading_samples);
+GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, GF_ISOTrackID trackID, u32 is_leading, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
@@ -1871,7 +1874,7 @@ extra_data: only used when the sample is actually the sample that will contain t
 Note that if you want to reference a previous HintSample in the hintTrack, you will
 have to parse the sample yourself ...
 */
-GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 SourceTrackID, u32 SampleNumber, u16 DataLength, u32 offsetInSample, u8 *extra_data, u8 AtBegin);
+GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, GF_ISOTrackID SourceTrackID, u32 SampleNumber, u16 DataLength, u32 offsetInSample, u8 *extra_data, u8 AtBegin);
 
 
 /*adds a reference to some stream description data in the packet (headers, ...)
@@ -1883,7 +1886,7 @@ offsetInDescription: the offset in bytes in the description at which to begin co
 Since it is far from being obvious what this offset is, we recommend not using this
 function. The ISO Media Format specification is currently being updated to solve
 this issue*/
-GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumber, u32 SourceTrackID, u32 StreamDescriptionIndex, u16 DataLength, u32 offsetInDescription, u8 AtBegin);
+GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumber, GF_ISOTrackID SourceTrackID, u32 StreamDescriptionIndex, u16 DataLength, u32 offsetInDescription, u8 AtBegin);
 
 
 /******************************************************************
@@ -2606,7 +2609,7 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 /*sets the given item as the primary one. You SHALL NOT use this if the meta has a valid XML data*/
 GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num);
 
-GF_Err gf_isom_meta_add_item_ref(GF_ISOFile *file, Bool root_meta, u32 trackID, u32 from_id, u32 to_id, u32 type, u64 *ref_index);
+GF_Err gf_isom_meta_add_item_ref(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 from_id, u32 to_id, u32 type, u64 *ref_index);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -2782,7 +2785,7 @@ specifying 0 as subSampleSize will remove the last subsample information if any*
 GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 flags, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable);
 #endif
 /*add subsample information for the latest sample added to the current track fragment*/
-GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 flags, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable);
+GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, GF_ISOTrackID TrackID, u32 flags, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable);
 
 /*gets the number of the next moof to be produced*/
 u32 gf_isom_get_next_moof_number(GF_ISOFile *movie);
