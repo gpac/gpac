@@ -2395,8 +2395,9 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		}
 		/*scene description and text: compute last sample duration based on original media duration*/
 		if (!use_ts_dur) {
-			insert_dts = gf_isom_get_media_duration(orig, i+1) - last_DTS;
-			gf_isom_set_last_sample_duration(dest, dst_tk, (u32) insert_dts);
+			u64 extend_dur = gf_isom_get_media_duration(orig, i+1) - last_DTS;
+			//extend the duration of the last sample, but don't insert any edit list entry
+			gf_isom_set_last_sample_duration(dest, dst_tk, (u32) (ts_scale*extend_dur) );
 		}
 
 		if (new_track && insert_dts) {
