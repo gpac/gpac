@@ -470,9 +470,9 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 			}
 			else if ((apidctx->pos_x>0) || (apidctx->pos_y>0)) nb_abs_pos++;
 
-			if ((apidctx->pos_x<=0) && (-apidctx->pos_x > (s32) min_rel_pos_x))
+			if ((apidctx->pos_x<=0) && ((u32) (-apidctx->pos_x) < min_rel_pos_x))
 				min_rel_pos_x = -apidctx->pos_x;
-			if ((apidctx->pos_y<=0) && (-apidctx->pos_y > (s32) min_rel_pos_y))
+			if ((apidctx->pos_y<=0) && ((u32) (-apidctx->pos_y) < min_rel_pos_y))
 				min_rel_pos_y = -apidctx->pos_y;
 		} else {
 			nb_no_pos++;

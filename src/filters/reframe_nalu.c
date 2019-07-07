@@ -1721,7 +1721,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 
 	default:
 		if (! ctx->is_playing) return 0;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[%s] NAL Unit type %d not handled - adding", ctx->log_name, nal_unit_type));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[%s] NAL Unit type %d not handled - adding\n", ctx->log_name, nal_unit_type));
 		break;
 	}
 	if (*skip_nal) return res;
