@@ -1217,6 +1217,11 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		Bool inherit_pcr = 0;
 		u32 pid, stream_type, reg_desc_format;
 
+		if (pos + 5 > data_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Broken PMT! size %d but position %d and need at least 5 bytes to declare es\n", data_size, pos));
+			break;
+		}
+
 		stream_type = data[0];
 		pid = ((data[1] & 0x1f) << 8) | data[2];
 		desc_len = ((data[3] & 0xf) << 8) | data[4];
@@ -1354,52 +1359,66 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		data += 5;
 
 		while (desc_len) {
+			if (pos + 2 > data_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Broken PMT descriptor! size %d but position %d and need at least 2 bytes to parse descritpor\n", data_size, pos));
+				break;
+			}
 			u8 tag = data[0];
 			u32 len = data[1];
+
+			if (pos + 2 + len > data_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Broken PMT descriptor! size %d, desc size %d but position %d\n", data_size, len, pos));
+				break;
+			}
+
 			if (es) {
 				switch (tag) {
 				case GF_M2TS_ISO_639_LANGUAGE_DESCRIPTOR:
-					if (pes)
+					if (pes && (len>=3) )
 						pes->lang = GF_4CC(' ', data[2], data[3], data[4]);
 					break;
 				case GF_M2TS_MPEG4_SL_DESCRIPTOR:
-					es->mpeg4_es_id = ( (u32) data[2] & 0x1f) << 8  | data[3];
-					es->flags |= GF_M2TS_ES_IS_SL;
+					if (len>=2) {
+						es->mpeg4_es_id = ( (u32) data[2] & 0x1f) << 8  | data[3];
+						es->flags |= GF_M2TS_ES_IS_SL;
+					}
 					break;
 				case GF_M2TS_REGISTRATION_DESCRIPTOR:
-					reg_desc_format = GF_4CC(data[2], data[3], data[4], data[5]);
-					/*cf http://www.smpte-ra.org/mpegreg/mpegreg.html*/
-					switch (reg_desc_format) {
-					case GF_M2TS_RA_STREAM_AC3:
-						es->stream_type = GF_M2TS_AUDIO_AC3;
-						break;
-					case GF_M2TS_RA_STREAM_VC1:
-						es->stream_type = GF_M2TS_VIDEO_VC1;
-						break;
-					case GF_M2TS_RA_STREAM_GPAC:
-						if (len==8) {
-							es->stream_type = GF_4CC(data[6], data[7], data[8], data[9]);
-							es->flags |= GF_M2TS_GPAC_CODEC_ID;
+					if (len>=4) {
+						reg_desc_format = GF_4CC(data[2], data[3], data[4], data[5]);
+						/*cf http://www.smpte-ra.org/mpegreg/mpegreg.html*/
+						switch (reg_desc_format) {
+						case GF_M2TS_RA_STREAM_AC3:
+							es->stream_type = GF_M2TS_AUDIO_AC3;
+							break;
+						case GF_M2TS_RA_STREAM_VC1:
+							es->stream_type = GF_M2TS_VIDEO_VC1;
+							break;
+						case GF_M2TS_RA_STREAM_GPAC:
+							if (len==8) {
+								es->stream_type = GF_4CC(data[6], data[7], data[8], data[9]);
+								es->flags |= GF_M2TS_GPAC_CODEC_ID;
+								break;
+							}
+						default:
+							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Unknown registration descriptor %s\n", gf_4cc_to_str(reg_desc_format) ));
 							break;
 						}
-					default:
-						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Unknown registration descriptor %s\n", gf_4cc_to_str(reg_desc_format) ));
-						break;
 					}
 					break;
 				case GF_M2TS_DVB_EAC3_DESCRIPTOR:
 					es->stream_type = GF_M2TS_AUDIO_EC3;
 					break;
 				case GF_M2TS_DVB_DATA_BROADCAST_ID_DESCRIPTOR:
-				{
-					u32 id = data[2]<<8 | data[3];
-					if ((id == 0xB) && ses && !ses->sec) {
-						ses->sec = gf_m2ts_section_filter_new(NULL, 1);
+					if (len>=2) {
+						u32 id = data[2]<<8 | data[3];
+						if ((id == 0xB) && ses && !ses->sec) {
+							ses->sec = gf_m2ts_section_filter_new(NULL, 1);
+						}
 					}
-				}
-				break;
+					break;
 				case GF_M2TS_DVB_SUBTITLING_DESCRIPTOR:
-					if (pes) {
+					if (pes && (len>=8)) {
 						pes->sub.language[0] = data[2];
 						pes->sub.language[1] = data[3];
 						pes->sub.language[2] = data[4];
@@ -1410,11 +1429,11 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					es->stream_type = GF_M2TS_DVB_SUBTITLE;
 					break;
 				case GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR:
-				{
-					es->component_tag = data[2];
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Component Tag: %d on Program %d\n", es->component_tag, es->program->number));
-				}
-				break;
+					if (len>=1) {
+						es->component_tag = data[2];
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Component Tag: %d on Program %d\n", es->component_tag, es->program->number));
+					}
+					break;
 				case GF_M2TS_DVB_TELETEXT_DESCRIPTOR:
 					es->stream_type = GF_M2TS_DVB_TELETEXT;
 					break;
@@ -1422,7 +1441,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					es->stream_type = GF_M2TS_DVB_VBI;
 					break;
 				case GF_M2TS_HIERARCHY_DESCRIPTOR:
-					if (pes) {
+					if (pes && (len>=4)) {
 						u8 hierarchy_embedded_layer_index;
 						GF_BitStream *hbs = gf_bs_new((const char *)data, data_size, GF_BITSTREAM_READ);
 						/*u32 skip = */gf_bs_read_int(hbs, 16);
