@@ -165,7 +165,8 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	u32 i, count;
 	Bool is_new_mov = GF_FALSE;
 	u64 tfdt;
-	u32 trackID, flags=0;
+	GF_ISOTrackID trackID;
+	u32 flags=0;
 	GF_Err e;
 
 	prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);

@@ -53,7 +53,7 @@ void isor_reset_reader(ISOMChannel *ch)
 
 void isor_check_producer_ref_time(ISOMReader *read)
 {
-	u32 trackID;
+	GF_ISOTrackID trackID;
 	u64 ntp;
 	u64 timestamp;
 

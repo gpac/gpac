@@ -28,7 +28,7 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
-GF_TrackBox *GetTrackbyID(GF_MovieBox *moov, u32 TrackID)
+GF_TrackBox *GetTrackbyID(GF_MovieBox *moov, GF_ISOTrackID TrackID)
 {
 	GF_TrackBox *trak;
 	u32 i;
@@ -51,7 +51,7 @@ GF_TrackBox *gf_isom_get_track(GF_MovieBox *moov, u32 trackNumber)
 
 //get the number of a track given its ID
 //return 0 if not found error
-u32 gf_isom_get_tracknum_from_id(GF_MovieBox *moov, u32 trackID)
+u32 gf_isom_get_tracknum_from_id(GF_MovieBox *moov, GF_ISOTrackID trackID)
 {
 	u32 i;
 	GF_TrackBox *trak;
@@ -63,7 +63,7 @@ u32 gf_isom_get_tracknum_from_id(GF_MovieBox *moov, u32 trackID)
 }
 
 //extraction of the ESD from the track
-GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outESD)
+GF_Err GetESD(GF_MovieBox *moov, GF_ISOTrackID trackID, u32 StreamDescIndex, GF_ESD **outESD)
 {
 	GF_Err e;
 	GF_ESD *esd;
@@ -144,7 +144,7 @@ GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outE
 			/*this is explicit desync*/
 			if (dpnd && ((dpnd->trackIDs[0]==0) || (dpnd->trackIDs[0]==OCRTrack->Header->trackID))) break;
 			/*loop in OCRs, break it*/
-			if (esd->ESID == OCRTrack->Header->trackID) {
+			if (esd->ESID == (u16) OCRTrack->Header->trackID) {
 				OCRTrack = NULL;
 				goto default_sync;
 			}
@@ -313,7 +313,7 @@ default_sync:
 
 
 //extraction of the ESD from the track for the given time
-GF_Err GetESDForTime(GF_MovieBox *moov, u32 trackID, u64 CTS, GF_ESD **outESD)
+GF_Err GetESDForTime(GF_MovieBox *moov, GF_ISOTrackID trackID, u64 CTS, GF_ESD **outESD)
 {
 	GF_Err e;
 	u32 sampleDescIndex;
@@ -869,7 +869,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 //used to check if a TrackID is available
-u8 RequestTrack(GF_MovieBox *moov, u32 TrackID)
+u8 RequestTrack(GF_MovieBox *moov, GF_ISOTrackID TrackID)
 {
 	u32 i;
 	GF_TrackBox *trak;

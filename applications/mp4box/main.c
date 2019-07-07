@@ -1290,7 +1290,7 @@ GF_FileType get_file_type_by_ext(char *inName)
 
 typedef struct
 {
-	u32 trackID;
+	GF_ISOTrackID trackID;
 	char *line;
 } SDPLine;
 
@@ -1311,7 +1311,7 @@ typedef struct
 {
 	MetaActionType act_type;
 	Bool root_meta, use_dref;
-	u32 trackID;
+	GF_ISOTrackID trackID;
 	u32 meta_4cc;
 	char *szPath, *szName, *mime_type, *enc_type;
 	u32 item_id;
@@ -1503,9 +1503,9 @@ typedef enum {
 typedef struct
 {
 	TSELActionType act_type;
-	u32 trackID;
+	GF_ISOTrackID trackID;
 
-	u32 refTrackID;
+	GF_ISOTrackID refTrackID;
 	u32 criteria[30];
 	u32 nb_criteria;
 	Bool is_switchGroup;
@@ -1514,7 +1514,7 @@ typedef struct
 
 static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_act, TSELActionType act)
 {
-	u32 refTrackID = 0;
+	GF_ISOTrackID refTrackID = 0;
 	Bool has_switch_id;
 	u32 switch_id = 0;
 	u32 criteria[30];
@@ -1612,7 +1612,7 @@ typedef enum {
 typedef struct
 {
 	TrackActionType act_type;
-	u32 trackID;
+	GF_ISOTrackID trackID;
 	char lang[10];
 	s32 delay_ms;
 	const char *kms;
@@ -2205,7 +2205,8 @@ Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove
 Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, hls_clock, do_mpd_rip, merge_vtt_cues;
 char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *high_dynamc_range_filename, *use_init_seg, *box_patch_filename;
 u32 track_dump_type, dump_isom, dump_timestamps;
-u32 trackID, do_flat, box_patch_trackID=0;
+GF_ISOTrackID trackID;
+u32 do_flat, box_patch_trackID=0;
 Bool comp_lzma=GF_FALSE;
 Bool freeze_box_order=GF_FALSE;
 Double min_buffer = 1.5;
