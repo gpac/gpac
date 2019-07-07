@@ -1157,10 +1157,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		return;
 	} else if (info_length != 0) {
 		/* ...Read Descriptors ... */
-		u8 tag, len;
+		u32 tag, len;
 		u32 first_loop_len = 0;
-		tag = data[4];
-		len = data[5];
+		tag = (u32) data[4];
+		len = (u32) data[5];
 		while (info_length > first_loop_len) {
 			if (tag == GF_M2TS_MPEG4_IOD_DESCRIPTOR) {
 				if ((len>2) && (len - 2 <= info_length)) {
