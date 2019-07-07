@@ -78,7 +78,7 @@ insp="$TEMP_DIR/inspect.txt"
 #we cannot hash the result because -cat * will call enum_directory which may behave differently across platforms
 do_test "$MP4BOX -cat $EXTERNAL_MEDIA_DIR/counter/@.hevc -new $mp4file" "cat"
 
-myres=`MP4Box -info $mp4file 2>&1 | grep "2250 samples"`
+myres=`MP4Box -info $mp4file 2>&1 | grep "5250 samples"`
 
 if [ -z "$myres" ] ; then
 result="error importing"
