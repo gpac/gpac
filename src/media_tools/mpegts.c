@@ -1667,7 +1667,9 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 			if (!ts->nit) {
 				ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit, 0);
 			}
-		} else {
+		} else if (!pid) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Broken PAT found reserved PID 0, ignoring\n", pid));
+		} else if (! ts->ess[pid]) {
 			GF_SAFEALLOC(prog, GF_M2TS_Program);
 			if (!prog) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Fail to allocate program for pid %d\n", pid));
