@@ -158,7 +158,7 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("name `ID=NAME`", NULL, "set track handler name to NAME (UTF-8 string)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("itags `tag1[:tag2]`", NULL, "set iTunes tags to file, see [-tag-list]()", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("tag-list", NULL, "print the set of supported iTunes tags", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("split", NULL, "split in files of given max duration, starting each file at RAP", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("split", NULL, "split in files of given max duration. Set [-rap] to start each file at RAP", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("split-size", "splits", "split in files of given max size (in kb)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("split-rap", "splitr", "split in files at each new RAP", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("split-chunk `S:E`", "splitx", "extract a new file from `S` (number of seconds) to `E` with `E` a number (in seconds), `end` or `end-N`, N being the desired number of seconds before the end", NULL, NULL, GF_ARG_STRING, 0),
@@ -5206,7 +5206,7 @@ int mp4boxMain(int argc, char **argv)
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 	if (split_duration || split_size) {
-		split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, tmpdir);
+		split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, tmpdir, seg_at_rap);
 		/*never save file when splitting is desired*/
 		open_edit = GF_FALSE;
 		needSave = GF_FALSE;
