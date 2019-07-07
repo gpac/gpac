@@ -4476,11 +4476,11 @@ GF_Err saio_box_dump(GF_Box *a, FILE * trace)
 
 	if (ptr->version==0) {
 		for (i=0; i<ptr->entry_count; i++) {
-			fprintf(trace, "<SAIChunkOffset offset=\"%d\"/>\n", ptr->offsets[i]);
+			fprintf(trace, "<SAIChunkOffset offset=\"%d\"/>\n", (u32) ptr->offsets[i]);
 		}
 	} else {
 		for (i=0; i<ptr->entry_count; i++) {
-			fprintf(trace, "<SAIChunkOffset offset=\""LLD"\"/>\n", ptr->offsets_large[i]);
+			fprintf(trace, "<SAIChunkOffset offset=\""LLD"\"/>\n", ptr->offsets[i]);
 		}
 	}
 	if (!ptr->size) {

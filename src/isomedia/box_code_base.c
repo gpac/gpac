@@ -9141,7 +9141,6 @@ void saio_box_del(GF_Box *s)
 	GF_SampleAuxiliaryInfoOffsetBox *ptr = (GF_SampleAuxiliaryInfoOffsetBox*)s;
 	if (ptr == NULL) return;
 	if (ptr->offsets) gf_free(ptr->offsets);
-	if (ptr->offsets_large) gf_free(ptr->offsets_large);
 	gf_free(ptr);
 }
 
@@ -9160,16 +9159,15 @@ GF_Err saio_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->entry_count) {
 		u32 i;
+		ptr->offsets = gf_malloc(sizeof(u64)*ptr->entry_count);
 		if (ptr->version==0) {
-			ptr->offsets = gf_malloc(sizeof(u32)*ptr->entry_count);
 			for (i=0; i<ptr->entry_count; i++)
 				ptr->offsets[i] = gf_bs_read_u32(bs);
 
 			ISOM_DECREASE_SIZE(ptr, 4*ptr->entry_count);
 		} else {
-			ptr->offsets_large = gf_malloc(sizeof(u64)*ptr->entry_count);
 			for (i=0; i<ptr->entry_count; i++)
-				ptr->offsets_large[i] = gf_bs_read_u64(bs);
+				ptr->offsets[i] = gf_bs_read_u64(bs);
 			ISOM_DECREASE_SIZE(ptr, 8*ptr->entry_count);
 		}
 	}
@@ -9211,11 +9209,11 @@ GF_Err saio_box_write(GF_Box *s, GF_BitStream *bs)
 					gf_bs_write_u32(bs, ptr->offsets[i]);
 			}
 		} else {
-			if (!ptr->offsets_large) {
+			if (!ptr->offsets) {
 				gf_bs_write_u64(bs, 0);
 			} else {
 				for (i=0; i<ptr->entry_count; i++)
-					gf_bs_write_u64(bs, ptr->offsets_large[i]);
+					gf_bs_write_u64(bs, ptr->offsets[i]);
 			}
 		}
 	}
@@ -9229,9 +9227,6 @@ GF_Err saio_box_size(GF_Box *s)
 	if (ptr->aux_info_type || ptr->aux_info_type_parameter) {
 		ptr->flags |= 1;
 	}
-	if (ptr->offsets_large) {
-		ptr->version = 1;
-	}
 
 	if (ptr->flags & 1) ptr->size += 8;
 	ptr->size += 4;
@@ -9241,9 +9236,7 @@ GF_Err saio_box_size(GF_Box *s)
 	case GF_ISOM_CBC_SCHEME:
 	case GF_ISOM_CENS_SCHEME:
 	case GF_ISOM_CBCS_SCHEME:
-		if (ptr->offsets_large) gf_free(ptr->offsets_large);
 		if (ptr->offsets) gf_free(ptr->offsets);
-		ptr->offsets_large = NULL;
 		ptr->offsets = NULL;
 		ptr->entry_count = 1;
 		break;

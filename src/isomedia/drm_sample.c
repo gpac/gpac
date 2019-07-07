@@ -976,7 +976,7 @@ GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 
 }
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len)
+void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len, Bool saio_32bits)
 {
 	u32  i;
 	GF_List **other_boxes = stbl ? &stbl->child_boxes : &traf->child_boxes;
@@ -993,7 +993,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 	if (!senc->cenc_saio) {
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new_parent(other_boxes, GF_ISOM_BOX_TYPE_SAIO);
 		//force using version 1 for saio box, it could be redundant when we use 64 bits for offset
-		senc->cenc_saio->version = 1;
+		senc->cenc_saio->version = saio_32bits ? 0 : 1;
 		//as per 3rd edition of cenc "so content SHOULD be created omitting these optional fields" ...
 		senc->cenc_saio->aux_info_type = 0;
 		senc->cenc_saio->aux_info_type_parameter = 0;
@@ -1064,18 +1064,20 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 	}
 
 	if (!senc->cenc_saio->entry_count) {
-		senc->cenc_saio->offsets_large = (u64 *)gf_malloc(sizeof(u64));
-		senc->cenc_saio->offsets_large[0] = offset;
+		senc->cenc_saio->offsets = (u64 *)gf_malloc(sizeof(u64));
+		senc->cenc_saio->offsets[0] = offset;
 		senc->cenc_saio->entry_count ++;
 	} else {
-		senc->cenc_saio->offsets_large = (u64*)gf_realloc(senc->cenc_saio->offsets_large, sizeof(u64)*(senc->cenc_saio->entry_count+1));
-		senc->cenc_saio->offsets_large[senc->cenc_saio->entry_count] = offset;
+		senc->cenc_saio->offsets = (u64*)gf_realloc(senc->cenc_saio->offsets, sizeof(u64)*(senc->cenc_saio->entry_count+1));
+		senc->cenc_saio->offsets[senc->cenc_saio->entry_count] = offset;
 		senc->cenc_saio->entry_count++;
 	}
+	if (offset > 0xFFFFFFFFUL)
+		senc->cenc_saio->version=1;
 }
 #endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 
-GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, u8 *buf, u32 len, Bool use_subsamples, u8 *clear_IV)
+GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, u8 *buf, u32 len, Bool use_subsamples, u8 *clear_IV, Bool use_saio_32bit)
 {
 	u32 i;
 	GF_SampleEncryptionBox *senc;
@@ -1141,7 +1143,7 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 
 	gf_list_add(senc->samp_aux_info, sai);
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-	gf_isom_cenc_set_saiz_saio(senc, stbl, NULL, len);
+	gf_isom_cenc_set_saiz_saio(senc, stbl, NULL, len, use_saio_32bit);
 #endif
 
 	return GF_OK;
@@ -1260,9 +1262,9 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 		}
 
 		if (saio->entry_count == 1)
-			offset = saio->version ? saio->offsets_large[0] : saio->offsets[0];
+			offset = saio->offsets[0];
 		else
-			offset = saio->version ? saio->offsets_large[sampleNumber-1]: saio->offsets[sampleNumber-1];
+			offset = saio->offsets[sampleNumber-1];
 		nb_saio = saio->entry_count;
 		break;
 	}
