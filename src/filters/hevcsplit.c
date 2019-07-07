@@ -443,7 +443,7 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, u8 *in_slice, u3
 	HEVC_SPS *sps;
 	u32 al, slice_size, slice_offset_orig, slice_offset_dst;
 	u32 first_slice_segment_in_pic_flag;
-	u32 dependent_slice_segment_flag;
+	//u32 dependent_slice_segment_flag;
 	u8 nal_unit_type;
 	HEVCState *hevc = &ctx->hevc_state;
 
@@ -499,11 +499,11 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, u8 *in_slice, u3
 	pps = &hevc->pps[pps_id];
 	sps = &hevc->sps[pps->sps_id];
 
-	dependent_slice_segment_flag = 0;
+	//dependent_slice_segment_flag = 0;
 	if (!first_slice_segment_in_pic_flag && pps->dependent_slice_segments_enabled_flag) {
-		dependent_slice_segment_flag = gf_bs_read_int(ctx->bs_nal_in, 1);
-	} else {
-		dependent_slice_segment_flag = GF_FALSE;
+		/*dependent_slice_segment_flag =*/ gf_bs_read_int(ctx->bs_nal_in, 1);
+//	} else {
+//		dependent_slice_segment_flag = GF_FALSE;
 	}
 
 	if (!first_slice_segment_in_pic_flag) {
