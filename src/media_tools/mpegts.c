@@ -1525,14 +1525,14 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			if (!(es->flags & GF_M2TS_ES_IS_SECTION) ) gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 
 			nb_es++;
-		}
 
-		if (es->stream_type == GF_M2TS_VIDEO_HEVC) nb_hevc++;
-		else if (es->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL) nb_hevc_temp++;
-		else if (es->stream_type == GF_M2TS_VIDEO_SHVC) nb_shvc++;
-		else if (es->stream_type == GF_M2TS_VIDEO_SHVC_TEMPORAL) nb_shvc_temp++;
-		else if (es->stream_type == GF_M2TS_VIDEO_MHVC) nb_mhvc++;
-		else if (es->stream_type == GF_M2TS_VIDEO_MHVC_TEMPORAL) nb_mhvc_temp++;
+			if (es->stream_type == GF_M2TS_VIDEO_HEVC) nb_hevc++;
+			else if (es->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL) nb_hevc_temp++;
+			else if (es->stream_type == GF_M2TS_VIDEO_SHVC) nb_shvc++;
+			else if (es->stream_type == GF_M2TS_VIDEO_SHVC_TEMPORAL) nb_shvc_temp++;
+			else if (es->stream_type == GF_M2TS_VIDEO_MHVC) nb_mhvc++;
+			else if (es->stream_type == GF_M2TS_VIDEO_MHVC_TEMPORAL) nb_mhvc_temp++;
+		}
 	}
 
 	//Table 2-139, implied hierarchy indexes
