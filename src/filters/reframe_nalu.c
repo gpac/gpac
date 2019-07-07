@@ -866,6 +866,9 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 			) {
 				ctx->cur_fps.num = sps->time_scale;
 				ctx->cur_fps.den = sps->num_units_in_tick;
+
+				if (!ctx->fps.num && ctx->dts==ctx->fps.den)
+					ctx->dts = ctx->cur_fps.den;
 			}
 			ctx->fps = ctx->cur_fps;
 		}
@@ -1005,6 +1008,9 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 				if (!ctx->timescale) {
 					ctx->cur_fps.num = 2 * sps->vui.time_scale;
 					ctx->cur_fps.den =  2 * sps->vui.num_units_in_tick * DeltaTfiDivisorIdx;
+
+					if (!ctx->fps.num && ctx->dts==ctx->fps.den)
+						ctx->dts = ctx->cur_fps.den;
 				}
 				if (! sps->vui.fixed_frame_rate_flag)
 					GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Possible Variable Frame Rate: VUI \"fixed_frame_rate_flag\" absent\n", ctx->log_name));
@@ -1102,12 +1108,8 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	}
 
 	if (ctx->is_hevc) {
-		if (!gf_list_count(ctx->vps) || !gf_list_count(ctx->sps) || !gf_list_count(ctx->pps) )
-			return;
 		naludmx_create_hevc_decoder_config(ctx, &dsi, &dsi_size, &dsi_enh, &dsi_enh_size, &w, &h, &ew, &eh, &sar, &has_hevc_base);
 	} else {
-		if (!gf_list_count(ctx->sps) || !gf_list_count(ctx->pps) )
-			return;
 		naludmx_create_avc_decoder_config(ctx, &dsi, &dsi_size, &dsi_enh, &dsi_enh_size, &w, &h, &ew, &eh, &sar);
 	}
 	crc_cfg = crc_cfg_enh = 0;
