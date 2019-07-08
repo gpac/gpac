@@ -819,18 +819,18 @@ GF_Err unkn_box_size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-void def_cont_box_box_del(GF_Box *s)
+void def_parent_box_del(GF_Box *s)
 {
 	if (s) gf_free(s);
 }
 
 
-GF_Err def_cont_box_box_read(GF_Box *s, GF_BitStream *bs)
+GF_Err def_parent_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	return gf_isom_box_array_read(s, bs, NULL);
 }
 
-GF_Box *def_cont_box_box_new()
+GF_Box *def_parent_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_Box, 0);
 	return (GF_Box *) tmp;
@@ -838,12 +838,44 @@ GF_Box *def_cont_box_box_new()
 
 #ifndef GPAC_DISABLE_ISOM_WRITEHintSa
 
-GF_Err def_cont_box_box_write(GF_Box *s, GF_BitStream *bs)
+GF_Err def_parent_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	return gf_isom_box_write_header(s, bs);
 }
 
-GF_Err def_cont_box_box_size(GF_Box *s)
+GF_Err def_parent_box_size(GF_Box *s)
+{
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+void def_parent_full_box_del(GF_Box *s)
+{
+	if (s) gf_free(s);
+}
+
+
+GF_Err def_parent_full_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	return gf_isom_box_array_read(s, bs, NULL);
+}
+
+GF_Box *def_parent_full_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_Box, 0);
+	return (GF_Box *) tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITEHintSa
+
+GF_Err def_parent_full_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	return gf_isom_full_box_write(s, bs);
+}
+
+GF_Err def_parent_full_box_size(GF_Box *s)
 {
 	return GF_OK;
 }
@@ -10725,7 +10757,7 @@ GF_Err dfla_box_read(GF_Box *s,GF_BitStream *bs)
 
 GF_Box *dfla_box_new()
 {
-	ISOM_DECL_BOX_ALLOC(GF_ChunkLargeOffsetBox, GF_ISOM_BOX_TYPE_DFLA);
+	ISOM_DECL_BOX_ALLOC(GF_FLACConfigBox, GF_ISOM_BOX_TYPE_DFLA);
 	return (GF_Box *)tmp;
 }
 
@@ -10749,6 +10781,241 @@ GF_Err dfla_box_size(GF_Box *s)
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+void mvcg_box_del(GF_Box *s)
+{
+	GF_MultiviewGroupBox *ptr = (GF_MultiviewGroupBox *) s;
+	if (ptr->entries) gf_free(ptr->entries);
+	gf_free(ptr);
+}
+
+GF_Err mvcg_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	u32 i;
+	GF_MultiviewGroupBox *ptr = (GF_MultiviewGroupBox *) s;
+	ISOM_DECREASE_SIZE(s, 7)
+	ptr->multiview_group_id = gf_bs_read_u32(bs);
+	ptr->num_entries = gf_bs_read_u16(bs);
+	gf_bs_read_u8(bs);
+	ptr->entries = gf_malloc(ptr->num_entries * sizeof(MVCIEntry));
+	memset(ptr->entries, 0, ptr->num_entries * sizeof(MVCIEntry));
+	for (i=0; i<ptr->num_entries; i++) {
+		ISOM_DECREASE_SIZE(s, 1)
+		ptr->entries[i].entry_type = gf_bs_read_u8(bs);
+		switch (ptr->entries[i].entry_type) {
+		case 0:
+			ISOM_DECREASE_SIZE(s, 4)
+			ptr->entries[i].trackID = gf_bs_read_u32(bs);
+			break;
+		case 1:
+			ISOM_DECREASE_SIZE(s, 6)
+			ptr->entries[i].trackID = gf_bs_read_u32(bs);
+			ptr->entries[i].tierID = gf_bs_read_u16(bs);
+			break;
+		case 2:
+			ISOM_DECREASE_SIZE(s, 2)
+			gf_bs_read_int(bs, 6);
+			ptr->entries[i].output_view_id = gf_bs_read_int(bs, 10);
+			break;
+		case 3:
+			ISOM_DECREASE_SIZE(s, 4)
+			gf_bs_read_int(bs, 6)	;
+			ptr->entries[i].start_view_id = gf_bs_read_int(bs, 10);
+			ptr->entries[i].view_count = gf_bs_read_u16(bs);
+			break;
+		}
+	}
+	return gf_isom_box_array_read(s, bs, NULL);
+}
+
+GF_Box *mvcg_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_MultiviewGroupBox, GF_ISOM_BOX_TYPE_MVCG);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err mvcg_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_MultiviewGroupBox *ptr = (GF_MultiviewGroupBox *) s;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+
+	gf_bs_write_u32(bs, ptr->multiview_group_id);
+	gf_bs_write_u16(bs, ptr->num_entries);
+	gf_bs_write_u8(bs, 0);
+
+	for (i=0; i<ptr->num_entries; i++) {
+		gf_bs_write_u8(bs, ptr->entries[i].entry_type);
+		switch (ptr->entries[i].entry_type) {
+		case 0:
+			gf_bs_write_u32(bs, ptr->entries[i].trackID);
+			break;
+		case 1:
+			gf_bs_write_u32(bs, ptr->entries[i].trackID);
+			gf_bs_write_u16(bs, ptr->entries[i].tierID);
+			break;
+		case 2:
+			gf_bs_write_int(bs, 0, 6);
+			gf_bs_write_int(bs, ptr->entries[i].output_view_id, 10);
+			break;
+		case 3:
+			gf_bs_write_int(bs, 0, 6)	;
+			gf_bs_write_int(bs, ptr->entries[i].start_view_id, 10);
+			gf_bs_write_u16(bs, ptr->entries[i].view_count);
+			break;
+		}
+	}
+	return GF_OK;
+}
+
+GF_Err mvcg_box_size(GF_Box *s)
+{
+	u32 i;
+	GF_MultiviewGroupBox *ptr = (GF_MultiviewGroupBox *) s;
+
+	ptr->size += 7;
+	for (i=0; i<ptr->num_entries; i++) {
+		switch (ptr->entries[i].entry_type) {
+		case 0:
+			ptr->size += 1 + 4;
+			break;
+		case 1:
+			ptr->size += 1 + 6;
+			break;
+		case 2:
+			ptr->size += 1 + 2;
+			break;
+		case 3:
+			ptr->size += 1 + 4;
+			break;
+		}
+	}
+	return GF_OK;
+		return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+void vwid_box_del(GF_Box *s)
+{
+	u32 i;
+	GF_ViewIdentifierBox *ptr = (GF_ViewIdentifierBox *) s;
+	if (ptr->num_views) {
+		for (i=0; i<ptr->num_views; i++) {
+			if (ptr->views[i].view_refs)
+				gf_free(ptr->views[i].view_refs);
+		}
+		gf_free(ptr->views);
+	}
+	gf_free(ptr);
+}
+
+GF_Err vwid_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	u32 i;
+	GF_ViewIdentifierBox *ptr = (GF_ViewIdentifierBox *) s;
+	ISOM_DECREASE_SIZE(s, 3)
+	gf_bs_read_int(bs, 2);
+	ptr->min_temporal_id = gf_bs_read_int(bs, 3);
+	ptr->max_temporal_id = gf_bs_read_int(bs, 3);
+	ptr->num_views = gf_bs_read_u16(bs);
+	if (6 * ptr->num_views > ptr->size)
+		return GF_ISOM_INVALID_FILE;
+
+	ptr->views = gf_malloc(sizeof(ViewIDEntry)*ptr->num_views);
+	for (i=0; i<ptr->num_views; i++) {
+		u32 j;
+		ISOM_DECREASE_SIZE(s, 6)
+
+		gf_bs_read_int(bs, 6);
+		ptr->views[i].view_id = gf_bs_read_int(bs, 10);
+		gf_bs_read_int(bs, 6);
+		ptr->views[i].view_order_index = gf_bs_read_int(bs, 10);
+		ptr->views[i].texture_in_stream = gf_bs_read_int(bs, 1);
+		ptr->views[i].texture_in_track = gf_bs_read_int(bs, 1);
+		ptr->views[i].depth_in_stream = gf_bs_read_int(bs, 1);
+		ptr->views[i].depth_in_track = gf_bs_read_int(bs, 1);
+		ptr->views[i].base_view_type = gf_bs_read_int(bs, 2);
+		ptr->views[i].num_ref_views = gf_bs_read_int(bs, 10);
+
+		if (2 * ptr->views[i].num_ref_views > ptr->size)
+			return GF_ISOM_INVALID_FILE;
+
+		ptr->views[i].view_refs = gf_malloc(sizeof(ViewIDRefViewEntry)*ptr->views[i].num_ref_views);
+		for (j=0; j<ptr->views[i].num_ref_views; j++) {
+			ISOM_DECREASE_SIZE(s, 2)
+			gf_bs_read_int(bs, 4);
+			ptr->views[i].view_refs[j].dep_comp_idc = gf_bs_read_int(bs, 2);
+			ptr->views[i].view_refs[j].ref_view_id = gf_bs_read_int(bs, 10);
+		}
+	}
+	return GF_OK;
+}
+
+GF_Box *vwid_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ViewIdentifierBox, GF_ISOM_BOX_TYPE_VWID);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err vwid_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i, j;
+	GF_ViewIdentifierBox *ptr = (GF_ViewIdentifierBox *) s;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	gf_bs_write_int(bs, 0, 2);
+	gf_bs_write_int(bs, ptr->min_temporal_id, 3);
+	gf_bs_write_int(bs, ptr->max_temporal_id, 3);
+	gf_bs_write_u16(bs, ptr->num_views);
+
+	for (i=0; i<ptr->num_views; i++) {
+		gf_bs_write_int(bs, 0, 6);
+		gf_bs_write_int(bs, ptr->views[i].view_id, 10);
+		gf_bs_write_int(bs, 0, 6);
+		gf_bs_write_int(bs, ptr->views[i].view_order_index, 10);
+
+		gf_bs_write_int(bs, ptr->views[i].texture_in_stream, 1);
+		gf_bs_write_int(bs, ptr->views[i].texture_in_track, 1);
+		gf_bs_write_int(bs, ptr->views[i].depth_in_stream, 1);
+		gf_bs_write_int(bs, ptr->views[i].depth_in_track, 1);
+		gf_bs_write_int(bs, ptr->views[i].base_view_type, 2);
+		gf_bs_write_int(bs, ptr->views[i].num_ref_views, 10);
+
+		for (j=0; j<ptr->views[i].num_ref_views; j++) {
+			gf_bs_write_int(bs, 0, 4);
+			gf_bs_write_int(bs, ptr->views[i].view_refs[j].dep_comp_idc, 2);
+			gf_bs_write_int(bs, ptr->views[i].view_refs[j].ref_view_id, 10);
+		}
+	}
+	return GF_OK;
+}
+
+GF_Err vwid_box_size(GF_Box *s)
+{
+	u32 i;
+	GF_ViewIdentifierBox *ptr = (GF_ViewIdentifierBox *) s;
+	ptr->size += 3;
+	for (i=0; i<ptr->num_views; i++) {
+		ptr->size += 6 + 2 * ptr->views[i].num_ref_views;
+	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 
 
 #endif /*GPAC_DISABLE_ISOM*/
