@@ -5025,7 +5025,7 @@ GF_Err stvi_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-GF_Err def_cont_box_box_dump(GF_Box *a, FILE *trace)
+GF_Err def_parent_box_dump(GF_Box *a, FILE *trace)
 {
 	char *name = "GenericContainerBox";
 
@@ -5053,6 +5053,21 @@ GF_Err def_cont_box_box_dump(GF_Box *a, FILE *trace)
 	return GF_OK;
 }
 
+GF_Err def_parent_full_box_dump(GF_Box *a, FILE *trace)
+{
+	char *name = "GenericFullBox";
+
+	switch (a->type) {
+	case GF_ISOM_BOX_TYPE_MVCI:
+		name = "MultiviewInformationBox";
+		break;
+	}
+
+	gf_isom_box_dump_start(a, name, trace);
+	fprintf(trace, ">\n");
+	gf_isom_box_dump_done(name, a, trace);
+	return GF_OK;
+}
 GF_Err fiin_box_dump(GF_Box *a, FILE * trace)
 {
 	gf_isom_box_dump_start(a, "FDItemInformationBox", trace);
@@ -5386,4 +5401,57 @@ GF_Err dfla_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+
+GF_Err mvcg_box_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_MultiviewGroupBox *ptr = (GF_MultiviewGroupBox *)a;
+	gf_isom_box_dump_start(a, "MultiviewGroupBox", trace);
+	fprintf(trace, " multiview_group_id=\"%d\">\n", ptr->multiview_group_id);
+	for (i=0; i<ptr->num_entries; i++) {
+		fprintf(trace, "<MVCIEntry type=\"%d\"", ptr->entries[i].entry_type);
+		switch (ptr->entries[i].entry_type) {
+		case 0:
+			fprintf(trace, " trackID=\"%d\"", ptr->entries[i].trackID);
+			break;
+		case 1:
+			fprintf(trace, " trackID=\"%d\" tierID=\"%d\"", ptr->entries[i].trackID, ptr->entries[i].tierID);
+			break;
+		case 2:
+			fprintf(trace, " output_view_id=\"%d\"", ptr->entries[i].output_view_id);
+			break;
+		case 3:
+			fprintf(trace, " start_view_id=\"%d\" view_count=\"%d\"", ptr->entries[i].start_view_id, ptr->entries[i].view_count);
+			break;
+		}
+		fprintf(trace, "/>\n");
+	}
+	gf_isom_box_dump_done("MultiviewGroupBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err vwid_box_dump(GF_Box *a, FILE * trace)
+{
+	u32 i, j;
+	GF_ViewIdentifierBox *ptr = (GF_ViewIdentifierBox *) a;
+	gf_isom_box_dump_start(a, "ViewIdentifierBox", trace);
+	fprintf(trace, " min_temporal_id=\"%d\" max_temporal_id=\"%d\">\n", ptr->min_temporal_id, ptr->max_temporal_id);
+	for (i=0; i<ptr->num_views; i++) {
+		fprintf(trace, "<ViewInfo viewid=\"%d\" viewOrderindex=\"%d\" texInStream=\"%d\" texInTrack=\"%d\" depthInStream=\"%d\" depthInTrack=\"%d\" baseViewId=\"%d\">\n",
+			ptr->views[i].view_id,
+			ptr->views[i].view_order_index,
+			ptr->views[i].texture_in_stream,
+			ptr->views[i].texture_in_track,
+			ptr->views[i].depth_in_stream,
+			ptr->views[i].depth_in_track,
+			ptr->views[i].base_view_type
+		);
+		for (j=0; j<ptr->views[i].num_ref_views; j++) {
+			fprintf(trace, "<RefViewInfo dependentComponentIDC=\"%d\" referenceViewID=\"%d\"/>\n", ptr->views[i].view_refs[j].dep_comp_idc, ptr->views[i].view_refs[j].ref_view_id);
+		}
+		fprintf(trace, "</ViewInfo>\n");
+	}
+	gf_isom_box_dump_done("ViewIdentifierBox", a, trace);
+	return GF_OK;
+}
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

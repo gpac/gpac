@@ -475,7 +475,8 @@ ISOM_BOX_IMPL_DECL(gnrm)
 ISOM_BOX_IMPL_DECL(gnrv)
 ISOM_BOX_IMPL_DECL(gnra)
 ISOM_BOX_IMPL_DECL(pdin)
-ISOM_BOX_IMPL_DECL(def_cont_box)
+ISOM_BOX_IMPL_DECL(def_parent)
+ISOM_BOX_IMPL_DECL(def_parent_full)
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
@@ -628,6 +629,8 @@ ISOM_BOX_IMPL_DECL(dac3)
 ISOM_BOX_IMPL_DECL(dec3)
 ISOM_BOX_IMPL_DECL(lsrc)
 ISOM_BOX_IMPL_DECL(lsr1)
+ISOM_BOX_IMPL_DECL(mvcg)
+ISOM_BOX_IMPL_DECL(vwid)
 
 ISOM_BOX_IMPL_DECL(subs)
 
@@ -942,7 +945,7 @@ static struct box_registry_entry {
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TSEL, tsel, "udta", 0),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_STRK, strk, "udta"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_STRI, stri, "strk", 0),
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_STRD, def_cont_box, "strk"),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_STRD, def_parent, "strk"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_STSG, stsg, "strd", 0),
 
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_ENCS, mp4s, "stsd"),
@@ -1068,6 +1071,9 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LHV1, video_sample_entry, "stsd", "p15"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LHE1, video_sample_entry, "stsd", "p15"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_HVT1, video_sample_entry, "stsd", "p15"),
+	FBOX_DEFINE_S(GF_ISOM_BOX_TYPE_MVCI, def_parent_full, "minf", 0, "p15"),
+	FBOX_DEFINE_S(GF_ISOM_BOX_TYPE_MVCG, mvcg, "mvci", 0, "p15"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_VWID, vwid, "video_sample_entry", 0, "p15"),
 
 	//mpegh 3D audio boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHA1, audio_sample_entry, "stsd", "mpegh3Daudio"),
@@ -1220,19 +1226,19 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_CPIL, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_COVR, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_iTunesSpecificInfo, ilst_item, "ilst data", "apple"),
-	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_GMHD, def_cont_box, "minf", "apple"),
-	BOX_DEFINE_S(GF_QT_BOX_TYPE_TAPT, def_cont_box, "trak", "apple"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_GMHD, def_parent, "minf", "apple"),
+	BOX_DEFINE_S(GF_QT_BOX_TYPE_TAPT, def_parent, "trak", "apple"),
 	FBOX_DEFINE_S( GF_QT_BOX_TYPE_GMIN, gmin, "gmhd", 0, "apple"),
 	FBOX_DEFINE_FLAGS_S( GF_QT_BOX_TYPE_ALIS, alis, "dref", 0, 1, "apple"),
 	FBOX_DEFINE_S( GF_QT_BOX_TYPE_CLEF, clef, "tapt", 0, "apple"),
 	FBOX_DEFINE_S( GF_QT_BOX_TYPE_PROF, clef, "tapt", 0, "apple"),
 	FBOX_DEFINE_S( GF_QT_BOX_TYPE_ENOF, clef, "tapt", 0, "apple"),
-	BOX_DEFINE_S( GF_QT_BOX_TYPE_WAVE, def_cont_box, "audio_sample_entry", "apple"),
+	BOX_DEFINE_S( GF_QT_BOX_TYPE_WAVE, def_parent, "audio_sample_entry", "apple"),
 	FBOX_DEFINE_S( GF_QT_BOX_TYPE_CHAN, chan, "audio_sample_entry", 0, "apple"),
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_FRMA, frma, "wave", "apple"),
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_TERMINATOR, unkn, "wave", "apple"),
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_ENDA, chrm, "wave", "apple"),
-	BOX_DEFINE_S( GF_QT_BOX_TYPE_TMCD, def_cont_box, "gmhd", "apple"),
+	BOX_DEFINE_S( GF_QT_BOX_TYPE_TMCD, def_parent, "gmhd", "apple"),
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_NAME, unkn, "tmcd", "apple"),
 	FBOX_DEFINE_S( GF_QT_BOX_TYPE_TCMI, tcmi, "tmcd", 0, "apple"),
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_FIEL, fiel, "video_sample_entry", "apple"),

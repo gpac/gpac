@@ -554,6 +554,12 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 			fprintf(dump, "\" vui_matrix_coefficients=\"%d", avc->sps->vui.matrix_coefficients);
 			fprintf(dump, "\" vui_low_delay_hrd_flag=\"%d", avc->sps->vui.low_delay_hrd_flag);
 		}
+		if (gf_sys_is_test_mode()) break;
+		fprintf(dump, "\" log2_max_poc_lsb=\"%d", avc->sps->log2_max_poc_lsb);
+		fprintf(dump, "\" log2_max_frame_num=\"%d", avc->sps->log2_max_frame_num);
+		fprintf(dump, "\" delta_pic_order_always_zero_flag=\"%d", avc->sps->delta_pic_order_always_zero_flag);
+		fprintf(dump, "\" offset_for_non_ref_pic=\"%d", avc->sps->offset_for_non_ref_pic);
+
 		break;
 	case GF_AVC_NALU_PIC_PARAM:
 		fputs("PictureParameterSet", dump);
@@ -561,7 +567,18 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 		if (idx<0) fprintf(dump, "\" pps_id=\"PARSING FAILURE\" ");
 		else fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", idx, avc->pps[idx].sps_id);
 		fprintf(dump, "\" entropy_coding_mode_flag=\"%d", avc->pps[idx].entropy_coding_mode_flag);
-
+		if (gf_sys_is_test_mode()) break;
+		fprintf(dump, "\" deblocking_filter_control_present_flag=\"%d", avc->pps[idx].deblocking_filter_control_present_flag);
+		fprintf(dump, "\" mb_slice_group_map_type=\"%d", avc->pps[idx].mb_slice_group_map_type);
+		fprintf(dump, "\" num_ref_idx_l0_default_active_minus1=\"%d", avc->pps[idx].num_ref_idx_l0_default_active_minus1);
+		fprintf(dump, "\" num_ref_idx_l1_default_active_minus1=\"%d", avc->pps[idx].num_ref_idx_l1_default_active_minus1);
+		fprintf(dump, "\" pic_order_present=\"%d", avc->pps[idx].pic_order_present);
+		fprintf(dump, "\" pic_size_in_map_units_minus1=\"%d", avc->pps[idx].pic_size_in_map_units_minus1);
+		fprintf(dump, "\" redundant_pic_cnt_present=\"%d", avc->pps[idx].redundant_pic_cnt_present);
+		fprintf(dump, "\" slice_group_change_rate_minus1=\"%d", avc->pps[idx].slice_group_change_rate_minus1);
+		fprintf(dump, "\" slice_group_count=\"%d", avc->pps[idx].slice_group_count);
+		fprintf(dump, "\" weighted_pred_flag=\"%d", avc->pps[idx].weighted_pred_flag);
+		fprintf(dump, "\" weighted_bipred_idc=\"%d", avc->pps[idx].weighted_bipred_idc);
 		break;
 	case GF_AVC_NALU_ACCESS_UNIT:
 		fputs("AccessUnit delimiter", dump);
@@ -1380,7 +1397,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	switch (pctx->codec_id) {
 	case GF_CODECID_SVC:
 	case GF_CODECID_MVC:
-		is_enh = GF_TRUE;
+		if (!dsi) is_enh = GF_TRUE;
 	case GF_CODECID_AVC:
 	case GF_CODECID_AVC_PS:
 		if (!dsi && !dsi_enh) {
@@ -1406,7 +1423,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			}
 		}
 		if (dsi_enh && !svcc) {
-			svcc = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+			svcc = gf_odf_avc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size);
 			if (svcc)
 				pctx->nalu_size_length = svcc->nal_unit_size;
 		}

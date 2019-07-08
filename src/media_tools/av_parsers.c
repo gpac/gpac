@@ -6094,7 +6094,8 @@ s32 gf_media_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 			n_state.poc_msb_prev = avc->s_info.poc_msb;
 		}
 	}
-	if (slice) avc_compute_poc(&n_state);
+	if (slice)
+		avc_compute_poc(&n_state);
 	memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));
 	return ret;
 }

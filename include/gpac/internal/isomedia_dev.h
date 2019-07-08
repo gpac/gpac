@@ -175,6 +175,9 @@ enum
 	GF_ISOM_BOX_TYPE_HVC1	= GF_4CC( 'h', 'v', 'c', '1' ),
 	GF_ISOM_BOX_TYPE_HEV1	= GF_4CC( 'h', 'e', 'v', '1' ),
 	GF_ISOM_BOX_TYPE_HVT1	= GF_4CC( 'h', 'v', 't', '1' ),
+	GF_ISOM_BOX_TYPE_MVCI	= GF_4CC( 'm', 'v', 'c', 'i' ),
+	GF_ISOM_BOX_TYPE_MVCG	= GF_4CC( 'm', 'v', 'c', 'g' ),
+	GF_ISOM_BOX_TYPE_VWID	= GF_4CC( 'v', 'w', 'i', 'd' ),
 
 	GF_ISOM_BOX_TYPE_HVC2	= GF_4CC( 'h', 'v', 'c', '2' ),
 	GF_ISOM_BOX_TYPE_HEV2	= GF_4CC( 'h', 'e', 'v', '2' ),
@@ -1593,6 +1596,57 @@ typedef struct
 	char *xml_schema_loc;	// for metx and sttp only
 	GF_TextConfigBox *config; //optional for anything except metx and sttp
 } GF_MetaDataSampleEntryBox;
+
+
+typedef struct
+{
+	u8 entry_type;
+	union {
+		u32 trackID;
+		u32 output_view_id;
+		u32 start_view_id;
+	};
+	union {
+		u16 tierID;
+		u16 view_count;
+	};
+} MVCIEntry;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 multiview_group_id;
+	u16 num_entries;
+	MVCIEntry *entries;
+} GF_MultiviewGroupBox;
+
+typedef struct
+{
+	u8 dep_comp_idc;
+	u16 ref_view_id;
+} ViewIDRefViewEntry;
+
+typedef struct
+{
+	u16 view_id;
+	u16 view_order_index;
+	u8 texture_in_stream;
+	u8 texture_in_track;
+	u8 depth_in_stream;
+	u8 depth_in_track;
+	u8 base_view_type;
+	u16 num_ref_views;
+	ViewIDRefViewEntry *view_refs;
+} ViewIDEntry;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8 min_temporal_id;
+	u8 max_temporal_id;
+	u16 num_views;
+	ViewIDEntry *views;
+} GF_ViewIdentifierBox;
 
 
 typedef struct

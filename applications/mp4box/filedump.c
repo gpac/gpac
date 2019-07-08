@@ -978,7 +978,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 	Bool is_hevc = GF_FALSE;
 	AVCState avc;
 	HEVCState hevc;
-	GF_AVCConfig *avccfg, *svccfg;
+	GF_AVCConfig *avccfg, *svccfg, *mvccfg;
 	GF_HEVCConfig *hevccfg, *lhvccfg;
 	GF_AVCConfigSlot *slc;
 #endif
@@ -1019,6 +1019,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 	for (j=0; j<nb_descs; j++) {
 		avccfg = gf_isom_avc_config_get(file, track, j+1);
 		svccfg = gf_isom_svc_config_get(file, track, j+1);
+		mvccfg = gf_isom_mvc_config_get(file, track, j+1);
 		hevccfg = gf_isom_hevc_config_get(file, track, j+1);
 		lhvccfg = gf_isom_lhvc_config_get(file, track, j+1);
 
@@ -1048,6 +1049,11 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 			if (!nalh_size) nalh_size = svccfg->nal_unit_size;
 			DUMP_ARRAY(svccfg->sequenceParameterSets, "SVCSPS", "svcC")
 			DUMP_ARRAY(svccfg->pictureParameterSets, "SVCPPS", "svcC")
+		}
+		if (mvccfg) {
+			if (!nalh_size) nalh_size = svccfg->nal_unit_size;
+			DUMP_ARRAY(mvccfg->sequenceParameterSets, "SVCSPS", "mvcC")
+			DUMP_ARRAY(mvccfg->pictureParameterSets, "SVCPPS", "mvcC")
 		}
 		if (hevccfg) {
 #ifndef GPAC_DISABLE_HEVC
