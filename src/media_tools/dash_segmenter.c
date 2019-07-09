@@ -117,6 +117,7 @@ struct __gf_dash_segmenter
 	u64 mpd_time_ms;
 
 	Bool dash_mode_changed;
+	u32 print_stats_graph;
 };
 
 
@@ -303,6 +304,16 @@ GF_Err gf_dasher_set_segment_marker(GF_DASHSegmenter *dasher, u32 segment_marker
 }
 
 GF_EXPORT
+GF_Err gf_dasher_print_session_info(GF_DASHSegmenter *dasher, u32 fs_print_flags)
+{
+	if (!dasher) return GF_BAD_PARAM;
+	dasher->print_stats_graph = fs_print_flags;
+	return GF_OK;
+
+}
+
+
+GF_EXPORT
 GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_ssix)
 {
 	if (!dasher) return GF_BAD_PARAM;
@@ -469,6 +480,28 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, const GF_DashSegmenterInput
 	return GF_OK;
 }
 
+static Bool on_dasher_event(void *_udta, GF_Event *evt)
+{
+	u32 i, count;
+	GF_DASHSegmenter *dasher = (GF_DASHSegmenter *)_udta;
+	if (evt && (evt->type != GF_EVENT_PROGRESS)) return GF_FALSE;
+
+	count = gf_fs_get_filters_count(dasher->fsess);
+	for (i=0; i<count; i++) {
+		GF_FilterStats stats;
+		if (gf_fs_get_filter_stats(dasher->fsess, i, &stats) != GF_OK) continue;
+		if (strcmp(stats.reg_name, "dasher")) continue;
+
+		if (stats.status) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing %s\r", stats.status));
+		} else if (stats.percent>0) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing: % 2.2f %%\r", ((Double)stats.percent)/100));
+		}
+		break;
+	}
+	return GF_FALSE;
+}
+
 /*create filter session, setup destination options and setup sources options*/
 static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 {
@@ -483,6 +516,14 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	}
 
 	dasher->fsess = gf_fs_new_defaults(0);
+
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) {
+		gf_fs_enable_reporting(dasher->fsess, GF_TRUE);
+		gf_fs_set_ui_callback(dasher->fsess, on_dasher_event, dasher);
+	}
+#endif
+
 	if (!dasher->fsess) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to create filter session\n"));
 		return GF_OUT_OF_MEM;
@@ -1000,10 +1041,15 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 	e = gf_fs_run(dasher->fsess);
 	if (e>0) e = GF_OK;
 
-	gf_fs_print_connections(dasher->fsess);
+	if (dasher->print_stats_graph & 1) gf_fs_print_stats(dasher->fsess);
+	if (dasher->print_stats_graph & 2) gf_fs_print_connections(dasher->fsess);
+
 	if (!e) e = gf_fs_get_last_connect_error(dasher->fsess);
 	if (!e) e = gf_fs_get_last_process_error(dasher->fsess);
 	if (e<0) return e;
+
+	on_dasher_event(dasher, NULL);
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 
 	if (dasher->no_cache) {
 		gf_fs_del(dasher->fsess);

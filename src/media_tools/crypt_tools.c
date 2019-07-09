@@ -398,7 +398,7 @@ static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 }
 
 GF_EXPORT
-GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time)
+GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time, u32 fs_dump_flags)
 {
 	char szArgs[4096], an_arg[100];
 	GF_Filter *src, *dst, *dcrypt;
@@ -441,12 +441,21 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 		return GF_FILTER_NOT_FOUND;
 	}
 
-	gf_fs_enable_reporting(fsess, GF_TRUE);
-	gf_fs_set_ui_callback(fsess, on_decrypt_event, fsess);
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) {
+		gf_fs_enable_reporting(fsess, GF_TRUE);
+		gf_fs_set_ui_callback(fsess, on_decrypt_event, fsess);
+	}
+#endif
+
 	e = gf_fs_run(fsess);
 	if (e>GF_OK) e = GF_OK;
 	if (!e) e = gf_fs_get_last_connect_error(fsess);
 	if (!e) e = gf_fs_get_last_process_error(fsess);
+
+	if (fs_dump_flags & 1) gf_fs_print_stats(fsess);
+	if (fs_dump_flags & 2) gf_fs_print_connections(fsess);
+
 	gf_fs_del(fsess);
 	return e;
 }
@@ -459,7 +468,7 @@ static Bool on_crypt_event(void *_udta, GF_Event *evt)
 	return GF_FALSE;
 }
 
-static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time, const char *fragment_name)
+static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time, const char *fragment_name, u32 fs_dump_flags)
 {
 	char *szArgs=NULL;
 	char an_arg[100];
@@ -510,8 +519,12 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 	if (fragment_name)
 		gf_dynstrcat(&szArgs, ":sseg", NULL);
 	else {
-		sprintf(an_arg, ":cdur=%g", interleave_time);
-		gf_dynstrcat(&szArgs, an_arg, NULL);
+		if (interleave_time) {
+			sprintf(an_arg, ":cdur=%g", interleave_time);
+			gf_dynstrcat(&szArgs, an_arg, NULL);
+		} else {
+			gf_dynstrcat(&szArgs, ":store=flat", NULL);
+		}
 	}
 
 	arg_dst = strchr(dst_file, ':');
@@ -529,27 +542,34 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 		return GF_FILTER_NOT_FOUND;
 	}
 
-	gf_fs_enable_reporting(fsess, GF_TRUE);
-	gf_fs_set_ui_callback(fsess, on_crypt_event, fsess);
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) {
+		gf_fs_enable_reporting(fsess, GF_TRUE);
+		gf_fs_set_ui_callback(fsess, on_crypt_event, fsess);
+	}
+#endif
 	e = gf_fs_run(fsess);
 	if (e>GF_OK) e = GF_OK;
 	if (!e) e = gf_fs_get_last_connect_error(fsess);
 	if (!e) e = gf_fs_get_last_process_error(fsess);
+
+	if (fs_dump_flags & 1) gf_fs_print_stats(fsess);
+	if (fs_dump_flags & 2) gf_fs_print_connections(fsess);
 	gf_fs_del(fsess);
 	return e;
 }
 
 GF_EXPORT
-GF_Err gf_crypt_fragment(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, const char *fragment_name)
+GF_Err gf_crypt_fragment(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, const char *fragment_name, u32 fs_dump_flags)
 {
-	return gf_crypt_file_ex(mp4, drm_file, dst_file, 0, fragment_name);
+	return gf_crypt_file_ex(mp4, drm_file, dst_file, 0, fragment_name, fs_dump_flags);
 
 }
 
 GF_EXPORT
-GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time)
+GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time, u32 fs_dump_flags)
 {
-	return gf_crypt_file_ex(mp4, drm_file, dst_file, interleave_time, NULL);
+	return gf_crypt_file_ex(mp4, drm_file, dst_file, interleave_time, NULL, fs_dump_flags);
 
 }
 #endif /* !defined(GPAC_DISABLE_ISOM_WRITE)*/

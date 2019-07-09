@@ -269,8 +269,6 @@ struct __track_import_info
 	/*! GF_ISOM_MEDIA_* : vide, auxv, pict*/
 	u32 media_subtype;
 	Bool is_chapter;
-	/*! import flags supported by the importer*/
-	u32 flags;
 	/*! video format info*/
 	struct __track_video_info video_info;
 	/*! audio format info*/
@@ -1008,6 +1006,15 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_ins_session);
 */
 void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, const char *dash_utc_start_date);
 
+
+/*!
+ Sets print flags for filter session
+ *	\param dasher the DASH segmenter object
+ *  \param fs_print_flags flags for statistics (1) and graph (2) printing
+ *	\return error if any
+*/
+GF_Err gf_dasher_print_session_info(GF_DASHSegmenter *dasher, u32 fs_print_flags);
+
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*!
  save file as fragmented movie
@@ -1106,6 +1113,7 @@ typedef struct __track_exporter
 	char *in_name;
 	/*! optionnal FILE for output*/
 	FILE *dump_file;
+	u32 print_stats_graph;
 } GF_MediaExporter;
 
 /*!

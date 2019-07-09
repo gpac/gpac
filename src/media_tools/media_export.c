@@ -1360,6 +1360,8 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	if (e>GF_OK) e = GF_OK;
 	if (!e) e = gf_fs_get_last_connect_error(fsess);
 	if (!e) e = gf_fs_get_last_process_error(fsess);
+	if (dumper->print_stats_graph & 1) gf_fs_print_stats(fsess);
+	if (dumper->print_stats_graph & 2) gf_fs_print_connections(fsess);
 	gf_fs_del(fsess);
 	return e;
 }

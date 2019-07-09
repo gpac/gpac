@@ -918,6 +918,8 @@ GF_GPACArg m4b_usage_args[] =
  	GF_DEF_ARG("snodes", NULL, "list supported SVG nodes", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("languages", NULL, "list supported ISO 639 languages", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("boxes", NULL, "list all supported ISOBMF boxes and their syntax", NULL, NULL, GF_ARG_BOOL, 0),
+ 	GF_DEF_ARG("fstat", NULL, "print filter session statistics (import/export/encrypt/decrypt/dashing)", NULL, NULL, GF_ARG_BOOL, 0),
+ 	GF_DEF_ARG("fgraph", NULL, "print filter session graph (import/export/encrypt/decrypt/dashing)", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("v", NULL, "verbose mode", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("version", NULL, "get build version", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("-- INPUT", NULL, "escape option if INPUT starts with `-` character", NULL, NULL, GF_ARG_BOOL, 0),
@@ -2212,6 +2214,7 @@ Bool freeze_box_order=GF_FALSE;
 Double min_buffer = 1.5;
 u32 comp_top_box_version = 0;
 s32 ast_offset_ms = 0;
+u32 fs_dump_flags = 0;
 u32 dump_chap = 0;
 u32 dump_udta_type = 0;
 u32 dump_udta_track = 0;
@@ -3593,6 +3596,8 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-std")) dump_std = 2;
 		else if (!stricmp(arg, "-stdb")) dump_std = 1;
+		else if (!stricmp(arg, "-fstat")) fs_dump_flags |= 1;
+		else if (!stricmp(arg, "-fgraph")) fs_dump_flags |= 1<<1;
 
 #if !defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_SCENE_DUMP)
 		else if (!stricmp(arg, "-bt")) dump_mode = GF_SM_DUMP_BT;
@@ -4782,6 +4787,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_split_on_closest(dasher, split_on_closest);
 		if (!e) e = gf_dasher_set_hls_clock(dasher, hls_clock);
 		if (!e && dash_cues) e = gf_dasher_set_cues(dasher, dash_cues, strict_cues);
+		if (!e && fs_dump_flags) e = gf_dasher_print_session_info(dasher, fs_dump_flags);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);
@@ -5071,6 +5077,7 @@ int mp4boxMain(int argc, char **argv)
 			mdump.out_name = szFile;
 		}
 
+		mdump.print_stats_graph = fs_dump_flags;
 		e = gf_media_export(&mdump);
 		if (e) goto err_exit;
 		goto exit;
@@ -5095,6 +5102,7 @@ int mp4boxMain(int argc, char **argv)
 			} else {
 				mdump.out_name = outfile;
 			}
+			mdump.print_stats_graph = fs_dump_flags;
 			e = gf_media_export(&mdump);
 			if (e) goto err_exit;
 		}
@@ -5243,10 +5251,12 @@ int mp4boxMain(int argc, char **argv)
 					mdump.trackID = gf_isom_get_track_id(file, j+1);
 					sprintf(szFile, "%s_track%d", outfile, mdump.trackID);
 					mdump.out_name = szFile;
+					mdump.print_stats_graph = fs_dump_flags;
 					e = gf_media_export(&mdump);
 					if (e) goto err_exit;
 				}
 			} else {
+				mdump.print_stats_graph = fs_dump_flags;
 				e = gf_media_export(&mdump);
 				if (e) goto err_exit;
 			}
@@ -5257,6 +5267,7 @@ int mp4boxMain(int argc, char **argv)
 		mdump.file = file;
 		mdump.flags = GF_EXPORT_SAF;
 		mdump.out_name = outfile;
+		mdump.print_stats_graph = fs_dump_flags;
 		e = gf_media_export(&mdump);
 		if (e) goto err_exit;
 	}
@@ -5917,12 +5928,12 @@ int mp4boxMain(int argc, char **argv)
 		}
 		if (crypt == 1) {
 			if (use_init_seg) {
-				e = gf_crypt_fragment(file, drm_file, outfile, inName);
+				e = gf_crypt_fragment(file, drm_file, outfile, inName, fs_dump_flags);
 			} else {
-				e = gf_crypt_file(file, drm_file, outfile, interleaving_time);
+				e = gf_crypt_file(file, drm_file, outfile, interleaving_time, fs_dump_flags);
 			}
 		} else if (crypt ==2) {
-			e = gf_decrypt_file(file, drm_file, outfile, interleaving_time);
+			e = gf_decrypt_file(file, drm_file, outfile, interleaving_time, fs_dump_flags);
 		}
 		if (e) goto err_exit;
 		needSave = outName ? GF_FALSE : GF_TRUE;
