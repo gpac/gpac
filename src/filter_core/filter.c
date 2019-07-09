@@ -101,9 +101,23 @@ const char *gf_filter_get_dst_args(GF_Filter *filter)
 char *gf_filter_get_dst_name(GF_Filter *filter)
 {
 	char szDst[5];
-	char *dst, *arg_sep, *res;
+	char *dst, *arg_sep, *res, *dst_args;
 	sprintf(szDst, "dst%c", filter->session->sep_name);
-	dst = strstr(filter->dst_args, szDst);
+
+	dst_args = filter->dst_args;
+	if (!dst_args) {
+		GF_FilterPid *outpid = gf_list_get(filter->output_pids, 0);
+		if (outpid) dst_args = outpid->filter->dst_args;
+
+		if (!dst_args) {
+			GF_Filter *outf = gf_list_get(filter->destination_links, 0);
+			if (!outf || !outf->dst_args)
+				outf = gf_list_get(filter->destination_filters, 0);
+			if (outf)
+				dst_args = filter->dst_args;
+		}
+	}
+	dst = dst_args ? strstr(dst_args, szDst) : NULL;
 	if (!dst) return NULL;
 
 	arg_sep = (char*) gf_fs_path_escape_colon(filter->session, dst+4);
