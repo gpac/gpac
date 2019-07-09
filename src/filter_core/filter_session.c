@@ -2252,9 +2252,9 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 			gf_list_reset(done);
 		}
 		if (print_fn)
-			print_fn(stderr, 1, "\n");
+			print_fn(stderr, 1, " \n");
 		else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" \n"));
 		}
 	}
 	gf_list_del(done);
