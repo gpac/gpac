@@ -86,6 +86,8 @@ typedef struct
 	GF_SampleToChunkBox *stsc;
 	/*we don't know if it's a large offset or not*/
 	GF_Box *stco;
+	//track uses a box requiring seeking into the moov during write, we cannot dispatch blocks
+	Bool prevent_dispatch;
 } TrackWriter;
 
 typedef struct
@@ -156,6 +158,9 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 		writer->stbl = trak->Media->information->sampleTable;
 		writer->timeScale = trak->Media->mediaHeader->timeScale;
 		writer->all_dref_mode = Media_SelfContainedType(writer->mdia);
+
+		if (trak->sample_encryption)
+			writer->prevent_dispatch = GF_TRUE;
 
 		writer->isDone = 0;
 		writer->DTSprev = 0;
@@ -312,6 +317,7 @@ static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream
 	}
 
 	if (movie->moov) {
+		Bool prevent_dispatch = GF_FALSE;
 		//switch all our tables
 		i=0;
 		while ((writer = (TrackWriter*)gf_list_enum(writers, &i))) {
@@ -326,11 +332,21 @@ static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream
 			gf_list_insert(writer->stbl->child_boxes, writer->stco, stco_pos);
 			writer->stco = stco;
 			writer->stsc = stsc;
+			if (writer->prevent_dispatch)
+				prevent_dispatch = GF_TRUE;
+		}
+		if (prevent_dispatch) {
+			gf_bs_prevent_dispatch(bs, GF_TRUE);
 		}
 		//write the moov box...
 		e = gf_isom_box_size((GF_Box *)movie->moov);
 		if (e) return e;
 		e = gf_isom_box_write((GF_Box *)movie->moov, bs);
+
+		if (prevent_dispatch) {
+			gf_bs_prevent_dispatch(bs, GF_FALSE);
+		}
+
 		//and re-switch our table. We have to do it that way because it is
 		//needed when the moov is written first
 		i=0;

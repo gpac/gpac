@@ -9231,7 +9231,7 @@ GF_Err saio_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->entry_count);
 	if (ptr->entry_count) {
 		u32 i;
-		//store position in bitstream before writing data - offsets can be NULL if a single offset is rewritten later on (cf senc_write)
+		//store position in bitstream before writing data - offsets can be NULL if a single offset is rewritten later on (cf senc_box_write)
 		ptr->offset_first_offset_field = gf_bs_get_position(bs);
 		if (ptr->version==0) {
 			if (!ptr->offsets) {
