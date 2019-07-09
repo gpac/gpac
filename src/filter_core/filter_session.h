@@ -945,7 +945,7 @@ typedef struct
 	u8 loaded_filter_only;
 	//stream type of the output cap of src. Might be:
 	// -1 if multiple stream types are defined in the cap (demuxers, encoders/decoders bundles)
-	// 0 if not spcified
+	// 0 if not specified
 	// or a valid GF_STREAM_*
 	s32 src_stream_type;
 } GF_FilterRegEdge;
