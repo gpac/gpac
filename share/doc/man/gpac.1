@@ -75,7 +75,7 @@ set the default character sets used to seperate various arguments
 .br
 - the second char, if present, is used to seperate names and values
 .br
-- the third char, if present, is used to seperate fragments for pid sources
+- the third char, if present, is used to seperate fragments for PID sources
 .br
 - the fourth char, if present, is used for list separators (sourceIDs, gfreg, ...)
 .br
@@ -98,38 +98,38 @@ specify an output file - see filters help (-h doc)
 .br
 print help. Use help/-h for basic options, -ha for advanced options, -hx for expert options and -hh for all. String parameter can be:
 .br
-* empty: prints command line options help
+* empty: print command line options help
 .br
-* doc: prints the general filter info
+* doc: print the general filter info
 .br
-* alias: prints the gpac alias syntax
+* alias: print the gpac alias syntax
 .br
-* log: prints the log system help
+* log: print the log system help
 .br
-* core: prints the supported libgpac core options. Use -ha/-hx/-hh for advanced/expert options
+* core: print the supported libgpac core options. Use -ha/-hx/-hh for advanced/expert options
 .br
-* cfg: prints the GPAC configuration help
+* cfg: print the GPAC configuration help
 .br
-* modules: prints available modules
+* modules: print available modules
 .br
-* filters: prints name of all available filters
+* filters: print name of all available filters
 .br
-* filters:*: prints name of all available filters, including meta filters
+* filters:*: print name of all available filters, including meta filters
 .br
-* codecs: prints the supported builtin codecs
+* codecs: print the supported builtin codecs
 .br
-* props: prints the supported builtin pid properties
+* props: print the supported builtin PID properties
 .br
-* links: prints possible connections between each supported filters.
+* links: print possible connections between each supported filters.
 .br
-* links FNAME: prints sources and sinks for filter FNAME
+* links FNAME: print sources and sinks for filter FNAME
 .br
-* FNAME: prints filter FNAME info (multiple FNAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation. Use * to print info on all filters (warning, big output!), *:* to print info on all filters including meta filter instances (warning, big big output!). By default only basic filter options and description are shown. Use -ha to show advanced options and filter IO capabilities, -hx for expert options, -hh for all options and filter capbilities
+* FNAME: print filter FNAME info (multiple FNAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation. Use * to print info on all filters (_big output!_), *:* to print info on all filters including meta filter instances (really big output!). By default only basic filter options and description are shown. Use -ha to show advanced options and filter IO capabilities, -hx for expert options, -hh for all options and filter capbilities
 .br
 .TP
 .B \-p (string)
 .br
-use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, tries to load profile from that file. Otherwise, create a directory of the specified name and store new config there
+use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there
 .br
 .TP
 .B \-alias (string)
@@ -234,7 +234,7 @@ blacklist the filters listed in the given string (comma-seperated list)
 .TP
 .B \-no-graph-cache (boolean)
 .br
-disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory ungry but slower)
+disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (lower memory usage but slower)
 .br
 .TP
 .B \-no-reservoir (boolean)
@@ -354,7 +354,7 @@ This will load configuration from $HOME/.gpac/foo/GPAC.cfg, creating it if neede
 .br
 By default the configuration file only holds a few system specific options and directories. It is possbible to serialize the entire set of options to the configuration file, using -wc -wf. This should be avoided as the resulting configuration file size will be quite large, hence larger memory usage for the applications.
 .br
-The options specified in the configuration file may be overriden by the values in restrict.cfg file located in GPAC share directory, if present; this allows enforcing system-wide configuration values.
+The options specified in the configuration file may be overriden by the values in restrict.cfg file located in GPAC share system directory (e.g. /usr/share/gpac), if present; this allows enforcing system-wide configuration values.
 .br
 Note: The methods describe in this section apply to any application in GPAC transferring their arguments to libgpac. This is the case for gpac, MP4Box, MP4Client/Osmo4.
 .br
@@ -417,11 +417,11 @@ Meta-filter options can be set in the same way using the syntax -+OPT_NAME=VAL.
 .br
 Example
 .br
--+vprofile=Baseline -i file.cmp -o dump.264
+-+profile=Baseline -i file.cmp -o dump.264
 .br
 
 .br
-This is equivalent to specifying -o dump.264:vprofile=Baseline.
+This is equivalent to specifying -o dump.264:profile=Baseline.
 .br
 .SH libgpac core options:
 .LP
@@ -635,7 +635,7 @@ blacklist the filters listed in the given string (comma-seperated list)
 .TP
 .B \-no-graph-cache (boolean)
 .br
-disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory ungry but slower)
+disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (lower memory usage but slower)
 .br
 .TP
 .B \-no-reservoir (boolean)
@@ -916,13 +916,13 @@ This moves all log to info level, dash to debug level and disable color logs
 .SH General
 .LP
 .br
-Filters are configurable processing units consuming and producing data packets. These packets are carried between filters through a data channel called pid. A pid is in charge of allocating/tracking data packets, and passing the packets to the destination filter(s). A filter output pid may be connected to zero or more filters. This fan-out is handled internally by GPAC (no such thing as a tee filter in GPAC).
+Filters are configurable processing units consuming and producing data packets. These packets are carried between filters through a data channel called pid. A PID is in charge of allocating/tracking data packets, and passing the packets to the destination filter(s). A filter output PID may be connected to zero or more filters. This fan-out is handled internally by GPAC (no such thing as a tee filter in GPAC).
 .br
-Note: When a pid cannot be connected to any filter, a warning is thrown and all packets dispatched on this pid will be destroyed. The session may however still run.
+Note: When a PID cannot be connected to any filter, a warning is thrown and all packets dispatched on this PID will be destroyed. The session may however still run.
 .br
-Each output pid carries a set of properties describing the data it delivers (eg width, height, codec, ...). Properties can be built-in (identified by a 4 character code abcd, see properties (-h props) ), or user-defined (identified by a string). Each pid tracks its properties changes and triggers filter reconfiguration during packet processing. This allows the filter chain to be reconfigured at run time, potentially reloading part of the chain (eg unload a video decoder when switching from compressed to uncompressed sources).
+Each output PID carries a set of properties describing the data it delivers (eg width, height, codec, ...). Properties can be built-in (identified by a 4 character code abcd, see properties (-h props) ), or user-defined (identified by a string). Each PID tracks its properties changes and triggers filter reconfiguration during packet processing. This allows the filter chain to be reconfigured at run time, potentially reloading part of the chain (eg unload a video decoder when switching from compressed to uncompressed sources).
 .br
-Each filter exposes one or more sets of capabilities, called capability bundle, which are property type and values that must be matched or excluded by connecting pids.
+Each filter exposes one or more sets of capabilities, called capability bundle, which are property type and values that must be matched or excluded by connecting PIDs.
 .br
 Each filter exposes a set of argument to configure itself, using property types and values described as strings formated with separators. This help is given with default separator sets :=#,@ to specify filters, properties and options. Use -seps to change them.
 .br
@@ -1189,29 +1189,29 @@ Note: A filter with sourceID set cannot get input from filters with no IDs.
 .br
 A sourceID name can be further extended using fragment identifier (# by default):
 .br
-* name#PIDNAME: accepts only pid(s) with name PIDNAME
+* name#PIDNAME: accepts only PID(s) with name PIDNAME
 .br
-* name#TYPE: accepts only pids of matching media type. TYPE can be audio, video, scene, text, font, meta
+* name#TYPE: accepts only PIDs of matching media type. TYPE can be audio, video, scene, text, font, meta
 .br
-* name#TYPEN: accepts only Nth pid of matching type from source
+* name#TYPEN: accepts only Nth PID of matching type from source
 .br
-* name#P4CC=VAL: accepts only pids with property matching VAL.
+* name#P4CC=VAL: accepts only PIDs with property matching VAL.
 .br
 * name#PName=VAL: same as above, using the builtin name corresponding to the property.
 .br
 * name#AnyName=VAL: same as above, using the name of a non built-in property.
 .br
-If the property is not defined on the pid, the property is matched. Otherwise, its value is checked against the given value.
+If the property is not defined on the PID, the property is matched. Otherwise, its value is checked against the given value.
 .br
 
 .br
 The following modifiers for comparisons are allowed (for both P4CC=, PName= and AnyName=)
 .br
-* name#P4CC=!VAL: accepts only pids with property NOT matching VAL.
+* name#P4CC=!VAL: accepts only PIDs with property NOT matching VAL.
 .br
-* name#P4CC-VAL: accepts only pids with property strictly less than VAL (only for 1-dimension number properties).
+* name#P4CC-VAL: accepts only PIDs with property strictly less than VAL (only for 1-dimension number properties).
 .br
-* name#P4CC+VAL: accepts only pids with property strictly greater than VAL (only for 1-dimension number properties).
+* name#P4CC+VAL: accepts only PIDs with property strictly greater than VAL (only for 1-dimension number properties).
 .br
 
 .br
@@ -1243,7 +1243,7 @@ src=img.heif @#ItemID=200 vout
 .br
 
 .br
-This indicates to connect to vout only pids with ItemID property equal to 200
+This indicates to connect to vout only PIDs with ItemID property equal to 200
 .br
 Example
 .br
@@ -1251,7 +1251,7 @@ src=vid.mp4 @#PID=1 vout
 .br
 
 .br
-This indicates to connect to vout only pids with ID property equal to 1
+This indicates to connect to vout only PIDs with ID property equal to 1
 .br
 Example
 .br
@@ -1259,7 +1259,7 @@ src=vid.mp4 @#Width=640 vout
 .br
 
 .br
-This indicates to connect to vout only pids with Width property equal to 640
+This indicates to connect to vout only PIDs with Width property equal to 640
 .br
 Example
 .br
@@ -1267,11 +1267,11 @@ src=vid.mp4 @#Width-640 vout
 .br
 
 .br
-This indicates to connect to vout only pids with Width property less than 640
+This indicates to connect to vout only PIDs with Width property less than 640
 .br
 
 .br
-Multiple fragment can be specified to check for multiple pid properties
+Multiple fragment can be specified to check for multiple PID properties
 .br
 Example
 .br
@@ -1279,11 +1279,11 @@ src=vid.mp4 @#Width=640#Height+380 vout
 .br
 
 .br
-This indicates to connect to vout only pids with Width property equal to 640 and Height greater than 380
+This indicates to connect to vout only PIDs with Width property equal to 640 and Height greater than 380
 .br
 
 .br
-Warning: If a filter pid gets connected to a loaded filter, no further dynamic link resolution will be done to connect it to other filters, unless sourceIDs are set. Link directives should be carfully setup.
+Warning: If a filter PID gets connected to a loaded filter, no further dynamic link resolution will be done to connect it to other filters, unless sourceIDs are set. Link directives should be carfully setup.
 .br
 Example
 .br
@@ -1291,7 +1291,7 @@ src=file.mp4 @ reframer dst=dump.mp4
 .br
 
 .br
-This will link src file.mp4 pid (type file) to dst dump.mp4filter (type file) because dst has no sourceID and therefore will accept input from src. Since the pid is connected, the filter engine will not try to solve a link between src and reframer. The result is a direct copy of the source file, reframer being unused.
+This will link src file.mp4 PID (type file) to dst dump.mp4filter (type file) because dst has no sourceID and therefore will accept input from src. Since the PID is connected, the filter engine will not try to solve a link between src and reframer. The result is a direct copy of the source file, reframer being unused.
 .br
 Example
 .br
@@ -1299,7 +1299,7 @@ src=file.mp4 reframer @ dst=dump.mp4
 .br
 
 .br
-This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and src pid will be linked to reframer (no source ID), loading a demuxer to solve the link. The result is a complete remux of the source file.
+This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and src PID will be linked to reframer (no source ID), loading a demuxer to solve the link. The result is a complete remux of the source file.
 .br
 .SH Arguments inheriting
 .LP
@@ -1351,15 +1351,15 @@ KEYWORD is case sensitive, and may be present multiple times in the string. Supp
 .br
 * num: replaced by file number if defined, 0 otherwise
 .br
-* PID: ID of the source pid
+* PID: ID of the source PID
 .br
 * URL: URL of source file
 .br
 * File: path on disk for source file
 .br
-* p4cc=ABCD: uses pid property with 4CC value ABCD
+* p4cc=ABCD: uses PID property with 4CC value ABCD
 .br
-* pname=VAL: uses pid property with name VAL
+* pname=VAL: uses PID property with name VAL
 .br
 * OTHER: locates property 4CC for the given name, or property name if no 4CC matches.
 .br
@@ -1367,7 +1367,7 @@ Templating can be usefull when encoding several qualities in one pass
 .br
 Example
 .br
-src=dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264
+src=dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264:clone
 .br
 
 .br
@@ -1386,7 +1386,7 @@ src=img.heif dst=dump_$ItemID$.jpg
 .br
 In this case, only one item (likely the first declared in the file) will connect to the destination.
 .br
-Other items will not be connected since the destination only accepts one input pid.
+Other items will not be connected since the destination only accepts one input PID.
 .br
 There is a special option clone allowing destination filters (and only them) to be cloned with the same arguments:
 .br
@@ -1401,13 +1401,11 @@ In this case, the destination will be cloned for each item, and all will be expo
 .SH Templating filter chains
 .LP
 .br
-There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files.
+There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the :cloneoption is not enough since the muxer will always accetp the input PIDs.
 .br
-It is possible to use a PID property name in the sourceID of a filter with the value * or an empty value.
+To handle this, it is possible to use a PID property name in the sourceID of a filter with the value * or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned
 .br
 Warning: This feature should only be called with a single property set to * per source ID, results are undefined otherwise.
-.br
-In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned
 .br
 Example
 .br
@@ -1426,9 +1424,9 @@ In this case, each new ServiceID value found when connecting PIDs to the destina
 .SH Assigning PID properties
 .LP
 .br
-It is possible to define properties on output pids that will be declared by a filter. This allows tagging parts of the graph with different properties than other parts (for example ServiceID). The syntax is the same as filter option, and uses the fragment separator to identify properties, eg #Name=Value. This sets output pids property (4cc, built-in name or any name) to the given value. Value can be omitted for booleans (defaults to true, eg :#Alpha). If a non built-in property is used, the value will be declared as string.
+It is possible to define properties on output PIDs that will be declared by a filter. This allows tagging parts of the graph with different properties than other parts (for example ServiceID). The syntax is the same as filter option, and uses the fragment separator to identify properties, eg #Name=Value. This sets output PIDs property (4cc, built-in name or any name) to the given value. Value can be omitted for booleans (defaults to true, eg :#Alpha). If a non built-in property is used, the value will be declared as string.
 .br
-Warning: Properties are not filtered and override the source props, be carefull not to break the session by overriding core properties such as width/height/samplerate/... !
+Warning: Properties are not filtered and override the properties of the filter's output PIDs, be carefull not to break the session by overriding core properties such as width/height/samplerate/... !
 .br
 Example
 .br
@@ -1436,7 +1434,7 @@ Example
 .br
 
 .br
-This will mux the streams in dump.ts, using ServiceID 4 for pids from v1.mp4 and ServiceID 2 for pids from v2.mp4
+This will mux the streams in dump.ts, using ServiceID 4 for PIDs from v1.mp4 and ServiceID 2 for PIDs from v2.mp4
 .br
 .SH External filters
 .LP
@@ -2519,7 +2517,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2536-gee415e88f-filters
+build: 0.9.0-DEV-rev2539-g4b02a7f9a-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

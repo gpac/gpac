@@ -323,7 +323,7 @@ void PrintDASHUsage()
 		"# Specifying input files\n"
 		"Input media files to dash can use the following modifiers\n"
 		"- #trackID=N: only use the track ID N from the source file\n"
-		"- #N: only use the track ID N from the source file - mapped to [-tkid](mp4dmx)\n"
+		"- #N: only use the track ID N from the source file (mapped to [-tkid](mp4dmx))\n"
 		"- #video: only use the first video track from the source file\n"
 		"- #audio: only use the first audio track from the source file\n"
 		"- :id=NAME: set the representation ID to NAME\n"
@@ -341,7 +341,7 @@ void PrintDASHUsage()
 		"- :desc_rep=VALUE: add a descriptor at the Representation level. Value must be a properly formatted XML element. Value is ignored while creating AdaptationSet elements.\n"
 		"- :sscale: force movie timescale to match media timescale of the first track in the segment.\n"
 		"- :trackID=N: only use the track ID N from the source file\n"
-		"- @@f1[:args][@@fN:args]: set a filter chain to insert between the source and the dasher. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). If several filters are set, they will be chained in the given order.\n"
+		"- @@f1[:args][@@fN:args]: set a filter chain to insert between the source and the dasher. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](filters_general). If several filters are set, they will be chained in the given order.\n"
 		"\n"
 		"Note: `@@f` must be placed after all other options.\n"
 		"\n"
@@ -374,7 +374,7 @@ GF_GPACArg m4b_imp_args[] =
  	GF_DEF_ARG("ps", NULL, "backward compatible signaling of AAC-PS", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("psx", NULL, "non-backward compatible signaling of AAC-PS", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("ovsbr", NULL, "oversample SBR import (SBR AAC, PS AAC and oversampled SBR cannot be detected at import time)", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("fps", NULL, "force frame rate for video and SUB subtitles import to the given value, expressed as a number or as `timescale-increment`.\nNote: For raw H263 import, default FPS is `15`, otherwise `25`\nWarning: THIS IS IGNORED FOR IsoMedia IMPORT", "25", NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("fps", NULL, "force frame rate for video and SUB subtitles import to the given value, expressed as a number or as `timescale-increment`.\nNote: For raw H263 import, default FPS is `15`, otherwise `25`\nWarning: This is ignored for ISOBMFF import, use `:rescale` option for that", "25", NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("mpeg4", NULL, "force MPEG-4 sample descriptions when possible. For AAC, forces MPEG-4 AAC signaling even if MPEG-2", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("agg", NULL, "aggregate N audio frames in 1 sample (3GP media only).\nNote: Maximum value is 15", NULL, NULL, GF_ARG_INT, 0),
 	{0}
@@ -387,7 +387,7 @@ void PrintImportUsage()
 		"# File importing\n"
 		"Syntax is [-add]() / [-cat]() `filename[#FRAGMENT][:opt1...:optN=val]`\n"
 		"This process will create the destination file if not existing, and add the track(s) to it. If you wish to always create a new destination file, add [-new](MP4B_GEN).\n"
-		"The supported input media types depend on your installation, check [filters documentation)[Filters] for more info.\n"
+		"The supported input media types depend on your installation, check [filters documentation](Filters) for more info.\n"
 		"  \n"
 		"To select a desired media track, the following syntax is used:\n"
 		"- `-add inputFile#video`: adds the first video track in `inputFile`. DOES NOT WORK for IsoMedia nor MPEG-2 TS files.\n"
@@ -453,7 +453,7 @@ void PrintImportUsage()
 		"- :deps: import sample dependency information for AVC and HEVC\n"
 		"- :ccst: add default HEIF ccst box to visual sample entry\n"
 		"- :forcesync: force non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
-		"Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players"
+		"Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
 		"- :xps_inband: set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)\n"
 		"- :xps_inbandx: same as xps_inband and also keep first xPS in sample desciption\n"
 		"- :au_delim: keep AU delimiter NAL units in the imported file\n"
@@ -512,7 +512,7 @@ void PrintImportUsage()
 		"- :fgraph: print filter session graph after import\n"
 		"- :sopt:[OPTS]: set `OPTS` as additionnal arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
 		"- :dopt:[OPTS]: set `OPTS` as additionnal arguments to [destination filter](mp4mx). OPTS can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
-		"- @@f1[:args][@@fN:args]: set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). If several filters are set, they will be chained in the given order. The last filter shall not have any ID specified\n"
+		"- @@f1[:args][@@fN:args]: set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). If several filters are set, they will be chained in the given order. The last filter shall not have any Filter ID specified\n"
 		"\n"
 		"Note: `sopt`, `dopt` and `@@f` must be placed after all other options.\n"
 		"# Global import options\n"
@@ -683,8 +683,8 @@ GF_GPACArg m4b_dump_args[] =
  	GF_DEF_ARG("drtp", NULL, "dump rtp hint samples structure to XML output", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("dts", NULL, "print sample timing, size and position in file to text output", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("dtsx", NULL, "same as [-dts]() but does not print offset", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("dtsc", NULL, "same as [-dts]() but analyse each sample for duplicated dts/cts - slow !", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("dtsxc", NULL, "same as [-dtsc]() but does not print offset - slow !", NULL, NULL, GF_ARG_BOOL, 0),
+ 	GF_DEF_ARG("dtsc", NULL, "same as [-dts]() but analyse each sample for duplicated dts/cts (__slow !__)", NULL, NULL, GF_ARG_BOOL, 0),
+ 	GF_DEF_ARG("dtsxc", NULL, "same as [-dtsc]() but does not print offset (__slow !__)", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("dnal", NULL, "print NAL sample info of given track", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("dnalc", NULL, "print NAL sample info of given track, adding CRC for each nal", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("sdp", NULL, "dump SDP description of hinted file", NULL, NULL, GF_ARG_BOOL, 0),
@@ -706,7 +706,7 @@ GF_GPACArg m4b_dump_args[] =
  	GF_DEF_ARG("stats", NULL, "generate node/field statistics per Access Unit", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("statx", NULL, "generate node/field statistics for scene after each AU", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("hash", NULL, "generate SHA-1 Hash of the input file", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("-comp", NULL, "replace with compressed version all top level box types given as parameter, formated as `orig_4cc_1=comp_4cc_1[,orig_4cc_2=comp_4cc_2]`", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("comp", NULL, "replace with compressed version all top level box types given as parameter, formated as `orig_4cc_1=comp_4cc_1[,orig_4cc_2=comp_4cc_2]`", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("bin", NULL, "convert input XML file using NHML bitstream syntax to binary", NULL, NULL, GF_ARG_BOOL, 0),
  	{0}
 };
@@ -771,8 +771,8 @@ void PrintMetaUsage()
 	gf_sys_format_help(helpout, help_flags, "# Meta and HEIF Options\n"
 	"IsoMedia files can be used as generic meta-data containers, for examples storing XML information and sample images for a movie. The resulting file may not always contain a movie as is the case with some HEIF files or MPEG-21 files.\n"
 	"  \n"
-	"These information can be stored at the file root level, as is the case for MPEG-21 file format, or at the moovie or track level for a regular movie."
-	"");
+	"These information can be stored at the file root level, as is the case for HEIF/IFF and MPEG-21 file formats, or at the moovie or track level for a regular movie."
+	"  \n  \n");
 	while (m4b_meta_args[i].name) {
 		GF_GPACArg *arg = &m4b_meta_args[i];
 		i++;
@@ -813,7 +813,7 @@ void PrintSWFUsage()
 
 GF_GPACArg m4b_atsc_args[] =
 {
- 	GF_DEF_ARG("atsc", NULL, "enable ATSC 3.O reader", NULL, NULL, GF_ARG_BOOL, 0),
+ 	GF_DEF_ARG("atsc", NULL, "enable ATSC 3.0 reader", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("ifce", NULL, "IP address of network interface to use", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("dir", NULL, "local filesystem path to which the files are written. If not set, nothing is written to disk", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("service", NULL, "ID of the service to grab\n"
@@ -3266,8 +3266,18 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 
 	 		fprintf(helpout, "[**HOME**](Home) » [**MP4Box**](MP4Box) » General");
 	 		fprintf(helpout, "<!-- automatically generated - do not edit, patch gpac/applications/mp4box/main.c -->\n");
+			fprintf(helpout, "# Syntax\n");
+			gf_sys_format_help(helpout, help_flags, "MP4Box [option] input [option] [other_dash_inputs]\n"
+				"  \n"
+			);
 			PrintGeneralUsage();
 			PrintEncryptUsage();
+			fprintf(helpout, "# Help Options\n");
+			while (m4b_usage_args[i].name) {
+				GF_GPACArg *arg = &m4b_usage_args[i];
+				i++;
+				gf_sys_print_arg(helpout, help_flags, arg, "mp4box-general");
+			}
 
 			gf_fclose(helpout);
 
