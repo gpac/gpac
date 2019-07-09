@@ -138,6 +138,8 @@ typedef struct
 
 	Bool force_period_switch;
 	Bool streams_not_ready;
+
+	Bool update_report;
 } GF_DasherCtx;
 
 
@@ -283,6 +285,8 @@ typedef struct _dash_stream
 	Bool dcd_not_ready;
 
 	Bool reschedule;
+
+	GF_Fraction duration;
 } GF_DashStream;
 
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds);
@@ -519,6 +523,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP(GF_PROP_PID_ID, ds->id, GF_EOS)
 		CHECK_PROP(GF_PROP_PID_DEPENDENCY_ID, ds->dep_id, GF_EOS)
 		CHECK_PROP(GF_PROP_PID_NB_FRAMES, ds->nb_samples_in_source, GF_EOS)
+		CHECK_PROP_FRAC(GF_PROP_PID_DURATION, ds->duration, GF_EOS)
 
 		dc_crc = 0;
 		dsi = p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
@@ -4578,6 +4583,74 @@ static Bool dasher_check_streams_ready(GF_DasherCtx *ctx)
 	return GF_TRUE;
 }
 
+void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
+{
+	u32 i, count;
+	Double max_ts=0;
+	u32 total_pc = 0;
+	char szDS[200];
+	char *szStatus = NULL;
+
+	if (!gf_filter_reporting_enabled(filter))
+		return;
+	if (!ctx->update_report)
+		return;
+	ctx->update_report = GF_FALSE;
+
+	sprintf(szDS, "P%s", ctx->current_period->period->ID ? ctx->current_period->period->ID : "1");
+	gf_dynstrcat(&szStatus, szDS, NULL);
+
+	count = gf_list_count(ctx->current_period->streams);
+	for (i=0; i<count; i++) {
+		s32 pc=-1;
+		Double mpdtime;
+		u32 set_idx;
+		u32 rep_idx;
+		u8 stype;
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (ds->muxed_base) continue;
+
+		set_idx = 1 + gf_list_find(ctx->current_period->period->adaptation_sets, ds->set);
+		rep_idx = 1 + gf_list_find(ds->set->representations, ds->rep);
+		if (ds->stream_type==GF_STREAM_VISUAL) stype='V';
+		else if (ds->stream_type==GF_STREAM_AUDIO) stype='A';
+		else if (ds->stream_type==GF_STREAM_TEXT) stype='T';
+		else stype='M';
+
+		if (ds->done || ds->subdur_done) {
+			sprintf(szDS, "AS#%d.%d(%c) done (%d segs)", set_idx, rep_idx, stype, ds->seg_number);
+			pc = 10000;
+		} else {
+			Double done = (Double) (ds->adjusted_next_seg_start - ds->last_dts);
+			done /= ds->timescale;
+			done = ds->dash_dur-done;
+			Double pcent = done / ds->dash_dur;
+			pc = done * 10000;
+			snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %.2fs (%.2f %%)", set_idx, rep_idx, stype, ds->seg_number, done, 100*pcent);
+
+			if (ds->duration.den && ds->duration.num) {
+				done = (Double) (ds->last_dts - ds->first_cts);
+				done *= ds->duration.den;
+				done /= ds->timescale;
+				done /= ds->duration.num;
+				pc = (u32) (10000*done);
+			}
+			mpdtime = (Double) (ds->last_dts - ds->first_cts);
+			mpdtime /= ds->timescale;
+			if (max_ts<mpdtime)
+				max_ts = mpdtime;
+		}
+		if (pc>total_pc) total_pc = pc;
+		gf_dynstrcat(&szStatus, szDS, " ");
+	}
+	if (total_pc!=10000) {
+		sprintf(szDS, " / MPD %.2fs %d %%", max_ts, total_pc/100);
+		gf_dynstrcat(&szStatus, szDS, NULL);
+	}
+	gf_filter_update_status(filter, total_pc, szStatus);
+	gf_free(szStatus);
+}
+
 static GF_Err dasher_process(GF_Filter *filter)
 {
 	u32 i, count, nb_init, has_init;
@@ -4648,6 +4721,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 					ds->clamp_done = GF_FALSE;
 
+					ctx->update_report = GF_TRUE;
 					gf_filter_pid_set_eos(ds->opid);
 					if (!ds->done) ds->done = ds_done;
 					ds->seg_done = GF_TRUE;
@@ -5071,6 +5145,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//send packet
 			gf_filter_pck_send(dst);
 
+			ctx->update_report = GF_TRUE;
+
 			//drop packet if not spliting
 			if (!ds->split_dur_next)
 				gf_filter_pid_drop_packet(ds->ipid);
@@ -5087,6 +5163,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 			ds->done = 1;
 		}
 	}
+
+	dasher_format_report(filter, ctx);
+
 	//still some running steams in period
 	if (count && (nb_init<count)) {
 		gf_filter_post_process_task(filter);
