@@ -41,7 +41,7 @@ mp4_test ()
  *.mkv )
   return ;;
  # flac not supported in < 0.9.0
- *.mkv )
+ *.flac )
   return ;;
  *.jpg )
   do_hint=0 ;;
