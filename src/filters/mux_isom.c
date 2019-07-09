@@ -4205,6 +4205,8 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			mp4_mux_update_edit_list_for_bframes(ctx, tkw);
 
 			has_bframes = GF_TRUE;
+		} else if (tkw->ts_delay) {
+			gf_isom_update_edit_list_duration(ctx->file, tkw->track_num);
 		}
 
 		/*this is plain ugly but since some encoders (divx) don't use the video PL correctly
