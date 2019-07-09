@@ -80,18 +80,18 @@ static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_F
 const char *gpac_doc =
 "# General\n"
 "Filters are configurable processing units consuming and producing data packets. These packets are carried "
-"between filters through a data channel called __pid__. A pid is in charge of allocating/tracking data packets, "
-"and passing the packets to the destination filter(s). A filter output pid may be connected to zero or more filters. "
+"between filters through a data channel called __pid__. A PID is in charge of allocating/tracking data packets, "
+"and passing the packets to the destination filter(s). A filter output PID may be connected to zero or more filters. "
 "This fan-out is handled internally by GPAC (no such thing as a tee filter in GPAC).\n"
-"Note: When a pid cannot be connected to any filter, a warning is thrown and all packets dispatched on "
-"this pid will be destroyed. The session may however still run.\n"
-"Each output pid carries a set of properties describing the data it delivers (eg __width__, __height__, __codec__, ...). Properties "
-"can be built-in (identified by a 4 character code **abcd**, see [properties (-h props)](filters_properties) ), or user-defined (identified by a string). Each pid tracks "
+"Note: When a PID cannot be connected to any filter, a warning is thrown and all packets dispatched on "
+"this PID will be destroyed. The session may however still run.\n"
+"Each output PID carries a set of properties describing the data it delivers (eg __width__, __height__, __codec__, ...). Properties "
+"can be built-in (identified by a 4 character code **abcd**, see [properties (-h props)](filters_properties) ), or user-defined (identified by a string). Each PID tracks "
 "its properties changes and triggers filter reconfiguration during packet processing. This allows the filter chain to be "
 "reconfigured at run time, potentially reloading part of the chain (eg unload a video decoder when switching from compressed "
 "to uncompressed sources).\n"
 "Each filter exposes one or more sets of capabilities, called __capability bundle__, which are property type and values "
-"that must be matched or excluded by connecting pids.\n"
+"that must be matched or excluded by connecting PIDs.\n"
 "Each filter exposes a set of argument to configure itself, using property types and values described as strings formated with "
 "separators. This help is given with default separator sets `:=#,@` to specify filters, properties and options. Use [-seps](GPAC) to change them.\n"
 "# Property format\n"
@@ -195,18 +195,18 @@ const char *gpac_doc =
 "This indicates that `fD` only accepts input from `fA` and `fB` and `fC` only from `fA`\n"
 "Note: A filter with sourceID set cannot get input from filters with no IDs.\n"
 "A sourceID name can be further extended using fragment identifier (`#` by default):\n"
-"- name#PIDNAME: accepts only pid(s) with name `PIDNAME`\n"
-"- name#TYPE: accepts only pids of matching media type. TYPE can be `audio`, `video`, `scene`, `text`, `font`, `meta`\n"
-"- name#TYPEN: accepts only `N`th pid of matching type from source\n"
-"- name#P4CC=VAL: accepts only pids with property matching `VAL`.\n"
+"- name#PIDNAME: accepts only PID(s) with name `PIDNAME`\n"
+"- name#TYPE: accepts only PIDs of matching media type. TYPE can be `audio`, `video`, `scene`, `text`, `font`, `meta`\n"
+"- name#TYPEN: accepts only `N`th PID of matching type from source\n"
+"- name#P4CC=VAL: accepts only PIDs with property matching `VAL`.\n"
 "- name#PName=VAL: same as above, using the builtin name corresponding to the property.\n"
 "- name#AnyName=VAL: same as above, using the name of a non built-in property.\n"
-"If the property is not defined on the pid, the property is matched. Otherwise, its value is checked against the given value.\n"
+"If the property is not defined on the PID, the property is matched. Otherwise, its value is checked against the given value.\n"
 "\n"
 "The following modifiers for comparisons are allowed (for both `P4CC=`, `PName=` and `AnyName=`)\n"
-"- name#P4CC=!VAL: accepts only pids with property NOT matching `VAL`.\n"
-"- name#P4CC-VAL: accepts only pids with property strictly less than `VAL` (only for 1-dimension number properties).\n"
-"- name#P4CC+VAL: accepts only pids with property strictly greater than `VAL` (only for 1-dimension number properties).\n"
+"- name#P4CC=!VAL: accepts only PIDs with property NOT matching `VAL`.\n"
+"- name#P4CC-VAL: accepts only PIDs with property strictly less than `VAL` (only for 1-dimension number properties).\n"
+"- name#P4CC+VAL: accepts only PIDs with property strictly greater than `VAL` (only for 1-dimension number properties).\n"
 "\n"
 "A sourceID name can also use wildcard or be empty to match a property regardless of the source filter:\n"
 "EX fA fB:SID=*#ServiceID=2\nfA fB:SID=#ServiceID=2\n"
@@ -215,27 +215,27 @@ const char *gpac_doc =
 "EX fA fB @1#video fC\n"
 "This indicates to direct `fA` video outputs to `fC`\n"
 "EX src=img.heif @#ItemID=200 vout\n"
-"This indicates to connect to `vout` only pids with `ItemID` property equal to `200`\n"
+"This indicates to connect to `vout` only PIDs with `ItemID` property equal to `200`\n"
 "EX src=vid.mp4 @#PID=1 vout\n"
-"This indicates to connect to `vout` only pids with `ID` property equal to `1`\n"
+"This indicates to connect to `vout` only PIDs with `ID` property equal to `1`\n"
 "EX src=vid.mp4 @#Width=640 vout\n"
-"This indicates to connect to `vout` only pids with `Width` property equal to `640`\n"
+"This indicates to connect to `vout` only PIDs with `Width` property equal to `640`\n"
 "EX src=vid.mp4 @#Width-640 vout\n"
-"This indicates to connect to `vout` only pids with `Width` property less than `640`\n"
+"This indicates to connect to `vout` only PIDs with `Width` property less than `640`\n"
 "\n"
-"Multiple fragment can be specified to check for multiple pid properties\n"
+"Multiple fragment can be specified to check for multiple PID properties\n"
 "EX src=vid.mp4 @#Width=640#Height+380 vout\n"
-"This indicates to connect to `vout` only pids with `Width` property equal to `640` and `Height` greater than `380`\n"
+"This indicates to connect to `vout` only PIDs with `Width` property equal to `640` and `Height` greater than `380`\n"
 "\n"
-"Warning: If a filter pid gets connected to a loaded filter, no further dynamic link resolution will "
+"Warning: If a filter PID gets connected to a loaded filter, no further dynamic link resolution will "
 "be done to connect it to other filters, unless sourceIDs are set. Link directives should be carfully setup.\n"
 "EX src=file.mp4 @ reframer dst=dump.mp4\n"
-"This will link src `file.mp4` pid (type __file__) to dst `dump.mp4`filter (type `file`) because dst has no sourceID and therefore will "
-"accept input from src. Since the pid is connected, the filter engine will not try to solve "
+"This will link src `file.mp4` PID (type __file__) to dst `dump.mp4`filter (type `file`) because dst has no sourceID and therefore will "
+"accept input from src. Since the PID is connected, the filter engine will not try to solve "
 "a link between src and `reframer`. The result is a direct copy of the source file, `reframer` being unused.\n"
 "EX src=file.mp4 reframer @ dst=dump.mp4\n"
 "This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and "
-"src pid will be linked to `reframer` (no source ID), loading a demuxer to solve the link. The result is a complete remux of the source file.\n"
+"src PID will be linked to `reframer` (no source ID), loading a demuxer to solve the link. The result is a complete remux of the source file.\n"
 "# Arguments inheriting\n"
 "Unless explicitly disabled (see [-max-chain](CORE)), the filter engine will resolve implicit or explicit (__LINK__) connections "
 "between filters and will allocate any filter chain required to connect the filters. "
@@ -256,14 +256,14 @@ const char *gpac_doc =
 "`$$` is an escape for $\n"
 "`KEYWORD` is **case sensitive**, and may be present multiple times in the string. Supported `KEYWORD` are:\n"
 "- num: replaced by file number if defined, 0 otherwise\n"
-"- PID: ID of the source pid\n"
+"- PID: ID of the source PID\n"
 "- URL: URL of source file\n"
 "- File: path on disk for source file\n"
-"- p4cc=ABCD: uses pid property with 4CC value `ABCD`\n"
-"- pname=VAL: uses pid property with name `VAL`\n"
+"- p4cc=ABCD: uses PID property with 4CC value `ABCD`\n"
+"- pname=VAL: uses PID property with name `VAL`\n"
 "- OTHER: locates property 4CC for the given name, or property name if no 4CC matches.\n"
 "Templating can be usefull when encoding several qualities in one pass\n"
-"EX src=dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264\n"
+"EX src=dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264:clone\n"
 "This will create a croped version of the source, encoded in AVC at 1M, and a full version of the content in AVC at 750k. "
 "Outputs will be `dump_0x0x320x180.264` for the croped version and `dump_0x0x640x360.264` for the non-croped one.\n"
 "# Cloning filters\n"
@@ -271,28 +271,27 @@ const char *gpac_doc =
 "There may be cases where this behaviour is undesired. Take a HEIF file with N items and do:\n"
 "EX src=img.heif dst=dump_$ItemID$.jpg\n"
 "In this case, only one item (likely the first declared in the file) will connect to the destination.\n"
-"Other items will not be connected since the destination only accepts one input pid.\n"
+"Other items will not be connected since the destination only accepts one input PID.\n"
 "There is a special option `clone` allowing destination filters (**and only them**) to be cloned with the same arguments:\n"
 "EX src=img.heif dst=dump_$ItemID$.jpg:clone\n"
 "In this case, the destination will be cloned for each item, and all will be exported to different JPEGs thanks to URL templating.\n"
 "# Templating filter chains\n"
-"There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files.\n"
-"It is possible to use a PID property name in the sourceID of a filter with the value `*` or an empty value.\n"
+"There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the `:clone`option is not enough since the muxer will always accetp the input PIDs.\n"
+"To handle this, it is possible to use a PID property name in the sourceID of a filter with the value `*` or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned\n"
 "Warning: This feature should only be called with a single property set to `*` per source ID, results are undefined otherwise.\n"
-"In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned\n"
 "EX src=source.ts dst=file_$ServiceID$.mp4:SID=*#ServiceID=*\n"
 "EX src=source.ts dst=file_$ServiceID$.mp4:SID=#ServiceID=\n"
 "In this case, each new `ServiceID` value found when connecting PIDs to the destination will create a new destination file.\n"
 "# Assigning PID properties\n"
-"It is possible to define properties on output pids that will be declared by a filter. This allows tagging parts of the "
+"It is possible to define properties on output PIDs that will be declared by a filter. This allows tagging parts of the "
 "graph with different properties than other parts (for example `ServiceID`). "
-"The syntax is the same as filter option, and uses the fragment separator to identify properties, eg #Name=Value. "
-"This sets output pids property (4cc, built-in name or any name) to the given value. Value can be omitted for booleans "
+"The syntax is the same as filter option, and uses the fragment separator to identify properties, eg `#Name=Value`. "
+"This sets output PIDs property (4cc, built-in name or any name) to the given value. Value can be omitted for booleans "
 "(defaults to true, eg `:#Alpha`). If a non built-in property is used, the value will be declared as string.\n"
-"Warning: Properties are not filtered and override the source props, be carefull not to break the session by overriding core "
-"properties such as width/height/samplerate/... !\n"
+"Warning: Properties are not filtered and override the properties of the filter's output PIDs, be carefull not to break "
+"the session by overriding core properties such as width/height/samplerate/... !\n"
 "EX -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
-"This will mux the streams in `dump.ts`, using `ServiceID` 4 for pids from `v1.mp4` and `ServiceID` 2 for pids from `v2.mp4`\n"
+"This will mux the streams in `dump.ts`, using `ServiceID` 4 for PIDs from `v1.mp4` and `ServiceID` 2 for PIDs from `v2.mp4`\n"
 "# External filters\n"
 "GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in "
 "folders listed in GPAC config file section `core` key `mod-dirs`. The files shall be named __gf_*__ and shall export a single function "
@@ -489,31 +488,31 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("seps", NULL, "set the default character sets used to seperate various arguments\n"\
 		"- the first char is used to seperate argument names\n"\
 		"- the second char, if present, is used to seperate names and values\n"\
-		"- the third char, if present, is used to seperate fragments for pid sources\n"\
+		"- the third char, if present, is used to seperate fragments for PID sources\n"\
 		"- the fourth char, if present, is used for list separators (__sourceIDs__, __gfreg__, ...)\n"\
 		"- the fifth char, if present, is used for boolean negation\n"\
 		"- the sixth char, if present, is used for LINK directives (see [filters help (-h doc)](filters_general))", GF_FS_DEFAULT_SEPS, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 
 	GF_DEF_ARG("i", "src", "specify an input file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("o", "dst", "specify an output file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("h", "help -ha -hx -hh", "print help. Use `help`/`-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all. String parameter can be:\n"\
-			"- empty: prints command line options help\n"\
-			"- doc: prints the general filter info\n"\
-			"- alias: prints the gpac alias syntax\n"\
-			"- log: prints the log system help\n"\
-			"- core: prints the supported libgpac core options. Use -ha/-hx/-hh for advanced/expert options\n"\
-			"- cfg: prints the GPAC configuration help\n"\
-			"- modules: prints available modules\n"\
-			"- filters: prints name of all available filters\n"\
-			"- filters:*: prints name of all available filters, including meta filters\n"\
-			"- codecs: prints the supported builtin codecs\n"\
-			"- props: prints the supported builtin pid properties\n"\
-			"- links: prints possible connections between each supported filters.\n"\
-			"- links FNAME: prints sources and sinks for filter `FNAME`\n"\
-			"- FNAME: prints filter FNAME info (multiple FNAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation. Use * to print info on all filters (warning, big output!), *:* to print info on all filters including meta filter instances (warning, big big output!). By default only basic filter options and description are shown. Use -ha to show advanced options and filter IO capabilities, -hx for expert options, -hh for all options and filter capbilities"\
+	GF_DEF_ARG("h", "help -ha -hx -hh", "print help. Use ``help`/`-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all. String parameter can be:\n"\
+			"- empty: print command line options help\n"\
+			"- doc: print the general filter info\n"\
+			"- alias: print the gpac alias syntax\n"\
+			"- log: print the log system help\n"\
+			"- core: print the supported libgpac core options. Use -ha/-hx/-hh for advanced/expert options\n"\
+			"- cfg: print the GPAC configuration help\n"\
+			"- modules: print available modules\n"\
+			"- filters: print name of all available filters\n"\
+			"- filters:*: print name of all available filters, including meta filters\n"\
+			"- codecs: print the supported builtin codecs\n"\
+			"- props: print the supported builtin PID properties\n"\
+			"- links: print possible connections between each supported filters.\n"\
+			"- links FNAME: print sources and sinks for filter `FNAME`\n"\
+			"- FNAME: print filter `FNAME` info (multiple FNAME can be given). For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`. Use `*` to print info on all filters (_big output!_), `*:*` to print info on all filters including meta filter instances (__really big output!__). By default only basic filter options and description are shown. Use `-ha` to show advanced options and filter IO capabilities, `-hx` for expert options, `-hh` for all options and filter capbilities"\
 		, NULL, NULL, GF_ARG_STRING, 0),
 
- 	GF_DEF_ARG("p", NULL, "use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, tries to load profile from that file. Otherwise, create a directory of the specified name and store new config there", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("p", NULL, "use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("alias", NULL, "assign a new alias or remove an alias. Can be specified several times. See [alias usage (-h alias)](#using-aliases)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("aliasdoc", NULL, "assign documentation for a given alias (optionnal). Can be specified several times", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
@@ -522,7 +521,7 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("wc", NULL, "write all core options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("we", NULL, "write all file extensions in the config file unless already set (usefull to change some default file extensions)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("wf", NULL, "write all filter options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("wfx", NULL, "write all filter options and all meta filter arguments in the config file unless already set (large config file !)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("wfx", NULL, "write all filter options and all meta filter arguments in the config file unless already set (__large config file !__)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("unit-tests", NULL, "enable unit tests of some functions otherwise not covered by gpac test suite", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	GF_DEF_ARG("genmd", NULL, "generate markdown doc", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	{0}
@@ -580,7 +579,7 @@ const char *gpac_config =
 "By default the configuration file only holds a few system specific options and directories. It is possbible to serialize "
 "the entire set of options to the configuration file, using [-wc](GPAC) [-wf](GPAC). This should be avoided as the resulting "
 "configuration file size will be quite large, hence larger memory usage for the applications.\n"
-"The options specified in the configuration file may be overriden by the values in __restrict.cfg__ file located in GPAC share directory, "
+"The options specified in the configuration file may be overriden by the values in __restrict.cfg__ file located in GPAC share system directory (e.g. /usr/share/gpac), "
 "if present; this allows enforcing system-wide configuration values.\n"
 "Note: The methods describe in this section apply to any application in GPAC transferring their arguments "
 "to libgpac. This is the case for __gpac__, __MP4Box__, __MP4Client/Osmo4__.\n"
@@ -607,8 +606,8 @@ const char *gpac_config =
 "This is equivalent to specifying `vout:buffer=100 aout:buffer=10`.\n"
 "Warning: This syntax only applies to regular filter options. It cannot be used with builtin shortcuts (gfreg, enc, ...).\n"
 "Meta-filter options can be set in the same way using the syntax `-+OPT_NAME=VAL`.\n"
-"EX -+vprofile=Baseline -i file.cmp -o dump.264\n"
-"This is equivalent to specifying `-o dump.264:vprofile=Baseline`.\n"
+"EX -+profile=Baseline -i file.cmp -o dump.264\n"
+"This is equivalent to specifying `-o dump.264:profile=Baseline`.\n"
 
 };
 #endif
@@ -771,9 +770,9 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 				fprintf(stderr, "% 10"LLD_SUF" pck %02.02f FPS ", (s64) stats.nb_out_pck, pck_per_sec);
 			} else {
 				if (stats.nb_pid_in)
-					fprintf(stderr, "in %d pids % 10"LLD_SUF" pck ", stats.nb_pid_in, (s64)stats.nb_in_pck);
+					fprintf(stderr, "in %d PIDs % 10"LLD_SUF" pck ", stats.nb_pid_in, (s64)stats.nb_in_pck);
 				if (stats.nb_pid_out)
-					fprintf(stderr, "out %d pids % 10"LLD_SUF" pck ", stats.nb_pid_out, (s64) stats.nb_out_pck);
+					fprintf(stderr, "out %d PIDs % 10"LLD_SUF" pck ", stats.nb_pid_out, (s64) stats.nb_out_pck);
 			}
 			if (stats.in_eos)
 				fprintf(stderr, "- EOS");
@@ -1928,8 +1927,8 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 #endif
 
 	if (argmode==GF_ARGMODE_EXPERT) {
-		if (reg->max_extra_pids==(u32) -1) gf_sys_format_help(helpout, help_flags, "Max Input pids: any\n");
-		else gf_sys_format_help(helpout, help_flags, "Max Input pids: %d\n", 1 + reg->max_extra_pids);
+		if (reg->max_extra_pids==(u32) -1) gf_sys_format_help(helpout, help_flags, "Max Input PIDs: any\n");
+		else gf_sys_format_help(helpout, help_flags, "Max Input PIDs: %d\n", 1 + reg->max_extra_pids);
 
 		gf_sys_format_help(helpout, help_flags, "Flags:");
 		if (reg->flags & GF_FS_REG_EXPLICIT_ONLY) gf_sys_format_help(helpout, help_flags, " ExplicitOnly");
