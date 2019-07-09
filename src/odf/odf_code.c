@@ -3304,9 +3304,9 @@ GF_Err gf_odf_read_ipmp_tool(GF_BitStream *bs, GF_IPMP_Tool *ipmpt, u32 DescSize
 		ipmpt->num_alternate = gf_bs_read_int(bs, 8);
 		nbBytes += 1;
 		for (i=0; i<ipmpt->num_alternate; i++) {
+			if (nbBytes + 16 > DescSize) return GF_ODF_INVALID_DESCRIPTOR;
 			gf_bs_read_data(bs, (char*)ipmpt->specificToolID[i], 16);
 			nbBytes += 16;
-			if (nbBytes>DescSize) break;
 		}
 	}
 	if (nbBytes>DescSize) return GF_ODF_INVALID_DESCRIPTOR;
