@@ -187,28 +187,31 @@ void gf_crypt_info_del(GF_CryptInfo *info);
 \param infile source MP4 file to decrypt
 \param drm_file location of crypt info data
 \param outname location of destination file
-\param interleave_time interleave time of the destination file
+\param interleave_time interleave time of the destination file - 0 means flat storage
+\param fs_dump_flags flags for session stats (1) and session graph (1<<1) dumping
 \return error code if any
 */
-GF_Err gf_decrypt_file(GF_ISOFile *infile, const char *drm_file, const char *outname, Double interleave_time);
+GF_Err gf_decrypt_file(GF_ISOFile *infile, const char *drm_file, const char *outname, Double interleave_time, u32 fs_dump_flags);
 
 /*! encrypts a file
 \param infile source MP4 file to encrypt
 \param drm_file location of crypt info data
 \param outname location of destination file
-\param interleave_time interleave time of the destination file
+\param interleave_time interleave time of the destination file - 0 means flat storage
+\param fs_dump_flags flags for session stats (1) and session graph (1<<1) dumping
 \return error code if any
 */
-GF_Err gf_crypt_file(GF_ISOFile *infile, const char *drm_file, const char *outname, Double interleave_time);
+GF_Err gf_crypt_file(GF_ISOFile *infile, const char *drm_file, const char *outname, Double interleave_time, u32 fs_dump_flags);
 
 /*! encrypts a fragment
 \param infile init segment of the MP4 file to encrypt - this SHALL NOT be encrypted
 \param drm_file location of crypt info data
 \param outname location of destination file
 \param frag_name name of fragment to encrypt
+\param fs_dump_flags flags for session stats (1) and session graph (1<<1) dumping
 \return error code if any
 */
-GF_Err gf_crypt_fragment(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, const char *frag_name);
+GF_Err gf_crypt_fragment(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, const char *frag_name, u32 fs_dump_flags);
 
 #endif /*!defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 

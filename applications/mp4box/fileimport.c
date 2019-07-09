@@ -99,6 +99,7 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
 extern Bool keep_sys_tracks;
+extern u32 fs_dump_flags;
 
 void scene_coding_log(void *cbk, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char *fmt, va_list vlist);
 
@@ -112,6 +113,8 @@ void convert_file_info(char *inName, GF_ISOTrackID trackID)
 	import.trackID = trackID;
 	import.in_name = inName;
 	import.flags = GF_IMPORT_PROBE_ONLY;
+	import.print_stats_graph = fs_dump_flags;
+
 	e = gf_media_import(&import);
 	if (e) {
 		fprintf(stderr, "Error probing file %s: %s\n", inName, gf_error_to_string(e));
@@ -182,28 +185,19 @@ void convert_file_info(char *inName, GF_ISOTrackID trackID)
 		}
 		fprintf(stderr, "\n");
 
-		if (gf_isom_is_video_subtype(import.tk_info[i].stream_type) && import.tk_info[i].video_info.width && import.tk_info[i].video_info.height
+		if (import.tk_info[i].video_info.width && import.tk_info[i].video_info.height
 		   ) {
 			fprintf(stderr, "\tSize %dx%d", import.tk_info[i].video_info.width, import.tk_info[i].video_info.height);
 			if (import.tk_info[i].video_info.FPS) fprintf(stderr, " @ %g FPS", import.tk_info[i].video_info.FPS);
-			if (import.tk_info[i].video_info.par) fprintf(stderr, " PAR: %d:%d", import.tk_info[i].video_info.par >> 16, import.tk_info[i].video_info.par & 0xFFFF);
+			if (import.tk_info[i].stream_type==GF_STREAM_VISUAL) {
+				if (import.tk_info[i].video_info.par) fprintf(stderr, " PAR: %d:%d", import.tk_info[i].video_info.par >> 16, import.tk_info[i].video_info.par & 0xFFFF);
+			}
+
 			fprintf(stderr, "\n");
 		}
 		else if ((import.tk_info[i].stream_type==GF_STREAM_AUDIO) && import.tk_info[i].audio_info.sample_rate) {
 			fprintf(stderr, "\tSampleRate %d - %d channels\n", import.tk_info[i].audio_info.sample_rate, import.tk_info[i].audio_info.nb_channels);
 		}
-
-
-		fprintf(stderr, "\nImport Capabilities:\n");
-		if (import.tk_info[i].flags & GF_IMPORT_USE_DATAREF) fprintf(stderr, "\tCan use data referencing\n");
-		if (import.tk_info[i].flags & GF_IMPORT_NO_FRAME_DROP) fprintf(stderr, "\tCan use fixed FPS import\n");
-		if (import.tk_info[i].flags & GF_IMPORT_FORCE_PACKED) fprintf(stderr, "\tCan force packed bitstream import\n");
-		if (import.tk_info[i].flags & GF_IMPORT_OVERRIDE_FPS) fprintf(stderr, "\tCan override source frame rate\n");
-		if (import.tk_info[i].flags & (GF_IMPORT_SBR_IMPLICIT|GF_IMPORT_SBR_EXPLICIT)) fprintf(stderr, "\tCan use AAC-SBR signaling\n");
-		if (import.tk_info[i].flags & (GF_IMPORT_PS_IMPLICIT|GF_IMPORT_PS_EXPLICIT)) fprintf(stderr, "\tCan use AAC-PS signaling\n");
-		if (import.tk_info[i].flags & GF_IMPORT_FORCE_MPEG4) fprintf(stderr, "\tCan force MPEG-4 Systems signaling\n");
-		if (import.tk_info[i].flags & GF_IMPORT_3GPP_AGGREGATION) fprintf(stderr, "\tCan use 3GPP frame aggregation\n");
-		if (import.tk_info[i].flags & GF_IMPORT_NO_DURATION) fprintf(stderr, "\tCannot use duration-based import\n");
 
 		if (trackID) {
 			found = 1;
@@ -211,6 +205,7 @@ void convert_file_info(char *inName, GF_ISOTrackID trackID)
 		}
 	}
 	fprintf(stderr, "\n");
+	fprintf(stderr, "For more details, use `gpac -i %s inspect[:deep][:analyze]`\n", gf_file_basename(inName));
 	if (!found && trackID) fprintf(stderr, "Cannot find track %d in file\n", trackID);
 }
 
@@ -240,12 +235,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode, temporal_mode;
 	s32 par_d, par_n, prog_id, delay, force_rate, moov_timescale;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
-	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only, print_stats_graph=0, force_par;
+	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only, force_par;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
 	const char *szLan;
 	GF_Err e;
 	u32 tmcd_track = 0;
 	Bool keep_audelim = GF_FALSE;
+	u32 print_stats_graph=fs_dump_flags;
 	GF_MediaImporter import;
 	char *ext, szName[1000], *handler_name, *rvc_config, *chapter_name;
 	GF_List *kinds;

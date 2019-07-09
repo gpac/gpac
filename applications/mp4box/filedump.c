@@ -57,6 +57,7 @@
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
 extern GF_FileType get_file_type_by_ext(char *inName);
+extern u32 fs_dump_flags;
 
 void scene_coding_log(void *cbk, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char *fmt, va_list vlist);
 
@@ -1613,6 +1614,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 
 			if (!fmt_handled) {
 				dumper.flags = GF_EXPORT_NHML | GF_EXPORT_NHML_FULL;
+				dumper.print_stats_graph = fs_dump_flags;
 				gf_media_export(&dumper);
 			}
 		}
