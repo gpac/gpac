@@ -1808,6 +1808,9 @@ typedef struct
 	u8 default_sample_info_size;
 	u32 sample_count, sample_alloc;
 	u8 *sample_info_size;
+
+	u32 cached_sample_num;
+	u32 cached_prev_size;
 } GF_SampleAuxiliaryInfoSizeBox;
 
 typedef struct
@@ -1822,6 +1825,9 @@ typedef struct
 	u64 *offsets;
 
 	u64 offset_first_offset_field;
+
+	u32 total_size;
+	u8 *cached_data;
 } GF_SampleAuxiliaryInfoOffsetBox;
 
 typedef struct

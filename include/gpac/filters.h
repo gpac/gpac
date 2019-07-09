@@ -521,7 +521,7 @@ typedef struct
 
 /*! Gets number of active filters in the session
 \param session filter session
-\param idx index of filters to query
+\param idx index of filter to query
 \param stats statistics for filter
 \return error code if any
 */

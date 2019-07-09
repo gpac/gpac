@@ -3127,7 +3127,7 @@ GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus)
 	evt.type = GF_EVENT_PROGRESS;
 	evt.progress.progress_type = 3;
 	evt.progress.done = percent;
-	evt.progress.total = percent ? 10000 : 0;
+	evt.progress.total = ((s32)percent>0) ? 10000 : 0;
 	evt.progress.filter_idx = gf_list_find(filter->session->filters, filter);
 	gf_fs_ui_event(filter->session, &evt);
 	return GF_OK;
