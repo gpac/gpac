@@ -443,7 +443,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 {
 	GF_CryptInfo *cinfo=NULL;
 	u32 i, nb_pssh, pssh_crc=0;
-	const GF_PropertyValue *prop;
+	const GF_PropertyValue *prop, *cinfo_prop;
 	char *pssh_data=NULL;
 	GF_FilterPid *pid = cstr->ipid;
 	Bool is_playing = (cstr->state == DECRYPT_STATE_PLAY) ? GF_TRUE : GF_FALSE;
@@ -474,6 +474,9 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	cstr->state = is_playing ? DECRYPT_STATE_PLAY : DECRYPT_STATE_SETUP;
 	//ctx->nb_allow_play = 1;
 
+	cinfo_prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECRYPT_INFO);
+	if (!cinfo_prop) cinfo_prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CRYPT_INFO);
+
 	if (pssh_data) gf_bs_reassign_buffer(ctx->bs_r, prop->value.data.ptr, prop->value.data.size);
 	nb_pssh = pssh_data ? gf_bs_read_u32(ctx->bs_r) : 0;
 	for (i = 0; i < nb_pssh; i++) {
@@ -497,7 +500,9 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 
 		/*SystemID for GPAC Player: 67706163-6365-6E63-6472-6D746F6F6C31*/
 		if (strcmp(szSystemID, "6770616363656E6364726D746F6F6C31")) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[CENC/ISMA] System ID %s not supported\n", szSystemID));
+			if (!cinfo_prop && !ctx->cfile) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[CENC/ISMA] System ID %s not supported\n", szSystemID));
+			}
 			gf_bs_skip_bytes(ctx->bs_r, kid_count*16);
 			j=gf_bs_read_u32(ctx->bs_r);
 			gf_bs_skip_bytes(ctx->bs_r, j);
@@ -542,10 +547,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		return GF_OK;
 	}
 
-	prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECRYPT_INFO);
-	if (!prop) prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CRYPT_INFO);
-
-	if (prop) {
+	if (cinfo_prop) {
 		cinfo = gf_crypt_info_load(prop->value.string);
 		if (!cinfo) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Failed to open crypt info file %s\n", prop->value.string));
