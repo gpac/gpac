@@ -2685,12 +2685,7 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 		char *sep;
 
 		if (use_old_syntax) {
-			sep = strchr(url_search, ':');
-			/*if :// or :\ is found, skip it*/
-			if (sep && ( ((sep[1] == '/') && (sep[2] == '/')) || (sep[1] == '\\') ) ) {
-				url_search = sep+1;
-				continue;
-			}
+			sep = gf_url_colon_suffix(url_search);
 		} else {
 			sep = strstr(url_search, "::");
 		}

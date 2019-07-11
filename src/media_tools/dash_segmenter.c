@@ -518,7 +518,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	dasher->fsess = gf_fs_new_defaults(0);
 
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) {
+	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET)) {
 		gf_fs_enable_reporting(dasher->fsess, GF_TRUE);
 		gf_fs_set_ui_callback(dasher->fsess, on_dasher_event, dasher);
 	}
@@ -529,7 +529,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		return GF_OUT_OF_MEM;
 	}
 
-	sep_ext = strchr(dasher->mpd_name, ':');
+	sep_ext = gf_url_colon_suffix(dasher->mpd_name);
 	if (sep_ext) {
 		if (sep_ext[1] == '\\') sep_ext = strchr(sep_ext+1, ':');
 		else if (sep_ext[1]=='/') {

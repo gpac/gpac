@@ -442,7 +442,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) {
+	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET)) {
 		gf_fs_enable_reporting(fsess, GF_TRUE);
 		gf_fs_set_ui_callback(fsess, on_decrypt_event, fsess);
 	}
@@ -527,7 +527,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 		}
 	}
 
-	arg_dst = strchr(dst_file, ':');
+	arg_dst = gf_url_colon_suffix(dst_file);
 	if (arg_dst) {
 		gf_dynstrcat(&szArgs, arg_dst, NULL);
 		arg_dst[0]=0;
@@ -543,7 +543,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) {
+	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET)) {
 		gf_fs_enable_reporting(fsess, GF_TRUE);
 		gf_fs_set_ui_callback(fsess, on_crypt_event, fsess);
 	}

@@ -170,7 +170,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 		return GF_NOT_SUPPORTED;
 	}
 
-
+	//skip ://
 	url = strchr(ctx->dst, ':');
 	url += 3;
 

@@ -984,7 +984,6 @@ char* gf_file_basename(const char* filename)
 {
 	char* lastPathPart = NULL;
 	if (filename) {
-
 		lastPathPart = strrchr(filename , GF_PATH_SEPARATOR);
 #if GF_PATH_SEPARATOR != '/'
 		// windows paths can mix slashes and backslashes
@@ -1000,9 +999,6 @@ char* gf_file_basename(const char* filename)
 			lastPathPart = (char *)filename;
 		else
 			lastPathPart++;
-
-
-
 	}
 	return lastPathPart;
 }
@@ -1013,12 +1009,68 @@ char* gf_file_basename(const char* filename)
 GF_EXPORT
 char* gf_file_ext_start(const char* filename)
 {
-	char* res = NULL;
 	char* basename = gf_file_basename(filename);
 	if (basename) {
-
-		res = strrchr(basename, '.');
-
+		return strrchr(basename, '.');
 	}
-	return res;
+	return NULL;
+}
+
+GF_EXPORT
+char* gf_url_colon_suffix(const char *path)
+{
+	char *sep;
+	char* basename = gf_file_basename(path);
+	if (basename) {
+		sep = strchr(basename, ':');
+	} else {
+		sep = strchr(path, ':');
+	}
+	if (!sep)
+		return NULL;
+	return sep;
+
+#if 0
+	//escape win path
+	if ((strlen(path) > 3) && (path[1] == ':') && ( (path[2] == '/') || (path[2] == '\\') ) ) {
+		sep = strchr(path + 3, ':');
+	}
+
+
+	//escape absolute url
+	else if (!strncmp(sep, "://", 3)) {
+		//escape port in IP:PORT/ scheme, move to server path
+		char *sep2 = strchr(sep + 3, '/');
+		if (sep2) {
+			sep= strchr(sep2, ':');
+		} else {
+			sep = strchr(sep + 3, ':');
+		}
+	}
+
+
+			/*if :// or :\ is found, skip it*/
+			if (sep && ( ((sep[1] == '/') && (sep[2] == '/')) || (sep[1] == '\\') ) ) {
+				url_search = sep+1;
+				continue;
+			}
+	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
+
+
+		// if the colon is part of a file path/url we keep it
+		if (ext2 && !strncmp(ext2, "://", 3) ) {
+			ext2[0] = ':';
+			ext2 = strchr(ext2+1, ':');
+		}
+
+		// keep windows drive: path, can be after a file://
+		if (ext2 && ( !strncmp(ext2, ":\\", 2) || !strncmp(ext2, ":/", 2) ) ) {
+			ext2[0] = ':';
+			ext2 = strchr(ext2+1, ':');
+		}
+	if (opts && (opts[1]=='\\'))
+		opts = strchr(fileName, ':');
+
+#endif
+	return NULL;
 }

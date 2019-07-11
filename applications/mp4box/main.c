@@ -1342,9 +1342,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		if (opts[0]==':') opts += 1;
 
 		szSlot = opts;
-		next = strchr(opts, ':');
-		/*use ':' as separator, but beware DOS paths...*/
-		if (next && next[1]=='\\') next = strchr(next+2, ':');
+		next = gf_url_colon_suffix(opts);
 		if (next) next[0] = 0;
 
 		if (!strnicmp(szSlot, "tk=", 3)) {
@@ -1533,9 +1531,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 		if (!opts || !opts[0]) return 1;
 		if (opts[0]==':') opts += 1;
 		strcpy(szSlot, opts);
-		next = strchr(szSlot, ':');
-		/*use ':' as separator, but beware DOS paths...*/
-		if (next && next[1]=='\\') next = strchr(szSlot+2, ':');
+		next = gf_url_colon_suffix(szSlot);
 		if (next) next[0] = 0;
 
 
@@ -1647,6 +1643,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 	GF_DashSegmenterInput *di;
 	char *sep;
 	char *other_opts = NULL;
+#if 0
 	// skip ./ and ../, and look for first . to figure out extension
 	if ((name[1]=='/') || (name[2]=='/') || (name[1]=='\\') || (name[2]=='\\') ) sep = strchr(name+3, '.');
 	else {
@@ -1656,11 +1653,12 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			sep = name;
 		}
 	}
+#else
+	sep = gf_file_ext_start(name);
+#endif
 
 	//then look for our opt separator :
-	sep = strchr(sep ? sep : name, ':');
-
-	if (sep && (sep[1]=='\\')) sep = strchr(sep+1, ':');
+	sep = gf_url_colon_suffix(sep ? sep : name);
 
 	dash_inputs = gf_realloc(dash_inputs, sizeof(GF_DashSegmenterInput) * (*nb_dash_inputs + 1) );
 	memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(GF_DashSegmenterInput) );
@@ -1671,7 +1669,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 		char *opts, *first_opt;
 		opts = first_opt = sep;
 		while (opts) {
-			sep = strchr(opts, ':');
+			sep = gf_url_colon_suffix(opts);
 			while (sep) {
 				/* this is a real separator if it is followed by a keyword we are looking for */
 				if (!strnicmp(sep, ":id=", 4) ||
@@ -1693,9 +1691,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				        ) {
 					break;
 				} else {
-					char *nsep = strchr(sep+1, ':');
-
-					if (nsep && !strncmp(nsep, "://", 3)) nsep = strchr(nsep+3, ':');
+					char *nsep = gf_url_colon_suffix(sep+1);
 					if (nsep) nsep[0] = 0;
 
 					gf_dynstrcat(&other_opts, sep, ":");
@@ -1705,7 +1701,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					sep = strchr(sep+1, ':');
 				}
 			}
-			if (sep && !strncmp(sep, "://", 3) && strnicmp(sep, ":@@", 3)) sep = strchr(sep+3, ':');
+			if (sep && !strncmp(sep, "://", 3) && strnicmp(sep, ":@@", 3)) sep = gf_url_colon_suffix(sep+3);
 			if (sep) sep[0] = 0;
 
 			if (!strnicmp(opts, "id=", 3)) {
@@ -1805,7 +1801,7 @@ static GF_Err parse_track_action_params(char *string, TrackAction *action)
 	if (!action || !string) return GF_BAD_PARAM;
 
 	while (param) {
-		param = strchr(param, ':');
+		param = gf_url_colon_suffix(param);
 		if (param) {
 			*param = 0;
 			param++;
@@ -4662,7 +4658,7 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	else if (pack_file) {
-		char *fileName = strchr(pack_file, ':');
+		char *fileName = gf_url_colon_suffix(pack_file);
 		if (fileName && ((fileName - pack_file)==4)) {
 			fileName[0] = 0;
 			file = package_file(fileName + 1, pack_file, tmpdir, pack_wgt);
@@ -5763,7 +5759,7 @@ int mp4boxMain(int argc, char **argv)
 
 		while (tags) {
 			char *val;
-			char *sep = strchr(tags, ':');
+			char *sep = gf_url_colon_suffix(tags);
 			u32 tlen, itag = 0;
 			if (sep) {
 				while (sep) {
@@ -5773,7 +5769,7 @@ int mp4boxMain(int argc, char **argv)
 					if (itag<nb_itunes_tags) {
 						break;
 					}
-					sep = strchr(sep+1, ':');
+					sep = gf_url_colon_suffix(sep);
 				}
 				if (sep) sep[0] = 0;
 			}

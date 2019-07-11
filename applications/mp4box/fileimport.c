@@ -317,26 +317,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	tw = th = tx = ty = txtw = txth = txtx = txty = 0;
 	par_d = par_n = -2;
 	force_par = GF_FALSE;
-	/*use ':' as separator, but beware DOS paths...*/
-	ext = strchr(szName, ':');
-	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
+
+	ext = gf_url_colon_suffix(szName);
 
 	handler_name = NULL;
 	rvc_config = NULL;
 	while (ext) {
-		char *ext2 = strchr(ext+1, ':');
+		char *ext2 = gf_url_colon_suffix(ext+1);
 
-		// if the colon is part of a file path/url we keep it
-		if (ext2 && !strncmp(ext2, "://", 3) ) {
-			ext2[0] = ':';
-			ext2 = strchr(ext2+1, ':');
-		}
-
-		// keep windows drive: path, can be after a file://
-		if (ext2 && ( !strncmp(ext2, ":\\", 2) || !strncmp(ext2, ":/", 2) ) ) {
-			ext2[0] = ':';
-			ext2 = strchr(ext2+1, ':');
-		}
 		if (ext2) ext2[0] = 0;
 
 		/*all extensions for track-based importing*/
@@ -714,7 +702,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	
 	if (ext) {
 		ext++;
-		char *sep = strchr(ext, ':');
+		char *sep = gf_url_colon_suffix(ext);
 		if (sep) sep[0] = 0;
 
 		if (!strnicmp(ext, "audio", 5)) do_audio = 1;
@@ -2052,9 +2040,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		multi_cat[0] = 0;
 		multi_cat = &multi_cat[1];
 	}
-	opts = strchr(fileName, ':');
-	if (opts && (opts[1]=='\\'))
-		opts = strchr(fileName, ':');
+	opts = gf_url_colon_suffix(fileName);
 
 	e = GF_OK;
 
@@ -2612,7 +2598,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF
 	sep[0] = 0;
 	sep = strchr(cat_enum.szRad2, '%');
 	if (!sep) sep = strchr(cat_enum.szRad2, '#');
-	if (!sep) sep = strchr(cat_enum.szRad2, ':');
+	if (!sep) sep = gf_url_colon_suffix(cat_enum.szRad2);
 	strcpy(cat_enum.szOpt, "");
 	if (sep) {
 		if (strlen(sep) >= sizeof(cat_enum.szOpt)) {

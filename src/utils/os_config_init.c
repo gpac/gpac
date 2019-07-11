@@ -1139,17 +1139,20 @@ u32 gf_opts_get_int(const char *secName, const char *keyName)
 GF_EXPORT
 Bool gf_sys_set_cfg_option(const char *opt_string)
 {
+	size_t sepIdx;
 	char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
 	sep = strchr(opt_string, ':');
 	if (!sep) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreArgs] Badly formatted option %s - expected Section:Name=Value\n", opt_string ) );
 		return GF_FALSE;
 	}
-	{
-		const size_t sepIdx = sep - opt_string;
-		strncpy(szSec, opt_string, sepIdx);
-		szSec[sepIdx] = 0;
-	}
+
+	sepIdx = sep - opt_string;
+	if (sepIdx>=1024)
+		sepIdx = 1023;
+	strncpy(szSec, opt_string, sepIdx);
+	szSec[sepIdx] = 0;
+
 	sep ++;
 	sep2 = strchr(sep, '=');
 	if (!sep2) {
@@ -1157,10 +1160,17 @@ Bool gf_sys_set_cfg_option(const char *opt_string)
 		return  GF_TRUE;
 	}
 
-	const size_t sepIdx = sep2 - sep;
+	sepIdx = sep2 - sep;
+	if (sepIdx>=1024)
+		sepIdx = 1023;
 	strncpy(szKey, sep, sepIdx);
 	szKey[sepIdx] = 0;
-	strcpy(szVal, sep2+1);
+
+	sepIdx = strlen(sep2+1);
+	if (sepIdx>=1024)
+		sepIdx = 1023;
+	strncpy(szVal, sep2+1, sepIdx);
+	szVal[sepIdx] = 0;
 
 	if (!stricmp(szKey, "*")) {
 		if (stricmp(szVal, "null")) {

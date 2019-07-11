@@ -41,30 +41,11 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 
 const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 {
-	char *sep;
 	if (!path) return NULL;
 	if (sess->sep_args != ':')
 		return strchr(path, sess->sep_args);
 
-	sep = strchr(path, ':');
-	if (!sep)
-		return NULL;
-
-	//escape win path
-	if ((strlen(path) > 3) && (path[1] == ':') && ( (path[2] == '/') || (path[2] == '\\') ) ) {
-		sep = strchr(path + 3, ':');
-	}
-	//escape absolute url
-	else if (!strncmp(sep, "://", 3)) {
-		//escape port in IP:PORT/ scheme, move to server path
-		char *sep2 = strchr(sep + 3, '/');
-		if (sep2) {
-			sep= strchr(sep2, ':');
-		} else {
-			sep = strchr(sep + 3, ':');
-		}
-	}
-	return sep;
+	return gf_url_colon_suffix(path);
 }
 
 static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const char *in_args, Bool is_dst)
