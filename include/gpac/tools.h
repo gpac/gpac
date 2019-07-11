@@ -181,6 +181,14 @@ char* gf_file_basename(const char* filename);
 */
 char* gf_file_ext_start(const char* filename);
 
+/*!
+ *	\brief get first after a filename/path
+ *
+ *	Returns a pointer to the first colon at the end of a filename or URL, if any
+ *	\param URL path or URL to inspect
+ *	\return position of first colon, or NULL
+*/
+char* gf_url_colon_suffix(const char* URL);
 
 /*! @} */
 

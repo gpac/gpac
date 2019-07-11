@@ -196,7 +196,7 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 	}
 }
 
-static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 path_mtu, u32 ttl, char *ifce_addr, char *sdp_name)
+static Bool live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 path_mtu, u32 ttl, char *ifce_addr, char *sdp_name)
 {
 	RTPChannel *rtpch;
 	u32 count = gf_seng_get_stream_count(livesess->seng);
@@ -246,11 +246,13 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 		rtpch->adjust_carousel_time = 1;
 		gf_list_add(livesess->streams, rtpch);
 
+		if (!rtpch->rtp)
+			return GF_FALSE;
+
 		gf_rtp_streamer_append_sdp(rtpch->rtp, ESID, config, config_len, NULL, &sdp);
 
 		/*fetch initial config of the broadcast*/
 		gf_seng_get_stream_carousel_info(livesess->seng, ESID, &rtpch->carousel_period, &rtpch->aggregate_on_stream);
-
 		port += 2;
 	}
 	if (sdp) {
@@ -259,6 +261,7 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 		gf_fclose(out);
 		gf_free(sdp);
 	}
+	return GF_TRUE;
 }
 
 void live_session_shutdown(LiveSession *livesess)
@@ -405,7 +408,16 @@ int live_session(int argc, char **argv)
 		fprintf(stderr, "Cannot create scene engine\n");
 		return 1;
 	}
-	if (livesess.streams) live_session_setup(&livesess, dst, dst_port, path_mtu, ttl, (char *) ifce_addr, sdp_name);
+	if (livesess.streams) {
+		Bool res = live_session_setup(&livesess, dst, dst_port, path_mtu, ttl, (char *) ifce_addr, sdp_name);
+		if (!res) {
+			live_session_shutdown(&livesess);
+			if (update_buffer) gf_free(update_buffer);
+			if (sk) gf_sk_del(sk);
+			gf_sys_close();
+			return e ? 1 : 0;
+		}
+	}
 
 	has_carousel = 0;
 	last_src_modif = src_name ? gf_file_modification_time(src_name) : 0;
