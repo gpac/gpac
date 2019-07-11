@@ -751,13 +751,24 @@ static GF_FilterPid *dashdmx_create_output_pid(GF_Filter *filter, GF_FilterPid *
 	return gf_filter_pid_new(filter);
 }
 
-static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, u32 group_idx, GF_FilterPid *opid, GF_FilterPid *ipid)
+static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, u32 group_idx, GF_FilterPid *opid, GF_FilterPid *ipid)
 {
 	GF_DASHQualityInfo qinfo;
 	GF_PropertyValue qualities, srd, srdref;
 	GF_Err e;
 	u32 count, i;
 	u32 dur, mode;
+
+	gf_filter_pid_copy_properties(opid, ipid);
+
+	if (!group->nb_group_deps) {
+		u32 asid;
+		char as_name[100];
+		asid = gf_dash_group_get_as_id(ctx->dash, group_idx);
+		if (!asid) asid = group_idx+1;
+		sprintf(as_name, "AS%d", asid);
+		gf_filter_pid_set_name(opid, as_name);
+	}
 
 	mode = dashdmx_dash_playback_mode(ctx);
 	gf_filter_pid_set_property(opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(mode));
@@ -914,6 +925,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	GF_Err e=GF_OK;
 	const GF_PropertyValue *p;
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) gf_filter_get_udta(filter);
+	GF_DASHGroup *group;
 
 	if (is_remove) {
 		//TODO
@@ -967,11 +979,12 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	group_idx = dashdmx_group_idx_from_pid(ctx, pid);
 	if (group_idx<0) return GF_NOT_SUPPORTED;
 
+	group = gf_dash_get_group_udta(ctx->dash, group_idx);
+
 	//initial configure
 	opid = gf_filter_pid_get_udta(pid);
 	if (opid == NULL) {
-		u32 run_status, asid;
-		char as_name[100];
+		u32 run_status;
 		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, group_idx);
 		assert(group);
 		//for now we declare every component from the input source
@@ -979,17 +992,6 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_set_udta(opid, group);
 		gf_filter_pid_set_udta(pid, opid);
 		group->nb_pids ++;
-
-		gf_filter_pid_copy_properties(opid, pid);
-
-		if (!group->nb_group_deps) {
-			asid = gf_dash_group_get_as_id(ctx->dash, group_idx);
-			if (!asid) asid = group_idx+1;
-			sprintf(as_name, "AS%d", asid);
-			gf_filter_pid_set_name(opid, as_name);
-		}
-
-		dashdmx_declare_properties(ctx, group_idx, opid, pid);
 
 		if (run_status) {
 			GF_FilterEvent evt;
@@ -1007,10 +1009,10 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				gf_filter_pid_send_event(pid, &evt);
 			}
 		}
-	} else {
-		//copy properties at reconfig
-		gf_filter_pid_copy_properties(opid, pid);
 	}
+	dashdmx_declare_properties(ctx, group, group_idx, opid, pid);
+
+
 	//reset the file cache property (init segment could be cached but not the rest)
 	gf_filter_pid_set_property(opid, GF_PROP_PID_FILE_CACHED, NULL);
 
