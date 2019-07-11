@@ -132,6 +132,9 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 
 	read->time_scale = gf_isom_get_timescale(read->mov);
 
+	if (read->sigfrag)
+		gf_isom_enable_traf_map_templates(read->mov);
+
 	return isor_declare_objects(read);
 }
 
@@ -228,6 +231,9 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		if (e < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening init segment %s at UTC "LLU": %s\n", next_url, gf_net_get_utc(), gf_error_to_string(e) ));
 		}
+		if (read->sigfrag)
+			gf_isom_enable_traf_map_templates(read->mov);
+
 		is_new_mov = GF_TRUE;
 		break;
 	default:
@@ -380,6 +386,10 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 		read->input_loaded = GF_TRUE;
 		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
 		read->time_scale = gf_isom_get_timescale(read->mov);
+
+		if (read->sigfrag) {
+			gf_isom_enable_traf_map_templates(read->mov);
+		}
 
 		if (read->catseg) {
 			e = gf_isom_open_segment(read->mov, read->catseg, 0, 0, 0);
@@ -977,6 +987,18 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					assert(ch->sai_buffer_size);
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA(ch->sai_buffer, ch->sai_buffer_size) );
 				}
+
+				if (read->sigfrag) {
+					GF_ISOFragmentBoundaryInfo finfo;
+					if (gf_isom_sample_is_fragment_start(read->mov, ch->track, ch->sample_num, &finfo) ) {
+						u32 traf_start = finfo.seg_start_plus_one ? 2 : 1;
+						gf_filter_pck_set_property(pck, GF_PROP_PCK_FRAG_START, &PROP_UINT(traf_start));
+						if (finfo.moof_template) {
+							gf_filter_pck_set_property(pck, GF_PROP_PCK_MOOF_TEMPLATE, &PROP_DATA((u8 *)finfo.moof_template, finfo.moof_template_size));
+						}
+					}
+
+				}
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);
 			} else if (ch->last_state==GF_EOS) {
@@ -1024,6 +1046,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(alltk), "declare all tracks even disabled ones", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frame_size), "frame size for raw audio samples (dispatches frame_size samples per packet)", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(expart), "expose cover art as a dedicated video pid", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sigfrag), "signal fragment and segment boundaries of source on output packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(tkid), "declare only track based on given param"
 	"- integer value: declares track with the given ID\n"

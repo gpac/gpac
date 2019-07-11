@@ -729,7 +729,7 @@ Bool gf_isom_has_segment(GF_ISOFile *file, u32 *brand, u32 *version)
 	while (NULL != (a = (GF_Box*)gf_list_enum(file->TopBoxes, &i))) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		if (a->type == GF_ISOM_BOX_TYPE_STYP) {
-			GF_SegmentTypeBox *styp = (GF_SegmentTypeBox *)a;
+			GF_FileTypeBox *styp = (GF_FileTypeBox *)a;
 			*brand = styp->majorBrand;
 			*version = styp->minorVersion;
 			return GF_TRUE;
@@ -2964,6 +2964,14 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 				gf_list_rem(stbl->sampleGroupsDescription, j);
 			}
 
+			if (stbl->traf_map) {
+				for (j=0; j<stbl->traf_map->nb_entries; j++) {
+					if (stbl->traf_map->frag_starts[j].moof_template)
+						gf_free(stbl->traf_map->frag_starts[j].moof_template);
+				}
+				memset(stbl->traf_map->frag_starts, 0, sizeof(GF_TrafMapEntry)*stbl->traf_map->nb_alloc);
+				stbl->traf_map->nb_entries = 0;
+			}
 
 #if 0 // TO CHECK
 			j = ptr->nb_stbl_boxes;
@@ -4590,12 +4598,20 @@ GF_Err gf_isom_get_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescInd
 	return GF_OK;
 }
 
+void gf_isom_enable_traf_map_templates(GF_ISOFile *movie)
+{
+	if (movie)
+		movie->signal_frag_bounds=GF_TRUE;
+}
+
 GF_EXPORT
-Bool gf_isom_sample_was_traf_start(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum)
+Bool gf_isom_sample_is_fragment_start(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum, GF_ISOFragmentBoundaryInfo *frag_info)
 {
 	u32 i;
 	GF_TrackBox *trak;
 	GF_TrafToSampleMap *tmap;
+
+	if (frag_info) memset(frag_info, 0, sizeof(GF_ISOFragmentBoundaryInfo));
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media) return GF_FALSE;
@@ -4604,11 +4620,24 @@ Bool gf_isom_sample_was_traf_start(GF_ISOFile *movie, u32 trackNumber, u32 sampl
 	tmap = trak->Media->information->sampleTable->traf_map;
 	if (!tmap) return GF_FALSE;
 	for (i=0; i<tmap->nb_entries; i++) {
-		if (tmap->sample_num[i] == sampleNum) return GF_TRUE;
-		if (tmap->sample_num[i] > sampleNum) return GF_FALSE;
+		if (tmap->frag_starts[i].sample_num == sampleNum) {
+			if (frag_info) {
+				frag_info->frag_start = tmap->frag_starts[i].moof_start;
+				frag_info->mdat_end = tmap->frag_starts[i].mdat_end;
+				frag_info->moof_template = tmap->frag_starts[i].moof_template;
+				frag_info->moof_template_size = tmap->frag_starts[i].moof_template_size;
+				frag_info->seg_start_plus_one = tmap->frag_starts[i].seg_start_plus_one;
+			}
+			return GF_TRUE;
+		}
+
+		if (tmap->frag_starts[i].sample_num > sampleNum) return GF_FALSE;
 	}
 	return GF_FALSE;
 }
+
+
+
 
 GF_EXPORT
 GF_Err gf_isom_get_jp2_config(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc, u8 **out_dsi, u32 *out_size)

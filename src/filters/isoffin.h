@@ -61,7 +61,8 @@ typedef struct
 	char* tkid;
 	Bool analyze;
 	char *catseg;
-	
+	Bool sigfrag;
+
 	//internal
 
 	GF_Filter *filter;

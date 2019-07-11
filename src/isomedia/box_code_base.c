@@ -4731,7 +4731,14 @@ void stbl_box_del(GF_Box *s)
 	if (ptr->sai_sizes) gf_list_del(ptr->sai_sizes);
 	if (ptr->sai_offsets) gf_list_del(ptr->sai_offsets);
 	if (ptr->traf_map) {
-		if (ptr->traf_map->sample_num) gf_free(ptr->traf_map->sample_num);
+		if (ptr->traf_map->frag_starts) {
+			u32 i;
+			for (i=0; i<ptr->traf_map->nb_entries; i++) {
+				if (ptr->traf_map->frag_starts[i].moof_template)
+					gf_free(ptr->traf_map->frag_starts[i].moof_template);
+			}
+			gf_free(ptr->traf_map->frag_starts);
+		}
 		gf_free(ptr->traf_map);
 	}
 	gf_free(ptr);
@@ -6275,7 +6282,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 
 
 		/*only process visual or audio
-		note: no need for new_box_parent here since we always store sample descriptions in other_boxes*/
+		note: no need for new_box_parent here since we always store sample descriptions in child_boxes*/
 		switch (trak->Media->handler->handlerType) {
         case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_AUXV:

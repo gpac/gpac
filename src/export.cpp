@@ -869,10 +869,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_video_subtype) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_sample_was_traf_start) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_sample_is_fragment_start) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_constant_sample_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_constant_sample_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_enable_raw_pack) )
+
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )

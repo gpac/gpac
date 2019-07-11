@@ -599,7 +599,7 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs);
 //writes box header then version+flags
 GF_Err gf_isom_full_box_write(GF_Box *s, GF_BitStream *bs);
 
-void gf_isom_box_array_del(GF_List *other_boxes);
+void gf_isom_box_array_del(GF_List *child_boxes);
 GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs);
 GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list);
 
@@ -608,7 +608,8 @@ void gf_isom_check_position_list(GF_Box *s, GF_List *childlist, u32 *pos);
 
 Bool gf_box_valid_in_parent(GF_Box *a, const char *parent_4cc);
 
-void gf_isom_box_array_del_parent(GF_List **other_boxes, GF_List *boxlist);
+void gf_isom_box_array_del_parent(GF_List **child_boxes, GF_List *boxlist);
+void gf_isom_box_array_reset_parent(GF_List **child_boxes, GF_List *boxlist);
 
 void gf_isom_box_freeze_order(GF_Box *box);
 
@@ -1832,8 +1833,18 @@ typedef struct
 
 typedef struct
 {
+	u32 sample_num;
+	u8 *moof_template;
+	u32 moof_template_size;
+	u64 seg_start_plus_one;
+	u64 moof_start;
+	u64 mdat_end;
+} GF_TrafMapEntry;
+
+typedef struct
+{
 	u32 nb_entries, nb_alloc;
-	u32 *sample_num;
+	GF_TrafMapEntry *frag_starts;
 } GF_TrafToSampleMap;
 
 typedef struct
@@ -1874,7 +1885,7 @@ typedef struct
 	Bool skip_sample_groups;
 } GF_SampleTableBox;
 
-void stbl_AppendTrafMap(GF_SampleTableBox *stbl);
+void stbl_AppendTrafMap(GF_SampleTableBox *stbl, Bool is_seg_start, u64 seg_start_offset, u64 frag_start_offset, u8 *moof_template, u32 moof_template_size);
 
 typedef struct __tag_media_info_box
 {
@@ -2488,15 +2499,6 @@ typedef struct
 	u32 nb_pack;
 } GF_TrunEntry;
 
-typedef struct
-{
-	GF_ISOM_BOX
-	u32 majorBrand;
-	u32 minorVersion;
-	u32 altCount;
-	u32 *altBrand;
-} GF_SegmentTypeBox;
-
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 
@@ -2849,6 +2851,8 @@ typedef struct __sidx_box
 	u32 nb_refs;
 	GF_SIDXReference *refs;
 } GF_SegmentIndexBox;
+
+GF_Err gf_isom_set_fragment_template(GF_ISOFile *movie, u8 *tpl_data, u32 tpl_size, Bool *has_tfdt, GF_SegmentIndexBox **out_sidx);
 
 typedef struct
 {
@@ -3661,6 +3665,11 @@ struct __tag_isom {
 	/* optional mfra box used in write mode */
 	GF_MovieFragmentRandomAccessBox *mfra;
 
+	Bool signal_frag_bounds;
+	u64 sidx_start_offset;
+	u64 styp_start_offset;
+	u64 mdat_end_offset;
+	GF_Box *seg_ssix, *seg_styp;
 #endif
 	GF_ProducerReferenceTimeBox *last_producer_ref_time;
 
@@ -4209,6 +4218,8 @@ Bool gf_isom_box_is_file_level(GF_Box *s);
 GF_Box *boxstring_new_with_data(u32 type, const char *string, GF_List **parent);
 
 GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size, char **out_str);
+
+GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof, u64 moof_offset, u64 *cumulated_offset, Bool is_first_merge);
 
 #endif //GPAC_DISABLE_ISOM
 

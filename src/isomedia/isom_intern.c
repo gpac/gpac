@@ -34,8 +34,6 @@
 GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpected, Bool progressive_mode);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, u64 *cumulated_offset, Bool is_first_merge);
-
 GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 {
 	GF_Err e;
@@ -84,7 +82,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 			return GF_ISOM_INVALID_FILE;
 		}
 
-		e = MergeTrack(trak, traf, mov->current_top_box_start, &base_data_offset, !trak->first_traf_merged);
+		e = MergeTrack(trak, traf, moof, mov->current_top_box_start, &base_data_offset, !trak->first_traf_merged);
 		if (e) return e;
 
 		trak->present_in_scalable_segment = 1;
@@ -173,6 +171,25 @@ static void FixSDTPInTRAF(GF_MovieFragmentBox *moof)
 			}
 			gf_isom_box_del_parent(&traf->child_boxes, (GF_Box*)traf->sdtp);
 			traf->sdtp = NULL;
+		}
+	}
+}
+
+void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end)
+{
+	u32 i, count = gf_list_count(mov->moov->trackList);
+	for (i=0; i<count; i++) {
+		u32 j;
+		GF_TrafToSampleMap *traf_map;
+		GF_TrackBox *trak = gf_list_get(mov->moov->trackList, i);
+		if (!trak->Media->information->sampleTable->traf_map) continue;
+
+		traf_map = trak->Media->information->sampleTable->traf_map;
+		for (j=traf_map->nb_entries; j>0; j--) {
+			if (!traf_map->frag_starts[j-1].mdat_end) {
+				traf_map->frag_starts[j-1].mdat_end = mdat_end;
+				break;
+			}
 		}
 	}
 }
@@ -289,6 +306,11 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 				else if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) gf_list_add(mov->TopBoxes, a);
 #endif
 				else gf_isom_box_del(a); //in other modes we don't care
+
+
+				if (mov->signal_frag_bounds && !(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
+					gf_isom_push_mdat_end(mov, gf_bs_get_position(mov->movieFileMap->bs) );
+				}
 			}
 			/*if we don't have any MDAT yet, create one (edit-write mode)
 			We only work with one mdat, but we're puting it at the place
@@ -334,7 +356,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_STYP:
 		{
-			u32 brand = ((GF_SegmentTypeBox *)a)->majorBrand;
+			u32 brand = ((GF_FileTypeBox *)a)->majorBrand;
 			switch (brand) {
 			case GF_ISOM_BRAND_SISX:
 			case GF_ISOM_BRAND_RISX:
@@ -353,6 +375,25 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
 				e = gf_list_add(mov->TopBoxes, a);
 				if (e) return e;
+			} else if (mov->signal_frag_bounds && !(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)  && (mov->openMode!=GF_ISOM_OPEN_CAT_FRAGMENTS)
+			) {
+				if (a->type==GF_ISOM_BOX_TYPE_SIDX) {
+					if (mov->root_sidx) gf_isom_box_del( (GF_Box *) mov->root_sidx);
+					mov->root_sidx = (GF_SegmentIndexBox *) a;
+					mov->sidx_start_offset = mov->current_top_box_start;
+				}
+				else if (a->type==GF_ISOM_BOX_TYPE_STYP) {
+					mov->styp_start_offset = mov->current_top_box_start;
+
+					if (mov->seg_styp) gf_isom_box_del(mov->seg_styp);
+					mov->seg_styp = a;
+				} else if (a->type==GF_ISOM_BOX_TYPE_SSIX) {
+					if (mov->seg_ssix) gf_isom_box_del(mov->seg_ssix);
+					mov->seg_ssix = a;
+				} else {
+					gf_isom_box_del(a);
+				}
+				gf_isom_push_mdat_end(mov, mov->current_top_box_start);
 			} else {
 				gf_isom_box_del(a);
 			}
@@ -426,6 +467,22 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 				if (e) return e;
 				gf_isom_box_del(a);
 			}
+
+			//done with moov
+			if (mov->root_sidx) {
+				gf_isom_box_del((GF_Box *) mov->root_sidx);
+				mov->root_sidx = NULL;
+			}
+			if (mov->root_ssix) {
+				gf_isom_box_del(mov->seg_ssix);
+				mov->root_ssix = NULL;
+			}
+			if (mov->seg_styp) {
+				gf_isom_box_del(mov->seg_styp);
+				mov->seg_styp = NULL;
+			}
+			mov->sidx_start_offset = 0;
+			mov->styp_start_offset = 0;
 			break;
 #endif
 		case GF_ISOM_BOX_TYPE_UNKNOWN:

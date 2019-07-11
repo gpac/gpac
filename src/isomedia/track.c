@@ -415,7 +415,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
-GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, u64 *cumulated_offset, Bool is_first_merge)
+GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof_box, u64 moof_offset, u64 *cumulated_offset, Bool is_first_merge)
 {
 	u32 i, j, chunk_size, track_num;
 	u64 base_offset, data_offset, traf_duration;
@@ -424,6 +424,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	u8 pad, sync;
 	u16 degr;
 	Bool first_samp_in_traf=GF_TRUE;
+	u8 *moof_template=NULL;
+	u32 moof_template_size=0;
+	Bool is_seg_start = GF_FALSE;
+	u64 seg_start=0, frag_start=0;
 	GF_TrackFragmentRunBox *trun;
 	GF_TrunEntry *ent;
 
@@ -477,6 +481,60 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 		}
 #endif
 		trak->dts_at_seg_start = traf->tfdt->baseMediaDecodeTime;
+	}
+
+	if (is_first_merge && trak->moov->mov->signal_frag_bounds) {
+		GF_MovieFragmentBox *moof_clone = NULL;
+		gf_isom_box_freeze_order((GF_Box *)moof_box);
+		gf_isom_clone_box((GF_Box *)moof_box, (GF_Box **)&moof_clone);
+
+		if (moof_clone) {
+			GF_BitStream *bs;
+			for (i=0; i<gf_list_count(moof_clone->TrackList); i++) {
+				GF_TrackFragmentBox *traf_clone = gf_list_get(moof_clone->TrackList, i);
+				gf_isom_box_array_reset_parent(&traf_clone->child_boxes, traf_clone->TrackRuns);
+				gf_isom_box_array_reset_parent(&traf_clone->child_boxes, traf_clone->sampleGroups);
+				gf_isom_box_array_reset_parent(&traf_clone->child_boxes, traf_clone->sampleGroupsDescription);
+				gf_isom_box_array_reset_parent(&traf_clone->child_boxes, traf_clone->sub_samples);
+				gf_isom_box_array_reset_parent(&traf_clone->child_boxes, traf_clone->sai_offsets);
+				gf_isom_box_array_reset_parent(&traf_clone->child_boxes, traf_clone->sai_sizes);
+				if (traf_clone->sample_encryption) {
+					gf_isom_box_del_parent(&traf_clone->child_boxes, (GF_Box *) traf_clone->sample_encryption);
+					traf_clone->sample_encryption = NULL;
+				}
+				if (traf_clone->sdtp) {
+					gf_isom_box_del_parent(&traf_clone->child_boxes, (GF_Box *) traf_clone->sdtp);
+					traf_clone->sdtp = NULL;
+				}
+			}
+			gf_isom_box_size((GF_Box *)moof_clone);
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	 		if (trak->moov->mov->seg_styp) {
+				gf_isom_box_size(trak->moov->mov->seg_styp);
+				gf_isom_box_write(trak->moov->mov->seg_styp, bs);
+				is_seg_start = GF_TRUE;
+				seg_start = trak->moov->mov->styp_start_offset;
+			}
+	 		if (trak->moov->mov->root_sidx) {
+	 			is_seg_start = GF_TRUE;
+				gf_isom_box_size((GF_Box *)trak->moov->mov->root_sidx);
+				gf_isom_box_write((GF_Box *)trak->moov->mov->root_sidx, bs);
+				seg_start = trak->moov->mov->sidx_start_offset;
+			}
+	 		if (trak->moov->mov->seg_ssix) {
+				gf_isom_box_size(trak->moov->mov->seg_ssix);
+				gf_isom_box_write(trak->moov->mov->seg_ssix, bs);
+				seg_start = trak->moov->mov->sidx_start_offset;
+			}
+
+			frag_start = trak->moov->mov->current_top_box_start;
+			gf_isom_box_write((GF_Box *)moof_clone, bs);
+			gf_isom_box_del((GF_Box*)moof_clone);
+
+			gf_bs_get_content(bs, &moof_template, &moof_template_size);
+			gf_bs_del(bs);
+		}
 	}
 
 	i=0;
@@ -536,7 +594,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 			if (first_samp_in_traf) {
 				first_samp_in_traf = GF_FALSE;
-				stbl_AppendTrafMap(trak->Media->information->sampleTable);
+				stbl_AppendTrafMap(trak->Media->information->sampleTable, is_seg_start, seg_start, frag_start, moof_template, moof_template_size);
+				//do not deallocate, the memory is now owned by traf map
+				moof_template = NULL;
+				moof_template_size = 0;
 			}
 			if (ent->nb_pack) {
 				j+= ent->nb_pack-1;

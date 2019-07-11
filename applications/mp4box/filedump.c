@@ -940,7 +940,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 			}
 
 			if (is_fragmented) {
-				fprintf(dump, "\t%d", gf_isom_sample_was_traf_start(file, i+1, j+1) );
+				fprintf(dump, "\t%d", gf_isom_sample_is_fragment_start(file, i+1, j+1, NULL) );
 			}
 			fprintf(dump, "\n");
 			gf_set_progress("Dumping track timing", j+1, count);
@@ -1353,9 +1353,10 @@ void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode,
 		Bool traf_start = 0;
 		u32 sap_type = 0;
 		u64 doffset;
+		
 		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, &di, &doffset);
 
-		traf_start = gf_isom_sample_was_traf_start(file, track, i+1);
+		traf_start = gf_isom_sample_is_fragment_start(file, track, i+1, NULL);
 
 		sap_type = samp->IsRAP;
 		if (!sap_type) {
