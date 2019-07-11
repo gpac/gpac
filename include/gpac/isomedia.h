@@ -1170,8 +1170,24 @@ u32 gf_isom_get_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDescrip
 if sampleDescIndex is 0, gather for all sample descriptions*/
 GF_Err gf_isom_get_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescIndex, u32 *average_bitrate, u32 *max_bitrate, u32 *decode_buffer_size);
 
+void gf_isom_enable_traf_map_templates(GF_ISOFile *movie);
+
+typedef struct
+{
+	u64 frag_start;
+	u64 mdat_end;
+	//0 if regular fragment, 1 if dash sedment, offset indicates start of segment (styp or sidx)
+	//if sidx, it is writtent in the moof_template
+	u64 seg_start_plus_one;
+
+	//serialized array of styp (if present) sidx (if present) and moof with only the current traf
+	const u8 *moof_template;
+	u32 moof_template_size;
+} GF_ISOFragmentBoundaryInfo;
+
 /*returns true if this sample was the first sample of a traf in a fragmented file, false otherwise*/
-Bool gf_isom_sample_was_traf_start(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum);
+Bool gf_isom_sample_is_fragment_start(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum, GF_ISOFragmentBoundaryInfo *frag_info);
+
 
 GF_Err gf_isom_get_jp2_config(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc, u8 **out_dsi, u32 *out_size);
 

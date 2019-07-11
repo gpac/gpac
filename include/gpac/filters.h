@@ -936,6 +936,10 @@ enum
 	GF_PROP_PID_COLR_TRANSFER = GF_4CC('C','T','R','C'),
 	GF_PROP_PID_COLR_MX = GF_4CC('C','M','X','C'),
 	GF_PROP_PID_COLR_RANGE = GF_4CC('C','F','R','A'),
+
+	GF_PROP_PCK_FRAG_START = GF_4CC('P','F','R','B'),
+	GF_PROP_PCK_MOOF_TEMPLATE = GF_4CC('M','F','T','P'),
+
 };
 
 /*! Gets readable name of built-in property

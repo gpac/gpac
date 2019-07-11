@@ -335,6 +335,7 @@ GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *movie, GF_ISOTrackID Tr
 			trex->trackID = TrackID;
 			trex->track = trak;
 			if (force_traf_flags) trex->cannot_use_default = GF_TRUE;
+			gf_list_add(mvex->child_boxes, trex);
 			mvex_on_child_box((GF_Box*)mvex, (GF_Box *) trex);
 		}
 	}
@@ -2102,6 +2103,85 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 	return GF_OK;
 }
 
+
+GF_Err gf_isom_set_fragment_template(GF_ISOFile *movie, u8 *tpl_data, u32 tpl_size, Bool *has_tfdt, GF_SegmentIndexBox **out_sidx)
+{
+	GF_BitStream *bs;
+	GF_Err e=GF_OK;
+	if (out_sidx) *out_sidx = NULL;
+	if (!movie->moof) return GF_BAD_PARAM;
+
+	bs = gf_bs_new(tpl_data, tpl_size, GF_BITSTREAM_READ);
+	while (gf_bs_available(bs)) {
+		GF_Box *a;
+		e = gf_isom_box_parse(&a, bs);
+		if (e) break;
+		if (a->type==GF_ISOM_BOX_TYPE_STYP) {
+			if (movie->brand) {
+				gf_list_del_item(movie->TopBoxes, movie->brand);
+				gf_isom_box_del((GF_Box *)movie->brand);
+			}
+			movie->brand = (GF_FileTypeBox *) a;
+			gf_list_add(movie->TopBoxes, movie->brand);
+			continue;
+		}
+		if (a->type==GF_ISOM_BOX_TYPE_MOOF) {
+			u32 i, count, j, nb_trex;
+			s32 idx;
+			Bool single_track=GF_FALSE;
+			GF_MovieFragmentBox *moof = (GF_MovieFragmentBox *)a;
+
+			moof->fragment_offset = movie->moof->fragment_offset;
+			nb_trex = gf_list_count(movie->moov->mvex->TrackExList);
+			count = gf_list_count(moof->TrackList);
+			for (i=0; i<count; i++) {
+				GF_TrackFragmentBox *traf = gf_list_get(moof->TrackList, i);
+				GF_TrackBox *trak = traf->tfhd ? gf_isom_get_track_from_id(movie->moov, traf->tfhd->trackID) : NULL;
+				if (traf->tfhd && !trak && !single_track && (gf_list_count(movie->moov->trackList)==1)) {
+					trak = gf_list_get(movie->moov->trackList, 0);
+					single_track = GF_TRUE;
+					traf->tfhd->trackID = trak->Header->trackID;
+				}
+				for (j=0; j<nb_trex && trak; j++) {
+					GF_TrackExtendsBox *trex = gf_list_get(movie->moov->mvex->TrackExList, j);
+					if (trex->trackID == traf->tfhd->trackID) {
+						traf->trex = trex;
+						break;
+					}
+				}
+				if (!trak || !traf->trex) {
+					gf_list_rem(moof->TrackList, i);
+					i--;
+					count--;
+					gf_isom_box_del((GF_Box*)traf);
+					continue;
+				}
+				traf->tfhd->base_data_offset = movie->moof->fragment_offset + 8;
+				if (traf->tfdt && has_tfdt)
+					*has_tfdt = GF_TRUE;
+			}
+			//remove old moof and switch with this one
+			idx = gf_list_find(movie->moof_list, movie->moof);
+			if (idx>=0) {
+				gf_list_rem(movie->moof_list, idx);
+				gf_list_add(movie->moof_list, moof);
+			}
+			gf_isom_box_del((GF_Box *)movie->moof);
+			movie->moof = moof;
+			continue;
+		}
+		if (a->type==GF_ISOM_BOX_TYPE_SIDX) {
+			if (out_sidx && !*out_sidx) {
+				*out_sidx = (GF_SegmentIndexBox *) a;
+				continue;
+			}
+		}
+		gf_isom_box_del(a);
+	}
+	gf_bs_del(bs);
+	return e;
+}
+
 static
 u32 GetRunSize(GF_TrackFragmentRunBox *trun)
 {
@@ -2757,6 +2837,11 @@ GF_Err gf_isom_enable_mfra(GF_ISOFile *file)
 	return GF_NOT_SUPPORTED;
 }
 GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, GF_ISOTrackID trackID, u32 is_leading, u32 dependsOn, u32 dependedOn, u32 redundant)
+{
+	return GF_NOT_SUPPORTED;
+}
+
+GF_Err gf_isom_set_fragment_template(GF_ISOFile *movie, u8 *tpl_data, u32 tpl_size, Bool *has_tfdt)
 {
 	return GF_NOT_SUPPORTED;
 }

@@ -260,7 +260,7 @@ void gf_isom_box_array_del(GF_List *boxlist)
 	gf_list_del(boxlist);
 }
 
-void gf_isom_box_array_del_parent(GF_List **other_boxes, GF_List *boxlist)
+void gf_isom_box_array_reset_parent(GF_List **child_boxes, GF_List *boxlist)
 {
 	u32 count, i;
 	GF_Box *a;
@@ -268,8 +268,14 @@ void gf_isom_box_array_del_parent(GF_List **other_boxes, GF_List *boxlist)
 	count = gf_list_count(boxlist);
 	for (i = 0; i < count; i++) {
 		a = (GF_Box *)gf_list_get(boxlist, i);
-		if (a) gf_isom_box_del_parent(other_boxes, a);
+		if (a) gf_isom_box_del_parent(child_boxes, a);
 	}
+	gf_list_reset(boxlist);
+}
+void gf_isom_box_array_del_parent(GF_List **child_boxes, GF_List *boxlist)
+{
+	if (!boxlist) return;
+	gf_isom_box_array_reset_parent(child_boxes, boxlist);
 	gf_list_del(boxlist);
 }
 
@@ -1878,13 +1884,13 @@ Bool gf_isom_box_check_unique(GF_List *children, GF_Box *a)
 	return GF_TRUE;
 }
 
-void gf_isom_box_del_parent(GF_List **other_boxes, GF_Box*b)
+void gf_isom_box_del_parent(GF_List **child_boxes, GF_Box*b)
 {
-	if (other_boxes) {
-		gf_list_del_item(*other_boxes, b);
-		if (!gf_list_count(*other_boxes)) {
-			gf_list_del(*other_boxes);
-			*other_boxes = NULL;
+	if (child_boxes) {
+		gf_list_del_item(*child_boxes, b);
+		if (!gf_list_count(*child_boxes)) {
+			gf_list_del(*child_boxes);
+			*child_boxes = NULL;
 		}
 	}
 	gf_isom_box_del(b);

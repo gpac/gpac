@@ -2258,6 +2258,16 @@ Indicate color matrix coeficient for a visual pid (see ISO/IEC 23001-8)
 .br
 Indicate color full range flag for a visual pid (see ISO/IEC 23001-8)
 .br
+.TP
+.B FragStart (PFRB,unsigned int,D )
+.br
+Indicate if packet is a fragment start (value 1) or a segment start (value 2)
+.br
+.TP
+.B MoofTemplate (MFTP,data,D )
+.br
+Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionnally sidx)
+.br
 .SH Pixel formats
 .LP
 .br
@@ -2517,7 +2527,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2539-g4b02a7f9a-filters
+build: 0.9.0-DEV-rev2540-gc5970d92e-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

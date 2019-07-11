@@ -487,7 +487,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 	sprintf(an_arg, "mp4dmx:mov=%p", mp4);
 	gf_dynstrcat(&szArgs, an_arg, NULL);
 	if (fragment_name) {
-		gf_dynstrcat(&szArgs, ":catseg=", NULL);
+		gf_dynstrcat(&szArgs, ":sigfrag:catseg=", NULL);
 		gf_dynstrcat(&szArgs, fragment_name, NULL);
 	}
 	src = gf_fs_load_filter(fsess, szArgs);

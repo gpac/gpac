@@ -761,17 +761,17 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_
 	GF_ProtectionSystemHeaderBox *pssh = NULL;
 	u32 i=0;
 	GF_Box *a;
-	GF_List **other_boxes = NULL;
+	GF_List **child_boxes = NULL;
 	if (file->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) {
 		if (!file->moof) return GF_BAD_PARAM;
 		if (!file->moof->PSSHs) file->moof->PSSHs = gf_list_new();
-		other_boxes = &file->moof->PSSHs;
+		child_boxes = &file->moof->PSSHs;
 	} else {
 		if (!file->moov->child_boxes) file->moov->child_boxes = gf_list_new();
-		other_boxes = &file->moov->child_boxes;
+		child_boxes = &file->moov->child_boxes;
 	}
 
-	while ((a = gf_list_enum(*other_boxes, &i))) {
+	while ((a = gf_list_enum(*child_boxes, &i))) {
 		if (a->type!=GF_ISOM_BOX_TYPE_PSSH) continue;
 		pssh = (GF_ProtectionSystemHeaderBox *)a;
 		if (!memcmp(pssh->SystemID, systemID, sizeof(bin128))) break;
@@ -783,7 +783,7 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_
 	}
 
 	if (!pssh) {
-		pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new_parent(other_boxes, GF_ISOM_BOX_TYPE_PSSH);
+		pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new_parent(child_boxes, GF_ISOM_BOX_TYPE_PSSH);
 		if (!pssh) return GF_IO_ERR;
 
 		memcpy((char *)pssh->SystemID, systemID, sizeof(bin128));
@@ -979,9 +979,9 @@ GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 
 void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len, Bool saio_32bits)
 {
 	u32  i;
-	GF_List **other_boxes = stbl ? &stbl->child_boxes : &traf->child_boxes;
+	GF_List **child_boxes = stbl ? &stbl->child_boxes : &traf->child_boxes;
 	if (!senc->cenc_saiz) {
-		senc->cenc_saiz = (GF_SampleAuxiliaryInfoSizeBox *) gf_isom_box_new_parent(other_boxes, GF_ISOM_BOX_TYPE_SAIZ);
+		senc->cenc_saiz = (GF_SampleAuxiliaryInfoSizeBox *) gf_isom_box_new_parent(child_boxes, GF_ISOM_BOX_TYPE_SAIZ);
 		//as per 3rd edition of cenc "so content SHOULD be created omitting these optional fields" ...
 		senc->cenc_saiz->aux_info_type = 0;
 		senc->cenc_saiz->aux_info_type_parameter = 0;
@@ -991,7 +991,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 			traf_on_child_box((GF_Box*)traf, (GF_Box *)senc->cenc_saiz);
 	}
 	if (!senc->cenc_saio) {
-		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new_parent(other_boxes, GF_ISOM_BOX_TYPE_SAIO);
+		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new_parent(child_boxes, GF_ISOM_BOX_TYPE_SAIO);
 		//force using version 1 for saio box, it could be redundant when we use 64 bits for offset
 		senc->cenc_saio->version = saio_32bits ? 0 : 1;
 		//as per 3rd edition of cenc "so content SHOULD be created omitting these optional fields" ...
