@@ -373,7 +373,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 			the file map is regular (through FILE handles)
 **************************************************************/
 GF_EXPORT
-GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_range, GF_ISOFile **the_file, u64 *BytesMissing)
+GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_range, Bool enable_frag_bounds, GF_ISOFile **the_file, u64 *BytesMissing)
 {
 	GF_Err e;
 	GF_ISOFile *movie;
@@ -388,6 +388,7 @@ GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_r
 
 	movie->fileName = gf_strdup(fileName);
 	movie->openMode = GF_ISOM_OPEN_READ;
+	movie->signal_frag_bounds = enable_frag_bounds;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	movie->editFileMap = NULL;
@@ -4620,13 +4621,16 @@ Bool gf_isom_sample_is_fragment_start(GF_ISOFile *movie, u32 trackNumber, u32 sa
 	tmap = trak->Media->information->sampleTable->traf_map;
 	if (!tmap) return GF_FALSE;
 	for (i=0; i<tmap->nb_entries; i++) {
-		if (tmap->frag_starts[i].sample_num == sampleNum) {
+		GF_TrafMapEntry *finfo = &tmap->frag_starts[i];
+		if (finfo->sample_num == sampleNum) {
 			if (frag_info) {
-				frag_info->frag_start = tmap->frag_starts[i].moof_start;
-				frag_info->mdat_end = tmap->frag_starts[i].mdat_end;
-				frag_info->moof_template = tmap->frag_starts[i].moof_template;
-				frag_info->moof_template_size = tmap->frag_starts[i].moof_template_size;
-				frag_info->seg_start_plus_one = tmap->frag_starts[i].seg_start_plus_one;
+				frag_info->frag_start = finfo->moof_start;
+				frag_info->mdat_end = finfo->mdat_end;
+				frag_info->moof_template = finfo->moof_template;
+				frag_info->moof_template_size = finfo->moof_template_size;
+				frag_info->seg_start_plus_one = finfo->seg_start_plus_one;
+				frag_info->sidx_start = finfo->sidx_start;
+				frag_info->sidx_end = finfo->sidx_end;
 			}
 			return GF_TRUE;
 		}

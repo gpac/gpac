@@ -938,6 +938,8 @@ enum
 	GF_PROP_PID_COLR_RANGE = GF_4CC('C','F','R','A'),
 
 	GF_PROP_PCK_FRAG_START = GF_4CC('P','F','R','B'),
+	GF_PROP_PCK_FRAG_RANGE = GF_4CC('P','F','R','R'),
+	GF_PROP_PCK_SIDX_RANGE = GF_4CC('P','F','S','R'),
 	GF_PROP_PCK_MOOF_TEMPLATE = GF_4CC('M','F','T','P'),
 
 };

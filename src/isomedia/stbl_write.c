@@ -1615,7 +1615,7 @@ void stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap)
 	stbl->SyncSample->nb_entries += 1;
 }
 
-void stbl_AppendTrafMap(GF_SampleTableBox *stbl, Bool is_seg_start, u64 seg_start_offset, u64 frag_start_offset, u8 *moof_template, u32 moof_template_size)
+void stbl_AppendTrafMap(GF_SampleTableBox *stbl, Bool is_seg_start, u64 seg_start_offset, u64 frag_start_offset, u8 *moof_template, u32 moof_template_size, u64 sidx_start, u64 sidx_end)
 {
 	GF_TrafToSampleMap *tmap;
 	GF_TrafMapEntry *tmap_ent;
@@ -1647,6 +1647,8 @@ void stbl_AppendTrafMap(GF_SampleTableBox *stbl, Bool is_seg_start, u64 seg_star
 	tmap_ent->moof_template = moof_template;
 	tmap_ent->moof_template_size = moof_template_size;
 	tmap_ent->moof_start = frag_start_offset;
+	tmap_ent->sidx_start = sidx_start;
+	tmap_ent->sidx_end = sidx_end;
 	if (is_seg_start)
 		tmap_ent->seg_start_plus_one = 1 + seg_start_offset;
 }

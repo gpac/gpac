@@ -92,7 +92,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		if (trak->Header->duration > MaxDur)
 			MaxDur = trak->Header->duration;
 
-		trak->first_traf_merged = 1;
+		trak->first_traf_merged = GF_TRUE;
 	}
 
 	if (moof->child_boxes) {
@@ -381,6 +381,8 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 					if (mov->root_sidx) gf_isom_box_del( (GF_Box *) mov->root_sidx);
 					mov->root_sidx = (GF_SegmentIndexBox *) a;
 					mov->sidx_start_offset = mov->current_top_box_start;
+					mov->sidx_end_offset = gf_bs_get_position(mov->movieFileMap->bs);
+
 				}
 				else if (a->type==GF_ISOM_BOX_TYPE_STYP) {
 					mov->styp_start_offset = mov->current_top_box_start;
@@ -482,6 +484,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 				mov->seg_styp = NULL;
 			}
 			mov->sidx_start_offset = 0;
+			mov->sidx_end_offset = 0;
 			mov->styp_start_offset = 0;
 			break;
 #endif

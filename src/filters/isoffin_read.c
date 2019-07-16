@@ -116,7 +116,7 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 		read->end_range = prop->value.lfrac.den;
 	}
 
-	e = gf_isom_open_progressive(szURL, read->start_range, read->end_range, &read->mov, &read->missing_bytes);
+	e = gf_isom_open_progressive(szURL, read->start_range, read->end_range, read->sigfrag, &read->mov, &read->missing_bytes);
 
 	if (e == GF_ISOM_INCOMPLETE_FILE) {
 		read->moov_not_loaded = GF_TRUE;
@@ -131,9 +131,6 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
 
 	read->time_scale = gf_isom_get_timescale(read->mov);
-
-	if (read->sigfrag)
-		gf_isom_enable_traf_map_templates(read->mov);
 
 	return isor_declare_objects(read);
 }
@@ -227,7 +224,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		}
 
 		if (read->mov) gf_isom_close(read->mov);
-		e = gf_isom_open_progressive(next_url, read->start_range, read->end_range, &read->mov, &read->missing_bytes);
+		e = gf_isom_open_progressive(next_url, read->start_range, read->end_range, read->sigfrag, &read->mov, &read->missing_bytes);
 		if (e < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening init segment %s at UTC "LLU": %s\n", next_url, gf_net_get_utc(), gf_error_to_string(e) ));
 		}
@@ -991,10 +988,18 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (read->sigfrag) {
 					GF_ISOFragmentBoundaryInfo finfo;
 					if (gf_isom_sample_is_fragment_start(read->mov, ch->track, ch->sample_num, &finfo) ) {
+						u64 start=0;
 						u32 traf_start = finfo.seg_start_plus_one ? 2 : 1;
 						gf_filter_pck_set_property(pck, GF_PROP_PCK_FRAG_START, &PROP_UINT(traf_start));
+
+						start = finfo.frag_start;
+						if (finfo.seg_start_plus_one) start = finfo.seg_start_plus_one-1;
+						gf_filter_pck_set_property(pck, GF_PROP_PCK_FRAG_RANGE, &PROP_FRAC64_INT(start, finfo.mdat_end));
 						if (finfo.moof_template) {
 							gf_filter_pck_set_property(pck, GF_PROP_PCK_MOOF_TEMPLATE, &PROP_DATA((u8 *)finfo.moof_template, finfo.moof_template_size));
+						}
+						if (finfo.sidx_end) {
+							gf_filter_pck_set_property(pck, GF_PROP_PCK_SIDX_RANGE, &PROP_FRAC64_INT(finfo.sidx_start , finfo.sidx_end));
 						}
 					}
 
