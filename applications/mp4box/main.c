@@ -263,6 +263,9 @@ void PrintGeneralUsage()
 	        " -lang [tkID=]LAN     sets track language. LAN is the BCP-47 code (eng, en-UK, ...)\n"
 	        " -delay tkID=TIME     sets track start delay in ms\n"
 	        " -par tkID=PAR        sets visual track pixel aspect ratio (PAR=N:D or \"none\" or \"force\" to write anyway)\n"
+			" -clap `ID=CLAP`      sets visual track clean aperture. CLAP is \"Wn:Wd:Hn:Hd:HOn:HOd:VOn:VOd\" or \"none\"\n"
+ 			"                       - n, d: numerator, denominator\n"
+	        "                       - W, H, HO, VO: clap width, clap height, clap horizontal offset, clap vertical offset\n"
 	        " -hdr file            path to XML file describing HDR boxes (mdcv, clli, ...)"
 	        " -name tkID=NAME      sets track handler name\n"
 	        "                       * NAME can indicate a UTF-8 file (\"file://file name\"\n"
@@ -513,6 +516,7 @@ void PrintImportUsage()
 	        " \":lang=LAN\"          sets imported media language code\n"
 	        " \":delay=delay_ms\"    sets imported media initial delay in ms\n"
 	        " \":par=PAR\"           sets visual pixel aspect ratio (PAR=Num:Den)\n"
+	        " \":clap=CLAP\"         sets visual clean aperture (see -clap)\n"
 	        " \":name=NAME\"         sets track handler name\n"
 	        " \":ext=EXT\"           overrides file extension when importing\n"
 	        " \":hdlr=code\"         sets track handler type to the given code point (4CC)\n"
@@ -1649,6 +1653,7 @@ typedef enum {
 	TRAC_ACTION_SET_UDTA		= 14,
 	TRAC_ACTION_SWAP_ID			= 15,
 	TRAC_ACTION_REM_NON_REFS	= 16,
+	TRAC_ACTION_SET_CLAP		= 17,
 } TrackActionType;
 
 typedef struct
@@ -1666,6 +1671,7 @@ typedef struct
 	u32 udta_type;
 	char *kind_scheme, *kind_value;
 	u32 newTrackID;
+	s32 clap_wnum, clap_wden, clap_hnum, clap_hden, clap_honum, clap_hoden, clap_vonum, clap_voden;
 } TrackAction;
 
 enum
@@ -2655,6 +2661,37 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 					return 2;
 				}
 				sscanf(ext + 1, "%d", &tracks[nb_track_act].par_den);
+			}
+			ext[0] = 0;
+			tracks[nb_track_act].trackID = atoi(szTK);
+			open_edit = GF_TRUE;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-clap")) {
+			char szTK[200], *ext;
+			TrackAction *tka;
+			CHECK_NEXT_ARG
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_CLAP;
+			assert(strlen(argv[i + 1]) + 1 <= sizeof(szTK));
+			strncpy(szTK, argv[i + 1], sizeof(szTK));
+			ext = strchr(szTK, '=');
+			if (!ext) {
+				fprintf(stderr, "Bad format for track clap - expecting ID=none or ID=WN:WD:HN:HD:HON:HOD:VON:VOD got %s\n", argv[i + 1]);
+				return 2;
+			}
+			tka = &tracks[nb_track_act];
+			if (!stricmp(ext + 1, "none")) {
+				tka->clap_wnum= tka->clap_wden = tka->clap_hnum = tka->clap_hden = tka->clap_honum = tka->clap_hoden = tka->clap_vonum = tka->clap_voden = 0;
+			} else {
+				if (sscanf(ext + 1, "%d:%d:%d:%d:%d:%d:%d:%d", &tka->clap_wnum, &tka->clap_wden, &tka->clap_hnum, &tka->clap_hden, &tka->clap_honum, &tka->clap_hoden, &tka->clap_vonum, &tka->clap_voden) != 8) {
+
+					fprintf(stderr, "Bad format for track clap - expecting ID=none or ID=WN:WD:HN:HD:HON:HOD:VON:VOD got %s\n", argv[i + 1]);
+					return 2;
+				}
 			}
 			ext[0] = 0;
 			tracks[nb_track_act].trackID = atoi(szTK);
@@ -5508,6 +5545,10 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		case TRAC_ACTION_SET_PAR:
 			e = gf_media_change_par(file, track, tka->par_num, tka->par_den, GF_FALSE);
+			needSave = GF_TRUE;
+			break;
+		case TRAC_ACTION_SET_CLAP:
+			e = gf_isom_set_clean_aperture(file, track, 1, tka->clap_wnum, tka->clap_wden, tka->clap_hnum, tka->clap_hden, tka->clap_honum, tka->clap_hoden, tka->clap_vonum, tka->clap_voden);
 			needSave = GF_TRUE;
 			break;
 		case TRAC_ACTION_SET_HANDLER_NAME:
