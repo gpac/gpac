@@ -1641,24 +1641,8 @@ enum
 GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *name, u32 *nb_dash_inputs)
 {
 	GF_DashSegmenterInput *di;
-	char *sep;
 	char *other_opts = NULL;
-#if 0
-	// skip ./ and ../, and look for first . to figure out extension
-	if ((name[1]=='/') || (name[2]=='/') || (name[1]=='\\') || (name[2]=='\\') ) sep = strchr(name+3, '.');
-	else {
-		char *s2 = strchr(name, ':');
-		sep = strchr(name, '.');
-		if (sep && s2 && (s2 - sep) < 0) {
-			sep = name;
-		}
-	}
-#else
-	sep = gf_file_ext_start(name);
-#endif
-
-	//then look for our opt separator :
-	sep = gf_url_colon_suffix(sep ? sep : name);
+	char *sep = gf_url_colon_suffix(name);
 
 	dash_inputs = gf_realloc(dash_inputs, sizeof(GF_DashSegmenterInput) * (*nb_dash_inputs + 1) );
 	memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(GF_DashSegmenterInput) );
@@ -1715,7 +1699,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Duplicate Representation ID \"%s\" in command line\n", di->representationID));
 					}
 				}
-			} else if (!strnicmp(opts, "dur=", 4)) di->media_duration = (Double)atof(opts+4);
+			}
+			else if (!strnicmp(opts, "dur=", 4)) di->media_duration = (Double)atof(opts+4);
 			else if (!strnicmp(opts, "period=", 7)) di->periodID = gf_strdup(opts+7);
 			else if (!strnicmp(opts, "BaseURL=", 8)) {
 				di->baseURL = (char **)gf_realloc(di->baseURL, (di->nb_baseURL+1)*sizeof(char *));
