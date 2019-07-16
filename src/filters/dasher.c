@@ -5882,7 +5882,7 @@ GF_FilterRegister DasherRegister = {
 			"## Manifest Generation only mode\n"\
 			"The segmenter can try to generate manifests from already fragmented ISOBMFF inputs using [-sigfrag]().\n"\
 			"In this case, segment boundaries are attached to each packet starting a segment and used to drive the segmentation.\n"\
-			"This should only be used with single-track ISOBMFF sources. If onDemand profile is requested, the source has to be formatted as a DASH self-initializing media segment with the proper sidx.\n"\
+			"This should only be used with single-track ISOBMFF sources. If onDemand [-profile]() is requested, sources have to be formatted as a DASH self-initializing media segment with the proper sidx.\n"\
 			"This mode automatically disables templates and forces [-sseg]() for all profiles except onDemand ones.\n"\
 			"The manifest generation only mode supports both MPD and HLS generation.\n"\
 			"\n"\
