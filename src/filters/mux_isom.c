@@ -893,6 +893,9 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		if (ctx->sgpd_traf)
 			gf_isom_set_sample_group_in_traf(ctx->file);
 
+		if (ctx->noroll) {
+			gf_isom_remove_sample_group(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_ROLL);
+		}
 	}
 
 	if (!tkw->has_brands) {

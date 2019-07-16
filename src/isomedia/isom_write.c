@@ -5718,7 +5718,6 @@ GF_Err gf_isom_remove_sample_group(GF_ISOFile *movie, u32 track, u32 grouping_ty
 {
 	GF_Err e;
 	GF_TrackBox *trak;
-	GF_SampleGroupDescriptionBox *sgdesc = NULL;
 	u32 count, i;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
@@ -5727,21 +5726,30 @@ GF_Err gf_isom_remove_sample_group(GF_ISOFile *movie, u32 track, u32 grouping_ty
 	trak = gf_isom_get_track_from_file(movie, track);
 	if (!trak) return GF_BAD_PARAM;
 
-	if (!trak->Media->information->sampleTable->sampleGroupsDescription)
-		return GF_OK;
-
-	count = gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription);
-	for (i=0; i<count; i++) {
-		sgdesc = (GF_SampleGroupDescriptionBox*)gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
-		if (sgdesc->grouping_type==grouping_type) {
-			gf_isom_box_del_parent(&trak->Media->information->sampleTable->child_boxes, (GF_Box*)sgdesc);
-			gf_list_rem(trak->Media->information->sampleTable->sampleGroupsDescription, i);
-			i--;
-			count--;
+	if (trak->Media->information->sampleTable->sampleGroupsDescription) {
+		count = gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription);
+		for (i=0; i<count; i++) {
+			GF_SampleGroupDescriptionBox *sgdesc = (GF_SampleGroupDescriptionBox*)gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
+			if (sgdesc->grouping_type==grouping_type) {
+				gf_isom_box_del_parent(&trak->Media->information->sampleTable->child_boxes, (GF_Box*)sgdesc);
+				gf_list_rem(trak->Media->information->sampleTable->sampleGroupsDescription, i);
+				i--;
+				count--;
+			}
 		}
-		sgdesc = NULL;
 	}
-
+	if (trak->Media->information->sampleTable->sampleGroups) {
+		count = gf_list_count(trak->Media->information->sampleTable->sampleGroups);
+		for (i=0; i<count; i++) {
+			GF_SampleGroupBox *sgroup = gf_list_get(trak->Media->information->sampleTable->sampleGroups, i);
+			if (sgroup->grouping_type==grouping_type) {
+				gf_isom_box_del_parent(&trak->Media->information->sampleTable->child_boxes, (GF_Box*)sgroup);
+				gf_list_rem(trak->Media->information->sampleTable->sampleGroups, i);
+				i--;
+				count--;
+			}
+		}
+	}
 	return GF_OK;
 }
 
@@ -5824,6 +5832,7 @@ GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *movie, GF_ISOTrackID t
 {
 	return gf_isom_set_sample_group_info(movie, 0, trackID, sample_number_in_frag, GF_ISOM_SAMPLE_GROUP_ROLL, 0, &roll_distance, is_roll ? sg_roll_create_entry : NULL, is_roll ? sg_roll_compare_entry : NULL);
 }
+
 
 void *sg_encryption_create_entry(void *udta)
 {
