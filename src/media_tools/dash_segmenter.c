@@ -2360,15 +2360,15 @@ restart_fragmentation_pass:
 					for (cidx=cue_start;cidx<tf->nb_cues; cidx++) {
 						cue = &tf->cues[cidx];
 						if (cue->sample_num) {
-							//ignore first sample
-							if (cue->sample_num==1) continue;
-
 							if (cue->sample_num == tf->SampleNum+1) {
 								is_split = GF_TRUE;
 								break;
 							} else if (cue->sample_num < tf->SampleNum+1) {
 								if (cue->sample_num == tf->SampleNum) {
 									strip_from = cidx;
+									if (cue->sample_num==1) {
+										cue->is_processed=GF_TRUE;
+									}
 								} else {
 									has_mismatch = cidx;
 								}
@@ -2385,6 +2385,9 @@ restart_fragmentation_pass:
 							} else if (ts < ts2) {
 								if (last_sample_dts * tf->cues_timescale == ts) {
 									strip_from = cidx;
+									if (tf->SampleNum==1) {
+										cue->is_processed=GF_TRUE;
+									}
 								} else {
 									has_mismatch = cidx;
 								}
@@ -2406,6 +2409,9 @@ restart_fragmentation_pass:
 							} else if (ts < ts2) {
 								if (tf->last_sample_cts * tf->cues_timescale == ts) {
 									strip_from = cidx;
+									if (tf->SampleNum==1) {
+										cue->is_processed=GF_TRUE;
+									}
 								} else {
 									has_mismatch = cidx;
 								}
@@ -2413,9 +2419,19 @@ restart_fragmentation_pass:
 								break;
 							}
 						}
+						else {
+							cue->is_processed = GF_TRUE;
+							if (cue_start!=0) {
+								GF_LOG(dasher->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found with no sn, no cts and no dts but not first cued, not allowed\n"));
+								if (dasher->strict_cues) {
+									e = GF_BAD_PARAM;
+									goto err_exit;
+								}
+							}
+						}
 					}
 					if (is_split) {
-						if (!next_sample_rap) {
+						if (!SAP_type) {
 							GF_LOG(dasher->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for track ID %d but sample %d is not RAP !\n", cue->sample_num, cue->dts, cue->cts, tf->TrackID, tf->SampleNum+1));
 							if (dasher->strict_cues) {
 								e = GF_BAD_PARAM;

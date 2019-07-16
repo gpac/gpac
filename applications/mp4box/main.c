@@ -820,7 +820,7 @@ void PrintDumpUsage()
 	        " -sdp                 dumps SDP description of hinted file\n"
 	        " -sdp                 dumps SDP description of hinted file\n"
 	        " -dsap trackID        dumps DASH SAP cues (see -cues) for a given track.\n"
-	        "                       use -dsaps to only print sample number, -dsapc to only CTS, -dsapd to only print DTS, -dsapp to only print presentation time.\n"
+	        "                       use -dsaps to only print sample number, -dsapc to only print CTS, -dsapd to only print DTS, -dsapp to only print presentation time.\n"
 	        " -dcr                 ISMACryp samples structure to XML output\n"
 	        " -dump-cover          extracts cover art\n"
 	        " -dump-chap           extracts chapter file\n"
