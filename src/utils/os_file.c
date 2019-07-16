@@ -1019,58 +1019,35 @@ char* gf_file_ext_start(const char* filename)
 GF_EXPORT
 char* gf_url_colon_suffix(const char *path)
 {
-	char *sep;
-	char* basename = gf_file_basename(path);
-	if (basename) {
-		sep = strchr(basename, ':');
-	} else {
-		sep = strchr(path, ':');
+	char *sep = strchr(path, ':');
+	if (!sep) return NULL;
+
+	//handle Z:\ and Z:/
+	if ((path[1]==':') && ( (path[2]=='/') || (path[2]=='\\') ) )
+		return gf_url_colon_suffix(path+2);
+
+	//handle PROTO://ADD:PORT/
+	if ((sep[1]=='/') && (sep[2]=='/')) {
+		char *next_colon, *next_slash;
+		sep++;
+		//skip all // (eg PROTO://////////////mytest/)
+		while (sep[0] && (sep[0]=='/'))
+			sep++;
+		if (!sep[0]) return NULL;
+
+		/*we may now have C:\ or C:/  (eg file://///C:\crazy\ or  file://///C:/crazy/)
+			if sep[1]==':', then sep[2] is valid (0 or something else), no need to check for len
+		*/
+		if (sep && sep[0] && (sep[1]==':') && ( (sep[2]=='/') || (sep[2]=='\\') ) ) {
+			return gf_url_colon_suffix(sep+2);
+		}
+		//find closest : or /, if : is before / consider this is a port or an IPv6 adress and check next : after /
+		next_colon = strchr(sep, ':');
+		next_slash = strchr(sep, '/');
+		if (next_colon && next_slash && ((next_slash - sep) > (next_colon - sep)) ) {
+			next_colon = strchr(next_slash, ':');
+		}
+		return next_colon;
 	}
-	if (!sep)
-		return NULL;
 	return sep;
-
-#if 0
-	//escape win path
-	if ((strlen(path) > 3) && (path[1] == ':') && ( (path[2] == '/') || (path[2] == '\\') ) ) {
-		sep = strchr(path + 3, ':');
-	}
-
-
-	//escape absolute url
-	else if (!strncmp(sep, "://", 3)) {
-		//escape port in IP:PORT/ scheme, move to server path
-		char *sep2 = strchr(sep + 3, '/');
-		if (sep2) {
-			sep= strchr(sep2, ':');
-		} else {
-			sep = strchr(sep + 3, ':');
-		}
-	}
-
-
-			/*if :// or :\ is found, skip it*/
-			if (sep && ( ((sep[1] == '/') && (sep[2] == '/')) || (sep[1] == '\\') ) ) {
-				url_search = sep+1;
-				continue;
-			}
-	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
-
-
-		// if the colon is part of a file path/url we keep it
-		if (ext2 && !strncmp(ext2, "://", 3) ) {
-			ext2[0] = ':';
-			ext2 = strchr(ext2+1, ':');
-		}
-
-		// keep windows drive: path, can be after a file://
-		if (ext2 && ( !strncmp(ext2, ":\\", 2) || !strncmp(ext2, ":/", 2) ) ) {
-			ext2[0] = ':';
-			ext2 = strchr(ext2+1, ':');
-		}
-	if (opts && (opts[1]=='\\'))
-		opts = strchr(fileName, ':');
-
-#endif
-	return NULL;
 }
