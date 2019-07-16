@@ -1186,6 +1186,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 						} else {
 							//this one is full. go to next one (exit the loop)
 							tmp->chunkDur = 0;
+							forceNewChunk = 0;
 							break;
 						}
 					} else {
@@ -1194,9 +1195,16 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 					//OK, we can write this track
 					curWriter = tmp;
 
-					//small check for first 2 samples (DTS = 0 :)
-					if (tmp->sampleNumber == 2 && !tmp->chunkDur) forceNewChunk = 0;
+					//small check for first 2 samples (DTS = 0)
+					if (tmp->sampleNumber == 2 && !tmp->chunkDur) {
+						//compensate first sample dur unknown
+						//FIXME we do not apply patch in test mode for now since this breaks all our hashes, remove this
+						//once we move to filters permanently
+						if (!movie->drop_date_version_info)
+							tmp->chunkDur += (u32) (DTS - tmp->DTSprev);
 
+						forceNewChunk = 0;
+					}
 					tmp->chunkDur += (u32) (DTS - tmp->DTSprev);
 					tmp->DTSprev = DTS;
 
