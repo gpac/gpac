@@ -3147,6 +3147,22 @@ Warning: Cues shall be listed in decoding order. Cue files can be specified for 
 .br
 .P
 .B
+Manifest Generation only mode
+.br
+The segmenter can try to generate manifests from already fragmented ISOBMFF inputs using -sigfrag.
+.br
+In this case, segment boundaries are attached to each packet starting a segment and used to drive the segmentation.
+.br
+This should only be used with single-track ISOBMFF sources. If onDemand -profile is requested, sources have to be formatted as a DASH self-initializing media segment with the proper sidx.
+.br
+This mode automatically disables templates and forces -sseg for all profiles except onDemand ones.
+.br
+The manifest generation only mode supports both MPD and HLS generation.
+.br
+
+.br
+.P
+.B
 Muxer development considerations
 .br
 Output muxers allowing segmented output must obey the following:
@@ -3155,13 +3171,13 @@ Output muxers allowing segmented output must obey the following:
 .br
 - inspect packet properties
 .br
- * FileNumber: gives the signal of a new DASH segment
+ * FileNumber: if set, indicate the start of a new DASH segment
 .br
- * FileName: gives the optional file name (if not present, output shall be a single file). It is only set for packet carrying the "FileNumber" property, and only on one PID (usually the first) for multiplexed outputs
+ * FileName: if set, indicate the file name. If not present, output shall be a single file. It is only set for packet carrying the "FileNumber" property, and only on one PID (usually the first) for multiplexed outputs
 .br
  * IDXName: gives the optional index name (if not present, index shall be in the same file as dash segment). Only used for MPEG-2 TS for now
 .br
- * EODS: property is set on packets with no DATA, no TS to signal the end of a DASH segment. This is only used when stoping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see -subdur )
+ * EODS: property is set on packets with no payload and no timestamp to signal the end of a DASH segment. This is only used when stoping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see -subdur )
 .br
 - for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any
 .br
@@ -3373,6 +3389,8 @@ cmpd (boolean, default: false):          skip line feed and spaces in MPD XML fo
 styp (string, no default):               indicate the 4CC to use for styp boxes when using ISOBMFF output
 .br
 dual (boolean, no default):              indicate to produce both MPD and M3U files
+.br
+sigfrag (boolean, no default):           use manifest generation only mode - see filter help
 .br
 
 .br
@@ -4341,7 +4359,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2540-gc5970d92e-filters
+build: 0.9.0-DEV-rev2560-gc33bc53dc-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

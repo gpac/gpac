@@ -2264,6 +2264,16 @@ Indicate color full range flag for a visual pid (see ISO/IEC 23001-8)
 Indicate if packet is a fragment start (value 1) or a segment start (value 2)
 .br
 .TP
+.B FragRange (PFRR,64-bit fraction,D )
+.br
+Indicate start and end position in bytes of fragment if packet is a fragment or segment start
+.br
+.TP
+.B SIDXRange (PFSR,64-bit fraction,D )
+.br
+Indicate start and end position in bytes of sidx if packet is a fragment or segment start
+.br
+.TP
 .B MoofTemplate (MFTP,data,D )
 .br
 Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionnally sidx)
@@ -2527,7 +2537,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2540-gc5970d92e-filters
+build: 0.9.0-DEV-rev2560-gc33bc53dc-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
