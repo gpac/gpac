@@ -1226,7 +1226,7 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 		ext_flag = gf_bs_read_int(bs, 1);
 
 		if (! channel_configuration) {
-			u32 i;
+			u32 i, cpe_channels=0;
 			cfg->program_config_element_present = 1;
 			cfg->element_instance_tag = gf_bs_read_int(bs, 4);
 			cfg->object_type = gf_bs_read_int(bs, 2);
@@ -1253,14 +1253,17 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 			for (i = 0; i < cfg->num_front_channel_elements; i++) {
 				cfg->front_element_is_cpe[i] = gf_bs_read_int(bs, 1);
 				cfg->front_element_tag_select[i] = gf_bs_read_int(bs, 4);
+				if (cfg->front_element_is_cpe[i]) cpe_channels++;
 			}
 			for (i = 0; i < cfg->num_side_channel_elements; i++) {
 				cfg->side_element_is_cpe[i] = gf_bs_read_int(bs, 1);
 				cfg->side_element_tag_select[i] = gf_bs_read_int(bs, 4);
+				if (cfg->side_element_is_cpe[i]) cpe_channels++;
 			}
 			for (i = 0; i < cfg->num_back_channel_elements; i++) {
 				cfg->back_element_is_cpe[i] = gf_bs_read_int(bs, 1);
 				cfg->back_element_tag_select[i] = gf_bs_read_int(bs, 4);
+				if (cfg->back_element_is_cpe[i]) cpe_channels++;
 			}
 			for (i = 0; i < cfg->num_lfe_channel_elements; i++) {
 				cfg->lfe_element_tag_select[i] = gf_bs_read_int(bs, 4);
@@ -1278,6 +1281,7 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 			gf_bs_read_data(bs, (char *) cfg->comments, cfg->comment_field_bytes);
 
 			cfg->nb_chan = cfg->num_front_channel_elements + cfg->num_back_channel_elements + cfg->num_side_channel_elements + cfg->num_lfe_channel_elements;
+			cfg->nb_chan += cpe_channels;
 		}
 
 		if ((cfg->base_object_type == 6) || (cfg->base_object_type == 20)) {
