@@ -9246,7 +9246,7 @@ GF_Err saio_box_write(GF_Box *s, GF_BitStream *bs)
 				gf_bs_write_u32(bs, 0);
 			} else {
 				for (i=0; i<ptr->entry_count; i++)
-					gf_bs_write_u32(bs, ptr->offsets[i]);
+					gf_bs_write_u32(bs, (u32) ptr->offsets[i]);
 			}
 		} else {
 			if (!ptr->offsets) {

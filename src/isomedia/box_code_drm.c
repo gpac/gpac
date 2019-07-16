@@ -1053,7 +1053,7 @@ GF_Err store_senc_info(GF_SampleEncryptionBox *ptr, GF_BitStream *bs)
 		if (ptr->cenc_saio->version) {
 			gf_bs_write_u64(bs, new_pos);
 		} else {
-			gf_bs_write_u32(bs, new_pos);
+			gf_bs_write_u32(bs, (u32) new_pos);
 		}
 	}
 

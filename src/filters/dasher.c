@@ -4380,7 +4380,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			const GF_PropertyValue *p = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FRAG_RANGE);
 			if (p) {
 				seg_state->file_offset = p->value.lfrac.num;
-				seg_state->file_size = p->value.lfrac.den - seg_state->file_offset;
+				seg_state->file_size = (u32) (p->value.lfrac.den - seg_state->file_offset);
 
 				if (ds->rep->segment_base && !ds->rep->segment_base->initialization_segment) {
 					GF_MPD_URL *url;
