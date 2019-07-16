@@ -669,7 +669,7 @@ BytesMissing is the predicted number of bytes missing for the file to be loaded
 Note that if the file is not optimized for streaming, this number is not accurate
 If the movie is successfully loaded (the_file non-NULL), BytesMissing is zero
 */
-GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_range, GF_ISOFile **the_file, u64 *BytesMissing);
+GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_range, Bool enable_frag_templates, GF_ISOFile **the_file, u64 *BytesMissing);
 
 /*If requesting a sample fails with error GF_ISOM_INCOMPLETE_FILE, use this function
 to get the number of bytes missing to retrieve the sample*/
@@ -1183,6 +1183,8 @@ typedef struct
 	//serialized array of styp (if present) sidx (if present) and moof with only the current traf
 	const u8 *moof_template;
 	u32 moof_template_size;
+
+	u64 sidx_start, sidx_end;
 } GF_ISOFragmentBoundaryInfo;
 
 /*returns true if this sample was the first sample of a traf in a fragmented file, false otherwise*/
