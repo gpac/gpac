@@ -326,6 +326,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			gf_filter_pid_set_property(pid, GF_PROP_PID_LANGUAGE, &PROP_STRING( lang ));
 			if (lang) gf_free(lang);
 			gf_odf_desc_del((GF_Descriptor *)lang_desc);
+			lang_desc = NULL;
 		}
 
 
@@ -571,6 +572,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	if (ch->hvcc) gf_odf_hevc_cfg_del(ch->hvcc);
 	ch->hvcc = NULL;
 
+	if (lang_desc) {
+		gf_odf_desc_del((GF_Descriptor *)lang_desc);
+		lang_desc = NULL;
+	}
+	
 	if (read->smode != MP4DMX_SINGLE) {
 		if ((codec_id==GF_CODECID_LHVC) || (codec_id==GF_CODECID_HEVC)) {
 			Bool signal_lhv = (read->smode==MP4DMX_SPLIT) ? GF_TRUE : GF_FALSE;
