@@ -996,6 +996,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			if (use_stz2) {
 				e = gf_isom_use_compact_size(import.dest, track, 1);
 			}
+
 			if (gf_isom_get_media_subtype(import.dest, track, 1) == GF_QT_BOX_TYPE_TMCD) {
 				tmcd_track = track;
 			}
@@ -1518,6 +1519,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 				gf_isom_set_cts_packing(dest, tki->dst_tk, GF_TRUE);
 			}
 			gf_isom_remove_edit_segments(dest, tki->dst_tk);
+
+			gf_isom_enable_raw_pack(mp4, tki->tk, 1024);
+
 		}
 		do_add = 1;
 		is_last_rap = 0;
@@ -1570,7 +1574,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 					if (!all_av_done && (t>max_dts)) continue;
 				} else {
 					/*here's the trick: only take care of a/v media for splitting, and add other media
-					only if thir dts is less than the max AV dts found. Otherwise with some text streams we will end up importing
+					only if their dts is less than the max AV dts found. Otherwise with some text streams we will end up importing
 					too much video and corrupting the last sync point indication*/
 					if (!tki->can_duplicate && (t>max_dts)) max_dts = t;
 					tki->first_sample_done = 1;
@@ -1578,7 +1582,11 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 				samp = gf_isom_get_sample(mp4, tki->tk, tki->last_sample+1, &di);
 				samp->DTS -= tki->firstDTS;
 
-				nb_add += 1;
+				if (samp->nb_pack) {
+					nb_add += samp->nb_pack;
+				} else {
+					nb_add += 1;
+				}
 
 				is_rap = GF_FALSE;
 				if (samp->IsRAP) {
@@ -1605,12 +1613,17 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 				}
 				tki->lastDTS = samp->DTS;
 				e = gf_isom_add_sample(dest, tki->dst_tk, di, samp);
-				gf_isom_sample_del(&samp);
 
 				if (!e) {
 					e = gf_isom_copy_sample_info(dest, tki->dst_tk, mp4, tki->tk, tki->last_sample+1);
 				}
-				tki->last_sample += 1;
+				if (samp->nb_pack) {
+					tki->last_sample += samp->nb_pack;
+				} else {
+					tki->last_sample += 1;
+				}
+
+				gf_isom_sample_del(&samp);
 				gf_set_progress("Splitting", nb_done, nb_samp);
 				nb_done++;
 				if (e) {

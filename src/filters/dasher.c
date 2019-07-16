@@ -4692,12 +4692,20 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 			sprintf(szDS, "AS#%d.%d(%c) done (%d segs)", set_idx, rep_idx, stype, ds->seg_number);
 			pc = 10000;
 		} else {
-			Double done = (Double) (ds->adjusted_next_seg_start - ds->last_dts);
-			done /= ds->timescale;
-			done = ds->dash_dur-done;
-			Double pcent = done / ds->dash_dur;
-			pc = done * 10000;
-			snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %.2fs (%.2f %%)", set_idx, rep_idx, stype, ds->seg_number, done, 100*pcent);
+			Double done;
+			if (ctx->cues) {
+				done = (Double) (ds->last_dts);
+				done /= ds->timescale;
+				snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %.2fs", set_idx, rep_idx, stype, ds->seg_number, done);
+			} else {
+				Double pcent;
+				done = (Double) (ds->adjusted_next_seg_start - ds->last_dts);
+				done /= ds->timescale;
+				done = ds->dash_dur-done;
+				pcent = done / ds->dash_dur;
+				pc = done * 10000;
+				snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %.2fs (%.2f %%)", set_idx, rep_idx, stype, ds->seg_number, done, 100*pcent);
+			}
 
 			if (ds->duration.den && ds->duration.num) {
 				done = (Double) (ds->last_dts - ds->first_cts);
@@ -4979,9 +4987,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 				for (cidx=0;cidx<ds->nb_cues; cidx++) {
 					cue = &ds->cues[cidx];
 					if (cue->sample_num) {
-						//ignore first sample
-						if (!ds->nb_pck) continue;
-
 						if (cue->sample_num == ds->nb_pck + 1) {
 							is_split = GF_TRUE;
 							break;
@@ -5021,6 +5026,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 						}
 					}
 				}
+				//start of first segment
+				if (is_split && !ds->segment_started) {
+					memmove(ds->cues, &ds->cues[cidx+1], (ds->nb_cues-cidx-1) * sizeof(GF_DASHCueInfo));
+					ds->nb_cues -= cidx+1;
+					is_split = 0;
+				}
+
 				if (is_split) {
 					if (!sap_type) {
 						GF_LOG(ctx->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for PID %s but packet %d is not RAP !\n", cue->sample_num, cue->dts, cue->cts, gf_filter_pid_get_name(ds->ipid), ds->nb_pck));

@@ -4702,13 +4702,7 @@ GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescal
 				else if (!strcmp(att->name, "dts")) sscanf(att->value, LLD, &cues[cur_cue].dts);
 				else if (!strcmp(att->name, "cts")) sscanf(att->value, LLD, &cues[cur_cue].cts);
 			}
-			//first cue
-			if (!cues[cur_cue].cts && !cues[cur_cue].dts && (cues[cur_cue].sample_num<=1) ) {
-				(*nb_cues)--;
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] cue for first sample found in stream %d, ignoring\n", stream_id));
-			} else {
-				cur_cue++;
-			}
+			cur_cue++;
 		}
 
 
