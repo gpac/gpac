@@ -484,7 +484,7 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, const GF_DashSegmenterInput
 
 static Bool on_dasher_event(void *_udta, GF_Event *evt)
 {
-	u32 i, count, progress=0;
+	u32 i, count;
 	GF_FilterStats stats;
 	GF_DASHSegmenter *dasher = (GF_DASHSegmenter *)_udta;
 	if (evt && (evt->type != GF_EVENT_PROGRESS)) return GF_FALSE;
