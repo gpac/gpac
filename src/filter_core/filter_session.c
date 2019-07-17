@@ -2475,6 +2475,8 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 	if (stats->name && !strcmp(stats->name, stats->reg_name)) {
 		set_name=GF_TRUE;
 	}
+	stats->report_updated = f->report_updated;
+	f->report_updated = GF_FALSE;
 
 
 	if (!stats->nb_pid_out && stats->nb_pid_in) stats->type = GF_FS_STATS_FILTER_RAWOUT;

@@ -43,7 +43,7 @@ typedef struct
 	u32 codecid;
 	Bool first;
 
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 
 	char GUID[16];
 	u32 qcp_type, needs_rate_byte;
@@ -129,7 +129,7 @@ GF_Err qcpmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	ctx->ipid = pid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if (p) ctx->duration = p->value.frac;
+	if (p) ctx->duration = p->value.lfrac;
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 

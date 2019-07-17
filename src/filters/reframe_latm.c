@@ -48,7 +48,7 @@ typedef struct
 	GF_BitStream *bs;
 	u64 file_pos, cts;
 	u32 sr_idx, nb_ch, base_object_type;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	Double start_range;
 	Bool in_seek;
 	u32 timescale;
@@ -270,7 +270,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 		ctx->duration.num = (s32) duration;
 		ctx->duration.den = GF_M4ASampleRates[sr_idx];
 
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -301,7 +301,7 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 	if (ctx->duration.num)
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
 
 	ctx->nb_ch = ctx->acfg.nb_chan;

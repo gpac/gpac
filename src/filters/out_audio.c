@@ -35,7 +35,7 @@ typedef struct
 	char *drv;
 	u32 bnum, bdur, threaded, priority;
 	Bool clock;
-	GF_Fraction dur;
+	GF_Fraction64 dur;
 	Double speed, start;
 	u32 vol, pan, buffer;
 	

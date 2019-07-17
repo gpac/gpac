@@ -495,6 +495,8 @@ typedef struct
 	s32 percent;
 	/*!last status report from filter, null if session reporting is not enabled*/
 	const char *status;
+	/*!set to GF_TRUE of status or percent changed since last query for this filter, GF_FALSE otherwise*/
+	Bool report_updated;
 	/*!filter name*/
 	const char *name;
 	/*!filter register name*/

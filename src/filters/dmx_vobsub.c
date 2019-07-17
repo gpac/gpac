@@ -51,7 +51,7 @@ typedef struct
 	u64 first_dts;
 
 	u32 nb_playing;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	Bool in_seek;
 
 	Bool initial_play_done;
@@ -222,7 +222,7 @@ GF_Err vobsubdmx_parse_idx(GF_Filter *filter, GF_VOBSubDmxCtx *ctx)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->vobsub->width) );
 			gf_filter_pid_set_property(opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->vobsub->height) );
 			gf_filter_pid_set_property(opid, GF_PROP_PID_LANGUAGE, &PROP_STRING(ctx->vobsub->langs[i].name) );
-			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC(ctx->duration) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ctx->duration) );
 
 			gf_filter_pid_set_udta(opid, &ctx->vobsub->langs[i]);
 		}

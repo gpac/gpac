@@ -87,7 +87,7 @@ typedef struct
 	Double start_range;
 	Bool is_file;
 	u64 file_pos, file_size;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	Bool initial_play_done;
 
 	GF_BitStream *bs_r;

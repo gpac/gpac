@@ -799,12 +799,13 @@ Bool gf_sys_has_filter_global_meta_args()
 	return gpac_has_global_filter_meta_args;
 }
 
+static u32 gpac_quiet = 0;
+
 GF_EXPORT
 GF_Err gf_sys_set_args(s32 argc, const char **argv)
 {
 	if (!gpac_argc) {
 		s32 i;
-		u32 quiet=0;
 		Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_next, GF_Err *e);
 		void gf_cfg_load_restrict();
 
@@ -847,9 +848,9 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				gpac_log_utc_time = 1;
 				gf_log_set_callback(gpac_log_file, on_gpac_log);
 			} else if (!strcmp(arg, "-quiet")) {
-				quiet = 2;
+				gpac_quiet = 2;
 			} else if (!strcmp(arg, "-noprog")) {
-				if (!quiet) quiet = 1;
+				if (!gpac_quiet) gpac_quiet = 1;
 			} else if (!stricmp(arg, "-for-test")) {
 				gpac_test_mode = GF_TRUE;
 			} else if (!stricmp(arg, "-no-save")) {
@@ -875,8 +876,8 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 		if (gf_opts_get_bool("core", "rmt"))
 			gf_sys_enable_profiling(GF_TRUE, GF_FALSE);
 
-		if (quiet) {
-			if (quiet==2) gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_QUIET);
+		if (gpac_quiet) {
+			if (gpac_quiet==2) gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_QUIET);
 			gf_set_progress_callback(NULL, progress_quiet);
 		}
 		//now that we have parsed all options, load restrict
@@ -893,6 +894,13 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 	}
 	return GF_OK;
 }
+
+GF_EXPORT
+u32 gf_sys_is_quiet()
+{
+	return gpac_quiet;
+}
+
 
 GF_EXPORT
 u32 gf_sys_get_argc()

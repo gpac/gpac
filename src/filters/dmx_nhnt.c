@@ -59,7 +59,7 @@ typedef struct
 	u64 first_dts;
 
 	Bool is_playing;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	Bool need_reassign, in_seek;
 
 	Bool initial_play_done;
@@ -79,7 +79,7 @@ typedef struct
 
 static void nhntdmx_check_dur(GF_NHNTDmxCtx *ctx)
 {
-	GF_Fraction dur;
+	GF_Fraction64 dur;
 	FILE *stream;
 	GF_BitStream *bs;
 	u32 sig, timescale;
@@ -169,7 +169,7 @@ static void nhntdmx_check_dur(GF_NHNTDmxCtx *ctx)
 	dur.den = timescale;
 	if (!ctx->duration.num || (ctx->duration.num * dur.den != dur.num * ctx->duration.den)) {
 		ctx->duration = dur;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 	}
 }
 

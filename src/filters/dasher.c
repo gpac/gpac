@@ -141,7 +141,8 @@ typedef struct
 	Bool force_period_switch;
 	Bool streams_not_ready;
 
-	Bool update_report;
+	//-1 forces report update, otherwise this is a packet count
+	s32 update_report;
 } GF_DasherCtx;
 
 
@@ -288,7 +289,7 @@ typedef struct _dash_stream
 
 	Bool reschedule;
 
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 } GF_DashStream;
 
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds);
@@ -460,6 +461,13 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (p && (p->value.frac.num * _mem.den != p->value.frac.den * _mem.num) && _mem.den && _mem.num) period_switch = GF_TRUE; \
 	if (p) _mem = p->value.frac; \
 
+#define CHECK_PROP_FRAC64(_type, _mem, _e) \
+	p = gf_filter_pid_get_property(pid, _type); \
+	if (!p && (_e<=0) ) return _e; \
+	if (p && (p->value.lfrac.num * _mem.den != p->value.lfrac.den * _mem.num) && _mem.den && _mem.num) period_switch = GF_TRUE; \
+	if (p) _mem = p->value.lfrac; \
+
+
 #define CHECK_PROP_STR(_type, _mem, _e) \
 	p = gf_filter_pid_get_property(pid, _type); \
 	if (!p && (_e<=0) ) return _e; \
@@ -525,7 +533,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP(GF_PROP_PID_ID, ds->id, GF_EOS)
 		CHECK_PROP(GF_PROP_PID_DEPENDENCY_ID, ds->dep_id, GF_EOS)
 		CHECK_PROP(GF_PROP_PID_NB_FRAMES, ds->nb_samples_in_source, GF_EOS)
-		CHECK_PROP_FRAC(GF_PROP_PID_DURATION, ds->duration, GF_EOS)
+		CHECK_PROP_FRAC64(GF_PROP_PID_DURATION, ds->duration, GF_EOS)
 
 		dc_crc = 0;
 		dsi = p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
@@ -3641,9 +3649,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		if (ctx->loop) {
 			Double d=0;
 			const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DURATION);
-			if (p && p->value.frac.den) {
-				d = p->value.frac.num;
-				d /= p->value.frac.den;
+			if (p && p->value.lfrac.den) {
+				d = p->value.lfrac.num;
+				d /= p->value.lfrac.den;
 				if (ds->clamped_dur && (ds->clamped_dur<d))
 					d = ds->clamped_dur;
 
@@ -4157,7 +4165,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 	GF_DashStream *ds_log = NULL;
 	u64 first_cts_in_cur_seg=0;
 
-
+	ctx->update_report = -1;
 
 	if (ds->segment_started) {
 		Double seg_duration;
@@ -4666,7 +4674,11 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 		return;
 	if (!ctx->update_report)
 		return;
-	ctx->update_report = GF_FALSE;
+	//don't update at each packet, this would be too much
+	if ((ctx->update_report>0) && (ctx->update_report < 20))
+		return;
+
+	ctx->update_report = 0;
 
 	sprintf(szDS, "P%s", ctx->current_period->period->ID ? ctx->current_period->period->ID : "1");
 	gf_dynstrcat(&szStatus, szDS, NULL);
@@ -4699,23 +4711,32 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 				snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %.2fs", set_idx, rep_idx, stype, ds->seg_number, done);
 			} else {
 				Double pcent;
-				done = (Double) (ds->adjusted_next_seg_start - ds->last_dts);
+				done = (Double) ds->adjusted_next_seg_start;
+				done -= (Double) ds->last_dts;
+				if (done<0)
+					done=0;
 				done /= ds->timescale;
 				done = ds->dash_dur-done;
+				//this may happen since we don't print info at segment start
+				if (done<0)
+					done=0;
 				pcent = done / ds->dash_dur;
 				pc = done * 10000;
 				snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %.2fs (%.2f %%)", set_idx, rep_idx, stype, ds->seg_number, done, 100*pcent);
 			}
 
+			mpdtime = (Double) ds->last_dts;
+			mpdtime -= (Double) ds->first_cts;
+			if (mpdtime<0) mpdtime=0;
+			mpdtime /= ds->timescale;
+
 			if (ds->duration.den && ds->duration.num) {
-				done = (Double) (ds->last_dts - ds->first_cts);
+				done = mpdtime;
+
 				done *= ds->duration.den;
-				done /= ds->timescale;
 				done /= ds->duration.num;
 				pc = (u32) (10000*done);
 			}
-			mpdtime = (Double) (ds->last_dts - ds->first_cts);
-			mpdtime /= ds->timescale;
 			if (max_ts<mpdtime)
 				max_ts = mpdtime;
 		}
@@ -4800,7 +4821,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 					ds->clamp_done = GF_FALSE;
 
-					ctx->update_report = GF_TRUE;
+					ctx->update_report = -1;
 					if (!ctx->sigfrag)
 						gf_filter_pid_set_eos(ds->opid);
 
@@ -5261,7 +5282,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//send packet
 			gf_filter_pck_send(dst);
 
-			ctx->update_report = GF_TRUE;
+			if (ctx->update_report>=0)
+				ctx->update_report++;
 
 			//drop packet if not spliting
 			if (!ds->split_dur_next)

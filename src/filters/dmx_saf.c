@@ -54,7 +54,7 @@ typedef struct
 	Double start_range, end_range;
 	u32 nb_playing;
 	Bool is_file, file_loaded;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	u64 file_pos, file_size;
 
 	Bool initial_play_done;
@@ -148,7 +148,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 				st->ts_res = gf_bs_read_u24(bs);
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(st->ts_res));
 				if (ctx->duration.num)
-					gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+					gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
 				/*bufferSizeDB = */gf_bs_read_u16(bs);
 				au_size -= 7;
@@ -225,7 +225,7 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 {
 	u32 nb_streams, i, cts, au_size, au_type, stream_id, ts_res;
 	GF_BitStream *bs;
-	GF_Fraction dur;
+	GF_Fraction64 dur;
 	const GF_PropertyValue *p;
 	StreamInfo si[1024];
 	FILE *stream;
@@ -291,7 +291,7 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 		GF_SAFStream *st;
 		ctx->duration = dur;
 		while ( (st = gf_list_enum(ctx->streams, &i)) ) {
-			gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 		}
 	}
 }

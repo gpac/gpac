@@ -54,7 +54,7 @@ typedef struct
 	u64 first_dts;
 
 	u32 nb_playing;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	Bool in_seek;
 
 	GF_List *streams;
@@ -66,7 +66,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 	u32 i, nb_streams;
 	u32 sync_id = 0;
 	Double fps;
-	GF_Fraction dur;
+	GF_Fraction64 dur;
 
 	dur.den = 1000;
 	dur.num = (s32) mpeg2ps_get_max_time_msec(ctx->ps);
@@ -124,7 +124,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 			frac.den = (par&0xffff);
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_SAR, &PROP_FRAC( frac ) );
 		}
-		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, &PROP_FRAC( dur ) );
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, &PROP_FRAC64( dur ) );
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL( GF_TRUE ) );
 		gf_filter_pid_set_property_str(st->opid, "nocts", &PROP_BOOL(GF_TRUE ));
 
@@ -180,7 +180,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT( id) );
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( sync_id ) );
-		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, &PROP_FRAC( dur ) );
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, &PROP_FRAC64( dur ) );
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL( GF_TRUE ) );
 		gf_filter_pid_set_property_str(st->opid, "nocts", &PROP_BOOL(GF_TRUE ));
 

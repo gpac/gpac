@@ -59,7 +59,7 @@ typedef struct
 	u32 nb_playing;
 
 	//duration estimation
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	u64 first_pcr_found;
 	u16 pcr_pid;
 	u64 nb_pck_at_pcr;
@@ -124,7 +124,7 @@ static void m2tsdmx_estimate_duration(GF_M2TSDmxCtx *ctx, GF_M2TS_ES *stream)
 		u32 i, nb_streams = gf_filter_get_opid_count(ctx->filter);
 		for (i=0; i<nb_streams; i++) {
 			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
-			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC(ctx->duration) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ctx->duration) );
 		}
 	}
 }
@@ -306,7 +306,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(stream->program->number) );
 
 	if (ctx->duration.num>1)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC(ctx->duration) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ctx->duration) );
 
 	/*indicate our coding dependencies if any*/
 	if (!m4sys_stream) {
@@ -635,8 +635,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 
 	case GF_M2TS_EVT_DURATION_ESTIMATED:
 	{
-		Double duration = (Double) ((GF_M2TS_PES_PCK *) param)->PTS;
-		duration /= 1000;
+		u64 duration = ((GF_M2TS_PES_PCK *) param)->PTS;
 		count = gf_list_count(ts->programs);
 		for (i=0; i<count; i++) {
 			GF_M2TS_Program *prog = gf_list_get(ts->programs, i);
@@ -645,7 +644,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			for (j=0; j<count2; j++) {
 				GF_M2TS_ES * stream = gf_list_get(prog->streams, j);
 				if (stream->user) {
-					gf_filter_pid_set_property(stream->user, GF_PROP_PID_DURATION, & PROP_DOUBLE(duration) );
+					gf_filter_pid_set_property(stream->user, GF_PROP_PID_DURATION, & PROP_FRAC64_INT(duration, 1000) );
 				}
 			}
 		}

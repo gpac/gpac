@@ -2635,10 +2635,10 @@ void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Doubl
 	if (start<0) {
 		was_end = GF_TRUE;
 		p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_DURATION);
-		if (p && p->value.frac.den) {
+		if (p && p->value.lfrac.den) {
 			evt->play.start_range *= -100;
-			evt->play.start_range *= p->value.frac.num;
-			evt->play.start_range /= 100 * p->value.frac.den;
+			evt->play.start_range *= p->value.lfrac.num;
+			evt->play.start_range /= 100 * p->value.lfrac.den;
 		}
 	}
 	switch (pmode) {
@@ -3104,6 +3104,7 @@ GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus)
 	}
 	memcpy(filter->status_str, szStatus, len+1);
 	filter->status_percent = percent;
+	filter->report_updated = GF_TRUE;
 
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_PROGRESS;

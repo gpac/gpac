@@ -48,7 +48,7 @@ typedef struct
 	Bool done;
 
 	u64 cts;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	Double start_range;
 
 	Bool in_seek;
@@ -198,7 +198,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 		ctx->duration.num = (s32) duration;
 		ctx->duration.den = ctx->sample_rate;
 
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
