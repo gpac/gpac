@@ -344,7 +344,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 						end = 1000 * eframe * ctx->fps.num / ctx->fps.den;
 					else
 						end = 1000 * eframe / 25;
-					if (end>dur.num) dur.num = (s32) end;
+					if (end > (u64) dur.num) dur.num = (s64) end;
 				}
 			} else {
 				u32 eh, em, es, ems;
@@ -359,7 +359,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 					}
 				}
 				end = (3600*eh + 60*em + es)*1000 + ems;
-				if (end>dur.num) dur.num = (s32) end;
+				if (end > (u64) dur.num) dur.num = (s64) end;
 			}
 		}
 		gf_fseek(ctx->src, pos, SEEK_SET);
@@ -396,7 +396,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 					} else {
 						ts = (u32) (atof(att->value) * 1000);
 					}
-					if (ts > dur.num) dur.num = (s32) ts;
+					if (ts > (u64) dur.num) dur.num = (s64) ts;
 				} else {
 					if (strcmp(att->name, "duration")) continue;
 					duration = atoi(att->value);
@@ -444,7 +444,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 					}
 				}
 			}
-			if (ts_end>dur.num) dur.num = (s32) ts_end;
+			if (ts_end > (u64) dur.num) dur.num = (s64) ts_end;
 		}
 		if (dur.num) {
 			dur.den = 1000;

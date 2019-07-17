@@ -119,6 +119,7 @@ struct __gf_dash_segmenter
 	Bool dash_mode_changed;
 	u32 print_stats_graph;
 	s32 dash_filter_idx_plus_one;
+	u32 last_prog;
 };
 
 
@@ -483,7 +484,7 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, const GF_DashSegmenterInput
 
 static Bool on_dasher_event(void *_udta, GF_Event *evt)
 {
-	u32 i, count;
+	u32 i, count, progress=0;
 	GF_FilterStats stats;
 	GF_DASHSegmenter *dasher = (GF_DASHSegmenter *)_udta;
 	if (evt && (evt->type != GF_EVENT_PROGRESS)) return GF_FALSE;
@@ -503,11 +504,13 @@ static Bool on_dasher_event(void *_udta, GF_Event *evt)
 			return GF_FALSE;
 	}
 	if (! stats.report_updated) return GF_FALSE;
+	if (stats.percent/100 == dasher->last_prog) return GF_FALSE;
+	dasher->last_prog = stats.percent / 100;
 
-	if (stats.status) {
+	if ( stats.status) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing %s\r", stats.status));
 	} else if (stats.percent>0) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing: % 2.2f %%\r", ((Double)stats.percent)/100));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing: % 2.2f %%\r", ((Double)stats.percent) / 100));
 	}
 	return GF_FALSE;
 }
