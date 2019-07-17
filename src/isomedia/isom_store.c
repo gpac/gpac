@@ -1428,7 +1428,7 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	GF_Err e;
 	u32 i;
 	s32 moov_meta_pos=-1;
-	GF_Box *a, *cprt_box;
+	GF_Box *a, *cprt_box=NULL;
 	u64 firstSize, finalSize, offset, finalOffset;
 	GF_List *writers = gf_list_new();
 	GF_ISOFile *movie = mw->movie;

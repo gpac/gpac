@@ -1199,7 +1199,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 {
 	char *data;
 	u32 pos, nal_length, data_size, i;
-	s32 current_poc;
+	s32 current_poc=0;
 	u8 temporal_id, layer_id, nal_unit_type;
 	u32 nb_eos, nb_ipid;
 	Bool found_sei_prefix=GF_FALSE, found_sei_suffix=GF_FALSE;
