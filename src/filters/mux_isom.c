@@ -2522,8 +2522,8 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	sap_type = gf_filter_pck_get_sap(pck);
 	if (sap_type==GF_FILTER_SAP_1)
 		tkw->sample.IsRAP = SAP_TYPE_1;
-	else if (sap_type == GF_FILTER_SAP_4)
-		tkw->sample.IsRAP = SAP_TYPE_4;
+	else if ( (sap_type == GF_FILTER_SAP_4) && (tkw->stream_type != GF_STREAM_VISUAL) )
+		tkw->sample.IsRAP = SAP_TYPE_1;
 
 	if (tkw->ts_shift) {
 		assert (tkw->sample.DTS >= tkw->ts_shift);
