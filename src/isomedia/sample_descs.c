@@ -1224,6 +1224,66 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 }
 
 
-#endif /*GPAC_DISABLE_ISOM_WRITE*/
+GF_EXPORT
+GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_den, u32 counter, Bool is_drop, u32 *outDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	u32 dataRefIndex, fps;
+	GF_Box *tmcd;
+	GF_GenericMediaHeaderInfoBox *gmin;
+	GF_TimeCodeMediaInformationBox *tcmi;
+	GF_TimeCodeSampleEntryBox *entry;
+
+	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
+
+	//get or create the data ref
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, NULL, NULL, &dataRefIndex);
+	if (e) return e;
+	if (!dataRefIndex) {
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, NULL, NULL, &dataRefIndex);
+		if (e) return e;
+	}
+	if (!the_file->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	gmin = (GF_GenericMediaHeaderInfoBox *) gf_isom_box_new(GF_QT_BOX_TYPE_GMIN);
+	if (!gmin) return GF_OUT_OF_MEM;
+	gf_isom_box_add_default((GF_Box *)trak->Media->information->InfoHeader, (GF_Box *)gmin);
+
+	//default container box, use GMHD to create it
+	tmcd = gf_isom_box_new(GF_ISOM_BOX_TYPE_GMHD);
+	if (!tmcd) return GF_OUT_OF_MEM;
+	tmcd->type = GF_QT_BOX_TYPE_TMCD;
+	gf_isom_box_add_default((GF_Box *)trak->Media->information->InfoHeader, (GF_Box *)tmcd);
+
+	tcmi = (GF_TimeCodeMediaInformationBox *) gf_isom_box_new(GF_QT_BOX_TYPE_TCMI);
+	if (!tcmi) return GF_OUT_OF_MEM;
+	gf_isom_box_add_default(tmcd, (GF_Box *)tcmi);
+
+	entry = (GF_TimeCodeSampleEntryBox *) gf_isom_box_new_ex(GF_QT_BOX_TYPE_TMCD, GF_ISOM_BOX_TYPE_STSD, GF_FALSE, GF_FALSE);
+	if (!entry) return GF_OUT_OF_MEM;
+	entry->flags = 0;
+	if (is_drop) entry->flags |= 0x00000001;
+	if (counter) entry->flags |= 0x00000008;
+	entry->timescale = trak->Media->mediaHeader->timeScale;
+	entry->frame_duration = fps_den;
+	fps = entry->timescale;
+	fps /= fps_den;
+	if (fps * fps_den < entry->timescale) fps++;
+	entry->frames_per_sec = fps;
+
+	entry->dataReferenceIndex = dataRefIndex;
+	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
+	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+	return e;
+}
+#endif	/*GPAC_DISABLE_ISOM_WRITE*/
+
+
 
 #endif /*GPAC_DISABLE_ISOM*/

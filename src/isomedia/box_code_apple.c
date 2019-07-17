@@ -612,7 +612,7 @@ GF_Err tcmi_Read(GF_Box *s, GF_BitStream *bs)
 
 GF_Box *tcmi_New()
 {
-	ISOM_DECL_BOX_ALLOC(GF_TimeCodeMediaInformationBox, GF_QT_BOX_TYPE_TMCD);
+	ISOM_DECL_BOX_ALLOC(GF_TimeCodeMediaInformationBox, GF_QT_BOX_TYPE_TCMI);
 	tmp->text_size = 12;
 	tmp->text_color_red = 0xFFFF;
 	tmp->text_color_green = 0xFFFF;
