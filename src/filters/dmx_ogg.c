@@ -699,6 +699,10 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					else if (st->info.type==GF_CODECID_OPUS) {
 						block_size = gf_opus_check_frame(st->opus_parser, (char *) oggpacket.packet, oggpacket.bytes);
 						if (!block_size) continue;
+
+						if (!st->recomputed_ts) {
+							gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, &PROP_SINT((s32)-st->opus_parser->PreSkip));
+						}
 					}
 
 					if (ogg_page_eos(&oggpage))
