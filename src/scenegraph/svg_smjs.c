@@ -658,7 +658,7 @@ JSBool SMJS_FUNCTION(svg_udom_smil_set_speed)
 
 JSBool SMJS_FUNCTION(svg_udom_get_trait)
 {
-	char *attValue, *ns, *name;
+	char *attValue, /* *ns, */ *name;
 	GF_Err e;
 	GF_FieldInfo info;
 	SMJS_ARGS
@@ -666,30 +666,31 @@ JSBool SMJS_FUNCTION(svg_udom_get_trait)
 	GF_Node *n = dom_get_element(c, obj);
 	if (!n) return JS_TRUE;
 
-	ns = name = NULL;
+	//ns = NULL;
+	name = NULL;
 	if (! JSVAL_CHECK_STRING(argv[0]) ) return JS_TRUE;
 	if (argc==2) {
-		ns = SMJS_CHARS(c, argv[0]);
+		//ns = SMJS_CHARS(c, argv[0]);
 		name = SMJS_CHARS(c, argv[1]);
 	} else if (argc==1) {
 		name = SMJS_CHARS(c, argv[0]);
 	} else return JS_TRUE;
 
 	if (!name) {
-		SMJS_FREE(c, ns);
+		//SMJS_FREE(c, ns);
 		return JS_TRUE;
 	}
 	if (!strcmp(name, "#text")) {
 		char *res = gf_dom_flatten_textContent(n);
 		SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) ) );
 		gf_free(res);
-		SMJS_FREE(c, ns);
+		//SMJS_FREE(c, ns);
 		SMJS_FREE(c, name);
 		return JS_TRUE;
 	}
 	e = gf_node_get_field_by_name(n, name, &info);
 
-	SMJS_FREE(c, ns);
+	//SMJS_FREE(c, ns);
 	SMJS_FREE(c, name);
 
 	if (e!=GF_OK) return JS_TRUE;
