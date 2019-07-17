@@ -251,7 +251,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
-	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode, temporal_mode;
+	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale_num, rescale_den, svc_mode, txt_flags, split_tile_mode, temporal_mode;
 	s32 par_d, par_n, prog_id, delay, force_rate, moov_timescale;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only, force_par;
@@ -281,7 +281,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	chapter_name = NULL;
 	new_timescale = 1;
 	moov_timescale = 0;
-	rescale = 0;
+	rescale_num = rescale_den = 0;
 	text_layout = 0;
 	/*0: merge all
 	  1: split base and all SVC in two tracks
@@ -501,7 +501,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 		}
 		else if (!strnicmp(ext+1, "rescale=", 8)) {
-			rescale = atoi(ext+9);
+			if (sscanf(ext+9, "%d/%d", &rescale_num, &rescale_den) != 2) {
+				rescale_num = atoi(ext+9);
+				rescale_den = 0;
+			}
 		}
 		else if (!strnicmp(ext+1, "timescale=", 10)) {
 			new_timescale = atoi(ext+11);
@@ -836,6 +839,20 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				gf_isom_set_visual_color_info(import.dest, i+1, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
 			}
 
+			if (new_timescale>1) {
+				gf_isom_set_media_timescale(import.dest, i+1, new_timescale, 0, 0);
+			}
+			if (rescale_num > 1) {
+				switch (gf_isom_get_media_type(import.dest, i+1)) {
+				case GF_ISOM_MEDIA_AUDIO:
+					fprintf(stderr, "Cannot force media timescale for audio media types - ignoring\n");
+					break;
+				default:
+					gf_isom_set_media_timescale(import.dest, i+1, rescale_num, rescale_den, 1);
+					break;
+				}
+			}
+
 			for (j = 0; j < gf_list_count(kinds); j+=2) {
 				char *kind_scheme = (char *)gf_list_get(kinds, j);
 				char *kind_value = (char *)gf_list_get(kinds, j+1);
@@ -1015,16 +1032,16 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				keep_sys_tracks = 1;
 
 			if (new_timescale>1) {
-				gf_isom_set_media_timescale(import.dest, track, new_timescale, 0);
+				gf_isom_set_media_timescale(import.dest, track, new_timescale, 0, 0);
 			}
 
-			if (rescale>1) {
+			if (rescale_num > 1) {
 				switch (gf_isom_get_media_type(import.dest, track)) {
 				case GF_ISOM_MEDIA_AUDIO:
 					fprintf(stderr, "Cannot force media timescale for audio media types - ignoring\n");
 					break;
 				default:
-					gf_isom_set_media_timescale(import.dest, track, rescale, 1);
+					gf_isom_set_media_timescale(import.dest, track, rescale_num, rescale_den, 1);
 					break;
 				}
 			}
@@ -2264,10 +2281,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 					if (dst_timescale * idx < max_timescale) idx ++;
 					dst_timescale *= idx;
 
-					gf_isom_set_media_timescale(dest, dst_tk, max_timescale, 0);
+					gf_isom_set_media_timescale(dest, dst_tk, max_timescale, 0, 0);
 				}
 #else
-				gf_isom_set_media_timescale(dest, dst_tk, max_timescale, 0);
+				gf_isom_set_media_timescale(dest, dst_tk, max_timescale, 0, 0);
 #endif
 			}
 
