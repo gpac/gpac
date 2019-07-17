@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -628,6 +628,11 @@ void PrintImportUsage()
 	        "                         - \"nclx,p,t,m,r\" : same as nclx with r full range flag\n"
 	        "                         - \"prof,path\" : with path indicating the file containing the ICC color profile\n"
 	        "                         - \"rICC,path\" : with path indicating the file containing the restricted ICC color profile\n"
+	        " \":tc=VAL\"            injects a single QT timecode. VAL is formated as:\n"
+	        "                         - \"FPS,h,m,s,f\" : integer framerate, hours, minutes, seconds and frame number\n"
+	        "                         - \"FPS_n/FPS_d,h,m,s,f\" : drop-frame framerate, hours, minutes, seconds and frame number\n"
+	        "                         - \"FPS,frame\" : integer framerate, frame number (counter mode of timecode tracks)\n"
+	        "                         - \"FPS_n/FPS_d,frame\" : drop-frame framerate, frame number (counter mode of timecode tracks)\n"
 	        "\n"
 	        " -add file              add file tracks to (new) output file\n"
 	        " -cat file              concatenates file samples to (new) output file\n"
