@@ -1255,6 +1255,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		gf_bs_del(bs);
 		e = gf_isom_add_sample(import.dest, tmcd_track, desc_index, samp);
 		gf_isom_sample_del(&samp);
+		gf_isom_set_last_sample_duration(import.dest, tmcd_track, tc_fps_den ? tc_fps_den : 1);
 	}
 
 #endif /*GPAC_DISABLE_HEVC*/
