@@ -1435,7 +1435,9 @@ static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u3
 	GF_SAFEALLOC((*sai), GF_CENCSampleAuxInfo);
 	if (!(*sai) ) return GF_OUT_OF_MEM;
 	if (senc) {
-		u8 size = ((*sai)->IV_size != 0) ? (*sai)->IV_size : 8/*default for modern PIFF/CENC with AES-CTR*/;
+		u8 size;
+		(*sai)->IV_size = a_sai->IV_size;
+		size = ((*sai)->IV_size != 0) ? (*sai)->IV_size : 8/*default for modern PIFF/CENC with AES-CTR*/;
 		memmove((*sai)->IV, a_sai->IV, size);
 		(*sai)->subsample_count = a_sai->subsample_count;
 		if ((*sai)->subsample_count > 0) {
