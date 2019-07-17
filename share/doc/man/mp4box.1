@@ -1312,6 +1312,16 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
  * rICC,path: with path indicating the file containing the restricted ICC color profile
 .br
+* :tc=VAL: inject a single QT timecode. VAL is formated as:
+.br
+ * FPS,h,m,s,f: integer framerate, hours, minutes, seconds and frame number
+.br
+ * FPS_n/FPS_d,h,m,s,f: drop-frame framerate, hours, minutes, seconds and frame number
+.br
+ * FPS,frame: integer framerate, frame number (counter mode of timecode tracks)
+.br
+ * FPS_n/FPS_d,frame: drop-frame framerate, frame number (counter mode of timecode tracks)
+.br
 * :fstat: print filter session stats after import
 .br
 * :fgraph: print filter session graph after import
@@ -1965,7 +1975,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2560-gc33bc53dc-filters
+build: 0.9.0-DEV-rev2563-g216012cce-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

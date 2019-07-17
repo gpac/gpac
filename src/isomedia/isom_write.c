@@ -4235,10 +4235,13 @@ GF_Err gf_isom_set_track_layout_info(GF_ISOFile *the_file, u32 trackNumber, u32 
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 newTS, Bool force_rescale)
+GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 newTS, u32 new_tsinc, Bool force_rescale)
 {
 	Double scale;
+	u32 old_ts_inc=0;
 	GF_TrackBox *trak;
+	GF_SampleTableBox *stbl;
+
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media | !trak->Media->mediaHeader) return GF_BAD_PARAM;
 	if (trak->Media->mediaHeader->timeScale==newTS) return GF_OK;
@@ -4246,9 +4249,57 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 	scale = newTS;
 	scale /= trak->Media->mediaHeader->timeScale;
 	trak->Media->mediaHeader->timeScale = newTS;
+
+	stbl = trak->Media->information->sampleTable;
+	if (new_tsinc) {
+		u32 i;
+		if (!stbl->TimeToSample || !stbl->TimeToSample->nb_entries)
+			return GF_BAD_PARAM;
+
+		for (i=0; i<stbl->TimeToSample->nb_entries; i++) {
+			if (!old_ts_inc)
+				old_ts_inc = stbl->TimeToSample->entries[i].sampleDelta;
+			else if (old_ts_inc<stbl->TimeToSample->entries[i].sampleDelta)
+				old_ts_inc = stbl->TimeToSample->entries[i].sampleDelta;
+		}
+		force_rescale = GF_TRUE;
+		stbl->TimeToSample->entries[0].sampleDelta = new_tsinc;
+		if (stbl->CompositionOffset) {
+			for (i=0; i<stbl->CompositionOffset->nb_entries; i++) {
+				u32 old_offset = stbl->CompositionOffset->entries[i].decodingOffset;
+				old_offset *= new_tsinc;
+				old_offset /= old_ts_inc;
+				stbl->CompositionOffset->entries[i].decodingOffset = old_offset;
+			}
+		}
+		if (stbl->CompositionToDecode) {
+			stbl->CompositionToDecode->compositionEndTime *= new_tsinc;
+			stbl->CompositionToDecode->compositionEndTime /= old_ts_inc;
+
+			stbl->CompositionToDecode->compositionStartTime *= new_tsinc;
+			stbl->CompositionToDecode->compositionStartTime /= old_ts_inc;
+
+			stbl->CompositionToDecode->compositionToDTSShift *= new_tsinc;
+			stbl->CompositionToDecode->compositionToDTSShift /= old_ts_inc;
+
+			stbl->CompositionToDecode->greatestDecodeToDisplayDelta *= new_tsinc;
+			stbl->CompositionToDecode->greatestDecodeToDisplayDelta /= old_ts_inc;
+
+			stbl->CompositionToDecode->leastDecodeToDisplayDelta *= new_tsinc;
+			stbl->CompositionToDecode->leastDecodeToDisplayDelta /= old_ts_inc;
+		}
+		if (trak->editBox) {
+			GF_EdtsEntry *ent;
+			u32 i=0;
+			while ((ent = (GF_EdtsEntry*)gf_list_enum(trak->editBox->editList->entryList, &i))) {
+				ent->mediaTime *= new_tsinc;
+				ent->mediaTime /= old_ts_inc;
+			}
+		}
+	}
+
 	if (!force_rescale) {
 		u32 i, k, idx, last_delta;
-		GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
 		u64 cur_dts;
 		u64*DTSs = NULL;
 		s64*CTSs = NULL;

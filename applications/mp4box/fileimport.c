@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -232,7 +232,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample)
 {
-	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode, temporal_mode;
+	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale_num, rescale_den, svc_mode, txt_flags, split_tile_mode, temporal_mode;
 	s32 par_d, par_n, prog_id, delay, force_rate, moov_timescale;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only, force_par;
@@ -261,6 +261,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	Bool fmt_ok = GF_TRUE;
 	u32 icc_size=0;
 	u8 *icc_data = NULL;
+	s32 tc_fps_num=0, tc_fps_den=0, tc_h=0, tc_m=0, tc_s=0, tc_f=0, tc_counter=0;
 	char *ext_start;
 	u32 xps_inband=0;
 	char *opt_src = NULL;
@@ -273,7 +274,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	chapter_name = NULL;
 	new_timescale = 1;
 	moov_timescale = 0;
-	rescale = 0;
+	rescale_num = rescale_den = 0;
 	text_layout = 0;
 	/*0: merge all
 	  1: split base and all SVC in two tracks
@@ -492,7 +493,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 		}
 		else if (!strnicmp(ext+1, "rescale=", 8)) {
-			rescale = atoi(ext+9);
+			if (sscanf(ext+9, "%d/%d", &rescale_num, &rescale_den) != 2) {
+				rescale_num = atoi(ext+9);
+				rescale_den = 0;
+			}
 		}
 		else if (!strnicmp(ext+1, "timescale=", 10)) {
 			new_timescale = atoi(ext+11);
@@ -657,6 +661,18 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				fprintf(stderr, "Bad format for clr option, check help\n");
 				e = GF_BAD_PARAM;
 				goto exit;
+			}
+		}
+		else if (!strnicmp(ext+1, "tc=", 3)) {
+			if (sscanf(ext+4, "%d/%d,%d,%d,%d,%d", &tc_fps_num, &tc_fps_den, &tc_h, &tc_m, &tc_s, &tc_f) == 6) {
+
+			} else if (sscanf(ext+4, "%d,%d,%d,%d,%d", &tc_fps_num, &tc_h, &tc_m, &tc_s, &tc_f) == 5) {
+				tc_fps_den = 1;
+			} else if (sscanf(ext+4, "%d/%d,%d", &tc_fps_num, &tc_fps_den, &tc_counter) == 3) {
+			} else if (sscanf(ext+4, "%d,%d", &tc_fps_num, &tc_counter) == 2) {
+				tc_fps_den = 1;
+			} else {
+				fprintf(stderr, "Bad format %s for timecode, ignoring\n", ext+1);
 			}
 		}
 
@@ -865,6 +881,20 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				gf_isom_set_visual_color_info(import.dest, i+1, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
 			}
 
+			if (new_timescale>1) {
+				gf_isom_set_media_timescale(import.dest, i+1, new_timescale, 0, 0);
+			}
+			if (rescale_num > 1) {
+				switch (gf_isom_get_media_type(import.dest, i+1)) {
+				case GF_ISOM_MEDIA_AUDIO:
+					fprintf(stderr, "Cannot force media timescale for audio media types - ignoring\n");
+					break;
+				default:
+					gf_isom_set_media_timescale(import.dest, i+1, rescale_num, rescale_den, 1);
+					break;
+				}
+			}
+
 			for (j = 0; j < gf_list_count(kinds); j+=2) {
 				char *kind_scheme = (char *)gf_list_get(kinds, j);
 				char *kind_value = (char *)gf_list_get(kinds, j+1);
@@ -1050,16 +1080,16 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				keep_sys_tracks = 1;
 
 			if (new_timescale>1) {
-				gf_isom_set_media_timescale(import.dest, track, new_timescale, 0);
+				gf_isom_set_media_timescale(import.dest, track, new_timescale, 0, 0);
 			}
 
-			if (rescale>1) {
+			if (rescale_num > 1) {
 				switch (gf_isom_get_media_type(import.dest, track)) {
 				case GF_ISOM_MEDIA_AUDIO:
 					fprintf(stderr, "Cannot force media timescale for audio media types - ignoring\n");
 					break;
 				default:
-					gf_isom_set_media_timescale(import.dest, track, rescale, 1);
+					gf_isom_set_media_timescale(import.dest, track, rescale_num, rescale_den, 1);
 					break;
 				}
 			}
@@ -1204,6 +1234,55 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			e = gf_media_split_lhvc(import.dest, check_track_for_hevc, GF_TRUE, (temporal_mode==1) ? GF_FALSE : GF_TRUE, xmode );
 			if (e) goto exit;
 		}
+	}
+
+	if (tc_fps_num) {
+		u32 desc_index=0;
+		u32 tmcd_track, tmcd_id;
+		u32 video_ref = 0;
+		Bool is_drop=GF_FALSE;
+		GF_BitStream *bs;
+		GF_ISOSample *samp;
+		for (i=0; i<gf_isom_get_track_count(import.dest); i++) {
+			if (gf_isom_is_video_subtype(gf_isom_get_media_type(import.dest, i+1))) {
+				video_ref = i+1;
+				break;
+			}
+		}
+		if (tc_fps_den) {
+			u32 res = tc_fps_num / tc_fps_den;
+			if (res * tc_fps_den != tc_fps_num)
+				is_drop = GF_TRUE;
+		}
+		tmcd_track = gf_isom_new_track(import.dest, 0, GF_QT_BOX_TYPE_TMCD, tc_fps_num);
+		if (!tmcd_track) {
+			e = gf_isom_last_error(import.dest);
+			goto exit;
+		}
+		tmcd_id = gf_isom_get_track_id(import.dest, tmcd_track);
+		e = gf_isom_tmcd_config_new(import.dest, tmcd_track, tc_fps_den, tc_counter, is_drop, &desc_index);
+		if (e) goto exit;
+
+		if (video_ref) {
+			gf_isom_set_track_reference(import.dest, video_ref, GF_ISOM_REF_TMCD, tmcd_id);
+		}
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		if (tc_counter) {
+			gf_bs_write_u32(bs, tc_counter);
+		} else {
+			gf_bs_write_u8(bs, tc_h);
+			gf_bs_write_int(bs, 0, 1);
+			gf_bs_write_int(bs, tc_m, 7);
+			gf_bs_write_u8(bs, tc_s);
+			gf_bs_write_u8(bs, tc_f);
+		}
+		samp = gf_isom_sample_new();
+		samp->IsRAP = SAP_TYPE_1;
+		gf_bs_get_content(bs, &samp->data, &samp->dataLength);
+		gf_bs_del(bs);
+		e = gf_isom_add_sample(import.dest, tmcd_track, desc_index, samp);
+		gf_isom_sample_del(&samp);
+		gf_isom_set_last_sample_duration(import.dest, tmcd_track, tc_fps_den ? tc_fps_den : 1);
 	}
 
 #endif /*GPAC_DISABLE_HEVC*/
@@ -2312,10 +2391,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 					if (dst_timescale * idx < max_timescale) idx ++;
 					dst_timescale *= idx;
 
-					gf_isom_set_media_timescale(dest, dst_tk, max_timescale, 0);
+					gf_isom_set_media_timescale(dest, dst_tk, max_timescale, 0, 0);
 				}
 #else
-				gf_isom_set_media_timescale(dest, dst_tk, max_timescale, 0);
+				gf_isom_set_media_timescale(dest, dst_tk, max_timescale, 0, 0);
 #endif
 			}
 

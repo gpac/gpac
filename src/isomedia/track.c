@@ -1086,6 +1086,10 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 			MediaType = GF_ISOM_MEDIA_SCENE;
 			str = "GPAC DIMS Handler";
 			break;
+		case GF_ISOM_MEDIA_TMCD:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_GMHD);
+			str = "GPAC TMCD Handler";
+			break;
 		default:
 			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
 			str = "GPAC IsoMedia Handler";
