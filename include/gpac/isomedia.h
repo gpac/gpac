@@ -1194,8 +1194,11 @@ GF_Err gf_isom_update_sample_reference(GF_ISOFile *the_file, u32 trackNumber, u3
 /*Remove a given sample*/
 GF_Err gf_isom_remove_sample(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
 
-/*changes media time scale - if force_rescale is 1, only the media timescale is changed but media times are not updated */
-GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 new_timescale, Bool force_rescale);
+/*changes media time scale
+ if new_tsinc is not 0, changes sample duration and composition offsets to new_tsinc/new_timescale. If non-constant sample dur is used, uses the samllest sample dur in the track.
+ if force_rescale is 1, only the media timescale is changed but media times are not updated. Ignored if new_tsinc is not 0.
+*/
+GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 new_timescale, u32 new_tsinc, Bool force_rescale);
 
 /*set the save file name of the (edited) movie.
 If the movie is edited, the default fileName is avp_#openName)
