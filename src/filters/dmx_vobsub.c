@@ -201,8 +201,8 @@ GF_Err vobsubdmx_parse_idx(GF_Filter *filter, GF_VOBSubDmxCtx *ctx)
 
 		for (i=0; i<ctx->vobsub->num_langs; i++) {
 			vobsub_pos *pos = (vobsub_pos*)gf_list_last(ctx->vobsub->langs[i].subpos);
-			if (ctx->duration.num < pos->start*90)
-				ctx->duration.num = (u32) (pos->start*90);
+			if ((u64) ctx->duration.num < pos->start*90)
+				ctx->duration.num = (s64) (pos->start*90);
 		}
 		ctx->duration.den = 90000;
 

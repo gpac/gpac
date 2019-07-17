@@ -2459,7 +2459,7 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 	memset(stats, 0, sizeof(GF_FilterStats));
 	f = gf_list_get(session->filters, idx);
 	if (!f) return GF_BAD_PARAM;
-	stats->percent = f->status_percent>100 ? -1 : (s32) f->status_percent;
+	stats->percent = f->status_percent>10000 ? -1 : (s32) f->status_percent;
 	stats->status = f->status_str;
 	stats->nb_pck_processed = f->nb_pck_processed;
 	stats->nb_bytes_processed = f->nb_bytes_processed;

@@ -3650,7 +3650,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			Double d=0;
 			const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DURATION);
 			if (p && p->value.lfrac.den) {
-				d = p->value.lfrac.num;
+				d = (Double) p->value.lfrac.num;
 				d /= p->value.lfrac.den;
 				if (ds->clamped_dur && (ds->clamped_dur<d))
 					d = ds->clamped_dur;
@@ -4721,7 +4721,7 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 				if (done<0)
 					done=0;
 				pcent = done / ds->dash_dur;
-				pc = done * 10000;
+				pc = (s32) (done * 10000);
 				snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %.2fs (%.2f %%)", set_idx, rep_idx, stype, ds->seg_number, done, 100*pcent);
 			}
 
@@ -4740,7 +4740,7 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 			if (max_ts<mpdtime)
 				max_ts = mpdtime;
 		}
-		if (pc>total_pc) total_pc = pc;
+		if (pc > (s32) total_pc) total_pc = (u32) pc;
 		gf_dynstrcat(&szStatus, szDS, " ");
 	}
 	if (total_pc!=10000) {

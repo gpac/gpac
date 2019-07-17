@@ -210,10 +210,10 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		data = gf_filter_pck_get_data(pck, &size);
 
 		cts = gf_filter_pck_get_cts(pck);
-		if (ctx->dur.num) {
+		if (ctx->dur.num>0) {
 			if (!ctx->first_cts) ctx->first_cts = cts+1;
 
-			if ((cts - ctx->first_cts + 1) * ctx->dur.den > ctx->dur.num*ctx->timescale) {
+			if ((cts - ctx->first_cts + 1) * ctx->dur.den > (u64) ctx->dur.num*ctx->timescale) {
 				gf_filter_pid_drop_packet(ctx->pid);
 				if (!ctx->aborted) {
 					GF_FilterEvent evt;

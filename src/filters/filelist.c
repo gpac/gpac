@@ -489,9 +489,10 @@ GF_Err filelist_process(GF_Filter *filter)
 			if (cts==GF_FILTER_NO_TS) cts=0;
 
 			if (iopid->single_frame && ctx->dur.num && ctx->dur.den) {
-				dur = ctx->dur.num;
-				dur *= iopid->timescale;
-				dur /= ctx->dur.den;
+				s64 pdur = ctx->dur.num;
+				pdur *= iopid->timescale;
+				pdur /= ctx->dur.den;
+				dur = (u32) pdur;
 			} else {
 				dur = gf_filter_pck_get_duration(pck);
 			}
