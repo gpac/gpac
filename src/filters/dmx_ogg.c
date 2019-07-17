@@ -712,7 +712,12 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
 					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
 					gf_filter_pck_set_duration(dst_pck, block_size);
-					gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+					if (st->info.type == GF_CODECID_VORBIS) {
+						gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+					} else if (st->info.type == GF_CODECID_OPUS) {
+						gf_filter_pck_set_roll_info(dst_pck, 3840);
+						gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_4);
+					}
 
 					st->recomputed_ts += block_size;
 				}
