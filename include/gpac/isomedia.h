@@ -1386,7 +1386,7 @@ GF_Err gf_isom_remove_edit_segments(GF_ISOFile *the_file, u32 trackNumber);
 is updated to maintain a continous timeline*/
 GF_Err gf_isom_remove_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 seg_index);
 
-/*Updates edit list after track edition: all edit entries with aduration or media starttime larger than the media duration are clamped to media duration*/
+/*Updates edit list after track edition: all edit entries with a duration or media starttime larger than the media duration are clamped to media duration*/
 GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track);
 
 /*
