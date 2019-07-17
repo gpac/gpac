@@ -1732,7 +1732,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		//do not cancel the process task since it might have been triggered by the filter itself,
 		//we would not longer call it
 		task->requeue_request = GF_TRUE;
-		task->schedule_next_time = gf_sys_clock_high_res() + 10000;
+		task->can_swap = GF_TRUE;
 		assert(filter->process_task_queued);
 		check_filter_error(filter, GF_OK, GF_TRUE);
 		return;
