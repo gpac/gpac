@@ -1573,7 +1573,7 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	//TODO: find a way to bypass this mutex ?
 	gf_mx_p(filter->tasks_mx);
 
-	assert(filter->scheduled_for_next_task);
+	assert(filter->scheduled_for_next_task || filter->session->direct_mode);
 	assert(filter->process_task_queued);
 	if (safe_int_dec(&filter->process_task_queued) == 0) {
 		//we have pending packets, auto-post and requeue
@@ -1992,6 +1992,7 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 		 		|| filter->session->in_final_flush
 		 		|| filter->disabled
 				|| filter->scheduled_for_next_task
+				|| filter->session->direct_mode
 		 		|| gf_fq_count(filter->tasks)
 		);
 	}
