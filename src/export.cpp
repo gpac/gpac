@@ -698,15 +698,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_clone_box) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_xml_metadata_description) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_ac3_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_dims_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_stxt_get_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_xml_subtitle_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_xml_subtitle_get_description) )
-#ifndef GPAC_DISABLE_ISOM_WRITE
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_write) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_size) )
-#endif
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_progressive) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_missing_bytes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_freeze_order) )
@@ -950,7 +945,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_visual_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_visual_color_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_visual_bit_depth) )
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_pixel_aspect_ratio) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_layout_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_matrix) )
@@ -1046,6 +1040,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_progress_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apply_box_patch) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_ac3_config_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_write) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_size) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_tmcd_config_new) )
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_hint_track) )

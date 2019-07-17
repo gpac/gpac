@@ -244,8 +244,13 @@ enum
 	GF_ISOM_MEDIA_DIMS		= GF_4CC( 'd', 'i', 'm', 's' ),
 	/*SWF file embedded in media track*/
 	GF_ISOM_MEDIA_FLASH		= GF_4CC( 'f', 'l', 's', 'h' ),
+
 	/*QTVR track*/
-	GF_ISOM_MEDIA_QTVR		= GF_4CC( 'q', 't', 'v', 'r' )
+	GF_ISOM_MEDIA_QTVR		= GF_4CC( 'q', 't', 'v', 'r' ),
+	GF_ISOM_MEDIA_JPEG		= GF_4CC( 'j', 'p', 'e', 'g' ),
+	GF_ISOM_MEDIA_JP2		= GF_4CC( 'j', 'p', '2', ' ' ),
+	GF_ISOM_MEDIA_PNG		= GF_4CC( 'p', 'n', 'g', ' ' ),
+	GF_ISOM_MEDIA_TMCD		= GF_4CC( 't', 'm', 'c', 'd' ),
 };
 
 
@@ -1305,8 +1310,11 @@ GF_Err gf_isom_update_sample_reference(GF_ISOFile *the_file, u32 trackNumber, u3
 /*Remove a given sample*/
 GF_Err gf_isom_remove_sample(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
 
-/*changes media time scale - if force_rescale is 1, only the media timescale is changed but media times are not updated */
-GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 new_timescale, Bool force_rescale);
+/*changes media time scale
+ if new_tsinc is not 0, changes sample duration and composition offsets to new_tsinc/new_timescale. If non-constant sample dur is used, uses the samllest sample dur in the track.
+ if force_rescale is 1, only the media timescale is changed but media times are not updated. Ignored if new_tsinc is not 0.
+*/
+GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 new_timescale, u32 new_tsinc, Bool force_rescale);
 
 /*set the save file name of the (edited) movie.
 If the movie is edited, the default fileName is avp_#openName)
@@ -2791,6 +2799,10 @@ GF_Err gf_isom_flac_config_new(GF_ISOFile *the_file, u32 trackNumber, u8 *metada
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err gf_isom_new_mj2k_description(GF_ISOFile *the_file, u32 trackNumber, char *URLname, char *URNname, u32 *outDescriptionIndex, u8 *dsi, u32 dsi_len);
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_den, u32 counter, Bool is_drop, u32 *outDescriptionIndex);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 

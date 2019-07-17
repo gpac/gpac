@@ -1302,11 +1302,11 @@ sample_entry_setup:
 	if (!ctx->init_movie_done && !tkw->nb_samples && (ctx->mediats<0) && (tkw->tk_timescale==1000)) {
 		if (sr) {
 			tkw->tk_timescale = sr;
-			gf_isom_set_media_timescale(ctx->file, tkw->track_num, sr, GF_TRUE);
+			gf_isom_set_media_timescale(ctx->file, tkw->track_num, sr, 0, GF_TRUE);
 		}
 		else if (width && fps.den) {
 			tkw->tk_timescale = fps.den;
-			gf_isom_set_media_timescale(ctx->file, tkw->track_num, fps.den, GF_TRUE);
+			gf_isom_set_media_timescale(ctx->file, tkw->track_num, fps.den, 0, GF_TRUE);
 		}
 	}
 	if (!needs_sample_entry || tkw->is_item) {
