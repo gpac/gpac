@@ -701,16 +701,19 @@ GF_Err oggdmx_process(GF_Filter *filter)
 						if (!block_size) continue;
 					}
 
+					if (ogg_page_eos(&oggpage))
+ 						block_size = (u32)(oggpacket.granulepos - st->recomputed_ts); /*4.4 End Trimming, cf https://tools.ietf.org/html/rfc7845*/
 
 					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);
 					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
 					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
+					gf_filter_pck_set_duration(dst_pck, block_size);
 					gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 
 					st->recomputed_ts += block_size;
 				}
-				gf_filter_pck_send(dst_pck);
 
+				gf_filter_pck_send(dst_pck);
 			}
 		}
 	}
