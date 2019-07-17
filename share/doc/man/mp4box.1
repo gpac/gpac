@@ -1160,13 +1160,15 @@ Allowed per-file options:
 .br
 * :psx: same as -psx
 .br
-* :asemode=MODE: set the mode to create the AudioSampleEntry - v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default
+* :asemode=MODE: set the mode to create the AudioSampleEntry
 .br
- * v0-2: use MPEG AudioSampleEntry v0 and the channel count is forced to 2
+  * v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default
 .br
- * v1: use MPEG AudioSampleEntry v1 and the channel count from the bitstream
+  * v0-2: use MPEG AudioSampleEntry v0 and the channel count is forced to 2
 .br
- * v1-qt: use QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2)
+  * v1: use MPEG AudioSampleEntry v1 and the channel count from the bitstream
+.br
+  * v1-qt: use QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2)
 .br
 * :audio_roll=N: add a roll sample group with roll_distance N
 .br
@@ -1180,23 +1182,23 @@ Allowed per-file options:
 .br
 * :svcmode=MODE: set SVC/LHVC import mode
 .br
- * split: each layer is in its own track
+  * split: each layer is in its own track
 .br
- * merge: all layers are merged in a single track
+  * merge: all layers are merged in a single track
 .br
- * splitbase: all layers are merged in a track, and the AVC base in another
+  * splitbase: all layers are merged in a track, and the AVC base in another
 .br
- * splitnox: each layer is in its own track, and no extractors are written
+  * splitnox: each layer is in its own track, and no extractors are written
 .br
- * splitnoxib: each layer is in its own track, no extractors are written, using inband param set signaling
+  * splitnoxib: each layer is in its own track, no extractors are written, using inband param set signaling
 .br
 * :temporal: set HEVC/LHVC temporal sublayer import mode
 .br
- * split: each sublayer is in its own track
+  * split: each sublayer is in its own track
 .br
- * splitbase: all sublayers are merged in a track, and the HEVC base in another
+  * splitbase: all sublayers are merged in a track, and the HEVC base in another
 .br
- * splitnox: each layer is in its own track, and no extractors are written
+  * splitnox: each layer is in its own track, and no extractors are written
 .br
 * :subsamples: add SubSample information for AVC+SVC
 .br
@@ -1228,11 +1230,11 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
 * :chapter=NAME: add a single chapter (old nero format) with given name lasting the entire file- :chapfile=file: adds a chapter file (old nero format)- :layout=WxHxXxY: specify the track layout
 .br
- - if W (resp H) = 0, the max width (resp height) of the tracks in the file are used.
+  - if W (resp H) = 0, the max width (resp height) of the tracks in the file are used.
 .br
- - if Y=-1, the layout is moved to the bottom of the track area
+  - if Y=-1, the layout is moved to the bottom of the track area
 .br
- - X and Y can be omitted (:layout=WxH)
+  - X and Y can be omitted (:layout=WxH)
 .br
 * :rescale=TS: force media timescale to TS !! changes the media duration
 .br
@@ -1260,11 +1262,11 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
 * :text_layout=WxHxXxY: specify the track text layout
 .br
- - if W (resp H) = 0, the max width (resp height) of the tracks in the file are used.
+  - if W (resp H) = 0, the max width (resp height) of the tracks in the file are used.
 .br
- - if Y=-1, the layout is moved to the bottom of the track area
+  - if Y=-1, the layout is moved to the bottom of the track area
 .br
- - X and Y can be omitted (:layout=WxH)
+  - X and Y can be omitted (:layout=WxH)
 .br
 * :swf-global: all SWF defines are placed in first scene replace rather than when needed
 .br
@@ -1304,23 +1306,23 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
 * :colr=OPT: set color profile for imported video content (see ISO/IEC 23001-8). OPT is formatted as:
 .br
- * nclc,p,t,m: with p colour primary, t transfer characteristics and m matrix coef
+  * nclc,p,t,m: with p colour primary, t transfer characteristics and m matrix coef
 .br
- * nclx,p,t,m,r: same as nclx with r full range flag
+  * nclx,p,t,m,r: same as nclx with r full range flag
 .br
- * prof,path: with path indicating the file containing the ICC color profile
+  * prof,path: with path indicating the file containing the ICC color profile
 .br
- * rICC,path: with path indicating the file containing the restricted ICC color profile
+  * rICC,path: with path indicating the file containing the restricted ICC color profile
 .br
 * :tc=VAL: inject a single QT timecode. VAL is formated as:
 .br
- * FPS,h,m,s,f: integer framerate, hours, minutes, seconds and frame number
+  * FPS,h,m,s,f: integer framerate, hours, minutes, seconds and frame number
 .br
- * FPS_n/FPS_d,h,m,s,f: drop-frame framerate, hours, minutes, seconds and frame number
+  * FPS_n/FPS_d,h,m,s,f: drop-frame framerate, hours, minutes, seconds and frame number
 .br
- * FPS,frame: integer framerate, frame number (counter mode of timecode tracks)
+  * FPS,frame: integer framerate, frame number (counter mode of timecode tracks)
 .br
- * FPS_n/FPS_d,frame: drop-frame framerate, frame number (counter mode of timecode tracks)
+  * FPS_n/FPS_d,frame: drop-frame framerate, frame number (counter mode of timecode tracks)
 .br
 * :fstat: print filter session stats after import
 .br
@@ -1975,7 +1977,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2563-g216012cce-filters
+build: 0.9.0-DEV-rev2567-g2fb6b79db-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
