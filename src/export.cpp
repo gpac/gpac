@@ -44,6 +44,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_argc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_arg) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_test_mode) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_quiet) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gpac_version) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gpac_copyright) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_enabled_features) )

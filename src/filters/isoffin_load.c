@@ -373,9 +373,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			ch->duration = gf_isom_get_duration(read->mov);
 		}
 		if (!ch->has_edit_list) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((s32) gf_isom_get_media_duration(read->mov, ch->track) - (s32) ch->ts_offset, ch->time_scale));
+			u64 dur = gf_isom_get_media_duration(read->mov, ch->track) - (s32) ch->ts_offset;
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, ch->time_scale));
 		} else {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((s32) ch->duration, read->time_scale));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ch->duration, read->time_scale));
 		}
 
 		sample_count = gf_isom_get_sample_count(read->mov, ch->track);

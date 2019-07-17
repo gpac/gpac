@@ -56,7 +56,7 @@ typedef struct
 	char *media_file, *info_file;
 	const char *szRootName;
 
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	Bool first;
 	Bool uncompress, is_dims, is_stpp;
 
@@ -207,7 +207,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	ctx->is_stpp = (cid==GF_CODECID_SUBS_XML) ? GF_TRUE : GF_FALSE;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if (p) ctx->duration = p->value.frac;
+	if (p) ctx->duration = p->value.lfrac;
 
 
 	if (ctx->opid_nhml)

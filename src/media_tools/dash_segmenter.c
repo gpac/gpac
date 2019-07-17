@@ -118,6 +118,7 @@ struct __gf_dash_segmenter
 
 	Bool dash_mode_changed;
 	u32 print_stats_graph;
+	s32 dash_filter_idx_plus_one;
 };
 
 
@@ -483,21 +484,30 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, const GF_DashSegmenterInput
 static Bool on_dasher_event(void *_udta, GF_Event *evt)
 {
 	u32 i, count;
+	GF_FilterStats stats;
 	GF_DASHSegmenter *dasher = (GF_DASHSegmenter *)_udta;
 	if (evt && (evt->type != GF_EVENT_PROGRESS)) return GF_FALSE;
 
-	count = gf_fs_get_filters_count(dasher->fsess);
-	for (i=0; i<count; i++) {
-		GF_FilterStats stats;
-		if (gf_fs_get_filter_stats(dasher->fsess, i, &stats) != GF_OK) continue;
-		if (strcmp(stats.reg_name, "dasher")) continue;
-
-		if (stats.status) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing %s\r", stats.status));
-		} else if (stats.percent>0) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing: % 2.2f %%\r", ((Double)stats.percent)/100));
+	stats.report_updated = GF_FALSE;
+	if (!dasher->dash_filter_idx_plus_one) {
+		count = gf_fs_get_filters_count(dasher->fsess);
+		for (i=0; i<count; i++) {
+			if (gf_fs_get_filter_stats(dasher->fsess, i, &stats) != GF_OK) continue;
+			if (strcmp(stats.reg_name, "dasher")) continue;
+			dasher->dash_filter_idx_plus_one = i+1;
+			break;
 		}
-		break;
+		if (!dasher->dash_filter_idx_plus_one) return GF_FALSE;
+	} else {
+		if (gf_fs_get_filter_stats(dasher->fsess, dasher->dash_filter_idx_plus_one-1, &stats) != GF_OK)
+			return GF_FALSE;
+	}
+	if (! stats.report_updated) return GF_FALSE;
+
+	if (stats.status) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing %s\r", stats.status));
+	} else if (stats.percent>0) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing: % 2.2f %%\r", ((Double)stats.percent)/100));
 	}
 	return GF_FALSE;
 }
@@ -518,7 +528,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	dasher->fsess = gf_fs_new_defaults(0);
 
 #ifndef GPAC_DISABLE_LOG
-	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET)) {
+	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) && !gf_sys_is_quiet() ) {
 		gf_fs_enable_reporting(dasher->fsess, GF_TRUE);
 		gf_fs_set_ui_callback(dasher->fsess, on_dasher_event, dasher);
 	}

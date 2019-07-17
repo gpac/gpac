@@ -52,7 +52,7 @@ typedef struct
 	u64 first_dts;
 
 	Bool is_playing;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	Bool in_seek;
 
 	u32 timescale;
@@ -908,7 +908,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		ctx->duration.num =ctx->duration.den;
 	}
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration) );
 
 	return e;
 }

@@ -116,7 +116,7 @@ typedef struct
 
 	u32 nb_frames;
 	u64 down_bytes, down_size;
-	GF_Fraction pid_dur;
+	GF_Fraction64 pid_dur;
 } TrackWriter;
 
 enum
@@ -252,9 +252,9 @@ static GF_Err mp4mx_setup_dash_vod(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 			ctx->dash_dur = p->value.number;
 		}
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
-		if (p && p->value.frac.den) {
-			Double mdur = p->value.frac.num;
-			mdur /= p->value.frac.den;
+		if (p && p->value.lfrac.den) {
+			Double mdur = p->value.lfrac.num;
+			mdur /= p->value.lfrac.den;
 			if (ctx->media_dur < mdur) ctx->media_dur = mdur;
 		}
 	}
@@ -3056,11 +3056,11 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		def_fake_scale = tkw->src_timescale;
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
-		if (p && p->value.frac.num && p->value.frac.den) {
-			tkw->pid_dur = p->value.frac;
-			if (max_dur.num * p->value.frac.den < max_dur.den * p->value.frac.num) {
-				max_dur.num = p->value.frac.num;
-				max_dur.den = p->value.frac.den;
+		if (p && p->value.lfrac.num && p->value.lfrac.den) {
+			tkw->pid_dur = p->value.lfrac;
+			if (max_dur.num * p->value.lfrac.den < max_dur.den * p->value.lfrac.num) {
+				max_dur.num = p->value.lfrac.num;
+				max_dur.den = p->value.lfrac.den;
 			}
 		}
 	}

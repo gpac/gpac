@@ -869,6 +869,14 @@ Bool gf_sys_is_test_mode();
 
 
 /*!
+ *	\brief checks if running in quiet mode
+ *
+ *	Checks if quiet mode is enabled
+ *	\return 2 if quiet mode is enabled, 1 if quiet mode not enabled but progress is disabled, 0 otherwise.
+ */
+u32 gf_sys_is_quiet();
+
+/*!
  *	\brief System clock query
  *
  *	Gets the system clock time.

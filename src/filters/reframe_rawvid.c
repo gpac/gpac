@@ -114,7 +114,7 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		nb_frames /= ctx->frame_size;
 		ctx->total_frames = nb_frames;
 		nb_frames *= ctx->fps.den;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((u32) nb_frames, ctx->fps.num));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(nb_frames, ctx->fps.num));
 	}
 
 	if (!ctx->copy) {

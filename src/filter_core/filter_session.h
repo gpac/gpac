@@ -677,7 +677,7 @@ struct __gf_filter
 
 	char *status_str;
 	u32 status_str_alloc, status_percent;
-
+	Bool report_updated;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);

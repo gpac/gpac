@@ -79,7 +79,7 @@ typedef struct
 	GF_Fraction cur_fps;
 
 	//duration of the file if known
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	//playback start range
 	Double start_range;
 	//indicates we are in seek, packets before start range should be marked
@@ -469,7 +469,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		ctx->duration.num = (s32) duration;
 		ctx->duration.den = ctx->cur_fps.num;
 
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -1177,7 +1177,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		naludmx_set_hevc_linf(ctx);
 	}
 	if (ctx->duration.num)
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
 	if (ctx->is_file /* && ctx->index*/) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );

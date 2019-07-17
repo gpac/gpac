@@ -48,7 +48,7 @@ typedef struct
 	GF_BitStream *bs;
 	u64 file_pos, cts;
 	u32 sample_rate, nb_ch, is_mp2, profile;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	Double start_range;
 	Bool in_seek;
 	u32 timescale;
@@ -171,7 +171,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 		ctx->duration.num = (s32) duration;
 		ctx->duration.den = sr;
 
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -197,7 +197,7 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
 
 	if (ctx->duration.num)
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
 
 	ctx->nb_ch = ctx->hdr.channels;

@@ -391,9 +391,17 @@ GF_CryptInfo *gf_crypt_info_load(const char *file)
 
 static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 {
+	Double progress;
+	u32 *prev_progress = (u32 *)_udta;
 	if (evt->type != GF_EVENT_PROGRESS) return GF_FALSE;
 	if (!evt->progress.total) return GF_FALSE;
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Decrypting: % 2.2f %%\r", ((Double)100*evt->progress.done)/evt->progress.total));
+
+	progress = (Double) (100*evt->progress.done) / evt->progress.total;
+	if ((u32) progress==*prev_progress)
+		return GF_FALSE;
+
+	*prev_progress = (u32) progress;
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Decrypting: % 2.2f %%\r", progress));
 	return GF_FALSE;
 }
 
@@ -404,6 +412,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	GF_Filter *src, *dst, *dcrypt;
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
+	u32 progress = (u32) -1;
 
 	fsess = gf_fs_new_defaults(0);
 	if (!fsess) {
@@ -442,9 +451,9 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET)) {
+	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) && !gf_sys_is_quiet() ) {
 		gf_fs_enable_reporting(fsess, GF_TRUE);
-		gf_fs_set_ui_callback(fsess, on_decrypt_event, fsess);
+		gf_fs_set_ui_callback(fsess, on_decrypt_event, &progress);
 	}
 #endif
 
@@ -462,9 +471,17 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 
 static Bool on_crypt_event(void *_udta, GF_Event *evt)
 {
+	Double progress;
+	u32 *prev_progress = (u32 *)_udta;
 	if (evt->type != GF_EVENT_PROGRESS) return GF_FALSE;
 	if (!evt->progress.total) return GF_FALSE;
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Encrypting: % 2.2f %%\r", ((Double)100*evt->progress.done)/evt->progress.total));
+
+	progress = (Double) (100*evt->progress.done) / evt->progress.total;
+	if ((u32) progress==*prev_progress)
+		return GF_FALSE;
+
+	*prev_progress = (u32) progress;
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Encrypting: % 2.2f %%\r", progress));
 	return GF_FALSE;
 }
 
@@ -473,7 +490,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 	char *szArgs=NULL;
 	char an_arg[100];
 	char *arg_dst=NULL;
-
+	u32 progress = (u32) -1;
 	GF_Filter *src, *dst, *crypt;
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
@@ -543,9 +560,9 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET)) {
+	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) && !gf_sys_is_quiet() ) {
 		gf_fs_enable_reporting(fsess, GF_TRUE);
-		gf_fs_set_ui_callback(fsess, on_crypt_event, fsess);
+		gf_fs_set_ui_callback(fsess, on_crypt_event, &progress);
 	}
 #endif
 	e = gf_fs_run(fsess);

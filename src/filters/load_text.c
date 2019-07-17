@@ -311,7 +311,7 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 
 static void txtin_probe_duration(GF_TXTIn *ctx)
 {
-	GF_Fraction dur;
+	GF_Fraction64 dur;
 	dur.num = 0;
 
 	if (ctx->fmt == GF_TXTIN_MODE_SWF_SVG) {
@@ -319,10 +319,10 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 		u32 frame_count, frame_rate;
 		gf_swf_get_duration(ctx->swf_parse, &frame_rate, &frame_count);
 		if (frame_count) {
-			GF_Fraction dur;
+			GF_Fraction64 dur;
 			dur.num = frame_count;
 			dur.den = frame_rate;
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC(dur));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(dur));
 		}
 #endif
 		return;
@@ -365,7 +365,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 		gf_fseek(ctx->src, pos, SEEK_SET);
 		if (dur.num) {
 			dur.den = 1000;
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC(dur));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(dur));
 		}
 		return;
 	}
@@ -406,7 +406,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 		}
 		if (dur.num) {
 			dur.den = 1000;
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC(dur));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(dur));
 		}
 		return;
 	}
@@ -448,7 +448,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 		}
 		if (dur.num) {
 			dur.den = 1000;
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC(dur));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(dur));
 		}
 		return;
 	}

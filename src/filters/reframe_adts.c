@@ -64,7 +64,7 @@ typedef struct
 	GF_BitStream *bs;
 	u64 file_pos, cts;
 	u32 sr_idx, nb_ch, is_mp2, profile;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	Double start_range;
 	Bool in_seek;
 	u32 timescale;
@@ -234,7 +234,7 @@ static void adts_dmx_check_dur(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 		ctx->duration.num = (s32) duration;
 		ctx->duration.den = GF_M4ASampleRates[sr_idx];
 
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -268,7 +268,7 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	}
 
 	if (ctx->duration.num)
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
 
 	ctx->is_mp2 = ctx->hdr.is_mp2;

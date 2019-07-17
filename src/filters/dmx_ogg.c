@@ -83,7 +83,7 @@ typedef struct
 
 	u64 file_pos, file_size;
 	u32 global_rate;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	Double start_range;
 	Bool seek_file;
 	u32 nb_playing;
@@ -262,7 +262,7 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_FPS, &PROP_FRAC(st->info.frame_rate) );
 
 	if (ctx->duration.num)
-		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
 }
 
@@ -381,7 +381,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 	GF_VorbisParser vp;
 	GF_OpusParser op;
 	u64 recompute_ts;
-	GF_Fraction dur;
+	GF_Fraction64 dur;
 
 	if (!ctx->index || ctx->duration.num) return;
 
@@ -490,7 +490,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 			GF_OGGStream *st;
 			ctx->duration = dur;
 			while ( (st = gf_list_enum(ctx->streams, &i)) ) {
-				gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+				gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 			}
 		}
 	}

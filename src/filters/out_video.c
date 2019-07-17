@@ -446,7 +446,7 @@ typedef struct
 	char *drv;
 	GF_VideoOutMode disp;
 	Bool vsync, linear, fullscreen, drop, hide;
-	GF_Fraction dur;
+	GF_Fraction64 dur;
 	Double speed, hold;
 	u32 back;
 	GF_PropVec2i wsize;

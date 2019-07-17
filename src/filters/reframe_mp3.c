@@ -47,7 +47,7 @@ typedef struct
 	GF_BitStream *bs;
 	u64 file_pos, cts, prev_cts;
 	u32 sr, nb_ch, codecid;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	Double start_range;
 	Bool in_seek;
 	u32 timescale;
@@ -167,7 +167,7 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 		ctx->duration.num = (s32) duration;
 		ctx->duration.den = prev_sr ;
 
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -345,7 +345,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 	if (ctx->duration.num)
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
 	if (!ctx->timescale) gf_filter_pid_set_name(ctx->opid, "audio");
 

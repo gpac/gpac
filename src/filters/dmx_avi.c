@@ -61,7 +61,7 @@ typedef struct
 	avi_t *avi;
 
 	Bool use_file_fps;
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	u32 nb_playing;
 
 	GF_List *audios;
@@ -75,7 +75,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 	u32 a_fmt = 0;
 	Bool unframed = GF_FALSE;
 	u32 i, count, pfmt=0;
-	GF_Fraction dur;
+	GF_Fraction64 dur;
 	char *comp;
 
 	if (ctx->use_file_fps) {
@@ -84,7 +84,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 	}
 
 	dur.den = ctx->fps.num;
-	dur.num = ctx->fps.den * AVI_video_frames(ctx->avi);
+	dur.num = (u64) (ctx->fps.den * AVI_video_frames(ctx->avi));
 
 	comp = AVI_video_compressor(ctx->avi);
 	if (!comp) {
@@ -140,7 +140,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 		h = AVI_video_height(ctx->avi);
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_WIDTH, &PROP_UINT( w ) );
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_HEIGHT, &PROP_UINT( h ) );
-		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_DURATION, &PROP_FRAC( dur ) );
+		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_DURATION, &PROP_FRAC64( dur ) );
 
 		if (pfmt) {
 			u32 stride=0;
@@ -265,7 +265,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT( brate ) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT( 2 + st->stream_num) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( sync_id ) );
-			gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, &PROP_FRAC( dur ) );
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, &PROP_FRAC64( dur ) );
 
 			st->audio_bps = 0;
 			if (unframed) {
