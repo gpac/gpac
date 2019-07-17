@@ -9,7 +9,7 @@ fi
 mp4file="$TEMP_DIR/crypted.mp4"
 mp4file_short="$TEMP_DIR/crypted_short.mp4"
 
-$MP4BOX -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_GDR_1280x720_576kbps.264:dur=60 -crypt $MEDIA_DIR/encryption/cbcs.xml -new $mp4file 2> /dev/null
+$MP4BOX -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_I25_baseline_640x360_192kbps.264:dur=60 -crypt $MEDIA_DIR/encryption/cbcs.xml -new $mp4file 2> /dev/null
 
 do_test "$MP4BOX -add $mp4file:dur=20 -new $mp4file_short" "import"
 do_hash_test $mp4file_short "import"
