@@ -1631,23 +1631,17 @@ GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 20);
 
 	if (ptr->size) {
-		size_t len;
 		ptr->nameUTF8 = (char*)gf_malloc((u32) ptr->size);
 		if (ptr->nameUTF8 == NULL) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->nameUTF8, (u32) ptr->size);
-		/*safety check in case the string is not null-terminated*/
+
+		//patch for old QT files - we cannot rely on checking if str[0]==len(str+1) since we may have
+		//cases where the first character of the string decimal value is indeed the same as the string length!!
+		//we had this issue with encryption_import test
+		//we therefore only check if last char is null, and if not so assume old QT style
 		if (ptr->nameUTF8[ptr->size-1]) {
-			char *str = (char*)gf_malloc((u32) ptr->size + 1);
-			memcpy(str, ptr->nameUTF8, (u32) ptr->size);
-			str[ptr->size] = 0;
-			gf_free(ptr->nameUTF8);
-			ptr->nameUTF8 = str;
-		}
-		//patch for old QT files
-		if (ptr->size > 1 && ptr->nameUTF8[0] == ptr->size-1) {
-			len = strlen(ptr->nameUTF8 + 1);
-			memmove(ptr->nameUTF8, ptr->nameUTF8+1, len );
-			ptr->nameUTF8[len] = 0;
+			memmove(ptr->nameUTF8, ptr->nameUTF8+1, sizeof(char) * (u32) (ptr->size-1) );
+			ptr->nameUTF8[ptr->size-1] = 0;
 			ptr->store_counted_string = GF_TRUE;
 		}
 	}
