@@ -578,6 +578,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 	GF_OGGDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	GF_OGGStream *st;
+	s64 granulepos_init = -1;
 
 	//update duration
 	oggdmx_check_dur(filter, ctx);
@@ -668,6 +669,8 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					st->got_headers = GF_TRUE;
 					oggdmx_declare_pid(filter, ctx, st);
 				}
+
+				granulepos_init = oggpacket.granulepos;
 			} else if (st->parse_headers && st->got_headers) {
 				st->parse_headers--;
 			} else if (!st->opid) {
@@ -706,7 +709,8 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					}
 
 					if (ogg_page_eos(&oggpage))
- 						block_size = (u32)(oggpacket.granulepos - st->recomputed_ts); /*4.4 End Trimming, cf https://tools.ietf.org/html/rfc7845*/
+						if (oggpacket.granulepos != -1 && granulepos_init != -1)
+ 							block_size = (u32)(oggpacket.granulepos - granulepos_init - st->recomputed_ts); /*4.4 End Trimming, cf https://tools.ietf.org/html/rfc7845*/
 
 					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);
 					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
