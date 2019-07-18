@@ -396,7 +396,7 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 
 	prev_pck_size = ctx->flac_buffer_size;
 	if (pck && !ctx->resume_from) {
-		u8 data = (u8 *) gf_filter_pck_get_data(pck, &pck_size);
+		u8 *data = (u8 *) gf_filter_pck_get_data(pck, &pck_size);
 
 		if (ctx->byte_offset != GF_FILTER_NO_BO) {
 			u64 byte_offset = gf_filter_pck_get_byte_offset(pck);

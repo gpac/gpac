@@ -699,7 +699,7 @@ static void ReorderSDP(char *sdp_text, Bool is_movie_sdp)
 	GF_List *lines = gf_list_new();
 	cur = sdp_text;
 	while (cur) {
-		char *b;
+		char b;
 		char *st = strstr(cur, "\r\n");
 		assert(st);
 		st += 2;
