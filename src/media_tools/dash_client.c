@@ -3289,7 +3289,6 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	s32 new_index, old_index;
 	GF_DASH_Group *base_group;
 	GF_MPD_Representation *rep;
-	GF_MPD_Representation *new_rep;
 	Bool force_lower_complexity;
 
 	/* Don't do adaptation if configured switching to happen systematically (debug) */
@@ -3412,7 +3411,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	group->rate_adaptation_postponed = GF_FALSE;
 
 	if (new_index != group->active_rep_index) {
-		new_rep = gf_list_get(group->adaptation_set->representations, (u32)new_index);
+		GF_MPD_Representation *new_rep = gf_list_get(group->adaptation_set->representations, (u32)new_index);
 		if (!new_rep) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Cannot find new representation index %d\n", new_index));
 			return;
@@ -4338,13 +4337,13 @@ static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bo
 	offset = sidx->first_offset + anchor_position;
 	rep->segment_list->timescale = sidx->timescale;
 	for (i=0; i<sidx->nb_refs; i++) {
-		GF_MPD_SegmentURL *seg;
 		if (sidx->refs[i].reference_type) {
 			e = gf_dash_load_sidx(bs, rep, seperate_index, offset);
 			if (e) {
 				break;
 			}
 		} else {
+			GF_MPD_SegmentURL *seg;
 			GF_SAFEALLOC(seg, GF_MPD_SegmentURL);
 			if (!seg) return GF_OUT_OF_MEM;
 			GF_SAFEALLOC(seg->media_range, GF_MPD_ByteRange);
@@ -5206,10 +5205,8 @@ select_active_rep:
 
 			if (rep_i) {
 				Bool ok;
-				char *sep;
 				if (rep->codecs && rep_sel->codecs) {
-
-					sep = strchr(rep_sel->codecs, '.');
+					char *sep = strchr(rep_sel->codecs, '.');
 					if (sep) sep[0] = 0;
 					ok = !strnicmp(rep->codecs, rep_sel->codecs, strlen(rep_sel->codecs) );
 					//check for scalable coding
@@ -7691,7 +7688,6 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_
 {
 	u32 i, len;
 	s32 lang_idx;
-	char *sep;
 	GF_List *groups_selected;
 	if (!lang_code_rfc_5646) return;
 
@@ -7717,6 +7713,7 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_
 		const char *n3cc = gf_lang_get_3cc(lang_idx);
 
 		for (i=0; i<gf_list_count(dash->groups); i++) {
+			char *sep;
 			GF_DASH_Group *group = gf_list_get(dash->groups, i);
 			if (group->selection==GF_DASH_GROUP_NOT_SELECTABLE) continue;
 			if (!group->adaptation_set->lang) continue;

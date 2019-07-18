@@ -365,7 +365,6 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 	GF_Err e;
 	u16 port;
 	char *ip;
-	GF_RTSPOutSession *sess;
 	GF_RTSPOutCtx *ctx = (GF_RTSPOutCtx *) gf_filter_get_udta(filter);
 	if (!ctx->payt) ctx->payt = 96;
 	if (!ctx->port) ctx->port = 554;
@@ -385,6 +384,7 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 		}
 		gf_filter_make_sticky(filter);
 	} else {
+		GF_RTSPOutSession *sess;
 		char *sep = strchr(ctx->dst+7, '/');
 		if (sep) {
 			strncpy(szIP, ctx->dst+7, sep-ctx->dst-7);
@@ -542,7 +542,6 @@ static void rtspout_send_event(GF_RTSPOutSession *sess, Bool send_stop, Bool sen
 static GF_Err rtspout_process_rtp(GF_Filter *filter, GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 {
 	GF_Err e = GF_OK;
-	GF_RTPOutStream *stream;
 	u32 repost_delay_us=0;
 
 	/*init session timeline - all sessions are sync'ed for packet scheduling purposes*/
@@ -557,7 +556,7 @@ static GF_Err rtspout_process_rtp(GF_Filter *filter, GF_RTSPOutCtx *ctx, GF_RTSP
 		if ((s32) diff > ctx->runfor) {
 			u32 i, count = gf_list_count(sess->streams);
 			for (i=0; i<count; i++) {
-				stream = gf_list_get(sess->streams, i);
+				GF_RTPOutStream *stream = gf_list_get(sess->streams, i);
 				gf_filter_pid_set_discard(stream->pid, GF_TRUE);
 				stream->pck = NULL;
 			}

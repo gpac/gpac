@@ -49,9 +49,6 @@ GF_RTSPResponse *gf_rtsp_response_new()
 GF_EXPORT
 void gf_rtsp_response_reset(GF_RTSPResponse *rsp)
 {
-	GF_RTPInfo *inf;
-	GF_RTSPTransport *trans;
-	GF_X_Attribute *att;
 	if (!rsp) return;
 
 	//free all headers
@@ -103,19 +100,19 @@ void gf_rtsp_response_reset(GF_RTSPResponse *rsp)
 	rsp->SessionTimeOut = 0;
 
 	while (gf_list_count(rsp->Transports)) {
-		trans = (GF_RTSPTransport*) gf_list_get(rsp->Transports, 0);
+		GF_RTSPTransport *trans = (GF_RTSPTransport*) gf_list_get(rsp->Transports, 0);
 		gf_list_rem(rsp->Transports, 0);
 		gf_rtsp_transport_del(trans);
 	}
 
 	while (gf_list_count(rsp->RTP_Infos)) {
-		inf = (GF_RTPInfo*) gf_list_get(rsp->RTP_Infos, 0);
+		GF_RTPInfo *inf = (GF_RTPInfo*) gf_list_get(rsp->RTP_Infos, 0);
 		gf_list_rem(rsp->RTP_Infos, 0);
 		if (inf->url) gf_free(inf->url);
 		gf_free(inf);
 	}
 	while (gf_list_count(rsp->Xtensions)) {
-		att = (GF_X_Attribute*)gf_list_get(rsp->Xtensions, 0);
+		GF_X_Attribute *att = (GF_X_Attribute*)gf_list_get(rsp->Xtensions, 0);
 		gf_list_rem(rsp->Xtensions, 0);
 		gf_free(att->Name);
 		gf_free(att->Value);
@@ -480,10 +477,6 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 {
 	u32 i, cur_pos, size, count;
 	char *buffer, temp[50];
-	GF_RTSPTransport *trans;
-	GF_X_Attribute *att;
-	GF_RTPInfo *info;
-
 
 	*out_buffer = NULL;
 
@@ -567,6 +560,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "RTPInfo: ");
 
 		for (i=0; i<count; i++) {
+			GF_RTPInfo *info;
 			//line separator for headers
 			if (i) RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n ,");
 			info = (GF_RTPInfo*)gf_list_get(rsp->RTP_Infos, i);
@@ -603,6 +597,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	if (count) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Transport: ");
 		for (i=0; i<count; i++) {
+			GF_RTSPTransport *trans;
 			//line separator for headers
 			if (i) RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n ,");
 			trans = (GF_RTSPTransport*)gf_list_get(rsp->Transports, i);
@@ -671,7 +666,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	//eXtensions
 	count = gf_list_count(rsp->Xtensions);
 	for (i=0; i<count; i++) {
-		att = (GF_X_Attribute*)gf_list_get(rsp->Xtensions, i);
+		GF_X_Attribute *att = (GF_X_Attribute*)gf_list_get(rsp->Xtensions, i);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "x-");
 		RTSP_WRITE_HEADER(buffer, size, cur_pos, att->Name, att->Value);
 	}

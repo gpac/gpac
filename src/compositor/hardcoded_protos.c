@@ -98,7 +98,6 @@ static Bool PathExtrusion_GetNode(GF_Node *node, PathExtrusion *path_ext)
 static void TraversePathExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 {
 	PathExtrusion path_ext;
-	Drawable *stack_2d;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	Drawable3D *stack = (Drawable3D *)gf_node_get_private(node);
 
@@ -111,6 +110,7 @@ static void TraversePathExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 
 
 	if (gf_node_dirty_get(node)) {
+		Drawable *stack_2d;
 		u32 mode = tr_state->traversing_mode;
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
 		gf_node_traverse(path_ext.geometry, tr_state);
@@ -206,13 +206,6 @@ static Bool PlanarExtrusion_GetNode(GF_Node *node, PlanarExtrusion *path_ext)
 static void TraversePlanarExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 {
 	PlanarExtrusion plane_ext;
-	Drawable *stack_2d;
-	u32 i, j, k;
-	MFVec3f spine_vec;
-	SFVec3f d;
-	Fixed spine_len;
-	GF_Rect bounds;
-	GF_Path *geo, *spine;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	Drawable3D *stack = (Drawable3D *)gf_node_get_private(node);
 
@@ -226,8 +219,15 @@ static void TraversePlanarExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 
 
 	if (gf_node_dirty_get(node)) {
+		Drawable *stack_2d;
+		u32 i, j, k;
+		MFVec3f spine_vec;
+		SFVec3f d;
+		Fixed spine_len;
+		GF_Rect bounds;
 		u32 cur, nb_pts;
 		u32 mode = tr_state->traversing_mode;
+		GF_Path *geo, *spine;
 		geo = spine = NULL;
 
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;

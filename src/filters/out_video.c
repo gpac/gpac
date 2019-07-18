@@ -1875,7 +1875,6 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 
 	if (ctx->dump_f_idx) {
-		FILE *fout;
 		char szFileName[1024];
 		GF_VideoSurface backbuffer;
 		GF_Window src_wnd;
@@ -1885,6 +1884,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 		e = ctx->video_out->LockBackBuffer(ctx->video_out, &backbuffer, GF_TRUE);
 		if (!e) {
+			FILE *fout;
 			const char *src_ext = strchr(gf_file_basename(ctx->out), '.');
 			const char *ext = gf_pixel_fmt_sname(backbuffer.pixel_format);
 			if (!ext) ext = "rgb";

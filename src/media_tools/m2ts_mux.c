@@ -108,7 +108,6 @@ void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table
 	GF_M2TS_Mux_Table *table, *prev_table;
 	u32 maxSectionLength;
 	GF_M2TS_Mux_Section *section, *prev_sec;
-	GF_BitStream *bs;
 
 	/* check if there is already a table with that id */
 	prev_table = NULL;
@@ -183,6 +182,7 @@ void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table
 	prev_sec = NULL;
 	offset = 0;
 	while (offset < table_payload_length) {
+		GF_BitStream *bs;
 		u32 remain;
 		GF_SAFEALLOC(section, GF_M2TS_Mux_Section);
 		if (!section) {
@@ -292,7 +292,6 @@ void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16
 	/*max section length for MPEG-4 BIFS and OD*/
 	u32 maxSectionLength = 4096;
 	GF_M2TS_Mux_Section *section, *prev_sec;
-	GF_BitStream *bs;
 
 	/* check if there is already a table with that id */
 	prev_table = NULL;
@@ -354,6 +353,7 @@ void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16
 	offset = 0;
 	hdr = stream->sl_header;
 	while (offset < table_payload_length) {
+		GF_BitStream *bs;
 		u32 remain;
 		u8 *slhdr;
 		u32 slhdr_size;

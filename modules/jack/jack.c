@@ -104,7 +104,6 @@ static int
 process_callback (jack_nframes_t nframes, void *arg)
 {
 	unsigned int channel, i;
-	short *tmpBuffer;
 	size_t toRead;
 	size_t bytesToRead;
 	size_t readen;
@@ -123,6 +122,7 @@ process_callback (jack_nframes_t nframes, void *arg)
 	toRead = readen / ctx->bytesPerSample;
 	if (ctx->bytesPerSample == 2)
 	{
+		short *tmpBuffer;
 		tmpBuffer = (short *) ctx->buffer;
 		for (channel = 0; channel < nframes; channel += ctx->numChannels)
 		{

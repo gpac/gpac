@@ -675,10 +675,10 @@ void gf_storage_save(M_Storage *storage)
 			val = storage_serialize_sf(info.far_ptr, info.fieldType);
 		} else {
 			//u32 sftype = gf_sg_vrml_get_sf_type(info.fieldType);
-			char *slotval;
-			void *slot;
 			val = NULL;
 			for (j=0; j<((GenMFField *)info.far_ptr)->count; j++) {
+				char *slotval;
+				void *slot;
 				if (gf_sg_vrml_mf_get_item(info.far_ptr, info.fieldType, &slot, j) != GF_OK) break;
 				slotval = storage_serialize_sf(info.far_ptr, info.fieldType);
 				if (!slotval) break;

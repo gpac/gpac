@@ -355,7 +355,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				u32 i;
 				u8 hash[20];
 				FILE *cached_texture;
-				char szExtractName[GF_MAX_PATH], section[64], *opt, *src_url;
+				char szExtractName[GF_MAX_PATH], *opt, *src_url;
 				opt = (char *) gf_opts_get_key("core", "cache");
 				if (opt) {
 					strcpy(szExtractName, opt);
@@ -383,6 +383,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 
 				/*and write cache info*/
 				if (ct->expirationDate!=0) {
+					char section[64];
 					sprintf(section, "@cache=%p", ct);
 					gf_opts_set_key(section, "serviceURL", src_url);
 					gf_opts_set_key(section, "cacheFile", szExtractName);

@@ -923,7 +923,6 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	s32 group_idx;
 	GF_FilterPid *opid;
 	GF_Err e=GF_OK;
-	const GF_PropertyValue *p;
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) gf_filter_get_udta(filter);
 	GF_DASHGroup *group;
 
@@ -949,6 +948,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	//configure MPD pid
 	if (!ctx->mpd_pid) {
+		const GF_PropertyValue *p;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
 		if (!p || !p->value.string) {
 			return GF_NOT_SUPPORTED;

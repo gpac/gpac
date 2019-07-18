@@ -448,7 +448,6 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 
 	if (pck->stream->flags & GF_M2TS_ES_IS_MPEG4_OD) {
 		/* We need to decode OD streams to get the SL config for other streams :( */
-		GF_ODCom *com;
 		GF_ESD *esd;
 		GF_ODUpdate* odU;
 		GF_ESDUpdate* esdU;
@@ -459,6 +458,7 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 		gf_odf_codec_decode(od_codec);
 		com_count = gf_list_count(od_codec->CommandList);
 		for (com_index = 0; com_index < com_count; com_index++) {
+			GF_ODCom *com;
 			com = (GF_ODCom *)gf_list_get(od_codec->CommandList, com_index);
 			switch (com->tag) {
 			case GF_ODF_OD_UPDATE_TAG:

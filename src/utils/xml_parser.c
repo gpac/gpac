@@ -218,7 +218,6 @@ static void format_sax_error(GF_SAXParser *parser, u32 linepos, const char* fmt,
 {
 	va_list args;
 	u32 len;
-	char szM[20];
 
 	if (!parser) return;
 
@@ -227,6 +226,7 @@ static void format_sax_error(GF_SAXParser *parser, u32 linepos, const char* fmt,
 	va_end(args);
 
 	if (strlen(parser->err_msg)+30 < ARRAY_LENGTH(parser->err_msg)) {
+		char szM[20];
 		snprintf(szM, 20, " - Line %d: ", parser->line + 1);
 		strcat(parser->err_msg, szM);
 		len = (u32) strlen(parser->err_msg);
@@ -238,7 +238,7 @@ static void format_sax_error(GF_SAXParser *parser, u32 linepos, const char* fmt,
 
 static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 {
-	char *name, *sep, c;
+	char *name, c;
 
 	assert(parser->elt_name_start);
 	assert(parser->elt_name_end);
@@ -251,7 +251,7 @@ static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 	name = parser->buffer + parser->elt_name_start - 1;
 
 	if (parser->sax_node_end) {
-		sep = strchr(name, ':');
+		char *sep = strchr(name, ':');
 		if (sep) {
 			sep[0] = 0;
 			parser->sax_node_end(parser->sax_cbck, sep+1, name);
@@ -271,7 +271,7 @@ static void xml_sax_node_start(GF_SAXParser *parser)
 {
 	Bool has_entities = GF_FALSE;
 	u32 i;
-	char *sep, c, *name;
+	char *c, *name;
 
 	assert(parser->elt_name_start && parser->elt_name_end);
 	c = parser->buffer[parser->elt_name_end - 1];
@@ -294,7 +294,7 @@ static void xml_sax_node_start(GF_SAXParser *parser)
 	}
 
 	if (parser->sax_node_start) {
-		sep = strchr(name, ':');
+		char *sep = strchr(name, ':');
 		if (sep) {
 			sep[0] = 0;
 			parser->sax_node_start(parser->sax_cbck, sep+1, name, parser->attrs, parser->nb_attrs);

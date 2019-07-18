@@ -206,7 +206,6 @@ void gf_modules_new(GF_Config *config)
 void gf_modules_del()
 {
 	u32 i;
-	ModuleInstance *inst;
 	GF_ModuleManager *pm = gpac_modules_static;
 	if (!pm) return;
 
@@ -214,7 +213,7 @@ void gf_modules_del()
 
 	/*unload all modules*/
 	while (gf_list_count(pm->plug_list)) {
-		inst = (ModuleInstance *) gf_list_get(pm->plug_list, 0);
+		ModuleInstance *inst = (ModuleInstance *) gf_list_get(pm->plug_list, 0);
 		gf_modules_free_module(inst);
 		gf_list_rem(pm->plug_list, 0);
 	}

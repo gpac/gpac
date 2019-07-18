@@ -258,12 +258,11 @@ GF_EXPORT
 GF_Err gf_odf_desc_list_del(GF_List *descList)
 {
 	GF_Err e;
-	GF_Descriptor *tmp;
 
 	if (! descList) return GF_BAD_PARAM;
 
 	while (gf_list_count(descList)) {
-		tmp = (GF_Descriptor*)gf_list_get(descList, 0);
+		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(descList, 0);
 		gf_list_rem(descList, 0);
 		e = gf_odf_delete_descriptor(tmp);
 		if (e) return e;

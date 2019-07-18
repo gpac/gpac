@@ -75,7 +75,6 @@ typedef struct
 static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_BitStream *bs;
 	GF_J2KCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -89,6 +88,7 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (p && p->value.data.ptr && p->value.data.size) {
+		GF_BitStream *bs;
 		u32 d4cc;
 		Bool dsi_ok=GF_FALSE;
 		u32 ex_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);

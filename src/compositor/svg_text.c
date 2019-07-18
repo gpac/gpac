@@ -843,7 +843,6 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 	SVG_Element *text = (SVG_Element *)node;
 	SVGAllAttributes atts;
 	u32 i,imax;
-	Fixed * lw;
 
 	if (is_destroy) {
 		drawable_del(st->drawable);
@@ -949,7 +948,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		/*apply justification of all blocks*/
 		imax=gf_list_count(tr_state->x_anchors);
 		for (i=0; i<imax; i++) {
-			lw=gf_list_get(tr_state->x_anchors, i);
+			Fixed *lw = gf_list_get(tr_state->x_anchors, i);
 			svg_apply_text_anchor(tr_state, lw);
 		}
 

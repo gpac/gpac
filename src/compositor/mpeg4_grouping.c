@@ -718,7 +718,6 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 	/*picking: collect sensors*/
 	sensor_backup = NULL;
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && (group->flags & GROUP_HAS_SENSORS) ) {
-		GF_SensorHandler *hsens;
 		/*reset sensor stack if any sensors at this level*/
 		sensor_backup = tr_state->vrml_sensors;
 		tr_state->vrml_sensors = gf_list_new();
@@ -727,7 +726,7 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 		/*add sensor(s) to traversing state*/
 		l = ((GF_ParentNode *)node)->children;
 		while (l) {
-			hsens = compositor_mpeg4_get_sensor_handler_ex(l->node, GF_TRUE);
+			GF_SensorHandler *hsens = compositor_mpeg4_get_sensor_handler_ex(l->node, GF_TRUE);
 			if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
 			l = l->next;
 		}

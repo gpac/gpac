@@ -61,10 +61,9 @@ typedef struct
 
 void text_clean_paths(GF_Compositor *compositor, TextStack *stack)
 {
-	GF_TextSpan *span;
 	/*delete all path objects*/
 	while (gf_list_count(stack->spans)) {
-		span = (GF_TextSpan*) gf_list_get(stack->spans, 0);
+		GF_TextSpan *span = (GF_TextSpan*) gf_list_get(stack->spans, 0);
 		gf_list_rem(stack->spans, 0);
 		gf_font_manager_delete_span(compositor->font_manager, span);
 	}

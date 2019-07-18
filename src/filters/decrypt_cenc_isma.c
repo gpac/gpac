@@ -93,14 +93,13 @@ static GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key
 	GF_Err e;
 	u32 i, count;
 	GF_CryptInfo *info;
-	GF_TrackCryptInfo *tci;
 
 	e = GF_OK;
 	info = gf_crypt_info_load(drm_file);
 	if (!info) return GF_NOT_SUPPORTED;
 	count = gf_list_count(info->tcis);
 	for (i=0; i<count; i++) {
-		tci = (GF_TrackCryptInfo *) gf_list_get(info->tcis, i);
+		GF_TrackCryptInfo *tci = (GF_TrackCryptInfo *) gf_list_get(info->tcis, i);
 		if ((info->has_common_key && !tci->trackID) || (tci->trackID == stream_id) ) {
 			if (tci->KID_count)
 				memcpy(key, tci->keys[0], sizeof(char)*16);
@@ -274,9 +273,9 @@ static GF_Err cenc_dec_setup_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 static GF_Err cenc_dec_access_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, Bool is_play)
 {
 	GF_Err e;
-	char IV[16];
 
 	if (is_play) {
+		char IV[16];
 		if (cstr->state != DECRYPT_STATE_SETUP) return GF_SERVICE_ERROR;
 		assert(!cstr->crypt);
 
@@ -931,7 +930,6 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 	const u8 *in_data;
 	u8 *out_data;
 	GF_FilterPacket *out_pck;
-	char IV[17];
 	GF_Err e;
 	u32 trim_bytes = 0;
 	u32 offset, size;
@@ -949,6 +947,7 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 	size = data_size;
 	encrypted_au = out_data[0] ? GF_TRUE : GF_FALSE;
 	if (encrypted_au) {
+		char IV[17];
 		if (size<17) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Error in sample size, %d bytes remain but at least 17 are required\n", size ) );
 			return GF_NON_COMPLIANT_BITSTREAM;

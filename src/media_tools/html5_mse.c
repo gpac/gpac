@@ -309,8 +309,8 @@ GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, cons
 #ifdef FILTER_FIXME
 	GF_InputService *parser = NULL;
 
-	const char *sPlug;
 	if (mime) {
+		const char *sPlug;
 		/* strip the 'codecs' and 'profile' parameters from the MIME type */
 		char *param = (char *)strchr(mime, ';');
 		if (param) {

@@ -43,7 +43,6 @@ typedef struct
 
 static GF_Err s2b_insert_symbol(SWFReader *read, GF_Node *n)
 {
-	GF_Command *com;
 	GF_CommandField *f;
 
 	if (read->flags & GF_SM_SWF_STATIC_DICT) {
@@ -51,7 +50,7 @@ static GF_Err s2b_insert_symbol(SWFReader *read, GF_Node *n)
 		gf_node_list_add_child(&par->choice, n);
 		gf_node_register((GF_Node *)n, (GF_Node *)par);
 	} else {
-		com = gf_sg_command_new(read->load->scene_graph, GF_SG_INDEXED_INSERT);
+		GF_Command *com = gf_sg_command_new(read->load->scene_graph, GF_SG_INDEXED_INSERT);
 		com->node = gf_sg_find_node_by_name(read->load->scene_graph, "DICTIONARY");
 		gf_node_register(com->node, NULL);
 		f = gf_sg_command_field_new(com);
@@ -165,12 +164,10 @@ static Bool s2b_same_color(SFColor c1, SFColor c2)
 
 static GF_Node *s2b_get_appearance(SWFReader *read, GF_Node *parent, u32 fill_col, Fixed line_width, u32 l_col)
 {
-	char szDEF[1024];
 	u32 ID, i;
 	SFColor fc, lc;
 	Fixed fill_transp, line_transp;
 	M_Appearance *app;
-	M_Material2D *mat;
 
 	fc = s2b_get_color(fill_col);
 	fill_transp = FIX_ONE - s2b_get_alpha(fill_col);
@@ -181,7 +178,7 @@ static GF_Node *s2b_get_appearance(SWFReader *read, GF_Node *parent, u32 fill_co
 
 	i=0;
 	while ((app = (M_Appearance*)gf_list_enum(read->apps, &i))) {
-		mat = (M_Material2D *)app->material;
+		M_Material2D *mat = (M_Material2D *)app->material;
 		if (!line_width) {
 			if (mat->lineProps || !mat->filled) continue;
 		} else {
@@ -231,6 +228,7 @@ static GF_Node *s2b_get_appearance(SWFReader *read, GF_Node *parent, u32 fill_co
 	gf_node_register((GF_Node *)app, parent);
 
 	if (read->load->swf_import_flags & GF_SM_SWF_REUSE_APPEARANCE) {
+		char szDEF[1024];
 		sprintf(szDEF, "FILLAPP_%d", gf_list_count(read->apps));
 		read->load->ctx->max_node_id++;
 		ID = read->load->ctx->max_node_id;
@@ -635,11 +633,10 @@ static void s2b_merge_curve2d(M_Curve2D *s, M_Curve2D *tomerge)
 
 static void s2b_insert_shape(M_OrderedGroup *og, M_Shape *n, Bool is_proto)
 {
-	M_Shape *prev;
 	GF_ChildNodeItem *l = og->children;
 	if (!is_proto) {
 		while (l) {
-			prev = (M_Shape*)l->node;
+			M_Shape *prev = (M_Shape*)l->node;
 			if (prev->appearance == n->appearance) {
 				s2b_merge_curve2d( (M_Curve2D *)prev->geometry, (M_Curve2D *)n->geometry);
 				gf_node_register((GF_Node *)n, NULL);

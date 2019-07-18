@@ -230,7 +230,6 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	u32 width, height, i, count, di;
 	GF_ISOSample *samp;
 	char *lang = NULL;
-	char szPath[GF_MAX_PATH];
 
 	/* Check decoder specific information (palette) size - should be 64 */
 	if (dsiSize != 64) {
@@ -239,6 +238,7 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 
 	/* Create an idx file */
 	if (!gf_file_ext_start(szName)) {
+		char szPath[GF_MAX_PATH];
 		strcpy(szPath, szName);
 		strcat(szPath, ".idx");
 		fidx = gf_fopen(szPath, "wb");
@@ -524,7 +524,7 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 	GF_ISOFile *outfile;
 	GF_Err e;
 	Bool add_to_iod, is_stdout;
-	char szName[1000], *ext;
+	char szName[1000];
 	u32 track;
 	u8 mode;
 
@@ -543,7 +543,7 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 	if (strrchr(dumper->out_name, '.')) {
 		strcpy(szName, dumper->out_name);
 	} else {
-		ext = (char *) gf_isom_get_filename(dumper->file);
+		char *ext = (char *) gf_isom_get_filename(dumper->file);
 		if (ext) ext = strrchr(ext, '.');
 		sprintf(szName, "%s%s", dumper->out_name, ext ? ext : ".mp4");
 	}
@@ -1118,11 +1118,11 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				break;
 			}
 		} else {
-			char *sep;
 			const char *sname = gf_codecid_file_ext(codec_id);
 			if (export_ext && strstr(sname, export_ext+1)) {
 				szExt[0]=0;
 			} else {
+				char *sep;
 				strncpy(szExt, sname, 29);
 				szExt[29]=0;
 				sep = strchr(szExt, '|');

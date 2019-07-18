@@ -491,9 +491,8 @@ void isor_reader_release_sample(ISOMChannel *ch)
 
 static void isor_reset_seq_list(GF_List *list)
 {
-	GF_AVCConfigSlot *sl;
 	while (gf_list_count(list)) {
-		sl = gf_list_pop_back(list);
+		GF_AVCConfigSlot *sl = gf_list_pop_back(list);
 		gf_free(sl->data);
 		gf_free(sl);
 	}

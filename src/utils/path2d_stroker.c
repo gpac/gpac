@@ -1756,9 +1756,9 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 		u32 nb_pt, nb_cnt;
 		error = FT_Stroker_GetCounts(&stroker, &nb_pt, &nb_cnt);
 		if (!error) {
-			FT_StrokeBorder sborder;
 			outline = gf_path_new();
 			if (nb_pt) {
+				FT_StrokeBorder sborder;
 				outline->points = (GF_Point2D *) gf_malloc(sizeof(GF_Point2D)*nb_pt);
 				outline->tags = (u8 *) gf_malloc(sizeof(u8)*nb_pt);
 				outline->contours = (u32 *) gf_malloc(sizeof(u32)*nb_cnt);

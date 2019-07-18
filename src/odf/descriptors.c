@@ -188,13 +188,12 @@ GF_Err gf_odf_write_base_descriptor(GF_BitStream *bs, u8 tag, u32 size)
 GF_Err gf_odf_size_descriptor_list(GF_List *descList, u32 *outSize)
 {
 	GF_Err e;
-	GF_Descriptor *tmp;
 	u32 tmpSize, count, i;
 	if (! descList) return GF_OK;
 
 	count = gf_list_count(descList);
 	for ( i = 0; i < count; i++ ) {
-		tmp = (GF_Descriptor*)gf_list_get(descList, i);
+		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(descList, i);
 		if (tmp) {
 			e = gf_odf_size_descriptor(tmp, &tmpSize);
 			if (e) return e;
@@ -208,12 +207,11 @@ GF_Err gf_odf_write_descriptor_list(GF_BitStream *bs, GF_List *descList)
 {
 	GF_Err e;
 	u32 count, i;
-	GF_Descriptor *tmp;
 
 	if (! descList) return GF_OK;
 	count = gf_list_count(descList);
 	for ( i = 0; i < count; i++ ) {
-		tmp = (GF_Descriptor*)gf_list_get(descList, i);
+		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(descList, i);
 		if (tmp) {
 			e = gf_odf_write_descriptor(bs, tmp);
 			if (e) return e;
@@ -226,12 +224,11 @@ GF_Err gf_odf_write_descriptor_list_filter(GF_BitStream *bs, GF_List *descList, 
 {
 	GF_Err e;
 	u32 count, i;
-	GF_Descriptor *tmp;
 
 	if (! descList) return GF_OK;
 	count = gf_list_count(descList);
 	for ( i = 0; i < count; i++ ) {
-		tmp = (GF_Descriptor*)gf_list_get(descList, i);
+		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(descList, i);
 		if (tmp && (tmp->tag==only_tag) ) {
 			e = gf_odf_write_descriptor(bs, tmp);
 			if (e) return e;

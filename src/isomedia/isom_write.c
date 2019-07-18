@@ -2094,7 +2094,6 @@ GF_Err gf_isom_remove_edit_segments(GF_ISOFile *movie, u32 trackNumber)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
-	GF_EdtsEntry *ent;
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
@@ -2104,7 +2103,7 @@ GF_Err gf_isom_remove_edit_segments(GF_ISOFile *movie, u32 trackNumber)
 	if (!trak->editBox || !trak->editBox->editList) return GF_OK;
 
 	while (gf_list_count(trak->editBox->editList->entryList)) {
-		ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, 0);
+		GF_EdtsEntry *ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, 0);
 		gf_free(ent);
 		e = gf_list_rem(trak->editBox->editList->entryList, 0);
 		if (e) return e;
@@ -3490,7 +3489,6 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	Double ts_scale;
 	u32 i, count;
 	GF_Err e;
-	GF_SampleEntryBox *entry;
 	GF_SampleTableBox *stbl, *stbl_temp;
 	GF_SampleEncryptionBox *senc;
 
@@ -3612,6 +3610,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 
 	/*reset data ref*/
 	if (! (flags & GF_ISOM_CLONE_TRACK_KEEP_DREF) ) {
+		GF_SampleEntryBox *entry;
 		gf_isom_box_array_del(new_tk->Media->information->dataInformation->dref->child_boxes);
 		new_tk->Media->information->dataInformation->dref->child_boxes = gf_list_new();
 		/*update data ref*/
@@ -6347,7 +6346,6 @@ GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track)
 	u32 i;
 	u64 trackDuration;
 	GF_EdtsEntry *ent;
-	GF_EditListBox *elst;
 	GF_Err e;
 	GF_TrackBox *trak;
 
@@ -6370,7 +6368,7 @@ GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track)
 	//entries' duration (always expressed in MovieTimeScale)
 	if (trak->editBox && trak->editBox->editList) {
 		u64 editListDuration = 0;
-		elst = trak->editBox->editList;
+		GF_EditListBox *elst = trak->editBox->editList;
 		i=0;
 		while ((ent = (GF_EdtsEntry*)gf_list_enum(elst->entryList, &i))) {
 			if (ent->segmentDuration > trackDuration)

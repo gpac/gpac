@@ -86,7 +86,7 @@ GF_Err m4vmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 GF_Err m4vmx_process(GF_Filter *filter)
 {
 	GF_M4VMxCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck, *dst_pck;
+	GF_FilterPacket *pck;
 	u8 *data, *output;
 	u32 pck_size, size, sap_type;
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -112,6 +112,7 @@ GF_Err m4vmx_process(GF_Filter *filter)
 	}
 
 	if (sap_type && ctx->dsi) {
+		GF_FilterPacket *dst_pck;
 		size = pck_size + ctx->dsi_size;
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);

@@ -579,11 +579,11 @@ static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc
 	nb_pps = 0;
 
 	for (i=0; i<count; i++) {
-		HEVC_PPS *pps;
 		GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_list_get(ctx->pps, i);
 		s32 idx = gf_media_hevc_read_pps(slc->data, slc->size, &hevc);
 
 		if (idx>=0) {
+			HEVC_PPS *pps;
 			nb_pps++;
 			pps = &hevc.pps[idx];
 			if (!pps->entropy_coding_sync_enabled_flag && pps->tiles_enabled_flag)

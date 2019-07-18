@@ -1307,9 +1307,9 @@ static u32 lsr_get_command_by_name(const char *name)
 
 static GF_ESD *lsr_parse_header(GF_SVG_Parser *parser, const char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
-	GF_ESD *esd;
 	u32 i;
 	if (!strcmp(name, "LASeRHeader")) {
+		GF_ESD *esd;
 		GF_LASERConfig *lsrc = (GF_LASERConfig *) gf_odf_desc_new(GF_ODF_LASER_CFG_TAG);
 		for (i=0; i<nb_attributes; i++) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
@@ -1472,9 +1472,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			if (url) {
 				od->URLString = url;
 			} else {
-				char szName[1024];
 				GF_MuxInfo *mux;
-				FILE *nhml;
 				GF_ESD *esd = (GF_ESD*)gf_odf_desc_esd_new(2);
 				gf_list_add(od->ESDescriptors, esd);
 				esd->decoderConfig->objectTypeIndication = codecid;
@@ -1489,6 +1487,8 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 					mux->file_name = gf_strdup(src);
 					st->nhml_info = NULL;
 				} else {
+					FILE *nhml;
+					char szName[1024];
 					if (parser->load->localPath) {
 						strcpy(szName, parser->load->localPath);
 						strcat(szName, "/");

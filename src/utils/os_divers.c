@@ -1606,7 +1606,6 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #if 0
 	char szProc[100];
 #endif
-	char line[2048];
 	FILE *f;
 
 	assert(sys_init);
@@ -1619,6 +1618,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	u_k_time = idle_time = 0;
 	f = gf_fopen("/proc/stat", "r");
 	if (f) {
+		char line[2048];
 		u32 k_time, nice_time, u_time;
 		if (fgets(line, 128, f) != NULL) {
 			if (sscanf(line, "cpu  %u %u %u %u\n", &u_time, &k_time, &nice_time, &idle_time) == 4) {

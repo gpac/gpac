@@ -347,10 +347,8 @@ static char** extract_attributes(const char *name, const char *line, const int n
  */
 static char** parse_attributes(const char *line, s_accumulated_attributes *attributes) {
 	int int_value, i;
-	double double_value;
 	char **ret;
 	char *end_ptr;
-	char *utility;
 	if (line == NULL)
 		return NULL;
 	if (!safe_start_equals("#EXT", line))
@@ -407,7 +405,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		/* #EXTINF:<duration>,<title> */
 		attributes->is_media_segment = GF_TRUE;
 		if (ret[0]) {
-			double_value = strtod(ret[0], &end_ptr);
+			double double_value = strtod(ret[0], &end_ptr);
 			if (end_ptr != ret[0]) {
 				attributes->duration_in_seconds = double_value;
 			}
@@ -502,6 +500,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		attributes->is_master_playlist = GF_TRUE;
 		M3U8_COMPATIBILITY_VERSION(1);
 		while (ret[i] != NULL) {
+			char *utility;
 			if (safe_start_equals("BANDWIDTH=", ret[i])) {
 				utility = &(ret[i][10]);
 				int_value = (s32) strtol(utility, &end_ptr, 10);
@@ -969,7 +968,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 
 GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, const char *baseURL, Stream *in_stream, PlaylistElement *sub_playlist)
 {
-	int len, i, currentLineNumber;
+	int i, currentLineNumber;
 	FILE *f = NULL;
 	u8 *m3u8_payload;
 	u32 m3u8_size, m3u8pos;
@@ -1002,6 +1001,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 	m3u8pos = 0;
 	while (1) {
 		char *eof;
+		int len;
 		if (f) {
 			if (!fgets(currentLine, sizeof(currentLine), f))
 				break;

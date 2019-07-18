@@ -658,7 +658,6 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 {
 #ifndef GPAC_DISABLE_VRML
 	u32 j;
-	GF_Route *r;
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	Bool detach=0;
@@ -715,6 +714,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	assert(pNode->sgprivate->parents==NULL);
 
 	if (pSG) {
+		GF_Route *r;
 		/*if def, remove from sg def table*/
 		if (pNode->sgprivate->flags & GF_NODE_IS_DEF) {
 			remove_node_id(pSG, pNode);
@@ -911,7 +911,6 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 	Bool replace_proto;
 #endif
 	Bool replace_root;
-	GF_Node *par;
 	GF_SceneGraph *pSG = node->sgprivate->scenegraph;
 
 #ifndef GPAC_DISABLE_VRML
@@ -939,7 +938,7 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 
 	while (node->sgprivate->parents) {
 		Bool do_break = node->sgprivate->parents->next ? 0 : 1;
-		par = node->sgprivate->parents->node;
+		GF_Node *par = node->sgprivate->parents->node;
 
 #ifndef GPAC_DISABLE_SVG
 		if (type)
@@ -1356,8 +1355,8 @@ void gf_sg_parent_setup(GF_Node *node)
 GF_EXPORT
 void gf_node_unregister_children(GF_Node *container, GF_ChildNodeItem *child)
 {
-	GF_ChildNodeItem *cur;
 	while (child) {
+		GF_ChildNodeItem *cur;
 		gf_node_unregister(child->node, container);
 		cur = child;
 		child = child->next;
@@ -2277,11 +2276,10 @@ GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, char *ns_name, char *q_name)
 
 u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname)
 {
-	GF_XMLNS *ns;
 	u32 i, count;
 	count = sg->ns ? gf_list_count(sg->ns) : 0;
 	for (i=0; i<count; i++) {
-		ns = gf_list_get(sg->ns, i);
+		GF_XMLNS *ns = gf_list_get(sg->ns, i);
 		if (!ns->qname && !qname)
 			return ns->xmlns_id;
 
@@ -2297,11 +2295,10 @@ u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname)
 
 u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name)
 {
-	GF_XMLNS *ns;
 	u32 i, count;
 	count = sg->ns ? gf_list_count(sg->ns) : 0;
 	for (i=0; i<count; i++) {
-		ns = gf_list_get(sg->ns, i);
+		GF_XMLNS *ns = gf_list_get(sg->ns, i);
 		if (ns->name && name && !strcmp(ns->name, name))
 			return ns->xmlns_id;
 		if (!ns->name && !name)
@@ -2312,11 +2309,10 @@ u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name)
 
 const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, GF_NamespaceType xmlns_id)
 {
-	GF_XMLNS *ns;
 	u32 i, count;
 	count = sg->ns ? gf_list_count(sg->ns) : 0;
 	for (i=0; i<count; i++) {
-		ns = gf_list_get(sg->ns, i);
+		GF_XMLNS *ns = gf_list_get(sg->ns, i);
 		if (ns->xmlns_id == xmlns_id)
 			return ns->qname;
 	}
@@ -2327,12 +2323,11 @@ const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, GF_NamespaceType xmlns_
 
 const char *gf_sg_get_namespace(GF_SceneGraph *sg, GF_NamespaceType xmlns_id)
 {
-	GF_XMLNS *ns;
 	u32 i, count;
 	if (!sg) return NULL;
 	count = sg->ns ? gf_list_count(sg->ns) : 0;
 	for (i=0; i<count; i++) {
-		ns = gf_list_get(sg->ns, i);
+		GF_XMLNS *ns = gf_list_get(sg->ns, i);
 		if (ns->xmlns_id == xmlns_id)
 			return ns->name;
 	}

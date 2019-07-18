@@ -30,7 +30,7 @@
 void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 {
 	GF_SceneNamespace *scene_ns;
-	GF_Scene *scene, *top_scene;
+	GF_Scene *scene;
 	GF_ObjectManager *root = (GF_ObjectManager *)udta;
 	assert(root);
 	scene_ns = root->scene_ns;
@@ -58,6 +58,7 @@ void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 
 		/*destroy service only if attached*/
 		if (root) {
+			GF_Scene *top_scene;
 			//notify before disconnecting
 			if (root->subscene) gf_scene_notify_event(root->subscene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, err, GF_FALSE);
 

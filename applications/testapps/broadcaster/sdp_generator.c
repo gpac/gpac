@@ -7,7 +7,6 @@ int sdp_generator(PNC_CallbackData *data, char *ip_dest, char *sdp_fmt)
 	GF_ESD *esd = NULL;
 	u32 size,size64;
 	char *buffer;
-	char buf64[5000];
 	FILE *fp;
 	int ret;
 	char temp[5000];
@@ -35,6 +34,7 @@ int sdp_generator(PNC_CallbackData *data, char *ip_dest, char *sdp_fmt)
 
 	codec = (GF_SceneEngine *) data->codec;
 	if (codec) {
+		char buf64[5000];
 		buffer = NULL;
 		size = 0;
 		gf_odf_desc_write((GF_Descriptor *) codec->ctx->root_od, &buffer, &size);

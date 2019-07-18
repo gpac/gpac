@@ -2214,10 +2214,9 @@ sample_entry_done:
 static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
-	TrackWriter *tkw;
 
 	if (is_remove) {
-		tkw = gf_filter_pid_get_udta(pid);
+		TrackWriter *tkw = gf_filter_pid_get_udta(pid);
 		if (tkw) {
 			gf_list_del_item(ctx->tracks, tkw);
 			gf_free(tkw);
@@ -3070,7 +3069,6 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		u32 def_is_rap, tscale;
 		u64 dts;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
-		GF_FilterPacket *pck;
 
 		if (tkw->fake_track) {
 			def_is_rap = GF_FALSE;
@@ -3082,7 +3080,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 				def_pck_dur = 0;
 			}
 		} else {
-			pck = gf_filter_pid_get_packet(tkw->ipid);
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
 			assert(pck);
 
 			//otherwise setup fragmentation, using first sample desc as default idx
@@ -4242,10 +4240,10 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	GF_Err e = GF_OK;
 	u32 i, count;
 	GF_PropertyEntry *pe=NULL;
-	const GF_PropertyValue *p;
 
 	count = gf_list_count(ctx->tracks);
 	for (i=0; i<count; i++) {
+		const GF_PropertyValue *p;
 		Bool has_bframes = GF_FALSE;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 

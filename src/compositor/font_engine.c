@@ -1258,12 +1258,11 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 
 void gf_font_spans_get_selection(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state)
 {
-	GF_TextSpan *span;
 	u32 i, count;
 	GF_Rect rc;
 	count = gf_list_count(spans);
 	for (i=0; i<count; i++) {
-		span = (GF_TextSpan *)gf_list_get(spans, i);
+		GF_TextSpan *span = (GF_TextSpan *)gf_list_get(spans, i);
 		gf_font_spans_select(span, tr_state, NULL, (i+1<count) ? 1 : 0, (i==0) ? 1 : 0, &rc);
 	}
 }

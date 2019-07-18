@@ -371,10 +371,7 @@ u32 getBitsPerPix(ISOMReader *read);
 static GF_Descriptor *CAM_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
 	u32 trackID;
-	GF_ESD *esd;
 	ISOMReader *read;
-	GF_ObjectDescriptor *od;
-	GF_BitStream *bs;
 	char *buf;
 	u32 buf_size;
 	if (!plug || !plug->priv) return NULL;
@@ -385,6 +382,9 @@ static GF_Descriptor *CAM_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 	read->base_track_id = 0;
 
 	if (trackID && (expect_type==GF_MEDIA_OBJECT_VIDEO) ) {
+		GF_BitStream *bs;
+		GF_ESD *esd;
+		GF_ObjectDescriptor *od;
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		od->objectDescriptorID = 1;
 
@@ -461,18 +461,23 @@ GF_Err CAM_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 void Java_com_gpac_Osmo4_Preview_processFrameBuf( JNIEnv* env, jobject thiz, jbyteArray arr)
 {
-	u8* data;
-	u32 datasize;
 	ISOMReader* ctx = globReader;
-	GF_SLHeader hdr;
-	u32 cts = 0;
-	u32 convTime = 0;
-	u32 j = 0;
-	jbyte *jdata;
-	jsize len;
+	if ( ctx
+	 	&& ctx->started
+	 	&& ctx->term
+	 	&& ctx->term->compositor
+	 	&& ctx->term->compositor->audio_renderer
+	) {
 
-	if ( ctx && ctx->started && ctx->term && ctx->term->compositor && ctx->term->compositor->audio_renderer)
-	{
+		u8* data;
+		u32 datasize;
+		GF_SLHeader hdr;
+		u32 cts = 0;
+		u32 convTime = 0;
+		u32 j = 0;
+		jbyte *jdata;
+		jsize len;
+
 		len = (*env)->GetArrayLength(env, arr);
 		if ( len <= 0 ) return;
 		jdata = (*env)->GetByteArrayElements(env,arr,0);

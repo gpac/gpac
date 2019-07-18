@@ -830,10 +830,11 @@ restart:
 static GF_Err swf_flush_shape(SWFReader *read, SWFShape *shape, SWFFont *font, Bool last_shape)
 {
 	GF_Err e;
-	SWFShapeRec *sf0, *sf1, *sl;
+	SWFShapeRec *sf0;
 	u32 i, count;
 	count = gf_list_count(shape->fill_left);
 	for (i=0; i<count; i++) {
+		SWFShapeRec *sf1;
 		sf0 = (SWFShapeRec*)gf_list_get(shape->fill_left, i);
 		sf1 = (SWFShapeRec*)gf_list_get(shape->fill_right, i);
 		/*reverse right path*/
@@ -854,7 +855,7 @@ static GF_Err swf_flush_shape(SWFReader *read, SWFShape *shape, SWFFont *font, B
 	}
 	/*remove dummy lines*/
 	for (i=0; i<gf_list_count(shape->lines); i++) {
-		sl = (SWFShapeRec*)gf_list_get(shape->lines, i);
+		SWFShapeRec *sl = (SWFShapeRec*)gf_list_get(shape->lines, i);
 		if (sl->path->nbType<1) {
 			gf_list_rem(shape->lines, i);
 			swf_free_shape_rec(sl);
@@ -2654,9 +2655,9 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 #endif
 	} else {
 #ifndef GPAC_DISABLE_SVG
-		char svgFileName[GF_MAX_PATH];
 		FILE *svgFile;
 		if (load->svgOutFile) {
+			char svgFileName[GF_MAX_PATH];
 			if (load->localPath) {
 				sprintf(svgFileName, "%s%c%s.svg", load->localPath, GF_PATH_SEPARATOR, load->svgOutFile);
 			} else {

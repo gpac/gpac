@@ -2408,13 +2408,13 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 
 void gf_filter_forward_clock(GF_Filter *filter)
 {
-	GF_FilterPacket *pck;
 	u32 i;
 	u64 clock_val;
 	if (!filter->next_clock_dispatch_type) return;
 	if (!filter->num_output_pids) return;
 	
 	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPacket *pck;
 		Bool req_props_map, info_modified;
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		GF_PropertyMap *map;
@@ -2681,7 +2681,6 @@ Bool gf_filter_block_enabled(GF_Filter *filter)
 GF_EXPORT
 GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, u8 *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid)
 {
-	char *sep;
 	char tmp_ext[50];
 	Bool ext_not_trusted, is_new_pid = GF_FALSE;
 	GF_FilterPid *pid = *out_pid;
@@ -2711,7 +2710,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			if (is_new_pid)
 				gf_filter_pid_set_eos(pid);
 		} else {
-			sep = gf_file_basename(url);
+			char *sep = gf_file_basename(url);
 
 			gf_filter_pid_set_name(pid, sep);
 		}

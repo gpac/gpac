@@ -198,12 +198,11 @@ void gf_sc_connect_from_time_ex(GF_Compositor *compositor, const char *URL, u64 
 {
 	GF_Scene *scene;
 	GF_ObjectManager *odm;
-	const char *main_url;
 	if (!URL || !strlen(URL)) return;
 
 	if (compositor->root_scene) {
 		if (compositor->root_scene->root_od && compositor->root_scene->root_od->scene_ns) {
-			main_url = compositor->root_scene->root_od->scene_ns->url;
+			const char *main_url = compositor->root_scene->root_od->scene_ns->url;
 			if (main_url && !strcmp(main_url, URL)) {
 				gf_sc_play_from_time(compositor, 0, pause_at_first_frame);
 				return;
@@ -1693,7 +1692,7 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 	GF_List *extra_graphs;
 	u32 mode;
 	u32 i;
-	char szExt[20], *ext;
+	char *ext;
 	GF_Err e;
 
 	if (!term || !term->compositor->root_scene) return GF_BAD_PARAM;
@@ -1720,6 +1719,7 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 	/*figure out best dump format based on extension*/
 	ext = odm->scene_ns ? strrchr(odm->scene_ns->url, '.') : NULL;
 	if (ext) {
+		char szExt[20];
 		strcpy(szExt, ext);
 		strlwr(szExt);
 		if (!strcmp(szExt, ".wrl")) mode = xml_dump ? GF_SM_DUMP_X3D_XML : GF_SM_DUMP_VRML;

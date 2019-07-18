@@ -274,7 +274,6 @@ GF_Err obumx_process(GF_Filter *filter)
 	else gf_bs_reassign_buffer(ctx->bs_w, output, hdr_size+size);
 
 	if (ctx->mode==1) {
-		GF_AV1_OBUArrayEntry *obu;
 		u32 frame_idx = 0;
 		//temporal unit
 		gf_av1_leb128_write(ctx->bs_w, av1b_frame_size);
@@ -287,6 +286,7 @@ GF_Err obumx_process(GF_Filter *filter)
 		gf_bs_write_u8(ctx->bs_w, 0);
 
 		if (sap_type && ctx->dsi) {
+			GF_AV1_OBUArrayEntry *obu;
 			i=0;
 			while ((obu = gf_list_enum(ctx->av1c->obu_array, &i))) {
 				gf_av1_leb128_write(ctx->bs_w, obu->obu_length);

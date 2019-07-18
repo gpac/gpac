@@ -554,7 +554,6 @@ GF_Err vobsub_get_subpic_duration(u8 *_data, u32 psize, u32 dsize, u32 *duration
 GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, u8 *data, u32 dataSize)
 {
 	u8	buf[0x800], ptsbuf[5];
-	u8	*p;
 	int	put_pts = 1;
 
 	/* Build PTS buffer */
@@ -564,8 +563,8 @@ GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, u8 *data, u32 dataSize)
 	ptsbuf[3] = (u8)(((pts >>  7) & 0xff));
 	ptsbuf[4] = (u8)(((pts <<  1) & 0xfe) | 0x01);
 
-	while (dataSize > 0)
-	{
+	while (dataSize > 0) {
+		u8	*p;
 		u32 padLen = 0;
 		u32 dataLen = sizeof(buf);
 		u32 packLen;

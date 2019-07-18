@@ -76,11 +76,10 @@ OCIEvent *gf_oci_event_new(u16 EventID)
 GF_EXPORT
 void gf_oci_event_del(OCIEvent *event)
 {
-	GF_Descriptor *desc;
 	if (!event) return;
 
 	while (gf_list_count(event->OCIDescriptors)) {
-		desc = (GF_Descriptor *)gf_list_get(event->OCIDescriptors, 0);
+		GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(event->OCIDescriptors, 0);
 		gf_list_rem(event->OCIDescriptors, 0);
 		gf_odf_delete_descriptor(desc);
 	}
@@ -206,11 +205,10 @@ OCICodec *gf_oci_codec_new(u8 IsEncoder, u8 Version)
 GF_EXPORT
 void gf_oci_codec_del(OCICodec *codec)
 {
-	OCIEvent *ev;
 	if (!codec) return;
 
 	while (gf_list_count(codec->OCIEvents)) {
-		ev = (OCIEvent *)gf_list_get(codec->OCIEvents, 0);
+		OCIEvent *ev = (OCIEvent *)gf_list_get(codec->OCIEvents, 0);
 		gf_oci_event_del(ev);
 		gf_list_rem(codec->OCIEvents, 0);
 	}

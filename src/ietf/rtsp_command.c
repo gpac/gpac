@@ -48,8 +48,6 @@ GF_RTSPCommand *gf_rtsp_command_new()
 GF_EXPORT
 void gf_rtsp_command_reset(GF_RTSPCommand *com)
 {
-	GF_RTSPTransport *trans;
-	GF_X_Attribute *att;
 	if (!com) return;
 
 	//free all headers
@@ -83,12 +81,12 @@ void gf_rtsp_command_reset(GF_RTSPCommand *com)
 	com->Range = NULL;
 
 	while (gf_list_count(com->Transports)) {
-		trans = (GF_RTSPTransport *) gf_list_get(com->Transports, 0);
+		GF_RTSPTransport *trans = (GF_RTSPTransport *) gf_list_get(com->Transports, 0);
 		gf_list_rem(com->Transports, 0);
 		gf_rtsp_transport_del(trans);
 	}
 	while (gf_list_count(com->Xtensions)) {
-		att = (GF_X_Attribute*)gf_list_get(com->Xtensions, 0);
+		GF_X_Attribute *att = (GF_X_Attribute*)gf_list_get(com->Xtensions, 0);
 		gf_list_rem(com->Xtensions, 0);
 		gf_free(att->Name);
 		gf_free(att->Value);
@@ -112,8 +110,6 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 {
 	u32 i, cur_pos, size, count;
 	char *buffer, temp[50];
-	GF_RTSPTransport *trans;
-	GF_X_Attribute *att;
 
 	*out_buffer = NULL;
 
@@ -186,6 +182,7 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 	if (count) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Transport: ");
 		for (i=0; i<count; i++) {
+			GF_RTSPTransport *trans;
 			//line separator for headers
 			if (i) RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n ,");
 			trans = (GF_RTSPTransport *) gf_list_get(com->Transports, i);
@@ -249,7 +246,7 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 	//eXtensions
 	count = gf_list_count(com->Xtensions);
 	for (i=0; i<count; i++) {
-		att = (GF_X_Attribute *) gf_list_get(com->Xtensions, i);
+		GF_X_Attribute *att = (GF_X_Attribute *) gf_list_get(com->Xtensions, i);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "x-");
 		RTSP_WRITE_HEADER(buffer, size, cur_pos, att->Name, att->Value);
 	}

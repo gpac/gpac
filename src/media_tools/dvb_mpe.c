@@ -10,9 +10,8 @@ static void gf_m2ts_Delete_IpPacket(GF_M2TS_IP_Packet *ip_packet);
 
 static void empty_list(GF_List * list)
 {
-	void *obj;
 	while(gf_list_count(list)) {
-		obj = gf_list_get(list,0);
+		void *obj = gf_list_get(list,0);
 		gf_list_rem(list,0);
 		gf_free(obj);
 		obj = NULL;
@@ -73,8 +72,6 @@ void gf_dvb_mpe_init(GF_M2TS_Demuxer *ts)
 GF_EXPORT
 void gf_dvb_mpe_shutdown(GF_M2TS_Demuxer *ts)
 {
-	GF_M2TS_IP_Stream *ip_stream_buff;
-
 	GF_M2TS_IP_PLATFORM * ip_platform;
 	if (!ts)
 		return;
@@ -84,7 +81,7 @@ void gf_dvb_mpe_shutdown(GF_M2TS_Demuxer *ts)
 
 	if (ip_platform->ip_streams) {
 		while(gf_list_count(ip_platform->ip_streams)) {
-			ip_stream_buff=gf_list_get(ip_platform->ip_streams, 0);
+			GF_M2TS_IP_Stream *ip_stream_buff = gf_list_get(ip_platform->ip_streams, 0);
 
 			while (gf_list_count(ip_stream_buff->targets)) {
 				GF_M2TS_IP_Target *ip_targets = gf_list_get(ip_stream_buff->targets, 0);
@@ -939,7 +936,6 @@ GF_EXPORT
 void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 {
 	u32 i_streams, i_targets,i,j,l;
-	GF_M2TS_IP_Stream *ip_stream_buff;
 	GF_M2TS_IP_Target *ip_targets;
 	u8 *ip_address;
 	GF_M2TS_IP_PLATFORM * ip_platform = ts->ip_platform;
@@ -955,9 +951,8 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 
 	assert(ip_platform->ip_streams);
 	i_streams = gf_list_count(ip_platform->ip_streams);
-	for(i=0; i<i_streams; i++)
-	{
-		ip_stream_buff=gf_list_get(ip_platform->ip_streams, i);
+	for(i=0; i<i_streams; i++) {
+		GF_M2TS_IP_Stream *ip_stream_buff = gf_list_get(ip_platform->ip_streams, i);
 		fprintf(stderr, "PID:%d \n",ip_stream_buff->PID);
 		fprintf(stderr, "Target IP Adress : \n");
 		/*Print the target IP address  */
@@ -1052,7 +1047,6 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 
 void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 {
-	char name[100];
 	u32 ipv4_addr;
 	GF_Err e;
 	u8 nb_socket_struct, i;
@@ -1074,6 +1068,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 		Sock_Struct = NULL;
 	}
 	if (Sock_Struct == NULL) {
+		char name[100];
 		GF_SAFEALLOC(Sock_Struct, GF_SOCK_ENTRY);
 
 		Sock_Struct->ipv4_addr = ipv4_addr;

@@ -973,7 +973,6 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 static GF_Err rtpout_process(GF_Filter *filter)
 {
 	GF_Err e = GF_OK;
-	GF_RTPOutStream *stream;
 	u32 repost_delay_us=0;
 	GF_RTPOutCtx *ctx = gf_filter_get_udta(filter);
 
@@ -989,7 +988,7 @@ static GF_Err rtpout_process(GF_Filter *filter)
 		if ((s32) diff > ctx->runfor) {
 			u32 i, count = gf_list_count(ctx->streams);
 			for (i=0; i<count; i++) {
-				stream = gf_list_get(ctx->streams, i);
+				GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
 				gf_filter_pid_set_discard(stream->pid, GF_TRUE);
 				stream->pck = NULL;
 			}

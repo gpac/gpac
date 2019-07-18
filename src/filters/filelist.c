@@ -364,13 +364,12 @@ GF_Err filelist_process(GF_Filter *filter)
 	u32 i, count, nb_done, nb_inactive;
 	FileListPid *iopid;
 	GF_FileListCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck;
 
 	if (ctx->is_eos)
 		return GF_EOS;
 
 	if (!ctx->file_path && !ctx->file_list) {
-		pck = gf_filter_pid_get_packet(ctx->file_pid);
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->file_pid);
 		if (!pck) return GF_OK;
 		gf_filter_pck_get_framing(pck, &start, &end);
 		gf_filter_pid_drop_packet(ctx->file_pid);

@@ -973,7 +973,6 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 GF_EXPORT
 GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 {
-	GF_BitStream *bs;
 	GF_ESD *esd;
 	u32 subtype;
 
@@ -1013,6 +1012,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 	}
 
 	if (subtype == GF_ISOM_SUBTYPE_3GP_DIMS) {
+		GF_BitStream *bs;
 		GF_DIMSDescription dims;
 		esd = gf_odf_desc_esd_new(0);
 		esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);

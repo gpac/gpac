@@ -977,7 +977,7 @@ static GF_Err smil_parse_time(GF_Node *elt, SMIL_Time *v, char *d)
 		u32 hours, minutes;
 		u32 nhours, nminutes;
 		Float seconds;
-		char *tmp1, *tmp2;
+		char *tmp1;
 
 		v->type = GF_SMIL_TIME_WALLCLOCK;
 		tmp += 10;
@@ -988,6 +988,7 @@ static GF_Err smil_parse_time(GF_Node *elt, SMIL_Time *v, char *d)
 			tmp = tmp1;
 		}
 		if ((tmp1 = strchr(tmp, ':')) ) {
+			char *tmp2;
 			if ((tmp2 = strchr(tmp1, ':')) ) {
 				/* HHMMSS */
 				sscanf(tmp, "%u:%u:%f", &hours, &minutes, &seconds);
@@ -2464,12 +2465,12 @@ static void smil_parse_time_list(GF_Node *e, GF_List *values, char *begin_or_end
 
 	/* sorting timing values */
 	if (gf_list_count(values) > 1) {
-		SMIL_Time *v, *sv;
+		SMIL_Time *sv;
 		GF_List *sorted = gf_list_new();
 		u32 i, count;
 		u8 added = 0;
 		do {
-			v = (SMIL_Time*)gf_list_get(values, 0);
+			SMIL_Time *v = (SMIL_Time*)gf_list_get(values, 0);
 			gf_list_rem(values, 0);
 			added = 0;
 			count = gf_list_count(sorted);
@@ -3851,9 +3852,8 @@ static char *svg_dump_iri(XMLRI*iri)
 
 static char *svg_dump_idref(XMLRI*iri)
 {
-	const char *name;
 	if (iri->target) {
-		name = gf_node_get_name((GF_Node *)iri->target);
+		const char *name = gf_node_get_name((GF_Node *)iri->target);
 		if (name) return gf_strdup(name);
 		else {
 			char tmp[50];

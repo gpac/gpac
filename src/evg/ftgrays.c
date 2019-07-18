@@ -154,9 +154,9 @@ typedef struct  TRaster_
 static GFINLINE void gray_record_cell( TRaster *raster )
 {
 	if (( raster->area | raster->cover) && (raster->ey<raster->max_ey)) {
-		AACell *cell;
 		long y = raster->ey - raster->min_ey;
 		if (y>=0) {
+			AACell *cell;
 			AAScanline *sl = &raster->scanlines[y];
 			if (sl->num >= sl->alloc) {
 				sl->cells = (AACell*)gf_realloc(sl->cells, sizeof(AACell)* (sl->alloc + AA_CELL_STEP_ALLOC));
@@ -241,7 +241,7 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 	TCoord  ex1, ex2, fx1, fx2, delta;
 	long    p, first;
 	long dx;
-	int     incr, lift, mod, rem;
+	int     incr, mod;
 
 	dx = x2 - x1;
 	ex1 = TRUNC( x1 ); /* if (ex1 >= raster->max_ex) ex1 = raster->max_ex-1; */
@@ -291,6 +291,7 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 	y1  += delta;
 
 	if ( ex1 != ex2 ) {
+		int lift, rem;
 		p     = ONE_PIXEL * ( y2 - y1 + delta );
 		lift  = (TCoord)( p / dx );
 		rem   = (TCoord)( p % dx );
@@ -463,9 +464,6 @@ End:
 static int EVG_Outline_Decompose(EVG_Outline *outline, TRaster *user)
 {
 	EVG_Vector   v_start;
-	EVG_Vector*  point;
-	EVG_Vector*  limit;
-	char*       tags;
 	int   n;         /* index of contour in outline     */
 	int   first;     /* index of first point in contour */
 #ifdef INLINE_POINT_CONVERSION
@@ -474,6 +472,9 @@ static int EVG_Outline_Decompose(EVG_Outline *outline, TRaster *user)
 
 	first = 0;
 	for ( n = 0; n < outline->n_contours; n++ ) {
+		EVG_Vector *point;
+		EVG_Vector *limit;
+		char *tags;
 		int  last;  /* index of last point in contour */
 		last  = outline->contours[n];
 		limit = outline->points + last;
@@ -532,8 +533,9 @@ static void gray_quick_sort( AACell *cells, int    count )
 
 	for (;;) {
 		int    len = (int)( limit - base );
-		AACell *i, *j, *pivot;
+		AACell *i, *j;
 		if ( len > QSORT_THRESHOLD ) {
+			AACell *pivot;
 			/* we use base + len/2 as the pivot */
 			pivot = base + len / 2;
 			SWAP_CELLS( base, pivot, temp );
@@ -602,8 +604,6 @@ static void gray_quick_sort( AACell *cells, int    count )
 
 static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos    area, int     acount, Bool zero_non_zero_rule)
 {
-	EVG_Span*   span;
-	int        count;
 	int        coverage;
 
 	x += (TCoord)raster->min_ex;
@@ -634,6 +634,8 @@ static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos    area, int
 	}
 
 	if ( coverage ) {
+		EVG_Span*   span;
+		int        count;
 		/* see if we can add this span to the current list */
 		count = raster->num_gray_spans;
 		span  = raster->gray_spans + count - 1;
@@ -663,8 +665,7 @@ static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos    area, int
 
 static void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_non_zero_rule)
 {
-	TCoord  x, cover;
-	TArea   area;
+	TCoord  cover;
 	AACell *start, *cur;
 
 	cur = sl->cells;
@@ -672,6 +673,8 @@ static void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_n
 	raster->num_gray_spans = 0;
 
 	while (sl->num) {
+		TCoord  x;
+		TArea   area;
 		start  = cur;
 		x      = start->x;
 		area   = start->area;

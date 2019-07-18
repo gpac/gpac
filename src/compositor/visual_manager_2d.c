@@ -866,7 +866,6 @@ exit:
 
 Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState *tr_state, Bool is_root_visual)
 {
-	GF_SceneGraph *sg;
 	GF_Matrix2D backup;
 	u32 i;
 	Bool res;
@@ -905,6 +904,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Traversing scene subtree (root node %s)\n", root ? gf_node_get_class_name(root) : "none"));
 
 	if (is_root_visual) {
+		GF_SceneGraph *sg;
 		gf_node_traverse(root, tr_state);
 
 		i=0;

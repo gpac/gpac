@@ -583,10 +583,8 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 	break;
 	case GF_SG_VRML_SFSCRIPT:
 	{
-		size_t _len;
 		u32 len, i;
 		char *str;
-		u16 *uniLine;
 		str = (char*)((SFScript *)ptr)->script_text;
 		len = (u32)strlen(str);
 
@@ -594,6 +592,8 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 			fprintf(sdump->trace, "\"%s\"", str);
 		}
 		else {
+			size_t _len;
+			u16 *uniLine;
 
 			uniLine = (u16*)gf_malloc(sizeof(short) * (len + 1));
 			_len = gf_utf8_mbstowcs(uniLine, len, (const char **)&str);
@@ -749,7 +749,6 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 
 static void gf_dump_vrml_simple_field(GF_SceneDumper *sdump, GF_FieldInfo field, GF_Node *parent)
 {
-	GenMFField *mffield;
 	u32 i, sf_type;
 	GF_ChildNodeItem *list;
 	void *slot_ptr;
@@ -770,15 +769,14 @@ static void gf_dump_vrml_simple_field(GF_SceneDumper *sdump, GF_FieldInfo field,
 		sdump->indent--;
 		return;
 	case GF_SG_VRML_SFCOMMANDBUFFER:
-	{
-	}
-	return;
+		return;
 	}
 	if (gf_sg_vrml_is_sf_field(field.fieldType)) {
 		if (sdump->XMLDump) StartAttribute(sdump, "value");
 		gf_dump_vrml_sffield(sdump, field.fieldType, field.far_ptr, 0, parent);
 		if (sdump->XMLDump) EndAttribute(sdump);
 	} else {
+		GenMFField *mffield;
 		mffield = (GenMFField *) field.far_ptr;
 		sf_type = gf_sg_vrml_get_sf_type(field.fieldType);
 		if (!sdump->XMLDump) {
@@ -821,7 +819,6 @@ static Bool gf_dump_vrml_needs_container(GF_Node *node, GF_FieldInfo *fi)
 
 static void gf_dump_vrml_field(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field)
 {
-	GenMFField *mffield;
 	u32 i, sf_type;
 	Bool needs_field_container;
 	GF_ChildNodeItem *list;
@@ -922,7 +919,7 @@ static void gf_dump_vrml_field(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInf
 		gf_dump_vrml_sffield(sdump, field.fieldType, field.far_ptr, 0, node);
 		EndAttribute(sdump);
 	} else {
-		mffield = (GenMFField *) field.far_ptr;
+		GenMFField *mffield = (GenMFField *) field.far_ptr;
 		sf_type = gf_sg_vrml_get_sf_type(field.fieldType);
 
 		if (sdump->XMLDump && sdump->X3DDump) {
@@ -1105,7 +1102,6 @@ static const char *SD_GetQuantCatName(u32 QP_Type)
 /*field dumping for proto declaration and Script*/
 static void gf_dump_vrml_dyn_field(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field, Bool has_sublist)
 {
-	GenMFField *mffield;
 	u32 i, sf_type;
 	void *slot_ptr;
 
@@ -1169,7 +1165,7 @@ static void gf_dump_vrml_dyn_field(GF_SceneDumper *sdump, GF_Node *node, GF_Fiel
 			fprintf(sdump->trace, "\n");
 		}
 	} else {
-		mffield = (GenMFField *) field.far_ptr;
+		GenMFField *mffield = (GenMFField *) field.far_ptr;
 		sf_type = gf_sg_vrml_get_sf_type(field.fieldType);
 
 		DUMP_IND(sdump);
@@ -1253,7 +1249,6 @@ static void gf_dump_vrml_dyn_field(GF_SceneDumper *sdump, GF_Node *node, GF_Fiel
 /*field dumping for proto instance*/
 static void gf_dump_vrml_proto_field(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field)
 {
-	GenMFField *mffield;
 	u32 i, sf_type;
 	void *slot_ptr;
 
@@ -1279,7 +1274,7 @@ static void gf_dump_vrml_proto_field(GF_SceneDumper *sdump, GF_Node *node, GF_Fi
 			fprintf(sdump->trace, "\"/>\n");
 		}
 	} else {
-		mffield = (GenMFField *) field.far_ptr;
+		GenMFField *mffield = (GenMFField *) field.far_ptr;
 		sf_type = gf_sg_vrml_get_sf_type(field.fieldType);
 
 		if ((field.eventType==GF_SG_EVENT_FIELD) || (field.eventType==GF_SG_EVENT_EXPOSED_FIELD)) {
@@ -3047,7 +3042,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root)
 {
 	GF_ChildNodeItem *list;
-	char attName[100], *attValue, attID[100];
+	char attName[100], *attValue;
 	u32 nID;
 	SVG_Element *svg = (SVG_Element *)n;
 	GF_FieldInfo info;
@@ -3100,8 +3095,10 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 	fprintf(sdump->trace, "<%s", gf_node_get_class_name(n));
 	ns = gf_xml_get_element_namespace(n);
 
-	if (nID) fprintf(sdump->trace, " id=\"%s\"", lsr_format_node_id(n, 0, attID));
-
+	if (nID) {
+		char attID[100];
+		fprintf(sdump->trace, " id=\"%s\"", lsr_format_node_id(n, 0, attID));
+	}
 	att = svg->attributes;
 	while (att) {
 		if (att->data_type==SVG_ID_datatype) {

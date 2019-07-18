@@ -162,8 +162,6 @@ static void vttmx_write_cue(void *udta, GF_WebVTTCue *cue)
 
 void vttmx_parser_flush(GF_WebVTTMxCtx *ctx)
 {
-	GF_FilterPacket *dst_pck;
-	u32 size;
 	u8 *output;
 	u64 duration = ctx->duration.num;
 	duration *= 1000;
@@ -175,6 +173,8 @@ void vttmx_parser_flush(GF_WebVTTMxCtx *ctx)
 	gf_webvtt_parser_finalize(ctx->parser, duration);
 
 	if (gf_bs_get_position(ctx->bs_w)) {
+		GF_FilterPacket *dst_pck;
+		u32 size;
 		gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->cues_buffer, &size, &ctx->cues_buffer_size);
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 		memcpy(output, ctx->cues_buffer, size);

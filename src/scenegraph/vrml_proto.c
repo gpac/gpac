@@ -102,8 +102,6 @@ GF_Err gf_sg_proto_set_in_graph(GF_Proto *proto, GF_SceneGraph *inScene, Bool se
 GF_EXPORT
 GF_Err gf_sg_proto_del(GF_Proto *proto)
 {
-	GF_Node *node;
-	GF_ProtoFieldInterface *field;
 	s32 i;
 
 	if (!proto) return GF_OK;
@@ -115,7 +113,7 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 
 	/*first destroy the code*/
 	while (gf_list_count(proto->node_code)) {
-		node = (GF_Node*)gf_list_get(proto->node_code, 0);
+		GF_Node *node = (GF_Node*)gf_list_get(proto->node_code, 0);
 		gf_node_unregister(node, NULL);
 		gf_list_rem(proto->node_code, 0);
 	}
@@ -123,7 +121,7 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 
 	/*delete interface*/
 	while (gf_list_count(proto->proto_fields)) {
-		field = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, 0);
+		GF_ProtoFieldInterface *field = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, 0);
 		if (field->userpriv && field->OnDelete) field->OnDelete(field->userpriv);
 
 		if (field->FieldType==GF_SG_VRML_SFNODE) {
@@ -345,7 +343,6 @@ GF_Err gf_sg_proto_get_field(GF_Proto *proto, GF_Node *node, GF_FieldInfo *info)
 s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *name)
 {
 	u32 i;
-	GF_ProtoFieldInterface *proto_field;
 	GF_Proto *__proto;
 
 	if (!node && !proto) return -1;
@@ -355,7 +352,7 @@ s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *na
 	if (!__proto ) return -1;
 
 	for (i=0; i<gf_list_count(__proto->proto_fields); i++) {
-		proto_field = (GF_ProtoFieldInterface*)gf_list_get(__proto->proto_fields, i);
+		GF_ProtoFieldInterface *proto_field = (GF_ProtoFieldInterface*)gf_list_get(__proto->proto_fields, i);
 		if (proto_field->FieldName && !strcmp(proto_field->FieldName, name)) return i;
 	}
 	return -1;
@@ -369,12 +366,11 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 	Bool is_script;
 	GF_Node *node, *child;
 	GF_ChildNodeItem *list, *last;
-	GF_Route *r1, *r2;
+	GF_Route *r1;
 #ifndef GPAC_DISABLE_BIFS
 	void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig);
 #endif
 	GF_ProtoInstance *proto;
-	GF_Proto *proto_node;
 	GF_FieldInfo field_orig, field;
 
 	/*this is not a mistake*/
@@ -408,7 +404,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 	}
 	/*create a node*/
 	if (orig->sgprivate->tag == TAG_ProtoNode) {
-		proto_node = ((GF_ProtoInstance *)orig)->proto_interface;
+		GF_Proto *proto_node = ((GF_ProtoInstance *)orig)->proto_interface;
 		/*create the instance but don't load the code -c we MUST wait for ISed routes to be cloned before*/
 		node = gf_sg_proto_create_node(inScene, proto_node, (GF_ProtoInstance *) orig);
 	} else {
@@ -489,7 +485,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 	/*create Routes for ISed fields*/
 	i=0;
 	while ((r1 = (GF_Route*)gf_list_enum(proto->proto_interface->sub_graph->Routes, &i))) {
-		r2 = NULL;
+		GF_Route *r2 = NULL;
 		/*locate only ISed routes*/
 		if (!r1->IS_route) continue;
 
@@ -836,13 +832,11 @@ u32 gf_sg_proto_get_num_fields(GF_Node *node, u8 code_mode)
 void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 {
 	GF_SceneGraph *sg;
-	GF_ProtoField *field;
-	GF_Node *node;
 	u32 index;
 
 	index = 0;
 	while (gf_list_count(inst->fields)) {
-		field = (GF_ProtoField *)gf_list_get(inst->fields, 0);
+		GF_ProtoField *field = (GF_ProtoField *)gf_list_get(inst->fields, 0);
 		gf_list_rem(inst->fields, 0);
 
 		/*regular type*/
@@ -871,7 +865,7 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 
 	/*destroy the code*/
 	while (gf_list_count(inst->node_code)) {
-		node = (GF_Node*)gf_list_get(inst->node_code, 0);
+		GF_Node *node = (GF_Node*)gf_list_get(inst->node_code, 0);
 		gf_node_unregister(node, (GF_Node*) inst);
 		gf_list_rem(inst->node_code, 0);
 	}

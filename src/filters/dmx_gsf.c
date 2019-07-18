@@ -142,11 +142,10 @@ GF_Err gsfdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	GSF_DemuxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		GSF_Stream *st;
 		ctx->ipid = NULL;
 
 		while (gf_list_count(ctx->streams)) {
-			st = gf_list_pop_back(ctx->streams);
+			GSF_Stream *st = gf_list_pop_back(ctx->streams);
 			if (st->opid)
 				gf_filter_pid_remove(st->opid);
 			gf_free(st);

@@ -703,7 +703,6 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 {
 	u32 size, latm_hdr_size, i, data_offset;
 	Bool fragmented;
-	unsigned char *latm_hdr;
 
 	if (!data) {
 		latm_flush(builder);
@@ -723,6 +722,7 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 	data_offset = 0;
 	fragmented = GF_FALSE;
 	while (data_size > 0) {
+		u8 *latm_hdr;
 		latm_hdr_size = (data_size / 255) + 1;
 		/*fragmenting*/
 		if (latm_hdr_size + data_size > builder->Path_MTU) {

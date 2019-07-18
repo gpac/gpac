@@ -3689,7 +3689,6 @@ static void lsr_write_group_content(GF_LASeRCodec *lsr, SVG_Element *elt, Bool s
 
 static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fieldType, u32 att_tag, u32 transformType, void *val, Bool is_indexed)
 {
-	SVG_Number *n;
 	if (is_indexed) {
 		assert(gf_list_count(*(GF_List **)val));
 		switch (fieldType) {
@@ -3743,6 +3742,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 			break;
 		}
 	} else {
+		SVG_Number *n;
 		switch (fieldType) {
 		case SVG_Boolean_datatype:
 			GF_LSR_WRITE_INT(lsr, *(SVG_Boolean*)val ? 1 : 0, 1, "val");

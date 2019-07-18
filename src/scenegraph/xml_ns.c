@@ -383,12 +383,11 @@ static char *gf_xml_get_namespace_qname(GF_DOMNode *elt, u32 ns)
 
 u32 gf_xml_get_attribute_tag(GF_Node *elt, char *attribute_name, u32 ns)
 {
-	char *ns_sep;
 	u32 i, count;
 	count = sizeof(xml_attributes) / sizeof(struct xml_att_def);
 
 	if (!ns) {
-		ns_sep = strchr(attribute_name, ':');
+		char *ns_sep = strchr(attribute_name, ':');
 		if (ns_sep) {
 			ns_sep[0] = 0;
 			ns = gf_sg_get_namespace_code(elt->sgprivate->scenegraph, attribute_name);
@@ -684,9 +683,9 @@ GF_Err gf_node_get_attribute_info(GF_Node *node, GF_FieldInfo *info)
 
 void gf_node_delete_attributes(GF_Node *node)
 {
-	GF_DOMAttribute *tmp;
 	GF_DOMAttribute *att = ((GF_DOMNode*)node)->attributes;
 	while(att) {
+		GF_DOMAttribute *tmp;
 		gf_svg_delete_attribute_value(att->data_type, att->data, node->sgprivate->scenegraph);
 		tmp = att;
 		att = att->next;
@@ -1054,7 +1053,6 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	char szFile[GF_MAX_PATH], buf[20], *sep, *data, *ext;
 	u32 data_size, idx;
 	Bool existing;
-	FILE *f;
 
 	if (!cache_dir || !base_filename || !iri || !iri->string || strncmp(iri->string, "data:", 5)) return GF_OK;
 
@@ -1122,7 +1120,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	strcat(szFile, ext);
 
 	if (!existing) {
-		f = gf_fopen(szFile, "wb");
+		FILE *f = gf_fopen(szFile, "wb");
 		if (!f) {
 			gf_free(data);
 			gf_free(iri->string);

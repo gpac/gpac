@@ -275,12 +275,11 @@ static GF_M2TS_SectionFilter *gf_m2ts_section_filter_new(gf_m2ts_section_callbac
 static void gf_m2ts_reset_sections(GF_List *sections)
 {
 	u32 count;
-	GF_M2TS_Section *section;
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Deleting sections\n"));
 
 	count = gf_list_count(sections);
 	while (count) {
-		section = gf_list_get(sections, 0);
+		GF_M2TS_Section *section = gf_list_get(sections, 0);
 		gf_list_rem(sections, 0);
 		if (section->data) gf_free(section->data);
 		gf_free(section);
@@ -2929,7 +2928,6 @@ Bool gf_m2ts_probe_file(const char *fileName)
 {
 	char buf[M2TS_PROBE_SIZE];
 	u32 size;
-	FILE *t;
 
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u8 *mem_address;
@@ -2939,7 +2937,7 @@ Bool gf_m2ts_probe_file(const char *fileName)
 		if (size>M2TS_PROBE_SIZE) size = M2TS_PROBE_SIZE;
 		memcpy(buf, mem_address, size);
 	} else {
-		t = gf_fopen(fileName, "rb");
+		FILE *t = gf_fopen(fileName, "rb");
 		if (!t) return 0;
 		size = (u32) fread(buf, 1, M2TS_PROBE_SIZE, t);
 		gf_fclose(t);

@@ -59,7 +59,6 @@ GF_Err load_mp4(GF_LoadCompare *lc, GF_ISOFile *mp4, u32 *loadtime)
 {
 	GF_Err e = GF_OK;
 	GF_SceneLoader load;
-	GF_SceneGraph *sg;
 	u32 i, starttime, endtime;
 	u32 nb;
 	if (lc->spread_repeat) nb = 1;
@@ -67,6 +66,7 @@ GF_Err load_mp4(GF_LoadCompare *lc, GF_ISOFile *mp4, u32 *loadtime)
 
 	*loadtime = 0;
 	for (i = 0; i< nb; i++) {
+		GF_SceneGraph *sg;
 		memset(&load, 0, sizeof(GF_SceneLoader));
 		sg = gf_sg_new();
 		load.ctx = gf_sm_new(sg);
@@ -101,7 +101,6 @@ GF_Err gpacctx_load_file(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 {
 	GF_Err e = GF_OK;
 	GF_SceneLoader load;
-	GF_SceneGraph *sg;
 	u32 i, starttime, endtime;
 
 	u32 nb;
@@ -111,6 +110,7 @@ GF_Err gpacctx_load_file(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 	*loadtime = 0;
 
 	for (i = 0; i<nb; i++) {
+		GF_SceneGraph *sg;
 		memset(&load, 0, sizeof(GF_SceneLoader));
 		sg = gf_sg_new();
 		load.ctx = gf_sm_new(sg);
@@ -299,7 +299,6 @@ GF_Err get_mp4_loadtime(GF_LoadCompare *lc, char *item_name, char *item_path, u3
 GF_Err decode_svg(GF_LoadCompare *lc, char *item_name, char *item_path, char *svg_out_path)
 {
 	GF_SceneManager *ctx;
-	GF_SceneGraph *sg;
 	GF_SceneLoader load;
 	GF_ISOFile *mp4;
 	GF_Err e = GF_OK;
@@ -314,6 +313,7 @@ GF_Err decode_svg(GF_LoadCompare *lc, char *item_name, char *item_path, char *sv
 		if (lc->verbose) fprintf(stdout, "Could not open file %s\n", mp4_path);
 		e = GF_IO_ERR;
 	} else {
+		GF_SceneGraph *sg;
 		sg = gf_sg_new();
 		ctx = gf_sm_new(sg);
 		memset(&load, 0, sizeof(GF_SceneLoader));
@@ -347,9 +347,7 @@ GF_Err decode_svg(GF_LoadCompare *lc, char *item_name, char *item_path, char *sv
 GF_Err libxml_load_svg(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 {
 	GF_Err e = GF_OK;
-	GF_SceneGraph *sg;
 	u32 i, starttime, endtime;
-	void *p;
 
 	u32 nb;
 	if (lc->spread_repeat) nb = 1;
@@ -358,6 +356,8 @@ GF_Err libxml_load_svg(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 	*loadtime = 0;
 
 	for (i = 0; i<nb; i++) {
+		void *p;
+		GF_SceneGraph *sg;
 		sg = gf_sg_new();
 
 		starttime = gf_sys_clock();
@@ -424,7 +424,6 @@ GF_Err get_decoded_svg_loadtime_and_size(GF_LoadCompare *lc, char *item_name, ch
 
 GF_Err create_gz_file(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *size)
 {
-	char buffer[100];
 	char gz_path[256];
 	GF_Err e = GF_OK;
 	FILE *file = NULL;
@@ -442,6 +441,7 @@ GF_Err create_gz_file(GF_LoadCompare *lc, char *item_name, char *item_path, u32 
 		if (lc->verbose) fprintf(stdout, "Could not open file %s or %s\n", item_path, gz_path);
 		e = GF_IO_ERR;
 	} else {
+		char buffer[100];
 		while ((read = fread(buffer, 1, 100, file))) gzwrite(gz, buffer, read);
 		gf_fclose(file);
 		gzclose(gz);
@@ -600,7 +600,6 @@ void usage()
 int main(int argc, char **argv)
 {
 	u32 i;
-	char *arg;
 	GF_LoadCompare lc;
 	Bool single = 0;
 	char *out = NULL;
@@ -613,7 +612,7 @@ int main(int argc, char **argv)
 	lc.out = stdout;
 
 	for (i = 1; i < (u32) argc ; i++) {
-		arg = argv[i];
+		char *arg = argv[i];
 		if (!stricmp(arg, "-out")) {
 			out = argv[i+1];
 			i++;

@@ -284,7 +284,6 @@ GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, u8 *data, u32 data_size,
 
 GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
 {
-	GF_BitStream *bs;
 	u8 hdr[2];
 	Bool Pbit;
 	u32 offset, size, max_size;
@@ -302,6 +301,7 @@ GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 	max_size = builder->Path_MTU - 2;
 
 	while(data_size > 0) {
+		GF_BitStream *bs;
 		if(data_size > max_size) {
 			size = max_size;
 			builder->rtp_header.Marker = 0;

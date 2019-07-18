@@ -423,7 +423,6 @@ static void dump_escape_string(FILE * trace, char *name)
 GF_Err chpl_box_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, count;
-	char szDur[20];
 	GF_ChapterListBox *p = (GF_ChapterListBox *)a;
 	gf_isom_box_dump_start(a, "ChapterListBox", trace);
 	fprintf(trace, ">\n");
@@ -431,6 +430,7 @@ GF_Err chpl_box_dump(GF_Box *a, FILE * trace)
 	if (p->size) {
 		count = gf_list_count(p->list);
 		for (i=0; i<count; i++) {
+			char szDur[20];
 			GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(p->list, i);
 			fprintf(trace, "<Chapter name=\"");
 			dump_escape_string(trace, ce->name);
@@ -2322,7 +2322,6 @@ GF_Err tfxd_box_dump(GF_Box *a, FILE * trace)
 GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
-	GF_TrunEntry *ent;
 	GF_TrackFragmentRunBox *p;
 
 	p = (GF_TrackFragmentRunBox *)a;
@@ -2338,6 +2337,7 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 	}
 
 	if (p->flags & (GF_ISOM_TRUN_DURATION|GF_ISOM_TRUN_SIZE|GF_ISOM_TRUN_CTS_OFFSET|GF_ISOM_TRUN_FLAGS)) {
+		GF_TrunEntry *ent;
 		i=0;
 		while ((ent = (GF_TrunEntry *)gf_list_enum(p->entries, &i))) {
 
@@ -2378,14 +2378,14 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err DTE_Dump(GF_List *dte, FILE * trace)
 {
-	GF_GenericDTE *p;
-	GF_ImmediateDTE *i_p;
-	GF_SampleDTE *s_p;
-	GF_StreamDescDTE *sd_p;
 	u32 i, count;
 
 	count = gf_list_count(dte);
 	for (i=0; i<count; i++) {
+		GF_GenericDTE *p;
+		GF_ImmediateDTE *i_p;
+		GF_SampleDTE *s_p;
+		GF_StreamDescDTE *sd_p;
 		p = (GF_GenericDTE *)gf_list_get(dte, i);
 		switch (p->source) {
 		case 0:
@@ -3376,7 +3376,6 @@ GF_Err gf_isom_dump_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, u32 S
 
 GF_Err ilst_item_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_BitStream *bs;
 	u32 val;
 	Bool no_dump = GF_FALSE;
 	char *name = "UnknownBox";
@@ -3455,6 +3454,7 @@ GF_Err ilst_item_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, name, trace);
 
 	if (!no_dump) {
+		GF_BitStream *bs;
 		switch (itune->type) {
 		case GF_ISOM_BOX_TYPE_DISK:
 		case GF_ISOM_BOX_TYPE_TRKN:
@@ -4046,7 +4046,6 @@ GF_Err subs_box_dump(GF_Box *a, FILE * trace)
 {
 	u32 entry_count, i, j;
 	u16 subsample_count;
-	GF_SubSampleInfoEntry *pSamp;
 	GF_SubSampleEntry *pSubSamp;
 	GF_SubSampleInformationBox *ptr = (GF_SubSampleInformationBox *) a;
 
@@ -4058,7 +4057,7 @@ GF_Err subs_box_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "EntryCount=\"%d\">\n", entry_count);
 
 	for (i=0; i<entry_count; i++) {
-		pSamp = (GF_SubSampleInfoEntry*) gf_list_get(ptr->Samples, i);
+		GF_SubSampleInfoEntry *pSamp = (GF_SubSampleInfoEntry*) gf_list_get(ptr->Samples, i);
 
 		subsample_count = gf_list_count(pSamp->SubSamples);
 

@@ -1003,12 +1003,12 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	/*3GPP DIMS*/
 	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_3GPP_DIMS) {
 		GF_DIMSDescription dims;
-		char fmt[200];
 		gf_isom_get_visual_info(tkHint->file, tkHint->TrackNum, 1, &Width, &Height);
 
 		gf_isom_get_dims_description(tkHint->file, tkHint->TrackNum, 1, &dims);
 		sprintf(sdpLine, "a=fmtp:%d Version-profile=%d", tkHint->rtp_p->PayloadType, dims.profile);
 		if (! dims.fullRequestHost) {
+			char fmt[200];
 			strcat(sdpLine, ";useFullRequestHost=0");
 			sprintf(fmt, ";pathComponents=%d", dims.pathComponents);
 			strcat(sdpLine, fmt);
@@ -1089,7 +1089,6 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 	u32 i, sceneT, odT, descIndex, size, size64;
 	GF_InitialObjectDescriptor *iod;
 	GF_SLConfig slc;
-	GF_ESD *esd;
 	GF_ISOSample *samp;
 	Bool remove_ocr;
 	u8 *buffer;
@@ -1139,6 +1138,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 
 	/*rewrite an IOD with good SL config - embbed data if possible*/
 	if (IOD_Profile == GF_SDP_IOD_ISMA) {
+		GF_ESD *esd;
 		Bool is_ok = 1;
 		while (gf_list_count(iod->ESDescriptors)) {
 			esd = (GF_ESD*)gf_list_get(iod->ESDescriptors, 0);

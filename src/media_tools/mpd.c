@@ -251,15 +251,13 @@ static GF_Err gf_mpd_parse_program_info(GF_MPD *mpd, GF_XMLNode *root)
 {
 	GF_MPD_ProgramInfo *info;
 	u32 att_index, child_index;
-	GF_XMLAttribute *att;
-	GF_XMLNode *child;
 
 	GF_SAFEALLOC(info, GF_MPD_ProgramInfo);
 	if (!info) return GF_OUT_OF_MEM;
 
 	att_index = 0;
 	while (1) {
-		att = gf_list_get(root->attributes, att_index);
+		GF_XMLAttribute *att = gf_list_get(root->attributes, att_index);
 		if (!att) {
 			break;
 		} else if (!strcmp(att->name, "moreInformationURL")) {
@@ -272,7 +270,7 @@ static GF_Err gf_mpd_parse_program_info(GF_MPD *mpd, GF_XMLNode *root)
 
 	child_index = 0;
 	while (1) {
-		child = gf_list_get(root->content, child_index);
+		GF_XMLNode *child = gf_list_get(root->content, child_index);
 		if (!child) {
 			break;
 		} else if (child->type == GF_XML_NODE_TYPE) {
@@ -2747,7 +2745,6 @@ static void gf_mpd_print_dasher_segments(FILE *out, GF_List *segments, s32 inden
 static void gf_mpd_print_representation(GF_MPD_Representation const * const rep, FILE *out, Bool write_context, s32 indent)
 {
 	u32 i;
-	GF_MPD_other_descriptors *rsld;
 
 	gf_mpd_nl(out, indent);
 	fprintf(out, "<Representation");
@@ -2779,6 +2776,7 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 	}
 
 	if (rep->other_descriptors){
+		GF_MPD_other_descriptors *rsld;
 		i=0;
 		while ( (rsld = (GF_MPD_other_descriptors*) gf_list_enum(rep->other_descriptors, &i))) {
 			gf_mpd_nl(out, indent+1);
@@ -3235,10 +3233,8 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 {
 	u32 i, count;
 	s32 indent = compact ? GF_INT_MIN : 0;
-
 	GF_MPD_ProgramInfo *info;
 	char *text;
-	GF_MPD_Period *period;
 
 	if (!mpd->xml_namespace) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] No namespace found while writing. Setting to default.\n"));
@@ -3355,7 +3351,7 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 	count = gf_list_count(mpd->periods);
 	for (i=0; i<count; i++) {
 		Bool is_dynamic;
-		period = (GF_MPD_Period *)gf_list_get(mpd->periods, i);
+		GF_MPD_Period *period = (GF_MPD_Period *)gf_list_get(mpd->periods, i);
 		is_dynamic = (mpd->type==GF_MPD_TYPE_DYNAMIC) ? GF_TRUE : GF_FALSE;
 		//hack for backward compat with old arch, forces print period@start if 0
 		if (!i && count>1 && mpd->was_dynamic) is_dynamic = GF_TRUE;
@@ -4439,7 +4435,6 @@ GF_Err gf_mpd_smooth_to_mpd(char * smooth_file, GF_MPD *mpd, const char *default
 GF_EXPORT
 GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *output_file_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline)
 {
-	char szFmt[20];
 	Bool has_number= GF_FALSE;
 	Bool force_path = GF_FALSE;
 	if (seg_type==GF_DASH_TEMPLATE_TEMPLATE_WITH_PATH) {
@@ -4493,7 +4488,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		char c;
 		const size_t seg_rad_name_len = strlen(seg_rad_name);
 		while (char_template <= seg_rad_name_len) {
-			c = seg_rad_name[char_template];
+			char szFmt[20];
 
 			if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18) ) {
 				char_template += 18;

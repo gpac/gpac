@@ -469,10 +469,7 @@ void evg_yuv420p_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 _cu, s
 
 void evg_yuv420p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
-	u8 spanalpha, col_a;
 	s32 i;
-	u32 len;
-	u32 *p_col;
 	char *pY = surf->pixels;
 	u8 *surf_uv_alpha;
 	Bool write_uv = (y%2) ? GF_TRUE : GF_FALSE;
@@ -491,8 +488,11 @@ void evg_yuv420p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 	pY +=  y * surf->pitch_y;
 
 	for (i=0; i<count; i++) {
+		u8 spanalpha, col_a;
 		char *s_pY;
 		short x;
+		u32 *p_col;
+		u32 len;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
@@ -930,10 +930,7 @@ void evg_yuv444p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *
 
 void evg_yuv444p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
-	u8 spanalpha, col_a;
 	s32 i;
-	u32 len;
-	u32 *p_col;
 	char *pY, *pU, *pV;
 
 	pY = surf->pixels + y * surf->pitch_y;
@@ -941,6 +938,9 @@ void evg_yuv444p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 	pV = pU + surf->height*surf->pitch_y;
 
 	for (i=0; i<count; i++) {
+		u8 spanalpha, col_a;
+		u32 len;
+		u32 *p_col;
 		char *s_pY, *s_pU, *s_pV;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
@@ -1125,14 +1125,14 @@ void evg_yuyv_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *sur
 
 void evg_yuyv_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
-	u8 spanalpha, col_a;
 	s32 i;
-	u32 *p_col;
 	char *pY;
 
 	pY = surf->pixels + y * surf->pitch_y;
 
 	for (i=0; i<count; i++) {
+		u8 spanalpha, col_a;
+		u32 *p_col;
 		char *s_pY;
 		u32 len, x;
 		len = spans[i].len;
@@ -1517,10 +1517,7 @@ void evg_yuv420p_10_flush_uv_var(GF_EVGSurface *surf, u8 *_surf_uv_alpha, s32 _c
 
 void evg_yuv420p_10_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
-	u8 spanalpha;
 	s32 i;
-	u32 len;
-	u64 *p_col;
 	u16 *pY;
 	u16 *surf_uv_alpha;
 	Bool write_uv = (y%2) ? GF_TRUE : GF_FALSE;
@@ -1539,6 +1536,9 @@ void evg_yuv420p_10_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *s
 	pY = (u16 *) (surf->pixels + y * surf->pitch_y);
 
 	for (i=0; i<count; i++) {
+		u8 spanalpha;
+		u32 len;
+		u64 *p_col;
 		u16 *s_pY;
 		short x;
 		len = spans[i].len;
@@ -2045,10 +2045,7 @@ void evg_yuv444p_10_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurfac
 
 void evg_yuv444p_10_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
-	u8 spanalpha;
 	s32 i;
-	u32 len;
-	u64 *p_col;
 	u16 *pY, *pU, *pV;
 
 	pY = (u16 *) (surf->pixels + y * surf->pitch_y);
@@ -2056,6 +2053,9 @@ void evg_yuv444p_10_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *s
 	pV = (u16 *) (surf->pixels + 2*surf->height*surf->pitch_y + y * surf->pitch_y);
 
 	for (i=0; i<count; i++) {
+		u8 spanalpha;
+		u32 len;
+		u64 *p_col;
 		u16 *s_pY, *s_pU, *s_pV;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;

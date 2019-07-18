@@ -498,7 +498,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 	u32 type;
 	struct addrinfo *res, *aip, *lip;
 #else
-	struct hostent *Host;
+	struct hostent *Host = NULL;
 #endif
 
 	if (sock->flags & GF_SOCK_IS_UN) {
@@ -666,7 +666,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 	u32 ip_add;
 	size_t addrlen;
 	struct sockaddr_in LocalAdd;
-	struct hostent *Host;
+	struct hostent *Host = NULL;
 #endif
 	s32 ret;
 	s32 optval;

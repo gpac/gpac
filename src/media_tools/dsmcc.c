@@ -817,13 +817,13 @@ static GF_Err dsmcc_get_biop_module_info(GF_M2TS_DSMCC_MODULE* dsmcc_module,char
 	if(BIOP_ModuleInfo->userInfoLength) {
 
 		u32 nb_desc,j;
-		u8* descr_tag;
 
 		dsmcc_biop_descriptor(bs,BIOP_ModuleInfo->descriptor,(u32)(BIOP_ModuleInfo->userInfoLength));
 
 		nb_desc = gf_list_count(BIOP_ModuleInfo->descriptor);
 		j = 0;
 		while(j<nb_desc) {
+			u8* descr_tag;
 
 			/* get the descriptor tag */
 			descr_tag = (u8*)gf_list_get(BIOP_ModuleInfo->descriptor,j);
@@ -877,7 +877,6 @@ static GF_Err dsmcc_process_biop_data(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_
 	GF_Err e;
 	Bool Error;
 	u32 byte_shift;
-	GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header;
 	GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway = dsmcc_overlord->ServiceGateway;
 
 	e = GF_OK;
@@ -888,7 +887,7 @@ static GF_Err dsmcc_process_biop_data(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_
 	byte_shift = (u32)(gf_bs_get_position(bs));
 
 	while(byte_shift < data_size) {
-
+		GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header;
 		BIOP_Header = dsmcc_process_biop_header(bs);
 
 		if(BIOP_Header) {
@@ -963,8 +962,6 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 	GF_M2TS_DSMCC_BIOP_FILE* BIOP_File;
 	GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway;
 	GF_M2TS_DSMCC_FILE* File;
-	FILE* pFile;
-	u8* descr_tag;
 
 	GF_SAFEALLOC(BIOP_File,GF_M2TS_DSMCC_BIOP_FILE);
 
@@ -984,6 +981,7 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 	nb_desc = gf_list_count(BIOP_File->descriptor);
 
 	while(nb_desc) {
+		u8* descr_tag;
 
 		/* get the descriptor tag */
 		descr_tag = (u8*)gf_list_get(BIOP_File->descriptor,0);
@@ -1017,18 +1015,19 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("module_Id %d \n",moduleId));
 	File = dsmcc_get_file(ServiceGateway->File,moduleId,downloadId,BIOP_File->Header->objectKey_data);
 	if(File) {
+		FILE* pFile;
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Fichier: %s module_Id %d place :%d \n",File->Path,moduleId,File->objectKey_data));
 		pFile = gf_fopen(File->Path,"wb");
 		if (pFile!=NULL) {
 			gf_fwrite(BIOP_File->content_byte,1,BIOP_File->content_length ,pFile);
 			gf_fclose(pFile);
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Fichier créé \n\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[DSMCC] File created\n"));
 			if(!strcmp(File->name,"index.html")) {
 				dsmcc_overlord->get_index = 1;
 			}
 		}
 	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[DSMCC] File vould not be created\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[DSMCC] File could not be created\n"));
 	}
 
 	dsmcc_free_biop_file(BIOP_File);
@@ -1078,7 +1077,6 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 	/* Get the linked files */
 	for(i = 0; i<BIOP_Directory->bindings_count; i++) {
 		u32 descr_length,nb_desc,j;
-		u8* descr_tag;
 		GF_Err e;
 
 		BIOP_Directory->Name[i].nameComponents_count = gf_bs_read_int(bs,8);
@@ -1123,6 +1121,7 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 		nb_desc = gf_list_count(BIOP_Directory->Name[i].descriptor);
 		j = 0;
 		while(j<nb_desc) {
+			u8* descr_tag;
 			/* get the descriptor tag */
 			descr_tag = (u8*)gf_list_get(BIOP_Directory->Name[i].descriptor ,0);
 
@@ -1586,12 +1585,12 @@ static GF_M2TS_DSMCC_DIR* dsmcc_get_directory(GF_List* List, u32 objectKey_data)
 	nb_elt = gf_list_count(List);
 
 	for(i = 0; i<nb_elt; i++) {
-		GF_M2TS_DSMCC_DIR* TmpDir;
 		GF_M2TS_DSMCC_DIR* Dir = (GF_M2TS_DSMCC_DIR*)gf_list_get(List,i);
 		if(Dir->objectKey_data == objectKey_data) {
 			return Dir;
 		}
 		if(gf_list_count(Dir->Dir)) {
+			GF_M2TS_DSMCC_DIR* TmpDir;
 			TmpDir = dsmcc_get_directory(Dir->Dir,objectKey_data);
 			if(TmpDir) {
 				return TmpDir;
@@ -1866,10 +1865,8 @@ static void dsmcc_free_biop_ior(GF_M2TS_DSMCC_IOR* IOR)
 
 static void dsmcc_free_biop_descriptor(GF_List* list)
 {
-	u8* descr_tag;
-
 	while(gf_list_count(list)) {
-
+		u8* descr_tag;
 		descr_tag = (u8*)gf_list_get(list,0);
 
 		switch(*descr_tag) {

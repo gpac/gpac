@@ -118,7 +118,6 @@ enum
 static Bool get_default_install_path(char *file_path, u32 path_type)
 {
 	FILE *f;
-	char *sep;
 	char szPath[GF_MAX_PATH];
 
 
@@ -132,7 +131,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	/*remove exe name*/
 	if (strstr(file_path, ".exe")) {
-		sep = strrchr(file_path, '\\');
+		char *sep = strrchr(file_path, '\\');
 		if (sep) sep[0] = 0;
 	}
 
@@ -496,7 +495,6 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	GF_Config *cfg;
 	char szProfilePath[GF_MAX_PATH];
 	char szPath[GF_MAX_PATH];
-	char gui_path[GF_MAX_PATH];
 
 	if (! get_default_install_path(file_path, GF_PATH_CFG)) {
 		return NULL;
@@ -602,6 +600,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 	/*locate GUI*/
 	if ( get_default_install_path(szPath, GF_PATH_SHARE) ) {
+		char gui_path[GF_MAX_PATH];
 		sprintf(gui_path, "%s%cgui%cgui.bt", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		if (gf_file_exists(gui_path)) {
 			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);

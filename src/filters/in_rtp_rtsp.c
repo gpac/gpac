@@ -254,7 +254,7 @@ GF_RTPInRTSP *rtpin_rtsp_new(GF_RTPIn *rtp, char *session_control)
 GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, char *session_control)
 {
 	Bool has_aggregated_control;
-	char *service_name, *ctrl;
+	char *service_name;
 	GF_RTPInRTSP *in_session = rtpin_rtsp_check(rtp, session_control);
 
 	has_aggregated_control = GF_FALSE;
@@ -285,6 +285,7 @@ GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, char *session_con
 		}
 		/*stream control is absolute*/
 		else {
+			char *ctrl;
 			in_session = rtpin_rtsp_check(rtp, stream->control);
 			if (!in_session) in_session = rtpin_rtsp_check(rtp, session_control);
 			if (!in_session) {
@@ -337,12 +338,11 @@ void rtpin_remove_stream(GF_RTPIn *rtp, GF_RTPInStream *stream)
 
 static void rtpin_rtsp_reset(GF_RTPInRTSP *sess, GF_Err e)
 {
-	GF_RTSPCommand *com;
 	if (!sess) return;
 
 	//destroy command list
 	while (gf_list_count(sess->rtsp_commands)) {
-		com = (GF_RTSPCommand *)gf_list_get(sess->rtsp_commands, 0);
+		GF_RTSPCommand *com = (GF_RTSPCommand *)gf_list_get(sess->rtsp_commands, 0);
 		gf_list_rem(sess->rtsp_commands, 0);
 		//this destroys stacks if any
 //		rtpin_rtsp_send_failure(sess, com, first ? e : GF_OK);

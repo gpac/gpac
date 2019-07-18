@@ -370,12 +370,11 @@ static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 GF_Err avidmx_process(GF_Filter *filter)
 {
 	GF_AVIDmxCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck;
 	u32 i, count, nb_done;
 	Bool start, end;
 
 	if (!ctx->avi) {
-		pck = gf_filter_pid_get_packet(ctx->ipid);
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 		if (!pck) {
 			return GF_OK;
 		}
@@ -396,7 +395,6 @@ GF_Err avidmx_process(GF_Filter *filter)
 	}
 
 	if (ctx->v_in_use && (ctx->cur_frame < ctx->nb_frames) && !gf_filter_pid_would_block(ctx->v_opid) ) {
-		GF_FilterPacket *dst_pck;
 		u32 key;
 		u64 file_offset, cts;
 		u8 *pck_data;
@@ -411,7 +409,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 			cts = ctx->nb_frame_sent * ctx->fps.den;
 
 			if (size > 4) {
-				dst_pck = gf_filter_pck_new_alloc(ctx->v_opid, size, &pck_data);
+				GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->v_opid, size, &pck_data);
 				AVI_read_frame(ctx->avi, pck_data, &key);
 				gf_filter_pck_set_byte_offset(dst_pck, file_offset);
 				gf_filter_pck_set_cts(dst_pck, cts);

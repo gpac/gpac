@@ -132,10 +132,11 @@ static GFINLINE void vorbis_to_intern(u32 samples, Float **pcm, char *buf, u32 c
 {
 	u32 i, j;
 	s32 val;
-	ogg_int16_t *ptr, *data = (ogg_int16_t*)buf ;
-	Float *mono;
+	ogg_int16_t *data = (ogg_int16_t*)buf ;
 
 	for (i=0 ; i<channels ; i++) {
+		Float *mono;
+		ogg_int16_t *ptr;
 		ptr = &data[i];
 		if (!ptr) break;
 		

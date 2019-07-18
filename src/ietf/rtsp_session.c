@@ -164,9 +164,8 @@ void gf_rtsp_reset_aggregation(GF_RTSPSession *sess)
 
 void RemoveTCPChannels(GF_RTSPSession *sess)
 {
-	GF_TCPChan *ch;
 	while (gf_list_count(sess->TCPChannels)) {
-		ch = (GF_TCPChan*)gf_list_get(sess->TCPChannels, 0);
+		GF_TCPChan *ch = (GF_TCPChan*)gf_list_get(sess->TCPChannels, 0);
 		gf_free(ch);
 		gf_list_rem(sess->TCPChannels, 0);
 	}

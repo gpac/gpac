@@ -264,7 +264,6 @@ static GF_Err faaddec_process(GF_Filter *filter)
 	GF_FAADCtx *ctx = gf_filter_get_udta(filter);
 	void *buffer;
 	u8 *output;
-	unsigned short *conv_in, *conv_out;
 	u32 i, j;
 	Bool is_eos = GF_FALSE;
 	GF_FilterPacket *dst_pck;
@@ -382,6 +381,7 @@ static GF_Err faaddec_process(GF_Filter *filter)
 	if (ctx->num_channels<=2) {
 		memcpy(output, buffer, sizeof(short)* ctx->info.samples);
 	} else {
+		unsigned short *conv_in, *conv_out;
 		conv_in = (unsigned short *) buffer;
 		conv_out = (unsigned short *) output;
 		for (i=0; i<ctx->info.samples; i+=ctx->info.channels) {

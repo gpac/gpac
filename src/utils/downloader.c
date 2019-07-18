@@ -1361,10 +1361,10 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 
 static Bool rfc2818_match(const char *pattern, const char *string)
 {
-	char c, d;
+	char d;
 	u32 i=0, k=0;
 	while (1) {
-		c = LWR(pattern[i]);
+		char c = LWR(pattern[i]);
 		if (c == '\0') break;
 
 		if (c=='*') {
@@ -1501,8 +1501,6 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		/*socket is connected, configure SSL layer*/
 		if (sess->dm && sess->dm->ssl_ctx) {
 			int ret;
-			long vresult;
-			char common_name[256];
 			X509 *cert;
 			Bool success = GF_TRUE;
 
@@ -1519,6 +1517,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			cert = SSL_get_peer_certificate(sess->ssl);
 			/*if we have a cert, check it*/
 			if (cert) {
+				long vresult;
 				SSL_set_verify_result(sess->ssl, 0);
 				vresult = SSL_get_verify_result(sess->ssl);
 
@@ -1529,6 +1528,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 				}
 
 				if (vresult == X509_V_OK) {
+					char common_name[256];
 					STACK_OF(GENERAL_NAME) *altnames;
 					GF_List* valid_names;
 					int i;

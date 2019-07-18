@@ -136,7 +136,7 @@ static int NErasures;
 void
 Modified_Berlekamp_Massey (void)
 {
-	int n, L, L2, k, d, i;
+	int n, L, L2, k, i;
 	int psi[MAXDEG], psi2[MAXDEG], D[MAXDEG];
 	int gamma[MAXDEG];
 
@@ -153,7 +153,7 @@ Modified_Berlekamp_Massey (void)
 
 	for (n = NErasures; n < NPAR; n++) {
 
-		d = compute_discrepancy(psi, synBytes, L, n);
+		int d = compute_discrepancy(psi, synBytes, L, n);
 
 		if (d != 0) {
 
@@ -311,11 +311,11 @@ static void mul_z_poly (int src[])
 void
 Find_Roots (void)
 {
-	int sum, r, k;
+	int r, k;
 	NErrors = 0;
 
 	for (r = 1; r < 256; r++) {
-		sum = 0;
+		int sum = 0;
 		/* evaluate lambda at r */
 		for (k = 0; k < NPAR+1; k++) {
 			sum ^= gmult(gexp[(k*r)%255], Lambda[k]);
@@ -348,7 +348,7 @@ correct_errors_erasures (unsigned char codeword[],
                          int nerasures,
                          int erasures[])
 {
-	int r, i, j, err;
+	int j;
 
 	/* If you want to take advantage of erasure correction, be sure to
 	   set NErasures and ErasureLocs[] with the locations of erasures.
@@ -361,6 +361,7 @@ correct_errors_erasures (unsigned char codeword[],
 
 
 	if ((NErrors <= NPAR) && NErrors > 0) {
+		int r;
 
 		/* first check for illegal error locs */
 		for (r = 0; r < NErrors; r++) {
@@ -371,7 +372,7 @@ correct_errors_erasures (unsigned char codeword[],
 		}
 
 		for (r = 0; r < NErrors; r++) {
-			int num, denom;
+			int num, denom, j, err;
 			i = ErrorLocs[r];
 			/* evaluate Omega at alpha^(-i) */
 
@@ -483,9 +484,9 @@ build_codeword (unsigned char msg[], int nbytes, unsigned char dst[])
 void
 decode_data(unsigned char data[], int nbytes)
 {
-	int i, j, sum;
+	int i, j;
 	for (j = 0; j < NPAR;  j++) {
-		sum = 0;
+		int sum = 0;
 		for (i = 0; i < nbytes; i++) {
 			sum = data[i] ^ gmult(gexp[j+1], sum);
 		}
@@ -555,12 +556,12 @@ compute_genpoly (int nbytes, int genpoly[])
 void
 encode_data (unsigned char msg[], int nbytes, unsigned char dst[])
 {
-	int i, LFSR[NPAR+1],dbyte, j;
+	int i, LFSR[NPAR+1],j;
 
 	for(i=0; i < NPAR+1; i++) LFSR[i]=0;
 
 	for (i = 0; i < nbytes; i++) {
-		dbyte = msg[i] ^ LFSR[NPAR-1];
+		int dbyte = msg[i] ^ LFSR[NPAR-1];
 		for (j = NPAR-1; j > 0; j--) {
 			LFSR[j] = LFSR[j-1] ^ gmult(genPoly[j], dbyte);
 		}

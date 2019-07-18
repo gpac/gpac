@@ -117,9 +117,10 @@ void gf_fq_del(GF_FilterQueue *q, void (*item_delete)(void *) )
 
 static void gf_fq_lockfree_enqueue(GF_LFQItem *it, GF_LFQItem **tail_ptr)
 {
-	GF_LFQItem *next, *tail;
+	GF_LFQItem *tail;
 
 	while (1) {
+		GF_LFQItem *next;
 		tail = *tail_ptr;
 		next = tail->next;
 		if (next == tail->next) {
@@ -139,11 +140,12 @@ static void gf_fq_lockfree_enqueue(GF_LFQItem *it, GF_LFQItem **tail_ptr)
 static void *gf_fq_lockfree_dequeue(GF_LFQItem **head_ptr, GF_LFQItem **tail_ptr, GF_LFQItem **prev_head)
 {
 	void *data=NULL;
-	GF_LFQItem *tail, *next, *head;
+	GF_LFQItem *next, *head;
 	next = NULL;
 	*prev_head = NULL;
 
 	while (1 ) {
+		GF_LFQItem *tail;
 		head = *head_ptr;
 		tail = *tail_ptr;
 		next = head->next;

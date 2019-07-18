@@ -102,10 +102,10 @@ u32 RAP_send(void *par)
 {
 	RAP_Input *input = par;
 	PNC_CallbackData *data = input->data;
-	u32 *timer;
 
 	input->status = 1;
 	while (input->status==1) {
+		u32 *timer;
 		gf_mx_p(input->carrousel_mutex);
 
 		timer = input->RAPtimer;
@@ -169,7 +169,6 @@ u32 tcp_server(void *par)
 	unsigned char temp[MAX_BUF];
 	FILE *fp;
 	u32 byte_read;
-	int ret;
 	GF_Config *gf_config_file;
 	GF_Socket *TCP_socket;
 	GF_Socket *conn_socket;
@@ -186,6 +185,7 @@ u32 tcp_server(void *par)
 
 	while(input->status == 1)
 	{
+		int ret;
 		memset(buffer, 0, sizeof(buffer));
 		e = gf_sk_accept(TCP_socket, &conn_socket);
 		if (e == GF_OK) {

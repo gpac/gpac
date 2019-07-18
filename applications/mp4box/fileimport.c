@@ -3157,14 +3157,13 @@ void sax_node_start(void *sax_cbck, const char *node_name, const char *name_spac
 {
 	char szCheck[100];
 	GF_List *imports = sax_cbck;
-	GF_XMLAttribute *att;
 	u32 i=0;
 
 	/*do not process hyperlinks*/
 	if (!strcmp(node_name, "a") || !strcmp(node_name, "Anchor")) return;
 
 	for (i=0; i<nb_attributes; i++) {
-		att = (GF_XMLAttribute *) &attributes[i];
+		GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 		if (stricmp(att->name, "xlink:href") && stricmp(att->name, "url")) continue;
 		if (att->value[0]=='#') continue;
 		if (!strnicmp(att->value, "od:", 3)) continue;
@@ -3325,9 +3324,8 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 		name = gf_strdup(item + skip_chars);
 
 		if (make_wgt) {
-			char *sep;
 			while (1) {
-				sep = strchr(name, '\\');
+				char *sep = strchr(name, '\\');
 				if (!sep) break;
 				sep[0] = '/';
 			}

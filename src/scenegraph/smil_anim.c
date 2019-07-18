@@ -197,8 +197,9 @@ static void gf_smil_anim_use_keypoints_keytimes(SMIL_Anim_RTI *rai, Fixed normal
 	if (rai->key_times_count) {
 		Fixed keyTimeBefore = 0, keyTimeAfter=0;
 		for (keyTimeIndex = rai->previous_keytime_index; keyTimeIndex< rai->key_times_count; keyTimeIndex++) {
-			Fixed *tm1, *t = (Fixed *)gf_list_get(*animp->keyTimes, keyTimeIndex);
+			Fixed *t = (Fixed *)gf_list_get(*animp->keyTimes, keyTimeIndex);
 			if (normalized_simple_time < *t) {
+				Fixed *tm1;
 				rai->previous_keytime_index = keyTimeIndex;
 				tm1 = (Fixed *) gf_list_get(*animp->keyTimes, keyTimeIndex-1);
 				if (tm1) keyTimeBefore = *tm1;
@@ -225,12 +226,12 @@ static void gf_smil_anim_use_keypoints_keytimes(SMIL_Anim_RTI *rai, Fixed normal
 	}
 
 	if (rai->anim_elt->sgprivate->tag == TAG_SVG_animateMotion && rai->key_points_count) {
-		Fixed *p1, *p2;
+		Fixed *p1;
 		p1 = (Fixed *)gf_list_get(*animp->keyPoints, keyTimeIndex);
 		if (animp->calcMode && *animp->calcMode == SMIL_CALCMODE_DISCRETE) {
 			*interpolation_coefficient = *p1;
 		} else {
-			p2 = (Fixed *)gf_list_get(*animp->keyPoints, keyTimeIndex+1);
+			Fixed *p2 = (Fixed *)gf_list_get(*animp->keyPoints, keyTimeIndex+1);
 			*interpolation_coefficient = gf_mulfix(FIX_ONE - *interpolation_coefficient, *p1)
 			                             + gf_mulfix(*interpolation_coefficient, (p2 ? *p2 : *p1));
 		}

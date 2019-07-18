@@ -614,7 +614,7 @@ GF_EXPORT
 GF_Err gf_sm_load_init(GF_SceneLoader *load)
 {
 	GF_Err e = GF_NOT_SUPPORTED;
-	char *ext, szExt[50];
+	char *ext;
 	/*we need at least a scene graph*/
 	if (!load || (!load->ctx && !load->scene_graph)
 #ifndef GPAC_DISABLE_ISOM
@@ -629,6 +629,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 		} else
 #endif
 		{
+			char szExt[50];
 			ext = (char *)strrchr(load->fileName, '.');
 			if (!ext) return GF_NOT_SUPPORTED;
 			if (!stricmp(ext, ".gz")) {
@@ -771,11 +772,11 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 				data_size = gf_base64_decode(buffer, (u32) strlen(buffer), data, data_size);
 		} else {
 			u32 i, c;
-			char s[3];
 			if (!strnicmp(buffer, "0x", 2)) buffer += 2;
 			data_size = (u32) strlen(buffer) / 2;
 			data = (char*)gf_malloc(sizeof(char) * data_size);
 			if (data) {
+				char s[3];
 				s[2] = 0;
 				for (i=0; i<data_size; i++) {
 					s[0] = buffer[2*i];

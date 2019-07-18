@@ -2164,9 +2164,9 @@ static const int segmentation_feature_signed[VP9_SEG_LVL_MAX] = { 1, 1, 0, 0 };
 
 static void vp9_segmentation_params(GF_BitStream *bs)
 {
-	int i, j;
 	Bool segmentation_enabled = gf_bs_read_int(bs, 1);
 	if (segmentation_enabled == 1) {
+		int i;
 		Bool segmentation_update_map = gf_bs_read_int(bs, 1);
 		if (segmentation_update_map) {
 			for (i = 0; i < 7; i++)
@@ -2179,6 +2179,7 @@ static void vp9_segmentation_params(GF_BitStream *bs)
 		if (segmentation_update_data == 1) {
 			/*segmentation_abs_or_delta_update =*/ gf_bs_read_int(bs, 1);
 			for (i = 0; i < VP9_MAX_SEGMENTS; i++) {
+				int j;
 				for (j = 0; j < VP9_SEG_LVL_MAX; j++) {
 					/*feature_value = 0*/
 					Bool feature_enabled = gf_bs_read_int(bs, 1);
@@ -5757,7 +5758,6 @@ static s32 avc_parse_recovery_point_sei(GF_BitStream *bs, AVCState *avc)
 /*for interpretation see ISO 14496-10 N.11084, table D-1*/
 static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 {
-	int i;
 	int sps_id = avc->sps_active_idx;
 	const char NumClockTS[] = { 1, 1, 1, 2, 2, 3, 3, 2, 3 };
 	AVCSeiPicTiming *pt = &avc->sei.pic_timing;
@@ -5774,6 +5774,7 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 
 	/*ISO 14496-10 (2003), D.8.2: we need to get pic_struct in order to know if we display top field first or bottom field first*/
 	if (avc->sps[sps_id].vui.pic_struct_present_flag) {
+		int i;
 		pt->pic_struct = gf_bs_read_int(bs, 4);
 		if (pt->pic_struct > 8) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid pic_struct value %d\n", pt->pic_struct));

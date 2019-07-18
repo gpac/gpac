@@ -72,9 +72,6 @@ GF_Err Media_GetSampleDescIndex(GF_MediaBox *mdia, u64 DTS, u32 *sampleDescIndex
 
 static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudioSampleEntryBox *entry, GF_ESD **out_esd)
 {
-	GF_BitStream *bs;
-	char szName[80];
-
 	(*out_esd) = gf_odf_desc_esd_new(2);
 	(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
 	/*official mapping to MPEG-4*/
@@ -86,6 +83,8 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 	{
 		u32 block_size, sample_rate, sample_size, i;
 		GF_SttsEntry *ent;
+		GF_BitStream *bs;
+		char szName[80];
 		/*only map CBR*/
 		sample_size = stbl->SampleSize->sampleSize;
 		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_QCELP;

@@ -381,8 +381,6 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 {
 	u64 trackDuration;
 	u32 i;
-	GF_EdtsEntry *ent;
-	GF_EditListBox *elst;
 	GF_Err e;
 
 	//the total duration is the media duration: adjust it in case...
@@ -396,8 +394,9 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 	//if we have an edit list, the duration is the sum of all the editList
 	//entries' duration (always expressed in MovieTimeScale)
 	if (trak->editBox && trak->editBox->editList) {
+		GF_EdtsEntry *ent;
+		GF_EditListBox *elst = trak->editBox->editList;
 		trackDuration = 0;
-		elst = trak->editBox->editList;
 		i=0;
 		while ((ent = (GF_EdtsEntry*)gf_list_enum(elst->entryList, &i))) {
 			trackDuration += ent->segmentDuration;

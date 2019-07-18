@@ -163,12 +163,13 @@ void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
-	register u8 spanalpha, col_a;
-	register s32 i, x;
-	register u32 len;
-	register u32 *col;
+	register s32 i;
 
 	for (i=0; i<count; i++) {
+		register u8 spanalpha, col_a;
+		register s32 x;
+		register u32 len;
+		register u32 *col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
@@ -343,12 +344,13 @@ void evg_555_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = surf->pixels + y * surf->pitch_y;
-	u8 spanalpha, col_a;
-	s32 i, x;
-	u32 len;
-	u32 *col;
+	s32 i;
 
 	for (i=0; i<count; i++) {
+		u8 spanalpha, col_a;
+		s32 x;
+		u32 len;
+		u32 *col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
@@ -509,12 +511,13 @@ void evg_444_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = surf->pixels + y * surf->pitch_y;
-	u8 spanalpha, col_a;
-	s32 i, x;
-	u32 len;
-	u32 *col;
+	s32 i;
 
 	for (i=0; i<count; i++) {
+		u8 spanalpha, col_a;
+		s32 x;
+		u32 len;
+		u32 *col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);

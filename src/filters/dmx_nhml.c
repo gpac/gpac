@@ -225,10 +225,9 @@ static void nhml_node_start(void *sax_cbck, const char *node_name, const char *n
 	XMLBreaker *breaker = (XMLBreaker *)sax_cbck;
 	char *node_id;
 	u32 i;
-	GF_XMLAttribute *att;
 	node_id = NULL;
 	for (i=0; i<nb_attributes; i++) {
-		att = (GF_XMLAttribute *) &attributes[i];
+		GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 		if (stricmp(att->name, "DEF") && stricmp(att->name, "id")) continue;
 		node_id = gf_strdup(att->value);
 		break;

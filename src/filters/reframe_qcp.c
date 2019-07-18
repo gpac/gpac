@@ -395,7 +395,7 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 GF_Err qcpdmx_process(GF_Filter *filter)
 {
 	GF_QCPDmxCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck, *dst_pck;
+	GF_FilterPacket *pck;
 	u64 byte_offset;
 	u8 *data, *output;
 	u8 *start;
@@ -435,7 +435,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 			ctx->remaining = 0;
 		}
 		if (! ctx->in_seek) {
-			dst_pck = gf_filter_pck_new_alloc(ctx->opid, to_send, &output);
+			GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, to_send, &output);
 			memcpy(output, data, to_send);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
@@ -476,8 +476,6 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 		u32 idx = 0;
 		u32 size = 0;
 		u64 b_offset;
-		GF_FilterPacket *dst_pck;
-		char magic[4];
 		u8 *pck_data;
 		Bool has_pad;
 
@@ -524,6 +522,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 
 		//load chunk tag
 		if (!ctx->data_chunk_remain) {
+			char magic[4];
 			//load chunk
 			if (remain<8) {
 				if (ctx->buffer_alloc < ctx->buffer_size + 8) {
@@ -607,7 +606,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 		}
 
 		if (!ctx->in_seek) {
-			dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+			GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
 			memcpy(pck_data, start, size);
 
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, ctx->remaining ? GF_FALSE : GF_TRUE);

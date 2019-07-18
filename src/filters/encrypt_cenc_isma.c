@@ -534,7 +534,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	Bool is_reinit=GF_FALSE;
 	GF_AVCConfig *avccfg;
 	GF_HEVCConfig *hevccfg;
-	const GF_PropertyValue *p, *p2;
+	const GF_PropertyValue *p;
 
 	p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG);
 	if (!p) p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
@@ -548,6 +548,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	cstr->dsi_crc = dsi_crc;
 
 	if (is_reinit) {
+		const GF_PropertyValue *p2;
 		cstr->nalu_size_length = 0;
 		switch (cstr->codec_id) {
 		case GF_CODECID_AVC:
@@ -1114,10 +1115,10 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 
 /*Common Encryption*/
 static void increase_counter(char *x, int x_size) {
-	register int i, y=0;
+	register int i;
 
 	for (i=x_size-1; i>=0; i--) {
-		y = 0;
+		register int y=0;
 		if ((u8) x[i] == 0xFF) {
 			x[i] = 0;
 			y = 1;
@@ -1604,7 +1605,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPacket *pck)
 {
 	Bool is_encrypted = GF_TRUE;
-	GF_FilterPacket *dst_pck;
 	const u8 *data;
 	GF_Err e;
 	Bool all_rap=GF_FALSE;
@@ -1649,6 +1649,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	if (!is_encrypted) {
 		u8 *sai=NULL;
 		u32 i, sai_size = 0;
+		GF_FilterPacket *dst_pck;
 		dst_pck = gf_filter_pck_new_ref(cstr->opid, NULL, 0, pck);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 

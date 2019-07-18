@@ -561,7 +561,6 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	u32 NDTBits, node_type, node_tag, BVersion, node_id;
 	const char *node_name;
 	Bool flag, reset_qp14;
-	GF_Node *new_node;
 	GF_Err e;
 
 	assert(codec->info);
@@ -578,6 +577,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	GF_BIFS_WRITE_INT(codec, bs, flag ? 1 : 0, 1, "USE", (char*)gf_node_get_class_name(node));
 
 	if (flag) {
+		GF_Node *new_node;
 		gf_bs_write_int(bs, gf_node_get_id(node) - 1, codec->info->config.NodeIDBits);
 		new_node = gf_bifs_enc_find_node(codec, gf_node_get_id(node) );
 		if (!new_node)

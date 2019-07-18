@@ -1090,10 +1090,9 @@ static u32 xmt_get_next_route_id(GF_XMTParser *parser)
 
 static void xmt_resolve_routes(GF_XMTParser *parser)
 {
-	GF_Command *com;
 	/*resolve all commands*/
 	while (1) {
-		com = (GF_Command *)gf_list_last(parser->unresolved_routes);
+		GF_Command *com = (GF_Command *)gf_list_last(parser->unresolved_routes);
 		if (!com) break;
 		gf_list_rem_last(parser->unresolved_routes);
 		switch (com->tag) {

@@ -100,9 +100,8 @@ typedef struct
 
 void CleanWriters(GF_List *writers)
 {
-	TrackWriter *writer;
 	while (gf_list_count(writers)) {
-		writer = (TrackWriter*)gf_list_get(writers, 0);
+		TrackWriter *writer = (TrackWriter*)gf_list_get(writers, 0);
 		gf_isom_box_del(writer->stco);
 		gf_isom_box_del((GF_Box *)writer->stsc);
 		gf_free(writer);
@@ -374,10 +373,10 @@ u64 GetMoovAndMetaSize(GF_ISOFile *movie, GF_List *writers)
 {
 	u32 i;
 	u64 size;
-	TrackWriter *writer;
 
 	size = 0;
 	if (movie->moov) {
+		TrackWriter *writer;
 		gf_isom_box_size((GF_Box *)movie->moov);
 		size = movie->moov->size;
 		if (size > 0xFFFFFFFF) size += 8;
@@ -1557,8 +1556,6 @@ extern u32 default_write_buffering_size;
 
 GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 {
-	FILE *stream;
-	GF_BitStream *bs;
 	MovieWriter mw;
 	GF_Err e = GF_OK;
 	if (!movie) return GF_BAD_PARAM;
@@ -1634,8 +1631,10 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 			e = WriteFlat(&mw, 0, movie->editFileMap->bs, GF_FALSE, GF_FALSE);
 		}
 	} else {
+		FILE *stream=NULL;
 		u32 buffer_size = movie->editFileMap ? gf_bs_get_output_buffering(movie->editFileMap->bs) : 0;
 		Bool is_stdout = GF_FALSE;
+		GF_BitStream *bs=NULL;
 		if (!strcmp(movie->finalName, "_gpac_isobmff_redirect")) {
 			if (!movie->on_block_out) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block callback, cannot write\n"));
