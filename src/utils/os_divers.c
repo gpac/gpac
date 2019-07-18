@@ -1690,6 +1690,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	the_rti.physical_memory = the_rti.physical_memory_avail = 0;
 	f = gf_fopen("/proc/meminfo", "r");
 	if (f) {
+		char line[2048];
 		while (fgets(line, 1024, f) != NULL) {
 			if (!strnicmp(line, "MemTotal:", 9)) {
 				sscanf(line, "MemTotal: "LLU" kB",  &the_rti.physical_memory);
