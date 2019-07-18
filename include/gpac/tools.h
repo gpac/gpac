@@ -1239,17 +1239,17 @@ typedef struct
 /*!
  * Retrieves data associated with a blob url
  * \param blob_url URL of blob object (ie gmem://%p)
- * \param out_data if sucess, set to blob data pointer
- * \param out_size if sucess, set to blob data size
+ * \param out_data if success, set to blob data pointer
+ * \param out_size if success, set to blob data size
  * \return error code
  */
 GF_Err gf_blob_get_data(const char *blob_url, u8 **out_data, u32 *out_size);
 
 /*!
- * Dynamic concatenation of string with optionnal separator
+ * Dynamic concatenation of string with optional separator
  * \param str pointer to destination string pointer
  * \param to_append string to append
- * \param sep optionnal separator string to insert before concatenation. If set and initial string is NULL, will not be appended
+ * \param sep optional separator string to insert before concatenation. If set and initial string is NULL, will not be appended
  * \return error code
  */
 GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep);
