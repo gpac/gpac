@@ -313,7 +313,7 @@ static const GF_FilterArgs ReframerArgs[] =
 GF_FilterRegister ReframerRegister = {
 	.name = "reframer",
 	GF_FS_SET_DESCRIPTION("Media Reframer")
-	GF_FS_SET_HELP("Passthrough filter ensuring reframing, and optionnally decoding, of inputs\n"
+	GF_FS_SET_HELP("Passthrough filter ensuring reframing, and optionally decoding, of inputs\n"
 		"This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"\
 		"The filter can be used to filter out packets based on SAP types, for example to extract only the key frame (SAP 1,2,3) of a video.\n"\
 		"The filter can be used to only keep specific [-frames]() of the source.\n"\

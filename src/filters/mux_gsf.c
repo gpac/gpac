@@ -1109,7 +1109,7 @@ GF_FilterRegister GSFMxRegister = {
 			"The default behaviour does not insert sequence numbers. When running over general protocols not ensuring packet order, this should be inserted.\n"
 			"The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed\n"
 			"\n"
-			"The stream format can be encrypted in AES 128 CBC mode. For all packets, the packet header (header, size, frame size/block offset and optionnal seq num) are in the clear "
+			"The stream format can be encrypted in AES 128 CBC mode. For all packets, the packet header (header, size, frame size/block offset and optional seq num) are in the clear "
 			"and the followings byte until the last byte of the last multiple of block size (16) fitting in the payload are encrypted.\n"
 			"For data packets, each fragment is encrypted individually to avoid error propagation in case of losses.\n"
 			"For other packets, the entire packet is encrypted before fragmentation (fragments cannot be processed individually).\n"
