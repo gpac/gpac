@@ -358,7 +358,7 @@ static void gf_rtp_parse_mpeg12_video(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr
 
 static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
-	unsigned char c, type;
+	unsigned char c;
 	char *data;
 	/*we support max 30 frames in one RTP packet...*/
 	u32 nbFrame, i, frame_size;
@@ -376,6 +376,7 @@ static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 	/*then each frame*/
 	for (i=0; i<nbFrame; i++) {
+		u8 type;
 		c = payload[i + 1];
 		type = ((c & 0x78) >> 3);
 		if (rtp->payt==GF_RTP_PAYT_AMR) {

@@ -2738,7 +2738,6 @@ exit:
 
 #else
 	u32 i, count, c;
-	u8 *type;
 	lsr_read_point_sequence(lsr, path->points, "seq");
 	while (gf_list_count(path->commands)) {
 		u8 *v = (u8 *)gf_list_last(path->commands);
@@ -2748,7 +2747,7 @@ exit:
 
 	count = lsr_read_vluimsbf5(lsr, "nbOfTypes");
 	for (i=0; i<count; i++) {
-		type = (u8 *)gf_malloc(sizeof(u8));
+		u8 *type = (u8 *)gf_malloc(sizeof(u8));
 		GF_LSR_READ_INT(lsr, c, 5, name);
 
 		switch (c) {
@@ -4829,7 +4828,7 @@ static u32 lsr_get_attribute_name(GF_LASeRCodec *lsr)
 static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list, u32 com_type)
 {
 	GF_FieldInfo info;
-	GF_Node *n, *operandNode, *new_node;
+	GF_Node *n, *operandNode;
 	GF_Command *com;
 	GF_CommandField *field;
 	s32 idx, att_type, op_att_type;
@@ -5249,7 +5248,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 
 			if (com_type==LSR_UPDATE_REPLACE) {
 				if (idx>=0) {
-					new_node = gf_node_list_del_child_idx(&elt->children, idx);
+					GF_Node *new_node = gf_node_list_del_child_idx(&elt->children, idx);
 					if (new_node) gf_node_unregister(new_node, n);
 				} else {
 					gf_node_unregister_children(n, elt->children);
@@ -5258,7 +5257,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 			}
 			if ((com_type==LSR_UPDATE_INSERT) || (gf_lsr_anim_type_to_attribute(att_type) == TAG_LSR_ATT_children)) {
 				while (count) {
-					new_node = lsr_read_update_content_model(lsr, elt);
+					GF_Node *new_node = lsr_read_update_content_model(lsr, elt);
 					if (new_node) {
 						if (idx>=0) {
 							gf_node_list_insert_child(&elt->children, new_node, idx);
@@ -5273,7 +5272,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 			}
 			/*node replacement*/
 			else if ((att_type==-1) && (count==1)) {
-				new_node = lsr_read_update_content_model(lsr, elt);
+				GF_Node *new_node = lsr_read_update_content_model(lsr, elt);
 				gf_node_replace((GF_Node*)elt, new_node, 0);
 			}
 		}
@@ -5297,7 +5296,6 @@ static GF_Err lsr_read_delete(GF_LASeRCodec *lsr, GF_List *com_list)
 	lsr_read_any_attribute(lsr, NULL, 1);
 	if (com_list) {
 		GF_Command *com;
-		GF_CommandField *field;
 		com = gf_sg_command_new(lsr->sg, GF_SG_LSR_DELETE);
 		gf_list_add(com_list, com);
 		com->node = gf_sg_find_node(lsr->sg, idref);
@@ -5309,7 +5307,7 @@ static GF_Err lsr_read_delete(GF_LASeRCodec *lsr, GF_List *com_list)
 		}
 
 		if ((idx>=0) || (att_type>=0)) {
-			field = gf_sg_command_field_new(com);
+			GF_CommandField *field = gf_sg_command_field_new(com);
 			field->pos = idx;
 			if (att_type>=0) {
 				field->fieldIndex = gf_lsr_anim_type_to_attribute(att_type);

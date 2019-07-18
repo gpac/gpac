@@ -65,8 +65,6 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	M_Group *gr;
 	GF_ODUpdate *odU;
 	GF_SceneGraph *sg;
-	GF_ObjectDescriptor *od;
-	GF_ESD *esd;
 
 	if (!load->ctx) return GF_NOT_SUPPORTED;
 
@@ -155,6 +153,8 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	odU = (GF_ODUpdate*) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 	gf_list_add(au->commands, odU);
 	for (i=0; i<6; i++) {
+		GF_ObjectDescriptor *od;
+		GF_ESD *esd;
 		GF_MuxInfo *mi;
 		FILE *img;
 		char szName[1024];

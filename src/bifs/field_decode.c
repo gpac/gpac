@@ -370,7 +370,6 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 	u32 i;
 	GF_ChildNodeItem *last;
 	u8 qp_local, qp_on, initial_qp;
-	GF_Node *new_node;
 	GF_FieldInfo sffield;
 
 	memset(&sffield, 0, sizeof(GF_FieldInfo));
@@ -403,7 +402,7 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 	} else {
 		last = NULL;
 		for (i=0; i<nbFields; i++) {
-			new_node = gf_bifs_dec_node(codec, bs, field->NDTtype);
+			GF_Node *new_node = gf_bifs_dec_node(codec, bs, field->NDTtype);
 			if (new_node) {
 				e = gf_node_register(new_node, is_mem_com ? NULL : node);
 				if (e) return e;

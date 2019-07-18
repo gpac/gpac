@@ -353,7 +353,6 @@ u8 *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_
 	u32 obj_time, obj_time_orig;
 	s64 diff;
 	Bool skip_resync;
-	const GF_PropertyValue *v;
 	u32 timescale=0;
 	u64 pck_ts=0, next_ts=0;
 	u32 retry_pull;
@@ -633,6 +632,7 @@ u8 *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_
 		mo->ms_until_next=500;
 
 	if ((mo->timestamp != pck_ts) || is_first) {
+		const GF_PropertyValue *v;
 		u32 media_time;
 		u64 dur = gf_filter_pck_get_duration(mo->pck);
 		dur *= 1000;

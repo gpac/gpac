@@ -1268,10 +1268,6 @@ static errno_t
 strstr_s (char *dest, r_size_t dmax,
           const char *src, r_size_t slen, char **substring)
 {
-    r_size_t len;
-    r_size_t dlen;
-    int i;
-
     if (substring == NULL) {
         return RCNEGATE(ESNULLP);
     }
@@ -1311,6 +1307,9 @@ strstr_s (char *dest, r_size_t dmax,
     }
 
     while (*dest && dmax) {
+    	int i;
+    	r_size_t len;
+    	r_size_t dlen;
         i = 0;
         len = slen;
         dlen = dmax;
@@ -3359,7 +3358,7 @@ static rmtError ReceiveFrameHeader(WebSocket* web_socket)
 
     rmtError error;
     rmtU8 msg_header[2] = { 0, 0 };
-    int msg_length, size_bytes_remaining, i;
+    int msg_length, size_bytes_remaining;
     rmtBool mask_present;
 
     assert(web_socket != NULL);
@@ -3388,6 +3387,7 @@ static rmtError ReceiveFrameHeader(WebSocket* web_socket)
 
     if (size_bytes_remaining > 0)
     {
+    	int i;
         // Receive the wider bytes of the length
         rmtU8 size_bytes[8];
         error = TCPSocket_Receive(web_socket->tcp_socket, size_bytes, size_bytes_remaining, 20);

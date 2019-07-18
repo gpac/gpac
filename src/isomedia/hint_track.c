@@ -63,14 +63,13 @@ Bool CheckHintFormat(GF_TrackBox *trak, u32 HintType)
 GF_Err AdjustHintInfo(GF_HintSampleEntryBox *entry, u32 HintSampleNumber)
 {
 	u32 offset, count, i, size;
-	GF_HintPacket *pck;
 	GF_Err e;
 
 	offset = gf_isom_hint_sample_size(entry->hint_sample) - entry->hint_sample->dataLength;
 	count = gf_list_count(entry->hint_sample->packetTable);
 
 	for (i=0; i<count; i++) {
-		pck = (GF_HintPacket *)gf_list_get(entry->hint_sample->packetTable, i);
+		GF_HintPacket *pck = (GF_HintPacket *)gf_list_get(entry->hint_sample->packetTable, i);
 		if (offset && entry->hint_sample->dataLength) {
 			//adjust any offset in this packet
 			e = gf_isom_hint_pck_offset(pck, offset, HintSampleNumber);
@@ -696,10 +695,11 @@ static void AddSDPLine(GF_List *list, char *sdp_text, Bool is_movie_sdp)
 
 static void ReorderSDP(char *sdp_text, Bool is_movie_sdp)
 {
-	char *cur, b;
+	char *cur;
 	GF_List *lines = gf_list_new();
 	cur = sdp_text;
 	while (cur) {
+		char *b;
 		char *st = strstr(cur, "\r\n");
 		assert(st);
 		st += 2;

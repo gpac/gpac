@@ -40,7 +40,6 @@ static GF_Err rtpin_setup_sdp(GF_RTPIn *rtp, GF_SDPInfo *sdp, GF_RTPInStream *fo
 	char *sess_ctrl;
 	GF_X_Attribute *att;
 	GF_RTSPRange *range;
-	GF_RTPInStream *stream;
 
 	Start = 0.0;
 	End = -1.0;
@@ -66,7 +65,7 @@ static GF_Err rtpin_setup_sdp(GF_RTPIn *rtp, GF_SDPInfo *sdp, GF_RTPInStream *fo
 	//setup all streams
 	i=0;
 	while ((media = (GF_SDPMedia*)gf_list_enum(sdp->media_desc, &i))) {
-		stream = rtpin_stream_new(rtp, media, sdp, for_stream);
+		GF_RTPInStream *stream = rtpin_stream_new(rtp, media, sdp, for_stream);
 		//do not generate error if the channel is not created, just assume
 		//1 - this is not an MPEG-4 configured channel -> not needed
 		//2 - this is a 2nd describe and the channel was already created

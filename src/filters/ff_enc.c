@@ -1267,7 +1267,6 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
 	s32 res;
-	const char *arg_val_str;
 	GF_FFEncodeCtx *ctx = gf_filter_get_udta(filter);
 
 	if (!strcmp(arg_name, "global_header"))	return GF_OK;
@@ -1287,6 +1286,7 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 
 	//initial parsing of arguments
 	if (!ctx->initialized) {
+		const char *arg_val_str;
 		switch (arg_val->type) {
 		case GF_PROP_STRING:
 			arg_val_str = arg_val->value.string;

@@ -54,12 +54,11 @@ GF_TrackExtensionPropertiesBox *GetTrep(GF_MovieBox *moov, GF_ISOTrackID TrackID
 GF_TrackFragmentBox *GetTraf(GF_ISOFile *mov, GF_ISOTrackID TrackID)
 {
 	u32 i;
-	GF_TrackFragmentBox *traf;
 	if (!mov->moof) return NULL;
 
 	//reverse browse the TRAFs, as there may be more than one per track ...
 	for (i=gf_list_count(mov->moof->TrackList); i>0; i--) {
-		traf = (GF_TrackFragmentBox *)gf_list_get(mov->moof->TrackList, i-1);
+		GF_TrackFragmentBox *traf = (GF_TrackFragmentBox *)gf_list_get(mov->moof->TrackList, i-1);
 		if (traf->tfhd->trackID == TrackID) return traf;
 	}
 	return NULL;
@@ -348,10 +347,10 @@ u32 GetNumUsedValues(GF_TrackFragmentBox *traf, u32 value, u32 index)
 {
 	u32 i, j, NumValue = 0;
 	GF_TrackFragmentRunBox *trun;
-	GF_TrunEntry *ent;
 
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
+		GF_TrunEntry *ent;
 		j=0;
 		while ((ent = (GF_TrunEntry *)gf_list_enum(trun->entries, &j))) {
 			switch (index) {
@@ -482,11 +481,11 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, u32
 void update_trun_offsets(GF_ISOFile *movie, s32 offset)
 {
 #ifndef USE_BASE_DATA_OFFSET
-	GF_TrackFragmentRunBox *trun;
 	u32 i, j;
 	GF_TrackFragmentBox *traf;
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(movie->moof->TrackList, &i))) {
+		GF_TrackFragmentRunBox *trun;
 		/*remove base data*/
 		traf->tfhd->base_data_offset = 0;
 		j=0;
@@ -511,7 +510,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 	   2 - use default values from track extends header */
 	u32 UseDefaultSize, UseDefaultDur, UseDefaultFlag;
 	GF_TrackFragmentRunBox *trun;
-	GF_TrunEntry *ent, *first_ent;
+	GF_TrunEntry *ent;
 
 	sampleCount = 0;
 
@@ -550,13 +549,13 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
+		GF_TrunEntry *first_ent = NULL;
 		RunSize = 0;
 		RunDur = 0;
 		RunFlags = 0;
 		UseCTS = 0;
 		NeedFlags = 0;
 
-		first_ent = NULL;
 		//process all samples in run
 		count = gf_list_count(trun->entries);
 		for (j=0; j<count; j++) {
@@ -781,7 +780,6 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID
 u32 moof_get_duration(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID)
 {
 	u32 i, j, duration;
-	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf = NULL;
 	GF_TrackFragmentRunBox *trun;
 	for (i=0; i<gf_list_count(moof->TrackList); i++) {
@@ -794,6 +792,7 @@ u32 moof_get_duration(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID)
 	duration = 0;
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &i))) {
+		GF_TrunEntry *ent;
 		j=0;
 		while ((ent = (GF_TrunEntry*)gf_list_enum(trun->entries, &j))) {
 			if (ent->flags & GF_ISOM_TRAF_SAMPLE_DUR)
@@ -809,7 +808,6 @@ static u64 moof_get_earliest_cts(GF_MovieFragmentBox *moof, GF_ISOTrackID refTra
 {
 	u32 i, j;
 	u64 cts, duration;
-	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf=NULL;
 	GF_TrackFragmentRunBox *trun;
 	for (i=0; i<gf_list_count(moof->TrackList); i++) {
@@ -823,6 +821,7 @@ static u64 moof_get_earliest_cts(GF_MovieFragmentBox *moof, GF_ISOTrackID refTra
 	cts = LLU_CAST (-1);
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &i))) {
+		GF_TrunEntry *ent;
 		j=0;
 		while ((ent = (GF_TrunEntry*)gf_list_enum(trun->entries, &j))) {
 			if (duration + ent->CTS_Offset < cts)
@@ -2358,7 +2357,6 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, 
 	GF_TrackFragmentBox  *traf = GetTraf(output, TrackID);
 	u32 i;
 	GF_SampleEncryptionBox *senc;
-	GF_BitStream *bs;
 
 	if (!traf)  return GF_BAD_PARAM;
 	if (!sai_b) return GF_BAD_PARAM;
@@ -2388,7 +2386,7 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, 
 	if (!sai) return GF_OUT_OF_MEM;
 	sai->IV_size = IV_size;
 	if (sai_b && sai_b_size) {
-		bs = gf_bs_new(sai_b, sai_b_size, GF_BITSTREAM_READ);
+		GF_BitStream *bs = gf_bs_new(sai_b, sai_b_size, GF_BITSTREAM_READ);
 		gf_bs_read_data(bs, sai->IV, IV_size);
 		sai->subsample_count = gf_bs_read_u16(bs);
 		sai->subsamples = gf_malloc(sizeof(GF_CENCSubSampleEntry)*sai->subsample_count);

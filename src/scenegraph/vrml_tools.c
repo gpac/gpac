@@ -1242,7 +1242,6 @@ as a field type (it's just a stupid encoding trick) */
 void VRML_FieldCopyCast(void *dest, u32 dst_field_type, void *orig, u32 ori_field_type)
 {
 	SFURL *url;
-	char tmp[50];
 	u32 size, i, sf_type_ori, sf_type_dst;
 	void *dst_field, *orig_field;
 	if (!dest || !orig) return;
@@ -1252,6 +1251,7 @@ void VRML_FieldCopyCast(void *dest, u32 dst_field_type, void *orig, u32 ori_fiel
 		if (ori_field_type == GF_SG_VRML_SFURL) {
 			url = ((SFURL *)orig);
 			if (url->OD_ID>0) {
+				char tmp[50];
 				sprintf(tmp, "%d", url->OD_ID);
 				if ( ((SFString*)dest)->buffer) gf_free(((SFString*)dest)->buffer);
 				((SFString*)dest)->buffer = gf_strdup(tmp);

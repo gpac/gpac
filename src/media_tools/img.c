@@ -220,8 +220,8 @@ typedef struct
 
 static void gf_jpeg_output_message (j_common_ptr cinfo)
 {
-	char buffer[JMSG_LENGTH_MAX];
 	if (cinfo) {
+		char buffer[JMSG_LENGTH_MAX];
 		/* Create the message */
 		(*cinfo->err->format_message) (cinfo, buffer);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEG OUTPUT MESSAGE]: %s\n", buffer));

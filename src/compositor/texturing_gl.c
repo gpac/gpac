@@ -777,7 +777,7 @@ char *gf_sc_texture_get_data(GF_TextureHandler *txh, u32 *pix_format)
 void txh_unpack_yuv(GF_TextureHandler *txh)
 {
 	u32 i, j;
-	u8 *dst, *y, *u, *v, *p_y, *p_u, *p_v;
+	u8 *p_y, *p_u, *p_v;
 	if (!txh->tx_io->conv_data) {
 		txh->tx_io->conv_data = (char*)gf_malloc(sizeof(char) * 2 * txh->width * txh->height);
 	}
@@ -787,6 +787,7 @@ void txh_unpack_yuv(GF_TextureHandler *txh)
 
 	/*convert to UYVY and flip texture*/
 	for (i=0; i<txh->height; i++) {
+		u8 *dst, *y, *u, *v;
 		u32 idx = txh->height-i-1;
 		y = p_y + idx*txh->stride;
 		u = p_u + (idx/2) * txh->stride/2;

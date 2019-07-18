@@ -479,7 +479,6 @@ static GF_FilterPacket *writegen_write_bmp(GF_GenDumpCtx *ctx, char *data, u32 d
 	BITMAPINFOHEADER fi;
 	GF_FilterPacket *dst_pck;
 	u32 i;
-	char *ptr;
 
 	size = ctx->w*ctx->h*3 + 54; //14 + 40 = size of BMP file header and BMP file info;
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
@@ -508,10 +507,10 @@ static GF_FilterPacket *writegen_write_bmp(GF_GenDumpCtx *ctx, char *data, u32 d
 
 	memcpy(output+14, &fi, sizeof(char)*40);
 	//reverse lines
-	output += sizeof(char) * 54;
+	output += sizeof(u8) * 54;
 	for (i=ctx->h; i>0; i--) {
-		ptr = data + (i-1)*ctx->stride;
-		memcpy(output, ptr, sizeof(char)*3*ctx->w);
+		u8 *ptr = data + (i-1)*ctx->stride;
+		memcpy(output, ptr, sizeof(u8)*3*ctx->w);
 		output += 3*ctx->w;
 	}
 	return dst_pck;

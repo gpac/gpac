@@ -1109,7 +1109,6 @@ GF_Err edts_box_size(GF_Box *s)
 void elst_box_del(GF_Box *s)
 {
 	GF_EditListBox *ptr;
-	GF_EdtsEntry *p;
 	u32 nb_entries;
 	u32 i;
 
@@ -1117,7 +1116,7 @@ void elst_box_del(GF_Box *s)
 	if (ptr == NULL) return;
 	nb_entries = gf_list_count(ptr->entryList);
 	for (i = 0; i < nb_entries; i++) {
-		p = (GF_EdtsEntry*)gf_list_get(ptr->entryList, i);
+		GF_EdtsEntry *p = (GF_EdtsEntry*)gf_list_get(ptr->entryList, i);
 		if (p) gf_free(p);
 	}
 	gf_list_del(ptr->entryList);
@@ -1129,7 +1128,6 @@ GF_Err elst_box_read(GF_Box *s, GF_BitStream *bs)
 	u32 entries;
 	s32 tr;
 	u32 nb_entries;
-	GF_EdtsEntry *p;
 	GF_EditListBox *ptr = (GF_EditListBox *)s;
 
 	nb_entries = gf_bs_read_u32(bs);
@@ -1149,7 +1147,7 @@ GF_Err elst_box_read(GF_Box *s, GF_BitStream *bs)
 
 
 	for (entries = 0; entries < nb_entries; entries++) {
-		p = (GF_EdtsEntry *) gf_malloc(sizeof(GF_EdtsEntry));
+		GF_EdtsEntry *p = (GF_EdtsEntry *) gf_malloc(sizeof(GF_EdtsEntry));
 		if (!p) return GF_OUT_OF_MEM;
 		if (ptr->version == 1) {
 			p->segmentDuration = gf_bs_read_u64(bs);
@@ -1184,7 +1182,6 @@ GF_Err elst_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	u32 i;
 	u32 nb_entries;
-	GF_EdtsEntry *p;
 	GF_EditListBox *ptr = (GF_EditListBox *)s;
 	if (!ptr) return GF_BAD_PARAM;
 
@@ -1193,7 +1190,7 @@ GF_Err elst_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	gf_bs_write_u32(bs, nb_entries);
 	for (i = 0; i < nb_entries; i++ ) {
-		p = (GF_EdtsEntry*)gf_list_get(ptr->entryList, i);
+		GF_EdtsEntry *p = (GF_EdtsEntry*)gf_list_get(ptr->entryList, i);
 		if (ptr->version == 1) {
 			gf_bs_write_u64(bs, p->segmentDuration);
 			gf_bs_write_u64(bs, p->mediaTime);
@@ -1245,13 +1242,12 @@ GF_Err esds_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e=GF_OK;
 	u32 descSize;
-	char *enc_desc;
 	GF_ESDBox *ptr = (GF_ESDBox *)s;
 
 	descSize = (u32) (ptr->size);
 
 	if (descSize) {
-		enc_desc = (char*)gf_malloc(sizeof(char) * descSize);
+		char *enc_desc = (char*)gf_malloc(sizeof(char) * descSize);
 		if (!enc_desc) return GF_OUT_OF_MEM;
 		//get the payload
 		gf_bs_read_data(bs, enc_desc, descSize);
@@ -5225,13 +5221,12 @@ GF_Err stsh_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 count, i;
-	GF_StshEntry *ent;
 	GF_ShadowSyncBox *ptr = (GF_ShadowSyncBox *)s;
 
 	count = gf_bs_read_u32(bs);
 
 	for (i = 0; i < count; i++) {
-		ent = (GF_StshEntry *) gf_malloc(sizeof(GF_StshEntry));
+		GF_StshEntry *ent = (GF_StshEntry *) gf_malloc(sizeof(GF_StshEntry));
 		if (!ent) return GF_OUT_OF_MEM;
 		ent->shadowedSampleNumber = gf_bs_read_u32(bs);
 		ent->syncSampleNumber = gf_bs_read_u32(bs);
@@ -6866,12 +6861,11 @@ GF_Err trep_box_size(GF_Box *s)
 
 void trun_box_del(GF_Box *s)
 {
-	GF_TrunEntry *p;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
 	if (ptr == NULL) return;
 
 	while (gf_list_count(ptr->entries)) {
-		p = (GF_TrunEntry*)gf_list_get(ptr->entries, 0);
+		GF_TrunEntry *p = (GF_TrunEntry*)gf_list_get(ptr->entries, 0);
 		gf_list_rem(ptr->entries, 0);
 		gf_free(p);
 	}
@@ -6957,7 +6951,6 @@ GF_Box *trun_box_new()
 
 GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_TrunEntry *p;
 	GF_Err e;
 	u32 i, count;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *) s;
@@ -6982,7 +6975,7 @@ GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 
 	count = gf_list_count(ptr->entries);
 	for (i=0; i<count; i++) {
-		p = (GF_TrunEntry*)gf_list_get(ptr->entries, i);
+		GF_TrunEntry *p = (GF_TrunEntry*)gf_list_get(ptr->entries, i);
 
 		if (ptr->flags & GF_ISOM_TRUN_DURATION) {
 			gf_bs_write_u32(bs, p->Duration);
@@ -8418,7 +8411,6 @@ GF_Err subs_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	u32 i, j, entry_count;
 	u16 subsample_count;
-	GF_SubSampleInfoEntry *pSamp;
 	GF_SubSampleEntry *pSubSamp;
 	GF_SubSampleInformationBox *ptr = (GF_SubSampleInformationBox *) s;
 
@@ -8429,7 +8421,7 @@ GF_Err subs_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, entry_count);
 
 	for (i=0; i<entry_count; i++) {
-		pSamp = (GF_SubSampleInfoEntry*) gf_list_get(ptr->Samples, i);
+		GF_SubSampleInfoEntry *pSamp = (GF_SubSampleInfoEntry*) gf_list_get(ptr->Samples, i);
 		subsample_count = gf_list_count(pSamp->SubSamples);
 		gf_bs_write_u32(bs, pSamp->sample_delta);
 		gf_bs_write_u16(bs, subsample_count);
@@ -8452,7 +8444,6 @@ GF_Err subs_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err subs_box_size(GF_Box *s)
 {
 	GF_SubSampleInformationBox *ptr = (GF_SubSampleInformationBox *) s;
-	GF_SubSampleInfoEntry *pSamp;
 	u32 entry_count, i;
 	u16 subsample_count;
 
@@ -8460,7 +8451,7 @@ GF_Err subs_box_size(GF_Box *s)
 	ptr->size += 4;
 	entry_count = gf_list_count(ptr->Samples);
 	for (i=0; i<entry_count; i++) {
-		pSamp = (GF_SubSampleInfoEntry*) gf_list_get(ptr->Samples, i);
+		GF_SubSampleInfoEntry *pSamp = (GF_SubSampleInfoEntry*) gf_list_get(ptr->Samples, i);
 		subsample_count = gf_list_count(pSamp->SubSamples);
 		// 4 byte for sample_delta, 2 byte for subsample_count
 		// and 6 + (4 or 2) bytes for each subsample

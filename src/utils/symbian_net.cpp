@@ -400,7 +400,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *loca
 	return GF_IP_CONNECTION_FAILURE;
 
 #else
-	struct hostent *Host;
+	struct hostent *Host=NULL;
 
 	if (!sock->socket)
 		sock->socket = socket(AF_INET, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
@@ -1033,7 +1033,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, char *buffer, u32 length, char *remoteHost
 	struct sockaddr_storage remote_add;
 #else
 	struct sockaddr_in remote_add;
-	struct hostent *Host;
+	struct hostent *Host=NULL;
 #endif
 #ifndef __SYMBIAN32__
 	u32 ready;

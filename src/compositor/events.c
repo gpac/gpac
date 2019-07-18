@@ -69,8 +69,6 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 {
 	Bool signal;
-	char *txt;
-	size_t len;
 	if (!compositor->edited_text) return;
 
 	/* if this is the final editing and there is text,
@@ -87,6 +85,8 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 		*compositor->edited_text = NULL;
 	}
 	if (compositor->sel_buffer_len) {
+		char *txt;
+		size_t len;
 		const u16 *lptr;
 		txt = (char*)gf_malloc(sizeof(char)*2*compositor->sel_buffer_len);
 		lptr = compositor->sel_buffer;
@@ -266,8 +266,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 					if (append) {
 						u16 end;
 						const u16 *srcp;
-						size_t len;
-						GF_DOMText *cur, *ntext;
+						GF_DOMText *ntext;
 						GF_ChildNodeItem *children = ((GF_ParentNode *) compositor->focus_node)->children;
 						GF_Node *t = gf_node_new(gf_node_get_graph(child->node), TAG_SVG_tbreak);
 
@@ -281,6 +280,9 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 							gf_node_list_insert_child(&children, t, pos);
 							res = &((GF_DOMText *)child->node)->textContent;
 						} else {
+							size_t len;
+							GF_DOMText *cur;
+
 							gf_node_list_insert_child(&children, t, pos+1);
 							ntext = (GF_DOMText*) gf_node_new(gf_node_get_graph(child->node), TAG_DOMText);
 							gf_node_init(t);

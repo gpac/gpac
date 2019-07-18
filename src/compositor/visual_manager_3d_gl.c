@@ -605,8 +605,7 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 
 	FILE *src = gf_fopen(src_path, "rt");
 	GF_SHADERID shader = 0;
-	char *shader_src;
-	char *defs, *tmp, szKey[100];
+	char *defs, szKey[100];
 	size_t str_size;
 
 	defs = (char *) gf_strdup(GLES_VERSION_STRING);
@@ -653,6 +652,7 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	}
 
 	if (src) {
+		char *shader_src, *tmp;
 		size_t size;
 		gf_fseek(src, 0, SEEK_END);
 		size = (size_t) gf_ftell(src);
@@ -1285,7 +1285,6 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	u32 i;
 	GLint loc, loc_vertex_attrib, loc_texcoord_attrib;
-	char szTex[100];
 	Fixed hw, hh;
 	GF_Matrix mx;
 
@@ -1363,6 +1362,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 		//setup texcoord location
 		loc_texcoord_attrib = gf_glGetAttribLocation(visual->autostereo_glsl_program, "gfTextureCoordinates");
 		if (loc_texcoord_attrib>=0) {
+			char szTex[100];
 			glVertexAttribPointer(loc_texcoord_attrib, 2, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), &visual->autostereo_mesh->vertices[0].texcoords);
 			glEnableVertexAttribArray(loc_texcoord_attrib);
 

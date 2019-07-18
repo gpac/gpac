@@ -86,7 +86,6 @@ static const char *GetLanguage(char *lcode)
 GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name)
 {
 	const u8 *tag;
-	char szName[1024];
 	FILE *t;
 	u32 tag_len;
 	GF_Err e = gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COVER_ART, &tag, &tag_len);
@@ -99,6 +98,7 @@ GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name)
 	}
 
 	if (inName) {
+		char szName[1024];
 		if (is_final_name) {
 			strcpy(szName, inName);
 		} else {
@@ -530,7 +530,6 @@ static void PrintNodeSFField(u32 type, void *far_ptr)
 #ifndef GPAC_DISABLE_VRML
 static void do_print_node(GF_Node *node, GF_SceneGraph *sg, const char *name, u32 graph_type, Bool is_nodefield, Bool do_cov)
 {
-	char szField[1024];
 	u32 nbF, i;
 	GF_FieldInfo f;
 #ifndef GPAC_DISABLE_BIFS
@@ -542,6 +541,7 @@ static void do_print_node(GF_Node *node, GF_SceneGraph *sg, const char *name, u3
 	nbF = gf_node_get_field_count(node);
 
 	if (is_nodefield) {
+		char szField[1024];
 		u32 tfirst, tlast;
 		if (gf_node_get_field_by_name(node, szField, &f) != GF_OK) {
 			fprintf(stderr, "Field %s is not a member of node %s\n", szField, name);
@@ -652,7 +652,6 @@ void PrintNode(const char *name, u32 graph_type)
 	return;
 #else
 	const char *std_name;
-	char szField[1024];
 	GF_Node *node;
 	GF_SceneGraph *sg;
 	u32 tag;
@@ -662,7 +661,6 @@ void PrintNode(const char *name, u32 graph_type)
 
 	char *sep = strchr(name, '.');
 	if (sep) {
-		strcpy(szField, sep+1);
 		sep[0] = 0;
 		is_nodefield = 1;
 	}
@@ -702,7 +700,6 @@ void PrintNode(const char *name, u32 graph_type)
 void PrintBuiltInNodes(u32 graph_type, Bool dump_nodes)
 {
 #if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_X3D) && !defined(GPAC_DISABLE_SVG)
-	GF_Node *node;
 	GF_SceneGraph *sg;
 	u32 i, nb_in, nb_not_in, start_tag, end_tag;
 
@@ -742,7 +739,7 @@ void PrintBuiltInNodes(u32 graph_type, Bool dump_nodes)
 		fprintf(stderr, "Available MPEG-4 nodes in this build (encoding/decoding/dumping):\n");
 	}
 	for (i=start_tag; i<end_tag; i++) {
-		node = gf_node_new(sg, i);
+		GF_Node *node = gf_node_new(sg, i);
 		if (node) {
 			gf_node_register(node, NULL);
 			if (dump_nodes) {
@@ -806,9 +803,9 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
 	u32 i, j, size;
 	FILE *dump;
 	const char *sdp;
-	char szBuf[1024];
 
 	if (inName) {
+		char szBuf[1024];
 		strcpy(szBuf, inName);
 		if (!is_final_name) strcat(szBuf, "_rtp.xml");
 		dump = gf_fopen(szBuf, "wt");
@@ -847,11 +844,11 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 	u32 i, j, k, count;
 	Bool has_error, is_fragmented=0;
 	FILE *dump;
-	char szBuf[1024];
 	Bool skip_offset = ((dump_mode==2) || (dump_mode==4)) ? GF_TRUE : GF_FALSE;
 	Bool check_ts = ((dump_mode==3) || (dump_mode==4)) ? GF_TRUE : GF_FALSE;
 
 	if (inName) {
+		char szBuf[1024];
 		strcpy(szBuf, inName);
 		if (!is_final_name) strcat(szBuf, "_ts.txt");
 		dump = gf_fopen(szBuf, "wt");
@@ -979,7 +976,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 	Bool is_hevc = GF_FALSE;
 	AVCState avc;
 	HEVCState hevc;
-	GF_AVCConfig *avccfg, *svccfg, *mvccfg;
+	GF_AVCConfig *avccfg, *svccfg;
 	GF_HEVCConfig *hevccfg, *lhvccfg;
 	GF_AVCConfigSlot *slc;
 #endif
@@ -1018,6 +1015,8 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 
 	nb_descs = gf_isom_get_sample_description_count(file, track);
 	for (j=0; j<nb_descs; j++) {
+		GF_AVCConfig *mvccfg;
+
 		avccfg = gf_isom_avc_config_get(file, track, j+1);
 		svccfg = gf_isom_svc_config_get(file, track, j+1);
 		mvccfg = gf_isom_mvc_config_get(file, track, j+1);
@@ -1402,9 +1401,9 @@ void dump_isom_ismacryp(GF_ISOFile *file, char *inName, Bool is_final_name)
 {
 	u32 i, j;
 	FILE *dump;
-	char szBuf[1024];
 
 	if (inName) {
+		char szBuf[1024];
 		strcpy(szBuf, inName);
 		if (!is_final_name) strcat(szBuf, "_ismacryp.xml");
 		dump = gf_fopen(szBuf, "wt");
@@ -1442,7 +1441,6 @@ void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName,
 	FILE *dump;
 	GF_Err e;
 	u32 track;
-	char szBuf[1024];
 
 	track = gf_isom_get_track_by_id(file, trackID);
 	if (!track) {
@@ -1460,6 +1458,7 @@ void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName,
 	}
 
 	if (inName) {
+		char szBuf[1024];
 		char *ext;
 		ext = ((dump_type==GF_TEXTDUMPTYPE_SVG) ? "svg" : ((dump_type==GF_TEXTDUMPTYPE_SRT) ? "srt" : "ttxt"));
 		if (is_final_name) {
@@ -1493,13 +1492,12 @@ void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name)
 	const char *sdp;
 	u32 size, i;
 	FILE *dump;
-	char szBuf[1024];
 
 	if (inName) {
-		char *ext;
+		char szBuf[1024];
 		strcpy(szBuf, inName);
 		if (!is_final_name) {
-			ext = strchr(szBuf, '.');
+			char *ext = strchr(szBuf, '.');
 			if (ext) ext[0] = 0;
 			strcat(szBuf, "_sdp.txt");
 		}
@@ -1537,10 +1535,10 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 	GF_Err e;
 	FILE *dump = stdout;
 	Bool do_close=GF_FALSE;
-	char szBuf[1024];
 	if (!file) return GF_ISOM_INVALID_FILE;
 
 	if (inName) {
+		char szBuf[1024];
 		strcpy(szBuf, inName);
 		if (!is_final_name) {
 			strcat(szBuf, do_track_dump ? "_dump.xml" : "_info.xml");
@@ -1698,7 +1696,6 @@ void print_udta(GF_ISOFile *file, u32 track_number)
 
 GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_udta_type, u32 dump_udta_track)
 {
-	char szName[1024];
 	u8 *data;
 	FILE *t;
 	bin128 uuid;
@@ -1720,6 +1717,7 @@ GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 du
 		return e;
 	}
 	if (inName) {
+		char szName[1024];
 		if (is_final_name)
 			strcpy(szName, inName);
 		else
@@ -1747,11 +1745,11 @@ GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 du
 
 GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, Bool dump_ogg)
 {
-	char szName[1024];
 	FILE *t;
 	u32 i, count;
 	count = gf_isom_get_chapter_count(file, 0);
 	if (inName) {
+		char szName[1024];
 		strcpy(szName, inName);
 		if (!is_final_name) {
 			if (dump_ogg) {
@@ -1769,9 +1767,9 @@ GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, Bo
 	for (i=0; i<count; i++) {
 		u64 chapter_time;
 		const char *name;
-		char szDur[20];
 		gf_isom_get_chapter(file, 0, i+1, &chapter_time, &name);
 		if (dump_ogg) {
+			char szDur[20];
 			fprintf(t, "CHAPTER%02d=%s\n", i+1, format_duration(chapter_time, 1000, szDur));
 			fprintf(t, "CHAPTER%02dNAME=%s\n", i+1, name);
 		} else {
@@ -1825,10 +1823,9 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 static void print_config_hash(GF_List *xps_array, char *szName)
 {
 	u32 i, j;
-	GF_AVCConfigSlot *slc;
 	u8 hash[20];
 	for (i=0; i<gf_list_count(xps_array); i++) {
-		slc = gf_list_get(xps_array, i);
+		GF_AVCConfigSlot *slc = gf_list_get(xps_array, i);
 		gf_sha1_csum((u8 *) slc->data, slc->size, hash);
 		fprintf(stderr, "\t%s#%d hash: ", szName, i+1);
 		for (j=0; j<20; j++) fprintf(stderr, "%02X", hash[j]);
@@ -3324,8 +3321,8 @@ static void revert_cache_file(char *item_path)
 {
 	char szPATH[GF_MAX_PATH];
 	const char *url;
-	char *sep;
 	GF_Config *cached;
+
 	if (!strstr(item_path, "gpac_cache_")) {
 		fprintf(stderr, "%s is not a gpac cache file\n", item_path);
 		return;
@@ -3341,6 +3338,7 @@ static void revert_cache_file(char *item_path)
 	if (url) url = strstr(url, "://");
 	if (url) {
 		u32 i, len, dir_len=0, k=0;
+		char *sep;
 		char *dst_name;
 		sep = strstr(item_path, "gpac_cache_");
 		if (sep) {

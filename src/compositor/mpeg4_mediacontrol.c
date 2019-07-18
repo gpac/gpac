@@ -279,9 +279,9 @@ void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range
 {
 	u32 i;
 	Double duration;
-	GF_Segment *last_seg, *prev_seg;
 
 	if (gf_list_count(ctrl->seg)) {
+		GF_Segment *last_seg, *prev_seg;
 		GF_Segment *desc = (GF_Segment *)gf_list_get(ctrl->seg, ctrl->current_seg);
 		if (!desc) {
 			*start_range = 0;
@@ -322,13 +322,11 @@ void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range
 void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 {
 	Bool shall_restart, need_restart;
-	GF_MediaObject *prev;
 	GF_ObjectManager *odm;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	MediaControlStack *stack =(MediaControlStack *) gf_node_get_private(node);
 
 	if (is_destroy) {
-		GF_ObjectManager *odm;
 		MediaControlStack *stack = (MediaControlStack *) gf_node_get_private(node);
 
 		/*reset ODM using this control*/
@@ -357,6 +355,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 	/*check url target*/
 	if (stack->stream) {
 		if (MC_URLChanged(&stack->url, &stack->control->url)) {
+			GF_MediaObject *prev;
 			gf_sg_vrml_mf_reset(&stack->url, GF_SG_VRML_MFURL);
 
 			prev = stack->stream;

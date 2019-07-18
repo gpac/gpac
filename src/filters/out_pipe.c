@@ -308,7 +308,7 @@ static void pipeout_finalize(GF_Filter *filter)
 static GF_Err pipeout_process(GF_Filter *filter)
 {
 	GF_FilterPacket *pck;
-	const GF_PropertyValue *fname, *fext, *fnum, *p;
+	const GF_PropertyValue *fname, *p;
 	Bool start, end;
 	const char *pck_data;
 	u32 pck_size;
@@ -327,6 +327,8 @@ static GF_Err pipeout_process(GF_Filter *filter)
 	gf_filter_pck_get_framing(pck, &start, &end);
 
 	if (start) {
+		const GF_PropertyValue *fext, *fnum;
+
 		Bool explicit_overwrite = GF_FALSE;
 		const char *name = NULL;
 		fname = fext = NULL;

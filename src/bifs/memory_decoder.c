@@ -230,7 +230,7 @@ static GF_Err BM_ParseProtoDelete(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Li
 static GF_Err BM_XReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_list)
 {
 	GF_FieldInfo targetField, fromField, decfield;
-	GF_Node *target, *n, *fromNode;
+	GF_Node *target, *fromNode;
 	s32 pos = -2;
 	u32 id, nbBits, ind, aind;
 	GF_Err e;
@@ -260,6 +260,7 @@ static GF_Err BM_XReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_
 		if (gf_bs_read_int(bs, 1)) {
 			/*index is dynamic*/
 			if (gf_bs_read_int(bs, 1)) {
+				GF_Node *n;
 				id = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
 				n = gf_sg_find_node(codec->current_graph, id);
 				if (!n) return GF_SG_UNKNOWN_NODE;
@@ -398,7 +399,6 @@ static GF_Err BM_ParseExtendedUpdates(GF_BifsDecoder *codec, GF_BitStream *bs, G
 GF_Err BM_ParseNodeInsert(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_list)
 {
 	u32 NodeID, NDT;
-	GF_Command *com;
 	GF_CommandField *inf;
 	s32 type, pos;
 	GF_Node *node, *def;
@@ -426,7 +426,7 @@ GF_Err BM_ParseNodeInsert(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_
 	}
 	node = gf_bifs_dec_node(codec, bs, NDT);
 	if (!codec->LastError) {
-		com = gf_sg_command_new(codec->current_graph, GF_SG_NODE_INSERT);
+		GF_Command *com = gf_sg_command_new(codec->current_graph, GF_SG_NODE_INSERT);
 		BM_SetCommandNode(com, def);
 		inf = gf_sg_command_field_new(com);
 		inf->pos = pos;

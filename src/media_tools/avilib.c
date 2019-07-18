@@ -1,8 +1,8 @@
 /*
  *  avilib.c
  *
- *  Copyright (C) Thomas Östreich - June 2001
- *  multiple audio track support Copyright (C) 2002 Thomas Östreich
+ *  Copyright (C) Thomas ostreich - June 2001
+ *  multiple audio track support Copyright (C) 2002 Thomas ostreich
  *
  *  Original code:
  *  Copyright (C) 1999 Rainer Johanni <Rainer@Johanni.de>
@@ -545,10 +545,8 @@ static int avi_add_odml_index_entry(avi_t *AVI, unsigned char *tag, int flags, u
 
 static int avi_add_index_entry(avi_t *AVI, unsigned char *tag, int flags, u64 pos, u64 len)
 {
-	void *ptr;
-
 	if(AVI->n_idx>=AVI->max_idx) {
-		ptr = gf_realloc((void *)AVI->idx,(AVI->max_idx+4096)*16);
+		void *ptr = gf_realloc((void *)AVI->idx,(AVI->max_idx+4096)*16);
 
 		if(ptr == 0) {
 			AVI_errno = AVI_ERR_NO_MEM;
@@ -737,7 +735,7 @@ void AVI_set_audio(avi_t *AVI, int channels, int rate, int bits, int format, int
 //ThOe write preliminary AVI file header: 0 frames, max vid/aud size
 int avi_update_header(avi_t *AVI)
 {
-	int njunk, sampsize, hasIndex, ms_per_frame, frate, flag;
+	int njunk, hasIndex, ms_per_frame, frate, flag;
 	int movi_len, hdrl_start, strl_start;
 	u32 j;
 	unsigned char AVI_header[HEADERBYTES];
@@ -877,8 +875,7 @@ int avi_update_header(avi_t *AVI)
 	/* Start the audio stream list ---------------------------------- */
 
 	for(j=0; j<AVI->anum; ++j) {
-
-		sampsize = avi_sampsize(AVI, j);
+		int sampsize = avi_sampsize(AVI, j);
 
 		OUT4CC ("LIST");
 		OUTLONG(0);        /* Length of list in bytes, don't know yet */
@@ -1006,7 +1003,7 @@ int avi_update_header(avi_t *AVI)
 
 static int avi_close_output_file(avi_t *AVI)
 {
-	int ret, njunk, sampsize, hasIndex, ms_per_frame, frate, idxerror, flag;
+	int njunk, hasIndex, ms_per_frame, frate, idxerror, flag;
 	u64 movi_len;
 	int hdrl_start, strl_start;
 	u32 j;
@@ -1072,7 +1069,7 @@ static int avi_close_output_file(avi_t *AVI)
 	hasIndex = 1;
 	if (!AVI->is_opendml) {
 		//   GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] pos=%lu, index_len=%ld             \n", AVI->pos, AVI->n_idx*16));
-		ret = avi_add_chunk(AVI, (unsigned char *)"idx1", (unsigned char *)AVI->idx, AVI->n_idx*16);
+		int ret = avi_add_chunk(AVI, (unsigned char *)"idx1", (unsigned char *)AVI->idx, AVI->n_idx*16);
 		hasIndex = (ret==0);
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] pos=%lu, index_len=%d\n", AVI->pos, hasIndex));
 
@@ -1254,7 +1251,7 @@ static int avi_close_output_file(avi_t *AVI)
 			unsigned int avgbsec = 0;
 			unsigned int scalerate = 0;
 
-			sampsize = avi_sampsize(AVI, j);
+			int sampsize = avi_sampsize(AVI, j);
 			sampsize = AVI->track[j].a_fmt==0x1?sampsize*4:sampsize;
 
 			nBlockAlign = (AVI->track[j].a_rate<32000)?576:1152;
@@ -3005,7 +3002,7 @@ int AVI_set_audio_position(avi_t *AVI, int byte)
 
 int AVI_read_audio(avi_t *AVI, u8 *audbuf, int bytes, int *continuous)
 {
-	int nr, left, todo;
+	int nr, todo;
 	s64 pos;
 
 	if(AVI->mode==AVI_MODE_WRITE) {
@@ -3028,7 +3025,7 @@ int AVI_read_audio(avi_t *AVI, u8 *audbuf, int bytes, int *continuous)
 	while(bytes>0)
 	{
 		s64 ret;
-		left = (int) (AVI->track[AVI->aptr].audio_index[AVI->track[AVI->aptr].audio_posc].len - AVI->track[AVI->aptr].audio_posb);
+		int left = (int) (AVI->track[AVI->aptr].audio_index[AVI->track[AVI->aptr].audio_posc].len - AVI->track[AVI->aptr].audio_posb);
 		if(left==0)
 		{
 			if(AVI->track[AVI->aptr].audio_posc>=AVI->track[AVI->aptr].audio_chunks-1) return nr;

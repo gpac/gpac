@@ -414,7 +414,7 @@ static void Valuator_SetInSFRotation(GF_Node *n, GF_Route *route)
 /*
 valuator spec (9.4.2.116.2)
 Convert if the content of the string represents an int, float or
-double value. ‘Boolean’ string values 'true' and 'false' are
+double value. Boolean string values 'true' and 'false' are
 converted to 1.0 and 0.0 respectively. Any other string is converted to 0.0
 */
 static void Valuator_SetInSFString(GF_Node *n, GF_Route *route)

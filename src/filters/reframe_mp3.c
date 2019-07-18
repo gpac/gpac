@@ -216,7 +216,7 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 	while (size && (gf_bs_available(bs)>=10) ) {
 		char szTag[1024];
-		char *sep, *sep_desc;
+		char *sep;
 		u32 pic_size;
 		//u32 pic_type;
 		u32 ftag = gf_bs_read_u32(bs);
@@ -275,6 +275,7 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 		//we forward as is the APIC tag for now
 		case ID3V2_FRAME_APIC:
 			if (ctx->expart) {
+				char *sep_desc;
 				//first char is text encoding
 				//then mime
 				sep = memchr(buf+1, 0, fsize-1);

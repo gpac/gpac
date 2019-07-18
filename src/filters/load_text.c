@@ -332,12 +332,13 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 		gf_fseek(ctx->src, 0, SEEK_SET);
 		while (!feof(ctx->src)) {
 			u64 end;
-			char szLine[2048], szText[2048];
+			char szLine[2048];
 			char *sOK = gf_text_get_utf8_line(szLine, 2048, ctx->src, ctx->unicode_type);
 			if (!sOK) break;
 			REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
 			if (ctx->fmt == GF_TXTIN_MODE_SUB) {
+				char szText[2048];
 				u32 sframe, eframe;
 				if (sscanf(szLine, "{%d}{%d}%s", &sframe, &eframe, szText) == 3) {
 					if (ctx->fps.den)
@@ -1797,8 +1798,7 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 	GF_Err e;
 	u32 j, k, ID, OCR_ES_ID;
 	u64 file_size;
-	GF_XMLAttribute *att;
-	GF_XMLNode *root, *node, *ext;
+	GF_XMLNode *root, *ext;
 	GF_PropertyValue *dcd;
 
 	ctx->parser = gf_xml_dom_new();
@@ -1834,7 +1834,7 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 
 	ctx->cur_child_idx = 0;
 	for (ctx->cur_child_idx=0; ctx->cur_child_idx < ctx->nb_children; ctx->cur_child_idx++) {
-		node = (GF_XMLNode*) gf_list_get(root->content, ctx->cur_child_idx);
+		GF_XMLNode *node = (GF_XMLNode*) gf_list_get(root->content, ctx->cur_child_idx);
 
 		if (node->type) {
 			continue;
@@ -1844,6 +1844,7 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 			GF_XMLNode *sdesc;
 			s32 w, h, tx, ty, layer;
 			u32 tref_id;
+			GF_XMLAttribute *att;
 			w = ctx->width;
 			h = ctx->height;
 			tx = ctx->x;
@@ -1988,8 +1989,7 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 {
 	u32 j, k;
-	GF_XMLAttribute *att;
-	GF_XMLNode *root, *node, *ext;
+	GF_XMLNode *root, *ext;
 
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
@@ -2009,8 +2009,8 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 		GF_TextSample * samp;
 		u32 ts, descIndex;
 		Bool has_text = GF_FALSE;
-
-		node = (GF_XMLNode*) gf_list_get(root->content, ctx->cur_child_idx);
+		GF_XMLAttribute *att;
+		GF_XMLNode *node = (GF_XMLNode*) gf_list_get(root->content, ctx->cur_child_idx);
 
 		if (node->type) {
 			continue;

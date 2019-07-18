@@ -65,10 +65,10 @@ void gf_sg_command_del(GF_Command *com)
 				break;
 			case GF_SG_VRML_MFNODE:
 				if (inf->field_ptr) {
-					GF_ChildNodeItem *cur, *child;
+					GF_ChildNodeItem *child;
 					child = inf->node_list;
 					while (child) {
-						cur = child;
+						GF_ChildNodeItem *cur = child;
 						gf_node_try_destroy(com->in_scene, child->node, NULL);
 						child = child->next;
 						gf_free(cur);
@@ -90,10 +90,10 @@ void gf_sg_command_del(GF_Command *com)
 
 			if (inf->new_node) gf_node_unregister(inf->new_node, NULL);
 			else if (inf->node_list) {
-				GF_ChildNodeItem *cur, *child;
+				GF_ChildNodeItem *child;
 				child = inf->node_list;
 				while (child) {
-					cur = child;
+					GF_ChildNodeItem *cur = child;
 					gf_node_try_destroy(com->in_scene, child->node, NULL);
 					child = child->next;
 					gf_free(cur);
@@ -148,8 +148,8 @@ static void SG_CheckFieldChange(GF_Node *node, GF_FieldInfo *field)
 #ifndef GPAC_DISABLE_SVG
 static void gf_node_unregister_children_deactivate(GF_Node *container, GF_ChildNodeItem *child)
 {
-	GF_ChildNodeItem *cur;
 	while (child) {
+		GF_ChildNodeItem *cur;
 		gf_node_unregister(child->node, container);
 		gf_node_deactivate(child->node);
 		cur = child;
@@ -498,7 +498,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	{
 		s32 pos = -2;
 		GF_Node *target = NULL;
-		GF_ChildNodeItem *list, *cur, *prev;
+		GF_ChildNodeItem *list, *cur;
 		GF_FieldInfo value;
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 		if (!inf) return GF_SG_UNKNOWN_NODE;
@@ -578,6 +578,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				/*note we don't add time offset, since there's no MFTime*/
 			}
 		} else {
+			GF_ChildNodeItem *prev;
 			switch (field.fieldType) {
 			case GF_SG_VRML_SFNODE:
 			{

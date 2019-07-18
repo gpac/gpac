@@ -61,7 +61,7 @@ void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size
 	u32 i;
 	s32 start;
 	char *buffer;
-	char *cl_str, val[30];
+	char *cl_str;
 
 	*body_start = *body_size = 0;
 
@@ -79,6 +79,7 @@ void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size
 	if (!cl_str) cl_str = strstr(buffer, "Content-length: ");
 
 	if (cl_str) {
+		char val[30];
 		cl_str += 16;
 		i = 0;
 		while (cl_str[i] != '\r') {

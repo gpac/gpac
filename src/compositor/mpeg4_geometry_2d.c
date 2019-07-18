@@ -75,7 +75,6 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*check traverse mode, and take care of switch-off flag*/
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
-		GF_Node *m;
 		tr_state->appear = (GF_Node *) shape->appearance;
 
 		/*this is done regardless of switch flag*/
@@ -83,7 +82,7 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 
 		if (tr_state->appear) {
 			/*apply line width*/
-			m = ((M_Appearance *)tr_state->appear)->material;
+			GF_Node *m = ((M_Appearance *)tr_state->appear)->material;
 			if (m && (gf_node_get_tag(m)==TAG_MPEG4_Material2D) ) {
 				DrawAspect2D asp;
 				Fixed width = 0;

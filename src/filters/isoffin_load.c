@@ -89,7 +89,6 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	u8 *dsi = NULL, *enh_dsi = NULL;
 	u32 dsi_size = 0, enh_dsi_size = 0;
 	Double track_dur=0;
-	GF_FilterPid *pid;
 	u32 srd_id=0, srd_indep=0, srd_x=0, srd_y=0, srd_w=0, srd_h=0;
 	u32 base_tile_track=0;
 	Bool srd_full_frame=GF_FALSE;
@@ -239,6 +238,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 	//first setup, creation of PID and channel
 	if (!ch) {
+		GF_FilterPid *pid;
 		first_config = GF_TRUE;
 
 		gf_isom_get_reference(read->mov, track, GF_ISOM_REF_BASE, 1, &base_track);

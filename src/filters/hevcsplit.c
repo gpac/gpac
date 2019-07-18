@@ -668,11 +668,11 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx*)gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		GF_FilterPid *opid;
-		HEVCTilePid  *tpid;
 		u32 count;
 		count = gf_filter_get_opid_count(filter);
 		for (u32 i=0; i<count; i++) {
+			GF_FilterPid *opid;
+			HEVCTilePid  *tpid;
 			opid = gf_filter_get_opid(filter, i);
 			tpid = gf_filter_pid_get_udta(opid);
 
@@ -796,7 +796,7 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 	u32 data_size, nal_length, opid_idx = 0;
 	u8 temporal_id, layer_id, nal_unit_type, i;
 	u8 *data;
-	u8 *output_nal, *rewritten_nal;
+	u8 *output_nal;
 	u32 out_nal_size;
 	GF_FilterPid * opid;
 	HEVCTilePid * tpid;
@@ -821,6 +821,7 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] splitting frame %d DTS "LLU" CTS "LLU"\n", ctx->nb_pck, gf_filter_pck_get_dts(pck_src), gf_filter_pck_get_cts(pck_src)));
 
 	while (gf_bs_available(ctx->bs_au_in)) {
+		u8 *rewritten_nal;
 		// ctx->hevc_nalu_size_length filled using hvcc
 		nal_length = gf_bs_read_int(ctx->bs_au_in, ctx->hevc_nalu_size_length * 8);
 		u32 pos = (u32) gf_bs_get_position(ctx->bs_au_in);

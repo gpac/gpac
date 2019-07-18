@@ -86,7 +86,6 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 	GF_EVGStencil *grad;
 	u32 *colors;
 #endif
-	GF_Path *path;
 	SFVec2f start;
 	SFVec2f *pts;
 	SFColor col;
@@ -125,7 +124,7 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 
 	/*we have color per faces so we need N path :(*/
 	if (! ifs2D->colorPerVertex) {
-		path = gf_path_new();
+		GF_Path *path = gf_path_new();
 
 		count = 0;
 		i = 0;

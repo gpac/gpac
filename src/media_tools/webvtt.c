@@ -294,13 +294,13 @@ GF_ISOSample *gf_isom_webvtt_to_sample(void *s)
 	GF_ISOSample *res;
 	GF_BitStream *bs;
 	u32 i;
-	GF_WebVTTCue *cue;
 	GF_WebVTTSample *samp = (GF_WebVTTSample *)s;
 	if (!samp) return NULL;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	if (gf_list_count(samp->cues)) {
+		GF_WebVTTCue *cue;
 		i=0;
 		while ((cue = (GF_WebVTTCue *)gf_list_enum(samp->cues, &i))) {
 			e = webvtt_write_cue(bs, cue);

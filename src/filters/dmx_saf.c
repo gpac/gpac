@@ -77,7 +77,6 @@ static GFINLINE GF_SAFStream *saf_get_channel(GF_SAFDmxCtx *saf, u32 stream_id)
 static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 data_size)
 {
 	Bool is_rap, go;
-	GF_SAFStream *st;
 	u32 cts, au_size, type, i, stream_id;
 	u64 bs_pos;
 	GF_BitStream *bs;
@@ -98,6 +97,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 
 	go = GF_TRUE;
 	while (go) {
+		GF_SAFStream *st;
 		u64 avail = gf_bs_available(bs);
 		bs_pos = gf_bs_get_position(bs);
 

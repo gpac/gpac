@@ -54,7 +54,6 @@ typedef struct
 
 static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite)
 {
-	char szName[GF_MAX_PATH], szFinalName[GF_MAX_PATH];
 	if (ctx->file && !ctx->is_std) {
 		gf_fclose(ctx->file);
 	}
@@ -69,6 +68,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	if (ctx->is_std) {
 		ctx->file = stdout;
 	} else {
+		char szName[GF_MAX_PATH], szFinalName[GF_MAX_PATH];
 		Bool append = ctx->append;
 		if (ctx->dynext) {
 			const char *has_ext = gf_file_ext_start(filename);
@@ -221,7 +221,7 @@ static void fileout_finalize(GF_Filter *filter)
 static GF_Err fileout_process(GF_Filter *filter)
 {
 	GF_FilterPacket *pck;
-	const GF_PropertyValue *fname, *ext, *fnum, *p;
+	const GF_PropertyValue *fname, *p;
 	Bool start, end;
 	const char *pck_data;
 	u32 pck_size, nb_write;
@@ -269,6 +269,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 		start = GF_FALSE;
 
 	if (start) {
+		const GF_PropertyValue *ext, *fnum;
 		Bool explicit_overwrite = GF_FALSE;
 		const char *name = NULL;
 		fname = ext = NULL;

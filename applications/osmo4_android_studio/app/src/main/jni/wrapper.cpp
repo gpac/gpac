@@ -720,12 +720,13 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	if (cfg_dir)
 		strcpy(m_cfg_dir, cfg_dir);
 
-	char m_cfg_filename[GF_MAX_PATH];
+/*	char m_cfg_filename[GF_MAX_PATH];
 	if (m_cfg_dir[0]) {
 		LOGI("GPAC.cfg found in %s, force using it.\n", m_cfg_dir);
 		strcpy(m_cfg_filename, m_cfg_dir);
 		strcat(m_cfg_filename, "GPAC.cfg");
 	}
+*/
 
 	int m_Width = width;
 	int m_Height = height;
@@ -830,11 +831,11 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 //-------------------------------
 int CNativeWrapper::connect(const char *url)
 {
-	const char *str;
 	char the_url[256];
 
 	if (m_term)
 	{
+		const char *str;
 		debug_log("Starting to connect ...");
 		str = gf_opts_get_key("General", "StartupFile");
 		if (str)

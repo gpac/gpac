@@ -32,7 +32,6 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 {
 	GF_PropertyValue p;
 	char *unit_sep=NULL;
-	char unit_char = 0;
 	s32 unit = 0;
 	memset(&p, 0, sizeof(GF_PropertyValue));
 	p.value.data.size=0;
@@ -44,7 +43,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		u32 len = (u32) strlen(value);
 		unit_sep = len ? strrchr("kKgGmM", value[len-1]) : NULL;
 		if (unit_sep) {
-			unit_char = unit_sep[0];
+			u8 unit_char = unit_sep[0];
 			if ((unit_char=='k') || (unit_char=='K')) unit = 1000;
 			else if ((unit_char=='m') || (unit_char=='M')) unit = 1000000;
 			if ((unit_char=='G') || (unit_char=='g')) unit = 1000000000;
@@ -297,13 +296,12 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			}
 		} else if (!strnicmp(value, "bxml@", 5) ) {
 			GF_Err e = GF_OK;
-			GF_XMLNode *root;
 			GF_DOMParser *dom = gf_xml_dom_new();
 			e = gf_xml_dom_parse(dom, value+5, NULL, NULL);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot parse XML from file %s\n", value+5));
 			} else {
-				root = gf_xml_dom_get_root_idx(dom, 0);
+				GF_XMLNode *root = gf_xml_dom_get_root_idx(dom, 0);
 				//if no root, assume NULL
 				if (root) {
 					e = gf_xml_parse_bit_sequence(root, value+5, &p.value.data.ptr, &p.value.data.size);

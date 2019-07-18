@@ -225,7 +225,6 @@ GF_SLConfig *tsmux_get_sl_config(GF_TSMuxCtx *ctx, u32 timescale, GF_SLConfig *s
 static void tsmux_rewrite_odf(GF_TSMuxCtx *ctx, GF_ESIPacket *es_pck)
 {
 	u32 com_count, com_index, od_count, esd_index, od_index;
-	GF_ODCom *com;
 	GF_ODUpdate *odU;
 	GF_ESDUpdate *esdU;
 	GF_ESD *esd;
@@ -235,7 +234,7 @@ static void tsmux_rewrite_odf(GF_TSMuxCtx *ctx, GF_ESIPacket *es_pck)
 	gf_odf_codec_decode(od_codec);
 	com_count = gf_list_count(od_codec->CommandList);
 	for (com_index = 0; com_index < com_count; com_index++) {
-		com = (GF_ODCom *)gf_list_get(od_codec->CommandList, com_index);
+		GF_ODCom *com = (GF_ODCom *)gf_list_get(od_codec->CommandList, com_index);
 		switch (com->tag) {
 		case GF_ODF_OD_UPDATE_TAG:
 			odU = (GF_ODUpdate*)com;
@@ -993,7 +992,6 @@ static void tsmux_insert_sidx(GF_TSMuxCtx *ctx, Bool final_flush)
 
 static GF_Err tsmux_process(GF_Filter *filter)
 {
-	const char *ts_pck;
 	u32 nb_pck_in_pack, nb_pck_in_call;
 	u32 status, usec_till_next;
 	GF_FilterPacket *pck;
@@ -1068,6 +1066,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		u8 *output;
 		u32 osize;
 		Bool is_pack_flush = GF_FALSE;
+		const char *ts_pck;
 
 		ts_pck = gf_m2ts_mux_process(ctx->mux, &status, &usec_till_next);
 		if (ts_pck == NULL) {

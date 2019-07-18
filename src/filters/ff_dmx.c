@@ -769,6 +769,8 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	else if (!strncmp(ctx->src, "audio://", 8)) wants_audio = GF_TRUE;
 	else if (!strncmp(ctx->src, "av://", 5)) wants_video = wants_audio = GF_TRUE;
 
+	szPatchedName[0]=0;
+
 #if defined(__DARWIN) || defined(__APPLE__)
 	if (!strncmp(dev_name, "screen", 6)) {
 		strcpy(szPatchedName, "Capture screen ");

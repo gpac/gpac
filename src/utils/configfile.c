@@ -51,11 +51,10 @@ struct __tag_config
 
 static void DelSection(IniSection *ptr)
 {
-	IniKey *k;
 	if (!ptr) return;
 	if (ptr->keys) {
 		while (gf_list_count(ptr->keys)) {
-			k = (IniKey *) gf_list_get(ptr->keys, 0);
+			IniKey *k = (IniKey *) gf_list_get(ptr->keys, 0);
 			if (k->value) gf_free(k->value);
 			if (k->name) gf_free(k->name);
 			gf_free(k);
@@ -71,12 +70,12 @@ static void DelSection(IniSection *ptr)
  * \brief Clear the structure
  * \param iniFile The structure to clear
  */
-static void gf_cfg_clear(GF_Config * iniFile) {
-	IniSection *p;
+static void gf_cfg_clear(GF_Config * iniFile)
+{
 	if (!iniFile) return;
 	if (iniFile->sections) {
 		while (gf_list_count(iniFile->sections)) {
-			p = (IniSection *) gf_list_get(iniFile->sections, 0);
+			IniSection *p = (IniSection *) gf_list_get(iniFile->sections, 0);
 			DelSection(p);
 			gf_list_rem(iniFile->sections, 0);
 		}
@@ -95,7 +94,6 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 	IniSection *p;
 	IniKey *k=NULL;
 	FILE *file;
-	char *ret;
 	char *line;
 	u32 line_alloc = MAX_INI_LINE;
 	char fileName[GF_MAX_PATH];
@@ -136,6 +134,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			nb_empty_lines=0;\
 
 	while (!feof(file)) {
+		char *ret;
 		u32 read, nb_pass;
 		char *fsep;
 		ret = fgets(line, line_alloc, file);

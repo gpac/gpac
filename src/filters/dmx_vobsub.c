@@ -345,7 +345,6 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 GF_Err vobsubdmx_process(GF_Filter *filter)
 {
 	GF_VOBSubDmxCtx *ctx = gf_filter_get_udta(filter);
-	const GF_PropertyValue *p;
 	GF_FilterPacket *pck;
 	u32 pkt_size, i, count, nb_eos;
 	Bool start, end;
@@ -370,6 +369,7 @@ GF_Err vobsubdmx_process(GF_Filter *filter)
 	if (!ctx->nb_playing) return GF_OK;
 
 	if (!ctx->mdia) {
+		const GF_PropertyValue *p;
 		if (!ctx->sub_pid) return GF_OK;
 		p = gf_filter_pid_get_property(ctx->sub_pid, GF_PROP_PID_FILEPATH);
 		if (!p) {

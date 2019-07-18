@@ -708,9 +708,8 @@ Bool gf_sys_get_battery_state(Bool *onBattery, u32 *state, u32*level)
 /*delete all interfaces loaded on object*/
 void gf_modules_free_module(ModuleInstance *inst)
 {
-	void *objinterface;
 	while (gf_list_count(inst->interfaces)) {
-		objinterface = gf_list_get(inst->interfaces, 0);
+		void *objinterface = gf_list_get(inst->interfaces, 0);
 		gf_list_rem(inst->interfaces, 0);
 		inst->destroy_func(objinterface);
 	}

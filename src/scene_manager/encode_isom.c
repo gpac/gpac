@@ -91,7 +91,6 @@ static void gf_sm_finalize_mux(GF_ISOFile *mp4, GF_ESD *src, u32 offset_ts)
 
 static GF_Err gf_sm_import_ui_stream(GF_ISOFile *mp4, GF_ESD *src, Bool rewrite_esd_only)
 {
-	GF_UIConfig *cfg;
 	u32 len, i;
 	GF_Err e;
 	if (!src->slConfig) src->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
@@ -99,7 +98,7 @@ static GF_Err gf_sm_import_ui_stream(GF_ISOFile *mp4, GF_ESD *src, Bool rewrite_
 	src->slConfig->timestampResolution = 1000;
 	if (!src->decoderConfig || !src->decoderConfig->decoderSpecificInfo) return GF_ODF_INVALID_DESCRIPTOR;
 	if (src->decoderConfig->decoderSpecificInfo->tag == GF_ODF_UI_CFG_TAG) {
-		cfg = (GF_UIConfig *) src->decoderConfig->decoderSpecificInfo;
+		GF_UIConfig *cfg = (GF_UIConfig *) src->decoderConfig->decoderSpecificInfo;
 		e = gf_odf_encode_ui_config(cfg, &src->decoderConfig->decoderSpecificInfo);
 		gf_odf_desc_del((GF_Descriptor *) cfg);
 		if (e) return e;
@@ -1326,7 +1325,6 @@ GF_EXPORT
 GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOptions *opts)
 {
 	u32 i, count;
-	GF_Descriptor *desc;
 	GF_Err e;
 	if (!ctx->scene_graph) return GF_BAD_PARAM;
 	if (ctx->root_od && (ctx->root_od->tag != GF_ODF_IOD_TAG) && (ctx->root_od->tag != GF_ODF_OD_TAG)) return GF_BAD_PARAM;
@@ -1357,6 +1355,7 @@ GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOp
 
 	/*store iod*/
 	if (ctx->root_od) {
+		GF_Descriptor *desc;
 		gf_isom_set_root_od_id(mp4, ctx->root_od->objectDescriptorID);
 		if (ctx->root_od->URLString) gf_isom_set_root_od_url(mp4, ctx->root_od->URLString);
 		count = gf_list_count(ctx->root_od->extensionDescriptors);

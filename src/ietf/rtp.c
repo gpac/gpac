@@ -379,7 +379,6 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 {
 	GF_Err e;
 	u32 seq_num, res;
-	char *pck;
 
 	//only if the socket exist (otherwise RTSP interleaved channel)
 	if (!ch || !ch->rtp) return 0;
@@ -399,6 +398,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 	}
 	//add the packet to our Queue if any
 	if (ch->po) {
+		char *pck;
 		if (res) {
 			seq_num = ((((u32)buffer[2]) << 8) & 0xFF00) | (buffer[3] & 0xFF);
 			gf_rtp_reorderer_add(ch->po, (void *) buffer, res, seq_num);

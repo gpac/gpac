@@ -378,7 +378,6 @@ static void DumpData(FILE *trace, const char *name, char *data, u64 dataLength, 
 GF_Err DumpDescList(GF_List *list, FILE *trace, u32 indent, const char *ListName, Bool XMTDump, Bool no_skip_empty)
 {
 	u32 i, count;
-	GF_Descriptor *desc;
 	char ind_buf[OD_MAX_TREE];
 	if (!list) return GF_OK;
 	count = gf_list_count(list);
@@ -387,7 +386,7 @@ GF_Err DumpDescList(GF_List *list, FILE *trace, u32 indent, const char *ListName
 	indent++;
 	OD_FORMAT_INDENT(ind_buf, indent);
 	for (i=0; i<count; i++) {
-		desc = (GF_Descriptor *)gf_list_get(list, i);
+		GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(list, i);
 		//add offset if not XMT
 		if (!XMTDump) fprintf(trace, "%s", ind_buf);
 		gf_odf_dump_desc(desc, trace, indent, XMTDump);
@@ -1168,7 +1167,6 @@ GF_Err gf_odf_dump_ci(GF_CIDesc *cid, FILE *trace, u32 indent, Bool XMTDump)
 
 GF_Err gf_odf_dump_exp_text(GF_ExpandedTextual *etd, FILE *trace, u32 indent, Bool XMTDump)
 {
-	GF_ETD_ItemText *it1, *it2;
 	u32 i, count;
 
 	StartDescDump(trace, "ExpandedTextualDescriptor", indent, XMTDump);
@@ -1180,8 +1178,9 @@ GF_Err gf_odf_dump_exp_text(GF_ExpandedTextual *etd, FILE *trace, u32 indent, Bo
 
 	count = gf_list_count(etd->itemDescriptionList);
 	for (i=0; i<count; i++) {
-		it1 = (GF_ETD_ItemText *)gf_list_get(etd->itemDescriptionList, i);
-		it2 = (GF_ETD_ItemText *)gf_list_get(etd->itemTextList, i);
+		GF_ETD_ItemText *it1 = (GF_ETD_ItemText *)gf_list_get(etd->itemDescriptionList, i);
+		GF_ETD_ItemText *it2 = (GF_ETD_ItemText *)gf_list_get(etd->itemTextList, i);
+		if (!it1 || !it2) break;
 		StartSubElement(trace, "item", indent, XMTDump);
 		DumpString(trace, "description", it1->text, indent, XMTDump);
 		DumpString(trace, "text", it2->text, indent, XMTDump);
@@ -1534,9 +1533,6 @@ GF_Err gf_odf_dump_pl_idx(GF_PL_IDX *plid, FILE *trace, u32 indent, Bool XMTDump
 
 GF_Err gf_odf_dump_qos(GF_QoS_Descriptor *qos, FILE *trace, u32 indent, Bool XMTDump)
 {
-	GF_QoS_Default *p;
-	u32 i;
-
 	StartDescDump(trace, "QoS_Descriptor", indent, XMTDump);
 	indent++;
 
@@ -1545,7 +1541,8 @@ GF_Err gf_odf_dump_qos(GF_QoS_Descriptor *qos, FILE *trace, u32 indent, Bool XMT
 		DumpInt(trace, "value", qos->predefined, indent, XMTDump);
 		EndSubElement(trace, indent, XMTDump);
 	} else {
-		i=0;
+		u32 i=0;
+		GF_QoS_Default *p;
 		while ((p = (GF_QoS_Default *)gf_list_enum(qos->QoS_Qualifiers, &i))) {
 			switch (p->tag) {
 			case QoSMaxDelayTag:
@@ -1943,7 +1940,6 @@ GF_Err gf_oci_dump_event(OCIEvent *ev, FILE *trace, u32 indent, Bool XMTDump)
 	u8 H, M, S, hS, rien;
 	u16 evID;
 	u32 i;
-	GF_Descriptor *desc;
 
 	StartDescDump(trace, "OCI_Event", indent, XMTDump);
 	indent++;
@@ -1963,7 +1959,7 @@ GF_Err gf_oci_dump_event(OCIEvent *ev, FILE *trace, u32 indent, Bool XMTDump)
 
 	StartElement(trace, "OCIDescr", indent, XMTDump, GF_TRUE);
 	for (i=0; i<gf_oci_event_get_desc_count(ev); i++) {
-		desc = gf_oci_event_get_desc(ev, i);
+		GF_Descriptor *desc = gf_oci_event_get_desc(ev, i);
 		gf_odf_dump_desc(desc, trace, indent+1, XMTDump);
 	}
 	EndElement(trace, "OCIDescr", indent, XMTDump, GF_TRUE);

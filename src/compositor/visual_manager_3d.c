@@ -724,7 +724,7 @@ static GFINLINE Bool visual_3d_has_alpha(GF_TraverseState *tr_state, GF_Node *ge
 void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 {
 	u32 i, count;
-	DirectionalLightContext *nl, *ol;
+	DirectionalLightContext *ol;
 	Drawable3DContext *ctx;
 	Drawable3D *drawable;
 
@@ -775,7 +775,7 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 
 	i=0;
 	while ((ol = (DirectionalLightContext*)gf_list_enum(tr_state->local_lights, &i))) {
-		nl = (DirectionalLightContext*)gf_malloc(sizeof(DirectionalLightContext));
+		DirectionalLightContext *nl = (DirectionalLightContext*)gf_malloc(sizeof(DirectionalLightContext));
 		memcpy(nl, ol, sizeof(DirectionalLightContext));
 		gf_list_add(ctx->directional_lights, nl);
 	}

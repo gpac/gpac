@@ -982,7 +982,6 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 	case GF_SG_VRML_SFIMAGE:
 	{
 		u32 i, size, v;
-		char *str;
 		SFImage *img = (SFImage *)info->far_ptr;
 		gf_bt_parse_int(parser, "width", (SFInt32 *)&img->width);
 		if (parser->last_error) return;
@@ -995,7 +994,7 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 		if (img->pixels) gf_free(img->pixels);
 		img->pixels = (unsigned char*)gf_malloc(sizeof(char) * size);
 		for (i=0; i<size; i++) {
-			str = gf_bt_get_next(parser, 0);
+			char *str = gf_bt_get_next(parser, 0);
 			if (strstr(str, "0x")) sscanf(str, "%x", &v);
 			else sscanf(str, "%u", &v);
 			switch (img->numComponents) {
@@ -1581,7 +1580,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 	GF_Node *n, *the_node;
 	u32 tag, ID;
 	Bool prev_is_insert = 0;
-	char *str, *ret;
+	char *ret;
 	char nName[1000];
 	u32 pos, line, line_pos, i, count;
 
@@ -1602,7 +1601,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 
 	n = NULL;
 	while (!parser->done && !the_node) {
-		str = gf_bt_get_next(parser, 0);
+		char *str = gf_bt_get_next(parser, 0);
 		gf_bt_check_code(parser, '[');
 		gf_bt_check_code(parser, ']');
 		gf_bt_check_code(parser, '{');
@@ -2034,10 +2033,9 @@ GF_Route *gf_bt_parse_route(GF_BTParser *parser, Bool skip_def, Bool is_insert, 
 
 void gf_bt_resolve_routes(GF_BTParser *parser, Bool clean)
 {
-	GF_Command *com;
 	/*resolve all commands*/
 	while(gf_list_count(parser->unresolved_routes) ) {
-		com = (GF_Command *)gf_list_get(parser->unresolved_routes, 0);
+		GF_Command *com = (GF_Command *)gf_list_get(parser->unresolved_routes, 0);
 		gf_list_rem(parser->unresolved_routes, 0);
 		switch (com->tag) {
 		case GF_SG_ROUTE_DELETE:
@@ -3097,7 +3095,6 @@ void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
 {
 	u32 val=0;
 	char *str;
-	GF_Descriptor *desc;
 
 	if (!strcmp(name, "UPDATE")) {
 		str = gf_bt_get_next(parser, 0);
@@ -3111,6 +3108,7 @@ void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
 			odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 			gf_list_add(parser->od_au->commands, odU);
 			while (!parser->done) {
+				GF_Descriptor *desc;
 				str = gf_bt_get_next(parser, 0);
 				if (gf_bt_check_code(parser, ']')) break;
 				if (strcmp(str, "ObjectDescriptor") && strcmp(str, "InitialObjectDescriptor")) {
@@ -3150,6 +3148,7 @@ void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
 			}
 
 			while (!parser->done) {
+				GF_Descriptor *desc;
 				str = gf_bt_get_next(parser, 0);
 				if (gf_bt_check_code(parser, ']')) break;
 				if (strcmp(str, "ES_Descriptor")) {
@@ -3172,6 +3171,7 @@ void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
 			ipU = (GF_IPMPUpdate *) gf_odf_com_new(GF_ODF_IPMP_UPDATE_TAG);
 			gf_list_add(parser->od_au->commands, ipU);
 			while (!parser->done) {
+				GF_Descriptor *desc;
 				str = gf_bt_get_next(parser, 0);
 				if (gf_bt_check_code(parser, ']')) break;
 				if (strcmp(str, "IPMP_Descriptor")) {
@@ -3500,7 +3500,6 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bool input_only)
 {
 	u32 size;
-	char *sep;
 	gzFile gzInput;
 	GF_Err e;
 	unsigned char BOM[5];
@@ -3562,7 +3561,7 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 
 	if ( load->fileName )
 	{
-		sep = strrchr(load->fileName, '.');
+		char *sep = strrchr(load->fileName, '.');
 		if (sep && !strnicmp(sep, ".wrl", 4)) parser->is_wrl = 1;
 	}
 

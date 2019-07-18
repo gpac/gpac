@@ -408,7 +408,7 @@ static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 GF_EXPORT
 GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time, u32 fs_dump_flags)
 {
-	char szArgs[4096], an_arg[100];
+	char szArgs[4096];
 	GF_Filter *src, *dst, *dcrypt;
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
@@ -437,6 +437,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 
 	sprintf(szArgs, "SID=1");
 	if (interleave_time) {
+		char an_arg[100];
 		sprintf(an_arg, ":cdur=%g", interleave_time);
 		strcat(szArgs, an_arg);
 	} else {

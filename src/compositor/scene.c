@@ -193,6 +193,7 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 			return 1;
 		}
 
+		new_url[0]=0;
 #ifdef FILTER_FIXME
 		result = gf_term_relocate_url(term, url, scene->root_od->net_service->url, new_url, localized_url);
 #endif
@@ -839,7 +840,6 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 GF_EXPORT
 void gf_scene_attach_to_compositor(GF_Scene *scene)
 {
-	char *url;
 	if (!scene->root_od) return;
 	if (scene->graph_attached==1) return;
 
@@ -851,6 +851,7 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 
 	/*locate fragment IRI*/
 	if (scene->root_od->scene_ns && scene->root_od->scene_ns->url) {
+		char *url;
 		if (scene->fragment_uri) {
 			gf_free(scene->fragment_uri);
 			scene->fragment_uri = NULL;
@@ -1524,15 +1525,12 @@ just once when receiving the first OD AU (ressources are NOT destroyed when seek
 to update the OD ressources, we still take care of it*/
 void gf_scene_regenerate(GF_Scene *scene)
 {
-	GF_Node *n1, *n2, *root;
+	GF_Node *n1, *n2;
 	GF_Event evt;
 	M_AudioClip *ac;
 	M_MovieTexture *mt;
 	M_AnimationStream *as;
 	M_Inline *dims;
-	M_Transform2D *addon_tr;
-	M_Layer2D *addon_layer;
-	M_Inline *addon_scene;
 	if (scene->is_dynamic_scene != 1) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inline] Regenerating scene graph for service %s\n", scene->root_od->scene_ns->url));
@@ -1542,6 +1540,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 	/*this is the first time, generate a scene graph*/
 	if (!ac) {
 		GF_Event evt;
+		GF_Node *root;
 
 		/*create an OrderedGroup*/
 		n1 = is_create_node(scene->graph, scene->vr_type ? TAG_MPEG4_Group : TAG_MPEG4_OrderedGroup, NULL);
@@ -1606,6 +1605,10 @@ void gf_scene_regenerate(GF_Scene *scene)
 		create_movie(scene, n1, "TR1", "DYN_VIDEO1", "DYN_GEOM1");
 
 		if (! scene->vr_type) {
+			M_Transform2D *addon_tr;
+			M_Layer2D *addon_layer;
+			M_Inline *addon_scene;
+
 			/*text streams controlled through AnimationStream*/
 			n1 = gf_sg_get_root_node(scene->graph);
 			as = (M_AnimationStream *) is_create_node(scene->graph, TAG_MPEG4_AnimationStream, "DYN_TEXT");
@@ -1773,6 +1776,8 @@ void gf_scene_regenerate(GF_Scene *scene)
 					n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
 					gf_node_changed(n2, NULL);
 				} else {
+					M_Transform2D *addon_tr;
+
 					tw = INT2FIX( sw * a_odm->mo->srd_w) /  (max_x - min_x);
 					th = INT2FIX(sh * a_odm->mo->srd_h) / (max_y - min_y);
 

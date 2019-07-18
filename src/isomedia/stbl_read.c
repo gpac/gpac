@@ -362,18 +362,16 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP
 void GetGhostNum(GF_StscEntry *ent, u32 EntryIndex, u32 count, GF_SampleTableBox *stbl)
 {
 	GF_StscEntry *nextEnt;
-	GF_ChunkOffsetBox *stco;
-	GF_ChunkLargeOffsetBox *co64;
 	u32 ghostNum = 1;
 
 	if (!ent->nextChunk) {
 		if (EntryIndex+1 == count) {
 			//not specified in the spec, what if the last sample to chunk is no written?
 			if (stbl->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
-				stco = (GF_ChunkOffsetBox *)stbl->ChunkOffset;
+				GF_ChunkOffsetBox *stco = (GF_ChunkOffsetBox *)stbl->ChunkOffset;
 				ghostNum = (stco->nb_entries > ent->firstChunk) ? (1 + stco->nb_entries - ent->firstChunk) : 1;
 			} else {
-				co64 = (GF_ChunkLargeOffsetBox *)stbl->ChunkOffset;
+				GF_ChunkLargeOffsetBox *co64 = (GF_ChunkLargeOffsetBox *)stbl->ChunkOffset;
 				ghostNum = (co64->nb_entries > ent->firstChunk) ? (1 + co64->nb_entries - ent->firstChunk) : 1;
 			}
 		} else {

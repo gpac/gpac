@@ -199,7 +199,6 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 
 static GF_Err ODS_ODUpdate(GF_Scene *scene, GF_ODUpdate *odU)
 {
-	GF_ObjectDescriptor *od;
 	u32 i, count;
 
 	/*extract all our ODs and compare with what we already have...*/
@@ -207,7 +206,7 @@ static GF_Err ODS_ODUpdate(GF_Scene *scene, GF_ODUpdate *odU)
 	if (count > 255) return GF_ODF_INVALID_DESCRIPTOR;
 
 	for (i=0; i<count; i++) {
-		od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, i);
+		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, i);
 		ODS_SetupOD(scene, od);
 	}
 	return GF_OK;
@@ -228,7 +227,6 @@ static GF_Err ODS_RemoveOD(GF_Scene *scene, GF_ODRemove *odR)
 static GF_Err ODS_UpdateESD(GF_Scene *scene, GF_ESDUpdate *ESDs)
 {
 #if FILTER_FIXME
-	GF_ESD *esd, *prev;
 	GF_ObjectManager *odm;
 	u32 count, i;
 
@@ -239,6 +237,7 @@ static GF_Err ODS_UpdateESD(GF_Scene *scene, GF_ESDUpdate *ESDs)
 	count = gf_list_count(ESDs->ESDescriptors);
 
 	while (count) {
+		GF_ESD *esd, *prev;
 		esd = (GF_ESD*)gf_list_get(ESDs->ESDescriptors, 0);
 		/*spec: "ES_Descriptors with ES_IDs that have already been received within the same name scope shall be ignored."*/
 		prev = NULL;

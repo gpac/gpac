@@ -81,16 +81,13 @@ void gf_html_timeranges_del(GF_HTML_MediaTimeRanges *ranges)
 
 void gf_html_timeranges_merge(GF_HTML_MediaTimeRanges *ranges) {
 	u32 i, count;
-	u64 *start;
-	u64 *end;
-	u64 *prev_end;
+	u64 *prev_end = NULL;
 	GF_List *merged = gf_list_new();
 
-	prev_end = NULL;
 	count = gf_list_count(ranges->times);
 	for (i = 0; i < count; i+=2) {
-		start = (u64 *)gf_list_get(ranges->times, i);
-		end = (u64 *)gf_list_get(ranges->times, i+1);
+		u64 *start = (u64 *)gf_list_get(ranges->times, i);
+		u64 *end = (u64 *)gf_list_get(ranges->times, i+1);
 		if (prev_end == NULL || *start > *prev_end) {
 			if (prev_end) {
 				gf_list_add(merged, prev_end);
@@ -283,12 +280,10 @@ GF_HTML_Track *html_media_add_new_track_to_list(GF_HTML_TrackList *tracklist,
 
 Bool html_media_tracklist_has_track(GF_HTML_TrackList *tracklist, const char *id)
 {
-	GF_HTML_Track *track;
 	u32 i, count;
 	count = gf_list_count(tracklist->tracks);
-	for (i = 0; i < count; i++)
-	{
-		track = (GF_HTML_Track *)gf_list_get(tracklist->tracks, i);
+	for (i = 0; i < count; i++) {
+		GF_HTML_Track *track = (GF_HTML_Track *)gf_list_get(tracklist->tracks, i);
 		if (!strcmp(id, track->id))
 		{
 			return 1;

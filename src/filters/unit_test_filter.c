@@ -126,11 +126,12 @@ static void ut_filter_send_update(GF_Filter *filter, u32 nb_pck)
 	GF_UnitTestFilter *stack = (GF_UnitTestFilter *) gf_filter_get_udta(filter);
 
 	if (stack->update && (nb_pck==stack->max_pck/2) ) {
-		char *sep, *fid, *name, *val;
+		char *sep, *fid;
 		char *cmd = gf_strdup(stack->update);
 		fid = cmd;
 		sep = strchr(cmd, ',');
 		if (sep) {
+			char *name, *val;
 			sep[0]=0;
 			sep+=1;
 			name=sep;
@@ -150,7 +151,6 @@ static void ut_filter_send_update(GF_Filter *filter, u32 nb_pck)
 
 static GF_Err ut_filter_process_filter(GF_Filter *filter)
 {
-	const u8 *data;
 	u32 size, i, j, count, nb_loops;
 	u32 fwd;
 	GF_FilterPacket *pck_dst;
@@ -171,75 +171,76 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 
 	//loop on each PID
 	for (i=0; i<count; i++) {
-	u32 pck_size;
-	u8 *data_ptr;
-	PIDCtx *pidctx = gf_list_get(stack->pids, i);
-	GF_FilterPacket *pck = gf_filter_pid_get_packet(pidctx->src_pid);
-	assert (pck);
-	assert(pidctx == gf_filter_pid_get_udta(pidctx->src_pid));
+		const u8 *data;
+		u32 pck_size;
+		u8 *data_ptr;
+		PIDCtx *pidctx = gf_list_get(stack->pids, i);
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(pidctx->src_pid);
+		assert (pck);
+		assert(pidctx == gf_filter_pid_get_udta(pidctx->src_pid));
 
-	data = gf_filter_pck_get_data(pck, &size);
-	gf_sha1_update(pidctx->sha_ctx, (u8*)data, size);
+		data = gf_filter_pck_get_data(pck, &size);
+		gf_sha1_update(pidctx->sha_ctx, (u8*)data, size);
 
-	nb_loops = stack->framing ? 3 : 1;
-	pck_size = stack->framing ? size/nb_loops : size;
-	data_ptr = (u8 *)data;
+		nb_loops = stack->framing ? 3 : 1;
+		pck_size = stack->framing ? size/nb_loops : size;
+		data_ptr = (u8 *)data;
 
-	for (j=0; j<nb_loops; j++) {
+		for (j=0; j<nb_loops; j++) {
 
-	//adjust last packet size
-	if ((j+1) == nb_loops) {
-		pck_size = size - j*pck_size;
-	}
+		//adjust last packet size
+		if ((j+1) == nb_loops) {
+			pck_size = size - j*pck_size;
+		}
 
-	fwd = stack->fwd;
-	if (fwd==3) fwd = pidctx->nb_packets % 3;
+		fwd = stack->fwd;
+		if (fwd==3) fwd = pidctx->nb_packets % 3;
 
-	//shared memory
-	if (fwd==0) {
-		pck_dst = gf_filter_pck_new_shared(pidctx->dst_pid, data_ptr, pck_size, test_pck_del);
-	}
-	//copy memory
-	else if (fwd==1) {
-		u8 *data_dst;
-		pck_dst = gf_filter_pck_new_alloc(pidctx->dst_pid, pck_size, &data_dst);
+		//shared memory
+		if (fwd==0) {
+			pck_dst = gf_filter_pck_new_shared(pidctx->dst_pid, data_ptr, pck_size, test_pck_del);
+		}
+		//copy memory
+		else if (fwd==1) {
+			u8 *data_dst;
+			pck_dst = gf_filter_pck_new_alloc(pidctx->dst_pid, pck_size, &data_dst);
+			if (pck_dst) {
+				memcpy(data_dst, data_ptr, pck_size);
+			}
+		}
+		//packet reference
+		else {
+			if (stack->framing) {
+				pck_dst = gf_filter_pck_new_ref(pidctx->dst_pid, data_ptr, pck_size, pck);
+			} else {
+				pck_dst = gf_filter_pck_new_ref(pidctx->dst_pid, NULL, 0, pck);
+			}
+		}
+
+
 		if (pck_dst) {
-			memcpy(data_dst, data_ptr, pck_size);
+			Bool is_start, is_end;
+			//get source packet framing
+			gf_filter_pck_get_framing(pck, &is_start, &is_end);
+			//adjust flags given our framing
+			if (is_start && j) is_start = GF_FALSE;
+			if (is_end && (j+1 < nb_loops) ) is_end = GF_FALSE;
+			if (stack->framing==2) is_start = GF_FALSE;
+			if (stack->framing==3) is_end = GF_FALSE;
+
+			gf_filter_pck_set_framing(pck_dst, is_start, is_end);
+			
+			pidctx->nb_packets++;
+			//copy over src props to dst
+			gf_filter_pck_merge_properties(pck, pck_dst);
+			gf_filter_pck_send(pck_dst);
 		}
-	}
-	//packet reference
-	else {
-		if (stack->framing) {
-			pck_dst = gf_filter_pck_new_ref(pidctx->dst_pid, data_ptr, pck_size, pck);
-		} else {
-			pck_dst = gf_filter_pck_new_ref(pidctx->dst_pid, NULL, 0, pck);
-		}
-	}
+		//move our data pointer
+		data_ptr += pck_size;
 
+		} //end framing loop
 
-	if (pck_dst) {
-		Bool is_start, is_end;
-		//get source packet framing
-		gf_filter_pck_get_framing(pck, &is_start, &is_end);
-		//adjust flags given our framing
-		if (is_start && j) is_start = GF_FALSE;
-		if (is_end && (j+1 < nb_loops) ) is_end = GF_FALSE;
-		if (stack->framing==2) is_start = GF_FALSE;
-		if (stack->framing==3) is_end = GF_FALSE;
-
-		gf_filter_pck_set_framing(pck_dst, is_start, is_end);
-		
-		pidctx->nb_packets++;
-		//copy over src props to dst
-		gf_filter_pck_merge_properties(pck, pck_dst);
-		gf_filter_pck_send(pck_dst);
-	}
-	//move our data pointer
-	data_ptr += pck_size;
-
-	} //end framing loop
-
-	gf_filter_pid_drop_packet(pidctx->src_pid);
+		gf_filter_pid_drop_packet(pidctx->src_pid);
 
 	} //end PID loop
 

@@ -1895,7 +1895,7 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 {
 	GF_Err e;
 	u8 newChunk;
-	GF_StscEntry *ent, *newEnt, *cur_ent;
+	GF_StscEntry *newEnt, *cur_ent;
 
 	if (!stbl) return GF_ISOM_INVALID_FILE;
 
@@ -1930,7 +1930,7 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 	//OK, we have to create a new chunk...
 	//check if we can remove the current sampleToChunk entry (same properties)
 	if (the_stsc->nb_entries > 1) {
-		ent = &the_stsc->entries[the_stsc->nb_entries - 2];
+		GF_StscEntry *ent = &the_stsc->entries[the_stsc->nb_entries - 2];
 		if (!ent) return GF_OUT_OF_MEM;
 		if ( (ent->sampleDescriptionIndex == cur_ent->sampleDescriptionIndex)
 		        && (ent->samplesPerChunk == cur_ent->samplesPerChunk)

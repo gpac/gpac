@@ -746,12 +746,11 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 GF_TrackBox *gf_isom_get_track_from_id(GF_MovieBox *moov, GF_ISOTrackID trackID)
 {
 	u32 i, count;
-	GF_TrackBox *trak;
 	if (!moov || !trackID) return NULL;
 
 	count = gf_list_count(moov->trackList);
 	for (i = 0; i<count; i++) {
-		trak = (GF_TrackBox*)gf_list_get(moov->trackList, i);
+		GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(moov->trackList, i);
 		if (trak->Header->trackID == trackID) return trak;
 	}
 	return NULL;
@@ -760,12 +759,11 @@ GF_TrackBox *gf_isom_get_track_from_id(GF_MovieBox *moov, GF_ISOTrackID trackID)
 GF_TrackBox *gf_isom_get_track_from_original_id(GF_MovieBox *moov, u32 originalID, u32 originalFile)
 {
 	u32 i, count;
-	GF_TrackBox *trak;
 	if (!moov || !originalID) return NULL;
 
 	count = gf_list_count(moov->trackList);
 	for (i = 0; i<count; i++) {
-		trak = (GF_TrackBox*)gf_list_get(moov->trackList, i);
+		GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(moov->trackList, i);
 		if ((trak->originalFile == originalFile) && (trak->originalID == originalID)) return trak;
 	}
 	return NULL;

@@ -1037,13 +1037,13 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		}
 		if ((dcd || dcd_enh) && (!ctx->forcep || !ctx->hvcp)) {
 			u8 c;
-			char szTemp[RFC6381_CODEC_NAME_SIZE_MAX];
 			GF_HEVCConfig *hvcc = dcd ? gf_odf_hevc_cfg_read(dcd->value.data.ptr, dcd->value.data.size, GF_FALSE) : NULL;
 
 			//TODO - check we do expose hvcC for tiled tracks !
 
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.", gf_4cc_to_str(subtype));
 			if (hvcc) {
+				char szTemp[RFC6381_CODEC_NAME_SIZE_MAX];
 				if (hvcc->profile_space==1) strcat(szCodec, "A");
 				else if (hvcc->profile_space==2) strcat(szCodec, "B");
 				else if (hvcc->profile_space==3) strcat(szCodec, "C");
@@ -3051,10 +3051,9 @@ void dasher_context_update_period_start(GF_DasherCtx *ctx)
 
 static GF_DashStream *dasher_get_stream(GF_DasherCtx *ctx, const char *src_url, u32 original_pid, u32 pid_id)
 {
-	GF_DashStream *ds;
 	u32 i, count = gf_list_count(ctx->pids);
 	for (i=0; i<count; i++) {
-		ds = gf_list_get(ctx->pids, i);
+		GF_DashStream *ds = gf_list_get(ctx->pids, i);
 		if (pid_id && (ds->pid_id==pid_id)) return ds;
 		if (src_url && ds->src_url && !strcmp(ds->src_url, src_url) && (ds->id == original_pid) ) return ds;
 	}
@@ -3422,7 +3421,6 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	Bool has_as_id = GF_FALSE;
 	Bool has_deps = GF_FALSE;
 	GF_DasherPeriod *p;
-	GF_List *streams;
 	Double period_idx, period_start, next_period_start, min_dur, min_adur, max_adur;
 	GF_DashStream *first_in_period=NULL;
 	p = ctx->current_period;
@@ -3484,7 +3482,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
 		//count periods
-		streams = gf_list_clone(ctx->current_period->streams);
+		GF_List *streams = gf_list_clone(ctx->current_period->streams);
 		for (i=0; i< gf_list_count(streams); i++) {
 			GF_DashStream *ds = gf_list_get(streams, i);
 			for (j=i+1; j<gf_list_count(streams); j++) {

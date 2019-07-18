@@ -77,11 +77,9 @@ static void overmask_rgb_const_run(u32 src, u8 *dst, s32 dst_pitch_x, u32 count,
 void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
-	u32 a, fin, col_no_a;
 	u8 *dst = surf->pixels + y * surf->pitch_y;
-	char *p;
 	s32 i;
-	u32 len, r, g, b;
+	u32 col_no_a, r, g, b;
 
 	r = GF_COL_R(col);
 	g = GF_COL_G(col);
@@ -89,6 +87,8 @@ void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 
 	col_no_a = col & 0x00FFFFFF;
 	for (i=0; i<count; i++) {
+		u32 a, fin, len;
+		char *p;
 		len = spans[i].len;
 		p = dst + spans[i].x * surf->pitch_x;
 
@@ -126,13 +126,13 @@ void evg_rgb_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 void evg_rgb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = surf->pixels + y * surf->pitch_y;
-	u8 spanalpha, col_a;
 	s32 i;
-	s32 x;
-	u32 len;
-	u32 *col;
 
 	for (i=0; i<count; i++) {
+		u8 spanalpha, col_a;
+		s32 x;
+		u32 len;
+		u32 *col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
@@ -225,17 +225,17 @@ static void overmask_grey_const_run(u8 srca, u8 srcc, char *dst, s32 dst_pitch_x
 void evg_grey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
-	u32 a, c;
+	u32 c;
 	char *dst = surf->pixels + y * surf->pitch_y;
-	char *p;
 	s32 i;
-	u32 len;
 
 	if (surf->grey_type==0) c = GF_COL_R(col);
 	else if (surf->grey_type==1) c = GF_COL_G(col);
 	else c = GF_COL_B(col);
 
 	for (i=0; i<count; i++) {
+		u32 a, len;
+		char *p;
 		len = spans[i].len;
 		p = dst + spans[i].x * surf->pitch_x;
 
@@ -274,13 +274,13 @@ void evg_grey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *sur
 void evg_grey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	char *dst = surf->pixels + y * surf->pitch_y;
-	u8 spanalpha, col_a;
 	s32 i;
-	s32 x;
-	u32 len;
-	u32 *col;
 
 	for (i=0; i<count; i++) {
+		u8 spanalpha, col_a;
+		s32 x;
+		u32 len;
+		u32 *col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);

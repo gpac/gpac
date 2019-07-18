@@ -338,12 +338,12 @@ Double CTXLoad_GetVRMLTime(void *cbk)
 static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 {
 	u32 i, j, max_dur;
-	GF_AUContext *au;
 	GF_StreamContext *sc;
 	u32 nb_aus=0;
 	max_dur = 0;
 	i=0;
 	while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
+		GF_AUContext *au;
 		/*all streams in root OD are handled with ESID 0 to differentiate with any animation streams*/
 		if (CTXLoad_StreamInRootOD(priv->ctx->root_od, sc->ESID)) sc->in_root_od = GF_TRUE;
 		if (!sc->timeScale) sc->timeScale = 1000;

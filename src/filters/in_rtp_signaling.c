@@ -354,14 +354,13 @@ exit:
 /*send describe*/
 void rtpin_rtsp_describe_send(GF_RTPInRTSP *sess, char *esd_url, GF_FilterPid *opid)
 {
-	GF_RTPInStream *stream;
 	RTPIn_StreamDescribe *ch_desc;
 	GF_RTSPCommand *com;
 
 	/*locate the channel by URL - if we have one, this means the channel is already described
 	this happens when 2 ESD with URL use the same RTSP service - skip describe and send setup*/
 	if (esd_url || opid) {
-		stream = rtpin_find_stream(sess->rtpin, opid, 0, esd_url, GF_FALSE);
+		GF_RTPInStream *stream = rtpin_find_stream(sess->rtpin, opid, 0, esd_url, GF_FALSE);
 		if (stream) {
 			if (!stream->opid) stream->opid = opid;
 			switch (stream->status) {
@@ -662,7 +661,6 @@ err_exit:
 
 void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const GF_FilterEvent *evt)
 {
-	GF_RTPInStream *a_st;
 	RTPIn_StreamControl *ch_ctrl;
 	u32 i;
 	Bool needs_setup = GF_FALSE;
@@ -688,6 +686,7 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 	if (needs_setup) {
 		if (stream->status == RTP_Disconnected) {
 			if (sess->flags & RTSP_AGG_CONTROL) {
+				GF_RTPInStream *a_st;
 				i=0;
 				while ((a_st = (GF_RTPInStream *)gf_list_enum(sess->rtpin->streams, &i))) {
 					if (a_st->rtsp != sess) continue;

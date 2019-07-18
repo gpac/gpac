@@ -686,7 +686,6 @@ GF_ISOTrackID gf_isom_get_track_id(GF_ISOFile *movie, u32 trackNumber)
 GF_EXPORT
 u32 gf_isom_get_track_by_id(GF_ISOFile *the_file, GF_ISOTrackID trackID)
 {
-	GF_TrackBox *trak;
 	u32 count;
 	u32 i;
 	if (the_file == NULL) return 0;
@@ -694,7 +693,7 @@ u32 gf_isom_get_track_by_id(GF_ISOFile *the_file, GF_ISOTrackID trackID)
 	count = gf_isom_get_track_count(the_file);
 	if (!count) return 0;
 	for (i = 0; i < count; i++) {
-		trak = gf_isom_get_track_from_file(the_file, i+1);
+		GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, i+1);
 		if (!trak) return 0;
 		if (trak->Header->trackID == trackID) return i+1;
 	}
@@ -2804,10 +2803,10 @@ GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count)
 {
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u32 i, j;
-	GF_Box *a;
 
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
+		GF_Box *a;
 		GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(movie->moov->trackList, i);
 
 		u32 type, dur;

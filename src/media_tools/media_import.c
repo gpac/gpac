@@ -988,7 +988,6 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	GF_Err e;
 	u32 i, count;
 	GF_FilterSession *fsess;
-	GF_Filter *prober, *src_filter;
 	char *ext;
 	char *fmt = "";
 	if (!importer || (!importer->dest && (importer->flags!=GF_IMPORT_PROBE_ONLY)) || (!importer->in_name && !importer->orig) ) return GF_BAD_PARAM;
@@ -1034,9 +1033,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	importer->last_error = GF_OK;
 
 	if (importer->flags & GF_IMPORT_PROBE_ONLY) {
-		prober = gf_fs_load_filter(fsess, "probe");
-
-		src_filter = gf_fs_load_source(fsess, importer->in_name, "index_dur=0", NULL, &e);
+		GF_Filter *prober = gf_fs_load_filter(fsess, "probe");
+		GF_Filter *src_filter = gf_fs_load_source(fsess, importer->in_name, "index_dur=0", NULL, &e);
 		if (e) {
 			gf_fs_run(fsess);
 			gf_fs_del(fsess);

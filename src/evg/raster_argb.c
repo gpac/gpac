@@ -123,15 +123,16 @@ GFINLINE static void overmask_argb_const_run(u32 src, u8 *dst, s32 dst_pitch_x, 
 void evg_argb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
-	u32 new_a, fin, col_no_a;
+	u32 col_no_a;
 	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
-	u8 *p;
 	s32 i;
-	u32 len;
 
 	col_no_a = col & 0x00FFFFFF;
 
 	for (i=0; i<count; i++) {
+		u32 new_a, fin;
+		u8 *p;
+		u32 len;
 		p = dst + spans[i].x*surf->pitch_x;
 		len = spans[i].len;
 
@@ -161,13 +162,13 @@ void evg_argb_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *sur
 void evg_argb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
-	u8 *p;
-	u8 spanalpha;
 	s32 i;
-	u32 len;
-	u32 *col;
 
 	for (i=0; i<count; i++) {
+		u8 *p;
+		u8 spanalpha;
+		u32 len;
+		u32 *col;
 		p = dst + spans[i].x * surf->pitch_x;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
@@ -186,11 +187,11 @@ void evg_argb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 void evg_argb_fill_erase(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
-	u8 *p;
 	s32 i;
-	u32 len;
 
 	for (i=0; i<count; i++) {
+		u8 *p;
+		u32 len;
 		p = dst + spans[i].x*surf->pitch_x;
 		len = spans[i].len;
 		if (spans[i].coverage != 0xFF) {
@@ -340,12 +341,13 @@ void evg_rgbx_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *sur
 void evg_rgbx_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
-	u8 spanalpha, col_a;
-	s32 i, x;
-	u32 len;
-	u32 *col, _col;
+	s32 i;
 
 	for (i=0; i<count; i++) {
+		u8 spanalpha, col_a;
+		s32 x;
+		u32 len;
+		u32 *col, _col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
@@ -505,12 +507,13 @@ void evg_alphagrey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface
 void evg_alphagrey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
-	u8 spanalpha, col_a;
-	s32 i, x;
-	u32 len;
-	u32 *col, _col;
+	s32 i;
 
 	for (i=0; i<count; i++) {
+		u8 spanalpha, col_a;
+		s32 x;
+		u32 len;
+		u32 *col, _col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);

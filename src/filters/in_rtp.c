@@ -30,9 +30,8 @@
 
 static void rtpin_reset(GF_RTPIn *ctx, Bool is_finalized)
 {
-	GF_RTPInStream *st;
 	while (gf_list_count(ctx->streams)) {
-		st = (GF_RTPInStream *)gf_list_get(ctx->streams, 0);
+		GF_RTPInStream *st = (GF_RTPInStream *)gf_list_get(ctx->streams, 0);
 		gf_list_rem(ctx->streams, 0);
 		if (!is_finalized && st->opid) gf_filter_pid_remove(st->opid);
 		st->opid = NULL;

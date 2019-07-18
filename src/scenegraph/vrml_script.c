@@ -40,7 +40,6 @@ static u32 script_get_nb_static_field(GF_Node *node)
 void Script_PreDestroy(GF_Node *node, void *eff, Bool is_destroy)
 {
 	GF_ScriptPriv *priv;
-	GF_ScriptField *field;
 
 	if (!is_destroy) return;
 
@@ -50,7 +49,7 @@ void Script_PreDestroy(GF_Node *node, void *eff, Bool is_destroy)
 
 	//destroy extra fields
 	while (gf_list_count(priv->fields)) {
-		field = (GF_ScriptField *)gf_list_get(priv->fields, 0);
+		GF_ScriptField *field = (GF_ScriptField *)gf_list_get(priv->fields, 0);
 		gf_list_rem(priv->fields, 0);
 		if (field->pField) {
 			//if Node unregister

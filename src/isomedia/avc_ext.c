@@ -451,10 +451,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		u32 ref_track, di;
 		//aggregate all sabt samples with the same DTS
 		if (entry->lhvc_config && !entry->hevc_config && !(mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_LAYER_ONLY)) {
-			GF_ISOSample *base_samp;
 			if (gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SCAL) <= 0) {
 				//FIXME - for now we only support two layers (base + enh) in implicit
 				if ( gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_BASE) >= 1) {
+					GF_ISOSample *base_samp;
 					gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_BASE, 1, &ref_track);
 					switch (gf_isom_get_media_subtype(mdia->mediaTrack->moov->mov , ref_track, 1)) {
 					case GF_ISOM_SUBTYPE_HVC1:
@@ -1036,7 +1036,6 @@ void merge_all_config(GF_AVCConfig *avc_cfg, GF_HEVCConfig *hevc_cfg, GF_MediaBo
 
 void AVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *mdia)
 {
-	GF_AVCConfig *avcc, *svcc, *mvcc;
 	GF_BitRateBox *btrt = gf_isom_sample_entry_get_bitrate((GF_SampleEntryBox *)avc, GF_FALSE);
 
 	if (avc->emul_esd) gf_odf_desc_del((GF_Descriptor *)avc->emul_esd);
@@ -1069,7 +1068,7 @@ void AVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *md
 		}
 	}
 	if (avc->avc_config) {
-		avcc = avc->avc_config->config ? AVC_DuplicateConfig(avc->avc_config->config) : NULL;
+		GF_AVCConfig *avcc = avc->avc_config->config ? AVC_DuplicateConfig(avc->avc_config->config) : NULL;
 		/*merge SVC config*/
 		if (avc->svc_config) {
 			merge_avc_config(avcc, avc->svc_config->config);
@@ -1085,7 +1084,7 @@ void AVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *md
 			gf_odf_avc_cfg_del(avcc);
 		}
 	} else if (avc->svc_config) {
-		svcc = AVC_DuplicateConfig(avc->svc_config->config);
+		GF_AVCConfig *svcc = AVC_DuplicateConfig(avc->svc_config->config);
 
 		if (mdia) merge_all_config(svcc, NULL, mdia);
 
@@ -1093,7 +1092,7 @@ void AVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *md
 		gf_odf_avc_cfg_del(svcc);
 	}
 	else if (avc->mvc_config) {
-		mvcc = AVC_DuplicateConfig(avc->mvc_config->config);
+		GF_AVCConfig *mvcc = AVC_DuplicateConfig(avc->mvc_config->config);
 
 		if (mdia) merge_all_config(mvcc, NULL, mdia);
 

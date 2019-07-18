@@ -58,11 +58,11 @@ void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 
 	if (evt_type == GF_M2TS_EVT_AIT_FOUND) {
-		GF_M2TS_AIT* ait;
 		GF_M2TS_AIT_CARRY* ait_carry = (GF_M2TS_AIT_CARRY*)pck->stream;
 		data = pck->data;
 
 		if(!check_ait_already_received(ts->ChannelAppList,ait_carry->pid,data)) {
+			GF_M2TS_AIT* ait;
 			GF_SAFEALLOC(ait, GF_M2TS_AIT);
 			u32_data_size = pck->data_len;
 			u32_table_id = data[0];

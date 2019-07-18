@@ -250,11 +250,10 @@ GF_Err gf_isom_box_parse(GF_Box **outBox, GF_BitStream *bs)
 void gf_isom_box_array_del(GF_List *boxlist)
 {
 	u32 count, i;
-	GF_Box *a;
 	if (!boxlist) return;
 	count = gf_list_count(boxlist);
 	for (i = 0; i < count; i++) {
-		a = (GF_Box *)gf_list_get(boxlist, i);
+		GF_Box *a = (GF_Box *)gf_list_get(boxlist, i);
 		if (a) gf_isom_box_del(a);
 	}
 	gf_list_del(boxlist);
@@ -263,11 +262,10 @@ void gf_isom_box_array_del(GF_List *boxlist)
 void gf_isom_box_array_reset_parent(GF_List **child_boxes, GF_List *boxlist)
 {
 	u32 count, i;
-	GF_Box *a;
 	if (!boxlist) return;
 	count = gf_list_count(boxlist);
 	for (i = 0; i < count; i++) {
-		a = (GF_Box *)gf_list_get(boxlist, i);
+		GF_Box *a = (GF_Box *)gf_list_get(boxlist, i);
 		if (a) gf_isom_box_del_parent(child_boxes, a);
 	}
 	gf_list_reset(boxlist);
@@ -305,7 +303,6 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 		u32 i;
 		Bool conv_uuid = GF_TRUE;
 		GF_UUIDBox *uuidb = (GF_UUIDBox *)ptr;
-		char uuid[16];
 		char strUUID[32];
 
 		switch (uuidb->internal_4cc) {
@@ -330,6 +327,7 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 		}
 
 		if (conv_uuid) {
+			char uuid[16];
 			for (i = 0; i < 16; i++) {
 				char t[3];
 				t[2] = 0;
@@ -365,12 +363,11 @@ GF_Err gf_isom_full_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs)
 {
 	u32 count, i;
-	GF_Box *a;
 	GF_Err e;
 	if (!list) return GF_OK;
 	count = gf_list_count(list);
 	for (i = 0; i < count; i++) {
-		a = (GF_Box *)gf_list_get(list, i);
+		GF_Box *a = (GF_Box *)gf_list_get(list, i);
 		if (a) {
 			e = gf_isom_box_write(a, bs);
 			if (e) {
@@ -387,12 +384,11 @@ GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list)
 {
 	GF_Err e;
 	u32 count, i;
-	GF_Box *a;
 	if (! list) return GF_OK;
 
 	count = gf_list_count(list);
 	for (i = 0; i < count; i++) {
-		a = (GF_Box *)gf_list_get(list, i);
+		GF_Box *a = (GF_Box *)gf_list_get(list, i);
 		if (a) {
 			e = gf_isom_box_size(a);
 			if (e) {
@@ -1723,13 +1719,12 @@ GF_Err gf_isom_dump_supported_box(u32 idx, FILE * trace)
 	u32 i;
 	u32 nb_versions=0;
 	GF_Err e;
-	GF_Box *a;
 
 	if (box_registry[idx].max_version_plus_one) {
 		nb_versions = box_registry[idx].max_version_plus_one - 1;
 	}
 	for (i = 0; i <= nb_versions; i++) {
-		a = box_registry[idx].new_fn();
+		GF_Box *a = box_registry[idx].new_fn();
 		a->registry = &box_registry[idx];
 
 		if (box_registry[idx].alt_4cc) {

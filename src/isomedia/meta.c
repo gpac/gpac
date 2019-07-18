@@ -179,13 +179,12 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 GF_EXPORT
 u32 gf_isom_get_meta_item_by_id(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_ID)
 {
-	GF_ItemInfoEntryBox *iinf;
 	u32 i, count;
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta || !meta->item_infos || !meta->item_locations) return 0;
 	count = gf_list_count(meta->item_infos->item_infos);
 	for (i=0; i<count; i++) {
-		iinf = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, i);
+		GF_ItemInfoEntryBox *iinf = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, i);
 		if (iinf->item_ID==item_ID) return i+1;
 	}
 	return 0;
@@ -195,7 +194,6 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 {
 	GF_BitStream *item_bs;
 	char szPath[1024];
-	GF_ItemExtentEntry *extent_entry;
 	FILE *resource = NULL;
 	u32 i, count;
 	GF_ItemLocationEntry *location_entry;
@@ -277,7 +275,7 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 	/*don't extract self-reference item*/
 	count = gf_list_count(location_entry->extent_entries);
 	if (!location_entry->base_offset && (count==1)) {
-		extent_entry = (GF_ItemExtentEntry *)gf_list_get(location_entry->extent_entries, 0);
+		GF_ItemExtentEntry *extent_entry = (GF_ItemExtentEntry *)gf_list_get(location_entry->extent_entries, 0);
 		if (!extent_entry->extent_length
 #ifndef GPAC_DISABLE_ISOM_WRITE
 		        && !extent_entry->original_extent_offset

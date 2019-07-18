@@ -2176,7 +2176,6 @@ GF_Err gf_odf_read_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd, u32 DescS
 GF_Err gf_odf_size_exp_text(GF_ExpandedTextual *etd, u32 *outSize)
 {
 	u32 i, len, nonLen, lentmp, count;
-	GF_ETD_ItemText *tmp;
 	if (!etd) return GF_BAD_PARAM;
 
 	*outSize = 5;
@@ -2184,7 +2183,7 @@ GF_Err gf_odf_size_exp_text(GF_ExpandedTextual *etd, u32 *outSize)
 
 	count = gf_list_count(etd->itemDescriptionList);
 	for (i=0; i<count; i++) {
-		tmp = (GF_ETD_ItemText *)gf_list_get(etd->itemDescriptionList, i);
+		GF_ETD_ItemText *tmp = (GF_ETD_ItemText *)gf_list_get(etd->itemDescriptionList, i);
 		*outSize += OD_SizeUTF8String(tmp->text, etd->isUTF8);
 		tmp = (GF_ETD_ItemText*)gf_list_get(etd->itemTextList, i);
 		*outSize += OD_SizeUTF8String(tmp->text, etd->isUTF8);
@@ -2219,7 +2218,6 @@ GF_Err gf_odf_write_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd)
 {
 	GF_Err e;
 	u32 size, i, len, nonLen, lentmp, count;
-	GF_ETD_ItemText *tmp;
 	if (!etd) return GF_BAD_PARAM;
 
 	if (gf_list_count(etd->itemDescriptionList) != gf_list_count(etd->itemTextList)) return GF_ODF_INVALID_DESCRIPTOR;
@@ -2236,7 +2234,7 @@ GF_Err gf_odf_write_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd)
 
 	count = gf_list_count(etd->itemDescriptionList);
 	for (i=0; i<count; i++) {
-		tmp = (GF_ETD_ItemText *)gf_list_get(etd->itemDescriptionList, i);
+		GF_ETD_ItemText *tmp = (GF_ETD_ItemText *)gf_list_get(etd->itemDescriptionList, i);
 		OD_WriteUTF8String(bs, tmp->text, etd->isUTF8);
 		tmp = (GF_ETD_ItemText*)gf_list_get(etd->itemTextList, i);
 		OD_WriteUTF8String(bs, tmp->text, etd->isUTF8);

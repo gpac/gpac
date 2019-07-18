@@ -72,7 +72,7 @@ typedef struct
 GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 cid;
-	char *mime=NULL, *name, *ext;
+	char *mime=NULL, *name;
 	char fileName[1024];
 	const GF_PropertyValue *p;
 	GF_NHMLDumpCtx *ctx = gf_filter_get_udta(filter);
@@ -163,6 +163,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	}
 
 	if (ctx->opid_nhml) {
+		char *ext;
 		mime = ctx->dims ? "application/dims" : "application/x-nhml";
 		ext = ctx->dims ? "dims" : "nhml";
 
@@ -743,8 +744,6 @@ GF_Err nhmldump_process(GF_Filter *filter)
 			if (ctx->bs_w && ctx->szRootName) {
 				char nhml[1024];
 				u32 size;
-				u8 *output;
-				GF_FilterPacket *dst_pck;
 				gf_bs_reassign_buffer(ctx->bs_w, ctx->nhml_buffer, ctx->nhml_buffer_size);
 				sprintf(nhml, "</%s>\n", ctx->szRootName);
 				gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
@@ -754,6 +753,8 @@ GF_Err nhmldump_process(GF_Filter *filter)
 				if (ctx->filep) {
 					fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
 				} else {
+					GF_FilterPacket *dst_pck;
+					u8 *output;
 					dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhml, size, &output);
 					memcpy(output, ctx->nhml_buffer, size);
 					gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);

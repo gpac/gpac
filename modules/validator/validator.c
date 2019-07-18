@@ -590,7 +590,6 @@ static void validator_xvl_open(GF_Validator *validator)
 {
 	GF_Err e;
 	u32 att_index;
-	GF_XMLAttribute *att;
 	validator->xvl_parser = gf_xml_dom_new();
 	e = gf_xml_dom_parse(validator->xvl_parser, validator->xvl_filename, NULL, NULL);
 	if (e != GF_OK) {
@@ -606,7 +605,7 @@ static void validator_xvl_open(GF_Validator *validator)
 	}
 	att_index = 0;
 	while (1) {
-		att = (GF_XMLAttribute*)gf_list_get(validator->xvl_node->attributes, att_index);
+		GF_XMLAttribute *att = (GF_XMLAttribute*)gf_list_get(validator->xvl_node->attributes, att_index);
 		if (!att) break;
 		if (!strcmp(att->name, "content-base")) {
 			validator->test_base = gf_strdup(att->value);
@@ -761,10 +760,9 @@ static void validator_xvs_close(GF_Validator *validator)
 {
 	if (validator->xvs_parser) {
 		if (validator->is_recording) {
+			GF_XMLAttribute *att;
 			FILE *xvs_fp;
 			char *xvs_content;
-			char filename[100];
-			GF_XMLAttribute *att;
 			GF_XMLAttribute *att_file = NULL;
 			u32 att_index = 0;
             
@@ -792,6 +790,7 @@ static void validator_xvs_close(GF_Validator *validator)
                     if (att->value) gf_free(att->value);
                 }
                 if (validator->test_base) {
+					char filename[100];
                     sprintf(filename, "%s%c%s", validator->test_base, GF_PATH_SEPARATOR, validator->test_filename);
                     att->value = gf_strdup(filename);
                 } else {
@@ -847,9 +846,8 @@ static void validator_xvs_close(GF_Validator *validator)
 
 static void validator_test_open(GF_Validator *validator)
 {
-	char filename[100];
-
 	if (!validator->trace_mode) {
+		char filename[100];
 		if (validator->test_base)
 			sprintf(filename, "%s%c%s", validator->test_base, GF_PATH_SEPARATOR, validator->test_filename);
 		else
@@ -891,7 +889,6 @@ static Bool validator_xvs_next(GF_Validator *validator, Bool reverse)
 static Bool validator_load_event(GF_Validator *validator)
 {
 	GF_XMLNode *event_node;
-	GF_XMLAttribute *att;
 	u32 att_index;
 
 	memset(&validator->next_event, 0, sizeof(GF_Event));
@@ -929,7 +926,7 @@ static Bool validator_load_event(GF_Validator *validator)
 
 	att_index = 0;
 	while (1) {
-		att = (GF_XMLAttribute*)gf_list_get(event_node->attributes, att_index);
+		GF_XMLAttribute *att = (GF_XMLAttribute*)gf_list_get(event_node->attributes, att_index);
 		if (!att) break;
 		if (!strcmp(att->name, "time")) {
 			validator->next_time = atoi(att->value);

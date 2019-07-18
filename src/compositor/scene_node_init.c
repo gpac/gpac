@@ -347,9 +347,9 @@ void gf_scene_node_callback(void *_is, u32 type, GF_Node *n, void *param)
 	case GF_SG_CALLBACK_GRAPH_DIRTY:
 	{
 		u32 i=0;
-		GF_Node *root;
 		GF_Scene *scene = (GF_Scene *)_is;
 		if (scene->root_od->mo) {
+			GF_Node *root;
 			while ((root=(GF_Node*)gf_mo_event_target_enum_node(scene->root_od->mo, &i))) {
 				gf_node_dirty_set(root, GF_SG_CHILD_DIRTY, GF_TRUE);
 			}

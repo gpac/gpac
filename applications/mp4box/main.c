@@ -1333,7 +1333,6 @@ typedef struct
 static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opts)
 {
 	Bool ret = 0;
-	char *next;
 
 	memset(meta, 0, sizeof(MetaAction));
 	meta->act_type = act_type;
@@ -1342,6 +1341,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 
 	if (!opts) return 0;
 	while (1) {
+		char *next;
 		char *szSlot;
 		if (!opts || !opts[0]) return ret;
 		if (opts[0]==':') opts += 1;
@@ -1525,7 +1525,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 	u32 criteria[30];
 	u32 nb_criteria = 0;
 	TSELAction *tsel_act;
-	char szSlot[1024], *next;
+	char szSlot[1024];
 	TSELAction *tsel_list;
 
 	has_switch_id = 0;
@@ -1533,6 +1533,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 
 	if (!opts) return 0;
 	while (1) {
+		char *next;
 		if (!opts || !opts[0]) return 1;
 		if (opts[0]==':') opts += 1;
 		strcpy(szSlot, opts);
@@ -5791,9 +5792,8 @@ int mp4boxMain(int argc, char **argv)
 			case GF_ISOM_ITUNE_COVER_ART:
 			{
 				u8 *d=NULL;
-				char *ext;
-
 				if (val) {
+					char *ext;
 					gf_file_load_data(val, (u8 **) &d, &tlen);
 
 					ext = strrchr(val, '.');

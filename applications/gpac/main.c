@@ -1137,10 +1137,6 @@ static void gpac_suggest_arg(char *aname)
 
 static void gpac_suggest_filter(char *fname, Bool is_help)
 {
-	char *doc_helps[] = {
-		"log", "core", "modules", "doc", "alias", "props", "cfg", "codecs", "links", "bin", "filters", "filters:*", NULL
-	};
-
 	Bool found = GF_FALSE;
 	u32 i, count = gf_fs_filters_registers_count(session);
 	for (i=0; i<count; i++) {
@@ -1155,6 +1151,9 @@ static void gpac_suggest_filter(char *fname, Bool is_help)
 		}
 	}
 	if (!found && is_help) {
+		const char *doc_helps[] = {
+			"log", "core", "modules", "doc", "alias", "props", "cfg", "codecs", "links", "bin", "filters", "filters:*", NULL
+		};
 		i=0;
 		while (doc_helps[i]) {
 			if (word_match(fname, doc_helps[i])) {
@@ -2331,7 +2330,6 @@ static Bool lang_updated = GF_FALSE;
 static void gpac_lang_set_key(GF_Config *cfg, const char *sec_name,  const char *key_name, const char *key_val)
 {
 	char szKeyCRC[1024];
-	char szKeyCRCVal[100];
 	const char *opt = gf_cfg_get_key(cfg, sec_name, key_name);
 	u32 crc_key = 0;
 	if (opt) {
@@ -2347,6 +2345,7 @@ static void gpac_lang_set_key(GF_Config *cfg, const char *sec_name,  const char 
 		}
 	}
 	if (!opt) {
+		char szKeyCRCVal[100];
 		if (!crc_key) {
 			sprintf(szKeyCRC, "%s_crc", key_name);
 			crc_key = gf_crc_32((u8*)key_val, (u32) strlen(key_val));
@@ -2499,7 +2498,6 @@ static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int a
 	while (param) {
 		u32 idx=0;
 		u32 last_idx=0;
-		char *an_arg;
 		char *sep = strchr(param, ',');
 		if (sep) sep[0]=0;
 
@@ -2555,7 +2553,7 @@ static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int a
 
 		if (!last_idx) last_idx=idx;
 		for (; idx<=last_idx;idx++) {
-			an_arg = argv[idx+arg_idx];
+			char *an_arg = argv[idx+arg_idx];
 
 			if (!args_used) args_used = gf_list_new();
 			gf_list_add(args_used, an_arg);
@@ -2962,7 +2960,6 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	const char *url;
-	char *sep;
 	GF_Config *cached;
 	if (strncmp(item_name, "gpac_cache_", 11)) return GF_FALSE;
 	cached = gf_cfg_new(NULL, item_path);
@@ -2971,6 +2968,8 @@ static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_F
 	if (url) {
 		u32 i, len, dir_len=0, k=0;
 		char *dst_name;
+		char *sep;
+		
 		sep = strstr(item_path, "gpac_cache_");
 		if (sep) {
 			sep[0] = 0;

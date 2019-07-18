@@ -438,7 +438,6 @@ void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
 void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 {
 	GF_PropertyMap *prev_dst_props;
-	GF_FilterPacketInstance *pcki;
 	u32 nb_pck_transfer=0;
 	GF_FilterPidInst *src = filter->swap_pidinst_src;
 	if (!src) src = filter->swap_pidinst_dst;
@@ -470,6 +469,7 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	}
 
 	if (src) {
+		GF_FilterPacketInstance *pcki;
 		while (1) {
 			pcki = gf_fq_pop(src->packets);
 			if (!pcki) break;
@@ -4104,7 +4104,6 @@ GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name)
 {
 	u32 i, count, cur_idx=0, nb_in_pid=0;
-	const GF_PropertyValue * prop;
 
 	if (PID_IS_OUTPUT(pid)) {
 		return NULL;
@@ -4125,6 +4124,7 @@ const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32
 	count = gf_list_count(pid->filter->input_pids);
 	for (i=0; i<count; i++) {
 		u32 sub_idx = cur_idx;
+		const GF_PropertyValue * prop;
 		GF_FilterPid *pidinst = gf_list_get(pid->filter->input_pids, i);
 		prop = gf_filter_pid_enum_info((GF_FilterPid *)pidinst, &sub_idx, prop_4cc, prop_name);
 		if (prop) {

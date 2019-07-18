@@ -762,7 +762,7 @@ GF_EXPORT
 GF_Err gf_path_get_bounds(GF_Path *gp, GF_Rect *rc)
 {
 	u32 i;
-	GF_Point2D *pt, *end, *ctrl1, *ctrl2;
+	GF_Point2D *pt, *end;
 	Fixed xMin, xMax, yMin, yMax, cxMin, cxMax, cyMin, cyMax;
 	if (!gp || !rc) return GF_BAD_PARAM;
 
@@ -810,6 +810,7 @@ GF_Err gf_path_get_bounds(GF_Path *gp, GF_Rect *rc)
 
 	/*control box is bigger than box , decompose curves*/
 	if ((cxMin < xMin) || (cxMax > xMax) || (cyMin < yMin) || (cyMax > yMax)) {
+		GF_Point2D *ctrl1, *ctrl2;
 		/*decompose all control points*/
 		pt = gp->points;
 		for (i=1 ; i < gp->n_points; ) {

@@ -2380,7 +2380,6 @@ static void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, 
 	GF_MediaInfo odi;
 	u32 i, count;
 	char szIndent[50];
-	GF_ObjectManager *odm;
 
 	if (!root_odm) {
 		fprintf(stderr, "Currently loaded objects:\n");
@@ -2416,7 +2415,7 @@ static void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, 
 
 	count = gf_term_get_object_count(term, root_odm);
 	for (i=0; i<count; i++) {
-		odm = gf_term_get_object(term, root_odm, i);
+		GF_ObjectManager *odm = gf_term_get_object(term, root_odm, i);
 		if (!odm) break;
 		num++;
 		if (gf_term_get_object_info(term, odm, &odi) == GF_OK) {

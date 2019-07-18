@@ -109,7 +109,6 @@ static GF_Node *svg_copy_gradient_attributes_from(GF_Node *node, SVGAllAttribute
 
 static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Bool real_traverse)
 {
-	GF_EVGStencil * stencil;
 	u32 count, nb_col;
 	Bool is_dirty, all_dirty;
 	Fixed alpha, max_offset;
@@ -214,6 +213,7 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 
 	if (is_dirty) {
 		u32 i;
+		GF_EVGStencil * stencil;
 
 		if (!st->txh.tx_io) gf_sc_texture_allocate(&st->txh);
 		stencil = gf_sc_texture_get_stencil(&st->txh);
@@ -616,7 +616,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 
 	gf_svg_flatten_attributes((SVG_Element*)txh->owner, &all_atts);
 
-	/*get "transfered" attributed from xlink:href if any*/
+	/*get transfered attributed from xlink:href if any*/
 	svg_copy_gradient_attributes_from(txh->owner, &all_atts);
 
 	gf_mx2d_init(*mat);
@@ -675,9 +675,9 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 
 	/* clamping fx/fy according to:
 	http://www.w3.org/TR/SVG11/pservers.html#RadialGradients
-	If the point defined by ‘fx’ and ‘fy’ lies outside the circle defined by ‘cx’, ‘cy’ and ‘r’,
-	then the user agent shall set the focal point to the intersection of the line from (‘cx’, ‘cy’)
-	to (‘fx’, ‘fy’) with the circle defined by ‘cx’, ‘cy’ and ‘r’.*/
+	If the point defined by fx and fy lies outside the circle defined by cx, cy and r,
+	then the user agent shall set the focal point to the intersection of the line from (cx, cy)
+	to (fx, fy) with the circle defined by cx, cy and r.*/
 	{
 		Fixed norm = gf_v2d_distance(&focal, &center);
 		if (norm > radius) {

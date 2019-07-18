@@ -168,13 +168,14 @@ void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
 {
 	StrikeInfo2D *si;
 	Bool is_reg = 0;
-	DRInfo *dri, *cur;
+	DRInfo *dri;
 	BoundInfo *bi, *_cur;
 
 
 	/*remove node from all visuals it's on*/
 	dri = dr->dri;
 	while (dri) {
+		DRInfo *cur;
 		is_reg = compositor ? gf_sc_visual_is_registered(compositor, dri->visual) : 0;
 
 		bi = dri->current_bounds;
@@ -984,7 +985,6 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	Drawable *hlight;
 	GF_Node *prev_node;
 	u32 prev_mode;
-	GF_Rect *bounds;
 	GF_Matrix2D cur;
 	GF_Compositor *compositor = tr_state->visual->compositor;
 
@@ -1006,6 +1006,7 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	/*check if focus node has changed*/
 	prev_node = gf_node_get_private(hlight->node);
 	if (prev_node != node) {
+		GF_Rect *bounds;
 		/*this is a grouping node, get its bounds*/
 		if (!orig_bounds) {
 			gf_mx2d_copy(cur, tr_state->transform);
