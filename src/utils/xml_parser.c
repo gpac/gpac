@@ -271,7 +271,7 @@ static void xml_sax_node_start(GF_SAXParser *parser)
 {
 	Bool has_entities = GF_FALSE;
 	u32 i;
-	char *c, *name;
+	char c, *name;
 
 	assert(parser->elt_name_start && parser->elt_name_end);
 	c = parser->buffer[parser->elt_name_end - 1];
