@@ -274,14 +274,12 @@ GF_EXPORT
 Bool gf_file_exists(const char *fileName)
 {
 #if defined(WIN32)
- 	Bool res = (_access(fileName, 0) == -1) ? GF_FALSE : GF_TRUE;
-	if (!res) {
-		/*utf-8 filename fallback*/
-		FILE *f = gf_fopen(fileName, "r");
-		if (!f) return GF_FALSE;
-		gf_fclose(f);
-	}
-	return GF_TRUE;
+	Bool res;
+	wchar_t* wname = utf8_to_wcs(fileName);
+	if (!wname) return GF_FALSE;
+ 	res = (_waccess(wname, 4) == -1) ? GF_FALSE : GF_TRUE;
+	gf_free(wname);
+	return res;
 #elif defined(GPAC_CONFIG_LINUX)
  	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
 #elif defined(__DARWIN__) || defined(__APPLE__)
