@@ -152,7 +152,7 @@ static u8 getSBoxInvert(u8 num)
 // This function produces Nb(Nr+1) round keys. The round keys are used in each round to decrypt the states. 
 static void KeyExpansion(u8* RoundKey, const u8* Key)
 {
-  unsigned i, j;
+  unsigned i, j, k;
   u8 tempa[4]; // Used for the column/row operations
   
   // The first round key is the key itself.
@@ -183,7 +183,7 @@ static void KeyExpansion(u8* RoundKey, const u8* Key)
 
       // Function RotWord()
       {
-        unsigned k = tempa[0];
+        k = tempa[0];
         tempa[0] = tempa[1];
         tempa[1] = tempa[2];
         tempa[2] = tempa[3];
