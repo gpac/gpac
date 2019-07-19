@@ -56,7 +56,7 @@ typedef struct
 	//opts
 	Bool loop, revert;
 	GF_List *srcs;
-	GF_Fraction64 dur;
+	GF_Fraction dur;
 	u32 timescale;
 
 	GF_FilterPid *file_pid;

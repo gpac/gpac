@@ -646,7 +646,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		}
 	}
 
-	if (((cstr->tci->scheme_type == GF_CRYPT_TYPE_CENS) || (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && (cstr->cenc_codec<=CENC_AV1)
+	if (((cstr->tci->scheme_type == GF_CRYPT_TYPE_CENS) || (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && (cstr->cenc_codec>CENC_FULL_SAMPLE) && (cstr->cenc_codec<=CENC_AV1)
 	)  {
 		if (!cstr->tci->crypt_byte_block || !cstr->tci->skip_byte_block) {
 			if (cstr->tci->crypt_byte_block || cstr->tci->skip_byte_block) {

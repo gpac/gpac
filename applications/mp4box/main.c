@@ -5522,6 +5522,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 		if (conv_type == GF_ISOM_CONV_TYPE_IPOD) {
+			u32 ipod_major_brand = 0;
 			fprintf(stderr, "Setting up iTunes/iPod file...\n");
 
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
@@ -5530,7 +5531,7 @@ int mp4boxMain(int argc, char **argv)
 				case GF_ISOM_MEDIA_VISUAL:
                 case GF_ISOM_MEDIA_AUXV:
                 case GF_ISOM_MEDIA_PICT:
-					major_brand = GF_ISOM_BRAND_M4V;
+					ipod_major_brand = GF_ISOM_BRAND_M4V;
 					gf_isom_set_ipod_compatible(file, i+1);
 #if 0
 					switch (gf_isom_get_media_subtype(file, i+1, 1)) {
@@ -5545,7 +5546,7 @@ int mp4boxMain(int argc, char **argv)
 #endif
 					break;
 				case GF_ISOM_MEDIA_AUDIO:
-					if (!major_brand) major_brand = GF_ISOM_BRAND_M4A;
+					if (!ipod_major_brand) ipod_major_brand = GF_ISOM_BRAND_M4A;
 					else gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_M4A, 1);
 					break;
 				case GF_ISOM_MEDIA_TEXT:
@@ -5574,7 +5575,7 @@ int mp4boxMain(int argc, char **argv)
 					break;
 				}
 			}
-			gf_isom_set_brand_info(file, major_brand, 1);
+			gf_isom_set_brand_info(file, ipod_major_brand, 1);
 			gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_MP42, 1);
 			needSave = GF_TRUE;
 		}
