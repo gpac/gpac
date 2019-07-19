@@ -172,7 +172,7 @@ const char *gpac_doc =
 "This will set option `a` to `foo`, `b` to `bar:c` and the option `d` to `fun` on the filter\n"
 "# Expliciting links between filters [__LINK__]\n"
 "## Quick links\n"
-"Link between filters may be manually specified. The syntax is an `@` character optionnaly followed by an integer (0 if omitted). "
+"Link between filters may be manually specified. The syntax is an `@` character optionaly followed by an integer (0 if omitted). "
 "This indicates which previous (0-based) filters should be link to the next filter listed. "
 "Only the last link directive occuring before a filter is used to setup links for that filter.\n"
 "EX fA fB @1 fC\n"
@@ -514,7 +514,7 @@ GF_GPACArg gpac_args[] =
 
  	GF_DEF_ARG("p", NULL, "use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("alias", NULL, "assign a new alias or remove an alias. Can be specified several times. See [alias usage (-h alias)](#using-aliases)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("aliasdoc", NULL, "assign documentation for a given alias (optionnal). Can be specified several times", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("aliasdoc", NULL, "assign documentation for a given alias (optional). Can be specified several times", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
  	GF_DEF_ARG("uncache", NULL, "revert all items in GPAC cache directory to their original name and server path", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
 

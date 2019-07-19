@@ -1848,7 +1848,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				if (!(in_cap->flags & GF_CAPFLAG_INPUT) )
 					continue;
 
-				//optionnal cap, ignore
+				//optional cap, ignore
 				if (in_cap->flags & GF_CAPFLAG_OPTIONAL)
 					continue;
 
