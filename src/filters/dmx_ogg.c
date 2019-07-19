@@ -578,6 +578,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 	GF_OGGDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	GF_OGGStream *st;
+	s64 granulepos_init = -1;
 
 	//update duration
 	oggdmx_check_dur(filter, ctx);
@@ -668,6 +669,8 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					st->got_headers = GF_TRUE;
 					oggdmx_declare_pid(filter, ctx, st);
 				}
+
+				granulepos_init = oggpacket.granulepos;
 			} else if (st->parse_headers && st->got_headers) {
 				st->parse_headers--;
 			} else if (!st->opid) {
@@ -699,18 +702,31 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					else if (st->info.type==GF_CODECID_OPUS) {
 						block_size = gf_opus_check_frame(st->opus_parser, (char *) oggpacket.packet, oggpacket.bytes);
 						if (!block_size) continue;
+
+						if (!st->recomputed_ts) {
+							gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, &PROP_SINT((s32)-st->opus_parser->PreSkip));
+						}
 					}
 
+					if (ogg_page_eos(&oggpage))
+						if (oggpacket.granulepos != -1 && granulepos_init != -1)
+ 							block_size = (u32)(oggpacket.granulepos - granulepos_init - st->recomputed_ts); /*4.4 End Trimming, cf https://tools.ietf.org/html/rfc7845*/
 
 					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);
 					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
 					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
-					gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+					gf_filter_pck_set_duration(dst_pck, block_size);
+					if (st->info.type == GF_CODECID_VORBIS) {
+						gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+					} else if (st->info.type == GF_CODECID_OPUS) {
+						gf_filter_pck_set_roll_info(dst_pck, 3840);
+						gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_4);
+					}
 
 					st->recomputed_ts += block_size;
 				}
-				gf_filter_pck_send(dst_pck);
 
+				gf_filter_pck_send(dst_pck);
 			}
 		}
 	}

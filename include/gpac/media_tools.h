@@ -1111,7 +1111,7 @@ typedef struct __track_exporter
 	u32 flags;
 	/*! non-ISOBMF source file (AVI, TS)*/
 	char *in_name;
-	/*! optionnal FILE for output*/
+	/*! optional FILE for output*/
 	FILE *dump_file;
 	u32 print_stats_graph;
 } GF_MediaExporter;

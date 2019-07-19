@@ -237,8 +237,8 @@ void gf_xml_dom_del(GF_DOMParser *parser);
 /*! Parses an XML document or fragment contained in a file
 \param parser the DOM parser to use
 \param file the file to parse
-\param OnProgress an optionnal callback for the parser
-\param cbk an optionnal user data for the progress callback
+\param OnProgress an optional callback for the parser
+\param cbk an optional user data for the progress callback
 \return error code if any
 */
 GF_Err gf_xml_dom_parse(GF_DOMParser *parser, const char *file, gf_xml_sax_progress OnProgress, void *cbk);

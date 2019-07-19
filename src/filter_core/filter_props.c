@@ -1176,7 +1176,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PCK_FRAG_RANGE, "FragRange", "Indicate start and end position in bytes of fragment if packet is a fragment or segment start", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PCK_SIDX_RANGE, "SIDXRange", "Indicate start and end position in bytes of sidx if packet is a fragment or segment start", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
 
-	{ GF_PROP_PCK_MOOF_TEMPLATE, "MoofTemplate", "Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionnally sidx)", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_MOOF_TEMPLATE, "MoofTemplate", "Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionally sidx)", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
 };
 
 GF_EXPORT
