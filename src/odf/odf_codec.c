@@ -568,7 +568,7 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 						if (od->objectDescriptorID==odR->OD_ID[j]) {
 							gf_list_rem(odU->objectDescriptors, k);
 							k--;
-							count--;
+							count2--;
 							gf_odf_desc_del((GF_Descriptor *)od);
 							break;
 						}

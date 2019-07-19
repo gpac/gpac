@@ -4495,6 +4495,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 
 		while (char_template <= seg_rad_name_len) {
 			char szFmt[20];
+			c = seg_rad_name[char_template];
 
 			if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18) ) {
 				char_template += 18;

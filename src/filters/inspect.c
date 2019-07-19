@@ -80,7 +80,7 @@ typedef struct
 	Bool props, hdr, allp, info, pcr, analyze, xml;
 	Double speed, start;
 	u32 test;
-	GF_Fraction64 dur;
+	GF_Fraction dur;
 	Bool dump_crc;
 
 	FILE *dump;

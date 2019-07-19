@@ -300,7 +300,7 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 	}
 
 	if ((item_type == GF_ISOM_SUBTYPE_HVC1) || (item_type == GF_ISOM_SUBTYPE_AVC_H264) ) {
-		u32 j, c2;
+		u32 j, c2, nb_assoc;
 		GF_HEVCConfigurationBox *hvcc = NULL;
 		GF_AVCConfigurationBox *avcc = NULL;
 		if (! meta->item_props) return GF_NON_COMPLIANT_BITSTREAM;
@@ -312,8 +312,8 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 			if (item_bs) gf_bs_del(item_bs);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		count = gf_list_count(meta->item_props->property_association->entries);
-		for (i=0; i<count; i++) {
+		nb_assoc = gf_list_count(meta->item_props->property_association->entries);
+		for (i=0; i<nb_assoc; i++) {
 			GF_ItemPropertyAssociationEntry *e = gf_list_get(meta->item_props->property_association->entries, i);
 			if (e->item_id!=item_id) continue;
 			c2 = gf_list_count(e->property_index);

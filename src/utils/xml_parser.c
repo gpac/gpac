@@ -1509,7 +1509,7 @@ retry:
 			sep = szLine + 1;
 			while (strchr(" \t\r\n", sep[0])) sep++;
 			sub_pos = 0;
-			while (!strchr(" \t\r\n", sep[pos])) sub_pos++;
+			while (!strchr(" \t\r\n", sep[sub_pos])) sub_pos++;
 			first_c = sep[sub_pos];
 			sep[sub_pos] = 0;
 			state = 2;
@@ -1530,7 +1530,7 @@ fetch_attr:
 			while (strchr("= \t\r\n", sep[0])) sep++;
 			sep++;
 			sub_pos = 0;
-			while (!strchr(" \t\r\n/>", sep[pos])) sub_pos++;
+			while (!strchr(" \t\r\n/>", sep[sub_pos])) sub_pos++;
 			sep[sub_pos-1] = 0;
 			result = gf_strdup(sep);
 			if (is_substitute) *is_substitute = GF_TRUE;

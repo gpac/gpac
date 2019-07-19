@@ -2652,7 +2652,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	if ((sap_type==3) || tkw->has_open_gop)  {
 		if (for_fragment) {
 			e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
-		} else {
+		} else if (sap_type==3) {
 			e = gf_isom_set_sample_rap_group(ctx->file, tkw->track_num, tkw->nb_samples, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
 		}
 		if (e) {
@@ -4349,7 +4349,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MP4Mux] Adjusting NALU SizeLength to %d bits\n", msize ));
 					gf_media_nal_rewrite_samples(ctx->file, tkw->track_num, msize);
 					msize /= 8;
-					for (i=0; i<count; i++) {
+					for (j=0; j<stsd_count; j++) {
 						gf_isom_set_nalu_length_field(ctx->file, tkw->track_num, j+1, msize);
 					}
 				}

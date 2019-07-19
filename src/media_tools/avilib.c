@@ -2291,14 +2291,14 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 	if(!AVI->track[0].a_chans) AVI->track[0].audio_strn = 99;
 
 	{
-		//i=0;
+		int tk=0;
 		for(j=0; j<AVI->anum+1; ++j) {
 			if (j == AVI->video_strn) continue;
-			AVI->track[i].audio_tag[0] = j/10 + '0';
-			AVI->track[i].audio_tag[1] = j%10 + '0';
-			AVI->track[i].audio_tag[2] = 'w';
-			AVI->track[i].audio_tag[3] = 'b';
-			//++i;
+			AVI->track[tk].audio_tag[0] = j/10 + '0';
+			AVI->track[tk].audio_tag[1] = j%10 + '0';
+			AVI->track[tk].audio_tag[2] = 'w';
+			AVI->track[tk].audio_tag[3] = 'b';
+			++tk;
 		}
 	}
 
