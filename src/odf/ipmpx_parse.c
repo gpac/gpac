@@ -144,7 +144,7 @@ u32 gf_ipmpx_get_field_type(GF_IPMPX_Data *p, char *fieldName)
 
 #include <gpac/internal/odf_parse_common.h>
 
-void GF_IPMPX_ParseBinData(char *val, char **out_data, u32 *out_data_size)
+void GF_IPMPX_ParseBinData(char *val, u8 **out_data, u32 *out_data_size)
 {
 	u32 i, c, len;
 	char s[3];
@@ -335,15 +335,15 @@ GF_Err gf_ipmpx_set_field(GF_IPMPX_Data *_p, char *fieldName, char *val)
 	{
 		GF_IPMPX_SecureContainer*p = (GF_IPMPX_SecureContainer*)_p;
 		if (!stricmp(fieldName, "isMACEncrypted")) GET_BOOL(p->isMACEncrypted)
-		}
-	break;
+	}
+		break;
 	case GF_IPMPX_INIT_AUTHENTICATION_TAG:
 	{
 		GF_IPMPX_InitAuthentication *p = (GF_IPMPX_InitAuthentication*)_p;
 		if (!stricmp(fieldName, "Context")) GET_U32(p->Context)
-			else if (!stricmp(fieldName, "AuthType")) GET_U8(p->AuthType)
-			}
-	break;
+		else if (!stricmp(fieldName, "AuthType")) GET_U8(p->AuthType)
+	}
+		break;
 	case GF_IPMPX_TRUSTED_TOOL_TAG:
 	{
 		GF_IPMPX_TrustedTool *p = (GF_IPMPX_TrustedTool*)_p;

@@ -422,7 +422,6 @@ static void composite_update(GF_TextureHandler *txh)
 
 #ifndef GPAC_DISABLE_3D
 		if (st->visual->type_3d) {
-			GF_Compositor *compositor = st->visual->compositor;
 			/*figure out what to do if main visual (eg video out) is not in OpenGL ...*/
 			if (!compositor->visual->type_3d && !compositor->hybrid_opengl) {
 				/*create an offscreen window for OpenGL rendering*/
@@ -494,8 +493,8 @@ static void composite_update(GF_TextureHandler *txh)
 		} else {
 			st->visual->type_3d = 2;
 		}
-	}
 #endif
+	}
 
 #endif
 
@@ -503,7 +502,8 @@ static void composite_update(GF_TextureHandler *txh)
 	if (!stencil) return;
 
 #ifdef GPAC_USE_TINYGL
-	if (st->tgl_ctx) ostgl_make_current(st->tgl_ctx, 0);
+	if (st->tgl_ctx)
+		ostgl_make_current(st->tgl_ctx, 0);
 #endif
 
 	sensor_bck = st->tr_state->vrml_sensors;
@@ -568,13 +568,11 @@ static void composite_update(GF_TextureHandler *txh)
 				gf_sc_texture_push_image(&st->txh, 0, 0);
 #endif
 			} else {
-
 #ifndef GPAC_USE_TINYGL
 				gf_sc_copy_to_stencil(&st->txh);
-
 #else
-
-				if (txh->pixelformat==GF_PIXEL_RGBDS) gf_get_tinygl_depth(&st->txh);
+				if (txh->pixelformat==GF_PIXEL_RGBDS)
+					gf_get_tinygl_depth(&st->txh);
 #endif
 			}
 		} else

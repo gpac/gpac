@@ -792,9 +792,10 @@ GF_Box *unkn_box_new()
 GF_Err unkn_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 type = s->type;
+	u32 type;
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
 	if (!s) return GF_BAD_PARAM;
+	type = s->type;
 	ptr->type = ptr->original_4cc;
 	e = gf_isom_box_write_header(s, bs);
 	ptr->type = type;
@@ -6125,6 +6126,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 	GF_BitStream *bs;
 	GF_UnknownBox *a;
 	u32 i;
+	GF_Err e;
 	GF_SampleTableBox *stbl;
 
 	if (!trak->Media || !trak->Media->information) {
@@ -6248,7 +6250,6 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		if (gf_bs_available(bs)) { \
 			u64 pos = gf_bs_get_position(bs); \
 			u32 count_subb = 0; \
-			GF_Err e;\
 			gf_bs_set_cookie(bs, 1);\
 			e = gf_isom_box_array_read((GF_Box *) _box, bs, NULL); \
 			count_subb = _box->child_boxes ? gf_list_count(_box->child_boxes) : 0; \
@@ -6306,7 +6307,6 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 
 		default:
 		{
-			GF_Err e;
 			GF_GenericSampleEntryBox *genm = (GF_GenericSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRM);
 			genm->size = a->size-8;
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
@@ -6590,7 +6590,7 @@ GF_Err strk_box_read(GF_Box *s, GF_BitStream *bs)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing SubTrackInformationBox\n"));
 		return GF_ISOM_INVALID_FILE;
 	}
-	return e;
+	return GF_OK;
 }
 
 GF_Box *strk_box_new()
@@ -8013,7 +8013,7 @@ GF_Err lsr1_box_write(GF_Box *s, GF_BitStream *bs)
 
 	gf_bs_write_data(bs, ptr->reserved, 6);
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
-	return e;
+	return GF_OK;
 }
 
 GF_Err lsr1_box_size(GF_Box *s)
@@ -8700,8 +8700,8 @@ GF_Err sbgp_box_size(GF_Box *s)
 static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_size, u32 *total_bytes)
 {
 	Bool null_size_ok = GF_FALSE;
+	GF_DefaultSampleGroupDescriptionEntry *def_ptr;
 
-	GF_DefaultSampleGroupDescriptionEntry *ptr;
 	switch (grouping_type) {
 	case GF_ISOM_SAMPLE_GROUP_ROLL:
 	case GF_ISOM_SAMPLE_GROUP_PROL:
@@ -8826,7 +8826,7 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 			rle = gf_bs_read_int(bs, 1);
 			entry_count = gf_bs_read_int(bs, large_size ? 16 : 8);
 			gf_bs_seek(bs, start);
-			entry_size = 1 + large_size ? 2 : 1;
+			entry_size = 1 + (large_size ? 2 : 1);
 			entry_size += entry_count * 2;
 			if (rle) entry_size += entry_count * (large_size ? 2 : 1);
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] nalm sample group does not indicate entry size, deprecated in spec\n"));
@@ -8852,15 +8852,15 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] %s sample group does not indicate entry size and is not implemented, cannot parse!\n", gf_4cc_to_str( grouping_type) ));
 		return NULL;
 	}
-	GF_SAFEALLOC(ptr, GF_DefaultSampleGroupDescriptionEntry);
-	if (!ptr) return NULL;
+	GF_SAFEALLOC(def_ptr, GF_DefaultSampleGroupDescriptionEntry);
+	if (!def_ptr) return NULL;
 	if (entry_size) {
-		ptr->length = entry_size;
-		ptr->data = (u8 *) gf_malloc(sizeof(u8)*ptr->length);
-		gf_bs_read_data(bs, (char *) ptr->data, ptr->length);
+		def_ptr->length = entry_size;
+		def_ptr->data = (u8 *) gf_malloc(sizeof(u8)*def_ptr->length);
+		gf_bs_read_data(bs, (char *) def_ptr->data, def_ptr->length);
 		*total_bytes = entry_size;
 	}
-	return ptr;
+	return def_ptr;
 }
 
 static void	sgpd_del_entry(u32 grouping_type, void *entry)
@@ -10897,7 +10897,6 @@ GF_Err mvcg_box_size(GF_Box *s)
 		}
 	}
 	return GF_OK;
-		return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

@@ -878,7 +878,10 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 	while (1) {
 		gpck = gf_list_get(gst->packets, 0);
 
-		if (!gpck || !gpck->complete) {
+		if (!gpck)
+			return GF_OK;
+
+		if (!gpck->complete) {
 			u32 pck_count = gf_list_count(gst->packets);
 			if (ctx->mq && (pck_count > ctx->mq + 1)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[GSFDemux] packets queue too large (%d vs %d max), processing incomplete packet size %d receive %d\n", pck_count, ctx->mq, gpck->full_block_size, gpck->nb_bytes));
@@ -1144,7 +1147,7 @@ static const char *gsfdmx_probe_data(const u8 *data, u32 data_size, GF_FilterPro
 		char *start_sig = memchr(buf, 'G', avail);
 		if (!start_sig) return NULL;
 		//signature found and version is 1
-		if (start_sig && !strncmp(start_sig, "GS5F", 4) && (start_sig[4] == 1)) {
+		if (!strncmp(start_sig, "GS5F", 4) && (start_sig[4] == 1)) {
 			*score = GF_FPROBE_SUPPORTED;
 			return "application/x-gpac-sf";
 		}

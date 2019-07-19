@@ -72,7 +72,7 @@ static void X11_DestroyOverlay(XWindow *xwin)
 static Bool is_same_yuv(u32 pf, u32 a_pf)
 {
 	if (pf==a_pf) return 1;
-	return 0;
+#if 0
 	switch (pf) {
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_I420:
@@ -106,6 +106,7 @@ static Bool is_same_yuv(u32 pf, u32 a_pf)
 			return 0;
 		}
 	}
+#endif
 	return 0;
 }
 static u32 X11_GetPixelFormat(u32 pf)
@@ -1371,7 +1372,6 @@ static int X11_BadAccess_ByPass(Display * display,
 
 static void X11_XScreenSaverState(XWindow *xwin, Bool turn_on)
 {
-	return;
 	if (turn_on) {
 		if (!xwin->ss_t) return;
 		XSetScreenSaver(xwin->display, xwin->ss_t, xwin->ss_i, xwin->ss_b, xwin->ss_e);
@@ -1390,7 +1390,10 @@ void
 X11_SetupWindow (GF_VideoOutput * vout)
 {
 	X11VID ();
+#if defined(GPAC_HAS_X11_SHM) || defined(GPAC_HAS_X11_XV) || defined(GPAC_HAS_OPENGL)
 	const char *sOpt;
+#endif
+
 	Bool autorepeat, supported;
 
 	if (xWindow->setup_done) return;
@@ -1698,13 +1701,14 @@ retry_8bpp:
 				nb_bits = 8;
 				goto retry_8bpp;
 			}
-			xWindow->glx_visualinfo = my_glXGetVisualFromFBConfig(xWindow->display, fb[0]);
+			if (my_glXGetVisualFromFBConfig)
+				xWindow->glx_visualinfo = my_glXGetVisualFromFBConfig(xWindow->display, fb[0]);
 
 			if (my_glXGetFBConfigAttrib && fb) {
 				int r, g, b;
-				glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_RED_SIZE, &r);
-				glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_GREEN_SIZE, &g);
-				glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_BLUE_SIZE, &b);
+				my_glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_RED_SIZE, &r);
+				my_glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_GREEN_SIZE, &g);
+				my_glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_BLUE_SIZE, &b);
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[GLX] Configured display asked %d bits got r:%d g:%d b:%d bits\n", nb_bits, r, g, b));
 			}
 		} else {

@@ -317,7 +317,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #if (defined(__DARWIN__) || defined(__APPLE__) )
 		if (_NSGetExecutablePath(app_path, &size) ==0) {
 			realpath(app_path, file_path);
-			char *sep = strrchr(file_path, '/');
+			sep = strrchr(file_path, '/');
 			if (sep) sep[0] = 0;
 			return 1;
 		}
@@ -325,7 +325,6 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #elif defined(GPAC_CONFIG_LINUX)
 		size = readlink("/proc/self/exe", file_path, GF_MAX_PATH-1);
 		if (size>0) {
-			char *sep;
 			file_path[size] = 0;
 			sep = strrchr(file_path, '/');
 			if (sep) sep[0] = 0;
@@ -393,7 +392,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 		/*GUI not found, look in gpac distribution if any */
 		if (get_default_install_path(app_path, GF_PATH_APP)) {
-			char *sep = strstr(app_path, "/bin/");
+			sep = strstr(app_path, "/bin/");
 			if (sep) {
 				sep[0] = 0;
 				strcat(app_path, "/share");
@@ -909,9 +908,11 @@ const char *gf_opts_get_key_name(const char *secName, u32 keyIndex)
 GF_EXPORT
 const char *gf_opts_get_key_restricted(const char *secName, const char *keyName)
 {
+	const char *res = NULL;
 	const char *gf_cfg_get_key_internal(GF_Config *iniFile, const char *secName, const char *keyName, Bool restricted_only);
-	if (!gpac_global_config) return NULL;
-	return gf_cfg_get_key_internal(gpac_global_config, secName, keyName, GF_TRUE);
+	if (gpac_global_config)
+	 	res = gf_cfg_get_key_internal(gpac_global_config, secName, keyName, GF_TRUE);
+	return res;
 }
 
 GF_EXPORT
@@ -1321,10 +1322,12 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 			exit(1);
 		}
 		sep = strchr(arg->description, ' ');
-		if (sep) sep--;
-		if (sep[0] == 's') {
-			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should use infintive\n", arg->name, arg->description);
-			exit(1);
+		if (sep) {
+			sep--;
+			if (sep[0] == 's') {
+				fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should use infintive\n", arg->name, arg->description);
+				exit(1);
+			}
 		}
 	}
 #endif

@@ -683,8 +683,6 @@ void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_r
 			else if (!strcmp(subname, "iec61883")) {}
 			else if (!strcmp(subname, "lavfi")) {}
 			else if (!strcmp(subname, "libcdio")) {}
-			else if (!strcmp(subname, "lavfi")) {}
-			else if (!strcmp(subname, "openal")) {}
 			else if (!strcmp(subname, "openal")) {}
 			else if (!strcmp(subname, "oss")) {}
 			else if (!strcmp(subname, "pulse")) {}

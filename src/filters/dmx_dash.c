@@ -319,7 +319,7 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 	//this should be safe unless the mpd_pid is destroyed, which should only happen upon destruction of the DASH session
 	p = gf_filter_pid_get_property(ctx->mpd_pid, GF_GPAC_DOWNLOAD_SESSION);
 	if (p) {
-		GF_DownloadSession *sess = (GF_DownloadSession *) p->value.ptr;
+		sess = (GF_DownloadSession *) p->value.ptr;
 		if (!ctx->store) {
 			gf_dm_sess_force_memory_mode(sess);
 		}
@@ -931,7 +931,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		if (pid==ctx->mpd_pid) {
 			ctx->mpd_pid = NULL;
 		} else {
-			GF_FilterPid *opid = gf_filter_pid_get_udta(pid);
+			opid = gf_filter_pid_get_udta(pid);
 			if (opid) {
 				if (gf_dash_all_groups_done(ctx->dash) && gf_dash_in_last_period(ctx->dash, GF_TRUE)) {
 					gf_filter_pid_remove(opid);
@@ -985,7 +985,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	opid = gf_filter_pid_get_udta(pid);
 	if (opid == NULL) {
 		u32 run_status;
-		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, group_idx);
+		group = gf_dash_get_group_udta(ctx->dash, group_idx);
 		assert(group);
 		//for now we declare every component from the input source
 		opid = dashdmx_create_output_pid(filter, pid, &run_status);
@@ -1510,14 +1510,14 @@ GF_Err dashdmx_process(GF_Filter *filter)
 						u32 nb_block = 0;
 						//check all pids in this group, postpone segment switch if blocking
 						for (i=0; i<count; i++) {
-							GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-							GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
+							GF_FilterPid *an_ipid = gf_filter_get_ipid(filter, i);
+							GF_FilterPid *an_opid = gf_filter_pid_get_udta(an_ipid);
 							GF_DASHGroup *agroup;
-							if (ipid == ctx->mpd_pid) continue;
-							agroup = gf_filter_pid_get_udta(opid);
+							if (an_ipid == ctx->mpd_pid) continue;
+							agroup = gf_filter_pid_get_udta(an_opid);
 							if (!agroup || (agroup != group)) continue;
 
-							if (gf_filter_pid_would_block(opid)) {
+							if (gf_filter_pid_would_block(an_opid)) {
 								nb_block++;
 							}
 						}
@@ -1530,15 +1530,15 @@ GF_Err dashdmx_process(GF_Filter *filter)
 						//good to switch, cancel all end of stream signals on pids from this group and switch
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d, updating stats and switching segment\n", group->idx));
 						for (i=0; i<count; i++) {
-							GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-							GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
+							GF_FilterPid *an_ipid = gf_filter_get_ipid(filter, i);
+							GF_FilterPid *an_opid = gf_filter_pid_get_udta(an_ipid);
 							GF_DASHGroup *agroup;
-							if (ipid == ctx->mpd_pid) continue;
-							agroup = gf_filter_pid_get_udta(opid);
+							if (an_ipid == ctx->mpd_pid) continue;
+							agroup = gf_filter_pid_get_udta(an_opid);
 							if (!agroup || (agroup != group)) continue;
 
-							if (gf_filter_pid_is_eos(ipid)) {
-								gf_filter_pid_clear_eos(ipid, GF_TRUE);
+							if (gf_filter_pid_is_eos(an_ipid)) {
+								gf_filter_pid_clear_eos(an_ipid, GF_TRUE);
 							}
 						}
 						dashdmx_update_group_stats(ctx, group);

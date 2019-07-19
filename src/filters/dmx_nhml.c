@@ -1236,23 +1236,23 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 						nb_subsamples--;
 						if (first_subsample_is_first) {
-							gf_filter_pck_set_framing(pck, append ? GF_FALSE : GF_TRUE, nb_subsamples ? GF_FALSE : GF_TRUE);
-							if (!append) {
-								gf_filter_pck_set_sap(pck, sap_type);
-								gf_filter_pck_set_dts(pck, dts);
-								gf_filter_pck_set_cts(pck, dts+cts_offset);
-								if (redundant_rap && !ctx->is_dims) gf_filter_pck_set_dependency_flags(pck, 0x1);
+							gf_filter_pck_set_framing(pck, GF_TRUE, nb_subsamples ? GF_FALSE : GF_TRUE);
 
-								if (sample_duration || ctx->dts_inc)
-									gf_filter_pck_set_duration(pck, sample_duration ? (u32) sample_duration : ctx->dts_inc);
+							gf_filter_pck_set_sap(pck, sap_type);
+							gf_filter_pck_set_dts(pck, dts);
+							gf_filter_pck_set_cts(pck, dts+cts_offset);
+							if (redundant_rap && !ctx->is_dims) gf_filter_pck_set_dependency_flags(pck, 0x1);
 
-								if (ctx->in_seek) {
-									if (dts+cts_offset >= ctx->start_range * ctx->timescale)
-										ctx->in_seek = GF_FALSE;
-									else
-										gf_filter_pck_set_seek_flag(pck, GF_TRUE);
-								}
+							if (sample_duration || ctx->dts_inc)
+								gf_filter_pck_set_duration(pck, sample_duration ? (u32) sample_duration : ctx->dts_inc);
+
+							if (ctx->in_seek) {
+								if (dts+cts_offset >= ctx->start_range * ctx->timescale)
+									ctx->in_seek = GF_FALSE;
+								else
+									gf_filter_pck_set_seek_flag(pck, GF_TRUE);
 							}
+
 							first_subsample_is_first = GF_FALSE;
 						} else {
 							gf_filter_pck_set_framing(pck, GF_FALSE, nb_subsamples ? GF_FALSE : GF_TRUE);

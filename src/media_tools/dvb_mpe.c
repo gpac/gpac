@@ -496,7 +496,6 @@ static void gf_m2ts_Delete_IpPacket(GF_M2TS_IP_Packet *ip_packet)
 		gf_free(ip_packet->data);
 	}
 	gf_free(ip_packet);
-	ip_packet = NULL;
 }
 
 
@@ -772,13 +771,14 @@ void encode_fec(MPE_FEC_FRAME * mff)
 void decode_fec(MPE_FEC_FRAME * mff)
 {
 	u32 i,ML,offset;
+	size_t size;
 	u8 *data;
 	u8 linebuffer[255];
 
 	//fprintf(stderr, "Starting FEC decoding ...\n");
-
-	data = gf_malloc((mff->rows*191)*sizeof(char));
-	memset(data,0,sizeof(data));
+	size = (mff->rows*191)*sizeof(char);
+	data = gf_malloc(size);
+	memset(data,0, size);
 
 	initialize_ecc ();
 	ML = 255;
@@ -818,11 +818,11 @@ void decode_fec(MPE_FEC_FRAME * mff)
 			/* TODO: replace the current line in MFF */
 		}
 
-		memcpy(data+offset,linebuffer,sizeof(data));
+		memcpy(data+offset, linebuffer, 191);
 		offset += 191;
 	}
 	//fprintf(stderr, "FEC decoding done.\n");
-	memcpy(mff->p_adt,data,sizeof(data));
+	memcpy(mff->p_adt, data, size);
 	//gf_m2ts_ipdatagram_reader(mff->p_adt,ip_datagram);
 
 

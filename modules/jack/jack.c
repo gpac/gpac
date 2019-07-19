@@ -59,7 +59,7 @@ Jack_cleanup (JackContext * ctx)
 	u32 channels = 0;
 	if (ctx == NULL)
 		return;
-	ctx->isActive = 0;
+
 	GF_LOG (GF_LOG_DEBUG, GF_LOG_MMIO, ("[Jack] Jack_cleanup\n"));
 	if (ctx->jack != NULL && ctx->isActive)
 	{
@@ -95,6 +95,7 @@ Jack_cleanup (JackContext * ctx)
 	ctx->currentBlockSize = 0;
 	memset (ctx->jackClientName, 0, MAX_JACK_CLIENT_NAME_SZ);
 	ctx->jack = NULL;
+	ctx->isActive = 0;
 }
 
 /**
@@ -273,13 +274,6 @@ Jack_Configure(GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels,
 	case GF_AUDIO_FMT_S16:
 		ctx->bytesPerSample = 2;
 		break;
-	}
-
-	if (ctx->bytesPerSample > 2 || ctx->bytesPerSample < 1)
-	{
-		GF_LOG (GF_LOG_ERROR, GF_LOG_MMIO,
-		        ("[Jack] Jack-ConfigureOutput : unable to use audio format %s.\n", gf_audio_fmt_name(*audioFormat) ));
-		return GF_BAD_PARAM;
 	}
 	ctx->numChannels = *NbChannels;
 	*SampleRate = jack_get_sample_rate (ctx->jack);

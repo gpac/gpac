@@ -627,9 +627,8 @@ int gzprintf (gzFile file, const char *format, /* args */ ...)
 	va_end(va);
 	len = strlen(buf);
 #  else
-	/*Benoit: to be checked if needed*/
-	//len = vsnprintf(buf, sizeof(buf), format, va);
-	//va_end(va);
+	len = vsnprintf(buf, sizeof(buf), format, va);
+	va_end(va);
 #  endif
 #endif
 	if (len <= 0 || len >= (int)sizeof(buf) || buf[sizeof(buf) - 1] != 0)

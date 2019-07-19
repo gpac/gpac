@@ -241,6 +241,16 @@ CNativeWrapper::CNativeWrapper() {
 	m_term = NULL;
 	m_mx = NULL;
 	mainJavaEnv = NULL;
+
+	debug_f = 0;
+	m_window = NULL;
+	m_session = NULL;
+
+	m_cfg_dir[0]=0;
+	m_modules_dir[0]=0;
+	m_cache_dir[0]=0;
+	m_font_dir[0]=0;
+
 #ifndef GPAC_GUI_ONLY
 	memset(&m_user, 0, sizeof(GF_User));
 	memset(&m_rti, 0, sizeof(GF_SystemRTInfo));
@@ -380,12 +390,6 @@ int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status
 	return 1;
 }
 //-------------------------------
-void CNativeWrapper::DisplayRTI() {
-#ifndef GPAC_GUI_ONLY
-	// display some system informations ?
-#endif
-}
-//-------------------------------
 int CNativeWrapper::Quit(int code) {
 
 	Shutdown();
@@ -396,7 +400,7 @@ int CNativeWrapper::Quit(int code) {
 #include <stdio.h>
 
 void CNativeWrapper::on_fm_request(void *cbk, u32 type, u32 param, int *value) {
-	CNativeWrapper * self = (CNativeWrapper *) cbk;
+	CNativeWrapper * self = static_cast<CNativeWrapper *> cbk;
 	JavaEnvTh *envth = self->getEnv();
 
 	envth->env->PushLocalFrame(1);
@@ -424,7 +428,7 @@ void CNativeWrapper::on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, con
 	char unknTag[32];
 	int level = (ll == GF_LOG_ERROR) ? ANDROID_LOG_ERROR : ANDROID_LOG_DEBUG;
 	vsnprintf(szMsg, 4096, fmt, list);
-	CNativeWrapper * self = (CNativeWrapper *) cbk;
+	CNativeWrapper * self = static_cast<CNativeWrapper *> cbk;
 	if (!self)
 		goto displayInAndroidlogs;
 
@@ -537,7 +541,7 @@ displayInAndroidlogs:
 Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt) {
 	if (cbk)
 	{
-		CNativeWrapper* ptr = (CNativeWrapper*)cbk;
+		CNativeWrapper* ptr = static_cast<CNativeWrapper *>cbk;
 		char msg[4096];
 		msg[0] = 0;
 		LOGD("GPAC_EventProc() Message=%d", evt->type);
@@ -680,7 +684,7 @@ void CNativeWrapper::progress_cbk(const char *title, u64 done, u64 total) {
 void CNativeWrapper::Osmo4_progress_cbk(const void *usr, const char *title, u64 done, u64 total) {
 	if (!usr)
 		return;
-	CNativeWrapper * self = (CNativeWrapper *) usr;
+	CNativeWrapper * self = static_cast<CNativeWrapper *> usr;
 	self->progress_cbk(title, done, total);
 }
 //-------------------------------
@@ -831,8 +835,6 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 //-------------------------------
 int CNativeWrapper::connect(const char *url)
 {
-	char the_url[256];
-
 	if (m_term)
 	{
 		const char *str;

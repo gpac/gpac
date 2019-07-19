@@ -1918,7 +1918,7 @@ static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 		}
 		if (character) {
 			SFInt32 choice = 0;
-			GF_Node *n = s2b_wrap_node(read, character, &br->mx, &br->cmx);
+			n = s2b_wrap_node(read, character, &br->mx, &br->cmx);
 
 			sprintf(szName, "BTN%d_R%d", btn->ID, i+1);
 			button = (M_Switch *) s2b_button_add_child(read, btn_root, TAG_MPEG4_Switch, szName, pos);
@@ -2097,7 +2097,6 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	read->load->ctx->is_pixel_metrics = 1;
 
 	gf_list_add(read->bifs_au->commands, com);
-	read->load->scene_graph = read->load->scene_graph;
 
 	/*create base tree*/
 	com->node = read->root = s2b_new_node(read, TAG_MPEG4_OrderedGroup);
@@ -2169,7 +2168,6 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	/*setup IndexedCurve2D proto*/
 	if (read->flags & GF_SM_SWF_USE_IC2D) {
 		GF_ProtoFieldInterface *pfield;
-		GF_FieldInfo info;
 		SFURL *url;
 		Fixed ftMin, ftMax;
 		GF_Proto *proto = gf_sg_proto_new(read->load->scene_graph, 1, "IndexedCurve2D", 0);

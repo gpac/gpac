@@ -916,7 +916,6 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 		GF_StyleRecord *srec = NULL;
 		char_offset = 0;
 		for (i=0; i<txt->styles->entry_count; i++) {
-			TTDTextChunk *tc;
 			srec = &txt->styles->styles[i];
 			if (srec->startCharOffset==srec->endCharOffset) continue;
 			/*handle not continuous modifiers*/
@@ -980,7 +979,6 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 	start_idx = 0;
 	for (i=0; i<idx.count; i++) {
 		if (idx.vals[i] == -1) {
-			s32 *id;
 			u32 j;
 
 			/*only one item in line, no need for alignment, but still add a group (we could use the

@@ -546,8 +546,8 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 				if (!observer->target && observer->string && !strcmp(observer->string, nodeID) ) {
 					observer->target = gf_sg_find_node_by_name(sg, (char*) nodeID);
 				}
+				par = (GF_Node *)observer->target;
 			}
-			if (observer->type == XMLRI_ELEMENTID) par = (GF_Node *)observer->target;
 			if (!par) continue;
 		}
 		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_target, GF_FALSE, GF_FALSE, &info) == GF_OK) {
@@ -852,7 +852,6 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			} else {
 				/* For xlink:href attribute on elements other than animation elements,
 				   we create the attribute, parse it and try to do some special process it */
-				GF_FieldInfo info;
 				XMLRI *iri = NULL;
 				if (gf_node_get_attribute_by_tag((GF_Node *)elt, TAG_XLINK_ATT_href, GF_TRUE, GF_FALSE, &info)==GF_OK) {
 					gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0);
@@ -961,7 +960,6 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		GF_Node *node = (GF_Node *)elt;
 		SVG_Element *listener;
 		u32 type;
-		GF_FieldInfo info;
 		listener = (SVG_Element *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
 		/*We don't want to insert the implicit listener in the DOM. However remember
 		the listener at the handler level in case the handler gets destroyed*/
@@ -1040,7 +1038,6 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 
 	/*If we are in playback mode, we register (reference counting for safe deleting) the listener element with the element that uses it */
 	if ((parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) && elt && (tag==TAG_SVG_listener)) {
-		GF_FieldInfo info;
 		Bool post_pone = GF_FALSE;
 		SVG_Element *par = NULL;
 		SVG_Element *listener = (SVG_Element *)elt;
@@ -1380,7 +1377,8 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	/*saf setup*/
 	if ((!parent && (parser->load->type!=GF_SM_LOAD_SVG)) || cond) {
 		u32 com_type;
-		Bool has_ns=GF_FALSE;
+
+		has_ns=GF_FALSE;
 		svg_check_namespace(parser, attributes, nb_attributes, &has_ns);
 
 		/*nothing to do, the context is already created*/

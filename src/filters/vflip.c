@@ -260,7 +260,6 @@ static GF_Err vflip_process(GF_Filter *filter)
 			src_planes[3] = src_planes[2] + ctx->src_stride[2] * ctx->src_uv_height;
 		}
 	} else if (frame_ifce && frame_ifce->get_plane) {
-		u32 i=0;
 		for (i=0; i<4; i++) {
 			if (frame_ifce->get_plane(frame_ifce, i, (const u8 **) &src_planes[i], &ctx->src_stride[i])!=GF_OK)
 				break;

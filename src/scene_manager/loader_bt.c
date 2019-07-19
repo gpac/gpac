@@ -1406,8 +1406,8 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 					}
 					/*we ignore 'description' for MPEG4 sensors*/
 					else if (!strcmp(str, "description")) {
-						char *str = gf_bt_get_string(parser, 0);
-						gf_free(str);
+						char *tmpstr = gf_bt_get_string(parser, 0);
+						gf_free(tmpstr);
 						parser->last_error = GF_OK;
 						continue;
 					}
@@ -2683,7 +2683,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 		info.fieldType = gf_sg_vrml_get_sf_type(info.fieldType);
 
 		while (!gf_bt_check_code(parser, ']')) {
-			u32 pos=0;
+			pos=0;
 			if (gf_bt_parse_int(parser, "position", (SFInt32 *)&pos)) goto err;
 			str = gf_bt_get_next(parser, 0);
 			if (strcmp(str, "BY")) {

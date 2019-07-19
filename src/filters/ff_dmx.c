@@ -154,7 +154,6 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		ctx->probe_times[ctx->probe_frames] = ctx->sclock ? sample_time : ctx->pkt.pts;
 		ctx->probe_frames++;
 		if (ctx->probe_frames==ctx->probes) {
-			u32 i;
 			u32 best_diff=0, max_stat=0;
 			for (i=0; i<ctx->probes; i++) {
 				if (i) {

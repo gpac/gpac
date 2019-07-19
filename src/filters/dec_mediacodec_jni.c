@@ -132,7 +132,6 @@ GF_Err mcdec_create_surface (GLuint tex_id, ANativeWindow ** window, Bool * surf
 	jint res = 0;
 	jobject oSurface = NULL;
 	GF_Err ret = GF_BAD_PARAM;
-	u32 gl_tex_id;
 	
 	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
 	if ( res == JNI_EDETACHED ) {

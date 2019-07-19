@@ -25,10 +25,7 @@
 
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/constants.h>
-
-#ifndef GPAC_DISABLE_AV_PARSERS
 #include <gpac/internal/media_dev.h>
-#endif
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -427,7 +424,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	Bool ps_transfered = GF_FALSE;
 	u32 nal_size, nal_unit_size_field, extractor_mode;
 	Bool rewrite_ps, rewrite_start_codes, insert_vdrd_code;
-	s8 nal_type;
+	u8 nal_type;
 	u32 nal_hdr, sabt_ref, i, track_num;
 	u32 temporal_id = 0;
 	GF_ISOFile *file = mdia->mediaTrack->moov->mov;
@@ -530,6 +527,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	if (extractor_mode != GF_ISOM_NALU_EXTRACT_LAYER_ONLY)
 		insert_vdrd_code = GF_FALSE;
 
+	if (!entry) return GF_BAD_PARAM;
+
 	//this is a compatible HEVC, don't insert VDRD, insert NALU delim
 	if (entry->lhvc_config && entry->hevc_config)
 		insert_vdrd_code = GF_FALSE;
@@ -539,7 +538,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			return GF_OK;
 	}
 
-	if (!entry) return GF_BAD_PARAM;
 	nal_unit_size_field = 0;
 	/*if svc rewrite*/
 	if (entry->svc_config && entry->svc_config->config)
@@ -638,8 +636,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		Bool has_vps = GF_FALSE;
 		//in inspect mode or single-layer mode just use the xPS from this layer
 		if (extractor_mode == GF_ISOM_NALU_EXTRACT_DEFAULT) {
-			u32 i;
-
 			if (scal) {
 				for (i=0; i<scal->trackIDCount; i++) {
 					GF_TrackBox *a_track = GetTrackbyID(mdia->mediaTrack->moov, scal->trackIDs[i]);
@@ -659,7 +655,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			/*little optimization if we are not asked to start codes: copy over the sample*/
 			if (!rewrite_start_codes && !entry->lhvc_config && !scal) {
 				if (! ps_transfered) {
-					u8 nal_type = (sample->data[nal_unit_size_field] & 0x7E) >> 1;
+					nal_type = (sample->data[nal_unit_size_field] & 0x7E) >> 1;
 					//temp fix - if we detect xPS in the beginning of the sample do NOT copy the ps bitstream
 					//this is not correct since we are not sure whether they are the same xPS or not, but it crashes openHEVC ...
 					switch (nal_type) {
@@ -1176,7 +1172,7 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 	        || gf_list_count(esd->extensionDescriptors)
 	        || esd->ipiPtr || esd->qos || esd->RegDescriptor) {
 
-		GF_MPEG4ExtensionDescriptorsBox *mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_new_parent(&avc->child_boxes, GF_ISOM_BOX_TYPE_M4DS);
+		mdesc = (GF_MPEG4ExtensionDescriptorsBox *) gf_isom_box_new_parent(&avc->child_boxes, GF_ISOM_BOX_TYPE_M4DS);
 
 		if (esd->RegDescriptor) {
 			gf_list_add(mdesc->descriptors, esd->RegDescriptor);

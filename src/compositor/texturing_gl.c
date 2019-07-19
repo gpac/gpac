@@ -297,8 +297,8 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 
 		if (txh->tx_io->u_pbo_id) {
-			if (!p_u) p_u = (u8 *) p_v + size;
-			if (!p_v) p_v = (u8 *) p_v + 5*size/4;
+			if (!p_u) p_u = (u8 *) p_y + size;
+			if (!p_v) p_v = (u8 *) p_y + 5*size/4;
 
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, txh->tx_io->u_pbo_id);
 			ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
@@ -688,7 +688,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	}
 
 	/*note we don't free the data if existing, since this only happen when re-setting up after context loss (same size)*/
-	if ((txh->tx_io->flags == TX_MUST_SCALE) & !txh->tx_io->scale_data) {
+	if ((txh->tx_io->flags & TX_MUST_SCALE) && !txh->tx_io->scale_data) {
 		txh->tx_io->scale_data = (char*)gf_malloc(sizeof(char) * txh->tx_io->nb_comp*txh->tx_io->rescale_width*txh->tx_io->rescale_height);
 		memset(txh->tx_io->scale_data , 0, sizeof(char) * txh->tx_io->nb_comp*txh->tx_io->rescale_width*txh->tx_io->rescale_height);
 	}
@@ -971,15 +971,15 @@ common:
 			dst.pixel_format = GF_PIXEL_RGB;
 
 			for (j=0; j<txh->height; j++) {
-				u8 *src = (u8 *) txh->data + (txh->height-j-1)*txh->stride;
+				u8 *src_p = (u8 *) txh->data + (txh->height-j-1)*txh->stride;
 				u8 *dst_p = (u8 *) txh->tx_io->conv_data + j*3*txh->width;
 				u8 *dst_d = (u8 *) txh->tx_io->conv_data + txh->height*3*txh->width + j*txh->width;
 
 				for (i=0; i<txh->width; i++) {
-					*dst_p++ = src[i*4];
-					*dst_p++ = src[i*4 + 1];
-					*dst_p++ = src[i*4 + 2];
-					*dst_d++ = src[i*4 + 3];
+					*dst_p++ = src_p[i*4];
+					*dst_p++ = src_p[i*4 + 1];
+					*dst_p++ = src_p[i*4 + 2];
+					*dst_d++ = src_p[i*4 + 3];
 				}
 			}
 			txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
@@ -997,7 +997,7 @@ common:
 static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_load, u8 *data, u32 stride, u32 w, u32 h, u32 pbo_id)
 {
 	Bool needs_stride;
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	if (txh->tx_io->gl_dtype==GL_UNSIGNED_SHORT) {
 		needs_stride = (stride != 2*w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE;
@@ -1139,7 +1139,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 
 	if (! (txh->tx_io->flags & TX_NEEDS_HW_LOAD) ) return 1;
 
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	/*in case the ID has been lost, resetup*/
 	if (!txh->tx_io->id && !txh->tx_io->use_external_textures) {
@@ -1310,7 +1310,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 #endif
 
 			do_tex_image_2d(txh, tx_mode, first_load, pY, stride_luma, w, h, txh->tx_io->pbo_id);
-			GL_CHECK_ERR
+			GL_CHECK_ERR()
 
 			/*
 			 * Note: GF_PIXEL_NV21 is default for Android camera review. First wxh bytes is the Y channel,
@@ -1323,36 +1323,36 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
 				do_tex_image_2d(txh, GL_LUMINANCE_ALPHA, first_load, pU, stride_chroma, w/2, h/2, txh->tx_io->u_pbo_id);
 				txh->tx_io->gl_format = fmt;
-				GL_CHECK_ERR
+				GL_CHECK_ERR()
 			} 
 			else if (txh->pixelformat == GF_PIXEL_YUV_10 || txh->pixelformat == GF_PIXEL_YUV ) {
 				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
 				do_tex_image_2d(txh, tx_mode, first_load, pU, stride_chroma, w/2, h/2, txh->tx_io->u_pbo_id);
-				GL_CHECK_ERR
+				GL_CHECK_ERR()
 
 				glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
 				do_tex_image_2d(txh, tx_mode, first_load, pV, stride_chroma, w/2, h/2, txh->tx_io->v_pbo_id);
-				GL_CHECK_ERR
+				GL_CHECK_ERR()
 			}
 			else if (txh->pixelformat == GF_PIXEL_YUV422_10 || txh->pixelformat == GF_PIXEL_YUV422) {
 				
 				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
 				do_tex_image_2d(txh, tx_mode, first_load, pU, stride_chroma, w/2 , h , txh->tx_io->u_pbo_id);
-				GL_CHECK_ERR
+				GL_CHECK_ERR()
 
 				glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
 				do_tex_image_2d(txh, tx_mode, first_load, pV, stride_chroma, w/2 , h, txh->tx_io->v_pbo_id);
-				GL_CHECK_ERR
+				GL_CHECK_ERR()
 			}
 			else if (txh->pixelformat == GF_PIXEL_YUV444_10 || txh->pixelformat == GF_PIXEL_YUV444) {
 				
 				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
 		      	do_tex_image_2d(txh, tx_mode, first_load, pU, stride_chroma, w, h, txh->tx_io->u_pbo_id);
-				GL_CHECK_ERR
+				GL_CHECK_ERR()
  
 				glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
 				do_tex_image_2d(txh, tx_mode, first_load, pV, stride_chroma, w, h, txh->tx_io->v_pbo_id);
-				GL_CHECK_ERR
+				GL_CHECK_ERR()
 			}
 
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
@@ -1368,7 +1368,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				u32 gl_format;
 				txh->frame_ifce->get_gl_texture(txh->frame_ifce, 0, &gl_format, &txh->tx_io->id, &txh->tx_io->texcoordmatrix);
 				glBindTexture(gl_format, txh->tx_io->id);
-				GL_CHECK_ERR
+				GL_CHECK_ERR()
 				goto push_exit;
 
 			} else {
@@ -1476,9 +1476,12 @@ void gf_sc_copy_to_texture(GF_TextureHandler *txh)
 		tx_setup_format(txh);
 	}
 
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
+
 	tx_bind(txh);
-	GL_CHECK_ERR
+
+	GL_CHECK_ERR()
+
 #ifdef GPAC_USE_GLES2
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1486,7 +1489,7 @@ void gf_sc_copy_to_texture(GF_TextureHandler *txh)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 #endif
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	if (txh->compositor->fbo_id) compositor_3d_enable_fbo(txh->compositor, GF_TRUE);
 	glCopyTexImage2D(txh->tx_io->gl_type, 0, txh->tx_io->gl_format, 0, 0, txh->width, txh->height, 0);
@@ -1495,7 +1498,7 @@ void gf_sc_copy_to_texture(GF_TextureHandler *txh)
 #ifndef GPAC_USE_GLES2
 	glDisable(txh->tx_io->gl_type);
 #endif
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 }
 #endif
 
@@ -1724,6 +1727,9 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 {
 	GF_Matrix mx;
 	Bool res;
+	if (!txh || !txh->tx_io)
+		return 0;
+
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
 #endif
@@ -1749,8 +1755,6 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 	}
 #endif
-	if (!txh || !txh->tx_io)
-		return 0;
 
 	if (txh->compute_gradient_matrix && gf_sc_texture_needs_reload(txh) ) {
 		compositor_gradient_update(txh);
@@ -1796,10 +1800,10 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 #endif // GPAC_CONFIG_ANDROID
 		active_shader = root_visual->glsl_programs[root_visual->glsl_flags];	//Set active
 
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 
 		glUseProgram(active_shader);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 		
 #ifdef GPAC_CONFIG_ANDROID
 		if (txh->tx_io->gl_type != GL_TEXTURE_EXTERNAL_OES)
@@ -1818,22 +1822,24 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
 
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
+
 		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
+
 #ifndef GPAC_USE_GLES2
 		glClientActiveTexture(GL_TEXTURE0);
 #endif
 
 	}
 	else if (compositor->shader_only_mode) {
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 		glUseProgram(root_visual->glsl_programs[root_visual->glsl_flags]);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 
 		glActiveTexture(GL_TEXTURE0);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 
 		tx_bind(txh);
 	} else

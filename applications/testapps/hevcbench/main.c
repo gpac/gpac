@@ -563,27 +563,33 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
 
 #if (COPY_TYPE!=5)
-		needs_stride=0;
+//		needs_stride=0;
 #endif
 
 
 #if (NO_TEX==0)
 		glBindTexture(texture_type, txid[0] );
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_Y);
+#if (COPY_TYPE!=5)
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride);
+#endif
 		glTexImage2D(texture_type, 0, GL_LUMINANCE, w, h, 0, pixel_format, memory_format, NULL);
 		//glTexSubImage2D crashes with PBO and 2-bytes luminance on my FirePro W5000 ...
 //		glTexSubImage2D(texture_type, 0, 0, 0, w, h, pixel_format, memory_format, pY);
 
 		glBindTexture(texture_type, txid[1] );
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_U);
+#if (COPY_TYPE!=5)
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
+#endif
 		glTexImage2D(texture_type, 0, GL_LUMINANCE, uv_w, uv_h, 0, pixel_format, memory_format, NULL);
 //		glTexSubImage2D(texture_type, 0, 0, 0, uv_w, uv_h, pixel_format, memory_format, pU);
 
 		glBindTexture(texture_type, txid[2] );
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_V);
+#if (COPY_TYPE!=5)
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
+#endif
 		glTexImage2D(texture_type, 0, GL_LUMINANCE, uv_w, uv_h, 0, pixel_format, memory_format, NULL);
 //		glTexSubImage2D(texture_type, 0, 0, 0, uv_w, uv_h, pixel_format, memory_format, pV);
 #endif
@@ -868,7 +874,7 @@ int main(int argc, char **argv)
 					if (!sdl_is_init && !no_display) {
 						u64 sdl_init_time = gf_sys_clock_high_res();
 						u32 stride = HVCFrame.frameInfo.nYPitch;
-						u32 bpp = HVCFrame.frameInfo.nBitDepth;
+						bpp = HVCFrame.frameInfo.nBitDepth;
 						if ((bpp==10) && output_8bit) {
 							bpp = 8;
 							stride = HVCFrame.frameInfo.nYPitch/2;

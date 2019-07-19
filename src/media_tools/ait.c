@@ -367,7 +367,6 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				if (pre_processing_pos+boundary_descriptor->descriptor_length != gf_bs_get_position(bs)) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor data processed length error. Difference between byte shifting %d and descriptor length %d \n",(gf_bs_get_position(bs) -  pre_processing_pos),boundary_descriptor->descriptor_length));
 					if (boundary_descriptor->boundary_extension_count > 0) {
-						u32 i;
 						for (i=0; i<boundary_descriptor->boundary_extension_count; i++) {
 							if (boundary_descriptor->boundary_extension_info[i].boundary_extension_length > 0) {
 								gf_free(boundary_descriptor->boundary_extension_info[i].boundary_extension_byte);
@@ -701,7 +700,6 @@ static void gf_ait_application_decode_destroy(GF_M2TS_AIT_APPLICATION_DECODE* ap
 			}
 			case TRANSPORT_HTTP:
 			{
-				u32 i;
 				GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE* Transport_http_selector_byte = (GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE*)protocol_descriptor->selector_byte;
 				gf_free(Transport_http_selector_byte->URL_base_byte);
 				if (Transport_http_selector_byte->URL_extension_count) {
@@ -736,7 +734,6 @@ static void gf_ait_application_decode_destroy(GF_M2TS_AIT_APPLICATION_DECODE* ap
 		}
 		case APPLICATION_BOUNDARY_DESCRIPTOR:
 		{
-			u32 i;
 			GF_M2TS_APPLICATION_BOUNDARY_DESCRIPTOR* boundary_descriptor = (GF_M2TS_APPLICATION_BOUNDARY_DESCRIPTOR*)gf_list_get(application_decode->application_descriptors, 0);
 			if (boundary_descriptor->boundary_extension_count > 0) {
 				for (i=0; i<boundary_descriptor->boundary_extension_count; i++) {

@@ -5079,6 +5079,8 @@ static rmtError Remotery_GetThreadSampler(Remotery* rmt, ThreadSampler** thread_
         if (error != RMT_ERROR_NONE)
             return error;
         ts = *thread_sampler;
+        if (!ts)
+            return error;
 
         // Add to the beginning of the global linked list of thread samplers
         for (;;)
@@ -5202,6 +5204,7 @@ RMT_API void _rmt_DestroyGlobalInstance(Remotery* remotery)
     assert(g_RemoteryCreated == RMT_TRUE);
     assert(g_Remotery == remotery);
     Delete(Remotery, remotery);
+    assert(remotery==NULL);
 }
 
 

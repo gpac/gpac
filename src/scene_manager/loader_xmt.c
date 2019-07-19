@@ -1013,7 +1013,8 @@ static void xmt_parse_mf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node
 
 	while (value[0] && !parser->last_error) {
 
-		while (value[0] && value[0] == ' ') value++;
+		while (value[0] == ' ')
+			value++;
 		if (!value[0]) break;
 
 		gf_sg_vrml_mf_append(info->far_ptr, info->fieldType, &sfInfo.far_ptr);
@@ -1542,10 +1543,10 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 		/*connect */
 		if (!strcmp(name, "connect")) {
 			GF_ProtoFieldInterface *pf;
-			Bool is_script = 0;
 			GF_FieldInfo pfield, nfield;
 			char *atField, *atProtoField;
 			XMTNodeStack *last = (XMTNodeStack*)gf_list_last(parser->nodes);
+			is_script = 0;
 			if (!last) {
 				xmt_report(parser, GF_OK, "connect: no parent node specified - skipping");
 				return NULL;
@@ -1771,7 +1772,6 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 		}
 		/*USE node*/
 		else if (!strcmp(att->name, "USE")) {
-			GF_Err e;
 			GF_Node *def_node;
 
 			def_node = xmt_find_node(parser, att->value);

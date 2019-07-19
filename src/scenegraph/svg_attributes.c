@@ -4121,10 +4121,10 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 		if (paint->type == SVG_PAINT_NONE) return gf_strdup("none");
 		else if (paint->type == SVG_PAINT_INHERIT) return gf_strdup("inherit");
 		else if (paint->type == SVG_PAINT_URI) {
-			char *tmp = svg_dump_iri(&paint->iri);
-			char *res = gf_malloc(sizeof(char)*(strlen(tmp)+6));
-			sprintf(res, "url(%s)", tmp);
-			gf_free(tmp);
+			char *iritmp = svg_dump_iri(&paint->iri);
+			char *res = gf_malloc(sizeof(char)*(strlen(iritmp)+6));
+			sprintf(res, "url(%s)", iritmp);
+			gf_free(iritmp);
 			return res;
 		} else {
 			return svg_dump_color(&paint->color);
@@ -5102,9 +5102,9 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	{
 		SVG_PathData *d1 = (SVG_PathData *)f1->far_ptr;
 		SVG_PathData *d2 = (SVG_PathData *)f2->far_ptr;
+#if USE_GF_PATH
 		u32 i;
 		/*FIXME - be less lazy..*/
-#if USE_GF_PATH
 		if (d1->n_points != d2->n_points) return 0;
 		if (d1->n_contours != d2->n_contours) return 0;
 		for (i=0; i<d1->n_points; i++) {
@@ -5170,9 +5170,9 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	}
 	case SVG_ViewBox_datatype:
 	{
-		SVG_ViewBox *v1 = (SVG_ViewBox *)f1->far_ptr;
-		SVG_ViewBox *v2 = (SVG_ViewBox *)f2->far_ptr;
-		return svg_viewbox_equal(v1, v2);
+		SVG_ViewBox *vb1 = (SVG_ViewBox *)f1->far_ptr;
+		SVG_ViewBox *vb2 = (SVG_ViewBox *)f2->far_ptr;
+		return svg_viewbox_equal(vb1, vb2);
 	}
 	case SVG_StrokeDashArray_datatype:
 	{

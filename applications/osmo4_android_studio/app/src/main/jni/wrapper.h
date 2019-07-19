@@ -169,9 +169,6 @@ private:
 	void* m_window;
 	void* m_session;
 
-	GF_User *GetUser() {
-		return &m_user;
-	}
 	GF_Terminal *m_term;
 
 	/*
@@ -193,7 +190,6 @@ private:
 private:
 	void SetupLogs();
 	void Shutdown();
-	void DisplayRTI();
 protected:
 	JavaEnvTh * getEnv();
 

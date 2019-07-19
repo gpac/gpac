@@ -295,8 +295,6 @@ u32 polygon_check_convexity(GF_Vertex *pts, u32 len, u32 direction)
 	pThird = pSecond;
 
 	GetPoint2D(pThird, pts[0]);
-	/* Get different point, return if less than 3 diff points. */
-	if (len < 3 ) return GF_POLYGON_CONVEX_LINE;
 	iread = 1;
 	ConvGetPointDelta(dprev, pThird, pSecond);
 	pSaveSecond = pSecond;

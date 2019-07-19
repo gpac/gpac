@@ -1199,6 +1199,18 @@ Bool gf_isom_sample_is_fragment_start(GF_ISOFile *movie, u32 trackNumber, u32 sa
 
 GF_Err gf_isom_get_jp2_config(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc, u8 **out_dsi, u32 *out_size);
 
+
+
+/*set SR & nbChans for audio description*/
+typedef enum {
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET = 0,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF
+} GF_AudioSampleEntryImportMode;
+
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 
@@ -1464,15 +1476,6 @@ GF_Err gf_isom_set_image_sequence_alpha(GF_ISOFile *movie, u32 trackNumber, u32 
 
 /*passing colour_type=0 will remove all color info*/
 GF_Err gf_isom_set_visual_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 colour_type, u16 colour_primaries, u16 transfer_characteristics, u16 matrix_coefficients, Bool full_range_flag, u8 *icc_data, u32 icc_size);
-
-/*set SR & nbChans for audio description*/
-typedef enum {
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET = 0,
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS,
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2,
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG,
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF
-} GF_AudioSampleEntryImportMode;
 
 GF_Err gf_isom_set_audio_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample, GF_AudioSampleEntryImportMode asemode);
 
@@ -2581,22 +2584,6 @@ GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track
 /*retirves primary item ID, 0 if none found (primary can also be stored through meta XML)*/
 u32 gf_isom_get_meta_primary_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num);
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
-
-/*sets meta type (four char int, eg "mp21", ...
-	Creates a meta box if none found
-	if metaType is 0, REMOVES META
-*/
-GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 metaType);
-
-/*removes meta XML info if any*/
-GF_Err gf_isom_remove_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num);
-
-/*set meta XML data from file - erase any previously (Binary)XML info*/
-GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, char *XMLFileName, Bool IsBinaryXML);
-/*set meta XML data from memory - erase any previously (Binary)XML info*/
-GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, u8 *data, u32 data_size, Bool IsBinaryXML);
-
 typedef enum {
 	TILE_ITEM_NONE = 0,
 	TILE_ITEM_ALL_NO_BASE,
@@ -2621,6 +2608,23 @@ typedef struct
 	u8 num_channels;
 	u8 bits_per_channel[3];
 } GF_ImageItemProperties;
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+/*sets meta type (four char int, eg "mp21", ...
+	Creates a meta box if none found
+	if metaType is 0, REMOVES META
+*/
+GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 metaType);
+
+/*removes meta XML info if any*/
+GF_Err gf_isom_remove_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num);
+
+/*set meta XML data from file - erase any previously (Binary)XML info*/
+GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, char *XMLFileName, Bool IsBinaryXML);
+/*set meta XML data from memory - erase any previously (Binary)XML info*/
+GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, u8 *data, u32 data_size, Bool IsBinaryXML);
 
 GF_Err gf_isom_meta_get_next_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 *item_id);
 

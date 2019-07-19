@@ -775,7 +775,7 @@ void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, (pszInfoLog));
 			res = GF_FALSE;
 		}
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 	}
 
 	if (!res) {
@@ -790,6 +790,7 @@ void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 
 
 
+#if 0
 static GLint gf_glGetUniformLocation(GF_SHADERID glsl_program, const char *uniform_name)
 {
 	GLint loc = glGetUniformLocation(glsl_program, uniform_name);
@@ -798,7 +799,10 @@ static GLint gf_glGetUniformLocation(GF_SHADERID glsl_program, const char *unifo
 	}
 	return loc;
 }
+#endif
 
+
+#if 0
 static GLint gf_glGetAttribLocation(GF_SHADERID glsl_program, const char *attrib_name)
 {
 	GLint loc = glGetAttribLocation(glsl_program, attrib_name);
@@ -807,15 +811,16 @@ static GLint gf_glGetAttribLocation(GF_SHADERID glsl_program, const char *attrib
 	}
 	return loc;
 }
+#endif
 
 //The following functions were used for shader testing [in ES2.0]
 #if 0
 static void gf_glQueryProgram(GF_SHADERID progObj)
 {
 	GLint err_log = -10;
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 	glValidateProgram(progObj);
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 	glGetProgramiv(progObj, GL_VALIDATE_STATUS, &err_log);
 	printf("GL_VALIDATE_STATUS: %d \n ",err_log);
 	glGetProgramiv(progObj, GL_LINK_STATUS, &err_log);
@@ -831,7 +836,7 @@ static void gf_glQueryUniform(GF_SHADERID progObj, const char *name, int index)
 	GLint loc, i;
 	GLfloat res[16];
 
-	loc = gf_glGetUniformLocation(progObj, name);
+	loc = glGetUniformLocation(progObj, name);
 	if(loc<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("failed to locate uniform. exiting\n"));
 		return;
@@ -848,7 +853,7 @@ static void gf_glQueryAttrib(GF_SHADERID progObj, const char *name, int index, G
 	GLint loc, i;
 	GLfloat res[16];
 
-	loc = gf_glGetAttribLocation(progObj, name);
+	loc = glGetAttribLocation(progObj, name);
 	if (loc<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("failed to locate attribute. exiting\n"));
 		return;
@@ -1014,7 +1019,7 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 		}
 	} else {
 		visual->glsl_has_shaders=0;
-		GL_CHECK_ERR;
+		GL_CHECK_ERR();
 	}
 
 	//Clear error log (if the program is lost we will always have an GL_INVALID_VALUE error)
@@ -1024,19 +1029,19 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 		return GF_TRUE;
 	}
 
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 	//Creating Program for the shaders
 	for(i=0; i<GF_GL_NB_FRAG_SHADERS; i++) {
 		visual->glsl_programs[i] = glCreateProgram();
 	}
 	visual->glsl_has_shaders = GF_TRUE;
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	shader_file = visual->compositor->vertshader;
 	if (!shader_file) return GF_FALSE;
 
 	for (i=0; i<GF_GL_NB_VERT_SHADERS; i++) {
-		GL_CHECK_ERR;
+		GL_CHECK_ERR();
 		visual->glsl_vertex_shaders[i] = visual_3d_shader_with_flags(shader_file , GL_VERTEX_SHADER, i);
 		if (!visual->glsl_vertex_shaders[i]) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile vertex shader\n"));
@@ -1050,7 +1055,7 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	for (i=0; i<GF_GL_NB_FRAG_SHADERS; i++) {
 		GLint linked;
 		u32 vert_id;
-		GL_CHECK_ERR;
+		GL_CHECK_ERR();
 		//discard unused flags combination (ie YUV with no texture)
 		if ( (i& (GF_GL_IS_YUV | GF_GL_IS_ExternalOES)) && ! (i & GF_GL_HAS_TEXTURE)) {
 			DEL_PROGRAM(visual->glsl_programs[i]);
@@ -1064,7 +1069,7 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile fragment shader\n"));
 			continue;
 		}
-		GL_CHECK_ERR;
+		GL_CHECK_ERR();
 
 		//compute vertex shader for this fragment: all YUV frag shaders are texture vert shaders
 		vert_id = i;
@@ -1074,13 +1079,13 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 			assert(vert_id<GF_GL_NB_VERT_SHADERS);
 		}
 		glAttachShader(visual->glsl_programs[i], visual->glsl_vertex_shaders[vert_id]);
-		GL_CHECK_ERR;
+		GL_CHECK_ERR();
 
 		glAttachShader(visual->glsl_programs[i], visual->glsl_fragment_shaders[i]);
-		GL_CHECK_ERR;
+		GL_CHECK_ERR();
 
 		glLinkProgram(visual->glsl_programs[i]);
-		GL_CHECK_ERR;
+		GL_CHECK_ERR();
 
 		glGetProgramiv(visual->glsl_programs[i], GL_LINK_STATUS, &linked);
 		if (!linked) {
@@ -1092,7 +1097,7 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 		}
 
 		glUseProgram(visual->glsl_programs[i]);
-		GL_CHECK_ERR;
+		GL_CHECK_ERR();
 	}
 
 	/* Set texture planes*/
@@ -1202,12 +1207,12 @@ static void visual_3d_load_matrix_shaders(GF_SHADERID program, Fixed *mat, const
 	u32 i;
 #endif
 
-	loc = gf_glGetUniformLocation(program, name);
+	loc = glGetUniformLocation(program, name);
 	if(loc<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error (file %s line %d): Invalid matrix name", __FILE__, __LINE__));
 		return;
 	}
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 #ifdef GPAC_FIXED_POINT
 	for (i=0; i<16; i++) _mat[i] = FIX2FLT(mat[i]);
@@ -1215,7 +1220,7 @@ static void visual_3d_load_matrix_shaders(GF_SHADERID program, Fixed *mat, const
 #else
 	glUniformMatrix4fv(loc, 1, GL_FALSE, mat);
 #endif
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 }
 
 #endif
@@ -1291,7 +1296,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 	glFlush();
 
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 #ifndef GPAC_USE_GLES2
 	glEnable(GL_TEXTURE_2D);
@@ -1315,14 +1320,14 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 #endif
 
 	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, visual->auto_stereo_width, visual->auto_stereo_height, 0);
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 #ifndef GPAC_USE_GLES2
 	glDisable(GL_TEXTURE_2D);
 #endif
 
 	glClear(GL_DEPTH_BUFFER_BIT);
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	if (visual->current_view+1<visual->nb_views) return;
 	hw = INT2FIX(visual->width);
@@ -1353,20 +1358,21 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 	loc_texcoord_attrib = -1;
 	//setup vertex attrib
-	loc_vertex_attrib = gf_glGetAttribLocation(visual->autostereo_glsl_program, "gfVertex");
+	loc_vertex_attrib = glGetAttribLocation(visual->autostereo_glsl_program, "gfVertex");
 	if (loc_vertex_attrib>=0) {
 		glVertexAttribPointer(loc_vertex_attrib, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), &visual->autostereo_mesh->vertices[0].pos);
 		glEnableVertexAttribArray(loc_vertex_attrib);
 
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
+
 		//setup texcoord location
-		loc_texcoord_attrib = gf_glGetAttribLocation(visual->autostereo_glsl_program, "gfTextureCoordinates");
+		loc_texcoord_attrib = glGetAttribLocation(visual->autostereo_glsl_program, "gfTextureCoordinates");
 		if (loc_texcoord_attrib>=0) {
 			char szTex[100];
 			glVertexAttribPointer(loc_texcoord_attrib, 2, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), &visual->autostereo_mesh->vertices[0].texcoords);
 			glEnableVertexAttribArray(loc_texcoord_attrib);
 
-			GL_CHECK_ERR
+			GL_CHECK_ERR()
 
 			/*bind all our textures*/
 			for (i=0; i<visual->nb_views; i++) {
@@ -1384,15 +1390,15 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 				glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 #endif
 
-				GL_CHECK_ERR
+				GL_CHECK_ERR()
 
 				glBindTexture(GL_TEXTURE_2D, visual->gl_textures[i]);
 
-				GL_CHECK_ERR
+				GL_CHECK_ERR()
 
 				glUniform1i(loc, i);
 
-				GL_CHECK_ERR
+				GL_CHECK_ERR()
 			}
 
 			//draw
@@ -1402,27 +1408,27 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 			glDrawElements(GL_TRIANGLES, visual->autostereo_mesh->i_count, GL_UNSIGNED_INT, visual->autostereo_mesh->indices);
 #endif
 
-			GL_CHECK_ERR
+			GL_CHECK_ERR()
 		}
 	}
 
 
 	if (loc_vertex_attrib>=0) glDisableVertexAttribArray(loc_vertex_attrib);
 	if (loc_texcoord_attrib>=0) glDisableVertexAttribArray(loc_texcoord_attrib);
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	glUseProgram(0);
 
 #ifndef GPAC_USE_GLES2
 	/*not sure why this is needed but it prevents a texturing bug on XP on parallels*/
 	glActiveTexture(GL_TEXTURE0);
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glDisable(GL_TEXTURE_2D);
 #endif
 
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
 }
@@ -2217,18 +2223,18 @@ static void visual_3d_set_lights_shaders(GF_TraverseState *tr_state)
 	GF_VisualManager *visual = tr_state->visual;
 	char szName[100];
 
-	loc = gf_glGetUniformLocation(visual->glsl_program, "gfNumLights");
+	loc = glGetUniformLocation(visual->glsl_program, "gfNumLights");
 	if (loc>=0)
 		glUniform1i(loc, visual->num_lights);
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	/*
 	 * Equivalent to glLightModel(GL_LIGHTMODEL_TWO_SIDE, GL_TRUE);
 	 */
-	loc = gf_glGetUniformLocation(visual->glsl_program, "gfLightTwoSide");
+	loc = glGetUniformLocation(visual->glsl_program, "gfLightTwoSide");
 	if (loc>=0)
 		glUniform1i(loc, 1);
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	li = &visual->lights[0];
 
@@ -2255,7 +2261,7 @@ static void visual_3d_set_lights_shaders(GF_TraverseState *tr_state)
 		}
 
 		sprintf(szName, "%s%d%s", "lights[", i, "].type");
-		loc = gf_glGetUniformLocation(visual->glsl_program, szName);		//Uniform name lights[i].type
+		loc = glGetUniformLocation(visual->glsl_program, szName);		//Uniform name lights[i].type
 		if (loc>=0) {
 			if (li->type==3) {
 				glUniform1i(loc, 0); //headlight; Set type 0-directional
@@ -2277,7 +2283,7 @@ static void visual_3d_set_lights_shaders(GF_TraverseState *tr_state)
 		vals[2] = -FIX2FLT(pt.z);
 		vals[3] = 0;
 		sprintf(szName, "%s%d%s", "lights[", i, "].direction");
-		loc = gf_glGetUniformLocation(visual->glsl_program, szName);
+		loc = glGetUniformLocation(visual->glsl_program, szName);
 		if (loc>=0)
 			glUniform4fv(loc, 1, vals); //Set direction
 
@@ -2297,7 +2303,7 @@ static void visual_3d_set_lights_shaders(GF_TraverseState *tr_state)
 			vals[3] = 1.0;
 		}
 		sprintf(szName, "%s%d%s", "lights[", i, "].position");
-		loc = gf_glGetUniformLocation(visual->glsl_program, szName);
+		loc = glGetUniformLocation(visual->glsl_program, szName);
 		if (loc>=0)
 			glUniform4fv(loc, 1, vals);
 
@@ -2310,7 +2316,7 @@ static void visual_3d_set_lights_shaders(GF_TraverseState *tr_state)
 		vals[1] = FIX2FLT(pt.y);
 		vals[2] = FIX2FLT(pt.z);
 		sprintf(szName, "%s%d%s", "lights[", i, "].attenuation");
-		loc = gf_glGetUniformLocation(visual->glsl_program, szName);
+		loc = glGetUniformLocation(visual->glsl_program, szName);
 		if (loc>=0)
 			glUniform3fv(loc, 1, vals);
 
@@ -2319,17 +2325,17 @@ static void visual_3d_set_lights_shaders(GF_TraverseState *tr_state)
 		vals[2] = FIX2FLT(li->color.blue);
 		vals[3] = 0;
 		sprintf(szName, "%s%d%s", "lights[", i, "].color");
-		loc = gf_glGetUniformLocation(visual->glsl_program, szName);
+		loc = glGetUniformLocation(visual->glsl_program, szName);
 		if (loc>=0)
 			glUniform4fv(loc, 1, vals);
 
 		sprintf(szName, "%s%d%s", "lights[", i, "].intensity");
-		loc = gf_glGetUniformLocation(visual->glsl_program, szName);
+		loc = glGetUniformLocation(visual->glsl_program, szName);
 		if (loc>=0)
 			glUniform1f(loc, li->intensity);
 
 		sprintf(szName, "%s%d%s", "lights[", i, "].cutOffAngle");
-		loc = gf_glGetUniformLocation(visual->glsl_program, szName);
+		loc = glGetUniformLocation(visual->glsl_program, szName);
 		if (loc>=0)
 			glUniform1f(loc, li->cutOffAngle);
 
@@ -2340,43 +2346,43 @@ static void visual_3d_set_lights_shaders(GF_TraverseState *tr_state)
 	vals[1] = FIX2FLT(li->color.green)*intensity;
 	vals[2] = FIX2FLT(li->color.blue)*intensity;
 	vals[3] = 1;
-	loc = gf_glGetUniformLocation(visual->glsl_program, "gfLightDiffuse");
+	loc = glGetUniformLocation(visual->glsl_program, "gfLightDiffuse");
 	if (loc>=0) glUniform4fv(loc, 1, vals);
 
-	loc = gf_glGetUniformLocation(visual->glsl_program, "gfLightSpecular");
+	loc = glGetUniformLocation(visual->glsl_program, "gfLightSpecular");
 	if (loc>=0) glUniform4fv(loc, 1, vals);
 
 	vals[0] = FIX2FLT(li->color.red)*ambientIntensity;
 	vals[1] = FIX2FLT(li->color.green)*ambientIntensity;
 	vals[2] = FIX2FLT(li->color.blue)*ambientIntensity;
 	vals[3] = 1;
-	loc = gf_glGetUniformLocation(visual->glsl_program, "gfLightAmbient");
+	loc = glGetUniformLocation(visual->glsl_program, "gfLightAmbient");
 	if (loc>=0) glUniform4fv(loc, 1, vals);
 
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 }
 
 static void visual_3d_set_fog_shaders(GF_VisualManager *visual)
 {
 	GLint loc;
 	if (visual->has_fog) {
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfFogEnabled");
+		loc = glGetUniformLocation(visual->glsl_program, "gfFogEnabled");
 		if(loc>=0)
 			glUniform1i(loc, GL_TRUE);
 
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfFogColor");
+		loc = glGetUniformLocation(visual->glsl_program, "gfFogColor");
 		if(loc>=0)
 			glUniform3fv(loc, 1, (GLfloat *) &visual->fog_color);
 
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfFogDensity");
+		loc = glGetUniformLocation(visual->glsl_program, "gfFogDensity");
 		if(loc>=0)
 			glUniform1f(loc, visual->fog_density );
 
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfFogType");
+		loc = glGetUniformLocation(visual->glsl_program, "gfFogType");
 		if(loc>=0)
 			glUniform1i(loc, (GLuint) visual->fog_type );
 
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfFogVisibility");
+		loc = glGetUniformLocation(visual->glsl_program, "gfFogVisibility");
 		if(loc>=0)
 			glUniform1f(loc, visual->fog_visibility);
 	} else {
@@ -2385,7 +2391,7 @@ static void visual_3d_set_fog_shaders(GF_VisualManager *visual)
 			glUniform1i(loc, GL_FALSE);
 
 	}
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 }
 
 static void visual_3d_set_clippers_shaders(GF_VisualManager *visual, GF_TraverseState *tr_state)
@@ -2404,7 +2410,7 @@ static void visual_3d_set_clippers_shaders(GF_VisualManager *visual, GF_Traverse
 	gf_mx_copy(eye_mx, tr_state->camera->modelview);
 	gf_mx_add_matrix(&eye_mx, &tr_state->model_matrix);
 
-	loc = gf_glGetUniformLocation(visual->glsl_program, "gfNumClippers");
+	loc = glGetUniformLocation(visual->glsl_program, "gfNumClippers");
 	if (loc>=0)
 		glUniform1i(loc, visual->num_clips);
 
@@ -2426,7 +2432,7 @@ static void visual_3d_set_clippers_shaders(GF_VisualManager *visual, GF_Traverse
 		}
 
 		sprintf(szName, "%s%d%s", "clipPlane[", i, "]");	//parse plane values
-		loc = gf_glGetUniformLocation(visual->glsl_program, szName);
+		loc = glGetUniformLocation(visual->glsl_program, szName);
 		if (loc>=0) {
 			vals[0] = p.normal.x;
 			vals[1] = p.normal.y;
@@ -2492,10 +2498,10 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		tr_state->visual->needs_projection_matrix_reload = GF_TRUE;
 	}
 
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 	visual->glsl_program = root_visual->glsl_programs[visual->glsl_flags];
 	glUseProgram(visual->glsl_program);
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	if (! visual_3d_bind_buffer(visual->compositor, mesh, &vertex_buffer_address)) {
 		glUseProgram(0);
@@ -2510,12 +2516,12 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	loc_color_array = loc_normal_array = loc_textcoord_array = -1;
 
 	//setup vertext array location (always true)
-	loc_vertex_array = gf_glGetAttribLocation(visual->glsl_program, "gfVertex");
+	loc_vertex_array = glGetAttribLocation(visual->glsl_program, "gfVertex");
 	if (loc_vertex_array<0)
 		return;
 
 	glEnableVertexAttribArray(loc_vertex_array);
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 #if defined(GPAC_FIXED_POINT)
 	glVertexAttribPointer(loc_vertex_array, 3, GL_FIXED, GL_TRUE, sizeof(GF_Vertex), vertex_buffer_address);
 #else
@@ -2530,25 +2536,25 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	if (is_debug_bounds) {
 		Float cols[4];
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
+		loc = glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
 		cols[0] = 1.0f - FIX2FLT(visual->mat_2d.red);
 		cols[1] = 1.0f - FIX2FLT(visual->mat_2d.green);
 		cols[2] = 1.0f - FIX2FLT(visual->mat_2d.blue);
 		cols[3] = 1.0f;
 		if (loc>=0)
 			glUniform4fv(loc, 1, (GLfloat *) cols);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 
-		loc = gf_glGetUniformLocation(visual->glsl_program, "hasMaterial2D");
+		loc = glGetUniformLocation(visual->glsl_program, "hasMaterial2D");
 		if (loc>=0)
 			glUniform1i(loc, 1);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 	}
 	/* Material2D does not have any lights, color used is "gfEmissionColor" uniform */
 	else if (visual->has_material_2d) {
 		//for YUV manually set alpha
 		if (flags & GF_GL_IS_YUV) {
-			loc = gf_glGetUniformLocation(visual->glsl_program, "alpha");
+			loc = glGetUniformLocation(visual->glsl_program, "alpha");
 			if(loc>=0)
 				glUniform1f(loc, FIX2FLT(visual->mat_2d.alpha));
 		}
@@ -2561,29 +2567,29 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			}
 		}
 
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
+		loc = glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
 		if (loc>=0)
 			glUniform4fv(loc, 1, (GLfloat *) & visual->mat_2d);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 
-		loc = gf_glGetUniformLocation(visual->glsl_program, "hasMaterial2D");
+		loc = glGetUniformLocation(visual->glsl_program, "hasMaterial2D");
 		if (loc>=0)
 			glUniform1i(loc, 1);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 
 	} else {
 
-		loc = gf_glGetUniformLocation(visual->glsl_program, "hasMaterial2D");
+		loc = glGetUniformLocation(visual->glsl_program, "hasMaterial2D");
 		if (loc>=0)
 			glUniform1i(loc, 0);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 
 		//for YUV manually set alpha
 		if (flags & GF_GL_IS_YUV) {
-			loc = gf_glGetUniformLocation(visual->glsl_program, "alpha");
+			loc = glGetUniformLocation(visual->glsl_program, "alpha");
 			if(loc>=0)
 				glUniform1f(loc, 1.0);
-			GL_CHECK_ERR
+			GL_CHECK_ERR()
 		}
 	}
 
@@ -2605,16 +2611,16 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 #endif
 			switch (i) {
 			case 0:
-				loc = gf_glGetUniformLocation(visual->glsl_program, "gfAmbientColor");
+				loc = glGetUniformLocation(visual->glsl_program, "gfAmbientColor");
 				break;
 			case 1:
-				loc = gf_glGetUniformLocation(visual->glsl_program, "gfDiffuseColor");
+				loc = glGetUniformLocation(visual->glsl_program, "gfDiffuseColor");
 				break;
 			case 2:
-				loc = gf_glGetUniformLocation(visual->glsl_program, "gfSpecularColor");
+				loc = glGetUniformLocation(visual->glsl_program, "gfSpecularColor");
 				break;
 			case 3:
-				loc = gf_glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
+				loc = glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
 				break;
 			}
 
@@ -2622,7 +2628,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 				glUniform4fv(loc, 1, _rgba);
 		}
 		//TO CHECK:  if this does not work as it is supposed to, try: visual->shininess * 128
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfShininess");
+		loc = glGetUniformLocation(visual->glsl_program, "gfShininess");
 		if (loc>=0)
 			glUniform1f(loc, FIX2FLT(visual->shininess));
 
@@ -2631,7 +2637,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	//setup mesh color vertex attribute - only available for some shaders
 	if (!tr_state->mesh_num_textures && (mesh->flags & MESH_HAS_COLOR) && !is_debug_bounds) {
-		loc_color_array = gf_glGetAttribLocation(visual->glsl_program, "gfMeshColor");
+		loc_color_array = glGetAttribLocation(visual->glsl_program, "gfMeshColor");
 		if (loc_color_array >= 0) {
 
 			//for now colors are 8bit/comp RGB(A), so used GL_UNSIGNED_BYTE and GL_TRUE for normalizing values
@@ -2644,7 +2650,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			}
 			glEnableVertexAttribArray(loc_color_array);
 		}
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 	}
 
 	if (flags & GF_GL_HAS_LIGHT) {
@@ -2666,7 +2672,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 		visual_3d_load_matrix_shaders(tr_state->visual->glsl_program, (Fixed *) &normal_mx.m, "gfNormalMatrix");
 
-		loc_normal_array = gf_glGetAttribLocation(visual->glsl_program, "gfNormal");
+		loc_normal_array = glGetAttribLocation(visual->glsl_program, "gfNormal");
 		if (loc_normal_array>=0) {
 #ifdef MESH_USE_FIXED_NORMAL
 			glVertexAttribPointer(loc_normal_array, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex),  ((char *)vertex_buffer_address + MESH_NORMAL_OFFSET) );
@@ -2675,47 +2681,47 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 #endif
 			glEnableVertexAttribArray(loc_normal_array);
 		}
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfNumLights");
+		loc = glGetUniformLocation(visual->glsl_program, "gfNumLights");
 		if (loc>=0)
 			glUniform1i(loc, num_lights);
 		visual_3d_set_lights_shaders(tr_state);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 	}
 
 	//setup mesh normal vertex attribute - only available for some shaders
 	if (tr_state->mesh_num_textures && (mesh->mesh_type==MESH_TRIANGLES) && !(mesh->flags & MESH_NO_TEXTURE)) {
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfNumTextures");
+		loc = glGetUniformLocation(visual->glsl_program, "gfNumTextures");
 		if (loc>=0) {
 			glUniform1i(loc, tr_state->mesh_num_textures);
 		}
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 
 		if (visual->has_tx_matrix) {
 			//parsing texture matrix
-			loc = gf_glGetUniformLocation(visual->glsl_program, "gfTextureMatrix");
+			loc = glGetUniformLocation(visual->glsl_program, "gfTextureMatrix");
 			if (loc>=0)
 				glUniformMatrix4fv(loc, 1, GL_FALSE, visual->tx_matrix.m);
-			GL_CHECK_ERR
+			GL_CHECK_ERR()
 
-			loc = gf_glGetUniformLocation(visual->glsl_program, "hasTextureMatrix");
+			loc = glGetUniformLocation(visual->glsl_program, "hasTextureMatrix");
 			if (loc>=0) glUniform1i(loc, 1);
 		} else {
-			loc = gf_glGetUniformLocation(visual->glsl_program, "hasTextureMatrix");
+			loc = glGetUniformLocation(visual->glsl_program, "hasTextureMatrix");
 			if (loc>=0) glUniform1i(loc, 0);
 		}
 
 		//parsing texture coordinates
-		loc_textcoord_array = gf_glGetAttribLocation(visual->glsl_program, "gfMultiTexCoord");
+		loc_textcoord_array = glGetAttribLocation(visual->glsl_program, "gfMultiTexCoord");
 		if (loc_textcoord_array>=0) {
 			glVertexAttribPointer(loc_textcoord_array, 2, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), ((char *)vertex_buffer_address + MESH_TEX_OFFSET));
 			glEnableVertexAttribArray(loc_textcoord_array);
-			GL_CHECK_ERR
+			GL_CHECK_ERR()
 		}
 
 		if (flags & GF_GL_IS_YUV) {
-			loc = gf_glGetUniformLocation(visual->glsl_program, "yuvPixelFormat");
+			loc = glGetUniformLocation(visual->glsl_program, "yuvPixelFormat");
 			if (loc>=0) {
 				int yuv_mode = 0;
 				switch (visual->yuv_pixelformat_type) {
@@ -2729,7 +2735,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			
 				glUniform1i(loc, yuv_mode);
 			}
-			GL_CHECK_ERR
+			GL_CHECK_ERR()
 		}
 	}
 
@@ -2737,7 +2743,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	if (mesh->mesh_type != MESH_TRIANGLES) {
 		//According to the spec we should pass a 0,0,1 Normal and disable lights. we just disable lights
 		if(flags & GF_GL_HAS_LIGHT) {
-			loc = gf_glGetUniformLocation(visual->glsl_program, "gfNumLights");
+			loc = glGetUniformLocation(visual->glsl_program, "gfNumLights");
 			if (loc>=0)	glUniform1i(loc, 0);
 
 		}
@@ -2762,7 +2768,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		}
 	}
 
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	//We have a Colour Matrix to be applied
 	if(!tr_state->color_mat.identity) {
@@ -2781,18 +2787,18 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		}
 
 		//the rest of the values form the translation vector
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfTranslationVector");
+		loc = glGetUniformLocation(visual->glsl_program, "gfTranslationVector");
 		if (loc>=0)
 			glUniform4fv(loc, 1, (GLfloat *) &translateV);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 
 		loc = glGetUniformLocation(visual->glsl_program, "hasColorMatrix");
 		if(loc>=0) glUniform1i(loc, 1);
 
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfColorMatrix");
+		loc = glGetUniformLocation(visual->glsl_program, "gfColorMatrix");
 		if (loc>=0)
 			glUniformMatrix4fv(loc, 1, GL_FALSE, toBeParsed.m);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 	} else {
 		loc = glGetUniformLocation(visual->glsl_program, "hasColorMatrix");
 		if(loc>=0) glUniform1i(loc, 0);
@@ -2836,11 +2842,8 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	visual_3d_do_draw_mesh(tr_state, mesh);
 
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 	//We drawn, now we Reset
-
-	if (mesh->vbo)
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	if (mesh->vbo)
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -2852,9 +2855,9 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	//instead of visual_3d_reset_lights(visual);
 	if(visual->compositor->visual->glsl_flags & GF_GL_HAS_LIGHT) {
-		loc = gf_glGetUniformLocation(visual->glsl_program, "gfNumLights");
+		loc = glGetUniformLocation(visual->glsl_program, "gfNumLights");
 		if (loc>=0)	glUniform1i(loc, 0);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 	}
 
 	if (visual->has_clipper_2d) {
@@ -2868,9 +2871,9 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	visual->state_color_on = 0;
 	if (tr_state->mesh_is_transparent) glDisable(GL_BLEND);
 	tr_state->mesh_is_transparent = 0;
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 	glUseProgram(0);
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 }
 
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
@@ -2901,7 +2904,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	//clear error
 	glGetError();
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 #ifdef GPAC_USE_GLES2
 	visual_3d_draw_mesh_shader_only(tr_state, mesh);
@@ -3016,7 +3019,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	//setup material color
 	if (visual->has_material) {
 		u32 i;
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 		for (i=0; i<4; i++) {
 			GLenum mode;
 			Fixed *rgba = (Fixed *) & visual->materials[i];
@@ -3052,14 +3055,14 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #else
 			glMaterialfv(GL_FRONT_AND_BACK, mode, _rgba);
 #endif
-			GL_CHECK_ERR
+			GL_CHECK_ERR()
 		}
 #ifdef GPAC_USE_GLES1X
 		glMaterialx(GL_FRONT_AND_BACK, GL_SHININESS, visual->shininess * 128);
 #else
 		glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, FIX2FLT(visual->shininess) * 128);
 #endif
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 	}
 
 	//otherwise setup mesh color
@@ -3227,9 +3230,9 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		}
 	}
 
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 	visual_3d_do_draw_mesh(tr_state, mesh);
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 	if (has_col) glDisableClientState(GL_COLOR_ARRAY);
@@ -3267,7 +3270,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (tr_state->mesh_is_transparent) glDisable(GL_BLEND);
 	tr_state->mesh_is_transparent = 0;
 
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 #endif
 }
 
@@ -3427,7 +3430,7 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	Bool mesh_drawn = 0;
 #endif
 
-	GL_CHECK_ERR
+	GL_CHECK_ERR()
 
 	gf_rmt_begin_gl(visual_3d_mesh_paint);
 	glGetError();
@@ -3835,7 +3838,6 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		glReadPixels(0, 0, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, depth_data);
 
 		if (depth_dump_mode==2) {
-			u32 i;
 			fb->pixel_format = GF_PIXEL_RGBDS;
 
 			/*this corresponds to the RGBDS ordering*/
@@ -3851,7 +3853,6 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 			}
 			/*this corresponds to RGBD ordering*/
 		} else if (depth_dump_mode==3) {
-			u32 i;
 			fb->pixel_format = GF_PIXEL_RGBD;
 			for (i=0; i<fb->height*fb->width; i++)
 				fb->video_buffer[i*4+3] = depth_data[i];

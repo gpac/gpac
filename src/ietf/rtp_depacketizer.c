@@ -438,10 +438,9 @@ static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pa
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 
-		if (rtp->sl_hdr.accessUnitStartFlag) {
-			/*the first 16 bytes are NOT sent on the wire*/
-			rtp->sl_hdr.randomAccessPointFlag = (payload[offset+2]&0x02) ? 0 : 1;
-		}
+		/*the first 16 bytes are NOT sent on the wire*/
+		rtp->sl_hdr.randomAccessPointFlag = (payload[offset+2]&0x02) ? 0 : 1;
+
 		/*send missing start code*/
 		rtp->on_sl_packet(rtp->udta, (char *) blank, 2, &rtp->sl_hdr, GF_OK);
 		/*send payload*/
@@ -1416,7 +1415,6 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		char *tx3g, *a_tx3g;
 		GF_BitStream *bs;
 		u32 nb_desc;
-		GF_SDP_FMTP *fmtp;
 		GF_TextConfig tcfg;
 		memset(&tcfg, 0, sizeof(GF_TextConfig));
 		tcfg.tag = GF_ODF_TEXT_CFG_TAG;
@@ -1507,7 +1505,6 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	case GF_RTP_PAYT_H264_AVC:
 	case GF_RTP_PAYT_H264_SVC:
 	{
-		GF_SDP_FMTP *fmtp;
 		GF_AVCConfig *avcc;
 		if (!map) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
@@ -1584,7 +1581,6 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	case GF_RTP_PAYT_LHVC:
 #ifndef GPAC_DISABLE_HEVC
 	{
-		GF_SDP_FMTP *fmtp;
 		GF_HEVCConfig *hevcc;
 		if (!map) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));

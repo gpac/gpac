@@ -124,10 +124,10 @@ GF_Err ilst_item_box_read(GF_Box *s,GF_BitStream *bs)
 
 		ISOM_DECREASE_SIZE(ptr, a->size);
 
-		if (a && ptr->data) gf_isom_box_del_parent(&ptr->child_boxes, (GF_Box *) ptr->data);
+		if (ptr->data) gf_isom_box_del_parent(&ptr->child_boxes, (GF_Box *) ptr->data);
 
 		/* otherwise a->data will always overflow */
-		if (a && a->size > 4 && a->type != GF_ISOM_BOX_TYPE_VOID) {
+		if (a->size > 4 && (a->type != GF_ISOM_BOX_TYPE_VOID)) {
 			ptr->data = (GF_DataBox *)a;
 			if (!ptr->child_boxes) ptr->child_boxes = gf_list_new();
 			gf_list_add(ptr->child_boxes, ptr->data);

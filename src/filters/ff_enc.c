@@ -157,10 +157,12 @@ static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPack
 {
 	Double fps=0;
 	u64 errors[10];
-	u32 i;
 	s32 q=-1;
 	u8 pictype=0;
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+	u32 i;
 	u8 nb_errors = 0;
+#endif
 	const char *ptype;
 
 	if (!ctx->ls && !do_reporting) return;
@@ -198,6 +200,7 @@ static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPack
 
 	if (ctx->ls) {
 		fprintf(stderr, "[FFEnc] FPS %.02f F %d DTS "LLD" CTS "LLD" Q %02.02f PT %s (F_in %d)", fps, ctx->nb_frames_out, pkt->dts+ctx->ts_shift, pkt->pts+ctx->ts_shift, ((Double)q) /  FF_QP2LAMBDA, ptype, ctx->nb_frames_in);
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 		if (nb_errors) {
 			fprintf(stderr, "PSNR");
 			for (i=0; i<nb_errors; i++) {
@@ -206,6 +209,7 @@ static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPack
 				fprintf(stderr, " %02.02f", psnr);
 			}
 		}
+#endif
 		fprintf(stderr, "\r");
 	}
 
@@ -546,7 +550,7 @@ static void ffenc_audio_discard_samples(struct _gf_ffenc_ctx *ctx, u32 nb_sample
 	u32 i, bytes_per_chan, len;
 	if (!ctx->planar_audio) {
 		u32 offset = nb_samples * ctx->bytes_per_sample;
-		u32 len = (ctx->samples_in_audio_buffer - nb_samples) * ctx->bytes_per_sample;
+		len = (ctx->samples_in_audio_buffer - nb_samples) * ctx->bytes_per_sample;
 		assert(ctx->samples_in_audio_buffer >= nb_samples);
 		memmove(ctx->audio_buffer, ctx->audio_buffer + offset, sizeof(char)*len);
 		ctx->samples_in_audio_buffer = ctx->samples_in_audio_buffer - nb_samples;
@@ -958,7 +962,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	if (ctx->encoder) {
-		u32 codec_id = ffmpeg_codecid_from_gpac(ctx->codecid, &ff_codectag);
+		codec_id = ffmpeg_codecid_from_gpac(ctx->codecid, &ff_codectag);
 
 		if (type==GF_STREAM_AUDIO) {
 			if ((ctx->encoder->codec->id==codec_id) && (ctx->encoder->sample_rate==ctx->sample_rate) && (ctx->encoder->channels==ctx->channels) && (ctx->gpac_audio_fmt == afmt ) ) {
@@ -1223,6 +1227,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		case GF_CODECID_AAC_MPEG2_LCP:
 		case GF_CODECID_AAC_MPEG2_SSRP:
 		{
+#ifndef GPAC_DISABLE_AV_PARSERS
 			GF_M4ADecSpecInfo acfg;
 			u8 *dsi;
 			u32 dsi_len;
@@ -1235,6 +1240,8 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 			gf_m4a_write_config(&acfg, &dsi, &dsi_len);
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_len) );
+#endif
+
 		}
 			break;
 		}

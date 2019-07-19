@@ -1463,9 +1463,9 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs, u32 version)
 						}
 					} else if (!strcmp(f->familly, "SFInt32")) {
 						if (!strcmp(f->def, "+I") || !strcmp(f->def, "I")) {
-							strcpy(f->def, "1 << 31");
+							strcpy(f->def, "0x80000000");
 						} else if (!strcmp(f->def, "-I")) {
-							strcpy(f->def, "- (1 << 31)");
+							strcpy(f->def, "GF_INT_MIN");
 						}
 					}
 				}

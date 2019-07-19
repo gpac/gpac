@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 enum
 {
 	AAC_SIGNAL_NONE=0,
@@ -796,3 +798,10 @@ const GF_FilterRegister *adts_dmx_register(GF_FilterSession *session)
 {
 	return &ADTSDmxRegister;
 }
+
+#else
+const GF_FilterRegister *adts_dmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_AV_PARSERS

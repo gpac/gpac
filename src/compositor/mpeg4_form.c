@@ -301,7 +301,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 			while (1) {
 				if (last_ind+index > fm->groupsIndex.count) goto err_exit;
 				if (fm->groupsIndex.vals[last_ind+index]==-1) break;
-				if (index>MAX_FORM_GROUP_INDEX) goto err_exit;
+				if (index>=MAX_FORM_GROUP_INDEX) goto err_exit;
 				idx[index] = fm->groupsIndex.vals[last_ind+index];
 				index++;
 			}

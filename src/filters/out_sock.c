@@ -280,7 +280,7 @@ static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_S
 			u32 j, write_h, lsize;
 			const u8 *out_ptr;
 			u32 out_stride = i ? stride_uv : stride;
-			GF_Err e = hwf->get_plane(hwf, i, &out_ptr, &out_stride);
+			e = hwf->get_plane(hwf, i, &out_ptr, &out_stride);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] Failed to fetch plane data from hardware frame, cannot write\n"));
 				break;

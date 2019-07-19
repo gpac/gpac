@@ -199,9 +199,8 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	Bool in_iod = GF_FALSE;
 	Bool was_dyn_scene = GF_FALSE;
 	if (is_remove) {
-		GF_Scene *scene;
 		u32 ID=0;
-		GF_ObjectManager *odm = gf_filter_pid_get_udta(pid);
+		odm = gf_filter_pid_get_udta(pid);
 		//already disconnected
 		if (!odm) return GF_OK;
 		ID = odm->ID;
@@ -324,7 +323,6 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				//ignore system PIDs from subservice - this is typically the case when playing a bt/xmt file
 				//created from a container (mp4) and still refering to that container for the media streams
 				if (sns->owner->ignore_sys) {
-					GF_FilterEvent evt;
 					GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 					gf_filter_pid_send_event(pid, &evt);
 					GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
@@ -412,8 +410,8 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		Bool reset = GF_FALSE;
 		char *sep = scene->root_od->scene_ns->url_frag;
 		if (sep && ( !strnicmp(sep, "LIVE360", 7) || !strnicmp(sep, "360", 3) || !strnicmp(sep, "VR", 2) ) ) {
-			scene->vr_type = 1;
 			if (scene->vr_type != 1) reset = GF_TRUE;
+			scene->vr_type = 1;
 		}
 		if (reset)
 			gf_sg_reset(scene->graph);

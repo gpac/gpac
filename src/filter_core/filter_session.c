@@ -304,7 +304,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 
 
 	if (gf_sys_has_filter_global_args() || gf_sys_has_filter_global_meta_args()) {
-		u32 i, nb_args = gf_sys_get_argc();
+		u32 nb_args = gf_sys_get_argc();
 		for (i=0; i<nb_args; i++) {
 			char *arg = (char *)gf_sys_get_arg(i);
 			if (arg[0]!='-') continue;
@@ -992,7 +992,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	Bool use_main_sema = thid ? GF_FALSE : GF_TRUE;
 	u32 sys_thid = gf_th_id();
 	u64 next_task_schedule_time = 0;
-	Bool do_regulate = fsess->flags & GF_FS_FLAG_NO_REGULATION ? GF_FALSE : GF_TRUE;
+	Bool do_regulate = (fsess->flags & GF_FS_FLAG_NO_REGULATION) ? GF_FALSE : GF_TRUE;
 	u32 consecutive_filter_tasks=0;
 	Bool force_secondary_tasks = GF_FALSE;
 	Bool skip_next_sema_wait = GF_FALSE;
@@ -1281,7 +1281,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					sess_thread->active_time += gf_sys_clock_high_res() - active_start;
 
 					if (next_task_schedule_time && (next_task_schedule_time <= task->schedule_next_time)) {
-						s64 tdiff = next_task_schedule_time;
+						tdiff = next_task_schedule_time;
 						tdiff -= now;
 						if (tdiff < 0) tdiff=0;
 						if (tdiff<diff) {

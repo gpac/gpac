@@ -261,7 +261,7 @@ GF_Err WriteSevenBitLength(GF_BitStream *bs, u32 size)
 }
 
 GF_EXPORT
-GF_Err gf_oci_codec_encode(OCICodec *codec, char **outAU, u32 *au_length)
+GF_Err gf_oci_codec_encode(OCICodec *codec, u8 **outAU, u32 *au_length)
 {
 	GF_BitStream *bs;
 	u32 i, size, desc_size;
@@ -323,7 +323,7 @@ err_exit:
 
 
 GF_EXPORT
-GF_Err gf_oci_codec_decode(OCICodec *codec, char *au, u32 au_length)
+GF_Err gf_oci_codec_decode(OCICodec *codec, u8 *au, u32 au_length)
 {
 	OCIEvent *ev;
 	GF_BitStream *bs;

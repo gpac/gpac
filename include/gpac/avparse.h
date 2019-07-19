@@ -257,8 +257,6 @@ enum
 	GF_M4A_ALS = 36
 };
 
-#ifndef GPAC_DISABLE_AV_PARSERS
-
 static const u32 GF_M4ASampleRates[] =
 {
 	96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050,
@@ -270,6 +268,8 @@ static const u32 GF_M4ANumChannels[] =
 {
 	1, 2, 3, 4, 5, 6, 8, 2, 3, 4, 7, 8, 24, 8, 12, 10, 12, 14
 };
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 /*returns channel config value (as written in AAC DSI) for the given number of channels*/
 u32 gf_m4a_get_channel_cfg(u32 nb_chan);

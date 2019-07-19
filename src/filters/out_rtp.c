@@ -796,7 +796,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 					return GF_EOS;
 
 				for (i=0; i<count; i++) {
-					GF_RTPOutStream *stream = gf_list_get(streams, i);
+					stream = gf_list_get(streams, i);
 					u64 dur = stream->current_dts + stream->current_duration - stream->min_dts;
 
 					dur *= 1000000;
@@ -814,7 +814,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 				for (i=0; i<count; i++) {
 					GF_FilterEvent evt;
 					u64 new_ts;
-					GF_RTPOutStream *stream = gf_list_get(streams, i);
+					stream = gf_list_get(streams, i);
 
 					new_ts = max_dur;
 					new_ts *= stream->timescale;

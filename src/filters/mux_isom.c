@@ -28,6 +28,7 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 #define TEXT_DEFAULT_WIDTH	400
 #define TEXT_DEFAULT_HEIGHT	60
@@ -335,7 +336,7 @@ static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	if (tkw->avcc || tkw->svcc) {
 		if (tkw->avcc) {
 			mp4_mux_write_ps_list(bs, tkw->avcc->sequenceParameterSets, tkw->avcc->nal_unit_size);
-			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->avcc->nal_unit_size;
+			/*if (!tkw->nal_unit_size) */tkw->nal_unit_size = tkw->avcc->nal_unit_size;
 		}
 
 		if (tkw->svcc) {
@@ -528,7 +529,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	if (is_true_pid && !is_tile_base) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MULTI_TRACK);
 		if (p) {
-			u32 i, count, j, count2;
+			u32 j, count2;
 			GF_List *multi_tracks = p->value.ptr;
 			count = gf_list_count(multi_tracks);
 			for (i=0; i<count; i++) {
@@ -1417,6 +1418,7 @@ sample_entry_setup:
 			gf_isom_add_track_to_root_od(ctx->file, tkw->track_num);
 
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (dsi && (tkw->stream_type==GF_STREAM_AUDIO)) {
 			GF_M4ADecSpecInfo acfg;
 			gf_m4a_get_config(dsi->value.data.ptr, dsi->value.data.size, &acfg);
@@ -1425,18 +1427,13 @@ sample_entry_setup:
 		//patch to align old arch (IOD not written in dash) with new
 		if (audio_pli && !ctx->dash_mode)
 			gf_isom_set_pl_indication(ctx->file, GF_ISOM_PL_AUDIO, audio_pli);
+#endif
 
 	} else if (use_avc) {
 		if (tkw->avcc) gf_odf_avc_cfg_del(tkw->avcc);
 
 		//not yet known
 		if (!dsi) return GF_OK;
-
-/*		if (!dsi) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for AVC\n"));
-			return GF_NON_COMPLIANT_BITSTREAM;
-		}
-*/
 
 		tkw->avcc = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 
@@ -1458,7 +1455,7 @@ sample_entry_setup:
 						tkw->svcc = NULL;
 					}
 
-					if (!dsi && ctx->xps_inband) {
+					if (ctx->xps_inband) {
 						gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
 					}
 				}
@@ -1469,7 +1466,7 @@ sample_entry_setup:
 			}
 		}
 		
-		if (dsi && ctx->xps_inband) {
+		if (ctx->xps_inband) {
 			//this will cleanup all PS in avcC / svcC
 			gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
 			if (ctx->xps_inband==2) make_inband_headers = GF_TRUE;
@@ -1991,7 +1988,6 @@ multipid_stsd_setup:
 	if (is_true_pid && ctx->dash_mode && is_tile_base) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MULTI_TRACK);
 		if (p) {
-			u32 i, count;
 			GF_List *multi_tracks = p->value.ptr;
 			count = gf_list_count(multi_tracks);
 			for (i=0; i<count; i++) {
@@ -2130,6 +2126,7 @@ sample_entry_done:
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s\n", dst_type, imp_name));
 		}
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (tkw->svcc) {
 			AVCState avc;
 			memset(&avc, 0, sizeof(AVCState));
@@ -2145,6 +2142,8 @@ sample_entry_done:
 				}
 			}
 		}
+#endif
+
 	}
 	if (txt_font) gf_free(txt_font);
 	if (!ctx->xps_inband || tkw->is_item) {
@@ -2649,11 +2648,11 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	tkw->samples_in_stsd++;
 	tkw->samples_in_frag++;
 
-	//compat with old arch: write sample to group info fro all samples
+	//compat with old arch: write sample to group info for all samples
 	if ((sap_type==3) || tkw->has_open_gop)  {
 		if (for_fragment) {
 			e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
-		} else if (sap_type==3) {
+		} else {
 			e = gf_isom_set_sample_rap_group(ctx->file, tkw->track_num, tkw->nb_samples, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
 		}
 		if (e) {
@@ -3167,7 +3166,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 	if (!ctx->abs_offset) {
 		u32 mval = ctx->dash_mode ? '6' : '5';
-		u32 mbrand, mcount, i, found=0;
+		u32 mbrand, mcount, found=0;
 		u8 szB[5];
 		gf_isom_set_fragment_option(ctx->file, 0, GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET, 1);
 
@@ -3452,7 +3451,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			cts = gf_filter_pck_get_cts(pck);
 
 			if (cts == GF_FILTER_NO_TS) {
-				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_EODS);
+				p = gf_filter_pck_get_property(pck, GF_PROP_PCK_EODS);
 				if (p && p->value.boolean) {
 					nb_done ++;
 					tkw->fragment_done = GF_TRUE;
@@ -3574,15 +3573,15 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				}
 			}
 			if (tkw->insert_tfdt) {
-				u64 dts = gf_filter_pck_get_dts(pck);
-				if (dts==GF_FILTER_NO_TS)
-					dts = gf_filter_pck_get_cts(pck);
+				u64 odts = gf_filter_pck_get_dts(pck);
+				if (odts==GF_FILTER_NO_TS)
+					odts = gf_filter_pck_get_cts(pck);
 
-				if (tkw->offset_dts) dts += tkw->offset_dts;
+				if (tkw->offset_dts) odts += tkw->offset_dts;
 
 				tkw->insert_tfdt = GF_FALSE;
-				gf_isom_set_traf_base_media_decode_time(ctx->file, tkw->track_id, dts);
-				tkw->first_dts_in_seg = (u64) dts;
+				gf_isom_set_traf_base_media_decode_time(ctx->file, tkw->track_id, odts);
+				tkw->first_dts_in_seg = (u64) odts;
 			}
 
 			//process packet
@@ -4288,11 +4287,14 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			}
 			if (PL != tkw->media_profile_level) {
 				if (force_rewrite) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 					GF_ESD *esd = gf_isom_get_esd(ctx->file, tkw->track_num, tkw->stsd_idx);
 					assert(esd);
 					gf_m4v_rewrite_pl(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, (u8) PL);
 					gf_isom_change_mpeg4_description(ctx->file, tkw->track_num, tkw->stsd_idx, esd);
 					gf_odf_desc_del((GF_Descriptor*)esd);
+#endif
+
 				}
 				if (!ctx->make_qt)
 					gf_isom_set_pl_indication(ctx->file, GF_ISOM_PL_VISUAL, PL);
@@ -4329,16 +4331,16 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		if (tkw->is_nalu && ctx->pack_nal && (gf_isom_get_mode(ctx->file)!=GF_ISOM_OPEN_WRITE)) {
 			u32 msize = 0;
 			Bool do_rewrite = GF_FALSE;
-			u32 i, count = gf_isom_get_sample_description_count(ctx->file, tkw->track_num);
-			const GF_PropertyValue *p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_MAX_NALU_SIZE, &pe);
+			u32 j, stsd_count = gf_isom_get_sample_description_count(ctx->file, tkw->track_num);
+			p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_MAX_NALU_SIZE, &pe);
 			msize = gf_get_bit_size(p->value.uint);
 			if (msize<8) msize = 8;
 			else if (msize<16) msize = 16;
 			else msize = 32;
 
 			if (msize<=0xFFFF) {
-				for (i=0; i<count; i++) {
-					u32 k = 8 * gf_isom_get_nalu_length_field(ctx->file, tkw->track_num, i+1);
+				for (j=0; j<stsd_count; j++) {
+					u32 k = 8 * gf_isom_get_nalu_length_field(ctx->file, tkw->track_num, j+1);
 					if (k > msize) {
 						do_rewrite = GF_TRUE;
 					}
@@ -4348,7 +4350,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					gf_media_nal_rewrite_samples(ctx->file, tkw->track_num, msize);
 					msize /= 8;
 					for (i=0; i<count; i++) {
-						gf_isom_set_nalu_length_field(ctx->file, tkw->track_num, i+1, msize);
+						gf_isom_set_nalu_length_field(ctx->file, tkw->track_num, j+1, msize);
 					}
 				}
 			}
@@ -4548,3 +4550,11 @@ const GF_FilterRegister *mp4_mux_register(GF_FilterSession *session)
 {
 	return &MP4MuxRegister;
 }
+
+#else
+const GF_FilterRegister *mp4_mux_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_ISOM_WRITE
+

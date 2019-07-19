@@ -109,8 +109,6 @@ static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u3
 {
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 	JNIEnv* env = GetEnv();
-	int channels;
-	int bytes;
 	LOGV("[Android Audio] Setup for %d buffers", num_buffers);
 
 	ctx->force_config = (num_buffers && total_duration) ? 1 : 0;
@@ -360,7 +358,9 @@ static GF_Err WAV_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_sampler
 {
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 	JNIEnv* env = ctx->env;
+#ifdef TEST_QUERY_SAMPLE
 	u32 sampleRateInHz, channelConfig, audioFormat;
+#endif
 
 	LOGV("Query sample=%d", *desired_samplerate );
 

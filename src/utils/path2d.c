@@ -488,7 +488,7 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 
 	rxsq = gf_mulfix(r_x, r_x);
 	rysq = gf_mulfix(r_y, r_y);
-	assert(rxsq && rxsq);
+	assert(rxsq && rysq);
 
 	radius_scale = gf_divfix(xmidpsq, rxsq) + gf_divfix(ymidpsq, rysq);
 	if (radius_scale > FIX_ONE) {
@@ -1139,7 +1139,7 @@ Bool gf_path_point_over(GF_Path *gp, Fixed x, Fixed y)
 		}
 	}
 	if (gp->flags & GF_PATH_FILL_ZERO_NONZERO) return wn ? GF_TRUE : GF_FALSE;
-	return wn%2 ? GF_TRUE : GF_FALSE;
+	return (wn%2) ? GF_TRUE : GF_FALSE;
 }
 
 GF_EXPORT

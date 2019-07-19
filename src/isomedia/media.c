@@ -210,6 +210,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
             ESDa = ase->esd;
             if (ESDa) esd = (GF_ESD *) ESDa->desc;
             else {
+#ifndef GPAC_DISABLE_AV_PARSERS
                 // Assuming that if no ESD is provided the stream is Basic MPEG-4 AAC LC
                 GF_M4ADecSpecInfo aacinfo;
                 memset(&aacinfo, 0, sizeof(GF_M4ADecSpecInfo));
@@ -220,7 +221,9 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
                 (*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
                 (*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_AAC_MPEG4;
                 gf_m4a_write_config(&aacinfo, &(*out_esd)->decoderConfig->decoderSpecificInfo->data, &(*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
-            }
+#endif
+
+			}
         }
 		break;
 	case GF_ISOM_BOX_TYPE_MP4S:

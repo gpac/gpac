@@ -173,8 +173,8 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 		return 1;
 	}
 	if (type==GF_JSAPI_OP_GET_SUBSCENE) {
-		GF_Scene *scene = (GF_Scene *)gf_node_get_private(n);
-		param->scene = scene->graph;
+		GF_Scene *a_scene = (GF_Scene *)gf_node_get_private(n);
+		param->scene = a_scene->graph;
 		return 1;
 	}
 
@@ -185,20 +185,20 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 		char localized_url[GF_MAX_PATH];
 #endif
 		Bool result=GF_FALSE;
-		GF_Scene *scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph(n));
+		GF_Scene *a_scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph(n));
 		url = (char *)param->uri.url;
 		if (!url) {
-			param->uri.url = gf_strdup(scene->root_od->scene_ns->url);
+			param->uri.url = gf_strdup(a_scene->root_od->scene_ns->url);
 			param->uri.nb_params = 0;
 			return 1;
 		}
 
 		new_url[0]=0;
 #ifdef FILTER_FIXME
-		result = gf_term_relocate_url(term, url, scene->root_od->net_service->url, new_url, localized_url);
+		result = gf_term_relocate_url(term, url, a_scene->root_od->net_service->url, new_url, localized_url);
 #endif
 		if (result) param->uri.url = gf_strdup(new_url);
-		else param->uri.url = gf_url_concatenate(scene->root_od->scene_ns->url, url);
+		else param->uri.url = gf_url_concatenate(a_scene->root_od->scene_ns->url, url);
 		return 1;
 	}
 
@@ -206,28 +206,28 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 	if (type==GF_JSAPI_OP_PAUSE_SVG) {
 		GF_SceneGraph *graph = gf_node_get_graph(n);
 		if (n == gf_sg_get_root_node(graph)) {
-			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
-			if (scene->root_od->ck) gf_clock_pause(scene->root_od->ck);
+			GF_Scene *a_scene = (GF_Scene *)gf_sg_get_private(graph);
+			if (a_scene->root_od->ck) gf_clock_pause(a_scene->root_od->ck);
 			return 1;
 		}
 	}
 	if (type==GF_JSAPI_OP_RESUME_SVG) {
 		GF_SceneGraph *graph = gf_node_get_graph(n);
 		if (n == gf_sg_get_root_node(graph)) {
-			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
-			if (scene->root_od->ck) gf_clock_resume(scene->root_od->ck);
+			GF_Scene *a_scene = (GF_Scene *)gf_sg_get_private(graph);
+			if (a_scene->root_od->ck) gf_clock_resume(a_scene->root_od->ck);
 			return 1;
 		}
 	}
 	if (type==GF_JSAPI_OP_RESTART_SVG) {
 		GF_SceneGraph *graph = gf_node_get_graph(n);
 		if (n == gf_sg_get_root_node(graph)) {
-			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
-			GF_Clock *ck = scene->root_od->ck;
+			GF_Scene *a_scene = (GF_Scene *)gf_sg_get_private(graph);
+			GF_Clock *ck = a_scene->root_od->ck;
 			if (ck) {
 				Bool is_paused = ck->nb_paused ? GF_TRUE : GF_FALSE;
 				if (is_paused) gf_clock_resume(ck);
-				gf_scene_restart_dynamic(scene, 0, 0, 0);
+				gf_scene_restart_dynamic(a_scene, 0, 0, 0);
 				if (is_paused) gf_clock_pause(ck);
 			}
 			return 1;
@@ -237,8 +237,8 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 	if (type==GF_JSAPI_OP_SET_SCENE_SPEED) {
 		GF_SceneGraph *graph = gf_node_get_graph(n);
 		if (n == gf_sg_get_root_node(graph)) {
-			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
-			GF_Clock *ck = scene->root_od->ck;
+			GF_Scene *a_scene = (GF_Scene *)gf_sg_get_private(graph);
+			GF_Clock *ck = a_scene->root_od->ck;
 			if (ck) {
 				gf_clock_set_speed(ck, param->val);
 			}
@@ -1539,7 +1539,6 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 	/*this is the first time, generate a scene graph*/
 	if (!ac) {
-		GF_Event evt;
 		GF_Node *root;
 
 		/*create an OrderedGroup*/
@@ -2373,7 +2372,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 
 
 		if (!scene->root_od->parentscene) {
-			if (serv_w && serv_w) {
+			if (serv_w && serv_h) {
 				gf_sc_set_scene_size(scene->compositor, width, height, 1);
 				if (!scene->force_size_set) {
 					gf_sc_set_size(scene->compositor, serv_w, serv_h);
@@ -2936,8 +2935,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 					gf_scene_toggle_addons(scene, GF_FALSE);
 					gf_scene_remove_object(addon->root_od->parentscene, addon->root_od, 2);
 					gf_odm_disconnect(addon->root_od, 1);
-				}
-				if (addon->root_od) {
+
 					addon->root_od->addon = NULL;
 				}
 				return;
@@ -3326,8 +3324,8 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 	if (scene->root_od->pid) {
 		gf_filter_pid_send_event(scene->root_od->pid, &evt);
 		if (scene->root_od->extra_pids) {
-			u32 i=0;
 			GF_ODMExtraPid *xpid;
+			i=0;
 			while ( (xpid = gf_list_enum(scene->root_od->extra_pids, &i) ) ) {
 				gf_filter_pid_send_event(xpid->pid, &evt);
 			}

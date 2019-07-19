@@ -146,7 +146,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		}
 
 	} else if (ctx->opid_info) {
-		if (ctx->opid_info) gf_filter_pid_remove(ctx->opid_info);
+		gf_filter_pid_remove(ctx->opid_info);
 	}
 	if (ctx->info_file) gf_free(ctx->info_file);
 	ctx->info_file = NULL;
@@ -420,7 +420,7 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 
 	while (gf_bs_available(ctx->bs_r)) {
 		u64 pos = gf_bs_get_position(ctx->bs_r);
-		u16 size = gf_bs_read_u16(ctx->bs_r);
+		size = gf_bs_read_u16(ctx->bs_r);
 		u8 flags = gf_bs_read_u8(ctx->bs_r);
 		u8 prev;
 
@@ -614,7 +614,7 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 		while (1) {
 			u32 prop_4cc;
 			const char *prop_name;
-			const GF_PropertyValue * p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
+			p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 			if (!p) break;
 			if (prop_4cc == GF_PROP_PCK_SUBS) continue;
 			nhmldump_pck_property(ctx, prop_4cc, prop_name, p);

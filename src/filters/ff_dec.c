@@ -197,8 +197,8 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 			ctx->stride_uv = 0;
 			ctx->sar.num = ctx->sar.den = 0;
 			while (gf_list_count(ctx->src_packets)) {
-				GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
-				gf_filter_pck_unref(pck);
+				GF_FilterPacket *ref_pck = gf_list_pop_back(ctx->src_packets);
+				gf_filter_pck_unref(ref_pck);
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFDec] PID %s reconfigure pending and all frames flushed, reconfguring\n", gf_filter_pid_get_name(ctx->in_pid) ));
 			return ffdec_configure_pid(filter, ctx->in_pid, GF_FALSE);
@@ -506,11 +506,7 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 	AVSubtitle subs;
 	s32 gotpic;
 	s32 len, in_size;
-	u32 output_size;
 	Bool is_eos=GF_FALSE;
-	char *data;
-	AVFrame *frame;
-	GF_FilterPacket *dst_pck;
 
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
 
@@ -543,7 +539,6 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 	}
 
 	memset(&subs, 0, sizeof(AVSubtitle));
-	frame = ctx->frame;
 	len = avcodec_decode_subtitle2(ctx->decoder, &subs, &gotpic, &pkt);
 
 	//this will handle eos as well
@@ -653,7 +648,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		AVCodec *codec=NULL;
 		u32 codec_id, ff_codectag=0;
 		if (ctx->decoder) {
-			u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
+			codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
 			//same codec, same config, don't reinit
 			if (ctx->decoder->codec->id == codec_id) {
 				u32 cfg_crc=0;
@@ -860,10 +855,10 @@ static const GF_FilterCapability FFDecodeCaps[] =
 	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_TEXT_MPEG4),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_TX3G),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_WVTT),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_STPP),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_STXT),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_TX3G),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_WEBVTT),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_SUBS_XML),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_SIMPLE_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 #endif

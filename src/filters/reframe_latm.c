@@ -28,6 +28,8 @@
 #include <gpac/filters.h>
 #include <gpac/internal/media_dev.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 typedef struct
 {
 	u64 pos;
@@ -471,7 +473,7 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 
 
 	while (1) {
-		u32 pos = (u32) gf_bs_get_position(ctx->bs);
+		pos = (u32) gf_bs_get_position(ctx->bs);
 		u8 latm_buffer[4096];
 		u32 latm_frame_size = 4096;
 		if (!latm_dmx_sync_frame_bs(ctx->bs,&ctx->acfg, &latm_frame_size, latm_buffer, NULL)) break;
@@ -620,3 +622,10 @@ const GF_FilterRegister *latm_dmx_register(GF_FilterSession *session)
 {
 	return &LATMDmxRegister;
 }
+
+#else
+const GF_FilterRegister *latm_dmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_AV_PARSERS

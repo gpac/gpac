@@ -422,7 +422,7 @@ static void overmask_alphagrey(u32 src, u8 *dst, u32 alpha, u32 grey_type, u32 i
 	s32 dsta = dst[idx_a];
 
 	if (grey_type==0) srcc = (src >> 16) & 0xff;
-	else if (grey_type==0) srcc = (src >> 8) & 0xff;
+	else if (grey_type==1) srcc = (src >> 8) & 0xff;
 	else srcc = (src >> 0) & 0xff;
 	srca = mul255(srca, alpha);
 

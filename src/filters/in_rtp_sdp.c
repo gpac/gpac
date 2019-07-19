@@ -263,10 +263,13 @@ static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx
 		case GF_CODECID_AAC_MPEG2_LCP:
 		case GF_CODECID_AAC_MPEG2_SSRP:
 			if (sl_map->config) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 				GF_M4ADecSpecInfo acfg;
 				gf_m4a_get_config(sl_map->config, sl_map->configSize, &acfg);
 				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(acfg.base_sr) );
 				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(acfg.nb_chan) );
+#endif
+
 			} else {
 				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(gf_rtp_get_clockrate(stream->rtp_ch) ) );
 				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(2) );

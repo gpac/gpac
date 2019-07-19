@@ -251,8 +251,8 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 		else if (!strnicmp(iri->string, "http://www.w3.org/TR/SVG11/feature", 34)) {
 			feat = iri->string+35;
 			if (feat) {
-				Bool found = GF_FALSE;
 				u32 j, nbf;
+				found = GF_FALSE;
 				nbf  = sizeof(svg11_features) / sizeof(struct svg_11_feature);
 				for (j=0; j<nbf; j++) {
 					if (!strcmp(svg11_features[j].name, feat)) {
@@ -267,8 +267,8 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 		else if (!strnicmp(iri->string, "http://www.w3.org/Graphics/SVG/feature/1.2/", 43)) {
 			feat = iri->string+44;
 			if (feat) {
-				Bool found = GF_FALSE;
 				u32 j, nbf;
+				found = GF_FALSE;
 				nbf  = sizeof(svg12_features) / sizeof(struct svg_12_feature);
 				for (j=0; j<nbf; j++) {
 					if (!strcmp(svg12_features[j].name, feat)) {

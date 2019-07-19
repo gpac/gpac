@@ -295,8 +295,9 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	GF_FilterPidInst *pidinst = task->udta;
 	GF_Filter *filter = pid->filter;
 
+	assert(filter);
 	//reset in process
-	if ((pidinst->filter && pidinst->discard_packets) || (filter && filter->stream_reset_pending) ) {
+	if ((pidinst->filter && pidinst->discard_packets) || filter->stream_reset_pending) {
 		TASK_REQUEUE(task)
 		return;
 	}
@@ -356,7 +357,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	//no more destinations on pid, destroy it
 	if (pid->would_block) {
 		assert(pid->filter->would_block);
-		safe_int_dec(&filter->would_block);
+		safe_int_dec(&pid->filter->would_block);
 	}
 	gf_list_del_item(filter->output_pids, pid);
 	filter->num_output_pids = gf_list_count(filter->output_pids);
@@ -971,11 +972,9 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	//first connection of this PID to this filter
 	if (!pidinst) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to detach PID %s not found in filter %s inputs\n",  pid->name, filter->name));
-		if (new_chain_input) {
-			assert(!new_chain_input->swap_pidinst_dst);
-			assert(!new_chain_input->swap_pidinst_src);
-			new_chain_input->swap_needs_init = GF_FALSE;
-		}
+		assert(!new_chain_input->swap_pidinst_dst);
+		assert(!new_chain_input->swap_pidinst_src);
+		new_chain_input->swap_needs_init = GF_FALSE;
 		return;
 	}
 
@@ -1363,12 +1362,12 @@ sourceid_reassign:
 				if (needs_resolve) {
 					if (first_pass) {
 						char *sid = resolved_source_ids ? resolved_source_ids : dst_filter->source_ids;
-						char *sep = strchr(frag_name, dst_filter->session->sep_name);
-						assert(sep);
+						char *frag_sep = strchr(frag_name, dst_filter->session->sep_name);
+						assert(frag_sep);
 						if (next_frag) next_frag[0] = src_pid->filter->session->sep_frag;
 
 						char *new_source_ids = gf_malloc(sizeof(char) * (strlen(sid) + strlen(prop_dump_buffer)+1));
-						u32 clen = (u32) (1+sep - sid);
+						u32 clen = (u32) (1+frag_sep - sid);
 						strncpy(new_source_ids, sid, clen);
 						new_source_ids[clen]=0;
 						strcat(new_source_ids, prop_dump_buffer);
@@ -2795,7 +2794,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		if (skip_if_in_filter_list) {
 			assert(skipped);
 			*skipped = GF_FALSE;
-			u32 i, nb_skip = gf_list_count(skip_if_in_filter_list);
+			u32 nb_skip = gf_list_count(skip_if_in_filter_list);
 			const GF_FilterRegister *chain_start_freg = gf_list_get(filter_chain, 0);
 			for (i=0; i<nb_skip; i++) {
 				GF_Filter *f = gf_list_get(skip_if_in_filter_list, i);
@@ -3069,7 +3068,7 @@ static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 				p.value.uint_list.vals = NULL;
 			}
 			gf_props_reset_single(&p);
-		} else {
+		} else if (eq) {
 			GF_PropertyValue p;
 			memset(&p, 0, sizeof(GF_PropertyValue));
 			p.type = GF_PROP_STRING;
@@ -4706,10 +4705,9 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	if (pidinst->filter) {
 		assert(pidinst->filter->pending_packets);
 		safe_int_dec(&pidinst->filter->pending_packets);
-	}
 
-	if (pidinst->filter)
 		gf_filter_forward_clock(pidinst->filter);
+	}
 
 	gf_rmt_end();
 }
@@ -5059,7 +5057,6 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s processed event %s - canceled %s\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", gf_filter_event_name(evt->base.type), canceled ? "yes" : "no" ));
 
 	if (evt->base.on_pid && ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK) || (evt->base.type==GF_FEVT_PLAY)) ) {
-		u32 i;
 		Bool do_reset = GF_TRUE;
 		Bool is_play_reset = GF_FALSE;
 		GF_FilterPidInst *p = (GF_FilterPidInst *) evt->base.on_pid;
@@ -5305,8 +5302,9 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt)
 	GF_FilterEvent *dup_evt;
 	//filter is being shut down, prevent any event posting
 	if (filter->finalized) return;
+	if (!evt) return;
 
-	if (evt && (evt->base.type==GF_FEVT_RESET_SCENE))
+	if (evt->base.type==GF_FEVT_RESET_SCENE)
 		return;
 
 	if (evt->base.on_pid && PID_IS_OUTPUT(evt->base.on_pid)) {
@@ -5886,7 +5884,6 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				}
 				szFinalName[k]='$';
 				k++;
-				if (!sep) break;
 				sep[0] = '$';
 				name = sep+1;
 				continue;

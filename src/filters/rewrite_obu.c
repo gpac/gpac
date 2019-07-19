@@ -28,6 +28,8 @@
 #include <gpac/bitstream.h>
 #include <gpac/internal/media_dev.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 typedef struct
 {
 	//opts
@@ -100,7 +102,7 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 
 	//offset of OBUs in AV1 config
-	if (dcd && (dcd->value.data.size > 4)) {
+	if (dcd->value.data.size > 4) {
 		ctx->dsi = dcd->value.data.ptr + 4;
 		ctx->dsi_size = dcd->value.data.size - 4;
 	} else {
@@ -231,7 +233,7 @@ GF_Err obumx_process(GF_Filter *filter)
 			u32 obu_size;
 			Bool obu_extension_flag, obu_has_size_field;
 			u8 temporal_id, spatial_id;
-			u32 hdr_size = (u32) gf_bs_get_position(ctx->bs_r);
+			u32 obu_hdr_size = (u32) gf_bs_get_position(ctx->bs_r);
 
 			gf_av1_parse_obu_header(ctx->bs_r, &obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
 
@@ -240,10 +242,10 @@ GF_Err obumx_process(GF_Filter *filter)
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			obu_size = (u32)gf_av1_leb128_read(ctx->bs_r, NULL);
-			hdr_size = (u32) gf_bs_get_position(ctx->bs_r) - hdr_size;
+			obu_hdr_size = (u32) gf_bs_get_position(ctx->bs_r) - obu_hdr_size;
 			gf_bs_skip_bytes(ctx->bs_r, obu_size);
 
-			obu_size += hdr_size;
+			obu_size += obu_hdr_size;
 			obu_sizes += obu_size + gf_av1_leb128_size(obu_size);
 
 			if (obu_type==OBU_FRAME) {
@@ -301,12 +303,12 @@ GF_Err obumx_process(GF_Filter *filter)
 			u32 obu_size;
 			Bool obu_extension_flag, obu_has_size_field;
 			u8 temporal_id, spatial_id;
-			u32 hdr_size, start = (u32) gf_bs_get_position(ctx->bs_r);
+			u32 obu_hdr_size, start = (u32) gf_bs_get_position(ctx->bs_r);
 
 			gf_av1_parse_obu_header(ctx->bs_r, &obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
 			obu_size = (u32)gf_av1_leb128_read(ctx->bs_r, NULL);
 
-			hdr_size = (u32) gf_bs_get_position(ctx->bs_r) - start;
+			obu_hdr_size = (u32) gf_bs_get_position(ctx->bs_r) - start;
 			gf_bs_skip_bytes(ctx->bs_r, obu_size);
 
 			if (obu_type==OBU_FRAME) {
@@ -316,7 +318,7 @@ GF_Err obumx_process(GF_Filter *filter)
 				}
 			}
 
-			obu_size += hdr_size;
+			obu_size += obu_hdr_size;
 			gf_av1_leb128_write(ctx->bs_w, obu_size);
 			gf_bs_write_data(ctx->bs_w, data+start, obu_size);
 
@@ -414,3 +416,11 @@ const GF_FilterRegister *obumx_register(GF_FilterSession *session)
 {
 	return &OBUMxRegister;
 }
+
+#else
+const GF_FilterRegister *obumx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_AV_PARSERS
+

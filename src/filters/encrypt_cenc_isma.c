@@ -100,9 +100,9 @@ typedef struct
 #ifndef GPAC_DISABLE_HEVC
 	HEVCState hevc;
 #endif
-	Bool slice_header_clear;
 	AV1State av1;
 #endif
+	Bool slice_header_clear;
 } GF_CENCStream;
 
 typedef struct
@@ -430,14 +430,14 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 				else if (!strcmp(att->value, "clear"))
 					cypherMode = 2;
 			} else if (!strcmp(att->name, "cypherKey")) {
-				GF_Err e = gf_bin128_parse(att->value, cypherKey);
+				e = gf_bin128_parse(att->value, cypherKey);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse cypherKey\n"));
                     return e;
                 }
 				has_key = GF_TRUE;
 			} else if (!strcmp(att->name, "cypherIV")) {
-				GF_Err e = gf_bin128_parse(att->value, cypherIV);
+				e = gf_bin128_parse(att->value, cypherIV);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse cypherIV\n"));
                     return e;
@@ -530,7 +530,10 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 
 static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const char *cfile_name)
 {
-	u32 i, dsi_crc=0;
+#if !defined(GPAC_DISABLE_AV_PARSERS)
+	u32 i;
+#endif
+	u32 dsi_crc=0;
 	Bool is_reinit=GF_FALSE;
 	GF_AVCConfig *avccfg;
 	GF_HEVCConfig *hevccfg;
@@ -560,6 +563,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			avccfg = gf_odf_avc_cfg_read(p->value.data.ptr, p->value.data.size);
 			if (avccfg) cstr->nalu_size_length = avccfg->nal_unit_size;
 
+			cstr->cenc_codec = CENC_AVC;
+
 			p2 = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_ISOM_SUBTYPE);
 			if (p2 && (p2->value.uint==GF_ISOM_BOX_TYPE_AVC1)) {
 				if (!cstr->tci->allow_encrypted_slice_header) {
@@ -570,9 +575,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			} else {
 				cstr->slice_header_clear = GF_TRUE;
 			}
-			cstr->cenc_codec = CENC_AVC;
+#ifndef GPAC_DISABLE_AV_PARSERS
 
-	#if !defined(GPAC_DISABLE_AV_PARSERS)
 			for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
 				GF_AVCConfigSlot *slc = gf_list_get(avccfg->sequenceParameterSets, i);
 				gf_media_avc_read_sps(slc->data, slc->size, &cstr->avc, 0, NULL);
@@ -581,9 +585,10 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				GF_AVCConfigSlot *slc = gf_list_get(avccfg->pictureParameterSets, i);
 				gf_media_avc_read_pps(slc->data, slc->size, &cstr->avc);
 			}
-	#endif
+#endif
 			if (avccfg) gf_odf_avc_cfg_del(avccfg);
 			cstr->bytes_in_nal_hdr = 1;
+
 			if (!cstr->slice_header_clear && cstr->tci->clear_bytes)
 				cstr->bytes_in_nal_hdr = cstr->tci->clear_bytes;
 
@@ -600,17 +605,18 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			hevccfg = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, (cstr->codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
 			if (hevccfg) cstr->nalu_size_length = hevccfg->nal_unit_size;
 
-	#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
 			hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_VID_PARAM);
 			hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_SEQ_PARAM);
 			hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_PIC_PARAM);
-	#endif
+#endif
+
 			//mandatory for HEVC
 			cstr->slice_header_clear = GF_TRUE;
+
 			cstr->cenc_codec = CENC_HEVC;
 
 			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
-			cstr->slice_header_clear = GF_TRUE;
 			cstr->bytes_in_nal_hdr = 2;
 
 			if (!cstr->nalu_size_length) {
@@ -622,11 +628,13 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			if (!p)
 				return GF_OK;
 
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_AV1)
 			cstr->av1.config = gf_odf_av1_cfg_read(p->value.data.ptr, p->value.data.size);
-			//mandatory for AV1
-			cstr->slice_header_clear = GF_TRUE;
 			cstr->cenc_codec = CENC_AV1;
 			cstr->bytes_in_nal_hdr = 2;
+#endif
+			//mandatory for AV1
+			cstr->slice_header_clear = GF_TRUE;
 			break;
 		case GF_CODECID_VP8:
 		case GF_CODECID_VP9:
@@ -638,7 +646,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		}
 	}
 
-	if (((cstr->tci->scheme_type == GF_CRYPT_TYPE_CENS) || (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && ((cstr->cenc_codec>CENC_FULL_SAMPLE) && (cstr->cenc_codec<=CENC_AV1) ) )  {
+	if (((cstr->tci->scheme_type == GF_CRYPT_TYPE_CENS) || (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && (cstr->cenc_codec<=CENC_AV1)
+	)  {
 		if (!cstr->tci->crypt_byte_block || !cstr->tci->skip_byte_block) {
 			if (cstr->tci->crypt_byte_block || cstr->tci->skip_byte_block) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
@@ -1170,12 +1179,12 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size)
 	memcpy(IV, next_IV+1, 16*sizeof(char));
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 //parses slice header and returns its size
 static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs, char *samp_data, u32 nal_size, u32 bytes_in_nalhr)
 {
 	u32 clear_bytes = 0;
 	if (cstr->slice_header_clear) {
-#ifndef GPAC_DISABLE_AV_PARSERS
 		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 		if (cstr->cenc_codec==CENC_AVC) {
 			u32 ntype;
@@ -1199,7 +1208,6 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 		} else {
 #if !defined(GPAC_DISABLE_HEVC)
 			u8 ntype, ntid, nlid;
-			u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 			cstr->hevc.full_slice_header_parse = GF_TRUE;
 			gf_media_hevc_parse_nalu (samp_data + nal_start, nal_size, &cstr->hevc, &ntype, &ntid, &nlid);
 			if (ntype<=GF_HEVC_NALU_SLICE_CRA) {
@@ -1207,21 +1215,16 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 			} else {
 				clear_bytes = nal_size;
 			}
+#endif
 		}
 		gf_bs_seek(plaintext_bs, nal_start);
-#endif
-
-#else
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] AV parsers disabled, cannot get slice header size. Assuming 8 bytes is enough, but resulting file will not be compliant\n"));
-		clear_bytes = 8;
-#endif //GPAC_DISABLE_AV_PARSERS
-
 	} else {
 		clear_bytes = bytes_in_nalhr;
 	}
 	gf_bs_enable_emulation_byte_removal(plaintext_bs, GF_FALSE);
 	return clear_bytes;
 }
+#endif
 
 static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPacket *pck)
 {
@@ -1267,21 +1270,29 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 		u32 cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
 
 		if (cstr->use_subsamples) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 			ObuType obut;
 			u32 num_frames_in_superframe = 0, superframe_index_size = 0;
 			u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
-			u64 pos, obu_size;
+			struct {
+				int clear, encrypted;
+			} ranges[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
+			u64 obu_size;
 			u32 hdr_size;
 			u32 i;
+#else
+			struct {
+				int clear, encrypted;
+			} ranges[1];
+#endif
+			u64 pos;
 			u32 clear_bytes_at_end = 0;
 			u32 clear_bytes = 0;
 			u32 nb_ranges = 1;
 			u32 range_idx = 0;
 			u32 nalu_size = 0;
-			struct {
-				int clear, encrypted;
-			} ranges[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 			switch (cstr->cenc_codec) {
 			case CENC_AVC:
 			case CENC_HEVC:
@@ -1413,6 +1424,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 			default:
 				assert(0);
 			}
+#else
+			clear_bytes = nalu_size;
+			nb_ranges=1;
+#endif
 
 			while (nb_ranges) {
 				if (cstr->ctr_mode) {
@@ -1474,8 +1489,8 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 					//pattern encryption
 					if (cstr->tci->crypt_byte_block && cstr->tci->skip_byte_block) {
-						u32 pos = cur_pos;
 						u32 res = nalu_size - clear_bytes - clear_bytes_at_end;
+						pos = cur_pos;
 						assert((res % 16) == 0);
 
 						while (res) {
@@ -1815,7 +1830,9 @@ static void cenc_enc_finalize(GF_Filter *filter)
 		GF_CENCStream *s = gf_list_pop_back(ctx->streams);
 		if (s->crypt) gf_crypt_close(s->crypt);
 		if (s->cinfo) gf_crypt_info_del(s->cinfo);
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (s->av1.config) gf_odf_av1_cfg_del(s->av1.config);
+#endif
 		gf_free(s);
 	}
 	gf_list_del(ctx->streams);

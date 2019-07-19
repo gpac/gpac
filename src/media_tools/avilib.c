@@ -1050,9 +1050,7 @@ static int avi_close_output_file(avi_t *AVI)
 		}
 		// The AVI->video_superindex->nEntriesInUse contains the offset
 		AVI->video_superindex->stdindex[ cur_std_idx+1 ]->qwBaseOffset = AVI->pos;
-	}
 
-	if (AVI->is_opendml) {
 		// Correct!
 		movi_len = AVI->video_superindex->stdindex[ 1 ]->qwBaseOffset - HEADERBYTES+4 - AVI->n_idx*16 - 8;
 	} else {
@@ -1794,8 +1792,6 @@ int AVI_close(avi_t *AVI)
 			gf_free(AVI->wave_format_ex[j]);
 
 	gf_free(AVI);
-	AVI=NULL;
-
 	return ret;
 }
 
@@ -2295,14 +2291,14 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 	if(!AVI->track[0].a_chans) AVI->track[0].audio_strn = 99;
 
 	{
-		int i=0;
+		//i=0;
 		for(j=0; j<AVI->anum+1; ++j) {
 			if (j == AVI->video_strn) continue;
 			AVI->track[i].audio_tag[0] = j/10 + '0';
 			AVI->track[i].audio_tag[1] = j%10 + '0';
 			AVI->track[i].audio_tag[2] = 'w';
 			AVI->track[i].audio_tag[3] = 'b';
-			++i;
+			//++i;
 		}
 	}
 
@@ -2392,7 +2388,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 	// read extended index chunks
 	if (AVI->is_opendml) {
 		u64 offset = 0;
-		int hdrl_len = 4+4+2+1+1+4+4+8+4;
+		hdrl_len = 4+4+2+1+1+4+4+8+4;
 		char *en, *chunk_start;
 		int k = 0;
 		u32 audtr = 0;

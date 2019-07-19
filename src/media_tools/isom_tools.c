@@ -90,10 +90,10 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 	} else {
         u32 mtype = gf_isom_get_media_type(file, track);
 		if (gf_isom_is_video_subtype(mtype)) {
-			u32 stype = gf_isom_get_media_subtype(file, track, 1);
+			u32 mstype = gf_isom_get_media_subtype(file, track, 1);
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER,
 				("[ISOBMF] Warning: changing pixel ratio of media subtype \"%s\" is not supported, changing only \"pasp\" signaling\n",
-					gf_4cc_to_str(stype) ));
+					gf_4cc_to_str(mstype) ));
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMF] Error: changing pixel ratio on non-video track.\n"));
 			return GF_BAD_PARAM;
@@ -210,7 +210,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 				u64 bsize = 0;
 				while (bsize<box_size) {
 					u32 to_read = (u32) ((box_size-bsize<4096) ? (box_size-bsize) : 4096);
-					u32 read = gf_bs_read_data(bs, (char *) block, to_read);
+					read = gf_bs_read_data(bs, (char *) block, to_read);
 					if (!read || (read != to_read) ) {
 						fprintf(stderr, "corrupted isobmf file, box read "LLU" but expected still "LLU" bytes\n", bsize, box_size);
 						break;
@@ -907,9 +907,9 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	timescale = gf_isom_get_media_timescale(mp4, video_tk);
 	def_dur = gf_isom_get_constant_sample_duration(mp4, video_tk);
 	if (!def_dur) {
-		gf_isom_get_sample_duration(mp4, video_tk, 2);
+		def_dur = gf_isom_get_sample_duration(mp4, video_tk, 2);
 		if (!def_dur) {
-			gf_isom_get_sample_duration(mp4, video_tk, 1);
+			def_dur = gf_isom_get_sample_duration(mp4, video_tk, 1);
 		}
 	}
 	if (!def_dur) {
@@ -1196,6 +1196,7 @@ exit:
 	return DQId;
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static Bool gf_isom_has_svc_explicit(GF_ISOFile *file, u32 track)
 {
 	GF_AVCConfig *svccfg;
@@ -1239,11 +1240,13 @@ static u32 gf_isom_get_track_id_max(GF_ISOFile *file)
 
 	return max_id;
 }
+#endif
 
 /* Split SVC layers */
 GF_EXPORT
 GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_AVCConfig *svccfg, *cfg;
 	u32 num_svc_track, num_sample, svc_track, dst_track, ref_trackID, ref_trackNum, max_id, di, width, height, size, nalu_size_length, i, j, t, max_size, num_pps, num_sps, num_subseq, NALUnitHeader, data_offset, data_length, count, timescale, cur_extract_mode;
 	GF_Err e;
@@ -1732,14 +1735,14 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	{
 		if (first_DTS_track[t])
 		{
-			u32 media_ts, moov_ts, offset;
+			u32 media_ts, moov_ts, ts_offset;
 			u64 dur;
 			media_ts = gf_isom_get_media_timescale(file, t);
 			moov_ts = gf_isom_get_timescale(file);
-			offset = (u32)(first_DTS_track[t]) * moov_ts / media_ts;
+			ts_offset = (u32)(first_DTS_track[t]) * moov_ts / media_ts;
 			dur = gf_isom_get_media_duration(file, t) * moov_ts / media_ts;
-			gf_isom_set_edit_segment(file, t, 0, offset, 0, GF_ISOM_EDIT_EMPTY);
-			gf_isom_set_edit_segment(file, t, offset, dur, 0, GF_ISOM_EDIT_NORMAL);
+			gf_isom_set_edit_segment(file, t, 0, ts_offset, 0, GF_ISOM_EDIT_EMPTY);
+			gf_isom_set_edit_segment(file, t, ts_offset, dur, 0, GF_ISOM_EDIT_NORMAL);
 		}
 	}
 
@@ -1821,6 +1824,10 @@ exit:
 	if (is_subseq_pps) gf_free(is_subseq_pps);
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+
 }
 
 /* Merge SVC layers*/
@@ -2134,14 +2141,14 @@ exit:
 	return e;
 }
 
-#ifndef GPAC_DISABLE_HEVC
+#ifndef GPAC_DISABLE_AV_PARSERS
 /* Split LHVC layers */
 static GF_HEVCParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 type)
 {
 	GF_HEVCParamArray *ar;
 	u32 i, count = hevc_cfg->param_array ? gf_list_count(hevc_cfg->param_array) : 0;
 	for (i=0; i<count; i++) {
-		GF_HEVCParamArray *ar = gf_list_get(hevc_cfg->param_array, i);
+		ar = gf_list_get(hevc_cfg->param_array, i);
 		if (ar->type==type) return ar;
 	}
 	GF_SAFEALLOC(ar, GF_HEVCParamArray);
@@ -2312,6 +2319,7 @@ exit:
 GF_EXPORT
 GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublayers, Bool splitAll, GF_LHVCExtractoreMode extractor_mode)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	LHVCTrackInfo sti[64];
 	GF_HEVCConfig *hevccfg, *lhvccfg;
 	u32 sample_num, count, cur_extract_mode, j, k, max_layer_id;
@@ -2339,7 +2347,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublay
 		if (!hevccfg) return GF_NOT_SUPPORTED;
 
 		if (hevccfg->numTemporalLayers<=1) {
-			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
+			gf_odf_hevc_cfg_del(hevccfg);
 			return GF_OK;
 		}
 	}
@@ -2435,7 +2443,7 @@ reparse:
 		u32 i;
 		count = gf_list_count(hevccfg->param_array);
 		for (i=0; i<count; i++) {
-			u32 k, count2;
+			u32 count2;
 			GF_HEVCParamArray *s_ar;
 			GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, i);
 			if (ar->type != GF_HEVC_NALU_VID_PARAM) continue;
@@ -2642,8 +2650,8 @@ reparse:
 				if (extractor_mode == GF_LHVC_EXTRACTORS_ON) {
 					for (k=j; k>0; k--) {
 						if (sti[k-1].track_num) {
-							u32 track_id = gf_isom_get_track_id(file, sti[k-1].track_num);
-							gf_isom_set_track_reference(file, sti[j].track_num, GF_ISOM_REF_SCAL, track_id);
+							u32 track_id_r = gf_isom_get_track_id(file, sti[k-1].track_num);
+							gf_isom_set_track_reference(file, sti[j].track_num, GF_ISOM_REF_SCAL, track_id_r);
 						}
 					}
 				}
@@ -2789,7 +2797,7 @@ exit:
 	//reset all scalable info
 	for (j=0; j<=max_layer_id; j++) {
 		GF_BitStream *bs;
-		u32 count, data_size;
+		u32 data_size;
 		u8 *data=NULL;
 		if (sti[j].lhvccfg) gf_odf_hevc_cfg_del(sti[j].lhvccfg);
 		//set linf group
@@ -2839,6 +2847,10 @@ exit:
 	if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 	if (nal_data) gf_free(nal_data);
 	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+
 }
 #endif /*GPAC_DISABLE_HEVC*/
 
@@ -2875,7 +2887,7 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 	return e;
 }
 
-#ifndef GPAC_DISABLE_HEVC
+#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
 u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile_width, u32 *tile_height)
 {
 	HEVCSliceInfo *si = &hevc->s_info;
@@ -3251,9 +3263,9 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 				if (e) goto err_exit;
 			}
 		} else {
-			u8 *data=NULL;
-			u32 size=0;
 			u32 sdesc;
+			data=NULL;
+			size=0;
 			gf_bs_get_content(bs, &data, &size);
 			gf_bs_del(bs);
 			data[1] = nb_nal_entries;
@@ -3564,7 +3576,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		return GF_OK;
 #endif
 
-#ifndef GPAC_DISABLE_AV1
+#if !defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)
 	case GF_ISOM_SUBTYPE_AV01: {
 		GF_AV1Config *av1c = NULL;
 		AV1State av1_state;
@@ -3618,7 +3630,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		av1_reset_state(&av1_state, GF_TRUE);
 		return GF_OK;
 	}
-#endif /*GPAC_DISABLE_AV1*/
+#endif /*!defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)*/
 
 	case GF_ISOM_SUBTYPE_VP08:
 	case GF_ISOM_SUBTYPE_VP09:

@@ -191,7 +191,10 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		count = gf_list_count(cfg->sequenceParameterSets);
 		SetCommandLayer(ctx->layers, 255, 0, &res, 0);//bufindex can be reset without pb
 		for (i=0; i<count; i++) {
-			u32 w=0, h=0, sid;
+			u32 w=0, h=0;
+#ifndef GPAC_DISABLE_AV_PARSERS
+			u32 sid;
+#endif
 			s32 par_n=0, par_d=0;
 			GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
 
@@ -218,14 +221,19 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		count = gf_list_count(cfg->pictureParameterSets);
 		for (i=0; i<count; i++) {
-			u32 sps_id, pps_id;
 			GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_list_get(cfg->pictureParameterSets, i);
+#ifndef GPAC_DISABLE_AV_PARSERS
+			u32 sps_id, pps_id;
 			gf_avc_get_pps_info(slc->data, slc->size, &pps_id, &sps_id);
+#endif
 			res = decodeNAL(ctx->codec, (unsigned char *) slc->data, slc->size, &Picture, ctx->layers);
 			if (res<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding PPS %d\n", res));
 			}
+#ifndef GPAC_DISABLE_AV_PARSERS
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] Attach: PPS id=\"%d\" code=\"%d\" size=\"%d\" sps_id=\"%d\"\n", pps_id, slc->data[0] & 0x1F, slc->size, sps_id));
+#endif
+
 		}
 		gf_odf_avc_cfg_del(cfg);
 	} else {
@@ -367,7 +375,9 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	pic.Width = pic.Height = 0;
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
+#ifndef GPAC_DISABLE_AV_PARSERS
 		u32 sps_id, pps_id;
+#endif
 		u32 maxDqIdInAU;
 		if (!ctx->streams[idx].ipid) continue;
 
@@ -411,12 +421,15 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 		sc_size = 0;
 
 		if (!ctx->nalu_size_length) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 			u32 size = gf_media_nalu_next_start_code((u8 *) data, data_size, &sc_size);
 			if (sc_size) {
 				ptr += size+sc_size;
 				assert(data_size >= size+sc_size);
 				data_size -= size+sc_size;
-			} else {
+			} else
+#endif
+			{
 				/*no annex-B start-code found, discard */
 				gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
 				idx--;
@@ -432,10 +445,16 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 				}
 				ptr += ctx->nalu_size_length;
 			} else {
+#ifndef GPAC_DISABLE_AV_PARSERS
 				nalu_size = gf_media_nalu_next_start_code(ptr, data_size, &sc_size);
+#else
+				nalu_size = data_size;
+				sc_size=0;
+#endif
+
 			}
 
-#ifndef GPAC_DISABLE_LOG
+#if !defined(GPAC_DISABLE_LOG) && !defined(GPAC_DISABLE_AV_PARSERS)
 			if (gf_log_tool_level_on(GF_LOG_CODEC, GF_LOG_DEBUG)) {
 				switch (ptr[0] & 0x1F) {
 				case GF_AVC_NALU_SEQ_PARAM:

@@ -86,7 +86,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		if (!gf_file_exists(szFinalName)) append = GF_FALSE;
 
 		if (!ctx->ow && gf_file_exists(szFinalName) && !append) {
-			char szRes[20];
+			char szRes[21];
 			s32 res;
 
 			fprintf(stderr, "File %s already exist - override (y/n/a) ?:", szFinalName);
@@ -254,7 +254,6 @@ static GF_Err fileout_process(GF_Filter *filter)
 	if (ctx->is_null) {
 		gf_filter_pid_drop_packet(ctx->pid);
 		return fileout_process(filter);
-		return GF_OK;
 	}
 
 	gf_filter_pck_get_framing(pck, &start, &end);

@@ -308,7 +308,7 @@ u32 MPEGVS_OnData(struct __input_device * dr, const char* data)
 	GF_BitStream *bs;
 	u8 *buf;
 	u32 buf_size;
-	float x, y, z, q, a, b;
+	float x, y, z, /*q,*/ a, b;
 	MPEGVSCTX;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);

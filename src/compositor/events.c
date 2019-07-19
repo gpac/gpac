@@ -1371,7 +1371,6 @@ test_grouping:
 #endif
 		{
 			s32 i, wc;
-			GF_ChildNodeItem *child;
 #ifndef GPAC_DISABLE_X3D
 			if (tag==TAG_X3D_Switch) {
 				child = ((X_Switch*)elt)->children;
@@ -2035,11 +2034,10 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	if (!ret) {
 #ifndef GPAC_DISABLE_3D
 		/*remember active layer on mouse click - may be NULL*/
-		if ((evt->type==GF_EVENT_MOUSEDOWN) && (evt->mouse.button==GF_MOUSE_LEFT)) compositor->active_layer = compositor->traverse_state->layer3d;
+		if ((evt->type==GF_EVENT_MOUSEDOWN) && (evt->mouse.button==GF_MOUSE_LEFT))
+			compositor->active_layer = compositor->traverse_state->layer3d;
 #endif
-	}
 
-    if (!ret) {
         ret = forward_event(compositor, evt, ret);
     }
     //if event is consumed before forwarding don't apply navigation

@@ -254,7 +254,7 @@ u32 gf_ipmpx_array_size(GF_BitStream *bs, u32 *array_size)
 	return io_size;
 }
 
-void gf_ipmpx_write_array(GF_BitStream *bs, char *data, u32 data_len)
+void gf_ipmpx_write_array(GF_BitStream *bs, u8 *data, u32 data_len)
 {
 	u32 length;
 	unsigned char vals[4];
@@ -362,7 +362,7 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg)
 	if (!cfg) return GF_BAD_PARAM;
 	memset(cfg, 0, sizeof(GF_LASERConfig));
 
-	if (!dsi || !dsi->data || !dsi->dataLength || !cfg) return GF_BAD_PARAM;
+	if (!dsi || !dsi->data || !dsi->dataLength) return GF_BAD_PARAM;
 	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
 	memset(cfg, 0, sizeof(GF_LASERConfig));
 	cfg->tag = GF_ODF_LASER_CFG_TAG;
@@ -926,12 +926,11 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 			gf_bs_write_int(bs, 0xFF, 5);
 			gf_bs_write_int(bs, cfg->chroma_bit_depth-8, 3);
 			gf_bs_write_int(bs, cfg->avgFrameRate, 16);
-		}
 
-		if (!cfg->is_lhvc)
 			gf_bs_write_int(bs, cfg->constantFrameRate, 2);
-		else
+		} else {
 			gf_bs_write_int(bs, 0xFF, 2);
+		}
 
 		gf_bs_write_int(bs, cfg->numTemporalLayers, 3);
 		gf_bs_write_int(bs, cfg->temporalIdNested, 1);
@@ -1019,12 +1018,11 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 		gf_bs_read_int(bs, 5);
 		cfg->chroma_bit_depth = gf_bs_read_int(bs, 3) + 8;
 		cfg->avgFrameRate = gf_bs_read_int(bs, 16);
-	}
 
-	if (!is_lhvc)
 		cfg->constantFrameRate = gf_bs_read_int(bs, 2);
-	else
+	} else {
 		gf_bs_read_int(bs, 2); //reserved
+	}
 
 	cfg->numTemporalLayers = gf_bs_read_int(bs, 3);
 	cfg->temporalIdNested = gf_bs_read_int(bs, 1);
@@ -1251,6 +1249,7 @@ GF_VPConfig *gf_odf_vp_cfg_read(u8 *dsi, u32 dsi_size)
 GF_EXPORT
 GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	AV1State state;
 	u8 reserved;
 	GF_AV1Config *cfg;
@@ -1322,6 +1321,9 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 	}
 	av1_reset_state(& state, GF_TRUE);
 	return cfg;
+#else
+	return NULL;
+#endif
 }
 
 GF_EXPORT

@@ -343,12 +343,16 @@ GF_Err gf_sg_proto_get_field(GF_Proto *proto, GF_Node *node, GF_FieldInfo *info)
 s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *name)
 {
 	u32 i;
-	GF_Proto *__proto;
+	GF_Proto *__proto=NULL;
 
 	if (!node && !proto) return -1;
 	if (node && (node->sgprivate->tag!=TAG_ProtoNode)) return -1;
 
-	__proto = proto ? proto : ((GF_ProtoInstance *) node)->proto_interface;
+	if (proto)
+		__proto = proto;
+	else if (node)
+		__proto = ((GF_ProtoInstance *) node)->proto_interface;
+
 	if (!__proto ) return -1;
 
 	for (i=0; i<gf_list_count(__proto->proto_fields); i++) {

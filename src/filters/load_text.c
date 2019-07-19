@@ -39,6 +39,7 @@
 #include <gpac/internal/swf_dev.h>
 #endif
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 typedef struct __txtin_ctx GF_TXTIn;
 
@@ -319,10 +320,10 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 		u32 frame_count, frame_rate;
 		gf_swf_get_duration(ctx->swf_parse, &frame_rate, &frame_count);
 		if (frame_count) {
-			GF_Fraction64 dur;
-			dur.num = frame_count;
-			dur.den = frame_rate;
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(dur));
+			GF_Fraction64 tdur;
+			tdur.num = frame_count;
+			tdur.den = frame_rate;
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(tdur));
 		}
 #endif
 		return;
@@ -340,7 +341,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 			if (ctx->fmt == GF_TXTIN_MODE_SUB) {
 				char szText[2048];
 				u32 sframe, eframe;
-				if (sscanf(szLine, "{%d}{%d}%s", &sframe, &eframe, szText) == 3) {
+				if (sscanf(szLine, "{%d}{%d}%2047s", &sframe, &eframe, szText) == 3) {
 					if (ctx->fps.den)
 						end = 1000 * eframe * ctx->fps.num / ctx->fps.den;
 					else
@@ -1081,7 +1082,7 @@ static char *ttxt_parse_string(char *str, Bool strip_lines)
 					str[k]='\n';
 					k++;
 				}
-				state = !state;
+				state = 1; //!state;
 			} else if (state) {
 				if ( (i+1==len) ||
 				        ((str[i+1]==' ') || (str[i+1]=='\n') || (str[i+1]=='\r') || (str[i+1]=='\t') || (str[i+1]=='\''))
@@ -1231,7 +1232,6 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 			ctx->div_node = node;
 		}
 	}
-	ID = 0;
 	file_size = ctx->end;
 	if (!ctx->timescale) ctx->timescale = 1000;
 
@@ -1241,7 +1241,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
 
-	if (!ID) ID = 1;
+	ID = 1;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
 	if (ctx->width) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 	if (ctx->height) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
@@ -1378,16 +1378,9 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 						}
 					}
 					if ((ts_begin != -1) && (ts_end != -1) && !samp_text && ctx->sample_list_node) {
-						if (samp_text) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated sample text under <span>. Abort.\n"));
-							e = GF_NON_COMPLIANT_BITSTREAM;
-							goto exit;
-						}
-
 						/*append the sample*/
 						e = gf_xml_dom_append_child(ctx->sample_list_node, div_child);
 						assert(e == GF_OK);
-						assert(!samp_text);
 						samp_text = gf_xml_dom_serialize((GF_XMLNode*)ctx->root_working_copy, GF_FALSE);
 						e = gf_xml_dom_rem_child(ctx->sample_list_node, div_child);
 						assert(e == GF_OK);
@@ -1534,7 +1527,6 @@ static GF_Err gf_text_swf_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_swf_reader_set_user_mode(ctx->swf_parse, ctx, swf_svg_add_iso_sample, swf_svg_add_iso_header);
 
 	if (!ctx->timescale) ctx->timescale = 1000;
-	ID = 0;
 
 	if (!ctx->opid) ctx->opid = gf_filter_pid_new(filter);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
@@ -1549,7 +1541,7 @@ static GF_Err gf_text_swf_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		ctx->width = 400;
 		ctx->height = 60;
 	}
-	if (!ID) ID = 1;
+	ID = 1;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
 	if (ctx->width) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 	if (ctx->height) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
@@ -2355,7 +2347,7 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 
 			if (!strcmp(desc->name, "description")) {
 				u8 *dsi;
-				u32 dsi_len, k, stsd_idx;
+				u32 dsi_len, stsd_idx;
 				GF_XMLNode *sub;
 				memset(&td, 0, sizeof(GF_TextSampleDescriptor));
 				td.tag = GF_ODF_TEXT_CFG_TAG;
@@ -2433,7 +2425,7 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 							while ( (ftable=(GF_XMLNode*)gf_list_enum(style->content, &m))) {
 								if (ftable->type) break;
 							}
-							cur = ftable->name;
+							cur = ftable ? ftable->name : NULL;
 							while (cur) {
 								start = gf_token_get_strip(cur, 0, "{:", " ", css_style, 1024);
 								if (start <0) break;
@@ -2924,3 +2916,12 @@ const GF_FilterRegister *txtin_register(GF_FilterSession *session)
 {
 	return &TXTInRegister;
 }
+
+
+#else
+const GF_FilterRegister *txtin_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_ISOM_WRITE
+

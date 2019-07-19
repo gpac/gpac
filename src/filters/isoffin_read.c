@@ -466,7 +466,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(scheme_version) );
-	if (kms_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_URI, &PROP_STRING((char*) scheme_uri) );
+	if (scheme_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_URI, &PROP_STRING((char*) scheme_uri) );
 	if (kms_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_KMS_URI, &PROP_STRING((char*) kms_uri) );
 
 	if (selectiveEncryption) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISMA_SELECTIVE_ENC, &PROP_BOOL(GF_TRUE) );
@@ -764,7 +764,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		if (!read->nb_playing && read->pid && !read->input_loaded) {
 			GF_FilterEvent fevt;
 			u64 max_offset = GF_FILTER_NO_BO;
-			u32 i, count = gf_list_count(read->channels);
+			count = gf_list_count(read->channels);
 			for (i=0; i< count; i++) {
 				u32 mode, sample_desc_index, sample_num;
 				u64 data_offset;

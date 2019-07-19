@@ -348,7 +348,7 @@ correct_errors_erasures (unsigned char codeword[],
                          int nerasures,
                          int erasures[])
 {
-	int j;
+	int i;
 
 	/* If you want to take advantage of erasure correction, be sure to
 	   set NErasures and ErasureLocs[] with the locations of erasures.
@@ -372,7 +372,7 @@ correct_errors_erasures (unsigned char codeword[],
 		}
 
 		for (r = 0; r < NErrors; r++) {
-			int num, denom, j, err;
+			int num, denom, err, j;
 			i = ErrorLocs[r];
 			/* evaluate Omega at alpha^(-i) */
 

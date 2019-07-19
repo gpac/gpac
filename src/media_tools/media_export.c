@@ -678,7 +678,6 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 			fprintf(vtt, "sampleRate: %d\n", sr);
 			fprintf(vtt, "numChannels: %d\n", nb_ch);
 		} else if (isText) {
-			u32 w, h;
 			s32 tx, ty;
 			s16 layer;
 			gf_isom_get_track_layout_info(dumper->file, track, &w, &h, &tx, &ty, &layer);
@@ -1157,7 +1156,12 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			char *outname = dumper->out_name;
 			if (outname && !strcmp(outname, "std")) outname=NULL;
 			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+#ifndef GPAC_DISABLE_AV_PARSERS
 			return gf_dump_to_ogg(dumper, outname, track_num);
+#else
+			return GF_NOT_SUPPORTED;
+#endif
+
 		}
 		if (codec_id==GF_CODECID_SUBPIC) {
 			char *dsi = NULL;
@@ -1166,7 +1170,11 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				dsi = esd->decoderConfig->decoderSpecificInfo->data;
 				dsi_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 			}
+#ifndef GPAC_DISABLE_AV_PARSERS
 			e = gf_dump_to_vobsub(dumper, dumper->out_name, track_num, dsi, dsi_size);
+#else
+			e = GF_NOT_SUPPORTED;
+#endif
 			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 			return e;
 		}

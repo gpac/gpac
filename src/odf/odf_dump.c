@@ -701,7 +701,7 @@ GF_Err DumpRawBIFSConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Boo
 		indent++;
 		StartDescDump(trace, "commandStream" , indent, XMTDump);
 		DumpBool(trace, "pixelMetric", gf_bs_read_int(bs, 1), indent, XMTDump);
-		if (XMTDump) EndAttributes(trace, indent, XMTDump);
+		EndAttributes(trace, indent, XMTDump);
 	} else {
 		DumpBool(trace, "isCommandStream", 1, indent, XMTDump);
 		DumpBool(trace, "pixelMetric", gf_bs_read_int(bs, 1), indent, XMTDump);
@@ -1971,7 +1971,7 @@ GF_Err gf_oci_dump_event(OCIEvent *ev, FILE *trace, u32 indent, Bool XMTDump)
 
 
 GF_EXPORT
-GF_Err gf_oci_dump_au(u8 version, char *au, u32 au_length, FILE *trace, u32 indent, Bool XMTDump)
+GF_Err gf_oci_dump_au(u8 version, u8 *au, u32 au_length, FILE *trace, u32 indent, Bool XMTDump)
 {
 	GF_Err e;
 	OCICodec *codec = gf_oci_codec_new(0, version);

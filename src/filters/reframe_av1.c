@@ -28,6 +28,8 @@
 #include <gpac/filters.h>
 #include <gpac/internal/media_dev.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 typedef struct
 {
 	u64 pos;
@@ -595,7 +597,8 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 
 	/*check if it is a superframe*/
-	if (gf_media_vp9_parse_superframe(ctx->bs, frame_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size) != GF_OK) {
+	e = gf_media_vp9_parse_superframe(ctx->bs, frame_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
+	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VP9Dmx] Error parsing superframe structure\n"));
 		return e;
 	}
@@ -1010,3 +1013,11 @@ const GF_FilterRegister *av1dmx_register(GF_FilterSession *session)
 {
 	return &AV1DmxRegister;
 }
+
+#else
+const GF_FilterRegister *av1dmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_AV_PARSERS
+

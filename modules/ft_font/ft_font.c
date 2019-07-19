@@ -634,10 +634,8 @@ static GF_Glyph *ft_load_glyph(GF_FontReader *dr, u32 glyph_name)
 
 	FT_Get_Glyph(ftpriv->active_face->glyph, (FT_Glyph*)&outline);
 
-#ifdef FT_GLYPH_FORMAT_OUTLINE
 	/*oops not vectorial...*/
-	if (outline->root.format != FT_GLYPH_FORMAT_OUTLINE) return NULL;
-#endif
+	if (outline->root.format==FT_GLYPH_FORMAT_BITMAP) return NULL;
 
 
 	GF_SAFEALLOC(glyph, GF_Glyph);

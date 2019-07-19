@@ -1408,8 +1408,10 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
             if (a) a->registry = &box_registry[1];
         } else {
             a = unkn_box_new();
-            ((GF_UnknownBox *)a)->original_4cc = boxType;
-            if (a) a->registry = &box_registry[0];
+            if (a) {
+            	((GF_UnknownBox *)a)->original_4cc = boxType;
+            	a->registry = &box_registry[0];
+			}
         }
 		return a;
 	}

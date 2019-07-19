@@ -758,11 +758,9 @@ void DD_InitYUV(GF_VideoOutput *dr)
 			/*then check packed */
 			if (checkPacked && is_yuv_planar(formats[i])) goto go_on;
 
-			if (dd->yuv_pool.pSurface) {
-				SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
-				memset(&dd->yuv_pool, 0, sizeof(DDSurface));
-				dd->yuv_pool.is_yuv = GF_TRUE;
-			}
+			SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
+			memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+			dd->yuv_pool.is_yuv = GF_TRUE;
 
 			dr->yuv_pixel_format = formats[i];
 			if (DD_GetSurface(dr, w, h, dr->yuv_pixel_format, GF_TRUE) == NULL)
@@ -805,11 +803,9 @@ rem_fmt:
 			num_yuv--;
 		}
 
-		if (dd->yuv_pool.pSurface) {
-			SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
-			memset(&dd->yuv_pool, 0, sizeof(DDSurface));
-			dd->yuv_pool.is_yuv = GF_TRUE;
-		}
+		SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
+		memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+		dd->yuv_pool.is_yuv = GF_TRUE;
 
 		if (best_planar && (min_planar <= min_packed )) {
 			dr->yuv_pixel_format = best_planar;

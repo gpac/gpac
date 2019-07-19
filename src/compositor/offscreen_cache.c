@@ -139,7 +139,6 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 	/*we need to redraw the group in an offscreen visual*/
 	if (force_recompute) {
-		GF_Matrix2D backup;
 		GF_IRect rc1, rc2;
 		u32 prev_flags;
 		Bool prev_hybgl, visual_attached, for_3d=GF_FALSE;

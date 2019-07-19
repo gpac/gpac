@@ -81,8 +81,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	u32 w, h, sr, nb_ch, nb_bps, codec_id, depends_on_id, esid, avg_rate, max_rate, buffer_size, sample_count, max_size, nb_refs, exp_refs, base_track, audio_fmt;
 	GF_ESD *an_esd;
 	const char *mime, *encoding, *stxtcfg, *namespace, *schemaloc;
+#if !defined(GPAC_DISABLE_ISOM_WRITE)
 	u8 *tk_template;
 	u32 tk_template_size;
+#endif
 	GF_Language *lang_desc = NULL;
 	Bool external_base=GF_FALSE;
 	Bool has_scalable_layers = GF_FALSE;
@@ -460,7 +462,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 #endif
 
-		u32 w, h, i;
+		u32 i;
 		s32 tx, ty;
 		s16 l;
 		gf_isom_get_track_layout_info(read->mov, ch->track, &w, &h, &tx, &ty, &l);
@@ -706,9 +708,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 	if (!avg_rate) {
 		if (first_config && ch->duration) {
-			u64 avg_rate = 8 * gf_isom_get_media_data_size(read->mov, ch->track);
-			avg_rate = (u64) (avg_rate / track_dur);
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_BITRATE, &PROP_UINT((u32) avg_rate));
+			u64 avgrate = 8 * gf_isom_get_media_data_size(read->mov, ch->track);
+			avgrate = (u64) (avgrate / track_dur);
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_BITRATE, &PROP_UINT((u32) avgrate));
 		}
 	} else {
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_BITRATE, &PROP_UINT((u32) avg_rate));

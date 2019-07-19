@@ -698,7 +698,7 @@ static GF_RTSPOutSession *rtspout_locate_mcast(GF_RTSPOutCtx *ctx, char *res_pat
 		a_sess_path = strstr(a_sess->service_name, "://");
 		if (a_sess_path) a_sess_path = strchr(a_sess_path+3, '/');
 		if (a_sess_path) a_sess_path++;
-		if (!strcmp(a_sess_path, res_path))
+		if (a_sess_path && !strcmp(a_sess_path, res_path))
 			return a_sess;
 	}
 	return NULL;
@@ -1000,62 +1000,64 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 		sess->response->CSeq = sess->command->CSeq;
 
 		stream->selected = GF_TRUE;
-		if (!transport->IsInterleaved) {
-			u32 st_idx = gf_list_find(sess->streams, stream);
-			transport->port_first = ctx->firstport + 2 * st_idx;
-			transport->port_last = transport->port_first + 1;
-			if (sess->interleave)
-				rsp_code = NC_RTSP_Not_Implemented;
-		} else {
-			if (!sess->sessionID) {
-				sess->interleave = GF_TRUE;
-			} else if (!sess->interleave) {
-				rsp_code = NC_RTSP_Not_Implemented;
-			}
-		}
-		transport->SSRC = rand();
-		transport->is_sender = GF_TRUE;
-
-		if (transport->IsUnicast) {
-			if (transport->destination && gf_sk_is_multicast_address(transport->destination)) {
-				rsp_code = NC_RTSP_Bad_Request;
- 			} else if (!transport->destination) {
-				transport->destination = sess->peer_address;
-				reset_transport_dest = GF_TRUE;
-			}
-			if (sess->multicast_ip)
-				rsp_code = NC_RTSP_Forbidden;
-
-			if (ctx->dst && (strstr(ctx->dst, "://127.0.0.1") || strstr(ctx->dst, "://localhost") || strstr(ctx->dst, "://::1/128") ) ) {
-				if (!reset_transport_dest && transport->destination) gf_free(transport->destination);
-				transport->destination = "127.0.0.1";
-				reset_transport_dest = GF_TRUE;
-			}
-		}
-		else {
-			if (transport->destination && !gf_sk_is_multicast_address(transport->destination)) {
-				rsp_code = NC_RTSP_Bad_Request;
+		if (transport && (rsp_code==NC_RTSP_OK) ) {
+			if (!transport->IsInterleaved) {
+				u32 st_idx = gf_list_find(sess->streams, stream);
+				transport->port_first = ctx->firstport + 2 * st_idx;
+				transport->port_last = transport->port_first + 1;
+				if (sess->interleave)
+					rsp_code = NC_RTSP_Not_Implemented;
 			} else {
-				if (ctx->mcast != MCAST_OFF) {
-					enable_multicast = GF_TRUE;
-					//we don't allow seting up streams on different mcast addresses
-					if (!sess->multicast_ip) {
-						sess->multicast_ip = transport->destination; //detach memory
-					}
-					transport->source = transport->destination = sess->multicast_ip;
-					reset_transport_dest = GF_TRUE;
+				if (!sess->sessionID) {
+					sess->interleave = GF_TRUE;
+				} else if (!sess->interleave) {
+					rsp_code = NC_RTSP_Not_Implemented;
+				}
+			}
+			transport->SSRC = rand();
+			transport->is_sender = GF_TRUE;
 
-					transport->client_port_first = 0;
-					transport->client_port_last = 0;
-					if (ctx->ttl) transport->TTL = ctx->ttl;
-					if (!transport->TTL) transport->TTL = 1;
-					stream->mcast_port = transport->port_first;
-					rtspout_get_next_mcast_port(ctx, sess, &stream->mcast_port);
-					transport->port_first = stream->mcast_port;
-					transport->port_last = stream->mcast_port+1;
-				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] SETUP requests a multicast to %s, not allowed\n", transport->destination));
+			if (transport->IsUnicast) {
+				if (transport->destination && gf_sk_is_multicast_address(transport->destination)) {
+					rsp_code = NC_RTSP_Bad_Request;
+				} else if (!transport->destination) {
+					transport->destination = sess->peer_address;
+					reset_transport_dest = GF_TRUE;
+				}
+				if (sess->multicast_ip)
 					rsp_code = NC_RTSP_Forbidden;
+
+				if (ctx->dst && (strstr(ctx->dst, "://127.0.0.1") || strstr(ctx->dst, "://localhost") || strstr(ctx->dst, "://::1/128") ) ) {
+					if (!reset_transport_dest && transport->destination) gf_free(transport->destination);
+					transport->destination = "127.0.0.1";
+					reset_transport_dest = GF_TRUE;
+				}
+			}
+			else {
+				if (transport->destination && !gf_sk_is_multicast_address(transport->destination)) {
+					rsp_code = NC_RTSP_Bad_Request;
+				} else {
+					if (ctx->mcast != MCAST_OFF) {
+						enable_multicast = GF_TRUE;
+						//we don't allow seting up streams on different mcast addresses
+						if (!sess->multicast_ip) {
+							sess->multicast_ip = transport->destination; //detach memory
+						}
+						transport->source = transport->destination = sess->multicast_ip;
+						reset_transport_dest = GF_TRUE;
+
+						transport->client_port_first = 0;
+						transport->client_port_last = 0;
+						if (ctx->ttl) transport->TTL = ctx->ttl;
+						if (!transport->TTL) transport->TTL = 1;
+						stream->mcast_port = transport->port_first;
+						rtspout_get_next_mcast_port(ctx, sess, &stream->mcast_port);
+						transport->port_first = stream->mcast_port;
+						transport->port_last = stream->mcast_port+1;
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] SETUP requests a multicast to %s, not allowed\n", transport->destination));
+						rsp_code = NC_RTSP_Forbidden;
+					}
 				}
 			}
 		}

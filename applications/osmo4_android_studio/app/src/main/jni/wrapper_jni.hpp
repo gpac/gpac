@@ -24,7 +24,7 @@ extern "C" {
                           return;\
                         }\
                         jlong h = env->GetLongField(obj, fid);\
-                        CNativeWrapper* wr = (CNativeWrapper*) h;
+                        CNativeWrapper* wr = static_cast<CNativeWrapper*> h;
 //                        __android_log_print(ANDROID_LOG_VERBOSE, jniTAG, "Handle = %p", wr);
 
 /*

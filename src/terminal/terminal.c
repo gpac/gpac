@@ -752,7 +752,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 		return gf_scene_execute_script(compositor->root_scene->graph, com);
 	}
 
-	if (!type && com && !strncmp(com, "gpac ", 5)) {
+	if (!type && !strncmp(com, "gpac ", 5)) {
 #ifdef FILTER_FIXME
 		com += 5;
 		//new add-on

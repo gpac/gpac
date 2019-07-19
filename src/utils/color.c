@@ -1515,7 +1515,7 @@ static void load_line_rgbds(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitc
 		dst_bits[0] = *src_bits++;
 		dst_bits[1] = *src_bits++;
 		dst_bits[2] = *src_bits++;
-		dst_bits[3] = ( *src_bits++) & 0x80 ? 255 : 0;
+		dst_bits[3] = (( *src_bits++) & 0x80) ? 255 : 0;
 		dst_bits += 4;
 	}
 }
@@ -1886,7 +1886,6 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	case GF_PIXEL_NV12:
 		yuv2rgb_init();
 		yuv_planar_type = 9;
-		break;
 		break;
 	case GF_PIXEL_YUVA:
 		has_alpha = GF_TRUE;

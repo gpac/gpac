@@ -1009,7 +1009,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		for (i=0; i<count; i++) {
 			const GF_PropertyValue *p;
 			M2Pid *tspid = gf_list_get(ctx->pids, i);
-			GF_FilterPacket *pck = gf_filter_pid_get_packet(tspid->ipid);
+			pck = gf_filter_pid_get_packet(tspid->ipid);
 			if (!pck) return GF_OK;
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 			if (p)
@@ -1156,19 +1156,19 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[M2TSMux] time % 6d TS time % 6d bitrate % 8d\r", gf_m2ts_get_sys_clock(ctx->mux), gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->average_birate_kbps));
 		}
 		if (status == GF_M2TS_STATE_IDLE) {
-			u64 sleep_for=0;
 #if 0
+			u64 sleep_for=0;
 			/*wait till next packet is ready to be sent*/
 			if (usec_till_next>1000) {
 				sleep_for = usec_till_next;
 			}
-#else
-			//we don't have enough precision on usec counting and we end up eating one core on most machines, so let's just sleep
-			//one second whenever we are idle - it's maybe too much but the muxer will catchup afterwards
-			sleep_for = 1000;
-#endif
 			if (sleep_for)
 				gf_filter_ask_rt_reschedule(filter, (u32) sleep_for);
+#else
+			//we don't have enough precision on usec counting and we end up eating one core on most machines,
+			// so let's just sleep one ms whenever we are idle - it's maybe too much but the muxer will catchup afterwards
+			gf_filter_ask_rt_reschedule(filter, 1000);
+#endif
 		}
 	}
 	//PMT update management is still under progress...

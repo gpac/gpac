@@ -30,6 +30,8 @@
 //for oinf stuff
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 #define CTS_POC_OFFSET_SAFETY	1000
 
 //storage for nal header + slice header when not fully included in an input buffer - this needs to be big enough to hold a slice header
@@ -854,7 +856,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 			cfg->luma_bit_depth = sps->bit_depth_luma;
 			cfg->chroma_bit_depth = sps->bit_depth_chroma;
 
-			if (sps->aspect_ratio_info_present_flag && sps->sar_width && sps->sar_width) {
+			if (sps->aspect_ratio_info_present_flag && sps->sar_width && sps->sar_height) {
 				sar->num = sps->sar_width;
 				sar->den = sps->sar_height;
 			}
@@ -2121,14 +2123,13 @@ naldmx_flush:
 
 					if (split_start_code ) {
 						u32 store_remain = SAFETY_NAL_STORE - (current + sc_size);
-						u32 next_sc_size;
-						s32 next = gf_media_nalu_next_start_code(ctx->hdr_store + current+sc_size, store_remain, &next_sc_size);
+						u32 following_sc_size;
+						s32 following = gf_media_nalu_next_start_code(ctx->hdr_store + current+sc_size, store_remain, &following_sc_size);
 						assert(!current);
-						if ((next>0) && (next + current+sc_size < ctx->bytes_in_header)) {
-
-							next_size = next - current;
+						if ((following>0) && (following + current+sc_size < ctx->bytes_in_header)) {
+							next_size = following - current;
 							nal_bytes_from_store = next_size;
-							store_sc_size=sc_size;
+							store_sc_size = sc_size;
 						} else {
 							split_start_code = 0;
 						}
@@ -3125,3 +3126,9 @@ const GF_FilterRegister *naludmx_register(GF_FilterSession *session)
 	return &NALUDmxRegister;
 }
 
+#else
+const GF_FilterRegister *naludmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //GPAC_DISABLE_AV_PARSERS

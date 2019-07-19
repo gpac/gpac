@@ -576,7 +576,6 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 	case WM_DROPFILES:
 	{
 		char szFile[GF_MAX_PATH];
-		GF_Event evt;
 		u32 i;
 
 		HDROP hDrop = (HDROP) wParam;
@@ -931,7 +930,9 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	ctx->force_alpha = (flags & GF_TERM_WINDOW_TRANSPARENT) ? GF_TRUE : GF_FALSE;
 
 	if (!ctx->os_hwnd) {
+#ifndef _WIN32_WCE
 		u32 styles;
+#endif
 		if (flags & GF_TERM_WINDOWLESS) ctx->windowless = GF_TRUE;
 
 

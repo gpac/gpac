@@ -989,10 +989,10 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	if (force_close && odm->mo) odm->mo->flags |= GF_MO_DISPLAY_REMOVE;
 	/*stop codecs*/
 	if (odm->subscene) {
-		u32 i=0;
 		GF_ObjectManager *sub_odm;
 
 		/*stops all resources of the subscene as well*/
+		i=0;
 		while ((sub_odm=(GF_ObjectManager *)gf_list_enum(odm->subscene->resources, &i))) {
 			gf_odm_stop(sub_odm, force_close);
 		}
@@ -1567,12 +1567,12 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			//if the packet time is closer to the new clock than the old, switch to new clock
 			if (diff_pck_old_clock > diff_pck_new_clock) {
 				u32 i, count;
-				GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
+				GF_Scene *in_scene = odm->subscene ? odm->subscene : odm->parentscene;
 				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("Clock %d (ODM %d) discontinuity detected "LLU" clock time %d - diff %d - type %d - pck time "LLU"\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type, pck_time-1));
 
-				count = gf_list_count(scene->resources);
+				count = gf_list_count(in_scene->resources);
 				for (i=0; i<count; i++) {
-					GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
+					GF_ObjectManager *an_odm = gf_list_get(in_scene->resources, i);
 					if (an_odm->ck != odm->ck) continue;
 					an_odm->prev_clock_at_discontinuity_plus_one = 1 + clock_time;
 				}

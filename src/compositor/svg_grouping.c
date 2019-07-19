@@ -115,7 +115,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 			else {
 				GF_Node *target = gf_sg_find_node_by_name(gf_node_get_graph(node), (char *) frag_uri);
 				if (target) {
-					GF_Matrix2D mx;
+					GF_Matrix2D vp_mx;
 					GF_TraverseState bounds_state;
 					memset(&bounds_state, 0, sizeof(bounds_state));
 					bounds_state.traversing_mode = TRAVERSE_GET_BOUNDS;
@@ -126,8 +126,8 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 					gf_mx2d_init(bounds_state.mx_at_node);
 					gf_mx_init(tr_state->visual->compositor->hit_world_to_local);
 					gf_sc_get_nodes_bounds(node, ((GF_ParentNode *)node)->children, &bounds_state, NULL);
-					gf_mx2d_from_mx(&mx, &tr_state->visual->compositor->hit_world_to_local);
-					gf_mx2d_apply_rect(&mx, &bounds_state.bounds);
+					gf_mx2d_from_mx(&vp_mx, &tr_state->visual->compositor->hit_world_to_local);
+					gf_mx2d_apply_rect(&vp_mx, &bounds_state.bounds);
 					ext_vb.x = bounds_state.bounds.x;
 					ext_vb.y = bounds_state.bounds.y-bounds_state.bounds.height;
 					ext_vb.width = bounds_state.bounds.width;
@@ -253,21 +253,18 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 		stack->vpw = vp_w;
 		stack->vph = vp_h;
 
+#if 0
 		/*we need a clipper*/
 		if (stack->root_svg && !tr_state->parent_anim_atts && (par.meetOrSlice==SVG_MEETORSLICE_SLICE)) {
 			GF_Rect rc;
 			rc.width = parent_width;
 			rc.height = parent_height;
-			if (!stack->root_svg) {
-				rc.x = 0;
-				rc.y = parent_height;
-				gf_mx2d_apply_rect(&stack->viewbox_mx, &rc);
-			} else {
-				rc.x = dx;
-				rc.y = dy + parent_height;
-			}
-//			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
+			rc.x = dx;
+			rc.y = dy + parent_height;
+			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
 		}
+#endif
+
 	}
 	gf_mx2d_add_matrix(&stack->viewbox_mx, &mx);
 }

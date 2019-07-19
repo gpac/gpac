@@ -193,12 +193,10 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 	import->esd->decoderConfig->maxBitrate = 8*size;
 	import->esd->slConfig->timestampResolution = 1000;
 
-	if (dsi) {
-		if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-		if (import->esd->decoderConfig->decoderSpecificInfo->data) gf_free(import->esd->decoderConfig->decoderSpecificInfo->data);
-		import->esd->decoderConfig->decoderSpecificInfo->data = dsi;
-		import->esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_len;
-	}
+	if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+	if (import->esd->decoderConfig->decoderSpecificInfo->data) gf_free(import->esd->decoderConfig->decoderSpecificInfo->data);
+	import->esd->decoderConfig->decoderSpecificInfo->data = dsi;
+	import->esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_len;
 
 
 	track = 0;
@@ -270,7 +268,6 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	sampDTS = 0;
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		for (i=0; i<gf_isom_get_track_count(import->orig); i++) {
-			u32 mtype;
 			import->tk_info[i].track_num = gf_isom_get_track_id(import->orig, i+1);
 			mtype = gf_isom_get_media_type(import->orig, i+1);
 			switch (mtype) {
@@ -779,18 +776,18 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		/*try to figure out the frame rate*/
 		for (i=0; i<gf_isom_get_track_count(import->dest); i++) {
 			GF_ISOSample *samp;
-			u32 ts, inc;
+			u32 timescale, inc;
             u32 mtype = gf_isom_get_media_type(import->dest, i+1);
 			if (!gf_isom_is_video_subtype(mtype)) continue;
 			if (gf_isom_get_sample_count(import->dest, i+1) < 20) continue;
 			samp = gf_isom_get_sample_info(import->dest, 1, 2, NULL, NULL);
 			inc = (u32) samp->DTS;
 			if (!inc) inc=1;
-			ts = gf_isom_get_media_timescale(import->dest, i+1);
-			import->video_fps.num = ts;
+			timescale = gf_isom_get_media_timescale(import->dest, i+1);
+			import->video_fps.num = timescale;
 			import->video_fps.den = inc;
 			gf_isom_sample_del(&samp);
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Chapter import] Guessed video frame rate %u/%u\n", ts, inc));
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Chapter import] Guessed video frame rate %u/%u\n", timescale, inc));
 			break;
 		}
 		if (!import->video_fps.num || !import->video_fps.den) {
@@ -828,7 +825,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		/*ZoomPlayer chapters*/
 		if (!strnicmp(sL, "AddChapter(", 11)) {
 			u32 nb_fr;
-			sscanf(sL, "AddChapter(%u,%s)", &nb_fr, szTitle);
+			sscanf(sL, "AddChapter(%u,%1023s)", &nb_fr, szTitle);
 			ts = nb_fr;
 			ts *= 1000;
 			ts = (u64) (((s64) ts )  *import->video_fps.den / import->video_fps.num);
@@ -838,7 +835,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			if (sL) sL[0] = 0;
 		} else if (!strnicmp(sL, "AddChapterBySecond(", 19)) {
 			u32 nb_s;
-			sscanf(sL, "AddChapterBySecond(%u,%s)", &nb_s, szTitle);
+			sscanf(sL, "AddChapterBySecond(%u,%1023s)", &nb_s, szTitle);
 			ts = nb_s;
 			ts *= 1000;
 			sL = strchr(sL, ',');
@@ -846,8 +843,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			sL = strrchr(szTitle, ')');
 			if (sL) sL[0] = 0;
 		} else if (!strnicmp(sL, "AddChapterByTime(", 17)) {
-			u32 h, m, s;
-			sscanf(sL, "AddChapterByTime(%u,%u,%u,%s)", &h, &m, &s, szTitle);
+			sscanf(sL, "AddChapterByTime(%u,%u,%u,%1023s)", &h, &m, &s, szTitle);
 			ts = 3600*h + 60*m + s;
 			ts *= 1000;
 			sL = strchr(sL, ',');

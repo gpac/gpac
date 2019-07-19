@@ -224,7 +224,7 @@ static void TraverseSound(GF_Node *node, void *rs, Bool is_destroy)
 		st->identity = (st->intensity==FIX_ONE) ? 1 : 0;
 
 		if (snd->spatialize) {
-			Fixed ang, sign;
+			Fixed sign;
 			SFVec3f cross;
 			pos = snd->location;
 			gf_mx_apply_vec(&tr_state->model_matrix, &pos);

@@ -141,10 +141,9 @@ static GF_Err vcrop_process(GF_Filter *filter)
 			src_planes[3] = src_planes[2] + ctx->src_stride[2] * ctx->src_uv_height;
 		}
 	} else if (frame_ifce && frame_ifce->get_plane) {
-		u32 i=0;
 		for (i=0; i<4; i++) {
-		if (frame_ifce->get_plane(frame_ifce, i, (const u8 **) &src_planes[i], &ctx->src_stride[i])!=GF_OK)
-			break;
+			if (frame_ifce->get_plane(frame_ifce, i, (const u8 **) &src_planes[i], &ctx->src_stride[i])!=GF_OK)
+				break;
 		}
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[VCrop] No data associated with packet, not supported\n"));
@@ -329,7 +328,7 @@ static Bool parse_crop_props(GF_VCropCtx *ctx, u32 src_w, u32 src_h, GF_PixelFor
 	memset(dim_off, 0, sizeof(dim_off));
 
 	while (args) {
-		char *sep_offset=NULL, *sep_pc, sign;
+		char *sep_offset=NULL, *sep_pc, sign=0;
 		char *sep = strchr(args, 'x');
 		if (sep) sep[0] = 0;
 

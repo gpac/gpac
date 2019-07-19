@@ -785,9 +785,6 @@ void evg_yuv422p_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 _cu, s
 
 			a /= 2;
 
-			if (a != 0xFF)
-				cdst = *pU;
-
 			//get cb
 			if (a != 0xFF)
 				cdst = *pU;
@@ -1107,15 +1104,15 @@ void evg_yuyv_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *sur
 	}
 	pY = surf->pixels + y * surf->pitch_y;
 	for (i=0; i<(s32) surf->width; i+=2) {
-		u32 a = surf->uv_alpha[i];
-		a += surf->uv_alpha[i + 1];
-		a /=2;
-		if (a==0xFF) {
+		u32 p_a = surf->uv_alpha[i];
+		p_a += surf->uv_alpha[i + 1];
+		p_a /=2;
+		if (p_a==0xFF) {
 			pY[surf->idx_u] = cu;
 			pY[surf->idx_v] = cv;
-		} else if (a) {
-			overmask_yuvy(pY + surf->idx_u, cu, a);
-			overmask_yuvy(pY + surf->idx_v, cv, a);
+		} else if (p_a) {
+			overmask_yuvy(pY + surf->idx_u, cu, p_a);
+			overmask_yuvy(pY + surf->idx_v, cv, p_a);
 		}
 		pY+=4;
 	}
@@ -1242,19 +1239,19 @@ GF_Err evg_surface_clear_yuyv(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col)
 
 #ifdef GPAC_BIG_ENDIAN
 
-#define set_u16_le(_ptr, val) { u16 _val = val; ((u8 *)_ptr)[0] = (val>>8)&0xFF;  ((u8 *)_ptr)[1] = (val&0xFF); }
+#define set_u16_le(_ptr, val) { ((u8 *)_ptr)[0] = (val>>8)&0xFF;  ((u8 *)_ptr)[1] = (val&0xFF); }
 #define set_u16_be(_ptr, val) { *(u16 *) _ptr = (u16) val; }
 
-#define get_u16_le(val, _ptr) { u16 _val = ((u32) (*(u8 *) ptr+1)<< 8) | *(u8 *) ptr; }
+#define get_u16_le(val, _ptr) { val = ((u32) (*(u8 *) ptr+1)<< 8) | *(u8 *) ptr; }
 #define get_u16_be(val, _ptr) { val = *(u16 *) (_ptr); }
 
 #else
 
 #define set_u16_le(_ptr, val) { (*(u16 *) _ptr) = (u16) val; }
-#define set_u16_be(_ptr, val) { u16 _val = val; ((u8 *)_ptr)[0] = (val>>8)&0xFF;  ((u8 *)_ptr)[1] = (val&0xFF); }
+#define set_u16_be(_ptr, val) { ((u8 *)_ptr)[0] = (val>>8)&0xFF;  ((u8 *)_ptr)[1] = (val&0xFF); }
 
 #define get_u16_le(val, _ptr) { val = *(u16 *) (_ptr); }
-#define get_u16_be(val, _ptr) { u16 _val = ((u32) (*(u8 *) ptr)<< 8) | *(u8 *) ptr+1; }
+#define get_u16_be(val, _ptr) { val = ((u32) (*(u8 *) ptr)<< 8) | *(u8 *) ptr+1; }
 
 #endif
 

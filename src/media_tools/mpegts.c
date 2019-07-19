@@ -189,8 +189,8 @@ static GF_Err id3_parse_tag(char *data, u32 length, char **output, u32 *output_s
 
 		//TODO, handle more ID3 tags ?
 		if (ftag==ID3V2_FRAME_TXXX) {
-			u32 pos = (u32) gf_bs_get_position(bs);
-			char *text = data+pos;
+			u32 tpos = (u32) gf_bs_get_position(bs);
+			char *text = data+tpos;
 			add_text(output, output_size, output_pos, text, fsize);
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] ID3 tag not handled, patch welcome\n", gf_4cc_to_str(ftag) ) );
@@ -236,7 +236,6 @@ static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, char *data, u32 size, Bool simple_c
 		if (i+192 >= size) return size;
 		if ((data[i]==0x47) && (data[i+188]==0x47))
 			break;
-		if (i+192 >= size) return size;
 		if ((data[i]==0x47) && (data[i+192]==0x47)) {
 			ts->prefix_present = 1;
 			break;
@@ -573,8 +572,8 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 
 				table_size = 0;
 				for (i=0; i<gf_list_count(t->sections); i++) {
-					GF_M2TS_Section *section = gf_list_get(t->sections, i);
-					table_size += section->data_size;
+					GF_M2TS_Section *a_sec = gf_list_get(t->sections, i);
+					table_size += a_sec->data_size;
 				}
 				if (t->is_repeat) {
 					if (t->table_size != table_size) {
@@ -1591,8 +1590,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	}
 
 	if (nb_es) {
-		u32 i;
-
 		//translate hierarchy descriptors indexes into PIDs - check whether the PMT-index rules are the same for HEVC
 		for (i=0; i<gf_list_count(pmt->program->streams); i++) {
 			GF_M2TS_PES *an_es = NULL;
@@ -2137,10 +2134,10 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 		}
 
 		afext_bytes = af_extension[0];
-		ltw_flag = af_extension[1] & 0x80 ? 1 : 0;
-		pwr_flag = af_extension[1] & 0x40 ? 1 : 0;
-		seamless_flag = af_extension[1] & 0x20 ? 1 : 0;
-		af_desc_not_present = af_extension[1] & 0x10 ? 1 : 0;
+		ltw_flag = (af_extension[1] & 0x80) ? 1 : 0;
+		pwr_flag = (af_extension[1] & 0x40) ? 1 : 0;
+		seamless_flag = (af_extension[1] & 0x20) ? 1 : 0;
+		af_desc_not_present = (af_extension[1] & 0x10) ? 1 : 0;
 		af_extension += 2;
 		if (!afext_bytes) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
@@ -2494,7 +2491,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 	if (ts->buffer_size) {
 		//we are sync, copy remaining bytes
 		if ( (ts->buffer[0]==0x47) && (ts->buffer_size<200)) {
-			u32 pck_size = ts->prefix_present ? 192 : 188;
+			pck_size = ts->prefix_present ? 192 : 188;
 
 			if (ts->alloc_size < 200) {
 				ts->alloc_size = 200;

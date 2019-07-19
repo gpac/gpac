@@ -653,8 +653,6 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_flags)
 {
 	RAWCTX;
-	void * pixels;
-	Bool res = GF_FALSE;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Android Setup: %d", init_flags));
 
@@ -662,6 +660,7 @@ GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 in
 #ifdef GPAC_USE_GLES2
 
 	if ( rc->out_3d_type == 0 ) {
+		Bool res = GF_FALSE;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("We are in OpenGL: disable mode"));
 		res = initGLES2(rc);
 		if(res==GF_FALSE) {
@@ -714,9 +713,6 @@ static GF_Err droid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 static GF_Err droid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool do_lock)
 {
 	RAWCTX;
-	int ret;
-	void * pixels;
-	int i,j,t;
 #ifdef DROID_EXTREME_LOGS
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Android LockBackBuffer: %d", do_lock));
 #endif /* DROID_EXTREME_LOGS */

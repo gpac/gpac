@@ -709,9 +709,8 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 
 	if (!found) {
 		if (arg->recursive) {
-			u32 i;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Failed to locate argument %s in filter %s, propagating %s the filter chain\n", arg->name, task->filter->freg->name,
-				arg->recursive & (GF_FILTER_UPDATE_UPSTREAM|GF_FILTER_UPDATE_DOWNSTREAM) ? "up and down" : ((arg->recursive & GF_FILTER_UPDATE_UPSTREAM) ? "up" : "down") ));
+				(arg->recursive & (GF_FILTER_UPDATE_UPSTREAM|GF_FILTER_UPDATE_DOWNSTREAM)) ? "up and down" : ((arg->recursive & GF_FILTER_UPDATE_UPSTREAM) ? "up" : "down") ));
 
 			GF_List *flist = gf_list_new();
 			if (arg->recursive & GF_FILTER_UPDATE_UPSTREAM) {
@@ -935,7 +934,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			while (1) {
 				sep = strchr(sep, filter->session->sep_args);
 				if (!sep) break;
-				if (sep && (sep[1]==filter->session->sep_args)) {
+				if (sep[1]==filter->session->sep_args) {
 					break;
 				}
 				sep = sep+1;
@@ -1777,7 +1776,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (task->filter->postponed_packets) {
 		while (gf_list_count(task->filter->postponed_packets)) {
 			GF_FilterPacket *pck = gf_list_pop_front(task->filter->postponed_packets);
-			GF_Err e = gf_filter_pck_send_internal(pck, GF_FALSE);
+			e = gf_filter_pck_send_internal(pck, GF_FALSE);
 			if (e==GF_PENDING_PACKET) {
 				//packet is pending so was added at the end of our postponed queue - remove from queue and reinsert in front
 				gf_list_del_item(task->filter->postponed_packets, pck);
@@ -2605,7 +2604,7 @@ GF_EXPORT
 GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps )
 {
 	if (!filter) return GF_BAD_PARAM;
-	if (filter->num_output_pids || filter->num_output_pids) {
+	if (filter->num_input_pids || filter->num_output_pids) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempts at setting input caps on filter %s during execution of filter, not supported\n", filter->name));
 		return GF_NOT_SUPPORTED;
 	}

@@ -121,7 +121,7 @@ GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			ctx->opid_info = gf_filter_pid_new(filter);
 
 	} else if (ctx->opid_info) {
-		if (ctx->opid_info) gf_filter_pid_remove(ctx->opid_info);
+		gf_filter_pid_remove(ctx->opid_info);
 	}
 
 	name = gf_codecid_name(ctx->codecid);

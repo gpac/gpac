@@ -287,9 +287,9 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 	gf_fclose(stream);
 
 	if (!ctx->duration.num || (ctx->duration.num * dur.den != dur.num * ctx->duration.den)) {
-		u32 i=0;
 		GF_SAFStream *st;
 		ctx->duration = dur;
+		i=0;
 		while ( (st = gf_list_enum(ctx->streams, &i)) ) {
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 		}

@@ -838,10 +838,8 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 
 static void gf_smil_anim_animate(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
 {
+	if (!rti || !rti->rai || !rti->rai->animp) return;
 	SMIL_Anim_RTI *rai = rti->rai;
-	SMILAnimationAttributesPointers *animp = rai->animp;
-
-	if (!rai || !animp) return;
 
 	gf_smil_anim_compute_interpolation_value(rai, normalized_simple_time);
 	gf_smil_anim_apply_accumulate(rai);
@@ -872,10 +870,8 @@ void gf_smil_anim_reset_variables(SMIL_Anim_RTI *rai)
 */
 static void gf_smil_anim_freeze(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
 {
+	if (!rti || !rti->rai || !rti->rai->animp) return;
 	SMIL_Anim_RTI *rai = rti->rai;
-	SMILAnimationAttributesPointers *animp = rai->animp;
-
-	if (!rai || !animp) return;
 
 	if (rai->change_detection_mode) {
 		if (rai->anim_done == 0)
@@ -1044,13 +1040,11 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 					active_anim++;
 				}
 			}
-		}
 
-		/* DEBUG: uncomment this line to remove animation effect, and keep animation computation */
+			/* DEBUG: uncomment this line to remove animation effect, and keep animation computation */
 //		gf_svg_attributes_copy(&aa->presentation_value, &aa->specified_value, 0);
 
 #ifndef GPAC_DISABLE_LOG
-		if (aa->presentation_value_changed) {
 			if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
 				char *str;
 				gf_log_lt(GF_LOG_DEBUG, GF_LOG_SMIL);
@@ -1062,8 +1056,12 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 
 				if (str) gf_free(str);
 			}
-		}
 #endif
+
+		} else {
+			/* DEBUG: uncomment this line to remove animation effect, and keep animation computation */
+//			gf_svg_attributes_copy(&aa->presentation_value, &aa->specified_value, 0);
+		}
 
 		/* we only set dirty flags when a real flag is set to avoid unnecessary computation
 		   for example, it is not necessary to set it when the anim is an animateTransform
@@ -1265,7 +1263,6 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 					GF_Node *used_path = NULL;
 					u32 child_tag = gf_node_get_tag(child->node);
 					if (child_tag == TAG_SVG_mpath) {
-						GF_FieldInfo info;
 						if (gf_node_get_attribute_by_tag(child->node, TAG_XLINK_ATT_href, 0, 0, &info) == GF_OK) {
 							XMLRI *iri = (XMLRI *)info.far_ptr;
 							if (iri->target) used_path = iri->target;
@@ -1360,11 +1357,13 @@ void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai)
 		gf_svg_delete_attribute_value(rai->last_specified_value.fieldType,
 		                              rai->last_specified_value.far_ptr,
 		                              rai->anim_elt->sgprivate->scenegraph);
-	}
 #if USE_GF_PATH
 #else
-	if (rai->path) gf_path_del(rai->path);
+		if (rai->path) gf_path_del(rai->path);
 #endif
+
+	}
+
 	if (rai->path_iterator) gf_path_iterator_del(rai->path_iterator);
 	gf_free(rai);
 }
