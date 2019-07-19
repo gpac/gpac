@@ -413,9 +413,11 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 
 		e = gf_node_insert_child(com->node, inf->new_node, inf->pos);
-		if (!e) gf_node_register(inf->new_node, com->node);
-		if (!e) gf_node_event_out(com->node, inf->fieldIndex);
-		if (!e) gf_node_changed(com->node, NULL);
+		if (!e) e = gf_node_register(inf->new_node, com->node);
+		if (!e) {
+			gf_node_event_out(com->node, inf->fieldIndex);
+			gf_node_changed(com->node, NULL);
+		}
 		break;
 	}
 	case GF_SG_ROUTE_INSERT:

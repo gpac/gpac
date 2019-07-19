@@ -203,8 +203,10 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 	if (stream->rtp_ch->packet_loss)
 		gf_filter_pck_set_corrupted(pck, 1);
 
+#if 0 //not yet implemented
 	if (hdr->seekFlag)
 		gf_filter_pck_set_seek_flag(pck, GF_TRUE);
+#endif
 
 	if (stream->depacketizer->sl_map.IndexDeltaLength) {
 		rtpin_stream_queue_pck(stream, pck, hdr->compositionTimeStamp);
@@ -298,9 +300,9 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 		} else if (!stricmp(att->Name, "depend")) {
 			char buf[3000];
 			memset(buf, 0, 3000);
-			sscanf(att->Value, "%*d lay L%d %*s %s", &base_stream, buf);
+			sscanf(att->Value, "%*d lay L%d %*s %2999s", &base_stream, buf);
 			if (!strlen(buf))
-				sscanf(att->Value, "%*d lay %s", buf);
+				sscanf(att->Value, "%*d lay %2999s", buf);
 			sscanf(buf, "L%d", &prev_stream);
 		}
 	}
@@ -416,7 +418,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 		tmp->depacketizer->sl_map.rvc_predef = rvc_predef ;
 	} else if (rvc_config_att) {
 		char *rvc_data=NULL;
-		u32 rvc_size;
+		u32 rvc_size=0;
 		Bool is_gz = GF_FALSE;
 		if (!strncmp(rvc_config_att, "data:application/rvc-config+xml", 32) && strstr(rvc_config_att, "base64") ) {
 			char *data = strchr(rvc_config_att, ',');

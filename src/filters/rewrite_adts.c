@@ -27,9 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/bitstream.h>
 
-#ifndef GPAC_DISABLE_AV_PARSERS
 #include <gpac/avparse.h>
-#endif
 
 
 typedef struct
@@ -50,6 +48,9 @@ typedef struct
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4ADecSpecInfo acfg;
+#else
+	u8 *dsi;
+	u32 dsi_size;
 #endif
 	u32 dsi_crc;
 	Bool update_dsi;
@@ -130,8 +131,8 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("RFADTS] no AAC decoder config, assuming AAC-LC\n"));
 				ctx->aac_type = GF_M4A_AAC_LC;
 			}
-		}
 #endif
+		}
 	} else {
 		ctx->aac_type = ctx->codecid - GF_CODECID_AAC_MPEG2_MP;
 	}
@@ -141,6 +142,12 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("RFADTS] Mismatch betwwen container number of channels (%d) and AAC config (%d), using AAC config\n", ctx->channels, acfg.nb_chan));
 		ctx->channels = acfg.nb_chan;
 	}
+#else
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	if (!p) return GF_NOT_SUPPORTED;
+	ctx->dsi = p->value.data.ptr;
+	ctx->dsi_size = p->value.data.size;
 #endif
 
 	if (ctx->channels>7) {
@@ -216,8 +223,11 @@ GF_Err adtsmx_process(GF_Filter *filter)
 			gf_bs_write_int(ctx->bs_w, 0, 4);/*numProgram*/
 			gf_bs_write_int(ctx->bs_w, 0, 3);/*numLayer prog 1*/
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 			gf_m4a_write_config_bs(ctx->bs_w, &ctx->acfg);
-
+#else
+			gf_bs_write_data(ctx->bs_w, ctx->dsi, ctx->dsi_size);
+#endif
 			gf_bs_write_int(ctx->bs_w, 0, 3);/*frameLengthType*/
 			gf_bs_write_int(ctx->bs_w, 0, 8);/*latmBufferFullness*/
 			gf_bs_write_int(ctx->bs_w, 0, 1);/*other data present*/

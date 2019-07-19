@@ -191,7 +191,7 @@ u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 	if (!sinf) return 0;
 
 	/*non-encrypted or non-ISMA*/
-	if (!sinf || !sinf->scheme_type) return 0;
+	if (!sinf->scheme_type) return 0;
 	if (sinf->scheme_type->scheme_type == GF_4CC('p','i','f','f')) return GF_4CC('c','e','n','c');
 	return sinf->scheme_type->scheme_type;
 }
@@ -1121,7 +1121,7 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 		if (clear_IV) memcpy(sai->IV, clear_IV, sizeof(bin128));
 		if (use_subsamples) {
 			sai->subsample_count = 1;
-			if (sai->subsample_count) senc->flags = 0x00000002;
+			/*if (sai->subsample_count) */senc->flags = 0x00000002;
 			while (olen>0xFFFF) {
 				olen -= 0xFFFF;
 				sai->subsample_count ++;

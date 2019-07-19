@@ -205,13 +205,12 @@ GF_HTML_MediaTimeRanges *gf_html_timeranges_intersection(GF_HTML_MediaTimeRanges
 {
 	GF_HTML_MediaTimeRanges *intersection_ranges;
 	u32 i, j, count_a, count_b;
+	if (!a || !b) return NULL;
 	intersection_ranges = gf_html_timeranges_new(a->timescale);
 	intersection_ranges->c = a->c;
 	intersection_ranges->_this = a->_this;
-	count_a = 0;
-	count_b = 0;
-	if (a) count_a = gf_list_count(a->times);
-	if (b) count_b = gf_list_count(b->times);
+	count_a = gf_list_count(a->times);
+	count_b = gf_list_count(b->times);
 	if (count_a != 0 && count_b != 0) {
 		i = 0;
 		j = 0;

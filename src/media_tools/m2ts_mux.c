@@ -729,7 +729,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 		if (!stream->program->iod) {
 			gf_bs_write_int(bs,	info_length, 12); // program info length =0
 		} else {
-			u32 len, i;
+			u32 len;
 			GF_ESD *esd;
 			GF_BitStream *bs_iod;
 			u8 *iod_data;
@@ -1222,7 +1222,9 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		/*same mux config = 0 (refresh aac config)*/
 		next_time = gf_sys_clock();
 		if (stream->ifce->decoder_config && (stream->last_aac_time + stream->ifce->repeat_rate < next_time)) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 			GF_M4ADecSpecInfo cfg;
+#endif
 			stream->last_aac_time = next_time;
 
 			gf_bs_write_int(bs, 0, 1);
@@ -1233,8 +1235,12 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 			gf_bs_write_int(bs, 0, 4);/*numProgram*/
 			gf_bs_write_int(bs, 0, 3);/*numLayer prog 1*/
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 			gf_m4a_get_config(stream->ifce->decoder_config, stream->ifce->decoder_config_size, &cfg);
 			gf_m4a_write_config_bs(bs, &cfg);
+#else
+			gf_bs_write_data(bs, stream->ifce->decoder_config, stream->ifce->decoder_config_size);
+#endif
 
 			gf_bs_write_int(bs, 0, 3);/*frameLengthType*/
 			gf_bs_write_int(bs, 0, 8);/*latmBufferFullness*/
@@ -1273,20 +1279,31 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 	/*perform ADTS encapsulation*/
 	case GF_M2TS_AUDIO_AAC:
 		if (stream->ifce->decoder_config) {
+			GF_BitStream *bs;
+#ifndef GPAC_DISABLE_AV_PARSERS
 			GF_M4ADecSpecInfo cfg;
-			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_m4a_get_config(stream->ifce->decoder_config, stream->ifce->decoder_config_size, &cfg);
-
 			if (cfg.base_object_type>=5) cfg.base_object_type = GF_M4A_AAC_LC;
+#endif
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
 
 			gf_bs_write_int(bs, 0xFFF, 12);/*sync*/
 			gf_bs_write_int(bs, 0, 1);/*mpeg2 aac*/
 			gf_bs_write_int(bs, 0, 2); /*layer*/
 			gf_bs_write_int(bs, 1, 1); /* protection_absent*/
+#ifndef GPAC_DISABLE_AV_PARSERS
 			gf_bs_write_int(bs, cfg.base_object_type-1, 2);
 			gf_bs_write_int(bs, cfg.base_sr_index, 4);
 			gf_bs_write_int(bs, 0, 1);
 			gf_bs_write_int(bs, cfg.nb_chan, 3);
+#else
+			gf_bs_write_int(bs, GF_M4A_AAC_LC-1, 2);
+			gf_bs_write_int(bs, 1, 4); //FIXME
+			gf_bs_write_int(bs, 0, 1);
+			gf_bs_write_int(bs, 2, 3);//FIXME
+#endif
+
 			gf_bs_write_int(bs, 0, 4);
 			gf_bs_write_int(bs, 7+stream->curr_pck.data_len, 13);
 			gf_bs_write_int(bs, 0x7FF, 11);
@@ -1925,7 +1942,6 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 
 		/*copy over from next PES to fill this TS packet*/
 		if (stream->copy_from_next_packets) {
-			u32 copy_next;
 			pos += payload_to_copy;
 			copy_next = payload_length - payload_to_copy;
 			/*we might need a more than one*/
@@ -2037,7 +2053,7 @@ GF_Err gf_m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 			}
 		}
 
-		stream->force_new = esi_pck->flags & GF_ESI_DATA_AU_END ? GF_TRUE : GF_FALSE;
+		stream->force_new = (esi_pck->flags & GF_ESI_DATA_AU_END) ? GF_TRUE : GF_FALSE;
 
 		stream->pck_reassembler->data = (char*)gf_realloc(stream->pck_reassembler->data , sizeof(char)*(stream->pck_reassembler->data_len+esi_pck->data_len) );
 		memcpy(stream->pck_reassembler->data + stream->pck_reassembler->data_len, esi_pck->data, esi_pck->data_len);

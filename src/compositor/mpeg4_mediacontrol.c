@@ -327,8 +327,6 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 	MediaControlStack *stack =(MediaControlStack *) gf_node_get_private(node);
 
 	if (is_destroy) {
-		MediaControlStack *stack = (MediaControlStack *) gf_node_get_private(node);
-
 		/*reset ODM using this control*/
 		if (stack->stream) {
 			if (stack->stream->odm) {

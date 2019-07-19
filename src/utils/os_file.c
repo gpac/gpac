@@ -164,7 +164,6 @@ Bool gf_dir_exists(const char* DirPathName)
 {
 #if defined (_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
-	BOOL res;
 	DWORD att;
 	CE_CharToWide(DirPathName, swzName);
 	att = GetFileAttributes(swzName);
@@ -279,7 +278,7 @@ Bool gf_file_exists(const char *fileName)
  	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
 #elif defined(__DARWIN__) || defined(__APPLE__)
  	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
-#elif defined(GPAC_CONFIG_IOS) || defined( )
+#elif defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID)
  	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
 #else
 	FILE *f = gf_fopen(fileName, "r");
@@ -751,7 +750,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 				struct stat st_parent;
 				parent_name[0] = 0;
 				if (stat(item_path, &st_parent) == 0)  {
-					if ((st.st_dev != st_parent.st_dev) || ((st.st_dev == st_parent.st_dev) && (st.st_ino == st_parent.st_ino))) {
+					if ((st.st_dev != st_parent.st_dev) || (st.st_ino == st_parent.st_ino) ) {
 						file_info.drive = GF_TRUE;
 					}
 				}
@@ -1031,14 +1030,14 @@ char* gf_url_colon_suffix(const char *path)
 		char *next_colon, *next_slash;
 		sep++;
 		//skip all // (eg PROTO://////////////mytest/)
-		while (sep[0] && (sep[0]=='/'))
+		while (sep[0]=='/')
 			sep++;
 		if (!sep[0]) return NULL;
 
 		/*we may now have C:\ or C:/  (eg file://///C:\crazy\ or  file://///C:/crazy/)
 			if sep[1]==':', then sep[2] is valid (0 or something else), no need to check for len
 		*/
-		if (sep && sep[0] && (sep[1]==':') && ( (sep[2]=='/') || (sep[2]=='\\') ) ) {
+		if ((sep[1]==':') && ( (sep[2]=='/') || (sep[2]=='\\') ) ) {
 			return gf_url_colon_suffix(sep+2);
 		}
 		//find closest : or /, if : is before / consider this is a port or an IPv6 adress and check next : after /

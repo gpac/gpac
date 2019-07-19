@@ -429,13 +429,13 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 
 			if (delay < 0 && gf_list_count(vobsub->langs[id].subpos) > 0)
 			{
-				vobsub_pos *pos;
+				vobsub_pos *vspos_next;
 
-				pos = (vobsub_pos*)gf_list_get(vobsub->langs[id].subpos, gf_list_count(vobsub->langs[id].subpos) - 1);
-				if (vspos->start < pos->start)
+				vspos_next = (vobsub_pos*)gf_list_get(vobsub->langs[id].subpos, gf_list_count(vobsub->langs[id].subpos) - 1);
+				if (vspos->start < vspos_next->start)
 				{
-					delay += (s32)(pos->start - vspos->start);
-					vspos->start = pos->start;
+					delay += (s32)(vspos_next->start - vspos->start);
+					vspos->start = vspos_next->start;
 				}
 			}
 

@@ -47,6 +47,7 @@ u32 GetHintFormat(GF_TrackBox *trak)
 		GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, 0);
 		if (!hmhd) return a ? a->type : 0;
 		if (a) hmhd->subType = a->type;
+		return hmhd->subType;
 	}
 	return hmhd->subType;
 }
@@ -120,11 +121,9 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType
 
 	//hint tracks always have a tref and everything ...
 	if (!trak->References) {
-		if (!trak->References) {
-			tref = (GF_TrackReferenceBox *) gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_TREF);
-			e = trak_on_child_box((GF_Box*)trak, (GF_Box *)tref);
-			if (e) return e;
-		}
+		tref = (GF_TrackReferenceBox *) gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_TREF);
+		e = trak_on_child_box((GF_Box*)trak, (GF_Box *)tref);
+		if (e) return e;
 	}
 	tref = trak->References;
 
@@ -715,7 +714,7 @@ static void ReorderSDP(char *sdp_text, Bool is_movie_sdp)
 	}
 	strcpy(sdp_text, "");
 	while (gf_list_count(lines)) {
-		char *cur = (char *)gf_list_get(lines, 0);
+		cur = (char *)gf_list_get(lines, 0);
 		gf_list_rem(lines, 0);
 		strcat(sdp_text, cur);
 		gf_free(cur);

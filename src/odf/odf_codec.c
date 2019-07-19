@@ -557,12 +557,12 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 			com = (GF_ODCom *)gf_list_get(codec->CommandList, i);
 			/*process OD updates*/
 			if (com->tag==GF_ODF_OD_UPDATE_TAG) {
-				u32 count, j, k;
+				u32 count2, j, k;
 				GF_ODRemove *odR = (GF_ODRemove *) command;
 				odU = (GF_ODUpdate *)com;
-				count = gf_list_count(odU->objectDescriptors);
+				count2 = gf_list_count(odU->objectDescriptors);
 				/*remove all descs*/
-				for (k=0; k<count; k++) {
+				for (k=0; k<count2; k++) {
 					GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, k);
 					for (j=0; j<odR->NbODs; j++) {
 						if (od->objectDescriptorID==odR->OD_ID[j]) {
@@ -651,12 +651,12 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 			com = (GF_ODCom *)gf_list_get(codec->CommandList, i);
 			/*process OD updates*/
 			if (com->tag==GF_ODF_OD_UPDATE_TAG) {
-				u32 count, j, k, l;
+				u32 count2, j, k, l;
 				GF_ESDRemove *esdR = (GF_ESDRemove *) command;
 				odU = (GF_ODUpdate *)com;
-				count = gf_list_count(odU->objectDescriptors);
+				count2 = gf_list_count(odU->objectDescriptors);
 				/*remove all descs*/
-				for (k=0; k<count; k++) {
+				for (k=0; k<count2; k++) {
 					GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, k);
 					for (j=0; j<gf_list_count(od->ESDescriptors); j++) {
 						GF_ESD *esd = gf_list_get(od->ESDescriptors, j);

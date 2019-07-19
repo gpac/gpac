@@ -844,7 +844,7 @@ GF_Err gf_m4v_rewrite_par(u8 **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 		/*store previous object*/
 		if (size) {
 			assert(size < 0x80000000);
-			if (size) gf_bs_write_data(mod, *o_data + start, (u32)size);
+			gf_bs_write_data(mod, *o_data + start, (u32)size);
 			start = end;
 		}
 
@@ -2400,6 +2400,8 @@ GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_ex
 	return GF_OK;
 }
 
+#endif // GPAC_DISABLE_AV_PARSERS
+
 GF_EXPORT
 const char *av1_get_obu_name(ObuType obu_type)
 {
@@ -2435,6 +2437,8 @@ Bool av1_is_obu_header(ObuType obu_type) {
 		return GF_FALSE;
 	}
 }
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 static Bool av1_is_obu_frame(AV1State *state, ObuType obu_type)
 {
@@ -2630,7 +2634,7 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 Bool gf_media_aom_probe_annexb(GF_BitStream *bs)
 {
 	Bool res = GF_TRUE;
-	u64 pos = gf_bs_get_position(bs);
+	u64 init_pos = gf_bs_get_position(bs);
 	u64 sz = gf_av1_leb128_read(bs, NULL);
 	if (!sz) res = GF_FALSE;
 	while (sz > 0) {
@@ -2690,7 +2694,7 @@ Bool gf_media_aom_probe_annexb(GF_BitStream *bs)
 		}
 		if (!res) break;
 	}
-	gf_bs_seek(bs, pos);
+	gf_bs_seek(bs, init_pos);
 	return res;
 }
 
@@ -2767,7 +2771,8 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 	while (frame_size > 0) {
 		u64 obu_size = 0, pos = gf_bs_get_position(bs);
 
-		if (gf_media_aom_av1_parse_obu(bs, &state->obu_type, &obu_size, NULL, state) != GF_OK)
+		e = gf_media_aom_av1_parse_obu(bs, &state->obu_type, &obu_size, NULL, state);
+		if (e != GF_OK)
 			return e;
 
 		if (obu_size != gf_bs_get_position(bs) - pos) {
@@ -2779,8 +2784,7 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 
 		frame_size -= obu_size;
 	}
-
-	return e;
+	return GF_OK;
 }
 
 #define AV1_NUM_REF_FRAMES 8
@@ -2928,7 +2932,7 @@ static void superres_params(GF_BitStream *bs, AV1State *state)
 	state->width = (state->UpscaledWidth * AV1_SUPERRES_NUM + (SuperresDenom / 2)) / SuperresDenom;
 }
 
-static void frame_size(GF_BitStream *bs, AV1State *state, Bool frame_size_override_flag)
+static void av1_frame_size(GF_BitStream *bs, AV1State *state, Bool frame_size_override_flag)
 {
 	if (frame_size_override_flag) {
 		u32 frame_width_minus_1, frame_height_minus_1;
@@ -2943,7 +2947,7 @@ static void frame_size(GF_BitStream *bs, AV1State *state, Bool frame_size_overri
 	//compute_image_size(); //no bits
 }
 
-static void render_size(GF_BitStream *bs)
+static void av1_render_size(GF_BitStream *bs)
 {
 	Bool render_and_frame_size_different = gf_bs_read_int(bs, 1);
 	if (render_and_frame_size_different == GF_TRUE) {
@@ -2984,8 +2988,8 @@ static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_s
 		}
 	}
 	if (found_ref == 0) {
-		frame_size(bs, state, frame_size_override_flag);
-		render_size(bs);
+		av1_frame_size(bs, state, frame_size_override_flag);
+		av1_render_size(bs);
 	}
 	else {
 		superres_params(bs, state);
@@ -3303,10 +3307,10 @@ static void av1_set_frame_refs(AV1State *state, u8 last_frame_idx, u8 gold_frame
 	for (i = 0; i < AV1_REFS_PER_FRAME - 2; i++) {
 		u8 refFrame = Ref_Frame_List[i];
 		if (ref_frame_idx[refFrame - AV1_LAST_FRAME] < 0) {
-			s32 ref = find_latest_forward(curFrameHint, shiftedOrderHints, usedFrame);
-			if (ref >= 0) {
-				ref_frame_idx[refFrame - AV1_LAST_FRAME] = ref;
-				usedFrame[ref] = 1;
+			s32 last_ref = find_latest_forward(curFrameHint, shiftedOrderHints, usedFrame);
+			if (last_ref >= 0) {
+				ref_frame_idx[refFrame - AV1_LAST_FRAME] = last_ref;
+				usedFrame[last_ref] = 1;
 			}
 		}
 	}
@@ -3485,16 +3489,16 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 
 	u8 allow_intrabc = 0;
 	if (frame_state->frame_type == AV1_KEY_FRAME) {
-		frame_size(bs, state, frame_size_override_flag);
-		render_size(bs);
+		av1_frame_size(bs, state, frame_size_override_flag);
+		av1_render_size(bs);
 		if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
 			allow_intrabc = gf_bs_read_int(bs, 1);
 		}
 	}
 	else {
 		if (frame_state->frame_type == AV1_INTRA_ONLY_FRAME) {
-			frame_size(bs, state, frame_size_override_flag);
-			render_size(bs);
+			av1_frame_size(bs, state, frame_size_override_flag);
+			av1_render_size(bs);
 			if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
 				allow_intrabc = gf_bs_read_int(bs, 1);
 			}
@@ -3525,8 +3529,8 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 				frame_size_with_refs(bs, state, frame_size_override_flag);
 			}
 			else {
-				frame_size(bs, state, frame_size_override_flag);
-				render_size(bs);
+				av1_frame_size(bs, state, frame_size_override_flag);
+				av1_render_size(bs);
 			}
 			frame_state->allow_high_precision_mv = 0;
 			if (!force_integer_mv) {
@@ -3845,8 +3849,8 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		}
 	}
 	if (!FrameIsIntra) {
-		u32 ref;
-		for (ref = AV1_LAST_FRAME; ref <= AV1_ALTREF_FRAME; ref++) {
+		u32 refs;
+		for (refs = AV1_LAST_FRAME; refs <= AV1_ALTREF_FRAME; refs++) {
 			u8 type = AV1_GMC_IDENTITY;
 			Bool is_global = gf_bs_read_int(bs, 1);
 			if (is_global) {
@@ -3862,21 +3866,21 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			}
 
 			if (type >= AV1_GMC_ROTZOOM) {
-				av1_read_global_param(state, bs, type, ref, 2);
-				av1_read_global_param(state, bs, type, ref, 3);
+				av1_read_global_param(state, bs, type, refs, 2);
+				av1_read_global_param(state, bs, type, refs, 3);
 				if (type == AV1_GMC_AFFINE) {
-					av1_read_global_param(state, bs, type, ref, 4);
-					av1_read_global_param(state, bs, type, ref, 5);
+					av1_read_global_param(state, bs, type, refs, 4);
+					av1_read_global_param(state, bs, type, refs, 5);
 				}
 				else {
-					state->GmParams.coefs[ref][4] = -state->GmParams.coefs[ref][3];
-					state->GmParams.coefs[ref][5] = state->GmParams.coefs[ref][2];
+					state->GmParams.coefs[refs][4] = -state->GmParams.coefs[refs][3];
+					state->GmParams.coefs[refs][5] = state->GmParams.coefs[refs][2];
 
 				}
 			}
 			if (type >= AV1_GMC_TRANSLATION) {
-				av1_read_global_param(state, bs, type, ref, 0);
-				av1_read_global_param(state, bs, type, ref, 1);
+				av1_read_global_param(state, bs, type, refs, 0);
+				av1_read_global_param(state, bs, type, refs, 1);
 			}
 		}
 	}
@@ -5263,8 +5267,7 @@ static s32 gf_media_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u3
 
 			/*svc_vui_parameters_present*/
 			if (gf_bs_read_int(bs, 1)) {
-				u32 i, vui_ext_num_entries_minus1;
-				vui_ext_num_entries_minus1 = gf_bs_get_ue(bs);
+				u32 vui_ext_num_entries_minus1 = gf_bs_get_ue(bs);
 
 				for (i = 0; i <= vui_ext_num_entries_minus1; i++) {
 					u8 vui_ext_nal_hrd_parameters_present_flag, vui_ext_vcl_hrd_parameters_present_flag, vui_ext_timing_info_present_flag;
@@ -5971,8 +5974,7 @@ s32 gf_media_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 			n_state.poc_lsb_prev = avc->s_info.poc_lsb;
 			n_state.poc_msb_prev = avc->s_info.poc_msb;
 		}
-		if (slice)
-			avc_compute_poc(&n_state);
+		avc_compute_poc(&n_state);
 
 		if (avc->s_info.poc != n_state.poc) {
 			memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));
@@ -7217,7 +7219,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 
 		for (j = 0; j < vps->num_layers_in_id_list[ols_ids_to_ls_idx]; j++) {
 			if (OutputLayerFlag[i][j]) {
-				u32 curLayerID, k;
+				u32 curLayerID;
 				vps->necessary_layers_flag[i][j] = GF_TRUE;
 				curLayerID = vps->LayerSetLayerIdList[i][j];
 				for (k = 0; k < j; k++) {
@@ -8691,7 +8693,7 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 	nb_books = oggpack_read(&opb, 8) + 1;
 	/*skip vorbis static books*/
 	for (i = 0; i < nb_books; i++) {
-		u32 j, map_type, qb, qq;
+		u32 map_type, qb, qq;
 		u32 entries, dim;
 		oggpack_read(&opb, 24);
 		dim = oggpack_read(&opb, 16);
@@ -8767,10 +8769,10 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 			gf_free(class_dims);
 		}
 		else {
-			u32 j, nb_books;
 			oggpack_read(&opb, 8 + 16 + 16 + 6 + 8);
 			nb_books = oggpack_read(&opb, 4) + 1;
-			for (j = 0; j < nb_books; j++) oggpack_read(&opb, 8);
+			for (j = 0; j < nb_books; j++)
+				oggpack_read(&opb, 8);
 		}
 	}
 	times = oggpack_read(&opb, 6) + 1;

@@ -778,7 +778,7 @@ Bool gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 #ifndef WIN32
 	sem_t *hSem;
 #else
-	u32 prevCount;
+	u32 prevCount=0;
 #endif
 
 	if (!sm) return GF_FALSE;

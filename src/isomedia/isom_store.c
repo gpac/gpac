@@ -571,7 +571,6 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 				if (src) gf_fclose(src);
 			}
 			else if (gf_list_count(iloc->extent_entries)) {
-				u32 j;
 				j=0;
 				while ((entry = (GF_ItemExtentEntry *)gf_list_enum(iloc->extent_entries, &j))) {
 					if (entry->extent_index) continue;

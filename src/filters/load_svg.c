@@ -143,7 +143,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 	case GF_CODECID_DIMS:
 	{
 		u8 prev, dims_hdr;
-		u32 nb_bytes, size;
+		u32 nb_bytes;
 		u64 pos;
 		char * buf2 ;
 		GF_BitStream *bs;
@@ -380,7 +380,6 @@ static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 
 				memset(&svgin->loader, 0, sizeof(GF_SceneLoader));
 				svgin->loader.is = svgin->scene;
-				svgin->scene = svgin->scene;
 				svgin->loader.scene_graph = svgin->scene->graph;
 				svgin->loader.localPath = gf_get_default_cache_directory();
 				

@@ -316,8 +316,8 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 		if (tr_state->traversing_mode == TRAVERSE_SORT) {
 			gf_mx_copy(st->current_mx, tr_state->model_matrix);
 			if (!tr_state->pixel_metrics && tr_state->visual->compositor->inherit_type_3d) {
-				Fixed scale = gf_divfix(FIX_ONE, tr_state->min_hsize);
-				gf_mx_add_scale(&st->current_mx, scale, scale, scale);
+				Fixed pix_scale = gf_divfix(FIX_ONE, tr_state->min_hsize);
+				gf_mx_add_scale(&st->current_mx, pix_scale, pix_scale, pix_scale);
 
 			}
 		}

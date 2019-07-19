@@ -1414,14 +1414,14 @@ Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
 	gf_sg_get_scene_size_info(scene->graph, &vr_info->scene_width, &vr_info->scene_height);
 
 	if (mo->srd_w && mo->srd_h) return GF_TRUE;
-	if (mo->srd_full_w && mo->srd_full_w) return GF_TRUE;
+	if (mo->srd_full_w && mo->srd_full_h) return GF_TRUE;
 	return GF_FALSE;
 }
 
 /*sets quality hint for this media object  - quality_rank is between 0 (min quality) and 100 (max quality)*/
 void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation)
 {
-	if (!mo->odm || !mo->odm || !mo->odm->pid) {
+	if (!mo || !mo->odm || !mo->odm->pid) {
 		return;
 	}
 	if (mo->quality_degradation_hint != quality_degradation) {
@@ -1436,7 +1436,7 @@ void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation)
 
 void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y, u32 max_y)
 {
-	if (!mo->odm || !mo->odm || !mo->odm->pid) {
+	if (!mo || !mo->odm || !mo->odm->pid) {
 		return;
 	}
 
@@ -1459,7 +1459,7 @@ void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y
 
 void gf_mo_hint_gaze(GF_MediaObject *mo, u32 gaze_x, u32 gaze_y)
 {
-	if (!mo->odm || !mo->odm || !mo->odm->pid) {
+	if (!mo || !mo->odm || !mo->odm->pid) {
 		return;
 	}
 

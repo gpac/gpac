@@ -933,7 +933,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		GLint loc;
 		u32 i;
 		GF_Matrix mx;
-		Float hw, hh;
+		Float ft_hw, ft_hh;
 
 		ctx->memory_format = GL_UNSIGNED_BYTE;
 		ctx->glsl_program = glCreateProgram();
@@ -1052,7 +1052,6 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			break;
 		default:
 			if (!ctx->is_yuv) {
-				GLint loc;
 				loc = glGetUniformLocation(ctx->glsl_program, "rgb_mode");
 				if (loc == -1) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to locate rgb_mode uniform in shader\n"));
@@ -1112,9 +1111,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		glViewport(0, 0, ctx->width, ctx->height);
 
 		gf_mx_init(mx);
-		hw = ((Float)ctx->width)/2;
-		hh = ((Float)ctx->height)/2;
-		gf_mx_ortho(&mx, -hw, hw, -hh, hh, 50, -50);
+		ft_hw = ((Float)ctx->width)/2;
+		ft_hh = ((Float)ctx->height)/2;
+		gf_mx_ortho(&mx, -ft_hw, ft_hw, -ft_hh, ft_hh, 50, -50);
 		glMatrixMode(GL_PROJECTION);
 		glLoadMatrixf(mx.m);
 
@@ -1379,7 +1378,7 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool from_textures)
 			ctx->dump_buffer = gf_malloc(sizeof(char)*ctx->display_width*ctx->display_height*3);
 
 		glReadPixels(0, 0, ctx->display_width, ctx->display_height, GL_RGB, GL_UNSIGNED_BYTE, ctx->dump_buffer);
-		GL_CHECK_ERR
+		GL_CHECK_ERR()
 		fout = gf_fopen(szFileName, "wb");
 		if (fout) {
 			fwrite(ctx->dump_buffer, 1, ctx->display_width*ctx->display_height*3, fout);
@@ -1777,7 +1776,6 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 	data = (char *) gf_filter_pck_get_data(pck, &wsize);
 	if (!data) {
-		GF_Err e;
 		u32 stride_luma;
 		u32 stride_chroma;
 		GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
@@ -1855,11 +1853,6 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	}
 	if (e) {
 		GF_VideoSurface backbuffer;
-		GF_Window src_wnd;
-		src_wnd.x = src_wnd.y = 0;
-		src_wnd.w = ctx->width;
-		src_wnd.h = ctx->height;
-
 
 		e = ctx->video_out->LockBackBuffer(ctx->video_out, &backbuffer, GF_TRUE);
 		if (!e) {
@@ -1877,10 +1870,6 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	if (ctx->dump_f_idx) {
 		char szFileName[1024];
 		GF_VideoSurface backbuffer;
-		GF_Window src_wnd;
-		src_wnd.x = src_wnd.y = 0;
-		src_wnd.w = ctx->width;
-		src_wnd.h = ctx->height;
 
 		e = ctx->video_out->LockBackBuffer(ctx->video_out, &backbuffer, GF_TRUE);
 		if (!e) {
@@ -1888,7 +1877,8 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			const char *src_ext = strchr(gf_file_basename(ctx->out), '.');
 			const char *ext = gf_pixel_fmt_sname(backbuffer.pixel_format);
 			if (!ext) ext = "rgb";
-			if (ext && src_ext && !strcmp(ext, src_ext+1)) {
+
+			if (src_ext && !strcmp(ext, src_ext+1)) {
 				snprintf(szFileName, 1024, "%s", ctx->out);
 			} else {
 				snprintf(szFileName, 1024, "%s_%d.%s", ctx->out, ctx->dump_f_idx, ext);

@@ -121,7 +121,7 @@ GF_Err colr_box_read(GF_Box *s, GF_BitStream *bs)
 			p->colour_primaries = gf_bs_read_u16(bs);
 			p->transfer_characteristics = gf_bs_read_u16(bs);
 			p->matrix_coefficients = gf_bs_read_u16(bs);
-			p->full_range_flag = (gf_bs_read_u8(bs) & 0x80 ? GF_TRUE : GF_FALSE);
+			p->full_range_flag = (gf_bs_read_u8(bs) & 0x80) ? GF_TRUE : GF_FALSE;
 			break;
 		case GF_ISOM_SUBTYPE_NCLC:
 			ISOM_DECREASE_SIZE(p, 6);
@@ -503,11 +503,11 @@ GF_Err ipma_box_read(GF_Box *s, GF_BitStream *bs)
 			u32 *prop_index = (u32 *)gf_malloc(sizeof(u32));
 			if (p->flags & 1) {
 				u16 tmp = gf_bs_read_u16(bs);
-				*ess = (tmp >> 15 ? GF_TRUE: GF_FALSE);
+				*ess = (tmp >> 15) ? GF_TRUE : GF_FALSE;
 				*prop_index = (tmp & 0x7FFF);
 			} else {
 				u8 tmp = gf_bs_read_u8(bs);
-				*ess = (tmp >> 7 ? GF_TRUE: GF_FALSE);
+				*ess = (tmp >> 7) ? GF_TRUE : GF_FALSE;
 				*prop_index = (tmp & 0x7F);
 			}
 			gf_list_add(entry->essential, ess);
@@ -966,6 +966,7 @@ GF_Err mdcv_box_size(GF_Box *s)
 
 
 static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs, u32 sample_number) {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	GF_Err e;
 	u32 imported_sample_desc_index = 1;
 //	u32 sample_index = 1;
@@ -991,11 +992,13 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 		GF_List *tile_item_ids;
 		char sz_item_name[256];
 		GF_TileItemMode orig_tile_mode;
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 		e = gf_media_split_hevc_tiles(movie, 0);
 #else
 		e = GF_NOT_SUPPORTED;
 #endif
+
 		if (e) return e;
 		tile_item_ids = gf_list_new();
 		orig_tile_mode = image_props->tile_mode;
@@ -1205,6 +1208,10 @@ import_next_sample:
 		goto import_next_sample;
 	}
 	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+
 }
 
 GF_EXPORT

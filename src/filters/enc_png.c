@@ -270,11 +270,6 @@ static GF_Err pngenc_process(GF_Filter *filter)
 	default:
 		break;
 	}
-		sig_bit.gray = 8;
-		sig_bit.alpha = 8;
-		sig_bit.red = 8;
-		sig_bit.green = 8;
-		sig_bit.blue = 8;
 	png_set_sBIT(png_ptr, info_ptr, &sig_bit);
 
 	//todo add support for tags

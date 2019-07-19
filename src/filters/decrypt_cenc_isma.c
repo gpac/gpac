@@ -558,7 +558,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	if (cinfo) {
 		GF_TrackCryptInfo *any_tci = NULL;
 		GF_TrackCryptInfo *tci = NULL;
-		u32 i, count = gf_list_count(cinfo->tcis);
+		u32 count = gf_list_count(cinfo->tcis);
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		for (i=0; i<count; i++) {
 			tci = gf_list_get(cinfo->tcis, i);

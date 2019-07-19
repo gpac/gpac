@@ -2617,7 +2617,7 @@ static void lsr_read_point_sequence(GF_LASeRCodec *lsr, GF_List *pts, const char
 			GF_LSR_READ_INT(lsr, nb_dx, 5, "bitsx");
 			GF_LSR_READ_INT(lsr, nb_dy, 5, "bitsy");
 			for (i=1; i<count; i++) {
-				SVG_Point *pt = (SVG_Point *)gf_malloc(sizeof(SVG_Point));
+				pt = (SVG_Point *)gf_malloc(sizeof(SVG_Point));
 				gf_list_add(pts, pt);
 				GF_LSR_READ_INT(lsr, k, nb_dx, "dx");
 				pt->x = x + lsr_translate_coords(lsr, k, nb_dx);
@@ -3542,7 +3542,7 @@ static GF_Node *lsr_read_polygon(GF_LASeRCodec *lsr, Bool is_polyline, u32 same_
 
 	if (same_type) {
 		if (lsr->prev_polygon) {
-			lsr_restore_base(lsr, (SVG_Element*)elt, (SVG_Element *)lsr->prev_polygon, (same_type==2) ? 0 : 0, (same_type==3) ? 0 : 0);
+			lsr_restore_base(lsr, (SVG_Element*)elt, (SVG_Element *)lsr->prev_polygon, /*(same_type==2) ? 1 : */ 0, /*(same_type==3) ? 1 : */ 0);
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] samepolyXXX coded in bitstream but no polyXXX defined !\n"));
 		}
@@ -4709,8 +4709,8 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag
 		if ((att_tag==TAG_XLINK_ATT_href) || (att_tag==TAG_SVG_ATT_syncReference)) {
 			lsr_read_any_uri(lsr, (XMLRI*)val, "val");
 		} else {
-			Bool is_default, is_escape;
-			u32 escape_val, ID;
+			Bool is_escape;
+			u32 ID;
 			escape_val = ID = 0;
 			is_escape = 0;
 			GF_LSR_READ_INT(lsr, is_default, 1, "isDefault");
@@ -4776,8 +4776,7 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag
 			}
 		}
 	}
-	break;
-	break;
+		break;
 	case LASeR_Choice_datatype:
 		GF_LSR_READ_INT(lsr, is_default, 1, "isDefaultValue");
 		if (is_default) ((LASeR_Choice *)val)->type = LASeR_CHOICE_ALL;
@@ -5536,7 +5535,6 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 		case LSR_UPDATE_EXTEND:
 		{
 			u32 extID;
-			GF_Node *n;
 			GF_LSR_READ_INT(lsr, extID, lsr->info->cfg.extensionIDBits, "extensionID");
 			/*len = */lsr_read_vluimsbf5(lsr, "len");
 			if (extID==2) {

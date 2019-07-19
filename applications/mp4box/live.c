@@ -438,8 +438,7 @@ int live_session(int argc, char **argv)
 	for (i=0; i<(u32) argc; i++) {
 		char *arg = argv[i];
 		if (!strnicmp(arg, "-rap=", 5)) {
-			u32 period, id, j;
-			RTPChannel *ch;
+			u32 id, j;
 			period = id = 0;
 			if (strchr(arg, ':')) {
 				sscanf(arg, "-rap=ESID=%u:%u", &id, &period);
@@ -507,14 +506,12 @@ int live_session(int argc, char **argv)
 					run=0;
 					break;
 				case 'U':
-					livesess.critical = 1;
 				case 'u':
 				{
-					GF_Err e;
 					char szCom[8192];
 					fprintf(stderr, "Enter command to send:\n");
 					szCom[0] = 0;
-					if (1 > scanf("%[^\t\n]", szCom)) {
+					if (1 > scanf("%8191[^\t\n]", szCom)) {
 						fprintf(stderr, "No command entered properly, aborting.\n");
 						break;
 					}
@@ -524,19 +521,17 @@ int live_session(int argc, char **argv)
 					if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 					e = gf_seng_aggregate_context(livesess.seng, 0);
 					if (e) fprintf(stderr, "Aggregating context failed: %s\n", gf_error_to_string(e));
-					livesess.critical = 0;
+					livesess.critical = (c=='U') ? 1 : 0;
 					update_context = 1;
 				}
 				break;
 				case 'E':
-					livesess.critical = 1;
 				case 'e':
 				{
-					GF_Err e;
 					char szCom[8192];
 					fprintf(stderr, "Enter command to send:\n");
 					szCom[0] = 0;
-					if (1 > scanf("%[^\t\n]", szCom)) {
+					if (1 > scanf("%8191[^\t\n]", szCom)) {
 						printf("No command entered properly, aborting.\n");
 						break;
 					}
@@ -544,7 +539,7 @@ int live_session(int argc, char **argv)
 					while (getchar()!='\n') {}
 					e = gf_seng_encode_from_string(livesess.seng, 0, 1, szCom, live_session_callback);
 					if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
-					livesess.critical = 0;
+					livesess.critical = (c=='E') ? 1 : 0;
 					e = gf_seng_aggregate_context(livesess.seng, 0);
 					if (e) fprintf(stderr, "Aggregating context failed: %s\n", gf_error_to_string(e));
 
@@ -555,7 +550,7 @@ int live_session(int argc, char **argv)
 				{
 					char rad[GF_MAX_PATH];
 					fprintf(stderr, "Enter output file name - \"std\" for stderr: ");
-					if (1 > scanf("%s", rad)) {
+					if (1 > scanf("%1023s", rad)) {
 						fprintf(stderr, "No ouput file name entered, aborting.\n");
 						break;
 					}
@@ -602,7 +597,7 @@ int live_session(int argc, char **argv)
 				if (flag) {
 					flag += strlen("gpac_broadcast_config ");
 					/*move to next word*/
-					while (flag && (flag[0]==' ')) flag++;
+					while (flag[0]==' ') flag++;
 
 					while (1) {
 						char *sep = strchr(flag, ' ');

@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 typedef struct
 {
 	u64 pos;
@@ -604,3 +606,10 @@ const GF_FilterRegister *ac3dmx_register(GF_FilterSession *session)
 	return &AC3DmxRegister;
 }
 
+#else
+
+const GF_FilterRegister *ac3dmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_AV_PARSERS

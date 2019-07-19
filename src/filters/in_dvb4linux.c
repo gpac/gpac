@@ -367,7 +367,6 @@ static Bool dvblin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GF_Err dvblin_process(GF_Filter *filter)
 {
-	u32 nb_read=0;
 	GF_FilterPacket *dst_pck;
 	u8 *out_data;
 	GF_DVBLinuxCtx *ctx = (GF_DVBLinuxCtx *) gf_filter_get_udta(filter);
@@ -375,9 +374,9 @@ static GF_Err dvblin_process(GF_Filter *filter)
 	if (!ctx->freq) return GF_EOS;
 
 #ifndef GPAC_SIM_LINUX_DVB
-	nb_read = read(ctx->demux_fd, ctx->block, ctx->block_size);
-#endif
+	u32 nb_read = read(ctx->demux_fd, ctx->block, ctx->block_size);
 	if (!nb_read) return GF_OK;
+#endif
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->pid, nb_read, &out_data);
 	memcpy(out_data, ctx->block, nb_read);

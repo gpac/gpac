@@ -1675,7 +1675,6 @@ retry_import:
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 			if (elt && import_file) {
-				GF_Err e;
 				GF_MediaImporter import;
 				char *elt_url = elt->init_segment_url ? elt->init_segment_url : elt->url;
 				u64 br_start, br_end;
@@ -2833,7 +2832,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 	if (as->max_height) fprintf(out, " maxHeight=\"%d\"", as->max_height);
 	if (as->min_framerate) fprintf(out, " minFrameRate=\"%d\"", as->min_framerate);
 	if (as->max_framerate) fprintf(out, " maxFrameRate=\"%d\"", as->max_framerate);	
-	if (as->par && (as->par->num !=0 ) && (as->par->num != 0))
+	if (as->par && (as->par->num !=0 ) && (as->par->den != 0))
 		fprintf(out, " par=\"%d:%d\"", as->par->num, as->par->den);
 	if (as->lang) fprintf(out, " lang=\"%s\"", as->lang);	
 	if (as->bitstream_switching) fprintf(out, " bitstreamSwitching=\"true\"");
@@ -3847,12 +3846,14 @@ void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adaptati
 	GF_MPD_SegmentTimeline *segment_timeline;
 	GF_MPD_MultipleSegmentBase *mbase_rep, *mbase_set, *mbase_period;
 
+	if (!period) return;
+
 	if (out_segment_timeline) *out_segment_timeline = NULL;
 	if (out_pts_offset) *out_pts_offset = 0;
 
 	/*single media segment - duration is not known unless indicated in period*/
 	if (rep->segment_base || set->segment_base || period->segment_base) {
-		if (period && period->duration) {
+		if (period->duration) {
 			*out_duration = period->duration;
 			timescale = 1000;
 		} else {
@@ -3863,10 +3864,10 @@ void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adaptati
 		if (rep->segment_base && rep->segment_base->timescale) timescale = rep->segment_base->timescale;
 		if (!pts_offset && set->segment_base && set->segment_base->presentation_time_offset) pts_offset = set->segment_base->presentation_time_offset;
 		if (!timescale && set->segment_base && set->segment_base->timescale) timescale = set->segment_base->timescale;
-		if (period) {
-			if (!pts_offset && period->segment_base && period->segment_base->presentation_time_offset) pts_offset = period->segment_base->presentation_time_offset;
-			if (!timescale && period->segment_base && period->segment_base->timescale) timescale = period->segment_base->timescale;
-		}
+
+		if (!pts_offset && period->segment_base && period->segment_base->presentation_time_offset) pts_offset = period->segment_base->presentation_time_offset;
+		if (!timescale && period->segment_base && period->segment_base->timescale) timescale = period->segment_base->timescale;
+
 		if (out_pts_offset) *out_pts_offset = pts_offset;
 		*out_timescale = timescale ? timescale : 1;
 		return;
@@ -4207,7 +4208,7 @@ static GF_Err smooth_parse_quality_level(GF_MPD *mpd, GF_List *container, GF_XML
     GF_MPD_Representation *rep;
     GF_XMLAttribute *att;
     GF_Err e;
-    char szISOBMFFInit[2048];
+    char *szISOBMFFInit = NULL;
 
     GF_SAFEALLOC(rep, GF_MPD_Representation);
     if (!rep) return GF_OUT_OF_MEM;
@@ -4217,16 +4218,22 @@ static GF_Err smooth_parse_quality_level(GF_MPD *mpd, GF_List *container, GF_XML
     e = gf_list_add(container, rep);
     if (e) return e;
 
-    strcpy(szISOBMFFInit, "isobmff://");
+	gf_dynstrcat(&szISOBMFFInit, "isobmff://", NULL);
 
 
 #define ISBMFFI_ADD_KEYWORD(_name, _value) \
-	if (_value) {\
-		strcat(szISOBMFFInit, _name);\
-		strcat(szISOBMFFInit, "=");\
-		strcat(szISOBMFFInit, _value);\
-		strcat(szISOBMFFInit, " ");\
+	if (_value != NULL) {\
+		gf_dynstrcat(&szISOBMFFInit, _name, NULL);\
+		gf_dynstrcat(&szISOBMFFInit, "=", NULL);\
+		gf_dynstrcat(&szISOBMFFInit, _value, NULL);\
+		gf_dynstrcat(&szISOBMFFInit, " ", NULL);\
 	}
+
+#define ISBMFFI_ADD_KEYWORD_CONST(_name, _value) \
+	gf_dynstrcat(&szISOBMFFInit, _name, NULL);\
+	gf_dynstrcat(&szISOBMFFInit, "=", NULL);\
+	gf_dynstrcat(&szISOBMFFInit, _value, NULL);\
+	gf_dynstrcat(&szISOBMFFInit, " ", NULL);\
 
 
     i = 0;
@@ -4274,11 +4281,11 @@ static GF_Err smooth_parse_quality_level(GF_MPD *mpd, GF_List *container, GF_XML
 		v = (char *)szTS;
         ISBMFFI_ADD_KEYWORD("scale", v)
     }
-    ISBMFFI_ADD_KEYWORD("tfdt", "0000000000000000000")
+    ISBMFFI_ADD_KEYWORD_CONST("tfdt", "0000000000000000000")
     //create a url for the IS to be reconstructed
     rep->mime_type = gf_strdup(is_audio ? "audio/mp4" : "video/mp4");
     GF_SAFEALLOC(rep->segment_template, GF_MPD_SegmentTemplate);
-    rep->segment_template->initialization = gf_strdup(szISOBMFFInit);
+    rep->segment_template->initialization = szISOBMFFInit;
     return GF_OK;
 }
 
@@ -4470,23 +4477,22 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		is_init_template = GF_TRUE;
 		needs_init = GF_FALSE;
 	}
-	if ( (is_index || is_index_template) && !strstr(seg_rad_name, "$Index")) {
-		needs_index = GF_TRUE;
-	}
-
-
-	if (seg_rad_name && (strstr(seg_rad_name, "$RepresentationID$") || strstr(seg_rad_name, "$Bandwidth$")))
-		needs_init = GF_FALSE;
-
-	if (strstr(seg_rad_name, "$Init="))
-		has_init_keyword = GF_TRUE;
-
 
 	if (!seg_rad_name) {
 		strcpy(segment_name, output_file_name); //already contains base_url
 	} else {
 		char c;
 		const size_t seg_rad_name_len = strlen(seg_rad_name);
+
+		if ( (is_index || is_index_template) && !strstr(seg_rad_name, "$Index")) {
+			needs_index = GF_TRUE;
+		}
+		if (strstr(seg_rad_name, "$RepresentationID$") || strstr(seg_rad_name, "$Bandwidth$"))
+			needs_init = GF_FALSE;
+
+		if (strstr(seg_rad_name, "$Init="))
+			has_init_keyword = GF_TRUE;
+
 		while (char_template <= seg_rad_name_len) {
 			char szFmt[20];
 

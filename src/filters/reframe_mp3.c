@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 typedef struct
 {
 	u64 pos;
@@ -801,3 +803,11 @@ const GF_FilterRegister *mp3_dmx_register(GF_FilterSession *session)
 {
 	return &MP3DmxRegister;
 }
+
+#else
+const GF_FilterRegister *mp3_dmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_AV_PARSERS
+

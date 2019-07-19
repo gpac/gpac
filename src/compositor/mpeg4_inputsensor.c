@@ -402,8 +402,8 @@ static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const char *inBuffer, u3
 		scene_time = gf_scene_get_time(is_ctx->odm->parentscene);
 		for (j=0; j<count; j++) {
 			GF_Command *com = (GF_Command *)gf_list_get(st->is->buffer.commandList, j);
-			GF_FieldInfo *field = (GF_FieldInfo *)gf_list_get(is_ctx->ddf, j);
 			GF_CommandField *info = (GF_CommandField *)gf_list_get(com->command_fields, 0);
+			field = (GF_FieldInfo *)gf_list_get(is_ctx->ddf, j);
 			if (info && field && field->eventType) {
 				gf_sg_vrml_field_copy(info->field_ptr, field->far_ptr, field->fieldType);
 				gf_sg_command_apply(is_ctx->odm->parentscene->graph, com, scene_time);

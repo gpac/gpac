@@ -793,7 +793,7 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 			}
  			s->last_active_obj = obj;
 		} else if (in_order) {
-			u32 count = gf_list_count(s->objects);
+			count = gf_list_count(s->objects);
  			s->last_active_obj = obj;
 			for (i=0; i<count; i++) {
 				u32 new_count;
@@ -1311,7 +1311,7 @@ static GF_Err gf_atsc3_dmx_process_service_signaling(GF_ATSCDmx *atscd, GF_ATSCS
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d package type %s location %s content:\n%s\n", s->service_id, szContentType, szContentLocation, payload ));
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d %s not properly formatted in package:\n%s\n", s->service_id, boundary ? "multipart boundary" : "entity", payload ));
-			if (sep) sep[0] = boundary[0];
+			if (sep && boundary) sep[0] = boundary[0];
 			gf_free(boundary);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -1464,8 +1464,8 @@ static GF_Err gf_atsc3_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s,
 			in_session = GF_TRUE;
 			rlct = s->last_active_obj->rlct;
 		} else {
-			u32 i=0;
 			GF_ATSCRouteSession *rsess;
+			i=0;
 			while ((rsess = gf_list_enum(s->route_sessions, &i))) {
 				u32 j=0;
 				while ((rlct = gf_list_enum(rsess->channels, &j))) {
@@ -1490,13 +1490,13 @@ static GF_Err gf_atsc3_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s,
 		}
 	} else {
 		//check TOI for TSI 0
-		//a_G = toi & 0x80000000 /*(1<<31)*/ ? 1 : 0;
-		//a_U = toi & (1<<16) ? 1 : 0;
-		a_S = toi & (1<<17) ? 1 : 0;
-		a_M = toi & (1<<18) ? 1 : 0;
-		/*a_A = toi & (1<<19) ? 1 : 0;
-		a_H = toi & (1<<22) ? 1 : 0;
-		a_D = toi & (1<<23) ? 1 : 0;*/
+		//a_G = (toi & 0x80000000) /*(1<<31)*/ ? 1 : 0;
+		//a_U = (toi & (1<<16)) ? 1 : 0;
+		a_S = (toi & (1<<17)) ? 1 : 0;
+		a_M = (toi & (1<<18)) ? 1 : 0;
+		/*a_A = (toi & (1<<19)) ? 1 : 0;
+		a_H = (toi & (1<<22)) ? 1 : 0;
+		a_D = (toi & (1<<23)) ? 1 : 0;*/
 		v = toi & 0xFF;
 		//skip known version
 		if (a_M && (s->mpd_version == v+1)) a_M = 0;
@@ -1678,7 +1678,6 @@ GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd)
 	count = gf_list_count(atscd->services);
 	for (i=0; i<count; i++) {
 		u32 j;
-		GF_Err e;
 		GF_ATSCRouteSession *rsess;
 		GF_ATSCService *s = (GF_ATSCService *)gf_list_get(atscd->services, i);
 		if (s->tune_mode==GF_ATSC_TUNE_OFF) continue;

@@ -509,7 +509,7 @@ restart:
 
 #ifndef GPAC_DISABLE_SVG
 	if (par != sg) {
-		u32 count, i;
+		u32 i;
 		count = gf_list_count(par->smil_timed_elements);
 		for (i=0; i<count; i++) {
 			SMIL_Timing_RTI *rti = gf_list_get(par->smil_timed_elements, i);

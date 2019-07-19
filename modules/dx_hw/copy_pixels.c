@@ -326,7 +326,6 @@ static void write_yvyu_to_yuv(GF_VideoSurface *vs,  u8 *src, u32 src_stride, u32
 	}
 
 	if (is_planar_yuv(vs->pixel_format)) {
-		u32 i, j;
 		u8 *dst_y, *dst_u, *dst_v;
 
 		dst_y = (u8*)vs->video_buffer;
@@ -361,7 +360,6 @@ static void write_yvyu_to_yuv(GF_VideoSurface *vs,  u8 *src, u32 src_stride, u32
 	}
 
 	if (get_yuv_base(src_pf) == get_yuv_base(vs->pixel_format)) {
-		u32 i;
 		for (i=0; i<src_wnd->h; i++) {
 			char *dst = vs->video_buffer + i*vs->pitch_y;
 			pY = src + src_stride * (i+src_wnd->y) + src_wnd->x;

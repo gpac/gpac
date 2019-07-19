@@ -31,6 +31,8 @@
 #include <gpac/constants.h>
 #include <gpac/internal/media_dev.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 typedef struct
 {
 	GF_FilterPid *opid;
@@ -149,8 +151,8 @@ static void hevcsplit_get_tile_pixel_coords(HEVCState *hevc, u32 index_row, u32 
 	PicWidthInCtbsY = (hevc->sps[sps_id].width + max_CU_width - 1) / max_CU_width;
 	PicHeightInCtbsX = (hevc->sps[sps_id].height + max_CU_height - 1) / max_CU_height;
 
-	if (tx) *tx = 0;
-	if (ty) *ty = 0;
+	*tx = 0;
+	*ty = 0;
 
 	if (!hevc->pps[pps_id].tiles_enabled_flag) {
  		*width = hevc->sps[sps_id].width;
@@ -207,8 +209,8 @@ static void hevcsplit_get_tile_pixel_coords(HEVCState *hevc, u32 index_row, u32 
 
 	*width = *width * max_CU_width;
 	*height = *height * max_CU_height;
-	if (ty) *ty = tbX * max_CU_height;
-	if (tx) *tx = tbY * max_CU_width;
+	*ty = tbX * max_CU_height;
+	*tx = tbY * max_CU_width;
 
 	if (*tx + *width > hevc->sps[sps_id].width)
 		*width = hevc->sps[sps_id].width - *tx;
@@ -705,7 +707,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		cfg_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
 	}
 	//same config, skip reconf
-	if (cfg_crc == ctx->cfg_crc) return GF_OK;
+	if (!dsi || (cfg_crc == ctx->cfg_crc)) return GF_OK;
 	ctx->cfg_crc = cfg_crc;
 	ctx->ipid = pid;
 
@@ -951,3 +953,11 @@ const GF_FilterRegister* hevcsplit_register(GF_FilterSession *session)
 {
 	return &HEVCSplitRegister;
 }
+
+#else
+const GF_FilterRegister* hevcsplit_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_AV_PARSERS
+

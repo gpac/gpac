@@ -87,7 +87,7 @@ GF_Err gf_odf_read_url_string(GF_BitStream *bs, char **string, u32 *readBytes)
 	}
 	/*we want to use strlen to get rid of "stringLength" => we need an extra 0*/
 	(*string) = (char *) gf_malloc(length + 1);
-	if (! string) return GF_OUT_OF_MEM;
+	if (! *string) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, (*string), length);
 	*readBytes += length;
 	(*string)[length] = 0;

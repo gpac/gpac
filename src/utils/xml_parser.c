@@ -774,7 +774,7 @@ restart:
 			i = 0;
 			cdata_sep = 0;
 			while (1) {
-				char c = parser->buffer[parser->current_pos+1+i];
+				c = parser->buffer[parser->current_pos+1+i];
 				if (!strncmp(parser->buffer+parser->current_pos+1+i, "!--", 3)) {
 					parser->sax_state = SAX_STATE_COMMENT;
 					i += 3;
@@ -1505,20 +1505,21 @@ retry:
 
 		/*found*/
 		if (!strncmp(sep, att_value, att_len)) {
-			u32 pos;
+			u32 sub_pos;
 			sep = szLine + 1;
 			while (strchr(" \t\r\n", sep[0])) sep++;
-			pos = 0;
-			while (!strchr(" \t\r\n", sep[pos])) pos++;
-			first_c = sep[pos];
-			sep[pos] = 0;
+			sub_pos = 0;
+			while (!strchr(" \t\r\n", sep[pos])) sub_pos++;
+			first_c = sep[sub_pos];
+			sep[sub_pos] = 0;
 			state = 2;
 			if (!substitute || !get_attr || strcmp(sep, substitute) ) {
 				if (is_substitute) *is_substitute = GF_FALSE;
 				result = gf_strdup(sep);
+				sep[sub_pos] = first_c;
 				goto exit;
 			}
-			sep[pos] = first_c;
+			sep[sub_pos] = first_c;
 fetch_attr:
 			sep = strstr(szLine + 1, get_attr);
 			if (!sep) {
@@ -1528,9 +1529,9 @@ fetch_attr:
 			sep += strlen(get_attr);
 			while (strchr("= \t\r\n", sep[0])) sep++;
 			sep++;
-			pos = 0;
-			while (!strchr(" \t\r\n/>", sep[pos])) pos++;
-			sep[pos-1] = 0;
+			sub_pos = 0;
+			while (!strchr(" \t\r\n/>", sep[pos])) sub_pos++;
+			sep[sub_pos-1] = 0;
 			result = gf_strdup(sep);
 			if (is_substitute) *is_substitute = GF_TRUE;
 			goto exit;
@@ -2133,7 +2134,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			}
 			gf_free(data);
 		} else if (szData) {
-			u32 j, len = (u32) strlen(szData);
+			u32 len = (u32) strlen(szData);
 			char *data = (char *) gf_malloc(sizeof(char)*len/2);
 			if (!data) return GF_OUT_OF_MEM;
 

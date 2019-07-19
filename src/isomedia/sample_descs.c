@@ -748,7 +748,7 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 		gf_isom_box_del_parent(&dims->child_boxes, (GF_Box *) dims->scripts);
 		dims->scripts = NULL;
 	}
-	return e;
+	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -821,9 +821,9 @@ GF_Err gf_isom_get_xml_metadata_description(GF_ISOFile *file, u32 track, u32 sam
 {
 	GF_TrackBox *trak;
 	GF_MetaDataSampleEntryBox *ptr;
-	*_namespace = NULL;
-	*content_encoding = NULL;
-	*schema_loc = NULL;
+	if (_namespace) *_namespace = NULL;
+	if (content_encoding) *content_encoding = NULL;
+	if (schema_loc) *schema_loc = NULL;
 	trak = gf_isom_get_track_from_file(file, track);
 	if (!trak || !sampleDescription) return GF_BAD_PARAM;
 	ptr = (GF_MetaDataSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, sampleDescription-1);
@@ -1152,7 +1152,7 @@ GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber,
 	if (encoding) {
 		sample_entry->content_encoding = gf_strdup(encoding);
 	}
-	return e;
+	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -1229,16 +1229,12 @@ GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32
 	default:
 		return GF_BAD_PARAM;
 	}
-	if (wvtt) {
-		if (!movie->keep_utc)
-			trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+	if (!movie->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-		if (wvtt->config) gf_isom_box_del_parent(&wvtt->child_boxes, (GF_Box *)wvtt->config);
-		wvtt->config = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_VTTC_CONFIG, config, &wvtt->child_boxes);
-	} else {
-		e = GF_BAD_PARAM;
-	}
-	return e;
+	if (wvtt->config) gf_isom_box_del_parent(&wvtt->child_boxes, (GF_Box *)wvtt->config);
+	wvtt->config = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_VTTC_CONFIG, config, &wvtt->child_boxes);
+	return GF_OK;
 }
 
 GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, char *URLname, char *URNname, u32 *outDescriptionIndex, const char *config)

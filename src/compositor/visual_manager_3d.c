@@ -268,7 +268,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 			                           gf_divfix( gf_mulfix(disparity,dispdist), (half_interocular_dist_pixel + disparity));
 		}
 		else if (tr_state->visual->compositor->dispdepth) {
-			Fixed dist = INT2FIX(tr_state->visual->compositor->dispdepth);
+			dist = INT2FIX(tr_state->visual->compositor->dispdepth);
 			if (dist<0) dist = INT2FIX(tr_state->visual->height);
 
 #if 1
@@ -869,7 +869,7 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		/*reset directional lights*/
 		tr_state->local_light_on = 0;
 		for (i=gf_list_count(ctx->directional_lights); i>0; i--) {
-			DirectionalLightContext *dl = (DirectionalLightContext*)gf_list_get(ctx->directional_lights, i-1);
+			dl = (DirectionalLightContext*)gf_list_get(ctx->directional_lights, i-1);
 			gf_node_traverse(dl->dlight, tr_state);
 			gf_free(dl);
 		}
@@ -1121,12 +1121,13 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_Node *on_node, GF
 		} else {
 			/*camera displacement collision*/
 			if (tr_state->camera->collide_dist) {
-				if (tr_state->camera->collide_dist>=tr_state->camera->avatar_size.x)
+				if (tr_state->camera->collide_dist>=tr_state->camera->avatar_size.x) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Collision] Collision distance %g greater than avatar collide size %g\n", FIX2FLT(tr_state->camera->collide_dist), FIX2FLT(tr_state->camera->avatar_size.x)));
 
-				/*safety check due to precision, always stay below collide dist*/
-				if (tr_state->camera->collide_dist>=tr_state->camera->avatar_size.x) tr_state->camera->collide_dist = tr_state->camera->avatar_size.x;
-
+					/*safety check due to precision, always stay below collide dist*/
+					tr_state->camera->collide_dist = tr_state->camera->avatar_size.x;
+				}
+				
 				gf_vec_diff(n, tr_state->camera->position, tr_state->camera->collide_point);
 				gf_vec_norm(&n);
 				n = gf_vec_scale(n, tr_state->camera->avatar_size.x - tr_state->camera->collide_dist);

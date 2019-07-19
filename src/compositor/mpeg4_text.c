@@ -271,7 +271,6 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 				}
 				/*word is bigger than allowed extent, rewrite 3 previous chars*/
 				if ((s32)size*tspan->font_scale >= -maxExtent) {
-					u32 k;
 					u32 nb_chars = (j<2) ? j : 3;
 
 					for (k=0; k<nb_chars; k++) {

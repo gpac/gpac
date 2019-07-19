@@ -628,9 +628,6 @@ u32 getBitsPerPix(ISOMReader *read)
 GF_Err CAM_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	ISOMReader *read;
-	GF_BitStream *bs;
-	char *buf;
-	u32 buf_size;
 	if (!plug || !plug->priv || !com) return GF_SERVICE_ERROR;
 	read = (ISOMReader *) plug->priv;
 

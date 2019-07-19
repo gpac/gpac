@@ -1225,13 +1225,12 @@ static Bool OnSphereSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, G
 				sphere->trackPoint_changed = compositor->hit_local_point;
 				gf_node_event_out(sh->sensor, 5/*"trackPoint_changed"*/);
 			} else {
-				GF_Ray r;
-				r = compositor->hit_world_ray;
-				gf_mx_apply_ray(&compositor->hit_world_to_local, &r);
-				if (!gf_ray_hit_sphere(&r, NULL, st->radius, &compositor->hit_local_point)) {
+				GF_Ray ray = compositor->hit_world_ray;
+				gf_mx_apply_ray(&compositor->hit_world_to_local, &ray);
+				if (!gf_ray_hit_sphere(&ray, NULL, st->radius, &compositor->hit_local_point)) {
 					vec.x = vec.y = vec.z = 0;
 					/*doesn't work properly...*/
-					compositor->hit_local_point = gf_closest_point_to_line(r.orig, r.dir, vec);
+					compositor->hit_local_point = gf_closest_point_to_line(ray.orig, ray.dir, vec);
 				}
 			}
 

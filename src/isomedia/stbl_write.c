@@ -691,7 +691,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 		u32 samples_in_next_entry = 0;
 		u32 next_entry_first_chunk = 1;
 		for (i=0; i<stsc->nb_entries; i++) {
-			u32 k, nb_chunks = 1;
+			u32 nb_chunks = 1;
 			ent = &stsc->entries[i];
 			if (i+1<stsc->nb_entries) nb_chunks = stsc->entries[i+1].firstChunk - ent->firstChunk;
 			for (k=0; k<nb_chunks; k++) {

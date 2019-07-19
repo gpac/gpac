@@ -408,16 +408,15 @@ static void swf_parse_styles(SWFReader *read, u32 revision, SWFShape *shape, u32
 
 					/*make sure we have keys between 0 and 1.0 for BIFS (0 and 255 in swf)*/
 					if (style->grad_ratio[0] != 0) {
-						u32 i;
 						u32 *grad_col;
 						u8 *grad_ratio;
 						grad_ratio = (u8 *) gf_malloc(sizeof(u8) * (style->nbGrad+1));
 						grad_col = (u32 *) gf_malloc(sizeof(u32) * (style->nbGrad+1));
 						grad_col[0] = style->grad_col[0];
 						grad_ratio[0] = 0;
-						for (i=0; i<style->nbGrad; i++) {
-							grad_col[i+1] = style->grad_col[i];
-							grad_ratio[i+1] = style->grad_ratio[i];
+						for (j=0; j<style->nbGrad; j++) {
+							grad_col[j+1] = style->grad_col[j];
+							grad_ratio[j+1] = style->grad_ratio[j];
 						}
 						gf_free(style->grad_col);
 						style->grad_col = grad_col;
@@ -1431,8 +1430,6 @@ static GF_Err swf_def_font(SWFReader *read, u32 revision)
 
 
 	if (revision==0) {
-		u32 count;
-
 		start = swf_get_file_pos(read);
 
 		count = swf_get_16(read);

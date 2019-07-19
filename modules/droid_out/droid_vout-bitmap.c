@@ -57,8 +57,6 @@ GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init
 {
 	AndroidBitmapInfo  info;
 	RAWCTX;
-	void * pixels;
-	int ret;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout RAW_Setup\n"));
 

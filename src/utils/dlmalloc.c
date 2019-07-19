@@ -2793,7 +2793,7 @@ static size_t traverse_and_check(mstate m);
 #define treemap_is_marked(M,i)  ((M)->treemap  &   idx2bit(i))
 
 /* isolate the least set bit of a bitmap */
-#define least_bit(x)         ((x) & -(x))
+#define least_bit(x)         ((x) & (-(x)))
 
 /* mask with all bits to left of least bit of x on */
 #define left_bits(x)         ((x<<1) | -(x<<1))

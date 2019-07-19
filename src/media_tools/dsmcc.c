@@ -758,7 +758,6 @@ static GF_Err gf_m2ts_dsmcc_section_delete(GF_M2TS_DSMCC_SECTION *dsmcc)
 	gf_m2ts_dsmcc_delete_message_header(&DataMessage->DownloadDataHeader);
 	gf_free(DataMessage);
 	gf_free(dsmcc);
-	dsmcc = NULL;
 	return GF_OK;
 }
 
@@ -767,7 +766,6 @@ static GF_Err dsmcc_module_delete(GF_M2TS_DSMCC_MODULE* dsmcc_module) {
 
 	gf_free(dsmcc_module->buffer);
 	gf_free(dsmcc_module);
-	dsmcc_module = NULL;
 	return  GF_OK;
 }
 
@@ -1141,7 +1139,6 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 
 		if(!strcmp(BIOP_Directory->Name[i].kind_data,"dir")) {
 			if(!dsmcc_check_element_validation(ServiceGateway->Dir,ServiceGateway->name,BIOP_Directory->Name[i])) {
-				GF_Err e;
 				GF_M2TS_DSMCC_DIR* Directory;
 				GF_M2TS_DSMCC_BIOP_TAGGED_PROFILE* taggedProfile = (GF_M2TS_DSMCC_BIOP_TAGGED_PROFILE*)gf_list_get(BIOP_Directory->Name[i].IOR.taggedProfile,0);
 				GF_SAFEALLOC(Directory,GF_M2TS_DSMCC_DIR);
@@ -1423,7 +1420,6 @@ static GF_Err dsmcc_biop_get_ior(GF_BitStream* bs,GF_M2TS_DSMCC_IOR* IOR)
 		case TAG_BIOP:
 		{
 			/* Object Location */
-			u32 j;
 			GF_SAFEALLOC(taggedProfile->BIOPProfileBody,GF_M2TS_DSMCC_BIOP_PROFILE_BODY);
 			taggedProfile->BIOPProfileBody->ObjectLocation.componentId_tag = gf_bs_read_int(bs,32);
 			if(taggedProfile->BIOPProfileBody->ObjectLocation.componentId_tag != 0x49534F50) {
@@ -1492,7 +1488,6 @@ static GF_Err dsmcc_biop_get_ior(GF_BitStream* bs,GF_M2TS_DSMCC_IOR* IOR)
 		case TAG_LITE_OPTIONS:
 		{
 			/* Service Location */
-			u32 j;
 			GF_SAFEALLOC(taggedProfile->ServiceLocation,GF_M2TS_DSMCC_BIOP_SERVICE_LOCATION);
 			taggedProfile->ServiceLocation->componentId_tag = gf_bs_read_int(bs,32);
 			if(taggedProfile->ServiceLocation->componentId_tag != 0x49534F46) {

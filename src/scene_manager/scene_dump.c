@@ -2386,7 +2386,6 @@ static GF_Err gf_dump_vrml_route(GF_SceneDumper *sdump, GF_Route *r, u32 dump_ty
 			strcpy(toNode, to_name);
 		} else {
 			char str[100];
-			u32 id;
 			id = gf_node_get_id(r->ToNode);
 			sprintf(str, "node_%d", id);
 			strcpy(toNode, str);
@@ -2712,8 +2711,7 @@ static GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 				gf_node_get_field(op, com->fromFieldIndex, &op_info);
 				fprintf(sdump->trace, "operandAttributeName=\"%s\" ", op_info.name);
 			}
-		}
-		if (!f->new_node && !f->node_list) {
+
 			fprintf(sdump->trace, "/>\n");
 			return GF_OK;
 		}
@@ -2936,16 +2934,16 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 			break;
 		case GF_SG_PROTO_DELETE:
 		{
-			u32 i;
+			u32 j;
 			DUMP_IND(sdump);
 			if (sdump->XMLDump) {
 				fprintf(sdump->trace, "<Delete extended=\"protos\" value=\"");
 			} else {
 				fprintf(sdump->trace, "DELETEPROTO [");
 			}
-			for (i=0; i<com->del_proto_list_size; i++) {
-				if (i) fprintf(sdump->trace, " ");
-				fprintf(sdump->trace, "%d", com->del_proto_list[i]);
+			for (j=0; j<com->del_proto_list_size; j++) {
+				if (j) fprintf(sdump->trace, " ");
+				fprintf(sdump->trace, "%d", com->del_proto_list[j]);
 			}
 			if (sdump->XMLDump) {
 				fprintf(sdump->trace, "\"/>\n");
@@ -3472,7 +3470,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, Bool is_final_name, GF_S
 
 #ifndef GPAC_DISABLE_SVG
 	if (dumper->dump_mode==GF_SM_DUMP_SVG) {
-		GF_AUContext *au = (GF_AUContext*)gf_list_get(sample_list, 0);
+		au = (GF_AUContext*)gf_list_get(sample_list, 0);
 		GF_Command *com = NULL;
 		if (au) com = (GF_Command*)gf_list_get(au->commands, 0);
 		if (!au) {
@@ -3493,7 +3491,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, Bool is_final_name, GF_S
 	first_par = 0;
 
 	while (gf_list_count(sample_list)) {
-		GF_AUContext *au = (GF_AUContext*)gf_list_get(sample_list, 0);
+		au = (GF_AUContext*)gf_list_get(sample_list, 0);
 		gf_list_rem(sample_list, 0);
 
 		if (!dumper->XMLDump) {

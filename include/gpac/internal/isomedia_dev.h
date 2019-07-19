@@ -3850,11 +3850,11 @@ GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie);
 #endif
 
-Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type);
-
 GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type);
 
 GF_DefaultSampleGroupDescriptionEntry * gf_isom_get_sample_group_info_entry(GF_ISOFile *the_file, GF_TrackBox *trak, u32 grouping_type, u32 sample_description_index, u32 *default_index, GF_SampleGroupDescriptionBox **out_sgdp);
 

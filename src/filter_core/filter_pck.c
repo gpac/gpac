@@ -1321,7 +1321,7 @@ Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
-	return pck->pck->info.flags & GF_PCKF_CORRUPTED ? GF_TRUE : GF_FALSE;
+	return (pck->pck->info.flags & GF_PCKF_CORRUPTED) ? GF_TRUE : GF_FALSE;
 }
 
 GF_EXPORT

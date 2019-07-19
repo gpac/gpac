@@ -300,7 +300,7 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 	}
 
 	if ((item_type == GF_ISOM_SUBTYPE_HVC1) || (item_type == GF_ISOM_SUBTYPE_AVC_H264) ) {
-		u32 i, count, j, c2;
+		u32 j, c2;
 		GF_HEVCConfigurationBox *hvcc = NULL;
 		GF_AVCConfigurationBox *avcc = NULL;
 		if (! meta->item_props) return GF_NON_COMPLIANT_BITSTREAM;
@@ -919,9 +919,9 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	if (meta->item_infos) {
 		u32 item_count = gf_list_count(meta->item_infos->item_infos);
 		for (i = 0; i < item_count; i++) {
-			GF_ItemInfoEntryBox *e= (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, i);
-			if (e->item_ID > lastItemID) lastItemID = e->item_ID;
-			if (item_id == e->item_ID) {
+			GF_ItemInfoEntryBox *iinf_e= (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, i);
+			if (iinf_e->item_ID > lastItemID) lastItemID = iinf_e->item_ID;
+			if (item_id == iinf_e->item_ID) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] Item with id %d already exists, ignoring id\n", item_id));
 				item_id = 0;
 			}

@@ -844,9 +844,10 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 			}
 		}
 	}
+	if (!new_node)
 #endif
 
-	if (!new_node) {
+	{
 		if (proto) {
 			/*create proto interface*/
 			new_node = gf_sg_proto_create_instance(codec->current_graph, proto);

@@ -364,7 +364,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 	//this is a scene reset, destroy all proto links
 	if (!lib_url) {
 		while (gf_list_count(scene->extern_protos)) {
-			GF_ProtoLink *pl = gf_list_pop_back(scene->extern_protos);
+			pl = gf_list_pop_back(scene->extern_protos);
 			if (pl->mo) {
 				//proto link was not attached, manual discard
 				if (!pl->mo->odm) {

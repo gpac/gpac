@@ -763,11 +763,8 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
 #else
 		flags = SDL_WINDOW_FLAGS | SDL_WINDOW_RESIZABLE;
-
 		if (ctx->os_handle) flags &= ~SDL_WINDOW_RESIZABLE;
-
 #endif
-		if (ctx->os_handle) flags &= ~SDL_WINDOW_RESIZABLE;
 
 #if SDL_VERSION_ATLEAST(2,0,0)
 

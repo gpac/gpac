@@ -205,7 +205,7 @@ GF_Err boxstring_box_write(GF_Box *s, GF_BitStream *bs)
 	if (box->string) {
 		gf_bs_write_data(bs, box->string, (u32)(box->size-8));
 	}
-	return e;
+	return GF_OK;
 }
 
 GF_Err vtcu_box_write(GF_Box *s, GF_BitStream *bs)
@@ -423,12 +423,14 @@ struct _webvtt_parser {
 	void (*on_cue_read)(void *, GF_WebVTTCue *);
 };
 
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 static Bool gf_webvtt_timestamp_is_zero(GF_WebVTTTimestamp *ts)
 {
 	return (ts->hour == 0 && ts->min == 0 && ts->sec == 0 && ts->ms == 0) ? GF_TRUE : GF_FALSE;
 }
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+
 static Bool gf_webvtt_timestamp_greater(GF_WebVTTTimestamp *ts1, GF_WebVTTTimestamp *ts2)
 {
 	u64 t_ts1 = (60 * 60 * ts1->hour + 60 * ts1->min + ts1->sec) * 1000 + ts1->ms;
@@ -1413,6 +1415,7 @@ GF_Err gf_webvtt_parser_finalize(GF_WebVTTParser *parser, u64 duration)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 static void gf_webvtt_dump_cue(void *user, GF_WebVTTCue *cue)
 {
 	FILE *dump = (FILE *)user;
@@ -1445,6 +1448,7 @@ static void gf_webvtt_dump_cue(void *user, GF_WebVTTCue *cue)
 		fprintf(dump, "\n");
 	}
 }
+#endif
 
 //unused
 #if 0

@@ -696,6 +696,7 @@ GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
  			void *usr_data,
  			u32 block_size)
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	if (mov->finalName && !strcmp(mov->finalName, "_gpac_isobmff_redirect")) {}
 	else if (mov->fileName && !strcmp(mov->fileName, "_gpac_isobmff_redirect")) {}
 	else return GF_BAD_PARAM;
@@ -704,6 +705,9 @@ GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
 	mov->on_block_out_usr_data = usr_data;
 	mov->on_block_out_block_size = block_size;
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 

@@ -980,7 +980,7 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		if (!opt) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("Validator missing configuration, stopping.\n"));
 			return GF_FALSE;
-		} else if (!strcmp(opt, "Play") || !strcmp(opt, "Play")) {
+		} else if (!strcmp(opt, "Play") ) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator starting in playback mode.\n"));
 			validator->is_recording = GF_FALSE;
 			//this will indicate to the compositor to increment scene time even though no new changes

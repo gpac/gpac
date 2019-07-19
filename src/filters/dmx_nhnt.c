@@ -257,14 +257,14 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	u32 pkt_size;
 	Bool start, end;
-	const char *data;
+	u8 *data;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) gf_filter_pid_set_eos(ctx->opid);
 		return GF_OK;
 	}
-	data = gf_filter_pck_get_data(pck, &pkt_size);
+	data = (u8 *)gf_filter_pck_get_data(pck, &pkt_size);
 	gf_filter_pck_get_framing(pck, &start, &end);
 	//for now we only work with complete files
 	assert(end);
@@ -382,7 +382,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 
 	while (gf_bs_available(ctx->bs) >= 16 ) {
 		GF_FilterPacket *dst_pck;
-		u8 *data;
+		u8 *output;
 		u64 dts, cts, offset;
 		u32 res, len = gf_bs_read_u24(ctx->bs);
 		Bool is_rap = gf_bs_read_int(ctx->bs, 1);
@@ -411,8 +411,8 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 		}
 		gf_fseek(ctx->mdia, offset, SEEK_SET);
 
-		dst_pck = gf_filter_pck_new_alloc(ctx->opid, len, &data);
-		res = (u32) fread(data, 1, len, ctx->mdia);
+		dst_pck = gf_filter_pck_new_alloc(ctx->opid, len, &output);
+		res = (u32) fread(output, 1, len, ctx->mdia);
 		if (res != len) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHNT] Read failure, expecting %d bytes got %d", len, res));
 		}

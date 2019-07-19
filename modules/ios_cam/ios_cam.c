@@ -229,7 +229,6 @@ int* decodeYUV420SP( char* yuv420sp, int width, int height)
 	int* rgb = (int*)gf_malloc(width*height*4);
 	for (j = 0, yp = 0, tj=height-1; j < height; j++, tj--)
 	{
-		int u, v;
 		int uvp = frameSize + (j >> 1) * width, u = 0, v = 0;
 		for (i = 0, ti=0; i < width; i++, yp++, ti+=width)
 		{

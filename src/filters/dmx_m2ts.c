@@ -571,7 +571,6 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		break;
 	case GF_M2TS_EVT_PES_PCR:
 	{
-		u32 i, count;
 		u64 pcr;
 		Bool map_time = GF_FALSE;
 		GF_M2TS_PES_PCK *pck = ((GF_M2TS_PES_PCK *) param);

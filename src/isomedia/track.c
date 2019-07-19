@@ -142,7 +142,8 @@ GF_Err GetESD(GF_MovieBox *moov, GF_ISOTrackID trackID, u32 StreamDescIndex, GF_
 				goto default_sync;
 			}
 			/*this is explicit desync*/
-			if (dpnd && ((dpnd->trackIDs[0]==0) || (dpnd->trackIDs[0]==OCRTrack->Header->trackID))) break;
+			if ((dpnd->trackIDs[0]==0) || (dpnd->trackIDs[0]==OCRTrack->Header->trackID))
+				break;
 			/*loop in OCRs, break it*/
 			if (esd->ESID == (u16) OCRTrack->Header->trackID) {
 				OCRTrack = NULL;
@@ -558,15 +559,14 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			duration = def_duration;
 			flags = def_flags;
 
-			if (ent) {
-				if (trun->flags & GF_ISOM_TRUN_DURATION) duration = ent->Duration;
-				if (trun->flags & GF_ISOM_TRUN_SIZE) size = ent->size;
-				if (trun->flags & GF_ISOM_TRUN_FLAGS) {
-					flags = ent->flags;
-				} else if (!j && (trun->flags & GF_ISOM_TRUN_FIRST_FLAG)) {
-					flags = trun->first_sample_flags;
-				}
+			if (trun->flags & GF_ISOM_TRUN_DURATION) duration = ent->Duration;
+			if (trun->flags & GF_ISOM_TRUN_SIZE) size = ent->size;
+			if (trun->flags & GF_ISOM_TRUN_FLAGS) {
+				flags = ent->flags;
+			} else if (!j && (trun->flags & GF_ISOM_TRUN_FIRST_FLAG)) {
+				flags = trun->first_sample_flags;
 			}
+
 			//add size first
 			stbl_AppendSize(trak->Media->information->sampleTable, size, ent->nb_pack);
 			//then TS
@@ -634,23 +634,23 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	}
 	if (traf_duration && trak->editBox && trak->editBox->editList) {
 		for (i=0; i<gf_list_count(trak->editBox->editList->entryList); i++) {
-			GF_EdtsEntry *ent = gf_list_get(trak->editBox->editList->entryList, i);
-			if (ent->was_empty_dur) {
+			GF_EdtsEntry *edts_e = gf_list_get(trak->editBox->editList->entryList, i);
+			if (edts_e->was_empty_dur) {
 				u64 extend_dur = traf_duration;
 				extend_dur *= trak->moov->mvhd->timeScale;
 				extend_dur /= trak->Media->mediaHeader->timeScale;
-				ent->segmentDuration += extend_dur;
+				edts_e->segmentDuration += extend_dur;
 			}
-			else if (!ent->segmentDuration) {
-				ent->was_empty_dur = GF_TRUE;
-				if ((s64) traf_duration > ent->mediaTime)
-					traf_duration -= ent->mediaTime;
+			else if (!edts_e->segmentDuration) {
+				edts_e->was_empty_dur = GF_TRUE;
+				if ((s64) traf_duration > edts_e->mediaTime)
+					traf_duration -= edts_e->mediaTime;
 				else
 					traf_duration = 0;
 
-				ent->segmentDuration = traf_duration;
-				ent->segmentDuration *= trak->moov->mvhd->timeScale;
-				ent->segmentDuration /= trak->Media->mediaHeader->timeScale;
+				edts_e->segmentDuration = traf_duration;
+				edts_e->segmentDuration *= trak->moov->mvhd->timeScale;
+				edts_e->segmentDuration /= trak->Media->mediaHeader->timeScale;
 			}
 
 		}
@@ -823,7 +823,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 
 		/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
 		if (gf_isom_cenc_has_saiz_saio_traf(traf, scheme_type)) {
-			u32 size, nb_saio;
+			u32 nb_saio;
 			u32 aux_info_type;
 			u64 offset;
 			GF_Err e;

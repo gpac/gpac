@@ -62,8 +62,10 @@ static int command_line_parsing(int argc, const char** argv, unsigned short * tc
 		}
 		else if (!strcmp("-m", a) || !strcmp("--mtu", a))
 		{
-			*mtu_size = atoi(argv[counter+1]);
-			if (!(mtu_size)) return -3;
+			if (mtu_size)
+				*mtu_size = atoi(argv[counter+1]);
+				if (! (*mtu_size)) return -3;
+			}
 		}
 		else if (!strcmp("-d", a) || !strcmp("--debug", a))
 		{
@@ -237,7 +239,7 @@ u32 tcp_server(void *par)
 
 			while (1)
 			{
-				GF_Err e = gf_sk_receive(conn_socket, temp, sizeof(temp), 0, &byte_read);
+				e = gf_sk_receive(conn_socket, temp, sizeof(temp), 0, &byte_read);
 
 				if (e == GF_OK) {
 					gf_fwrite(temp, 1, byte_read, fp);
@@ -410,7 +412,7 @@ int main (const int argc, const char** argv)
 	run = 1;
 	while (run)
 	{
-		GF_Err e = PNC_processBIFSGenerator(data);
+		e = PNC_processBIFSGenerator(data);
 		if (e) {
 			fprintf(stderr, "Cannot Process BIFS data (%s)\n", gf_error_to_string(e));
 			break;

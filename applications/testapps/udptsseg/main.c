@@ -115,7 +115,6 @@ int main(int argc, char **argv)
 	u32 segment_index = 0;
 	u32 segment_number = 0;
 	char segment_manifest_default[GF_MAX_PATH];
-	u32 run = 1;
 	u32 last_segment_time = 0;
 	u32 last_segment_size = 0;
 	u32 read = 0;
@@ -228,7 +227,7 @@ int main(int argc, char **argv)
 	/*****************/
 	last_segment_time = gf_sys_clock();
 	last_segment_size = 0;
-	while (run) {
+	while (1) {
 		/*check for some input from the network*/
 		if (input_ip) {
 			gf_sk_receive(input_udp_sk, input_buffer+leftinbuffer, input_buffer_size-leftinbuffer, 0, &read);
@@ -236,8 +235,7 @@ int main(int argc, char **argv)
 			if (leftinbuffer) {
 				fprintf(stderr, "Processing %s segment ... received %d bytes (buffer: %d, segment: %d)\n", segment_name, read, leftinbuffer, last_segment_size);
 				if (input_buffer[0] != 0x47) {
-					u32 i = 0;
-					while (input_buffer[i] != 0x47 && i < leftinbuffer) i++;
+					while ((i < leftinbuffer) && (input_buffer[i] != 0x47)) i++;
 					fprintf(stderr, "Warning: data in buffer not starting with the MPEG-2 TS sync byte, skipping %d bytes of %d\n", i, leftinbuffer);
 					if (i < leftinbuffer) memmove(input_buffer, input_buffer+i, leftinbuffer-i);
 					leftinbuffer -=i;

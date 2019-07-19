@@ -258,7 +258,9 @@ void DestroyObjects(DDContext *dd)
 
 GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_height)
 {
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2) || !defined(_WIN32_WCE)
 	const char *sOpt;
+#endif
 	GF_Event evt;
 	Bool hw_reset = GF_FALSE;
 	DDCONTEXT
@@ -554,7 +556,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 		SetWindowLong(dd->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
 #endif
 
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2) && !defined(_WIN32_WCE)
 exit:
 #endif
 

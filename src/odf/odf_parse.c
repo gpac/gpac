@@ -346,9 +346,9 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			}
 		}
 		else if (!stricmp(fieldName, "upStream")) GET_BOOL(dcd->upstream)
-			else if (!stricmp(fieldName, "bufferSizeDB")) ret += sscanf(val, "%u", &dcd->bufferSizeDB);
-			else if (!stricmp(fieldName, "maxBitRate")) ret += sscanf(val, "%u", &dcd->maxBitrate);
-			else if (!stricmp(fieldName, "avgBitRate")) ret += sscanf(val, "%u", &dcd->avgBitrate);
+		else if (!stricmp(fieldName, "bufferSizeDB")) ret += sscanf(val, "%u", &dcd->bufferSizeDB);
+		else if (!stricmp(fieldName, "maxBitRate")) ret += sscanf(val, "%u", &dcd->maxBitrate);
+		else if (!stricmp(fieldName, "avgBitRate")) ret += sscanf(val, "%u", &dcd->avgBitrate);
 	}
 	break;
 	case GF_ODF_ESD_TAG:

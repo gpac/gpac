@@ -280,7 +280,7 @@ GF_Err gf_odf_write_od_update(GF_BitStream *bs, GF_ODUpdate *odUp)
 
 	e = gf_odf_size_od_update(odUp, &size);
 	if (e) return e;
-	gf_odf_write_base_descriptor(bs, odUp->tag, size);
+	e = gf_odf_write_base_descriptor(bs, odUp->tag, size);
 	if (e) return e;
 
 	i=0;

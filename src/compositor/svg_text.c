@@ -360,7 +360,7 @@ static void svg_text_area_queue_state(GF_TraverseState *tr_state, GF_TextSpan *s
 	u32 i, count;
 	count = gf_list_count(tr_state->x_anchors);
 	for (i=0; i<count; i++) {
-		textArea_state *st = (textArea_state*)gf_list_get(tr_state->x_anchors, i);
+		st = (textArea_state*)gf_list_get(tr_state->x_anchors, i);
 		if (st->span==span) {
 			st->last_glyph = last_glyph;
 			return;

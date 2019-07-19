@@ -327,29 +327,6 @@ static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *
 	}
 }
 
-static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
-{
-	if (rti_logs) gf_fclose(rti_logs);
-	rti_logs = gf_fopen(rti_file, "wt");
-	if (rti_logs) {
-		fprintf(rti_logs, "!! GPAC RunTime Info ");
-		if (url) fprintf(rti_logs, "for file %s", url);
-		fprintf(rti_logs, " !!\n");
-		fprintf(rti_logs, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
-
-		/*turn on RTI loging*/
-		if (use_rtix) {
-			gf_log_set_callback(NULL, on_gpac_log);
-			gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
-			gf_log_set_tool_level(GF_LOG_RTI, GF_LOG_DEBUG);
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
-		} else if (log_time_start) {
-			log_time_start = gf_sys_clock();
-		}
-	}
-}
-
 void set_cfg_option(char *opt_string)
 {
 	char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
@@ -408,12 +385,11 @@ int main (int argc, char *argv[])
 	u32 simulation_time = 0;
 	Bool auto_exit = 0;
 	Bool use_gui = 0;
-	Bool use_rtix = 0;
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
 
 	Bool ret, fill_ar, visible;
 	Bool logs_set = GF_FALSE;
-	char *url_arg, *the_cfg, *rti_file;
+	char *url_arg, *the_cfg;
 	const char *logs_settings = NULL;
 	GF_SystemRTInfo rti;
 	FILE *logfile = NULL;
@@ -423,7 +399,7 @@ int main (int argc, char *argv[])
 	memset(&user, 0, sizeof(GF_User));
 
 	fill_ar = visible = 0;
-	url_arg = the_cfg = rti_file = NULL;
+	url_arg = the_cfg = NULL;
 
 #ifdef GPAC_MEMORY_TRACKING
 	for (i=1; i<argc; i++) {
@@ -495,7 +471,6 @@ int main (int argc, char *argv[])
 
 	gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
 	memory_at_gpac_startup = rti.physical_memory_avail;
-	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
 
 	//TODO investigate iOS lock-free, seems to be not stable
 	gf_opts_set_key("core", "sched", "lock");
@@ -582,16 +557,6 @@ int main (int argc, char *argv[])
 		if (str) GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("HTTP Proxy %s enabled\n", str));
 	}
 
-	if (rti_file) {
-		str = gf_opts_get_key("General", "RTIRefreshPeriod");
-		if (str) {
-			rti_update_time_ms = atoi(str);
-		} else {
-			gf_opts_set_key("General", "RTIRefreshPeriod", "200");
-		}
-		UpdateRTInfo("At GPAC load time\n");
-	}
-
 	Run = 1;
 	ret = 1;
 
@@ -658,7 +623,7 @@ int main (int argc, char *argv[])
 			request_next_playlist_item=0;
 			gf_term_disconnect(term);
 
-			if (fscanf(playlist, "%s", szPath) == EOF) {
+			if (fscanf(playlist, "%1023s", szPath) == EOF) {
 				fprintf(stderr, "No more items - exiting\n");
 				Run = 0;
 			} else if (szPath[0] == '#') {
@@ -669,7 +634,7 @@ int main (int argc, char *argv[])
 			}
 		}
 
-		if (!use_rtix || display_rti) UpdateRTInfo(NULL);
+		if (display_rti) UpdateRTInfo(NULL);
 		if (not_threaded) {
 			//printf("gf_term_process_step from run loop\n");
 			gf_term_process_step(term);
@@ -690,7 +655,6 @@ int main (int argc, char *argv[])
 	}
 
 	gf_term_disconnect(term);
-	if (rti_file) UpdateRTInfo("Disconnected\n");
 
 	if (gyro_dev) {
 		sensor_stop(gyro_dev);
@@ -731,7 +695,6 @@ void PrintAVInfo(Bool final)
 {
 	GF_MediaInfo a_odi, v_odi, s_odi;
 	u32 tot_time=0;
-	Bool print_codecs = final;
 
 	if (scene_odm) {
 		GF_ObjectManager *root_odm = gf_term_get_root_object(term);
@@ -743,7 +706,7 @@ void PrintAVInfo(Bool final)
 	}
 	if (!video_odm && !audio_odm && !scene_odm) {
 		u32 count, i;
-		GF_ObjectManager *root_odm = root_odm = gf_term_get_root_object(term);
+		GF_ObjectManager *root_odm = gf_term_get_root_object(term);
 		if (!root_odm) return;
 
 		if (gf_term_get_object_info(term, root_odm, &v_odi)==GF_OK) {
@@ -778,12 +741,12 @@ void PrintAVInfo(Bool final)
 	} else {
 		memset(&v_odi, 0, sizeof(v_odi));
 	}
-	if (print_codecs && audio_odm) {
+	if (audio_odm) {
 		gf_term_get_object_info(term, audio_odm, &a_odi);
 	} else {
 		memset(&a_odi, 0, sizeof(a_odi));
 	}
-	if ((print_codecs || !video_odm) && scene_odm) {
+	if (!video_odm && scene_odm) {
 		gf_term_get_object_info(term, scene_odm, &s_odi);
 	} else {
 		memset(&s_odi, 0, sizeof(s_odi));
@@ -801,57 +764,55 @@ void PrintAVInfo(Bool final)
 			fprintf(stderr, "Drawn %d frames FPS %.2f (simulation FPS %.2f) - duration %d ms\n", nb_frames_drawn, ((Float)nb_frames_drawn*1000)/tot_time,(Float) FPS, gf_term_get_time_in_ms(term)  );
 		}
 	}
-	if (print_codecs) {
-		if (video_odm) {
-			fprintf(stderr, "%s %dx%d sar=%d:%d duration %.2fs\n", v_odi.codec_name, v_odi.width, v_odi.height, v_odi.par ? (v_odi.par>>16)&0xFF : 1, v_odi.par ? (v_odi.par)&0xFF : 1, v_odi.duration);
-			if (final) {
-				u32 dec_run_time = v_odi.last_frame_time - v_odi.first_frame_time;
-				if (!dec_run_time) dec_run_time = 1;
-				if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
-				fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
-				if (v_odi.nb_dropped) {
-					fprintf(stderr, " (Error during bench: %d frames drop)", v_odi.nb_dropped);
-				}
-				fprintf(stderr, "\n");
-			}
-		}
-		if (audio_odm) {
-			fprintf(stderr, "%s SR %d num channels %d fmt %s duration %.2fs\n", a_odi.codec_name, a_odi.sample_rate, a_odi.num_channels, gf_audio_fmt_name(a_odi.afmt), a_odi.duration);
-			if (final) {
-				u32 dec_run_time = a_odi.last_frame_time - a_odi.first_frame_time;
-				if (!dec_run_time) dec_run_time = 1;
-				if (a_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*a_odi.current_time / a_odi.duration ) );
-				fprintf(stderr, "%d frames (ms/f %.2f avg %.2f max) rate avg %d max %d", a_odi.nb_dec_frames, ((Float)dec_run_time)/a_odi.nb_dec_frames, a_odi.max_dec_time/1000.0, (u32) a_odi.avg_bitrate/1000, (u32) a_odi.max_bitrate/1000);
-				if (a_odi.nb_dropped) {
-					fprintf(stderr, " (Error during bench: %d frames drop)", a_odi.nb_dropped);
-				}
-				fprintf(stderr, "\n");
-			}
-		}
-		if (scene_odm) {
-			u32 w, h;
-			gf_term_get_visual_output_size(term, &w, &h);
-			fprintf(stderr, "%s scene size %dx%d rastered to %dx%d duration %.2fs\n", s_odi.codec_name ? s_odi.codec_name : "", s_odi.width, s_odi.height, w, h, s_odi.duration);
-			if (final) {
-				if (s_odi.nb_dec_frames>2 && s_odi.total_dec_time) {
-					u32 dec_run_time = s_odi.last_frame_time - s_odi.first_frame_time;
-					if (!dec_run_time) dec_run_time = 1;
-					fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
-					fprintf(stderr, "\n");
-				} else {
-					u32 nb_frames_drawn;
-					Double FPS;
-					gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
-					tot_time = gf_sys_clock() - bench_mode_start;
-					FPS = gf_term_get_framerate(term, 0);
-					fprintf(stderr, "%d frames FPS %.2f (abs %.2f)\n", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
-				}
-			}
-		}
+	if (video_odm) {
+		fprintf(stderr, "%s %dx%d sar=%d:%d duration %.2fs\n", v_odi.codec_name, v_odi.width, v_odi.height, v_odi.par ? (v_odi.par>>16)&0xFF : 1, v_odi.par ? (v_odi.par)&0xFF : 1, v_odi.duration);
 		if (final) {
-			fprintf(stderr, "**********************************************************\n\n");
-			return;
+			u32 dec_run_time = v_odi.last_frame_time - v_odi.first_frame_time;
+			if (!dec_run_time) dec_run_time = 1;
+			if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
+			fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
+			if (v_odi.nb_dropped) {
+				fprintf(stderr, " (Error during bench: %d frames drop)", v_odi.nb_dropped);
+			}
+			fprintf(stderr, "\n");
 		}
+	}
+	if (audio_odm) {
+		fprintf(stderr, "%s SR %d num channels %d fmt %s duration %.2fs\n", a_odi.codec_name, a_odi.sample_rate, a_odi.num_channels, gf_audio_fmt_name(a_odi.afmt), a_odi.duration);
+		if (final) {
+			u32 dec_run_time = a_odi.last_frame_time - a_odi.first_frame_time;
+			if (!dec_run_time) dec_run_time = 1;
+			if (a_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*a_odi.current_time / a_odi.duration ) );
+			fprintf(stderr, "%d frames (ms/f %.2f avg %.2f max) rate avg %d max %d", a_odi.nb_dec_frames, ((Float)dec_run_time)/a_odi.nb_dec_frames, a_odi.max_dec_time/1000.0, (u32) a_odi.avg_bitrate/1000, (u32) a_odi.max_bitrate/1000);
+			if (a_odi.nb_dropped) {
+				fprintf(stderr, " (Error during bench: %d frames drop)", a_odi.nb_dropped);
+			}
+			fprintf(stderr, "\n");
+		}
+	}
+	if (scene_odm) {
+		u32 w, h;
+		gf_term_get_visual_output_size(term, &w, &h);
+		fprintf(stderr, "%s scene size %dx%d rastered to %dx%d duration %.2fs\n", s_odi.codec_name ? s_odi.codec_name : "", s_odi.width, s_odi.height, w, h, s_odi.duration);
+		if (final) {
+			if (s_odi.nb_dec_frames>2 && s_odi.total_dec_time) {
+				u32 dec_run_time = s_odi.last_frame_time - s_odi.first_frame_time;
+				if (!dec_run_time) dec_run_time = 1;
+				fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
+				fprintf(stderr, "\n");
+			} else {
+				u32 nb_frames_drawn;
+				Double FPS;
+				gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
+				tot_time = gf_sys_clock() - bench_mode_start;
+				FPS = gf_term_get_framerate(term, 0);
+				fprintf(stderr, "%d frames FPS %.2f (abs %.2f)\n", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
+			}
+		}
+	}
+	if (final) {
+		fprintf(stderr, "**********************************************************\n\n");
+		return;
 	}
 
 	if (video_odm) {
@@ -878,9 +839,7 @@ void PrintAVInfo(Bool final)
 		}
 	}
 	else if (audio_odm) {
-		if (!print_codecs) {
-			gf_term_get_object_info(term, audio_odm, &a_odi);
-		}
+		gf_term_get_object_info(term, audio_odm, &a_odi);
 		tot_time = a_odi.last_frame_time - a_odi.first_frame_time;
 		if (!tot_time) tot_time=1;
 		if (a_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*a_odi.current_time / a_odi.duration ) );

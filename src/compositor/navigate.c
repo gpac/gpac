@@ -647,7 +647,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		break;
 	case GF_EVENT_SENSOR_ORIENTATION:
 	{
-		Fixed x, y, z, w, yaw, /*pitch, */roll;
+		Fixed z, w, yaw, /*pitch, */roll;
 		GF_Vec target;
 		GF_Matrix mx;
 
@@ -841,7 +841,7 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 		case GF_KEY_UP:
 			if (navigation_mode == GF_NAVIGATE_SLIDE) {
 				if (keys & GF_KEY_MOD_CTRL) {
-					Fixed new_zoom = zoom;
+					new_zoom = zoom;
 					if (new_zoom > FIX_ONE) new_zoom += key_inv*FIX_ONE/10;
 					else new_zoom += key_inv*FIX_ONE/20;
 					nav_set_zoom_trans_2d(visual, new_zoom, 0, 0);

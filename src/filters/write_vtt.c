@@ -263,8 +263,8 @@ GF_Err vttmx_process(GF_Filter *filter)
 	}
 
 	if (ctx->exporter) {
-		u32 timescale = gf_filter_pck_get_timescale(pck);
 		u64 ts = gf_filter_pck_get_cts(pck);
+		timescale = gf_filter_pck_get_timescale(pck);
 		gf_set_progress("Exporting", ts*ctx->duration.den, ctx->duration.num*timescale);
 	}
 

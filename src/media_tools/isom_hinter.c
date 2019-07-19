@@ -296,7 +296,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 				/*AAC*/
 				if ((streamType==GF_STREAM_AUDIO) && esd->decoderConfig->decoderSpecificInfo
 				        /*(nb: we use mpeg4 for MPEG-2 AAC)*/
-				        && ((codecid==GF_CODECID_AAC_MPEG4) || (codecid==GF_CODECID_AAC_MPEG4) || (codecid==GF_CODECID_AAC_MPEG2_MP) || (codecid==GF_CODECID_AAC_MPEG2_LCP) || (codecid==GF_CODECID_AAC_MPEG2_SSRP)) ) {
+				        && ((codecid==GF_CODECID_AAC_MPEG4) || (codecid==GF_CODECID_AAC_MPEG2_MP) || (codecid==GF_CODECID_AAC_MPEG2_LCP) || (codecid==GF_CODECID_AAC_MPEG2_SSRP)) ) {
 
 					u32 sample_rate;
 					GF_M4ADecSpecInfo a_cfg;

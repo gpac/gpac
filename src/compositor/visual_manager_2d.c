@@ -844,7 +844,6 @@ skip_background:
 
 	if (visual->direct_flush) {
 		GF_DirtyRectangles dr;
-		u32 i;
 		dr.count = visual->to_redraw.count;
 		dr.list = gf_malloc(sizeof(GF_IRect)*dr.count);
 		for (i=0; i<dr.count; i++) {

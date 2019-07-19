@@ -30,16 +30,12 @@
 /************************************************************
 		QoSQualifiers Functions
 ************************************************************/
+GF_QoS_Default *NewQoS(u8 tag);
 
 GF_EXPORT
 GF_QoS_Default *gf_odf_qos_new(u8 tag)
 {
-
-	GF_QoS_Default *NewQoS(u8 tag);
-
-	GF_QoS_Default *qos;
-
-	qos = NewQoS(tag);
+	GF_QoS_Default *qos = NewQoS(tag);
 	return qos;
 }
 

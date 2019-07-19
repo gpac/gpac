@@ -375,7 +375,6 @@ static GF_Err avimux_process(GF_Filter *filter)
 		if (pck_data) {
 			//raw RGB, flip
 			if (video_st->is_raw_vid) {
-				u32 i;
 				if (ctx->buf_alloc<pck_size) {
 					ctx->buf_alloc = pck_size;
 					ctx->buf_tmp = gf_realloc(ctx->buf_tmp, pck_size);

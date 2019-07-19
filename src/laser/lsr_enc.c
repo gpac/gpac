@@ -270,13 +270,15 @@ static void lsr_write_extension(GF_LASeRCodec *lsr, char *data, u32 len, const c
 static void lsr_write_codec_IDREF(GF_LASeRCodec *lsr, XMLRI *href, const char *name)
 {
 	u32 nID = 0;
-	if (href && href->target) nID = gf_node_get_id((GF_Node *)href->target);
+	if (href && href->target)
+		nID = gf_node_get_id((GF_Node *)href->target);
 	else if (name[0]=='#') {
 		GF_Node *n = gf_sg_find_node_by_name(lsr->sg, (char *) name + 1);
 		if (n) nID = gf_node_get_id((GF_Node *)href->target);
-	}
-	else nID = 1+href->lsr_stream_id;
-
+	} else if (href)
+		nID = 1+href->lsr_stream_id;
+	else
+		nID=1;
 	assert(nID);
 
 	lsr_write_vluimsbf5(lsr, nID-1, name);
@@ -876,7 +878,6 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] Unsupported LASER event %d\n", evtType) );
 			GF_LSR_WRITE_INT(lsr, 0, 6, "event");
 			break;
-			return;
 		}
 		switch (evtType) {
 		case GF_EVENT_KEYDOWN:
@@ -1108,7 +1109,7 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 			case TAG_SVG_ATT_requiredFonts:
 			{
 				GF_List *l = *(GF_List **)att->data;
-				u32 i, str_len = 0;
+				u32 str_len = 0;
 				for (i=0; i<gf_list_count(l); i++) {
 					char *st = gf_list_get(l, i);
 					str_len += (u32) strlen(st);
@@ -2067,26 +2068,26 @@ static void lsr_write_point_sequence(GF_LASeRCodec *lsr, GF_List **pts, const ch
 			c_y = pt->y;
 			nb_dx = nb_dy = 0;
 			for (i=1; i<count; i++) {
-				SVG_Point *pt = (SVG_Point *)gf_list_get(*pts, i);
-				k = lsr_get_bit_size(lsr, pt->x - c_x);
+				SVG_Point *a_pt = (SVG_Point *)gf_list_get(*pts, i);
+				k = lsr_get_bit_size(lsr, a_pt->x - c_x);
 				if (k>nb_dx) nb_dx = k;
-				k = lsr_get_bit_size(lsr, pt->y - c_y);
+				k = lsr_get_bit_size(lsr, a_pt->y - c_y);
 				if (k>nb_dy) nb_dy = k;
-				c_x = pt->x;
-				c_y = pt->y;
+				c_x = a_pt->x;
+				c_y = a_pt->y;
 			}
 			GF_LSR_WRITE_INT(lsr, nb_dx, 5, "bitsx");
 			GF_LSR_WRITE_INT(lsr, nb_dy, 5, "bitsy");
 			c_x = pt->x;
 			c_y = pt->y;
 			for (i=1; i<count; i++) {
-				SVG_Point *pt = (SVG_Point *)gf_list_get(*pts, i);
-				k = lsr_translate_coords(lsr, pt->x - c_x, nb_dx);
+				SVG_Point *a_pt = (SVG_Point *)gf_list_get(*pts, i);
+				k = lsr_translate_coords(lsr, a_pt->x - c_x, nb_dx);
 				GF_LSR_WRITE_INT(lsr, k, nb_dx, "dx");
-				k = lsr_translate_coords(lsr, pt->y - c_y, nb_dy);
+				k = lsr_translate_coords(lsr, a_pt->y - c_y, nb_dy);
 				GF_LSR_WRITE_INT(lsr, k, nb_dy, "dy");
-				c_x = pt->x;
-				c_y = pt->y;
+				c_x = a_pt->x;
+				c_y = a_pt->y;
 			}
 		}
 	}
@@ -3995,7 +3996,7 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 	if (field && !field->new_node && !field->node_list && !com->fromNodeID) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "has_value");
 		lsr_write_update_value(lsr, (SVG_Element *)com->node, field_type, field->fieldIndex, tr_type, field->field_ptr, (field->pos>=0) ? GF_TRUE : GF_FALSE);
-	} else if (is_text_node) {
+	} else if (field && is_text_node) {
 		GF_DOMText *t = (GF_DOMText *)field->new_node;
 		GF_LSR_WRITE_INT(lsr, 1, 1, "has_value");
 		lsr_write_update_value(lsr, (SVG_Element *)com->node, DOM_String_datatype, field->fieldIndex, 0, &t->textContent, (field->pos>=0) ? GF_TRUE : GF_FALSE);

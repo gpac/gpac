@@ -28,6 +28,8 @@
 #include <gpac/filters.h>
 #include <gpac/internal/media_dev.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 typedef struct
 {
 	u64 pos;
@@ -822,14 +824,14 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				} else if (e != GF_OK) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Failed to parse VOS header: %s\n", gf_error_to_string(e) ));
 				} else {
-					u32 size = (u32) gf_m4v_get_object_start(ctx->vparser);
-					vosh_end = start - (u8 *)data + size;
+					u32 obj_size = (u32) gf_m4v_get_object_start(ctx->vparser);
+					vosh_end = start - (u8 *)data + obj_size;
 					vosh_end -= vosh_start;
 					mpgviddmx_check_pid(filter, ctx,(u32)  vosh_end, data+vosh_start);
 					skip_pck = GF_TRUE;
-					assert(remain>=(s32) size);
-					start += size;
-					remain -= size;
+					assert(remain>=(s32) obj_size);
+					start += obj_size;
+					remain -= obj_size;
 				}
 				break;
 			case M4V_VOP_START_CODE:
@@ -1165,3 +1167,12 @@ const GF_FilterRegister *mpgviddmx_register(GF_FilterSession *session)
 {
 	return &MPGVidDmxRegister;
 }
+
+#else
+const GF_FilterRegister *mpgviddmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_AV_PARSERS
+
+

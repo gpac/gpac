@@ -609,7 +609,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 	while (1) {
 		u32 prop_4cc;
 		const char *prop_name;
-		const GF_PropertyValue *p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
+		p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
 		if (!gsfmx_can_serialize_prop(p)) continue;
 		if (prop_4cc) {

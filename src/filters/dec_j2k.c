@@ -328,8 +328,8 @@ static GF_Err j2kdec_process(GF_Filter *filter)
     ojp2frame.data = data+start_offset;
     ojp2frame.len = size-start_offset;
     ojp2frame.pos = 0;
-    if (res) opj_stream_set_user_data(stream, &ojp2frame, NULL);
-    if (res) opj_stream_set_user_data_length(stream, ojp2frame.len);
+    opj_stream_set_user_data(stream, &ojp2frame, NULL);
+    opj_stream_set_user_data_length(stream, ojp2frame.len);
 
 	if (res) res = opj_read_header(stream, codec, &image);
 	if (res) res = opj_set_decode_area(codec, image, 0, 0, image->x1, image->y1);

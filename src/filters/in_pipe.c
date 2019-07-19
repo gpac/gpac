@@ -85,13 +85,13 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 	char *cgi_par = NULL;
 	char *src;
 
+	if (!ctx->src) return GF_BAD_PARAM;
+
 #ifdef WIN32
 	ctx->pipe = INVALID_HANDLE_VALUE;
 #else
 	ctx->fd = -1;
 #endif
-
-	if (!ctx || !ctx->src) return GF_BAD_PARAM;
 
 	if (strnicmp(ctx->src, "pipe:/", 6) && strstr(ctx->src, "://"))  {
 		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);

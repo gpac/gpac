@@ -260,7 +260,7 @@ GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, char *session_con
 	has_aggregated_control = GF_FALSE;
 	if (session_control) {
 		//if (!strcmp(session_control, "*")) session_control = NULL;
-		if (session_control) has_aggregated_control = GF_TRUE;
+		has_aggregated_control = GF_TRUE;
 	}
 
 	/*regular setup in an established session (RTSP DESCRIBE)*/

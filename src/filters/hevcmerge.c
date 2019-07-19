@@ -32,6 +32,8 @@
 #include <gpac/internal/media_dev.h>
 #include <math.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 typedef struct
 {
 	GF_FilterPid *pid;
@@ -1049,10 +1051,11 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	//check if config (vps/sps/pps) has changed - if not, we ignore the reconfig
 	//note that we don't copy all properties of input pids to the output in this case
 	cfg_crc = 0;
-	if (dsi && dsi->value.data.ptr && dsi->value.data.size) {
+	if (dsi->value.data.ptr && dsi->value.data.size) {
 		cfg_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
 	}
-	if (cfg_crc == tile_pid->dsi_crc) return GF_OK;
+	if (cfg_crc == tile_pid->dsi_crc)
+		return GF_OK;
 	tile_pid->dsi_crc = cfg_crc;
 
 	//update this pid's config by parsing sps/vps/pps and check if we need to change anything
@@ -1453,3 +1456,10 @@ const GF_FilterRegister *hevcmerge_register(GF_FilterSession *session)
 {
 	return &HEVCMergeRegister;
 }
+
+#else
+const GF_FilterRegister *hevcmerge_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_AV_PARSERS

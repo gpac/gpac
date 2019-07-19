@@ -39,11 +39,14 @@ typedef struct
 	u64 pck_for_config;
 	u64 prev_dts, prev_cts, init_ts;
 	u32 codec_id;
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 	HEVCState *hevc_state;
 	AVCState *avc_state;
 	AV1State *av1_state;
 	GF_M4VParser *mv124_state;
 	GF_M4VDecSpecInfo dsi;
+#endif
 
 	Bool has_svcc;
 	u32 nalu_size_length;
@@ -119,6 +122,7 @@ typedef struct
 
 
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static u32 inspect_get_nal_size(char *ptr, u32 nalh_size)
 {
 	u32 nal_size=0;
@@ -131,8 +135,6 @@ static u32 inspect_get_nal_size(char *ptr, u32 nalh_size)
 	}
 	return nal_size;
 }
-
-#ifndef GPAC_DISABLE_AV_PARSERS
 
 static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 {
@@ -743,12 +745,14 @@ static void inspect_finalize(GF_Filter *filter)
 			if (ctx->xml)
 				fprintf(ctx->dump, "</PIDInspect>");
 		}
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (pctx->avc_state) gf_free(pctx->avc_state);
 		if (pctx->hevc_state) gf_free(pctx->hevc_state);
 		if (pctx->av1_state) {
 			if (pctx->av1_state->config) gf_odf_av1_cfg_del(pctx->av1_state->config);
 			gf_free(pctx->av1_state);
 		}
+#endif
 		gf_free(pctx);
 	}
 	gf_list_del(ctx->src_pids);
@@ -993,6 +997,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 void gf_m4v_parser_set_inspect(GF_M4VParser *m4v);
 u32 gf_m4v_parser_get_obj_type(GF_M4VParser *m4v);
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 {
 	u8 ftype;
@@ -1074,6 +1079,7 @@ static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 	}
 	gf_m4v_parser_del(m4v);
 }
+#endif
 
 static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket *pck, u32 pid_idx, u64 pck_num, PidCtx *pctx)
 {
@@ -1198,8 +1204,9 @@ props_done:
 	}
 	fprintf(dump, ">\n");
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (pctx->hevc_state || pctx->avc_state) {
-		u32 idx=1;
+		idx=1;
 
 		if (pctx->is_adobe_protection) {
 			u8 encrypted_au = data[0];
@@ -1273,22 +1280,24 @@ props_done:
 			break;
 		}
 	}
+#endif
 	fprintf(dump, "</Packet>\n");
 }
 
-#define DUMP_ARRAY(arr, name, loc)\
+#define DUMP_ARRAY(arr, name, loc, _is_svc)\
 	if (arr && gf_list_count(arr)) {\
 		fprintf(dump, "  <%sArray location=\"%s\">\n", name, loc);\
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "   <NALU size=\"%d\" ", slc->size);\
-			gf_inspect_dump_nalu(dump, slc->data, slc->size, svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, nalh_size, ctx->dump_crc);\
+			gf_inspect_dump_nalu(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, nalh_size, ctx->dump_crc);\
 			fprintf(dump, "/>\n");\
 		}\
 		fprintf(dump, "  </%sArray>\n", name);\
 	}\
 
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static void inspect_reset_parsers(PidCtx *pctx, void *keep_parser_address)
 {
 	if ((&pctx->hevc_state != keep_parser_address) && pctx->hevc_state) {
@@ -1309,15 +1318,19 @@ static void inspect_reset_parsers(PidCtx *pctx, void *keep_parser_address)
 		pctx->mv124_state = NULL;
 	}
 }
+#endif
 
 static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, u32 pid_idx, Bool is_connect, Bool is_remove, u64 pck_for_config, Bool is_info, PidCtx *pctx)
 {
-	u32 idx=0;
-	u32 i, nalh_size;
-	GF_AVCConfig *avcc, *svcc;
+	u32 idx=0, nalh_size;
+#ifndef GPAC_DISABLE_AV_PARSERS
+	u32 i;
 	GF_AVCConfigSlot *slc;
+#endif
+	GF_AVCConfig *avcc, *svcc;
 	GF_HEVCConfig *hvcc, *lhcc;
 	Bool is_enh = GF_FALSE;
+	Bool is_svc=GF_FALSE;
 	char *elt_name = NULL;
 	const GF_PropertyValue *p, *dsi, *dsi_enh;
 
@@ -1404,11 +1417,13 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			fprintf(dump, "/>\n");
 			return;
 		}
+#ifndef GPAC_DISABLE_AV_PARSERS
 		inspect_reset_parsers(pctx, &pctx->avc_state);
 
 		if (!pctx->avc_state) {
 			GF_SAFEALLOC(pctx->avc_state, AVCState);
 		}
+#endif
 		fprintf(dump, ">\n");
 		fprintf(dump, "<AVCParameterSets>\n");
 		if (dsi) {
@@ -1428,16 +1443,19 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 				pctx->nalu_size_length = svcc->nal_unit_size;
 		}
 		nalh_size = pctx->nalu_size_length;
+		is_svc = (svcc != NULL) ? 1 : 0;
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (avcc) {
-			DUMP_ARRAY(avcc->sequenceParameterSets, "AVCSPS", "decoderConfig")
-			DUMP_ARRAY(avcc->pictureParameterSets, "AVCPPS", "decoderConfig")
-			DUMP_ARRAY(avcc->sequenceParameterSetExtensions, "AVCSPSEx", "decoderConfig")
+			DUMP_ARRAY(avcc->sequenceParameterSets, "AVCSPS", "decoderConfig", is_svc)
+			DUMP_ARRAY(avcc->pictureParameterSets, "AVCPPS", "decoderConfig", is_svc)
+			DUMP_ARRAY(avcc->sequenceParameterSetExtensions, "AVCSPSEx", "decoderConfig", is_svc)
 		}
-		if (svcc) {
-			DUMP_ARRAY(svcc->sequenceParameterSets, "SVCSPS", dsi_enh ? "decoderConfigEnhancement" : "decoderConfig")
-			DUMP_ARRAY(svcc->pictureParameterSets, "SVCPPS", dsi_enh ? "decoderConfigEnhancement" : "decoderConfig")
+		if (is_svc) {
+			DUMP_ARRAY(svcc->sequenceParameterSets, "SVCSPS", dsi_enh ? "decoderConfigEnhancement" : "decoderConfig", is_svc)
+			DUMP_ARRAY(svcc->pictureParameterSets, "SVCPPS", dsi_enh ? "decoderConfigEnhancement" : "decoderConfig", is_svc)
 			pctx->has_svcc = 1;
 		}
+#endif
 		fprintf(dump, "</AVCParameterSets>\n");
 		break;
 	case GF_CODECID_LHVC:
@@ -1449,11 +1467,14 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			return;
 		}
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 		inspect_reset_parsers(pctx, &pctx->hevc_state);
 
 		if (!pctx->hevc_state) {
 			GF_SAFEALLOC(pctx->hevc_state, HEVCState);
 		}
+#endif
+
 		if (dsi) {
 			if (is_enh && !dsi_enh) {
 				lhcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_TRUE);
@@ -1474,17 +1495,18 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 		fprintf(dump, ">\n");
 		fprintf(dump, "<HEVCParameterSets>\n");
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (hvcc) {
 			for (idx=0; idx<gf_list_count(hvcc->param_array); idx++) {
 				GF_HEVCParamArray *ar = gf_list_get(hvcc->param_array, idx);
 				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
-					DUMP_ARRAY(ar->nalus, "HEVCSPS", "hvcC")
+					DUMP_ARRAY(ar->nalus, "HEVCSPS", "hvcC", 0)
 				} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
-					DUMP_ARRAY(ar->nalus, "HEVCPPS", "hvcC")
+					DUMP_ARRAY(ar->nalus, "HEVCPPS", "hvcC", 0)
 				} else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-					DUMP_ARRAY(ar->nalus, "HEVCVPS", "hvcC")
+					DUMP_ARRAY(ar->nalus, "HEVCVPS", "hvcC", 0)
 				} else {
-					DUMP_ARRAY(ar->nalus, "HEVCUnknownPS", "hvcC")
+					DUMP_ARRAY(ar->nalus, "HEVCUnknownPS", "hvcC", 0)
 				}
 			}
 		}
@@ -1492,28 +1514,32 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			for (idx=0; idx<gf_list_count(lhcc->param_array); idx++) {
 				GF_HEVCParamArray *ar = gf_list_get(lhcc->param_array, idx);
 				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
-					DUMP_ARRAY(ar->nalus, "HEVCSPS", "lhcC")
+					DUMP_ARRAY(ar->nalus, "HEVCSPS", "lhcC", 0)
 				} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
-					DUMP_ARRAY(ar->nalus, "HEVCPPS", "lhcC")
+					DUMP_ARRAY(ar->nalus, "HEVCPPS", "lhcC", 0)
 				} else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-					DUMP_ARRAY(ar->nalus, "HEVCVPS", "lhcC")
+					DUMP_ARRAY(ar->nalus, "HEVCVPS", "lhcC", 0)
 				} else {
-					DUMP_ARRAY(ar->nalus, "HEVCUnknownPS", "lhcC")
+					DUMP_ARRAY(ar->nalus, "HEVCUnknownPS", "lhcC", 0)
 				}
 			}
 		}
+#endif
 		fprintf(dump, "</HEVCParameterSets>\n");
 		break;
 
 	case GF_CODECID_AV1:
+#ifndef GPAC_DISABLE_AV_PARSERS
 		inspect_reset_parsers(pctx, &pctx->av1_state);
 		if (!pctx->av1_state) {
 			GF_SAFEALLOC(pctx->av1_state, AV1State);
 		}
+#endif
 		if (!dsi) {
 			fprintf(dump, "/>\n");
 			return;
 		}
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (pctx->av1_state->config) gf_odf_av1_cfg_del(pctx->av1_state->config);
 		pctx->av1_state->config = gf_odf_av1_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 		fprintf(dump, ">\n");
@@ -1531,6 +1557,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			gf_bs_del(bs);
 			idx++;
 		}
+#endif
 		fprintf(dump, " </OBUConfig>\n");
 		break;
 
@@ -1541,16 +1568,22 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	case GF_CODECID_MPEG2_MAIN:
 	case GF_CODECID_MPEG4_PART2:
 
-		inspect_reset_parsers(pctx, &pctx->av1_state);
+#ifndef GPAC_DISABLE_AV_PARSERS
+		inspect_reset_parsers(pctx, &pctx->mv124_state);
+#endif
 		if (!dsi) {
 			fprintf(dump, "/>\n");
 			return;
 		}
 		fprintf(dump, ">\n");
 		fprintf(dump, " <MPEGVideoConfig>\n");
+#ifndef GPAC_DISABLE_AV_PARSERS
 		inspect_dump_mpeg124(pctx, dsi->value.data.ptr, dsi->value.data.size, dump);
+#endif
 		fprintf(dump, " </MPEGVideoConfig>\n");
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (pctx->mv124_state) gf_m4v_parser_del(pctx->mv124_state);
+#endif
 		break;
 	case GF_CODECID_MPEG_AUDIO:
 	case GF_CODECID_MPEG2_PART3:

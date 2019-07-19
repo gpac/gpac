@@ -229,7 +229,7 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			gf_filter_pid_init_play_event(iopid->ipid, &fevt, ctx->start, 1.0, "FileList");
 			iopid->is_playing = GF_TRUE;
 			iopid->is_eos = GF_FALSE;
-		} else if (evt->base.type==GF_FEVT_PLAY) {
+		} else if (evt->base.type==GF_FEVT_STOP) {
 			iopid->is_playing = GF_FALSE;
 			iopid->is_eos = GF_TRUE;
 		}
@@ -290,7 +290,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 
 	f = gf_fopen(ctx->file_path, "rt");
 	while (f) {
-		u32 crc, len;
+		u32 crc;
 		char *l = fgets(szURL, GF_MAX_PATH, f);
 		if (!l || feof(f)) {
 			if (ctx->loop) {

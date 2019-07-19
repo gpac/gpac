@@ -656,6 +656,7 @@ static void gpac_on_logs(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_too
 	va_list vlist_tmp;
 	va_copy(vlist_tmp, vlist);
 	u32 len = vsnprintf(NULL, 0, fmt, vlist_tmp);
+	va_end(vlist_tmp);
 	if (log_buf_size < len+2) {
 		log_buf_size = len+2;
 		log_buf = gf_realloc(log_buf, log_buf_size);
@@ -703,7 +704,6 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 {
 	u32 i, count, nb_active;
 	u64 now;
-	GF_SystemRTInfo rti;
 
 	if (is_init) {
 		if (enable_reports==2)
@@ -2361,7 +2361,8 @@ static int gpac_make_lang(char *filename)
 	GF_Config *cfg;
 	u32 i;
 	gf_sys_init(GF_MemTrackerNone, NULL);
-	GF_FilterSession *session = gf_fs_new_defaults(0);
+
+	session = gf_fs_new_defaults(0);
 	if (!session) {
 		gf_sys_format_help(helpout, help_flags, "failed to load session, cannot create language file\n");
 		return 1;
@@ -2370,6 +2371,7 @@ static int gpac_make_lang(char *filename)
 		FILE *f = gf_fopen(filename, "wt");
 		if (!f) {
 			gf_sys_format_help(helpout, help_flags, "failed to open %s in write mode\n", filename);
+			gf_fs_del(session);
 			return 1;
 		}
 		gf_fclose(f);
@@ -2434,6 +2436,7 @@ static int gpac_make_lang(char *filename)
 	}
 	gf_cfg_del(cfg);
 
+	gf_fs_del(session);
 	gf_sys_close();
 	return 0;
 }

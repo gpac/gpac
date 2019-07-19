@@ -384,7 +384,7 @@ GF_Err gf_lz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, 
 	strm.avail_out = block_size;
 
 	while (1) {
-		lzma_ret ret = lzma_code(&strm, LZMA_FINISH);
+		ret = lzma_code(&strm, LZMA_FINISH);
 
 		if ((strm.avail_out == 0) || (ret == LZMA_STREAM_END)) {
 			u32 uncomp_size = block_size - strm.avail_out;

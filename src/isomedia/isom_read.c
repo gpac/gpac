@@ -293,8 +293,10 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 
 
 	if (!stricmp(sz4cc, "H264")) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		u32 pos = 0;
 		u32 end, sc_size=0;
+#endif
 		GF_MPEGVisualSampleEntryBox *avc =  (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new_parent(&stbl->SampleDescription->child_boxes, GF_ISOM_BOX_TYPE_AVC1);
 		avc->avc_config =  (GF_AVCConfigurationBox *) gf_isom_box_new_parent(&avc->child_boxes, GF_ISOM_BOX_TYPE_AVCC);
 
@@ -474,6 +476,7 @@ GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir
 GF_EXPORT
 GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs)
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	if (!movie || movie->openMode != GF_ISOM_OPEN_WRITE || !movie->editFileMap) //memory mode
 		return GF_NOT_SUPPORTED;
 
@@ -486,6 +489,10 @@ GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs)
 		movie->moof->fragment_offset = 0;
 
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+
 }
 
 GF_EXPORT
@@ -4661,5 +4668,47 @@ GF_Err gf_isom_get_jp2_config(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 	gf_bs_del(bs);
 	return GF_OK;
 }
+
+
+Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
+{
+	Bool res = GF_FALSE;
+#ifndef GPAC_DISABLE_ISOM_WRITE
+	GF_BitStream *bs1, *bs2;
+	u8 *buf1, *buf2;
+	u32 len1, len2;
+
+	if (!ptr1 || !ptr2)
+		return GF_FALSE;
+
+	bs1 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (grouping_type) {
+		sgpd_write_entry(grouping_type, ptr1, bs1);
+	} else {
+		gf_isom_box_write((GF_Box *)ptr1, bs1);
+	}
+	gf_bs_get_content(bs1, &buf1, &len1);
+	gf_bs_del(bs1);
+
+	bs2 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (grouping_type) {
+		sgpd_write_entry(grouping_type, ptr2, bs2);
+	} else {
+		gf_isom_box_write((GF_Box *)ptr2, bs2);
+	}
+	gf_bs_get_content(bs2, &buf2, &len2);
+	gf_bs_del(bs2);
+
+
+	if ((len1==len2) && !memcmp(buf1, buf2, len1))
+		res = GF_TRUE;
+
+	gf_free(buf1);
+	gf_free(buf2);
+#endif
+	return res;
+}
+
+
 
 #endif /*GPAC_DISABLE_ISOM*/

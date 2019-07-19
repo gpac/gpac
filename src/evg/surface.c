@@ -47,8 +47,8 @@ GF_EVGSurface *gf_evg_surface_new(Bool center_coords)
 		surf->ftparams.source = &surf->ftoutline;
 		surf->ftparams.user = surf;
 		surf->raster = evg_raster_new();
+		surf->yuv_prof=1;
 	}
-	surf->yuv_prof=1;
 	return surf;
 }
 

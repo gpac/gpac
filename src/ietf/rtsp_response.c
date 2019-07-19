@@ -479,6 +479,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	char *buffer, temp[50];
 
 	*out_buffer = NULL;
+	temp[0]=0;
 
 	size = RTSP_WRITE_STEPALLOC;
 	buffer = (char *) gf_malloc(size);
@@ -694,14 +695,10 @@ GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	if (rsp->CSeq > sess->CSeq) return GF_BAD_PARAM;
 
 	e = RTSP_WriteResponse(sess, rsp, (unsigned char **) &buffer, &size);
-	if (e) goto exit;
-
-	//send buffer
-	e = gf_rtsp_send_data(sess, buffer, size);
-	if (e) return e;
-//	fprintf(stderr, "RTSP Send Response\n\n%s\n\n", buffer);
-
-exit:
+	if (!e) {
+		//send buffer
+		e = gf_rtsp_send_data(sess, buffer, size);
+	}
 	if (buffer) gf_free(buffer);
 	return e;
 }

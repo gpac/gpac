@@ -320,7 +320,7 @@ GF_Err evg_surface_clear_grey(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 	sy = rc.y;
 
 	if (surf->grey_type==0) r = GF_COL_R(col);
-	else if (surf->grey_type==0) r = GF_COL_G(col);
+	else if (surf->grey_type==1) r = GF_COL_G(col);
 	else r = GF_COL_B(col);
 
 	for (y = 0; y < h; y++) {

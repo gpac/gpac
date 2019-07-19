@@ -461,8 +461,6 @@ void setAttributeType(SVGGenAttribute *att)
 			strcpy(att->impl_type, "SVG_PointerEvents");
 		} else if (!strcmp(att->svg_name, "vector-effect")) {
 			strcpy(att->impl_type, "SVG_VectorEffect");
-		} else if (!strcmp(att->svg_name, "vector-effect")) {
-			strcpy(att->impl_type, "SVG_VectorEffect");
 		} else if (!strcmp(att->svg_name, "display-align")) {
 			strcpy(att->impl_type, "SVG_DisplayAlign");
 		} else if (!strcmp(att->svg_name, "text-align")) {
@@ -631,7 +629,7 @@ SVGGenAttrGrp *getOneGlobalAttrGrp(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, x
 
 	/* attributes group already resolved */
 	for (j = 0; j < gf_list_count(globalAttrGrp); j++) {
-		SVGGenAttrGrp *attgrp = gf_list_get(globalAttrGrp, j);
+		attgrp = gf_list_get(globalAttrGrp, j);
 		if (!strcmp(attgrp->name, name)) {
 			return attgrp;
 		}

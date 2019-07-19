@@ -240,8 +240,8 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 
 			if (!done && gf_filter_reporting_enabled(ctx->filter)) {
 				char szStatus[1024];
-				u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
-				sprintf(szStatus, "%d Hz %d ch %s buffer %d / %d ms", ctx->sr, ctx->nb_ch, gf_audio_fmt_name(ctx->afmt), (u32) (dur/1000), ctx->buffer);
+				u64 bdur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+				sprintf(szStatus, "%d Hz %d ch %s buffer %d / %d ms", ctx->sr, ctx->nb_ch, gf_audio_fmt_name(ctx->afmt), (u32) (bdur/1000), ctx->buffer);
 				gf_filter_update_status(ctx->filter, -1, szStatus);
 			}
 

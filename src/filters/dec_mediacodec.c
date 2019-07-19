@@ -671,7 +671,7 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
         GF_HEVCConfig *hvcc;
 	    GF_AVCConfigSlot *sl;
 	    HEVCState hevc;
-	    u32 i,j;
+	    u32 j;
 
 	    memset(&hevc, 0, sizeof(HEVCState));
 
@@ -682,7 +682,7 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	    for (i=0; i< gf_list_count(hvcc->param_array); i++) {
 			GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(hvcc->param_array, i);
 			for (j=0; j< gf_list_count(ar->nalus); j++) {
-				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+				sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
 
 				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 					mcdec_register_hevc_param_set(ctx, sl->data, sl->size, MCDEC_SPS);
@@ -807,7 +807,7 @@ static GF_Err mcdec_check_ps_state(GF_MCDecCtx *ctx, u8 *inBuffer, u32 inBufferL
 				break;
 			}
 		} else {
-			u8 nal_type, quality_id, temporal_id;
+			u8 quality_id, temporal_id;
 			gf_media_hevc_parse_nalu_bs (bs, &ctx->hevc, &nal_type, &temporal_id, &quality_id);
 			gf_bs_seek(bs, pos + nal_size);
 

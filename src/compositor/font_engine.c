@@ -911,16 +911,17 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 
 	visual_3d_enable_antialias(tr_state->visual, compositor->aa);
 	if (fill_2d || !asp || tr_state->mesh_num_textures) {
-		if (fill_2d) visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
+		if (fill_2d && asp) visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
 
 		i = tr_state->text_split_idx ? tr_state->text_split_idx-1 : 0;
 		while ((span = (GF_TextSpan *)gf_list_enum(spans, &i))) {
 			if (text_hl) {
 				visual_3d_fill_rect(tr_state->visual, span->bounds, hl_color);
 
-				if (fill_2d)
-					visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
-				else
+				if (fill_2d) {
+					if (asp)
+						visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
+				} else
 					visual_3d_setup_appearance(tr_state);
 			}
 

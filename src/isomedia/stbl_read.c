@@ -327,13 +327,11 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP
 
 			/*store previous & next sample RAP - note that we do not store the closest previous RAP, only the first of the previous RAP group
 			as RAPs are usually isolated this should not be an issue*/
-			if (prevRAP && (first_rap_in_entry <= SampleNumber)) {
+			if (first_rap_in_entry <= SampleNumber) {
 				*prevRAP = first_rap_in_entry;
 			}
-			if (nextRAP) {
-				*nextRAP = last_rap_in_entry;
-			}
-
+			*nextRAP = last_rap_in_entry;
+			
 			/*sample lies in this (rap) group, it is rap*/
 			if (is_rap_group) {
 				if ((first_rap_in_entry <= SampleNumber) && (SampleNumber <= last_rap_in_entry)) {

@@ -344,9 +344,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			} else if (!stricmp(ext + 5, "force")) {
 				force_par = GF_TRUE;
 			} else {
-				if (ext2) ext2[0] = ':';
-				if (ext2) ext2 = strchr(ext2+1, ':');
-				if (ext2) ext2[0] = 0;
+				if (ext2) {
+					ext2[0] = ':';
+					ext2 = strchr(ext2+1, ':');
+					if (ext2) ext2[0] = 0;
+				}
 				sscanf(ext+5, "%d:%d", &par_n, &par_d);
 			}
 		}
@@ -747,7 +749,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	if (do_audio || do_video || do_auxv || do_pict || track_id) do_all = 0;
 
 	if (track_layout || is_chap) {
-		u32 w, h, sw, sh, fw, fh, i;
+		u32 w, h, sw, sh, fw, fh;
 		w = h = sw = sh = fw = fh = 0;
 		chap_ref = 0;
 		for (i=0; i<gf_isom_get_track_count(dest); i++) {
@@ -1192,6 +1194,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		}
 	}
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (max_layer_id_plus_one || max_temporal_id_plus_one) {
 		for (i = 1; i <= gf_isom_get_track_count(import.dest); i++)
 		{
@@ -1202,6 +1205,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 		}
 	}
+#endif
 
 	if (check_track_for_svc) {
 		if (svc_mode) {
@@ -1212,7 +1216,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			if (e) goto exit;
 		}
 	}
-#ifndef GPAC_DISABLE_HEVC
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (check_track_for_lhvc) {
 		if (svc_mode) {
 			GF_LHVCExtractoreMode xmode = GF_LHVC_EXTRACTORS_ON;
@@ -1238,7 +1242,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 	if (tc_fps_num) {
 		u32 desc_index=0;
-		u32 tmcd_track, tmcd_id;
+		u32 tmcd_tk, tmcd_id;
 		u32 video_ref = 0;
 		Bool is_drop=GF_FALSE;
 		GF_BitStream *bs;
@@ -1254,13 +1258,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			if (res * tc_fps_den != tc_fps_num)
 				is_drop = GF_TRUE;
 		}
-		tmcd_track = gf_isom_new_track(import.dest, 0, GF_QT_BOX_TYPE_TMCD, tc_fps_num);
-		if (!tmcd_track) {
+		tmcd_tk = gf_isom_new_track(import.dest, 0, GF_QT_BOX_TYPE_TMCD, tc_fps_num);
+		if (!tmcd_tk) {
 			e = gf_isom_last_error(import.dest);
 			goto exit;
 		}
-		tmcd_id = gf_isom_get_track_id(import.dest, tmcd_track);
-		e = gf_isom_tmcd_config_new(import.dest, tmcd_track, tc_fps_den, tc_counter, is_drop, &desc_index);
+		tmcd_id = gf_isom_get_track_id(import.dest, tmcd_tk);
+		e = gf_isom_tmcd_config_new(import.dest, tmcd_tk, tc_fps_den, tc_counter, is_drop, &desc_index);
 		if (e) goto exit;
 
 		if (video_ref) {
@@ -1280,12 +1284,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		samp->IsRAP = SAP_TYPE_1;
 		gf_bs_get_content(bs, &samp->data, &samp->dataLength);
 		gf_bs_del(bs);
-		e = gf_isom_add_sample(import.dest, tmcd_track, desc_index, samp);
+		e = gf_isom_add_sample(import.dest, tmcd_tk, desc_index, samp);
 		gf_isom_sample_del(&samp);
-		gf_isom_set_last_sample_duration(import.dest, tmcd_track, tc_fps_den ? tc_fps_den : 1);
+		gf_isom_set_last_sample_duration(import.dest, tmcd_tk, tc_fps_den ? tc_fps_den : 1);
 	}
 
-#endif /*GPAC_DISABLE_HEVC*/
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
 exit:
 	while (gf_list_count(kinds)) {
@@ -2165,7 +2169,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	nb_samp = 0;
 	nb_tracks = gf_isom_get_track_count(orig);
 	for (i=0; i<nb_tracks; i++) {
-		u32 mtype = gf_isom_get_media_type(orig, i+1);
+		mtype = gf_isom_get_media_type(orig, i+1);
 		switch (mtype) {
 		case GF_ISOM_MEDIA_HINT:
 		case GF_ISOM_MEDIA_OD:
@@ -2425,7 +2429,6 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		if (nb_edits && (nb_edits == gf_isom_get_edit_segment_count(dest, dst_tk)) ) {
 			u64 editTime, segmentDuration, mediaTime, dst_editTime, dst_segmentDuration, dst_mediaTime;
 			u8 dst_editMode, editMode;
-			u32 j;
 			merge_edits = 1;
 			for (j=0; j<nb_edits; j++) {
 				gf_isom_get_edit_segment(orig, i+1, j+1, &editTime, &segmentDuration, &mediaTime, &editMode);
@@ -2525,7 +2528,6 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			u64 editTime, segmentDuration, mediaTime, edit_offset;
 			Double t;
 			u8 editMode;
-			u32 j, count;
 
 			count = gf_isom_get_edit_segment_count(dest, dst_tk);
 			if (count) {
@@ -2934,7 +2936,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 			GF_StreamContext *sc = gf_list_get(ctx->streams, i);
 			if (sc->streamType == GF_STREAM_OD) count++;
 		}
-		if (!iod && count>1) return GF_NOT_SUPPORTED;
+		if (count>1) return GF_NOT_SUPPORTED;
 	}
 
 	count = gf_list_count(ctx->streams);
@@ -3023,8 +3025,6 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		esd->decoderConfig->objectTypeIndication = gf_bifs_encoder_get_version(bifsenc, sc->ESID);
 
 		for (j=1; j<gf_list_count(sc->AUs); j++) {
-			u8 *data;
-			u32 data_len;
 			au = gf_list_get(sc->AUs, j);
 			e = gf_bifs_encode_au(bifsenc, sc->ESID, au->commands, &data, &data_len);
 			if (data) {

@@ -234,7 +234,9 @@ GF_Err img_process(GF_Filter *filter)
 		if (pf) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, & PROP_UINT(pf));
 		if (w) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT(w));
 		if (h) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(h));
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (dsi) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi, dsi_size));
+#endif
 		if (! gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_TIMESCALE)) {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num) );
 			ctx->owns_timescale = GF_TRUE;
@@ -256,7 +258,7 @@ GF_Err img_process(GF_Filter *filter)
 			}
 
 			if ((data[4]=='j') && (data[5]=='P') && (data[6]==' ') && (data[7]==' ')) {
-				GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+				bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 				while (gf_bs_available(bs)) {
 					u32 bsize = gf_bs_read_u32(bs);
 					u32 btype = gf_bs_read_u32(bs);

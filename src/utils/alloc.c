@@ -620,7 +620,6 @@ static int gf_memory_del_item(memory_list *p, void *ptr)
 			if (&((*p)[i])) break;
 		if (i==HASH_ENTRIES) {
 			FREE(*p);
-			p = NULL;
 		}
 	}
 	return ret;

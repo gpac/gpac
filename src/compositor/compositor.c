@@ -136,7 +136,6 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		compositor->msg_type |= GF_SR_IN_RECONFIG;
 
 		if (compositor->msg_type & GF_SR_CFG_INITIAL_RESIZE) {
-			GF_Event evt;
 			memset(&evt, 0, sizeof(GF_Event));
 			evt.type = GF_EVENT_VIDEO_SETUP;
 			evt.setup.width = compositor->new_width;
@@ -162,8 +161,6 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		}
 		/*scene size has been overriden*/
 		if (compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE) {
-			GF_Event evt;
-
 			assert(!(compositor->override_size_flags & 2));
 			compositor->msg_type &= ~GF_SR_CFG_OVERRIDE_SIZE;
 			compositor->override_size_flags |= 2;
@@ -937,7 +934,6 @@ void gf_sc_unload(GF_Compositor *compositor)
 
 	/*unload proto modules*/
 	if (compositor->proto_modules) {
-		u32 i;
 		for (i=0; i< gf_list_count(compositor->proto_modules); i++) {
 			GF_HardcodedProto *ifce = gf_list_get(compositor->proto_modules, i);
 			gf_modules_close_interface((GF_BaseInterface *) ifce);
@@ -955,8 +951,10 @@ void gf_sc_unload(GF_Compositor *compositor)
 		gf_list_rem(compositor->event_queue, 0);
 		gf_free(qev);
 	}
-	if (compositor->evq_mx) gf_mx_v(compositor->evq_mx);
-	if (compositor->evq_mx) gf_mx_del(compositor->evq_mx);
+	if (compositor->evq_mx) {
+		gf_mx_v(compositor->evq_mx);
+		gf_mx_del(compositor->evq_mx);
+	}
 	gf_list_del(compositor->event_queue);
 	gf_list_del(compositor->event_queue_back);
 
@@ -2413,7 +2411,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 	//handle all unthreaded extensions
 	if (compositor->unthreaded_extensions) {
-		u32 i, count;
 		count = gf_list_count(compositor->unthreaded_extensions);
 		for (i=0; i<count; i++) {
 			GF_CompositorExt *ifce = gf_list_get(compositor->unthreaded_extensions, i);
