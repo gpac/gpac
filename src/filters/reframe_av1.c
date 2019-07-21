@@ -905,8 +905,14 @@ static void av1dmx_finalize(GF_Filter *filter)
 
 	av1_reset_state(&ctx->state, GF_TRUE);
 	if (ctx->state.config) gf_odf_av1_cfg_del(ctx->state.config);
+	if (ctx->state.frame_obus) {
+		u8* output = NULL;
+		u32 outSize = 0;
+		gf_bs_get_content(ctx->state.bs, &output, &outSize);
+		if (output != ctx->state.frame_obus)
+			gf_free(ctx->state.frame_obus);
+	}
 	if (ctx->state.bs) gf_bs_del(ctx->state.bs);
-	if (ctx->state.frame_obus) gf_free(ctx->state.frame_obus);
 	if (ctx->buffer) gf_free(ctx->buffer);
 
 	if (ctx->vp_cfg) gf_odf_vp_cfg_del(ctx->vp_cfg);
