@@ -400,7 +400,7 @@ int CNativeWrapper::Quit(int code) {
 #include <stdio.h>
 
 void CNativeWrapper::on_fm_request(void *cbk, u32 type, u32 param, int *value) {
-	CNativeWrapper * self = static_cast<CNativeWrapper *> (cbk);
+	CNativeWrapper * self = (CNativeWrapper *) cbk;
 	JavaEnvTh *envth = self->getEnv();
 
 	envth->env->PushLocalFrame(1);
@@ -428,7 +428,7 @@ void CNativeWrapper::on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, con
 	char unknTag[32];
 	int level = (ll == GF_LOG_ERROR) ? ANDROID_LOG_ERROR : ANDROID_LOG_DEBUG;
 	vsnprintf(szMsg, 4096, fmt, list);
-	CNativeWrapper * self = static_cast<CNativeWrapper *> (cbk);
+	CNativeWrapper * self = (CNativeWrapper *) cbk;
 	if (!self)
 		goto displayInAndroidlogs;
 
@@ -541,7 +541,7 @@ displayInAndroidlogs:
 Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt) {
 	if (cbk)
 	{
-		CNativeWrapper* ptr = static_cast<CNativeWrapper *> (cbk);
+		CNativeWrapper* ptr = (CNativeWrapper *) cbk;
 		char msg[4096];
 		msg[0] = 0;
 		LOGD("GPAC_EventProc() Message=%d", evt->type);
@@ -684,7 +684,7 @@ void CNativeWrapper::progress_cbk(const char *title, u64 done, u64 total) {
 void CNativeWrapper::Osmo4_progress_cbk(const void *usr, const char *title, u64 done, u64 total) {
 	if (!usr)
 		return;
-	CNativeWrapper * self = static_cast<CNativeWrapper *> (usr);
+	CNativeWrapper * self = (CNativeWrapper *) usr;
 	self->progress_cbk(title, done, total);
 }
 //-------------------------------
