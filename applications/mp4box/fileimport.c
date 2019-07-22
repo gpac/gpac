@@ -984,7 +984,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				}
 			}
 			if (gf_isom_is_video_subtype(import.tk_info[i].type)) {
-				if ((par_n>=-1) && (par_d>=-1)) {
+				if (((par_n>=-1) && (par_d>=-1)) || force_par) {
 					e = gf_media_change_par(import.dest, track, par_n, par_d, force_par);
 				}
 				if (has_clap) {
