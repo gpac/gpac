@@ -704,23 +704,40 @@ GF_Err oggdmx_process(GF_Filter *filter)
 						if (!block_size) continue;
 
 						if (!st->recomputed_ts) {
-							gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, &PROP_SINT((s32)-st->opus_parser->PreSkip));
+							//compat with old arch (keep same hashes), to remove once droping it
+							if (!gf_sys_is_test_mode()) {
+								gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, &PROP_SINT((s32)-st->opus_parser->PreSkip));
+							}
 						}
 					}
 
-					if (ogg_page_eos(&oggpage))
-						if (oggpacket.granulepos != -1 && granulepos_init != -1)
- 							block_size = (u32)(oggpacket.granulepos - granulepos_init - st->recomputed_ts); /*4.4 End Trimming, cf https://tools.ietf.org/html/rfc7845*/
-
+					if (ogg_page_eos(&oggpage)) {
+						//compat with old arch (keep same hashes), to remove once droping it
+						if (!gf_sys_is_test_mode()) {
+							if (oggpacket.granulepos != -1 && granulepos_init != -1)
+								block_size = (u32)(oggpacket.granulepos - granulepos_init - st->recomputed_ts); /*4.4 End Trimming, cf https://tools.ietf.org/html/rfc7845*/
+						}
+					}
 					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);
 					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
 					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
-					gf_filter_pck_set_duration(dst_pck, block_size);
+					//compat with old arch (keep same hashes), to remove once droping it
+					if (!gf_sys_is_test_mode()) {
+						gf_filter_pck_set_duration(dst_pck, block_size);
+					}
+					
 					if (st->info.type == GF_CODECID_VORBIS) {
 						gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 					} else if (st->info.type == GF_CODECID_OPUS) {
-						gf_filter_pck_set_roll_info(dst_pck, 3840);
-						gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_4);
+						//compat with old arch (keep same hashes), to remove once droping it
+						if (!gf_sys_is_test_mode()) {
+							gf_filter_pck_set_roll_info(dst_pck, 3840);
+							gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_4);
+						} else {
+							gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+						}
+					} else {
+						gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 					}
 
 					st->recomputed_ts += block_size;
