@@ -2109,7 +2109,7 @@ sample_entry_done:
 	}
 
 	if (is_true_pid && ctx->importer && !tkw->import_msg_header_done) {
-		const char *dst_type = tkw->is_item ? "Track Importing" : "Item Importing";
+		const char *dst_type = tkw->is_item ? "Item Importing" : "Track Importing";
 		tkw->import_msg_header_done = GF_TRUE;
 		if (!imp_name) imp_name = comp_name;
 		if (sr) {
