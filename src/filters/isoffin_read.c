@@ -170,7 +170,8 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	GF_Err e;
 
 	prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);
-	if (prop && prop->value.boolean) read->input_loaded = GF_TRUE;
+	if (prop && prop->value.boolean)
+		read->input_loaded = GF_TRUE;
 	read->refresh_fragmented = GF_FALSE;
 	read->full_segment_flush = GF_TRUE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] reconfigure triggered, URL %s\n", next_url));
@@ -362,7 +363,13 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	read->pid = pid;
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_CACHED);
-	if (prop && prop->value.boolean) read->input_loaded = GF_TRUE;
+	if (prop && prop->value.boolean) {
+		GF_FilterEvent evt;
+		read->input_loaded = GF_TRUE;
+		GF_FEVT_INIT(evt, GF_FEVT_PLAY_HINT, pid);
+		evt.play.full_file_only=1;
+		gf_filter_pid_send_event(pid, &evt);
+	}
 
 	return isoffin_setup(filter, read);
 }

@@ -1139,6 +1139,8 @@ typedef enum
 	GF_FEVT_CONNECT_FAIL,
 	/*! mouse move event, sent from compositor down to filters*/
 	GF_FEVT_MOUSE,
+	/*! PLAY hint event, used to signal if block dispatch is needed or not for the source*/
+	GF_FEVT_PLAY_HINT,
 } GF_FEventType;
 
 /*! type: the type of the event*/
