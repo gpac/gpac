@@ -2611,9 +2611,14 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 	if (!state) return GF_BAD_PARAM;
 	state->obu_type = -1;
 
-	while ((state->obu_type != OBU_TEMPORAL_DELIMITER) && gf_bs_available(bs)) {
+	while (state->obu_type != OBU_TEMPORAL_DELIMITER) {
+		if (!gf_bs_available(bs))
+			return state->unframed ? GF_BUFFER_TOO_SMALL : GF_OK;
+
 		u64 pos = gf_bs_get_position(bs), obu_length = 0;
 		GF_Err e;
+		if (gf_bs_available(bs)==1)
+			e=GF_OK;
 
 		e = gf_media_aom_av1_parse_obu(bs, &state->obu_type, &obu_length, NULL, state);
 		if (e)
@@ -2705,10 +2710,11 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 	u64 tusize, sz;
 	if (!bs || !state) return GF_BAD_PARAM;
 
+	state->bs_overread = GF_FALSE;
 	tusize = sz = gf_av1_leb128_read(bs, NULL);
 	tupos = gf_bs_get_position(bs);
 	if (!sz) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[AV1] size 0 for annexN frame, likely not annex B\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[AV1] temporal unit size is 0, likely not annex B\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -2716,20 +2722,28 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 	while (sz > 0) {
 		u8 Leb128Bytes = 0;
 		u64 frame_unit_size = gf_av1_leb128_read(bs, &Leb128Bytes);
+
+		if (state->bs_overread) {
+			return GF_BUFFER_TOO_SMALL;
+		}
 		if (sz < Leb128Bytes + frame_unit_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B sz("LLU") < Leb128Bytes("LLU") + frame_unit_size("LLU")\n", sz, Leb128Bytes, frame_unit_size));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B    frame unit detected (size "LLU")\n", frame_unit_size));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B frame unit detected (size "LLU")\n", frame_unit_size));
 		sz -= Leb128Bytes + frame_unit_size;
 
 		while (frame_unit_size > 0) {
 			u64 pos, obu_length = gf_av1_leb128_read(bs, &Leb128Bytes);
+
+			if (state->bs_overread) {
+				return GF_BUFFER_TOO_SMALL;
+			}
 			if (frame_unit_size < Leb128Bytes + obu_length) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size("LLU") < Leb128Bytes("LLU") + obu_length("LLU")\n", frame_unit_size, Leb128Bytes, obu_length));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B        OBU detected (size "LLU")\n", obu_length));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B OBU detected (size "LLU")\n", obu_length));
 			pos = gf_bs_get_position(bs);
 			frame_unit_size -= Leb128Bytes;
 
@@ -3995,7 +4009,13 @@ void av1_reset_state(AV1State *state, Bool is_destroy)
 	if (is_destroy) {
 		gf_list_del(l1);
 		gf_list_del(l2);
-		if (state->bs) gf_bs_del(state->bs);
+		if (state->bs) {
+			if (gf_bs_get_position(state->bs)) {
+				u32 size;
+				gf_bs_get_content_no_truncate(state->bs, &state->frame_obus, &size, &state->frame_obus_alloc);
+			}
+			gf_bs_del(state->bs);
+		}
 		state->bs = NULL;
 	}
 	else {
@@ -4050,7 +4070,7 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 
 
 		if (tile_start_offset + tile_size > obu_size) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1]Error parsing tile group, tile %d start %d + size %d exceeds OBU length %d\n", TileNum, tile_start_offset, tile_size, obu_size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Error parsing tile group, tile %d start %d + size %d exceeds OBU length %d\n", TileNum, tile_start_offset, tile_size, obu_size));
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			break;
 		}
@@ -4096,6 +4116,12 @@ static GF_Err av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, 
 	return av1_parse_tile_group(bs, state, obu_start, obu_size);
 }
 
+static void on_aom_av1_eos(void *_state)
+{
+	AV1State *state = (AV1State *)_state;
+	state->bs_overread = GF_TRUE;
+}
+
 GF_EXPORT
 GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state)
 {
@@ -4105,6 +4131,9 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 
 	if (!bs || !obu_type || !state)
 		return GF_BAD_PARAM;
+
+	state->bs_overread = GF_FALSE;
+	gf_bs_set_eos_callback(bs, on_aom_av1_eos, state);
 
 	state->obu_extension_flag = state->obu_has_size_field = 0;
 	state->temporal_id = state->spatial_id = 0;
@@ -4126,7 +4155,7 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 		}
 	}
 	hdr_size = (u32)(gf_bs_get_position(bs) - pos);
-	if (gf_bs_available(bs) < *obu_size) {
+	if ((gf_bs_available(bs) < *obu_size) || state->bs_overread) {
 		gf_bs_seek(bs, pos);
 		return GF_BUFFER_TOO_SMALL;
 	}

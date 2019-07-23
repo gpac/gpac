@@ -600,6 +600,7 @@ typedef struct
 	//if set, frame OBUs are not pushed to the frame_obus OBU list but are written in the below bitstream
 	Bool mem_mode;
 	GF_BitStream *bs;
+	Bool bs_overread, unframed;
 	u8 *frame_obus;
 	u32 frame_obus_alloc;
 
