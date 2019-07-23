@@ -663,10 +663,12 @@ GF_Err writegen_process(GF_Filter *filter)
 		u64 ts = gf_filter_pck_get_dts(pck);
 		if (ts==GF_FILTER_NO_TS)
 			ts = gf_filter_pck_get_cts(pck);
-		ts += gf_filter_pck_get_duration(pck);
-		ts *= ctx->duration.den;
-		ts /= timescale;
-		gf_set_progress("Exporting", ts, ctx->duration.num);
+		if (ts!=GF_FILTER_NO_TS) {
+			ts += gf_filter_pck_get_duration(pck);
+			ts *= ctx->duration.den;
+			ts /= timescale;
+			gf_set_progress("Exporting", ts, ctx->duration.num);
+		}
 	}
 
 	gf_filter_pid_drop_packet(ctx->ipid);
