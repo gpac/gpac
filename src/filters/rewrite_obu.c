@@ -41,8 +41,7 @@ typedef struct
 	GF_FilterPid *opid;
 
 	u32 crc;
-	char *dsi;
-	u32 dsi_size;
+
 	Bool ivf_hdr;
 	u32 mode;
 	GF_BitStream *bs_w;
@@ -101,15 +100,6 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 
-	//offset of OBUs in AV1 config
-	if (dcd->value.data.size > 4) {
-		ctx->dsi = dcd->value.data.ptr + 4;
-		ctx->dsi_size = dcd->value.data.size - 4;
-	} else {
-		ctx->dsi = NULL;
-		ctx->dsi_size = 0;
-	}
-
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
 	ctx->codec_id = p ? p->value.uint : 0;
 	switch (ctx->codec_id) {
@@ -131,9 +121,7 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	case GF_CODECID_VP8:
 	case GF_CODECID_VP9:
 	case GF_CODECID_VP10:
-		ctx->dsi_size = 0;
-		ctx->dsi = NULL;
-		ctx->mode = 2;
+		ctx->mode = 2; //IVF only
 		ctx->ivf_hdr = 1;
 		break;
 	}
@@ -151,6 +139,15 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		ctx->av1b_cfg_size = 0;
 
 		while ((obu = gf_list_enum(ctx->av1c->obu_array, &i))) {
+			//we don't output sequence header since it shall be present in sync sample
+			//this avoids creating duplicate of the seqeunce header in the output stream
+			if (obu->obu_type==OBU_SEQUENCE_HEADER) {
+				i--;
+				gf_list_rem(ctx->av1c->obu_array, i);
+				gf_free(obu->obu);
+				gf_free(obu);
+				continue;
+			}
 			ctx->av1b_cfg_size += (u32) obu->obu_length;
 			ctx->av1b_cfg_size += gf_av1_leb128_size(obu->obu_length);
 		}
@@ -220,7 +217,7 @@ GF_Err obumx_process(GF_Filter *filter)
 		u32 frame_idx=0;
 
 		obu_sizes = frame_sizes[0] = 3;
-		if (sap_type && ctx->dsi) {
+		if (sap_type && ctx->av1b_cfg_size) {
 			frame_sizes[0] += ctx->av1b_cfg_size;
 			obu_sizes += ctx->av1b_cfg_size;
 		}
@@ -261,16 +258,22 @@ GF_Err obumx_process(GF_Filter *filter)
 		}
 		max_frames = frame_idx;
 		size = obu_sizes;
-		for (i=0;i<max_frames; i++) {
-			size += gf_av1_leb128_size(frame_sizes[i]);
+		//packet without frame
+		if (!max_frames) {
+			size += gf_av1_leb128_size(frame_sizes[0]);
+		} else {
+			for (i=0;i<max_frames; i++) {
+				size += gf_av1_leb128_size(frame_sizes[i]);
+			}
 		}
 		av1b_frame_size = size;
 		size += gf_av1_leb128_size(size);
 	} else {
-		if (sap_type && ctx->dsi) size += ctx->dsi_size;
+		if (sap_type && ctx->av1b_cfg_size) size += ctx->av1b_cfg_size;
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, hdr_size+size, &output);
+	gf_filter_pck_merge_properties(pck, dst_pck);
 
 	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(output, hdr_size+size, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs_w, output, hdr_size+size);
@@ -279,7 +282,7 @@ GF_Err obumx_process(GF_Filter *filter)
 		u32 frame_idx = 0;
 		//temporal unit
 		gf_av1_leb128_write(ctx->bs_w, av1b_frame_size);
-
+		assert(frame_sizes[0]);
 		gf_av1_leb128_write(ctx->bs_w, frame_sizes[0]);
 
 		//write temporal delim with obu size set
@@ -287,7 +290,7 @@ GF_Err obumx_process(GF_Filter *filter)
 		gf_bs_write_u8(ctx->bs_w, 0x12);
 		gf_bs_write_u8(ctx->bs_w, 0);
 
-		if (sap_type && ctx->dsi) {
+		if (sap_type && ctx->av1b_cfg_size) {
 			GF_AV1_OBUArrayEntry *obu;
 			i=0;
 			while ((obu = gf_list_enum(ctx->av1c->obu_array, &i))) {
@@ -354,16 +357,20 @@ GF_Err obumx_process(GF_Filter *filter)
 			gf_bs_write_u8(ctx->bs_w, 0x12);
 			gf_bs_write_u8(ctx->bs_w, 0);
 
-			if (sap_type && ctx->dsi) {
-				gf_bs_write_data(ctx->bs_w, ctx->dsi, ctx->dsi_size);
+			if (sap_type && ctx->av1b_cfg_size) {
+				GF_AV1_OBUArrayEntry *obu;
+				i=0;
+				while ((obu = gf_list_enum(ctx->av1c->obu_array, &i))) {
+					gf_av1_leb128_write(ctx->bs_w, obu->obu_length);
+					gf_bs_write_data(ctx->bs_w, obu->obu, (u32) obu->obu_length);
+				}
 			}
 		}
 		gf_bs_write_data(ctx->bs_w, data, pck_size);
 	}
 
 	if (!ctx->rcfg) {
-		ctx->dsi = NULL;
-		ctx->dsi_size = 0;
+		ctx->av1b_cfg_size = 0;
 	}
 	gf_filter_pck_send(dst_pck);
 	gf_filter_pid_drop_packet(ctx->ipid);
