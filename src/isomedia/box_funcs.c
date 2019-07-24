@@ -87,12 +87,12 @@ static GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs);
 
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box)
 {
-	u32 type, uuid_type, hdr_size;
+	u32 type, uuid_type, hdr_size, restore_type;
 	u64 size, start, payload_start, end;
 	char uuid[16];
 	GF_Err e;
 	GF_Box *newBox;
-	Bool skip_logs = gf_bs_get_cookie(bs) ? GF_TRUE : GF_FALSE;
+	Bool skip_logs = (gf_bs_get_cookie(bs) & 1 ) ? GF_TRUE : GF_FALSE;
 
 	if ((bs == NULL) || (outBox == NULL) ) return GF_BAD_PARAM;
 	*outBox = NULL;
@@ -154,6 +154,16 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box size "LLD" less than box header size %d\n", LLD_CAST size, hdr_size));
 		return GF_ISOM_INVALID_FILE;
 	}
+	restore_type = 0;
+	if ((parent_type==GF_ISOM_BOX_TYPE_STSD) && (type==GF_QT_SUBTYPE_RAW) ) {
+		u32 cookie = gf_bs_get_cookie(bs);
+		restore_type = type;
+		if (cookie&2)
+			type = GF_QT_SUBTYPE_RAW_VID;
+		else
+			type = GF_QT_SUBTYPE_RAW_AUD;
+
+	}
 
 	//some special boxes (references and track groups) are handled by a single generic box with an associated ref/group type
 	if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_TREF)) {
@@ -185,6 +195,9 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	}
 
 	if (!newBox->type) newBox->type = type;
+	if (restore_type)
+		newBox->type = restore_type;
+
 	payload_start = gf_bs_get_position(bs);
 
 retry_unknown_box:
@@ -1258,7 +1271,8 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_QT_SUBTYPE_APCN, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_SUBTYPE_AP4X, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_SUBTYPE_AP4H, video_sample_entry, "stsd", "apple"),
-	BOX_DEFINE_S( GF_QT_SUBTYPE_RAW, audio_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_RAW_VID, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_RAW_AUD, audio_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_SUBTYPE_TWOS, audio_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_SUBTYPE_SOWT, audio_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_SUBTYPE_FL32, audio_sample_entry, "stsd", "apple"),
@@ -1367,6 +1381,8 @@ static u32 get_box_reg_idx(u32 boxCode, u32 parent_type)
 
 			if (strstr(box_registry[i].parents_4cc, "sample_entry") != NULL) {
 				u32 j = get_box_reg_idx(parent_type, 0);
+				if (parent_type==GF_QT_SUBTYPE_RAW)
+					return i;
 				if (box_registry[j].parents_4cc && (strstr(box_registry[j].parents_4cc, "stsd") != NULL))
 					return i;
 			}
@@ -1445,7 +1461,7 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*chec
 {
 	GF_Err e;
 	GF_Box *a = NULL;
-	Bool skip_logs = gf_bs_get_cookie(bs) ? GF_TRUE : GF_FALSE;
+	Bool skip_logs = (gf_bs_get_cookie(bs) & 1 ) ? GF_TRUE : GF_FALSE;
 
 	//we may have terminators in some QT files (4 bytes set to 0 ...)
 	while (parent->size>=8) {

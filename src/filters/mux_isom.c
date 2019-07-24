@@ -448,6 +448,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool use_dref = GF_FALSE;
 	Bool skip_dsi = GF_FALSE;
 	Bool is_text_subs = GF_FALSE;
+	Bool force_colr = GF_FALSE;
 	u32 m_subtype=0;
 	u32 override_stype=0;
 	u32 width, height, sr, nb_chan, nb_bps, z_order, txt_fsize;
@@ -1215,11 +1216,13 @@ sample_entry_setup:
 		unknown_generic = GF_TRUE;
 		use_gen_sample_entry = GF_TRUE;
 		use_m4sys = GF_FALSE;
+		tkw->skip_bitrate_update = GF_TRUE;
 		if (tkw->stream_type == GF_STREAM_AUDIO) {
 			u32 req_non_planar_type = 0;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
 			if (!p) break;
 			comp_name = "RawAudio";
+			unknown_generic = GF_FALSE;
 			//todo: we currently only set QTFF-style raw media, add ISOBMFF raw audio support
 			switch (p->value.uint) {
 			case GF_AUDIO_FMT_U8P:
@@ -1253,7 +1256,9 @@ sample_entry_setup:
 				m_subtype = GF_QT_SUBTYPE_FL64;
 				break;
 			default:
-				return GF_NOT_SUPPORTED;
+				unknown_generic = GF_TRUE;
+				m_subtype = p->value.uint;
+				break;
 			}
 			if (req_non_planar_type) {
 				if (is_true_pid)
@@ -1263,10 +1268,42 @@ sample_entry_setup:
 					return GF_NOT_SUPPORTED;
 				}
 			}
-			unknown_generic = GF_FALSE;
 			tkw->raw_audio_bytes_per_sample = gf_audio_fmt_bit_depth(p->value.uint);
 			tkw->raw_audio_bytes_per_sample *= nb_chan;
 			tkw->raw_audio_bytes_per_sample /= 8;
+		}
+		else if (tkw->stream_type == GF_STREAM_VISUAL) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
+			if (!p) break;
+			comp_name = "RawVideo";
+			unknown_generic = GF_FALSE;
+			tkw->skip_bitrate_update = GF_TRUE;
+			//we currently only set QTFF-style raw media
+			switch (p->value.uint) {
+			case GF_PIXEL_RGB:
+				m_subtype = GF_QT_SUBTYPE_RAW;
+				break;
+			case GF_PIXEL_YUV422:
+				m_subtype = GF_QT_SUBTYPE_YUV422;
+				force_colr = GF_TRUE;
+				break;
+			case GF_PIXEL_YUV422_10:
+				m_subtype = GF_QT_SUBTYPE_YUV422_10;
+				force_colr = GF_TRUE;
+				break;
+			case GF_PIXEL_YUV444:
+				m_subtype = GF_QT_SUBTYPE_YUV444;
+				force_colr = GF_TRUE;
+				break;
+			case GF_PIXEL_YUV444_10:
+				m_subtype = GF_QT_SUBTYPE_YUV444_10;
+				force_colr = GF_TRUE;
+				break;
+			default:
+				unknown_generic = GF_TRUE;
+				m_subtype = p->value.uint;
+				break;
+			}
 		}
 		break;
 
@@ -1788,6 +1825,7 @@ sample_entry_setup:
 		if (len>32) len = 32;
 		udesc.compressor_name[0] = len;
 		memcpy(udesc.compressor_name+1, comp_name, len);
+		udesc.vendor_code = GF_4CC('G','P','A','C');
 		udesc.samplerate = sr;
 		udesc.nb_channels = nb_chan;
 		if (codec_id==GF_CODECID_RAW) {
@@ -1804,7 +1842,7 @@ sample_entry_setup:
 			udesc.depth = 24;
 		}
 		if (unknown_generic) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing unknown codecID %s, using generic sample entry with 4CC \"%s\"\n", gf_codecid_name(codec_id), gf_4cc_to_str(m_subtype) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing unknown codec ID %s, using generic sample entry with 4CC \"%s\"\n", gf_codecid_name(codec_id), gf_4cc_to_str(m_subtype) ));
 		}
 		
 		e = gf_isom_new_generic_sample_description(ctx->file, tkw->track_num, (char *)src_url, NULL, &udesc, &tkw->stsd_idx);
@@ -1817,7 +1855,7 @@ sample_entry_setup:
 		assert(0);
 	}
 
-	if (ctx->btrt) {
+	if (ctx->btrt && !tkw->skip_bitrate_update) {
 		u32 avg_rate, max_rate, dbsize;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_BITRATE);
 		avg_rate = p ? p->value.uint : 0;
@@ -2059,9 +2097,7 @@ sample_entry_done:
 			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_COLR_RANGE);
 			if (p) full_range_flag = p->value.boolean;
 
-			if (ctx->prores_track == tkw) {
-				u32 chunk_size;
-
+			if ((ctx->prores_track == tkw) || force_colr) {
 				//other conditions were set above, here we force 1:1 pasp box even if no sar or 1:1
 				if (!sar.den || (sar.num == 1)) {
 					gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, -1, -1, GF_TRUE);
@@ -2081,10 +2117,12 @@ sample_entry_done:
 					gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE, NULL, 0);
 				}
 
-				if ((width<=720) && (height<=576)) chunk_size = 2000000;
-				else chunk_size = 4000000;
-				gf_isom_hint_max_chunk_size(ctx->file, tkw->track_num, chunk_size);
-
+				if (ctx->prores_track == tkw) {
+					u32 chunk_size;
+					if ((width<=720) && (height<=576)) chunk_size = 2000000;
+					else chunk_size = 4000000;
+					gf_isom_hint_max_chunk_size(ctx->file, tkw->track_num, chunk_size);
+				}
 			} else {
 				if (colour_primaries || transfer_characteristics || matrix_coefficients) {
 					gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','x'), colour_primaries, transfer_characteristics, matrix_coefficients, full_range_flag, NULL, 0);

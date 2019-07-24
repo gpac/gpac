@@ -4603,7 +4603,7 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			return GF_FALSE;
 		}
 		case GF_ISOM_BOX_TYPE_MP3:
-		case GF_QT_SUBTYPE_RAW:
+		case GF_QT_SUBTYPE_RAW_AUD:
 		case GF_QT_SUBTYPE_TWOS:
 		case GF_QT_SUBTYPE_SOWT:
 		case GF_QT_SUBTYPE_FL32:
@@ -4619,6 +4619,19 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		case GF_QT_SUBTYPE_QDMC2:
 		case GF_QT_SUBTYPE_QCELP:
 		case GF_QT_SUBTYPE_kMP3:
+			return GF_TRUE;
+		case GF_QT_SUBTYPE_RAW_VID:
+		case GF_QT_SUBTYPE_APCH:
+		case GF_QT_SUBTYPE_APCO:
+		case GF_QT_SUBTYPE_APCN:
+		case GF_QT_SUBTYPE_APCS:
+		case GF_QT_SUBTYPE_APCF:
+		case GF_QT_SUBTYPE_AP4X:
+		case GF_QT_SUBTYPE_AP4H:
+		case GF_QT_SUBTYPE_YUV422:
+		case GF_QT_SUBTYPE_YUV444:
+		case GF_QT_SUBTYPE_YUV422_10:
+		case GF_QT_SUBTYPE_YUV444_10:
 			return GF_TRUE;
 		}
 

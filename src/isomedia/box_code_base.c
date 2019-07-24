@@ -967,7 +967,7 @@ GF_Err dinf_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 	dinf = (GF_DataInformationBox *)s;
 	if (!dinf->dref) {
-		if (! gf_bs_get_cookie(bs)) {
+		if (! (gf_bs_get_cookie(bs) & 1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing dref box in dinf\n"));
 		}
 		dinf->dref = (GF_DataReferenceBox *) gf_isom_box_new_parent(&dinf->child_boxes, GF_ISOM_BOX_TYPE_DREF);
@@ -1626,11 +1626,19 @@ void hdlr_box_del(GF_Box *s)
 
 GF_Err hdlr_box_read(GF_Box *s, GF_BitStream *bs)
 {
+	u32 cookie;
 	GF_HandlerBox *ptr = (GF_HandlerBox *)s;
 
 	ptr->reserved1 = gf_bs_read_u32(bs);
 	ptr->handlerType = gf_bs_read_u32(bs);
 	gf_bs_read_data(bs, (char*)ptr->reserved2, 12);
+
+	cookie = gf_bs_get_cookie(bs);
+	if (ptr->handlerType==GF_ISOM_MEDIA_VISUAL)
+		cookie |= 2;
+	else
+		cookie &= ~2;
+	gf_bs_set_cookie(bs, cookie);
 
 	ISOM_DECREASE_SIZE(ptr, 20);
 
@@ -3004,7 +3012,13 @@ GF_Err mdia_on_child_box(GF_Box *s, GF_Box *a)
 
 GF_Err mdia_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e = gf_isom_box_array_read(s, bs, mdia_on_child_box);
+	GF_Err e;
+	u32 cookie = gf_bs_get_cookie(bs);
+	cookie &= ~2;
+	gf_bs_set_cookie(bs, cookie);
+	e = gf_isom_box_array_read(s, bs, mdia_on_child_box);
+	gf_bs_set_cookie(bs, cookie);
+
 	if (e) return e;
 	if (!((GF_MediaBox *)s)->information) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MediaInformationBox\n"));
@@ -3431,7 +3445,9 @@ GF_Err minf_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_MediaInformationBox *ptr = (GF_MediaInformationBox *)s;
 	GF_Err e;
+
 	e = gf_isom_box_array_read(s, bs, minf_on_child_box);
+
 	if (! ptr->dataInformation) {
 		GF_Box *url;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing DataInformationBox\n"));
@@ -3826,7 +3842,7 @@ GF_Err audio_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 
 	//when cookie is set on bs, always convert qtff-style mp4a to isobmff-style
 	//since the conversion is done in addBox and we don't have the bitstream there (arg...), flag the box
- 	if (gf_bs_get_cookie(bs)) {
+ 	if (gf_bs_get_cookie(bs) & 1) {
  		ptr->is_qtff |= 1<<16;
  	}
 
@@ -6209,7 +6225,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_MHM1:
 		case GF_ISOM_BOX_TYPE_MHM2:
 		case GF_ISOM_BOX_TYPE_MJP2:
-		case GF_QT_SUBTYPE_RAW:
+		case GF_QT_SUBTYPE_RAW_AUD:
 		case GF_QT_SUBTYPE_TWOS:
 		case GF_QT_SUBTYPE_SOWT:
 		case GF_QT_SUBTYPE_FL32:
@@ -6225,6 +6241,18 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_QT_SUBTYPE_QDMC2:
 		case GF_QT_SUBTYPE_QCELP:
 		case GF_QT_SUBTYPE_kMP3:
+		case GF_QT_SUBTYPE_RAW_VID:
+		case GF_QT_SUBTYPE_APCH:
+		case GF_QT_SUBTYPE_APCO:
+		case GF_QT_SUBTYPE_APCN:
+		case GF_QT_SUBTYPE_APCS:
+		case GF_QT_SUBTYPE_APCF:
+		case GF_QT_SUBTYPE_AP4X:
+		case GF_QT_SUBTYPE_AP4H:
+		case GF_QT_SUBTYPE_YUV422:
+		case GF_QT_SUBTYPE_YUV444:
+		case GF_QT_SUBTYPE_YUV422_10:
+		case GF_QT_SUBTYPE_YUV444_10:
 			continue;
 
 		case GF_ISOM_BOX_TYPE_UNKNOWN:
