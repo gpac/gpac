@@ -146,16 +146,16 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("enable", NULL, "enable given track", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("disable", NULL, "disable given track", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("timescale", NULL, "set movie timescale to given value (ticks per second)", "600", NULL, GF_ARG_INT, 0),
- 	GF_DEF_ARG("lang `[ID=]LAN`", NULL, "set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("delay `ID=TIME`", NULL, "set track start delay in ms", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("par `ID=PAR`", NULL, "set visual track pixel aspect ratio. PAR is `N:D` or `none` or `force` to write anyway", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("clap `ID=CLAP`", NULL, "set visual track clean aperture. CLAP is `Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd` or `none`\n"
+ 	GF_DEF_ARG("lang `[tkID=]LAN`", NULL, "set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("delay `tkID=TIME`", NULL, "set track start delay in ms", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("par `tkID=PAR`", NULL, "set visual track pixel aspect ratio. PAR is `N:D` or `none` or `force` to write anyway", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("clap `tkID=CLAP`", NULL, "set visual track clean aperture. CLAP is `Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd` or `none`\n"
  			"- n, d: numerator, denominator\n"
 	        "- W, H, HO, VO: clap width, clap height, clap horizontal offset, clap vertical offset\n"
  			, NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("mx `ID=MX`", NULL, "set track matrix, with MX is M1:M2:M3:M4:M5:M6:M7:M8:M9 in 16.16 fixed point intergers or hexa"
+ 	GF_DEF_ARG("mx `tkID=MX`", NULL, "set track matrix, with MX is M1:M2:M3:M4:M5:M6:M7:M8:M9 in 16.16 fixed point intergers or hexa"
  			, NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("name `ID=NAME`", NULL, "set track handler name to NAME (UTF-8 string)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("name `tkID=NAME`", NULL, "set track handler name to NAME (UTF-8 string)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("itags `tag1[:tag2]`", NULL, "set iTunes tags to file, see [-tag-list]()", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("tag-list", NULL, "print the set of supported iTunes tags", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("split", NULL, "split in files of given max duration. Set [-rap] to start each file at RAP", NULL, NULL, GF_ARG_STRING, 0),
@@ -176,10 +176,10 @@ GF_GPACArg m4b_gen_args[] =
 
 	GF_DEF_ARG("group-rem-track", NULL, "remove given track from its group", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("group-rem", NULL, "remove the track's group\n", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("group-clean", NULL, "remove all group information from all tracks\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("group-clean", NULL, "remove all group information from all tracks\n", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("ref `id:XXXX:refID`", NULL, "add a reference of type 4CC from track ID to track refID\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("keep-utc", NULL, "keep UTC timing in the file after edit\n", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("udta ID:[OPTS]", NULL, "set udta for given track or movie if ID is 0. OPTS is a colon separated list of:\n"
+	GF_DEF_ARG("udta tkID:[OPTS]", NULL, "set udta for given track or movie if tkID is 0. OPTS is a colon separated list of:\n"
 	        "- type=CODE: 4CC code of the UDTA (not needed for `box=` option)\n"
 	        "- box=FILE: location of the udta data, formatted as serialized boxes\n"
 	        "- box=base64,DATA: base64 encoded udta data, formatted as serialized boxes\n"
@@ -200,7 +200,10 @@ void PrintGeneralUsage()
 		"MP4Box performs in-place rewrite of IsoMedia files (the input file is overwritten). You can change this behaviour by using the [-out]() option.\n"
 		"MP4Box stores by default the file with 0.5 second interleaving and meta-data (`moov`...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use [-flat]() to change this behaviour.\n"
 		"MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with [-tmp]().\n"
-		"Note: Track operations identify tracks through their ID, not their order\n"
+		"Note: Track operations identify tracks through their ID (usually refered as tkID in the help), not their order.\n"
+		"Option values:\n"
+		"Unless specified otherwise, an option of type `integer` expects a trackID value following it."
+		"An option of type `boolean` expects no following value."
 		"  \n"
 		"# File Splitting and Concatenation\n"
 		"MP4Box can split IsoMedia files by size, duration or extract a given part of the file to new IsoMedia file(s). This process requires that at most one track in the input file has non random-access points (typically one video track at most). This process will also ignore all MPEG-4 Systems tracks and hint tracks, but will try to split private media tracks.\n"
@@ -607,7 +610,7 @@ GF_GPACArg m4b_hint_args[] =
  	GF_DEF_ARG("mpeg4", NULL, "force MPEG-4 generic payload whenever possible", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("latm", NULL, "force MPG4-LATM transport for AAC streams", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("static", NULL, "enable static RTP payload IDs whenever possible (by default, dynamic payloads are always used)", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("add-sdp", NULL, "add given SDP string to hint track (`ID:string`) or movie (`string`)", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("add-sdp", NULL, "add given SDP string to hint track (`tkID:string`) or movie (`string`)", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("unhint", NULL, "remove all hinting information from file", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("group-single", NULL, "put all tracks in a single hint group", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("ocr", NULL, "force all MPEG-4 streams to be synchronized (MPEG-4 Systems only)", NULL, NULL, GF_ARG_BOOL, 0),
@@ -640,11 +643,11 @@ void PrintHintUsage()
 
 GF_GPACArg m4b_extr_args[] =
 {
- 	GF_DEF_ARG("raw", NULL, "extract given track in raw format when supported. Use `ID:output=FileName` to set output file name", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("raws", NULL, "extract each sample of the given track to a file. Use `ID:N`to extract the Nth sample", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("raw", NULL, "extract given track in raw format when supported. Use `tkID:output=FileName` to set output file name", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("raws", NULL, "extract each sample of the given track to a file. Use `tkID:N`to extract the Nth sample", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("nhnt", NULL, "extract given track to [NHNT](nhntr) format", NULL, NULL, GF_ARG_INT, 0),
- 	GF_DEF_ARG("nhml", NULL, "extract given track to [NHML](nhmlr) format. Use `ID:full` for full NHML dump", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("webvtt-raw", NULL, "extract given track as raw media in WebVTT as metadata. Use `ID:embedded` to include media data in the WebVTT file", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("nhml", NULL, "extract given track to [NHML](nhmlr) format. Use `tkID:full` for full NHML dump", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("webvtt-raw", NULL, "extract given track as raw media in WebVTT as metadata. Use `tkID:embedded` to include media data in the WebVTT file", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("single", NULL, "extract given track to a new mp4 file", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("six", NULL, "extract given track as raw media in **experimental** XML streaming instructions", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("avi", NULL, "extract given track to an avi file", NULL, NULL, GF_ARG_INT, 0),
@@ -702,7 +705,7 @@ GF_GPACArg m4b_dump_args[] =
  	GF_DEF_ARG("dump-cover", NULL, "extract cover art", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("dump-chap", NULL, "extract chapter file", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("dump-chap-ogg", NULL, "extract chapter file as OGG format", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("dump-udta `[ID:]4cc`", NULL, "extract udta for the given 4CC. If `ID` is given, dumps from UDTA of the given track ID, otherwise moov is used", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("dump-udta `[tkID:]4cc`", NULL, "extract udta for the given 4CC. If `tkID` is given, dumps from UDTA of the given track ID, otherwise moov is used", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("mergevtt", NULL, "merge vtt cues while dumping", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("ttxt", NULL, "convert input subtitle to GPAC TTXT format if no parameter. Otherwise, dump given text track to GPAC TTXT format", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("srt", NULL, "convert input subtitle to SRT format if no parameter. Otherwise, dump given text track to SRT format", NULL, NULL, GF_ARG_BOOL, 0),
@@ -734,13 +737,13 @@ void PrintDumpUsage()
 
 GF_GPACArg m4b_meta_args[] =
 {
- 	GF_DEF_ARG("set-meta `ABCD[:tk=ID]`", NULL, "set meta box type, with `ABCD` the four char meta type (NULL or 0 to remove meta)\n"
+ 	GF_DEF_ARG("set-meta `ABCD[:tk=tkID]`", NULL, "set meta box type, with `ABCD` the four char meta type (NULL or 0 to remove meta)\n"
 		"- tk not set: use root (file) meta\n"
-		"- ID == 0: use moov meta\n"
-		"- ID != 0: use meta of given track", NULL, NULL, GF_ARG_STRING, 0),
+		"- tkID == 0: use moov meta\n"
+		"- tkID != 0: use meta of given track", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("add-items", NULL, "add resource to meta, with parameter syntax `file_path[:opt1:optN]`\n"
 		"- file_path `this` or `self`: item is the file itself\n"
-		"- tk=ID: meta location (file, moov, track)\n"
+		"- tk=tkID: meta location (file, moov, track)\n"
 		"- name=str: item name\n"
 		"- type=itype: item 4cc type (not needed if mime is provided)\n"
 		"- mime=mtype: item mime type\n"
@@ -759,12 +762,12 @@ GF_GPACArg m4b_meta_args[] =
 		"- icc_path: path to icc to add as colr\n"
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
 		"- any other option will be passed as options to the media importer, see [-add]()", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("rem-item `item_ID[:tk=ID]`", NULL, "remove resource from meta", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("set-primary `item_ID[:tk=ID]`", NULL, "set item as primary for meta", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("set-xml `xml_file_path[:tk=ID][:binary]`", NULL, "set meta XML data", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("rem-xml `[tk=ID]`", NULL, "remove meta XML data", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("dump-xml `file_path[:tk=ID]`", NULL, "dump meta XML to file", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("dump-item `item_ID[:tk=ID][:path=fileName]`", NULL, "dump item to file", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("rem-item `item_ID[:tk=tkID]`", NULL, "remove resource from meta", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("set-primary `item_ID[:tk=tkID]`", NULL, "set item as primary for meta", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("set-xml `xml_file_path[:tk=tkID][:binary]`", NULL, "set meta XML data", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("rem-xml `[tk=tkID]`", NULL, "remove meta XML data", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("dump-xml `file_path[:tk=tkID]`", NULL, "dump meta XML to file", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("dump-item `item_ID[:tk=tkID][:path=fileName]`", NULL, "dump item to file", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("package", NULL, "package input XML file into an ISO container, all media referenced except hyperlinks are added to file", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("package", NULL, "package input XML file into an MPEG-U widget with ISO container, all files contained in the current folder are added to the widget package", NULL, NULL, GF_ARG_STRING, 0),
 	{0}
@@ -2614,7 +2617,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			strncpy(szTK, argv[i + 1], sizeof(szTK));
 			ext = strchr(szTK, '=');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track par - expecting ID=none or ID=PAR_NUM:PAR_DEN got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track par - expecting tkID=none or tkID=PAR_NUM:PAR_DEN got %s\n", argv[i + 1]);
 				return 2;
 			}
 			if (!stricmp(ext + 1, "none")) {
@@ -2624,7 +2627,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				sscanf(ext + 1, "%d", &tracks[nb_track_act].par_num);
 				ext = strchr(ext + 1, ':');
 				if (!ext) {
-					fprintf(stderr, "Bad format for track par - expecting ID=PAR_NUM:PAR_DEN got %s\n", argv[i + 1]);
+					fprintf(stderr, "Bad format for track par - expecting tkID=PAR_NUM:PAR_DEN got %s\n", argv[i + 1]);
 					return 2;
 				}
 				sscanf(ext + 1, "%d", &tracks[nb_track_act].par_den);
@@ -2647,7 +2650,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			strncpy(szTK, argv[i + 1], sizeof(szTK));
 			ext = strchr(szTK, '=');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track clap - expecting ID=none or ID=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track clap - expecting tkID=none or tkID=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd got %s\n", argv[i + 1]);
 				return 2;
 			}
 			tka = &tracks[nb_track_act];
@@ -2656,7 +2659,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			} else {
 				if (sscanf(ext + 1, "%d,%d,%d,%d,%d,%d,%d,%d", &tka->clap_wnum, &tka->clap_wden, &tka->clap_hnum, &tka->clap_hden, &tka->clap_honum, &tka->clap_hoden, &tka->clap_vonum, &tka->clap_voden) != 8) {
 
-					fprintf(stderr, "Bad format for track clap - expecting ID=none or ID=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd got %s\n", argv[i + 1]);
+					fprintf(stderr, "Bad format for track clap - expecting tkID=none or tkID=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd got %s\n", argv[i + 1]);
 					return 2;
 				}
 			}
@@ -2814,7 +2817,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			szTK[sizeof(szTK)-1] = 0;
 			ext = strchr(szTK, '=');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track delay - expecting ID=DLAY got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track delay - expecting tkID=DLAY got %s\n", argv[i + 1]);
 				return 2;
 			}
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_DELAY;
@@ -2834,7 +2837,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			szTK = argv[i + 1];
 			ext = strchr(szTK, ':');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track reference - expecting ID:XXXX:refID got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track reference - expecting tkID:XXXX:refID got %s\n", argv[i + 1]);
 				return 2;
 			}
 			tracks[nb_track_act].act_type = TRAC_ACTION_REFERENCE;
@@ -2844,7 +2847,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			szTK = ext + 1;
 			ext = strchr(szTK, ':');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track reference - expecting ID:XXXX:refID got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track reference - expecting tkID:XXXX:refID got %s\n", argv[i + 1]);
 				return 2;
 			}
 			ext[0] = 0;
@@ -2865,7 +2868,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			szTK[sizeof(szTK)-1] = 0;
 			ext = strchr(szTK, '=');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track name - expecting ID=name got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track name - expecting tkID=name got %s\n", argv[i + 1]);
 				return 2;
 			}
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_HANDLER_NAME;

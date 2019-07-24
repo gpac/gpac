@@ -1367,7 +1367,7 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 		if (arg->val)
 			gf_sys_format_help(helpout, flags, ", default: **%s**", arg->val);
 		gf_sys_format_help(helpout, flags, ")");
-	} else {
+	} else if (arg->type != GF_ARG_BOOL) {
 		gf_sys_format_help(helpout, flags, " (");
 		switch (arg->type) {
 		case GF_ARG_BOOL: gf_sys_format_help(helpout, flags, "boolean"); break;
