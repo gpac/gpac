@@ -500,6 +500,11 @@ enum
 	GF_ISOM_BOX_TYPE_FLAC	= GF_4CC( 'f', 'L', 'a', 'C' ),
 	GF_ISOM_BOX_TYPE_DFLA	= GF_4CC( 'd', 'f', 'L', 'a' ),
 
+	//internal only
+	GF_QT_SUBTYPE_RAW_AUD 	= GF_4CC('Q','T','R','A'),
+	GF_QT_SUBTYPE_RAW_VID 	= GF_4CC('Q','T','R','V'),
+
+
 };
 
 enum

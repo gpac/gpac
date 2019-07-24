@@ -378,7 +378,7 @@ enum
 	GF_ISOM_SUBTYPE_RICC 		= GF_4CC( 'r', 'I', 'C', 'C' ),
 
 	/* QT audio codecs */
-	GF_QT_SUBTYPE_RAW 	= GF_4CC('r','a','w',' '),
+	GF_QT_SUBTYPE_RAW	= GF_4CC('r','a','w',' '),
 	GF_QT_SUBTYPE_TWOS 	= GF_4CC('t','w','o','s'),
 	GF_QT_SUBTYPE_SOWT 	= GF_4CC('s','o','w','t'),
 	GF_QT_SUBTYPE_FL32 	= GF_4CC('f','l','3','2'),
@@ -404,6 +404,11 @@ enum
 	GF_QT_SUBTYPE_APCF	= GF_4CC( 'a', 'p', 'c', 'f' ),
 	GF_QT_SUBTYPE_AP4X	= GF_4CC( 'a', 'p', '4', 'x' ),
 	GF_QT_SUBTYPE_AP4H	= GF_4CC( 'a', 'p', '4', 'h' ),
+	GF_QT_SUBTYPE_YUV422 	= GF_4CC('y','u','v','2'),
+//	GF_QT_SUBTYPE_YUV422 	= GF_4CC('2','v','u','Y'),
+	GF_QT_SUBTYPE_YUV444 	= GF_4CC('v','3','0','8'),
+	GF_QT_SUBTYPE_YUV422_10 	= GF_4CC('v','2','1','0'),
+	GF_QT_SUBTYPE_YUV444_10 	= GF_4CC('v','4','1','0'),
 };
 
 
