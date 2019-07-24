@@ -149,7 +149,7 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("lang `[ID=]LAN`", NULL, "set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("delay `ID=TIME`", NULL, "set track start delay in ms", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("par `ID=PAR`", NULL, "set visual track pixel aspect ratio. PAR is `N:D` or `none` or `force` to write anyway", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("clap `ID=CLAP`", NULL, "set visual track clean aperture. CLAP is `Wn:Wd:Hn:Hd:HOn:HOd:VOn:VOd` or `none`\n"
+ 	GF_DEF_ARG("clap `ID=CLAP`", NULL, "set visual track clean aperture. CLAP is `Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd` or `none`\n"
  			"- n, d: numerator, denominator\n"
 	        "- W, H, HO, VO: clap width, clap height, clap horizontal offset, clap vertical offset\n"
  			, NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
@@ -2647,16 +2647,16 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			strncpy(szTK, argv[i + 1], sizeof(szTK));
 			ext = strchr(szTK, '=');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track clap - expecting ID=none or ID=WN:WD:HN:HD:HON:HOD:VON:VOD got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track clap - expecting ID=none or ID=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd got %s\n", argv[i + 1]);
 				return 2;
 			}
 			tka = &tracks[nb_track_act];
 			if (!stricmp(ext + 1, "none")) {
 				tka->clap_wnum= tka->clap_wden = tka->clap_hnum = tka->clap_hden = tka->clap_honum = tka->clap_hoden = tka->clap_vonum = tka->clap_voden = 0;
 			} else {
-				if (sscanf(ext + 1, "%d:%d:%d:%d:%d:%d:%d:%d", &tka->clap_wnum, &tka->clap_wden, &tka->clap_hnum, &tka->clap_hden, &tka->clap_honum, &tka->clap_hoden, &tka->clap_vonum, &tka->clap_voden) != 8) {
+				if (sscanf(ext + 1, "%d,%d,%d,%d,%d,%d,%d,%d", &tka->clap_wnum, &tka->clap_wden, &tka->clap_hnum, &tka->clap_hden, &tka->clap_honum, &tka->clap_hoden, &tka->clap_vonum, &tka->clap_voden) != 8) {
 
-					fprintf(stderr, "Bad format for track clap - expecting ID=none or ID=WN:WD:HN:HD:HON:HOD:VON:VOD got %s\n", argv[i + 1]);
+					fprintf(stderr, "Bad format for track clap - expecting ID=none or ID=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd got %s\n", argv[i + 1]);
 					return 2;
 				}
 			}

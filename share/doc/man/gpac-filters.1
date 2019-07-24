@@ -2100,7 +2100,7 @@ Description: Media Reframer
 .br
 
 .br
-Passthrough filter ensuring reframing, and optionnally decoding, of inputs
+Passthrough filter ensuring reframing, and optionally decoding, of inputs
 .br
 This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.
 .br
@@ -3577,7 +3577,7 @@ The serializer sends tune-in packets (global and per pid) at the requested carou
 .br
 
 .br
-The stream format can be encrypted in AES 128 CBC mode. For all packets, the packet header (header, size, frame size/block offset and optionnal seq num) are in the clear and the followings byte until the last byte of the last multiple of block size (16) fitting in the payload are encrypted.
+The stream format can be encrypted in AES 128 CBC mode. For all packets, the packet header (header, size, frame size/block offset and optional seq num) are in the clear and the followings byte until the last byte of the last multiple of block size (16) fitting in the payload are encrypted.
 .br
 For data packets, each fragment is encrypted individually to avoid error propagation in case of losses.
 .br
@@ -4359,7 +4359,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2567-g2fb6b79db-filters
+build: 0.9.0-DEV-rev2613-gccac35391-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

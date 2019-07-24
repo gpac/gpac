@@ -356,7 +356,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			if (!stricmp(ext+6, "none")) {
 				has_clap=GF_TRUE;
 			} else {
-				if (sscanf(ext+6, "%d:%d:%d:%d:%d:%d:%d:%d", &clap_wn, &clap_wd, &clap_hn, &clap_hd, &clap_hon, &clap_hod, &clap_von, &clap_vod)==8) {
+				if (sscanf(ext+6, "%d,%d,%d,%d,%d,%d,%d,%d", &clap_wn, &clap_wd, &clap_hn, &clap_hd, &clap_hon, &clap_hod, &clap_von, &clap_vod)==8) {
 					has_clap=GF_TRUE;
 				}
 			}
