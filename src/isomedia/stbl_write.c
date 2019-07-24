@@ -1102,6 +1102,30 @@ GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber)
 	u64 *Loffsets;
 	GF_SampleToChunkBox *stsc = stbl->SampleToChunk;
 
+	//raw audio or constant sample size and dur
+	if (stsc->nb_entries < stbl->SampleSize->sampleCount) {
+		if (sampleNumber==stbl->SampleSize->sampleCount+1) {
+			GF_StscEntry *ent = &stsc->entries[stsc->nb_entries-1];
+			if (ent->samplesPerChunk)
+				ent->samplesPerChunk--;
+			if (!ent->samplesPerChunk) {
+				stsc->nb_entries--;
+
+				if (stbl->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
+					((GF_ChunkOffsetBox *)stbl->ChunkOffset)->nb_entries --;
+				} else {
+					((GF_ChunkLargeOffsetBox *)stbl->ChunkOffset)->nb_entries --;
+				}
+				if (stsc->nb_entries) {
+					ent = &stsc->entries[stsc->nb_entries-1];
+					ent->nextChunk --;
+				}
+			}
+			return GF_OK;
+		}
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] removing sample in middle of track not supported for constant size and duration samples\n"));
+		return GF_NOT_SUPPORTED;
+	}
 	//remove the entry in SampleToChunk (1 <-> 1 in edit mode)
 	memmove(&stsc->entries[sampleNumber-1], &stsc->entries[sampleNumber], sizeof(GF_StscEntry)*(stsc->nb_entries-sampleNumber));
 	stsc->nb_entries--;
