@@ -3727,6 +3727,7 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
                         	gf_list_rem(a->child_boxes, i);
                         	drop_wave=GF_TRUE;
                         	ptr->compression_id = 0;
+                        	gf_list_add(ptr->child_boxes, inner_box);
 						}
                     }
                 }
@@ -3763,6 +3764,7 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
  						if (ptr->is_qtff & 1<<16) {
                         	gf_list_rem(a->child_boxes, i);
                         	drop_wave=GF_TRUE;
+                        	gf_list_add(ptr->child_boxes, inner_box);
 						}
 						break;
                     }
@@ -3774,7 +3776,7 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 					ptr->version = 0;
 					return GF_OK;
 				}
-                ptr->is_qtff = 2; //inidcate data in extensions() is valid
+                ptr->is_qtff = 2; //indicate data in extensions() is valid
                 return GF_OK;
             }
 		}
