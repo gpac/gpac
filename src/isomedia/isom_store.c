@@ -69,7 +69,7 @@ typedef struct
 	/*timeScale of the media (for interleaving)*/
 	u32 timeScale;
 	/*this is for generic, time-based interleaving. Expressed in Media TimeScale*/
-	u32 chunkDur;
+	u64 chunkDur;
 	u32 chunkSize;
 	u32 constant_size, constant_dur;
 
@@ -469,7 +469,6 @@ void update_writer_constant_dur(GF_ISOFile *movie, TrackWriter *tkw, GF_StscEntr
 		chunk_dur -= tkw->chunkDur;
 
 		if (chunk_dur <= tkw->chunkDur) return;
-
 		chunk_dur -= tkw->constant_dur;
 
 		nb_in_run = (u32) (chunk_dur / tkw->constant_dur);
@@ -484,7 +483,7 @@ void update_writer_constant_dur(GF_ISOFile *movie, TrackWriter *tkw, GF_StscEntr
 
 	chunk_dur = nb_in_run * tkw->constant_dur;
 
-	tkw->chunkDur += (u32) chunk_dur;
+	tkw->chunkDur += (u32) chunk_dur - tkw->constant_dur; //because tkw->chunkDur already include duration of first sample of chunk
 	tkw->DTSprev += chunk_dur - tkw->constant_dur; //because nb_samp += nb_in_run-1
 
 	*nb_samp = nb_in_run;
@@ -1294,6 +1293,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 				while (1) {
 					Bool self_contained;
 					u32 nb_samp = 1;
+					u32 sample_dur;
 					//To Check: are empty sample tables allowed ???
 					if (tmp->sampleNumber > tmp->stbl->SampleSize->sampleCount) {
 						tmp->isDone = 1;
@@ -1302,7 +1302,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 					}
 
 					//OK, get the current sample in this track
-					stbl_GetSampleDTS(tmp->stbl->TimeToSample, tmp->sampleNumber, &DTS);
+					stbl_GetSampleDTS_and_Duration(tmp->stbl->TimeToSample, tmp->sampleNumber, &DTS, &sample_dur);
 
 					//can this sample fit in our chunk ?
 					if ( ( (DTS - tmp->DTSprev) + tmp->chunkDur) *  movie->moov->mvhd->timeScale > movie->interleavingTime * tmp->timeScale
@@ -1326,15 +1326,18 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 
 					//small check for first 2 samples (DTS = 0)
 					if (tmp->sampleNumber == 2 && !tmp->chunkDur) {
-						//compensate first sample dur unknown
-						//FIXME we do not apply patch in test mode for now since this breaks all our hashes, remove this
-						//once we move to filters permanently
-						if (!gf_sys_is_test_mode())
-							tmp->chunkDur += (u32) (DTS - tmp->DTSprev);
-
 						forceNewChunk = 0;
 					}
-					tmp->chunkDur += (u32) (DTS - tmp->DTSprev);
+
+
+					//FIXME we do not apply patch in test mode for now since this breaks all our hashes, remove this
+					//once we move to filters permanently
+					if (!gf_sys_is_test_mode()) {
+						tmp->chunkDur += sample_dur;
+					} else {
+						//old style, compute based on DTS diff
+						tmp->chunkDur += (u32) (DTS - tmp->DTSprev);
+					}
 					tmp->DTSprev = DTS;
 
 					e = stbl_GetSampleInfos(curWriter->stbl, curWriter->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &stsc_ent);
