@@ -207,7 +207,7 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-//	case GF_FEVT_PLAY_HINT:
+	case GF_FEVT_PLAY_HINT:
 		ctx->full_file_only = evt->play.full_file_only;
 		return GF_TRUE;
 	case GF_FEVT_STOP:
