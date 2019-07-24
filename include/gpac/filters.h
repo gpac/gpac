@@ -1358,6 +1358,8 @@ typedef enum
 	GF_FS_ARG_UPDATE = 1<<4,
 	/*! used by meta filters (ffmpeg & co) to indicate the parsing is handled by the filter in which case the type is overloaded to string and passed to the update_args function*/
 	GF_FS_ARG_META = 1<<5,
+	/*! internal flag used by meta filters (ffmpeg & co) to indicate the description of the argument is a dynamic allocated memory*/
+	GF_FS_ARG_META_ALLOC = 1<<6,
 } GF_FSArgumentFlags;
 
 /*! Structure holding arguments for a filter*/
