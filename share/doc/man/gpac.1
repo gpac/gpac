@@ -139,7 +139,7 @@ assign a new alias or remove an alias. Can be specified several times. See alias
 .TP
 .B \-aliasdoc (string)
 .br
-assign documentation for a given alias (optionnal). Can be specified several times
+assign documentation for a given alias (optional). Can be specified several times
 .br
 .TP
 .B \-uncache (boolean)
@@ -1125,7 +1125,7 @@ This will set option a to foo, b to bar:c and the option d to fun on the filter
 .B
 Quick links
 .br
-Link between filters may be manually specified. The syntax is an @ character optionnaly followed by an integer (0 if omitted). This indicates which previous (0-based) filters should be link to the next filter listed. Only the last link directive occuring before a filter is used to setup links for that filter.
+Link between filters may be manually specified. The syntax is an @ character optionaly followed by an integer (0 if omitted). This indicates which previous (0-based) filters should be link to the next filter listed. Only the last link directive occuring before a filter is used to setup links for that filter.
 .br
 Example
 .br
@@ -1569,7 +1569,7 @@ Indicates that the unframed media still has correct AU boundaries: one packet is
 Indicates media is unframed AAC in LATM format
 .br
 .TP
-.B Duration (PDUR,fraction,  )
+.B Duration (PDUR,64-bit fraction,  )
 .br
 Media duration
 .br
@@ -2276,7 +2276,7 @@ Indicate start and end position in bytes of sidx if packet is a fragment or segm
 .TP
 .B MoofTemplate (MFTP,data,D )
 .br
-Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionnally sidx)
+Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionally sidx)
 .br
 .SH Pixel formats
 .LP
@@ -2537,7 +2537,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2567-g2fb6b79db-filters
+build: 0.9.0-DEV-rev2613-gccac35391-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
