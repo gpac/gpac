@@ -16,17 +16,17 @@ boolean values do not need any value specified. Other types shall be formatted a
 
 .br
 .TP
-.B \-mem-track (boolean)
+.B \-mem-track
 .br
 enable memory tracker
 .br
 .TP
-.B \-mem-track-stack (boolean)
+.B \-mem-track-stack
 .br
 enable memory tracker with stack dumping
 .br
 .TP
-.B \-ltf (boolean)
+.B \-ltf
 .br
 load test-unit filters (used for for unit tests only)
 .br
@@ -41,17 +41,17 @@ loop execution of session, creating a session at each loop, mainly used for test
 run for the given amount of milliseconds
 .br
 .TP
-.B \-stats (boolean)
+.B \-stats
 .br
 print stats after execution
 .br
 .TP
-.B \-graph (boolean)
+.B \-graph
 .br
 print graph after execution
 .br
 .TP
-.B \-k (boolean)
+.B \-k
 .br
 enable keyboard interaction from command line
 .br
@@ -142,47 +142,47 @@ assign a new alias or remove an alias. Can be specified several times. See alias
 assign documentation for a given alias (optional). Can be specified several times
 .br
 .TP
-.B \-uncache (boolean)
+.B \-uncache
 .br
 revert all items in GPAC cache directory to their original name and server path
 .br
 .TP
-.B \-wc (boolean)
+.B \-wc
 .br
 write all core options in the config file unless already set
 .br
 .TP
-.B \-we (boolean)
+.B \-we
 .br
 write all file extensions in the config file unless already set (usefull to change some default file extensions)
 .br
 .TP
-.B \-wf (boolean)
+.B \-wf
 .br
 write all filter options in the config file unless already set
 .br
 .TP
-.B \-wfx (boolean)
+.B \-wfx
 .br
 write all filter options and all meta filter arguments in the config file unless already set (large config file !)
 .br
 .TP
-.B \-dbg-edges (boolean)
+.B \-dbg-edges
 .br
 log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)
 .br
 .TP
-.B \-no-block (boolean)
+.B \-no-block
 .br
 disable blocking mode of filters
 .br
 .TP
-.B \-no-reg (boolean)
+.B \-no-reg
 .br
 disable regulation (no sleep) in session
 .br
 .TP
-.B \-no-reassign (boolean)
+.B \-no-reassign
 .br
 disable source filter reassignment in pid graph resolution
 .br
@@ -217,12 +217,12 @@ set maximum sleep time slot in milliseconds when regulation is enabled
 set N extra thread for the session. -1 means use all available cores
 .br
 .TP
-.B \-no-probe (boolean)
+.B \-no-probe
 .br
 disable data probing on sources and relies on extension (faster load but more error-prone)
 .br
 .TP
-.B \-no-argchk (boolean)
+.B \-no-argchk
 .br
 disable tracking of argument usage (all arguments will be considered as used)
 .br
@@ -232,12 +232,12 @@ disable tracking of argument usage (all arguments will be considered as used)
 blacklist the filters listed in the given string (comma-seperated list)
 .br
 .TP
-.B \-no-graph-cache (boolean)
+.B \-no-graph-cache
 .br
 disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (lower memory usage but slower)
 .br
 .TP
-.B \-no-reservoir (boolean)
+.B \-no-reservoir
 .br
 disable memory recycling for packets and properties. This uses much less memory but stresses the system memory allocator much more
 .br
@@ -427,17 +427,17 @@ This is equivalent to specifying -o dump.264:profile=Baseline.
 .LP
 .br
 .TP
-.B \-noprog (boolean)
+.B \-noprog
 .br
 disable progress messages
 .br
 .TP
-.B \-quiet (boolean)
+.B \-quiet
 .br
 disable all messages, including errors
 .br
 .TP
-.B \-strict-error -se (boolean)
+.B \-strict-error -se
 .br
 exit after the first error is reported
 .br
@@ -473,17 +473,17 @@ set configuration file value. The string parameter can be formatted as:
 * `section:*=null`: remove the section
 .br
 .TP
-.B \-no-save (boolean)
+.B \-no-save
 .br
 discard any changes made to the config file upon exit
 .br
 .TP
-.B \-mod-reload (boolean)
+.B \-mod-reload
 .br
 unload / reload module shared libs when no longer used
 .br
 .TP
-.B \-for-test (boolean)
+.B \-for-test
 .br
 disable all creation/modif dates and GPAC versions in files
 .br
@@ -493,7 +493,7 @@ disable all creation/modif dates and GPAC versions in files
 cache directory location
 .br
 .TP
-.B \-proxy-on (boolean)
+.B \-proxy-on
 .br
 enable HTTP proxy
 .br
@@ -513,12 +513,12 @@ set HTTP proxy port
 set max HTTP download rate in bits per sec. 0 means unlimited
 .br
 .TP
-.B \-no-cache (boolean)
+.B \-no-cache
 .br
 disable HTTP caching
 .br
 .TP
-.B \-offline-cache (boolean)
+.B \-offline-cache
 .br
 enable offline HTTP caching (no revalidation of existing resource in cache)
 .br
@@ -543,7 +543,7 @@ set HTTP head request timeout in milliseconds
 set HTTP/RTSP request timeout in milliseconds
 .br
 .TP
-.B \-broken-cert (boolean)
+.B \-broken-cert
 .br
 enable accepting broken SSL certificates
 .br
@@ -568,22 +568,22 @@ set user profile filename. Content of file is appended as body to HEAD/GET reque
 insert query string (without ?) to URL on requests
 .br
 .TP
-.B \-dbg-edges (boolean)
+.B \-dbg-edges
 .br
 log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)
 .br
 .TP
-.B \-no-block (boolean)
+.B \-no-block
 .br
 disable blocking mode of filters
 .br
 .TP
-.B \-no-reg (boolean)
+.B \-no-reg
 .br
 disable regulation (no sleep) in session
 .br
 .TP
-.B \-no-reassign (boolean)
+.B \-no-reassign
 .br
 disable source filter reassignment in pid graph resolution
 .br
@@ -618,12 +618,12 @@ set maximum sleep time slot in milliseconds when regulation is enabled
 set N extra thread for the session. -1 means use all available cores
 .br
 .TP
-.B \-no-probe (boolean)
+.B \-no-probe
 .br
 disable data probing on sources and relies on extension (faster load but more error-prone)
 .br
 .TP
-.B \-no-argchk (boolean)
+.B \-no-argchk
 .br
 disable tracking of argument usage (all arguments will be considered as used)
 .br
@@ -633,17 +633,17 @@ disable tracking of argument usage (all arguments will be considered as used)
 blacklist the filters listed in the given string (comma-seperated list)
 .br
 .TP
-.B \-no-graph-cache (boolean)
+.B \-no-graph-cache
 .br
 disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (lower memory usage but slower)
 .br
 .TP
-.B \-no-reservoir (boolean)
+.B \-no-reservoir
 .br
 disable memory recycling for packets and properties. This uses much less memory but stresses the system memory allocator much more
 .br
 .TP
-.B \-switch-vres (boolean)
+.B \-switch-vres
 .br
 select smallest video resolution larger than scene size, otherwise use current video resolution
 .br
@@ -664,7 +664,7 @@ specify (2D rendering only) memory type of main video backbuffer. Depending on t
 set prefered YUV 4CC for overlays (used by DirectX only)
 .br
 .TP
-.B \-offscreen-yuv (boolean)
+.B \-offscreen-yuv
 .br
 indicate if offscreen yuv->rgb is enabled. can be set to false to force disabling
 .br
@@ -697,17 +697,17 @@ number of bits per color component in openGL
 number of bits for depth buffer in openGL
 .br
 .TP
-.B \-gl-doublebuf (boolean, default: yes)
+.B \-gl-doublebuf
 .br
 enable openGL double buffering
 .br
 .TP
-.B \-sdl-defer (boolean)
+.B \-sdl-defer
 .br
 use defer rendering for SDL
 .br
 .TP
-.B \-no-colorkey (boolean)
+.B \-no-colorkey
 .br
 disable color keying at the video output level
 .br
@@ -732,7 +732,7 @@ set ALSA dev name
 force ALSA and OSS output sample rate
 .br
 .TP
-.B \-ds-disable-notif (boolean)
+.B \-ds-disable-notif
 .br
 disable DirectSound audio buffer notifications when supported
 .br
@@ -747,12 +747,12 @@ indicate name of font reader module
 indicate comma-separated list of directories to scan for fonts
 .br
 .TP
-.B \-rescan-fonts (boolean)
+.B \-rescan-fonts
 .br
 indicate the font directory must be rescanned
 .br
 .TP
-.B \-rmt (boolean)
+.B \-rmt
 .br
 enable profiling through Remotery. A copy of Remotery visualizer is in gpac/share/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis
 .br
@@ -762,12 +762,12 @@ enable profiling through Remotery. A copy of Remotery visualizer is in gpac/shar
 set remotery port
 .br
 .TP
-.B \-rmt-reuse (boolean)
+.B \-rmt-reuse
 .br
 allow remotery to reuse port
 .br
 .TP
-.B \-rmt-localhost (boolean)
+.B \-rmt-localhost
 .br
 make remotery only accepts localhost connection
 .br
@@ -787,12 +787,12 @@ set remotery number of messages per update
 set remotery message queue size in bytes
 .br
 .TP
-.B \-rmt-log (boolean)
+.B \-rmt-log
 .br
 redirect logs to remotery (experimental, usually not well handled by browser)
 .br
 .TP
-.B \-rmt-ogl (boolean)
+.B \-rmt-ogl
 .br
 make remotery sample opengl calls
 .br
@@ -800,12 +800,12 @@ make remotery sample opengl calls
 .LP
 .br
 .TP
-.B \-noprog (boolean)
+.B \-noprog
 .br
 disable progress messages
 .br
 .TP
-.B \-quiet (boolean)
+.B \-quiet
 .br
 disable all messages, including errors
 .br
@@ -815,12 +815,12 @@ disable all messages, including errors
 set output log file
 .br
 .TP
-.B \-log-clock -lc (boolean)
+.B \-log-clock -lc
 .br
 log time in micro sec since start time of GPAC before each log line
 .br
 .TP
-.B \-log-utc -lu (boolean)
+.B \-log-utc -lu
 .br
 log UTC time in ms before each log line
 .br
@@ -2537,7 +2537,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2613-gccac35391-filters
+build: 0.9.0-DEV-rev2627-g484bd9d63-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
