@@ -1095,6 +1095,9 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 
 		/*fill curr_pck*/
 		curr_pck = stream->pck_first;
+		if (!stream->program->pcr_init_time_set && (stream != stream->program->pcr)) {
+			curr_pck = NULL;
+		}
 		if (!curr_pck) {
 			if (stream->mx) gf_mx_v(stream->mx);
 			return ret;
