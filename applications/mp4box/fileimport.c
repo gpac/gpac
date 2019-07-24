@@ -1286,7 +1286,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		gf_bs_del(bs);
 		e = gf_isom_add_sample(import.dest, tmcd_tk, desc_index, samp);
 		gf_isom_sample_del(&samp);
-		gf_isom_set_last_sample_duration(import.dest, tmcd_tk, tc_fps_den ? tc_fps_den : 1);
+
+		if (video_ref) {
+			u64 video_ref_dur = gf_isom_get_media_duration(import.dest, video_ref);
+			video_ref_dur *= tc_fps_num;
+			video_ref_dur /= gf_isom_get_media_timescale(import.dest, video_ref);
+			gf_isom_set_last_sample_duration(import.dest, tmcd_tk, video_ref_dur);
+		} else {
+			gf_isom_set_last_sample_duration(import.dest, tmcd_tk, tc_fps_den ? tc_fps_den : 1);
+		}
 	}
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
