@@ -251,19 +251,19 @@ void PrintGeneralUsage()
 	        " -rb ABCD             removes given brand from file's alternate brand list\n"
 	        " -cprt string         adds copyright string to movie\n"
 	        " -chap file           adds chapter information contained in file\n"
-	        " -set-track-id id1:id2 changes the id of a track from id1 to id2\n"
+	        " -set-track-id id1:id2 changes the ID of a track from id1 to id2\n"
 	        " -swap-track-id id1:id2 swaps the IDs of the identified tracks\n"
-	        " -rem trackID         removes track from file\n"
-	        " -rap trackID         removes all non-RAP samples from track\n"
-	        " -refonly trackID    removes all non-reference pictures from track\n"
-	        " -enable trackID      enables track\n"
-	        " -disable trackID     disables track\n"
+	        " -rem tkID            removes track from file\n"
+	        " -rap tkID            removes all non-RAP samples from track\n"
+	        " -refonly tkID        removes all non-reference pictures from track\n"
+	        " -enable tkID         enables track\n"
+	        " -disable tkID        disables track\n"
 	        " -new                 forces creation of a new destination file\n"
 	        " -timescale VAL       sets movie timescale to VAL ticks per second (default is 600)\n"
 	        " -lang [tkID=]LAN     sets track language. LAN is the BCP-47 code (eng, en-UK, ...)\n"
 	        " -delay tkID=TIME     sets track start delay in ms\n"
 	        " -par tkID=PAR        sets visual track pixel aspect ratio (PAR=N:D or \"none\" or \"force\" to write anyway)\n"
-			" -clap `ID=CLAP`      sets visual track clean aperture. CLAP is \"Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd\" or \"none\"\n"
+			" -clap tkID=CLAP      sets visual track clean aperture. CLAP is \"Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd\" or \"none\"\n"
  			"                       - n, d: numerator, denominator\n"
 	        "                       - W, H, HO, VO: clap width, clap height, clap horizontal offset, clap vertical offset\n"
 	        " -hdr file            path to XML file describing HDR boxes (mdcv, clli, ...)"
@@ -297,13 +297,13 @@ void PrintGeneralUsage()
 	        "                       is different from:\n"
 	        "                        criteria=lang:trackID=1:trackID=2\n"
 	        "\n"
-	        " -group-rem-track ID  removes track from its group\n"
-	        " -group-rem ID        removes the track's group\n"
+	        " -group-rem-track tkID removes track from its group\n"
+	        " -group-rem tkID      removes the track's group\n"
 	        " -group-clean         removes all group information from all tracks\n"
 	        " -group-single        puts all tracks in a single group\n"
-	        " -ref id:XXXX:refID   adds a reference of type 4CC from track ID to track refID\n"
+	        " -ref tkID:XXXX:refID adds a reference of type 4CC from track tkID to track refID\n"
 	        " -keep-utc            keeps UTC timing in the file after edit\n"
-	        " -udta ID:[OPTS]      sets udta for given track or movie if ID is 0. OPTS is a colon separated list of:\n"
+	        " -udta tkID:[OPTS]    sets udta for given track or movie if tkID is 0. OPTS is a colon separated list of:\n"
 	        "        type=CODE     where code is the 4CC code of the UDTA (not needed for box= option)\n"
 	        "        box=FILE	          where FILE is the location of the udta data, formatted as serialized boxes\n"
 #ifndef GPAC_DISABLE_CORE_TOOLS
@@ -774,25 +774,25 @@ void PrintHintUsage()
 void PrintExtractUsage()
 {
 	fprintf(stderr, "Extracting Options:\n"
-	        " -raw TrackID         extracts track in raw format when supported\n"
+	        " -raw tkID            extracts track in raw format when supported\n"
 	        "                      :output=FileName sets the output filename for this extraction \n"
-	        " -raws TrackID        extract each track sample to a file\n"
-	        "                       * Note: \"TrackID:N\" extracts Nth sample\n"
-	        " -nhnt TrackID        extracts track in nhnt format\n"
-	        " -nhml TrackID        extracts track in nhml format (XML nhnt).\n"
-	        "                       * Note: \"-nhml TrackID:full\" for full dump\n"
-	        " -webvtt-raw TrackID  extracts raw media track in WebVTT as metadata.\n"
-	        "                       * Note: \"-webvtt-raw TrackID:embedded\" to include media data in the WebVTT file\n"
-	        " -six TrackID		   extracts raw media track in experimental XML streaming instructions.\n"
-	        " -single TrackID      extracts track to a new mp4 file\n"
-	        " -avi TrackID         extracts visual track to an avi file\n"
-	        " -qcp TrackID         same as \'-raw\' but defaults to QCP file for EVRC/SMV\n"
+	        " -raws tkID           extract each track sample to a file\n"
+	        "                       * Note: \"tkID:N\" extracts Nth sample\n"
+	        " -nhnt tkID           extracts track in nhnt format\n"
+	        " -nhml tkID           extracts track in nhml format (XML nhnt).\n"
+	        "                       * Note: \"-nhml tkID:full\" for full dump\n"
+	        " -webvtt-raw tkID     extracts raw media track in WebVTT as metadata.\n"
+	        "                       * Note: \"-webvtt-raw tkID:embedded\" to include media data in the WebVTT file\n"
+	        " -six tkID            extracts raw media track in experimental XML streaming instructions.\n"
+	        " -single tkID         extracts track to a new mp4 file\n"
+	        " -avi tkID            extracts visual track to an avi file\n"
+	        " -qcp tkID            same as \'-raw\' but defaults to QCP file for EVRC/SMV\n"
 	        " -aviraw TK           extracts AVI track in raw format\n"
 	        "			            $TK can be one of \"video\" \"audio\" \"audioN\"\n"
 	        " -saf                 remux file to SAF multiplex\n"
 	        " -dvbhdemux           demux DVB-H file into IP Datagrams\n"
 	        "                       * Note: can be used when encoding scene descriptions\n"
-	        " -raw-layer ID        same as -raw but skips SVC/MVC extractors when extracting\n"
+	        " -raw-layer tkID      same as -raw but skips SVC/MVC extractors when extracting\n"
 	        " -diod                extracts file IOD in raw format when supported\n"
 	        "\n"
 #if !defined(GPAC_DISABLE_STREAMING)
@@ -806,7 +806,7 @@ void PrintDumpUsage()
 	fprintf(stderr, "Dumping Options\n"
 	        " -stdb                dumps/write to stdout and assumes stdout is opened in binary mode\n"
 	        " -std                 dumps/write to stdout and try to reopen stdout in binary mode.\n"
-	        " -info [trackID]      prints movie info / track info if trackID specified\n"
+	        " -info [tkID]         prints movie info / track info if tkID specified\n"
 	        "                       * Note: for non IsoMedia files, gets import options\n"
 	        " -bt                  scene to bt format - removes unknown MPEG4 nodes\n"
 	        " -xmt                 scene to XMT-A format - removes unknown MPEG4 nodes\n"
@@ -821,26 +821,26 @@ void PrintDumpUsage()
 	        " -dtsx                same as -dts but does not print offset\n"
 	        " -dtsc                same as -dts but analyse each sample for duplicated dts/cts - slow !\n"
 	        " -dtsxc               same as -dtsc does not print offset - slow !\n"
-	        " -dnal trackID        prints NAL sample info of given track\n"
-	        " -dnalc trackID       prints NAL sample info of given track, adding CRC for each nal\n"
+	        " -dnal tkID           prints NAL sample info of given track\n"
+	        " -dnalc tkID          prints NAL sample info of given track, adding CRC for each nal\n"
 	        " -sdp                 dumps SDP description of hinted file\n"
 	        " -sdp                 dumps SDP description of hinted file\n"
-	        " -dsap trackID        dumps DASH SAP cues (see -cues) for a given track.\n"
+	        " -dsap tkID           dumps DASH SAP cues (see -cues) for a given track.\n"
 	        "                       use -dsaps to only print sample number, -dsapc to only print CTS, -dsapd to only print DTS, -dsapp to only print presentation time.\n"
 	        " -dcr                 ISMACryp samples structure to XML output\n"
 	        " -dump-cover          extracts cover art\n"
 	        " -dump-chap           extracts chapter file\n"
 	        " -dump-chap-ogg       extracts chapter file as OGG format\n"
-	        " -dump-udta [ID:]4cc  extracts udta for the given 4CC. If ID is given, dumps from UDTA of the given track ID, otherwise moov is used.\n"
+	        " -dump-udta [tkID:]4cc  extracts udta for the given 4CC. If tkID is given, dumps from UDTA of the given track, otherwise moov is used.\n"
 	        "\n"
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	        " -ttxt                converts input subtitle to GPAC TTXT format\n"
 #endif
-	        " -ttxt TrackID        dumps Text track to GPAC TTXT format\n"
+	        " -ttxt tkID           dumps Text track to GPAC TTXT format\n"
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	        " -srt                 converts input subtitle to SRT format\n"
 #endif
-	        " -srt TrackID         dumps Text track to SRT format\n"
+	        " -srt tkID            dumps Text track to SRT format\n"
 	        "\n"
 	        " -rip-mpd             download manifest and segments of an MPD. Does not work with live sessions\n"
 	        "\n"
@@ -862,13 +862,13 @@ void PrintMetaUsage()
 	fprintf(stderr, "Meta handling Options\n"
 		" -set-meta args       sets given meta type - syntax: \"ABCD[:tk=ID]\"\n"
 		"                       * ABCD: four char meta type (NULL or 0 to remove meta)\n"
-		"                       * [:tk=ID]: if not set use root (file) meta\n"
-		"                                if ID is 0 use moov meta\n"
-		"                                if ID is not 0 use track meta\n"
+		"                       * [:tk=tkID]: if not set use root (file) meta\n"
+		"                                if tkID is 0 use moov meta\n"
+		"                                if tkID is not 0 use track meta\n"
 		" -add-item args       adds resource to meta\n"
 		"                       * syntax: file_path + options (\':\' separated):\n"
 		"                        file_path \"this\" or \"self\": item is the file itself\n"
-		"                        tk=ID:            meta location (file, moov, track)\n"
+		"                        tk=tkID:            meta location (file, moov, track)\n"
 		"                        name=str:         item name\n"
 		"                        type=itype:       item 4cc type (not needed if mime is provided)\n"
 		"                        mime=mtype:       item mime type\n"
@@ -887,13 +887,13 @@ void PrintMetaUsage()
 		"                        hidden             indicates that this image item should be hidden.\n"
 		"                        icc_path           path to icc to add as colr.\n"
 		"                        alpha            indicates that the image is an alpha image (should use ref=auxl also).\n"
-		" -rem-item args       removes resource from meta - syntax: item_ID[:tk=ID]\n"
-		" -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
+		" -rem-item args       removes resource from meta - syntax: item_ID[:tk=tkID]\n"
+		" -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=tkID]\n"
 		" -set-xml args        sets meta XML data\n"
-		"                       * syntax: xml_file_path[:tk=ID][:binary]\n"
-		" -rem-xml [tk=ID]     removes meta XML data\n"
-		" -dump-xml args       dumps meta XML to file - syntax file_path[:tk=ID]\n"
-		" -dump-item args      dumps item to file - syntax item_ID[:tk=ID][:path=fileName]\n"
+		"                       * syntax: xml_file_path[:tk=tkID][:binary]\n"
+		" -rem-xml [tk=tkID]   removes meta XML data\n"
+		" -dump-xml args       dumps meta XML to file - syntax file_path[:tk=tkID]\n"
+		" -dump-item args      dumps item to file - syntax item_ID[:tk=tkID][:path=fileName]\n"
 		" -package             packages input XML file into an ISO container\n"
 		"                       * all media referenced except hyperlinks are added to file\n"
 		" -mgt                 packages input XML file into an MPEG-U widget with ISO container.\n"
@@ -2653,7 +2653,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			strncpy(szTK, argv[i + 1], sizeof(szTK));
 			ext = strchr(szTK, '=');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track par - expecting ID=PAR_NUM:PAR_DEN got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track par - expecting tkID=PAR_NUM:PAR_DEN got %s\n", argv[i + 1]);
 				return 2;
 			}
 			if (!stricmp(ext + 1, "none")) {
@@ -2663,7 +2663,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				sscanf(ext + 1, "%d", &tracks[nb_track_act].par_num);
 				ext = strchr(ext + 1, ':');
 				if (!ext) {
-					fprintf(stderr, "Bad format for track par - expecting ID=PAR_NUM:PAR_DEN got %s\n", argv[i + 1]);
+					fprintf(stderr, "Bad format for track par - expecting tkID=PAR_NUM:PAR_DEN got %s\n", argv[i + 1]);
 					return 2;
 				}
 				sscanf(ext + 1, "%d", &tracks[nb_track_act].par_den);
@@ -2686,7 +2686,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			strncpy(szTK, argv[i + 1], sizeof(szTK));
 			ext = strchr(szTK, '=');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track clap - expecting ID=none or ID=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track clap - expecting tkID=none or tkID=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd got %s\n", argv[i + 1]);
 				return 2;
 			}
 			tka = &tracks[nb_track_act];
@@ -2695,7 +2695,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			} else {
 				if (sscanf(ext + 1, "%d,%d,%d,%d,%d,%d,%d,%d", &tka->clap_wnum, &tka->clap_wden, &tka->clap_hnum, &tka->clap_hden, &tka->clap_honum, &tka->clap_hoden, &tka->clap_vonum, &tka->clap_voden) != 8) {
 
-					fprintf(stderr, "Bad format for track clap - expecting ID=none or ID=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd got %s\n", argv[i + 1]);
+					fprintf(stderr, "Bad format for track clap - expecting tkID=none or tkID=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd got %s\n", argv[i + 1]);
 					return 2;
 				}
 			}
@@ -2801,7 +2801,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			szTK[sizeof(szTK)-1] = 0;
 			ext = strchr(szTK, '=');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track delay - expecting ID=DLAY got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track delay - expecting tkID=DLAY got %s\n", argv[i + 1]);
 				return 2;
 			}
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_DELAY;
@@ -2821,7 +2821,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			szTK = argv[i + 1];
 			ext = strchr(szTK, ':');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track reference - expecting ID:XXXX:refID got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track reference - expecting tkID:XXXX:refID got %s\n", argv[i + 1]);
 				return 2;
 			}
 			tracks[nb_track_act].act_type = TRAC_ACTION_REFERENCE;
@@ -2831,7 +2831,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			szTK = ext + 1;
 			ext = strchr(szTK, ':');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track reference - expecting ID:XXXX:refID got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track reference - expecting tkID:XXXX:refID got %s\n", argv[i + 1]);
 				return 2;
 			}
 			ext[0] = 0;
@@ -2852,7 +2852,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			szTK[sizeof(szTK)-1] = 0;
 			ext = strchr(szTK, '=');
 			if (!ext) {
-				fprintf(stderr, "Bad format for track name - expecting ID=name got %s\n", argv[i + 1]);
+				fprintf(stderr, "Bad format for track name - expecting tkID=name got %s\n", argv[i + 1]);
 				return 2;
 			}
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_HANDLER_NAME;
