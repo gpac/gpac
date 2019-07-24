@@ -436,16 +436,16 @@ void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *reg, u32
 			if (f->caps)
 				gf_free((void *)f->caps);
 
-			gf_free((char*) f->name);
-
 			while (f->args) {
 				GF_FilterArgs *arg = (GF_FilterArgs *) &f->args[i];
 				if (!arg || !arg->arg_name) break;
 				i++;
 				if (arg->arg_default_val) gf_free((void *) arg->arg_default_val);
 				if (arg->min_max_enum) gf_free((void *) arg->min_max_enum);
+				if (arg->flags & GF_FS_ARG_META_ALLOC) gf_free((void *) arg->arg_desc);
 			}
 			gf_free((void *) f->args);
+			gf_free((char*) f->name);
 			gf_fs_remove_filter_register(session, f);
 			gf_free(f);
 		}
@@ -787,8 +787,23 @@ void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_r
 		while (av_class) {
 			opt = &av_class->option[idx];
 			if (!opt || !opt->name) break;
-			if (!flags || (opt->flags & flags) )
-				i++;
+			if (!flags || (opt->flags & flags) ) {
+				if (!opt->unit)
+					i++;
+				else {
+					u32 k;
+					Bool is_first = GF_TRUE;
+					for (k=0; k<idx; k++) {
+						const struct AVOption *an_opt = &av_class->option[k];
+						if (an_opt && an_opt->unit && !strcmp(opt->unit, an_opt->unit)) {
+							is_first=GF_FALSE;
+							break;
+						}
+					}
+					if (is_first)
+						i++;
+				}
+			}
 			idx++;
 		}
 		if (i) {
@@ -801,11 +816,53 @@ void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_r
 			while (av_class) {
 				opt = &av_class->option[idx];
 				if (!opt || !opt->name) break;
-
-				if (!flags || (opt->flags & flags) ) {
-					args[i] = ffmpeg_arg_translate(opt);
-					i++;
+				if (flags && !(opt->flags & flags) ) {
+					idx++;
+					continue;
 				}
+
+				if (opt->unit) {
+					u32 k;
+					const char *opt_name = NULL;
+					GF_FilterArgs *par_arg=NULL;
+					for (k=0; k<idx; k++) {
+						const struct AVOption *an_opt = &av_class->option[k];
+						if (an_opt && an_opt->unit && !strcmp(opt->unit, an_opt->unit)) {
+							opt_name = an_opt->name;
+							break;
+						}
+					}
+					if (opt_name) {
+						for (k=0; k<i; k++) {
+							par_arg = &args[k];
+							if (!strcmp(par_arg->arg_name, opt_name))
+								break;
+							par_arg = NULL;
+						}
+					}
+
+					if (par_arg) {
+						GF_FilterArgs an_arg = ffmpeg_arg_translate(opt);
+						if (!(par_arg->flags & GF_FS_ARG_META_ALLOC)) {
+							par_arg->arg_desc = par_arg->arg_desc ? gf_strdup(par_arg->arg_desc) : NULL;
+							par_arg->flags |= GF_FS_ARG_META_ALLOC;
+						}
+						gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_name, "\n - ");
+						gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_desc, ": ");
+
+						if (an_arg.arg_default_val)
+							gf_free((void *) an_arg.arg_default_val);
+						if (an_arg.min_max_enum)
+							gf_free((void *) an_arg.min_max_enum);
+
+						idx++;
+						continue;
+					}
+				}
+
+				args[i] = ffmpeg_arg_translate(opt);
+				i++;
+
 				idx++;
 			}
 		}
