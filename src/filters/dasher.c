@@ -3175,8 +3175,10 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 				//ensure we have the same settings - if not consider the dash stream has been resetup for a new period
 				ds = dasher_get_stream(ctx, rep->dasher_ctx->src_url, rep->dasher_ctx->source_pid, 0);
 				if (!ds) {
-					rep->dasher_ctx->removed = GF_TRUE;
+					rep->dasher_ctx->done = 1;
 					nb_done_in_period++;
+					if (rep->dasher_ctx->last_dyn_period_id >= ctx->last_dyn_period_id)
+						ctx->last_dyn_period_id = 1 + rep->dasher_ctx->last_dyn_period_id;
 					continue;
 				}
 
@@ -3194,17 +3196,17 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 				if (ds->period_id && p_id && !strcmp(ds->period_id, p_id)) {
 				} else if (!ds->period_id && !rep->dasher_ctx->period_id) {
 				} else {
-					rep->dasher_ctx->removed = GF_TRUE;
+					rep->dasher_ctx->done = 1;
 					nb_done_in_period++;
 					continue;
 				}
 				if (ds->period_start != rep->dasher_ctx->period_start) {
-					rep->dasher_ctx->removed = GF_TRUE;
+					rep->dasher_ctx->done = 1;
 					nb_done_in_period++;
 					continue;
 				}
 				if (ds->period_dur != rep->dasher_ctx->period_duration) {
-					rep->dasher_ctx->removed = GF_TRUE;
+					rep->dasher_ctx->done = 1;
 					nb_done_in_period++;
 					continue;
 				}
@@ -3212,7 +3214,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 				if (rep->dasher_ctx->mux_pids) {
 					e = dasher_reload_muxed_comp(ctx, ds, rep->dasher_ctx->mux_pids, GF_TRUE);
 					if (e) {
-						rep->dasher_ctx->removed = GF_TRUE;
+						rep->dasher_ctx->done = 1;
 						nb_done_in_period++;
 						continue;
 					}
@@ -3435,7 +3437,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		dasher_udpate_periods_and_manifest(filter, ctx);
 	}
 
-	if (ctx->subdur_done || (ctx->dmode == GF_MPD_TYPE_DYNAMIC_LAST) )
+	if (ctx->subdur_done || (ctx->current_period->period && (ctx->dmode == GF_MPD_TYPE_DYNAMIC_LAST)) )
 		return GF_EOS;
 
 	if (ctx->current_period->period) {
@@ -3513,6 +3515,11 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 		if (ctx->dmode==GF_DASH_DYNAMIC_LAST) {
 			dasher_udpate_periods_and_manifest(filter, ctx);
+			count = gf_list_count(ctx->pids);
+			for (i=0; i<count; i++) {
+				GF_DashStream *ds = gf_list_get(ctx->pids, i);
+				gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
+			}
 			return GF_EOS;
 		}
 	}

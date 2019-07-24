@@ -308,7 +308,6 @@ typedef struct
 	u32 pid_id, source_pid, dep_pid_id;
 	Bool owns_set;
 	Bool multi_pids;
-	Bool removed;
 	Double dash_dur;
 	u64 next_seg_start;
 	u64 first_cts, first_dts;
