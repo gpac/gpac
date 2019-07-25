@@ -5051,7 +5051,7 @@ GF_Err mdcv_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 	gf_isom_box_dump_start(a, "MasteringDisplayColourVolumeBox", trace);
 	for (c = 0; c < 3; c++) {
-		fprintf(trace, "display_primaries[%d].x=\"%u\" display_primaries[%d].y=\"%u\"", c, ptr->display_primaries[c].x, c, ptr->display_primaries[c].y);
+		fprintf(trace, "display_primaries_%d_x=\"%u\" display_primaries_%d_y=\"%u\" ", c, ptr->display_primaries[c].x, c, ptr->display_primaries[c].y);
 	}
 	fprintf(trace, "white_point_x=\"%u\" white_point_y=\"%u\" max_display_mastering_luminance=\"%u\" min_display_mastering_luminance=\"%u\">\n", ptr->white_point_x, ptr->white_point_y, ptr->max_display_mastering_luminance, ptr->min_display_mastering_luminance);
 	gf_isom_box_dump_done("MasteringDisplayColourVolumeBox", a, trace);
