@@ -278,7 +278,10 @@ GF_Err nalumx_process(GF_Filter *filter)
 	}
 
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
-
+	if (!pck_size || !data) {
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_OK;
+	}
 	if (!ctx->bs_r) ctx->bs_r = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ctx->bs_r, data, pck_size);
 
