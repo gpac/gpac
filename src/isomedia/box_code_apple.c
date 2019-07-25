@@ -527,7 +527,7 @@ GF_Err tmcd_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->flags = gf_bs_read_u32(bs);
 	ptr->timescale = gf_bs_read_u32(bs);
 	ptr->frame_duration = gf_bs_read_u32(bs);
-	ptr->frames_per_sec = gf_bs_read_u8(bs);
+	ptr->frames_per_counter_tick = gf_bs_read_u8(bs);
 	gf_bs_read_u8(bs); //reserved
 
 	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
@@ -557,7 +557,7 @@ GF_Err tmcd_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->flags);
 	gf_bs_write_u32(bs, ptr->timescale);
 	gf_bs_write_u32(bs, ptr->frame_duration);
-	gf_bs_write_u8(bs, ptr->frames_per_sec);
+	gf_bs_write_u8(bs, ptr->frames_per_counter_tick);
 	gf_bs_write_u8(bs, 0); //reserved
 
 	return gf_isom_box_array_write(s, ptr->protections, bs);

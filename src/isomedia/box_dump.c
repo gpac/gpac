@@ -5502,7 +5502,7 @@ GF_Err tmcd_dump(GF_Box *a, FILE * trace)
 
 	gf_isom_box_dump_start(a, "TimeCodeSampleEntryBox", trace);
 
-	fprintf(trace, "DataReferenceIndex=\"%d\" Flags=\"%08X\" TimeScale=\"%d\" FrameDuration=\"%d\" FramesPerSec=\"%d\">\n", p->dataReferenceIndex, p->flags, p->timescale, p->frame_duration, p->frames_per_sec);
+	fprintf(trace, "DataReferenceIndex=\"%d\" Flags=\"%08X\" TimeScale=\"%d\" FrameDuration=\"%d\" FramesPerTick=\"%d\">\n", p->dataReferenceIndex, p->flags, p->timescale, p->frame_duration, p->frames_per_counter_tick);
 
 	gf_isom_box_dump_done("TimeCodeSampleEntryBox", a, trace);
 	return GF_OK;

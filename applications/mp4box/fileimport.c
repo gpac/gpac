@@ -277,6 +277,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 icc_size=0;
 	char *icc_data = NULL;
 	s32 tc_fps_num=0, tc_fps_den=0, tc_h=0, tc_m=0, tc_s=0, tc_f=0, tc_counter=0;
+	Bool tc_force_counter=GF_FALSE;
 
 	rvc_predefined = 0;
 	chapter_name = NULL;
@@ -651,13 +652,20 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 		}
 		else if (!strnicmp(ext+1, "tc=", 3)) {
-			if (sscanf(ext+4, "%d/%d,%d,%d,%d,%d", &tc_fps_num, &tc_fps_den, &tc_h, &tc_m, &tc_s, &tc_f) == 6) {
+			char *tc_str = ext+4;
+			if (tc_str[0] == 'f') {
+				tc_force_counter=GF_TRUE;
+				tc_str+=1;
+			}
+			if (sscanf(tc_str, "%d/%d,%d,%d,%d,%d", &tc_fps_num, &tc_fps_den, &tc_h, &tc_m, &tc_s, &tc_f) == 6) {
 
-			} else if (sscanf(ext+4, "%d,%d,%d,%d,%d", &tc_fps_num, &tc_h, &tc_m, &tc_s, &tc_f) == 5) {
+			} else if (sscanf(tc_str, "%d,%d,%d,%d,%d", &tc_fps_num, &tc_h, &tc_m, &tc_s, &tc_f) == 5) {
 				tc_fps_den = 1;
-			} else if (sscanf(ext+4, "%d/%d,%d", &tc_fps_num, &tc_fps_den, &tc_counter) == 3) {
-			} else if (sscanf(ext+4, "%d,%d", &tc_fps_num, &tc_counter) == 2) {
+			} else if (sscanf(tc_str, "%d/%d,%d", &tc_fps_num, &tc_fps_den, &tc_counter) == 3) {
+				tc_counter++;
+			} else if (sscanf(tc_str, "%d,%d", &tc_fps_num, &tc_counter) == 2) {
 				tc_fps_den = 1;
+				tc_counter++;
 			} else {
 				fprintf(stderr, "Bad format %s for timecode, ignoring\n", ext+1);
 			}
@@ -1213,6 +1221,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		u32 desc_index=0;
 		u32 tmcd_track, tmcd_id;
 		u32 video_ref = 0;
+		s32 frames_per_tick=0;
 		Bool is_drop=GF_FALSE;
 		GF_BitStream *bs;
 		GF_ISOSample *samp;
@@ -1227,13 +1236,34 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (res * tc_fps_den != tc_fps_num)
 				is_drop = GF_TRUE;
 		}
+		
 		tmcd_track = gf_isom_new_track(import.dest, 0, GF_QT_BOX_TYPE_TMCD, tc_fps_num);
 		if (!tmcd_track) {
 			e = gf_isom_last_error(import.dest);
 			goto exit;
 		}
+
+		if (tc_force_counter) {
+			u64 nb_secs = tc_h * 3600 + tc_m*60 + tc_s;
+			nb_secs *= tc_fps_num;
+			nb_secs /= tc_fps_den;
+			tc_counter = nb_secs + tc_f + 1;
+
+			//this is correct but generates timecodes non compatible with ffmpeg ...
+			//frames_per_tick=1;
+
+			frames_per_tick = tc_fps_num;
+			frames_per_tick /= tc_fps_den;
+			if (frames_per_tick * tc_fps_den < tc_fps_num)
+				frames_per_tick++;
+
+			frames_per_tick = -frames_per_tick;
+		} else if (tc_counter) {
+			frames_per_tick = 1;
+		}
+
 		tmcd_id = gf_isom_get_track_id(import.dest, tmcd_track);
-		e = gf_isom_tmcd_config_new(import.dest, tmcd_track, tc_fps_den, tc_counter, is_drop, &desc_index);
+		e = gf_isom_tmcd_config_new(import.dest, tmcd_track, tc_fps_den, frames_per_tick, is_drop, &desc_index);
 		if (e) goto exit;
 
 		if (video_ref) {
@@ -1241,7 +1271,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		if (tc_counter) {
-			gf_bs_write_u32(bs, tc_counter);
+			gf_bs_write_u32(bs, tc_counter-1);
 		} else {
 			gf_bs_write_u8(bs, tc_h);
 			gf_bs_write_int(bs, 0, 1);
