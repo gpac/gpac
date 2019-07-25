@@ -1229,7 +1229,7 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_de
 {
 	GF_TrackBox *trak;
 	GF_Err e;
-	u32 dataRefIndex, fps;
+	u32 dataRefIndex;
 	GF_Box *tmcd;
 	GF_GenericMediaHeaderInfoBox *gmin;
 	GF_TimeCodeMediaInformationBox *tcmi;
