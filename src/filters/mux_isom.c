@@ -124,7 +124,7 @@ enum
 {
 	MP4MX_MODE_INTER=0,
 	MP4MX_MODE_FLAT,
-	MP4MX_MODE_CAP,
+	MP4MX_MODE_FASTSTART,
 	MP4MX_MODE_TIGHT,
 	MP4MX_MODE_FRAG,
 	MP4MX_MODE_SFRAG,
@@ -516,6 +516,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 		switch (ctx->store) {
 		case MP4MX_MODE_FLAT:
+		case MP4MX_MODE_FASTSTART:
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_BOOL(GF_TRUE) );
 			break;
 		case MP4MX_MODE_INTER:
@@ -3924,7 +3925,7 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 				sprintf(szStatus, "mux frags %d next %02.02g", ctx->nb_frags, ctx->next_frag_start);
 			}
 		} else {
-			sprintf(szStatus, "%s", (ctx->store==MP4MX_MODE_FLAT) ? "mux" : "import");
+			sprintf(szStatus, "%s", ((ctx->store==MP4MX_MODE_FLAT) || (ctx->store==MP4MX_MODE_FASTSTART)) ? "mux" : "import");
 		}
 		for (i=0; i<count; i++) {
 			u32 pc=0;
@@ -4040,7 +4041,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static GF_Err mp4_mux_on_data_patch(void *cbk, u8 *data, u32 block_size, u64 file_offset)
+static GF_Err mp4_mux_on_data_patch(void *cbk, u8 *data, u32 block_size, u64 file_offset, Bool is_insert)
 {
 	GF_Filter *filter = (GF_Filter *) cbk;
 	u8 *output;
@@ -4050,6 +4051,8 @@ static GF_Err mp4_mux_on_data_patch(void *cbk, u8 *data, u32 block_size, u64 fil
 	memcpy(output, data, block_size);
 	gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
 	gf_filter_pck_set_seek_flag(pck, GF_TRUE);
+	if (is_insert)
+		gf_filter_pck_set_interlaced(pck, 1);
 	gf_filter_pck_set_byte_offset(pck, file_offset);
 	gf_filter_pck_send(pck);
 	return GF_OK;
@@ -4451,6 +4454,9 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		case MP4MX_MODE_FLAT:
 			e = gf_isom_set_storage_mode(ctx->file, GF_ISOM_STORE_FLAT);
 			break;
+		case MP4MX_MODE_FASTSTART:
+			e = gf_isom_set_storage_mode(ctx->file, GF_ISOM_STORE_FASTSTART);
+			break;
 		case MP4MX_MODE_TIGHT:
 			e = gf_isom_set_storage_mode(ctx->file, GF_ISOM_STORE_TIGHT);
 			break;
@@ -4532,12 +4538,12 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- both: paramater sets are inband, signaled as inband, and also first set is kept in sample descripton\n"
 	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|both|mix|", 0},
 	{ OFFS(store), "file storage mode\n"
-	"- inter: uses cdur to interleave the file\n"
-	"- flat: writes a flat file, moov at end\n"
-	"- cap: flushes to disk as soon as samples are added\n"
-	"- tight:  uses per-sample interleaving of all tracks\n"
+	"- inter: perform precise interleave of the file using [-cdur]() (requires temporary storage of all media)\n"
+	"- flat: write samples as they arrive and moov at end (fastest mode)\n"
+	"- fstart: write samples as they arrive and moov before mdat\n"
+	"- tight:  uses per-sample interleaving of all tracks (requires temporary storage of all media)\n"
 	"- frag: fragments the file using cdur duration\n"
-	"- sfrag: framents the file using cdur duration but adjusting to start with SAP1/3", GF_PROP_UINT, "inter", "inter|flat|cap|tight|frag|sfrag", 0},
+	"- sfrag: framents the file using cdur duration but adjusting to start with SAP1/3", GF_PROP_UINT, "inter", "inter|flat|fstart|tight|frag|sfrag", 0},
 	{ OFFS(cdur), "chunk duration for interleaving and fragmentation modes\n"
 	"- 0: no specific interleaving but moov first\n"
 	"- negative: defaults to 1.0 unless overriden by storage profile", GF_PROP_DOUBLE, "-1.0", NULL, 0},
@@ -4608,6 +4614,8 @@ GF_FilterRegister MP4MuxRegister = {
 	"  \n"
 	"To force non-item streams to be muxed as items, use __#ItemID__ option on that PID:\n"
 	"EX -i source.jpg:#ItemID=1 -o file.mp4\n"
+	"  \n"
+	"The `store` mode allows controling if the file is fragmented ot not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either `flat` or `fstart` modes.\n"
 	"  \n"
 	"The `cache` mode allows controling how DASH onDemand segments are generated:\n"
 	"-  When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file __before__ the final SIDX.\n"

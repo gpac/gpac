@@ -1988,6 +1988,7 @@ GF_Err gf_isom_set_storage_mode(GF_ISOFile *movie, u8 storageMode)
 	case GF_ISOM_STORE_INTERLEAVED:
 	case GF_ISOM_STORE_DRIFT_INTERLEAVED:
 	case GF_ISOM_STORE_TIGHT:
+	case GF_ISOM_STORE_FASTSTART:
 		movie->storageMode = storageMode;
 		return GF_OK;
 	default:

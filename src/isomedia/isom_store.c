@@ -733,7 +733,7 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 
 
 //write the file track by track, with moov box before or after the mdat
-static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool non_seakable, Bool for_fragments)
+static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool non_seakable, Bool for_fragments, GF_BitStream *moov_bs)
 {
 	GF_Err e;
 	u32 i;
@@ -881,8 +881,32 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 			}
 		}
 
+		if (moov_bs) {
+			e = DoWrite(mw, writers, bs, 1, movie->mdat->bsOffset);
+			if (e) goto exit;
+
+			firstSize = GetMoovAndMetaSize(movie, writers);
+
+//			offset = firstSize + 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
+			offset = firstSize;
+			e = ShiftOffset(movie, writers, offset);
+			if (e) goto exit;
+			//get the size and see if it has changed (eg, we moved to 64 bit offsets)
+			finalSize = GetMoovAndMetaSize(movie, writers);
+			if (firstSize != finalSize) {
+//				finalOffset = finalSize + 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
+				finalOffset = finalSize;
+				//OK, now we're sure about the final size.
+				//we don't need to re-emulate, as the only thing that changed is the offset
+				//so just shift the offset
+				e = ShiftOffset(movie, writers, finalOffset - offset);
+				if (e) goto exit;
+			}
+
+		}
+
 		//OK, write the movie box.
-		e = WriteMoovAndMeta(movie, writers, bs);
+		e = WriteMoovAndMeta(movie, writers, moov_bs ? moov_bs : bs);
 		if (e) goto exit;
 
 #ifndef GPAC_DISABLE_ISOM_ADOBE
@@ -1591,7 +1615,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 	//capture mode: we don't need a new bitstream
 	if (movie->openMode == GF_ISOM_OPEN_WRITE) {
 		if (!strcmp(movie->fileName, "_gpac_isobmff_redirect")) {
-			GF_BitStream *bs;
+			GF_BitStream *bs, *moov_bs=NULL;
 			u64 mdat_end = gf_bs_get_position(movie->editFileMap->bs);
 			u64 mdat_start = movie->mdat->bsOffset;
 			u64 mdat_size = mdat_end - mdat_start;
@@ -1602,17 +1626,22 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 					return GF_BAD_PARAM;
 				}
 				bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
-				e = WriteFlat(&mw, 0, bs, GF_TRUE, GF_TRUE);
+				e = WriteFlat(&mw, 0, bs, GF_TRUE, GF_TRUE, NULL);
 				movie->fragmented_file_pos = gf_bs_get_position(bs);
 				gf_bs_del(bs);
 				return e;
 			}
+
+			if ((movie->storageMode==GF_ISOM_STORE_FASTSTART) && mdat_start && mdat_size) {
+				moov_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			}
 			//write as non-seekable
-			e = WriteFlat(&mw, 0, movie->editFileMap->bs, GF_TRUE, GF_FALSE);
+			e = WriteFlat(&mw, 0, movie->editFileMap->bs, GF_TRUE, GF_FALSE, moov_bs);
 
 			movie->fragmented_file_pos = gf_bs_get_position(movie->editFileMap->bs);
+
 			if (mdat_start && mdat_size) {
-				char data[16];
+				u8 data[16];
 				if (!movie->on_block_out) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block patch callback, cannot patch mdat size in flat storage\n"));
 					return GF_BAD_PARAM;
@@ -1627,10 +1656,36 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 				else
 					gf_bs_write_u64(bs, 0);
 				gf_bs_del(bs);
-				movie->on_block_patch(movie->on_block_out_usr_data, data, 16, mdat_start);
+				movie->on_block_patch(movie->on_block_out_usr_data, data, 16, mdat_start, GF_FALSE);
+			}
+
+			if (moov_bs) {
+				u8 *moov_data;
+				u32 moov_size;
+
+				gf_bs_get_content(moov_bs, &moov_data, &moov_size);
+				gf_bs_del(moov_bs);
+
+				movie->on_block_patch(movie->on_block_out_usr_data, moov_data, moov_size, mdat_start, GF_TRUE);
+				gf_free(moov_data);
 			}
 		} else {
-			e = WriteFlat(&mw, 0, movie->editFileMap->bs, GF_FALSE, GF_FALSE);
+			GF_BitStream *moov_bs = NULL;
+			if (movie->storageMode==GF_ISOM_STORE_FASTSTART) {
+				moov_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			}
+			e = WriteFlat(&mw, 0, movie->editFileMap->bs, GF_FALSE, GF_FALSE, moov_bs);
+			if (moov_bs) {
+				u8 *moov_data;
+				u32 moov_size;
+
+				gf_bs_get_content(moov_bs, &moov_data, &moov_size);
+				gf_bs_del(moov_bs);
+				if (!e)
+					e = gf_bs_insert_data(movie->editFileMap->bs, moov_data, moov_size, movie->mdat->bsOffset);
+					
+				gf_free(moov_data);
+			}
 		}
 	} else {
 		FILE *stream=NULL;
@@ -1673,10 +1728,10 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 			e = WriteInterleaved(&mw, bs, 1);
 			break;
 		case GF_ISOM_STORE_STREAMABLE:
-			e = WriteFlat(&mw, 1, bs, is_stdout, GF_FALSE);
+			e = WriteFlat(&mw, 1, bs, is_stdout, GF_FALSE, NULL);
 			break;
 		default:
-			e = WriteFlat(&mw, 0, bs, is_stdout, GF_FALSE);
+			e = WriteFlat(&mw, 0, bs, is_stdout, GF_FALSE, NULL);
 			break;
 		}
 

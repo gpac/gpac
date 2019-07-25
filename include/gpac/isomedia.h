@@ -86,7 +86,7 @@ enum
 /*Movie Options for file writing*/
 enum
 {
-	/*FLAT: the MediaData (MPEG4 ESs) is stored at the beginning of the file*/
+	/*FLAT: the MediaData is stored at the beginning of the file*/
 	GF_ISOM_STORE_FLAT = 1,
 	/*STREAMABLE: the MetaData (File Info) is stored at the beginning of the file
 	for fast access during download*/
@@ -97,7 +97,9 @@ enum
 	GF_ISOM_STORE_DRIFT_INTERLEAVED,
 	/*tightly interleaves samples based on their DTS, therefore allowing better placement of samples in the file.
 	This is used for both http interleaving and Hinting optimizations*/
-	GF_ISOM_STORE_TIGHT
+	GF_ISOM_STORE_TIGHT,
+	/*FASTSTART: same as FLAT but moves moov before mdat at the end*/
+	GF_ISOM_STORE_FASTSTART,
 
 };
 

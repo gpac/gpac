@@ -3689,7 +3689,7 @@ struct __tag_isom {
 	Bool is_smooth;
 
 	GF_Err (*on_block_out)(void *usr_data, u8 *block, u32 block_size);
-	GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset);
+	GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset, Bool is_insert);
 	void *on_block_out_usr_data;
 	u32 on_block_out_block_size;
 	//in block disptach mode we don't have the full file, keep the position
@@ -3717,7 +3717,7 @@ void gf_isom_delete_movie(GF_ISOFile *mov);
 
 GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
  			GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size),
-			GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset),
+			GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset, Bool is_insert),
  			void *usr_data,
  			u32 block_size);
 
