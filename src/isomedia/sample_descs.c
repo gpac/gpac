@@ -1398,16 +1398,22 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_de
 	if (!the_file->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	gmin = (GF_GenericMediaHeaderInfoBox *) gf_isom_box_new_parent(&trak->Media->information->InfoHeader->child_boxes, GF_QT_BOX_TYPE_GMIN);
-	if (!gmin) return GF_OUT_OF_MEM;
+	gmin = (GF_GenericMediaHeaderInfoBox *) gf_isom_box_find_child(trak->Media->information->InfoHeader->child_boxes, GF_QT_BOX_TYPE_GMIN);
+	if (!gmin) {
+		gmin = (GF_GenericMediaHeaderInfoBox *) gf_isom_box_new_parent(&trak->Media->information->InfoHeader->child_boxes, GF_QT_BOX_TYPE_GMIN);
+		if (!gmin) return GF_OUT_OF_MEM;
+	}
 
-	//default container box, use GMHD to create it
-	tmcd = gf_isom_box_new_parent(&trak->Media->information->InfoHeader->child_boxes, GF_ISOM_BOX_TYPE_GMHD);
-	if (!tmcd) return GF_OUT_OF_MEM;
-	tmcd->type = GF_QT_BOX_TYPE_TMCD;
+	tmcd = gf_isom_box_find_child(trak->Media->information->InfoHeader->child_boxes, GF_ISOM_BOX_TYPE_GMHD);
+	if (!tmcd) {
+		//default container box, use GMHD to create it
+		tmcd = gf_isom_box_new_parent(&trak->Media->information->InfoHeader->child_boxes, GF_ISOM_BOX_TYPE_GMHD);
+		if (!tmcd) return GF_OUT_OF_MEM;
+		tmcd->type = GF_QT_BOX_TYPE_TMCD;
 
-	tcmi = (GF_TimeCodeMediaInformationBox *) gf_isom_box_new_parent(&tmcd->child_boxes, GF_QT_BOX_TYPE_TCMI);
-	if (!tcmi) return GF_OUT_OF_MEM;
+		tcmi = (GF_TimeCodeMediaInformationBox *) gf_isom_box_new_parent(&tmcd->child_boxes, GF_QT_BOX_TYPE_TCMI);
+		if (!tcmi) return GF_OUT_OF_MEM;
+	}
 
 	entry = (GF_TimeCodeSampleEntryBox *) gf_isom_box_new_ex(GF_QT_BOX_TYPE_TMCD, GF_ISOM_BOX_TYPE_STSD, GF_FALSE, GF_FALSE);
 	if (!entry) return GF_OUT_OF_MEM;
@@ -1433,5 +1439,25 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_de
 	return e;
 }
 #endif	/*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_EXPORT
+GF_Err gf_isom_get_tmcd_config(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, u32 *tmcd_flags, u32 *tmcd_fps_num, u32 *tmcd_fps_den, u32 *tmcd_fpt)
+{
+	GF_TimeCodeSampleEntryBox *tmcd;
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !descriptionIndex) return GF_BAD_PARAM;
+
+	tmcd = (GF_TimeCodeSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, descriptionIndex-1);
+	if (!tmcd) return GF_BAD_PARAM;
+	if (tmcd->type != GF_QT_BOX_TYPE_TMCD) return GF_BAD_PARAM;
+
+	if (tmcd_flags) *tmcd_flags = tmcd->flags;
+	if (tmcd_fps_num) *tmcd_fps_num = tmcd->timescale;
+	if (tmcd_fps_den) *tmcd_fps_den = tmcd->frame_duration;
+	if (tmcd_fpt) *tmcd_fpt = tmcd->frames_per_counter_tick;
+	return GF_OK;
+}
+
 
 #endif /*GPAC_DISABLE_ISOM*/

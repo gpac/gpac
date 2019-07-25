@@ -208,6 +208,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			codec_id = GF_CODECID_RAW;
 			audio_fmt = gf_audio_fmt_from_isobmf(m_subtype);
 			break;
+		case GF_ISOM_MEDIA_TMCD:
+			codec_id = GF_CODECID_TMCD;
+			streamtype = GF_STREAM_METADATA;
+			break;
+
 		default:
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
 			if (!codec_id)
@@ -544,6 +549,15 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			} else {
 				/*com->info.genre = (tag[0]<<8) | tag[1];*/
 			}
+		}
+
+		if (codec_id==GF_CODECID_TMCD) {
+			u32 tmcd_flags=0, tmcd_fps_num=0, tmcd_fps_den=0, tmcd_fpt=0;
+			gf_isom_get_tmcd_config(read->mov, track, stsd_idx, &tmcd_flags, &tmcd_fps_num, &tmcd_fps_den, &tmcd_fpt);
+			gf_filter_pid_set_property_str(ch->pid, "tmcd:flags", &PROP_UINT(tmcd_flags) );
+			gf_filter_pid_set_property_str(ch->pid, "tmcd:framerate", &PROP_FRAC_INT(tmcd_fps_num, tmcd_fps_den) );
+			gf_filter_pid_set_property_str(ch->pid, "tmcd:frames_per_tick", &PROP_UINT(tmcd_fpt) );
+
 		}
 
 		if (!gf_sys_is_test_mode()) {
@@ -902,7 +916,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 
 		if (!read->alltk && !read->tkid && !gf_isom_is_track_enabled(read->mov, i+1)) {
 			if (count>1) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d is disabled, ignoring track - you may retry by specifying allt option\n", i+1));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d is disabled, ignoring track - you may retry by specifying alltk option\n", i+1));
 				continue;
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d is disabled but single track in file, considering it enabled\n", i+1 ));

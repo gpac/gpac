@@ -184,6 +184,7 @@ typedef struct
 	Bool sseg;
 	Bool noroll;
 	Bool saio32;
+	Bool fftmcd;
 
 	//internal
 	Bool owns_mov;
@@ -1815,6 +1816,39 @@ sample_entry_setup:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new %s sample description: %s\n", gf_4cc_to_str(m_subtype), gf_error_to_string(e) ));
 			return e;
 		}
+	} else if (codec_id==GF_CODECID_TMCD) {
+		u32 tmcd_flags=0, tmcd_fps_num=0, tmcd_fps_den=0;
+		s32 tmcd_fpt=0;
+		u32 fps;
+
+		p = gf_filter_pid_get_property_str(pid, "tmcd:flags");
+		if (p) tmcd_flags = p->value.uint;
+		p = gf_filter_pid_get_property_str(pid, "tmcd:framerate");
+		if (p) {
+			tmcd_fps_num = p->value.frac.num;
+			tmcd_fps_den = p->value.frac.den;
+		}
+		p = gf_filter_pid_get_property_str(pid, "tmcd:frames_per_tick");
+		if (p) tmcd_fpt = p->value.uint;
+		if (tkw->tk_timescale != tmcd_fps_num) {
+			tmcd_fps_den *= tmcd_fps_num;
+			tmcd_fps_den /= tkw->tk_timescale;
+		}
+		if (ctx->fftmcd) {
+			fps = tmcd_fps_num;
+			fps /= tmcd_fps_den;
+			if (fps * tmcd_fps_den != tmcd_fps_num)
+				fps++;
+			if (fps == (u32) tmcd_fpt)
+				tmcd_fpt = -tmcd_fpt;
+		}
+
+		e = gf_isom_tmcd_config_new(ctx->file, tkw->track_num, tmcd_fps_den, tmcd_fpt, (tmcd_flags & 0x1), &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new tmcd sample description: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+
 	} else if (use_gen_sample_entry) {
 		u32 len = 0;
 		GF_GenericSampleDescription udesc;
@@ -4555,6 +4589,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noroll), "disable roll sample grouping", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(saio32), "set single segment mode for dash", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(fftmcd), "use ffmpeg-compatible timecode signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sseg), "set single segment mode for dash", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
