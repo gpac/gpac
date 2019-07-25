@@ -2547,9 +2547,9 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump)
 	} else if (mtype==GF_ISOM_MEDIA_HINT) {
 		u32 refTrack;
 		s32 refCount = gf_isom_get_reference_count(file, trackNum, GF_ISOM_REF_HINT);
-		if (refCount) {
+		if (refCount>0) {
 			fprintf(stderr, "Streaming Hint Track for track%s ", (refCount>1) ? "s" :"");
-			for (i=0; i<refCount; i++) {
+			for (i=0; i<(u32) refCount; i++) {
 				gf_isom_get_reference(file, trackNum, GF_ISOM_REF_HINT, i+1, &refTrack);
 				if (i) fprintf(stderr, " - ");
 				fprintf(stderr, "ID %d", gf_isom_get_track_id(file, refTrack));
@@ -2560,9 +2560,11 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump)
 		}
 #ifndef GPAC_DISABLE_ISOM_HINTING
 		refCount = gf_isom_get_payt_count(file, trackNum);
-		for (i=0; i<refCount; i++) {
-			const char *name = gf_isom_get_payt_info(file, trackNum, i+1, &refTrack);
-			fprintf(stderr, "\tPayload ID %d: type %s\n", refTrack, name);
+		if (refCount>0) {
+			for (i=0; i<(u32) refCount; i++) {
+				const char *name = gf_isom_get_payt_info(file, trackNum, i+1, &refTrack);
+				fprintf(stderr, "\tPayload ID %d: type %s\n", refTrack, name);
+			}
 		}
 #endif
 	} else if (mtype==GF_ISOM_MEDIA_FLASH) {
