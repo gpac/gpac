@@ -156,10 +156,10 @@ static void ffenc_finalize(GF_Filter *filter)
 static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPacket *pkt, Bool do_reporting)
 {
 	Double fps=0;
-	u64 errors[10];
 	s32 q=-1;
 	u8 pictype=0;
 #if LIBAVCODEC_VERSION_MAJOR >= 58
+	u64 errors[10];
 	u32 i;
 	u8 nb_errors = 0;
 #endif

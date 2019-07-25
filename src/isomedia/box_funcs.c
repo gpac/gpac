@@ -156,7 +156,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	}
 	restore_type = 0;
 	if ((parent_type==GF_ISOM_BOX_TYPE_STSD) && (type==GF_QT_SUBTYPE_RAW) ) {
-		u32 cookie = gf_bs_get_cookie(bs);
+		u64 cookie = gf_bs_get_cookie(bs);
 		restore_type = type;
 		if (cookie&2)
 			type = GF_QT_SUBTYPE_RAW_VID;
