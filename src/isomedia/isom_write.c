@@ -6566,7 +6566,8 @@ GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 tra
 	if (!ent) return GF_BAD_PARAM;
 
 	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-	e = gf_isom_box_parse(&tpl_ent, bs);
+//	e = gf_isom_box_parse(&tpl_ent, bs);
+	e = gf_isom_box_parse_ex (&tpl_ent, bs, GF_ISOM_BOX_TYPE_STSD, GF_FALSE);
 	gf_bs_del(bs);
 	if (e) return e;
 

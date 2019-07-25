@@ -488,6 +488,8 @@ enum
 	GF_CODECID_AP4X	= GF_4CC( 'a', 'p', '4', 'x' ),
 	GF_CODECID_AP4H	= GF_4CC( 'a', 'p', '4', 'h' ),
 
+	GF_CODECID_TMCD = GF_4CC('t','m','c','d'),
+
 	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D')
 
 };

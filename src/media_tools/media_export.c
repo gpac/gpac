@@ -1063,7 +1063,6 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 
 static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 {
-	const char *src;
 	char *args, szSubArgs[1024], szExt[30];
 	GF_Filter *file_out, *reframer, *remux=NULL, *src_filter;
 	GF_FilterSession *fsess;
@@ -1346,8 +1345,23 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	if (args) gf_free(args);
 	args = NULL;
 
-	src = dumper->in_name ? dumper->in_name : gf_isom_get_filename(dumper->file);
-	src_filter = gf_fs_load_source(fsess, src, "FID=1:noedit", NULL, &e);
+	//we already have the file loaded, directly load the mp4dmx filter with this file
+	if (dumper->file) {
+		//we want to expose every track
+		e = gf_dynstrcat(&args, "mp4dmx:FID=1:noedit:alltk:allt", NULL);
+		sprintf(szSubArgs, ":mov=%p", dumper->file);
+		e = gf_dynstrcat(&args, szSubArgs, NULL);
+
+		//we want to expose every track
+		src_filter = gf_fs_load_filter(fsess, args);
+
+		gf_free(args);
+		args = NULL;
+	} else {
+		//we want to expose every track
+		src_filter = gf_fs_load_source(fsess, dumper->in_name, "FID=1:noedit:alltk:allt", NULL, &e);
+	}
+
 	if (!src_filter || e) {
 		gf_fs_del(fsess);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load filter for input file \"%s\": %s\n", dumper->in_name, gf_error_to_string(e) ));
