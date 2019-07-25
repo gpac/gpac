@@ -261,7 +261,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	Bool fmt_ok = GF_TRUE;
 	u32 icc_size=0;
 	u8 *icc_data = NULL;
-	s32 tc_fps_num=0, tc_fps_den=0, tc_h=0, tc_m=0, tc_s=0, tc_f=0, tc_counter=0;
+	u32 tc_fps_num=0, tc_fps_den=0, tc_h=0, tc_m=0, tc_s=0, tc_f=0;
+	s32 tc_counter=0;
 	Bool tc_force_counter=GF_FALSE;
 	char *ext_start;
 	u32 xps_inband=0;
@@ -1277,7 +1278,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			u64 nb_secs = tc_h * 3600 + tc_m*60 + tc_s;
 			nb_secs *= tc_fps_num;
 			nb_secs /= tc_fps_den;
-			tc_counter = nb_secs + tc_f + 1;
+			tc_counter = (s32) (nb_secs + tc_f + 1);
 
 			//this is correct but generates timecodes non compatible with ffmpeg ...
 			//frames_per_tick=1;
@@ -1301,7 +1302,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		}
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		if (tc_counter) {
-			gf_bs_write_u32(bs, tc_counter-1);
+			gf_bs_write_u32(bs, (u32) (tc_counter-1) );
 		} else {
 			gf_bs_write_u8(bs, tc_h);
 			gf_bs_write_int(bs, 0, 1);
@@ -1320,7 +1321,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			u64 video_ref_dur = gf_isom_get_media_duration(import.dest, video_ref);
 			video_ref_dur *= tc_fps_num;
 			video_ref_dur /= gf_isom_get_media_timescale(import.dest, video_ref);
-			gf_isom_set_last_sample_duration(import.dest, tmcd_tk, video_ref_dur);
+			gf_isom_set_last_sample_duration(import.dest, tmcd_tk, (u32) video_ref_dur);
 		} else {
 			gf_isom_set_last_sample_duration(import.dest, tmcd_tk, tc_fps_den ? tc_fps_den : 1);
 		}
