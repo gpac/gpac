@@ -51,6 +51,10 @@ typedef struct
 	Bool has_svcc;
 	u32 nalu_size_length;
 	Bool is_adobe_protection;
+
+	GF_Fraction tmcd_rate;
+	u32 tmcd_flags;
+	u32 tmcd_fpt;
 } PidCtx;
 
 enum
@@ -82,6 +86,7 @@ typedef struct
 	u32 test;
 	GF_Fraction dur;
 	Bool dump_crc;
+	Bool fftmcd;
 
 	FILE *dump;
 
@@ -1081,6 +1086,47 @@ static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 }
 #endif
 
+static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 size, FILE *dump)
+{
+	u32 h, m, s, f;
+	Bool neg=GF_FALSE;
+	GF_BitStream *bs;
+	if (!pctx->tmcd_rate.den || !pctx->tmcd_rate.num)
+		return;
+	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+
+	u32 value = gf_bs_read_u32(bs);
+	gf_bs_seek(bs, 0);
+	fprintf(dump, "<TimeCode");
+
+	if (ctx->fftmcd || (pctx->tmcd_flags & 0x00000008)) {
+		u64 nb_secs, nb_frames = value;
+		if (!ctx->fftmcd && pctx->tmcd_fpt)
+			nb_frames *= pctx->tmcd_fpt;
+
+		nb_secs = nb_frames * pctx->tmcd_rate.den / pctx->tmcd_rate.num;
+
+		fprintf(dump, " counter=\"%d\"", value);
+		h = (u32) nb_secs/3600;
+		m = (u32) (nb_secs/60 - h*60);
+		s = (u32) (nb_secs - m*60 - h*3600);
+
+		nb_secs *= pctx->tmcd_rate.num;
+		nb_secs /= pctx->tmcd_rate.den;
+		f = nb_frames - nb_secs;
+	} else {
+		h = gf_bs_read_u8(bs);
+		neg = gf_bs_read_int(bs, 1);
+		m = gf_bs_read_int(bs, 7);
+		s = gf_bs_read_u8(bs);
+		f = gf_bs_read_u8(bs);
+	}
+	fprintf(dump, " time=\"%s%d:%d:%d:%d\"/>\n", neg ? "-" : "", h, m, s, f);
+	gf_bs_del(bs);
+
+
+}
+
 static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket *pck, u32 pid_idx, u64 pck_num, PidCtx *pctx)
 {
 	u32 idx=0, size;
@@ -1278,6 +1324,9 @@ props_done:
 				size -= pos + fsize;
 			}
 			break;
+		case GF_CODECID_TMCD:
+			inspect_dump_tmcd(ctx, pctx, (char *) data, size, dump);
+			break;
 		}
 	}
 #endif
@@ -1372,6 +1421,16 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			p = gf_filter_pid_enum_properties(pid, &idx, &prop_4cc, &prop_name);
 			if (!p) break;
 			inspect_dump_property(ctx, dump, prop_4cc, prop_name, p);
+
+			if (prop_name) {
+				if (!strcmp(prop_name, "tmcd:flags"))
+					pctx->tmcd_flags = p->value.uint;
+				else if (!strcmp(prop_name, "tmcd:framerate"))
+					pctx->tmcd_rate = p->value.frac;
+				else if (!strcmp(prop_name, "tmcd:frames_per_tick"))
+					pctx->tmcd_fpt = p->value.uint;
+
+			}
 		}
 	} else {
 		while (ctx->info) {
@@ -1841,6 +1900,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(dur), "set inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
 	{ OFFS(analyze), "analyze sample content (NALU, OBU)", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(xml), "use xml formatting (implied if (-analyze]() is set) and disable [-fmt]()", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(fftmcd), "consider timecodes use ffmpeg-compatible signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(test), "skip predefined set of properties, used for test mode\n"
 		"- no: no properties skipped\n"
 		"- noprop: all properties/info changes on pid are skipped, only packets are dumped\n"
