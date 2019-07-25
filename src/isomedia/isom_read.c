@@ -3201,19 +3201,14 @@ GF_Err gf_isom_get_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	if (entry->internal_type!=GF_ISOM_SAMPLE_ENTRY_VIDEO) {
 		return GF_BAD_PARAM;
 	}
-	count = gf_list_count(entry->other_boxes);
-	for (i=0; i<count; i++) {
-		GF_ColourInformationBox *clr = gf_list_get(entry->other_boxes, i);
-		if (clr->type != GF_ISOM_BOX_TYPE_COLR) continue;
+	if (!entry->colr) return GF_NOT_FOUND;
 
-		if (colour_type) *colour_type = clr->colour_type;
-		if (colour_primaries) *colour_primaries = clr->colour_primaries;
-		if (transfer_characteristics) *transfer_characteristics = clr->transfer_characteristics;
-		if (matrix_coefficients) *matrix_coefficients = clr->matrix_coefficients;
-		if (full_range_flag) *full_range_flag = clr->full_range_flag;
-		return GF_OK;
-	}
-	return GF_NOT_FOUND;
+	if (colour_type) *colour_type = entry->colr->colour_type;
+	if (colour_primaries) *colour_primaries = entry->colr->colour_primaries;
+	if (transfer_characteristics) *transfer_characteristics = entry->colr->transfer_characteristics;
+	if (matrix_coefficients) *matrix_coefficients = entry->colr->matrix_coefficients;
+	if (full_range_flag) *full_range_flag = entry->colr->full_range_flag;
+	return GF_OK;
 }
 
 GF_EXPORT
