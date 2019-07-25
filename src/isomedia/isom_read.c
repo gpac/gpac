@@ -3355,7 +3355,6 @@ GF_Err gf_isom_get_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	if (entry->internal_type!=GF_ISOM_SAMPLE_ENTRY_VIDEO) {
 		return GF_BAD_PARAM;
 	}
-
 	GF_ColourInformationBox *clr = (GF_ColourInformationBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_COLR);
 	if (!clr) return GF_NOT_FOUND;
 
