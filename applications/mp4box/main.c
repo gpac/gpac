@@ -511,7 +511,7 @@ void PrintImportUsage()
 		"  - nclx,p,t,m,r: same as `nclx` with r full range flag\n"
 		"  - prof,path: with path indicating the file containing the ICC color profile\n"
 		"  - rICC,path: with path indicating the file containing the restricted ICC color profile\n"
-		"- :tc=VAL: inject a single QT timecode. `VAL` is formated as:\n"
+		"- :tc=VAL: inject a single QT timecode. `VAL` can be preceeded with `f` to enable ffmpeg compatibility. `VAL` is formated as:\n"
 		"  - FPS,h,m,s,f: integer framerate, hours, minutes, seconds and frame number\n"
 		"  - FPS_n/FPS_d,h,m,s,f: drop-frame framerate, hours, minutes, seconds and frame number\n"
 		"  - FPS,frame: integer framerate, frame number (counter mode of timecode tracks)\n"
