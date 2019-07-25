@@ -1579,6 +1579,7 @@ exit:
 }
 
 extern u32 default_write_buffering_size;
+GF_Err gf_isom_flush_chunk(GF_TrackBox *trak, Bool is_final);
 
 GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 {
@@ -1594,24 +1595,31 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 	memset(&mw, 0, sizeof(mw));
 	mw.movie = movie;
 
-	if (gf_sys_is_test_mode() && movie->moov) {
+
+	if (movie->moov) {
 		u32 i;
 		GF_TrackBox *trak;
-		movie->moov->mvhd->creationTime = 0;
-		movie->moov->mvhd->modificationTime = 0;
+		if (gf_sys_is_test_mode()) {
+			movie->moov->mvhd->creationTime = 0;
+			movie->moov->mvhd->modificationTime = 0;
+		}
 		i=0;
 		while ( (trak = gf_list_enum(movie->moov->trackList, &i))) {
-			trak->Header->creationTime = 0;
-			trak->Header->modificationTime = 0;
-			if (trak->Media->handler->nameUTF8 && strstr(trak->Media->handler->nameUTF8, "@GPAC")) {
-				gf_free(trak->Media->handler->nameUTF8);
-				trak->Media->handler->nameUTF8 = gf_strdup("MediaHandler");
+			if (gf_sys_is_test_mode()) {
+				trak->Header->creationTime = 0;
+				trak->Header->modificationTime = 0;
+				if (trak->Media->handler->nameUTF8 && strstr(trak->Media->handler->nameUTF8, "@GPAC")) {
+					gf_free(trak->Media->handler->nameUTF8);
+					trak->Media->handler->nameUTF8 = gf_strdup("MediaHandler");
+				}
+				trak->Media->mediaHeader->creationTime = 0;
+				trak->Media->mediaHeader->modificationTime = 0;
 			}
-			trak->Media->mediaHeader->creationTime = 0;
-			trak->Media->mediaHeader->modificationTime = 0;
+			if (trak->chunk_cache) {
+				gf_isom_flush_chunk(trak, GF_TRUE);
+			}
 		}
 	}
-
 	//capture mode: we don't need a new bitstream
 	if (movie->openMode == GF_ISOM_OPEN_WRITE) {
 		if (!strcmp(movie->fileName, "_gpac_isobmff_redirect")) {
