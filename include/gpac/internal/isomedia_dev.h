@@ -1069,7 +1069,7 @@ typedef struct
 	u32 flags;
 	u32 timescale;
 	u32 frame_duration;
-	u8 frames_per_sec;
+	u8 frames_per_counter_tick;
 } GF_TimeCodeSampleEntryBox;
 
 typedef struct
