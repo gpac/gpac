@@ -78,7 +78,7 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 
 static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32 stsd_idx, u32 streamtype, Bool use_iod)
 {
-	u32 w, h, sr, nb_ch, nb_bps, codec_id, depends_on_id, esid, avg_rate, max_rate, buffer_size, sample_count, max_size, nb_refs, exp_refs, base_track, audio_fmt;
+	u32 w, h, sr, nb_ch, nb_bps, codec_id, depends_on_id, esid, avg_rate, max_rate, buffer_size, sample_count, max_size, nb_refs, exp_refs, base_track, audio_fmt, pix_fmt;
 	GF_ESD *an_esd;
 	const char *mime, *encoding, *stxtcfg, *namespace, *schemaloc;
 #if !defined(GPAC_DISABLE_ISOM_WRITE)
@@ -109,6 +109,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	u32 ocr_es_id;
 
 	audio_fmt = 0;
+	pix_fmt = 0;
 	ocr_es_id = 0;
 	an_esd = gf_media_map_esd(read->mov, track, stsd_idx);
 	if (an_esd) {
@@ -211,6 +212,30 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		case GF_ISOM_MEDIA_TMCD:
 			codec_id = GF_CODECID_TMCD;
 			streamtype = GF_STREAM_METADATA;
+			break;
+
+		case GF_QT_SUBTYPE_RAW:
+			codec_id = GF_CODECID_RAW;
+			if (streamtype==GF_STREAM_AUDIO)
+ 				audio_fmt = GF_AUDIO_FMT_U8;
+			else
+ 				pix_fmt = GF_PIXEL_RGB;
+			break;
+		case GF_QT_SUBTYPE_YUV422:
+			codec_id = GF_CODECID_RAW;
+			pix_fmt = GF_PIXEL_YUV422;
+			break;
+		case GF_QT_SUBTYPE_YUV444:
+			codec_id = GF_CODECID_RAW;
+			pix_fmt = GF_PIXEL_YUV444;
+			break;
+		case GF_QT_SUBTYPE_YUV422_10:
+			codec_id = GF_CODECID_RAW;
+			pix_fmt = GF_PIXEL_YUV422_10;
+			break;
+		case GF_QT_SUBTYPE_YUV444_10:
+			codec_id = GF_CODECID_RAW;
+			pix_fmt = GF_PIXEL_YUV444_10;
 			break;
 
 		default:
@@ -681,6 +706,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (codec_id == GF_CODECID_RAW) {
 			gf_isom_enable_raw_pack(read->mov, track, read->frame_size);
 		}
+	}
+	if (pix_fmt) {
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PIXFMT, &PROP_UINT(pix_fmt));
 	}
 
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CONFIG_IDX, &PROP_UINT(stsd_idx) );
