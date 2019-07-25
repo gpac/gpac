@@ -333,15 +333,15 @@ static GF_Err fileout_process(GF_Filter *filter)
 							while (cur_r > bo) {
 								u32 move_bytes = ctx->mvbk;
 								if (cur_r - bo < move_bytes)
-									move_bytes = cur_r - bo;
+									move_bytes = (u32) (cur_r - bo);
 
 								gf_fseek(ctx->file, cur_r - move_bytes, SEEK_SET);
-								nb_write = fread(block, 1, move_bytes, ctx->file);
+								nb_write = (u32) fread(block, 1, (size_t) move_bytes, ctx->file);
 								if (nb_write!=move_bytes) {
 									GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Read error, got %d bytes but had %d to read\n", nb_write, move_bytes));
 								}
 								gf_fseek(ctx->file, cur_w - move_bytes, SEEK_SET);
-								nb_write = fwrite(block, 1, move_bytes, ctx->file);
+								nb_write = (u32) fwrite(block, 1, (size_t) move_bytes, ctx->file);
 								if (nb_write!=move_bytes) {
 									GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, move_bytes));
 								}

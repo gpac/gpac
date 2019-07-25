@@ -1626,7 +1626,7 @@ void hdlr_box_del(GF_Box *s)
 
 GF_Err hdlr_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	u32 cookie;
+	u64 cookie;
 	GF_HandlerBox *ptr = (GF_HandlerBox *)s;
 
 	ptr->reserved1 = gf_bs_read_u32(bs);
@@ -3013,7 +3013,7 @@ GF_Err mdia_on_child_box(GF_Box *s, GF_Box *a)
 GF_Err mdia_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 cookie = gf_bs_get_cookie(bs);
+	u64 cookie = gf_bs_get_cookie(bs);
 	cookie &= ~2;
 	gf_bs_set_cookie(bs, cookie);
 	e = gf_isom_box_array_read(s, bs, mdia_on_child_box);

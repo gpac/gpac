@@ -1113,7 +1113,7 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 
 
 		nb_secs *= pctx->tmcd_rate.num;
 		nb_secs /= pctx->tmcd_rate.den;
-		f = nb_frames - nb_secs;
+		f = (u32) (nb_frames - nb_secs);
 	} else {
 		h = gf_bs_read_u8(bs);
 		neg = gf_bs_read_int(bs, 1);
