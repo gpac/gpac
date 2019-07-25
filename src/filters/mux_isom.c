@@ -1825,7 +1825,9 @@ sample_entry_setup:
 		if (len>32) len = 32;
 		udesc.compressor_name[0] = len;
 		memcpy(udesc.compressor_name+1, comp_name, len);
-		udesc.vendor_code = GF_4CC('G','P','A','C');
+		if ((codec_id==GF_CODECID_RAW) || unknown_generic)
+			udesc.vendor_code = GF_4CC('G','P','A','C');
+
 		udesc.samplerate = sr;
 		udesc.nb_channels = nb_chan;
 		if (codec_id==GF_CODECID_RAW) {
