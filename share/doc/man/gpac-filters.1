@@ -163,6 +163,8 @@ analyze (boolean, default: false):       analyze sample content (NALU, OBU)
 .br
 xml (boolean, default: false):           use xml formatting (implied if (-analyze]() is set) and disable -fmt
 .br
+fftmcd (boolean, default: false):        consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
+.br
 test (enum, default: no):                skip predefined set of properties, used for test mode
 .br
 * no: no properties skipped
@@ -234,6 +236,8 @@ dur (fraction, default: 0/0):            set inspect duration
 analyze (boolean, default: false):       analyze sample content (NALU, OBU)
 .br
 xml (boolean, default: false):           use xml formatting (implied if (-analyze]() is set) and disable -fmt
+.br
+fftmcd (boolean, default: false):        consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
 .br
 test (enum, default: no):                skip predefined set of properties, used for test mode
 .br
@@ -655,8 +659,6 @@ Warning: smode=splitx will result in extractor NAL units still present in the ou
 src (string, no default):                location of source content
 .br
 allt (boolean, default: false):          load all tracks even if unknown
-.br
-	
 .br
 noedit (boolean, default: false):        do not use edit lists
 .br
@@ -1489,6 +1491,10 @@ Example
 .br
   
 .br
+The store mode allows controling if the file is fragmented ot not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either flat or fstart modes.
+.br
+  
+.br
 The cache mode allows controling how DASH onDemand segments are generated:
 .br
 -  When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX.
@@ -1538,13 +1544,13 @@ xps_inband (enum, default: no):          use inband (in sample data) param set f
 .br
 store (enum, default: inter):            file storage mode
 .br
-* inter: uses cdur to interleave the file
+* inter: perform precise interleave of the file using -cdur (requires temporary storage of all media)
 .br
-* flat: writes a flat file, moov at end
+* flat: write samples as they arrive and moov at end (fastest mode)
 .br
-* cap: flushes to disk as soon as samples are added
+* fstart: write samples as they arrive and moov before mdat
 .br
-* tight:  uses per-sample interleaving of all tracks
+* tight:  uses per-sample interleaving of all tracks (requires temporary storage of all media)
 .br
 * frag: fragments the file using cdur duration
 .br
@@ -1657,6 +1663,8 @@ maxchunk (unsigned int, default: 0):     set max chunk size in bytes for runs (o
 noroll (boolean, default: false):        disable roll sample grouping
 .br
 saio32 (boolean, default: false):        set single segment mode for dash
+.br
+fftmcd (boolean, default: false):        use ffmpeg-compatible timecode signaling rather than QT compliant one
 .br
 block_size (unsigned int, default: 10000): target output block size, 0 for default internal value (10k)
 .br
@@ -2046,6 +2054,8 @@ ext (string, no default):                set extension for graph resolution, reg
 cat (boolean, default: false):           cat each file of input pid rather than creating one file per filename
 .br
 ow (boolean, default: true):             overwrite output if existing
+.br
+mvbk (unsigned int, default: 8192):      block size used when moving parts of the file around in patch mode
 .br
 
 .br
@@ -4359,7 +4369,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2628-g73c77bc88-filters
+build: 0.9.0-DEV-rev2644-g88bd1cb64-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
