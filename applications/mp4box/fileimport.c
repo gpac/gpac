@@ -824,6 +824,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 		timescale = gf_isom_get_timescale(dest);
 		for (i=o_count; i<count; i++) {
+			u32 mtype = gf_isom_get_media_type(import.dest, i+1);
+
 			if (szLan) gf_isom_set_media_language(import.dest, i+1, (char *) szLan);
 			if (delay) {
 				u64 tk_dur;
@@ -842,11 +844,20 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 					}
 				}
 			}
-			if (((par_n>=0) && (par_d>=0)) || force_par) {
-				e = gf_media_change_par(import.dest, i+1, par_n, par_d, force_par);
-			}
-			if (has_clap) {
-				e = gf_isom_set_clean_aperture(import.dest, i+1, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
+
+			if (gf_isom_is_video_subtype(mtype)) {
+				if (((par_n>=0) && (par_d>=0)) || force_par) {
+					e = gf_media_change_par(import.dest, i+1, par_n, par_d, force_par);
+				}
+				if (has_clap) {
+					e = gf_isom_set_clean_aperture(import.dest, i+1, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
+				}
+				if (bitdepth) {
+					gf_isom_set_visual_bit_depth(import.dest, i+1, 1, bitdepth);
+				}
+				if (clr_type) {
+					gf_isom_set_visual_color_info(import.dest, i+1, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
+				}
 			}
 			if (use_stz2) {
 				e = gf_isom_use_compact_size(import.dest, i+1, 1);
@@ -885,13 +896,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			if (is_chap && chap_ref) {
 				set_chapter_track(import.dest, i+1, chap_ref);
 			}
-			if (bitdepth) {
-				gf_isom_set_visual_bit_depth(import.dest, i+1, 1, bitdepth);
-			}
-			if (clr_type) {
-				gf_isom_set_visual_color_info(import.dest, i+1, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
-			}
-
 			if (new_timescale>1) {
 				gf_isom_set_media_timescale(import.dest, i+1, new_timescale, 0, 0);
 			}
@@ -1030,6 +1034,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				if (has_clap) {
 					e = gf_isom_set_clean_aperture(import.dest, track, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
 				}
+				if (bitdepth) {
+					gf_isom_set_visual_bit_depth(import.dest, track, 1, bitdepth);
+				}
+				if (clr_type) {
+					gf_isom_set_visual_color_info(import.dest, track, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
+				}
 			}
 			if (has_mx) {
 				e = gf_isom_set_track_matrix(import.dest, track, mx);
@@ -1071,12 +1081,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				set_chapter_track(import.dest, track, chap_ref);
 			}
 
-			if (bitdepth) {
-				gf_isom_set_visual_bit_depth(import.dest, track, 1, bitdepth);
-			}
-			if (clr_type) {
-				gf_isom_set_visual_color_info(import.dest, track, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
-			}
 
 			for (j = 0; j < gf_list_count(kinds); j+=2) {
 				char *kind_scheme = (char *)gf_list_get(kinds, j);
