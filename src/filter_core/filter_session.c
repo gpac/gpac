@@ -276,7 +276,6 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 			gf_fs_add_filter_register(fsess, freg);
 		}
 	}
-
 	fsess->blacklist = NULL;
 
 	//todo - find a way to handle events without mutex ...

@@ -841,6 +841,92 @@ GF_Err gf_isom_new_mpeg4_description(GF_ISOFile *movie,
 	return e;
 }
 
+GF_Err gf_isom_flush_chunk(GF_TrackBox *trak, Bool is_final)
+{
+	GF_Err e;
+	u64 data_offset;
+	u32 sample_number;
+	u8 *chunk_data;
+	u32 chunk_size, chunk_alloc;
+	if (!trak->chunk_cache) return GF_OK;
+
+	gf_bs_get_content_no_truncate(trak->chunk_cache, &chunk_data, &chunk_size, &chunk_alloc);
+
+	data_offset = gf_isom_datamap_get_offset(trak->Media->information->dataHandler);
+
+	e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, chunk_data, chunk_size);
+	if (e) return e;
+
+	sample_number = 1 + trak->Media->information->sampleTable->SampleSize->sampleCount;
+	sample_number -= trak->nb_samples_in_cache;
+
+	e = stbl_AddChunkOffset(trak->Media, sample_number, trak->chunk_stsd_idx, data_offset, trak->nb_samples_in_cache);
+
+	if (is_final) {
+		gf_free(chunk_data);
+		gf_bs_del(trak->chunk_cache);
+		trak->chunk_cache = NULL;
+	} else {
+		gf_bs_reassign_buffer(trak->chunk_cache, chunk_data, chunk_alloc);
+	}
+	return e;
+}
+
+static GF_Err trak_add_sample(GF_ISOFile *movie, GF_TrackBox *trak, const GF_ISOSample *sample, u32 descIndex, u64 data_offset, u32 syncShadowSampleNum)
+{
+	Bool skip_data = GF_FALSE;
+	GF_Err e;
+
+	//faststart mode with interleaving time, cache data until we have a full chunk
+	if ((movie->storageMode==GF_ISOM_STORE_FASTSTART) && movie->interleavingTime) {
+		Bool flush_chunk = GF_FALSE;
+		u64 stime = sample->DTS;
+		stime *= movie->moov->mvhd->timeScale;
+		stime /= trak->Media->mediaHeader->timeScale;
+
+		if (stime - trak->first_dts_chunk > movie->interleavingTime)
+			flush_chunk = GF_TRUE;
+
+		if (movie->next_flush_chunk_time < stime)
+			flush_chunk = GF_TRUE;
+
+		if (trak->chunk_stsd_idx != descIndex)
+			flush_chunk = GF_TRUE;
+
+		if (trak->Media->information->sampleTable->MaxChunkSize && trak->Media->information->sampleTable->MaxChunkSize < trak->chunk_cache_size + sample->dataLength)
+			flush_chunk = GF_TRUE;
+
+		if (flush_chunk) {
+			movie->next_flush_chunk_time = stime + movie->interleavingTime;
+			if (trak->chunk_cache) {
+				e = gf_isom_flush_chunk(trak, GF_FALSE);
+				if (e) return e;
+			}
+			trak->nb_samples_in_cache = 0;
+			trak->chunk_cache_size = 0;
+			trak->first_dts_chunk = stime;
+		}
+		if (!trak->chunk_cache)
+			trak->chunk_cache = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_data(trak->chunk_cache, sample->data, sample->dataLength);
+		trak->nb_samples_in_cache += sample->nb_pack ? sample->nb_pack : 1;
+		trak->chunk_cache_size += sample->dataLength;
+		trak->chunk_stsd_idx = descIndex;
+
+		skip_data = GF_TRUE;
+	}
+
+	e = Media_AddSample(trak->Media, data_offset, sample, descIndex, syncShadowSampleNum);
+	if (e) return e;
+
+	if (!skip_data && sample->dataLength) {
+		e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);
+		if (e) return e;
+	}
+
+	return GF_OK;
+}
+
 //Add samples to a track. Use streamDescriptionIndex to specify the desired stream (if several)
 GF_EXPORT
 GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, const GF_ISOSample *sample)
@@ -893,21 +979,19 @@ GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescript
 	/*rewrite OD frame*/
 	if (trak->Media->handler->handlerType == GF_ISOM_MEDIA_OD) {
 		GF_ISOSample *od_sample = NULL;
+
 		e = Media_ParseODFrame(trak->Media, sample, &od_sample);
 		if (e) return e;
-		e = Media_AddSample(trak->Media, data_offset, od_sample, descIndex, 0);
-		if (e) return e;
-		e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, od_sample->data, od_sample->dataLength);
-		if (e) return e;
-		gf_isom_sample_del(&od_sample);
+
+		e = trak_add_sample(movie, trak, od_sample, descIndex, data_offset, 0);
+
+		if (od_sample)
+			gf_isom_sample_del(&od_sample);
 	} else {
-		e = Media_AddSample(trak->Media, data_offset, sample, descIndex, 0);
-		if (e) return e;
-		if (sample->dataLength) {
-			e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);
-			if (e) return e;
-		}
+		e = trak_add_sample(movie, trak, sample, descIndex, data_offset, 0);
 	}
+	if (e) return e;
+
 
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
@@ -971,12 +1055,13 @@ GF_Err gf_isom_add_sample_shadow(GF_ISOFile *movie, u32 trackNumber, GF_ISOSampl
 	if (trak->Media->handler->handlerType == GF_ISOM_MEDIA_OD) {
 		GF_ISOSample *od_sample = NULL;
 		e = Media_ParseODFrame(trak->Media, sample, &od_sample);
-		if (!e) e = Media_AddSample(trak->Media, data_offset, od_sample, descIndex, sampleNum);
-		if (!e) e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, od_sample->data, od_sample->dataLength);
-		if (od_sample) gf_isom_sample_del(&od_sample);
+		if (e) return e;
+
+		e = trak_add_sample(movie, trak, od_sample, descIndex, data_offset, sampleNum);
+		if (od_sample)
+			gf_isom_sample_del(&od_sample);
 	} else {
-		e = Media_AddSample(trak->Media, data_offset, sample, descIndex, sampleNum);
-		if (!e) e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);
+		e = trak_add_sample(movie, trak, sample, descIndex, data_offset, sampleNum);
 	}
 	if (e) return e;
 	if (offset_times) sample->DTS -= 1;
@@ -1024,8 +1109,13 @@ GF_Err gf_isom_append_sample_data(GF_ISOFile *movie, u32 trackNumber, u8 *data, 
 	if (e) return e;
 
 	//add the media data
-	e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, data, data_size);
-	if (e) return e;
+	if (trak->chunk_cache) {
+		gf_bs_write_data(trak->chunk_cache, data, data_size);
+		trak->chunk_cache_size += data_size;
+	} else {
+		e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, data, data_size);
+		if (e) return e;
+	}
 	//update data size
 	return stbl_SampleSizeAppend(trak->Media->information->sampleTable->SampleSize, data_size);
 }
@@ -4878,6 +4968,11 @@ GF_EXPORT
 GF_Err gf_isom_make_interleave(GF_ISOFile *file, Double TimeInSec)
 {
 	GF_Err e;
+	if (!file) return GF_BAD_PARAM;
+
+	if (file->storageMode==GF_ISOM_STORE_FASTSTART) {
+		return gf_isom_set_interleave_time(file, (u32) (TimeInSec * gf_isom_get_timescale(file)));
+	}
 	if (gf_isom_get_mode(file) < GF_ISOM_OPEN_EDIT) return GF_BAD_PARAM;
 	e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_DRIFT_INTERLEAVED);
 	if (e) return e;

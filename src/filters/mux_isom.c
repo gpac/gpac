@@ -761,6 +761,9 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			} else if (ctx->moovts>=0) {
 				gf_isom_set_timescale(ctx->file, ctx->moovts);
 			}
+			if (ctx->store==MP4MX_MODE_FASTSTART) {
+				gf_isom_make_interleave(ctx->file, ctx->cdur);
+			}
 		}
 
 		//assign some defaults
@@ -4173,6 +4176,10 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		if (ctx->dref && (ctx->store>=MP4MX_MODE_FRAG)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use data reference in movie fragments, not supported. Ignoring it\n"));
 			ctx->dref = GF_FALSE;
+		}
+
+		if (ctx->store==MP4MX_MODE_FASTSTART) {
+			gf_isom_set_storage_mode(ctx->file, GF_ISOM_STORE_FASTSTART);
 		}
 
 	}

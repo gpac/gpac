@@ -833,6 +833,14 @@ typedef struct
 	Bool has_base_layer;
 	u32 pack_num_samples;
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
+	u64 first_dts_chunk;
+	u32 nb_samples_in_cache;
+	u32 chunk_stsd_idx;
+	u32 chunk_cache_size;
+	GF_BitStream *chunk_cache;
+#endif
+
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u64 dts_at_seg_start;
 	u32 sample_count_at_seg_start;
@@ -3622,7 +3630,7 @@ struct __tag_isom {
 	u8 convert_streaming_text;
 	u8 is_jp2;
 	u8 force_co64;
-
+	u64 next_flush_chunk_time;
 	Bool keep_utc;
 	/*main boxes for fast access*/
 	/*moov*/

@@ -34,6 +34,7 @@ typedef struct
 	Double start, speed;
 	char *dst, *mime, *ext;
 	Bool append, dynext, cat, ow;
+	u32 mvbk;
 
 	//only one input pid
 	GF_FilterPid *pid;
@@ -163,6 +164,9 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx || !ctx->dst) return GF_OK;
+
+	if (!ctx->mvbk)
+		ctx->mvbk = 1;
 
 	if (strnicmp(ctx->dst, "file:/", 6) && strstr(ctx->dst, "://"))  {
 		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
@@ -311,6 +315,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 
 					//we are inserting a block: write dummy bytes ate end and move bytes
 					if (ilaced) {
+						u8 *block;
 						u64 cur_r, cur_w;
 						nb_write = (u32) fwrite(pck_data, 1, pck_size, ctx->file);
 						if (nb_write!=pck_size) {
@@ -321,24 +326,29 @@ static GF_Err fileout_process(GF_Filter *filter)
 						gf_fseek(ctx->file, pos, SEEK_SET);
 						cur_r = pos;
 						pos = cur_w;
-						while (cur_r > bo) {
-							u8 block[8192];
-							u32 move_bytes = 8192;
-							if (cur_r - bo < move_bytes)
-								move_bytes = cur_r - bo;
+						block = gf_malloc(ctx->mvbk);
+						if (!block) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] unable to allocate blockof %d bytes\n", ctx->mvbk));
+						} else {
+							while (cur_r > bo) {
+								u32 move_bytes = ctx->mvbk;
+								if (cur_r - bo < move_bytes)
+									move_bytes = cur_r - bo;
 
-							gf_fseek(ctx->file, cur_r - move_bytes, SEEK_SET);
-							nb_write = fread(block, 1, move_bytes, ctx->file);
-							if (nb_write!=move_bytes) {
-								GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Read error, got %d bytes but had %d to read\n", nb_write, move_bytes));
+								gf_fseek(ctx->file, cur_r - move_bytes, SEEK_SET);
+								nb_write = fread(block, 1, move_bytes, ctx->file);
+								if (nb_write!=move_bytes) {
+									GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Read error, got %d bytes but had %d to read\n", nb_write, move_bytes));
+								}
+								gf_fseek(ctx->file, cur_w - move_bytes, SEEK_SET);
+								nb_write = fwrite(block, 1, move_bytes, ctx->file);
+								if (nb_write!=move_bytes) {
+									GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, move_bytes));
+								}
+								cur_r -= move_bytes;
+								cur_w -= move_bytes;
 							}
-							gf_fseek(ctx->file, cur_w - move_bytes, SEEK_SET);
-							nb_write = fwrite(block, 1, move_bytes, ctx->file);
-							if (nb_write!=move_bytes) {
-								GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, move_bytes));
-							}
-							cur_r -= move_bytes;
-							cur_w -= move_bytes;
+							gf_free(block);
 						}
 					}
 
@@ -437,6 +447,7 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cat), "cat each file of input pid rather than creating one file per filename", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ow), "overwrite output if existing", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(mvbk), "block size used when moving parts of the file around in patch mode", GF_PROP_UINT, "8192", NULL, 0},
 	{0}
 };
 
