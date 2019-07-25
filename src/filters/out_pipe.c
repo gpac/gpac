@@ -242,7 +242,7 @@ static GF_Err pipeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLE_PROGRESSIVE);
 	if (p && p->value.boolean) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Block patching is not supported by pipe output, use another mux format\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Block patching is not supported by pipe output\n"));
 		return GF_NOT_SUPPORTED;
 	}
 	return GF_OK;

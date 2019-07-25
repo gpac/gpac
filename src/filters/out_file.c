@@ -306,12 +306,48 @@ static GF_Err fileout_process(GF_Filter *filter)
 				} else if (bo==GF_FILTER_NO_BO) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[FileOut] Cannot patch file, wrong byte offset\n"));
 				} else {
+					u32 ilaced = gf_filter_pck_get_interlaced(pck);
 					u64 pos = gf_ftell(ctx->file);
+
+					//we are inserting a block: write dummy bytes ate end and move bytes
+					if (ilaced) {
+						u64 cur_r, cur_w;
+						nb_write = (u32) fwrite(pck_data, 1, pck_size, ctx->file);
+						if (nb_write!=pck_size) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+						}
+						cur_w = gf_ftell(ctx->file);
+
+						gf_fseek(ctx->file, pos, SEEK_SET);
+						cur_r = pos;
+						pos = cur_w;
+						while (cur_r > bo) {
+							u8 block[8192];
+							u32 move_bytes = 8192;
+							if (cur_r - bo < move_bytes)
+								move_bytes = cur_r - bo;
+
+							gf_fseek(ctx->file, cur_r - move_bytes, SEEK_SET);
+							nb_write = fread(block, 1, move_bytes, ctx->file);
+							if (nb_write!=move_bytes) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Read error, got %d bytes but had %d to read\n", nb_write, move_bytes));
+							}
+							gf_fseek(ctx->file, cur_w - move_bytes, SEEK_SET);
+							nb_write = fwrite(block, 1, move_bytes, ctx->file);
+							if (nb_write!=move_bytes) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, move_bytes));
+							}
+							cur_r -= move_bytes;
+							cur_w -= move_bytes;
+						}
+					}
+
 					gf_fseek(ctx->file, bo, SEEK_SET);
 					nb_write = (u32) fwrite(pck_data, 1, pck_size, ctx->file);
 					if (nb_write!=pck_size) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
 					}
+
 					gf_fseek(ctx->file, pos, SEEK_SET);
 				}
 			} else {
