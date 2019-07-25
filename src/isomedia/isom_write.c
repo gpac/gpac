@@ -1432,7 +1432,7 @@ GF_Err gf_isom_set_visual_color_info(GF_ISOFile *movie, u32 trackNumber, u32 Str
 	if (clr->opaque) gf_free(clr->opaque);
 	clr->opaque = NULL;
 	clr->opaque_size = 0;
-	if ((colour_type=GF_ISOM_SUBTYPE_RICC) || (colour_type=GF_ISOM_SUBTYPE_PROF)) {
+	if ((colour_type==GF_ISOM_SUBTYPE_RICC) || (colour_type==GF_ISOM_SUBTYPE_PROF)) {
 		clr->opaque_size = icc_data ? icc_size : 0;
 		if (clr->opaque_size) {
 			clr->opaque = gf_malloc(sizeof(char)*clr->opaque_size);
