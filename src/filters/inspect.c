@@ -1104,7 +1104,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 
 	if (ctx->xml) {
 		fprintf(dump, "<Packet number=\""LLU"\"", pck_num);
-		if (!ctx->interleave)
+		if (ctx->interleave)
 			fprintf(dump, " PID=\"%d\"", pid_idx);
 	} else {
 		fprintf(dump, "PID %d PCK "LLU" - ", pid_idx, pck_num);
