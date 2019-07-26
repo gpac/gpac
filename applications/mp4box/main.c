@@ -126,6 +126,7 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("co64", NULL, "force usage of 64-bit chunk offsets for ISOBMF files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("write-buffer", NULL, "specify write buffer in bytes for ISOBMF files to reduce disk IO", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("new", NULL, "force creation of a new destination file", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("newfs", NULL, "force creation of a new destination file without temp file but interleaving support", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("no-sys", NULL, "remove all MPEG-4 Systems info except IOD, kept for profiles. This is the default when creating regular AV content", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("no-sys", NULL, "remove MPEG-4 InitialObjectDescriptor from file", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("mfra", NULL, "insert movie fragment random offset when fragmenting file (ignored in dash mode)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
@@ -394,11 +395,17 @@ void PrintImportUsage()
 		"The supported input media types depend on your installation, check [filters documentation](Filters) for more info.\n"
 		"  \n"
 		"To select a desired media track, the following syntax is used:\n"
-		"- `-add inputFile#video`: adds the first video track in `inputFile`. DOES NOT WORK for IsoMedia nor MPEG-2 TS files.\n"
-		"- `-add inputFile#audio`: adds the first audio track in `inputFile`. DOES NOT WORK for IsoMedia nor MPEG-2 TS files.\n"
+		"- `-add inputFile#video`: adds the first video track in `inputFile`.\n"
+		"- `-add inputFile#audio`: adds the first audio track in `inputFile`.\n"
 		"- `-add inputFile#trackID=ID` or `-add inputFile#ID`: adds the specified track. For IsoMedia files, ID is the track ID. For other media files, ID is the value indicated by `MP4Box -info inputFile`.\n"
 		"  \n"
-		"MP4Box can import a desired amount of the input file rather than the whole file. To do this, use the syntax `-add inputFileN`, where N is the number of seconds you wish to import from input. MP4Box cannot start importing from a random point in the input, it always import from the begining.\n"
+		"By default all imports are performed sequentially, and final interleaving is done at the end; this however requires a temporary file holding input isobmf file (if any) and added files before creating the final output. Since this can become quite large, it is possible to add media to a new file without temporary storage, using [-flat]() option, but this disables media interleaving.\n"
+		"  \n"
+		"If you wish to create an interleaved new file with no temporary storage, use the [-newfs]() option. The interleaving might not be as precise as when using [-new]() since it is dependent on muxer input scheduling (each execution might lead to a slightly different result). \n"
+		" - Some muxing options (marked with `*` below) will be activated for all inputs (i.e. in this mode, it is not possible to import one AVC track with `xps_inband` and another without).\n"
+		" - Some muxing options (marked as `!` below) cannot be used in this mode as they require temporary storage for file edition.\n"
+		"  \n"
+		"MP4Box can import a desired amount of the input file rather than the whole file. To do this, use the syntax `-add inputFile:dur=N`, where N is the number of seconds you wish to import from input. MP4Box cannot start importing from a random point in the input, it always import from the begining.\n"
 		"Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likelly not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). Check [TTXT doc](Subtitling-with-GPAC) for more details.\n"
 		"  \n"
 		"When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options par stream, set per-file options using the syntax `-add stream[:opt1:...:optN]`.\n"
@@ -408,7 +415,7 @@ void PrintImportUsage()
 		"- #video, #audio: base import for most AV files\n"
 		"- #trackID=ID: track import for IsoMedia and other files\n"
 		"- #pid=ID: stream import from MPEG-2 TS\n"
-		"- :dur=D: import only the first D seconds\n"
+		"- :dur=D: `*` import only the first D seconds\n"
 		"- :lang=LAN: set imported media language code\n"
 		"- :delay=delay_ms: set imported media initial delay in ms\n"
 		"- :par=PAR: set visual pixel aspect ratio (see [-par](MP4B_GEN) )\n"
@@ -420,36 +427,36 @@ void PrintImportUsage()
 		"- :disable: imported track(s) will be disabled\n"
 		"- :group=G: add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked.\n"
 		"- :fps=VAL: same as [-fps]()\n"
-		"- :rap: import only RAP samples\n"
-		"- :refs: import only reference pictures\n"
+		"- :rap: `!` import only RAP samples\n"
+		"- :refs: `!` import only reference pictures\n"
 		"- :trailing: keep trailing 0-bytes in AVC/HEVC samples\n"
-		"- :agg=VAL: same as [-agg]()\n"
-		"- :dref: same as [-dref]()\n"
+		"- :agg=VAL: `*` same as [-agg]()\n"
+		"- :dref: `*` same as [-dref]()\n"
 		"- :keep_refs: keeps track reference when importing a single track\n"
 		"- :nodrop: same as [-nodrop]()\n"
-		"- :packed: same as [-packed]()\n"
+		"- :packed: `*` same as [-packed]()\n"
 		"- :sbr: same as [-sbr]()\n"
 		"- :sbrx: same as [-sbrx]()\n"
 		"- :ovsbr: same as [-ovsbr]()\n"
 		"- :ps: same as [-ps]()\n"
 		"- :psx: same as [-psx]()\n"
-		"- :asemode=MODE: set the mode to create the AudioSampleEntry\n"
+		"- :asemode=MODE: `*` set the mode to create the AudioSampleEntry\n"
 		"  - v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default\n"
 		"  - v0-2: use MPEG AudioSampleEntry v0 and the channel count is forced to 2\n"
 		"  - v1: use MPEG AudioSampleEntry v1 and the channel count from the bitstream\n"
 		"  - v1-qt: use QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2)\n"
 		"- :audio_roll=N: add a roll sample group with roll_distance `N`\n"
-		"- :mpeg4: same as [-mpeg4]() option\n"
+		"- :mpeg4: `*` same as [-mpeg4]() option\n"
 		"- :nosei: discard all SEI messages during import\n"
 		"- :svc: import SVC/LHVC with explicit signaling (no AVC base compatibility)\n"
 		"- :nosvc: discard SVC/LHVC data when importing\n"
-		"- :svcmode=MODE: set SVC/LHVC import mode\n"
+		"- :svcmode=MODE: `!` set SVC/LHVC import mode\n"
 		"  - split: each layer is in its own track\n"
 		"  - merge: all layers are merged in a single track\n"
 		"  - splitbase: all layers are merged in a track, and the AVC base in another\n"
 		"  - splitnox: each layer is in its own track, and no extractors are written\n"
 		"  - splitnoxib: each layer is in its own track, no extractors are written, using inband param set signaling\n"
-		"- :temporal: set HEVC/LHVC temporal sublayer import mode\n"
+		"- :temporal: `!` set HEVC/LHVC temporal sublayer import mode\n"
 		"  - split: each sublayer is in its own track\n"
 		"  - splitbase: all sublayers are merged in a track, and the HEVC base in another\n"
 		"  - splitnox: each layer is in its own track, and no extractors are written\n"
@@ -458,25 +465,25 @@ void PrintImportUsage()
 		"- :ccst: add default HEIF ccst box to visual sample entry\n"
 		"- :forcesync: force non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
 		"Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
-		"- :xps_inband: set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)\n"
-		"- :xps_inbandx: same as xps_inband and also keep first xPS in sample desciption\n"
+		"- :xps_inband: `*` set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)\n"
+		"- :xps_inbandx: `*` same as xps_inband and also keep first xPS in sample desciption\n"
 		"- :au_delim: keep AU delimiter NAL units in the imported file\n"
-		"- :max_lid=N: set HEVC max layer ID to be imported to `N` (by default imports all layers).\n"
+		"- :max_lid=N: set HEVC max layer ID to be imported to `N` (by default imports all layers)\n"
 		"- :max_tid=N: set HEVC max temporal ID to be imported to `N` (by default imports all temporal sublayers)\n"
-		"- :tiles: add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks.\n"
-		"- :split_tiles: split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track.\n"
+		"- :tiles: add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks\n"
+		"- :split_tiles: `!` split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track.\n"
 		"- :negctts: use negative CTS-DTS offsets (ISO4 brand)\n"
 		"- :chap: specify the track is a chapter track\n"
-		"- :chapter=NAME: add a single chapter (old nero format) with given name lasting the entire file"
-		"- :chapfile=file: adds a chapter file (old nero format)"
+		"- :chapter=NAME: add a single chapter (old nero format) with given name lasting the entire file\n"
+		"- :chapfile=file: adds a chapter file (old nero format)\n"
 		"- :layout=WxHxXxY: specify the track layout\n"
-		"  - if W (resp H) = 0, the max width (resp height) of the tracks in the file are used.\n"
-		"  - if Y=-1, the layout is moved to the bottom of the track area\n"
-		"  - X and Y can be omitted (:layout=WxH)\n"
+		"  - if W (resp H) = 0: the max width (resp height) of the tracks in the file are used\n"
+		"  - if Y=-1: the layout is moved to the bottom of the track area\n"
+		"  - X and Y can be omitted: `:layout=WxH`\n"
 		"- :rescale=TS: force media timescale to TS !! changes the media duration\n"
 		"- :timescale=TS: set imported media timescale to TS.\n"
 		"- :moovts=TS: set movie timescale to TS. A negative value picks the media timescale of the first track imported.\n"
-		"- :noedit: do not set edit list when importing B-frames video tracks\n"
+		"- :noedit: `*` do not set edit list when importing B-frames video tracks\n"
 		"- :rvc=FILENAME: set RVC configuration for the media\n"
 		"- :fmt=FORMAT: override format detection with given format (cf BT/XMTA doc)\n"
 		"- :profile=INT: override AVC profile\n"
@@ -486,9 +493,9 @@ void PrintImportUsage()
 		"- :font=name: specify font name for text import (default `Serif`)\n"
 		"- :size=s: specify font size for text import (default `18`)\n"
 		"- :text_layout=WxHxXxY: specify the track text layout\n"
-		"  - if W (resp H) = 0, the max width (resp height) of the tracks in the file are used.\n"
-		"  - if Y=-1, the layout is moved to the bottom of the track area\n"
-		"  - X and Y can be omitted (:layout=WxH)\n"
+		"  - if W (resp H) = 0: the max width (resp height) of the tracks in the file are used.\n"
+		"  - if Y=-1: the layout is moved to the bottom of the track area\n"
+		"  - X and Y can be omitted: `:layout=WxH`\n"
 		"- :swf-global: all SWF defines are placed in first scene replace rather than when needed\n"
 		"- :swf-no-ctrl: use a single stream for movie control and dictionary (this will disable ActionScript)\n"
 		"- :swf-no-text: remove all SWF text\n"
@@ -515,11 +522,11 @@ void PrintImportUsage()
 		"- :tc=VAL: inject a single QT timecode. `VAL` can be preceeded with `f` to enable ffmpeg compatibility. `VAL` is formated as:\n"
 		"  - [d]FPS[/FPS_den],h,m,s,f: optionnal drop flag, framerate (integer or fractionnal), hours, minutes, seconds and frame number\n"
 		"  - [d]FPS[/FPS_den],frame: optionnal drop flag, framerate (integer or fractionnal), frame number (counter mode of timecode tracks)\n"
-		"Note: The drop flag is used to indicate that the counter is in drop-frame format\n"
+		"  - : d is a drop flag used to indicate that the counter is in drop-frame format\n"
 		"- :fstat: print filter session stats after import\n"
 		"- :fgraph: print filter session graph after import\n"
 		"- :sopt:[OPTS]: set `OPTS` as additionnal arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
-		"- :dopt:[OPTS]: set `OPTS` as additionnal arguments to [destination filter](mp4mx). OPTS can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
+		"- :dopt:[OPTS]: `*` set `OPTS` as additionnal arguments to [destination filter](mp4mx). OPTS can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
 		"- @@f1[:args][@@fN:args]: set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). If several filters are set, they will be chained in the given order. The last filter shall not have any Filter ID specified\n"
 		"\n"
 		"Note: `sopt`, `dopt` and `@@f` must be placed after all other options.\n"
@@ -2189,13 +2196,13 @@ s32 subsegs_per_sidx;
 u32 *brand_add = NULL;
 u32 *brand_rem = NULL;
 GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
-u32 stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle, dump_saps, dump_saps_mode;
+u32 stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle, dump_saps, dump_saps_mode, force_new;
 GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
-Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
+Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, remove_root_od;
 Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, hls_clock, do_mpd_rip, merge_vtt_cues;
 char *inName, *outName, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *high_dynamc_range_filename, *use_init_seg, *box_patch_filename;
 u32 track_dump_type, dump_isom, dump_timestamps;
@@ -2527,7 +2534,12 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			do_flat = 1;
 		}
 		else if (!stricmp(arg, "-keep-utc")) keep_utc = GF_TRUE;
-		else if (!stricmp(arg, "-new")) force_new = GF_TRUE;
+		else if (!stricmp(arg, "-new")) force_new = 1;
+		else if (!stricmp(arg, "-newfs")) {
+			force_new = 2;
+			interleaving_time = 0.5;
+			do_flat = 1;
+		}
 		else if (!stricmp(arg, "-timescale")) {
 			CHECK_NEXT_ARG
 			timescale = atoi(argv[i + 1]);
@@ -4128,13 +4140,13 @@ int mp4boxMain(int argc, char **argv)
 	import_flags = 0;
 	split_size = 0;
 	movie_time = 0;
-	dump_nal = dump_saps = dump_saps_mode = 0;
+	dump_nal = dump_saps = dump_saps_mode = force_new = 0;
 	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = do_mpd_rip = merge_vtt_cues = GF_FALSE;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	dump_mode = GF_SM_DUMP_NONE;
 #endif
 	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = clean_groups = GF_FALSE;
-	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
+	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
 	no_fragments_defaults = GF_FALSE;
 	single_traf_per_moof = hls_clock = GF_FALSE;
     tfdt_per_traf = GF_FALSE;
@@ -4510,11 +4522,12 @@ int mp4boxMain(int argc, char **argv)
 #if !defined(GPAC_DISABLE_MEDIA_IMPORT) && !defined(GPAC_DISABLE_ISOM_WRITE)
 	if (nb_add) {
 		u32 ipass, nb_pass = 1;
+		char *mux_args=NULL;
 		GF_FilterSession *fs = NULL;
 
 		u8 open_mode = GF_ISOM_OPEN_EDIT;
 		if (force_new) {
-			open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
+			open_mode = (do_flat || (force_new==2)) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 		} else {
 			FILE *test = gf_fopen(inName, "rb");
 			if (!test) {
@@ -4538,9 +4551,30 @@ int mp4boxMain(int argc, char **argv)
 		if (freeze_box_order)
 			gf_isom_freeze_order(file);
 
+		if (do_flat && interleaving_time) {
+			char szSubArg[100];
+			gf_isom_set_storage_mode(file, GF_ISOM_STORE_FASTSTART);
+			do_flat = 2;
+			nb_pass = 2;
+			fs = gf_fs_new_defaults(0);
+			if (!fs) {
+				fprintf(stderr, "Error creating filter session\n");
+				gf_isom_delete(file);
+				return mp4box_cleanup(1);
+			}
+
+			//mux args
+			gf_dynstrcat(&mux_args, "mp4mx:importer:store=fstart", ":");
+
+			sprintf(szSubArg, "file=%p", file);
+			gf_dynstrcat(&mux_args, szSubArg, ":");
+			sprintf(szSubArg, "cdur=%g", interleaving_time);
+			gf_dynstrcat(&mux_args, szSubArg, ":");
+		}
+
 		for (ipass=0; ipass<nb_pass; ipass++) {
 			for (i=0; i<(u32) argc; i++) {
-				char *src;
+				char *src, *margs=NULL;
 				if (strcmp(argv[i], "-add")) continue;
 				src = argv[i+1];
 
@@ -4550,7 +4584,12 @@ int mp4boxMain(int argc, char **argv)
 						sep[0] = 0;
 					}
 
-					e = import_file(file, src, import_flags, import_fps, agg_samples, fs);
+					e = import_file(file, src, import_flags, import_fps, agg_samples, fs, (fs && (ipass==0)) ? &margs : NULL);
+
+					if (margs) {
+						gf_dynstrcat(&mux_args, margs, ":");
+						gf_free(margs);
+					}
 
 					if (sep) {
 						sep[0] = '+';
@@ -4561,10 +4600,35 @@ int mp4boxMain(int argc, char **argv)
 					if (e) {
 						fprintf(stderr, "Error importing %s: %s\n", argv[i+1], gf_error_to_string(e));
 						gf_isom_delete(file);
+						if (fs)
+							gf_fs_del(fs);
 						return mp4box_cleanup(1);
 					}
 				}
 				i++;
+			}
+			if ((nb_pass == 2) && !ipass) {
+				GF_Filter *mux_filter = gf_fs_load_filter(fs, mux_args);
+				gf_free(mux_args);
+				if (!mux_filter) {
+					fprintf(stderr, "Error loadin isobmff mux filter\n");
+					gf_isom_delete(file);
+					gf_fs_del(fs);
+					return mp4box_cleanup(1);
+				}
+
+				e = gf_fs_run(fs);
+				if (e==GF_EOS) e = GF_OK;
+
+				if (!e) e = gf_fs_get_last_connect_error(fs);
+				if (!e) e = gf_fs_get_last_process_error(fs);
+
+				if (e) {
+					fprintf(stderr, "Error importing sources: %s\n", gf_error_to_string(e));
+					gf_isom_delete(file);
+					gf_fs_del(fs);
+					return mp4box_cleanup(1);
+				}
 			}
 		}
 
@@ -5095,7 +5159,7 @@ int mp4boxMain(int argc, char **argv)
 		if (e) goto err_exit;
 		goto exit;
 	}
-	if (!open_edit && !gf_isom_probe_file(inName) && track_dump_type) {
+	if (!open_edit  && track_dump_type && !gf_isom_probe_file(inName)) {
 		GF_MediaExporter mdump;
 		char szFile[1024];
 		for (i=0; i<nb_track_act; i++) {
@@ -5319,7 +5383,7 @@ int mp4boxMain(int argc, char **argv)
 		{
 			u32 old_tk_count = gf_isom_get_track_count(file);
 			GF_Fraction _frac = {0,0};
-			e = import_file(file, meta->szPath, 0, _frac, 0, NULL);
+			e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL);
 			if (e == GF_OK) {
 				u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
 				if (!meta_type) {

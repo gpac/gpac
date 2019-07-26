@@ -938,6 +938,7 @@ enum
 	GF_PROP_PID_COLR_TRANSFER = GF_4CC('C','T','R','C'),
 	GF_PROP_PID_COLR_MX = GF_4CC('C','M','X','C'),
 	GF_PROP_PID_COLR_RANGE = GF_4CC('C','F','R','A'),
+	GF_PROP_PID_SRC_MAGIC = GF_4CC('P','S','M','G'),
 
 	GF_PROP_PCK_FRAG_START = GF_4CC('P','F','R','B'),
 	GF_PROP_PCK_FRAG_RANGE = GF_4CC('P','F','R','R'),
@@ -1900,7 +1901,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 
 /*! Explicitly assigns an ID to a filter. This shall be called before running the session, and cannot be called on a filter with ID assign
 \param filter the target filter
-\param filter_id the ID to assign
+\param filter_id the ID to assign. If NULL, a dynmic ID is generated
 \return error code if any
 */
 GF_Err gf_filter_assign_id(GF_Filter *filter, const char *filter_id);

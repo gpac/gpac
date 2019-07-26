@@ -1675,7 +1675,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 			}
 		} else {
 			GF_BitStream *moov_bs = NULL;
-			if (movie->storageMode==GF_ISOM_STORE_STREAMABLE) {
+			if ((movie->storageMode==GF_ISOM_STORE_STREAMABLE) || (movie->storageMode==GF_ISOM_STORE_FASTSTART) ) {
 				moov_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			}
 			e = WriteFlat(&mw, 0, movie->editFileMap->bs, GF_FALSE, GF_FALSE, moov_bs);

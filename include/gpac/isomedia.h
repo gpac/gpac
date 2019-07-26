@@ -1109,6 +1109,9 @@ GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char **
 u32 gf_isom_get_track_kind_count(GF_ISOFile *the_file, u32 trackNumber);
 GF_Err gf_isom_get_track_kind(GF_ISOFile *the_file, u32 trackNumber, u32 index, char **scheme, char **value);
 
+/*gets track magic number*/
+u64 gf_isom_get_track_magic(GF_ISOFile *movie, u32 trackNumber);
+
 /*Unknown sample description*/
 typedef struct
 {
@@ -1533,6 +1536,9 @@ GF_Err gf_isom_add_track_to_root_od(GF_ISOFile *the_file, u32 trackNumber);
 
 /*remove a track to the root OD*/
 GF_Err gf_isom_remove_track_from_root_od(GF_ISOFile *the_file, u32 trackNumber);
+
+/*sets track magic number*/
+GF_Err gf_isom_set_track_magic(GF_ISOFile *movie, u32 trackNumber, u64 magic);
 
 /*removes the stream descritpion with the given index - this does not remove any added samples for that stream description !!*/
 GF_Err gf_isom_remove_stream_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex);
