@@ -887,14 +887,12 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 
 			firstSize = GetMoovAndMetaSize(movie, writers);
 
-//			offset = firstSize + 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
 			offset = firstSize;
 			e = ShiftOffset(movie, writers, offset);
 			if (e) goto exit;
 			//get the size and see if it has changed (eg, we moved to 64 bit offsets)
 			finalSize = GetMoovAndMetaSize(movie, writers);
 			if (firstSize != finalSize) {
-//				finalOffset = finalSize + 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
 				finalOffset = finalSize;
 				//OK, now we're sure about the final size.
 				//we don't need to re-emulate, as the only thing that changed is the offset
@@ -902,9 +900,7 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 				e = ShiftOffset(movie, writers, finalOffset - offset);
 				if (e) goto exit;
 			}
-
 		}
-
 		//OK, write the movie box.
 		e = WriteMoovAndMeta(movie, writers, moov_bs ? moov_bs : bs);
 		if (e) goto exit;
@@ -1679,7 +1675,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 			}
 		} else {
 			GF_BitStream *moov_bs = NULL;
-			if (movie->storageMode==GF_ISOM_STORE_FASTSTART) {
+			if (movie->storageMode==GF_ISOM_STORE_STREAMABLE) {
 				moov_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			}
 			e = WriteFlat(&mw, 0, movie->editFileMap->bs, GF_FALSE, GF_FALSE, moov_bs);

@@ -264,6 +264,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	u32 tc_fps_num=0, tc_fps_den=0, tc_h=0, tc_m=0, tc_s=0, tc_f=0;
 	s32 tc_counter=0;
 	Bool tc_force_counter=GF_FALSE;
+	Bool tc_drop_frame = GF_FALSE;
 	char *ext_start;
 	u32 xps_inband=0;
 	char *opt_src = NULL;
@@ -671,6 +672,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			char *tc_str = ext+4;
 			if (tc_str[0] == 'f') {
 				tc_force_counter=GF_TRUE;
+				tc_str+=1;
+			}
+			if (tc_str[0] == 'd') {
+				tc_drop_frame=GF_TRUE;
 				tc_str+=1;
 			}
 			if (sscanf(tc_str, "%d/%d,%d,%d,%d,%d", &tc_fps_num, &tc_fps_den, &tc_h, &tc_m, &tc_s, &tc_f) == 6) {
@@ -1258,7 +1263,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		u32 tmcd_tk, tmcd_id;
 		u32 video_ref = 0;
 		s32 frames_per_tick=0;
-		Bool is_drop=GF_FALSE;
 		GF_BitStream *bs;
 		GF_ISOSample *samp;
 		for (i=0; i<gf_isom_get_track_count(import.dest); i++) {
@@ -1266,11 +1270,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				video_ref = i+1;
 				break;
 			}
-		}
-		if (tc_fps_den) {
-			u32 res = tc_fps_num / tc_fps_den;
-			if (res * tc_fps_den != tc_fps_num)
-				is_drop = GF_TRUE;
 		}
 		tmcd_tk = gf_isom_new_track(import.dest, 0, GF_QT_BOX_TYPE_TMCD, tc_fps_num);
 		if (!tmcd_tk) {
@@ -1298,7 +1297,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		}
 
 		tmcd_id = gf_isom_get_track_id(import.dest, tmcd_tk);
-		e = gf_isom_tmcd_config_new(import.dest, tmcd_tk, tc_fps_den, frames_per_tick, is_drop, &desc_index);
+		e = gf_isom_tmcd_config_new(import.dest, tmcd_tk, tc_fps_den, frames_per_tick, tc_drop_frame, &desc_index);
 		if (e) goto exit;
 
 		if (video_ref) {

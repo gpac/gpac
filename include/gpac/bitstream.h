@@ -604,6 +604,21 @@ void gf_bs_enable_emulation_byte_removal(GF_BitStream *bs, Bool do_remove);
 GF_Err gf_bs_insert_data(GF_BitStream *bs, u8 *data, u32 size, u64 offset);
 
 /*!
+ *\brief Inserts a data block, moving bytes to the end
+ *
+ *Inserts a data block at a given position, pushing all bytes after the insertion point to the end of the stream.
+ This does NOT work if \ref gf_bs_enable_emulation_byte_removal or  \ref gf_bs_new_cbk where used.
+ The position after the call will be the same as before the call. If the position is not the end of the bitstream
+ all bytes after the position will be lost.
+ *\param bs the target bitstream
+ *\param data block to insert
+ *\param size size of the block to insert
+ *\param offset insertion offset from bitstream start
+ *\return error code if any
+ */
+GF_Err gf_bs_insert_data(GF_BitStream *bs, u8 *data, u32 size, u64 offset);
+
+/*!
  *\brief Sets cookie
  *
  *Sets a 64 bit cookie (integer, pointer) on the bitstream, returning the current cookie value

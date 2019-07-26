@@ -85,6 +85,7 @@ GF_Err FlushCaptureMode(GF_ISOFile *movie)
 		if (e) return e;
 	}
 	movie->mdat->bsOffset = gf_bs_get_position(movie->editFileMap->bs);
+
 	/*we have a trick here: the data will be stored on the fly, so the first
 	thing in the file is the MDAT. As we don't know if we have a large file (>4 GB) or not
 	do as if we had one and write 16 bytes: 4 (type) + 4 (size) + 8 (largeSize)...*/
