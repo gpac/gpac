@@ -833,6 +833,8 @@ typedef struct
 	Bool has_base_layer;
 	u32 pack_num_samples;
 
+	u64 magic;
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	u64 first_dts_chunk;
 	u32 nb_samples_in_cache;

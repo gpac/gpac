@@ -871,6 +871,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			gf_isom_set_track_matrix(ctx->file, tkw->track_num, (s32 *) p->value.uint_list.vals);
 		}
 
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_SRC_MAGIC);
+		if (p) {
+			gf_isom_set_track_magic(ctx->file, tkw->track_num, p->value.longuint);
+		}
+
 		//by default use cttsv1 (negative ctts)
 		gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_TRUE);
 

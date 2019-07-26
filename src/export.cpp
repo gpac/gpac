@@ -870,7 +870,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_constant_sample_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_constant_sample_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_enable_raw_pack) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_magic) )
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
@@ -1046,6 +1046,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_tmcd_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_tmcd_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_magic) )
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING

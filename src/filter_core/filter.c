@@ -2563,8 +2563,15 @@ void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_
 GF_EXPORT
 GF_Err gf_filter_assign_id(GF_Filter *filter, const char *id)
 {
-	if (!filter || filter->id || !id) return GF_BAD_PARAM;
-	filter->id = gf_strdup(id);
+	if (!filter || filter->id) return GF_BAD_PARAM;
+
+	if (!id) {
+		char szID[1024];
+		sprintf(szID, "_%p_", filter);
+		filter->id = gf_strdup(szID);
+	} else {
+		filter->id = gf_strdup(id);
+	}
 	return GF_OK;
 }
 

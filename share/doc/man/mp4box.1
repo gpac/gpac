@@ -102,6 +102,11 @@ specify write buffer in bytes for ISOBMF files to reduce disk IO
 force creation of a new destination file
 .br
 .TP
+.B \-newfs
+.br
+force creation of a new destination file without temp file but interleaving support
+.br
+.TP
 .B \-no-sys
 .br
 remove all MPEG-4 Systems info except IOD, kept for profiles. This is the default when creating regular AV content
@@ -1086,15 +1091,27 @@ The supported input media types depend on your installation, check filters docum
 .br
 To select a desired media track, the following syntax is used:
 .br
-* `-add inputFile#video`: adds the first video track in inputFile. DOES NOT WORK for IsoMedia nor MPEG-2 TS files.
+* `-add inputFile#video`: adds the first video track in inputFile.
 .br
-* `-add inputFile#audio`: adds the first audio track in inputFile. DOES NOT WORK for IsoMedia nor MPEG-2 TS files.
+* `-add inputFile#audio`: adds the first audio track in inputFile.
 .br
 * `-add inputFile#trackID=ID` or `-add inputFile#ID`: adds the specified track. For IsoMedia files, ID is the track ID. For other media files, ID is the value indicated by MP4Box -info inputFile.
 .br
   
 .br
-MP4Box can import a desired amount of the input file rather than the whole file. To do this, use the syntax -add inputFileN, where N is the number of seconds you wish to import from input. MP4Box cannot start importing from a random point in the input, it always import from the begining.
+By default all imports are performed sequentially, and final interleaving is done at the end; this however requires a temporary file holding input isobmf file (if any) and added files before creating the final output. Since this can become quite large, it is possible to add media to a new file without temporary storage, using -flat option, but this disables media interleaving.
+.br
+  
+.br
+If you wish to create an interleaved new file with no temporary storage, use the -newfs option. The interleaving might not be as precise as when using -new since it is dependent on muxer input scheduling (each execution might lead to a slightly different result). 
+.br
+ - Some muxing options (marked with * below) will be activated for all inputs (i.e. in this mode, it is not possible to import one AVC track with xps_inband and another without).
+.br
+ - Some muxing options (marked as ! below) cannot be used in this mode as they require temporary storage for file edition.
+.br
+  
+.br
+MP4Box can import a desired amount of the input file rather than the whole file. To do this, use the syntax -add inputFile:dur=N, where N is the number of seconds you wish to import from input. MP4Box cannot start importing from a random point in the input, it always import from the begining.
 .br
 Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likelly not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). Check TTXT doc for more details.
 .br
@@ -1112,7 +1129,7 @@ Allowed per-file options:
 .br
 * #pid=ID: stream import from MPEG-2 TS
 .br
-* :dur=D: import only the first D seconds
+* :dur=D: * import only the first D seconds
 .br
 * :lang=LAN: set imported media language code
 .br
@@ -1136,21 +1153,21 @@ Allowed per-file options:
 .br
 * :fps=VAL: same as -fps
 .br
-* :rap: import only RAP samples
+* :rap: ! import only RAP samples
 .br
-* :refs: import only reference pictures
+* :refs: ! import only reference pictures
 .br
 * :trailing: keep trailing 0-bytes in AVC/HEVC samples
 .br
-* :agg=VAL: same as -agg
+* :agg=VAL: * same as -agg
 .br
-* :dref: same as -dref
+* :dref: * same as -dref
 .br
 * :keep_refs: keeps track reference when importing a single track
 .br
 * :nodrop: same as -nodrop
 .br
-* :packed: same as -packed
+* :packed: * same as -packed
 .br
 * :sbr: same as -sbr
 .br
@@ -1162,7 +1179,7 @@ Allowed per-file options:
 .br
 * :psx: same as -psx
 .br
-* :asemode=MODE: set the mode to create the AudioSampleEntry
+* :asemode=MODE: * set the mode to create the AudioSampleEntry
 .br
   * v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default
 .br
@@ -1174,7 +1191,7 @@ Allowed per-file options:
 .br
 * :audio_roll=N: add a roll sample group with roll_distance N
 .br
-* :mpeg4: same as -mpeg4 option
+* :mpeg4: * same as -mpeg4 option
 .br
 * :nosei: discard all SEI messages during import
 .br
@@ -1182,7 +1199,7 @@ Allowed per-file options:
 .br
 * :nosvc: discard SVC/LHVC data when importing
 .br
-* :svcmode=MODE: set SVC/LHVC import mode
+* :svcmode=MODE: ! set SVC/LHVC import mode
 .br
   * split: each layer is in its own track
 .br
@@ -1194,7 +1211,7 @@ Allowed per-file options:
 .br
   * splitnoxib: each layer is in its own track, no extractors are written, using inband param set signaling
 .br
-* :temporal: set HEVC/LHVC temporal sublayer import mode
+* :temporal: ! set HEVC/LHVC temporal sublayer import mode
 .br
   * split: each sublayer is in its own track
 .br
@@ -1212,31 +1229,35 @@ Allowed per-file options:
 .br
 Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players
 .br
-* :xps_inband: set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)
+* :xps_inband: * set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)
 .br
-* :xps_inbandx: same as xps_inband and also keep first xPS in sample desciption
+* :xps_inbandx: * same as xps_inband and also keep first xPS in sample desciption
 .br
 * :au_delim: keep AU delimiter NAL units in the imported file
 .br
-* :max_lid=N: set HEVC max layer ID to be imported to N (by default imports all layers).
+* :max_lid=N: set HEVC max layer ID to be imported to N (by default imports all layers)
 .br
 * :max_tid=N: set HEVC max temporal ID to be imported to N (by default imports all temporal sublayers)
 .br
-* :tiles: add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks.
+* :tiles: add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks
 .br
-* :split_tiles: split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track.
+* :split_tiles: ! split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track.
 .br
 * :negctts: use negative CTS-DTS offsets (ISO4 brand)
 .br
 * :chap: specify the track is a chapter track
 .br
-* :chapter=NAME: add a single chapter (old nero format) with given name lasting the entire file- :chapfile=file: adds a chapter file (old nero format)- :layout=WxHxXxY: specify the track layout
+* :chapter=NAME: add a single chapter (old nero format) with given name lasting the entire file
 .br
-  - if W (resp H) = 0, the max width (resp height) of the tracks in the file are used.
+* :chapfile=file: adds a chapter file (old nero format)
 .br
-  - if Y=-1, the layout is moved to the bottom of the track area
+* :layout=WxHxXxY: specify the track layout
 .br
-  - X and Y can be omitted (:layout=WxH)
+  * if W (resp H) = 0: the max width (resp height) of the tracks in the file are used
+.br
+  * if Y=-1: the layout is moved to the bottom of the track area
+.br
+  * X and Y can be omitted: :layout=WxH
 .br
 * :rescale=TS: force media timescale to TS !! changes the media duration
 .br
@@ -1244,7 +1265,7 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
 * :moovts=TS: set movie timescale to TS. A negative value picks the media timescale of the first track imported.
 .br
-* :noedit: do not set edit list when importing B-frames video tracks
+* :noedit: * do not set edit list when importing B-frames video tracks
 .br
 * :rvc=FILENAME: set RVC configuration for the media
 .br
@@ -1264,11 +1285,11 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
 * :text_layout=WxHxXxY: specify the track text layout
 .br
-  - if W (resp H) = 0, the max width (resp height) of the tracks in the file are used.
+  * if W (resp H) = 0: the max width (resp height) of the tracks in the file are used.
 .br
-  - if Y=-1, the layout is moved to the bottom of the track area
+  * if Y=-1: the layout is moved to the bottom of the track area
 .br
-  - X and Y can be omitted (:layout=WxH)
+  * X and Y can be omitted: :layout=WxH
 .br
 * :swf-global: all SWF defines are placed in first scene replace rather than when needed
 .br
@@ -1322,7 +1343,7 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
   * [d]FPS[/FPS_den],frame: optionnal drop flag, framerate (integer or fractionnal), frame number (counter mode of timecode tracks)
 .br
-Note: The drop flag is used to indicate that the counter is in drop-frame format
+  * : d is a drop flag used to indicate that the counter is in drop-frame format
 .br
 * :fstat: print filter session stats after import
 .br
@@ -1330,7 +1351,7 @@ Note: The drop flag is used to indicate that the counter is in drop-frame format
 .br
 * :sopt:[OPTS]: set OPTS as additionnal arguments to source filter. OPTS can be any usual filter argument, see filter doc `gpac -h doc`
 .br
-* :dopt:[OPTS]: set OPTS as additionnal arguments to destination filter. OPTS can be any usual filter argument, see filter doc `gpac -h doc`
+* :dopt:[OPTS]: * set OPTS as additionnal arguments to destination filter. OPTS can be any usual filter argument, see filter doc `gpac -h doc`
 .br
 * @@f1[:args][@@fN:args]: set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see filter doc `gpac -h doc`. If several filters are set, they will be chained in the given order. The last filter shall not have any Filter ID specified
 .br
@@ -1977,7 +1998,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2652-g8f5b8f1e0-filters
+build: 0.9.0-DEV-rev2660-g71c2ae409-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -38,6 +38,7 @@ extern "C" {
 #include <gpac/isomedia.h>
 #include <gpac/avparse.h>
 #include <gpac/config_file.h>
+#include <gpac/filters.h>
 
 /*!
  *	\addtogroup mt_grp ISOBMF Helper tools
@@ -216,9 +217,7 @@ enum
 	GF_IMPORT_KEEP_AV1_TEMPORAL_OBU  = 1<<28,
 	/*! imports sample dependencies information*/
 	GF_IMPORT_SAMPLE_DEPS  = 1<<29,
-	/*! when set a default ccst box is used in the sample entry */
-	GF_IMPORT_USE_CCST  = 1<<30,
-
+	
 	//GF_IMPORT_FILTER_STATS = 0x80000000	//(=1<<31)
 };
 
@@ -393,7 +392,13 @@ typedef struct __track_import
 	u32 print_stats_graph;
 	u32 prog_id;
 
-	Bool source_is_isobmff;
+	/*magic number for identifying source, will be set to the destination track. Only the low 32 bits are used
+	the high 32 bits are updated by the importer as follows:
+		1<<33: if bit is set, source was an isobmff file
+	*/
+	u64 source_magic;
+	GF_FilterSession *run_in_session;
+	char *update_mux_args;
 } GF_MediaImporter;
 
 /*!

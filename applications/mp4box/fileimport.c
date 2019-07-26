@@ -230,9 +230,9 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 	}
 }
 
-GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess)
+GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, char **mux_args_if_first_pass)
 {
-	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale_num, rescale_den, svc_mode, txt_flags, split_tile_mode, temporal_mode;
+	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale_num, rescale_den, svc_mode, txt_flags, split_tile_mode, temporal_mode, nb_tracks;
 	s32 par_d, par_n, prog_id, delay, force_rate, moov_timescale;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only, force_par;
@@ -267,10 +267,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	Bool tc_drop_frame = GF_FALSE;
 	char *ext_start;
 	u32 xps_inband=0;
+	u64 source_magic=0;
 	char *opt_src = NULL;
 	char *opt_dst = NULL;
 	char *fchain = NULL;
-	u32 original_track_count, final_track_count;
+	Bool set_ccst=GF_FALSE;
 
 	clap_wn = clap_wd = clap_hn = clap_hd = clap_hon = clap_hod = clap_von = clap_vod = 0;
 
@@ -456,7 +457,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		}
 		else if (!stricmp(ext+1, "subsamples")) import_flags |= GF_IMPORT_SET_SUBSAMPLES;
 		else if (!stricmp(ext+1, "deps")) import_flags |= GF_IMPORT_SAMPLE_DEPS;
-		else if (!stricmp(ext+1, "ccst")) import_flags |= GF_IMPORT_USE_CCST;
+		else if (!stricmp(ext+1, "ccst")) set_ccst = GF_TRUE;
 		else if (!stricmp(ext+1, "alpha")) import.is_alpha = GF_TRUE;
 		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
 		else if (!stricmp(ext+1, "xps_inband")) xps_inband = 1;
@@ -838,30 +839,50 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 	check_track_for_svc = check_track_for_lhvc = check_track_for_hevc = 0;
 
-	import.in_name = szName;
-	import.dest = dest;
-	import.video_fps = force_fps;
-	import.frames_per_sample = frames_per_sample;
-	import.flags = import_flags;
-	import.keep_audelim = keep_audelim;
-	import.print_stats_graph = print_stats_graph;
-	import.xps_inband = xps_inband;
-	import.prog_id = prog_id;
-	import.trackID = track_id;
+	source_magic = gf_crc_32((u8 *)inName, strlen(inName));
+	if (!fsess || mux_args_if_first_pass) {
+		import.in_name = szName;
+		import.dest = dest;
+		import.video_fps = force_fps;
+		import.frames_per_sample = frames_per_sample;
+		import.flags = import_flags;
+		import.keep_audelim = keep_audelim;
+		import.print_stats_graph = print_stats_graph;
+		import.xps_inband = xps_inband;
+		import.prog_id = prog_id;
+		import.trackID = track_id;
+		import.source_magic = source_magic;
 
-	if (do_all)
-		import.flags |= GF_IMPORT_KEEP_REFS;
+		import.run_in_session = fsess;
+		import.update_mux_args = NULL;
+		if (do_all)
+			import.flags |= GF_IMPORT_KEEP_REFS;
 
-	original_track_count = gf_isom_get_track_count(dest);
-	e = gf_media_import(&import);
-	if (e) goto exit;
-	final_track_count = gf_isom_get_track_count(dest);
+		e = gf_media_import(&import);
+		if (e) {
+			if (import.update_mux_args) gf_free(import.update_mux_args);
+			goto exit;
+		}
 
-	keep_handler = import.source_is_isobmff;
+		if (fsess) {
+			*mux_args_if_first_pass = import.update_mux_args;
+			import.update_mux_args = NULL;
+			goto exit;
+		}
+	}
 
-	for (i=original_track_count; i<final_track_count; i++) {
+	nb_tracks = gf_isom_get_track_count(dest);
+	for (i=0; i<nb_tracks; i++) {
 		u32 media_type;
+		u64 tk_source_magic;
 		track = i+1;
+		tk_source_magic = gf_isom_get_track_magic(dest, track);
+
+		if ((tk_source_magic & 0xFFFFFFFFUL) != source_magic)
+			continue;
+		tk_source_magic>>=32;
+		
+		keep_handler = (tk_source_magic & 1) ? GF_TRUE : GF_FALSE;
 
 		media_type = gf_isom_get_media_type(dest, track);
 
@@ -905,6 +926,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			if (clr_type) {
 				gf_isom_set_visual_color_info(dest, track, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
 			}
+
+			if (set_ccst) {
+				gf_isom_set_image_sequence_coding_constraints(dest, track, 1, GF_FALSE, GF_FALSE, GF_TRUE, 15);
+			}
 		}
 		if (has_mx) {
 			e = gf_isom_set_track_matrix(dest, track, mx);
@@ -918,6 +943,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		}
 		if (rap_only || refs_only) {
 			e = gf_media_remove_non_rap(dest, track, refs_only);
+			if (e) goto exit;
 		}
 		if (handler_name) gf_isom_set_handler_name(dest, track, handler_name);
 		else if (!keep_handler) {
@@ -2040,7 +2066,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 
 	if (!is_isom || opts) {
 		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, tmp_dir);
-		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample, NULL);
+		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample, NULL, NULL);
 		if (e) return e;
 	} else {
 		/*we open the original file in edit mode since we may have to rewrite AVC samples*/
@@ -2051,7 +2077,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		char *sep = strchr(multi_cat, '+');
 		if (sep) sep[0] = 0;
 
-		e = import_file(orig, multi_cat, import_flags, force_fps, frames_per_sample, NULL);
+		e = import_file(orig, multi_cat, import_flags, force_fps, frames_per_sample, NULL, NULL);
 		if (e) {
 			gf_isom_delete(orig);
 			return e;

@@ -410,7 +410,8 @@ GF_Err gf_cfg_set_key_internal(GF_Config *iniFile, const char *secName, const ch
 	sec = (IniSection *) gf_malloc(sizeof(IniSection));
 	sec->section_name = gf_strdup(secName);
 	sec->keys = gf_list_new();
-	if (has_changed) iniFile->hasChanged = GF_TRUE;
+	if (has_changed)
+		iniFile->hasChanged = GF_TRUE;
 	gf_list_add(iniFile->sections, sec);
 
 get_key:
@@ -423,7 +424,8 @@ get_key:
 	key = (IniKey *) gf_malloc(sizeof(IniKey));
 	key->name = gf_strdup(keyName);
 	key->value = gf_strdup("");
-	if (has_changed) iniFile->hasChanged = GF_TRUE;
+	if (has_changed)
+		iniFile->hasChanged = GF_TRUE;
 	gf_list_add(sec->keys, key);
 
 set_value:
@@ -432,7 +434,8 @@ set_value:
 		if (key->name) gf_free(key->name);
 		if (key->value) gf_free(key->value);
 		gf_free(key);
-		if (has_changed) iniFile->hasChanged = GF_TRUE;
+		if (has_changed)
+			iniFile->hasChanged = GF_TRUE;
 		return GF_OK;
 	}
 	key->do_restrict = is_restrict;
@@ -441,7 +444,8 @@ set_value:
 
 	if (key->value) gf_free(key->value);
 	key->value = gf_strdup(keyValue);
-	if (has_changed) iniFile->hasChanged = GF_TRUE;
+	if (has_changed)
+		iniFile->hasChanged = GF_TRUE;
 	return GF_OK;
 }
 
