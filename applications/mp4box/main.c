@@ -220,7 +220,7 @@ void PrintGeneralUsage()
 	        " -strict-error        exits after the first error is reported\n"
 	        " -inter time_in_ms    interleaves file data (track chunks of time_in_ms), on by default with 0.5s window\n"
 	        "                       * Note: a value of 0 disables interleaving\n"
-	        "                       * Note: Interleaving will require a temporary file soring all media data (high disk usage)\n"
+	        "                       * Note: Interleaving will require a temporary file storing all media data (high disk usage)\n"
 	        " -old-inter time      same as -inter but doesn't perform drift checking across tracks\n"
 	        " -tight               performs tight interleaving (sample based) of the file\n"
 	        "                       * Note: reduces disk seek but increases file size\n"
