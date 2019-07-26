@@ -391,6 +391,9 @@ typedef struct __track_import
 	Bool keep_audelim;
 	u32 xps_inband;
 	u32 print_stats_graph;
+	u32 prog_id;
+
+	Bool source_is_isobmff;
 } GF_MediaImporter;
 
 /*!

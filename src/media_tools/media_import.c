@@ -249,7 +249,7 @@ exit:
 	return e;
 }
 
-GF_Err gf_import_isomedia(GF_MediaImporter *import)
+static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
@@ -656,6 +656,26 @@ exit:
 	return e;
 }
 
+static GF_Err gf_import_isomedia(GF_MediaImporter *import)
+{
+	u32 nb_tracks, i;
+	if (import->trackID)
+		return gf_import_isomedia_track(import);
+
+	if (!import->orig) return GF_BAD_PARAM;
+
+	nb_tracks = gf_isom_get_track_count(import->orig);
+	for (i=0; i<nb_tracks; i++) {
+		import->trackID = gf_isom_get_track_id(import->orig, i+1);
+		if (import->trackID) {
+			GF_Err e = gf_import_isomedia_track(import);
+			import->trackID = 0;
+			if (e) return e;
+		}
+	}
+	return GF_OK;
+}
+
 GF_EXPORT
 GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *file, u32 track, u32 new_size)
 {
@@ -1000,13 +1020,17 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->streamFormat) fmt = importer->streamFormat;
 
 	/*if isobmf and probing or no filter, direct copy*/
-	if (gf_isom_probe_file(importer->in_name) && (!importer->filter_chain || (importer->flags & GF_IMPORT_PROBE_ONLY) ) ) {
-		importer->orig = gf_isom_open(importer->in_name, GF_ISOM_OPEN_READ, NULL);
-		if (importer->orig) {
-			e = gf_import_isomedia(importer);
-			gf_isom_delete(importer->orig);
-			importer->orig = NULL;
-			return e;
+	importer->source_is_isobmff = GF_FALSE;
+	if (gf_isom_probe_file(importer->in_name)) {
+		importer->source_is_isobmff = GF_TRUE;
+		if (!importer->filter_chain || (importer->flags & GF_IMPORT_PROBE_ONLY) ) {
+			importer->orig = gf_isom_open(importer->in_name, GF_ISOM_OPEN_READ, NULL);
+			if (importer->orig) {
+				e = gf_import_isomedia(importer);
+				gf_isom_delete(importer->orig);
+				importer->orig = NULL;
+				return e;
+			}
 		}
 	}
 
@@ -1030,7 +1054,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 	if (importer->flags & GF_IMPORT_PROBE_ONLY) {
 		GF_Filter *prober = gf_fs_load_filter(fsess, "probe");
-		GF_Filter *src_filter = gf_fs_load_source(fsess, importer->in_name, "index_dur=0", NULL, &e);
+		GF_Filter *src_filter = gf_fs_load_source(fsess, importer->in_name, "index=0", NULL, &e);
 		if (e) {
 			gf_fs_run(fsess);
 			gf_fs_del(fsess);
@@ -1204,7 +1228,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		}
 
 		//source args
-		e = gf_dynstrcat(&args, "importer:index_dur=0", ":");
+		e = gf_dynstrcat(&args, "importer:index=0", ":");
 		if (importer->trackID && !source_id_set) e |= gf_dynstrcat(&args, "FID=1", ":");
 		if (importer->filter_src_opts) e |= gf_dynstrcat(&args, importer->filter_src_opts, ":");
 

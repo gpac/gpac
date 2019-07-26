@@ -50,6 +50,7 @@
 #endif
 
 #include <gpac/constants.h>
+#include <gpac/filters.h>
 
 #include <gpac/internal/mpd.h>
 
@@ -4508,6 +4509,9 @@ int mp4boxMain(int argc, char **argv)
 
 #if !defined(GPAC_DISABLE_MEDIA_IMPORT) && !defined(GPAC_DISABLE_ISOM_WRITE)
 	if (nb_add) {
+		u32 ipass, nb_pass = 1;
+		GF_FilterSession *fs = NULL;
+
 		u8 open_mode = GF_ISOM_OPEN_EDIT;
 		if (force_new) {
 			open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
@@ -4525,7 +4529,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 		}
 
-		open_edit = GF_TRUE;
+		open_edit = do_flat ? GF_FALSE : GF_TRUE;
 		file = gf_isom_open(inName, open_mode, tmpdir);
 		if (!file) {
 			fprintf(stderr, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
@@ -4534,9 +4538,11 @@ int mp4boxMain(int argc, char **argv)
 		if (freeze_box_order)
 			gf_isom_freeze_order(file);
 
-		for (i=0; i<(u32) argc; i++) {
-			if (!strcmp(argv[i], "-add")) {
-				char *src = argv[i+1];
+		for (ipass=0; ipass<nb_pass; ipass++) {
+			for (i=0; i<(u32) argc; i++) {
+				char *src;
+				if (strcmp(argv[i], "-add")) continue;
+				src = argv[i+1];
 
 				while (src) {
 					char *sep = strchr(src, '+');
@@ -4544,7 +4550,7 @@ int mp4boxMain(int argc, char **argv)
 						sep[0] = 0;
 					}
 
-					e = import_file(file, src, import_flags, import_fps, agg_samples);
+					e = import_file(file, src, import_flags, import_fps, agg_samples, fs);
 
 					if (sep) {
 						sep[0] = '+';
@@ -5313,7 +5319,7 @@ int mp4boxMain(int argc, char **argv)
 		{
 			u32 old_tk_count = gf_isom_get_track_count(file);
 			GF_Fraction _frac = {0,0};
-			e = import_file(file, meta->szPath, 0, _frac, 0);
+			e = import_file(file, meta->szPath, 0, _frac, 0, NULL);
 			if (e == GF_OK) {
 				u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
 				if (!meta_type) {

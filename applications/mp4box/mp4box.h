@@ -31,6 +31,7 @@
 #include <gpac/network.h>
 #include <gpac/isomedia.h>
 #include <gpac/utf.h>
+#include <gpac/filters.h>
 
 #ifndef GPAC_DISABLE_SMGR
 #include <gpac/scene_manager.h>
@@ -57,9 +58,9 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile* movie, char* file_name);
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample);
+GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess);
 #else
-GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample) {
+GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess) {
 	return GF_NOT_SUPPORTED;
 }
 #endif

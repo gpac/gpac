@@ -136,6 +136,11 @@ static void h263dmx_check_dur(GF_Filter *filter, GF_H263DmxCtx *ctx)
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
+	if (ctx->index<=0) {
+		ctx->file_loaded = GF_TRUE;
+		return;
+	}
+
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
 	if (!p || !p->value.string) {
 		ctx->is_file = GF_FALSE;
