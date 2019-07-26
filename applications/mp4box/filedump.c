@@ -61,10 +61,6 @@ extern u32 fs_dump_flags;
 
 void scene_coding_log(void *cbk, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char *fmt, va_list vlist);
 
-#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
-GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample);
-#endif
-
 void PrintLanguages()
 {
 	u32 i=0, count = gf_lang_get_count();
@@ -157,7 +153,7 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 		if (load.isom) {
 			GF_Fraction _frac = {0,0};
-			e = import_file(load.isom, file, 0, _frac, 0);
+			e = import_file(load.isom, file, 0, _frac, 0, NULL);
 		} else
 #else
 		fprintf(stderr, "Warning: GPAC was compiled without Media Import support\n");
