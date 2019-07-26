@@ -42,6 +42,16 @@ Note: You can add media to a file and split it in the same pass. In this case, t
 Options:
 .br
 .TP
+.B \-mem-track
+.br
+enable memory tracker
+.br
+.TP
+.B \-mem-track-stack
+.br
+enable memory tracker with stack dumping
+.br
+.TP
 .B \-inter (number, default: 0.5)
 .br
 interleave file, producing track chunks with given duration in ms. A value of 0 disables interleaving 
@@ -1308,13 +1318,11 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
 * :tc=VAL: inject a single QT timecode. VAL can be preceeded with f to enable ffmpeg compatibility. VAL is formated as:
 .br
-  * FPS,h,m,s,f: integer framerate, hours, minutes, seconds and frame number
+  * [d]FPS[/FPS_den],h,m,s,f: optionnal drop flag, framerate (integer or fractionnal), hours, minutes, seconds and frame number
 .br
-  * FPS_n/FPS_d,h,m,s,f: drop-frame framerate, hours, minutes, seconds and frame number
+  * [d]FPS[/FPS_den],frame: optionnal drop flag, framerate (integer or fractionnal), frame number (counter mode of timecode tracks)
 .br
-  * FPS,frame: integer framerate, frame number (counter mode of timecode tracks)
-.br
-  * FPS_n/FPS_d,frame: drop-frame framerate, frame number (counter mode of timecode tracks)
+Note: The drop flag is used to indicate that the counter is in drop-frame format
 .br
 * :fstat: print filter session stats after import
 .br
@@ -1969,7 +1977,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2644-g88bd1cb64-filters
+build: 0.9.0-DEV-rev2652-g8f5b8f1e0-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
