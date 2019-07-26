@@ -4630,6 +4630,11 @@ int mp4boxMain(int argc, char **argv)
 				}
 			}
 		}
+		if (fs) {
+			if (fs_dump_flags & 1) gf_fs_print_stats(fs);
+			if (fs_dump_flags & 2) gf_fs_print_connections(fs);
+			gf_fs_del(fs);
+		}
 
 		/*unless explicitly asked, remove all systems tracks*/
 #ifndef GPAC_DISABLE_AV_PARSERS
