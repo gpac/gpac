@@ -212,6 +212,9 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 	import->final_trackID = import->esd->ESID;
 
+	if (import->source_magic)
+		gf_isom_set_track_magic(import->dest, track, import->source_magic);
+
 	e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
 	if (e) goto exit;
 	//gf_isom_set_visual_info(import->dest, track, di, w, h);
@@ -407,6 +410,9 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	if (import->trackID && !(import->flags & GF_IMPORT_KEEP_REFS)) {
 		gf_isom_remove_track_references(import->dest, track);
 	}
+
+	if (import->source_magic)
+		gf_isom_set_track_magic(import->dest, track, import->source_magic);
 
 	mstype = gf_isom_get_media_subtype(import->orig, track_in, di);
 	switch (mtype) {
