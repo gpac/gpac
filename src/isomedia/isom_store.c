@@ -697,7 +697,7 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 
 
 //write the file track by track, with moov box before or after the mdat
-GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
+GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, GF_BitStream *moov_bs)
 {
 	GF_Err e;
 	u32 i;
@@ -807,8 +807,28 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 			}
 		}
 
+		if (moov_bs) {
+			e = DoWrite(mw, writers, bs, 1, movie->mdat->bsOffset);
+			if (e) goto exit;
+
+			firstSize = GetMoovAndMetaSize(movie, writers);
+
+			offset = firstSize;
+			e = ShiftOffset(movie, writers, offset);
+			if (e) goto exit;
+			//get the size and see if it has changed (eg, we moved to 64 bit offsets)
+			finalSize = GetMoovAndMetaSize(movie, writers);
+			if (firstSize != finalSize) {
+				finalOffset = finalSize;
+				//OK, now we're sure about the final size.
+				//we don't need to re-emulate, as the only thing that changed is the offset
+				//so just shift the offset
+				e = ShiftOffset(movie, writers, finalOffset - offset);
+				if (e) goto exit;
+			}
+		}
 		//OK, write the movie box.
-		e = WriteMoovAndMeta(movie, writers, bs);
+		e = WriteMoovAndMeta(movie, writers, moov_bs ? moov_bs : bs);
 		if (e) goto exit;
 
 #ifndef GPAC_DISABLE_ISOM_ADOBE
@@ -1427,7 +1447,24 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 
 	//capture mode: we don't need a new bitstream
 	if (movie->openMode == GF_ISOM_OPEN_WRITE) {
-		e = WriteFlat(&mw, 0, movie->editFileMap->bs);
+		GF_BitStream *moov_bs = NULL;
+		if (movie->storageMode==GF_ISOM_STORE_STREAMABLE) {
+			moov_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		}
+		e = WriteFlat(&mw, 0, movie->editFileMap->bs, moov_bs);
+		if (moov_bs) {
+			char *moov_data;
+			u32 moov_size;
+
+			gf_bs_get_content(moov_bs, &moov_data, &moov_size);
+			gf_bs_del(moov_bs);
+			if (!e)
+				e = gf_bs_insert_data(movie->editFileMap->bs, (u8 *) moov_data, moov_size, movie->mdat->bsOffset);
+
+			gf_free(moov_data);
+		}
+
+
 	} else {
 		u32 buffer_size = movie->editFileMap ? gf_bs_get_output_buffering(movie->editFileMap->bs) : 0;
 		Bool is_stdout = 0;
@@ -1458,10 +1495,10 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 			e = WriteInterleaved(&mw, bs, 1);
 			break;
 		case GF_ISOM_STORE_STREAMABLE:
-			e = WriteFlat(&mw, 1, bs);
+			e = WriteFlat(&mw, 1, bs, NULL);
 			break;
 		default:
-			e = WriteFlat(&mw, 0, bs);
+			e = WriteFlat(&mw, 0, bs, NULL);
 			break;
 		}
 
