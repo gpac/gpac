@@ -59,6 +59,8 @@ mp4_test ()
   do_hint=0;;
  *.html* )
   return ;;
+ *.xml* )
+  return ;;
  *.bt )
   return ;;
  *.wrl )
