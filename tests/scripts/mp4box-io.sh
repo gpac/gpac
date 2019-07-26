@@ -30,6 +30,8 @@ mp4_test ()
   return ;;
  *.html* )
   return ;;
+ *.xml* )
+  return ;;
  *.bt )
   return ;;
  *.wrl )
