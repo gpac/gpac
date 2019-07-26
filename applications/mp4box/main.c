@@ -220,7 +220,6 @@ void PrintGeneralUsage()
 		i++;
 		gf_sys_print_arg(helpout, help_flags, arg, "mp4box-gen");
 	}
-
 }
 
 
