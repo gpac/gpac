@@ -6114,6 +6114,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		if (HintIt && FullInter) fprintf(stderr, "Hinted file - Full Interleaving\n");
 		else if (FullInter) fprintf(stderr, "Full Interleaving\n");
+		else if ((force_new==2) && interleaving_time) fprintf(stderr, "Fast-start interleaved storage\n");
 		else if (do_flat || !interleaving_time) fprintf(stderr, "Flat storage\n");
 		else fprintf(stderr, "%.3f secs Interleaving%s\n", interleaving_time, old_interleave ? " - no drift control" : "");
 
