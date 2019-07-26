@@ -118,6 +118,8 @@ typedef struct
 	u32 nb_frames;
 	u64 down_bytes, down_size;
 	GF_Fraction64 pid_dur;
+	//for import message
+	u64 prog_done, prog_total;
 } TrackWriter;
 
 enum
@@ -236,11 +238,12 @@ typedef struct
 	u32 total_samples, last_mux_pc;
 
 	u32 maxchunk;
-	Bool make_qt;
+	u32 make_qt;
 	TrackWriter *prores_track;
 
 	GF_SegmentIndexBox *cloned_sidx;
 	u32 cloned_sidx_index;
+	Double faststart_ts_regulate;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw);
@@ -499,7 +502,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		if (dst) {
 			char *ext = gf_file_ext_start(dst);
 			if (ext && (!stricmp(ext, ".mov") || !stricmp(ext, ".qt")) ) {
-				ctx->make_qt = GF_TRUE;
+				ctx->make_qt = 1;
 			}
 			gf_free(dst);
 		}
@@ -659,8 +662,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	case GF_CODECID_AP4X:
 	case GF_CODECID_AP4H:
 		if (!ctx->make_qt) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] ProRes track detected, muxing to QTFF even though ISOBMFF was asked\n"));
-			ctx->make_qt = GF_TRUE;
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] ProRes track detected, muxing to QTFF even though ISOBMFF was asked\n"));
+			ctx->make_qt = 2;
 		}
 		if (ctx->prores_track == tkw) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] More than one ProRes track detected, result might be non compliant\n"));
@@ -1322,6 +1325,8 @@ sample_entry_setup:
 		unknown_generic = GF_TRUE;
 		use_gen_sample_entry = GF_TRUE;
 		use_m4sys = GF_FALSE;
+		if (is_prores)
+			unknown_generic = GF_FALSE;
 
 		p = gf_filter_pid_get_property_str(pid, "meta:mime");
 		if (p) meta_mime = p->value.string;
@@ -2157,7 +2162,9 @@ sample_entry_done:
 						transfer_characteristics = 1;
 						matrix_coefficients = 1;
 						full_range_flag = GF_FALSE;
-						GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
+						if (ctx->make_qt==1) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
+						}
 					}
 					gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE, NULL, 0);
 				}
@@ -2830,7 +2837,8 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 
 		if (ctx->importer) {
-			gf_set_progress("Import", mdur * ctx->idur.den, ((u64)tkw->tk_timescale) * ctx->idur.num);
+			tkw->prog_done = mdur * ctx->idur.den;
+			tkw->prog_total =  ((u64)tkw->tk_timescale) * ctx->idur.num;
 		}
 
 		if (mdur * (u64) ctx->idur.den > tkw->tk_timescale * (u64) ctx->idur.num) {
@@ -2841,19 +2849,27 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			tkw->aborted = GF_TRUE;
 		}
 	} else if (ctx->importer) {
-		u64 data_offset = gf_filter_pck_get_byte_offset(pck);
-		if (data_offset == GF_FILTER_NO_BO) {
-			data_offset = tkw->down_bytes;
-		}
-		if ((data_offset != GF_FILTER_NO_BO) && tkw->down_size) {
-			gf_set_progress("Import", data_offset, tkw->down_size);
+		if (tkw->nb_frames) {
+			tkw->prog_done = tkw->nb_samples;
+			tkw->prog_total = tkw->nb_frames;
 		} else {
-			if (tkw->pid_dur.den && tkw->pid_dur.num) {
-				gf_set_progress("Import", tkw->sample.DTS * tkw->pid_dur.den, tkw->pid_dur.num * tkw->tk_timescale);
-			} else {
-				gf_set_progress("Import", 0, 1);
+			u64 data_offset = gf_filter_pck_get_byte_offset(pck);
+			if (data_offset == GF_FILTER_NO_BO) {
+				data_offset = tkw->down_bytes;
 			}
+			if ((data_offset != GF_FILTER_NO_BO) && tkw->down_size) {
+				tkw->prog_done = data_offset;
+				tkw->prog_total = tkw->down_size;
+			} else {
+				if (tkw->pid_dur.den && tkw->pid_dur.num) {
+					tkw->prog_done = tkw->sample.DTS * tkw->pid_dur.den;
+					tkw->prog_total = tkw->pid_dur.num * tkw->tk_timescale;
+				} else {
+					tkw->prog_done = 0;
+					tkw->prog_total = 1;
+				}
 
+			}
 		}
 	}
 	return GF_OK;
@@ -3988,8 +4004,9 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 GF_Err mp4_mux_process(GF_Filter *filter)
 {
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
-	u32 nb_eos, i, count = gf_list_count(ctx->tracks);
+	u32 nb_skip, nb_eos, i, count = gf_list_count(ctx->tracks);
 
+	nb_skip = 0;
 	nb_eos = 0;
 
 	if (ctx->config_timing) {
@@ -4023,6 +4040,22 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			nb_eos++;
 			continue;
 		}
+		//basic regulation in case we do on-the-fly interleaving
+		//we need to regulate because sources do not produce packets at the same rate
+		if ((ctx->store==MP4MX_MODE_FASTSTART) && ctx->cdur) {
+			Double cts = (Double) gf_filter_pck_get_cts(pck);
+			cts -= tkw->ts_shift;
+			cts /= tkw->src_timescale;
+			if (!ctx->faststart_ts_regulate) {
+				ctx->faststart_ts_regulate = ctx->cdur;
+			}
+			//ahead of our interleaving window, don't write yet
+			else if (cts > ctx->faststart_ts_regulate) {
+				nb_skip++;
+				continue;
+			}
+		}
+
 		if (tkw->cenc_state==1) mp4_mux_cenc_update(ctx, tkw, pck, CENC_CONFIG, 0);
 
 		if (tkw->is_item) {
@@ -4044,6 +4077,20 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			if (e) return e;
 		}
 		return GF_EOS;
+	}
+	//done with this interleaving window, start next one
+	else if (nb_skip + nb_eos == count) {
+		ctx->faststart_ts_regulate += ctx->cdur;
+	} else if (ctx->importer) {
+		u64 prog_done=0, prog_total=0;
+		for (i=0; i<count; i++) {
+			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+			if (prog_done * tkw->prog_total <= tkw->prog_done * prog_total) {
+				prog_done = tkw->prog_done;
+				prog_total = tkw->prog_total;
+			}
+		}
+		gf_set_progress("Import", prog_done, prog_total);
 	}
 
 	return GF_OK;
