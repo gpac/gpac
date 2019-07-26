@@ -42,16 +42,6 @@ Note: You can add media to a file and split it in the same pass. In this case, t
 Options:
 .br
 .TP
-.B \-mem-track
-.br
-enable memory tracker
-.br
-.TP
-.B \-mem-track-stack
-.br
-enable memory tracker with stack dumping
-.br
-.TP
 .B \-inter (number, default: 0.5)
 .br
 interleave file, producing track chunks with given duration in ms. A value of 0 disables interleaving 
@@ -1109,6 +1099,8 @@ If you wish to create an interleaved new file with no temporary storage, use the
 .br
  - Some muxing options (marked as ! below) cannot be used in this mode as they require temporary storage for file edition.
 .br
+ - Usage of -cat is possible in this mode, but concatenated sources will not be interleaved in the output . If you wish to perforom more complex cat/add operations without temp file, use the gpac application.
+.br
   
 .br
 MP4Box can import a desired amount of the input file rather than the whole file. To do this, use the syntax -add inputFile:dur=N, where N is the number of seconds you wish to import from input. MP4Box cannot start importing from a random point in the input, it always import from the begining.
@@ -1998,7 +1990,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2660-g71c2ae409-filters
+build: 0.9.0-DEV-rev2666-ga8e1b8d2b-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
