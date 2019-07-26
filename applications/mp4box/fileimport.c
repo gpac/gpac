@@ -1027,7 +1027,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 					}
 				}
 			}
-			if (gf_isom_is_video_subtype(import.tk_info[i].stream_type)) {
+			if (import.tk_info[i].stream_type==GF_STREAM_VISUAL) {
 				if ((par_n>=-1) && (par_d>=-1)) {
 					e = gf_media_change_par(import.dest, track, par_n, par_d, force_par);
 				}
