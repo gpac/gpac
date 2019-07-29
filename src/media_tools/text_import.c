@@ -1163,14 +1163,14 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 			while ( (body_node = (GF_XMLNode*)gf_list_enum(node->content, &body_idx))) {
 				e_opt = gf_xml_get_element_check_namespace(body_node, "div", root->ns);
 				if (e_opt == GF_BAD_PARAM) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", body_node->name));
 				} else if (e_opt == GF_OK) {
 					GF_XMLNode *div_node;
 					u32 div_idx = 0, nb_p_found = 0;
 					while ( (div_node = (GF_XMLNode*)gf_list_enum(body_node->content, &div_idx))) {
 						e_opt = gf_xml_get_element_check_namespace(div_node, "p", root->ns);
 						if (e_opt != GF_OK) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", node->name));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", div_node->name));
 						} else if (e_opt == GF_OK) {
 							GF_XMLNode *p_node;
 							GF_XMLAttribute *p_att;
@@ -1221,7 +1221,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 							while ( (p_node = (GF_XMLNode*)gf_list_enum(div_node->content, &p_idx))) {
 								e_opt = gf_xml_get_element_check_namespace(p_node, "span", root->ns);
 								if (e_opt == GF_BAD_PARAM) {
-									GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", node->name));
+									GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", p_node->name));
 								} else if (e_opt == GF_OK) {
 									u32 span_idx = 0;
 									GF_XMLAttribute *span_att;
