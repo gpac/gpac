@@ -1300,7 +1300,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 			continue;
 		}
 		e = gf_xml_get_element_check_namespace(div_child, "p", root->ns);
-		if (e != GF_OK) {
+		if (e == GF_BAD_PARAM) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", div_child->name));
 			continue;
 		}
@@ -1347,7 +1347,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 		while ( (p_node = (GF_XMLNode*)gf_list_enum(div_child->content, &p_idx))) {
 			e = gf_xml_get_element_check_namespace(p_node, "span", root->ns);
 			if (e == GF_BAD_PARAM) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", div_child->name));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", p_node->name));
 			} else if (e == GF_OK) {
 				u32 span_idx = 0;
 				GF_XMLAttribute *span_att;
