@@ -1169,7 +1169,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 					u32 div_idx = 0, nb_p_found = 0;
 					while ( (div_node = (GF_XMLNode*)gf_list_enum(body_node->content, &div_idx))) {
 						e_opt = gf_xml_get_element_check_namespace(div_node, "p", root->ns);
-						if (e_opt != GF_OK) {
+						if (e_opt != GF_BAD_PARAM) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", div_node->name));
 						} else if (e_opt == GF_OK) {
 							GF_XMLNode *p_node;
