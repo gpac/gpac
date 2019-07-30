@@ -54,7 +54,7 @@ enum
 		if (strchr(__sep, __str[_len])) __str[_len] = 0;	\
 		else break;	\
 	}	\
- 
+
 
 s32 gf_text_get_utf_type(FILE *in_src)
 {
@@ -109,7 +109,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 	} else {
 		val = (u32) fread(szLine, 1, 1024, test);
 		if ((s32) val<0) return GF_IO_ERR;
-		
+
 		szLine[val]=0;
 	}
 	REM_TRAIL_MARKS(szLine, "\r\n\t ")
@@ -738,7 +738,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		}
 	}
 
-	/*final flush*/	
+	/*final flush*/
 	if (end && !(import->flags & GF_IMPORT_NO_TEXT_FLUSH ) ) {
 		gf_isom_text_reset(samp);
 		s = gf_isom_text_to_sample(samp);
@@ -895,7 +895,7 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 	to figure out when to stop displaying the last text sample
 	However update the last sample duration*/
 	gf_isom_set_last_sample_duration(import->dest, track, (u32) gf_webvtt_parser_last_duration(vttparser));
-	
+
 	gf_webvtt_parser_del(vttparser);
 	return e;
 }
@@ -1169,7 +1169,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 					u32 div_idx = 0, nb_p_found = 0;
 					while ( (div_node = (GF_XMLNode*)gf_list_enum(body_node->content, &div_idx))) {
 						e_opt = gf_xml_get_element_check_namespace(div_node, "p", root->ns);
-						if (e_opt != GF_BAD_PARAM) {
+						if (e_opt == GF_BAD_PARAM) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", div_node->name));
 						} else if (e_opt == GF_OK) {
 							GF_XMLNode *p_node;
@@ -1180,7 +1180,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 							//sample is either in the <p> ...
 							while ( (p_att = (GF_XMLAttribute*)gf_list_enum(div_node->attributes, &p_idx))) {
 								if (!p_att) continue;
-								
+
 								if (!strcmp(p_att->name, "begin")) {
 									if (ts_begin != -1) {
 										e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"begin\" attribute. Abort.\n");
@@ -1227,7 +1227,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									GF_XMLAttribute *span_att;
 									while ( (span_att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
 										if (!span_att) continue;
-									
+
 										if (!strcmp(span_att->name, "begin")) {
 											if (ts_begin != -1) {
 												e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"begin\" attribute under <span>. Abort.\n");
@@ -1805,7 +1805,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		nb_samp++;
 	}
 	gf_isom_delete_text_sample(samp);
-	
+
 	gf_isom_set_last_sample_duration(import->dest, track, 0);
 	gf_set_progress("Importing SUB", nb_samp, nb_samp);
 
@@ -1821,7 +1821,7 @@ exit:
 		e = gf_import_message(import, GF_BAD_PARAM, "Invalid XML formatting (line %d)", parser.line);	\
 		goto exit;	\
 	}	\
- 
+
 
 u32 ttxt_get_color(GF_MediaImporter *import, char *val)
 {
