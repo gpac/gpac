@@ -744,16 +744,23 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->single_trun_per_traf) e |= gf_dynstrcat(&args, "strun", ":");
 	switch (dasher->pssh_mode) {
 	case GF_DASH_PSSH_MOOV:
+		e |= gf_dynstrcat(&args, "pssh=v", ":");
+		break;
 	case GF_DASH_PSSH_MOOV_MPD:
+		e |= gf_dynstrcat(&args, "pssh=mv", ":");
 		break;
 	case GF_DASH_PSSH_MOOF:
+		e |= gf_dynstrcat(&args, "pssh=f", ":");
+		break;
 	case GF_DASH_PSSH_MOOF_MPD:
-		e |= gf_dynstrcat(&args, "pssh=moof", ":");
+		e |= gf_dynstrcat(&args, "pssh=mf", ":");
 		break;
 	case GF_DASH_PSSH_MPD:
-		e |= gf_dynstrcat(&args, "pssh=none", ":");
+		e |= gf_dynstrcat(&args, "pssh=m", ":");
 		break;
 	}
+
+
 	if (dasher->samplegroups_in_traf) e |= gf_dynstrcat(&args, "sgpd_traf", ":");
 	if (dasher->enable_sidx) {
 		sprintf(szArg, "subs_sidx=%d", dasher->subsegs_per_sidx );
