@@ -3184,7 +3184,6 @@ GF_Err gf_isom_get_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	GF_TrackBox *trak;
 	GF_VisualSampleEntryBox *entry;
 	GF_SampleDescriptionBox *stsd;
-	u32 i, count;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
