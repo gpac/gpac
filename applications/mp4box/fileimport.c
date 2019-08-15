@@ -331,7 +331,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	force_par = GF_FALSE;
 	/*use ':' as separator, but beware DOS paths...*/
 	ext = strchr(szName, ':');
-	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
+	if (ext && (ext[1]=='\\' || ext[1] == '/')) ext = strchr(szName+2, ':');
 
 	handler_name = NULL;
 	rvc_config = NULL;
