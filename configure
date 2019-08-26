@@ -320,7 +320,7 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-atsc           disable ATSC3 support
   --disable-crypto         disable crypto support
 
-Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/
+Extra libraries configuration. You can turn a library off or force using the local version in gpac/extra_lib/
   --use-js=OPT             force SpiderMonkey ECMAScript OPT=[no,local]
   --use-ft=OPT             force FreeType OPT=[no,local]
   --use-zlib=OPT           force ZLIB OPT=[no,system,local]
@@ -336,7 +336,7 @@ Extra libraries configuration. You can turn a libray off or force using the loca
   --use-openjpeg=OPT       force openjpeg OPT=[no,system,local]
   --use-a52=OPT            force a52 (ac3) OPT=[no,system,local]
 
-NOTE: The object files are build at the place where configure is launched
+NOTE: The object files are built at the place where configure is launched
 EOF
 exit 1
 fi

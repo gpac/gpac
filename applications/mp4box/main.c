@@ -5087,10 +5087,14 @@ int mp4boxMain(int argc, char **argv)
 #endif
 				} else if (do_hash) {
 					hash_file(inName, dump_std);
-				} else {
+				} else if (print_info) {
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 					convert_file_info(inName, info_track_id);
 #endif
+				} else {
+					fprintf(stderr, "Input %s is not an MP4 file, operation not allowed\n", inName);
+					e = GF_NOT_SUPPORTED;
+					return mp4box_cleanup(1);
 				}
 				goto exit;
 			}
