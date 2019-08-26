@@ -664,7 +664,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 	stbl = mdia->information->sampleTable;
 	stsc = stbl->SampleToChunk;
 
-	if (stsc->w_lastSampleNumber + 1 < sampleNumber ) return GF_BAD_PARAM;
+//	if (stsc->w_lastSampleNumber + 1 < sampleNumber ) return GF_BAD_PARAM;
 	if (!nb_pack_samples)
 		nb_pack_samples = 1;
 
@@ -697,26 +697,42 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 			for (k=0; k<nb_chunks; k++) {
 				if ((cur_samp <= sampleNumber) && (ent->samplesPerChunk + cur_samp > sampleNumber)) {
 					insert_idx = i;
-					samples_in_next_entry = ent->samplesPerChunk - (sampleNumber-cur_samp);
-					ent->samplesPerChunk = sampleNumber-cur_samp;
+					//stsc entry has samples before inserted sample, split
+					if (sampleNumber>cur_samp) {
+						samples_in_next_entry = ent->samplesPerChunk - (sampleNumber-cur_samp);
+						ent->samplesPerChunk = sampleNumber-cur_samp;
+					}
 					break;
 				}
-				if (insert_idx>=0) break;
 				cur_samp += ent->samplesPerChunk;
 				next_entry_first_chunk++;
 			}
+			if (insert_idx>=0) break;
 		}
+		//we need to split the entry
 		if (samples_in_next_entry) {
-			memmove(&stsc->entries[insert_idx+3], &stsc->entries[insert_idx+2], sizeof(GF_StscEntry)*(stsc->nb_entries+1-insert_idx));
-			ent = &stsc->entries[insert_idx+1];
+			memmove(&stsc->entries[insert_idx+3], &stsc->entries[insert_idx+1], sizeof(GF_StscEntry)*(stsc->nb_entries - insert_idx - 1));
+			//copy over original entry
+			ent = &stsc->entries[insert_idx];
 			stsc->entries[insert_idx+2] = *ent;
 			stsc->entries[insert_idx+2].samplesPerChunk = samples_in_next_entry;
-			stsc->entries[insert_idx+2].firstChunk = next_entry_first_chunk + 2;
+			stsc->entries[insert_idx+2].firstChunk = next_entry_first_chunk + 1;
+
+			//setup new entry
+			ent = &stsc->entries[insert_idx+1];
+			ent->firstChunk = next_entry_first_chunk;
+
 			stsc->nb_entries += 2;
 		} else {
-			memmove(&stsc->entries[insert_idx+1], &stsc->entries[insert_idx], sizeof(GF_StscEntry)*(stsc->nb_entries+1-insert_idx));
-			ent = &stsc->entries[insert_idx+1];
-			ent->firstChunk = next_entry_first_chunk +1;
+			if (insert_idx<0) {
+				ent = &stsc->entries[stsc->nb_entries];
+				insert_idx = stsc->nb_entries;
+			} else {
+				memmove(&stsc->entries[insert_idx+1], &stsc->entries[insert_idx], sizeof(GF_StscEntry)*(stsc->nb_entries+1-insert_idx));
+				ent = &stsc->entries[insert_idx+1];
+			}
+
+			ent->firstChunk = next_entry_first_chunk;
 			stsc->nb_entries += 1;
 		}
 		new_chunk_idx = next_entry_first_chunk;
@@ -828,7 +844,6 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 			co64->alloc_size++;
 		}
 	}
-
 
 	return GF_OK;
 }
