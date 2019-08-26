@@ -1184,7 +1184,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 				while (1) {
 					Bool self_contained;
 					u32 nb_samp = 1;
-					u32 sample_dur;
+					u32 sample_dur, chunk_prev_dur;
 					//To Check: are empty sample tables allowed ???
 					if (tmp->sampleNumber > tmp->stbl->SampleSize->sampleCount) {
 						tmp->isDone = 1;
@@ -1220,7 +1220,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 						forceNewChunk = 0;
 					}
 
-
+					chunk_prev_dur = tmp->chunkDur;
 					//FIXME we do not apply patch in test mode for now since this breaks all our hashes, remove this
 					//once we move to filters permanently
 					if (!movie->drop_date_version_info) {
@@ -1244,6 +1244,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 
 					if (curWriter->stbl->MaxChunkSize && (curWriter->chunkSize + sampSize > curWriter->stbl->MaxChunkSize)) {
 						curWriter->chunkSize = 0;
+						tmp->chunkDur -= chunk_prev_dur;
 						forceNewChunk = 1;
 					}
 					curWriter->chunkSize += sampSize;
