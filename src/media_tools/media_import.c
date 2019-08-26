@@ -7681,7 +7681,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 			pts += cumulated_loop_dur;
 			if (last_pts && (pts < last_pts) ) {
 				pts -= cumulated_loop_dur;
-				gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "[IVF] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming loop\n", pts, last_pts);
+				gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "[IVF] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming concatenation\n", pts, last_pts);
 				cumulated_loop_dur = last_pts + gf_isom_get_sample_duration(import->dest, track_num, cur_samp);
 				cumulated_loop_dur -= pts;
 				pts = cumulated_loop_dur;
