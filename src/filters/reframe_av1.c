@@ -603,21 +603,22 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	e = gf_media_parse_ivf_frame_header(ctx->bs, &frame_size, &pts);
 	if (e) return e;
 
+	pos = gf_bs_get_position(ctx->bs);
+	if (gf_bs_available(ctx->bs) < frame_size) {
+		gf_bs_seek(ctx->bs, pos_ivf_hdr);
+		return GF_EOS;
+	}
+
 	if (ctx->pts_from_file) {
 		pts += ctx->cumulated_dur;
 		if (ctx->last_pts && (ctx->last_pts>pts)) {
 			pts -= ctx->cumulated_dur;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IVF/VP9] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming loop\n", pts, ctx->last_pts));
 			ctx->cumulated_dur = ctx->last_pts + ctx->cur_fps.den;
-			pts += ctx->cumulated_dur;
+			ctx->cumulated_dur -= pts;
+			pts = ctx->cumulated_dur;
 		}
 		ctx->last_pts = pts;
-	}
-
-	pos = gf_bs_get_position(ctx->bs);
-	if (gf_bs_available(ctx->bs) < frame_size) {
-		gf_bs_seek(ctx->bs, pos_ivf_hdr);
-		return GF_EOS;
 	}
 
 	/*check if it is a superframe*/
