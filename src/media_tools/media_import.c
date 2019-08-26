@@ -7617,6 +7617,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 	Double FPS = 0.0;
 	u64 pos = 0, fsize = 0;
 	Bool forced_fps = GF_FALSE;
+	u64 last_pts=0, cumulated_loop_dur=0;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->nb_tracks = 1;
@@ -7673,9 +7674,19 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 		int num_frames_in_superframe = 0, superframe_index_size = 0, i = 0;
 		u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
 
-		GF_Err e = gf_media_parse_ivf_frame_header(bs, &frame_size, &pts);
+		e = gf_media_parse_ivf_frame_header(bs, &frame_size, &pts);
 		if (e) goto exit;
 
+		if (!forced_fps) {
+			pts += cumulated_loop_dur;
+			if (last_pts && pts < last_pts) {
+				pts -= cumulated_loop_dur;
+				gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "[IVF] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming loop\n", pts, last_pts);
+				cumulated_loop_dur = last_pts + gf_isom_get_sample_duration(import->dest, track_num, cur_samp);
+				cumulated_loop_dur -= pts;
+			}
+			last_pts = pts;
+		}
 		pos = gf_bs_get_position(bs);
 		if (gf_bs_available(bs) < frame_size) {
 			gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "[VP9] IVF frame size is %u but there is only "LLU" bytes left.", frame_size, gf_bs_available(bs));
