@@ -65,6 +65,7 @@ typedef struct
 GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 i, sr;
+	Bool patch_channels = GF_FALSE;
 	const GF_PropertyValue *p;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4ADecSpecInfo acfg;
@@ -141,6 +142,7 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (ctx->channels && acfg.nb_chan && (ctx->channels != acfg.nb_chan)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("RFADTS] Mismatch betwwen container number of channels (%d) and AAC config (%d), using AAC config\n", ctx->channels, acfg.nb_chan));
 		ctx->channels = acfg.nb_chan;
+		patch_channels = GF_TRUE;
 	}
 #else
 
@@ -167,6 +169,8 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (ctx->is_latm)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED_LATM, &PROP_BOOL(GF_TRUE) );
 
+	if (patch_channels)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->channels));
 	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 	return GF_OK;
 }
