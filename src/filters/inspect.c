@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / inspection filter
@@ -1101,8 +1101,28 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 
 
 	if (ctx->fftmcd || (pctx->tmcd_flags & 0x00000008)) {
 		u64 nb_secs, nb_frames = value;
+		Bool is_drop = GF_FALSE;
 		if (!ctx->fftmcd && pctx->tmcd_fpt)
 			nb_frames *= pctx->tmcd_fpt;
+
+		if (ctx->fftmcd) {
+			u32 fps = pctx->tmcd_rate.num / pctx->tmcd_rate.den;
+			if (fps * pctx->tmcd_rate.den != pctx->tmcd_rate.num)
+				is_drop = GF_TRUE;
+		}
+		else if (pctx->tmcd_flags & 0x00000001) {
+			is_drop = GF_TRUE;
+		}
+
+		if (is_drop) {
+			u32 drop_frames, frame_base;
+
+			frame_base = 100 * pctx->tmcd_rate.num;
+			frame_base /= pctx->tmcd_rate.den;
+
+			drop_frames = nb_frames / frame_base;
+			nb_frames -= 3*drop_frames;
+		}
 
 		nb_secs = nb_frames * pctx->tmcd_rate.den / pctx->tmcd_rate.num;
 
@@ -1114,6 +1134,18 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 
 		nb_secs *= pctx->tmcd_rate.num;
 		nb_secs /= pctx->tmcd_rate.den;
 		f = (u32) (nb_frames - nb_secs);
+		if (pctx->tmcd_fpt && (f==pctx->tmcd_fpt)) {
+			f = 0;
+			s++;
+			if (s==60) {
+				s = 0;
+				m++;
+				if (m==60) {
+					m = 0;
+					h++;
+				}
+			}
+		}
 	} else {
 		h = gf_bs_read_u8(bs);
 		neg = gf_bs_read_int(bs, 1);
@@ -1121,7 +1153,7 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 
 		s = gf_bs_read_u8(bs);
 		f = gf_bs_read_u8(bs);
 	}
-	fprintf(dump, " time=\"%s%d:%d:%d:%d\"/>\n", neg ? "-" : "", h, m, s, f);
+	fprintf(dump, " time=\"%s%02d:%02d:%02d:%02d\"/>\n", neg ? "-" : "", h, m, s, f);
 	gf_bs_del(bs);
 
 
@@ -1646,6 +1678,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		break;
 	case GF_CODECID_MPEG_AUDIO:
 	case GF_CODECID_MPEG2_PART3:
+	case GF_CODECID_TMCD:
 		fprintf(dump, "/>\n");
 		return;
 	default:
