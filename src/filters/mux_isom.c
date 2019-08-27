@@ -3125,7 +3125,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	max_dur.den = 1;
 	max_dur.num = 0;
 
-	if (ctx->sseg)
+	if (ctx->sseg && ctx->noinit)
 		ctx->single_file = GF_FALSE;
 
 	if (ctx->idur.num && ctx->idur.den) {
@@ -4205,12 +4205,6 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	} else {
 		u32 open_mode = GF_ISOM_OPEN_WRITE;
 		ctx->owns_mov = GF_TRUE;
-
-		if (ctx->sseg) {
-			ctx->noinit = GF_TRUE;
-			ctx->cdur = 1000000000;
-			ctx->store = MP4MX_MODE_FRAG;
-		}
 
 		switch (ctx->store) {
 		case MP4MX_MODE_INTER:

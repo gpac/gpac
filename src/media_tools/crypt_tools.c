@@ -534,9 +534,9 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 	}
 
 	gf_dynstrcat(&szArgs, "SID=1", NULL);
-	if (fragment_name)
-		gf_dynstrcat(&szArgs, ":sseg", NULL);
-	else {
+	if (fragment_name) {
+		gf_dynstrcat(&szArgs, ":sseg:noinit:store=frag:cdur=1000000000", NULL);
+	} else {
 		if (interleave_time) {
 			sprintf(an_arg, ":cdur=%g", interleave_time);
 			gf_dynstrcat(&szArgs, an_arg, NULL);
