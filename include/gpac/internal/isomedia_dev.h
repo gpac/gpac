@@ -2887,7 +2887,7 @@ typedef struct __ssix_box
 {
 	GF_ISOM_FULL_BOX
 
-	u32 subsegment_count;
+	u32 subsegment_count, subsegment_alloc;
 	GF_SubsegmentInfo *subsegments;
 } GF_SubsegmentIndexBox;
 

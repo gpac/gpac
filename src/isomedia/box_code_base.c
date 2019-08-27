@@ -8169,7 +8169,7 @@ void ssix_box_del(GF_Box *s)
 	GF_SubsegmentIndexBox *ptr = (GF_SubsegmentIndexBox *)s;
 	if (ptr == NULL) return;
 	if (ptr->subsegments) {
-		for (i = 0; i < ptr->subsegment_count; i++) {
+		for (i = 0; i < ptr->subsegment_alloc; i++) {
 			GF_SubsegmentInfo *subsegment = &ptr->subsegments[i];
 			if (subsegment->ranges) gf_free(subsegment->ranges);
 		}
