@@ -2737,19 +2737,27 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	if (!compositor->player) {
 		if (compositor->check_eos_state<=1) {
 			compositor->check_eos_state = 0;
-			/*force a frame dispatch */
+			/*check if we have to force a frame dispatch */
+
+			//no passthrough texture
 			if (!compositor->passthrough_txh) {
 				if (!compositor->vfr) {
-					if (has_tx_streams && !all_tx_done)
+					//in CFR and no texture associated, always force a redraw
+					if (!has_tx_streams)
 						compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+					//otherwise if texture(s) but not all done, force a redraw
+					else if (!all_tx_done)
+						compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+					//we still have active system pids (BIFS/LASeR/DIMS commands), force a redraw
 					if (gf_list_count(compositor->systems_pids))
 						compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+					//validator always triggers redraw to make sure the scene clock is incremented so that events can be fired
 					if (compositor->validator_mode)
 						compositor->frame_draw_type = GF_SC_DRAW_FRAME;
 				}
 			}
-
-			if (compositor->passthrough_txh) {
+			//we have a passthrough texture, only generate an output frame when we have a new input on the passthrough
+			else {
 				//still waiting for initialization either from the passthrough stream or a texture used in the scene
 				if (!compositor->passthrough_txh->width || !compositor->passthrough_txh->stream->pck || (compositor->ms_until_next_frame<0) ) {
 					compositor->frame_draw_type = GF_SC_DRAW_NONE;
