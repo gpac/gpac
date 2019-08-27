@@ -99,7 +99,7 @@ u32 ffmpeg_pixfmt_from_gpac(u32 pfmt)
 			return FF2GPAC_PixelFormats[i].ff_pf;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC pixel format %s, patch welcome\n", gf_4cc_to_str(pfmt) ));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC pixel format %s, patch welcome\n", gf_4cc_to_str(pfmt) ));
 	return 0;
 }
 
@@ -116,7 +116,7 @@ u32 ffmpeg_pixfmt_to_gpac(u32 pfmt)
 			return FF2GPAC_PixelFormats[i].gpac_pf;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG pixel format %s, patch welcome\n", ffdesc->name));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG pixel format %s, patch welcome\n", ffdesc->name));
 	return 0;
 }
 
@@ -150,7 +150,7 @@ u32 ffmpeg_audio_fmt_from_gpac(u32 sfmt)
 			return FF2GPAC_AudioFormats[i].ff_sf;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC audio format %s, patch welcome\n", gf_4cc_to_str(sfmt) ));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC audio format %s, patch welcome\n", gf_4cc_to_str(sfmt) ));
 	return 0;
 }
 
@@ -162,7 +162,7 @@ u32 ffmpeg_audio_fmt_to_gpac(u32 sfmt)
 			return FF2GPAC_AudioFormats[i].gpac_sf;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG audio format %d, patch welcome\n", sfmt ));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG audio format %d, patch welcome\n", sfmt ));
 	return 0;
 }
 
