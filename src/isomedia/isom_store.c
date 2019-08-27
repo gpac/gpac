@@ -1184,7 +1184,8 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 				while (1) {
 					Bool self_contained;
 					u32 nb_samp = 1;
-					u32 sample_dur, chunk_prev_dur;
+					u32 sample_dur;
+					u64 chunk_prev_dur;
 					//To Check: are empty sample tables allowed ???
 					if (tmp->sampleNumber > tmp->stbl->SampleSize->sampleCount) {
 						tmp->isDone = 1;
