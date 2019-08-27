@@ -1120,7 +1120,7 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 
 			frame_base = 100 * pctx->tmcd_rate.num;
 			frame_base /= pctx->tmcd_rate.den;
 
-			drop_frames = nb_frames / frame_base;
+			drop_frames = (u32) (nb_frames / frame_base);
 			nb_frames -= 3*drop_frames;
 		}
 
