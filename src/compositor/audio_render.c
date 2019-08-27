@@ -206,10 +206,14 @@ void gf_sc_ar_set_pan(GF_AudioRenderer *ar, u32 Balance)
 }
 
 
+void compositor_setup_aout(GF_Compositor *ctx);
 void gf_sc_ar_add_src(GF_AudioRenderer *ar, GF_AudioInterface *source)
 {
 	Bool recfg;
 	if (!ar) return;
+
+	compositor_setup_aout(ar->compositor);
+
 	/*lock mixer*/
 	gf_mixer_lock(ar->mixer, GF_TRUE);
 	gf_mixer_add_input(ar->mixer, source);

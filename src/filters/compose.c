@@ -135,7 +135,7 @@ static GF_Err compose_process(GF_Filter *filter)
 			count = gf_filter_get_ipid_count(ctx->filter);
 			if (ctx->root_scene) {
 				gf_filter_pid_set_eos(ctx->vout);
-				if (ctx->audio_renderer)
+				if (ctx->audio_renderer && ctx->audio_renderer->aout)
 					gf_filter_pid_set_eos(ctx->audio_renderer->aout);
 			}
 			//send stop
@@ -546,7 +546,22 @@ static void compose_finalize(GF_Filter *filter)
 		gf_sc_unload(ctx);
 	}
 }
-
+void compositor_setup_aout(GF_Compositor *ctx)
+{
+	if (! (ctx->init_flags & GF_TERM_NO_AUDIO) && ctx->audio_renderer && !ctx->audio_renderer->aout) {
+		GF_FilterPid *pid = ctx->audio_renderer->aout = gf_filter_pid_new(ctx->filter);
+		gf_filter_pid_set_udta(pid, ctx);
+		gf_filter_pid_set_name(pid, "aout");
+		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(44100) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(44100) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(2) );
+		gf_filter_pid_set_max_buffer(ctx->audio_renderer->aout, 1000*ctx->abuf);
+		gf_filter_pid_set_loose_connect(pid);
+	}
+}
 GF_Err compose_initialize(GF_Filter *filter)
 {
 	GF_Err e;
@@ -570,18 +585,8 @@ GF_Err compose_initialize(GF_Filter *filter)
 	gf_filter_set_session_caps(filter, &sess_caps);
 
 	//declare audio output pid first
-	if (! (ctx->init_flags & GF_TERM_NO_AUDIO) && ctx->audio_renderer) {
-		pid = ctx->audio_renderer->aout = gf_filter_pid_new(filter);
-		gf_filter_pid_set_udta(pid, ctx);
-		gf_filter_pid_set_name(pid, "aout");
-		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(44100) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(44100) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(2) );
-		gf_filter_pid_set_max_buffer(ctx->audio_renderer->aout, 1000*ctx->abuf);
-		gf_filter_pid_set_loose_connect(pid);
+	if (ctx->player) {
+		compositor_setup_aout(ctx);
 	}
 	
 	//declare video output pid
@@ -820,7 +825,8 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"It will generate its outputs based on the input video frames.\n"\
 	"If no input video frames (e.g. pure BIFS / SVG / VRML), the filter will generate frames based on the [-fps](), at constant or variable frame rate.\n"\
 	"It will stop generating frames as soon as all input streams are done, unless extended/reduced by [-dur]().\n"
-	"In media-client mode, the special URL `gpid://` is used to locate PIDs in the scene description, in order to design scenes independently from source media.\n"\
+	"If audio streams are loaded, an audio output pid is created.\n"
+	"In filter-only mode, the special URL `gpid://` is used to locate PIDs in the scene description, in order to design scenes independently from source media.\n"\
 	"When such a pid is associated to a `Background2D` node in BIFS (no SVG mapping yet), the compositor operates in passthrough mode.\n"\
 	"In this mode, only new input frames on the passthrough pid will generate new frames, and the scene clock matches the input packet time.\n"\
 	"The output size and pixel format will be set to the input size and pixel format, unless specified otherwise in the filter options.\n"\
@@ -831,7 +837,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"If 3D graphics are used or display driver is forced, OpenGL will be used on offscreen surface and the output packet will be an OpenGL texture.\n"\
 	"\n"
 	"# Specific URL syntaxes\n"
-	"The compositor accpets any URL type supported by GPAC. It also accepts the following syntaxes for URLs:\n"
+	"The compositor accepts any URL type supported by GPAC. It also accepts the following syntaxes for URLs:\n"
 	"- views: creates an auto-stereo scene of N views from `views://v1:.:vN`. vN can be any type of URL supported by GPAC."
 	"- mosaic: creates a mosaic of N views from `mosaic://v1:.:vN`. vN can be any type of URL supported by GPAC."
 	"\n"
