@@ -1524,12 +1524,12 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				}
 
 				//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
-				//except in AV1, where BytesOfProtectedData SHALL end on the last byte of the decode_tile structure
-				if ( ( (bs_type != ENC_OBU) && (bs_type != ENC_VP9) ) && (tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) {
+				//except in VP9, where BytesOfProtectedData SHALL end on the last byte of the decode_tile structure
+				if ( ( (bs_type != ENC_VP9) ) && (tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) {
 					u32 ret = (unit_size-clear_bytes) % 16;
 					clear_bytes_at_end = ret;
 				}
-				//in cbc1, we adjust bytes_encrypted_data to be a multiple of 16 bytes
+				//in cbc1 or cbcs+VP9, we adjust bytes_encrypted_data to be a multiple of 16 bytes
 				else {
 					u32 ret = (unit_size-clear_bytes) % 16;
 					clear_bytes += ret;
