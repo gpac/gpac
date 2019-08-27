@@ -543,7 +543,7 @@ GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		pts += ctx->cumulated_dur;
 		if (ctx->last_pts && (ctx->last_pts>pts)) {
 			pts -= ctx->cumulated_dur;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IVF/AV1] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming loop\n", pts, ctx->last_pts));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IVF/AV1] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming concatenation\n", pts, ctx->last_pts));
 			ctx->cumulated_dur = ctx->last_pts + ctx->cur_fps.den;
 			ctx->cumulated_dur -= pts;
 			pts = ctx->cumulated_dur;
@@ -614,7 +614,7 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		pts += ctx->cumulated_dur;
 		if (ctx->last_pts && (ctx->last_pts>pts)) {
 			pts -= ctx->cumulated_dur;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IVF/VP9] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming loop\n", pts, ctx->last_pts));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IVF/VP9] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming concatenation\n", pts, ctx->last_pts));
 			ctx->cumulated_dur = ctx->last_pts + ctx->cur_fps.den;
 			ctx->cumulated_dur -= pts;
 			pts = ctx->cumulated_dur;

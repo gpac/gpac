@@ -3687,6 +3687,10 @@ struct __tag_isom {
 	u64 styp_start_offset;
 	u64 mdat_end_offset;
 	GF_Box *seg_ssix, *seg_styp;
+
+	u32 sidx_pts_store_alloc, sidx_pts_store_count;
+	u64 *sidx_pts_store, *sidx_pts_next_store;
+
 #endif
 	GF_ProducerReferenceTimeBox *last_producer_ref_time;
 
