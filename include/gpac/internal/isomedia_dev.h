@@ -3542,6 +3542,10 @@ struct __tag_isom {
 
 	/* optional mfra box used in write mode */
 	GF_MovieFragmentRandomAccessBox *mfra;
+
+	u32 sidx_pts_store_alloc, sidx_pts_store_count;
+	u64 *sidx_pts_store, *sidx_pts_next_store;
+
 #endif
 	GF_ProducerReferenceTimeBox *last_producer_ref_time;
 
