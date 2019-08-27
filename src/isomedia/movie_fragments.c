@@ -1320,6 +1320,84 @@ static u32 moof_get_first_sap_end(GF_MovieFragmentBox *moof)
 	return 0;
 }
 
+static u64 estimate_next_moof_earliest_presentation_time(u64 ref_track_decode_time, s32 ts_shift, GF_MovieFragmentBox *moof, u32 refTrackID, GF_ISOFile *movie)
+{
+	u32 i, j, nb_aus, nb_ctso;
+	u64 duration;
+	GF_TrunEntry *ent;
+	GF_TrackFragmentBox *traf=NULL;
+	GF_TrackFragmentRunBox *trun;
+	u64 min_next_cts = -1;
+
+	for (i=0; i<gf_list_count(moof->TrackList); i++) {
+		traf = (GF_TrackFragmentBox*)gf_list_get(moof->TrackList, i);
+		if (traf->tfhd->trackID==refTrackID) break;
+		traf = NULL;
+	}
+	//no ref track, nothing to estimate
+	if (!traf) return -1;
+	nb_aus = 0;
+	duration = 0;
+	nb_ctso = 0;
+	i=0;
+	while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &i))) {
+		j=0;
+		while ((ent = (GF_TrunEntry*)gf_list_enum(trun->entries, &j))) {
+			if (nb_aus + 1 + movie->sidx_pts_store_count > movie->sidx_pts_store_alloc) {
+				movie->sidx_pts_store_alloc = movie->sidx_pts_store_count+nb_aus+1;
+				movie->sidx_pts_store = gf_realloc(movie->sidx_pts_store, sizeof(u64) * movie->sidx_pts_store_alloc);
+				movie->sidx_pts_next_store = gf_realloc(movie->sidx_pts_next_store, sizeof(u64) * movie->sidx_pts_store_alloc);
+			}
+			//get PTS for this AU, push to regular list
+			movie->sidx_pts_store[movie->sidx_pts_store_count + nb_aus] = get_presentation_time( ref_track_decode_time + duration + ent->CTS_Offset, ts_shift);
+			//get PTS for this AU shifted by its presentation duration, push to shifted list
+			movie->sidx_pts_next_store[movie->sidx_pts_store_count + nb_aus] = get_presentation_time( ref_track_decode_time + duration + ent->CTS_Offset + ent->Duration, ts_shift);
+			duration += ent->Duration;
+			if (ent->CTS_Offset)
+				nb_ctso++;
+
+			nb_aus++;
+		}
+	}
+
+	movie->sidx_pts_store_count += nb_aus;
+
+	//no AUs, nothing to estimate
+	if (!nb_aus) {
+		movie->sidx_pts_store_count = 0;
+		return -1;
+	}
+	//no cts offset, assume earliest PTS in next segment is last PTS in this segment + duration
+	if (!nb_ctso) {
+		min_next_cts = movie->sidx_pts_next_store[movie->sidx_pts_store_count - 1];
+		movie->sidx_pts_store_count = 0;
+		return min_next_cts;
+	}
+
+	//look for all shifted PTS of this segment in the regular list. If found in the shifted list, the AU is in this segment
+	//remove from both list
+	for (i=0; i<movie->sidx_pts_store_count; i++) {
+		for (j=0; j<movie->sidx_pts_store_count; j++) {
+			if (movie->sidx_pts_next_store[i] == movie->sidx_pts_store[j]) {
+				if (movie->sidx_pts_store_count >= i + 1)
+					memmove(&movie->sidx_pts_next_store[i], &movie->sidx_pts_next_store[i+1], sizeof(u64) * (movie->sidx_pts_store_count - i - 1) );
+				if (movie->sidx_pts_store_count >= j + 1)
+					memmove(&movie->sidx_pts_store[j], &movie->sidx_pts_store[j+1], sizeof(u64) * (movie->sidx_pts_store_count - j - 1) );
+				movie->sidx_pts_store_count--;
+				i--;
+				break;
+			}
+		}
+	}
+	//the shifted list contain all AUs not yet in this segment, keep the smallest to compute the earliest PTS in next seg
+	//note that we assume the durations were correctly set
+	for (i=0; i<movie->sidx_pts_store_count; i++) {
+		if (min_next_cts > movie->sidx_pts_next_store[i])
+			min_next_cts = movie->sidx_pts_next_store[i];
+	}
+	return min_next_cts;
+}
+
 
 GF_EXPORT
 GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISOTrackID referenceTrackID, u64 ref_track_decode_time, s32 ts_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool use_ssix, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size)
@@ -1333,7 +1411,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 	Bool first_frag_in_subseg;
 	Bool no_sidx = GF_FALSE;
 	u32 count, cur_idx, cur_dur, sidx_dur, sidx_idx, idx_offset, frag_count;
-	u64 last_top_box_pos, root_prev_offset, local_sidx_start, local_sidx_end, prev_earliest_cts;
+	u64 last_top_box_pos, root_prev_offset, local_sidx_start, local_sidx_end, prev_earliest_cts, next_earliest_cts;
 	GF_TrackBox *trak = NULL;
 	GF_Err e;
 	/*number of subsegment in this segment (eg nb references in the first SIDX found)*/
@@ -1424,6 +1502,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 	frags_per_subsidx = 0;
 
 	prev_earliest_cts = 0;
+	next_earliest_cts = 0;
 
 	if (daisy_chain_sidx)
 		daisy_sidx = gf_list_new();
@@ -1433,6 +1512,9 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 		Bool is_root_sidx = GF_FALSE;
 
 		prev_earliest_cts = get_presentation_time( ref_track_decode_time + moof_get_earliest_cts((GF_MovieFragmentBox*)gf_list_get(movie->moof_list, 0), referenceTrackID), ts_shift);
+
+		//we don't trust ref_track_next_cts to be the earliest in the following segment
+		next_earliest_cts = estimate_next_moof_earliest_presentation_time(ref_track_decode_time, ts_shift, (GF_MovieFragmentBox*)gf_list_get(movie->moof_list, 0), referenceTrackID, movie);
 
 		if (movie->root_sidx) {
 			sidx = movie->root_sidx;
@@ -1715,14 +1797,21 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 				/*switching to next SIDX*/
 				if ((cur_idx==subseg_per_sidx) || !frag_count) {
 					u32 subseg_dur;
-					u64 next_cts;
 					/*update last ref duration*/
-					if (gf_list_count(movie->moof_list)) {
-						next_cts = get_presentation_time( ref_track_decode_time + sidx_dur + cur_dur + moof_get_earliest_cts((GF_MovieFragmentBox*)gf_list_get(movie->moof_list, 0), referenceTrackID), ts_shift);
+
+					//get next segment earliest cts - if estimation failed, use ref_track_next_cts
+					if (next_earliest_cts==-1) {
+						u64 next_cts;
+						if (gf_list_count(movie->moof_list)) {
+							next_cts = get_presentation_time( ref_track_decode_time + sidx_dur + cur_dur + moof_get_earliest_cts((GF_MovieFragmentBox*)gf_list_get(movie->moof_list, 0), referenceTrackID), ts_shift);
+						} else {
+							next_cts = get_presentation_time( ref_track_next_cts, ts_shift);
+						}
+						subseg_dur = (u32) (next_cts - prev_earliest_cts);
 					} else {
-						next_cts = get_presentation_time( ref_track_next_cts, ts_shift);
+						subseg_dur = (u32) (next_earliest_cts - prev_earliest_cts);
 					}
-					subseg_dur = (u32) (next_cts - prev_earliest_cts);
+
 					if (movie->root_sidx) {
 						sidx->refs[idx_offset].subsegment_duration = subseg_dur;
 					}
