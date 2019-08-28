@@ -4001,6 +4001,7 @@ const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const c
 	DownloadedCacheEntry the_entry = NULL;
 
 	gf_mx_p(dm->cache_mx );
+	GF_LOG(GF_LOG_INFO, GF_LOG_CACHE, ("[HTTP] Pushing %s to cache\n", szURL));
 	count = gf_list_count(dm->cache_entries);
 	for (i = 0 ; i < count; i++) {
 		const char * url;
