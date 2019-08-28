@@ -693,7 +693,7 @@ static GF_Err gf_atsc3_service_flush_object(GF_ATSCService *s, GF_LCTObject *obj
 	u64 start_offset = 0;
 	obj->status = GF_LCT_OBJ_DONE;
 	for (i=0; i<obj->nb_frags; i++) {
-		if (start_offset != obj->frags[0].offset) {
+		if (start_offset != obj->frags[i].offset) {
 			obj->status = GF_LCT_OBJ_DONE_ERR;
 			break;
 		}
