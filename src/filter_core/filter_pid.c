@@ -2425,8 +2425,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		}
 		//no output caps, cannot add
 		else if ((freg != dst->freg) && !gf_filter_has_out_caps(freg)) {
-			assert(freg != dst->freg);
-			assert(freg != pid->filter->freg);
 			disable_filter = GF_TRUE;
 		}
 		//we only want reconfigurable output filters
