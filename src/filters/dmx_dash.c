@@ -207,6 +207,8 @@ static void dashdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, 
 	GF_DASHGroup *group = (GF_DASHGroup *)udta;
 	if (!udta) return;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] group %d download setup error %s\n", group->idx, gf_error_to_string(err) ));
+
 	gf_dash_set_group_download_state(group->ctx->dash, group->idx, err);
 	if (err) {
 		Bool group_done=GF_FALSE;
@@ -234,7 +236,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	char *sURL = NULL;
 	const char *base_url;
 	if (!init_segment_name) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Error locating plugin for segment - mime type %s - name %s\n", mime, init_segment_name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] group %d Error locating plugin for segment - mime type %s\n", group_index, mime));
 		return GF_FILTER_NOT_FOUND;
 	}
 
@@ -283,8 +285,10 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 		gf_free(sURL);
 		gf_free(group);
 		gf_dash_set_group_udta(ctx->dash, group_index, NULL);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] group %d error locating plugin for segment - mime type %s name %s\n", group_index, mime, sURL));
 		return e;
 	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] setting up group %d from %s\n", group->idx, sURL));
 
 	gf_filter_set_setup_failure_callback(ctx->filter, group->seg_filter_src, dashdmx_on_filter_setup_error, group);
 	gf_dash_group_discard_segment(ctx->dash, group->idx);
@@ -1356,11 +1360,11 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 		if (e == GF_BUFFER_TOO_SMALL) {
 			group->seg_was_not_ready = GF_TRUE;
 			group->stats_uploaded = GF_TRUE;
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] next segment name not known yet!\n" ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] group %d next segment name not known yet!\n", group->idx));
 			gf_filter_ask_rt_reschedule(ctx->filter, 10000);
 //			gf_filter_post_process_task(ctx->filter);
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Error fetching next segment name: %s\n", gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] group %d error fetching next segment name: %s\n", group->idx, gf_error_to_string(e) ));
 		}
 		return;
 	}
@@ -1384,14 +1388,13 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 
 		group->prev_is_init_segment = GF_TRUE;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] Queuing next init/switching segment %s\n", next_url_init_or_switch_segment));
-
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] group %d queuing next init/switching segment %s\n", group->idx, next_url_init_or_switch_segment));
 
 		group->init_switch_seg_sent = GF_TRUE;
 		gf_filter_send_event(group->seg_filter_src, &evt);
 		return;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] Queuing next media segment %s\n", next_url));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] group %d queuing next media segment %s\n", group->idx, next_url));
 
 	GF_FEVT_INIT(evt, GF_FEVT_SOURCE_SWITCH, NULL);
 	evt.seek.source_switch = next_url;
