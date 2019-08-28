@@ -2639,8 +2639,6 @@ static Double gf_dash_get_max_available_speed(GF_DashClient *dash, GF_DASH_Group
 static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 bytes_per_sec, u32 file_size, Bool is_broadcast)
 {
 	const char *url;
-	u32 buffer_ms = 0;
-	Double bitrate, time;
 	GF_MPD_Representation *rep;
 
 	if (!group->nb_cached_segments)
@@ -2659,32 +2657,47 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 byte
 	group->last_segment_time = gf_sys_clock();
 	group->nb_segments_since_switch ++;
 
+	if (!dash->thread_mode) {
+		group->prev_segment_ok = GF_TRUE;
+		if (group->time_at_first_failure) {
+			if (group->current_base_url_idx) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 by switching baseURL\n", url));
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 - was our download schedule too early ?\n", url));
+			}
+			group->time_at_first_failure = 0;
+		}
+		group->nb_consecutive_segments_lost = 0;
+		group->current_base_url_idx = 0;
+	}
+
+	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+	rep->playback.broadcast_flag = is_broadcast;
+
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_INFO)) {
-		u32 i;
+		u32 i, buffer_ms = 0;
+		Double bitrate, time;
 		//force a call go query buffer
 		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CODEC_STAT_QUERY, gf_list_find(dash->groups, group), GF_OK);
 		buffer_ms = group->buffer_occupancy_ms;
 		for (i=0; i < group->nb_cached_segments; i++) {
 			buffer_ms += group->cached[i].duration;
 		}
-	}
 
-	bitrate=0;
-	time=0;
-	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
-	if (group->current_downloaded_segment_duration) {
-		bitrate = 8*group->total_size;
-		bitrate /= group->current_downloaded_segment_duration;
-	}
-	rep->playback.broadcast_flag = is_broadcast;
+		bitrate=0;
+		time=0;
+		if (group->current_downloaded_segment_duration) {
+			bitrate = 8*group->total_size;
+			bitrate /= group->current_downloaded_segment_duration;
+		}
 
-	if (bytes_per_sec) {
-		time = group->total_size;
-		time /= bytes_per_sec;
+		if (bytes_per_sec) {
+			time = group->total_size;
+			time /= bytes_per_sec;
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d got %s stats: %d bytes in %g sec (%d kbps) - duration %g sec - Media Rate: indicated %d - computed %d kbps - buffer %d ms\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), url, group->total_size, time, 8*bytes_per_sec/1000, group->current_downloaded_segment_duration/1000.0, rep->bandwidth/1000, (u32) bitrate, buffer_ms));
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d got %s stats: %d bytes in %g sec (%d kbps) - duration %g sec - Media Rate: indicated %d - computed %d kbps - buffer %d ms\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), url, group->total_size, time, 8*bytes_per_sec/1000, group->current_downloaded_segment_duration/1000.0, rep->bandwidth/1000, (u32) bitrate, buffer_ms));
-
 #endif
 }
 
@@ -3583,6 +3596,20 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 
 
 	if (!dash->thread_mode) {
+
+		if (dash->atsc_clock_state && !group->period->origin_base_url) {
+			GF_DASHFileIOSession sess = NULL;
+			/*check the init segment has been received*/
+			e = gf_dash_download_resource(dash, &sess, base_init_url, start_range, end_range, 1, NULL);
+			dash->dash_io->del(dash->dash_io, sess);
+
+			if (e==GF_OK) {
+
+			} else {
+				return e;
+			}
+		}
+
 		assert(!group->nb_cached_segments);
 		group->cached[0].url = base_init_url;
 		group->cached[0].cache = gf_strdup(base_init_url);
@@ -5513,7 +5540,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 		if (key_url) gf_free(key_url);
 		return dash_download_group_download(dash, group, base_group, has_dep_following);
 	}
-	//if previous segment download was OK, we are likely asking too early - retry for the complete duration in case one segment was lost - we add 100ms safety
+	//if previous segment download was OK, we are likely asking too early - retry for the complete duration in case one segment was lost - we add some default safety safety
 	else if (group->prev_segment_ok && (clock_time - group->time_at_first_failure <= group->current_downloaded_segment_duration + dash->segment_lost_after_ms )) {
 		will_retry = GF_TRUE;
 	} else {
@@ -5867,7 +5894,8 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		resource_name = dash->dash_io->get_url(dash->dash_io, base_group->segment_download);
 
 		Bps = dash->dash_io->get_bytes_per_sec(dash->dash_io, base_group->segment_download);
-	} else {
+	}//unthreaded mode
+	else {
 		resource_name = local_file_name = new_base_seg_url;
 		remote_file = GF_TRUE;
 
@@ -6300,6 +6328,7 @@ static GF_Err dash_setup_period_and_groups(GF_DashClient *dash)
 				gf_dash_reset_groups(dash);
 				dash->active_period_index = dash->reinit_period_index-1;
 				dash->reinit_period_index = 0;
+				dash->period_groups_setup = GF_FALSE;
 				return dash_setup_period_and_groups(dash);
 			}
 
@@ -8930,11 +8959,16 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 idx, GF_Err err)
 	url = group->cached[0].url;
 	gf_free(group->cached[0].cache);
 	group->nb_cached_segments --;
+	assert(!group->nb_cached_segments);
 
 	on_group_download_error(dash, group, NULL, err, rep, url, key_url, has_dep_following);
 
-	if (dash->speed>=0) group->download_segment_index--;
-	else group->download_segment_index++;
+
+	if (dash->speed>=0) {
+		group->download_segment_index--;
+	} else {
+		group->download_segment_index++;
+	}
 }
 
 void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 bytes_per_sec, u32 file_size, u32 bytes_done, Bool is_broadcast)
