@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / video output filter
@@ -475,6 +475,11 @@ typedef struct
 	u32 nb_frames;
 	Bool swap_uv;
 
+	//if source is raw live grab (webcam/etc), we don't trust cts and always draw the frame
+	//this is needed for cases where we have a sudden jump in timestamps as is the case with ffmpeg: not doing so would
+	//hold the frame until its CTS is reached, triggering drops at capture time
+	Bool raw_grab;
+
 #ifndef GPAC_DISABLE_3D
 	GLint glsl_program;
 	GF_SHADERID vertex_shader;
@@ -611,6 +616,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property_str(pid, "BufferLength");
 	ctx->no_buffering = (p && !p->value.sint) ? GF_TRUE : GF_FALSE;
 	if (ctx->no_buffering) ctx->buffer_done = GF_TRUE;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_RAWGRAB);
+	ctx->raw_grab = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
 
 	if (!ctx->pid) {
 		GF_FilterEvent fevt;
@@ -2048,7 +2056,7 @@ static GF_Err vout_process(GF_Filter *filter)
 
 			//allow 10ms video advance
 #define DEF_VIDEO_AUDIO_ADVANCE_MS	15
-			if ((s64) cts > ref_ts + DEF_VIDEO_AUDIO_ADVANCE_MS) {
+			if (!ctx->raw_grab && ((s64) cts > ref_ts + DEF_VIDEO_AUDIO_ADVANCE_MS)) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" ms greater than reference clock "LLU" ms, waiting\n", gf_sys_clock(), cts, ref_ts));
 				//the clock is not updated continuously, only when audio sound card writes. We therefore
 				//cannot know if the sampling was recent or old, so ask for a short reschedule time
@@ -2109,8 +2117,8 @@ static GF_Err vout_process(GF_Filter *filter)
 					diff -= (s64) (ctx->first_cts - cts);
 			}
 
-			if (diff < -2000) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts "LLU"/%d "LLU" us too early, waiting\n", gf_sys_clock(), cts, ctx->timescale, -diff));
+			if (!ctx->raw_grab && (diff < -2000)) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts "LLU"/%d "LLU" us too early, waiting\n", gf_sys_clock(), cts, ctx->timescale, -diff));
 				if (diff<-1000000) diff = -1000000;
 				gf_filter_ask_rt_reschedule(filter, (u32) (-diff));
 
@@ -2118,8 +2126,8 @@ static GF_Err vout_process(GF_Filter *filter)
 				//not ready yet
 				return GF_OK;
 			}
-			if (diff>2000) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts "LLU" is "LLU" us too late\n", gf_sys_clock(), cts, diff));
+			if (ABS(diff)>2000) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts "LLU" is "LLD" us too %s\n", gf_sys_clock(), cts, diff<0 ? -diff : diff, diff<0 ? "early" : "late"));
 			} else {
 				diff = 0;
 			}

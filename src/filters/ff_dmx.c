@@ -263,7 +263,7 @@ static GF_Err ffdmx_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	return GF_NOT_SUPPORTED;
 }
 
-GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
+GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 {
 	u32 i;
 	u32 nb_a, nb_v, nb_t;
@@ -352,6 +352,9 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 		} else {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(gpac_codec_id) );
 		}
+
+		if (is_grab)
+			gf_filter_pid_set_property(pid, GF_PROP_PID_RAWGRAB, &PROP_BOOL(GF_TRUE) );
 
 		//force reframer for the following formats if no DSI is found
 		if (!codec->extradata_size) {
@@ -532,7 +535,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	}
 	GF_LOG(GF_LOG_DEBUG, ctx->log_class, ("[%s] file %s opened - %d streams\n", ctx->fname, ctx->src, ctx->demuxer->nb_streams));
 
-	return ffdmx_init_common(filter, ctx);
+	return ffdmx_init_common(filter, ctx, GF_FALSE);
 }
 
 
@@ -894,7 +897,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] using muxed capture av:// without copy on %s, this might introduce packet losses due to blocking modes or delayed consumption of the frames. If experiencing problems, either set [-copy]() to `AV` or consider using two filters video:// and audio://\n", ctx->fname, (!ctx->copy_audio && !ctx->copy_video) ? "audio and video streams" : ctx->copy_video ? "audio stream" : "video stream"));
 		}
 	}
-	return ffdmx_init_common(filter, ctx);
+	return ffdmx_init_common(filter, ctx, GF_TRUE);
 }
 
 static GF_FilterProbeScore ffavin_probe_url(const char *url, const char *mime)
