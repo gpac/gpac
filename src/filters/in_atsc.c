@@ -354,6 +354,10 @@ static const GF_FilterArgs ATSCInArgs[] =
 	{0}
 };
 
+static const GF_FilterCapability ATSCInCaps[] =
+{
+	CAP_UINT(GF_CAPS_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+};
 
 GF_FilterRegister ATSCInRegister = {
 	.name = "atscin",
@@ -384,6 +388,7 @@ GF_FilterRegister ATSCInRegister = {
 	.args = ATSCInArgs,
 	.initialize = atscin_initialize,
 	.finalize = atscin_finalize,
+	SETCAPS(ATSCInCaps),
 	.process = atscin_process,
 	.probe_url = atscin_probe_url
 };
