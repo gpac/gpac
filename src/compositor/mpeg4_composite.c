@@ -476,7 +476,7 @@ static void composite_update(GF_TextureHandler *txh)
 			}
 #endif
 		}
-#ifndef GPAC_USE_TINYGL
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_DISABLE_3D)
 		else if (compositor->gl_caps.fbo) {
 			if (gf_sc_texture_setup_fbo(&st->txh)==GF_OK)
 				st->use_fbo = GF_TRUE;
@@ -512,7 +512,7 @@ static void composite_update(GF_TextureHandler *txh)
 #ifdef GPAC_USE_TINYGL
 	if (st->tgl_ctx)
 		ostgl_make_current(st->tgl_ctx, 0);
-#else
+#elif !defined(GPAC_DISABLE_3D)
 	if (st->use_fbo) {
 		gf_sc_texture_enable_fbo(&st->txh, GF_TRUE);
 	}
