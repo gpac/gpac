@@ -2278,7 +2278,6 @@ u32 timescale = 0;
 const char *do_wget = NULL;
 GF_DashSegmenterInput *dash_inputs = NULL;
 u32 nb_dash_inputs = 0;
-char *gf_logs = NULL;
 char *seg_ext = NULL;
 char *init_seg_ext = NULL;
 const char *dash_title = NULL;
@@ -4218,10 +4217,15 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_ATSC
 	if (grab_atsc) {
-		if (!gf_logs) {
-			gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
-			gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);
+		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+		gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);
+
+		e = gf_sys_set_args(argc, (const char **) argv);
+		if (e) {
+			fprintf(stderr, "Error assigning libgpac arguments: %s\n", gf_error_to_string(e) );
+			return mp4box_cleanup(1);
 		}
+
 		return grab_atsc3_session(atsc_output_dir, atsc_service, atsc_max_segs, atsc_stats_rate, atsc_debug_tsi);
 	}
 #endif
@@ -4267,20 +4271,18 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif
 
-	if (gf_logs) {
-	} else {
-		GF_LOG_Level level = verbose ? GF_LOG_DEBUG : GF_LOG_INFO;
-		gf_log_set_tool_level(GF_LOG_CONTAINER, level);
-		gf_log_set_tool_level(GF_LOG_SCENE, level);
-		gf_log_set_tool_level(GF_LOG_PARSER, level);
-		gf_log_set_tool_level(GF_LOG_AUTHOR, level);
-		gf_log_set_tool_level(GF_LOG_CODING, level);
-		gf_log_set_tool_level(GF_LOG_DASH, level);
+	GF_LOG_Level level = verbose ? GF_LOG_DEBUG : GF_LOG_INFO;
+	gf_log_set_tool_level(GF_LOG_CONTAINER, level);
+	gf_log_set_tool_level(GF_LOG_SCENE, level);
+	gf_log_set_tool_level(GF_LOG_PARSER, level);
+	gf_log_set_tool_level(GF_LOG_AUTHOR, level);
+	gf_log_set_tool_level(GF_LOG_CODING, level);
+	gf_log_set_tool_level(GF_LOG_DASH, level);
 #ifdef GPAC_MEMORY_TRACKING
-		if (mem_track)
-			gf_log_set_tool_level(GF_LOG_MEMORY, level);
+	if (mem_track)
+		gf_log_set_tool_level(GF_LOG_MEMORY, level);
 #endif
-	}
+
 	e = gf_sys_set_args(argc, (const char **) argv);
 	if (e) {
 		fprintf(stderr, "Error assigning libgpac arguments: %s\n", gf_error_to_string(e) );
