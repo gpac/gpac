@@ -4722,15 +4722,16 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 			if (strchr(purl, '?')) strcat(full_url, "&");
 			else strcat(full_url, "?");
 
+			//append the query string
 			strcat(full_url, dash->query_string);
+			//if =PID is given, replace by period ID
 			sep = strstr(dash->query_string, "=PID");
 			if (sep && period->ID) {
 				char *sep2 = strstr(full_url, "=PID");
-				if (sep2) sep2[1] = 0;
+				assert(sep2);
+				sep2[1] = 0;
 				strcat(full_url, period->ID);
 				strcat(full_url, sep+4);
-			} else {
-				strcat(full_url, dash->query_string);
 			}
 
 			/*use non-persistent connection for MPD*/
