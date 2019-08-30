@@ -597,9 +597,41 @@ win32_ismtty:
 #endif
 }
 
+FILE *gpac_log_file = NULL;
+Bool gpac_log_time_start = GF_FALSE;
+Bool gpac_log_utc_time = GF_FALSE;
+static u64 gpac_last_log_time=0;
+
+static void do_log_time(FILE *logs)
+{
+	if (gpac_log_time_start) {
+		u64 now = gf_sys_clock_high_res();
+		fprintf(logs, "At "LLD" (diff %d) - ", now, (u32) (now - gpac_last_log_time) );
+		gpac_last_log_time = now;
+	}
+	if (gpac_log_utc_time) {
+		u64 utc_clock = gf_net_get_utc() ;
+		time_t secs = utc_clock/1000;
+		struct tm t;
+		t = *gf_gmtime(&secs);
+		fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS "LLU") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
+	}
+}
+
+void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
+{
+	FILE *logs = gpac_log_file ? gpac_log_file : stderr;
+	do_log_time(logs);
+	vfprintf(logs, fmt, vlist);
+	fflush(logs);
+}
 
 void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
+	if (gpac_log_file) {
+		default_log_callback(cbck, level, tool, fmt, vlist);
+		return;
+	}
 	switch(level) {
 	case GF_LOG_ERROR:
 		gf_sys_set_console_code(stderr, GF_CONSOLE_RED);
@@ -617,15 +649,13 @@ void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool
 		gf_sys_set_console_code(stderr, GF_CONSOLE_WHITE);
 		break;
 	}
+	do_log_time(stderr);
+
 	vfprintf(stderr, fmt, vlist);
 	gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
 }
 
 
-void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
-{
-	vfprintf(stderr, fmt, vlist);
-}
 
 #include <gpac/thread.h>
 static void *user_log_cbk = NULL;
