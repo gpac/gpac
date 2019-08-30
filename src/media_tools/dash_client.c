@@ -541,8 +541,8 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 						if (dyn_period->segment_template) startNum = dyn_period->segment_template->start_number;
 						if (set->segment_template) startNum = set->segment_template->start_number;
 						if (rep->segment_template) startNum = rep->segment_template->start_number;
-						if (number+1>=startNum) {
-							timeline_offset_ms = seg_dur*(number+1-startNum);
+						if (number>=startNum) {
+							timeline_offset_ms = seg_dur*(number-startNum);
 						}
 						found = GF_TRUE;
 					}
@@ -1654,6 +1654,11 @@ static void dash_purge_xlink(GF_MPD *new_mpd)
 	}
 }
 
+static void gf_dash_mark_group_done(GF_DASH_Group *group)
+{
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d group is done\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set) ));
+	group->done = GF_TRUE;
+}
 
 static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 {
@@ -1906,7 +1911,7 @@ restart_period_check:
 			dash->request_period_switch = GF_TRUE;
 			for (i=0; i<gf_list_count(dash->groups); i++) {
 				GF_DASH_Group *group = gf_list_get(dash->groups, i);
-				group->done = GF_TRUE;
+				gf_dash_mark_group_done(group);
 				group->adaptation_set = NULL;
 			}
 			goto exit;
@@ -2283,7 +2288,7 @@ restart_period_check:
 		if (!period->duration && new_period->duration) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("End of period upcoming, current segment index for group #%d: %d\n", group_idx+1, group->download_segment_index));
 			if (group->download_segment_index > (s32) group->nb_segments_in_rep)
-				group->done = GF_TRUE;
+				gf_dash_mark_group_done(group);
 		}
 
 	}
@@ -2661,7 +2666,7 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 byte
 			if (group->current_base_url_idx) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 by switching baseURL\n", url));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 - was our download schedule too early ?\n", url));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 - was our download schedule %d too early ?\n", url, gf_sys_clock() - group->time_at_first_failure));
 			}
 			group->time_at_first_failure = 0;
 		}
@@ -5490,6 +5495,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 {
 	u32 clock_time;
 	Bool will_retry = GF_FALSE;
+	Bool is_live = GF_FALSE;
 	if (!dash)
 		return GF_DASH_DownloadCancel;
 
@@ -5498,18 +5504,22 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 	dash_set_min_wait(dash, dash->min_timeout_between_404);
 
 	group->retry_after_utc = dash->min_timeout_between_404 + gf_net_get_utc();
+	if (!group->period->origin_base_url && (dash->mpd->type==GF_MPD_TYPE_DYNAMIC))
+		is_live = GF_TRUE;
 
 	if (e==GF_REMOTE_SERVICE_ERROR) {
-		group->done = GF_TRUE;
+		gf_dash_mark_group_done(group);
 	}
-	//failure on last segment: likely due to rounding in dash segement duration, assueme no error
-	else if (group->period->duration && (group->download_segment_index + 1 >= (s32) group->nb_segments_in_rep) ) {
-		group->done = GF_TRUE;
-	} else if (group->maybe_end_of_stream) {
+	//failure on last segment in non dynamic mode: likely due to rounding in dash segment duration, assume no error
+	//in dynamic mode, we need to check if this is a download schedule issue
+	else if (!is_live && group->period->duration && (group->download_segment_index + 1 >= (s32) group->nb_segments_in_rep) ) {
+		gf_dash_mark_group_done(group);
+	}
+	else if (group->maybe_end_of_stream) {
 		if (group->maybe_end_of_stream==2) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Couldn't get segment %s (error %s) and end of period was guessed during last update - stopping playback\n", new_base_seg_url, gf_error_to_string(e)));
 			group->maybe_end_of_stream = 0;
-			group->done = GF_TRUE;
+			gf_dash_mark_group_done(group);
 		}
 		group->maybe_end_of_stream++;
 	} else if (group->segment_in_valid_range) {
@@ -5520,7 +5530,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 			group->download_segment_index--;
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
-			group->done = GF_TRUE;
+			gf_dash_mark_group_done(group);
 		}
 		group->segment_in_valid_range=0;
 	} else if (group->prev_segment_ok && !group->time_at_first_failure) {
@@ -5544,16 +5554,22 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 	} else {
 		if ((group->dash->atsc_clock_state==2) && (e==GF_URL_ERROR)) {
 			const char *val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-atsc-loop");
+			Bool is_loop = (val && !strcmp(val, "yes")) ? GF_TRUE : GF_FALSE;
 			//if explicit loop or more than 5 consecutive seg lost restart synchro
-			if ((group->nb_consecutive_segments_lost >= 5) || (val && !strcmp(val, "yes"))) {
+			if ((group->nb_consecutive_segments_lost >= 5) || is_loop) {
 				u32 i=0;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] ATSC loop detected, reseting timeline\n"));
+				if (is_loop) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] ATSC loop detected, reseting timeline\n"));
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] ATSC lost %d consecutive segments, resetup tune-in\n", group->nb_consecutive_segments_lost));
+				}
 				dash->utc_drift_estimate = 0;
+				dash->initial_period_tunein = GF_TRUE;
 				dash->atsc_clock_state = 1;
 				while ((group = gf_list_enum(dash->groups, &i))) {
 					group->start_number_at_last_ast = 0;
 					gf_dash_group_timeline_setup(dash->mpd, group, 0);
-					group->loop_detected = GF_TRUE;
+					group->loop_detected = is_loop;
 					group->time_at_first_failure = 0;
 					group->prev_segment_ok = GF_TRUE;
 				}
@@ -5582,7 +5598,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 				group->download_segment_index--;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
-				group->done = GF_TRUE;
+				gf_dash_mark_group_done(group);
 			}
 		}
 	}
@@ -5669,12 +5685,12 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 
 				if (dyn_type==GF_MPD_TYPE_STATIC) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Last segment in static period (dynamic MPD) - group is done\n"));
-					group->done = GF_TRUE;
+					gf_dash_mark_group_done(group);
 					return GF_DASH_DownloadCancel;
 				}
 				else if ((dyn_type==GF_MPD_TYPE_DYNAMIC) && group->period->duration) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Last segment in period (dynamic mode) - group is done\n"));
-					group->done = GF_TRUE;
+					gf_dash_mark_group_done(group);
 					return GF_DASH_DownloadCancel;
 				}
 				else if (! group->maybe_end_of_stream) {
@@ -5703,13 +5719,13 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 					}
 
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment list has not been updated for more than %d ms - assuming end of period\n", now - group->time_at_first_reload_required));
-					group->done = GF_TRUE;
+					gf_dash_mark_group_done(group);
 					return GF_DASH_DownloadCancel;
 				}
 			} else {
 				/* if not, we are really at the end of the playlist, we can quit */
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] End of period reached for group\n"));
-				group->done = GF_TRUE;
+				gf_dash_mark_group_done(group);
 				if (!dash->request_period_switch && !group->has_pending_enhancement && !has_dep_following)
 					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, gf_list_find(dash->groups, base_group), GF_OK);
 				return GF_DASH_DownloadCancel;
@@ -5778,7 +5794,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 
 	if (e || !new_base_seg_url) {
 		if (e==GF_EOS) {
-			group->done = GF_TRUE;
+			gf_dash_mark_group_done(group);
 		} else {
 			/*do something!!*/
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error resolving URL of next segment: %s\n", gf_error_to_string(e) ));
@@ -5814,7 +5830,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				return dash_download_group_download(dash, group, base_group, has_dep_following);
 			} else if (group->period->duration && (group->download_segment_index + 1 == group->nb_segments_in_rep) ) {
 				if (new_base_seg_url) gf_free(new_base_seg_url);
-				group->done = GF_TRUE;
+				gf_dash_mark_group_done(group);
 				return GF_DASH_DownloadCancel;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] File %s not found on disk\n", local_file_name));
@@ -5855,7 +5871,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 			if (group->current_base_url_idx) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 by switching baseURL\n", new_base_seg_url));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 - was our download schedule too early ?\n", new_base_seg_url));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 - was our download schedule %d ms too early ?\n", new_base_seg_url, gf_sys_clock() - group->time_at_first_failure));
 			}
 			group->time_at_first_failure = 0;
 		}
@@ -5957,7 +5973,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				group->download_segment_index--;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
-				group->done = GF_TRUE;
+				gf_dash_mark_group_done(group);
 			}
 			group->has_pending_enhancement = GF_FALSE;
 		}
@@ -6760,7 +6776,7 @@ static void gf_dash_download_stop(GF_DashClient *dash)
 			assert(group);
 			if ((group->selection == GF_DASH_GROUP_SELECTED) && group->segment_download) {
 				dash->dash_io->abort(dash->dash_io, group->segment_download);
-				group->done = GF_TRUE;
+				gf_dash_mark_group_done(group);
 			}
 		}
 	}
