@@ -1360,7 +1360,7 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 		if (e == GF_BUFFER_TOO_SMALL) {
 			group->seg_was_not_ready = GF_TRUE;
 			group->stats_uploaded = GF_TRUE;
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] group %d next segment name not known yet!\n", group->idx));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] group %d next segment name not known yet!\n", group->idx));
 			gf_filter_ask_rt_reschedule(ctx->filter, 10000);
 //			gf_filter_post_process_task(ctx->filter);
 		} else {
@@ -1584,7 +1584,8 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			}
 		}
 		if (all_groups_done) {
-			if (is_in_last_period) return GF_EOS;
+			if (is_in_last_period)
+				return GF_EOS;
 			if (!gf_dash_get_period_switch_status(ctx->dash)) {
 				for (i=0; i<count; i++) {
 					GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, i);
