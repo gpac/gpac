@@ -156,7 +156,7 @@ static void release_txio(struct __texture_wrapper *tx_io)
 
 #ifndef GPAC_DISABLE_3D
 	if (tx_io->fbo_id) {
-		compositor_3d_delete_fbo(&tx_io->fbo_id, &tx_io->id, &tx_io->depth_id);
+		compositor_3d_delete_fbo(&tx_io->fbo_id, &tx_io->id, &tx_io->depth_id, GF_FALSE);
 	}
 	else if (!tx_io->use_external_textures) {
 		if (tx_io->id) glDeleteTextures(1, &tx_io->id);
@@ -346,7 +346,7 @@ void gf_sc_texture_reset(GF_TextureHandler *txh)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Texturing] Releasing OpenGL texture %d\n", txh->tx_io->id));
 
 		if (txh->tx_io->fbo_id) {
-			compositor_3d_delete_fbo(&txh->tx_io->fbo_id, &txh->tx_io->id, &txh->tx_io->depth_id);
+			compositor_3d_delete_fbo(&txh->tx_io->fbo_id, &txh->tx_io->id, &txh->tx_io->depth_id, GF_FALSE);
 		}
 		else if (txh->tx_io->use_external_textures) {
 			glDeleteTextures(1, &txh->tx_io->id);

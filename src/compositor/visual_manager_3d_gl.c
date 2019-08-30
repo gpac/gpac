@@ -4245,7 +4245,7 @@ GF_Err compositor_3d_setup_fbo(u32 width, u32 height, u32 *fbo_id, u32 *tx_id, u
 
 }
 
-void compositor_3d_delete_fbo(u32 *fbo_id, u32 *fbo_tx_id, u32 *fbo_depth_id)
+void compositor_3d_delete_fbo(u32 *fbo_id, u32 *fbo_tx_id, u32 *fbo_depth_id, Bool keep_tx_id)
 {
 #ifndef GPAC_USE_GLES1X
 	if (*fbo_id) {
@@ -4257,7 +4257,7 @@ void compositor_3d_delete_fbo(u32 *fbo_id, u32 *fbo_tx_id, u32 *fbo_depth_id)
 		glDeleteRenderbuffers(1, fbo_depth_id);
 		*fbo_depth_id = 0;
 	}
-	if (*fbo_tx_id) {
+	if (*fbo_tx_id && !keep_tx_id) {
 		glDeleteTextures(1, fbo_tx_id);
 		*fbo_tx_id = 0;
 	}

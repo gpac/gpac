@@ -411,7 +411,7 @@ static GF_Err gl_vout_evt(struct _video_out *vout, GF_Event *evt)
 
 	pfmt = compositor->opfmt;
 	if (!pfmt) pfmt = GF_PIXEL_RGB;
-	if (compositor->passthrough_pfmt != GF_PIXEL_RGB) {
+	if (!compositor->player && (compositor->passthrough_pfmt != GF_PIXEL_RGB)) {
 		compositor->passthrough_pfmt = GF_PIXEL_RGB;
 		if (compositor->vout)
 			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB));
@@ -566,6 +566,7 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 	const char *sOpt;
 	void *os_disp=NULL;
 
+	//filter mode
 	if (!compositor->player) {
 		compositor->video_out = &null_vout;
 
@@ -594,6 +595,32 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 		compositor->video_out->opaque = compositor;
 		return GF_OK;
 	}
+
+	//player mode
+#ifndef GPAC_DISABLE_3D
+	sOpt = gf_opts_get_key("core", "video-output");
+	if (sOpt && !strcmp(sOpt, "glfbo")) {
+		compositor->video_out = &gl_vout;
+		compositor->video_out->opaque = compositor;
+		sOpt = gf_opts_get_key("core", "glfbo-txid");
+		if (sOpt) {
+		 	compositor->fbo_tx_id = atoi(sOpt);
+		 	compositor->external_tx_id = GF_TRUE;
+		}
+		if (!compositor->fbo_tx_id) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] glfbo driver specified but no target texture ID found, cannot initialize\n"));
+			compositor->drv = GF_SC_DRV_OFF;
+			return GF_BAD_PARAM;
+		}
+		gf_sc_load_opengl_extensions(compositor, GF_TRUE);
+		if (!compositor->gl_caps.fbo) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] No support for OpenGL framebuffer object, cannot run in glfbo mode.\n"));
+			compositor->drv = GF_SC_DRV_OFF;
+			return GF_NOT_SUPPORTED;
+		}
+		return GF_OK;
+	}
+#endif
 
 	compositor->video_out = (GF_VideoOutput *) gf_module_load(GF_VIDEO_OUTPUT_INTERFACE, NULL);
 
@@ -1114,9 +1141,13 @@ void compositor_set_ar_scale(GF_Compositor *compositor, Fixed scaleX, Fixed scal
 static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 {
 	Bool mode2d;
-
 	GF_VisualManager *visual;
 	u32 i=0;
+
+	//init failed
+	if (!compositor->traverse_state)
+		return;
+
 	while ((visual = (GF_VisualManager *)gf_list_enum(compositor->visuals, &i))) {
 		/*reset display list*/
 		visual->cur_context = visual->context;
@@ -1144,7 +1175,7 @@ static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 #ifndef GPAC_DISABLE_3D
 	gf_list_del(compositor->traverse_state->local_lights);
 
-	compositor_3d_delete_fbo(&compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
+	compositor_3d_delete_fbo(&compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id, compositor->external_tx_id);
 #endif
 
 	memset(compositor->traverse_state, 0, sizeof(GF_TraverseState));
@@ -2454,7 +2485,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		visual_reset_graphics(compositor->visual);
 
 #ifndef GPAC_DISABLE_3D
-		compositor_3d_delete_fbo(&compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
+		compositor_3d_delete_fbo(&compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id, compositor->external_tx_id);
 #endif
 
 	}
@@ -2907,6 +2938,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			 	if (compositor->bench_mode) {
 					compositor->force_bench_frame = 1;
 				}
+				compositor->frame_was_produced = GF_TRUE;
 			}
 		} else if (!compositor->player) {
 			frame_drawn = GF_FALSE;
