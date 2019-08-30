@@ -1453,10 +1453,13 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 		scene->nb_buffering--;
 		//if eos while buffering, consider the last rebuffer an error
 		//fixeme, we need a way to probe for eos being "close" but not yet detected
-		if (odm->nb_rebuffer) odm->nb_rebuffer --;
+		if (odm->nb_rebuffer)
+			odm->nb_rebuffer --;
 		if (!scene->nb_buffering) {
 			*signal_eob = GF_TRUE;
-			if (scene->nb_rebuffer) scene->nb_buffering--;
+			if (scene->nb_rebuffer) {
+				scene->nb_rebuffer--;
+			}
 		}
 		if (odm->ck)
 			gf_clock_buffer_off(odm->ck);
