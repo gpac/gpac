@@ -77,6 +77,9 @@ Bool gf_sc_texture_needs_reload(GF_TextureHandler *hdl);
 #ifndef GPAC_USE_TINYGL
 /*copy current GL window to the texture - the viewport used is the texture one (0,0,W,H) */
 void gf_sc_copy_to_texture(GF_TextureHandler *txh);
+
+GF_Err gf_sc_texture_setup_fbo(GF_TextureHandler *txh);
+void gf_sc_texture_enable_fbo(GF_TextureHandler *txh, Bool enable);
 #endif
 
 Bool gf_sc_texture_convert(GF_TextureHandler *txh);
