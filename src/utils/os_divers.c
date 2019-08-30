@@ -728,37 +728,18 @@ static u64 memory_at_gpac_startup = 0;
 
 static u32 gpac_argc = 0;
 const char **gpac_argv = NULL;
-FILE *gpac_log_file = NULL;
-static Bool gpac_log_time_start = 0;
-static u64 gpac_last_log_time=0;
-static Bool gpac_log_utc_time = GF_FALSE;
 static Bool gpac_test_mode = GF_FALSE;
 static Bool gpac_discard_config = GF_FALSE;
+
+//in error.c
+extern FILE *gpac_log_file;
+extern Bool gpac_log_time_start;
+extern Bool gpac_log_utc_time;
 
 GF_EXPORT
 Bool gf_sys_logs_to_file()
 {
 	return gpac_log_file ? GF_TRUE : GF_FALSE;
-}
-
-static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
-{
-	FILE *logs = cbk ? cbk : stderr;
-
-	if (gpac_log_time_start) {
-		u64 now = gf_sys_clock_high_res();
-		fprintf(logs, "At "LLD" (diff %d) - ", now, (u32) (now - gpac_last_log_time) );
-		gpac_last_log_time = now;
-	}
-	if (gpac_log_utc_time) {
-		u64 utc_clock = gf_net_get_utc() ;
-		time_t secs = utc_clock/1000;
-		struct tm t;
-		t = *gf_gmtime(&secs);
-		fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS "LLU") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
-	}
-	vfprintf(logs, fmt, list);
-	fflush(logs);
 }
 
 static void progress_quiet(const void *cbck, const char *title, u64 done, u64 total) { }
@@ -843,10 +824,8 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				if (!use_sep) i += 1;
 			} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
 				gpac_log_time_start = GF_TRUE;
-				gf_log_set_callback(gpac_log_file, on_gpac_log);
 			} else if (!strcmp(arg, "-log-utc") || !strcmp(arg, "-lu")) {
-				gpac_log_utc_time = 1;
-				gf_log_set_callback(gpac_log_file, on_gpac_log);
+				gpac_log_utc_time = GF_TRUE;
 			} else if (!strcmp(arg, "-quiet")) {
 				gpac_quiet = 2;
 			} else if (!strcmp(arg, "-noprog")) {
@@ -870,7 +849,6 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 
 		if (gpac_log_file_name) {
 			gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
-			gf_log_set_callback(gpac_log_file, on_gpac_log);
 		}
 
 		if (gf_opts_get_bool("core", "rmt"))
