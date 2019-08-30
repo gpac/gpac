@@ -95,6 +95,8 @@ struct __texture_wrapper
 	u32 v_id, u_id;
 	u32 pbo_id, u_pbo_id, v_pbo_id;
 	Bool pbo_pushed;
+
+	u32 fbo_id, depth_id;
 #endif
 #ifdef GF_SR_USE_DEPTH
 	char *depth_data;
@@ -153,7 +155,10 @@ static void release_txio(struct __texture_wrapper *tx_io)
 {
 
 #ifndef GPAC_DISABLE_3D
-	if (!tx_io->use_external_textures) {
+	if (tx_io->fbo_id) {
+		compositor_3d_delete_fbo(&tx_io->fbo_id, &tx_io->id, &tx_io->depth_id);
+	}
+	else if (!tx_io->use_external_textures) {
 		if (tx_io->id) glDeleteTextures(1, &tx_io->id);
 		if (tx_io->u_id) glDeleteTextures(1, &tx_io->u_id);
 		if (tx_io->v_id) glDeleteTextures(1, &tx_io->v_id);
@@ -340,7 +345,10 @@ void gf_sc_texture_reset(GF_TextureHandler *txh)
 	if (txh->tx_io->id) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Texturing] Releasing OpenGL texture %d\n", txh->tx_io->id));
 
-		if (txh->tx_io->use_external_textures) {
+		if (txh->tx_io->fbo_id) {
+			compositor_3d_delete_fbo(&txh->tx_io->fbo_id, &txh->tx_io->id, &txh->tx_io->depth_id);
+		}
+		else if (txh->tx_io->use_external_textures) {
 			glDeleteTextures(1, &txh->tx_io->id);
 			if (txh->tx_io->u_id) {
 				glDeleteTextures(1, &txh->tx_io->u_id);
@@ -1139,6 +1147,10 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 
 	if (! (txh->tx_io->flags & TX_NEEDS_HW_LOAD) ) return 1;
 
+	if (txh->tx_io->fbo_id) {
+		return 1;
+	}
+
 	GL_CHECK_ERR()
 
 	/*in case the ID has been lost, resetup*/
@@ -1500,6 +1512,25 @@ void gf_sc_copy_to_texture(GF_TextureHandler *txh)
 #endif
 	GL_CHECK_ERR()
 }
+
+GF_Err gf_sc_texture_setup_fbo(GF_TextureHandler *txh)
+{
+	txh->tx_io->gl_type = GL_TEXTURE_2D;
+	return compositor_3d_setup_fbo(txh->width, txh->height, &txh->tx_io->fbo_id, &txh->tx_io->id, &txh->tx_io->depth_id);
+}
+
+void gf_sc_texture_enable_fbo(GF_TextureHandler *txh, Bool enable)
+{
+#ifndef GPAC_USE_GLES1X
+	if (txh->tx_io && txh->tx_io->fbo_id)
+	glBindFramebuffer(GL_FRAMEBUFFER, enable ? txh->tx_io->fbo_id : 0);
+	GL_CHECK_ERR()
+	if (!enable)
+		glBindTexture(GL_TEXTURE_2D, 0);
+#endif
+}
+
+
 #endif
 
 #ifndef GPAC_USE_TINYGL
@@ -1768,7 +1799,6 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	gf_rmt_end_gl();
 	glGetError();
 	if (!res) return 0;
-
 
 	gf_rmt_begin_gl(gf_sc_texture_enable);
 	glGetError();

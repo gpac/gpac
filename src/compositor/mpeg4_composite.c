@@ -51,6 +51,8 @@ typedef struct
 
 #ifdef GPAC_USE_TINYGL
 	ostgl_context *tgl_ctx;
+#else
+	Bool use_fbo;
 #endif
 } CompositeTextureStack;
 
@@ -417,6 +419,7 @@ static void composite_update(GF_TextureHandler *txh)
 
 		st->visual->width = txh->width;
 		st->visual->height = txh->height;
+		st->use_fbo = GF_FALSE;
 
 		stencil = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
 
@@ -472,8 +475,14 @@ static void composite_update(GF_TextureHandler *txh)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Creating TinyGL Offscreen context %p (%d %d - pf %s)\n", st->tgl_ctx, txh->width, txh->width, gf_4cc_to_str(txh->pixelformat)));
 			}
 #endif
-
 		}
+#ifndef GPAC_USE_TINYGL
+		else if (compositor->gl_caps.fbo) {
+			if (gf_sc_texture_setup_fbo(&st->txh)==GF_OK)
+				st->use_fbo = GF_TRUE;
+		}
+#endif
+
 		invalidate_all = 1;
 		gf_sc_texture_set_stencil(txh, stencil);
 	}
@@ -495,7 +504,6 @@ static void composite_update(GF_TextureHandler *txh)
 		}
 #endif
 	}
-
 #endif
 
 	stencil = gf_sc_texture_get_stencil(txh);
@@ -504,6 +512,10 @@ static void composite_update(GF_TextureHandler *txh)
 #ifdef GPAC_USE_TINYGL
 	if (st->tgl_ctx)
 		ostgl_make_current(st->tgl_ctx, 0);
+#else
+	if (st->use_fbo) {
+		gf_sc_texture_enable_fbo(&st->txh, GF_TRUE);
+	}
 #endif
 
 	sensor_bck = st->tr_state->vrml_sensors;
@@ -553,7 +565,13 @@ static void composite_update(GF_TextureHandler *txh)
 
 	if (txh->needs_refresh) {
 #ifndef GPAC_DISABLE_3D
-		//for composite 3D, store current buffer to texture - TODO: use FBOs to avoid the copy ...
+
+#ifndef GPAC_USE_TINYGL
+		if (st->use_fbo) {
+			gf_sc_texture_enable_fbo(&st->txh, GF_FALSE);
+		} else
+#endif
+		//no FBO, for composite 3D, store current buffer to texture
 		if (st->visual->camera.is_3D && (st->visual->compositor->visual->type_3d || st->visual->compositor->hybrid_opengl)) {
 #ifndef GPAC_USE_TINYGL
 			gf_sc_copy_to_texture(&st->txh);
