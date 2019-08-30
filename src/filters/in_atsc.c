@@ -379,7 +379,7 @@ GF_FilterRegister ATSCInRegister = {
 #ifdef GPAC_CONFIG_DARWIN
 	"\nOn OSX with VM packet replay you will need to force multicast routing on ATSC 3.0 base multicast\n"
 	"EX: route add -net 224.0.23.60/32 -interface vboxnet0\n"
-	"and on each service multicast"
+	"and on each service multicast:\n"
 	"EX: route add -net 239.255.1.4/32 -interface vboxnet0\n"
 #endif
 	"",
