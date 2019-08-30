@@ -1320,8 +1320,10 @@ GF_Err gf_term_get_visual_output_size(GF_Terminal *term, u32 *width, u32 *height
 }
 
 GF_EXPORT
-void gf_term_process_step(GF_Terminal *term)
+Bool gf_term_process_step(GF_Terminal *term)
 {
+
+	term->compositor->frame_was_produced = GF_FALSE;
 	/*need to reload*/
 	if (term->reload_state == 1) {
 		term->reload_state = 0;
@@ -1340,6 +1342,7 @@ void gf_term_process_step(GF_Terminal *term)
 	}
 
 	gf_fs_run_step(term->fsess);
+	return term->compositor->frame_was_produced;
 }
 
 static Bool check_in_scene(GF_Scene *scene, GF_ObjectManager *odm)

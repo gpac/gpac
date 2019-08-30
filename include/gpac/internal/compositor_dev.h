@@ -265,7 +265,7 @@ struct __tag_compositor
 
 	//frame duration in ms, used to match closest frame in input video streams
 	u32 frame_duration;
-
+	Bool frame_was_produced;
 	Bool bench_mode;
 	//0: no frame pending, 1: frame pending, needs clock increase, 2: frames are pending but one frame has been decoded, do not increase clock
 	u32 force_bench_frame;
@@ -654,6 +654,7 @@ struct __tag_compositor
 
 	//offscreen rendering
 	u32 fbo_tx_id, fbo_id, fbo_depth_id;
+	Bool external_tx_id;
 
 #endif
 
@@ -1389,7 +1390,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *sr, Bool has_gl_context);
 Bool gf_sc_fit_world_to_screen(GF_Compositor *compositor);
 
 GF_Err compositor_3d_setup_fbo(u32 width, u32 height, u32 *fbo_id, u32 *tx_id, u32 *depth_id);
-void compositor_3d_delete_fbo(u32 *fbo_id, u32 *fbo_tx_id, u32 *fbo_depth_id);
+void compositor_3d_delete_fbo(u32 *fbo_id, u32 *fbo_tx_id, u32 *fbo_depth_id, Bool keep_tx_id);
 u32 compositor_3d_get_fbo_pixfmt();
 void compositor_3d_enable_fbo(GF_Compositor *compositor, Bool enable);
 

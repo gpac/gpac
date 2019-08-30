@@ -166,12 +166,15 @@ if some text is selected*/
 GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only);
 
 
-/*decodes pending media and render frame.
-NOTE: This can only be used when the terminal runs without visual thread (GF_TERM_NO_VISUAL_THREAD flag set)
-returns estimated time left until next frame should be drawn. If filter session regulation is not disabled, the function will sleep
+/*process pending tasks in the media session
+NOTE: If filter session regulation is not disabled, the function will sleep
 for until next frame should be drawn before returning.
+returns GF_TRUE if a new frame was drawn, GF_FALSE otherwise
 */
-void gf_term_process_step(GF_Terminal *term);
+Bool gf_term_process_step(GF_Terminal *term);
+
+/*check if a frame was drawn in the last process_step*/
+Bool gf_term_frame_drawn_state(GF_Terminal *term);
 
 /*post user interaction to terminal*/
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/

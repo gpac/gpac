@@ -169,6 +169,8 @@ void gf_sc_ar_del(GF_AudioRenderer *ar)
 
 void gf_sc_ar_reset(GF_AudioRenderer *ar)
 {
+	if (!ar) return;
+	
 	gf_mixer_remove_all(ar->mixer);
 	if (ar->scene_ready) {
 		ar->scene_ready = 0;
