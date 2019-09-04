@@ -1031,6 +1031,8 @@ typedef struct
 } GF_AV1Config;
 
 
+#define VP9_NUM_REF_FRAMES	8
+
 /*! VP8-9 config vpcC */
 typedef struct
 {
@@ -1048,6 +1050,10 @@ typedef struct
 	/* MUST be 0 for VP8 and VP9 */
 	u16 codec_initdata_size;
 	u8* codec_initdata;
+
+	/* parsing state information - not used for vpcC*/
+	int RefFrameWidth[VP9_NUM_REF_FRAMES];
+	int RefFrameHeight[VP9_NUM_REF_FRAMES];
 } GF_VPConfig;
 
 /*! Media Segment Descriptor used for Media Control Extensions*/
