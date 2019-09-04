@@ -662,7 +662,7 @@ GF_Err urn_box_read(GF_Box *s, GF_BitStream *bs)
 	memcpy(ptr->nameURN, tmpName, i + 1);
 
 	if (tmpName[to_read - 1] != 0) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] urn box cointains invalid location field\n" ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] urn box contains invalid location field\n" ));
 	}
 	else {
 		ptr->location = (char*)gf_malloc(sizeof(char) * (to_read - i - 1));
