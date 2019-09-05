@@ -359,7 +359,7 @@ GF_Err gf_isom_flac_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 Stream
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_EXPORT
-GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -392,7 +392,7 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 		cfg_type = GF_ISOM_BOX_TYPE_DSMV;
 		break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
-		if (!gf_isom_is_video_subtype(trak->Media->handler->handlerType)) return GF_BAD_PARAM;
+		if (!gf_isom_is_video_handler_type(trak->Media->handler->handlerType)) return GF_BAD_PARAM;
 		cfg_type = GF_ISOM_BOX_TYPE_D263;
 		break;
 	case 0:
@@ -402,10 +402,10 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 	}
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!the_file->keep_utc)
@@ -491,7 +491,7 @@ GF_Err gf_isom_3gp_config_update(GF_ISOFile *the_file, u32 trackNumber, GF_3GPCo
 }
 
 GF_EXPORT
-GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Config *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Config *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -505,10 +505,10 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!the_file->keep_utc)
@@ -536,7 +536,7 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 }
 
 GF_EXPORT
-GF_Err gf_isom_flac_config_new(GF_ISOFile *the_file, u32 trackNumber, u8 *metadata, u32 metadata_size, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_flac_config_new(GF_ISOFile *the_file, u32 trackNumber, u8 *metadata, u32 metadata_size, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -550,10 +550,10 @@ GF_Err gf_isom_flac_config_new(GF_ISOFile *the_file, u32 trackNumber, u8 *metada
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!the_file->keep_utc)
@@ -580,7 +580,7 @@ GF_Err gf_isom_flac_config_new(GF_ISOFile *the_file, u32 trackNumber, u8 *metada
 
 
 GF_EXPORT
-GF_Err gf_isom_new_mj2k_description(GF_ISOFile *the_file, u32 trackNumber, char *URLname, char *URNname, u32 *outDescriptionIndex, u8 *dsi, u32 dsi_len)
+GF_Err gf_isom_new_mj2k_description(GF_ISOFile *the_file, u32 trackNumber, const char *URLname, const char *URNname, u32 *outDescriptionIndex, u8 *dsi, u32 dsi_len)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -593,10 +593,10 @@ GF_Err gf_isom_new_mj2k_description(GF_ISOFile *the_file, u32 trackNumber, char 
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!the_file->keep_utc)
@@ -656,7 +656,7 @@ GF_Err gf_isom_get_dims_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_EXPORT
-GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -672,10 +672,10 @@ GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSD
 	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_SCENE) return GF_BAD_PARAM;
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(movie, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(movie, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!movie->keep_utc)
@@ -704,7 +704,7 @@ GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSD
 	return e;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 DescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -750,6 +750,8 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 	}
 	return GF_OK;
 }
+#endif
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Err LSR_UpdateESD(GF_LASeRSampleEntryBox *lsr, GF_ESD *esd)
@@ -983,32 +985,6 @@ GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie, u32 trackNumber,
 	return e;
 }
 
-GF_Err gf_isom_update_xml_subtitle_description(GF_ISOFile *movie, u32 trackNumber,
-        u32 descriptionIndex, GF_GenericSubtitleSampleDescriptor *desc)
-{
-	GF_TrackBox *trak;
-	GF_Err      e;
-
-	if (!descriptionIndex || !desc) return GF_BAD_PARAM;
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !trak->Media) return GF_BAD_PARAM;
-
-	switch (trak->Media->handler->handlerType) {
-	case GF_ISOM_MEDIA_MPEG_SUBT:
-		break;
-	default:
-		return GF_BAD_PARAM;
-	}
-
-	if (!movie->keep_utc)
-		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
-
-	return e;
-}
-
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
@@ -1237,7 +1213,7 @@ GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32
 	return GF_OK;
 }
 
-GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, char *URLname, char *URNname, u32 *outDescriptionIndex, const char *config)
+GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, const char *URLname, const char *URNname, u32 *outDescriptionIndex, const char *config)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -1260,10 +1236,10 @@ GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, char *
 	}
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(movie, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(movie, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!movie->keep_utc)

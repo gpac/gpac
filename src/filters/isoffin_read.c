@@ -166,7 +166,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	Bool is_new_mov = GF_FALSE;
 	u64 tfdt;
 	GF_ISOTrackID trackID;
-	u32 flags=0;
+	GF_ISOSegOpenMode flags=0;
 	GF_Err e;
 
 	prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);
@@ -180,7 +180,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	//this is a fragment
 	case 3:
 		gf_isom_release_segment(read->mov, 1);
-		gf_isom_reset_fragment_info(read->mov, 1);
+		gf_isom_reset_fragment_info(read->mov, GF_TRUE);
 
 		if (read->no_order_check) flags |= GF_ISOM_SEGMENT_NO_ORDER_FLAG;
 #ifdef FILTER_FIXME
@@ -245,10 +245,10 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	if (e<0) {
 		count = gf_list_count(read->channels);
 		gf_isom_release_segment(read->mov, 1);
-		//gf_isom_reset_fragment_info(read->mov, 1);
+		//gf_isom_reset_fragment_info(read->mov, GF_TRUE);
 		read->drop_next_segment = 1;
 		//error opening the segment, reset everything ...
-		gf_isom_reset_fragment_info(read->mov, 0);
+		gf_isom_reset_fragment_info(read->mov, GF_FALSE);
 		for (i=0; i<count; i++) {
 			ISOMChannel *ch = gf_list_get(read->channels, i);
 			if (ch)

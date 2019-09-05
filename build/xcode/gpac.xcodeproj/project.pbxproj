@@ -178,6 +178,7 @@
 		922CF1271FCF169900F2F6A4 /* dmx_avi.c in Sources */ = {isa = PBXBuildFile; fileRef = 922CF1261FCF169900F2F6A4 /* dmx_avi.c */; };
 		922E29832051940C00C8DCBB /* mux_avi.c in Sources */ = {isa = PBXBuildFile; fileRef = 922E29812051940C00C8DCBB /* mux_avi.c */; };
 		922E29842051940C00C8DCBB /* out_audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 922E29822051940C00C8DCBB /* out_audio.c */; };
+		9231B3AF2321533F00ADB4A9 /* Remotery.h in Headers */ = {isa = PBXBuildFile; fileRef = 9231B3AE2321533F00ADB4A9 /* Remotery.h */; };
 		9234CF391FD6A6E400CCDFA1 /* dec_ttxt.c in Sources */ = {isa = PBXBuildFile; fileRef = 9234CF381FD6A6E400CCDFA1 /* dec_ttxt.c */; };
 		9234CF3D1FD7E00700CCDFA1 /* filter_register.c in Sources */ = {isa = PBXBuildFile; fileRef = 9234CF3C1FD7E00700CCDFA1 /* filter_register.c */; };
 		9234CF3F1FD8311400CCDFA1 /* dec_webvtt.c in Sources */ = {isa = PBXBuildFile; fileRef = 9234CF3E1FD8311400CCDFA1 /* dec_webvtt.c */; };
@@ -806,6 +807,7 @@
 		922CF1261FCF169900F2F6A4 /* dmx_avi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_avi.c; path = filters/dmx_avi.c; sourceTree = "<group>"; };
 		922E29812051940C00C8DCBB /* mux_avi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_avi.c; path = filters/mux_avi.c; sourceTree = "<group>"; };
 		922E29822051940C00C8DCBB /* out_audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_audio.c; path = filters/out_audio.c; sourceTree = "<group>"; };
+		9231B3AE2321533F00ADB4A9 /* Remotery.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Remotery.h; path = ../include/gpac/Remotery.h; sourceTree = "<group>"; };
 		9234CF381FD6A6E400CCDFA1 /* dec_ttxt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_ttxt.c; path = filters/dec_ttxt.c; sourceTree = "<group>"; };
 		9234CF3C1FD7E00700CCDFA1 /* filter_register.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_register.c; path = filter_core/filter_register.c; sourceTree = "<group>"; };
 		9234CF3E1FD8311400CCDFA1 /* dec_webvtt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_webvtt.c; path = filters/dec_webvtt.c; sourceTree = "<group>"; };
@@ -1684,9 +1686,6 @@
 		92BBFC471A71228A006A7735 /* include */ = {
 			isa = PBXGroup;
 			children = (
-				925975072215BAC30007E02B /* evg.h */,
-				92DB148B1E4F05B500382A81 /* filters.h */,
-				92DB148C1E4F05B500382A81 /* main.h */,
 				92D3C6282031E98600BA1735 /* atsc.h */,
 				92BBFC481A7122AD006A7735 /* ait.h */,
 				92BBFC491A7122AD006A7735 /* avparse.h */,
@@ -1707,6 +1706,8 @@
 				92BBFC571A7122AD006A7735 /* dvb_mpe.h */,
 				92BBFC591A7122AD006A7735 /* events_constants.h */,
 				92BBFC5A1A7122AD006A7735 /* events.h */,
+				925975072215BAC30007E02B /* evg.h */,
+				92DB148B1E4F05B500382A81 /* filters.h */,
 				92BBFC5C1A7122AD006A7735 /* html5_media.h */,
 				92BBFC5D1A7122AD006A7735 /* html5_mse.h */,
 				92BBFC5E1A7122AD006A7735 /* ietf.h */,
@@ -1715,6 +1716,7 @@
 				92BBFC791A7122AD006A7735 /* isomedia.h */,
 				92BBFC7A1A7122AD006A7735 /* laser.h */,
 				92BBFC7B1A7122AD006A7735 /* list.h */,
+				92DB148C1E4F05B500382A81 /* main.h */,
 				92BBFC7D1A7122AD006A7735 /* maths.h */,
 				92BBFC7E1A7122AD006A7735 /* media_tools.h */,
 				92BBFC7F1A7122AD006A7735 /* mediaobject.h */,
@@ -1730,6 +1732,7 @@
 				92BBFC931A7122AD006A7735 /* options.h */,
 				92BBFC941A7122AD006A7735 /* path2d.h */,
 				92BBFC951A7122AD006A7735 /* revision.h */,
+				9231B3AE2321533F00ADB4A9 /* Remotery.h */,
 				92BBFC971A7122AD006A7735 /* rtp_streamer.h */,
 				92BBFC981A7122AD006A7735 /* scene_engine.h */,
 				92BBFC991A7122AD006A7735 /* scene_manager.h */,
@@ -2025,6 +2028,7 @@
 				92BBFCAE1A7122AD006A7735 /* bifs.h in Headers */,
 				92BBFCED1A7122AD006A7735 /* mpeg4_odf.h in Headers */,
 				92BBFCBC1A7122AD006A7735 /* events_constants.h in Headers */,
+				9231B3AF2321533F00ADB4A9 /* Remotery.h in Headers */,
 				92BBFCF61A7122AD006A7735 /* revision.h in Headers */,
 				92BBFCE31A7122AD006A7735 /* audio_out.h in Headers */,
 				92BBFCF51A7122AD006A7735 /* path2d.h in Headers */,

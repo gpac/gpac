@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Stream Management sub-project
@@ -56,34 +56,62 @@ extern "C" {
 #include <gpac/mpeg4_odf.h>
 #include <gpac/terminal.h>
 
+/*! Media object manager*/
 typedef struct _od_manager GF_ObjectManager;
 
-/*returns top-level OD of the presentation*/
+/*! gets top-level OD of the presentation
+\param term the target terminal
+\return the root object descriptor or NULL if not connected*/
 GF_ObjectManager *gf_term_get_root_object(GF_Terminal *term);
-/*returns number of sub-ODs in the current root. scene_od must be an inline OD*/
+
+/*! gets number of objects in sub scene of object
+\param term the target terminal
+\param scene_od the OD to browse for resources. This must be an inline OD
+\return the number of objects in the scene described by the OD*/
 u32 gf_term_get_object_count(GF_Terminal *term, GF_ObjectManager *scene_od);
-/*returns indexed (0-based) OD manager in the scene*/
+
+/*! gets an OD manager in the scene
+\param term the target terminal
+\param scene_od the OD to browse for resources. This must be an inline OD
+\param index 0-based index of the obhect to query
+\return the object manager or NULL if not found
+*/
 GF_ObjectManager *gf_term_get_object(GF_Terminal *term, GF_ObjectManager *scene_od, u32 index);
-/*return values:
-	0: regular media object, not inline
-	1: root scene
-	2: inline scene
-	3: externProto library
+
+/*! gets the type of the associated subscene
+\param term the target terminal
+\param odm the object to query
+\return	0: regular media object, not inline, 1: root scene, 2: inline scene, 3: externProto library
 */
 u32 gf_term_object_subscene_type(GF_Terminal *term, GF_ObjectManager *odm);
 
-/*select given object when stream selection is available*/
+/*! selects a given object when stream selection is available
+\param term the target terminal
+\param odm the object to select
+*/
 void gf_term_select_object(GF_Terminal *term, GF_ObjectManager *odm);
 
-/*select service by given ID for multiplexed services (MPEG-2 TS)*/
+/*! selects service by given ID for multiplexed services (MPEG-2 TS)
+\param term the target terminal
+\param odm an object in the scene attached to the same multiplex
+\param service_id the service ID to select
+*/
 void gf_term_select_service(GF_Terminal *term, GF_ObjectManager *odm, u32 service_id);
 
-/*sets addon on or off (only one addon possible for now). When OFF , the associated service is shut down*/
+/*! sets addon on or off (only one addon possible for now). When OFF, the associated service is shut down
+\param term the target terminal
+\param show_addons if GF_TRUE, displays addons otheriwse hides the addons
+*/
 void gf_term_toggle_addons(GF_Terminal *term, Bool show_addons);
 
-/*returns TRUE if given service ID is declared for multiplexed services*/
+/*! checks for an existing service ID in a session
+\param term the target terminal
+\param odm an object in the scene attached to the same multiplex
+\param service_id the ID of the service to find
+\return GF_TRUE if given service ID is declared*/
 Bool gf_term_find_service(GF_Terminal *term, GF_ObjectManager *odm, u32 service_id);
 
+/*! Media Object information*/
 typedef struct
 {
 	u32 ODID;
@@ -153,18 +181,27 @@ typedef struct
 	const char *media_url;
 } GF_MediaInfo;
 
-/*fills the GF_MediaInfo structure describing the OD manager*/
+/*! gets information on an object
+\param term the target terminal
+\param odm the object manager to query
+\param info filled with object manager properties
+\return error if any
+*/
 GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_MediaInfo *info);
-/*gets current downloads info for the service - only use if ODM owns thesrevice, returns 0 otherwise.
-	@d_enum: in/out current enum - shall start to 0, incremented at each call. fct returns 0 if no more
-	downloads
-	@server: server name
-	@path: file/data location on server
-	@bytes_done, @total_bytes: file info. total_bytes may be 0 (eg http streaming)
-	@bytes_per_sec: guess what
+
+/*! gets current downloads info for the service - only use if ODM owns the service, returns 0 otherwise.
+\param term the target terminal
+\param odm the object manager to query
+\param d_enum in/out current enum - shall start to 0, incremented at each call. fct returns 0 if no more downloads
+\param url service URL
+\param bytes_done bytes downloaded for this service
+\param total_bytes total bytes for this service, may be 0 (eg http streaming)
+\param bytes_per_sec download speed
+\return GF_TRUE if success, GF_FALSE otherwise
 */
 Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, const char **url, u32 *bytes_done, u32 *total_bytes, u32 *bytes_per_sec);
 
+/*! Net statistics gathering object*/
 typedef struct
 {
 	/*percentage of packet loss from network. This cannot be figured out by the app since there is no
@@ -181,9 +218,18 @@ typedef struct
 	u16 multiplex_port;
 } GF_TermNetStats;
 
-/*gets network statistics for the given channle in the given object (same principles as above)*/
+/*! gets network statistics for the given channel in the given object
+\param term the target terminal
+\param odm the object manager to query
+\param d_enum in/out current enum - shall start to 0, incremented at each call. fct returns 0 if no more downloads
+\param chid set to the channel identifier
+\param net_stats filled with the channel network statistics
+\param ret_code set to the error code if error
+\return GF_TRUE if success, GF_FALSE otherwise
+*/
 Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, u32 *chid, GF_TermNetStats *net_stats, GF_Err *ret_code);
 
+/*! URL information for current session*/
 typedef struct
 {
 	u32 service_id;
@@ -202,29 +248,41 @@ typedef struct
 	const char *accessibility;
 	const char *rating;
 } GF_TermURLInfo;
+/*! gets meta information about the service
+\param term the target terminal
+\param odm the object manager to query
+\param info filled with service information
+\return error if any
+*/
 GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, GF_TermURLInfo *info);
 
-/*retrieves world info of the scene @od belongs to.
-If @odm is or points to an inlined OD the world info of the inlined content is retrieved
-If @odm is NULL the world info of the main scene is retrieved
-returns NULL if no WorldInfo available
-returns world title if available
-@descriptions: any textual descriptions is stored here
-  strings are not allocated
+/*! retrieves world info of the scene of an object.
+\param term the target terminal
+\param scene_od the object manager to query. If this is an inlined OD, the world info of the inlined content is retrieved. If NULL, the world info of the main scene is retrieved
+\param descriptions any textual descriptions is stored here (const strings not allocated, do NOT modify)
+\return NULL if no WorldInfo available or world title if available
 */
 const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od, GF_List *descriptions);
 
-/*dumps scene graph in specified file, in BT or XMT format
-@rad_name: file radical (NULL for stdout) - if not NULL MUST BE GF_MAX_PATH length
-@filename [out]: if not null, returns the complete filename (rad + ext); MUST BE FREED BY THE CALLER
-if @skip_proto is set proto declarations are not dumped
-If @odm is or points to an inlined OD the inlined scene is dumped
-If @odm is NULL the main scene is dumped
+/*! dumps scene graph in specified file, in BT or XMT format
+\param term the target terminal
+\param rad_name file radical (NULL for stdout) - if not NULL MUST BE GF_MAX_PATH length
+\param filename sets to the complete filename (rad + ext) and shall be destroyed by caller (optional can be NULL)
+\param xml_dump if GF_TRUE, duimps using XML format (XMT-A, X3D) for scene graphs having both XML and simple text representations
+\param skip_proto is GF_TRUE, proto declarations are not dumped
+\param odm if this is an inlined OD, the inlined scene is dumped; if this is NULL, the main scene is dumped; otherwise the parent scene is dumped
+\return error if any
 */
 GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bool xml_dump, Bool skip_proto, GF_ObjectManager *odm);
 
+/*! prints filter session statistics as log tool app log level debuf
+\param term the target terminal
+*/
 void gf_term_print_stats(GF_Terminal *term);
 
+/*! prints filter session graph as log tool app log level debuf
+\param term the target terminal
+*/
 void gf_term_print_graph(GF_Terminal *term);
 
 /*! @} */

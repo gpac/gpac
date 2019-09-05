@@ -109,11 +109,7 @@ u32 gf_node_get_dom_event_filter(GF_Node *node)
 }
 #endif
 
-/* Associate a listener node and a event target node
-   - adds the listener node in the list of event listener nodes for the target node
-   - sets the target node as the user of the listener
-*/
-GF_Err gf_sg_listener_add(GF_Node *listener, GF_DOMEventTarget *evt_target)
+GF_Err gf_sg_listener_associate(GF_Node *listener, GF_DOMEventTarget *evt_target)
 {
 	GF_FieldInfo info;
 	if (!evt_target || !listener) return GF_BAD_PARAM;
@@ -152,7 +148,7 @@ GF_Err gf_node_dom_listener_add(GF_Node *node, GF_Node *listener)
 	if (!node->sgprivate->interact->dom_evt) {
 		node->sgprivate->interact->dom_evt = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_NODE, node);
 	}
-	return gf_sg_listener_add(listener, node->sgprivate->interact->dom_evt);
+	return gf_sg_listener_associate(listener, node->sgprivate->interact->dom_evt);
 }
 
 GF_EXPORT

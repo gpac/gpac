@@ -89,7 +89,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 #endif
 	} else {
         u32 mtype = gf_isom_get_media_type(file, track);
-		if (gf_isom_is_video_subtype(mtype)) {
+		if (gf_isom_is_video_handler_type(mtype)) {
 			u32 mstype = gf_isom_get_media_subtype(file, track, 1);
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER,
 				("[ISOBMF] Warning: changing pixel ratio of media subtype \"%s\" is not supported, changing only \"pasp\" signaling\n",
@@ -575,8 +575,8 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	gf_isom_sample_del(&samp);
 	gf_isom_set_track_interleaving_group(mp4file, bifsT, 1);
 
-	gf_isom_set_track_enabled(mp4file, bifsT, 1);
-	gf_isom_set_track_enabled(mp4file, odT, 1);
+	gf_isom_set_track_enabled(mp4file, bifsT, GF_TRUE);
+	gf_isom_set_track_enabled(mp4file, odT, GF_TRUE);
 	gf_isom_add_track_to_root_od(mp4file, bifsT);
 	gf_isom_add_track_to_root_od(mp4file, odT);
 
@@ -587,8 +587,8 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	gf_isom_set_pl_indication(mp4file, GF_ISOM_PL_VISUAL, (u8) (is_image ? 0xFE : visualPL));
 
 	gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_MP42, 1);
-	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_ISOM, 1);
-	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 1);
+	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_ISOM, GF_TRUE);
+	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, GF_TRUE);
 	return GF_OK;
 }
 
@@ -730,43 +730,43 @@ remove_track:
 
 	if (is_3g2) {
 		gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3G2A, 65536);
-		gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP6, 0);
-		gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 0);
-		gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, 0);
+		gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP6, GF_FALSE);
+		gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, GF_FALSE);
+		gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, GF_FALSE);
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP2\n"));
 	} else {
 		/*update FType*/
 		if ((nb_vid>1) || (nb_aud>1) || (nb_txt>1)) {
 			/*3GPP general purpose*/
 			gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3GG6, 1024);
-			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP6, 0);
-			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 0);
-			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 0);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP6, GF_FALSE);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, GF_FALSE);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, GF_FALSE);
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP Generic file\n"));
 		} else if (nb_txt) {
 			gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3GP6, 1024);
-			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 1);
-			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 1);
-			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, 0);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, GF_TRUE);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, GF_TRUE);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, GF_FALSE);
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP V6 file\n"));
 		} else if (nb_avc) {
 			gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3GP6, 0/*1024*/);
-			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_AVC1, 1);
-			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 0);
-			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 0);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_AVC1, GF_TRUE);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, GF_FALSE);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, GF_FALSE);
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP V6 file + AVC compatible\n"));
 		} else {
 			gf_isom_set_brand_info(mp4file, nb_avc ? GF_ISOM_BRAND_3GP6 : GF_ISOM_BRAND_3GP5, 0/*1024*/);
 			gf_isom_modify_alternate_brand(mp4file, nb_avc ? GF_ISOM_BRAND_3GP5 : GF_ISOM_BRAND_3GP6, 0);
-			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 1);
-			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, 0);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, GF_TRUE);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, GF_FALSE);
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP V5 file\n"));
 		}
 	}
 	/*add/remove MP4 brands and add isom*/
-	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_MP41, (u8) ((nb_avc||is_3g2||nb_non_mp4) ? 0 : 1));
-	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_MP42, (u8) (nb_non_mp4 ? 0 : 1));
-	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_ISOM, 1);
+	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_MP41, (u8) ((nb_avc||is_3g2||nb_non_mp4) ? GF_FALSE : GF_TRUE));
+	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_MP42, (u8) (nb_non_mp4 ? GF_FALSE : GF_TRUE));
+	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_ISOM, GF_TRUE);
 	return GF_OK;
 }
 
@@ -802,9 +802,9 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_AUDIO:
 			/*if no edit list, add one*/
-			if (!gf_isom_get_edit_segment_count(mp4, i+1)) {
-				gf_isom_remove_edit_segments(mp4, i+1);
-				gf_isom_append_edit_segment(mp4, i+1, gf_isom_get_track_duration(mp4, i+1), 0, GF_ISOM_EDIT_NORMAL);
+			if (!gf_isom_get_edits_count(mp4, i+1)) {
+				gf_isom_remove_edits(mp4, i+1);
+				gf_isom_append_edit(mp4, i+1, gf_isom_get_track_duration(mp4, i+1), 0, GF_ISOM_EDIT_NORMAL);
 			}
 			/*add PSP UUID*/
 			gf_isom_remove_uuid(mp4, i+1, psp_track_uuid);
@@ -819,7 +819,7 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 		}
 	}
 	gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_MSNV, 0);
-	gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_MSNV, 1);
+	gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_MSNV, GF_TRUE);
 	return GF_OK;
 }
 
@@ -1443,7 +1443,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			e = gf_isom_last_error(file);
 			goto exit;
 		}
-		gf_isom_set_track_enabled(file, svc_track, 1);
+		gf_isom_set_track_enabled(file, svc_track, GF_TRUE);
 		gf_isom_set_track_reference(file, svc_track, GF_ISOM_REF_BASE, ref_trackID);
 		cfg = gf_odf_avc_cfg_new();
 		cfg->complete_representation = 1; //SVC
@@ -1741,8 +1741,8 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			moov_ts = gf_isom_get_timescale(file);
 			ts_offset = (u32)(first_DTS_track[t]) * moov_ts / media_ts;
 			dur = gf_isom_get_media_duration(file, t) * moov_ts / media_ts;
-			gf_isom_set_edit_segment(file, t, 0, ts_offset, 0, GF_ISOM_EDIT_EMPTY);
-			gf_isom_set_edit_segment(file, t, ts_offset, dur, 0, GF_ISOM_EDIT_NORMAL);
+			gf_isom_set_edit(file, t, 0, ts_offset, 0, GF_ISOM_EDIT_EMPTY);
+			gf_isom_set_edit(file, t, ts_offset, dur, 0, GF_ISOM_EDIT_NORMAL);
 		}
 	}
 
@@ -1844,7 +1844,8 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	u32 *list_track_sorted, *cur_sample, *max_sample;
 	u64 *DTS_offset;
 	u64 EditTime, SegmentDuration, MediaTime;
-	u8 EditMode, nal_type;
+	GF_ISOEditType EditMode;
+	u8 nal_type;
 	Bool first_sample;
 	u64 first_DTS, offset, dur;
 	GF_AVCConfigSlot *slc, *sl;
@@ -1905,7 +1906,7 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	}
 
 	merge_track = list_track_sorted[0];
-	gf_isom_set_track_enabled(file, merge_track, 1);
+	gf_isom_set_track_enabled(file, merge_track, GF_TRUE);
 	/*rewrite svccfg*/
 	svccfg = gf_odf_avc_cfg_new();
 	svccfg->complete_representation = 1;
@@ -1971,7 +1972,7 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	DTS_offset = (u64 *) gf_malloc(count * sizeof(u64));
 	for (t = 0; t < count; t++)
 	{
-		nb_EditList = gf_isom_get_edit_segment_count(file, list_track_sorted[t]);
+		nb_EditList = gf_isom_get_edits_count(file, list_track_sorted[t]);
 		if (!nb_EditList)
 			DTS_offset[t] = 0;
 		else
@@ -1980,7 +1981,7 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 			moov_ts = gf_isom_get_timescale(file);
 			for (i = 1; i <= nb_EditList; i++)
 			{
-				e = gf_isom_get_edit_segment(file, list_track_sorted[t], i, &EditTime, &SegmentDuration, &MediaTime, &EditMode);
+				e = gf_isom_get_edit(file, list_track_sorted[t], i, &EditTime, &SegmentDuration, &MediaTime, &EditMode);
 				if (e) goto exit;
 
 				if (!EditMode)
@@ -2107,8 +2108,8 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 		moov_ts = gf_isom_get_timescale(file);
 		offset = (u32)(first_DTS) * moov_ts / media_ts;
 		dur = gf_isom_get_media_duration(file, merge_track) * moov_ts / media_ts;
-		gf_isom_set_edit_segment(file, merge_track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);
-		gf_isom_set_edit_segment(file, merge_track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);
+		gf_isom_set_edit(file, merge_track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);
+		gf_isom_set_edit(file, merge_track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);
 	}
 
 	/*Delete SVC track(s) that references to ref_track*/
@@ -2835,13 +2836,13 @@ exit:
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 
 	if (extractor_mode == GF_LHVC_EXTRACTORS_ON) {
-		gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_HVCE, 1);
-		gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_HVCI, 0);
+		gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_HVCE, GF_TRUE);
+		gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_HVCI, GF_FALSE);
 	}
 	//add hvci brand only if single layer per track
 	else if (single_layer_per_track) {
-		gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_HVCI, 1);
-		gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_HVCE, 0);
+		gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_HVCI, GF_TRUE);
+		gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_HVCE, GF_FALSE);
 	}
 	if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
 	if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);

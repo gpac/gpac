@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -46,6 +46,7 @@ extern "C" {
 
 #include <gpac/tools.h>
 
+/*! list object*/
 typedef struct _tag_array GF_List;
 
 /*!
@@ -80,6 +81,7 @@ u32 gf_list_count(const GF_List *ptr);
  *	Adds an item at the end of the list
  *	\param ptr target list object
  *	\param item item to add
+ *	\return error if any
  */
 GF_Err gf_list_add(GF_List *ptr, void* item);
 
@@ -90,6 +92,7 @@ GF_Err gf_list_add(GF_List *ptr, void* item);
  *	\param ptr target list object
  *	\param item item to add
  *	\param position insertion position. It is expressed between 0 and gf_list_count-1, and any bigger value is equivalent to gf_list_add
+ *	\return error if any
  */
 GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position);
 
@@ -99,6 +102,7 @@ GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position);
  *	Removes an item from the list given its position
  *	\param ptr target list object
  *	\param position position of the item to remove. It is expressed between 0 and gf_list_count-1.
+ *	\return error if any
  *	\note It is the caller responsability to destroy the content of the list if needed
  */
 GF_Err gf_list_rem(GF_List *ptr, u32 position);
@@ -154,6 +158,7 @@ void *gf_list_last(GF_List *ptr);
  *
  *	Removes the last item of the list
  *	\param ptr target list object
+ *	\return error if any
  *	\note It is the caller responsability to destroy the content of the list if needed
  */
 GF_Err gf_list_rem_last(GF_List *ptr);
@@ -175,6 +180,7 @@ void *gf_list_enum(GF_List *ptr, u32 *pos);
  *	Swaps content of two lists
  *	\param l1 first list object
  *	\param l2 second list object
+ *	\return error if any
  */
 GF_Err gf_list_swap(GF_List *l1, GF_List *l2);
 
@@ -184,6 +190,7 @@ GF_Err gf_list_swap(GF_List *l1, GF_List *l2);
  *	Transfer content between lists
  *	\param dst destination list object
  *	\param src source list object
+ *	\return error if any
  */
 GF_Err gf_list_transfer(GF_List *dst, GF_List *src);
 

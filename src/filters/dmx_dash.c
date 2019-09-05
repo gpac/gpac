@@ -450,8 +450,6 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			gf_dash_group_get_max_segments_in_cache(ctx->dash, 0);
 			gf_dash_group_get_num_segments_ready(ctx->dash, 0, &done);
 			gf_dash_group_probe_current_download_segment_location(ctx->dash, 0, NULL, NULL, NULL, NULL, NULL);
-			gf_dash_group_current_segment_start_time(ctx->dash, 0);
-			gf_dash_group_get_representation_info(ctx->dash, 0, 0, NULL, NULL, NULL, NULL, NULL);
 			gf_dash_group_loop_detected(ctx->dash, 0);
 			gf_dash_is_dynamic_mpd(ctx->dash);
 			gf_dash_group_get_language(ctx->dash, 0);

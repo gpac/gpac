@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -203,6 +203,11 @@ typedef Float Fixed;
  2*PI expressed as Fixed
 */
 
+/*! compute the difference between two angles, with a result in [-PI, PI]
+\param a first angle
+\param b first angle
+\return angle difference
+*/
 Fixed gf_angle_diff(Fixed a, Fixed b);
 
 /*!
@@ -245,6 +250,7 @@ typedef struct __vec2f
  *\brief get 2D vector length
  *
  *Gets the length of a 2D vector
+ *\param vec the target vector
  *\return length of the vector
  */
 Fixed gf_v2d_len(GF_Point2D *vec);
@@ -252,6 +258,8 @@ Fixed gf_v2d_len(GF_Point2D *vec);
  *\brief get distance between 2 points
  *
  *Gets the distance between the 2 points
+ *\param a first point
+ *\param b second point
  *\return distance
  */
 Fixed gf_v2d_distance(GF_Point2D *a, GF_Point2D *b);
@@ -529,6 +537,7 @@ typedef struct __vec3f
  *\brief get 3D vector length
  *
  *Gets the length of a 3D vector
+ *\param v the target vector
  *\return length of the vector
  */
 Fixed gf_vec_len(GF_Vec v);
@@ -536,6 +545,7 @@ Fixed gf_vec_len(GF_Vec v);
  *\brief get 3D vector square length
  *
  *Gets the square length of a 3D vector
+ *\param v the target vector
  *\return square length of the vector
  */
 Fixed gf_vec_lensq(GF_Vec v);
@@ -543,6 +553,8 @@ Fixed gf_vec_lensq(GF_Vec v);
  *\brief get 3D vector dot product
  *
  *Gets the dot product of two vectors
+ *\param v1 first vector
+ *\param v2 second vector
  *\return dot product of the vectors
  */
 Fixed gf_vec_dot(GF_Vec v1, GF_Vec v2);
@@ -619,7 +631,10 @@ GF_Vec4 gf_quat_to_rotation(GF_Vec4 *quat);
  *\return the quaternion value
  */
 GF_Vec4 gf_quat_from_rotation(GF_Vec4 rot);
-/*!inverses a quaternion*/
+/*!inverses a quaternion
+\param quat the quaternion to inverse
+\return the inverted quaternion
+*/
 GF_Vec4 gf_quat_get_inv(GF_Vec4 *quat);
 /*!\brief quaternion multiplication
  *
@@ -674,11 +689,20 @@ typedef struct
 	/*!the bbox center and radius are valid*/
 	Bool is_set;
 } GF_BBox;
-/*!updates information of the bounding box based on the edge information*/
+/*! updates information of the bounding box based on the edge information
+\param b the target bounding box
+*/
 void gf_bbox_refresh(GF_BBox *b);
-/*!builds a bounding box from a 2D rectangle*/
+/*!builds a bounding box from a 2D rectangle
+\param box the bounding box to build
+\param rc the source rectangle
+*/
 void gf_bbox_from_rect(GF_BBox *box, GF_Rect *rc);
-/*!builds a rectangle from a 3D bounding box.\note The z dimension is lost and no projection is performed*/
+/*!builds a rectangle from a 3D bounding box.
+\note The z dimension is lost and no projection is performed
+\param rc the destination rectangle
+\param box the source bounding box
+*/
 void gf_rect_from_bbox(GF_Rect *rc, GF_BBox *box);
 /*!\brief bounding box expansion
  *
@@ -687,11 +711,22 @@ void gf_rect_from_bbox(GF_Rect *rc, GF_BBox *box);
  *\param pt the 3D point to check
 */
 void gf_bbox_grow_point(GF_BBox *box, GF_Vec pt);
-/*!performs the union of two bounding boxes*/
+/*!performs the union of two bounding boxes
+\param b1 the first bounding box
+\param b2 the bounding box to add
+*/
 void gf_bbox_union(GF_BBox *b1, GF_BBox *b2);
-/*!checks if two bounding boxes are equal or not*/
+/*!checks if two bounding boxes are equal or not
+\param b1 the first bounding box
+\param b2 the second bounding box
+\return GF_TRUE if equal
+*/
 Bool gf_bbox_equal(GF_BBox *b1, GF_BBox *b2);
-/*!checks if a point is inside a bounding box or not*/
+/*!checks if a point is inside a bounding box or not
+\param box the bounding box
+\param p the point to check
+\return GF_TRUE if point is inside
+*/
 Bool gf_bbox_point_inside(GF_BBox *box, GF_Vec *p);
 /*!\brief get box vertices
  *
@@ -712,6 +747,7 @@ void gf_bbox_get_vertices(GF_Vec bmin, GF_Vec bmax, GF_Vec *vecs);
 */
 #define gf_mx_init(_obj) { memset((_obj).m, 0, sizeof(Fixed)*16); (_obj).m[0] = (_obj).m[5] = (_obj).m[10] = (_obj).m[15] = FIX_ONE; }
 
+/*! macro to check if a matrix is the identity matrix*/
 #define gf_mx_is_identity(_obj) ((!(_obj).m[1] && !(_obj).m[2] && !(_obj).m[3] && !(_obj).m[4] && !(_obj).m[6] && !(_obj).m[7] && !(_obj).m[8] && !(_obj).m[9] && !(_obj).m[11] && !(_obj).m[12] && !(_obj).m[13] && !(_obj).m[14] && ((_obj).m[0]==FIX_ONE) && ((_obj).m[5]==FIX_ONE)&& ((_obj).m[10]==FIX_ONE)&& ((_obj).m[15]==FIX_ONE)) ? 1 : 0)
 
 /*!\brief matrix copy
@@ -723,12 +759,16 @@ void gf_bbox_get_vertices(GF_Vec bmin, GF_Vec bmax, GF_Vec *vecs);
 /*!\brief matrix constructor from 2D
  *
  *Initializes a 3D matrix from a 2D matrix.\note all z-related coefficients will be set to default.
+ \param mx the target matrix to initialize
+ \param mat2D the source 2D matrix
 */
 void gf_mx_from_mx2d(GF_Matrix *mx, GF_Matrix2D *mat2D);
-/*!\brief matrix identity testing
+/*!\brief matrix equality testing
  *
  *Tests if two matrices are equal or not.
- \return 1 if matrices are same, 0 otherwise
+ \param mx1 the first matrix
+ \param mx2 the first matrix
+ \return GF_TRUE if matrices are same, GF_FALSE otherwise
 */
 Bool gf_mx_equal(GF_Matrix *mx1, GF_Matrix *mx2);
 /*!\brief matrix translation
@@ -848,11 +888,14 @@ void gf_mx_apply_bbox_sphere(GF_Matrix *mx, GF_BBox *box);
 /*!\brief non-affine matrix multiplication
  *
  *Multiplies two non-affine matrices mx = mx*mul
+ *\param mat the target matrix
+ *\param mul the matrix we multiply with
 */
 void gf_mx_add_matrix_4x4(GF_Matrix *mat, GF_Matrix *mul);
 /*!\brief non-affine matrix inversion
  *
  *Inverses a non-affine matrices
+ *\param mx the target matrix
  *\return 1 if inversion was done, 0 if inversion not possible.
 */
 Bool gf_mx_inverse_4x4(GF_Matrix *mx);

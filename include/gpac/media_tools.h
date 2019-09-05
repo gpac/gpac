@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Authoring Tools sub-project
@@ -62,12 +62,12 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]);
 /*!
  Creates (if needed) a GF_ESD for the given track - THIS IS RESERVED for local playback
 only, since the OTI/codecid used when emulated is not standard...
- * \param mp4 source file
- * \param track track for which the esd is to be emulated
- * \param stsd_dix indicates the default sample description to map. 0 is equivalent to 1, first sample description
+ * \param isom_file source file
+ * \param trackNumber track for which the esd is to be emulated
+ * \param sampleDescriptionIndex indicates the default sample description to map. 0 is equivalent to 1, first sample description
  * \return rebuilt ESD. It is the caller responsibility to delete it.
  */
-GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx);
+GF_ESD *gf_media_map_esd(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
 /*!
 Creates (if needed) a GF_ESD for the given image item - THIS IS RESERVED for local playback
@@ -80,43 +80,43 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id);
 
 /*!
  * Get RFC 6381 description for a given track.
- * \param movie source movie
- * \param track track to check
+ * \param isom_file source ISOBMF file
+ * \param trackNumber track to check
  * \param szCodec a pointer to an already allocated string of size RFC6381_CODEC_NAME_SIZE_MAX bytes.
  * \param force_inband_xps force inband signaling of parameter sets.
  * \param force_sbr forces using explicit signaling for SBR.
  * \return error if any.
  */
-GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec, Bool force_inband_xps, Bool force_sbr);
+GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *isom_file, u32 trackNumber, char *szCodec, Bool force_inband_xps, Bool force_sbr);
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*!
  *Changes pixel aspect ratio for visual tracks if supported. Negative values remove any PAR info
- * \param file target ISOBMF file
- * \param track target track
+ * \param isom_file target ISOBMF file
+ * \param trackNumber target track
  * \param ar_num aspect ratio numerator
  * \param ar_den aspect ratio denominator
  * \param force_par aspect ratio is always written even when not necessary
  * \return error if any
  */
-GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, Bool force_par);
+GF_Err gf_media_change_par(GF_ISOFile *isom_file, u32 trackNumber, s32 ar_num, s32 ar_den, Bool force_par);
 
 /*!
  *Removes all non rap samples (sync and other RAP sample group info) from the track.
- * \param file target movie
- * \param track target track
- * \param do_thin if set, removes only non-reference pictures
+ * \param isom_file target ISOBMF file
+ * \param trackNumber target track
+ * \param non_ref_only if GF_TRUE, removes only non-reference pictures
  * \return error if any
  */
-GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track, Bool non_ref_only);
+GF_Err gf_media_remove_non_rap(GF_ISOFile *isom_file, u32 trackNumber, Bool non_ref_only);
 
 /*!
  *updates bitrate info on given track.
- * \param file target movie
- * \param track target track
+ * \param isom_file target ISOBMF file
+ * \param trackNumber target track
  */
-void gf_media_update_bitrate(GF_ISOFile *file, u32 track);
+void gf_media_update_bitrate(GF_ISOFile *isom_file, u32 trackNumber);
 
 #endif
 
@@ -221,7 +221,7 @@ enum
 	//GF_IMPORT_FILTER_STATS = 0x80000000	//(=1<<31)
 };
 
-
+/*! max supported numbers of tracks in importer*/
 #define GF_IMPORT_MAX_TRACKS	100
 	/*!
 	 * Track info for video media
@@ -411,44 +411,44 @@ GF_Err gf_media_import(GF_MediaImporter *importer);
 
 /*!
  Adds chapter info contained in file
- \param file target movie
+ \param isom_file target ISOBMF file
  \param chap_file target chapter file
  \param import_fps specifies the chapter frame rate (optional, ignored if 0 - defaults to 25). Most formats don't use this feature
  \return error if any
  */
-GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, GF_Fraction import_fps);
+GF_Err gf_media_import_chapters(GF_ISOFile *isom_file, char *chap_file, GF_Fraction import_fps);
 
 /*!
   Make the file ISMA compliant: creates ISMA BIFS / OD tracks if needed, and update audio/video IDs
 the file should not contain more than one audio and one video track
- \param file the target movie
+ \param isom_file the target ISOBMF file
  \param keepESIDs if true, ES IDs are not changed.
  \param keepImage if true, keeps image tracks
  \param no_ocr if true, doesn't write clock references in MPEG-4 system info
  \return error if any
 */
-GF_Err gf_media_make_isma(GF_ISOFile *file, Bool keepESIDs, Bool keepImage, Bool no_ocr);
+GF_Err gf_media_make_isma(GF_ISOFile *isom_file, Bool keepESIDs, Bool keepImage, Bool no_ocr);
 
 /*!
  Make the file 3GP compliant && sets profile
- \param file the target movie
+ \param isom_file the target ISOBMF file
  \return error if any
  */
-GF_Err gf_media_make_3gpp(GF_ISOFile *file);
+GF_Err gf_media_make_3gpp(GF_ISOFile *isom_file);
 
 /*!
  make the file playable on a PSP
- \param file the target movie
+ \param isom_file the target ISOBMF file
  \return error if any
 */
-GF_Err gf_media_make_psp(GF_ISOFile *file);
+GF_Err gf_media_make_psp(GF_ISOFile *isom_file);
 
 /*!
  adjust file params for QT prores
- \param file the target movie
+ \param qt_file the target QT file
  \return error if any
 */
-GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4);
+GF_Err gf_media_check_qt_prores(GF_ISOFile *qt_file);
 
 /*! @} */
 
@@ -463,81 +463,80 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4);
 
 /*!
  Changes the profile (if not 0) and level (if not 0) indication of the media - only AVC/H264 supported for now
- \param file the target movie
- \param track the target track
+ \param isom_file the target ISOBMF file
+ \param trackNumber the target track
  \param profile the new profile to set
  \param level the new level to set
  \return error if any
  */
-GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level);
+GF_Err gf_media_change_pl(GF_ISOFile *isom_file, u32 trackNumber, u32 profile, u32 level);
 
 /*!
  Rewrite NAL-based samples (AVC/HEVC/...) samples if nalu size_length has to be changed
- \param file the target movie
- \param track the target track
+ \param isom_file the target ISOBMF file
+ \param trackNumber the target track
  \param new_size_in_bits new size in bits of the NALU length field in the track, for all samples description of the track
  \return error if any
  */
-GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *file, u32 track, u32 new_size_in_bits);
+GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *isom_file, u32 trackNumber, u32 new_size_in_bits);
 
 /*!
  Split SVC layers
- \param file the target movie
- \param track the target track
+ \param isom_file the target ISOBMF file
+ \param trackNumber the target track
  \param splitAll if set each layers will be in a single track, otherwise all non-base layers will be in the same track
  \return error if any
  */
-GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll);
+GF_Err gf_media_split_svc(GF_ISOFile *isom_file, u32 trackNumber, Bool splitAll);
 
 /*!
  Merge SVC layers
- \param file the target movie
- \param track the target track
+ \param isom_file the target ISOBMF file
+ \param trackNumber the target track
  \param mergeAll if set all layers will be merged a single track, otherwise all non-base layers will be merged in the same track
  \return error if any
 */
-GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll);
+GF_Err gf_media_merge_svc(GF_ISOFile *isom_file, u32 trackNumber, Bool mergeAll);
 
-
+/*! LHVC extractor mode*/
 typedef enum
 {
-	//use extractors
+	/*! use extractors*/
 	GF_LHVC_EXTRACTORS_ON,
-	//don't use extractors and keep base track inband/outofband param set signaling
+	/*! don't use extractors and keep base track inband/outofband param set signaling*/
 	GF_LHVC_EXTRACTORS_OFF,
-	//don't use extractors and force inband signaling in enhancement layer (for ATSC3)
-	GF_LHVC_EXTRACTORS_OFF_FORCE_INBAND,
+	/*! don't use extractors and force inband signaling in enhancement layer (for ATSC3)*/
+	GF_LHVC_EXTRACTORS_OFF_FORCE_INBAND
 } GF_LHVCExtractoreMode;
 
-/* !
- Split L-HEVC layers
- \param file the target movie
- \param track the target track
+/*! Split L-HEVC layers
+ \param isom_file the target ISOBMF file
+ \param trackNumber the target track
  \param for_temporal_sublayers if set only temporal sublayers are split, otherwise layers are split
  \param splitAll if set each layers will be in a single track, otherwise all non-base layers will be in the same track
- \param use_extractors if set, extractors are used in the enhancement layers.
+ \param extractor_mode extractor mode
  \return error if any
  */
-GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublayers, Bool splitAll, GF_LHVCExtractoreMode extractor_mode);
+GF_Err gf_media_split_lhvc(GF_ISOFile *isom_file, u32 trackNumber, Bool for_temporal_sublayers, Bool splitAll, GF_LHVCExtractoreMode extractor_mode);
 
-/* !
+/*!
  Split HEVC tiles into different tracks
- \param file the target movie
+ \param isom_file the target ISOBMF file
  \param signal_only if set to 1 or 2, inserts tile description and NAL->tile mapping but does not create separate tracks. If 2, NAL->tile mapping uses RLE
  \return error if any
  */
-GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_only);
+GF_Err gf_media_split_hevc_tiles(GF_ISOFile *isom_file, u32 signal_only);
 
 
-/* !
+/*!
  Filter HEVC/L-HEVC NALUs by temporal IDs and layer IDs, removing all NALUs above the desired levels.
- \param file the target movie
- \param track the target track
+ \param isom_file the target ISOBMF file
+ \param trackNumber the target track
  \param max_temporal_id_plus_one max temporal ID plus 1 of all NALUs to be removed.
  \param max_layer_id_plus_one max layer ID plus 1 of all NALUs to be removed.
  \return error if any
  */
-GF_Err gf_media_filter_hevc(GF_ISOFile *file, u32 track, u8 max_temporal_id_plus_one, u8 max_layer_id_plus_one);
+GF_Err gf_media_filter_hevc(GF_ISOFile *isom_file, u32 trackNumber, u8 max_temporal_id_plus_one, u8 max_layer_id_plus_one);
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
@@ -693,6 +692,7 @@ typedef enum
 	GF_DASH_CPMODE_BOTH,
 } GF_DASH_ContentLocationMode;
 
+/*! DASH segmenter*/
 typedef struct __gf_dash_segmenter GF_DASHSegmenter;
 
 /*!
@@ -723,6 +723,7 @@ void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher);
  *	\param copyright MPD copyright
  *	\param moreInfoURL MPD "more info" URL
  *	\param sourceInfo MPD source info
+ *	\param lang MPD language for title
  *	\return error code if any
 */
 GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo, const char *lang);
@@ -749,7 +750,7 @@ GF_Err gf_dasher_add_base_url(GF_DASHSegmenter *dasher, const char *base_url);
  *	\param enable enable usage of URL template
  *	\param default_template template for the segment name
  *	\param default_extension extension for the segment name
- *	\param default_extension extension for the initialization segment name
+ *	\param default_init_extension extension for the initialization segment name
  *	\return error code if any
 */
 
@@ -872,7 +873,7 @@ GF_Err gf_dasher_enable_memory_fragmenting(GF_DASHSegmenter *dasher, Bool enable
 GF_Err gf_dasher_set_initial_isobmf(GF_DASHSegmenter *dasher, u32 initial_moof_sn, u64 initial_tfdt);
 
 
-
+/*! DASH PSSH storage mode*/
 typedef enum
 {
 	//! PSSH box in moov only
@@ -976,8 +977,8 @@ GF_Err gf_dasher_set_hls_clock(GF_DASHSegmenter *dasher, Bool insert_clock);
 /*!
  Sets cue file for the session.
  *	\param dasher the DASH segmenter object
- *	\param cues_file name of the cue file. This is an XML document with root <DASHCues>, one or multiple <Stream> with attribute ID (trackID)
- and timescale (trackTimescale), and a set of <cues> per Stream with attributes sampleNumber, dts or cts.
+ *	\param cues_file name of the cue file. This is an XML document with root 'DASHCues' element, one or multiple 'Stream' elements with attribute ID (trackID)
+ and timescale (trackTimescale), and a set of 'cues' elements per Stream with attributes sampleNumber, dts or cts.
  *	\param strict_cues if true will fail if one cue doesn't match a timestamp in the stream or if the split sample is not RAP
  *	\return error code if any
 */
@@ -1026,13 +1027,13 @@ GF_Err gf_dasher_print_session_info(GF_DASHSegmenter *dasher, u32 fs_print_flags
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*!
  save file as fragmented movie
- \param file the target file to be fragmented
+ \param isom_file the target file to be fragmented
  \param output_file name of the output file
  \param max_duration_sec max fragment duration in seconds
  \param use_mfra insert track fragment movie fragments
  \return error if any
  */
-GF_Err gf_media_fragment_file(GF_ISOFile *file, const char *output_file, Double max_duration_sec, Bool use_mfra);
+GF_Err gf_media_fragment_file(GF_ISOFile *isom_file, const char *output_file, Double max_duration_sec, Bool use_mfra);
 #endif
 
 /*! @} */
@@ -1132,7 +1133,14 @@ typedef struct __track_exporter
 GF_Err gf_media_export(GF_MediaExporter *dump);
 
 #ifndef GPAC_DISABLE_VTT
-GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 track, Bool merge, Bool box_dump);
+/*! dumps a webvtt tracl to a given file
+\param dumper media dumper object
+\param trackNumber the target track to dump
+\param merge if GF_TRUE, merge vtt cues while dumping them
+\param box_dump if GF_TRUE, dumps box structures
+ \return  error if any
+*/
+GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, u32 trackNumber, Bool merge, Bool box_dump);
 #endif
 
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
@@ -1158,8 +1166,8 @@ typedef struct __tag_isom_hinter GF_RTPHinter;
 
 /*!
  Creates a new track hinter object
- *	\param file the target ISOBMF file
- *	\param track the track to hint
+ *	\param isom_file the target ISOBMF file
+ *	\param trackNumber the track to hint
  *	\param Path_MTU max RTP packet size (excluding IP/UDP/IP headers)
  *	\param max_ptime max packet duration in RTP timescale, can be set to 0 for auto compute
  *	\param default_rtp_rate RTP rate for the track, can be set to 0 for auto compute
@@ -1171,7 +1179,7 @@ typedef struct __tag_isom_hinter GF_RTPHinter;
  *	\param e output error code if any
  *	\return the hinter object
  */
-GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 track,
+GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *isom_file, u32 trackNumber,
                                   u32 Path_MTU, u32 max_ptime, u32 default_rtp_rate, u32 hint_flags, u8 PayloadID,
                                   Bool copy_media, u32 InterleaveGroupID, u8 InterleaveGroupPriority, GF_Err *e);
 
@@ -1236,11 +1244,12 @@ typedef enum
 
 /*!
 Finalizes hinting process for the file (setup flags, write SDP for RTP, ...)
-	\param file target ISOBMF file
-	\param IOD_Profile the IOD profile to use for SDP
-	\param bandwidth total bandwidth in kbps of all hinted tracks, 0 means no bandwidth info at session level
+\param isom_file target ISOBMF file
+\param IOD_Profile the IOD profile to use for SDP
+\param bandwidth total bandwidth in kbps of all hinted tracks, 0 means no bandwidth info at session level
+ \return error if any
 */
-GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 bandwidth);
+GF_Err gf_hinter_finalize(GF_ISOFile *isom_file, GF_SDP_IODProfile IOD_Profile, u32 bandwidth);
 
 /*!
  Check if the given data fits in an ESD url

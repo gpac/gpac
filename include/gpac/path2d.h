@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -398,6 +398,7 @@ Fixed gf_path_iterator_get_length(GF_PathIterator *it);
  *	\param mat matrix to be transformed (transformation shall be appended) - the matrix shall not be initialized
  *	\param smooth_edges indicates if discontinuities shall be smoothed. If not set, the rotation angle THETA is the slope (DX/DY) of the current segment found.
  *	\param length_after_point if set and smooth_edges is set, the amount of the object that lies on next segment shall be computed according to length_after_point.
+
  \code
   Let:
 	len_last: length of current checked segment
@@ -408,7 +409,8 @@ Fixed gf_path_iterator_get_length(GF_PathIterator *it);
   Of course care must be taken for PI/2 angles and similar situations
  \endcode
 
- *	\return 1 if matrix has been updated, 0 otherwise, if failure or if point is out of path without tangent extension.
+\return GF_TRUE if matrix has been updated, GF_FALSE otherwise, if failure or if point is out of path without tangent extension.
+
  */
 Bool gf_path_iterator_get_transform(GF_PathIterator *it, Fixed offset, Bool follow_tangent, GF_Matrix2D *mat, Bool smooth_edges, Fixed length_after_point);
 

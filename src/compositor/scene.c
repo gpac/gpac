@@ -130,7 +130,7 @@ char *gf_scene_resolve_xlink(GF_Node *node, char *the_url)
 	return url;
 }
 
-static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam *param)
+static Bool gf_scene_script_action(void *opaque, GF_JSAPIActionType type, GF_Node *n, GF_JSAPIParam *param)
 {
 	Bool ret;
 	GF_Scene *scene = (GF_Scene *) opaque;

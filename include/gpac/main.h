@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2019
  *					All rights reserved
  *
  *  This file is part of GPAC 
@@ -49,7 +49,7 @@ extern "C" {
 
 
 #if defined(WIN32) && !defined(NO_WMAIN)
-
+/*! macro for main() with wide to char conversion on windows platforms*/
 #define GF_MAIN_FUNC(__fun) \
 int wmain( int argc, wchar_t** wargv )\
 {\
@@ -80,6 +80,7 @@ int wmain( int argc, wchar_t** wargv )\
 
 #else
 
+/*! macro for main() with wide to char conversion on windows platforms*/
 #define GF_MAIN_FUNC(__fun) \
 int main(int argc, char **argv) {\
 	return __fun( argc, argv ); \
@@ -144,7 +145,7 @@ typedef struct
 /*! argument is a camma-separated list of strings*/
 #define GF_ARG_STRINGS	4
 
-
+/*! macros for defining a GF_GPACArg argument*/
 #define GF_DEF_ARG(_a, _b, _c, _d, _e, _f, _g) {_a, _b, _c, _d, _e, _f, _g}
 
 /*! gets the options defined for libgpac
@@ -152,6 +153,7 @@ typedef struct
 const GF_GPACArg *gf_sys_get_options();
 
 /*! check if the given option is a libgpac argument
+\param arg_name name of the argument
 \return 0 if not a libgpac core option, 1 if option not consuming an argument, 2 if option consuming an argument*/
 u32 gf_sys_is_gpac_arg(const char *arg_name);
 
@@ -160,26 +162,35 @@ u32 gf_sys_is_gpac_arg(const char *arg_name);
 \return GF_TRUE if update is OK, GF_FALSE otherwise*/
 Bool gf_sys_set_cfg_option(const char *opt_string);
 
-
+/*! argument dump hint options */
 typedef enum
 {
+	/*! only dumps simple arguments*/
 	GF_ARGMODE_BASE=0,
+	/*! only dumps advanced arguments*/
 	GF_ARGMODE_ADVANCED,
+	/*! only dumps expert arguments*/
 	GF_ARGMODE_EXPERT,
-	GF_ARGMODE_ALL,
+	/*! dumps all arguments*/
+	GF_ARGMODE_ALL
 } GF_SysArgMode;
 
-enum
+/*! flags for help formating*/
+typedef enum
 {
+	/*! first word in format string should be highlighted */
  	GF_PRINTARG_HIGHLIGHT_FIRST = 1,
+	/*! prints <br/> instead of new line*/
 	GF_PRINTARG_NL_TO_BR = 1<<1,
+	/*! first word in format string is an option descritptor*/
 	GF_PRINTARG_OPT_DESC = 1<<2,
+	/*! the format string is an application string, not a gpac core one*/
 	GF_PRINTARG_IS_APP = 1<<3,
-
+	/*! the generation is for markdown*/
 	GF_PRINTARG_MD = 1<<16,
+	/*! the generation is for man pages*/
 	GF_PRINTARG_MAN = 1<<17,
-
-};
+} GF_SysPrintArgFlags;
 
 
 /*! prints a argument
@@ -188,7 +199,7 @@ enum
 \param arg argument to print
 \param arg_subsystem name of subsystem of argument (core, gpac, filter name) for localization)
 */
-void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const char *arg_subsystem);
+void gf_sys_print_arg(FILE *helpout, GF_SysPrintArgFlags flags, const GF_GPACArg *arg, const char *arg_subsystem);
 
 /*! prints libgpac help for builton core options to stderr
 \param helpout destination file - if NULL, uses stderr
@@ -196,7 +207,7 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 \param mode filtering mode based on argument  type
 \param subsystem_flags filtering mode based on argument subsytem flags
 */
-void gf_sys_print_core_help(FILE *helpout, u32 flags, GF_SysArgMode mode, u32 subsystem_flags);
+void gf_sys_print_core_help(FILE *helpout, GF_SysPrintArgFlags flags, GF_SysArgMode mode, u32 subsystem_flags);
 
 /*! gets localized version of string identified by module name and identifier.
 \param sec_name name of the module to query, such as "gpac", "core", or filter name
@@ -206,8 +217,12 @@ void gf_sys_print_core_help(FILE *helpout, u32 flags, GF_SysArgMode mode, u32 su
 */
 const char *gf_sys_localized(const char *sec_name, const char *str_name, const char *def_val);
 
-
-void gf_sys_format_help(FILE *outout, u32 flags, const char *fmt, ...);
+/*! formats help to output
+\param output output file to dump to
+\param flags help formatting flags
+\param fmt arguments of the format
+*/
+void gf_sys_format_help(FILE *output, GF_SysPrintArgFlags flags, const char *fmt, ...);
 
 /*! @} */
 

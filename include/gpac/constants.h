@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / exported constants
@@ -112,14 +112,16 @@ enum
 const char *gf_stream_type_name(u32 streamType);
 
 
+#ifndef GF_4CC
+/*! macro for 4CC*/
+#define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|(d))
+#endif
+
 /*!
  * \brief Pixel Formats
  *
  *	Supported pixel formats for everything using video
 */
-#ifndef GF_4CC
-#define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|(d))
-#endif
 typedef enum
 {
 	/*!8 bit GREY */

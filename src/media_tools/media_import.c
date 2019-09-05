@@ -208,7 +208,7 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 		e = gf_isom_last_error(import->dest);
 		goto exit;
 	}
-	gf_isom_set_track_enabled(import->dest, track, 1);
+	gf_isom_set_track_enabled(import->dest, track, GF_TRUE);
 	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 	import->final_trackID = import->esd->ESID;
 
@@ -267,7 +267,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	GF_ESD *origin_esd;
 	GF_InitialObjectDescriptor *iod;
 	Bool is_cenc;
-	u32 clone_flags;
+	GF_ISOTrackCloneFlags clone_flags;
 	sampDTS = 0;
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		for (i=0; i<gf_isom_get_track_count(import->orig); i++) {
@@ -801,7 +801,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			GF_ISOSample *samp;
 			u32 timescale, inc;
             u32 mtype = gf_isom_get_media_type(import->dest, i+1);
-			if (!gf_isom_is_video_subtype(mtype)) continue;
+			if (!gf_isom_is_video_handler_type(mtype)) continue;
 			if (gf_isom_get_sample_count(import->dest, i+1) < 20) continue;
 			samp = gf_isom_get_sample_info(import->dest, 1, 2, NULL, NULL);
 			inc = (u32) samp->DTS;

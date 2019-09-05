@@ -58,7 +58,7 @@ The filter management in GPAC is built using the following core objects:
  tracking data packets and properties exchanged on PIDs
  scheduling tasks between filters
  ensuring thread-safe filter state: a filter may be called from any thread in the session (unless explicitely asked not to), but only by a single thread at any time.
-- \ref GF_FilterRegister static structure describing possible entry points of the filter, possible arguments and input output PID capabilities.
+- \ref __gf_filter_register static structure describing possible entry points of the filter, possible arguments and input output PID capabilities.
 	Each filter share the same API (register definition) regardless of its type: source/sink, mux/demux, encode/decode, raw media processing, encoded media processing, ...
 - \ref GF_Filter is an instance of the filter register. A filter implementation typical tasks are:
  accepting new input PIDs (for non source filters)
@@ -82,12 +82,12 @@ The filter management in GPAC is built using the following core objects:
 	All packets are reference counted.
 	A packet can hold allocated block on the output PID, a pointer to some filter internal data, a data reference to a single input packet, or a frame interface object used for accessing data or OpenGL textures of the emitting filter.
 	Packets holding data references rather than copy are notified back to their creators upon destruction.
-- \ref GF_PropertyValue holding various properties for a PID or a packet
+- \ref __gf_prop_val holding various properties for a PID or a packet
 	Properties can be copied/merged between input and output PIDs, or input and output packets. These properties are reference counted.
 	Two kinds of properties are defined, built-in ones which use a 32 bit identifier (usually a four character code), and user properties identified by a string.
 	PID properties are defined by the filter creating the PID. They can be overridden/added after being set by the filter by specifying fragment properties
-	in the filter arguments. For example fin=src=myfile.foo:#FEXT=bar will override the file extension property (FEXT) foo to bar AFTER the PID is being defined.
-- \ref GF_FilterEvent used to pass various events (play/stop/buffer requirements/...) up and down the filter chain.
+	in the filter arguments. For example \code fin=src=myfile.foo:#FEXT=bar \endcode will override the file extension property (FEXT) foo to bar AFTER the PID is being defined.
+- \ref __gf_filter_event used to pass various events (play/stop/buffer requirements/...) up and down the filter chain.
 	This part of the API will likely change in the future, being merged with the global GF_Event of GPAC.
 
 
@@ -164,7 +164,7 @@ typedef struct __gf_prop_entry GF_PropertyEntry;
 
  The GPAC filter session object allows building media pipelines using multiple sources and destinations and arbitrary filter chains.
 
- Filters are described through a \ref GF_FilterRegister structure. A set of built-in filters are available, and user-defined filters can be added or removed at runtime.
+ Filters are described through a \ref __gf_filter_register structure. A set of built-in filters are available, and user-defined filters can be added or removed at runtime.
 
  The filter session keeps an internal graph representation of all available filters and their possible input connections, which is used when resolving connections between filters.
 
@@ -220,7 +220,7 @@ When set, all subfilters are exposed. This should only be set when inspecting fi
 #define GF_FS_FLAG_PRINT_CONNECTIONS	(1<<8)
 /*! Flag set to disable argument checking*/
 #define GF_FS_FLAG_NO_ARG_CHECK	(1<<9)
-/*disables reservoir for packets and properties, uses much less memory but much more alloc/free*/
+/*! Disables reservoir for packets and properties, uses much less memory but much more alloc/free*/
 #define GF_FS_FLAG_NO_RESERVOIR (1<<10)
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
@@ -415,17 +415,17 @@ Bool gf_fs_mime_supported(GF_FilterSession *session, const char *mime);
 */
 void gf_fs_set_ui_callback(GF_FilterSession *session, Bool (*ui_event_proc)(void *opaque, GF_Event *event), void *cbk_udta);
 
-/*! Prints stats to logs using LOG_APP@LOG_INFO
+/*! Prints stats to logs using \code LOG_APP@LOG_INFO \endcode
 \param session filter session
 */
 void gf_fs_print_stats(GF_FilterSession *session);
 
-/*! Prints connections between loaded filters in the session to logs using LOG_APP@LOG_INFO
+/*! Prints connections between loaded filters in the session to logs using \code LOG_APP@LOG_INFO \endcode
 \param session filter session
 */
 void gf_fs_print_connections(GF_FilterSession *session);
 
-/*! Prints all possible connections between filter registries to logs using LOG_APP@LOG_INFO
+/*! Prints all possible connections between filter registries to logs using \code LOG_APP@LOG_INFO \endcode
 \param session filter session
 \param filter_name if not null, only prints input connection for this filter register
 \param print_fn optionnal callback function for print, otherwise print to stderr
@@ -461,17 +461,26 @@ void gf_fs_lock_filters(GF_FilterSession *session, Bool do_lock);
 */
 u32 gf_fs_get_filters_count(GF_FilterSession *session);
 
+/*! Type of multimedia filter*/
 typedef enum
 {
+	/*! Unknown filter type*/
 	GF_FS_STATS_FILTER_UNKNOWN,
+	/*! raw input (file, socket, pipe) filter type*/
 	GF_FS_STATS_FILTER_RAWIN,
+	/*! demultiplexer filter type*/
 	GF_FS_STATS_FILTER_DEMUX,
+	/*! decoder filter type*/
 	GF_FS_STATS_FILTER_DECODE,
+	/*! encoder filter type*/
 	GF_FS_STATS_FILTER_ENCODE,
+	/*! multiplexer filter type*/
 	GF_FS_STATS_FILTER_MUX,
+	/*! raw output (file, socket, pipe) filter type*/
 	GF_FS_STATS_FILTER_RAWOUT,
 } GF_FSFilterType;
 
+/*! Filter statistics object*/
 typedef struct
 {
 	/*!number of tasks executed by this filter*/
@@ -1040,34 +1049,59 @@ u32 gf_props_get_id(const char *name);
 */
 u8 gf_props_4cc_get_flags(u32 prop_4cc);
 
-/*! Helper macro to set signed int properties */
+/*! Helper macro to set signed int property */
 #define PROP_SINT(_val) (GF_PropertyValue){.type=GF_PROP_SINT, .value.sint = _val}
-/*! Helper macro to set unsigned int properties */
+/*! Helper macro to set unsigned int property */
 #define PROP_UINT(_val) (GF_PropertyValue){.type=GF_PROP_UINT, .value.uint = _val}
+/*! Helper macro to set long signed int property */
 #define PROP_LONGSINT(_val) (GF_PropertyValue){.type=GF_PROP_LSINT, .value.longsint = _val}
+/*! Helper macro to set long unsigned int property */
 #define PROP_LONGUINT(_val) (GF_PropertyValue){.type=GF_PROP_LUINT, .value.longuint = _val}
+/*! Helper macro to set boolean property */
 #define PROP_BOOL(_val) (GF_PropertyValue){.type=GF_PROP_BOOL, .value.boolean = _val}
+/*! Helper macro to set fixed-point number property */
 #define PROP_FIXED(_val) (GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = _val}
+/*! Helper macro to set float property */
 #define PROP_FLOAT(_val) (GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_val)}
+/*! Helper macro to set 32-bit fraction property from integers*/
 #define PROP_FRAC_INT(_num, _den) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac.num = _num, .value.frac.den = _den}
+/*! Helper macro to set 32-bit fraction property*/
 #define PROP_FRAC(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac = _val }
+/*! Helper macro to set 64-bit fraction property from integers*/
 #define PROP_FRAC64(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION64, .value.lfrac = _val}
+/*! Helper macro to set 64-bit fraction property*/
 #define PROP_FRAC64_INT(_num, _den) (GF_PropertyValue){.type=GF_PROP_FRACTION64, .value.lfrac.num = _num, .value.lfrac.den = _den}
+/*! Helper macro to set double property */
 #define PROP_DOUBLE(_val) (GF_PropertyValue){.type=GF_PROP_DOUBLE, .value.number = _val}
+/*! Helper macro to set string property */
 #define PROP_STRING(_val) (GF_PropertyValue){.type=GF_PROP_STRING, .value.string = (char *) _val}
+/*! Helper macro to set string property without string copy (string memory is owned by filter) */
 #define PROP_STRING_NO_COPY(_val) (GF_PropertyValue){.type=GF_PROP_STRING_NO_COPY, .value.string = _val}
+/*! Helper macro to set name property */
 #define PROP_NAME(_val) (GF_PropertyValue){.type=GF_PROP_NAME, .value.string = _val}
+/*! Helper macro to set data property */
 #define PROP_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA, .value.data.ptr = _val, .value.data.size=_len}
+/*! Helper macro to set data property without data copy ( memory is owned by filter) */
 #define PROP_DATA_NO_COPY(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA_NO_COPY, .value.data.ptr = _val, .value.data.size =_len}
+/*! Helper macro to set const data property */
 #define PROP_CONST_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_CONST_DATA, .value.data.ptr = _val, .value.data.size = _len}
+/*! Helper macro to set 2D float vector property */
 #define PROP_VEC2(_val) (GF_PropertyValue){.type=GF_PROP_VEC2, .value.vec2 = _val}
+/*! Helper macro to set 2D integer vector property */
 #define PROP_VEC2I(_val) (GF_PropertyValue){.type=GF_PROP_VEC2I, .value.vec2i = _val}
+/*! Helper macro to set 2D integer vector property from intergers*/
 #define PROP_VEC2I_INT(_x, _y) (GF_PropertyValue){.type=GF_PROP_VEC2I, .value.vec2i.x = _x, .value.vec2i.y = _y}
+/*! Helper macro to set 3D float vector property */
 #define PROP_VEC3(_val) (GF_PropertyValue){.type=GF_PROP_VEC3, .value.vec3 = _val}
+/*! Helper macro to set 3D integer vector property */
 #define PROP_VEC3I(_val) (GF_PropertyValue){.type=GF_PROP_VEC3I, .value.vec3i = _val}
+/*! Helper macro to set 4D float vector property */
 #define PROP_VEC4(_val) (GF_PropertyValue){.type=GF_PROP_VEC4, .value.vec4 = _val}
+/*! Helper macro to set 4D integer vector property */
 #define PROP_VEC4I(_val) (GF_PropertyValue){.type=GF_PROP_VEC4I, .value.vec4i = _val}
+/*! Helper macro to set 4D integer vector property from integers */
 #define PROP_VEC4I_INT(_x, _y, _z, _w) (GF_PropertyValue){.type=GF_PROP_VEC4I, .value.vec4i.x = _x, .value.vec4i.y = _y, .value.vec4i.z = _z, .value.vec4i.w = _w}
+/*! Helper macro to set pointer property */
 #define PROP_POINTER(_val) (GF_PropertyValue){.type=GF_PROP_POINTER, .value.ptr = (void*)_val}
 
 
@@ -1333,7 +1367,7 @@ Capabilities are organized in so-called bundles, gathering the caps that shall b
 will contain a stream type for input a stream type for output, a codec id for input and a codec id for output.
 
 Several capability bundles can be used if needed. A good example is the writegen filter in GPAC, which simply transforms a sequence of media frames into a raw file, hence converts
-stream_type/codecID to file extension and MIME type - cf \ref gpac/src/filters/write_generic.c
+stream_type/codecID to file extension and MIME type - cf gpac/src/filters/write_generic.c
 
 When resolving a chain, PID properties are checked against these capabilities. If a property of the same type exists in the PID than in the capability,
 it must match the capability requirement (equal, excluded). If no property exists for a given non-optionnal capability type,
@@ -1355,7 +1389,7 @@ typedef enum
 	GF_FS_ARG_HINT_EXPERT = 1<<2,
 	/*! used for GUI config: hidden argument type */
 	GF_FS_ARG_HINT_HIDE = 1<<3,
-	/*! if set indicates that the argument is updatable. If so, the value will be changed if \ref offset_in_private is valid, and the update_args function will be called if not NULL*/
+	/*! if set indicates that the argument is updatable. If so, the value will be changed if offset_in_private is valid, and the update_args function will be called if not NULL*/
 	GF_FS_ARG_UPDATE = 1<<4,
 	/*! used by meta filters (ffmpeg & co) to indicate the parsing is handled by the filter in which case the type is overloaded to string and passed to the update_args function*/
 	GF_FS_ARG_META = 1<<5,
@@ -1377,17 +1411,17 @@ typedef struct
 	/*! description of argument. Format conventions:
 		- first letter is lowercase except if it is an acronym (eg, 'IP').
 		- description does not end with a '.'; multiple sentences are however allowed with '.' separators.
-		- description does not end with a new line '\n' or '\r' ; multiple sentences are however allowed with '.' separators.
+		- description does not end with a new line CR or LF; multiple sentences are however allowed with '.' separators.
 		- keep it short. If too long, use " - see filter help" and put description in filter help.
 		- only use markdown '`' and '*', except for enumeration lists which shall use "- ".
-		- do not use CR/LF ('\r' and '\n') in description except to start enum types description.
+		- do not use CR/LF in description except to start enum types description.
 		- use infinitive (eg \"set foo to bar\" and not \"sets foo to bar\").
 		- Enumerations should be described as:
 		 		sentence(s)'\n' (no '.' nor ':' at end)
 		 		- name1: val'\n' (no '.' at end)
 		 		- nameN: val (no '.' nor '\n' at end of last value description)
 			and enum value description order shall match enum order
-		- links are allowed, see \ref struct __gf_filter_register doc
+		- links are allowed, see GF_FilterRegister doc
 	*/
 	const char *arg_desc;
 	/*! type of argument - this is a property type*/
@@ -1407,19 +1441,31 @@ typedef struct
 	GF_FSArgumentFlags flags;
 } GF_FilterArgs;
 
-/*! Some macros for assigning filter capability types quickly*/
+/*! Shortcut macro to assign singed integer capability type*/
 #define CAP_SINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_SINT, .value.sint = _b}, .flags=(_f) }
+/*! Shortcut macro to assign unsigned integer capability type*/
 #define CAP_UINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_UINT, .value.uint = _b}, .flags=(_f) }
+/*! Shortcut macro to assign signed long integer capability type*/
 #define CAP_LSINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_LSINT, .value.longsint = _b}, .flags=(_f) }
+/*! Shortcut macro to assign unsigned long integer capability type*/
 #define CAP_LUINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_LUINT, .value.longuint = _b}, .flags=(_f) }
+/*! Shortcut macro to assign boolean capability type*/
 #define CAP_BOOL(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_BOOL, .value.boolean = _b}, .flags=(_f) }
+/*! Shortcut macro to assign fixed-point number capability type*/
 #define CAP_FIXED(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_FLOAT, .value.fnumber = _b}, .flags=(_f) }
+/*! Shortcut macro to assign float capability type*/
 #define CAP_FLOAT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_b)}, .flags=(_f) }
+/*! Shortcut macro to assign 32-bit fraction capability type*/
 #define CAP_FRAC_INT(_f, _a, _b, _c) { .code=_a, .val={.type=GF_PROP_FRACTION, .value.frac.num = _b, .value.frac.den = _c}, .flags=(_f) }
+/*! Shortcut macro to assign 32-bit fraction capability type from integers*/
 #define CAP_FRAC(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_FRACTION, .value.frac = _b}, .flags=(_f) }
+/*! Shortcut macro to assign double capability type*/
 #define CAP_DOUBLE(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_DOUBLE, .value.number = _b}, .flags=(_f) }
+/*! Shortcut macro to assign name (const string) capability type*/
 #define CAP_NAME(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_NAME, .value.string = _b}, .flags=(_f) }
+/*! Shortcut macro to assign string capability type*/
 #define CAP_STRING(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_STRING, .value.string = _b}, .flags=(_f) }
+/*! Shortcut macro to assign unsigned integer capability type with capability priority*/
 #define CAP_UINT_PRIORITY(_f, _a, _b, _p) { .code=_a, .val={.type=GF_PROP_UINT, .value.uint = _b}, .flags=(_f), .priority=_p}
 
 /*! Flags for filter capabilities*/
@@ -1441,19 +1487,31 @@ enum
 	GF_CAPFLAG_OPTIONAL = 1<<6,
 };
 
-/*! Some macros for assigning filter capability flags quicly*/
+/*! Shortcut macro to set for input capability flags*/
 #define GF_CAPS_INPUT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT)
+/*! Shortcut macro to set for optional input capability flags*/
 #define GF_CAPS_INPUT_OPT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_OPTIONAL)
+/*! Shortcut macro to set for static input capability flags*/
 #define GF_CAPS_INPUT_STATIC	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_STATIC)
+/*! Shortcut macro to set for static optional input capability flags*/
 #define GF_CAPS_INPUT_STATIC_OPT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_STATIC|GF_CAPFLAG_OPTIONAL)
+/*! Shortcut macro to set for excluded input capability flags*/
 #define GF_CAPS_INPUT_EXCLUDED	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_EXCLUDED)
+/*! Shortcut macro to set for input for loaded filter only capability flags*/
 #define GF_CAPS_INPUT_LOADED_FILTER	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_LOADED_FILTER)
+/*! Shortcut macro to set for output capability flags*/
 #define GF_CAPS_OUTPUT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT)
+/*! Shortcut macro to set for output for loaded filter only capability flags*/
 #define GF_CAPS_OUTPUT_LOADED_FILTER	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_LOADED_FILTER)
+/*! Shortcut macro to set for excluded output capability flags*/
 #define GF_CAPS_OUTPUT_EXCLUDED	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_EXCLUDED)
+/*! Shortcut macro to set for static output capability flags*/
 #define GF_CAPS_OUTPUT_STATIC	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_STATIC)
+/*! Shortcut macro to set for excluded static output capability flags*/
 #define GF_CAPS_OUTPUT_STATIC_EXCLUDED	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_EXCLUDED|GF_CAPFLAG_STATIC)
+/*! Shortcut macro to set for input and output capability flags*/
 #define GF_CAPS_INPUT_OUTPUT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_OUTPUT)
+/*! Shortcut macro to set for optionnal input and output capability flags*/
 #define GF_CAPS_INPUT_OUTPUT_OPT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_OPTIONAL)
 
 /*! Filter capability description*/
@@ -1515,9 +1573,13 @@ typedef enum
 #define SETCAPS( __struct ) .caps = __struct, .nb_caps=sizeof(__struct)/sizeof(GF_FilterCapability)
 
 #ifndef GPAC_DISABLE_DOC
+/*! Macro for assigning filter register description*/
 #define GF_FS_SET_DESCRIPTION(_desc) .description = _desc,
+/*! Macro for assigning filter register author*/
 #define GF_FS_SET_AUTHOR(_author) .author = _author,
+/*! Macro for assigning filter register help*/
 #define GF_FS_SET_HELP(_help) .help = _help,
+/*! Macro for assigning filter register argument types and description*/
 #define GF_FS_DEF_ARG(_name, _offset, _desc, _type, _default, _enum, _flags) { _name, _offset, _desc, _type, _default, _enum, _flags }
 #else
 #define GF_FS_SET_DESCRIPTION(_desc)
@@ -1534,7 +1596,7 @@ typedef enum
 	GF_FS_REG_MAIN_THREAD = 1<<1,
 	/*! when set indicates the initial call to configure_pid will happen in the main thread. This is typically called by decoders requiring
 	a GL context (currently only in main thread) upon init, but not requiring it for the decode. Such decoders get their GL frames mapped
-	(through \ref get_gl_texture callback) in the main GL thread*/
+	(through get_gl_texture callback) in the main GL thread*/
 	GF_FS_REG_CONFIGURE_MAIN_THREAD = 1<<2,
 	/*! when set indicates the filter does not take part of dynamic filter chain resolution and can only be used by explicitly loading the filter*/
 	GF_FS_REG_EXPLICIT_ONLY = 1<<3,
@@ -1888,13 +1950,13 @@ If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (
 \param filter the target filter
 \param link_from the filter to link from
 \param link_ext any link extensions allowed in link syntax:
-#PIDNAME: accepts only PID(s) with name PIDNAME
-#TYPE: accepts only PIDs of matching media type. TYPE can be 'audio' 'video' 'scene' 'text' 'font'
-#TYPEN: accepts only Nth PID of matching type from source
-#P4CC=VAL: accepts only PIDs with property matching VAL.
-#PName=VAL: same as above, using the built-in name corresponding to the property.
-#P4CC-VAL: accepts only PIDs with property strictly less than VAL (only for 1-dimension number properties).
-#P4CC+VAL: accepts only PIDs with property strictly greater than VAL (only for 1-dimension number properties).
+\c \#PIDNAME: accepts only PID(s) with name PIDNAME
+\c \#TYPE: accepts only PIDs of matching media type. TYPE can be 'audio' 'video' 'scene' 'text' 'font'
+\c \#TYPEN: accepts only Nth PID of matching type from source
+\c \#P4CC=VAL: accepts only PIDs with property matching VAL.
+\c \#PName=VAL: same as above, using the built-in name corresponding to the property.
+\c \#P4CC-VAL: accepts only PIDs with property strictly less than VAL (only for 1-dimension number properties).
+\c \#P4CC+VAL: accepts only PIDs with property strictly greater than VAL (only for 1-dimension number properties).
 \return error code if any
 */
 GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char *link_ext);
@@ -1969,7 +2031,7 @@ destroyed by the setter while the caller uses it.
 
 Properties retrieved shall be released using \ref gf_filter_release_property. Failure to do so will cause memory leaks in the program.
 
-If the \ref propentry pointer references a non-null value, this value will be released using \ref gf_filter_release_property,
+If the propentry pointer references a non-null value, this value will be released using \ref gf_filter_release_property,
 so make sure to initialize the pointer to a NULL value on the first call.
 This avoid calling  \ref gf_filter_release_property after each get_info in the calling code:
 
@@ -2065,7 +2127,7 @@ Otherwise, if a user is assigned to the session, the event is forwarded to the u
 */
 Bool gf_filter_forward_gf_event(GF_Filter *filter, GF_Event *evt, Bool consumed, Bool skip_user);
 
-/*! Forwards an event to the filter session. This is a shortcut for \ref gf_filter_forward_gf_event(session, evt, GF_FALSE, GF_FALSE);
+/*! Forwards an event to the filter session. This is a shortcut for gf_filter_forward_gf_event(session, evt, GF_FALSE, GF_FALSE);
 \param filter filter object
 \param evt the event forwarded
 \return the error code if any
@@ -2122,7 +2184,7 @@ GF_Err gf_filter_request_opengl(GF_Filter *filter);
 /*! Count the number of source filters for the given filter matching the given protocol type.
 \param filter filter to inspect
 \param protocol_scheme scheme of the protocol to test, without ://, eg "http", "rtp", "https"
-\param expand_proto if set to GF_TRUE, any source protocol with a name begining like \ref protocol_scheme will be matched. For example, use this with "http" to match all http and https schemes.
+\param expand_proto if set to GF_TRUE, any source protocol with a name begining like protocol_scheme will be matched. For example, use this with "http" to match all http and https schemes.
 \param enum_pids user function to enumerate PIDs against which the source should be checked . If not set, all source filters will be checked.
 \param udta user data for the callback function
 \return the number of source filters matched by protocols
@@ -2925,6 +2987,7 @@ GF_Err gf_filter_pck_set_readonly(GF_FilterPacket *pck);
 /*! Sends the packet on its output PID. Packets SHALL be sent in processing order (eg, decoding order for video).
 However, packets don't have to be sent in their allocation order.
 \param pck the target output packet to send
+\return error if any
 */
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck);
 

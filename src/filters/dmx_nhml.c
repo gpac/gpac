@@ -1231,7 +1231,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 						//send continuation frame
 						pck = gf_filter_pck_new_alloc(ctx->opid, subsMediaFileSize, &data);
 						gf_fseek(f, 0, SEEK_SET);
-						gf_fread(data, 1, subsMediaFileSize, f);
+						fread(data, 1, subsMediaFileSize, f);
 						gf_fclose(f);
 
 						nb_subsamples--;

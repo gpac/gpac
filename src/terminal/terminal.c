@@ -949,7 +949,7 @@ GF_Err gf_term_get_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer
 }
 
 GF_EXPORT
-GF_Err gf_term_get_offscreen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer, u32 view_idx, u32 depth_buffer_type)
+GF_Err gf_term_get_offscreen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer, u32 view_idx, GF_CompositorGrabMode depth_buffer_type)
 {
 	if (!term) return GF_BAD_PARAM;
 	return gf_sc_get_offscreen_buffer(term->compositor, framebuffer, view_idx, depth_buffer_type);

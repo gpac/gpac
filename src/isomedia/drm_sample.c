@@ -96,7 +96,7 @@ exit:
 	return NULL;
 }
 
-GF_Err gf_isom_ismacryp_sample_to_sample(GF_ISMASample *s, GF_ISOSample *dest)
+GF_Err gf_isom_ismacryp_sample_to_sample(const GF_ISMASample *s, GF_ISOSample *dest)
 {
 	GF_BitStream *bs;
 	if (!s || !dest) return GF_BAD_PARAM;
@@ -145,7 +145,7 @@ static GF_ProtectionSchemeInfoBox *isom_get_sinf_entry(GF_TrackBox *trak, u32 sa
 }
 
 GF_EXPORT
-GF_ISMASample *gf_isom_get_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, GF_ISOSample *samp, u32 sampleDescriptionIndex)
+GF_ISMASample *gf_isom_get_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, const GF_ISOSample *samp, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_ISMASampleFormatBox *fmt;

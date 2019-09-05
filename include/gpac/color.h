@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools interfaces
@@ -153,7 +153,8 @@ GF_Color gf_color_parse(const char *name);
 */
 const char *gf_color_get_name(GF_Color col);
 
-/*!Inits a color matrix to identity*/
+/*!Inits a color matrix to identity
+\param _this the target color matrix to initialize*/
 void gf_cmx_init(GF_ColorMatrix *_this);
 /*!Inits all coefficients of a color matrix
  *\param _this color matrix to initialize
@@ -294,9 +295,65 @@ GF_Err gf_color_write_nv12_10_to_yuv(GF_VideoSurface *vs_dst,  u8 *pY, u8 *pUV, 
 /*! @} */
 
 
+/*! copies YUV 422 10 bits to YUV 422 8 bits
+ *
+ *\param vs_dst destination surface
+ *\param pY source Y plane
+ *\param pU source U plane. if NULL, the U plane is located after the Y plane
+ *\param pV source V plane. if NULL, the V plane is located after the U plane
+ *\param src_stride source stride in bytes
+ *\param src_width source width in pixels
+ *\param src_height source height in pixels
+ *\param src_wnd source rectangle. If null the entire source surface is used
+ *\param swap_uv If GF_TRUE, swaps U and V components.
+ *\return error code if any
+ */
 GF_Err gf_color_write_yuv422_10_to_yuv422(GF_VideoSurface *vs_dst,  u8 *pY, u8 *pU, u8 *pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
+
+
+/*! copies YUV 444 10 bits to YUV 444 8 bits
+ *
+ *\param vs_dst destination surface
+ *\param pY source Y plane
+ *\param pU source U plane. if NULL, the U plane is located after the Y plane
+ *\param pV source V plane. if NULL, the V plane is located after the U plane
+ *\param src_stride source stride in bytes
+ *\param src_width source width in pixels
+ *\param src_height source height in pixels
+ *\param src_wnd source rectangle. If null the entire source surface is used
+ *\param swap_uv If GF_TRUE, swaps U and V components.
+ *\return error code if any
+ */
 GF_Err gf_color_write_yuv444_10_to_yuv444(GF_VideoSurface *vs_dst,  u8 *pY, u8 *pU, u8 *pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
+
+/*! copies YUV 422 10 bits to YUV 420 8 bits
+ *
+ *\param vs_dst destination surface
+ *\param pY source Y plane
+ *\param pU source U plane. if NULL, the U plane is located after the Y plane
+ *\param pV source V plane. if NULL, the V plane is located after the U plane
+ *\param src_stride source stride in bytes
+ *\param src_width source width in pixels
+ *\param src_height source height in pixels
+ *\param src_wnd source rectangle. If null the entire source surface is used
+ *\param swap_uv If GF_TRUE, swaps U and V components.
+ *\return error code if any
+ */
 GF_Err gf_color_write_yuv422_10_to_yuv(GF_VideoSurface *vs_dst, u8 *pY, u8 *pU, u8 *pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
+
+/*! copies YUV 444 10 bits to YUV 420 8 bits
+ *
+ *\param vs_dst destination surface
+ *\param pY source Y plane
+ *\param pU source U plane. if NULL, the U plane is located after the Y plane
+ *\param pV source V plane. if NULL, the V plane is located after the U plane
+ *\param src_stride source stride in bytes
+ *\param src_width source width in pixels
+ *\param src_height source height in pixels
+ *\param src_wnd source rectangle. If null the entire source surface is used
+ *\param swap_uv If GF_TRUE, swaps U and V components.
+ *\return error code if any
+ */
 GF_Err gf_color_write_yuv444_10_to_yuv(GF_VideoSurface *vs_dst, u8 *pY, u8 *pU, u8 *pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
 
 

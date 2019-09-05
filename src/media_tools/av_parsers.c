@@ -1413,7 +1413,7 @@ GF_Err gf_m4a_get_config(u8 *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg)
 	GF_BitStream *bs;
 	if (!dsi || !dsi_size || (dsi_size < 2)) return GF_NON_COMPLIANT_BITSTREAM;
 	bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
-	gf_m4a_parse_config(bs, cfg, 1);
+	gf_m4a_parse_config(bs, cfg, GF_TRUE);
 	gf_bs_del(bs);
 	return GF_OK;
 }
@@ -5143,7 +5143,7 @@ static s32 gf_media_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u3
 		sps->offset_for_non_ref_pic = gf_bs_get_se(bs);
 		sps->offset_for_top_to_bottom_field = gf_bs_get_se(bs);
 		sps->poc_cycle_length = gf_bs_get_ue(bs);
-		if (sps->poc_cycle_length > ARRAY_LENGTH(sps->offset_for_ref_frame)) {
+		if (sps->poc_cycle_length > GF_ARRAY_LENGTH(sps->offset_for_ref_frame)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] offset_for_ref_frame overflow from poc_cycle_length\n"));
 			return -1;
 		}

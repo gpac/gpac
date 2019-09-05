@@ -132,7 +132,7 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 }
 
 GF_EXPORT
-GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -154,10 +154,10 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 	}
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(movie, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(movie, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!movie->keep_utc)
@@ -370,7 +370,7 @@ static GFINLINE GF_Err gpp_write_modifier(GF_BitStream *bs, GF_Box *a)
 }
 
 GF_EXPORT
-GF_Err gf_isom_text_sample_write_bs(GF_TextSample *samp, GF_BitStream *bs)
+GF_Err gf_isom_text_sample_write_bs(const GF_TextSample *samp, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 i;
@@ -396,7 +396,7 @@ GF_Err gf_isom_text_sample_write_bs(GF_TextSample *samp, GF_BitStream *bs)
 	return e;
 }
 
-GF_ISOSample *gf_isom_text_to_sample(GF_TextSample *samp)
+GF_ISOSample *gf_isom_text_to_sample(const GF_TextSample *samp)
 {
 	GF_Err e;
 	GF_ISOSample *res;
@@ -457,6 +457,15 @@ u32 gf_isom_text_sample_size(GF_TextSample *samp)
 	return size;
 }
 
+#if 0 //unused
+/*! checks if this text description is already inserted
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param desc the 3GPP text sample description to check
+\param outDescIdx set to 0 if not found, or index of the matching sample description
+\param same_styles indicates if default styles matches
+\param same_box indicates if default box matches
+*/
 GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, u32 *outDescIdx, Bool *same_box, Bool *same_styles)
 {
 	GF_TrackBox *trak;
@@ -508,6 +517,7 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 	}
 	return GF_OK;
 }
+#endif
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

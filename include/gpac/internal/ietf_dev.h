@@ -165,7 +165,7 @@ struct __tag_rtp_channel
 	GF_BitStream *bs_r, *bs_w;
 	Bool no_select;
 
-	GF_Err (*send_interleave)(void *cbk1, void *cbk2, Bool is_rtcp, u8 *pck, u32 pck_size);
+	gf_rtp_tcp_callback send_interleave;
 	void *interleave_cbk1, *interleave_cbk2;
 };
 

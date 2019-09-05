@@ -39,7 +39,7 @@
 		return GF_FALSE; \
 	}\
 	if (field.fieldType != __type) {\
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[HardcodedProtos] %s field idx %d (%s) is not of type %s\n", __name, field.fieldIndex, field.name, gf_sg_vrml_get_field_type_by_name(__type) ));\
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[HardcodedProtos] %s field idx %d (%s) is not of type %s\n", __name, field.fieldIndex, field.name, gf_sg_vrml_get_field_type_name(__type) ));\
 		return GF_FALSE;\
 	}
 

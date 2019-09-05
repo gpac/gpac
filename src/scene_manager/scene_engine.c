@@ -823,7 +823,7 @@ void gf_seng_terminate(GF_SceneEngine *seng)
 }
 
 GF_EXPORT
-GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, u8 **config, u32 *config_len, u32 *streamType, u32 *codec_id, u32 *timeScale)
+GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, const u8 **config, u32 *config_len, u32 *streamType, u32 *codec_id, u32 *timeScale)
 {
 	GF_StreamContext *sc = gf_list_get(seng->ctx->streams, idx);
 	if (!sc || !ESID || !config || !config_len) return GF_BAD_PARAM;
@@ -878,7 +878,7 @@ static void seng_conditional_reverse_activate(GF_Node *node, GF_Route *route)
 #endif //GPAC_DISABLE_VRML
 
 
-static void gf_seng_on_node_modified(void *_seng, u32 type, GF_Node *node, void *ctxdata)
+static void gf_seng_on_node_modified(void *_seng, GF_SGNodeCbkType type, GF_Node *node, void *ctxdata)
 {
 	switch (type) {
 #ifndef GPAC_DISABLE_VRML
@@ -893,6 +893,8 @@ static void gf_seng_on_node_modified(void *_seng, u32 type, GF_Node *node, void 
 #endif
 	case GF_SG_CALLBACK_MODIFIED:
 		gf_node_dirty_parents(node);
+		break;
+	default:
 		break;
 	}
 }

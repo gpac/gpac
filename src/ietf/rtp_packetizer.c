@@ -443,7 +443,7 @@ void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 }
 
 GF_EXPORT
-Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName, char *szMediaName)
+Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char szPayloadName[20], char szMediaName[20])
 {
 	u32 flags = rtpb->flags;
 

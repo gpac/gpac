@@ -1739,7 +1739,7 @@ static const GF_RTPStaticMap *gf_rtp_is_valid_static_payt(u32 payt)
 
 
 GF_EXPORT
-GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet_cbk)(void *udta, u8 *payload, u32 size, GF_SLHeader *hdr, GF_Err e), void *udta)
+GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, gf_rtp_packet_cbk sl_packet_cbk, void *udta)
 {
 	GF_Err e;
 	GF_RTPMap *map;

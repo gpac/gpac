@@ -365,7 +365,7 @@ void gf_utc_time_since_1970(u32 *sec, u32 *msec)
 }
 
 GF_EXPORT
-void gf_get_user_name(char *buf, u32 buf_size)
+void gf_get_user_name(char buf[1024])
 {
 	strcpy(buf, "mpeg4-user");
 
@@ -384,7 +384,7 @@ void gf_get_user_name(char *buf, u32 buf_size)
 	struct passwd *pw;
 	pw = getpwuid(getuid());
 	strcpy(buf, "");
-	if (pw && pw->pw_name) strcpy(name, pw->pw_name);
+	if (pw && pw->pw_name) strncpy(name, pw->pw_name, 1023);
 #endif
 }
 

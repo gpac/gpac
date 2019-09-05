@@ -1110,7 +1110,7 @@ static void gf_dump_vrml_dyn_field(GF_SceneDumper *sdump, GF_Node *node, GF_Fiel
 		if (sdump->XMLDump) {
 			if (sdump->X3DDump) {
 				fprintf(sdump->trace, "<field name=\"%s\" type=\"%s\" accessType=\"%s\"",
-				        field.name, gf_sg_vrml_get_field_type_by_name(field.fieldType), gf_sg_vrml_get_event_type_name(field.eventType, 1));
+				        field.name, gf_sg_vrml_get_field_type_name(field.fieldType), gf_sg_vrml_get_event_type_name(field.eventType, 1));
 			} else {
 				fprintf(sdump->trace, "<field name=\"%s\" type=\"%s\" vrml97Hint=\"%s\"",
 				        field.name, GetXMTFieldTypeName(field.fieldType), gf_sg_vrml_get_event_type_name(field.eventType, 0));
@@ -1153,7 +1153,7 @@ static void gf_dump_vrml_dyn_field(GF_SceneDumper *sdump, GF_Node *node, GF_Fiel
 				fprintf(sdump->trace, "/>\n");
 			}
 		} else {
-			fprintf(sdump->trace, "%s %s %s", gf_sg_vrml_get_event_type_name(field.eventType, sdump->X3DDump), gf_sg_vrml_get_field_type_by_name(field.fieldType), field.name);
+			fprintf(sdump->trace, "%s %s %s", gf_sg_vrml_get_event_type_name(field.eventType, sdump->X3DDump), gf_sg_vrml_get_field_type_name(field.fieldType), field.name);
 			if ((field.eventType==GF_SG_EVENT_FIELD) || (field.eventType==GF_SG_EVENT_EXPOSED_FIELD)) {
 				fprintf(sdump->trace, " ");
 				if (field.fieldType == GF_SG_VRML_SFNODE) {
@@ -1170,7 +1170,7 @@ static void gf_dump_vrml_dyn_field(GF_SceneDumper *sdump, GF_Node *node, GF_Fiel
 
 		DUMP_IND(sdump);
 		if (!sdump->XMLDump) {
-			fprintf(sdump->trace, "%s %s %s", gf_sg_vrml_get_event_type_name(field.eventType, sdump->X3DDump), gf_sg_vrml_get_field_type_by_name(field.fieldType), field.name);
+			fprintf(sdump->trace, "%s %s %s", gf_sg_vrml_get_event_type_name(field.eventType, sdump->X3DDump), gf_sg_vrml_get_field_type_name(field.fieldType), field.name);
 			if ((field.eventType==GF_SG_EVENT_FIELD) || (field.eventType==GF_SG_EVENT_EXPOSED_FIELD)) {
 				fprintf(sdump->trace, " [");
 
@@ -1199,7 +1199,7 @@ static void gf_dump_vrml_dyn_field(GF_SceneDumper *sdump, GF_Node *node, GF_Fiel
 		} else {
 			if (sdump->X3DDump) {
 				fprintf(sdump->trace, "<field name=\"%s\" type=\"%s\" accessType=\"%s\"",
-				        field.name, gf_sg_vrml_get_field_type_by_name(field.fieldType), gf_sg_vrml_get_event_type_name(field.eventType, 1));
+				        field.name, gf_sg_vrml_get_field_type_name(field.fieldType), gf_sg_vrml_get_event_type_name(field.eventType, 1));
 			} else {
 				fprintf(sdump->trace, "<field name=\"%s\" type=\"%s\" vrml97Hint=\"%s\"",
 				        field.name, GetXMTFieldTypeName(field.fieldType), gf_sg_vrml_get_event_type_name(field.eventType, 0));
@@ -1343,7 +1343,7 @@ static void gf_dump_vrml_IS_field(GF_SceneDumper *sdump, GF_Node *node, GF_Field
 
 	if (!sdump->XMLDump) {
 		DUMP_IND(sdump);
-		if (isScript) fprintf(sdump->trace, "%s %s ", gf_sg_vrml_get_event_type_name(field.eventType, sdump->X3DDump), gf_sg_vrml_get_field_type_by_name(field.fieldType));
+		if (isScript) fprintf(sdump->trace, "%s %s ", gf_sg_vrml_get_event_type_name(field.eventType, sdump->X3DDump), gf_sg_vrml_get_field_type_name(field.fieldType));
 		fprintf(sdump->trace, "%s IS %s\n", field.name, pfield.name);
 	} else {
 		if (!skip_is) {

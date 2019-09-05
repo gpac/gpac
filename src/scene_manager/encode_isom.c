@@ -72,15 +72,15 @@ static void gf_sm_finalize_mux(GF_ISOFile *mp4, GF_ESD *src, u32 offset_ts)
 		u32 off = offset_ts * ts  / mts;
 		u64 dur = gf_isom_get_media_duration(mp4, track);
 		dur = dur * ts / mts;
-		gf_isom_set_edit_segment(mp4, track, 0, off, 0, GF_ISOM_EDIT_EMPTY);
-		gf_isom_set_edit_segment(mp4, track, off, dur, 0, GF_ISOM_EDIT_NORMAL);
+		gf_isom_set_edit(mp4, track, 0, off, 0, GF_ISOM_EDIT_EMPTY);
+		gf_isom_set_edit(mp4, track, off, dur, 0, GF_ISOM_EDIT_NORMAL);
 	}
 	/*set track interleaving ID*/
 	if (mux) {
 		if (mux->GroupID) gf_isom_set_track_interleaving_group(mp4, track, mux->GroupID);
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 		if (mux->import_flags & GF_IMPORT_USE_COMPACT_SIZE)
-			gf_isom_use_compact_size(mp4, track, 1);
+			gf_isom_use_compact_size(mp4, track, GF_TRUE);
 #endif
 	}
 #endif
@@ -113,7 +113,7 @@ static GF_Err gf_sm_import_ui_stream(GF_ISOFile *mp4, GF_ESD *src, Bool rewrite_
 	/*what's the media type for input sensor ??*/
 	len = gf_isom_new_track(mp4, src->ESID, GF_ISOM_MEDIA_SCENE, 1000);
 	if (!len) return gf_isom_last_error(mp4);
-	gf_isom_set_track_enabled(mp4, len, 1);
+	gf_isom_set_track_enabled(mp4, len, GF_TRUE);
 	if (!src->ESID) src->ESID = gf_isom_get_track_id(mp4, len);
 	return gf_isom_new_mpeg4_description(mp4, len, src, NULL, NULL, &i);
 #else
@@ -202,14 +202,14 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	if (src->decoderConfig && src->decoderConfig->streamType == GF_STREAM_OCR) {
 		track = gf_isom_new_track(mp4, src->ESID, GF_ISOM_MEDIA_OCR, 1000);
 		if (!track) return gf_isom_last_error(mp4);
-		gf_isom_set_track_enabled(mp4, track, 1);
+		gf_isom_set_track_enabled(mp4, track, GF_TRUE);
 		if (!src->ESID) src->ESID = gf_isom_get_track_id(mp4, track);
 		if (!src->slConfig) src->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 		src->slConfig->predefined = 2;
 		e = gf_isom_new_mpeg4_description(mp4, track, src, NULL, NULL, &di);
 		if (e) return e;
 		if (mux && mux->duration)
-			e = gf_isom_set_edit_segment(mp4, track, 0, mux->duration * gf_isom_get_timescale(mp4) / 1000, 0, GF_ISOM_EDIT_NORMAL);
+			e = gf_isom_set_edit(mp4, track, 0, mux->duration * gf_isom_get_timescale(mp4) / 1000, 0, GF_ISOM_EDIT_NORMAL);
 		return e;
 	}
 
@@ -643,7 +643,7 @@ force_scene_rap:
 			e = gf_isom_last_error(mp4);
 			goto exit;
 		}
-		gf_isom_set_track_enabled(mp4, track, 1);
+		gf_isom_set_track_enabled(mp4, track, GF_TRUE);
 		if (sc) {
 			if (!sc->ESID) sc->ESID = gf_isom_get_track_id(mp4, track);
 			esd->ESID = sc->ESID;
@@ -1049,7 +1049,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 		track = gf_isom_new_track(mp4, sc->ESID, GF_ISOM_MEDIA_OD, esd->slConfig->timestampResolution);
 		if (!sc->ESID) sc->ESID = gf_isom_get_track_id(mp4, track);
 		if (!esd->decoderConfig->objectTypeIndication) esd->decoderConfig->objectTypeIndication = GF_CODECID_OD_V1;
-		gf_isom_set_track_enabled(mp4, track, 1);
+		gf_isom_set_track_enabled(mp4, track, GF_TRUE);
 		/*no DSI required*/
 		/*create stream description*/
 		gf_isom_new_mpeg4_description(mp4, track, esd, NULL, NULL, &di);
@@ -1333,7 +1333,7 @@ GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOp
 
 	/*set MP4 brands*/
 	gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_MP42, 1);
-	gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_MP41, 1);
+	gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_MP41, GF_TRUE);
 
 	/*import specials, that is input remapping to BIFS*/
 #ifndef GPAC_DISABLE_MEDIA_IMPORT

@@ -54,7 +54,7 @@ extern "C" {
  */
 typedef struct __DownloadedCacheEntryStruct * DownloadedCacheEntry;
 
-
+/*! cache object*/
 typedef struct __CacheReaderStruct * GF_CacheReader;
 
 /**
@@ -155,14 +155,26 @@ const char * gf_cache_get_cache_filename( const DownloadedCacheEntry entry );
  */
 u32 gf_cache_get_cache_filesize( const DownloadedCacheEntry entry );
 
-/**
+/*!
  * Flushes The disk cache for this entry (by persisting the property file
- * \param entry The entry
- */
+\param entry The entry
+\return error if any
+*/
 GF_Err gf_cache_flush_disk_cache( const DownloadedCacheEntry entry );
 
+/*!
+ * Set content length of resource
+\param entry The entry
+\param length size of the content in bytes
+\return error if any
+ */
 GF_Err gf_cache_set_content_length( const DownloadedCacheEntry entry, u32 length );
 
+/**
+ * Get content length of resource
+ * \param entry The entry
+ * \return size of the content in bytes
+ */
 u32 gf_cache_get_content_length( const DownloadedCacheEntry entry);
 
 /**
@@ -192,19 +204,57 @@ u64 gf_cache_get_size(const char * directory);
 GF_Err gf_cache_delete_all_cached_files(const char * directory);
 
 
+/*!
+ * Check if a given cache entry is corrupted (incomplete)
+ * \param entry The entry
+ * \return GF_TRUE if resource is corrupted
+ */
 Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry);
 
+/*!
+ * Mark associated files as "to be deleted" when the cache entry is removed
+ * \param entry The entry
+ */
 void gf_cache_entry_set_delete_files_when_deleted(const DownloadedCacheEntry entry);
 
+/*!
+ * Check if associated files is marked as "to be deleted" when the cache entry is removed
+ * \param entry The entry
+ * \return GF_TRUE if cache entry is flaged as "to be deleted"
+ */
 Bool gf_cache_entry_is_delete_files_when_deleted(const DownloadedCacheEntry entry);
 
+/*!
+ * Get the number of sessions for a cache entry
+ * \param entry The entry
+ * \return the number of sessions using this cache entry
+ */
 u32 gf_cache_get_sessions_count_for_cache_entry(const DownloadedCacheEntry entry);
 
+/*!
+ * Get the start range of a cache entry
+ * \param entry The entry
+ * \return the start range in bytes
+ */
 u64 gf_cache_get_start_range( const DownloadedCacheEntry entry );
+/*!
+ * Get the end range of a cache entry
+ * \param entry The entry
+ * \return the end range in bytes
+ */
 u64 gf_cache_get_end_range( const DownloadedCacheEntry entry );
 
-
+/*!
+ * Check if the entry is marked as "headers processed" (reply headers have been parsed)
+ * \param entry The entry
+ * \return GF_TRUE if the entry is marked
+ */
 Bool gf_cache_are_headers_processed(const DownloadedCacheEntry entry);
+/*!
+ * Mark the entry as "headers processed"
+ * \param entry The entry
+ * \return error if any
+ */
 GF_Err gf_cache_set_headers_processed(const DownloadedCacheEntry entry);
 
 /*! @} */

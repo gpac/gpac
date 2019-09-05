@@ -103,7 +103,7 @@ static void CTXLoad_OnReverseActivate(GF_Node *node, GF_Route *route)
 		CTXLoad_ExecuteConditional(c, scene);
 }
 
-void CTXLoad_NodeCallback(void *cbk, u32 type, GF_Node *node, void *param)
+void CTXLoad_NodeCallback(void *cbk, GF_SGNodeCbkType type, GF_Node *node, void *param)
 {
 	if ((type==GF_SG_CALLBACK_INIT) && (gf_node_get_tag(node) == TAG_MPEG4_Conditional) ) {
 		M_Conditional*c = (M_Conditional*)node;

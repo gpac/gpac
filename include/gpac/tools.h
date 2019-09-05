@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -90,36 +90,32 @@ extern "C" {
 #define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|((u32)d))
 #endif
 
-/*!
- *	\brief GPAC enabled feature list
- *
- *	returns the list of features enabled in this GPAC build.
+/*! gets GPAC enabled feature list
+\return the list of features enabled in this GPAC build.
 */
 const char *gf_enabled_features(void);
 
-/*!
- *	\brief GPAC disabled feature list
- *
- *	returns the list of features disabled in this GPAC build.
+/*! gets GPAC disabled feature list
+\return the list of features disabled in this GPAC build.
 */
 const char *gf_disabled_features(void);
 
-/*!
- *	\brief 4CC Printing
- *
- *	returns a 4CC printable form
+/*! converts four character code to string
+\param type a four character code
+\return a printable form of the code
 */
 const char *gf_4cc_to_str(u32 type);
-
-
-size_t gf_fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 
 /*!
  *	\brief file writing helper
  *
  *	Wrapper to properly handle calls to fwrite()
  *	Ensures proper error handling is invoked when it fails.
- *	\return Same as gf_fwrite
+ *	\param ptr same as fwrite
+ *	\param size same as fwrite
+ *	\param nmemb same as fwrite
+ *	\param stream same as fwrite
+ *	\return same as fwrite
  *
 */
 size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
@@ -128,8 +124,8 @@ size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
  *	\brief large file opening
  *
  *	Opens a large file (>4GB)
- *	\param file_name Same semantics as fopen
- *	\param mode Same semantics as fopen
+ *	\param file_name same as fopen
+ *	\param mode same as fopen
  *	\return stream handle of the file object
  *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 */
@@ -139,8 +135,9 @@ FILE *gf_fopen(const char *file_name, const char *mode);
  *	\brief file closing
  *
  *	Closes a file
- *	\param file file to close
  *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
+ *	\param file file to close
+ *	\return same as flcose
 */
 s32 gf_fclose(FILE *file);
 
@@ -165,19 +162,15 @@ u64 gf_ftell(FILE *f);
 */
 u64 gf_fseek(FILE *f, s64 pos, s32 whence);
 
-/*!
- *	\brief get basename from filename/path
- *
- *	Returns a pointer to the start of a filepath basename or null
- *	\param filename Path of the file, can be an absolute path
+/*! gets basename from filename/path
+\param filename Path of the file, can be an absolute path
+\return a pointer to the start of a filepath basename or null
 */
 char* gf_file_basename(const char* filename);
 
-/*!
- *	\brief get extension from filename
- *
- *	Returns a pointer to the start of a filepath extension or null
- *	\param filename Path of the file, can be an absolute path
+/*! gets extension from filename
+\param filename Path of the file, can be an absolute path
+\return a pointer to the start of a filepath extension or null
 */
 char* gf_file_ext_start(const char* filename);
 
@@ -435,11 +428,11 @@ typedef enum
  *	\brief Log modules assignment
  *
  * Sets the tools to be checked for log filtering. By default no logging is performed.
- *	\param tool tool to be logged.
- *	\param level level of logging for this tool.
+\param log_tool the tool to be logged
+\param log_level the level of logging for this tool
  *
  */
-void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level);
+void gf_log_set_tool_level(GF_LOG_Tool log_tool, GF_LOG_Level log_level);
 
 /*!
  *	\brief Log Message Callback
@@ -482,11 +475,11 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk);
 */
 
 
-/*this is all a bit ugly, but most compilers don't properly handle variadic macros...*/
+/*! \cond PRIVATE */
 void gf_log(const char *fmt, ...);
 void gf_log_lt(GF_LOG_Level ll, GF_LOG_Tool lt);
 void gf_log_va_list(GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vl);
-
+/*! \endcond */
 
 /*!
  *	\brief Log level checking
@@ -525,15 +518,6 @@ GF_Err gf_log_set_tools_levels(const char *log_tools_levels, Bool reset_all);
  *	\return GF_OK or GF_BAD_PARAM
 */
 GF_Err gf_log_modify_tools_levels(const char *val);
-
-/*!
- *	\brief Set log level for a given tool
- *
- *	Set log level for a given tool.
- *	\param tool tool to log
- *	\param level log level for this tool
-*/
-void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level);
 
 /*!
  *	\brief Checks if color logs is enabled
@@ -612,6 +596,10 @@ typedef enum
 	GF_CONSOLE_STRIKE = 1<<19
 } GF_ConsoleCodes;
 
+/*! sets console code
+\param std the output stream (stderr or stdout)
+\param code the console code to set
+*/
 void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code);
 
 /*!
@@ -621,19 +609,15 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code);
  *	\param Reset Re-initializes the random number generator
 */
 void gf_rand_init(Bool Reset);
-/*!
- *	\brief PseudoRandom Integer Generation
- *
- *	Returns a pseudorandom integer.
+/*! PseudoRandom integer generation
+\return a pseudorandom integer
 */
 u32 gf_rand();
 
-/*!
- *	\brief user name
- *
- *	Gets current user (login) name.
+/*! gets user name
+\param buf buffer set to current user (login) name if available.
 */
-void gf_get_user_name(char *buf, u32 buf_size);
+void gf_get_user_name(char buf[1024]);
 
 
 /*!\brief FileEnum info object
@@ -678,7 +662,8 @@ typedef Bool (*gf_enum_dir_item)(void *cbck, char *item_name, char *item_path, G
  *	\param cbck Opaque user data passed to callback function.
  *	\param filter optional filter for file extensions. If a file extension without the dot '.' character is not found in the
  *	filter the file will be skipped.
-*/
+ *	\return error if any
+ */
 GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item enum_dir, void *cbck, const char *filter);
 
 
@@ -687,6 +672,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
  *
  *	Deletes a file from the disk.
  *	\param fileName absolute name of the file or name relative to the current working directory.
+ *	\return error if any
 */
 GF_Err gf_delete_file(const char *fileName);
 
@@ -696,6 +682,7 @@ GF_Err gf_delete_file(const char *fileName);
  *	Moves or renames a file or directory.
  *	\param fileName absolute path of the file / directory to move or rename
  *	\param newFileName absolute new path/name of the file / directory
+ *	\return error if any
 */
 GF_Err gf_move_file(const char *fileName, const char *newFileName);
 
@@ -838,7 +825,7 @@ void gf_sys_close();
  *	Sets the user app arguments (used by GUI mode)
  *	\param argc Number of arguments
  *	\param argv Array of arguments
- *	\returnerror code if any, GF_OK otherwise
+ *	\return error code if any, GF_OK otherwise
  */
 GF_Err gf_sys_set_args(s32 argc, const char **argv);
 
@@ -954,7 +941,8 @@ s32 gf_net_get_timezone();
  *\brief gets time from UTC timestamp
  *
  * Gets time from UTC timestamp
- * \return time description structure
+ * \param time timestamp value - see gmtime
+ * \return time description structure - see gmtime
  */
 struct tm *gf_gmtime(const time_t *time);
 
@@ -1037,7 +1025,14 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
  */
 u32 gf_sys_get_process_id();
 
-
+/*! gets battery state
+\param onBattery set to GF_TRUE if running on battery
+\param onCharge set to GF_TRUE if battery is charging
+\param level set to battery charge percent
+\param batteryLifeTime set to battery lifetime
+\param batteryFullLifeTime set to battery full lifetime
+\return GF_TRUE if success
+*/
 Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32 *level, u32 *batteryLifeTime, u32 *batteryFullLifeTime);
 
 
@@ -1082,6 +1077,7 @@ GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size);
  *
  *	Delete a  dir within the full path.
  *	\param DirPathName the file path name.
+ *	\return error if any
  */
 GF_Err gf_rmdir(const char *DirPathName);
 
@@ -1090,6 +1086,7 @@ GF_Err gf_rmdir(const char *DirPathName);
  *
  *	Create a directory within the full path.
  *	\param DirPathName the dir path name.
+ *	\return error if any
  */
 GF_Err gf_mkdir(const char* DirPathName);
 
@@ -1098,6 +1095,7 @@ GF_Err gf_mkdir(const char* DirPathName);
  *
  *	Create a directory within the full path.
  *	\param DirPathName the dir path name.
+ *	\return GF_TRUE if directory exists
  */
 Bool gf_dir_exists(const char *DirPathName);
 
@@ -1106,6 +1104,7 @@ Bool gf_dir_exists(const char *DirPathName);
  *
  *	Cleanup a directory within the full path, removing all the files and the directories.
  *	\param DirPathName the dir path name.
+ *	\return error if any
  */
 GF_Err gf_cleanup_dir(const char* DirPathName);
 
@@ -1185,40 +1184,104 @@ GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *out_size);
 GF_Err gf_lz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size);
 
 
-/*SHA1*/
+/*! SHA1 context*/
 typedef struct __sha1_context GF_SHA1Context;
 
+/*! SHA1 message size */
 #define GF_SHA1_DIGEST_SIZE		20
 
-/*  Create SHA-1 context */
+/*! create SHA-1 context
+\return the SHA1 context*/
 GF_SHA1Context *gf_sha1_starts();
-/*  Adds byte to the SHA-1 context */
+/*! adds byte to the SHA-1 context
+\param ctx the target SHA1 context
+\param input data to hash
+\param length size of data in bytes
+*/
 void gf_sha1_update(GF_SHA1Context *ctx, u8 *input, u32 length);
-/*  Generates SHA-1 of all bytes ingested */
+/*! generates SHA-1 of all bytes ingested
+\param ctx the target SHA1 context
+\param digest buffer to store message digest
+*/
 void gf_sha1_finish(GF_SHA1Context *ctx, u8 digest[GF_SHA1_DIGEST_SIZE] );
 
-/*
- * Output SHA-1(file contents), returns 0 if successful.
- */
-int gf_sha1_file(const char *filename, u8 digest[GF_SHA1_DIGEST_SIZE]);
+/*! gets SHA1 message digest of a file
+\param filename name of file to hash
+\param digest buffer to store message digest
+\return error if any
+*/
+GF_Err gf_sha1_file(const char *filename, u8 digest[GF_SHA1_DIGEST_SIZE]);
 
-/*
- * Gets SHA-1 of input buffer
+/*! gets SHA-1 of input buffer
+\param buf input buffer to hash
+\param buflen sizeo of input buffer in bytes
+\param digest buffer to store message digest
  */
 void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE]);
 /*! @} */
 
 
+/*! gets a global config key value from its section and name.
+\param secName the desired key parent section name
+\param keyName the desired key name
+\return the desired key value if found, NULL otherwise.
+*/
 const char *gf_opts_get_key(const char *secName, const char *keyName);
+
+/*! sets a global config key value from its section and name.
+\param secName the desired key parent section name
+\param keyName the desired key name
+\param keyValue the desired key value
+\note this will also create both section and key if they are not found in the configuration file
+\return error if any
+*/
 GF_Err gf_opts_set_key(const char *secName, const char *keyName, const char *keyValue);
+
+/*! removes all entries in the given section of the global config
+\param secName the target section
+*/
 void gf_opts_del_section(const char *secName);
+/*! gets the number of sections in the global config
+\return the number of sections
+*/
 u32 gf_opts_get_section_count();
+/*! gets a section name based on its index in the global config
+\param secIndex 0-based index of the section to query
+\return the section name if found, NULL otherwise
+*/
 const char *gf_opts_get_section_name(u32 secIndex);
+
+/*! gets the number of keys in a section of the global config
+\param secName the target section
+\return the number of keys in the section
+*/
 u32 gf_opts_get_key_count(const char *secName);
+/*! gets the number of keys in a section of the global config
+\param secName the target section
+\param keyIndex 0-based index of the key in the section
+\return the key name if found, NULL otherwise
+*/
 const char *gf_opts_get_key_name(const char *secName, u32 keyIndex);
+
+/*! gets a global config boolean value from its section and name.
+\param secName the desired key parent section name
+\param keyName the desired key name
+\return the desired key value if found, GF_FALSE otherwise.
+*/
 Bool gf_opts_get_bool(const char *secName, const char *keyName);
+
+/*! gets a global config integer value from its section and name.
+\param secName the desired key parent section name
+\param keyName the desired key name
+\return the desired key value if found, 0 otherwise.
+*/
 u32 gf_opts_get_int(const char *secName, const char *keyName);
-//same as gf_opts_get_key but returns NULL if the key is not restricted
+
+/*! gets a global config key value from its section and name.
+\param secName the desired key parent section name
+\param keyName the desired key name
+\return the desired key value if found and if the key is not restricted, NULL otherwise.
+*/
 const char *gf_opts_get_key_restricted(const char *secName, const char *keyName);
 
 /*!
@@ -1262,6 +1325,8 @@ GF_Err gf_blob_get_data(const char *blob_url, u8 **out_data, u32 *out_size);
  */
 GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep);
 
+//! @cond Doxygen_Suppress
+
 #ifdef GPAC_DISABLE_3D
 #define GPAC_DISABLE_REMOTERY 1
 #endif
@@ -1275,15 +1340,24 @@ GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep);
 #include <gpac/Remotery.h>
 
 #define GF_RMT_AGGREGATE	RMTSF_Aggregate
+/*! begins remotery CPU sample*/
 #define gf_rmt_begin rmt_BeginCPUSample
+/*! begins remotery CPU sample with hash*/
 #define gf_rmt_begin_hash rmt_BeginCPUSampleStore
+/*! ends remotery CPU sample*/
 #define gf_rmt_end rmt_EndCPUSample
+/*! sets remotery thread name*/
 #define gf_rmt_set_thread_name rmt_SetCurrentThreadName
+/*! logs remotery text*/
 #define gf_rmt_log_text rmt_LogText
+/*! begins remotery OpenGL sample*/
 #define gf_rmt_begin_gl rmt_BeginOpenGLSample
+/*! begins remotery OpenGL sample with hash*/
 #define gf_rmt_begin_gl_hash rmt_BeginOpenGLSampleStore
+/*!ends remotery OpenGL sample*/
 #define gf_rmt_end_gl rmt_EndOpenGLSample
 
+//! @endcond
 
 /* \cond dummy */
 #ifdef GPAC_CONFIG_ANDROID
@@ -1294,7 +1368,8 @@ void gf_fm_request_call(u32 type, u32 param, int *value);
 
 /* \endcond */
 
-#define ARRAY_LENGTH(a) (sizeof(a) / sizeof((a)[0]))
+/*! macros to get the size of an array of struct*/
+#define GF_ARRAY_LENGTH(a) (sizeof(a) / sizeof((a)[0]))
 
 #ifdef __cplusplus
 }

@@ -290,7 +290,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			char name[GF_MAX_IP_NAME_LEN];
 
 			size_t start;
-			gf_get_user_name(name, 1024);
+			gf_get_user_name(name);
 			if (strlen(name)) strcat(name, "@");
 			start = strlen(name);
 			//get host IP or loopback if error
@@ -787,7 +787,7 @@ GF_Err gf_rtp_setup_payload(GF_RTPChannel *ch, u32 PayloadType, u32 ClockRate)
 }
 
 GF_EXPORT
-GF_RTSPTransport *gf_rtp_get_transport(GF_RTPChannel *ch)
+const GF_RTSPTransport *gf_rtp_get_transport(GF_RTPChannel *ch)
 {
 	if (!ch) return NULL;
 	return &ch->net_info;
@@ -1046,7 +1046,7 @@ send_it:
 	return ret;
 }
 
-GF_Err gf_rtp_set_interleave_callbacks(GF_RTPChannel *ch, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, u8 *pck, u32 pck_size), void *cbk1, void *cbk2)
+GF_Err gf_rtp_set_interleave_callbacks(GF_RTPChannel *ch, gf_rtp_tcp_callback RTP_TCPCallback, void *cbk1, void *cbk2)
 {
 	if (!ch) return GF_BAD_PARAM;
 	ch->send_interleave = RTP_TCPCallback;

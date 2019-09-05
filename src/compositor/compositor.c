@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -301,6 +301,22 @@ GF_Err gf_sc_frame_ifce_get_gl_texture(GF_FilterFrameInterface *frame_ifce, u32 
 	return GF_OK;
 }
 #endif
+
+static void gf_sc_flush_video(GF_Compositor *compositor, Bool locked)
+{
+	GF_Window rc;
+
+	//release compositor in case we have vsync
+	if (locked) gf_sc_lock(compositor, 0);
+	rc.x = rc.y = 0;
+	rc.w = compositor->display_width;
+	rc.h = compositor->display_height;
+	compositor->video_out->Flush(compositor->video_out, &rc);
+	compositor->flush_pending = GF_FALSE;
+	if (locked) gf_sc_lock(compositor, 1);
+}
+
+void gf_sc_render_frame(GF_Compositor *compositor);
 
 GF_EXPORT
 Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_next)
@@ -1984,7 +2000,7 @@ GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *frame
 	return e;
 }
 
-GF_Err gf_sc_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, u32 view_idx, u32 depth_dump_mode)
+GF_Err gf_sc_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, u32 view_idx, GF_CompositorGrabMode depth_dump_mode)
 {
 	if (!compositor || !framebuffer) return GF_BAD_PARAM;
 #ifndef GPAC_DISABLE_3D
@@ -2401,21 +2417,7 @@ static void compositor_release_textures(GF_Compositor *compositor, Bool frame_dr
 	}
 }
 
-void gf_sc_flush_video(GF_Compositor *compositor, Bool locked)
-{
-	GF_Window rc;
 
-	//release compositor in case we have vsync
-	if (locked) gf_sc_lock(compositor, 0);
-	rc.x = rc.y = 0;
-	rc.w = compositor->display_width;
-	rc.h = compositor->display_height;
-	compositor->video_out->Flush(compositor->video_out, &rc);
-	compositor->flush_pending = GF_FALSE;
-	if (locked) gf_sc_lock(compositor, 1);
-}
-
-GF_EXPORT
 void gf_sc_render_frame(GF_Compositor *compositor)
 {
 #ifndef GPAC_DISABLE_SCENEGRAPH
@@ -3475,9 +3477,6 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			event->message.message = NULL;
 		}
 		break;
-	case GF_EVENT_SYNC_LOST:
-		compositor->force_late_frame_draw = GF_TRUE;
-		break;
 	/*when we process events we don't forward them to the user*/
 	default:
 		return gf_sc_send_event(compositor, event);
@@ -3515,7 +3514,7 @@ void gf_sc_register_extra_graph(GF_Compositor *compositor, GF_SceneGraph *extra_
 	gf_sc_lock(compositor, GF_FALSE);
 }
 
-Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSAPIParam *param)
+Bool gf_sc_script_action(GF_Compositor *compositor, GF_JSAPIActionType type, GF_Node *n, GF_JSAPIParam *param)
 {
 	switch (type) {
 	case GF_JSAPI_OP_GET_SCALE:
@@ -3678,6 +3677,8 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 	case GF_JSAPI_OP_GET_DPI_Y:
 		param->opt = compositor->video_out->dpi_y;
 		return GF_TRUE;
+	default:
+		return GF_FALSE;
 	}
 	return GF_FALSE;
 }

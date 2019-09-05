@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Jean Le Feuvre
-*			Copyright (c) Telecom ParisTech 2000-2018
+*			Copyright (c) Telecom ParisTech 2000-2019
 *					All rights reserved
 *
 *  This file is part of GPAC / Crypto Tools sub-project
@@ -56,52 +56,89 @@ extern "C" {
 /*crypto lib handler*/
 typedef struct _gf_crypt_context GF_Crypt;
 
+/*! Key size in bytes for AES 128*/
 #define GF_AES_128_KEYSIZE 16
 
+/*! Chaining mode of AES*/
 typedef enum {
+	/*! CBC chaining mode*/
 	GF_CBC = 0,
+	/*! CTR chaining mode*/
 	GF_CTR = 1
 } GF_CRYPTO_MODE;
 
+/*! Algorithm mode to use*/
 typedef enum {
+	/*! AES 128 bit encryption*/
 	GF_AES_128 = 0
 } GF_CRYPTO_ALGO;
 
 
-/*opens crypto context*/
+/*! opens crypto context
+\param algorithm the algorithm to use
+\param mode the chaining mode of the algorithm
+\return a new crypto context
+*/
 GF_Crypt *gf_crypt_open(GF_CRYPTO_ALGO algorithm, GF_CRYPTO_MODE mode);
-/*close crypto context*/
+/*! destroys a crypto context
+\param gfc the target crytpo context
+*/
 void gf_crypt_close(GF_Crypt *gfc);
 
-/*
-This function initializes all buffers for the specified context
-@key: Key used. MUST be 16 bytes long
-@iv: Init Vector. It needs to be random and unique (but not secret). The same IV must be used
+/*! initializes all buffers for the specified context
+After calling this function you can use the crypto context for encryption or decryption (not both).
+\param gfc the target crytpo context
+\param key the key to use. MUST be 16 bytes long
+\param iv the seed/initialization vector to use. It needs to be random and unique (but not secret). The same IV must be used
 for encryption/decryption. MUST be 16 bytes long
-After calling this function you can use the descriptor for encryption or decryption (not both).
+\return error if any
 */
 GF_Err gf_crypt_init(GF_Crypt *gfc, void *key, const void *iv);
 
-/*changes key, does not touch IV - used for key roll*/
+/*! changes key, does not touch IV. This is used for key rolling
+\param gfc the target crytpo context
+\param key the new key to use. MUST be 16 bytes long
+\return error if any
+*/
 GF_Err gf_crypt_set_key(GF_Crypt *gfc, void *key);
 
-/* sets the IV for the algorithm. Used for ISMA and CENC CTR.
+/*! sets the IV for the algorithm. Used for ISMA and CENC CTR.
+\param gfc the target crytpo context
+\param iv the new eed/initialization vector to use
+\param size the size of the IV. Must be 16 or 17 for AES. If 17 (AES CTR only), the first byte shall contain the counter position
+\return error if any
 */
 GF_Err gf_crypt_set_IV(GF_Crypt *gfc, const void *iv, u32 size);
 
-/*gets the IV of the algorithm. The size will hold the size of the state and the state must have enough bytes to hold it (17 is enough). In CTR mode, the first byte will be set to the counter value (number of bytes consummed in last block), or 0 if all bytes were consummed
+/*! gets the IV of the algorithm.
+The size will hold the size of the state and the state must have enough bytes to hold it (17 is enough for AES 128).
+In CTR mode, the first byte will be set to the counter value (number of bytes consummed in last block), or 0 if all bytes were consummed
+\param gfc the target crytpo context
+\param iv filled with the current IV
+\param size will be set to the IV size (16 for AES CBC? 17 for AES CTR)
+\return error if any
 */
 GF_Err gf_crypt_get_IV(GF_Crypt *gfc, void *iv, u32 *size);
 
-/*
-main encryption function.
-@Plaintext, @len: plaintext to encrypt - len should be  k*algorithms_block_size if used in a mode
-which operated in blocks (cbc, ecb, nofb), or whatever when used in cfb or ofb which operate in streams.
-The plaintext is replaced by the ciphertext.
+/*! encrypts a payload. The encryption is done inplace (plaintext is replaced by the ciphertext).
+ The buffer size should be k*algorithms_block_size if used in a mode which operated in blocks (CBC) or whatever when used in CTR which operate in streams.
+
+\param gfc the target crytpo context
+\param plaintext the clear buffer
+\param size the size of the clear buffer
+\return error if any
 */
-GF_Err gf_crypt_encrypt(GF_Crypt *gfc, void *plaintext, u32 len);
-/*decryption function. It is almost the same with gf_crypt_generic.*/
-GF_Err gf_crypt_decrypt(GF_Crypt *gfc, void *ciphertext, u32 len);
+GF_Err gf_crypt_encrypt(GF_Crypt *gfc, void *plaintext, u32 size);
+
+/*! decrypts a payload. The decryption is done inplace (ciphertext is replaced by the plaintext).
+ The buffer size should be k*algorithms_block_size if used in a mode which operated in blocks (CBC) or whatever when used in CTR which operate in streams.
+
+\param gfc the target crytpo context
+\param ciphertext the encrypted buffer
+\param size the size of the encrypted buffer
+\return error if any
+*/
+GF_Err gf_crypt_decrypt(GF_Crypt *gfc, void *ciphertext, u32 size);
 
 
 /*! @} */

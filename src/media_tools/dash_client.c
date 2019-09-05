@@ -1786,7 +1786,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
-		if (gf_sha1_file( local_url, signature)) {
+		if (gf_sha1_file( local_url, signature) != GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] : cannot SHA1 file %s\n", local_url));
 			return GF_IO_ERR;
 		}
@@ -8213,14 +8213,6 @@ Bool gf_dash_group_segment_switch_forced(GF_DashClient *dash, u32 idx)
 }
 
 GF_EXPORT
-Double gf_dash_group_current_segment_start_time(GF_DashClient *dash, u32 idx)
-{
-	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
-	if (!group) return 0.0;
-	return gf_dash_get_segment_start_time(group, NULL);
-}
-
-GF_EXPORT
 void gf_dash_set_utc_shift(GF_DashClient *dash, s32 shift_utc_sec)
 {
 	if (dash) dash->utc_shift = shift_utc_sec;
@@ -8261,25 +8253,6 @@ GF_Err gf_dash_set_segment_expiration_threshold(GF_DashClient *dash, u32 expire_
 {
 	if (!dash) return GF_BAD_PARAM;
 	dash->segment_lost_after_ms = expire_after_ms;
-	return GF_OK;
-}
-
-
-GF_EXPORT
-GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 representation_idx, u32 *width, u32 *height, u32 *audio_samplerate, u32 *bandwidth, const char **codecs)
-{
-	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
-	GF_MPD_Representation *rep;
-	if (!group) return GF_BAD_PARAM;
-	rep = gf_list_get(group->adaptation_set->representations, representation_idx);
-	if (!rep) return GF_BAD_PARAM;
-
-	if (width) *width = rep->width ? rep->width : group->adaptation_set->width;
-	if (height) *height = rep->height ? rep->height : group->adaptation_set->height;
-	if (codecs) *codecs = rep->codecs ? rep->codecs : group->adaptation_set->codecs;
-	if (bandwidth) *bandwidth = rep->bandwidth;
-	if (audio_samplerate) *audio_samplerate = rep->samplerate ? rep->samplerate : group->adaptation_set->samplerate;
-
 	return GF_OK;
 }
 

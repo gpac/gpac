@@ -1329,7 +1329,9 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		id3_tag_create(&stream->curr_pck.data, &stream->curr_pck.data_len);
 		stream->discard_data = GF_TRUE;
 	}
-	break;
+		break;
+	default:
+		break;
 	}
 
 	if (stream->start_pes_at_rap && (stream->curr_pck.sap_type)
@@ -2486,7 +2488,7 @@ u32 gf_m2ts_mux_program_count(GF_M2TS_Mux *muxer)
 }
 
 GF_EXPORT
-GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, Bool mpeg4_signaling, u32 pmt_version, Bool initial_disc)
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, u32 mpeg4_signaling, u32 pmt_version, Bool initial_disc)
 {
 	GF_M2TS_Mux_Program *program;
 
@@ -2773,7 +2775,7 @@ GF_Err gf_m2ts_mux_enable_pcr_only_packets(GF_M2TS_Mux *muxer, Bool enable_force
 
 
 GF_EXPORT
-const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_next)
+const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, GF_M2TSMuxState *status, u32 *usec_till_next)
 {
 	GF_M2TS_Mux_Program *program;
 	GF_M2TS_Mux_Stream *stream, *stream_to_process;

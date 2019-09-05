@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -48,15 +48,18 @@ extern "C" {
 #include <gpac/tools.h>
 
 
+/*! bitstream creation modes*/
 enum
 {
+	/*! read-only mode*/
 	GF_BITSTREAM_READ = 0,
+	/*! read-write mode*/
 	GF_BITSTREAM_WRITE,
-	/*allows reallocating the buffer passed in WRITE mode*/
+	/*! allows reallocating the buffer passed in WRITE mode*/
 	GF_BITSTREAM_WRITE_DYN
-
 };
 
+/*! bitstream object*/
 typedef struct __tag_bitstream GF_BitStream;
 
 /*!
@@ -101,6 +104,7 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode);
  *	\brief bitstream destructor from file handle
  *
  * Deletes the bitstream object. If the buffer was created by the bitstream, it is deleted if still present.
+\param bs the target bitstream
  */
 void gf_bs_del(GF_BitStream *bs);
 
@@ -244,14 +248,6 @@ u64 gf_bs_read_u64(GF_BitStream *bs);
  */
 u64 gf_bs_read_u64_le(GF_BitStream *bs);
 /*!
-*	\brief little endian integer reading
-*
-*	Reads an integer coded on 64 bits in little-endian order.
-*	\param bs the target bitstream
-*	\return the integer value read.
-*/
-u64 gf_bs_read_u64_le(GF_BitStream *bs);
-/*!
  *	\brief little endian integer reading
  *
  *	Reads an integer coded on 32 bits in little-endian order.
@@ -338,6 +334,7 @@ void gf_bs_write_double(GF_BitStream *bs, Double value);
  *	\param bs the target bitstream
  *	\param data the data to write
  *	\param nbBytes number of data bytes to write
+ *	\return the number of written bytes
  */
 u32 gf_bs_write_data(GF_BitStream *bs, const u8 *data, u32 nbBytes);
 
@@ -497,6 +494,7 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes);
  *\warning Results are unpredictable if seeking beyond the bitstream end is performed.
  *\param bs the target bitstream
  *\param offset buffer/file offset to seek to
+ *\return error if any
  */
 GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset);
 

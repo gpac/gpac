@@ -155,6 +155,8 @@ void gf_dvb_mpe_section_del(GF_M2TS_ES *es)
 }
 */
 
+Bool gf_m2ts_crc32_check(u8 *data, u32 len);
+
 void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned char *data, u32 data_size, u8 table_id)
 {
 	GF_M2TS_IP_Stream *ip_stream_buff;

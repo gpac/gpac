@@ -857,7 +857,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		if (p) {
 			gf_isom_set_track_flags(ctx->file, tkw->track_num, p->value.uint, GF_ISOM_TKFLAGS_SET);
 		} else {
-			gf_isom_set_track_enabled(ctx->file, tkw->track_num, 1);
+			gf_isom_set_track_enabled(ctx->file, tkw->track_num, GF_TRUE);
 		}
 
 		//if we have a subtype set for the pid, use it
@@ -940,7 +940,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		}
 		if (!ctx->m4sys && !is_isom && !ctx->def_brand_patched) {
 			//remove default brand
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, GF_FALSE);
 			ctx->def_brand_patched = GF_TRUE;
 		}
 	}
@@ -1531,7 +1531,7 @@ sample_entry_setup:
 			gf_isom_set_pl_indication(ctx->file, GF_ISOM_PL_VISUAL, 0x7F);
 
 		if (!tkw->has_brands)
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_AVC1, 1);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_AVC1, GF_TRUE);
 
 		tkw->is_nalu = NALU_AVC;
 
@@ -1549,7 +1549,7 @@ sample_entry_setup:
 		tkw->is_nalu = NALU_HEVC;
 		tkw->use_dref = GF_FALSE;
 		if (!tkw->has_brands)
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_HVTI, 1);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_HVTI, GF_TRUE);
 	} else if (use_hevc) {
 		if (tkw->hvcc) gf_odf_hevc_cfg_del(tkw->hvcc);
 
@@ -1569,7 +1569,7 @@ sample_entry_setup:
 
 			if (!tkw->has_brands) {
 				gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO4, 1);
-				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, GF_FALSE);
 			}
 			//pacth for old arch
 			else if (ctx->dash_mode) {
@@ -1579,10 +1579,10 @@ sample_entry_setup:
 				}
 
 				if (!force_brand && ctx->major_brand_set) {
-					gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO6, 1);
+					gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO6, GF_TRUE);
 				} else {
 					gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO6, 1);
-					gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
+					gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, GF_FALSE);
 				}
 			}
 
@@ -1643,8 +1643,8 @@ sample_entry_setup:
 
 		if (!tkw->has_brands) {
 			gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO4, 1);
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_AV01, 1);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, GF_FALSE);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_AV01, GF_TRUE);
 		}
 
 		gf_odf_av1_cfg_del(av1c);
@@ -1701,8 +1701,8 @@ sample_entry_setup:
 			if (gpp_cfg.type==GF_ISOM_SUBTYPE_3GP_QCELP) {
 				gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_3G2A, 65536);
 			} else if (gpp_cfg.type==GF_ISOM_SUBTYPE_3GP_H263) {
-				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_3GG6, 1);
-				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_3GG5, 1);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_3GG6, GF_TRUE);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_3GG5, GF_TRUE);
 			}
 		}
 		tkw->skip_bitrate_update = GF_TRUE;
@@ -2259,21 +2259,21 @@ sample_entry_done:
 
 		//if we have an edit list (due to track template) only providing media offset, trash it
 		if (!gf_isom_get_edit_list_type(ctx->file, tkw->track_num, &moffset)) {
-			gf_isom_remove_edit_segments(ctx->file, tkw->track_num);
+			gf_isom_remove_edits(ctx->file, tkw->track_num);
 		}
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DELAY);
 		if (p) {
 			if (p->value.sint < 0) {
 				if (ctx->ctmode==MP4MX_CT_NEGCTTS) use_negccts = GF_TRUE;
 				else {
-					gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, 0, -p->value.sint, GF_ISOM_EDIT_NORMAL);
+					gf_isom_set_edit(ctx->file, tkw->track_num, 0, 0, -p->value.sint, GF_ISOM_EDIT_NORMAL);
 				}
 			} else if (p->value.sint > 0) {
 				s64 dur = p->value.sint;
 				dur *= (u32) ctx->moovts;
 				dur /= tkw->src_timescale;
-				gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, dur, 0, GF_ISOM_EDIT_DWELL);
-				gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, 0, 0, GF_ISOM_EDIT_NORMAL);
+				gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, 0, GF_ISOM_EDIT_DWELL);
+				gf_isom_set_edit(ctx->file, tkw->track_num, 0, 0, 0, GF_ISOM_EDIT_NORMAL);
 			}
 			tkw->ts_delay = p->value.sint;
 		} else if (tkw->stream_type==GF_STREAM_VISUAL) {
@@ -2283,11 +2283,11 @@ sample_entry_done:
 			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_TRUE);
 
 			if (!tkw->has_brands) {
-				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO4, 1);
-				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
-				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO1, 0);
-				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO2, 0);
-				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO3, 0);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO4, GF_TRUE);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, GF_FALSE);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO1, GF_FALSE);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO2, GF_FALSE);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO3, GF_FALSE);
 			}
 
 			tkw->negctts_shift = (tkw->ts_delay<0) ? -tkw->ts_delay : 0;
@@ -2479,7 +2479,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		memcpy(tkw->constant_IV, constant_IV, sizeof(bin128));
 
 		if (!tkw->has_brands && (scheme_type==GF_ISOM_OMADRM_SCHEME))
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_OPF2, 1);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_OPF2, GF_TRUE);
 
 
 		e = gf_isom_cenc_allocate_storage(ctx->file, tkw->track_num, container_type, 0, 0, NULL);
@@ -3231,7 +3231,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 		//use 1 for the default sample description index. If no multi stsd, this is always the case
 		//otherwise we need to the stsd idx in the traf headers
-		e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, 1, def_pck_dur, 0, (u8) def_is_rap, 0, 0, ctx->nofragdef ? 1 : 0);
+		e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, 1, def_pck_dur, 0, (u8) def_is_rap, 0, 0, ctx->nofragdef ? GF_TRUE : GF_FALSE);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to setup fragmentation for track ID %d: %s\n", tkw->track_id, gf_error_to_string(e) ));
 			return e;
@@ -3287,24 +3287,24 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			gf_isom_set_brand_info(ctx->file, ctx->dash_mode ? GF_ISOM_BRAND_ISO6 : GF_ISOM_BRAND_ISO5, 1);
 		}
 
-		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
-		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO1, 0);
-		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO2, 0);
-		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO3, 0);
-		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO4, 0);
-		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_AVC1, 0);
-		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_MP41, 0);
-		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_MP42, 0);
+		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, GF_FALSE);
+		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO1, GF_FALSE);
+		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO2, GF_FALSE);
+		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO3, GF_FALSE);
+		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO4, GF_FALSE);
+		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_AVC1, GF_FALSE);
+		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_MP41, GF_FALSE);
+		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_MP42, GF_FALSE);
 	}
 
 	if (ctx->dash_mode) {
 		/*DASH self-init media segment*/
 		if (ctx->dash_mode==MP4MX_DASH_VOD) {
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_DSMS, 1);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_DSMS, GF_TRUE);
 		} else {
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_DASH, 1);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_DASH, GF_TRUE);
 		}
-		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_MSIX, ((ctx->dash_mode==MP4MX_DASH_VOD) && (ctx->subs_sidx>=0)) ? 1 : 0);
+		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_MSIX, ((ctx->dash_mode==MP4MX_DASH_VOD) && (ctx->subs_sidx>=0)) ? GF_TRUE : GF_FALSE);
 	}
 
 
@@ -3895,10 +3895,10 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 			dur *= (u32) ctx->moovts;
 			dur /= tkw->src_timescale;
 
-			gf_isom_remove_edit_segments(ctx->file, tkw->track_num);
+			gf_isom_remove_edits(ctx->file, tkw->track_num);
 
-			gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, dur, dts_diff, GF_ISOM_EDIT_EMPTY);
-			gf_isom_set_edit_segment(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
+			gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, dts_diff, GF_ISOM_EDIT_EMPTY);
+			gf_isom_set_edit(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
 			tkw->empty_init_dur = (u64) dur;
 		}
 	}
@@ -4255,7 +4255,7 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 	//if we have a complex edit list (due to track template), don't override
 	if (gf_isom_get_edit_list_type(ctx->file, tkw->track_num, &moffset)) return;
 
-	gf_isom_remove_edit_segments(ctx->file, tkw->track_num);
+	gf_isom_remove_edits(ctx->file, tkw->track_num);
 
 
 	count = gf_isom_get_sample_count(ctx->file, tkw->track_num);
@@ -4282,12 +4282,12 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 		max_cts /= tkw->tk_timescale;
 		if (tkw->empty_init_dur) {
 
-			gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, tkw->empty_init_dur, 0, GF_ISOM_EDIT_EMPTY);
+			gf_isom_set_edit(ctx->file, tkw->track_num, 0, tkw->empty_init_dur, 0, GF_ISOM_EDIT_EMPTY);
 			if (max_cts >= tkw->empty_init_dur) max_cts -= tkw->empty_init_dur;
 			else max_cts = 0;
 		}
 
-		gf_isom_set_edit_segment(ctx->file, tkw->track_num, tkw->empty_init_dur, max_cts, min_cts, GF_ISOM_EDIT_NORMAL);
+		gf_isom_set_edit(ctx->file, tkw->track_num, tkw->empty_init_dur, max_cts, min_cts, GF_ISOM_EDIT_NORMAL);
 	}
 }
 
@@ -4447,7 +4447,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			if (ctx->importer) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("OpenGOP detected - adjusting file brand\n"));
 			}
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO6, 1);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO6, GF_TRUE);
 		}
 
 		mp4_mux_set_hevc_groups(ctx, tkw);

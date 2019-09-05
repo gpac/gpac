@@ -198,6 +198,7 @@ static void svg_traverse_title(GF_Node *node, void *rs, Bool is_destroy)
 }
 #endif
 
+void gf_sc_on_node_init(GF_Compositor *sc, GF_Node *node);
 
 void gf_scene_on_node_init(void *_scene, GF_Node *node)
 {
@@ -331,7 +332,7 @@ static void gf_scene_on_node_destroyed(void *_is, GF_Node *node)
 }
 
 GF_EXPORT
-void gf_scene_node_callback(void *_is, u32 type, GF_Node *n, void *param)
+void gf_scene_node_callback(void *_is, GF_SGNodeCbkType type, GF_Node *n, void *param)
 {
 	switch (type) {
 	case GF_SG_CALLBACK_MODIFIED:

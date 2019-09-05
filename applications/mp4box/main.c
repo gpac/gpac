@@ -4527,7 +4527,7 @@ int mp4boxMain(int argc, char **argv)
 		char *mux_args=NULL;
 		GF_FilterSession *fs = NULL;
 
-		u8 open_mode = GF_ISOM_OPEN_EDIT;
+		GF_ISOOpenMode open_mode = GF_ISOM_OPEN_EDIT;
 		if (force_new) {
 			open_mode = (do_flat || (force_new==2)) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 		} else {
@@ -4982,7 +4982,7 @@ int mp4boxMain(int argc, char **argv)
 	        ) {
 		FILE *st = gf_fopen(inName, "rb");
 		Bool file_exists = 0;
-		u8 omode;
+		GF_ISOOpenMode omode;
 		if (st) {
 			file_exists = 1;
 			gf_fclose(st);
@@ -5372,7 +5372,7 @@ int mp4boxMain(int argc, char **argv)
 		case META_ACTION_SET_TYPE:
 			/*note: we don't handle file brand modification, this is an author stuff and cannot be guessed from meta type*/
 			e = gf_isom_set_meta_type(file, meta->root_meta, tk, meta->meta_4cc);
-			gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_ISO2, 1);
+			gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_ISO2, GF_TRUE);
 			needSave = GF_TRUE;
 			break;
 		case META_ACTION_ADD_ITEM:
@@ -5630,7 +5630,7 @@ int mp4boxMain(int argc, char **argv)
 					break;
 				case GF_ISOM_MEDIA_AUDIO:
 					if (!ipod_major_brand) ipod_major_brand = GF_ISOM_BRAND_M4A;
-					else gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_M4A, 1);
+					else gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_M4A, GF_TRUE);
 					break;
 				case GF_ISOM_MEDIA_TEXT:
 					/*this is a text track track*/
@@ -5659,7 +5659,7 @@ int mp4boxMain(int argc, char **argv)
 				}
 			}
 			gf_isom_set_brand_info(file, ipod_major_brand, 1);
-			gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_MP42, 1);
+			gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_MP42, GF_TRUE);
 			needSave = GF_TRUE;
 		}
 
@@ -5713,26 +5713,26 @@ int mp4boxMain(int argc, char **argv)
 			if (tka->delay_ms) {
 				u64 tk_dur;
 
-				gf_isom_remove_edit_segments(file, track);
+				gf_isom_remove_edits(file, track);
 				tk_dur = gf_isom_get_track_duration(file, track);
-				if (gf_isom_get_edit_segment_count(file, track))
+				if (gf_isom_get_edits_count(file, track))
 					needSave = GF_TRUE;
 				if (tka->delay_ms>0) {
-					gf_isom_append_edit_segment(file, track, (timescale*tka->delay_ms)/1000, 0, GF_ISOM_EDIT_EMPTY);
-					gf_isom_append_edit_segment(file, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+					gf_isom_append_edit(file, track, (timescale*tka->delay_ms)/1000, 0, GF_ISOM_EDIT_EMPTY);
+					gf_isom_append_edit(file, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
 					needSave = GF_TRUE;
 				} else {
 					u64 to_skip = (timescale*(-tka->delay_ms))/1000;
 					if (to_skip<tk_dur) {
 						u64 media_time = (-tka->delay_ms)*gf_isom_get_media_timescale(file, track) / 1000;
-						gf_isom_append_edit_segment(file, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
+						gf_isom_append_edit(file, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
 						needSave = GF_TRUE;
 					} else {
 						fprintf(stderr, "Warning: request negative delay longer than track duration - ignoring\n");
 					}
 				}
-			} else if (gf_isom_get_edit_segment_count(file, track)) {
-				gf_isom_remove_edit_segments(file, track);
+			} else if (gf_isom_get_edits_count(file, track)) {
+				gf_isom_remove_edits(file, track);
 				needSave = GF_TRUE;
 			}
 			break;
@@ -5799,13 +5799,13 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		case TRAC_ACTION_ENABLE:
 			if (!gf_isom_is_track_enabled(file, track)) {
-				e = gf_isom_set_track_enabled(file, track, 1);
+				e = gf_isom_set_track_enabled(file, track, GF_TRUE);
 				needSave = GF_TRUE;
 			}
 			break;
 		case TRAC_ACTION_DISABLE:
 			if (gf_isom_is_track_enabled(file, track)) {
-				e = gf_isom_set_track_enabled(file, track, 0);
+				e = gf_isom_set_track_enabled(file, track, GF_FALSE);
 				needSave = GF_TRUE;
 			}
 			break;
@@ -5984,11 +5984,11 @@ int mp4boxMain(int argc, char **argv)
 		needSave = GF_TRUE;
 	}
 	for (i=0; i<nb_alt_brand_add; i++) {
-		gf_isom_modify_alternate_brand(file, brand_add[i], 1);
+		gf_isom_modify_alternate_brand(file, brand_add[i], GF_TRUE);
 		needSave = GF_TRUE;
 	}
 	for (i=0; i<nb_alt_brand_rem; i++) {
-		gf_isom_modify_alternate_brand(file, brand_rem[i], 0);
+		gf_isom_modify_alternate_brand(file, brand_rem[i], GF_FALSE);
 		needSave = GF_TRUE;
 	}
 	if (box_patch_filename) {

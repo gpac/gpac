@@ -668,7 +668,7 @@ void gf_sm_stats_del(GF_StatManager *stat)
 }
 
 GF_EXPORT
-GF_SceneStatistics *gf_sm_stats_get(GF_StatManager *stat)
+const GF_SceneStatistics *gf_sm_stats_get(GF_StatManager *stat)
 {
 	return stat->stats;
 }

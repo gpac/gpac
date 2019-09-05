@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -74,6 +74,7 @@ typedef struct __tag_thread GF_Thread;
  *
  *Constructs a new thread object
  *\param name log name of the thread if any
+ *\return new thread object
  */
 GF_Thread *gf_th_new(const char *name);
 /*!
@@ -98,10 +99,11 @@ typedef u32 (*gf_thread_run)(void *par);
  *\brief thread execution
  *
  *Executes the thread with the given function
+ *\note A thread may be run several times but cannot be run twice in the same time.
  *\param th the thread object
  *\param run the function this thread will call
  *\param par the argument to the function the thread will call
- *\note A thread may be run several times but cannot be run twice in the same time.
+ *\return error if any
  */
 GF_Err gf_th_run(GF_Thread *th, gf_thread_run run, void *par);
 /*!
@@ -116,6 +118,7 @@ void gf_th_stop(GF_Thread *th);
  *
  *Gets the thread status
  *\param th the thread object
+ *\return thread status
  */
 u32 gf_th_status(GF_Thread *th);
 
@@ -157,6 +160,7 @@ void gf_th_set_priority(GF_Thread *th, s32 priority);
  *\brief current thread ID
  *
  *Gets the ID of the current thread the caller is in.
+ *\return thread ID
 */
 u32 gf_th_id();
 
@@ -179,21 +183,22 @@ GF_Thread * gf_th_current();
  *by two threads (or a thread and the main process) at the same time.
 */
 typedef struct __tag_mutex GF_Mutex;
-/*
+/*!
  *\brief mutex constructor
  *
  *Contructs a new mutex object
- *\param log name of the thread if any
+ *\param name log name of the thread if any
+ *\return new mutex
 */
 GF_Mutex *gf_mx_new(const char *name);
-/*
+/*!
  *\brief mutex denstructor
  *
  *Destroys a mutex object. This will wait for the mutex to be released if needed.
  *\param mx the mutex object
 */
 void gf_mx_del(GF_Mutex *mx);
-/*
+/*!
  *\brief mutex locking
  *
  *Locks the mutex object, making sure that another thread locking this mutex cannot execute until the mutex is unlocked.
@@ -201,23 +206,23 @@ void gf_mx_del(GF_Mutex *mx);
  *\return 1 if success, 0 if error locking the mutex (which should never happen)
 */
 u32 gf_mx_p(GF_Mutex *mx);
-/*
+/*!
  *\brief mutex unlocking
  *
  *Unlocks the mutex object, allowing other threads waiting on this mutex to continue their execution
  *\param mx the mutex object
 */
 void gf_mx_v(GF_Mutex *mx);
-/*
+/*!
  *\brief mutex non-blocking lock
  *
  *Attemps to lock the mutex object without blocking until the object is released.
  *\param mx the mutex object
- *\return 1 if the mutex has been successfully locked, in which case it shall then be unlocked, or 0 if the mutex is locked by another thread.
+ *\return GF_TRUE if the mutex has been successfully locked, in which case it shall then be unlocked, or GF_FALSE if the mutex is locked by another thread.
 */
 Bool gf_mx_try_lock(GF_Mutex *mx);
 
-/*
+/*!
  *\brief get mutex number of locks
  *
  *Returns the number of locks on the mutex if the caller thread is holding the mutex.
@@ -238,7 +243,7 @@ s32 gf_mx_get_num_locks(GF_Mutex *mx);
  *put back in the set. When the set is full, the money is wasted (call it "the bank"...).
 */
 typedef struct __tag_semaphore GF_Semaphore;
-/*
+/*!
  *\brief semaphore constructor
  *
  *Constructs a new semaphore object
@@ -247,13 +252,14 @@ typedef struct __tag_semaphore GF_Semaphore;
  *\return the semaphore object
  */
 GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount);
-/*
+/*!
  *\brief semaphore destructor
  *
  *Destructs the semaphore object. This will wait for the semaphore to be released if needed.
+ *\param sm the semaphore object
  */
 void gf_sema_del(GF_Semaphore *sm);
-/*
+/*!
  *\brief semaphore notification.
  *
  *Notifies the semaphore of a certain amount of releases.
@@ -262,7 +268,7 @@ void gf_sema_del(GF_Semaphore *sm);
  *\return GF_TRUE if success, GF_FALSE otherwise
 */
 Bool gf_sema_notify(GF_Semaphore *sm, u32 nb_rel);
-/*
+/*!
  *\brief semaphore wait
  *
  *Waits for the semaphore to be accessible (eg, may wait an infinite time).
@@ -270,7 +276,7 @@ Bool gf_sema_notify(GF_Semaphore *sm, u32 nb_rel);
  *\return GF_TRUE if successfull wait, GF_FALSE if wait failed
 */
 Bool gf_sema_wait(GF_Semaphore *sm);
-/*
+/*!
  *\brief semaphore time wait
  *
  *Waits for a certain for the semaphore to be accessible, and returns when semaphore is accessible or wait time has passed.

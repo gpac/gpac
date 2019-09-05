@@ -42,6 +42,8 @@ documented just below this comment.
 #define RMT_INCLUDED_H
 
 
+//! @cond Doxygen_Suppress
+
 // Set to 0 to not include any bits of Remotery in your build
 #ifndef RMT_ENABLED
 #define RMT_ENABLED 1
@@ -355,7 +357,7 @@ typedef void (*rmtFreePtr)(void* mm_context, void* ptr);
 typedef void (*rmtInputHandlerPtr)(const char* text, void* context);
 
 
-// Struture to fill in to modify Remotery default settings
+/*! Struture to fill in to modify Remotery default settings*/
 typedef struct rmtSettings
 {
     // Which port to listen for incoming connections on
@@ -402,7 +404,7 @@ typedef struct rmtSettings
 } rmtSettings;
 
 
-// Structure to fill in when binding CUDA to Remotery
+/*! Structure to fill in when binding CUDA to Remotery*/
 typedef struct rmtCUDABind
 {
     // The main context that all driver functions apply before each call
@@ -665,5 +667,6 @@ RMT_API void _rmt_UnbindMetal();
 
 #endif  // RMT_ENABLED
 
+//! @endcond
 
 #endif

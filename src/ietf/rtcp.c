@@ -544,6 +544,18 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch)
 
 #if 0 //unused
 
+enum
+{
+	GF_RTCP_INFO_NAME = 0,
+	GF_RTCP_INFO_EMAIL,
+	GF_RTCP_INFO_PHONE,
+	GF_RTCP_INFO_LOCATION,
+	GF_RTCP_INFO_TOOL,
+	GF_RTCP_INFO_NOTE,
+	GF_RTCP_INFO_PRIV
+};
+
+
 #define RTCP_SAFE_FREE(p) if (p) gf_free(p);	\
 					p = NULL;
 

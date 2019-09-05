@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / SL header file
@@ -77,19 +77,20 @@ typedef struct
 	u32 carousel_version;
 } GF_SLConfig;
 
-/***************************************
-			SLConfig Tag
-***************************************/
+/*! SL config predefined values*/
 enum
 {
 	SLPredef_Null = 0x01,
 	SLPredef_MP4 = 0x02,
 };
 
-/*set SL predefined (assign all fields according to sl->predefined value)*/
+/*! sets SL predefined (assign all fields according to sl->predefined value)
+\param sl the target SL config descriptor
+\return error if any
+*/
 GF_Err gf_odf_slc_set_pref(GF_SLConfig *sl);
 
-
+/*! MPEG-4 sync layer header information*/
 typedef struct
 {
 	u8 accessUnitStartFlag;
@@ -145,12 +146,29 @@ typedef struct
 } GF_SLHeader;
 
 
-/*packetize SL-PDU. If PDU is NULL or size 0, only writes the SL header*/
+/*! packetizes SL-PDU. If PDU is NULL or size 0, only writes the SL header
+\param slConfig the target SL config descriptor
+\param Header the SL header for this data block
+\param PDU the payload to packetize
+\param size the payload size
+\param outPacket set to an allocated buffer containing the serialized SL packet - to be destroyed by caller
+\param OutSize set to the size of the serialized SL packer
+*/
 void gf_sl_packetize(GF_SLConfig* slConfig, GF_SLHeader *Header, u8 *PDU, u32 size, u8 **outPacket, u32 *OutSize);
-/*gets SL header size in bytes*/
+/*! gets SL header size
+\param slConfig the target SL config descriptor
+\param Header the SL header for this data block
+\return the size of the SL header in bytes
+*/
 u32 gf_sl_get_header_size(GF_SLConfig* slConfig, GF_SLHeader *Header);
 
-/*depacketize SL-PDU*/
+/*! depacketizes SL-PDU
+\param slConfig the target SL config descriptor
+\param Header filled with the decoded SL header
+\param PDU the SL packet to parse
+\param PDULength the size of the SL packet
+\param HeaderLen set to size of the SL header - payload will start at PDU + *HeaderLen
+*/
 void gf_sl_depacketize(GF_SLConfig *slConfig, GF_SLHeader *Header, const u8 *PDU, u32 PDULength, u32 *HeaderLen);
 
 /*! @} */

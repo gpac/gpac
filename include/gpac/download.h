@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -57,6 +57,7 @@ typedef struct __gf_download_manager GF_DownloadManager;
 /*!the download manager session.*/
 typedef struct __gf_download_session GF_DownloadSession;
 
+/*! URL information object*/
 typedef struct GF_URL_Info_Struct {
 	const char * protocol;
 	char * server_name;
@@ -98,7 +99,7 @@ void gf_dm_url_info_del(GF_URL_Info * info);
  *\return the download manager object
 */
 GF_DownloadManager *gf_dm_new(GF_Config *cfg);
-/*
+/*!
  *\brief download manager destructor
  *
  *Deletes the download manager. All running sessions are aborted
@@ -283,6 +284,7 @@ GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess);
  *\param buffer_size destination buffer allocated size
  *\param read_size amount of data actually fetched
  *\note this can only be used when the session is not threaded
+ *\return error if any
  */
 GF_Err gf_dm_sess_fetch_data(GF_DownloadSession * sess, char *buffer, u32 buffer_size, u32 *read_size);
 
@@ -304,6 +306,7 @@ const char *gf_dm_sess_mime_type(GF_DownloadSession * sess);
  *\param end_range HTTP download end range in byte
  *\param discontinue_cache If set, forces a new cache entry if byte range are not continuous. Otherwise a single cache entry is used to reconstruct the file
  *\note this can only be used when the session is not threaded
+ *\return error if any
  */
 GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range, Bool discontinue_cache);
 /*!
@@ -340,6 +343,7 @@ void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess, con
  *\param bytes_done the amount of bytes received from the server
  *\param bytes_per_sec the average data rate in bytes per seconds
  *\param net_status the session status
+ *\return error if any
  */
 GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u64 *total_size, u64 *bytes_done, u32 *bytes_per_sec, GF_NetIOStatus *net_status);
 
@@ -415,8 +419,8 @@ GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 en
  */
 GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool allow_direct_reuse);
 
-/*
- *\retrieves the HTTP header value for the given name
+/*!
+ *\brief retrieves the HTTP header value for the given name
  *
  *Retrieves the HTTP header value for the given header name.
  *\param sess the current session
@@ -425,8 +429,8 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
  */
 const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name);
 
-/*
- *\enumerates the  HTTP headers for a session
+/*!
+ *\brief enumerates the  HTTP headers for a session
  *
  *Retrieves the HTTP header name and value for the given header index.
  *\param sess the current session
@@ -437,7 +441,7 @@ const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name);
  */
 GF_Err gf_dm_sess_enum_headers(GF_DownloadSession *sess, u32 *idx, const char **hdr_name, const char **hdr_val);
 
-/*
+/*!
  *\brief sets download manager max rate per session
  *
  *Sets the maximum rate (per session only at the current time).
@@ -446,7 +450,7 @@ GF_Err gf_dm_sess_enum_headers(GF_DownloadSession *sess, u32 *idx, const char **
  */
 void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec);
 
-/*
+/*!
  *\brief gets download manager max rate per session
  *
  *Sets the maximum rate (per session only at the current time).
@@ -456,7 +460,7 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec);
 u32 gf_dm_get_data_rate(GF_DownloadManager *dm);
 
 
-/*
+/*!
  *\brief gets cumultaed download rate for all sessions
  *
  *Gets the cumultated bitrate in of all active sessions.
@@ -466,7 +470,7 @@ u32 gf_dm_get_data_rate(GF_DownloadManager *dm);
 u32 gf_dm_get_global_rate(GF_DownloadManager *dm);
 
 
-/*
+/*!
  *\brief Get header sizes and times stats for the session
  *
  *Get header sizes and times stats for the session
@@ -480,7 +484,7 @@ u32 gf_dm_get_global_rate(GF_DownloadManager *dm);
  */
 GF_Err gf_dm_sess_get_header_sizes_and_times(GF_DownloadSession *sess, u32 *req_hdr_size, u32 *rsp_hdr_size, u32 *connect_time, u32 *reply_time, u32 *download_time);
 
-/*
+/*!
  *\brief Forces session to use memory storage
  *
  *Forces session to use memory storage for future downloads
@@ -488,7 +492,7 @@ GF_Err gf_dm_sess_get_header_sizes_and_times(GF_DownloadSession *sess, u32 *req_
  */
 void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess);
 
-/*
+/*!
  *Registers a locacl cache provider (bypassing the http session), used when populating cache from input data (atsc for example)
 
  *\param dm the download manager
@@ -498,7 +502,7 @@ void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess);
  */
 GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_url_provider_cbk)(void *udta, char *url, Bool is_cache_destroy), void *lc_udta);
 
-/*
+/*!
  *Adds a local entry in the cache
 
  *\param dm the download manager
@@ -506,7 +510,7 @@ GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_
  *\param data data of the resource
  *\param size size of the resource
  *\param start_range start range of the data in the resource
- *\param end_range start range of the data in the resource. If both \ref start_range and  \ref end_range are 0, the data is the complete resource
+ *\param end_range start range of the data in the resource. If both start_range and end_range are 0, the data is the complete resource
  *\param mime associated MIME type if any
  *\param clone_memory indicates that the data shall be cloned in the cache because the caller will discard it
  *\param download_time_ms indicates the download time of the associated resource, if known, 0 otherwise.
@@ -514,7 +518,7 @@ GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_
  */
 const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, u8 *data, u64 size, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms);
 
-/*
+/*!
  *Forces HTTP headers for a given cache entry
 
  *\param dm the download manager

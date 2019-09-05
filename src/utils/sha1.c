@@ -689,7 +689,7 @@ void gf_sha1_finish(GF_SHA1Context *context, u8 output[GF_SHA1_DIGEST_SIZE] )
  * Output = SHA-1( file contents )
  */
 GF_EXPORT
-s32 gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
+GF_Err gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
 {
 	FILE *f;
 	size_t n;
@@ -703,11 +703,11 @@ s32 gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
 		if (e) return e;
 
 		gf_sha1_csum(mem_address, size, output);
-		return 0;
+		return GF_OK;
 	}
 
 	if( ( f = gf_fopen( path, "rb" ) ) == NULL )
-		return( 1 );
+		return GF_URL_ERROR;
 
 	ctx  = gf_sha1_starts();
 
@@ -717,7 +717,7 @@ s32 gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
 	gf_sha1_finish(ctx, output );
 
 	gf_fclose( f );
-	return( 0 );
+	return GF_OK;
 }
 
 /*
