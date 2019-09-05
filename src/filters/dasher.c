@@ -2771,7 +2771,7 @@ static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name)
 	gf_fseek(f, 0, SEEK_SET);
 
 	pck = gf_filter_pck_new_alloc(opid, size, &output);
-	nb_read = (u32) gf_fread(output, 1, size, f);
+	nb_read = (u32) fread(output, 1, size, f);
 	if (nb_read != size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Error reading temp MPD file, read %d bytes but file size is %d\n", nb_read, size ));
 	}

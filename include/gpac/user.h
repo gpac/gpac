@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Stream Management sub-project
@@ -53,11 +53,12 @@ extern "C" {
 #include <gpac/events.h>
 #include <gpac/module.h>
 
-/*GPAC client terminal*/
+/*! GPAC client terminal*/
 typedef struct _tag_terminal GF_Terminal;
+/*! GPAC user structure*/
 typedef struct _tag_user GF_User;
 
-
+/*! terminal creation flags*/
 enum
 {
 	/*display should be hidden upon initialization*/
@@ -84,22 +85,31 @@ enum
 /*user object for all callbacks*/
 struct _tag_user
 {
-	/*user defined callback for all functions - cannot be NULL*/
+	/*! user defined callback for all functions - cannot be NULL*/
 	void *opaque;
-	/*the event proc. Return value depend on the event type, usually 0
+	/*! the event proc. Return value depend on the event type, usually 0
 	cannot be NULL if os_window_handler is specified and dont_override_window_proc is set
 	may be NULL otherwise*/
 	Bool (*EventProc)(void *opaque, GF_Event *event);
 
-	/*optional os window handler (HWND on win32/winCE, XWindow for X11)
+	/*! optional os window handler (HWND on win32/winCE, XWindow for X11)
 	if not set the video outut will create and manage the display window.*/
 	void *os_window_handler;
-	/*for now, only used by X11 (indicates display the window is on)*/
+	/*! for now, only used by X11 (indicates display the window is on)*/
 	void *os_display;
 
-	/*init flags bypassing GPAC config file	*/
+	/*! init flags bypassing GPAC config file	*/
 	u32 init_flags;
 };
+
+/*! compositor screen buffer grab mode*/
+typedef enum
+{
+	GF_SC_GRAB_DEPTH_NONE = 0,
+	GF_SC_GRAB_DEPTH_ONLY = 1,
+	GF_SC_GRAB_DEPTH_RGBD = 2,
+	GF_SC_GRAB_DEPTH_RGBDS = 3
+} GF_CompositorGrabMode;
 
 /*! @} */
 

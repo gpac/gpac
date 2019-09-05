@@ -33,7 +33,7 @@
 Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 {
 	GF_MPEGVisualSampleEntryBox *entry;
-	if (!gf_isom_is_video_subtype(mdia->handler->handlerType))
+	if (!gf_isom_is_video_handler_type(mdia->handler->handlerType))
 		return GF_FALSE;
 	if (!_entry) return GF_FALSE;
 	entry = (GF_MPEGVisualSampleEntryBox*)_entry;
@@ -1345,7 +1345,7 @@ void VP9_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *vp9)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_EXPORT
-GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -1360,10 +1360,10 @@ GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfi
 	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!the_file->keep_utc && !gf_sys_is_test_mode() )
@@ -1650,20 +1650,20 @@ static GF_Err gf_isom_svc_mvc_config_new(GF_ISOFile *the_file, u32 trackNumber, 
 }
 
 GF_EXPORT
-GF_Err gf_isom_svc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_svc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
-	return gf_isom_svc_mvc_config_new(the_file, trackNumber, cfg, GF_FALSE, URLname, URNname,outDescriptionIndex);
+	return gf_isom_svc_mvc_config_new(the_file, trackNumber, cfg, GF_FALSE, (char *) URLname, (char *) URNname,outDescriptionIndex);
 }
 
 GF_EXPORT
-GF_Err gf_isom_mvc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_mvc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
-	return gf_isom_svc_mvc_config_new(the_file, trackNumber, cfg, GF_TRUE, URLname, URNname,outDescriptionIndex);
+	return gf_isom_svc_mvc_config_new(the_file, trackNumber, cfg, GF_TRUE, (char *) URLname, (char *) URNname,outDescriptionIndex);
 }
 
 
 GF_EXPORT
-GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -1678,10 +1678,10 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!the_file->keep_utc)
@@ -1700,7 +1700,7 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 }
 
 GF_EXPORT
-GF_Err gf_isom_vp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_VPConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex, u32 vpx_type)
+GF_Err gf_isom_vp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_VPConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex, u32 vpx_type)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -1715,10 +1715,10 @@ GF_Err gf_isom_vp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_VPConfig 
 	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!the_file->keep_utc)
@@ -1739,7 +1739,7 @@ GF_Err gf_isom_vp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_VPConfig 
 }
 
 GF_EXPORT
-GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Config *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Config *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -1754,10 +1754,10 @@ GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Confi
 	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!the_file->keep_utc)
@@ -2125,14 +2125,14 @@ GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 De
 }
 
 GF_EXPORT
-u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
+GF_ISOMAVCType gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
 {
 	u32 type;
 	GF_TrackBox *trak;
 	GF_MPEGVisualSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return GF_ISOM_AVCTYPE_NONE;
-	if (!gf_isom_is_video_subtype(trak->Media->handler->handlerType))
+	if (!gf_isom_is_video_handler_type(trak->Media->handler->handlerType))
 		return GF_ISOM_AVCTYPE_NONE;
 
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex-1);
@@ -2168,17 +2168,17 @@ u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descript
 }
 
 GF_EXPORT
-u32 gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
+GF_ISOMHEVCType gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
 {
 	u32 type;
 	GF_TrackBox *trak;
 	GF_MPEGVisualSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return GF_ISOM_HEVCTYPE_NONE;
-	if (!gf_isom_is_video_subtype(trak->Media->handler->handlerType))
+	if (!gf_isom_is_video_handler_type(trak->Media->handler->handlerType))
 		return GF_ISOM_HEVCTYPE_NONE;
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex-1);
-	if (!entry) return GF_ISOM_AVCTYPE_NONE;
+	if (!entry) return GF_ISOM_HEVCTYPE_NONE;
 	type = entry->type;
 
 	if (type == GF_ISOM_BOX_TYPE_ENCV) {
@@ -2962,7 +2962,7 @@ GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs)
 		op->output_layer_set_idx = gf_bs_read_u16(bs);
 		op->max_temporal_id = gf_bs_read_u8(bs);
 		op->layer_count = gf_bs_read_u8(bs);
-		if (op->layer_count > ARRAY_LENGTH(op->layers_info))
+		if (op->layer_count > GF_ARRAY_LENGTH(op->layers_info))
 			return GF_NON_COMPLIANT_BITSTREAM;
 		for (j = 0; j < op->layer_count; j++) {
 			op->layers_info[j].ptl_idx = gf_bs_read_u8(bs);
@@ -2997,7 +2997,7 @@ GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs)
 		if (!dep) return GF_OUT_OF_MEM;
 		dep->dependent_layerID = gf_bs_read_u8(bs);
 		dep->num_layers_dependent_on = gf_bs_read_u8(bs);
-		if (dep->num_layers_dependent_on > ARRAY_LENGTH(dep->dependent_on_layerID)) {
+		if (dep->num_layers_dependent_on > GF_ARRAY_LENGTH(dep->dependent_on_layerID)) {
 			gf_free(dep);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}

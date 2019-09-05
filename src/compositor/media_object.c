@@ -225,14 +225,14 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 }
 
 GF_EXPORT
-void gf_mo_get_nb_views(GF_MediaObject *mo, int * nb_views)
+void gf_mo_get_nb_views(GF_MediaObject *mo, u32 *nb_views)
 {
 	if (mo) *nb_views = mo->nb_views;
 }
 
 GF_EXPORT
 
-void gf_mo_get_nb_layers(GF_MediaObject *mo, int * nb_layers)
+void gf_mo_get_nb_layers(GF_MediaObject *mo, u32 *nb_layers)
 {
 	if (mo) *nb_layers = mo->nb_layers;
 }
@@ -1239,7 +1239,7 @@ void gf_mo_adjust_clock(GF_MediaObject *mo, s32 ms_drift)
 }
 
 GF_EXPORT
-void gf_mo_set_flag(GF_MediaObject *mo, u32 flag, Bool set_on)
+void gf_mo_set_flag(GF_MediaObject *mo, GF_MOUserFlags flag, Bool set_on)
 {
 	if (mo) {
 		if (set_on)

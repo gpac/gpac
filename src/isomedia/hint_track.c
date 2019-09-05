@@ -84,7 +84,7 @@ GF_Err AdjustHintInfo(GF_HintSampleEntryBox *entry, u32 HintSampleNumber)
 }
 
 GF_EXPORT
-GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType)
+GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, GF_ISOHintFormat HintType)
 {
 	GF_Err e;
 	GF_TrackBox *trak;

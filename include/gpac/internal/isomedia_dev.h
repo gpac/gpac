@@ -829,7 +829,7 @@ typedef struct
 	struct __sample_encryption_box *sample_encryption;
 
 	/*private for SVC/MVC extractors resolution*/
-	s32 extractor_mode;
+	GF_ISONaluExtractMode extractor_mode;
 	Bool has_base_layer;
 	u32 pack_num_samples;
 
@@ -2152,16 +2152,6 @@ typedef struct
 	u8 *data;
 } GF_BinaryXMLBox;
 
-typedef struct
-{
-	u64 extent_offset;
-	u64 extent_length;
-	u64 extent_index;
-#ifndef GPAC_DISABLE_ISOM_WRITE
-	/*for storage only*/
-	u64 original_extent_offset;
-#endif
-} GF_ItemExtentEntry;
 
 typedef struct
 {
@@ -3728,12 +3718,6 @@ u32 gf_isom_get_tracknum_from_id(GF_MovieBox *moov, GF_ISOTrackID trackID);
 GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tmp_dir);
 /*close and delete a movie*/
 void gf_isom_delete_movie(GF_ISOFile *mov);
-
-GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
- 			GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size),
-			GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset, Bool is_insert),
- 			void *usr_data,
- 			u32 block_size);
 
 /*StreamDescription reconstruction Functions*/
 GF_Err GetESD(GF_MovieBox *moov, GF_ISOTrackID trackID, u32 StreamDescIndex, GF_ESD **outESD);

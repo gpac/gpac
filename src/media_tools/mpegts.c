@@ -248,7 +248,6 @@ static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, char *data, u32 size, Bool simple_c
 	return i;
 }
 
-GF_EXPORT
 Bool gf_m2ts_crc32_check(u8 *data, u32 len)
 {
 	u32 crc = gf_crc_32(data, len);
@@ -321,8 +320,7 @@ static void gf_m2ts_metadata_descriptor_del(GF_M2TS_MetadataDescriptor *metad)
 	}
 }
 
-GF_EXPORT
-void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
+static void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 {
 	gf_list_del_item(es->program->streams, es);
 
@@ -2690,7 +2688,7 @@ u32 gf_m2ts_pes_get_framing_mode(GF_M2TS_PES *pes)
 
 
 GF_EXPORT
-GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
+GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode)
 {
 	if (!pes) return GF_BAD_PARAM;
 
@@ -2972,7 +2970,7 @@ static void rewrite_pts_dts(unsigned char *ptr, u64 TS)
 	while (_TS > pcr_mod) _TS -= pcr_mod; \
 
 GF_EXPORT
-GF_Err gf_m2ts_restamp(u8 *buffer, u32 size, s64 ts_shift, u8 *is_pes)
+GF_Err gf_m2ts_restamp(u8 *buffer, u32 size, s64 ts_shift, u8 is_pes[GF_M2TS_MAX_STREAMS])
 {
 	u32 done = 0;
 	u64 pcr_mod;

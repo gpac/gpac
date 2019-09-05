@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 Object Descriptor sub-project
@@ -143,7 +143,7 @@ enum
 /***************************************
 			Descriptors
 ***************************************/
-
+/*! macro defining a base descriptor*/
 #define BASE_DESCRIPTOR \
 		u8 tag;
 
@@ -457,7 +457,7 @@ typedef struct
 	s16 top, left, bottom, right;
 } GF_BoxRecord;
 
-/*scroll flags for text*/
+/*! scroll flags for text*/
 enum
 {
 	GF_TXT_SCROLL_CREDITS = 0,
@@ -466,7 +466,7 @@ enum
 	GF_TXT_SCROLL_RIGHT = 3
 };
 
-/* display flags for text*/
+/*! display flags for text*/
 enum
 {
 	GF_TXT_SCROLL_IN = 0x00000020,
@@ -664,6 +664,7 @@ typedef struct {
 } GF_QoS_Descriptor;
 
 
+/*! macro defining a base QOS qualifier*/
 #define QOS_BASE_QUALIFIER \
 	u8 tag;	\
 	u32 size;
@@ -1093,6 +1094,7 @@ enum
 	GF_ODF_COM_USER_END_TAG		= 0xFE
 };
 
+/*! macro defining a base OD command*/
 #define BASE_OD_COMMAND \
 	u8 tag;
 
@@ -1198,7 +1200,7 @@ GF_Err gf_odf_codec_encode(GF_ODCodec *codec, u32 cleanup_type);
  \return error if any
  */
 GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, u8 **outAU, u32 *au_length);
-/* !set the encoded AU to the codec
+/*! set the encoded AU to the codec
  \param codec target codec
  \param au target AU to decode
  \param au_length size in bytes of the AU to decode
@@ -1233,6 +1235,7 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command);
 GF_ODCom *gf_odf_com_new(u8 tag);
 /*! MPEG-4 SYSTEMS OD Command Destruction
  \param com the command to delete. Pointer is set back to NULL
+ \return error if any
  */
 GF_Err gf_odf_com_del(GF_ODCom **com);
 
@@ -1374,35 +1377,35 @@ GF_AV1Config *gf_odf_av1_cfg_new();
 \param cfg the AV1 config to destroy*/
 void gf_odf_av1_cfg_del(GF_AV1Config *cfg);
 
-/*! writes GF_AV1Config as MPEG-4 DSI
+/*! writes AV1 config to buffer
 \param cfg the AV1 config to write
-\param outData encoded dsi buffer - it is the caller responsability to free this
-\param outSize  encoded dsi buffer size
+\param outData set to an allocated encoded buffer - it is the caller responsability to free this
+\param outSize set to the encoded dsi buffer size
 \return error if any
 */
 GF_Err gf_odf_av1_cfg_write(GF_AV1Config *cfg, u8 **outData, u32 *outSize);
 
-/*! writes GF_AV1Config from bitstream MPEG-4 DSI
+/*! writes AV1 config to bitstream
 \param cfg the AV1 config to write
 \param bs bitstream containing the encoded AV1 decoder specific info
 \return error code if any
 */
 GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs);
 
-/*! gets GF_AV1Config from bitstream MPEG-4 DSI
+/*! gets AV1 config from bitstream
 \param bs bitstream containing the encoded AV1 decoder specific info
-\return the decoded HEVC config
+\return the decoded AV1 config
 */
 GF_AV1Config *gf_odf_av1_cfg_read_bs(GF_BitStream *bs);
 
-/*! gets GF_AV1Config from bitstream MPEG-4 DSI
+/*! gets AV1 config to bitstream
 \param bs bitstream containing the encoded AV1 decoder specific info
 \param size size of encoded structure in the bitstream. A value of 0 means "until the end", equivalent to gf_odf_av1_cfg_read_bs
-\return the decoded HEVC config
+\return the decoded AV1 config
 */
 GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size);
 
-/*! gets GF_AV1Config from bitstream MPEG-4 DSI
+/*! gets AV1 config from buffer
 \param dsi encoded AV1 config
 \param dsi_size size of encoded AV1 config
 \return the decoded AV1 config
@@ -1410,14 +1413,40 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size);
 GF_AV1Config *gf_odf_av1_cfg_read(u8 *dsi, u32 dsi_size);
 
 
-/* VP8-9 descriptors functions */
+/*! creates a VPx (VP8, VP9) descriptor
+\return a newly allocated descriptor
+*/
 GF_VPConfig *gf_odf_vp_cfg_new();
+/*! destroys an VPx config
+\param cfg the VPx config to destroy*/
 void gf_odf_vp_cfg_del(GF_VPConfig *cfg);
+/*! writes VPx config to bitstream
+\param cfg the VPx config to write
+\param bs bitstream containing the encoded VPx decoder specific info
+\param is_v0 if GF_TRUE, this is a version 0 config
+\return error code if any
+*/
 GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs, Bool is_v0);
+/*! writes VPx config to buffer
+\param cfg the VPx config to write
+\param outData set to an allocated encoded buffer - it is the caller responsability to free this
+\param outSize set to the encoded buffer size
+\param is_v0 if GF_TRUE, this is a version 0 config
+\return error if any
+*/
 GF_Err gf_odf_vp_cfg_write(GF_VPConfig *cfg, u8 **outData, u32 *outSize, Bool is_v0);
+/*! gets VPx config to bitstream
+\param bs bitstream containing the encoded VPx decoder specific info
+\param is_v0 if GF_TRUE, this is a version 0 config
+\return the decoded VPx config
+*/
 GF_VPConfig *gf_odf_vp_cfg_read_bs(GF_BitStream *bs, Bool is_v0);
+/*! gets VPx config from buffer
+\param dsi encoded VPx config
+\param dsi_size size of encoded VPx config
+\return the decoded VPx config
+*/
 GF_VPConfig *gf_odf_vp_cfg_read(u8 *dsi, u32 dsi_size);
-
 
 /*! destroy the descriptors in a list but not the list
  \param descList descriptor list to destroy
@@ -1507,6 +1536,8 @@ GF_Err gf_odf_desc_list_write(GF_List *descList, u8 **outEncList, u32 *outSize);
  */
 GF_Err gf_odf_desc_list_size(GF_List *descList, u32 *outSize);
 
+
+//! @cond Doxygen_Suppress
 
 #ifndef GPAC_MINIMAL_ODF
 
@@ -1609,6 +1640,8 @@ GF_Err gf_oci_dump_au(u8 version, u8 *au, u32 au_length, FILE *trace, u32 indent
 
 #endif /*GPAC_MINIMAL_ODF*/
 
+//! @endcond
+
 #ifndef GPAC_DISABLE_OD_DUMP
 
 /*! Dumps an OD AU
@@ -1616,6 +1649,7 @@ GF_Err gf_oci_dump_au(u8 version, u8 *au, u32 au_length, FILE *trace, u32 indent
  \param trace destination file for dumping
  \param indent number of spaces to use as base index
  \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+ \return error if any
  */
 GF_Err gf_odf_dump_com(GF_ODCom *com, FILE *trace, u32 indent, Bool XMTDump);
 /*! Dumps an OD Descriptor
@@ -1623,6 +1657,7 @@ GF_Err gf_odf_dump_com(GF_ODCom *com, FILE *trace, u32 indent, Bool XMTDump);
  \param trace destination file for dumping
  \param indent number of spaces to use as base index
  \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+ \return error if any
  */
 GF_Err gf_odf_dump_desc(GF_Descriptor *desc, FILE *trace, u32 indent, Bool XMTDump);
 /*! Dumps an OD Descriptor
@@ -1630,6 +1665,7 @@ GF_Err gf_odf_dump_desc(GF_Descriptor *desc, FILE *trace, u32 indent, Bool XMTDu
  \param trace destination file for dumping
  \param indent number of spaces to use as base index
  \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+ \return error if any
  */
 GF_Err gf_odf_dump_com_list(GF_List *commandList, FILE *trace, u32 indent, Bool XMTDump);
 
@@ -1677,6 +1713,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val);
 
 #ifndef GPAC_MINIMAL_ODF
 
+//! @cond Doxygen_Suppress
 
 
 /*
@@ -2269,6 +2306,7 @@ GF_Err gf_ipmpx_set_byte_array(GF_IPMPX_Data *p, char *field, char *str);
 /*! ipmpx dumper*/
 GF_Err gf_ipmpx_dump_data(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMTDump);
 
+//! @endcond
 
 #endif /*GPAC_MINIMAL_ODF*/
 

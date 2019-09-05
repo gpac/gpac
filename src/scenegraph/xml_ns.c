@@ -381,7 +381,7 @@ static char *gf_xml_get_namespace_qname(GF_DOMNode *elt, u32 ns)
 	return gf_xml_get_namespace_qname((GF_DOMNode*)elt->sgprivate->parents->node, ns);
 }
 
-u32 gf_xml_get_attribute_tag(GF_Node *elt, char *attribute_name, u32 ns)
+u32 gf_xml_get_attribute_tag(GF_Node *elt, char *attribute_name, GF_NamespaceType ns)
 {
 	u32 i, count;
 	count = sizeof(xml_attributes) / sizeof(struct xml_att_def);

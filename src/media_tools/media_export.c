@@ -392,7 +392,7 @@ static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *in
 	}
 
 	newTk = gf_isom_new_track(outfile, TrackID, gf_isom_get_media_type(infile, inTrackNum), gf_isom_get_media_timescale(infile, inTrackNum));
-	gf_isom_set_track_enabled(outfile, newTk, 1);
+	gf_isom_set_track_enabled(outfile, newTk, GF_TRUE);
 
 	if (esd) {
 		gf_isom_new_mpeg4_description(outfile, newTk, esd, NULL, NULL, &descIndex);
@@ -526,7 +526,7 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 	Bool add_to_iod, is_stdout;
 	char szName[1000];
 	u32 track;
-	u8 mode;
+	GF_ISOOpenMode mode;
 
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
@@ -667,7 +667,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 		fprintf(vtt, "MPEG-4-streamType: %d\n", esd->decoderConfig->streamType);
 		/* TODO: export the MPEG-4 Object Type Indication only if it is not a GPAC internal value */
 		fprintf(vtt, "MPEG-4-objectTypeIndication: %d\n", esd->decoderConfig->objectTypeIndication);
-		if (gf_isom_is_video_subtype(mtype) ) {
+		if (gf_isom_is_video_handler_type(mtype) ) {
 			gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
 			fprintf(vtt, "width:%d\n", w);
 			fprintf(vtt, "height:%d\n", h);
@@ -725,7 +725,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 		fprintf(vtt, "mediaType: %s\n", gf_4cc_to_str(mtype));
 		fprintf(vtt, "mediaSubType: %s\n", gf_4cc_to_str(mstype ));
 		if (sdesc) {
-			if (gf_isom_is_video_subtype(mtype) ) {
+			if (gf_isom_is_video_handler_type(mtype) ) {
 				fprintf(vtt, "codecVendor: %s\n", gf_4cc_to_str(sdesc->vendor_code));
 				fprintf(vtt, "codecVersion: %d\n", sdesc->version);
 				fprintf(vtt, "codecRevision: %d\n", sdesc->revision);
@@ -964,7 +964,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 		time_scale = gf_isom_get_media_timescale(dumper->file, i+1);
 		esd = gf_isom_get_esd(dumper->file, i+1, 1);
 		if (esd) {
-			stream_id = gf_isom_find_od_for_track(dumper->file, i+1);
+			stream_id = gf_isom_find_od_id_for_track(dumper->file, i+1);
 			if (!stream_id) stream_id = esd->ESID;
 
 			/*translate OD IDs to ESIDs !!*/

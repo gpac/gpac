@@ -446,12 +446,6 @@ Bool gf_smil_timing_is_active(GF_Node *node)
 	return (timingp->runtime->status == SMIL_STATUS_ACTIVE);
 }
 
-/* This function notifies the scene time to all the timed elements from the list in the given scene graph.
-   It returns the number of active timed elements. If no timed element is active, this means that from the timing
-   point of view, the scene has not changed and no rendering refresh is needed, even if the time has changed.
-   It uses an additional list of modified timed elements to insure that no timing
-   element was modified by the begin/end/repeat of another timed element.
-*/
 Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 {
 	SMIL_Timing_RTI *rti;
@@ -992,10 +986,6 @@ Bool gf_svg_resolve_smil_times(GF_Node *anim, void *event_base_element,
 	return 1;
 }
 
-/* Inserts a new resolved time instant in the begin or end attribute.
-   The insertion preserves the sorting and removes the previous insertions
-    which have become obsolete
-   WARNING: Only used for inserting time when an <a> element, whose target is a timed element, is activated. */
 GF_EXPORT
 void gf_smil_timing_insert_clock(GF_Node *elt, Bool is_end, Double clock)
 {
@@ -1056,8 +1046,7 @@ void gf_smil_timing_resume(GF_Node *node)
 	}
 }
 
-void gf_smil_set_evaluation_callback(GF_Node *node,
-                                     void (*smil_evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, u32 state))
+void gf_smil_set_evaluation_callback(GF_Node *node, gf_sg_smil_evaluate smil_evaluate)
 {
 	if (node && ((SVGTimedAnimBaseElement *)node)->timingp  && ((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
 		SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;

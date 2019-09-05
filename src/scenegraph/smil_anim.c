@@ -629,13 +629,12 @@ static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed n
 
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
-		char *str;
-		gf_log_lt(GF_LOG_DEBUG, GF_LOG_SMIL);
-		str = gf_svg_dump_attribute(rai->anim_elt, &rai->interpolated_value);
+		char *str = gf_svg_dump_attribute(rai->anim_elt, &rai->interpolated_value);
 
-		gf_log("[SMIL Animation] Time %f - Animation     %s - Interpolation value changed for attribute %s, new value: %s \n",
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Animation] Time %f - Animation     %s - Interpolation value changed for attribute %s, new value: %s \n",
 		       gf_node_get_scene_time(rai->anim_elt), gf_node_get_log_name(rai->anim_elt),
-		       gf_svg_get_attribute_name(rai->anim_elt, rai->owner->presentation_value.fieldIndex), str);
+		       gf_svg_get_attribute_name(rai->anim_elt, rai->owner->presentation_value.fieldIndex), str)
+		);
 
 		if (str) gf_free(str);
 	}
@@ -793,13 +792,11 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 
 #ifndef GPAC_DISABLE_LOG
 			if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
-				char *str;
-				gf_log_lt(GF_LOG_DEBUG, GF_LOG_SMIL);
-				str = gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value);
-				gf_log("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n",
+				char *str = gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n",
 				       gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt),
-				       gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str);
-
+				       gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str)
+				);
 				if (str) gf_free(str);
 			}
 #endif
@@ -821,13 +818,12 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 			gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->interpolated_value, 1);
 #ifndef GPAC_DISABLE_LOG
 			if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
-				char *str;
-				gf_log_lt(GF_LOG_DEBUG, GF_LOG_SMIL);
-				str = gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value);
+				char *str = gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value);
 
-				gf_log("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n",
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n",
 				       gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt),
-				       gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str);
+				       gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str)
+				);
 
 				if (str) gf_free(str);
 			}
@@ -914,13 +910,12 @@ static void gf_smil_anim_remove(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
-			char *str;
-			gf_log_lt(GF_LOG_DEBUG, GF_LOG_SMIL);
-			str = gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value);
+			char *str = gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value);
 
-			gf_log("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n",
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n",
 			       gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt),
-			       gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str);
+			       gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str)
+			);
 			if (str) gf_free(str);
 		}
 #endif
@@ -1046,13 +1041,12 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 
 #ifndef GPAC_DISABLE_LOG
 			if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
-				char *str;
-				gf_log_lt(GF_LOG_DEBUG, GF_LOG_SMIL);
-				str = gf_svg_dump_attribute(node, &aa->presentation_value);
+				char *str = gf_svg_dump_attribute(node, &aa->presentation_value);
 
-				gf_log("[SMIL Animation] Time %f - Element %s - Presentation value changed for attribute %s, new value: %s - dirty flags %x\n",
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Animation] Time %f - Element %s - Presentation value changed for attribute %s, new value: %s - dirty flags %x\n",
 				       gf_node_get_scene_time(node), gf_node_get_log_name(node),
-				       gf_svg_get_attribute_name(node, aa->presentation_value.fieldIndex), str, aa->dirty_flags);
+				       gf_svg_get_attribute_name(node, aa->presentation_value.fieldIndex), str, aa->dirty_flags)
+				);
 
 				if (str) gf_free(str);
 			}

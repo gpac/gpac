@@ -750,7 +750,7 @@ const char *gf_sg_vrml_get_event_type_name(u32 EventType, Bool forX3D)
 }
 
 GF_EXPORT
-const char *gf_sg_vrml_get_field_type_by_name(u32 FieldType)
+const char *gf_sg_vrml_get_field_type_name(u32 FieldType)
 {
 
 	switch (FieldType) {

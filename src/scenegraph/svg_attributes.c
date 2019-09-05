@@ -6372,9 +6372,7 @@ Bool gf_svg_is_current_color(GF_FieldInfo *a)
 	return 0;
 }
 
-
-
-char *gf_svg_attribute_type_to_string(u32 att_type)
+const char *gf_svg_attribute_type_to_string(u32 att_type)
 {
 	switch (att_type) {
 	case SVG_FillRule_datatype:

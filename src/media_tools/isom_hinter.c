@@ -240,17 +240,17 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		return NULL;
 	}
 	*e = GF_NOT_SUPPORTED;
-	nbEdts = gf_isom_get_edit_segment_count(file, TrackNum);
+	nbEdts = gf_isom_get_edits_count(file, TrackNum);
 	if (nbEdts>1) {
 		u64 et, sd, mt;
-		u8 em;
-		gf_isom_get_edit_segment(file, TrackNum, 1, &et, &sd, &mt, &em);
+		GF_ISOEditType em;
+		gf_isom_get_edit(file, TrackNum, 1, &et, &sd, &mt, &em);
 		if ((nbEdts>2) || (em!=GF_ISOM_EDIT_EMPTY)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp hinter] Cannot hint track whith EditList\n"));
 			return NULL;
 		}
 	}
-	if (nbEdts) gf_isom_remove_edit_segments(file, TrackNum);
+	if (nbEdts) gf_isom_remove_edits(file, TrackNum);
 
 	if (!gf_isom_is_track_enabled(file, TrackNum)) return NULL;
 
@@ -841,7 +841,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	Width = Height = 0;
 	gf_isom_sdp_clean_track(tkHint->file, tkHint->TrackNum);
     mtype = gf_isom_get_media_type(tkHint->file, tkHint->TrackNum);
-    if (gf_isom_is_video_subtype(mtype))
+    if (gf_isom_is_video_handler_type(mtype))
 		gf_isom_get_visual_info(tkHint->file, tkHint->TrackNum, 1, &Width, &Height);
 
 	gf_rtp_builder_get_payload_name(tkHint->rtp_p, payloadName, mediaName);
@@ -1054,7 +1054,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	}
 	if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 
-	gf_isom_set_track_enabled(tkHint->file, tkHint->HintTrack, 1);
+	gf_isom_set_track_enabled(tkHint->file, tkHint->HintTrack, GF_TRUE);
 	return GF_OK;
 }
 

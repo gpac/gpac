@@ -502,7 +502,7 @@ err_exit:
 
 
 GF_EXPORT
-u32 gf_isom_find_od_for_track(GF_ISOFile *file, u32 track)
+u32 gf_isom_find_od_id_for_track(GF_ISOFile *file, u32 track)
 {
 	u32 i, j, di, the_od_id;
 	GF_TrackBox *od_tk;

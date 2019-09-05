@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -88,6 +88,7 @@ void gf_cfg_remove(GF_Config *cfgFile);
  *
  *Saves the configuration file if modified.
  *\param cfgFile the target configuration file
+ *\return error if any
  */
 GF_Err gf_cfg_save(GF_Config *cfgFile);
 /*!
@@ -110,6 +111,7 @@ const char *gf_cfg_get_key(GF_Config *cfgFile, const char *secName, const char *
  *\param keyName the desired key name
  *\param keyValue the desired key value
  *\note this will also create both section and key if they are not found in the configuration file
+ *\return error if any
  */
 GF_Err gf_cfg_set_key(GF_Config *cfgFile, const char *secName, const char *keyName, const char *keyValue);
 /*!

@@ -222,10 +222,10 @@ static void format_sax_error(GF_SAXParser *parser, u32 linepos, const char* fmt,
 	if (!parser) return;
 
 	va_start(args, fmt);
-	vsnprintf(parser->err_msg, ARRAY_LENGTH(parser->err_msg), fmt, args);
+	vsnprintf(parser->err_msg, GF_ARRAY_LENGTH(parser->err_msg), fmt, args);
 	va_end(args);
 
-	if (strlen(parser->err_msg)+30 < ARRAY_LENGTH(parser->err_msg)) {
+	if (strlen(parser->err_msg)+30 < GF_ARRAY_LENGTH(parser->err_msg)) {
 		char szM[20];
 		snprintf(szM, 20, " - Line %d: ", parser->line + 1);
 		strcat(parser->err_msg, szM);

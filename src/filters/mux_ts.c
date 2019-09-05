@@ -993,7 +993,8 @@ static void tsmux_insert_sidx(GF_TSMuxCtx *ctx, Bool final_flush)
 static GF_Err tsmux_process(GF_Filter *filter)
 {
 	u32 nb_pck_in_pack, nb_pck_in_call;
-	u32 status, usec_till_next;
+	GF_M2TSMuxState status;
+	u32 usec_till_next;
 	GF_FilterPacket *pck;
 	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
 

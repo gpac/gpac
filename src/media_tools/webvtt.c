@@ -1479,7 +1479,7 @@ void gf_webvtt_parser_cue_callback(GF_WebVTTParser *parser, void (*on_cue_read)(
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 
 GF_EXPORT
-GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 track, Bool merge, Bool box_dump)
+GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, u32 track, Bool merge, Bool box_dump)
 {
 #ifdef GPAC_DISABLE_MEDIA_IMPORT
 	return GF_NOT_SUPPORTED;
@@ -1493,7 +1493,7 @@ GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 trac
 	u64     duration;
 	GF_WebVTTParser *parser;
 
-	out = szName ? gf_fopen(szName, "wt") : (dumper->dump_file ? dumper->dump_file : stdout);
+	out = (dumper->dump_file ? dumper->dump_file : stdout);
 	if (!out) return GF_IO_ERR;// gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 
 	parser = gf_webvtt_parser_new();
@@ -1529,7 +1529,6 @@ GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 trac
 
 exit:
 	gf_webvtt_parser_del(parser);
-	if (szName) gf_fclose(out);
 	return e;
 #endif
 }

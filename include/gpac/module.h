@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -134,9 +134,13 @@ GF_BaseInterface *MyDecoderInterfaceLoad() {
  */
 typedef struct
 {
+	/*! name of interface*/
 	const char *name;
+	/*! query interface callback*/
 	const u32 *(*QueryInterfaces) ();
+	/*! load interface callback*/
 	GF_BaseInterface * (*LoadInterface) (u32 InterfaceType);
+	/*! shutdown interface callback*/
 	void (*ShutdownInterface) (GF_BaseInterface *interface_obj);
 } GF_InterfaceRegister;
 
@@ -167,6 +171,7 @@ typedef struct
  *\brief load a static module given its interface function
  *
  *\param register_module the register interface function
+ *\return error if any
  */
 GF_Err gf_module_load_static(GF_InterfaceRegister *(*register_module)());
 
@@ -224,7 +229,6 @@ GF_Err gf_module_load_static(GF_InterfaceRegister *(*register_module)());
  * module. GF_MODULE_STATIC_DECLARE() should be called before and
  * gf_modules_refresh() after loading all the needed modules.
  *
- *\param _pm the module manager
  *\param _name the module name
  *\see GF_MODULE_STATIC_DECLARE() gf_modules_refresh()
  */
@@ -292,6 +296,7 @@ GF_BaseInterface *gf_modules_load_by_name(const char *mod_name, u32 InterfaceFam
  *Closes an interface
 
  *\param interface_obj the interface to close
+ *\return error if any
  */
 GF_Err gf_modules_close_interface(GF_BaseInterface *interface_obj);
 
@@ -335,11 +340,12 @@ const char *gf_modules_get_option(GF_BaseInterface *interface_obj, const char *s
  *\brief interface option update
  *
  *Sets an option in the config file associated with the module manager
+ *\note this will also create both section and key if they are not found in the configuration file
  *\param interface_obj the interface object used
  *\param secName the desired key parent section name
  *\param keyName the desired key name
  *\param keyValue the desired key value
- *\note this will also create both section and key if they are not found in the configuration file
+ *\return error if any
  */
 GF_Err gf_modules_set_option(GF_BaseInterface *interface_obj, const char *secName, const char *keyName, const char *keyValue);
 

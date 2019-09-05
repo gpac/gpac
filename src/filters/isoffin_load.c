@@ -311,6 +311,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 						depends_on_id = gf_isom_get_track_id(read->mov, base_track);
 					}
 					break;
+				default:
+					break;
 				}
 			}
 		} else {
@@ -318,6 +320,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			case GF_ISOM_HEVCTYPE_HEVC_LHVC:
 			case GF_ISOM_HEVCTYPE_LHVC_ONLY:
 				has_scalable_layers = GF_TRUE;
+				break;
+			default:
 				break;
 			}
 		}
@@ -459,7 +463,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		max_size = gf_isom_get_max_sample_cts_offset(read->mov, ch->track);
 		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_CTS_OFFSET, &PROP_UINT(max_size) );
 
-		max_size = gf_isom_get_sample_const_duration(read->mov, ch->track);
+		max_size = gf_isom_get_constant_sample_duration(read->mov, ch->track);
 		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_CONSTANT_DURATION, &PROP_UINT(max_size) );
 
 		u32 media_pl=0;

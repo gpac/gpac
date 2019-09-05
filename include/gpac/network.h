@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -267,10 +267,11 @@ void gf_sk_reset(GF_Socket *sock);
  *\brief socket buffer size control
  *
  *Sets the size of the internal buffer of the socket. The socket MUST be bound or connected before.
+ *\warning This operation may fail depending on the provider, hardware...
  *\param sock the socket object
  *\param send_buffer if 0, sets the size of the reception buffer, otherwise sets the size of the emission buffer
  *\param new_size new size of the buffer in bytes.
- *\warning This operation may fail depending on the provider, hardware...
+ *\return error if any
  */
 GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool send_buffer, u32 new_size);
 
@@ -281,6 +282,7 @@ GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool send_buffer, u32 new_size);
  *while a non-blocking one would return an error. By default, sockets are created in blocking mode
  *\param sock the socket object
  *\param NonBlockingOn set to 1 to use on-blocking sockets, 0 otherwise
+ *\return error if any
  */
 GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn);
 /*!
@@ -293,6 +295,7 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn);
  *\param peer_name the remote server address, if NULL, will use localhost
  *\param peer_port remote port number to connect the socket to
  *\param options list of option for the bind operation.
+ *\return error if any
  */
 GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *peer_name, u16 peer_port, u32 options);
 /*!
@@ -303,6 +306,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
  *\param peer_name the remote server address (IP or DNS)
  *\param port remote port number to connect the socket to
  *\param local_ip the local (client) address (IP or DNS) if any, NULL otherwise.
+ *\return error if any
  */
 GF_Err gf_sk_connect(GF_Socket *sock, const char *peer_name, u16 port, const char *local_ip);
 /*!
@@ -312,6 +316,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *peer_name, u16 port, const cha
  *\param sock the socket object
  *\param buffer the data buffer to send
  *\param length the data length to send
+ *\return error if any
  */
 GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length);
 /*!
@@ -332,6 +337,7 @@ GF_Err gf_sk_receive(GF_Socket *sock, u8 *buffer, u32 length, u32 *read);
  *Sets the socket in a listening state. This socket must have been bound to a port before
  *\param sock the socket object
  *\param max_conn the maximum number of simultaneous connection this socket will accept
+ *\return error if any
  */
 GF_Err gf_sk_listen(GF_Socket *sock, u32 max_conn);
 /*!
@@ -340,6 +346,7 @@ GF_Err gf_sk_listen(GF_Socket *sock, u32 max_conn);
  *Accepts an incoming connection on a listening socket
  *\param sock the socket object
  *\param new_conn the resulting connection socket object
+ *\return error if any, GF_IP_NETWORK_EMPTY if nothing to read
  */
 GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **new_conn);
 
@@ -349,6 +356,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **new_conn);
  *Disable the Nable algo (e.g. set TCP_NODELAY) and set the KEEPALIVE on
  *\param sock the socket object
  *\param server_on sets server mode on or off
+ *\return error if any
 */
 GF_Err gf_sk_server_mode(GF_Socket *sock, Bool server_on);
 
@@ -357,6 +365,7 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool server_on);
  *
  *Retrieves local host name.
  *\param buffer destination buffer for name. Buffer must be GF_MAX_IP_NAME_LEN long
+ *\return error if any
  */
 GF_Err gf_sk_get_host_name(char *buffer);
 
@@ -366,6 +375,7 @@ GF_Err gf_sk_get_host_name(char *buffer);
  *Gets local IP address of a connected socket, typically used for server after an ACCEPT
  *\param sock the socket object
  *\param buffer destination buffer for IP address. Buffer must be GF_MAX_IP_NAME_LEN long
+ *\return error if any
  */
 GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer);
 /*!
@@ -375,6 +385,7 @@ GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer);
  *\param sock the socket object
  *\param port local port number of the socket
  *\param sock_type socket type (UDP or TCP)
+ *\return error if any
  */
 GF_Err gf_sk_get_local_info(GF_Socket *sock, u16 *port, u32 *sock_type);
 
@@ -384,6 +395,7 @@ GF_Err gf_sk_get_local_info(GF_Socket *sock, u16 *port, u32 *sock_type);
  *Gets the remote address of a peer. The socket MUST be connected.
  *\param sock the socket object
  *\param buffer destination buffer for IP address. Buffer must be GF_MAX_IP_NAME_LEN long
+ *\return error if any
  */
 GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buffer);
 
@@ -394,6 +406,7 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buffer);
  *\param sock the socket object
  *\param address the remote peer address
  *\param port the remote peer port
+ *\return error if any
  */
 GF_Err gf_sk_set_remote(GF_Socket *sock, char *address, u16 port);
 
@@ -408,6 +421,7 @@ GF_Err gf_sk_set_remote(GF_Socket *sock, char *address, u16 port);
  *\param TTL the multicast TTL (Time-To-Live)
  *\param no_bind if sets, only join the multicast
  *\param local_interface_ip the local interface IP address if desired. If NULL, the default interface will be used.
+ *\return error if any
  */
 GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind, char *local_interface_ip);
 /*!

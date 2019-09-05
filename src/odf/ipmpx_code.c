@@ -1100,7 +1100,7 @@ static GF_Err ReadGF_IPMPX_RemoveToolNotificationListener(GF_BitStream *bs, GF_I
 	GF_IPMPX_RemoveToolNotificationListener*p = (GF_IPMPX_RemoveToolNotificationListener*)_p;
 	p->eventTypeCount = 0;
 	count = gf_bs_read_int(bs, 8);
-	if (count > ARRAY_LENGTH(p->eventType))
+	if (count > GF_ARRAY_LENGTH(p->eventType))
 		return GF_CORRUPTED_DATA;
 
 	p->eventTypeCount = count;

@@ -93,7 +93,7 @@ void rtpin_rtsp_setup_send(GF_RTPInStream *stream)
 		gf_rtp_set_ports(stream->rtp_ch, stream->rtpin->firstport);
 	}
 
-	trans = gf_rtsp_transport_clone(gf_rtp_get_transport(stream->rtp_ch));
+	trans = gf_rtsp_transport_clone((GF_RTSPTransport *)gf_rtp_get_transport(stream->rtp_ch));
 
 	/*some servers get confused when trying to resetup on the same remote ports, so reset info*/
 	trans->port_first = trans->port_last = 0;

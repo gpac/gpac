@@ -153,7 +153,7 @@ struct __tag_scene_graph
 
 	/*callback routines*/
 	/*node callback*/
-	void (*NodeCallback)(void *user_priv, u32 type, GF_Node *node, void *ctxdata);
+	gf_sg_node_init_callback NodeCallback;
 	/*real scene time callback*/
 	Double (*GetSceneTime)(void *userpriv);
 
@@ -681,8 +681,8 @@ struct _smil_timing_rti
 	scene tree traversal.*/
 	Bool postpone;
 
-	void (*evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, u32 state);
-	u32 evaluate_status;
+	void (*evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, GF_SGSMILTimingEvalState state);
+	GF_SGSMILTimingEvalState evaluate_status;
 
 #if 0
 	/* is called only when the timed element is active */

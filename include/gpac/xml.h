@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -127,7 +127,7 @@ typedef	void (*gf_xml_sax_text_content)(void *sax_cbck, const char *content, Boo
 */
 typedef	void (*gf_xml_sax_progress)(void *cbck, u64 done, u64 total);
 
-/*creates new sax parser - all callbacks are optionals
+/*! creates new sax parser - all callbacks are optionals
 \param on_node_start callback for XML node start
 \param on_node_end callback for XML node end
 \param on_text_content callback for text content
@@ -287,7 +287,7 @@ char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only);
  */
 GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser);
 
-/*
+/*!
 *\brief Creates an attribute with the given name and value.
 *
 *\param name the attribute name
@@ -304,7 +304,7 @@ GF_XMLAttribute *gf_xml_dom_create_attribute(const char* name, const char* value
  */
 GF_Err gf_xml_dom_append_child(GF_XMLNode *node, GF_XMLNode *child);
 
-/*
+/*!
  *\brief Removes the node to the list of children of this node.
  *
  * Removes the node to the list of children of this node.

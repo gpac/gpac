@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -86,7 +86,8 @@ size_t gf_utf8_wcslen(const unsigned short *s);
  *\param data the string or wide-char string
  *\param size of the data buffer
   size of the data buffer
- *\return the UTF8 string corrsponding
+ *\param out_ptr set to an allocated buffer if needed for conversion, shall be destroyed by caller
+ *\return the UTF8 string corresponding
  */
 char *gf_utf_get_utf8_string_from_bom(u8 *data, u32 size, char **out_ptr);
 
@@ -100,6 +101,7 @@ char *gf_utf_get_utf8_string_from_bom(u8 *data, u32 size, char **out_ptr);
  */
 Bool gf_utf8_reorder_bidi(u16 *utf_string, u32 len);
 
+/*! maximum character size in bytes*/
 static const size_t UTF8_MAX_BYTES_PER_CHAR = 4;
 
 /*! @} */

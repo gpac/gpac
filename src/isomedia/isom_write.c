@@ -235,7 +235,7 @@ GF_Err gf_isom_set_track_creation_time(GF_ISOFile *movie,u32 trackNumber, u64 ti
 
 //sets the enable flag of a track
 GF_EXPORT
-GF_Err gf_isom_set_track_enabled(GF_ISOFile *movie, u32 trackNumber, u8 enableTrack)
+GF_Err gf_isom_set_track_enabled(GF_ISOFile *movie, u32 trackNumber, Bool enableTrack)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -282,7 +282,7 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *movie, u32 trackNumber, char *code
 	GF_TrackBox *trak;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
+	if (!trak || !code) return GF_BAD_PARAM;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
@@ -370,7 +370,7 @@ static void gf_isom_set_root_iod(GF_ISOFile *movie)
 }
 
 GF_EXPORT
-GF_Err gf_isom_add_desc_to_root_od(GF_ISOFile *movie, GF_Descriptor *theDesc)
+GF_Err gf_isom_add_desc_to_root_od(GF_ISOFile *movie, const GF_Descriptor *theDesc)
 {
 	GF_Err e;
 	GF_Descriptor *desc, *dupDesc;
@@ -392,7 +392,7 @@ GF_Err gf_isom_add_desc_to_root_od(GF_ISOFile *movie, GF_Descriptor *theDesc)
 	case GF_ODF_ISOM_IOD_TAG:
 	case GF_ODF_ISOM_OD_TAG:
 		//duplicate the desc
-		e = gf_odf_desc_copy(theDesc, &dupDesc);
+		e = gf_odf_desc_copy((GF_Descriptor *)theDesc, &dupDesc);
 		if (e) return e;
 		//add it (MUST BE  (I)OD level desc)
 		movie->LastError = gf_odf_desc_add_desc(desc, dupDesc);
@@ -448,7 +448,7 @@ GF_Err gf_isom_set_timescale(GF_ISOFile *movie, u32 timeScale)
 
 
 GF_EXPORT
-GF_Err gf_isom_set_pl_indication(GF_ISOFile *movie, u8 PL_Code, u8 ProfileLevel)
+GF_Err gf_isom_set_pl_indication(GF_ISOFile *movie, u8 PL_Code, GF_ISOProfileLevelType ProfileLevel)
 {
 	GF_IsomInitialObjectDescriptor *iod;
 	GF_Err e;
@@ -509,7 +509,7 @@ GF_Err gf_isom_set_root_od_id(GF_ISOFile *movie, u32 OD_ID)
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_root_od_url(GF_ISOFile *movie, char *url_string)
+GF_Err gf_isom_set_root_od_url(GF_ISOFile *movie, const char *url_string)
 {
 	GF_Err e;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
@@ -804,9 +804,9 @@ GF_Err gf_isom_remove_stream_description(GF_ISOFile *movie, u32 trackNumber, u32
 GF_EXPORT
 GF_Err gf_isom_new_mpeg4_description(GF_ISOFile *movie,
                                      u32 trackNumber,
-                                     GF_ESD *esd,
-                                     char *URLname,
-                                     char *URNname,
+                                     const GF_ESD *esd,
+                                     const char *URLname,
+                                     const char *URNname,
                                      u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -823,10 +823,10 @@ GF_Err gf_isom_new_mpeg4_description(GF_ISOFile *movie,
 	        !esd->slConfig) return GF_BAD_PARAM;
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(movie, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(movie, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	//duplicate our desc
@@ -1417,7 +1417,7 @@ GF_Err gf_isom_set_final_name(GF_ISOFile *movie, char *filename)
 
 //Add a system descriptor to the ESD of a stream(EDIT or WRITE mode only)
 GF_EXPORT
-GF_Err gf_isom_add_desc_to_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_Descriptor *theDesc)
+GF_Err gf_isom_add_desc_to_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, const GF_Descriptor *theDesc)
 {
 	GF_IPIPtr *ipiD;
 	GF_Err e;
@@ -1446,7 +1446,7 @@ GF_Err gf_isom_add_desc_to_description(GF_ISOFile *movie, u32 trackNumber, u32 S
 		gf_isom_get_original_format_type(movie, trackNumber, StreamDescriptionIndex, &msubtype);
 
 	//duplicate the desc
-	e = gf_odf_desc_copy(theDesc, &desc);
+	e = gf_odf_desc_copy((GF_Descriptor *)theDesc, &desc);
 	if (e) return e;
 
 	//and add it to the ESD EXCEPT IPI PTR (we need to translate from ES_ID to TrackID!!!
@@ -1516,7 +1516,7 @@ insertIPI:
 //use carefully. Very useful when you made a lot of changes (IPMP, IPI, OCI, ...)
 //THIS WILL REPLACE THE WHOLE DESCRIPTOR ...
 GF_EXPORT
-GF_Err gf_isom_change_mpeg4_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_ESD *newESD)
+GF_Err gf_isom_change_mpeg4_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, const GF_ESD *newESD)
 {
 	GF_Err e;
 	GF_ESD *esd;
@@ -2067,7 +2067,7 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 
 //set the storage mode of a file (FLAT, STREAMABLE, INTERLEAVED)
 GF_EXPORT
-GF_Err gf_isom_set_storage_mode(GF_ISOFile *movie, u8 storageMode)
+GF_Err gf_isom_set_storage_mode(GF_ISOFile *movie, GF_ISOStorageMode storageMode)
 {
 	GF_Err e;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
@@ -2088,9 +2088,11 @@ GF_Err gf_isom_set_storage_mode(GF_ISOFile *movie, u8 storageMode)
 }
 
 GF_EXPORT
-void gf_isom_force_64bit_chunk_offset(GF_ISOFile *file, Bool set_on)
+GF_Err gf_isom_force_64bit_chunk_offset(GF_ISOFile *file, Bool set_on)
 {
+	if (!file) return GF_BAD_PARAM;
 	file->force_co64 = set_on;
+	return GF_OK;
 }
 
 
@@ -2098,7 +2100,7 @@ void gf_isom_force_64bit_chunk_offset(GF_ISOFile *file, Bool set_on)
 //the media normal timing. EditTime and EditDuration are expressed in Movie TimeScale
 //If a segment with EditTime already exists, IT IS ERASED
 GF_EXPORT
-GF_Err gf_isom_set_edit_segment(GF_ISOFile *movie, u32 trackNumber, u64 EditTime, u64 EditDuration, u64 MediaTime, u8 EditMode)
+GF_Err gf_isom_set_edit(GF_ISOFile *movie, u32 trackNumber, u64 EditTime, u64 EditDuration, u64 MediaTime, GF_ISOEditType EditMode)
 {
 	GF_TrackBox *trak;
 	GF_EditBox *edts;
@@ -2189,7 +2191,7 @@ found:
 
 //remove the edit segments for the whole track
 GF_EXPORT
-GF_Err gf_isom_remove_edit_segments(GF_ISOFile *movie, u32 trackNumber)
+GF_Err gf_isom_remove_edits(GF_ISOFile *movie, u32 trackNumber)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -2216,7 +2218,7 @@ GF_Err gf_isom_remove_edit_segments(GF_ISOFile *movie, u32 trackNumber)
 
 //remove the edit segments for the whole track
 GF_EXPORT
-GF_Err gf_isom_remove_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 seg_index)
+GF_Err gf_isom_remove_edit(GF_ISOFile *movie, u32 trackNumber, u32 seg_index)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -2228,7 +2230,7 @@ GF_Err gf_isom_remove_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 seg_i
 	if (e) return e;
 
 	if (!trak->editBox || !trak->editBox->editList) return GF_OK;
-	if (gf_list_count(trak->editBox->editList->entryList)<=1) return gf_isom_remove_edit_segments(movie, trackNumber);
+	if (gf_list_count(trak->editBox->editList->entryList)<=1) return gf_isom_remove_edits(movie, trackNumber);
 
 	ent = (GF_EdtsEntry*) gf_list_get(trak->editBox->editList->entryList, seg_index-1);
 	gf_list_rem(trak->editBox->editList->entryList, seg_index-1);
@@ -2240,7 +2242,7 @@ GF_Err gf_isom_remove_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 seg_i
 
 
 GF_EXPORT
-GF_Err gf_isom_append_edit_segment(GF_ISOFile *movie, u32 trackNumber, u64 EditDuration, u64 MediaTime, u8 EditMode)
+GF_Err gf_isom_append_edit(GF_ISOFile *movie, u32 trackNumber, u64 EditDuration, u64 MediaTime, GF_ISOEditType EditMode)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -2283,7 +2285,7 @@ GF_Err gf_isom_append_edit_segment(GF_ISOFile *movie, u32 trackNumber, u64 EditD
 }
 
 GF_EXPORT
-GF_Err gf_isom_modify_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 seg_index, u64 EditDuration, u64 MediaTime, u8 EditMode)
+GF_Err gf_isom_modify_edit(GF_ISOFile *movie, u32 trackNumber, u32 seg_index, u64 EditDuration, u64 MediaTime, GF_ISOEditType EditMode)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -2799,7 +2801,7 @@ GF_Err gf_isom_set_interleave_time(GF_ISOFile *movie, u32 InterleaveTime)
 //except for speech codecs where the track has a lot of small samples
 //compaction is done automatically while writing based on the track's sample sizes
 GF_EXPORT
-GF_Err gf_isom_use_compact_size(GF_ISOFile *movie, u32 trackNumber, u8 CompactionOn)
+GF_Err gf_isom_use_compact_size(GF_ISOFile *movie, u32 trackNumber, Bool CompactionOn)
 {
 	GF_TrackBox *trak;
 	u32 i, size;
@@ -2909,7 +2911,7 @@ GF_Err gf_isom_set_brand_info(GF_ISOFile *movie, u32 MajorBrand, u32 MinorVersio
 
 
 GF_EXPORT
-GF_Err gf_isom_modify_alternate_brand(GF_ISOFile *movie, u32 Brand, u8 AddIt)
+GF_Err gf_isom_modify_alternate_brand(GF_ISOFile *movie, u32 Brand, Bool AddIt)
 {
 	u32 i, k, *p;
 
@@ -3578,7 +3580,7 @@ GF_Err gf_isom_get_stsd_template(GF_ISOFile *file, u32 track, u32 stsd_idx, u8 *
 
 
 GF_EXPORT
-GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *dest_file, u32 flags, u32 *dest_track)
+GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *dest_file, GF_ISOTrackCloneFlags flags, u32 *dest_track)
 {
 	GF_TrackBox *trak, *new_tk;
 	GF_BitStream *bs;
@@ -3768,7 +3770,7 @@ GF_Err gf_isom_clone_sample_descriptions(GF_ISOFile *the_file, u32 trackNumber, 
 
 
 GF_EXPORT
-GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, GF_ISOFile *orig_file, u32 orig_track, u32 orig_desc_index, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, GF_ISOFile *orig_file, u32 orig_track, u32 orig_desc_index, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_BitStream *bs;
@@ -3806,10 +3808,10 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	if (!trak || !trak->Media) goto exit;
 
 	/*get or create the data ref*/
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) goto exit;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) goto exit;
 	}
 	if (!the_file->keep_utc)
@@ -3821,7 +3823,7 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 
 	/*also clone track w/h info*/
     mtype = gf_isom_get_media_type(the_file, trackNumber);
-	if (gf_isom_is_video_subtype(mtype) ) {
+	if (gf_isom_is_video_handler_type(mtype) ) {
 		gf_isom_set_visual_info(the_file, trackNumber, (*outDescriptionIndex), ((GF_VisualSampleEntryBox*)entry)->Width, ((GF_VisualSampleEntryBox*)entry)->Height);
 	}
 	return e;
@@ -3832,7 +3834,7 @@ exit:
 }
 
 GF_EXPORT
-GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber, char *URLname, char *URNname, GF_GenericSampleDescription *udesc, u32 *outDescriptionIndex)
+GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber, const char *URLname, const char *URNname, GF_GenericSampleDescription *udesc, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -3845,16 +3847,16 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 	if (!trak || !trak->Media || !udesc) return GF_BAD_PARAM;
 
 	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(movie, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(movie, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	if (gf_isom_is_video_subtype(trak->Media->handler->handlerType)) {
+	if (gf_isom_is_video_handler_type(trak->Media->handler->handlerType)) {
 		GF_GenericVisualSampleEntryBox *entry;
 		//create a new entry
 		entry = (GF_GenericVisualSampleEntryBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRV);
@@ -4868,7 +4870,7 @@ GF_Err gf_isom_hint_max_chunk_size(GF_ISOFile *movie, u32 trackNumber, u32 maxCh
 
 
 GF_EXPORT
-GF_Err gf_isom_set_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_SLConfig *slConfig)
+GF_Err gf_isom_set_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, const GF_SLConfig *slConfig)
 {
 	GF_TrackBox *trak;
 	GF_SampleEntryBox *entry;
@@ -5176,8 +5178,7 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const u
 	GF_Box *box;
 	GF_UnknownUUIDBox *uuidb;
 
-	if (!data_size || !data) return GF_OK;
-
+	if (data_size && !data) return GF_BAD_PARAM;
 	if (trackNumber==(u32) -1) {
 		if (!movie) return GF_BAD_PARAM;
 		list = movie->TopBoxes;
@@ -5198,8 +5199,10 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const u
 	uuidb->internal_4cc = gf_isom_solve_uuid_box((char *) UUID);
 	memcpy(uuidb->uuid, UUID, sizeof(bin128));
 	uuidb->dataSize = data_size;
-	uuidb->data = (char*)gf_malloc(sizeof(char)*data_size);
-	memcpy(uuidb->data, data, sizeof(char)*data_size);
+	if (data_size) {
+		uuidb->data = (char*)gf_malloc(sizeof(char)*data_size);
+		memcpy(uuidb->data, data, sizeof(char)*data_size);
+	}
 	gf_list_add(list, uuidb);
 	return GF_OK;
 }
@@ -5207,7 +5210,7 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const u
 /*Apple extensions*/
 
 GF_EXPORT
-GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const u8 *data, u32 data_len)
+GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *data, u32 data_len)
 {
 	GF_BitStream *bs;
 	GF_Err e;
@@ -5538,7 +5541,7 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	if (!rvc_predefined) {
 		e = gf_isom_set_meta_type(movie, GF_FALSE, track, GF_META_TYPE_RVCI);
 		if (e) return e;
-		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_ISO2, 1);
+		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_ISO2, GF_TRUE);
 		e = gf_isom_add_meta_item_memory(movie, GF_FALSE, track, "rvcconfig.xml", 0, GF_META_ITEM_TYPE_MIME, mime, NULL, NULL, data, size, NULL);
 		if (e) return e;
 		rvcc->rvc_meta_idx = gf_isom_get_meta_item_count(movie, GF_FALSE, track);
@@ -6078,7 +6081,7 @@ GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, u32 ctts_shift)
 	}
 	if (!ctts->version) {
 		ctts->version = 1;
-		gf_isom_remove_edit_segments(file, track);
+		gf_isom_remove_edits(file, track);
 	}
 
 	if (!trak->Media->information->sampleTable->CompositionToDecode)
@@ -6135,7 +6138,7 @@ static GF_Err gf_isom_set_ctts_v0(GF_ISOFile *file, GF_TrackBox *trak)
 		u64 dur = trak->Media->mediaHeader->duration;
 		dur *= file->moov->mvhd->timeScale;
 		dur /= trak->Media->mediaHeader->timeScale;
-		gf_isom_set_edit_segment(file, gf_list_find(file->moov->trackList, trak)+1, 0, dur, shift, GF_ISOM_EDIT_NORMAL);
+		gf_isom_set_edit(file, gf_list_find(file->moov->trackList, trak)+1, 0, dur, shift, GF_ISOM_EDIT_NORMAL);
 	}
 	ctts->version = 0;
 	gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_ISO4, GF_FALSE);
@@ -6606,7 +6609,7 @@ void gf_isom_set_progress_callback(GF_ISOFile *file, void (*progress_cbk)(void *
 	}
 }
 
-GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *file, u32 track, u32 stsd_idx, u16 revision, u32 vendor, u32 temporalQ, u32 spatialQ, u32 horiz_res, u32 vert_res, u16 frames_per_sample, char *compressor_name, s16 color_table_index)
+GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *file, u32 track, u32 stsd_idx, u16 revision, u32 vendor, u32 temporalQ, u32 spatialQ, u32 horiz_res, u32 vert_res, u16 frames_per_sample, const char *compressor_name, s16 color_table_index)
 {
 
 	GF_TrackBox *trak;
@@ -6713,7 +6716,7 @@ GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 tra
 
 #include <gpac/xml.h>
 GF_EXPORT
-GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID trackID, char *box_patch_filename)
+GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID trackID, const char *box_patch_filename)
 {
 	GF_Err e;
 	GF_DOMParser *dom;

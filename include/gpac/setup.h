@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / general OS configuration file
@@ -45,6 +45,7 @@ extern "C" {
  *	@{
  */
 
+//! @cond Doxygen_Suppress
 
 /*This is to handle cases where config.h is generated at the root of the gpac build tree (./configure)
 This is only needed when building libgpac and modules when libgpac is not installed*/
@@ -337,17 +338,20 @@ typedef u8 bin128[16];
 #endif
 
 #ifndef Bool
+/*! boolean value*/
 typedef enum {
 	GF_FALSE = 0,
 	GF_TRUE
 } Bool;
 #endif
 
+/*! 32 bit fraction*/
 typedef struct {
 	s32 num;
 	u32 den;
 } GF_Fraction;
 
+/*! 64 bit fraction*/
 typedef struct {
 	s64 num;
 	u64 den;
@@ -577,6 +581,7 @@ char* gf_strdup(const char *str);
 //define this to remove most of built-in doc of libgpac - for now filter description and help is removed, but argument help is not
 //#define GPAC_DISABLE_DOC
 
+//! @endcond
 
 /*! @} */
 

@@ -2903,8 +2903,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 		} else {
 			content = "unknown";
 		}
-		gf_log_lt(GF_LOG_DEBUG, GF_LOG_SCRIPT);
-		gf_log("[DOM Events    ] Executing script code from handler: %s\n", content);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOM Events    ] Executing script code from handler: %s\n", content) );
 		SMJS_FREE(svg_js->js_ctx, _content);
 	}
 #endif

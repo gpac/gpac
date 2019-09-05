@@ -205,7 +205,7 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 
 #ifndef GPAC_DISABLE_SCENE_STATS
 
-static void dump_stats(FILE *dump, GF_SceneStatistics *stats)
+static void dump_stats(FILE *dump, const GF_SceneStatistics *stats)
 {
 	u32 i;
 	s32 created, count, draw_created, draw_count, deleted, draw_deleted;
@@ -595,7 +595,7 @@ static void do_print_node(GF_Node *node, GF_SceneGraph *sg, const char *name, u3
 			continue;
 		}
 
-		fprintf(stderr, "\t%s %s %s", gf_sg_vrml_get_event_type_name(f.eventType, 0), gf_sg_vrml_get_field_type_by_name(f.fieldType), f.name);
+		fprintf(stderr, "\t%s %s %s", gf_sg_vrml_get_event_type_name(f.eventType, 0), gf_sg_vrml_get_field_type_name(f.fieldType), f.name);
 		if (f.fieldType==GF_SG_VRML_SFNODE) fprintf(stderr, " NULL");
 		else if (f.fieldType==GF_SG_VRML_MFNODE) fprintf(stderr, " []");
 		else if (gf_sg_vrml_is_sf_field(f.fieldType)) {
@@ -1615,7 +1615,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 			} else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT) ) {
 
 				if (msubtype==GF_ISOM_SUBTYPE_WVTT) {
-					gf_webvtt_dump_iso_track(&dumper, NULL, i+1, merge_vtt_cues, GF_TRUE);
+					gf_webvtt_dump_iso_track(&dumper, i+1, merge_vtt_cues, GF_TRUE);
 					fmt_handled = GF_TRUE;
 				} else if ((msubtype==GF_ISOM_SUBTYPE_TX3G) || (msubtype==GF_ISOM_SUBTYPE_TEXT)) {
 					gf_isom_text_dump(the_file, i+1, dump, GF_TEXTDUMPTYPE_TTXT_BOXES);
@@ -1954,7 +1954,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump)
 	fprintf(stderr, "Media Duration %s - ", format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
 	fprintf(stderr, "Indicated Duration %s\n", format_duration(gf_isom_get_media_original_duration(file, trackNum), timescale, szDur));
 
-	nb_edits = gf_isom_get_edit_segment_count(file, trackNum);
+	nb_edits = gf_isom_get_edits_count(file, trackNum);
 	if (nb_edits)
 		fprintf(stderr, "Track has %d edit lists: track duration is %s\n", nb_edits, format_duration(gf_isom_get_track_duration(file, trackNum), gf_isom_get_timescale(file), szDur));
 
@@ -1999,7 +1999,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump)
 
 	print_udta(file, trackNum);
 
-	if (gf_isom_is_video_subtype(mtype) ) {
+	if (gf_isom_is_video_handler_type(mtype) ) {
 		s32 tx, ty;
 		u32 w, h;
 		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, NULL);
@@ -2642,7 +2642,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump)
 	} else {
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(file, trackNum, 1);
 		if (udesc) {
-			if (gf_isom_is_video_subtype(mtype) ) {
+			if (gf_isom_is_video_handler_type(mtype) ) {
                 fprintf(stderr, "%s Track - Compressor \"%s\" - Resolution %d x %d\n",
                         (mtype == GF_ISOM_MEDIA_VISUAL?"Visual":"Auxiliary Video"),
                         udesc->compressor_name, udesc->width, udesc->height);

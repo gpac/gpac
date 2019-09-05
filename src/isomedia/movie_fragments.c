@@ -106,7 +106,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type, 
 	if (store_file) {
 		/* add DASH brand if requested*/
 		if (media_segment_type)
-			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DASH, 1);
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DASH, GF_TRUE);
 
 		if (!movie->moov->mvex->mehd || !movie->moov->mvex->mehd->fragment_duration) {
 			//update durations
@@ -255,7 +255,7 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, GF_ISOTrackID TrackID,
                                     u8 DefaultSampleIsSync,
                                     u8 DefaultSamplePadding,
                                     u16 DefaultDegradationPriority,
-                                    u8 force_traf_flags)
+                                    Bool force_traf_flags)
 {
 	GF_MovieExtendsBox *mvex;
 	GF_TrackExtendsBox *trex;
@@ -445,7 +445,7 @@ escape_size:
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, u32 Code, u32 Param)
+GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_ISOTrackFragmentOption Code, u32 Param)
 {
 	GF_TrackFragmentBox *traf;
 	if (!movie || !movie->moov) return GF_BAD_PARAM;
@@ -1157,10 +1157,10 @@ static GF_Err gf_isom_write_styp(GF_ISOFile *movie, Bool last_segment)
 		/*modify brands STYP*/
 
 		/*"msix" brand: this is a DASH Initialization Segment*/
-		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_MSIX, 1);
+		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_MSIX, GF_TRUE);
 		if (last_segment) {
 			/*"lmsg" brand: this is the last DASH Segment*/
-			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_LMSG, 1);
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_LMSG, GF_TRUE);
 		}
 
 		movie->brand->type = GF_ISOM_BOX_TYPE_STYP;
@@ -2815,22 +2815,19 @@ GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, GF_ISOTrackID trackI
 #endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_EXPORT
-u32 gf_isom_is_track_fragmented(GF_ISOFile *movie, GF_ISOTrackID TrackID)
+Bool gf_isom_is_track_fragmented(GF_ISOFile *movie, GF_ISOTrackID TrackID)
 {
-	if (!movie || !movie->moov || !movie->moov->mvex) return 0;
-	return (GetTrex(movie->moov, TrackID) != NULL) ? 1 : 0;
+	if (!movie || !movie->moov || !movie->moov->mvex) return GF_FALSE;
+	return (GetTrex(movie->moov, TrackID) != NULL) ? GF_TRUE : GF_FALSE;
 }
 
 GF_EXPORT
-u32 gf_isom_is_fragmented(GF_ISOFile *movie)
+Bool gf_isom_is_fragmented(GF_ISOFile *movie)
 {
-	if (!movie || !movie->moov) return 0;
+	if (!movie || !movie->moov) return GF_FALSE;
 	/* By default if the Moov has an mvex, the file is fragmented */
-	if (movie->moov->mvex) return 1;
-	/* deprecated old code */
-	/*only check moof number (in read mode, mvex can be deleted on the fly)*/
-	//return movie->NextMoofNumber ? 1 : 0;
-	return 0;
+	if (movie->moov->mvex) return GF_TRUE;
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -2872,12 +2869,12 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *the_file, GF_ISOTrackID TrackID,
                                     u8 DefaultSampleIsSync,
                                     u8 DefaultSamplePadding,
                                     u16 DefaultDegradationPriority,
-                                    u8 u8 force_traf_flags)
+                                    Bool u8 force_traf_flags)
 {
 	return GF_NOT_SUPPORTED;
 }
 
-GF_Err gf_isom_set_fragment_option(GF_ISOFile *the_file, GF_ISOTrackID TrackID, u32 Code, u32 Param)
+GF_Err gf_isom_set_fragment_option(GF_ISOFile *the_file, GF_ISOTrackID TrackID, GF_ISOTrackFragmentOption Code, u32 Param)
 {
 	return GF_NOT_SUPPORTED;
 }
@@ -2895,15 +2892,15 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, GF_ISOTrackID TrackID, 
 
 
 GF_EXPORT
-u32 gf_isom_is_track_fragmented(GF_ISOFile *the_file, GF_ISOTrackID TrackID)
+Bool gf_isom_is_track_fragmented(GF_ISOFile *the_file, GF_ISOTrackID TrackID)
 {
-	return 0;
+	return GF_FALSE;
 }
 
 GF_EXPORT
-u32 gf_isom_is_fragmented(GF_ISOFile *the_file)
+Bool gf_isom_is_fragmented(GF_ISOFile *the_file)
 {
-	return 0;
+	return GF_FALSE;
 }
 
 GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, GF_ISOTrackID TrackID, u32 flags, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable)

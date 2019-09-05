@@ -260,10 +260,10 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 				break;
 			}
 			/*check if track has initial offset*/
-			if (!j && gf_isom_get_edit_segment_count(load->isom, i+1)) {
+			if (!j && gf_isom_get_edits_count(load->isom, i+1)) {
 				u64 EditTime, dur, mtime;
-				u8 mode;
-				gf_isom_get_edit_segment(load->isom, i+1, 1, &EditTime, &dur, &mtime, &mode);
+				GF_ISOEditType mode;
+				gf_isom_get_edit(load->isom, i+1, 1, &EditTime, &dur, &mtime, &mode);
 				if (mode==GF_ISOM_EDIT_EMPTY) {
 					init_offset = (u32) (dur * sc->timeScale / gf_isom_get_timescale(load->isom) );
 				}

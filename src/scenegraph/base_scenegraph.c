@@ -124,7 +124,7 @@ GF_SceneGraph *gf_sg_new_subscene(GF_SceneGraph *scene)
 
 
 GF_EXPORT
-void gf_sg_set_node_callback(GF_SceneGraph *sg, void (*NodeCallback)(void *user_priv, u32 type, GF_Node *node, void *ctxdata) )
+void gf_sg_set_node_callback(GF_SceneGraph *sg, gf_sg_node_init_callback NodeCallback)
 {
 	sg->NodeCallback = NodeCallback;
 }
@@ -2274,7 +2274,7 @@ GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, char *ns_name, char *q_name)
 	return GF_OK;
 }
 
-u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname)
+GF_NamespaceType gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname)
 {
 	u32 i, count;
 	count = sg->ns ? gf_list_count(sg->ns) : 0;
@@ -2293,7 +2293,7 @@ u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname)
 	return GF_XMLNS_UNDEFINED;
 }
 
-u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name)
+GF_NamespaceType gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name)
 {
 	u32 i, count;
 	count = sg->ns ? gf_list_count(sg->ns) : 0;

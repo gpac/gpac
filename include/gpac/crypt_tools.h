@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -89,6 +89,7 @@ enum
 	GF_CRYPT_SELENC_CLEAR_FORCED,
 };
 
+/*! Crypto information for one media stream*/
 typedef struct
 {
 	/*! scheme type used for encryptio of the track*/
@@ -158,6 +159,7 @@ typedef struct
 	char *metadata;
 } GF_TrackCryptInfo;
 
+/*! Crypto information*/
 typedef struct
 {
 	/*! list of track infos*/
@@ -177,7 +179,7 @@ typedef struct
 GF_CryptInfo *gf_crypt_info_load(const char *file);
 
 /*! deletes crypt config file.
-\param file name of the crypt XML file
+\param info the target crypt info
 */
 void gf_crypt_info_del(GF_CryptInfo *info);
 
@@ -206,12 +208,12 @@ GF_Err gf_crypt_file(GF_ISOFile *infile, const char *drm_file, const char *outna
 /*! encrypts a fragment
 \param infile init segment of the MP4 file to encrypt - this SHALL NOT be encrypted
 \param drm_file location of crypt info data
-\param outname location of destination file
+\param dst_file location of destination file
 \param frag_name name of fragment to encrypt
 \param fs_dump_flags flags for session stats (1) and session graph (1<<1) dumping
 \return error code if any
 */
-GF_Err gf_crypt_fragment(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, const char *frag_name, u32 fs_dump_flags);
+GF_Err gf_crypt_fragment(GF_ISOFile *infile, const char *drm_file, const char *dst_file, const char *frag_name, u32 fs_dump_flags);
 
 #endif /*!defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 

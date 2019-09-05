@@ -215,7 +215,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 	Double scale;
 
 	gf_isom_set_track_reference(file, chapter_ref_trak, GF_ISOM_REF_CHAP, gf_isom_get_track_id(file, track) );
-	gf_isom_set_track_enabled(file, track, 0);
+	gf_isom_set_track_enabled(file, track, GF_FALSE);
 
 	ref_duration = gf_isom_get_media_duration(file, chapter_ref_trak);
 	chap_duration = gf_isom_get_media_duration(file, track);
@@ -656,7 +656,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 						icc_size = (u32) gf_ftell(f);
 						icc_data = gf_malloc(sizeof(char)*icc_size);
 						gf_fseek(f, 0, SEEK_SET);
-						icc_size = (u32) gf_fread(icc_data, 1, icc_size, f);
+						icc_size = (u32) fread(icc_data, 1, icc_size, f);
 						gf_fclose(f);
 					}
 				} else {
@@ -895,26 +895,26 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 		timescale = gf_isom_get_timescale(dest);
 		if (szLan) gf_isom_set_media_language(dest, track, (char *) szLan);
-		if (disable) gf_isom_set_track_enabled(dest, track, 0);
+		if (disable) gf_isom_set_track_enabled(dest, track, GF_FALSE);
 
 		if (delay) {
 			u64 tk_dur;
-			gf_isom_remove_edit_segments(dest, track);
+			gf_isom_remove_edits(dest, track);
 			tk_dur = gf_isom_get_track_duration(dest, track);
 			if (delay>0) {
-				gf_isom_append_edit_segment(dest, track, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
-				gf_isom_append_edit_segment(dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+				gf_isom_append_edit(dest, track, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
+				gf_isom_append_edit(dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
 			} else {
 				u64 to_skip = (timescale*(-delay))/1000;
 				if (to_skip<tk_dur) {
 					u64 media_time = (-delay)*gf_isom_get_media_timescale(dest, track) / 1000;
-					gf_isom_append_edit_segment(dest, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
+					gf_isom_append_edit(dest, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
 				} else {
 					fprintf(stderr, "Warning: request negative delay longer than track duration - ignoring\n");
 				}
 			}
 		}
-		if (gf_isom_is_video_subtype(media_type)) {
+		if (gf_isom_is_video_handler_type(media_type)) {
 			if ((par_n>=-1) && (par_d>=-1)) {
 				e = gf_media_change_par(dest, track, par_n, par_d, force_par);
 			}
@@ -936,7 +936,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			e = gf_isom_set_track_matrix(dest, track, mx);
 		}
 		if (use_stz2) {
-			e = gf_isom_use_compact_size(dest, track, 1);
+			e = gf_isom_use_compact_size(dest, track, GF_TRUE);
 		}
 
 		if (gf_isom_get_media_subtype(dest, track, 1) == GF_QT_BOX_TYPE_TMCD) {
@@ -1035,6 +1035,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			break;
 		case GF_ISOM_HEVCTYPE_HEVC_ONLY:
 			check_track_for_hevc=1;
+			break;
+		default:
 			break;
 		}
 
@@ -1147,7 +1149,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		GF_BitStream *bs;
 		GF_ISOSample *samp;
 		for (i=0; i<gf_isom_get_track_count(dest); i++) {
-			if (gf_isom_is_video_subtype(gf_isom_get_media_type(dest, i+1))) {
+			if (gf_isom_is_video_handler_type(gf_isom_get_media_type(dest, i+1))) {
 				video_ref = i+1;
 				break;
 			}
@@ -1523,7 +1525,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 			if (gf_isom_has_time_offset(mp4, tki->tk)) {
 				gf_isom_set_cts_packing(dest, tki->dst_tk, GF_TRUE);
 			}
-			gf_isom_remove_edit_segments(dest, tki->dst_tk);
+			gf_isom_remove_edits(dest, tki->dst_tk);
 
 			gf_isom_enable_raw_pack(mp4, tki->tk, 1024);
 
@@ -1845,16 +1847,16 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 
 			/*rewrite edit list*/
 			new_track_dur = gf_isom_get_track_duration(dest, tki->dst_tk);
-			count = gf_isom_get_edit_segment_count(mp4, tki->tk);
+			count = gf_isom_get_edits_count(mp4, tki->tk);
 			if (count>2) {
 				fprintf(stderr, "Warning: %d edit segments - not supported while splitting (max 2) - ignoring extra\n", count);
 				count=2;
 			}
 			for (j=0; j<count; j++) {
 				u64 editTime, segDur, MediaTime;
-				u8 mode;
+				GF_ISOEditType mode;
 
-				gf_isom_get_edit_segment(mp4, tki->tk, j+1, &editTime, &segDur, &MediaTime, &mode);
+				gf_isom_get_edit(mp4, tki->tk, j+1, &editTime, &segDur, &MediaTime, &mode);
 				if (!j && (mode!=GF_ISOM_EDIT_EMPTY) ) {
 					fprintf(stderr, "Warning: Edit list doesn't look like a track delay scheme - ignoring\n");
 					break;
@@ -1862,7 +1864,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 				if (mode==GF_ISOM_EDIT_NORMAL) {
 					segDur = new_track_dur;
 				}
-				gf_isom_set_edit_segment(dest, tki->dst_tk, editTime, segDur, MediaTime, mode);
+				gf_isom_set_edit(dest, tki->dst_tk, editTime, segDur, MediaTime, mode);
 			}
 		}
 		/*check chapters*/
@@ -2211,7 +2213,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			for (j=0; j<gf_isom_get_track_count(dest); j++) {
 				if (mtype != gf_isom_get_media_type(dest, j+1)) continue;
 				if (gf_isom_is_same_sample_description(orig, i+1, 0, dest, j+1, 0)) {
-					if (gf_isom_is_video_subtype(mtype) ) {
+					if (gf_isom_is_video_handler_type(mtype) ) {
 						u32 w, h, ow, oh;
 						gf_isom_get_visual_info(orig, i+1, 1, &ow, &oh);
 						gf_isom_get_visual_info(dest, j+1, 1, &w, &h);
@@ -2262,7 +2264,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				dst_tk = 0;
 			}
 			/*we force the same visual resolution*/
-			else if (gf_isom_is_video_subtype(mtype) ) {
+			else if (gf_isom_is_video_handler_type(mtype) ) {
 				u32 w, h, ow, oh;
 				gf_isom_get_visual_info(orig, i+1, 1, &ow, &oh);
 				gf_isom_get_visual_info(dest, dst_tk, 1, &w, &h);
@@ -2325,9 +2327,9 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			}
 
 			/*remove cloned edit list, as it will be rewritten after import*/
-			gf_isom_remove_edit_segments(dest, dst_tk);
+			gf_isom_remove_edits(dest, dst_tk);
 		} else {
-			nb_edits = gf_isom_get_edit_segment_count(orig, i+1);
+			nb_edits = gf_isom_get_edits_count(orig, i+1);
 		}
 
 		dest_track_dur_before_cat = gf_isom_get_media_duration(dest, dst_tk);
@@ -2348,13 +2350,13 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 
 		/*if not a new track, see if we can merge the edit list - this is a crude test that only checks
 		we have the same edit types*/
-		if (nb_edits && (nb_edits == gf_isom_get_edit_segment_count(dest, dst_tk)) ) {
+		if (nb_edits && (nb_edits == gf_isom_get_edits_count(dest, dst_tk)) ) {
 			u64 editTime, segmentDuration, mediaTime, dst_editTime, dst_segmentDuration, dst_mediaTime;
-			u8 dst_editMode, editMode;
+			GF_ISOEditType dst_editMode, editMode;
 			merge_edits = 1;
 			for (j=0; j<nb_edits; j++) {
-				gf_isom_get_edit_segment(orig, i+1, j+1, &editTime, &segmentDuration, &mediaTime, &editMode);
-				gf_isom_get_edit_segment(dest, dst_tk, j+1, &dst_editTime, &dst_segmentDuration, &dst_mediaTime, &dst_editMode);
+				gf_isom_get_edit(orig, i+1, j+1, &editTime, &segmentDuration, &mediaTime, &editMode);
+				gf_isom_get_edit(dest, dst_tk, j+1, &dst_editTime, &dst_segmentDuration, &dst_mediaTime, &dst_editMode);
 
 				if (dst_editMode!=editMode) {
 					merge_edits=0;
@@ -2409,8 +2411,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			/*convert from orig to dst time scale*/
 			rescale *= ts_scale;
 
-			gf_isom_set_edit_segment(dest, dst_tk, 0, (u64) (s64) (insert_dts*rescale), 0, GF_ISOM_EDIT_EMPTY);
-			gf_isom_set_edit_segment(dest, dst_tk, (u64) (s64) (insert_dts*rescale), (u64) (s64) (media_dur*rescale), 0, GF_ISOM_EDIT_NORMAL);
+			gf_isom_set_edit(dest, dst_tk, 0, (u64) (s64) (insert_dts*rescale), 0, GF_ISOM_EDIT_EMPTY);
+			gf_isom_set_edit(dest, dst_tk, (u64) (s64) (insert_dts*rescale), (u64) (s64) (media_dur*rescale), 0, GF_ISOM_EDIT_NORMAL);
 		} else if (merge_edits) {
 			/*convert from media time to track time*/
 			u32 movts_dst = gf_isom_get_timescale(dest);
@@ -2421,8 +2423,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			/*get the first edit normal mode and add the new track dur*/
 			for (j=nb_edits; j>0; j--) {
 				u64 editTime, segmentDuration, mediaTime;
-				u8 editMode;
-				gf_isom_get_edit_segment(dest, dst_tk, j, &editTime, &segmentDuration, &mediaTime, &editMode);
+				GF_ISOEditType editMode;
+				gf_isom_get_edit(dest, dst_tk, j, &editTime, &segmentDuration, &mediaTime, &editMode);
 
 				if (editMode==GF_ISOM_EDIT_NORMAL) {
 					Double prev_dur = (Double) (s64) dest_track_dur_before_cat;
@@ -2442,23 +2444,23 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 					}
 
 					segmentDuration += (u64) (s64) dur;
-					gf_isom_modify_edit_segment(dest, dst_tk, j, segmentDuration, mediaTime, editMode);
+					gf_isom_modify_edit(dest, dst_tk, j, segmentDuration, mediaTime, editMode);
 					break;
 				}
 			}
 		} else {
 			u64 editTime, segmentDuration, mediaTime, edit_offset;
 			Double t;
-			u8 editMode;
+			GF_ISOEditType editMode;
 
-			count = gf_isom_get_edit_segment_count(dest, dst_tk);
+			count = gf_isom_get_edits_count(dest, dst_tk);
 			if (count) {
-				e = gf_isom_get_edit_segment(dest, dst_tk, count, &editTime, &segmentDuration, &mediaTime, &editMode);
+				e = gf_isom_get_edit(dest, dst_tk, count, &editTime, &segmentDuration, &mediaTime, &editMode);
 				if (e) {
 					fprintf(stderr, "Error: edit segment error on destination track %u could not be retrieved.\n", dst_tk);
 					goto err_exit;
 				}
-			} else if (gf_isom_get_edit_segment_count(orig, i+1)) {
+			} else if (gf_isom_get_edits_count(orig, i+1)) {
 				/*fake empty edit segment*/
 				/*convert from media time to track time*/
 				Double rescale = (Float) gf_isom_get_timescale(dest);
@@ -2466,7 +2468,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				segmentDuration = (u64) (dest_track_dur_before_cat * rescale);
 				editTime = 0;
 				mediaTime = 0;
-				gf_isom_set_edit_segment(dest, dst_tk, editTime, segmentDuration, mediaTime, GF_ISOM_EDIT_NORMAL);
+				gf_isom_set_edit(dest, dst_tk, editTime, segmentDuration, mediaTime, GF_ISOM_EDIT_NORMAL);
 			} else {
 				editTime = 0;
 				segmentDuration = 0;
@@ -2477,9 +2479,9 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			ts_scale /= (Float) gf_isom_get_timescale(orig);
 
 			edit_offset = editTime + segmentDuration;
-			count = gf_isom_get_edit_segment_count(orig, i+1);
+			count = gf_isom_get_edits_count(orig, i+1);
 			for (j=0; j<count; j++) {
-				gf_isom_get_edit_segment(orig, i+1, j+1, &editTime, &segmentDuration, &mediaTime, &editMode);
+				gf_isom_get_edit(orig, i+1, j+1, &editTime, &segmentDuration, &mediaTime, &editMode);
 				t = (Double) (s64) editTime;
 				t *= ts_scale;
 				t += (s64) edit_offset;
@@ -2494,7 +2496,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				if ((editMode == GF_ISOM_EDIT_EMPTY) && (mediaTime > 0)) {
 					editMode = GF_ISOM_EDIT_NORMAL;
 				}
-				gf_isom_set_edit_segment(dest, dst_tk, editTime, segmentDuration, mediaTime, editMode);
+				gf_isom_set_edit(dest, dst_tk, editTime, segmentDuration, mediaTime, editMode);
 			}
 		}
 		gf_media_update_bitrate(dest, dst_tk);
@@ -2507,7 +2509,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	for (i=0; i<j; i++) {
 		u32 brand;
 		gf_isom_get_alternate_brand(orig, i+1, &brand);
-		gf_isom_modify_alternate_brand(dest, brand, 1);
+		gf_isom_modify_alternate_brand(dest, brand, GF_TRUE);
 	}
 	/*check chapters*/
 	for (i=0; i<gf_isom_get_chapter_count(orig, 0); i++) {
@@ -2710,7 +2712,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 		statsman = gf_sm_stats_new();
 		e = gf_sm_stats_for_scene(statsman, ctx);
 		if (!e) {
-			GF_SceneStatistics *stats = gf_sm_stats_get(statsman);
+			const GF_SceneStatistics *stats = gf_sm_stats_get(statsman);
 			/*LASeR*/
 			if (opts->auto_quant==1) {
 				if (opts->resolution > (s32)stats->frac_res_2d) {
@@ -2798,7 +2800,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 	}
 
 	gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_MP42, 1);
-	gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_ISOM, 1);
+	gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_ISOM, GF_TRUE);
 
 err_exit:
 #ifndef GPAC_DISABLE_SCENE_STATS

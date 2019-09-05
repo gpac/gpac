@@ -1195,7 +1195,7 @@ import_next_sample:
 	gf_isom_reset_alt_brands(movie);
 	// TODO Analyze configuration to determine the brand */
 	//if (media_brand) {
-	//	gf_isom_modify_alternate_brand(movie, media_brand, 1);
+	//	gf_isom_modify_alternate_brand(movie, media_brand, GF_TRUE);
 	//}
 	gf_isom_sample_del(&sample);
 	if (config_box) gf_isom_box_del(config_box);

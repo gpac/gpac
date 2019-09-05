@@ -911,7 +911,7 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *vrml_node)
 	if (n) {
 		gf_sg_listener_post_add((GF_Node *) n, listener);
 	} else {
-		gf_sg_listener_add(listener, target);
+		gf_sg_listener_associate(listener, target);
 	}
 
 err_exit:
@@ -4386,6 +4386,12 @@ void dom_set_class_selector(JSContext *c, void *(*get_element_class)(GF_Node *n)
 
 
 
+#if 0 //unused
+/*! parses the given XML document and returns a scene graph composed of GF_DOMFullNode
+\param src the source file
+\param scene set to the new scene graph
+\return error if any
+*/
 GF_Err gf_sg_new_from_xml_doc(const char *src, GF_SceneGraph **scene)
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -4416,6 +4422,7 @@ GF_Err gf_sg_new_from_xml_doc(const char *src, GF_SceneGraph **scene)
 	return GF_NOT_SUPPORTED;
 #endif
 }
+#endif
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 

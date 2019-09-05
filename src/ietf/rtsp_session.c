@@ -236,13 +236,13 @@ char *gf_rtsp_get_last_request(GF_RTSPSession *sess)
 //check whether the url contains server and service name
 //no thread protection as this is const throughout the session
 GF_EXPORT
-u32 gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url)
+Bool gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url)
 {
-	if (!sess) return 0;
-	if (!strstr(url, sess->Server)) return 0;
+	if (!sess) return GF_FALSE;
+	if (!strstr(url, sess->Server)) return GF_FALSE;
 	//same url or sub-url
-	if (strstr(url, sess->Service)) return 1;
-	return 0;
+	if (strstr(url, sess->Service)) return GF_TRUE;
+	return GF_FALSE;
 }
 
 #if 0 //unused
@@ -474,9 +474,7 @@ GF_Err gf_rtsp_register_interleave(GF_RTSPSession *sess, void *the_ch, u8 LowInt
 
 
 GF_EXPORT
-GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess,
-                                       GF_Err (*SignalData)(GF_RTSPSession *sess, void *chan, u8 *buffer, u32 bufferSize, Bool IsRTCP)
-                                      )
+GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess, gf_rtsp_interleave_callback SignalData)
 {
 	if (!sess) return GF_BAD_PARAM;
 
@@ -681,7 +679,7 @@ char *gf_rtsp_generate_session_id(GF_RTSPSession *sess)
 
 
 GF_EXPORT
-GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char *buffer)
+GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char buffer[GF_MAX_IP_NAME_LEN])
 {
 	if (!sess || !sess->connection) return GF_BAD_PARAM;
 	gf_sk_get_local_ip(sess->connection, buffer);
