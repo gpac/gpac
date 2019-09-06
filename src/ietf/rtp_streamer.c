@@ -34,6 +34,9 @@
 
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_ISOM)
 
+/*for ISOBMFF subtypes*/
+#include <gpac/isomedia.h>
+
 struct __rtp_streamer
 {
 	GP_RTPPacketizer *packetizer;

@@ -31,20 +31,20 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/compositor.h>
- *	\brief GPAC A/V/2D/3D compositor/rendering.
- */
+\file <gpac/compositor.h>
+\brief GPAC A/V/2D/3D compositor/rendering.
+*/
 	
 /*!
- *\addtogroup compose_grp Compositor
- *\ingroup playback_grp
- *\brief GPAC A/V/2D/3D compositor/rendering.
- *
- *This section documents the compositor of GPAC in charge of assembling audio, images, video, text, 2D and 3D graphics
+\addtogroup compose_grp Compositor
+\ingroup playback_grp
+\brief GPAC A/V/2D/3D compositor/rendering.
+
+This section documents the compositor of GPAC in charge of assembling audio, images, video, text, 2D and 3D graphics
   in a timed fashion. The compositor can only be run as a filter starting from GPAC 0.9.0, as it requires the filters API
   to fetch media data.
   The compositor can work in real-time mode (player) or as a regular filter. See `gpac -h compositor`for more information.
- *	@{
+@{
  */
 	
 

@@ -155,7 +155,7 @@ CodecIDReg CodecRegistry [] = {
 
 
 GF_EXPORT
-u32 gf_codec_parse(const char *cname)
+GF_CodecID gf_codec_parse(const char *cname)
 {
 	u32 len = (u32) strlen(cname);
 	u32 i, count = sizeof(CodecRegistry) / sizeof(CodecIDReg);
@@ -173,7 +173,7 @@ u32 gf_codec_parse(const char *cname)
 #include <gpac/internal/isomedia_dev.h>
 
 GF_EXPORT
-u32 gf_codec_id_from_isobmf(u32 isobmftype)
+GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 {
 	switch (isobmftype) {
 	case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -276,7 +276,7 @@ static CodecIDReg *gf_codecid_reg_find_oti(u32 stream_type, u32 oti)
 }
 
 GF_EXPORT
-const char *gf_codecid_name(u32 codecid)
+const char *gf_codecid_name(GF_CodecID codecid)
 {
 	CodecIDReg *r = gf_codecid_reg_find(codecid);
 	if (!r) return "Codec Not Supported";
@@ -284,7 +284,7 @@ const char *gf_codecid_name(u32 codecid)
 }
 
 GF_EXPORT
-const char *gf_codecid_file_ext(u32 codecid)
+const char *gf_codecid_file_ext(GF_CodecID codecid)
 {
 	CodecIDReg *r = gf_codecid_reg_find(codecid);
 	u32 global_ext_count = gf_opts_get_key_count("file_extensions");
@@ -298,7 +298,7 @@ const char *gf_codecid_file_ext(u32 codecid)
 }
 
 GF_EXPORT
-const char *gf_codecid_mime(u32 codecid)
+const char *gf_codecid_mime(GF_CodecID codecid)
 {
 	CodecIDReg *r = gf_codecid_reg_find(codecid);
 	if (r && r->mime_type) return r->mime_type;
@@ -306,7 +306,7 @@ const char *gf_codecid_mime(u32 codecid)
 }
 
 GF_EXPORT
-u32 gf_codecid_enum(u32 idx, const char **short_name, const char **long_name)
+GF_CodecID gf_codecid_enum(u32 idx, const char **short_name, const char **long_name)
 {
 	u32 count = sizeof(CodecRegistry) / sizeof(CodecIDReg);
 	if (idx >= count) return GF_CODECID_NONE;
@@ -317,7 +317,7 @@ u32 gf_codecid_enum(u32 idx, const char **short_name, const char **long_name)
 
 
 GF_EXPORT
-u32 gf_codecid_type(u32 codecid)
+u32 gf_codecid_type(GF_CodecID codecid)
 {
 	CodecIDReg *r = gf_codecid_reg_find(codecid);
 	if (!r) return GF_STREAM_UNKNOWN;
@@ -325,7 +325,7 @@ u32 gf_codecid_type(u32 codecid)
 }
 
 GF_EXPORT
-u32 gf_codecid_from_oti(u32 stream_type, u32 oti)
+GF_CodecID gf_codecid_from_oti(u32 stream_type, u32 oti)
 {
 	CodecIDReg *r = gf_codecid_reg_find_oti(stream_type, oti);
 	if (!r) return GF_CODECID_NONE;
@@ -333,7 +333,7 @@ u32 gf_codecid_from_oti(u32 stream_type, u32 oti)
 }
 
 GF_EXPORT
-u8 gf_codecid_oti(u32 codecid)
+u8 gf_codecid_oti(GF_CodecID codecid)
 {
 	CodecIDReg *r = gf_codecid_reg_find(codecid);
 	if (!r) return 0;
@@ -341,7 +341,7 @@ u8 gf_codecid_oti(u32 codecid)
 }
 
 GF_EXPORT
-u32 gf_codecid_4cc_type(u32 codecid)
+u32 gf_codecid_4cc_type(GF_CodecID codecid)
 {
 	u32 i, count = sizeof(CodecRegistry) / sizeof(CodecIDReg);
 	for (i=0; i<count; i++) {
@@ -432,7 +432,7 @@ const char *gf_stream_type_afx_name(u8 afx_code)
 
 typedef struct
 {
-	u32 sfmt;
+	GF_AudioFormat sfmt;
 	const char *name; //as used in gpac
 	const char *desc;
 	const char *sname; //short name, as used in gpac
@@ -457,7 +457,7 @@ static const GF_AudioFmt GF_AudioFormats[] =
 
 
 GF_EXPORT
-u32 gf_audio_fmt_parse(const char *af_name)
+GF_AudioFormat gf_audio_fmt_parse(const char *af_name)
 {
 	u32 i=0;
 	if (!af_name || !strcmp(af_name, "none")) return 0;
@@ -473,7 +473,7 @@ u32 gf_audio_fmt_parse(const char *af_name)
 }
 
 GF_EXPORT
-const char *gf_audio_fmt_name(u32 sfmt)
+const char *gf_audio_fmt_name(GF_AudioFormat sfmt)
 {
 	u32 i=0;
 	while (!i || GF_AudioFormats[i].sfmt) {
@@ -484,7 +484,7 @@ const char *gf_audio_fmt_name(u32 sfmt)
 	return "unknown";
 }
 GF_EXPORT
-const char *gf_audio_fmt_sname(u32 sfmt)
+const char *gf_audio_fmt_sname(GF_AudioFormat sfmt)
 {
 	u32 i=0;
 	while (!i || GF_AudioFormats[i].sfmt) {
@@ -556,8 +556,9 @@ const char *gf_audio_fmt_all_shortnames()
 }
 
 GF_EXPORT
-u32 gf_audio_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **desc)
+GF_AudioFormat gf_audio_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **desc)
 {
+	GF_AudioFormat afmt;
 	u32 nb_afmt = sizeof(GF_AudioFormats) / sizeof(GF_AudioFmt);
 	if (*idx >= nb_afmt) return 0;
 	if (!GF_AudioFormats[*idx].sfmt) return 0;
@@ -567,13 +568,13 @@ u32 gf_audio_fmt_enum(u32 *idx, const char **name, const char **fileext, const c
 
 	*fileext = GF_AudioFormats[*idx].sname;
 	if (! *fileext) *fileext = *name;
-	nb_afmt = GF_AudioFormats[*idx].sfmt;
+	afmt = GF_AudioFormats[*idx].sfmt;
 	(*idx)++;
-	return nb_afmt;
+	return afmt;
 }
 
 GF_EXPORT
-u32 gf_audio_fmt_bit_depth(u32 audio_fmt)
+u32 gf_audio_fmt_bit_depth(GF_AudioFormat audio_fmt)
 {
 	switch (audio_fmt) {
 	case GF_AUDIO_FMT_U8P:
@@ -601,7 +602,7 @@ u32 gf_audio_fmt_bit_depth(u32 audio_fmt)
 }
 
 GF_EXPORT
-Bool gf_audio_fmt_is_planar(u32 audio_fmt)
+Bool gf_audio_fmt_is_planar(GF_AudioFormat audio_fmt)
 {
 	switch (audio_fmt) {
 	case GF_AUDIO_FMT_U8P:
@@ -618,7 +619,7 @@ Bool gf_audio_fmt_is_planar(u32 audio_fmt)
 }
 
 GF_EXPORT
-u32 gf_audio_fmt_from_isobmf(u32 msubtype)
+GF_AudioFormat gf_audio_fmt_from_isobmf(u32 msubtype)
 {
 	switch (msubtype) {
 	case GF_QT_SUBTYPE_TWOS:
@@ -640,7 +641,7 @@ u32 gf_audio_fmt_from_isobmf(u32 msubtype)
 
 typedef struct
 {
-	u32 pixfmt;
+	GF_PixelFormat pixfmt;
 	const char *name; //as used in gpac
 	const char *desc; //as used in gpac
 	const char *sname; //short name, as used in gpac
@@ -688,7 +689,7 @@ static const GF_PixFmt GF_PixelFormats[] =
 };
 
 GF_EXPORT
-u32 gf_pixel_fmt_parse(const char *pf_name)
+GF_PixelFormat gf_pixel_fmt_parse(const char *pf_name)
 {
 	u32 i=0;
 	if (!pf_name || !strcmp(pf_name, "none")) return 0;
@@ -703,7 +704,7 @@ u32 gf_pixel_fmt_parse(const char *pf_name)
 	return 0;
 }
 GF_EXPORT
-const char *gf_pixel_fmt_name(u32 pfmt)
+const char *gf_pixel_fmt_name(GF_PixelFormat pfmt)
 {
 	u32 i=0;
 	while (GF_PixelFormats[i].pixfmt) {
@@ -714,7 +715,7 @@ const char *gf_pixel_fmt_name(u32 pfmt)
 	return "unknown";
 }
 GF_EXPORT
-const char *gf_pixel_fmt_sname(u32 pfmt)
+const char *gf_pixel_fmt_sname(GF_PixelFormat pfmt)
 {
 	u32 i=0;
 	while (GF_PixelFormats[i].pixfmt) {

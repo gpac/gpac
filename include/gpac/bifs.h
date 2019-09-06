@@ -31,17 +31,17 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/bifs.h>
- *	\brief MPEG-4 BIFS encoding and decoding.
- */
+\file <gpac/bifs.h>
+\brief MPEG-4 BIFS encoding and decoding.
+*/
 	
 /*!
- *	\addtogroup bifs_grp MPEG-4 BIFS
- *	\ingroup mpeg4sys_grp
- *	\brief MPEG-4 BIFS  encoding and decoding
- *
- *This section documents the BIFS encoding and decoding of the GPAC framework. For scene graph documentation, check scenegraph.h
- *	@{
+\addtogroup bifs_grp MPEG-4 BIFS
+\ingroup mpeg4sys_grp
+\brief MPEG-4 BIFS  encoding and decoding
+
+This section documents the BIFS encoding and decoding of the GPAC framework. For scene graph documentation, check scenegraph.h
+@{
  */
 	
 

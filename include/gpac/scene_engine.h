@@ -33,23 +33,25 @@ extern "C" {
 
 
 /*!
- *	\file <gpac/scene_engine.h>
- *	\brief Live scene encoding engine with RAP generation support.
- */
+\file <gpac/scene_engine.h>
+\brief Live scene encoding engine with RAP generation support.
+*/
 	
 /*!
- *	\addtogroup seng Scene Engine
- *	\ingroup scene_grp
- *	\brief Live scene encoding engine with RAP generation support.
- *
- *This section documents the live scene encoding tools of GPAC.
- *	@{
+\addtogroup seng Scene Engine
+\ingroup scene_grp
+\brief Live scene encoding engine with RAP generation support.
+
+This section documents the live scene encoding tools of GPAC.
+
+@{
  */
 
 #include <gpac/scene_manager.h>
 
 #ifndef GPAC_DISABLE_SENG
 
+/*! scene encoding engine object*/
 typedef struct __tag_scene_engine GF_SceneEngine;
 
 /*! callback function prototype for scene engine*/

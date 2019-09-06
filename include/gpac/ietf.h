@@ -33,17 +33,19 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/ietf.h>
- *	\brief Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP .
- */
+\file <gpac/ietf.h>
+\brief Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP .
+*/
 	
 /*!
- *	\addtogroup ietf_grp RTP Streaming
- *	\ingroup media_grp
- *	\brief  Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP.
- *
- *This section documents the tools used for real-time streaming over IP using RTP/RTCP/RTSP/SDP.
- *	@{
+\addtogroup ietf_grp RTP Streaming
+\ingroup media_grp
+\brief  Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP.
+
+
+This section documents the tools used for real-time streaming over IP using RTP/RTCP/RTSP/SDP.
+
+@{
  */
 
 #include <gpac/list.h>
@@ -55,12 +57,7 @@ extern "C" {
 #include <gpac/network.h>
 
 
-/****************************************************************************
-
-				RTSP VERSION 1.0 LIBRARY EXPORTS
-
-****************************************************************************/
-
+/*! RTSP version supported by GPAC*/
 #define GF_RTSP_VERSION		"RTSP/1.0"
 
 

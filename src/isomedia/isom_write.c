@@ -1734,7 +1734,6 @@ GF_Err gf_isom_set_high_dynamic_range_info(GF_ISOFile* movie, u32 trackNumber, u
 	GF_TrackBox* trak;
 	GF_SampleEntryBox* entry;
 	GF_SampleDescriptionBox* stsd;
-	u32 i;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -1759,21 +1758,14 @@ GF_Err gf_isom_set_high_dynamic_range_info(GF_ISOFile* movie, u32 trackNumber, u
 	if (!mdcvb) {
 		mdcvb = (GF_MasteringDisplayColourVolumeBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_MDCV);
 	}
-	/*mdcv*/
-	for (i = 0; i < 3; ++i) {
-		mdcvb->display_primaries[i].x = mdcv->display_primaries[i].x;
-		mdcvb->display_primaries[i].y = mdcv->display_primaries[i].y;
-	}
-	mdcvb->min_display_mastering_luminance = mdcv->min_display_mastering_luminance;
-	mdcvb->max_display_mastering_luminance = mdcv->max_display_mastering_luminance;
+	mdcvb->mdcv = *mdcv;
 
 	/*clli*/
 	GF_ContentLightLevelBox *cllib = (GF_ContentLightLevelBox *)gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_CLLI);
 	if (!cllib) {
 		cllib = (GF_ContentLightLevelBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_CLLI);
 	}
-	cllib->max_content_light_level = clli->max_content_light_level;
-	cllib->max_pic_average_light_level = clli->max_pic_average_light_level;
+	cllib->clli = *clli;
 	return e;
 }
 
@@ -4798,7 +4790,7 @@ GF_Err gf_isom_set_sync_shadow(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum
 {
 	GF_TrackBox *trak;
 	GF_SampleTableBox *stbl;
-	SAPType isRAP;
+	GF_ISOSAPType isRAP;
 	GF_Err e;
 
 	if (movie->openMode == GF_ISOM_OPEN_READ) return GF_ISOM_INVALID_MODE;

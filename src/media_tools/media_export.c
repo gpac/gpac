@@ -912,7 +912,7 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 			gf_fwrite(samp->data, samp->dataLength, 1, media);
 		}
 
-		fprintf(six, "<unit time=\""LLU"\" ", LLU_CAST samp->DTS);
+		fprintf(six, "<unit time=\""LLU"\" ", samp->DTS);
 		if (samp->IsRAP==RAP) fprintf(six, "rap=\"1\" ");
 		else if (samp->IsRAP==RAP_NO) fprintf(six, "rap=\"0\" ");
 		fprintf(six, "range-begin=\"%d\" ", pos);

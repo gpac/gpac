@@ -600,7 +600,7 @@ GF_ISOFile *gf_isom_new_movie()
 }
 
 //Create and parse the movie for READ - EDIT only
-GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tmp_dir)
+GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, const char *tmp_dir)
 {
 	GF_Err e;
 	u64 bytes;
@@ -1039,7 +1039,7 @@ void gf_isom_insert_moov(GF_ISOFile *file)
 }
 
 //Create the movie for WRITE only
-GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char *tmp_dir)
+GF_ISOFile *gf_isom_create_movie(const char *fileName, GF_ISOOpenMode OpenMode, const char *tmp_dir)
 {
 	GF_Err e;
 

@@ -2739,7 +2739,7 @@ reparse:
 
 				//add sample
 				if (j) {
-					SAPType rap = sample->IsRAP;
+					GF_ISOSAPType rap = sample->IsRAP;
 					if (for_temporal_sublayers && !sti[j].non_tsa_vcl)
 						sample->IsRAP = RAP;
 

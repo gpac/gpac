@@ -25,16 +25,17 @@
 
 #ifndef _GF_VERSION_H
 
-/*! \file "gpac/version.h"
- *	\brief GPAC version.
- *  \addtogroup cst_grp
- *
- *	@{
- */
+/*!
+\file "gpac/version.h"
+\brief GPAC version.
+\addtogroup cst_grp
+
+@{
+*/
 
 /*!
- *	\brief GPAC Version
- *	\hideinitializer
+\brief GPAC Version
+\hideinitializer
 */
 /* KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE & CONFIGURE & CO)
  * NO SPACE in GPAC_VERSION / GPAC_FULL_VERSION for proper install

@@ -1229,20 +1229,12 @@ typedef struct
 
 typedef struct __ContentLightLevel {
 	GF_ISOM_BOX
-	u16 max_content_light_level;
-	u16 max_pic_average_light_level;
+	GF_ContentLightLevelInfo clli;
 } GF_ContentLightLevelBox;
 
 typedef struct ___MasteringDisplayColourVolume {
 	GF_ISOM_BOX
-	struct {
-		u16 x;
-		u16 y;
-	} display_primaries[3];
-	u16 white_point_x;
-	u16 white_point_y;
-	u32 max_display_mastering_luminance;
-	u32 min_display_mastering_luminance;
+	GF_MasteringDisplayColourVolumeInfo mdcv;
 } GF_MasteringDisplayColourVolumeBox;
 
 typedef struct
@@ -3616,7 +3608,7 @@ struct __tag_isom {
 	GF_ISOTrackID last_created_track_id;
 #endif
 
-	u8 openMode;
+	GF_ISOOpenMode openMode;
 	u8 storageMode;
 	/*if true 3GPP text streams are read as MPEG-4 StreamingText*/
 	u8 convert_streaming_text;
@@ -3715,7 +3707,7 @@ GF_TrackBox *gf_isom_get_track_from_id(GF_MovieBox *moov, GF_ISOTrackID trackID)
 GF_TrackBox *gf_isom_get_track_from_original_id(GF_MovieBox *moov, u32 originalID, u32 originalFile);
 u32 gf_isom_get_tracknum_from_id(GF_MovieBox *moov, GF_ISOTrackID trackID);
 /*open a movie*/
-GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tmp_dir);
+GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, const char *tmp_dir);
 /*close and delete a movie*/
 void gf_isom_delete_movie(GF_ISOFile *mov);
 
@@ -3765,9 +3757,9 @@ GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS);
 GF_Err stbl_GetSampleDTS_and_Duration(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS, u32 *duration);
 
 /*find a RAP or set the prev / next RAPs if vars are passed*/
-GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, SAPType *IsRAP, u32 *prevRAP, u32 *nextRAP);
+GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, GF_ISOSAPType *IsRAP, u32 *prevRAP, u32 *nextRAP);
 /*same as above but only look for open-gop RAPs and GDR (roll)*/
-GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP, u32 *prevRAP, u32 *nextRAP);
+GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, GF_ISOSAPType *IsRAP, u32 *prevRAP, u32 *nextRAP);
 GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offset, u32 *chunkNumber, u32 *descIndex, GF_StscEntry **scsc_entry);
 GF_Err stbl_GetSampleShadow(GF_ShadowSyncBox *stsh, u32 *sampleNumber, u32 *syncNum);
 GF_Err stbl_GetPaddingBits(GF_PaddingBitsBox *padb, u32 SampleNumber, u8 *PadBits);
@@ -3791,7 +3783,7 @@ GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 box_type, bin128 *uuid);
 
 GF_Err FlushCaptureMode(GF_ISOFile *movie);
 GF_Err CanAccessMovie(GF_ISOFile *movie, u32 Mode);
-GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char *tmp_dir);
+GF_ISOFile *gf_isom_create_movie(const char *fileName, GF_ISOOpenMode OpenMode, const char *tmp_dir);
 void gf_isom_insert_moov(GF_ISOFile *file);
 
 GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments);

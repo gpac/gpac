@@ -28,17 +28,17 @@
 #define _GF_EVENTS_CONSTANTS_H_
 
 /*!
- *	\file <gpac/events_constants.h>
- *	\brief Constants for event system used by GPAC playback.
+\file <gpac/events_constants.h>
+\brief Constants for event system used by GPAC playback.
  */
 	
 /*!
- *	\addtogroup evt_grp
- *	\ingroup playback_grp
- *	\brief Constants for event system used by GPAC playback.
- *
- *This section documents the event types used by the terminal, the compositor, input modules and output rendering modules for communication.
- *	@{
+\addtogroup evt_grp
+\ingroup playback_grp
+\brief Constants for event system used by GPAC playback.
+
+This section documents the event types used by the terminal, the compositor, input modules and output rendering modules for communication.
+@{
  */
 
 
@@ -48,7 +48,7 @@
 	DO NOT CHANGE THEIR POSITION IN THE LIST, USED TO SPEED UP FILTERING OF USER INPUT EVENTS
 */
 
-/*events*/
+/*! Event types*/
 typedef enum {
 
 	/******************************************************

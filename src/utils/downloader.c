@@ -247,30 +247,30 @@ static void init_prng (void)
 /**
  * \brief Write data to cache
  * Writes data to the cache. A call to gf_cache_open_write_cache should have been issued before calling this function.
- * \param entry The entry to use
- * \param sess The download session
- * \param data data to write
- * \param size number of elements to write
- * \return GF_OK is everything went fine, GF_BAD_PARAM if cache has not been opened, GF_IO_ERR if a failure occurs
+\param entry The entry to use
+\param sess The download session
+\param data data to write
+\param size number of elements to write
+\param GF_OK is everything went fine, GF_BAD_PARAM if cache has not been opened, GF_IO_ERR if a failure occurs
  */
 GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, const char * data, const u32 size);
 
 /**
  * \brief Close the write file pointer of cache
  * This function also flushes all buffers, so cache will always be consistent after
- * \param entry The entry to use
- * \param sess The download session
- * \param success 1 if cache write is success, false otherwise
- * \return GF_OK is everything went fine, GF_BAD_PARAM if entry is NULL, GF_IO_ERR if a failure occurs
+\param entry The entry to use
+\param sess The download session
+\param success 1 if cache write is success, false otherwise
+\param GF_OK is everything went fine, GF_BAD_PARAM if entry is NULL, GF_IO_ERR if a failure occurs
  */
 GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, Bool success);
 
 /**
  * \brief Open the write file pointer of cache
  * This function prepares calls for gf_cache_write_to_cache
- * \param entry The entry to use
- * \param sess The download session
- * \return GF_OK is everything went fine, GF_BAD_PARAM if entry is NULL, GF_IO_ERR if a failure occurs
+\param entry The entry to use
+\param sess The download session
+\param GF_OK is everything went fine, GF_BAD_PARAM if entry is NULL, GF_IO_ERR if a failure occurs
  */
 GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess );
 
@@ -299,9 +299,9 @@ static gf_user_credentials_struct* gf_find_user_credentials_for_site(GF_Download
 
 /**
  * \brief Saves the digest for authentication of password and username
- * \param dm The download manager
- * \param creds The credentials to fill
- * \return GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
+\param dm The download manager
+\param creds The credentials to fill
+\param GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
  */
 static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_credentials_struct * creds, const char * password) {
 	int size;
@@ -318,9 +318,9 @@ static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_
 
 /**
  * \brief Asks the user for credentials for given site
- * \param dm The download manager
- * \param creds The credentials to fill
- * \return GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
+\param dm The download manager
+\param creds The credentials to fill
+\param GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
  */
 static GF_Err gf_user_credentials_ask_password( GF_DownloadManager * dm, gf_user_credentials_struct * creds)
 {
@@ -371,7 +371,7 @@ static Bool _ssl_is_initialized = GF_FALSE;
 
 /*!
  * initialize the SSL library once for all download managers
- * \return GF_FALSE if everyhing is OK, GF_TRUE otherwise
+\param GF_FALSE if everyhing is OK, GF_TRUE otherwise
  */
 static Bool init_ssl_lib() {
 	if (_ssl_is_initialized)
@@ -487,8 +487,8 @@ static Bool gf_dm_can_handle_url(GF_DownloadManager *dm, const char *url)
 
 /*!
  * Finds an existing entry in the cache for a given URL
- * \param sess The session configured with the URL
- * \return NULL if none found, the DownloadedCacheEntry otherwise
+\param sess The session configured with the URL
+\param NULL if none found, the DownloadedCacheEntry otherwise
  */
 DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess)
 {
@@ -520,21 +520,21 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess)
 
 /**
  * Creates a new cache entry
- * \param dm The download manager to create this entry
- * \param cache_directory The path to the directory containing cache files
- * \param url The full URL
- * \param start_range the start of the byte range request
- * \param end_range the end of the byte range request
- * \param mem_storage Boolean indicating if the cache data should be stored in memory
- * \return The DownloadedCacheEntry
+\param dm The download manager to create this entry
+\param cache_directory The path to the directory containing cache files
+\param url The full URL
+\param start_range the start of the byte range request
+\param end_range the end of the byte range request
+\param mem_storage Boolean indicating if the cache data should be stored in memory
+\param The DownloadedCacheEntry
  */
 DownloadedCacheEntry gf_cache_create_entry( GF_DownloadManager * dm, const char * cache_directory, const char * url, u64 start_range, u64 end_range, Bool mem_storage);
 
 /*!
  * Removes a session for a DownloadedCacheEntry
- * \param entry The entry
- * \param sess The session to remove
- * \return the number of sessions left in the cached entry, -1 if one of the parameters is wrong
+\param entry The entry
+\param sess The session to remove
+\param the number of sessions left in the cached entry, -1 if one of the parameters is wrong
  */
 s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
 
@@ -572,9 +572,9 @@ static void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
 /*!
  * Adds a session to a DownloadedCacheEntry.
  * implemented in cache.c
- * \param entry The entry
- * \param sess The session to add
- * \return the number of sessions in the cached entry, -1 if one of the parameters is wrong
+\param entry The entry
+\param sess The session to add
+\param the number of sessions in the cached entry, -1 if one of the parameters is wrong
  */
 s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
 
@@ -832,10 +832,10 @@ static void gf_dm_sess_user_io(GF_DownloadSession *sess, GF_NETIO_Parameter *par
 
 #if 0 //unused
 /*!
- *\brief is download manager thread dead?
+\brief is download manager thread dead?
  *
  *Indicates whether the thread has ended
- *\param sess the download session
+\param sess the download session
  */
 Bool gf_dm_is_thread_dead(GF_DownloadSession *sess)
 {
@@ -880,9 +880,9 @@ void gf_dm_url_info_del(GF_URL_Info * info) {
 }
 
 /**
- * \param url The url to parse for protocol
- * \param info The info to fill
- * \return Returns the offset in url of the protocol found -1 if not found
+\param url The url to parse for protocol
+\param info The info to fill
+\param Returns the offset in url of the protocol found -1 if not found
  */
 static s32 gf_dm_parse_protocol(const char * url, GF_URL_Info * info) {
 	assert(info);
@@ -1814,7 +1814,7 @@ static Bool gf_dm_needs_to_delete_cache(GF_DownloadManager * dm)
  * gf_dm_wget() are not impacted and won't cleanup the cache
  *
  * FIXME: should be probably threaded to avoid too long start time
- * \param dm The GF_DownloadManager
+\param dm The GF_DownloadManager
  */
 static void gf_cache_cleanup_cache(GF_DownloadManager * dm) {
 	if (gf_dm_needs_to_delete_cache(dm)) {
@@ -2035,9 +2035,9 @@ void gf_dm_del(GF_DownloadManager *dm)
  * Skip ICY metadata from SHOUTCAST or ICECAST streams.
  * Data will be skipped and parsed and sent as a GF_NETIO_Parameter to the user_io,
  * so modules interrested by those streams may use the data
- * \param sess The GF_DownloadSession
- * \param data last data received
- * \param nbBytes The number of bytes contained into data
+\param sess The GF_DownloadSession
+\param data last data received
+\param nbBytes The number of bytes contained into data
  */
 static void gf_icy_skip_data(GF_DownloadSession * sess, const char * data, u32 nbBytes)
 {
@@ -2457,8 +2457,8 @@ const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess)
  * Tells whether session can be cached on disk.
  * Typically, when request has no content length, it deserves being streamed an cannot be cached
  * (ICY or MPEG-streamed content
- * \param sess The session
- * \return True if a cache can be created
+\param sess The session
+\param True if a cache can be created
  */
 Bool gf_dm_sess_can_be_cached_on_disk(const GF_DownloadSession *sess)
 {
@@ -2480,12 +2480,12 @@ void gf_dm_sess_abort(GF_DownloadSession * sess)
 
 #if 0 //unused
 /*!
- *\brief gets private data
+\brief gets private data
  *
  *Gets private data associated with the session.
- *\param sess the download session
- *\return the private data
- *\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
+\param sess the download session
+\return the private data
+\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
  */
 void *gf_dm_sess_get_private(GF_DownloadSession * sess)
 {
@@ -2493,12 +2493,12 @@ void *gf_dm_sess_get_private(GF_DownloadSession * sess)
 }
 
 /*!
- *\brief sets private data
+\brief sets private data
  *
  *associate private data with the session.
- *\param sess the download session
- *\param private_data the private data
- *\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
+\param sess the download session
+\param private_data the private data
+\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
  */
 void gf_dm_sess_set_private(GF_DownloadSession * sess, void *private_data)
 {
@@ -2508,9 +2508,9 @@ void gf_dm_sess_set_private(GF_DownloadSession * sess, void *private_data)
 
 /*!
  * Sends the HTTP headers
- * \param sess The GF_DownloadSession
- * \param sHTTP buffer containing the request
- * \return GF_OK if everything went fine, the error otherwise
+\param sess The GF_DownloadSession
+\param sHTTP buffer containing the request
+\param GF_OK if everything went fine, the error otherwise
  */
 static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	GF_Err e;
@@ -2793,9 +2793,9 @@ static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
 
 /*!
  * Parse the remaining part of body
- * \param sess The session
- * \param sHTTP the data buffer
- * \return The error code if any
+\param sess The session
+\param sHTTP the data buffer
+\param The error code if any
  */
 static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 {
@@ -2908,8 +2908,8 @@ static void notify_headers(GF_DownloadSession *sess, char * sHTTP, s32 bytesRead
 
 /*!
  * Waits for the response HEADERS, parse the information... and so on
- * \param sess The session
- * \param sHTTP the data buffer
+\param sess The session
+\param sHTTP the data buffer
  */
 static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 {
@@ -3488,7 +3488,7 @@ exit:
 
 /**
  * Default performing behaviour
- * \param sess The session
+\param sess The session
  */
 void http_do_requests(GF_DownloadSession *sess)
 {
@@ -3610,14 +3610,14 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm, const char *url, const cha
 #if 0 //unused
 
 /*
- *\brief fetches remote file in memory
+\brief fetches remote file in memory
  *
  *Fetches remote file in memory.
- *\param url the data to fetch
- *\param out_data output data (allocated by function)
- *\param out_size output data size
- *\param out_mime if not NULL, pointer will contain the mime type (allocated by function)
- *\return error code if any
+\param url the data to fetch
+\param out_data output data (allocated by function)
+\param out_size output data size
+\param out_mime if not NULL, pointer will contain the mime type (allocated by function)
+\return error code if any
  */
 GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, char **out_mime)
 {
@@ -3693,11 +3693,11 @@ const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload)
 
 #if 0 //unused
 /*!
- *\brief Get session original resource url
+\brief Get session original resource url
  *
  *Returns the original resource URL before any redirection associated with the session
- *\param sess the download session
- *\return the associated URL
+\param sess the download session
+\return the associated URL
  */
 const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *dnload)
 {
@@ -3706,11 +3706,11 @@ const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *dnload)
 }
 
 /*!
- *\brief fetch session status
+\brief fetch session status
  *
  *Fetch the session current status
- *\param sess the download session
- *\return the session status*/
+\param sess the download session
+\return the session status*/
 u32 gf_dm_sess_get_status(GF_DownloadSession *dnload)
 {
 	return dnload ? dnload->status : GF_NETIO_STATE_ERROR;
@@ -3718,11 +3718,11 @@ u32 gf_dm_sess_get_status(GF_DownloadSession *dnload)
 
 
 /*!
- *\brief Reset session
+\brief Reset session
  *
  *Resets the session for new processing of the same url
- *\param sess the download session
- *\return error code if any
+\param sess the download session
+\return error code if any
  */
 GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
 {
@@ -3743,10 +3743,10 @@ GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
 
 /*!
  * Get a range of a cache entry file
- * \param sess The session
- * \param startOffset The first byte of the request to get
- * \param endOffset The last byte of request to get
- * \return The temporary name for the file created to have a range of the file
+\param sess The session
+\param startOffset The first byte of the request to get
+\param endOffset The last byte of request to get
+\param The temporary name for the file created to have a range of the file
  */
 const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess, u64 startOffset, u64 endOffset ) {
 	u32 i, count;
@@ -3841,11 +3841,11 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
 
 /*!
  * Reassigns session flags and callbacks. This is only possible if the session is not threaded.
- * \param sess The session
- * \param flags The new flags for the session - if flags is 0xFFFFFFFF, existing flags are not modified
- * \param user_io The new callback function
- * \param cbk The new user data to ba used in the callback function
- * \return GF_OK or error
+\param sess The session
+\param flags The new flags for the session - if flags is 0xFFFFFFFF, existing flags are not modified
+\param user_io The new callback function
+\param cbk The new user data to ba used in the callback function
+\param GF_OK or error
  */
 GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io user_io, void *cbk)
 {

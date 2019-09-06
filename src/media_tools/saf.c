@@ -158,9 +158,9 @@ GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 bu
 #if 0 //unused
 /*!
  Removes a stream from the SAF multiplex
- \param mux the SAF multiplexer object
- \param stream_id ID of the SAF stream to remove
- \return error if any
+\param mux the SAF multiplexer object
+\param stream_id ID of the SAF stream to remove
+\return error if any
  */
 GF_Err gf_saf_mux_stream_rem(GF_SAFMuxer *mux, u32 stream_id)
 {

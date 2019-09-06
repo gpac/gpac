@@ -37,18 +37,28 @@ extern "C" {
 #ifndef GPAC_DISABLE_CORE_TOOLS
 
 /*!
- *	\file <gpac/xml.h>
- *	\brief XML functions.
+\file <gpac/xml.h>
+\brief XML functions.
  */
 
 /*!
- *	\addtogroup xml_grp XML
- *	\ingroup utils_grp
- *	\brief XML Parsing functions
- *
- *This section documents the XML functions (full doc parsing and SAX parsing) of the GPAC framework.
- *	@{
- */
+\addtogroup xml_grp
+\brief XML Parsing functions
+
+This section documents the XML functions (full doc parsing and SAX parsing) of the GPAC framework.
+
+\defgroup sax_grp SAX Parsing
+\ingroup xml_grp
+\defgroup dom_grp DOM Parsing
+\ingroup xml_grp
+\defgroup xmlb_grp XML Binary Formating
+\ingroup xml_grp
+*/
+
+/*!
+\addtogroup xml_grp
+@{
+*/
 
 
 /*! Structure containing a parsed attribute*/
@@ -91,11 +101,15 @@ typedef struct _xml_node
 	GF_List *content;
 } GF_XMLNode;
 
+/*! @} */
 
 
-/*
+/*!
+\addtogroup sax_grp
+
 	! SAX XML Parser API
 	GPAC can do progressive loading of XML document using this SAX api.
+@{
 */
 
 /*! SAX XML Parser object*/
@@ -220,6 +234,16 @@ u32 gf_xml_sax_get_node_start_pos(GF_SAXParser *parser);
 */
 u32 gf_xml_sax_get_node_end_pos(GF_SAXParser *parser);
 
+/*! @} */
+
+/*!
+\addtogroup dom_grp
+
+	! DOM Full XML document Parsing API
+	GPAC can do one-pass full document parsing of XML document using this DOM API.
+@{
+*/
+
 /*! the DOM loader. GPAC can also load complete XML document in memory, using a DOM-like approach. This is a simpler
 approach for document parsing not requiring progressive loading*/
 typedef struct _tag_dom_parser GF_DOMParser;
@@ -273,57 +297,70 @@ GF_XMLNode *gf_xml_dom_get_root_idx(GF_DOMParser *parser, u32 idx);
 
 
 /*! Serialize a node to a string
- *
- *\param node the node to flush
- *\param content_only Whether to include or not the parent node
- *\return The resulting serialization. The string has to be freed with gf_free
+\param node the node to flush
+\param content_only Whether to include or not the parent node
+\return The resulting serialization. The string has to be freed with gf_free
  */
 char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only);
 
 /*! Get the root element -- the only top level element -- of the document.
- *
- *\param parser the DOM structure
- *\return The corresponding node if exists, otherwise NULL;
+\param parser the DOM structure
+\return The corresponding node if exists, otherwise NULL;
  */
 GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser);
 
 /*!
-*\brief Creates an attribute with the given name and value.
-*
-*\param name the attribute name
-*\param value the value
-*\return The created attribute ;
+Creates an attribute with the given name and value.
+\param name the attribute name
+\param value the value
+\return The created attribute ;
 */
 GF_XMLAttribute *gf_xml_dom_create_attribute(const char* name, const char* value);
 
 /*! Adds the node to the end of the list of children of this node.
- *
- *\param node the GF_XMLNode node
- *\param child the GF_XMLNode child to append
- *\return Error code if any, otherwise GF_OK
+\param node the GF_XMLNode node
+\param child the GF_XMLNode child to append
+\return Error code if any, otherwise GF_OK
  */
 GF_Err gf_xml_dom_append_child(GF_XMLNode *node, GF_XMLNode *child);
 
 /*!
- *\brief Removes the node to the list of children of this node.
- *
- * Removes the node to the list of children of this node.
- * Doesn't free the memory of the removed children.
- *
- *\param node the GF_XMLNode node
- *\param child the GF_XMLNode child to remove
- *\return Error code if any, otherwise GF_OK
+\brief Removes the node to the list of children of this node.
+
+Removes the node to the list of children of this node.
+\warning Doesn't free the memory of the removed children.
+
+\param node the GF_XMLNode node
+\param child the GF_XMLNode child to remove
+\return Error code if any, otherwise GF_OK
  */
 GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child);
 
 /*! Destroys a node, its attributes and its children
- *
- *\param node the node to free
+
+\param node the node to free
  */
 void gf_xml_dom_node_del(GF_XMLNode *node);
 
-/*! XML parsing in GPAC uses a special node names BS for BitSequence to transform text data into sequences of bits.
- This function inspects all child elements of the node and converts children node names BS into bits. BS take the following attributes:.
+
+/*! Gets the element and check that the namespace is known ('xmlns'-only supported for now)
+\param n the node to process
+\param expected_node_name optional expected name for node n
+\param expected_ns_prefix optional expected namespace prefix for node n
+\return error code or GF_OK
+ */
+GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expected_node_name, const char *expected_ns_prefix);
+
+/*! @} */
+
+
+/*!
+\addtogroup xmlb_grp
+
+Binarization using XML in GPAC
+
+GPAC uses a special node name BS (for BitSequence) in XML documents to transform text data into sequences of bits.
+ This function inspects all child elements of the node and converts children node names BS into bits. BS take the following attributes:
  + bits: value gives the number of bits used to code a value or a length
  + value: value is a 32 bit signed value
  + dataOffset: value gives an offset into a file
@@ -335,32 +372,29 @@ void gf_xml_dom_node_del(GF_XMLNode *node);
  + ID128: value gives a 128 bit vlue in hexadecimal
  + data64: value gives data coded as base64
  + data: value gives data coded in hexa
- *
- *
- *
- *\param bsroot the root node of XML document describing the bitstream to create
- *\param parent_url URL of the parent document
- *\param out_data pointer to output buffer allocated by the function to store the result
- *\param out_data_size pointer to output buffer size allocated by the function to store the result
- *\return error code if any or GF_OK
+
+@{
+*/
+
+/*!\brief bit-sequence XML parser
+\param bsroot the root node of XML document describing the bitstream to create
+\param parent_url URL of the parent document
+\param out_data pointer to output buffer allocated by the function to store the result
+\param out_data_size pointer to output buffer size allocated by the function to store the result
+\return error code if any or GF_OK
  */
 GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, const char *parent_url, u8 **out_data, u32 *out_data_size);
 
-/*! Parses XML bit sequence in an existing bitstream object. The syntax for the XML is the same as in \ref gf_xml_parse_bit_sequence
- *\param bsroot the root node of XML document describing the bitstream to create
- *\param parent_url URL of the parent document
- *\param bs target bitstream to write the result into. The bitstream must be a dynamic write bitstream object
- *\return error code or GF_OK
+/*!\brief bit-sequence XML parser
+
+Parses XML bit sequence in an existing bitstream object. The syntax for the XML is the same as in \ref gf_xml_parse_bit_sequence
+\param bsroot the root node of XML document describing the bitstream to create
+\param parent_url URL of the parent document
+\param bs target bitstream to write the result into. The bitstream must be a dynamic write bitstream object
+\return error code or GF_OK
  */
 GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, GF_BitStream *bs);
 
-/*! Gets the element and check that the namespace is known ('xmlns'-only supported for now)
- *\param n                  the node to process
- *\param expected_node_name optional expected name for node n
- *\param expected_ns_prefix optional expected namespace prefix for node n
- *\return error code or GF_OK
- */
-GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expected_node_name, const char *expected_ns_prefix);
 
 /*! @} */
 

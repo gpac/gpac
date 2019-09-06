@@ -145,13 +145,13 @@ static void gf_modules_check_load()
 
 
 /*!
- *\brief module manager construtcor
+\brief module manager construtcor
  *
  *Constructs a module manager object.
- *\param directory absolute path to the directory where the manager shall look for modules
- *\param cfgFile GPAC configuration file handle. If this is NULL, the modules won't be able to share the configuration
+\param directory absolute path to the directory where the manager shall look for modules
+\param cfgFile GPAC configuration file handle. If this is NULL, the modules won't be able to share the configuration
  *file with the rest of the GPAC framework.
- *\return the module manager object
+\return the module manager object
 */
 void gf_modules_new(GF_Config *config)
 {
@@ -198,10 +198,10 @@ void gf_modules_new(GF_Config *config)
 
 
 /*!
- *\brief module manager destructor
+\brief module manager destructor
  *
  *Destroys the module manager
- *\param pm the module manager
+\param pm the module manager
  */
 void gf_modules_del()
 {

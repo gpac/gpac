@@ -2278,7 +2278,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 	}
 
 	if (!restart_only) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Scene] Restarting from "LLD"\n", LLD_CAST from_time));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Scene] Restarting from "LLD"\n", from_time));
 		/*reset clock*/
 		gf_clock_reset(ck);
 

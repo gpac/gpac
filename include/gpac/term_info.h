@@ -34,17 +34,18 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/term_info.h>
- *	\brief GPAC media object browsing of the player.
- */
+\file <gpac/term_info.h>
+\brief GPAC media object browsing of the player.
+*/
 	
 /*!
- *\addtogroup terminfo_grp Terminal Info
- *\ingroup playback_grp
- *\brief GPAC media object browsing of the player.
- *
- *This section documents how a user can get information on running media object in the player.
- *	@{
+\addtogroup terminfo_grp Terminal Info
+\ingroup playback_grp
+\brief GPAC media object browsing of the player.
+
+This section documents how a user can get information on running media object in the player.
+
+@{
  */
 	
 

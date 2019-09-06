@@ -33,22 +33,22 @@ extern "C" {
 #include <gpac/setup.h>
 
 /*!
- *	\file <gpac/constants.h>
- *	\brief Most constants defined in GPAC are in this file.
- *  \addtogroup cst_grp
- *	\brief Constants used within GPAC
- *
- *	This section documents some constants used in the GPAC framework which are not related to
- *	any specific sub-project.
- *	@{
- */
+\file <gpac/constants.h>
+\brief Most constants defined in GPAC are in this file.
+\addtogroup cst_grp
+\brief Constants
+
+This section documents some constants used in the GPAC framework which are not related to any specific sub-project.
+
+@{
+*/
 
 
 /*!
- *	\brief Supported media stream types
- *	\hideinitializer
- *
- * Supported media stream types for media objects.
+\brief Supported media stream types
+\hideinitializer
+
+Supported media stream types for media objects.
 */
 enum
 {
@@ -90,9 +90,10 @@ enum
 
 
 	/*!GPAC Private Scene streams\n
-	*\n\note
-	*This stream type (MPEG-4 user-private) is reserved for streams used to create a scene decoder
-	*handling the scene without input streams, as is the case for file readers (BT/VRML/XML..).\n
+	\n
+	\note
+	This stream type (MPEG-4 user-private) is reserved for streams used to create a scene decoder
+	handling the scene without input streams, as is the case for file readers (BT/VRML/XML..).\n
 	*/
 	GF_STREAM_PRIVATE_SCENE	= 0x20,
 
@@ -106,8 +107,8 @@ enum
 };
 
 /*! Gets the stream type name based on stream type
- \param streamType stream type GF_STREAM_XXX as defined in constants.h
- \return NULL if unknown, otherwise value
+\param streamType stream type GF_STREAM_XXX as defined in constants.h
+\return NULL if unknown, otherwise value
  */
 const char *gf_stream_type_name(u32 streamType);
 
@@ -118,9 +119,9 @@ const char *gf_stream_type_name(u32 streamType);
 #endif
 
 /*!
- * \brief Pixel Formats
- *
- *	Supported pixel formats for everything using video
+\brief Pixel Formats
+
+Supported pixel formats for everything using video
 */
 typedef enum
 {
@@ -210,67 +211,66 @@ typedef enum
 
 
 /*! enumerates GPAC pixel formats
- \param pf_name name of the pixel format
- \return pixel format code
+\param pf_name name of the pixel format
+\return pixel format code
 */
-u32 gf_pixel_fmt_parse(const char *pf_name);
+GF_PixelFormat gf_pixel_fmt_parse(const char *pf_name);
 
 /*! gets name of pixel formats
- \param pfmt  pixel format code
- \return pixel format name
+\param pfmt pixel format code
+\return pixel format name
 */
-const char *gf_pixel_fmt_name(u32 pfmt);
+const char *gf_pixel_fmt_name(GF_PixelFormat pfmt);
 
 /*! gets short name of pixel formats, as used for file extensions
- \param pfmt  pixel format code
- \return pixel format short name
+\param pfmt pixel format code
+\return pixel format short name
 */
-const char *gf_pixel_fmt_sname(u32 pfmt);
+const char *gf_pixel_fmt_sname(GF_PixelFormat pfmt);
 
 /*! enumerates pixel formats
- \param idx index of the pixel format, 0-based
- \param name name of the pixel format
- \param fileext file extension of the pixel format
- \param description description of the pixel format
- \return pixel format code, 0 if no more pixel formats are availble
+\param idx index of the pixel format, 0-based
+\param name name of the pixel format
+\param fileext file extension of the pixel format
+\param description description of the pixel format
+\return pixel format code, 0 if no more pixel formats are availble
 */
 Bool gf_pixel_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **description);
 
 /*! gets the list of all supported pixel format names
- \return list of supported pixel format names
+\return list of supported pixel format names
 */
 const char *gf_pixel_fmt_all_names();
 
 /*! gets the list of all supported pixel format names
- \return list of supported pixel format short names
+\return list of supported pixel format short names
 */
 const char *gf_pixel_fmt_all_shortnames();
 
 /*! returns size and stride characteristics for the pixel format. If the stride or stride_uv value are not 0, they are used to compute the size. Otherwise no padding at end of line is assumed.
- \param pixfmt  pixfmt format code
- \param width target frame width
- \param height target frame height
- \param[out] out_size output frame size
- \param[in,out] out_stride output frame stride for single plane or plane 0
- \param[in,out] out_stride_uv output frame stride for UV planes
- \param[out] out_planes output frame plane numbers
- \param[out] out_plane_uv_height height of UV planes
- \return error code if any
+\param pixfmt  pixfmt format code
+\param width target frame width
+\param height target frame height
+\param[out] out_size output frame size
+\param[in,out] out_stride output frame stride for single plane or plane 0
+\param[in,out] out_stride_uv output frame stride for UV planes
+\param[out] out_planes output frame plane numbers
+\param[out] out_plane_uv_height height of UV planes
+\return error code if any
 */
 Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *out_size, u32 *out_stride, u32 *out_stride_uv, u32 *out_planes, u32 *out_plane_uv_height);
 
 /*! Gets the number of bytes per pixel on first plane
- \param pixfmt  pixel format code
- \return number of bytes per pixel
+\param pixfmt  pixel format code
+\return number of bytes per pixel
 */
 u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt);
 
 /*!
- * \brief Codec IDs
- *
- * Codec ID identifies the stream coding type. The enum is devided into values less than 255, which are equivalent
- * to MPEG-4 systems ObjectTypeIndication. Other values are 4CCs, usually matching ISOMEDIA sample entry types*/
-enum
+\brief Codec IDs
+
+Codec ID identifies the stream coding type. The enum is devided into values less than 255, which are equivalent to MPEG-4 systems ObjectTypeIndication. Other values are 4CCs, usually matching ISOMEDIA sample entry types*/
+typedef enum
 {
 	/*!Never used by PID declarations, but used by filters caps*/
 	GF_CODECID_NONE = 0,
@@ -417,18 +417,17 @@ enum
 	GF_CODECID_TX3G = GF_4CC( 't', 'x', '3', 'g' ),
 
 	/*!
-	 * \brief OGG DecoderConfig
-	 *
-	 *	The DecoderConfig for theora, vorbis, flac and opus contains all intitialization ogg packets for the codec
-	 * and is formated as follows:\n
-	 *\code
+		\brief OGG DecoderConfig
+
+	 The DecoderConfig for theora, vorbis, flac and opus contains all intitialization ogg packets for the codec
+	  and is formated as follows:\n
+	 \code
 	  while (dsi_size) {
 			bit(16) packet_size;
 			char packet[packet_size];
 			dsi_size -= packet_size;
 		}
-	 *\endcode
-
+	 \endcode
 	*/
 	/*! codecid for theora video streams*/
 	GF_CODECID_THEORA = GF_4CC('t','h','e','u'),
@@ -493,74 +492,73 @@ enum
 	GF_CODECID_TMCD = GF_4CC('t','m','c','d'),
 
 	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D')
-
-};
+} GF_CodecID;
 
 /*! Gets a textual description for the given codecID
- \param codecid target codec ID
- \return textual description of the stream
+\param codecid target codec ID
+\return textual description of the stream
 */
-const char *gf_codecid_name(u32 codecid);
+const char *gf_codecid_name(GF_CodecID codecid);
 
 /*! Enumerates supported codec format
- \param idx 0-based index, to incremented at each call
- \param short_name pointer for codec name
- \param long_name pointer for codec description
- \return codec ID
+\param idx 0-based index, to incremented at each call
+\param short_name pointer for codec name
+\param long_name pointer for codec description
+\return codec ID
 */
-u32 gf_codecid_enum(u32 idx, const char **short_name, const char **long_name);
+GF_CodecID gf_codecid_enum(u32 idx, const char **short_name, const char **long_name);
 
 /*! Gets the associated streamtype for the given codecID
- \param codecid target codec ID
- \return stream type if known, GF_STREAM_UNKNOWN otherwise
+\param codecid target codec ID
+\return stream type if known, GF_STREAM_UNKNOWN otherwise
 */
-u32 gf_codecid_type(u32 codecid);
+u32 gf_codecid_type(GF_CodecID codecid);
 
 /*! Gets the associated ObjectTypeIndication if any for the given codecID
- \param codecid target codec ID
- \return ObjectTypeIndication if defined, 0 otherwise
+\param codecid target codec ID
+\return ObjectTypeIndication if defined, 0 otherwise
 */
-u8 gf_codecid_oti(u32 codecid);
+u8 gf_codecid_oti(GF_CodecID codecid);
 
 /*! Gets the codecID from a given ObjectTypeIndication
- \param stream_type stream type of the stream
- \param oti ObjectTypeIndication of the stream
- \return the codecID for this OTI
+\param stream_type stream type of the stream
+\param oti ObjectTypeIndication of the stream
+\return the codecID for this OTI
 */
-u32 gf_codecid_from_oti(u32 stream_type, u32 oti);
+GF_CodecID gf_codecid_from_oti(u32 stream_type, u32 oti);
 
 /*! Gets the associated 4CC used by isomedia or RFC6381
- \param codecid target codec ID
- \return RFC 4CC of codec, 0 if not mapped/known
+\param codecid target codec ID
+\return RFC 4CC of codec, 0 if not mapped/known
 */
-u32 gf_codecid_4cc_type(u32 codecid);
+u32 gf_codecid_4cc_type(GF_CodecID codecid);
 
 /*! Gets the codecid given the associated short name
- \param cname target codec short name
- \return codecid codec ID
+\param cname target codec short name
+\return codecid codec ID
 */
-u32 gf_codec_parse(const char *cname);
+GF_CodecID gf_codec_parse(const char *cname);
 
 /*! Gets the raw file ext (one or more, | separated) for the given codecid
- \param codecid codec ID
- \return returns file extension
+\param codecid codec ID
+\return returns file extension
 */
-const char *gf_codecid_file_ext(u32 codecid);
+const char *gf_codecid_file_ext(GF_CodecID codecid);
 
 /*! Gets the raw file mime type for the given codecid
- \param codecid codec ID
- \return returns file mime type
+\param codecid codec ID
+\return returns file mime type
 */
-const char *gf_codecid_mime(u32 codecid);
+const char *gf_codecid_mime(GF_CodecID codecid);
 
 /*! Gets the codecid from isomedia code point
- \param isobmftype isomedia code point
- \return codec ID, 0 if not mapped/known
+\param isobmftype isomedia code point
+\return codec ID, 0 if not mapped/known
 */
-u32 gf_codec_id_from_isobmf(u32 isobmftype);
+GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype);
 
 /*!
- * \brief AFX Object Code
+\brief AFX Object Code
 */
 enum
 {
@@ -592,19 +590,20 @@ enum
 	GPAC_AFX_SCALABLE_COMPLEXITY = 0x0C,
 };
 /*! Gets a textual description of an AFX stream type
- \param afx_code target stream type descriptor
- \return textural description of the AFX stream
+\param afx_code target stream type descriptor
+\return textural description of the AFX stream
 */
 const char *gf_stream_type_afx_name(u8 afx_code);
 
 
 /*channel cfg flags - DECODERS MUST OUTPUT STEREO/MULTICHANNEL IN THIS ORDER*/
+
 /*!
- * \brief Audio Channel Configuration
- *
- *	Audio channel flags for spatialization.
+\brief Audio Channel Configuration
+
+Audio channel flags for spatialization.
  \note Decoders must output stereo/multichannel audio channels in this order in the decoded audio frame.
- */
+*/
 enum
 {
 	/*!Left Audio Channel*/
@@ -647,11 +646,11 @@ enum
 
 
 /*!
- * \brief Audio Sample format
- *
- *	Audio sample bit format.
- */
-enum
+\brief Audio Sample format
+
+ Audio sample bit format.
+*/
+typedef enum
 {
 	/*! sample = unsigned byte, interleaved channels*/
 	GF_AUDIO_FMT_U8 = 1,
@@ -677,70 +676,70 @@ enum
 	GF_AUDIO_FMT_S24,
 	/*! sample = signed integer, planar channels*/
 	GF_AUDIO_FMT_S24P,
-};
+} GF_AudioFormat;
 
 
 /*! enumerates GPAC audio formats
- \param af_name name of the audio format
- \return audio format code
+\param af_name name of the audio format
+\return audio format code
 */
-u32 gf_audio_fmt_parse(const char *af_name);
+GF_AudioFormat gf_audio_fmt_parse(const char *af_name);
 
 /*! gets name of audio formats
- \param afmt audio format code
- \return audio format name
+\param afmt audio format code
+\return audio format name
 */
-const char *gf_audio_fmt_name(u32 afmt);
+const char *gf_audio_fmt_name(GF_AudioFormat afmt);
 
 /*! gets short name of audio formats, as used for file extensions
- \param afmt audio format code
- \return audio format short name
+\param afmt audio format code
+\return audio format short name
 */
-const char *gf_audio_fmt_sname(u32 afmt);
+const char *gf_audio_fmt_sname(GF_AudioFormat afmt);
 
 
 /*! gets the list of all supported audio format names
- \return list of supported audio format names
+\return list of supported audio format names
 */
 const char *gf_audio_fmt_all_names();
 
 /*! gets the list of all supported audio format names
- \return list of supported audio format short names
+\return list of supported audio format short names
 */
 const char *gf_audio_fmt_all_shortnames();
 
 /*! returns number of bots per sample for the given format
- \param afmt desired audio format
- \return bit depth of format
+\param afmt desired audio format
+\return bit depth of format
 */
-u32 gf_audio_fmt_bit_depth(u32 afmt);
+u32 gf_audio_fmt_bit_depth(GF_AudioFormat afmt);
 
 /*! Check if a given audio format is planar
- \param afmt desired audio format
- \return GF_TRUE if the format is planar, false otherwise
+\param afmt desired audio format
+\return GF_TRUE if the format is planar, false otherwise
 */
-Bool gf_audio_fmt_is_planar(u32 afmt);
+Bool gf_audio_fmt_is_planar(GF_AudioFormat afmt);
 
 /*! Returns audio format for raw audio ISOBMFF sample description type
- \param msubtype ISOBMFF sample description type
- \return the associated audio format of 0 if not known
+\param msubtype ISOBMFF sample description type
+\return the associated audio format of 0 if not known
  */
-u32 gf_audio_fmt_from_isobmf(u32 msubtype);
+GF_AudioFormat gf_audio_fmt_from_isobmf(u32 msubtype);
 
 /*! enumerates audio formats
- \param idx index of the audio format, 0-based
- \param name name of the audio format
- \param fileext file extension of the pixel format
- \param desc audio format description
- \return audio format or 0 if no more audio formats are availble
+\param idx index of the audio format, 0-based
+\param name name of the audio format
+\param fileext file extension of the pixel format
+\param desc audio format description
+\return audio format or 0 if no more audio formats are availble
 */
-u32 gf_audio_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **desc);
+GF_AudioFormat gf_audio_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **desc);
 
 /*DIMS unit flags */
 /*!
- * \brief DIMS Unit header flags
- *
- *	DIMS Unit header flags as 3GPP TS 26.142.
+\brief DIMS Unit header flags
+
+DIMS Unit header flags as 3GPP TS 26.142.
  */
 enum
 {
@@ -759,9 +758,7 @@ enum
 };
 
 
-/*!
- * AVC NAL unit types
- */
+/*! AVC NAL unit types */
 enum
 {
 	/*! Non IDR AVC slice*/
@@ -803,9 +800,7 @@ enum
 };
 
 
-/*!
- * AVC slice types
- */
+/*! AVC slice types */
 enum
 {
 	/*! P slice*/
@@ -830,9 +825,7 @@ enum
 	GF_AVC_TYPE2_SI = 9
 };
 
-/*!
- HEVC NAL unit types
- */
+/*! HEVC NAL unit types */
 enum
 {
 	/*! Trail N HEVC slice*/
@@ -921,13 +914,10 @@ static const unsigned int GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 5
 #define RFC6381_CODEC_NAME_SIZE_MAX 100
 
 /*! @} */
-
-#define GF_VENDOR_GPAC		GF_4CC('G','P','A','C')
-
-#define GF_LANG_UNKNOWN		GF_4CC('u','n','d',' ')
+/*! */
 
 
-/* ID3v2 tags from mpegts.c */
+/*! ID3v2 tags*/
 typedef enum {
 	ID3V2_FRAME_AENC = GF_4CC('A','E','N','C'),
 	ID3V2_FRAME_APIC = GF_4CC('A','P','I','C'),
@@ -1006,7 +996,7 @@ typedef enum {
 	ID3V2_FRAME_WXXX = GF_4CC('W','X','X','X')
 } GF_ID3v2FrameType;
 
-/* meta types from box_code_meta.c - fileimport.c */
+/*! meta types from box_code_meta.c - fileimport.c */
 enum {
 
 	GF_META_ITEM_TYPE_MIME 	= GF_4CC('m', 'i', 'm', 'e'),
@@ -1027,7 +1017,7 @@ enum {
 };
 
 
-/* meta types from box_code_meta.c - fileimport.c */
+/*! meta types from box_code_meta.c - fileimport.c */
 enum {
 
 	GF_S4CC_MPEG4 = GF_4CC('m', 'p', '4', 's'),

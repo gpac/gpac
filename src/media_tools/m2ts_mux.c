@@ -42,6 +42,21 @@
 /* length of encoded pcr */
 #define PCR_LENGTH 6
 
+#define GF_LANG_UNKNOWN		GF_4CC('u','n','d',' ')
+
+/*! DASH segment boundary information - these are internal to the muxer*/
+enum
+{
+	/*! not a segment boundary*/
+	GF_SEG_BOUNDARY_NONE=0,
+	/*! segment start*/
+	GF_SEG_BOUNDARY_START,
+	/*! segment start with forced PMT - triggered by setting \ref struct __m2ts_mux.force_pat, triggers a forced PCR*/
+	GF_SEG_BOUNDARY_FORCE_PMT,
+	/*! segment start with forced PCR*/
+	GF_SEG_BOUNDARY_FORCE_PCR,
+};
+
 
 static GFINLINE Bool gf_m2ts_time_less(GF_M2TS_Time *a, GF_M2TS_Time *b) {
 	if (a->sec>b->sec) return GF_FALSE;
@@ -1224,11 +1239,11 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 
 		/*same mux config = 0 (refresh aac config)*/
 		next_time = gf_sys_clock();
-		if (stream->ifce->decoder_config && (stream->last_aac_time + stream->ifce->repeat_rate < next_time)) {
+		if (stream->ifce->decoder_config && (stream->latm_last_aac_time + stream->ifce->repeat_rate < next_time)) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 			GF_M4ADecSpecInfo cfg;
 #endif
-			stream->last_aac_time = next_time;
+			stream->latm_last_aac_time = next_time;
 
 			gf_bs_write_int(bs, 0, 1);
 			/*mux config */
@@ -1336,7 +1351,6 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 
 	if (stream->start_pes_at_rap && (stream->curr_pck.sap_type)
 	   ) {
-		stream->program->mux->force_pat_pmt_state = GF_SEG_BOUNDARY_FORCE_PAT;
 		stream->program->mux->force_pat = GF_TRUE;
 	}
 
@@ -1997,7 +2011,6 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 			}
 		}
 		else if (stream->program->mux->force_pat_pmt_state==GF_SEG_BOUNDARY_START) {
-			stream->program->mux->force_pat_pmt_state = GF_SEG_BOUNDARY_FORCE_PAT;
 			stream->program->mux->force_pat = GF_TRUE;
 		}
 	}

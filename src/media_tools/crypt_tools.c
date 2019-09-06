@@ -30,6 +30,7 @@
 #include <gpac/base_coding.h>
 #include <gpac/constants.h>
 #include <gpac/filters.h>
+#include <gpac/network.h>
 
 
 #if !defined(GPAC_DISABLE_CRYPTO)

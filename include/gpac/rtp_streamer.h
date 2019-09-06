@@ -31,57 +31,61 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/rtp_streamer.h>
- *	\brief RTP streaming (packetizer and RTP socket).
- */
+\file <gpac/rtp_streamer.h>
+\brief RTP streaming (packetizer and RTP socket).
+*/
 
 /*!
- *	\ingroup media_grp
- *	\brief RTPStreamer object
- *
- *	This section documents the RTP streamer object of the GPAC framework.
- *	@{
+\addtogroup rtp_grp RTP Streamer
+\ingroup media_grp
+\brief RTPStreamer object
+
+This section documents the RTP streamer object of the GPAC framework.
+
+@{
  */
 
+
+
 #include <gpac/ietf.h>
-#include <gpac/isomedia.h>
 
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_ISOM)
 
+/*! RTP streamer object*/
 typedef struct __rtp_streamer GF_RTPStreamer;
 
 
 /*!
- *	\brief RTP Streamer constructor with extended parameters
- *
- *	Constructs a new RTP file streamer
- *\param streamType type of the stream (GF_STREAM_* as defined in <gpac/constants.h>)
- *\param codecid codec ID for the stream (GF_CODEC_* as defined in <gpac/constants.h>)
- *\param timeScale unit to express timestamps of access units
- *\param ip_dest IP address of the destination
- *\param port port number of the destination
- *\param MTU Maximum Transmission Unit size to use
- *\param TTL Time To Leave
- *\param ifce_addr IP of the local interface to use (may be NULL)
- *\param flags set of RTP flags passed to the streamer
- *\param dsi MPEG-4 Decoder Specific Info for the stream
- *\param dsi_len length of the dsi parameter
- *\param PayloadType RTP payload type
- *\param sample_rate audio sample rate
- *\param nb_ch number of channels in audio streams
- *\param is_crypted Boolean indicating if the stream is crypted
- *\param IV_length lenght of the Initialisation Vector used for encryption
- *\param KI_length length of the key index
- *\param MinSize minimum AU size, 0 if unknown
- *\param MaxSize maximum AU size, 0 if unknown
- *\param avgTS average TS delta in timeScale, 0 if unknown
- *\param maxDTSDelta maximum DTS delta in timeScale, 0 if unknown
- *\param const_dur constant duration in timeScale, 0 if unknown
- *\param bandwidth bandwidth, 0 if unknown
- *\param max_ptime maximum packet duration in timeScale, 0 if unknown
- *\param au_sn_len length of the MPEG-4 SL descriptor AU sequence number field, 0 if unknown
- *\param for_rtsp indicates this is an RTP channel in an RTSP session, RTP channel will not be created, use \ref gf_rtp_streamer_init_rtsp
- *\return a new RTP streamer, or NULL of error or not supported
+\brief RTP Streamer constructor with extended parameters
+
+Constructs a new RTP file streamer
+\param streamType type of the stream (GF_STREAM_* as defined in <gpac/constants.h>)
+\param codecid codec ID for the stream (GF_CODEC_* as defined in <gpac/constants.h>)
+\param timeScale unit to express timestamps of access units
+\param ip_dest IP address of the destination
+\param port port number of the destination
+\param MTU Maximum Transmission Unit size to use
+\param TTL Time To Leave
+\param ifce_addr IP of the local interface to use (may be NULL)
+\param flags set of RTP flags passed to the streamer
+\param dsi MPEG-4 Decoder Specific Info for the stream
+\param dsi_len length of the dsi parameter
+\param PayloadType RTP payload type
+\param sample_rate audio sample rate
+\param nb_ch number of channels in audio streams
+\param is_crypted Boolean indicating if the stream is crypted
+\param IV_length lenght of the Initialisation Vector used for encryption
+\param KI_length length of the key index
+\param MinSize minimum AU size, 0 if unknown
+\param MaxSize maximum AU size, 0 if unknown
+\param avgTS average TS delta in timeScale, 0 if unknown
+\param maxDTSDelta maximum DTS delta in timeScale, 0 if unknown
+\param const_dur constant duration in timeScale, 0 if unknown
+\param bandwidth bandwidth, 0 if unknown
+\param max_ptime maximum packet duration in timeScale, 0 if unknown
+\param au_sn_len length of the MPEG-4 SL descriptor AU sequence number field, 0 if unknown
+\param for_rtsp indicates this is an RTP channel in an RTSP session, RTP channel will not be created, use \ref gf_rtp_streamer_init_rtsp
+\return a new RTP streamer, or NULL of error or not supported
  */
 GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
         const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
@@ -91,31 +95,31 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
         u32 MinSize, u32 MaxSize, u32 avgTS, u32 maxDTSDelta, u32 const_dur, u32 bandwidth, u32 max_ptime, u32 au_sn_len, Bool for_rtsp);
 
 /*!
- *	\brief RTP file streamer destructor
- *
- *	Destructs an RTP file streamer
- *	\param streamer the target RTP streamer
+\brief RTP file streamer destructor
+
+Destructs an RTP file streamer
+\param streamer the target RTP streamer
  */
 void gf_rtp_streamer_del(GF_RTPStreamer *streamer);
 
 /*!
- *	\brief gets the SDP file
- *
- *	Gets the SDP asscoiated with all media in the streaming session (only media parts are returned)
- *	\param rtp the target RTP streamer
- *	\param ESID The MPEG-4 elementary stream id of the stream to process
- *	\param dsi The decoder specific info data
- *	\param dsi_len length of the decoder specific info data
- *	\param KMS_URI URI of the Key Management System
- *	\param out_sdp_buffer location to the SDP buffer to allocate and fill
- *	\return error if any
+\brief gets the SDP file
+
+Gets the SDP asscoiated with all media in the streaming session (only media parts are returned)
+\param rtp the target RTP streamer
+\param ESID The MPEG-4 elementary stream id of the stream to process
+\param dsi The decoder specific info data
+\param dsi_len length of the decoder specific info data
+\param KMS_URI URI of the Key Management System
+\param out_sdp_buffer location to the SDP buffer to allocate and fill
+\return error if any
  */
 GF_Err gf_rtp_streamer_append_sdp(GF_RTPStreamer *rtp, u16 ESID, const u8 *dsi, u32 dsi_len, char *KMS_URI, char **out_sdp_buffer);
 
 /*!
- *	\brief gets the SDP file
- *
- *	Gets the SDP asscoiated with all media in the streaming session (only media parts are returned)
+\brief gets the SDP file
+
+Gets the SDP asscoiated with all media in the streaming session (only media parts are returned)
 \param rtp the target RTP streamer
 \param ESID The MPEG-4 elementary stream id of the stream to process
 \param dsi decoder specific info data
@@ -137,7 +141,6 @@ GF_Err gf_rtp_streamer_append_sdp(GF_RTPStreamer *rtp, u16 ESID, const u8 *dsi, 
 GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const u8 *dsi, u32 dsi_len, const u8 *dsi_enh, u32 dsi_enh_len, char *KMS_URI, u32 width, u32 height, u32 tw, u32 th, s32 tx, s32 ty, s16 tl, Bool for_rtsp, char **out_sdp_buffer);
 
 /*! sends a full Access Unit over RTP
-
 \param rtp the target RTP streamer
 \param data AU payload
 \param size AU payload size
@@ -149,7 +152,6 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, u8 *data, u32 size, u64 cts, u64 dts, Bool is_rap);
 
 /*! sends a full Access Unit over RTP
-
 \param rtp the target RTP streamer
 \param data AU payload
 \param size AU payload size
@@ -162,7 +164,6 @@ GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, u8 *data, u32 size, u64 cts,
 GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, u8 *data, u32 size, u64 cts, u64 dts, Bool is_rap, u32 inc_au_sn);
 
 /*! sends a full or partial Access Unit over RTP
-
 \param streamer the target RTP streamer
 \param data AU payload
 \param size AU payload size

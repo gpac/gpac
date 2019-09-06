@@ -27,18 +27,19 @@
 #define _GF_MPEG_TS_H_
 
 /*!
- *	\file <gpac/mpegts.h>
- *	\brief MPEG-TS demultiplexer and multiplexer APIs
- */
+\file <gpac/mpegts.h>
+\brief MPEG-TS demultiplexer and multiplexer APIs
+*/
 
 /*!
- *	\addtogroup m2ts_grp MPEG-2 TS
- *	\ingroup media_grp
- *	\brief MPEG-TS demultiplexer and multiplexer APIs.
- *
- *This section documents the MPEG-TS demultiplexer and multiplexer APIs.
- *	@{
- */
+\addtogroup m2ts_grp MPEG-2 TS
+\ingroup media_grp
+\brief MPEG-TS demultiplexer and multiplexer APIs.
+
+This section documents the MPEG-TS demultiplexer and multiplexer APIs.
+
+@{
+*/
 
 
 #include <gpac/list.h>
@@ -51,7 +52,7 @@
 extern "C" {
 #endif
 
-/* media types consts from media_import.c */
+/*! metadata types for GF_M2TS_METADATA_POINTER_DESCRIPTOR*/
 enum {
 	GF_M2TS_META_ID3 	= GF_4CC('I','D','3',' '),
 };
@@ -369,97 +370,97 @@ typedef enum
 /*! PES packet flags*/
 enum
 {
+	/*! PES packet is RAP*/
 	GF_M2TS_PES_PCK_RAP = 1,
+	/*! PES packet contains an AU start*/
 	GF_M2TS_PES_PCK_AU_START = 1<<1,
-	/*visual frame starting in this packet is an I frame or IDR (AVC/H264)*/
+	/*! visual frame starting in this packet is an I frame or IDR (AVC/H264)*/
 	GF_M2TS_PES_PCK_I_FRAME = 1<<2,
-	/*visual frame starting in this packet is a P frame*/
+	/*! visual frame starting in this packet is a P frame*/
 	GF_M2TS_PES_PCK_P_FRAME = 1<<3,
-	/*visual frame starting in this packet is a B frame*/
+	/*! visual frame starting in this packet is a B frame*/
 	GF_M2TS_PES_PCK_B_FRAME = 1<<4,
-	/*Possible PCR discontinuity from this packet on*/
+	/*! Possible PCR discontinuity from this packet on*/
 	GF_M2TS_PES_PCK_DISCONTINUITY = 1<<5
 };
 
 /*! Events used by the MPEGTS demuxer*/
 enum
 {
-	/*PAT has been found (service connection) - no assoctiated parameter*/
+	/*! PAT has been found (service connection) - no assoctiated parameter*/
 	GF_M2TS_EVT_PAT_FOUND = 0,
-	/*PAT has been updated - no assoctiated parameter*/
+	/*! PAT has been updated - no assoctiated parameter*/
 	GF_M2TS_EVT_PAT_UPDATE,
-	/*repeated PAT has been found (carousel) - no assoctiated parameter*/
+	/*! repeated PAT has been found (carousel) - no assoctiated parameter*/
 	GF_M2TS_EVT_PAT_REPEAT,
-	/*PMT has been found (service tune-in) - assoctiated parameter: new PMT*/
+	/*! PMT has been found (service tune-in) - assoctiated parameter: new PMT*/
 	GF_M2TS_EVT_PMT_FOUND,
-	/*repeated PMT has been found (carousel) - assoctiated parameter: updated PMT*/
+	/*! repeated PMT has been found (carousel) - assoctiated parameter: updated PMT*/
 	GF_M2TS_EVT_PMT_REPEAT,
-	/*PMT has been changed - assoctiated parameter: updated PMT*/
+	/*! PMT has been changed - assoctiated parameter: updated PMT*/
 	GF_M2TS_EVT_PMT_UPDATE,
-	/*SDT has been received - assoctiated parameter: none*/
+	/*! SDT has been received - assoctiated parameter: none*/
 	GF_M2TS_EVT_SDT_FOUND,
-	/*repeated SDT has been found (carousel) - assoctiated parameter: none*/
+	/*! repeated SDT has been found (carousel) - assoctiated parameter: none*/
 	GF_M2TS_EVT_SDT_REPEAT,
-	/*SDT has been received - assoctiated parameter: none*/
+	/*! SDT has been received - assoctiated parameter: none*/
 	GF_M2TS_EVT_SDT_UPDATE,
-	/*INT has been received - assoctiated parameter: none*/
+	/*! INT has been received - assoctiated parameter: none*/
 	GF_M2TS_EVT_INT_FOUND,
-	/*repeated INT has been found (carousel) - assoctiated parameter: none*/
+	/*! repeated INT has been found (carousel) - assoctiated parameter: none*/
 	GF_M2TS_EVT_INT_REPEAT,
-	/*INT has been received - assoctiated parameter: none*/
+	/*! INT has been received - assoctiated parameter: none*/
 	GF_M2TS_EVT_INT_UPDATE,
-	/*PES packet has been received - assoctiated parameter: PES packet*/
+	/*! PES packet has been received - assoctiated parameter: PES packet*/
 	GF_M2TS_EVT_PES_PCK,
-	/*PCR has been received - associated parameter: PES packet with no data*/
+	/*! PCR has been received - associated parameter: PES packet with no data*/
 	GF_M2TS_EVT_PES_PCR,
-	/*PTS/DTS/PCR info - assoctiated parameter: PES packet with no data*/
+	/*! PTS/DTS/PCR info - assoctiated parameter: PES packet with no data*/
 	GF_M2TS_EVT_PES_TIMING,
-	/*An MPEG-4 SL Packet has been received in a section - assoctiated parameter: SL packet */
+	/*! An MPEG-4 SL Packet has been received in a section - assoctiated parameter: SL packet */
 	GF_M2TS_EVT_SL_PCK,
-	/*An IP datagram has been received in a section - assoctiated parameter: IP datagram */
+	/*! An IP datagram has been received in a section - assoctiated parameter: IP datagram */
 	GF_M2TS_EVT_IP_DATAGRAM,
-	/*Duration has been estimated - assoctiated parameter: PES packet with no data, PTS is duration in msec*/
+	/*! Duration has been estimated - assoctiated parameter: PES packet with no data, PTS is duration in msec*/
 	GF_M2TS_EVT_DURATION_ESTIMATED,
 
-	/*AAC config has been extracted - associated parameter: PES Packet with encoded M4ADecSpecInfo in its data
+	/*! AAC config has been extracted - associated parameter: PES Packet with encoded M4ADecSpecInfo in its data
 		THIS MUST BE CLEANED UP
 	*/
 	GF_M2TS_EVT_AAC_CFG,
 #if 0
-	/* An EIT message for the present or following event on this TS has been received */
+	/*! An EIT message for the present or following event on this TS has been received */
 	GF_M2TS_EVT_EIT_ACTUAL_PF,
-	/* An EIT message for the schedule of this TS has been received */
+	/*! An EIT message for the schedule of this TS has been received */
 	GF_M2TS_EVT_EIT_ACTUAL_SCHEDULE,
-	/* An EIT message for the present or following event of an other TS has been received */
+	/*! An EIT message for the present or following event of an other TS has been received */
 	GF_M2TS_EVT_EIT_OTHER_PF,
-	/* An EIT message for the schedule of an other TS has been received */
+	/*! An EIT message for the schedule of an other TS has been received */
 	GF_M2TS_EVT_EIT_OTHER_SCHEDULE,
 #endif
-	/* A message to inform about the current date and time in the TS */
+	/*! A message to inform about the current date and time in the TS */
 	GF_M2TS_EVT_TDT,
-	/* A message to inform about the current time offset in the TS */
+	/*! A message to inform about the current time offset in the TS */
 	GF_M2TS_EVT_TOT,
-	/* A generic event message for EIT, TDT, TOT etc */
+	/*! A generic event message for EIT, TDT, TOT etc */
 	GF_M2TS_EVT_DVB_GENERAL,
-	/* MPE / MPE-FEC frame extraction and IP datagrams decryptation */
+	/*! MPE / MPE-FEC frame extraction and IP datagrams decryptation */
 	GF_M2TS_EVT_DVB_MPE,
-	/*CAT has been found (service tune-in) - assoctiated parameter: new CAT*/
+	/*! CAT has been found (service tune-in) - assoctiated parameter: new CAT*/
 	GF_M2TS_EVT_CAT_FOUND,
-	/*repeated CAT has been found (carousel) - assoctiated parameter: updated CAT*/
+	/*! repeated CAT has been found (carousel) - assoctiated parameter: updated CAT*/
 	GF_M2TS_EVT_CAT_REPEAT,
-	/*PMT has been changed - assoctiated parameter: updated PMT*/
+	/*! CAT has been changed - assoctiated parameter: updated PMT*/
 	GF_M2TS_EVT_CAT_UPDATE,
-	/*AIT has been found (carousel) */
+	/*! AIT has been found (carousel) */
 	GF_M2TS_EVT_AIT_FOUND,
-	/*DSCM-CC has been found (carousel) */
+	/*! DSCM-CC has been found (carousel) */
 	GF_M2TS_EVT_DSMCC_FOUND,
 
-	/*a TEMI locator has been found or repeated*/
+	/*! a TEMI locator has been found or repeated*/
 	GF_M2TS_EVT_TEMI_LOCATION,
-	/*a TEMI timecode has been found*/
-	GF_M2TS_EVT_TEMI_TIMECODE,
-
-	GF_M2TS_EVT_EOS,
+	/*! a TEMI timecode has been found*/
+	GF_M2TS_EVT_TEMI_TIMECODE
 };
 
 /*! table parsing state*/
@@ -492,33 +493,38 @@ typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *demux, GF_M2TS_SECTION
 /*! MPEG-2 TS demuxer section*/
 typedef struct __m2ts_demux_section
 {
+	/*! section data*/
 	u8 *data;
+	/*! section data size in bytes*/
 	u32 data_size;
 } GF_M2TS_Section;
 
 /*! MPEG-2 TS demuxer table*/
 typedef struct __m2ts_demux_table
 {
+	/*! pointer to next table/section*/
 	struct __m2ts_demux_table *next;
-
+	/*! set when first table completely received*/
 	u8 is_init;
+	/*! set when repeated section*/
 	u8 is_repeat;
-
-	/*table id*/
+	/*! table id*/
 	u8 table_id;
+	/*! extended table id*/
 	u16 ex_table_id;
-
-	/*reassembler state*/
+	/*! current section version number*/
 	u8 version_number;
+	/*! last received version number*/
 	u8 last_version_number;
-
+	/*! current/next indicator (cf MPEG-2 TS spec)*/
 	u8 current_next_indicator;
-
+	/*! current section number*/
 	u8 section_number;
+	/*! last section number to get the complete table*/
 	u8 last_section_number;
-
+	/*! list of sections for this table*/
 	GF_List *sections;
-
+	/*! total table size*/
 	u32 table_size;
 } GF_M2TS_Table;
 
@@ -534,22 +540,17 @@ typedef struct GF_M2TS_SectionFilter
 	u16 length;
 	/*! number of bytes received from current section*/
 	u16 received;
-
 	/*! section->table aggregator*/
 	GF_M2TS_Table *table;
-
 	/*! indicates that the section and last_section_number do not need to be checked */
 	Bool process_individual;
-
 	/*! indicates that the section header with table id and extended table id ... is
 	   not parsed by the TS demuxer and left for the application  */
 	Bool direct_dispatch;
-
 	/*! this field is used for AIT sections, to link the AIT with the program */
 	u32 service_id;
 	/*! section callback*/
 	gf_m2ts_section_callback process_section;
-
 	/*! flag indicatin the demultiplexer has been restarted*/
 	Bool demux_restarted;
 } GF_M2TS_SectionFilter;
@@ -608,40 +609,43 @@ typedef struct
 /*! MPEG-2 TS program object*/
 typedef struct
 {
+	/*! parent demuxer*/
 	GF_M2TS_Demuxer *ts;
-
+	/*! list of streams (PES and sections)*/
 	GF_List *streams;
+	/*! PID of PMT*/
 	u32 pmt_pid;
+	/*! PID of PCR*/
 	u32 pcr_pid;
+	/*! program number*/
 	u32 number;
-
+	/*! MPEG-4 IOD if any*/
 	GF_InitialObjectDescriptor *pmt_iod;
-
-	/*list of additional ODs found per program !! used by media importer only , refine this !!
+	/*! list of additional ODs found per program
 		this list is only created when MPEG-4 over MPEG-2 is detected
-		the list AND the ODs contained in it are destroyed when destroying the demuxer
+		the list AND the ODs contained in it are destroyed when destroying the program/demuxer
 	*/
 	GF_List *additional_ods;
-	/*first dts found on this program - this is used by parsers, but not setup by the lib*/
+	/*! first dts found on this program - this is used by parsers, but not setup by the lib*/
 	u64 first_dts;
-
-	/* Last PCR value received for this program and associated packet number */
+	/*! Last PCR value received for this program and associated packet number */
 	u64 last_pcr_value;
+	/*! packet number of last PCR value received*/
 	u32 last_pcr_value_pck_number;
-	/* PCR value before the last received one for this program and associated packet number
+	/*! PCR value before the last received one for this program and associated packet number
 	used to compute PCR interpolation value*/
 	u64 before_last_pcr_value;
+	/*! packet number of before last PCR value received*/
 	u32 before_last_pcr_value_pck_number;
-
-	/*for hybrid use-cases we need to know if TDT has already been processed*/
+	/*! for hybrid use-cases we need to know if TDT has already been processed*/
 	Bool tdt_found;
-
+	/*! indicates if PID is playing. Used in scalable streams only to toggle quality switch*/
 	u32 pid_playing;
+	/*! */
 	Bool is_scalable;
-
+	/*! metadata descriptor pointer*/
 	GF_M2TS_MetadataPointerDescriptor *metadata_pointer_descriptor;
-
-	/*continuity counter check for pure PCR PIDs*/
+	/*! continuity counter check for pure PCR PIDs*/
 	s16 pcr_cc;
 } GF_M2TS_Program;
 
@@ -701,17 +705,26 @@ struct tag_m2ts_es
 /*! MPEG-2 TS muxer PES header*/
 typedef struct
 {
+	/*! stream ID*/
 	u8 id;
+	/*! packet len, 0 if unknown*/
 	u16 pck_len;
+	/*! data alignment flag*/
 	u8 data_alignment;
-	u64 PTS, DTS;
+	/*! packet PTS in 90khz*/
+	u64 PTS;
+	/*! packet DTS in 90khz*/
+	u64 DTS;
+	/*! size of PES header*/
 	u8 hdr_data_len;
 } GF_M2TS_PESHeader;
 
 /*! Section elementary stream*/
 struct tag_m2ts_section_es
 {
+	/*! derive from base M2TS stream*/
 	ABSTRACT_ES
+	/*! section reassembler*/
 	GF_M2TS_SectionFilter *sec;
 };
 
@@ -756,68 +769,68 @@ typedef struct tag_m2ts_metadata_descriptor {
 /*! MPEG-2 TS ES object*/
 typedef struct tag_m2ts_pes
 {
+	/*! derive from base M2TS stream*/
 	ABSTRACT_ES
-	/*continuity counter check*/
+	/*! continuity counter check*/
 	s16 cc;
+	/*! language tag*/
 	u32 lang;
-
-	/*object info*/
-	u32 vid_w, vid_h, vid_par, aud_sr, aud_nb_ch, aud_aac_obj_type, aud_aac_sr_idx;
-
+	/*! PID of stream this stream depends on*/
 	u32 depends_on_pid;
 
-	/*user private*/
-
-
-	/*mpegts lib private - do not touch :)*/
-	/*PES re-assembler*/
+	/*mpegts lib private - do not touch*/
+	/*! PES re-assembler data*/
 	u8 *pck_data;
-	/*amount of bytes allocated for data */
+	/*! amount of bytes allocated for data */
 	u32 pck_alloc_len;
-	/*amount of bytes received in the current PES packet (NOT INCLUDING ANY PENDING BYTES)*/
+	/*! amount of bytes received in the current PES packet (NOT INCLUDING ANY PENDING BYTES)*/
 	u32 pck_data_len;
-	/*size of the PES packet being received, as indicated in pes header length field - can be 0 if unknown*/
+	/*! size of the PES packet being received, as indicated in pes header length field - can be 0 if unknown*/
 	u32 pes_len;
+	/*! RAP flag*/
 	Bool rap;
-	u64 PTS, DTS;
-	u32 pes_end_packet_number;
-	/*bytes not consumed from previous PES - shall be less than 9*/
+	/*! PES PTS in 90khz*/
+	u64 PTS;
+	/*! PES DTS in 90khz*/
+	u64 DTS;
+	/*! bytes not consumed from previous PES - shall be less than 9*/
 	u8 *prev_data;
-	/*number of bytes not consumed from previous PES - shall be less than 9*/
+	/*! number of bytes not consumed from previous PES - shall be less than 9*/
 	u32 prev_data_len;
-
+	/*! number of TS packet containing the start of the current PES*/
 	u32 pes_start_packet_number;
-	/* PCR info related to the PES start */
-	/* Last PCR value received for this program and associated packet number */
+	/*! number of TS packet containing the end of the current PES*/
+	u32 pes_end_packet_number;
+	/*! Last PCR value received for this program*/
 	u64 last_pcr_value;
+	/*! packet number of last PCR*/
 	u32 last_pcr_value_pck_number;
-	/* PCR value before the last received one for this program and associated packet number
-	used to compute PCR interpolation value*/
+	/*! PCR value before the last received one for this program (used to compute PCR interpolation value)*/
 	u64 before_last_pcr_value;
+	/*! packet number of before last PCR*/
 	u32 before_last_pcr_value_pck_number;
 
 
-	/*PES reframer - if NULL, pes processing is skiped*/
-	/*returns the number of bytes NOT consummed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
+	/*! PES reframer callback. If NULL, pes processing is skiped
+
+	returns the number of bytes NOT consummed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
 	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, Bool same_pts, u8 *data, u32 data_len, GF_M2TS_PESHeader *hdr);
 
-	/*used by several reframers to store their parsing state*/
-	u32 frame_state;
-	/*LATM stuff - should be moved out of mpegts*/
-	u8 *buf, *reassemble_buf;
-	u32 buf_len;
-	u32 reassemble_len, reassemble_alloc;
-	u64 prev_PTS;
-
+	/*! DVB subtitling info*/
 	GF_M2TS_DVB_Subtitling_Descriptor sub;
+	/*! Metadata descriptor (for ID3)*/
 	GF_M2TS_MetadataDescriptor *metadata_descriptor;
 
-	//pointer to last received temi
+	/*! last received TEMI payload*/
 	u8 *temi_tc_desc;
-	u32 temi_tc_desc_len, temi_tc_desc_alloc_size;
+	/*! last received TEMI payload size*/
+	u32 temi_tc_desc_len;
+	/*! allocated size of TEMI reception buffer*/
+	u32 temi_tc_desc_alloc_size;
 
-	//last decoded temi (may be one ahead of time as the last received TEMI)
+	/*! last decoded temi (may be one ahead of time as the last received TEMI)*/
 	GF_M2TS_TemiTimecodeDescriptor temi_tc;
+	/*! flag set to indicate a TEMI descriptor should be flushed with next packet*/
 	Bool temi_pending;
 } GF_M2TS_PES;
 
@@ -1019,7 +1032,7 @@ struct tag_m2ts_demux
 	/*! analyser output */
 	FILE *pes_out;
 
-	/*!when set, only pmt and PAT are parsed*/
+	/*! when set, only pmt and PAT are parsed*/
 	Bool seek_mode;
 	/*! 192 packet mode with prefix*/
 	Bool prefix_present;
@@ -1111,31 +1124,50 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *demux, GF_M2TS_PES *pes);
 /*! MPEG-2 TS packet header*/
 typedef struct
 {
+	/*! sync byte 0x47*/
 	u8 sync;
+	/*! error indicator*/
 	u8 error;
+	/*! payload start flag (start of PES or section)*/
 	u8 payload_start;
+	/*! priority flag*/
 	u8 priority;
+	/*! PID of packet */
 	u16 pid;
+	/*! scrambling flag ( 0 not scrambled, 1/2 scrambled, 3 reserved)*/
 	u8 scrambling_ctrl;
+	/*! adaptation field type*/
 	u8 adaptation_field;
+	/*! continuity counter*/
 	u8 continuity_counter;
 } GF_M2TS_Header;
 
 /*! MPEG-2 TS packet adaptation field*/
 typedef struct
 {
+	/*! discontunity indicator (for timeline splicing)*/
 	u32 discontinuity_indicator;
+	/*! random access indicator*/
 	u32 random_access_indicator;
+	/*! priority indicator*/
 	u32 priority_indicator;
-
+	/*! PCR present flag*/
 	u32 PCR_flag;
-	u64 PCR_base, PCR_ext;
-
+	/*! PCR base value*/
+	u64 PCR_base;
+	/*! PCR extended value*/
+	u64 PCR_ext;
+	/*! original PCR flag*/
 	u32 OPCR_flag;
-	u64 OPCR_base, OPCR_ext;
-
+	/*! OPCR base value*/
+	u64 OPCR_base;
+	/*! OPCR extended value*/
+	u64 OPCR_ext;
+	/*! splicing point flag*/
 	u32 splicing_point_flag;
+	/*! transport private data flag*/
 	u32 transport_private_data_flag;
+	/*! AF extension flag*/
 	u32 adaptation_field_extension_flag;
 	/*
 		u32 splice_countdown;
@@ -1159,38 +1191,40 @@ typedef struct
 #ifndef GPAC_DISABLE_MPEG2TS_MUX
 
 /*!
- *	\addtogroup esi_grp ES Interface
- *	\ingroup media_grp
- *	\brief Basic stream interface API used by MPEG-2 TS muxer.
- *
- *This section documents the draft ES interface used by the MPEG-2 TS muxer.
- *	@{
- */
+\addtogroup esi_grp ES Interface
+\ingroup media_grp
+\brief Basic stream interface API used by MPEG-2 TS muxer.
+
+This section documents the ES interface used by the MPEG-2 TS muxer. This interface is used to
+describe streams and packets consummed by the TS muxer independently from the rest of GPAC (filter packets)
+
+@{
+*/
 
 /*! ESI input control commands*/
 enum
 {
-	/*forces a data flush from interface to dest (caller) - used for non-threaded interfaces
+	/*! forces a data flush from interface to dest (caller) - used for non-threaded interfaces
 		corresponding parameter: unused
 	*/
 	GF_ESI_INPUT_DATA_FLUSH,
-	/*pulls a COMPLETE AU from the stream
+	/*! pulls a COMPLETE AU from the stream
 		corresponding parameter: pointer to a GF_ESIPacket to fill. The input data_len in the packet is used to indicate any padding in bytes
 	*/
 	GF_ESI_INPUT_DATA_PULL,
-	/*releases the currently pulled AU from the stream - AU cannot be pulled after that, unless seek happens
+	/*! releases the currently pulled AU from the stream - AU cannot be pulled after that, unless seek happens
 		corresponding parameter: unused
 	*/
 	GF_ESI_INPUT_DATA_RELEASE,
 
-	/*destroys any allocated resource by the stream interface*/
+	/*! destroys any allocated resource by the stream interface*/
 	GF_ESI_INPUT_DESTROY,
 };
 
 /*! ESI output control commands*/
 enum
 {
-	/*forces a data flush from interface to dest (caller) - used for non-threaded interfaces
+	/*! forces a data flush from interface to dest (caller) - used for non-threaded interfaces
 		corresponding parameter: GF_ESIPacket
 	*/
 	GF_ESI_OUTPUT_DATA_DISPATCH
@@ -1199,55 +1233,78 @@ enum
 /*! data packet flags*/
 enum
 {
+	/*! packet is an access unit start*/
 	GF_ESI_DATA_AU_START	=	1,
+	/*! packet is an access unit end*/
 	GF_ESI_DATA_AU_END		=	1<<1,
+	/*! packet has valid CTS*/
 	GF_ESI_DATA_HAS_CTS		=	1<<2,
+	/*! packet has valid DTS*/
 	GF_ESI_DATA_HAS_DTS		=	1<<3,
+	/*! packet contains a carousel repeated AU*/
 	GF_ESI_DATA_REPEAT		=	1<<4,
 };
 
 /*! stream interface for MPEG-2 TS muxer*/
 typedef struct __data_packet_ifce
 {
+	/*! packet flags*/
 	u16 flags;
+	/*! SAP type*/
 	u8 sap_type;
+	/*! payload*/
 	u8 *data;
+	/*! payload size*/
 	u32 data_len;
-	/*DTS, CTS/PTS and duration expressed in media timescale*/
-	u64 dts, cts;
+	/*! DTS expressed in media timescale*/
+	u64 dts;
+	/*! CTS/PTS expressed in media timescale*/
+	u64 cts;
+	/*! duration expressed in media timescale*/
 	u32 duration;
+	/*! packet sequence number*/
 	u32 pck_sn;
-	/*MPEG-4 stuff*/
+	/*! MPEG-4 Access Unit sequence number (use for carousel of BIFS/OD AU)*/
 	u32 au_sn;
-	/*for packets using ISMACrypt/OMA/3GPP based crypto*/
+	/*! ISM BSO for for packets using ISMACrypt/OMA/3GPP based crypto*/
 	u32 isma_bso;
-
+	/*! serialized list of AF descriptors*/
 	u8 *mpeg2_af_descriptors;
+	/*! size of serialized list of AF descriptors*/
 	u32 mpeg2_af_descriptors_size;
 } GF_ESIPacket;
 
 /*! video information for stream interface*/
 struct __esi_video_info
 {
-	u32 width, height, par;
+	/*! video width in pixels*/
+	u32 width;
+	/*! video height in pixels*/
+	u32 height;
+	/*! pixel aspect ratio as (num<<16)|den*/
+	u32 par;
+	/*! video framerate*/
 	Double FPS;
 };
 /*! audio information for stream interface*/
 struct __esi_audio_info
 {
-	u32 sample_rate, nb_channels;
+	/*! sample rate*/
+	u32 sample_rate;
+	/*! number of channels*/
+	u32 nb_channels;
 };
 
 /*! ES interface capabilities*/
 enum
 {
-	/*data can be pulled from this stream*/
+	/*! data can be pulled from this stream*/
 	GF_ESI_AU_PULL_CAP	=	1,
-	/*no more data to expect from this stream*/
+	/*! no more data to expect from this stream*/
 	GF_ESI_STREAM_IS_OVER	=	1<<2,
-	/*stream is not signaled through MPEG-4 Systems (OD stream) */
+	/*! stream is not signaled through MPEG-4 Systems (OD stream) */
 	GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS =	1<<3,
-	/*stream is not signaled through MPEG-4 Systems (OD stream) */
+	/*! stream is not signaled through MPEG-4 Systems (OD stream) */
 	GF_ESI_AAC_USE_LATM =	1<<4,
 };
 
@@ -1301,14 +1358,15 @@ typedef struct __elementary_stream_ifce
 
 /*! adaptation field type*/
 enum {
+	/*! reserved*/
 	GF_M2TS_ADAPTATION_RESERVED	= 0,
+	/*! no adaptation (payload only)*/
 	GF_M2TS_ADAPTATION_NONE		= 1,
+	/*! adaptation only (no payload)*/
 	GF_M2TS_ADAPTATION_ONLY		= 2,
+	/*! adaptation and payload*/
 	GF_M2TS_ADAPTATION_AND_PAYLOAD 	= 3,
 };
-
-//! @cond Doxygen_Suppress
-
 
 /*! MPEG-2 TS muxer program*/
 typedef struct __m2ts_mux_program GF_M2TS_Mux_Program;
@@ -1317,23 +1375,32 @@ typedef struct __m2ts_mux GF_M2TS_Mux;
 
 /*! MPEG-2 TS muxer section*/
 typedef struct __m2ts_section {
+	/*! pointer to next section*/
 	struct __m2ts_section *next;
+	/*! section data*/
 	u8 *data;
+	/*! section size*/
 	u32 length;
 } GF_M2TS_Mux_Section;
 
 /*! MPEG-2 TS muxer table*/
 typedef struct __m2ts_table {
+	/*! pointer to next table*/
 	struct __m2ts_table *next;
+	/*! table ID (we don't handle extended table ID as part of the section muxer*/
 	u8 table_id;
+	/*! version number of the table*/
 	u8 version_number;
+	/*! list of sections for the table (one or more)*/
 	struct __m2ts_section *section;
 } GF_M2TS_Mux_Table;
 
 /*! MPEG-2 TS muxer time information*/
 typedef struct
 {
+	/*! seconds*/
 	u32 sec;
+	/*! nanoseconds*/
 	u32 nanosec;
 } GF_M2TS_Time;
 
@@ -1341,127 +1408,158 @@ typedef struct
 /*! MPEG-2 TS muxer packet*/
 typedef struct __m2ts_mux_pck
 {
+	/*! pointer to next packet (we queue packets if needed)*/
 	struct __m2ts_mux_pck *next;
+	/*! payload*/
 	u8 *data;
+	/*! payload size in bytes*/
 	u32 data_len;
+	/*! flags*/
 	u16 flags;
+	/*! sap type*/
 	u8 sap_type;
-	u64 cts, dts;
+	/*! CTS in 90 khz*/
+	u64 cts;
+	/*! DTS in 90 khz*/
+	u64 dts;
+	/*! duration in 90 khz*/
 	u32 duration;
-
+	/*! serialized list of adaptation field descriptors if any*/
 	u8 *mpeg2_af_descriptors;
+	/*! size of serialized list of adaptation field descriptors*/
 	u32 mpeg2_af_descriptors_size;
 } GF_M2TS_Packet;
 
 /*! MPEG-2 TS muxer stream*/
 typedef struct __m2ts_mux_stream {
-	/*next stream*/
+	/*! next stream*/
 	struct __m2ts_mux_stream *next;
-	/*pid*/
+	/*! pid*/
 	u32 pid;
-	/*CC of the stream*/
+	/*! CC of the stream*/
 	u8 continuity_counter;
-	/*parent program*/
+	/*! parent program*/
 	struct __m2ts_mux_program *program;
-
-	/*average stream bit-rate in bit/sec*/
+	/*! average stream bit-rate in bit/sec*/
 	u32 bit_rate;
-
-	/*multiplexer time - NOT THE PCR*/
+	/*! multiplexer time - NOT THE PCR*/
 	GF_M2TS_Time time;
-
-	/*next time for packet*/
+	/*! next time for packet*/
 	GF_M2TS_Time next_time;
-	/*allow PCR only packets*/
+	/*! allow PCR only packets*/
 	Bool pcr_only_mode;
-
-	/*table tools*/
+	/*! tables for section PIDs*/
 	GF_M2TS_Mux_Table *tables;
-	/*init ceriosn of table*/
+	/*! init verision of table*/
 	u8 initial_version_number;
-	/*total table sizes for bitrate estimation (PMT/PAT/...)*/
+	/*! total table sizes for bitrate estimation (PMT/PAT/...)*/
 	u32 total_table_size;
-	/* used for on-the-fly packetization of sections */
+	/*! current table - used for on-the-fly packetization of sections */
 	GF_M2TS_Mux_Table *current_table;
-	/*active section*/
+	/*! active section*/
 	GF_M2TS_Mux_Section *current_section;
-	/*current section offset*/
+	/*! current section offset*/
 	u32 current_section_offset;
-	/*carousel rate in ms*/
+	/*! carousel rate in ms*/
 	u32 refresh_rate_ms;
-	/*table needs updating*/
+	/*! table needs updating*/
 	Bool table_needs_update;
-	/*table needs send*/
+	/*! table needs send*/
 	Bool table_needs_send;
-	/*force one AU per PES*/
+	/*! force one AU per PES*/
 	Bool force_single_au;
-	/*force initial discontinuity*/
+	/*! force initial discontinuity*/
 	Bool set_initial_disc;
-	/*force registration descriptor*/
+	/*! force registration descriptor*/
 	Bool force_reg_desc;
 
-	/*minimal amount of bytes we are allowed to copy frome next AU in the current PES. If no more than this
+	/*! minimal amount of bytes we are allowed to copy frome next AU in the current PES. If no more than this
 	is available in PES, don't copy from next*/
 	u32 min_bytes_copy_from_next;
-	/*process PES or table update/framing
+	/*! process PES or table update/framing
 	returns the priority of the stream,  0 meaning not scheduled, 1->N highest priority sent first*/
 	u32 (*process)(struct __m2ts_mux *muxer, struct __m2ts_mux_stream *stream);
 
-	/*stream type*/
+	/*! stream type*/
 	GF_M2TSStreamType mpeg2_stream_type;
-	/*stream ID*/
+	/*! stream ID*/
 	u32 mpeg2_stream_id;
-	/*priority*/
+	/*! priority*/
 	u32 scheduling_priority;
 
- 	/*current packet being processed - does not belong to the packet fifo*/
+ 	/*! current packet being processed - does not belong to the packet fifo*/
 	GF_ESIPacket curr_pck;
-	//offset in packet
+	/*! offset in packet*/
 	u32 pck_offset;
-	u32 next_payload_size, copy_from_next_packets, next_next_payload_size;
-	u32 pes_data_len, pes_data_remain;
+	/*! size of next payload, 0 if unknown*/
+	u32 next_payload_size;
+	/*! number of bytes to copy from next packet*/
+	u32 copy_from_next_packets;
+	/*! size of nex next payload, 0 if unknown*/
+	u32 next_next_payload_size;
+	/*! size of packetized packet*/
+	u32 pes_data_len;
+	/*! remaining bytes to send as TS packets*/
+	u32 pes_data_remain;
+	/*! if set forces a new PES packet at next packet*/
 	Bool force_new;
+	/*! flag set to indicate packet data shall be freed (rewrite of source packet)*/
 	Bool discard_data;
-
+	/*! flags of next packet*/
 	u16 next_pck_flags;
+	/*! SAP type of next packet*/
 	u8 next_pck_sap;
-	u64 next_pck_cts, next_pck_dts;
-
+	/*! CTS of next packet*/
+	u64 next_pck_cts;
+	/*! DTS of next packet*/
+	u64 next_pck_dts;
+	/*! overhead of reframing in bytes (ex, ADTS header or LATM rewrite)*/
 	u32 reframe_overhead;
-
-	Bool start_pes_at_rap, prevent_two_au_start_in_pes;
-
+	/*! if set, forces a PES start at each RAP*/
+	Bool start_pes_at_rap;
+	/*! if set, do not have more than one AU start in a PES packet*/
+	Bool prevent_two_au_start_in_pes;
+	/*! ES interface of stream*/
 	struct __elementary_stream_ifce *ifce;
+	/*! timescale scale factor (90khz / es_ifce.timeScale)*/
 	GF_Fraction ts_scale;
 
-	/*packet fifo*/
-	GF_M2TS_Packet *pck_first, *pck_last;
-	/*packet reassembler (PES packets are most of the time full frames)*/
+	/*! packet fifo head*/
+	GF_M2TS_Packet *pck_first;
+	/*! packet fifo tail*/
+	GF_M2TS_Packet *pck_last;
+	/*! packet reassembler (PES packets are most of the time full frames)*/
 	GF_M2TS_Packet *pck_reassembler;
-	//mutex if enabled
+	/*! mutex if enabled*/
 	GF_Mutex *mx;
-	/*avg bitrate compute*/
+	/*! avg bitrate computed*/
 	u64 last_br_time;
-	u32 bytes_since_last_time, pes_since_last_time;
+	/*! number of bytes sent since last bitrate estimation*/
+	u32 bytes_since_last_time;
+	/*! number of PES packets sent since last bitrate estimation*/
+	u32 pes_since_last_time;
+	/*! last DTS sent*/
 	u64 last_dts;
-	/*MPEG-4 over MPEG-2*/
+	/*! MPEG-4 over MPEG-2 sections table id (BIFS, OD, ...)*/
 	u8 table_id;
+	/*! MPEG-4 SyncLayer header of the packet*/
 	GF_SLHeader sl_header;
-
-	u32 last_aac_time;
-	/*list of GF_M2TSDescriptor to add to the MPEG-2 stream. By default set to NULL*/
+	/*! last time when the AAC config was sent for LATM*/
+	u32 latm_last_aac_time;
+	/*! list of GF_M2TSDescriptor to add to the MPEG-2 stream. By default set to NULL*/
 	GF_List *loop_descriptors;
 
-	//used when dashing
+	/*! packet SAP type when segmenting the TS*/
 	u32 pck_sap_type;
-	u64 pck_sap_time; //=pts
+	/*! packet SAP time (=PTS) when segmenting the TS*/
+	u64 pck_sap_time;
 } GF_M2TS_Mux_Stream;
-
-//! @endcond
 
 /*! MPEG-4 systems signaling mode*/
 enum {
+	/*! no MPEG-4 signaling*/
 	GF_M2TS_MPEG4_SIGNALING_NONE = 0,
+	/*! Full MPEG-4 signaling*/
 	GF_M2TS_MPEG4_SIGNALING_FULL,
 	/*MPEG-4 over MPEG-2 profile where PES media streams may be refered to by the scene without SL-packetization*/
 	GF_M2TS_MPEG4_SIGNALING_SCENE
@@ -1470,134 +1568,159 @@ enum {
 /*! MPEG-2 TS base descriptor*/
 typedef struct __m2ts_base_descriptor
 {
+	/*! descriptor tag*/
 	u8 tag;
+	/*! descriptor size*/
 	u8 data_len;
+	/*! descriptor payload*/
 	u8 *data;
 } GF_M2TSDescriptor;
 
 /*! MPEG-2 TS muxer program info */
 struct __m2ts_mux_program {
+	/*! next program*/
 	struct __m2ts_mux_program *next;
-
+	/*! parent muxer*/
 	struct __m2ts_mux *mux;
+	/*! program number*/
 	u16 number;
-	/*all streams but PMT*/
+	/*! all streams but PMT*/
 	GF_M2TS_Mux_Stream *streams;
-	/*PMT*/
+	/*! PMT stream*/
 	GF_M2TS_Mux_Stream *pmt;
-	/*pointer to PCR stream*/
+	/*! pointer to PCR stream*/
 	GF_M2TS_Mux_Stream *pcr;
-
-	/*TS time at pcr init*/
+	/*! TS time at pcr init*/
 	GF_M2TS_Time ts_time_at_pcr_init;
-	u64 pcr_init_time, num_pck_at_pcr_init;
+	/*! pcr init time (rand or fixed by user)*/
+	u64 pcr_init_time;
+	/*! number of TS packet at PCR init*/
+	u64 num_pck_at_pcr_init;
+	/*! last PCR value in 27 mhz*/
 	u64 last_pcr;
+	/*! last DTS value in 90 khz*/
 	u64 last_dts;
-	//high res clock at last PCR
+	/*! system clock in microseconds at last PCR*/
 	u64 sys_clock_at_last_pcr;
+	/*! number of packets at last PCR*/
 	u64 nb_pck_last_pcr;
+	/*! min initial DTS of all streams*/
 	u64 initial_ts;
+	/*! indicates that min initial DTS of all streams is set*/
 	Bool initial_ts_set;
+	/*! if set, injects a PCR offset*/
 	Bool pcr_init_time_set;
+	/*! PCR offset to inject*/
 	u32 pcr_offset;
+	/*! indicates the initial discontinuity flag should be set on first packet of all streams*/
 	Bool initial_disc_set;
-
+	/*! MPEG-4 IOD for 4on2*/
 	GF_Descriptor *iod;
-	/*list of GF_M2TSDescriptor to add to the program descriptor loop. By default set to NULL, if non null will be reset and destroyed upon cleanup*/
+	/*! list of GF_M2TSDescriptor to add to the program descriptor loop. By default set to NULL, if non null will be reset and destroyed upon cleanup*/
 	GF_List *loop_descriptors;
+	/*! MPEG-4 signaling type*/
 	u32 mpeg4_signaling;
+	/*! if set, use MPEG-4 signaling only for BIFS and OD streams*/
 	Bool mpeg4_signaling_for_scene_only;
-
-	char *name, *provider;
-
+	/*! program name (for SDT)*/
+	char *name;
+	/*! program provider (for SDT)*/
+	char *provider;
+	/*! maximum delay of all streams (in stream timescale)*/
 	s32 max_media_skip;
+	/*! CTS offset in 90khz*/
 	u32 cts_offset;
-};
-
-/*! DASH segment boundary information*/
-enum
-{
-	GF_SEG_BOUNDARY_NONE=0,
-	GF_SEG_BOUNDARY_START,
-	GF_SEG_BOUNDARY_FORCE_PAT,
-	GF_SEG_BOUNDARY_FORCE_PMT,
-	GF_SEG_BOUNDARY_FORCE_PCR,
 };
 
 /*! AU packing per pes configuration*/
 typedef enum
 {
-	/*only audio AUs are packed in a single PES, video and systems are not (recommended default)*/
+	/*! only audio AUs are packed in a single PES, video and systems are not (recommended default)*/
 	GF_M2TS_PACK_AUDIO_ONLY=0,
-	/*never pack AUs in a single PES*/
+	/*! never pack AUs in a single PES*/
 	GF_M2TS_PACK_NONE,
-	/*always try to pack AUs in a single PES*/
+	/*! always try to pack AUs in a single PES*/
 	GF_M2TS_PACK_ALL
 } GF_M2TS_PackMode;
 
 /*! MPEG-2 TS muxer*/
 struct __m2ts_mux {
+	/*! list of programs*/
 	GF_M2TS_Mux_Program *programs;
+	/*! PAT stream*/
 	GF_M2TS_Mux_Stream *pat;
+	/*! SDT stream*/
 	GF_M2TS_Mux_Stream *sdt;
-
+	/*! TS ID*/
 	u16 ts_id;
-
+	/*! signals reconfigure is needed (PAT)*/
 	Bool needs_reconfig;
 
-	/* used to indicate that the input data is pushed to the muxer (i.e. not read from a file)
+	/*! used to indicate that the input data is pushed to the muxer (i.e. not read from a file)
 	or that the output data is sent on sockets (not written to a file) */
 	Bool real_time;
 
-	/* indicates if the multiplexer shall target a fix bit rate (monitoring timing and produce padding packets)
+	/*! indicates if the multiplexer shall target a fix bit rate (monitoring timing and produce padding packets)
 	   or if the output stream will contain only input data*/
 	Bool fixed_rate;
 
-	/*output bit-rate in bit/sec*/
+	/*! output bit-rate in bit/sec*/
 	u32 bit_rate;
 
-	/*init value for PCRs on all streams if 0, random value is used*/
+	/*! init value for PCRs on all streams if 0, random value is used*/
 	u64 init_pcr_value;
-
+	/*! PCR update rate in milliseconds*/
 	u32 pcr_update_ms;
+	/*! destination TS packet*/
+	char dst_pck[188];
+	/*! destination NULL TS packet*/
+	char null_pck[188];
 
-	char dst_pck[188], null_pck[188];
-
-	/*multiplexer time, incremented each time a packet is sent
+	/*! multiplexer time, incremented each time a packet is sent
 	  used to monitor the sending of muxer related data (PAT, ...) */
 	GF_M2TS_Time time;
 
-	/* Time of the muxer when the first call to process is made (first packet sent?) */
+	/*! Time of the muxer when the first call to process is made (first packet sent?) */
 	GF_M2TS_Time init_ts_time;
 
-	/* System time high res when the muxer is started */
+	/*! System time in microsenconds when the muxer is started */
 	u64 init_sys_time;
-
+	/*! forces PAT injection at next packet*/
 	Bool force_pat;
-
+	/*! AU per PES packing mode*/
 	GF_M2TS_PackMode au_pes_mode;
-
+	/*! enable forced PCR (PCR only packets)*/
 	Bool enable_forced_pcr;
-
-	Bool eos_found;
+	/*! last rate estimation time in microseconds*/
 	u64 last_br_time_us;
+	/*! number of TS packets over the bitrate estimation period*/
 	u32 pck_sent_over_br_window;
-	u64 tot_pck_sent, tot_pad_sent, tot_pes_pad_bytes;
+	/*! number of TS packets sent*/
+	u64 tot_pck_sent;
+	/*! number of TS NULL packets sent*/
+	u64 tot_pad_sent;
+	/*! number of PES bytes sent*/
+	u64 tot_pes_pad_bytes;
 
-
+	/*! average rate in kbps*/
 	u32 average_birate_kbps;
 
+	/*! if set, flushes all streams in a program when a PES RAP is found (eg sent remaining audios and co)*/
 	Bool flush_pes_at_rap;
-	/*cf enum above*/
+	/*! state for forced injection of PAT/PMT/PCR*/
 	u32 force_pat_pmt_state;
 
-
+	/*! static write bitstream object for formatting packets*/
 	GF_BitStream *pck_bs;
-	//used when dashing, set to TRUE if the packet output is the first packet of a SAP AU
+	/*set to TRUE if the packet output is the first packet of a SAP AU (used when dashing)*/
 	Bool sap_inserted;
+	/*! SAP time (used when dashing)*/
 	u64 sap_time;
+	/*! SAP type (used when dashing)*/
 	u32 sap_type;
+	/*! last PTS in 90khz (used when dashing to build sidx)*/
 	u64 last_pts;
+	/*! last PID (used when dashing to build sidx)*/
 	u32 last_pid;
 };
 

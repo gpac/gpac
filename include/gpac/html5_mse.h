@@ -33,18 +33,18 @@ extern "C" {
 
 
 /*!
- *	\file <gpac/html5_mse.h>
- *	\brief Scene graph extensions for Media Source Extensions.
+\file <gpac/html5_mse.h>
+\brief Scene graph extensions for Media Source Extensions.
  */
 	
 /*!
- *  \addtogroup html5mse_grp HTML5 MSE
- *	\ingroup html5_grp
- *	\brief Scene graph extensions for HTML5 media source extensions.
- *
- *This section documents the scene graph extensions used for HTML5 media source extensions.
- *	@{
- */
+\addtogroup html5mse_grp HTML5 MSE
+\ingroup html5_grp
+\brief Scene graph extensions for HTML5 media source extensions.
+
+This section documents the scene graph extensions used for HTML5 media source extensions.
+@{
+*/
 
 #include <gpac/setup.h>
 

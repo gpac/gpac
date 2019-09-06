@@ -33,23 +33,24 @@ extern "C" {
 
 
 /*!
- *	\file <gpac/terminal.h>
- *	\brief GPAC media player API.
+\file <gpac/terminal.h>
+\brief GPAC media player API.
  */
 	
-/*! \defgroup playback_grp Media Player
- *	\brief GPAC media player (streaming engine and compositor).
- *	
+/*!
+\addtogroup playback_grp Media Player
+\brief GPAC media player (streaming engine and compositor).
 */
 	
 /*!
- *\addtogroup terminal_grp Terminal
- *\ingroup playback_grp
- *\brief GPAC media player APIs.
- *
- *This section documents the user-level API of the GPAC media player.
- *	@{
- */
+\addtogroup terminal_grp Terminal
+\ingroup playback_grp
+\brief GPAC media player APIs.
+
+This section documents the user-level API of the GPAC media player.
+
+@{
+*/
 	
 
 

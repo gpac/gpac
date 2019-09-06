@@ -818,7 +818,7 @@ static u64 moof_get_earliest_cts(GF_MovieFragmentBox *moof, GF_ISOTrackID refTra
 	if (!traf) return 0;
 
 	duration = 0;
-	cts = LLU_CAST (-1);
+	cts = (u64) -1;
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &i))) {
 		GF_TrunEntry *ent;

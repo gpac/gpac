@@ -52,7 +52,7 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
-#include <gpac/internal/mpd.h>
+#include <gpac/mpd.h>
 
 #define BUFFSIZE	8192
 #define DEFAULT_INTERLEAVING_IN_SEC 0.5
@@ -107,7 +107,7 @@ void PrintVersion()
 	fprintf(stderr, "MP4Box - GPAC version %s\n"
 	        "%s\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
-	        "Features: %s %s\n", gf_gpac_version(), gf_gpac_copyright(), gf_enabled_features(), gf_disabled_features());
+	        "Features: %s %s\n", gf_gpac_version(), gf_gpac_copyright(), gf_sys_features(GF_FALSE), gf_sys_features(GF_TRUE));
 }
 
 GF_GPACArg m4b_gen_args[] =

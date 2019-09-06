@@ -140,7 +140,6 @@ static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool sam
 	}
 	pes->prev_data_len = 0;
 	pes->pes_len = 0;
-	pes->prev_PTS = 0;
 	pes->reframe = NULL;
 	pes->cc = -1;
 	pes->temi_tc_desc_len = 0;
@@ -341,8 +340,6 @@ static void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 
 		if (pes->pck_data) gf_free(pes->pck_data);
 		if (pes->prev_data) gf_free(pes->prev_data);
-		if (pes->buf) gf_free(pes->buf);
-		if (pes->reassemble_buf) gf_free(pes->reassemble_buf);
 		if (pes->temi_tc_desc) gf_free(pes->temi_tc_desc);
 
 		if (pes->metadata_descriptor) gf_m2ts_metadata_descriptor_del(pes->metadata_descriptor);
@@ -2625,7 +2622,6 @@ void gf_m2ts_reset_parsers_for_program(GF_M2TS_Demuxer *ts, GF_M2TS_Program *pro
 			GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 			if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
 			pes->cc = -1;
-			pes->frame_state = 0;
 			pes->pck_data_len = 0;
 			if (pes->prev_data) gf_free(pes->prev_data);
 			pes->prev_data = NULL;
@@ -2634,8 +2630,6 @@ void gf_m2ts_reset_parsers_for_program(GF_M2TS_Demuxer *ts, GF_M2TS_Program *pro
 //			pes->prev_PTS = 0;
 //			pes->first_dts = 0;
 			pes->pes_len = pes->pes_end_packet_number = pes->pes_start_packet_number = 0;
-			if (pes->buf) gf_free(pes->buf);
-			pes->buf = NULL;
 			if (pes->temi_tc_desc) gf_free(pes->temi_tc_desc);
 			pes->temi_tc_desc = NULL;
 			pes->temi_tc_desc_len = pes->temi_tc_desc_alloc_size = 0;

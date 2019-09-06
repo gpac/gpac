@@ -34,6 +34,8 @@
 #define TEXT_DEFAULT_HEIGHT	60
 #define TEXT_DEFAULT_FONT_SIZE	18
 
+#define GF_VENDOR_GPAC		GF_4CC('G','P','A','C')
+
 enum{
 	NALU_NONE,
 	NALU_AVC,

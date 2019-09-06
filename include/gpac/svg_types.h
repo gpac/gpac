@@ -31,17 +31,18 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/svg_types.h>
- *	\brief Data types used for SVG scene graph
- */
+\file <gpac/svg_types.h>
+\brief Data types used for SVG scene graph
+*/
 	
 /*!
- *	\ingroup ssvg
- *	\brief Data types used for SVG scene graph.
- *
- *This section documents the data types used for SVG scene graph.
- *	@{
- */
+\ingroup ssvg
+\brief Data types used for SVG scene graph.
+
+This section documents the data types used for SVG scene graph.
+
+@{
+*/
 
 #include <gpac/path2d.h>
 #include <gpac/events_constants.h>

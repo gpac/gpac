@@ -3196,7 +3196,7 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 static void gf_sm_dump_saf_hdr(GF_SceneDumper *dumper, char *unit_name, u64 au_time, Bool is_rap)
 {
 	fprintf(dumper->trace, "<saf:%s", unit_name);
-	if (au_time) fprintf(dumper->trace, " time=\""LLD"\"", LLD_CAST au_time);
+	if (au_time) fprintf(dumper->trace, " time=\""LLD"\"", au_time);
 	if (is_rap) fprintf(dumper->trace, " rap=\"true\"");
 	fprintf(dumper->trace, ">\n");
 }
@@ -3219,7 +3219,7 @@ static void dump_od_to_saf(GF_SceneDumper *dumper, GF_AUContext *au, u32 indent)
 			if (!esd) {
 				if (od->URLString) {
 					fprintf(dumper->trace, "<saf:RemoteStreamHeader streamID=\"stream%d\" url=\"%s\"", au->owner->ESID, od->URLString);
-					if (au->timing) fprintf(dumper->trace, " time=\""LLD"\"", LLD_CAST au->timing);
+					if (au->timing) fprintf(dumper->trace, " time=\""LLD"\"", au->timing);
 					fprintf(dumper->trace, "/>\n");
 				}
 				continue;
@@ -3230,7 +3230,7 @@ static void dump_od_to_saf(GF_SceneDumper *dumper, GF_AUContext *au, u32 indent)
 
 			fprintf(dumper->trace, "<saf:mediaHeader streamID=\"stream%d\"", esd->ESID);
 			fprintf(dumper->trace, " streamType=\"%d\" objectTypeIndication=\"%d\" timeStampResolution=\"%d\"", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication, au->owner->timeScale);
-			if (au->timing) fprintf(dumper->trace, " time=\""LLD"\"", LLD_CAST au->timing);
+			if (au->timing) fprintf(dumper->trace, " time=\""LLD"\"", au->timing);
 			if (mux && mux->file_name) fprintf(dumper->trace, " source=\"%s\"", mux->file_name);
 			fprintf(dumper->trace, "/>\n");
 		}
@@ -3498,7 +3498,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, Bool is_final_name, GF_S
 
 			if (!first_bifs || (au->owner->streamType != GF_STREAM_SCENE) ) {
 				if (au->flags & GF_SM_AU_RAP) fprintf(dumper->trace, "RAP ");
-				fprintf(dumper->trace, "AT "LLD" ", LLD_CAST au->timing);
+				fprintf(dumper->trace, "AT "LLD" ", au->timing);
 				if ( (au->owner->streamType==GF_STREAM_OD && num_od) || (au->owner->streamType==GF_STREAM_SCENE && num_scene)) {
 					fprintf(dumper->trace, "IN %d ", au->owner->ESID);
 				}

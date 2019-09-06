@@ -32,17 +32,18 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/scenegraph_vrml.h>
- *	\brief Scenegraph for VRML files
- */
+\file <gpac/scenegraph_vrml.h>
+\brief Scenegraph for VRML files
+*/
 	
 /*!
- *	\addtogroup svrml BIFS/VRML/X3D Scenegraph
- *	\ingroup scene_grp
- *	\brief Scenegraph for VRML files.
- *
- *This section documents the Scenegraph for VRML files.
- *	@{
+\addtogroup svrml BIFS/VRML/X3D Scenegraph
+\ingroup scene_grp
+\brief Scenegraph for VRML files.
+
+This section documents the Scenegraph for VRML files.
+
+@{
  */
 
 

@@ -473,7 +473,13 @@ GF_ISOFile *gf_isom_open(const char *fileName, GF_ISOOpenMode OpenMode, const ch
 	return (GF_ISOFile *) movie;
 }
 
-GF_EXPORT
+
+#if 0
+/*! gets access to the data bitstream  - see \ref gf_isom_open
+\param isom_file the target ISO file
+\param out_bs set to the file input bitstream - do NOT destroy
+\return error if any
+*/
 GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs)
 {
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -492,8 +498,9 @@ GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs)
 #else
 	return GF_NOT_SUPPORTED;
 #endif
-
 }
+#endif
+
 
 GF_EXPORT
 GF_Err gf_isom_write(GF_ISOFile *movie) {
@@ -1760,7 +1767,7 @@ u32 gf_isom_get_max_sample_cts_offset(GF_ISOFile *the_file, u32 trackNumber)
 GF_EXPORT
 Bool gf_isom_get_sample_sync(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber)
 {
-	SAPType is_rap;
+	GF_ISOSAPType is_rap;
 	GF_Err e;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !sampleNumber) return GF_FALSE;

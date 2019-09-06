@@ -1537,7 +1537,7 @@ static void texture_set_callbacks(EVG_Texture *_this)
 	}
 }
 
-static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width, u32 height, GF_PixelFormat pixelFormat, const char *pixels, u32 stride, const char *u_plane, const char *v_plane, u32 uv_stride, const char *alpha_plane)
+static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width, u32 height, GF_PixelFormat pixelFormat, const char *pixels, u32 stride, const char *u_plane, const char *v_plane, u32 uv_stride, const char *alpha_plane, u32 alpha_stride)
 {
 	EVG_Texture *_this = (EVG_Texture *) st;
 	if (!_this || (_this->type != GF_STENCIL_TEXTURE) || !pixels || !width || !height || !stride || _this->owns_texture)
@@ -1603,6 +1603,7 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 	_this->height = height;
 	_this->stride = stride;
 	_this->stride_uv = uv_stride;
+	_this->stride_alpha = alpha_stride ? alpha_stride : stride;
 	_this->pixels = (char *) pixels;
 	_this->pix_u = (char *) u_plane;
 	_this->pix_v = (char *) v_plane;
@@ -1611,14 +1612,14 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 }
 
 GF_EXPORT
-GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, const u8 *y_or_rgb, u32 stride, const u8 *u_plane, const u8 *v_plane, u32 uv_stride, const u8 *alpha_plane)
+GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, const u8 *y_or_rgb, u32 stride, const u8 *u_plane, const u8 *v_plane, u32 uv_stride, const u8 *alpha_plane, u32 stride_alpha)
 {
- 	return gf_evg_stencil_set_texture_internal(stencil, width, height, pixelFormat, y_or_rgb, stride, u_plane, v_plane, uv_stride, alpha_plane);
+ 	return gf_evg_stencil_set_texture_internal(stencil, width, height, pixelFormat, y_or_rgb, stride, u_plane, v_plane, uv_stride, alpha_plane, stride_alpha);
 }
 GF_EXPORT
 GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, u8 *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
 {
-	return gf_evg_stencil_set_texture_internal(stencil, width, height, pixelFormat, pixels, stride, NULL, NULL, 0, NULL);
+	return gf_evg_stencil_set_texture_internal(stencil, width, height, pixelFormat, pixels, stride, NULL, NULL, 0, NULL, 0);
 }
 
 void evg_texture_init(GF_EVGStencil *p, GF_EVGSurface *surf)
@@ -1671,7 +1672,7 @@ void evg_texture_init(GF_EVGStencil *p, GF_EVGSurface *surf)
 
 
 GF_EXPORT
-GF_Err gf_evg_stencil_set_tiling(GF_EVGStencil * st, GF_TextureTiling mode)
+GF_Err gf_evg_stencil_set_mapping(GF_EVGStencil * st, GF_TextureMapFlags mode)
 {
 	EVG_Texture *_this = (EVG_Texture *) st;
 	if (!_this || (_this->type != GF_STENCIL_TEXTURE)) return GF_BAD_PARAM;

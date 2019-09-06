@@ -31,19 +31,21 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/webvtt.h>
- *	\brief Helper functions for WebVTT parsing.
+\file <gpac/webvtt.h>
+\brief Helper functions for WebVTT parsing.
  */
 
 /*!
- *	\ingroup media_grp
- *	\brief Helper functions for WebVTT parsing
- *
- *This section documents the audio and video parsing functions of the GPAC framework.
- *	@{
+\addtogroup wvtt_grp WebVTT parsing
+\ingroup media_grp
+\brief Helper functions for WebVTT parsing
+
+This section documents the audio and video parsing functions of the GPAC framework.
+
+@{
  */
 
-/* WebVTT types */
+/*! WebVTT types */
 typedef enum {
 	WEBVTT_ID,
 	WEBVTT_SETTINGS,

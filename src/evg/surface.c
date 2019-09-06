@@ -359,7 +359,7 @@ GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, u32 color)
 }
 
 GF_EXPORT
-GF_Err gf_evg_surface_set_raster_level(GF_EVGSurface *surf, GF_RasterLevel RasterSetting)
+GF_Err gf_evg_surface_set_raster_level(GF_EVGSurface *surf, GF_RasterQuality RasterSetting)
 {
 	if (!surf) return GF_BAD_PARAM;
 	switch (RasterSetting) {

@@ -24,6 +24,7 @@
  */
 
 #include "filter_session.h"
+#include <gpac/network.h>
 
 //helper functions
 void gf_void_del(void *p)
@@ -646,7 +647,7 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 
 
 	if (!strnicmp(value, "$GPAC_SHARED", 12)) {
-		if (gf_get_default_shared_directory(szPath)) {
+		if (gf_opts_default_shared_directory(szPath)) {
 			strcat(szPath, value+12);
 			value = szPath;
 		} else {

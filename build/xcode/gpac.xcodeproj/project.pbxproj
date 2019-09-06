@@ -174,6 +174,7 @@
 		9206823420EA96AA0041169F /* mux_gsf.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206823320EA96AA0041169F /* mux_gsf.c */; };
 		9212C0FB222D7AC000FE3580 /* vflip.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212C0FA222D7AC000FE3580 /* vflip.c */; };
 		92256CCD20E0DA26004EB243 /* encrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */; };
+		9225DD752326790C00F94C42 /* mpd.h in Headers */ = {isa = PBXBuildFile; fileRef = 9225DD742326790C00F94C42 /* mpd.h */; };
 		922CF1251FCEE5D600F2F6A4 /* dmx_mpegps.c in Sources */ = {isa = PBXBuildFile; fileRef = 922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */; };
 		922CF1271FCF169900F2F6A4 /* dmx_avi.c in Sources */ = {isa = PBXBuildFile; fileRef = 922CF1261FCF169900F2F6A4 /* dmx_avi.c */; };
 		922E29832051940C00C8DCBB /* mux_avi.c in Sources */ = {isa = PBXBuildFile; fileRef = 922E29812051940C00C8DCBB /* mux_avi.c */; };
@@ -456,7 +457,6 @@
 		92BBFD031A7122AD006A7735 /* thread.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCA21A7122AD006A7735 /* thread.h */; };
 		92BBFD041A7122AD006A7735 /* token.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCA31A7122AD006A7735 /* token.h */; };
 		92BBFD051A7122AD006A7735 /* tools.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCA41A7122AD006A7735 /* tools.h */; };
-		92BBFD061A7122AD006A7735 /* unicode.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCA51A7122AD006A7735 /* unicode.h */; };
 		92BBFD071A7122AD006A7735 /* user.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCA61A7122AD006A7735 /* user.h */; };
 		92BBFD081A7122AD006A7735 /* utf.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCA71A7122AD006A7735 /* utf.h */; };
 		92BBFD091A7122AD006A7735 /* version.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCA81A7122AD006A7735 /* version.h */; };
@@ -802,6 +802,7 @@
 		9206823320EA96AA0041169F /* mux_gsf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_gsf.c; path = filters/mux_gsf.c; sourceTree = "<group>"; };
 		9212C0FA222D7AC000FE3580 /* vflip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vflip.c; path = filters/vflip.c; sourceTree = "<group>"; };
 		92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = encrypt_cenc_isma.c; path = filters/encrypt_cenc_isma.c; sourceTree = "<group>"; };
+		9225DD742326790C00F94C42 /* mpd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mpd.h; path = ../include/gpac/mpd.h; sourceTree = "<group>"; };
 		922B48781A5ADAB3006CBBBA /* os_module.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
 		922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_mpegps.c; path = filters/dmx_mpegps.c; sourceTree = "<group>"; };
 		922CF1261FCF169900F2F6A4 /* dmx_avi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_avi.c; path = filters/dmx_avi.c; sourceTree = "<group>"; };
@@ -1086,7 +1087,6 @@
 		92BBFCA21A7122AD006A7735 /* thread.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = thread.h; path = ../include/gpac/thread.h; sourceTree = "<group>"; };
 		92BBFCA31A7122AD006A7735 /* token.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = token.h; path = ../include/gpac/token.h; sourceTree = "<group>"; };
 		92BBFCA41A7122AD006A7735 /* tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tools.h; path = ../include/gpac/tools.h; sourceTree = "<group>"; };
-		92BBFCA51A7122AD006A7735 /* unicode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = unicode.h; path = ../include/gpac/unicode.h; sourceTree = "<group>"; };
 		92BBFCA61A7122AD006A7735 /* user.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = user.h; path = ../include/gpac/user.h; sourceTree = "<group>"; };
 		92BBFCA71A7122AD006A7735 /* utf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = utf.h; path = ../include/gpac/utf.h; sourceTree = "<group>"; };
 		92BBFCA81A7122AD006A7735 /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = version.h; path = ../include/gpac/version.h; sourceTree = "<group>"; };
@@ -1686,6 +1686,7 @@
 		92BBFC471A71228A006A7735 /* include */ = {
 			isa = PBXGroup;
 			children = (
+				9225DD742326790C00F94C42 /* mpd.h */,
 				92D3C6282031E98600BA1735 /* atsc.h */,
 				92BBFC481A7122AD006A7735 /* ait.h */,
 				92BBFC491A7122AD006A7735 /* avparse.h */,
@@ -1747,7 +1748,6 @@
 				92BBFCA21A7122AD006A7735 /* thread.h */,
 				92BBFCA31A7122AD006A7735 /* token.h */,
 				92BBFCA41A7122AD006A7735 /* tools.h */,
-				92BBFCA51A7122AD006A7735 /* unicode.h */,
 				92BBFCA61A7122AD006A7735 /* user.h */,
 				92BBFCA71A7122AD006A7735 /* utf.h */,
 				92BBFCA81A7122AD006A7735 /* version.h */,
@@ -2024,7 +2024,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				92BBFD0B1A7122AD006A7735 /* xml.h in Headers */,
-				92BBFD061A7122AD006A7735 /* unicode.h in Headers */,
 				92BBFCAE1A7122AD006A7735 /* bifs.h in Headers */,
 				92BBFCED1A7122AD006A7735 /* mpeg4_odf.h in Headers */,
 				92BBFCBC1A7122AD006A7735 /* events_constants.h in Headers */,
@@ -2066,6 +2065,7 @@
 				92BBFCD11A7122AD006A7735 /* odf_parse_common.h in Headers */,
 				92BBFD091A7122AD006A7735 /* version.h in Headers */,
 				92BBFCE81A7122AD006A7735 /* js_usr.h in Headers */,
+				9225DD752326790C00F94C42 /* mpd.h in Headers */,
 				92BBFCB21A7122AD006A7735 /* compositor.h in Headers */,
 				92BBFCAB1A7122AD006A7735 /* ait.h in Headers */,
 				92BBFCC81A7122AD006A7735 /* dvb_mpe_dev.h in Headers */,

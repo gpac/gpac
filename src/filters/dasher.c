@@ -26,7 +26,7 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 #include <gpac/iso639.h>
-#include <gpac/internal/mpd.h>
+#include <gpac/mpd.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/base_coding.h>
 
@@ -2393,18 +2393,18 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		if (ds->tile_base || (ds->codec_id==GF_CODECID_HEVC_TILES)) is_bs_switch = GF_FALSE;
 
 		//get final segment template with path resolution - output file name is NULL, we already have solved this
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE_WITH_PATH, is_bs_switch, szSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ctx->stl);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE_WITH_PATH, is_bs_switch, szSegmentName, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ctx->stl);
 		ds->seg_template = gf_strdup(szSegmentName);
 
 		//get final segment template - output file name is NULL, we already have solved this
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switch, szSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ctx->stl);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switch, szSegmentName, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ctx->stl);
 
 		//get index templates
 		if (idx_ext) {
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX_TEMPLATE_WITH_PATH, is_bs_switch, szIndexSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, idx_ext, 0, 0, 0, ctx->stl);
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX_TEMPLATE_WITH_PATH, is_bs_switch, szIndexSegmentName, ds->rep_id, NULL, szDASHTemplate, idx_ext, 0, 0, 0, ctx->stl);
 			ds->idx_template = gf_strdup(szIndexSegmentName);
 
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX_TEMPLATE, is_bs_switch, szIndexSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, idx_ext, 0, 0, 0, ctx->stl);
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX_TEMPLATE, is_bs_switch, szIndexSegmentName, ds->rep_id, NULL, szDASHTemplate, idx_ext, 0, 0, 0, ctx->stl);
 		}
 
 		//patch for old arch, override template name for init segment UGLY, to remove asap
@@ -2420,11 +2420,11 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 
 		//get final init name - output file name is NULL, we already have solved this
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switch, szInitSegmentFilename, NULL, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, ds->bitrate, 0, ctx->stl);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, ds->bitrate, 0, ctx->stl);
 		ds->init_seg = gf_strdup(szInitSegmentFilename);
 
 		//get final init template name - output file name is NULL, we already have solved this
-		gf_media_mpd_format_segment_name(init_template_mode, is_bs_switch, szInitSegmentTemplate, NULL, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, 0, 0, ctx->stl);
+		gf_media_mpd_format_segment_name(init_template_mode, is_bs_switch, szInitSegmentTemplate, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, 0, 0, ctx->stl);
 
 		if (ctx->sigfrag) {
 			strcpy(szInitSegmentFilename, gf_file_basename(ds->src_url));
@@ -2507,7 +2507,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (ctx->m2ts) segext = "ts";
 
 			//use GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT to get rid of default "init" added for init templates
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, set->bitstream_switching, szInitSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, segext, 0, 0, 0, ctx->stl);
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, set->bitstream_switching, szInitSegmentName, ds->rep_id, NULL, szDASHTemplate, segext, 0, 0, 0, ctx->stl);
 */
 
 			if (ds->init_seg) gf_free(ds->init_seg);
@@ -4377,7 +4377,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			ds->rep->timescale = ds->timescale;
 			ds->rep->timescale_mpd = ds->mpd_timescale;
 			ds->rep->dash_dur = ds->dash_dur;
-			ds->rep->init_seg = ds->init_seg;
+			ds->rep->hls_single_file_name = ds->init_seg;
 			ds->rep->nb_chan = ds->nb_ch;
 			ds->rep->m3u8_name = ds->hls_vp_name;
 			if (ds->fps.den) {
@@ -4413,7 +4413,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	szIndexName[0] = 0;
 	if (ds->idx_template) {
 		//get final segment template - output file name is NULL, we already have solved this in source_setup
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, ds->set->bitstream_switching, szIndexName, NULL, base_ds->rep_id, NULL, base_ds->idx_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, ctx->stl);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, ds->set->bitstream_switching, szIndexName, base_ds->rep_id, NULL, base_ds->idx_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, ctx->stl);
 
 		strcpy(szSegmentFullPath, szIndexName);
 		if (ctx->out_path) {
@@ -4488,7 +4488,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	}
 
 	//get final segment template - output file name is NULL, we already have solved this in source_setup
-	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, NULL, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, ctx->stl);
+	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, ctx->stl);
 
 	strcpy(szSegmentFullPath, szSegmentName);
 

@@ -664,7 +664,7 @@ static Bool log_exit_on_error = GF_FALSE;
 extern GF_Mutex *logs_mx;
 
 GF_EXPORT
-Bool gf_sys_logs_color()
+Bool gf_log_use_color()
 {
 	return (log_cbk == default_log_callback_color) ? GF_TRUE : GF_FALSE;
 }
@@ -938,8 +938,7 @@ u32 gf_crc_32(const u8 *data, u32 len)
 
 #define CHECK_MAC(_a) "#_a :" ? (_a) ? "yes":"no"
 
-GF_EXPORT
-const char *gf_enabled_features()
+static const char *gf_enabled_features()
 {
 	const char *features = ""
 #ifdef GPAC_CONFIG_WIN32
@@ -1045,8 +1044,7 @@ const char *gf_enabled_features()
 	return features;
 }
 
-GF_EXPORT
-const char *gf_disabled_features()
+static const char *gf_disabled_features()
 {
 	const char *features = ""
 #ifdef GPAC_DISABLE_3D
@@ -1144,6 +1142,14 @@ const char *gf_disabled_features()
 	return features;
 }
 
+GF_EXPORT
+const char *gf_sys_features(Bool disabled)
+{
+	if (disabled)
+		return gf_disabled_features();
+	else
+		return gf_enabled_features();
+}
 
 static const struct lang_def {
 	const char *name;

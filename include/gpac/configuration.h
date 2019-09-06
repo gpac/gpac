@@ -27,7 +27,18 @@
 #ifndef _GF_CONFIG_H_
 #define _GF_CONFIG_H_
 
+/*!
+\addtogroup setup_grp
+\brief Base data types
+
+This section documents the base data types of GPAC.
+
+@{
+*/
+
 #define GPAC_CONFIGURATION "(static configuration file)"
+
+
 
 /*this file defines all common macros for libgpac compilation
   except for symbian32 which uses .mmp directives ... */
@@ -125,6 +136,7 @@
 
 //64-bits OSX
 #ifdef __LP64__
+/*! macro defined for 64-bits platforms*/
 #define GPAC_64_BITS
 #endif
 
@@ -140,6 +152,7 @@
 
 //64-bits iOS
 #ifdef __LP64__
+/*! macro defined for 64-bits platforms*/
 #define GPAC_64_BITS
 #endif
 
@@ -322,6 +335,8 @@ this macro is currently defined in setup.h */
 /*disables VOBSUB */
 //#define GPAC_DISABLE_VOBSUB
 
+
+/*! @} */
 
 #endif		/*_GF_CONFIG_H_*/
 

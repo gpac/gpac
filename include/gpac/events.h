@@ -33,17 +33,17 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/events.h>
- *	\brief Event system used by GPAC playback.
+\file <gpac/events.h>
+\brief Event system used by GPAC playback.
  */
 	
 /*!
- *	\addtogroup evt_grp Event System
- *	\ingroup playback_grp
- *	\brief Event system used by GPAC playback.
- *
- *This section documents the event structures used by the terminal, the compositor, input modules and output rendering modules for communication.
- *	@{
+\addtogroup evt_grp Event System
+\ingroup playback_grp
+\brief Event system used by GPAC playback.
+
+This section documents the event structures used by the terminal, the compositor, input modules and output rendering modules for communication.
+@{
  */
 
 #include <gpac/maths.h>
@@ -51,7 +51,7 @@ extern "C" {
 #include <gpac/events_constants.h>
 
 
-/*mouse button modifiers*/
+/*! mouse button modifiers*/
 enum
 {
 	GF_MOUSE_LEFT = 0,

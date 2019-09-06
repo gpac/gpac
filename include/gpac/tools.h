@@ -35,70 +35,44 @@ extern "C" {
 #include <time.h>
 
 
-/*! \file "gpac/tools.h"
- *	\brief Core definitions and tools of GPAC.
- *
- * This file contains basic functions and core definitions of the GPAC framework. This file is
- * usually included by all GPAC header files since it contains the error definitions.
-*/
+/*!
+\file "gpac/tools.h"
+\brief Core definitions and tools of GPAC.
 
-/*! \defgroup utils_grp Core Tools
- *	\brief Core definitions and tools of GPAC.
- *
- * You will find in this module the documentation of the core tools used in GPAC.
+This file contains basic functions and core definitions of the GPAC framework. This file is
+usually included by all GPAC header files since it contains the error definitions.
 */
 
 /*!
- *	\ingroup utils_grp
- *	\brief Base definitions and functions of GPAC.
- *
- *	This section documents some very basic functions and core definitions of the GPAC framework.
- *	@{
+\addtogroup utils_grp Core Tools
+\brief Core definitions and tools of GPAC.
+
+You will find in this module the documentation of the core tools used in GPAC.
+*/
+
+/*!
+\addtogroup setup_grp
+@{
  */
 
 /*!
- *	\brief Stringizer
- *	\hideinitializer
- *
- *	Macro transforming its input name into a string
+\brief Stringizer
+\hideinitializer
+
+Macro transforming its input name into a string
 */
 #define gf_stringizer(x) #x
 
 /*!
- *	\brief Memory allocation for a structure
- *	\hideinitializer
- *
- *	Macro allocating memory and zero-ing it
-*/
-#define GF_SAFEALLOC(__ptr, __struct) { __ptr = (__struct *) gf_malloc(sizeof(__struct)); if (__ptr) memset((void *) __ptr, 0, sizeof(__struct)); }
+\brief 4CC Formatting
+\hideinitializer
 
-/*!
- *	\brief Memory allocation for an array of n structs
- *	\hideinitializer
- *
- *	Macro allocating memory for n structures and zero-ing it
-*/
-#define GF_SAFE_ALLOC_N(__ptr, __n, __struct) { __ptr = (__struct *) gf_malloc( __n * sizeof(__struct)); if (__ptr) memset((void *) __ptr, 0, __n * sizeof(__struct)); }
-
-/*!
- *	\brief 4CC Formatting
- *	\hideinitializer
- *
- *	Macro formating a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
+Macro formating a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
 */
 #ifndef GF_4CC
 #define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|((u32)d))
 #endif
 
-/*! gets GPAC enabled feature list
-\return the list of features enabled in this GPAC build.
-*/
-const char *gf_enabled_features(void);
-
-/*! gets GPAC disabled feature list
-\return the list of features disabled in this GPAC build.
-*/
-const char *gf_disabled_features(void);
 
 /*! converts four character code to string
 \param type a four character code
@@ -106,100 +80,22 @@ const char *gf_disabled_features(void);
 */
 const char *gf_4cc_to_str(u32 type);
 
-/*!
- *	\brief file writing helper
- *
- *	Wrapper to properly handle calls to fwrite()
- *	Ensures proper error handling is invoked when it fails.
- *	\param ptr same as fwrite
- *	\param size same as fwrite
- *	\param nmemb same as fwrite
- *	\param stream same as fwrite
- *	\return same as fwrite
- *
-*/
-size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
-
-/*!
- *	\brief large file opening
- *
- *	Opens a large file (>4GB)
- *	\param file_name same as fopen
- *	\param mode same as fopen
- *	\return stream handle of the file object
- *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
-*/
-FILE *gf_fopen(const char *file_name, const char *mode);
-
-/*!
- *	\brief file closing
- *
- *	Closes a file
- *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
- *	\param file file to close
- *	\return same as flcose
-*/
-s32 gf_fclose(FILE *file);
-
-/*!
- *	\brief large file position query
- *
- *	Queries the current read/write position in a large file
- *	\param f Same semantics as ftell
- *	\return position in the file
- *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
-*/
-u64 gf_ftell(FILE *f);
-/*!
- *	\brief large file seeking
- *
- *	Seeks the current read/write position in a large file
- *	\param f Same semantics as fseek
- *	\param pos Same semantics as fseek
- *	\param whence Same semantics as fseek
- *	\return new position in the file
- *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
-*/
-u64 gf_fseek(FILE *f, s64 pos, s32 whence);
-
-/*! gets basename from filename/path
-\param filename Path of the file, can be an absolute path
-\return a pointer to the start of a filepath basename or null
-*/
-char* gf_file_basename(const char* filename);
-
-/*! gets extension from filename
-\param filename Path of the file, can be an absolute path
-\return a pointer to the start of a filepath extension or null
-*/
-char* gf_file_ext_start(const char* filename);
-
-/*!
- *	\brief get first after a filename/path
- *
- *	Returns a pointer to the first colon at the end of a filename or URL, if any
- *	\param URL path or URL to inspect
- *	\return position of first colon, or NULL
-*/
-char* gf_url_colon_suffix(const char* URL);
-
 /*! @} */
 
+/*!
+\addtogroup errors_grp
+\brief Error Types
 
-/*! \addtogroup errors_grp Error codes
- *	\ingroup utils_grp
- *	\brief Errors used in GPAC.
- *
- *	This section documents all error codes used in the GPAC framework. Most of the GPAC's functions will use these as
- * return values, and some of these errors are also used for state communication with the different modules of the framework.
- *	@{
+This section documents all error codes used in the GPAC framework. Most of the GPAC's functions will use these as
+ return values, and some of these errors are also used for state communication with the different modules of the framework.
+
+@{
  */
 
-/*!
- * GPAC Error
- *	\hideinitializer
- *
- *	positive values are warning and info, 0 means no error and negative values are errors
+/*! GPAC Error
+\hideinitializer
+
+Positive values are warning and info, 0 means no error and negative values are errors
  */
 typedef enum
 {
@@ -299,28 +195,218 @@ typedef enum
 } GF_Err;
 
 /*!
- *	\brief Error Printing
- *
- *	Returns a printable version of a given error
- *	\param e Error code requested
- *	\return String representing the error
+\brief Error Printing
+
+Returns a printable version of a given error
+\param e Error code requested
+\return String representing the error
 */
 const char *gf_error_to_string(GF_Err e);
 
 /*! @} */
 
-/*! \addtogroup log_grp Logging tools
- *	\ingroup utils_grp
- *	\brief Logging system of GPAC
- *	@{
+
+/*!
+\addtogroup mem_grp
+@{
  */
 
 /*!
- * GPAC Log Levels
- *	\hideinitializer
- *
- * These levels describes messages priority used when filtering logs
+\brief Memory allocation for a structure
+\hideinitializer
+
+Macro allocating memory and zero-ing it
+*/
+#define GF_SAFEALLOC(__ptr, __struct) { __ptr = (__struct *) gf_malloc(sizeof(__struct)); if (__ptr) memset((void *) __ptr, 0, sizeof(__struct)); }
+
+/*!
+\brief Memory allocation for an array of n structs
+\hideinitializer
+
+Macro allocating memory for n structures and zero-ing it
+*/
+#define GF_SAFE_ALLOC_N(__ptr, __n, __struct) { __ptr = (__struct *) gf_malloc( __n * sizeof(__struct)); if (__ptr) memset((void *) __ptr, 0, __n * sizeof(__struct)); }
+
+
+/*!
+\brief dynamic string concatenation
+
+Dynamic concatenation of string with optional separator
+\param str pointer to destination string pointer
+\param to_append string to append
+\param sep optional separator string to insert before concatenation. If set and initial string is NULL, will not be appended
+\return error code
  */
+GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep);
+
+/*! @} */
+
+/*!
+\addtogroup libsys_grp
+\brief Library configuration
+
+These functions are used to initialize, shutdown and configure libgpac.
+
+The library shall be initialized using \ref gf_sys_init and terminated using gf_sys_close
+
+The library can usually be configured from command line if your program uses \ref gf_sys_set_args.
+
+The library can also be configured from your program using \ref gf_opts_set_key and related functions right after initializing the library.
+
+For more information on configuration options, see \code gpac -hx core \endcode and https://github.com/gpac/gpac/wiki/core_options
+
+For more information on filters configuration options, see https://github.com/gpac/gpac/wiki/Filters
+
+@{
+ */
+
+/*!
+Selection flags for memory tracker
+\hideinitializer
+ */
+typedef enum
+{
+    /*! No memory tracking*/
+    GF_MemTrackerNone = 0,
+    /*! Memory tracking without backtrace*/
+    GF_MemTrackerSimple,
+    /*! Memory tracking with backtrace*/
+    GF_MemTrackerBackTrace,
+} GF_MemTrackerType;
+
+/*!
+\brief System setup
+
+Inits the system high-resolution clock if any, CPU usage manager, random number and GPAC global config. It is strongly recommended to call this function before calling any other GPAC functions, since on some systems (like winCE) it may result in a better memory usage estimation.
+
+The profile allows using a different global config file than the default, and may be a name (without / or \\) or point to an existing config file.
+\note This can be called several times but only the first call will result in system setup.
+\param mem_tracker_type memory tracking mode
+\param profile name of the profile to load, NULL for default.
+\return Error code if any
+ */
+GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile);
+/*!
+\brief System closing
+Closes the system high-resolution clock and any CPU associated ressources.
+\note This can be called several times but the system will be closed when no more users are counted.
+ */
+void gf_sys_close();
+
+/*!
+\brief System arguments
+
+Sets the user app arguments (used by GUI mode)
+\param argc Number of arguments
+\param argv Array of arguments
+\return error code if any, GF_OK otherwise
+ */
+GF_Err gf_sys_set_args(s32 argc, const char **argv);
+
+/*!
+\brief Get number of args
+
+Gets the number of argument of the user application if any
+\return number of argument of the user application
+ */
+u32 gf_sys_get_argc();
+
+/*!
+\brief Get number of args
+
+Gets the number of argument of the user application if any
+\param arg Index of argument to retrieve
+\return number of argument of the user application
+ */
+const char *gf_sys_get_arg(u32 arg);
+
+/*!
+\brief checks if test mode is enabled
+
+Checks if test mode is enabled (no date nor GPAC version should be written).
+\return GF_TRUE if test mode is enabled, GF_FALSE otherwise.
+ */
+Bool gf_sys_is_test_mode();
+
+
+/*!
+\brief checks if running in quiet mode
+
+Checks if quiet mode is enabled
+\return 2 if quiet mode is enabled, 1 if quiet mode not enabled but progress is disabled, 0 otherwise.
+ */
+u32 gf_sys_is_quiet();
+
+/*! gets GPAC feature list in this GPAC build
+\param disabled if GF_TRUE, gets disabled features, otherwise gets enabled features
+\return the list of features.
+*/
+const char *gf_sys_features(Bool disabled);
+
+/*!
+GPAC Log tools
+\hideinitializer
+
+Describes the color code for console print
+ */
+typedef enum
+{
+	/*!reset color*/
+	GF_CONSOLE_RESET=0,
+	/*!set text to red*/
+	GF_CONSOLE_RED,
+	/*!set text to green*/
+	GF_CONSOLE_GREEN,
+	/*!set text to blue*/
+	GF_CONSOLE_BLUE,
+	/*!set text to yellow*/
+	GF_CONSOLE_YELLOW,
+	/*!set text to cyan*/
+	GF_CONSOLE_CYAN,
+	/*!set text to white*/
+	GF_CONSOLE_WHITE,
+	/*!set text to magenta*/
+	GF_CONSOLE_MAGENTA,
+	/*!reset all console text*/
+	GF_CONSOLE_CLEAR,
+	/*!save console state*/
+	GF_CONSOLE_SAVE,
+	/*!restore console state*/
+	GF_CONSOLE_RESTORE,
+
+	/*!set text to bold modifier*/
+	GF_CONSOLE_BOLD = 1<<16,
+	/*!set text to italic*/
+	GF_CONSOLE_ITALIC = 1<<17,
+	/*!set text to underlined*/
+	GF_CONSOLE_UNDERLINED = 1<<18,
+	/*!set text to strikethrough*/
+	GF_CONSOLE_STRIKE = 1<<19
+} GF_ConsoleCodes;
+
+/*! sets console code
+\param std the output stream (stderr or stdout)
+\param code the console code to set
+*/
+void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code);
+
+
+/*! @} */
+
+
+/*!
+\addtogroup log_grp
+\brief Logging System
+
+@{
+*/
+
+/*!
+\brief GPAC Log Levels
+\hideinitializer
+
+These levels describes messages priority used when filtering logs
+*/
 typedef enum
 {
 	/*! Disable all Log message*/
@@ -336,29 +422,27 @@ typedef enum
 } GF_LOG_Level;
 
 /*!
- *	\brief Log exits at first error assignment
- *
- * When GF_LOG_ERROR happens, program leaves with instruction exit(1);
- *	\param strict strict behaviour when encoutering a serious error.
- *	\return old value before the call.
- *
+\brief Log exits at first error assignment
+
+When GF_LOG_ERROR happens, program leaves with instruction exit(1);
+\param strict strict behaviour when encoutering a serious error.
+\return old value before the call.
  */
 Bool gf_log_set_strict_error(Bool strict);
 
 /*!
- *	\brief gets string-formated log tools
- *
- * Returns the string-formatted log tools and levels. Returned string shall be freed by the caller.
- *	\return string-formatted log tools.
- *
+\brief gets string-formated log tools
+
+Gets the string-formatted log tools and levels. Returned string shall be freed by the caller.
+\return string-formatted log tools.
  */
 char *gf_log_get_tools_levels(void);
 
 /*!
- * GPAC Log tools
- *	\hideinitializer
- *
- * These flags describes which sub-part of GPAC generates the log and are used when filtering logs
+\brief GPAC Log tools
+\hideinitializer
+
+These flags describes which sub-part of GPAC generates the log and are used when filtering logs
  */
 typedef enum
 {
@@ -425,9 +509,9 @@ typedef enum
 } GF_LOG_Tool;
 
 /*!
- *	\brief Log modules assignment
- *
- * Sets the tools to be checked for log filtering. By default no logging is performed.
+\brief Log modules assignment
+
+Sets the tools to be checked for log filtering. By default no logging is performed.
 \param log_tool the tool to be logged
 \param log_level the level of logging for this tool
  *
@@ -435,25 +519,25 @@ typedef enum
 void gf_log_set_tool_level(GF_LOG_Tool log_tool, GF_LOG_Level log_level);
 
 /*!
- *	\brief Log Message Callback
- *
- * The gf_log_cbk type is the type for the callback of the \ref gf_log_set_callback function. By default all logs are redirected to stderr
- *	\param cbck Opaque user data.
- *	\param log_level level of the log. This value is not guaranteed in multi-threaded context.
- *	\param log_tool tool emitting the log. This value is not guaranteed in multi-threaded context.
- *	\param fmt message log format.
- *	\param vlist message log param.
+\brief Log Message Callback
+
+The gf_log_cbk type is the type for the callback of the \ref gf_log_set_callback function. By default all logs are redirected to stderr
+\param cbck Opaque user data.
+\param log_level level of the log. This value is not guaranteed in multi-threaded context.
+\param log_tool tool emitting the log. This value is not guaranteed in multi-threaded context.
+\param fmt message log format.
+\param vlist message log param.
  *
  */
 typedef void (*gf_log_cbk)(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char* fmt, va_list vlist);
 
 /*!
- *	\brief Log overwrite
- *
- *	Assigns a user-defined callback for printing log messages. By default all logs are redirected to stderr
- *	\param usr_cbk Opaque user data
- *	\param cbk     Callback log function
- *	\return previous callback function
+\brief Log overwrite
+
+Assigns a user-defined callback for printing log messages. By default all logs are redirected to stderr
+\param usr_cbk Opaque user data
+\param cbk     Callback log function
+\return previous callback function
 */
 gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk);
 
@@ -482,131 +566,96 @@ void gf_log_va_list(GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_li
 /*! \endcond */
 
 /*!
- *	\brief Log level checking
- *
- *	Checks if a given tool is logged for the given level
- *	\param log_tool tool to check
- *	\param log_level level to check
- *	\return 1 if logged, 0 otherwise
+\brief Log level checking
+
+Checks if a given tool is logged for the given level
+\param log_tool tool to check
+\param log_level level to check
+\return 1 if logged, 0 otherwise
 */
 Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level);
 
 /*!
- *	\brief Log level getter
- *
- *	Gets log level of a given tool
- *	\param log_tool tool to check
- *	\return log level of tool
+\brief Log level getter
+
+Gets log level of a given tool
+\param log_tool tool to check
+\return log level of tool
 */
 u32 gf_log_get_tool_level(GF_LOG_Tool log_tool);
 
 /*!
- *	\brief Set log tools and levels
- *
- *	Set log tools and levels according to the log_tools_levels string.
- *	\param log_tools_levels string specifying the tools and levels. It is formatted as logToolX\@logLevelX:logToolZ\@logLevelZ:...
- *	\param reset_all if GF_TRUE, all previous log settings are discarded.
- *	\return GF_OK or GF_BAD_PARAM
+\brief Set log tools and levels
+
+Set log tools and levels according to the log_tools_levels string.
+\param log_tools_levels string specifying the tools and levels. It is formatted as logToolX\@logLevelX:logToolZ\@logLevelZ:...
+\param reset_all if GF_TRUE, all previous log settings are discarded.
+\return GF_OK or GF_BAD_PARAM
 */
 GF_Err gf_log_set_tools_levels(const char *log_tools_levels, Bool reset_all);
 
 /*!
- *	\brief Modify log tools and levels
- *
- *	Modify log tools and levels according to the log_tools_levels string. Previous log settings are kept.
- *	\param val string specifying the tools and levels. It is formatted as logToolX\@logLevelX:logToolZ\@logLevelZ:...
- *	\return GF_OK or GF_BAD_PARAM
+\brief Modify log tools and levels
+
+Modify log tools and levels according to the log_tools_levels string. Previous log settings are kept.
+\param val string specifying the tools and levels. It is formatted as logToolX\@logLevelX:logToolZ\@logLevelZ:...
+\return GF_OK or GF_BAD_PARAM
 */
 GF_Err gf_log_modify_tools_levels(const char *val);
 
 /*!
- *	\brief Checks if color logs is enabled
- *
- * Checks if color logs is enabled
- *	\return GF_TRUE if color logs are used
+\brief Checks if color logs is enabled
+
+Checks if color logs is enabled
+\return GF_TRUE if color logs are used
 */
-Bool gf_sys_logs_color();
+Bool gf_log_use_color();
 
 /*!
- *	\brief Checks if logs are stored to file
- *
- *Checks if logs are stored to file
- *	\return GF_TRUE if logs are stored to file
+\brief Checks if logs are stored to file
+
+Checks if logs are stored to file
+\return GF_TRUE if logs are stored to file
 */
-Bool gf_sys_logs_to_file();
+Bool gf_log_use_file();
 
 #ifdef GPAC_DISABLE_LOG
 #define GF_LOG(_ll, _lm, __args)
 #else
 /*!
- *	\brief Message logging
- *	\hideinitializer
- *
- *	Macro for logging messages. Usage is GF_LOG(log_lev, log_module, (fmt, ...)). The log function is only called if log filtering allows it. This avoids fetching logged parameters when the tool is not being logged.
+\brief Message logging
+\hideinitializer
+
+Macro for logging messages. Usage is GF_LOG(log_lev, log_module, (fmt, ...)). The log function is only called if log filtering allows it. This avoids fetching logged parameters when the tool is not being logged.
 */
 #define GF_LOG(_log_level, _log_tools, __args) if (gf_log_tool_level_on(_log_tools, _log_level) ) { gf_log_lt(_log_level, _log_tools); gf_log __args ;}
 #endif
 
 /*!
- *	\brief Resets log file
- *
- *	Resets log file if any log file name was specified, by closing and reopening a new file.
+\brief Resets log file
+Resets log file if any log file name was specified, by closing and reopening a new file.
 */
 void gf_log_reset_file();
 
 
+
+/*!	@} */
+
 /*!
- * GPAC Log tools
- *	\hideinitializer
- *
- * Describes the color code for console print
+\addtogroup miscsys_grp
+\brief System time CPU
+
+This section documents time functionalities and CPU management in GPAC.
+
+@{
  */
-typedef enum
-{
-	/*!reset color*/
-	GF_CONSOLE_RESET=0,
-	/*!set text to red*/
-	GF_CONSOLE_RED,
-	/*!set text to green*/
-	GF_CONSOLE_GREEN,
-	/*!set text to blue*/
-	GF_CONSOLE_BLUE,
-	/*!set text to yellow*/
-	GF_CONSOLE_YELLOW,
-	/*!set text to cyan*/
-	GF_CONSOLE_CYAN,
-	/*!set text to white*/
-	GF_CONSOLE_WHITE,
-	/*!set text to magenta*/
-	GF_CONSOLE_MAGENTA,
-	/*!reset all console text*/
-	GF_CONSOLE_CLEAR,
-	/*!save console state*/
-	GF_CONSOLE_SAVE,
-	/*!restore console state*/
-	GF_CONSOLE_RESTORE,
 
-	/*!set text to bold modifier*/
-	GF_CONSOLE_BOLD = 1<<16,
-	/*!set text to italic*/
-	GF_CONSOLE_ITALIC = 1<<17,
-	/*!set text to underlined*/
-	GF_CONSOLE_UNDERLINED = 1<<18,
-	/*!set text to strikethrough*/
-	GF_CONSOLE_STRIKE = 1<<19
-} GF_ConsoleCodes;
-
-/*! sets console code
-\param std the output stream (stderr or stdout)
-\param code the console code to set
-*/
-void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code);
 
 /*!
- *	\brief PseudoRandom Integer Generation Initialization
- *
- *	Sets the starting point for generating a series of pseudorandom integers.
- *	\param Reset Re-initializes the random number generator
+\brief PseudoRandom Integer Generation Initialization
+
+Sets the starting point for generating a series of pseudorandom integers.
+\param Reset Re-initializes the random number generator
 */
 void gf_rand_init(Bool Reset);
 /*! PseudoRandom integer generation
@@ -619,337 +668,222 @@ u32 gf_rand();
 */
 void gf_get_user_name(char buf[1024]);
 
-
-/*!\brief FileEnum info object
- *
- *The FileEnumInfo object is used to get file attributes upon enumeration of a directory.
-*/
-typedef struct
-{
-	/*!File is marked as hidden*/
-	Bool hidden;
-	/*!File is a directory*/
-	Bool directory;
-	/*!File is a drive mountpoint*/
-	Bool drive;
-	/*!File is a system file*/
-	Bool system;
-	/*!File size in bytes*/
-	u64 size;
-	/*!File last modif time in UTC seconds*/
-	u64 last_modified;
-} GF_FileEnumInfo;
-
 /*!
- *	\brief Directory Enumeration Callback
- *
- * The gf_enum_dir_item type is the type for the callback of the \ref gf_enum_directory function
- *	\param cbck Opaque user data.
- *	\param item_name File or directory name.
- *	\param item_path File or directory full path and name from filesystem root.
- *	\param file_info information for the file or directory.
- *	\return 1 to abort enumeration, 0 to continue enumeration.
- *
- */
-typedef Bool (*gf_enum_dir_item)(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info);
-/*!
- *	\brief Directory enumeration
- *
- *	Enumerates a directory content. Feedback is provided by the enum_dir_item function
- *	\param dir Directory to enumerate
- *	\param enum_directory If set, only directories will be enumerated, otherwise only files are.
- *	\param enum_dir gf_enum_dir_item callback function for enumeration.
- *	\param cbck Opaque user data passed to callback function.
- *	\param filter optional filter for file extensions. If a file extension without the dot '.' character is not found in the
- *	filter the file will be skipped.
- *	\return error if any
- */
-GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item enum_dir, void *cbck, const char *filter);
+\brief Progress formatting
 
-
-/*!
- *	\brief File Deletion
- *
- *	Deletes a file from the disk.
- *	\param fileName absolute name of the file or name relative to the current working directory.
- *	\return error if any
-*/
-GF_Err gf_delete_file(const char *fileName);
-
-/*!
- *	\brief File Move
- *
- *	Moves or renames a file or directory.
- *	\param fileName absolute path of the file / directory to move or rename
- *	\param newFileName absolute new path/name of the file / directory
- *	\return error if any
-*/
-GF_Err gf_move_file(const char *fileName, const char *newFileName);
-
-/*!
- *	\brief Temporary File Creation
- *
- *	Creates a new temporary file in binary mode
- *	\param fileName if not NULL, strdup() of the temporary filename when created by GPAC (NULL otherwise as the system automatically removes its own tmp files)
- *	\return stream handle to the new file ressoucre
- */
-FILE *gf_temp_file_new(char ** const fileName);
-
-
-/*!
- *	\brief File Modification Time
- *
- *	Returns the modification time of the given file. The exact meaning of this value is system dependent
- *	\param filename file to check
- *	\return modification time of the file
- */
-u64 gf_file_modification_time(const char *filename);
-
-/*!
- *	\brief File existence check
- *
- *	Moves or renames a file or directory.
- *	\param fileName absolute path of the file / directory to move or rename
- *	\return GF_TRUE if file exists
- */
-Bool gf_file_exists(const char *fileName);
-
-/*!
- *	\brief Progress formatting
- *
- *	Signals progress in GPAC's operations. Note that progress signaling with this function is not thread-safe, the main purpose is to use it for authoring tools only.
- *	\param title title string of the progress, or NULL for no progress
- *	\param done Current amount performed of the action.
- *	\param total Total amount of the action.
+Signals progress in GPAC's operations. Note that progress signaling with this function is not thread-safe, the main purpose is to use it for authoring tools only.
+\param title title string of the progress, or NULL for no progress
+\param done Current amount performed of the action.
+\param total Total amount of the action.
  */
 void gf_set_progress(const char *title, u64 done, u64 total);
 
 /*!
- *	\brief Progress Callback
- *
- * The gf_on_progress_cbk type is the type for the callback of the \ref gf_set_progress_callback function
- *	\param cbck Opaque user data.
- *	\param title preogress title.
- *	\param done Current amount performed of the action
- *	\param total Total amount of the action.
+\brief Progress Callback
+
+The gf_on_progress_cbk type is the type for the callback of the \ref gf_set_progress_callback function
+\param cbck Opaque user data.
+\param title preogress title.
+\param done Current amount performed of the action
+\param total Total amount of the action.
  *
  */
 typedef void (*gf_on_progress_cbk)(const void *cbck, const char *title, u64 done, u64 total);
 
 /*!
- *	\brief Progress overwriting
- *
- *	Iverwrites the progress signaling function by a user-defined one.
- *	\param user_cbk Opaque user data
- *	\param prog_cbk new callback function to use. Passing NULL restore default GPAC stderr notification.
+\brief Progress overwriting
+Overwrites the progress signaling function by a user-defined one.
+\param user_cbk Opaque user data
+\param prog_cbk new callback function to use. Passing NULL restore default GPAC stderr notification.
  */
 void gf_set_progress_callback(void *user_cbk, gf_on_progress_cbk prog_cbk);
 
 
 /*!
- *	\brief Prompt checking
- *
- *	Checks if a character is pending in the prompt buffer.
- *	\return 1 if a character is ready to be fetched, 0 otherwise.
- *	\note Function not available under WindowsCE nor SymbianOS
+\brief Prompt checking
+
+Checks if a character is pending in the prompt buffer.
+\return 1 if a character is ready to be fetched, 0 otherwise.
+\note Function not available under WindowsCE nor SymbianOS
 */
 Bool gf_prompt_has_input();
 
 /*!
- *	\brief Prompt character flush
- *
- *	Returns the current character entered at prompt if any.
- *	\return value of the character.
- *	\note Function not available under WindowsCE nor SymbianOS
+\brief Prompt character flush
+
+Gets the current character entered at prompt if any.
+\return value of the character.
+\note Function not available under WindowsCE nor SymbianOS
 */
 char gf_prompt_get_char();
 
 
 /*!
- *	\brief turns prompt echo on/off
- *
- *	Turns the prompt character echo on/off - this is useful when entering passwords.
- *	\param echo_off indicates whether echo should be turned on or off.
- *	\note Function not available under WindowsCE nor SymbianOS
+\brief turns prompt echo on/off
+
+Turns the prompt character echo on/off - this is useful when entering passwords.
+\param echo_off indicates whether echo should be turned on or off.
+\note Function not available under WindowsCE nor SymbianOS
 */
 void gf_prompt_set_echo_off(Bool echo_off);
+
+/*! @} */
+
+
+/*! gets battery state
+\param onBattery set to GF_TRUE if running on battery
+\param onCharge set to GF_TRUE if battery is charging
+\param level set to battery charge percent
+\param batteryLifeTime set to battery lifetime
+\param batteryFullLifeTime set to battery full lifetime
+\return GF_TRUE if success
+*/
+Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32 *level, u32 *batteryLifeTime, u32 *batteryFullLifeTime);
+
+
+/*!
+\brief parses 128 bit from string
+
+Parses 128 bit from string
+\param string the string containing the value in hexa. Non alphanum characters are skipped
+\param value the value parsed
+\return error code if any
+ */
+GF_Err gf_bin128_parse(const char *string, bin128 value);
+
+/*!
+ * Blob structure used to pass data pointer around
+ */
+typedef struct
+{
+	/*! data block of blob */
+	u8 *data;
+	/*! size of blob */
+	u32 size;
+} GF_Blob;
+
+/*!
+ * Retrieves data associated with a blob url
+\param blob_url URL of blob object (ie gmem://%p)
+\param out_data if success, set to blob data pointer
+\param out_size if success, set to blob data size
+\return error code
+ */
+GF_Err gf_blob_get_data(const char *blob_url, u8 **out_data, u32 *out_size);
 
 /*!	@} */
 
 /*!
- *\addtogroup cpu_grp System time CPU and Memory tools
- *\ingroup utils_grp
- *\brief System time CPU and Memory functions
- *
- *This section documents time functionalities and CPU management in GPAC.
-  *	@{
- */
+\addtogroup time_grp
+\brief Time manipulation tools
+@{
+*/
 
 /*!
- * Selection flags for memory tracker
- *	\hideinitializer
- */
-typedef enum
-{
-    /*! No memory tracking*/
-    GF_MemTrackerNone = 0,
-    /*! Memory tracking without backtrace*/
-    GF_MemTrackerSimple,
-    /*! Memory tracking with backtrace*/
-    GF_MemTrackerBackTrace,
-} GF_MemTrackerType;
+\brief System clock query
 
-/*!
- *	\brief System setup
- *
- *	Inits the system high-resolution clock if any, CPU usage manager, random number and GPAC global config. It is strongly recommended to call this
- * function before calling any other GPAC functions, since on some systems (like winCE) it may result in a better memory usage estimation.
- * The profile allows using a different global config file than the default, and may be a name (without / or \\) or point to an existing config file.
- *	\note This can be called several times but only the first call will result in system setup.
- *	\param mem_tracker_type memory tracking mode
- *	\param profile name of the profile to load, NULL for default.
- *	\return Error code if any
- */
-GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile);
-/*!
- *	\brief System closing
- *
- *	Closes the system high-resolution clock and any CPU associated ressources.
- *	\note This can be called several times but the system will be closed when no more users are counted.
- */
-void gf_sys_close();
-
-/*!
- *	\brief System arguments
- *
- *	Sets the user app arguments (used by GUI mode)
- *	\param argc Number of arguments
- *	\param argv Array of arguments
- *	\return error code if any, GF_OK otherwise
- */
-GF_Err gf_sys_set_args(s32 argc, const char **argv);
-
-/*!
- *	\brief Get number of args
- *
- *	Gets the number of argument of the user application if any
- *	\return number of argument of the user application
- */
-u32 gf_sys_get_argc();
-
-/*!
- *	\brief Get number of args
- *
- *	Gets the number of argument of the user application if any
- *	\param arg Index of argument to retrieve
- *	\return number of argument of the user application
- */
-const char *gf_sys_get_arg(u32 arg);
-
-/*!
- *	\brief checks if test mode is enabled
- *
- *	Checks if test mode is enabled (no date nor GPAC version should be written).
- *	\return GF_TRUE if test mode is enabled, GF_FALSE otherwise.
- */
-Bool gf_sys_is_test_mode();
-
-
-/*!
- *	\brief checks if running in quiet mode
- *
- *	Checks if quiet mode is enabled
- *	\return 2 if quiet mode is enabled, 1 if quiet mode not enabled but progress is disabled, 0 otherwise.
- */
-u32 gf_sys_is_quiet();
-
-/*!
- *	\brief System clock query
- *
- *	Gets the system clock time.
- *	\return System clock value since GPAC initialization in milliseconds.
+Gets the system clock time.
+\return System clock value since GPAC initialization in milliseconds.
  */
 u32 gf_sys_clock();
 
 /*!
- *	\brief High precision system clock query
- *
- *	Gets the hight precision system clock time.
- *	\return System clock value since GPAC initialization in microseconds.
+\brief High precision system clock query
+
+Gets the hight precision system clock time.
+\return System clock value since GPAC initialization in microseconds.
  */
 u64 gf_sys_clock_high_res();
 
 /*!
- *	\brief Sleeps thread/process
- *
- *	Locks calling thread/process execution for a given time.
- *	\param ms Amount of time to sleep in milliseconds.
+\brief Sleeps thread/process
+
+Locks calling thread/process execution for a given time.
+\param ms Amount of time to sleep in milliseconds.
  */
 void gf_sleep(u32 ms);
 
 #ifdef WIN32
 /*!
- *	\brief WINCE time constant
- *	\hideinitializer
- *
- *	time between jan 1, 1601 and jan 1, 1970 in units of 100 nanoseconds
+\brief WINCE time constant
+\hideinitializer
+
+time between jan 1, 1601 and jan 1, 1970 in units of 100 nanoseconds
 */
 #define TIMESPEC_TO_FILETIME_OFFSET (((LONGLONG)27111902 << 32) + (LONGLONG)3577643008)
 
 #endif
 
 /*!
- *\brief gets UTC time in milliseconds
- *
- * Gets UTC clock in milliseconds
- * \return UTC time in milliseconds
+\brief gets UTC time in milliseconds
+
+Gets UTC clock in milliseconds
+\return UTC time in milliseconds
  */
 u64 gf_net_get_utc();
 
 /*!
- *\brief parses date and returns UTC value for this date. Date format is an XSD dateTime format or any of the supported formats from HTTP 1.1:
+\brief parses date
+
+Parses date and gets UTC value for this date. Date format is an XSD dateTime format or any of the supported formats from HTTP 1.1:
 	Sun, 06 Nov 1994 08:49:37 GMT  ; RFC 822, updated by RFC 1123
 	Sunday, 06-Nov-94 08:49:37 GMT ; RFC 850, obsoleted by RFC 1036
 	Sun Nov  6 08:49:37 1994       ; ANSI C's asctime() formatgets UTC time in milliseconds
- *
- * \param date string containing the date to parse
- * \return UTC time in milliseconds
+
+\param date string containing the date to parse
+\return UTC time in milliseconds
  */
 u64 gf_net_parse_date(const char *date);
 
 /*!
- *\brief returns 64-bit UTC timestamp from year, month, day, hour, min and sec
- * \param year the year
- * \param month the month
- * \param day the day
- * \param hour the hour
- * \param min the min
- * \param sec the sec
- * \return UTC time in milliseconds
+\brief returns 64-bit UTC timestamp from year, month, day, hour, min and sec
+\param year the year
+\param month the month
+\param day the day
+\param hour the hour
+\param min the min
+\param sec the sec
+\return UTC time in milliseconds
  */
 u64 gf_net_get_utc_ts(u32 year, u32 month, u32 day, u32 hour, u32 min, u32 sec);
 
 /*!
- *\brief gets timezone adjustment in seconds
- *
- * Gets timezone adjustment in seconds, with localtime - timezone = UTC time
- * \return timezone shift in seconds
+\brief gets timezone adjustment in seconds
+
+Gets timezone adjustment in seconds, with localtime - timezone = UTC time
+\return timezone shift in seconds
  */
 s32 gf_net_get_timezone();
 
 /*!
- *\brief gets time from UTC timestamp
- *
- * Gets time from UTC timestamp
- * \param time timestamp value - see gmtime
- * \return time description structure - see gmtime
+\brief gets time from UTC timestamp
+
+Gets time from UTC timestamp
+\param time timestamp value - see gmtime
+\return time description structure - see gmtime
  */
 struct tm *gf_gmtime(const time_t *time);
 
+/*!	@} */
+
+/*!
+\addtogroup thr_grp
+\brief Time manipulation tools
+@{
+*/
+
+/*!
+\brief Gets process ID
+
+Gets ID of the process running this gpac instance.
+\return the ID of the main process
+*/
+u32 gf_sys_get_process_id();
+
 /*!\brief run-time system info object
- *
- *The Run-Time Info object is used to get CPU and memory occupation of the calling process.
- *All time values are expressed in milliseconds (accuracy is not guaranteed).
+
+The Run-Time Info object is used to get CPU and memory occupation of the calling process.
+All time values are expressed in milliseconds (accuracy is not guaranteed).
 */
 typedef struct
 {
@@ -988,8 +922,8 @@ typedef struct
 } GF_SystemRTInfo;
 
 /*!
- * Selection flags for run-time info retrieval
- *	\hideinitializer
+Selection flags for run-time info retrieval
+\hideinitializer
  */
 enum
 {
@@ -1004,182 +938,309 @@ enum
 };
 
 /*!
- *	\brief Gets Run-Time info
- *
- *	Gets CPU and memory usage info for the calling process and the system. Information gathering
- * is controled through timeout values.
- *	\param refresh_time_ms refresh time period in milliseconds. If the last sampling was done less than this period ago, the run-time info is not refreshed.
- *	\param rti holder to the run-time info structure to update.
- *	\param flags specify which info is to be retrieved.
- *	\return 1 if info has been updated, 0 otherwise.
- *	\note You should not try to use a too small refresh time. Typical values are 500 ms or one second.
+\brief Gets Run-Time info
+
+Gets CPU and memory usage info for the calling process and the system. Information gathering is controled through timeout values.
+\param refresh_time_ms refresh time period in milliseconds. If the last sampling was done less than this period ago, the run-time info is not refreshed.
+\param rti holder to the run-time info structure to update.
+\param flags specify which info is to be retrieved.
+\return 1 if info has been updated, 0 otherwise.
+\note You should not try to use a too small refresh time. Typical values are 500 ms or one second.
  */
 Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
-
-
-/*!
- *	\brief Gets process ID
- *
- *	Gets ID of the process running this gpac instance.
- *	\return the ID of the main process
- */
-u32 gf_sys_get_process_id();
-
-/*! gets battery state
-\param onBattery set to GF_TRUE if running on battery
-\param onCharge set to GF_TRUE if battery is charging
-\param level set to battery charge percent
-\param batteryLifeTime set to battery lifetime
-\param batteryFullLifeTime set to battery full lifetime
-\return GF_TRUE if success
-*/
-Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32 *level, u32 *batteryLifeTime, u32 *batteryFullLifeTime);
-
 
 /*!	@} */
 
 /*!
- *\addtogroup osfile_grp File System
- *\ingroup utils_grp
- *\brief File System tools
- *
- *This section documents time functionalities and CPU management in GPAC.
-  *	@{
+\addtogroup osfile_grp
+\brief File System tools
+
+This section documents time functionalities and CPU management in GPAC.
+
+@{
  */
 
-
-
 /*!
- *\brief parses 128 bit from string
- *
- * Parses 128 bit from string
- *
- * \param string the string containing the value in hexa. Non alphanum characters are skipped
- * \param value the value parsed
- * \return error code if any
- */
-GF_Err gf_bin128_parse(const char *string, bin128 value);
+\brief reads a file into memory
 
-/*!
- *\brief reads a file into memory
- *
- * Reads a local file into memory, in binary open mode.
- *
- * \param file_name path on disk of the file to read
- * \param out_data pointer to allocted adress, to be freed by caller
- * \param out_size pointer to allocted size
- * \return error code if any
+Reads a local file into memory, in binary open mode.
+\param file_name path on disk of the file to read
+\param out_data pointer to allocted adress, to be freed by caller
+\param out_size pointer to allocted size
+\return error code if any
  */
 GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size);
 
 /*!
- *	\brief Delete Directory
- *
- *	Delete a  dir within the full path.
- *	\param DirPathName the file path name.
- *	\return error if any
+\brief Delete Directory
+
+Delete a  dir within the full path.
+\param DirPathName the file path name.
+\return error if any
  */
 GF_Err gf_rmdir(const char *DirPathName);
 
 /*!
- *	\brief Create Directory
- *
- *	Create a directory within the full path.
- *	\param DirPathName the dir path name.
- *	\return error if any
+\brief Create Directory
+
+Create a directory within the full path.
+\param DirPathName the dir path name.
+\return error if any
  */
 GF_Err gf_mkdir(const char* DirPathName);
 
 /*!
- *	\brief Check Directory Exists
- *
- *	Create a directory within the full path.
- *	\param DirPathName the dir path name.
- *	\return GF_TRUE if directory exists
+\brief Check Directory Exists
+
+Create a directory within the full path.
+\param DirPathName the dir path name.
+\return GF_TRUE if directory exists
  */
 Bool gf_dir_exists(const char *DirPathName);
 
 /*!
- *	\brief Create Directory
- *
- *	Cleanup a directory within the full path, removing all the files and the directories.
- *	\param DirPathName the dir path name.
- *	\return error if any
+\brief Create Directory
+
+Cleanup a directory within the full path, removing all the files and the directories.
+\param DirPathName the dir path name.
+\return error if any
  */
 GF_Err gf_cleanup_dir(const char* DirPathName);
 
 
 /**
- * Gets a newly allocated string containing the default cache directory.
- * It is the responsibility of the caller to free the string.
- * \return a fully qualified path to the default cache directory
+Gets a newly allocated string containing the default cache directory.
+It is the responsibility of the caller to free the string.
+\return a fully qualified path to the default cache directory
  */
 const char * gf_get_default_cache_directory();
 
 /**
- * Gets the number of open file handles (gf_fopen/gf_fclose only).
- * \return  number of open file handles
+Gets the number of open file handles (gf_fopen/gf_fclose only).
+\return  number of open file handles
  */
 u32 gf_file_handles_count();
+
+/*!
+\brief file writing helper
+
+Wrapper to properly handle calls to fwrite(), ensuring proper error handling is invoked when it fails.
+\param ptr same as fwrite
+\param size same as fwrite
+\param nmemb same as fwrite
+\param stream same as fwrite
+\return same as fwrite
+ *
+*/
+size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
+
+/*!
+\brief large file opening
+
+Opens a large file (>4GB)
+\param file_name same as fopen
+\param mode same as fopen
+\return stream handle of the file object
+\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
+*/
+FILE *gf_fopen(const char *file_name, const char *mode);
+
+/*!
+\brief file closing
+
+Closes a file
+\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
+\param file file to close
+\return same as flcose
+*/
+s32 gf_fclose(FILE *file);
+
+/*!
+\brief large file position query
+
+Queries the current read/write position in a large file
+\param f Same semantics as ftell
+\return position in the file
+\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
+*/
+u64 gf_ftell(FILE *f);
+/*!
+\brief large file seeking
+
+Seeks the current read/write position in a large file
+\param f Same semantics as fseek
+\param pos Same semantics as fseek
+\param whence Same semantics as fseek
+\return new position in the file
+\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
+*/
+u64 gf_fseek(FILE *f, s64 pos, s32 whence);
+
+/*! gets basename from filename/path
+\param filename Path of the file, can be an absolute path
+\return a pointer to the start of a filepath basename or null
+*/
+char* gf_file_basename(const char* filename);
+
+/*! gets extension from filename
+\param filename Path of the file, can be an absolute path
+\return a pointer to the start of a filepath extension or null
+*/
+char* gf_file_ext_start(const char* filename);
+
+
+/*!\brief FileEnum info object
+
+The FileEnumInfo object is used to get file attributes upon enumeration of a directory.
+*/
+typedef struct
+{
+	/*!File is marked as hidden*/
+	Bool hidden;
+	/*!File is a directory*/
+	Bool directory;
+	/*!File is a drive mountpoint*/
+	Bool drive;
+	/*!File is a system file*/
+	Bool system;
+	/*!File size in bytes*/
+	u64 size;
+	/*!File last modif time in UTC seconds*/
+	u64 last_modified;
+} GF_FileEnumInfo;
+
+/*!
+\brief Directory Enumeration Callback
+
+The gf_enum_dir_item type is the type for the callback of the \ref gf_enum_directory function
+\param cbck Opaque user data.
+\param item_name File or directory name.
+\param item_path File or directory full path and name from filesystem root.
+\param file_info information for the file or directory.
+\return 1 to abort enumeration, 0 to continue enumeration.
+ *
+ */
+typedef Bool (*gf_enum_dir_item)(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info);
+/*!
+\brief Directory enumeration
+
+Enumerates a directory content. Feedback is provided by the enum_dir_item function
+\param dir Directory to enumerate
+\param enum_directory If set, only directories will be enumerated, otherwise only files are.
+\param enum_dir gf_enum_dir_item callback function for enumeration.
+\param cbck Opaque user data passed to callback function.
+\param filter optional filter for file extensions. If a file extension without the dot '.' character is not found in the
+ *	filter the file will be skipped.
+\return error if any
+ */
+GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item enum_dir, void *cbck, const char *filter);
+
+
+/*!
+\brief File Deletion
+
+Deletes a file from the disk.
+\param fileName absolute name of the file or name relative to the current working directory.
+\return error if any
+*/
+GF_Err gf_delete_file(const char *fileName);
+
+/*!
+\brief File Move
+
+Moves or renames a file or directory.
+\param fileName absolute path of the file / directory to move or rename
+\param newFileName absolute new path/name of the file / directory
+\return error if any
+*/
+GF_Err gf_move_file(const char *fileName, const char *newFileName);
+
+/*!
+\brief Temporary File Creation
+
+Creates a new temporary file in binary mode
+\param fileName if not NULL, strdup() of the temporary filename when created by GPAC (NULL otherwise as the system automatically removes its own tmp files)
+\return stream handle to the new file ressoucre
+ */
+FILE *gf_temp_file_new(char ** const fileName);
+
+
+/*!
+\brief File Modification Time
+
+Gets the modification time of the given file. The exact meaning of this value is system dependent
+\param filename file to check
+\return modification time of the file
+ */
+u64 gf_file_modification_time(const char *filename);
+
+/*!
+\brief File existence check
+
+Moves or renames a file or directory.
+\param fileName absolute path of the file / directory to move or rename
+\return GF_TRUE if file exists
+ */
+Bool gf_file_exists(const char *fileName);
 
 /*!	@} */
 
 /*!
- *\addtogroup hash_grp Hash and Compression
- *\ingroup utils_grp
- *\brief Data integrity and parsing
- *
- *This section documents misc data functions such as integrity and parsing such as SHA-1 hashing CRC checksum, 128 bit ID parsing...
-  *	@{
+\addtogroup hash_grp
+\brief Data hashing, integrity and generic compression
+
+This section documents misc data functions such as integrity and parsing such as SHA-1 hashing CRC checksum, 128 bit ID parsing...
+
+@{
  */
 
 
 /*!
- *	\brief CRC32 compute
- *
- *	Computes the CRC32 value of a buffer.
- *	\param data buffer
- *	\param size buffer size
- *	\return computed CRC32
+\brief CRC32 compute
+
+Computes the CRC32 value of a buffer.
+\param data buffer
+\param size buffer size
+\return computed CRC32
  */
 u32 gf_crc_32(const u8 *data, u32 size);
 
 
 /**
- * Compresses a data buffer in place using zlib/deflate. Buffer may be reallocated in the process.
- * \param data pointer to the data buffer to be compressed
- * \param data_len length of the data buffer to be compressed
- * \param out_size pointer for output buffer size
- * \return GF_OK if evertything went fine
+Compresses a data buffer in place using zlib/deflate. Buffer may be reallocated in the process.
+\param data pointer to the data buffer to be compressed
+\param data_len length of the data buffer to be compressed
+\param out_size pointer for output buffer size
+\return GF_OK if evertything went fine
  */
 GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *out_size);
 
 /**
- * Decompresses a data buffer using zlib/deflate.
- * \param data data buffer to be decompressed
- * \param data_len length of the data buffer to be decompressed
- * \param uncompressed_data pointer to the uncompressed data buffer. It is the responsibility of the caller to free this buffer.
- * \param out_size size of the uncompressed buffer
- * \return GF_OK if evertything went fine
+Decompresses a data buffer using zlib/deflate.
+\param data data buffer to be decompressed
+\param data_len length of the data buffer to be decompressed
+\param uncompressed_data pointer to the uncompressed data buffer. It is the responsibility of the caller to free this buffer.
+\param out_size size of the uncompressed buffer
+\return GF_OK if evertything went fine
  */
 GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size);
 
 /**
- * Compresses a data buffer in place using LZMA. Buffer may be reallocated in the process.
- * \param data pointer to the data buffer to be compressed
- * \param data_len length of the data buffer to be compressed
- * \param out_size pointer for output buffer size
- * \return GF_OK if evertything went fine
+Compresses a data buffer in place using LZMA. Buffer may be reallocated in the process.
+\param data pointer to the data buffer to be compressed
+\param data_len length of the data buffer to be compressed
+\param out_size pointer for output buffer size
+\return GF_OK if evertything went fine
  */
 GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *out_size);
 
 /**
- * Decompresses a data buffer using LZMA.
- * \param data data buffer to be decompressed
- * \param data_len length of the data buffer to be decompressed
- * \param uncompressed_data pointer to the uncompressed data buffer. It is the responsibility of the caller to free this buffer.
- * \param out_size size of the uncompressed buffer
- * \return GF_OK if evertything went fine
+Decompresses a data buffer using LZMA.
+\param data data buffer to be decompressed
+\param data_len length of the data buffer to be decompressed
+\param uncompressed_data pointer to the uncompressed data buffer. It is the responsibility of the caller to free this buffer.
+\param out_size size of the uncompressed buffer
+\return GF_OK if evertything went fine
  */
 GF_Err gf_lz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size);
 
@@ -1220,6 +1281,11 @@ GF_Err gf_sha1_file(const char *filename, u8 digest[GF_SHA1_DIGEST_SIZE]);
 void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE]);
 /*! @} */
 
+
+/*!
+\addtogroup libsys_grp
+@{
+*/
 
 /*! gets a global config key value from its section and name.
 \param secName the desired key parent section name
@@ -1286,44 +1352,25 @@ const char *gf_opts_get_key_restricted(const char *secName, const char *keyName)
 
 /*!
  * Do not save modification to global options
- * \return error code
+\return error code
  */
 GF_Err gf_opts_discard_changes();
 
 /*!
  * Returns file name of global config
- * \return file name of global config or NULL if libgpac is not initialized
+\return file name of global config or NULL if libgpac is not initialized
  */
 const char *gf_opts_get_filename();
 
 /*!
- * Blob structure used to pass data pointer around
+ * Gets GPAC shared directory (gui, shaders, etc ..)
+\param path_buffer GF_MAX_PATH buffer to store output
+\return GF_TRUE if success, GF_FALSE otherwise
  */
-typedef struct
-{
-	/*! data block of blob */
-	u8 *data;
-	/*! size of blob */
-	u32 size;
-} GF_Blob;
+Bool gf_opts_default_shared_directory(char *path_buffer);
 
-/*!
- * Retrieves data associated with a blob url
- * \param blob_url URL of blob object (ie gmem://%p)
- * \param out_data if success, set to blob data pointer
- * \param out_size if success, set to blob data size
- * \return error code
- */
-GF_Err gf_blob_get_data(const char *blob_url, u8 **out_data, u32 *out_size);
+/*! @} */
 
-/*!
- * Dynamic concatenation of string with optional separator
- * \param str pointer to destination string pointer
- * \param to_append string to append
- * \param sep optional separator string to insert before concatenation. If set and initial string is NULL, will not be appended
- * \return error code
- */
-GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep);
 
 //! @cond Doxygen_Suppress
 

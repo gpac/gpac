@@ -46,6 +46,33 @@ enum
 	GF_SVG_ATTOPT_FILTER = 5,
 } GF_SVGAttOption;
 
+/* unused XBL tags (deprecated)
+
+	TAG_XBL_ATT_RANGE_FIRST = TAG_SVG_ATT_RANGE_FIRST + 256,
+	TAG_XBL_ATT_id = TAG_XBL_ATT_RANGE_FIRST,
+	TAG_XBL_ATT_extends,
+	TAG_XBL_ATT_display,
+	TAG_XBL_ATT_inheritstyle,
+	TAG_XBL_ATT_includes,
+	TAG_XBL_ATT_name,
+	TAG_XBL_ATT_implements,
+	TAG_XBL_ATT_type,
+	TAG_XBL_ATT_readonly,
+	TAG_XBL_ATT_onget,
+	TAG_XBL_ATT_onset,
+	TAG_XBL_ATT_event,
+	TAG_XBL_ATT_action,
+	TAG_XBL_ATT_phase,
+	TAG_XBL_ATT_button,
+	TAG_XBL_ATT_modifiers,
+	TAG_XBL_ATT_keycode,
+	TAG_XBL_ATT_key,
+	TAG_XBL_ATT_charcode,
+	TAG_XBL_ATT_clickcount,
+	TAG_XBL_ATT_command,
+	TAG_XBL_ATT_preventdefault,
+	TAG_XBL_ATT_src,
+*/
 static const struct xml_att_def {
 	const char *name;
 	u32 tag;
@@ -286,6 +313,7 @@ static const struct xml_att_def {
 	{ "y", TAG_SVG_ATT_cursorManager_y, SVG_Length_datatype, GF_SVG_ATTOPT_CURSOR, GF_XMLNS_LASER },
 
 	/*XBL*/
+#if 0
 	{ "id", TAG_XBL_ATT_id, DOM_String_datatype, 0, GF_XMLNS_XBL },
 	{ "extends", TAG_XBL_ATT_extends, DOM_String_datatype, 0, GF_XMLNS_XBL },
 	{ "display", TAG_XBL_ATT_display, DOM_String_datatype, 0, GF_XMLNS_XBL },
@@ -309,7 +337,7 @@ static const struct xml_att_def {
 	{ "command", TAG_XBL_ATT_command, DOM_String_datatype, 0, GF_XMLNS_XBL },
 	{ "preventdefault", TAG_XBL_ATT_preventdefault, DOM_String_datatype, 0, GF_XMLNS_XBL },
 	{ "src", TAG_XBL_ATT_src, DOM_String_datatype, 0, GF_XMLNS_XBL },
-
+#endif
 	/*GPAC SVG Extensions*/
 	{ "use-as-primary", TAG_GSVG_ATT_useAsPrimary, SVG_Boolean_datatype, 0, GF_XMLNS_SVG_GPAC_EXTENSION},
 	{ "depthOffset", TAG_GSVG_ATT_depthOffset, SVG_Number_datatype, 0, GF_XMLNS_SVG_GPAC_EXTENSION},
