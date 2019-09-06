@@ -40,14 +40,16 @@ extern "C" {
 //for offsetof()
 #include <stddef.h>
 
-/*! \file "gpac/filters.h"
- *	\brief Filter management of GPAC.
- *
- * This file contains all exported functions for filter management of the GPAC framework.
+/*!
+\file "gpac/filters.h"
+\brief Filter management of GPAC.
+
+This file contains all exported functions for filter management of the GPAC framework.
 */
 
-/*! \defgroup filters_grp Filter Management
- 	\brief Filter Management of GPAC.
+/*!
+\addtogroup filters_grp Filter Management
+\brief Filter Management of GPAC.
 
 API Documentation of the filter managment system of GPAC.
 
@@ -102,65 +104,65 @@ const GF_FilterRegister *RegisterFilter(GF_FilterSession *fsess);
 */
 
 /*! \hideinitializer
- *	A packet byte offset is set to this value when not valid
+A packet byte offset is set to this value when not valid
 */
 #define GF_FILTER_NO_BO 0xFFFFFFFFFFFFFFFFUL
 /*! \hideinitializer
- *	A packet timestamp (Decoding or Composition) is set to this value when not valid
+A packet timestamp (Decoding or Composition) is set to this value when not valid
 */
 #define GF_FILTER_NO_TS 0xFFFFFFFFFFFFFFFFUL
 
 /*! \hideinitializer
- * Filter Session object
+Filter Session object
  */
 typedef struct __gf_filter_session GF_FilterSession;
 
 /*! \hideinitializer
- *	Filter object
+Filter object
  */
 typedef struct __gf_filter GF_Filter;
 /*! \hideinitializer
- *	Filter PID object
+Filter PID object
  */
 typedef struct __gf_filter_pid GF_FilterPid;
 
 /*! \hideinitializer
- *	Filter Packet object
+Filter Packet object
  */
 typedef struct __gf_filter_pck GF_FilterPacket;
 /*!
- *	Filter Packet destructor function prototype
+Filter Packet destructor function prototype
  */
 typedef void (*gf_fsess_packet_destructor)(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *pck);
 
 /*!
- *	Filter Event object
+Filter Event object
  */
 typedef union __gf_filter_event GF_FilterEvent;
 
 /*!
- *	Filter Session Task object
+Filter Session Task object
  */
 typedef struct __gf_fs_task GF_FSTask;
 
 /*!
- *	Filter Register object
+Filter Register object
  */
 typedef struct __gf_filter_register GF_FilterRegister;
 /*!
- *	Filter Property object
+Filter Property object
  */
 typedef struct __gf_prop_val GF_PropertyValue;
 
 /*!
- *	Filter Property Reference object, used for info query only
+Filter Property Reference object, used for info query only
  */
 typedef struct __gf_prop_entry GF_PropertyEntry;
 
 /*!
- *\addtogroup fs_grp Filter Session
- *\ingroup filters_grp
- *\brief Filter Session
+\addtogroup fs_grp Filter Session
+\ingroup filters_grp
+\brief Filter Session
 
  The GPAC filter session object allows building media pipelines using multiple sources and destinations and arbitrary filter chains.
 
@@ -552,12 +554,12 @@ Bool gf_fs_enum_unmapped_options(GF_FilterSession *session, u32 *idx, char **arg
 
 
 /*!
- *\addtogroup fs_props Filter Properties
- *\ingroup filters_grp
- *\brief PID and filter properties
- *
- *Documents the property object used for PID and packets.
- *	@{
+\addtogroup fs_props Filter Properties
+\ingroup filters_grp
+\brief PID and filter properties
+
+Documents the property object used for PID and packets.
+@{
  */
 
 /*! Property types*/
@@ -1111,9 +1113,9 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc);
 
 
 /*!
- *\addtogroup fs_evt Filter Events
- *\ingroup filters_grp
- *\brief Filter Events
+\addtogroup fs_evt Filter Events
+\ingroup filters_grp
+\brief Filter Events
 
 PIDs may receive commands and may emit messages using this system.
 
@@ -1133,7 +1135,7 @@ GF_FEVT_PLAY and GF_FEVT_SET_SPEED events will trigger larger (abs(speed)>1) or 
 
 GF_FEVT_STOP and GF_FEVT_SOURCE_SEEK events are filtered to reset the PID buffers.
 
- *	@{
+@{
  */
 
 /*! Filter event types */
@@ -1349,9 +1351,9 @@ const char *gf_filter_event_name(GF_FEventType type);
 
 
 /*!
- *\addtogroup fs_filter Filter
- *\ingroup filters_grp
- *\brief Filter
+\addtogroup fs_filter Filter
+\ingroup filters_grp
+\brief Filter
 
 
 The API for filters documents declaration of filters, their creation and functions available to interact with the filter session.
@@ -1374,7 +1376,7 @@ it must match the capability requirement (equal, excluded). If no property exist
  the bundle is marked as not matching and the ext capability bundle in the filter is checked.
  A PID property not listed in any capability of the filter does not impact the matching.
 
- *	@{
+@{
  */
 
 
@@ -2239,9 +2241,9 @@ void gf_filter_report_unused_meta_option(GF_Filter *filter, const char *arg);
 
 
 /*!
- *\addtogroup fs_pid Filter PID
- *\ingroup filters_grp
- *\brief Filter Interconnection
+\addtogroup fs_pid Filter PID
+\ingroup filters_grp
+\brief Filter Interconnection
 
 
 A PID is a connection between two filters, holding packets to process. Internally, a PID created by a filter (output PID) is different from an input PID to a filter (configure_pid)
@@ -2262,7 +2264,7 @@ The usual practice is to remove the output as soon as the input is removed.
 
 Once an input PID has been notified to be removed, it shall no longer be used by the filter, as it may be discarded/freed (PID are NOT reference counted).
 
- *	@{
+@{
  */
 
 
@@ -2878,9 +2880,9 @@ GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *PID);
 
 
 /*!
- *\addtogroup fs_pck Filter Packet
- *\ingroup filters_grp
- *\brief Filter data exchange
+\addtogroup fs_pck Filter Packet
+\ingroup filters_grp
+\brief Filter data exchange
 
  Packets consist in block of data or reference to such blocks, passed from the source to the sink only.
 Internally, a packet created by a filter (output packet) is different from an input packet to a filter (\ref gf_filter_pid_get_packet)
@@ -2898,7 +2900,7 @@ In order to handle reordering of packets, it is possible to keep references to e
 Packets shall always be dispatched in their processing order (decode order). If reordering upon reception is needed, or AU interleaving is used, a filter SHALL do the reordering.
 However, packets do not have to be send in their creation order: a created packet is not assigned to PID buffers until it is send.
 
- *	@{
+@{
  */
 
 

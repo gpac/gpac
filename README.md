@@ -76,7 +76,9 @@ Remaining before release
 - [x] filter API documentation
 - [x] add segmentation handling in TS muxer
 - [ ] unify vout color handling (complete) and compositor GLSL shaders (partial color support)
-- [x] pass all test suite
+- [x] pass all master test suite
+- [x] extend coverage and test suite
+- [x] update doxygen
 
 ## V1.0.0
 Targets:

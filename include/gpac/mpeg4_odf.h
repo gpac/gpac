@@ -31,30 +31,29 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/mpeg4_odf.h>
- *	\brief MPEG-4 Object Descriptor Framework.
- */
-
-/*! \defgroup mpeg4sys_grp MPEG-4 Systems
- *	\brief MPEG-4 Systems.
+\file <gpac/mpeg4_odf.h>
+\brief MPEG-4 Object Descriptor Framework.
  */
 
 /*!
- *	\addtogroup odf_grp MPEG-4 OD
- *	\ingroup mpeg4sys_grp
- *	\brief MPEG-4 Object Descriptor Framework
- *
- *This section documents the MPEG-4 OD, OCI and IPMPX functions of the GPAC framework.
- *	@{
+\addtogroup mpeg4sys_grp MPEG-4 Systems
+\brief MPEG-4 Systems.
+ */
+
+/*!
+\addtogroup odf_grp MPEG-4 OD
+\ingroup mpeg4sys_grp
+\brief MPEG-4 Object Descriptor Framework
+
+This section documents the MPEG-4 OD, OCI and IPMPX functions of the GPAC framework.
+@{
  */
 
 #include <gpac/list.h>
 #include <gpac/bitstream.h>
 #include <gpac/sync_layer.h>
 
-/***************************************
-			Descriptors Tag
-***************************************/
+/*! Tags for MPEG-4 systems descriptors */
 enum
 {
 	GF_ODF_OD_TAG			= 0x01,
@@ -1172,70 +1171,70 @@ typedef struct tagODCoDec
 
 
 /*! OD codec construction
- \return new codec object*/
+\return new codec object*/
 GF_ODCodec *gf_odf_codec_new();
 /*! OD codec destruction
- \param codec OD codec to destroy
+\param codec OD codec to destroy
  */
 void gf_odf_codec_del(GF_ODCodec *codec);
 /*! add a command to the codec command list.
- \param codec target codec
- \param command command to add
- \return error if any
+\param codec target codec
+\param command command to add
+\return error if any
  */
 GF_Err gf_odf_codec_add_com(GF_ODCodec *codec, GF_ODCom *command);
 /*! encode the current command list.
- \param codec target codec
- \param cleanup_type specifies what to do with the command after encoding. The following values are accepted:
+\param codec target codec
+\param cleanup_type specifies what to do with the command after encoding. The following values are accepted:
 	0: commands are removed from the list but not destroyed
 	1: commands are removed from the list and destroyed
 	2: commands are kept in the list and not destroyed
- \return error if any
+\return error if any
 */
 GF_Err gf_odf_codec_encode(GF_ODCodec *codec, u32 cleanup_type);
 /*! get the encoded AU.
- \param codec target codec
- \param outAU output buffer allocated by the codec, user is responsible of freeing the allocated space
- \param au_length size of the AU (allocated buffer)
- \return error if any
+\param codec target codec
+\param outAU output buffer allocated by the codec, user is responsible of freeing the allocated space
+\param au_length size of the AU (allocated buffer)
+\return error if any
  */
 GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, u8 **outAU, u32 *au_length);
 /*! set the encoded AU to the codec
- \param codec target codec
- \param au target AU to decode
- \param au_length size in bytes of the AU to decode
- \return error if any
+\param codec target codec
+\param au target AU to decode
+\param au_length size in bytes of the AU to decode
+\return error if any
  */
 GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, const u8 *au, u32 au_length);
 /*! decode the previously set-up AU
- \param codec target codec
- \return error if any
+\param codec target codec
+\return error if any
  */
 GF_Err gf_odf_codec_decode(GF_ODCodec *codec);
 /*! get the first OD command in the list. Once called, the command is removed
 from the command list. Return NULL when commandList is empty
- \param codec target codec
- \return deocded command or NULL
+\param codec target codec
+\return deocded command or NULL
  */
 GF_ODCom *gf_odf_codec_get_com(GF_ODCodec *codec);
 
 /*! apply a command to the codec command list. Command is duplicated if needed
 This is used for state maintenance and RAP generation.
- \param codec target codec
- \param command the command to apply
- \return error if any
+\param codec target codec
+\param command the command to apply
+\return error if any
  */
 GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command);
 
 
 /*! MPEG-4 SYSTEMS OD Command Creation
- \param tag type of command to create
- \return the created command or NULL
+\param tag type of command to create
+\return the created command or NULL
  */
 GF_ODCom *gf_odf_com_new(u8 tag);
 /*! MPEG-4 SYSTEMS OD Command Destruction
- \param com the command to delete. Pointer is set back to NULL
- \return error if any
+\param com the command to delete. Pointer is set back to NULL
+\return error if any
  */
 GF_Err gf_odf_com_del(GF_ODCom **com);
 
@@ -1245,88 +1244,88 @@ GF_Err gf_odf_com_del(GF_ODCom **com);
 ************************************************************/
 
 /*! Descriptors Creation
- \param tag type of descriptor to create
- \return created descriptor or NULL
+\param tag type of descriptor to create
+\return created descriptor or NULL
  */
 GF_Descriptor *gf_odf_desc_new(u8 tag);
 /*! Descriptors Destruction
- \param desc the descriptor to destroy
+\param desc the descriptor to destroy
  */
 void gf_odf_desc_del(GF_Descriptor *desc);
 
 /*! helper for building a preformatted GF_ESD with decoderConfig, decoderSpecificInfo with no data and
 SLConfig descriptor with predefined
- \param sl_predefined type of predefined sl config
- \return the ESD created
+\param sl_predefined type of predefined sl config
+\return the ESD created
 */
 GF_ESD *gf_odf_desc_esd_new(u32 sl_predefined);
 
 /*! special function for authoring - convert DSI to BIFSConfig
- \param dsi BIFS decoder specific info
- \param codecid BIFS codecid/object type indication
- \return decoded BIFS Config descriptor - It is the caller responsability of freeing it
+\param dsi BIFS decoder specific info
+\param codecid BIFS codecid/object type indication
+\return decoded BIFS Config descriptor - It is the caller responsability of freeing it
  */
 GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u32 codecid);
 /*! special function for authoring - convert DSI to LASERConfig
- \param dsi LASER decoder specific info
- \param cfg the LASER config object to be filled
- \return error if any
+\param dsi LASER decoder specific info
+\param cfg the LASER config object to be filled
+\return error if any
  */
 GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg);
 /*! sepcial function for authoring - convert DSI to TextConfig
- \param data TEXT decoder config block
- \param data_len TEXT decoder config block size
- \param codecid TEXT codecid/object type indication
- \param cfg the text config object to be filled
- \return error if any
+\param data TEXT decoder config block
+\param data_len TEXT decoder config block size
+\param codecid TEXT codecid/object type indication
+\param cfg the text config object to be filled
+\return error if any
  */
 GF_Err gf_odf_get_text_config(u8 *data, u32 data_len, u32 codecid, GF_TextConfig *cfg);
 /*! converts UIConfig to dsi - does not destroy input descr but does create output one
- \param cfg the UI config object
- \param out_dsi the decoder specific info created. It is the caller responsability of freeing it
- \return error if any
+\param cfg the UI config object
+\param out_dsi the decoder specific info created. It is the caller responsability of freeing it
+\return error if any
  */
 GF_Err gf_odf_encode_ui_config(GF_UIConfig *cfg, GF_DefaultDescriptor **out_dsi);
 
 /*! AVC config constructor
- \return the created AVC config*/
+\return the created AVC config*/
 GF_AVCConfig *gf_odf_avc_cfg_new();
 /*! AVC config destructor
- \param cfg the AVC config to destroy*/
+\param cfg the AVC config to destroy*/
 void gf_odf_avc_cfg_del(GF_AVCConfig *cfg);
 /*! gets GF_AVCConfig from MPEG-4 DSI
- \param dsi encoded AVC decoder specific info
- \param dsi_size encoded AVC decoder specific info size
- \return the decoded AVC config
+\param dsi encoded AVC decoder specific info
+\param dsi_size encoded AVC decoder specific info size
+\return the decoded AVC config
  */
 GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size);
 /*! writes GF_AVCConfig
- \param cfg the AVC config to encode
- \param outData encoded dsi buffer - it is the caller responsability to free this
- \param outSize  encoded dsi buffer size
- \return error if any
+\param cfg the AVC config to encode
+\param outData encoded dsi buffer - it is the caller responsability to free this
+\param outSize  encoded dsi buffer size
+\return error if any
  */
 GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, u8 **outData, u32 *outSize);
 
 /*! writes GF_AVCConfig to bitstream
- \param cfg the AVC config to encode
- \param bs bitstream in WRITE mode
- \return error if any
+\param cfg the AVC config to encode
+\param bs bitstream in WRITE mode
+\return error if any
  */
 GF_Err gf_odf_avc_cfg_write_bs(GF_AVCConfig *cfg, GF_BitStream *bs);
 
 /*! writes GF_TextSampleDescriptor
- \param cfg the text config to encode
- \param outData address of output buffer (internal alloc, user to free it)
- \param outSize size of the allocated output
- \return error if any
+\param cfg the text config to encode
+\param outData address of output buffer (internal alloc, user to free it)
+\param outSize size of the allocated output
+\return error if any
  */
 GF_Err gf_odf_tx3g_write(GF_TextSampleDescriptor *cfg, u8 **outData, u32 *outSize);
 
 /*! gets GF_TextSampleDescriptor from buffer
- \param dsi encoded text sample description
- \param dsi_size size of encoded description
- \return the decoded GF_TextSampleDescriptor config
+\param dsi encoded text sample description
+\param dsi_size size of encoded description
+\return the decoded GF_TextSampleDescriptor config
  */
 GF_TextSampleDescriptor *gf_odf_tx3g_read(u8 *dsi, u32 dsi_size);
 
@@ -1335,36 +1334,36 @@ GF_TextSampleDescriptor *gf_odf_tx3g_read(u8 *dsi, u32 dsi_size);
 GF_HEVCConfig *gf_odf_hevc_cfg_new();
 
 /*! HEVC config destructor
- \param cfg the HEVC config to destroy*/
+\param cfg the HEVC config to destroy*/
 void gf_odf_hevc_cfg_del(GF_HEVCConfig *cfg);
 
 /*! writes GF_HEVCConfig as MPEG-4 DSI in a bitstream object
- \param cfg the HEVC config to encode
- \param bs output bitstream object in which the config is written
- \return error if any
+\param cfg the HEVC config to encode
+\param bs output bitstream object in which the config is written
+\return error if any
  */
 GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs);
 
 /*! writes GF_HEVCConfig as MPEG-4 DSI
- \param cfg the HEVC config to encode
- \param outData encoded dsi buffer - it is the caller responsability to free this
- \param outSize  encoded dsi buffer size
- \return error if any
+\param cfg the HEVC config to encode
+\param outData encoded dsi buffer - it is the caller responsability to free this
+\param outSize  encoded dsi buffer size
+\return error if any
  */
 GF_Err gf_odf_hevc_cfg_write(GF_HEVCConfig *cfg, u8 **outData, u32 *outSize);
 
 /*! gets GF_HEVCConfig from bitstream MPEG-4 DSI
- \param bs bitstream containing the encoded HEVC decoder specific info
- \param is_lhvc if GF_TRUE, indicates if the dsi is LHVC
- \return the decoded HEVC config
+\param bs bitstream containing the encoded HEVC decoder specific info
+\param is_lhvc if GF_TRUE, indicates if the dsi is LHVC
+\return the decoded HEVC config
  */
 GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc);
 
 /*! gets GF_HEVCConfig from MPEG-4 DSI
- \param dsi encoded HEVC decoder specific info
- \param dsi_size encoded HEVC decoder specific info size
- \param is_lhvc if GF_TRUE, indicates if the dsi is LHVC
- \return the decoded HEVC config
+\param dsi encoded HEVC decoder specific info
+\param dsi_size encoded HEVC decoder specific info size
+\param is_lhvc if GF_TRUE, indicates if the dsi is LHVC
+\return the decoded HEVC config
  */
 GF_HEVCConfig *gf_odf_hevc_cfg_read(u8 *dsi, u32 dsi_size, Bool is_lhvc);
 
@@ -1449,48 +1448,48 @@ GF_VPConfig *gf_odf_vp_cfg_read_bs(GF_BitStream *bs, Bool is_v0);
 GF_VPConfig *gf_odf_vp_cfg_read(u8 *dsi, u32 dsi_size);
 
 /*! destroy the descriptors in a list but not the list
- \param descList descriptor list to destroy
- \return error if any
+\param descList descriptor list to destroy
+\return error if any
  */
 GF_Err gf_odf_desc_list_del(GF_List *descList);
 
 /*! use this function to decode a standalone descriptor
 the raw descriptor MUST be formatted with tag and size field!!!
 a new desc is created and you must delete it when done
- \param raw_desc encoded descriptor to decode
- \param descSize size of descriptor to decode
- \param outDesc output decoded descriptor - it is the caller responsability to free this
- \return error if any
+\param raw_desc encoded descriptor to decode
+\param descSize size of descriptor to decode
+\param outDesc output decoded descriptor - it is the caller responsability to free this
+\return error if any
 */
 GF_Err gf_odf_desc_read(u8 *raw_desc, u32 descSize, GF_Descriptor **outDesc);
 
 /*! use this function to encode a standalone descriptor
 the desc will be formatted with tag and size field
 the output buffer is allocated and you must delete it when done
- \param desc descriptor to encode
- \param outEncDesc output encoded descriptor - it is the caller responsability to free this
- \param outSize size of encoded descriptor
- \return error if any
+\param desc descriptor to encode
+\param outEncDesc output encoded descriptor - it is the caller responsability to free this
+\param outSize size of encoded descriptor
+\return error if any
  */
 GF_Err gf_odf_desc_write(GF_Descriptor *desc, u8 **outEncDesc, u32 *outSize);
 
 /*! use this function to encode a standalone descriptor in a bitstream object
 the desc will be formatted with tag and size field
- \param desc descriptor to encode
- \param bs the bitstream object in write mode
- \return error if any
+\param desc descriptor to encode
+\param bs the bitstream object in write mode
+\return error if any
  */
 GF_Err gf_odf_desc_write_bs(GF_Descriptor *desc, GF_BitStream *bs);
 
 /*! use this function to get the size of a standalone descriptor (including tag and size fields)
- \param desc descriptor to encode
- \return 0 if error or encoded desc size otherwise*/
+\param desc descriptor to encode
+\return 0 if error or encoded desc size otherwise*/
 u32 gf_odf_desc_size(GF_Descriptor *desc);
 
 /*! duplicate descriptors
- \param inDesc descriptor to copy
- \param outDesc copied descriptor - it is the caller responsability to free this
- \return error if any
+\param inDesc descriptor to copy
+\param outDesc copied descriptor - it is the caller responsability to free this
+\return error if any
  */
 GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc);
 
@@ -1498,9 +1497,9 @@ GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc);
 and adds it. NO DUPLICATION of the descriptor, so
 once a desc is added to its parent, destroying the parent WILL DESTROY
 this descriptor
- \param parentDesc parent descriptor
- \param newDesc descriptor to add to parent
- \return error if any
+\param parentDesc parent descriptor
+\param newDesc descriptor to add to parent
+\return error if any
  */
 GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc);
 
@@ -1512,27 +1511,27 @@ you must create the list yourself, the functions just encode/decode from/to the 
 
 /*! uncompress an encoded list of descriptors. You must pass an empty GF_List structure
 to know exactly what was in the buffer
- \param raw_list encoded list of descriptors
- \param raw_size size of the encoded list of descriptors
- \param descList list in which the decoded descriptors will be placed
- \return error if any
+\param raw_list encoded list of descriptors
+\param raw_size size of the encoded list of descriptors
+\param descList list in which the decoded descriptors will be placed
+\return error if any
 */
 GF_Err gf_odf_desc_list_read(u8 *raw_list, u32 raw_size, GF_List *descList);
 
 /*! compress all descriptors in the list into a single buffer. The buffer is allocated
 by the lib and must be destroyed by your app
 you must pass (outEncList != NULL  && *outEncList == NULL)
- \param descList list of descriptors to be encoded
- \param outEncList buffer of encoded descriptors
- \param outSize size of buffer of encoded descriptors
- \return error if any
+\param descList list of descriptors to be encoded
+\param outEncList buffer of encoded descriptors
+\param outSize size of buffer of encoded descriptors
+\return error if any
  */
 GF_Err gf_odf_desc_list_write(GF_List *descList, u8 **outEncList, u32 *outSize);
 
 /*! returns size of encoded desc list
- \param descList list of descriptors to be encoded
- \param outSize size of buffer of encoded descriptors
- \return error if any
+\param descList list of descriptors to be encoded
+\param outSize size of buffer of encoded descriptors
+\return error if any
  */
 GF_Err gf_odf_desc_list_size(GF_List *descList, u32 *outSize);
 
@@ -1547,13 +1546,13 @@ GF_Err gf_odf_desc_list_size(GF_List *descList, u32 *outSize);
 ************************************************************/
 
 /*! QoS Qualifiers constructor
- \param tag tag of QoS descriptor to create
- \return created QoS descriptor
+\param tag tag of QoS descriptor to create
+\return created QoS descriptor
  */
 GF_QoS_Default *gf_odf_qos_new(u8 tag);
 /*! QoS Qualifiers destructor
- \param qos descriptor to destroy. The pointer is set back to NULL upon destruction
- \return error if any
+\param qos descriptor to destroy. The pointer is set back to NULL upon destruction
+\return error if any
  */
 GF_Err gf_odf_qos_del(GF_QoS_Default **qos);
 
@@ -1561,9 +1560,9 @@ GF_Err gf_odf_qos_del(GF_QoS_Default **qos);
 therefore, use gf_odf_desc_read and gf_odf_desc_write for QoS*/
 
 /*! Adds a QoS qualificator to a parent QoS descriptor
- \param desc parent QoS descriptor
- \param qualif  QoS qualificator
- \return error if any
+\param desc parent QoS descriptor
+\param qualif  QoS qualificator
+\return error if any
  */
 GF_Err gf_odf_qos_add_qualif(GF_QoS_Descriptor *desc, GF_QoS_Default *qualif);
 
@@ -1622,19 +1621,19 @@ you MUST delete events */
 OCIEvent *gf_oci_codec_get_event(OCICodec *codec);
 
 /*! Dumps an OCI event
- \param ev OCI event to dump
- \param trace destination file for dumping
- \param indent number of spaces to use as base index
- \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+\param ev OCI event to dump
+\param trace destination file for dumping
+\param indent number of spaces to use as base index
+\param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
  */
 GF_Err gf_oci_dump_event(OCIEvent *ev, FILE *trace, u32 indent, Bool XMTDump);
 /*! Dumps an OCI AU
- \param version version of the OCI stream
- \param au OCI AU to dump
- \param au_length size of the OCI AU to dump
- \param trace destination file for dumping
- \param indent number of spaces to use as base index
- \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+\param version version of the OCI stream
+\param au OCI AU to dump
+\param au_length size of the OCI AU to dump
+\param trace destination file for dumping
+\param indent number of spaces to use as base index
+\param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
  */
 GF_Err gf_oci_dump_au(u8 version, u8 *au, u32 au_length, FILE *trace, u32 indent, Bool XMTDump);
 
@@ -1645,27 +1644,27 @@ GF_Err gf_oci_dump_au(u8 version, u8 *au, u32 au_length, FILE *trace, u32 indent
 #ifndef GPAC_DISABLE_OD_DUMP
 
 /*! Dumps an OD AU
- \param com OD command to dump
- \param trace destination file for dumping
- \param indent number of spaces to use as base index
- \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
- \return error if any
+\param com OD command to dump
+\param trace destination file for dumping
+\param indent number of spaces to use as base index
+\param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+\return error if any
  */
 GF_Err gf_odf_dump_com(GF_ODCom *com, FILE *trace, u32 indent, Bool XMTDump);
 /*! Dumps an OD Descriptor
- \param desc descriptor to dump
- \param trace destination file for dumping
- \param indent number of spaces to use as base index
- \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
- \return error if any
+\param desc descriptor to dump
+\param trace destination file for dumping
+\param indent number of spaces to use as base index
+\param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+\return error if any
  */
 GF_Err gf_odf_dump_desc(GF_Descriptor *desc, FILE *trace, u32 indent, Bool XMTDump);
 /*! Dumps an OD Descriptor
- \param commandList descriptor list to dump
- \param trace destination file for dumping
- \param indent number of spaces to use as base index
- \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
- \return error if any
+\param commandList descriptor list to dump
+\param trace destination file for dumping
+\param indent number of spaces to use as base index
+\param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+\return error if any
  */
 GF_Err gf_odf_dump_com_list(GF_List *commandList, FILE *trace, u32 indent, Bool XMTDump);
 
@@ -1673,8 +1672,8 @@ GF_Err gf_odf_dump_com_list(GF_List *commandList, FILE *trace, u32 indent, Bool 
 
 
 /*! Gets descriptor tag by name
- \param descName target descriptor name
- \return descriptor tag or 0 if error
+\param descName target descriptor name
+\return descriptor tag or 0 if error
  */
 u32 gf_odf_get_tag_by_name(char *descName);
 
@@ -1697,17 +1696,17 @@ typedef enum
 	GF_ODF_FT_IPMPX_BA_LIST = 6
 } GF_ODF_FieldType;
 /*! Gets ODF field type by name
- \param desc target descriptor
- \param fieldName  descriptor field name
- \return the descriptor field type
+\param desc target descriptor
+\param fieldName  descriptor field name
+\return the descriptor field type
 */
 GF_ODF_FieldType gf_odf_get_field_type(GF_Descriptor *desc, char *fieldName);
 
 /*! Set non-descriptor field value - value string shall be presented without ' or " characters
- \param desc target descriptor
- \param fieldName descriptor field name
- \param val field value to parse
- \return error if any
+\param desc target descriptor
+\param fieldName descriptor field name
+\param val field value to parse
+\return error if any
  */
 GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val);
 

@@ -26,7 +26,7 @@
 #include <gpac/thread.h>
 #include <gpac/network.h>
 #include <gpac/dash.h>
-#include <gpac/internal/mpd.h>
+#include <gpac/mpd.h>
 #include <gpac/internal/m3u8.h>
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/base_coding.h>
@@ -966,8 +966,8 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 /*!
 * Returns true if given mime type is a MPD file
-* \param mime the mime-type to check
-* \return true if mime-type if MPD-OK
+\param mime the mime-type to check
+\return true if mime-type if MPD-OK
 */
 static Bool gf_dash_is_dash_mime(const char *mime) {
 	u32 i;
@@ -982,9 +982,9 @@ static Bool gf_dash_is_dash_mime(const char *mime) {
 
 /*!
 * Returns true if mime type of a given URL is an M3U8 mime-type
-* \param url The url to check
-* \param mime The mime-type to check
-* \return true if mime-type is OK for M3U8
+\param url The url to check
+\param mime The mime-type to check
+\return true if mime-type is OK for M3U8
 */
 static Bool gf_dash_is_m3u8_mime(const char *url, const char * mime) {
 	u32 i;
@@ -7273,7 +7273,9 @@ void gf_dash_close(GF_DashClient *dash)
 			dash->dash_io->del(dash->dash_io, dash->mpd_dnload);
 			dash->mpd_dnload = NULL;
 		}
-		gf_mpd_getter_del_session(&dash->getter);
+
+		if (dash->getter.del_session)
+			dash->getter.del_session(&dash->getter);
 
 		if (dash->dash_mutex) gf_mx_v(dash->dash_mutex);
 	}

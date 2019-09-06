@@ -267,7 +267,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 
 #ifndef GPAC_DISABLE_HEVC
 /* returns the SAP type as defined in the 14496-12 specification */
-static SAPType sap_type_from_nal_type(u8 nal_type) {
+static GF_ISOSAPType sap_type_from_nal_type(u8 nal_type) {
 	switch (nal_type) {
 	case GF_HEVC_NALU_SLICE_CRA:
 		return SAP_TYPE_3;
@@ -284,7 +284,7 @@ static SAPType sap_type_from_nal_type(u8 nal_type) {
 }
 #endif
 
-static SAPType is_sample_idr(GF_MediaBox *mdia, GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
+static GF_ISOSAPType is_sample_idr(GF_MediaBox *mdia, GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
 {
 	Bool is_hevc = GF_FALSE;
 	u32 nalu_size_field = 0;

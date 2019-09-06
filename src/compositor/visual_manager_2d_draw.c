@@ -556,7 +556,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	if (txh->flags & GF_SR_TEXTURE_REPEAT_T) tx_tile |= GF_TEXTURE_REPEAT_T;
 	if (ctx->flags & CTX_FLIPED_COORDS)
 		tx_tile |= GF_TEXTURE_FLIP;
-	gf_evg_stencil_set_tiling(tx_raster, (GF_TextureTiling) tx_tile);
+	gf_evg_stencil_set_mapping(tx_raster, (GF_TextureMapFlags) tx_tile);
 
 	if (!(ctx->flags & CTX_IS_BACKGROUND) ) {
 		u8 a = GF_COL_A(ctx->aspect.fill_color);

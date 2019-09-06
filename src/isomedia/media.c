@@ -618,7 +618,7 @@ GF_ISOMDataRefAllType Media_SelfContainedType(GF_MediaBox *mdia)
 //look for a sync sample from a given point in media time
 GF_Err Media_FindSyncSample(GF_SampleTableBox *stbl, u32 searchFromSample, u32 *sampleNumber, u8 mode)
 {
-	SAPType isRAP;
+	GF_ISOSAPType isRAP;
 	u32 next, prev, next_in_sap, prev_in_sap;
 	if (!stbl || !stbl->SyncSample) return GF_BAD_PARAM;
 

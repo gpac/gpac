@@ -31,16 +31,18 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/main.h>
- *	\brief main() macro for win32.
+\file <gpac/main.h>
+\brief main() macro for win32.
  */
 	
 /*!
- * \addtogroup cst_grp Constants
- *	\brief main() macro for windows systems to handle UTF input.
- *
- *	@{
- */
+\addtogroup sysmain_grp
+@{
+
+Thiis section decribes functions usefull when developping an application using libgpac such as:
+- quick UTF8 conversion of arguments for main() on windows
+- setting, checking and printing libgpac arguments as given from command line
+*/
 
 #include <gpac/setup.h>
 #include <gpac/utf.h>

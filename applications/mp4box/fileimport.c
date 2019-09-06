@@ -47,7 +47,7 @@
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 #include <gpac/xml.h>
-#include <gpac/internal/isomedia_dev.h>
+#include <gpac/isomedia.h>
 
 typedef struct
 {
@@ -939,7 +939,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			e = gf_isom_use_compact_size(dest, track, GF_TRUE);
 		}
 
-		if (gf_isom_get_media_subtype(dest, track, 1) == GF_QT_BOX_TYPE_TMCD) {
+		if (gf_isom_get_media_subtype(dest, track, 1) == GF_ISOM_MEDIA_TIMECODE) {
 			tmcd_track = track;
 		}
 		if (rap_only || refs_only) {
@@ -1154,7 +1154,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				break;
 			}
 		}
-		tmcd_tk = gf_isom_new_track(dest, 0, GF_QT_BOX_TYPE_TMCD, tc_fps_num);
+		tmcd_tk = gf_isom_new_track(dest, 0, GF_ISOM_MEDIA_TIMECODE, tc_fps_num);
 		if (!tmcd_tk) {
 			e = gf_isom_last_error(dest);
 			goto exit;
@@ -2970,12 +2970,12 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 #endif /*GPAC_DISABLE_BIFS_ENC*/
 
 /**
- * \param chunkFile BT chunk to be encoded
- * \param bifs output file name for the BIFS data
- * \param inputContext initial BT upon which the chunk is based (shall not be NULL)
- * \param outputContext: file name to dump the context after applying the new chunk to the input context
+\param chunkFile BT chunk to be encoded
+\param bifs output file name for the BIFS data
+\param inputContext initial BT upon which the chunk is based (shall not be NULL)
+\param outputContext: file name to dump the context after applying the new chunk to the input context
                    can be NULL, without .bt
- * \param tmpdir can be NULL
+\param tmpdir can be NULL
  */
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir)
 {
@@ -3311,11 +3311,11 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, char *file_name)
 	GF_XMLNode *root, *stream;
 	GF_Err e;
 	u32 i;
-	GF_MasteringDisplayColourVolumeBox mdcv;
-	GF_ContentLightLevelBox clli;
+	GF_MasteringDisplayColourVolumeInfo mdcv;
+	GF_ContentLightLevelInfo clli;
 
-	memset(&mdcv, 0, sizeof(GF_MasteringDisplayColourVolumeBox));
-	memset(&clli, 0, sizeof(GF_ContentLightLevelBox));
+	memset(&mdcv, 0, sizeof(GF_MasteringDisplayColourVolumeInfo));
+	memset(&clli, 0, sizeof(GF_ContentLightLevelInfo));
 
 	parser = gf_xml_dom_new();
 	e = gf_xml_dom_parse(parser, file_name, NULL, NULL);

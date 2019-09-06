@@ -51,8 +51,9 @@
 #include <gpac/scene_manager.h>
 #endif
 #include <gpac/internal/media_dev.h>
-#include <gpac/internal/isomedia_dev.h>
 #include <gpac/media_tools.h>
+/*for built-in box printing*/
+#include <gpac/internal/isomedia_dev.h>
 
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
@@ -431,9 +432,9 @@ void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 sta
 			if (e) goto exit;
 		}
 		if (stat_level==2) {
-			fprintf(dump, "<AUStatistics StreamID=\"%d\" AUTime=\""LLD"\">\n", au->owner->ESID, LLD_CAST au->timing);
+			fprintf(dump, "<AUStatistics StreamID=\"%d\" AUTime=\""LLD"\">\n", au->owner->ESID, au->timing);
 		} else {
-			fprintf(dump, "<GraphStatistics StreamID=\"%d\" AUTime=\""LLD"\">\n", au->owner->ESID, LLD_CAST au->timing);
+			fprintf(dump, "<GraphStatistics StreamID=\"%d\" AUTime=\""LLD"\">\n", au->owner->ESID, au->timing);
 		}
 		/*dump stats*/
 		dump_stats(dump, gf_sm_stats_get(sm) );
@@ -890,7 +891,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 			gf_isom_get_sample_rap_roll_info(file, i+1, j+1, &is_rap, &has_roll, &roll_distance);
 			dts = samp->DTS;
 			cts = dts + (s32) samp->CTS_Offset;
-			fprintf(dump, "Sample %d\tDTS "LLD"\tCTS "LLD"\t%d\t%d", j+1, LLD_CAST dts, LLD_CAST cts, samp->dataLength, samp->IsRAP);
+			fprintf(dump, "Sample %d\tDTS "LLD"\tCTS "LLD"\t%d\t%d", j+1, dts, cts, samp->dataLength, samp->IsRAP);
 
 			if (!skip_offset)
 				fprintf(dump, "\t"LLD, offset);
@@ -2448,7 +2449,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump)
 						}
 						fprintf(stderr, "\t%s\n", start+offset);
 					}
-					if (orig_len) fprintf(stderr, "Original media size "LLD"\n", LLD_CAST orig_len);
+					if (orig_len) fprintf(stderr, "Original media size "LLD"\n", orig_len);
 					fprintf(stderr, "Encryption algorithm %s\n", (enc_type==1) ? "AEA 128 CBC" : (enc_type ? "AEA 128 CTR" : "None"));
 
 
@@ -3203,7 +3204,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				}
 				gf_sl_depacketize(esd->slConfig, &header, sl_pck->data, sl_pck->data_len, &header_len);
 				gf_fwrite(sl_pck->data+header_len, sl_pck->data_len-header_len, 1, dumper->pes_out);
-				fprintf(dumper->pes_out_nhml, "<NHNTSample DTS=\""LLD"\" dataLength=\"%d\" isRAP=\"%s\"/>\n", LLD_CAST header.decodingTimeStamp, sl_pck->data_len-header_len, (header.randomAccessPointFlag?"yes":"no"));
+				fprintf(dumper->pes_out_nhml, "<NHNTSample DTS=\""LLD"\" dataLength=\"%d\" isRAP=\"%s\"/>\n", header.decodingTimeStamp, sl_pck->data_len-header_len, (header.randomAccessPointFlag?"yes":"no"));
 			}
 		}
 	}
@@ -3317,7 +3318,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 
 
 #include <gpac/download.h>
-#include <gpac/internal/mpd.h>
+#include <gpac/mpd.h>
 
 void get_file_callback(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {

@@ -957,9 +957,9 @@ exit:
 
 #if 0 //unused
 /**
- * \param calling_object the calling object on which call back will be called
- * \param ctx an already loaded scene manager
- * \param dump_path the path where scenes are dumped
+\param calling_object the calling object on which call back will be called
+\param ctx an already loaded scene manager
+\param dump_path the path where scenes are dumped
  *
  * must be called only one time (by process calling the DLL) before other calls
  */
@@ -995,13 +995,13 @@ exit:
 
 #if 0 //unused
 /**
- * \param calling_object is the calling object on which call back will be called
- * \param inputContext is an UTF-8 scene description (with or without IOD) in BT or XMT-A format
- * \param load_type is the preferred loader type for the content (e.g. SVG vs DIMS)
- * \param width width of scene if no IOD is given in the context.
- * \param height height of scene if no IOD is given in the context.
- * \param usePixelMetrics metrics system used in the scene, if no IOD is given in the context.
- * \param dump_path the path where scenes are dumped
+\param calling_object is the calling object on which call back will be called
+\param inputContext is an UTF-8 scene description (with or without IOD) in BT or XMT-A format
+\param load_type is the preferred loader type for the content (e.g. SVG vs DIMS)
+\param width width of scene if no IOD is given in the context.
+\param height height of scene if no IOD is given in the context.
+\param usePixelMetrics metrics system used in the scene, if no IOD is given in the context.
+\param dump_path the path where scenes are dumped
  *
  * must be called only one time (by process calling the DLL) before other calls
  */

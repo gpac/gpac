@@ -32,17 +32,18 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/crypt_tools.h>
- *	\brief Utility tools for ISMA and Common Encryption.
- */
+\file <gpac/crypt_tools.h>
+\brief Utility tools for ISMA and Common Encryption.
+*/
 	
 /*!
- *	\addtogroup crypt_grp
- *	\ingroup media_grp
- *	\brief Utility tools for ISMA and Common Encryption.
- *
- *This section documents the helper tools (mostly crypt info file) used in ISMA and CENC encryption.
- *	@{
+\addtogroup crypt_grp
+\ingroup media_grp
+\brief Utility tools for ISMA and Common Encryption.
+
+This section documents the helper tools (mostly crypt info file) used in ISMA and CENC encryption.
+
+@{
  */
 
 #include <gpac/isomedia.h>
@@ -172,13 +173,13 @@ typedef struct
 	Bool in_text_header;
 } GF_CryptInfo;
 
-/*! loads Crypt config file. Full doc is available at https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/
+/*! loads a given crypto configuration file. Full doc is available at https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/
 \param file name of the crypt XML file
 \return the crypt info
 */
 GF_CryptInfo *gf_crypt_info_load(const char *file);
 
-/*! deletes crypt config file.
+/*! deletes crypto configuration file.
 \param info the target crypt info
 */
 void gf_crypt_info_del(GF_CryptInfo *info);
@@ -187,7 +188,7 @@ void gf_crypt_info_del(GF_CryptInfo *info);
 
 /*! decrypts a file
 \param infile source MP4 file to decrypt
-\param drm_file location of crypt info data
+\param drm_file location of crypto configuration file
 \param outname location of destination file
 \param interleave_time interleave time of the destination file - 0 means flat storage
 \param fs_dump_flags flags for session stats (1) and session graph (1<<1) dumping
@@ -197,7 +198,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *infile, const char *drm_file, const char *out
 
 /*! encrypts a file
 \param infile source MP4 file to encrypt
-\param drm_file location of crypt info data
+\param drm_file location of crypto configuration file
 \param outname location of destination file
 \param interleave_time interleave time of the destination file - 0 means flat storage
 \param fs_dump_flags flags for session stats (1) and session graph (1<<1) dumping
@@ -207,7 +208,7 @@ GF_Err gf_crypt_file(GF_ISOFile *infile, const char *drm_file, const char *outna
 
 /*! encrypts a fragment
 \param infile init segment of the MP4 file to encrypt - this SHALL NOT be encrypted
-\param drm_file location of crypt info data
+\param drm_file location of crypto configuration file
 \param dst_file location of destination file
 \param frag_name name of fragment to encrypt
 \param fs_dump_flags flags for session stats (1) and session graph (1<<1) dumping

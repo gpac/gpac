@@ -960,7 +960,7 @@ static void SDLVid_ShutdownWindow(SDLVidCtx *ctx)
 }
 
 #if defined SDL_TEXTINPUTEVENT_TEXT_SIZE /*&& !defined GPAC_CONFIG_IOS*/
-#include <gpac/unicode.h>
+#include <gpac/utf.h>
 #endif
 
 

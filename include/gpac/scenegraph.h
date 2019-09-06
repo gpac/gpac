@@ -33,33 +33,33 @@ extern "C" {
 
 
 /*!
- *	\file <gpac/scenegraph.h>
- *	\brief Scenegraph used for manipulating scenes (parsing, traversing, cleaning node status, ...)
- */
+\file <gpac/scenegraph.h>
+\brief Scenegraph used for manipulating scenes (parsing, traversing, cleaning node status, ...)
+*/
 	
 	
-/*! \defgroup scene_grp Scene Graph
- *	\brief Scene graph management.
- *	
+/*!
+\addtogroup scene_grp Scene Graph
+\brief Scene graph management.
 */
 	
 /*!
- *	\addtogroup sscene Base Scenegraph
- *	\ingroup scene_grp
- *	\brief Scenegraph used for manipulating scenes.
- *
- *This section documents the Scenegraph used in GPAC for all interactive scenes.
- *	@{
+\addtogroup sscene Base Scenegraph
+\ingroup scene_grp
+\brief Scenegraph used for manipulating scenes.
+
+This section documents the Scenegraph used in GPAC for all interactive scenes.
+
+@{
  */
 
 
 #include <gpac/list.h>
 #include <gpac/maths.h>
 
-/*
-	TAG definitions are static, in order to be able to mix nodes from different standard
-	in a single scenegraph. These TAGs are only used internally (they do not match any
-	binary encoding)
+/*! Tags of scene graph nodes
+TAG definitions are static, in order to be able to mix nodes from different standard in a single scenegraph.
+These TAGs are only used internally (they do not match any binary encoding)
 */
 enum {
 	/*undefined node: just the base node class, used for parsing*/

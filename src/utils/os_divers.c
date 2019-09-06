@@ -737,7 +737,7 @@ extern Bool gpac_log_time_start;
 extern Bool gpac_log_utc_time;
 
 GF_EXPORT
-Bool gf_sys_logs_to_file()
+Bool gf_log_use_file()
 {
 	return gpac_log_file ? GF_TRUE : GF_FALSE;
 }
@@ -985,7 +985,7 @@ GF_Config *gf_sys_get_lang_file()
 
 	if (gpac_lang_file) return gpac_lang_file;
 
-	if (! gf_get_default_shared_directory(szSharedPath)) return NULL;
+	if (! gf_opts_default_shared_directory(szSharedPath)) return NULL;
 	strcat(szSharedPath, "/lang/");
 	strcat(szSharedPath, opt);
 	strcat(szSharedPath, ".txt");
@@ -1963,8 +1963,8 @@ GF_GlobalLock * gf_global_resource_lock(const char * resourceName) {
 
 /*!
  * Unlock a previouly locked resource
- * \param lock The resource to unlock
- * \return GF_OK if evertything went fine
+\param lock The resource to unlock
+\param GF_OK if evertything went fine
  */
 GF_EXPORT
 GF_Err gf_global_resource_unlock(GF_GlobalLock * lock) {

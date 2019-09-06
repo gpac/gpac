@@ -33,17 +33,18 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/mediaobject.h>
- *	\brief Interface between compositor and decoding engine for media data access.
+\file <gpac/mediaobject.h>
+\brief Interface between compositor and decoding engine for media data access.
  */
 	
 /*!
- *\addtogroup mobj_grp MediaObject
- *\ingroup playback_grp
- *\brief Interface between compositor and decoding engine for media data access.
- *
- *This section documents the API betwwen the compositor of GPAC and the decoding engine (terminal)
- *	@{
+\addtogroup mobj_grp MediaObject
+\ingroup playback_grp
+\brief Interface between compositor and decoding engine for media data access.
+
+This section documents the API betwwen the compositor of GPAC and the decoding engine (terminal)
+
+@{
  */
 	
 #include <gpac/filters.h>

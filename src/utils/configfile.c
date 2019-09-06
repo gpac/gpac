@@ -68,7 +68,7 @@ static void DelSection(IniSection *ptr)
 
 /*!
  * \brief Clear the structure
- * \param iniFile The structure to clear
+\param iniFile The structure to clear
  */
 static void gf_cfg_clear(GF_Config * iniFile)
 {

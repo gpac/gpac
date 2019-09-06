@@ -499,7 +499,7 @@ GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber)
 		sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount+missed) );
 		memset(&sdtp->sample_info[sdtp->sampleCount], 0, sizeof(u8) * missed );
 		while (missed) {
-			SAPType isRAP;
+			GF_ISOSAPType isRAP;
 			if (stbl->SyncSample) stbl_GetSampleRAP(stbl->SyncSample, sdtp->sampleCount+1, &isRAP, NULL, NULL);
 			else isRAP = 1;
 			sdtp->sample_info[sdtp->sampleCount] = isRAP ? 0x20 : 0;
@@ -567,7 +567,7 @@ GF_Err stbl_AddDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isL
 		sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount+missed) );
 		memset(&sdtp->sample_info[sdtp->sampleCount], 0, sizeof(u8) * missed );
 		while (missed) {
-			SAPType isRAP;
+			GF_ISOSAPType isRAP;
 			if (stbl->SyncSample) stbl_GetSampleRAP(stbl->SyncSample, sdtp->sampleCount+1, &isRAP, NULL, NULL);
 			else isRAP = 1;
 			sdtp->sample_info[sdtp->sampleCount] = isRAP ? (2<<4) : 0;

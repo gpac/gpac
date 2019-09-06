@@ -1112,6 +1112,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			const u8 *pU=NULL, *pV=NULL, *pA=NULL;
 			u32 stride = txh->stride;
 			u32 stride_uv=0;
+			u32 stride_alpha=0;
 			GF_Err e;
 			if (txh->frame_ifce) {
 				pData=NULL;
@@ -1122,7 +1123,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 					if (!e && txh->nb_planes>2)
 						e = txh->frame_ifce->get_plane(txh->frame_ifce, 2, &pV, &stride_uv);
 					if (!e && txh->nb_planes>3)
-						e = txh->frame_ifce->get_plane(txh->frame_ifce, 3, &pA, &stride_uv);
+						e = txh->frame_ifce->get_plane(txh->frame_ifce, 3, &pA, &stride_alpha);
 				}
 			}
 			if (!pData) {
@@ -1131,7 +1132,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				return 0;
 			}
 
-			e = gf_evg_stencil_set_texture_planes(txh->tx_io->tx_raster, txh->width, txh->height, (GF_PixelFormat) txh->pixelformat, pData, txh->stride, pU, pV, stride_uv, pA);
+			e = gf_evg_stencil_set_texture_planes(txh->tx_io->tx_raster, txh->width, txh->height, (GF_PixelFormat) txh->pixelformat, pData, txh->stride, pU, pV, stride_uv, pA, stride_alpha);
 
 			if (e != GF_OK) {
 				if (!txh->compositor->last_error)

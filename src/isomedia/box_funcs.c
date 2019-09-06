@@ -148,10 +148,10 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		size = gf_bs_read_u64(bs);
 		hdr_size += 8;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(type), LLD_CAST size, LLD_CAST start));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(type), size,  start));
 
 	if ( size < hdr_size ) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box size "LLD" less than box header size %d\n", LLD_CAST size, hdr_size));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box size "LLD" less than box header size %d\n", size, hdr_size));
 		return GF_ISOM_INVALID_FILE;
 	}
 	restore_type = 0;
@@ -236,7 +236,7 @@ retry_unknown_box:
 
 	if (end-start > size) {
 		if (!skip_logs) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" size "LLU" (start "LLU") invalid (read "LLU")\n", gf_4cc_to_str(type), LLU_CAST size, start, LLU_CAST (end-start) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" size "LLU" (start "LLU") invalid (read "LLU")\n", gf_4cc_to_str(type), size, start, (end-start) ));
 		}
 		/*let's still try to load the file since no error was notified*/
 		gf_bs_seek(bs, start+size);
@@ -356,7 +356,7 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 	if (ptr->size > 0xFFFFFFFF)
 		gf_bs_write_u64(bs, ptr->size);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Written Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(ptr->type), LLD_CAST ptr->size, LLD_CAST start));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Written Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(ptr->type), ptr->size, start));
 
 	return GF_OK;
 }
@@ -1799,7 +1799,7 @@ GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
 {
 	fprintf(trace, "<%s ", name);
 	if (a->size > 0xFFFFFFFF) {
-		fprintf(trace, "LargeSize=\""LLU"\" ", LLU_CAST a->size);
+		fprintf(trace, "LargeSize=\""LLU"\" ", a->size);
 	} else {
 		fprintf(trace, "Size=\"%u\" ", (u32) a->size);
 	}

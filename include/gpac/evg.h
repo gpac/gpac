@@ -35,190 +35,311 @@ extern "C" {
 #include <gpac/module.h>
 #include <gpac/color.h>
 
-/*stencil type used for all stencils*/
+/*!
+\file "gpac/evg.h"
+\brief 2D vector graphics rasterizer
+
+This file contains all defined functions for 2D vector graphics of the GPAC framework.
+*/
+
+/*!
+\addtogroup evg_grp
+\brief 2D Vector Graphics rendering of GPAC.
+
+GPAC uses a software rasterizer for 2D graphics based on FreeType's "ftgray" anti-aliased renderer.
+
+The rasterizer supports
+- drawing to RGB, YUV and grayscale surfaces.
+- Texture mapping using RGB, YUV and grayscale textures
+- Linear Gradients with opacity
+- Radial Gradients with opacity
+- Solid brush with opacity
+- axis-aligned clipping
+
+The rasterizer is only capable of filling a given GF_Path object
+- striking (outlining) of a path must be done by using \ref gf_path_get_outline to the the outline path
+- text must be first converted to GF_Path (currently only supported by \ref GF_Compositor API, this will evolve in the near future)
+
+@{
+*/
+
+/*! stencil type used for all stencils*/
 typedef struct _gf_evg_base_stencil GF_EVGStencil;
-/*surface type*/
+/*! surface type*/
 typedef struct _gf_evg_surface GF_EVGSurface;
 
 
-/*stencil types*/
+/*! stencil types*/
 typedef enum
 {
-	/*solid color stencil*/
+	/*! solid color stencil*/
 	GF_STENCIL_SOLID = 0,
-	/*linear color gradient stencil*/
+	/*! linear color gradient stencil*/
 	GF_STENCIL_LINEAR_GRADIENT,
-	/*radial color gradient stencil*/
+	/*! radial color gradient stencil*/
 	GF_STENCIL_RADIAL_GRADIENT,
-	/*texture stencil*/
+	/*! texture stencil*/
 	GF_STENCIL_VERTEX_GRADIENT,
-	/*texture stencil*/
+	/*! texture stencil*/
 	GF_STENCIL_TEXTURE,
 } GF_StencilType;
 
-
-/*gradient filling modes*/
+/*! gradient filling modes*/
 typedef enum
 {
-	/*edge colors are repeated until path is filled*/
+	/*! edge colors are repeated until path is filled*/
 	GF_GRADIENT_MODE_PAD,
-	/*pattern is inversed each time it's repeated*/
+	/*! pattern is inversed each time it's repeated*/
 	GF_GRADIENT_MODE_SPREAD,
-	/*pattern is repeated to fill path*/
+	/*! pattern is repeated to fill path*/
 	GF_GRADIENT_MODE_REPEAT
 } GF_GradientMode;
 
-
-/*texture tiling flags*/
+/*! texture map flags*/
 typedef enum
 {
-	/*texture is repeated in its horizontal direction*/
+	/*! texture is repeated in its horizontal direction*/
 	GF_TEXTURE_REPEAT_S = (1<<1),
-	/*texture is repeated in its horizontal direction*/
+	/*! texture is repeated in its horizontal direction*/
 	GF_TEXTURE_REPEAT_T = (1<<2),
-	/*texture is fliped vertically*/
+	/*! texture is fliped vertically*/
 	GF_TEXTURE_FLIP = (1<<3),
-} GF_TextureTiling;
+} GF_TextureMapFlags;
 
-/*filter levels for texturing - up to the graphics engine but the following levels are used by
+/*! filter levels for texturing - up to the graphics engine but the following levels are used by
 the client*/
 typedef enum
 {
-	/*high speed mapping (ex, no filtering applied)*/
+	/*! high speed mapping (ex, no filtering applied)*/
 	GF_TEXTURE_FILTER_HIGH_SPEED,
-	/*compromise between speed and quality (ex, filter to nearest pixel)*/
+	/*! compromise between speed and quality (ex, filter to nearest pixel)*/
 	GF_TEXTURE_FILTER_MID,
-	/*high quality mapping (ex, bi-linear/bi-cubic interpolation)*/
+	/*! high quality mapping (ex, bi-linear/bi-cubic interpolation)*/
 	GF_TEXTURE_FILTER_HIGH_QUALITY
 } GF_TextureFilter;
 
-/* rasterizer antialiasing depending on the graphics engine*/
+/*! rasterizer antialiasing depending on the graphics engine*/
 typedef enum
 {
-	/*raster shall use no antialiasing */
+	/*! raster shall use no antialiasing */
 	GF_RASTER_HIGH_SPEED,
-	/*raster should use fast mode and good quality if possible*/
+	/*! raster should use fast mode and good quality if possible*/
 	GF_RASTER_MID,
-	/*raster should use full antialiasing*/
+	/*! raster should use full antialiasing*/
 	GF_RASTER_HIGH_QUALITY
-} GF_RasterLevel;
+} GF_RasterQuality;
 
 
-/*common constructor for all stencil types*/
+/*! common constructor for all stencil types
+\param type the stencil type
+\return a new stencil object*/
 GF_EVGStencil *gf_evg_stencil_new(GF_StencilType type);
 
-/*common destructor for all stencils*/
+/*! common destructor for all stencils
+\param stencil the target stencil
+*/
 void gf_evg_stencil_delete(GF_EVGStencil *stencil);
 
-/*set stencil transformation matrix*/
+/*! sets stencil transformation matrix
+\param stencil the target stencil
+\param mat the 2D matrix to set
+\return error if any
+*/
 GF_Err gf_evg_stencil_set_matrix(GF_EVGStencil *stencil, GF_Matrix2D *mat);
 
-/*solid brush - set brush color*/
-GF_Err gf_evg_stencil_set_brush_color(GF_EVGStencil *stencil, GF_Color c);
-/*gradient brushes*/
-/*sets gradient repeat mode - return GF_NOT_SUPPORTED if driver doesn't support this to let the app compute repeat patterns
-this may be called before the gradient is setup*/
+/*! sets color for solid brush stencil
+\param stencil the target stencil
+\param color the color to set
+\return error if any
+*/
+GF_Err gf_evg_stencil_set_brush_color(GF_EVGStencil *stencil, GF_Color color);
+
+/*! sets gradient repeat mode for a gradient stencil
+\note this may be called before the gradient is setup
+\param stencil the target stencil
+\param mode the gradient mode
+\return error if any
+*/
 GF_Err gf_evg_stencil_set_gradient_mode(GF_EVGStencil *stencil, GF_GradientMode mode);
-/*set linear gradient.  line is defined by start and end, and you can give interpolation colors at specified positions*/
+/*! sets linear gradient direction for a gradient stencil
+Gradient line is defined by start and end. For example, {0,0}, {1,0} defines an horizontal gradient
+\param stencil the target stencil
+\param start_x horizontal coordinate of starting point
+\param start_y vertical coordinate of starting point
+\param end_x horizontal coordinate of ending point
+\param end_y vertical coordinate of ending point
+\return error if any
+*/
 GF_Err gf_evg_stencil_set_linear_gradient(GF_EVGStencil *stencil, Fixed start_x, Fixed start_y, Fixed end_x, Fixed end_y);
-/*radial gradient brush center point, focal point and radius - colors can only be set through set_interpolation */
+/*! sets radial gradient center point, focal point and radius for a gradient stencil
+\param stencil the target stencil
+\param cx horizontal coordinate of center
+\param cy vertical coordinate of center
+\param fx horizontal coordinate of focal point
+\param fy vertical coordinate of focal point
+\param x_radius horizontal radius
+\param y_radius vertical radius
+\return error if any
+*/
 GF_Err gf_evg_stencil_set_radial_gradient(GF_EVGStencil *stencil, Fixed cx, Fixed cy, Fixed fx, Fixed fy, Fixed x_radius, Fixed y_radius);
-/*radial and linear gradient (not used with vertex) - set color interpolation at given points,
-	@pos[i]: distance from (center for radial, start for linear) expressed between 0 and 1 (1 being the gradient bounds)
-	@col[i]: associated color
-NOTE 1: the colors at 0 and 1.0 MUST be provided
-NOTE 2: colors shall be fed in order from 0 to 1
-NOTE 3: this overrides the colors provided for linear gradient
+
+/*! sets color interpolation for a gradient stencil
+\note the colors at 0 and 1.0 MUST be provided
+\note colors shall be fed in order from 0 to 1
+\note this overrides the colors provided for linear gradient
+
+\param stencil the target stencil
+\param pos interpolation positions. Each position gives the distance from (center for radial, start for linear) expressed between 0 and 1 (1 being the gradient bounds)
+\param col colors at the given position
+\param count number of colors and position
+\return error if any
 */
 GF_Err gf_evg_stencil_set_gradient_interpolation(GF_EVGStencil *stencil, Fixed *pos, GF_Color *col, u32 count);
 
-/*sets global alpha blending level for stencil (texture and gradients)
-the alpha channel shall be combined with the color matrix if any*/
+/*! sets global alpha blending level for a texture or gradient stencil
+The alpha channel will be combined with the color matrix if any
+\warning do not use with solid brush stencil
+\param stencil the target stencil
+\param alpha the alpha value between 0 (full transparency) and 255 (full opacityy)
+\return error if any
+*/
 GF_Err gf_evg_stencil_set_alpha(GF_EVGStencil *stencil, u8 alpha);
 
-/*set stencil texture
-	@pixels: texture data, from top to bottom
-	@width, @height: texture size
-	@stride: texture horizontal pitch (bytes to skip to get to next row)
-	@pixelFormat: texture pixel format as defined in file constants.h
-	@destination_format_hint: this is the current pixel format of the destination surface, and is given
-	as a hint in case the texture needs to be converted by the stencil
-	@no_copy: if set, specifies the texture data shall not be cached by the module (eg it must be able
-	to directly modify the given memory
-NOTE: this stencil acts as a data wrapper, the pixel data is not required to be locally copied
-data is not required to be available for texturing until the stencil is used in a draw operation
+/*! sets pixel data for a texture stencil
+\param stencil the target stencil
+\param pixels texture data starting from top row
+\param width texture width in pixels
+\param height texture height in pixels
+\param stride texture horizontal pitch (bytes to skip to get to next row)
+\param pixelFormat texture pixel format
+\note this stencil acts as a data wrapper, the pixel data is not locally copied
+\return error if any
 */
 GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, u8 *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat);
 
-/*set stencil texture
-	@pixels: texture data, from top to bottom
-	@width, @height: texture size
-	@stride: texture horizontal pitch (bytes to skip to get to next row)
-	@pixelFormat: texture pixel format as defined in file constants.h
-	@destination_format_hint: this is the current pixel format of the destination surface, and is given
-	as a hint in case the texture needs to be converted by the stencil
-	@no_copy: if set, specifies the texture data shall not be cached by the module (eg it must be able
-	to directly modify the given memory
-NOTE: this stencil acts as a data wrapper, the pixel data is not required to be locally copied
-data is not required to be available for texturing until the stencil is used in a draw operation
+/*! sets pixel planes data for a texture stencil
+\param stencil the target stencil
+\param width texture width in pixels
+\param height texture height in pixels
+\param pixelFormat texture pixel format
+\param y_or_rgb Y plane or RGB plane
+\param stride stride of the Y or RGB plane
+\param u_plane U plane or UV plane for semi-planar YUV formats
+\param v_plane V plane for planar YUV format, NULL for semi-planar YUV formats
+\param uv_stride stride of the U and V or UV plane
+\param alpha_plane alpha plane
+\param alpha_stride stride of the alpha plane; if 0 and alpha plane is not NULL, the stride is assumed to be the same as the Y plane stride
+\note this stencil acts as a data wrapper, the pixel data is not locally copied
+\return error if any
 */
-GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, const u8 *y_or_rgb, u32 stride, const u8 *u_plane, const u8 *v_plane, u32 uv_stride, const u8 *alpha_plane);
+GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, const u8 *y_or_rgb, u32 stride, const u8 *u_plane, const u8 *v_plane, u32 uv_stride, const u8 *alpha_plane, u32 alpha_stride);
 
+/*! sets texture mapping options for a texture stencil
+\param stencil the target stencil
+\param map_mode texture mapping flags to set
+\return error if any
+*/
+GF_Err gf_evg_stencil_set_mapping(GF_EVGStencil *stencil, GF_TextureMapFlags map_mode);
 
-/*sets texture tile mode*/
-GF_Err gf_evg_stencil_set_tiling(GF_EVGStencil *stencil, GF_TextureTiling mode);
-/*sets texture filtering mode*/
+/*! sets filtering mode for a texture stencil
+\param stencil the target stencil
+\param filter_mode texture filtering mode to set
+\return error if any
+*/
 GF_Err gf_evg_stencil_set_filter(GF_EVGStencil *stencil, GF_TextureFilter filter_mode);
-/*set stencil color matrix - texture stencils only. If matrix is NULL, resets current color matrix*/
+
+/*! sets color matrix of a stencil
+\warning ignored for solid brush stencil
+\param stencil the target stencil
+\param cmat the color matrix to use. If NULL, resets current color matrix
+\return error if any
+ */
 GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil *stencil, GF_ColorMatrix *cmat);
 
-/*creates surface object*/
-/* @center_coords: true indicates mathematical-like coord system,
-				   false indicates computer-like coord system */
+/*! creates a canvas surface object
+\param center_coords if GF_TRUE, indicates mathematical-like coord system (0,0) at the center of the canvas, otherwise indicates computer-like coord system (0,0) top-left corner
+\return a new surface*/
 GF_EVGSurface *gf_evg_surface_new(Bool center_coords);
 
-/* delete surface object */
-void gf_evg_surface_delete(GF_EVGSurface *_this);
-
-/* attach surface object to device object (Win32: HDC) width and height are target surface size*/
-GF_Err gf_evg_surface_attach_to_device(GF_EVGSurface *_this, void *os_handle, u32 width, u32 height);
-/* attach surface object to stencil object*/
-GF_Err gf_evg_surface_attach_to_texture(GF_EVGSurface *_this, GF_EVGStencil *sten);
-/* attach surface object to memory buffer if supported
-	@pixels: texture data
-	@width, @height: texture size
-	@pitch_x: texture horizontal pitch (bytes to skip to get to next pixel). O means linear frame buffer (eg pitch_x==bytes per pixel)
-	@pitch_y: texture vertical pitch (bytes to skip to get to next line)
-	@pixelFormat: texture pixel format
+/*! deletes a surface object
+\param surf the surface object
 */
-GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *_this, u8 *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat);
+void gf_evg_surface_delete(GF_EVGSurface *surf);
 
-/*sets rasterizer precision */
-GF_Err gf_evg_surface_set_raster_level(GF_EVGSurface *_this, GF_RasterLevel RasterSetting);
-/* set the given matrix as the current transformations for all drawn paths
-if NULL reset the current transformation */
-GF_Err gf_evg_surface_set_matrix(GF_EVGSurface *_this, GF_Matrix2D *mat);
-/* set the given rectangle as a clipper - nothing will be drawn outside this clipper
-if the clipper is NULL then no clipper is set
-NB: the clipper is not affected by the surface matrix and is given in pixels
-CF ABOVE NOTE ON CLIPPERS*/
-GF_Err gf_evg_surface_set_clipper(GF_EVGSurface *_this, GF_IRect *rc);
+/*! attaches a surface object to a texture stencil object
+\param surf the surface object
+\param sten the stencil object (shll be a texture stencil)
+\return error if any
+*/
+GF_Err gf_evg_surface_attach_to_texture(GF_EVGSurface *surf, GF_EVGStencil *sten);
 
-/*sets the given path as the current one for drawing - the surface transform is NEVER changed between
-setting the path and filling, only the clipper may change*/
-GF_Err gf_evg_surface_set_path(GF_EVGSurface *_this, GF_Path *path);
-/*fills the current path using the given stencil - can be called several times with the same current path*/
-GF_Err gf_evg_surface_fill(GF_EVGSurface *_this, GF_EVGStencil *stencil);
+/*! attaches a surface object to a memory buffer
+\param surf the surface object
+\param pixels: texture data
+\param width texture width in pixels
+\param height texture height in pixels
+\param pitch_x texture horizontal pitch (bytes to skip to get to next pixel). O means linear frame buffer (eg pitch_x==bytes per pixel)
+\param pitch_y texture vertical pitch (bytes to skip to get to next line)
+\param pixelFormat texture pixel format
+\return error if any
+*/
+GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat);
 
-/*clears given pixel rect on the surface with the given color - REQUIRED
-the given rect is formatted as a clipper - CF ABOVE NOTE ON CLIPPERS*/
-GF_Err gf_evg_surface_clear(GF_EVGSurface *_this, GF_IRect *rc, GF_Color col);
+/*! sets rasterizer precision
+\param surf the surface object
+\param level the raster quality level
+\return error if any
+*/
+GF_Err gf_evg_surface_set_raster_level(GF_EVGSurface *surf, GF_RasterQuality level);
 
+/*! sets the given matrix as the current transformations for all drawn paths
+\param surf the surface object
+\param mat the matrix to set; if NULL, resets the current transformation
+\return error if any
+*/
+GF_Err gf_evg_surface_set_matrix(GF_EVGSurface *surf, GF_Matrix2D *mat);
+
+/*! sets the given rectangle as a clipper
+When a clipper is enabled, nothing is drawn outside of the clipper. The clipper is not affected by the surface matrix
+\param surf the surface object
+\param rc the clipper to set, in pixel coordinates of the surface; if NULL, disables clipper
+\return error if any
+*/
+GF_Err gf_evg_surface_set_clipper(GF_EVGSurface *surf, GF_IRect *rc);
+
+/*! sets the given path as the current one for drawing
+\warning This will internally copy the path after transformation with the current transfom. Changing the surface transform will have no effect unless calling this function again.
+The clipper and stencil mode may be changed at will
+
+\param surf the surface object
+\param path the target path to rasterize
+\return error if any
+*/
+GF_Err gf_evg_surface_set_path(GF_EVGSurface *surf, GF_Path *path);
+
+/*! draw (filling) the current path on a surface using the given stencil and current clipper if any
+\note this can be called several times with the same current path
+\param surf the surface object
+\param stencil the stencil to use to fill a path
+\return error if any
+*/
+GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *stencil);
+
+/*! clears given pixel rectangle on a surface with the given color
+\warning this ignores any clipper set on the surface
+\param surf the surface object
+\param rc the rectangle in pixel coordinates to clear. This may lay outside the surface, and shall not be NULL
+\param col the color used to clear the canvas. The alpha component is discarded if the surface does not have alpha, otherwise it is used
+\return error if any
+*/
+GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, GF_Color col);
+
+
+/*! @} */
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif	/*_GF_EVG_H_*/
 

@@ -31,16 +31,16 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/sync_layer.h>
- *	\brief MPEG-4 Object Descriptor Framework Sync Layer.
- */
+\file <gpac/sync_layer.h>
+\brief MPEG-4 Object Descriptor Framework Sync Layer.
+*/
 	
 /*!
- *	\ingroup odf_grp
- *	\brief MPEG-4 Object Descriptor Framework  Sync Layer
- *
- *This section documents the MPEG-4 OD  Sync Layer used in GPAC.
- *	@{
+\ingroup odf_grp
+\brief MPEG-4 Object Descriptor Framework  Sync Layer
+
+This section documents the MPEG-4 OD  Sync Layer used in GPAC.
+@{
  */
 
 /*the Sync Layer config descriptor*/

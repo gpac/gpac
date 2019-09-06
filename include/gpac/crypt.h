@@ -38,22 +38,23 @@ extern "C" {
 #endif
 
 /*!
-*	\file <gpac/crypt.h>
-*	\brief Utility tools for encryption and decryption.
+\file <gpac/crypt.h>
+\brief Utility tools for encryption and decryption.
 */
 
 /*!
-*	\addtogroup crypt_grp Cryptography
-*	\ingroup media_grp
-*	\brief Utility tools for encryption and decryption.
-*
-*This section documents the encryption and decryption routines used by GPAC, mostly AES 128 in CBC or CTR modes.
-*	@{
+\addtogroup crypt_grp Cryptography
+\ingroup media_grp
+\brief Utility tools for encryption and decryption.
+
+This section documents the encryption and decryption routines used by GPAC, mostly AES 128 in CBC or CTR modes.
+
+@{
 */
 
 #include <gpac/tools.h>
 
-/*crypto lib handler*/
+/*! cryptographic context object*/
 typedef struct _gf_crypt_context GF_Crypt;
 
 /*! Key size in bytes for AES 128*/

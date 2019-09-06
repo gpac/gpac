@@ -133,7 +133,7 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 /**
  * Creates an Playlist element.
  * This element can be either a playlist of a stream according to first parameter.
- * \return NULL if element could not be created. Elements will be deleted recursively.
+\param NULL if element could not be created. Elements will be deleted recursively.
  */
 static PlaylistElement* playlist_element_new(PlaylistElementType element_type, const char *url, s_accumulated_attributes *attribs)
 {
@@ -692,7 +692,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 
 /**
  * Creates a new MasterPlaylist
- * \return NULL if MasterPlaylist element could not be allocated
+\param NULL if MasterPlaylist element could not be allocated
  */
 MasterPlaylist* master_playlist_new()
 {

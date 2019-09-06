@@ -709,7 +709,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 		if (enable_reports==2)
 			gf_sys_set_console_code(stderr, GF_CONSOLE_SAVE);
 
-		logs_to_file = gf_sys_logs_to_file();
+		logs_to_file = gf_log_use_file();
 		if (!logs_to_file && (enable_reports==2) ) {
 			if (!nb_log_entries) nb_log_entries = 1;
 			static_logs = gf_malloc(sizeof(struct _logentry) * nb_log_entries);
@@ -1400,7 +1400,7 @@ static int gpac_main(int argc, char **argv)
 				 	"Version: %s\n"\
 	        		"Compilation configuration: " GPAC_CONFIGURATION "\n"\
 	        		"Enabled features: %s\n" \
-	        		"Disabled features: %s\n", gf_gpac_version(), gf_enabled_features(), gf_disabled_features()
+	        		"Disabled features: %s\n", gf_gpac_version(), gf_sys_features(GF_FALSE), gf_sys_features(GF_TRUE)
 				);
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "filters")) {
@@ -2623,7 +2623,8 @@ static Bool gpac_expand_alias(int argc, char **argv)
 	return GF_TRUE;
 }
 
-#include <gpac/unicode.h>
+#ifdef GPAC_ENABLE_COVERAGE
+#include <gpac/utf.h>
 #include <gpac/base_coding.h>
 #include <gpac/network.h>
 #include <gpac/iso639.h>
@@ -2633,6 +2634,7 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/avparse.h>
 #include <gpac/mpegts.h>
 #include <gpac/rtp_streamer.h>
+#endif
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 {
 #ifdef GPAC_ENABLE_COVERAGE

@@ -25,7 +25,7 @@
 
 #include <gpac/media_tools.h>
 #include <gpac/network.h>
-#include <gpac/internal/mpd.h>
+#include <gpac/mpd.h>
 #include <gpac/filters.h>
 
 

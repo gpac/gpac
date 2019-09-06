@@ -230,7 +230,7 @@ GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS)
 	return stbl_GetSampleDTS_and_Duration(stts, SampleNumber, DTS, NULL);
 }
 //Retrieve closes RAP for a given sample - if sample is RAP, sets the RAP flag
-GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, SAPType *IsRAP, u32 *prevRAP, u32 *nextRAP)
+GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, GF_ISOSAPType *IsRAP, u32 *prevRAP, u32 *nextRAP)
 {
 	u32 i;
 	if (prevRAP) *prevRAP = 0;
@@ -261,7 +261,7 @@ GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, SAPType *IsRA
 	return GF_OK;
 }
 
-GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP, u32 *prevRAP, u32 *nextRAP)
+GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, GF_ISOSAPType *IsRAP, u32 *prevRAP, u32 *nextRAP)
 {
 	u32 i, j, count, count2;
 	assert(prevRAP);

@@ -1367,11 +1367,11 @@ void gf_bs_flush(GF_BitStream *bs)
 
 #if 0 //unused
 /*!
- *\brief Reassigns FILE object for stream-based bitstreams
+\brief Reassigns FILE object for stream-based bitstreams
  *
  *Reassigns FILE object for stream-based bitstreams. Automatically sets the stream position to the bitstream position
- *\param bs the target bitstream
- *\param stream the new stream to assign
+\param bs the target bitstream
+\param stream the new stream to assign
  */
 void gf_bs_reassign(GF_BitStream *bs, FILE *stream)
 {

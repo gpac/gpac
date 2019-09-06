@@ -32,23 +32,25 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/avparse.h>
- *	\brief Utility tools for audio and video raw media parsing.
- */
+\file <gpac/avparse.h>
+\brief Utility tools for audio and video raw media parsing.
+*/
 
-/*! \defgroup media_grp Media Tools
- *	You will find in this module the documentation of all media tools in GPAC.
+/*!
+\addtogroup media_grp
+
+You will find in this module the documentation of all media tools in GPAC.
 */
 
 
 /*!
- *	\addtogroup avp_grp AV Parsing
- *	\ingroup media_grp
- *	\brief Utility tools for audio and video raw media parsing.
- *
- *This section documents the audio and video parsing functions of the GPAC framework.
- *	@{
- */
+\addtogroup avp_grp AV Parsing
+\ingroup media_grp
+\brief Utility tools for audio and video raw media parsing.
+
+This section documents the audio and video parsing functions of the GPAC framework.
+@{
+*/
 
 
 #include <gpac/bitstream.h>
@@ -57,30 +59,30 @@ extern "C" {
 
 /*!
   Reduces input width/height to common aspect ration num/denum values
- \param width width of the aspect ratio
- \param height height of the aspect ratio
+\param width width of the aspect ratio
+\param height height of the aspect ratio
  */
 void gf_media_reduce_aspect_ratio(u32 *width, u32 *height);
 
 /*!
  Reduces input FPS to a more compact value (eg 25000/1000 -> 25/1)
- \param timescale timescale of the aspect ratio
- \param sample_dur sample duration of the aspect ratio in the given timescale
+\param timescale timescale of the aspect ratio
+\param sample_dur sample duration of the aspect ratio in the given timescale
  */
 void gf_media_get_reduced_frame_rate(u32 *timescale, u32 *sample_dur);
 
 /*! inserts emulation prevention bytes from buffer_src into buffer_dst
- \param buffer_src source buffer (NAL without EPB)
- \param buffer_dst destination buffer (NAL with EPB)
- \param nal_size source buffer size
- \return size of buffer after adding emulation prevention bytes
+\param buffer_src source buffer (NAL without EPB)
+\param buffer_dst destination buffer (NAL with EPB)
+\param nal_size source buffer size
+\return size of buffer after adding emulation prevention bytes
 */
 u32 gf_media_nalu_add_emulation_bytes(const u8 *buffer_src, u8 *buffer_dst, u32 nal_size);
 
 /*! gets the number of emulation prevention bytes to add to a non emulated buffer
- \param buffer source buffer (NAL without EPB)
- \param nal_size source buffer size
- \return the number of emulation prevention bytes to add
+\param buffer source buffer (NAL without EPB)
+\param nal_size source buffer size
+\return the number of emulation prevention bytes to add
 */
 u32 gf_media_nalu_emulation_bytes_add_count(u8 *buffer, u32 nal_size);
 
@@ -758,7 +760,7 @@ GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel
 GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_format, u8 *dst, u32 *dst_size);
 
 
-/*!\brief obu types. */
+/*!\brief OBU types*/
 typedef enum {
 	OBU_RESERVED_0 = 0,
 	OBU_SEQUENCE_HEADER = 1,
@@ -778,7 +780,7 @@ typedef enum {
 	OBU_PADDING = 15,
 } ObuType;
 
-/*!\brief obu metadata types. */
+/*!\brief OBU metadata types*/
 typedef enum {
 	OBU_METADATA_TYPE_HDR_CLL = 1,
 	OBU_METADATA_TYPE_HDR_MDCV = 2,

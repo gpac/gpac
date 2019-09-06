@@ -876,8 +876,8 @@ void clli_box_del(GF_Box *a)
 GF_Err clli_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ContentLightLevelBox *p = (GF_ContentLightLevelBox *)s;
-	p->max_content_light_level = gf_bs_read_u16(bs);
-	p->max_pic_average_light_level = gf_bs_read_u16(bs);
+	p->clli.max_content_light_level = gf_bs_read_u16(bs);
+	p->clli.max_pic_average_light_level = gf_bs_read_u16(bs);
 	return GF_OK;
 }
 
@@ -889,8 +889,8 @@ GF_Err clli_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_ContentLightLevelBox *p = (GF_ContentLightLevelBox*)s;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	gf_bs_write_u16(bs, p->max_content_light_level);
-	gf_bs_write_u16(bs, p->max_pic_average_light_level);
+	gf_bs_write_u16(bs, p->clli.max_content_light_level);
+	gf_bs_write_u16(bs, p->clli.max_pic_average_light_level);
 	return GF_OK;
 }
 
@@ -921,13 +921,13 @@ GF_Err mdcv_box_read(GF_Box *s, GF_BitStream *bs)
 	int c = 0;
 	GF_MasteringDisplayColourVolumeBox *p = (GF_MasteringDisplayColourVolumeBox *)s;
 	for (c = 0; c<3; c++) {
-		p->display_primaries[c].x = gf_bs_read_u16(bs);
-		p->display_primaries[c].y = gf_bs_read_u16(bs);
+		p->mdcv.display_primaries[c].x = gf_bs_read_u16(bs);
+		p->mdcv.display_primaries[c].y = gf_bs_read_u16(bs);
 	}
-	p->white_point_x = gf_bs_read_u16(bs);
-	p->white_point_y = gf_bs_read_u16(bs);
-	p->max_display_mastering_luminance = gf_bs_read_u32(bs);
-	p->min_display_mastering_luminance = gf_bs_read_u32(bs);
+	p->mdcv.white_point_x = gf_bs_read_u16(bs);
+	p->mdcv.white_point_y = gf_bs_read_u16(bs);
+	p->mdcv.max_display_mastering_luminance = gf_bs_read_u32(bs);
+	p->mdcv.min_display_mastering_luminance = gf_bs_read_u32(bs);
 
 	return GF_OK;
 }
@@ -943,13 +943,13 @@ GF_Err mdcv_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	for (c = 0; c<3; c++) {
-		gf_bs_write_u16(bs, p->display_primaries[c].x);
-		gf_bs_write_u16(bs, p->display_primaries[c].y);
+		gf_bs_write_u16(bs, p->mdcv.display_primaries[c].x);
+		gf_bs_write_u16(bs, p->mdcv.display_primaries[c].y);
 	}
-	gf_bs_write_u16(bs, p->white_point_x);
-	gf_bs_write_u16(bs, p->white_point_y);
-	gf_bs_write_u32(bs, p->max_display_mastering_luminance);
-	gf_bs_write_u32(bs, p->min_display_mastering_luminance);
+	gf_bs_write_u16(bs, p->mdcv.white_point_x);
+	gf_bs_write_u16(bs, p->mdcv.white_point_y);
+	gf_bs_write_u32(bs, p->mdcv.max_display_mastering_luminance);
+	gf_bs_write_u32(bs, p->mdcv.min_display_mastering_luminance);
 	
 	return GF_OK;
 }

@@ -535,7 +535,7 @@ static char *glsl_view_8VAlio = GLSL_PREFIX "\
 
 /**
  parses (glShaderSource) and compiles (glCompileShader) shader source
- \return GF_TRUE if successful
+\return GF_TRUE if successful
  */
 Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const char *source)
 {

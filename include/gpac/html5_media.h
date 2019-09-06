@@ -33,22 +33,24 @@ extern "C" {
 
 
 /*!
- *	\file <gpac/html5_media.h>
- *	\brief Scene graph extensions for HTML5 media.
+\file <gpac/html5_media.h>
+\brief Scene graph extensions for HTML5 media.
  */
 	
-/*! \defgroup html5_grp HTML5
- *	\ingroup scene_grp
- *	\brief HTML5 extensions of the scene graph.
- *	
-*/
 /*!
- *  \addtogroup html5media_grp HTML5 media
- *	\ingroup html5_grp
- *	\brief Scene graph extensions for HTML5 media.
- *
- *This section documents the scene graph extensions used for HTML5 media (video).
- *	@{
+\defgroup html5_grp HTML5
+\ingroup scene_grp
+\brief HTML5 extensions of the scene graph.
+*/
+
+/*!
+\addtogroup html5media_grp HTML5 media
+\ingroup html5_grp
+\brief Scene graph extensions for HTML5 media.
+
+This section documents the scene graph extensions used for HTML5 media (video).
+
+@{
  */
 
 #include <gpac/internal/scenegraph_dev.h>

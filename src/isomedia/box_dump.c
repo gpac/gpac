@@ -200,7 +200,7 @@ GF_Err mdat_box_dump(GF_Box *a, FILE * trace)
 	const char *name = (a->type==GF_ISOM_BOX_TYPE_IDAT ? "ItemDataBox" : "MediaDataBox");
 	p = (GF_MediaDataBox *)a;
 	gf_isom_box_dump_start(a, name, trace);
-	fprintf(trace, "dataSize=\""LLD"\">\n", LLD_CAST p->dataSize);
+	fprintf(trace, "dataSize=\""LLD"\">\n", p->dataSize);
 	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
@@ -220,10 +220,10 @@ GF_Err mvhd_box_dump(GF_Box *a, FILE * trace)
 	p = (GF_MovieHeaderBox *) a;
 
 	gf_isom_box_dump_start(a, "MovieHeaderBox", trace);
-	fprintf(trace, "CreationTime=\""LLD"\" ", LLD_CAST p->creationTime);
-	fprintf(trace, "ModificationTime=\""LLD"\" ", LLD_CAST p->modificationTime);
+	fprintf(trace, "CreationTime=\""LLD"\" ", p->creationTime);
+	fprintf(trace, "ModificationTime=\""LLD"\" ", p->modificationTime);
 	fprintf(trace, "TimeScale=\"%d\" ", p->timeScale);
-	fprintf(trace, "Duration=\""LLD"\" ", LLD_CAST p->duration);
+	fprintf(trace, "Duration=\""LLD"\" ", p->duration);
 	fprintf(trace, "NextTrackID=\"%d\">\n", p->nextTrackID);
 
 	gf_isom_box_dump_done("MovieHeaderBox", a, trace);
@@ -236,10 +236,10 @@ GF_Err mdhd_box_dump(GF_Box *a, FILE * trace)
 
 	p = (GF_MediaHeaderBox *)a;
 	gf_isom_box_dump_start(a, "MediaHeaderBox", trace);
-	fprintf(trace, "CreationTime=\""LLD"\" ", LLD_CAST p->creationTime);
-	fprintf(trace, "ModificationTime=\""LLD"\" ", LLD_CAST p->modificationTime);
+	fprintf(trace, "CreationTime=\""LLD"\" ", p->creationTime);
+	fprintf(trace, "ModificationTime=\""LLD"\" ", p->modificationTime);
 	fprintf(trace, "TimeScale=\"%d\" ", p->timeScale);
-	fprintf(trace, "Duration=\""LLD"\" ", LLD_CAST p->duration);
+	fprintf(trace, "Duration=\""LLD"\" ", p->duration);
 	fprintf(trace, "LanguageCode=\"%c%c%c\">\n", p->packedLanguage[0], p->packedLanguage[1], p->packedLanguage[2]);
 	gf_isom_box_dump_done("MediaHeaderBox", a, trace);
 	return GF_OK;
@@ -918,7 +918,7 @@ GF_Err elst_box_dump(GF_Box *a, FILE * trace)
 
 	i=0;
 	while ((t = (GF_EdtsEntry *)gf_list_enum(p->entryList, &i))) {
-		fprintf(trace, "<EditListEntry Duration=\""LLD"\" MediaTime=\""LLD"\" MediaRate=\"%u\"/>\n", LLD_CAST t->segmentDuration, LLD_CAST t->mediaTime, t->mediaRate);
+		fprintf(trace, "<EditListEntry Duration=\""LLD"\" MediaTime=\""LLD"\" MediaRate=\"%u\"/>\n", t->segmentDuration, t->mediaTime, t->mediaRate);
 	}
 	if (!p->size) {
 		fprintf(trace, "<EditListEntry Duration=\"\" MediaTime=\"\" MediaRate=\"\"/>\n");
@@ -1135,7 +1135,7 @@ GF_Err co64_box_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<!-- Warning: No Chunk Offsets indications/>\n");
 	} else if (p->offsets) {
 		for (i=0; i<p->nb_entries; i++)
-			fprintf(trace, "<ChunkOffsetEntry offset=\""LLU"\"/>\n", LLU_CAST p->offsets[i]);
+			fprintf(trace, "<ChunkOffsetEntry offset=\""LLU"\"/>\n", p->offsets[i]);
 	}
 	if (!p->size) {
 		fprintf(trace, "<ChunkOffsetEntry offset=\"\"/>\n");
@@ -1180,7 +1180,7 @@ GF_Err tkhd_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "TrackHeaderBox", trace);
 
 	fprintf(trace, "CreationTime=\""LLD"\" ModificationTime=\""LLD"\" TrackID=\"%u\" Duration=\""LLD"\"",
-	        LLD_CAST p->creationTime, LLD_CAST p->modificationTime, p->trackID, LLD_CAST p->duration);
+			p->creationTime, p->modificationTime, p->trackID, p->duration);
 
 	if (p->alternate_group) fprintf(trace, " AlternateGroupID=\"%d\"", p->alternate_group);
 	if (p->volume) {
@@ -1883,10 +1883,10 @@ GF_Err iloc_box_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<count; i++) {
 		GF_ItemLocationEntry *ie = (GF_ItemLocationEntry *)gf_list_get(p->location_entries, i);
 		count2 = gf_list_count(ie->extent_entries);
-		fprintf(trace, "<ItemLocationEntry item_ID=\"%d\" data_reference_index=\"%d\" base_offset=\""LLD"\" construction_method=\"%d\">\n", ie->item_ID, ie->data_reference_index, LLD_CAST ie->base_offset, ie->construction_method);
+		fprintf(trace, "<ItemLocationEntry item_ID=\"%d\" data_reference_index=\"%d\" base_offset=\""LLD"\" construction_method=\"%d\">\n", ie->item_ID, ie->data_reference_index, ie->base_offset, ie->construction_method);
 		for (j=0; j<count2; j++) {
 			GF_ItemExtentEntry *iee = (GF_ItemExtentEntry *)gf_list_get(ie->extent_entries, j);
-			fprintf(trace, "<ItemExtentEntry extent_offset=\""LLD"\" extent_length=\""LLD"\" extent_index=\""LLD"\" />\n", LLD_CAST iee->extent_offset, LLD_CAST iee->extent_length, LLD_CAST iee->extent_index);
+			fprintf(trace, "<ItemExtentEntry extent_offset=\""LLD"\" extent_length=\""LLD"\" extent_index=\""LLD"\" />\n", iee->extent_offset, iee->extent_length, iee->extent_index);
 		}
 		fprintf(trace, "</ItemLocationEntry>\n");
 	}
@@ -1920,7 +1920,7 @@ GF_Err trpy_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TRPYBox *p = (GF_TRPYBox *)a;
 	gf_isom_box_dump_start(a, "LargeTotalRTPBytesBox", trace);
-	fprintf(trace, "RTPBytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
+	fprintf(trace, "RTPBytesSent=\""LLD"\">\n", p->nbBytes);
 	gf_isom_box_dump_done("LargeTotalRTPBytesBox", a, trace);
 	return GF_OK;
 }
@@ -1942,7 +1942,7 @@ GF_Err nump_box_dump(GF_Box *a, FILE * trace)
 
 	p = (GF_NUMPBox *)a;
 	gf_isom_box_dump_start(a, "LargeTotalPacketBox", trace);
-	fprintf(trace, "PacketsSent=\""LLD"\">\n", LLD_CAST p->nbPackets);
+	fprintf(trace, "PacketsSent=\""LLD"\">\n", p->nbPackets);
 	gf_isom_box_dump_done("LargeTotalPacketBox", a, trace);
 	return GF_OK;
 }
@@ -1962,7 +1962,7 @@ GF_Err tpyl_box_dump(GF_Box *a, FILE * trace)
 	GF_NTYLBox *p;
 	p = (GF_NTYLBox *)a;
 	gf_isom_box_dump_start(a, "LargeTotalMediaBytesBox", trace);
-	fprintf(trace, "BytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
+	fprintf(trace, "BytesSent=\""LLD"\">\n", p->nbBytes);
 	gf_isom_box_dump_done("LargeTotalMediaBytesBox", a, trace);
 	return GF_OK;
 }
@@ -1993,7 +1993,7 @@ GF_Err dmed_box_dump(GF_Box *a, FILE * trace)
 
 	p = (GF_DMEDBox *)a;
 	gf_isom_box_dump_start(a, "BytesFromMediaTrackBox", trace);
-	fprintf(trace, "BytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
+	fprintf(trace, "BytesSent=\""LLD"\">\n", p->nbBytes);
 	gf_isom_box_dump_done("BytesFromMediaTrackBox", a, trace);
 	return GF_OK;
 }
@@ -2003,7 +2003,7 @@ GF_Err dimm_box_dump(GF_Box *a, FILE * trace)
 	GF_DIMMBox *p;
 	p = (GF_DIMMBox *)a;
 	gf_isom_box_dump_start(a, "ImmediateDataBytesBox", trace);
-	fprintf(trace, "BytesSent=\""LLD"\">\n", LLD_CAST p->nbBytes);
+	fprintf(trace, "BytesSent=\""LLD"\">\n", p->nbBytes);
 	gf_isom_box_dump_done("ImmediateDataBytesBox", a, trace);
 	return GF_OK;
 }
@@ -2013,7 +2013,7 @@ GF_Err drep_box_dump(GF_Box *a, FILE * trace)
 	GF_DREPBox *p;
 	p = (GF_DREPBox *)a;
 	gf_isom_box_dump_start(a, "RepeatedDataBytesBox", trace);
-	fprintf(trace, "RepeatedBytes=\""LLD"\">\n", LLD_CAST p->nbBytes);
+	fprintf(trace, "RepeatedBytes=\""LLD"\">\n", p->nbBytes);
 	gf_isom_box_dump_done("RepeatedDataBytesBox", a, trace);
 	return GF_OK;
 }
@@ -2223,7 +2223,7 @@ GF_Err mehd_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_MovieExtendsHeaderBox *p = (GF_MovieExtendsHeaderBox*)a;
 	gf_isom_box_dump_start(a, "MovieExtendsHeaderBox", trace);
-	fprintf(trace, "fragmentDuration=\""LLD"\" >\n", LLD_CAST p->fragment_duration);
+	fprintf(trace, "fragmentDuration=\""LLD"\" >\n", p->fragment_duration);
 	gf_isom_box_dump_done("MovieExtendsHeaderBox", a, trace);
 	return GF_OK;
 }
@@ -2487,7 +2487,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 
 	count = gf_list_count(s->packetTable);
 
-	fprintf(trace, "<%sHintSample SampleNumber=\"%d\" DecodingTime=\""LLD"\" RandomAccessPoint=\"%d\" PacketCount=\"%u\" reserved=\"%u\">\n", szName, SampleNum, LLD_CAST tmp->DTS, tmp->IsRAP, s->packetCount, s->reserved);
+	fprintf(trace, "<%sHintSample SampleNumber=\"%d\" DecodingTime=\""LLD"\" RandomAccessPoint=\"%d\" PacketCount=\"%u\" reserved=\"%u\">\n", szName, SampleNum, tmp->DTS, tmp->IsRAP, s->packetCount, s->reserved);
 
 	if (s->hint_subtype==GF_ISOM_BOX_TYPE_FDP_STSD) {
 		e = gf_isom_box_dump((GF_Box*) s, trace);
@@ -3373,12 +3373,12 @@ GF_Err gf_isom_dump_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, u32 S
 		return GF_NOT_SUPPORTED;
 	}
 
-	fprintf(trace, "<ISMACrypSample SampleNumber=\"%d\" DataSize=\"%d\" CompositionTime=\""LLD"\" ", SampleNum, isma_samp->dataLength, LLD_CAST (samp->DTS+samp->CTS_Offset) );
-	if (samp->CTS_Offset) fprintf(trace, "DecodingTime=\""LLD"\" ", LLD_CAST samp->DTS);
+	fprintf(trace, "<ISMACrypSample SampleNumber=\"%d\" DataSize=\"%d\" CompositionTime=\""LLD"\" ", SampleNum, isma_samp->dataLength, (samp->DTS+samp->CTS_Offset) );
+	if (samp->CTS_Offset) fprintf(trace, "DecodingTime=\""LLD"\" ", samp->DTS);
 	if (gf_isom_has_sync_points(the_file, trackNumber)) fprintf(trace, "RandomAccessPoint=\"%s\" ", samp->IsRAP ? "Yes" : "No");
 	fprintf(trace, "IsEncrypted=\"%s\" ", (isma_samp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? "Yes" : "No");
 	if (isma_samp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
-		fprintf(trace, "IV=\""LLD"\" ", LLD_CAST isma_samp->IV);
+		fprintf(trace, "IV=\""LLD"\" ", isma_samp->IV);
 		if (isma_samp->key_indicator) dump_data_attribute(trace, "KeyIndicator", (char*)isma_samp->key_indicator, isma_samp->KI_length);
 	}
 	fprintf(trace, "/>\n");
@@ -4878,7 +4878,7 @@ GF_Err clli_box_dump(GF_Box *a, FILE * trace)
 	GF_ContentLightLevelBox *ptr = (GF_ContentLightLevelBox *)a;
 	if (!a) return GF_BAD_PARAM;
 	gf_isom_box_dump_start(a, "ContentLightLevelBox", trace);
-	fprintf(trace, "max_content_light_level=\"%u\" max_pic_average_light_level=\"%u\">\n", ptr->max_content_light_level, ptr->max_pic_average_light_level);
+	fprintf(trace, "max_content_light_level=\"%u\" max_pic_average_light_level=\"%u\">\n", ptr->clli.max_content_light_level, ptr->clli.max_pic_average_light_level);
 	gf_isom_box_dump_done("ContentLightLevelBox", a, trace);
 	return GF_OK;
 }
@@ -4890,9 +4890,9 @@ GF_Err mdcv_box_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 	gf_isom_box_dump_start(a, "MasteringDisplayColourVolumeBox", trace);
 	for (c = 0; c < 3; c++) {
-		fprintf(trace, "display_primaries_%d_x=\"%u\" display_primaries_%d_y=\"%u\" ", c, ptr->display_primaries[c].x, c, ptr->display_primaries[c].y);
+		fprintf(trace, "display_primaries_%d_x=\"%u\" display_primaries_%d_y=\"%u\" ", c, ptr->mdcv.display_primaries[c].x, c, ptr->mdcv.display_primaries[c].y);
 	}
-	fprintf(trace, "white_point_x=\"%u\" white_point_y=\"%u\" max_display_mastering_luminance=\"%u\" min_display_mastering_luminance=\"%u\">\n", ptr->white_point_x, ptr->white_point_y, ptr->max_display_mastering_luminance, ptr->min_display_mastering_luminance);
+	fprintf(trace, "white_point_x=\"%u\" white_point_y=\"%u\" max_display_mastering_luminance=\"%u\" min_display_mastering_luminance=\"%u\">\n", ptr->mdcv.white_point_x, ptr->mdcv.white_point_y, ptr->mdcv.max_display_mastering_luminance, ptr->mdcv.min_display_mastering_luminance);
 	gf_isom_box_dump_done("MasteringDisplayColourVolumeBox", a, trace);
 	return GF_OK;
 }

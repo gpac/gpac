@@ -32,17 +32,18 @@ extern "C" {
 
 
 /*!
- *	\file <gpac/laser.h>
- *	\brief MPEG-4 LASeR encoding and decoding.
- */
+\file <gpac/laser.h>
+\brief MPEG-4 LASeR encoding and decoding.
+*/
 	
 /*!
- *	\addtogroup laser_grp MPEG-4 LASER
- *	\ingroup mpeg4sys_grp
- *	\brief MPEG-4 LASeR encoding and decoding
- *
- *This section documents the LASeR encoding and decoding functions of the GPAC framework. For scene graph documentation, check scenegraph.h
- *	@{
+\addtogroup laser_grp MPEG-4 LASER
+\ingroup mpeg4sys_grp
+\brief MPEG-4 LASeR encoding and decoding
+
+This section documents the LASeR encoding and decoding functions of the GPAC framework. For scene graph documentation, check scenegraph.h
+
+@{
  */
 	
 #include <gpac/nodes_svg.h>

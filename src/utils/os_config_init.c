@@ -728,13 +728,13 @@ static void check_modules_dir(GF_Config *cfg)
 
 
 /*!
- *	\brief configuration file initialization
+\brief configuration file initialization
  *
  * Constructs a configuration file from fileName. If fileName is NULL, the default GPAC configuration file is loaded with the
  * proper module directory, font directory and other default options. If fileName is non-NULL no configuration file is found,
  * a "light" default configuration file is created.
- *\param profile name or path to existing config file
- *\return the configuration file object, NULL if the file could not be created
+\param profile name or path to existing config file
+\return the configuration file object, NULL if the file could not be created
  */
 static GF_Config *gf_cfg_init(const char *profile)
 {
@@ -796,7 +796,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 
 
 GF_EXPORT
-Bool gf_get_default_shared_directory(char *path_buffer)
+Bool gf_opts_default_shared_directory(char *path_buffer)
 {
 	return get_default_install_path(path_buffer, GF_PATH_SHARE);
 }

@@ -216,7 +216,7 @@ typedef struct
 typedef struct __evg_texture
 {
 	EVGBASESTENCIL
-	u32 width, height, stride, stride_uv;
+	u32 width, height, stride, stride_uv, stride_alpha;
 	u32 pixel_format, Bpp;
 	char *pixels;
 	char *pix_u, *pix_v, *pix_a;
