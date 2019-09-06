@@ -858,9 +858,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
             if (((par_n>=-1) && (par_d>=-1)) || force_par) {
                 e = gf_media_change_par(import.dest, track, par_n, par_d, force_par);
             }
+			if (e) goto exit;
             if (has_clap) {
                 e = gf_isom_set_clean_aperture(import.dest, track, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
             }
+			if (e) goto exit;
             if (bitdepth) {
                 gf_isom_set_visual_bit_depth(import.dest, track, 1, bitdepth);
             }
@@ -875,6 +877,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
         if (rap_only || refs_only) {
             e = gf_media_remove_non_rap(import.dest, track, refs_only);
         }
+		if (e) goto exit;
         if (handler_name) gf_isom_set_handler_name(import.dest, track, handler_name);
         else if (!keep_handler) {
             char szHName[1024];
