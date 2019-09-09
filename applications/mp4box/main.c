@@ -116,6 +116,7 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("mem-track", NULL, "enable memory tracker", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("mem-track-stack", NULL, "enable memory tracker with stack dumping", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 #endif
+ 	GF_DEF_ARG("p", NULL, "use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name `0` means a new profile, not stored to disk. Works using -p=NAME or -p NAME", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("inter", NULL, "interleave file, producing track chunks with given duration in ms. A value of 0 disables interleaving ", "0.5", NULL, GF_ARG_DOUBLE, 0),
  	GF_DEF_ARG("old-inter", NULL, "same as [-inter]() but wihout drift correction", NULL, NULL, GF_ARG_DOUBLE, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("tight", NULL, "tight interleaving (sample based) of the file. This reduces disk seek operations but increases file size", NULL, NULL, GF_ARG_DOUBLE, GF_ARG_HINT_EXPERT),
@@ -3439,6 +3440,12 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-sdp")) print_sdp = 1;
         else if (!strcmp(argv[i], "-mem-track")) continue;
         else if (!strcmp(argv[i], "-mem-track-stack")) continue;
+        else if (!strcmp(argv[i], "-p")) {
+        	i++;
+        	continue;
+		}
+        else if (!strncmp(argv[i], "-p=", 3)) {
+        }
 
 		else if (!stricmp(arg, "-logs") || !strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
 			i++;
@@ -4163,6 +4170,7 @@ int mp4boxMain(int argc, char **argv)
 	compress_top_boxes = NULL;
 	initial_moof_sn = 0;
 	initial_tfdt = 0;
+	const char *gpac_profile = NULL;
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 	memset(&smenc_opts, 0, sizeof(smenc_opts));
@@ -4189,6 +4197,16 @@ int mp4boxMain(int argc, char **argv)
 #endif
 			break;
 		}
+		else if (!strcmp(argv[i], "-p")) {
+			if (i+1<argc)
+				gpac_profile = argv[i+1];
+			else {
+				fprintf(stderr, "Bad argument for -p, expecting profile name but no more args\n");
+				return 1;
+			}
+		}
+		else if (!strncmp(argv[i], "-p=", 3))
+			gpac_profile = argv[i]+3;
 	}
 
 #ifdef _TWO_DIGIT_EXPONENT
@@ -4196,7 +4214,7 @@ int mp4boxMain(int argc, char **argv)
 #endif
 
 	/*init libgpac*/
-	gf_sys_init(mem_track, NULL);
+	gf_sys_init(mem_track, gpac_profile);
 	if (argc < 2) {
 		fprintf(stderr, "Not enough arguments - check usage with -h\n"
 			"MP4Box - GPAC version %s\n"

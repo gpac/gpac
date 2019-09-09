@@ -571,7 +571,6 @@ const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const ch
 }
 #endif
 
-#if 0//unused
 GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName)
 {
 	if (!fileName) return GF_OK;
@@ -579,6 +578,5 @@ GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName)
 	iniFile->fileName = gf_strdup(fileName);
 	return iniFile->fileName ? GF_OK : GF_OUT_OF_MEM;
 }
-#endif
 
 

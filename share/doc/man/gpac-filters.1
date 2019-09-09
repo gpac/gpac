@@ -284,7 +284,9 @@ If no input video frames (e.g. pure BIFS / SVG / VRML), the filter will generate
 .br
 It will stop generating frames as soon as all input streams are done, unless extended/reduced by -dur.
 .br
-In media-client mode, the special URL gpid:// is used to locate PIDs in the scene description, in order to design scenes independently from source media.
+If audio streams are loaded, an audio output pid is created.
+.br
+In filter-only mode, the special URL gpid:// is used to locate PIDs in the scene description, in order to design scenes independently from source media.
 .br
 When such a pid is associated to a Background2D node in BIFS (no SVG mapping yet), the compositor operates in passthrough mode.
 .br
@@ -307,7 +309,7 @@ If 3D graphics are used or display driver is forced, OpenGL will be used on offs
 .SH Specific URL syntaxes
 .LP
 .br
-The compositor accpets any URL type supported by GPAC. It also accepts the following syntaxes for URLs:
+The compositor accepts any URL type supported by GPAC. It also accepts the following syntaxes for URLs:
 .br
 * views: creates an auto-stereo scene of N views from views://v1:.:vN. vN can be any type of URL supported by GPAC.- mosaic: creates a mosaic of N views from mosaic://v1:.:vN. vN can be any type of URL supported by GPAC.
 .br
@@ -3857,7 +3859,15 @@ If needed, one pid per TSI can be used rather than a single pid. This avoids mix
 .br
 
 .br
-On OSX with VM packet replay you will need to force multicast routing, eg: "route add -net 239.255.1.4/32 -interface vboxnet0"
+On OSX with VM packet replay you will need to force multicast routing on ATSC 3.0 base multicast
+.br
+EX: route add -net 224.0.23.60/32 -interface vboxnet0
+.br
+and on each service multicast:
+.br
+EX: route add -net 239.255.1.4/32 -interface vboxnet0
+.br
+
 .br
 
 .br
@@ -4369,7 +4379,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2666-ga8e1b8d2b-filters
+build: 0.9.0-DEV-rev2742-g73181a70c-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -244,7 +244,7 @@ void gf_node_set_private(GF_Node*n, void *udta);
 \param traverse_state opaque data passed during traversal
 \param is_destroy set when the node is about to be destroyed
 */
-typedef void (*gf_sg_node_callback)(GF_Node *node, void *traverse_state, Bool is_destroy);
+typedef void (*gf_sg_node_callback)(GF_Node *n, void *traverse_state, Bool is_destroy);
 
 /*! sets traversal callback function. If a node has no associated callback, the traversing of the
 graph won't propagate below it. It is the app responsability to setup traversing functions as needed
@@ -548,7 +548,7 @@ typedef enum
 \param node the target node for the callback
 \param ctxdata associated data, type depends on the callback type
 */
-typedef void (*gf_sg_node_init_callback)(void *user_priv, GF_SGNodeCbkType type, GF_Node *node, void *ctxdata);
+typedef void (*gf_sg_node_init_callback)(void *udta, GF_SGNodeCbkType type, GF_Node *node, void *ctxdata);
 
 /*! sets node callback: function called upon node creation.
 Application should instantiate the node rendering stack and any desired callback
