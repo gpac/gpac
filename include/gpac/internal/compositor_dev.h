@@ -2349,7 +2349,8 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
 Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
 
 /*callbacks for scene graph library so that all related ESM nodes are properly instanciated*/
-void gf_scene_node_callback(void *_is, u32 type, GF_Node *node, void *param);
+void gf_scene_node_callback(void *_is, GF_SGNodeCbkType type, GF_Node *node, void *param);
+
 
 void gf_scene_switch_quality(GF_Scene *scene, Bool up);
 

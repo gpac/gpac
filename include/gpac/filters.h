@@ -36,6 +36,7 @@ extern "C" {
 #include <gpac/user.h>
 #include <gpac/constants.h>
 #include <gpac/download.h>
+#include <gpac/main.h>
 
 //for offsetof()
 #include <stddef.h>
@@ -432,7 +433,7 @@ void gf_fs_print_connections(GF_FilterSession *session);
 \param filter_name if not null, only prints input connection for this filter register
 \param print_fn optionnal callback function for print, otherwise print to stderr
 */
-void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, void (*print_fn)(FILE *output, u32 is_first, const char *fmt, ...) );
+void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, void (*print_fn)(FILE *output, GF_SysPrintArgFlags flags, const char *fmt, ...) );
 
 /*! Checks the presence of an input capability and an output capability in a target register. The caps are matched only if they belong to the same bundle.
 \param filter_reg filter register to check
