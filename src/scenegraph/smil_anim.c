@@ -948,6 +948,8 @@ static void gf_smil_anim_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_simple_
 			case SMIL_TIMING_EVAL_DISCARD:
 				break;
 		*/
+	default:
+		break;
 	}
 }
 /**************************************************************************************

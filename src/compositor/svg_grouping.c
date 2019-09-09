@@ -1197,6 +1197,8 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 			gf_mo_restart(stack->resource);
 		}
 		break;
+	default:
+		break;
 	}
 	if (reset_target) {
 		SVGAllAttributes all_atts;
