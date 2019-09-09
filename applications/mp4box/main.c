@@ -4198,7 +4198,7 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		}
 		else if (!strcmp(argv[i], "-p")) {
-			if (i+1<argc)
+			if (i+1<(u32) argc)
 				gpac_profile = argv[i+1];
 			else {
 				fprintf(stderr, "Bad argument for -p, expecting profile name but no more args\n");

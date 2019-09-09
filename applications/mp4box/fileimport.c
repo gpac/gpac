@@ -840,7 +840,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 	check_track_for_svc = check_track_for_lhvc = check_track_for_hevc = 0;
 
-	source_magic = (u64) gf_crc_32((u8 *)inName, strlen(inName));
+	source_magic = (u64) gf_crc_32((u8 *)inName, (u32) strlen(inName));
 	if (!fsess || mux_args_if_first_pass) {
 		import.in_name = szName;
 		import.dest = dest;
