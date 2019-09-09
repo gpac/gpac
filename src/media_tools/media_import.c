@@ -1229,6 +1229,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	} else {
 		importer->update_mux_args = args;
 		args = NULL;
+		isobmff_mux = NULL;
 	}
 
 	//filter chain
