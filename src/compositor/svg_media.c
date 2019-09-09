@@ -535,6 +535,8 @@ static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 	case SMIL_TIMING_EVAL_REPEAT:
 		gf_sc_texture_restart(&stack->txh);
 		break;
+	default:
+		break;
 	}
 	if (stack->audio) svg_audio_smil_evaluate_ex(rti, normalized_scene_time, status, stack->audio, stack->txh.owner);
 }
@@ -815,6 +817,8 @@ static void svg_updates_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_sce
 		break;
 	case SMIL_TIMING_EVAL_REPEAT:
 		gf_mo_restart(stack->resource);
+		break;
+	default:
 		break;
 	}
 }
