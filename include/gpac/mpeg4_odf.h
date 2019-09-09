@@ -1030,7 +1030,7 @@ typedef struct
 	GF_List *obu_array; /*GF_AV1_OBUArrayEntry*/
 } GF_AV1Config;
 
-
+/*! max number of reference frames for VP9*/
 #define VP9_NUM_REF_FRAMES	8
 
 /*! VP8-9 config vpcC */
