@@ -18,6 +18,16 @@ Specific URLs shortcuts are available, see gpac -h compositor
 .
 .SH OPTIONS
 .TP
+.B \-mem-track
+.br
+enable memory tracker
+.br
+.TP
+.B \-mem-track-stack
+.br
+enable memory tracker with stack dumping
+.br
+.TP
 .B \-rti (string)
 .br
 log run-time info (FPS, CPU, Mem usage) to given file
@@ -105,7 +115,7 @@ shift NTP clock of the given amount of milliseconds
 .TP
 .B \-p (string)
 .br
-user-defined profile, either a name or path to an existing GPAC configuration file
+use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name 0 means a new profile, not stored to disk. Works using -p=NAME or -p NAME
 .br
 .TP
 .B \-stats
@@ -251,7 +261,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2666-ga8e1b8d2b-filters
+build: 0.9.0-DEV-rev2742-g73181a70c-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

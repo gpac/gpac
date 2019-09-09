@@ -200,7 +200,7 @@ GF_GPACArg mp4client_args[] =
 	GF_DEF_ARG("no-addon", NULL, "disable automatic loading of media addons declared in source URL", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("gui", NULL, "start in GUI mode. The GUI is indicated in the [configuration](core_config) file __[General]StartupFile__", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("ntp-shift", NULL, "shift NTP clock of the given amount of milliseconds", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("p", NULL, "user-defined profile, either a name or path to an existing [GPAC configuration file](core_config)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("p", NULL, "use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name `0` means a new profile, not stored to disk. Works using -p=NAME or -p NAME", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("stats", NULL, "dump filter session stats after playback", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("graph", NULL, "dump filter session graph after playback", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("nk", NULL, "disable keyboard interaction", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
@@ -1075,7 +1075,7 @@ int mp4client_main(int argc, char **argv)
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
 #endif
 	Bool has_command;
-	char *url_arg, *out_arg, *profile, *rti_file;
+	char *url_arg, *out_arg, *gpac_profile, *rti_file;
 	FILE *logfile = NULL;
 #ifndef WIN32
 	dlopen(NULL, RTLD_NOW|RTLD_GLOBAL);
@@ -1089,14 +1089,16 @@ int mp4client_main(int argc, char **argv)
 	memset(&user, 0, sizeof(GF_User));
 
 	has_command = GF_FALSE;
-	url_arg = out_arg = profile = rti_file = NULL;
+	url_arg = out_arg = gpac_profile = rti_file = NULL;
 
 	/*first identify profile and mem tracking */
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
 		if (!strcmp(arg, "-p")) {
-			profile = argv[i+1];
+			gpac_profile = argv[i+1];
 			i++;
+		} else if (!strncmp(arg, "-p=", 3)) {
+			gpac_profile = argv[i]+3;
 		} else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 #ifdef GPAC_MEMORY_TRACKING
             mem_track = !strcmp(arg, "-mem-track-stack") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
@@ -1124,9 +1126,9 @@ int mp4client_main(int argc, char **argv)
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
-	gf_sys_init(mem_track, profile);
+	gf_sys_init(mem_track, gpac_profile);
 #else
-	gf_sys_init(GF_MemTrackerNone, profile);
+	gf_sys_init(GF_MemTrackerNone, gpac_profile);
 #endif
 
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);

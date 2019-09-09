@@ -58,6 +58,7 @@ speed=1
 single_test_name=""
 keep_temp_dir=0
 store_video=0
+gpac_profile=""
 
 current_script=""
 
@@ -204,6 +205,7 @@ echo "  -sync-before:          syncs all remote resources with local base (warni
 echo "  -check:                check test suites (names of each test is unique)"
 echo "  -track-stack:          track stack in malloc and turns on -warn option"
 echo "  -play:                 executes playback tests (not all tests use playback tests)"
+echo "  -p=NAME:               sets execution profile of all gpac apps to NAME. Use '-p 0' to disable profiles from local storage (eg for parallel executions of test suite)"
 echo "  -test=NAME             only executes given test"
 echo "  -precommit             alias for -sync-before -git-hash -warn. Before commit/push, you should run ./make_tests -precommit"
 echo "  SCRIPTS                only runs the scripts provided as arguments, by default runs everything in $SCRIPTS_DIR"
@@ -316,6 +318,9 @@ for i in $* ; do
   ;;
  "-v")
   verbose=1;;
+ -p*)
+  gpac_profile="${i#-p=}"
+  ;;
  "-precommit")
   sync_media
   sync_hash
@@ -538,6 +543,13 @@ echo ""
 MP4BOX="MP4Box -noprog -for-test $base_args"
 GPAC="gpac $base_args -noprog -for-test -no-reassign"
 MP4CLIENT="MP4Client -noprog -strict-error $base_args"
+
+if [ "$gpac_profile" != "" ] ; then
+log $L_INF "GPAC profile: $gpac_profile"
+MP4BOX="$MP4BOX -p=$gpac_profile"
+GPAC="$GPAC -p=$gpac_profile"
+MP4CLIENT="$MP4CLIENT -p=$gpac_profile"
+fi
 
 $MP4BOX -version 2> $INTERN_TEMP_DIR/version.txt
 VERSION="`head -1 $INTERN_TEMP_DIR/version.txt | cut -d ' ' -f 5-` "

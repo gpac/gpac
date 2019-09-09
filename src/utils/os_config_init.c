@@ -505,11 +505,16 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 		sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Trying to create config file: %s\n", szPath ));
-	f = gf_fopen(szPath, "wt");
-	if (!f) return NULL;
-	gf_fclose(f);
+	if (profile && !strcmp(profile, "0")) {
+		cfg = gf_cfg_new(NULL, NULL);
+	} else {
+		f = gf_fopen(szPath, "wt");
+		if (!f) return NULL;
+		gf_fclose(f);
 
-	cfg = gf_cfg_new(NULL, szPath);
+		cfg = gf_cfg_new(NULL, szPath);
+	}
+
 	if (!cfg) return NULL;
 	strcpy(szProfilePath, szPath);
 
@@ -633,6 +638,13 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 		}
 	}
 
+	if (profile && !strcmp(profile, "0")) {
+		GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName);
+		sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
+		gf_cfg_set_filename(cfg, szPath);
+		gf_cfg_discard_changes(cfg);
+		return cfg;
+	}
 	/*store and reload*/
 	strcpy(szPath, gf_cfg_get_filename(cfg));
 	gf_cfg_del(cfg);
@@ -767,7 +779,9 @@ static GF_Config *gf_cfg_init(const char *profile)
 
 	cfg = gf_cfg_new(szPath, CFG_FILE_NAME);
 	if (!cfg) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("GPAC config file %s not found in %s - creating new file\n", CFG_FILE_NAME, szPath ));
+		if (strcmp(profile, "0")) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("GPAC config file %s not found in %s - creating new file\n", CFG_FILE_NAME, szPath ));
+		}
 		cfg = create_default_config(szPath, profile);
 	}
 	if (!cfg) {
@@ -1052,7 +1066,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("glfbo-txid", NULL, "set output texture ID when using `glfbo` output. The OpenGL context shall be initialized and gf_term_process shall be called with the OpenGL context active", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("video-output", NULL, "indicate the name of the video output module to use (see `gpac -h modules`)."
  	" The reserved name `glfbo` is used in player mode to draw in the openGL texture identified by [-glfbo-txid](). "
- 	" In this mode, the application is responsible for sending event to the terminal."
+ 	" In this mode, the application is responsible for sending event to the terminal"
  , NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("audio-output", NULL, "indicate the name of the audio output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("alsa-devname", NULL, "set ALSA dev name", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_AUDIO),

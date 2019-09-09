@@ -16,6 +16,16 @@ boolean values do not need any value specified. Other types shall be formatted a
 
 .br
 .TP
+.B \-mem-track
+.br
+enable memory tracker
+.br
+.TP
+.B \-mem-track-stack
+.br
+enable memory tracker with stack dumping
+.br
+.TP
 .B \-ltf
 .br
 load test-unit filters (used for for unit tests only)
@@ -119,7 +129,7 @@ print help. Use help/-h for basic options, -ha for advanced options, -hx for exp
 .TP
 .B \-p (string)
 .br
-use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there
+use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name 0 means a new profile, not stored to disk
 .br
 .TP
 .B \-alias (string)
@@ -702,9 +712,14 @@ use defer rendering for SDL
 disable color keying at the video output level
 .br
 .TP
+.B \-glfbo-txid (int)
+.br
+set output texture ID when using glfbo output. The OpenGL context shall be initialized and gf_term_process shall be called with the OpenGL context active
+.br
+.TP
 .B \-video-output (string)
 .br
-indicate the name of the video output module to use
+indicate the name of the video output module to use (see gpac -h modules). The reserved name glfbo is used in player mode to draw in the openGL texture identified by -glfbo-txid.  In this mode, the application is responsible for sending event to the terminal
 .br
 .TP
 .B \-audio-output (string)
@@ -2273,6 +2288,11 @@ Indicate start and end position in bytes of sidx if packet is a fragment or segm
 .br
 Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionally sidx)
 .br
+.TP
+.B RawGrab (PGRB,boolean,D )
+.br
+Indicate PID is a raw media grabber (webcam, microphone, etc...)
+.br
 .SH Pixel formats
 .LP
 .br
@@ -2532,7 +2552,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2666-ga8e1b8d2b-filters
+build: 0.9.0-DEV-rev2742-g73181a70c-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
