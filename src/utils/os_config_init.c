@@ -753,6 +753,9 @@ static GF_Config *gf_cfg_init(const char *profile)
 	GF_Config *cfg;
 	char szPath[GF_MAX_PATH];
 
+	if (profile && !strlen(profile))
+		profile = "0";
+		
 	if (profile && (strchr(profile, '/') || strchr(profile, '\\')) ) {
 		if (!gf_file_exists(profile)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Config file %s does not exist\n", profile));
