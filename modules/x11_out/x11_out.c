@@ -25,7 +25,7 @@
 
 #include "x11_out.h"
 #include <gpac/constants.h>
-#include <gpac/unicode.h>
+#include <gpac/utf.h>
 #include <gpac/user.h>
 #include <sys/time.h>
 #include <X11/XKBlib.h>
