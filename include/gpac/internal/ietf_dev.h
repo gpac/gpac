@@ -325,6 +325,104 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess);
 GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent);
 
 
+
+
+
+/*
+		RTP -> SL packetization tool
+	You should ONLY modify the GF_SLHeader while packetizing, all the rest is private
+	to the tool.
+	Also note that AU start/end is automatically updated, therefore you should only
+	set CTS-DTS-OCR-sequenceNumber (which is automatically incremented when splitting a payload)
+	-padding-idle infos
+	SL flags are computed on the fly, but you may wish to modify them in case of
+	packet drop/... at the encoder side
+
+*/
+struct __tag_rtp_packetizer
+{
+	/*input packet sl header cfg. modify only if needed*/
+	GF_SLHeader sl_header;
+	u32 nb_aus;
+	/*
+
+		PRIVATE _ DO NOT TOUCH
+	*/
+
+//! @cond Doxygen_Suppress
+
+	/*RTP payload type (RFC type, NOT the RTP hdr payT)*/
+	u32 rtp_payt;
+	/*packetization flags*/
+	u32 flags;
+	/*Path MTU size without 12-bytes RTP header*/
+	u32 Path_MTU;
+	/*max packet duration in RTP TS*/
+	u32 max_ptime;
+
+	/*payload type of RTP packets - only one payload type can be used in GPAC*/
+	u8 PayloadType;
+
+	/*RTP header of current packet*/
+	GF_RTPHeader rtp_header;
+
+	/*RTP packet handling callbacks*/
+	void (*OnNewPacket)(void *cbk_obj, GF_RTPHeader *header);
+	void (*OnPacketDone)(void *cbk_obj, GF_RTPHeader *header);
+	void (*OnDataReference)(void *cbk_obj, u32 payload_size, u32 offset_from_orig);
+	void (*OnData)(void *cbk_obj, u8 *data, u32 data_size, Bool is_header);
+	void *cbk_obj;
+
+	/*********************************
+		MPEG-4 Generic hinting
+	*********************************/
+
+	/*SL to RTP map*/
+	GP_RTPSLMap slMap;
+	/*SL conf and state*/
+	GF_SLConfig sl_config;
+
+	/*set to 1 if firstSL in RTP packet*/
+	Bool first_sl_in_rtp;
+	Bool has_AU_header;
+	/*current info writers*/
+	GF_BitStream *pck_hdr, *payload;
+
+	/*AU SN of last au*/
+	u32 last_au_sn;
+
+	/*info for the current packet*/
+	u32 auh_size, bytesInPacket;
+
+	/*********************************
+			ISMACryp info
+	*********************************/
+	Bool force_flush, is_encrypted;
+	u64 IV, first_AU_IV;
+	char *key_indicator;
+
+	/*********************************
+			AVC-H264 info
+	*********************************/
+	/*AVC non-IDR flag: set if all NAL in current packet are non-IDR (disposable)*/
+	Bool avc_non_idr;
+
+	/*********************************
+			AC3 info
+	*********************************/
+	/*ac3 ft flags*/
+	u8 ac3_ft;
+
+	/*********************************
+			HEVC-H265 info
+	*********************************/
+	/*HEVC Payload Header. It will be use in case of Aggreation Packet where we must add payload header for packet after having added of NALU to AP*/
+	char hevc_payload_hdr[2];
+
+//! @endcond
+
+};
+
 /*packetization routines*/
 GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
@@ -340,6 +438,66 @@ GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, u8 *data, u32 data_size,
 GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration);
 GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+
+/*! RTP depacketization tool*/
+struct __tag_rtp_depacketizer
+{
+	/*! depacketize routine*/
+	void (*depacketize)(struct __tag_rtp_depacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size);
+
+	/*! output packet sl header cfg*/
+	GF_SLHeader sl_hdr;
+
+	/*! RTP payload type (RFC type, NOT the RTP hdr payT)*/
+	u32 payt;
+	/*! depacketization flags*/
+	u32 flags;
+
+	//! RTP static map may be NULL
+	const GF_RTPStaticMap *static_map;
+
+	/*! callback routine*/
+	gf_rtp_packet_cbk on_sl_packet;
+	/*! callback udta*/
+	void *udta;
+
+	/*! SL <-> RTP map*/
+	GP_RTPSLMap sl_map;
+	/*! RTP clock rate*/
+	u32 clock_rate;
+
+	//! clip rect X
+	u32 x;
+	//! clip rect Y
+	u32 y;
+	//! clip rect or full size width
+	u32 w;
+	//! clip rect or full size height
+	u32 h;
+
+	/*! inter-packet reconstruction bitstream (for 3GP text and H264)*/
+	GF_BitStream *inter_bs;
+
+	/*! H264/AVC config*/
+	u32 h264_pck_mode;
+
+	/*3GP text reassembler state*/
+	/*! number of 3GPP text fragments*/
+	u8 nb_txt_frag;
+	/*! current 3GPP text fragments*/
+	u8 cur_txt_frag;
+	/*! current 3GPP text sample desc index*/
+	u8 sidx;
+	/*! 3GPP text total sample text len*/
+	u8 txt_len;
+	/*! number of 3GPP text modifiers*/
+	u8 nb_mod_frag;
+
+	/*! ISMACryp scheme*/
+	u32 isma_scheme;
+	/*! ISMACryp key*/
+	char *key;
+};
 
 #endif /*GPAC_DISABLE_STREAMING*/
 
