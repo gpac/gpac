@@ -923,7 +923,7 @@ static void gf_smil_anim_remove(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 	}
 }
 
-static void gf_smil_anim_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_simple_time, u32 state)
+static void gf_smil_anim_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_simple_time, GF_SGSMILTimingEvalState state)
 {
 	SMIL_Anim_RTI *rai = rti->rai;
 	switch (state) {

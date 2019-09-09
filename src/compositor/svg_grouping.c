@@ -1164,7 +1164,7 @@ static void svg_animation_smil_update(GF_Node *node, SVGlinkStack *stack, Fixed 
 	}
 }
 
-static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
+static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, GF_SGSMILTimingEvalState status)
 {
 	Bool reset_target = GF_FALSE;
 	GF_Node *node = gf_smil_get_element(rti);

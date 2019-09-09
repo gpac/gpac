@@ -28,7 +28,7 @@
 
 #ifndef GPAC_DISABLE_SVG
 
-static void gf_smil_timing_null_timed_function(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 state)
+static void gf_smil_timing_null_timed_function(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, GF_SGSMILTimingEvalState state)
 {
 }
 

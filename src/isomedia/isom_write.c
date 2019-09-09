@@ -30,7 +30,7 @@
 
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)
 
-GF_Err CanAccessMovie(GF_ISOFile *movie, u32 Mode)
+GF_Err CanAccessMovie(GF_ISOFile *movie, GF_ISOOpenMode Mode)
 {
 	if (!movie) return GF_BAD_PARAM;
 	if (movie->openMode < Mode) return GF_ISOM_INVALID_MODE;

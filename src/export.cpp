@@ -67,7 +67,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_process_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_console_code) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_use_color) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sys_logs_to_file) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_log_use_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_format_help) )
 
 
@@ -926,7 +926,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_modify_edit) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_append_edit) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_edit) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_edit) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_edits) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_update_edit_list_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_media_language) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_handler_name) )
@@ -1660,7 +1660,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_event_out) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_event_out_str) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_vrml_get_event_type_name) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sg_vrml_get_field_type_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_vrml_field_pointer_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_vrml_field_pointer_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_vrml_is_sf_field) )
@@ -1716,6 +1715,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_set_proto_loader) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_sfcolor_to_rgba) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_in_table_by_tag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sg_vrml_get_field_type_name) )
+
 #ifdef GPAC_HAS_SPIDERMONKEY
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_vrml_flush_event_out) )
 #endif

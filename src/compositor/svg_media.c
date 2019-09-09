@@ -508,7 +508,7 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 	}
 }
 
-static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
+static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, GF_SGSMILTimingEvalState status)
 {
 	SVG_video_stack *stack = (SVG_video_stack *)gf_node_get_private(gf_smil_get_element(rti));
 
@@ -668,7 +668,7 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 	}
 }
 
-static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
+static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, GF_SGSMILTimingEvalState status)
 {
 	svg_audio_smil_evaluate_ex(rti, normalized_scene_time, status, NULL, NULL);
 }
@@ -792,7 +792,7 @@ typedef struct
 	Double clipBegin, clipEnd;
 } SVG_updates_stack;
 
-static void svg_updates_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
+static void svg_updates_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, GF_SGSMILTimingEvalState status)
 {
 	SVG_updates_stack *stack = (SVG_updates_stack *)gf_node_get_private(gf_smil_get_element(rti));
 

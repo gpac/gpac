@@ -2181,7 +2181,7 @@ Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt)
 }
 
 GF_EXPORT
-void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, void (*print_fn)(FILE *output, u32 is_first, const char *fmt, ...) )
+void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, void (*print_fn)(FILE *output, GF_SysPrintArgFlags flags, const char *fmt, ...) )
 {
 	Bool found = GF_FALSE;
 	GF_List *done = gf_list_new();
