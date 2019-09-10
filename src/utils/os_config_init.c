@@ -755,7 +755,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 
 	if (profile && !strlen(profile))
 		profile = "0";
-		
+
 	if (profile && (strchr(profile, '/') || strchr(profile, '\\')) ) {
 		if (!gf_file_exists(profile)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Config file %s does not exist\n", profile));
@@ -782,7 +782,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 
 	cfg = gf_cfg_new(szPath, CFG_FILE_NAME);
 	if (!cfg) {
-		if (strcmp(profile, "0")) {
+		if (!profile || strcmp(profile, "0")) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("GPAC config file %s not found in %s - creating new file\n", CFG_FILE_NAME, szPath ));
 		}
 		cfg = create_default_config(szPath, profile);
