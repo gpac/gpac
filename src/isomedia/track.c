@@ -415,21 +415,46 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
+GF_TrunEntry *traf_get_sample_entry(GF_TrackFragmentBox *traf, u32 sample_index)
+{
+	u32 i, idx;
+	GF_TrackFragmentRunBox *trun;
+	idx=0;
+	i=0;
+	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
+		u32 j;
+		for (j=0; j<trun->sample_count; j++) {
+			GF_TrunEntry *ent = gf_list_get(trun->entries, j);
+			if (idx==sample_index) return ent;
+			if (ent->nb_pack>1) {
+				if (idx < sample_index + ent->nb_pack)
+					return ent;
+				idx += ent->nb_pack;
+			} else {
+				idx++;
+			}
+		}
+	}
+	return NULL;
+}
+
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof_box, u64 moof_offset, u64 *cumulated_offset, Bool is_first_merge)
 {
 	u32 i, j, chunk_size, track_num;
 	u64 base_offset, data_offset, traf_duration;
 	u32 def_duration, DescIndex, def_size, def_flags;
-	u32 duration, size, flags, cts_offset, prev_trun_data_offset;
+	u32 duration, size, flags, prev_trun_data_offset, sample_index;
 	u8 pad, sync;
 	u16 degr;
 	Bool first_samp_in_traf=GF_TRUE;
+	Bool store_traf_map=GF_FALSE;
 	u8 *moof_template=NULL;
 	u32 moof_template_size=0;
 	Bool is_seg_start = GF_FALSE;
 	u64 seg_start=0, sidx_start=0, sidx_end=0, frag_start=0;
 	GF_TrackFragmentRunBox *trun;
 	GF_TrunEntry *ent;
+	GF_TrackFragmentBox *traf_ref = NULL;
 
 	void stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration, u32 nb_pack);
 	void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack);
@@ -447,6 +472,16 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	if (!DescIndex) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] default sample description set to 0, likely broken ! Fixing to 1\n" ));
 		DescIndex = 1;
+	}
+	if (traf->trex->inherit_from_traf_id) {
+		u32 traf_count = gf_list_count(moof_box->TrackList);
+		for (i=0; i<traf_count; i++) {
+			GF_TrackFragmentBox *atraf = gf_list_get(moof_box->TrackList, i);
+			if (atraf->tfhd && atraf->tfhd->trackID==traf->trex->inherit_from_traf_id) {
+				traf_ref = atraf;
+				break;
+			}
+		}
 	}
 
 	def_duration = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_DUR) ? traf->tfhd->def_sample_duration : traf->trex->def_sample_duration;
@@ -484,6 +519,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	}
 
 	if (trak->moov->mov->signal_frag_bounds) {
+		store_traf_map = GF_TRUE;
 		if (is_first_merge) {
 			GF_MovieFragmentBox *moof_clone = NULL;
 			gf_isom_box_freeze_order((GF_Box *)moof_box);
@@ -543,12 +579,17 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		}
 		frag_start = trak->moov->mov->current_top_box_start;
 	}
+	else if (trak->moov->mov->store_traf_map) {
+		store_traf_map = GF_TRUE;
+	}
 
-	
+
+	sample_index = 0;
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
 		//merge the run
 		for (j=0; j<trun->sample_count; j++) {
+			s32 cts_offset=0;
 			ent = (GF_TrunEntry*)gf_list_get(trun->entries, j);
 
 			if (!ent) {
@@ -559,13 +600,57 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			duration = def_duration;
 			flags = def_flags;
 
-			if (trun->flags & GF_ISOM_TRUN_DURATION) duration = ent->Duration;
-			if (trun->flags & GF_ISOM_TRUN_SIZE) size = ent->size;
-			if (trun->flags & GF_ISOM_TRUN_FLAGS) {
-				flags = ent->flags;
-			} else if (!j && (trun->flags & GF_ISOM_TRUN_FIRST_FLAG)) {
-				flags = trun->first_sample_flags;
+			//CTS - if flag not set (trun or ctrn) defaults to 0 which is the base value after alloc
+			//we just need to overrite its value if inherited
+			cts_offset = ent->CTS_Offset;
+
+			if (trun->use_ctrn) {
+				if (!j && (trun->ctrn_flags & GF_ISOM_CTRN_FIRST_SAMPLE) ) {
+					if (trun->ctrn_first_dur) duration = ent->Duration;
+					if (trun->ctrn_first_size) size = ent->size;
+					if (trun->ctrn_first_ctts) flags = ent->flags;
+				} else {
+					if (trun->ctrn_dur) duration = ent->Duration;
+					if (trun->ctrn_size) size = ent->size;
+					if (trun->ctrn_sample_flags) flags = ent->flags;
+				}
+				/*re-override*/
+				if (trun->ctrn_flags & 0xF0) {
+					GF_TrunEntry *ref_entry;
+					if (!traf_ref) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Track %d use traf inheritance to track ID %d but reference traf not found\n", traf->trex->trackID, traf->trex->inherit_from_traf_id ));
+						break;
+					}
+					ref_entry = traf_get_sample_entry(traf_ref, sample_index);
+					if (!ref_entry) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Track %d use traf inheritance but sample %d not found in reference traf\n", traf->trex->trackID, sample_index+1 ));
+						break;
+					}
+					if (trun->ctrn_flags & GF_ISOM_CTRN_INHERIT_DUR)
+						duration = ref_entry->Duration;
+					if (trun->ctrn_flags & GF_ISOM_CTRN_INHERIT_SIZE)
+						size = ref_entry->size;
+					if (trun->ctrn_flags & GF_ISOM_CTRN_INHERIT_FLAGS)
+						flags = ref_entry->flags;
+					if (trun->ctrn_flags & GF_ISOM_CTRN_INHERIT_CTSO)
+						cts_offset = ref_entry->CTS_Offset;
+				}
+
+			} else {
+				if (trun->flags & GF_ISOM_TRUN_DURATION) duration = ent->Duration;
+				if (trun->flags & GF_ISOM_TRUN_SIZE) size = ent->size;
+				if (trun->flags & GF_ISOM_TRUN_FLAGS) {
+					flags = ent->flags;
+				} else if (!j && (trun->flags & GF_ISOM_TRUN_FIRST_FLAG)) {
+					flags = trun->first_sample_flags;
+				}
 			}
+			sample_index++;
+			/*store the resolved value in case we have inheritance*/
+			ent->size = size;
+			ent->Duration = duration;
+			ent->flags = flags;
+			ent->CTS_Offset = cts_offset;
 
 			//add size first
 			stbl_AppendSize(trak->Media->information->sampleTable, size, ent->nb_pack);
@@ -599,7 +684,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			}
 			chunk_size += size;
 
-			if (first_samp_in_traf) {
+			if (store_traf_map && first_samp_in_traf) {
 				first_samp_in_traf = GF_FALSE;
 				stbl_AppendTrafMap(trak->Media->information->sampleTable, is_seg_start, seg_start, frag_start, moof_template, moof_template_size, sidx_start, sidx_end);
 				//do not deallocate, the memory is now owned by traf map
@@ -614,8 +699,6 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 
 			traf_duration += duration;
 
-			//CTS
-			cts_offset = (trun->flags & GF_ISOM_TRUN_CTS_OFFSET) ? ent->CTS_Offset : 0;
 			stbl_AppendCTSOffset(trak->Media->information->sampleTable, cts_offset);
 
 			//flags

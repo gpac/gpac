@@ -1050,6 +1050,7 @@ static struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_TRAF, traf, "moof"),
 	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_TFHD, tfhd, "traf", 0, 0x000001|0x000002|0x000008|0x000010|0x000020|0x010000|0x020000),
 	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_TRUN, trun, "traf", 0, 0x000001|0x000004|0x000100|0x000200|0x000400|0x000800),
+	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_CTRN, trun, "traf", 0, 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TFDT, tfdt, "traf", 1),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_STYP, ftyp, "file"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PRFT, prft, "file", 1),
@@ -1544,16 +1545,18 @@ GF_EXPORT
 void gf_isom_box_del(GF_Box *a)
 {
 	GF_List *child_boxes;
+	const struct box_registry_entry *box_registry;
 	if (!a) return;
 
 	child_boxes	= a->child_boxes;
 	a->child_boxes = NULL;
 
-	if (!a->registry) {
+	box_registry = a->registry;
+	if (!box_registry) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Delete invalid box type %s without registry\n", gf_4cc_to_str(a->type) ));
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Delete box type %s\n", gf_4cc_to_str(a->type) ));
-		a->registry->del_fn(a);
+		box_registry->del_fn(a);
 	}
 	//delet the other boxes after deleting the box for dumper case where all child boxes are stored in otherbox
 	if (child_boxes) {

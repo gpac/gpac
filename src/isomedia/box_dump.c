@@ -2291,11 +2291,19 @@ GF_Err traf_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-static void frag_dump_sample_flags(FILE * trace, u32 flags)
+static void frag_dump_sample_flags(FILE * trace, u32 flags, u32 field_idx)
 {
-	fprintf(trace, " SamplePadding=\"%d\" Sync=\"%d\" DegradationPriority=\"%d\" IsLeading=\"%d\" DependsOn=\"%d\" IsDependedOn=\"%d\" HasRedundancy=\"%d\"",
+	if (!field_idx) return;
+	if (field_idx==1) {
+		fprintf(trace, " IsLeading=\"%d\" DependsOn=\"%d\"", GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags));
+	} else if (field_idx==2) {
+		fprintf(trace, " IsLeading=\"%d\" DependsOn=\"%d\" IsDependedOn=\"%d\" HasRedundancy=\"%d\" SamplePadding=\"%d\" Sync=\"%d\"",
+	        GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags), GF_ISOM_GET_FRAG_PAD(flags), GF_ISOM_GET_FRAG_SYNC(flags));
+	} else {
+		fprintf(trace, " SamplePadding=\"%d\" Sync=\"%d\" DegradationPriority=\"%d\" IsLeading=\"%d\" DependsOn=\"%d\" IsDependedOn=\"%d\" HasRedundancy=\"%d\"",
 	        GF_ISOM_GET_FRAG_PAD(flags), GF_ISOM_GET_FRAG_SYNC(flags), GF_ISOM_GET_FRAG_DEG(flags),
 	        GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
+	}
 }
 
 GF_Err tfhd_box_dump(GF_Box *a, FILE * trace)
@@ -2319,7 +2327,7 @@ GF_Err tfhd_box_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, " SampleSize=\"%u\"", p->def_sample_size);
 
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_FLAGS) {
-		frag_dump_sample_flags(trace, p->def_sample_flags);
+		frag_dump_sample_flags(trace, p->def_sample_flags, 3);
 	}
 
 	fprintf(trace, ">\n");
@@ -2341,42 +2349,111 @@ GF_Err tfxd_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 {
-	u32 i;
+	u32 i, flags;
+	Bool full_dump = GF_FALSE;
 	GF_TrackFragmentRunBox *p;
 
 	p = (GF_TrackFragmentRunBox *)a;
-	gf_isom_box_dump_start(a, "TrackRunBox", trace);
+	flags = p->flags;
+	p->flags = p->ctrn_flags;
+	gf_isom_box_dump_start(a, p->use_ctrn ? "CompactTrackRunBox" : "TrackRunBox", trace);
+	p->flags = flags;
 	fprintf(trace, "SampleCount=\"%d\"", p->sample_count);
 
 	if (p->flags & GF_ISOM_TRUN_DATA_OFFSET)
 		fprintf(trace, " DataOffset=\"%d\"", p->data_offset);
-	fprintf(trace, ">\n");
 
-	if (p->flags & GF_ISOM_TRUN_FIRST_FLAG) {
-		sample_flags_dump("FirstSampleFlags", p->first_sample_flags, trace);
+	if (p->use_ctrn) {
+		if (p->ctrn_flags & GF_ISOM_CTRN_DATAOFFSET_16)
+			fprintf(trace, " dataOffset16Bits=\"yes\"");
+
+		if (p->ctso_multiplier)
+			fprintf(trace, " ctsoMultiplier=\"%d\"", p->ctso_multiplier);
+
+		if (p->ctrn_flags & GF_ISOM_CTRN_INHERIT_DUR)
+			fprintf(trace, " inheritDuration=\"yes\"");
+		if (p->ctrn_flags & GF_ISOM_CTRN_INHERIT_SIZE)
+			fprintf(trace, " inheritSize=\"yes\"");
+		if (p->ctrn_flags & GF_ISOM_CTRN_INHERIT_FLAGS)
+			fprintf(trace, " inheritFlags=\"yes\"");
+		if (p->ctrn_flags & GF_ISOM_CTRN_INHERIT_CTSO)
+			fprintf(trace, " inheritCTSOffset=\"yes\"");
+
+		fprintf(trace, " firstSampleDurationBits=\"%d\"", gf_isom_ctrn_field_size_bits(p->ctrn_first_dur));
+		fprintf(trace, " firstSampleSizeBits=\"%d\"", gf_isom_ctrn_field_size_bits(p->ctrn_first_size));
+		fprintf(trace, " firstSampleFlagsBits=\"%d\"", gf_isom_ctrn_field_size_bits(p->ctrn_first_sample_flags));
+		fprintf(trace, " firstSampleCTSOBits=\"%d\"", gf_isom_ctrn_field_size_bits(p->ctrn_first_ctts));
+		fprintf(trace, " sampleDurationBits=\"%d\"", gf_isom_ctrn_field_size_bits(p->ctrn_dur));
+		fprintf(trace, " sampleSizeBits=\"%d\"", gf_isom_ctrn_field_size_bits(p->ctrn_size));
+		fprintf(trace, " sampleFlagsBits=\"%d\"", gf_isom_ctrn_field_size_bits(p->ctrn_sample_flags));
+		fprintf(trace, " sampleCTSOBits=\"%d\"", gf_isom_ctrn_field_size_bits(p->ctrn_ctts));
+		if (p->ctrn_flags & 0x00FFFF00)
+			full_dump = GF_TRUE;
+
+		fprintf(trace, ">\n");
+	} else {
+		fprintf(trace, ">\n");
+
+		if (p->flags & GF_ISOM_TRUN_FIRST_FLAG) {
+			sample_flags_dump("FirstSampleFlags", p->first_sample_flags, trace);
+		}
+		if (p->flags & (GF_ISOM_TRUN_DURATION|GF_ISOM_TRUN_SIZE|GF_ISOM_TRUN_CTS_OFFSET|GF_ISOM_TRUN_FLAGS)) {
+			full_dump = GF_TRUE;
+		}
 	}
 
-	if (p->flags & (GF_ISOM_TRUN_DURATION|GF_ISOM_TRUN_SIZE|GF_ISOM_TRUN_CTS_OFFSET|GF_ISOM_TRUN_FLAGS)) {
+	if (full_dump) {
 		GF_TrunEntry *ent;
 		i=0;
 		while ((ent = (GF_TrunEntry *)gf_list_enum(p->entries, &i))) {
 
 			fprintf(trace, "<TrackRunEntry");
 
-			if (p->flags & GF_ISOM_TRUN_DURATION)
-				fprintf(trace, " Duration=\"%u\"", ent->Duration);
-			if (p->flags & GF_ISOM_TRUN_SIZE)
-				fprintf(trace, " Size=\"%u\"", ent->size);
-			if (p->flags & GF_ISOM_TRUN_CTS_OFFSET)
-			{
-				if (p->version == 0)
-					fprintf(trace, " CTSOffset=\"%u\"", (u32) ent->CTS_Offset);
-				else
-					fprintf(trace, " CTSOffset=\"%d\"", ent->CTS_Offset);
-			}
+			if (p->use_ctrn) {
+				if ((i==1) && (p->ctrn_flags&GF_ISOM_CTRN_FIRST_SAMPLE) ) {
+					if (p->ctrn_first_dur)
+						fprintf(trace, " Duration=\"%u\"", ent->Duration);
+					if (p->ctrn_first_size)
+						fprintf(trace, " Size=\"%u\"", ent->size);
+					if (p->ctrn_first_ctts) {
+						if (p->version == 0)
+							fprintf(trace, " CTSOffset=\"%u\"", (u32) ent->CTS_Offset);
+						else
+							fprintf(trace, " CTSOffset=\"%d\"", ent->CTS_Offset);
+					}
+					if (p->ctrn_first_sample_flags)
+						frag_dump_sample_flags(trace, ent->flags, p->ctrn_first_sample_flags);
+				} else {
+					if (p->ctrn_dur)
+						fprintf(trace, " Duration=\"%u\"", ent->Duration);
+					if (p->ctrn_size)
+						fprintf(trace, " Size=\"%u\"", ent->size);
+					if (p->ctrn_ctts) {
+						if (p->version == 0)
+							fprintf(trace, " CTSOffset=\"%u\"", (u32) ent->CTS_Offset);
+						else
+							fprintf(trace, " CTSOffset=\"%d\"", ent->CTS_Offset);
+					}
+					if (p->ctrn_sample_flags)
+						frag_dump_sample_flags(trace, ent->flags, p->ctrn_sample_flags);
+				}
+			} else {
 
-			if (p->flags & GF_ISOM_TRUN_FLAGS) {
-				frag_dump_sample_flags(trace, ent->flags);
+				if (p->flags & GF_ISOM_TRUN_DURATION)
+					fprintf(trace, " Duration=\"%u\"", ent->Duration);
+				if (p->flags & GF_ISOM_TRUN_SIZE)
+					fprintf(trace, " Size=\"%u\"", ent->size);
+				if (p->flags & GF_ISOM_TRUN_CTS_OFFSET)
+				{
+					if (p->version == 0)
+						fprintf(trace, " CTSOffset=\"%u\"", (u32) ent->CTS_Offset);
+					else
+						fprintf(trace, " CTSOffset=\"%d\"", ent->CTS_Offset);
+				}
+
+				if (p->flags & GF_ISOM_TRUN_FLAGS) {
+					frag_dump_sample_flags(trace, ent->flags, 3);
+				}
 			}
 			fprintf(trace, "/>\n");
 		}
@@ -2384,11 +2461,11 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<!-- all default values used -->\n");
 	} else {
 		fprintf(trace, "<TrackRunEntry Duration=\"\" Size=\"\" CTSOffset=\"\"");
-		frag_dump_sample_flags(trace, 0);
+		frag_dump_sample_flags(trace, 0, 3);
 		fprintf(trace, "/>\n");
 	}
 
-	gf_isom_box_dump_done("TrackRunBox", a, trace);
+	gf_isom_box_dump_done(p->use_ctrn ? "CompactTrackRunBox" : "TrackRunBox", a, trace);
 	return GF_OK;
 }
 

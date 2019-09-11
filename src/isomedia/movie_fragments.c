@@ -293,6 +293,28 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, GF_ISOTrackID TrackID,
 }
 
 GF_EXPORT
+GF_Err gf_isom_enable_traf_inherit(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_ISOTrackID BaseTrackID)
+{
+	GF_TrackBox *trak;
+	GF_TrackExtendsBox *trex;
+	GF_Err e=GF_OK;
+	u32 track_num;
+	if (!movie || !TrackID || !BaseTrackID)
+		return GF_BAD_PARAM;
+	trak = gf_isom_get_track_from_id(movie->moov, TrackID);
+	if (!trak) return GF_BAD_PARAM;
+	track_num = 1 + gf_list_find(movie->moov->trackList, trak);
+
+	e = gf_isom_set_track_reference(movie, track_num, GF_ISOM_REF_TRIN, BaseTrackID);
+	if (e) return e;
+
+	trex = GetTrex(movie->moov, TrackID);
+	if (!trex) return GF_BAD_PARAM;
+	trex->inherit_from_traf_id = BaseTrackID;
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *movie, GF_ISOTrackID TrackID, u8 *boxes, u32 boxes_size, u8 force_traf_flags)
 {
 	GF_MovieExtendsBox *mvex;
@@ -2119,12 +2141,15 @@ GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, GF_ISOTrackID reference_t
 }
 
 GF_EXPORT
-GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
+GF_Err gf_isom_start_fragment(GF_ISOFile *movie, GF_ISOStartFragmentFlags flags)
 {
 	u32 i, count;
 	GF_TrackExtendsBox *trex;
 	GF_TrackFragmentBox *traf;
 	GF_Err e;
+	Bool moof_first = flags & GF_ISOM_FRAG_MOOF_FIRST ? GF_TRUE : GF_FALSE;
+	Bool use_ctrn = flags & GF_ISOM_FRAG_USE_COMPACT ? GF_TRUE : GF_FALSE;
+
 	//and only at setup
 	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) )
 		return GF_BAD_PARAM;
@@ -2169,6 +2194,9 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 		traf->tfhd->trackID = trex->trackID;
 		//add 8 bytes (MDAT size+type) to avoid the data_offset in the first trun
 		traf->tfhd->base_data_offset = movie->moof->fragment_offset + 8;
+		traf->use_ctrn = use_ctrn;
+		if (trex->inherit_from_traf_id)
+			traf->use_inherit = GF_TRUE;
 		gf_list_add(movie->moof->TrackList, traf);
 
 		if (movie->mfra) {
@@ -2378,7 +2406,10 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 		//store data offset (we have the 8 btyes offset of the MDAT)
 		trun->data_offset = (u32) (pos - movie->moof->fragment_offset - 8);
 		gf_list_add(traf->TrackRuns, trun);
-
+		trun->use_ctrn = traf->use_ctrn;
+		trun->use_inherit = traf->use_inherit;
+		trun->ctso_multiplier = traf->trex->def_sample_duration;
+		
 		//if we use data caching, create a bitstream
 		if (traf->DataCache)
 			trun->cache = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -2879,7 +2910,7 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *the_file, GF_ISOTrackID TrackID, 
 	return GF_NOT_SUPPORTED;
 }
 
-GF_Err gf_isom_start_fragment(GF_ISOFile *the_file, u32 free_data_insert_size)
+GF_Err gf_isom_start_fragment(GF_ISOFile *the_file, GF_ISOStartFragmentFlags flags)
 {
 	return GF_NOT_SUPPORTED;
 }

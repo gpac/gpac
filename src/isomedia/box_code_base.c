@@ -6909,11 +6909,151 @@ void trun_box_del(GF_Box *s)
 	gf_free(ptr);
 }
 
+static u32 ctrn_field_size(u32 field_idx)
+{
+	if (field_idx==3) return 4;
+	return field_idx;
+}
+
+u32 gf_isom_ctrn_field_size_bits(u32 field_idx)
+{
+	if (field_idx==3) return 32;
+	return field_idx*8;
+}
+static u32 ctrn_read_flags(GF_BitStream *bs, u32 nbbits)
+{
+	u32 val = gf_bs_read_int(bs, nbbits);
+	if (nbbits==16) val <<= 16;
+	else if (nbbits==8) val <<= 24;
+	return val;
+}
+
+static GF_Err ctrn_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i, count, flags, first_idx=0;
+	Bool inherit_dur, inherit_size, inherit_flags, inherit_ctso;
+	GF_TrunEntry *ent;
+	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
+	flags = ptr->flags;
+	ptr->ctrn_flags = flags;
+	ptr->flags = 0;
+
+	ptr->sample_count = gf_bs_read_u16(bs);
+	ISOM_DECREASE_SIZE(ptr, 2);
+
+	if (flags & GF_ISOM_TRUN_DATA_OFFSET) {
+		if (flags & GF_ISOM_CTRN_DATAOFFSET_16) {
+			ptr->data_offset = gf_bs_read_u16(bs);
+			ISOM_DECREASE_SIZE(ptr, 2);
+		} else {
+			ptr->data_offset = gf_bs_read_u32(bs);
+			ISOM_DECREASE_SIZE(ptr, 4);
+		}
+		ptr->flags |= GF_ISOM_TRUN_DATA_OFFSET;
+	}
+	if (flags & GF_ISOM_CTRN_CTSO_MULTIPLIER) {
+		ptr->ctso_multiplier = gf_bs_read_u16(bs);
+		ISOM_DECREASE_SIZE(ptr, 2);
+	}
+	/*no sample dur/sample_flag/size/ctso for first or following, create a pack sample */
+	if (! (flags & 0x00FFFF00)) {
+		GF_SAFEALLOC(ent, GF_TrunEntry);
+		ent->nb_pack = ptr->sample_count;
+		gf_list_add(ptr->entries, ent);
+		return GF_OK;
+	}
+	/*allocate all entries*/
+	for (i=0; i<ptr->sample_count; i++) {
+		GF_SAFEALLOC(ent, GF_TrunEntry);
+		gf_list_add(ptr->entries, ent);
+	}
+	//unpack flags
+	ptr->ctrn_first_dur = (flags>>16) & 0x3;
+	ptr->ctrn_first_size = (flags>>18) & 0x3;
+	ptr->ctrn_first_sample_flags = (flags>>20) & 0x3;
+	ptr->ctrn_first_ctts = (flags>>22) & 0x3;
+	ptr->ctrn_dur = (flags>>8) & 0x3;
+	ptr->ctrn_size = (flags>>10) & 0x3;
+	ptr->ctrn_sample_flags = (flags>>12) & 0x3;
+	ptr->ctrn_ctts = (flags>>14) & 0x3;
+
+	inherit_dur = flags & GF_ISOM_CTRN_INHERIT_DUR;
+	inherit_size = flags & GF_ISOM_CTRN_INHERIT_SIZE;
+	inherit_flags = flags & GF_ISOM_CTRN_INHERIT_FLAGS;
+	inherit_ctso = flags & GF_ISOM_CTRN_INHERIT_CTSO;
+
+	if (flags & GF_ISOM_CTRN_FIRST_SAMPLE) {
+		ent = gf_list_get(ptr->entries, 0);
+		first_idx = 1;
+		if (!inherit_dur && ptr->ctrn_first_dur) {
+			ent->Duration = gf_bs_read_int(bs, gf_isom_ctrn_field_size_bits(ptr->ctrn_first_dur) );
+			ISOM_DECREASE_SIZE(ptr, ctrn_field_size(ptr->ctrn_first_dur) );
+		}
+		if (!inherit_size && ptr->ctrn_first_size) {
+			ent->size = gf_bs_read_int(bs, gf_isom_ctrn_field_size_bits(ptr->ctrn_first_size) );
+			ISOM_DECREASE_SIZE(ptr, ctrn_field_size(ptr->ctrn_first_size) );
+		}
+		if (!inherit_flags && ptr->ctrn_first_sample_flags) {
+			ent->flags = ctrn_read_flags(bs, gf_isom_ctrn_field_size_bits(ptr->ctrn_first_sample_flags) );
+			ISOM_DECREASE_SIZE(ptr, ctrn_field_size(ptr->ctrn_first_sample_flags) );
+		}
+		if (!inherit_ctso && ptr->ctrn_first_ctts) {
+			ent->CTS_Offset = gf_bs_read_int(bs, gf_isom_ctrn_field_size_bits(ptr->ctrn_first_ctts) );
+			ISOM_DECREASE_SIZE(ptr, ctrn_field_size(ptr->ctrn_first_ctts) );
+			if (ptr->ctso_multiplier)
+				ent->CTS_Offset *= (s32) ptr->ctso_multiplier;
+		}
+	}
+	count = ptr->sample_count - first_idx;
+	if (!inherit_dur && ptr->ctrn_dur) {
+		u32 nbbits = gf_isom_ctrn_field_size_bits(ptr->ctrn_dur);
+		ISOM_DECREASE_SIZE(ptr, count * nbbits / 8);
+		for (i=first_idx; i<ptr->sample_count; i++) {
+			ent = gf_list_get(ptr->entries, i);
+			ent->Duration = gf_bs_read_int(bs, nbbits);
+		}
+	}
+	if (!inherit_size && ptr->ctrn_size) {
+		u32 nbbits = gf_isom_ctrn_field_size_bits(ptr->ctrn_size);
+		ISOM_DECREASE_SIZE(ptr, count * nbbits / 8);
+		for (i=first_idx; i<ptr->sample_count; i++) {
+			ent = gf_list_get(ptr->entries, i);
+			ent->size = gf_bs_read_int(bs, nbbits);
+		}
+	}
+	if (!inherit_flags && ptr->ctrn_sample_flags) {
+		u32 nbbits = gf_isom_ctrn_field_size_bits(ptr->ctrn_sample_flags);
+		ISOM_DECREASE_SIZE(ptr, count * nbbits / 8);
+		for (i=first_idx; i<ptr->sample_count; i++) {
+			ent = gf_list_get(ptr->entries, i);
+			ent->flags = ctrn_read_flags(bs, nbbits);
+		}
+	}
+	if (!inherit_ctso && ptr->ctrn_ctts) {
+		u32 nbbits = gf_isom_ctrn_field_size_bits(ptr->ctrn_ctts);
+		ISOM_DECREASE_SIZE(ptr, count * nbbits / 8);
+		for (i=first_idx; i<ptr->sample_count; i++) {
+			ent = gf_list_get(ptr->entries, i);
+			ent->CTS_Offset = gf_bs_read_int(bs, nbbits);
+			if (ptr->ctso_multiplier)
+				ent->CTS_Offset *= (s32) ptr->ctso_multiplier;
+		}
+	}
+
+	return GF_OK;
+}
+
 GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
 	GF_TrunEntry *p;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
+
+	if (ptr->type == GF_ISOM_BOX_TYPE_CTRN) {
+		ptr->type = GF_ISOM_BOX_TYPE_TRUN;
+		ptr->use_ctrn = GF_TRUE;
+		return ctrn_box_read(s, bs);
+	}
 
 	//check this is a good file
 	if ((ptr->flags & GF_ISOM_TRUN_FIRST_FLAG) && (ptr->flags & GF_ISOM_TRUN_FLAGS))
@@ -6979,10 +7119,95 @@ GF_Box *trun_box_new()
 	return (GF_Box *)tmp;
 }
 
-
-
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+static void ctrn_write_sample_flags(GF_BitStream *bs, u32 flags, u32 field_size)
+{
+	if (!field_size) return;
+
+	if (field_size==8) flags = flags>>24;
+	else if (field_size==16) flags = flags>>16;
+	gf_bs_write_int(bs, flags, field_size);
+}
+
+
+static void ctrn_write_ctso(GF_TrackFragmentRunBox *ctrn, GF_BitStream *bs, u32 ctso, u32 field_size)
+{
+	if (!field_size) return;
+
+	if (ctrn->ctso_multiplier) {
+		gf_bs_write_int(bs, ctso / ctrn->ctso_multiplier, field_size);
+	} else {
+		gf_bs_write_int(bs, ctso, field_size);
+	}
+}
+
+GF_Err ctrn_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i, count, flags;
+	GF_TrunEntry *ent;
+	GF_TrackFragmentRunBox *ctrn = (GF_TrackFragmentRunBox *) s;
+	if (!s) return GF_BAD_PARAM;
+	flags = ctrn->flags;
+	ctrn->flags = ctrn->ctrn_flags;
+	ctrn->type = GF_ISOM_BOX_TYPE_CTRN;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	ctrn->flags = flags;
+	ctrn->type = GF_ISOM_BOX_TYPE_TRUN;
+
+	gf_bs_write_u16(bs, ctrn->sample_count);
+	if (ctrn->flags & GF_ISOM_TRUN_DATA_OFFSET) {
+		if (ctrn->ctrn_flags & GF_ISOM_CTRN_DATAOFFSET_16) {
+			gf_bs_write_u16(bs, ctrn->data_offset);
+		} else {
+			gf_bs_write_u32(bs, ctrn->data_offset);
+		}
+	}
+	if (ctrn->ctso_multiplier) {
+		gf_bs_write_u16(bs, ctrn->ctso_multiplier);
+	}
+	/*we always write first sample using first flags*/
+	ent = gf_list_get(ctrn->entries, 0);
+	gf_bs_write_int(bs, ent->Duration, gf_isom_ctrn_field_size_bits(ctrn->ctrn_first_dur) );
+	gf_bs_write_int(bs, ent->size, gf_isom_ctrn_field_size_bits(ctrn->ctrn_first_size) );
+	ctrn_write_sample_flags(bs, ent->flags, gf_isom_ctrn_field_size_bits(ctrn->ctrn_first_sample_flags) );
+	ctrn_write_ctso(ctrn,bs, ent->CTS_Offset, gf_isom_ctrn_field_size_bits(ctrn->ctrn_first_ctts) );
+
+	count = gf_list_count(ctrn->entries);
+	if (ctrn->ctrn_dur) {
+		u32 nbbits = gf_isom_ctrn_field_size_bits(ctrn->ctrn_dur);
+		for (i=1; i<count; i++) {
+			GF_TrunEntry *ent = gf_list_get(ctrn->entries, i);
+			gf_bs_write_int(bs, ent->Duration, nbbits);
+		}
+	}
+	if (ctrn->ctrn_size) {
+		u32 nbbits = gf_isom_ctrn_field_size_bits(ctrn->ctrn_size);
+		for (i=1; i<count; i++) {
+			GF_TrunEntry *ent = gf_list_get(ctrn->entries, i);
+			gf_bs_write_int(bs, ent->size, nbbits);
+		}
+	}
+	if (ctrn->ctrn_sample_flags) {
+		u32 nbbits = gf_isom_ctrn_field_size_bits(ctrn->ctrn_sample_flags);
+		for (i=1; i<count; i++) {
+			GF_TrunEntry *ent = gf_list_get(ctrn->entries, i);
+			ctrn_write_sample_flags(bs, ent->flags, nbbits);
+		}
+	}
+	if (ctrn->ctrn_ctts) {
+		u32 nbbits = gf_isom_ctrn_field_size_bits(ctrn->ctrn_ctts);
+		for (i=1; i<count; i++) {
+			GF_TrunEntry *ent = gf_list_get(ctrn->entries, i);
+			ctrn_write_ctso(ctrn, bs, ent->CTS_Offset, nbbits);
+		}
+	}
+
+	return GF_OK;
+}
 
 GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 {
@@ -6990,6 +7215,9 @@ GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 	u32 i, count;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *) s;
 	if (!s) return GF_BAD_PARAM;
+
+	if (ptr->use_ctrn)
+		return ctrn_box_write(s, bs);
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
@@ -7033,10 +7261,176 @@ GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
+static u32 ctrn_sample_flags_to_index(u32 val)
+{
+	if (!val) return 0;
+	if (val & 0x0000FFFF)
+		return 3;
+	if (val & 0x00FF0000)
+		return 2;
+	return 1;
+}
+static u32 ctrn_u32_to_index(u32 val)
+{
+	if (!val) return 0;
+	if (val<=255) return 1;
+	if (val<=65535) return 2;
+	return 3;
+}
+static u32 ctrn_s32_to_index(s32 val)
+{
+	if (!val) return 0;
+	if (ABS(val)<=127) return 1;
+	if (ABS(val)<=32767) return 2;
+	return 3;
+}
+static u32 ctrn_ctts_to_index(GF_TrackFragmentRunBox *ctrn, s32 ctts)
+{
+	if (!(ctrn->flags & GF_ISOM_TRUN_CTS_OFFSET))
+		return 0;
+
+	if (!ctts) return 0;
+
+	if (ctrn->version) {
+		if (ctrn->ctso_multiplier) return ctrn_s32_to_index(ctts / ctrn->ctso_multiplier);
+		return ctrn_s32_to_index(ctts);
+	}
+	assert(ctts>0);
+	if (ctrn->ctso_multiplier) return ctrn_u32_to_index((u32)ctts / ctrn->ctso_multiplier);
+	return ctrn_s32_to_index((u32)ctts);
+}
+
+static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
+{
+	Bool use_ctso_multi = GF_FALSE;
+	u32 i, count;
+	GF_TrunEntry *ent;
+	ctrn->ctrn_flags = 0;
+	use_ctso_multi = GF_TRUE;
+	ctrn->ctrn_first_dur = ctrn->ctrn_first_size = ctrn->ctrn_first_sample_flags = ctrn->ctrn_first_ctts = 0;
+	ctrn->ctrn_dur = ctrn->ctrn_size = ctrn->ctrn_sample_flags = ctrn->ctrn_ctts = 0;
+
+	ctrn->size += 2; //16 bits for sample count
+	if (ctrn->flags & GF_ISOM_TRUN_DATA_OFFSET) {
+		ctrn->ctrn_flags |= GF_ISOM_TRUN_DATA_OFFSET;
+		if (ABS(ctrn->data_offset) < 32767) {
+			ctrn->size += 2;
+			ctrn->ctrn_flags |= GF_ISOM_CTRN_DATAOFFSET_16;
+		} else
+			ctrn->size += 4;
+	}
+
+	count = gf_list_count(ctrn->entries);
+	if (ctrn->ctso_multiplier && (ctrn->flags & GF_ISOM_TRUN_CTS_OFFSET) && (ctrn->ctso_multiplier<=0xFFFF) ) {
+		for (i=0; i<count; i++) {
+			GF_TrunEntry *ent = gf_list_get(ctrn->entries, i);
+			if (ent->CTS_Offset % ctrn->ctso_multiplier) {
+				use_ctso_multi = GF_FALSE;
+				break;
+			}
+		}
+	} else {
+		use_ctso_multi = GF_FALSE;
+	}
+	if (ctrn->use_inherit) {
+		use_ctso_multi = GF_FALSE;
+		ctrn->ctrn_flags |= 0xB0; //duration=1,size=0,flags=1,cts=1 << 4
+	}
+
+	if (use_ctso_multi) {
+		ctrn->size += 2;
+		ctrn->ctrn_flags |= GF_ISOM_CTRN_CTSO_MULTIPLIER;
+	} else {
+		ctrn->ctso_multiplier = 0;
+	}
+
+	/*we always write first sample using first flags*/
+	ent = gf_list_get(ctrn->entries, 0);
+	ctrn->ctrn_flags |= GF_ISOM_CTRN_FIRST_SAMPLE;
+
+	if (!ctrn->use_inherit && (ctrn->flags & GF_ISOM_TRUN_DURATION)) {
+		ctrn->ctrn_first_dur = ctrn_u32_to_index(ent->Duration);
+		if (ctrn->ctrn_first_dur) {
+			ctrn->size += ctrn_field_size(ctrn->ctrn_first_dur);
+			ctrn->ctrn_flags |= ctrn->ctrn_first_dur<<16;
+		}
+	}
+
+	if (ctrn->flags & GF_ISOM_TRUN_SIZE) {
+		ctrn->ctrn_first_size = ctrn_u32_to_index(ent->size);
+		if (ctrn->ctrn_first_size) {
+			ctrn->size += ctrn_field_size(ctrn->ctrn_first_size);
+			ctrn->ctrn_flags |= ctrn->ctrn_first_size<<18;
+		}
+	}
+
+	if (!ctrn->use_inherit && (ctrn->flags & GF_ISOM_TRUN_FLAGS)) {
+		ctrn->ctrn_first_sample_flags = ctrn_sample_flags_to_index(ent->flags);
+		if (ctrn->ctrn_first_sample_flags) {
+			ctrn->size += ctrn_field_size(ctrn->ctrn_first_sample_flags);
+			ctrn->ctrn_flags |= ctrn->ctrn_first_sample_flags<<20;
+		}
+	}
+	if (!ctrn->use_inherit && (ctrn->flags & GF_ISOM_TRUN_CTS_OFFSET)) {
+		ctrn->ctrn_first_ctts = ctrn_ctts_to_index(ctrn, ent->CTS_Offset);
+		if (ctrn->ctrn_first_ctts) {
+			ctrn->size += ctrn_field_size(ctrn->ctrn_first_ctts);
+			ctrn->ctrn_flags |= ctrn->ctrn_first_ctts<<22;
+		}
+	}
+
+	for (i=1; i<count; i++) {
+		u8 field_idx;
+		GF_TrunEntry *ent = gf_list_get(ctrn->entries, i);
+
+		if (!ctrn->use_inherit && (ctrn->flags & GF_ISOM_TRUN_DURATION)) {
+			field_idx = ctrn_u32_to_index(ent->Duration);
+			if (ctrn->ctrn_dur < field_idx)
+				ctrn->ctrn_dur = field_idx;
+		}
+		if (ctrn->flags & GF_ISOM_TRUN_SIZE) {
+			field_idx = ctrn_u32_to_index(ent->size);
+			if (ctrn->ctrn_size < field_idx)
+				ctrn->ctrn_size = field_idx;
+		}
+		if (!ctrn->use_inherit && (ctrn->flags & GF_ISOM_TRUN_FLAGS)) {
+			field_idx = ctrn_sample_flags_to_index(ent->flags);
+			if (ctrn->ctrn_sample_flags < field_idx)
+				ctrn->ctrn_sample_flags = field_idx;
+		}
+		if (!ctrn->use_inherit) {
+			field_idx = ctrn_ctts_to_index(ctrn, ent->CTS_Offset);
+			if (ctrn->ctrn_ctts < field_idx)
+				ctrn->ctrn_ctts = field_idx;
+		}
+	}
+	count-=1;
+	if (ctrn->ctrn_dur) {
+		ctrn->size += count * ctrn_field_size(ctrn->ctrn_dur);
+		ctrn->ctrn_flags |= ctrn->ctrn_dur<<8;
+	}
+	if (ctrn->ctrn_size) {
+		ctrn->size += count * ctrn_field_size(ctrn->ctrn_size);
+		ctrn->ctrn_flags |= ctrn->ctrn_size<<10;
+	}
+	if (ctrn->ctrn_sample_flags) {
+		ctrn->size += count * ctrn_field_size(ctrn->ctrn_sample_flags);
+		ctrn->ctrn_flags |= ctrn->ctrn_sample_flags<<12;
+	}
+	if (ctrn->ctrn_ctts) {
+		ctrn->size += count * ctrn_field_size(ctrn->ctrn_ctts);
+		ctrn->ctrn_flags |= ctrn->ctrn_ctts<<14;
+	}
+	return GF_OK;
+}
+
 GF_Err trun_box_size(GF_Box *s)
 {
 	u32 i, count;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
+
+	if (ptr->use_ctrn)
+		return ctrn_box_size(ptr);
 
 	ptr->size += 4;
 	//The rest depends on the flags

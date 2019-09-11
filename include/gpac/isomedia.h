@@ -140,8 +140,10 @@ enum
 	GF_ISOM_REF_SSRC = GF_4CC( 's', 's', 'r', 'c' ),
 	/*! layer audio track dependency*/
 	GF_ISOM_REF_LYRA = GF_4CC( 'l', 'y', 'r', 'a' ),
-	/*!  File Delivery Item Information Extension */
+	/*! File Delivery Item Information Extension */
 	GF_ISOM_REF_FDEL = GF_4CC( 'f', 'd', 'e', 'l' ),
+	/*! Track fragment inherit */
+	GF_ISOM_REF_TRIN = GF_4CC( 't', 'r', 'i', 'n' ),
 };
 
 /*! Track Edit list type*/
@@ -3725,12 +3727,20 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *isom_file, u32 media_segment_ty
 */
 GF_Err gf_isom_set_movie_duration(GF_ISOFile *isom_file, u64 duration);
 
+/*! fragment creatio option*/
+typedef enum
+{
+	/*! moof is stored before mdat - will require temporary storage of data in memory*/
+	GF_ISOM_FRAG_MOOF_FIRST = 1,
+	/*! use compact fragment syntax*/
+	GF_ISOM_FRAG_USE_COMPACT = 1<<1,
+} GF_ISOStartFragmentFlags;
 /*! starts a new movie fragment
 \param isom_file the target ISO file
 \param moof_first if GF_TRUE, the moof will be written before the mdat
 \return error if any
 */
-GF_Err gf_isom_start_fragment(GF_ISOFile *isom_file, Bool moof_first);
+GF_Err gf_isom_start_fragment(GF_ISOFile *isom_file, GF_ISOStartFragmentFlags moof_first);
 
 /*! starts a new segment in the file
 \param isom_file the target ISO file
@@ -3836,6 +3846,17 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *isom_file, s32 subsegs_per_sidx, Bool d
 \return error if any
 */
 GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *isom_file, GF_ISOTrackID TrackID, u8 *boxes, u32 boxes_size, u8 force_traf_flags);
+
+/*! enables track fragment inheriting from a given traf.
+This shall only be set when the inherited traf shares exactly the same syntax except the sample sizes, this library does not compute which
+sample values can be inherited
+
+\param isom_file the target ISO file
+\param TrackID ID of the target track
+\param BaseTrackID ID of the track from which sample values are inherited in track fragments
+\return error if any
+*/
+GF_Err gf_isom_enable_traf_inherit(GF_ISOFile *isom_file, GF_ISOTrackID TrackID, GF_ISOTrackID BaseTrackID);
 
 /*! Track fragment options*/
 typedef enum

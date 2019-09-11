@@ -547,6 +547,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	}
 	if (dsi_crc != cstr->dsi_crc)
 		is_reinit = GF_TRUE;
+	else if (!dsi_crc && !cstr->crypt)
+		is_reinit = GF_TRUE;
 
 	cstr->dsi_crc = dsi_crc;
 
