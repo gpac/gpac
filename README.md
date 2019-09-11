@@ -47,7 +47,7 @@ For GPAC configuration instruction, check `MP4Client -h` ,  `man MP4Client` or [
 
 ## gpac 
 As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [check this](https://github.com/gpac/gpac/wiki/Rearchitecture) for more dicussion on how this impacts MP4Box and MP4Client.
-The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filers not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://github.com/gpac/gpac/wiki/Filters) for more details.
+The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://github.com/gpac/gpac/wiki/Filters) for more details.
 
 
 # Roadmap
@@ -85,10 +85,11 @@ Targets:
 - [ ] freeze filter API
 - [ ] add ffmpeg muxer support
 - [ ] add ffmpeg simple avfilter support
+- [ ] add kvazaar/other encoders support?
 - [ ] drop SpiderMonkey and move to duktape or similar
 - [ ] filters scriptable through JS
 - [x] improve filter graph resolver
-- [x] improve filter scheduler ?
+- [x] improve filter scheduler
 - [ ] move input sensors to filter ?
 - [ ] filters scriptable through other languages ?
 
@@ -107,7 +108,7 @@ This is a short overview of the gpac source repository.
 - *gpac/build/* various build systems (MSVC, Android, XCode, ...)
 - *gpac/debian/* files for debian packaging
 - *gpac/extra_lib/* external lib directory used by different build systems
-- *gpac/include/gpac/* all exported files of the lib (high level APIs). Development headers are <gpac/file>
+- *gpac/include/gpac/* all exported files of the lib (high level APIs, full documentation available).
 - *gpac/include/gpac/internal/* all development files of the lib (low level access).
 - *gpac/include/gpac/modules/* all module APIs defined in GPAC.
 - *gpac/packagers/* installer scripts for Windows and OSX
@@ -122,6 +123,7 @@ This is a short overview of the gpac source repository.
 - *gpac/src/bifs/* BInary Format for Scene coding (decoder and encoder) (BIFS tables are with MPEG4Gen application in gpac/applications/generators/MPEG4)
 - *gpac/src/compositor/* interactive composition engine  for 2D & 3D drawing - handles MPEG-4, X3D/VRML and SVG.
 - *gpac/src/crypto/* cryptographic tools (AES 128 CBC and CTR only)
+- *gpac/src/evg/* anti-aliased software rasterizer for 2D vector graphics
 - *gpac/src/filter_core/* filter engine of GPAC, in charge of filter graph resolution, filter scheduling, packets handling.
 - *gpac/src/filters/* filters defined in GPAC. This include encoders, decoders, av output, wrapper for GPAC's compositor, ISOBMF, RTP, M2TS muxers and demuxers, etc ...
 - *gpac/src/ietf/* small RTP/RTSP/SDP library, plus media packetizers.
@@ -133,8 +135,7 @@ This is a short overview of the gpac source repository.
 - *gpac/src/scenegraph/* scene Graph API (MPEG4/VRML/X3D/SVG) - BIFS/VRML/X3D nodes are generated using gpac/applications/generators/*
 - *gpac/src/terminal/* client application engine. This is a simple wrapper around the filter engine of GPAC.
 - *gpac/src/utils/* all generic objects used throughout the lib (list, bitstream, thread, mutex...). The OS specific files are prefixed os_* . Porting libgpac to new platforms usually means porting only these files and updating the makefile
-- *gpac/tests/* tests suite for GPAC. See gpac/tests/README.md
-
+- *gpac/tests/* tests suite for GPAC.
 
 For more information, visit:
 - the GPAC website: http://gpac.io
