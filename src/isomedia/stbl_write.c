@@ -1513,11 +1513,11 @@ void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack)
 		stbl->SampleSize->sampleCount += nb_pack;
 		return;
 	}
-	if (!stbl->SampleSize->sizes || (stbl->SampleSize->sampleCount==stbl->SampleSize->alloc_size)) {
+	if (!stbl->SampleSize->sizes || (stbl->SampleSize->sampleCount+nb_pack > stbl->SampleSize->alloc_size)) {
 		Bool init_table = (stbl->SampleSize->sizes==NULL) ? 1 : 0;
 		ALLOC_INC(stbl->SampleSize->alloc_size);
-		if (stbl->SampleSize->sampleCount >= stbl->SampleSize->alloc_size)
-			stbl->SampleSize->alloc_size = stbl->SampleSize->sampleCount+1;
+		if (stbl->SampleSize->sampleCount+nb_pack > stbl->SampleSize->alloc_size)
+			stbl->SampleSize->alloc_size = stbl->SampleSize->sampleCount+nb_pack;
 
 		stbl->SampleSize->sizes = (u32 *)gf_realloc(stbl->SampleSize->sizes, sizeof(u32)*stbl->SampleSize->alloc_size);
 		if (!stbl->SampleSize->sizes) return;
@@ -1529,8 +1529,9 @@ void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack)
 		}
 	}
 	stbl->SampleSize->sampleSize = 0;
-	stbl->SampleSize->sizes[stbl->SampleSize->sampleCount] = size;
-
+	for (i=0; i<nb_pack; i++) {
+		stbl->SampleSize->sizes[stbl->SampleSize->sampleCount+i] = size;
+	}
 	stbl->SampleSize->sampleCount += nb_pack;
 	if (size > stbl->SampleSize->max_size)
 		stbl->SampleSize->max_size = size;
