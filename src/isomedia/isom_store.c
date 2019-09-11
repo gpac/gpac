@@ -93,7 +93,7 @@ typedef struct
 typedef struct
 {
 	char *buffer;
-	u32 size;
+	u32 alloc_size;
 	GF_ISOFile *movie;
 	u32 total_samples, nb_done;
 } MovieWriter;
@@ -418,9 +418,9 @@ GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStr
 
 	if (!size) return GF_OK;
 
-	if (size>mw->size) {
+	if (size>mw->alloc_size) {
 		mw->buffer = (char*)gf_realloc(mw->buffer, size);
-		mw->size = size;
+		mw->alloc_size = size;
 	}
 
 	if (!mw->buffer) return GF_OUT_OF_MEM;

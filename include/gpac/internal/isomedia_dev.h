@@ -129,6 +129,7 @@ enum
 	GF_ISOM_BOX_TYPE_TRAF	= GF_4CC( 't', 'r', 'a', 'f' ),
 	GF_ISOM_BOX_TYPE_TFHD	= GF_4CC( 't', 'f', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_TRUN	= GF_4CC( 't', 'r', 'u', 'n' ),
+	GF_ISOM_BOX_TYPE_CTRN	= GF_4CC( 'c', 't', 'r', 'n' ),
 #endif
 
 
@@ -2361,6 +2362,7 @@ typedef struct
 	GF_TrackBox *track;
 
 	Bool cannot_use_default;
+	GF_ISOTrackID inherit_from_traf_id;
 	
 	GF_TrackFragmentRandomAccessBox *tfra;
 } GF_TrackExtendsBox;
@@ -2458,17 +2460,30 @@ typedef struct
 	GF_TFBaseMediaDecodeTimeBox *tfdt;
 
 	u64 moof_start_in_bs;
+	Bool use_ctrn;
+	Bool use_inherit;
 } GF_TrackFragmentBox;
 
 /*FLAGS for TRUN : specify what is written in the SampleTable of TRUN*/
 enum
 {
+	/*common to both trun and ctrn*/
 	GF_ISOM_TRUN_DATA_OFFSET	= 0x01,
+	/*trun flags*/
 	GF_ISOM_TRUN_FIRST_FLAG		= 0x04,
 	GF_ISOM_TRUN_DURATION		= 0x100,
 	GF_ISOM_TRUN_SIZE			= 0x200,
 	GF_ISOM_TRUN_FLAGS			= 0x400,
-	GF_ISOM_TRUN_CTS_OFFSET		= 0x800
+	GF_ISOM_TRUN_CTS_OFFSET		= 0x800,
+	/*compact trun flags (not all of them, field indices are stored in trun box)*/
+	GF_ISOM_CTRN_FIRST_SAMPLE = 1<<1, //0x00000002
+	GF_ISOM_CTRN_DATAOFFSET_16 = 1<<2, //0x00000004
+	GF_ISOM_CTRN_CTSO_MULTIPLIER = 1<<3, //0x00000008
+
+	GF_ISOM_CTRN_INHERIT_CTSO = 1<<4,
+	GF_ISOM_CTRN_INHERIT_FLAGS = 1<<5,
+	GF_ISOM_CTRN_INHERIT_SIZE = 1<<6,
+	GF_ISOM_CTRN_INHERIT_DUR = 1<<7
 };
 
 typedef struct
@@ -2476,14 +2491,32 @@ typedef struct
 	GF_ISOM_FULL_BOX
 	u32 sample_count;
 	/*the following are optional fields */
-	s32 data_offset; /* unsigned for version 0 */
-	u32 first_sample_flags;
+	/* unsigned for version 0 */
+	s32 data_offset;
 	/*can be empty*/
 	GF_List *entries;
 
+	/*only for trun, ignored for ctrn*/
+	u32 first_sample_flags;
+
 	/*in write mode with data caching*/
 	GF_BitStream *cache;
+
+	/*the remaining is internal for compact trun*/
+	/*use compact mode*/
+	Bool use_ctrn;
+	/*we store the ctrn box flags here rather than in flags and swap when writing/dumping. This avoids overwriting the flags
+	set by the fragment writer*/
+	u32 ctrn_flags;
+	/*set to default sample duration when writing, parsed from box otherwise. If 0, not used*/
+	u32 ctso_multiplier;
+	u8 ctrn_first_dur, ctrn_first_size, ctrn_first_sample_flags, ctrn_first_ctts;
+	u8 ctrn_dur, ctrn_size, ctrn_sample_flags, ctrn_ctts;
+	/*use inherit in write mode- in the current version, only size will be set and all other fields inherited*/
+	Bool use_inherit;
 } GF_TrackFragmentRunBox;
+
+u32 gf_isom_ctrn_field_size_bits(u32 field_idx);
 
 typedef struct
 {
@@ -3630,6 +3663,7 @@ struct __tag_isom {
 
 	u64 read_byte_offset;
 
+
 	void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total);
 	void *progress_cbk_udta;
 
@@ -3664,6 +3698,7 @@ struct __tag_isom {
 	/* optional mfra box used in write mode */
 	GF_MovieFragmentRandomAccessBox *mfra;
 
+	Bool store_traf_map;
 	Bool signal_frag_bounds;
 	u64 sidx_start_offset, sidx_end_offset;
 	u64 styp_start_offset;

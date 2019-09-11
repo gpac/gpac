@@ -194,6 +194,25 @@ void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end)
 	}
 }
 
+void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
+{
+	u32 i, count;
+	if (!mov->moov->mvex)
+		return;
+	count = gf_list_count(mov->moov->trackList);
+
+	for (i=0; i<count; i++) {
+		u32 refTrackNum=0;
+		gf_isom_get_reference(mov, i+1, GF_ISOM_REF_TRIN, 1, &refTrackNum);
+		if (refTrackNum) {
+			GF_ISOTrackID tkid = gf_isom_get_track_id(mov, i+1);
+			GF_ISOTrackID reftkid = gf_isom_get_track_id(mov, refTrackNum);
+			GF_TrackExtendsBox *trex = GetTrex(mov->moov, tkid);
+			if (trex) trex->inherit_from_traf_id = reftkid;
+		}
+	}
+}
+
 #endif
 
 GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progressive_mode)
@@ -252,6 +271,10 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			mov->moov->mov = mov;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			if (mov->moov->mvex) mov->moov->mvex->mov = mov;
+
+			if (! (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)) {
+				gf_isom_setup_traf_inheritance(mov);
+			}
 #endif
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;
@@ -275,6 +298,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 					}
 				}
 			}
+
 			break;
 
 		/*META box*/
@@ -610,6 +634,11 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 	mov->fileName = gf_strdup(fileName);
 	mov->openMode = OpenMode;
 
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (OpenMode==GF_ISOM_OPEN_READ_DUMP)
+		mov->store_traf_map = GF_TRUE;
+#endif
+
 	if ( (OpenMode == GF_ISOM_OPEN_READ) || (OpenMode == GF_ISOM_OPEN_READ_DUMP) ) {
 		//always in read ...
 		mov->openMode = GF_ISOM_OPEN_READ;
@@ -686,6 +715,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 		gf_isom_delete_movie(mov);
 		return NULL;
 	}
+
 	mov->nb_box_init_seg = gf_list_count(mov->TopBoxes);
 	return mov;
 }

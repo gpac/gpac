@@ -195,6 +195,8 @@ typedef struct
 	GF_FilterPid *opid;
 	Bool first_pck_sent;
 	Bool mvex;
+	Bool ctrn;
+	Bool ctrni;
 
 	GF_List *tracks;
 
@@ -3121,6 +3123,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	u32 min_dts_scale=0;
 	u32 def_fake_dur=0;
 	u32 def_fake_scale=0;
+	u32 traf_inherit_base_id=0;
 	GF_Fraction64 max_dur;
 	ctx->single_file = GF_TRUE;
 	ctx->current_offset = ctx->current_size = 0;
@@ -3164,11 +3167,14 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 				max_dur.den = p->value.lfrac.den;
 			}
 		}
+		if (tkw->codecid==GF_CODECID_HEVC)
+			traf_inherit_base_id = tkw->track_id;
 	}
 	//good to go, finalize for fragments
 	for (i=0; i<count; i++) {
 		u32 def_pck_dur;
 		u32 def_is_rap, tscale;
+		u32 inherit_traf_from_track = 0;
 		u64 dts;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 
@@ -3217,6 +3223,10 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			case GF_CODECID_JPEG:
 			case GF_CODECID_J2K:
 				break;
+			case GF_CODECID_HEVC_TILES:
+				if (ctx->ctrn && ctx->ctrni)
+					inherit_traf_from_track = traf_inherit_base_id;
+				break;
 			default:
 				if (!ref_tkw) ref_tkw = tkw;
 				break;
@@ -3250,7 +3260,11 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			mp4_mux_track_writer_del(tkw);
 			i--;
 			count--;
+			continue;
 		}
+
+		if (inherit_traf_from_track)
+			gf_isom_enable_traf_inherit(ctx->file, tkw->track_id, inherit_traf_from_track);
 	}
 
 	if (max_dur.num) {
@@ -3398,12 +3412,16 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 	GF_Err e;
 	u32 i, count = gf_list_count(ctx->tracks);
 	Bool has_tfdt=GF_FALSE;
+	GF_ISOStartFragmentFlags flags=0;
 
 	//setup some default
 	gf_isom_set_next_moof_number(ctx->file, ctx->msn);
 	ctx->msn += ctx->msninc;
 
-	e = gf_isom_start_fragment(ctx->file, ctx->moof_first);
+	if (ctx->moof_first) flags |= GF_ISOM_FRAG_MOOF_FIRST;
+	if (ctx->ctrn) flags |= GF_ISOM_FRAG_USE_COMPACT;
+
+	e = gf_isom_start_fragment(ctx->file, flags);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to start new fragment: %s\n", gf_error_to_string(e) ));
 		return e;
@@ -3696,7 +3714,11 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		//done with this track - if single track per moof, request new fragment but don't touch the
 		//fragmentation state of the track writers
 		if (ctx->straf && (i+1 < count)) {
-			e = gf_isom_start_fragment(ctx->file, ctx->moof_first);
+			GF_ISOStartFragmentFlags flags = 0;
+			if (ctx->moof_first) flags |= GF_ISOM_FRAG_MOOF_FIRST;
+			if (ctx->ctrn) flags |= GF_ISOM_FRAG_USE_COMPACT;
+
+			e = gf_isom_start_fragment(ctx->file, flags);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to start new fragment: %s\n", gf_error_to_string(e) ));
 				return e;
@@ -4234,7 +4256,9 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	if (!ctx->moovts) ctx->moovts=600;
 
 	ctx->tracks = gf_list_new();
-
+	if (ctx->ctrni)
+		ctx->ctrn = GF_TRUE;
+		
 	if (ctx->m4cc) {
 		if (strlen(ctx->m4cc)==4)
 			ctx->eos_marker = GF_4CC(ctx->m4cc[0], ctx->m4cc[1], ctx->m4cc[2], ctx->m4cc[3]);
@@ -4651,6 +4675,8 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(noroll), "disable roll sample grouping", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(saio32), "set single segment mode for dash", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fftmcd), "use ffmpeg-compatible timecode signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ctrn), "use compact track run (experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ctrni), "use inheritance in compact track run for HEVC tile tracks (highly experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sseg), "set single segment mode for dash", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
