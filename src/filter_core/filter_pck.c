@@ -68,11 +68,39 @@ GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket 
 	return gf_filter_pck_merge_properties_filter(pck_src, pck_dst, NULL, NULL);
 }
 
+typedef struct
+{
+	u32 data_size;
+	GF_FilterPacket *pck;
+	GF_FilterPacket *closest;
+} GF_PckQueueEnum;
+
+static Bool pck_queue_enum(void *udta, void *item)
+{
+	GF_PckQueueEnum *enum_state = (GF_PckQueueEnum *) udta;
+	GF_FilterPacket *cur = (GF_FilterPacket *) item;
+
+	if (cur->alloc_size >= enum_state->data_size) {
+		if (!enum_state->pck || (enum_state->pck->alloc_size > cur->alloc_size)) {
+			enum_state->pck = cur;
+		}
+	}
+	else if (!enum_state->closest) enum_state->closest = cur;
+	//small data blocks, find smaller one
+	else if (enum_state->data_size<1000) {
+		if (enum_state->closest->alloc_size > cur->alloc_size) enum_state->closest = cur;
+	}
+	//otherwise find largest one below our target size
+	else if (enum_state->closest->alloc_size < cur->alloc_size) enum_state->closest = cur;
+	return GF_FALSE;
+}
+
 static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 data_size, u8 **data, Bool no_block_check)
 {
 	GF_FilterPacket *pck=NULL;
 	GF_FilterPacket *closest=NULL;
-	u32 i, count, max_reservoir_size;
+	GF_PckQueueEnum pck_enum_state;
+	u32 count, max_reservoir_size;
 
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to allocate a packet on an input PID in filter %s\n", pid->filter->name));
@@ -82,21 +110,14 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 		return NULL;
 
 	count = gf_fq_count(pid->filter->pcks_alloc_reservoir);
-	for (i=0; i<count; i++) {
-		GF_FilterPacket *cur = gf_fq_get(pid->filter->pcks_alloc_reservoir, i);
-		if (cur->alloc_size >= data_size) {
-			if (!pck || (pck->alloc_size>cur->alloc_size)) {
-				pck = cur;
-			}
-		}
-		else if (!closest) closest = cur;
-		//small data blocks, find smaller one
-		else if (data_size<1000) {
-			if (closest->alloc_size > cur->alloc_size) closest = cur;
-		}
-		//otherwise find largest one below our target size
-		else if (closest->alloc_size < cur->alloc_size) closest = cur;
-	}
+	pck_enum_state.data_size = data_size;
+	pck_enum_state.closest = NULL;
+	pck_enum_state.pck = NULL;
+	gf_fq_enum(pid->filter->pcks_alloc_reservoir, pck_queue_enum, &pck_enum_state);
+
+	pck = pck_enum_state.pck;
+	closest = pck_enum_state.closest;
+
 	//stop allocating after a while - TODO we for sur can design a better algo...
 	max_reservoir_size = pid->num_destinations ? 10 : 1;
 	if (!pck && (count>=max_reservoir_size)) {

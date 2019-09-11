@@ -2134,6 +2134,15 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 	gf_filter_notification_failure(filter, reason, GF_TRUE);
 }
 
+#ifndef GPAC_DISABLE_LOGS
+static Bool task_postponed_log(void *udta, void *item)
+{
+	GF_FSTask *at = (GF_FSTask *)item;
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\ttask %s\n", at->log_name));
+	return GF_FALSE;
+}
+#endif
+
 void gf_filter_remove_task(GF_FSTask *task)
 {
 	s32 res;
@@ -2150,12 +2159,11 @@ void gf_filter_remove_task(GF_FSTask *task)
 	if (count!=1) {
 		task->requeue_request = GF_TRUE;
 		task->can_swap = GF_TRUE;
-		count = gf_fq_count(f->tasks);
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destroy postponed, tasks remaining in filer %d:\n", f->name, count));
-		for (u32 i=0; i<count; i++) {
-			GF_FSTask *at = gf_fq_get(f->tasks, i);
-			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\ttask #%d %s\n", i+1, at->log_name));
+#ifndef GPAC_DISABLE_LOGS
+		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_INFO) ) {
+			gf_fq_enum(f->tasks, task_postponed_log, NULL);
 		}
+#endif //GPAC_DISABLE_LOGS
 		return;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction task\n", f->name));
