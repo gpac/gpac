@@ -217,14 +217,6 @@ void gf_fq_add(GF_FilterQueue *fq, void *item)
 	GF_LFQItem *it;
 	assert(fq);
 
-#if 0
-	u32 k;
-	for (k=0; k<fq->nb_items; k++) {
-		void *a = gf_fq_get(fq, k);
-		assert(a != item);
-	}
-#endif
-
 	if (! fq->mx) {
 		gf_lfq_add(fq, item);
 	} else {
@@ -333,4 +325,30 @@ void *gf_fq_get(GF_FilterQueue *fq, u32 idx)
 	}
 
 	return data;
+}
+
+void gf_fq_enum(GF_FilterQueue *fq, Bool (*enum_func)(void *udta1, void *item), void *udta)
+{
+	GF_LFQItem *it;
+	if (!enum_func) return;
+	assert(fq);
+
+	if (fq->mx) {
+		gf_mx_p(fq->mx);
+		it = fq->head;
+
+		while (it) {
+			if (!enum_func(udta, it->data))
+				break;
+			it = it->next;
+		}
+		gf_mx_v(fq->mx);
+	} else {
+		it = fq->head->next;
+		while (it) {
+			if (!enum_func(udta, it->data))
+				break;
+			it = it->next;
+		}
+	}
 }
