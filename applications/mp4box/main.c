@@ -191,6 +191,7 @@ GF_GPACArg m4b_gen_args[] =
 	        "Note: If no source is set, UDTA of type CODE will be removed\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("patch", NULL, "apply box patch in the given file\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("bo", NULL, "freeze the order of boxes in input file\n", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("init-seg", NULL, "use the given file as an init segment for dumping or for encryption\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 	{0}
 };
 
