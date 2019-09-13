@@ -3329,10 +3329,47 @@ err_exit:
 
 #include <gpac/filters.h>
 
+typedef struct
+{
+	u32 filter_idx_plus_one;
+	u32 last_prog;
+	GF_FilterSession *fsess;
+} FragCallback;
+
+static Bool on_frag_event(void *_udta, GF_Event *evt)
+{
+	u32 i, count;
+	GF_FilterStats stats;
+	FragCallback *fc = (FragCallback *)_udta;
+	if (evt && (evt->type != GF_EVENT_PROGRESS)) return GF_FALSE;
+
+	stats.report_updated = GF_FALSE;
+	if (!fc->filter_idx_plus_one) {
+		count = gf_fs_get_filters_count(fc->fsess);
+		for (i=0; i<count; i++) {
+			if (gf_fs_get_filter_stats(fc->fsess, i, &stats) != GF_OK) continue;
+			if (strcmp(stats.reg_name, "mp4mx")) continue;
+			fc->filter_idx_plus_one = i+1;
+			break;
+		}
+		if (!fc->filter_idx_plus_one) return GF_FALSE;
+	} else {
+		if (gf_fs_get_filter_stats(fc->fsess, fc->filter_idx_plus_one-1, &stats) != GF_OK)
+			return GF_FALSE;
+	}
+	if (! stats.report_updated) return GF_FALSE;
+	if (stats.percent/100 == fc->last_prog) return GF_FALSE;
+	fc->last_prog = stats.percent / 100;
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Fragmenting: % 2.2f %%\r", ((Double)stats.percent) / 100));
+	return GF_FALSE;
+}
+
 GF_EXPORT
 GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec, Bool use_mfra)
 {
 	char szArgs[1024];
+	FragCallback fc;
 	GF_Err e = GF_OK;
 	GF_Filter *f;
 	GF_FilterSession *fsess = gf_fs_new_defaults(0);
@@ -3357,6 +3394,16 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 	f = gf_fs_load_destination(fsess, szArgs, NULL, NULL, &e);
 	if (!f) return e;
+
+#ifndef GPAC_DISABLE_LOG
+	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) && !gf_sys_is_quiet() ) {
+		fc.last_prog=0;
+		fc.fsess=fsess;
+		fc.filter_idx_plus_one=0;
+		gf_fs_enable_reporting(fsess, GF_TRUE);
+		gf_fs_set_ui_callback(fsess, on_frag_event, &fc);
+	}
+#endif
 
 	e = gf_fs_run(fsess);
 	gf_fs_del(fsess);
