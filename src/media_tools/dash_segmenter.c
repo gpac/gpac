@@ -845,7 +845,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 
 		//set all args
-		if (di->representationID) {
+		if (di->representationID && strcmp(di->representationID, "NULL")) {
 			sprintf(szArg, "#Representation=%s", di->representationID );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
