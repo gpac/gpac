@@ -9620,6 +9620,7 @@ GF_Err saio_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->entry_count) {
 		u32 i;
 		ptr->offsets = gf_malloc(sizeof(u64)*ptr->entry_count);
+		ptr->entry_alloc = ptr->entry_count;
 		if (ptr->version==0) {
 			for (i=0; i<ptr->entry_count; i++)
 				ptr->offsets[i] = gf_bs_read_u32(bs);
@@ -9698,6 +9699,7 @@ GF_Err saio_box_size(GF_Box *s)
 	case GF_ISOM_CBCS_SCHEME:
 		if (ptr->offsets) gf_free(ptr->offsets);
 		ptr->offsets = NULL;
+		ptr->entry_alloc = 0;
 		ptr->entry_count = 1;
 		break;
 	}

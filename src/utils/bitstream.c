@@ -192,7 +192,7 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode)
 	return tmp;
 }
 
-GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size), void *usr_data, u32 block_size)
+GF_BitStream *gf_bs_new_cbk_buffer(GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size), void *usr_data, u8 *buffer, u32 buffer_size)
 {
 	GF_BitStream *tmp;
 
@@ -206,11 +206,16 @@ GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, u8 *data, u32 bloc
 	tmp->current = 0;
 	tmp->stream = NULL;
 	tmp->nbBits = 0;
-	tmp->size = block_size ? block_size : 10*BS_MEM_BLOCK_ALLOC_SIZE;
-	tmp->original = (char *) gf_malloc(sizeof(char) * ((u32) tmp->size));
-	if (! tmp->original) {
-		gf_free(tmp);
-		return NULL;
+	if (buffer && buffer_size) {
+		tmp->size = buffer_size;
+		tmp->original = buffer;
+	} else {
+		tmp->size = buffer_size ? buffer_size : 10*BS_MEM_BLOCK_ALLOC_SIZE;
+		tmp->original = (char *) gf_malloc(sizeof(char) * ((u32) tmp->size));
+		if (! tmp->original) {
+			gf_free(tmp);
+			return NULL;
+		}
 	}
 	tmp->bsmode = GF_BITSTREAM_WRITE_DYN;
 	tmp->on_block_out = on_block_out;
@@ -219,6 +224,11 @@ GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, u8 *data, u32 bloc
 	return tmp;
 }
 
+GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size), void *usr_data, u32 block_size)
+{
+	return gf_bs_new_cbk_buffer(on_block_out, usr_data, NULL, block_size);
+
+}
 void gf_bs_prevent_dispatch(GF_BitStream *bs, Bool prevent_dispatch)
 {
 	if (!bs) return;
@@ -966,6 +976,11 @@ void gf_bs_get_content_no_truncate(GF_BitStream *bs, u8 **output, u32 *outSize, 
 {
 	/*only in WRITE MEM mode*/
 	if (bs->bsmode != GF_BITSTREAM_WRITE_DYN) return;
+
+	if (bs->on_block_out && bs->position>bs->bytes_out) {
+		bs->on_block_out(bs->usr_data, bs->original, (u32) (bs->position - bs->bytes_out) );
+	}
+
 	if (!bs->position && !bs->nbBits) {
 		if (!alloc_size) {
 			*output = NULL;

@@ -1831,6 +1831,7 @@ typedef struct
 
 	u8 default_sample_info_size;
 	u32 entry_count;  //1 or stco / trun count
+	u32 entry_alloc;
 	u64 *offsets;
 
 	u64 offset_first_offset_field;
@@ -3723,8 +3724,11 @@ struct __tag_isom {
 	GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset, Bool is_insert);
 	void *on_block_out_usr_data;
 	u32 on_block_out_block_size;
+
 	//in block disptach mode we don't have the full file, keep the position
 	u64 fragmented_file_pos;
+	u8 *block_buffer;
+	u32 block_buffer_size;
 
 	u32 nb_box_init_seg;
 };

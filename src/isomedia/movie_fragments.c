@@ -1220,7 +1220,8 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 	gf_bs_truncate(movie->editFileMap->bs);
 	orig_bs = movie->editFileMap->bs;
 	if (movie->on_block_out) {
-		movie->editFileMap->bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+		if (!movie->block_buffer) movie->block_buffer_size = movie->on_block_out_block_size;
+		movie->editFileMap->bs = gf_bs_new_cbk_buffer(movie->on_block_out, movie->on_block_out_usr_data, movie->block_buffer, movie->block_buffer_size);
 	}
 
 	/*write styp to file if needed*/
@@ -1270,6 +1271,8 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 	}
 
 	if (orig_bs != movie->editFileMap->bs) {
+		u32 tmpsize;
+		gf_bs_get_content_no_truncate(movie->editFileMap->bs, &movie->block_buffer, &tmpsize, &movie->block_buffer_size);
 		gf_bs_del(movie->editFileMap->bs);
 		movie->editFileMap->bs = orig_bs;
 		//we are dispatching through callbacks, the movie segment start is always 0
@@ -1350,6 +1353,7 @@ static u64 estimate_next_moof_earliest_presentation_time(u64 ref_track_decode_ti
 	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf=NULL;
 	GF_TrackFragmentRunBox *trun;
+	u32 timescale;
 	u64 min_next_cts = -1;
 
 	for (i=0; i<gf_list_count(moof->TrackList); i++) {
@@ -1359,6 +1363,8 @@ static u64 estimate_next_moof_earliest_presentation_time(u64 ref_track_decode_ti
 	}
 	//no ref track, nothing to estimate
 	if (!traf) return -1;
+	timescale = traf->trex->track->Media->mediaHeader->timeScale;
+
 	nb_aus = 0;
 	duration = 0;
 	nb_ctso = 0;
@@ -1400,8 +1406,21 @@ static u64 estimate_next_moof_earliest_presentation_time(u64 ref_track_decode_ti
 	//look for all shifted PTS of this segment in the regular list. If found in the shifted list, the AU is in this segment
 	//remove from both list
 	for (i=0; i<movie->sidx_pts_store_count; i++) {
-		for (j=0; j<movie->sidx_pts_store_count; j++) {
-			if (movie->sidx_pts_next_store[i] == movie->sidx_pts_store[j]) {
+		for (j=i; j<movie->sidx_pts_store_count; j++) {
+			/*
+
+ 			if (movie->sidx_pts_next_store[i] == movie->sidx_pts_store[j]) {
+ 			
+			take care of misaligned timescale eg 24fps but 10000 timescale), we may not find exactly
+			the same sample - if diff is below one ms consider it a match
+			not doing so would accumulate PTSs in the list, slowing down the muxing*/
+			s32 diff = movie->sidx_pts_next_store[i];
+			diff -= (s32) movie->sidx_pts_store[j];
+			if (timescale>1000) {
+				if (ABS(diff) * 1000 < 1 * timescale)
+					diff = 0;
+			}
+			if (diff==0) {
 				if (movie->sidx_pts_store_count >= i + 1)
 					memmove(&movie->sidx_pts_next_store[i], &movie->sidx_pts_next_store[i+1], sizeof(u64) * (movie->sidx_pts_store_count - i - 1) );
 				if (movie->sidx_pts_store_count >= j + 1)
@@ -1513,7 +1532,8 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 
 	orig_bs = movie->editFileMap->bs;
 	if (movie->on_block_out) {
-		movie->editFileMap->bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+		if (!movie->block_buffer) movie->block_buffer_size = movie->on_block_out_block_size;
+		movie->editFileMap->bs = gf_bs_new_cbk_buffer(movie->on_block_out, movie->on_block_out_usr_data, movie->block_buffer, movie->block_buffer_size);
 		if (referenceTrackID) gf_bs_prevent_dispatch(movie->editFileMap->bs, GF_TRUE);
 	}
 
@@ -1977,6 +1997,8 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 
 exit:
 	if (orig_bs != movie->editFileMap->bs) {
+		u32 tmpsize;
+		gf_bs_get_content_no_truncate(movie->editFileMap->bs, &movie->block_buffer, &tmpsize, &movie->block_buffer_size);
 		gf_bs_del(movie->editFileMap->bs);
 		movie->editFileMap->bs = orig_bs;
 	}
@@ -1997,7 +2019,8 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size)
 	if (! movie->on_block_out) return GF_BAD_PARAM;
 	if (! movie->root_sidx) return GF_BAD_PARAM;
 
-	bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+	if (!movie->block_buffer_size) movie->block_buffer_size = movie->on_block_out_block_size;
+	bs = gf_bs_new_cbk_buffer(movie->on_block_out, movie->on_block_out_usr_data, movie->block_buffer, movie->block_buffer_size);
 	gf_bs_prevent_dispatch(bs, GF_TRUE);
 	
 	assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
@@ -2060,6 +2083,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size)
 		movie->root_ssix = NULL;
 	}
 
+	gf_bs_get_content_no_truncate(bs, &movie->block_buffer, &size, &movie->block_buffer_size);
 	gf_bs_del(bs);
 	return GF_OK;
 }
