@@ -130,6 +130,18 @@ Creates a bitstream from in write mode suing output callback.
 GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size), void *usr_data, u32 block_size);
 
 /*!
+\brief bitstream constructor from callback output and preallocated buffer
+
+Creates a bitstream from in write mode suing output callback.
+\param on_block_out callback function used to write blocks.
+\param usr_data user data for callback.
+\param buffer internal buffer to use while dispatching bytes. If NULL, buffer is allocated internally using buffer_size.
+\param buffer_size internal buffer size used while dispatching bytes. If 0, defaults to 40k.
+\return new bitstream object
+ */
+GF_BitStream *gf_bs_new_cbk_buffer(GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size), void *usr_data, u8 *buffer, u32 buffer_size);
+
+/*!
 \brief prevents block dispatch
 Prevents byte dispatching in callback mode. This is used when seek operations are used.
 \param bs the target bitstream

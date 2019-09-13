@@ -774,6 +774,9 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 		gf_free(mov->sidx_pts_store);
 	if (mov->sidx_pts_next_store)
 		gf_free(mov->sidx_pts_next_store);
+
+	if (mov->block_buffer)
+		gf_free(mov->block_buffer);
 #endif
 	if (mov->last_producer_ref_time)
 		gf_isom_box_del((GF_Box *) mov->last_producer_ref_time);

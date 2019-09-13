@@ -1067,8 +1067,12 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 		senc->cenc_saio->offsets = (u64 *)gf_malloc(sizeof(u64));
 		senc->cenc_saio->offsets[0] = offset;
 		senc->cenc_saio->entry_count ++;
+		senc->cenc_saio->entry_alloc = 1;
 	} else {
-		senc->cenc_saio->offsets = (u64*)gf_realloc(senc->cenc_saio->offsets, sizeof(u64)*(senc->cenc_saio->entry_count+1));
+		if (senc->cenc_saio->entry_count >= senc->cenc_saio->entry_alloc) {
+			senc->cenc_saio->entry_alloc += 50;
+			senc->cenc_saio->offsets = (u64*)gf_realloc(senc->cenc_saio->offsets, sizeof(u64)*(senc->cenc_saio->entry_alloc));
+		}
 		senc->cenc_saio->offsets[senc->cenc_saio->entry_count] = offset;
 		senc->cenc_saio->entry_count++;
 	}
@@ -1306,6 +1310,9 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 	}
 	if (!saiz_cenc) return GF_BAD_PARAM;
 
+	saiz_cenc->cached_sample_num = sampleNumber;
+	saiz_cenc->cached_prev_size = prev_sai_size + size;
+
 	if (saio_cenc->total_size) {
 		if (!saio_cenc->cached_data) {
 			saio_cenc->cached_data = gf_malloc(sizeof(u8)*saio_cenc->total_size);
@@ -1319,8 +1326,6 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 		}
 		(*out_size) = size;
 		memcpy((*out_buffer), saio_cenc->cached_data + prev_sai_size, size);
-		saiz_cenc->cached_sample_num = sampleNumber;
-		saiz_cenc->cached_prev_size = prev_sai_size + size;
 		return GF_OK;
 	}
 
