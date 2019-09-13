@@ -340,6 +340,7 @@ void PrintDASHUsage()
 		"- :period_duration=VALUE: increase the duration of this period by the given duration in seconds. This is only used when no input media is specified (remote period insertion), eg `:period=X:xlink=Z:duration=Y`\n"
 		"- :duration=VALUE: override target DASH segment duration for this input\n"
 		"- :xlink=VALUE: set the xlink value for the period containing this element. Only the xlink declared on the first rep of a period will be used\n"
+		"- :asID=VALUE: set the AdaptationSet ID to NAME\n"
 		"- :role=VALUE: set the role of this representation (cf DASH spec). Media with different roles belong to different adaptation sets.\n"
 		"- :desc_p=VALUE: add a descriptor at the Period level. Value must be a properly formatted XML element.\n"
 		"- :desc_as=VALUE: add a descriptor at the AdaptationSet level. Value must be a properly formatted XML element. Two input files with different values will be in different AdaptationSet elements.\n"
