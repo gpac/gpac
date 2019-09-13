@@ -1530,7 +1530,7 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 	if (p) {
 		if (ds->rep_id) gf_free(ds->rep_id);
 
-		if (!ds->tile_base && (ds->srd.w || ds->srd.z)) {
+		if (!ds->tile_base && (ds->srd.w || ds->srd.z) && !ctx->sseg && !ctx->sfile) {
 			char *rep_name = gf_malloc(sizeof(char) * (strlen(p->value.string) + 15) );
 			sprintf(rep_name, "%s_%d", p->value.string, *srd_rep_idx);
 			ds->rep_id = rep_name;
@@ -2217,11 +2217,17 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		if (!dasher_template_use_source_url(template))
 			continue;
 
+		if (ds->muxed_base)
+			continue;
+
 		for (j=i+1; j<count; j++) {
 			const GF_PropertyValue *p1, *p2;
 			GF_DashStream *a_ds;
 			rep = gf_list_get(set->representations, j);
 			a_ds = rep->playback.udta;
+
+			if (a_ds->muxed_base == ds)
+				continue;
 
 			p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_FILEPATH);
 			p2 = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_FILEPATH);
@@ -3718,7 +3724,6 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 				if (!a_ds->rep->dependency_id) a_ds->rep->dependency_id = gf_strdup(ds->rep->id);
 			}
 			if (!a_ds->muxed_base && !strcmp(a_ds->rep_id, ds->rep_id) ) {
-				char szCodecs[1024];
 				a_ds->muxed_base = ds;
 				a_ds->dash_dur = ds->dash_dur;
 				has_muxed_bases = GF_TRUE;
@@ -3728,11 +3733,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Bitstream Swicthing mode \"multi\" is not supported with multiplexed representations, disabling bitstream switching\n"));
 					ctx->bs_switch = DASHER_BS_SWITCH_OFF;
 				}
-				strcpy(szCodecs, ds->rep->codecs);
-				strcat(szCodecs, ",");
-				strcat(szCodecs, a_ds->rep->codecs);
-				gf_free(ds->rep->codecs);
-				ds->rep->codecs = gf_strdup(szCodecs);
+				if (!ds->rep->codecs || !strstr(ds->rep->codecs, a_ds->rep->codecs)) {
+					gf_dynstrcat(&ds->rep->codecs, a_ds->rep->codecs, ",");
+				}
 
 				if (ctx->profile == GF_DASH_PROFILE_AVC264_LIVE) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF AVC264 live profile\n\tswitching to regular live profile\n"));
@@ -5632,7 +5635,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 
 	//check we have a segment template
 	if (!ctx->template) {
-		ctx->template = gf_strdup( ctx->sfile ? "$File$_dash" : (ctx->stl ? "$File$_dash$DS$$Time$" : "$File$_dash$DS$$Number$") );
+		ctx->template = gf_strdup( ctx->sfile ? "$File$$DS$_dash" : (ctx->stl ? "$File$_dash$DS$$Time$" : "$File$_dash$DS$$Number$") );
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] No template assigned, using %s\n", ctx->template));
 		if (ctx->profile == GF_DASH_PROFILE_FULL) {
 			ctx->sfile = GF_TRUE;
