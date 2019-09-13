@@ -42,16 +42,6 @@ Note: You can add media to a file and split it in the same pass. In this case, t
 Options:
 .br
 .TP
-.B \-mem-track
-.br
-enable memory tracker
-.br
-.TP
-.B \-mem-track-stack
-.br
-enable memory tracker with stack dumping
-.br
-.TP
 .B \-p
 .br
 use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name 0 means a new profile, not stored to disk. Works using -p=NAME or -p NAME
@@ -501,6 +491,8 @@ Warning: This does not modify generated files location (see segment template).
 * :duration=VALUE: override target DASH segment duration for this input
 .br
 * :xlink=VALUE: set the xlink value for the period containing this element. Only the xlink declared on the first rep of a period will be used
+.br
+* :asID=VALUE: set the AdaptationSet ID to NAME
 .br
 * :role=VALUE: set the role of this representation (cf DASH spec). Media with different roles belong to different adaptation sets.
 .br
@@ -2012,7 +2004,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2752-gbc684305e-filters
+build: 0.9.0-DEV-rev2753-g0b63edf9b-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
