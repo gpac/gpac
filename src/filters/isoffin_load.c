@@ -97,16 +97,19 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	u32 mtype, m_subtype;
 	GF_GenericSampleDescription *udesc = NULL;
 	GF_Err e;
+	u32 ocr_es_id;
 	Bool first_config = GF_FALSE;
 
 
 	esid = depends_on_id = avg_rate = max_rate = buffer_size = 0;
 	mime = encoding = stxtcfg = namespace = schemaloc = NULL;
 
+	if ( gf_isom_is_media_encrypted(read->mov, track, stsd_idx)) {
+		gf_isom_get_original_format_type(read->mov, track, stsd_idx, &m_subtype);
+	} else {
+		m_subtype = gf_isom_get_media_subtype(read->mov, track, stsd_idx);
+	}
 
-	m_subtype = gf_isom_get_media_subtype(read->mov, track, stsd_idx);
-
-	u32 ocr_es_id;
 
 	audio_fmt = 0;
 	pix_fmt = 0;
