@@ -5536,6 +5536,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	}
 	if (flush_mpd) {
 		ctx->on_demand_done = GF_TRUE;
+		gf_filter_post_process_task(filter);
 	}
 	return GF_TRUE;
 }
