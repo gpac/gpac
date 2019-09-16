@@ -1422,8 +1422,8 @@ static u64 estimate_next_moof_earliest_presentation_time(u64 ref_track_decode_ti
 			take care of misaligned timescale eg 24fps but 10000 timescale), we may not find exactly
 			the same sample - if diff is below one ms consider it a match
 			not doing so would accumulate PTSs in the list, slowing down the muxing*/
-			s32 diff = movie->sidx_pts_next_store[i];
-			diff -= (s32) movie->sidx_pts_store[j];
+			s64 diff = movie->sidx_pts_next_store[i];
+			diff -= (s64) movie->sidx_pts_store[j];
 			if (timescale>1000) {
 				if (ABS(diff) * 1000 < 1 * timescale)
 					diff = 0;
