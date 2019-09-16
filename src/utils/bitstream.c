@@ -1126,7 +1126,8 @@ GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset)
 			return GF_BAD_PARAM;
 		}
 		/*warning: we allow offset = bs->size for WRITE buffers*/
-		if (offset > bs->size) return GF_BAD_PARAM;
+		if (offset - bs->bytes_out > bs->size)
+			return GF_BAD_PARAM;
 		gf_bs_align(bs);
 		e = BS_SeekIntern(bs, offset - bs->bytes_out);
 		bs->position += bs->bytes_out;
