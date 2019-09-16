@@ -1043,7 +1043,15 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 		traf->moof_start_in_bs = pos;
 	}
 
+	/*we don't want to dispatch any block until done writing the moof*/
+	if (movie->on_block_out)
+		gf_bs_prevent_dispatch(bs, GF_TRUE);
+
 	e = gf_isom_box_write((GF_Box *) movie->moof, bs);
+
+	if (movie->on_block_out)
+		gf_bs_prevent_dispatch(bs, GF_FALSE);
+
 	if (e) return e;
 
 	//rewrite mdat after moof
@@ -1766,6 +1774,10 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 			else if (use_ssix) generate_ssix = GF_TRUE;
 
 			e = StoreFragment(movie, GF_FALSE, offset_diff, &moof_size, GF_FALSE);
+			if (e) {
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
 
 			if (sidx) {
 				u32 cur_index = idx_offset + cur_idx;
