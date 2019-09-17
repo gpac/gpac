@@ -2927,8 +2927,10 @@ u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile_width,
 		} else {
 			if (i<si->pps->num_tile_rows-1) {
 				val = si->pps->row_height[i];
-			} else {
+			} else if (i) {
 				val = (PicHeightInCtbsY - si->pps->row_height[i-1]);
+			} else {
+				val = PicHeightInCtbsY;
 			}
 		}
 		*tile_y = oY;
