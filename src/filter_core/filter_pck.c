@@ -177,7 +177,7 @@ GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck
 	if (!pck_source) return NULL;
 
 	pcki = (GF_FilterPacketInstance *) pck_source;
-	if (pcki->pck->frame_ifce || !pcki->pck->data_length)
+	if (pcki->pck->frame_ifce)
 		return NULL;
 
 	ref = pcki->pck;
