@@ -4105,6 +4105,8 @@ This filter merges a set of HEVC PIDs into a single motion-constrained tiled HEV
 .br
 The filter creates a tiling grid with a single row and as many columns as needed.
 .br
+If -mrows is set and tiles properly align on the final grid, multiple rows will be declared in the PPS.
+.br
 Positioning of tiles can be automatic (implicit) or explicit.
 .br
 The filter will check the SPS and PPS configurations of input PID and warn if they are not aligned but will still process them unless -strict is set.
@@ -4145,6 +4147,8 @@ In this mode, it is the caller responsability to set coordinates so that all til
 .LP
 .br
 strict (boolean, default: false):        strict comparison of SPS and PPS of input pids - see filter help
+.br
+mrows (boolean, default: false):         signal multiple rows in tile grid when possible
 .br
 
 .br
@@ -4383,7 +4387,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2756-g05d41aca8-filters
+build: 0.9.0-DEV-rev2768-g6c1d19818-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

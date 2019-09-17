@@ -129,7 +129,7 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("new", NULL, "force creation of a new destination file", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("newfs", NULL, "force creation of a new destination file without temp file but interleaving support", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("no-sys", NULL, "remove all MPEG-4 Systems info except IOD, kept for profiles. This is the default when creating regular AV content", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("no-sys", NULL, "remove MPEG-4 InitialObjectDescriptor from file", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+ 	GF_DEF_ARG("no-iod", NULL, "remove MPEG-4 InitialObjectDescriptor from file", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("mfra", NULL, "insert movie fragment random offset when fragmenting file (ignored in dash mode)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("isma", NULL, "rewrite the file as an ISMA 1.0 file", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("ismax", NULL, "same as [-isma]() and remove all clock references", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
