@@ -42,6 +42,16 @@ Note: You can add media to a file and split it in the same pass. In this case, t
 Options:
 .br
 .TP
+.B \-mem-track
+.br
+enable memory tracker
+.br
+.TP
+.B \-mem-track-stack
+.br
+enable memory tracker with stack dumping
+.br
+.TP
 .B \-p
 .br
 use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name 0 means a new profile, not stored to disk. Works using -p=NAME or -p NAME
@@ -107,7 +117,7 @@ force creation of a new destination file without temp file but interleaving supp
 remove all MPEG-4 Systems info except IOD, kept for profiles. This is the default when creating regular AV content
 .br
 .TP
-.B \-no-sys
+.B \-no-iod
 .br
 remove MPEG-4 InitialObjectDescriptor from file
 .br
@@ -2004,7 +2014,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2756-g05d41aca8-filters
+build: 0.9.0-DEV-rev2768-g6c1d19818-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
