@@ -74,7 +74,7 @@ typedef struct {
 typedef struct
 {
 	//options
-	Bool strict;
+	Bool strict, mrows;
 
 	GF_FilterPid *opid;
 	s32 base_pps_init_qp_delta_minus26;
@@ -97,6 +97,8 @@ typedef struct
 
 	GF_List *pids, *ordered_pids;
 	Bool in_error;
+	Bool enable_multi_rows;
+	u32 nb_rows;
 } GF_HEVCMergeCtx;
 
 //in src/filters/hevcsplit.c
@@ -173,7 +175,14 @@ static void hevcmerge_rewrite_pps(GF_HEVCMergeCtx *ctx, char *in_PPS, u32 in_PPS
 	gf_bs_write_int(ctx->bs_nal_out, 1, 1);
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);//entropy_coding_sync_enabled_flag
 	gf_bs_set_ue(ctx->bs_nal_out, ctx->nb_cols-1);//write num_tile_columns_minus1
-	gf_bs_set_ue(ctx->bs_nal_out, 0);//num_tile_rows_minus1
+	//num_tile_rows_minus1
+	if (ctx->enable_multi_rows) {
+		u32 nb_rows = ctx->nb_rows - 1;
+		assert(ctx->nb_rows);
+		gf_bs_set_ue(ctx->bs_nal_out, nb_rows);
+	} else {
+		gf_bs_set_ue(ctx->bs_nal_out, 0);//num_tile_rows_minus1
+	}
 	gf_bs_write_int(ctx->bs_nal_out, 0, 1);  //uniform_spacing_flag
 
 //	if (!uniform_spacing_flag) //always 0
@@ -182,11 +191,22 @@ static void hevcmerge_rewrite_pps(GF_HEVCMergeCtx *ctx, char *in_PPS, u32 in_PPS
 		for (i = 0; i < ctx->nb_cols-1; i++)
 			gf_bs_set_ue(ctx->bs_nal_out, (ctx->grid[i].width / ctx->max_CU_width - 1));
 
-#if 0	//kept for clarity, but not used by the filter since we only use a single row
-		for (i = 0; i < 1-1; i++) //num_tile_rows_minus1
-			gf_bs_set_ue(ctx->bs_nal_out, (ctx->out_height / ctx->max_CU_height - 1)); // row_height_minus1[i]
-#endif
+		//if multi row is possible, declare the row height
+		if (ctx->enable_multi_rows && (ctx->nb_rows>1))  {
+			u32 nb_rows = ctx->nb_rows - 1;
+			u32 nb_pids = gf_list_count(ctx->pids);
 
+			for (i=0; i<nb_pids; i++) {
+				//get pid in their final order
+				HEVCTilePidCtx *tile = gf_list_get(ctx->ordered_pids, i);
+				//only check height in the first column
+				if (tile->pos_col) continue;
+				gf_bs_set_ue(ctx->bs_nal_out, (tile->height / ctx->max_CU_width - 1)); // row_height_minus1[i]
+				nb_rows--;
+				if (!nb_rows) break;
+			}
+		}
+		//otherwise nothing to declare since we use a single row
 	}
 	loop_filter_flag = 1;
 	gf_bs_write_int(ctx->bs_nal_out, loop_filter_flag, 1);
@@ -792,6 +812,35 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 				pidctx->width, pidctx->height, pidctx->slice_segment_address));
 	}
 
+	//check if we can use a mult-row frid
+	ctx->enable_multi_rows = GF_FALSE;
+	if (ctx->mrows) {
+		ctx->enable_multi_rows = GF_TRUE;
+		ctx->nb_rows=0;
+		for (i=0; i<nb_pids; i++) {
+			HEVCTilePidCtx *tile = gf_list_get(ctx->pids, i);
+			s32 pos_y = nb_has_pos ? tile->pos_y : tile->pos_row;
+
+			if (!tile->pos_col)
+				ctx->nb_rows++;
+
+			for (j=0; j<nb_pids; j++) {
+				if (i==j) continue;
+				HEVCTilePidCtx *atile = gf_list_get(ctx->pids, j);
+				s32 apos_y = nb_has_pos ? atile->pos_y : atile->pos_row;
+				if (apos_y != pos_y) continue;
+				if (atile->height != tile->height) {
+					ctx->enable_multi_rows = GF_FALSE;
+					break;
+				}
+			}
+			if (!ctx->enable_multi_rows) {
+				ctx->nb_rows = 0;
+				break;
+			}
+		}
+	}
+
 	//sort pids according to columns (tiles) and slice adresses to be conformant with spec
 	gf_list_reset(ctx->ordered_pids);
 	for (i=0; i<nb_cols; i++) {
@@ -799,10 +848,13 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 			u32 k;
 			Bool inserted = GF_FALSE;
 			HEVCTilePidCtx *tile = gf_list_get(ctx->pids, j);
-			if (tile->pos_col != i) continue;
+			//
+			if (!ctx->enable_multi_rows && (tile->pos_col != i))
+				continue;
 			for (k=0; k<gf_list_count(ctx->ordered_pids); k++) {
 				HEVCTilePidCtx *tile2 = gf_list_get(ctx->ordered_pids, k);
-				if (tile2->pos_col != i) continue;
+				if (!ctx->enable_multi_rows && (tile2->pos_col != i))
+					continue;
 				if (tile2->slice_segment_address > tile->slice_segment_address) {
 					inserted = GF_TRUE;
 					gf_list_insert(ctx->ordered_pids, tile, k);
@@ -812,17 +864,28 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 			if (!inserted) {
 				for (k=0; k<gf_list_count(ctx->ordered_pids); k++) {
 					HEVCTilePidCtx *tile2 = gf_list_get(ctx->ordered_pids, k);
-					if (tile2->pos_col > tile->pos_col) {
-						inserted = GF_TRUE;
-						gf_list_insert(ctx->ordered_pids, tile, k);
-						break;
+					if (!ctx->enable_multi_rows) {
+						if (tile2->pos_col > tile->pos_col) {
+							inserted = GF_TRUE;
+							gf_list_insert(ctx->ordered_pids, tile, k);
+							break;
+						}
+					} else {
+						if (tile2->slice_segment_address > tile->slice_segment_address) {
+							inserted = GF_TRUE;
+							gf_list_insert(ctx->ordered_pids, tile, k);
+							break;
+						}
 					}
 				}
 				if (!inserted)
 					gf_list_add(ctx->ordered_pids, tile);
 			}
 		}
+		if (ctx->enable_multi_rows)
+			break;
 	}
+
 	assert(gf_list_count(ctx->ordered_pids) == gf_list_count(ctx->pids));
 	return GF_OK;
 }
@@ -1418,6 +1481,7 @@ static const GF_FilterCapability HEVCMergeCaps[] =
 static const GF_FilterArgs HEVCMergeArgs[] =
 {
 	{ OFFS(strict), "strict comparison of SPS and PPS of input pids - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mrows), "signal multiple rows in tile grid when possible", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -1426,6 +1490,7 @@ GF_FilterRegister HEVCMergeRegister = {
 	GF_FS_SET_DESCRIPTION("HEVC Tile merger")
 	GF_FS_SET_HELP("This filter merges a set of HEVC PIDs into a single motion-constrained tiled HEVC PID.\n"
 		"The filter creates a tiling grid with a single row and as many columns as needed.\n"
+		"If [-mrows]() is set and tiles properly align on the final grid, multiple rows will be declared in the PPS.\n"
 		"Positioning of tiles can be automatic (implicit) or explicit.\n"
 		"The filter will check the SPS and PPS configurations of input PID and warn if they are not aligned but will still process them unless [-strict]() is set.\n"
 		"The filter assumes that all input PIDs are synchronized (frames share the same timestamp) and will reassemble frames with the same dts. If pids are of unequal duration, the filter will drop frames as soon as one pid is over.\n"
