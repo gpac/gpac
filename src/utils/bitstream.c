@@ -116,10 +116,7 @@ GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const u8 *buffer, u64 BufferSize)
 GF_EXPORT
 GF_BitStream *gf_bs_new(const u8 *buffer, u64 BufferSize, u32 mode)
 {
-	GF_BitStream *tmp;
-	if ( (buffer && ! BufferSize)) return NULL;
-
-	tmp = (GF_BitStream *)gf_malloc(sizeof(GF_BitStream));
+	GF_BitStream *tmp = (GF_BitStream *)gf_malloc(sizeof(GF_BitStream));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_BitStream));
 
