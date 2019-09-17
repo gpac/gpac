@@ -2356,8 +2356,10 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 	p = (GF_TrackFragmentRunBox *)a;
 	flags = p->flags;
 	p->flags = p->ctrn_flags;
+	if (p->use_ctrn) p->type = GF_ISOM_BOX_TYPE_CTRN;
 	gf_isom_box_dump_start(a, p->use_ctrn ? "CompactTrackRunBox" : "TrackRunBox", trace);
 	p->flags = flags;
+	p->type = GF_ISOM_BOX_TYPE_TRUN;
 	fprintf(trace, "SampleCount=\"%d\"", p->sample_count);
 
 	if (p->flags & GF_ISOM_TRUN_DATA_OFFSET)
