@@ -66,7 +66,7 @@ struct __tag_bitstream
 	GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size);
 	void *usr_data;
 	u64 bytes_out;
-	Bool prevent_dispatch;
+	u32 prevent_dispatch;
 
 	u64 cookie;
 };
@@ -229,7 +229,13 @@ GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, u8 *data, u32 bloc
 void gf_bs_prevent_dispatch(GF_BitStream *bs, Bool prevent_dispatch)
 {
 	if (!bs) return;
-	bs->prevent_dispatch = prevent_dispatch;
+	if (prevent_dispatch) {
+		bs->prevent_dispatch ++;
+		return;
+	}
+	if (!bs->prevent_dispatch) return;
+	bs->prevent_dispatch --;
+
 	if (bs->on_block_out && !bs->prevent_dispatch) {
 		assert(bs->position >= bs->bytes_out);
 		if (bs->position > bs->bytes_out) {
