@@ -144,6 +144,7 @@ GF_BitStream *gf_bs_new_cbk_buffer(GF_Err (*on_block_out)(void *cbk, u8 *data, u
 /*!
 \brief prevents block dispatch
 Prevents byte dispatching in callback mode. This is used when seek operations are used.
+\warning Block dispatch prevention acts in a counter mode: you must call as many time the function with prevent_dispatch = GF_FALSE as you called the function with prevent_dispatch = GF_TRUE
 \param bs the target bitstream
 \param prevent_dispatch activates temporary internal storage if set
  */
