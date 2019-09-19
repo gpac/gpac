@@ -2030,12 +2030,12 @@ GF_Err gf_isom_set_track_matrix(GF_ISOFile *isom_file, u32 trackNumber, s32 matr
 \param isom_file the target ISO file
 \param trackNumber the target track number
 \param sampleDescriptionIndex the target sample description index
-\param hSpacing horizontal spacing of the aspect ratio; a value of 0 removes PAR
-\param vSpacing vertical spacing of the aspect ratio; a value of 0 removes PAR
-\param force_par if set, forces PAR to 1:1 when hSpacing=vSpacing; otherwise remove PAR
+\param hSpacing horizontal spacing of the aspect ratio; a value of 0 removes PAR; negative value means 1
+\param vSpacing vertical spacing of the aspect ratio; a value of 0 removes PAR; negative value means 1
+\param force_par if set, forces PAR to 1:1 when hSpacing=vSpacing; otherwise removes PAR when hSpacing=vSpacing
 \return error if any
 */
-GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 hSpacing, u32 vSpacing, Bool force_par);
+GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, s32 hSpacing, s32 vSpacing, Bool force_par);
 
 /*! sets clean apperture (crop window, see ISO/IEC 14496-12) for a sample description
 \param isom_file the target ISO file

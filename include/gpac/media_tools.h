@@ -99,8 +99,8 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *isom_file, u32 trackNumber, 
  *Changes pixel aspect ratio for visual tracks if supported. Negative values remove any PAR info
 \param isom_file target ISOBMF file
 \param trackNumber target track
-\param ar_num aspect ratio numerator
-\param ar_den aspect ratio denominator
+\param ar_num aspect ratio numerator. -2 doesn't modify the bitstream AR signaling but forces 1:1 AR. -1 removes bitstream AR signaling and forces 1:1 AR. 0 removes bitstream AR signaling and ISOBMFF signaling
+\param ar_den aspect ratio denominator. -2 doesn't modify the bitstream AR signaling but forces 1:1 AR. -1 removes bitstream AR signaling and forces 1:1 AR. 0 removes bitstream AR signaling and ISOBMFF signaling
 \param force_par aspect ratio is always written even when not necessary
 \return error if any
  */
