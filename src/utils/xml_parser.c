@@ -1878,8 +1878,10 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 			SET_STRING(":");
 		}
 		SET_STRING(node->name);
-		SET_STRING(" ");
 		count = gf_list_count(node->attributes);
+		if (count > 0) {
+			SET_STRING(" ");
+		}
 		for (i=0; i<count; i++) {
 			GF_XMLAttribute *att = (GF_XMLAttribute*)gf_list_get(node->attributes, i);
 			SET_STRING(att->name);
