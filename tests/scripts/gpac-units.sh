@@ -49,6 +49,7 @@ single_test "$GPAC -mkl=test.unk" "gpac-lang-file"
 rm -f test.unk 2> /dev/null
 
 single_test "$GPAC -seps=123456 -p=myprofile -wc -we -wf -wfx -no-save" "gpac-filter-profile-full"
+single_test 'gpac -p=0 -hh mp4mx' "gpac-null-profile"
 
 test_begin "gpac-link-dir"
 if [ $test_skip != 1 ] ; then
