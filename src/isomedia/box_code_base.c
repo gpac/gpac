@@ -6968,14 +6968,14 @@ static GF_Err ctrn_box_read(GF_Box *s, GF_BitStream *bs)
 		gf_list_add(ptr->entries, ent);
 	}
 	//unpack flags
-	ptr->ctrn_first_dur = (flags>>16) & 0x3;
-	ptr->ctrn_first_size = (flags>>18) & 0x3;
-	ptr->ctrn_first_sample_flags = (flags>>20) & 0x3;
-	ptr->ctrn_first_ctts = (flags>>22) & 0x3;
-	ptr->ctrn_dur = (flags>>8) & 0x3;
-	ptr->ctrn_size = (flags>>10) & 0x3;
-	ptr->ctrn_sample_flags = (flags>>12) & 0x3;
-	ptr->ctrn_ctts = (flags>>14) & 0x3;
+	ptr->ctrn_first_dur = (flags>>22) & 0x3;
+	ptr->ctrn_first_size = (flags>>20) & 0x3;
+	ptr->ctrn_first_sample_flags = (flags>>18) & 0x3;
+	ptr->ctrn_first_ctts = (flags>>16) & 0x3;
+	ptr->ctrn_dur = (flags>>14) & 0x3;
+	ptr->ctrn_size = (flags>>12) & 0x3;
+	ptr->ctrn_sample_flags = (flags>>10) & 0x3;
+	ptr->ctrn_ctts = (flags>>8) & 0x3;
 
 	inherit_dur = flags & GF_ISOM_CTRN_INHERIT_DUR;
 	inherit_size = flags & GF_ISOM_CTRN_INHERIT_SIZE;
@@ -7352,7 +7352,7 @@ static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 		ctrn->ctrn_first_dur = ctrn_u32_to_index(ent->Duration);
 		if (ctrn->ctrn_first_dur) {
 			ctrn->size += ctrn_field_size(ctrn->ctrn_first_dur);
-			ctrn->ctrn_flags |= ctrn->ctrn_first_dur<<16;
+			ctrn->ctrn_flags |= ctrn->ctrn_first_dur<<22;
 		}
 	}
 
@@ -7360,7 +7360,7 @@ static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 		ctrn->ctrn_first_size = ctrn_u32_to_index(ent->size);
 		if (ctrn->ctrn_first_size) {
 			ctrn->size += ctrn_field_size(ctrn->ctrn_first_size);
-			ctrn->ctrn_flags |= ctrn->ctrn_first_size<<18;
+			ctrn->ctrn_flags |= ctrn->ctrn_first_size<<20;
 		}
 	}
 
@@ -7368,14 +7368,14 @@ static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 		ctrn->ctrn_first_sample_flags = ctrn_sample_flags_to_index(ent->flags);
 		if (ctrn->ctrn_first_sample_flags) {
 			ctrn->size += ctrn_field_size(ctrn->ctrn_first_sample_flags);
-			ctrn->ctrn_flags |= ctrn->ctrn_first_sample_flags<<20;
+			ctrn->ctrn_flags |= ctrn->ctrn_first_sample_flags<<18;
 		}
 	}
 	if (!ctrn->use_inherit && (ctrn->flags & GF_ISOM_TRUN_CTS_OFFSET)) {
 		ctrn->ctrn_first_ctts = ctrn_ctts_to_index(ctrn, ent->CTS_Offset);
 		if (ctrn->ctrn_first_ctts) {
 			ctrn->size += ctrn_field_size(ctrn->ctrn_first_ctts);
-			ctrn->ctrn_flags |= ctrn->ctrn_first_ctts<<22;
+			ctrn->ctrn_flags |= ctrn->ctrn_first_ctts<<16;
 		}
 	}
 
@@ -7407,19 +7407,19 @@ static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 	count-=1;
 	if (ctrn->ctrn_dur) {
 		ctrn->size += count * ctrn_field_size(ctrn->ctrn_dur);
-		ctrn->ctrn_flags |= ctrn->ctrn_dur<<8;
+		ctrn->ctrn_flags |= ctrn->ctrn_dur<<14;
 	}
 	if (ctrn->ctrn_size) {
 		ctrn->size += count * ctrn_field_size(ctrn->ctrn_size);
-		ctrn->ctrn_flags |= ctrn->ctrn_size<<10;
+		ctrn->ctrn_flags |= ctrn->ctrn_size<<12;
 	}
 	if (ctrn->ctrn_sample_flags) {
 		ctrn->size += count * ctrn_field_size(ctrn->ctrn_sample_flags);
-		ctrn->ctrn_flags |= ctrn->ctrn_sample_flags<<12;
+		ctrn->ctrn_flags |= ctrn->ctrn_sample_flags<<10;
 	}
 	if (ctrn->ctrn_ctts) {
 		ctrn->size += count * ctrn_field_size(ctrn->ctrn_ctts);
-		ctrn->ctrn_flags |= ctrn->ctrn_ctts<<14;
+		ctrn->ctrn_flags |= ctrn->ctrn_ctts<<8;
 	}
 	return GF_OK;
 }
