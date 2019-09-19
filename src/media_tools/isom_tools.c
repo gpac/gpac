@@ -34,72 +34,80 @@
 GF_EXPORT
 GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, Bool force_par)
 {
-	u32 tk_w, tk_h, stype;
+	u32 tk_w, tk_h;
 	GF_Err e;
 
 	e = gf_isom_get_visual_info(file, track, 1, &tk_w, &tk_h);
 	if (e) return e;
 
-	stype = gf_isom_get_media_subtype(file, track, 1);
-	if ((stype==GF_ISOM_SUBTYPE_AVC_H264)
-	        || (stype==GF_ISOM_SUBTYPE_AVC2_H264)
-	        || (stype==GF_ISOM_SUBTYPE_AVC3_H264)
-	        || (stype==GF_ISOM_SUBTYPE_AVC4_H264)
-	   ) {
+	if (ar_num!=-2 || ar_den!=-2) {
+		u32 stype = gf_isom_get_media_subtype(file, track, 1);
+		if ((stype==GF_ISOM_SUBTYPE_AVC_H264)
+				|| (stype==GF_ISOM_SUBTYPE_AVC2_H264)
+				|| (stype==GF_ISOM_SUBTYPE_AVC3_H264)
+				|| (stype==GF_ISOM_SUBTYPE_AVC4_H264)
+		   ) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
-		gf_media_avc_change_par(avcc, ar_num, ar_den);
-		e = gf_isom_avc_config_update(file, track, 1, avcc);
-		gf_odf_avc_cfg_del(avcc);
-		if (e) return e;
+			GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
+			gf_media_avc_change_par(avcc, ar_num, ar_den);
+			e = gf_isom_avc_config_update(file, track, 1, avcc);
+			gf_odf_avc_cfg_del(avcc);
+			if (e) return e;
 #endif
-	}
-#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
-	else if (stype==GF_ISOM_SUBTYPE_HVC1) {
-		GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(file, track, 1);
-		gf_media_hevc_change_par(hvcc, ar_num, ar_den);
-		e = gf_isom_hevc_config_update(file, track, 1, hvcc);
-		gf_odf_hevc_cfg_del(hvcc);
-		if (e) return e;
-	}
-#endif
-#if !defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)
-	else if (stype == GF_ISOM_SUBTYPE_AV01) {
-		assert(0);
-		//GF_AV1Config *av1c = gf_isom_av1_config_get(file, track, 1);
-		//gf_media_hevc_change_par(av1c, ar_num, ar_den);
-		//TODO: e = gf_isom_av1_config_update(file, track, 1, av1c);
-		//gf_odf_av1_cfg_del(av1c);
-		if (e) return e;
-	}
-#endif
-	else if (stype==GF_ISOM_SUBTYPE_MPEG4) {
-		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
-		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) ) {
-			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
-			return GF_NOT_SUPPORTED;
 		}
-#ifndef GPAC_DISABLE_AV_PARSERS
-		if (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) {
-			e = gf_m4v_rewrite_par(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
-			if (!e) e = gf_isom_change_mpeg4_description(file, track, 1, esd);
-			gf_odf_desc_del((GF_Descriptor *) esd);
+#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
+		else if (stype==GF_ISOM_SUBTYPE_HVC1) {
+			GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(file, track, 1);
+			gf_media_hevc_change_par(hvcc, ar_num, ar_den);
+			e = gf_isom_hevc_config_update(file, track, 1, hvcc);
+			gf_odf_hevc_cfg_del(hvcc);
 			if (e) return e;
 		}
 #endif
-	} else {
-        u32 mtype = gf_isom_get_media_type(file, track);
-		if (gf_isom_is_video_handler_type(mtype)) {
-			u32 mstype = gf_isom_get_media_subtype(file, track, 1);
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER,
-				("[ISOBMF] Warning: changing pixel ratio of media subtype \"%s\" is not supported, changing only \"pasp\" signaling\n",
-					gf_4cc_to_str(mstype) ));
+#if !defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)
+		else if (stype == GF_ISOM_SUBTYPE_AV01) {
+			//GF_AV1Config *av1c = gf_isom_av1_config_get(file, track, 1);
+			//TODO: e = gf_isom_av1_config_update(file, track, 1, av1c);
+			//gf_odf_av1_cfg_del(av1c);
+			//if (e) return e;
+			return GF_NOT_SUPPORTED;
+		}
+#endif
+		else if (stype==GF_ISOM_SUBTYPE_MPEG4) {
+			GF_ESD *esd = gf_isom_get_esd(file, track, 1);
+			if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) ) {
+				if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+				return GF_NOT_SUPPORTED;
+			}
+#ifndef GPAC_DISABLE_AV_PARSERS
+			if (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) {
+				e = gf_m4v_rewrite_par(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
+				if (!e) e = gf_isom_change_mpeg4_description(file, track, 1, esd);
+				gf_odf_desc_del((GF_Descriptor *) esd);
+				if (e) return e;
+			}
+#endif
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMF] Error: changing pixel ratio on non-video track.\n"));
-			return GF_BAD_PARAM;
+			u32 mtype = gf_isom_get_media_type(file, track);
+			if (gf_isom_is_video_handler_type(mtype)) {
+				u32 mstype = gf_isom_get_media_subtype(file, track, 1);
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER,
+					("[ISOBMF] Warning: changing pixel ratio of media subtype \"%s\" is not supported, changing only \"pasp\" signaling\n",
+						gf_4cc_to_str(mstype) ));
+			} else {
+				u32 mtype = gf_isom_get_media_type(file, track);
+				if (gf_isom_is_video_handler_type(mtype)) {
+					u32 stype = gf_isom_get_media_subtype(file, track, 1);
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER,
+						("[ISOBMF] Warning: changing pixel ratio of media subtype \"%s\" is not supported, changing only \"pasp\" signaling\n",
+							gf_4cc_to_str(stype) ));
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMF] Error: changing pixel ratio on non-video track.\n"));
+					return GF_BAD_PARAM;
+				}
+			}
 		}
 	}
-
 	e = gf_isom_set_pixel_aspect_ratio(file, track, 1, ar_num, ar_den, force_par);
 	if (e) return e;
 
