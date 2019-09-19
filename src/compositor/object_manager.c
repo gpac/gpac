@@ -1034,7 +1034,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	gf_odm_service_media_event(odm, GF_EVENT_ABORT);
 
 	/*stops clock if this is a scene stop*/
-	if (!(odm->flags & GF_ODM_INHERIT_TIMELINE) && odm->subscene && odm->owns_clock ) {
+	if (!(odm->flags & GF_ODM_INHERIT_TIMELINE) && odm->subscene && odm->ck && odm->owns_clock) {
 		gf_clock_reset(odm->ck);
 	}
 	odm->media_current_time = 0;
