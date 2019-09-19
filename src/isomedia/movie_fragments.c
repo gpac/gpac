@@ -1218,14 +1218,16 @@ static u32 moof_get_first_sap_end(GF_MovieFragmentBox *moof)
 	return 0;
 }
 
-static u64 estimate_next_moof_earliest_presentation_time(u64 ref_track_decode_time, s32 ts_shift, GF_MovieFragmentBox *moof, u32 refTrackID, GF_ISOFile *movie)
+static u64 estimate_next_moof_earliest_presentation_time(u64 ref_track_decode_time, s32 ts_shift, u32 refTrackID, GF_ISOFile *movie)
 {
-	u32 i, j, nb_aus, nb_ctso;
+	u32 i, j, nb_aus, nb_ctso, nb_moof;
 	u64 duration;
 	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf=NULL;
 	GF_TrackFragmentRunBox *trun;
 	u64 min_next_cts = -1;
+
+	GF_MovieFragmentBox *moof = gf_list_get(movie->moof_list, 0);
 
 	for (i=0; i<gf_list_count(moof->TrackList); i++) {
 		traf = (GF_TrackFragmentBox*)gf_list_get(moof->TrackList, i);
@@ -1237,24 +1239,28 @@ static u64 estimate_next_moof_earliest_presentation_time(u64 ref_track_decode_ti
 	nb_aus = 0;
 	duration = 0;
 	nb_ctso = 0;
-	i=0;
-	while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &i))) {
-		j=0;
-		while ((ent = (GF_TrunEntry*)gf_list_enum(trun->entries, &j))) {
-			if (nb_aus + 1 + movie->sidx_pts_store_count > movie->sidx_pts_store_alloc) {
-				movie->sidx_pts_store_alloc = movie->sidx_pts_store_count+nb_aus+1;
-				movie->sidx_pts_store = gf_realloc(movie->sidx_pts_store, sizeof(u64) * movie->sidx_pts_store_alloc);
-				movie->sidx_pts_next_store = gf_realloc(movie->sidx_pts_next_store, sizeof(u64) * movie->sidx_pts_store_alloc);
-			}
-			//get PTS for this AU, push to regular list
-			movie->sidx_pts_store[movie->sidx_pts_store_count + nb_aus] = get_presentation_time( ref_track_decode_time + duration + ent->CTS_Offset, ts_shift);
-			//get PTS for this AU shifted by its presentation duration, push to shifted list
-			movie->sidx_pts_next_store[movie->sidx_pts_store_count + nb_aus] = get_presentation_time( ref_track_decode_time + duration + ent->CTS_Offset + ent->Duration, ts_shift);
-			duration += ent->Duration;
-			if (ent->CTS_Offset)
-				nb_ctso++;
+	nb_moof = 0;
 
-			nb_aus++;
+	while ((moof = (GF_MovieFragmentBox*)gf_list_enum(movie->moof_list, &nb_moof))) {
+		i=0;
+		while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &i))) {
+			j=0;
+			while ((ent = (GF_TrunEntry*)gf_list_enum(trun->entries, &j))) {
+				if (nb_aus + 1 + movie->sidx_pts_store_count > movie->sidx_pts_store_alloc) {
+					movie->sidx_pts_store_alloc = movie->sidx_pts_store_count+nb_aus+1;
+					movie->sidx_pts_store = gf_realloc(movie->sidx_pts_store, sizeof(u64) * movie->sidx_pts_store_alloc);
+					movie->sidx_pts_next_store = gf_realloc(movie->sidx_pts_next_store, sizeof(u64) * movie->sidx_pts_store_alloc);
+				}
+				//get PTS for this AU, push to regular list
+				movie->sidx_pts_store[movie->sidx_pts_store_count + nb_aus] = get_presentation_time( ref_track_decode_time + duration + ent->CTS_Offset, ts_shift);
+				//get PTS for this AU shifted by its presentation duration, push to shifted list
+				movie->sidx_pts_next_store[movie->sidx_pts_store_count + nb_aus] = get_presentation_time( ref_track_decode_time + duration + ent->CTS_Offset + ent->Duration, ts_shift);
+				duration += ent->Duration;
+				if (ent->CTS_Offset)
+					nb_ctso++;
+
+				nb_aus++;
+			}
 		}
 	}
 
@@ -1405,7 +1411,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		prev_earliest_cts = get_presentation_time( ref_track_decode_time + moof_get_earliest_cts((GF_MovieFragmentBox*)gf_list_get(movie->moof_list, 0), referenceTrackID), ts_shift);
 
 		//we don't trust ref_track_next_cts to be the earliest in the following segment
-		next_earliest_cts = estimate_next_moof_earliest_presentation_time(ref_track_decode_time, ts_shift, (GF_MovieFragmentBox*)gf_list_get(movie->moof_list, 0), referenceTrackID, movie);
+		next_earliest_cts = estimate_next_moof_earliest_presentation_time(ref_track_decode_time, ts_shift, referenceTrackID, movie);
 
 		if (movie->root_sidx) {
 			sidx = movie->root_sidx;
@@ -1618,8 +1624,8 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 				/*do not compute earliest CTS if single segment sidx since we only have set the info for one subsegment*/
 				if (!movie->root_sidx && first_frag_in_subseg) {
 					u64 first_cts = get_presentation_time( ref_track_decode_time + sidx_dur + cur_dur +  moof_get_earliest_cts(movie->moof, referenceTrackID), ts_shift);
-					u32 subseg_dur = (u32) (first_cts - prev_earliest_cts);
 					if (cur_index) {
+						u32 subseg_dur = (u32) (first_cts - prev_earliest_cts);
 						sidx->refs[cur_index-1].subsegment_duration = subseg_dur;
 						if (root_sidx) root_sidx->refs[sidx_idx].subsegment_duration += subseg_dur;
 					}
@@ -1678,7 +1684,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 					/*update last ref duration*/
 
 					//get next segment earliest cts - if estimation failed, use ref_track_next_cts
-					if (next_earliest_cts==-1) {
+					if ((next_earliest_cts==-1) || (next_earliest_cts < prev_earliest_cts))  {
 						u64 next_cts;
 						if (gf_list_count(movie->moof_list)) {
 							next_cts = get_presentation_time( ref_track_decode_time + sidx_dur + cur_dur + moof_get_earliest_cts((GF_MovieFragmentBox*)gf_list_get(movie->moof_list, 0), referenceTrackID), ts_shift);
