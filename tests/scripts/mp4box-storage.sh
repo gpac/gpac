@@ -21,11 +21,13 @@ do_hash_test $mp4file "streamable-mp4"
 
 mp4file="$TEMP_DIR/test-fastinterleaved.mp4"
 do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -add $MEDIA_DIR/auxiliary_files/enst_audio.aac -newfs $mp4file" "fast-interleaved-mp4"
+#we have no guarantee on the pid ordering in the resulting file, this hash can fail from time to time
 do_hash_test $mp4file "fast-interleaved-mp4"
 
 
 mp4file="$TEMP_DIR/test-gpac-faststart.mp4"
 do_test "$GPAC -i $MEDIA_DIR/auxiliary_files/enst_video.h264 -i $MEDIA_DIR/auxiliary_files/enst_audio.aac -o $mp4file:store=fstart" "gpac-faststart-mp4"
+#we have no guarantee on the pid ordering in the resulting file, this hash can fail from time to time
 do_hash_test $mp4file "faststart-mp4"
 
 fi
