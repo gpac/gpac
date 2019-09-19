@@ -1482,6 +1482,8 @@ GF_Err gf_isom_set_hdr(GF_ISOFile* movie, u32 trackNumber, u32 StreamDescription
 	}
 	vent->mdcv->min_display_mastering_luminance = mdcv->min_display_mastering_luminance;
 	vent->mdcv->max_display_mastering_luminance = mdcv->max_display_mastering_luminance;
+	vent->mdcv->white_point_x = mdcv->white_point_x;
+	vent->mdcv->white_point_y = mdcv->white_point_y;
 
 	/*clli*/
 	if (!vent->clli) vent->clli = (GF_ContentLightLevelBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_CLLI);
