@@ -2648,7 +2648,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 
 	gpac_fsess_task_help(); //for coverage
 	gf_dm_sess_last_error(NULL);
-
+	gf_log_use_color();
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[CoreUnitTests] performing tests\n"));
 
 	utf8_buf[0] = 'a';
