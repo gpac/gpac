@@ -1217,7 +1217,8 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 					curWriter = tmp;
 
 					//small check for first 2 samples (DTS = 0)
-					if (tmp->sampleNumber == 2 && !tmp->chunkDur) {
+					//only in the old mode can chunkdur be 0 for dts 0
+					if (tmp->sampleNumber == 2 && !tmp->chunkDur && movie->drop_date_version_info) {
 						forceNewChunk = 0;
 					}
 
