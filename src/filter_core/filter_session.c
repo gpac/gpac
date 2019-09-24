@@ -1974,8 +1974,13 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			sURL[ulen]=0;
 		}
 
-		if (gf_url_is_local(sURL))
+		if (gf_url_is_local(sURL)) {
 			gf_url_to_fs_path(sURL);
+			if (! gf_file_exists(sURL)) {
+				if (err) *err = GF_URL_ERROR;
+				return NULL;
+			}
+		}
 	}
 	sep = (char *)gf_fs_path_escape_colon(fsess, sURL);
 
@@ -2278,7 +2283,7 @@ void gf_filter_set_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps)
 {
 	if (caps && filter) {
 		filter->session->caps = (*caps);
-		//fire event
+		//TODO fire event
 	}
 }
 
@@ -2393,6 +2398,7 @@ GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *f
 	GF_SAFEALLOC(utask, GF_UserTask);
 	utask->callback = udta;
 	utask->task_execute_filter = task_execute;
+	utask->fsess = filter->session;
 	gf_fs_post_task(filter->session, gf_fs_user_task, filter, NULL, task_name ? task_name : "user_task", utask);
 	return GF_OK;
 }

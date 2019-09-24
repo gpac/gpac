@@ -679,6 +679,9 @@ struct __gf_filter
 	char *status_str;
 	u32 status_str_alloc, status_percent;
 	Bool report_updated;
+
+	char *instance_description, *instance_version, *instance_author, *instance_help;
+	GF_FilterArgs *instance_args;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
@@ -886,7 +889,7 @@ typedef struct
 #define CAP_MATCH_LOADED_OUTPUT_ONLY	1<<1
 
 u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore);
-Bool gf_filter_has_out_caps(const GF_FilterRegister *freg);
+Bool gf_filter_has_out_caps(const GF_FilterCapability *caps, u32 nb_caps);
 
 void gf_filter_check_output_reconfig(GF_Filter *filter);
 Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid);
@@ -906,8 +909,6 @@ void gf_filter_relink_dst(GF_FilterPidInst *pidinst);
 void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool keep_end_connections);
 
 GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct, Bool intern_pck);
-
-void gf_props_reset_single(GF_PropertyValue *p);
 
 void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg);
 void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg);

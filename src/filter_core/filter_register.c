@@ -134,6 +134,8 @@ const GF_FilterRegister *rtspout_register(GF_FilterSession *session);
 const GF_FilterRegister *hevcsplit_register(GF_FilterSession *session);
 const GF_FilterRegister *hevcmerge_register(GF_FilterSession *session);
 
+const GF_FilterRegister *jsfilter_register(GF_FilterSession *session);
+
 #ifdef GPAC_HAVE_DTAPI
 const GF_FilterRegister *dtout_register(GF_FilterSession *session)
 #endif
@@ -258,6 +260,8 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_register(fsess, ffavin_register(a_sess) );
 	gf_fs_add_filter_register(fsess, ffsws_register(a_sess) );
 	gf_fs_add_filter_register(fsess, ffenc_register(a_sess) );
+
+	gf_fs_add_filter_register(fsess, jsfilter_register(a_sess) );
 }
 
 GF_EXPORT
