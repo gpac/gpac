@@ -38,7 +38,7 @@ void gf_filterpacket_del(void *p)
 	gf_free(p);
 }
 
-static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
+static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type, Bool for_script);
 
 const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 {
@@ -277,7 +277,7 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 {
 	gf_filter_set_name(filter, NULL);
 
-	gf_filter_parse_args(filter, args, arg_type);
+	gf_filter_parse_args(filter, args, arg_type, GF_FALSE);
 
 	if (filter->freg->initialize) {
 		GF_Err e;
@@ -285,6 +285,13 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 		e = filter->freg->initialize(filter);
 		if (e) return e;
 	}
+	if ((filter->freg->flags & GF_FS_REG_SCRIPT) && filter->freg->update_arg) {
+		GF_Err e;
+		gf_filter_parse_args(filter, args, arg_type, GF_TRUE);
+		e = filter->freg->update_arg(filter, NULL, NULL);
+		if (e) return e;
+	}
+
 	//flush all pending pid init requests
 	if (filter->has_pending_pids) {
 		filter->has_pending_pids=GF_FALSE;
@@ -414,6 +421,15 @@ void gf_filter_del(GF_Filter *filter)
 		}
 		gf_mx_v(filter->session->filters_mx);
 	}
+	if (filter->instance_description)
+		gf_free(filter->instance_description);
+	if (filter->instance_version)
+		gf_free(filter->instance_version);
+	if (filter->instance_author)
+		gf_free(filter->instance_author);
+	if (filter->instance_help)
+		gf_free(filter->instance_help);
+
 	gf_free(filter);
 }
 
@@ -654,6 +670,37 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
 		}
 	}
+	else if (!strnicmp(value, "$GJS", 4)) {
+		Bool found = GF_FALSE;
+		const char *all_dirs = gf_opts_get_key("core", "js-dirs");
+		if (all_dirs) {
+			const char *dirs = all_dirs;
+			while (dirs && dirs[0]) {
+				char *sep = strchr(dirs, ',');
+				if (sep) {
+					strncpy(szPath, dirs, sep-dirs);
+					dirs = sep+1;
+				} else {
+					strcpy(szPath, dirs);
+				}
+				if (!strcmp(szPath, "$GJS")) {
+					gf_opts_default_shared_directory(szPath);
+					strcat(szPath, "/scripts/jsf");
+				}
+				strcat(szPath, value+4);
+				if (gf_file_exists(szPath)) {
+					value = szPath;
+					found = GF_TRUE;
+					break;
+				}
+			}
+			if (!found) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed solve to %s in GPAC script directories %s, file not found\n", value, all_dirs));
+			}
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
+		}
+	}
 	else if (!strnicmp(value, "$GPAC_LANG", 15)) {
 		value = gf_opts_get_key("core", "lang");
 		if (!value) value = "en";
@@ -845,7 +892,7 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 	}
 }
 
-static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type)
+static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type, Bool for_script)
 {
 	u32 i=0;
 	char szSecName[200];
@@ -854,19 +901,22 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 	Bool has_meta_args = GF_FALSE;
 	char *szArg=NULL;
 	u32 alloc_len=1024;
+	const GF_FilterArgs *f_args = NULL;
 	if (!filter) return;
 
-	if (!filter->freg->private_size) {
-		if (filter->freg->args && filter->freg->args[0].arg_name) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter with arguments but no private stack size, no arg passing\n"));
+	if (!for_script) {
+		if (!filter->freg->private_size) {
+			if (filter->freg->args && filter->freg->args[0].arg_name) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter with arguments but no private stack size, no arg passing\n"));
+			}
+		} else {
+			filter->filter_udta = gf_malloc(filter->freg->private_size);
+			if (!filter->filter_udta) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate private data stack\n"));
+				return;
+			}
+			memset(filter->filter_udta, 0, filter->freg->private_size);
 		}
-	} else {
-		filter->filter_udta = gf_malloc(filter->freg->private_size);
-		if (!filter->filter_udta) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate private data stack\n"));
-			return;
-		}
-		memset(filter->filter_udta, 0, filter->freg->private_size);
 	}
 
 	sprintf(szEscape, "%cgpac%c", filter->session->sep_args, filter->session->sep_args);
@@ -876,17 +926,21 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 	snprintf(szSecName, 200, "filter@%s", filter->freg->name);
 
 	//instantiate all args with defauts value
+	f_args = filter->freg->args;
+	if (for_script)
+		f_args = filter->instance_args;
 	i=0;
-	while (filter->freg->args) {
+	while (f_args) {
 		GF_PropertyValue argv;
 		const char *def_val;
-		const GF_FilterArgs *a = &filter->freg->args[i];
+		const GF_FilterArgs *a = &f_args[i];
 		if (!a || !a->arg_name) break;
 		i++;
 		if (a->flags & GF_FS_ARG_META) {
 			has_meta_args = GF_TRUE;
 			continue;
 		}
+
 		def_val = gf_filter_load_arg_config(filter->session, szSecName, a->arg_name, a->arg_default_val);
 
 		if (!def_val) continue;
@@ -894,7 +948,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		argv = gf_filter_parse_prop_solve_env_var(filter, a->arg_type, a->arg_name, def_val, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
-			if (a->offset_in_private>=0) {
+			if (!for_script && (a->offset_in_private>=0)) {
 				gf_filter_set_arg(filter, a, &argv);
 			} else if (filter->freg->update_arg) {
 				FSESS_CHECK_THREAD(filter)
@@ -905,7 +959,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		}
 	}
 	//handle meta filter options, not exposed in registry
-	if (has_meta_args && filter->freg->update_arg)
+	if (has_meta_args && filter->freg->update_arg && !for_script)
 		gf_filter_load_meta_args_config(szSecName, filter);
 
 
@@ -1084,11 +1138,15 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			goto skip_arg;
 
 		i=0;
-		while (filter->filter_udta && filter->freg->args) {
+		f_args = filter->freg->args;
+		if (for_script)
+		 	f_args = filter->instance_args;
+
+		while (filter->filter_udta && f_args) {
 			Bool is_my_arg = GF_FALSE;
 			Bool reverse_bool = GF_FALSE;
 			const char *restricted=NULL;
-			const GF_FilterArgs *a = &filter->freg->args[i];
+			const GF_FilterArgs *a = &f_args[i];
 			i++;
 			if (!a || !a->arg_name) break;
 
@@ -1127,7 +1185,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 					argv.value.boolean = !argv.value.boolean;
 
 				if (argv.type != GF_PROP_FORBIDEN) {
-					if (a->offset_in_private>=0) {
+					if (!for_script && (a->offset_in_private>=0)) {
 						gf_filter_set_arg(filter, a, &argv);
 					} else if (filter->freg->update_arg) {
 						FSESS_CHECK_THREAD(filter)
@@ -1175,11 +1233,14 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				internal_arg = GF_TRUE;
 			}
 			else if (has_meta_args && filter->freg->update_arg) {
-				GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL, filter->session->sep_list);
-				FSESS_CHECK_THREAD(filter)
-				filter->freg->update_arg(filter, szArg, &argv);
-				if (argv.value.string) gf_free(argv.value.string);
-				found = GF_TRUE;
+				if (for_script || !(filter->freg->flags&GF_FS_REG_SCRIPT) ) {
+					GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL, filter->session->sep_list);
+					FSESS_CHECK_THREAD(filter)
+					filter->freg->update_arg(filter, szArg, &argv);
+					if (argv.value.string) gf_free(argv.value.string);
+				}
+				if (!(filter->freg->flags&GF_FS_REG_SCRIPT))
+					found = GF_TRUE;
 			}
 		}
 
@@ -2486,7 +2547,7 @@ GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_
 
 
 GF_EXPORT
-void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_buf)
+void gf_filter_get_output_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_buf)
 {
 	u32 i;
 	u32 buf_max = 0;
@@ -2503,13 +2564,13 @@ void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_
 		for (j=0; j<pid->num_destinations; j++) {
 			u32 mb, pb;
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
-			gf_filter_get_buffer_max(pidi->filter, &mb, &pb);
+			gf_filter_get_output_buffer_max(pidi->filter, &mb, &pb);
 			if (buf_max < mb) buf_max = mb;
 			if (buf_play_max < pb) buf_play_max = pb;
 		}
 	}
-	*max_buf = buf_max;
-	*max_playout_buf = buf_play_max;
+	if (max_buf) *max_buf = buf_max;
+	if (max_playout_buf) *max_playout_buf = buf_play_max;
 	return;
 }
 
@@ -2818,11 +2879,10 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	return GF_OK;
 }
 
-GF_EXPORT
-const char *gf_filter_get_arg(GF_Filter *filter, const char *arg_name, char dump[GF_PROP_DUMP_ARG_SIZE])
+static Bool gf_filter_get_arg_internal(GF_Filter *filter, const char *arg_name, GF_PropertyValue *prop, const char **min_max_enum)
 {
 	u32 i=0;
-	if (!filter || !arg_name || !dump) return NULL;
+	if (!filter || !arg_name) return GF_FALSE;
 
 	while (1) {
 		GF_PropertyValue p;
@@ -2901,18 +2961,41 @@ const char *gf_filter_get_arg(GF_Filter *filter, const char *arg_name, char dump
 			break;
 		case GF_PROP_PIXFMT:
 			p.value.uint = * (u32 *) ((char *)filter->filter_udta + arg->offset_in_private);
-			return gf_pixel_fmt_name(p.value.uint);
 			break;
 		case GF_PROP_PCMFMT:
 			p.value.uint = * (u32 *) ((char *)filter->filter_udta + arg->offset_in_private);
-			return gf_audio_fmt_name(p.value.uint);
 			break;
 		default:
-			return NULL;
+			return GF_FALSE;
 		}
-		return gf_prop_dump_val(&p, dump, GF_FALSE, arg->min_max_enum);
+		if (min_max_enum) *min_max_enum = arg->min_max_enum;
+		*prop = p;
+		return GF_TRUE;
 	}
-	return NULL;
+	return GF_FALSE;
+}
+
+GF_EXPORT
+const char *gf_filter_get_arg_str(GF_Filter *filter, const char *arg_name, char dump[GF_PROP_DUMP_ARG_SIZE])
+{
+	GF_PropertyValue p;
+	const char *arg_min_max = NULL;
+	if (!dump || !gf_filter_get_arg_internal(filter, arg_name, &p, &arg_min_max))
+		return NULL;
+	if (p.type==GF_PROP_PIXFMT)
+		return gf_pixel_fmt_name(p.value.uint);
+	if (p.type==GF_PROP_PCMFMT)
+		return gf_audio_fmt_name(p.value.uint);
+
+	return gf_prop_dump_val(&p, dump, GF_FALSE, arg_min_max);
+}
+
+GF_EXPORT
+Bool gf_filter_get_arg(GF_Filter *filter, const char *arg_name, GF_PropertyValue *prop)
+{
+	const char *arg_min_max = NULL;
+	if (!prop) return GF_FALSE;
+	return gf_filter_get_arg_internal(filter, arg_name, prop, &arg_min_max);
 }
 
 GF_EXPORT
@@ -3137,4 +3220,83 @@ void gf_filter_report_unused_meta_option(GF_Filter *filter, const char *arg)
 	gf_mx_p(filter->session->filters_mx);
 	gf_fs_push_arg(filter->session, arg, GF_FALSE, 2);
 	gf_mx_v(filter->session->filters_mx);
+}
+
+GF_Err gf_filter_set_description(GF_Filter *filter, const char *new_desc)
+{
+	if (!filter) return GF_BAD_PARAM;
+	if (filter->instance_description)
+		gf_free(filter->instance_description);
+
+	filter->instance_description = new_desc ? gf_strdup(new_desc) : NULL;
+	return GF_OK;
+}
+GF_EXPORT
+const char *gf_filter_get_description(GF_Filter *filter)
+{
+	return filter ? filter->instance_description : NULL;
+}
+
+GF_Err gf_filter_set_version(GF_Filter *filter, const char *new_desc)
+{
+	if (!filter) return GF_BAD_PARAM;
+	if (filter->instance_version)
+		gf_free(filter->instance_version);
+
+	filter->instance_version = new_desc ? gf_strdup(new_desc) : NULL;
+	return GF_OK;
+}
+GF_EXPORT
+const char *gf_filter_get_version(GF_Filter *filter)
+{
+	return filter ? filter->instance_version : NULL;
+}
+
+GF_Err gf_filter_set_author(GF_Filter *filter, const char *new_desc)
+{
+	if (!filter) return GF_BAD_PARAM;
+	if (filter->instance_author)
+		gf_free(filter->instance_author);
+
+	filter->instance_author = new_desc ? gf_strdup(new_desc) : NULL;
+	return GF_OK;
+}
+GF_EXPORT
+const char *gf_filter_get_author(GF_Filter *filter)
+{
+	return filter ? filter->instance_author : NULL;
+}
+
+GF_Err gf_filter_set_help(GF_Filter *filter, const char *new_desc)
+{
+	if (!filter) return GF_BAD_PARAM;
+	if (filter->instance_help)
+		gf_free(filter->instance_help);
+
+	filter->instance_help = new_desc ? gf_strdup(new_desc) : NULL;
+	return GF_OK;
+}
+GF_EXPORT
+const char *gf_filter_get_help(GF_Filter *filter)
+{
+	return filter ? filter->instance_help : NULL;
+}
+
+GF_Err gf_filter_define_args(GF_Filter *filter, GF_FilterArgs *args)
+{
+	if (!filter) return GF_BAD_PARAM;
+	filter->instance_args = args;
+	return GF_OK;
+}
+GF_EXPORT
+GF_FilterArgs *gf_filter_get_args(GF_Filter *filter)
+{
+	return filter ? filter->instance_args : NULL;
+}
+
+GF_EXPORT
+GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name)
+{
+	if (!filter) return NULL;
+	return gf_fs_load_filter(filter->session, name);
 }

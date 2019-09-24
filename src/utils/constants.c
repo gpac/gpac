@@ -394,6 +394,27 @@ const char *gf_stream_type_name(u32 streamType)
 }
 
 GF_EXPORT
+u32 gf_stream_type_by_name(const char *val)
+{
+	if (!stricmp(val, "ObjectDescriptor")) return GF_STREAM_OD;
+	else if (!stricmp(val, "ClockReference")) return GF_STREAM_OCR;
+	else if (!stricmp(val, "SceneDescription")) return GF_STREAM_SCENE;
+	else if (!stricmp(val, "Visual") || !stricmp(val, "Video")) return GF_STREAM_VISUAL;
+	else if (!stricmp(val, "Audio")) return GF_STREAM_AUDIO;
+	else if (!stricmp(val, "MPEG7")) return GF_STREAM_MPEG7;
+	else if (!stricmp(val, "IPMP")) return GF_STREAM_IPMP;
+	else if (!stricmp(val, "OCI")) return GF_STREAM_OCI;
+	else if (!stricmp(val, "MPEGJ")) return GF_STREAM_MPEGJ;
+	else if (!stricmp(val, "Interaction")) return GF_STREAM_INTERACT;
+	else if (!stricmp(val, "Font")) return GF_STREAM_FONT;
+	else if (!stricmp(val, "Text")) return GF_STREAM_TEXT;
+	else if (!stricmp(val, "Metadata")) return GF_STREAM_METADATA;
+	else if (!stricmp(val, "File")) return GF_STREAM_FILE;
+	else if (!stricmp(val, "Encrypted")) return GF_STREAM_ENCRYPTED;
+	else return GF_STREAM_UNKNOWN;
+}
+
+GF_EXPORT
 const char *gf_stream_type_afx_name(u8 afx_code)
 {
 	switch (afx_code) {

@@ -605,7 +605,7 @@ static GF_Err rtspout_load_media_service(GF_Filter *filter, GF_RTSPOutCtx *ctx, 
 	u32 i, count = gf_list_count(sess->filter_srcs);
 	for (i=0; i<count; i++) {
 		GF_Filter *src = gf_list_get(sess->filter_srcs, i);
-		const char *url = gf_filter_get_arg(src, "src", NULL);
+		const char *url = gf_filter_get_arg_str(src, "src", NULL);
 		if (url && !strcmp(src_url, url)) {
 			found = GF_TRUE;
 			break;

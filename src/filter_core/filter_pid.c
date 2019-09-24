@@ -1664,12 +1664,13 @@ u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps)
 	return nb_bundles;
 }
 
-Bool gf_filter_has_out_caps(const GF_FilterRegister *freg)
+
+Bool gf_filter_has_out_caps(const GF_FilterCapability *caps, u32 nb_caps)
 {
 	u32 i;
 	//check all input caps of dst filter, count bundles
-	for (i=0; i<freg->nb_caps; i++) {
-		const GF_FilterCapability *out_cap = &freg->caps[i];
+	for (i=0; i<nb_caps; i++) {
+		const GF_FilterCapability *out_cap = &caps[i];
 		if (out_cap->flags & GF_CAPFLAG_OUTPUT) {
 			return GF_TRUE;
 		}
@@ -1701,7 +1702,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 	}
 
 	//check all input caps of dst filter, count bundles
-	if (! gf_filter_has_out_caps(src)) {
+	if (! gf_filter_has_out_caps(src->caps, src->nb_caps)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no output caps, cannot match filter %s inputs\n", src->name, dst_reg->name));
 		return 0;
 	}
@@ -2198,14 +2199,23 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 
 static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_FilterRegister *freg, GF_CapsBundleStore *capstore, GF_FilterPid *src_pid, GF_Filter *dst_filter)
 {
-	u32 nb_dst_caps, nb_regs, i;
-	Bool freg_has_output = gf_filter_has_out_caps(freg);
-	GF_FilterRegDesc *reg_desc = NULL;
+	u32 nb_dst_caps, nb_regs, i, nb_caps;
+	Bool freg_has_output;
 
+	GF_FilterRegDesc *reg_desc = NULL;
+	const GF_FilterCapability *caps = freg->caps;
+	nb_caps = freg->nb_caps;
+	if (dst_filter && (freg->flags & GF_FS_REG_SCRIPT)) {
+		caps = dst_filter->forced_caps;
+		nb_caps = dst_filter->nb_forced_caps;
+	}
+
+	freg_has_output = gf_filter_has_out_caps(caps, nb_caps);
 	GF_SAFEALLOC(reg_desc, GF_FilterRegDesc);
+
 	reg_desc->freg = freg;
 
-	nb_dst_caps = gf_filter_caps_bundle_count(freg->caps, freg->nb_caps);
+	nb_dst_caps = gf_filter_caps_bundle_count(caps, nb_caps);
 
 
 	//we are building a register descriptor acting as destination, ignore any output caps
@@ -2224,7 +2234,7 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 			for (l=0; l<nb_dst_caps; l++) {
 				s32 bundle_idx;
 
-				if ( gf_filter_has_out_caps(a_reg->freg)) {
+				if ( gf_filter_has_out_caps(a_reg->freg->caps, a_reg->freg->nb_caps)) {
 					u32 loaded_filter_only_flags = 0;
 
 					path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, dst_filter, &bundle_idx, l, &loaded_filter_only_flags, capstore);
@@ -2419,12 +2429,12 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			disable_filter = GF_TRUE;
 		}
 		//freg shall be instantiated
-		else if ((freg->flags & GF_FS_REG_EXPLICIT_ONLY) && (freg != pid->filter->freg) && (freg != dst->freg) ) {
+		else if ((freg->flags & (GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_SCRIPT)) && (freg != pid->filter->freg) && (freg != dst->freg) ) {
 			assert(freg != dst->freg);
 			disable_filter = GF_TRUE;
 		}
 		//no output caps, cannot add
-		else if ((freg != dst->freg) && !gf_filter_has_out_caps(freg)) {
+		else if ((freg != dst->freg) && !gf_filter_has_out_caps(freg->caps, freg->nb_caps)) {
 			disable_filter = GF_TRUE;
 		}
 		//we only want reconfigurable output filters

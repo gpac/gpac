@@ -319,7 +319,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.data.size=0;
 			}
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for data arg %s - using 0\n", value, name));
+			p.value.data.ptr = gf_strdup(value);
+			p.value.data.size = strlen(value);
 		}
 		break;
 	case GF_PROP_POINTER:
@@ -569,6 +570,14 @@ void gf_props_reset_single(GF_PropertyValue *p)
 		gf_free(p->value.uint_list.vals);
 		p->value.uint_list.vals = NULL;
 		p->value.uint_list.nb_items = 0;
+	}
+	else if (p->type==GF_PROP_STRING_LIST) {
+		while (gf_list_count(p->value.string_list)) {
+			char *str = gf_list_pop_back(p->value.string_list);
+			gf_free(str);
+		}
+		gf_list_del(p->value.string_list);
+		p->value.string_list = NULL;
 	}
 }
 void gf_props_del_property(GF_PropertyEntry *it)
@@ -1346,11 +1355,9 @@ const char *gf_prop_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_D
 		sprintf(dump, "%lgx%lgx%lgx%lg", att->value.vec4.x, att->value.vec4.y, att->value.vec4.y, att->value.vec4.w);
 		break;
 	case GF_PROP_PIXFMT:
-		sprintf(dump, "%s", gf_pixel_fmt_name(att->value.uint));
-		break;
+		return gf_pixel_fmt_name(att->value.uint);
 	case GF_PROP_PCMFMT:
-		sprintf(dump, "%s", gf_audio_fmt_name(att->value.uint));
-		break;
+		return gf_audio_fmt_name(att->value.uint);
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:

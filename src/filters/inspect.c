@@ -1334,7 +1334,7 @@ props_done:
 		}
 		gf_bs_del(bs);
 	} else {
-		u32 hdr, pos, fsize;
+		u32 hdr, pos, fsize, i;
 		switch (pctx->codec_id) {
 		case GF_CODECID_MPEG1:
 		case GF_CODECID_MPEG2_422:
@@ -1358,6 +1358,20 @@ props_done:
 			break;
 		case GF_CODECID_TMCD:
 			inspect_dump_tmcd(ctx, pctx, (char *) data, size, dump);
+			break;
+		case GF_CODECID_SUBS_TEXT:
+		case GF_CODECID_META_TEXT:
+			fprintf(dump, "<![CDATA[");
+			for (i=0; i<size; i++) {
+				fputc(data[i], dump);
+			}
+			fprintf(dump, "]]>\n");
+			break;
+		case GF_CODECID_SUBS_XML:
+		case GF_CODECID_META_XML:
+			for (i=0; i<size; i++) {
+				fputc(data[i], dump);
+			}
 			break;
 		}
 	}
@@ -1679,6 +1693,34 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	case GF_CODECID_MPEG_AUDIO:
 	case GF_CODECID_MPEG2_PART3:
 	case GF_CODECID_TMCD:
+		fprintf(dump, "/>\n");
+		return;
+	case GF_CODECID_SUBS_XML:
+	case GF_CODECID_META_XML:
+		if (!dsi) {
+			fprintf(dump, "/>\n");
+			return;
+		}
+		fprintf(dump, " <XMLTextConfig>\n");
+		for (i=0; i<dsi->value.data.size; i++) {
+			fputc(dsi->value.data.ptr[i], dump);
+		}
+		fprintf(dump, "\n </XMLTextConfig>\n");
+		fprintf(dump, "/>\n");
+		return;
+	case GF_CODECID_SUBS_TEXT:
+	case GF_CODECID_META_TEXT:
+		if (!dsi) {
+			fprintf(dump, "/>\n");
+			return;
+		}
+		fprintf(dump, " <TextConfig>\n");
+		fprintf(dump, "<![CDATA[");
+		for (i=0; i<dsi->value.data.size; i++) {
+			fputc(dsi->value.data.ptr[i], dump);
+		}
+		fprintf(dump, "]]>\n");
+		fprintf(dump, " </TextConfig>\n");
 		fprintf(dump, "/>\n");
 		return;
 	default:

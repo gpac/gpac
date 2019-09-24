@@ -885,7 +885,11 @@ u32 gf_sys_get_argc()
 {
 	return gpac_argc;
 }
-
+GF_EXPORT
+const char **gf_sys_get_argv()
+{
+	return gpac_argv;
+}
 GF_EXPORT
 const char *gf_sys_get_arg(u32 arg)
 {

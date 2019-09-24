@@ -113,6 +113,12 @@ enum
 const char *gf_stream_type_name(u32 streamType);
 
 
+/*! Gets the stream type by name
+\param name name of the stream type to query
+\return GF_STREAM_UNKNOWN if unknown, otherwise GF_STREAM_XXX value
+ */
+u32 gf_stream_type_by_name(const char *name);
+
 #ifndef GF_4CC
 /*! macro for 4CC*/
 #define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|(d))

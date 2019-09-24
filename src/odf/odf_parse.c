@@ -307,42 +307,9 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			GET_U8(dcd->streamType)
 			/*XMT may use string*/
 			if (!ret) {
-				if (!stricmp(val, "ObjectDescriptor")) {
-					dcd->streamType = GF_STREAM_OD;
+				dcd->streamType = gf_stream_type_by_name(val);
+				if (dcd->streamType != GF_STREAM_UNKNOWN)
 					ret = 1;
-				}
-				else if (!stricmp(val, "ClockReference")) {
-					dcd->streamType = GF_STREAM_OCR;
-					ret = 1;
-				}
-				else if (!stricmp(val, "SceneDescription")) {
-					dcd->streamType = GF_STREAM_SCENE;
-					ret = 1;
-				}
-				else if (!stricmp(val, "Visual")) {
-					dcd->streamType = GF_STREAM_VISUAL;
-					ret = 1;
-				}
-				else if (!stricmp(val, "Audio")) {
-					dcd->streamType = GF_STREAM_AUDIO;
-					ret = 1;
-				}
-				else if (!stricmp(val, "MPEG7")) {
-					dcd->streamType = GF_STREAM_MPEG7;
-					ret = 1;
-				}
-				else if (!stricmp(val, "IPMP")) {
-					dcd->streamType = GF_STREAM_IPMP;
-					ret = 1;
-				}
-				else if (!stricmp(val, "OCI")) {
-					dcd->streamType = GF_STREAM_OCI;
-					ret = 1;
-				}
-				else if (!stricmp(val, "MPEGJ")) {
-					dcd->streamType = GF_STREAM_MPEGJ;
-					ret = 1;
-				}
 			}
 		}
 		else if (!stricmp(fieldName, "upStream")) GET_BOOL(dcd->upstream)

@@ -101,7 +101,7 @@ typedef enum
 {
 	/*!Message from any scripting engine used in the presentation (ECMAScript, MPEG-J, ...) (Info).*/
 	GF_SCRIPT_INFO                                          = 3,
-	/*!Indicates a send packet i snot dispatched due to pending connections.*/
+	/*!Indicates a send packet is not dispatched due to pending connections.*/
 	GF_PENDING_PACKET					= 2,
 	/*!Indicates the end of a stream or of a file (Info).*/
 	GF_EOS								= 1,
@@ -186,8 +186,6 @@ typedef enum
 	GF_NOT_FOUND							= -53,
 	/*! Unexpected format of data */
 	GF_PROFILE_NOT_SUPPORTED				= -54,
-	/*! the decoder buffers were filled, it is necessary to recuperate decoded data*/
-	GF_CODEC_BUFFER_UNAVAILABLE				= -55,
 	/*! filter PID config requires new instance of filter */
 	GF_REQUIRES_NEW_INSTANCE = -56,
 	/*! filter PID config cannot be supported by this filter, no use trying to find an alternate input filter chain*/
@@ -310,6 +308,14 @@ Gets the number of argument of the user application if any
 \return number of argument of the user application
  */
 u32 gf_sys_get_argc();
+
+/*!
+\brief Get program arguments
+
+Gets the arguments of the user application if any
+\return  argument of the user application
+ */
+const char **gf_sys_get_argv();
 
 /*!
 \brief Get number of args

@@ -649,7 +649,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 static void dashdmx_setup_buffer(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 {
 	u32 buffer_ms, play_buf_ms;
-	gf_filter_get_buffer_max(ctx->filter, &buffer_ms, &play_buf_ms);
+	gf_filter_get_output_buffer_max(ctx->filter, &buffer_ms, &play_buf_ms);
 	buffer_ms /= 1000;
 	play_buf_ms /= 1000;
 

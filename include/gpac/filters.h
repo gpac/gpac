@@ -1015,6 +1015,11 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP
 */
 const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
 
+/*! Resets a property value, freeing allocated data or strings depending on the property type
+\param prop property 4CC
+*/
+void gf_props_reset_single(GF_PropertyValue *prop);
+
 /*! Property aplies only to packets */
 #define GF_PROP_FLAG_PCK 1
 /*! Property is optional for GPAC GSF serialization (not transmitted over network when property removal is enabled) */
@@ -1612,9 +1617,11 @@ typedef enum
 	In multithread mode, this prevents the filter to be scheduled on the main thread, blocking video or audio output.
 	Ignored in single thread mode.*/
 	GF_FS_REG_BLOCKING = 1<<6,
-	/*! Indicates the filter PIDs may be dynamically added uring process (e.g.M2TS, GSF, etc).
-	This will prevent dectivating a filter when none of its output PIDs are connected*/
+	/*! Indicates the filter PIDs may be dynamically added during process (e.g.M2TS, GSF, etc).
+	This will prevent deactivating a filter when none of its output PIDs are connected*/
 	GF_FS_REG_DYNAMIC_PIDS = 1<<7,
+	/*! Indicates the filter is a script-based filter. The registry is not valid until the script is loaded*/
+	GF_FS_REG_SCRIPT = 1<<8,
 
 	/*! flag dynamically set at runtime for registries loaded through shared libraries*/
 	GF_FS_REG_DYNLIB = 0x80000000
@@ -1892,6 +1899,14 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 */
 GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err);
 
+
+/*! Loads a new filter in the session - see \ref gf_fs_load_filter
+\param filter the target filter
+\param name name and arguments of the filter register to instantiate.
+\return created filter or NULL if filter register cannot be found
+*/
+GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name);
+
 /*! Checks if a source filter can handle the given URL. The source filter is not loaded.
 
 \param filter the target filter
@@ -1929,10 +1944,10 @@ GF_FilterPid *gf_filter_get_opid(GF_Filter *filter, u32 idx);
 
 /*! Queries buffer max limits on a filter. This is the max of buffer limits on all its connected outputs
 \param filter the target filter
-\param max_buf will be set to the maximum buffer duration in microseconds
-\param max_playout_buf will be set to the maximum playout buffer (the one triggering play) duration in microseconds
+\param max_buf will be set to the maximum buffer duration in microseconds - may be NULL
+\param max_playout_buf will be set to the maximum playout buffer (the one triggering play) duration in microseconds - may be NULL
 */
-void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_buf);
+void gf_filter_get_output_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_buf);
 
 /*! Sets a clock state at session level indicating the time / timestamp of the last rendered frame. This is used by basic audio output
 \param filter the target filter
@@ -1943,8 +1958,8 @@ void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media
 
 /*! Retrieves the clock state at session level, as set by \ref gf_filter_hint_single_clock
 \param filter the target filter
-\param time_in_us will be set to the system time in us, see \ref gf_sys_clock_high_res
-\param media_timestamp will be set to the media timestamp associated with this time.
+\param time_in_us will be set to the system time in us, see \ref gf_sys_clock_high_res - may be NULL
+\param media_timestamp will be set to the media timestamp associated with this time - may be NULL.
 */
 void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp);
 
@@ -2149,7 +2164,16 @@ Bool gf_filter_all_sinks_done(GF_Filter *filter);
 \param dump buffer in which any formating of argument value will take place
 \return the string value of the argument, or NULL if argument is not found or is invalid
 */
-const char *gf_filter_get_arg(GF_Filter *filter, const char *arg_name, char dump[GF_PROP_DUMP_ARG_SIZE]);
+const char *gf_filter_get_arg_str(GF_Filter *filter, const char *arg_name, char dump[GF_PROP_DUMP_ARG_SIZE]);
+
+/*! Gets a filter argument value for a given argument name..
+\param filter filter object
+\param arg_name name of the filter argument
+\param prop filled with the arguments value, do NOT modify
+\return GF_TURE if success, GF_FALSE otherwise (argument is not found or is invalid)
+*/
+Bool gf_filter_get_arg(GF_Filter *filter, const char *arg_name, GF_PropertyValue *prop);
+
 
 /*! Checks if a given mime type is supported as input in the parent session
 \param filter querying filter
@@ -2237,6 +2261,73 @@ know the set of available options at initialize() time.
 \param arg name of the argument not used/found
 */
 void gf_filter_report_unused_meta_option(GF_Filter *filter, const char *arg);
+
+/*! used by script to set a per-instance description
+\param filter target filter
+\param new_desc the new description to set
+\return error if any
+*/
+GF_Err gf_filter_set_description(GF_Filter *filter, const char *new_desc);
+
+/*! get a per-instance description
+\param filter target filter
+\return the filter instance description, NULL otherwise
+*/
+const char *gf_filter_get_description(GF_Filter *filter);
+
+/*! used by script to set a per-instance version
+\param filter target filter
+\param new_version the new version to set
+\return error if any
+*/
+GF_Err gf_filter_set_version(GF_Filter *filter, const char *new_version);
+
+/*! get a per-instance version
+\param filter target filter
+\return the filter instance version, NULL otherwise
+*/
+const char *gf_filter_get_version(GF_Filter *filter);
+
+/*! used by script to set a per-instance author
+\param filter target filter
+\param new_author the new author to set
+\return error if any
+*/
+GF_Err gf_filter_set_author(GF_Filter *filter, const char *new_author);
+
+/*! get a per-instance author
+\param filter target filter
+\return the filter instance author, NULL otherwise
+*/
+const char *gf_filter_get_author(GF_Filter *filter);
+
+/*! used by script to set a per-instance help
+\param filter target filter
+\param new_help the new help to set
+\return error if any
+*/
+GF_Err gf_filter_set_help(GF_Filter *filter, const char *new_help);
+
+/*! get a per-instance help
+\param filter target filter
+\return the filter instance help, NULL otherwise
+*/
+const char *gf_filter_get_help(GF_Filter *filter);
+
+
+/*! used by script to set a per-instance arguments. The passed array shall have a 0 argument at the end and shall be valid
+for the lifetime of the filter (not locally copied)
+\param filter target filter
+\param new_args the new args to set
+\return error if any
+*/
+GF_Err gf_filter_define_args(GF_Filter *filter, GF_FilterArgs *new_args);
+
+/*! get per-instance args
+\param filter target filter
+\return the filter instance args if any, NULL otherwise
+*/
+GF_FilterArgs *gf_filter_get_args(GF_Filter *filter);
 
 /*! @} */
 
@@ -2695,7 +2786,6 @@ The packet is still present in the PID buffer until explicitly removed by \ref g
 GF_FilterPacket * gf_filter_pid_get_packet(GF_FilterPid *PID);
 
 /*! Fetches the CTS of the first packet in the input PID buffer.
-This may trigger a reconfigure signal on the filter. If reconfigure is not OK, returns NULL and the PID passed to the filter NO LONGER EXISTS (implicit remove)
 \param PID the target filter PID
 \param cts set to the composition time of the first packet, in PID timescale
 \return GF_TRUE if cts was fetched, GF_FALSE otherwise
@@ -3142,9 +3232,9 @@ u32 gf_filter_pck_get_duration(GF_FilterPacket *pck);
 /*! reallocates packet not yet sent. Returns data start and new range of data. This will reset byte offset information to not available.
 \param pck target packet
 \param nb_bytes_to_add bytes to add to packet
-\param data_start realloc pointer of packet data start - shall not be NULL
-\param new_range_start pointer to new (apppended space) data - shall not be NULL
-\param new_size full size of allocated block. - shall not be NULL
+\param data_start realloc pointer of packet data start - may be NULL if new_range_start is set
+\param new_range_start pointer to new (apppended space) data - may be NULL if data_start is set
+\param new_size full size of allocated block. - may be be NULL
 \return error code if any
 */
 GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, u8 **data_start, u8 **new_range_start, u32 *new_size);

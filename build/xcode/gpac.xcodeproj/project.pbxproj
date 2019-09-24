@@ -180,6 +180,10 @@
 		922E29832051940C00C8DCBB /* mux_avi.c in Sources */ = {isa = PBXBuildFile; fileRef = 922E29812051940C00C8DCBB /* mux_avi.c */; };
 		922E29842051940C00C8DCBB /* out_audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 922E29822051940C00C8DCBB /* out_audio.c */; };
 		9231B3AF2321533F00ADB4A9 /* Remotery.h in Headers */ = {isa = PBXBuildFile; fileRef = 9231B3AE2321533F00ADB4A9 /* Remotery.h */; };
+		92334CA92333A8C900DA6051 /* libunicode.c in Sources */ = {isa = PBXBuildFile; fileRef = 92334C932333A8C800DA6051 /* libunicode.c */; };
+		92334CB82333A8C900DA6051 /* quickjs.h in Headers */ = {isa = PBXBuildFile; fileRef = 92334CA22333A8C900DA6051 /* quickjs.h */; };
+		92334CBA2333A8C900DA6051 /* quickjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 92334CA42333A8C900DA6051 /* quickjs.c */; };
+		92334CE12333AF0400DA6051 /* jsfilter.c in Sources */ = {isa = PBXBuildFile; fileRef = 92334CE02333AF0400DA6051 /* jsfilter.c */; };
 		9234CF391FD6A6E400CCDFA1 /* dec_ttxt.c in Sources */ = {isa = PBXBuildFile; fileRef = 9234CF381FD6A6E400CCDFA1 /* dec_ttxt.c */; };
 		9234CF3D1FD7E00700CCDFA1 /* filter_register.c in Sources */ = {isa = PBXBuildFile; fileRef = 9234CF3C1FD7E00700CCDFA1 /* filter_register.c */; };
 		9234CF3F1FD8311400CCDFA1 /* dec_webvtt.c in Sources */ = {isa = PBXBuildFile; fileRef = 9234CF3E1FD8311400CCDFA1 /* dec_webvtt.c */; };
@@ -248,6 +252,8 @@
 		928E7AC51FB9F2B800D2470E /* dmx_nhnt.c in Sources */ = {isa = PBXBuildFile; fileRef = 928E7AC41FB9F2B800D2470E /* dmx_nhnt.c */; };
 		928E7AC71FB9FCDD00D2470E /* dmx_nhml.c in Sources */ = {isa = PBXBuildFile; fileRef = 928E7AC61FB9FCDD00D2470E /* dmx_nhml.c */; };
 		9290F5111FAB4C2C0038C30D /* mux_isom.c in Sources */ = {isa = PBXBuildFile; fileRef = 9290F5101FAB4C2C0038C30D /* mux_isom.c */; };
+		92910FA62335363F0052365D /* libregexp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92910FA52335363F0052365D /* libregexp.c */; };
+		92910FA8233536620052365D /* cutils.c in Sources */ = {isa = PBXBuildFile; fileRef = 92910FA7233536620052365D /* cutils.c */; };
 		9296BF2222CF7F5300DC9742 /* reframe_flac.c in Sources */ = {isa = PBXBuildFile; fileRef = 9296BF2122CF7F5300DC9742 /* reframe_flac.c */; };
 		92A08DBD20D946B7003589FF /* tileagg.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A08DBC20D946B6003589FF /* tileagg.c */; };
 		92A505BA20FC833800049B29 /* in_atsc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A505B920FC833800049B29 /* in_atsc.c */; };
@@ -809,6 +815,10 @@
 		922E29812051940C00C8DCBB /* mux_avi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_avi.c; path = filters/mux_avi.c; sourceTree = "<group>"; };
 		922E29822051940C00C8DCBB /* out_audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_audio.c; path = filters/out_audio.c; sourceTree = "<group>"; };
 		9231B3AE2321533F00ADB4A9 /* Remotery.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Remotery.h; path = ../include/gpac/Remotery.h; sourceTree = "<group>"; };
+		92334C932333A8C800DA6051 /* libunicode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libunicode.c; path = quickjs/libunicode.c; sourceTree = "<group>"; };
+		92334CA22333A8C900DA6051 /* quickjs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = quickjs.h; path = quickjs/quickjs.h; sourceTree = "<group>"; };
+		92334CA42333A8C900DA6051 /* quickjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = quickjs.c; path = quickjs/quickjs.c; sourceTree = "<group>"; };
+		92334CE02333AF0400DA6051 /* jsfilter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = jsfilter.c; path = filters/jsfilter.c; sourceTree = "<group>"; };
 		9234CF381FD6A6E400CCDFA1 /* dec_ttxt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_ttxt.c; path = filters/dec_ttxt.c; sourceTree = "<group>"; };
 		9234CF3C1FD7E00700CCDFA1 /* filter_register.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_register.c; path = filter_core/filter_register.c; sourceTree = "<group>"; };
 		9234CF3E1FD8311400CCDFA1 /* dec_webvtt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_webvtt.c; path = filters/dec_webvtt.c; sourceTree = "<group>"; };
@@ -872,6 +882,8 @@
 		928E7AC41FB9F2B800D2470E /* dmx_nhnt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_nhnt.c; path = filters/dmx_nhnt.c; sourceTree = "<group>"; };
 		928E7AC61FB9FCDD00D2470E /* dmx_nhml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_nhml.c; path = filters/dmx_nhml.c; sourceTree = "<group>"; };
 		9290F5101FAB4C2C0038C30D /* mux_isom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_isom.c; path = filters/mux_isom.c; sourceTree = "<group>"; };
+		92910FA52335363F0052365D /* libregexp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libregexp.c; path = quickjs/libregexp.c; sourceTree = "<group>"; };
+		92910FA7233536620052365D /* cutils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cutils.c; path = quickjs/cutils.c; sourceTree = "<group>"; };
 		92912946218A3B2B004F1A6C /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../../README.md; sourceTree = "<group>"; };
 		9296BF2122CF7F5300DC9742 /* reframe_flac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_flac.c; path = filters/reframe_flac.c; sourceTree = "<group>"; };
 		92A08DBC20D946B6003589FF /* tileagg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tileagg.c; path = filters/tileagg.c; sourceTree = "<group>"; };
@@ -1409,6 +1421,7 @@
 				9201000E18D5A444003D1ACA /* laser */,
 				9201002218D5A444003D1ACA /* media_tools */,
 				9201004018D5A444003D1ACA /* odf */,
+				92334C8E2333A8B800DA6051 /* quickjs */,
 				9201004E18D5A444003D1ACA /* scene_manager */,
 				9201005D18D5A444003D1ACA /* scenegraph */,
 				9201007718D5A444003D1ACA /* terminal */,
@@ -1582,6 +1595,18 @@
 				9201000D18D5A444003D1ACA /* tx3g.c */,
 			);
 			path = isomedia;
+			sourceTree = "<group>";
+		};
+		92334C8E2333A8B800DA6051 /* quickjs */ = {
+			isa = PBXGroup;
+			children = (
+				92910FA7233536620052365D /* cutils.c */,
+				92910FA52335363F0052365D /* libregexp.c */,
+				92334C932333A8C800DA6051 /* libunicode.c */,
+				92334CA42333A8C900DA6051 /* quickjs.c */,
+				92334CA22333A8C900DA6051 /* quickjs.h */,
+			);
+			name = quickjs;
 			sourceTree = "<group>";
 		};
 		9234CF4C1FD8344500CCDFA1 /* in_rtp */ = {
@@ -1885,6 +1910,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				92334CE02333AF0400DA6051 /* jsfilter.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92FE596C2088E52900CF0C5A /* dasher.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
@@ -2037,6 +2063,7 @@
 				92BBFCD81A7122AD006A7735 /* vobsub.h in Headers */,
 				92BBFCB31A7122AD006A7735 /* config_file.h in Headers */,
 				92BBFCC61A7122AD006A7735 /* compositor_dev.h in Headers */,
+				92334CB82333A8C900DA6051 /* quickjs.h in Headers */,
 				92BBFCF21A7122AD006A7735 /* nodes_x3d.h in Headers */,
 				92BBFCF11A7122AD006A7735 /* nodes_svg.h in Headers */,
 				92B9A56B1F8660D700A24FE4 /* visual_manager_3d.h in Headers */,
@@ -2411,6 +2438,7 @@
 				924E805F206D427A00AB580F /* reframe_rawpcm.c in Sources */,
 				92BB85831F7C5774009BC9C8 /* dec_ac52.c in Sources */,
 				92B9A5731F8660D700A24FE4 /* mpeg4_grouping_3d.c in Sources */,
+				92334CA92333A8C900DA6051 /* libunicode.c in Sources */,
 				92BB85671F7BFB63009BC9C8 /* dec_odf.c in Sources */,
 				92BB856E1F7BFB63009BC9C8 /* compose.c in Sources */,
 				92BB85811F7C3C4B009BC9C8 /* reframe_ac3.c in Sources */,
@@ -2429,6 +2457,7 @@
 				9201010718D5A444003D1ACA /* rtcp.c in Sources */,
 				9201010818D5A444003D1ACA /* rtp.c in Sources */,
 				9201010918D5A444003D1ACA /* rtp_depacketizer.c in Sources */,
+				92910FA62335363F0052365D /* libregexp.c in Sources */,
 				92B9A5901F8660D700A24FE4 /* mpeg4_layer_2d.c in Sources */,
 				9201010A18D5A444003D1ACA /* rtp_packetizer.c in Sources */,
 				9201010B18D5A444003D1ACA /* rtp_pck_3gpp.c in Sources */,
@@ -2467,6 +2496,7 @@
 				9201011E18D5A444003D1ACA /* drm_sample.c in Sources */,
 				9201012018D5A444003D1ACA /* hint_track.c in Sources */,
 				92BB857D1F7BFD80009BC9C8 /* dec_xvid.c in Sources */,
+				92334CE12333AF0400DA6051 /* jsfilter.c in Sources */,
 				9201012118D5A444003D1ACA /* hinting.c in Sources */,
 				92A505BA20FC833800049B29 /* in_atsc.c in Sources */,
 				92B9A5871F8660D700A24FE4 /* mpeg4_timesensor.c in Sources */,
@@ -2622,6 +2652,7 @@
 				9201017918D5A445003D1ACA /* base_scenegraph.c in Sources */,
 				925975012215BA3A0007E02B /* stencil.c in Sources */,
 				9201017A18D5A445003D1ACA /* commands.c in Sources */,
+				92910FA8233536620052365D /* cutils.c in Sources */,
 				9201017B18D5A445003D1ACA /* dom_events.c in Sources */,
 				92B9A56A1F8660D700A24FE4 /* svg_grouping.c in Sources */,
 				92D3C6272031E94F00BA1735 /* atsc_dmx.c in Sources */,
@@ -2631,6 +2662,7 @@
 				92B9A56C1F8660D700A24FE4 /* svg_base.c in Sources */,
 				92BB85681F7BFB63009BC9C8 /* dec_bifs.c in Sources */,
 				9201017F18D5A445003D1ACA /* mpeg4_animators.c in Sources */,
+				92334CBA2333A8C900DA6051 /* quickjs.c in Sources */,
 				9201018018D5A445003D1ACA /* mpeg4_nodes.c in Sources */,
 				92BB85711F7BFB63009BC9C8 /* reframe_mp3.c in Sources */,
 				9201018118D5A445003D1ACA /* mpeg4_valuator.c in Sources */,

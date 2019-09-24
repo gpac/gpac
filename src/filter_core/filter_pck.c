@@ -1095,12 +1095,13 @@ GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 	}
 	npck->pck = npck;
 	npck->data = NULL;
-	npck->data_length = 0;
 	npck->filter_owns_mem = 0;
 	npck->destructor = NULL;
 	gf_filter_pck_reset_props(npck, pid);
 	npck->info = srcpck->info;
 	npck->info.flags |= GF_PCKF_PROPS_REFERENCE;
+	//keep data size
+	npck->data_length = srcpck->data_length;
 
 	if (srcpck->props) {
 		npck->props = srcpck->props;
@@ -1498,6 +1499,9 @@ GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, u8 **data
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to reallocate a shared memory packet in filter %s\n", pck->pid->filter->name));
 		return GF_BAD_PARAM;
 	}
+	if (!data_start && !new_range_start)
+		return GF_BAD_PARAM;
+
 	if (pck->data_length + nb_bytes_to_add > pck->alloc_size) {
 		pck->alloc_size = pck->data_length + nb_bytes_to_add;
 		pck->data = gf_realloc(pck->data, pck->alloc_size);
@@ -1506,11 +1510,10 @@ GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, u8 **data
 #endif
 	}
 	pck->info.byte_offset = GF_FILTER_NO_BO;
-	*data_start = pck->data;
-	*new_range_start = pck->data + pck->data_length;
+	if (data_start) *data_start = pck->data;
+	if (new_range_start) *new_range_start = pck->data + pck->data_length;
 	pck->data_length += nb_bytes_to_add;
-	*new_size = pck->data_length;
-
+	if (new_size) *new_size = pck->data_length;
 
 	return GF_OK;
 }

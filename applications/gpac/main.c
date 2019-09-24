@@ -1846,8 +1846,9 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 	}
 }
 
-static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
+static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF_Filter *filter_inst)
 {
+	const GF_FilterArgs *args = NULL;
 
 	if (gen_doc==1) {
 		char szName[1024];
@@ -1912,18 +1913,35 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 
 	} else {
 		gf_sys_format_help(helpout, help_flags, "# %s\n", reg->name);
+		if (filter_inst)
+			gf_sys_format_help(helpout, help_flags, "Description: %s\n", gf_filter_get_description(filter_inst) );
+		else {
 #ifndef GPAC_DISABLE_DOC
-		if (reg->description) gf_sys_format_help(helpout, help_flags, "Description: %s\n", reg->description);
-		if (reg->version) gf_sys_format_help(helpout, help_flags, "Version: %s\n", reg->version);
+			if (reg->description) gf_sys_format_help(helpout, help_flags, "Description: %s\n", reg->description);
 #endif
+
+		}
+
+		if (filter_inst)
+			gf_sys_format_help(helpout, help_flags, "Version: %s\n", gf_filter_get_version(filter_inst) );
+		else {
+#ifndef GPAC_DISABLE_DOC
+			if (reg->version) gf_sys_format_help(helpout, help_flags, "Version: %s\n", reg->version);
+#endif
+		}
 	}
 
+	if (filter_inst) {
+		gf_sys_format_help(helpout, help_flags, "Author: %s\n", gf_filter_get_author(filter_inst) );
+		gf_sys_format_help(helpout, help_flags, "\n%s\n\n", gf_filter_get_help(filter_inst) );
+	} else {
 #ifndef GPAC_DISABLE_DOC
-	if (reg->author) gf_sys_format_help(helpout, help_flags, "Author: %s\n", reg->author);
-	if (reg->help) gf_sys_format_help(helpout, help_flags, "\n%s\n\n", reg->help);
+		if (reg->author) gf_sys_format_help(helpout, help_flags, "Author: %s\n", reg->author);
+		if (reg->help) gf_sys_format_help(helpout, help_flags, "\n%s\n\n", reg->help);
 #else
-	gf_sys_format_help(helpout, help_flags, "GPAC compiled without built-in doc\n");
+		gf_sys_format_help(helpout, help_flags, "GPAC compiled without built-in doc\n");
 #endif
+	}
 
 	if (argmode==GF_ARGMODE_EXPERT) {
 		if (reg->max_extra_pids==(u32) -1) gf_sys_format_help(helpout, help_flags, "Max Input PIDs: any\n");
@@ -1944,8 +1962,10 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 		gf_sys_format_help(helpout, help_flags, "\n");
 	}
 
+	if (filter_inst) args = gf_filter_get_args(filter_inst);
+	else args = reg->args;
 
-	if (reg->args) {
+	if (args) {
 		u32 idx=0;
 		if (gen_doc==1) {
 			gf_sys_format_help(helpout, help_flags, "# Options  \n");
@@ -1966,7 +1986,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 
 		while (1) {
 			Bool is_enum = GF_FALSE;
-			const GF_FilterArgs *a = & reg->args[idx];
+			const GF_FilterArgs *a = & args[idx];
 			if (!a || !a->arg_name) break;
 			idx++;
 
@@ -2024,7 +2044,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 				exit(1);
 			}
 			while (1) {
-				const GF_FilterArgs *anarg = & reg->args[j];
+				const GF_FilterArgs *anarg = & args[j];
 				if (!anarg || !anarg->arg_name) break;
 				j++;
 				if (a == anarg) continue;
@@ -2101,7 +2121,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 	for (i=0; i<count; i++) {
 		const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
 		if (gen_doc) {
-			print_filter(reg, argmode);
+			print_filter(reg, argmode, NULL);
 			found = GF_TRUE;
 		} else if (print_filter_info) {
 			u32 k;
@@ -2112,7 +2132,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 				fname = arg;
 
 				if (!strcmp(arg, reg->name) ) {
-					print_filter(reg, argmode);
+					print_filter(reg, argmode, NULL);
 					found = GF_TRUE;
 				} else {
 					char *sep = strchr(arg, ':');
@@ -2120,9 +2140,29 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 						|| (!sep && !strcmp(arg, "*"))
 					 	|| (sep && !strcmp(sep, ":*") && !strncmp(reg->name, arg, 1+sep - arg) )
 					) {
-						print_filter(reg, argmode);
+						print_filter(reg, argmode, NULL);
 						found = GF_TRUE;
 						break;
+					}
+					//quick shortcuts
+					else if (!strcmp(reg->name, "jsf") && !strncmp(arg, "jsf:", 3) && !strstr(arg, "js=")) {
+						char szJSFArg[GF_MAX_PATH];
+						strcpy(szJSFArg, "jsf:js=$GJS/");
+						strcat(szJSFArg, arg+4);
+						if (strstr(arg+4, ".js")==NULL)
+							strcat(szJSFArg, ".js");
+						GF_Filter *f = gf_fs_load_filter(session, szJSFArg);
+						if (f) {
+							print_filter(reg, argmode, f);
+							found = GF_TRUE;
+						}
+					}
+					else if (reg->flags&GF_FS_REG_SCRIPT) {
+						GF_Filter *f = gf_fs_load_filter(session, arg);
+						if (f) {
+							print_filter(reg, argmode, f);
+							found = GF_TRUE;
+						}
 					}
 				}
 			}
@@ -2945,7 +2985,8 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 
 	gf_filter_post_task(NULL,NULL,NULL,NULL);
 	gf_filter_get_num_events_queued(NULL);
-	gf_filter_get_arg(NULL, NULL, NULL);
+	gf_filter_get_arg_str(NULL, NULL, NULL);
+	gf_filter_get_arg(NULL, NULL);
 	gf_filter_all_sinks_done(NULL);
 
 	gf_opts_discard_changes();
