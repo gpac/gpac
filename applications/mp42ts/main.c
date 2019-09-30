@@ -1502,6 +1502,8 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		s64 min_offset = 0;
 		u32 min_offset_timescale = 0;
 		source->mp4 = gf_isom_open(src, GF_ISOM_OPEN_READ, 0);
+		if (!source->mp4)
+			return GF_FALSE;
 		source->nb_streams = 0;
 		source->real_time = force_real_time;
 		/*on MPEG-2 TS, carry 3GPP timed text as MPEG-4 Part17*/
@@ -2256,7 +2258,6 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		}
 
 		res = open_source(&sources[*nb_sources], next_arg, *carrousel_rate, mpeg4_signaling, *bifs_src_name, *audio_input_ip, *audio_input_port, *video_buffer, force_real_time, *bifs_use_pes, *temi_url, (*pcr_offset == (u32) -1) ? 1 : 0, insert_ntp);
-
 
 		//we may have arguments
 		while (src_args) {
