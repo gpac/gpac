@@ -53,10 +53,6 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_HAS_FREETYPE
 	LOAD_PLUGIN(ftfont);
 #endif
-#ifdef GPAC_HAS_SPIDERMONKEY
-	LOAD_PLUGIN(gpac_js);
-#endif
-
 #ifdef GPAC_HAS_ALSA
 	LOAD_PLUGIN(alsa);
 #endif

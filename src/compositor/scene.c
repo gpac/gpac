@@ -98,6 +98,7 @@ char *gf_scene_resolve_xlink(GF_Node *node, char *the_url)
 	if (!scene) return NULL;
 
 	url = gf_strdup(the_url);
+#ifndef GPAC_DISABLE_SVG
 	/*apply XML:base*/
 	while (node) {
 		GF_FieldInfo info;
@@ -110,6 +111,7 @@ char *gf_scene_resolve_xlink(GF_Node *node, char *the_url)
 		}
 		node = gf_node_get_parent(node, 0);
 	}
+#endif
 
 	/*if this is a fragment and no XML:BASE was found, this is a fragment of the current document*/
 	if (url[0]=='#') return url;

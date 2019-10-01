@@ -52,8 +52,6 @@ This section documents the scene graph extensions used for HTML5 media source ex
 
 #ifdef GPAC_ENABLE_HTML5_MEDIA
 
-#include <gpac/internal/smjs_api.h>
-
 typedef enum
 {
 	MEDIA_SOURCE_READYSTATE_CLOSED = 0,

@@ -136,6 +136,8 @@ static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isD
 	else ptr->nb_created += prev ? (prev->sgprivate->num_instances - 1) : 1;
 }
 
+#ifndef GPAC_DISABLE_SVG
+
 static void StatFixed(GF_SceneStatistics *stat, Fixed v, Bool scale)
 {
 	u32 int_res, frac_res;
@@ -167,7 +169,6 @@ static void StatFixed(GF_SceneStatistics *stat, Fixed v, Bool scale)
 }
 
 
-
 static void StatSVGPoint(GF_SceneStatistics *stat, SFVec2f *val)
 {
 	if (!stat) return;
@@ -178,6 +179,7 @@ static void StatSVGPoint(GF_SceneStatistics *stat, SFVec2f *val)
 	StatFixed(stat, val->x, 0);
 	StatFixed(stat, val->y, 0);
 }
+#endif
 
 static void StatSFVec2f(GF_SceneStatistics *stat, SFVec2f *val)
 {
@@ -263,6 +265,7 @@ static void StatSingleField(GF_SceneStatistics *stat, GF_FieldInfo *field)
 	}
 }
 
+#ifndef GPAC_DISABLE_SVG
 static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 {
 	u32 i = 0;
@@ -340,6 +343,7 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 		break;
 	}
 }
+#endif
 
 static void StatRemField(GF_SceneStatistics *stat, u32 fieldType, GF_FieldInfo *field)
 {

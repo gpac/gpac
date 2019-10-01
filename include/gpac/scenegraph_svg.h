@@ -664,14 +664,7 @@ Only one observer can be attached to a listener. The listener will remove itself
 event list when destructed.*/
 #define GF_DOM_BASE_LISTENER 	\
 	/* JavaScript context in which the listener is applicable */ \
-	void *js_context; \
-	/*target EventListener object (this) */ \
-	void *evt_listen_obj; \
-	/*function value for spidermonkey - we cannot use JS_CallFunction since it does not work on closures \
-	we use 64 bits to store the value for portability safety*/\
-	u64 js_fun_val;\
-	/*compiled function for the case were CallFunction is needed*/\
-	void *js_fun; \
+	struct js_handler_context *js_data;\
 	/* text content of the callback */ \
 	char *callback;
 

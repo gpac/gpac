@@ -256,14 +256,10 @@ void gf_dom_listener_reset_defered(GF_SceneGraph *sg)
 GF_EXPORT
 void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer)
 {
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 	if (hdl->sgprivate->scenegraph->svg_js) {
-		if (hdl->sgprivate->scenegraph->svg_js->handler_execute(hdl, event, observer, NULL)) {
-			return;
-		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[DOM Events] Error executing JavaScript event handler\n"));
-			return;
-		}
+		void svgjs_handler_execute(struct __tag_svg_script_ctx *svg_js, GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer, const char *_none);
+		svgjs_handler_execute(hdl->sgprivate->scenegraph->svg_js, hdl, event, observer, NULL);
 	}
 #endif
 	GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[DOM Events] JavaScript context not found \n"));
@@ -298,9 +294,11 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 			XMLRI *iri = (XMLRI *)info.far_ptr;
 
 			if ((iri->type==XMLRI_STRING) && iri->string && !strnicmp(iri->string, "javascript:", 11)) {
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
+				void svgjs_handler_execute(struct __tag_svg_script_ctx *svg_js, GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer, const char *iri);
+
 				if (listen->sgprivate->scenegraph->svg_js)
-					listen->sgprivate->scenegraph->svg_js->handler_execute(listen, event, observer, iri->string + 11);
+					svgjs_handler_execute(listen->sgprivate->scenegraph->svg_js, listen, event, observer, iri->string + 11);
 #endif
 				return;
 			}

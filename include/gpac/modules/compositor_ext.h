@@ -42,7 +42,6 @@ typedef struct _gf_compositor_ext GF_CompositorExt;
 typedef struct {
 	void *scenegraph;
 	void *ctx;
-	void *global;
 	Bool unload;
 } GF_CompositorExtJS;
 

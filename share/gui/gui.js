@@ -92,7 +92,7 @@ function initialize() {
         gw_display_height = gpac.screen_height;
     }
     //request event listeners on the window - GPAC specific BIFS extensions !!! We don't allow using the event proc for size events
-    root.addEventListener('resize', on_resize, 0);
+//    root.addEventListener('resize', on_resize, 0);
 
     
     /*load the UI lib*/

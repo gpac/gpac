@@ -1683,7 +1683,7 @@ struct _gf_scene
 	Bool force_size_set;
 
 	/*callback to call to dispatch SVG MediaEvent - this is a pointer to function only because of linking issues
-	with static libgpac (avoids depending on SpiderMonkey and OpenGL32 if not needed)*/
+	with static libgpac (avoids depending on QuickJS and OpenGL32 if not needed)*/
 	void (*on_media_event)(GF_Scene *scene, u32 type);
 
 	/*duration of inline scene*/

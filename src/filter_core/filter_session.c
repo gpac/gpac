@@ -958,13 +958,12 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 	if (!len) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing filter name in %s\n", name));
 		return NULL;
-
 	}
 
 	if (!strncmp(name, "enc", len)) {
 		return gf_fs_load_encoder(fsess, args);
 	}
-
+	/*regular filter loading*/
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if ((strlen(f_reg->name)==len) && !strncmp(f_reg->name, name, len)) {
@@ -973,6 +972,20 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 			return gf_filter_new(fsess, f_reg, args, NULL, argtype, NULL);
 		}
 	}
+	/*check JS file*/
+	if (strstr(name, ".js") || strstr(name, ".jsf") || strstr(name, ".mjs") ) {
+		char szPath[10+GF_MAX_PATH];
+		if (len>GF_MAX_PATH)
+			return NULL;
+		strncpy(szPath, name, len);
+		if (gf_file_exists(szPath)) {
+			sprintf(szPath, "jsf%cjs%c", fsess->sep_args, fsess->sep_name);
+			strncat(szPath, name, len);
+			return gf_fs_load_filter(fsess, szPath);
+
+		}
+	}
+
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: no such filter registry\n", name));
 	return NULL;
 }

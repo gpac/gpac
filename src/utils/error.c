@@ -983,8 +983,8 @@ static const char *gf_enabled_features()
 #ifdef GPAC_MINIMAL_ODF
 	                       "GPAC_MINIMAL_ODF "
 #endif
-#ifdef GPAC_HAS_SPIDERMONKEY
-	                       "GPAC_HAS_SPIDERMONKEY "
+#ifdef GPAC_HAS_QJS
+	                       "GPAC_HAS_QJS "
 #endif
 #ifdef GPAC_HAS_FREETYPE
 	                       "GPAC_HAS_FREETYPE "
