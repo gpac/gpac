@@ -28,7 +28,7 @@ README for GPAC version 0.9.0-DEV
 
 GPAC is a multimedia framework oriented towards rich media and distributed under the LGPL license (see COPYING).
 
-GPAC supports many multimedia formats, from simple audiovisual containers (avi, mov, mpg) to complex  presentation formats (MPEG-4 Systems, SVG Tiny 1.2, VRML/X3D) and 360 videos. GPAC supports presentation scripting for MPEG4/VRML/X3D through mozilla SpiderMonkey javascript engine.
+GPAC supports many multimedia formats, from simple audiovisual containers (avi, mov, mpg) to complex  presentation formats (MPEG-4 Systems, SVG Tiny 1.2, VRML/X3D) and 360 videos. GPAC supports presentation scripting for MPEG4/VRML/X3D through QuickJS javascript engine.
 
 GPAC currently supports local file playback, HTTP progressive download, Adaptive HTTP Streaming (MPEG-DASH, HLS), RTP/RTSP streaming over UDP (unicast or multicast) or TCP,  TS demuxing (from file, IP or DVB4Linux), ATSC 3.0 ROUTE sessions, desktop grabbing, camera/microphone inputs and any input format supported by FFmpeg.
 
@@ -86,8 +86,8 @@ Targets:
 - [ ] add ffmpeg muxer support
 - [ ] add ffmpeg simple avfilter support
 - [ ] add kvazaar/other encoders support?
-- [ ] drop SpiderMonkey and move to duktape or similar
-- [ ] filters scriptable through JS
+- [x] drop SpiderMonkey and move to QuickJS
+- [x] filters scriptable through JS
 - [x] improve filter graph resolver
 - [x] improve filter scheduler
 - [ ] move input sensors to filter ?

@@ -69,48 +69,44 @@ This section documents the scene graph extensions used for HTML5 media (video).
 
 #ifdef GPAC_ENABLE_HTML5_MEDIA
 
-#ifdef GPAC_HAS_SPIDERMONKEY
-#include <gpac/internal/smjs_api.h>
-#endif
-
 typedef struct
 {
 	u32 nb_inst;
 	/* Basic classes */
-	GF_JSClass  arrayBufferClass;
+	JSClassDef  arrayBufferClass;
 
 	/*HTML Media classes*/
-	GF_JSClass  htmlVideoElementClass;
-	GF_JSClass  htmlAudioElementClass;
-	GF_JSClass  htmlSourceElementClass;
-	GF_JSClass  htmlTrackElementClass;
-	GF_JSClass  htmlMediaElementClass;
-	GF_JSClass  mediaControllerClass;
-	GF_JSClass  audioTrackListClass;
-	GF_JSClass  audioTrackClass;
-	GF_JSClass  videoTrackListClass;
-	GF_JSClass  videoTrackClass;
-	GF_JSClass  textTrackListClass;
-	GF_JSClass  textTrackClass;
-	GF_JSClass  textTrackCueListClass;
-	GF_JSClass  textTrackCueClass;
-	GF_JSClass  timeRangesClass;
-	GF_JSClass  trackEventClass;
-	GF_JSClass  mediaErrorClass;
+	JSClassDef  htmlVideoElementClass;
+	JSClassDef  htmlAudioElementClass;
+	JSClassDef  htmlSourceElementClass;
+	JSClassDef  htmlTrackElementClass;
+	JSClassDef  htmlMediaElementClass;
+	JSClassDef  mediaControllerClass;
+	JSClassDef  audioTrackListClass;
+	JSClassDef  audioTrackClass;
+	JSClassDef  videoTrackListClass;
+	JSClassDef  videoTrackClass;
+	JSClassDef  textTrackListClass;
+	JSClassDef  textTrackClass;
+	JSClassDef  textTrackCueListClass;
+	JSClassDef  textTrackCueClass;
+	JSClassDef  timeRangesClass;
+	JSClassDef  trackEventClass;
+	JSClassDef  mediaErrorClass;
 
 	/* Media Source Extensions */
-	GF_JSClass  mediaSourceClass;
-	GF_JSClass  sourceBufferClass;
-	GF_JSClass  sourceBufferListClass;
-	GF_JSClass  URLClass;
+	JSClassDef  mediaSourceClass;
+	JSClassDef  sourceBufferClass;
+	JSClassDef  sourceBufferListClass;
+	JSClassDef  URLClass;
 
 	/* Media Capture */
-	GF_JSClass  mediaStreamClass;
-	GF_JSClass  localMediaStreamClass;
-	GF_JSClass  mediaStreamTrackClass;
-	GF_JSClass  mediaStreamTrackListClass;
-	GF_JSClass  navigatorUserMediaClass;
-	GF_JSClass  navigatorUserMediaErrorClass;
+	JSClassDef  mediaStreamClass;
+	JSClassDef  localMediaStreamClass;
+	JSClassDef  mediaStreamTrackClass;
+	JSClassDef  mediaStreamTrackListClass;
+	JSClassDef  navigatorUserMediaClass;
+	JSClassDef  navigatorUserMediaErrorClass;
 } GF_HTML_MediaRuntime;
 
 /************************************************************

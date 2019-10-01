@@ -3240,6 +3240,7 @@ static void dump_od_to_saf(GF_SceneDumper *dumper, GF_AUContext *au, u32 indent)
 	fprintf(dumper->trace, "</saf:mediaUnit>\n");
 }
 
+#ifndef GPAC_DISABLE_SVG
 static GF_Err SD_DumpDOMElement(GF_SceneDumper *sdump, GF_DOMFullNode *node)
 {
 	const char *ns;
@@ -3296,7 +3297,7 @@ static GF_Err SD_DumpDOMElement(GF_SceneDumper *sdump, GF_DOMFullNode *node)
 
 	return GF_OK;
 }
-
+#endif
 
 GF_EXPORT
 GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes)

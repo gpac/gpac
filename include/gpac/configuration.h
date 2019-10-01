@@ -50,7 +50,7 @@ This section documents the base data types of GPAC.
 
 #define GPAC_HAS_SSL
 
-#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_QJS
 //codecs  
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
@@ -103,7 +103,7 @@ This section documents the base data types of GPAC.
 #endif
 
 
-#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_QJS
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 
@@ -123,7 +123,7 @@ This section documents the base data types of GPAC.
 /*don't use fixed-point version on Android, not needed*/
 //#define GPAC_FIXED_POINT
 
-#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_QJS
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 
@@ -140,7 +140,7 @@ This section documents the base data types of GPAC.
 #define GPAC_64_BITS
 #endif
 
-#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_QJS
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 #define GPAC_HAS_GLU
@@ -156,7 +156,7 @@ This section documents the base data types of GPAC.
 #define GPAC_64_BITS
 #endif
 
-#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_QJS
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 #define GPAC_HAS_SOCK_UN
@@ -188,7 +188,7 @@ This section documents the base data types of GPAC.
 #define GPAC_FIXED_POINT
 #endif
 
-#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_QJS
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 

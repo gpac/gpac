@@ -69,7 +69,7 @@ LIBGPAC_ODF+=odf/odf_parse.o
 endif
 
 ## libgpac objects gathering: src/scenegraph
-LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o scenegraph/xml_ns.o
+LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_js.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_js.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_js.o scenegraph/xml_ns.o
 
 ## libgpac objects gathering: src/crypto
 LIBGPAC_CRYPTO=
@@ -136,7 +136,12 @@ LIBGPAC_MEDIATOOLS+=media_tools/webvtt.o
 
 LIBGPAC_FILTERS=filter_core/filter_pck.o filter_core/filter_pid.o filter_core/filter_props.o filter_core/filter_queue.o filter_core/filter_session.o filter_core/filter_register.o filter_core/filter.o
 
+LIBGPAC_QUICKJS=
+ifeq ($(CONFIG_JS), yes)
 LIBGPAC_QUICKJS=quickjs/cutils.o quickjs/libregexp.o quickjs/libunicode.o quickjs/quickjs.o
+LIBGPAC_QUICKJS+=jsmods/scene_js.o jsmods/xhr.o
+endif
+
 
 ## libgpac objects gathering: src/scene_manager
 LIBGPAC_SCENEMANAGER=

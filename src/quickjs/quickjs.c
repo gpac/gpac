@@ -1774,7 +1774,9 @@ void JS_FreeRuntime(JSRuntime *rt)
     }
 }
 
-#if defined(EMSCRIPTEN)
+//#if defined(EMSCRIPTEN)
+//disable stack limit in gpac, it breaks multi thread usage
+#if 1
 /* currently no stack limitation */
 static inline uint8_t *js_get_stack_pointer(void)
 {
@@ -2776,7 +2778,7 @@ JSValue JS_AtomToString(JSContext *ctx, JSAtom atom)
 
 /* return TRUE if the atom is an array index (i.e. 0 <= index <=
    2^32-2 and return its value */
-static BOOL JS_AtomIsArrayIndex(JSContext *ctx, uint32_t *pval, JSAtom atom)
+BOOL JS_AtomIsArrayIndex(JSContext *ctx, uint32_t *pval, JSAtom atom)
 {
     if (__JS_AtomIsTaggedInt(atom)) {
         *pval = __JS_AtomToUInt32(atom);
@@ -9191,6 +9193,15 @@ void *JS_GetOpaque2(JSContext *ctx, JSValueConst obj, JSClassID class_id)
         JS_ThrowTypeErrorInvalidClass(ctx, class_id);
     }
     return p;
+}
+
+void *JS_GetOpaque_Nocheck(JSValueConst obj)
+{
+    JSObject *p;
+    if (JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT)
+        return NULL;
+    p = JS_VALUE_GET_OBJ(obj);
+    return p->u.opaque;
 }
 
 #define HINT_STRING  0
@@ -31648,6 +31659,19 @@ JSValue JS_Eval(JSContext *ctx, const char *input, size_t input_len,
     assert(eval_type == JS_EVAL_TYPE_GLOBAL ||
            eval_type == JS_EVAL_TYPE_MODULE);
     ret = JS_EvalInternal(ctx, ctx->global_obj, input, input_len, filename,
+                          eval_flags, -1);
+    return ret;
+}
+
+JSValue JS_EvalWithTarget(JSContext *ctx, JSValueConst this_obj, const char *input, size_t input_len,
+                const char *filename, int eval_flags)
+{
+    int eval_type = eval_flags & JS_EVAL_TYPE_MASK;
+    JSValue ret;
+
+    assert(eval_type == JS_EVAL_TYPE_GLOBAL ||
+           eval_type == JS_EVAL_TYPE_MODULE);
+    ret = JS_EvalInternal(ctx, this_obj, input, input_len, filename,
                           eval_flags, -1);
     return ret;
 }

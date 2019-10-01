@@ -2646,6 +2646,7 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 		read->no_as = 1;
 	}
 
+	e = GF_NOT_SUPPORTED;
 	if (!(load->swf_import_flags & GF_SM_SWF_USE_SVG)) {
 #ifndef GPAC_DISABLE_VRML
 		e = swf_to_bifs_init(read);

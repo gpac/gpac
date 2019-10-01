@@ -52,11 +52,6 @@ ifeq ($(CONFIG_DIRECTFB),yes)
 PLUGDIRS+=directfb_out
 endif
 
-ifeq ($(CONFIG_JS),no)
-else
-PLUGDIRS+=gpac_js
-endif
-
 ifeq ($(CONFIG_HID),yes)
 #PLUGDIRS+=psvr
 endif

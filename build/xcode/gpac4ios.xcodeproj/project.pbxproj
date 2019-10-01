@@ -10,7 +10,6 @@
 		0496F07716DD1A18009D9D8D /* libfaad.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45012830B1400C384DE /* libfaad.a */; };
 		0496F07816DD1A18009D9D8D /* libfreetype.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45112830B1400C384DE /* libfreetype.a */; };
 		0496F07916DD1A18009D9D8D /* libjpeg.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45312830B1400C384DE /* libjpeg.a */; };
-		0496F07A16DD1A18009D9D8D /* libjs.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45412830B1400C384DE /* libjs.a */; };
 		0496F07B16DD1A18009D9D8D /* libmad.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45512830B1400C384DE /* libmad.a */; };
 		0496F07C16DD1A18009D9D8D /* libpng.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71F2A45612830B1400C384DE /* libpng.a */; };
 		0496F09B16DE35C9009D9D8D /* libgpac_static.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71CCF1311277037A00339E12 /* libgpac_static.a */; };
@@ -203,7 +202,6 @@
 		71CCF3011277045100339E12 /* base_scenegraph.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1FE1277045100339E12 /* base_scenegraph.c */; };
 		71CCF3021277045100339E12 /* commands.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF1FF1277045100339E12 /* commands.c */; };
 		71CCF3031277045100339E12 /* dom_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2001277045100339E12 /* dom_events.c */; };
-		71CCF3041277045100339E12 /* dom_smjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2011277045100339E12 /* dom_smjs.c */; };
 		71CCF3051277045100339E12 /* mpeg4_animators.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2021277045100339E12 /* mpeg4_animators.c */; };
 		71CCF3061277045100339E12 /* mpeg4_nodes.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2031277045100339E12 /* mpeg4_nodes.c */; };
 		71CCF3071277045100339E12 /* mpeg4_valuator.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2041277045100339E12 /* mpeg4_valuator.c */; };
@@ -211,13 +209,11 @@
 		71CCF3091277045100339E12 /* smil_timing.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2061277045100339E12 /* smil_timing.c */; };
 		71CCF30A1277045100339E12 /* svg_attributes.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2071277045100339E12 /* svg_attributes.c */; };
 		71CCF30B1277045100339E12 /* svg_properties.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2081277045100339E12 /* svg_properties.c */; };
-		71CCF30C1277045100339E12 /* svg_smjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2091277045100339E12 /* svg_smjs.c */; };
 		71CCF30D1277045100339E12 /* svg_types.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF20A1277045100339E12 /* svg_types.c */; };
 		71CCF30E1277045100339E12 /* vrml_interpolators.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF20B1277045100339E12 /* vrml_interpolators.c */; };
 		71CCF30F1277045100339E12 /* vrml_proto.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF20C1277045100339E12 /* vrml_proto.c */; };
 		71CCF3101277045100339E12 /* vrml_route.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF20D1277045100339E12 /* vrml_route.c */; };
 		71CCF3111277045100339E12 /* vrml_script.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF20E1277045100339E12 /* vrml_script.c */; };
-		71CCF3121277045100339E12 /* vrml_smjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF20F1277045100339E12 /* vrml_smjs.c */; };
 		71CCF3131277045100339E12 /* vrml_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2101277045100339E12 /* vrml_tools.c */; };
 		71CCF3141277045100339E12 /* x3d_nodes.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2111277045100339E12 /* x3d_nodes.c */; };
 		71CCF3161277045100339E12 /* xml_ns.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2131277045100339E12 /* xml_ns.c */; };
@@ -380,12 +376,16 @@
 		92BC210716EF8E7A000E0620 /* cursors.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999A1278778800ACFF58 /* cursors.c */; };
 		92BC210C16EF8E7A000E0620 /* ft_font.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199811278776700ACFF58 /* ft_font.c */; };
 		92BC210D16EF8E7A000E0620 /* ft_font.h in Headers */ = {isa = PBXBuildFile; fileRef = 71A199821278776700ACFF58 /* ft_font.h */; };
-		92BC210F16EF8E7A000E0620 /* gpac_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1994F127876FA00ACFF58 /* gpac_js.c */; };
 		92BC212E16EF8E7A000E0620 /* sdl_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999C1278778800ACFF58 /* sdl_out.c */; };
 		92BC212F16EF8E7A000E0620 /* sdl_out.h in Headers */ = {isa = PBXBuildFile; fileRef = 71A1999D1278778800ACFF58 /* sdl_out.h */; };
 		92BC213716EF8E7A000E0620 /* video.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999E1278778800ACFF58 /* video.c */; };
 		92C0F38021EDFA8E002961C8 /* out_rtp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C0F37F21EDFA8D002961C8 /* out_rtp.c */; };
 		92D3C62C2031ECE600BA1735 /* atsc_dmx.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D3C62B2031ECE600BA1735 /* atsc_dmx.c */; };
+		92D6C5A62343BF6A00262217 /* xhr.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D6C5A42343BF6A00262217 /* xhr.c */; };
+		92D6C5A72343BF6A00262217 /* scene_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D6C5A52343BF6A00262217 /* scene_js.c */; };
+		92D6C5AB2343BF9400262217 /* svg_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D6C5A82343BF9400262217 /* svg_js.c */; };
+		92D6C5AC2343BF9400262217 /* vrml_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D6C5A92343BF9400262217 /* vrml_js.c */; };
+		92D6C5AD2343BF9400262217 /* dom_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D6C5AA2343BF9400262217 /* dom_js.c */; };
 		92DF5CA61BA6C6F80058A7BA /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 92DF5CA51BA6C6F80058A7BA /* iff.c */; };
 		92E8C7901A0CD58300E0436D /* validator.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825916F2549D0002629E /* validator.c */; };
 		92E9DFA22215CE9A00628420 /* g_crypt_tinyaes.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E9DF9D2215CE9900628420 /* g_crypt_tinyaes.c */; };
@@ -573,7 +573,6 @@
 		7147425F12B918C900DB5A59 /* cache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cache.c; sourceTree = "<group>"; };
 		71847811127860F000917298 /* libc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libc.dylib; path = usr/lib/libc.dylib; sourceTree = SDKROOT; };
 		71847813127860F000917298 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
-		71A1994F127876FA00ACFF58 /* gpac_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gpac_js.c; path = ../../modules/gpac_js/gpac_js.c; sourceTree = "<group>"; };
 		71A199811278776700ACFF58 /* ft_font.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ft_font.c; path = ../../modules/ft_font/ft_font.c; sourceTree = "<group>"; };
 		71A199821278776700ACFF58 /* ft_font.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ft_font.h; path = ../../modules/ft_font/ft_font.h; sourceTree = "<group>"; };
 		71A199991278778800ACFF58 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = audio.c; sourceTree = "<group>"; };
@@ -763,7 +762,6 @@
 		71CCF1FE1277045100339E12 /* base_scenegraph.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = base_scenegraph.c; sourceTree = "<group>"; };
 		71CCF1FF1277045100339E12 /* commands.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = commands.c; sourceTree = "<group>"; };
 		71CCF2001277045100339E12 /* dom_events.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dom_events.c; sourceTree = "<group>"; };
-		71CCF2011277045100339E12 /* dom_smjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dom_smjs.c; sourceTree = "<group>"; };
 		71CCF2021277045100339E12 /* mpeg4_animators.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mpeg4_animators.c; sourceTree = "<group>"; };
 		71CCF2031277045100339E12 /* mpeg4_nodes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mpeg4_nodes.c; sourceTree = "<group>"; };
 		71CCF2041277045100339E12 /* mpeg4_valuator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mpeg4_valuator.c; sourceTree = "<group>"; };
@@ -771,13 +769,11 @@
 		71CCF2061277045100339E12 /* smil_timing.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smil_timing.c; sourceTree = "<group>"; };
 		71CCF2071277045100339E12 /* svg_attributes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = svg_attributes.c; sourceTree = "<group>"; };
 		71CCF2081277045100339E12 /* svg_properties.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = svg_properties.c; sourceTree = "<group>"; };
-		71CCF2091277045100339E12 /* svg_smjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = svg_smjs.c; sourceTree = "<group>"; };
 		71CCF20A1277045100339E12 /* svg_types.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = svg_types.c; sourceTree = "<group>"; };
 		71CCF20B1277045100339E12 /* vrml_interpolators.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vrml_interpolators.c; sourceTree = "<group>"; };
 		71CCF20C1277045100339E12 /* vrml_proto.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vrml_proto.c; sourceTree = "<group>"; };
 		71CCF20D1277045100339E12 /* vrml_route.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vrml_route.c; sourceTree = "<group>"; };
 		71CCF20E1277045100339E12 /* vrml_script.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vrml_script.c; sourceTree = "<group>"; };
-		71CCF20F1277045100339E12 /* vrml_smjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vrml_smjs.c; sourceTree = "<group>"; };
 		71CCF2101277045100339E12 /* vrml_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vrml_tools.c; sourceTree = "<group>"; };
 		71CCF2111277045100339E12 /* x3d_nodes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = x3d_nodes.c; sourceTree = "<group>"; };
 		71CCF2131277045100339E12 /* xml_ns.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = xml_ns.c; sourceTree = "<group>"; };
@@ -944,6 +940,11 @@
 		92B2A4AD229D6646002A65A7 /* hevcsplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hevcsplit.c; path = ../../src/filters/hevcsplit.c; sourceTree = "<group>"; };
 		92C0F37F21EDFA8D002961C8 /* out_rtp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtp.c; path = ../../src/filters/out_rtp.c; sourceTree = "<group>"; };
 		92D3C62B2031ECE600BA1735 /* atsc_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = atsc_dmx.c; sourceTree = "<group>"; };
+		92D6C5A42343BF6A00262217 /* xhr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = xhr.c; path = ../../src/jsmods/xhr.c; sourceTree = "<group>"; };
+		92D6C5A52343BF6A00262217 /* scene_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = scene_js.c; path = ../../src/jsmods/scene_js.c; sourceTree = "<group>"; };
+		92D6C5A82343BF9400262217 /* svg_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = svg_js.c; sourceTree = "<group>"; };
+		92D6C5A92343BF9400262217 /* vrml_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vrml_js.c; sourceTree = "<group>"; };
+		92D6C5AA2343BF9400262217 /* dom_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dom_js.c; sourceTree = "<group>"; };
 		92DF5CA51BA6C6F80058A7BA /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
 		92E9DF9D2215CE9900628420 /* g_crypt_tinyaes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = g_crypt_tinyaes.c; path = ../../src/crypto/g_crypt_tinyaes.c; sourceTree = "<group>"; };
 		92E9DF9E2215CE9900628420 /* tiny_aes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tiny_aes.h; path = ../../src/crypto/tiny_aes.h; sourceTree = "<group>"; };
@@ -1128,7 +1129,6 @@
 				0496F07716DD1A18009D9D8D /* libfaad.a in Frameworks */,
 				0496F07816DD1A18009D9D8D /* libfreetype.a in Frameworks */,
 				0496F07916DD1A18009D9D8D /* libjpeg.a in Frameworks */,
-				0496F07A16DD1A18009D9D8D /* libjs.a in Frameworks */,
 				0496F07B16DD1A18009D9D8D /* libmad.a in Frameworks */,
 				0496F07C16DD1A18009D9D8D /* libpng.a in Frameworks */,
 				71A19BB212797D1B00ACFF58 /* OpenGLES.framework in Frameworks */,
@@ -1257,7 +1257,6 @@
 		71CCF1381277041D00339E12 /* libgpac */ = {
 			isa = PBXGroup;
 			children = (
-				92334CBB2333AB8200DA6051 /* quickjs */,
 				71CCF35E12770A8C00339E12 /* include */,
 				71CCF1391277045100339E12 /* bifs */,
 				71CCF14A1277045100339E12 /* compositor */,
@@ -1267,9 +1266,11 @@
 				92EB6D5E20E4E16700A97A49 /* filters */,
 				71CCF1911277045100339E12 /* ietf */,
 				71CCF19F1277045100339E12 /* isomedia */,
+				92D6C5A32343BF5000262217 /* jsmods */,
 				71CCF1B91277045100339E12 /* laser */,
 				71CCF1CD1277045100339E12 /* media_tools */,
 				71CCF1E11277045100339E12 /* odf */,
+				92334CBB2333AB8200DA6051 /* quickjs */,
 				71CCF1EF1277045100339E12 /* scene_manager */,
 				71CCF1FD1277045100339E12 /* scenegraph */,
 				71CCF2141277045100339E12 /* terminal */,
@@ -1540,21 +1541,21 @@
 				71CCF1FE1277045100339E12 /* base_scenegraph.c */,
 				71CCF1FF1277045100339E12 /* commands.c */,
 				71CCF2001277045100339E12 /* dom_events.c */,
-				71CCF2011277045100339E12 /* dom_smjs.c */,
+				92D6C5AA2343BF9400262217 /* dom_js.c */,
 				71CCF2021277045100339E12 /* mpeg4_animators.c */,
 				71CCF2031277045100339E12 /* mpeg4_nodes.c */,
 				71CCF2041277045100339E12 /* mpeg4_valuator.c */,
 				71CCF2051277045100339E12 /* smil_anim.c */,
 				71CCF2061277045100339E12 /* smil_timing.c */,
 				71CCF2071277045100339E12 /* svg_attributes.c */,
+				92D6C5A82343BF9400262217 /* svg_js.c */,
 				71CCF2081277045100339E12 /* svg_properties.c */,
-				71CCF2091277045100339E12 /* svg_smjs.c */,
 				71CCF20A1277045100339E12 /* svg_types.c */,
 				71CCF20B1277045100339E12 /* vrml_interpolators.c */,
+				92D6C5A92343BF9400262217 /* vrml_js.c */,
 				71CCF20C1277045100339E12 /* vrml_proto.c */,
 				71CCF20D1277045100339E12 /* vrml_route.c */,
 				71CCF20E1277045100339E12 /* vrml_script.c */,
-				71CCF20F1277045100339E12 /* vrml_smjs.c */,
 				71CCF2101277045100339E12 /* vrml_tools.c */,
 				71CCF2111277045100339E12 /* x3d_nodes.c */,
 				71CCF2131277045100339E12 /* xml_ns.c */,
@@ -1755,11 +1756,19 @@
 			children = (
 				71A199811278776700ACFF58 /* ft_font.c */,
 				71A199821278776700ACFF58 /* ft_font.h */,
-				71A1994F127876FA00ACFF58 /* gpac_js.c */,
 				71A199981278778800ACFF58 /* sdl_out */,
 				92FA825916F2549D0002629E /* validator.c */,
 			);
 			name = modules;
+			sourceTree = "<group>";
+		};
+		92D6C5A32343BF5000262217 /* jsmods */ = {
+			isa = PBXGroup;
+			children = (
+				92D6C5A52343BF6A00262217 /* scene_js.c */,
+				92D6C5A42343BF6A00262217 /* xhr.c */,
+			);
+			name = jsmods;
 			sourceTree = "<group>";
 		};
 		92E9DF9B2215CE6D00628420 /* crypto */ = {
@@ -1807,7 +1816,6 @@
 		92EB6D5E20E4E16700A97A49 /* filters */ = {
 			isa = PBXGroup;
 			children = (
-				92910FA9233A44110052365D /* jsfilter.c */,
 				92EB6D8B20E4E19300A97A49 /* compose.c */,
 				92EB6D9420E4E19400A97A49 /* dasher.c */,
 				92EB6DB020E4E19600A97A49 /* dec_ac52.c */,
@@ -1867,6 +1875,7 @@
 				92EB6D9C20E4E19500A97A49 /* isoffin_read_ch.c */,
 				92EB6DAF20E4E19600A97A49 /* isoffin_read.c */,
 				92EB6D9720E4E19400A97A49 /* isoffin.h */,
+				92910FA9233A44110052365D /* jsfilter.c */,
 				92EB6D8020E4E19300A97A49 /* load_bt_xmt.c */,
 				92EB6DB720E4E19600A97A49 /* load_svg.c */,
 				92EB6DAD20E4E19600A97A49 /* load_text.c */,
@@ -2204,9 +2213,9 @@
 				92EB6DF620E4E19700A97A49 /* rewrite_mp4v.c in Sources */,
 				92EB6DF420E4E19700A97A49 /* isoffin_read_ch.c in Sources */,
 				92BC210C16EF8E7A000E0620 /* ft_font.c in Sources */,
-				92BC210F16EF8E7A000E0620 /* gpac_js.c in Sources */,
 				921FEBA71CF881DE00B437C2 /* sensors.m in Sources */,
 				92E9DFB62215CEA700628420 /* raster_565.c in Sources */,
+				92D6C5AB2343BF9400262217 /* svg_js.c in Sources */,
 				92EB6DDF20E4E19700A97A49 /* out_audio.c in Sources */,
 				92EB6DF520E4E19700A97A49 /* reframer.c in Sources */,
 				92E9DFA22215CE9A00628420 /* g_crypt_tinyaes.c in Sources */,
@@ -2218,6 +2227,7 @@
 				71CCF2481277045100339E12 /* bifs_node_tables.c in Sources */,
 				71CCF2491277045100339E12 /* com_dec.c in Sources */,
 				71CCF24A1277045100339E12 /* com_enc.c in Sources */,
+				92D6C5AD2343BF9400262217 /* dom_js.c in Sources */,
 				71CCF24B1277045100339E12 /* conditional.c in Sources */,
 				71CCF24C1277045100339E12 /* field_decode.c in Sources */,
 				92EB6E0220E4E19700A97A49 /* write_generic.c in Sources */,
@@ -2326,6 +2336,7 @@
 				92EB6E0F20E4E19700A97A49 /* load_svg.c in Sources */,
 				71CCF2A11277045100339E12 /* rtp_pck_mpeg12.c in Sources */,
 				71CCF2A21277045100339E12 /* rtp_pck_mpeg4.c in Sources */,
+				92D6C5AC2343BF9400262217 /* vrml_js.c in Sources */,
 				71CCF2A31277045100339E12 /* rtp_streamer.c in Sources */,
 				71CCF2A41277045100339E12 /* rtsp_command.c in Sources */,
 				71CCF2A51277045100339E12 /* rtsp_common.c in Sources */,
@@ -2375,6 +2386,7 @@
 				71CCF2D41277045100339E12 /* av_parsers.c in Sources */,
 				92C0F38021EDFA8E002961C8 /* out_rtp.c in Sources */,
 				92EB6E0C20E4E19700A97A49 /* rewrite_nalu.c in Sources */,
+				92D6C5A62343BF6A00262217 /* xhr.c in Sources */,
 				71CCF2D51277045100339E12 /* avilib.c in Sources */,
 				71CCF2D61277045100339E12 /* dvb_mpe.c in Sources */,
 				8959AC79211C9B29004D2C87 /* reframe_av1.c in Sources */,
@@ -2443,7 +2455,6 @@
 				71CCF3021277045100339E12 /* commands.c in Sources */,
 				8959AC8D211C9C3C004D2C87 /* rewrite_obu.c in Sources */,
 				71CCF3031277045100339E12 /* dom_events.c in Sources */,
-				71CCF3041277045100339E12 /* dom_smjs.c in Sources */,
 				71CCF3051277045100339E12 /* mpeg4_animators.c in Sources */,
 				71CCF3061277045100339E12 /* mpeg4_nodes.c in Sources */,
 				71CCF3071277045100339E12 /* mpeg4_valuator.c in Sources */,
@@ -2452,7 +2463,6 @@
 				71CCF3091277045100339E12 /* smil_timing.c in Sources */,
 				71CCF30A1277045100339E12 /* svg_attributes.c in Sources */,
 				71CCF30B1277045100339E12 /* svg_properties.c in Sources */,
-				71CCF30C1277045100339E12 /* svg_smjs.c in Sources */,
 				71CCF30D1277045100339E12 /* svg_types.c in Sources */,
 				71CCF30E1277045100339E12 /* vrml_interpolators.c in Sources */,
 				71CCF30F1277045100339E12 /* vrml_proto.c in Sources */,
@@ -2461,7 +2471,6 @@
 				71CCF3111277045100339E12 /* vrml_script.c in Sources */,
 				92EB6E3320E4E58E00A97A49 /* scene_ns.c in Sources */,
 				92EB6E3420E4E58E00A97A49 /* mpeg4_mediasensor.c in Sources */,
-				71CCF3121277045100339E12 /* vrml_smjs.c in Sources */,
 				71CCF3131277045100339E12 /* vrml_tools.c in Sources */,
 				92EB6DE720E4E19700A97A49 /* enc_png.c in Sources */,
 				9296BF2422CFBB3900DC9742 /* reframe_flac.c in Sources */,
@@ -2509,6 +2518,7 @@
 				71CCF33A1277045100339E12 /* os_thread.c in Sources */,
 				71CCF33B1277045100339E12 /* path2d.c in Sources */,
 				71CCF33C1277045100339E12 /* path2d_stroker.c in Sources */,
+				92D6C5A72343BF6A00262217 /* scene_js.c in Sources */,
 				71CCF33F1277045100339E12 /* token.c in Sources */,
 				71CCF3401277045100339E12 /* uni_bidi.c in Sources */,
 				71CCF3411277045100339E12 /* url.c in Sources */,

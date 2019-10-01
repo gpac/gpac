@@ -316,7 +316,6 @@ static void gpac_filter_help(void)
 #include <gpac/modules/audio_out.h>
 #include <gpac/modules/compositor_ext.h>
 #include <gpac/modules/hardcoded_proto.h>
-#include <gpac/modules/js_usr.h>
 #include <gpac/modules/font.h>
 
 static void gpac_modules_help(void)
@@ -346,11 +345,6 @@ static void gpac_modules_help(void)
 			ifce = gf_modules_load_by_name(str, GF_COMPOSITOR_EXT_INTERFACE);
 			if (ifce) {
 				gf_sys_format_help(helpout, help_flags, "CompositorExtension ");
-				gf_modules_close_interface(ifce);
-			}
-			ifce = gf_modules_load_by_name(str, GF_JS_USER_EXT_INTERFACE);
-			if (ifce) {
-				gf_sys_format_help(helpout, help_flags, "javaScriptExtension ");
 				gf_modules_close_interface(ifce);
 			}
 			ifce = gf_modules_load_by_name(str, GF_HARDCODED_PROTO_INTERFACE);

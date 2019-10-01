@@ -27,7 +27,7 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 
-#if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG) && defined(GPAC_HAS_SPIDERMONKEY)
+#if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG) && defined(GPAC_HAS_QJS)
 
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
@@ -35,7 +35,8 @@
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/nodes_svg.h>
 #include <gpac/webvtt.h>
-#include <gpac/internal/smjs_api.h>
+
+#include "../scenegraph/qjs_common.h"
 
 typedef struct
 {
@@ -261,75 +262,74 @@ static Bool vttd_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	 return GF_TRUE;
 }
 
+JSContext *svg_script_get_context(GF_SceneGraph *sg);
+void js_dump_error(JSContext *ctx);
+
 static GF_Err vttd_js_add_cue(GF_Node *node, const char *id, const char *start, const char *end, const char *settings, const char *payload)
 {
-	GF_Err e;
-	JSBool found;
-	JSContext *c = node->sgprivate->scenegraph->svg_js->js_ctx;
-	JSObject *global = node->sgprivate->scenegraph->svg_js->global;
-	jsval fun_val;
+	GF_Err e=GF_OK;
+	JSValue fun_val;
+	JSValue global;
+	JSContext *c = svg_script_get_context(node->sgprivate->scenegraph);
+	if (!c) return GF_SERVICE_ERROR;
 
-	gf_sg_lock_javascript(c, GF_TRUE);
-	found = JS_LookupProperty(c, global, "addCue", &fun_val);
-	if (!found || JSVAL_IS_VOID(fun_val) || !JSVAL_IS_OBJECT(fun_val) ) {
+	gf_js_lock(c, GF_TRUE);
+	global = JS_GetGlobalObject(c);
+	fun_val = JS_GetPropertyStr(c, global, "addCue");
+	if (!JS_IsFunction(c, fun_val) ) {
 		e = GF_BAD_PARAM;
 	} else {
-		JSBool ret;
-		uintN attr;
-		ret = JS_GetPropertyAttributes(c, global, "addCue", &attr, &found);
-		if (ret == JS_TRUE && found == JS_TRUE) {
-			jsval rval;
-			jsval argv[5];
-			argv[0] = STRING_TO_JSVAL( JS_NewStringCopyZ(c, (id ? id : "")) );
-			argv[1] = STRING_TO_JSVAL( JS_NewStringCopyZ(c, (start ? start : "")) );
-			argv[2] = STRING_TO_JSVAL( JS_NewStringCopyZ(c, (end ? end : "")) );
-			argv[3] = STRING_TO_JSVAL( JS_NewStringCopyZ(c, (settings ? settings : "")) );
-			argv[4] = STRING_TO_JSVAL( JS_NewStringCopyZ(c, (payload ? payload : "")) );
+		JSValue ret, argv[5];
 
-			ret = JS_CallFunctionValue(c, global, fun_val, 5, argv, &rval);
-			//ret = JS_CallFunctionName(c, global, "addCue", 5, argv, &rval);
-			if (ret == JS_TRUE) {
-				e = GF_OK;
-			} else {
-				e = GF_BAD_PARAM;
-			}
-		} else {
+		argv[0] = JS_NewString(c, id ? id : "");
+		argv[1] = JS_NewString(c, start ? start : "");
+		argv[2] = JS_NewString(c, end ? end : "");
+		argv[3] = JS_NewString(c, settings ? settings : "");
+		argv[4] = JS_NewString(c, payload ? payload : "");
+
+		ret = JS_Call(c, fun_val, global, 5, argv);
+		if (JS_IsException(ret)) {
+			js_dump_error(c);
 			e = GF_BAD_PARAM;
 		}
+		JS_FreeValue(c, ret);
+		JS_FreeValue(c, argv[0]);
+		JS_FreeValue(c, argv[1]);
+		JS_FreeValue(c, argv[2]);
+		JS_FreeValue(c, argv[3]);
+		JS_FreeValue(c, argv[4]);
 	}
-	gf_sg_lock_javascript(c, GF_FALSE);
+	JS_FreeValue(c, global);
+	JS_FreeValue(c, fun_val);
+
+	gf_js_lock(c, GF_FALSE);
 	return e;
 }
 
 static GF_Err vttd_js_remove_cues(GF_Node *node)
 {
-	GF_Err e;
-	JSBool found;
-	JSContext *c = node->sgprivate->scenegraph->svg_js->js_ctx;
-	JSObject *global = node->sgprivate->scenegraph->svg_js->global;
-	jsval fun_val;
+	GF_Err e = GF_OK;
+	JSValue fun_val;
+	JSValue global;
+	JSContext *c = svg_script_get_context(node->sgprivate->scenegraph);
+	if (!c) return GF_SERVICE_ERROR;
 
-	gf_sg_lock_javascript(c, GF_TRUE);
-	found = JS_LookupProperty(c, global, "removeCues", &fun_val);
-	if (!found || JSVAL_IS_VOID(fun_val) || !JSVAL_IS_OBJECT(fun_val) ) {
+	gf_js_lock(c, GF_TRUE);
+	global = JS_GetGlobalObject(c);
+	fun_val = JS_GetPropertyStr(c, global, "removeCues");
+	if (!JS_IsFunction(c, fun_val) ) {
 		e = GF_BAD_PARAM;
 	} else {
-		JSBool ret;
-		uintN attr;
-		ret = JS_GetPropertyAttributes(c, global, "removeCues", &attr, &found);
-		if (ret == JS_TRUE && found == JS_TRUE) {
-			jsval rval;
-			ret = JS_CallFunctionValue(c, global, fun_val, 0, NULL, &rval);
-			if (ret == JS_TRUE) {
-				e = GF_OK;
-			} else {
-				e = GF_BAD_PARAM;
-			}
-		} else {
+		JSValue ret = JS_Call(c, fun_val, global, 0, NULL);
+		if (JS_IsException(ret)) {
+			js_dump_error(c);
 			e = GF_BAD_PARAM;
 		}
+		JS_FreeValue(c, ret);
 	}
-	gf_sg_lock_javascript(c, GF_FALSE);
+	JS_FreeValue(c, global);
+	JS_FreeValue(c, fun_val);
+	gf_js_lock(c, GF_FALSE);
 	return e;
 }
 
@@ -461,7 +461,7 @@ GF_FilterRegister VTTDecRegister = {
 
 const GF_FilterRegister *vttdec_register(GF_FilterSession *session)
 {
-#if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG) && defined(GPAC_HAS_SPIDERMONKEY)
+#if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG) && defined(GPAC_HAS_QJS)
 	return &VTTDecRegister;
 #else
 	return NULL;

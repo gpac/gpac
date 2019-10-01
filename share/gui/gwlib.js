@@ -828,7 +828,7 @@ gwskin.labels.playlist_prev = 'Previous';
 gwskin.images.channels = 'icons/tv.svg';
 gwskin.labels.channels = 'TV Channels';
 gwskin.images.view360 = 'icons/image.svg';
-gwskin.labels.view360 = '360°';
+gwskin.labels.view360 = 'VR';
 gwskin.images.sensors = 'icons/compass.svg';
 gwskin.labels.sensors = 'Orientation';
 

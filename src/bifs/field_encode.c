@@ -210,7 +210,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		return gf_bifs_enc_node(codec, *((GF_Node **)field->far_ptr), field->NDTtype, bs, node);
 
 	case GF_SG_VRML_SFSCRIPT:
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 		codec->LastError = SFScript_Encode(codec, (SFScript *)field->far_ptr, bs, node);
 #else
 		return GF_NOT_SUPPORTED;

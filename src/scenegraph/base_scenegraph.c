@@ -33,6 +33,9 @@
 #include <gpac/events.h>
 #include <gpac/nodes_svg.h>
 
+#ifdef GPAC_HAS_QJS
+#include "qjs_common.h"
+#endif
 static void ReplaceDEFNode(GF_Node *FromNode, GF_Node *node, GF_Node *newNode, Bool updateOrderedGroup);
 
 #ifndef GPAC_DISABLE_SVG
@@ -69,7 +72,7 @@ GF_SceneGraph *gf_sg_new()
 	tmp->listeners_to_add = gf_list_new();
 #endif
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 	tmp->scripts = gf_list_new();
 	tmp->objects = gf_list_new();
 #endif
@@ -168,19 +171,19 @@ void gf_sg_del(GF_SceneGraph *sg)
 	gf_mx_del(sg->dom_evt_mx);
 #endif
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 	gf_list_del(sg->scripts);
 	sg->scripts = NULL;
 	gf_list_del(sg->objects);
 	sg->objects = NULL;
 #ifndef GPAC_DISABLE_SVG
 	if (sg->svg_js) {
-		void gf_svg_script_context_del(GF_SVGJS *svg_js, GF_SceneGraph *scenegraph);
+		void gf_svg_script_context_del(void *svg_js, GF_SceneGraph *scenegraph);
 		gf_svg_script_context_del(sg->svg_js, sg);
 	}
 #endif
 
-#endif //GPAC_HAS_SPIDERMONKEY
+#endif //GPAC_HAS_QJS
 
 #ifndef GPAC_DISABLE_VRML
 	gf_list_del(sg->Routes);
@@ -339,7 +342,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 #endif
 
 	gc = gf_list_new();
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 	/*scripts are the first source of cylic references in the graph. In order to clean properly
 	force a remove of all script nodes, this will release all references to nodes in JS*/
 	while (gf_list_count(sg->scripts)) {
@@ -659,7 +662,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 #ifndef GPAC_DISABLE_VRML
 	u32 j;
 #endif
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 	Bool detach=0;
 #endif
 	GF_SceneGraph *pSG;
@@ -680,7 +683,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 				if (prev) prev->next = nlist->next;
 				else pNode->sgprivate->parents = nlist->next;
 				gf_free(nlist);
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 				if (pNode->sgprivate->parents==NULL) detach=1;
 #endif
 				break;
@@ -702,7 +705,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 
 	/*this is just an instance removed*/
 	if (pNode->sgprivate->num_instances) {
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 		if (pNode->sgprivate->num_instances==1) detach=1;
 		if (pSG && pNode->sgprivate->scenegraph->on_node_modified && detach && pNode->sgprivate->interact && pNode->sgprivate->interact->js_binding) {
 			pNode->sgprivate->scenegraph->on_node_modified(pNode->sgprivate->scenegraph, pNode, NULL, NULL);
@@ -1574,7 +1577,6 @@ void gf_sg_parent_reset(GF_Node *node)
 	((GF_ParentNode *)node)->children = NULL;
 }
 
-
 void gf_node_free(GF_Node *node)
 {
 	if (!node) return;
@@ -1597,7 +1599,7 @@ void gf_node_free(GF_Node *node)
 			gf_list_del(node->sgprivate->interact->animations);
 		}
 #endif
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 		if (node->sgprivate->interact->js_binding) {
 			if (node->sgprivate->scenegraph && node->sgprivate->scenegraph->on_node_modified)
 				node->sgprivate->scenegraph->on_node_modified(node->sgprivate->scenegraph, node, NULL, NULL);
