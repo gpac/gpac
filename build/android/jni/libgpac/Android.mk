@@ -15,14 +15,13 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/freetype/freety
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/jpeg/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/png/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/faad
-LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/js/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/ffmpeg_android/
 
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
 
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 LOCAL_LDLIBS    += -lGLESv2 -ldl
-LOCAL_LDLIBS    += -ljs_osmo -leditline -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lz
+LOCAL_LDLIBS    += -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lz
 
 #ffmpeg
 LOCAL_LDLIBS    += -lavcodec -lavformat -lswresample -lavfilter -lavutil -lavdevice -lswscale
@@ -32,9 +31,9 @@ LOCAL_LDLIBS    += -llog -ldl -lOpenMAXAL -lmediandk -landroid -lGLESv2
 
 #LOCAL_SHARED_LIBRARIES    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 #LOCAL_SHARED_LIBRARIES    += -lGLESv2 -ldl
-#LOCAL_SHARED_LIBRARIES    += -ljs_osmo -leditline -lft2 -ljpegdroid -lopenjpeg -lpng -lz
+#LOCAL_SHARED_LIBRARIES    += -lft2 -ljpegdroid -lopenjpeg -lpng -lz
 
-#LOCAL_EXPORT_LDLIBS= -ljs_osmo -leditline -lft2 -ljpeg -lopenjpeg -lpng -lz
+#LOCAL_EXPORT_LDLIBS= -lft2 -ljpeg -lopenjpeg -lpng -lz
 
 
 LOCAL_CFLAGS +=	-DGPAC_HAVE_CONFIG_H
@@ -205,6 +204,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/isoffin_load.c \
 	../../../../src/filters/isoffin_read.c \
 	../../../../src/filters/isoffin_read_ch.c \
+	../../../../src/filters/jsfilter.c \
 	../../../../src/filters/load_bt_xmt.c \
 	../../../../src/filters/load_svg.c \
 	../../../../src/filters/load_text.c \
@@ -287,6 +287,8 @@ LOCAL_SRC_FILES := \
 	../../../../src/isomedia/stbl_write.c \
 	../../../../src/isomedia/track.c \
 	../../../../src/isomedia/tx3g.c \
+	../../../../src/jsmods/scene_js.c \
+	../../../../src/jsmods/xhr.c \
 	../../../../src/laser/lsr_dec.c \
 	../../../../src/laser/lsr_enc.c \
 	../../../../src/laser/lsr_tables.c \
@@ -327,10 +329,14 @@ LOCAL_SRC_FILES := \
 	../../../../src/odf/odf_parse.c \
 	../../../../src/odf/qos.c \
 	../../../../src/odf/slc.c \
+	../../../../src/quickjs/cutils.c \
+	../../../../src/quickjs/libregexp.c \
+	../../../../src/quickjs/libunicode.c \
+	../../../../src/quickjs/quickjs.c \
 	../../../../src/scenegraph/base_scenegraph.c \
 	../../../../src/scenegraph/commands.c \
 	../../../../src/scenegraph/dom_events.c \
-	../../../../src/scenegraph/dom_smjs.c \
+	../../../../src/scenegraph/dom_js.c \
 	../../../../src/scenegraph/mpeg4_animators.c \
 	../../../../src/scenegraph/mpeg4_nodes.c \
 	../../../../src/scenegraph/mpeg4_valuator.c \
@@ -338,13 +344,13 @@ LOCAL_SRC_FILES := \
 	../../../../src/scenegraph/smil_timing.c \
 	../../../../src/scenegraph/svg_attributes.c \
 	../../../../src/scenegraph/svg_properties.c \
-	../../../../src/scenegraph/svg_smjs.c \
+	../../../../src/scenegraph/svg_js.c \
 	../../../../src/scenegraph/svg_types.c \
 	../../../../src/scenegraph/vrml_interpolators.c \
 	../../../../src/scenegraph/vrml_proto.c \
 	../../../../src/scenegraph/vrml_route.c \
 	../../../../src/scenegraph/vrml_script.c \
-	../../../../src/scenegraph/vrml_smjs.c \
+	../../../../src/scenegraph/vrml_js.c \
 	../../../../src/scenegraph/vrml_tools.c \
 	../../../../src/scenegraph/x3d_nodes.c \
 	../../../../src/scenegraph/xml_ns.c \
