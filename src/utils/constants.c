@@ -141,12 +141,12 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_VP9, 0, GF_STREAM_VISUAL, "VP9 Video", "vp9|ivf", NULL, "video/vp9"},
 	{GF_CODECID_VP10, 0, GF_STREAM_VISUAL, "VP10 Video", "vp10|ivf", NULL, "video/vp10"},
 
-	{GF_CODECID_APCH, 0, GF_STREAM_VISUAL, "ProRes Video HQ", "apch", NULL, "video/prores"},
-	{GF_CODECID_APCO, 0, GF_STREAM_VISUAL, "ProRes Video Proxy", "apco", NULL, "video/prores"},
-	{GF_CODECID_APCN, 0, GF_STREAM_VISUAL, "ProRes Video STD", "apcn", NULL, "video/prores"},
-	{GF_CODECID_APCS, 0, GF_STREAM_VISUAL, "ProRes Video LT", "apcs", NULL, "video/prores"},
+	{GF_CODECID_APCH, 0, GF_STREAM_VISUAL, "ProRes Video 422 HQ", "apch", NULL, "video/prores"},
+	{GF_CODECID_APCO, 0, GF_STREAM_VISUAL, "ProRes Video 422 Proxy", "apco", NULL, "video/prores"},
+	{GF_CODECID_APCN, 0, GF_STREAM_VISUAL, "ProRes Video 422 STD", "apcn", NULL, "video/prores"},
+	{GF_CODECID_APCS, 0, GF_STREAM_VISUAL, "ProRes Video 422 LT", "apcs", NULL, "video/prores"},
 	{GF_CODECID_APCF, 0, GF_STREAM_VISUAL, "ProRes Video", "apcf", NULL, "video/prores"},
-	{GF_CODECID_AP4X, 0, GF_STREAM_VISUAL, "ProRes Video XQ", "ap4x", NULL, "video/prores"},
+	{GF_CODECID_AP4X, 0, GF_STREAM_VISUAL, "ProRes Video 4444 XQ", "ap4x", NULL, "video/prores"},
 	{GF_CODECID_AP4H, 0, GF_STREAM_VISUAL, "ProRes Video 4444", "ap4h", NULL, "video/prores"},
 	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFMPEG unmapped codec", "ffmpeg", NULL, NULL},
 
