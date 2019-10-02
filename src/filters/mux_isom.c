@@ -2567,7 +2567,6 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	prev_size = tkw->sample.dataLength;
 	tkw->sample.CTS_Offset = 0;
 	tkw->sample.data = (char *)gf_filter_pck_get_data(pck, &tkw->sample.dataLength);
-	if (!tkw->sample.dataLength) return GF_OK;
 
 	ctx->update_report = GF_TRUE;
 	ctx->total_bytes_in += tkw->sample.dataLength;
@@ -3147,7 +3146,8 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		if (tkw->fake_track) continue;
 
 		pck = gf_filter_pid_get_packet(tkw->ipid);
-		if (!pck) return GF_OK;
+		if (!pck)
+			return GF_OK;
 
 		if (tkw->cenc_state==1) {
 			mp4_mux_cenc_update(ctx, tkw, pck, CENC_CONFIG, 0);
@@ -3512,6 +3512,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	if (!ctx->init_movie_done) {
 		e = mp4_mux_initialize_movie(ctx);
 		if (e) return e;
+		if (!ctx->init_movie_done)
+			return GF_OK;
 	}
 	/*get count after init, some tracks may have been remove*/
 	count = gf_list_count(ctx->tracks);

@@ -4791,7 +4791,7 @@ int mp4boxMain(int argc, char **argv)
 		if (sep) sep[0] = 0;
 		if (!outName) strcat(outfile, "_dash");
 		strcpy(szMPD, outfile);
-		if (sep) {
+		if (outName && sep) {
 			sep[0] = '.';
 			strcat(szMPD, sep);
 		} else {
