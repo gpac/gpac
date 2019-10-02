@@ -1156,7 +1156,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		fputs("Non IDR slice", dump);
 
 		if (res>=0)
-			fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
+			fprintf(dump, "\" poc=\"%d\" pps_id=\"%d\" field_pic_flag=\"%d", avc->s_info.poc, avc->s_info.pps->id, (int)avc->s_info.field_pic_flag);
 		break;
 	case GF_AVC_NALU_DP_A_SLICE:
 		fputs("DP Type A slice", dump);
@@ -1171,7 +1171,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		res = gf_media_avc_parse_nalu(bs, ptr[0], avc);
 		fputs("IDR slice", dump);
 		if (res>=0)
-			fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
+			fprintf(dump, "\" poc=\"%d\" pps_id=\"%d\" field_pic_flag=\"%d", avc->s_info.poc, avc->s_info.pps->id, (int)avc->s_info.field_pic_flag);
 		break;
 	case GF_AVC_NALU_SEI:
 		fputs("SEI Message", dump);
