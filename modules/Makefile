@@ -79,9 +79,9 @@ endif
 
 #all modules below are not (yet) included in static build
 
-ifeq ($(CONFIG_PLATINUM),yes)
-PLUGDIRS+=platinum
-endif
+#ifeq ($(CONFIG_PLATINUM),yes)
+#PLUGDIRS+=platinum
+#endif
 
 ifeq ($(DISABLE_PLAYER), yes)
 PLUGDIRS=
