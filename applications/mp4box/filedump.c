@@ -2013,6 +2013,12 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump)
 	if (gf_isom_is_video_handler_type(mtype) ) {
 		s32 tx, ty;
 		u32 w, h;
+		u16 bit_depth;
+
+		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+		gf_isom_get_visual_bit_depth(file, trackNum, 1, &bit_depth);
+		fprintf(stderr, "Visual Info: width=%d height=%d (depth=%d bits)\n", w, h, (int)bit_depth);
+		
 		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, NULL);
 		fprintf(stderr, "Visual Track layout: x=%d y=%d width=%d height=%d\n", tx, ty, w, h);
 	}
