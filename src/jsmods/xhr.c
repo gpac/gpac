@@ -627,7 +627,7 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 
 static void xml_http_terminate(XMLHTTPContext *ctx, GF_Err error)
 {
-	/*if we get here, destroy downloader - FIXME we'll need a mutex here for sync case...*/
+	/*if we get here, destroy downloader*/
 	if (ctx->sess) {
 		gf_dm_sess_del(ctx->sess);
 		ctx->sess = NULL;
