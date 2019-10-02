@@ -2015,7 +2015,8 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_MULTI_PID_IDX, &PROP_UINT(idx) );
 	}
 
-	if (ds->tile_base) {
+
+	if (ds->tile_base && !ctx->sseg) {
 		u32 i, count = gf_list_count(ds->complementary_streams);
 		if (!ds->multi_tracks) ds->multi_tracks = gf_list_new();
 		gf_list_reset(ds->multi_tracks);
