@@ -2243,6 +2243,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_add_event_listener ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_remove_event_listener ) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_description) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_version) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_author) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_help) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_args) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_release_property) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_udta ) )
