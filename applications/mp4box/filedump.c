@@ -1214,13 +1214,23 @@ void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool i
 
 	FILE *dump;
 	if (inName) {
+		GF_ESD* esd = NULL;
 		char szBuf[GF_MAX_PATH];
-		strcpy(szBuf, inName);
-		u32 track = gf_isom_get_track_by_id(file, trackID);
 
-		if (gf_isom_get_media_subtype(file, track, 1) == GF_ISOM_SUBTYPE_AV01) {
+		strcpy(szBuf, inName);
+
+		u32 track = gf_isom_get_track_by_id(file, trackID);
+		esd = gf_isom_get_esd(file, track, 1);
+
+		if (!esd || !esd->decoderConfig) {
+			if (gf_isom_get_media_subtype(file, track, 1) == GF_ISOM_SUBTYPE_AV01) {
+				is_av1 = GF_TRUE;
+			}
+		}
+		else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AV1) {
 			is_av1 = GF_TRUE;
 		}
+		if (esd) gf_odf_desc_del((GF_Descriptor*)esd);
 
 		if (!is_final_name) sprintf(szBuf, "%s_%d_%s.xml", inName, trackID, is_av1 ? "obu" : "nalu");
 		dump = gf_fopen(szBuf, "wt");
