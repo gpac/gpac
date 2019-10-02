@@ -374,7 +374,7 @@ static JSValue gpac_getProperty(JSContext *ctx, JSValueConst this_val, int prop_
 
 	case GJS_GPAC_PROP_MEMORY:
 		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
-		return JS_NewInt32(ctx, ext->rti.process_memory);
+		return JS_NewInt64(ctx, ext->rti.process_memory);
 
 	case GJS_GPAC_PROP_ARGC:
 		return JS_NewInt32(ctx, gf_sys_get_argc() );
@@ -598,7 +598,7 @@ static JSValue gpac_set_back_color(JSContext *ctx, JSValueConst this_val, int ar
 	if (argc < 3) return JS_EXCEPTION;
 	r = g = b = 0;
 	a = 255;
-	for (i=0; i<argc; i++) {
+	for (i=0; i<(u32) argc; i++) {
 		u32 v=0;
 		if (! JS_ToFloat64(ctx, &d, argv[i])) {
 		} else if (! JS_ToInt32(ctx, &v, argv[i])) {
@@ -890,7 +890,7 @@ static JSValue gpac_error_string(JSContext *ctx, JSValueConst this_val, int argc
 {
 	GF_Err e;
 	if (argc < 1) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &e, argv[0]))
+	if (JS_ToInt32(ctx, (int32_t *) &e, argv[0]))
 		return JS_EXCEPTION;
 	return JS_NewString(ctx, gf_error_to_string(e) );
 }
@@ -1017,7 +1017,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx, odi.max_dec_time);
 	case GJS_OM_PROP_DEC_TIME_TOTAL:
 		gf_odm_get_object_info(odm, &odi);
-		return JS_NewInt32(ctx, odi.total_dec_time);
+		return JS_NewInt64(ctx, odi.total_dec_time);
 	case GJS_OM_PROP_AVG_RATE:
 		gf_odm_get_object_info(odm, &odi);
 		return JS_NewInt32(ctx, odi.avg_bitrate);
@@ -1068,7 +1068,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx, odi.nb_iraps);
 	case GJS_OM_PROP_IRAP_DEC_TIME:
 		gf_odm_get_object_info(odm, &odi);
-		return JS_NewInt32(ctx, odi.irap_total_dec_time);
+		return JS_NewInt64(ctx, odi.irap_total_dec_time);
 	case GJS_OM_PROP_IRAP_MAX_TIME:
 		gf_odm_get_object_info(odm, &odi);
 		return JS_NewInt32(ctx, odi.irap_max_dec_time);

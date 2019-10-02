@@ -2199,7 +2199,7 @@ static JSValue dom_text_getProperty(JSContext *c, JSValueConst obj, int magic)
 		else return JS_NewString(c, "");
 
 	case TEXT_JSPROPERTY_LENGTH:
-		return JS_NewInt32(c, txt->textContent ? strlen(txt->textContent) : 0);
+		return JS_NewInt32(c, txt->textContent ? (u32) strlen(txt->textContent) : 0);
 
 	case TEXT_JSPROPERTY_ISELEMENTCONTENTWHITESPACE:
 		return JS_FALSE;
@@ -2361,9 +2361,9 @@ static JSValue event_getProperty(JSContext *c, JSValueConst obj, int magic)
 	case EVENT_JSPROPERTY_CHARCODE:
 		return JS_NewInt32(c, evt->detail);
 	case EVENT_JSPROPERTY_LOADED:
-		return JS_NewInt32(c, evt->media_event.loaded_size);
+		return JS_NewInt64(c, evt->media_event.loaded_size);
 	case EVENT_JSPROPERTY_TOTAL:
-		return JS_NewInt32(c, evt->media_event.total_size);
+		return JS_NewInt64(c, evt->media_event.total_size);
 	case EVENT_JSPROPERTY_BUFFER_ON:
 		return evt->media_event.bufferValid ? JS_TRUE : JS_FALSE;
 	case EVENT_JSPROPERTY_BUFFERLEVEL:
@@ -2671,8 +2671,7 @@ void gf_sg_js_dom_pre_destroy(JSRuntime *rt, GF_SceneGraph *sg, GF_Node *n)
 	u32 i, count;
 	if (n) {
 		if (n->sgprivate->interact && n->sgprivate->interact->js_binding && !JS_IsUndefined(n->sgprivate->interact->js_binding->obj) ) {
-			JSValue obj = (JSValue )n->sgprivate->interact->js_binding->obj;
-			JS_SetOpaque(obj, NULL);
+			JS_SetOpaque(n->sgprivate->interact->js_binding->obj, NULL);
 			if (gf_list_del_item(sg->objects, n->sgprivate->interact->js_binding)>=0) {
 				JS_FreeValueRT(rt, n->sgprivate->interact->js_binding->obj);
 			}

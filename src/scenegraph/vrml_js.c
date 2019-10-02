@@ -2764,7 +2764,7 @@ static JSValue genmf_Constructor(JSContext *c, JSValueConst new_target, int argc
 	ptr->field.fieldType = fieldType;
 	JS_SetPropertyStr(c, ptr->js_list, "length", JS_NewInt32(c, argc) );
 
-	for (i=0; i<argc; i++) {
+	for (i=0; i<(u32) argc; i++) {
 		if (JS_IsObject(argv[i]) && JS_GetOpaque(argv[i], sfclass->class_id)) {
 			JS_SetPropertyUint32(c, ptr->js_list, i, argv[i]);
 			JS_DupValue(c, argv[i]);
@@ -2941,8 +2941,8 @@ static const JSCFunctionListEntry SFImage_funcs[] =
 
 static const JSCFunctionListEntry MFArray_funcs[] =
 {
-//	JS_CGETSET_MAGIC_DEF("length", array_getLength, array_setLength, 0),
-//	JS_CFUNC_DEF("toString", 1, field_toString),
+	//ignored, kept for MSVC
+	JS_CGETSET_MAGIC_DEF("length", NULL, NULL, 0),
 };
 static JSClassExoticMethods MFArray_exotic =
 {
@@ -2950,6 +2950,13 @@ static JSClassExoticMethods MFArray_exotic =
 	.set_property = array_setElement,
 };
 
+#define SETUP_JSCLASS_BASIC(_class, _name) \
+	/*classes are global to runtime*/\
+	if (!_class.class_id) {\
+		JS_NewClassID(&(_class.class_id)); \
+		_class.class.class_name = _name; \
+		JS_NewClass(js_rt->js_runtime, _class.class_id, &(_class.class));\
+	}\
 
 #define SETUP_JSCLASS(_class, _name, _proto_funcs, _construct, _finalize, _exotic) \
 	/*classes are global to runtime*/\
@@ -2975,9 +2982,9 @@ static void vrml_js_init_api(GF_ScriptPriv *sc, GF_Node *script)
 	sc->js_obj = JS_GetGlobalObject(sc->js_ctx);
 
 	//init all our classes
-	SETUP_JSCLASS(globalClass, "global", NULL, NULL, NULL, NULL);
-	SETUP_JSCLASS(AnyClass, "AnyClass", NULL, NULL, NULL, NULL);
-	SETUP_JSCLASS(browserClass, "Browser", NULL, NULL, NULL, NULL);
+	SETUP_JSCLASS_BASIC(globalClass, "global");
+	SETUP_JSCLASS_BASIC(AnyClass, "AnyClass");
+	SETUP_JSCLASS_BASIC(browserClass, "Browser");
 
 	SETUP_JSCLASS(SFNodeClass, "SFNode", SFNode_funcs, SFNodeConstructor, node_finalize, &SFNode_exotic);
 	SETUP_JSCLASS(SFVec2fClass, "SFVec2f", SFVec2f_funcs, SFVec2fConstructor, field_finalize, NULL);
@@ -4094,7 +4101,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	local_script = str ? 1 : 0;
 
 	/*lock runtime and set current thread before creating the context*/
-	priv->js_ctx = gf_js_create_context(node->sgprivate->scenegraph);
+	priv->js_ctx = gf_js_create_context();
 	if (!priv->js_ctx) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Cannot allocate ECMAScript context for node\n"));
 		return;

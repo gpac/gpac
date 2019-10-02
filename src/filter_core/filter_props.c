@@ -320,7 +320,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			}
 		} else {
 			p.value.data.ptr = gf_strdup(value);
-			p.value.data.size = strlen(value);
+			p.value.data.size = (u32) strlen(value);
 		}
 		break;
 	case GF_PROP_POINTER:
