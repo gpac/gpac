@@ -1270,7 +1270,11 @@ GF_Err piff_pssh_Read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 20);
 
+	if (ptr->size < sizeof(char)*ptr->private_data_size)
+	    return GF_ISOM_INVALID_FILE;
 	ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
+	if (!ptr->private_data)
+	    return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, (char *) ptr->private_data, ptr->private_data_size);
 	ISOM_DECREASE_SIZE(ptr, ptr->private_data_size);
 	return GF_OK;
