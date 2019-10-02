@@ -1513,7 +1513,7 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 				is_av1 = GF_TRUE;
 			}
 		}
-		else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AV1) {
+		else if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AV1) {
 			is_av1 = GF_TRUE;
 		}
 		if (esd) gf_odf_desc_del((GF_Descriptor*)esd);
@@ -2355,6 +2355,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	if (gf_isom_is_video_subtype(mtype) ) {
 		s32 tx, ty;
 		u32 w, h;
+		u16 bit_depth;
+
+		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+		gf_isom_get_visual_bit_depth(file, trackNum, 1, &bit_depth);
+		fprintf(stderr, "Visual Info: width=%d height=%d (depth=%d bits)\n", w, h, (int)bit_depth);
+		
 		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, NULL);
 		fprintf(stderr, "Visual Track layout: x=%d y=%d width=%d height=%d\n", tx, ty, w, h);
 	}

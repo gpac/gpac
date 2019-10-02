@@ -970,6 +970,9 @@ Bool gf_isom_has_padding_bits(GF_ISOFile *the_file, u32 trackNumber);
 /*returns width and height of the given visual sample desc - error if not a visual track*/
 GF_Err gf_isom_get_visual_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 *Width, u32 *Height);
 
+/*return bit depth of the given visual sample desc - error if not a visual track*/
+GF_Err gf_isom_get_visual_bit_depth(GF_ISOFile* isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u16 *bitDepth);
+
 /*returns samplerate (no SBR when applicable), channels and bps of the given audio track - error if not a audio track*/
 GF_Err gf_isom_get_audio_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 *SampleRate, u32 *Channels, u8 *bitsPerSample);
 
