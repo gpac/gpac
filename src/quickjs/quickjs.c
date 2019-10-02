@@ -203,11 +203,9 @@ typedef enum JSErrorEnum {
 
 #if defined(_WIN32)
 #define __exception /* */
-#define unused /* */
 typedef int64_t ssize_t;
 #else
 #define __exception __attribute__((warn_unused_result))
-#define unused __attribute__((unused))
 #endif
 
 typedef struct JSShape JSShape;
@@ -18938,7 +18936,7 @@ static void free_token(JSParseState *s, JSToken *token)
     }
 }
 
-static void unused dump_token(JSParseState *s, const JSToken *token)
+static void __maybe_unused dump_token(JSParseState *s, const JSToken *token)
 {
     switch(token->val) {
     case TOK_NUMBER:
