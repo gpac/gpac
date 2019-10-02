@@ -1293,6 +1293,15 @@ Bool gf_isom_has_padding_bits(GF_ISOFile *isom_file, u32 trackNumber);
 \return error if any*/
 GF_Err gf_isom_get_visual_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *Width, u32 *Height);
 
+/*! gets bit depth of a sample description of a visual track (for uncompressed media usually)
+\param isom_file the target ISO file
+\param trackNumber the target track number
+\param sampleDescriptionIndex the target sample description index
+\param bitDepth the bit depth of each pixel (eg 24 for RGB, 32 for RGBA)
+\return error if any
+*/
+GF_Err gf_isom_get_visual_bit_depth(GF_ISOFile* isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u16 *bitDepth);
+
 /*! gets information of an audio track for a given sample description
 \param isom_file the target ISO file
 \param trackNumber the target track

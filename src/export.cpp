@@ -774,6 +774,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_alternate_brand) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_padding_bits) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_visual_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_visual_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_visual_bit_depth) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_pixel_aspect_ratio) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_audio_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_chapter_count) )
