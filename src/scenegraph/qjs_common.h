@@ -34,7 +34,7 @@
 
 #define JS_CHECK_STRING(_v) (JS_IsString(_v) || JS_IsNull(_v))
 
-struct JSContext *gf_js_create_context(GF_SceneGraph *sg);
+struct JSContext *gf_js_create_context();
 void gf_js_delete_context(struct JSContext *);
 #ifdef GPAC_HAS_QJS
 void gf_js_lock(struct JSContext *c, Bool LockIt);

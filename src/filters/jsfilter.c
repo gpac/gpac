@@ -552,7 +552,7 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 					prop->value.string_list = gf_list_new();
 				}
 			} else {
-				prop->value.uint_list.nb_items = len;
+				prop->value.uint_list.nb_items = (u32) len;
 				prop->value.uint_list.vals = gf_malloc(sizeof(s32)*len);
 			}
 			if (type==1) {
@@ -680,7 +680,7 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 				return GF_BAD_PARAM;
 			prop->value.data.ptr = gf_malloc(ab_size);
 			memcpy(prop->value.data.ptr, data, ab_size);
-			prop->value.data.size = ab_size;
+			prop->value.data.size = (u32) ab_size;
 			prop->type = GF_PROP_DATA;
 		}
 	} else {
@@ -692,7 +692,7 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 		if ((type==GF_PROP_DATA) || (type==GF_PROP_CONST_DATA)) {
 			char *str = prop->value.string;
 			prop->value.data.ptr = str;
-			prop->value.data.size = strlen(str);
+			prop->value.data.size = (u32) strlen(str);
 			prop->type = GF_PROP_DATA;
 		}
 	}
@@ -1287,7 +1287,7 @@ static JSValue jsf_filter_notify_failure(JSContext *ctx, JSValueConst this_val, 
 	s32 error_type=0;
 	GF_JSFilterCtx *jsf = JS_GetOpaque2(ctx, this_val, jsf_filter_class_id);
     if (!jsf || !argc) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &e, argv[0]))
+	if (JS_ToInt32(ctx, (int *) &e, argv[0]))
 		return JS_EXCEPTION;
 	if ((argc>1) && JS_ToInt32(ctx, &error_type, argv[1]))
 		return JS_EXCEPTION;
@@ -2030,7 +2030,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 			}
 		} else {
  			str = JS_ToCString(ctx, argv[0]);
-			len = strlen(str);
+			len = (u32) strlen(str);
 		}
 		if (use_shared) {
 			pckc->pck = gf_filter_pck_new_shared(pctx->pid, str, len, jsf_pck_shared_del);
@@ -2064,12 +2064,12 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 				return JS_EXCEPTION;
 
 			if (use_shared) {
-				pckc->pck = gf_filter_pck_new_shared(pctx->pid, ab_data, ab_size, jsf_pck_shared_del);
+				pckc->pck = gf_filter_pck_new_shared(pctx->pid, ab_data, (u32) ab_size, jsf_pck_shared_del);
 				pckc->ref_val = JS_DupValue(ctx, argv[0]);
 				if (!pctx->shared_pck) pctx->shared_pck = gf_list_new();
 				gf_list_add(pctx->shared_pck, pckc);
 			} else {
-				pckc->pck = gf_filter_pck_new_alloc(pctx->pid, ab_size, &data);
+				pckc->pck = gf_filter_pck_new_alloc(pctx->pid, (u32) ab_size, &data);
 				if (!data) {
 					return jsf_throw_errno(ctx, GF_OUT_OF_MEM);
 				}
@@ -3008,7 +3008,7 @@ static JSValue jsf_pck_append_data(JSContext *ctx, JSValueConst this_val, int ar
 		} else {
 			str = JS_ToCString(ctx, argv[0]);
 			if (!str) return JS_EXCEPTION;
-			len = strlen(str);
+			len = (u32) strlen(str);
 		}
 
 		e = gf_filter_pck_expand(pck, len, NULL, &new_start, NULL);
@@ -3030,7 +3030,7 @@ static JSValue jsf_pck_append_data(JSContext *ctx, JSValueConst this_val, int ar
 	if (!data)
 		return JS_EXCEPTION;
 
-	e = gf_filter_pck_expand(pck, ab_size, NULL, &new_start, NULL);
+	e = gf_filter_pck_expand(pck, (u32) ab_size, NULL, &new_start, NULL);
 	if (!new_start || e) {
 		return jsf_throw_errno(ctx, e);
 	}
@@ -3121,7 +3121,7 @@ static GF_Err jsfilter_process(GF_Filter *filter)
 		e = GF_BAD_PARAM;
 	}
 	else if (JS_IsInteger(ret))
-		JS_ToInt32(jsf->ctx, &e, ret);
+		JS_ToInt32(jsf->ctx, (int*)&e, ret);
 
 	JS_FreeValue(jsf->ctx, ret);
 	gf_js_lock(jsf->ctx, GF_FALSE);
@@ -3153,7 +3153,7 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			e = GF_BAD_PARAM;
 		}
 		else if (JS_IsInteger(ret))
-			JS_ToInt32(jsf->ctx, &e, ret);
+			JS_ToInt32(jsf->ctx, (int*)&e, ret);
 		JS_FreeValue(jsf->ctx, ret);
 		JS_FreeValue(jsf->ctx, pctx->jsobj);
 		gf_list_del_item(jsf->pids, pctx);
@@ -3183,7 +3183,7 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		e = GF_BAD_PARAM;
 	}
 	else if (JS_IsInteger(ret))
-			JS_ToInt32(jsf->ctx, &e, ret);
+			JS_ToInt32(jsf->ctx, (int*)&e, ret);
 	JS_FreeValue(jsf->ctx, ret);
 
 	gf_js_lock(jsf->ctx, GF_FALSE);
@@ -3470,7 +3470,7 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 			return GF_BAD_PARAM;
 		}
 		if (JS_IsInteger(ret))
-			JS_ToInt32(jsf->ctx, &e, ret);
+			JS_ToInt32(jsf->ctx, (int*)&e, ret);
 
 		JS_FreeValue(jsf->ctx, ret);
 		jsf->initialized = GF_TRUE;
@@ -3505,7 +3505,7 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 		e = GF_BAD_PARAM;
 	}
 	if (JS_IsInteger(ret))
-		JS_ToInt32(jsf->ctx, &e, ret);
+		JS_ToInt32(jsf->ctx, (int*)&e, ret);
 	JS_FreeValue(jsf->ctx, ret);
 	JS_FreeValue(jsf->ctx, args[0]);
 	JS_FreeValue(jsf->ctx, args[1]);
