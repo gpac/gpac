@@ -61,6 +61,12 @@
     <Filter Include="evg">
       <UniqueIdentifier>{46167f3c-694d-4be9-b8cc-8578e73200cb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="quickjs">
+      <UniqueIdentifier>{755b6b4e-b649-42c3-83f8-1ef8ed0e570e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jsmods">
+      <UniqueIdentifier>{80294c55-c59a-47aa-8e77-0c43e6a1e7c1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\win32\inttypes.h">
@@ -404,6 +410,36 @@
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\Remotery.h">
       <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\quickjs\cutils.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\quickjs\libregexp.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\quickjs\libregexp-opcode.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\quickjs\libunicode.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\quickjs\libunicode-table.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\quickjs\list.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\quickjs\quickjs.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\quickjs\quickjs-atom.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\quickjs\quickjs-opcode.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\scenegraph\qjs_common.h">
+      <Filter>scenegraph</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -926,9 +962,6 @@
     <ClCompile Include="..\..\src\scenegraph\dom_events.c">
       <Filter>scenegraph</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\scenegraph\dom_smjs.c">
-      <Filter>scenegraph</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\scenegraph\mpeg4_animators.c">
       <Filter>scenegraph</Filter>
     </ClCompile>
@@ -950,9 +983,6 @@
     <ClCompile Include="..\..\src\scenegraph\svg_properties.c">
       <Filter>scenegraph</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\scenegraph\svg_smjs.c">
-      <Filter>scenegraph</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\scenegraph\svg_types.c">
       <Filter>scenegraph</Filter>
     </ClCompile>
@@ -966,9 +996,6 @@
       <Filter>scenegraph</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\scenegraph\vrml_script.c">
-      <Filter>scenegraph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\scenegraph\vrml_smjs.c">
       <Filter>scenegraph</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\scenegraph\vrml_tools.c">
@@ -1060,9 +1087,6 @@
     </ClCompile>
     <ClCompile Include="..\..\src\utils\xml_parser.c">
       <Filter>utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\isomedia\ttml.c">
-      <Filter>isomedia</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\utils\os_file.c">
       <Filter>utils</Filter>
@@ -1446,6 +1470,48 @@
       <Filter>evg</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\vflip.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\quickjs\cutils.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\quickjs\libregexp.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\quickjs\libunicode.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\quickjs\quickjs.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\jsmods\scene_js.c">
+      <Filter>jsmods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\jsmods\xhr.c">
+      <Filter>jsmods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\scenegraph\dom_js.c">
+      <Filter>scenegraph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\scenegraph\svg_js.c">
+      <Filter>scenegraph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\scenegraph\vrml_js.c">
+      <Filter>scenegraph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_flac.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\hevcmerge.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\hevcsplit.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\out_rtsp.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\jsfilter.c">
       <Filter>filters</Filter>
     </ClCompile>
   </ItemGroup>

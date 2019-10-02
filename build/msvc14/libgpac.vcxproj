@@ -148,6 +148,16 @@
     <ClInclude Include="..\..\src\filters\isoffin.h" />
     <ClInclude Include="..\..\src\filter_core\filter_session.h" />
     <ClInclude Include="..\..\src\media_tools\mpeg2_ps.h" />
+    <ClInclude Include="..\..\src\quickjs\cutils.h" />
+    <ClInclude Include="..\..\src\quickjs\libregexp-opcode.h" />
+    <ClInclude Include="..\..\src\quickjs\libregexp.h" />
+    <ClInclude Include="..\..\src\quickjs\libunicode-table.h" />
+    <ClInclude Include="..\..\src\quickjs\libunicode.h" />
+    <ClInclude Include="..\..\src\quickjs\list.h" />
+    <ClInclude Include="..\..\src\quickjs\quickjs-atom.h" />
+    <ClInclude Include="..\..\src\quickjs\quickjs-opcode.h" />
+    <ClInclude Include="..\..\src\quickjs\quickjs.h" />
+    <ClInclude Include="..\..\src\scenegraph\qjs_common.h" />
     <ClInclude Include="..\..\src\utils\module_wrap.h" />
   </ItemGroup>
   <ItemGroup>
@@ -294,6 +304,7 @@
     <ClCompile Include="..\..\src\filters\isoffin_load.c" />
     <ClCompile Include="..\..\src\filters\isoffin_read.c" />
     <ClCompile Include="..\..\src\filters\isoffin_read_ch.c" />
+    <ClCompile Include="..\..\src\filters\jsfilter.c" />
     <ClCompile Include="..\..\src\filters\load_bt_xmt.c" />
     <ClCompile Include="..\..\src\filters\load_svg.c" />
     <ClCompile Include="..\..\src\filters\load_text.c" />
@@ -385,6 +396,8 @@
     <ClCompile Include="..\..\src\isomedia\stbl_write.c" />
     <ClCompile Include="..\..\src\isomedia\track.c" />
     <ClCompile Include="..\..\src\isomedia\tx3g.c" />
+    <ClCompile Include="..\..\src\jsmods\scene_js.c" />
+    <ClCompile Include="..\..\src\jsmods\xhr.c" />
     <ClCompile Include="..\..\src\laser\lsr_dec.c" />
     <ClCompile Include="..\..\src\laser\lsr_enc.c" />
     <ClCompile Include="..\..\src\laser\lsr_tables.c" />
@@ -436,24 +449,46 @@
     <ClCompile Include="..\..\src\odf\odf_parse.c" />
     <ClCompile Include="..\..\src\odf\qos.c" />
     <ClCompile Include="..\..\src\odf\slc.c" />
+    <ClCompile Include="..\..\src\quickjs\cutils.c" />
+    <ClCompile Include="..\..\src\quickjs\libregexp.c">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|Win32'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|Win32'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|x64'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Level1</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\src\quickjs\libunicode.c" />
+    <ClCompile Include="..\..\src\quickjs\quickjs.c">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|Win32'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|Win32'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|x64'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Level1</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\src\scenegraph\base_scenegraph.c" />
     <ClCompile Include="..\..\src\scenegraph\commands.c" />
     <ClCompile Include="..\..\src\scenegraph\dom_events.c" />
-    <ClCompile Include="..\..\src\scenegraph\dom_smjs.c" />
+    <ClCompile Include="..\..\src\scenegraph\dom_js.c" />
     <ClCompile Include="..\..\src\scenegraph\mpeg4_animators.c" />
     <ClCompile Include="..\..\src\scenegraph\mpeg4_nodes.c" />
     <ClCompile Include="..\..\src\scenegraph\mpeg4_valuator.c" />
     <ClCompile Include="..\..\src\scenegraph\smil_anim.c" />
     <ClCompile Include="..\..\src\scenegraph\smil_timing.c" />
     <ClCompile Include="..\..\src\scenegraph\svg_attributes.c" />
+    <ClCompile Include="..\..\src\scenegraph\svg_js.c" />
     <ClCompile Include="..\..\src\scenegraph\svg_properties.c" />
-    <ClCompile Include="..\..\src\scenegraph\svg_smjs.c" />
     <ClCompile Include="..\..\src\scenegraph\svg_types.c" />
     <ClCompile Include="..\..\src\scenegraph\vrml_interpolators.c" />
+    <ClCompile Include="..\..\src\scenegraph\vrml_js.c" />
     <ClCompile Include="..\..\src\scenegraph\vrml_proto.c" />
     <ClCompile Include="..\..\src\scenegraph\vrml_route.c" />
     <ClCompile Include="..\..\src\scenegraph\vrml_script.c" />
-    <ClCompile Include="..\..\src\scenegraph\vrml_smjs.c" />
     <ClCompile Include="..\..\src\scenegraph\vrml_tools.c" />
     <ClCompile Include="..\..\src\scenegraph\x3d_nodes.c" />
     <ClCompile Include="..\..\src\scenegraph\xml_ns.c" />
