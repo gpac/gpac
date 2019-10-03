@@ -592,18 +592,23 @@ static JSValue gpac_get_arg(JSContext *ctx, JSValueConst this_val, int argc, JSV
 static JSValue gpac_set_back_color(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u32 r, g, b, a, i;
-	Double d;
 	GF_Compositor *compositor = gpac_get_compositor(ctx, this_val);
 	if (!compositor) return JS_EXCEPTION;
 	if (argc < 3) return JS_EXCEPTION;
 	r = g = b = 0;
 	a = 255;
 	for (i=0; i<(u32) argc; i++) {
-		u32 v=0;
+		Double d;
+		u32 v;
 		if (! JS_ToFloat64(ctx, &d, argv[i])) {
-		} else if (! JS_ToInt32(ctx, &v, argv[i])) {
 		} else {
 			return JS_EXCEPTION;
+		}
+		d*=255;
+		v = 0;
+		if (d>0) {
+			v = (u32) d;
+			if (v>255)  v = 255;
 		}
 		if (i==0) r = v;
 		else if (i==1) g = v;
@@ -1816,8 +1821,6 @@ static JSValue gpac_set_event_filter(JSContext *ctx, JSValueConst this_val, int 
 
 	JS_FreeValue(gjs->c, gjs->evt_fun);
 	gjs->evt_fun = JS_DupValue(ctx, argv[0]);
-
-	gjs->evt_fun = argv[0];
 	gjs->evt_filter_obj = this_val;
 	gjs->c = ctx;
 	gjs->evt_filter.udta = gjs;
@@ -2165,6 +2168,7 @@ static void gpac_js_finalize(JSRuntime *rt, JSValue obj)
 
 	/*if we destroy the script context holding the gpac event filter (only one for the time being), remove the filter*/
 	if (gjs->evt_filter.udta) {
+		JS_FreeValueRT(rt, gjs->evt_fun);
 		gf_filter_remove_event_listener(gjs->compositor->filter, &gjs->evt_filter);
 		gjs->evt_filter.udta = NULL;
 	}

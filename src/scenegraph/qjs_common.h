@@ -147,6 +147,7 @@ struct _gf_vrml_script_priv
 	GF_List *jsf_cache;
 	//Event object, whose private is the pointer to current event being executed
 	JSValue the_event;
+	Bool use_strict;
 #endif
 
 	void (*JS_PreDestroy)(GF_Node *node);
