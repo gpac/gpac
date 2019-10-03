@@ -11,41 +11,41 @@ function gwlog(lev, str) {
 }
 
 /*log levels*/
-l_err = 1;
-l_war = 2;
-l_inf = 3;
-l_deb = 4;
+let l_err = 1;
+let l_war = 2;
+let l_inf = 3;
+let l_deb = 4;
 
 /*default log level*/
-gw_log_level = l_inf;
+let gw_log_level = l_inf;
 
-GF_JS_EVENT_BASE = 20000;
+let GF_JS_EVENT_BASE = 20000;
 
 //playback event
 //@param is_playing boolean giving the playback status;
-GF_JS_EVENT_PLAYBACK = GF_JS_EVENT_BASE;
+let GF_JS_EVENT_PLAYBACK = GF_JS_EVENT_BASE;
 
 //playlist insert event
 //@param url string giving URL to append
-GF_JS_EVENT_PLAYLIST_ADD = GF_JS_EVENT_BASE + 1;
+let GF_JS_EVENT_PLAYLIST_ADD = GF_JS_EVENT_BASE + 1;
 
 //playlist reset event
 //@param none
-GF_JS_EVENT_PLAYLIST_RESET = GF_JS_EVENT_BASE + 2;
+let GF_JS_EVENT_PLAYLIST_RESET = GF_JS_EVENT_BASE + 2;
 
 
 //playlist reset event
 //@param index item index in playlist
-GF_JS_EVENT_PLAYLIST_PLAY = GF_JS_EVENT_BASE + 3;
+let GF_JS_EVENT_PLAYLIST_PLAY = GF_JS_EVENT_BASE + 3;
 
 function gw_new_timer(progressive) {
-    var obj = new SFNode('TimeSensor');
+    let obj = new SFNode('TimeSensor');
 
     obj.set_timeout = function (time, loop) {
         this.cycleInterval = time ? time : 1;
         this.loop = loop;
     }
-    this.startTime = -1;
+    obj.startTime = -1;
     obj.start = function (when) {
         if (arguments.length==0) this.startTime = this.getTime();
         else this.startTime = when + this.getTime();
@@ -252,7 +252,7 @@ function gw_new_fontstyle(size, align) {
     return fs;
 }
 
-gw_resources_bank = [];
+let gw_resources_bank = [];
 
 //static
 function gw_load_resource(url, is_icon) {
@@ -569,7 +569,6 @@ gwskin.tooltip_callback = function (obj, show) {
     }
     gwskin.tooltip_timeout.start(0);
 }
-
 gwskin.default_label_font_size = 18;
 gwskin.default_text_font_size = 18;
 gwskin.default_font_family = 'SANS';
@@ -577,10 +576,9 @@ gwskin.default_icon_text_spacing = 8;
 gwskin.default_control_height = 48;
 gwskin.default_icon_height = 32;
 
-
 //create styles
 gwskin.styles = [];
-var s = { name: 'default' };
+let s = { name: 'default' };
 gwskin.styles.push(s);
 
 s.normal = gw_new_appearance(0.4, 0.6, 1);
@@ -603,9 +601,8 @@ s.text.skin = true;
 s.font = gw_new_fontstyle(gwskin.default_label_font_size, 1);
 s.font.skin = true;
 
-
 //overrite style for button to have its own text color
-var s = { name: 'button' };
+s = { name: 'button' };
 gwskin.styles.push(s);
 s.text = gw_new_appearance(1, 1, 1);
 s.text.skin = true;
@@ -662,7 +659,7 @@ s.font.skin = true;
 s.hide = gw_window_hide;
 s.show = gw_window_show;
 
-tt_s = { name: 'tooltip' };
+let tt_s = { name: 'tooltip' };
 gwskin.styles.push(tt_s);
 tt_s.normal = gw_new_appearance(0.6, 0.6, 0.6);
 tt_s.normal.texture = s.normal.texture;
@@ -958,7 +955,6 @@ function gwlib_init(root_node) {
     gw_ui_root._name = 'Root Display';
     gw_ui_root.has_popup = false;
     gw_add_child(root_node, gw_ui_root);
-
     gw_ui_root.set_focus = function(wnd) {
         gw_ui_top_wnd = null;
         if (typeof wnd.on_event != 'undefined') {
@@ -1011,7 +1007,6 @@ function gwlib_init(root_node) {
         gwskin.disable_transparency = true;
         gwskin.default_window_alpha = 1;
     }
-
     var device = gpac.get_option('General', 'DeviceType');
 
     if ((device == 'iOS') || (device == 'Android')) gwskin.mobile_device = true;
@@ -1068,7 +1063,6 @@ function gwlib_init(root_node) {
             }
             return eval(serial_obj);
         }
-    
 }
 
 function gwlib_add_event_filter(evt_filter) {
@@ -1356,12 +1350,12 @@ function gw_new_rectangle(class_name, style) {
 
     obj.set_size = function (w, h) {
         var hw, hh, rx_bl, ry_bl, rx_br, ry_br, rx_tl, ry_tl, rx_tr, ry_tr, rx, ry;
-        var temp;
+        let shape = this.children[0];
+        var temp = shape.geometry.type;
         hw = w / 2;
         hh = h / 2;
         this.width = w;
         this.height = h;
-        temp = this.children[0].geometry.type;
         temp[0] = 7;
         temp[1] = 1;
         temp[2] = 7;
@@ -3459,7 +3453,6 @@ function gw_new_file_dialog(container, label) {
 }
 
 
-
 function gw_new_plotter(parent) {
     var touch;
     var obj = new SFNode('Transform2D');
@@ -3630,5 +3623,4 @@ function gw_new_popup(anchor, type)
     popup.set_alpha(0.9);
     return popup;
 }
-
 

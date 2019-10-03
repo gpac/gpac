@@ -4,25 +4,26 @@
 //					Jean Le Feuvre, Telecom ParisTech
 //
 /////////////////////////////////////////////////////////////////////////////////
+import {gpac} from 'scenejs'
+globalThis.gpac = gpac;
 
+let all_extensions = [];
 
-all_extensions = [];
-
-function gw_insert_media_node(node)
+globalThis.gw_insert_media_node = function(node) 
 {
     media_root.children[media_root.children.length] = node;
 }
 
-function gw_hide_dock() {
+globalThis.gw_hide_dock = function() {
     dock.hide();
 }
 
-function gw_show_dock() {
+globalThis.gw_show_dock = function() {
     dock.show();
 }
 
 //insert an offscreen image + text
-function insert_dock_icon(label, icon)
+globalThis.insert_dock_icon = function(label, icon)
 {
     var wnd = gw_new_window(dock, true, false);
     var icon = gw_new_icon_button(wnd, icon, (label=='') ? null : label, 'root_icon');
@@ -70,15 +71,18 @@ function setup_extension_storage(extension) {
     extension.jsobj.set_option = extension_option_setter(extension);
 }
 
+//declare global vars (we are in strict mode)
+globalThis.gw_display_width = 0;
+globalThis.gw_display_height = 0;
+globalThis.dock = null;
+
 //Initialize our GUI
-function initialize() {
+globalThis.initialize = function () {
     //var icon;
     var i, count, wid;
 
     gpac.caption = 'Osmo4';
 
-    min_width = 160;
-    min_height = 80;
     gw_display_width = parseInt(gpac.get_option('General', 'LastWidth'));
     gw_display_height = parseInt(gpac.get_option('General', 'LastHeight'));
     if (!gpac.fullscreen && (!gw_display_width || !gw_display_height)) {
@@ -99,11 +103,9 @@ function initialize() {
     Browser.loadScript('gwlib.js', false);
     gwlib_init(ui_root);
 
-	gwskin.enable_background(true);
-
+	  gwskin.enable_background(true);
     //what do we do with tooltips ?
 //    gwskin.tooltip_callback = function(over, label) { alert('' + over ? label : ''); };
-
 
     //create the dock containing all launchers            
     dock = gw_new_grid_container(null);
@@ -187,7 +189,7 @@ function initialize() {
           if (extension.jsobj && (typeof extension.jsobj.start != 'undefined')) extension.jsobj.start();
       } 
     }
-    
+
     dock.set_size(gw_display_width, gw_display_height);
     dock.show();
 
@@ -201,7 +203,7 @@ function initialize() {
       }
     }
 
-  //let's do the layout   
+     //let's do the layout   
     layout();
 }
 
