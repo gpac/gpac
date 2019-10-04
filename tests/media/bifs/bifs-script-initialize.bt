@@ -75,7 +75,7 @@ OrderedGroup {
    field SFInt32 count 0
    eventOut SFFloat transp
    eventOut MFString txt
-   url ["javascript: function initialize(value, timestamp) {my_global_string = 'global int = ';my_global_int = 10;}function act(value, timestamp) {count++;if (count>= 20) count = 0;transp = count / 20;txt[0] = 'transparency: ' + transp;  txt[1] = my_global_string + my_global_int;  }"   ]
+   url ["javascript: function initialize(value, timestamp) {my_global_string = 'global int = ';my_global_int = 10;}function act(value, timestamp) {count++;if (count>= 20) count = 0;transp = count / 20; txt = new MFString('transparency: ' + count / 20, my_global_string + my_global_int);  }"   ]
   }
  ]
 }

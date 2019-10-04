@@ -77,7 +77,30 @@ OrderedGroup {
    field SFNode t USE TS
    field SFNode txt USE TEXT
    field SFInt32 roll 0
-   url ["javascript: function act(value, timestamp) {roll++;count = n.colorIndex.length;first = n.colorIndex[0];for (i=0; i<count; i++) {if (i+1==count) {n.colorIndex[i] = first;} else {n.colorIndex[i] = n.colorIndex[i+1];}}txt.string[0] = 'ColorIndexes: ' + n.colorIndex.toSource();txt.string[2] = 'Current Cycle length: ' + (count * t.cycleInterval) + ' seconds';txt.string[1] = 'Running for ' + timestamp + ' seconds';switch (roll) {case 6:t.enabled = FALSE;t.cycleInterval = 0.5;t.enabled = TRUE;break;case 18:t.enabled = FALSE;t.cycleInterval = 0.1;t.enabled = TRUE;break;case 78:t.enabled = FALSE;t.cycleInterval = 0.05;t.enabled = TRUE;break;case 198:roll = 0;t.enabled = FALSE;t.cycleInterval = 1;t.enabled = TRUE;break;}}"   ]
+   url ["javascript: 
+function act(value, timestamp) {
+roll++;
+count = n.colorIndex.length;
+first = n.colorIndex[0];
+for (i=0; i<count; i++) {
+ if (i+1==count) {
+  n.colorIndex[i] = first;
+ } else {
+  n.colorIndex[i] = n.colorIndex[i+1];
+ }
+}
+txt.string[0] = 'ColorIndexes: ' + n.colorIndex;
+txt.string[2] = 'Current Cycle length: ' + (count * t.cycleInterval) + ' seconds';
+txt.string[1] = 'Running for ' + timestamp + ' seconds';
+
+switch (roll) {
+ case 6:t.enabled = FALSE;t.cycleInterval = 0.5;t.enabled = TRUE;break;
+ case 18:t.enabled = FALSE;t.cycleInterval = 0.1;t.enabled = TRUE;break;
+ case 78:t.enabled = FALSE;t.cycleInterval = 0.05;t.enabled = TRUE;break;
+ case 198:roll = 0;t.enabled = FALSE;t.cycleInterval = 1;t.enabled = TRUE;break;
+ }
+}
+"   ]
   }
  ]
 }
