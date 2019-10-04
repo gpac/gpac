@@ -4040,6 +4040,9 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 		flags = JS_EVAL_TYPE_MODULE;
 		priv->use_strict = GF_TRUE;
 	}
+	//we use JS_EVAL_TYPE_MODULE only for GUI at the current time. However the GUI script is still old and not
+	//compliant to strict mode, using a lot of global functions
+	//the code below is correct (we should always stick to strict if modules) but deactivated until we rewrite the GUI
 //	if (priv->use_strict)
 //		flags = JS_EVAL_TYPE_MODULE;
 
