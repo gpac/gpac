@@ -75,6 +75,7 @@ typedef struct __tag_svg_script_ctx
 
 	Bool in_script;
 	Bool force_gc;
+	Bool use_strict;
 
 	/*SVG uDOM classes*/
 	SVG_JSClass svgElement;
@@ -2294,7 +2295,7 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 
 	prev_event = dom_get_evt_private(sg->svg_js->event);
 	JS_SetOpaque(sg->svg_js->event, event);
-	ret = JS_Eval(sg->svg_js->js_ctx, utf8_script, (u32) strlen(utf8_script), "inline script", JS_EVAL_TYPE_GLOBAL);
+	ret = JS_Eval(sg->svg_js->js_ctx, utf8_script, (u32) strlen(utf8_script), "inline script", sg->svg_js->use_strict ? JS_EVAL_TYPE_MODULE : JS_EVAL_TYPE_GLOBAL);
 	JS_SetOpaque(sg->svg_js->event, prev_event);
 
 #if 0
@@ -2422,40 +2423,35 @@ GF_DOMText *svg_get_text_child(GF_Node *node)
 
 static Bool svg_js_load_script(GF_Node *script, char *file)
 {
-	FILE *jsf;
-	char *jsscript;
+	GF_Err e;
+	u8 *jsscript;
 	u32 fsize;
 	Bool success = GF_TRUE;
 	JSValue ret;
 	GF_SVGJS *svg_js;
+	u32 flags = JS_EVAL_TYPE_GLOBAL;
+	char *abs_url = NULL;
 
 	svg_js = script->sgprivate->scenegraph->svg_js;
 	if (!strnicmp(file, "file://", 7)) file += 7;
 
-	jsf = gf_fopen(file, "rb");
-	if (!jsf) {
+	if (!gf_file_exists(file)) {
 		GF_JSAPIParam par;
 		GF_SceneGraph *scene = script->sgprivate->scenegraph;
-		char *abs_url = NULL;
 		par.uri.url = file;
 		if (scene->script_action && scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_RESOLVE_XLINK, script, &par))
 			abs_url = (char *) par.uri.url;
 
-		if (abs_url) {
-			jsf = gf_fopen(abs_url, "rb");
-			gf_free(abs_url);
+		if (abs_url || !gf_file_exists(abs_url)) {
+			if (abs_url) gf_free(abs_url);
+			return GF_FALSE;
 		}
 	}
-	if (!jsf) return GF_FALSE;
 
-	gf_fseek(jsf, 0, SEEK_END);
-	fsize = (u32) gf_ftell(jsf);
-	gf_fseek(jsf, 0, SEEK_SET);
-	jsscript = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
-	fsize = (u32) fread(jsscript, sizeof(char), (size_t)fsize, jsf);
-	gf_fclose(jsf);
-	jsscript[fsize] = 0;
-	if ((s32) fsize<0) return GF_FALSE;
+	e = gf_file_load_data(abs_url ? abs_url : file, &jsscript, &fsize);
+	if (abs_url) gf_free(abs_url);
+
+	if (e!=GF_OK) return GF_FALSE;
 
 	/*for handler, only load code*/
 	if (script->sgprivate->tag==TAG_SVG_handler) {
@@ -2466,7 +2462,12 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 
 	gf_js_lock(svg_js->js_ctx, GF_TRUE);
 
-	ret = JS_Eval(svg_js->js_ctx, jsscript, sizeof(char)*fsize, file, JS_EVAL_TYPE_GLOBAL);
+ 	if (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((const char *) jsscript, fsize )) {
+		flags = JS_EVAL_TYPE_MODULE;
+		svg_js->use_strict = GF_TRUE;
+	}
+
+	ret = JS_Eval(svg_js->js_ctx, jsscript, sizeof(char)*fsize, file, flags);
 	if (JS_IsException(ret)) {
 		js_dump_error(svg_js->js_ctx);
 		success=GF_FALSE;
@@ -2552,9 +2553,19 @@ void JSScript_LoadSVG(GF_Node *node)
 	/*for scripts only, execute*/
 	else if (node->sgprivate->tag == TAG_SVG_script) {
 		JSValue ret;
+		u32 txtlen;
+		u32 flags = JS_EVAL_TYPE_GLOBAL;
+
 		txt = svg_get_text_child(node);
 		if (!txt) return;
-		ret = JS_Eval(svg_js->js_ctx, txt->textContent, (u32) strlen(txt->textContent), "inline_script", JS_EVAL_TYPE_GLOBAL);
+		txtlen = strlen(txt->textContent);
+
+		if (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((const char *) txt, txtlen )) {
+			flags = JS_EVAL_TYPE_MODULE;
+			svg_js->use_strict = GF_TRUE;
+		}
+
+		ret = JS_Eval(svg_js->js_ctx, txt->textContent, (u32) strlen(txt->textContent), "inline_script", flags);
 		if (JS_IsException(ret)) {
 			js_dump_error(svg_js->js_ctx);
 		}
@@ -2591,6 +2602,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	GF_SVGJS *svg_js;
 	JSValue __this;
 	JSValue ret;
+	u32 flags = JS_EVAL_TYPE_GLOBAL;
 	Bool success=GF_TRUE;
 	GF_DOM_Event *prev_event = NULL;
 	GF_DOMHandler *hdl = (GF_DOMHandler *)node;
@@ -2637,6 +2649,8 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	JS_SetOpaque(svg_js->event, event);
 
 	svg_js->in_script = GF_TRUE;
+	if (svg_js->use_strict)
+		flags = JS_EVAL_TYPE_MODULE;
 
 	/*if an observer is being specified, use it*/
 	if (hdl && hdl->js_data && !JS_IsUndefined(hdl->js_data->evt_listen_obj)) __this = hdl->js_data->evt_listen_obj;
@@ -2644,11 +2658,11 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	else __this = observer ? dom_element_construct(svg_js->js_ctx, observer) : svg_js->global;
 
 	if (txt && hdl && hdl->js_data && !JS_IsUndefined(hdl->js_data->fun_val)) {
-		hdl->js_data->fun_val = JS_EvalWithTarget(svg_js->js_ctx, __this, txt->textContent, strlen(txt->textContent), "handler", JS_EVAL_TYPE_GLOBAL|JS_EVAL_FLAG_COMPILE_ONLY);
+		hdl->js_data->fun_val = JS_EvalWithTarget(svg_js->js_ctx, __this, txt->textContent, strlen(txt->textContent), "handler", flags|JS_EVAL_FLAG_COMPILE_ONLY);
 	}
 
 	if (utf8_script) {
-		ret = JS_EvalWithTarget(svg_js->js_ctx, __this, utf8_script, (u32) strlen(utf8_script), "inline script", JS_EVAL_TYPE_GLOBAL);
+		ret = JS_EvalWithTarget(svg_js->js_ctx, __this, utf8_script, (u32) strlen(utf8_script), "inline script", flags);
 	}
 	else if (!JS_IsUndefined(hdl->js_data->fun_val) || !JS_IsUndefined(hdl->js_data->evt_listen_obj) ) {
 		JSValue evt;
@@ -2673,7 +2687,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 			}
 		}
 		else {
-			ret = JS_EvalWithTarget(svg_js->js_ctx, __this, txt->textContent, (u32) strlen(txt->textContent), "internal", JS_EVAL_TYPE_GLOBAL);
+			ret = JS_EvalWithTarget(svg_js->js_ctx, __this, txt->textContent, (u32) strlen(txt->textContent), "internal", flags);
 		}
 		JS_FreeValue(svg_js->js_ctx, fun);
 	}

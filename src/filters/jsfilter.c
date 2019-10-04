@@ -3390,13 +3390,10 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
         jsf->funcs[i] = JS_UNDEFINED;
     }
 
- 	if (!gf_opts_get_bool("core", "no-js-mods")) {
-		//initialize C modules
-		if (!gf_opts_get_bool("core", "no-js-mods")) {
-			xhr_js_init_module(jsf->ctx);
-		}
-		if (JS_DetectModule((char *)buf, buf_len))
-			flags = JS_EVAL_TYPE_MODULE;
+ 	if (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((char *)buf, buf_len)) {
+ 		//init modules
+		xhr_js_init_module(jsf->ctx);
+		flags = JS_EVAL_TYPE_MODULE;
 	}
 	
 	ret = JS_Eval(jsf->ctx, (char *)buf, buf_len, jsf->js, flags);
