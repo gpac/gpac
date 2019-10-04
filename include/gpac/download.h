@@ -51,11 +51,12 @@ extern "C" {
 #include <gpac/config_file.h>
 #include <gpac/cache.h>
 
-
 /*!the download manager object. This is usually not used by GPAC modules*/
 typedef struct __gf_download_manager GF_DownloadManager;
 /*!the download manager session.*/
 typedef struct __gf_download_session GF_DownloadSession;
+/*!the optionnal filter session.*/
+typedef struct __gf_filter_session GF_DownloadFilterSession;
 
 /*! URL information object*/
 typedef struct GF_URL_Info_Struct {
@@ -93,12 +94,10 @@ void gf_dm_url_info_del(GF_URL_Info * info);
 \brief download manager constructor
 
 Creates a new download manager object.
-\param cfg optional configuration file. Currently the download manager needs a configuration file for cache location and
- *other options. The cache directory must be indicated in the section "core", key "cache" of the configuration
- *file. If the cache directory is not found, the cache will be disabled but the downloader will still work.
+\param fsess optional filter session. If not NULL, the filter session will be used for async downloads. Otherwise, threads will be created
 \return the download manager object
 */
-GF_DownloadManager *gf_dm_new(GF_Config *cfg);
+GF_DownloadManager *gf_dm_new(GF_DownloadFilterSession *fsess);
 /*!
 \brief download manager destructor
 

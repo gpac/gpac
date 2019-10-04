@@ -2321,7 +2321,7 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 	fsess = filter->session;
 
 	if (!fsess->download_manager) {
-		fsess->download_manager = gf_dm_new(NULL);
+		fsess->download_manager = gf_dm_new(fsess);
 	}
 	return fsess->download_manager;
 }
