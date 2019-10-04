@@ -35,6 +35,10 @@
 #include <OpenGLES/ES1/glext.h>
 #endif
 
+#ifndef _WIN32_WCE
+#include <locale.h>
+#endif
+
 /*cursors data*/
 static char hand_data[] =
 {
@@ -710,6 +714,16 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				return GF_IO_ERR;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
+
+			/*creating a window, at least on OSX, changes the locale and screws up float parsing !!
+			force setting the local back and pray that it will be changed before any other atof/strtod is called
+
+			!! it also looks like the locale is not enforced synchronously on OSX: adding
+				assert(strtod(0.5)) in gf_malloc proto would lead to random crashes
+			 */
+#ifndef _WIN32_WCE
+			setlocale( LC_NUMERIC, "C" );
+#endif
 		}
 
 		if ( !ctx->gl_context ) {
@@ -791,6 +805,11 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
 			}
+
+			/*see above note*/
+#ifndef _WIN32_WCE
+			setlocale( LC_NUMERIC, "C" );
+#endif
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
 			SDL_RaiseWindow(ctx->screen);
 		}
