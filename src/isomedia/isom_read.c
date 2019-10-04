@@ -2096,11 +2096,13 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 			return gf_isom_get_sample_for_movie_time(the_file, trackNumber, (u32) mediaTime, StreamDescriptionIndex, GF_ISOM_SEARCH_SYNC_FORWARD, sample, sampleNumber, data_offset);
 		}
 		if (sampleNumber) *sampleNumber = 0;
-		if (! (*sample)) {
-			*sample = gf_isom_sample_new();
-			if (! *sample) return GF_OUT_OF_MEM;
+		if (sample) {
+			if (! (*sample)) {
+				*sample = gf_isom_sample_new();
+				if (! *sample) return GF_OUT_OF_MEM;
+			}
+			(*sample)->DTS = movieTime;
 		}
-		(*sample)->DTS = movieTime;
 		return GF_OK;
 	}
 	/*dwell edit in non-sync mode, fetch next/prev sample depending on mode.
