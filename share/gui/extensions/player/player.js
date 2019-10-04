@@ -268,6 +268,7 @@ extension = {
                 if (ext.test_mode) {
                     ext.coverage_tests();                    
                 }
+                ext.stats_timer.start();
             }
 
             if (!ext.movie_connected) {
@@ -1397,7 +1398,6 @@ extension = {
 
         gwskin.media_url = url;
         gwskin.pvr_url = '';
-
         if ((url == '') || (url == this.current_url)) {
             this.movie.children[0].url[0] = url;
             this.movie_control.url[0] = url;
@@ -1427,11 +1427,11 @@ extension = {
             This avoids messing up with event targets already setup*/
             var movie_inline = this.movie.children[0];
             var temp_inline = new SFNode('Inline');
-            if (typeof movie_inline.url[0] != 'undefined')
+
+            if (movie_inline.url[0] && (typeof movie_inline.url[0] != 'undefined')) {
                 temp_inline.url[0] = movie_inline.url[0];
-
+            }
             this.movie.children[0] = temp_inline;
-
             movie_inline.callback_done = false;
             this.movie_connected = false;
 
@@ -1441,7 +1441,6 @@ extension = {
             } else {
                 movie_inline.url[0] = url;
             }
-
             if (!movie_inline.callback_done) {
                 gw_add_child(this.dictionary, movie_inline);
             }
@@ -1768,15 +1767,13 @@ extension = {
         var ext = this.ext;
         var wnd = ext.stats_wnd;
         var nb_buff = 0;
-
         if (!ext.root_odm) return;
-        
+
         if (ext.nb_objs_at_last_scan != ext.root_odm.nb_resources) {
           ext.stats_resources = [];
           ext.gather_stats_resources(ext.root_odm, ext.root_odm.selected_service);
           ext.reload_stats();
         }
-                
         if (ext.stats_data.length >= ext.stats_window) {
             ext.stats_data.splice(0, 1);
         }
@@ -1813,7 +1810,7 @@ extension = {
                 }
             }
             else bl = 100;
-			
+
 			if (m.dependent_group_id) {
 				var dq_idx=0;
 				while (1) {

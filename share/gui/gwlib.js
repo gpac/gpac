@@ -963,7 +963,7 @@ function gwlib_init(root_node) {
         if (typeof (wnd._no_focus) == 'boolean') return;
         gpac.set_focus(gw_ui_top_wnd);
     }
-    
+
     gw_ui_root.remove_focus = function(wnd) {
         gw_ui_top_wnd = null;
         for (var i = this.children.length; i > 0; i--) {

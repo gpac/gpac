@@ -479,6 +479,8 @@ static JSValue node_get_binding(GF_ScriptPriv *priv, GF_Node *node)
 
 	if (node->sgprivate->interact && node->sgprivate->interact->js_binding && node->sgprivate->interact->js_binding->pf) {
 		field = node->sgprivate->interact->js_binding->pf;
+		assert(JS_IsObject(field->obj));
+		assert(JS_GetOpaque(field->obj, SFNodeClass.class_id)!=NULL);
 		return field->obj;
 	}
 
@@ -611,19 +613,17 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 	GF_ScriptPriv *priv;
 	JSValue obj;
 	GF_RouteToScript *r = (GF_RouteToScript *)_r;
-	if (!node) return;
+	if (!node)
+		return;
 	priv = gf_node_get_private(node);
-	if (!priv) return;
+	if (!priv)
+		return;
 
 	if (!r->FromNode) {
-		if (!JS_IsUndefined(r->obj) ) {
-//			gf_js_remove_root(priv->js_ctx, &r->obj, GF_JSGC_OBJECT);
-			r->obj = JS_UNDEFINED;
-		}
-		if ( ! JS_IsNull(r->fun)) {
-//			gf_js_remove_root(priv->js_ctx, &r->fun, GF_JSGC_OBJECT);
-			r->fun = JS_NULL;
-		}
+		JS_FreeValue(priv->js_ctx, r->fun);
+		r->fun = JS_UNDEFINED;
+		JS_FreeValue(priv->js_ctx, r->obj);
+		r->obj = JS_UNDEFINED;
 		return;
 	}
 
@@ -639,11 +639,14 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 	t_info.name = "timestamp";
 
 	gf_js_lock(priv->js_ctx, 1);
-
+	
 	argv[1] = gf_sg_script_to_qjs_field(priv, &t_info, node, 1);
 	argv[0] = gf_sg_script_to_qjs_field(priv, &r->FromField, r->FromNode, 1);
 
 	rval = JS_Call(priv->js_ctx, r->fun, obj, 2, argv);
+	if (JS_IsException(rval))
+		js_dump_error(priv->js_ctx);
+
 	JS_FreeValue(priv->js_ctx, argv[0]);
 	JS_FreeValue(priv->js_ctx, argv[1]);
 	JS_FreeValue(priv->js_ctx, rval);
@@ -726,10 +729,12 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 	else {
 		u32 i = 0;
 		const char *fun_name;
+		JSAtom atom;
 		GF_RouteToScript *r = NULL;
 		if (!JS_IsFunction(c, argv[3]) ) return JS_EXCEPTION;
 
-		fun_name = JS_AtomToCString(c, JS_ValueToAtom(c, argv[3]));
+		atom = JS_ValueToAtom(c, argv[3]);
+		fun_name = JS_AtomToCString(c, atom);
 		if (fun_name && n1->sgprivate->interact && n1->sgprivate->interact->routes ) {
 			while ( (r = (GF_RouteToScript*)gf_list_enum(n1->sgprivate->interact->routes, &i) )) {
 				if ( (r->FromNode == n1)
@@ -741,6 +746,7 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 			}
 		}
 		JS_FreeCString(c, fun_name);
+		JS_FreeAtom(c, atom);
 
 		if ( !r ) {
 			GF_SAFEALLOC(r, GF_RouteToScript)
@@ -756,11 +762,8 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 			r->ToField.far_ptr = NULL;
 			r->ToField.name = fun_name;
 
-			r->obj = argv[2];
-//			gf_js_add_root(c, & r->obj, GF_JSGC_OBJECT);
-
-			r->fun = argv[3];
-//			gf_js_add_root(c, &r->fun, GF_JSGC_OBJECT);
+			r->obj = JS_DupValue(c, argv[2]);
+			r->fun = JS_DupValue(c, argv[3]);
 
 			r->is_setup = 1;
 			r->graph = n1->sgprivate->scenegraph;
@@ -788,6 +791,7 @@ static JSValue deleteRoute(JSContext *c, JSValueConst this_val, int argc, JSValu
 	const char *f1, *f2;
 	GF_FieldInfo info;
 	GF_Route *r;
+	GF_RouteToScript *rts;
 	GF_Err e;
 	u32 f_id1, f_id2, i;
 	if (argc!=4) return JS_FALSE;
@@ -852,11 +856,13 @@ static JSValue deleteRoute(JSContext *c, JSValueConst this_val, int argc, JSValu
 	if (e != GF_OK) return JS_EXCEPTION;
 
 	i=0;
-	while ((r = gf_list_enum(n1->sgprivate->interact->routes, &i))) {
-		if (r->FromField.fieldIndex != f_id1) continue;
-		if (r->ToNode != n2) continue;
-		if (r->ToField.fieldIndex != f_id2) continue;
-		gf_sg_route_del(r);
+	while ((rts = gf_list_enum(n1->sgprivate->interact->routes, &i))) {
+		if (rts->FromField.fieldIndex != f_id1) continue;
+		if (rts->ToNode != n2) continue;
+		if (rts->ToField.fieldIndex != f_id2) continue;
+		JS_FreeValue(c, rts->fun);
+		JS_FreeValue(c, rts->obj);
+		gf_sg_route_del((GF_Route *) rts);
 		return JS_UNDEFINED;
 	}
 	return JS_UNDEFINED;
@@ -1097,36 +1103,40 @@ static GFINLINE void sffield_toString(char **str, void *f_ptr, u32 fieldType)
 static void JS_ObjectDestroyed(JSRuntime *rt, JSValue obj, GF_JSField *ptr, Bool is_js_call)
 {
 	JS_SetOpaque(obj, NULL);
+	if (!ptr) return;
 
-	if (ptr) {
-		/*if ptr is a node, remove node binding*/
-		if (ptr->node
-		        && ptr->node->sgprivate->interact
-		        && ptr->node->sgprivate->interact->js_binding
-		        && (ptr->node->sgprivate->interact->js_binding->pf == ptr)
-		   ) {
-			ptr->node->sgprivate->interact->js_binding->pf = NULL;
+	/*if ptr is a node, remove node binding*/
+	if (ptr->node
+			&& ptr->node->sgprivate->interact
+			&& ptr->node->sgprivate->interact->js_binding
+			&& (ptr->node->sgprivate->interact->js_binding->pf == ptr)
+	   ) {
+		ptr->node->sgprivate->interact->js_binding->pf = NULL;
+	}
+
+	/*if ptr is a field, remove field binding from parent*/
+	if (ptr->owner && ptr->owner->sgprivate->interact && ptr->owner->sgprivate->interact->js_binding) {
+		gf_list_del_item(ptr->owner->sgprivate->interact->js_binding->fields, ptr);
+	}
+	if (ptr->node) {
+		assert(gf_list_find(ptr->node->sgprivate->interact->js_binding->fields, ptr)<0);
+	}
+	if (ptr->owner) {
+		assert(gf_list_find(ptr->owner->sgprivate->interact->js_binding->fields, ptr)<0);
+	}
+
+	/*
+		If object is still registered, remove it from the js_cache
+	*/
+	if (!JS_IsUndefined(ptr->obj) && is_js_call) {
+		GF_ScriptPriv *priv;
+		if (ptr->js_ctx) {
+			if (gf_list_find(js_rt->allocated_contexts, ptr->js_ctx) < 0)
+				return;
+			priv = JS_GetScriptStack(ptr->js_ctx);
+			gf_list_del_item(priv->jsf_cache, ptr);
 		}
-
-		/*if ptr is a field, remove field binding from parent*/
-		if (ptr->owner && ptr->owner->sgprivate->interact && ptr->owner->sgprivate->interact->js_binding) {
-			gf_list_del_item(ptr->owner->sgprivate->interact->js_binding->fields, ptr);
-		}
-
-
-		/*
-			If object is still registered, remove it from the js_cache
-		*/
-		if (!JS_IsUndefined(ptr->obj) && is_js_call) {
-			GF_ScriptPriv *priv;
-			if (ptr->js_ctx) {
-				if (gf_list_find(js_rt->allocated_contexts, ptr->js_ctx) < 0)
-					return;
-				priv = JS_GetScriptStack(ptr->js_ctx);
-				gf_list_del_item(priv->jsf_cache, ptr);
-			}
-			ptr->obj = JS_UNDEFINED;
-		}
+		ptr->obj = JS_UNDEFINED;
 	}
 }
 
@@ -1279,20 +1289,19 @@ locate_proto:
 static void node_finalize_ex(JSRuntime *rt, JSValue obj, Bool is_js_call)
 {
 	GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(obj, SFNodeClass.class_id);
-
 	JS_ObjectDestroyed(rt, obj, ptr, is_js_call);
-	if (ptr) {
-		if (ptr->node
-		        /*num_instances may be 0 if the node is the script being destroyed*/
-		        && ptr->node->sgprivate->num_instances
-		   ) {
+	if (!ptr) return;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering node %s (%s)\n", gf_node_get_name(ptr->node), gf_node_get_class_name(ptr->node)));
+	if (ptr->node
+			/*num_instances may be 0 if the node is the script being destroyed*/
+			&& ptr->node->sgprivate->num_instances
+	   ) {
 
-			gf_node_unregister(ptr->node, NULL);
-		}
-		gf_free(ptr);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering node %s (%s)\n", gf_node_get_name(ptr->node), gf_node_get_class_name(ptr->node)));
+
+		gf_node_unregister(ptr->node, NULL);
 	}
+	gf_free(ptr);
 }
 
 static void node_finalize(JSRuntime *rt, JSValue val)
@@ -1361,27 +1370,19 @@ static JSValue node_getProperty(JSContext *c, JSValueConst obj, JSAtom atom, JSV
 
 	if (!strcmp(fieldName, "toString")) {
 		JS_FreeCString(c, fieldName);
-		return JS_NewCFunction(priv->js_ctx, node_toString, "toString", 0);
+		return JS_DupValue(priv->js_ctx, priv->node_toString_fun);
 	}
 	if (!strcmp(fieldName, "getTime")) {
 		JS_FreeCString(c, fieldName);
-		return JS_NewCFunction(priv->js_ctx, node_getTime, "getTime", 0);
+		return JS_DupValue(priv->js_ctx, priv->node_getTime_fun);
 	}
-	if (!strcmp(fieldName, "addEventListener")) {
+	if (!strcmp(fieldName, "addEventListener") || !strcmp(fieldName, "addEventListenerNS")) {
 		JS_FreeCString(c, fieldName);
-		return JS_NewCFunction(priv->js_ctx, vrml_event_add_listener, "addEventListener", 0);
+		return JS_DupValue(priv->js_ctx, priv->node_addEventListener_fun);
 	}
-	if (!strcmp(fieldName, "addEventListenerNS")) {
+	if (!strcmp(fieldName, "removeEventListener") || !strcmp(fieldName, "removeEventListenerNS")) {
 		JS_FreeCString(c, fieldName);
-		return JS_NewCFunction(priv->js_ctx, vrml_event_add_listener, "addEventListenerNS", 0);
-	}
-	if (!strcmp(fieldName, "removeEventListener")) {
-		JS_FreeCString(c, fieldName);
-		return JS_NewCFunction(priv->js_ctx, vrml_event_remove_listener, "removeEventListener", 0);
-	}
-	if (!strcmp(fieldName, "removeEventListenerNS")) {
-		JS_FreeCString(c, fieldName);
-		return JS_NewCFunction(priv->js_ctx, vrml_event_remove_listener, "removeEventListenerNS", 0);
+		return JS_DupValue(priv->js_ctx, priv->node_removeEventListener_fun);
 	}
 	/*fieldID indexing*/
 	if (!strnicmp(fieldName, "_field", 6)) {
@@ -1428,6 +1429,7 @@ static int node_setProperty(JSContext *c, JSValueConst obj, JSAtom atom, JSValue
 	GF_FieldInfo info;
 	u32 index;
 	const char *fieldname;
+	Bool isOK = GF_FALSE;
 	GF_JSField *ptr;
 
 	ptr = (GF_JSField *) JS_GetOpaque(obj, SFNodeClass.class_id);
@@ -1442,26 +1444,27 @@ static int node_setProperty(JSContext *c, JSValueConst obj, JSAtom atom, JSValue
 	if (!strnicmp(fieldname, "_field", 6)) {
 		index = atoi(fieldname+6);
 		JS_FreeCString(c, fieldname);
-		if ( gf_node_get_field(n, index, &info) != GF_OK) {
-			JS_FreeCString(c, fieldname);
-			return 0;
+		if ( gf_node_get_field(n, index, &info) == GF_OK) {
+			isOK = GF_TRUE;
 		}
 	} else {
-		if (gf_node_get_field_by_name(n, (char *)fieldname, &info) != GF_OK) {
-			Bool isOK = GF_FALSE;
+		if (gf_node_get_field_by_name(n, (char *)fieldname, &info) == GF_OK) {
+			isOK = GF_TRUE;
+		} else {
 			/*VRML style*/
 			if (!strnicmp(fieldname, "set_", 4)) {
 				if (gf_node_get_field_by_name(n, (char *) fieldname + 4, &info) == GF_OK) {
 					isOK = GF_TRUE;
 				}
 			}
-			if (!isOK) {
-    			JS_DefinePropertyValueStr(c, obj, fieldname, JS_DupValue(c, value), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-				JS_FreeCString(c, fieldname);
-				return 0;
-			}
 		}
 	}
+	if (!isOK) {
+		JS_FreeCString(c, fieldname);
+		JS_DefinePropertyValue(c, obj, atom, JS_DupValue(c, value), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return 0;
+	}
+
 	JS_FreeCString(c, fieldname);
 
 	if (gf_node_get_tag(n)==TAG_ProtoNode)
@@ -2485,8 +2488,8 @@ static int array_setLength(JSContext *c, GF_JSField *ptr, JSValueConst value)
 			gf_sg_vrml_mf_reset(ptr->field.far_ptr, ptr->field.fieldType);
 		}
 		while (ptr->mfvals_count) {
-			JS_FreeValue(c, ptr->mfvals[0]);
 			ptr->mfvals_count--;
+			JS_FreeValue(c, ptr->mfvals[ptr->mfvals_count]);
 		}
 		gf_free(ptr->mfvals);
 		ptr->mfvals = NULL;
@@ -2586,7 +2589,11 @@ static int array_setElement(JSContext *c, JSValueConst obj, JSAtom atom, JSValue
 		JS_FreeCString(c, str);
 		return ret;
 	}
-	len = ptr->mfvals_count;
+	if (ptr->field.fieldType!=GF_SG_VRML_MFNODE) {
+		len = ptr->mfvals_count;
+	} else {
+		len = gf_node_list_get_count(*(GF_ChildNodeItem **)ptr->field.far_ptr);
+	}
 	if (gf_sg_vrml_is_sf_field(ptr->field.fieldType))
 		return -1;
 
@@ -2607,6 +2614,9 @@ static int array_setElement(JSContext *c, JSValueConst obj, JSAtom atom, JSValue
 	/*dynamic expend*/
 	if (ind>=len) {
 		is_append = 1;
+	}
+	if (is_append && (ptr->field.fieldType!=GF_SG_VRML_MFNODE)) {
+
 		ptr->mfvals = gf_realloc(ptr->mfvals, sizeof(JSValue)*(ind+1));
 		ptr->mfvals_count = ind+1;
 
@@ -2638,16 +2648,12 @@ static int array_setElement(JSContext *c, JSValueConst obj, JSAtom atom, JSValue
 				break;
 			}
 
-			if (ptr->field.fieldType!=GF_SG_VRML_MFNODE) {
-				gf_sg_vrml_mf_insert(ptr->field.far_ptr, ptr->field.fieldType, &sf_slot, len);
-			} else {
-//				assert(0);
-			}
+			gf_sg_vrml_mf_insert(ptr->field.far_ptr, ptr->field.fieldType, &sf_slot, len);
 			ptr->mfvals[len] = a_val;
 
 			len++;
 		}
-		if (ptr->field.far_ptr && (ptr->field.fieldType!=GF_SG_VRML_MFNODE))
+		if (ptr->field.far_ptr)
 			gf_sg_vrml_mf_insert(ptr->field.far_ptr, ptr->field.fieldType, &sf_slot, ind);
 
 		ptr->mfvals[ind] = JS_NULL;
@@ -2814,7 +2820,8 @@ static JSValue vrml_event_add_listener(JSContext *c, JSValueConst this_val, int 
 {
 	GF_Node *node;
 	GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(this_val, SFNodeClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr)
+		return JS_EXCEPTION;
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 	node = * ((GF_Node **)ptr->field.far_ptr);
 	return gf_sg_js_event_add_listener(c, this_val, argc, argv, node);
@@ -2949,8 +2956,17 @@ static void field_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_fun
 	if (!JS_IsUndefined(jsf->obj) && jsf->owner) {
 		JS_MarkValue(rt, jsf->obj, mark_func);
 	}
+	if (jsf->node && jsf->node->sgprivate->interact->routes) {
+		u32 i=0;
+		GF_RouteToScript *r;
+		while ( (r = gf_list_enum(jsf->node->sgprivate->interact->routes, &i))) {
+			JS_MarkValue(rt, r->fun, mark_func);
+			JS_MarkValue(rt, r->obj, mark_func);
+		}
+	}
 	if (jsf->mfvals) {
 		u32 i;
+		assert(jsf->mfvals_count);
 		for (i=0; i<jsf->mfvals_count; i++)
     		JS_MarkValue(rt, jsf->mfvals[i], mark_func);
 	}
@@ -3031,6 +3047,13 @@ static void vrml_js_init_api(GF_ScriptPriv *sc, GF_Node *script)
 	JS_SetPropertyStr(sc->js_ctx, sc->js_obj, "Browser", browser);
 
 	/*TODO ? SFVec3f / MFVec4f support */
+
+	sc->node_toString_fun = JS_NewCFunction(sc->js_ctx, node_toString, "toString", 0);
+	sc->node_getTime_fun = JS_NewCFunction(sc->js_ctx, node_getTime, "getTime", 0);
+#ifndef GPAC_DISABLE_SVG
+	sc->node_addEventListener_fun = JS_NewCFunction(sc->js_ctx, vrml_event_add_listener, "addEventListener", 0);
+	sc->node_removeEventListener_fun = JS_NewCFunction(sc->js_ctx, vrml_event_remove_listener, "removeEventListener", 0);
+#endif
 }
 
 
@@ -3211,7 +3234,7 @@ void gf_sg_script_to_node_field(JSContext *c, JSValue val, GF_FieldInfo *field, 
 		for (i=0; i<len; i++) {
 			item = p->mfvals[i];
 			from = (GF_JSField *) JS_GetOpaque(item, SFNodeClass.class_id);
-			if (!from) break;
+			if (!from) continue;
 
 			child = * ((GF_Node**)from->field.far_ptr);
 
@@ -3844,6 +3867,13 @@ static void JS_PreDestroy(GF_Node *node)
 
 	JS_FreeValue(priv->js_ctx, priv->the_event);
 
+	JS_FreeValue(priv->js_ctx, priv->node_toString_fun);
+	JS_FreeValue(priv->js_ctx, priv->node_getTime_fun);
+#ifndef GPAC_DISABLE_SVG
+	JS_FreeValue(priv->js_ctx, priv->node_addEventListener_fun);
+	JS_FreeValue(priv->js_ctx, priv->node_removeEventListener_fun);
+#endif
+
 	/*unprotect all cached objects from GC*/
 	JS_ReleaseRootObjects(priv);
 
@@ -4279,34 +4309,22 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 			return;
 		}
 		/*this is unregister signaling*/
-
-#if 0
-		if (node->sgprivate->parents) {
-			switch (node->sgprivate->parents->node->sgprivate->tag) {
-			case TAG_MPEG4_Script:
-#ifndef GPAC_DISABLE_X3D
-			case TAG_X3D_Script:
-#endif
-				/*node is no longer used in the graph, remove root and let the script handle it, */
-				if (node->sgprivate->interact->js_binding->node) {
-					GF_JSField *field = node->sgprivate->interact->js_binding->node;
-					if (field->is_rooted) {
-						gf_js_remove_root(field->js_ctx, &field->obj);
-						field->is_rooted = 0;
-					}
+		if (!node->sgprivate->parents && node->sgprivate->interact && node->sgprivate->interact->js_binding && node->sgprivate->interact->js_binding->pf) {
+			GF_JSField *field = node->sgprivate->interact->js_binding->pf;
+			/*if this is the last occurence of the obj (no longer in JS), remove node binding*/
+			if (JS_VALUE_HAS_REF_COUNT(field->obj)) {
+				JSRefCountHeader *p = (JSRefCountHeader *)JS_VALUE_GET_PTR(field->obj);
+				if (p->ref_count==1) {
+					//store obj before calling JS_ObjectDestroyed which will set field->obj to JS_UNDEFINED
+					JSValue obj = field->obj;
+					JS_ObjectDestroyed(JS_GetRuntime(field->js_ctx), obj, field, 1);
+					JS_FreeValue(field->js_ctx, obj);
+					gf_free(field);
+					assert( node->sgprivate->interact->js_binding->pf==NULL);
 				}
-				break;
 			}
 			return;
 		}
-#else
-		if (!node->sgprivate->parents && node->sgprivate->interact && node->sgprivate->interact->js_binding && node->sgprivate->interact->js_binding->pf) {
-			GF_JSField *field = node->sgprivate->interact->js_binding->pf;
-			JS_FreeValue(field->js_ctx, field->obj);
-			field->obj = JS_UNDEFINED;
-			return;
-		}
-#endif
 
 		/*final destroy*/
 		if (!node->sgprivate->num_instances) {
@@ -4332,8 +4350,8 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 						}
 					}
 					while (jsf->mfvals_count) {
-						JS_FreeValue(jsf->js_ctx, jsf->mfvals[0]);
 						jsf->mfvals_count--;
+						JS_FreeValue(jsf->js_ctx, jsf->mfvals[jsf->mfvals_count]);
 					}
 					gf_free(jsf->mfvals);
 					jsf->mfvals = NULL;
@@ -4428,6 +4446,7 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 		js_dump_error(priv->js_ctx);
 	}
 	JS_FreeValue(priv->js_ctx, ret);
+	JS_FreeValue(priv->js_ctx, evt);
 
 	event->is_vrml = prev_type;
 	JS_SetOpaque(priv->the_event, prev_event);

@@ -294,7 +294,7 @@ extension.view_stats = function () {
 
                 this.wnd.area.set_content(label);
             }
-
+            iw.timer.start(0);
             odm.gui.info_wnd.on_display_size(gw_display_width, gw_display_height);
             odm.gui.info_wnd.set_alpha(0.9);
             odm.gui.info_wnd.show();
