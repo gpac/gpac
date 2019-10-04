@@ -138,6 +138,11 @@ struct _gf_vrml_script_priv
 	//BIFS coding stuff
 	u32 numIn, numDef, numOut;
 
+	void (*JS_PreDestroy)(GF_Node *node);
+	void (*JS_EventIn)(GF_Node *node, GF_FieldInfo *in_field);
+
+	Bool is_loaded;
+
 #ifdef GPAC_HAS_QJS
 	struct JSContext *js_ctx;
 	JSValue js_obj;
@@ -148,12 +153,6 @@ struct _gf_vrml_script_priv
 	//Event object, whose private is the pointer to current event being executed
 	JSValue the_event;
 	Bool use_strict;
-#endif
-
-	void (*JS_PreDestroy)(GF_Node *node);
-	void (*JS_EventIn)(GF_Node *node, GF_FieldInfo *in_field);
-
-	Bool is_loaded;
 
 	/*VRML constructors*/
 	JSValue SFNodeClass;
@@ -177,7 +176,17 @@ struct _gf_vrml_script_priv
 	JSValue MFUrlClass;
 	JSValue MFNodeClass;
 	JSValue AnyClass;
-#endif
+
+	JSValue node_toString_fun;
+	JSValue node_getTime_fun;
+#endif //GPAC_DISABLE_VRML
+
+#ifndef GPAC_DISABLE_SVG
+	JSValue node_addEventListener_fun;
+	JSValue node_removeEventListener_fun;
+#endif //GPAC_DISABLE_SVG
+
+#endif //GPAC_HAS_QJS
 };
 
 void scene_js_init_module(JSContext *ctx);

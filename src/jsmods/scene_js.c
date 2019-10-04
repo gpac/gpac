@@ -194,9 +194,18 @@ static JSClassID any_class_id = 0;
 
 static void gpac_js_finalize(JSRuntime *rt, JSValue obj);
 
+static void gpac_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
+{
+	GF_GPACJSExt *ext = JS_GetOpaque(val, gpac_class_id);
+    if (ext) {
+		JS_MarkValue(rt, ext->evt_fun, mark_func);
+    }
+}
+
 JSClassDef gpacClass = {
     "GPAC",
-    .finalizer = gpac_js_finalize
+    .finalizer = gpac_js_finalize,
+    .gc_mark = gpac_gc_mark
 };
 JSClassDef gpacEvtClass = {
     "GPACEVT"
@@ -1281,12 +1290,12 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 	prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities", &pe);
 	if (!prop || (prop->type!=GF_PROP_STRING_LIST)) {
 		gf_filter_release_property(pe);
-		return JS_EXCEPTION;
+		return JS_NULL;
 	}
 	qdesc = gf_list_get(prop->value.string_list, idx);
 	if (!qdesc) {
 		gf_filter_release_property(pe);
-		return JS_EXCEPTION;
+		return JS_NULL;
 	}
 	JSValue a = JS_NewObject(ctx);
 	if (JS_IsException(a))
@@ -2167,8 +2176,8 @@ static void gpac_js_finalize(JSRuntime *rt, JSValue obj)
 	gf_mx_del(gjs->event_mx);
 
 	/*if we destroy the script context holding the gpac event filter (only one for the time being), remove the filter*/
+	JS_FreeValueRT(rt, gjs->evt_fun);
 	if (gjs->evt_filter.udta) {
-		JS_FreeValueRT(rt, gjs->evt_fun);
 		gf_filter_remove_event_listener(gjs->compositor->filter, &gjs->evt_filter);
 		gjs->evt_filter.udta = NULL;
 	}
@@ -2238,7 +2247,7 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 	}
 
 	gjs->evt_obj = JS_NewObjectClass(c, gpacevt_class_id);
-	JS_SetPropertyFunctionList(c, gjs->gpac_obj, gpac_evt_funcs, countof(gpac_evt_funcs));
+	JS_SetPropertyFunctionList(c, gjs->evt_obj, gpac_evt_funcs, countof(gpac_evt_funcs));
 	JS_SetOpaque(gjs->evt_obj, NULL);
 	JS_SetPropertyStr(c, global, "gpacevt", gjs->evt_obj);
 
@@ -2281,8 +2290,6 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 	DECLARE_CONST(GF_NAVIGATE_TYPE_NONE);
 	DECLARE_CONST(GF_NAVIGATE_TYPE_2D);
 	DECLARE_CONST(GF_NAVIGATE_TYPE_3D);
-
-	gjs->evt_fun = JS_UNDEFINED;
 
 	JS_FreeValue(c, global);
 
