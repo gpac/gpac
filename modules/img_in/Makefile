@@ -34,7 +34,7 @@ CFLAGS+=-DGPAC_HAS_JP2
 #local openjpeg lib
 ifeq ($(CONFIG_JP2), local)
 NEED_LOCAL_LIB="yes"
-CFLAGS+= -I"$(LOCAL_INC_PATH)/openjpeg"
+CFLAGS+= -DOPJ_STATIC -I"$(LOCAL_INC_PATH)/openjpeg"
 endif
 endif
 

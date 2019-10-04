@@ -26,19 +26,20 @@ CFLAGS+=$(JS_FLAGS)
 ifeq ($(CONFIG_JS),local)
 NEED_LOCAL_LIB="yes"
 LOCAL_LIB+=-L../../extra_lib/lib/gcc
-endif
+else
 ifeq ($(CONFIG_JS),prefix)
 NEED_LOCAL_LIB="yes"
 LOCAL_LIB+=-L$(prefix)/lib
 endif
 LINKLIBS+= $(JS_LIBS)
 endif
+endif
 
-SRCS := $(OBJS:.o=.c) 
+SRCS := $(OBJS:.o=.c)
 
 LIB=gm_gpac_js$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-#LDFLAGS+=-export-symbols gpac_js.def 
+#LDFLAGS+=-export-symbols gpac_js.def
 endif
 
 
@@ -48,13 +49,13 @@ all: $(LIB)
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS) $(LDFLAGS)
 
-clean: 
+clean:
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 
 dep: depend
 
 depend:
-	rm -f .depend	
+	rm -f .depend
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
 
 distclean: clean

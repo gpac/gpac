@@ -27,16 +27,16 @@ CFLAGS+=-DGPAC_HAS_MAD
 #local mad lib
 ifeq ($(CONFIG_MAD), local)
 EXTRALIBS+=-L../../extra_lib/lib/gcc
-CFLAGS+= -I"$(LOCAL_INC_PATH)/mad"
+CFLAGS+= -I"$(LOCAL_INC_PATH)"
 endif
 EXTRALIBS+= -lmad
 endif
 
-SRCS := $(OBJS:.o=.c) 
+SRCS := $(OBJS:.o=.c)
 
 LIB=gm_mp3_in$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-#LDFLAGS+=-export-symbols mp3_in.def 
+#LDFLAGS+=-export-symbols mp3_in.def
 endif
 
 
@@ -50,13 +50,13 @@ ifeq ($(STATICBUILD),yes)
 endif
 
 
-clean: 
+clean:
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 
 dep: depend
 
 depend:
-	rm -f .depend	
+	rm -f .depend
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
 
 distclean: clean
