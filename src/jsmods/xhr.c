@@ -263,16 +263,15 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 
 static void xml_http_del_data(XMLHTTPContext *ctx)
 {
-	if (ctx->data) {
-		/*checkme ....*/
-		if (!JS_IsUndefined(ctx->arraybuffer)) {
-			JS_FreeValue(ctx->c, ctx->arraybuffer);
-		} else {
-			gf_free(ctx->data);
-		}
-		ctx->data = NULL;
-		ctx->size = 0;
+	if (!JS_IsUndefined(ctx->arraybuffer)) {
+		JS_FreeValue(ctx->c, ctx->arraybuffer);
+		ctx->arraybuffer = JS_UNDEFINED;
 	}
+	if (ctx->data) {
+		gf_free(ctx->data);
+		ctx->data = NULL;
+	}
+	ctx->size = 0;
 }
 
 static void xml_http_reset_partial(XMLHTTPContext *ctx)
