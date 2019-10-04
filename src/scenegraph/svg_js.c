@@ -2558,7 +2558,7 @@ void JSScript_LoadSVG(GF_Node *node)
 
 		txt = svg_get_text_child(node);
 		if (!txt) return;
-		txtlen = strlen(txt->textContent);
+		txtlen = (u32) strlen(txt->textContent);
 
 		if (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((const char *) txt, txtlen )) {
 			flags = JS_EVAL_TYPE_MODULE;
