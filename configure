@@ -6,7 +6,6 @@
 #
 #set -v
 
-
 #set temporary file name
 if test ! -z "$TMPDIR" ; then
     TMPDIR1="${TMPDIR}"
@@ -1117,7 +1116,6 @@ else
   fi
 fi
 
-
 #look for freetype support
 cat > $TMPC << EOF
 #include <ft2build.h>
@@ -1131,26 +1129,23 @@ ft_lflags="-L$prefix/lib -lfreetype"
 if docc $CFLAGS_DIR $ft_cflags $ft_lflags $LDFLAGS ; then
     has_ft="system"
 fi
-if test "$cross_prefix" = "" ; then
-    if test "$has_ft" = "no" ; then
-        ft_cflags="`pkg-config --cflags freetype2 2>>$logs`"
-        ft_lflags="`pkg-config --libs freetype2 2>>$logs`"
-        if docc $ft_cflags $ft_lflags $LDFLAGS ; then
-            has_ft="system"
-        fi
+
+if test "$has_ft" = "no" ; then
+    ft_cflags="`pkg-config --cflags freetype2 2>>$logs`"
+    ft_lflags="`pkg-config --libs freetype2 2>>$logs`"
+    if docc $ft_cflags $ft_lflags $LDFLAGS ; then
+        has_ft="system"
     fi
 fi
+
 if test "$has_ft" = "no" ; then
-    if test "`which freetype-config 2>>$logs`" != ""; then
-        ft_cflags="-I$local_inc/freetype"
-        ft_lflags="-L$local_lib -lfreetype"
-        if docc $ft_cflags $ft_lflags ; then
-            has_ft="local"
-        fi
+    ft_cflags="-I$local_inc/freetype"
+    ft_lflags="-L$local_lib -lfreetype"
+    if docc $ft_cflags $ft_lflags ; then
+        has_ft="local"
     fi
 fi
 #end freetype test
-
 
 
 #look for OpenSSL support
@@ -1294,7 +1289,7 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_mad" = "no" ; then
-    if docc -I$local_inc/mad -L$local_lib -lmad ; then
+    if docc -I$local_inc -L$local_lib -lmad ; then
         has_mad="local"
     fi
 fi
@@ -1352,7 +1347,7 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_xvid" = "no" ; then
-    if docc -I$local_inc/xvid -L$local_lib -lxvidcore -lpthread ; then
+    if docc -I$local_inc -L$local_lib -lxvidcore -lpthread ; then
         has_xvid="local"
     fi
 fi
@@ -1378,7 +1373,7 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_faad" = "no" ; then
-    if docc -I$local_inc/faad -L$local_lib -lfaad -lm ; then
+    if docc -I$local_inc -L$local_lib -lfaad -lm ; then
         has_faad="local"
     fi
 fi
@@ -1412,6 +1407,7 @@ if docc $ffmpeg_cflags $ffmpeg_lflags $LDFLAGS ; then
 else
     old_ffmpeg_inc="yes"
 
+# this is immediatly overwritten below??
 cat > $TMPC << EOF
 #include <ffmpeg/avcodec.h>
 #include <stdio.h>
@@ -1466,6 +1462,21 @@ if test "$has_ffmpeg" = "no" ; then
         ffmpeg_lflags_dashcast="-L$local_lib $ffmpeg_lflags_dashcast"
     fi
 fi
+
+#now that cflags has been correctly set, retest
+cat > $TMPC << EOF
+#include <libavcodec/avcodec.h>
+int main(void) {
+    return 0;
+}
+EOF
+
+if docc $ffmpeg_cflags $ffmpeg_lflags $LDFLAGS ; then
+    old_ffmpeg_inc="no"
+else
+    old_ffmpeg_inc="yes"
+fi
+
 
 cat > $TMPC << EOF
 #include <libavutil/frame.h>
@@ -1946,6 +1957,8 @@ for opt do
             ;;
         --disable-ssl) has_ssl="no"
             ;;
+        --disable-lzma) has_lzma="no"
+            ;;
         --enable-depth) enable_depth_compositor="yes"
             ;;
         --static-mp4box) static_mp4box="yes"
@@ -2003,6 +2016,11 @@ for opt do
                 echo "WARNING!! : you have forced not to use ZLIB. This will disable some core functionalities of GPAC."
                 echo
                 has_zlib="force-no"
+            elif test "$tmp_has_zlib" = "local" ; then
+                echo
+                echo "WARNING!! : zlib is forced to be local without check - make sure it is avaliable in $local_lib"
+                echo
+                has_zlib="local"
             fi
             ;;
         --use-ogg=*) has_ogg=${opt#--use-ogg=}
@@ -2384,8 +2402,6 @@ EOF
 
 fi
 
-
-
 #look for SDL support
 sdl_too_old=no
 has_sdl=no
@@ -2460,8 +2476,6 @@ EOF
   fi
 fi
 #end SDL check
-
-
 
 #look at endianess
 if test -z "$cross_prefix" ; then
