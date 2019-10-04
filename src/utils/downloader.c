@@ -31,6 +31,7 @@
 #include <gpac/base_coding.h>
 #include <gpac/tools.h>
 #include <gpac/cache.h>
+#include <gpac/filters.h>
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
 
@@ -101,6 +102,11 @@ typedef struct __partialDownloadStruct {
 	char * filename;
 } GF_PartialDownload ;
 
+typedef struct
+{
+	struct __gf_download_session *sess;
+} GF_SessTask;
+
 struct __gf_download_session
 {
 	/*this is always 0 and helps differenciating downloads from other interfaces (interfaceType != 0)*/
@@ -109,6 +115,7 @@ struct __gf_download_session
 	struct __gf_download_manager *dm;
 	GF_Thread *th;
 	GF_Mutex *mx;
+	GF_SessTask *ftask;
 
 	Bool in_callback, destroy;
 	u32 proxy_enabled;
@@ -200,7 +207,6 @@ struct __gf_download_manager
 	void *usr_cbk;
 
 	u32 head_timeout, request_timeout;
-	GF_Config *cfg;
 	GF_List *sessions;
 	Bool disable_cache, simulate_no_connection, allow_offline_cache, clean_cache;
 	u32 limit_data_rate, read_buf_size;
@@ -215,6 +221,9 @@ struct __gf_download_manager
 #ifdef GPAC_HAS_SSL
 	SSL_CTX *ssl_ctx;
 #endif
+
+	GF_FilterSession *filter_session;
+
 
 	Bool (*local_cache_url_provider_cbk)(void *udta, char *url, Bool cache_destroy);
 	void *lc_udta;
@@ -760,7 +769,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 	if (!sess)
 		return;
 	/*self-destruction, let the download manager destroy us*/
-	if (sess->th && sess->in_callback) {
+	if ((sess->th || sess->ftask) && sess->in_callback) {
 		sess->destroy = GF_TRUE;
 		return;
 	}
@@ -798,6 +807,10 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 		gf_sk_del(sess->sock);
 	gf_list_del(sess->headers);
 	gf_mx_del(sess->mx);
+	if (sess->ftask) {
+		sess->ftask->sess = NULL;
+		sess->ftask = NULL;
+	}
 
 	gf_free(sess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Downloader] gf_dm_sess_del(%p) : DONE\n", sess ));
@@ -1204,6 +1217,54 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 }
 
 
+Bool gf_dm_session_do_task(GF_DownloadSession *sess)
+{
+	Bool do_run = GF_TRUE;
+
+	if (sess->destroy) {
+		do_run = GF_FALSE;
+	} else {
+		gf_mx_p(sess->mx);
+		if (sess->status >= GF_NETIO_DISCONNECTED) {
+			do_run = GF_FALSE;
+		} else {
+			if (sess->status < GF_NETIO_CONNECTED) {
+				gf_dm_connect(sess);
+			} else {
+				sess->do_requests(sess);
+			}
+		}
+		gf_mx_v(sess->mx);
+	}
+	if (do_run) return GF_TRUE;
+
+	/*destroy all session but keep connection active*/
+	gf_dm_disconnect(sess, GF_FALSE);
+	sess->status = GF_NETIO_STATE_ERROR;
+	sess->last_error = GF_OK;
+	return GF_FALSE;
+}
+
+Bool gf_dm_session_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
+{
+	GF_SessTask *task = callback;
+	GF_DownloadSession *sess = task->sess;
+	if (!sess) {
+		gf_free(task);
+		return GF_FALSE;
+	}
+	Bool ret = gf_dm_session_do_task(sess);
+	if (ret) {
+		*reschedule_ms = 1;
+		return GF_TRUE;
+	}
+	assert(sess->ftask);
+	gf_free(sess->ftask);
+	sess->ftask = NULL;
+	if (sess->destroy)
+		gf_dm_sess_del(sess);
+	return GF_FALSE;
+}
 
 static u32 gf_dm_session_thread(void *par)
 {
@@ -1213,24 +1274,13 @@ static u32 gf_dm_session_thread(void *par)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Downloader] Entering thread ID %d\n", gf_th_id() ));
 	sess->flags &= ~GF_DOWNLOAD_SESSION_THREAD_DEAD;
 	while (!sess->destroy) {
-		gf_mx_p(sess->mx);
-		if (sess->status >= GF_NETIO_DISCONNECTED) {
-			gf_mx_v(sess->mx);
-			break;
-		}
-		if (sess->status < GF_NETIO_CONNECTED) {
-			gf_dm_connect(sess);
-		} else {
-			sess->do_requests(sess);
-		}
-		gf_mx_v(sess->mx);
+		Bool ret = gf_dm_session_do_task(sess);
+		if (!ret) break;
 		gf_sleep(0);
 	}
-	/*destroy all sessions*/
-	gf_dm_disconnect(sess, GF_FALSE);
-	sess->status = GF_NETIO_STATE_ERROR;
-	sess->last_error = GF_OK;
 	sess->flags |= GF_DOWNLOAD_SESSION_THREAD_DEAD;
+	if (sess->destroy)
+		gf_dm_sess_del(sess);
 	return 1;
 }
 
@@ -1723,6 +1773,12 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 
 	/*if session is threaded, start thread*/
 	if (! (sess->flags & GF_NETIO_SESSION_NOT_THREADED)) {
+		if (sess->dm->filter_session && !gf_opts_get_bool("core", "dm-threads")) {
+			GF_SAFEALLOC(sess->ftask, GF_SessTask);
+			sess->ftask->sess = sess;
+			gf_fs_post_user_task(sess->dm->filter_session, gf_dm_session_task, sess->ftask, "download");
+			return GF_OK;
+		}
 		if (sess->th) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] Session already started - ignoring start\n"));
 			return GF_OK;
@@ -1840,7 +1896,7 @@ static void gf_dm_clean_cache(GF_DownloadManager *dm)
 }
 
 GF_EXPORT
-GF_DownloadManager *gf_dm_new(GF_Config *cfg)
+GF_DownloadManager *gf_dm_new(GF_FilterSession *fsess)
 {
 	const char *opt;
 	const char * default_cache_dir;
@@ -1855,8 +1911,8 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 	dm->credentials = gf_list_new();
 	dm->skip_proxy_servers = gf_list_new();
 	dm->partial_downloads = gf_list_new();
-	dm->cfg = cfg;
 	dm->cache_mx = gf_mx_new("download_manager_cache_mx");
+	dm->filter_session = fsess;
 	default_cache_dir = NULL;
 	gf_mx_p( dm->cache_mx );
 
@@ -2024,7 +2080,6 @@ void gf_dm_del(GF_DownloadManager *dm)
 	if (dm->ssl_ctx) SSL_CTX_free(dm->ssl_ctx);
 #endif
 	/* Stored elsewhere, no need to free */
-	dm->cfg = NULL;
 	gf_mx_v( dm->cache_mx );
 	gf_mx_del( dm->cache_mx);
 	dm->cache_mx = NULL;
@@ -2695,8 +2750,6 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 			tmp_buf[len+par.size] = 0;
 		} else {
 			FILE *profile;
-			assert( sess->dm );
-			assert( sess->dm->cfg );
 			user_profile = gf_opts_get_key("core", "user-profile");
 			assert (user_profile);
 			profile = gf_fopen(user_profile, "rt");

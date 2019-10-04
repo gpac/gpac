@@ -485,7 +485,7 @@ void gf_mx_del(GF_Mutex *mx)
 	if (!mx) return;
 
 #ifndef GPAC_DISABLE_LOG
-	if (mx->Holder && mx->log_name) {
+	if (mx->Holder && (gf_th_id() != mx->Holder) && mx->log_name) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MUTEX, ("[Mutex %s] Destroying mutex from thread %s but hold by thread %s\n", mx->log_name, log_th_name(gf_th_id() ), log_th_name(mx->Holder) ));
 	}
 #endif
