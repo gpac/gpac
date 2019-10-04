@@ -74,7 +74,13 @@ OrderedGroup {
    field SFInt32 count 0
    eventOut SFFloat transp
    eventOut MFString txt
-   url ["javascript: function act(value, timestamp) {count++;if (count>= 20) count = 0;transp = count / 20;txt[0] = 'transparency: ' + transp;     }"   ]
+   url ["javascript: function act(value, timestamp) {
+count++;
+if (count>= 20) count = 0;
+transp = count / 20;
+txt = new MFString('transparency: ' + count / 20);
+}
+"   ]
   }
  ]
 }
