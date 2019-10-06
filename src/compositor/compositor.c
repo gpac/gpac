@@ -860,7 +860,7 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 		compositor->audio_renderer = gf_sc_ar_load(compositor, compositor->init_flags);
 
 	gf_sc_reset_framerate(compositor);
-	compositor->font_manager = gf_font_manager_new(compositor->wfont);
+	compositor->font_manager = gf_filter_get_font_manager(compositor->filter);
 	if (!compositor->font_manager) return GF_OUT_OF_MEM;
 
 	compositor->extra_scenes = gf_list_new();
@@ -1000,8 +1000,6 @@ void gf_sc_unload(GF_Compositor *compositor)
 	}
 	gf_list_del(compositor->event_queue);
 	gf_list_del(compositor->event_queue_back);
-
-	if (compositor->font_manager) gf_font_manager_del(compositor->font_manager);
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 	gf_list_del(compositor->cached_groups);

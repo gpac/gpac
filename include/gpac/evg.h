@@ -147,6 +147,12 @@ void gf_evg_stencil_delete(GF_EVGStencil *stencil);
 */
 GF_Err gf_evg_stencil_set_matrix(GF_EVGStencil *stencil, GF_Matrix2D *mat);
 
+/*! gets stencil type
+\param stencil the target stencil
+\return stencil type
+*/
+GF_StencilType gf_evg_stencil_type(GF_EVGStencil *sten);
+
 /*! sets color for solid brush stencil
 \param stencil the target stencil
 \param color the color to set
@@ -186,15 +192,25 @@ GF_Err gf_evg_stencil_set_radial_gradient(GF_EVGStencil *stencil, Fixed cx, Fixe
 /*! sets color interpolation for a gradient stencil
 \note the colors at 0 and 1.0 MUST be provided
 \note colors shall be fed in order from 0 to 1
-\note this overrides the colors provided for linear gradient
 
 \param stencil the target stencil
-\param pos interpolation positions. Each position gives the distance from (center for radial, start for linear) expressed between 0 and 1 (1 being the gradient bounds)
-\param col colors at the given position
-\param count number of colors and position
+\param pos interpolation positions. Each position gives the distance from (center for radial, start for linear) expressed between 0 and 1 (1 being the gradient bounds) - may be NULL when count is 0
+\param col colors at the given position - may be NULL when count is 0
+\param count number of colors and position. A value of 0 resets the gradient colors
 \return error if any
 */
 GF_Err gf_evg_stencil_set_gradient_interpolation(GF_EVGStencil *stencil, Fixed *pos, GF_Color *col, u32 count);
+
+/*! pushes a single color interpolation for a gradient stencil
+\note the colors at 0 and 1.0 MUST be provided
+\note colors shall be fed in order from 0 to 1
+
+\param stencil the target stencil
+\param pos interpolation position. A position gives the distance from (center for radial, start for linear) expressed between 0 and 1 (1 being the gradient bounds)
+\param col color at the given position
+\return error if any
+*/
+GF_Err gf_evg_stencil_push_gradient_interpolation(GF_EVGStencil * p, Fixed pos, GF_Color col);
 
 /*! sets global alpha blending level for a texture or gradient stencil
 The alpha channel will be combined with the color matrix if any
@@ -334,6 +350,42 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *stencil);
 */
 GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, GF_Color col);
 
+/*! sets center coord mode of a surface
+\param surf the surface object
+\param center_coords if GF_TRUE, indicates mathematical-like coord system (0,0) at the center of the canvas, otherwise indicates computer-like coord system (0,0) top-left corner
+*/
+void gf_evg_surface_set_center_coords(GF_EVGSurface *surf, Bool center_coords);
+
+
+typedef enum
+{
+	/*default*/
+	GF_EVG_SRC_OVER = 0,
+	GF_EVG_SRC_ATOP,
+	GF_EVG_SRC_IN,
+	GF_EVG_SRC_OUT,
+	GF_EVG_DST_ATOP,
+	GF_EVG_DST_IN,
+	GF_EVG_DST_OUT,
+	GF_EVG_DST_OVER,
+	GF_EVG_LIGHTER,
+	GF_EVG_COPY,
+	GF_EVG_XOR,
+	GF_EVG_CUSTOM
+} GF_EVGCompositeMode;
+
+/*! sets surface composite mode, as defined in Canvas2D - only used for ARGB surfaces
+\param surf the surface object
+\param comp_mode the composition mode to use
+*/
+void gf_evg_surface_set_composite_mode(GF_EVGSurface *surf, GF_EVGCompositeMode comp_mode);
+
+/*! sets alpha callback function
+\param surf the surface object
+\param get_alpha the callback function to alter the alpha value. x and y are in pixel coordinates, non-centered mode (0,0) is topleft, positive Y go down
+\param cbk opaque data for the callback function
+*/
+void gf_evg_surface_set_alpha_callback(GF_EVGSurface *surf, u8 (*get_alpha)(void *udta, u8 src_alpha, s32 x, s32 y), void *cbk);
 
 /*! @} */
 

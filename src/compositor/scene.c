@@ -1427,7 +1427,7 @@ static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 		if (prop && prop->value.boolean) {
 			GF_FilterEvent evt;
 			supported = GF_TRUE;
-			GF_FEVT_INIT(evt, GF_FEVT_MOUSE, odm->pid);
+			GF_FEVT_INIT(evt, GF_FEVT_USER, odm->pid);
 
 			evt.user_event.event.type = ((M_TouchSensor *)n)->isActive ? GF_EVENT_MOUSEDOWN : GF_EVENT_MOUSEUP;
 			evt.user_event.event.mouse.x = FIX2INT( tx_coord.x * odm->mo->width);

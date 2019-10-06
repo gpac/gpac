@@ -1180,8 +1180,8 @@ typedef enum
 	GF_FEVT_CAPS_CHANGE,
 	/*! inidicates the PID could not be connected - the PID passed is an output PID of the filter, no specific event structure is associated*/
 	GF_FEVT_CONNECT_FAIL,
-	/*! mouse move event, sent from compositor down to filters*/
-	GF_FEVT_MOUSE,
+	/*! user event, sent from compositor/vout down to filters*/
+	GF_FEVT_USER,
 	/*! PLAY hint event, used to signal if block dispatch is needed or not for the source*/
 	GF_FEVT_PLAY_HINT,
 } GF_FEventType;
@@ -1295,7 +1295,7 @@ typedef struct
 	u32 quality_degradation;
 } GF_FEVT_QualitySwitch;
 
-/*! Event structure for GF_FEVT_MOUSE*/
+/*! Event structure for GF_FEVT_USER*/
 typedef struct
 {
 	FILTER_EVENT_BASE
@@ -1813,6 +1813,12 @@ u32 gf_filter_get_num_events_queued(GF_Filter *filter);
 \return the GPAC download manager
 */
 GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter);
+
+/*! Returns the single instance of GPAC font manager. DO NOT DESTROY IT!!
+\param filter target filter
+\return the GPAC font manager
+*/
+struct _gf_ft_mgr *gf_filter_get_font_manager(GF_Filter *filter);
 
 /*! Asks task reschedule for a given delay. There is no guarantee that the task will be recalled at exactly the desired delay
 \param filter target filter

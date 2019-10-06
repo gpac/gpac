@@ -4939,7 +4939,7 @@ const char *gf_filter_event_name(GF_FEventType type)
 	case GF_FEVT_VISIBILITY_HINT: return "VISIBILITY_HINT";
 	case GF_FEVT_INFO_UPDATE: return "INFO_UPDATE";
 	case GF_FEVT_BUFFER_REQ: return "BUFFER_REQ";
-	case GF_FEVT_MOUSE: return "MOUSE";
+	case GF_FEVT_USER: return "USER";
 	case GF_FEVT_SEGMENT_SIZE: return "SEGMENT_SIZE";
 	case GF_FEVT_CAPS_CHANGE: return "CAPS_CHANGED";
 	case GF_FEVT_CONNECT_FAIL: return "CONNECT_FAIL";

@@ -277,8 +277,6 @@ Section "GPAC Player" SecOsmo4
   File "${GPAC_BIN}\MP4Client.exe"
 
   File "${GPAC_BIN}\gm_dx_hw.dll"
-  File "${GPAC_BIN}\gm_gpac_js.dll"
-
 
   File "${GPAC_BIN}\avcodec-*.dll"
   File "${GPAC_BIN}\avdevice-*.dll"

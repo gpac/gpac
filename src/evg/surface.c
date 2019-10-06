@@ -51,6 +51,11 @@ GF_EVGSurface *gf_evg_surface_new(Bool center_coords)
 	}
 	return surf;
 }
+GF_EXPORT
+void gf_evg_surface_set_center_coords(GF_EVGSurface *surf, Bool center_coords)
+{
+	if (surf) surf->center_coords = center_coords;
+}
 
 GF_EXPORT
 void gf_evg_surface_delete(GF_EVGSurface *surf)
@@ -436,6 +441,10 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 	surf->swap_uv = GF_FALSE;
 	surf->yuv_flush_uv = NULL;
 
+	if (surf->comp_mode) a=100;
+	else if (surf->get_alpha) a=100;
+
+	
 	switch (surf->pixelFormat) {
 	case GF_PIXEL_GREYSCALE:
 		if (use_const) {
@@ -911,4 +920,17 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 }
 
 
+
+void gf_evg_surface_set_composite_mode(GF_EVGSurface *surf, GF_EVGCompositeMode comp_mode)
+{
+	if (surf) surf->comp_mode = comp_mode;
+}
+
+void gf_evg_surface_set_alpha_callback(GF_EVGSurface *surf, u8 (*get_alpha)(void *udta, u8 src_alpha, s32 x, s32 y), void *cbk)
+{
+	if (surf) {
+		surf->get_alpha = get_alpha;
+		surf->get_alpha_udta = cbk;
+	}
+}
 

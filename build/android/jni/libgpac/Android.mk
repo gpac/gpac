@@ -287,6 +287,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/isomedia/stbl_write.c \
 	../../../../src/isomedia/track.c \
 	../../../../src/isomedia/tx3g.c \
+	../../../../src/jsmods/evg.c \
 	../../../../src/jsmods/scene_js.c \
 	../../../../src/jsmods/xhr.c \
 	../../../../src/laser/lsr_dec.c \

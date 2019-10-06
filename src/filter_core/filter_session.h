@@ -400,7 +400,8 @@ struct __gf_filter_session
 	u32 in_event_listener;
 
 	GF_DownloadManager *download_manager;
-
+	struct _gf_ft_mgr *font_manager;
+	
 	u32 default_pid_buffer_max_us, decoder_pid_buffer_max_us;
 	u32 default_pid_buffer_max_units;
 

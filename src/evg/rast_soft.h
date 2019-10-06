@@ -129,6 +129,7 @@ struct _gf_evg_surface
 
 	void (*yuv_flush_uv)(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
 
+	GF_EVGCompositeMode comp_mode;
 
 	/*in solid color mode to speed things*/
 	u32 fill_col;
@@ -155,6 +156,9 @@ struct _gf_evg_surface
 	u32 pointlen;
 	EVG_Vector *points;
 #endif
+
+	u8 (*get_alpha)(void *udta, u8 src_alpha, s32 x, s32 y);
+	void *get_alpha_udta;
 };
 
 /*solid color brush*/
@@ -240,6 +244,8 @@ typedef struct __evg_texture
 } EVG_Texture;
 
 #define GF_TEXTURE_FILTER_DEFAULT	GF_TEXTURE_FILTER_HIGH_SPEED
+
+void evg_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 x, s32 y, u32 count);
 
 
 u64 evg_col_to_wide( u32 col);

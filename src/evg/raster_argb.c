@@ -38,8 +38,56 @@ mul255(s32 a, s32 b)
 		32 bit ARGB/BGRA/RGBA
 */
 
+u32 do_composite_mode(GF_EVGCompositeMode comp_mode, u8 *srca, u8 *dsta)
+{
+	switch (comp_mode) {
+	case GF_EVG_SRC_ATOP:
+		if (*srca && *dsta) {}
+		else if (*dsta) { *srca = 0; }
+		else { *dsta = *srca = 0; }
+		break;
+	case GF_EVG_SRC_IN:
+		if (*srca && *dsta) {}
+		else { *dsta = *srca = 0; }
+		break;
+	case GF_EVG_SRC_OUT:
+		if (*srca && !*dsta) {}
+		else { *dsta = *srca = 0; }
+		break;
+	case GF_EVG_DST_ATOP:
+		if (*srca && *dsta) { *srca = 0;}
+		else if (*srca) { *dsta = 0; }
+		else { *dsta = *srca = 0; }
+		break;
+	case GF_EVG_DST_IN:
+		if (*srca && *dsta) { *srca = 0; }
+		else { *dsta = *srca = 0; }
+		break;
+	case GF_EVG_DST_OUT:
+		if (!*srca && *dsta) {*srca = 0;}
+		else { *dsta = *srca = 0; }
+		break;
+	case GF_EVG_DST_OVER:
+		if (*dsta) {*srca = 0;}
+		else { *dsta = *srca = 0; }
+		break;
+	case GF_EVG_LIGHTER:
+		return 1;
+	case GF_EVG_COPY:
+		*dsta = 0;
+		break;
+	case GF_EVG_XOR:
+		return 2;
+	case GF_EVG_SRC_OVER:
+	case GF_EVG_CUSTOM:
+		return 0;
+	}
+	return 0;
+}
+
 GFINLINE static void overmask_argb(u32 src, u8 *dst, u32 alpha, GF_EVGSurface *surf)
 {
+	u32 res;
 	u8 srca = GF_COL_A(src);
 	u8 srcr = GF_COL_R(src);
 	u8 srcg = GF_COL_G(src);
@@ -47,6 +95,37 @@ GFINLINE static void overmask_argb(u32 src, u8 *dst, u32 alpha, GF_EVGSurface *s
 	u8 dsta = dst[surf->idx_a];
 
 	srca = mul255(srca, alpha);
+
+	res = do_composite_mode(surf->comp_mode, &srca, &dsta);
+	if (res==1) {
+		u8 dstr = dst[surf->idx_r];
+		u8 dstg = dst[surf->idx_g];
+		u8 dstb = dst[surf->idx_b];
+//		dsta += srca;
+//		if (srca>0xFF) srca = 0xFF;
+		dstr += srcr;
+		if (srcr>0xFF) srcr = 0xFF;
+		dstr += srcg;
+		if (srcg>0xFF) srcg = 0xFF;
+		dstb += srcb;
+		if (srcb>0xFF) srcb = 0xFF;
+		dst[surf->idx_a] = srca;
+		dst[surf->idx_r] = dstr;
+		dst[surf->idx_g] = dstg;
+		dst[surf->idx_b] = dstb;
+		return;
+	}
+	if (res==2) {
+		u8 dstr = dst[surf->idx_r];
+		u8 dstg = dst[surf->idx_g];
+		u8 dstb = dst[surf->idx_b];
+		dst[surf->idx_a] = srca;
+		dst[surf->idx_r] = dstr^srcr;
+		dst[surf->idx_g] = dstg^srcg;
+		dst[surf->idx_b] = dstb^srcb;
+		return;
+	}
+
 	/*special case for RGBA:
 		if dst alpha is 0, consider the surface is empty and copy pixel
 		if source alpha is 0xFF erase the entire pixel
@@ -79,13 +158,17 @@ GFINLINE static void overmask_argb(u32 src, u8 *dst, u32 alpha, GF_EVGSurface *s
 
 GFINLINE static void overmask_argb_const_run(u32 src, u8 *dst, s32 dst_pitch_x, u32 count, GF_EVGSurface *surf)
 {
-	u8 srca = GF_COL_A(src);
+	u8 const_srca = GF_COL_A(src);
 	u8 srcr = GF_COL_R(src);
 	u8 srcg = GF_COL_G(src);
 	u8 srcb = GF_COL_B(src);
 
 	while (count) {
+		u8 srca = const_srca;
 		u8 dsta = dst[surf->idx_a];
+
+		do_composite_mode(surf->comp_mode, &srca, &dsta);
+
 		/*special case for RGBA:
 			if dst alpha is 0, consider the surface is empty and copy pixel
 			if source alpha is 0xFF erase the entire pixel
@@ -96,7 +179,7 @@ GFINLINE static void overmask_argb_const_run(u32 src, u8 *dst, s32 dst_pitch_x, 
 			u8 dstg = dst[surf->idx_g];
 			u8 dstb = dst[surf->idx_b];
 
-			//do the maths , so that the result of the blend follows the sam DST = SRC*apha + DST(1-alpha)
+			//do the maths , so that the result of the blend follows the same DST = SRC*apha + DST(1-alpha)
 			//it gives a transform alpha of Fa = SRCa + DSTa - SRCa*DSTa
 			//and an RGB Fc = (SRCa*SRCc + DSTa*DSTc - DSTc*(DSTa-SRCa)) / Fa
 			final_a = dsta + srca - mul255(dsta, srca);
@@ -151,11 +234,23 @@ void evg_argb_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *sur
 
 	a = GF_COL_A(surf->fill_col);
 	col_no_a = surf->fill_col & 0x00FFFFFF;
-
-	for (i=0; i<count; i++) {
-		fin = mul255(a, spans[i].coverage);
-		fin = (fin<<24) | col_no_a;
-		overmask_argb_const_run(fin, dst + spans[i].x*surf->pitch_x, surf->pitch_x, spans[i].len, surf);
+	if (surf->get_alpha) {
+		u32 j;
+		for (i=0; i<count; i++) {
+			for (j=0; j<spans[i].len; j++) {
+				s32 x = spans[i].x+j;
+				u8 aa = surf->get_alpha(surf->get_alpha_udta, a, x, y);
+				fin = mul255(aa, spans[i].coverage);
+				fin = (fin<<24) | col_no_a;
+				overmask_argb_const_run(fin, dst + x * surf->pitch_x, surf->pitch_x, 1, surf);
+			}
+		}
+	} else {
+		for (i=0; i<count; i++) {
+			fin = mul255(a, spans[i].coverage);
+			fin = (fin<<24) | col_no_a;
+			overmask_argb_const_run(fin, dst + spans[i].x*surf->pitch_x, surf->pitch_x, spans[i].len, surf);
+		}
 	}
 }
 
@@ -172,7 +267,7 @@ void evg_argb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 		p = dst + spans[i].x * surf->pitch_x;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
-		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
+		evg_fill_run(surf->sten, surf, spans[i].x, y, len);
 		col = surf->stencil_pix_run;
 		while (len--) {
 			//we must blend in all cases since we have to merge with the dst alpha
@@ -330,10 +425,23 @@ void evg_rgbx_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *sur
 
 	a = (col>>24)&0xFF;
 	col_no_a = col & 0x00FFFFFF;
-	for (i=0; i<count; i++) {
-		fin = mul255(a, spans[i].coverage);
-		fin = (fin<<24) | col_no_a;
-		overmask_rgbx_const_run(fin, dst + surf->pitch_x*spans[i].x, surf->pitch_x, spans[i].len, surf);
+	if (surf->get_alpha) {
+		for (i=0; i<count; i++) {
+			u32 j;
+			for (j=0; j<spans[i].len; j++) {
+				s32 x = spans[i].x + j;
+				u8 aa = surf->get_alpha(surf->get_alpha_udta, a, x, y);
+				fin = mul255(aa, spans[i].coverage);
+				fin = (fin<<24) | col_no_a;
+				overmask_rgbx_const_run(fin, dst + surf->pitch_x * x, surf->pitch_x, 1, surf);
+			}
+		}
+	} else {
+		for (i=0; i<count; i++) {
+			fin = mul255(a, spans[i].coverage);
+			fin = (fin<<24) | col_no_a;
+			overmask_rgbx_const_run(fin, dst + surf->pitch_x*spans[i].x, surf->pitch_x, spans[i].len, surf);
+		}
 	}
 }
 
@@ -350,9 +458,10 @@ void evg_rgbx_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 		u32 *col, _col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
-		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
+		evg_fill_run(surf->sten, surf, spans[i].x, y, len);
 		col = surf->stencil_pix_run;
 		x = spans[i].x * surf->pitch_x;
+		
 		while (len--) {
 			_col = *col;
 			col_a = GF_COL_A(_col);
@@ -497,9 +606,21 @@ void evg_alphagrey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface
 	else if (surf->grey_type==1) col_c = GF_COL_G(col);
 	else col_c = GF_COL_B(col);
 
-	for (i=0; i<count; i++) {
-		fin = mul255(a, spans[i].coverage);
-		overmask_alphagrey_const_run(fin, col_c, dst + surf->pitch_x*spans[i].x, surf->pitch_x, spans[i].len, surf->idx_g, surf->idx_a);
+	if (surf->get_alpha) {
+		for (i=0; i<count; i++) {
+			u32 j;
+			for (j=0; j<spans[i].len; i++) {
+				s32 x = spans[i].x+j;
+				u8 aa = surf->get_alpha(surf->get_alpha_udta, a, x, y);
+				fin = mul255(aa, spans[i].coverage);
+				overmask_alphagrey_const_run(fin, col_c, dst + surf->pitch_x * x, surf->pitch_x, 1, surf->idx_g, surf->idx_a);
+			}
+		}
+	} else {
+		for (i=0; i<count; i++) {
+			fin = mul255(a, spans[i].coverage);
+			overmask_alphagrey_const_run(fin, col_c, dst + surf->pitch_x*spans[i].x, surf->pitch_x, spans[i].len, surf->idx_g, surf->idx_a);
+		}
 	}
 }
 
@@ -516,7 +637,7 @@ void evg_alphagrey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *su
 		u32 *col, _col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
-		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
+		evg_fill_run(surf->sten, surf, spans[i].x, y, len);
 		x = spans[i].x * surf->pitch_x;
 		col = surf->stencil_pix_run;
 		while (len--) {

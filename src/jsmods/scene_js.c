@@ -2011,6 +2011,8 @@ static const JSCFunctionListEntry gpac_evt_funcs[] = {
 	JS_CGETSET_MAGIC_DEF("type", gpacevt_getProperty, NULL, GJS_EVT_PROP_TYPE),
 	JS_CGETSET_MAGIC_DEF("name", gpacevt_getProperty, NULL, GJS_EVT_PROP_NAME),
 	JS_CGETSET_MAGIC_DEF("hwkey", gpacevt_getProperty, NULL, GJS_EVT_PROP_HWKEY),
+	JS_CGETSET_MAGIC_DEF("url", gpacevt_getProperty, NULL, GJS_EVT_PROP_TARGET_URL),
+	JS_CGETSET_MAGIC_DEF("dropfiles", gpacevt_getProperty, NULL, GJS_EVT_PROP_FILES),
 };
 
 static const JSCFunctionListEntry gpac_funcs[] = {

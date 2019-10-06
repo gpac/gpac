@@ -44,11 +44,12 @@ struct _gf_ft_mgr
 };
 
 GF_EXPORT
-GF_FontManager *gf_font_manager_new(Bool wait_for_fonts)
+GF_FontManager *gf_font_manager_new()
 {
 	char *def_font = "SERIF";
 	GF_FontManager *font_mgr;
 	GF_FontReader *ifce;
+	Bool wait_for_fonts = gf_opts_get_bool("core", "wait-fonts");
 
 	ifce = (GF_FontReader *) gf_module_load(GF_FONT_READER_INTERFACE, NULL);
 	if (ifce) ifce->init_font_engine(ifce);

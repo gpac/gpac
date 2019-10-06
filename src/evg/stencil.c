@@ -128,8 +128,31 @@ GF_Err gf_evg_stencil_set_gradient_interpolation(GF_EVGStencil * p, Fixed *pos, 
 	EVG_BaseGradient *_this = (EVG_BaseGradient *) p;
 	if ( (_this->type != GF_STENCIL_LINEAR_GRADIENT) && (_this->type != GF_STENCIL_RADIAL_GRADIENT) ) return GF_BAD_PARAM;
 	if (count>=EVGGRADIENTSLOTS-1) return GF_OUT_OF_MEM;
-	memcpy(_this->col, col, sizeof(GF_Color) * count);
-	memcpy(_this->pos, pos, sizeof(Fixed) * count);
+	if (count) {
+		memcpy(_this->col, col, sizeof(GF_Color) * count);
+		memcpy(_this->pos, pos, sizeof(Fixed) * count);
+	}
+	_this->col[count] = 0;
+	_this->pos[count] = -FIX_ONE;
+	gradient_update(_this);
+	return GF_OK;
+}
+
+
+GF_EXPORT
+GF_Err gf_evg_stencil_push_gradient_interpolation(GF_EVGStencil * p, Fixed pos, GF_Color col)
+{
+	u32 count=0;
+	EVG_BaseGradient *_this = (EVG_BaseGradient *) p;
+	if ( (_this->type != GF_STENCIL_LINEAR_GRADIENT) && (_this->type != GF_STENCIL_RADIAL_GRADIENT) ) return GF_BAD_PARAM;
+	while (count<EVGGRADIENTSLOTS-1) {
+		if (_this->pos[count]==-FIX_ONE) break;
+		count++;
+	}
+	if (count>=EVGGRADIENTSLOTS-1) return GF_OUT_OF_MEM;
+	_this->col[count] = col;
+	_this->pos[count] = pos;
+	count++;
 	_this->col[count] = 0;
 	_this->pos[count] = -FIX_ONE;
 	gradient_update(_this);
@@ -211,6 +234,12 @@ GF_Err gf_evg_stencil_set_matrix(GF_EVGStencil * st, GF_Matrix2D *mx)
 	return GF_OK;
 }
 
+
+GF_EXPORT
+GF_StencilType gf_evg_stencil_type(GF_EVGStencil *sten)
+{
+	return sten ? sten->type : 0;
+}
 
 /*
 	Solid color stencil
@@ -1725,4 +1754,30 @@ GF_Err gf_evg_stencil_set_alpha(GF_EVGStencil * st, u8 alpha)
 		((EVG_BaseGradient*)st)->alpha = alpha;
 	}
 	return GF_OK;
+}
+
+void evg_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 x, s32 y, u32 count)
+{
+	p->fill_run(p, surf, x, y, count);
+	if (surf->get_alpha) {
+		u32 i;
+		EVG_Texture *_p = (EVG_Texture *)p;
+		if (_p->Bpp>8) {
+			u64 *coll = (u64 *)surf->stencil_pix_run;
+			for (i=0; i<count; i++) {
+				u64 a = (*coll>>48)&0xFFFF;
+				a = 0xFF * surf->get_alpha(surf->get_alpha_udta, (u8) (a/0xFF), x+i, y);
+				*coll = (a<<48) | ((*coll) & 0x0000FFFFFFFFFFFFUL);
+				coll ++;
+			}
+		} else {
+			u32 *col = (u32 *)surf->stencil_pix_run;
+			for (i=0; i<count; i++) {
+				u8 a = GF_COL_A(*col);
+				a = surf->get_alpha(surf->get_alpha_udta, a, x+i, y);
+				*col = (a<<24) | ((*col) & 0x00FFFFFF);
+				col ++;
+			}
+		}
+	}
 }
