@@ -329,6 +329,7 @@
 		8959AC8F211C9C77004D2C87 /* Remotery.c in Sources */ = {isa = PBXBuildFile; fileRef = 8959AC8E211C9C77004D2C87 /* Remotery.c */; };
 		896CBC872110598E00220377 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 896CBC862110598E00220377 /* Security.framework */; };
 		896CBC8921105A6900220377 /* libaom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 896CBC8821105A6900220377 /* libaom.a */; };
+		9210BA1D234A909400ED2DFF /* evg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9210BA1C234A909400ED2DFF /* evg.c */; };
 		9212C0FD222D7B3700FE3580 /* vflip.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212C0FC222D7B3700FE3580 /* vflip.c */; };
 		921FEBA01CF8670A00B437C2 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 921FEB9E1CF8665900B437C2 /* CoreLocation.framework */; };
 		921FEBA11CF8671300B437C2 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 921FEB9C1CF8664800B437C2 /* CoreMotion.framework */; };
@@ -896,6 +897,7 @@
 		8959AC8E211C9C77004D2C87 /* Remotery.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Remotery.c; sourceTree = "<group>"; };
 		896CBC862110598E00220377 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		896CBC8821105A6900220377 /* libaom.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libaom.a; path = ../../extra_lib/lib/iOS/libaom.a; sourceTree = "<group>"; };
+		9210BA1C234A909400ED2DFF /* evg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = evg.c; path = ../../src/jsmods/evg.c; sourceTree = "<group>"; };
 		9212C0FC222D7B3700FE3580 /* vflip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vflip.c; path = ../../src/filters/vflip.c; sourceTree = "<group>"; };
 		921FEB9C1CF8664800B437C2 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
 		921FEB9E1CF8665900B437C2 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
@@ -1765,6 +1767,7 @@
 		92D6C5A32343BF5000262217 /* jsmods */ = {
 			isa = PBXGroup;
 			children = (
+				9210BA1C234A909400ED2DFF /* evg.c */,
 				92D6C5A52343BF6A00262217 /* scene_js.c */,
 				92D6C5A42343BF6A00262217 /* xhr.c */,
 			);
@@ -2358,6 +2361,7 @@
 				71CCF2B31277045100339E12 /* hinting.c in Sources */,
 				71CCF2B41277045100339E12 /* drm_sample.c in Sources */,
 				92EB6DCD20E4E19700A97A49 /* reframe_nalu.c in Sources */,
+				9210BA1D234A909400ED2DFF /* evg.c in Sources */,
 				71CCF2B51277045100339E12 /* isom_intern.c in Sources */,
 				71CCF2B61277045100339E12 /* isom_read.c in Sources */,
 				92EB6DCF20E4E19700A97A49 /* dmx_mpegps.c in Sources */,

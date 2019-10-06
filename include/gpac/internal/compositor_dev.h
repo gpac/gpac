@@ -367,7 +367,6 @@ struct __tag_compositor
 	GF_FontManager *font_manager;
 	/*set whenever a new font has been received*/
 	Bool reset_fonts;
-	Bool wfont;
 	s32 fonts_pending;
 
 	/*options*/
@@ -1533,7 +1532,7 @@ typedef struct __text_span
 	GF_Node *user;
 } GF_TextSpan;
 
-GF_FontManager *gf_font_manager_new(Bool wait_for_fonts);
+GF_FontManager *gf_font_manager_new();
 void gf_font_manager_del(GF_FontManager *fm);
 
 GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);

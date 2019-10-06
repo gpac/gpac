@@ -152,10 +152,23 @@ void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 
 	a = (col>>24)&0xFF;
 	col_no_a = col&0x00FFFFFF;
-	for (i=0; i<count; i++) {
-		fin = mul255(a, spans[i].coverage);
-		fin = (fin<<24) | col_no_a;
-		overmask_565_const_run(fin, dst + spans[i].x * surf->pitch_x, surf->pitch_x, spans[i].len);
+	if (surf->get_alpha) {
+		for (i=0; i<count; i++) {
+			u32 j;
+			for (j=0; j<spans[i].len; j++) {
+				s32 x = spans[i].x + j;
+				u8 aa = surf->get_alpha(surf->get_alpha_udta, a, x, y);
+				fin = mul255(aa, spans[i].coverage);
+				fin = (fin<<24) | col_no_a;
+				overmask_565_const_run(fin, dst + x * surf->pitch_x, surf->pitch_x, 1);
+			}
+		}
+	} else {
+		for (i=0; i<count; i++) {
+			fin = mul255(a, spans[i].coverage);
+			fin = (fin<<24) | col_no_a;
+			overmask_565_const_run(fin, dst + spans[i].x * surf->pitch_x, surf->pitch_x, spans[i].len);
+		}
 	}
 }
 
@@ -172,7 +185,7 @@ void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 		register u32 *col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
-		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
+		evg_fill_run(surf->sten, surf, spans[i].x, y, len);
 		col = surf->stencil_pix_run;
 		x = spans[i].x * surf->pitch_x;
 		while (len--) {
@@ -333,10 +346,23 @@ void evg_555_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 
 	a = (col>>24)&0xFF;
 	col_no_a = col & 0x00FFFFFF;
-	for (i=0; i<count; i++) {
-		fin = mul255(a, spans[i].coverage);
-		fin = (fin<<24) | col_no_a;
-		overmask_555_const_run(fin, dst + spans[i].x*surf->pitch_x, surf->pitch_x, spans[i].len);
+	if (surf->get_alpha) {
+		for (i=0; i<count; i++) {
+			u32 j;
+			for (j=0; j<spans[i].len; j++) {
+				s32 x = spans[i].x + j;
+				u8 aa = surf->get_alpha(surf->get_alpha_udta, a, x, y);
+				fin = mul255(aa, spans[i].coverage);
+				fin = (fin<<24) | col_no_a;
+				overmask_555_const_run(fin, dst + x*surf->pitch_x, surf->pitch_x, 1);
+			}
+		}
+	} else {
+		for (i=0; i<count; i++) {
+			fin = mul255(a, spans[i].coverage);
+			fin = (fin<<24) | col_no_a;
+			overmask_555_const_run(fin, dst + spans[i].x*surf->pitch_x, surf->pitch_x, spans[i].len);
+		}
 	}
 }
 
@@ -353,7 +379,7 @@ void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 		u32 *col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
-		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
+		evg_fill_run(surf->sten, surf, spans[i].x, y, len);
 		col = surf->stencil_pix_run;
 		x = spans[i].x * surf->pitch_x;
 		while (len--) {
@@ -500,10 +526,25 @@ void evg_444_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 
 	a = (col>>24)&0xFF;
 	col_no_a = col & 0x00FFFFFF;
-	for (i=0; i<count; i++) {
-		fin = mul255(a, spans[i].coverage);
-		fin = (fin<<24) | col_no_a;
-		overmask_444_const_run(fin, dst + spans[i].x*surf->pitch_x, surf->pitch_x, spans[i].len);
+
+
+	if (surf->get_alpha) {
+		for (i=0; i<count; i++) {
+			u32 j;
+			for (j=0; j<spans[i].len; j++) {
+				s32 x = spans[i].x + j;
+				u8 aa = surf->get_alpha(surf->get_alpha_udta, a, x, y);
+				fin = mul255(aa, spans[i].coverage);
+				fin = (fin<<24) | col_no_a;
+				overmask_444_const_run(fin, dst + x*surf->pitch_x, surf->pitch_x, 1);
+			}
+		}
+	} else {
+		for (i=0; i<count; i++) {
+			fin = mul255(a, spans[i].coverage);
+			fin = (fin<<24) | col_no_a;
+			overmask_444_const_run(fin, dst + spans[i].x*surf->pitch_x, surf->pitch_x, spans[i].len);
+		}
 	}
 }
 
@@ -520,7 +561,7 @@ void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 		u32 *col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
-		surf->sten->fill_run(surf->sten, surf, spans[i].x, y, len);
+		evg_fill_run(surf->sten, surf, spans[i].x, y, len);
 		col = surf->stencil_pix_run;
 		x = spans[i].x * surf->pitch_x;
 		while (len--) {

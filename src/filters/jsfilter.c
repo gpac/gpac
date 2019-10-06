@@ -195,7 +195,6 @@ typedef struct
 
 } GF_JSFilterInstanceCtx;
 
-
 static JSValue jsf_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 log_tool, u32 log_level)
 {
 	GF_JSFilterCtx *jsf = JS_GetContextOpaque(ctx);
@@ -375,6 +374,32 @@ GF_DownloadManager *jsf_get_download_manager(JSContext *c)
 	return gf_filter_get_download_manager(jsf->filter);
 }
 
+struct _gf_ft_mgr *jsf_get_font_manager(JSContext *c)
+{
+	GF_JSFilterCtx *jsf;
+	JSValue global = JS_GetGlobalObject(c);
+
+	JSValue filter_obj = JS_GetPropertyStr(c, global, "filter");
+	JS_FreeValue(c, global);
+	if (JS_IsNull(filter_obj) || JS_IsException(filter_obj)) return NULL;
+	jsf = JS_GetOpaque(filter_obj, jsf_filter_class_id);
+	JS_FreeValue(c, filter_obj);
+	if (!jsf) return NULL;
+	return gf_filter_get_font_manager(jsf->filter);
+}
+
+const char *jsf_get_script_filename(JSContext *c)
+{
+	GF_JSFilterCtx *jsf;
+	JSValue global = JS_GetGlobalObject(c);
+	JSValue filter_obj = JS_GetPropertyStr(c, global, "filter");
+	JS_FreeValue(c, global);
+	if (JS_IsNull(filter_obj) || JS_IsException(filter_obj)) return NULL;
+	jsf = JS_GetOpaque(filter_obj, jsf_filter_class_id);
+	JS_FreeValue(c, filter_obj);
+	if (!jsf) return NULL;
+	return jsf->js;
+}
 
 JSValue jsf_NewProp(JSContext *ctx, const GF_PropertyValue *new_val)
 {
@@ -489,6 +514,12 @@ JSValue jsf_NewPropTranslate(JSContext *ctx, const GF_PropertyValue *prop, u32 p
 		break;
 	case GF_PROP_PID_STREAM_TYPE:
 		res = JS_NewString(ctx, gf_stream_type_name(prop->value.uint));
+		break;
+	case GF_PROP_PID_AUDIO_FORMAT:
+		res = JS_NewString(ctx, gf_audio_fmt_name(prop->value.uint));
+		break;
+	case GF_PROP_PID_PIXFMT:
+		res = JS_NewString(ctx, gf_pixel_fmt_name(prop->value.uint));
 		break;
 	default:
 		res = jsf_NewProp(ctx, prop);
@@ -731,7 +762,7 @@ static void jsf_loop(JSContext *ctx)
 	}
 }
 
-static JSValue jsf_filter_cbk_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
+static JSValue jsf_filter_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
 {
 	u32 ival;
 	GF_FilterSessionCaps caps;
@@ -802,7 +833,7 @@ static JSValue jsf_filter_cbk_set(JSContext *ctx, JSValueConst this_val, JSValue
     return JS_UNDEFINED;
 }
 
-static JSValue jsf_filter_cbk_get(JSContext *ctx, JSValueConst this_val, int magic)
+static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 {
 	u32 ival;
 	s64 lival;
@@ -1425,39 +1456,39 @@ static JSValue jsf_filter_add_filter(JSContext *ctx, JSValueConst this_val, int 
 }
 
 static const JSCFunctionListEntry jsf_filter_funcs[] = {
-    JS_CGETSET_MAGIC_DEF("initialize", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_EVT_INITIALIZE),
-    JS_CGETSET_MAGIC_DEF("finalize", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_EVT_FINALIZE),
-    JS_CGETSET_MAGIC_DEF("configure_pid", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_EVT_CONFIGURE_PID),
-    JS_CGETSET_MAGIC_DEF("process", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_EVT_PROCESS),
-    JS_CGETSET_MAGIC_DEF("process_event", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_EVT_PROCESS),
-    JS_CGETSET_MAGIC_DEF("update_arg", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_EVT_UPDATE_ARG),
-    JS_CGETSET_MAGIC_DEF("probe_data", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_EVT_PROBE_DATA),
-    JS_CGETSET_MAGIC_DEF("probe_url", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_EVT_PROBE_URL),
-    JS_CGETSET_MAGIC_DEF("reconfigure_output", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_EVT_RECONFIGURE_OUTPUT),
-    JS_CGETSET_MAGIC_DEF("remove_pid", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_EVT_REMOVE_PID),
-    JS_CGETSET_MAGIC_DEF("max_pids", NULL, jsf_filter_cbk_set, JSF_FILTER_MAX_PIDS),
-    JS_CGETSET_MAGIC_DEF("block_enabled", jsf_filter_cbk_get, NULL, JSF_FILTER_BLOCK_ENABLED),
-    JS_CGETSET_MAGIC_DEF("output_buffer", jsf_filter_cbk_get, NULL, JSF_FILTER_OUTPUT_BUFFER),
-    JS_CGETSET_MAGIC_DEF("output_playout", jsf_filter_cbk_get, NULL, JSF_FILTER_OUTPUT_PLAYOUT),
-    JS_CGETSET_MAGIC_DEF("sep_args", jsf_filter_cbk_get, NULL, JSF_FILTER_SEP_ARGS),
-    JS_CGETSET_MAGIC_DEF("sep_name", jsf_filter_cbk_get, NULL, JSF_FILTER_SEP_NAME),
-    JS_CGETSET_MAGIC_DEF("sep_list", jsf_filter_cbk_get, NULL, JSF_FILTER_SEP_LIST),
-    JS_CGETSET_MAGIC_DEF("dst_args", jsf_filter_cbk_get, NULL, JSF_FILTER_DST_ARGS),
-    JS_CGETSET_MAGIC_DEF("dst_name", jsf_filter_cbk_get, NULL, JSF_FILTER_DST_NAME),
-    JS_CGETSET_MAGIC_DEF("sinks_done", jsf_filter_cbk_get, NULL, JSF_FILTER_SINKS_DONE),
-    JS_CGETSET_MAGIC_DEF("reports_on", jsf_filter_cbk_get, NULL, JSF_FILTER_REPORTING_ENABLED),
-    JS_CGETSET_MAGIC_DEF("max_screen_width", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_FILTER_CAPS_MAX_WIDTH),
-    JS_CGETSET_MAGIC_DEF("max_screen_height", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_FILTER_CAPS_MAX_HEIGHT),
-    JS_CGETSET_MAGIC_DEF("max_screen_depth", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_FILTER_CAPS_MAX_DISPLAY_DEPTH),
-    JS_CGETSET_MAGIC_DEF("max_screen_fps", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_FILTER_CAPS_MAX_FPS),
-    JS_CGETSET_MAGIC_DEF("max_screen_views", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_FILTER_CAPS_MAX_VIEWS),
-    JS_CGETSET_MAGIC_DEF("max_audio_channels", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_FILTER_CAPS_MAX_CHANNELS),
-    JS_CGETSET_MAGIC_DEF("max_audio_samplerate", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_FILTER_CAPS_MAX_SAMPLERATE),
-    JS_CGETSET_MAGIC_DEF("max_audio_depth", jsf_filter_cbk_get, jsf_filter_cbk_set, JSF_FILTER_CAPS_MAX_AUDIO_DEPTH),
-    JS_CGETSET_MAGIC_DEF("sticky", NULL, jsf_filter_cbk_set, JSF_FILTER_STICKY),
-    JS_CGETSET_MAGIC_DEF("events_queued", jsf_filter_cbk_get, NULL, JSF_FILTER_NB_EVTS_QUEUED),
-    JS_CGETSET_MAGIC_DEF("clock_hint_us", jsf_filter_cbk_get, NULL, JSF_FILTER_CLOCK_HINT_TIME),
-    JS_CGETSET_MAGIC_DEF("clock_hint_mediatime", jsf_filter_cbk_get, NULL, JSF_FILTER_CLOCK_HINT_MEDIATIME),
+    JS_CGETSET_MAGIC_DEF("initialize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_INITIALIZE),
+    JS_CGETSET_MAGIC_DEF("finalize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_FINALIZE),
+    JS_CGETSET_MAGIC_DEF("configure_pid", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_CONFIGURE_PID),
+    JS_CGETSET_MAGIC_DEF("process", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_PROCESS),
+    JS_CGETSET_MAGIC_DEF("process_event", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_PROCESS_EVENT),
+    JS_CGETSET_MAGIC_DEF("update_arg", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_UPDATE_ARG),
+    JS_CGETSET_MAGIC_DEF("probe_data", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_PROBE_DATA),
+    JS_CGETSET_MAGIC_DEF("probe_url", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_PROBE_URL),
+    JS_CGETSET_MAGIC_DEF("reconfigure_output", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_RECONFIGURE_OUTPUT),
+    JS_CGETSET_MAGIC_DEF("remove_pid", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_REMOVE_PID),
+    JS_CGETSET_MAGIC_DEF("max_pids", NULL, jsf_filter_prop_set, JSF_FILTER_MAX_PIDS),
+    JS_CGETSET_MAGIC_DEF("block_enabled", jsf_filter_prop_get, NULL, JSF_FILTER_BLOCK_ENABLED),
+    JS_CGETSET_MAGIC_DEF("output_buffer", jsf_filter_prop_get, NULL, JSF_FILTER_OUTPUT_BUFFER),
+    JS_CGETSET_MAGIC_DEF("output_playout", jsf_filter_prop_get, NULL, JSF_FILTER_OUTPUT_PLAYOUT),
+    JS_CGETSET_MAGIC_DEF("sep_args", jsf_filter_prop_get, NULL, JSF_FILTER_SEP_ARGS),
+    JS_CGETSET_MAGIC_DEF("sep_name", jsf_filter_prop_get, NULL, JSF_FILTER_SEP_NAME),
+    JS_CGETSET_MAGIC_DEF("sep_list", jsf_filter_prop_get, NULL, JSF_FILTER_SEP_LIST),
+    JS_CGETSET_MAGIC_DEF("dst_args", jsf_filter_prop_get, NULL, JSF_FILTER_DST_ARGS),
+    JS_CGETSET_MAGIC_DEF("dst_name", jsf_filter_prop_get, NULL, JSF_FILTER_DST_NAME),
+    JS_CGETSET_MAGIC_DEF("sinks_done", jsf_filter_prop_get, NULL, JSF_FILTER_SINKS_DONE),
+    JS_CGETSET_MAGIC_DEF("reports_on", jsf_filter_prop_get, NULL, JSF_FILTER_REPORTING_ENABLED),
+    JS_CGETSET_MAGIC_DEF("max_screen_width", jsf_filter_prop_get, jsf_filter_prop_set, JSF_FILTER_CAPS_MAX_WIDTH),
+    JS_CGETSET_MAGIC_DEF("max_screen_height", jsf_filter_prop_get, jsf_filter_prop_set, JSF_FILTER_CAPS_MAX_HEIGHT),
+    JS_CGETSET_MAGIC_DEF("max_screen_depth", jsf_filter_prop_get, jsf_filter_prop_set, JSF_FILTER_CAPS_MAX_DISPLAY_DEPTH),
+    JS_CGETSET_MAGIC_DEF("max_screen_fps", jsf_filter_prop_get, jsf_filter_prop_set, JSF_FILTER_CAPS_MAX_FPS),
+    JS_CGETSET_MAGIC_DEF("max_screen_views", jsf_filter_prop_get, jsf_filter_prop_set, JSF_FILTER_CAPS_MAX_VIEWS),
+    JS_CGETSET_MAGIC_DEF("max_audio_channels", jsf_filter_prop_get, jsf_filter_prop_set, JSF_FILTER_CAPS_MAX_CHANNELS),
+    JS_CGETSET_MAGIC_DEF("max_audio_samplerate", jsf_filter_prop_get, jsf_filter_prop_set, JSF_FILTER_CAPS_MAX_SAMPLERATE),
+    JS_CGETSET_MAGIC_DEF("max_audio_depth", jsf_filter_prop_get, jsf_filter_prop_set, JSF_FILTER_CAPS_MAX_AUDIO_DEPTH),
+    JS_CGETSET_MAGIC_DEF("sticky", NULL, jsf_filter_prop_set, JSF_FILTER_STICKY),
+    JS_CGETSET_MAGIC_DEF("events_queued", jsf_filter_prop_get, NULL, JSF_FILTER_NB_EVTS_QUEUED),
+    JS_CGETSET_MAGIC_DEF("clock_hint_us", jsf_filter_prop_get, NULL, JSF_FILTER_CLOCK_HINT_TIME),
+    JS_CGETSET_MAGIC_DEF("clock_hint_mediatime", jsf_filter_prop_get, NULL, JSF_FILTER_CLOCK_HINT_MEDIATIME),
 
     JS_CFUNC_DEF("set_desc", 0, jsf_filter_set_desc),
     JS_CFUNC_DEF("set_version", 0, jsf_filter_set_version),
@@ -2044,7 +2075,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 		if (JS_IsInteger(argv[0]) ) {
 			if (use_shared)
 				return jsf_throw_errno(ctx, GF_BAD_PARAM);
-			if (! JS_ToInt32(ctx, &len, argv[0])) {
+			if (JS_ToInt32(ctx, &len, argv[0])) {
     			gf_list_add(pctx->jsf->pck_res, pckc);
 				return JS_EXCEPTION;
 			}
@@ -2060,8 +2091,10 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 			gf_list_add(pctx->shared_pck, pckc);
 		} else {
 			pckc->pck = gf_filter_pck_new_alloc(pctx->pid, len, &data);
-			memcpy(data, str, len);
-			JS_FreeCString(ctx, str);
+			if (str) {
+				memcpy(data, str, len);
+				JS_FreeCString(ctx, str);
+			}
 		}
 	} else {
 		GF_JSPckCtx *pckc_ref = JS_GetOpaque(argv[0], jsf_pck_class_id);
@@ -2077,11 +2110,15 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 
 			size_t ab_size;
 			u8 *data, *ab_data;
-			if (!JS_IsObject(argv[0])) return JS_EXCEPTION;
-
-			ab_data = JS_GetArrayBuffer(ctx, &ab_size, argv[0]);
-			if (!ab_data)
+			if (!JS_IsObject(argv[0])) {
+				JS_FreeValue(ctx, obj);
 				return JS_EXCEPTION;
+			}
+			ab_data = JS_GetArrayBuffer(ctx, &ab_size, argv[0]);
+			if (!ab_data) {
+				JS_FreeValue(ctx, obj);
+				return JS_EXCEPTION;
+			}
 
 			if (use_shared) {
 				pckc->pck = gf_filter_pck_new_shared(pctx->pid, ab_data, (u32) ab_size, jsf_pck_shared_del);
@@ -2091,13 +2128,17 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 			} else {
 				pckc->pck = gf_filter_pck_new_alloc(pctx->pid, (u32) ab_size, &data);
 				if (!data) {
+					JS_FreeValue(ctx, obj);
 					return jsf_throw_errno(ctx, GF_OUT_OF_MEM);
 				}
 				memcpy(data, ab_data, ab_size);
 			}
 		}
 	}
-	if (!pckc->pck) return jsf_throw_errno(ctx, GF_OUT_OF_MEM);
+	if (!pckc->pck) {
+		JS_FreeValue(ctx, obj);
+		return jsf_throw_errno(ctx, GF_OUT_OF_MEM);
+	}
 	return obj;
 }
 
@@ -2314,9 +2355,18 @@ enum
 	JSF_EVENT_BUFREQ_MAX_PLAYOUT_US,
 	JSF_EVENT_BUFREQ_MIN_PLAYOUT_US,
 	JSF_EVENT_BUFREQ_PID_ONLY,
+
+	JSF_EVENT_USER_TYPE,
+	JSF_EVENT_USER_KEYCODE,
+	JSF_EVENT_USER_MOUSE_X,
+	JSF_EVENT_USER_MOUSE_Y,
+	JSF_EVENT_USER_WHEEL,
+	JSF_EVENT_USER_BUTTON,
+	JSF_EVENT_USER_HWKEY,
+	JSF_EVENT_USER_DROPFILES,
 };
 
-static Bool jsf_check_evt(u32 evt_type, int magic)
+static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 {
 	if (magic==JSF_EVENT_TYPE) return GF_TRUE;
 	switch (evt_type) {
@@ -2397,6 +2447,41 @@ static Bool jsf_check_evt(u32 evt_type, int magic)
 			return GF_FALSE;
 		}
 		break;
+	case GF_FEVT_USER:
+		switch (ui_type) {
+		case GF_EVENT_CLICK:
+		case GF_EVENT_MOUSEUP:
+		case GF_EVENT_MOUSEDOWN:
+		case GF_EVENT_MOUSEOVER:
+		case GF_EVENT_MOUSEOUT:
+		case GF_EVENT_MOUSEMOVE:
+		case GF_EVENT_MOUSEWHEEL:
+			switch (magic) {
+			case JSF_EVENT_USER_TYPE:
+			case JSF_EVENT_USER_MOUSE_X:
+			case JSF_EVENT_USER_MOUSE_Y:
+			case JSF_EVENT_USER_WHEEL:
+			case JSF_EVENT_USER_BUTTON:
+				return GF_TRUE;
+			default:
+				break;
+			}
+			return GF_FALSE;
+		case GF_EVENT_KEYUP:
+		case GF_EVENT_KEYDOWN:
+		case GF_EVENT_LONGKEYPRESS:
+		case GF_EVENT_TEXTINPUT:
+			switch (magic) {
+			case JSF_EVENT_USER_TYPE:
+			case JSF_EVENT_USER_KEYCODE:
+			case JSF_EVENT_USER_HWKEY:
+			case JSF_EVENT_USER_DROPFILES:
+				return GF_TRUE;
+			default:
+				break;
+			}
+			return GF_FALSE;
+		}
 	}
 	return GF_FALSE;
 }
@@ -2409,7 +2494,7 @@ static JSValue jsf_event_set_prop(JSContext *ctx, JSValueConst this_val, JSValue
 	const char *str=NULL;
 	GF_FilterEvent *evt = JS_GetOpaque(this_val, jsf_event_class_id);
     if (!evt) return JS_EXCEPTION;
-    if (!jsf_check_evt(evt->base.type, magic))
+    if (!jsf_check_evt(evt->base.type, 0, magic))
     	return JS_EXCEPTION;
 
 	switch (magic) {
@@ -2507,7 +2592,7 @@ static JSValue jsf_event_get_prop(JSContext *ctx, JSValueConst this_val, int mag
 {
 	GF_FilterEvent *evt = JS_GetOpaque(this_val, jsf_event_class_id);
     if (!evt) return JS_EXCEPTION;
-    if (!jsf_check_evt(evt->base.type, magic))
+    if (!jsf_check_evt(evt->base.type, evt->user_event.event.type, magic))
     	return JS_EXCEPTION;
 	switch (magic) {
 	/*PLAY*/
@@ -2550,6 +2635,34 @@ static JSValue jsf_event_get_prop(JSContext *ctx, JSValueConst this_val, int mag
 	case JSF_EVENT_BUFREQ_MAX_PLAYOUT_US: return JS_NewInt32(ctx, evt->buffer_req.max_playout_us);
 	case JSF_EVENT_BUFREQ_MIN_PLAYOUT_US: return JS_NewInt32(ctx, evt->buffer_req.min_playout_us);
 	case JSF_EVENT_BUFREQ_PID_ONLY: return JS_NewBool(ctx, evt->buffer_req.pid_only);
+	/*user event*/
+	case JSF_EVENT_USER_TYPE: return JS_NewInt32(ctx, evt->user_event.event.type);
+	case JSF_EVENT_USER_KEYCODE:
+#ifndef GPAC_DISABLE_SVG
+		return JS_NewString(ctx, gf_dom_get_key_name(evt->user_event.event.key.key_code) );
+#else
+		return JS_NULL;
+#endif
+
+	case JSF_EVENT_USER_MOUSE_X: return JS_NewInt32(ctx, evt->user_event.event.mouse.x);
+	case JSF_EVENT_USER_MOUSE_Y: return JS_NewInt32(ctx, evt->user_event.event.mouse.y);
+	case JSF_EVENT_USER_WHEEL: return JS_NewFloat64(ctx, FIX2FLT(evt->user_event.event.mouse.wheel_pos));
+	case JSF_EVENT_USER_BUTTON: return JS_NewInt32(ctx,  evt->user_event.event.mouse.button);
+	case JSF_EVENT_USER_HWKEY: return JS_NewInt32(ctx, evt->user_event.event.key.hw_code);
+	case JSF_EVENT_USER_DROPFILES:
+	{
+		u32 i, idx;
+		JSValue files_array = JS_NewArray(ctx);
+		idx=0;
+		for (i=0; i<evt->user_event.event.open_file.nb_files; i++) {
+			if (evt->user_event.event.open_file.files[i]) {
+				JS_SetPropertyUint32(ctx, files_array, idx, JS_NewString(ctx, evt->user_event.event.open_file.files[i]) );
+				idx++;
+			}
+		}
+		return files_array;
+	}
+
 	}
     return JS_UNDEFINED;
 }
@@ -2596,6 +2709,15 @@ static const JSCFunctionListEntry jsf_event_funcs[] =
     JS_CGETSET_MAGIC_DEF("max_playout_us", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_BUFREQ_MAX_PLAYOUT_US),
     JS_CGETSET_MAGIC_DEF("min_playout_us", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_BUFREQ_MIN_PLAYOUT_US),
     JS_CGETSET_MAGIC_DEF("pid_only", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_BUFREQ_PID_ONLY),
+    /*ui events*/
+    JS_CGETSET_MAGIC_DEF("ui_type", jsf_event_get_prop, NULL, JSF_EVENT_USER_TYPE),
+    JS_CGETSET_MAGIC_DEF("keycode", jsf_event_get_prop, NULL, JSF_EVENT_USER_KEYCODE),
+    JS_CGETSET_MAGIC_DEF("mouse_x", jsf_event_get_prop, NULL, JSF_EVENT_USER_MOUSE_X),
+    JS_CGETSET_MAGIC_DEF("mouse_y", jsf_event_get_prop, NULL, JSF_EVENT_USER_MOUSE_Y),
+    JS_CGETSET_MAGIC_DEF("wheel", jsf_event_get_prop, NULL, JSF_EVENT_USER_WHEEL),
+    JS_CGETSET_MAGIC_DEF("button", jsf_event_get_prop, NULL, JSF_EVENT_USER_BUTTON),
+    JS_CGETSET_MAGIC_DEF("hwkey", jsf_event_get_prop, NULL, JSF_EVENT_USER_HWKEY),
+    JS_CGETSET_MAGIC_DEF("dropfiles", jsf_event_get_prop, NULL, JSF_EVENT_USER_DROPFILES),
 };
 
 static JSValue jsf_event_constructor(JSContext *ctx, JSValueConst new_target, int argc, JSValueConst *argv)
@@ -2965,6 +3087,9 @@ static JSValue jsf_pck_send(JSContext *ctx, JSValueConst this_val, int argc, JSV
     pck = pckctx->pck;
 	gf_filter_pck_send(pck);
 	JS_SetOpaque(this_val, NULL);
+	gf_list_add(pckctx->jspid->jsf->pck_res, pckctx);
+	memset(pckctx, 0, sizeof(GF_JSPckCtx));
+
 	return JS_UNDEFINED;
 }
 static JSValue jsf_pck_discard(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -3077,9 +3202,11 @@ static JSValue jsf_pck_copy_props(JSContext *ctx, JSValueConst this_val, int arg
 {
 	GF_Err e;
 	GF_JSPckCtx *pck_dst = JS_GetOpaque(this_val, jsf_pck_class_id);
-    if (!pck_dst || !pck_dst->pck || !argc) return JS_EXCEPTION;
+    if (!pck_dst || !pck_dst->pck || !argc)
+    	return JS_EXCEPTION;
 	GF_JSPckCtx *pck_from = JS_GetOpaque(argv[0], jsf_pck_class_id);
-    if (!pck_from || !pck_from->pck) return JS_EXCEPTION;
+    if (!pck_from || !pck_from->pck)
+    	return JS_EXCEPTION;
     e = gf_filter_pck_merge_properties(pck_from->pck, pck_dst->pck);
 	if (e) return jsf_throw_errno(ctx, e);
     return JS_UNDEFINED;
@@ -3211,7 +3338,9 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	return e;
 }
 
+/*buildin C modules*/
 void xhr_js_init_module(JSContext *ctx);
+void evg_js_init_module(JSContext *ctx);
 
 static GF_Err jsfilter_initialize(GF_Filter *filter)
 {
@@ -3284,7 +3413,7 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
 	DEF_CONST(GF_FEVT_BUFFER_REQ)
 	DEF_CONST(GF_FEVT_CAPS_CHANGE)
 	DEF_CONST(GF_FEVT_CONNECT_FAIL)
-	DEF_CONST(GF_FEVT_MOUSE)
+	DEF_CONST(GF_FEVT_USER)
 
 	DEF_CONST(GF_STATS_LOCAL)
 	DEF_CONST(GF_STATS_LOCAL_INPUTS)
@@ -3350,7 +3479,24 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
 
 	DEF_CONST(GF_FILTER_UPDATE_DOWNSTREAM)
 	DEF_CONST(GF_FILTER_UPDATE_UPSTREAM)
-	
+
+	DEF_CONST(GF_EVENT_CLICK)
+	DEF_CONST(GF_EVENT_MOUSEUP)
+	DEF_CONST(GF_EVENT_MOUSEDOWN)
+	DEF_CONST(GF_EVENT_MOUSEMOVE)
+	DEF_CONST(GF_EVENT_MOUSEWHEEL)
+	DEF_CONST(GF_EVENT_DBLCLICK)
+	DEF_CONST(GF_EVENT_KEYUP)
+	DEF_CONST(GF_EVENT_KEYDOWN)
+	DEF_CONST(GF_EVENT_TEXTINPUT)
+	DEF_CONST(GF_EVENT_DROPFILE)
+	DEF_CONST(GF_EVENT_QUALITY_SWITCHED)
+	DEF_CONST(GF_EVENT_TIMESHIFT_DEPTH)
+	DEF_CONST(GF_EVENT_TIMESHIFT_UPDATE)
+	DEF_CONST(GF_EVENT_TIMESHIFT_OVERFLOW)
+	DEF_CONST(GF_EVENT_TIMESHIFT_UNDERRUN)
+	DEF_CONST(GF_EVENT_QUIT)
+
 	args = JS_NewArray(jsf->ctx);
     nb_args = gf_sys_get_argc();
     for (i=0; i<nb_args; i++) {
@@ -3417,6 +3563,7 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
  	if (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((char *)buf, buf_len)) {
  		//init modules
 		xhr_js_init_module(jsf->ctx);
+		evg_js_init_module(jsf->ctx);
 		flags = JS_EVAL_TYPE_MODULE;
 	}
 	
@@ -3553,7 +3700,42 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 
 static Bool jsfilter_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	return GF_TRUE;
+	JSValue argv[2];
+	JSValue ret;
+	Bool canceled=GF_TRUE;
+	GF_Err e = GF_OK;
+	GF_JSFilterCtx *jsf = gf_filter_get_udta(filter);
+	if (!jsf) return GF_TRUE;
+
+	if (!JS_IsFunction(jsf->ctx, jsf->funcs[JSF_EVT_PROCESS_EVENT]))
+		return GF_FALSE;
+
+	gf_js_lock(jsf->ctx, GF_TRUE);
+	if (evt->base.on_pid) {
+		GF_JSPidCtx *pctx = gf_filter_pid_get_udta(evt->base.on_pid);
+		argv[0] = pctx ? JS_DupValue(jsf->ctx, pctx->jsobj) : JS_NULL;
+	} else {
+		argv[0] = JS_NULL;
+	}
+	argv[1] = JS_NewObjectClass(jsf->ctx, jsf_event_class_id);
+	JS_SetOpaque(argv[1], (void *) evt);
+	ret = JS_Call(jsf->ctx, jsf->funcs[JSF_EVT_PROCESS_EVENT], jsf->filter_obj, 2, argv);
+	if (JS_IsException(ret)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[%s] Error processing event\n", jsf->log_name));
+		jsf_dump_error(jsf->ctx);
+		e = GF_BAD_PARAM;
+	}
+	else {
+		canceled = JS_ToBool(jsf->ctx, ret);
+	}
+	JS_FreeValue(jsf->ctx, ret);
+	JS_FreeValue(jsf->ctx, argv[0]);
+	JS_SetOpaque(argv[1], NULL);
+	JS_FreeValue(jsf->ctx, argv[1]);
+	gf_js_lock(jsf->ctx, GF_FALSE);
+
+	jsf_loop(jsf->ctx);
+	return canceled;
 }
 
 /*static GF_Err jsfilter_reconfigure_output(GF_Filter *filter, GF_FilterPid *PID)

@@ -168,6 +168,69 @@ GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, u8 **
 	return gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
 }
 
+static GF_FilterPacket *clone_frame_interface(GF_FilterPid *pid, GF_FilterPacket *pck_source, u8 **data)
+{
+	u32 i, w, h, stride, stride_uv, pf, osize;
+	u32 nb_planes, uv_height;
+	GF_FilterPacket *dst, *ref;
+	GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *) pck_source;
+	const GF_PropertyValue *p;
+
+	ref = pcki->pck;
+
+	p = gf_filter_pid_get_property(ref->pid , GF_PROP_PID_WIDTH);
+	w = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(ref->pid, GF_PROP_PID_HEIGHT);
+	h = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(ref->pid, GF_PROP_PID_PIXFMT);
+	pf = p ? p->value.uint : 0;
+	//not supported
+	if (!w || !h || !pf) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing width/height/pf in frame interface cloning, not supported\n"));
+		return NULL;
+	}
+	stride = stride_uv = 0;
+
+	if (gf_pixel_get_size_info(pf, w, h, &osize, &stride, &stride_uv, &nb_planes, &uv_height) == GF_FALSE) {
+		return NULL;
+	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);
+	if (!p || (p->value.uint != stride)) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_STRIDE, &PROP_UINT(stride));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_STRIDE_UV, &PROP_UINT(stride_uv));
+	}
+	pf = p ? p->value.uint : 0;
+
+	dst = gf_filter_pck_new_alloc(pid, osize, data);
+	if (!dst) return NULL;
+	
+	u8 *out_ptr = *data;
+	for (i=0; i<nb_planes; i++) {
+		u32 j, write_h, dst_stride;
+		const u8 *in_ptr;
+		u32 src_stride = i ? stride_uv : stride;
+		GF_Err e = ref->frame_ifce->get_plane(ref->frame_ifce, i, &in_ptr, &src_stride);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to fetch plane data from hardware frame, cannot clone\n"));
+			break;
+		}
+		if (i) {
+			write_h = uv_height;
+			dst_stride = stride_uv;
+		} else {
+			write_h = h;
+			dst_stride = stride;
+		}
+		for (j=0; j<write_h; j++) {
+			memcpy(out_ptr, in_ptr, dst_stride);
+			in_ptr += src_stride;
+			out_ptr += dst_stride;
+		}
+	}
+	gf_filter_pck_merge_properties(pck_source, dst);
+	return dst;
+}
+
 GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck_source, u8 **data)
 {
@@ -178,7 +241,7 @@ GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck
 
 	pcki = (GF_FilterPacketInstance *) pck_source;
 	if (pcki->pck->frame_ifce)
-		return NULL;
+		return clone_frame_interface(pid, pck_source, data);
 
 	ref = pcki->pck;
 	while (ref) {

@@ -578,7 +578,7 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 }
 
 GF_EXPORT
-GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_angle, u32 close_type)
+GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_angle, GF_Path2DArcCloseType close_type)
 {
 	GF_Err e;
 	Fixed _vx, _vy, step, cur;
@@ -589,7 +589,7 @@ GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_a
 
 	/*pie*/
 	i=0;
-	if (close_type==2) {
+	if (close_type==GF_PATH2D_ARC_PIE) {
 		gf_path_add_move_to(gp, 0, 0);
 		i=1;
 	}
@@ -611,7 +611,7 @@ GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_a
 		if (e) return e;
 		cur+=step;
 	}
-	if (close_type) e = gf_path_close(gp);
+	if (close_type!=GF_PATH2D_ARC_OPEN) e = gf_path_close(gp);
 	return e;
 }
 

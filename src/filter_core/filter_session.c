@@ -31,6 +31,9 @@
 #endif
 //#define CHECK_TASK_LIST_INTEGRITY
 
+struct _gf_ft_mgr *gf_font_manager_new();
+void gf_font_manager_del(struct _gf_ft_mgr *fm);
+
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
 {
@@ -595,6 +598,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 	}
 
 	if (fsess->download_manager) gf_dm_del(fsess->download_manager);
+	if (fsess->font_manager) gf_font_manager_del(fsess->font_manager);
 
 	if (fsess->registry) {
 		while (gf_list_count(fsess->registry)) {
@@ -978,11 +982,11 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 		if (len>GF_MAX_PATH)
 			return NULL;
 		strncpy(szPath, name, len);
+		szPath[len]=0;
 		if (gf_file_exists(szPath)) {
 			sprintf(szPath, "jsf%cjs%c", fsess->sep_args, fsess->sep_name);
 			strncat(szPath, name, len);
 			return gf_fs_load_filter(fsess, szPath);
-
 		}
 	}
 
@@ -1989,10 +1993,14 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 		if (gf_url_is_local(sURL)) {
 			gf_url_to_fs_path(sURL);
-			if (! gf_file_exists(sURL)) {
+			char *sep = (char *)gf_fs_path_escape_colon(fsess, sURL);
+			if (sep) sep[0] = 0;
+			if (strcmp(sURL, "null") && ! gf_file_exists(sURL)) {
+				if (sep) sep[0] = fsess->sep_args;
 				if (err) *err = GF_URL_ERROR;
 				return NULL;
 			}
+			if (sep) sep[0] = fsess->sep_args;
 		}
 	}
 	sep = (char *)gf_fs_path_escape_colon(fsess, sURL);
@@ -2324,6 +2332,19 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 		fsess->download_manager = gf_dm_new(fsess);
 	}
 	return fsess->download_manager;
+}
+
+GF_EXPORT
+struct _gf_ft_mgr *gf_filter_get_font_manager(GF_Filter *filter)
+{
+	GF_FilterSession *fsess;
+	if (!filter) return NULL;
+	fsess = filter->session;
+
+	if (!fsess->font_manager) {
+		fsess->font_manager = gf_font_manager_new();
+	}
+	return fsess->font_manager;
 }
 
 void gf_fs_cleanup_filters(GF_FilterSession *fsess)

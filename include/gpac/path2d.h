@@ -277,6 +277,17 @@ Adds an arc contour to the path from end point, radii and 3 parameters.
 \return error code if any error, \ref GF_OK otherwise
  */
 GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, Fixed r_y, Fixed x_axis_rotation, Bool large_arc_flag, Bool sweep_flag);
+
+/*! Close type for arc*/
+typedef enum
+{
+	/*! Arc is left open*/
+	GF_PATH2D_ARC_OPEN=0,
+	/*! Arc is closed to its starting point*/
+	GF_PATH2D_ARC_CLOSE,
+	/*! Arc is closed as a pie centered on arc center*/
+	GF_PATH2D_ARC_PIE,
+} GF_Path2DArcCloseType;
 /*!
 \brief adds arc to path
 
@@ -288,7 +299,7 @@ Adds an arc contour to the path.
 \param close_type closing type: 0 for open arc, 1 for close arc, 2 for pie
 \return error code if any error, \ref GF_OK otherwise
  */
-GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_angle, u32 close_type);
+GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_angle, GF_Path2DArcCloseType close_type);
 
 /*!
 \brief concatenates path
@@ -561,8 +572,6 @@ typedef struct
 	u32 num_dash;
 	/*! Value of the pattern dashes. Unit depends on the dash type*/
 	Fixed *dashes;
-	/*! SVG/CSS unit for the dashes */
-	u8 *dash_units;
 } GF_DashSettings;
 
 /*!\brief Pen properties

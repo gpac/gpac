@@ -1173,16 +1173,41 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 static Bool vout_on_event(void *cbk, GF_Event *evt)
 {
+	GF_FilterEvent fevt;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) cbk;
-	if (evt->type==GF_EVENT_SIZE) {
+
+	fevt.base.type = 0;
+	switch (evt->type) {
+	case GF_EVENT_SIZE:
 		if ((ctx->display_width != evt->size.width) || (ctx->display_height != evt->size.height)) {
 			ctx->display_width = evt->size.width;
 			ctx->display_height = evt->size.height;
 			ctx->display_changed = GF_TRUE;
 		}
+		break;
+	case GF_EVENT_CLICK:
+	case GF_EVENT_MOUSEUP:
+	case GF_EVENT_MOUSEDOWN:
+	case GF_EVENT_MOUSEOVER:
+	case GF_EVENT_MOUSEOUT:
+	case GF_EVENT_MOUSEMOVE:
+	case GF_EVENT_MOUSEWHEEL:
+	case GF_EVENT_KEYUP:
+	case GF_EVENT_KEYDOWN:
+	case GF_EVENT_LONGKEYPRESS:
+	case GF_EVENT_TEXTINPUT:
+
+		GF_FEVT_INIT(fevt, GF_FEVT_USER, ctx->pid);
+		fevt.user_event.event = *evt;
+		break;
 	}
-	gf_filter_ui_event(ctx->filter, evt);
-	return GF_TRUE;
+	if (gf_filter_ui_event(ctx->filter, evt))
+		return GF_TRUE;
+
+	if (fevt.base.type)
+	 	gf_filter_pid_send_event(ctx->pid, &fevt);
+
+	 return GF_TRUE;
 }
 
 static GF_Err vout_initialize(GF_Filter *filter)
