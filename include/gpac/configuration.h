@@ -114,10 +114,6 @@ This section documents the base data types of GPAC.
 /*Configuration for Android */
 #elif defined(GPAC_CONFIG_ANDROID)
 
-#ifndef GPAC_CONFIG_ANDROID
-#define GPAC_CONFIG_ANDROID
-#endif
-
 #define GPAC_HAS_IPV6
 #define GPAC_USE_GLES1X
 /*don't use fixed-point version on Android, not needed*/

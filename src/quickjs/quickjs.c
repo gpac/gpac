@@ -71,7 +71,7 @@
 
 /* define to include Atomics.* operations which depend on the OS
    threads */
-#if !defined(EMSCRIPTEN) && !defined(_MSC_VER)
+#if !defined(EMSCRIPTEN) && !defined(_MSC_VER) && !defined(GPAC_CONFIG_ANDROID)
 #define CONFIG_ATOMICS
 #endif
 
