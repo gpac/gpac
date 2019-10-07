@@ -2980,7 +2980,6 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_filter_post_task(NULL,NULL,NULL,NULL);
 	gf_filter_get_num_events_queued(NULL);
 	gf_filter_get_arg_str(NULL, NULL, NULL);
-	gf_filter_get_arg(NULL, NULL);
 	gf_filter_all_sinks_done(NULL);
 
 	gf_opts_discard_changes();
