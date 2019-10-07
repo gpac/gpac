@@ -1900,15 +1900,19 @@ static inline void set_value(JSContext *ctx, JSValue *pval, JSValue new_val)
 
 void JS_SetClassProto(JSContext *ctx, JSClassID class_id, JSValue obj)
 {
+#ifdef _DEBUG
     JSRuntime *rt = ctx->rt;
     assert(class_id < rt->class_count);
+#endif
     set_value(ctx, &ctx->class_proto[class_id], obj);
 }
 
 JSValue JS_GetClassProto(JSContext *ctx, JSClassID class_id)
 {
+#ifdef _DEBUG
     JSRuntime *rt = ctx->rt;
     assert(class_id < rt->class_count);
+#endif
     return JS_DupValue(ctx, ctx->class_proto[class_id]);
 }
 
@@ -31769,11 +31773,12 @@ static JSValue JS_EvalObject(JSContext *ctx, JSValueConst this_obj,
 JSValue JS_Eval(JSContext *ctx, const char *input, size_t input_len,
                 const char *filename, int eval_flags)
 {
-    int eval_type = eval_flags & JS_EVAL_TYPE_MASK;
     JSValue ret;
-
+#ifdef _DEBUG
+    int eval_type = eval_flags & JS_EVAL_TYPE_MASK;
     assert(eval_type == JS_EVAL_TYPE_GLOBAL ||
            eval_type == JS_EVAL_TYPE_MODULE);
+#endif
     ret = JS_EvalInternal(ctx, ctx->global_obj, input, input_len, filename,
                           eval_flags, -1);
     return ret;
@@ -31782,11 +31787,12 @@ JSValue JS_Eval(JSContext *ctx, const char *input, size_t input_len,
 JSValue JS_EvalWithTarget(JSContext *ctx, JSValueConst this_obj, const char *input, size_t input_len,
                 const char *filename, int eval_flags)
 {
-    int eval_type = eval_flags & JS_EVAL_TYPE_MASK;
     JSValue ret;
-
+#ifdef _DEBUG
+    int eval_type = eval_flags & JS_EVAL_TYPE_MASK;
     assert(eval_type == JS_EVAL_TYPE_GLOBAL ||
            eval_type == JS_EVAL_TYPE_MODULE);
+#endif
     ret = JS_EvalInternal(ctx, this_obj, input, input_len, filename,
                           eval_flags, -1);
     return ret;
@@ -50211,6 +50217,11 @@ static pthread_mutex_t js_atomics_mutex = PTHREAD_MUTEX_INITIALIZER;
 static struct list_head js_atomics_waiter_list =
     LIST_HEAD_INIT(js_atomics_waiter_list);
 
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
+
 static JSValue js_atomics_wait(JSContext *ctx,
                                JSValueConst this_obj,
                                int argc, JSValueConst *argv)
@@ -50273,8 +50284,21 @@ static JSValue js_atomics_wait(JSContext *ctx,
         pthread_cond_wait(&waiter->cond, &js_atomics_mutex);
         ret = 0;
     } else {
+
+#ifdef __MACH__
+		// OS X pre sierra does not have clock_gettime, use clock_get_time
+		clock_serv_t cclock;
+		mach_timespec_t mts;
+		host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+		clock_get_time(cclock, &mts);
+		mach_port_deallocate(mach_task_self(), cclock);
+		ts.tv_sec = mts.tv_sec;
+		ts.tv_nsec = mts.tv_nsec;
+
+#else
         /* XXX: use clock monotonic */
         clock_gettime(CLOCK_REALTIME, &ts);
+#endif
         ts.tv_sec += timeout / 1000;
         ts.tv_nsec += (timeout % 1000) * 1000000;
         if (ts.tv_nsec >= 1000000000) {
