@@ -1,8 +1,0 @@
-CHAPTER1=00:00:00:00
-CHAPTER1NAME=Introduction France 2
-CHAPTER2=00:1:58:00
-CHAPTER2NAME=G‚n‚rique
-CHAPTER3=00:2:2:00
-CHAPTER3NAME=Le Sacre de Poutine
-CHAPTER4=00:04:00:00
-CHAPTER4NAME=Koursk, sous-marin en eaux troubles

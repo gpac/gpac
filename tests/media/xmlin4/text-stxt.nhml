@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<NHNTStream version="1.0" timeScale="1000" mediaType="text" mediaSubType="stxt" mime_type="text/plain" text_encoding="utf-8" baseMediaFile="input.txt" >
- <NHNTSample DTS="0" dataLength="45" isRAP="yes" />
- <NHNTSample DTS="1000" dataLength="820" />
- <NHNTSample DTS="2000" dataLength="449" />
- <NHNTSample DTS="3000" dataLength="487" isRAP="yes" />
- <NHNTSample DTS="4000" dataLength="542" />
-</NHNTStream>
