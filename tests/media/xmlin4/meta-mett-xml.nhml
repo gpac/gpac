@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<NHNTStream version="1.0" timeScale="1000" mediaType="meta" mediaSubType="mett" mime_type="text/plain" text_encoding="utf-8" baseMediaFile="input.xml" >
-<NHNTSample DTS="0"     isRAP="yes" xmlFrom="doc.start" xmlTo="elt1.end"/>
-<NHNTSample DTS="10000" isRAP="no" xmlFrom="elt2.start" xmlTo="elt2.end"/>
-<NHNTSample DTS="20000" isRAP="no" xmlFrom="elt3.start" xmlTo="doc.end"/>
-</NHNTStream>
