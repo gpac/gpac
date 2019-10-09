@@ -9036,8 +9036,7 @@ GF_Err ssix_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size < 4) return GF_BAD_PARAM;
 	ptr->subsegment_count = gf_bs_read_u32(bs);
 	ptr->size -= 4;
-	if (ptr->size < ptr->subsegment_count*sizeof(GF_SubsegmentInfo))
-	    return GF_ISOM_INVALID_FILE;
+
 	ptr->subsegments = gf_malloc(ptr->subsegment_count*sizeof(GF_SubsegmentInfo));
 	if (!ptr->subsegments)
 	    return GF_OUT_OF_MEM;
@@ -9216,8 +9215,6 @@ GF_Err pcrb_Read(GF_Box *s,GF_BitStream *bs)
 	ptr->subsegment_count = gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
 
-	if (ptr->size < sizeof(u64)*ptr->subsegment_count)
-	    return GF_ISOM_INVALID_FILE;
 	ptr->pcr_values = gf_malloc(sizeof(u64)*ptr->subsegment_count);
 	if (!ptr->pcr_values)
 	    return GF_OUT_OF_MEM;
