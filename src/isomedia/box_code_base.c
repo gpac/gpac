@@ -8941,8 +8941,6 @@ GF_Err sidx_Read(GF_Box *s,GF_BitStream *bs)
 	ptr->nb_refs = gf_bs_read_u16(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
 
-	if (ptr->size < sizeof(GF_SIDXReference)*ptr->nb_refs)
-	    return GF_ISOM_INVALID_FILE;
 	ptr->refs = gf_malloc(sizeof(GF_SIDXReference)*ptr->nb_refs);
 	if (!ptr->refs)
 	    return GF_OUT_OF_MEM;
