@@ -37,9 +37,10 @@ endif
 ifeq ($(STATICBUILD),yes)
 ##include static modules and other deps for libgpac
 include ../../static.mak
-LINKFLAGS=-lgpac_static $(GPAC_SH_FLAGS) $(EXTRALIBS)
+LINKFLAGS+=$(shell pkg-config ../../gpac.pc --libs --static | sed 's/-lgpac //'  )
+LINKFLAGS+=$(GPAC_SH_FLAGS) $(EXTRALIBS)
 else
-LINKFLAGS+=-lgpac 
+LINKFLAGS+=-lgpac
 ifeq ($(CONFIG_DARWIN),yes)
 #LINKFLAGS+= -Wl,-rpath,'@loader_path'
 else
@@ -55,14 +56,14 @@ LDFLAGS += -framework Carbon
 endif
 
 
-SRCS := $(OBJS:.o=.c) 
+SRCS := $(OBJS:.o=.c)
 
 all: $(PROG)
 
 MP4Client$(EXE): $(OBJS)
 	$(CC) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LINKFLAGS) $(LDFLAGS)
 
-clean: 
+clean:
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
 
 install: clean
@@ -74,7 +75,7 @@ uninstall:
 dep: depend
 
 depend:
-	rm -f .depend	
+	rm -f .depend
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
 
 distclean: clean
