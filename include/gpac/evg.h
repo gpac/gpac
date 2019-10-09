@@ -151,7 +151,7 @@ GF_Err gf_evg_stencil_set_matrix(GF_EVGStencil *stencil, GF_Matrix2D *mat);
 \param stencil the target stencil
 \return stencil type
 */
-GF_StencilType gf_evg_stencil_type(GF_EVGStencil *sten);
+GF_StencilType gf_evg_stencil_type(GF_EVGStencil *stencil);
 
 /*! sets color for solid brush stencil
 \param stencil the target stencil
@@ -210,7 +210,7 @@ GF_Err gf_evg_stencil_set_gradient_interpolation(GF_EVGStencil *stencil, Fixed *
 \param col color at the given position
 \return error if any
 */
-GF_Err gf_evg_stencil_push_gradient_interpolation(GF_EVGStencil * p, Fixed pos, GF_Color col);
+GF_Err gf_evg_stencil_push_gradient_interpolation(GF_EVGStencil *stencil, Fixed pos, GF_Color col);
 
 /*! sets global alpha blending level for a texture or gradient stencil
 The alpha channel will be combined with the color matrix if any
@@ -271,6 +271,14 @@ GF_Err gf_evg_stencil_set_filter(GF_EVGStencil *stencil, GF_TextureFilter filter
 \return error if any
  */
 GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil *stencil, GF_ColorMatrix *cmat);
+
+/*! gets pixel at given position (still experimental)
+\param stencil the target stencil
+\param x horizontal coord
+\param y vertical coord
+\return pixel value
+ */
+u32 gf_evg_stencil_get_pixel(GF_EVGStencil *stencil, u32 x, u32 y);
 
 /*! creates a canvas surface object
 \param center_coords if GF_TRUE, indicates mathematical-like coord system (0,0) at the center of the canvas, otherwise indicates computer-like coord system (0,0) top-left corner
@@ -356,22 +364,31 @@ GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, GF_Color col);
 */
 void gf_evg_surface_set_center_coords(GF_EVGSurface *surf, Bool center_coords);
 
-
+/*! Composition mode used for ARGB surfaces - cf Canvas2D modes*/
 typedef enum
 {
-	/*default*/
+	/*! source over*/
 	GF_EVG_SRC_OVER = 0,
+	/*! source atop*/
 	GF_EVG_SRC_ATOP,
+	/*! source in*/
 	GF_EVG_SRC_IN,
+	/*! source out*/
 	GF_EVG_SRC_OUT,
+	/*! destination atop*/
 	GF_EVG_DST_ATOP,
+	/*! destination in*/
 	GF_EVG_DST_IN,
+	/*! destination out*/
 	GF_EVG_DST_OUT,
+	/*! destination over*/
 	GF_EVG_DST_OVER,
+	/*! destination * source*/
 	GF_EVG_LIGHTER,
+	/*! source copy*/
 	GF_EVG_COPY,
+	/*! source XOR destination*/
 	GF_EVG_XOR,
-	GF_EVG_CUSTOM
 } GF_EVGCompositeMode;
 
 /*! sets surface composite mode, as defined in Canvas2D - only used for ARGB surfaces

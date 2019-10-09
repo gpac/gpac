@@ -1876,7 +1876,14 @@ void gf_filter_remove_src(GF_Filter *filter, GF_Filter *src_filter);
 \param filter the target filter
 \param max_extra_pids the number of additional PIDs this filter can accept
 */
-void gf_filter_sep_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids);
+void gf_filter_set_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids);
+
+/*! Gets the number of additional input PID a filter can accept. This overrides the default value of the filter register
+\param filter the target filter
+\return max_extra_pids the number of additional PIDs this filter can accept
+*/
+u32 gf_filter_get_max_extra_input_pids(GF_Filter *filter);
+
 
 /*! Queries if blocking mode is enabled for the filter
 \param filter the target filter
@@ -2098,6 +2105,15 @@ This is a recursive call on both input and ouput chain
 */
 void gf_filter_release_property(GF_PropertyEntry *propentry);
 
+/*! Flags for argument update event*/
+typedef enum
+{
+	/*! the update event can be sent down the source chain*/
+	GF_FILTER_UPDATE_DOWNSTREAM = 1<<1,
+	/*! the update event can be sent up the filter chain*/
+	GF_FILTER_UPDATE_UPSTREAM = 1<<2,
+} GF_EventPropagateType;
+
 /*! Sends a filter argument update
 \param filter the target filter
 \param target_filter_id if set, the target filter will be changed to the filter with this id if any. otherwise the target filter is the one specified
@@ -2105,7 +2121,7 @@ void gf_filter_release_property(GF_PropertyEntry *propentry);
 \param arg_val argument value
 \param propagate_mask propagation flags - 0 means no propagation
 */
-void gf_filter_send_update(GF_Filter *filter, const char *target_filter_id, const char *arg_name, const char *arg_val, u32 propagate_mask);
+void gf_filter_send_update(GF_Filter *filter, const char *target_filter_id, const char *arg_name, const char *arg_val, GF_EventPropagateType propagate_mask);
 
 
 
@@ -2824,15 +2840,6 @@ Note: PIDs are never fully blocking in GPAC, a filter requesting an output packe
 */
 Bool gf_filter_pid_would_block(GF_FilterPid *PID);
 
-/*! Flags for argument update event*/
-enum
-{
-	/*! the update event can be sent down the source chain*/
-	GF_FILTER_UPDATE_DOWNSTREAM = 1<<1,
-	/*! the update event can be sent up the filter chain*/
-	GF_FILTER_UPDATE_UPSTREAM = 1<<2,
-};
-
 /*! Shortcut to access the timescale of the PID - faster than get property as the timescale is locally cached for buffer management
 \param PID the target filter PID
 \return the PID timescale
@@ -3061,9 +3068,9 @@ The packet has by default no DTS, no CTS, no duration framing set to full frame 
 */
 GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *PID, u32 data_size, u8 **data, gf_fsess_packet_destructor destruct);
 
-/*! Clones a new packet from a source packet.
-If the source packet uses a frame interface object or has no associated data, returns NULL.
-If the source packet is referenced more than once (ie more than just the caller), a new packet on the output PID is allocated with identical data (alloc and copy) than the source.
+/*! Clones a new packet from a source packet and copy all source properties to output.
+If the source packet uses a frame interface object or has no associated data, returns a copy of the packet.
+If the source packet is referenced more than once (ie more than just the caller), a new packet on the output PID is allocated with source data copied.
 Otherwise, the source data is assigned to the output packet.
  This is typically called by filter wishing to perform in-place processing of input data.
 \param PID the target output PID
@@ -3073,6 +3080,13 @@ Otherwise, the source data is assigned to the output packet.
 */
 GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *PID, GF_FilterPacket *pck_source, u8 **data);
 
+/*! Copies a new packet from a source packet and copy all source properties to output.
+\param PID the target output PID
+\param pck_source the desired source packet to clone
+\param data set to the writable buffer of the created packet
+\return new packet or NULL if error
+*/
+GF_FilterPacket *gf_filter_pck_new_copy(GF_FilterPid *PID, GF_FilterPacket *pck_source, u8 **data);
 
 /*! Marks memory of a shared packet as non-writable. By default \ref gf_filter_pck_new_shared and \ref gf_filter_pck_new_ref allow
 write access to internal memory in case the packet can be cloned (single reference used). If your filter relies on the content of the shared

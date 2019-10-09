@@ -140,4 +140,5 @@ This is a short overview of the gpac source repository.
 For more information, visit:
 - the GPAC website: http://gpac.io
 - the GPAC wiki: https://github.com/gpac/gpac/wiki
+- the libgpac documentation wiki: https://doxygen.gpac.io
 

@@ -5650,7 +5650,7 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 {
 	GF_Err e;
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
-	gf_filter_sep_max_extra_input_pids(filter, -1);
+	gf_filter_set_max_extra_input_pids(filter, -1);
 
 	ctx->pids = gf_list_new();
 	ctx->postponed_pids = gf_list_new();

@@ -657,7 +657,7 @@ MAX_INITIALIZER_LINES  = 30
 # list will mention the files that were used to generate the documentation.
 # The default value is: YES.
 
-SHOW_USED_FILES        = YES
+SHOW_USED_FILES        = NO
 
 # Set the SHOW_FILES tag to NO to disable the generation of the Files page. This
 # will remove the Files entry from the Quick Index and from the Folder Tree View
@@ -775,7 +775,8 @@ WARN_LOGFILE           = doxygen_warnings.txt
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = ../../include/gpac/
+#for some weird reason on OSX enumeration does not work properly, add IDL files by hand
+INPUT=../../include/gpac/ ../../README.md ../../share/doc/idl/jsf.idl ../../share/doc/idl/xhr.idl ../../share/doc/idl/evg.idl
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -954,7 +955,7 @@ FILTER_SOURCE_PATTERNS =
 # (index.html). This can be useful if you have a project on for instance GitHub
 # and want to reuse the introduction page also for the doxygen output.
 
-USE_MDFILE_AS_MAINPAGE =
+USE_MDFILE_AS_MAINPAGE = ../../README.md
 
 #---------------------------------------------------------------------------
 # Configuration options related to source browsing

@@ -237,7 +237,7 @@ Adds an ellipse contour to the path
  */
 GF_Err gf_path_add_ellipse(GF_Path *gp, Fixed cx, Fixed cy, Fixed a_axis, Fixed b_axis);
 /*!
-\brief adds N-bezier curve to path
+\brief adds N-1 bezier curve to path
 
 Adds an N-degree bezier curve to the path, starting from the current point
 \param gp the target path
@@ -595,7 +595,7 @@ typedef struct
 	/*! The initial dash offset in the outline. All points before this offset will be
 	* ignored when building the outline*/
 	Fixed dash_offset;
-	/*! The dash pattern used for curstom dashing*/
+	/*! The dash pattern used for custom dashing*/
 	GF_DashSettings *dash_set;
 	/*! The author-specified path length. Ignored if <= 0*/
 	Fixed path_length;

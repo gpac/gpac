@@ -774,7 +774,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 
 	if (! strcmp( "UTSink", gf_filter_get_name(filter))) {
 		stack->mode=UTF_MODE_SINK;
-		gf_filter_sep_max_extra_input_pids(filter, 10);
+		gf_filter_set_max_extra_input_pids(filter, 10);
 	}
 	else if (! strcmp( "UTFilter", gf_filter_get_name(filter))) stack->mode=UTF_MODE_FILTER;
 	else {

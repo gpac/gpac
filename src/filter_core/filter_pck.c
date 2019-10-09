@@ -231,8 +231,7 @@ static GF_FilterPacket *clone_frame_interface(GF_FilterPid *pid, GF_FilterPacket
 	return dst;
 }
 
-GF_EXPORT
-GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck_source, u8 **data)
+static GF_FilterPacket *gf_filter_pck_new_clone_internal(GF_FilterPid *pid, GF_FilterPacket *pck_source, u8 **data, Bool force_copy)
 {
 	GF_FilterPacket *dst, *ref;
 	u32 max_ref = 0;
@@ -243,17 +242,21 @@ GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck
 	if (pcki->pck->frame_ifce)
 		return clone_frame_interface(pid, pck_source, data);
 
-	ref = pcki->pck;
-	while (ref) {
-		if (ref->filter_owns_mem==2) {
-			max_ref = 2;
-			break;
+	if (force_copy) {
+		max_ref = 2;
+	} else {
+		ref = pcki->pck;
+		while (ref) {
+			if (ref->filter_owns_mem==2) {
+				max_ref = 2;
+				break;
+			}
+			if (ref->reference_count>max_ref)
+				max_ref = ref->reference_count;
+			ref = ref->reference;
 		}
-		if (ref->reference_count>max_ref)
-			max_ref = ref->reference_count;
-		ref = ref->reference;
 	}
-
+	
 	if (max_ref>1) {
 		dst = gf_filter_pck_new_alloc_internal(pid, pcki->pck->data_length, data, GF_TRUE);
 		if (dst && data) {
@@ -269,6 +272,19 @@ GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck
 	}
 	return dst;
 }
+
+
+GF_EXPORT
+GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck_source, u8 **data)
+{
+	return gf_filter_pck_new_clone_internal(pid, pck_source, data, GF_FALSE);
+}
+GF_EXPORT
+GF_FilterPacket *gf_filter_pck_new_copy(GF_FilterPid *pid, GF_FilterPacket *pck_source, u8 **data)
+{
+	return gf_filter_pck_new_clone_internal(pid, pck_source, data, GF_TRUE);
+}
+
 
 GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_size, u8 **data, gf_fsess_packet_destructor destruct)

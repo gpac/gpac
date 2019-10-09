@@ -10,17 +10,17 @@ filter.set_author("GPAC team");
 filter.set_help("This filter porvides a very simple javascript inspecter");
 
 //exposed arguments
-filter.set_arg("raw", "if set, accept undemuxed input PIDs", GF_PROP_BOOL, "false");
-filter.set_arg("fwd", "if set, forward incoming packets to output PIDs", GF_PROP_BOOL, "false");
+filter.set_arg({name: "raw", desc: "if set, accept undemuxed input PIDs", type: GF_PROP_BOOL, def: "false"} );
+filter.set_arg({name: "fwd", desc: "if set, forward incoming packets to output PIDs", type: GF_PROP_BOOL, def: "false"} );
 //filter.max_pids = -1;
 
 filter.initialize = function() {
  print(GF_LOG_DEBUG, "Init at " + Date() + " nb pids " + this.pids.length);
 
  if (this.raw)
-	this.set_cap("StreamType", "Unknown", false, true);
+	this.set_cap({id: "StreamType", value: "Unknown", excluded: true} );
  else
-	this.set_cap("StreamType", "File", false, true);
+	this.set_cap({id: "StreamType", value: "File", excluded: true} );
 
  filter.xhr = new XMLHttpRequest();
  filter.xhr.responseType = "document";

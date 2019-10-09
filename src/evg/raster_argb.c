@@ -79,7 +79,6 @@ u32 do_composite_mode(GF_EVGCompositeMode comp_mode, u8 *srca, u8 *dsta)
 	case GF_EVG_XOR:
 		return 2;
 	case GF_EVG_SRC_OVER:
-	case GF_EVG_CUSTOM:
 		return 0;
 	}
 	return 0;

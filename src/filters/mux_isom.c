@@ -4221,7 +4221,7 @@ void mp4_mux_progress_cbk(void *udta, u64 done, u64 total)
 static GF_Err mp4_mux_initialize(GF_Filter *filter)
 {
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
-	gf_filter_sep_max_extra_input_pids(filter, -1);
+	gf_filter_set_max_extra_input_pids(filter, -1);
 
 	if (ctx->file) {
 		if (gf_isom_get_mode(ctx->file) < GF_ISOM_OPEN_WRITE) return GF_BAD_PARAM;

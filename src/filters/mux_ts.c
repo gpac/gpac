@@ -1181,7 +1181,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 static GF_Err tsmux_initialize(GF_Filter *filter)
 {
 	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
-	gf_filter_sep_max_extra_input_pids(filter, -1);
+	gf_filter_set_max_extra_input_pids(filter, -1);
 
 	ctx->mux = gf_m2ts_mux_new(ctx->rate, ctx->pat_rate, ctx->rt);
 	ctx->mux->flush_pes_at_rap = ctx->flush_rap;

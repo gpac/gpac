@@ -965,7 +965,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 	ctx->cfg_crc = dsi_crc;
 	ctx->codecid = codecid;
-	gf_filter_sep_max_extra_input_pids(filter, (codecid==GF_CODECID_HEVC) ? 5 : 0);
+	gf_filter_set_max_extra_input_pids(filter, (codecid==GF_CODECID_HEVC) ? 5 : 0);
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);

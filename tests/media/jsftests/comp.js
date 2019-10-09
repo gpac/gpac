@@ -9,13 +9,13 @@ filter.set_author("GPAC team");
 filter.set_help("This filter test loading of sources and destinations from JS");
 
 //exposed arguments
-filter.set_arg("in", "indicates source to load", GF_PROP_STRING, null);
-filter.set_arg("out", "indicates destination to write", GF_PROP_STRING, null);
-filter.set_arg("f", "indicates output filter", GF_PROP_STRING, null);
+filter.set_arg({name: "in", desc: "indicates source to load", type: GF_PROP_STRING} );
+filter.set_arg({name: "out", desc: "indicates destination to write", type: GF_PROP_STRING} );
+filter.set_arg({name: "f", desc: "indicates output filter", type: GF_PROP_STRING} );
 filter.max_pids = -1;
 //force demuxed inputs and outputs
-filter.set_cap("StreamType", "File", false, true);
-filter.set_cap("StreamType", "File", true, true);
+filter.set_cap({id: "StreamType", value; "File", excluded: true} );
+filter.set_cap({id: "StreamType", value: "File", output: true, excluded: true} );
 
 filter.initialize = function() {
 	if (!this.in) {

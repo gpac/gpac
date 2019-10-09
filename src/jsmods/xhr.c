@@ -23,6 +23,10 @@
  *
  */
 
+/*
+	ANY CHANGE TO THE API MUST BE REFLECTED IN THE DOCUMENTATION IN gpac/share/doc/idl/xhr.idl
+	(no way to define inline JS doc with doxygen)
+*/
 
 #include <gpac/setup.h>
 
@@ -54,30 +58,30 @@ typedef struct __xhr_context XMLHTTPContext;
  *
  *************************************************************/
 typedef enum {
-	XHR_ONABORT					= -1,
-	XHR_ONERROR					= -2,
-	XHR_ONLOAD					= -3,
-	XHR_ONLOADEND				= -4,
-	XHR_ONLOADSTART				= -5,
-	XHR_ONPROGRESS				= -6,
-	XHR_ONREADYSTATECHANGE		= -7,
-	XHR_ONTIMEOUT				= -8,
-	XHR_READYSTATE				= -9,
-	XHR_RESPONSE				= -10,
-	XHR_RESPONSETYPE			= -11,
-	XHR_RESPONSETEXT			= -12,
-	XHR_RESPONSEXML				= -13,
-	XHR_STATUS					= -14,
-	XHR_STATUSTEXT				= -15,
-	XHR_TIMEOUT					= -16,
-	XHR_UPLOAD					= -17,
-	XHR_WITHCREDENTIALS			= -18,
-	XHR_STATIC_UNSENT			= -19,
-	XHR_STATIC_OPENED			= -20,
-	XHR_STATIC_HEADERS_RECEIVED = -21,
-	XHR_STATIC_LOADING			= -22,
-	XHR_STATIC_DONE				= -23,
-	XHR_CACHE					= -24
+	XHR_ONABORT,
+	XHR_ONERROR,
+	XHR_ONLOAD,
+	XHR_ONLOADEND,
+	XHR_ONLOADSTART,
+	XHR_ONPROGRESS,
+	XHR_ONREADYSTATECHANGE,
+	XHR_ONTIMEOUT,
+	XHR_READYSTATE,
+	XHR_RESPONSE,
+	XHR_RESPONSETYPE,
+	XHR_RESPONSETEXT,
+	XHR_RESPONSEXML,
+	XHR_STATUS,
+	XHR_STATUSTEXT,
+	XHR_TIMEOUT,
+	XHR_UPLOAD,
+	XHR_WITHCREDENTIALS,
+	XHR_STATIC_UNSENT,
+	XHR_STATIC_OPENED,
+	XHR_STATIC_HEADERS_RECEIVED,
+	XHR_STATIC_LOADING,
+	XHR_STATIC_DONE,
+	XHR_CACHE,
 } XHR_JSProperty;
 
 typedef enum {
@@ -94,7 +98,9 @@ typedef enum {
 	XHR_RESPONSETYPE_BLOB,
 	XHR_RESPONSETYPE_DOCUMENT,
 	XHR_RESPONSETYPE_JSON,
-	XHR_RESPONSETYPE_TEXT
+	XHR_RESPONSETYPE_TEXT,
+	XHR_RESPONSETYPE_SAX,
+	XHR_RESPONSETYPE_PUSH,
 } XHR_ResponseType;
 
 typedef enum {
@@ -264,6 +270,7 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 static void xml_http_del_data(XMLHTTPContext *ctx)
 {
 	if (!JS_IsUndefined(ctx->arraybuffer)) {
+		JS_DetachArrayBuffer(ctx->c, ctx->arraybuffer);
 		JS_FreeValue(ctx->c, ctx->arraybuffer);
 		ctx->arraybuffer = JS_UNDEFINED;
 	}
@@ -622,8 +629,6 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 	}
 }
 
-#define USE_PROGRESSIVE_SAX	0
-
 static void xml_http_terminate(XMLHTTPContext *ctx, GF_Err error)
 {
 	/*if we get here, destroy downloader*/
@@ -729,7 +734,8 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		return;
 	case GF_NETIO_PARSE_HEADER:
 		xml_http_append_recv_header(ctx, parameter->name, parameter->value);
-		/*prepare DOM*/
+		/*prepare SAX parser*/
+		if (ctx->responseType != XHR_RESPONSETYPE_SAX) return;
 		if (strcmp(parameter->name, "Content-Type")) return;
 		if (!strncmp(parameter->value, "application/xml", 15)
 		        || !strncmp(parameter->value, "text/xml", 8)
@@ -747,28 +753,58 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		return;
 	case GF_NETIO_DATA_EXCHANGE:
 		if (parameter->data && parameter->size) {
-#if USE_PROGRESSIVE_SAX
 			if (ctx->sax) {
 				GF_Err e;
-				if (!ctx->size) e = gf_xml_sax_init(ctx->sax, parameter->data);
+				if (!ctx->size) e = gf_xml_sax_init(ctx->sax, (unsigned char *) parameter->data);
 				else e = gf_xml_sax_parse(ctx->sax, parameter->data);
 				if (e) {
 					gf_xml_sax_del(ctx->sax);
 					ctx->sax = NULL;
 				}
 			}
-#endif
-			ctx->data = (char *)gf_realloc(ctx->data, sizeof(char)*(ctx->size+parameter->size+1));
-			memcpy(ctx->data + ctx->size, parameter->data, sizeof(char)*parameter->size);
-			ctx->size += parameter->size;
-			ctx->data[ctx->size] = 0;
+
+			/*detach arraybuffer if any*/
+			if (!JS_IsUndefined(ctx->arraybuffer)) {
+				JS_DetachArrayBuffer(ctx->c, ctx->arraybuffer);
+				JS_FreeValue(ctx->c, ctx->arraybuffer);
+				ctx->arraybuffer = JS_UNDEFINED;
+			}
+
+			if (ctx->responseType!=XHR_RESPONSETYPE_PUSH) {
+				ctx->data = (char *)gf_realloc(ctx->data, sizeof(char)*(ctx->size+parameter->size+1));
+				memcpy(ctx->data + ctx->size, parameter->data, sizeof(char)*parameter->size);
+				ctx->size += parameter->size;
+				ctx->data[ctx->size] = 0;
+			}
+
+			if (JS_IsFunction(ctx->c, ctx->onprogress) ) {
+				JSValue prog_evt = JS_NewObject(ctx->c);
+				JSValue buffer_ab=JS_UNDEFINED;
+				u32 bps=0;
+				u64 tot_size=0;
+				gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &tot_size, NULL, &bps, NULL);
+				JS_SetPropertyStr(ctx->c, prog_evt, "lengthComputable", JS_NewBool(ctx->c, tot_size ? 1 : 0));
+				JS_SetPropertyStr(ctx->c, prog_evt, "loaded", JS_NewInt64(ctx->c, ctx->size));
+				JS_SetPropertyStr(ctx->c, prog_evt, "total", JS_NewInt64(ctx->c, tot_size));
+				JS_SetPropertyStr(ctx->c, prog_evt, "bps", JS_NewInt64(ctx->c, bps*8));
+				if (ctx->responseType==XHR_RESPONSETYPE_PUSH) {
+					buffer_ab = JS_NewArrayBuffer(ctx->c, (u8 *) parameter->data, parameter->size, NULL, ctx, 1);
+					JS_SetPropertyStr(ctx->c, prog_evt, "buffer", buffer_ab);
+				}
+
+				JSValue rval = JS_Call(ctx->c, ctx->onprogress, ctx->_this, 1, &prog_evt);
+				if (JS_IsException(rval)) js_dump_error(ctx->c);
+				JS_FreeValue(ctx->c, rval);
+				if (ctx->responseType==XHR_RESPONSETYPE_PUSH) {
+					JS_DetachArrayBuffer(ctx->c, buffer_ab);
+				}
+				JS_FreeValue(ctx->c, prog_evt);
+			}
 		}
 		return;
 	case GF_NETIO_DATA_TRANSFERED:
 		if (ctx->sax) {
-#if !USE_PROGRESSIVE_SAX
 			gf_xml_sax_init(ctx->sax, (unsigned char *) ctx->data);
-#endif
 		}
 		/* No return, go till the end of the function */
 		break;
@@ -1099,7 +1135,8 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 				return JS_NULL;
 			case XHR_RESPONSETYPE_JSON:
 				return JS_ParseJSON(c, ctx->data, ctx->size, "responseJSON");
-
+			case XHR_RESPONSETYPE_PUSH:
+				return JS_EXCEPTION;
 			default:
 				/*other	types not supported	*/
 				break;
@@ -1128,8 +1165,10 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 		case XHR_RESPONSETYPE_ARRAYBUFFER: return JS_NewString(c, "arraybuffer");
 		case XHR_RESPONSETYPE_BLOB: return JS_NewString(c, "blob");
 		case XHR_RESPONSETYPE_DOCUMENT: return JS_NewString(c, "document");
+		case XHR_RESPONSETYPE_SAX: return JS_NewString(c, "sax");
 		case XHR_RESPONSETYPE_JSON: return JS_NewString(c, "json");
 		case XHR_RESPONSETYPE_TEXT: return JS_NewString(c, "text");
+		case XHR_RESPONSETYPE_PUSH: return JS_NewString(c, "push");
 		}
 		return JS_NULL;
 	case XHR_STATIC_UNSENT:
@@ -1215,6 +1254,10 @@ static JSValue xml_http_setProperty(JSContext *c, JSValueConst obj, JSValueConst
 			ctx->responseType = XHR_RESPONSETYPE_JSON;
 		} else if (!strcmp(str, "text")) {
 			ctx->responseType = XHR_RESPONSETYPE_TEXT;
+		} else if (!strcmp(str, "sax")) {
+			ctx->responseType = XHR_RESPONSETYPE_SAX;
+		} else if (!strcmp(str, "push")) {
+			ctx->responseType = XHR_RESPONSETYPE_PUSH;
 		}
 		JS_FreeCString(c, str);
 		return JS_TRUE;

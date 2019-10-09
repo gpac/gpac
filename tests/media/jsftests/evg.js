@@ -9,10 +9,6 @@ filter.set_version("0.1beta");
 filter.set_author("GPAC team");
 filter.set_help("This filter provides testing of gpac's vector graphics bindings");
 
-//exposed arguments
-//filter.set_arg("raw", "if set, accept undemuxed input PIDs", GF_PROP_BOOL, "false");
-//filter.max_pids = -1;
-
 let width = 320;
 let height = 240;
 let fps = {n:25, d:1};
@@ -66,8 +62,8 @@ mxtxt.translate(-50, -100);
 filter.initialize = function() {
 print('ok ');
 
-this.set_cap("StreamType", "Video", true);
-this.set_cap("CodecID", "raw", true);
+this.set_cap({id: "StreamType", value: "Video", output: true} );
+this.set_cap({id: "CodecID", value: "raw", ouput: true} );
 
 pid = this.new_pid();
 pid.set_prop('StreamType', 'Visual');
@@ -106,11 +102,12 @@ filter.process = function()
 //	let clip = {x:2*cts,y:2*cts,w:50,h:20};
 //	canvas.clearf(clip, 1.0);
 
-	canvas.on_alpha = function(in_alpha, x, y) {
+/*	canvas.on_alpha = function(in_alpha, x, y) {
 		//return Math.random() * 255;
 		return x > y ? in_alpha : 255 - in_alpha;
 		//return in_alpha;
 	}
+*/
 	mx.rotate(0, 0, 0.1);
 	mxi = mx;
 
