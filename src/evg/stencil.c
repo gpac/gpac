@@ -520,7 +520,7 @@ static GFINLINE s64 mul_wide(s64 a, s64 b)
 {
 	return ((a+1) * b) >> 16;
 }
-static u64 EVG_LERP(u64 c0, u64 c1, u8 t)
+static u64 EVG_LERP_WIDE(u64 c0, u64 c1, u8 t)
 {
 	s64 a0, r0, g0, b0;
 	s64 a1, r1, g1, b1;
@@ -685,39 +685,38 @@ static void tex_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32 _y, 
 			tx = FIX2INT(gf_muldiv(x, 255, _this->width) );
 			ty = FIX2INT(gf_muldiv(y, 255, _this->height) );
 
-			if (tx>120 || ty>120) {
-				x1 = (x0+incx);
-				if (x1<0) {
-					while (x1<0) x1 += _this->width;
-				} else {
-					x1 = x1 % _this->width;
-				}
-				y1 = (y0+incy);
-				if (y1<0) {
-					while (y1<0) y1+=_this->height;
-				} else {
-					y1 = y1 % _this->height;
-				}
-				if (incx>0) {
-					if (x1<x0) tx = 255-tx;
-				} else {
-					if (x1>x0) tx = 255-tx;
-				}
-				if (incy>0) {
-					if (y1<y0) ty = 255-ty;
-				} else {
-					if (y1>y0) ty = 255-ty;
-				}
-
-				p00 = pix;
-				p01 = _this->tx_get_pixel(_this, x1, y0);
-				p10 = _this->tx_get_pixel(_this, x0, y1);
-				p11 = _this->tx_get_pixel(_this, x1, y1);
-
-				p00 = EVG_LERP(p00, p01, tx);
-				p10 = EVG_LERP(p10, p11, tx);
-				pix = EVG_LERP(p00, p10, ty);
+			x1 = (x0+incx);
+			if (x1<0) {
+				while (x1<0) x1 += _this->width;
+			} else {
+				x1 = x1 % _this->width;
 			}
+			y1 = (y0+incy);
+			if (y1<0) {
+				while (y1<0) y1+=_this->height;
+			} else {
+				y1 = y1 % _this->height;
+			}
+			if (incx>0) {
+				if (x1<x0) tx = 255-tx;
+			} else {
+				if (x1>x0) tx = 255-tx;
+			}
+			if (incy>0) {
+				if (y1<y0) ty = 255-ty;
+			} else {
+				if (y1>y0) ty = 255-ty;
+			}
+
+			p00 = pix;
+			p01 = _this->tx_get_pixel(_this, x1, y0);
+			p10 = _this->tx_get_pixel(_this, x0, y1);
+			p11 = _this->tx_get_pixel(_this, x1, y1);
+
+			p00 = EVG_LERP(p00, p01, tx);
+			p10 = EVG_LERP(p10, p11, tx);
+			pix = EVG_LERP(p00, p10, ty);
+
 		}
 #endif
 
@@ -1737,6 +1736,17 @@ GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil * st, GF_ColorMatrix *cmat)
 		gf_cmx_copy(&_this->cmat, cmat);
 	}
 	return GF_OK;
+}
+
+GF_EXPORT
+u32 gf_evg_stencil_get_pixel(GF_EVGStencil *st, u32 x, u32 y)
+{
+	u32 col;
+	EVG_Texture *_this = (EVG_Texture *) st;
+	if (!_this || (_this->type != GF_STENCIL_TEXTURE) || !_this->tx_get_pixel) return 0;
+	col = _this->tx_get_pixel(_this, x, y);
+	if (_this->is_yuv) return evg_ayuv_to_argb(NULL, col);
+	return col;
 }
 
 GF_EXPORT

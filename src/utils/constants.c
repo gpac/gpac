@@ -1038,5 +1038,74 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 	return 0;
 }
 
+GF_EXPORT
+u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
+{
+	switch (pixfmt) {
+	case GF_PIXEL_GREYSCALE:
+		return 1;
+	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
+		return 2;
+	case GF_PIXEL_RGB_444:
+	case GF_PIXEL_RGB_555:
+	case GF_PIXEL_RGB_565:
+	case GF_PIXEL_RGBX:
+	case GF_PIXEL_BGRX:
+	case GF_PIXEL_XRGB:
+	case GF_PIXEL_XBGR:
+		return 3;
+	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBA:
+	case GF_PIXEL_BGRA:
+	case GF_PIXEL_ABGR:
+		return 4;
+	case GF_PIXEL_RGBD:
+		return 4;
+	case GF_PIXEL_RGBDS:
+		return 5;
+	case GF_PIXEL_RGBAS:
+		return 5;
+	case GF_PIXEL_RGB_DEPTH:
+		return 4;
+	case GF_PIXEL_RGB:
+	case GF_PIXEL_BGR:
+		return 3;
+	case GF_PIXEL_RGBS:
+		return 4;
+	case GF_PIXEL_YUV:
+		return 3;
+	case GF_PIXEL_YUVA:
+		return 4;
+	case GF_PIXEL_YUVD:
+		return 4;
+	case GF_PIXEL_YUV_10:
+		return 3;
+	case GF_PIXEL_YUV422:
+		return 3;
+	case GF_PIXEL_YUV422_10:
+		return 3;
+	case GF_PIXEL_YUV444:
+		return 3;
+	case GF_PIXEL_YUV444_10:
+		return 3;
+	case GF_PIXEL_NV12:
+	case GF_PIXEL_NV21:
+		return 3;
+	case GF_PIXEL_NV12_10:
+	case GF_PIXEL_NV21_10:
+		return 3;
+	case GF_PIXEL_UYVY:
+	case GF_PIXEL_VYUY:
+	case GF_PIXEL_YUYV:
+	case GF_PIXEL_YVYU:
+		return 3;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get number of components per pixel info\n", gf_pixel_fmt_name(pixfmt) ));
+		break;
+	}
+	return 0;
+}
+
 
 

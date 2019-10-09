@@ -1,0 +1,889 @@
+/*
+\file
+\brief silence !
+*/
+
+/*!
+
+\defgroup jsevg_grp EVG JS API
+\ingroup jsapi_grp
+\brief Embedded Vector Graphics JavaScript API.
+
+This module provides bindings for GPAC \ref evg_grp engine called EVG
+
+The API is loaded as a JS module with the name "evg":
+
+\code
+import * as evg from 'evg'
+
+...
+\endcode
+
+The API supports all 2D Vector Graphics from \ref evg_grp, \ref path_grp, bindings for 2D matrices and text rendering as used by the \ref compose_grp.
+
+The API is a low level access to the 2D rasterizer and does not follow the Canvas2D API (https://www.w3.org/TR/2dcontext/) but most of the tools required
+to implement Canvas2D are present in the evg API. 
+
+It allows a filter to:
+- generate new video frames from scratch
+- use input video frames to generate new frames
+- generate vector graphics and text directly on input video frames
+
+Whenever pixel coordinates are indicated, 0,0 indicates:
+- the center of the surface if the surface uses centered coordinates
+- the top-left of the surface if the surface does not use centered coordinates
+
+Whenever using an object as a parameter to a function, only the parameter names as listed in the corresponding interface object are checked. The name of the interface is not, and it usually does not define any constructor 
+@{
+
+
+*/
+
+/*! The Canvas object is used to draw vectorial path */
+interface Canvas {
+	/*! Canvas constructor. The canvas memory is owned by the canvas object
+	\param width the width in pixels of the canvas
+	\param height the height in pixels of the canvas
+	\param pixfmt the pixel fomat of the canvas
+	 */
+	Canvas(unsigned long width, unsigned long height, DOMString pixfmt);
+	/*! Canvas constructor
+	\param width the width in pixels of the canvas
+	\param height the height in pixels of the canvas
+	\param pixfmt the pixel fomat of the canvas
+	\param data the data buffer on which to write. The size shall be greater than the size required for the given size and pixel format.
+	\param stride horizontal stride in pixel of the data
+	\param stride_uv horizontal stride in pixel of the data for the U and V planes
+	 */
+	Canvas(unsigned long width, unsigned long height, DOMString pixfmt, ArrayBuffer data, optional unsigned long stride=0, optional unsigned long stride_uv=0);
+
+/*! indicates if surface coordinates are centered or not - see \ref gf_evg_surface_set_center_coords*/
+attribute boolean centered;
+
+/*! path to draw - see \ref gf_evg_surface_set_path*/
+writeonly Path path;
+
+/*! matrix to apply to path - see \ref gf_evg_surface_set_matrix. 
+\note A same path can be drawn several times with different matrices, null means no matrix. */
+writeonly Matrix2D matrix;
+
+/*! clipper in pixel coordinates - see \ref gf_evg_surface_set_clipper
+\note A same path can be drawn several times with different clipper, null means no clipper. Clipper applies to both fill and clear functions*/
+writeonly IRect clipper;
+
+/*! composite operation for alpha surfaces - see \ref gf_evg_surface_set_composite_mode*/
+attribute unsigned long compositeOperation;
+
+/*! alpha custom callback composite operation for alpha surfaces - see \ref gf_evg_surface_set_alpha_callback
+Default is undefined at creation time*/
+attribute AlphaCallback on_alpha;
+
+/*! clears the canvas with the given color - see \ref gf_evg_surface_clear
+\note Omitting the last values will assume 0xFF for alpha, and 0 for other values. 
+\param rc the rectangle to clear, in pixel coordinates
+\param r red value, between 0 and 255
+\param g green value, between 0 and 255
+\param b blue value, between 0 and 255
+\param a alpha value, between 0 and 255
+*/
+void clear(IRect rc, unsigned long r, unsigned long g, unsigned long b, unsigned long a);
+
+/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+void clear(IRect rc, DOMString color);
+
+/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+void clear(IRect rc, DOMString color);
+
+/*! clears the canvas with the given color
+\note Omitting the last values will assume 1.0 for alpha, and 0.0 for other values. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param r red value, between 0.0 and 1.0
+\param g green value, between 0.0 and 1.0
+\param b blue value, between 0.0 and 1.0
+\param a alpha value, between 0.0 and 1.0
+*/
+void clearf(IRect rc, double r, double g, double b, double a);
+
+/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+void clearf(IRect rc, DOMString color);
+
+/*! fills the path with the given solid brush or gradient stencil - see \ref gf_evg_surface_fill
+\param stencil the stencil to use*/
+void fill(Stencil stencil);
+
+/*! fills the path with the given texture - see \ref gf_evg_surface_fill
+\param texture the texture to use*/
+void fill(Texture texture);
+
+};
+
+
+/*! rectangle object, pixel coordinate */
+interface IRect
+{
+	/*! x coordinate in pixels of top-left corner*/
+	unsigned long x;
+	/*! y coordinate in pixels of top-left corner*/
+	unsigned long x;
+	/*! width of rectangle in pixels*/
+	unsigned long w;
+	/*! height of rectangle in pixels*/
+	unsigned long h;
+};
+
+/*! rectangle object */
+interface Rect
+{
+	/*! x coordinate of top-left corner*/
+	unsigned long x;
+	/*! y coordinate  of top-left corner*/
+	unsigned long x;
+	/*! width of rectangle*/
+	unsigned long w;
+	/*! height of rectangle*/
+	unsigned long h;
+};
+
+/*! point object */
+interface Point2D
+{
+	/*! x coordinate of point*/
+	unsigned long x;
+	/*! y coordinate of point*/
+	unsigned long x;
+};
+
+/*! alpha callback type*/
+interface AlphaCallback {
+	/*! alpha callback functions
+	\param source_alpha value of alpha of source color at the given pixel coordinate. Values are between 0 and 255
+	\param x horizontal pixel coordinate, 0 meaning first column of raster surface
+	\param y vertical pixel coordinate, 0 meaning first row of raster surface
+	\return the alpha value to use. 
+
+	\warning the return value is not checked for clamping, it should therefore be between 0 and 255
+	\warning the coordinates are not relative to the centered mode of the surface, 0,0 is always the top-left corner
+	*/
+	unsigned long on_alpha(unsigned long source_alpha, unsigned long x, unsigned long y);
+}
+
+/*! Path object to describe vector graphics.
+Most path functions return the path object itself, so that the operations can be chained:
+\code
+path.move_to(0,0).line_to(0,100).line_to(10, 10).close();
+\endcode
+*/
+interface Path {
+	/*! Constructor*/
+	Path();
+
+	/*! empty path flag - see \ref gf_path_is_empty*/
+	readonly attribute boolean empty;
+	/*! if true, path will use zero_non_zero fill rule otherwise odd/even rule*/
+	readonly attribute boolean zero_fill;
+	/*! bounds of path - see \ref gf_path_get_bounds*/
+	readonly attribute Rect bounds;
+	/*! control bounds of path - see \ref gf_path_get_control_bounds*/
+	readonly attribute Rect ctrl_bounds;
+
+	/*! checks if point is over a path - see \ref gf_path_point_over
+	\param pt point to test
+	\return true if over*/
+	boolean point_over(Point2D pt);
+	/*! checks if point is over a path - see \ref gf_path_point_over
+	\param x x-coord of point to test
+	\param y y-coord of point to test
+	\return true if over*/
+	boolean point_over(double x, double y);
+	/*! gets a flatten version of the path - see \ref gf_path_get_flatten
+	\return the created flatten path*/
+	Path get_flatten();
+
+	/*! flattens  the path - see \ref gf_path_flatten
+	\return the path*/
+	Path flatten();
+
+	/*! adds a path to the path - see \ref gf_path_add_subpath
+	\param subpath path to add
+	\return the path*/
+	Path add_path(Path subpath);
+
+	/*! adds an arc to the path - see \ref gf_path_add_arc
+	\param radius radius of the arc
+	\param start start angle of the arc in radians
+	\param end end angle of the arc in radians
+	\param close closing type: 0 for open arc, 1 for close arc, 2 for pie
+	\return the path*/
+	Path arc(double radius, double start, double end, optional unsigned long close=0);
+
+	/*! adds an SVG arc to the path - see \ref gf_path_add_svg_arc_to
+	\param end_x x-coordinate of the arc end point
+	\param end_y y-coordinate of the arc end point
+	\param r_x x-axis radius
+	\param r_y y-axis radius
+	\return the path*/
+	Path arc_svg(double end_x, double end_y, double r_x, double r_y);
+	/*! adds an SVG arc to the path - see \ref gf_path_add_svg_arc_to
+	\param end_x x-coordinate of the arc end point
+	\param end_y y-coordinate of the arc end point
+	\param r_x x-axis radius
+	\param r_y y-axis radius
+	\param x_axis_rotation angle for the x-axis
+	\param large_arc_flag large or short arc selection
+	\param sweep_flag if 1, the arc will be clockwise, otherwise counter-clockwise.
+	\return the path*/
+	Path arc_svg(double end_x, double end_y, double r_x, double r_y, optional double x_axis_rotation=0, optional boolean large_arc_flag=false, optional boolean sweep_flag=false);
+
+	/*! adds an arc to the path - see \ref gf_path_add_arc_to
+	\param end_x x-coordinate of the arc end point
+	\param end_y y-coordinate of the arc end point
+	\param fa_x x-coordinate of the arc first focal point
+	\param fa_y y-coordinate of the arc first focal point
+	\param fb_x x-coordinate of the arc second focal point
+	\param fb_y y-coordinate of the arc second focal point
+	\param cw if 1, the arc will be clockwise, otherwise counter-clockwise.
+	\return the path*/
+	Path arc_bifs(double end_x, double end_y, double fa_x, double fa_y, double fb_x, double fb_y, optional boolean cw=false);
+
+	/*! adds N-1 bezier curve - see gf_path_add_bezier. The function can take any number of points
+	\param pt1 first control point of the bezier curve
+	\param pt2 second control point of the bezier curve
+	\param pt3 last point of the curve if last point defined, otherwise next control point
+	\return the path*/
+	Path n_bezier(Point2D pt1, Point2D pt2, Point2D pt3, ...);
+
+	/*! adds an ellipse - see \ref gf_path_add_ellipse
+	\param cx x-coordinate of the ellipse center
+	\param cy y-coordinate of the ellipse center
+	\param a_axis length of the horizontal ellipse axis
+	\param b_axis length of the vertical ellipse axis
+	\return the path*/
+	Path ellipse(double cx, double cy, double a_axis, double b_axis);
+
+	/*! adds an ellipse - see \ref gf_path_add_ellipse
+	\param center ellipse center
+	\param a_axis length of the horizontal ellipse axis
+	\param b_axis length of the vertical ellipse axis
+	\return the path*/
+	Path ellipse(Point2D center, double a_axis, double b_axis);
+
+	/*! adds a rectangle - see \ref gf_path_add_rect and \ref gf_path_add_rect_center
+	\param ox x-coordinate of the rectangle center or top-left
+	\param oy y-coordinate of the rectangle center or top-left
+	\param width width of the rectangle
+	\param height height of the rectangle
+	\param centered indicates if the given coordinates are the top-left one (false) or the center ones (true)
+	\return the path*/
+	Path rectangle(double ox, double oy, double width, double height, optional boolean centered=false);
+
+	/*! adds a rectangle - see \ref gf_path_add_rect and \ref gf_path_add_rect_center
+	\param o rectangle center or top-left
+	\param width width of the rectangle
+	\param height height of the rectangle
+	\param centered indicates if the given coordinates are the top-left one (false) or the center ones (true)
+	\return the path*/
+	Path rectangle(Point2D o, double width, double height, optional boolean centered=false);
+
+	/*! adds a quadratic  see \ref gf_path_add_quadratic_to 
+	\param c_x x-coordinate of the control point of the quadratic curve
+	\param c_y y-coordinate of the control point of the quadratic curve
+	\param x x-coordinate of the end point of the cubic quadratic
+	\param y y-coordinate of the end point of the cubic quadratic
+	\return the path*/
+	Path quadratic_to(double c_x, double c_y, double x, double y);
+
+	/*! adds a cubic bezier curve to the current contour, starting from the current path point - see \ref gf_path_add_cubic_to
+	\param c1_x x-coordinate of the first control point of the cubic curve
+	\param c1_y y-coordinate of the first control point of the cubic curve
+	\param c2_x x-coordinate of the second control point of the cubic curve
+	\param c2_y y-coordinate of the second control point of the cubic curve
+	\param x x-coordinate of the end point of the cubic curve
+	\param y y-coordinate of the end point of the cubic curve
+	\return the path*/
+	*/
+	Path cubic_to(double c1_x, double c1_y, double c2_x, double c2_y, double x, double y);
+
+
+	/*! adds a line - see \ref gf_path_add_line_to 
+	\param x x-coordinate of the point
+	\param y y-coordinate of the point
+	\return the path*/
+	Path line_to(double x, double y);
+
+	/*! adds a move to - see \ref gf_path_add_move_to 
+	\param x x-coordinate of the point
+	\param y y-coordinate of the point
+	\return the path*/
+	Path move_to(double x, double y);
+
+	/*! close the path - see \ref gf_path_close
+	\return the path*/
+	Path close();
+
+	/*! reset the path - see \ref gf_path_reset
+	\return the path*/
+	Path reset();
+
+	/*! clone the path - see \ref gf_path_clone
+	\return the cloned path*/
+	Path clone();
+
+	/*! generates a path outline - see \ref gf_path_get_outline
+	\param ps the pen settings used to produce the outline
+	\return the outline path*/
+	*/
+	Path outline(PenSettings ps);
+
+};
+
+/*! Pen settings, see \ref GF_PenSettings*/
+interface PenSettings {
+	/*! pen line width*/
+	attribute double width;
+	/*! The miter limit of the line joins*/
+	attribute double miter;
+	/*! The initial dash offset in the outline. All points before this offset will be
+	* ignored when building the outline*/
+	attribute double offset;
+	/*! The author-specified path length. Ignored if <= 0*/
+	attribute double length;
+	/*! The style of the lines ends*/
+	attribute unsigned long cap;
+	/*! The style of the lines joins*/
+	attribute unsigned long join;
+	/*! The alignment of the outline with regard to the path*/
+	attribute unsigned long align;
+	/*! The dash style of the line*/
+	attribute unsigned long dash;
+	/*! The dash pattern used for custom dashing*/
+	attribute Array dashes;
+};
+
+/*! 2D matrix, see \ref GF_Matrix2D
+the transformation of (x, y) into (x', y') is:
+\code
+x' = x * m.xx + y * m.xy + m.tx;
+y' = x * m.yx + y * m.yy + m.ty;
+\endcode
+
+Most matrix functions return the path object itself, so that the operations can be chained:
+\code
+mx.rotate(0).translate(10, 20).scale(2, 2);
+\endcode
+*/
+interface Matrix2D {
+	/*! constructor*/
+	Matrix2D();
+	/*! constructor
+	\param from the color matrix to use*/
+	Matrix2D(Matrix2D from);
+	/*! constructor
+	\param coefs the matrix coeficients
+	*/
+	Matrix2D(double coefs...);
+
+	/*! xx */
+	attribute double xx;
+	/*! xy */
+	attribute double xy;
+	/*! tx */
+	attribute double tx;
+	/*! yx */
+	attribute double yx;
+	/*! yy */
+	attribute double yy;
+	/*! ty */
+	attribute double tx;
+	/*! matrix is identity*/
+	attribute boolean identity;
+
+	/*! get scale part of the matrix after decomposition - see \ref gf_mx2d_decompose
+	\return {x, y} object, or null if matrix cannot be decomposed*/
+	Point2D get_scale();
+	/*! get translate part of the matrix after decomposition - see \ref gf_mx2d_decompose
+	\return {x, y} object, or null if matrix cannot be decomposed*/
+	Point2D get_translate();
+	/*! get rotation part of the matrix after decomposition - see \ref gf_mx2d_decompose
+	\return rotation, or null if matrix cannot be decomposed*/
+	double get_rotate();
+
+	/*! inverse matrix - see \ref gf_mx2d_inverse
+	\return the matrix*/
+	Matrix2D inverse();
+	/*! copies the matrix 
+	\return the new copy matrix*/
+	Matrix2D copy();
+	/*! adds a matrix - see \ref gf_mx2d_add_matrix and \ref gf_mx2d_pre_multiply
+	\param mx the matrix to multiply 
+	\param premultiply if true, performs \code mx * this \endcode, otherwise \code this * mx \endcode 
+	\return the matrix*/
+	Matrix2D add(Matrix2D mx, optional boolean premultiply=false);
+	/*! add a translation - see \ref gf_mx2d_add_rotation
+	\param x horizontal translation
+	\param y vertical translation
+	\return the matrix*/	
+	Matrix2D translate(double x, double y);
+	/*! add a translation - see \ref gf_mx2d_add_rotation
+	\param vec translation vector
+	\return the matrix*/	
+	Matrix2D translate(Point2D vec);
+
+	/*! add a rotation - see \ref gf_mx2d_add_rotation
+	\param cx center x coordinate
+	\param cy center y coordinate
+	\param a rotation angle
+	\return the matrix*/	
+	Matrix2D rotate(double cx, double cy, double a);
+	/*! adds scale - see \ref gf_mx2d_add_scale
+	\param sx horizontal scale factor
+	\param sy vertical scale factor
+	\return the matrix*/	
+	Matrix2D scale(double sx, double sy);
+
+	/*! adds scale - see \ref gf_mx2d_add_scale_at
+	\param sx horizontal scale factor
+	\param sy vertical scale factor
+	\param cx horizontal scaling center coordinate
+	\param cy vertical scaling center coordinate
+	\param angle scale orienttion angle in radians
+	\return the matrix*/	
+	Matrix2D scale(double sx, double sy, double cx, double cy, double angle);
+	/*! adds skew - see gf_mx2d_add_skew
+	\param skew_x horizontal skew factor
+	\param skew_y vertical skew factor
+	\return the matrix*/	
+	Matrix2D skew(double skew_x, double skew_y);
+	/*! adds horizontal skew - see gf_mx2d_add_skew_x
+	\param skew horizontal skew factor
+	\return the matrix*/	
+	Matrix2D skew_x(double skew);
+	/*! adds vertical skew - see gf_mx2d_add_skew_y
+	\param skew vertical skew factor
+	\return the matrix*/	
+	Matrix2D skew_y(double skew);
+
+	/*! transforms a point with a matrix - see gf_mx2d_apply_point
+	\param in input point to transform
+	\return the transformed point*/
+	Point2D apply(Point2D in);
+	/*! transforms a rectangle with a matrix - see gf_mx2d_apply_rect
+	\param in input rectangle to transform
+	\return the transformed rectangle*/
+	Rect apply(Rect in);
+};
+
+/*! color matrix*/
+interface ColorMatrix {
+	/*! constructor*/
+	ColorMatrix();
+	/*! constructor
+	\param from the color matrix to use */
+	ColorMatrix(ColorMatrix from);
+	/*! constructor
+	\param coefs the matrix coeficients
+	 */
+	ColorMatrix(double coefs...);
+	
+	/*! rr*/
+	attribute double rr;
+	/*! rg*/
+	attribute double rg;
+	/*! rb*/
+	attribute double rb;
+	/*! ra*/
+	attribute double ra;
+	/*! tr*/
+	attribute double tr;
+	/*! gr*/
+	attribute double gr;
+	/*! gg*/
+	attribute double gg;
+	/*! gb*/
+	attribute double gb;
+	/*! ga*/
+	attribute double ga;
+	/*! tg*/
+	attribute double tg;
+	/*! br*/
+	attribute double br;
+	/*! bg*/
+	attribute double bg;
+	/*! bb*/
+	attribute double bb;
+	/*! bb*/
+	attribute double ba;
+	/*! tb*/
+	attribute double tb;
+	/*! ar*/
+	attribute double ar;
+	/*! ag*/
+	attribute double ag;
+	/*! ab*/
+	attribute double ab;
+	/*! aa*/
+	attribute double aa;
+	/*! ta*/
+	attribute double ta;
+	/*! identity*/
+	attribute boolean identity;
+	/*! multiplies two color matrix this * with
+	\param with color matrix to multiply with
+	\return the ColorMatrix*/
+	ColorMatrix multiply(ColorWatrix with);
+	
+	/*! apply a color transformation as 8bit RGB
+	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB
+	\return transformed color*/
+	Color apply(DOMString color);
+
+	/*! apply a color transformation as 8bit RGB
+	\param color a color interface
+	\return transformed color*/
+	Color apply(Color color);
+
+	/*! apply a color transformation as float RGB
+	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB
+	\return transformed color*/
+	Colorf applyf(DOMString color);
+
+	/*! apply a color transformation as float RGB
+	\param colorf a color interface
+	\return transformed color*/
+	Colorf apply(Color colorf);
+};
+
+/*! color object*/
+interface Color
+{
+	/*! red component*/
+	unsigned long r;	
+	/*! green component*/
+	unsigned long g;	
+	/*! blue component*/
+	unsigned long b;	
+	/*! alpha component*/
+	unsigned long a;	
+};
+
+/*! color object*/
+interface Colorf
+{
+	/*! red component*/
+	double r;	
+	/*! green component*/
+	double g;	
+	/*! blue component*/
+	double b;	
+	/*! alpha component*/
+	double a;	
+};
+
+/*! interface object to solid brush, linear gradient and radial gradient stencils*/
+interface Stencil {
+	/*! constructor*/
+	SolidBrush();
+	/*! constructor*/
+	LinearGradient();
+	/*! constructor*/
+	RadialGradient();
+
+	/*! padding mode of gradient - see \ref gf_evg_stencil_set_gradient_mode*/
+	writeonly unsigned long pad;
+	/*! color matrix for gradient stencils. Setting to null resets the matrix*/
+	writeonly unsigned long cmx;
+	/*! matrix for gradient stencils. Setting to null resets the matrix*/
+	writeonly unsigned long mx;
+
+	/*! set color for solid brush stencil
+	\param color the color to set*/
+	void set_color(Color color);
+
+	/*! set color for solid brush stencil - see \ref gf_evg_stencil_set_brush_color.
+	\note Omitting the last values will assume 0xFF for alpha, and 0x00 for other values
+	\param r red value, between 0 and 255
+	\param g green value, between 0 and 255
+	\param b blue value, between 0 and 255
+	\param a alpha value, between 0 and 255
+	*/
+	void set_color(unsigned long r, unsigned long g, unsigned long b, unsigned long a);
+
+	/*! set color for solid brush stencil
+	\param color the color to set*/
+	void set_colorf(Colorf color);
+
+	/*! set color for solid brush stencil
+	\note Omitting the last values will assume 0xFF for alpha, and 0x00 for other values
+	\param r red value, between 0.0 and 1.0
+	\param g green value, between 0.0 and 1.0
+	\param b blue value, between 0.0 and 1.0
+	\param a alpha value, between 0.0 and 1.0
+	*/
+	void set_colorf(double r, double g, double b, double a);
+
+	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
+	\param alpha the alpha to set, between 0 and 255*/
+	void set_alpha(unsigned long alpha);
+
+	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
+	\param alpha the alpha to set, between 0.0 and 1.0*/
+	void set_alpha(double alpha);
+
+	/*! sets linear gradient start and end point. If end point is omitted, sets gradient line betwee {0,0} and start. Coordinates are given in surface coordinates, not object coordinates. See \ref gf_evg_stencil_set_linear_gradient
+	\note Point2D can be replaced with 2 number x, y, i.e. these syntaxes are all equivalent:
+	\code
+	gra.set_points(0, 0, {x:1.0:, y:1.0});
+	gra.set_points({x:0, y:0}, {x:1.0:, y:1.0});
+	gra.set_points({x:0, y:0}, 1.0, 1.0);
+	gra.set_points(0, 0, 1.0, 1.0);
+	\endcode
+
+	\param start gradient line start point
+	\param end gradient line end point
+	*/
+	void set_points(Point2D start, optional Point2D end={0,0} );
+
+
+	/*! sets radial graident center, focal and radius points - see \ref gf_evg_stencil_set_radial_gradient
+	\note Point2D can be replaced with 2 number x, y, i.e. these syntaxes are all equivalent:
+	\code
+	gra.set_points(0, 0, {x:1.0:, y:1.0}, 0, 0);
+	gra.set_points({x:0, y:0}, 1.0, 1.0, {x:0, y:0});
+	...
+	\endcode
+
+	\param center coordinates of center
+	\param focal coordinates of focal
+	\param radius size of horizintal and vertical radius
+	*/
+	void set_points(Point2D center, Point2D focal, Point2D radius);
+
+	/*! defines a new stop color for the gradient. Stops must be declared in order on the gradient. See \ref gf_evg_stencil_push_gradient_interpolation
+	\param pos position between 0.0 and 1.0
+	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+	*/
+	void set_stop(double pos, DOMString color);
+
+	/*! defines a new stop color for the gradient. Stops must be declared in order on the gradient. See \ref gf_evg_stencil_push_gradient_interpolation
+	\param pos position between 0.0 and 1.0
+	\param color a color object
+	*/
+	void set_stop(double pos, Color color);
+
+	/*! defines a new stop color for the gradient. Stops must be declared in order on the gradient. See \ref gf_evg_stencil_push_gradient_interpolation
+	\param pos position between 0.0 and 1.0
+	\param r red value, between 0 and 255
+	\param g green value, between 0 and 255
+	\param b blue value, between 0 and 255
+	\param a alpha value, between 0 and 255
+	*/
+	void set_stop(double pos, unsigned long r, unsigned long g, unsigned long b, unsigned long a);
+
+
+	/*! defines a new stop color for the gradient. Stops must be declared in order on the gradient. See \ref gf_evg_stencil_push_gradient_interpolation
+	\param pos position between 0.0 and 1.0
+	\param color a color object
+	*/
+	void set_stopf(double pos, Colorf color);
+
+	/*! defines a new stop color for the gradient. Stops must be declared in order on the gradient. See \ref gf_evg_stencil_push_gradient_interpolation
+	\param pos position between 0.0 and 1.0
+	\param r red value, between 0.0 and 1.0
+	\param g green value, between 0.0 and 1.0
+	\param b blue value, between 0.0 and 1.0
+	\param a alpha value, between 0.0 and 1.0
+	*/
+	void set_stopf(double pos, double r, double g, double b, double a);
+};
+
+/*! texture stencil*/
+interface Texture {
+	/*! pixel data constructor.
+	\param width width of the texture
+	\param height height of the texture
+	\param pixfmt pixel format of the texture
+	\param data texture data to use
+	\param stride stride of pixel buffer or of first plane for planar formats
+	\param stride_uv stride of second plane for planar formats
+	*/
+	Texture(unsigned long width, unsigned long height, DOMString pixfmt, ArrayBuffer data, unsigned long stride=0, unsigned long stride_uv=0);
+	
+	/*! image file constructor. Only JPEG and PNG local files are supported. This constructor is used to quickly load an image file without using a filter chain for that
+	\param filename file name on local drive
+	\param is_rel_script if true, indicates the file path is relative to the script location. Otherwise it is relative to the current directory
+	*/
+	Texture(DOMString filename, optional boolean is_rel_script=false);
+
+	/*! canvas constructor.
+	\note There is no restriction on the source canvas, you can even use the target drawing canvas as a source to produce nice effects.
+	\param canvas the canvas to use as a texture
+	*/
+	Texture(Canvas canvas);
+
+	/*! packet constructor. This is usually needed for planar YUV format where planes are not contiguous in memory (eg output of hardware decoder). 
+	The size of the pixel buffer will be derived from the packet's PID properties
+	\param packet the source packet to use as a source for the data
+	*/
+	Texture(FilterPacket packet);
+
+	/*! filtering mode - see \ref gf_evg_stencil_set_filter*/
+	writeonly unsigned long filtering;
+	/*! color matrix - see \ref gf_evg_stencil_set_color_matrix. Setting to null resets the color matrix*/
+	writeonly ColorMatrix cmx;
+	/*! matrix - see \ref gf_evg_stencil_set_matrix. Setting to null resets the matrix*/
+	writeonly Matrix2D mx;
+	/*! horizontal repeat flag*/
+	attribute boolean repeat_s;
+	/*! vertical repeat flag*/
+	attribute boolean repeat_t;
+	/*! vertical flip flag*/
+	attribute boolean flip;
+
+	/*! width in pixels of image (RGB width or luma plane width)*/
+	readonly attribute boolean width;
+	/*! height in pixels of image (RGB height or luma plane height)*/
+	readonly attribute boolean height;
+	/*! pixel format*/
+	readonly attribute DOMString pixfmt;
+	/*! number of components*/
+	readonly attribute unsigned long comp;
+	/*! texture data*/
+	readonly attribute ArrayBuffet data;
+
+
+	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
+	\param alpha the alpha to set, between 0 and 255*/
+	void set_alpha(unsigned long alpha);
+
+	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
+	\param alpha the alpha to set, between 0.0 and 1.0*/
+	void set_alpha(double alpha);
+
+	/*! converts texture from RGB/YUV to new HSV texture
+	\warning experimental, slow
+	\return new texture*/
+	Texture to_HSV();
+
+	/*! converts texture from HSV to new RGB texture
+	\warning experimental, slow
+	\return new texture*/
+	Texture to_RGB();
+
+	/*! performs a convolution on the texture
+	\warning experimental, slow
+	\param k the convolution kernel to use
+	\return new texture*/
+	Texture conv(ConvolutionKernel k);
+
+	/*! splits the given component into a new texture
+	\warning experimental, slow (uses pixel by pixel access)
+	\param idx the component index. 0 is red or greyscale, 1 is alpha (alhpagrey formats) or green, 2 is green and 4 is alpha
+	\return new texture*/
+	Texture split(unsigned long idx);
+};
+
+/*! convolution kernel interface*/
+interface ConvolutionKernel
+{
+	/*! kernel width - shall be an odd number*/
+	attribute unsigned long w;
+	/*! kernel height - shall be an odd number*/
+	attribute unsigned long h;
+	/*! kernel normalization. If 0 or undefined, no normalization is applied*/
+	attribute unsigned long norm;
+	/*! kernel coeficients. The coeficients are unsigned intergers, and there shall be at least w * h coefficients*/
+	attribute Array k;
+};
+
+/*! Text object*/
+interface Text {
+	/*! constructor. The default text is created with a font size of 12, horizontal drawing, start alignment and alphabetic baseline.
+	\param font font name to use*/
+	Text(optional DOMString font=null);
+	/*! font name*/
+	attribute DOMString font;
+	/*! font name*/
+	attribute double fontsize;
+	/*! align flag for horizontal positioning (see Canvas2D). Alignment is computed on maximum text line width after application of maxWidth if any/needed
+	 - GF_TEXT_ALIGN_START: left if text is left to right, right otherwise 
+	 - GF_TEXT_ALIGN_END: right if text is left to right, left otherwise
+	 - GF_TEXT_ALIGN_LEFT: left
+	 - GF_TEXT_ALIGN_RIGHT: right
+	 - GF_TEXT_ALIGN_CENTER: center
+	*/
+	attribute unsigned long align;
+	/*! baseline flag for vertical positioning (see Canvas2D):
+		- GF_TEXT_BASELINE_TOP: top of EM box
+		- GF_TEXT_BASELINE_HANGING: hanging (usually not available in fonts)
+		- GF_TEXT_BASELINE_MIDDLE: middle of EM box
+		- GF_TEXT_BASELINE_ALPHABETIC: baseline of font (default value)
+		- GF_TEXT_BASELINE_IDEOGRAPHIC: not supported, same as GF_TEXT_BASELINE_ALPHABETIC.
+		- GF_TEXT_BASELINE_BOTTOM: bottom of EM box
+	*/
+	attribute unsigned long baseline;
+	/*! text is horizontal*/
+	attribute boolean horizontal;
+	/*! text shoud be filpped while drawing*/
+	attribute boolean flip;
+	/*! text shoud be underlined while drawing (not supported)*/
+	attribute boolean underline;
+	/*! text shoud be bold (used when checking for font alternates)*/
+	attribute boolean bold;
+	/*! text shoud be italic (used when checking for font alternates)*/
+	attribute boolean italic;
+	/*! maximum width of text in local coordinate system (with no matrix transformations)*/
+	attribute double maxWidth;
+	/*! line spacing. If 0, the font's default line spacing is used*/
+	attribute double lineSpacing;
+
+	/*! sets text line
+	\warning Carriage Return and Line Feed are NOT scanned and will not produce several lines
+	\param text text line to set*/
+	void set_text(DOMString text);
+	/*! sets text lines
+	\warning Carriage Return and Line Feed are NOT scanned and will not produce several lines
+	\param text_lines text lines to set*/
+	void set_text(Array text_lines);
+
+	/*! gets metrics for the text lines
+	\return text metrics*/
+	TextMeasure measure();
+
+	/*! gets a copy of the path data of the text. Usually only needed to do some path outlining of glyphs
+	\param centered_coords indicate of the path will be drawn on a centered coords surface. This is needed to perform final layout of text 
+	\return copy of text path data*/
+	Path get_path(optional bool centered_coords=true);
+};
+
+/*! text measurement interface*/
+interface TextMeasure
+{
+	/*! measured with of text*/
+	double width;
+	/*! measured height of text*/
+	double height;
+	/*! size of EM box of font*/
+	unsigned long em_size;
+	/*! ascent of font*/
+	unsigned long ascent;
+	/*! descent of font*/
+	unsigned long descent;
+	/*! line spacing of font*/
+	unsigned long line_spacing;
+	/*! underline position in EM box*/
+	unsigned long underlined;
+	/*! baseline position in EM box*/
+	unsigned long baseline;
+	/*! max horizontal advance of any glyphs in font*/
+	unsigned long max_advance_h;
+	/*! max vertical advance of any glyphs in font*/
+	unsigned long max_advance_v;
+};
+
+
+/*! @} */

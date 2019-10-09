@@ -9,11 +9,11 @@ filter.set_author("GPAC team");
 filter.set_help("This filter provides a very simple javascript text packet generator");
 
 //exposed arguments
-filter.set_arg("str", "string to send", GF_PROP_STRING, "GPAC JS Filter Packet");
+filter.set_arg({name: "str", desc: "string to send", type: GF_PROP_STRING, def: "GPAC JS Filter Packet"} );
 filter.max_pids = -1;
 
-filter.set_cap("StreamType", "Text", true);
-filter.set_cap("CodecID", "subs", true);
+filter.set_cap({id: "StreamType", value: "Text", output: true});
+filter.set_cap({id: "CodecID", value: "subs", output: true});
 
 filter.my_shared_string = "Shared data test";
 

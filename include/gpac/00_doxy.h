@@ -77,5 +77,25 @@
 
 \defgroup playback_grp Media Player
 
+\defgroup jsapi_grp JavaScript APIs
+\brief JavaScript API available in GPAC
+
+Parts of the GPAC code can be scriptable using JavaScript. This part of the documentation describes the various APIs used in GPAC.
+
+For SVG and DOM scenegraph API, see https://www.w3.org/TR/SVGTiny12/svgudom.html.
+
+For BIFS and VRML scenegraph, see https://www.web3d.org/documents/specifications/14772/V2.0/part1/javascript.html
+
+GPAC uses the QuickJS engine for JavaScript support. This means that JS C modules as defined in QuickJS can also be used :
+https://bellard.org/quickjs/quickjs.html#C-Modules
+
+Constants used in the API (error code, property types, specific flags for functions) are exported using the same name as native code, e.g. GF_STATS_LOCAL, GF_FILTER_SAP_1, etc...
+
+Types and interfaces are described using WebIDL, see https://heycam.github.io/webidl/, with some slight modifications.
+
+Errors are usually handled through exceptions.
+
+\warning support for C modules is still not fully tested
+
 */
 

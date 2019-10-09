@@ -713,7 +713,7 @@ typedef struct
 	char *name;
 	char *val;
 	//0: only on filter, 1: forward downstream, 2: forward upstream
-	u32 recursive;
+	GF_EventPropagateType recursive;
 } GF_FilterUpdate;
 
 //structure for input pids, in order to handle fan-outs of a pid into several filters

@@ -1994,7 +1994,7 @@ void gf_filter_process_inline(GF_Filter *filter)
 }
 
 GF_EXPORT
-void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name, const char *val, u32 propagate_mask)
+void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name, const char *val, GF_EventPropagateType propagate_mask)
 {
 	if (filter) gf_fs_send_update(filter->session, fid, fid ? NULL : filter, name, val, propagate_mask);
 }
@@ -2744,9 +2744,14 @@ void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Doubl
 	}
 }
 
-void gf_filter_sep_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids)
+void gf_filter_set_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids)
 {
 	if (filter) filter->max_extra_pids = max_extra_pids;
+}
+u32 gf_filter_get_max_extra_input_pids(GF_Filter *filter)
+{
+	if (filter) return filter->max_extra_pids;
+	return 0;
 }
 
 Bool gf_filter_block_enabled(GF_Filter *filter)

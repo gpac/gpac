@@ -1920,7 +1920,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 }
 
 
-void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filter, const char *name, const char *val, u32 propagate_mask)
+void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filter, const char *name, const char *val, GF_EventPropagateType propagate_mask)
 {
 	GF_FilterUpdate *upd;
 	u32 i, count;
