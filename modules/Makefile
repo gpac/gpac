@@ -1,7 +1,7 @@
 include ../config.mak
 
 #all OS and lib independent
-PLUGDIRS=validator 
+PLUGDIRS=validator
 
 #disabled for now
 #netctrl
@@ -77,6 +77,12 @@ endif
 ifeq ($(CONFIG_LINUX),yes)
 endif
 
+
+#if static modules are used, disable all previous modules (built-in in libgpac)
+ifeq ($(STATIC_MODULES), yes)
+PLUGDIRS=
+endif
+
 #all modules below are not (yet) included in static build
 
 #ifeq ($(CONFIG_PLATINUM),yes)
@@ -90,14 +96,14 @@ endif
 
 all: plugs
 
-plugs:	
-	set -e; for i in $(PLUGDIRS) ; do $(MAKE) -C $$i all; done 
+plugs:
+	set -e; for i in $(PLUGDIRS) ; do $(MAKE) -C $$i all; done
 
 dep:
-	set -e; for i in $(PLUGDIRS) ; do $(MAKE) -C $$i dep; done 
+	set -e; for i in $(PLUGDIRS) ; do $(MAKE) -C $$i dep; done
 
 clean:
-	set -e; for i in $(PLUGDIRS) ; do $(MAKE) -C $$i clean; done 
+	set -e; for i in $(PLUGDIRS) ; do $(MAKE) -C $$i clean; done
 
-distclean:	
-	set -e; for i in $(PLUGDIRS) ; do $(MAKE) -C $$i distclean; done 
+distclean:
+	set -e; for i in $(PLUGDIRS) ; do $(MAKE) -C $$i distclean; done
