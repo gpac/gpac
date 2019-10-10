@@ -841,14 +841,16 @@ interface Text {
 	/*! line spacing. If 0, the font's default line spacing is used*/
 	attribute double lineSpacing;
 
-	/*! sets text line
-	\warning Carriage Return and Line Feed are NOT scanned and will not produce several lines
-	\param text text line to set*/
-	void set_text(DOMString text);
-	/*! sets text lines
-	\warning Carriage Return and Line Feed are NOT scanned and will not produce several lines
-	\param text_lines text lines to set*/
-	void set_text(Array text_lines);
+	/*! sets text. Each argument is processed as follows:
+	- if the argument is an Array, process each item of the array as an element
+	- otherwise process argument as an element
+
+	Each element is treated as follows:
+	 - transformed to string, whether it is a string, number, object / array
+	 - split in one or several text lines, scanning new line character 'CR'
+	 - each line of text is then transformed into a graphicsl path with the current text settings.
+	*/
+	void set_text(...);
 
 	/*! gets metrics for the text lines
 	\return text metrics*/

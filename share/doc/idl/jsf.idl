@@ -589,7 +589,9 @@ attribute unsigned long depended_on;
 attribute unsigned long redundant;
 /*! size in bytes of the packet*/
 readonly attribute unsigned long size;
-/*! data of the packet if any*/
+/*! data of the packet if any
+	\warning This arraybuffer will be detached whenever the packet data is modified for a destination packet
+*/
 readonly attribute ArrayBuffer data;
 /*! set to true if data of the packet is available through a \ref GF_FilterFrameInterface object*/
 readonly attribute boolean frame_ifce;
@@ -641,22 +643,29 @@ void discard();
 void set_prop(DOMString name, optional boolean is_user=false);
 
 /*! appends data to packet - see \ref gf_filter_pck_expand. New data can be accessed by through the data field.
+\warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call. 
 \param str the string to append
+\return an arraybuffer containing the corresponding appended packet data. Full packet data is available through FilterPacket.data
 */
-void append(DOMString str);
+ArrayBuffer append(DOMString str);
 
 /*! appends data to packet - see \ref gf_filter_pck_expand. New data can be accessed by through the data field.
+\warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call. 
 \param size the number of bytes to append
+\return an arraybuffer containing the corresponding appended packet data. Full packet data is available through FilterPacket.data
 */
-void append(unsigned long size);
+ArrayBuffer append(unsigned long size);
 
 
 /*! appends data to packet - see \ref gf_filter_pck_expand. New data can be accessed by through the data field.
+\warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call. 
 \param ab the array buffer to append
+\return an arraybuffer containing the corresponding appended packet data. Full packet data is available through FilterPacket.data
 */
-void append(ArrayBuffer ab);
+ArrayBuffer append(ArrayBuffer ab);
 
 /*! truncates the packet to the indicated size - \ref gf_filter_pck_truncate
+\warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call. 
 \param size new packet size*/
 void truncate(unsigned long size);
 

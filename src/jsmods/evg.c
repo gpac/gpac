@@ -24,6 +24,12 @@
  */
 
 
+/*
+	ANY CHANGE TO THE API MUST BE REFLECTED IN THE DOCUMENTATION IN gpac/share/doc/idl/evg.idl
+	(no way to define inline JS doc with doxygen)
+*/
+
+
 #include <gpac/setup.h>
 
 #ifdef GPAC_HAS_QJS
@@ -2527,6 +2533,10 @@ static void text_update_path(GF_JSText *txt, Bool for_centered)
 		return;
 	}
 	if (txt->path) gf_path_del(txt->path);
+	txt->path = NULL;
+	if (!txt->font)
+		return;
+
 	txt->path_for_centered = for_centered;
 
 	cy = FLT2FIX((txt->font_size * txt->font->baseline) / txt->font->em_size);
@@ -2608,17 +2618,22 @@ static void text_set_path(GF_JSCanvas *canvas, GF_JSText *txt)
 	gf_evg_surface_set_path(canvas->surface, txt->path);
 }
 
-static GF_TextSpan * text_set_text_line(GF_JSText *txt, GF_Font *font, JSContext *c, JSValueConst value)
+static void text_set_text_from_value(GF_JSText *txt, GF_Font *font, JSContext *c, JSValueConst value)
 {
 	const char *str = JS_ToCString(c, value);
-	GF_TextSpan *span = gf_font_manager_create_span(txt->fm, font, (char *) str, FLT2FIX(txt->font_size), GF_FALSE, GF_FALSE, GF_FALSE, NULL, GF_FALSE, 0, NULL);
-
+	char *start = (char *) str;
+	while (start) {
+		GF_TextSpan *span;
+		char *nline = strchr(str, '\n');
+		if (nline) nline[0] = 0;
+		span = gf_font_manager_create_span(txt->fm, font, (char *) str, FLT2FIX(txt->font_size), GF_FALSE, GF_FALSE, GF_FALSE, NULL, GF_FALSE, 0, NULL);
+		if (span)
+			gf_list_add(txt->spans, span);
+		if (!nline) break;
+		nline[0] = '\n';
+		start = nline + 1;
+	}
 	JS_FreeCString(c, str);
-
-	if (!span) return NULL;
-
-	gf_list_add(txt->spans, span);
-	return span;
 }
 
 static JSValue text_get_path(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
@@ -2638,6 +2653,7 @@ static JSValue text_get_path(JSContext *c, JSValueConst obj, int argc, JSValueCo
 
 static JSValue text_set_text(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
+	u32 i, nb_lines;
 	GF_JSText *txt = JS_GetOpaque(obj, text_class_id);
 	if (!txt) return JS_EXCEPTION;
 	text_reset(txt);
@@ -2645,51 +2661,47 @@ static JSValue text_set_text(JSContext *c, JSValueConst obj, int argc, JSValueCo
 
 	txt->font = gf_font_manager_set_font(txt->fm, &txt->fontname, 1, txt->styles);
 
-	if (JS_IsArray(c, argv[0])) {
-		u32 i, nb_lines;
-		JSValue v = JS_GetPropertyStr(c, argv[0], "length");
-		JS_ToInt32(c, &nb_lines, v);
-		JS_FreeValue(c, v);
-
-		for (i=0; i<nb_lines; i++) {
-			GF_TextSpan *span;
-			v = JS_GetPropertyUint32(c, argv[0], i);
-			span = text_set_text_line(txt, txt->font, c, v);
+	for (i=0; i<argc; i++) {
+		if (JS_IsArray(c, argv[i])) {
+			JSValue v = JS_GetPropertyStr(c, argv[i], "length");
+			JS_ToInt32(c, &nb_lines, v);
 			JS_FreeValue(c, v);
-			if (!span) continue;
 
-			gf_font_manager_refresh_span_bounds(span);
-			if (!txt->max_h && !txt->max_w) {
-				txt->max_w = span->bounds.width;
-				txt->max_h = span->bounds.height;
-				txt->min_x = span->bounds.x;
-				txt->min_y = span->bounds.y;
-				txt->max_x = txt->min_x + span->bounds.width;
-				txt->max_y = txt->min_y + span->bounds.x;
-			} else {
-				if (txt->min_x > span->bounds.x)
-					txt->min_x = span->bounds.x;
-				if (txt->min_y > span->bounds.y)
-					txt->min_y = span->bounds.y;
-				if (txt->max_w > span->bounds.width)
-					txt->max_w = span->bounds.width;
-				if (txt->max_h > span->bounds.height)
-					txt->max_h = span->bounds.height;
-				if (txt->max_x < span->bounds.x + span->bounds.width)
-					txt->max_x = span->bounds.x + span->bounds.width;
-				if (txt->max_y < span->bounds.y + span->bounds.height)
-					txt->max_y = span->bounds.y + span->bounds.height;
+			for (i=0; i<nb_lines; i++) {
+				v = JS_GetPropertyUint32(c, argv[i], i);
+				text_set_text_from_value(txt, txt->font, c, v);
+				JS_FreeValue(c, v);
 			}
+		} else {
+			text_set_text_from_value(txt, txt->font, c, argv[i]);
 		}
-	} else {
-		GF_TextSpan *span = text_set_text_line(txt, txt->font, c, argv[0]);
+	}
+
+	nb_lines = gf_list_count(txt->spans);
+	for (i=0; i<nb_lines; i++) {
+		GF_TextSpan *span = gf_list_get(txt->spans, i);
 		gf_font_manager_refresh_span_bounds(span);
-		txt->max_w = span->bounds.width;
-		txt->max_h = span->bounds.height;
-		txt->min_x = span->bounds.x;
-		txt->min_y = span->bounds.y;
-		txt->max_x = txt->min_x + span->bounds.width;
-		txt->max_y = txt->min_y + span->bounds.x;
+		if (!txt->max_h && !txt->max_w) {
+			txt->max_w = span->bounds.width;
+			txt->max_h = span->bounds.height;
+			txt->min_x = span->bounds.x;
+			txt->min_y = span->bounds.y;
+			txt->max_x = txt->min_x + span->bounds.width;
+			txt->max_y = txt->min_y + span->bounds.x;
+		} else {
+			if (txt->min_x > span->bounds.x)
+				txt->min_x = span->bounds.x;
+			if (txt->min_y > span->bounds.y)
+				txt->min_y = span->bounds.y;
+			if (txt->max_w > span->bounds.width)
+				txt->max_w = span->bounds.width;
+			if (txt->max_h > span->bounds.height)
+				txt->max_h = span->bounds.height;
+			if (txt->max_x < span->bounds.x + span->bounds.width)
+				txt->max_x = span->bounds.x + span->bounds.width;
+			if (txt->max_y < span->bounds.y + span->bounds.height)
+				txt->max_y = span->bounds.y + span->bounds.height;
+		}
 	}
 
 	return JS_UNDEFINED;

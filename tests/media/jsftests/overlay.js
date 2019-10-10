@@ -18,7 +18,7 @@ let text = new evg.Text();
 text.font = 'Times';
 text.align=GF_TEXT_ALIGN_RIGHT;
 text.lineSpacing=0;
-text.text = ['GPAC Overlay demo', 'Bliting on YUV !' ];
+text.set_text('GPAC Overlay demo', 'Bliting on YUV !');
 
 let centered=true;
 
@@ -94,8 +94,13 @@ filter.process = function()
 	}
 	opck.copy_props(pck);
 
+
 	let canvas = new evg.Canvas(width, height, pf, opck.data, stride);
 	canvas.centered = centered;
+
+ 	ipid.drop_packet();
+    opck.send();
+	return GF_OK;
 
 	mx.rotate(0, 0, 0.05);
 
@@ -117,6 +122,7 @@ filter.process = function()
 	//let live_tx = new evg.Texture(width, height, pf, opck.data, stride);
 	let live_tx = new evg.Texture(canvas);
 //	let live_tx = new evg.Texture(pck);
+
 	live_tx.repeat_s = true;
 	live_tx.repeat_t = true;
 	mmx.identity=true;
@@ -137,13 +143,12 @@ filter.process = function()
 	let s = Math.floor(t - h*3600 - m*60);
 	ms -= (h*3600 + m*60 + s) * 1000;
 
-	text.text = ['GPAC Overlay demo', `Rasterizing in ${pf} color space` , `Frame time: ${h}:${m}:${s}.${ms}`];
+	text.set_text('GPAC Overlay demo', `Rasterizing in ${pf} color space` , `Frame time: ${h}:${m}:${s}.${ms}`);
 	brush.set_color('white');
 	canvas.matrix = mxtxt;
 	canvas.path = text;
 	canvas.fill(brush);
 
- 	ipid.drop_packet();
     opck.send();
 	return GF_OK;
 }
