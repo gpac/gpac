@@ -101,7 +101,9 @@ MEDIATOOLS_CFLAGS+=-DGPAC_ENST_PRIVATE
 endif
 
 
-
+ifeq ($(MP4BOX_STATIC),yes)
+CFLAGS+= -DGPAC_MP4BOX_MINI
+endif
 
 
 ## static modules

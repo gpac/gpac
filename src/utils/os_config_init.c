@@ -90,7 +90,11 @@ static Bool check_file_exists(char *name, char *path, char *outPath)
 
 	if (!strcmp(name, TEST_MODULE)) {
 		Bool res = GF_FALSE;
+#if defined(GPAC_STATIC_MODULES) || defined(GPAC_MP4BOX_MINI)
+		if (gf_dir_exists(path)) res = GF_TRUE;
+#else
 		gf_enum_directory(path, GF_FALSE, mod_enum, &res, NULL);
+#endif
 		if (!res) return GF_FALSE;
 		if (outPath != path) strcpy(outPath, path);
 		return 1;
