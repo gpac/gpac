@@ -5,6 +5,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////////
 import {gpac} from 'scenejs'
+import {Storage} from 'storage'
 globalThis.gpac = gpac;
 
 let all_extensions = [];
@@ -65,7 +66,7 @@ function setup_extension_storage(extension) {
     var storage_name = 'config:' + extension.path + '' + extension.name;
     gwlog(l_inf, 'loading storage for extension ' + storage_name);
 
-    extension.jsobj.__gpac_storage = gpac.new_storage(storage_name);
+    extension.jsobj.__gpac_storage = new Storage(storage_name);
 
     extension.jsobj.get_option = extension_option_getter(extension);
     extension.jsobj.set_option = extension_option_setter(extension);

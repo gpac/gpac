@@ -289,6 +289,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/isomedia/tx3g.c \
 	../../../../src/jsmods/evg.c \
 	../../../../src/jsmods/scene_js.c \
+	../../../../src/jsmods/storage.c \
 	../../../../src/jsmods/xhr.c \
 	../../../../src/laser/lsr_dec.c \
 	../../../../src/laser/lsr_enc.c \

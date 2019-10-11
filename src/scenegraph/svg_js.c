@@ -2232,7 +2232,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	/*initialize DOM core */
 	dom_js_load(scene, scene->svg_js->js_ctx);
 
-	xhr_load_global(c, global);
+	qjs_module_init_xhr(c, global);
 
 	svg_define_udom_exception(scene->svg_js->js_ctx, scene->svg_js->global);
 	JSValue console = JS_NewObject(c);

@@ -26,7 +26,9 @@
 #ifndef SG_QJS_COMMONE
 #define SG_QJS_COMMONE
 
-#include <gpac/setup.h>
+#include <gpac/list.h>
+#include <gpac/scenegraph.h>
+
 #include "../quickjs/quickjs.h"
 #ifndef countof
 #define countof(x) (sizeof(x) / sizeof((x)[0]))
@@ -189,9 +191,11 @@ struct _gf_vrml_script_priv
 #endif //GPAC_HAS_QJS
 };
 
-void scene_js_init_module(JSContext *ctx);
 
-void xhr_load_global(JSContext *c, JSValue global);
+/*definitions of C modules in gpac*/
+void qjs_module_init_scenejs(JSContext *ctx);
+void qjs_module_init_xhr(JSContext *c, JSValue global);
+void qjs_module_init_storage(JSContext *ctx);
 
 
 #ifdef __cplusplus

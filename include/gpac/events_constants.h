@@ -35,9 +35,6 @@
 /*!
 \addtogroup evt_grp
 \ingroup playback_grp
-\brief Constants for event system used by GPAC playback.
-
-This section documents the event types used by the terminal, the compositor, input modules and output rendering modules for communication.
 @{
  */
 
