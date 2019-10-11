@@ -3208,7 +3208,7 @@ err_exit:
 			if (!e && tf->nb_cues) {
 				for (i = 0; i < tf->nb_cues; i++) {
 					if (!tf->cues[i].is_processed) {
-						GF_LOG(dasher->strict_cues ? GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Track ID %d has cue #%d not processed after segmentation\n", tf->TrackID, i));
+						GF_LOG(dasher->strict_cues ? GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Track ID %d, Cue #%d (sn %d - dts "LLD" - cts "LLD") not processed after segmentation, no matching media sample\n", tf->TrackID, i, tf->cues[i].sample_num, tf->cues[i].dts, tf->cues[i].cts));
 						if (dasher->strict_cues) e = GF_BAD_PARAM;
 					}
 				}
