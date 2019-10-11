@@ -130,11 +130,6 @@ enum {
 
 enum {
 	GJS_GPAC_PROP_LAST_WORK_DIR = -1,
-	GJS_GPAC_PROP_SCALE_X = -2,
-	GJS_GPAC_PROP_SCALE_Y = -3,
-	GJS_GPAC_PROP_TRANSLATION_X = -4,
-	GJS_GPAC_PROP_TRANSLATION_Y = -5,
-	GJS_GPAC_PROP_RECT_TEXTURES = -6,
 	GJS_GPAC_PROP_BATTERY_ON = -7,
 	GJS_GPAC_PROP_BATTERY_CHARGE = -8,
 	GJS_GPAC_PROP_BATTERY_PERCENT = -9,
@@ -188,7 +183,6 @@ enum {
 
 static JSClassID gpac_class_id = 0;
 static JSClassID odm_class_id = 0;
-static JSClassID storage_class_id = 0;
 static JSClassID gpacevt_class_id = 0;
 static JSClassID any_class_id = 0;
 
@@ -203,7 +197,7 @@ static void gpac_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func
 }
 
 JSClassDef gpacClass = {
-    "GPAC",
+    "JSGPAC",
     .finalizer = gpac_js_finalize,
     .gc_mark = gpac_gc_mark
 };
@@ -211,13 +205,10 @@ JSClassDef gpacEvtClass = {
     "GPACEVT"
 };
 JSClassDef odmClass = {
-    "ODM"
+    "MediaObject"
 };
 JSClassDef anyClass = {
 	"GPACOBJECT"
-};
-JSClassDef storageClass = {
-    "Storage"
 };
 
 
@@ -250,25 +241,6 @@ static JSValue gpac_getProperty(JSContext *ctx, JSValueConst this_val, int prop_
 		if (!res) res = "/home/";
 #endif
 		return JS_NewString(ctx, res);
-
-	case GJS_GPAC_PROP_SCALE_X:
-		return JS_NewFloat64(ctx, FIX2FLT(compositor->scale_x) );
-
-	case GJS_GPAC_PROP_SCALE_Y:
-		return JS_NewFloat64(ctx, FIX2FLT(compositor->scale_y) );
-
-	case GJS_GPAC_PROP_TRANSLATION_X:
-		return JS_NewFloat64(ctx, FIX2FLT(compositor->trans_x) );
-
-	case GJS_GPAC_PROP_TRANSLATION_Y:
-		return JS_NewFloat64(ctx, FIX2FLT(compositor->trans_y) );
-
-	case GJS_GPAC_PROP_RECT_TEXTURES:
-#ifndef GPAC_DISABLE_3D
-		if (compositor->gl_caps.npot_texture || compositor->gl_caps.rect_texture)
-			return JS_NewBool(ctx, 1);
-#endif
-		return JS_NewBool(ctx, 0);
 
 	case GJS_GPAC_PROP_BATTERY_ON:
 		bval = GF_FALSE;
@@ -569,9 +541,9 @@ static JSValue gpac_set_option(JSContext *ctx, JSValueConst this_val, int argc, 
 
 	if (!strcmp(sec_name, "Compositor")) {
 		gf_filter_send_update(compositor->filter, NULL, key_name, key_val, 0);
+	} else {
+		gf_opts_set_key(sec_name, key_name, key_val);
 	}
-	gf_opts_set_key(sec_name, key_name, key_val);
-
 	JS_FreeCString(ctx, sec_name);
 	JS_FreeCString(ctx, key_name);
 	if (key_val) {
@@ -866,11 +838,11 @@ static JSValue gpac_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 
 static JSValue gpac_set_3d(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	u32 type_3d = 0;
+	Bool type_3d;
 	GF_Compositor *compositor = gpac_get_compositor(ctx, this_val);
 	if (!argc) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &type_3d, argv[0]))
-		return JS_EXCEPTION;
+	type_3d = JS_ToBool(ctx, argv[0]);
+
 	if (compositor->inherit_type_3d != type_3d) {
 		compositor->inherit_type_3d = type_3d;
 		compositor->root_visual_setup = 0;
@@ -1637,62 +1609,6 @@ static JSValue gpac_get_object_manager(JSContext *ctx, JSValueConst this_val, in
 }
 
 
-static JSValue gpac_new_storage(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	char szFile[GF_MAX_PATH];
-	JSValue anobj;
-	GF_Config *storage = NULL;
-	const char *storage_url = NULL;
-	u8 hash[20];
-	char temp[3];
-	GF_GPACJSExt *gjs = JS_GetOpaque(this_val, gpac_class_id);
-	if (!gjs) return JS_EXCEPTION;
-
-	if (JS_IsString(argv[0]) ) {
-		u32 i, count;
-		storage_url = JS_ToCString(ctx, argv[0]);
-		if (!storage_url) return JS_NULL;
-
-		szFile[0]=0;
-		gf_sha1_csum((u8 *)storage_url, (u32) strlen(storage_url), hash);
-		for (i=0; i<20; i++) {
-			sprintf(temp, "%02X", hash[i]);
-			strcat(szFile, temp);
-		}
-		strcat(szFile, ".cfg");
-
-		count = gf_list_count(gjs->storages);
-		for (i=0; i<count; i++) {
-			GF_Config *a_cfg = gf_list_get(gjs->storages, i);
-			const char *cfg_name = gf_cfg_get_filename(a_cfg);
-
-			if (strstr(cfg_name, szFile)) {
-				storage = a_cfg;
-				break;
-			}
-		}
-
-		if (!storage) {
-			const char *storage_dir = gf_opts_get_key("core", "store-dir");
-
-			storage = gf_cfg_force_new(storage_dir, szFile);
-			if (storage) {
-				gf_cfg_set_key(storage, "GPAC", "StorageURL", storage_url);
-				gf_list_add(gjs->storages, storage);
-			}
-		}
-
-		JS_FreeCString(ctx, storage_url);
-	}
-
-	if (!storage) return JS_NULL;
-
-	anobj = JS_NewObjectClass(ctx, storage_class_id);
-	if (JS_IsException(anobj)) return anobj;
-	JS_SetOpaque(anobj, storage);
-	return anobj;
-}
-
 static JSValue gpacevt_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 {
 	GF_GPACJSExt *gjs = JS_GetOpaque(this_val, gpacevt_class_id);
@@ -1932,75 +1848,6 @@ static JSValue gpac_show_keyboard(JSContext *ctx, JSValueConst this_val, int arg
 	return JS_UNDEFINED;
 }
 
-static JSValue gjs_storage_get_option(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	const char *opt = NULL;
-	const char *sec_name, *key_name;
-	s32 idx = -1;
-	GF_Config *config = JS_GetOpaque(this_val, storage_class_id);
-	if (!config) return JS_EXCEPTION;
-	if (argc < 2) return JS_EXCEPTION;
-
-	if (!JS_IsString(argv[0])) return JS_EXCEPTION;
-	if (!JS_IsString(argv[1]) && !JS_IsInteger(argv[1])) return JS_EXCEPTION;
-
-	sec_name = JS_ToCString(ctx, argv[0]);
-	key_name = NULL;
-	if (JS_IsInteger(argv[1])) {
-		JS_ToInt32(ctx, &idx, argv[1]);
-	} else if (JS_IsString(argv[1]) ) {
-		key_name = JS_ToCString(ctx, argv[1]);
-	}
-
-	if (key_name) {
-		opt = gf_cfg_get_key(config, sec_name, key_name);
-	} else if (idx>=0) {
-		opt = gf_cfg_get_key_name(config, sec_name, idx);
-	} else {
-		opt = NULL;
-	}
-
-	JS_FreeCString(ctx, key_name);
-	JS_FreeCString(ctx, sec_name);
-
-	if (opt) {
-		return JS_NewString(ctx, opt);
-	}
-	return JS_NULL;
-}
-
-static JSValue gjs_storage_set_option(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	const char *sec_name, *key_name, *key_val;
-	GF_Config *config = JS_GetOpaque(this_val, storage_class_id);
-	if (!config) return JS_EXCEPTION;
-	if (argc < 3) return JS_EXCEPTION;
-
-	if (!JS_IsString(argv[0])) return JS_EXCEPTION;
-	if (!JS_IsString(argv[1])) return JS_EXCEPTION;
-
-	sec_name = JS_ToCString(ctx, argv[0]);
-	key_name = JS_ToCString(ctx, argv[1]);
-	key_val = NULL;
-	if (JS_IsString(argv[2]))
-		key_val = JS_ToCString(ctx, argv[2]);
-
-	gf_cfg_set_key(config, sec_name, key_name, key_val);
-
-	JS_FreeCString(ctx, sec_name);
-	JS_FreeCString(ctx, key_name);
-	JS_FreeCString(ctx, key_val);
-	return JS_UNDEFINED;
-}
-
-static JSValue gjs_storage_save(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	GF_Config *config = JS_GetOpaque(this_val, storage_class_id);
-	if (!config) return JS_EXCEPTION;
-	gf_cfg_save(config);
-	return JS_UNDEFINED;
-}
-
 static const JSCFunctionListEntry gpac_evt_funcs[] = {
 	JS_CGETSET_MAGIC_DEF("keycode", gpacevt_getProperty, NULL, GJS_EVT_PROP_KEYCODE),
 	JS_CGETSET_MAGIC_DEF("mouse_x", gpacevt_getProperty, NULL, GJS_EVT_PROP_MOUSE_X),
@@ -2017,11 +1864,6 @@ static const JSCFunctionListEntry gpac_evt_funcs[] = {
 
 static const JSCFunctionListEntry gpac_funcs[] = {
 	JS_CGETSET_MAGIC_DEF("last_working_directory", gpac_getProperty, gpac_setProperty, GJS_GPAC_PROP_LAST_WORK_DIR),
-	JS_CGETSET_MAGIC_DEF("scale_x", gpac_getProperty, NULL, GJS_GPAC_PROP_SCALE_X),
-	JS_CGETSET_MAGIC_DEF("scale_y", gpac_getProperty, NULL, GJS_GPAC_PROP_SCALE_Y),
-	JS_CGETSET_MAGIC_DEF("translation_x", gpac_getProperty, NULL, GJS_GPAC_PROP_TRANSLATION_X),
-	JS_CGETSET_MAGIC_DEF("translation_y", gpac_getProperty, NULL, GJS_GPAC_PROP_TRANSLATION_Y),
-	JS_CGETSET_MAGIC_DEF("rectangular_textures", gpac_getProperty, NULL, GJS_GPAC_PROP_RECT_TEXTURES),
 	JS_CGETSET_MAGIC_DEF("batteryOn", gpac_getProperty, NULL, GJS_GPAC_PROP_BATTERY_ON),
 	JS_CGETSET_MAGIC_DEF("batteryCharging", gpac_getProperty, NULL, GJS_GPAC_PROP_BATTERY_CHARGE),
 	JS_CGETSET_MAGIC_DEF("batteryPercent", gpac_getProperty, NULL, GJS_GPAC_PROP_BATTERY_PERCENT),
@@ -2044,7 +1886,6 @@ static const JSCFunctionListEntry gpac_funcs[] = {
 	JS_CGETSET_MAGIC_DEF("fps", gpac_getProperty, NULL, GJS_GPAC_PROP_FPS),
 	JS_CGETSET_MAGIC_DEF("sim_fps", gpac_getProperty, NULL, GJS_GPAC_PROP_SIM_FPS),
 	JS_CGETSET_MAGIC_DEF("has_opengl", gpac_getProperty, NULL, GJS_GPAC_PROP_HAS_OPENGL),
-	JS_CGETSET_MAGIC_DEF("cpu_load", gpac_getProperty, NULL, GJS_GPAC_PROP_CPU),
 	JS_CGETSET_MAGIC_DEF("cpu", gpac_getProperty, NULL, GJS_GPAC_PROP_CPU),
 	JS_CGETSET_MAGIC_DEF("nb_cores", gpac_getProperty, NULL, GJS_GPAC_PROP_NB_CORES),
 	JS_CGETSET_MAGIC_DEF("system_memory", gpac_getProperty, NULL, GJS_GPAC_PROP_MEMORY_SYSTEM),
@@ -2071,17 +1912,13 @@ static const JSCFunctionListEntry gpac_funcs[] = {
 	JS_CFUNC_DEF("show_keyboard", 0, gpac_show_keyboard),
 	JS_CFUNC_DEF("trigger_gc", 0, gpac_trigger_gc),
 	JS_CFUNC_DEF("get_object_manager", 0, gpac_get_object_manager),
-	JS_CFUNC_DEF("new_storage", 0, gpac_new_storage),
 	JS_CFUNC_DEF("switch_quality", 0, gpac_switch_quality),
 	JS_CFUNC_DEF("navigation_supported", 0, gpac_navigation_supported),
 	JS_CFUNC_DEF("set_back_color", 0, gpac_set_back_color)
 };
 
 static const JSCFunctionListEntry odm_funcs[] = {
-	JS_CGETSET_MAGIC_DEF("last_working_directory", gpac_getProperty, gpac_setProperty, GJS_GPAC_PROP_LAST_WORK_DIR),
-
 	JS_CGETSET_MAGIC_DEF("ID", odm_getProperty, NULL, GJS_OM_PROP_ID),
-
 	JS_CGETSET_MAGIC_DEF("nb_resources", odm_getProperty, NULL, GJS_OM_PROP_NB_RES),
 	JS_CGETSET_MAGIC_DEF("service_url", odm_getProperty, NULL, GJS_OM_PROP_URL),
 	JS_CGETSET_MAGIC_DEF("duration", odm_getProperty, NULL, GJS_OM_PROP_DUR),
@@ -2146,15 +1983,6 @@ static const JSCFunctionListEntry odm_funcs[] = {
 	JS_CFUNC_DEF("select", 0, gjs_odm_select),
 	JS_CFUNC_DEF("get_srd", 0, gjs_odm_get_srd),
 };
-
-
-static const JSCFunctionListEntry storage_funcs[] = {
-	JS_CFUNC_DEF("get_option", 0, gjs_storage_get_option),
-	JS_CFUNC_DEF("set_option", 0, gjs_storage_set_option),
-	JS_CFUNC_DEF("save", 0, gjs_storage_save),
-};
-
-
 
 static void gpac_js_finalize(JSRuntime *rt, JSValue obj)
 {
@@ -2221,12 +2049,6 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 	JSValue proto = JS_NewObjectClass(c, odm_class_id);
 	JS_SetPropertyFunctionList(c, proto, odm_funcs, countof(odm_funcs));
 	JS_SetClassProto(c, odm_class_id, proto);
-
-	JS_NewClassID(&storage_class_id);
-	JS_NewClass(JS_GetRuntime(c), storage_class_id, &storageClass);
-	proto = JS_NewObjectClass(c, storage_class_id);
-	JS_SetPropertyFunctionList(c, proto, storage_funcs, countof(storage_funcs));
-	JS_SetClassProto(c, storage_class_id, proto);
 
 	JS_NewClassID(&gpacevt_class_id);
 	JS_NewClass(JS_GetRuntime(c), gpacevt_class_id, &gpacEvtClass);
@@ -2300,7 +2122,7 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 }
 
 
-void scene_js_init_module(JSContext *ctx)
+void qjs_module_init_scenejs(JSContext *ctx)
 {
     JSModuleDef *m;
     m = JS_NewCModule(ctx, "scenejs", js_scene_init);

@@ -233,7 +233,7 @@ struct __tag_compositor
 	to draw them*/
 	GF_List *extra_scenes;
 
-	u32 inherit_type_3d;
+	Bool inherit_type_3d;
 
 	Bool force_late_frame_draw;
 	/*all time nodes registered*/

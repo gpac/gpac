@@ -86,16 +86,24 @@ For SVG and DOM scenegraph API, see https://www.w3.org/TR/SVGTiny12/svgudom.html
 
 For BIFS and VRML scenegraph, see https://www.web3d.org/documents/specifications/14772/V2.0/part1/javascript.html
 
-GPAC uses the QuickJS engine for JavaScript support. This means that JS C modules as defined in QuickJS can also be used :
+SVG and BIFS APIs are automatically loaded when loading an SVG or BIFS scene with script nodes. They cannot be loaded in another way.
+
+
+The JSFilter API is loaded through a dedicated filter, see `gpac -h jsf`.
+
+All other APIs shall be loaded by the parent script (scene or JSFilter) as ECMAScript modules using the `import` directive.
+
+GPAC uses the QuickJS engine for JavaScript support. This means that JS C modules as defined in QuickJS could also be used :
 https://bellard.org/quickjs/quickjs.html#C-Modules
+
+\warning support for C modules is still not fully tested
 
 Constants used in the API (error code, property types, specific flags for functions) are exported using the same name as native code, e.g. GF_STATS_LOCAL, GF_FILTER_SAP_1, etc...
 
 Types and interfaces are described using WebIDL, see https://heycam.github.io/webidl/, with some slight modifications.
+\warning These IDL files are only intended to document the APIs, and are likely useless for other purposes.
 
-Errors are usually handled through exceptions.
-
-\warning support for C modules is still not fully tested
+Unless indicated otherwise, all errors are handled through exceptions.
 
 */
 

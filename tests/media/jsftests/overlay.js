@@ -98,11 +98,7 @@ filter.process = function()
 	let canvas = new evg.Canvas(width, height, pf, opck.data, stride);
 	canvas.centered = centered;
 
- 	ipid.drop_packet();
-    opck.send();
-	return GF_OK;
-
-	mx.rotate(0, 0, 0.05);
+//	mx.rotate(0, 0, 0.05);
 
 	canvas.path = path;
 
@@ -149,6 +145,7 @@ filter.process = function()
 	canvas.path = text;
 	canvas.fill(brush);
 
+ 	ipid.drop_packet();
     opck.send();
 	return GF_OK;
 }

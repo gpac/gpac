@@ -1355,7 +1355,7 @@ static JSValue xhr_load_class(JSContext *c)
 	return JS_NewCFunction2(c, xml_http_constructor, "XMLHttpRequest", 1, JS_CFUNC_constructor, 0);
 }
 
-void xhr_load_global(JSContext *c, JSValue global)
+void qjs_module_init_xhr(JSContext *c, JSValue global)
 {
 	JSValue ctor = xhr_load_class(c);
 	JS_SetPropertyStr(c, global, "XMLHttpRequest", ctor);

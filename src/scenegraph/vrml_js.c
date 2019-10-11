@@ -4185,7 +4185,8 @@ static void JSScript_LoadVRML(GF_Node *node)
 	JS_SetContextOpaque(priv->js_ctx, node);
 	vrml_js_init_api(priv, node);
 
-	scene_js_init_module(priv->js_ctx);
+	qjs_module_init_scenejs(priv->js_ctx);
+	qjs_module_init_storage(priv->js_ctx);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Built-in classes initialized\n"));
 #ifndef GPAC_DISABLE_SVG
@@ -4195,7 +4196,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	priv->the_event = dom_js_define_event(priv->js_ctx);
 	priv->the_event = JS_DupValue(priv->js_ctx, priv->the_event);
 #endif
-	xhr_load_global(priv->js_ctx, priv->js_obj);
+	qjs_module_init_xhr(priv->js_ctx, priv->js_obj);
 
 	priv->jsf_cache = gf_list_new();
 

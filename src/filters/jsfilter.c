@@ -3722,6 +3722,7 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
  		//init modules
 		xhr_js_init_module(jsf->ctx);
 		evg_js_init_module(jsf->ctx);
+		qjs_module_init_storage(jsf->ctx);
 		flags = JS_EVAL_TYPE_MODULE;
 	}
 	
