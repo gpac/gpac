@@ -1991,7 +1991,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			sURL[ulen]=0;
 		}
 
-		if (gf_url_is_local(sURL)) {
+		if (for_source && gf_url_is_local(sURL)) {
 			gf_url_to_fs_path(sURL);
 			char *sep = (char *)gf_fs_path_escape_colon(fsess, sURL);
 			if (sep) sep[0] = 0;
