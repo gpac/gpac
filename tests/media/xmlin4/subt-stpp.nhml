@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<NHNTStream version="1.0" timeScale="1000" mediaType="subt" mediaSubType="stpp" xml_namespace="http://www.gpac.io/dummy_namespace" xml_schema_location="http://example.org/a.xsd" trackID="1">
-<NHNTSample DTS="0"     isRAP="yes" mediaFile="first.xml"/>
-<NHNTSample DTS="10000" isRAP="yes" mediaFile="second.xml"/>
-<NHNTSample DTS="20000" isRAP="yes" mediaFile="last.xml" duration="10000"/>
-</NHNTStream>

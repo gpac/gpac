@@ -1,1 +1,0 @@
-Fail to open ./media/svg/Somref - error No such file or directory

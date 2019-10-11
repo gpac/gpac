@@ -1,5 +1,0 @@
-WEBVTT
-file with a header
-and a cue not separated by an empty line
-00:00.000 --> 00:10.000
-Some text in the first cue
