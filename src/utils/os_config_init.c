@@ -72,6 +72,8 @@
 
 #endif
 
+#if !defined(GPAC_STATIC_MODULES) && !defined(GPAC_MP4BOX_MINI)
+
 static Bool mod_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	if (!strncmp(item_name, "gm_", 3) || !strncmp(item_name, "gf_", 3)) {
@@ -80,6 +82,7 @@ static Bool mod_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumIn
 	}
 	return GF_FALSE;
 }
+#endif
 
 static Bool check_file_exists(char *name, char *path, char *outPath)
 {
