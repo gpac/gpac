@@ -466,8 +466,8 @@ static void mcdec_register_hevc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, 
 	Bool add = GF_TRUE;
 	u32 i, count;
 	s32 ps_id;
-	GF_List *dest = NULL; 
-	
+	GF_List *dest = NULL;
+
 	switch(xps) {
 		case MCDEC_SPS:
 			dest = ctx->SPSs;
@@ -487,7 +487,7 @@ static void mcdec_register_hevc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, 
 		default:
 			break;
 	}
-	
+
 	count = gf_list_count(dest);
 	for (i = 0; i<count; i++) {
 		GF_AVCConfigSlot *a_slc = gf_list_get(dest, i);
@@ -512,7 +512,7 @@ static void mcdec_register_hevc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, 
 		slc->size = size;
 		slc->id = ps_id;
 		gf_list_add(dest, slc);
-		
+
 		//force re-activation of sps/pps/vps
 		if (xps == MCDEC_SPS) ctx->active_sps = -1;
 		else if (xps == MCDEC_PPS) ctx->active_pps = -1;
@@ -591,7 +591,7 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 	ctx->cfg_crc = dsi_crc;
 
-	gf_filter_sep_max_extra_input_pids(filter, (codecid==GF_CODECID_HEVC) ? 5 : 0);
+	gf_filter_set_max_extra_input_pids(filter, (codecid==GF_CODECID_HEVC) ? 5 : 0);
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
@@ -1073,7 +1073,7 @@ GF_Err mcdec_hw_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u3
 #endif
 
 	*gl_tex_id = f->ctx->tex_id;
-	
+
 	if(!f->flushed && f->ctx->codec) {
 		if (AMediaCodec_releaseOutputBuffer(f->ctx->codec, f->outIndex, GF_TRUE) != AMEDIA_OK) {
 			 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] NOT Release Output Buffer Index: %d to surface", f->outIndex));
@@ -1081,7 +1081,7 @@ GF_Err mcdec_hw_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u3
 		}
 		if(mcdec_update_surface(f->ctx->surfaceTex) != GF_OK) return GF_BAD_PARAM;
 		if(mcdec_get_transform_matrix(texcoordmatrix, f->ctx->surfaceTex) != GF_OK) return GF_BAD_PARAM;
-		
+
 		f->flushed = GF_TRUE;
 	}
 	return GF_OK;
@@ -1167,7 +1167,7 @@ void mcdec_finalize(GF_Filter *filter)
 
     if (ctx->surfaceTex.texture_id)
 		mcdec_delete_surface(ctx->surfaceTex);
-	
+
     if(ctx->tex_id)
     	glDeleteTextures (1, &ctx->tex_id);
 
