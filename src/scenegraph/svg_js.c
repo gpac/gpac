@@ -195,11 +195,6 @@ static JSValue svg_nav_to_location(JSContext *c, JSValueConst obj, int argc, JSV
 	return JS_UNDEFINED;
 }
 
-JSValue dom_throw_exception(struct JSContext *c, u32 code);
-void js_do_loop(JSContext *ctx);
-void js_dump_error(JSContext *ctx);
-JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
-
 static JSValue svg_parse_xml(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	GF_SceneGraph *sg;
@@ -208,7 +203,7 @@ static JSValue svg_parse_xml(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *sg, char *svg_str);
 
 	if (!JS_IsObject(argv[1])) {
-		return dom_throw_exception(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
+		return js_throw_err(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
 	}
 
 	str = JS_ToCString(c, argv[0]);
@@ -450,7 +445,7 @@ static JSValue svg_element_setProperty(JSContext *c, JSValueConst obj, JSValueCo
 
 		par.val = FLT2FIX(d);
 		if (!par.val) {
-			return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+			return js_throw_err(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
 		}
 		if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_SET_SCALE, (GF_Node *)n, &par)) {
 			return JS_TRUE;
@@ -527,7 +522,7 @@ static JSValue svg_udom_smil_time_insert(JSContext *c, JSValueConst obj, int arg
 	times = *((GF_List **)info.far_ptr);
 	GF_SAFEALLOC(newtime, SMIL_Time);
 	if (!newtime) {
-		return dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+		return js_throw_err(c, GF_DOM_EXC_DATA_CLONE_ERR);
 	}
 	newtime->type = GF_SMIL_TIME_EVENT_RESOLVED;
 
@@ -853,7 +848,7 @@ static JSValue svg_udom_get_rect_trait(JSContext *c, JSValueConst obj, int argc,
 		SVG_ViewBox *v = (SVG_ViewBox *)info.far_ptr;
 		GF_SAFEALLOC(rc, rectCI);
 		if (!rc) {
-			return dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+			return js_throw_err(c, GF_DOM_EXC_DATA_CLONE_ERR);
 		}
 		newObj = JS_NewObjectClass(c, rectClass.class_id);
 		rc->x = FIX2FLT(v->x);
@@ -914,7 +909,7 @@ static JSValue svg_udom_get_rgb_color_trait(JSContext *c, JSValueConst obj, int 
 
 		GF_SAFEALLOC(rgb, rgbCI);
 		if (!rgb) {
-			return dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+			return js_throw_err(c, GF_DOM_EXC_DATA_CLONE_ERR);
 		}
 		newObj = JS_NewObjectClass(c, rgbClass.class_id);
 		rgb->r = (u8) (255*FIX2FLT(col->red)) ;
@@ -930,7 +925,7 @@ static JSValue svg_udom_get_rgb_color_trait(JSContext *c, JSValueConst obj, int 
 		if ((1) || paint->type==SVG_PAINT_COLOR) {
 			GF_SAFEALLOC(rgb, rgbCI);
 			if (!rgb) {
-				return dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+				return js_throw_err(c, GF_DOM_EXC_DATA_CLONE_ERR);
 			}
 			newObj = JS_NewObjectClass(c, rgbClass.class_id);
 			rgb->r = (u8) (255*FIX2FLT(paint->color.red) );
@@ -990,7 +985,7 @@ static JSValue svg_udom_set_trait(JSContext *c, JSValueConst obj, int argc, JSVa
 	e = gf_svg_parse_attribute(n, &info, (char *) val, 0);
 	JS_FreeCString(c, val);
 
-	if (e) return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+	if (e) return js_throw_err(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
 	dom_node_changed(n, GF_FALSE, &info);
 	return JS_UNDEFINED;
 }
@@ -1037,7 +1032,7 @@ static JSValue svg_udom_set_float_trait(JSContext *c, JSValueConst obj, int argc
 		}
 		GF_SAFEALLOC(val, SVG_Coordinate);
 		if (!val) {
-			return dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+			return js_throw_err(c, GF_DOM_EXC_DATA_CLONE_ERR);
 		}
 		val->type=SVG_NUMBER_VALUE;
 		val->value = FLT2FIX(d);
@@ -1291,7 +1286,7 @@ static JSValue svg_udom_create_matrix_components(JSContext *c, JSValueConst obj,
 	if (argc!=6) return JS_EXCEPTION;
 
 	GF_SAFEALLOC(mx, GF_Matrix2D)
-	if (!mx) return dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+	if (!mx) return js_throw_err(c, GF_DOM_EXC_DATA_CLONE_ERR);
 
 	JS_ToFloat64(c, &v, argv[0]);
 	mx->m[0] = FLT2FIX(v);
@@ -1318,7 +1313,7 @@ static JSValue svg_udom_create_rect(JSContext *c, JSValueConst obj, int argc, JS
 	if (!n || argc) return JS_EXCEPTION;
 
 	GF_SAFEALLOC(rc, rectCI);
-	if (!rc) return dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+	if (!rc) return js_throw_err(c, GF_DOM_EXC_DATA_CLONE_ERR);
 	r = JS_NewObjectClass(c, rectClass.class_id);
 	JS_SetOpaque(r, rc);
 	return r;
@@ -1332,7 +1327,7 @@ static JSValue svg_udom_create_point(JSContext *c, JSValueConst obj, int argc, J
 	if (!n || argc) return JS_EXCEPTION;
 
 	GF_SAFEALLOC(pt, pointCI);
-	if (!pt) return dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+	if (!pt) return js_throw_err(c, GF_DOM_EXC_DATA_CLONE_ERR);
 	r = JS_NewObjectClass(c, pointClass.class_id);
 	JS_SetOpaque(r, pt);
 	return r;
@@ -1346,7 +1341,7 @@ static JSValue svg_udom_create_path(JSContext *c, JSValueConst obj, int argc, JS
 	if (!n || argc) return JS_EXCEPTION;
 
 	GF_SAFEALLOC(path, pathCI);
-	if (!path) return dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+	if (!path) return js_throw_err(c, GF_DOM_EXC_DATA_CLONE_ERR);
 	p = JS_NewObjectClass(c, pathClass.class_id);
 	JS_SetOpaque(p, path);
 	return p;
@@ -1360,7 +1355,7 @@ static JSValue svg_udom_create_color(JSContext *c, JSValueConst obj, int argc, J
 	if (!n|| (argc!=3)) return JS_EXCEPTION;
 
 	GF_SAFEALLOC(col, rgbCI);
-	if (!col) return dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+	if (!col) return js_throw_err(c, GF_DOM_EXC_DATA_CLONE_ERR);
 
 	JS_ToInt32(c, &col->r, argv[0]);
 	JS_ToInt32(c, &col->g, argv[1]);
@@ -1448,7 +1443,7 @@ static JSValue svg_udom_get_time(JSContext *c, JSValueConst obj, int argc, JSVal
 
 static JSValue svg_connection_create(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	return dom_throw_exception(c, GF_DOM_EXC_NOT_SUPPORTED_ERR);
+	return js_throw_err(c, GF_DOM_EXC_NOT_SUPPORTED_ERR);
 }
 
 static void baseCI_finalize(JSRuntime *rt, JSValue obj)
@@ -2232,7 +2227,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	/*initialize DOM core */
 	dom_js_load(scene, scene->svg_js->js_ctx);
 
-	qjs_module_init_xhr(c, global);
+	qjs_module_init_xhr_global(c, global);
 
 	svg_define_udom_exception(scene->svg_js->js_ctx, scene->svg_js->global);
 	JSValue console = JS_NewObject(c);
@@ -2379,7 +2374,7 @@ GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 		return GF_OUT_OF_MEM;
 	}
 	/*create new ecmascript context*/
-	svg_js->js_ctx = gf_js_create_context(sg);
+	svg_js->js_ctx = gf_js_create_context();
 	if (!svg_js->js_ctx) {
 		gf_free(svg_js);
 		return GF_SCRIPT_ERROR;

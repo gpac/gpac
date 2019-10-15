@@ -399,6 +399,8 @@
     <ClCompile Include="..\..\src\jsmods\evg.c" />
     <ClCompile Include="..\..\src\jsmods\scene_js.c" />
     <ClCompile Include="..\..\src\jsmods\storage.c" />
+    <ClCompile Include="..\..\src\jsmods\webgl.c" />
+    <ClCompile Include="..\..\src\jsmods\webgl_pixfmt.c" />
     <ClCompile Include="..\..\src\jsmods\xhr.c" />
     <ClCompile Include="..\..\src\laser\lsr_dec.c" />
     <ClCompile Include="..\..\src\laser\lsr_enc.c" />

@@ -187,21 +187,10 @@ typedef enum {
 } GF_DOMTextJSProperty;
 
 
-JSValue dom_throw_exception(JSContext *ctx, u32 code)
-{
-    JSValue obj = JS_NewError(ctx);
-    if (JS_IsException(obj))
-        obj = JS_NULL;
-	else
-    	JS_DefinePropertyValueStr(ctx, obj, "code", JS_NewInt32(ctx, code), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-
-    return JS_Throw(ctx, obj);
-}
-
 
 JSValue xml_dom3_not_implemented(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	return dom_throw_exception(ctx, GF_DOM_EXC_NOT_SUPPORTED_ERR);
+	return js_throw_err(ctx, GF_DOM_EXC_NOT_SUPPORTED_ERR);
 }
 
 
@@ -597,7 +586,7 @@ static JSValue dom_nodelist_getProperty(JSContext *c, JSValueConst obj, int magi
 	default:
 		break;
 	}
-	return dom_throw_exception(c, GF_DOM_EXC_SYNTAX_ERR);
+	return js_throw_err(c, GF_DOM_EXC_SYNTAX_ERR);
 }
 
 
@@ -932,12 +921,12 @@ static Bool check_dom_parents(JSContext *c, GF_Node *n, GF_Node *parent)
 {
 	GF_ParentList *par = n->sgprivate->parents;
 	if (n->sgprivate->scenegraph != parent->sgprivate->scenegraph) {
-		dom_throw_exception(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
+		js_throw_err(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
 		return GF_FALSE;
 	}
 	while (par) {
 		if (par->node==parent) {
-			dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+			js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 			return GF_FALSE;
 		}
 		if (!check_dom_parents(c, par->node, parent))
@@ -1011,12 +1000,12 @@ static JSValue xml_node_insert_before(JSContext *c, JSValueConst obj, int argc, 
 
 	n = dom_get_node(obj);
 	if (!n) {
-		return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+		return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 	}
 
 	new_node = dom_get_node(argv[0]);
 	if (!new_node)
-		return dom_throw_exception(c, GF_DOM_EXC_SYNTAX_ERR);
+		return js_throw_err(c, GF_DOM_EXC_SYNTAX_ERR);
 
 	target = NULL;
 	if ((argc==2) && JS_IsObject(argv[1]) && !JS_IsNull(argv[1])) {
@@ -1025,16 +1014,16 @@ static JSValue xml_node_insert_before(JSContext *c, JSValueConst obj, int argc, 
 	}
 	tag = gf_node_get_tag(n);
 	if (tag==TAG_DOMText)
-		return dom_throw_exception(c, GF_DOM_EXC_SYNTAX_ERR);
+		return js_throw_err(c, GF_DOM_EXC_SYNTAX_ERR);
 
 	if (!check_dom_parents(c, n, new_node))
-		return dom_throw_exception(c, GF_DOM_EXC_VALIDATION_ERR);
+		return js_throw_err(c, GF_DOM_EXC_VALIDATION_ERR);
 	par = (GF_ParentNode*)n;
 	idx = -1;
 	if (target) {
 		idx = gf_node_list_find_child(par->children, target);
 		if (idx<0) {
-			return dom_throw_exception(c, GF_DOM_EXC_NOT_FOUND_ERR);
+			return js_throw_err(c, GF_DOM_EXC_NOT_FOUND_ERR);
 		}
 	}
 	dom_node_inserted(c, new_node, n, idx);
@@ -1051,20 +1040,20 @@ static JSValue xml_node_append_child(JSContext *c, JSValueConst obj, int argc, J
 	}
 	n = dom_get_node(obj);
 	if (!n) {
-		return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+		return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 	}
 
 	new_node = dom_get_node(argv[0]);
 	if (!new_node) {
-		return dom_throw_exception(c, GF_DOM_EXC_SYNTAX_ERR);
+		return js_throw_err(c, GF_DOM_EXC_SYNTAX_ERR);
 	}
 	tag = gf_node_get_tag(n);
 	if (tag==TAG_DOMText) {
-		return dom_throw_exception(c, GF_DOM_EXC_SYNTAX_ERR);
+		return js_throw_err(c, GF_DOM_EXC_SYNTAX_ERR);
 	}
 
 	if (!check_dom_parents(c, n, new_node)) {
-		return dom_throw_exception(c, GF_DOM_EXC_VALIDATION_ERR);
+		return js_throw_err(c, GF_DOM_EXC_VALIDATION_ERR);
 	}
 
 	dom_node_inserted(c, new_node, n, -1);
@@ -1082,17 +1071,17 @@ static JSValue xml_node_replace_child(JSContext *c, JSValueConst obj, int argc, 
 
 	if ((argc!=2) || !JS_IsObject(argv[0]) || !JS_IsObject(argv[1])) return JS_EXCEPTION;
 	n = dom_get_node(obj);
-	if (!n) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (!n) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 
 	new_node = dom_get_node(argv[0]);
-	if (!new_node) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (!new_node) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 	old_node = dom_get_node(argv[1]);
-	if (!old_node) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (!old_node) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 	tag = gf_node_get_tag(n);
-	if (tag==TAG_DOMText) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (tag==TAG_DOMText) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 	par = (GF_ParentNode*)n;
 	idx = gf_node_list_find_child(par->children, old_node);
-	if (idx<0) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (idx<0) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 
 	gf_node_list_del_child(&par->children, old_node);
 	gf_node_unregister(old_node, n);
@@ -1112,19 +1101,19 @@ static JSValue xml_node_remove_child(JSContext *c, JSValueConst obj, int argc, J
 	if (!argc || !JS_IsObject(argv[0])) return JS_TRUE;
 
 	n = dom_get_node(obj);
-	if (!n) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (!n) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 
 	old_node = dom_get_node(argv[0]);
-	if (!old_node) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (!old_node) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 	tag = gf_node_get_tag(n);
-	if (tag==TAG_DOMText) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (tag==TAG_DOMText) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 	par = (GF_ParentNode*)n;
 
 	/*if node is present in parent, unregister*/
 	if (gf_node_list_del_child(&par->children, old_node)) {
 		gf_node_unregister(old_node, n);
 	} else {
-		return dom_throw_exception(c, GF_DOM_EXC_NOT_FOUND_ERR);
+		return js_throw_err(c, GF_DOM_EXC_NOT_FOUND_ERR);
 	}
 
 	dom_node_changed(n, GF_TRUE, NULL);
@@ -1139,7 +1128,7 @@ static JSValue xml_clone_node(JSContext *c, JSValueConst obj, int argc, JSValueC
 	GF_Node *n, *clone;
 
 	n = dom_get_node(obj);
-	if (!n) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (!n) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 	deep = argc ? (JS_ToBool(c, argv[0]) ? GF_TRUE : GF_FALSE) : GF_FALSE;
 
 	clone = gf_node_clone(n->sgprivate->scenegraph, n, NULL, "", deep);
@@ -1150,7 +1139,7 @@ static JSValue xml_node_has_children(JSContext *c, JSValueConst obj, int argc, J
 {
 	GF_Node *n;
 	n = dom_get_node(obj);
-	if (!n) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (!n) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 	return ((GF_ParentNode*)n)->children ? JS_TRUE : JS_FALSE;
 }
 
@@ -1160,7 +1149,7 @@ static JSValue xml_node_has_attributes(JSContext *c, JSValueConst obj, int argc,
 	GF_Node *n;
 
 	n = dom_get_node(obj);
-	if (!n) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (!n) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 	tag = gf_node_get_tag(n);
 	if (tag>=GF_NODE_FIRST_DOM_NODE_TAG) {
 		return ((GF_DOMNode*)n)->attributes ? JS_TRUE : JS_FALSE;
@@ -1175,10 +1164,10 @@ static JSValue xml_node_is_same_node(JSContext *c, JSValueConst obj, int argc, J
 
 	if (!argc || !JS_IsObject(argv[0])) return JS_TRUE;
 	n = dom_get_node(obj);
-	if (!n) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (!n) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 
 	a_node = dom_get_node(argv[0]);
-	if (!a_node) return dom_throw_exception(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
+	if (!a_node) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 	return (a_node==n) ? JS_TRUE : JS_FALSE;
 }
 
