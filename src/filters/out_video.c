@@ -1430,7 +1430,7 @@ static void vout_draw_gl_hw_textures(GF_VideoOutCtx *ctx, GF_FilterFrameInterfac
 	GF_Matrix txmx;
 
 	if (ctx->internal_textures) {
-		glDeleteTextures(ctx->num_textures, ctx->txid);
+		//glDeleteTextures(ctx->num_textures, ctx->txid);
 		ctx->txid[0] = ctx->txid[1] = ctx->txid[2] = 0;
 		ctx->internal_textures = GF_FALSE;
 	}
@@ -1445,15 +1445,18 @@ static void vout_draw_gl_hw_textures(GF_VideoOutCtx *ctx, GF_FilterFrameInterfac
 			if (!i) return;
 			break;
 		}
+		glEnable(gl_format);
 		glBindTexture(gl_format, ctx->txid[i]);
 		glTexParameteri(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(gl_format, GL_TEXTURE_MAG_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
-		glTexParameteri(gl_format, GL_TEXTURE_MIN_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
+//		glTexParameteri(gl_format, GL_TEXTURE_MAG_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
+//		glTexParameteri(gl_format, GL_TEXTURE_MIN_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
+		glTexParameteri(gl_format, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	}
 
 	//and draw
 	vout_draw_gl_quad(ctx, GF_TRUE);
+	GL_CHECK_ERR()
 }
 
 static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)

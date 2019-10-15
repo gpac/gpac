@@ -2221,13 +2221,20 @@ void gf_filter_register_opengl_provider(GF_Filter *filter, Bool do_register);
 
 /*! Requests openGL support for this filter. If no OpenGL providers exist, a default provider will be created (GL context creation on hidden window). Filters requiring OpenGL will run on the main thread.
 
-Note: filters using openGL should not assume any persistent GL state among calls.
-Other filters using openGL might change the openGL context state (depth test, viewport, alpha blending, culling, etc...).
+\note Filters using openGL should not assume any persistent GL state among calls. Other filters using openGL might change the openGL context state (depth test, viewport, alpha blending, culling, etc...).
 
 \param filter filter providing OpenGL context
 \return error code if any
 */
 GF_Err gf_filter_request_opengl(GF_Filter *filter);
+
+/*! Sets openGL context active for this filter.
+\note There may be several openGL context created in the filter session, depending on activated filters. A filter using openGL must call this function before issuing any openGL calls
+
+\param filter filter asking for OpenGL context activation
+\return error code if any
+*/
+GF_Err gf_filter_set_active_opengl_context(GF_Filter *filter);
 
 
 /*! Count the number of source filters for the given filter matching the given protocol type.

@@ -58,7 +58,7 @@ The rasterizer supports
 
 The rasterizer is only capable of filling a given GF_Path object
 - striking (outlining) of a path must be done by using \ref gf_path_get_outline to the the outline path
-- text must be first converted to GF_Path (currently only supported by \ref GF_Compositor API, this will evolve in the near future)
+- text must be first converted to GF_Path
 
 @{
 */

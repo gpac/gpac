@@ -893,8 +893,6 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	return GF_OK;
 }
 
-GF_DownloadManager *jsf_get_download_manager(JSContext *c);
-
 static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	GF_Err e;
@@ -1355,7 +1353,7 @@ static JSValue xhr_load_class(JSContext *c)
 	return JS_NewCFunction2(c, xml_http_constructor, "XMLHttpRequest", 1, JS_CFUNC_constructor, 0);
 }
 
-void qjs_module_init_xhr(JSContext *c, JSValue global)
+void qjs_module_init_xhr_global(JSContext *c, JSValue global)
 {
 	JSValue ctor = xhr_load_class(c);
 	JS_SetPropertyStr(c, global, "XMLHttpRequest", ctor);
@@ -1369,7 +1367,7 @@ static int js_xhr_load_module(JSContext *c, JSModuleDef *m)
     JS_SetModuleExport(c, m, "XMLHttpRequest", ctor);
 	return 0;
 }
-void xhr_js_init_module(JSContext *ctx)
+void qjs_module_init_xhr(JSContext *ctx)
 {
     JSModuleDef *m;
     m = JS_NewCModule(ctx, "xhr", js_xhr_load_module);

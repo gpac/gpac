@@ -240,8 +240,6 @@
 		926F15571FE986B000C40779 /* write_nhml.c in Sources */ = {isa = PBXBuildFile; fileRef = 926F15561FE986B000C40779 /* write_nhml.c */; };
 		9273463323506D370081AF74 /* storage.c in Sources */ = {isa = PBXBuildFile; fileRef = 9273463223506D370081AF74 /* storage.c */; };
 		92754D60207D24F600170383 /* filelist.c in Sources */ = {isa = PBXBuildFile; fileRef = 92754D5F207D24F600170383 /* filelist.c */; };
-		927AACF71E44ED58008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
-		927AAD041E44EF17008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD0E1E44F492008C8E69 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		927DB14C21A3C7100032D205 /* reframe_latm.c in Sources */ = {isa = PBXBuildFile; fileRef = 927DB14B21A3C7100032D205 /* reframe_latm.c */; };
 		9288350C1FE82E64002F603D /* write_qcp.c in Sources */ = {isa = PBXBuildFile; fileRef = 9288350B1FE82E63002F603D /* write_qcp.c */; };
@@ -253,7 +251,11 @@
 		9290F5111FAB4C2C0038C30D /* mux_isom.c in Sources */ = {isa = PBXBuildFile; fileRef = 9290F5101FAB4C2C0038C30D /* mux_isom.c */; };
 		92910FA62335363F0052365D /* libregexp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92910FA52335363F0052365D /* libregexp.c */; };
 		92910FA8233536620052365D /* cutils.c in Sources */ = {isa = PBXBuildFile; fileRef = 92910FA7233536620052365D /* cutils.c */; };
+		9293839C23548C8F00AAAFA8 /* webgl.c in Sources */ = {isa = PBXBuildFile; fileRef = 9293839B23548C8F00AAAFA8 /* webgl.c */; };
+		9293839E2354A10800AAAFA8 /* webgl.h in Headers */ = {isa = PBXBuildFile; fileRef = 9293839D2354A10800AAAFA8 /* webgl.h */; };
 		9296BF2222CF7F5300DC9742 /* reframe_flac.c in Sources */ = {isa = PBXBuildFile; fileRef = 9296BF2122CF7F5300DC9742 /* reframe_flac.c */; };
+		929867752355DED1008A2CC6 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
+		929867772357320B008A2CC6 /* webgl_pixfmt.c in Sources */ = {isa = PBXBuildFile; fileRef = 929867762357320A008A2CC6 /* webgl_pixfmt.c */; };
 		92A08DBD20D946B7003589FF /* tileagg.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A08DBC20D946B6003589FF /* tileagg.c */; };
 		92A505BA20FC833800049B29 /* in_atsc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A505B920FC833800049B29 /* in_atsc.c */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
@@ -887,7 +889,12 @@
 		92910FA52335363F0052365D /* libregexp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libregexp.c; path = quickjs/libregexp.c; sourceTree = "<group>"; };
 		92910FA7233536620052365D /* cutils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cutils.c; path = quickjs/cutils.c; sourceTree = "<group>"; };
 		92912946218A3B2B004F1A6C /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../../README.md; sourceTree = "<group>"; };
+		9293839B23548C8F00AAAFA8 /* webgl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = webgl.c; path = jsmods/webgl.c; sourceTree = "<group>"; };
+		9293839D2354A10800AAAFA8 /* webgl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = webgl.h; path = jsmods/webgl.h; sourceTree = "<group>"; };
+		9293839F2354DBDB00AAAFA8 /* WebGLRenderingContextBase.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = WebGLRenderingContextBase.c; path = jsmods/WebGLRenderingContextBase.c; sourceTree = "<group>"; };
+		929383A32355A86F00AAAFA8 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/generators/WebGLGen/main.c; sourceTree = "<group>"; };
 		9296BF2122CF7F5300DC9742 /* reframe_flac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_flac.c; path = filters/reframe_flac.c; sourceTree = "<group>"; };
+		929867762357320A008A2CC6 /* webgl_pixfmt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = webgl_pixfmt.c; path = jsmods/webgl_pixfmt.c; sourceTree = "<group>"; };
 		92A08DBC20D946B6003589FF /* tileagg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tileagg.c; path = filters/tileagg.c; sourceTree = "<group>"; };
 		92A505B920FC833800049B29 /* in_atsc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_atsc.c; path = filters/in_atsc.c; sourceTree = "<group>"; };
 		92A7E95C2003BAAA000C22DE /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
@@ -1680,6 +1687,17 @@
 			name = gpac;
 			sourceTree = "<group>";
 		};
+		929383A22355A6EF00AAAFA8 /* WebGL */ = {
+			isa = PBXGroup;
+			children = (
+				929867762357320A008A2CC6 /* webgl_pixfmt.c */,
+				9293839F2354DBDB00AAAFA8 /* WebGLRenderingContextBase.c */,
+				9293839D2354A10800AAAFA8 /* webgl.h */,
+				9293839B23548C8F00AAAFA8 /* webgl.c */,
+			);
+			name = WebGL;
+			sourceTree = "<group>";
+		};
 		929CB5C120B6F02800849696 /* crypto */ = {
 			isa = PBXGroup;
 			children = (
@@ -1847,6 +1865,7 @@
 		92BE50AC18D6375100AA59D8 /* applications */ = {
 			isa = PBXGroup;
 			children = (
+				929383A32355A86F00AAAFA8 /* main.c */,
 				9251CA871E9D3DFE0089DDC6 /* MP4Client */,
 				927AACF81E44ED5C008C8E69 /* gpac */,
 				92BE509218D6325E00AA59D8 /* MP4Box */,
@@ -1894,6 +1913,7 @@
 				9273463223506D370081AF74 /* storage.c */,
 				923C337C234794F2001CED08 /* evg.c */,
 				92D6C5992343BED700262217 /* scene_js.c */,
+				929383A22355A6EF00AAAFA8 /* WebGL */,
 				92D6C59A2343BED700262217 /* xhr.c */,
 			);
 			name = jsmods;
@@ -2164,6 +2184,7 @@
 				92BBFCF01A7122AD006A7735 /* nodes_mpeg4.h in Headers */,
 				92BBFCDA1A7122AD006A7735 /* iso639.h in Headers */,
 				923E89CC20B6F04600F299B2 /* tiny_aes.h in Headers */,
+				9293839E2354A10800AAAFA8 /* webgl.h in Headers */,
 				92BBFCBD1A7122AD006A7735 /* events.h in Headers */,
 				92BBFCDC1A7122AD006A7735 /* laser.h in Headers */,
 				92BBFCFF1A7122AD006A7735 /* svg_types.h in Headers */,
@@ -2486,6 +2507,7 @@
 				925CE3451FA2E642004EC6F5 /* decrypt_cenc_isma.c in Sources */,
 				9201010E18D5A444003D1ACA /* rtp_streamer.c in Sources */,
 				92B9A58D1F8660D700A24FE4 /* audio_input.c in Sources */,
+				9293839C23548C8F00AAAFA8 /* webgl.c in Sources */,
 				9201010F18D5A444003D1ACA /* rtsp_command.c in Sources */,
 				9201011018D5A444003D1ACA /* rtsp_common.c in Sources */,
 				92B9A56F1F8660D700A24FE4 /* mpeg4_lighting.c in Sources */,
@@ -2570,6 +2592,7 @@
 				92B9A5BF1F8695FA00A24FE4 /* dmx_saf.c in Sources */,
 				92EB479320F6333900E1F2DD /* rewrite_obu.c in Sources */,
 				92D6C5A22343BEFF00262217 /* dom_js.c in Sources */,
+				929867772357320B008A2CC6 /* webgl_pixfmt.c in Sources */,
 				9201014818D5A445003D1ACA /* dvb_mpe.c in Sources */,
 				9201014A18D5A445003D1ACA /* gpac_ogg.c in Sources */,
 				9201014D18D5A445003D1ACA /* img.c in Sources */,
@@ -2722,7 +2745,6 @@
 				926F15531FE867B000C40779 /* write_vtt.c in Sources */,
 				920101AA18D5A445003D1ACA /* color.c in Sources */,
 				92B9A5841F8660D700A24FE4 /* mpeg4_form.c in Sources */,
-				927AACF71E44ED58008C8E69 /* main.c in Sources */,
 				92BB9A671F9C827600524E5B /* dmx_dash.c in Sources */,
 				92B9A5A71F8660D700A24FE4 /* texturing_gl.c in Sources */,
 				92B9A5A51F8660D700A24FE4 /* mpeg4_gradients.c in Sources */,
@@ -2770,7 +2792,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				927AAD041E44EF17008C8E69 /* main.c in Sources */,
+				929867752355DED1008A2CC6 /* main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
