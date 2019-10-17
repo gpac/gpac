@@ -11,7 +11,7 @@ typedef char *DOMString;
 \ingroup jsapi_grp
 \brief JavaScript API for filters.
 
-This section documents the JavaScript API used when developing JavaScript based filters.
+This section documents the JavaScript API used when developing JavaScript-based filters.
 JavaScript filters support all tools from native filters, see \ref filters_grp.
 
 Errors are handled through exceptions, except for callback function return values of the Filter object.
@@ -196,6 +196,13 @@ void update_status(DOMString status, optional long percent=0);
 /*! reschedule filter - see \ref gf_filter_ask_rt_reschedule and \ref gf_filter_post_process_task
 \param reschedule_us if not 0, reschedule the filter in the given amount of microseconds. Otherwise post a filter processing task*/
 void reschedule(optional long reschedule_us=0);
+
+
+/*! posts a task to the main scheduler - see \ref gf_filter_post_task
+\param task_callback the callback function to use. This callback returns -1 or an exception to abort the task, or a reschedule time in milliseconds
+\param task_this optional value for this object of the callback function. If not set, the filter object is used
+*/
+void post_task(function task_callback, optional Object task_this=null);
 
 /*! notify a failure of the filter upon source connections - see \ref gf_filter_notification_failure, \ref gf_filter_notification_failure
 \param error the error code

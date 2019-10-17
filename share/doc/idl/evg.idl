@@ -9,7 +9,7 @@
 \ingroup jsapi_grp
 \brief Embedded Vector Graphics JavaScript API.
 
-This module provides bindings for GPAC \ref evg_grp engine called EVG
+This module provides bindings for GPAC \ref evg_grp engine called EVG (for Embedded Vector Graphics).
 
 The API is loaded as a JS module with the name "evg":
 
@@ -33,7 +33,9 @@ Whenever pixel coordinates are indicated, 0,0 indicates:
 - the center of the surface if the surface uses centered coordinates
 - the top-left of the surface if the surface does not use centered coordinates
 
-Whenever using an object as a parameter to a function, only the parameter names as listed in the corresponding interface object are checked. The name of the interface is not, and it usually does not define any constructor 
+Whenever using an object as a parameter to a function, only the parameter names as listed in the corresponding interface object are checked. The name of the interface is not, and it usually does not define any constructor.
+
+\note Although 10-bit raster is supported for YUV formats, colors are internally handled as 8-bits for solid brush and gradients. This will be updated in the near future.
 @{
 
 
@@ -60,7 +62,7 @@ interface Canvas {
 /*! indicates if surface coordinates are centered or not - see \ref gf_evg_surface_set_center_coords*/
 attribute boolean centered;
 
-/*! path to draw - see \ref gf_evg_surface_set_path*/
+/*! path to draw - see \ref gf_evg_surface_set_path. The path object is either a Path or a Text*/
 writeonly Path path;
 
 /*! matrix to apply to path - see \ref gf_evg_surface_set_matrix. 
@@ -376,6 +378,15 @@ Most matrix functions return the path object itself, so that the operations can 
 \code
 mx.rotate(0).translate(10, 20).scale(2, 2);
 \endcode
+
+All objects (Point2D, Rect) used in the API do not use constructors, their type is inferred if the expected attributes (eg x y, ...) are present in the object
+
+\code
+let res = max.apply({x:0,y: 0});
+print(`transformed ${res.x} ${res.y});`
+\endcode
+
+
 */
 interface Matrix2D {
 	/*! constructor*/
@@ -603,6 +614,10 @@ interface Stencil {
 	/*! set color for solid brush stencil
 	\param color the color to set*/
 	void set_color(Color color);
+
+	/*! set color for solid brush stencil
+	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+	void set_color(DOMString color);
 
 	/*! set color for solid brush stencil - see \ref gf_evg_stencil_set_brush_color.
 	\note Omitting the last values will assume 0xFF for alpha, and 0x00 for other values

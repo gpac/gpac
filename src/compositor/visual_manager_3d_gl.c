@@ -257,8 +257,6 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #endif
 
 
-
-
 #ifdef LOAD_GL_2_0
 	GET_GLFUN(glCreateProgram);
 

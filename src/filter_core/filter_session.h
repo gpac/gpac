@@ -444,6 +444,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess);
 
 #ifndef GPAC_DISABLE_3D
 GF_Err gf_fs_check_gl_provider(GF_FilterSession *session);
+GF_Err gf_fs_set_gl(GF_FilterSession *session);
 #endif
 
 typedef enum

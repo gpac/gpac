@@ -727,7 +727,9 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		}
 
 		if ( !ctx->gl_context ) {
-			if (!(ctx->gl_context = SDL_GL_CreateContext(ctx->screen))) {
+			//in case we created a headless context before loading vout, create a shared context
+			SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
+   			if (!(ctx->gl_context = SDL_GL_CreateContext(ctx->screen))) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot initialize gl context: %s\n", SDL_GetError()));
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
@@ -1010,6 +1012,11 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 				gpac_evt.type = GF_EVENT_REFRESH;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 				break;
+			case SDL_WINDOWEVENT_CLOSE:
+				memset(&gpac_evt, 0, sizeof(GF_Event));
+				gpac_evt.type = GF_EVENT_QUIT;
+				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+				return GF_FALSE;
 			}
 			break;
 #else

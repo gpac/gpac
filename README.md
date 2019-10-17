@@ -75,26 +75,36 @@ Remaining before release
 - [x] add Remotery support
 - [x] filter API documentation
 - [x] add segmentation handling in TS muxer
-- [ ] unify vout color handling (complete) and compositor GLSL shaders (partial color support)
+- [ ] unify vout / WebGL color handling (complete) and compositor GLSL shaders (partial color support)
 - [x] pass all master test suite
 - [x] extend coverage and test suite
 - [x] update doxygen
+- [ ] merge into master
 
 ## V1.0.0
 Targets:
 - [ ] freeze filter API
+- [x] improve filter graph resolver
+- [x] improve filter scheduler
 - [ ] add ffmpeg muxer support
 - [ ] add ffmpeg simple avfilter support
 - [ ] add kvazaar/other encoders support?
 - [x] drop SpiderMonkey and move to QuickJS
 - [x] filters scriptable through JS
-- [x] improve filter graph resolver
-- [x] improve filter scheduler
+- [x] add 2D vector graphics for JS filters
+- [x] add WebGL vector graphics for JS filters
+- [x] JS modules API documentation
+- [ ] improve mp4 demux from pipe
+- [ ] support for HTTP output (server and put/post)
+- [ ] add TS spliter filter
 - [ ] move input sensors to filter ?
-- [ ] filters scriptable through other languages ?
+- [ ] split test suite from main repo and handle PRs with attachements
+
+## Future Roadmap
+- [ ] filters scriptable through other languages (python) ?
 
 # Testing
-GPAC has a test suite exercicing most features of the framework. Check the [tests readme](tests/README.md) for more details. Per-commit [build](https://buildbot.gpac.io/) and [tests results](https://tests.gpac.io) are available.
+GPAC has a test suite exercicing most features of the framework. Check the [tests readme](testsuite/README.md) for more details. Per-commit [build](https://buildbot.gpac.io/) and [tests results](https://tests.gpac.io) are available.
 
 # Compilation and Installation
 
@@ -128,14 +138,16 @@ This is a short overview of the gpac source repository.
 - *gpac/src/filters/* filters defined in GPAC. This include encoders, decoders, av output, wrapper for GPAC's compositor, ISOBMF, RTP, M2TS muxers and demuxers, etc ...
 - *gpac/src/ietf/* small RTP/RTSP/SDP library, plus media packetizers.
 - *gpac/src/isomedia/* ISOBMFF (Iso Base Media File Format), features file reading/writing/editing, precise interleaving, hint track creation and movie fragments (read/write). Includes 3GPP/3GPP2 ,  AVC/SVC, HEVC/L-HEVC and JPEG2000 support.
+- *gpac/src/jsmods/* Various JavaScript modules
 - *gpac/src/laser/* MPEG-4 LAsER (Lightweight Application Scene Representation)
 - *gpac/src/media_tools/* media tools for authoring: ISMA & 3GPP tools, AV parsers, media importing and exporting, hinting ...
 - *gpac/src/odf/* MPEG-4 Object Descriptor Framework: encoding/decoding of all descriptors, OD codec and OCI codec
+- *gpac/src/quickjs/* QuickJS javascript engine sources
 - *gpac/src/scene_manager/* memory representation of the scene, importers (BT/XMT/SWF/QT), dumpers and encoding
 - *gpac/src/scenegraph/* scene Graph API (MPEG4/VRML/X3D/SVG) - BIFS/VRML/X3D nodes are generated using gpac/applications/generators/*
 - *gpac/src/terminal/* client application engine. This is a simple wrapper around the filter engine of GPAC.
-- *gpac/src/utils/* all generic objects used throughout the lib (list, bitstream, thread, mutex...). The OS specific files are prefixed os_* . Porting libgpac to new platforms usually means porting only these files and updating the makefile
-- *gpac/tests/* tests suite for GPAC.
+- *gpac/src/utils/* all generic objects used throughout the lib (list, bitstream, thread, mutex...). The OS specific files are prefixed os_* .
+- *gpac/testsuite/* tests suite for GPAC - this is a GIT submodule.
 
 For more information, visit:
 - the GPAC website: http://gpac.io
