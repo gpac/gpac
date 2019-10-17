@@ -1966,7 +1966,7 @@ restart_fragmentation_pass:
 
 				if (!mpd_timeline_bs && use_url_template) {
 					Double sdur = ((Double)MaxSegmentDuration) / dasher->dash_scale;
-					Double diff = (cur_seg-2) * sdur;
+					Double diff = (cur_seg-2) * sdur + SegmentDuration / dasher->dash_scale;
 					diff -= ((Double)tf->start_tfdt) / tf->TimeScale;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Drift control for segment %d: segment_boundary=%.2f\t media_time=%.2f\tdrift=%.2f\n", cur_seg, (cur_seg - 2) * sdur, ((Double)tf->start_tfdt) / tf->TimeScale, diff));
 					if (ABS(diff) > sdur/2) {
