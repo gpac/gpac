@@ -320,7 +320,15 @@ GLDECL(void, glActiveTexture, (GLenum texture) )
 GLDECL(void, glClientActiveTexture, (GLenum texture) )
 
 
-GLDECL(void, glBlendEquation, (GLint mode) )
+GLDECL(void, glBlendColor, (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha))
+GLDECL(void, glBlendEquation, (GLenum mode))
+GLDECL(void, glBlendEquationSeparate, (GLenum modeRGB, GLenum modeAlpha))
+GLDECL(void, glBlendFuncSeparate, (GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) )
+
+GLDECL(void, glCompressedTexImage2D, (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid *data) )
+GLDECL(void, glCompressedTexSubImage2D, (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid *data) )
+GLDECL(void, glGenerateMipmap, (GLenum target ) )
+
 #endif	//GL_VERSION_1_3
 
 #ifndef GL_VERSION_1_4
@@ -359,7 +367,7 @@ GLDECL(void, glGenBuffers, (GLsizei , GLuint *) )
 GLDECL(void, glDeleteBuffers, (GLsizei , GLuint *) )
 GLDECL(void, glBindBuffer, (GLenum, GLuint ) )
 GLDECL(void, glBufferData, (GLenum, int, void *, GLenum) )
-GLDECL(void, glBufferSubData, (GLenum, int, int, void *) )
+GLDECL(void, glBufferSubData, (GLenum, size_t, int, void *) )
 GLDECL(void *, glMapBuffer, (GLenum, GLenum) )
 GLDECL(void *, glUnmapBuffer, (GLenum) )
 
@@ -548,6 +556,26 @@ GLDECL(void *, glUnmapBuffer, (GLenum) )
 #define GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE                0x8D56
 #define GL_MAX_SAMPLES                                       0x8D57
 
+#define GL_SMOOTH_POINT_SIZE_RANGE        0x0B12
+#define GL_SMOOTH_POINT_SIZE_GRANULARITY  0x0B13
+#define GL_SMOOTH_LINE_WIDTH_RANGE        0x0B22
+#define GL_SMOOTH_LINE_WIDTH_GRANULARITY  0x0B23
+#define GL_ALIASED_POINT_SIZE_RANGE       0x846D
+#define GL_ALIASED_LINE_WIDTH_RANGE       0x846E
+#define GL_ARRAY_BUFFER_BINDING                        0x8894
+#define GL_ELEMENT_ARRAY_BUFFER_BINDING                0x8895
+#define GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING          0x889F
+#define GL_BLEND_COLOR                    0x8005
+#define GL_NUM_COMPRESSED_TEXTURE_FORMATS 0x86A2
+#define GL_COMPRESSED_TEXTURE_FORMATS     0x86A3
+#define GL_TEXTURE_BINDING_CUBE_MAP       0x8514
+
+#define GL_SAMPLE_ALPHA_TO_COVERAGE       0x809E
+#define GL_SAMPLE_ALPHA_TO_ONE            0x809F
+#define GL_SAMPLE_COVERAGE                0x80A0
+#define GL_SAMPLE_COVERAGE_VALUE          0x80AA
+#define GL_SAMPLE_COVERAGE_INVERT         0x80AB
+
 GLDECL(GLuint, glCreateProgram, (void) )
 GLDECL(void, glDeleteProgram, (GLuint ) )
 GLDECL(void, glLinkProgram, (GLuint program) )
@@ -588,6 +616,40 @@ GLDECL(void, glUniformMatrix3x4fv, (GLint location, GLsizei count, GLboolean tra
 GLDECL(void, glUniformMatrix4x3fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 GLDECL(void, glGetProgramiv, (GLuint program, GLenum pname, GLint *params) )
 GLDECL(void, glGetProgramInfoLog, (GLuint program,  GLsizei maxLength,  GLsizei *length,  char *infoLog) )
+GLDECL(void, glGetShaderInfoLog, (GLuint shader, GLsizei bufSize, GLsizei *length, char *infoLog) )
+GLDECL(void, glGetShaderSource, (GLuint shader, GLsizei bufSize, GLsizei *length, char *source) )
+
+GLDECL(void, glGetActiveAttrib, (GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, const char *name))
+GLDECL(void, glGetActiveUniform, (GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, const char *name))
+GLDECL(void, glGetAttachedShaders, (GLuint program, GLsizei maxCount, GLsizei *count, GLuint *shaders))
+GLDECL(void, glBindAttribLocation, (GLuint program, GLuint index, const char *name))
+
+GLDECL(GLboolean, glIsBuffer, (GLuint buffer) )
+GLDECL(GLboolean, glIsFramebuffer, (GLuint framebuffer))
+GLDECL(GLboolean, glIsProgram, (GLuint program))
+GLDECL(GLboolean, glIsRenderbuffer, (GLuint rbuffer))
+GLDECL(GLboolean, glIsShader, (GLuint shader))
+GLDECL(void, glSampleCoverage, (GLclampf value, GLboolean invert) )
+GLDECL(void, glStencilFuncSeparate, (GLenum face, GLenum func, GLint ref, GLuint mask) )
+GLDECL(void, glStencilOpSeparate, (GLenum face, GLenum fail, GLenum zfail, GLenum zpass) )
+GLDECL(void, glStencilMaskSeparate, (GLenum face, GLuint mask) )
+GLDECL(void, glValidateProgram, (GLuint program) )
+
+GLDECL(void, glVertexAttrib1fv, (GLuint index, const GLfloat *v) )
+GLDECL(void, glVertexAttrib1f, (GLuint index, GLfloat x))
+GLDECL(void, glVertexAttrib2f, (GLuint index, GLfloat x, GLfloat y))
+GLDECL(void, glVertexAttrib2fv, (GLuint index, const GLfloat *v))
+GLDECL(void, glVertexAttrib3f, (GLuint index, GLfloat x, GLfloat y, GLfloat z))
+GLDECL(void, glVertexAttrib3fv, (GLuint index, const GLfloat *v))
+GLDECL(void, glVertexAttrib4f, (GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w))
+GLDECL(void, glVertexAttrib4fv, (GLuint index, const GLfloat *v))
+
+GLDECL(void, glGetBufferParameteriv, (GLenum target, GLenum pname, GLint *params) )
+GLDECL(void, glGetFramebufferAttachmentParameteriv, (GLenum target, GLenum attachment, GLenum pname, GLint *params) )
+
+GLDECL(void, glGetVertexAttribiv, (GLuint index, GLenum pname, GLint *params) )
+GLDECL(void, glGetVertexAttribfv, (GLuint index, GLenum pname, GLfloat *params) )
+GLDECL(void, glGetVertexAttribPointerv, (GLuint index, GLenum pname, GLvoid **pointer) )
 
 #ifndef GPAC_CONFIG_ANDROID
 GLDECL(void, glEnableVertexAttribArray, (GLuint index) )
@@ -605,8 +667,10 @@ GLDECL(void, glRenderbufferStorage, (GLenum target, GLenum internalformat, GLsiz
 GLDECL(void, glFramebufferRenderbuffer, (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer))
 GLDECL(void, glDeleteFramebuffers, (GLsizei n, const GLuint * framebuffers))
 GLDECL(void, glDeleteRenderbuffers, (GLsizei n, const GLuint * renderbuffers))
+GLDECL(void, glGetRenderbufferParameteriv, (GLenum target, GLenum pname, GLint *params) )
 
 GLDECL(GLenum, glCheckFramebufferStatus, (GLenum target))
+
 
 #endif //GPAC_CONFIG_ANDROID
 

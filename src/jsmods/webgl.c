@@ -448,7 +448,7 @@ static JSValue wgl_getParameter(JSContext *ctx, JSValueConst this_val, int argc,
 		s32 *tx_ints = gf_malloc(sizeof(s32)*ints[0]);
 		glGetIntegerv(pname, tx_ints);
 		ret = JS_NewArray(ctx);
-		for (i=0; i<ints[0]; i++) {
+		for (i=0; (s32)i<ints[0]; i++) {
 			JS_SetPropertyUint32(ctx, ret, i, JS_NewInt32(ctx, tx_ints[i]));
 		}
 		gf_free(ints);
@@ -885,7 +885,7 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 		u32 namelen;
 		GF_WebGLNamedTexture *named_tx = gf_list_get(glc->named_textures, i);
 		char *a_source = source;
-		namelen = strlen(named_tx->tx_name);
+		namelen = (u32) strlen(named_tx->tx_name);
 
 		while (a_source) {
 			char *loc = strstr(source, "texture2D");
@@ -924,7 +924,7 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 			for (i=0; i<count; i++) {
 				u32 namelen;
 				GF_WebGLNamedTexture *named_tx = gf_list_get(glc->named_textures, i);
-				namelen = strlen(named_tx->tx_name);
+				namelen = (u32) strlen(named_tx->tx_name);
 				if (strncmp(sep, named_tx->tx_name, namelen)) continue;
 
 				if (strchr(" \n\t;", sep[namelen])) {
@@ -1461,7 +1461,7 @@ static JSValue webgl_constructor(JSContext *ctx, JSValueConst new_target, int ar
 	glc->creation_attrs.depth = WGL_DEPTH_YES;
 	glc->creation_attrs.antialias = GF_TRUE;
 	glc->creation_attrs.premultipliedAlpha = GF_TRUE;
-	if ((argc>idx) && JS_IsObject(argv[idx])) {
+	if ((argc>(s32)idx) && JS_IsObject(argv[idx])) {
 #define GET_BOOL(_opt)\
 		v = JS_GetPropertyStr(ctx, argv[idx], #_opt);\
 		if (!JS_IsUndefined(v)) glc->creation_attrs._opt = JS_ToBool(ctx, v);\

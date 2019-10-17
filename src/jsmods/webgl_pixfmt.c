@@ -24,7 +24,7 @@
  */
 
 #include <gpac/setup.h>
-#ifndef GPAC_DISABLE_3D
+#if !defined GPAC_DISABLE_3D && defined GPAC_HAS_QJS
 
 #include "webgl.h"
 
