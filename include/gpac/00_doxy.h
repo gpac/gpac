@@ -93,17 +93,24 @@ The JSFilter API is loaded through a dedicated filter, see `gpac -h jsf`.
 
 All other APIs shall be loaded by the parent script (scene or JSFilter) as ECMAScript modules using the `import` directive.
 
-GPAC uses the QuickJS engine for JavaScript support. This means that JS C modules as defined in QuickJS could also be used :
-https://bellard.org/quickjs/quickjs.html#C-Modules
+GPAC uses the amazing QuickJS engine for JavaScript support: https://bellard.org/quickjs/quickjs.html. Although not JIT-enabled, it is small, fast and cross-platform which ensures the same behaviour on all devices.
 
+The module loader is the same as the QuickJS libc module loader (https://bellard.org/quickjs/quickjs.html#Modules), except that it checks for .so, .dll or .dylib extensions for C modules.
+
+This means that JS C modules as defined in QuickJS could also be used (https://bellard.org/quickjs/quickjs.html#C-Modules)
 \warning support for C modules is still not fully tested
 
-Constants used in the API (error code, property types, specific flags for functions) are exported using the same name as native code, e.g. GF_STATS_LOCAL, GF_FILTER_SAP_1, etc...
+There is currently no support for non-local modules (http, https ...).
+
+GPAC constants used in the API (error code, property types, specific flags for functions) are exported:
+- using the same name as native code, e.g. GF_STATS_LOCAL, GF_FILTER_SAP_1, etc...
+- in the global object of the javascript context
+
+Unless indicated otherwise, all errors are handled through exceptions. An exception object contains a code (integer) attribute and optionnally a message (string) attribute.
+
 
 Types and interfaces are described using WebIDL, see https://heycam.github.io/webidl/, with some slight modifications.
 \warning These IDL files are only intended to document the APIs, and are likely useless for other purposes.
-
-Unless indicated otherwise, all errors are handled through exceptions.
 
 */
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2019
+ *			Copyright (c) Telecom ParisTech 2019
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript C modules
@@ -2340,9 +2340,6 @@ static const JSCFunctionListEntry texture_funcs[] =
 	JS_CFUNC_DEF("split", 0, texture_split),
 };
 
-GF_Err jsf_get_filter_packet_planes(JSContext *c, JSValue obj, u32 *width, u32 *height, u32 *pf, u32 *stride, u32 *stride_uv, u8 **data, u8 **p_u, u8 **p_v, u8 **p_a);
-Bool jsf_is_packet(JSContext *c, JSValue obj);
-
 static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int argc, JSValueConst *argv)
 {
 	JSValue obj;
@@ -2385,7 +2382,7 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 		}
 		//create from filter packet
 		else if (jsf_is_packet(c, argv[0])) {
-			GF_Err e = jsf_get_filter_packet_planes(c, argv[0], &width, &height, &pf, &stride, &stride_uv, (u8 **)&data, &p_u, &p_v, &p_a);
+			GF_Err e = jsf_get_filter_packet_planes(c, argv[0], &width, &height, &pf, &stride, &stride_uv, (const u8 **)&data, (const u8 **)&p_u, (const u8 **)&p_v, (const u8 **)&p_a);
 			if (e) goto error;
 		} else {
 			goto error;
@@ -2435,8 +2432,10 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 	}
 
 done:
-	tx->nb_comp = gf_pixel_get_nb_comp(tx->pf);
-	gf_pixel_get_size_info(tx->pf, tx->width, tx->height, NULL, NULL, NULL, NULL, NULL);
+	if (tx->pf) {
+		tx->nb_comp = gf_pixel_get_nb_comp(tx->pf);
+		gf_pixel_get_size_info(tx->pf, tx->width, tx->height, NULL, NULL, NULL, NULL, NULL);
+	}
 	obj = JS_NewObjectClass(c, texture_class_id);
 	if (JS_IsException(obj)) return obj;
 	JS_SetOpaque(obj, tx);
@@ -2446,6 +2445,30 @@ error:
 	if (tx->stencil) gf_evg_stencil_delete(tx->stencil);
 	gf_free(tx);
 	return JS_EXCEPTION;
+}
+
+Bool js_evg_is_texture(JSContext *ctx, JSValue this_obj)
+{
+	GF_JSTexture *tx = JS_GetOpaque(this_obj, texture_class_id);
+	if (!tx) return GF_FALSE;
+	return GF_TRUE;
+}
+
+Bool js_evg_get_texture_info(JSContext *ctx, JSValue this_obj, u32 *width, u32 *height, u32 *pixfmt, u8 **p_data, u32 *stride, u8 **p_u, u8 **p_v, u32 *stride_uv, u8 **p_a)
+{
+	GF_JSTexture *tx = JS_GetOpaque(this_obj, texture_class_id);
+	if (!tx) return GF_FALSE;
+	if (width) *width = tx->width;
+	if (height) *height = tx->height;
+	if (pixfmt) *pixfmt = tx->pf;
+	if (stride) *stride = tx->stride;
+	if (stride_uv) *stride_uv = tx->stride_uv;
+	if (!tx->data) return GF_TRUE;
+	if (p_data) *p_data = tx->data;
+	if (p_u) *p_u = NULL;
+	if (p_v) *p_v = NULL;
+	if (p_a) *p_a = NULL;
+	return GF_TRUE;
 }
 
 static void text_reset(GF_JSText *txt)
@@ -2789,7 +2812,6 @@ static JSValue text_measure(JSContext *c, JSValueConst obj, int argc, JSValueCon
 	}
 	return res;
 }
-struct _gf_ft_mgr *jsf_get_font_manager(JSContext *c);
 
 static const JSCFunctionListEntry text_funcs[] =
 {
@@ -2985,7 +3007,7 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 	return 0;
 }
 
-void evg_js_init_module(JSContext *ctx)
+void qjs_module_init_evg(JSContext *ctx)
 {
     JSModuleDef *m;
     m = JS_NewCModule(ctx, "evg", js_evg_load_module);

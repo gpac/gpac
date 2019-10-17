@@ -78,20 +78,34 @@ typedef struct __gf_js_field
 	struct JSContext *js_ctx;
 } GF_JSField;
 
-static JSValue js_new_error(JSContext *ctx, GF_Err err)
+JSValue js_throw_err_msg(JSContext *ctx, s32 err, const char *fmt, ...)
 {
     JSValue obj = JS_NewError(ctx);
-    JS_DefinePropertyValueStr(ctx, obj, "message", JS_NewString(ctx, gf_error_to_string(err)),
-                              JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-    JS_DefinePropertyValueStr(ctx, obj, "error", JS_NewInt32(ctx, err), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-    return obj;
+    if (JS_IsException(obj)) {
+        obj = JS_NULL;
+	} else {
+    	JS_DefinePropertyValueStr(ctx, obj, "code", JS_NewInt32(ctx, err), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+    	if (fmt) {
+			char szMsg[2050];
+			va_list vl;
+			va_start(vl, fmt);
+			vsnprintf(szMsg, 2048, fmt, vl);
+			va_end(vl);
+
+    		JS_DefinePropertyValueStr(ctx, obj, "message", JS_NewString(ctx, szMsg), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		}
+	}
+    return JS_Throw(ctx, obj);
 }
 
-JSValue js_throw_errno(JSContext *ctx, GF_Err err)
+JSValue js_throw_err(JSContext *ctx, s32 err)
 {
-    JSValue obj = js_new_error(ctx, err);
-    if (JS_IsException(obj))
+    JSValue obj = JS_NewError(ctx);
+    if (JS_IsException(obj)) {
         obj = JS_NULL;
+	} else {
+    	JS_DefinePropertyValueStr(ctx, obj, "code", JS_NewInt32(ctx, err), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+	}
     return JS_Throw(ctx, obj);
 }
 
@@ -152,6 +166,146 @@ typedef struct
 
 static GF_JSRuntime *js_rt = NULL;
 
+int qjs_module_set_import_meta(JSContext *ctx, JSValueConst func_val, Bool use_realpath, Bool is_main)
+{
+    JSModuleDef *m;
+    char buf[PATH_MAX + 16];
+    JSValue meta_obj;
+    JSAtom module_name_atom;
+    const char *module_name, *src_file;
+
+    assert(JS_VALUE_GET_TAG(func_val) == JS_TAG_MODULE);
+    m = JS_VALUE_GET_PTR(func_val);
+
+    module_name_atom = JS_GetModuleName(ctx, m);
+    module_name = JS_AtomToCString(ctx, module_name_atom);
+    JS_FreeAtom(ctx, module_name_atom);
+    if (!module_name)
+        return -1;
+	src_file = module_name;
+    if (!strchr(module_name, ':')) {
+        strcpy(buf, "file://");
+#if !defined(_WIN32)
+        /* realpath() cannot be used with modules compiled with qjsc
+           because the corresponding module source code is not
+           necessarily present */
+        if (use_realpath) {
+            char *res = realpath(module_name, buf + strlen(buf));
+            if (!res) {
+                JS_ThrowTypeError(ctx, "realpath failure");
+                JS_FreeCString(ctx, module_name);
+                return -1;
+            }
+            src_file = res;
+        } 
+#endif
+    }
+
+    meta_obj = JS_GetImportMeta(ctx, m);
+    if (JS_IsException(meta_obj)) {
+    	JS_FreeCString(ctx, module_name);
+        return -1;
+    }
+    JS_DefinePropertyValueStr(ctx, meta_obj, "url", JS_NewString(ctx, module_name), JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, meta_obj, "main", JS_NewBool(ctx, is_main), JS_PROP_C_W_E);
+    JS_FreeCString(ctx, module_name);
+    JS_FreeValue(ctx, meta_obj);
+    return 0;
+}
+
+#if defined(WIN32) || defined(_WIN32_WCE)
+//#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
+
+typedef JSModuleDef *(JSInitModuleFunc)(JSContext *ctx, const char *module_name);
+
+static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
+                                        const char *module_name)
+{
+    JSModuleDef *m=NULL;
+    void *hd;
+    JSInitModuleFunc *init;
+    char *filename;
+
+    if (!strchr(module_name, '/') || !strchr(module_name, '\\')) {
+        /* must add a '/' so that the DLL is not searched in the system library paths */
+        filename = gf_malloc(strlen(module_name) + 2 + 1);
+        if (!filename) return NULL;
+        strcpy(filename, "./");
+        strcpy(filename + 2, module_name);
+    } else {
+        filename = (char *)module_name;
+    }
+
+    /* load dynamic lib */
+#ifdef WIN32
+	hd = LoadLibraryA(filename);
+#else
+    hd = dlopen(filename, RTLD_NOW | RTLD_LOCAL);
+#endif
+
+    if (filename != module_name)
+        gf_free(filename);
+
+	if (!hd) {
+		JS_ThrowReferenceError(ctx, "could not load module filename '%s' as shared library", module_name);
+	} else {
+#ifdef WIN32
+		init = GetProcAddress(hd, "js_init_module");
+#else
+    	init = dlsym(hd, "js_init_module");
+#endif
+
+		if (!init) {
+			JS_ThrowReferenceError(ctx, "could not load module filename '%s': js_init_module not found", module_name);
+		} else {
+			m = init(ctx, module_name);
+			if (!m) {
+				JS_ThrowReferenceError(ctx, "could not load module filename '%s': initialization error", module_name);
+			}
+		}
+#ifdef WIN32
+		if (hd) FreeLibrary(hd);
+#else
+		if (hd) dlclose(hd);
+#endif
+	}
+	return m;
+}
+
+JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque)
+{
+    JSModuleDef *m;
+    const char *fext = gf_file_ext_start(module_name);
+
+    if (fext && (!strcmp(fext, ".so") || !strcmp(fext, ".dll") || !strcmp(fext, ".dylib")) )  {
+        m = qjs_module_loader_dyn_lib(ctx, module_name);
+    } else {
+        u32 buf_len;
+        u8 *buf;
+        JSValue func_val;
+		gf_file_load_data(module_name, &buf, &buf_len);
+
+		if (!buf) {
+            JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
+                                   module_name);
+            return NULL;
+        }
+        /* compile the module */
+        func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+        js_free(ctx, buf);
+        if (JS_IsException(func_val))
+            return NULL;
+        /* XXX: could propagate the exception */
+        qjs_module_set_import_meta(ctx, func_val, GF_TRUE, GF_FALSE);
+        /* the module is already referenced, so we must free it */
+        m = JS_VALUE_GET_PTR(func_val);
+        JS_FreeValue(ctx, func_val);
+    }
+    return m;
+}
 
 JSContext *gf_js_create_context()
 {
@@ -171,6 +325,9 @@ JSContext *gf_js_create_context()
 		js_rt->allocated_contexts = gf_list_new();
 		js_rt->mx = gf_mx_new("JavaScript");
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated %p\n", js_runtime));
+
+    	JS_SetModuleLoaderFunc(js_rt->js_runtime, NULL, qjs_module_loader, NULL);
+
 	}
 	js_rt->nb_inst++;
 
@@ -353,7 +510,9 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 {
     int i=0;
     u32 logl = GF_LOG_INFO;
-    const char *str;
+    JSValue v, g;
+    const char *str, *c_logname=NULL;
+    const char *log_name = "JS";
 
     if ((argc>1) && JS_IsNumber(argv[0])) {
 		JS_ToInt32(ctx, &logl, argv[0]);
@@ -361,11 +520,20 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	}
 	if (is_error)
 		logl = GF_LOG_ERROR;
+	g = JS_GetGlobalObject(ctx);
+	v = JS_GetPropertyStr(ctx, g, "_gpac_log_name");
+	if (!JS_IsUndefined(v) && !JS_IsNull(v)) {
+		c_logname = JS_ToCString(ctx, v);
+		JS_FreeValue(ctx, v);
+		if (c_logname)
+			log_name = c_logname;
+	}
+	JS_FreeValue(ctx, g);
 
 #ifndef GPAC_DISABLE_LOG
- 	GF_LOG(logl, ltool, ("[JS] "));
+ 	GF_LOG(logl, ltool, ("[%s] ", log_name));
 #else
- 	fprintf(stderr, "[JS] ");
+ 	fprintf(stderr, "[%s] ", log_name);
 #endif
     for (; i < argc; i++) {
         str = JS_ToCString(ctx, argv[i]);
@@ -382,7 +550,8 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 #else
 	fprintf(stderr, "\n");
 #endif
-    return JS_UNDEFINED;
+	if (c_logname) JS_FreeCString(ctx, c_logname);
+	return JS_UNDEFINED;
 }
 JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -2853,6 +3022,7 @@ static const JSCFunctionListEntry Browser_funcs[] =
 	JS_CFUNC_DEF("createVrmlFromString", 1, createVrmlFromString),
 	JS_CFUNC_DEF("setDescription", 1, setDescription),
 	JS_CFUNC_DEF("print", 1, js_print),
+	JS_CFUNC_DEF("alert", 1, js_print),
 	JS_CFUNC_DEF("getScript", 0, getScript),
 	JS_CFUNC_DEF("getProto", 0, getProto),
 	JS_CFUNC_DEF("loadScript", 1, loadScript),
@@ -4196,7 +4366,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	priv->the_event = dom_js_define_event(priv->js_ctx);
 	priv->the_event = JS_DupValue(priv->js_ctx, priv->the_event);
 #endif
-	qjs_module_init_xhr(priv->js_ctx, priv->js_obj);
+	qjs_module_init_xhr_global(priv->js_ctx, priv->js_obj);
 
 	priv->jsf_cache = gf_list_new();
 

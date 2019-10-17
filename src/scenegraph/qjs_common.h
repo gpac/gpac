@@ -30,6 +30,13 @@
 #include <gpac/scenegraph.h>
 
 #include "../quickjs/quickjs.h"
+
+/********************************************
+
+	Common JS tools
+
+*********************************************/
+
 #ifndef countof
 #define countof(x) (sizeof(x) / sizeof((x)[0]))
 #endif
@@ -44,7 +51,22 @@ Bool gf_js_try_lock(struct JSContext *c);
 void gf_js_call_gc(struct JSContext *c);
 #endif /* GPAC_HAS_QJS */
 
+/* throws an error with integer property 'code' set to err*/
+JSValue js_throw_err(JSContext *ctx, s32 err);
+/* throws an error with integer property 'code' set to err and string property 'message' set to the formatted string*/
+JSValue js_throw_err_msg(JSContext *ctx, s32 err, const char *fmt, ...);
 
+void js_do_loop(JSContext *ctx);
+void js_dump_error(JSContext *ctx);
+JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+
+/********************************************
+
+	SceneGraph JS tools
+
+Note that the generic DOM API is also potentially used by XHR in JSFilter, not only by scenegraph
+
+*********************************************/
 
 #ifndef GPAC_DISABLE_SVG
 
@@ -86,9 +108,6 @@ struct _node_js_binding
 	GF_List *fields;
 };
 
-
-void js_do_loop(JSContext *ctx);
-void js_dump_error(JSContext *ctx);
 
 void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info);
 void dom_element_finalize(JSRuntime *rt, JSValue obj);
@@ -191,11 +210,29 @@ struct _gf_vrml_script_priv
 #endif //GPAC_HAS_QJS
 };
 
+/********************************************
 
-/*definitions of C modules in gpac*/
+	JSFilter tools
+
+*********************************************/
+
+/*provided by JSFilter only*/
+struct __gf_download_manager *jsf_get_download_manager(JSContext *c);
+struct _gf_ft_mgr *jsf_get_font_manager(JSContext *c);
+GF_Err jsf_request_opengl(JSContext *c);
+GF_Err jsf_set_gl_active(JSContext *c);
+GF_Err jsf_get_filter_packet_planes(JSContext *c, JSValue obj, u32 *width, u32 *height, u32 *pf, u32 *stride, u32 *stride_uv, const u8 **data, const u8 **p_u, const u8 **p_v, const u8 **p_a);
+
+Bool jsf_is_packet(JSContext *c, JSValue obj);
+
+
+/*definitions of C modules in gpac, potentially used by both SceneGraph and JSFilter*/
 void qjs_module_init_scenejs(JSContext *ctx);
-void qjs_module_init_xhr(JSContext *c, JSValue global);
 void qjs_module_init_storage(JSContext *ctx);
+void qjs_module_init_xhr_global(JSContext *c, JSValue global);
+void qjs_module_init_xhr(JSContext *c);
+void qjs_module_init_evg(JSContext *c);
+void qjs_module_init_webgl(JSContext *c);
 
 
 #ifdef __cplusplus

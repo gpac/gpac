@@ -3087,6 +3087,18 @@ GF_Err gf_filter_request_opengl(GF_Filter *filter)
 }
 
 GF_EXPORT
+GF_Err gf_filter_set_active_opengl_context(GF_Filter *filter)
+{
+#ifndef GPAC_DISABLE_3D
+	if (filter->finalized || filter->removed) return GF_OK;
+	return gf_fs_set_gl(filter->session);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
+
+GF_EXPORT
 u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_scheme, Bool expand_proto, GF_FilterPid * (*enum_pids)(void *udta, u32 *idx), void *udta)
 {
 	u32 i, count, len, res=0;
