@@ -38,6 +38,7 @@ LINKLIBS+= -ljpeg
 ifeq ($(CONFIG_JPEG), local)
 NEED_LOCAL_LIB="yes"
 MEDIATOOLS_CFLAGS+=-I"$(LOCAL_INC_PATH)/jpeg"
+FILTERS_CFLAGS+=-I"$(LOCAL_INC_PATH)/jpeg"
 endif
 endif
 
@@ -49,6 +50,7 @@ LINKLIBS+= -lpng
 ifeq ($(CONFIG_PNG), local)
 NEED_LOCAL_LIB="yes"
 MEDIATOOLS_CFLAGS+=-I"$(LOCAL_INC_PATH)/png"
+FILTERS_CFLAGS+=-I"$(LOCAL_INC_PATH)/png"
 endif
 endif
 

@@ -116,7 +116,7 @@
 #define GLDECL(ret, funname, args)	\
 typedef ret (GLAPICAST proc_ ## funname)args;	\
 extern proc_ ## funname funname;	\
- 
+
 
 #define GLDECL_FUNC(funname) proc_ ## funname funname = NULL
 #define GLDECL_FUNC_STATIC(funname) static proc_ ## funname funname = NULL

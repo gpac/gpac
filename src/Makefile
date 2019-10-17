@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 ## libgpac objects gathering: src/utils
-LIBGPAC_UTILS=utils/os_divers.o utils/os_file.o utils/list.o utils/bitstream.o utils/constants.o utils/error.o utils/alloc.o utils/url.o utils/configfile.o utils/gltools.o 
+LIBGPAC_UTILS=utils/os_divers.o utils/os_file.o utils/list.o utils/bitstream.o utils/constants.o utils/error.o utils/alloc.o utils/url.o utils/configfile.o utils/gltools.o
 ifeq ($(DISABLE_CORE_TOOLS), no)
 LIBGPAC_UTILS+=utils/sha1.o utils/base_encoding.o utils/math.o utils/os_net.o utils/os_thread.o utils/os_config_init.o utils/cache.o utils/downloader.o utils/xml_parser.o utils/utf.o utils/token.o utils/color.o utils/Remotery.o
 endif
@@ -37,7 +37,7 @@ LIBGPAC_BIFS=bifs/arith_decoder.o bifs/bifs_codec.o bifs/bifs_node_tables.o bifs
 endif
 
 ## libgpac objects gathering: src/isomedia
-LIBGPAC_ISOM=isomedia/avc_ext.o isomedia/box_code_3gpp.o isomedia/box_code_apple.o isomedia/box_code_base.o isomedia/box_code_drm.o isomedia/box_code_meta.o isomedia/box_dump.o isomedia/box_funcs.o isomedia/data_map.o isomedia/drm_sample.o isomedia/isom_intern.o isomedia/isom_read.o isomedia/isom_store.o isomedia/isom_write.o isomedia/media.o isomedia/media_odf.o isomedia/meta.o isomedia/movie_fragments.o isomedia/sample_descs.o isomedia/stbl_read.o isomedia/stbl_write.o isomedia/track.o isomedia/tx3g.o isomedia/iff.o   
+LIBGPAC_ISOM=isomedia/avc_ext.o isomedia/box_code_3gpp.o isomedia/box_code_apple.o isomedia/box_code_base.o isomedia/box_code_drm.o isomedia/box_code_meta.o isomedia/box_dump.o isomedia/box_funcs.o isomedia/data_map.o isomedia/drm_sample.o isomedia/isom_intern.o isomedia/isom_read.o isomedia/isom_store.o isomedia/isom_write.o isomedia/media.o isomedia/media_odf.o isomedia/meta.o isomedia/movie_fragments.o isomedia/sample_descs.o isomedia/stbl_read.o isomedia/stbl_write.o isomedia/track.o isomedia/tx3g.o isomedia/iff.o
 ifeq ($(DISABLE_ISOFF_HINT), no)
 LIBGPAC_ISOM+=isomedia/hint_track.o isomedia/hinting.o
 endif
@@ -47,9 +47,9 @@ endif
 
 
 ## libgpac objects gathering: src/odf
-LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/odf_code.o odf/odf_codec.o odf/odf_command.o odf/qos.o odf/slc.o 
+LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/odf_code.o odf/odf_codec.o odf/odf_command.o odf/qos.o odf/slc.o
 ifeq ($(MINIMAL_OD), no)
-LIBGPAC_ODF+=odf/ipmpx_code.o odf/oci_codec.o 
+LIBGPAC_ODF+=odf/ipmpx_code.o odf/oci_codec.o
 
 ifeq ($(DISABLE_OD_DUMP), no)
 LIBGPAC_ODF+=odf/ipmpx_dump.o
@@ -95,7 +95,7 @@ ifeq ($(DISABLE_MPD), no)
 LIBGPAC_MEDIATOOLS+=media_tools/m3u8.o media_tools/mpd.o
 endif
 ifeq ($(DISABLE_DASH_CLIENT), no)
-LIBGPAC_MEDIATOOLS+=media_tools/dash_client.o 
+LIBGPAC_MEDIATOOLS+=media_tools/dash_client.o
 endif
 ifeq ($(DISABLE_MEDIA_EXPORT), no)
 LIBGPAC_MEDIATOOLS+=media_tools/media_export.o
@@ -161,10 +161,10 @@ ifeq ($(DISABLE_LOADER_QTVR), no)
 LIBGPAC_SCENEMANAGER+=scene_manager/loader_qt.o
 endif
 ifeq ($(DISABLE_SVG), no)
-LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg.o 
+LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg.o
 endif
 ifeq ($(DISABLE_LOADER_SWF), no)
-LIBGPAC_SCENEMANAGER+=scene_manager/swf_parse.o scene_manager/swf_bifs.o scene_manager/swf_svg.o 
+LIBGPAC_SCENEMANAGER+=scene_manager/swf_parse.o scene_manager/swf_bifs.o scene_manager/swf_svg.o
 endif
 ifeq ($(DISABLE_SCENE_DUMP), no)
 LIBGPAC_SCENEMANAGER+=scene_manager/scene_dump.o
@@ -173,14 +173,14 @@ ifeq ($(DISABLE_SCENE_STATS), no)
 LIBGPAC_SCENEMANAGER+=scene_manager/scene_stats.o
 endif
 ifeq ($(DISABLE_SENG), no)
-LIBGPAC_SCENEMANAGER+=scene_manager/scene_engine.o 
+LIBGPAC_SCENEMANAGER+=scene_manager/scene_engine.o
 endif
 ifeq ($(DISABLE_SCENE_ENCODE), no)
 LIBGPAC_SCENEMANAGER+=scene_manager/encode_isom.o
 endif
 
 ## libgpac objects gathering: src/terminal
-LIBGPAC_TERMINAL=terminal/terminal.o 
+LIBGPAC_TERMINAL=terminal/terminal.o
 
 
 ## libgpac objects gathering: src/compositor
@@ -202,8 +202,8 @@ ifeq ($(DISABLE_LASER), no)
 LIBGPAC_LASER=laser/lsr_enc.o laser/lsr_dec.o laser/lsr_tables.o
 endif
 
-## libgpac objects gathering: 
-OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_EVG) $(LIBGPAC_FILTERS) $(LIBGPAC_FILTERS_OHEVC) $(LIBGPAC_FILTERS_SVC)  $(LIBGPAC_QUICKJS)
+## libgpac objects gathering:
+OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_EVG) $(LIBGPAC_FILTERS) $(LIBGPAC_FILTERS_SVC)  $(LIBGPAC_QUICKJS)
 
 SCENEGRAPH_CFLAGS=
 MEDIATOOLS_CFLAGS=$(JS_FLAGS)
@@ -213,8 +213,7 @@ include ../static.mak
 
 LIBGPAC_FILTERS+=filters/compose.o filters/dasher.o filters/dec_ac52.o filters/dec_bifs.o filters/dec_faad.o filters/dec_img.o filters/dec_j2k.o filters/dec_laser.o filters/dec_mad.o filters/dec_nvdec.o filters/dec_nvdec_sdk.o filters/dec_odf.o filters/dec_theora.o filters/dec_ttxt.o filters/dec_vorbis.o filters/dec_vtb.o filters/dec_webvtt.o filters/dec_xvid.o filters/decrypt_cenc_isma.o filters/dmx_avi.o filters/dmx_dash.o filters/dmx_gsf.o filters/dmx_m2ts.o filters/dmx_mpegps.o filters/dmx_nhml.o filters/dmx_nhnt.o filters/dmx_ogg.o filters/dmx_saf.o filters/dmx_vobsub.o filters/enc_jpg.o filters/enc_png.o filters/encrypt_cenc_isma.o filters/ff_common.o filters/ff_avf.o filters/ff_dec.o filters/ff_dmx.o filters/ff_enc.o filters/ff_rescale.o filters/ff_mx.o filters/filelist.o filters/hevcmerge.o filters/hevcsplit.o filters/in_atsc.o filters/in_dvb4linux.o filters/in_file.o filters/in_http.o filters/in_pipe.o filters/in_rtp.o filters/in_rtp_rtsp.o filters/in_rtp_sdp.o filters/in_rtp_signaling.o filters/in_rtp_stream.o filters/in_sock.o filters/inspect.o filters/isoffin_load.o filters/isoffin_read.o filters/isoffin_read_ch.o filters/jsfilter.o filters/load_bt_xmt.o filters/load_svg.o filters/load_text.o filters/mux_avi.o filters/mux_gsf.o filters/mux_isom.o filters/mux_ts.o filters/out_audio.o  filters/out_file.o filters/out_http.o filters/out_pipe.o filters/out_rtp.o filters/out_rtsp.o filters/out_sock.o filters/out_video.o filters/reframer.o filters/reframe_ac3.o filters/reframe_adts.o filters/reframe_latm.o filters/reframe_amr.o filters/reframe_av1.o filters/reframe_flac.o filters/reframe_h263.o filters/reframe_img.o filters/reframe_mp3.o filters/reframe_mpgvid.o filters/reframe_nalu.o filters/reframe_prores.o filters/reframe_qcp.o filters/reframe_rawvid.o filters/reframe_rawpcm.o filters/resample_audio.o filters/tileagg.o filters/tssplit.o filters/unit_test_filter.o filters/rewind.o filters/rewrite_adts.o filters/rewrite_mp4v.o filters/rewrite_nalu.o filters/rewrite_obu.o filters/vflip.o filters/vcrop.o filters/write_generic.o filters/write_nhml.o filters/write_nhnt.o filters/write_qcp.o filters/write_vtt.o
 
-
-FILTERS_CFLAGS=$(JS_FLAGS)
+FILTERS_CFLAGS+=$(JS_FLAGS)
 
 LIBGPAC_FILTERS_OHEVC+=filters/dec_openhevc.o
 
@@ -256,7 +255,7 @@ endif
 ifneq ($(CONFIG_JP2),no)
 EXTRALIBS+=$(JP2_LDFLAGS)
 ifeq ($(CONFIG_JP2), local)
-CFLAGS+= -I"$(LOCAL_INC_PATH)/openjpeg"
+CFLAGS+= -DOPJ_STATIC -I"$(LOCAL_INC_PATH)/openjpeg"
 else
 CFLAGS+=$(JP2_CFLAGS)
 endif
@@ -300,7 +299,7 @@ EXTRALIBS+= -lrt
 endif
 
 
-SRCS := $(OBJS:.o=.c) 
+SRCS := $(OBJS:.o=.c)
 
 all: lib
 
@@ -381,7 +380,7 @@ DEPS := $(SRCS:%.c=.deps/%.dep)
 	@mkdir -p $(dir $@)
 	$(CC) -MM $(CFLAGS) "$<" -MT "$*.o" -MF "$@"
 
-clean: 
+clean:
 	rm -f $(OBJS) ../bin/gcc/$(LIB)
 	rm -rf ../bin/gcc/libgpac_static.a ../bin/gcc/libgpac.so \
 		../bin/gcc/libgpac.so.$(VERSION_MAJOR) \

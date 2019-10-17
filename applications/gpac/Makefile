@@ -18,6 +18,7 @@ LINKFLAGS=-L../../bin/gcc
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=gpac$(EXE)
+LINKFLAGS+=$(UNICODEFLAGS)
 else
 EXT=
 PROG=gpac
