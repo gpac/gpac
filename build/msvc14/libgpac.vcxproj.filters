@@ -1514,6 +1514,18 @@
     <ClCompile Include="..\..\src\filters\jsfilter.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\jsmods\evg.c">
+      <Filter>jsmods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\jsmods\storage.c">
+      <Filter>jsmods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\jsmods\webgl.c">
+      <Filter>jsmods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\jsmods\webgl_pixfmt.c">
+      <Filter>jsmods</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\filters\dec_vtb_glctx.m">

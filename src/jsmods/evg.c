@@ -182,7 +182,7 @@ static JSValue canvas_constructor(JSContext *c, JSValueConst new_target, int arg
 		return JS_EXCEPTION;
 
 	if (argc>3) {
-		u32 idx=0;
+		s32 idx=0;
 		if (JS_IsObject(argv[3])) {
 			data = JS_GetArrayBuffer(c, &data_size, argv[3]);
 			if (!data) return JS_EXCEPTION;
@@ -341,8 +341,8 @@ static JSValue canvas_setProperty(JSContext *c, JSValueConst obj, JSValueConst v
 
 static JSValue canvas_clear_ex(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, Bool use_float)
 {
-	u32 i;
-	u32 idx=0;
+	s32 i;
+	s32 idx=0;
 	GF_Err e;
 	GF_IRect rc, *irc;
 	u32 r=0, g=0, b=0, a=255;
@@ -1090,7 +1090,7 @@ static JSValue path_quadratic_to(JSContext *c, JSValueConst obj, int argc, JSVal
 static JSValue path_rect(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	Double ox=0, oy=0, w=0, h=0;
-	u32 idx=0;
+	s32 idx=0;
 	GF_Err e;
 
 	GF_Path *gp = JS_GetOpaque(obj, path_class_id);
@@ -1164,7 +1164,7 @@ static JSValue path_ellipse(JSContext *c, JSValueConst obj, int argc, JSValueCon
 static JSValue path_bezier(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	GF_Err e;
-	u32 i;
+	s32 i;
 	GF_Point2D *pts;
 	GF_Path *gp = JS_GetOpaque(obj, path_class_id);
 	if (!gp || (argc<3)) return JS_EXCEPTION;
@@ -1501,7 +1501,7 @@ static JSValue stencil_set_linear(JSContext *c, GF_EVGStencil *stencil, int argc
 	JSValue v;
 	Double d;
 	Fixed start_x=0, start_y=0, end_x=0, end_y=0;
-	u32 idx=0;
+	s32 idx=0;
 	if (argc<2) return JS_EXCEPTION;
 
 #define GETIT(_arg, _name, _var) \
@@ -1548,7 +1548,7 @@ static JSValue stencil_set_radial(JSContext *c, GF_EVGStencil *stencil, int argc
 	JSValue v;
 	Double d;
 	Fixed cx=0, cy=0, fx=0, fy=0, rx=0, ry=0;
-	u32 idx=0;
+	s32 idx=0;
 	if (argc<3) return JS_EXCEPTION;
 
 #define GETIT(_arg, _name, _var) \
@@ -1615,7 +1615,7 @@ static JSValue stencil_set_points(JSContext *c, JSValueConst obj, int argc, JSVa
 
 Bool get_color_from_args(JSContext *c, int argc, JSValueConst *argv, u32 idx, Double *a, Double *r, Double *g, Double *b)
 {
-	if (argc<idx) return GF_FALSE;
+	if (argc<(s32) idx) return GF_FALSE;
 	if (JS_IsString(argv[idx])) {
 		GF_Color col;
 		const char *str = JS_ToCString(c, argv[idx]);
@@ -1625,16 +1625,16 @@ Bool get_color_from_args(JSContext *c, int argc, JSValueConst *argv, u32 idx, Do
 		if (!get_color(c, argv[idx], a, r, g, b)) {
 			return GF_FALSE;
 		}
-	} else if (argc>idx) {
+	} else if (argc>(s32) idx) {
 		if (JS_ToFloat64(c, r, argv[idx]))
 			return GF_FALSE;
-		if (argc>idx+1) {
+		if (argc>(s32)idx+1) {
 			if (JS_ToFloat64(c, g, argv[idx+1]))
 				return GF_FALSE;
-			if (argc>idx+2) {
+			if (argc>(s32) idx+2) {
 				if (JS_ToFloat64(c, b, argv[idx+2]))
 					return GF_FALSE;
-				if (argc>idx+3) {
+				if (argc>(s32)idx+3) {
 					if (JS_ToFloat64(c, a, argv[idx+3]))
 						return GF_FALSE;
 				}
@@ -1745,7 +1745,7 @@ static JSValue stencil_set_alpha_ex(JSContext *c, JSValueConst obj, int argc, JS
 		a*=255;
 	}
 	if (a>255) a = 255;
-	gf_evg_stencil_set_alpha(stencil, a);
+	gf_evg_stencil_set_alpha(stencil, (u8) a);
 	return JS_UNDEFINED;
 }
 
@@ -2133,7 +2133,7 @@ static JSValue texture_conv(JSContext *c, JSValueConst obj, int argc, JSValueCon
 {
 	JSValue v, k, nobj;
 	u32 i, j, kw=0, kh=0, kl=0, hkh, hkw;
-	Double *kdata;
+	s32 *kdata;
 	s32 knorm=0;
 	GF_JSTexture *tx_conv;
 	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
@@ -2168,12 +2168,12 @@ static JSValue texture_conv(JSContext *c, JSValueConst obj, int argc, JSValueCon
 		return JS_EXCEPTION;
 	}
 	kl = kw*kh;
-	kdata = gf_malloc(sizeof(Double)*kl);
+	kdata = gf_malloc(sizeof(s32)*kl);
 	for (j=0; j<kh; j++) {
 		for (i=0; i<kw; i++) {
 			u32 idx = j*kw + i;
 			v = JS_GetPropertyUint32(c, k, idx);
-			JS_ToFloat64(c, &kdata[idx] , v);
+			JS_ToInt32(c, &kdata[idx] , v);
 			JS_FreeValue(c, v);
 		}
 	}
@@ -2194,16 +2194,16 @@ static JSValue texture_conv(JSContext *c, JSValueConst obj, int argc, JSValueCon
 		u8 *dst = tx_conv->data + j*tx_conv->stride;
 		for (i=0; i<tx_conv->width; i++) {
 			u32 k, l, nb_pix=0;
-			u32 kr = 0;
-			u32 kg = 0;
-			u32 kb = 0;
+			s32 kr = 0;
+			s32 kg = 0;
+			s32 kb = 0;
 
 			for (k=0; k<kh; k++) {
 				if (j+k < hkh) continue;
 				if (j+k >= tx_conv->height + hkh) continue;
 
 				for (l=0; l<kw; l++) {
-					u32 kv;
+					s32 kv;
 					if (i+l < hkw) continue;
 					else if (i+l >= tx_conv->width + hkw) continue;
 
@@ -2676,7 +2676,7 @@ static JSValue text_get_path(JSContext *c, JSValueConst obj, int argc, JSValueCo
 
 static JSValue text_set_text(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	u32 i, nb_lines;
+	s32 i, nb_lines;
 	GF_JSText *txt = JS_GetOpaque(obj, text_class_id);
 	if (!txt) return JS_EXCEPTION;
 	text_reset(txt);

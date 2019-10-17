@@ -386,6 +386,9 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 			dd->gl_HRC = wglCreateContext(dd->gl_HDC);
 			if (!dd->gl_HRC) return GF_IO_ERR;
 
+			HGLRC cur = wglGetCurrentContext();
+			if (cur) wglShareLists(cur, dd->gl_HRC);
+
 			wglMakeCurrent(dd->gl_HDC, dd->gl_HRC);
 			wglChoosePixelFormatARB = (CHOOSEPFFORMATARB) wglGetProcAddress("wglChoosePixelFormatARB");
 			wglGetPixelFormatAttribivARB = (GETPIXELFORMATATTRIBIV) wglGetProcAddress("wglGetPixelFormatAttribivARB");

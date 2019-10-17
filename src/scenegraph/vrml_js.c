@@ -169,7 +169,7 @@ static GF_JSRuntime *js_rt = NULL;
 int qjs_module_set_import_meta(JSContext *ctx, JSValueConst func_val, Bool use_realpath, Bool is_main)
 {
     JSModuleDef *m;
-    char buf[PATH_MAX + 16];
+    char buf[GF_MAX_PATH + 16];
     JSValue meta_obj;
     JSAtom module_name_atom;
     const char *module_name, *src_file;
@@ -214,7 +214,7 @@ int qjs_module_set_import_meta(JSContext *ctx, JSValueConst func_val, Bool use_r
 }
 
 #if defined(WIN32) || defined(_WIN32_WCE)
-//#include <windows.h>
+#include <windows.h>
 #else
 #include <dlfcn.h>
 #endif
@@ -241,7 +241,7 @@ static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
 
     /* load dynamic lib */
 #ifdef WIN32
-	hd = LoadLibraryA(filename);
+	hd = LoadLibrary(filename);
 #else
     hd = dlopen(filename, RTLD_NOW | RTLD_LOCAL);
 #endif
@@ -253,9 +253,9 @@ static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
 		JS_ThrowReferenceError(ctx, "could not load module filename '%s' as shared library", module_name);
 	} else {
 #ifdef WIN32
-		init = GetProcAddress(hd, "js_init_module");
+		init = (JSInitModuleFunc *) GetProcAddress(hd, "js_init_module");
 #else
-    	init = dlsym(hd, "js_init_module");
+    	init = (JSInitModuleFunc *) dlsym(hd, "js_init_module");
 #endif
 
 		if (!init) {
