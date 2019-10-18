@@ -138,6 +138,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		compositor->gl_caps.pbo=1;
 	}
 
+#ifdef LOAD_GL_2_0
 	if (glCreateProgram != NULL) {
 		compositor->gl_caps.has_shaders = 1;
 
@@ -146,9 +147,11 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 			compositor->shader_only_mode = GF_TRUE;
 		}
 #endif
+
 	} else {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported\n"));
 	}
+#endif //LOAD_GL_2_0
 
 #endif //GPAC_USE_TINYGL
 
