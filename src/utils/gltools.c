@@ -329,4 +329,10 @@ void gf_opengl_init()
 
 }
 
+#else
+
+void gf_opengl_init()
+{
+}
+
 #endif //GPAC_DISABLE_3D

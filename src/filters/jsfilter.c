@@ -2109,7 +2109,6 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 	size_t ab_size;
 	u8 *data, *ab_data;
 	JSValue obj;
-	JSValue res;
 	Bool use_shared=GF_FALSE;
 	GF_JSPckCtx *pckc;
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
@@ -2214,7 +2213,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 #ifndef GPAC_DISABLE_3D
 	gf_fsess_packet_destructor pck_del = NULL;
 	GF_FilterFrameInterface *f_ifce = NULL;
-	res = webgl_get_frame_interface(ctx, argc, argv, &pck_del, &f_ifce);
+	JSValue res = webgl_get_frame_interface(ctx, argc, argv, &pck_del, &f_ifce);
 	if (!JS_IsNull(res)) {
 		if (JS_IsException(res)) {
 			JS_FreeValue(ctx, obj);
