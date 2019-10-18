@@ -448,8 +448,8 @@ static void composite_update(GF_TextureHandler *txh)
 						st->unsupported = 1;
 						return;
 					}
-					if (evt.setup.opengl_mode && gf_opts_get_bool("core", "rmt-ogl")) {
-						rmt_BindOpenGL();
+					if (evt.setup.opengl_mode) {
+						gf_opengl_init();
 					}
 					/*reload openGL ext*/
 					gf_sc_load_opengl_extensions(compositor, GF_TRUE);

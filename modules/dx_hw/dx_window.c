@@ -1301,7 +1301,13 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 		break;
 	case GF_EVENT_SET_GL:
 #ifndef GPAC_DISABLE_3D
-//		if (!wglMakeCurrent(ctx->pb_HDC, ctx->pb_HRC)) return GF_IO_ERR;
+		if (ctx->pb_HDC) {
+			if (!wglMakeCurrent(ctx->pb_HDC, ctx->pb_HRC))
+				return GF_IO_ERR;
+			return GF_OK;
+		}
+		if (!wglMakeCurrent(ctx->gl_HDC, ctx->gl_HRC))
+			return GF_IO_ERR;
 		return GF_OK;
 #endif
 	/*HW setup*/

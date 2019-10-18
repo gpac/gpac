@@ -1419,6 +1419,12 @@ extern void gf_fm_request_set_callback(void *cbk_obj, fm_callback_func cbk_func)
 void gf_fm_request_call(u32 type, u32 param, int *value);
 #endif //GPAC_CONFIG_ANDROID
 
+/*to call whenever the OpenGL library is opened - this function is needed to bind openGL and remotery, and to load
+openGL extensions on windows
+not exported, and not included in src/compositor/gl_inc.h since it may be needed even when no OpenGL 
+calls are made by the caller*/
+void gf_opengl_init();
+
 /* \endcond */
 
 /*! macros to get the size of an array of struct*/
