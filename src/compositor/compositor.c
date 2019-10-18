@@ -153,8 +153,8 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 #endif
 			compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 
-			if (evt.setup.opengl_mode && gf_opts_get_bool("core", "rmt-ogl")) {
-				rmt_BindOpenGL();
+			if (evt.setup.opengl_mode) {
+				gf_opengl_init();
 			}
 
 			compositor->msg_type &= ~GF_SR_CFG_INITIAL_RESIZE;

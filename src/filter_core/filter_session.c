@@ -2625,8 +2625,9 @@ GF_Err gf_fs_check_gl_provider(GF_FilterSession *session)
 	//we anyway should'nt call swapBuffer/flush on this object
 	evt.setup.disable_vsync = GF_TRUE;
 	session->gl_driver->ProcessEvent(session->gl_driver, &evt);
-	if (evt.setup.opengl_mode && gf_opts_get_bool("core", "rmt-ogl")) {
-		rmt_BindOpenGL();
+
+	if (evt.setup.opengl_mode) {
+		gf_opengl_init();
 	}
 	return GF_OK;
 }

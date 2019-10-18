@@ -40,117 +40,9 @@
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
 #define DEL_PROGRAM(_a) if (_a) { glDeleteProgram(_a); _a = 0; }
 
-#ifdef WIN32
-GLDECL(GLuint, glCreateProgram, (void) )
-GLDECL(void, glDeleteProgram, (GLuint ) )
-GLDECL(void, glLinkProgram, (GLuint program) )
-GLDECL(void, glUseProgram, (GLuint program) )
-GLDECL(GLuint, glCreateShader, (GLenum shaderType) )
-GLDECL(void, glDeleteShader, (GLuint shader) )
-GLDECL(void, glShaderSource, (GLuint shader, GLsizei count, const char **string, const GLint *length) )
-GLDECL(void, glCompileShader, (GLuint shader) )
-GLDECL(void, glAttachShader, (GLuint program, GLuint shader) )
-GLDECL(void, glDetachShader, (GLuint program, GLuint shader) )
-GLDECL(void, glGetShaderiv, (GLuint shader, GLenum type, GLint *res) )
-GLDECL(void, glGetInfoLogARB, (GLuint shader, GLint wsize, GLsizei *rsize, const char *logs) )
-GLDECL(GLint, glGetUniformLocation, (GLuint prog, const char *name) )
-GLDECL(void, glUniform1f, (GLint location, GLfloat v0) )
-GLDECL(void, glUniform1i, (GLint location, GLint v0) )
-GLDECL(void, glActiveTexture, (GLenum texture) )
-GLDECL(void, glClientActiveTexture, (GLenum texture) )
-GLDECL(void, glGenBuffers, (GLsizei , GLuint *) )
-GLDECL(void, glDeleteBuffers, (GLsizei , GLuint *) )
-GLDECL(void, glBindBuffer, (GLenum, GLuint ) )
-GLDECL(void, glBufferData, (GLenum, int, void *, GLenum) )
-GLDECL(void, glBufferSubData, (GLenum, size_t, int, void *) )
-GLDECL(void *, glMapBuffer, (GLenum, GLenum) )
-GLDECL(void *, glUnmapBuffer, (GLenum) )
-GLDECL(GLint, glGetAttribLocation, (GLuint prog, const char *name))
-#ifndef GPAC_CONFIG_ANDROID
-GLDECL(void, glEnableVertexAttribArray, (GLuint index))
-GLDECL(void, glDisableVertexAttribArray, (GLuint index))
-GLDECL(void, glVertexAttribPointer, (GLuint  index, GLint  wsize, GLenum  type, GLboolean  normalized, GLsizei  stride, const GLvoid *  pointer))
-GLDECL(void, glVertexAttribIPointer, (GLuint  index, GLint  wsize, GLenum  type, GLsizei  stride, const GLvoid *  pointer))
-#endif
-#endif
-
 
 #define TEXTURE_TYPE GL_TEXTURE_2D
 
-#ifdef WIN32
-GLDECL_FUNC_STATIC(glActiveTexture);
-GLDECL_FUNC_STATIC(glClientActiveTexture);
-GLDECL_FUNC_STATIC(glCreateProgram);
-GLDECL_FUNC_STATIC(glDeleteProgram);
-GLDECL_FUNC_STATIC(glLinkProgram);
-GLDECL_FUNC_STATIC(glUseProgram);
-GLDECL_FUNC_STATIC(glCreateShader);
-GLDECL_FUNC_STATIC(glDeleteShader);
-GLDECL_FUNC_STATIC(glShaderSource);
-GLDECL_FUNC_STATIC(glCompileShader);
-GLDECL_FUNC_STATIC(glAttachShader);
-GLDECL_FUNC_STATIC(glDetachShader);
-GLDECL_FUNC_STATIC(glGetShaderiv);
-GLDECL_FUNC_STATIC(glGetInfoLogARB);
-GLDECL_FUNC_STATIC(glGetUniformLocation);
-GLDECL_FUNC_STATIC(glUniform1f);
-GLDECL_FUNC_STATIC(glUniform1i);
-GLDECL_FUNC_STATIC(glGenBuffers);
-GLDECL_FUNC_STATIC(glDeleteBuffers);
-GLDECL_FUNC_STATIC(glBindBuffer);
-GLDECL_FUNC_STATIC(glBufferData);
-GLDECL_FUNC_STATIC(glBufferSubData);
-GLDECL_FUNC_STATIC(glMapBuffer);
-GLDECL_FUNC_STATIC(glUnmapBuffer);
-GLDECL_FUNC_STATIC(glGetAttribLocation);
-
-#ifndef GPAC_CONFIG_ANDROID
-GLDECL_FUNC_STATIC(glEnableVertexAttribArray);
-GLDECL_FUNC_STATIC(glDisableVertexAttribArray);
-GLDECL_FUNC_STATIC(glVertexAttribPointer);
-GLDECL_FUNC_STATIC(glVertexAttribIPointer);
-#endif
-
-#endif
-
-#if !defined(GPAC_DISABLE_3D) && defined(WIN32)
-
-static void vout_load_gl()
-{
-	if (glActiveTexture) return;
-	GET_GLFUN(glActiveTexture);
-	GET_GLFUN(glClientActiveTexture);
-	GET_GLFUN(glCreateProgram);
-	GET_GLFUN(glDeleteProgram);
-	GET_GLFUN(glLinkProgram);
-	GET_GLFUN(glUseProgram);
-	GET_GLFUN(glCreateShader);
-	GET_GLFUN(glDeleteShader);
-	GET_GLFUN(glShaderSource);
-	GET_GLFUN(glCompileShader);
-	GET_GLFUN(glAttachShader);
-	GET_GLFUN(glDetachShader);
-	GET_GLFUN(glGetShaderiv);
-	GET_GLFUN(glGetInfoLogARB);
-	GET_GLFUN(glGetUniformLocation);
-	GET_GLFUN(glUniform1f);
-	GET_GLFUN(glUniform1i);
-	GET_GLFUN(glGenBuffers);
-	GET_GLFUN(glDeleteBuffers);
-	GET_GLFUN(glBindBuffer);
-	GET_GLFUN(glBufferData);
-	GET_GLFUN(glBufferSubData);
-	GET_GLFUN(glMapBuffer);
-	GET_GLFUN(glUnmapBuffer);
-#ifndef GPAC_CONFIG_ANDROID
-	GET_GLFUN(glEnableVertexAttribArray);
-	GET_GLFUN(glDisableVertexAttribArray);
-	GET_GLFUN(glVertexAttribPointer);
-	GET_GLFUN(glVertexAttribIPointer);
-	GET_GLFUN(glGetAttribLocation);
-#endif
-}
-#endif
 
 #if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
 #define GF_SHADERID u64
@@ -692,8 +584,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 		evt.setup.disable_vsync = !ctx->vsync;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
-		if (evt.setup.opengl_mode && gf_opts_get_bool("core", "rmt-ogl")) {
-			rmt_BindOpenGL();
+		if (evt.setup.opengl_mode) {
+			gf_opengl_init();
 		}
 		if (!ctx->in_fullscreen) {
 			ctx->display_width = evt.setup.width;
@@ -702,7 +594,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->display_changed = GF_TRUE;
 
 #if !defined(GPAC_DISABLE_3D) && defined(WIN32)
-		vout_load_gl();
+		if (evt.setup.opengl_mode)
+			gf_opengl_init();
+
 		if ((ctx->disp<MODE_2D) && (glCompileShader == NULL)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] Failed to load openGL, fallback to 2D blit\n"));
 			evt.setup.opengl_mode = 0;
@@ -1283,8 +1177,8 @@ static GF_Err vout_initialize(GF_Filter *filter)
 		evt.setup.disable_vsync = !ctx->vsync;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 
-		if (evt.setup.opengl_mode && gf_opts_get_bool("core", "rmt-ogl")) {
-			rmt_BindOpenGL();
+		if (evt.setup.opengl_mode) {
+			gf_opengl_init();
 		}
 		gf_filter_register_opengl_provider(filter, GF_TRUE);
 	}

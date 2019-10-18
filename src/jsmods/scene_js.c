@@ -943,6 +943,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		gf_odm_get_object_info(odm, &odi);
 		return JS_NewInt32(ctx, odi.clock_drift);
 	case GJS_OM_PROP_STATUS:
+		gf_odm_get_object_info(odm, &odi);
 		if (odi.status==0) str = "Stopped";
 		else if (odi.status==1) str = "Playing";
 		else if (odi.status==2) str = "Paused";

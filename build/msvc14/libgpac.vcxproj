@@ -399,7 +399,9 @@
     <ClCompile Include="..\..\src\jsmods\evg.c" />
     <ClCompile Include="..\..\src\jsmods\scene_js.c" />
     <ClCompile Include="..\..\src\jsmods\storage.c" />
-    <ClCompile Include="..\..\src\jsmods\webgl.c" />
+    <ClCompile Include="..\..\src\jsmods\webgl.c">
+      <InlineFunctionExpansion Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">OnlyExplicitInline</InlineFunctionExpansion>
+    </ClCompile>
     <ClCompile Include="..\..\src\jsmods\webgl_pixfmt.c" />
     <ClCompile Include="..\..\src\jsmods\xhr.c" />
     <ClCompile Include="..\..\src\laser\lsr_dec.c" />
@@ -474,6 +476,7 @@
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">Level1</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|x64'">Level1</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Level1</WarningLevel>
+      <InlineFunctionExpansion Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Disabled</InlineFunctionExpansion>
     </ClCompile>
     <ClCompile Include="..\..\src\scenegraph\base_scenegraph.c" />
     <ClCompile Include="..\..\src\scenegraph\commands.c" />
@@ -521,6 +524,7 @@
     <ClCompile Include="..\..\src\utils\dlmalloc.c" />
     <ClCompile Include="..\..\src\utils\downloader.c" />
     <ClCompile Include="..\..\src\utils\error.c" />
+    <ClCompile Include="..\..\src\utils\gltools.c" />
     <ClCompile Include="..\..\src\utils\list.c" />
     <ClCompile Include="..\..\src\utils\math.c" />
     <ClCompile Include="..\..\src\utils\module.c" />

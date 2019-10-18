@@ -382,6 +382,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/constants.c \
 	../../../../src/utils/downloader.c \
 	../../../../src/utils/error.c \
+	../../../../src/utils/gltools.c \
 	../../../../src/utils/list.c \
 	../../../../src/utils/math.c \
 	../../../../src/utils/module.c \

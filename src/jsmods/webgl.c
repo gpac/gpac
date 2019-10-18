@@ -1303,7 +1303,7 @@ JSValue webgl_get_frame_interface(JSContext *ctx, int argc, JSValueConst *argv, 
 	glc = JS_GetOpaque(argv[0], WebGLRenderingContextBase_class_id);
 	if (!glc) return js_throw_err(ctx, WGL_INVALID_OPERATION);
 
-	if ((argc>=2) && JS_ToBool(ctx, argv[2]) ) {
+	if ((argc>2) && JS_ToBool(ctx, argv[2]) ) {
 		if (glc->actual_attrs.depth != WGL_DEPTH_TEXTURE)
 			return js_throw_err(ctx, WGL_INVALID_OPERATION);
 

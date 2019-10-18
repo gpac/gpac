@@ -2366,7 +2366,11 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 		if (argc>1) rel_to_script = JS_ToBool(c, argv[1]);
 		e = texture_load_file(c, tx, str, rel_to_script);
 		JS_FreeCString(c, str);
-		if (e) goto error;
+		if (e) {
+			if (tx->stencil) gf_evg_stencil_delete(tx->stencil);
+			gf_free(tx);
+			return js_throw_err_msg(c, e, "Failed to load texture: %s", gf_error_to_string(e));
+		}
 		goto done;
 	}
 	if (JS_IsObject(argv[0])) {

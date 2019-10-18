@@ -1152,8 +1152,8 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 		compositor->is_opengl = evt.setup.opengl_mode;
 		compositor->was_system_memory = evt.setup.system_memory;
 
-		if (evt.setup.opengl_mode && gf_opts_get_bool("core", "rmt-ogl")) {
-			rmt_BindOpenGL();
+		if (evt.setup.opengl_mode) {
+			gf_opengl_init();
 		}
 	}
 	if (compositor->has_size_info) {
