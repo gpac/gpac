@@ -5010,7 +5010,8 @@ int mp4boxMain(int argc, char **argv)
 			omode =  (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) );
 
 			if (crypt) {
-				omode = GF_ISOM_OPEN_CAT_FRAGMENTS;
+				if (crypt==1)
+					omode = GF_ISOM_OPEN_CAT_FRAGMENTS;
 				if (use_init_seg)
 					file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ, tmpdir);
 			}
@@ -5046,7 +5047,7 @@ int mp4boxMain(int argc, char **argv)
 				}
 			}
 			if (freeze_box_order)
-					gf_isom_freeze_order(file);
+				gf_isom_freeze_order(file);
 			break;
 		/*allowed for bt<->xmt*/
 		case 2:

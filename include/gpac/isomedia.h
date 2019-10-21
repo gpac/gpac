@@ -5073,11 +5073,12 @@ void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp_aux_info);
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleNumber the target sample
+\param sampleDescIndex the target sample description index
 \param sai set to the auxiliary info - shall be freeed by caller
 \param container_type set to type of box which contains the sample auxiliary information. Now we have two type: GF_ISOM_BOX_UUID_PSEC and GF_ISOM_BOX_TYPE_SENC
 \return error if any
 */
-GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, GF_CENCSampleAuxInfo **sai, u32 *container_type);
+GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 sampleDescIndex, GF_CENCSampleAuxInfo **sai, u32 *container_type);
 
 /*! gets CENC auxiliary info of a sample as a buffer
 \note the serialized buffer format is IV on IV_size bytes, then subsample count if any an [clear_bytes(u16), crypt_bytes(u32)] subsamples
@@ -5085,12 +5086,13 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *isom_file, u32 trackNumber, 
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleNumber the target sample
+\param sampleDescIndex the sample description index
 \param container_type is type of box which contains the sample auxiliary information. Now we have two type: GF_ISOM_BOX_UUID_PSEC and GF_ISOM_BOX_TYPE_SENC
 \param out_buffer set to a newly allocated buffer, or reallocated buffer if not NULL
 \param outSize set to the size of the serialized buffer. If an existing buffer was passed, the passed value shall be the allocated buffer size (the returned value is still the buffer size)
 \return error if any
 */
-GF_Err gf_isom_cenc_get_sample_aux_info_buffer(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 *container_type, u8 **out_buffer, u32 *outSize);
+GF_Err gf_isom_cenc_get_sample_aux_info_buffer(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 sampleDescIndex, u32 *container_type, u8 **out_buffer, u32 *outSize);
 
 /*! gets CENC default info for a sample description
 \param isom_file the target ISO file
