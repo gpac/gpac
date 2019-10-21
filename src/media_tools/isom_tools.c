@@ -3591,7 +3591,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 				e = gf_isom_fragment_add_sample(output, tf->TrackID, sample, descIndex, defaultDuration, NbBits, 0, 0);
 				if (e) goto err_exit;
 
-				e = gf_isom_fragment_add_sai(output, input, tf->TrackID, tf->SampleNum + 1);
+				e = gf_isom_fragment_add_sai(output, input, tf->TrackID, tf->SampleNum + 1, descIndex);
 				if (e) goto err_exit;
 
 				/*copy subsample information*/

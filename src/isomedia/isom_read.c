@@ -1355,7 +1355,7 @@ Bool gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber)
 	if (!entry) return 2;
 	if (IsMP4EncryptedDescription(entry->type)) return GF_TRUE;
 
-	if (gf_isom_is_cenc_media(the_file, trackNumber, 1))
+	if (gf_isom_is_cenc_media(the_file, trackNumber, 0))
 		return GF_TRUE;
 
 	return GF_FALSE;

@@ -2155,7 +2155,7 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		return GF_OK;
 	}
 
-	scheme_type = gf_isom_is_media_encrypted(mp4, track, 1);
+	scheme_type = gf_isom_is_media_encrypted(mp4, track, 0);
 	if ((scheme_type==GF_CRYPT_TYPE_CENC) || (scheme_type==GF_CRYPT_TYPE_CENS))
 		is_ctr_mode = GF_TRUE;
 
@@ -2208,7 +2208,7 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			goto exit;
 		}
 
-		e = gf_isom_cenc_get_sample_aux_info(mp4, track, i+1, &sai, NULL);
+		e = gf_isom_cenc_get_sample_aux_info(mp4, track, i+1, si, &sai, NULL);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot fetch senc data for sample %d\n", i+1) );
 			goto exit;
