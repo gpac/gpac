@@ -862,13 +862,13 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 
 	/*content is encrypted*/
 	track_num = gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID);
-	if (gf_isom_is_cenc_media(trak->moov->mov, track_num, 1)
+	if (gf_isom_is_cenc_media(trak->moov->mov, track_num, DescIndex)
 		|| traf->sample_encryption) {
 		/*Merge sample auxiliary encryption information*/
 		GF_SampleEncryptionBox *senc = NULL;
 		GF_List *sais = NULL;
 		u32 scheme_type;
-		gf_isom_get_cenc_info(trak->moov->mov, track_num, 1, NULL, &scheme_type, NULL, NULL);
+		gf_isom_get_cenc_info(trak->moov->mov, track_num, DescIndex, NULL, &scheme_type, NULL, NULL);
 
 		if (traf->sample_encryption) {
 			for (i = 0; i < gf_list_count(trak->Media->information->sampleTable->child_boxes); i++) {

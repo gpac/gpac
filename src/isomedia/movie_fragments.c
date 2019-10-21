@@ -872,6 +872,12 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 	//1 - flush all caches
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(movie->moof->TrackList, &i))) {
+		/*do not write empty senc*/
+		if (traf->sample_encryption && !gf_list_count(traf->sample_encryption->samp_aux_info)) {
+			gf_list_del_item(traf->child_boxes, traf->sample_encryption);
+			gf_isom_box_del((GF_Box *) traf->sample_encryption);
+			traf->sample_encryption = NULL;
+		}
 		if (!traf->DataCache) continue;
 		s_count = gf_list_count(traf->TrackRuns);
 		if (!s_count) continue;
