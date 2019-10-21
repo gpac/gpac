@@ -789,6 +789,11 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 	//1 - flush all caches
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(movie->moof->TrackList, &i))) {
+		/*do not write empty senc*/
+		if (traf->sample_encryption && !gf_list_count(traf->sample_encryption->samp_aux_info)) {
+			gf_isom_box_del((GF_Box *) traf->sample_encryption);
+			traf->sample_encryption = NULL;
+		}
 		if (!traf->DataCache) continue;
 		s_count = gf_list_count(traf->TrackRuns);
 		if (!s_count) continue;
@@ -2158,7 +2163,8 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 	GF_Err e = GF_OK;
 
 	trackNum = gf_isom_get_track_by_id(input, TrackID);
-	if (gf_isom_is_cenc_media(input, trackNum, 1)) {
+	//if (gf_isom_is_cenc_media(input, trackNum, 1))
+	{
 		GF_CENCSampleAuxInfo *sai;
 		GF_TrackFragmentBox  *traf = GetTraf(output, TrackID);
 		GF_TrackBox  *src_trak = gf_isom_get_track_from_file(input, TrackID);
