@@ -1061,7 +1061,7 @@ static u32 cicp_get_channel_config(u32 nb_chan,u32 nb_surr, u32 nb_lfe)
 static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_DASHSegmenter *dasher, GF_DashSegInput *dash_input, Bool first_in_set)
 {
 	u8 NbBits;
-	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done=0;
+	u32 i, TrackNum, descIndex, count, nb_sync, ref_track_id, nb_tracks_done=0;
 	u32 sample_duration, defaultSize, defaultDescriptionIndex, defaultRandomAccess, nb_samp, nb_done;
 	u32 nb_video, nb_auxv, nb_pict, nb_audio, nb_text, nb_scene, mpd_timescale;
 	u8 defaultPadding;
@@ -1485,7 +1485,7 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 			tf->all_sample_raps = GF_TRUE;
 		}
 
-		tf->finalSampleDescriptionIndex = 1;
+		tf->finalSampleDescriptionIndex = 0;
 
 		if (dasher->cues_file) {
 			e = gf_mpd_load_cues(dasher->cues_file, tf->TrackID, &tf->cues_timescale, &tf->cues_use_edits, &tf->cues, &tf->nb_cues);
@@ -1983,6 +1983,7 @@ restart_fragmentation_pass:
 		for (i=0; i<count; i++) {
 			Bool has_roll, is_rap;
 			s32 roll_distance;
+			u32 nextDescIndex=0;
 			u32 SAP_type = 0;
 
 			tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
@@ -2051,7 +2052,7 @@ restart_fragmentation_pass:
 					next_sample_num_offset = sample->nb_pack;
 				}
 
-				next = gf_isom_get_sample(input, tf->OriginalTrack, tf->SampleNum + 1 + next_sample_num_offset, &j);
+				next = gf_isom_get_sample(input, tf->OriginalTrack, tf->SampleNum + 1 + next_sample_num_offset, &nextDescIndex);
 
 				if (next) sample_duration = gf_isom_get_sample_duration(input, tf->OriginalTrack, tf->SampleNum+1 + next_sample_num_offset);
 				if (clamp_duration && next && clamp_duration*tf->TimeScale < next->DTS + sample_duration) {
@@ -2079,7 +2080,7 @@ restart_fragmentation_pass:
 
 					tf->loop_ts_offset = tf->next_sample_dts + sample_duration;
 					loop_track = GF_TRUE;
-					next = gf_isom_get_sample(input, tf->OriginalTrack, 1, &j);
+					next = gf_isom_get_sample(input, tf->OriginalTrack, 1, &nextDescIndex);
 					next->DTS += tf->loop_ts_offset;
 				} else if (clamp_duration) {
 					if (tf->MediaType!=GF_ISOM_MEDIA_AUDIO) {
@@ -2175,7 +2176,8 @@ restart_fragmentation_pass:
 					}
 
 					/*override descIndex with final index used in file*/
-					descIndex = tf->finalSampleDescriptionIndex;
+					if (tf->finalSampleDescriptionIndex)
+						descIndex = tf->finalSampleDescriptionIndex;
 					e = gf_isom_fragment_add_sample(output, tf->TrackID, sample, descIndex,
 					                                sample_duration, NbBits, 0, is_redundant_sample);
 					if (e)
@@ -2209,6 +2211,7 @@ restart_fragmentation_pass:
 				} else {
 					gf_isom_sample_del(&sample);
 					sample = next;
+					descIndex = nextDescIndex;
 					tf->SampleNum += next_sample_num_offset;
 					tf->split_sample_dts_shift = 0;
 				}

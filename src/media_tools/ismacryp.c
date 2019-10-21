@@ -165,6 +165,14 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 					tkc->sel_enc_type = GF_CRYPT_SELENC_CLEAR_FORCED;
 				}
 			}
+			else if (!stricmp(att->name, "clearStds")) {
+				if (!strcmp(att->value, "none")) tkc->force_clear_stsd_idx = 0;
+				else if (!strcmp(att->value, "before")) tkc->force_clear_stsd_idx = 1;
+				else if (!strcmp(att->value, "after")) tkc->force_clear_stsd_idx = 2;
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unrecognized clear stsd type %s, defaulting to no stsd for clear samples\n", att->value));
+				}
+			}
 			else if (!stricmp(att->name, "forceType")) {
 				tkc->force_type = GF_TRUE;
 			}
@@ -1682,7 +1690,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	GF_ISOSample *samp = NULL;
 	GF_Crypt *mc;
 	Bool all_rap = GF_FALSE;
-	u32 i, count, di, track, saiz_len, nb_samp_encrypted, nalu_size_length, idx, bytes_in_nalhr;
+	u32 i, count, stsd_idx, track, saiz_len, nb_samp_encrypted, nalu_size_length, idx, bytes_in_nalhr;
 	GF_ESD *esd;
 	Bool has_crypted_samp;
 	GF_Enc_BsFmt bs_type = ENC_FULL_SAMPLE;
@@ -1690,6 +1698,8 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	char *saiz_buf;
 	Bool use_seig = GF_FALSE;
 	Bool has_seig = GF_FALSE;
+	u32 clear_stsd_idx = 1;
+	u32 crypt_stsd_idx = 1;
 	GF_BitStream *bs;
 
 	nalu_size_length = 0;
@@ -1842,6 +1852,20 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		goto exit;
 	}
 
+	if ((tci->sel_enc_type==GF_CRYPT_SELENC_CLEAR_FORCED) && tci->force_clear_stsd_idx) {
+		e = gf_isom_clone_sample_description(mp4, track, mp4, track, 1, NULL, NULL, &clear_stsd_idx);
+		if (e)
+			goto exit;
+
+		if (tci->force_clear_stsd_idx==1) {
+			crypt_stsd_idx = 2;
+			clear_stsd_idx = 1;
+		} else {
+			clear_stsd_idx = 2;
+			crypt_stsd_idx = 1;
+		}
+	}
+
 	/*select key*/
 	if (!tci->keys) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] No key specified\n"));
@@ -1860,7 +1884,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	}
 
 	/*create CENC protection*/
-	e = gf_isom_set_cenc_protection(mp4, track, 1, tci->scheme_type, 0x00010000, tci->IsEncrypted, tci->IV_size, tci->default_KID,
+	e = gf_isom_set_cenc_protection(mp4, track, crypt_stsd_idx, tci->scheme_type, 0x00010000, tci->IsEncrypted, tci->IV_size, tci->default_KID,
 		tci->crypt_byte_block, tci->skip_byte_block, tci->constant_IV_size, tci->constant_IV);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot create CENC protection: %s\n", gf_error_to_string(e)));
@@ -1894,9 +1918,10 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 	gf_isom_set_nalu_extract_mode(mp4, track, GF_ISOM_NALU_EXTRACT_INSPECT);
 	for (i = 0; i < count; i++) {
+		bin128 NULL_IV;
 		Bool forced_clear = GF_FALSE;
 		saiz_len=0;
-		samp = gf_isom_get_sample(mp4, track, i+1, &di);
+		samp = gf_isom_get_sample(mp4, track, i+1, &stsd_idx);
 		if (!samp) {
 			e = GF_IO_ERR;
 			goto exit;
@@ -1906,26 +1931,29 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		case GF_CRYPT_SELENC_RAP:
 			if (!samp->IsRAP)
 				gf_isom_get_sample_rap_roll_info(mp4, track, i+1, (Bool *) &samp->IsRAP, NULL, NULL);
+
 			if (!samp->IsRAP && !all_rap) {
-				bin128 NULL_IV;
-				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, samp->dataLength, use_subsamples, NULL);
+				//sample is not encrypted, put an empty SAI (size 0)
+				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0, GF_FALSE, NULL);
 				if (e)
 					goto exit;
 				saiz_buf = NULL;
 
-				//already done: memset(tmp, 0, 16);
 				memset(NULL_IV, 0, 16);
 				e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 0, 0, NULL_IV, 0, 0, 0, NULL);
 				if (e) goto exit;
 
+				if (crypt_stsd_idx != stsd_idx) {
+					gf_isom_change_sample_desc_index(mp4, track, i+1, crypt_stsd_idx);
+				}
 				gf_isom_sample_del(&samp);
 				continue;
 			}
 			break;
 		case GF_CRYPT_SELENC_NON_RAP:
 			if (samp->IsRAP || all_rap) {
-				bin128 NULL_IV;
-				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, samp->dataLength, use_subsamples, NULL);
+				//sample is not encrypted, put an empty SAI (size 0)
+				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0, GF_FALSE, NULL);
 				if (e)
 					goto exit;
 				saiz_buf = NULL;
@@ -1934,6 +1962,9 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 0, 0, NULL_IV, 0, 0, 0, NULL);
 				if (e) goto exit;
 
+				if (crypt_stsd_idx != stsd_idx) {
+					gf_isom_change_sample_desc_index(mp4, track, i+1, crypt_stsd_idx);
+				}
 				gf_isom_sample_del(&samp);
 				continue;
 			}
@@ -1941,30 +1972,49 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		case GF_CRYPT_SELENC_CLEAR_FORCED:
 			forced_clear = GF_TRUE;
 		case GF_CRYPT_SELENC_CLEAR:
-			{
-				bin128 NULL_IV;
+			if (!forced_clear || !tci->force_clear_stsd_idx) {
 				memset(NULL_IV, 0, 16);
-				memcpy(NULL_IV, (char *) &i, 4);
-				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, forced_clear ? tci->IV_size : 0, NULL, samp->dataLength, use_subsamples, forced_clear ? (char *)NULL_IV : NULL);
+
+				//sample is not encrypted, put an empty SAI (size 0) except in force_clear mode where we generate
+				//an SAI with a clear byte range covering the entire sample
+				if (forced_clear) {
+					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, tci->IV_size, NULL, samp->dataLength, use_subsamples, (char *)NULL_IV);
+				} else {
+					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0, GF_FALSE, NULL);
+				}
 				if (e)
 					goto exit;
 				saiz_buf = NULL;
 
 				if (!forced_clear) {
-					memset(NULL_IV, 0, 16);
 					e = gf_isom_set_sample_cenc_group(mp4, track, i + 1, 0, 0, NULL_IV, 0, 0, 0, NULL);
 					if (e) goto exit;
 				}
-
-				gf_isom_sample_del(&samp);
-
-				//we have a range, go back to regulare encryption once done
-				if (forced_clear && tci->sel_enc_range && (i+1>=tci->sel_enc_range)) {
-					tci->sel_enc_type = GF_CRYPT_SELENC_NONE;
-				}
-				continue;
+			} else {
+				//add an empty SAI, this will populate the saiz table with an entry of size 0
+				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0, GF_FALSE, NULL);
+				if (e)
+					goto exit;
 			}
-			break;
+
+			if (forced_clear && tci->force_clear_stsd_idx) {
+				if (clear_stsd_idx != stsd_idx) {
+					gf_isom_change_sample_desc_index(mp4, track, i+1, clear_stsd_idx);
+				}
+			} else {
+				if (crypt_stsd_idx != stsd_idx) {
+					gf_isom_change_sample_desc_index(mp4, track, i+1, crypt_stsd_idx);
+				}
+			}
+
+			gf_isom_sample_del(&samp);
+
+			//we have a range, go back to regulare encryption once done
+			if (forced_clear && tci->sel_enc_range && (i+1>=tci->sel_enc_range)) {
+				tci->sel_enc_type = GF_CRYPT_SELENC_NONE;
+			}
+			continue;
+
 		default:
 			break;
 		}
@@ -2044,6 +2094,10 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		}
 
 		gf_isom_update_sample(mp4, track, i+1, samp, 1);
+
+		if (crypt_stsd_idx != stsd_idx) {
+			gf_isom_change_sample_desc_index(mp4, track, i+1, crypt_stsd_idx);
+		}
 		gf_isom_sample_del(&samp);
 		samp = NULL;
 
