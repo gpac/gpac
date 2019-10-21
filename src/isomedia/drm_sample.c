@@ -1052,12 +1052,13 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 		return GF_NOT_SUPPORTED;
 	}
 
-	sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
-	if (!sai) return GF_OUT_OF_MEM;
-
-	memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
 	if (len && buf) {
 		GF_BitStream *bs = gf_bs_new(buf, len, GF_BITSTREAM_READ);
+
+		GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
+		if (!sai) return GF_OUT_OF_MEM;
+		gf_list_add(senc->samp_aux_info, sai);
+
 		sai->IV_size = IV_size;
 		gf_bs_read_data(bs, (char *)sai->IV, IV_size);
 		if (use_subsamples) {
@@ -1072,6 +1073,11 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 		gf_bs_del(bs);
 	} else if (len) {
 		u32 olen = len;
+
+		GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
+		if (!sai) return GF_OUT_OF_MEM;
+		gf_list_add(senc->samp_aux_info, sai);
+
 		sai->IV_size = IV_size;
 		if (clear_IV) memcpy(sai->IV, clear_IV, sizeof(bin128));
 		if (use_subsamples) {
@@ -1096,7 +1102,6 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 		len = IV_size + 2 + 6*sai->subsample_count;
 	}
 
-	gf_list_add(senc->samp_aux_info, sai);
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	gf_isom_cenc_set_saiz_saio(senc, stbl, NULL, len);
 #endif
@@ -1368,7 +1373,6 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block)
 {
 	GF_ProtectionSchemeInfoBox *sinf;
-
 	if (default_IsEncrypted) *default_IsEncrypted = 0;
 	if (default_IV_size) *default_IV_size = 0;
 	if (default_KID) memset(*default_KID, 0, 16);
@@ -1381,6 +1385,30 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
+
+	if (!sinf) {
+		Bool has_protected_sample_desc = GF_FALSE;
+		u32 i, nb_stsd = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+		for (i=0; i<nb_stsd; i++) {
+			GF_SampleEntryBox *sea=NULL;
+			if (i+1==sampleDescriptionIndex) continue;
+			sea = gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, i);
+			if (sea->protections && gf_list_count(sea->protections)) {
+				has_protected_sample_desc = GF_TRUE;
+				break;
+			}
+		}
+		if (has_protected_sample_desc) {
+			if (default_IsEncrypted) *default_IsEncrypted = GF_FALSE;
+			if (default_IV_size) *default_IV_size = 0;
+			if (default_KID) memset(*default_KID, 0, 16);
+			if (constant_IV_size) *constant_IV_size = 0;
+			if (constant_IV) memset(*constant_IV, 0, 16);
+			if (crypt_byte_block) *crypt_byte_block = 0;
+			if (skip_byte_block) *skip_byte_block = 0;
+			return;
+		}
+	}
 
 	if (sinf && sinf->info && sinf->info->tenc) {
 		if (default_IsEncrypted) *default_IsEncrypted = sinf->info->tenc->isProtected;

@@ -2018,7 +2018,8 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 	if (!traf)
 		return GF_BAD_PARAM;
 
-	if (!traf->tfhd->sample_desc_index) traf->tfhd->sample_desc_index = DescIndex ? DescIndex : traf->trex->def_sample_desc_index;
+	if (!traf->tfhd->sample_desc_index)
+		traf->tfhd->sample_desc_index = DescIndex ? DescIndex : traf->trex->def_sample_desc_index;
 
 	pos = gf_bs_get_position(movie->editFileMap->bs);
 
@@ -2174,7 +2175,7 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 		if (e) return e;
 		//no associated SAI (constant IV and no subsample)
 		if (!sai) return GF_OK;
-		
+
 		sai->IV_size = IV_size;
 
 		switch (boxType) {
@@ -2207,16 +2208,22 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 			return GF_NOT_SUPPORTED;
 		}
 
-		gf_list_add(senc->samp_aux_info, sai);
-		if (sai->subsample_count) senc->flags = 0x00000002;
+		if (!IsEncrypted) {
+			if (sai->subsamples) gf_free(sai->subsamples);
+			gf_free(sai);
+			gf_isom_cenc_set_saiz_saio(senc, NULL, traf, 0);
+		} else {
+			gf_list_add(senc->samp_aux_info, sai);
+			if (sai->subsample_count) senc->flags = 0x00000002;
 
-		//no subsample (not NAL-based data), saiz is IV size only
-		if (! sai->subsample_count) {
-			gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size);
-		}
-		// subsamples ( NAL-based data), saiz is IV size + nb subsamples (2 bytes) + 6 bytes per subsample
-		else {
-			gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size + 2+6*sai->subsample_count);
+			//no subsample (not NAL-based data), saiz is IV size only
+			if (! sai->subsample_count) {
+				gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size);
+			}
+			// subsamples ( NAL-based data), saiz is IV size + nb subsamples (2 bytes) + 6 bytes per subsample
+			else {
+				gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size + 2+6*sai->subsample_count);
+			}
 		}
 	}
 

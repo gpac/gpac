@@ -127,7 +127,6 @@ typedef struct
 	char TextualHeaders[5000];
 	u32 TextualHeadersLen;
 	char TransactionID[17];
-
 	/*CENC extensions*/
 	u32 IsEncrypted;
 	u8 IV_size;
@@ -151,6 +150,11 @@ typedef struct
 	//force cenc and cbc1: 0: default, 1: no block alignment of encrypted data, 2: always block align even if producing non encrypted samples
 	u32 block_align;
 
+	/*0: same stsd for clear samples
+	1: dedicated stsd entry for clear samples, placed before the crypted entry in stsd,
+	2: dedicated stsd entry for clear samples, placed after the crypted entry in stsd,
+	*/
+	u32 force_clear_stsd_idx;
 
 	char metadata[5000];
 	u32 metadata_len;

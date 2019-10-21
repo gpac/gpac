@@ -1474,6 +1474,8 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 /*clones all sampleDescription entries in new track, after an optional reset of existing entries*/
 GF_Err gf_isom_clone_sample_descriptions(GF_ISOFile *the_file, u32 trackNumber, GF_ISOFile *orig_file, u32 orig_track, Bool reset_existing);
 
+GF_Err gf_isom_change_sample_desc_index(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, u32 newSampleDescIndex);
+
 #define GF_ISOM_CLONE_TRACK_KEEP_DREF	1
 #define GF_ISOM_CLONE_TRACK_NO_QT	1<<1
 
