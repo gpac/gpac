@@ -455,16 +455,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	if (subtype == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
 		GF_Err e;
 		u32 originalFormat=0;
-		if (gf_isom_is_ismacryp_media(movie, track, 1)) {
-			e = gf_isom_get_ismacryp_info(movie, track, 1, &originalFormat, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-		} else if (gf_isom_is_omadrm_media(movie, track, 1)) {
-			e = gf_isom_get_omadrm_info(movie, track, 1, &originalFormat, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-		} else if(gf_isom_is_cenc_media(movie, track, 1)) {
-			e = gf_isom_get_cenc_info(movie, track, 1, &originalFormat, NULL, NULL, NULL);
-		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] Unknown protection scheme type %s\n", gf_4cc_to_str( gf_isom_is_media_encrypted(movie, track, 1)) ));
-			e = gf_isom_get_original_format_type(movie, track, 1, &originalFormat);
-		}
+		e = gf_isom_get_original_format_type(movie, track, 0, &originalFormat);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISOM Tools] Error fetching protection information\n"));
 			return e;
@@ -847,8 +838,8 @@ static const char *get_drm_kms_name(const char *canURN)
 static GF_Err gf_isom_write_content_protection(GF_ISOFile *input, FILE *mpd, u32 protected_track, GF_DASHSegmenter *dasher, u8 indent)
 {
 	char sCan[40];
-	u32 prot_scheme	= gf_isom_is_media_encrypted(input, protected_track, 1);
-	if (gf_isom_is_cenc_media(input, protected_track, 1)) {
+	u32 prot_scheme	= gf_isom_is_media_encrypted(input, protected_track, 0);
+	if (gf_isom_is_cenc_media(input, protected_track, 0)) {
 		bin128 default_KID;
 		u32 i, count;
 		gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID, NULL, NULL, NULL, NULL);
@@ -1397,7 +1388,7 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 		}
 
 		//if encrypted, do not touch the media
-		if (!gf_isom_is_media_encrypted(input, i+1, 1)) {
+		if (!gf_isom_is_media_encrypted(input, i+1, 0)) {
 			/*set extraction mode whether setup or not*/
 			vidtype = gf_isom_get_avc_svc_type(input, i+1, 1);
 			if (vidtype==GF_ISOM_AVCTYPE_AVC_ONLY) {
@@ -1665,7 +1656,7 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 		}
 		gf_list_add(fragmenters, tf);
 
-		if (gf_isom_is_media_encrypted(input, i+1, 1)) {
+		if (gf_isom_is_media_encrypted(input, i+1, 0)) {
 			protected_track = i+1;
 		}
 
@@ -2188,7 +2179,7 @@ restart_fragmentation_pass:
 					if (sample->DTS + sample->CTS_Offset < tf->min_cts_in_segment)
 						tf->min_cts_in_segment = sample->DTS + sample->CTS_Offset;
 
-					e = gf_isom_fragment_add_sai(output, input, tf->TrackID, tf->SampleNum + 1);
+					e = gf_isom_fragment_add_sai(output, input, tf->TrackID, tf->SampleNum + 1, descIndex);
 					if (e)
 						goto err_exit;
 
@@ -5237,7 +5228,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				track_num = dash_input->single_track_num;
 				if (nb_track==1) dash_input->single_track_num = 0;
 			}
-			dash_input->protection_scheme_type = gf_isom_is_media_encrypted(file, track_num, 1);
+			dash_input->protection_scheme_type = gf_isom_is_media_encrypted(file, track_num, 0);
 
 			dash_input->moof_seqnum_increase = 0;
 
@@ -5345,7 +5336,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 			snprintf(di->representationID, sizeof(di->representationID), "%s_%d", dep_representation_id, cur_idx);
 			di->trackNum = j+1;
 
-			di->protection_scheme_type = gf_isom_is_media_encrypted(file, di->trackNum, 1);
+			di->protection_scheme_type = gf_isom_is_media_encrypted(file, di->trackNum, 0);
 
 			di->idx_representations = rep_idx;
 			rep_idx ++;
@@ -5380,7 +5371,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				}
 			}
 
-			di->protection_scheme_type = gf_isom_is_media_encrypted(file, di->trackNum, 1);
+			di->protection_scheme_type = gf_isom_is_media_encrypted(file, di->trackNum, 0);
 
 			di->idx_representations = rep_idx;
 			rep_idx ++;

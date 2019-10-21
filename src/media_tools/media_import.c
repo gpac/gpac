@@ -2279,9 +2279,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		gf_isom_sample_del(&samp);
 	}
 
-	is_cenc = gf_isom_is_cenc_media(import->orig, track_in, 1);
-	if (gf_isom_is_media_encrypted(import->orig, track_in, 1)) {
-		gf_isom_get_original_format_type(import->orig, track_in, 1, &mstype);
+	is_cenc = gf_isom_is_cenc_media(import->orig, track_in, 0);
+	if (gf_isom_is_media_encrypted(import->orig, track_in, 0)) {
+		gf_isom_get_original_format_type(import->orig, track_in, 0, &mstype);
 	}
 	has_seig = GF_FALSE;
 	if (is_cenc && gf_isom_has_cenc_sample_group(import->dest, track) ) {
@@ -2332,7 +2332,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 
 	if (is_cenc) {
 		u32 container_type;
-		e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, 0, NULL, &container_type);
+		e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, 0, 1, NULL, &container_type);
 		if (e)
 			goto exit;
 		e = gf_isom_cenc_allocate_storage(import->dest, track, container_type, 0, 0, NULL);
@@ -2406,7 +2406,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			char *buffer;
 
 			sai = NULL;
-			e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, &sai, &container_type);
+			e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, di, &sai, &container_type);
 			if (e)
 				goto exit;
 
