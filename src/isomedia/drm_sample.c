@@ -180,18 +180,25 @@ GF_EXPORT
 u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
+	u32 i, count;
 	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 0;
+	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+	for (i=0; i<count; i++) {
+		if (sampleDescriptionIndex && (i+1 != sampleDescriptionIndex))
+			continue;
 
-	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, 0, NULL);
-	if (!sinf) return 0;
+		sinf = isom_get_sinf_entry(trak, i+1, 0, NULL);
+		if (!sinf) continue;
 
-	/*non-encrypted or non-ISMA*/
-	if (!sinf || !sinf->scheme_type) return 0;
-	if (sinf->scheme_type->scheme_type == GF_4CC('p','i','f','f')) return GF_4CC('c','e','n','c');
-	return sinf->scheme_type->scheme_type;
+		/*non-encrypted or non-ISMA*/
+		if (!sinf || !sinf->scheme_type) return 0;
+		if (sinf->scheme_type->scheme_type == GF_4CC('p','i','f','f')) return GF_4CC('c','e','n','c');
+		return sinf->scheme_type->scheme_type;
+	}
+	return 0;
 }
 
 GF_EXPORT
@@ -573,25 +580,32 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 {
 	GF_TrackBox *trak;
 	GF_ProtectionSchemeInfoBox *sinf;
+	u32 i, count;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_FALSE;
 
-//	if (trak->sample_encryption) return GF_TRUE;
+	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+	for (i=0; i<count; i++) {
+		if (sampleDescriptionIndex && (i+1 != sampleDescriptionIndex)) continue;
 
-	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, NULL);
-	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
-	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
-	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
+		sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CENC_SCHEME, NULL);
+		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CBC_SCHEME, NULL);
+		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CENS_SCHEME, NULL);
+		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CBCS_SCHEME, NULL);
 
-	if (!sinf) return GF_FALSE;
+		if (!sinf) continue;
 
-	/*non-encrypted or non-CENC*/
-	if (!sinf->info || !sinf->info->tenc || !sinf->scheme_type)
-		return GF_FALSE;
+		/*non-encrypted or non-CENC*/
+		if (!sinf->info || !sinf->info->tenc || !sinf->scheme_type)
+			return GF_FALSE;
 
-	//TODO: validate the fields in tenc for each scheme type
-	return GF_TRUE;
+		//TODO: validate the fields in tenc for each scheme type
+		return GF_TRUE;
+
+	}
+	return GF_FALSE;
+
 }
 
 GF_EXPORT
@@ -1283,7 +1297,7 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 
 
 GF_EXPORT
-GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, GF_CENCSampleAuxInfo **sai, u32 *container_type)
+GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 sampleDescriptionIndex, GF_CENCSampleAuxInfo **sai, u32 *container_type)
 {
 	GF_TrackBox *trak;
 	GF_SampleTableBox *stbl;
@@ -1323,7 +1337,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 		gf_isom_cenc_samp_aux_info_del(*sai);
 		*sai = NULL;
 	}
-	gf_isom_get_cenc_info(the_file, trackNumber, 1, NULL, &scheme_type, NULL, NULL);
+	gf_isom_get_cenc_info(the_file, trackNumber, sampleDescriptionIndex, NULL, &scheme_type, NULL, NULL);
 	gf_isom_get_sample_cenc_info_ex(trak, NULL, senc, sampleNumber, &is_Protected, &IV_size, NULL, NULL, NULL, &constant_IV_size, &constant_IV);
 
 	/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/

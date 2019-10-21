@@ -819,7 +819,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				if (Is_Encrypted) {
 					ch->current_slh.cenc_encrypted = 1;
 					sai = NULL;
-					gf_isom_cenc_get_sample_aux_info(ch->owner->mov, ch->track, ch->sample_num, &sai, NULL);
+					gf_isom_cenc_get_sample_aux_info(ch->owner->mov, ch->track, ch->sample_num, sample_desc_index, &sai, NULL);
 					if (sai) {
 						u32 i;
 						GF_BitStream *bs;

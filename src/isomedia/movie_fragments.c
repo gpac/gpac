@@ -2157,7 +2157,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 }
 
 GF_EXPORT
-GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 TrackID, u32 SampleNum)
+GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 TrackID, u32 SampleNum, u32 SampleDescIndex)
 {
 	u32 trackNum;
 	GF_Err e = GF_OK;
@@ -2177,7 +2177,7 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 
 		sai = NULL;
 		gf_isom_get_sample_cenc_info(input, trackNum, SampleNum, &IsEncrypted, &IV_size, NULL, NULL, NULL, NULL, NULL);
-		e = gf_isom_cenc_get_sample_aux_info(input, trackNum, SampleNum, &sai, &boxType);
+		e = gf_isom_cenc_get_sample_aux_info(input, trackNum, SampleNum, SampleDescIndex, &sai, &boxType);
 		if (e) return e;
 		//no associated SAI (constant IV and no subsample)
 		if (!sai) return GF_OK;
