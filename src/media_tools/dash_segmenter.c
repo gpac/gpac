@@ -2188,7 +2188,7 @@ restart_fragmentation_pass:
 					if (sample->DTS + sample->CTS_Offset < tf->min_cts_in_segment)
 						tf->min_cts_in_segment = sample->DTS + sample->CTS_Offset;
 
-					e = gf_isom_fragment_add_sai(output, input, tf->TrackID, tf->SampleNum + 1);
+					e = gf_isom_fragment_add_sai(output, input, tf->TrackID, tf->SampleNum + 1, descIndex);
 					if (e)
 						goto err_exit;
 
