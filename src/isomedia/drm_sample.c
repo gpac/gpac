@@ -182,18 +182,26 @@ GF_EXPORT
 u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
+	u32 i, count;
 	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 0;
+	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
+	for (i=0; i<count; i++) {
+		if (sampleDescriptionIndex && (i+1 != sampleDescriptionIndex))
+			continue;
 
-	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, 0, NULL);
-	if (!sinf) return 0;
+		sinf = isom_get_sinf_entry(trak, i+1, 0, NULL);
+		if (!sinf) continue;
 
-	/*non-encrypted or non-ISMA*/
-	if (!sinf->scheme_type) return 0;
-	if (sinf->scheme_type->scheme_type == GF_4CC('p','i','f','f')) return GF_4CC('c','e','n','c');
-	return sinf->scheme_type->scheme_type;
+		/*non-encrypted or non-ISMA*/
+		if (!sinf->scheme_type) return 0;
+		if (sinf->scheme_type->scheme_type == GF_4CC('p','i','f','f')) return GF_4CC('c','e','n','c');
+		return sinf->scheme_type->scheme_type;
+
+	}
+	return 0;
 }
 
 GF_EXPORT
@@ -598,25 +606,32 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 {
 	GF_TrackBox *trak;
 	GF_ProtectionSchemeInfoBox *sinf;
+	u32 i, count;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_FALSE;
 
-//	if (trak->sample_encryption) return GF_TRUE;
+	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
+	for (i=0; i<count; i++) {
+		if (sampleDescriptionIndex && (i+1 != sampleDescriptionIndex)) continue;
 
-	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, NULL);
-	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
-	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
-	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
+		sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CENC_SCHEME, NULL);
+		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CBC_SCHEME, NULL);
+		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CENS_SCHEME, NULL);
+		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CBCS_SCHEME, NULL);
 
-	if (!sinf) return GF_FALSE;
+		if (!sinf) continue;
 
-	/*non-encrypted or non-CENC*/
-	if (!sinf->info || !sinf->info->tenc || !sinf->scheme_type)
-		return GF_FALSE;
+		/*non-encrypted or non-CENC*/
+		if (!sinf->info || !sinf->info->tenc || !sinf->scheme_type)
+			return GF_FALSE;
 
-	//TODO: validate the fields in tenc for each scheme type
-	return GF_TRUE;
+		//TODO: validate the fields in tenc for each scheme type
+		return GF_TRUE;
+
+	}
+	return GF_FALSE;
+
 }
 
 GF_EXPORT

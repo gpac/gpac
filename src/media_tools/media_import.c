@@ -420,6 +420,12 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	case GF_ISOM_MEDIA_VISUAL:
 		gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Video (size %d x %d)", orig_name, trackID, w, h);
 		break;
+    case GF_ISOM_MEDIA_AUXV:
+        gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Auxiliary Video (size %d x %d)", orig_name, trackID, w, h);
+        break;
+    case GF_ISOM_MEDIA_PICT:
+        gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Picture sequence (size %d x %d)", orig_name, trackID, w, h);
+        break;
 	case GF_ISOM_MEDIA_AUDIO:
 	{
 		if (ps) {
