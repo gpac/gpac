@@ -509,7 +509,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 
 	if (is_cenc) {
 		u32 container_type;
-		e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, 0, NULL, &container_type);
+		e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, 0, 1, NULL, &container_type);
 		if (e)
 			goto exit;
 		e = gf_isom_cenc_allocate_storage(import->dest, track, container_type, 0, 0, NULL);
@@ -578,7 +578,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			u8 *buffer;
 
 			sai = NULL;
-			e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, &sai, &container_type);
+			e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, di, &sai, &container_type);
 			if (e)
 				goto exit;
 

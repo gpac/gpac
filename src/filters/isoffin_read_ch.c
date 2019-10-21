@@ -427,7 +427,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	if (ch->is_encrypted) {
 		/*in case of CENC: we write sample auxiliary information to slh->sai; its size is in saiz*/
-		if (gf_isom_is_cenc_media(ch->owner->mov, ch->track, 1)) {
+		if (gf_isom_is_cenc_media(ch->owner->mov, ch->track, ch->last_sample_desc_index)) {
 			Bool Is_Encrypted;
 			u32 out_size;
 			u8 IV_size;
@@ -473,12 +473,14 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 			out_size = ch->sai_alloc_size;
 
-			gf_isom_cenc_get_sample_aux_info_buffer(ch->owner->mov, ch->track, ch->sample_num, NULL, &ch->sai_buffer, &out_size);
+			gf_isom_cenc_get_sample_aux_info_buffer(ch->owner->mov, ch->track, ch->sample_num, ch->last_sample_desc_index, NULL, &ch->sai_buffer, &out_size);
 			if (out_size > ch->sai_alloc_size) ch->sai_alloc_size = out_size;
 			ch->sai_buffer_size = out_size;
 
-		} else {
+		} else if (gf_isom_is_media_encrypted(ch->owner->mov, ch->track, ch->last_sample_desc_index)) {
 			ch->pck_encrypted = GF_TRUE;
+		} else {
+			ch->pck_encrypted = GF_FALSE;
 		}
 	}
 	if (ch->sample && ch->sample->nb_pack)
