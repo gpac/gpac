@@ -156,6 +156,12 @@ typedef struct
 	/*! force cenc and cbc1: 0: default, 1: no block alignment of encrypted data, 2: always block align even if producing non encrypted samples*/
 	u32 block_align;
 
+	/*0: same stsd for clear samples
+	1: dedicated stsd entry for clear samples, placed before the crypted entry in stsd,
+	2: dedicated stsd entry for clear samples, placed after the crypted entry in stsd,
+	*/
+	u32 force_clear_stsd_idx;
+
 	/*! adobe metadata in base64*/
 	char *metadata;
 } GF_TrackCryptInfo;

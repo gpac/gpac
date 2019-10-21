@@ -831,6 +831,8 @@ GF_Err chan_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->num_audio_description = gf_bs_read_u32(bs);
 
 	ptr->audio_descs = gf_malloc(sizeof(GF_AudioChannelDescription) * ptr->num_audio_description);
+	if (!ptr->audio_descs)
+	    return GF_OUT_OF_MEM;
 	for (i=0; i<ptr->num_audio_description; i++) {
 		GF_AudioChannelDescription *adesc = &ptr->audio_descs[i];
 		ISOM_DECREASE_SIZE(s, 20);

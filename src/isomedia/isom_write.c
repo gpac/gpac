@@ -4237,7 +4237,30 @@ GF_Err gf_isom_rewrite_track_dependencies(GF_ISOFile *movie, u32 trackNumber)
 }
 
 #if 0 //unused
+
+/*! changes the sample description index of a sample
+\param isom_file the destination ISO file
+\param trackNumber the destination track
+\param sampleNum the target sample number
+\param fnewSampleDescIndex the new sample description index to assign to the sample
+\return error if any
+*/
+GF_EXPORT
+GF_Err gf_isom_change_sample_desc_index(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, u32 newSampleDescIndex)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !sample_number || !newSampleDescIndex) return GF_BAD_PARAM;
+	if (!trak->is_unpacked) {
+		unpack_track(trak);
+	}
+	if (!trak->Media->information->sampleTable->SampleToChunk) return GF_BAD_PARAM;
+	if (trak->Media->information->sampleTable->SampleToChunk->nb_entries < sample_number) return GF_BAD_PARAM;
+	trak->Media->information->sampleTable->SampleToChunk->entries[sample_number-1].sampleDescriptionIndex = newSampleDescIndex;
+	return GF_OK;
+}
+
 /*modify CTS offset of a given sample (used for B-frames) - MUST be called in unpack mode only*/
+GF_EXPORT
 GF_Err gf_isom_modify_cts_offset(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, u32 offset)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);

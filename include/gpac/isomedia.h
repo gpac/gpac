@@ -2722,7 +2722,6 @@ GF_Err gf_isom_get_stsd_template(GF_ISOFile *isom_file, u32 trackNumber, u32 sam
 Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index1, GF_ISOFile *f2, u32 tk2, u32 sdesc_index2);
 
 
-
 /*! Generic 3GP/3GP2 config record*/
 typedef struct
 {
@@ -3583,7 +3582,6 @@ u32 gf_isom_get_user_data_count(GF_ISOFile *isom_file, u32 trackNumber, u32 User
 \param userDataSize set to the size of the allocated buffer
 \return error if any*/
 GF_Err gf_isom_get_user_data(GF_ISOFile *isom_file, u32 trackNumber, u32 UserDataType, bin128 UUID, u32 UserDataIndex, u8 **userData, u32 *userDataSize);
-
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 

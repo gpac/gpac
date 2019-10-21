@@ -2378,7 +2378,8 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 	if (!traf)
 		return GF_BAD_PARAM;
 
-	if (!traf->tfhd->sample_desc_index) traf->tfhd->sample_desc_index = DescIndex ? DescIndex : traf->trex->def_sample_desc_index;
+	if (!traf->tfhd->sample_desc_index)
+		traf->tfhd->sample_desc_index = DescIndex ? DescIndex : traf->trex->def_sample_desc_index;
 
 	pos = gf_bs_get_position(movie->editFileMap->bs);
 
@@ -2528,7 +2529,6 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, 
 	GF_SampleEncryptionBox *senc;
 
 	if (!traf)  return GF_BAD_PARAM;
-	if (!sai_b) return GF_BAD_PARAM;
 
 	if (!traf->sample_encryption) {
 		if (!traf->trex->track->sample_encryption) {
@@ -2550,6 +2550,10 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, 
 	}
 	senc = (GF_SampleEncryptionBox *) traf->sample_encryption;
 
+	if (!IV_size && !sai_b_size && !sai_b) {
+		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, 0, use_saio_32bit);
+		return GF_OK;
+	}
 
 	GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
 	if (!sai) return GF_OUT_OF_MEM;
