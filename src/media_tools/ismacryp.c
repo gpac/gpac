@@ -2397,9 +2397,12 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	}
 
 	/*remove protection info*/
-	e = gf_isom_remove_track_protection(mp4, track, 1);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Error CENC signature from trackID %d: %s\n", tci->trackID, gf_error_to_string(e)));
+	count = gf_isom_get_sample_description_count(mp4, track);
+	for (i=0; i<count; i++) {
+		e = gf_isom_remove_track_protection(mp4, track, i+1);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Error CENC signature from trackID %d: %s\n", tci->trackID, gf_error_to_string(e)));
+		}
 	}
 
 	gf_isom_remove_cenc_saiz(mp4, track);
@@ -2408,6 +2411,26 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	gf_isom_remove_samp_group_box(mp4, track);
 
 	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
+
+	count = gf_isom_get_sample_description_count(mp4, track);
+	if (count>1) {
+		u32 nb_same_sdesc=1;
+		for (i=1; i<count; i++) {
+			if (gf_isom_is_same_sample_description(mp4, track, 1, mp4, track, i+1)) {
+				nb_same_sdesc++;
+			}
+		}
+		if (nb_same_sdesc==count) {
+			while (count>1) {
+				gf_isom_remove_sample_description(mp4, track, count);
+				count--;
+			}
+			count = gf_isom_get_sample_count(mp4, track);
+			for (i=0; i<count; i++) {
+				gf_isom_change_sample_desc_index(mp4, track, i+1, 1);
+			}
+		}
+	}
 
 exit:
 	if (mc) gf_crypt_close(mc);
@@ -2702,10 +2725,17 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 	nb_tracks = gf_isom_get_track_count(mp4);
 	e = GF_OK;
 	for (i=0; i<nb_tracks; i++) {
+		Bool is_isma = GF_FALSE;
+		Bool is_adobe = GF_FALSE;
+		u32 j, nb_stsd = gf_isom_get_sample_description_count(mp4, i+1);
+
 		GF_Err (*gf_decrypt_track)(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 
 		u32 trackID = gf_isom_get_track_id(mp4, i+1);
-		scheme_type = gf_isom_is_media_encrypted(mp4, i+1, 1);
+		for (j=0; j<nb_stsd; j++) {
+			scheme_type = gf_isom_is_media_encrypted(mp4, i+1, j+1);
+			if (scheme_type) break;
+		}
 		if (!scheme_type) continue;
 
 		for (idx=0; idx<count; idx++) {
@@ -2738,6 +2768,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		switch (scheme_type) {
 		case GF_CRYPT_TYPE_ISMA:
 			gf_decrypt_track = gf_ismacryp_decrypt_track;
+			is_isma = GF_TRUE;
 			break;
 		case GF_CRYPT_TYPE_CENC:
 		case GF_CRYPT_TYPE_CENS:
@@ -2748,6 +2779,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			gf_decrypt_track = gf_cenc_decrypt_track;
 			break;
 		case GF_CRYPT_TYPE_ADOBE:
+			is_adobe = GF_TRUE;
 			gf_decrypt_track = gf_adobe_decrypt_track;
 			break;
 		default:
@@ -2755,7 +2787,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			return GF_NOT_SUPPORTED;
 		}
 
-		if (gf_isom_is_ismacryp_media(mp4, i+1, 1)) {
+		if (is_isma) {
 			e = gf_isom_get_ismacryp_info(mp4, i+1, 1, NULL, &scheme_type, NULL, &scheme_URI, &KMS_URI, NULL, NULL, NULL);
 		} else if (gf_isom_is_omadrm_media(mp4, i+1, 1)) {
 			if (!drm_file) {
@@ -2764,7 +2796,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			}
 			KMS_URI = "OMA DRM";
 			is_oma = 1;
-		} else if (!gf_isom_is_cenc_media(mp4, i+1, 1) && !gf_isom_is_adobe_protection_media(mp4, i+1, 1)) {
+		} else if (!is_cenc && !is_adobe) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] TrackID %d encrypted with unknown scheme %s - skipping\n", trackID, gf_4cc_to_str(scheme_type) ));
 			continue;
 		}

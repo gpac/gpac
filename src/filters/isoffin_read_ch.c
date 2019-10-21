@@ -432,39 +432,43 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			u32 out_size;
 			u8 IV_size;
 			bin128 KID;
-			u8 crypt_bytr_block, skip_byte_block;
+			u8 crypt_byte_block, skip_byte_block;
 			u8 constant_IV_size;
 			bin128 constant_IV;
 
 			ch->cenc_state_changed = 0;
-			gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &IV_size, &KID, &crypt_bytr_block, &skip_byte_block, &constant_IV_size, &constant_IV);
+			gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &IV_size, &KID, &crypt_byte_block, &skip_byte_block, &constant_IV_size, &constant_IV);
 
-			if (ch->IV_size != IV_size) {
-				ch->IV_size = IV_size;
-				ch->cenc_state_changed = 1;
-			}
-			if ((ch->crypt_byte_block != crypt_bytr_block) || (ch->skip_byte_block != skip_byte_block)) {
-				ch->crypt_byte_block = crypt_bytr_block;
-				ch->skip_byte_block = skip_byte_block;
-				ch->cenc_state_changed = 1;
-			}
 			if (Is_Encrypted != ch->pck_encrypted) {
 				ch->pck_encrypted = Is_Encrypted;
 				ch->cenc_state_changed = 1;
 			}
-			if (Is_Encrypted && !ch->IV_size) {
-				if (ch->constant_IV_size != constant_IV_size) {
-					ch->constant_IV_size = constant_IV_size;
-					ch->cenc_state_changed = 1;
-				} else if (memcmp(ch->constant_IV, constant_IV, ch->constant_IV_size)) {
+			/*notify change of IV/KID only when packet is encrypted
+			1- these info are ignored when packet is not encrypted
+			2- this allows us to define the initial CENC state for multi-stsd cases*/
+			if (Is_Encrypted) {
+				if (ch->IV_size != IV_size) {
+					ch->IV_size = IV_size;
 					ch->cenc_state_changed = 1;
 				}
-				memmove(ch->constant_IV, constant_IV, ch->constant_IV_size);
-			}
-			if (memcmp(ch->KID, KID, sizeof(bin128))) {
-				memcpy(ch->KID, KID, sizeof(bin128));
-				ch->cenc_state_changed = 1;
-
+				if ((ch->crypt_byte_block != crypt_byte_block) || (ch->skip_byte_block != skip_byte_block)) {
+					ch->crypt_byte_block = crypt_byte_block;
+					ch->skip_byte_block = skip_byte_block;
+					ch->cenc_state_changed = 1;
+				}
+				if (Is_Encrypted && !ch->IV_size) {
+					if (ch->constant_IV_size != constant_IV_size) {
+						ch->constant_IV_size = constant_IV_size;
+						ch->cenc_state_changed = 1;
+					} else if (memcmp(ch->constant_IV, constant_IV, ch->constant_IV_size)) {
+						ch->cenc_state_changed = 1;
+					}
+					memmove(ch->constant_IV, constant_IV, ch->constant_IV_size);
+				}
+				if (memcmp(ch->KID, KID, sizeof(bin128))) {
+					memcpy(ch->KID, KID, sizeof(bin128));
+					ch->cenc_state_changed = 1;
+				}
 			}
 
 			out_size = ch->sai_alloc_size;

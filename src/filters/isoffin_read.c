@@ -428,7 +428,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 {
 	GF_ISOFile *mov = ch->owner->mov;
 	u32 track = ch->track;
-	u32 scheme_type, scheme_version, PSSH_count=0;
+	u32 scheme_type, scheme_version, PSSH_count=0, i, count;
 	const char *kms_uri, *scheme_uri;
 	Bool selectiveEncryption=0;
 	u32 IVLength=0;
@@ -445,9 +445,39 @@ void isor_set_crypt_config(ISOMChannel *ch)
 	scheme_type = scheme_version = 0;
 	kms_uri = scheme_uri = NULL;
 
-	if (gf_isom_is_ismacryp_media(mov, track, 1)) {
+	/*ugly fix to detect when an stsd uses both clear and encrypted sample descriptions*/
+	count = gf_isom_get_sample_description_count(ch->owner->mov, ch->track);
+	if (count>1) {
+		u32 first_crypted_stsd = 0;
+		u32 nb_same_mtype = 1;
+		u32 nb_clear=0, nb_encrypted=0;
+		u32 base_subtype = 0;
+		Bool first_is_clear = GF_FALSE;
+		for (i=0; i<count; i++) {
+			u32 mtype = gf_isom_get_media_subtype(ch->owner->mov, ch->track, i+1);
+			if ( gf_isom_is_media_encrypted(ch->owner->mov, track, i+1)) {
+				gf_isom_get_original_format_type(ch->owner->mov, ch->track, i+1, &mtype);
+				nb_encrypted++;
+				if (!first_crypted_stsd) first_crypted_stsd = i+1;
+			} else {
+				nb_clear++;
+				if (!i) first_is_clear = GF_TRUE;
+			}
+			if (!i) base_subtype = mtype;
+			else if (base_subtype==mtype) {
+				nb_same_mtype++;
+			}
+		}
+		if ((nb_same_mtype==count) && (nb_clear==nb_encrypted)) {
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_STSD_MODE, &PROP_UINT(first_is_clear ? 1 : 2) );
+			stsd_idx = first_crypted_stsd;
+		}
+
+	}
+
+	if (gf_isom_is_ismacryp_media(mov, track, stsd_idx)) {
 		gf_isom_get_ismacryp_info(mov, track, stsd_idx, NULL, &scheme_type, &scheme_version, &scheme_uri, &kms_uri, &selectiveEncryption, &IVLength, &KeyIndicationLength);
-	} else if (gf_isom_is_omadrm_media(mov, track, 1)) {
+	} else if (gf_isom_is_omadrm_media(mov, track, stsd_idx)) {
 		//u8 hash[20];
 		gf_isom_get_omadrm_info(mov, track, stsd_idx, NULL, &scheme_type, &scheme_version, &contentID, &kms_uri, &txtHdr, &txtHdrLen, &plainTextLen, &crypt_type, &selectiveEncryption, &IVLength, &KeyIndicationLength);
 
@@ -972,7 +1002,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);
 				gf_filter_pck_set_seq_num(pck, ch->sample_num);
 
-				if (ch->cenc_state_changed) {
+				/**/
+				if (ch->cenc_state_changed && ch->pck_encrypted) {
 					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );
 
 					if (!ch->IV_size) {
