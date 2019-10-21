@@ -164,6 +164,14 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unrecognized selective mode %s, ignoring\n", att->value));
 				}
 			}
+			else if (!stricmp(att->name, "clearStds")) {
+				if (!strcmp(att->value, "none")) tkc->force_clear_stsd_idx = 0;
+				else if (!strcmp(att->value, "before")) tkc->force_clear_stsd_idx = 1;
+				else if (!strcmp(att->value, "after")) tkc->force_clear_stsd_idx = 2;
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unrecognized clear stsd type %s, defaulting to no stsd for clear samples\n", att->value));
+				}
+			}
 			else if (!stricmp(att->name, "Preview")) {
 				tkc->sel_enc_type = GF_CRYPT_SELENC_PREVIEW;
 				sscanf(att->value, "%u", &tkc->sel_enc_range);

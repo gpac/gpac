@@ -688,7 +688,7 @@ docc() {
 
 
 docxx() {
- $cc -o $TMPO $TMPC $@ 0>/dev/null 2>$TMPL
+ $cc -o $TMPO $TMPCXX $@ 0>/dev/null 2>$TMPL
  dolog $@
 }
 
@@ -777,16 +777,14 @@ elif docc $LDFLAGS -ldl ; then
 fi
 
 
-
 #look for platinum support
-cat > $TMPC << EOF
+cat > $TMPCXX << EOF
 #include <Platinum.h>
 int main( void ) { return 0; }
 EOF
-if docxx -o $TMPO $TMPC -I$local_inc/platinum $LDFLAGS -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread ; then
+if docxx -I$local_inc/platinum $LDFLAGS -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread ; then
   has_platinum="yes"
 fi
-
 
 #look for avcap support
 avcap_cflags=""

@@ -987,7 +987,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_KID, &PROP_DATA(ch->KID, sizeof(bin128) ) );
 				}
-				if (ch->sai_buffer) {
+				if (ch->sai_buffer && ch->pck_encrypted) {
 					assert(ch->sai_buffer_size);
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA(ch->sai_buffer, ch->sai_buffer_size) );
 				}

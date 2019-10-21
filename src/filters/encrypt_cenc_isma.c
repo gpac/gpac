@@ -884,6 +884,8 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_ENCRYPTED) );
 
+	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_STSD_MODE, &PROP_UINT(tci->force_clear_stsd_idx) );
+
 	scheme_uri = cstr->tci->Scheme_URI;
 	kms_uri = cstr->tci->KMS_URI;
 
@@ -1666,12 +1668,15 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	if (!is_encrypted) {
 		u8 *sai=NULL;
 		u32 i, sai_size = 0;
+		Bool signal_sai = GF_FALSE;
 		GF_FilterPacket *dst_pck;
 		dst_pck = gf_filter_pck_new_ref(cstr->opid, NULL, 0, pck);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 
-		//format NULL bitstream
-		if (cstr->use_subsamples) {
+		if (force_clear && !cstr->tci->force_clear_stsd_idx)
+			signal_sai = GF_TRUE;
+		//format NULL bitstream only for forced clear mode
+		if (cstr->use_subsamples && signal_sai) {
 			GF_BitStream *bs;
 			u32 subsample_count = 1;
 			u32 olen = pck_size;
@@ -1703,7 +1708,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		if (sai)
 			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA_NO_COPY(sai, sai_size) );
 
-		gf_filter_pck_set_crypt_flags(dst_pck, force_clear ? GF_FILTER_PCK_CRYPT : 0);
+		gf_filter_pck_set_crypt_flags(dst_pck, signal_sai ? GF_FILTER_PCK_CRYPT : 0);
 		gf_filter_pck_send(dst_pck);
 		return GF_OK;
 	}

@@ -770,7 +770,11 @@ GF_Err pssh_box_read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE(ptr, 4);
 		if (ptr->KID_count) {
 			u32 i;
+			if (ptr->size < ptr->KID_count * sizeof(bin128))
+				return GF_ISOM_INVALID_FILE;
 			ptr->KIDs = gf_malloc(ptr->KID_count*sizeof(bin128));
+			if (!ptr->KIDs)
+				return GF_OUT_OF_MEM;
 			for (i=0; i<ptr->KID_count; i++) {
 				gf_bs_read_data(bs, (char *) ptr->KIDs[i], 16);
 				ISOM_DECREASE_SIZE(ptr, 16);
@@ -780,7 +784,11 @@ GF_Err pssh_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->private_data_size = gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
 	if (ptr->private_data_size) {
+		if (ptr->size < ptr->private_data_size)
+			return GF_ISOM_INVALID_FILE;
 		ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
+		if (!ptr->private_data)
+			return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, (char *) ptr->private_data, ptr->private_data_size);
 		ISOM_DECREASE_SIZE(ptr, ptr->private_data_size);
 	}
@@ -1152,7 +1160,11 @@ GF_Err piff_pssh_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 20);
 
+	if (ptr->size < sizeof(char)*ptr->private_data_size)
+	    return GF_ISOM_INVALID_FILE;
 	ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
+	if (!ptr->private_data)
+	    return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, (char *) ptr->private_data, ptr->private_data_size);
 	ISOM_DECREASE_SIZE(ptr, ptr->private_data_size);
 	return GF_OK;
@@ -1207,7 +1219,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 {
 	GF_Err e;
 	Bool parse_failed = GF_FALSE;
-	u32 i, j, count;
+	u32 i, j, count, sample_number;
 	u32 senc_size = (u32) senc->size;
 	u32 subs_size = 0, def_IV_size;
 	u64 pos = gf_bs_get_position(bs);
@@ -1232,6 +1244,12 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 	if (senc->flags & 2) subs_size = 8;
 
 	if (senc_size<4) return GF_BAD_PARAM;
+
+	sample_number = 1;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (trak) sample_number += trak->sample_count_at_seg_start;
+#endif
+
 	count = gf_bs_read_u32(bs);
 	senc_size -= 4;
 
@@ -1250,19 +1268,13 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 	if (!senc->samp_aux_info) senc->samp_aux_info = gf_list_new();
 	for (i=0; i<count; i++) {
 		Bool is_encrypted;
-		u32 samp_count;
 		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
 		memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
 
-		samp_count = i+1;
-
 		if (trak) {
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-			samp_count += trak->sample_count_at_seg_start;
-#endif
-			e = gf_isom_get_sample_cenc_info_ex(trak, traf, senc, samp_count, &is_encrypted, &sai->IV_size, NULL, NULL, NULL, NULL, NULL);
+			e = gf_isom_get_sample_cenc_info_ex(trak, traf, senc, sample_number, &is_encrypted, &sai->IV_size, NULL, NULL, NULL, NULL, NULL);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] could not get cenc info for sample %d: %s\n", samp_count, gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] could not get cenc info for sample %d: %s\n", sample_number, gf_error_to_string(e) ));
 				return e;
 			}
 		}
@@ -1280,10 +1292,10 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			break;
 		}
 
-		//while this would technically be correct, senc mandates that sample_count = all samples in traf/track
-		//regardless of their encryption state
-		//if (is_encrypted)
-		{
+		sample_number++;
+
+		//subsample info is only signaled for encrypted samples
+		if (is_encrypted) {
 			if (sai->IV_size) {
 				gf_bs_read_data(bs, (char *)sai->IV, sai->IV_size);
 				senc_size -= sai->IV_size;
@@ -1301,6 +1313,11 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				for (j = 0; j < sai->subsample_count; j++) {
 					if (gf_bs_get_size(bs) - gf_bs_get_position(bs) < 6) {
 						gf_isom_cenc_samp_aux_info_del(sai);
+						if (trak->moov->mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
+							gf_bs_seek(bs, pos);
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] Failed to parse SENC box, invalid SAI size\n" ));
+							return GF_OK;
+						}
 						return GF_ISOM_INVALID_FILE;
 					}
 					sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(bs);
@@ -1308,6 +1325,8 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				}
 				senc_size -= 2 + sai->subsample_count * 6;
 			}
+		} else {
+			i--;
 		}
 		gf_list_add(senc->samp_aux_info, sai);
 	}
