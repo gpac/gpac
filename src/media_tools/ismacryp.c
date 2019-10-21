@@ -1978,6 +1978,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				//sample is not encrypted, put an empty SAI (size 0) except in force_clear mode where we generate
 				//an SAI with a clear byte range covering the entire sample
 				if (forced_clear) {
+					memcpy(NULL_IV, (char *) &i, 4);
 					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, tci->IV_size, NULL, samp->dataLength, use_subsamples, (char *)NULL_IV);
 				} else {
 					e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0, GF_FALSE, NULL);
