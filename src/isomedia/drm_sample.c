@@ -199,7 +199,6 @@ u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 		if (!sinf->scheme_type) return 0;
 		if (sinf->scheme_type->scheme_type == GF_4CC('p','i','f','f')) return GF_4CC('c','e','n','c');
 		return sinf->scheme_type->scheme_type;
-
 	}
 	return 0;
 }
@@ -585,17 +584,27 @@ GF_Err gf_isom_get_original_format_type(GF_ISOFile *the_file, u32 trackNumber, u
 	GF_TrackBox *trak;
 	GF_SampleEntryBox *sea;
 	GF_ProtectionSchemeInfoBox *sinf;
+	u32 i, count;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
-	Media_GetSampleDesc(trak->Media, sampleDescriptionIndex, &sea, NULL);
-	if (!sea) return GF_BAD_PARAM;
+	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
+	for (i=0; i<count; i++) {
+		if (sampleDescriptionIndex && (i+1 != sampleDescriptionIndex)) continue;
 
-	sinf = (GF_ProtectionSchemeInfoBox*) gf_isom_box_find_child(sea->child_boxes, GF_ISOM_BOX_TYPE_SINF);
-	if (outOriginalFormat && sinf && sinf->original_format) {
-		*outOriginalFormat = sinf->original_format->data_format;
+		Media_GetSampleDesc(trak->Media, sampleDescriptionIndex, &sea, NULL);
+		if (!sea) return GF_BAD_PARAM;
+
+		sinf = (GF_ProtectionSchemeInfoBox*) gf_isom_box_find_child(sea->child_boxes, GF_ISOM_BOX_TYPE_SINF);
+		if (!sinf) continue;
+
+		if (outOriginalFormat && sinf->original_format) {
+			*outOriginalFormat = sinf->original_format->data_format;
+		}
+		return GF_OK;
 	}
+	if (outOriginalFormat) *outOriginalFormat = 0;
 	return GF_OK;
 }
 

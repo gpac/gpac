@@ -4756,7 +4756,7 @@ GF_ISMASample *gf_isom_get_ismacryp_sample(GF_ISOFile *isom_file, u32 trackNumbe
 /*! checks if sample description is protected or not
 \param isom_file the target ISO file
 \param trackNumber the target track
-\param sampleDescriptionIndex the sample description index
+\param sampleDescriptionIndex the sample description index. If 0, checks all sample descriptions for protected ones
 \return scheme protection 4CC or 0 if not protected*/
 u32 gf_isom_is_media_encrypted(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
@@ -4818,7 +4818,7 @@ GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sam
 /*! gets original format four character code type of a protected media sample description
 \param isom_file the target ISO file
 \param trackNumber the target track
-\param sampleDescriptionIndex the sample description index
+\param sampleDescriptionIndex the sample description index. If 0, checks all sample descriptions for a protected one
 \param outOriginalFormat set to orginal unprotected media format
 \return error if any
 */
@@ -5048,7 +5048,7 @@ void gf_isom_ipmpx_remove_tool_list(GF_ISOFile *isom_file);
 /*! checks of sample description is protected with CENC
 \param isom_file the target ISO file
 \param trackNumber the target track
-\param sampleDescriptionIndex the sample description index
+\param sampleDescriptionIndex the sample description index. If 0, checks all sample descriptions for protected ones
 \return GF_TRUE if sample protection is CENC
 */
 Bool gf_isom_is_cenc_media(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
@@ -5108,6 +5108,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info_buffer(GF_ISOFile *isom_file, u32 trackN
 \param skip_byte_block set to default skip block size for pattern encryption
 */
 void gf_isom_cenc_get_default_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block);
+
 
 /*! checks if CENC protection uses pattern encryption
 \param isom_file the target ISO file

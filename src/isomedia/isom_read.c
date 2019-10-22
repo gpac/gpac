@@ -1415,7 +1415,7 @@ Bool gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber)
 		if (!entry) break;
 		if (gf_isom_is_encrypted_entry(entry->type)) return GF_TRUE;
 
-		if (gf_isom_is_cenc_media(the_file, trackNumber, 1))
+		if (gf_isom_is_cenc_media(the_file, trackNumber, i+1))
 			return GF_TRUE;
 
 		i++;

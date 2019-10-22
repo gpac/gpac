@@ -463,9 +463,9 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 		gf_isom_sample_del(&samp);
 	}
 
-	is_cenc = gf_isom_is_cenc_media(import->orig, track_in, 1);
-	if (gf_isom_is_media_encrypted(import->orig, track_in, 1)) {
-		gf_isom_get_original_format_type(import->orig, track_in, 1, &mstype);
+	is_cenc = gf_isom_is_cenc_media(import->orig, track_in, 0);
+	if (gf_isom_is_media_encrypted(import->orig, track_in, 0)) {
+		gf_isom_get_original_format_type(import->orig, track_in, 0, &mstype);
 	}
 	has_seig = GF_FALSE;
 	if (is_cenc && gf_isom_has_cenc_sample_group(import->orig, track_in)) {
