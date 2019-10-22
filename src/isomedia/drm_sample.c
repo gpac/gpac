@@ -999,7 +999,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 	} else {
 		senc->cenc_saiz->sample_info_size = (u8*)gf_realloc(senc->cenc_saiz->sample_info_size, sizeof(u8)*(senc->cenc_saiz->sample_count+1));
 
-		if (senc->cenc_saiz->default_sample_info_size) {
+		if (senc->cenc_saiz->default_sample_info_size || (senc->cenc_saiz->sample_count==1)) {
 			for (i=0; i<senc->cenc_saiz->sample_count; i++)
 				senc->cenc_saiz->sample_info_size[i] = senc->cenc_saiz->default_sample_info_size;
 			senc->cenc_saiz->default_sample_info_size = 0;
