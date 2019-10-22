@@ -2574,7 +2574,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	} else {
 		if (sai) {
 			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, IV_size, sai, sai_size, tkw->cenc_subsamples, NULL, ctx->saio32);
-		} else {
+		} else if (!pck_is_encrypted) {
 			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, 0, NULL, 0, GF_FALSE, NULL, ctx->saio32);
 		}
 		if (e) return e;
