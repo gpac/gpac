@@ -568,8 +568,9 @@ GF_Err gf_isom_get_original_format_type(GF_ISOFile *the_file, u32 trackNumber, u
 	for (i=0; i<count; i++) {
 		if (sampleDescriptionIndex && (i+1 != sampleDescriptionIndex)) continue;
 
-		Media_GetSampleDesc(trak->Media, sampleDescriptionIndex, &sea, NULL);
+		Media_GetSampleDesc(trak->Media, i+1, &sea, NULL);
 		if (!sea) return GF_BAD_PARAM;
+		if (!sea->protections) continue;
 
 		sinf = (GF_ProtectionSchemeInfoBox*)gf_list_get(sea->protections, 0);
 		if (outOriginalFormat && sinf && sinf->original_format) {
