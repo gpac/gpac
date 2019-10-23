@@ -224,6 +224,7 @@ GF_Err jsf_set_gl_active(JSContext *c);
 GF_Err jsf_get_filter_packet_planes(JSContext *c, JSValue obj, u32 *width, u32 *height, u32 *pf, u32 *stride, u32 *stride_uv, const u8 **data, const u8 **p_u, const u8 **p_v, const u8 **p_a);
 
 Bool jsf_is_packet(JSContext *c, JSValue obj);
+const char *jsf_get_script_filename(JSContext *c);
 
 
 /*definitions of C modules in gpac, potentially used by both SceneGraph and JSFilter*/

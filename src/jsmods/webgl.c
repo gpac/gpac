@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2019
  *			All rights reserved
  *
- *  This file is part of GPAC / WebGL JavaScript extension
+ *  This file is part of GPAC / JavaScript WebGL bindings
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -2185,10 +2185,10 @@ static int js_webgl_load_module(JSContext *c, JSModuleDef *m)
 
 void qjs_module_init_webgl(JSContext *ctx)
 {
-    JSModuleDef *m;
-    m = JS_NewCModule(ctx, "webgl", js_webgl_load_module);
-    if (!m)
-        return;
+	JSModuleDef *m;
+	m = JS_NewCModule(ctx, "webgl", js_webgl_load_module);
+	if (!m) return;
+
 	JS_AddModuleExport(ctx, m, "WebGLContext");
 	JS_AddModuleExport(ctx, m, "Matrix");
 }

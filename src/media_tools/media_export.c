@@ -1248,12 +1248,12 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			return e;
 		}
 
-		file_out = gf_fs_load_filter(fsess, args);
+		file_out = gf_fs_load_filter(fsess, args, &e);
 		if (!file_out) {
 			gf_fs_del(fsess);
 			if (args) gf_free(args);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load output file dumper\n"));
-			return GF_FILTER_NOT_FOUND;
+			return e;
 		}
 	}
 	if (args) gf_free(args);
@@ -1266,7 +1266,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			sprintf(szSubArgs, ":sstart=%d:send=%d", dumper->sample_num, dumper->sample_num);
 			e |= gf_dynstrcat(&args, szSubArgs, NULL);
 		}
-		remux = e ? NULL : gf_fs_load_filter(fsess, args);
+		remux = e ? NULL : gf_fs_load_filter(fsess, args, &e);
 		if (!remux || e) {
 			gf_fs_del(fsess);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load stream->file filter\n"));
@@ -1275,11 +1275,11 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 	}
 	else if (dumper->flags & GF_EXPORT_NHNT) {
-		remux = gf_fs_load_filter(fsess, "nhntw");
+		remux = gf_fs_load_filter(fsess, "nhntw", &e);
 		if (!remux) {
 			gf_fs_del(fsess);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load NHNT write filter\n"));
-			return GF_FILTER_NOT_FOUND;
+			return e;
 		}
 	}
 	else if (dumper->flags & GF_EXPORT_NHML) {
@@ -1291,7 +1291,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			sprintf(szSubArgs, ":nhmlonly:filep=%p", dumper->dump_file);
 			e |= gf_dynstrcat(&args, szSubArgs, NULL);
 		}
-		remux = e ? NULL : gf_fs_load_filter(fsess, args);
+		remux = e ? NULL : gf_fs_load_filter(fsess, args, &e);
 		if (!remux || e) {
 			gf_fs_del(fsess);
 			if (args) gf_free(args);
@@ -1305,7 +1305,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (!strstr(args, ".avi")) e |= gf_dynstrcat(&args, ".avi", NULL);
 		e |= gf_dynstrcat(&args, ":noraw", NULL);
 
-		file_out = e ? NULL : gf_fs_load_filter(fsess, args);
+		file_out = e ? NULL : gf_fs_load_filter(fsess, args, &e);
 		if (!file_out || e) {
 			gf_fs_del(fsess);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load AVI output filter\n"));
@@ -1313,11 +1313,11 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			return e ? e : GF_FILTER_NOT_FOUND;
 		}
 	} else if (!skip_write_filter) {
-		remux = gf_fs_load_filter(fsess, "writegen");
+		remux = gf_fs_load_filter(fsess, "writegen", &e);
 		if (!remux) {
 			gf_fs_del(fsess);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load stream->file filter\n"));
-			return GF_FILTER_NOT_FOUND;
+			return e;
 		}
 	}
 	if (args) gf_free(args);
@@ -1335,7 +1335,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	if (dumper->flags & GF_EXPORT_WEBVTT_NOMERGE)
 		e |= gf_dynstrcat(&args, ":merge", NULL);
 
-	reframer = gf_fs_load_filter(fsess, args);
+	reframer = gf_fs_load_filter(fsess, args, &e);
 	if (!reframer || e) {
 		gf_fs_del(fsess);
 		if (args) gf_free(args);
@@ -1353,7 +1353,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		e = gf_dynstrcat(&args, szSubArgs, NULL);
 
 		//we want to expose every track
-		src_filter = gf_fs_load_filter(fsess, args);
+		src_filter = gf_fs_load_filter(fsess, args, &e);
 
 		gf_free(args);
 		args = NULL;

@@ -251,9 +251,10 @@ Name can be omitted for enumerations (eg :disp=pbo is equivalent to :pbo), provi
 
 \param session filter session
 \param name name and arguments of the filter register to instantiate.
+\param err_code set to error code if any - may be NULL.
 \return created filter or NULL if filter register cannot be found
 */
-GF_Filter *gf_fs_load_filter(GF_FilterSession *session, const char *name);
+GF_Filter *gf_fs_load_filter(GF_FilterSession *session, const char *name, GF_Err *err_code);
 
 /*! Checks if a filter register exists by name.
 \param session filter session
@@ -1919,7 +1920,7 @@ GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_
 \param name name and arguments of the filter register to instantiate.
 \return created filter or NULL if filter register cannot be found
 */
-GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name);
+GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *err_code);
 
 /*! Checks if a source filter can handle the given URL. The source filter is not loaded.
 
@@ -2253,7 +2254,7 @@ u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_s
 */
 void gf_filter_disable_probe(GF_Filter *filter);
 
-/*! Disables input connection on the filter. This is used by filters acting both as true sources or demux/processing filters depending on their option.
+/*! Disables input connection on the filter. This is used by filters acting both as true sources or demux/processing filters depending on their options.
 \param filter target filter
 */
 void gf_filter_disable_inputs(GF_Filter *filter);

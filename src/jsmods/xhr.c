@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2007-2019
  *			All rights reserved
  *
- *  This file is part of GPAC / JavaScript C modules
+ *  This file is part of GPAC / JavaScript XmlHttpRequest bindings
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -1056,6 +1056,89 @@ static JSValue xml_http_get_header(JSContext *c, JSValueConst obj, int argc, JSV
 	return res;
 }
 
+static GF_Err xml_http_load_dom_node(XMLHTTPContext *ctx, GF_XMLNode *n, GF_DOMFullNode *par)
+{
+	u32 i, count;
+	GF_DOMFullAttribute *prev = NULL;
+	GF_DOMFullNode *node;
+
+	if (!n) return GF_OK;
+	if (!par && ctx->document->RootNode) {
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	/*construct text / cdata node*/
+	if (n->type != GF_XML_NODE_TYPE) {
+		u32 i, len;
+		GF_DOMText *txt;
+		/*basic check, remove all empty text nodes*/
+		len = (u32) strlen(n->name);
+		for (i=0; i<len; i++) {
+			if (!strchr(" \n\r\t", n->name[i])) break;
+		}
+		if (i==len) return GF_OK;
+		txt = gf_dom_add_text_node((GF_Node *)par, gf_strdup(n->name) );
+		txt->type = (n->type==GF_XML_CDATA_TYPE) ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
+		return GF_OK;
+	}
+	/*construct DOM node*/
+	node = (GF_DOMFullNode *) gf_node_new(ctx->document, TAG_DOMFullNode);
+	node->name = gf_strdup(n->name);
+	if (n->ns)
+		node->ns = gf_sg_get_namespace_code(ctx->document, n->ns);
+
+	count = gf_list_count(n->attributes);
+	for (i=0; i<count; i++) {
+		GF_XMLAttribute *src_att = gf_list_get(n->attributes, i);
+		/* special case for 'xml:id' to be parsed as an ID
+		NOTE: we do not test for the 'id' attribute because without DTD we are not sure that it's an ID */
+		if (!stricmp(src_att->name, "xml:id")) {
+			u32 id = gf_sg_get_max_node_id(ctx->document) + 1;
+			gf_node_set_id((GF_Node *)node, id, src_att->value);
+		} else {
+			GF_DOMFullAttribute *att;
+			GF_SAFEALLOC(att, GF_DOMFullAttribute);
+			if (!att) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XHR] Fail to allocate DOM attribute\n"));
+				continue;
+			}
+			att->tag = TAG_DOM_ATT_any;
+			att->name = gf_strdup(src_att->name);
+			att->data_type = (u16) DOM_String_datatype;
+			att->data = gf_svg_create_attribute_value(att->data_type);
+			*((char **)att->data) = gf_strdup(src_att->value);
+			if (prev) prev->next = (GF_DOMAttribute*)att;
+			else node->attributes = (GF_DOMAttribute*)att;
+			prev = att;
+		}
+	}
+	gf_node_register((GF_Node*)node, (GF_Node*)par);
+	if (par) {
+		gf_node_list_add_child(&par->children, (GF_Node*)node);
+	} else {
+		ctx->document->RootNode = (GF_Node*)node;
+	}
+	count = gf_list_count(n->content);
+	for (i=0; i<count; i++) {
+		GF_XMLNode *child = gf_list_get(n->content, i);
+		GF_Err e = xml_http_load_dom_node(ctx, child, node);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+
+static GF_Err xml_http_load_dom(XMLHTTPContext *ctx)
+{
+	GF_Err e;
+	GF_DOMParser *parser = gf_xml_dom_new();
+	e = gf_xml_dom_parse_string(parser, ctx->data);
+	if (!e) {
+		e = xml_http_load_dom_node(ctx, gf_xml_dom_get_root(parser), NULL);
+	}
+	gf_xml_dom_del(parser);
+	return e;
+}
+
+
 static JSValue xml_http_overrideMimeType(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	const char *mime;
@@ -1096,7 +1179,13 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 
 	case XHR_RESPONSEXML:
 		if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_NULL;
-		if (ctx->data && ctx->document) {
+		if (ctx->data) {
+			if (!ctx->document) {
+				ctx->document = gf_sg_new();
+				/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
+				ctx->document->reference_count = 1;
+				xml_http_load_dom(ctx);
+			}
 			if (!ctx->js_dom_loaded) {
 				dom_js_load(ctx->document, c);
 				ctx->js_dom_loaded = GF_TRUE;
@@ -1123,7 +1212,13 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 				return JS_DupValue(c, ctx->arraybuffer);
 				break;
 			case XHR_RESPONSETYPE_DOCUMENT:
-				if (ctx->data && ctx->document) {
+				if (ctx->data) {
+					if (!ctx->document) {
+						ctx->document = gf_sg_new();
+						/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
+						ctx->document->reference_count = 1;
+						xml_http_load_dom(ctx);
+					}
 					if (!ctx->js_dom_loaded) {
 						dom_js_load(ctx->document, c);
 						ctx->js_dom_loaded = GF_TRUE;
@@ -1369,12 +1464,12 @@ static int js_xhr_load_module(JSContext *c, JSModuleDef *m)
 }
 void qjs_module_init_xhr(JSContext *ctx)
 {
-    JSModuleDef *m;
-    m = JS_NewCModule(ctx, "xhr", js_xhr_load_module);
-    if (!m)
-        return;
+	JSModuleDef *m;
+	m = JS_NewCModule(ctx, "xhr", js_xhr_load_module);
+	if (!m) return;
+
 	JS_AddModuleExport(ctx, m, "XMLHttpRequest");
-    return;
+	return;
 }
 
 

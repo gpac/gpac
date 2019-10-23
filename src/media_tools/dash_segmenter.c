@@ -814,7 +814,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
 
 		if (dasher->real_time) {
-			rt = gf_fs_load_filter(dasher->fsess, "reframer:rt=sync");
+			rt = gf_fs_load_filter(dasher->fsess, "reframer:rt=sync", NULL);
 		}
 		if (di->file_name && strlen(di->file_name)) url = di->file_name;
 		if (!stricmp(url, "null")) url = NULL;
@@ -983,13 +983,14 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		GF_Filter *prev_filter=src;
 		char *fargs = (char *) di->filter_chain;
 		while (fargs) {
+			GF_Err e;
 			GF_Filter *f;
 			char *sep = strstr(fargs, "@@");
 			if (sep) sep[0] = 0;
-			f = gf_fs_load_filter(dasher->fsess, fargs);
+			f = gf_fs_load_filter(dasher->fsess, fargs, &e);
 			if (!f) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to load filter %s\n", fargs));
-				return GF_BAD_PARAM;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to load filter %s: %s\n", fargs, gf_error_to_string(e) ));
+				return e;
 			}
 			if (prev_filter) {
 				gf_filter_set_source(f, prev_filter, NULL);

@@ -945,7 +945,7 @@ Bool gf_fs_filter_exists(GF_FilterSession *fsess, const char *name)
 }
 
 GF_EXPORT
-GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
+GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *err_code)
 {
 	const char *args=NULL;
 	u32 i, len, count = gf_list_count(fsess->registry);
@@ -973,7 +973,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 		if ((strlen(f_reg->name)==len) && !strncmp(f_reg->name, name, len)) {
 			GF_FilterArgType argtype = GF_FILTER_ARG_EXPLICIT;
 			if (f_reg->flags & GF_FS_REG_ACT_AS_SOURCE) argtype = GF_FILTER_ARG_EXPLICIT_SOURCE;
-			return gf_filter_new(fsess, f_reg, args, NULL, argtype, NULL);
+			return gf_filter_new(fsess, f_reg, args, NULL, argtype, err_code);
 		}
 	}
 	/*check JS file*/
@@ -985,12 +985,13 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 		szPath[len]=0;
 		if (gf_file_exists(szPath)) {
 			sprintf(szPath, "jsf%cjs%c", fsess->sep_args, fsess->sep_name);
-			strncat(szPath, name, len);
-			return gf_fs_load_filter(fsess, szPath);
+			strcat(szPath, name);
+			return gf_fs_load_filter(fsess, szPath, err_code);
 		}
 	}
 
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: no such filter registry\n", name));
+	if (err_code) *err_code = GF_FILTER_NOT_FOUND;
 	return NULL;
 }
 

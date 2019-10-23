@@ -309,6 +309,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	GF_Terminal *tmp;
 	GF_Filter *comp_filter;
 	u32 def_w, def_h;
+	GF_Err e;
 	const char *opt;
 	char szArgs[200];
 
@@ -351,10 +352,10 @@ GF_Terminal *gf_term_new(GF_User *user)
 		strcpy(szArgs, "compositor:FID=compose:player");
 	}
 
-	comp_filter = gf_fs_load_filter(tmp->fsess, szArgs);
+	comp_filter = gf_fs_load_filter(tmp->fsess, szArgs, &e);
 	tmp->compositor = comp_filter ? gf_sc_from_filter(comp_filter) : NULL;
 	if (!tmp->compositor) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load compositor filter.\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load compositor filter: %s\n", gf_error_to_string(e) ));
 		gf_fs_del(tmp->fsess);
 		gf_free(tmp);
 		return NULL;
@@ -365,10 +366,10 @@ GF_Terminal *gf_term_new(GF_User *user)
 
 	//load audio filter chain
 	if (! (user->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
-		GF_Filter *audio_out = gf_fs_load_filter(tmp->fsess, "aout:SID=compose#audio");
+		GF_Filter *audio_out = gf_fs_load_filter(tmp->fsess, "aout:SID=compose#audio", &e);
 		tmp->compositor->audio_renderer->non_rt_output = GF_FALSE;
 		if (!audio_out) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load audio output filter - audio disabled\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load audio output filter (%s) - audio disabled\n", gf_error_to_string(e) ));
 		} else {
 			gf_filter_reconnect_output(tmp->compositor->filter);
 		}

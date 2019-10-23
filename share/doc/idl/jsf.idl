@@ -299,9 +299,17 @@ void remove();
 \param stop_at a Filter or a FilterInstance object indicating where to stop the analysis. If not set and the filter is a source filter, automatically set to the Filter running the script
 \return true if pid connections are pending
 */
-boolean has_pid_connection_pending(optional Filter stop_at=null);
+boolean has_pid_connections_pending(optional Filter stop_at=null);
+
+/*! gets the value of a filter instance argument
+\param arg_name the argument name to query
+\param as_string if true, returns the value as a string, otherwise as a property object
+\return the argument value as string or object, or null if no such argument*/
+FilterProperty get_arg(DOMString arg_name, optional boolean as_string=false);
+
 /*! disables data probing on the filter - see \ref gf_filter_disable_probe*/
 void disable_probe();
+
 /*! disables input on the filter - see \ref gf_filter_disable_inputs*/
 void disable_inputs();
 
@@ -629,12 +637,12 @@ Object enum_properties(unsigned long index);
 \return property if found, null otherwise*/
 FilterProperty get_prop(DOMString name, optional boolean is_user=false);
 
-/*! references a filter packet for later usage after drop from pid buffer - see \ref gf_filter_pck_ref and \ref gf_filter_pck_ref_props
+/*! references a filter packet reference for later usage after drop from pid buffer - see \ref gf_filter_pck_ref and \ref gf_filter_pck_ref_props
 \param props_only if set, only packet properties are references, packet data is not
 \return the new packet reference*/
 FilterPacket ref(optional boolean props_only=false);
 
-/*! dereferences a filter packet - see gf_filter_pck_unref*/
+/*! dereferences a filter packet reference - see gf_filter_pck_unref. Throws exception if object is not a packet reference. The object is no longer a valid packet after this.*/
 void unref();
 
 /*! sends packet - gf_filter_pck_send*/

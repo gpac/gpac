@@ -123,6 +123,11 @@ void fill(Stencil stencil);
 \param texture the texture to use*/
 void fill(Texture texture);
 
+/*! reassign internal data (typically at each new packet)
+\warning This assumes the data layout has not changed (width, height, pixel format, strides). If these are modified, create a new canvas.
+\param data the buffer to use*/
+void reassign(ArrayBuffer data);
+
 };
 
 
@@ -572,26 +577,26 @@ interface ColorMatrix {
 /*! color object*/
 interface Color
 {
-	/*! red component*/
+	/*! red component - if absent, default to 0*/
 	unsigned long r;	
-	/*! green component*/
+	/*! green component - if absent, default to 0*/
 	unsigned long g;	
-	/*! blue component*/
+	/*! blue component - if absent, default to 0*/
 	unsigned long b;	
-	/*! alpha component*/
+	/*! alpha component - if absent, default to 255*/
 	unsigned long a;	
 };
 
 /*! color object*/
 interface Colorf
 {
-	/*! red component*/
+	/*! red component - if absent, default to 0*/
 	double r;	
-	/*! green component*/
+	/*! green component - if absent, default to 0*/
 	double g;	
-	/*! blue component*/
+	/*! blue component - if absent, default to 0*/
 	double b;	
-	/*! alpha component*/
+	/*! alpha component - if absent, default to 1.0*/
 	double a;	
 };
 
@@ -726,13 +731,22 @@ interface Texture {
 	\param stride stride of pixel buffer or of first plane for planar formats
 	\param stride_uv stride of second plane for planar formats
 	*/
-	Texture(unsigned long width, unsigned long height, DOMString pixfmt, ArrayBuffer data, unsigned long stride=0, unsigned long stride_uv=0);
+	Texture(unsigned long width, unsigned long height, DOMString pixfmt, ArrayBuffer data, optional unsigned long stride=0, optional unsigned long stride_uv=0);
 	
 	/*! image file constructor. Only JPEG and PNG local files are supported. This constructor is used to quickly load an image file without using a filter chain for that
 	\param filename file name on local drive
 	\param is_rel_script if true, indicates the file path is relative to the script location. Otherwise it is relative to the current directory
 	*/
 	Texture(DOMString filename, optional boolean is_rel_script=false);
+
+	/*! parametric texture constructor. A parametric texture gets its pixel values from a javascript callback function, the resulting value being blended according to the antialiasing level of the pixel. This allows creating rather complex custom textures, in a fashion similar to fragment shaders. 
+	\param width width of the texture
+	\param height height of the texture
+	\param pixfmt pixel format of the texture
+	\param param_fun texture data to use. This function is called on the texture object with two parameters x and y indicating the desired pixel in the texture, where (0,0) is top-left; the function shall return a Colorf interface 
+	\param use_screen_coords if set, the calbback function is passed screen coordinates rather than texture coordinates (and width/height of texture are ignored)
+	*/
+	Texture(unsigned long width, unsigned long height, DOMString pixfmt, Function param_fun, optional boolean use_screen_coords=false);
 
 	/*! canvas constructor.
 	\note There is no restriction on the source canvas, you can even use the target drawing canvas as a source to produce nice effects.

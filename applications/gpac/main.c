@@ -1687,16 +1687,18 @@ restart:
 			} else if (!strncmp(arg, "dst=", 4) ) {
 				filter = gf_fs_load_destination(session, arg+4, NULL, NULL, &e);
 			} else {
-				filter = gf_fs_load_filter(session, arg);
+				filter = gf_fs_load_filter(session, arg, &e);
 				is_simple=GF_TRUE;
 			}
 		}
 
 		if (!filter) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load filter%s %s\n", is_simple ? "" : " for",  arg));
-			if (!e) e = GF_NOT_SUPPORTED;
+			if (!e) e = GF_FILTER_NOT_FOUND;
 			nb_filters=0;
-			if (is_simple) gpac_suggest_filter(arg, GF_FALSE);
+
+			if (e==GF_FILTER_NOT_FOUND)
+				gpac_suggest_filter(arg, GF_FALSE);
 
 			goto exit;
 		}
@@ -2145,14 +2147,14 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 						strcat(szJSFArg, arg+4);
 						if (strstr(arg+4, ".js")==NULL)
 							strcat(szJSFArg, ".js");
-						GF_Filter *f = gf_fs_load_filter(session, szJSFArg);
+						GF_Filter *f = gf_fs_load_filter(session, szJSFArg, NULL);
 						if (f) {
 							print_filter(reg, argmode, f);
 							found = GF_TRUE;
 						}
 					}
 					else if (reg->flags&GF_FS_REG_SCRIPT) {
-						GF_Filter *f = gf_fs_load_filter(session, arg);
+						GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
 						if (f) {
 							print_filter(reg, argmode, f);
 							found = GF_TRUE;
@@ -2756,10 +2758,10 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 		return 1;
 	}
 
-	char *zbuf;
+	u8 *zbuf;
 	u32 osize;
 	GF_Err e;
-	char *ozbuf;
+	u8 *ozbuf;
 
 #ifndef GPAC_DISABLE_ZLIB
 	zbuf = gf_strdup("123451234512345123451234512345");

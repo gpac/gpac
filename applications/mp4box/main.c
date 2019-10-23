@@ -4628,7 +4628,7 @@ int mp4boxMain(int argc, char **argv)
 				i++;
 			}
 			if ((nb_pass == 2) && !ipass) {
-				GF_Filter *mux_filter = gf_fs_load_filter(fs, mux_args);
+				GF_Filter *mux_filter = gf_fs_load_filter(fs, mux_args, NULL);
 				gf_free(mux_args);
 				if (!mux_filter) {
 					fprintf(stderr, "Error loadin isobmff mux filter\n");
