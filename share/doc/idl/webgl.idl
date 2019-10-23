@@ -42,7 +42,7 @@ A filter is responsible for deciding when to issue GL calls: this can be in a pr
 - activating and deactivating the context in order to make the associated GL context active and bind / unbind the underlying framebuffer
 - resizing the framebuffer when needed
 
-\warning it is unsafe to assume that your filter is owning the OpenGL context, there may be other filters operating on the context. This means that context state (viewport, clearColor, etc...) shall be restored when reactivating the frame buffer.
+\warning it is unsafe to assume that your filter is owning the OpenGL context, there may be other filters operating on the context. This means that context state (viewport, clearColor, etc...) shall be restored when reactivating the context.
 \note WebGL filters always run on the main process to avoid concurrent usage of the OpenGL context, but this might change in the future.
 
 The WebGL API in GPAC exlusively work on offscreen framebuffer objects: 
@@ -75,7 +75,7 @@ EVG Texture can be used to quickly load JPG or PNG images:
 \code
 let texture = gl.createTexture();
 let tx = new evg.Texture('source.jpg');
-gl.bindtexture(gl.TEXTURE_3D, texture);
+gl.bindtexture(gl.TEXTURE_2D, texture);
 gl.texImage2D(target, level, internalformat, format, type, tx);
 //at this point the data is uploaded on GPU, the EVG texture is no longer needed and can be GC'ed 
 \endcode 
@@ -88,7 +88,7 @@ let canvas = new evg.Canvas(200, 200, 'rgba');
 */
 let texture = gl.createTexture();
 let tx = new evg.Texture(canvas);
-gl.bindtexture(gl.TEXTURE_3D, texture);
+gl.bindtexture(gl.TEXTURE_2D, texture);
 gl.texImage2D(target, level, internalformat, format, type, tx);
 //at this point the data is uploaded on GPU, the EVG texture and canvas are no longer needed and can be GC'ed 
 \endcode 
@@ -313,7 +313,7 @@ NamedTexture allows supporting all pixel formats currently used in GPAC without 
 - YUV 420, 422 and 444 planar 8 bits (and 10 bits on desktop versions) 
 - YUYV, YVYU, UYVU, VYUY 422 8 bits 
 - NV12 and NV21 8 bits  (and 10 bits on desktop versions)
-- RGBA, ARGB, BGRA, ABGR, RGBX, XRGBn BGRX, XBGR
+- RGBA, ARGB, BGRA, ABGR, RGBX, XRGB, BGRX, XBGR
 - AlphaGrey and GreyAlpha
 - Greyscale
 - RGB 444, RGB 555, RGB 565
