@@ -1953,7 +1953,7 @@ static JSValue jsf_pid_drop_packet(JSContext *ctx, JSValueConst this_val, int ar
 	pckctx->pck = NULL;
 	pctx->pck_head = NULL;
 	JS_FreeValue(ctx, pckctx->jsobj);
-
+	pckctx->jsobj = JS_UNDEFINED;
     gf_filter_pid_drop_packet(pctx->pid);
     return JS_UNDEFINED;
 }
@@ -2272,7 +2272,7 @@ pck_done:
 		JS_FreeValue(ctx, obj);
 		return js_throw_err(ctx, GF_OUT_OF_MEM);
 	}
-	return obj;
+	return JS_DupValue(ctx, obj);
 }
 
 static JSValue jsf_pid_get_clock_info(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -3246,6 +3246,7 @@ static JSValue jsf_pck_send(JSContext *ctx, JSValueConst this_val, int argc, JSV
     	pckctx->data_ab = JS_UNDEFINED;
 	}
 	gf_filter_pck_send(pck);
+	JS_FreeValue(ctx, pckctx->jsobj);
 	JS_SetOpaque(this_val, NULL);
 	if (!(pckctx->flags & GF_JS_PCK_IS_SHARED)) {
 		gf_list_add(pckctx->jspid->jsf->pck_res, pckctx);
