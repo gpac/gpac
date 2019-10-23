@@ -165,7 +165,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 					tkc->sel_enc_type = GF_CRYPT_SELENC_CLEAR_FORCED;
 				}
 			}
-			else if (!stricmp(att->name, "clearStds")) {
+			else if (!stricmp(att->name, "clearStsd")) {
 				if (!strcmp(att->value, "none")) tkc->force_clear_stsd_idx = 0;
 				else if (!strcmp(att->value, "before")) tkc->force_clear_stsd_idx = 1;
 				else if (!strcmp(att->value, "after")) tkc->force_clear_stsd_idx = 2;
