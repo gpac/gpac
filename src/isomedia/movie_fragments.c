@@ -2163,7 +2163,7 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 	GF_Err e = GF_OK;
 
 	trackNum = gf_isom_get_track_by_id(input, TrackID);
-	//if (gf_isom_is_cenc_media(input, trackNum, 1))
+	if (gf_isom_is_cenc_media(input, trackNum, 0))
 	{
 		GF_CENCSampleAuxInfo *sai;
 		GF_TrackFragmentBox  *traf = GetTraf(output, TrackID);
