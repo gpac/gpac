@@ -1076,7 +1076,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			return gf_import_message(importer, GF_BAD_PARAM, "[Importer] Cannot load filter session for import");
 		}
 
-		prober = gf_fs_load_filter(fsess, "probe");
+		prober = gf_fs_load_filter(fsess, "probe", &e);
 		src_filter = gf_fs_load_source(fsess, importer->in_name, "index=0", NULL, &e);
 		if (e) {
 			gf_fs_run(fsess);
@@ -1223,14 +1223,14 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	}
 
 	if (!importer->run_in_session) {
-		isobmff_mux = gf_fs_load_filter(fsess, args);
+		isobmff_mux = gf_fs_load_filter(fsess, args, &e);
 		gf_free(args);
 		args = NULL;
 
 		if (!isobmff_mux) {
 			gf_fs_del(fsess);
 			gf_free(args);
-			return gf_import_message(importer, GF_FILTER_NOT_FOUND, "[Importer] Cannot load ISOBMFF muxer");
+			return gf_import_message(importer, e, "[Importer] Cannot load ISOBMFF muxer");
 		}
 	} else {
 		importer->update_mux_args = args;
@@ -1246,11 +1246,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			GF_Filter *f;
 			char *sep = strstr(fargs, "@@");
 			if (sep) sep[0] = 0;
-			f = gf_fs_load_filter(fsess, fargs);
+			f = gf_fs_load_filter(fsess, fargs, &e);
 			if (!f) {
 				if (!importer->run_in_session)
 					gf_fs_del(fsess);
-				return gf_import_message(importer, GF_FILTER_NOT_FOUND, "[Importer] Cannot load filter %s", fargs);
+				return gf_import_message(importer, e, "[Importer] Cannot load filter %s", fargs);
 			}
 			if (prev_filter) {
 				gf_filter_set_source(f, prev_filter, NULL);

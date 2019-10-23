@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2019
  *					All rights reserved
  *
- *  This file is part of GPAC / QuickJS filter
+ *  This file is part of GPAC / QuickJS bindings for GF_Filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -172,12 +172,17 @@ typedef struct
 	GF_JSFilterCtx *jsf;
 	GF_FilterPid *pid;
 	JSValue jsobj;
-	void *pck_head;
+	struct _js_pck_ctx *pck_head;
 	GF_List *shared_pck;
 } GF_JSPidCtx;
 
+enum
+{
+	GF_JS_PCK_IS_REF = 1,
+	GF_JS_PCK_IS_SHARED = 1<<1
+};
 
-typedef struct
+typedef struct _js_pck_ctx
 {
 	GF_JSPidCtx *jspid;
 	GF_FilterPacket *pck;
@@ -186,6 +191,7 @@ typedef struct
 	JSValue ref_val;
 	//array buffer
 	JSValue data_ab;
+	u32 flags;
 } GF_JSPckCtx;
 
 typedef enum
@@ -234,6 +240,7 @@ static void jsf_filter_inst_finalizer(JSRuntime *rt, JSValue val) {
     GF_JSFilterInstanceCtx *f_inst = JS_GetOpaque(val, jsf_filter_inst_class_id);
     if (!f_inst) return;
     JS_FreeValueRT(rt, f_inst->setup_failure_fun);
+    gf_free(f_inst);
 }
 static JSClassDef jsf_filter_inst_class = {
     "FilterInstance",
@@ -275,6 +282,9 @@ static void jsf_pck_finalizer(JSRuntime *rt, JSValue val)
     if (!pckctx) return;
     pckctx->jspid->pck_head = NULL;
 
+	if (pckctx->pck)
+		JS_FreeValueRT(rt, pckctx->jsobj);
+
 	if (!JS_IsUndefined(pckctx->data_ab)) {
 		JS_FreeValueRT(rt, pckctx->data_ab);
 		pckctx->data_ab = JS_UNDEFINED;
@@ -290,6 +300,8 @@ static void jsf_filter_pck_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *ma
 {
     GF_JSPckCtx *pckctx = JS_GetOpaque(val, jsf_pck_class_id);
     if (!pckctx) return;
+	JS_MarkValue(rt, pckctx->jsobj, mark_func);
+
     if (!JS_IsUndefined(pckctx->ref_val)) {
 		JS_MarkValue(rt, pckctx->ref_val, mark_func);
 	}
@@ -881,7 +893,8 @@ static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int ma
     	return JS_NewString(jsf->ctx, szSep);
 
 	case JSF_FILTER_DST_ARGS:
-    	return JS_NewString(jsf->ctx, gf_filter_get_dst_args(jsf->filter) );
+		str = (char *) gf_filter_get_dst_args(jsf->filter);
+    	return str ? JS_NewString(jsf->ctx, str) : JS_NULL;
 	case JSF_FILTER_DST_NAME:
 		str = gf_filter_get_dst_name(jsf->filter);
 		res = str ? JS_NewString(jsf->ctx, str) : JS_NULL;
@@ -949,17 +962,25 @@ static JSValue jsf_filter_set_arg(JSContext *ctx, JSValueConst this_val, int arg
 	v = JS_GetPropertyStr(ctx, argv[0], "desc");
 	if (!JS_IsUndefined(v)) desc = JS_ToCString(ctx, v);
 	JS_FreeValue(ctx, v);
-	if (!desc) return JS_EXCEPTION;
+	if (!desc) {
+	 	JS_FreeCString(ctx, name);
+	 	return JS_EXCEPTION;
+	}
 
 	v = JS_GetPropertyStr(ctx, argv[0], "type");
 	if (!JS_IsUndefined(v))
 		JS_ToInt32(ctx, &type, v);
 	JS_FreeValue(ctx, v);
-	if (!type) return JS_EXCEPTION;
+	if (!type) {
+	 	JS_FreeCString(ctx, name);
+	 	JS_FreeCString(ctx, desc);
+	 	return JS_EXCEPTION;
+	}
 
 	v = JS_GetPropertyStr(ctx, argv[0], "def");
 	if (!JS_IsUndefined(v)) def = JS_ToCString(ctx, v);
 	JS_FreeValue(ctx, v);
+
 	v = JS_GetPropertyStr(ctx, argv[0], "minmax_enum");
 	if (!JS_IsUndefined(v)) min_enum = JS_ToCString(ctx, v);
 	JS_FreeValue(ctx, v);
@@ -1350,6 +1371,9 @@ static JSValue jsf_filter_notify_failure(JSContext *ctx, JSValueConst this_val, 
     if (!jsf || !argc) return JS_EXCEPTION;
 	if (JS_ToInt32(ctx, (int *) &e, argv[0]))
 		return JS_EXCEPTION;
+
+	if (e==GF_OK) return JS_UNDEFINED;
+
 	if ((argc>1) && JS_ToInt32(ctx, &error_type, argv[1]))
 		return JS_EXCEPTION;
 	if (error_type==JSF_NOTIF_ERROR_AND_DISCONNECT)
@@ -1410,7 +1434,7 @@ static JSValue jsf_filter_load_filter(JSContext *ctx, JSValueConst this_val, int
 {
 	const char *url=NULL;
 	const char *parent=NULL;
-	GF_Err e;
+	GF_Err e=GF_OK;
 	GF_JSFilterInstanceCtx *f_ctx;
 	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
     if (!jsf || !argc) return JS_EXCEPTION;
@@ -1437,7 +1461,7 @@ static JSValue jsf_filter_load_filter(JSContext *ctx, JSValueConst this_val, int
 	} else if (mode==JSF_FINST_DEST) {
 		f_ctx->filter = gf_filter_connect_destination(jsf->filter, url, &e);
 	} else {
-		f_ctx->filter = gf_filter_load_filter(jsf->filter, url);
+		f_ctx->filter = gf_filter_load_filter(jsf->filter, url, &e);
 	}
 	JS_FreeCString(ctx, url);
 	JS_FreeCString(ctx, parent);
@@ -1665,7 +1689,7 @@ static const JSCFunctionListEntry jsf_filter_inst_funcs[] = {
     JS_CFUNC_DEF("send_update", 0, jsf_filter_send_update),
     JS_CFUNC_DEF("set_source", 0, jsf_filter_set_source_id),
     JS_CFUNC_DEF("remove", 0, jsf_filter_remove),
-    JS_CFUNC_DEF("has_pid_connection_pending", 0, jsf_filter_has_pid_connections_pending),
+    JS_CFUNC_DEF("has_pid_connections_pending", 0, jsf_filter_has_pid_connections_pending),
     JS_CFUNC_DEF("get_arg", 0, jsf_filter_inst_get_arg),
     JS_CFUNC_DEF("disable_probe", 0, jsf_filter_inst_disable_probe),
     JS_CFUNC_DEF("disable_inputs", 0, jsf_filter_inst_disable_inputs),
@@ -1892,7 +1916,7 @@ static JSValue jsf_pid_get_packet(JSContext *ctx, JSValueConst this_val, int arg
 	if (pctx->pck_head) {
 		pckctx = pctx->pck_head;
 		assert(pckctx->pck == pck);
-		return pckctx->jsobj;
+		return JS_DupValue(ctx, pckctx->jsobj);
 	}
 
 	res = JS_NewObjectClass(ctx, jsf_pck_class_id);
@@ -1904,7 +1928,7 @@ static JSValue jsf_pid_get_packet(JSContext *ctx, JSValueConst this_val, int arg
 	memset(pckctx, 0, sizeof(GF_JSPckCtx));
 	pckctx->jspid = pctx;
 	pckctx->pck = pck;
-	pckctx->jsobj = res;
+	pckctx->jsobj = JS_DupValue(ctx, res);
 	pckctx->ref_val = JS_UNDEFINED;
 	pckctx->data_ab = JS_UNDEFINED;
 	pctx->pck_head = pckctx;
@@ -1918,10 +1942,17 @@ static JSValue jsf_pid_drop_packet(JSContext *ctx, JSValueConst this_val, int ar
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
     if (!pctx) return JS_EXCEPTION;
 
-	assert(pctx->pck_head);
+	if (!pctx->pck_head) {
+		if (gf_filter_pid_get_packet_count(pctx->pid)) {
+    		gf_filter_pid_drop_packet(pctx->pid);
+		}
+		return JS_UNDEFINED;
+	}
+
 	pckctx = pctx->pck_head;
 	pckctx->pck = NULL;
 	pctx->pck_head = NULL;
+	JS_FreeValue(ctx, pckctx->jsobj);
 
     gf_filter_pid_drop_packet(pctx->pid);
     return JS_UNDEFINED;
@@ -1964,7 +1995,7 @@ static JSValue jsf_pid_clear_eos(JSContext *ctx, JSValueConst this_val, int argc
 static JSValue jsf_pid_check_caps(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
-    if (!pctx || !argc) return JS_EXCEPTION;
+    if (!pctx) return JS_EXCEPTION;
 	return JS_NewBool(ctx, gf_filter_pid_check_caps(pctx->pid));
 }
 static JSValue jsf_pid_discard_block(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1983,23 +2014,28 @@ static JSValue jsf_pid_allow_direct_dispatch(JSContext *ctx, JSValueConst this_v
 }
 static JSValue jsf_pid_resolve_file_template(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	u32 fileidx;
+	u32 fileidx=0;
 	GF_Err e;
 	char szFinal[GF_MAX_PATH];
 	const char *templ, *suffix=NULL;
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
-    if (!pctx || (argc<2)) return JS_EXCEPTION;
-    if (JS_ToInt32(ctx, &fileidx, argv[1]))
-    	return JS_EXCEPTION;
+    if (!pctx || !argc) return JS_EXCEPTION;
 
  	templ = JS_ToCString(ctx, argv[0]);
  	if (!templ)
     	return JS_EXCEPTION;
 
+	if ((argc>=2) && JS_ToInt32(ctx, &fileidx, argv[1])) {
+		JS_FreeCString(ctx, templ);
+    	return JS_EXCEPTION;
+	}
+
 	if (argc==3)
  		suffix = JS_ToCString(ctx, argv[2]);
 
 	e = gf_filter_pid_resolve_file_template(pctx->pid, (char *)templ, szFinal, fileidx, suffix);
+	JS_FreeCString(ctx, templ);
+
 	if (e)
     	return js_throw_err(ctx, e);
 	return JS_NewString(ctx, szFinal);
@@ -2161,6 +2197,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 			JS_FreeCString(ctx, str);
 			if (!pctx->shared_pck) pctx->shared_pck = gf_list_new();
 			gf_list_add(pctx->shared_pck, pckc);
+			pckc->flags = GF_JS_PCK_IS_SHARED;
 		} else {
 			pckc->pck = gf_filter_pck_new_alloc(pctx->pid, len, &data);
 			if (str) {
@@ -2199,6 +2236,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 			pckc->ref_val = JS_DupValue(ctx, argv[0]);
 			if (!pctx->shared_pck) pctx->shared_pck = gf_list_new();
 			gf_list_add(pctx->shared_pck, pckc);
+			pckc->flags = GF_JS_PCK_IS_SHARED;
 		} else {
 			pckc->pck = gf_filter_pck_new_alloc(pctx->pid, (u32) ab_size, &data);
 			if (!data) {
@@ -3168,11 +3206,15 @@ static JSValue jsf_pck_ref(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	memcpy(ref_pckctx, pckctx, sizeof(GF_JSPckCtx));
 	if (is_ref_props)
 		gf_filter_pck_ref_props(&ref_pckctx->pck);
-	else
+	else {
 		gf_filter_pck_ref(&ref_pckctx->pck);
-	JS_SetOpaque(this_val, ref_pckctx);
-
-	return JS_UNDEFINED;
+	}
+	ref_pckctx->flags = GF_JS_PCK_IS_REF;
+	ref_pckctx->jsobj = JS_NewObjectClass(ctx, jsf_pck_class_id);
+	ref_pckctx->data_ab = JS_UNDEFINED;
+	ref_pckctx->ref_val = JS_UNDEFINED;
+	JS_SetOpaque(ref_pckctx->jsobj, ref_pckctx);
+	return JS_DupValue(ctx, ref_pckctx->jsobj);
 }
 
 static JSValue jsf_pck_unref(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -3181,9 +3223,15 @@ static JSValue jsf_pck_unref(JSContext *ctx, JSValueConst this_val, int argc, JS
 	GF_JSPckCtx *pckctx = JS_GetOpaque(this_val, jsf_pck_class_id);
     if (!pckctx || !pckctx->pck) return JS_EXCEPTION;
     pck = pckctx->pck;
+	if (!(pckctx->flags & GF_JS_PCK_IS_REF))
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Attempt to unref a non-reference packet");
 
 	gf_filter_pck_unref(pckctx->pck);
 	pckctx->pck = NULL;
+	JS_FreeValue(ctx, pckctx->jsobj);
+	JS_SetOpaque(this_val, NULL);
+	gf_list_add(pckctx->jspid->jsf->pck_res, pckctx);
+	memset(pckctx, 0, sizeof(GF_JSPckCtx));
 	return JS_UNDEFINED;
 }
 
@@ -3199,9 +3247,10 @@ static JSValue jsf_pck_send(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	}
 	gf_filter_pck_send(pck);
 	JS_SetOpaque(this_val, NULL);
-	gf_list_add(pckctx->jspid->jsf->pck_res, pckctx);
-	memset(pckctx, 0, sizeof(GF_JSPckCtx));
-
+	if (!(pckctx->flags & GF_JS_PCK_IS_SHARED)) {
+		gf_list_add(pckctx->jspid->jsf->pck_res, pckctx);
+		memset(pckctx, 0, sizeof(GF_JSPckCtx));
+	}
 	return JS_UNDEFINED;
 }
 static JSValue jsf_pck_discard(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)

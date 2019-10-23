@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2007-2019
  *			All rights reserved
  *
- *  This file is part of GPAC / Compositor JavaScript extensions
+ *  This file is part of GPAC / JavaScript Storage bindings
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -209,12 +209,12 @@ static int js_storage_init(JSContext *c, JSModuleDef *m)
 
 void qjs_module_init_storage(JSContext *ctx)
 {
-    JSModuleDef *m;
-    m = JS_NewCModule(ctx, "storage", js_storage_init);
-    if (!m)
-        return;
+	JSModuleDef *m;
+	m = JS_NewCModule(ctx, "storage", js_storage_init);
+	if (!m) return;
+
 	JS_AddModuleExport(ctx, m, "Storage");
-    return;
+	return;
 }
 
 

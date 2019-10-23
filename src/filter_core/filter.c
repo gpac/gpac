@@ -953,6 +953,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			} else if (filter->freg->update_arg) {
 				FSESS_CHECK_THREAD(filter)
 				filter->freg->update_arg(filter, a->arg_name, &argv);
+				gf_props_reset_single(&argv);
 			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to parse argument %s value %s\n", a->arg_name, a->arg_default_val));
@@ -1777,7 +1778,6 @@ static void gf_filter_process_task(GF_FSTask *task)
 	assert(filter->freg->process);
 	task->can_swap = GF_TRUE;
 
-	assert(filter->process_task_queued);
 	filter->schedule_next_time = 0;
 
 	if (filter->disabled) {
@@ -1823,6 +1823,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		assert(filter->process_task_queued);
 		return;
 	}
+	assert(filter->process_task_queued);
 
 	//the following breaks demuxers where PIDs are not all known from start: if we filter some pids due to user request,
 	//we may end up with the following test true but not all PIDs yet declared, hence no more processing
@@ -3312,8 +3313,8 @@ GF_FilterArgs *gf_filter_get_args(GF_Filter *filter)
 }
 
 GF_EXPORT
-GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name)
+GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *err_code)
 {
 	if (!filter) return NULL;
-	return gf_fs_load_filter(filter->session, name);
+	return gf_fs_load_filter(filter->session, name, err_code);
 }
