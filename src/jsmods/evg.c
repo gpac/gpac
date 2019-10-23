@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2019
  *			All rights reserved
  *
- *  This file is part of GPAC / JavaScript C modules
+ *  This file is part of GPAC / JavaScript vector graphics bindings
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -52,7 +52,7 @@
 
 typedef struct
 {
-	u32 width, height, pf, stride, stride_uv;
+	u32 width, height, pf, stride, stride_uv, mem_size;
 	char *data;
 	Bool owns_data;
 	Bool center_coords;
@@ -72,6 +72,8 @@ typedef struct
 	Bool owns_data;
 	u32 flags;
 	GF_EVGStencil *stencil;
+	JSValue param_fun, obj;
+	JSContext *ctx;
 } GF_JSTexture;
 
 
@@ -213,6 +215,7 @@ static JSValue canvas_constructor(JSContext *c, JSValueConst new_target, int arg
 		return JS_EXCEPTION;
 	}
 
+	canvas->mem_size = osize;
 	canvas->width = width;
 	canvas->height = height;
 	canvas->pf = pf;
@@ -398,6 +401,30 @@ static JSValue canvas_clearf(JSContext *c, JSValueConst obj, int argc, JSValueCo
 {
 	return canvas_clear_ex(c, obj, argc, argv, GF_TRUE);
 }
+static JSValue canvas_reassign(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	GF_Err e;
+	u8 *data;
+	size_t data_size=0;
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas_class_id);
+	if (!canvas || !argc) return JS_EXCEPTION;
+	if (!JS_IsObject(argv[0])) return JS_EXCEPTION;
+
+	if (canvas->owns_data) {
+		gf_free(canvas->data);
+		canvas->owns_data = GF_FALSE;
+	}
+	canvas->data = NULL;
+	data = JS_GetArrayBuffer(c, &data_size, argv[0]);
+	if (!data || (data_size<canvas->mem_size)) {
+		e = GF_BAD_PARAM;
+	} else {
+		canvas->data = data;
+		e = gf_evg_surface_attach_to_buffer(canvas->surface, canvas->data, canvas->width, canvas->height, 0, canvas->stride, canvas->pf);
+	}
+	if (e) return JS_EXCEPTION;
+	return JS_UNDEFINED;
+}
 
 
 static JSValue canvas_fill(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
@@ -430,6 +457,7 @@ static const JSCFunctionListEntry canvas_funcs[] =
 	JS_CFUNC_DEF("clear", 0, canvas_clear),
 	JS_CFUNC_DEF("clearf", 0, canvas_clearf),
 	JS_CFUNC_DEF("fill", 0, canvas_fill),
+	JS_CFUNC_DEF("reassign", 0, canvas_reassign),
 };
 
 static void mx2d_finalize(JSRuntime *rt, JSValue obj)
@@ -1844,13 +1872,21 @@ static void texture_finalize(JSRuntime *rt, JSValue obj)
 	texture_reset(tx);
 	if (tx->stencil)
 		gf_evg_stencil_delete(tx->stencil);
-
+	JS_FreeValueRT(rt, tx->param_fun);
 	gf_free(tx);
+}
+
+static void texture_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
+{
+	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
+	if (!tx) return;
+	JS_MarkValue(rt, tx->param_fun, mark_func);
 }
 
 JSClassDef texture_class = {
 	"Texture",
-	.finalizer = texture_finalize
+	.finalizer = texture_finalize,
+	.gc_mark = texture_gc_mark
 };
 
 enum
@@ -2248,8 +2284,6 @@ static JSValue texture_conv(JSContext *c, JSValueConst obj, int argc, JSValueCon
 }
 
 
-const char *jsf_get_script_filename(JSContext *c);
-
 static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *fileName, Bool rel_to_script)
 {
 	u8 *data;
@@ -2340,9 +2374,42 @@ static const JSCFunctionListEntry texture_funcs[] =
 	JS_CFUNC_DEF("split", 0, texture_split),
 };
 
+
+static void evg_param_tex_callback(void *cbk, u32 x, u32 y, Float *r, Float *g, Float *b, Float *a)
+{
+	Double compv;
+	JSValue ret, v, argv[2];
+	GF_JSTexture *tx = (GF_JSTexture *)cbk;
+	argv[0] = JS_NewInt32(tx->ctx, x);
+	argv[1] = JS_NewInt32(tx->ctx, y);
+	ret = JS_Call(tx->ctx, tx->param_fun, tx->obj, 2, argv);
+	JS_FreeValue(tx->ctx, argv[0]);
+	JS_FreeValue(tx->ctx, argv[1]);
+
+	*r = *g = *b = 0.0;
+	*a = 1.0;
+#define GETCOMP(_comp)\
+	v = JS_GetPropertyStr(tx->ctx, ret, #_comp);\
+	if (!JS_IsUndefined(v)) {\
+		JS_ToFloat64(tx->ctx, &compv, v);\
+		JS_FreeValue(tx->ctx, v);\
+		*_comp = compv;\
+	}\
+
+	GETCOMP(r)
+	GETCOMP(g)
+	GETCOMP(b)
+	GETCOMP(a)
+
+#undef GETCOMP
+	JS_FreeValue(tx->ctx, ret);
+}
+
 static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int argc, JSValueConst *argv)
 {
+	Bool use_screen_coords=GF_FALSE;
 	JSValue obj;
+	JSValue tx_fun=JS_UNDEFINED;
 	u32 width=0, height=0, pf=0, stride=0, stride_uv=0;
 	size_t data_size=0;
 	u8 *data=NULL;
@@ -2404,10 +2471,13 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 		} else if (JS_ToInt32(c, &pf, argv[2])) {
 			goto error;
 		}
-		if (JS_IsObject(argv[3])) {
+		if (JS_IsFunction(c, argv[3])) {
+			tx_fun = argv[3];
+		}
+		else if (JS_IsObject(argv[3])) {
 			data = JS_GetArrayBuffer(c, &data_size, argv[3]);
 		}
-		if (!width || !height || !pf || !data)
+		if (!width || !height || !pf || (!data && JS_IsUndefined(tx_fun)))
 			goto error;
 
 		if (argc>4) {
@@ -2430,9 +2500,15 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 	if (p_u || p_v) {
 		if (gf_evg_stencil_set_texture_planes(tx->stencil, tx->width, tx->height, tx->pf, data, tx->stride, p_u, p_v, tx->stride_uv, p_a, tx->stride) != GF_OK)
 			goto error;
-	} else {
+	} else if (data) {
 		if (gf_evg_stencil_set_texture(tx->stencil, tx->data, tx->width, tx->height, tx->stride, tx->pf) != GF_OK)
 			goto error;
+	} else {
+		use_screen_coords = stride ? GF_TRUE : GF_FALSE;
+		if (gf_evg_stencil_set_texture_parametric(tx->stencil, tx->width, tx->height, tx->pf, evg_param_tex_callback, tx, use_screen_coords) != GF_OK)
+			goto error;
+		tx->param_fun = JS_DupValue(c, tx_fun);
+		tx->ctx = c;
 	}
 
 done:
@@ -2443,6 +2519,7 @@ done:
 	obj = JS_NewObjectClass(c, texture_class_id);
 	if (JS_IsException(obj)) return obj;
 	JS_SetOpaque(obj, tx);
+	tx->obj = obj;
 	return obj;
 
 error:
@@ -2680,7 +2757,7 @@ static JSValue text_get_path(JSContext *c, JSValueConst obj, int argc, JSValueCo
 
 static JSValue text_set_text(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	s32 i, nb_lines;
+	s32 i, j, nb_lines;
 	GF_JSText *txt = JS_GetOpaque(obj, text_class_id);
 	if (!txt) return JS_EXCEPTION;
 	text_reset(txt);
@@ -2694,8 +2771,8 @@ static JSValue text_set_text(JSContext *c, JSValueConst obj, int argc, JSValueCo
 			JS_ToInt32(c, &nb_lines, v);
 			JS_FreeValue(c, v);
 
-			for (i=0; i<nb_lines; i++) {
-				v = JS_GetPropertyUint32(c, argv[i], i);
+			for (j=0; j<nb_lines; j++) {
+				v = JS_GetPropertyUint32(c, argv[i], j);
 				text_set_text_from_value(txt, txt->font, c, v);
 				JS_FreeValue(c, v);
 			}
@@ -3013,10 +3090,10 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 
 void qjs_module_init_evg(JSContext *ctx)
 {
-    JSModuleDef *m;
-    m = JS_NewCModule(ctx, "evg", js_evg_load_module);
-    if (!m)
-        return;
+	JSModuleDef *m;
+	m = JS_NewCModule(ctx, "evg", js_evg_load_module);
+	if (!m) return;
+
 	JS_AddModuleExport(ctx, m, "Canvas");
 	JS_AddModuleExport(ctx, m, "Path");
 	JS_AddModuleExport(ctx, m, "Matrix2D");

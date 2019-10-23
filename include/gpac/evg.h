@@ -250,6 +250,29 @@ GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, u8 *pixels, u32 width,
 */
 GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, const u8 *y_or_rgb, u32 stride, const u8 *u_plane, const u8 *v_plane, u32 uv_stride, const u8 *alpha_plane, u32 alpha_stride);
 
+/*! callback function prototype for parametric textures
+\param cbk user data callback
+\param x horizontal coordinate in texture, ranging between 0 and width-1, (0,0) being top-left pixel, or horizontal coordinate of destination pixel on surface
+\param y vertical coordinate in texture, ranging between 0 and height-1, (0,0) being top-left pixel, or vertical coordinate of destination pixel on surface
+\param r set to the red value (not initialized before call)
+\param g set to the green value (not initialized before call)
+\param b set to the blue value (not initialized before call)
+\param a set to the alpha value (not initialized before call)
+*/
+typedef void (*gf_evg_texture_callback)(void *cbk, u32 x, u32 y, Float *r, Float *g, Float *b, Float *a);
+
+/*! sets parametric callback a texture stencil. A parametric texture gets its pixel values from a callback function, the resulting value being blended according to the antialiasing level of the pixel. This allows creating rather complex custom textures, in a fashion similar to fragment shaders.
+\param stencil the target stencil
+\param width texture width in pixels
+\param height texture height in pixels
+\param pixelFormat texture pixel format, indicates if the returned values are in RGB or YUV
+\param callback the callback function to use
+\param cbk_udta user data to pass to the callback function
+\param use_screen_coords if set, the coordinates passed to the callback function are screen coordinates rather than texture coordinates
+\return error if any
+*/
+GF_Err gf_evg_stencil_set_texture_parametric(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, gf_evg_texture_callback callback, void *cbk_data, Bool use_screen_coords);
+
 /*! sets texture mapping options for a texture stencil
 \param stencil the target stencil
 \param map_mode texture mapping flags to set

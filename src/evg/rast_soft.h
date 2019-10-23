@@ -241,6 +241,10 @@ typedef struct __evg_texture
 
 	u32 (*tx_get_pixel)(struct __evg_texture *_this, u32 x, u32 y);
 	u64 (*tx_get_pixel_wide)(struct __evg_texture *_this, u32 x, u32 y);
+
+	gf_evg_texture_callback tx_callback;
+	void *tx_callback_udta;
+	Bool tx_callback_screen_coords;
 } EVG_Texture;
 
 #define GF_TEXTURE_FILTER_DEFAULT	GF_TEXTURE_FILTER_HIGH_SPEED
