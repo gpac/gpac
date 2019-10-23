@@ -860,7 +860,11 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 
 		switch (sten->type) {
 		case GF_STENCIL_TEXTURE:
-			if (! ((EVG_Texture *)sten)->pixels) return GF_BAD_PARAM;
+			if ( ((EVG_Texture *)sten)->tx_callback) {
+
+			} else {
+				if (! ((EVG_Texture *)sten)->pixels) return GF_BAD_PARAM;
+			}
 
 			if (((EVG_Texture *)sten)->mod & GF_TEXTURE_FLIP) {
 				if (!surf->center_coords) gf_mx2d_add_scale(&sten->smat, FIX_ONE, -FIX_ONE);
@@ -870,6 +874,7 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 			gf_mx2d_add_matrix(&sten->smat, &st_mat);
 			gf_mx2d_add_matrix(&sten->smat, &mat);
 			gf_mx2d_inverse(&sten->smat);
+
 			evg_texture_init(sten, surf);
 			if (((EVG_Texture *)sten)->filter == GF_TEXTURE_FILTER_DEFAULT) {
 				restore_filter = GF_TRUE;

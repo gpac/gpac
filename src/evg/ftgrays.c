@@ -753,15 +753,6 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 		}
 	}
 
-#if 0
-	for (i=0; i<raster->max_lines; i++) {
-		gf_free(raster->scanlines[i].cells);
-	}
-	gf_free(raster->scanlines);
-	raster->scanlines = 0;
-	raster->max_lines = 0;
-#endif
-
 	return 0;
 }
 

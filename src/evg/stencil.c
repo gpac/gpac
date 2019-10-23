@@ -614,6 +614,49 @@ static void tex_untransform_coord(EVG_Texture *_this, s32 _x, s32 _y, Fixed *out
 	*outy=y;
 }
 
+
+static u32 evg_paramtx_get_pixel(struct __evg_texture *_this, u32 x, u32 y)
+{
+	Float a, r, g, b;
+	_this->tx_callback(_this->tx_callback_udta, x, y, &r, &g, &b, &a);
+	r*=255;
+	g*=255;
+	b*=255;
+	a*=255;
+	return GF_COL_ARGB(a, r, g, b);
+}
+u64 evg_paramtx_get_pixel_wide(struct __evg_texture *_this, u32 x, u32 y)
+{
+	Float a, r, g, b;
+	_this->tx_callback(_this->tx_callback_udta, x, y, &r, &g, &b, &a);
+	r*=0xFFFF;
+	g*=0xFFFF;
+	b*=0xFFFF;
+	a*=0xFFFF;
+	return evg_make_col_wide(a, r, g, b);
+}
+
+static void tex_fill_run_callback(EVG_Texture *p, GF_EVGSurface *surf, s32 _x, s32 _y, u32 count)
+{
+	u32 *data = surf->stencil_pix_run;
+	while (count) {
+		*data = evg_paramtx_get_pixel(p, _x, _y);
+		data++;
+		count--;
+		_x++;
+	}
+}
+
+static void tex_fill_run_callback_wide(EVG_Texture *p, GF_EVGSurface *surf, s32 _x, s32 _y, u32 count)
+{
+	u64 *data = surf->stencil_pix_run;
+	while (count) {
+		*data = evg_paramtx_get_pixel_wide(p, _x, _y);
+		data++;
+		count--;
+	}
+}
+
 static void tex_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32 _y, u32 count)
 {
 	s32 cx, x0, y0;
@@ -625,6 +668,11 @@ static void tex_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32 _y, 
 #endif
 	u32 *data = surf->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
+
+	if (_this->tx_callback && _this->tx_callback_screen_coords) {
+		tex_fill_run_callback(_this, surf, _x, _y, count);
+		return;
+	}
 
 	tex_untransform_coord(_this, _x, _y, &x, &y);
 
@@ -773,6 +821,11 @@ static void tex_fill_run_straight(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x,
 	u32 *data = surf->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
+	if (_this->tx_callback && _this->tx_callback_screen_coords) {
+		tex_fill_run_callback(_this, surf, _x, _y, count);
+		return;
+	}
+
 	/*get texture coords in FIXED - offset*/
 	x = _this->smat.m[0]*_x + _this->smat.m[2];
 	y = _this->smat.m[4]*_y + _this->smat.m[5];
@@ -849,6 +902,11 @@ static void tex_fill_run_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32
 #endif
 	u64 *data = surf->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
+
+	if (_this->tx_callback && _this->tx_callback_screen_coords) {
+		tex_fill_run_callback_wide(_this, surf, _x, _y, count);
+		return;
+	}
 
 	tex_untransform_coord(_this, _x, _y, &x, &y);
 
@@ -1006,6 +1064,11 @@ static void tex_fill_run_straight_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s3
 	Fixed x, y, _fdim;
 	u64 *data = surf->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
+
+	if (_this->tx_callback && _this->tx_callback_screen_coords) {
+		tex_fill_run_callback_wide(_this, surf, _x, _y, count);
+		return;
+	}
 
 	/*get texture coords in FIXED - offset*/
 	x = _this->smat.m[0]*_x + _this->smat.m[2];
@@ -1416,6 +1479,8 @@ u32 get_pix_vyuy(EVG_Texture *_this, u32 x, u32 y)
 
 static void texture_set_callbacks(EVG_Texture *_this)
 {
+	if (_this->tx_callback)
+		return;
 	switch (_this->pixel_format) {
 	case GF_PIXEL_RGBA:
 		_this->tx_get_pixel = get_pix_rgba;
@@ -1648,6 +1713,25 @@ GF_EXPORT
 GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, u8 *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
 {
 	return gf_evg_stencil_set_texture_internal(stencil, width, height, pixelFormat, pixels, stride, NULL, NULL, 0, NULL, 0);
+}
+
+GF_EXPORT
+GF_Err gf_evg_stencil_set_texture_parametric(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, gf_evg_texture_callback callback, void *cbk_data, Bool use_screen_coords)
+{
+	EVG_Texture *_this = (EVG_Texture *) stencil;
+	u8 data=0;
+	GF_Err e;
+	if (!callback) return GF_BAD_PARAM;
+	e = gf_evg_stencil_set_texture_internal(stencil, width, height, pixelFormat, &data, width, NULL, NULL, 0, NULL, 0);
+	if (e) return e;
+	_this->pixels = NULL;
+	_this->tx_get_pixel = evg_paramtx_get_pixel;
+	_this->tx_get_pixel_wide = evg_paramtx_get_pixel_wide;
+
+	_this->tx_callback = callback;
+	_this->tx_callback_udta = cbk_data;
+	_this->tx_callback_screen_coords = use_screen_coords;
+	return GF_OK;
 }
 
 void evg_texture_init(GF_EVGStencil *p, GF_EVGSurface *surf)
