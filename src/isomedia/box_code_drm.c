@@ -1275,6 +1275,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			e = gf_isom_get_sample_cenc_info_ex(trak, traf, senc, sample_number, &is_encrypted, &sai->IV_size, NULL, NULL, NULL, NULL, NULL);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] could not get cenc info for sample %d: %s\n", sample_number, gf_error_to_string(e) ));
+				gf_isom_cenc_samp_aux_info_del(sai);
 				return e;
 			}
 		}
@@ -1289,6 +1290,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 		}
 		if (senc_size < sai->IV_size) {
 			parse_failed = GF_TRUE;
+			gf_isom_cenc_samp_aux_info_del(sai);
 			break;
 		}
 
@@ -1307,6 +1309,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 
 				if ((s32) senc_size < 2 + sai->subsample_count * 6) {
 					parse_failed = GF_TRUE;
+					gf_isom_cenc_samp_aux_info_del(sai);
 					break;
 				}
 
