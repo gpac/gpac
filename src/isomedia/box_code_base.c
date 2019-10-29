@@ -9636,7 +9636,7 @@ GF_Err saio_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->entry_count) {
 		u32 i;
-		if (ptr->size < sizeof(u64)*ptr->entry_count)
+		if (ptr->size < (ptr->version == 0 ? sizeof(u32) : sizeof(u64)) * ptr->entry_count)
 			return GF_ISOM_INVALID_FILE;
 		ptr->offsets = gf_malloc(sizeof(u64)*ptr->entry_count);
 		if (!ptr->offsets)
