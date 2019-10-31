@@ -371,7 +371,7 @@ const char *gpac_alias =
 "\n"
 "When parsing arguments, the alias will be replace by its value.\n"
 "EX gpac -alias=\"output aout vout\"\n"
-"This allows later playback using `gpac -i src.mp4 output`\n"
+"This allows later audio and video playback using `gpac -i src.mp4 output`\n"
 "\n"
 "Aliases can use arguments from the command line. The allowed syntaxes are:\n"
 "- `@{a}`: replaced by the value of the argument with index `a` after the alias\n"
@@ -501,10 +501,10 @@ GF_GPACArg gpac_args[] =
 			"- filters: print name of all available filters\n"\
 			"- filters:*: print name of all available filters, including meta filters\n"\
 			"- codecs: print the supported builtin codecs\n"\
-			"- props: print the supported builtin PID properties\n"\
+			"- props: print the supported builtin PID and packet properties\n"\
 			"- links: print possible connections between each supported filters.\n"\
 			"- links FNAME: print sources and sinks for filter `FNAME`\n"\
-			"- FNAME: print filter `FNAME` info (multiple FNAME can be given). For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`. Use `*` to print info on all filters (_big output!_), `*:*` to print info on all filters including meta filter instances (__really big output!__). By default only basic filter options and description are shown. Use `-ha` to show advanced options and filter IO capabilities, `-hx` for expert options, `-hh` for all options and filter capbilities"\
+			"- FNAME: print filter `FNAME` info (multiple FNAME can be given). For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`. Use `*` to print info on all filters (__big output!__), `*:*` to print info on all filters including meta filter instances (__really big output!__). By default only basic filter options and description are shown. Use `-ha` to show advanced options and filter IO capabilities, `-hx` for expert options, `-hh` for all options and filter capbilities"\
 		, NULL, NULL, GF_ARG_STRING, 0),
 
  	GF_DEF_ARG("p", NULL, "use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name `0` means a new profile, not stored to disk", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
@@ -2180,6 +2180,37 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 	return found;
 }
 
+static const char *get_prop_short_type_name(u32 type)
+{
+	switch (type) {
+	case GF_PROP_SINT: return "s32";
+	case GF_PROP_UINT: return "u32";
+	case GF_PROP_LSINT: return "s64";
+	case GF_PROP_LUINT: return "u64";
+	case GF_PROP_FRACTION: return "frac";
+	case GF_PROP_FRACTION64: return "fr64";
+	case GF_PROP_BOOL: return "bool";
+	case GF_PROP_FLOAT: return "flt";
+	case GF_PROP_DOUBLE: return "dbl";
+	case GF_PROP_NAME: return "str";
+	case GF_PROP_STRING: return "str";
+	case GF_PROP_DATA: return "mem";
+	case GF_PROP_CONST_DATA: return "cmem";
+	case GF_PROP_POINTER: return "ptr";
+	case GF_PROP_VEC2I: return "v2di";
+	case GF_PROP_VEC2: return "v2df";
+	case GF_PROP_VEC3I: return "v3di";
+	case GF_PROP_VEC3: return "v3df";
+	case GF_PROP_VEC4I: return "v4di";
+	case GF_PROP_VEC4: return "v4df";
+	case GF_PROP_PIXFMT: return "pfmt";
+	case GF_PROP_PCMFMT: return "afmt";
+	case GF_PROP_STRING_LIST: return "str[]";
+	case GF_PROP_UINT_LIST: return "u32[]";
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unknown property type %d\n", type));
+	return "UNK";
+}
 static void dump_all_props(void)
 {
 	u32 i=0;
@@ -2218,11 +2249,25 @@ static void dump_all_props(void)
 			 	(prop_info->flags & GF_PROP_FLAG_PCK) ? "P" : " ",
 				prop_info->description);
 		} else {
+			u32 len;
+			const char *ptype;
 			szFlags[0]=0;
 			if (prop_info->flags & GF_PROP_FLAG_GSF_REM) strcat(szFlags, "D");
 			if (prop_info->flags & GF_PROP_FLAG_PCK) strcat(szFlags, "P");
 
-			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%s %s %s):", prop_info->name, gf_4cc_to_str(prop_info->type), gf_props_get_type_name(prop_info->data_type), szFlags);
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", prop_info->name);
+			len = strlen(prop_info->name);
+			while (len<16) {
+				gf_sys_format_help(helpout, help_flags, " ");
+				len++;
+			}
+			ptype = get_prop_short_type_name(prop_info->data_type);
+			gf_sys_format_help(helpout, help_flags, " (%s %s %s):", gf_4cc_to_str(prop_info->type), ptype, szFlags);
+			len = strlen(ptype);
+			while (len<6) {
+				gf_sys_format_help(helpout, help_flags, " ");
+				len++;
+			}
 
 			gf_sys_format_help(helpout, help_flags, "%s", prop_info->description);
 

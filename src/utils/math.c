@@ -1520,6 +1520,18 @@ void gf_mx_ortho(GF_Matrix *mx, Fixed left, Fixed right, Fixed bottom, Fixed top
 }
 
 GF_EXPORT
+void gf_mx_ortho_reverse_z(GF_Matrix *mx, Fixed left, Fixed right, Fixed bottom, Fixed top, Fixed z_near, Fixed z_far)
+{
+	gf_mx_init(*mx);
+	mx->m[0] = gf_divfix(2*FIX_ONE, right-left);
+	mx->m[5] = gf_divfix(2*FIX_ONE, top-bottom);
+	mx->m[10] = gf_divfix(-FIX_ONE, z_far-z_near);
+	mx->m[12] = gf_divfix(right+left, right-left);
+	mx->m[13] = gf_divfix(top+bottom, top-bottom);
+	mx->m[14] = -gf_divfix(z_near, z_far-z_near);
+	mx->m[15] = FIX_ONE;
+}
+GF_EXPORT
 void gf_mx_perspective(GF_Matrix *mx, Fixed fieldOfView, Fixed aspectRatio, Fixed z_near, Fixed z_far)
 {
 	Fixed f = gf_divfix(gf_cos(fieldOfView/2), gf_sin(fieldOfView/2));
@@ -1534,6 +1546,26 @@ void gf_mx_perspective(GF_Matrix *mx, Fixed fieldOfView, Fixed aspectRatio, Fixe
 	mx->m[15] = 0;
 }
 
+GF_EXPORT
+void gf_mx_perspective_reverse_z(GF_Matrix *mx, Fixed fieldOfView, Fixed aspectRatio, Fixed z_near, Fixed z_far)
+{
+	Fixed f = gf_divfix(gf_cos(fieldOfView/2), gf_sin(fieldOfView/2));
+	gf_mx_init(*mx);
+	mx->m[0] = gf_divfix(f, aspectRatio);
+	mx->m[5] = f;
+	//see http://dev.theomader.com/depth-precision/
+#if 1
+	mx->m[10] = -gf_divfix(z_far, z_near-z_far) - FIX_ONE;
+	mx->m[11] = -FIX_ONE;
+	mx->m[14] = - gf_muldiv(z_near, z_far, z_near-z_far);
+#else
+	mx->m[10] = 0;
+	mx->m[11] = - FIX_ONE;
+	mx->m[14] = z_near;
+#endif
+
+	mx->m[15] = 0;
+}
 GF_EXPORT
 void gf_mx_lookat(GF_Matrix *mx, GF_Vec eye, GF_Vec center, GF_Vec upVector)
 {

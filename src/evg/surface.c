@@ -44,13 +44,33 @@ GF_EVGSurface *gf_evg_surface_new(Bool center_coords)
 	if (surf) {
 		surf->center_coords = center_coords;
 		surf->texture_filter = GF_TEXTURE_FILTER_DEFAULT;
-		surf->ftparams.source = &surf->ftoutline;
-		surf->ftparams.user = surf;
 		surf->raster = evg_raster_new();
 		surf->yuv_prof=1;
 	}
 	return surf;
 }
+
+EVG_Surface3DExt *evg_init_3d_surface(GF_EVGSurface *surf);
+
+GF_EXPORT
+GF_EVGSurface *gf_evg_surface3d_new()
+{
+	GF_EVGSurface *surf;
+	GF_SAFEALLOC(surf, GF_EVGSurface);
+	if (surf) {
+		surf->texture_filter = GF_TEXTURE_FILTER_DEFAULT;
+		surf->raster = evg_raster_new();
+		surf->yuv_prof=1;
+
+		surf->ext3d = evg_init_3d_surface(surf);
+		if (!surf->ext3d) {
+			gf_free(surf);
+			return NULL;
+		}
+	}
+	return surf;
+}
+
 GF_EXPORT
 void gf_evg_surface_set_center_coords(GF_EVGSurface *surf, Bool center_coords)
 {
@@ -62,15 +82,16 @@ void gf_evg_surface_delete(GF_EVGSurface *surf)
 {
 	if (!surf)
 		return;
-#ifndef INLINE_POINT_CONVERSION
-	if (surf->points) gf_free(surf->points);
-	surf->points = NULL;
-#endif
 	if (surf->stencil_pix_run) gf_free(surf->stencil_pix_run);
 	surf->stencil_pix_run = NULL;
 	if (surf->raster) evg_raster_del(surf->raster);
 	surf->raster = NULL;
 	if (surf->uv_alpha) gf_free(surf->uv_alpha);
+
+	if (surf->ext3d) {
+		gf_free(surf->ext3d->depth_buffer);
+		gf_free(surf->ext3d);
+	}
 	gf_free(surf);
 }
 
@@ -80,7 +101,9 @@ GF_Err gf_evg_surface_set_matrix(GF_EVGSurface *surf, GF_Matrix2D *mat)
 	GF_Matrix2D tmp;
 	if (!surf) return GF_BAD_PARAM;
 	get_surface_world_matrix(surf, &surf->mat);
+	surf->is_3d_matrix = GF_FALSE;
 	if (!mat) return GF_OK;
+
 	gf_mx2d_init(tmp);
 	gf_mx2d_add_matrix(&tmp, mat);
 	gf_mx2d_add_matrix(&tmp, &surf->mat);
@@ -88,6 +111,17 @@ GF_Err gf_evg_surface_set_matrix(GF_EVGSurface *surf, GF_Matrix2D *mat)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_evg_surface_set_matrix_3d(GF_EVGSurface *surf, GF_Matrix *mat)
+{
+	if (!surf) return GF_BAD_PARAM;
+	get_surface_world_matrix(surf, &surf->mat);
+	surf->is_3d_matrix = GF_FALSE;
+	if (!mat) return GF_OK;
+	gf_mx_copy(surf->mx3d, *mat);
+	surf->is_3d_matrix = GF_TRUE;
+	return GF_OK;
+}
 
 static void evg_surface_set_components_idx(GF_EVGSurface *surf)
 {
@@ -179,10 +213,14 @@ static void evg_surface_set_components_idx(GF_EVGSurface *surf)
 	}
 }
 
+GF_Err evg_3d_resize(GF_EVGSurface *surf);
+
+
 GF_EXPORT
 GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat)
 {
 	u32 BPP;
+	Bool size_changed=GF_FALSE;
 	if (!surf || !pixels) return GF_BAD_PARAM;
 
 	surf->not_8bits = GF_FALSE;
@@ -244,13 +282,21 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 		if (surf->stencil_pix_run) gf_free(surf->stencil_pix_run);
 		surf->stencil_pix_run = (u32 *) gf_malloc(run_size);
 	}
-	surf->width = width;
-	surf->height = height;
+	if (surf->width != width) {
+		surf->width = width;
+		size_changed = GF_TRUE;
+	}
+	if (surf->height != height) {
+		surf->height = height;
+		size_changed = GF_TRUE;
+	}
 	surf->pixels = (char*)pixels;
 	surf->pixelFormat = pixelFormat;
 	surf->BPP = BPP;
 	evg_surface_set_components_idx(surf);
 	gf_evg_surface_set_matrix(surf, NULL);
+	if (surf->ext3d && size_changed)
+		evg_3d_resize(surf);
 	return GF_OK;
 }
 
@@ -442,7 +488,12 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 	u32 a, uv_alpha_size=0;
 	Bool use_const = GF_TRUE;
 
-	if (surf->sten->type == GF_STENCIL_SOLID) {
+	//in 3D mode, we only write one pixel at a time
+	if (surf->ext3d) {
+		a = 1;
+		use_const = GF_TRUE;
+	}
+	else if (surf->sten->type == GF_STENCIL_SOLID) {
 		surf->fill_col = ((EVG_Brush *)surf->sten)->color;
 		a = GF_COL_A(surf->fill_col);
 	} else {
@@ -459,30 +510,39 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 
 	if (surf->comp_mode) a=100;
 	else if (surf->get_alpha) a=100;
-
+	surf->fill_single = NULL;
+	surf->fill_single_a = NULL;
 	
 	switch (surf->pixelFormat) {
 	case GF_PIXEL_GREYSCALE:
 		if (use_const) {
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_grey_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_grey_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_grey_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_grey_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_grey_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_grey_fill_var;
+		}
+		if (surf->ext3d) {
+			surf->fill_single = evg_grey_fill_single;
+			surf->fill_single_a = evg_grey_fill_single_a;
 		}
 		break;
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_GREYALPHA:
 		if (use_const) {
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_alphagrey_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_alphagrey_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_alphagrey_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_alphagrey_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_alphagrey_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_alphagrey_fill_var;
+		}
+		if (surf->ext3d) {
+			surf->fill_single = evg_alphagrey_fill_single;
+			surf->fill_single_a = evg_alphagrey_fill_single_a;
 		}
 		break;
 	case GF_PIXEL_ARGB:
@@ -491,17 +551,20 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 	case GF_PIXEL_ABGR:
 		if (use_const) {
 			if (!a) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_argb_fill_erase;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_argb_fill_erase;
 			} else if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_argb_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_argb_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_argb_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_argb_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_argb_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_argb_fill_var;
+		}
+		if (surf->ext3d) {
+			surf->fill_single = evg_argb_fill_single;
+			surf->fill_single_a = evg_argb_fill_single_a;
 		}
 		break;
-
 
 	case GF_PIXEL_RGBX:
 	case GF_PIXEL_BGRX:
@@ -509,61 +572,80 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 	case GF_PIXEL_XBGR:
 		if (use_const) {
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgbx_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_rgbx_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgbx_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_rgbx_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgbx_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_rgbx_fill_var;
+		}
+		if (surf->ext3d) {
+			surf->fill_single = evg_rgbx_fill_single;
+			surf->fill_single_a = evg_rgbx_fill_single_a;
 		}
 		break;
-
 
 	case GF_PIXEL_RGB:
 	case GF_PIXEL_BGR:
 		if (use_const) {
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgb_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_rgb_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgb_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_rgb_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgb_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_rgb_fill_var;
+		}
+		if (surf->ext3d) {
+			surf->fill_single = evg_rgb_fill_single;
+			surf->fill_single_a = evg_rgb_fill_single_a;
 		}
 		break;
 
 	case GF_PIXEL_RGB_565:
 		if (use_const) {
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_565_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_565_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_565_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_565_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_565_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_565_fill_var;
 			assert(surf->sten->fill_run);
+		}
+		if (surf->ext3d) {
+			surf->fill_single = evg_565_fill_single;
+			surf->fill_single_a = evg_565_fill_single_a;
 		}
 		break;
 	case GF_PIXEL_RGB_444:
 		if (use_const) {
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_444_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_444_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_444_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_444_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_444_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_444_fill_var;
+		}
+		if (surf->ext3d) {
+			surf->fill_single = evg_444_fill_single;
+			surf->fill_single_a = evg_444_fill_single_a;
 		}
 		break;
 	case GF_PIXEL_RGB_555:
 		if (use_const) {
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_555_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_555_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_555_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_555_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_555_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_555_fill_var;
+		}
+		if (surf->ext3d) {
+			surf->fill_single = evg_555_fill_single;
+			surf->fill_single_a = evg_555_fill_single_a;
 		}
 		break;
 	case GF_PIXEL_YUV:
@@ -572,14 +654,14 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 			surf->yuv_flush_uv = evg_yuv420p_flush_uv_const;
 
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_const;
 			}
 			uv_alpha_size=2*surf->width;
 		} else {
 			surf->yuv_flush_uv = evg_yuv420p_flush_uv_var;
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_var;
 			uv_alpha_size = 2 * 3*surf->width;
 		}
 		break;
@@ -600,14 +682,14 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 			surf->yuv_flush_uv = evg_nv12_flush_uv_const;
 
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_const;
 			}
 			uv_alpha_size = 2*surf->width;
 		} else {
 			surf->yuv_flush_uv = evg_nv12_flush_uv_var;
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_var;
 			uv_alpha_size = 2 * 3*surf->width;
 		}
 		break;
@@ -618,14 +700,14 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 			surf->yuv_flush_uv = evg_yuv422p_flush_uv_const;
 
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_const;
 			}
 			uv_alpha_size = 2*surf->width;
 		} else {
 			surf->yuv_flush_uv = evg_yuv422p_flush_uv_var;
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_var;
 			uv_alpha_size = 2 * 3*surf->width;
 		}
 		break;
@@ -633,12 +715,12 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 		surf->is_yuv = GF_TRUE;
 		if (use_const) {
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_fill_var;
 		}
 		break;
 	case GF_PIXEL_YUYV:
@@ -648,13 +730,13 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 		surf->is_yuv = GF_TRUE;
 		if (use_const) {
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuyv_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuyv_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuyv_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuyv_fill_const;
 			}
 			uv_alpha_size = 2*surf->width;
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuyv_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_yuyv_fill_var;
 			uv_alpha_size = 2 * 3*surf->width;
 		}
 		break;
@@ -665,14 +747,14 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 			surf->yuv_flush_uv = evg_yuv420p_10_flush_uv_const;
 
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_const;
 			}
 			uv_alpha_size = 4*surf->width;
 		} else {
 			surf->yuv_flush_uv = evg_yuv420p_10_flush_uv_var;
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_var;
 			uv_alpha_size = 4*3*surf->width;
 		}
 		break;
@@ -693,14 +775,14 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 			surf->yuv_flush_uv = evg_nv12_10_flush_uv_const;
 
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_const;
 			}
 			uv_alpha_size = 4*surf->width;
 		} else {
 			surf->yuv_flush_uv = evg_nv12_10_flush_uv_var;
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_var;
 			uv_alpha_size = 4 * 3*surf->width;
 		}
 		break;
@@ -711,14 +793,14 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 			surf->yuv_flush_uv = evg_yuv422p_10_flush_uv_const;
 
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_const;
 			}
 			uv_alpha_size = 4*surf->width;
 		} else {
 			surf->yuv_flush_uv = evg_yuv422p_10_flush_uv_var;
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_10_fill_var;
 			uv_alpha_size = 4 * 3*surf->width;
 		}
 		break;
@@ -726,12 +808,12 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 		surf->is_yuv = GF_TRUE;
 		if (use_const) {
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_10_fill_const_a;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_10_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_10_fill_const;
+				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_10_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_10_fill_var;
+			surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_10_fill_var;
 		}
 		break;
 	default:
@@ -768,11 +850,6 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 GF_EXPORT
 GF_Err gf_evg_surface_set_path(GF_EVGSurface *surf, GF_Path *gp)
 {
-#ifndef INLINE_POINT_CONVERSION
-	u32 i;
-	GF_Point2D pt;
-#endif
-
 	if (!surf) return GF_BAD_PARAM;
 	if (!gp || !gp->n_points) {
 		surf->ftoutline.n_points = 0;
@@ -794,34 +871,9 @@ GF_Err gf_evg_surface_set_path(GF_EVGSurface *surf, GF_Path *gp)
 	surf->ftoutline.flags = 0;
 	if (gp->flags & GF_PATH_FILL_ZERO_NONZERO) surf->ftoutline.flags = GF_PATH_FILL_ZERO_NONZERO;
 
-#ifdef INLINE_POINT_CONVERSION
 	surf->ftoutline.n_points = gp->n_points;
 	surf->ftoutline.points = gp->points;
-	surf->ftparams.mx = &surf->mat;
-#else
-	if (surf->pointlen < gp->n_points) {
-		surf->points = gf_realloc(surf->points, sizeof(EVG_Vector) * gp->n_points);
-		if (surf->points == NULL) {
-			surf->pointlen = 0;
-			return GF_OUT_OF_MEM;
-		}
-		surf->pointlen = gp->n_points;
-	}
-	surf->ftoutline.points = surf->points;
-
-	for (i=0; i<gp->n_points; i++) {
-		pt = gp->points[i];
-		gf_mx2d_apply_point(&surf->mat, &pt);
-#ifdef GPAC_FIXED_POINT
-		surf->points[i].x = pt.x;
-		surf->points[i].y = pt.y;
-#else
-		/*move to 16.16 representation*/
-		surf->points[i].x = (u32) (pt.x * 0x10000L);
-		surf->points[i].y = (u32) (pt.y * 0x10000L);
-#endif
-	}
-#endif
+	surf->mx = &surf->mat;
 	return GF_OK;
 }
 
@@ -830,6 +882,7 @@ GF_Err gf_evg_surface_set_path(GF_EVGSurface *surf, GF_Path *gp)
 GF_EXPORT
 GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 {
+	GF_Err e;
 	GF_Rect rc;
 	GF_Matrix2D mat, st_mat;
 	Bool restore_filter;
@@ -840,10 +893,11 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 	/*setup ft raster calllbacks*/
 	if (!setup_grey_callback(surf)) return GF_OK;
 
-	/*	surf->ftparams.gray_spans = gray_spans_stub; */
+	/*	surf->gray_spans = gray_spans_stub; */
+
+	/*TODO, check matrix with 3D transform*/
 
 	get_surface_world_matrix(surf, &mat);
-
 	restore_filter = GF_FALSE;
 	/*get path frame for texture convertion */
 	if (sten->type != GF_STENCIL_SOLID) {
@@ -866,7 +920,7 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 				if (! ((EVG_Texture *)sten)->pixels) return GF_BAD_PARAM;
 			}
 
-			if (((EVG_Texture *)sten)->mod & GF_TEXTURE_FLIP) {
+			if (((EVG_Texture *)sten)->mod & GF_TEXTURE_FLIP_Y) {
 				if (!surf->center_coords) gf_mx2d_add_scale(&sten->smat, FIX_ONE, -FIX_ONE);
 			} else {
 				if (surf->center_coords) gf_mx2d_add_scale(&sten->smat, FIX_ONE, -FIX_ONE);
@@ -917,19 +971,22 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 	}
 
 	if (surf->useClipper) {
-		surf->ftparams.clip_xMin = surf->clipper.x;
-		surf->ftparams.clip_yMin = surf->clipper.y;
-		surf->ftparams.clip_xMax = (surf->clipper.x + surf->clipper.width);
-		surf->ftparams.clip_yMax = (surf->clipper.y + surf->clipper.height);
+		surf->clip_xMin = surf->clipper.x;
+		surf->clip_yMin = surf->clipper.y;
+		surf->clip_xMax = (surf->clipper.x + surf->clipper.width);
+		surf->clip_yMax = (surf->clipper.y + surf->clipper.height);
 	} else {
-		surf->ftparams.clip_xMin = 0;
-		surf->ftparams.clip_yMin = 0;
-		surf->ftparams.clip_xMax = (surf->width);
-		surf->ftparams.clip_yMax = (surf->height);
+		surf->clip_xMin = 0;
+		surf->clip_yMin = 0;
+		surf->clip_xMax = (surf->width);
+		surf->clip_yMax = (surf->height);
 	}
 
 	/*and call the raster*/
-	evg_raster_render(surf->raster, &surf->ftparams);
+	if (surf->is_3d_matrix)
+		e = evg_raster_render_path_3d(surf);
+	else
+		e = evg_raster_render(surf);
 
 	/*restore stencil matrix*/
 	if (sten->type != GF_STENCIL_SOLID) {
@@ -937,7 +994,7 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 		if (restore_filter) ((EVG_Texture *)sten)->filter = GF_TEXTURE_FILTER_DEFAULT;
 	}
 	surf->sten = 0L;
-	return GF_OK;
+	return e;
 }
 
 
@@ -955,3 +1012,65 @@ void gf_evg_surface_set_alpha_callback(GF_EVGSurface *surf, u8 (*get_alpha)(void
 	}
 }
 
+GF_Err gf_evg_surface_set_projection(GF_EVGSurface *surf, GF_Matrix *mx)
+{
+	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
+	gf_mx_copy(surf->ext3d->proj, *mx);
+	return GF_OK;
+}
+GF_Err gf_evg_surface_set_modelview(GF_EVGSurface *surf, GF_Matrix *mx)
+{
+	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
+	gf_mx_copy(surf->ext3d->modelview, *mx);
+	return GF_OK;
+}
+
+GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float *vertices, u32 nb_vertices, u32 nb_comp, GF_EVGPrimitiveType prim_type);
+
+GF_Err gf_evg_surface_draw_array(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float *vertices, u32 nb_vertices, u32 nb_comp, GF_EVGPrimitiveType prim_type)
+{
+	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
+
+	/*setup ft raster calllbacks*/
+	if (!setup_grey_callback(surf)) return GF_OK;
+
+	if (surf->useClipper) {
+		surf->clip_xMin = surf->clipper.x;
+		surf->clip_yMin = surf->clipper.y;
+		surf->clip_xMax = (surf->clipper.x + surf->clipper.width);
+		surf->clip_yMax = (surf->clipper.y + surf->clipper.height);
+	} else {
+		surf->clip_xMin = 0;
+		surf->clip_yMin = 0;
+		surf->clip_xMax = (surf->width);
+		surf->clip_yMax = (surf->height);
+	}
+
+	/*and call the raster*/
+	return evg_raster_render3d(surf, indices, nb_idx, vertices, nb_vertices, nb_comp, prim_type);
+}
+
+GF_Err evg_raster_render3d_path(GF_EVGSurface *surf, GF_Path *path, Float z);
+
+GF_Err gf_evg_surface_draw_path(GF_EVGSurface *surf, GF_Path *path, Float z)
+{
+	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
+
+	/*setup ft raster calllbacks*/
+	if (!setup_grey_callback(surf)) return GF_OK;
+
+	if (surf->useClipper) {
+		surf->clip_xMin = surf->clipper.x;
+		surf->clip_yMin = surf->clipper.y;
+		surf->clip_xMax = (surf->clipper.x + surf->clipper.width);
+		surf->clip_yMax = (surf->clipper.y + surf->clipper.height);
+	} else {
+		surf->clip_xMin = 0;
+		surf->clip_yMin = 0;
+		surf->clip_xMax = (surf->width);
+		surf->clip_yMax = (surf->height);
+	}
+
+	/*and call the raster*/
+	return evg_raster_render3d_path(surf, path, z);
+}

@@ -135,6 +135,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/crypto/g_crypt_tinyaes.c \
 	../../../../src/crypto/tiny_aes.c \
 	../../../../src/evg/ftgrays.c \
+	../../../../src/evg/raster3d.c \
 	../../../../src/evg/raster_565.c \
 	../../../../src/evg/raster_argb.c\
 	../../../../src/evg/raster_rgb.c \

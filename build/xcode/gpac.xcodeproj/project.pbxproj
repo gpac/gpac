@@ -169,6 +169,7 @@
 		9206822C20EA41530041169F /* in_pipe.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206822B20EA41530041169F /* in_pipe.c */; };
 		9206822E20EA69680041169F /* out_pipe.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206822D20EA69680041169F /* out_pipe.c */; };
 		9206823420EA96AA0041169F /* mux_gsf.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206823320EA96AA0041169F /* mux_gsf.c */; };
+		9210D007237041C2007AFB48 /* ftgrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 9210D006237041C2007AFB48 /* ftgrays.c */; };
 		9212C0FB222D7AC000FE3580 /* vflip.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212C0FA222D7AC000FE3580 /* vflip.c */; };
 		92256CCD20E0DA26004EB243 /* encrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */; };
 		9225DD752326790C00F94C42 /* mpd.h in Headers */ = {isa = PBXBuildFile; fileRef = 9225DD742326790C00F94C42 /* mpd.h */; };
@@ -220,7 +221,6 @@
 		925974FF2215BA3A0007E02B /* raster_argb.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974F62215BA3A0007E02B /* raster_argb.c */; };
 		925975002215BA3A0007E02B /* raster_565.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974F72215BA3A0007E02B /* raster_565.c */; };
 		925975012215BA3A0007E02B /* stencil.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974F82215BA3A0007E02B /* stencil.c */; };
-		925975022215BA3A0007E02B /* ftgrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974F92215BA3A0007E02B /* ftgrays.c */; };
 		925975032215BA3A0007E02B /* surface.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974FA2215BA3A0007E02B /* surface.c */; };
 		925975042215BA3A0007E02B /* rast_soft.h in Headers */ = {isa = PBXBuildFile; fileRef = 925974FB2215BA3A0007E02B /* rast_soft.h */; };
 		925975052215BA3A0007E02B /* raster_yuv.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974FC2215BA3A0007E02B /* raster_yuv.c */; };
@@ -484,6 +484,7 @@
 		92C403DD2181F17E00331F39 /* dec_openhevc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C403DC2181F17E00331F39 /* dec_openhevc.c */; };
 		92C403EA2181F57600331F39 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92CDAEE81FBD9D0C0007C1C0 /* reframe_nalu.c in Sources */ = {isa = PBXBuildFile; fileRef = 92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */; };
+		92D211942370832900128AE2 /* raster3d.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D211932370832900128AE2 /* raster3d.c */; };
 		92D3C6272031E94F00BA1735 /* atsc_dmx.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D3C6262031E94F00BA1735 /* atsc_dmx.c */; };
 		92D3C6292031E98600BA1735 /* atsc.h in Headers */ = {isa = PBXBuildFile; fileRef = 92D3C6282031E98600BA1735 /* atsc.h */; };
 		92D535711A5C0D1400F2442A /* carbon_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D5356F1A5C0CF700F2442A /* carbon_events.c */; };
@@ -524,6 +525,8 @@
 			isa = PBXBuildRule;
 			compilerSpec = com.apple.compilers.proxy.script;
 			fileType = sourcecode.opencl;
+			inputFiles = (
+			);
 			isEditable = 1;
 			outputFiles = (
 			);
@@ -809,6 +812,7 @@
 		9206822B20EA41530041169F /* in_pipe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_pipe.c; path = filters/in_pipe.c; sourceTree = "<group>"; };
 		9206822D20EA69680041169F /* out_pipe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_pipe.c; path = filters/out_pipe.c; sourceTree = "<group>"; };
 		9206823320EA96AA0041169F /* mux_gsf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_gsf.c; path = filters/mux_gsf.c; sourceTree = "<group>"; };
+		9210D006237041C2007AFB48 /* ftgrays.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgrays.c; path = evg/ftgrays.c; sourceTree = "<group>"; };
 		9212C0FA222D7AC000FE3580 /* vflip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vflip.c; path = filters/vflip.c; sourceTree = "<group>"; };
 		92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = encrypt_cenc_isma.c; path = filters/encrypt_cenc_isma.c; sourceTree = "<group>"; };
 		9225DD742326790C00F94C42 /* mpd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mpd.h; path = ../include/gpac/mpd.h; sourceTree = "<group>"; };
@@ -858,7 +862,6 @@
 		925974F62215BA3A0007E02B /* raster_argb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_argb.c; path = evg/raster_argb.c; sourceTree = "<group>"; };
 		925974F72215BA3A0007E02B /* raster_565.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_565.c; path = evg/raster_565.c; sourceTree = "<group>"; };
 		925974F82215BA3A0007E02B /* stencil.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = stencil.c; path = evg/stencil.c; sourceTree = "<group>"; };
-		925974F92215BA3A0007E02B /* ftgrays.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgrays.c; path = evg/ftgrays.c; sourceTree = "<group>"; };
 		925974FA2215BA3A0007E02B /* surface.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = surface.c; path = evg/surface.c; sourceTree = "<group>"; };
 		925974FB2215BA3A0007E02B /* rast_soft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rast_soft.h; path = evg/rast_soft.h; sourceTree = "<group>"; };
 		925974FC2215BA3A0007E02B /* raster_yuv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_yuv.c; path = evg/raster_yuv.c; sourceTree = "<group>"; };
@@ -1127,6 +1130,7 @@
 		92C403D72181F10500331F39 /* gf_openhevc_dec.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gf_openhevc_dec.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92C403DC2181F17E00331F39 /* dec_openhevc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_openhevc.c; path = ../../src/filters/dec_openhevc.c; sourceTree = "<group>"; };
 		92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_nalu.c; path = filters/reframe_nalu.c; sourceTree = "<group>"; };
+		92D211932370832900128AE2 /* raster3d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster3d.c; path = evg/raster3d.c; sourceTree = "<group>"; };
 		92D3C6262031E94F00BA1735 /* atsc_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = atsc_dmx.c; sourceTree = "<group>"; };
 		92D3C6282031E98600BA1735 /* atsc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = atsc.h; path = ../include/gpac/atsc.h; sourceTree = "<group>"; };
 		92D5356F1A5C0CF700F2442A /* carbon_events.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
@@ -1660,7 +1664,8 @@
 		925974F42215BA270007E02B /* evg */ = {
 			isa = PBXGroup;
 			children = (
-				925974F92215BA3A0007E02B /* ftgrays.c */,
+				92D211932370832900128AE2 /* raster3d.c */,
+				9210D006237041C2007AFB48 /* ftgrays.c */,
 				925974FB2215BA3A0007E02B /* rast_soft.h */,
 				925974F72215BA3A0007E02B /* raster_565.c */,
 				925974F62215BA3A0007E02B /* raster_argb.c */,
@@ -2545,6 +2550,7 @@
 				92B9A5871F8660D700A24FE4 /* mpeg4_timesensor.c in Sources */,
 				9201012218D5A444003D1ACA /* isom_intern.c in Sources */,
 				9201012318D5A444003D1ACA /* isom_read.c in Sources */,
+				9210D007237041C2007AFB48 /* ftgrays.c in Sources */,
 				92B9A5B41F8660D700A24FE4 /* visual_manager_3d.c in Sources */,
 				92D6C59B2343BED700262217 /* scene_js.c in Sources */,
 				9289D9F51FDEFFCE00C24F83 /* out_file.c in Sources */,
@@ -2657,7 +2663,6 @@
 				92BB85751F7BFB63009BC9C8 /* inspect.c in Sources */,
 				92B9A5721F8660D700A24FE4 /* mpeg4_animstream.c in Sources */,
 				9201016B18D5A445003D1ACA /* encode_isom.c in Sources */,
-				925975022215BA3A0007E02B /* ftgrays.c in Sources */,
 				92BB85851F7C606A009BC9C8 /* reframe_amr.c in Sources */,
 				926F15551FE964D000C40779 /* write_nhnt.c in Sources */,
 				9201016C18D5A445003D1ACA /* loader_bt.c in Sources */,
@@ -2785,6 +2790,7 @@
 				920101C318D5A445003D1ACA /* url.c in Sources */,
 				920101C418D5A445003D1ACA /* utf.c in Sources */,
 				920101C518D5A445003D1ACA /* xml_parser.c in Sources */,
+				92D211942370832900128AE2 /* raster3d.c in Sources */,
 				926656C41F7D3DF700299CC6 /* dec_theora.c in Sources */,
 				92B9A5671F8660D700A24FE4 /* mpeg4_geometry_ifs2d.c in Sources */,
 				9234CF4B1FD8344000CCDFA1 /* in_rtp_rtsp.c in Sources */,

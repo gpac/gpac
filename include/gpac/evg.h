@@ -102,8 +102,10 @@ typedef enum
 	GF_TEXTURE_REPEAT_S = (1<<1),
 	/*! texture is repeated in its horizontal direction*/
 	GF_TEXTURE_REPEAT_T = (1<<2),
+	/*! texture is fliped horizontally*/
+	GF_TEXTURE_FLIP_X = (1<<3),
 	/*! texture is fliped vertically*/
-	GF_TEXTURE_FLIP = (1<<3),
+	GF_TEXTURE_FLIP_Y = (1<<4),
 } GF_TextureMapFlags;
 
 /*! filter levels for texturing - up to the graphics engine but the following levels are used by
@@ -301,7 +303,15 @@ GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil *stencil, GF_ColorMatrix *c
 \param y vertical coord
 \return pixel value
  */
-u32 gf_evg_stencil_get_pixel(GF_EVGStencil *stencil, u32 x, u32 y);
+u32 gf_evg_stencil_get_pixel(GF_EVGStencil *stencil, s32 x, s32 y);
+
+/*! gets pixel at given position as normalize coordinates (between 0 and 1), {0,0} is top-left, {1,1} is bottom-right (still experimental)
+\param stencil the target stencil
+\param x horizontal coord
+\param y vertical coord
+\return pixel value
+ */
+u32 gf_evg_stencil_get_pixel_f(GF_EVGStencil *st, Float x, Float y);
 
 /*! creates a canvas surface object
 \param center_coords if GF_TRUE, indicates mathematical-like coord system (0,0) at the center of the canvas, otherwise indicates computer-like coord system (0,0) top-left corner
@@ -345,6 +355,14 @@ GF_Err gf_evg_surface_set_raster_level(GF_EVGSurface *surf, GF_RasterQuality lev
 \return error if any
 */
 GF_Err gf_evg_surface_set_matrix(GF_EVGSurface *surf, GF_Matrix2D *mat);
+
+/*! sets the given matrix as the current transformations for all drawn paths. The matrix shall be a projection matrix (ortho or perspective)
+wuth normalized coordinates in [-1,1]. It may also contain a modelview part
+\param surf the surface object
+\param mat the matrix to set; if NULL, resets the current transformation
+\return error if any
+*/
+GF_Err gf_evg_surface_set_matrix_3d(GF_EVGSurface *surf, GF_Matrix *mat);
 
 /*! sets the given rectangle as a clipper
 When a clipper is enabled, nothing is drawn outside of the clipper. The clipper is not affected by the surface matrix
@@ -426,6 +444,119 @@ void gf_evg_surface_set_composite_mode(GF_EVGSurface *surf, GF_EVGCompositeMode 
 \param cbk opaque data for the callback function
 */
 void gf_evg_surface_set_alpha_callback(GF_EVGSurface *surf, u8 (*get_alpha)(void *udta, u8 src_alpha, s32 x, s32 y), void *cbk);
+
+
+
+typedef enum
+{
+	//do NOT modify order
+	GF_EVG_POINTS=1,
+	GF_EVG_POLYGON,
+	GF_EVG_LINES,
+	GF_EVG_TRIANGLES,
+	GF_EVG_QUADS,
+
+	GF_EVG_LINE_STRIP,
+	GF_EVG_TRIANGLE_STRIP,
+	GF_EVG_TRIANGLE_FAN,
+	GF_EVG_QUAD_STRIP,
+} GF_EVGPrimitiveType;
+
+GF_EVGSurface *gf_evg_surface3d_new();
+GF_Err gf_evg_surface_set_projection(GF_EVGSurface *surf, GF_Matrix *mx);
+GF_Err gf_evg_surface_set_modelview(GF_EVGSurface *surf, GF_Matrix *mx);
+GF_Err gf_evg_surface_draw_array(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float *vertices, u32 nb_vertices, u32 nb_comp, GF_EVGPrimitiveType prim_type);
+GF_Err gf_evg_surface_clear_depth(GF_EVGSurface *surf, Float depth);
+GF_Err gf_evg_surface_viewport(GF_EVGSurface *surf, u32 x, u32 y, u32 w, u32 h);
+/*draws path on a 3D surface with the given z. The vertex shader is ignored (surface matrix must be set),
+and the fragment shader is called using perspective interpolation weights derived from the path bounds,
+using path bounds (top-left, top-right, bottom-right) vertices*/
+GF_Err gf_evg_surface_draw_path(GF_EVGSurface *surf, GF_Path *path, Float z);
+
+typedef enum
+{
+	GF_EVGDEPTH_DISABLE,
+	GF_EVGDEPTH_NEVER,
+	GF_EVGDEPTH_ALWAYS,
+	GF_EVGDEPTH_EQUAL,
+	GF_EVGDEPTH_NEQUAL,
+	GF_EVGDEPTH_LESS,
+	GF_EVGDEPTH_LESS_EQUAL,
+	GF_EVGDEPTH_GREATER,
+	GF_EVGDEPTH_GREATER_EQUAL
+} GF_EVGDepthTest;
+
+GF_Err gf_evg_set_depth_test(GF_EVGSurface *surf, GF_EVGDepthTest mode);
+
+typedef enum
+{
+	GF_EVG_FRAG_INVALID = 0,
+	GF_EVG_FRAG_RGB,
+	GF_EVG_FRAG_YUV,
+} GF_EVGFragmentType;
+
+typedef struct
+{
+	/*input params*/
+	Float screen_x;
+	Float screen_y;
+	Float screen_z;
+	Float depth;
+
+	u32 prim_index;
+	/*index of vertices for the primitive in the vertex buffer*/
+	u32 idx1, idx2, idx3;
+
+	GF_EVGPrimitiveType ptype;
+
+	/*output values*/
+	GF_Vec4 color;
+	GF_EVGFragmentType frag_valid;
+	u32 color_argb;
+	//0: float argb, 1: u32 argb
+	u32 color_type;
+
+	/*vars for lerp*/
+	/*perspective correct interpolation is done according to openGL eq 14.9
+		f = (a*fa/wa + b*fb/wb + c*fc/wc) / (a/w_a + b/w_b + c/w_c)
+	*/
+	/*perspective corrected barycentric, eg bc1/q1, bc2/q2, bc3/q3
+		these are constant throughout the fragment*/
+	Float pbc1, pbc2, pbc3;
+	/* this is alsp 1/W of the fragment, eg opengl gl_fragCoord.w*/
+	Float persp_denum;
+} GF_EVGFragmentParam;
+
+
+typedef struct
+{
+	/*input params*/
+	GF_Vec4 in_vertex;
+	u32 prim_index;
+	u32 vertex_idx;
+	u32 vertex_idx_in_prim;
+
+	/*output values*/
+	GF_Vec4 out_vertex;
+} GF_EVGVertexParam;
+
+typedef Bool (*gf_evg_fragment_shader)(void *udta, GF_EVGFragmentParam *frag);
+GF_Err gf_evg_surface_set_fragment_shader(GF_EVGSurface *surf, gf_evg_fragment_shader shader, void *shader_udta);
+
+typedef Bool (*gf_evg_vertex_shader)(void *udta, GF_EVGVertexParam *frag);
+GF_Err gf_evg_surface_set_vertex_shader(GF_EVGSurface *surf, gf_evg_vertex_shader shader, void *shader_udta);
+
+GF_Err gf_evg_surface_set_ccw(GF_EVGSurface *surf, Bool is_ccw);
+GF_Err gf_evg_surface_set_backcull(GF_EVGSurface *surf, Bool backcull);
+GF_Err gf_evg_surface_set_antialias(GF_EVGSurface *surf, Bool antialias);
+GF_Err gf_evg_surface_set_min_depth(GF_EVGSurface *surf, Float min_depth);
+GF_Err gf_evg_surface_set_max_depth(GF_EVGSurface *surf, Float max_depth);
+GF_Err gf_evg_surface_set_clip_zero(GF_EVGSurface *surf, Bool clip_zero);
+GF_Err gf_evg_surface_set_point_size(GF_EVGSurface *surf, Float size);
+GF_Err gf_evg_surface_set_line_size(GF_EVGSurface *surf, Float size);
+GF_Err gf_evg_surface_set_point_smooth(GF_EVGSurface *surf, Bool smooth);
+GF_Err gf_evg_surface_disable_early_depth(GF_EVGSurface *surf, Bool disable);
+GF_Err gf_evg_surface_write_depth(GF_EVGSurface *surf, Bool do_write);
 
 /*! @} */
 

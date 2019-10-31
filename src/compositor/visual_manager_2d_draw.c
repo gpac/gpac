@@ -555,7 +555,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	if (txh->flags & GF_SR_TEXTURE_REPEAT_S) tx_tile |= GF_TEXTURE_REPEAT_S;
 	if (txh->flags & GF_SR_TEXTURE_REPEAT_T) tx_tile |= GF_TEXTURE_REPEAT_T;
 	if (ctx->flags & CTX_FLIPED_COORDS)
-		tx_tile |= GF_TEXTURE_FLIP;
+		tx_tile |= GF_TEXTURE_FLIP_Y;
 	gf_evg_stencil_set_mapping(tx_raster, (GF_TextureMapFlags) tx_tile);
 
 	if (!(ctx->flags & CTX_IS_BACKGROUND) ) {

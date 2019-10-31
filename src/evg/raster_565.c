@@ -112,6 +112,23 @@ void overmask_565_const_run(u32 src, u8 *dst, s32 dst_pitch_x, u32 count)
 	}
 }
 
+
+void evg_565_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	u8 r = GF_COL_R(col);
+	u8 g = GF_COL_G(col);
+	u8 b = GF_COL_B(col);
+	write_565(dst, r, g, b);
+}
+
+void evg_565_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	overmask_565(col, dst, coverage);
+}
+
+
 void evg_565_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
@@ -307,6 +324,22 @@ static void overmask_555_const_run(u32 src, u8 *dst, s32 dst_pitch_x, u32 count)
 	}
 }
 
+
+void evg_555_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	u8 r = GF_COL_R(col);
+	u8 g = GF_COL_G(col);
+	u8 b = GF_COL_B(col);
+	write_555(dst, r, g, b);
+}
+
+void evg_555_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	overmask_555(col, dst, coverage);
+}
+
 void evg_555_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
@@ -485,6 +518,22 @@ static void overmask_444_const_run(u32 src, u8 *dst, s32 dst_pitch_x, u32 count)
 		dst += dst_pitch_x;
 		count--;
 	}
+}
+
+
+void evg_444_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	u8 r = GF_COL_R(col);
+	u8 g = GF_COL_G(col);
+	u8 b = GF_COL_B(col);
+	write_444(dst, r, g, b);
+}
+
+void evg_444_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	overmask_444(dst, col, coverage);
 }
 
 void evg_444_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
