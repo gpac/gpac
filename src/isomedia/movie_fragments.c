@@ -874,9 +874,41 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(movie->moof->TrackList, &i))) {
 		/*do not write empty senc*/
 		if (traf->sample_encryption && !gf_list_count(traf->sample_encryption->samp_aux_info)) {
+			u32 j;
 			gf_list_del_item(traf->child_boxes, traf->sample_encryption);
 			gf_isom_box_del((GF_Box *) traf->sample_encryption);
 			traf->sample_encryption = NULL;
+			/*remove saiz and saio (todo, check if other saiz/saio types are used*/
+			for (j=0; j<gf_list_count(traf->sai_sizes); j++) {
+				GF_SampleAuxiliaryInfoSizeBox *saiz = gf_list_get(traf->sai_sizes, j);
+				switch (saiz->aux_info_type) {
+				case GF_ISOM_CENC_SCHEME:
+				case GF_ISOM_CBC_SCHEME:
+				case GF_ISOM_CENS_SCHEME:
+				case GF_ISOM_CBCS_SCHEME:
+				case 0:
+					gf_list_rem(traf->sai_sizes, j);
+					gf_list_del_item(traf->child_boxes, saiz);
+					gf_isom_box_del((GF_Box *)saiz);
+					j--;
+					break;
+				}
+			}
+			for (j=0; j<gf_list_count(traf->sai_offsets); j++) {
+				GF_SampleAuxiliaryInfoOffsetBox *saio = gf_list_get(traf->sai_offsets, j);
+				switch (saio->aux_info_type) {
+				case GF_ISOM_CENC_SCHEME:
+				case GF_ISOM_CBC_SCHEME:
+				case GF_ISOM_CENS_SCHEME:
+				case GF_ISOM_CBCS_SCHEME:
+				case 0:
+					gf_list_rem(traf->sai_offsets, j);
+					gf_list_del_item(traf->child_boxes, saio);
+					gf_isom_box_del((GF_Box *)saio);
+					j--;
+					break;
+				}
+			}
 		}
 		if (!traf->DataCache) continue;
 		s_count = gf_list_count(traf->TrackRuns);
