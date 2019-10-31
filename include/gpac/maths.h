@@ -843,7 +843,7 @@ Applies a 3D matrix transformation to a rectangle, giving the enclosing rectangl
 void gf_mx_apply_rect(GF_Matrix *_this, GF_Rect *rc);
 /*!\brief ortho matrix construction
 
-Creates an orthogonal projection matrix
+Creates an orthogonal projection matrix. This assume the NDC Z lies in [-1,1]
 \param mx matrix to initialize
 \param left min horizontal coordinate of viewport
 \param right max horizontal coordinate of viewport
@@ -853,9 +853,23 @@ Creates an orthogonal projection matrix
 \param z_far max depth coordinate of viewport
 */
 void gf_mx_ortho(GF_Matrix *mx, Fixed left, Fixed right, Fixed bottom, Fixed top, Fixed z_near, Fixed z_far);
+
+/*!\brief ortho matrix with reverse Z construction
+
+Creates an orthogonal projection matrix with reverse Z. This assume the NDC Z lies in [0,1], not [-1,1]
+\param mx matrix to initialize
+\param left min horizontal coordinate of viewport
+\param right max horizontal coordinate of viewport
+\param bottom min vertical coordinate of viewport
+\param top max vertical coordinate of viewport
+\param z_near min depth coordinate of viewport
+\param z_far max depth coordinate of viewport
+*/
+void gf_mx_ortho_reverse_z(GF_Matrix *mx, Fixed left, Fixed right, Fixed bottom, Fixed top, Fixed z_near, Fixed z_far);
+
 /*!\brief perspective matrix construction
 
-Creates a perspective projection matrix
+Creates a perspective projection matrix. This assume the NDC Z lies in [-1,1]
 \param mx matrix to initialize
 \param fov camera field of view angle in radian
 \param aspect_ratio viewport aspect ratio
@@ -863,6 +877,18 @@ Creates a perspective projection matrix
 \param z_far max depth coordinate of viewport
 */
 void gf_mx_perspective(GF_Matrix *mx, Fixed fov, Fixed aspect_ratio, Fixed z_near, Fixed z_far);
+
+/*!\brief perspective matrix with reverse Z  construction
+
+Creates a perspective projection matrix with reverse Z. This assume the NDC Z lies in [0,1]
+\param mx matrix to initialize
+\param fov camera field of view angle in radian
+\param aspect_ratio viewport aspect ratio
+\param z_near min depth coordinate of viewport
+\param z_far max depth coordinate of viewport
+*/
+void gf_mx_perspective_reverse_z(GF_Matrix *mx, Fixed fov, Fixed aspect_ratio, Fixed z_near, Fixed z_far);
+
 /*!\brief creates look matrix
 
 Creates a transformation matrix looking at a given direction from a given point (camera matrix).

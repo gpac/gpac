@@ -357,6 +357,7 @@
 		9280E7251DD23FFE001E6441 /* iTunesArtwork in Resources */ = {isa = PBXBuildFile; fileRef = 9236FDEF1DD23F1400B3E86F /* iTunesArtwork */; };
 		9281B63021C92D00006B0FD5 /* gui in Resources */ = {isa = PBXBuildFile; fileRef = 9281B62E21C92D00006B0FD5 /* gui */; };
 		9281B63121C92D00006B0FD5 /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = 9281B62F21C92D00006B0FD5 /* shaders */; };
+		92852443237ACC2700165130 /* raster3d.c in Sources */ = {isa = PBXBuildFile; fileRef = 92852442237ACC2700165130 /* raster3d.c */; };
 		928B2D131BE11BC100CAC65D /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 928B2D111BE11BC100CAC65D /* libcrypto.a */; };
 		928B2D141BE11BC100CAC65D /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 928B2D121BE11BC100CAC65D /* libssl.a */; };
 		92910FAA233A44110052365D /* jsfilter.c in Sources */ = {isa = PBXBuildFile; fileRef = 92910FA9233A44110052365D /* jsfilter.c */; };
@@ -929,6 +930,7 @@
 		92734634235084A50081AF74 /* storage.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = storage.c; path = ../../src/jsmods/storage.c; sourceTree = "<group>"; };
 		9281B62E21C92D00006B0FD5 /* gui */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gui; path = ../../share/gui; sourceTree = "<group>"; };
 		9281B62F21C92D00006B0FD5 /* shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; name = shaders; path = ../../share/shaders; sourceTree = "<group>"; };
+		92852442237ACC2700165130 /* raster3d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster3d.c; path = ../../src/evg/raster3d.c; sourceTree = "<group>"; };
 		928B2D111BE11BC100CAC65D /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../extra_lib/lib/iOS/libcrypto.a; sourceTree = "<group>"; };
 		928B2D121BE11BC100CAC65D /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../extra_lib/lib/iOS/libssl.a; sourceTree = "<group>"; };
 		92910FA9233A44110052365D /* jsfilter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = jsfilter.c; path = ../../src/filters/jsfilter.c; sourceTree = "<group>"; };
@@ -1804,6 +1806,7 @@
 		92E9DF9C2215CE7400628420 /* evg */ = {
 			isa = PBXGroup;
 			children = (
+				92852442237ACC2700165130 /* raster3d.c */,
 				92E9DFA92215CEA700628420 /* ftgrays.c */,
 				92E9DFAC2215CEA700628420 /* rast_soft.h */,
 				92E9DFAE2215CEA700628420 /* raster_565.c */,
@@ -2236,6 +2239,7 @@
 				92E9DFB62215CEA700628420 /* raster_565.c in Sources */,
 				92D6C5AB2343BF9400262217 /* svg_js.c in Sources */,
 				92EB6DDF20E4E19700A97A49 /* out_audio.c in Sources */,
+				92852443237ACC2700165130 /* raster3d.c in Sources */,
 				92EB6DF520E4E19700A97A49 /* reframer.c in Sources */,
 				92E9DFA22215CE9A00628420 /* g_crypt_tinyaes.c in Sources */,
 				929383A72355AECE00AAAFA8 /* webgl.c in Sources */,

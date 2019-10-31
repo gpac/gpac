@@ -412,6 +412,7 @@
     <ClCompile Include="..\..\src\crypto\g_crypt_tinyaes.c" />
     <ClCompile Include="..\..\src\crypto\tiny_aes.c" />
     <ClCompile Include="..\..\src\evg\ftgrays.c" />
+    <ClCompile Include="..\..\src\evg\raster3d.c" />
     <ClCompile Include="..\..\src\evg\raster_565.c" />
     <ClCompile Include="..\..\src\evg\raster_argb.c" />
     <ClCompile Include="..\..\src\evg\raster_rgb.c" />

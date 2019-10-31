@@ -50,18 +50,9 @@
 #include <gpac/avparse.h>
 #include <gpac/network.h>
 
-typedef struct
-{
-	u32 width, height, pf, stride, stride_uv, mem_size;
-	char *data;
-	Bool owns_data;
-	Bool center_coords;
-	GF_EVGSurface *surface;
-	u32 composite_op;
-	JSValue alpha_cbk;
-	JSContext *ctx;
-	JSValue obj;
-} GF_JSCanvas;
+
+#define EVG_GET_FLOAT(_name, _jsval) { Double _v; if (JS_ToFloat64(ctx, &_v, _jsval)) return js_throw_err(ctx, GF_BAD_PARAM); _name = (Float) _v; }
+#define CLAMPCOLF(_name) if (_name<0) _name=0; else if (_name>1.0) _name=1.0;
 
 
 typedef struct
@@ -75,6 +66,132 @@ typedef struct
 	JSValue param_fun, obj;
 	JSContext *ctx;
 } GF_JSTexture;
+
+#define MAX_ATTR_DIM	4
+typedef struct
+{
+	Float values[MAX_ATTR_DIM];
+	u32 dim;
+	u8 comp_type;
+} EVG_VAIRes;
+
+enum
+{
+	GF_EVG_VAI_VERTEX_INDEX=0,
+	GF_EVG_VAI_VERTEX,
+	GF_EVG_VAI_PRIMITIVE,
+};
+
+typedef struct
+{
+	u32 prim_idx;
+	u32 nb_comp;
+	Float *values;
+	u32 nb_values;
+	JSValue ab;
+	JSValue res;
+	u32 interp_type;
+
+	Float anchors[3][MAX_ATTR_DIM];
+	EVG_VAIRes result;
+} EVG_VAI;
+
+enum
+{
+	COMP_X = 1,//x or r or s
+	COMP_Y = 1<<1,//y or g or t
+	COMP_Z = 1<<2, //z or b
+	COMP_Q = 1<<3, //w/q or a
+	COMP_V2_XY = COMP_X|COMP_Y,
+	COMP_V2_XZ = COMP_X|COMP_Z,
+	COMP_V2_YZ = COMP_Y|COMP_Z,
+	COMP_V3 = COMP_X|COMP_Y|COMP_Z,
+	COMP_V4 = COMP_X|COMP_Y|COMP_Z|COMP_Q,
+	COMP_BOOL,
+	COMP_INT,
+	COMP_FLOAT
+};
+
+typedef struct
+{
+	u8 op_type;
+	u8 cond_type;
+	u8 left_value_type;
+	u8 right_value_type;
+	s32 left_value, right_value;
+	char *uni_name;
+	JSValue tx_ref;
+	GF_JSTexture *tx;
+
+	//we seperate VAI/MX from base value in order to be able to assign a VAI value
+	union {
+        struct {
+			EVG_VAI *vai;
+			JSValue ref;
+		} vai;
+        struct {
+			GF_Matrix *mx;
+			JSValue ref;
+		} mx;
+	};
+
+	union {
+		Float vec[4];
+		s32 ival;
+		Bool bval;
+	};
+} ShaderOp;
+
+enum
+{
+	GF_EVG_SHADER_FRAGMENT=1,
+	GF_EVG_SHADER_VERTEX,
+};
+
+typedef struct
+{
+	char *name;
+	union {
+		GF_Vec4 vecval;
+		s32 ival;
+		Bool bval;
+	};
+	u8 value_type;
+} ShaderVar;
+
+typedef struct
+{
+	u32 mode;
+	u32 nb_ops, alloc_ops;
+	ShaderOp *ops;
+	u32 nb_vars, alloc_vars;
+	ShaderVar *vars;
+	Bool invalid, disable_early_z;
+} EVGShader;
+
+typedef struct
+{
+	u32 width, height, pf, stride, stride_uv, mem_size;
+	char *data;
+	Bool owns_data;
+	Bool center_coords;
+	GF_EVGSurface *surface;
+	u32 composite_op;
+	JSValue alpha_cbk;
+	JSValue frag_shader;
+	Bool frag_is_cbk;
+	JSValue vert_shader;
+	Bool vert_is_cbk;
+
+	EVGShader *frag, *vert;
+
+	JSContext *ctx;
+	JSValue obj;
+	JSValue frag_obj;
+	JSValue vert_obj;
+
+} GF_JSCanvas;
+
 
 
 typedef struct
@@ -96,22 +213,34 @@ typedef struct
 	Bool path_for_centered;
 } GF_JSText;
 
+
 JSClassID canvas_class_id;
+JSClassID canvas3d_class_id;
 JSClassID path_class_id;
 JSClassID mx2d_class_id;
 JSClassID colmx_class_id;
 JSClassID stencil_class_id;
 JSClassID texture_class_id;
 JSClassID text_class_id;
+JSClassID matrix_class_id;
+JSClassID fragment_class_id;
+JSClassID vertex_class_id;
+JSClassID vai_class_id;
+JSClassID vaires_class_id;
+JSClassID shader_class_id;
 
 static void text_set_path(GF_JSCanvas *canvas, GF_JSText *text);
 
+Bool get_color_from_args(JSContext *c, int argc, JSValueConst *argv, u32 idx, Double *a, Double *r, Double *g, Double *b);
+static Bool get_color(JSContext *c, JSValueConst obj, Double *a, Double *r, Double *g, Double *b);
 
 static void canvas_finalize(JSRuntime *rt, JSValue obj)
 {
 	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas_class_id);
 	if (!canvas) return;
 	JS_FreeValueRT(rt, canvas->alpha_cbk);
+	JS_FreeValueRT(rt, canvas->frag_shader);
+	JS_FreeValueRT(rt, canvas->vert_shader);
 
 	if (canvas->owns_data)
 		gf_free(canvas->data);
@@ -125,6 +254,8 @@ static void canvas_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_fu
 	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas_class_id);
 	if (!canvas) return;
 	JS_MarkValue(rt, canvas->alpha_cbk, mark_func);
+	JS_MarkValue(rt, canvas->frag_shader, mark_func);
+	JS_MarkValue(rt, canvas->vert_shader, mark_func);
 }
 
 JSClassDef canvas_class = {
@@ -133,14 +264,63 @@ JSClassDef canvas_class = {
 	.gc_mark = canvas_gc_mark
 };
 
+static void canvas3d_finalize(JSRuntime *rt, JSValue obj)
+{
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas3d_class_id);
+	if (!canvas) return;
+	JS_FreeValueRT(rt, canvas->alpha_cbk);
+	JS_FreeValueRT(rt, canvas->frag_shader);
+	JS_FreeValueRT(rt, canvas->vert_shader);
+	JS_FreeValueRT(rt, canvas->frag_obj);
+	JS_FreeValueRT(rt, canvas->vert_obj);
+
+	if (canvas->owns_data)
+		gf_free(canvas->data);
+	if (canvas->surface)
+		gf_evg_surface_delete(canvas->surface);
+	gf_free(canvas);
+}
+
+static void canvas3d_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
+{
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas3d_class_id);
+	if (!canvas) return;
+	JS_MarkValue(rt, canvas->alpha_cbk, mark_func);
+	JS_MarkValue(rt, canvas->frag_shader, mark_func);
+	JS_MarkValue(rt, canvas->vert_shader, mark_func);
+	JS_MarkValue(rt, canvas->frag_obj, mark_func);
+	JS_MarkValue(rt, canvas->vert_obj, mark_func);
+}
+
+JSClassDef canvas3d_class = {
+	"Canvas3D",
+	.finalizer = canvas3d_finalize,
+	.gc_mark = canvas3d_gc_mark
+};
+
 enum
 {
 	GF_EVG_CENTERED = 0,
 	GF_EVG_PATH,
 	GF_EVG_MATRIX,
+	GF_EVG_MATRIX_3D,
 	GF_EVG_CLIPPER,
 	GF_EVG_COMPOSITE_OP,
 	GF_EVG_ALPHA_FUN,
+	GF_EVG_FRAG_SHADER,
+	GF_EVG_VERT_SHADER,
+	GF_EVG_CCW,
+	GF_EVG_BACKCULL,
+	GF_EVG_MINDEPTH,
+	GF_EVG_MAXDEPTH,
+	GF_EVG_DEPTHTEST,
+	GF_EVG_ANTIALIAS,
+	GF_EVG_POINTSIZE,
+	GF_EVG_POINTSMOOTH,
+	GF_EVG_LINESIZE,
+	GF_EVG_CLIP_ZERO,
+	GF_EVG_DEPTH_TEST,
+	GF_EVG_WRITE_DEPTH,
 };
 
 u8 evg_get_alpha(void *cbk, u8 src_alpha, s32 x, s32 y)
@@ -157,7 +337,7 @@ u8 evg_get_alpha(void *cbk, u8 src_alpha, s32 x, s32 y)
 
 }
 
-static JSValue canvas_constructor(JSContext *c, JSValueConst new_target, int argc, JSValueConst *argv)
+static JSValue canvas_constructor_internal(JSContext *c, JSValueConst new_target, int argc, JSValueConst *argv, Bool is_3d)
 {
 	u32 width, height, pf=0, osize;
 	size_t data_size=0;
@@ -221,6 +401,10 @@ static JSValue canvas_constructor(JSContext *c, JSValueConst new_target, int arg
 	canvas->pf = pf;
 	canvas->stride = stride;
 	canvas->alpha_cbk = JS_UNDEFINED;
+	canvas->frag_shader = JS_UNDEFINED;
+	canvas->vert_shader = JS_UNDEFINED;
+	canvas->frag_obj = JS_UNDEFINED;
+	canvas->vert_obj = JS_UNDEFINED;
 	canvas->ctx = c;
 	if (data) {
 		canvas->data = data;
@@ -229,8 +413,16 @@ static JSValue canvas_constructor(JSContext *c, JSValueConst new_target, int arg
 		canvas->data = gf_malloc(sizeof(u8)*osize);
 		canvas->owns_data = GF_TRUE;
 	}
-	canvas->surface = gf_evg_surface_new(GF_TRUE);
-	canvas->center_coords = GF_TRUE;
+	if (is_3d) {
+		canvas->surface = gf_evg_surface3d_new();
+		canvas->frag_obj = JS_NewObjectClass(c, fragment_class_id);
+		JS_SetOpaque(canvas->frag_obj, NULL);
+		canvas->vert_obj = JS_NewObjectClass(c, vertex_class_id);
+		JS_SetOpaque(canvas->vert_obj, NULL);
+	} else {
+		canvas->surface = gf_evg_surface_new(GF_TRUE);
+		canvas->center_coords = GF_TRUE;
+	}
 	if (!canvas->surface)
 		e = GF_BAD_PARAM;
 	else
@@ -241,12 +433,18 @@ static JSValue canvas_constructor(JSContext *c, JSValueConst new_target, int arg
 		gf_free(canvas);
 		return JS_EXCEPTION;
 	}
-	canvas->obj = JS_NewObjectClass(c, canvas_class_id);
+	canvas->obj = JS_NewObjectClass(c, is_3d ? canvas3d_class_id : canvas_class_id);
 	if (JS_IsException(canvas->obj)) return canvas->obj;
 
 	JS_SetOpaque(canvas->obj, canvas);
 	return canvas->obj;
 }
+
+static JSValue canvas_constructor(JSContext *c, JSValueConst new_target, int argc, JSValueConst *argv)
+{
+	return canvas_constructor_internal(c, new_target, argc, argv, GF_FALSE);
+}
+
 static JSValue canvas_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
 	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas_class_id);
@@ -314,6 +512,14 @@ static JSValue canvas_setProperty(JSContext *c, JSValueConst obj, JSValueConst v
 		}
 		return JS_UNDEFINED;
 
+	case GF_EVG_MATRIX_3D:
+		if (JS_IsNull(value)) {
+			gf_evg_surface_set_matrix(canvas->surface, NULL);
+		} else {
+			GF_Matrix *mx = JS_GetOpaque(value, matrix_class_id);
+			gf_evg_surface_set_matrix_3d(canvas->surface, mx);
+		}
+		return JS_UNDEFINED;
 	case GF_EVG_CLIPPER:
 		if (JS_IsNull(value)) {
 			gf_evg_surface_set_clipper(canvas->surface, NULL);
@@ -342,7 +548,7 @@ static JSValue canvas_setProperty(JSContext *c, JSValueConst obj, JSValueConst v
 }
 
 
-static JSValue canvas_clear_ex(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, Bool use_float)
+static JSValue canvas_clear_ex(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, Bool use_float, Bool is_3d)
 {
 	s32 i;
 	s32 idx=0;
@@ -350,7 +556,7 @@ static JSValue canvas_clear_ex(JSContext *c, JSValueConst obj, int argc, JSValue
 	GF_IRect rc, *irc;
 	u32 r=0, g=0, b=0, a=255;
 	GF_Color col;
-	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas_class_id);
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, is_3d ? canvas3d_class_id : canvas_class_id);
 	if (!canvas)
 		return JS_EXCEPTION;
 
@@ -395,18 +601,18 @@ static JSValue canvas_clear_ex(JSContext *c, JSValueConst obj, int argc, JSValue
 }
 static JSValue canvas_clear(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	return canvas_clear_ex(c, obj, argc, argv, GF_FALSE);
+	return canvas_clear_ex(c, obj, argc, argv, GF_FALSE, GF_FALSE);
 }
 static JSValue canvas_clearf(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	return canvas_clear_ex(c, obj, argc, argv, GF_TRUE);
+	return canvas_clear_ex(c, obj, argc, argv, GF_TRUE, GF_FALSE);
 }
-static JSValue canvas_reassign(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+static JSValue canvas_reassign_ex(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, Bool is_3d)
 {
 	GF_Err e;
 	u8 *data;
 	size_t data_size=0;
-	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas_class_id);
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, is_3d ? canvas3d_class_id : canvas_class_id);
 	if (!canvas || !argc) return JS_EXCEPTION;
 	if (!JS_IsObject(argv[0])) return JS_EXCEPTION;
 
@@ -426,6 +632,10 @@ static JSValue canvas_reassign(JSContext *c, JSValueConst obj, int argc, JSValue
 	return JS_UNDEFINED;
 }
 
+static JSValue canvas_reassign(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return canvas_reassign_ex(c, obj, argc, argv, GF_FALSE);
+}
 
 static JSValue canvas_fill(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
@@ -452,6 +662,7 @@ static const JSCFunctionListEntry canvas_funcs[] =
 	JS_CGETSET_MAGIC_DEF("path", NULL, canvas_setProperty, GF_EVG_PATH),
 	JS_CGETSET_MAGIC_DEF("clipper", NULL, canvas_setProperty, GF_EVG_CLIPPER),
 	JS_CGETSET_MAGIC_DEF("matrix", NULL, canvas_setProperty, GF_EVG_MATRIX),
+	JS_CGETSET_MAGIC_DEF("matrix3d", NULL, canvas_setProperty, GF_EVG_MATRIX_3D),
 	JS_CGETSET_MAGIC_DEF("compositeOperation", canvas_getProperty, canvas_setProperty, GF_EVG_COMPOSITE_OP),
 	JS_CGETSET_MAGIC_DEF("on_alpha", canvas_getProperty, canvas_setProperty, GF_EVG_ALPHA_FUN),
 	JS_CFUNC_DEF("clear", 0, canvas_clear),
@@ -459,6 +670,1633 @@ static const JSCFunctionListEntry canvas_funcs[] =
 	JS_CFUNC_DEF("fill", 0, canvas_fill),
 	JS_CFUNC_DEF("reassign", 0, canvas_reassign),
 };
+
+
+static JSValue canvas3d_clear(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return canvas_clear_ex(c, obj, argc, argv, GF_FALSE, GF_TRUE);
+}
+static JSValue canvas3d_clearf(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return canvas_clear_ex(c, obj, argc, argv, GF_TRUE, GF_TRUE);
+}
+static JSValue canvas3d_reassign(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return canvas_reassign_ex(c, obj, argc, argv, GF_TRUE);
+}
+
+Bool vai_call_lerp(EVG_VAI *vai, GF_EVGFragmentParam *frag);
+
+
+static Bool evg_frag_shader_fun(void *udta, GF_EVGFragmentParam *frag)
+{
+	Bool frag_valid;
+	JSValue res;
+	GF_JSCanvas *canvas = (GF_JSCanvas *)udta;
+	if (!canvas) return GF_FALSE;
+
+	JS_SetOpaque(canvas->frag_obj, frag);
+	res = JS_Call(canvas->ctx, canvas->frag_shader, canvas->obj, 1, &canvas->frag_obj);
+	frag_valid = frag->frag_valid ? 1 : 0;
+	if (JS_IsException(res)) frag_valid = GF_FALSE;
+	else if (!JS_IsUndefined(res)) frag_valid = JS_ToBool(canvas->ctx, res) ? GF_TRUE : GF_FALSE;
+	JS_FreeValue(canvas->ctx, res);
+	return frag_valid;
+}
+
+static Bool evg_vert_shader_fun(void *udta, GF_EVGVertexParam *vertex)
+{
+	Bool vert_valid=GF_TRUE;
+	JSValue res;
+	GF_JSCanvas *canvas = (GF_JSCanvas *)udta;
+	if (!canvas) return GF_FALSE;
+
+	JS_SetOpaque(canvas->vert_obj, vertex);
+	res = JS_Call(canvas->ctx, canvas->frag_shader, canvas->obj, 1, &canvas->vert_obj);
+	if (JS_IsException(res)) vert_valid = GF_FALSE;
+	else if (!JS_IsUndefined(res)) vert_valid = JS_ToBool(canvas->ctx, res) ? GF_TRUE : GF_FALSE;
+	JS_FreeValue(canvas->ctx, res);
+	return vert_valid;
+}
+static JSValue canvas3d_getProperty(JSContext *c, JSValueConst obj, int magic)
+{
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas3d_class_id);
+	if (!canvas) return JS_EXCEPTION;
+	switch (magic) {
+	case GF_EVG_FRAG_SHADER: return JS_DupValue(c, canvas->frag_shader);
+	case GF_EVG_VERT_SHADER: return JS_DupValue(c, canvas->vert_shader);
+	}
+	return JS_UNDEFINED;
+}
+
+static Bool evg_frag_shader_ops(void *udta, GF_EVGFragmentParam *frag);
+static Bool evg_vert_shader_ops(void *udta, GF_EVGVertexParam *frag);
+
+static JSValue canvas3d_setProperty(JSContext *ctx, JSValueConst obj, JSValueConst value, int magic)
+{
+	Float f;
+	s32 ival;
+	GF_Err e = GF_OK;
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas3d_class_id);
+	if (!canvas) return JS_EXCEPTION;
+	switch (magic) {
+	case GF_EVG_CLIPPER:
+		if (JS_IsNull(value)) {
+			e = gf_evg_surface_set_clipper(canvas->surface, NULL);
+		} else {
+			GF_IRect rc;
+			canvas_get_irect(ctx, value, &rc);
+			e = gf_evg_surface_set_clipper(canvas->surface, &rc);
+		}
+		break;
+	case GF_EVG_FRAG_SHADER:
+		JS_FreeValue(ctx, canvas->frag_shader);
+		canvas->frag_shader = JS_UNDEFINED;
+		canvas->frag = NULL;
+		if (JS_IsNull(value)) {
+			canvas->frag_shader = JS_UNDEFINED;
+			e = gf_evg_surface_set_fragment_shader(canvas->surface, NULL, NULL);
+		} else if (JS_IsFunction(ctx, value)) {
+			canvas->frag_shader = JS_DupValue(ctx, value);
+			e = gf_evg_surface_set_fragment_shader(canvas->surface, evg_frag_shader_fun, canvas);
+		} else if (JS_IsObject(value)) {
+			canvas->frag = JS_GetOpaque(value, shader_class_id);
+			if (!canvas->frag || (canvas->frag->mode != GF_EVG_SHADER_FRAGMENT))
+				return js_throw_err_msg(ctx, GF_BAD_PARAM, "Invalid fragment shader object");
+			canvas->frag_shader = JS_DupValue(ctx, value);
+			e = gf_evg_surface_set_fragment_shader(canvas->surface, evg_frag_shader_ops, canvas);
+			if (!e) e = gf_evg_surface_disable_early_depth(canvas->surface, canvas->frag->disable_early_z);
+		} else {
+			canvas->frag_shader = JS_UNDEFINED;
+			e = gf_evg_surface_set_fragment_shader(canvas->surface, NULL, NULL);
+		}
+		break;
+	case GF_EVG_VERT_SHADER:
+		JS_FreeValue(ctx, canvas->vert_shader);
+		canvas->vert_shader = JS_UNDEFINED;
+		canvas->vert = NULL;
+		if (JS_IsNull(value)) {
+			canvas->vert_shader = JS_UNDEFINED;
+			e = gf_evg_surface_set_vertex_shader(canvas->surface, NULL, NULL);
+		} else if (JS_IsFunction(ctx, value)) {
+			canvas->vert_shader = JS_DupValue(ctx, value);
+			e = gf_evg_surface_set_vertex_shader(canvas->surface, evg_vert_shader_fun, canvas);
+		} else if (JS_IsObject(value)) {
+			canvas->vert = JS_GetOpaque(value, shader_class_id);
+			if (!canvas->vert || (canvas->vert->mode != GF_EVG_SHADER_VERTEX))
+				return js_throw_err_msg(ctx, GF_BAD_PARAM, "Invalid fragment shader object");
+			canvas->vert_shader = JS_DupValue(ctx, value);
+			e = gf_evg_surface_set_vertex_shader(canvas->surface, evg_vert_shader_ops, canvas);
+		} else {
+			canvas->frag_shader = JS_UNDEFINED;
+			e = gf_evg_surface_set_fragment_shader(canvas->surface, NULL, NULL);
+		}
+		break;
+	case GF_EVG_CCW:
+		e = gf_evg_surface_set_ccw(canvas->surface, JS_ToBool(ctx, value) );
+		break;
+	case GF_EVG_BACKCULL:
+		e = gf_evg_surface_set_backcull(canvas->surface, JS_ToBool(ctx, value) );
+		break;
+	case GF_EVG_ANTIALIAS:
+		e = gf_evg_surface_set_antialias(canvas->surface, JS_ToBool(ctx, value) );
+		break;
+	case GF_EVG_MINDEPTH:
+		EVG_GET_FLOAT(f, value);
+		e = gf_evg_surface_set_min_depth(canvas->surface, f);
+		break;
+	case GF_EVG_MAXDEPTH:
+		EVG_GET_FLOAT(f, value);
+		e = gf_evg_surface_set_max_depth(canvas->surface, f);
+		break;
+	case GF_EVG_DEPTHTEST:
+		if (JS_ToInt32(ctx, &ival, value))
+			return js_throw_err(ctx, GF_BAD_PARAM);
+		e = gf_evg_surface_set_max_depth(canvas->surface, ival);
+		break;
+	case GF_EVG_POINTSIZE:
+		EVG_GET_FLOAT(f, value);
+		e = gf_evg_surface_set_point_size(canvas->surface, f);
+		break;
+	case GF_EVG_POINTSMOOTH:
+		e = gf_evg_surface_set_point_smooth(canvas->surface, JS_ToBool(ctx, value) );
+		break;
+	case GF_EVG_LINESIZE:
+		EVG_GET_FLOAT(f, value);
+		e = gf_evg_surface_set_point_size(canvas->surface, f);
+		break;
+	case GF_EVG_CLIP_ZERO:
+		e = gf_evg_surface_set_clip_zero(canvas->surface, JS_ToBool(ctx, value) ? GF_TRUE : GF_FALSE);
+		break;
+	case GF_EVG_DEPTH_TEST:
+		if (JS_ToInt32(ctx, &ival, value)) return JS_EXCEPTION;
+		e = gf_evg_set_depth_test(canvas->surface, ival);
+		break;
+	case GF_EVG_WRITE_DEPTH:
+		e = gf_evg_surface_write_depth(canvas->surface, JS_ToBool(ctx, value) ? GF_TRUE : GF_FALSE);
+		break;
+	}
+	if (e) return js_throw_err(ctx, e);
+
+	return JS_UNDEFINED;
+}
+
+static JSValue canvas3d_set_matrix(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, Bool is_proj)
+{
+	GF_Err e;
+	GF_Matrix mx;
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas3d_class_id);
+	if (!canvas) return JS_EXCEPTION;
+
+	gf_mx_init(mx);
+	if (argc) {
+		if (JS_IsArray(c, argv[0])) {
+			u32 i, len=0;
+			JSValue v = JS_GetPropertyStr(c, argv[0], "length");
+			JS_ToInt32(c, &len, v);
+			JS_FreeValue(c, v);
+			if (len < 16) return JS_EXCEPTION;
+			for (i=0; i<16; i++) {
+				Double val=0;
+				JSValue v = JS_GetPropertyUint32(c, argv[0], i);
+				s32 res = JS_ToFloat64(c, &val, v);
+				JS_FreeValue(c, v);
+				if (res) return JS_EXCEPTION;
+				mx.m[i] =  FLT2FIX(val);
+			}
+		} else {
+			return js_throw_err_msg(c, GF_NOT_SUPPORTED, "only float array currently supported for matrices");
+		}
+	}
+	if (is_proj)
+		e = gf_evg_surface_set_projection(canvas->surface, &mx);
+	else
+		e = gf_evg_surface_set_modelview(canvas->surface, &mx);
+	return e ? JS_EXCEPTION : JS_UNDEFINED;
+}
+static JSValue canvas3d_projection(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return canvas3d_set_matrix(c, obj, argc, argv, GF_TRUE);
+}
+static JSValue canvas3d_modelview(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return canvas3d_set_matrix(c, obj, argc, argv, GF_FALSE);
+}
+
+uint8_t *evg_get_array(JSContext *ctx, JSValueConst obj, u32 *size)
+{
+	JSValue v;
+	/*ArrayBuffer*/
+	size_t psize;
+	uint8_t *res = JS_GetArrayBuffer(ctx, &psize, obj);
+	if (res) {
+		*size = (u32) psize;
+		return res;
+	}
+	/*ArrayView*/
+	v = JS_GetPropertyStr(ctx, obj, "buffer");
+	if (JS_IsUndefined(v)) return NULL;
+	res = JS_GetArrayBuffer(ctx, &psize, v);
+	JS_FreeValue(ctx, v);
+	*size = (u32) psize;
+	return res;
+}
+static JSValue canvas3d_draw_array(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	uint8_t *indices=NULL;
+	uint8_t *vertices=NULL;
+	u32 idx_size, vx_size, nb_comp=3;
+	GF_Err e;
+	GF_EVGPrimitiveType prim_type=GF_EVG_TRIANGLES;
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas3d_class_id);
+	if (!canvas || argc<2) return JS_EXCEPTION;
+
+	indices = evg_get_array(c, argv[0], &idx_size);
+	vertices = evg_get_array(c, argv[1], &vx_size);
+	if (!indices || ! vertices) return JS_EXCEPTION;
+	if (argc>2) {
+		JS_ToInt32(c, (s32 *)&prim_type, argv[2]);
+		if (!prim_type) return JS_EXCEPTION;
+		if (argc>3) {
+			JS_ToInt32(c, &nb_comp, argv[3]);
+			if ((nb_comp<2) || (nb_comp>4)) return JS_EXCEPTION;
+		}
+	}
+	if (vx_size % nb_comp)
+		return JS_EXCEPTION;
+	idx_size /= sizeof(s32);
+	vx_size /= sizeof(Float);
+	e = gf_evg_surface_draw_array(canvas->surface, (u32 *)indices, idx_size, (Float *)vertices, vx_size, nb_comp, prim_type);
+	if (e) return JS_EXCEPTION;
+
+	return JS_UNDEFINED;
+}
+
+static void text_update_path(GF_JSText *txt, Bool for_centered);
+
+static JSValue canvas3d_draw_path(JSContext *ctx, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	GF_Err e = GF_OK;
+	Float z = 0;
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas3d_class_id);
+	if (!canvas || argc<1) return JS_EXCEPTION;
+	if (argc>1) {
+		EVG_GET_FLOAT(z, argv[1]);
+	}
+
+	GF_Path *gp = JS_GetOpaque(argv[0], path_class_id);
+	if (gp) {
+		e = gf_evg_surface_draw_path(canvas->surface, gp, z);
+	} else {
+		GF_JSText *text = JS_GetOpaque(argv[0], text_class_id);
+		if (text) {
+			text_update_path(text, GF_TRUE);
+			e = gf_evg_surface_draw_path(canvas->surface, text->path, z);
+		}
+	}
+	if (e) return js_throw_err(ctx, e);
+	return JS_UNDEFINED;
+}
+static JSValue canvas3d_clear_depth(JSContext *ctx, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	GF_Err e;
+	Float depth = 1.0;
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas3d_class_id);
+	if (!canvas) return JS_EXCEPTION;
+	if (argc)
+		EVG_GET_FLOAT(depth, argv[0]);
+
+	e = gf_evg_surface_clear_depth(canvas->surface, depth);
+	if (e) return JS_EXCEPTION;
+	return JS_UNDEFINED;
+}
+static JSValue canvas3d_viewport(JSContext *ctx, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	s32 x, y, w, h;
+	GF_Err e;
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas3d_class_id);
+	if (!canvas) return JS_EXCEPTION;
+	if (argc) {
+		if (argc<4) return js_throw_err(ctx, GF_BAD_PARAM);
+		if (JS_ToInt32(ctx, &x, argv[0])) return js_throw_err(ctx, GF_BAD_PARAM);;
+		if (JS_ToInt32(ctx, &y, argv[1])) return js_throw_err(ctx, GF_BAD_PARAM);;
+		if (JS_ToInt32(ctx, &w, argv[2])) return js_throw_err(ctx, GF_BAD_PARAM);;
+		if (JS_ToInt32(ctx, &h, argv[3])) return js_throw_err(ctx, GF_BAD_PARAM);;
+	} else {
+		x = y = 0;
+		w = canvas->width;
+		h = canvas->height;
+	}
+	e = gf_evg_surface_viewport(canvas->surface, x, y, w, h);
+	if (e) return JS_EXCEPTION;
+	return JS_UNDEFINED;
+}
+
+
+enum
+{
+	EVG_OP_IF=1,
+	EVG_OP_ELSE,
+	EVG_OP_ELSEIF,
+	EVG_OP_WHILE,
+	EVG_OP_END,
+	EVG_OP_ASSIGN,
+	EVG_OP_ADD,
+	EVG_OP_SUB,
+	EVG_OP_MUL,
+	EVG_OP_DIV,
+	EVG_OP_LESS,
+	EVG_OP_LESS_EQUAL,
+	EVG_OP_GREATER,
+	EVG_OP_GREATER_EQUAL,
+	EVG_OP_EQUAL,
+	EVG_OP_NOT_EQUAL,
+	EVG_OP_SAMPLER,
+	EVG_OP_SAMPLER_ARGB,
+
+
+	EVG_FIRST_VAR_ID
+};
+
+enum
+{
+	VAR_FRAG_COLOR=1,
+	VAR_FRAG_COLOR_ARGB,
+	VAR_FRAG_X,
+	VAR_FRAG_Y,
+	VAR_FRAG_DEPTH,
+	VAR_FRAG_W,
+	VAR_UNIFORM,
+	VAR_VERTEX_IN,
+	VAR_VERTEX_OUT,
+	VAR_VAI,
+	VAR_MATRIX,
+};
+
+/*
+
+*/
+
+static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGVertexParam *vert)
+{
+	u32 i, dim;
+	GF_Vec4 tmpl, tmpr;
+	GF_Vec4 *left_val, *right_val;
+	u32 if_level=0;
+	u32 nif_level=0;
+	u32 col;
+	Bool cond_res;
+
+	for (i=0; i<shader->nb_ops; i++) {
+		u32 next_idx, idx;
+		Bool has_next;
+		u8 right_val_type, left_val_type;
+		u8 *left_val_type_ptr=NULL;
+		ShaderOp *op = &shader->ops[i];
+
+		if (op->op_type==EVG_OP_ELSE) {
+			if (nif_level) {
+				if (nif_level==1) {
+					nif_level=0;
+					if_level++;
+				}
+			} else if (if_level) {
+				if_level--;
+				nif_level++;
+			}
+			continue;
+		}
+		if (op->op_type==EVG_OP_END) {
+			assert(nif_level || if_level);
+			if (nif_level) nif_level--;
+			else if (if_level) if_level--;
+			continue;
+		}
+		if (nif_level) {
+			if (op->op_type==EVG_OP_IF) {
+				nif_level++;
+			}
+			continue;
+		}
+
+		dim=4;
+		if (op->left_value==VAR_FRAG_COLOR) {
+			assert(frag);
+			left_val = &frag->color;
+			left_val_type = COMP_V4;
+			frag->color_type = 0;
+		} else if (op->left_value==VAR_FRAG_COLOR_ARGB) {
+			assert(frag);
+			left_val = (GF_Vec4 *) &frag->color_argb;
+			left_val_type = COMP_INT;
+			frag->color_type = 1;
+		} else if (op->left_value==VAR_FRAG_X) {
+			assert(frag);
+			left_val = &tmpl;
+			tmpl.x = frag->screen_x;
+			left_val_type = COMP_FLOAT;
+		} else if (op->left_value==VAR_FRAG_Y) {
+			assert(frag);
+			left_val = &tmpl;
+			tmpl.x = frag->screen_y;
+			left_val_type = COMP_FLOAT;
+		} else if (op->left_value==VAR_FRAG_W) {
+			assert(frag);
+			left_val = &tmpl;
+			tmpl.x = frag->persp_denum;
+			left_val_type = COMP_FLOAT;
+		} else if (op->left_value==VAR_FRAG_DEPTH) {
+			assert(frag);
+			left_val = (GF_Vec4 *) &frag->depth;
+			left_val_type = COMP_FLOAT;
+		} else if (op->left_value==VAR_VERTEX_IN) {
+			assert(vert);
+			left_val = (GF_Vec4 *) &vert->in_vertex;
+			left_val_type = COMP_V4;
+		} else if (op->left_value==VAR_VERTEX_OUT) {
+			assert(vert);
+			left_val = (GF_Vec4 *) &vert->out_vertex;
+			left_val_type = COMP_V4;
+		} else if (op->left_value==VAR_VAI) {
+			assert(vert);
+			left_val = (GF_Vec4 *) &op->vai.vai->anchors[vert->vertex_idx_in_prim];
+			left_val_type = COMP_V4;
+		} else {
+			assert(op->left_value > EVG_FIRST_VAR_ID);
+			left_val = &shader->vars[op->left_value - EVG_FIRST_VAR_ID-1].vecval;
+			left_val_type = shader->vars[op->left_value - EVG_FIRST_VAR_ID-1].value_type;
+			left_val_type_ptr = & shader->vars[op->left_value - EVG_FIRST_VAR_ID-1].value_type;
+		}
+
+		if (op->right_value>EVG_FIRST_VAR_ID) {
+			right_val = &shader->vars[op->right_value - EVG_FIRST_VAR_ID-1].vecval;
+			right_val_type = shader->vars[op->right_value - EVG_FIRST_VAR_ID-1].value_type;
+		} else if ((op->right_value==VAR_VAI) && op->vai.vai) {
+			assert(frag);
+			vai_call_lerp(op->vai.vai, frag);
+			dim = MIN(4, op->vai.vai->result.dim);
+			right_val = (GF_Vec4 *) &op->vai.vai->result.values[0];
+			right_val_type = op->vai.vai->result.comp_type;
+		} else if ((op->right_value==VAR_MATRIX) && op->mx.mx) {
+			if (op->op_type==EVG_OP_MUL) {
+				gf_mx_apply_vec_4x4(op->mx.mx, left_val);
+				continue;
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Shader] Invalid operation for right value matrix\n"));
+			shader->invalid = GF_TRUE;
+			return GF_FALSE;
+		} else if (op->right_value==VAR_FRAG_COLOR) {
+			assert(frag);
+			right_val = &frag->color;
+			right_val_type = COMP_V4;
+		} else if (op->right_value==VAR_FRAG_X) {
+			assert(frag);
+			right_val = &tmpr;
+			tmpr.x = frag->screen_x;
+			right_val_type = COMP_FLOAT;
+		} else if (op->right_value==VAR_FRAG_Y) {
+			assert(frag);
+			right_val = &tmpr;
+			tmpr.x = frag->screen_y;
+			right_val_type = COMP_FLOAT;
+		} else if (op->right_value==VAR_FRAG_W) {
+			assert(frag);
+			right_val = &tmpr;
+			tmpr.x = frag->persp_denum;
+			right_val_type = COMP_FLOAT;
+		} else if (op->right_value==VAR_FRAG_DEPTH) {
+			assert(frag);
+			right_val = &tmpr;
+			tmpr.x = frag->depth;
+			right_val_type = COMP_FLOAT;
+		} else if (op->right_value==VAR_VERTEX_IN) {
+			assert(vert);
+			right_val = &vert->in_vertex;
+			right_val_type = COMP_V4;
+		} else if (op->right_value==VAR_VERTEX_OUT) {
+			assert(vert);
+			right_val = &vert->out_vertex;
+			right_val_type = COMP_V4;
+		} else if (!op->right_value || (op->right_value==VAR_UNIFORM) ) {
+			right_val = (GF_Vec4 *) &op->vec[0];
+			right_val_type = op->right_value_type;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Shader] Invalid right-value in operation %d\n", i));
+			shader->invalid = GF_TRUE;
+			return GF_FALSE;
+		}
+		if (!right_val_type) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Shader] Invalid right-value type in operation %d\n", i));
+			shader->invalid = GF_TRUE;
+			return GF_FALSE;
+		}
+
+
+		switch (op->op_type) {
+		case EVG_OP_ASSIGN:
+			//full assignment
+			if (op->left_value_type==COMP_V4) {
+				if (left_val_type_ptr) {
+					left_val_type = *left_val_type_ptr = right_val_type;
+				}
+
+				if (right_val_type==COMP_BOOL) {
+					if (left_val_type_ptr) {
+						*((Bool *) left_val) = *((Bool *) right_val) ? GF_TRUE : GF_FALSE;
+					} else {
+						left_val->x = *(Bool *) right_val ? 1.0 : 0.0;
+						left_val->y = left_val->z = left_val->q = left_val->x;
+					}
+				} else if (right_val_type==COMP_INT) {
+					if (left_val_type_ptr || (left_val_type==COMP_INT)) {
+						*((s32 *) left_val) = *(s32 *) right_val;
+					} else {
+						left_val->x = (Float) *(s32 *) right_val;
+						left_val->y = left_val->z = left_val->q = left_val->x;
+					}
+				} else if (right_val_type==COMP_FLOAT) {
+					if (left_val_type_ptr) {
+						*((Float *) left_val) = *(Float *) right_val;
+					} else {
+						left_val->x = *(Float *) right_val;
+						left_val->y = left_val->z = left_val->q = left_val->x;
+					}
+				} else if (right_val_type==COMP_V4) {
+					*left_val = *right_val;
+					if (dim<4) left_val->q = 1.0;
+				} else {
+					Float *srcs = (Float *) &right_val->x;
+#define GET_FIRST_COMP\
+					idx=0;\
+					while (1) {\
+						if (op->right_value_type & (1<<idx))\
+							break;\
+						if (idx==3)\
+							break;\
+						idx++;\
+					}\
+
+#define GET_NEXT_COMP\
+					has_next = GF_FALSE;\
+					next_idx = idx;\
+					while (1) {\
+						if (next_idx==3)\
+							break;\
+						if (op->right_value_type & (1<< (next_idx+1)) ) {\
+							has_next = GF_TRUE;\
+							next_idx = idx+1;\
+							break;\
+						}\
+						next_idx++;\
+					}\
+					if (has_next) idx = next_idx;\
+
+					GET_FIRST_COMP
+					if (left_val_type & COMP_X) { left_val->x = srcs[idx]; GET_NEXT_COMP }
+					if (left_val_type & COMP_Y) { left_val->y = srcs[idx]; GET_NEXT_COMP }
+					if (left_val_type & COMP_Z) { left_val->z = srcs[idx]; GET_NEXT_COMP }
+					if (dim<4) left_val->q = 1.0;
+					else if (left_val_type & COMP_Q) { left_val->q = srcs[idx]; }
+				}
+			}
+			//partial assignment, only valid for float sources
+			else {
+				Bool use_const = GF_FALSE;
+				Float cval;
+				if (right_val_type==COMP_FLOAT) {
+					use_const = GF_TRUE;
+					cval = right_val->x;
+				} else if (right_val_type==COMP_INT) {
+					use_const = GF_TRUE;
+					cval = (Float) ( *(s32*)right_val);
+				}
+				if (use_const) {
+					if (op->left_value_type & COMP_X) left_val->x = cval;
+					if (op->left_value_type & COMP_Y) left_val->y = cval;
+					if (op->left_value_type & COMP_Z) left_val->z = cval;
+					if (op->left_value_type & COMP_Q) left_val->q = cval;
+				} else {
+					Float *srcs = (Float *) &right_val->x;
+
+					GET_FIRST_COMP
+					if (op->left_value_type & COMP_X) { left_val->x = srcs[idx]; GET_NEXT_COMP }
+					if (op->left_value_type & COMP_Y) { left_val->y = srcs[idx]; GET_NEXT_COMP }
+					if (op->left_value_type & COMP_Z) { left_val->z = srcs[idx]; GET_NEXT_COMP }
+					if (op->left_value_type & COMP_Q) { left_val->q = srcs[idx]; }
+				}
+			}
+			break;
+
+#define BASE_OP(_opv, _opv2)\
+			if (op->left_value_type==COMP_V4) {\
+				if (right_val_type==COMP_INT) {\
+					if (left_val_type == COMP_INT) {\
+						*((s32 *) left_val) _opv *(s32 *) right_val;\
+					} else if (left_val_type == COMP_FLOAT) {\
+						left_val->x _opv *(s32 *) right_val;\
+					} else {\
+						left_val->x _opv *(s32 *) right_val;\
+						left_val->y _opv *(s32 *) right_val;\
+						left_val->z _opv *(s32 *) right_val;\
+						left_val->q _opv *(s32 *) right_val;\
+					}\
+				} else if (right_val_type==COMP_FLOAT) {\
+					if (left_val_type == COMP_INT) {\
+						left_val->x = *((s32 *) left_val) _opv2 right_val->x;\
+						*left_val_type_ptr = COMP_FLOAT;\
+					} else if (left_val_type == COMP_FLOAT) {\
+						left_val->x _opv right_val->x;\
+					} else {\
+						left_val->x _opv right_val->x;\
+						left_val->y _opv right_val->x;\
+						left_val->z _opv right_val->x;\
+						left_val->q _opv right_val->x;\
+					}\
+				} else if (right_val_type==COMP_BOOL) {\
+				} else {\
+					Float *srcs = (Float *) &right_val->x;\
+					GET_FIRST_COMP\
+					if (left_val_type & COMP_X) { left_val->x _opv srcs[idx]; GET_NEXT_COMP } \
+					if (left_val_type & COMP_Y) { left_val->y _opv srcs[idx]; GET_NEXT_COMP } \
+					if (left_val_type & COMP_Z) { left_val->z _opv srcs[idx]; GET_NEXT_COMP } \
+					if (left_val_type & COMP_Q) { left_val->q _opv srcs[idx]; }\
+				}\
+			}\
+			else {\
+				Bool use_const = GF_FALSE;\
+				Float cval;\
+				if (right_val_type==COMP_FLOAT) {\
+					use_const = GF_TRUE;\
+					cval = right_val->x;\
+				} else if (right_val_type==COMP_INT) {\
+					use_const = GF_TRUE;\
+					cval = (Float) ( *(s32*)right_val);\
+				}\
+				if (use_const) {\
+					if (op->left_value_type & COMP_X) left_val->x _opv cval;\
+					if (op->left_value_type & COMP_Y) left_val->y _opv cval;\
+					if (op->left_value_type & COMP_Z) left_val->z _opv cval;\
+					if (op->left_value_type & COMP_Q) left_val->q _opv cval;\
+				} else {\
+					Float *srcs = (Float *) &right_val->x;\
+					GET_FIRST_COMP\
+					if (op->left_value_type & COMP_X) { left_val->x _opv srcs[idx]; GET_NEXT_COMP }\
+					if (op->left_value_type & COMP_Y) { left_val->y _opv srcs[idx]; GET_NEXT_COMP }\
+					if (op->left_value_type & COMP_Z) { left_val->z _opv srcs[idx]; GET_NEXT_COMP }\
+					if (op->left_value_type & COMP_Q) left_val->q _opv srcs[idx];\
+				}\
+			}\
+
+		case EVG_OP_MUL:
+			BASE_OP(*=, *)
+			break;
+		case EVG_OP_DIV:
+			BASE_OP(/=, /)
+			break;
+		case EVG_OP_ADD:
+			BASE_OP(+=, +)
+			break;
+		case EVG_OP_SUB:
+			BASE_OP(-=, -)
+			break;
+		case EVG_OP_IF:
+#define BASE_COND(_opv)\
+		cond_res=GF_FALSE;\
+		if (op->left_value_type==COMP_V4) {\
+			if ((right_val_type==COMP_INT) || (right_val_type==COMP_BOOL)) {\
+				if (left_val_type == COMP_INT) {\
+					cond_res = ( *((s32 *) left_val) _opv *(s32 *) right_val) ? GF_TRUE : GF_FALSE;\
+				} else if (left_val_type == COMP_FLOAT) {\
+					cond_res = (left_val->x _opv *(s32 *) right_val) ? GF_TRUE : GF_FALSE;\
+				} else {\
+					cond_res = ( (left_val->x _opv *(s32 *) right_val) && \
+							(left_val->y _opv *(s32 *) right_val) && \
+							(left_val->z _opv *(s32 *) right_val) && \
+							(left_val->q _opv *(s32 *) right_val) ) ? GF_TRUE : GF_FALSE;\
+				}\
+			} else if (right_val_type==COMP_FLOAT) {\
+				if (left_val_type == COMP_INT) {\
+					cond_res = ( *((s32 *) left_val) _opv right_val->x) ? GF_TRUE : GF_FALSE;\
+				} else if (left_val_type == COMP_FLOAT) {\
+					cond_res = (left_val->x _opv right_val->x) ? GF_TRUE : GF_FALSE;\
+				} else {\
+					cond_res = ( (left_val->x _opv right_val->x) &&\
+							(left_val->y _opv right_val->x) &&\
+							(left_val->z _opv right_val->x) && \
+							(left_val->q _opv right_val->x) ) ? GF_TRUE : GF_FALSE;\
+				}\
+			} else {\
+				cond_res=GF_TRUE;\
+				Float *srcs = (Float *) &right_val->x;\
+				GET_FIRST_COMP\
+				if (left_val_type & COMP_X) { if (! (left_val->x _opv srcs[idx]) ) cond_res = GF_FALSE; GET_NEXT_COMP } \
+				if (left_val_type & COMP_Y) { if (! (left_val->y _opv srcs[idx]) ) cond_res = GF_FALSE; GET_NEXT_COMP } \
+				if (left_val_type & COMP_Z) { if (! (left_val->z _opv srcs[idx]) ) cond_res = GF_FALSE; GET_NEXT_COMP } \
+				if (left_val_type & COMP_Q) { if (! (left_val->q _opv srcs[idx]) ) cond_res = GF_FALSE; }\
+			}\
+		}\
+		else {\
+			Bool use_const = GF_FALSE;\
+			Float cval;\
+			if (right_val_type==COMP_FLOAT) {\
+				use_const = GF_TRUE;\
+				cval = right_val->x;\
+			} else if (right_val_type==COMP_INT) {\
+				use_const = GF_TRUE;\
+				cval = (Float) ( *(s32*)right_val);\
+			}\
+			if (use_const) {\
+				cond_res=GF_TRUE;\
+				if (op->left_value_type & COMP_X) if (! (left_val->x _opv cval) ) cond_res=GF_FALSE;\
+				if (op->left_value_type & COMP_Y) if (! (left_val->y _opv cval) ) cond_res=GF_FALSE;\
+				if (op->left_value_type & COMP_Z) if (! (left_val->z _opv cval) ) cond_res=GF_FALSE;\
+				if (op->left_value_type & COMP_Q) if (! (left_val->q _opv cval) ) cond_res=GF_FALSE;\
+			} else {\
+				Float *srcs = (Float *) &right_val->x;\
+				GET_FIRST_COMP\
+				if (op->left_value_type & COMP_X) { if (! (left_val->x _opv srcs[idx]) ) cond_res=GF_FALSE; GET_NEXT_COMP }\
+				if (op->left_value_type & COMP_Y) { if (! (left_val->y _opv srcs[idx]) ) cond_res=GF_FALSE; GET_NEXT_COMP }\
+				if (op->left_value_type & COMP_Z) { if (! (left_val->z _opv srcs[idx]) ) cond_res=GF_FALSE; GET_NEXT_COMP }\
+				if (op->left_value_type & COMP_Q) { if (! (left_val->q _opv srcs[idx]) ) cond_res=GF_FALSE; }\
+			}\
+		}
+
+			if (op->cond_type==EVG_OP_LESS) { BASE_COND(<) }
+			else if (op->cond_type==EVG_OP_LESS_EQUAL) { BASE_COND(<=) }
+			else if (op->cond_type==EVG_OP_GREATER) { BASE_COND(>) }
+			else if (op->cond_type==EVG_OP_GREATER_EQUAL) { BASE_COND(>=) }
+			else if (op->cond_type==EVG_OP_EQUAL) { BASE_COND(==) }
+			else if (op->cond_type==EVG_OP_NOT_EQUAL) { BASE_COND(!=) }
+
+			if (cond_res) if_level++;
+			else nif_level++;
+
+			break;
+
+		case EVG_OP_SAMPLER:
+			assert(op->tx);
+			if (left_val_type_ptr) {
+				left_val_type = *left_val_type_ptr = COMP_V4;
+			}
+			col = gf_evg_stencil_get_pixel_f(op->tx->stencil, right_val->x, right_val->y);
+			if (op->left_value_type & COMP_X) { left_val->x = GF_COL_R(col); left_val->x /= 255; }
+			if (op->left_value_type & COMP_Y) { left_val->y = GF_COL_G(col); left_val->y /= 255; }
+			if (op->left_value_type & COMP_Z) { left_val->z = GF_COL_B(col); left_val->z /= 255; }
+			if (op->left_value_type & COMP_Q) { left_val->q = GF_COL_A(col); left_val->q /= 255; }
+			break;
+
+		case EVG_OP_SAMPLER_ARGB:
+			if (left_val_type_ptr) {
+				*left_val_type_ptr = COMP_INT;
+			}
+			* (u32 *) &left_val->x = gf_evg_stencil_get_pixel_f(op->tx->stencil, right_val->x, right_val->y);
+			break;
+		}
+	}
+	return GF_TRUE;
+}
+
+static Bool evg_frag_shader_ops(void *udta, GF_EVGFragmentParam *frag)
+{
+	GF_JSCanvas *canvas = (GF_JSCanvas *)udta;
+	if (!canvas->frag || canvas->frag->invalid) return GF_FALSE;
+	return evg_shader_ops(canvas->frag, frag, NULL);
+}
+static Bool evg_vert_shader_ops(void *udta, GF_EVGVertexParam *vert)
+{
+	GF_JSCanvas *canvas = (GF_JSCanvas *)udta;
+	if (!canvas->vert || canvas->vert->invalid) return GF_FALSE;
+	return evg_shader_ops(canvas->vert, NULL, vert);
+}
+
+static void shader_reset(JSRuntime *rt, EVGShader *shader)
+{
+	u32 i;
+	for (i=0; i<shader->nb_ops; i++) {
+		if (shader->ops[i].right_value==VAR_VAI) {
+			JS_FreeValueRT(rt, shader->ops[i].vai.ref);
+		}
+		else if (shader->ops[i].right_value==VAR_MATRIX) {
+			JS_FreeValueRT(rt, shader->ops[i].mx.ref);
+		}
+		else if (shader->ops[i].left_value==VAR_VAI) {
+			JS_FreeValueRT(rt, shader->ops[i].vai.ref);
+		}
+		else if (shader->ops[i].left_value==VAR_MATRIX) {
+			JS_FreeValueRT(rt, shader->ops[i].mx.ref);
+		}
+
+		if (shader->ops[i].uni_name) {
+			gf_free(shader->ops[i].uni_name);
+			shader->ops[i].uni_name = NULL;
+		}
+		if (shader->ops[i].op_type==EVG_OP_SAMPLER) {
+			JS_FreeValueRT(rt, shader->ops[i].tx_ref);
+			shader->ops[i].tx_ref = JS_UNDEFINED;
+		}
+		shader->ops[i].right_value = 0;
+	}
+	shader->invalid = GF_FALSE;
+	shader->disable_early_z = GF_FALSE;
+	shader->nb_ops = 0;
+}
+static void shader_finalize(JSRuntime *rt, JSValue obj)
+{
+	EVGShader *shader = JS_GetOpaque(obj, shader_class_id);
+	if (!shader) return;
+	shader_reset(rt, shader);
+	gf_free(shader->ops);
+	gf_free(shader);
+}
+
+static void shader_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
+{
+	u32 i;
+	EVGShader *shader = JS_GetOpaque(obj, shader_class_id);
+	if (!shader) return;
+	for (i=0; i<shader->nb_ops; i++) {
+		JS_MarkValue(rt, shader->ops[i].tx_ref, mark_func);
+		if (shader->ops[i].right_value==VAR_VAI) {
+			JS_MarkValue(rt, shader->ops[i].vai.ref, mark_func);
+		}
+		else if (shader->ops[i].right_value==VAR_MATRIX) {
+			JS_MarkValue(rt, shader->ops[i].mx.ref, mark_func);
+		}
+		else if (shader->ops[i].left_value==VAR_VAI) {
+			JS_MarkValue(rt, shader->ops[i].vai.ref, mark_func);
+		}
+		else if (shader->ops[i].left_value==VAR_MATRIX) {
+			JS_MarkValue(rt, shader->ops[i].mx.ref, mark_func);
+		}
+	}
+}
+
+JSClassDef shader_class = {
+	.class_name = "Shader",
+	.finalizer = shader_finalize,
+	.gc_mark = shader_gc_mark
+};
+
+static u32 get_builtin_var_name(EVGShader *shader, const char *val_name)
+{
+	u32 i;
+	if (shader->mode==GF_EVG_SHADER_FRAGMENT) {
+		if (!strcmp(val_name, "fragColor")) return VAR_FRAG_COLOR;
+		if (!strcmp(val_name, "fragARGB")) return VAR_FRAG_COLOR_ARGB;
+		if (!strcmp(val_name, "fragDepth") || !strcmp(val_name, "fragZ")) return VAR_FRAG_DEPTH;
+		if (!strcmp(val_name, "fragX")) return VAR_FRAG_X;
+		if (!strcmp(val_name, "fragY")) return VAR_FRAG_Y;
+		if (!strcmp(val_name, "fragW")) return VAR_FRAG_W;
+	}
+	if (shader->mode==GF_EVG_SHADER_VERTEX) {
+		if (!strcmp(val_name, "vertex")) return VAR_VERTEX_IN;
+		if (!strcmp(val_name, "vertexOut")) return VAR_VERTEX_OUT;
+	}
+
+	if (val_name[0] == '.') return VAR_UNIFORM;
+
+	for (i=0; i<shader->nb_vars; i++) {
+		if (!strcmp(shader->vars[i].name, val_name)) {
+			return EVG_FIRST_VAR_ID+i+1;
+		}
+	}
+	return 0;
+}
+static u8 get_value_type(const char *comp)
+{
+	if (!strcmp(comp, "x") || !strcmp(comp, "r") || !strcmp(comp, "s")) return COMP_X;
+	if (!strcmp(comp, "y") || !strcmp(comp, "g") || !strcmp(comp, "t")) return COMP_Y;
+	if (!strcmp(comp, "z") || !strcmp(comp, "b")) return COMP_Z;
+	if (!strcmp(comp, "q") || !strcmp(comp, "a")) return COMP_Q;
+	if (!strcmp(comp, "xyz") || !strcmp(comp, "rgb")) return COMP_V3;
+	if (!strcmp(comp, "xy") || !strcmp(comp, "rg") || !strcmp(comp, "st")) return COMP_V2_XY;
+	if (!strcmp(comp, "xz") || !strcmp(comp, "rb")) return COMP_V2_XZ;
+	if (!strcmp(comp, "yz") || !strcmp(comp, "gb")) return COMP_V2_YZ;
+	return COMP_V4;
+}
+
+
+static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	const char *val_name, *arg_str;
+	const char *op_name;
+	char *uni_name=NULL;
+	u32 var_idx=0;
+	u32 left_op_idx=0, right_op_idx=0;
+	u8 left_value_type=COMP_V4, right_value_type=COMP_V4;
+	u8 op_type=0;
+	u8 cond_type=0;
+	ShaderOp new_op;
+	EVGShader *shader = JS_GetOpaque(obj, shader_class_id);
+	if (!shader) return JS_EXCEPTION;
+	shader->invalid = GF_FALSE;
+	if (!argc) {
+		shader_reset(JS_GetRuntime(ctx), shader);
+		return JS_UNDEFINED;
+	}
+
+	memset(&new_op, 0, sizeof(ShaderOp));
+	new_op.op_type = 0;
+	new_op.tx_ref = JS_UNDEFINED;
+
+	if (JS_IsObject(argv[0])) {
+		new_op.vai.vai = JS_GetOpaque(argv[0], vai_class_id);
+		if (!new_op.vai.vai) {
+			shader->invalid = GF_TRUE;
+			return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid left-operand value, must be a VAI");
+		}
+		new_op.vai.ref = JS_DupValue(ctx, argv[0]);
+		left_op_idx = VAR_VAI;
+	} else {
+
+		arg_str = JS_ToCString(ctx, argv[0]);
+		if (!arg_str) {
+			shader->invalid = GF_TRUE;
+			return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid left-operand value, must be a string");
+		}
+		val_name = arg_str;
+		while ((val_name[0]==' ') || (val_name[0]=='\t'))
+			val_name++;
+
+		if (!strcmp(val_name, "if")) {
+			op_type = EVG_OP_IF;
+			JS_FreeCString(ctx, arg_str);
+			arg_str = JS_ToCString(ctx, argv[1]);
+			if (!arg_str) {
+				shader->invalid = GF_TRUE;
+				return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid if first var, must be a string");
+			}
+			var_idx=1;
+			val_name = arg_str;
+		}
+		else if (!strcmp(val_name, "else")) {
+			op_type = EVG_OP_ELSE;
+			JS_FreeCString(ctx, arg_str);
+			goto op_parsed;
+		}
+		else if (!strcmp(val_name, "elseif")) {
+			op_type = EVG_OP_ELSEIF;
+			var_idx=1;
+		}
+		else if (!strcmp(val_name, "while")) op_type = EVG_OP_WHILE;
+		else if (!strcmp(val_name, "end")) {
+			op_type = EVG_OP_END;
+			JS_FreeCString(ctx, arg_str);
+			goto op_parsed;
+		}
+
+		char *sep = strchr(val_name, '.');
+		if (sep) sep[0] = 0;
+		left_op_idx = get_builtin_var_name(shader, val_name);
+		if (!left_op_idx) {
+			if (shader->alloc_vars <= shader->nb_vars) {
+				shader->alloc_vars = shader->nb_vars+1;
+				shader->vars = gf_realloc(shader->vars, sizeof(ShaderVar)*shader->alloc_vars);
+			}
+			shader->vars[shader->nb_vars].name = gf_strdup(val_name);
+			shader->nb_vars++;
+			left_op_idx = EVG_FIRST_VAR_ID + shader->nb_vars;
+		}
+		if (sep) {
+			left_value_type = get_value_type(sep+1);
+			sep[0] = '.';
+		}
+		JS_FreeCString(ctx, arg_str);
+	}
+
+	op_name = JS_ToCString(ctx, argv[var_idx+1]);
+	if (!op_name) {
+		shader->invalid = GF_TRUE;
+		if (uni_name) gf_free(uni_name);
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid operand type, must be a string");
+	}
+	if (!strcmp(op_name, "=")) {
+		op_type = EVG_OP_ASSIGN;
+		if (left_op_idx==VAR_FRAG_DEPTH)
+			shader->disable_early_z = GF_TRUE;
+	} else if (!strcmp(op_name, "+=")) {
+		op_type = EVG_OP_ADD;
+		if (left_op_idx==VAR_FRAG_DEPTH)
+			shader->disable_early_z = GF_TRUE;
+	} else if (!strcmp(op_name, "-=")) {
+		op_type = EVG_OP_SUB;
+		if (left_op_idx==VAR_FRAG_DEPTH)
+			shader->disable_early_z = GF_TRUE;
+	} else if (!strcmp(op_name, "*=")) {
+		op_type = EVG_OP_MUL;
+		if (left_op_idx==VAR_FRAG_DEPTH)
+			shader->disable_early_z = GF_TRUE;
+	} else if (!strcmp(op_name, "/=")) {
+		op_type = EVG_OP_DIV;
+		if (left_op_idx==VAR_FRAG_DEPTH)
+			shader->disable_early_z = GF_TRUE;
+	} else if (!strcmp(op_name, "<")) {
+		cond_type = EVG_OP_LESS;
+	} else if (!strcmp(op_name, "<=")) {
+		cond_type = EVG_OP_LESS_EQUAL;
+	} else if (!strcmp(op_name, ">")) {
+		cond_type = EVG_OP_GREATER;
+	} else if (!strcmp(op_name, ">=")) {
+		cond_type = EVG_OP_GREATER_EQUAL;
+	} else if (!strcmp(op_name, "==")) {
+		cond_type = EVG_OP_EQUAL;
+	} else if (!strcmp(op_name, "!=")) {
+		cond_type = EVG_OP_NOT_EQUAL;
+
+	} else if (!strcmp(op_name, "sampler") || !strcmp(op_name, "samplerARGB")) {
+		new_op.tx = JS_GetOpaque(argv[var_idx+2], texture_class_id);
+		if (!strcmp(op_name, "samplerARGB")) op_type = EVG_OP_SAMPLER_ARGB;
+		else op_type = EVG_OP_SAMPLER;
+		if (!new_op.tx) {
+			JS_FreeCString(ctx, val_name);
+			shader->invalid = GF_TRUE;
+			if (uni_name) gf_free(uni_name);
+			return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid texture object for 2D sampler");
+		}
+		new_op.tx_ref = argv[var_idx+2];
+		var_idx++;
+	} else {
+		JS_FreeCString(ctx, val_name);
+		shader->invalid = GF_TRUE;
+		if (uni_name) gf_free(uni_name);
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid operand type, must be a string");
+	}
+	JS_FreeCString(ctx, op_name);
+
+	if (JS_IsString(argv[var_idx+2])) {
+		val_name = JS_ToCString(ctx, argv[var_idx+2]);
+		if (!val_name) {
+			shader->invalid = GF_TRUE;
+			if (uni_name) gf_free(uni_name);
+			return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid right-operand value, must be a string");
+		}
+
+		char *sep = strchr(val_name+1, '.');
+		if (sep) sep[0] = 0;
+		right_op_idx = get_builtin_var_name(shader, val_name);
+		if (right_op_idx==VAR_UNIFORM) {
+			uni_name = gf_strdup(val_name+1);
+		}
+		if (sep) sep[0] = '.';
+
+		if (!right_op_idx) {
+			JSValue ret = js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid right-operand value, undefined variable %s", val_name);
+			JS_FreeCString(ctx, val_name);
+			shader->invalid = GF_TRUE;
+			if (uni_name) gf_free(uni_name);
+			return ret;
+		}
+		if (sep) {
+			right_value_type = get_value_type(sep+1);
+		}
+		JS_FreeCString(ctx, val_name);
+	}
+	else if (JS_IsObject(argv[var_idx+2])) {
+		Bool known_type = GF_FALSE;
+		new_op.vai.vai = JS_GetOpaque(argv[var_idx+2], vai_class_id);
+		if (new_op.vai.vai) {
+			new_op.vai.ref = JS_DupValue(ctx, argv[var_idx+2]);
+			known_type = GF_TRUE;
+			right_op_idx = VAR_VAI;
+		} else {
+			new_op.vai.vai = NULL;
+			new_op.mx.mx = JS_GetOpaque(argv[var_idx+2], matrix_class_id);
+			if (new_op.mx.mx) {
+				new_op.mx.ref = JS_DupValue(ctx, argv[var_idx+2]);
+				known_type = GF_TRUE;
+				right_op_idx = VAR_MATRIX;
+			}
+		}
+
+		if (!known_type) {
+			shader->invalid = GF_TRUE;
+			if (uni_name) gf_free(uni_name);
+			return js_throw_err_msg(ctx, GF_BAD_PARAM, "unknown object type for right operand");
+		}
+	}
+	else if (JS_IsBool(argv[var_idx+2])) {
+		new_op.bval = JS_ToBool(ctx, argv[var_idx+2]) ? GF_TRUE : GF_FALSE;
+		right_value_type = COMP_BOOL;
+	}
+	else if (JS_IsInteger(argv[var_idx+2])) {
+		JS_ToInt32(ctx, &new_op.ival, argv[var_idx+2]);
+		right_value_type = COMP_INT;
+	}
+	else if (JS_IsNumber(argv[var_idx+2])) {
+		Double v;
+		JS_ToFloat64(ctx, &v, argv[var_idx+2]);
+		new_op.vec[0] = (Float) v;
+		right_value_type = COMP_FLOAT;
+	}
+
+op_parsed:
+	new_op.op_type = op_type;
+	if (!new_op.op_type) {
+		shader->invalid = GF_TRUE;
+		if (uni_name) gf_free(uni_name);
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "unknown operation type");
+	}
+	new_op.cond_type = cond_type;
+	new_op.left_value = left_op_idx;
+	new_op.right_value = right_op_idx;
+	new_op.left_value_type = left_value_type;
+	new_op.right_value_type = right_value_type;
+	if (new_op.tx) {
+		new_op.tx_ref = JS_DupValue(ctx, new_op.tx_ref);
+	}
+
+	if (shader->alloc_ops <= shader->nb_ops) {
+		shader->alloc_ops = shader->nb_ops+1;
+		shader->ops = gf_realloc(shader->ops, sizeof(ShaderOp)*shader->alloc_ops);
+		shader->ops[shader->nb_ops].uni_name = NULL;
+	}
+	if (shader->ops[shader->nb_ops].uni_name) {
+		gf_free(shader->ops[shader->nb_ops].uni_name);
+		shader->ops[shader->nb_ops].uni_name = NULL;
+	}
+
+	shader->ops[shader->nb_ops] = new_op;
+	shader->ops[shader->nb_ops].uni_name = uni_name;
+	shader->nb_ops++;
+	return JS_UNDEFINED;
+}
+
+static JSValue shader_update(JSContext *ctx, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	u32 i;
+	EVGShader *shader = JS_GetOpaque(obj, shader_class_id);
+	if (!shader) return JS_EXCEPTION;
+	if (shader->invalid) return JS_EXCEPTION;
+
+	for (i=0; i<shader->nb_ops; i++) {
+		JSValue v;
+		ShaderOp *op = &shader->ops[i];
+		if (!op->uni_name) continue;
+		v = JS_GetPropertyStr(ctx, obj, op->uni_name);
+		if (JS_IsUndefined(v)) return js_throw_err_msg(ctx, GF_BAD_PARAM, "uniform %s cannot be found in shader", op->uni_name);
+		if (JS_IsBool(v)) {
+			op->right_value_type = COMP_BOOL;
+			op->bval = JS_ToBool(ctx, v) ? GF_TRUE : GF_FALSE;
+		}
+		else if (JS_IsInteger(v)) {
+			op->right_value_type = COMP_INT;
+			if (JS_ToInt32(ctx, &op->ival, v)) return JS_EXCEPTION;
+		}
+		else if (JS_IsInteger(v)) {
+			op->right_value_type = COMP_FLOAT;
+			EVG_GET_FLOAT(op->vec[0], v)
+		}
+		else if (JS_IsArray(ctx, v)) {
+			u32 idx, length;
+			JSValue comp = JS_GetPropertyStr(ctx, v, "length");
+			if (JS_ToInt32(ctx, &length, comp)) return JS_EXCEPTION;
+			JS_FreeValue(ctx, comp);
+			if (length>4) length=4;
+			op->right_value_type = 0;
+			for (idx=0;idx<length; idx++) {
+				comp = JS_GetPropertyUint32(ctx, v, idx);
+				EVG_GET_FLOAT(op->vec[idx], comp);
+				op->right_value_type |= 1<<idx;
+				JS_FreeValue(ctx, comp);
+			}
+		}
+		else if (JS_IsObject(v)) {
+			u32 data_size;
+			Float *vals;
+			u32 idx;
+			u8 *data = evg_get_array(ctx, v, &data_size);
+			if (data) {
+				if (data_size%4) return JS_EXCEPTION;
+				vals = (Float*)data;
+				data_size/= sizeof(Float);
+				if (data_size>4) data_size=4;
+				op->right_value_type = 0;
+				for (idx=0;idx<data_size; idx++) {
+					op->vec[idx] = vals[idx];
+					op->right_value_type |= 1<<idx;
+				}
+			} else {
+				JSValue comp;
+				op->right_value_type = 0;
+#define GET_COMP(_name, _idx, _mask)\
+				comp = JS_GetPropertyStr(ctx, v, _name);\
+				if (!JS_IsUndefined(comp)) { EVG_GET_FLOAT(op->vec[_idx], comp); op->right_value_type |= _mask; }\
+				JS_FreeValue(ctx, comp);\
+
+				GET_COMP("x", 0, COMP_X);
+				GET_COMP("r", 0, COMP_X);
+				GET_COMP("s", 0, COMP_X);
+
+				GET_COMP("y", 1, COMP_Y);
+				GET_COMP("g", 1, COMP_Y);
+				GET_COMP("t", 1, COMP_Y);
+
+				GET_COMP("z", 2, COMP_Z);
+				GET_COMP("b", 2, COMP_Z);
+
+				GET_COMP("q", 3, COMP_Q);
+				GET_COMP("w", 3, COMP_Q);
+				GET_COMP("a", 3, COMP_Q);
+
+			}
+		}
+		JS_FreeValue(ctx, v);
+
+	}
+	return JS_UNDEFINED;
+}
+
+static const JSCFunctionListEntry shader_funcs[] =
+{
+	JS_CFUNC_DEF("push", 0, shader_push),
+	JS_CFUNC_DEF("update", 0, shader_update),
+};
+
+static JSValue canvas3d_new_shader(JSContext *ctx, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	EVGShader *shader;
+	u32 mode;
+	JSValue res;
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas3d_class_id);
+	if (!canvas) return JS_EXCEPTION;
+	if (!argc) return JS_EXCEPTION;
+	JS_ToInt32(ctx, &mode, argv[0]);
+	GF_SAFEALLOC(shader, EVGShader);
+	shader->mode = mode;
+	res = JS_NewObjectClass(ctx, shader_class_id);
+	JS_SetOpaque(res, shader);
+	return res;
+}
+
+static const JSCFunctionListEntry canvas3d_funcs[] =
+{
+	JS_CGETSET_MAGIC_DEF("clipper", NULL, canvas3d_setProperty, GF_EVG_CLIPPER),
+	JS_CGETSET_MAGIC_DEF("fragment", canvas3d_getProperty, canvas3d_setProperty, GF_EVG_FRAG_SHADER),
+	JS_CGETSET_MAGIC_DEF("vertex", canvas3d_getProperty, canvas3d_setProperty, GF_EVG_VERT_SHADER),
+	JS_CGETSET_MAGIC_DEF("ccw", NULL, canvas3d_setProperty, GF_EVG_CCW),
+	JS_CGETSET_MAGIC_DEF("backcull", NULL, canvas3d_setProperty, GF_EVG_BACKCULL),
+	JS_CGETSET_MAGIC_DEF("antialias", NULL, canvas3d_setProperty, GF_EVG_ANTIALIAS),
+	JS_CGETSET_MAGIC_DEF("min_depth", NULL, canvas3d_setProperty, GF_EVG_MINDEPTH),
+	JS_CGETSET_MAGIC_DEF("max_depth", NULL, canvas3d_setProperty, GF_EVG_MAXDEPTH),
+	JS_CGETSET_MAGIC_DEF("point_size", NULL, canvas3d_setProperty, GF_EVG_POINTSIZE),
+	JS_CGETSET_MAGIC_DEF("point_smooth", NULL, canvas3d_setProperty, GF_EVG_POINTSMOOTH),
+	JS_CGETSET_MAGIC_DEF("line_size", NULL, canvas3d_setProperty, GF_EVG_LINESIZE),
+	JS_CGETSET_MAGIC_DEF("clip_zero", NULL, canvas3d_setProperty, GF_EVG_CLIP_ZERO),
+	JS_CGETSET_MAGIC_DEF("depth_test", NULL, canvas3d_setProperty, GF_EVG_DEPTH_TEST),
+	JS_CGETSET_MAGIC_DEF("write_depth", NULL, canvas3d_setProperty, GF_EVG_WRITE_DEPTH),
+
+	JS_CFUNC_DEF("clear", 0, canvas3d_clear),
+	JS_CFUNC_DEF("clearf", 0, canvas3d_clearf),
+	JS_CFUNC_DEF("reassign", 0, canvas3d_reassign),
+	JS_CFUNC_DEF("projection", 0, canvas3d_projection),
+	JS_CFUNC_DEF("modelview", 0, canvas3d_modelview),
+	JS_CFUNC_DEF("draw_array", 0, canvas3d_draw_array),
+	JS_CFUNC_DEF("draw_path", 0, canvas3d_draw_path),
+	JS_CFUNC_DEF("clear_depth", 0, canvas3d_clear_depth),
+	JS_CFUNC_DEF("viewport", 0, canvas3d_viewport),
+	JS_CFUNC_DEF("new_shader", 0, canvas3d_new_shader),
+};
+
+static JSValue canvas3d_constructor(JSContext *c, JSValueConst new_target, int argc, JSValueConst *argv)
+{
+	return canvas_constructor_internal(c, new_target, argc, argv, GF_TRUE);
+}
+
+JSClassDef fragment_class = {
+	.class_name = "Fragment",
+};
+
+enum {
+	EVG_FRAG_SCREENX,
+	EVG_FRAG_SCREENY,
+	EVG_FRAG_DEPTH,
+	EVG_FRAG_R,
+	EVG_FRAG_G,
+	EVG_FRAG_B,
+	EVG_FRAG_A,
+	EVG_FRAG_Y,
+	EVG_FRAG_U,
+	EVG_FRAG_V,
+	EVG_FRAG_RGBA,
+	EVG_FRAG_RGB,
+	EVG_FRAG_YUV,
+	EVG_FRAG_YUVA,
+};
+
+static JSValue fragment_getProperty(JSContext *c, JSValueConst obj, int magic)
+{
+	GF_EVGFragmentParam *frag = JS_GetOpaque(obj, fragment_class_id);
+	if (!frag) return JS_EXCEPTION;
+	switch (magic) {
+	case EVG_FRAG_SCREENX: return JS_NewFloat64(c, frag->screen_x);
+	case EVG_FRAG_SCREENY: return JS_NewFloat64(c, frag->screen_y);
+	case EVG_FRAG_DEPTH: return JS_NewFloat64(c, frag->depth);
+	}
+	return JS_UNDEFINED;
+}
+static JSValue fragment_setProperty(JSContext *ctx, JSValueConst obj, JSValueConst value, int magic)
+{
+	EVG_VAIRes *vr;
+	GF_EVGFragmentType frag_type = GF_EVG_FRAG_RGB;
+
+	GF_EVGFragmentParam *frag = JS_GetOpaque(obj, fragment_class_id);
+	if (!frag) return JS_EXCEPTION;
+	switch (magic) {
+	case EVG_FRAG_DEPTH:
+		EVG_GET_FLOAT(frag->depth, value)
+		break;
+	case EVG_FRAG_Y:
+		frag_type = GF_EVG_FRAG_YUV;
+	case EVG_FRAG_R:
+		EVG_GET_FLOAT(frag->color.x, value)
+		CLAMPCOLF(frag->color.x)
+		frag->frag_valid = frag_type;
+		break;
+	case EVG_FRAG_U:
+		frag_type = GF_EVG_FRAG_YUV;
+	case EVG_FRAG_G:
+		EVG_GET_FLOAT(frag->color.y, value)
+		CLAMPCOLF(frag->color.y)
+		frag->frag_valid = frag_type;
+		break;
+	case EVG_FRAG_V:
+		frag_type = GF_EVG_FRAG_YUV;
+	case EVG_FRAG_B:
+		EVG_GET_FLOAT(frag->color.z, value)
+		CLAMPCOLF(frag->color.z)
+		frag->frag_valid = frag_type;
+		break;
+	case EVG_FRAG_A:
+		EVG_GET_FLOAT(frag->color.q, value)
+		CLAMPCOLF(frag->color.q)
+		if (!frag->frag_valid)
+			frag->frag_valid = GF_EVG_FRAG_RGB;
+		break;
+	case EVG_FRAG_YUVA:
+		frag_type = GF_EVG_FRAG_YUV;
+	case EVG_FRAG_RGBA:
+		vr = JS_GetOpaque(value, vaires_class_id);
+		if (vr) {
+			frag->color.x = vr->values[0];
+			frag->color.y = vr->values[1];
+			frag->color.z = vr->values[2];
+			frag->color.q = vr->values[3];
+			frag->frag_valid = frag_type;
+		} else {
+			Double a, r, g, b;
+			a=1.0;
+			if (!get_color_from_args(ctx, 1, &value, 0, &a, &r, &g, &b))
+				return JS_EXCEPTION;
+			frag->color.q = (Float) a;
+			frag->color.x = (Float) r;
+			frag->color.y = (Float) g;
+			frag->color.z = (Float) b;
+			frag->frag_valid = GF_EVG_FRAG_RGB;
+		}
+		break;
+	case EVG_FRAG_YUV:
+		frag_type = GF_EVG_FRAG_YUV;
+	case EVG_FRAG_RGB:
+		vr = JS_GetOpaque(value, vaires_class_id);
+		if (vr) {
+			frag->color.x = vr->values[0];
+			frag->color.y = vr->values[1];
+			frag->color.z = vr->values[2];
+			frag->frag_valid = frag_type;
+		} else
+			return JS_EXCEPTION;
+	default:
+		return JS_UNDEFINED;
+	}
+	return JS_UNDEFINED;
+}
+
+static const JSCFunctionListEntry fragment_funcs[] =
+{
+	JS_CGETSET_MAGIC_DEF("x", fragment_getProperty, NULL, EVG_FRAG_SCREENX),
+	JS_CGETSET_MAGIC_DEF("y", fragment_getProperty, NULL, EVG_FRAG_SCREENY),
+	JS_CGETSET_MAGIC_DEF("z", fragment_getProperty, fragment_setProperty, EVG_FRAG_DEPTH),
+	JS_ALIAS_DEF("depth", "z"),
+	JS_CGETSET_MAGIC_DEF("r", NULL, fragment_setProperty, EVG_FRAG_R),
+	JS_CGETSET_MAGIC_DEF("g", NULL, fragment_setProperty, EVG_FRAG_G),
+	JS_CGETSET_MAGIC_DEF("b", NULL, fragment_setProperty, EVG_FRAG_B),
+	JS_CGETSET_MAGIC_DEF("a", NULL, fragment_setProperty, EVG_FRAG_A),
+	JS_ALIAS_DEF("Y", "r"),
+	JS_ALIAS_DEF("U", "g"),
+	JS_ALIAS_DEF("V", "b"),
+	JS_CGETSET_MAGIC_DEF("rgba", NULL, fragment_setProperty, EVG_FRAG_RGBA),
+	JS_CGETSET_MAGIC_DEF("rgb", NULL, fragment_setProperty, EVG_FRAG_RGB),
+	JS_CGETSET_MAGIC_DEF("yuv", NULL, fragment_setProperty, EVG_FRAG_YUV),
+	JS_CGETSET_MAGIC_DEF("yuva", NULL, fragment_setProperty, EVG_FRAG_YUVA),
+};
+
+JSClassDef vertex_class = {
+	.class_name = "Vertex",
+};
+
+static const JSCFunctionListEntry vertex_funcs[] =
+{
+};
+
+Bool vai_call_lerp(EVG_VAI *vai, GF_EVGFragmentParam *frag)
+{
+	u32 i;
+
+	//different primitive, setup inperpolation points
+	if (frag->prim_index != vai->prim_idx) {
+		u32 idx;
+		vai->prim_idx = frag->prim_index;
+		//no values, this is a VAI filled by the vertex shader
+		if (!vai->values) {
+		} else if (vai->interp_type==GF_EVG_VAI_PRIMITIVE) {
+			idx = frag->prim_index * vai->nb_comp;
+			if (idx+vai->nb_comp > vai->nb_values)
+				return GF_FALSE;
+
+			for (i=0; i<vai->nb_comp; i++) {
+				vai->result.values[i] = vai->values[idx+i];
+			}
+		} else if (frag->ptype!=GF_EVG_POINTS) {
+			u32 nb_v_per_prim = 3;
+			if (frag->ptype==GF_EVG_LINES)
+				nb_v_per_prim=2;
+
+			if (vai->interp_type==GF_EVG_VAI_VERTEX_INDEX) {
+				idx = frag->idx1 * vai->nb_comp;
+			} else {
+				idx = frag->prim_index * nb_v_per_prim * vai->nb_comp;
+			}
+			if (idx+vai->nb_comp > vai->nb_values)
+				return GF_FALSE;
+			for (i=0; i<vai->nb_comp; i++) {
+				vai->anchors[0][i] = vai->values[idx+i];
+			}
+
+			if (vai->interp_type==GF_EVG_VAI_VERTEX_INDEX) {
+				idx = frag->idx2 * vai->nb_comp;
+			} else {
+				idx = (frag->prim_index * nb_v_per_prim + 1) * vai->nb_comp;
+			}
+			if (idx+vai->nb_comp > vai->nb_values)
+				return GF_FALSE;
+			for (i=0; i<vai->nb_comp; i++) {
+				vai->anchors[1][i] = vai->values[idx+i];
+			}
+			if (frag->ptype!=GF_EVG_LINES) {
+				if (vai->interp_type==GF_EVG_VAI_VERTEX_INDEX) {
+					idx = frag->idx3 * vai->nb_comp;
+				} else {
+					idx = (frag->prim_index * nb_v_per_prim + 2) * vai->nb_comp;
+				}
+				if (idx+vai->nb_comp > vai->nb_values)
+					return GF_FALSE;
+				for (i=0; i<vai->nb_comp; i++) {
+					vai->anchors[2][i] = vai->values[idx+i];
+				}
+			}
+		}
+	}
+	if (vai->interp_type==GF_EVG_VAI_PRIMITIVE) {
+		return GF_TRUE;
+	}
+
+	if (frag->ptype==GF_EVG_LINES) {
+		for (i=0; i<vai->nb_comp; i++) {
+			Float v = frag->pbc1 * vai->anchors[0][i] + frag->pbc2 * vai->anchors[1][i];
+			vai->result.values[i] = v / frag->persp_denum;
+		}
+	} else {
+		for (i=0; i<vai->nb_comp; i++) {
+			Float v = frag->pbc1 * vai->anchors[0][i] + frag->pbc2 * vai->anchors[1][i] + frag->pbc3 * vai->anchors[2][i];
+			vai->result.values[i] = v / frag->persp_denum;
+		}
+	}
+	return GF_TRUE;
+}
+static JSValue vai_lerp(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	EVG_VAI *vai = JS_GetOpaque(obj, vai_class_id);
+	if (!vai || !argc) return JS_EXCEPTION;
+	GF_EVGFragmentParam *frag = JS_GetOpaque(argv[0], fragment_class_id);
+	if (!frag) return JS_EXCEPTION;
+
+	if (!vai_call_lerp(vai, frag))
+		return JS_EXCEPTION;
+	return JS_DupValue(c, vai->res);
+}
+
+static JSValue vai_constructor(JSContext *c, JSValueConst new_target, int argc, JSValueConst *argv)
+{
+	EVG_VAI *vai;
+	JSValue obj;
+	u8 *data=NULL;
+	u32 data_size;
+	u32 nb_comp;
+	s32 interp_type = GF_EVG_VAI_VERTEX_INDEX;
+	if (argc<1)
+		return js_throw_err_msg(c, GF_BAD_PARAM, "Missing parameter for VertexAttribInterpolator");
+
+	if (argc>=2) {
+		data = evg_get_array(c, argv[0], &data_size);
+		if (!data) return JS_EXCEPTION;
+		if (JS_ToInt32(c, &nb_comp, argv[1])) return JS_EXCEPTION;
+		if (nb_comp>MAX_ATTR_DIM)
+			return js_throw_err_msg(c, GF_BAD_PARAM, "Dimension too big, max is %d", MAX_ATTR_DIM);
+
+		if (data_size % sizeof(Float)) return JS_EXCEPTION;
+		data_size /= sizeof(Float);
+		if (data_size % nb_comp) return JS_EXCEPTION;
+
+		if (argc>2) {
+			if (JS_ToInt32(c, &interp_type, argv[2])) return JS_EXCEPTION;
+		}
+	} else {
+		if (JS_ToInt32(c, &nb_comp, argv[0])) return JS_EXCEPTION;
+	}
+
+	GF_SAFEALLOC(vai, EVG_VAI);
+	if (!vai)
+		return js_throw_err(c, GF_OUT_OF_MEM);
+	vai->nb_comp = nb_comp;
+	vai->values = (Float *)data;
+	vai->nb_values = data_size;
+	if (data)
+		vai->ab = JS_DupValue(c, argv[0]);
+
+	vai->prim_idx = (u32) -1;
+	vai->interp_type = interp_type;
+
+	vai->res = JS_NewObjectClass(c, vaires_class_id);
+	JS_SetOpaque(vai->res, &vai->result);
+	JS_SetPropertyStr(c, vai->res, "length", JS_NewInt32(c, nb_comp));
+	vai->result.dim = nb_comp;
+	if (nb_comp==1) vai->result.comp_type = COMP_X;
+	else if (nb_comp==2) vai->result.comp_type = COMP_V2_XY;
+	else if (nb_comp==3) vai->result.comp_type = COMP_V3;
+	else vai->result.comp_type = COMP_V4;
+
+	obj = JS_NewObjectClass(c, vai_class_id);
+	JS_SetOpaque(obj, vai);
+	return obj;
+}
+static void vai_finalize(JSRuntime *rt, JSValue obj)
+{
+	EVG_VAI *vai = JS_GetOpaque(obj, vai_class_id);
+	if (!vai) return;
+	JS_FreeValueRT(rt, vai->ab);
+	JS_FreeValueRT(rt, vai->res);
+	gf_free(vai);
+}
+
+static void vai_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
+{
+	EVG_VAI *vai = JS_GetOpaque(obj, vai_class_id);
+	if (!vai) return;
+	JS_MarkValue(rt, vai->ab, mark_func);
+	JS_MarkValue(rt, vai->res, mark_func);
+}
+
+JSClassDef vai_class = {
+	.class_name = "VertexAttribInterpolator",
+	.finalizer = vai_finalize,
+	.gc_mark = vai_gc_mark
+};
+static const JSCFunctionListEntry vai_funcs[] =
+{
+	JS_CFUNC_DEF("lerp", 0, vai_lerp),
+};
+
+static JSValue vaires_getProperty(JSContext *c, JSValueConst obj, int magic)
+{
+	EVG_VAIRes *vr = JS_GetOpaque(obj, vaires_class_id);
+	if (!vr) return JS_EXCEPTION;
+	if (magic<MAX_ATTR_DIM) {
+		return JS_NewFloat64(c, vr->values[magic]);
+	}
+	return JS_UNDEFINED;
+}
+static const JSCFunctionListEntry vaires_funcs[] =
+{
+	JS_CGETSET_MAGIC_DEF("x", vaires_getProperty, NULL, 0),
+	JS_CGETSET_MAGIC_DEF("y", vaires_getProperty, NULL, 1),
+	JS_CGETSET_MAGIC_DEF("z", vaires_getProperty, NULL, 2),
+	JS_CGETSET_MAGIC_DEF("w", vaires_getProperty, NULL, 3),
+	JS_CGETSET_MAGIC_DEF("v5", vaires_getProperty, NULL, 4),
+	JS_CGETSET_MAGIC_DEF("v6", vaires_getProperty, NULL, 5),
+	JS_CGETSET_MAGIC_DEF("v7", vaires_getProperty, NULL, 6),
+	JS_CGETSET_MAGIC_DEF("v8", vaires_getProperty, NULL, 7),
+	JS_ALIAS_DEF("r", "x"),
+	JS_ALIAS_DEF("g", "y"),
+	JS_ALIAS_DEF("b", "z"),
+	JS_ALIAS_DEF("a", "w"),
+	JS_ALIAS_DEF("s", "x"),
+	JS_ALIAS_DEF("t", "y"),
+};
+
+JSClassDef vaires_class = {
+	.class_name = "VAIResult",
+};
+
 
 static void mx2d_finalize(JSRuntime *rt, JSValue obj)
 {
@@ -893,6 +2731,26 @@ static Bool get_color(JSContext *c, JSValueConst obj, Double *a, Double *r, Doub
 {
 	JSValue v;
 	int res;
+	if (JS_IsArray(c, obj)) {
+		u32 i, len;
+		v = JS_GetPropertyStr(c, obj, "length");
+		res = JS_ToInt32(c, &len, v);
+		JS_FreeValue(c, v);
+		if (res) return GF_FALSE;
+		if (len>4) len=4;
+		for (i=0; i<len; i++) {
+			Double d;
+			v = JS_GetPropertyUint32(c, obj, i);
+			res = JS_ToFloat64(c, &d, v);
+			if (res) return GF_FALSE;
+			JS_FreeValue(c, v);
+			if (!i) *r = d;
+			else if (i==1) *g = d;
+			else if (i==2) *b = d;
+			else *a = d;
+		}
+		return GF_TRUE;
+	}
 	v = JS_GetPropertyStr(c, obj, "r");
 	res = JS_ToFloat64(c, r, v);
 	JS_FreeValue(c, v);
@@ -1896,7 +3754,8 @@ enum
 	TX_CMX,
 	TX_REPEAT_S,
 	TX_REPEAT_T,
-	TX_FLIP,
+	TX_FLIP_X,
+	TX_FLIP_Y,
 	TX_MAT,
 	TX_WIDTH,
 	TX_HEIGHT,
@@ -1914,8 +3773,10 @@ static JSValue texture_getProperty(JSContext *c, JSValueConst obj, int magic)
 		return JS_NewBool(c, (tx->flags & GF_TEXTURE_REPEAT_S));
 	case TX_REPEAT_T:
 		return JS_NewBool(c, (tx->flags & GF_TEXTURE_REPEAT_T));
-	case TX_FLIP:
-		return JS_NewBool(c, (tx->flags & GF_TEXTURE_FLIP));
+	case TX_FLIP_X:
+		return JS_NewBool(c, (tx->flags & GF_TEXTURE_FLIP_X));
+	case TX_FLIP_Y:
+		return JS_NewBool(c, (tx->flags & GF_TEXTURE_FLIP_Y));
 	case TX_WIDTH:
 		return JS_NewInt32(c, tx->width);
 	case TX_HEIGHT:
@@ -1960,9 +3821,14 @@ static JSValue texture_setProperty(JSContext *c, JSValueConst obj, JSValueConst 
 		else tx->flags &= ~GF_TEXTURE_REPEAT_T;
 		gf_evg_stencil_set_mapping(tx->stencil, tx->flags);
 		return JS_UNDEFINED;
-	case TX_FLIP:
-		if (JS_ToBool(c, value)) tx->flags |= GF_TEXTURE_FLIP;
-		else tx->flags &= ~GF_TEXTURE_FLIP;
+	case TX_FLIP_X:
+		if (JS_ToBool(c, value)) tx->flags |= GF_TEXTURE_FLIP_X;
+		else tx->flags &= ~GF_TEXTURE_FLIP_X;
+		gf_evg_stencil_set_mapping(tx->stencil, tx->flags);
+		return JS_UNDEFINED;
+	case TX_FLIP_Y:
+		if (JS_ToBool(c, value)) tx->flags |= GF_TEXTURE_FLIP_Y;
+		else tx->flags &= ~GF_TEXTURE_FLIP_Y;
 		gf_evg_stencil_set_mapping(tx->stencil, tx->flags);
 		return JS_UNDEFINED;
 	case TX_MAT:
@@ -2359,7 +4225,8 @@ static const JSCFunctionListEntry texture_funcs[] =
 	JS_CGETSET_MAGIC_DEF("mx", NULL, texture_setProperty, TX_MAT),
 	JS_CGETSET_MAGIC_DEF("repeat_s", texture_getProperty, texture_setProperty, TX_REPEAT_S),
 	JS_CGETSET_MAGIC_DEF("repeat_t", texture_getProperty, texture_setProperty, TX_REPEAT_T),
-	JS_CGETSET_MAGIC_DEF("flip", texture_getProperty, texture_setProperty, TX_FLIP),
+	JS_CGETSET_MAGIC_DEF("flip_h", texture_getProperty, texture_setProperty, TX_FLIP_X),
+	JS_CGETSET_MAGIC_DEF("flip_v", texture_getProperty, texture_setProperty, TX_FLIP_Y),
 	JS_CGETSET_MAGIC_DEF("width", texture_getProperty, NULL, TX_WIDTH),
 	JS_CGETSET_MAGIC_DEF("height", texture_getProperty, NULL, TX_HEIGHT),
 	JS_CGETSET_MAGIC_DEF("pixfmt", texture_getProperty, NULL, TX_PIXFMT),
@@ -2949,6 +4816,452 @@ static JSValue text_constructor(JSContext *c, JSValueConst new_target, int argc,
 	return obj;
 }
 
+
+
+enum
+{
+	MX_PROP_IDENTITY=0,
+	MX_PROP_YAW,
+	MX_PROP_PITCH,
+	MX_PROP_ROLL,
+	MX_PROP_TRANLATE,
+	MX_PROP_SCALE,
+	MX_PROP_ROTATE,
+	MX_PROP_SHEAR,
+	MX_PROP_M,
+};
+
+static void mx_finalize(JSRuntime *rt, JSValue obj)
+{
+	GF_Matrix *mx = JS_GetOpaque(obj, matrix_class_id);
+	if (mx) gf_free(mx);
+}
+
+JSClassDef matrix_class = {
+	.class_name = "Matrix",
+	.finalizer = mx_finalize
+};
+
+#define MAKEVEC(_v) \
+		res = JS_NewObject(ctx);\
+		JS_SetPropertyStr(ctx, res, "x", JS_NewFloat64(ctx, FIX2FLT(_v.x) ));\
+		JS_SetPropertyStr(ctx, res, "y", JS_NewFloat64(ctx, FIX2FLT(_v.y) ));\
+		JS_SetPropertyStr(ctx, res, "z", JS_NewFloat64(ctx, FIX2FLT(_v.z) ));\
+		return res;\
+
+#define MAKEVEC4(_v) \
+		res = JS_NewObject(ctx);\
+		JS_SetPropertyStr(ctx, res, "x", JS_NewFloat64(ctx, FIX2FLT(_v.x) ));\
+		JS_SetPropertyStr(ctx, res, "y", JS_NewFloat64(ctx, FIX2FLT(_v.y) ));\
+		JS_SetPropertyStr(ctx, res, "z", JS_NewFloat64(ctx, FIX2FLT(_v.z) ));\
+		JS_SetPropertyStr(ctx, res, "w", JS_NewFloat64(ctx, FIX2FLT(_v.q) ));\
+		return res;\
+
+#define MAKERECT(_v) \
+		res = JS_NewObject(ctx);\
+		JS_SetPropertyStr(ctx, res, "x", JS_NewFloat64(ctx, FIX2FLT(_v.x) ));\
+		JS_SetPropertyStr(ctx, res, "y", JS_NewFloat64(ctx, FIX2FLT(_v.y) ));\
+		JS_SetPropertyStr(ctx, res, "width", JS_NewFloat64(ctx, FIX2FLT(_v.width) ));\
+		JS_SetPropertyStr(ctx, res, "height", JS_NewFloat64(ctx, FIX2FLT(_v.height) ));\
+		return res;\
+
+static JSValue mx_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
+{
+	JSValue res;
+	Fixed yaw, pitch, roll;
+	GF_Vec tr, sc, sh;
+	GF_Vec4 ro;
+	u32 i;
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx) return JS_EXCEPTION;
+	switch (magic) {
+	case MX_PROP_IDENTITY: return JS_NewBool(ctx, gf_mx2d_is_identity(*mx));
+	case MX_PROP_YAW:
+		gf_mx_get_yaw_pitch_roll(mx, &yaw, &pitch, &roll);
+		return JS_NewFloat64(ctx, FIX2FLT(yaw));
+	case MX_PROP_PITCH:
+		gf_mx_get_yaw_pitch_roll(mx, &yaw, &pitch, &roll);
+		return JS_NewFloat64(ctx, FIX2FLT(pitch));
+	case MX_PROP_ROLL:
+		gf_mx_get_yaw_pitch_roll(mx, &yaw, &pitch, &roll);
+		return JS_NewFloat64(ctx, FIX2FLT(roll));
+
+	case MX_PROP_TRANLATE:
+		gf_mx_decompose(mx, &tr, &sc, &ro, &sh);
+		MAKEVEC(tr)
+
+	case MX_PROP_SCALE:
+		gf_mx_decompose(mx, &tr, &sc, &ro, &sh);
+		MAKEVEC(sc)
+
+	case MX_PROP_ROTATE:
+		gf_mx_decompose(mx, &tr, &sc, &ro, &sh);
+		MAKEVEC4(ro)
+
+	case MX_PROP_SHEAR:
+		gf_mx_decompose(mx, &tr, &sc, &ro, &sh);
+		MAKEVEC(sh)
+
+	case MX_PROP_M:
+		res = JS_NewArray(ctx);
+		for (i=0; i<16; i++)
+			JS_SetPropertyUint32(ctx, res, i, JS_NewFloat64(ctx, mx->m[i]));
+		return res;	}
+	return JS_UNDEFINED;
+}
+
+static JSValue mx_setProperty(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
+{
+	JSValue v;
+	u32 i, len;
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx) return JS_EXCEPTION;
+
+
+	switch (magic) {
+	case MX_PROP_IDENTITY:
+	 	gf_mx_init(*mx);
+	 	break;
+	case MX_PROP_M:
+		if (!JS_IsArray(ctx, value)) return JS_EXCEPTION;
+		v = JS_GetPropertyStr(ctx, value, "length");
+		len=0;
+		JS_ToInt32(ctx, &len, v);
+		JS_FreeValue(ctx, v);
+		if (len != 16) return JS_EXCEPTION;
+		for (i=0; i<len; i++) {
+			Double _d;
+			v = JS_GetPropertyUint32(ctx, value, i);
+			JS_ToFloat64(ctx, &_d, v);
+			JS_FreeValue(ctx, v);
+			mx->m[i] = FLT2FIX(_d);
+		}
+	 	break;
+	}
+	return JS_UNDEFINED;
+}
+
+
+static JSValue mx_copy(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx || !argc) return JS_EXCEPTION;
+	GF_Matrix *mx2 = JS_GetOpaque(argv[0], matrix_class_id);
+	if (!mx2) return JS_EXCEPTION;
+	gf_mx_copy(*mx, *mx2);
+	return JS_DupValue(ctx, this_val);
+}
+static JSValue mx_equal(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx || !argc) return JS_EXCEPTION;
+	GF_Matrix *mx2 = JS_GetOpaque(argv[0], matrix_class_id);
+	if (!mx2) return JS_EXCEPTION;
+	if (gf_mx_equal(mx, mx2)) return JS_TRUE;
+	return JS_FALSE;
+}
+
+#define WGL_GET_VEC3(_x, _y, _z, _arg)\
+{\
+	JSValue v;\
+	v = JS_GetPropertyStr(ctx, _arg, "x");\
+	EVG_GET_FLOAT(_x, v);\
+	JS_FreeValue(ctx, v);\
+	v = JS_GetPropertyStr(ctx, _arg, "y");\
+	EVG_GET_FLOAT(_y, v);\
+	JS_FreeValue(ctx, v);\
+	v = JS_GetPropertyStr(ctx, _arg, "z");\
+	EVG_GET_FLOAT(_z, v);\
+	JS_FreeValue(ctx, v);\
+}
+
+#define WGL_GET_VEC3F(_v, _arg)\
+{\
+	JSValue v;\
+	Double _f;\
+	v = JS_GetPropertyStr(ctx, _arg, "x");\
+	EVG_GET_FLOAT(_f, v);\
+	_v.x = FLT2FIX(_f);\
+	JS_FreeValue(ctx, v);\
+	v = JS_GetPropertyStr(ctx, _arg, "y");\
+	EVG_GET_FLOAT(_f, v);\
+	_v.y = FLT2FIX(_f);\
+	JS_FreeValue(ctx, v);\
+	v = JS_GetPropertyStr(ctx, _arg, "z");\
+	EVG_GET_FLOAT(_f, v);\
+	_v.z = FLT2FIX(_f);\
+	JS_FreeValue(ctx, v);\
+}
+
+#define WGL_GET_VEC4(_x, _y, _z, _q, _arg)\
+{\
+	JSValue v;\
+	v = JS_GetPropertyStr(ctx, _arg, "x");\
+	EVG_GET_FLOAT(_x, v);\
+	JS_FreeValue(ctx, v);\
+	v = JS_GetPropertyStr(ctx, _arg, "y");\
+	EVG_GET_FLOAT(_y, v);\
+	JS_FreeValue(ctx, v);\
+	v = JS_GetPropertyStr(ctx, _arg, "z");\
+	EVG_GET_FLOAT(_z, v);\
+	JS_FreeValue(ctx, v);\
+	v = JS_GetPropertyStr(ctx, _arg, "w");\
+	if (JS_IsUndefined(v)) v = JS_GetPropertyStr(ctx, _arg, "q");\
+	if (JS_IsUndefined(v)) v = JS_GetPropertyStr(ctx, _arg, "angle");\
+	EVG_GET_FLOAT(_q, v);\
+	JS_FreeValue(ctx, v);\
+}
+
+
+static JSValue mx_translate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	Double vx, vy, vz;
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx || !argc) return JS_EXCEPTION;
+	if (!JS_IsObject(argv[0])) {
+		if (argc<3) return JS_EXCEPTION;
+		EVG_GET_FLOAT(vx, argv[0])
+		EVG_GET_FLOAT(vy, argv[1])
+		EVG_GET_FLOAT(vz, argv[2])
+	} else {
+		WGL_GET_VEC3(vx, vy, vz, argv[0])
+	}
+	gf_mx_add_translation(mx, FLT2FIX(vx), FLT2FIX(vy), FLT2FIX(vz));
+	return JS_DupValue(ctx, this_val);
+}
+static JSValue mx_scale(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	Double vx, vy, vz;
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx || !argc) return JS_EXCEPTION;
+	if (!JS_IsObject(argv[0])) {
+		if (argc<3) return JS_EXCEPTION;
+		EVG_GET_FLOAT(vx, argv[0])
+		EVG_GET_FLOAT(vy, argv[1])
+		EVG_GET_FLOAT(vz, argv[2])
+	} else {
+		WGL_GET_VEC3(vx, vy, vz, argv[0])
+	}
+	gf_mx_add_scale(mx, FLT2FIX(vx), FLT2FIX(vy), FLT2FIX(vz));
+	return JS_DupValue(ctx, this_val);
+}
+static JSValue mx_rotate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	Double vx, vy, vz, angle;
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx || !argc) return JS_EXCEPTION;
+	if (!JS_IsObject(argv[0])) {
+		if (argc<4) return JS_EXCEPTION;
+		EVG_GET_FLOAT(vx, argv[0])
+		EVG_GET_FLOAT(vy, argv[1])
+		EVG_GET_FLOAT(vz, argv[2])
+		EVG_GET_FLOAT(angle, argv[3])
+	} else {
+		WGL_GET_VEC4(vx, vy, vz, angle, argv[0])
+	}
+	gf_mx_add_rotation(mx, FLT2FIX(angle), FLT2FIX(vx), FLT2FIX(vy), FLT2FIX(vz));
+	return JS_DupValue(ctx, this_val);
+}
+static JSValue mx_add(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx || !argc) return JS_EXCEPTION;
+	GF_Matrix *mx2 = JS_GetOpaque(argv[0], matrix_class_id);
+	if (!mx2) return JS_EXCEPTION;
+	if ((argc>1) && JS_ToBool(ctx, argv[1])) {
+		gf_mx_add_matrix_4x4(mx, mx2);
+	} else {
+		gf_mx_add_matrix(mx, mx2);
+	}
+	return JS_DupValue(ctx, this_val);
+}
+
+static JSValue mx_inverse(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx) return JS_EXCEPTION;
+	if (argc && JS_ToBool(ctx, argv[0])) {
+		gf_mx_inverse_4x4(mx);
+	} else {
+		gf_mx_inverse(mx);
+	}
+	return JS_DupValue(ctx, this_val);
+}
+
+static JSValue mx_transpose(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx) return JS_EXCEPTION;
+	gf_mx_transpose(mx);
+	return JS_DupValue(ctx, this_val);
+}
+
+static JSValue mx_apply(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	Fixed width, height, x, y;
+	GF_Vec pt;
+	GF_Vec4 pt4;
+	JSValue v, res;
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx || !argc) return JS_EXCEPTION;
+	if (!JS_IsObject(argv[0])) return JS_EXCEPTION;
+
+	/*try rect*/
+	v = JS_GetPropertyStr(ctx, argv[0], "width");
+	if (!JS_IsUndefined(v)) {
+		GF_Rect rc;
+		EVG_GET_FLOAT(width, v);
+		JS_FreeValue(ctx, v);
+		v = JS_GetPropertyStr(ctx, argv[0], "height");
+		EVG_GET_FLOAT(height, v);
+		JS_FreeValue(ctx, v);
+		v = JS_GetPropertyStr(ctx, argv[0], "x");
+		EVG_GET_FLOAT(x, v);
+		JS_FreeValue(ctx, v);
+		v = JS_GetPropertyStr(ctx, argv[0], "y");
+		EVG_GET_FLOAT(y, v);
+		JS_FreeValue(ctx, v);
+		rc.x = FLT2FIX(x);
+		rc.y = FLT2FIX(y);
+		rc.width = FLT2FIX(width);
+		rc.height = FLT2FIX(height);
+		gf_mx_apply_rect(mx, &rc);
+		MAKERECT(rc)
+	}
+	JS_FreeValue(ctx, v);
+
+	v = JS_GetPropertyStr(ctx, argv[0], "q");
+	if (JS_IsUndefined(v)) v = JS_GetPropertyStr(ctx, argv[0], "w");
+	if (JS_IsUndefined(v)) v = JS_GetPropertyStr(ctx, argv[0], "angle");
+	if (!JS_IsUndefined(v)) {
+		Double _v;
+		if (JS_ToFloat64(ctx, &_v, v)) return JS_EXCEPTION;
+		pt4.q = FLT2FIX(_v);
+
+		WGL_GET_VEC3F(pt4, argv[0])
+		gf_mx_apply_vec_4x4(mx, &pt4);
+		MAKEVEC4(pt4)
+	}
+	JS_FreeValue(ctx, v);
+
+	/*try bbox ?*/
+
+	/*try vec*/
+	WGL_GET_VEC3F(pt, argv[0])
+	gf_mx_apply_vec(mx, &pt);
+	MAKEVEC(pt)
+
+/*
+
+void gf_mx_apply_vec(GF_Matrix *mx, GF_Vec *pt);
+void gf_mx_apply_rect(GF_Matrix *_this, GF_Rect *rc);
+void gf_mx_apply_bbox(GF_Matrix *mx, GF_BBox *b);
+void gf_mx_apply_bbox_sphere(GF_Matrix *mx, GF_BBox *box);
+void gf_mx_apply_vec_4x4(GF_Matrix *mx, GF_Vec4 *vec);
+*/
+	return JS_UNDEFINED;
+}
+
+static JSValue mx_ortho(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	Double left, right, bottom, top, z_near, z_far;
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx || (argc<6)) return JS_EXCEPTION;
+	EVG_GET_FLOAT(left, argv[0])
+	EVG_GET_FLOAT(right, argv[1])
+	EVG_GET_FLOAT(bottom, argv[2])
+	EVG_GET_FLOAT(top, argv[3])
+	EVG_GET_FLOAT(z_near, argv[4])
+	EVG_GET_FLOAT(z_far, argv[5])
+	if ((argc>6) && JS_ToBool(ctx, argv[6])) {
+		gf_mx_ortho_reverse_z(mx, FLT2FIX(left), FLT2FIX(right), FLT2FIX(bottom), FLT2FIX(top), FLT2FIX(z_near), FLT2FIX(z_far));
+	} else {
+		gf_mx_ortho(mx, FLT2FIX(left), FLT2FIX(right), FLT2FIX(bottom), FLT2FIX(top), FLT2FIX(z_near), FLT2FIX(z_far));
+	}
+	return JS_DupValue(ctx, this_val);
+}
+static JSValue mx_perspective(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	Double fov, ar, z_near, z_far;
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx || (argc<4)) return JS_EXCEPTION;
+	EVG_GET_FLOAT(fov, argv[0])
+	EVG_GET_FLOAT(ar, argv[1])
+	EVG_GET_FLOAT(z_near, argv[2])
+	EVG_GET_FLOAT(z_far, argv[3])
+	if ((argc>4) && JS_ToBool(ctx, argv[4])) {
+		gf_mx_perspective_reverse_z(mx, FLT2FIX(fov), FLT2FIX(ar), FLT2FIX(z_near), FLT2FIX(z_far));
+	} else {
+		gf_mx_perspective(mx, FLT2FIX(fov), FLT2FIX(ar), FLT2FIX(z_near), FLT2FIX(z_far));
+	}
+	return JS_DupValue(ctx, this_val);
+}
+static JSValue mx_lookat(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Vec pos, target, up;
+	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
+	if (!mx || (argc<3) ) return JS_EXCEPTION;
+
+	WGL_GET_VEC3F(pos, argv[0]);
+	WGL_GET_VEC3F(target, argv[1]);
+	WGL_GET_VEC3F(up, argv[2]);
+
+	gf_mx_lookat(mx, pos, target, up);
+	return JS_DupValue(ctx, this_val);
+}
+
+static const JSCFunctionListEntry mx_funcs[] =
+{
+	JS_CGETSET_MAGIC_DEF("identity", mx_getProperty, mx_setProperty, MX_PROP_IDENTITY),
+	JS_CGETSET_MAGIC_DEF("m", mx_getProperty, mx_setProperty, MX_PROP_M),
+	JS_CGETSET_MAGIC_DEF("yaw", mx_getProperty, NULL, MX_PROP_YAW),
+	JS_CGETSET_MAGIC_DEF("pitch", mx_getProperty, NULL, MX_PROP_PITCH),
+	JS_CGETSET_MAGIC_DEF("roll", mx_getProperty, NULL, MX_PROP_ROLL),
+	JS_CGETSET_MAGIC_DEF("dec_translate", mx_getProperty, NULL, MX_PROP_TRANLATE),
+	JS_CGETSET_MAGIC_DEF("dec_scale", mx_getProperty, NULL, MX_PROP_SCALE),
+	JS_CGETSET_MAGIC_DEF("dec_rotate", mx_getProperty, NULL, MX_PROP_ROTATE),
+	JS_CGETSET_MAGIC_DEF("dec_shear", mx_getProperty, NULL, MX_PROP_SHEAR),
+	JS_CFUNC_DEF("copy", 0, mx_copy),
+	JS_CFUNC_DEF("equal", 0, mx_equal),
+	JS_CFUNC_DEF("translate", 0, mx_translate),
+	JS_CFUNC_DEF("scale", 0, mx_scale),
+	JS_CFUNC_DEF("rotate", 0, mx_rotate),
+	JS_CFUNC_DEF("add", 0, mx_add),
+	JS_CFUNC_DEF("inverse", 0, mx_inverse),
+	JS_CFUNC_DEF("transpose", 0, mx_transpose),
+	JS_CFUNC_DEF("apply", 0, mx_apply),
+	JS_CFUNC_DEF("ortho", 0, mx_ortho),
+	JS_CFUNC_DEF("perspective", 0, mx_perspective),
+	JS_CFUNC_DEF("lookat", 0, mx_lookat),
+};
+/*
+void gf_mx_rotate_vector(GF_Matrix *mx, GF_Vec *pt);
+*/
+
+static JSValue mx_constructor(JSContext *ctx, JSValueConst new_target, int argc, JSValueConst *argv)
+{
+	JSValue res;
+	GF_Matrix *mx;
+	GF_SAFEALLOC(mx, GF_Matrix);
+	gf_mx_init(*mx);
+	res = JS_NewObjectClass(ctx, matrix_class_id);
+	JS_SetOpaque(res, mx);
+	if (argc) {
+		GF_Matrix *from = JS_GetOpaque(argv[0], matrix_class_id);
+		if (from) {
+			gf_mx_copy(*mx, *from);
+		} else if (argc>=3) {
+			GF_Vec x_axis, y_axis, z_axis;
+			WGL_GET_VEC3F(x_axis, argv[0])
+			WGL_GET_VEC3F(y_axis, argv[1])
+			WGL_GET_VEC3F(z_axis, argv[2])
+			gf_mx_rotation_matrix_from_vectors(mx, x_axis, y_axis,z_axis);
+		}
+	}
+	return res;
+}
+
+
 static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 {
 	JSValue ctor;
@@ -2956,27 +5269,49 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 	JSValue global;
 
 	if (!canvas_class_id) {
+		JSRuntime *rt = JS_GetRuntime(c);
+
 		JS_NewClassID(&canvas_class_id);
-		JS_NewClass(JS_GetRuntime(c), canvas_class_id, &canvas_class);
+		JS_NewClass(rt, canvas_class_id, &canvas_class);
 
 		JS_NewClassID(&path_class_id);
-		JS_NewClass(JS_GetRuntime(c), path_class_id, &path_class);
+		JS_NewClass(rt, path_class_id, &path_class);
 
 		JS_NewClassID(&mx2d_class_id);
-		JS_NewClass(JS_GetRuntime(c), mx2d_class_id, &mx2d_class);
+		JS_NewClass(rt, mx2d_class_id, &mx2d_class);
 
 		JS_NewClassID(&colmx_class_id);
-		JS_NewClass(JS_GetRuntime(c), colmx_class_id, &colmx_class);
+		JS_NewClass(rt, colmx_class_id, &colmx_class);
 
 		JS_NewClassID(&stencil_class_id);
-		JS_NewClass(JS_GetRuntime(c), stencil_class_id, &stencil_class);
+		JS_NewClass(rt, stencil_class_id, &stencil_class);
 
 		JS_NewClassID(&texture_class_id);
-		JS_NewClass(JS_GetRuntime(c), texture_class_id, &texture_class);
+		JS_NewClass(rt, texture_class_id, &texture_class);
 
 		JS_NewClassID(&text_class_id);
-		JS_NewClass(JS_GetRuntime(c), text_class_id, &text_class);
+		JS_NewClass(rt, text_class_id, &text_class);
 
+		JS_NewClassID(&matrix_class_id);
+		JS_NewClass(rt, matrix_class_id, &matrix_class);
+
+		JS_NewClassID(&canvas3d_class_id);
+		JS_NewClass(rt, canvas3d_class_id, &canvas3d_class);
+
+		JS_NewClassID(&fragment_class_id);
+		JS_NewClass(rt, fragment_class_id, &fragment_class);
+
+		JS_NewClassID(&vertex_class_id);
+		JS_NewClass(rt, vertex_class_id, &vertex_class);
+
+		JS_NewClassID(&shader_class_id);
+		JS_NewClass(rt, shader_class_id, &shader_class);
+
+		JS_NewClassID(&vai_class_id);
+		JS_NewClass(rt, vai_class_id, &vai_class);
+
+		JS_NewClassID(&vaires_class_id);
+		JS_NewClass(rt, vaires_class_id, &vaires_class);
 	}
 	proto = JS_NewObject(c);
     JS_SetPropertyFunctionList(c, proto, canvas_funcs, countof(canvas_funcs));
@@ -3005,6 +5340,35 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 	proto = JS_NewObject(c);
     JS_SetPropertyFunctionList(c, proto, text_funcs, countof(text_funcs));
     JS_SetClassProto(c, text_class_id, proto);
+
+	proto = JS_NewObject(c);
+    JS_SetPropertyFunctionList(c, proto, mx_funcs, countof(mx_funcs));
+    JS_SetClassProto(c, matrix_class_id, proto);
+
+	proto = JS_NewObject(c);
+    JS_SetPropertyFunctionList(c, proto, canvas3d_funcs, countof(canvas3d_funcs));
+    JS_SetClassProto(c, canvas3d_class_id, proto);
+
+	proto = JS_NewObject(c);
+    JS_SetPropertyFunctionList(c, proto, fragment_funcs, countof(fragment_funcs));
+    JS_SetClassProto(c, fragment_class_id, proto);
+
+	proto = JS_NewObject(c);
+    JS_SetPropertyFunctionList(c, proto, vertex_funcs, countof(vertex_funcs));
+    JS_SetClassProto(c, vertex_class_id, proto);
+
+	proto = JS_NewObject(c);
+    JS_SetPropertyFunctionList(c, proto, shader_funcs, countof(shader_funcs));
+    JS_SetClassProto(c, shader_class_id, proto);
+
+	proto = JS_NewObject(c);
+    JS_SetPropertyFunctionList(c, proto, vai_funcs, countof(vai_funcs));
+    JS_SetClassProto(c, vai_class_id, proto);
+
+	proto = JS_NewObject(c);
+    JS_SetPropertyFunctionList(c, proto, vaires_funcs, countof(vaires_funcs));
+    JS_SetClassProto(c, vaires_class_id, proto);
+
 
 	global = JS_GetGlobalObject(c);
 	JS_SetPropertyStr(c, global, "GF_GRADIENT_MODE_PAD", JS_NewInt32(c, GF_GRADIENT_MODE_PAD));
@@ -3062,6 +5426,43 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 	JS_SetPropertyStr(c, global, "GF_EVG_LIGHTER", JS_NewInt32(c, GF_EVG_LIGHTER));
 	JS_SetPropertyStr(c, global, "GF_EVG_COPY", JS_NewInt32(c, GF_EVG_COPY));
 	JS_SetPropertyStr(c, global, "GF_EVG_XOR", JS_NewInt32(c, GF_EVG_XOR));
+
+	JS_SetPropertyStr(c, global, "GF_EVG_POINTS", JS_NewInt32(c, GF_EVG_POINTS));
+	JS_SetPropertyStr(c, global, "GF_EVG_POLYGON", JS_NewInt32(c, GF_EVG_POLYGON));
+	JS_SetPropertyStr(c, global, "GF_EVG_LINES", JS_NewInt32(c, GF_EVG_LINES));
+	JS_SetPropertyStr(c, global, "GF_EVG_TRIANGLES", JS_NewInt32(c, GF_EVG_TRIANGLES));
+	JS_SetPropertyStr(c, global, "GF_EVG_QUADS", JS_NewInt32(c, GF_EVG_QUADS));
+	JS_SetPropertyStr(c, global, "GF_EVG_LINE_STRIP", JS_NewInt32(c, GF_EVG_LINE_STRIP));
+	JS_SetPropertyStr(c, global, "GF_EVG_TRIANGLE_STRIP", JS_NewInt32(c, GF_EVG_TRIANGLE_STRIP));
+	JS_SetPropertyStr(c, global, "GF_EVG_TRIANGLE_FAN", JS_NewInt32(c, GF_EVG_TRIANGLE_FAN));
+
+	JS_SetPropertyStr(c, global, "GF_EVG_SHADER_FRAGMENT", JS_NewInt32(c, GF_EVG_SHADER_FRAGMENT));
+	JS_SetPropertyStr(c, global, "GF_EVG_SHADER_VERTEX", JS_NewInt32(c, GF_EVG_SHADER_VERTEX));
+
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_NEVER", JS_NewInt32(c, GF_EVGDEPTH_NEVER));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_ALWAYS", JS_NewInt32(c, GF_EVGDEPTH_ALWAYS));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_ALWAYS", JS_NewInt32(c, GF_EVGDEPTH_ALWAYS));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_EQUAL", JS_NewInt32(c, GF_EVGDEPTH_EQUAL));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_NEQUAL", JS_NewInt32(c, GF_EVGDEPTH_NEQUAL));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_LESS", JS_NewInt32(c, GF_EVGDEPTH_LESS));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_LESS_EQUAL", JS_NewInt32(c, GF_EVGDEPTH_LESS_EQUAL));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_GREATER", JS_NewInt32(c, GF_EVGDEPTH_GREATER));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_GREATER_EQUAL", JS_NewInt32(c, GF_EVGDEPTH_GREATER_EQUAL));
+
+	JS_SetPropertyStr(c, global, "GF_EVG_VAI_VERTEX_INDEX", JS_NewInt32(c, GF_EVG_VAI_VERTEX_INDEX));
+	JS_SetPropertyStr(c, global, "GF_EVG_VAI_VERTEX", JS_NewInt32(c, GF_EVG_VAI_VERTEX));
+	JS_SetPropertyStr(c, global, "GF_EVG_VAI_PRIMITIVE", JS_NewInt32(c, GF_EVG_VAI_PRIMITIVE));
+
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_DISABLE", JS_NewInt32(c, GF_EVGDEPTH_DISABLE));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_NEVER", JS_NewInt32(c, GF_EVGDEPTH_NEVER));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_ALWAYS", JS_NewInt32(c, GF_EVGDEPTH_ALWAYS));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_EQUAL", JS_NewInt32(c, GF_EVGDEPTH_EQUAL));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_NEQUAL", JS_NewInt32(c, GF_EVGDEPTH_NEQUAL));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_LESS", JS_NewInt32(c, GF_EVGDEPTH_LESS));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_LESS_EQUAL", JS_NewInt32(c, GF_EVGDEPTH_LESS_EQUAL));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_GREATER", JS_NewInt32(c, GF_EVGDEPTH_GREATER));
+	JS_SetPropertyStr(c, global, "GF_EVGDEPTH_GREATER_EQUAL", JS_NewInt32(c, GF_EVGDEPTH_GREATER_EQUAL));
+
 	JS_FreeValue(c, global);
 
 
@@ -3082,9 +5483,15 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
     JS_SetModuleExport(c, m, "RadialGradient", ctor);
 	ctor = JS_NewCFunction2(c, texture_constructor, "Texture", 1, JS_CFUNC_constructor, 0);
     JS_SetModuleExport(c, m, "Texture", ctor);
-
+	ctor = JS_NewCFunction2(c, canvas3d_constructor, "Canvas3D", 1, JS_CFUNC_constructor, 0);
+    JS_SetModuleExport(c, m, "Canvas3D", ctor);
 	ctor = JS_NewCFunction2(c, text_constructor, "Text", 1, JS_CFUNC_constructor, 0);
     JS_SetModuleExport(c, m, "Text", ctor);
+	ctor = JS_NewCFunction2(c, mx_constructor, "Matrix", 1, JS_CFUNC_constructor, 0);
+    JS_SetModuleExport(c, m, "Matrix", ctor);
+	ctor = JS_NewCFunction2(c, vai_constructor, "VertexAttribInterpolator", 1, JS_CFUNC_constructor, 0);
+    JS_SetModuleExport(c, m, "VertexAttribInterpolator", ctor);
+
 	return 0;
 }
 
@@ -3103,6 +5510,9 @@ void qjs_module_init_evg(JSContext *ctx)
 	JS_AddModuleExport(ctx, m, "RadialGradient");
 	JS_AddModuleExport(ctx, m, "Texture");
 	JS_AddModuleExport(ctx, m, "Text");
+	JS_AddModuleExport(ctx, m, "Matrix");
+	JS_AddModuleExport(ctx, m, "Canvas3D");
+    JS_AddModuleExport(ctx, m, "VertexAttribInterpolator");
     return;
 }
 

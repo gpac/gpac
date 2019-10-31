@@ -38,7 +38,7 @@ mul255(s32 a, s32 b)
 			RGB part
 */
 
-static void overmask_rgb(u32 src, u8 *dst, u32 alpha, GF_EVGSurface *surf)
+void overmask_rgb(u32 src, u8 *dst, u32 alpha, GF_EVGSurface *surf)
 {
 	s32 srca = (src >> 24) & 0xff;
 	s32 srcr = (src >> 16) & 0xff;
@@ -72,6 +72,23 @@ static void overmask_rgb_const_run(u32 src, u8 *dst, s32 dst_pitch_x, u32 count,
 		dst += dst_pitch_x;
 		count--;
 	}
+}
+
+void evg_rgb_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	u8 r = GF_COL_R(col);
+	u8 g = GF_COL_G(col);
+	u8 b = GF_COL_B(col);
+	dst[surf->idx_r] = r;
+	dst[surf->idx_g] = g;
+	dst[surf->idx_b] = b;
+}
+
+void evg_rgb_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	overmask_rgb(col, dst, coverage, surf);
 }
 
 void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
@@ -235,11 +252,28 @@ static void overmask_grey_const_run(u8 srca, u8 srcc, char *dst, s32 dst_pitch_x
 	}
 }
 
+void evg_grey_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	u8 c;
+
+	if (surf->grey_type==0) c = GF_COL_R(col);
+	else if (surf->grey_type==1) c = GF_COL_G(col);
+	else c = GF_COL_B(col);
+	*dst = c;
+}
+
+void evg_grey_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	overmask_grey(col, dst, coverage, surf->grey_type);
+}
+
 void evg_grey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
 	u32 c;
-	char *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = surf->pixels + y * surf->pitch_y;
 	s32 i;
 
 	if (surf->grey_type==0) c = GF_COL_R(col);
@@ -266,7 +300,7 @@ void evg_grey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 
 void evg_grey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
-	char *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = surf->pixels + y * surf->pitch_y;
 	u32 a, fin;
 	s32 i;
 	u8 c;
@@ -297,7 +331,7 @@ void evg_grey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *sur
 
 void evg_grey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
-	char *dst = surf->pixels + y * surf->pitch_y;
+	u8 *dst = surf->pixels + y * surf->pitch_y;
 	s32 i;
 
 	for (i=0; i<count; i++) {

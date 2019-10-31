@@ -179,7 +179,8 @@ typedef struct
 enum
 {
 	GF_JS_PCK_IS_REF = 1,
-	GF_JS_PCK_IS_SHARED = 1<<1
+	GF_JS_PCK_IS_SHARED = 1<<1,
+	GF_JS_PCK_IS_OUTPUT = 1<<2
 };
 
 typedef struct _js_pck_ctx
@@ -282,7 +283,8 @@ static void jsf_pck_finalizer(JSRuntime *rt, JSValue val)
     if (!pckctx) return;
     pckctx->jspid->pck_head = NULL;
 
-	if (pckctx->pck)
+	/*we only keep a ref for input packet(s)*/
+	if (pckctx->pck && !(pckctx->flags & GF_JS_PCK_IS_OUTPUT))
 		JS_FreeValueRT(rt, pckctx->jsobj);
 
 	if (!JS_IsUndefined(pckctx->data_ab)) {
@@ -290,7 +292,7 @@ static void jsf_pck_finalizer(JSRuntime *rt, JSValue val)
 		pckctx->data_ab = JS_UNDEFINED;
 	}
 
-    if (JS_IsUndefined(pckctx->ref_val)) {
+    if (JS_IsUndefined(pckctx->ref_val) && pckctx->jspid && pckctx->jspid->jsf) {
 		gf_list_add(pckctx->jspid->jsf->pck_res, pckctx);
 		memset(pckctx, 0, sizeof(GF_JSPckCtx));
 	}
@@ -2272,7 +2274,8 @@ pck_done:
 		JS_FreeValue(ctx, obj);
 		return js_throw_err(ctx, GF_OUT_OF_MEM);
 	}
-	return JS_DupValue(ctx, obj);
+	pckc->flags |= GF_JS_PCK_IS_OUTPUT;
+	return obj;
 }
 
 static JSValue jsf_pid_get_clock_info(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -3246,7 +3249,6 @@ static JSValue jsf_pck_send(JSContext *ctx, JSValueConst this_val, int argc, JSV
     	pckctx->data_ab = JS_UNDEFINED;
 	}
 	gf_filter_pck_send(pck);
-	JS_FreeValue(ctx, pckctx->jsobj);
 	JS_SetOpaque(this_val, NULL);
 	if (!(pckctx->flags & GF_JS_PCK_IS_SHARED)) {
 		gf_list_add(pckctx->jspid->jsf->pck_res, pckctx);

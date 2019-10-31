@@ -201,6 +201,18 @@ GFINLINE static void overmask_argb_const_run(u32 src, u8 *dst, s32 dst_pitch_x, 
 	}
 }
 
+void evg_argb_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	overmask_argb(col, dst, 0xFF, surf);
+}
+
+void evg_argb_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	overmask_argb(col, dst, coverage, surf);
+}
+
 
 void evg_argb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
@@ -382,6 +394,24 @@ GFINLINE static void overmask_rgbx_const_run(u32 src, u8 *dst, s32 dst_pitch_x, 
 	}
 }
 
+
+void evg_rgbx_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	u8 r = GF_COL_R(col);
+	u8 g = GF_COL_G(col);
+	u8 b = GF_COL_B(col);
+	dst[surf->idx_r] = r;
+	dst[surf->idx_g] = g;
+	dst[surf->idx_b] = b;
+}
+
+void evg_rgbx_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	overmask_rgbx(col, dst, coverage, surf);
+}
+
 void evg_rgbx_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
@@ -560,6 +590,24 @@ static void overmask_alphagrey_const_run(u32 src_a, u32 src_c, u8 *dst, s32 dst_
 		dst += dst_pitch_x;
 		count--;
 	}
+}
+
+
+void evg_alphagrey_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	u8 col_c;
+
+	if (surf->grey_type==0) col_c = GF_COL_R(col);
+	else if (surf->grey_type==1) col_c = GF_COL_G(col);
+	else col_c = GF_COL_B(col);
+	dst[surf->idx_g] = col_c;
+}
+
+void evg_alphagrey_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	overmask_alphagrey(col, dst, coverage, surf->grey_type, surf->idx_g, surf->idx_a);
 }
 
 void evg_alphagrey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)

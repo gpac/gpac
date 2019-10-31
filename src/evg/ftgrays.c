@@ -59,105 +59,23 @@
 /*
 	GPAC version modifications:
 		* removed all cubic/quadratic support (present in GPAC path objects)
-		* moved span data memoru to dynamic allocation
+		* moved span data memory to dynamic allocation
 		* bypassed Y-sorting of cells by using an array of scanlines: a bit more consuming
 		in memory, but faster cell sorting (X-sorting only)
+		* defered coverage push for 3D
 */
 
 #include "rast_soft.h"
 
-#include <limits.h>
 
-#define ErrRaster_MemoryOverflow   -4
-#define ErrRaster_Invalid_Mode     -2
-#define ErrRaster_Invalid_Outline  -1
-
-
-#define GPAC_FIX_BITS		16
-#define PIXEL_BITS  8
-#define PIXEL_BITS_DIFF 8	/*GPAC_FIX_BITS - PIXEL_BITS*/
-
-#define ONE_PIXEL       ( 1L << PIXEL_BITS )
-#define PIXEL_MASK      ( -1L << PIXEL_BITS )
-#define TRUNC( x )      ( (TCoord)((x) >> PIXEL_BITS) )
-#define SUBPIXELS( x )  ( (TPos)(x) << PIXEL_BITS )
-#define FLOOR( x )      ( (x) & -ONE_PIXEL )
-#define CEILING( x )    ( ( (x) + ONE_PIXEL - 1 ) & -ONE_PIXEL )
-#define ROUND( x )      ( ( (x) + ONE_PIXEL / 2 ) & -ONE_PIXEL )
-#define UPSCALE( x )    ( (x) >> ( PIXEL_BITS_DIFF) )
-#define DOWNSCALE( x )  ( (x) << ( PIXEL_BITS_DIFF) )
-
-
-/*************************************************************************/
-/*                                                                       */
-/*   TYPE DEFINITIONS                                                    */
-/*                                                                       */
-
-/* don't change the following types to FT_Int or FT_Pos, since we might */
-/* need to define them to "float" or "double" when experimenting with   */
-/* new algorithms                                                       */
-
-typedef int   TCoord;   /* integer scanline/pixel coordinate */
-typedef long  TPos;     /* sub-pixel coordinate              */
-
-/* determine the type used to store cell areas.  This normally takes at */
-/* least PIXEL_BYTES*2 + 1.  On 16-bit systems, we need to use `long'   */
-/* instead of `int', otherwise bad things happen                        */
-
-/* approximately determine the size of integers using an ANSI-C header */
-#if UINT_MAX == 0xFFFFU
-typedef long  TArea;
-#else
-typedef int  TArea;
-#endif
-
-
-/* maximal number of gray spans in a call to the span callback */
-#define FT_MAX_GRAY_SPANS  64
-
-typedef struct  TCell_
-{
-	TCoord  x;
-	int     cover;
-	TArea   area;
-} AACell;
-
-typedef struct
-{
-	AACell *cells;
-	int alloc, num;
-} AAScanline;
-
-
-typedef struct  TRaster_
-{
-	AAScanline *scanlines;
-	int max_lines;
-	TPos min_ex, max_ex, min_ey, max_ey;
-	TCoord ex, ey;
-	TPos x,  y, last_ey;
-	TArea area;
-	int cover;
-
-	EVG_Span gray_spans[FT_MAX_GRAY_SPANS];
-	int num_gray_spans;
-	EVG_Raster_Span_Func  render_span;
-	void *render_span_data;
-
-#ifdef INLINE_POINT_CONVERSION
-	GF_Matrix2D *mx;
-#endif
-} TRaster;
-
-#define AA_CELL_STEP_ALLOC	8
-
-static GFINLINE void gray_record_cell( TRaster *raster )
+void gray_record_cell( TRaster *raster )
 {
 	if (( raster->area | raster->cover) && (raster->ey<raster->max_ey)) {
 		long y = raster->ey - raster->min_ey;
 		if (y>=0) {
 			AACell *cell;
 			AAScanline *sl = &raster->scanlines[y];
+
 			if (sl->num >= sl->alloc) {
 				sl->cells = (AACell*)gf_realloc(sl->cells, sizeof(AACell)* (sl->alloc + AA_CELL_STEP_ALLOC));
 				sl->alloc += AA_CELL_STEP_ALLOC;
@@ -170,11 +88,16 @@ static GFINLINE void gray_record_cell( TRaster *raster )
 			else cell->x = (TCoord)(raster->ex - raster->min_ex);
 			cell->area = raster->area;
 			cell->cover = raster->cover;
+			cell->idx1 = raster->idx1;
+			cell->idx2 = raster->idx2;
+
+			if (raster->first_scanline > y)
+				raster->first_scanline = y;
 		}
 	}
 }
 
-static GFINLINE void gray_set_cell( TRaster *raster, TCoord  ex, TCoord  ey )
+void gray_set_cell( TRaster *raster, TCoord  ex, TCoord  ey )
 {
 	if ((raster->ex != ex) || (raster->ey != ey)) {
 		gray_record_cell(raster);
@@ -185,8 +108,6 @@ static GFINLINE void gray_set_cell( TRaster *raster, TCoord  ex, TCoord  ey )
 	}
 }
 
-
-#ifdef INLINE_POINT_CONVERSION
 
 static GFINLINE void evg_translate_point(GF_Matrix2D *mx, EVG_Vector *pt, TPos *x, TPos *y)
 {
@@ -202,7 +123,6 @@ static GFINLINE void evg_translate_point(GF_Matrix2D *mx, EVG_Vector *pt, TPos *
 	*y = (s32) (_y * ONE_PIXEL);
 #endif
 }
-#endif
 
 static GFINLINE int gray_move_to( EVG_Vector*  to, EVG_Raster   raster)
 {
@@ -212,12 +132,8 @@ static GFINLINE int gray_move_to( EVG_Vector*  to, EVG_Raster   raster)
 	/* record current cell, if any */
 	gray_record_cell(raster);
 
-#ifdef INLINE_POINT_CONVERSION
 	evg_translate_point(raster->mx, to, &x, &y);
-#else
-	x = UPSCALE( to->x );
-	y = UPSCALE( to->y );
-#endif
+
 	ex = TRUNC(x);
 	ey = TRUNC(y);
 	if ( ex < raster->min_ex ) ex = (TCoord)(raster->min_ex - 1);
@@ -325,7 +241,7 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 /*************************************************************************/
 /*                                                                       */
 /* Render a given line as a series of scanlines.                         */
-static GFINLINE void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y, int is_line)
+void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y)
 {
 	TCoord  min, max;
 	TCoord  ey1, ey2, fy1, fy2;
@@ -333,15 +249,6 @@ static GFINLINE void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y, i
 	long dx, dy;
 	long    p, first;
 	int     delta, rem, mod, lift, incr;
-
-	/*point filtering*/
-#if 0
-	if (is_line) {
-		dx = (to_x - raster->x)>>PIXEL_BITS;
-		dy = (to_y - raster->y)>>PIXEL_BITS;
-		if ( dx*dx + dy*dy < 1) return;
-	}
-#endif
 
 
 	ey1 = TRUNC( raster->last_ey );
@@ -466,39 +373,26 @@ static int EVG_Outline_Decompose(EVG_Outline *outline, TRaster *user)
 	EVG_Vector   v_start;
 	int   n;         /* index of contour in outline     */
 	int   first;     /* index of first point in contour */
-#ifdef INLINE_POINT_CONVERSION
 	TPos _x, _y;
-#endif
 
 	first = 0;
 	for ( n = 0; n < outline->n_contours; n++ ) {
 		EVG_Vector *point;
 		EVG_Vector *limit;
-		char *tags;
 		int  last;  /* index of last point in contour */
 		last  = outline->contours[n];
 		limit = outline->points + last;
 		v_start = outline->points[first];
 		point = outline->points + first;
-		tags  = (char*) outline->tags  + first;
 		gray_move_to(&v_start, user);
 		while ( point < limit ) {
 			point++;
-			tags++;
-#ifdef INLINE_POINT_CONVERSION
 			evg_translate_point(user->mx, point, &_x, &_y);
-			gray_render_line(user, _x, _y, 1);
-#else
-			gray_render_line(user, UPSCALE(point->x), UPSCALE( point->y), 1);
-#endif
+			gray_render_line(user, _x, _y);
 		}
-#ifdef INLINE_POINT_CONVERSION
-		evg_translate_point(user->mx, &v_start, &_x, &_y);
-		gray_render_line(user, _x, _y, 0);
-#else
 		/* close the contour with a line segment */
-		gray_render_line(user, UPSCALE(v_start.x), UPSCALE( v_start.y), 0);
-#endif
+		evg_translate_point(user->mx, &v_start, &_x, &_y);
+		gray_render_line(user, _x, _y);
 		first = last + 1;
 	}
 	return 0;
@@ -520,7 +414,7 @@ static int EVG_Outline_Decompose(EVG_Outline *outline, TRaster *user)
 #define QSORT_THRESHOLD  9  /* below this size, a sub-array will be sorted */
 /* through a normal insertion sort             */
 
-static void gray_quick_sort( AACell *cells, int    count )
+void gray_quick_sort( AACell *cells, int    count )
 {
 	AACell *stack[80];  /* should be enough ;-) */
 	AACell **top;        /* top of stack */
@@ -601,10 +495,11 @@ static void gray_quick_sort( AACell *cells, int    count )
 	}
 }
 
-
-static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos    area, int     acount, Bool zero_non_zero_rule)
+static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos area, int acount, Bool zero_non_zero_rule, u32 idx1, u32 idx2)
 {
 	int        coverage;
+	EVG_Span*   span;
+	int        count;
 
 	x += (TCoord)raster->min_ex;
 	if (x>=raster->max_ex) return;
@@ -633,37 +528,38 @@ static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos    area, int
 			coverage = 255;
 	}
 
-	if ( coverage ) {
-		EVG_Span*   span;
-		int        count;
-		/* see if we can add this span to the current list */
-		count = raster->num_gray_spans;
-		span  = raster->gray_spans + count - 1;
-		if ( count > 0                          &&
-		        (int)span->x + span->len == (int)x &&
-		        span->coverage == coverage )
-		{
-			span->len = (unsigned short)( span->len + acount );
-			return;
-		}
+	if (!coverage)
+		return;
 
-		if (count >= FT_MAX_GRAY_SPANS ) {
-			raster->render_span(y, count, raster->gray_spans, raster->render_span_data );
-			raster->num_gray_spans = 0;
-
-			span  = raster->gray_spans;
-		} else
-			span++;
-
-		/* add a gray span to the current list */
-		span->x        = (short)x;
-		span->len      = (unsigned short)acount;
-		span->coverage = (unsigned char)coverage;
-		raster->num_gray_spans++;
+	/* see if we can add this span to the current list */
+	count = raster->num_gray_spans;
+	span  = raster->gray_spans + count - 1;
+	if ( count > 0                          &&
+			(int)span->x + span->len == (int)x &&
+			span->coverage == coverage )
+	{
+		span->len = (unsigned short)( span->len + acount );
+		return;
 	}
+
+	if (count >= FT_MAX_GRAY_SPANS ) {
+		raster->render_span(y, count, raster->gray_spans, raster->render_span_data );
+		raster->num_gray_spans = 0;
+
+		span  = raster->gray_spans;
+	} else
+		span++;
+
+	/* add a gray span to the current list */
+	span->x        = (short)x;
+	span->len      = (unsigned short)acount;
+	span->coverage = (unsigned char)coverage;
+	span->idx1 = idx1;
+	span->idx2 = idx2;
+	raster->num_gray_spans++;
 }
 
-static void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_non_zero_rule)
+void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_non_zero_rule)
 {
 	TCoord  cover;
 	AACell *start, *cur;
@@ -692,39 +588,39 @@ static void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_n
 		/* if the start cell has a non-null area, we must draw an */
 		/* individual gray pixel there                            */
 		if ( area && x >= 0 ) {
-			gray_hline( raster, x, y, cover * ( ONE_PIXEL * 2 ) - area, 1, zero_non_zero_rule);
+			gray_hline( raster, x, y, cover * ( ONE_PIXEL * 2 ) - area, 1, zero_non_zero_rule, start->idx1, start->idx2);
 			x++;
 		}
 		if ( x < 0 ) x = 0;
 
 		/* draw a gray span between the start cell and the current one */
 		if ( cur->x > x )
-			gray_hline( raster, x, y, cover * ( ONE_PIXEL * 2 ), cur->x - x, zero_non_zero_rule);
+			gray_hline( raster, x, y, cover * ( ONE_PIXEL * 2 ), cur->x - x, zero_non_zero_rule, cur->idx1, cur->idx2);
 	}
 	raster->render_span((int) (y + raster->min_ey), raster->num_gray_spans, raster->gray_spans, raster->render_span_data );
 }
 
 
-int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
+int evg_raster_render(GF_EVGSurface *surf)
 {
 	Bool zero_non_zero_rule;
 	int i, size_y;
-	EVG_Outline*  outline = (EVG_Outline*)params->source;
+	EVG_Raster raster = surf->raster;
+	EVG_Outline*  outline = (EVG_Outline*)&surf->ftoutline;
+
 	/* return immediately if the outline is empty */
 	if ( outline->n_points == 0 || outline->n_contours <= 0 ) return 0;
 
-	raster->render_span  = (EVG_Raster_Span_Func) params->gray_spans;
-	raster->render_span_data = params->user;
+	raster->render_span  = (EVG_Raster_Span_Func) surf->gray_spans;
+	raster->render_span_data = surf;
 
 	/* Set up state in the raster object */
-	raster->min_ex = params->clip_xMin;
-	raster->min_ey = params->clip_yMin;
-	raster->max_ex = params->clip_xMax;
-	raster->max_ey = params->clip_yMax;
+	raster->min_ex = surf->clip_xMin;
+	raster->min_ey = surf->clip_yMin;
+	raster->max_ex = surf->clip_xMax;
+	raster->max_ey = surf->clip_yMax;
 
-#ifdef INLINE_POINT_CONVERSION
-	raster->mx = params->mx;
-#endif
+	raster->mx = surf->mx;
 
 	size_y = (int) (raster->max_ey - raster->min_ey);
 	if (raster->max_lines < size_y) {
@@ -737,6 +633,8 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 	raster->ey = (int) (raster->max_ey+1);
 	raster->cover = 0;
 	raster->area = 0;
+	raster->first_scanline = raster->max_ey;
+
 	EVG_Outline_Decompose(outline, raster);
 	gray_record_cell( raster );
 
@@ -744,7 +642,7 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 	zero_non_zero_rule = (outline->flags & GF_PATH_FILL_ZERO_NONZERO) ? GF_TRUE : GF_FALSE;
 
 	/* sort each scanline and render it*/
-	for (i=0; i<size_y; i++) {
+	for (i=raster->first_scanline; i<size_y; i++) {
 		AAScanline *sl = &raster->scanlines[i];
 		if (sl->num) {
 			if (sl->num>1) gray_quick_sort(sl->cells, sl->num);
@@ -755,6 +653,9 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 
 	return 0;
 }
+
+
+
 
 EVG_Raster evg_raster_new()
 {
@@ -768,6 +669,8 @@ void evg_raster_del(EVG_Raster raster)
 	int i;
 	for (i=0; i<raster->max_lines; i++) {
 		gf_free(raster->scanlines[i].cells);
+		if (raster->scanlines[i].pixels)
+			gf_free(raster->scanlines[i].pixels);
 	}
 	gf_free(raster->scanlines);
 	gf_free(raster);

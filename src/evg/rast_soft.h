@@ -46,19 +46,7 @@ struct _gf_evg_base_stencil
 	EVGBASESTENCIL
 };
 
-/*define this macro to convert points in the outline decomposition rather than when attaching path
-to surface. When point conversion is inlined in the raster, memory usage is lower (no need for temp storage)*/
-#define INLINE_POINT_CONVERSION
-
-#ifdef INLINE_POINT_CONVERSION
 typedef struct __vec2f EVG_Vector;
-#else
-typedef struct
-{
-	s32 x;
-	s32 y;
-} EVG_Vector;
-#endif
 
 typedef struct
 {
@@ -74,31 +62,60 @@ typedef struct TRaster_ *EVG_Raster;
 
 typedef struct EVG_Span_
 {
-	short           x;
-	unsigned short  len;
-	unsigned char   coverage;
+	unsigned short x;
+	unsigned short len;
+	unsigned char coverage;
+	u32 idx1, idx2;
 } EVG_Span;
 
 typedef void (*EVG_SpanFunc)(int y, int count, EVG_Span *spans, void *user);
 #define EVG_Raster_Span_Func  EVG_SpanFunc
 
-typedef struct EVG_Raster_Params_
-{
-	EVG_Outline *source;
-#ifdef INLINE_POINT_CONVERSION
-	GF_Matrix2D *mx;
-#endif
-	EVG_SpanFunc gray_spans;
-
-	s32 clip_xMin, clip_yMin, clip_xMax, clip_yMax;
-
-	void *user;
-} EVG_Raster_Params;
-
 
 EVG_Raster evg_raster_new();
 void evg_raster_del(EVG_Raster raster);
-int evg_raster_render(EVG_Raster raster, EVG_Raster_Params *params);
+int evg_raster_render(GF_EVGSurface *surf);
+
+GF_Err evg_raster_render_path_3d(GF_EVGSurface *surf);
+GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float *vertices, u32 nb_vertices, u32 nb_comp, GF_EVGPrimitiveType prim_type);
+
+typedef struct
+{
+	GF_Matrix proj;
+	GF_Matrix modelview;
+	//depth buffer
+	Float *depth_buffer;
+
+	gf_evg_fragment_shader frag_shader;
+	void *frag_shader_udta;
+	gf_evg_vertex_shader vert_shader;
+	void *vert_shader_udta;
+	/*render state*/
+	u32 vp_x, vp_y, vp_w, vp_h;
+	Bool is_ccw;
+	Bool backface_cull;
+	Float max_depth;
+	Float min_depth;
+	Float depth_range;
+	Float point_size, line_size;
+	Bool smooth_points;
+	Bool disable_aa, write_depth, early_depth_test;
+	Bool (*depth_test)(Float depth_buf_value, Float frag_value);
+	Bool mode2d;
+	Bool clip_zero;
+	Float zw_factor, zw_offset;
+	/*internal variables for triangle rasterization*/
+	GF_EVGPrimitiveType prim_type;
+	GF_Vec4 s_v1, s_v2, s_v3;
+	Float area;
+	
+	Float s3_m_s2_x, s3_m_s2_y;
+	Float s1_m_s3_x, s1_m_s3_y;
+	Float s2_m_s1_x, s2_m_s1_y;
+	Float pt_radius;
+	Float v1v2_length, v1v3_length, v2v3_length;
+	GF_Vec v1v2, v1v3, v2v3;
+} EVG_Surface3DExt;
 
 /*the surface object - currently only ARGB/RGB32, RGB/BGR and RGB555/RGB565 supported*/
 struct _gf_evg_surface
@@ -141,7 +158,15 @@ struct _gf_evg_surface
 
 	/*FreeType outline (path converted to ft)*/
 	EVG_Outline ftoutline;
-	EVG_Raster_Params ftparams;
+
+	GF_Matrix2D *mx;
+	EVG_SpanFunc gray_spans;
+
+	void (*fill_single)(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
+	void (*fill_single_a)(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
+
+	s32 clip_xMin, clip_yMin, clip_xMax, clip_yMax;
+
 
 	u8 *uv_alpha;
 	u32 uv_alpha_alloc;
@@ -151,14 +176,12 @@ struct _gf_evg_surface
 
 	u32 idx_y1, idx_u, idx_v, idx_a, idx_g, idx_r, idx_b;
 
-#ifndef INLINE_POINT_CONVERSION
-	/*transformed point list*/
-	u32 pointlen;
-	EVG_Vector *points;
-#endif
-
 	u8 (*get_alpha)(void *udta, u8 src_alpha, s32 x, s32 y);
 	void *get_alpha_udta;
+
+	Bool is_3d_matrix;
+	GF_Matrix mx3d;
+	EVG_Surface3DExt *ext3d;
 };
 
 /*solid color brush*/
@@ -251,6 +274,8 @@ typedef struct __evg_texture
 
 void evg_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 x, s32 y, u32 count);
 
+#define evg_make_col_wide(_a, _r, _g, _b)\
+	((u64)(_a)) << 48 | ((u64)(_r))<<32 | ((u64)(_g))<<16 | ((u64)(_b))
 
 u64 evg_col_to_wide( u32 col);
 
@@ -290,8 +315,6 @@ GF_Color evg_ayuv_to_argb(GF_EVGSurface *surf, GF_Color col);
 u64 evg_argb_to_ayuv_wide(GF_EVGSurface *surf, u64 col);
 u64 evg_ayuv_to_argb_wide(GF_EVGSurface *surf, u64 col);
 void evg_make_ayuv_color_mx(GF_ColorMatrix *cmat, GF_ColorMatrix *yuv_cmat);
-
-u64 evg_make_col_wide(u16 a, u16 r, u16 g, u16 b);
 
 void evg_yuv420p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 void evg_yuv420p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
@@ -359,6 +382,134 @@ void evg_yuv444p_10_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface 
 void evg_yuv444p_10_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 void evg_yuv444p_10_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 GF_Err evg_surface_clear_yuv444p_10(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
+
+
+void evg_grey_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
+void evg_grey_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
+void evg_alphagrey_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
+void evg_alphagrey_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
+void evg_rgb_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
+void evg_rgb_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
+void evg_rgbx_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
+void evg_rgbx_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
+void evg_argb_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
+void evg_argb_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
+void evg_565_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
+void evg_565_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
+void evg_555_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
+void evg_555_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
+void evg_444_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
+void evg_444_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
+
+#include <limits.h>
+
+#define ErrRaster_MemoryOverflow   -4
+#define ErrRaster_Invalid_Mode     -2
+#define ErrRaster_Invalid_Outline  -1
+
+
+#define GPAC_FIX_BITS		16
+#define PIXEL_BITS  8
+#define PIXEL_BITS_DIFF 8	/*GPAC_FIX_BITS - PIXEL_BITS*/
+
+#define ONE_PIXEL       ( 1L << PIXEL_BITS )
+#define PIXEL_MASK      ( -1L << PIXEL_BITS )
+#define TRUNC( x )      ( (TCoord)((x) >> PIXEL_BITS) )
+#define SUBPIXELS( x )  ( (TPos)(x) << PIXEL_BITS )
+#define FLOOR( x )      ( (x) & -ONE_PIXEL )
+#define CEILING( x )    ( ( (x) + ONE_PIXEL - 1 ) & -ONE_PIXEL )
+#define ROUND( x )      ( ( (x) + ONE_PIXEL / 2 ) & -ONE_PIXEL )
+#define UPSCALE( x )    ( (x) >> ( PIXEL_BITS_DIFF) )
+#define DOWNSCALE( x )  ( (x) << ( PIXEL_BITS_DIFF) )
+
+
+/*************************************************************************/
+/*                                                                       */
+/*   TYPE DEFINITIONS                                                    */
+/*                                                                       */
+
+/* don't change the following types to FT_Int or FT_Pos, since we might */
+/* need to define them to "float" or "double" when experimenting with   */
+/* new algorithms                                                       */
+
+typedef int   TCoord;   /* integer scanline/pixel coordinate */
+typedef long  TPos;     /* sub-pixel coordinate              */
+
+/* determine the type used to store cell areas.  This normally takes at */
+/* least PIXEL_BYTES*2 + 1.  On 16-bit systems, we need to use `long'   */
+/* instead of `int', otherwise bad things happen                        */
+
+/* approximately determine the size of integers using an ANSI-C header */
+#if UINT_MAX == 0xFFFFU
+typedef long  TArea;
+#else
+typedef int  TArea;
+#endif
+
+
+/* maximal number of gray spans in a call to the span callback */
+#define FT_MAX_GRAY_SPANS  64
+
+#define AA_CELL_STEP_ALLOC	8
+
+typedef struct  TCell_
+{
+	TCoord  x;
+	int     cover;
+	TArea   area;
+	u32 idx1, idx2;
+} AACell;
+
+typedef struct
+{
+	TCoord  x;
+	u32 color;
+	int cover;
+	Float depth;
+	Float write_depth;
+	u32 idx1, idx2;
+} PatchPixel;
+
+typedef struct
+{
+	//current cells in sweep
+	AACell *cells;
+	int alloc, num;
+
+	/*list of candidates for border pixels (visible edges), flushed at end of shape
+	 this ensures that a pixel is draw once and only once
+	*/
+	PatchPixel *pixels;
+	int palloc, pnum;
+} AAScanline;
+
+
+typedef struct  TRaster_
+{
+	AAScanline *scanlines;
+	int max_lines;
+	TPos min_ex, max_ex, min_ey, max_ey;
+	TCoord ex, ey;
+	TPos x,  y, last_ey;
+	TArea area;
+	int cover;
+	u32 idx1, idx2;
+
+	EVG_Span gray_spans[FT_MAX_GRAY_SPANS];
+	int num_gray_spans;
+	EVG_Raster_Span_Func  render_span;
+	void *render_span_data;
+
+	u32 first_scanline;
+
+	GF_Matrix2D *mx;
+} TRaster;
+
+void gray_record_cell( TRaster *raster );
+void gray_set_cell( TRaster *raster, TCoord  ex, TCoord  ey );
+void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y);
+void gray_quick_sort( AACell *cells, int count);
+void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_non_zero_rule);
 
 #endif
 

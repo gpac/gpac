@@ -77,7 +77,7 @@ ifeq ($(DISABLE_CRYPTO), no)
 LIBGPAC_CRYPTO+=crypto/g_crypt.o crypto/g_crypt_openssl.o crypto/g_crypt_tinyaes.o crypto/tiny_aes.o
 endif
 
-LIBGPAC_EVG=evg/ftgrays.o evg/raster_565.o evg/raster_argb.o evg/raster_rgb.o evg/raster_yuv.o evg/stencil.o evg/surface.o
+LIBGPAC_EVG=evg/ftgrays.o evg/raster3d.o evg/raster_565.o evg/raster_argb.o evg/raster_rgb.o evg/raster_yuv.o evg/stencil.o evg/surface.o
 
 ## libgpac objects gathering: src/media tools
 LIBGPAC_MEDIATOOLS=media_tools/isom_tools.o media_tools/dash_segmenter.o media_tools/av_parsers.o media_tools/atsc_dmx.o

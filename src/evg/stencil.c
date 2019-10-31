@@ -30,18 +30,7 @@ static GF_EVGStencil *evg_texture_brush();
 static GF_EVGStencil *evg_linear_gradient_brush();
 static GF_EVGStencil *evg_radial_gradient_brush();
 
-u64 evg_make_col_wide(u16 a, u16 r, u16 g, u16 b)
-{
-	u64 res;
-	res = a;
-	res <<= 16;
-	res |= r;
-	res <<= 16;
-	res |= g;
-	res <<= 16;
-	res |= b;
-	return res;
-}
+
 
 GF_Color color_interpolate(u32 a, u32 b, u8 pos)
 {
@@ -485,9 +474,6 @@ void evg_gradient_precompute(EVG_BaseGradient *grad, GF_EVGSurface *surf)
 	 	FIXME: add filtering , check bilinear
 */
 
-#define USE_BILINEAR	0
-
-#if USE_BILINEAR
 static GFINLINE s32 mul255(s32 a, s32 b)
 {
 	return ((a+1) * b) >> 8;
@@ -545,7 +531,6 @@ static u64 EVG_LERP_WIDE(u64 c0, u64 c1, u8 t)
 
 	return evg_make_col_wide(a2, r2, g2, b2);
 }
-#endif
 
 static void tex_untransform_coord(EVG_Texture *_this, s32 _x, s32 _y, Fixed *outx, Fixed *outy)
 {
@@ -656,6 +641,9 @@ static void tex_fill_run_callback_wide(EVG_Texture *p, GF_EVGSurface *surf, s32 
 		count--;
 	}
 }
+
+//bilinear used fo 2D graphics ?
+#define USE_BILINEAR	0
 
 static void tex_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32 _y, u32 count)
 {
@@ -1823,16 +1811,81 @@ GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil * st, GF_ColorMatrix *cmat)
 }
 
 GF_EXPORT
-u32 gf_evg_stencil_get_pixel(GF_EVGStencil *st, u32 x, u32 y)
+u32 gf_evg_stencil_get_pixel(GF_EVGStencil *st, s32 x, s32 y)
 {
 	u32 col;
 	EVG_Texture *_this = (EVG_Texture *) st;
 	if (!_this || (_this->type != GF_STENCIL_TEXTURE) || !_this->tx_get_pixel) return 0;
+	if (x<0) x=0;
+	else if (x>=_this->width) x = _this->width-1;
+
+	if (y<0) y=0;
+	else if (y>=_this->height) y = _this->height-1;
+
 	col = _this->tx_get_pixel(_this, x, y);
 	if (_this->is_yuv) return evg_ayuv_to_argb(NULL, col);
 	return col;
 }
 
+GF_EXPORT
+u32 gf_evg_stencil_get_pixel_f(GF_EVGStencil *st, Float x, Float y)
+{
+	u32 col;
+	EVG_Texture *_this = (EVG_Texture *) st;
+	if (!_this || (_this->type != GF_STENCIL_TEXTURE) || !_this->tx_get_pixel) return 0;
+
+	if (_this->mod & GF_TEXTURE_FLIP_X) x = -x;
+	if (_this->mod & GF_TEXTURE_FLIP_Y) y = -y;
+
+	x*=_this->width;
+	y*=_this->height;
+	if (_this->mod & GF_TEXTURE_REPEAT_S) {
+		while (x<0) x += _this->width;
+		while (x>=_this->width) x -= _this->width;
+	} else {
+		if (x<0) x=0;
+		else if (x>=_this->width) x = _this->width-1;
+	}
+
+	if (_this->mod & GF_TEXTURE_REPEAT_T) {
+		while (y<0) y += _this->height;
+		while (y>=_this->height) y -= _this->height;
+	} else {
+		if (y<0) y=0;
+		else if (y>=_this->height) y = _this->height-1;
+	}
+
+	if (_this->filter==GF_TEXTURE_FILTER_HIGH_SPEED) {
+		col = _this->tx_get_pixel(_this, (s32) x, (s32) y);
+	} else {
+		u32 _x = floor(x);
+		u32 _y = floor(y);
+		if (_this->filter==GF_TEXTURE_FILTER_MID) {
+			if ((x - _x > 0.5) && _x+1<_this->width) _x++;
+			if ((y - _y > 0.5) && _y+1<_this->height) _y++;
+			col = _this->tx_get_pixel(_this, _x, _y);
+		} else {
+			u32 col01, col11, col10;
+			s32 _x1 = _x+1;
+			s32 _y1 = _y+1;
+			u8 diff_x = 255 * (x - _x);
+			u8 diff_y = 255 * (y - _y);
+
+			if (_x1>=_this->width) _x1 = _this->width-1;
+			if (_y1>=_this->height) _y1 = _this->height-1;
+			col = _this->tx_get_pixel(_this, _x, _y);
+			col10 = _this->tx_get_pixel(_this, _x1, _y);
+			col01 = _this->tx_get_pixel(_this, _x, _y1);
+			col11 = _this->tx_get_pixel(_this, _x1, _y1);
+			col = EVG_LERP(col, col10, diff_x);
+			col11 = EVG_LERP(col01, col11, diff_x);
+			col = EVG_LERP(col, col11, diff_y);
+		}
+	}
+
+	if (_this->is_yuv) return evg_ayuv_to_argb(NULL, col);
+	return col;
+}
 GF_EXPORT
 GF_Err gf_evg_stencil_set_alpha(GF_EVGStencil * st, u8 alpha)
 {
