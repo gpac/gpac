@@ -791,367 +791,220 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.flags = import_flags;
 	import.keep_audelim = keep_audelim;
 
-	if (!import.nb_tracks) {
-		u32 count, o_count;
-		o_count = gf_isom_get_track_count(import.dest);
-		e = gf_media_import(&import);
-		if (e) return e;
-		count = gf_isom_get_track_count(import.dest);
+    if (do_all)
+        import.flags |= GF_IMPORT_KEEP_REFS;
 
-		if (moov_timescale) {
-			if (moov_timescale<0) moov_timescale = gf_isom_get_media_timescale(import.dest, o_count+1);
-			gf_isom_set_timescale(import.dest, moov_timescale);
-			moov_timescale = 0;
-		}
+    u32 nb_tracks = gf_isom_get_track_count(dest);
+    for (i=0; i<nb_tracks; i++) {
+        import.trackID = import.tk_info[i].track_num;
+        if (prog_id) {
+            if (import.tk_info[i].prog_num!=prog_id) continue;
+            e = gf_media_import(&import);
+        }
+        else if (do_all) e = gf_media_import(&import);
+        else if (track_id && (track_id==import.trackID)) {
+            track_id = 0;
+            e = gf_media_import(&import);
+        }
+        else if (do_audio && (import.tk_info[i].type==GF_ISOM_MEDIA_AUDIO)) {
+            do_audio = 0;
+            e = gf_media_import(&import);
+        }
+        else if (do_video && (import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL)) {
+            do_video = 0;
+            e = gf_media_import(&import);
+        }
+        else if (do_auxv && (import.tk_info[i].type==GF_ISOM_MEDIA_AUXV)) {
+            do_auxv = 0;
+            e = gf_media_import(&import);
+        }
+        else if (do_pict && (import.tk_info[i].type==GF_ISOM_MEDIA_PICT)) {
+            do_pict = 0;
+            e = gf_media_import(&import);
+        }
+        else continue;
+        if (e) goto exit;
 
-		timescale = gf_isom_get_timescale(dest);
-		for (i=o_count; i<count; i++) {
-			u32 mtype = gf_isom_get_media_type(import.dest, i+1);
+        track = gf_isom_get_track_by_id(import.dest, import.final_trackID);
 
-			if (szLan) gf_isom_set_media_language(import.dest, i+1, (char *) szLan);
-			if (delay) {
-				u64 tk_dur;
-				gf_isom_remove_edit_segments(import.dest, i+1);
-				tk_dur = gf_isom_get_track_duration(import.dest, i+1);
-				if (delay>0) {
-					gf_isom_append_edit_segment(import.dest, i+1, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
-					gf_isom_append_edit_segment(import.dest, i+1, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
-				} else if (delay<0) {
-					u64 to_skip = (timescale*(-delay))/1000;
-					if (to_skip<tk_dur) {
-						//u64 seg_dur = (-delay)*gf_isom_get_media_timescale(import.dest, i+1) / 1000;
-						gf_isom_append_edit_segment(import.dest, i+1, tk_dur-to_skip, to_skip, GF_ISOM_EDIT_NORMAL);
-					} else {
-						fprintf(stderr, "Warning: request negative delay longer than track duration - ignoring\n");
-					}
-				}
-			}
+        if (moov_timescale) {
+            if (moov_timescale<0) moov_timescale = gf_isom_get_media_timescale(import.dest, track);
+            gf_isom_set_timescale(import.dest, moov_timescale);
+            moov_timescale = 0;
+        }
 
-			if (gf_isom_is_video_subtype(mtype)) {
-				if (((par_n>=0) && (par_d>=0)) || force_par) {
-					e = gf_media_change_par(import.dest, i+1, par_n, par_d, force_par);
-				}
-				if (has_clap) {
-					e = gf_isom_set_clean_aperture(import.dest, i+1, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
-				}
-				if (bitdepth) {
-					gf_isom_set_visual_bit_depth(import.dest, i+1, 1, bitdepth);
-				}
-				if (clr_type) {
-					gf_isom_set_visual_color_info(import.dest, i+1, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
-				}
-			}
+        timescale = gf_isom_get_timescale(dest);
+        if (szLan) gf_isom_set_media_language(import.dest, track, (char *) szLan);
+        if (disable) gf_isom_set_track_enabled(import.dest, track, 0);
 
-
-			if (rap_only || refs_only) {
-				e = gf_media_remove_non_rap(import.dest, i+1, refs_only);
-			}
-
-			if (handler_name) gf_isom_set_handler_name(import.dest, i+1, handler_name);
-			else if (!keep_handler) {
-				char szHName[1024];
-				const char *fName = gf_url_get_resource_name((const  char *)inName);
-				fName = strchr(fName, '.');
-				if (fName) fName += 1;
-				else fName = "?";
-
-				sprintf(szHName, "*%s@GPAC%s", fName, GPAC_FULL_VERSION);
-				gf_isom_set_handler_name(import.dest, i+1, szHName);
-			}
-			if (handler) gf_isom_set_media_type(import.dest, i+1, handler);
-			if (disable) gf_isom_set_track_enabled(import.dest, i+1, 0);
-
-			if (group) {
-				gf_isom_set_alternate_group_id(import.dest, i+1, group);
-			}
-			if (track_layout) {
-				gf_isom_set_track_layout_info(import.dest, i+1, tw<<16, th<<16, tx<<16, ty<<16, 0);
-			}
-			if (stype)
-				gf_isom_set_media_subtype(import.dest, i+1, 1, stype);
-
-			if (is_chap && chap_ref) {
-				set_chapter_track(import.dest, i+1, chap_ref);
-			}
-			if (new_timescale>1) {
-				gf_isom_set_media_timescale(import.dest, i+1, new_timescale, 0, 0);
-			}
-			if (rescale_num > 1) {
-				switch (gf_isom_get_media_type(import.dest, i+1)) {
-				case GF_ISOM_MEDIA_AUDIO:
-					fprintf(stderr, "Cannot force media timescale for audio media types - ignoring\n");
-					break;
-				default:
-					gf_isom_set_media_timescale(import.dest, i+1, rescale_num, rescale_den, 1);
-					break;
-				}
-			}
-
-			for (j = 0; j < gf_list_count(kinds); j+=2) {
-				char *kind_scheme = (char *)gf_list_get(kinds, j);
-				char *kind_value = (char *)gf_list_get(kinds, j+1);
-				gf_isom_add_track_kind(import.dest, i+1, kind_scheme, kind_value);
-			}
-
-			if (profile || level)
-				gf_media_change_pl(import.dest, i+1, profile, level);
-
-			switch (gf_isom_get_media_subtype(import.dest, i+1, 1)) {
-			case GF_ISOM_BOX_TYPE_MP4S:
-				keep_sys_tracks = 1;
-				break;
-			case GF_QT_BOX_TYPE_TMCD:
-				tmcd_track = i+1;
-				break;
-			}
-
-			gf_isom_set_composition_offset_mode(import.dest, i+1, negative_cts_offset);
-
-			if (gf_isom_get_avc_svc_type(import.dest, i+1, 1)>=GF_ISOM_AVCTYPE_AVC_SVC)
-				check_track_for_svc = i+1;
-
-			switch (gf_isom_get_hevc_lhvc_type(import.dest, i+1, 1)) {
-			case GF_ISOM_HEVCTYPE_HEVC_LHVC:
-			case GF_ISOM_HEVCTYPE_LHVC_ONLY:
-				check_track_for_lhvc = i+1;
-				break;
-			case GF_ISOM_HEVCTYPE_HEVC_ONLY:
-				check_track_for_hevc=1;
-				break;
-			}
-
-			if (txt_flags) {
-				gf_isom_text_set_display_flags(import.dest, i+1, 0, txt_flags, txt_mode);
-			}
-
-			if (force_rate>=0) {
-				gf_isom_update_bitrate(import.dest, i+1, 1, force_rate, force_rate, 0);
-			}
-
-			if (split_tile_mode) {
-				switch (gf_isom_get_media_subtype(import.dest, i+1, 1)) {
-				case GF_ISOM_SUBTYPE_HVC1:
-				case GF_ISOM_SUBTYPE_HEV1:
-				case GF_ISOM_SUBTYPE_HVC2:
-				case GF_ISOM_SUBTYPE_HEV2:
-					break;
-				default:
-					split_tile_mode = 0;
-					break;
-				}
-			}
-		}
-	} else {
-		if (do_all)
-			import.flags |= GF_IMPORT_KEEP_REFS;
-
-		for (i=0; i<import.nb_tracks; i++) {
-			import.trackID = import.tk_info[i].track_num;
-			if (prog_id) {
-				if (import.tk_info[i].prog_num!=prog_id) continue;
-				e = gf_media_import(&import);
-			}
-			else if (do_all) e = gf_media_import(&import);
-			else if (track_id && (track_id==import.trackID)) {
-				track_id = 0;
-				e = gf_media_import(&import);
-			}
-			else if (do_audio && (import.tk_info[i].type==GF_ISOM_MEDIA_AUDIO)) {
-				do_audio = 0;
-				e = gf_media_import(&import);
-			}
-			else if (do_video && (import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL)) {
-				do_video = 0;
-				e = gf_media_import(&import);
-			}
-            else if (do_auxv && (import.tk_info[i].type==GF_ISOM_MEDIA_AUXV)) {
-                do_auxv = 0;
-                e = gf_media_import(&import);
+        if (delay) {
+            u64 tk_dur;
+            gf_isom_remove_edit_segments(import.dest, track);
+            tk_dur = gf_isom_get_track_duration(import.dest, track);
+            if (delay>0) {
+                gf_isom_append_edit_segment(import.dest, track, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
+                gf_isom_append_edit_segment(import.dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+            } else {
+                u64 to_skip = (timescale*(-delay))/1000;
+                if (to_skip<tk_dur) {
+                    u64 media_time = (-delay)*gf_isom_get_media_timescale(import.dest, track) / 1000;
+                    gf_isom_append_edit_segment(import.dest, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
+                } else {
+                    fprintf(stderr, "Warning: request negative delay longer than track duration - ignoring\n");
+                }
             }
-            else if (do_pict && (import.tk_info[i].type==GF_ISOM_MEDIA_PICT)) {
-                do_pict = 0;
-                e = gf_media_import(&import);
+        }
+        if (gf_isom_is_video_subtype(import.tk_info[i].type)) {
+            if (((par_n>=-1) && (par_d>=-1)) || force_par) {
+                e = gf_media_change_par(import.dest, track, par_n, par_d, force_par);
             }
-			else continue;
 			if (e) goto exit;
+            if (has_clap) {
+                e = gf_isom_set_clean_aperture(import.dest, track, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
+            }
+			if (e) goto exit;
+            if (bitdepth) {
+                gf_isom_set_visual_bit_depth(import.dest, track, 1, bitdepth);
+            }
+            if (clr_type) {
+                gf_isom_set_visual_color_info(import.dest, track, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
+            }
+        }
 
-			track = gf_isom_get_track_by_id(import.dest, import.final_trackID);
+        if (gf_isom_get_media_subtype(import.dest, track, 1) == GF_QT_BOX_TYPE_TMCD) {
+            tmcd_track = track;
+        }
+        if (rap_only || refs_only) {
+            e = gf_media_remove_non_rap(import.dest, track, refs_only);
+        }
+		if (e) goto exit;
+        if (handler_name) gf_isom_set_handler_name(import.dest, track, handler_name);
+        else if (!keep_handler) {
+            char szHName[1024];
+            const char *fName = gf_url_get_resource_name((const  char *)inName);
+            fName = strchr(fName, '.');
+            if (fName) fName += 1;
+            else fName = "?";
 
-			if (moov_timescale) {
-				if (moov_timescale<0) moov_timescale = gf_isom_get_media_timescale(import.dest, track);
-				gf_isom_set_timescale(import.dest, moov_timescale);
-				moov_timescale = 0;
-			}
+            sprintf(szHName, "%s@GPAC%s", fName, GPAC_FULL_VERSION);
+            gf_isom_set_handler_name(import.dest, track, szHName);
+        }
+        if (handler) gf_isom_set_media_type(import.dest, track, handler);
 
-			timescale = gf_isom_get_timescale(dest);
-			if (szLan) gf_isom_set_media_language(import.dest, track, (char *) szLan);
-			if (disable) gf_isom_set_track_enabled(import.dest, track, 0);
+        if (group) {
+            gf_isom_set_alternate_group_id(import.dest, track, group);
+        }
 
-			if (delay) {
-				u64 tk_dur;
-				gf_isom_remove_edit_segments(import.dest, track);
-				tk_dur = gf_isom_get_track_duration(import.dest, track);
-				if (delay>0) {
-					gf_isom_append_edit_segment(import.dest, track, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
-					gf_isom_append_edit_segment(import.dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
-				} else {
-					u64 to_skip = (timescale*(-delay))/1000;
-					if (to_skip<tk_dur) {
-						u64 media_time = (-delay)*gf_isom_get_media_timescale(import.dest, track) / 1000;
-						gf_isom_append_edit_segment(import.dest, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
-					} else {
-						fprintf(stderr, "Warning: request negative delay longer than track duration - ignoring\n");
-					}
-				}
-			}
-			if (gf_isom_is_video_subtype(import.tk_info[i].type)) {
-				if (((par_n>=-1) && (par_d>=-1)) || force_par) {
-					e = gf_media_change_par(import.dest, track, par_n, par_d, force_par);
-				}
-				if (has_clap) {
-					e = gf_isom_set_clean_aperture(import.dest, track, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
-				}
-				if (bitdepth) {
-					gf_isom_set_visual_bit_depth(import.dest, track, 1, bitdepth);
-				}
-				if (clr_type) {
-					gf_isom_set_visual_color_info(import.dest, track, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
-				}
-			}
+        if (track_layout) {
+            gf_isom_set_track_layout_info(import.dest, track, tw<<16, th<<16, tx<<16, ty<<16, 0);
+        }
+        if (stype)
+            gf_isom_set_media_subtype(import.dest, track, 1, stype);
 
-			if (gf_isom_get_media_subtype(import.dest, track, 1) == GF_QT_BOX_TYPE_TMCD) {
-				tmcd_track = track;
-			}
-			if (rap_only || refs_only) {
-				e = gf_media_remove_non_rap(import.dest, track, refs_only);
-			}
-			if (handler_name) gf_isom_set_handler_name(import.dest, track, handler_name);
-			else if (!keep_handler) {
-				char szHName[1024];
-				const char *fName = gf_url_get_resource_name((const  char *)inName);
-				fName = strchr(fName, '.');
-				if (fName) fName += 1;
-				else fName = "?";
-
-				sprintf(szHName, "%s@GPAC%s", fName, GPAC_FULL_VERSION);
-				gf_isom_set_handler_name(import.dest, track, szHName);
-			}
-			if (handler) gf_isom_set_media_type(import.dest, track, handler);
-
-			if (group) {
-				gf_isom_set_alternate_group_id(import.dest, track, group);
-			}
-
-			if (track_layout) {
-				gf_isom_set_track_layout_info(import.dest, track, tw<<16, th<<16, tx<<16, ty<<16, 0);
-			}
-			if (stype)
-				gf_isom_set_media_subtype(import.dest, track, 1, stype);
-
-			if (is_chap && chap_ref) {
-				set_chapter_track(import.dest, track, chap_ref);
-			}
+        if (is_chap && chap_ref) {
+            set_chapter_track(import.dest, track, chap_ref);
+        }
 
 
-			for (j = 0; j < gf_list_count(kinds); j+=2) {
-				char *kind_scheme = (char *)gf_list_get(kinds, j);
-				char *kind_value = (char *)gf_list_get(kinds, j+1);
-				gf_isom_add_track_kind(import.dest, i+1, kind_scheme, kind_value);
-			}
+        for (j = 0; j < gf_list_count(kinds); j+=2) {
+            char *kind_scheme = (char *)gf_list_get(kinds, j);
+            char *kind_value = (char *)gf_list_get(kinds, j+1);
+            gf_isom_add_track_kind(import.dest, i+1, kind_scheme, kind_value);
+        }
 
-			if (profile || level)
-				gf_media_change_pl(import.dest, track, profile, level);
+        if (profile || level)
+            gf_media_change_pl(import.dest, track, profile, level);
 
-			if (gf_isom_get_mpeg4_subtype(import.dest, track, 1))
-				keep_sys_tracks = 1;
+        if (gf_isom_get_mpeg4_subtype(import.dest, track, 1))
+            keep_sys_tracks = 1;
 
-			if (new_timescale>1) {
-				gf_isom_set_media_timescale(import.dest, track, new_timescale, 0, 0);
-			}
+        if (new_timescale>1) {
+            gf_isom_set_media_timescale(import.dest, track, new_timescale, 0, 0);
+        }
 
-			if (rescale_num > 1) {
-				switch (gf_isom_get_media_type(import.dest, track)) {
-				case GF_ISOM_MEDIA_AUDIO:
-					fprintf(stderr, "Cannot force media timescale for audio media types - ignoring\n");
-					break;
-				default:
-					gf_isom_set_media_timescale(import.dest, track, rescale_num, rescale_den, 1);
-					break;
-				}
-			}
+        if (rescale_num > 1) {
+            switch (gf_isom_get_media_type(import.dest, track)) {
+            case GF_ISOM_MEDIA_AUDIO:
+                fprintf(stderr, "Cannot force media timescale for audio media types - ignoring\n");
+                break;
+            default:
+                gf_isom_set_media_timescale(import.dest, track, rescale_num, rescale_den, 1);
+                break;
+            }
+        }
 
-			if (rvc_config) {
-				FILE *f = gf_fopen(rvc_config, "rb");
-				if (f) {
-					char *data;
-					u32 size;
-					size_t read;
-					gf_fseek(f, 0, SEEK_END);
-					size = (u32) gf_ftell(f);
-					gf_fseek(f, 0, SEEK_SET);
-					data = gf_malloc(sizeof(char)*size);
-					read = fread(data, 1, size, f);
-					gf_fclose(f);
-					if (read != size) {
-						fprintf(stderr, "Error: could not read rvc config from %s\n", rvc_config);
-						e = GF_IO_ERR;
-						goto exit;
-					}
+        if (rvc_config) {
+            FILE *f = gf_fopen(rvc_config, "rb");
+            if (f) {
+                char *data;
+                u32 size;
+                size_t read;
+                gf_fseek(f, 0, SEEK_END);
+                size = (u32) gf_ftell(f);
+                gf_fseek(f, 0, SEEK_SET);
+                data = gf_malloc(sizeof(char)*size);
+                read = fread(data, 1, size, f);
+                gf_fclose(f);
+                if (read != size) {
+                    fprintf(stderr, "Error: could not read rvc config from %s\n", rvc_config);
+                    e = GF_IO_ERR;
+                    goto exit;
+                }
 #ifdef GPAC_DISABLE_ZLIB
-					fprintf(stderr, "Error: no zlib support - RVC not available\n");
-					e = GF_NOT_SUPPORTED;
-					goto exit;
+                fprintf(stderr, "Error: no zlib support - RVC not available\n");
+                e = GF_NOT_SUPPORTED;
+                goto exit;
 #else
-					gf_gz_compress_payload(&data, size, &size);
+                gf_gz_compress_payload(&data, size, &size);
 #endif
-					gf_isom_set_rvc_config(import.dest, track, 1, 0, "application/rvc-config+xml+gz", data, size);
-					gf_free(data);
-				}
-			} else if (rvc_predefined>0) {
-				gf_isom_set_rvc_config(import.dest, track, 1, rvc_predefined, NULL, NULL, 0);
-			}
+                gf_isom_set_rvc_config(import.dest, track, 1, 0, "application/rvc-config+xml+gz", data, size);
+                gf_free(data);
+            }
+        } else if (rvc_predefined>0) {
+            gf_isom_set_rvc_config(import.dest, track, 1, rvc_predefined, NULL, NULL, 0);
+        }
 
-			gf_isom_set_composition_offset_mode(import.dest, track, negative_cts_offset);
+        gf_isom_set_composition_offset_mode(import.dest, track, negative_cts_offset);
 
-			if (gf_isom_get_avc_svc_type(import.dest, track, 1)>=GF_ISOM_AVCTYPE_AVC_SVC)
-				check_track_for_svc = track;
+        if (gf_isom_get_avc_svc_type(import.dest, track, 1)>=GF_ISOM_AVCTYPE_AVC_SVC)
+            check_track_for_svc = track;
 
-			switch (gf_isom_get_hevc_lhvc_type(import.dest, track, 1)) {
-			case GF_ISOM_HEVCTYPE_HEVC_LHVC:
-			case GF_ISOM_HEVCTYPE_LHVC_ONLY:
-				check_track_for_lhvc = i+1;
-				break;
-			case GF_ISOM_HEVCTYPE_HEVC_ONLY:
-				check_track_for_hevc=1;
-				break;
-			}
+        switch (gf_isom_get_hevc_lhvc_type(import.dest, track, 1)) {
+        case GF_ISOM_HEVCTYPE_HEVC_LHVC:
+        case GF_ISOM_HEVCTYPE_LHVC_ONLY:
+            check_track_for_lhvc = i+1;
+            break;
+        case GF_ISOM_HEVCTYPE_HEVC_ONLY:
+            check_track_for_hevc=1;
+            break;
+        }
 
-			if (txt_flags) {
-				gf_isom_text_set_display_flags(import.dest, track, 0, txt_flags, txt_mode);
-			}
-			if (force_rate>=0) {
-				gf_isom_update_bitrate(import.dest, i+1, 1, force_rate, force_rate, 0);
-			}
+        if (txt_flags) {
+            gf_isom_text_set_display_flags(import.dest, track, 0, txt_flags, txt_mode);
+        }
+        if (force_rate>=0) {
+            gf_isom_update_bitrate(import.dest, i+1, 1, force_rate, force_rate, 0);
+        }
 
-			if (split_tile_mode) {
-				switch (gf_isom_get_media_subtype(import.dest, track, 1)) {
-				case GF_ISOM_SUBTYPE_HVC1:
-				case GF_ISOM_SUBTYPE_HEV1:
-				case GF_ISOM_SUBTYPE_HVC2:
-				case GF_ISOM_SUBTYPE_HEV2:
-					break;
-				default:
-					split_tile_mode = 0;
-					break;
-				}
-			}
-		}
-		if (track_id) fprintf(stderr, "WARNING: Track ID %d not found in file\n", track_id);
-		else if (do_video) fprintf(stderr, "WARNING: Video track not found\n");
-        else if (do_auxv) fprintf(stderr, "WARNING: Auxiliary Video track not found\n");
-        else if (do_pict) fprintf(stderr, "WARNING: Picture sequence track not found\n");
-		else if (do_audio) fprintf(stderr, "WARNING: Audio track not found\n");
-	}
+        if (split_tile_mode) {
+            switch (gf_isom_get_media_subtype(import.dest, track, 1)) {
+            case GF_ISOM_SUBTYPE_HVC1:
+            case GF_ISOM_SUBTYPE_HEV1:
+            case GF_ISOM_SUBTYPE_HVC2:
+            case GF_ISOM_SUBTYPE_HEV2:
+                break;
+            default:
+                split_tile_mode = 0;
+                break;
+            }
+        }
+    }
+    if (track_id) fprintf(stderr, "WARNING: Track ID %d not found in file\n", track_id);
+    else if (do_video) fprintf(stderr, "WARNING: Video track not found\n");
+    else if (do_auxv) fprintf(stderr, "WARNING: Auxiliary Video track not found\n");
+    else if (do_pict) fprintf(stderr, "WARNING: Picture sequence track not found\n");
+    else if (do_audio) fprintf(stderr, "WARNING: Audio track not found\n");
+	
 
 	if (chapter_name) {
 		if (is_chap_file) {
