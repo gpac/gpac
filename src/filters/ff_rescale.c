@@ -23,11 +23,11 @@
  *
  */
 
-#include "ff_common.h"
-
 #include <gpac/setup.h>
 
 #ifdef GPAC_HAS_FFMPEG
+
+#include "ff_common.h"
 
 typedef struct
 {
@@ -404,7 +404,9 @@ GF_FilterRegister FFSWSRegister = {
 	.reconfigure_output = ffsws_reconfigure_output,
 };
 
-#endif
+#else
+#include <gpac/filters.h>
+#endif //GPAC_HAS_FFMPEG
 
 const GF_FilterRegister *ffsws_register(GF_FilterSession *session)
 {
