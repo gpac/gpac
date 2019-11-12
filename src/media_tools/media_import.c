@@ -8516,6 +8516,8 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->flags |= GF_IMPORT_USE_DATAREF;
+		import->nb_tracks = 1;
+		 import->tk_info[0].track_num = 1;
 		return GF_OK;
 	}
 

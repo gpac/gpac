@@ -794,8 +794,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
     if (do_all)
         import.flags |= GF_IMPORT_KEEP_REFS;
 
-    u32 nb_tracks = gf_isom_get_track_count(dest);
-    for (i=0; i<nb_tracks; i++) {
+    for (i=0; i<import.nb_tracks; i++) {
         import.trackID = import.tk_info[i].track_num;
         if (prog_id) {
             if (import.tk_info[i].prog_num!=prog_id) continue;
