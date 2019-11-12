@@ -2664,6 +2664,10 @@ GF_Err gf_import_timed_text(GF_MediaImporter *import)
 	}
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		if (fmt==GF_TEXT_IMPORT_SUB) import->flags |= GF_IMPORT_OVERRIDE_FPS;
+		import->nb_tracks = 1;
+		import->tk_info[0].track_num = 1;
+		import->tk_info[0].type = GF_ISOM_MEDIA_TEXT;
+		import->tk_info[0].media_type = GF_ISOM_MEDIA_SUBT;
 		return GF_OK;
 	}
 	switch (fmt) {
