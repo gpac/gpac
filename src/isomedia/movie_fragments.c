@@ -854,6 +854,9 @@ static u64 moof_get_earliest_cts(GF_MovieFragmentBox *moof, GF_ISOTrackID refTra
 	return cts;
 }
 
+
+GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_type, GF_BitStream *bs, u32 *box_csize);
+
 static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_diff, u32 *moof_size, Bool reassign_bs)
 {
 	GF_Err e;
@@ -1075,7 +1078,10 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 		gf_bs_write_u64(bs, movie->moof->timestamp);
 	}
 
+	if (moof_size) *moof_size = (u32) movie->moof->size;
+
 	pos = gf_bs_get_position(bs);
+
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(movie->moof->TrackList, &i))) {
 		traf->moof_start_in_bs = pos;
@@ -1085,7 +1091,11 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 	if (movie->on_block_out)
 		gf_bs_prevent_dispatch(bs, GF_TRUE);
 
-	e = gf_isom_box_write((GF_Box *) movie->moof, bs);
+	if (movie->compress_mode>GF_ISO_COMP_MOOV) {
+		e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->moof, GF_4CC('!', 'm', 'o', 'f'), bs, moof_size);
+	} else {
+		e = gf_isom_box_write((GF_Box *) movie->moof, bs);
+	}
 
 	if (movie->on_block_out)
 		gf_bs_prevent_dispatch(bs, GF_FALSE);
@@ -1101,8 +1111,6 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 		gf_bs_write_data(bs, buffer, mdat_size);
 		gf_free(buffer);
 	}
-
-	if (moof_size) *moof_size = (u32) movie->moof->size;
 
 	if (bs != bs_orig) {
 		u64 frag_size = gf_bs_get_position(bs);
@@ -2123,12 +2131,30 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size)
 
 		if (movie->root_ssix) {
 			gf_isom_box_size((GF_Box *) movie->root_ssix);
-			movie->root_sidx->first_offset = (u32) movie->root_ssix->size;
+
+			if (movie->compress_mode>=GF_ISO_COMP_MOOF_SSIX) {
+				u32 ssix_comp_size;
+				//compute ssix compressed size by using NULL destination bitstream
+				//not really optimum since we compress twice the ssix, to optimize ...
+				e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->root_ssix, GF_4CC('!', 's', 's', 'x'), NULL, &ssix_comp_size);
+				movie->root_sidx->first_offset = ssix_comp_size;
+			} else {
+				movie->root_sidx->first_offset = (u32) movie->root_ssix->size;
+			}
 		}
 
-		e = gf_isom_box_write((GF_Box *) movie->root_sidx, bs);
+		if (movie->compress_mode>=GF_ISO_COMP_MOOF_SIDX) {
+			e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->root_sidx, GF_4CC('!', 's', 'i', 'x'), bs, NULL);
+		} else {
+			e = gf_isom_box_write((GF_Box *) movie->root_sidx, bs);
+		}
+
 		if (!e && movie->root_ssix) {
-			e = gf_isom_box_write((GF_Box *) movie->root_ssix, bs);
+			if (movie->compress_mode>=GF_ISO_COMP_MOOF_SSIX) {
+				e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->root_ssix, GF_4CC('!', 's', 's', 'x'), bs, NULL);
+			} else {
+				e = gf_isom_box_write((GF_Box *) movie->root_ssix, bs);
+			}
 		}
 	}
 

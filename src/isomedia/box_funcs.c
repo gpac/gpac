@@ -88,9 +88,12 @@ static GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs);
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box)
 {
 	u32 type, uuid_type, hdr_size, restore_type;
-	u64 size, start, payload_start, end;
+	u64 size, start, comp_start, payload_start, end;
 	char uuid[16];
 	GF_Err e;
+	GF_BitStream *uncomp_bs = NULL;
+	u8 *uncomp_data = NULL;
+	u32 compressed_size=0;
 	GF_Box *newBox;
 	Bool skip_logs = (gf_bs_get_cookie(bs) & 1 ) ? GF_TRUE : GF_FALSE;
 
@@ -100,7 +103,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		return GF_ISOM_INCOMPLETE_FILE;
 	}
 
-	start = gf_bs_get_position(bs);
+	comp_start = start = gf_bs_get_position(bs);
 
 	uuid_type = 0;
 	size = (u64) gf_bs_read_u32(bs);
@@ -126,6 +129,67 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box type %s (0x%08X) at position "LLU" has size 0 but is not at root/file level, skipping\n", gf_4cc_to_str(type), type, start));
 				}
 				return GF_OK;
+			}
+		}
+		if (is_root_box && (size>=8)) {
+			Bool do_uncompress = GF_FALSE;
+			u8 *compb = NULL;
+			u32 osize = 0;
+			if (type==GF_4CC('!', 'm', 'o', 'f')) {
+				do_uncompress = GF_TRUE;
+				type = GF_ISOM_BOX_TYPE_MOOF;
+			}
+			else if (type==GF_4CC('!', 'm', 'o', 'v')) {
+				do_uncompress = GF_TRUE;
+				type = GF_ISOM_BOX_TYPE_MOOV;
+			}
+			else if (type==GF_4CC('!', 's', 'i', 'x')) {
+				do_uncompress = GF_TRUE;
+				type = GF_ISOM_BOX_TYPE_SIDX;
+			}
+			else if (type==GF_4CC('!', 's', 's', 'x')) {
+				do_uncompress = GF_TRUE;
+				type = GF_ISOM_BOX_TYPE_SSIX;
+			}
+
+			if (do_uncompress) {
+#if defined(COMP_SIGNAL_SIZE_TYPE) || defined(COMP_SIGNAL_SIZE)
+				u32 orig_size;
+#endif
+				u32 comp_hdr=8;
+				compb = gf_malloc(sizeof(u8) * (size-8));
+
+#if defined(COMP_SIGNAL_SIZE_TYPE)
+				u32 comp_type = gf_bs_read_u32(bs);
+				if (comp_type != GF_4CC('d', 'e', 'f', 'l')) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Unknown compression type %s\n", gf_4cc_to_str(comp_type) ));
+					return GF_NOT_SUPPORTED;
+				}
+				orig_size = gf_bs_read_u32(bs);
+				comp_hdr+=8;
+#elif defined(COMP_SIGNAL_SIZE)
+				orig_size = gf_bs_read_u32(bs);
+				comp_hdr+=4;
+#endif
+				if (size < comp_hdr)
+					return GF_ISOM_INVALID_FILE;
+
+				compressed_size = size - comp_hdr;
+				gf_bs_read_data(bs, compb, compressed_size);
+				gf_gz_decompress_payload(compb, compressed_size, &uncomp_data, &osize);
+#if defined(COMP_SIGNAL_SIZE_TYPE) || defined(COMP_SIGNAL_SIZE)
+				if (osize != orig_size) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Mismatch in indicated uncompressed size %d vs uncompressed data %d\n", orig_size, osize ));
+					return GF_ISOM_INVALID_FILE;
+				}
+#endif
+
+				//keep size as complete box size for tests below
+				size = osize + 8;
+				uncomp_bs = gf_bs_new(uncomp_data, osize, GF_BITSTREAM_READ);
+				bs = uncomp_bs;
+				start = 0;
+				gf_free(compb);
 			}
 		}
 	}
@@ -215,6 +279,36 @@ retry_unknown_box:
 	if (!e) e = gf_isom_box_read(newBox, bs);
 	newBox->size = size;
 	end = gf_bs_get_position(bs);
+
+	if (uncomp_bs) {
+		gf_free(uncomp_data);
+		gf_bs_del(uncomp_bs);
+		if (e) {
+			gf_isom_box_del(newBox);
+			*outBox = NULL;
+			return e;
+		}
+		//move size to real bitstream offsets for tests below
+		size -= 8;
+		//remember compressed vs real size info for moof in order to properly recompute data_offset/base_data_offset
+		if (type==GF_ISOM_BOX_TYPE_MOOF) {
+			((GF_MovieFragmentBox *)newBox)->compressed_diff = (s32)size - (s32)compressed_size;
+		}
+		//remember compressed vs real size info for moov in order to properly recompute chunk offset
+		else if (type==GF_ISOM_BOX_TYPE_MOOV) {
+			((GF_MovieBox *)newBox)->compressed_diff = (s32)size - (s32)compressed_size;
+			((GF_MovieBox *)newBox)->file_offset = comp_start;
+		}
+		//remember compressed vs real size info for dump
+		else if (type==GF_ISOM_BOX_TYPE_SIDX) {
+			((GF_SegmentIndexBox *)newBox)->compressed_diff = (s32)size - (s32)compressed_size;
+		}
+		//remember compressed vs real size info for dump
+		else if (type==GF_ISOM_BOX_TYPE_SSIX) {
+			((GF_SubsegmentIndexBox *)newBox)->compressed_diff = (s32)size - (s32)compressed_size;
+		}
+	}
+
 
 	if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
 		gf_isom_box_del(newBox);

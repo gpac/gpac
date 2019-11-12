@@ -452,6 +452,16 @@ set storage directory
 set module directories
 .br
 .TP
+.B \-js-dirs (string list)
+.br
+set javascript directories
+.br
+.TP
+.B \-no-js-mods (string list)
+.br
+disable javascript module loading
+.br
+.TP
 .B \-ifce (string)
 .br
 set default multicast interface through interface IP address
@@ -566,6 +576,11 @@ set user profile filename. Content of file is appended as body to HEAD/GET reque
 .B \-query-string (string)
 .br
 insert query string (without ?) to URL on requests
+.br
+.TP
+.B \-dm-threads
+.br
+force using threads for async download requests rather than session scheduler
 .br
 .TP
 .B \-dbg-edges
@@ -755,6 +770,11 @@ indicate comma-separated list of directories to scan for fonts
 .B \-rescan-fonts
 .br
 indicate the font directory must be rescanned
+.br
+.TP
+.B \-wait-fonts
+.br
+wait for SVG fonts to be loaded before displaying frames
 .br
 .TP
 .B \-rmt
@@ -2034,6 +2054,17 @@ CENC crypt pattern, CENC pattern, skip as frac.num crypt as frac.den
 Storage location 4CC of SAI data
 .br
 .TP
+.B CENCstsdMode (CSTM,unsigned int,  )
+.br
+Mode for CENC sample description when using clear samples:
+.br
+* 0: single sample description is used
+.br
+* 1: a clear clone of the sample description is created, inserted before the CENC sample description
+.br
+* 2: a clear clone of the sample description is created, inserted after the CENC sample description
+.br
+.TP
 .B AMRModeSet (AMST,unsigned int,  )
 .br
 ModeSet for AMR and AMR-WideBand
@@ -2552,7 +2583,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2768-g6c1d19818-filters
+build: 0.9.0-DEV-rev2888-gb40d71f6d-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

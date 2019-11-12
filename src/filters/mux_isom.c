@@ -190,6 +190,7 @@ typedef struct
 	Bool noroll;
 	Bool saio32;
 	Bool fftmcd;
+	u32 compress;
 
 	//internal
 	Bool owns_mov;
@@ -4316,6 +4317,8 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Invalid segment marker 4cc %s, ignoring\n", ctx->m4cc));
 		}
 	}
+	if (ctx->compress)
+		gf_isom_enable_compression(ctx->file, ctx->compress);
 	return GF_OK;
 }
 
@@ -4727,6 +4730,14 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(ctrn), "use compact track run (experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ctrni), "use inheritance in compact track run for HEVC tile tracks (highly experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sseg), "set single segment mode for dash", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
+
+	{ OFFS(compress), "set top-level box compression mode\n"
+						"- no: disable box compression\n"
+						"- moov: compress only moov box\n"
+						"- moof: compress only moof boxes\n"
+						"- sidx: compress moof and sidx boxes\n"
+						"- ssix: compress moof, sidx and ssix boxes\n"
+						"- all: compress moov, moof, sidx and ssix boxes", GF_PROP_UINT, "no", "no|moov|moof|sidx|ssix|all", GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}

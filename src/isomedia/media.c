@@ -448,6 +448,15 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	e = Media_GetSampleDesc(mdia, sdesc_idx, &entry, &dataRefIndex);
 	if (e) return e;
 
+	//if moov is compressed, remove offset if sample is after moov in this file
+	if (mdia->mediaTrack->moov->compressed_diff) {
+		GF_DataEntryBox *ent = (GF_DataEntryBox*)gf_list_get(mdia->information->dataInformation->dref->child_boxes, dataRefIndex - 1);
+		if (ent && (ent->flags&1) && (offset>=mdia->mediaTrack->moov->file_offset)) {
+			offset -= mdia->mediaTrack->moov->compressed_diff;
+		}
+	}
+
+
 	if (no_data) return GF_OK;
 
 	// Open the data handler - check our mode, don't reopen in read only if this is

@@ -1359,7 +1359,7 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 		sep = strchr(arg->description, ' ');
 		if (sep) {
 			sep--;
-			if (sep[0] == 's') {
+			if ((sep[0] == 's') && (sep[-1] != 's')) {
 				fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should use infintive\n", arg->name, arg->description);
 				exit(1);
 			}

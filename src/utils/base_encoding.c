@@ -187,13 +187,13 @@ u32 gf_base16_decode(u8 *in, u32 inSize, u8 *out, u32 outSize)
 #define ZLIB_COMPRESS_SAFE	4
 
 GF_EXPORT
-GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
+GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data_offset, Bool skip_if_larger)
 {
 	z_stream stream;
 	int err;
 	char *dest = (char *)gf_malloc(sizeof(char)*data_len*ZLIB_COMPRESS_SAFE);
-	stream.next_in = (Bytef*)(*data) ;
-	stream.avail_in = (uInt)data_len ;
+	stream.next_in = (Bytef*)(*data) + data_offset;
+	stream.avail_in = (uInt)data_len - data_offset;
 	stream.next_out = ( Bytef*)dest;
 	stream.avail_out = (uInt)data_len*ZLIB_COMPRESS_SAFE;
 	stream.zalloc = (alloc_func)NULL;
@@ -213,7 +213,13 @@ GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 		gf_free(dest);
 		return GF_IO_ERR;
 	}
-	if (data_len <stream.total_out) {
+	if (data_len-data_offset < stream.total_out) {
+		if (skip_if_larger) {
+			gf_free(dest);
+			deflateEnd(&stream);
+			*max_size = (u32) stream.total_out;
+			return GF_OK;
+		}
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[GZ] compressed data (%d) larger than input (%d)\n", (u32) stream.total_out, (u32) data_len ));
 	}
 
@@ -228,6 +234,13 @@ GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 
 	deflateEnd(&stream);
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
+{
+	return gf_gz_compress_payload_ex(data, data_len, max_size, 0, GF_FALSE);
+
 }
 
 GF_EXPORT

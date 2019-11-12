@@ -438,7 +438,7 @@ GF_TrunEntry *traf_get_sample_entry(GF_TrackFragmentBox *traf, u32 sample_index)
 	return NULL;
 }
 
-GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof_box, u64 moof_offset, u64 *cumulated_offset, Bool is_first_merge)
+GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof_box, u64 moof_offset, s32 compressed_diff, u64 *cumulated_offset, Bool is_first_merge)
 {
 	u32 i, j, chunk_size, track_num;
 	u64 base_offset, data_offset, traf_duration;
@@ -659,6 +659,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 
 			//add chunk on first sample
 			if (!j) {
+				u64 final_offset;
 				data_offset = base_offset;
 				//we have an explicit data offset for this trun
 				if (trun->flags & GF_ISOM_TRUN_DATA_OFFSET) {
@@ -667,6 +668,12 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					chunk_size = 0;
 					/*remember this data offset for following trun*/
 					prev_trun_data_offset = trun->data_offset;
+					/*if mdat is located after the moof, and the moof was compressed, adjust offset
+					otherwise the offset does not need adjustment*/
+					if (trun->data_offset>=0) {
+						data_offset -= compressed_diff;
+						prev_trun_data_offset -= compressed_diff;
+					}
 				}
 				//we had an explicit data offset for the previous trun, use it + chunk size
 				else if (prev_trun_data_offset) {
@@ -677,7 +684,14 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				else {
 					data_offset += chunk_size;
 				}
-				stbl_AppendChunk(trak->Media->information->sampleTable, data_offset);
+
+				final_offset = data_offset;
+				//adjust offset if moov was also compressed and we are still in the same file
+				//so that later call to gf_isom_get_sample properly adjust back the offset
+				if (trak->moov->compressed_diff) {
+					final_offset += trak->moov->compressed_diff;
+				}
+				stbl_AppendChunk(trak->Media->information->sampleTable, final_offset);
 				//then sampleToChunk
 				stbl_AppendSampleToChunk(trak->Media->information->sampleTable,
 				                         DescIndex, trun->sample_count);

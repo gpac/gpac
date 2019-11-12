@@ -2089,7 +2089,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 				}
 				sep = strchr(a->arg_desc+1, ' ');
 				if (sep) sep--;
-				if (sep && (sep[0] == 's')) {
+				if (sep && (sep[0] == 's') && (sep[-1] != 's')) {
 					fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, first word should be infinitive\n", reg->name, a->arg_name);
 					exit(1);
 				}

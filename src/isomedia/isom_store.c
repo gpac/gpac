@@ -297,6 +297,53 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 
 }
 
+#if defined(COMP_SIGNAL_SIZE_TYPE)
+#define COMP_BOX_COST_BYTES		16
+#elif defined(COMP_SIGNAL_SIZE)
+#define COMP_BOX_COST_BYTES		12
+#else
+#define COMP_BOX_COST_BYTES		8
+#endif
+
+GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_type, GF_BitStream *bs, u32 *box_csize)
+{
+	GF_Err e;
+	GF_BitStream *comp_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	e = gf_isom_box_write(root_box, comp_bs);
+
+	if (!e) {
+		u8 *box_data;
+		u32 box_size, comp_size;
+
+		if (box_csize)
+			*box_csize = (u32) root_box->size;
+
+		gf_bs_get_content(comp_bs, &box_data, &box_size);
+		gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, 8, GF_TRUE);
+		if (comp_size + COMP_BOX_COST_BYTES < box_size) {
+			if (bs) {
+				gf_bs_write_u32(bs, comp_size+8);
+				gf_bs_write_u32(bs, repl_type);
+
+#ifdef COMP_SIGNAL_SIZE_TYPE
+				gf_bs_write_u32(bs, GF_4CC('d', 'e', 'f', 'l'));
+				gf_bs_write_u32(bs, box_size);
+#elif defined(COMP_SIGNAL_SIZE)
+				gf_bs_write_u32(bs, box_size);
+#endif
+
+				gf_bs_write_data(bs, box_data, comp_size);
+			}
+			if (box_csize)
+				*box_csize = comp_size + COMP_BOX_COST_BYTES;
+		} else if (bs) {
+			gf_bs_write_data(bs, box_data, box_size);
+		}
+		gf_free(box_data);
+	}
+	gf_bs_del(comp_bs);
+	return e;
+}
 
 //replace the chunk and offset tables...
 static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream *bs)
@@ -340,7 +387,12 @@ static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream
 		//write the moov box...
 		e = gf_isom_box_size((GF_Box *)movie->moov);
 		if (e) return e;
-		e = gf_isom_box_write((GF_Box *)movie->moov, bs);
+
+		if ((movie->compress_mode==GF_ISO_COMP_ALL) || (movie->compress_mode==GF_ISO_COMP_MOOV)) {
+			e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->moov, GF_4CC('!', 'm', 'o', 'v'), bs, NULL);
+		} else {
+			e = gf_isom_box_write((GF_Box *)movie->moov, bs);
+		}
 
 		if (prevent_dispatch) {
 			gf_bs_prevent_dispatch(bs, GF_FALSE);
