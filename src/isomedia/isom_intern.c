@@ -58,6 +58,9 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 	}
 
 	base_data_offset = mov->current_top_box_start;
+	if (moof->compressed_diff)
+		base_data_offset -= moof->compressed_diff;
+
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(moof->TrackList, &i))) {
 		if (!traf->tfhd) {
@@ -82,7 +85,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 			return GF_ISOM_INVALID_FILE;
 		}
 
-		e = MergeTrack(trak, traf, moof, mov->current_top_box_start, &base_data_offset, !trak->first_traf_merged);
+		e = MergeTrack(trak, traf, moof, mov->current_top_box_start, moof->compressed_diff, &base_data_offset, !trak->first_traf_merged);
 		if (e) return e;
 
 		trak->present_in_scalable_segment = 1;

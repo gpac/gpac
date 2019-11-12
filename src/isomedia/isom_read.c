@@ -2889,6 +2889,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
 	has_scalable = gf_isom_needs_layer_reconstruction(movie);
 	base_track_sample_count = 0;
+	movie->moov->compressed_diff = 0;
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(movie->moov->trackList, i);
 		trak->first_traf_merged = GF_FALSE;
@@ -3038,6 +3039,7 @@ GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_r
 		e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &movie->movieFileMap);
 		if (e) return e;
 	}
+	movie->moov->compressed_diff = 0;
 	movie->current_top_box_start = 0;
 
 	if (end_range > start_range) {

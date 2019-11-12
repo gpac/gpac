@@ -768,6 +768,10 @@ typedef struct
 	GF_ISOFile *mov;
 
 	Bool mvex_after_traks;
+	//for compressed mov, stores the difference between compressed and uncompressed payload
+	s32 compressed_diff;
+	//for compressed mov, indicates the file offset of the moov box start
+	u64 file_offset;
 
 } GF_MovieBox;
 
@@ -2394,6 +2398,8 @@ typedef struct
 	u64 fragment_offset;
 	u32 mdat_size;
 	u8 *mdat;
+	//when moof box was a compressed moof box, indicates the difference between the uncompressed size and the compressed size
+	s32 compressed_diff;
 
 	//temp storage of prft box
 	GF_ISOTrackID reference_track_ID;
@@ -2883,6 +2889,8 @@ typedef struct __sidx_box
 	u64 first_offset;
 	u32 nb_refs;
 	GF_SIDXReference *refs;
+	//for trace only
+	s32 compressed_diff;
 } GF_SegmentIndexBox;
 
 GF_Err gf_isom_set_fragment_template(GF_ISOFile *movie, u8 *tpl_data, u32 tpl_size, Bool *has_tfdt, GF_SegmentIndexBox **out_sidx);
@@ -2905,6 +2913,8 @@ typedef struct __ssix_box
 
 	u32 subsegment_count, subsegment_alloc;
 	GF_SubsegmentInfo *subsegments;
+	//for trace only
+	s32 compressed_diff;
 } GF_SubsegmentIndexBox;
 
 typedef struct
@@ -3664,6 +3674,8 @@ struct __tag_isom {
 
 	u64 read_byte_offset;
 
+	GF_ISOCompressMode compress_mode;
+
 
 	void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total);
 	void *progress_cbk_udta;
@@ -4255,7 +4267,11 @@ GF_Box *boxstring_new_with_data(u32 type, const char *string, GF_List **parent);
 
 GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size, char **out_str);
 
-GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof, u64 moof_offset, u64 *cumulated_offset, Bool is_first_merge);
+GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof, u64 moof_offset, s32 compresed_diff, u64 *cumulated_offset, Bool is_first_merge);
+
+//experimental flags
+//#define COMP_SIGNAL_SIZE_TYPE
+//#define COMP_SIGNAL_SIZE
 
 #endif //GPAC_DISABLE_ISOM
 

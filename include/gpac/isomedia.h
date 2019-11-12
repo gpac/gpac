@@ -1799,6 +1799,18 @@ GF_Err gf_isom_set_interleave_time(GF_ISOFile *isom_file, u32 InterleaveTime);
 */
 GF_Err gf_isom_force_64bit_chunk_offset(GF_ISOFile *isom_file, Bool set_on);
 
+typedef enum
+{
+	GF_ISO_COMP_NONE=0,
+	GF_ISO_COMP_MOOV,
+	GF_ISO_COMP_MOOF,
+	GF_ISO_COMP_MOOF_SIDX,
+	GF_ISO_COMP_MOOF_SSIX,
+	GF_ISO_COMP_ALL,
+} GF_ISOCompressMode;
+
+GF_Err gf_isom_enable_compression(GF_ISOFile *file, GF_ISOCompressMode compress_mode);
+
 /*! sets the copyright in one language
 \param isom_file the target ISO file
 \param threeCharCode the ISO three character language code for copyright
