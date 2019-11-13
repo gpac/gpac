@@ -6906,6 +6906,7 @@ void trun_box_del(GF_Box *s)
 	}
 	gf_list_del(ptr->entries);
 	if (ptr->cache) gf_bs_del(ptr->cache);
+	if (ptr->sample_order) gf_free(ptr->sample_order);
 	gf_free(ptr);
 }
 
@@ -7075,38 +7076,44 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 		GF_SAFEALLOC(p, GF_TrunEntry);
 		p->nb_pack = ptr->sample_count;
 		gf_list_add(ptr->entries, p);
-		return GF_OK;
-	}
+	} else {
 
-	//read each entry (even though nothing may be written)
-	for (i=0; i<ptr->sample_count; i++) {
-		u32 trun_size = 0;
-		p = (GF_TrunEntry *) gf_malloc(sizeof(GF_TrunEntry));
-		if (!p) return GF_OUT_OF_MEM;
-		memset(p, 0, sizeof(GF_TrunEntry));
+		//read each entry (even though nothing may be written)
+		for (i=0; i<ptr->sample_count; i++) {
+			u32 trun_size = 0;
+			p = (GF_TrunEntry *) gf_malloc(sizeof(GF_TrunEntry));
+			if (!p) return GF_OUT_OF_MEM;
+			memset(p, 0, sizeof(GF_TrunEntry));
 
-		if (ptr->flags & GF_ISOM_TRUN_DURATION) {
-			p->Duration = gf_bs_read_u32(bs);
-			trun_size += 4;
-		}
-		if (ptr->flags & GF_ISOM_TRUN_SIZE) {
-			p->size = gf_bs_read_u32(bs);
-			trun_size += 4;
-		}
-		//SHOULDN'T BE USED IF GF_ISOM_TRUN_FIRST_FLAG IS DEFINED
-		if (ptr->flags & GF_ISOM_TRUN_FLAGS) {
-			p->flags = gf_bs_read_u32(bs);
-			trun_size += 4;
-		}
-		if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) {
-			if (ptr->version==0) {
-				p->CTS_Offset = (u32) gf_bs_read_u32(bs);
-			} else {
-				p->CTS_Offset = (s32) gf_bs_read_u32(bs);
+			if (ptr->flags & GF_ISOM_TRUN_DURATION) {
+				p->Duration = gf_bs_read_u32(bs);
+				trun_size += 4;
 			}
+			if (ptr->flags & GF_ISOM_TRUN_SIZE) {
+				p->size = gf_bs_read_u32(bs);
+				trun_size += 4;
+			}
+			//SHOULDN'T BE USED IF GF_ISOM_TRUN_FIRST_FLAG IS DEFINED
+			if (ptr->flags & GF_ISOM_TRUN_FLAGS) {
+				p->flags = gf_bs_read_u32(bs);
+				trun_size += 4;
+			}
+			if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) {
+				if (ptr->version==0) {
+					p->CTS_Offset = (u32) gf_bs_read_u32(bs);
+				} else {
+					p->CTS_Offset = (s32) gf_bs_read_u32(bs);
+				}
+				trun_size += 4;
+			}
+			gf_list_add(ptr->entries, p);
+			ISOM_DECREASE_SIZE(ptr, trun_size);
 		}
-		gf_list_add(ptr->entries, p);
-		ISOM_DECREASE_SIZE(ptr, trun_size);
+	}
+	/*todo parse sample reorder*/
+	if (ptr->size) {
+		gf_bs_skip_bytes(bs, ptr->size);
+		ptr->size = 0;
 	}
 	return GF_OK;
 }
@@ -7232,30 +7239,35 @@ GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u32(bs, ptr->first_sample_flags);
 	}
 
-	if (! (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) ) ) {
-		return GF_OK;
+	if (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) )  {
+
+		count = gf_list_count(ptr->entries);
+		for (i=0; i<count; i++) {
+			GF_TrunEntry *p = (GF_TrunEntry*)gf_list_get(ptr->entries, i);
+
+			if (ptr->flags & GF_ISOM_TRUN_DURATION) {
+				gf_bs_write_u32(bs, p->Duration);
+			}
+			if (ptr->flags & GF_ISOM_TRUN_SIZE) {
+				gf_bs_write_u32(bs, p->size);
+			}
+			//SHOULDN'T BE USED IF GF_ISOM_TRUN_FIRST_FLAG IS DEFINED
+			if (ptr->flags & GF_ISOM_TRUN_FLAGS) {
+				gf_bs_write_u32(bs, p->flags);
+			}
+			if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) {
+				if (ptr->version==0) {
+					gf_bs_write_u32(bs, p->CTS_Offset);
+				} else {
+					gf_bs_write_u32(bs, (u32) p->CTS_Offset);
+				}
+			}
+		}
 	}
 
-	count = gf_list_count(ptr->entries);
-	for (i=0; i<count; i++) {
-		GF_TrunEntry *p = (GF_TrunEntry*)gf_list_get(ptr->entries, i);
-
-		if (ptr->flags & GF_ISOM_TRUN_DURATION) {
-			gf_bs_write_u32(bs, p->Duration);
-		}
-		if (ptr->flags & GF_ISOM_TRUN_SIZE) {
-			gf_bs_write_u32(bs, p->size);
-		}
-		//SHOULDN'T BE USED IF GF_ISOM_TRUN_FIRST_FLAG IS DEFINED
-		if (ptr->flags & GF_ISOM_TRUN_FLAGS) {
-			gf_bs_write_u32(bs, p->flags);
-		}
-		if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) {
-			if (ptr->version==0) {
-				gf_bs_write_u32(bs, p->CTS_Offset);
-			} else {
-				gf_bs_write_u32(bs, (u32) p->CTS_Offset);
-			}
+	if (ptr->sample_order) {
+		for (i=0; i<ptr->sample_count; i++) {
+			gf_bs_write_u8(bs, ptr->sample_order[i]);
 		}
 	}
 	return GF_OK;
@@ -7437,6 +7449,8 @@ GF_Err trun_box_size(GF_Box *s)
 	if (ptr->flags & GF_ISOM_TRUN_DATA_OFFSET) ptr->size += 4;
 	if (ptr->flags & GF_ISOM_TRUN_FIRST_FLAG) ptr->size += 4;
 
+	if (ptr->sample_order) ptr->size += ptr->sample_count;
+
 	if (! (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) ) ) {
 		return GF_OK;
 	}
@@ -7450,7 +7464,6 @@ GF_Err trun_box_size(GF_Box *s)
 		if (ptr->flags & GF_ISOM_TRUN_FLAGS) ptr->size += 4;
 		if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) ptr->size += 4;
 	}
-
 	return GF_OK;
 }
 

@@ -2430,7 +2430,6 @@ typedef struct
 	u32 def_sample_size;
 	u32 def_sample_flags;
 	u32 EmptyDuration;
-	u8 IFrameSwitching;
 } GF_TrackFragmentHeaderBox;
 
 
@@ -2469,6 +2468,13 @@ typedef struct
 	u64 moof_start_in_bs;
 	Bool use_ctrn;
 	Bool use_inherit;
+
+	u32 interleave_id;
+	u8 merge_sample_interleave;
+	u8 use_sample_interleave;
+	u8 force_new_trun;
+	u8 IFrameSwitching;
+
 } GF_TrackFragmentBox;
 
 /*FLAGS for TRUN : specify what is written in the SampleTable of TRUN*/
@@ -2521,6 +2527,10 @@ typedef struct
 	u8 ctrn_dur, ctrn_size, ctrn_sample_flags, ctrn_ctts;
 	/*use inherit in write mode- in the current version, only size will be set and all other fields inherited*/
 	Bool use_inherit;
+
+	u32 interleave_id;
+	u32 first_sample_idx;
+	u32 *sample_order;
 } GF_TrackFragmentRunBox;
 
 u32 gf_isom_ctrn_field_size_bits(u32 field_idx);

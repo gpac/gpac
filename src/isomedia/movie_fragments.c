@@ -483,7 +483,7 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_
 	case GF_ISOM_TRAF_RANDOM_ACCESS:
 		traf = GetTraf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
-		traf->tfhd->IFrameSwitching = Param;
+		traf->IFrameSwitching = Param;
 		break;
 	case GF_ISOM_TRAF_DATA_CACHE:
 		traf = GetTraf(movie, TrackID);
@@ -493,6 +493,26 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_
 		break;
 	case GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET:
 		movie->force_moof_base_offset = Param;
+		break;
+	case GF_ISOM_TRUN_FORCE:
+		traf = GetTraf(movie, TrackID);
+		if (!traf) return GF_BAD_PARAM;
+		traf->force_new_trun = 1;
+		break;
+	case GF_ISOM_TRUN_MERGE_INTERLEAVE:
+		traf = GetTraf(movie, TrackID);
+		if (!traf) return GF_BAD_PARAM;
+		traf->merge_sample_interleave = 1;
+		break;
+	case GF_ISOM_TRUN_SET_INTERLEAVE_ID:
+		traf = GetTraf(movie, TrackID);
+		if (!traf) return GF_BAD_PARAM;
+		traf->DataCache = 1;
+		traf->use_sample_interleave = 1;
+		if (traf->interleave_id != Param) {
+			traf->force_new_trun = 1;
+			traf->interleave_id = Param;
+		}
 		break;
 	}
 	return GF_OK;
@@ -512,7 +532,7 @@ void update_trun_offsets(GF_ISOFile *movie, s32 offset)
 		traf->tfhd->base_data_offset = 0;
 		j=0;
 		while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &j))) {
-			if (j==1) {
+			if ((j==1) || traf->use_sample_interleave) {
 				trun->data_offset += offset;
 			} else {
 				trun->data_offset = 0;
@@ -683,7 +703,8 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 
 		//run data offset if the offset indicated is 0 (first sample in this MDAT) don't
 		//indicate it
-		if (trun->data_offset) trun->flags |= GF_ISOM_TRUN_DATA_OFFSET;
+		if (trun->data_offset)
+			trun->flags |= GF_ISOM_TRUN_DATA_OFFSET;
 
 		sampleCount += trun->sample_count;
 	}
@@ -875,9 +896,9 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 	//1 - flush all caches
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(movie->moof->TrackList, &i))) {
+		u32 j, nb_written, last_gid, cur_sample_idx;
 		/*do not write empty senc*/
 		if (traf->sample_encryption && !gf_list_count(traf->sample_encryption->samp_aux_info)) {
-			u32 j;
 			gf_list_del_item(traf->child_boxes, traf->sample_encryption);
 			gf_isom_box_del((GF_Box *) traf->sample_encryption);
 			traf->sample_encryption = NULL;
@@ -916,18 +937,70 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 		if (!traf->DataCache) continue;
 		s_count = gf_list_count(traf->TrackRuns);
 		if (!s_count) continue;
-		trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, s_count-1);
-		if (!trun->cache || !trun->sample_count) continue;
 
-		//update offset
-		trun->data_offset = (u32) (gf_bs_get_position(bs) - movie->moof->fragment_offset - 8);
-		//write cache
-		gf_bs_get_content(trun->cache, &buffer, &size);
-		gf_bs_write_data(bs, buffer, size);
-		gf_bs_del(trun->cache);
-		gf_free(buffer);
-		trun->cache = NULL;
+		//store all cached truns - there may be more than one when using sample interleaving in truns
+		nb_written = 0;
+		last_gid = 0;
+		cur_sample_idx = 0;
+		while (nb_written<s_count) {
+			u32 min_next_gid = 0xFFFFFFFF;
+
+			for (j=0; j<s_count; j++) {
+				trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, j);
+				//done
+				if (!trun->cache || !trun->sample_count) continue;
+
+				if (!traf->use_sample_interleave || (last_gid!=trun->interleave_id)) {
+					if (trun->interleave_id < min_next_gid)
+						min_next_gid = trun->interleave_id;
+					continue;
+				}
+
+				//update offset
+				trun->data_offset = (u32) (gf_bs_get_position(bs) - movie->moof->fragment_offset - 8);
+				//write cache
+				gf_bs_get_content(trun->cache, &buffer, &size);
+				gf_bs_write_data(bs, buffer, size);
+				gf_bs_del(trun->cache);
+				gf_free(buffer);
+				trun->cache = NULL;
+				trun->first_sample_idx = cur_sample_idx;
+				cur_sample_idx += trun->sample_count;
+
+				nb_written++;
+			}
+			last_gid = min_next_gid;
+		}
+
 		traf->DataCache=0;
+
+		/*merge all truns*/
+		if (traf->merge_sample_interleave) {
+			u32 k, cur_idx = 0;
+			trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, 0);
+			trun->sample_order = gf_malloc(sizeof(u32) * cur_sample_idx);
+
+			for (k=0; k<trun->sample_count; k++) {
+				trun->sample_order[cur_idx] = trun->first_sample_idx + k;
+				cur_idx ++;
+			}
+
+			while (s_count>1) {
+				GF_TrackFragmentRunBox *atrun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, 1);
+				trun->sample_count += atrun->sample_count;
+				gf_list_transfer(trun->entries, atrun->entries);
+
+				for (k=0; k<atrun->sample_count; k++) {
+					trun->sample_order[cur_idx] = atrun->first_sample_idx + k;
+					cur_idx ++;
+				}
+				gf_list_rem(traf->TrackRuns, 1);
+				gf_list_del_item(traf->child_boxes, atrun);
+				gf_isom_box_del((GF_Box*)atrun);
+				s_count--;
+			}
+
+		}
 	}
 
 	if (load_mdat_only) {
@@ -2435,6 +2508,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 	GF_TrunEntry *ent, *prev_ent;
 	GF_TrackFragmentBox *traf, *traf_2;
 	GF_TrackFragmentRunBox *trun;
+
 	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) || !sample)
 		return GF_BAD_PARAM;
 
@@ -2451,7 +2525,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 	//WARNING: we change stream description, create a new TRAF
 	if ( DescIndex && (traf->tfhd->sample_desc_index != DescIndex)) {
 		//if we're caching flush the current run
-		if (traf->DataCache) {
+		if (traf->DataCache && !traf->use_sample_interleave) {
 			count = gf_list_count(traf->TrackRuns);
 			if (count) {
 				trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, count-1);
@@ -2472,7 +2546,9 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 		gf_list_add(movie->moof->TrackList, traf_2);
 
 		//duplicate infos
-		traf_2->tfhd->IFrameSwitching = traf->tfhd->IFrameSwitching;
+		traf_2->IFrameSwitching = traf->IFrameSwitching;
+		traf_2->use_sample_interleave = traf->use_sample_interleave;
+		traf_2->interleave_id = traf->interleave_id;
 		traf_2->DataCache  = traf->DataCache;
 		traf_2->tfhd->sample_desc_index  = DescIndex;
 
@@ -2481,8 +2557,8 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 	}
 
 	pos = gf_bs_get_position(movie->editFileMap->bs);
-	//add TRUN entry
-	count = gf_list_count(traf->TrackRuns);
+	//check if we need a new trun entry
+	count = (traf->use_sample_interleave && traf->force_new_trun) ? 0 : gf_list_count(traf->TrackRuns);
 	if (count) {
 		trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, count-1);
 		//check data offset when no caching as trun entries shall ALWAYS be contiguous samples
@@ -2490,14 +2566,17 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 			count = 0;
 
 		//check I-frame detection
-		if (traf->tfhd->IFrameSwitching && sample->IsRAP)
+		if (traf->IFrameSwitching && sample->IsRAP)
 			count = 0;
 
-		if (traf->DataCache && (traf->DataCache==trun->sample_count) )
+		if (traf->DataCache && (traf->DataCache==trun->sample_count) && !traf->use_sample_interleave)
+			count = 0;
+
+		if (traf->force_new_trun)
 			count = 0;
 
 		//if data cache is on and we're changing TRUN, store the cache and update data offset
-		if (!count && traf->DataCache) {
+		if (!count && traf->DataCache && !traf->use_sample_interleave) {
 			trun->data_offset = (u32) (pos - movie->moof->fragment_offset - 8);
 			gf_bs_get_content(trun->cache, &buffer, &buffer_size);
 			gf_bs_write_data(movie->editFileMap->bs, buffer, buffer_size);
@@ -2506,6 +2585,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 			gf_free(buffer);
 		}
 	}
+	traf->force_new_trun = 0;
 
 	//new run
 	if (!count) {
@@ -2516,7 +2596,8 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 		trun->use_ctrn = traf->use_ctrn;
 		trun->use_inherit = traf->use_inherit;
 		trun->ctso_multiplier = traf->trex->def_sample_duration;
-		
+		trun->interleave_id = traf->interleave_id;
+
 		//if we use data caching, create a bitstream
 		if (traf->DataCache)
 			trun->cache = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
