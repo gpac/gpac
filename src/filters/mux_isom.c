@@ -3590,7 +3590,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			}
 		}
 		if (nb_eos==count)
-			return GF_EOS;
+			goto check_eos;
+
 		ctx->segment_started = GF_TRUE;
 		ctx->insert_tfdt = GF_TRUE;
 		ctx->insert_pssh = (ctx->psshs == MP4MX_PSSH_MOOF) ? GF_TRUE : GF_FALSE;
@@ -3885,6 +3886,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		}
 	}
 
+check_eos:
 	if (count == nb_eos) {
 		if (ctx->dash_mode==MP4MX_DASH_VOD) {
 			if (!ctx->cache) {
