@@ -123,6 +123,8 @@ typedef struct
 	GF_Fraction64 pid_dur;
 	//for import message
 	u64 prog_done, prog_total;
+
+	u32 prev_tid_group;
 } TrackWriter;
 
 enum
@@ -155,6 +157,13 @@ enum
 	MP4MX_CT_EDIT=0,
 	MP4MX_CT_NOEDIT,
 	MP4MX_CT_NEGCTTS,
+};
+
+enum
+{
+	MP4MX_TRUN_INTER_NO=0,
+	MP4MX_TRUN_INTER_RUNS,
+	MP4MX_TRUN_INTER_MERGE,
 };
 
 typedef struct
@@ -191,6 +200,7 @@ typedef struct
 	Bool saio32;
 	Bool fftmcd;
 	u32 compress;
+	u32 trun_inter;
 
 	//internal
 	Bool owns_mov;
@@ -3492,7 +3502,6 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 		e = GF_OK;
 		if (ctx->strun) {
 			e = gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_RANDOM_ACCESS, 0);
-
 		}
 		//fragment at sap boundaries for video, but not in dash mode (compatibility with old arch)
 		else if (ctx->fsap && (tkw->stream_type == GF_STREAM_VISUAL) && !ctx->dash_mode) {
@@ -3504,6 +3513,13 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 		tkw->fragment_done = GF_FALSE;
 		tkw->insert_tfdt = (has_tfdt || ctx->tfdt_traf) ? GF_TRUE : ctx->insert_tfdt;
 		tkw->dur_in_frag = 0;
+
+		if (ctx->trun_inter) {
+			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRUN_SET_INTERLEAVE_ID, 0);
+			if (ctx->trun_inter==MP4MX_TRUN_INTER_MERGE)
+				gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRUN_MERGE_INTERLEAVE, 0);
+		}
+
 
 		if (ctx->insert_pssh)
 			mp4_mux_cenc_insert_pssh(ctx, tkw);
@@ -3752,6 +3768,26 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				tkw->insert_tfdt = GF_FALSE;
 				gf_isom_set_traf_base_media_decode_time(ctx->file, tkw->track_id, odts);
 				tkw->first_dts_in_seg = (u64) odts;
+			}
+
+			if (ctx->trun_inter) {
+				s32 sap = gf_filter_pck_get_sap(pck);
+				s32 tid_group = 0;
+				if (sap) {
+					tkw->prev_tid_group = 0;
+				} else {
+					s64 dts_diff;
+					s64 dts = gf_filter_pck_get_dts(pck);
+					s64 cts = gf_filter_pck_get_cts(pck);
+					s64 cts_o = cts - dts;
+					dts_diff = dts - tkw->sample.DTS;
+					tid_group = cts_o / dts_diff;
+					tid_group = 20 - tid_group;
+					if (tid_group != tkw->prev_tid_group) {
+						tkw->prev_tid_group = tid_group;
+						gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRUN_SET_INTERLEAVE_ID, tid_group);
+					}
+				}
 			}
 
 			//process packet
@@ -4739,6 +4775,11 @@ static const GF_FilterArgs MP4MuxArgs[] =
 						"- ssix: compress moof, sidx and ssix boxes\n"
 						"- all: compress moov, moof, sidx and ssix boxes", GF_PROP_UINT, "no", "no|moov|moof|sidx|ssix|all", GF_FS_ARG_HINT_EXPERT},
 
+	{ OFFS(trun_inter), "interleave samples in trun based on the temporal level, the lowest level are stored first\n"
+		"- no: disable sample interleaving\n"
+		"- runs: create multiple track runs to reorder sample (vanilla ISOBMFF)\n"
+		"- merge: create a single track run with a sample reorder map - EXPERIMENTAL"
+		, GF_PROP_UINT, "no", "no|runs|merge", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
