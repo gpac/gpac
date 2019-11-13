@@ -1500,6 +1500,14 @@ static u64 estimate_next_moof_earliest_presentation_time(u64 ref_track_decode_ti
 	nb_moof = 0;
 
 	while ((moof = (GF_MovieFragmentBox*)gf_list_enum(movie->moof_list, &nb_moof))) {
+
+		for (i=0; i<gf_list_count(moof->TrackList); i++) {
+			traf = (GF_TrackFragmentBox*)gf_list_get(moof->TrackList, i);
+			if (traf->tfhd->trackID==refTrackID) break;
+			traf = NULL;
+		}
+		if (!traf) continue;
+
 		i=0;
 		while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &i))) {
 			j=0;
