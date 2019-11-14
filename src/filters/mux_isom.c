@@ -198,7 +198,6 @@ typedef struct
 	Bool sseg;
 	Bool noroll;
 	Bool saio32;
-	Bool fftmcd;
 	u32 compress;
 	u32 trun_inter;
 
@@ -1849,7 +1848,6 @@ sample_entry_setup:
 	} else if (codec_id==GF_CODECID_TMCD) {
 		u32 tmcd_flags=0, tmcd_fps_num=0, tmcd_fps_den=0;
 		s32 tmcd_fpt=0;
-		u32 fps;
 
 		p = gf_filter_pid_get_property_str(pid, "tmcd:flags");
 		if (p) tmcd_flags = p->value.uint;
@@ -1863,14 +1861,6 @@ sample_entry_setup:
 		if (tkw->tk_timescale != tmcd_fps_num) {
 			tmcd_fps_den *= tmcd_fps_num;
 			tmcd_fps_den /= tkw->tk_timescale;
-		}
-		if (ctx->fftmcd) {
-			fps = tmcd_fps_num;
-			fps /= tmcd_fps_den;
-			if (fps * tmcd_fps_den != tmcd_fps_num)
-				fps++;
-			if (fps == (u32) tmcd_fpt)
-				tmcd_fpt = -tmcd_fpt;
 		}
 
 		e = gf_isom_tmcd_config_new(ctx->file, tkw->track_num, tmcd_fps_num, tmcd_fps_den, tmcd_fpt, (tmcd_flags & 0x1), (tmcd_flags & 0x8), &tkw->stsd_idx);
@@ -4764,7 +4754,6 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noroll), "disable roll sample grouping", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(saio32), "set single segment mode for dash", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(fftmcd), "use ffmpeg-compatible timecode signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ctrn), "use compact track run (experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ctrni), "use inheritance in compact track run for HEVC tile tracks (highly experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sseg), "set single segment mode for dash", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},

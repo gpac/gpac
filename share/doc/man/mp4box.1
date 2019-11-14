@@ -1360,13 +1360,13 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
   * rICC,path: with path indicating the file containing the restricted ICC color profile
 .br
-* :tc=VAL: inject a single QT timecode. VAL can be preceeded with f to enable ffmpeg compatibility. VAL is formated as:
+* :tc=VAL: inject a single QT timecode. VAL is formated as:
 .br
-  * [d]FPS[/FPS_den],h,m,s,f: optionnal drop flag, framerate (integer or fractionnal), hours, minutes, seconds and frame number
+  * [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optionnal drop flag, framerate (integer or fractionnal), hours, minutes, seconds and frame number
 .br
-  * [d]FPS[/FPS_den],frame: optionnal drop flag, framerate (integer or fractionnal), frame number (counter mode of timecode tracks)
+  * : d is an optional flag used to indicate that the counter is in drop-frame format
 .br
-  * : d is a drop flag used to indicate that the counter is in drop-frame format
+  * : the framespertick is optional and defaults to round(framerate); it indicates the number of frames per counter tick
 .br
 * :fstat: print filter session stats after import
 .br
@@ -2021,7 +2021,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2888-gb40d71f6d-filters
+build: 0.9.0-DEV-rev2906-g6edc7be27-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
