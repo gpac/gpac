@@ -1459,7 +1459,7 @@ static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u3
 	}
 	if (!a_sai) {
 		if (!IV_size && constant_IV_size) return GF_OK;
-		return GF_NOT_SUPPORTED;
+		return GF_NOT_FOUND;
 	}
 
 	if (!sai)
