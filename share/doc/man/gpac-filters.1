@@ -1664,8 +1664,6 @@ noroll (boolean, default: false):        disable roll sample grouping
 .br
 saio32 (boolean, default: false):        set single segment mode for dash
 .br
-fftmcd (boolean, default: false):        use ffmpeg-compatible timecode signaling rather than QT compliant one
-.br
 ctrn (boolean, default: false):          use compact track run (experimental)
 .br
 ctrni (boolean, default: false):         use inheritance in compact track run for HEVC tile tracks (highly experimental)
@@ -1683,6 +1681,16 @@ compress (enum, default: no):            set top-level box compression mode
 * ssix: compress moof, sidx and ssix boxes
 .br
 * all: compress moov, moof, sidx and ssix boxes
+.br
+
+.br
+trun_inter (enum, default: no):          interleave samples in trun based on the temporal level, the lowest level are stored first
+.br
+* no: disable sample interleaving
+.br
+* runs: create multiple track runs to reorder sample (vanilla ISOBMFF)
+.br
+* merge: create a single track run with a sample reorder map - EXPERIMENTAL
 .br
 
 .br
@@ -4189,7 +4197,7 @@ index (number, default: 1.0):            indexing window length
 .br
 Description: FFMPEG demuxer
 .br
-Version: Lavf58.33.100
+Version: Lavf58.35.100
 .br
 
 .br
@@ -4211,7 +4219,7 @@ src (string, no default):                location of source content
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc58.60.100
+Version: Lavc58.62.100
 .br
 
 .br
@@ -4323,7 +4331,7 @@ p2 (number, default: +I):                scaling algo param2 - see filter info
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc58.60.100
+Version: Lavc58.62.100
 .br
 
 .br
@@ -4421,7 +4429,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2888-gb40d71f6d-filters
+build: 0.9.0-DEV-rev2906-g6edc7be27-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
