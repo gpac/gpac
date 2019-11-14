@@ -1376,7 +1376,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	}
 	if (!a_sai) {
 		if (!IV_size && constant_IV_size) return GF_OK;
-		return GF_NOT_SUPPORTED;
+		return GF_NOT_FOUND;
 	}
 
 	GF_SAFEALLOC((*sai), GF_CENCSampleAuxInfo);
