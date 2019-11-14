@@ -1873,7 +1873,7 @@ sample_entry_setup:
 				tmcd_fpt = -tmcd_fpt;
 		}
 
-		e = gf_isom_tmcd_config_new(ctx->file, tkw->track_num, tmcd_fps_den, tmcd_fpt, (tmcd_flags & 0x1), &tkw->stsd_idx);
+		e = gf_isom_tmcd_config_new(ctx->file, tkw->track_num, tmcd_fps_num, tmcd_fps_den, tmcd_fpt, (tmcd_flags & 0x1), (tmcd_flags & 0x8), &tkw->stsd_idx);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new tmcd sample description: %s\n", gf_error_to_string(e) ));
 			return e;

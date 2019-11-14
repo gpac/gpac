@@ -1348,7 +1348,7 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 
 
 GF_EXPORT
-GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_den, s32 frames_per_counter_tick, Bool is_drop, u32 *outDescriptionIndex)
+GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_num, u32 fps_den, s32 frames_per_counter_tick, Bool is_drop, Bool is_counter, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -1395,20 +1395,12 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_de
 	if (!entry) return GF_OUT_OF_MEM;
 	entry->flags = 0;
 	if (is_drop) entry->flags |= 0x00000001;
-	if (frames_per_counter_tick>0)
-		entry->flags |= 0x00000008;
+	if (is_counter) entry->flags |= 0x00000008;
 
-	entry->timescale = trak->Media->mediaHeader->timeScale;
+	entry->timescale = fps_num;
 	entry->frame_duration = fps_den;
-
-	if (frames_per_counter_tick) {
-		entry->frames_per_counter_tick = (u8) ( frames_per_counter_tick>0 ? frames_per_counter_tick : -frames_per_counter_tick);
-	} else {
-		u32 fps = entry->timescale;
-		fps /= fps_den;
-		if (fps * fps_den < entry->timescale) fps++;
-		entry->frames_per_counter_tick = (u8) fps;
-	}
+	entry->frames_per_counter_tick = (u8) frames_per_counter_tick;
+	
 	entry->dataReferenceIndex = dataRefIndex;
 	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, entry);
 	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);

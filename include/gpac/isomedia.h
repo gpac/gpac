@@ -3264,13 +3264,15 @@ GF_Err gf_isom_new_mj2k_description(GF_ISOFile *isom_file, u32 trackNumber, cons
 \note frames_per_counter_tick<0 disables counter flag but signals frames_per_tick - used for ffmpeg compatibility
 \param isom_file the target ISO file
 \param trackNumber the target track
+\param fps_num the frame rate numerator
 \param fps_den the frame rate denumerator (frame rate numerator will be track media timescale)
 \param frames_per_counter_tick if not 0, enables counter mode (sample data is an counter) and use this value as number of frames per counter tick. Otherwise, disables counter mode (sample data write h,m,s,frames)
 \param is_drop indicates that the time code in samples is a drop timecode
 \param outDescriptionIndex set to the index of the created sample description
 \return error if any
 */
-GF_Err gf_isom_tmcd_config_new(GF_ISOFile *isom_file, u32 trackNumber, u32 fps_den, s32 frames_per_counter_tick, Bool is_drop, u32 *outDescriptionIndex);
+GF_Err gf_isom_tmcd_config_new(GF_ISOFile *isom_file, u32 trackNumber, u32 fps_num, u32 fps_den, s32 frames_per_counter_tick, Bool is_drop, Bool is_counter, u32 *outDescriptionIndex);
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /*! gets information of a time code metadata sample description
@@ -5661,6 +5663,7 @@ GF_Err gf_isom_set_track_group(GF_ISOFile *isom_file, u32 trackNumber, u32 track
 
 @{
 */
+
 
 /*! checks if a sample has subsample information
 \param isom_file the target ISO file
