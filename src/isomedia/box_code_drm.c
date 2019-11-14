@@ -1366,7 +1366,8 @@ GF_Err senc_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *) s;
 
 	sample_count = gf_list_count(ptr->samp_aux_info);
-	if (!sample_count) {
+	/*master branch still writes senc if empty, we only write it for tests*/
+	if (!sample_count && !gf_sys_is_test_mode() ) {
 		ptr->size = 0;
 		return GF_OK;
 	}
@@ -1408,7 +1409,9 @@ GF_Err senc_box_size(GF_Box *s)
 	u32 i;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox*)s;
 	sample_count = gf_list_count(ptr->samp_aux_info);
-	if (!sample_count) {
+
+	/*master branch still writes senc if empty, we only write it for tests*/
+	if (!sample_count && !gf_sys_is_test_mode() ) {
 		ptr->size = 0;
 		return GF_OK;
 	}
