@@ -229,7 +229,17 @@ set track start delay in ms
 .TP
 .B \-par  tkID=PAR (string)
 .br
-set visual track pixel aspect ratio. PAR is N:D or none or force to write anyway
+set visual track pixel aspect ratio. PAR is:
+.br
+  * N:D: set PAR to N:D in track, do not modify the bitstream
+.br
+  * wN:D: set PAR to N:D in track and try to modify the bitstream
+.br
+  * none: remove PAR info from track, do not modify the bitstream
+.br
+  * auto: retrieve PAR info from bitstream and set it in track
+.br
+  * force: force 1:1 PAR in track, do not modify the bitstream
 .br
 .TP
 .B \-clap  tkID=CLAP (string)
@@ -2021,7 +2031,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2906-g6edc7be27-filters
+build: 0.9.0-DEV-rev2909-g525a3246b-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
