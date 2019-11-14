@@ -276,8 +276,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	Bool fmt_ok = GF_TRUE;
 	u32 icc_size=0;
 	char *icc_data = NULL;
-	u32 tc_fps_num=0, tc_fps_den=0, tc_h=0, tc_m=0, tc_s=0, tc_f=0;
-	s32 tc_counter=0;
+	u32 tc_fps_num=0, tc_fps_den=0, tc_h=0, tc_m=0, tc_s=0, tc_f=0, tc_frames_per_tick = 0;
 	Bool tc_force_counter=GF_FALSE;
 	Bool tc_drop_frame = GF_FALSE;
 
@@ -655,23 +654,30 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 		else if (!strnicmp(ext+1, "tc=", 3)) {
 			char *tc_str = ext+4;
-			if (tc_str[0] == 'f') {
-				tc_force_counter=GF_TRUE;
-				tc_str+=1;
-			}
 			if (tc_str[0] == 'd') {
 				tc_drop_frame=GF_TRUE;
 				tc_str+=1;
 			}
-			if (sscanf(tc_str, "%d/%d,%d,%d,%d,%d", &tc_fps_num, &tc_fps_den, &tc_h, &tc_m, &tc_s, &tc_f) == 6) {
-
+			if (sscanf(tc_str, "%d/%d,%d,%d,%d,%d,%d", &tc_fps_num, &tc_fps_den, &tc_h, &tc_m, &tc_s, &tc_f, &tc_frames_per_tick) == 7) {
+			} else if (sscanf(tc_str, "%d/%d,%d,%d,%d,%d", &tc_fps_num, &tc_fps_den, &tc_h, &tc_m, &tc_s, &tc_f) == 6) {
+			} else if (sscanf(tc_str, "%d,%d,%d,%d,%d,%d", &tc_fps_num, &tc_h, &tc_m, &tc_s, &tc_f, &tc_frames_per_tick) == 6) {
+				tc_fps_den = 1;
 			} else if (sscanf(tc_str, "%d,%d,%d,%d,%d", &tc_fps_num, &tc_h, &tc_m, &tc_s, &tc_f) == 5) {
 				tc_fps_den = 1;
-			} else if (sscanf(tc_str, "%d/%d,%d", &tc_fps_num, &tc_fps_den, &tc_counter) == 3) {
-				tc_counter++;
-			} else if (sscanf(tc_str, "%d,%d", &tc_fps_num, &tc_counter) == 2) {
+			} else if (sscanf(tc_str, "%d/%d,%d,%d", &tc_fps_num, &tc_fps_den, &tc_f, &tc_frames_per_tick) == 4) {
+				tc_force_counter = GF_TRUE;
+				tc_h = tc_m = tc_s = 0;
+			} else if (sscanf(tc_str, "%d/%d,%d", &tc_fps_num, &tc_fps_den, &tc_f) == 3) {
+				tc_force_counter = GF_TRUE;
+				tc_h = tc_m = tc_s = 0;
+			} else if (sscanf(tc_str, "%d,%d,%d", &tc_fps_num, &tc_f, &tc_frames_per_tick) == 3) {
+				tc_force_counter = GF_TRUE;
+				tc_h = tc_m = tc_s = 0;
 				tc_fps_den = 1;
-				tc_counter++;
+			} else if (sscanf(tc_str, "%d,%d", &tc_fps_num, &tc_f) == 2) {
+				tc_force_counter = GF_TRUE;
+				tc_h = tc_m = tc_s = 0;
+				tc_fps_den = 1;
 			} else {
 				fprintf(stderr, "Bad format %s for timecode, ignoring\n", ext+1);
 			}
@@ -1086,7 +1092,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		u32 desc_index=0;
 		u32 tmcd_track, tmcd_id;
 		u32 video_ref = 0;
-		s32 frames_per_tick=0;
 		GF_BitStream *bs;
 		GF_ISOSample *samp;
 		for (i=0; i<gf_isom_get_track_count(import.dest); i++) {
@@ -1101,43 +1106,30 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			e = gf_isom_last_error(import.dest);
 			goto exit;
 		}
-
-		if (tc_force_counter) {
-			u64 nb_secs = tc_h * 3600 + tc_m*60 + tc_s;
-			nb_secs *= tc_fps_num;
-			nb_secs /= tc_fps_den;
-			tc_counter = (s32) (nb_secs + tc_f + 1);
-
-			//this is correct but generates timecodes non compatible with ffmpeg ...
-			//frames_per_tick=1;
-
-			frames_per_tick = tc_fps_num;
-			frames_per_tick /= tc_fps_den;
-			if (frames_per_tick * tc_fps_den < tc_fps_num)
-				frames_per_tick++;
-
-			frames_per_tick = -frames_per_tick;
-		} else if (tc_counter) {
-			frames_per_tick = 1;
+		e = gf_isom_set_track_enabled(import.dest, tmcd_track, 1);
+		if (e != GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_set_track_enabled\n", gf_error_to_string(e)));
+			goto exit;
 		}
 
+		if (!tc_frames_per_tick) {
+			tc_frames_per_tick = tc_fps_num;
+			tc_frames_per_tick /= tc_fps_den;
+			if (tc_frames_per_tick * tc_fps_den < tc_fps_num)
+				tc_frames_per_tick++;
+		}
+
+		u32 tmcd_value = (tc_h * 3600 + tc_m*60 + tc_s)*tc_frames_per_tick+tc_f;
+
 		tmcd_id = gf_isom_get_track_id(import.dest, tmcd_track);
-		e = gf_isom_tmcd_config_new(import.dest, tmcd_track, tc_fps_den, frames_per_tick, tc_drop_frame, &desc_index);
+		e = gf_isom_tmcd_config_new(import.dest, tmcd_track, tc_fps_num, tc_fps_den, tc_frames_per_tick, tc_drop_frame, tc_force_counter, &desc_index);
 		if (e) goto exit;
 
 		if (video_ref) {
 			gf_isom_set_track_reference(import.dest, video_ref, GF_ISOM_REF_TMCD, tmcd_id);
 		}
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		if (tc_counter) {
-			gf_bs_write_u32(bs, (u32) (tc_counter-1) );
-		} else {
-			gf_bs_write_u8(bs, tc_h);
-			gf_bs_write_int(bs, 0, 1);
-			gf_bs_write_int(bs, tc_m, 7);
-			gf_bs_write_u8(bs, tc_s);
-			gf_bs_write_u8(bs, tc_f);
-		}
+		gf_bs_write_u32(bs, tmcd_value);
 		samp = gf_isom_sample_new();
 		samp->IsRAP = SAP_TYPE_1;
 		gf_bs_get_content(bs, &samp->data, &samp->dataLength);

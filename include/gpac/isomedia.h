@@ -2734,7 +2734,7 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_den, s32 frames_per_counter_tick, Bool is_drop, u32 *outDescriptionIndex);
+GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_num, u32 fps_den, s32 frames_per_counter_tick, Bool is_drop, Bool is_counter, u32 *outDescriptionIndex);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
