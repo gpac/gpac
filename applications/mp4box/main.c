@@ -151,7 +151,12 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("timescale", NULL, "set movie timescale to given value (ticks per second)", "600", NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("lang `[tkID=]LAN`", NULL, "set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("delay `tkID=TIME`", NULL, "set track start delay in ms", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("par `tkID=PAR`", NULL, "set visual track pixel aspect ratio. PAR is `N:D` or `none` or `force` to write anyway", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("par `tkID=PAR`", NULL, "set visual track pixel aspect ratio. PAR is:\n"
+					"  - N:D: set PAR to N:D in track, do not modify the bitstream\n"
+					"  - wN:D: set PAR to N:D in track and try to modify the bitstream\n"
+					"  - none: remove PAR info from track, do not modify the bitstream\n"
+					"  - auto: retrieve PAR info from bitstream and set it in track\n"
+					"  - force: force 1:1 PAR in track, do not modify the bitstream", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("clap `tkID=CLAP`", NULL, "set visual track clean aperture. CLAP is `Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd` or `none`\n"
  			"- n, d: numerator, denominator\n"
 	        "- W, H, HO, VO: clap width, clap height, clap horizontal offset, clap vertical offset\n"
@@ -1643,6 +1648,7 @@ typedef struct
 	const char *kms;
 	const char *hdl_name;
 	s32 par_num, par_den;
+	u8 force_par, rewrite_bs;
 	u32 dump_type, sample_num;
 	char *out_name;
 	char *src_name;
@@ -2640,9 +2646,21 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				return 2;
 			}
 			if (!stricmp(ext + 1, "none")) {
+				tracks[nb_track_act].par_num = tracks[nb_track_act].par_den = 0;
+			}
+			else if (!stricmp(ext + 1, "auto")) {
 				tracks[nb_track_act].par_num = tracks[nb_track_act].par_den = -1;
+				tracks[nb_track_act].force_par = 1;
+			}
+			else if (!stricmp(ext + 1, "force")) {
+				tracks[nb_track_act].par_num = tracks[nb_track_act].par_den = 1;
+				tracks[nb_track_act].force_par = 1;
 			}
 			else {
+				if (ext[1]=='w') {
+					tracks[nb_track_act].rewrite_bs = 1;
+					ext++;
+				}
 				sscanf(ext + 1, "%d", &tracks[nb_track_act].par_num);
 				ext = strchr(ext + 1, ':');
 				if (!ext) {
@@ -5643,17 +5661,6 @@ int mp4boxMain(int argc, char **argv)
                 case GF_ISOM_MEDIA_PICT:
 					ipod_major_brand = GF_ISOM_BRAND_M4V;
 					gf_isom_set_ipod_compatible(file, i+1);
-#if 0
-					switch (gf_isom_get_media_subtype(file, i+1, 1)) {
-					case GF_ISOM_SUBTYPE_AVC_H264:
-					case GF_ISOM_SUBTYPE_AVC2_H264:
-					case GF_ISOM_SUBTYPE_AVC3_H264:
-					case GF_ISOM_SUBTYPE_AVC4_H264:
-						fprintf(stderr, "Forcing AVC/H264 SAR to 1:1...\n");
-						gf_media_change_par(file, i+1, 1, 1);
-						break;
-					}
-#endif
 					break;
 				case GF_ISOM_MEDIA_AUDIO:
 					if (!ipod_major_brand) ipod_major_brand = GF_ISOM_BRAND_M4A;
@@ -5809,7 +5816,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 			break;
 		case TRAC_ACTION_SET_PAR:
-			e = gf_media_change_par(file, track, tka->par_num, tka->par_den, GF_FALSE);
+			e = gf_media_change_par(file, track, tka->par_num, tka->par_den, tka->force_par, tka->rewrite_bs);
 			needSave = GF_TRUE;
 			break;
 		case TRAC_ACTION_SET_CLAP:

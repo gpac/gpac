@@ -1657,20 +1657,15 @@ GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
 
 	GF_PixelAspectRatioBox *pasp = (GF_PixelAspectRatioBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_PASP);
-	if (!hSpacing || !vSpacing || ((hSpacing > 0) && (hSpacing == vSpacing) && !force_par))  {
+	if (!hSpacing || !vSpacing || ((hSpacing == vSpacing) && !force_par))  {
 		if (pasp) gf_isom_box_del_parent(&entry->child_boxes, (GF_Box *)pasp);
 		return GF_OK;
 	}
 	if (!pasp) {
 		pasp = (GF_PixelAspectRatioBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_PASP);
 	}
-	if ((vSpacing<0) || (hSpacing<0)) {
-		pasp->hSpacing = 1;
-		pasp->vSpacing = 1;
-	} else {
-		pasp->hSpacing = (u32) hSpacing;
-		pasp->vSpacing = (u32) vSpacing;
-	}
+	pasp->hSpacing = (u32) hSpacing;
+	pasp->vSpacing = (u32) vSpacing;
 	return GF_OK;
 }
 
