@@ -525,10 +525,12 @@ void PrintImportUsage()
 		"  - nclx,p,t,m,r: same as `nclx` with r full range flag\n"
 		"  - prof,path: with path indicating the file containing the ICC color profile\n"
 		"  - rICC,path: with path indicating the file containing the restricted ICC color profile\n"
-		"- :tc=VAL: inject a single QT timecode. `VAL` can be preceeded with `f` to enable ffmpeg compatibility. `VAL` is formated as:\n"
-		"  - [d]FPS[/FPS_den],h,m,s,f: optionnal drop flag, framerate (integer or fractionnal), hours, minutes, seconds and frame number\n"
-		"  - [d]FPS[/FPS_den],frame: optionnal drop flag, framerate (integer or fractionnal), frame number (counter mode of timecode tracks)\n"
-		"  - : d is a drop flag used to indicate that the counter is in drop-frame format\n"
+		"- :tc=VAL: inject a single QT timecode. `VAL` is formated as:\n"
+		"  - [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optionnal drop flag, framerate (integer or fractionnal), hours, minutes, seconds and frame number\n"
+		"  - : `d` is an optional flag used to indicate that the counter is in drop-frame format\n"
+		"  - : the `framespertick` is optional and defaults to round(framerate); it indicates the number of frames per counter tick\n"
+
+
 		"- :fstat: print filter session stats after import\n"
 		"- :fgraph: print filter session graph after import\n"
 		"- :sopt:[OPTS]: set `OPTS` as additionnal arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
