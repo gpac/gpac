@@ -263,7 +263,12 @@ void PrintGeneralUsage()
 	        " -timescale VAL       sets movie timescale to VAL ticks per second (default is 600)\n"
 	        " -lang [tkID=]LAN     sets track language. LAN is the BCP-47 code (eng, en-UK, ...)\n"
 	        " -delay tkID=TIME     sets track start delay in ms\n"
-	        " -par tkID=PAR        sets visual track pixel aspect ratio (PAR=N:D or \"none\" or \"force\" to write anyway)\n"
+	        " -par tkID=PAR        sets visual track pixel aspect ratio. PAR is:\n"
+	        "                        \"N:D\": sets PAR to N:D in track, does not modify the bitstream\n"
+	        "                        \"wN:D\": sets PAR to N:D in track and tries to modify the bitstream\n"
+	        "                        \"none\": removes PAR info from track, does not modify the bitstream\n"
+	        "                        \"auto\": retrieves PAR info from bitstream and sets it in track\n"
+	        "                        \"force\": forces 1:1 PAR in track, does not modify the bitstream)\n"
 			" -clap tkID=CLAP      sets visual track clean aperture. CLAP is \"Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd\" or \"none\"\n"
  			"                       - n, d: numerator, denominator\n"
 	        "                       - W, H, HO, VO: clap width, clap height, clap horizontal offset, clap vertical offset\n"
@@ -516,7 +521,7 @@ void PrintImportUsage()
 	        " \":dur=D\"             imports only the first D seconds\n"
 	        " \":lang=LAN\"          sets imported media language code\n"
 	        " \":delay=delay_ms\"    sets imported media initial delay in ms\n"
-	        " \":par=PAR\"           sets visual pixel aspect ratio (PAR=Num:Den)\n"
+	        " \":par=PAR\"           sets visual pixel aspect ratio (see -par)\n"
 	        " \":clap=CLAP\"         sets visual clean aperture (see -clap)\n"
 	        " \":name=NAME\"         sets track handler name\n"
 	        " \":ext=EXT\"           overrides file extension when importing\n"
@@ -1670,6 +1675,7 @@ typedef struct
 	const char *kms;
 	const char *hdl_name;
 	s32 par_num, par_den;
+	u8 force_par, rewrite_bs;
 	u32 dump_type, sample_num;
 	char *out_name;
 	char *src_name;
@@ -2656,9 +2662,21 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				return 2;
 			}
 			if (!stricmp(ext + 1, "none")) {
+				tracks[nb_track_act].par_num = tracks[nb_track_act].par_den = 0;
+			}
+			else if (!stricmp(ext + 1, "auto")) {
 				tracks[nb_track_act].par_num = tracks[nb_track_act].par_den = -1;
+				tracks[nb_track_act].force_par = 1;
+			}
+			else if (!stricmp(ext + 1, "force")) {
+				tracks[nb_track_act].par_num = tracks[nb_track_act].par_den = 1;
+				tracks[nb_track_act].force_par = 1;
 			}
 			else {
+				if (ext[1]=='w') {
+					tracks[nb_track_act].rewrite_bs = 1;
+					ext++;
+				}
 				sscanf(ext + 1, "%d", &tracks[nb_track_act].par_num);
 				ext = strchr(ext + 1, ':');
 				if (!ext) {
@@ -5366,17 +5384,6 @@ int mp4boxMain(int argc, char **argv)
                 case GF_ISOM_MEDIA_PICT:
 					major_brand = GF_ISOM_BRAND_M4V;
 					gf_isom_set_ipod_compatible(file, i+1);
-#if 0
-					switch (gf_isom_get_media_subtype(file, i+1, 1)) {
-					case GF_ISOM_SUBTYPE_AVC_H264:
-					case GF_ISOM_SUBTYPE_AVC2_H264:
-					case GF_ISOM_SUBTYPE_AVC3_H264:
-					case GF_ISOM_SUBTYPE_AVC4_H264:
-						fprintf(stderr, "Forcing AVC/H264 SAR to 1:1...\n");
-						gf_media_change_par(file, i+1, 1, 1);
-						break;
-					}
-#endif
 					break;
 				case GF_ISOM_MEDIA_AUDIO:
 					if (!major_brand) major_brand = GF_ISOM_BRAND_M4A;
@@ -5553,7 +5560,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 			break;
 		case TRAC_ACTION_SET_PAR:
-			e = gf_media_change_par(file, track, tka->par_num, tka->par_den, GF_FALSE);
+			e = gf_media_change_par(file, track, tka->par_num, tka->par_den, tka->force_par, tka->rewrite_bs);
 			needSave = GF_TRUE;
 			break;
 		case TRAC_ACTION_SET_CLAP:

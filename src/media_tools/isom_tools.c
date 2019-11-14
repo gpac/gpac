@@ -32,15 +32,24 @@
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_EXPORT
-GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, Bool force_par)
+GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, Bool force_par, Bool rewrite_bs)
 {
 	u32 tk_w, tk_h;
 	GF_Err e;
+	Bool get_par_info = GF_FALSE;
 
 	e = gf_isom_get_visual_info(file, track, 1, &tk_w, &tk_h);
 	if (e) return e;
 
-	if (ar_num!=-2 || ar_den!=-2) {
+	if ((ar_num < 0) || (ar_den < 0)) {
+		get_par_info = GF_TRUE;
+		rewrite_bs = GF_FALSE;
+	}
+	else if (!ar_num || !ar_den) {
+		rewrite_bs = GF_FALSE;
+	}
+
+	if (get_par_info || rewrite_bs) {
 		u32 stype = gf_isom_get_media_subtype(file, track, 1);
 		if ((stype==GF_ISOM_SUBTYPE_AVC_H264)
 				|| (stype==GF_ISOM_SUBTYPE_AVC2_H264)
@@ -49,8 +58,13 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 		   ) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 			GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
-			gf_media_avc_change_par(avcc, ar_num, ar_den);
-			e = gf_isom_avc_config_update(file, track, 1, avcc);
+			if (rewrite_bs) {
+				gf_media_avc_change_par(avcc, ar_num, ar_den);
+				e = gf_isom_avc_config_update(file, track, 1, avcc);
+			} else {
+				GF_AVCConfigSlot *sl = gf_list_get(avcc->sequenceParameterSets, 0);
+				gf_avc_get_sps_info(sl->data, sl->size, NULL, NULL, NULL, &ar_num, &ar_den);
+			}
 			gf_odf_avc_cfg_del(avcc);
 			if (e) return e;
 #endif
@@ -58,8 +72,20 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 #if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
 		else if (stype==GF_ISOM_SUBTYPE_HVC1) {
 			GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(file, track, 1);
-			gf_media_hevc_change_par(hvcc, ar_num, ar_den);
-			e = gf_isom_hevc_config_update(file, track, 1, hvcc);
+			if (rewrite_bs) {
+				gf_media_hevc_change_par(hvcc, ar_num, ar_den);
+				e = gf_isom_hevc_config_update(file, track, 1, hvcc);
+			} else {
+				u32 i=0;
+				GF_HEVCParamArray *ar;
+				while ( (ar = gf_list_enum(hvcc->param_array, &i))) {
+					if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
+						GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, 0);
+						gf_hevc_get_sps_info(sl->data, sl->size, NULL, NULL, NULL, &ar_num, &ar_den);
+						break;
+					}
+				}
+			}
 			gf_odf_hevc_cfg_del(hvcc);
 			if (e) return e;
 		}
@@ -82,8 +108,15 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 			}
 #ifndef GPAC_DISABLE_AV_PARSERS
 			if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
-				e = gf_m4v_rewrite_par(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
-				if (!e) e = gf_isom_change_mpeg4_description(file, track, 1, esd);
+				if (rewrite_bs) {
+					e = gf_m4v_rewrite_par(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
+					if (!e) e = gf_isom_change_mpeg4_description(file, track, 1, esd);
+				} else {
+					GF_M4VDecSpecInfo dsi;
+					e = gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+					ar_num = dsi.par_num;
+					ar_den = dsi.par_den;
+				}
 				gf_odf_desc_del((GF_Descriptor *) esd);
 				if (e) return e;
 			}
@@ -105,11 +138,10 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 	e = gf_isom_set_pixel_aspect_ratio(file, track, 1, ar_num, ar_den, force_par);
 	if (e) return e;
 
-	if ((ar_den>=0) && (ar_num>=0)) {
-		if (ar_den) tk_w = tk_w * ar_num / ar_den;
-		else if (ar_num) tk_h = tk_h * ar_den / ar_num;
+	if ((ar_den>0) && (ar_num>0)) {
+		tk_w = tk_w * ar_num / ar_den;
 	}
-	/*revert to full frame for track layout*/
+	/*PASP has been removed or forced to 1:1, revert to full frame for track layout*/
 	else {
 		e = gf_isom_get_visual_info(file, track, 1, &tk_w, &tk_h);
 		if (e) return e;
@@ -918,8 +950,9 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	}
 
 	gf_isom_get_pixel_aspect_ratio(mp4, video_tk, 1, &hspacing, &vspacing);
+	//force 1:1
 	if ((hspacing<=1) || (vspacing<=1))
-		gf_isom_set_pixel_aspect_ratio(mp4, video_tk, 1, -1, -1, GF_FALSE);
+		gf_isom_set_pixel_aspect_ratio(mp4, video_tk, 1, 1, 1, GF_TRUE);
 
 	//todo: patch colr
 	e = gf_isom_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);

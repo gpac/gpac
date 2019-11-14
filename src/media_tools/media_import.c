@@ -1538,7 +1538,8 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	if (nbNotCoded) gf_import_message(import, GF_OK, "Removed %d N-VOPs%s", nbNotCoded,is_packed ? " (Packed Bitstream)" : "");
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, (u8) PL);
 
-	if (dsi.par_den && dsi.par_num) gf_media_change_par(import->dest, track, dsi.par_num, dsi.par_den, GF_FALSE);
+	if (dsi.par_den && dsi.par_num)
+		gf_media_change_par(import->dest, track, dsi.par_num, dsi.par_den, GF_FALSE, GF_FALSE);
 
 exit:
 	if (samp) gf_isom_sample_del(&samp);
@@ -2660,7 +2661,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	if (last_pos!=file_size) gf_set_progress("Importing MPEG-PS Video", frames, frames);
 
 	gf_media_update_bitrate(import->dest, track);
-	if (ar) gf_media_change_par(import->dest, track, ar>>16, ar&0xffff, GF_FALSE);
+	if (ar) gf_media_change_par(import->dest, track, ar>>16, ar&0xffff, GF_FALSE, GF_FALSE);
 
 exit:
 	if (import->esd && destroy_esd) {
@@ -3705,7 +3706,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		u32 w = sdesc.width;
 		gf_isom_set_visual_info(import->dest, track, di, sdesc.width, sdesc.height);
 		if (par_den && par_num) {
-			gf_media_change_par(import->dest, track, par_num, par_den, GF_FALSE);
+			gf_media_change_par(import->dest, track, par_num, par_den, GF_FALSE, GF_FALSE);
 			w *= par_num;
 			w /= par_den;
 		} else {

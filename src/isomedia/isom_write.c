@@ -1372,19 +1372,16 @@ GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
 
 	vent = (GF_VisualSampleEntryBox*)entry;
-	if (!hSpacing || !vSpacing || (((s32)hSpacing > 0) && (hSpacing == vSpacing) && !force_par))  {
+	//explicit remove or 1:1 but not forced, remove PASP
+	if (!hSpacing || !vSpacing || ( (hSpacing == vSpacing) && !force_par))  {
 		if (vent->pasp) gf_isom_box_del((GF_Box*)vent->pasp);
 		vent->pasp = NULL;
 		return GF_OK;
 	}
 	if (!vent->pasp) vent->pasp = (GF_PixelAspectRatioBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_PASP);
-	if ((s32) hSpacing<0) {
-		vent->pasp->hSpacing = 1;
-		vent->pasp->vSpacing = 1;
-	} else {
-		vent->pasp->hSpacing = hSpacing;
-		vent->pasp->vSpacing = vSpacing;
-	}
+
+	vent->pasp->hSpacing = hSpacing;
+	vent->pasp->vSpacing = vSpacing;
 	return GF_OK;
 }
 

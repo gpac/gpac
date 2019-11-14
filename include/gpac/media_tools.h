@@ -93,12 +93,13 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
  *Changes pixel aspect ratio for visual tracks if supported. Negative values remove any PAR info
  * \param file target ISOBMF file
  * \param track target track
- * \param ar_num aspect ratio numerator
- * \param ar_den aspect ratio denominator
- * \param force_par aspect ratio is always written even when not necessary
+ * \param ar_num aspect ratio numerator. A value of 0 removes PAR info, a value of -1 gets info from video bitstream for BOTH num and den
+ * \param ar_den aspect ratio denominator. A value of 0 removes PAR info, a value of -1 gets info from video bitstream for BOTH num and den
+ * \param force_par aspect ratio is always written even when 1:1, otherwise aspect ratio info is removed if 1:1
+ * \param rewrite_par aspect ratio is modified in bitstream. Ignored if ar_num or ar_den are not strictly positive
  * \return error if any
  */
-GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, Bool force_par);
+GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, Bool force_par, Bool rewrite_bs);
 
 /*!
  *Removes all non rap samples (sync and other RAP sample group info) from the track.
