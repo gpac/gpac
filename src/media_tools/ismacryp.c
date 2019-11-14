@@ -2410,8 +2410,6 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	gf_isom_remove_samp_enc_box(mp4, track);
 	gf_isom_remove_samp_group_box(mp4, track);
 
-	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
-
 	count = gf_isom_get_sample_description_count(mp4, track);
 	if (count>1) {
 		u32 nb_same_sdesc=1;
@@ -2431,6 +2429,8 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			}
 		}
 	}
+
+	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
 
 exit:
 	if (mc) gf_crypt_close(mc);
