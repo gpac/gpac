@@ -254,7 +254,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale_num, rescale_den, svc_mode, txt_flags, split_tile_mode, temporal_mode;
 	s32 par_d, par_n, prog_id, delay, force_rate, moov_timescale;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
-	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only, force_par;
+	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only, force_par, rewrite_bs;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
 	const char *szLan;
 	GF_Err e;
@@ -326,8 +326,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	force_rate = -1;
 
 	tw = th = tx = ty = txtw = txth = txtx = txty = 0;
-	par_d = par_n = -2;
-	force_par = GF_FALSE;
+	par_d = par_n = -1;
+	force_par = rewrite_bs = GF_FALSE;
 	/*use ':' as separator, but beware DOS paths...*/
 	ext = strchr(szName, ':');
 	if (ext && (ext[1]=='\\' || ext[1] == '/')) ext = strchr(szName+2, ':');
@@ -363,14 +363,22 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
 		else if (!strnicmp(ext+1, "par=", 4)) {
 			if (!stricmp(ext + 5, "none")) {
-				par_n = par_d = -1;
+				par_n = par_d = 0;
+			} else if (!stricmp(ext + 5, "auto")) {
+				force_par = GF_TRUE;
 			} else if (!stricmp(ext + 5, "force")) {
+				par_n = par_d = 1;
 				force_par = GF_TRUE;
 			} else {
 				if (ext2) ext2[0] = ':';
 				if (ext2) ext2 = strchr(ext2+1, ':');
 				if (ext2) ext2[0] = 0;
-				sscanf(ext+5, "%d:%d", &par_n, &par_d);
+				if (ext[5]=='w') {
+					rewrite_bs = GF_TRUE;
+					sscanf(ext+6, "%d:%d", &par_n, &par_d);
+				} else {
+					sscanf(ext+5, "%d:%d", &par_n, &par_d);
+				}
 			}
 		}
 		else if (!strnicmp(ext+1, "clap=", 5)) {
@@ -860,8 +868,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
             }
         }
         if (gf_isom_is_video_subtype(import.tk_info[i].type)) {
-            if (((par_n>=-1) && (par_d>=-1)) || force_par) {
-                e = gf_media_change_par(import.dest, track, par_n, par_d, force_par);
+            if (((par_n>=0) && (par_d>=0)) || force_par) {
+                e = gf_media_change_par(import.dest, track, par_n, par_d, force_par, rewrite_bs);
             }
 			if (e) goto exit;
             if (has_clap) {
