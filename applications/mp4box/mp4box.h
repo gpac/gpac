@@ -117,7 +117,7 @@ void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName,
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
 
 
-void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump);
+void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool is_track_num);
 void DumpMovieInfo(GF_ISOFile *file);
 void PrintLanguages();
 

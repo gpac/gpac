@@ -922,9 +922,19 @@ dump/write to stdout and assume stdout is opened in binary mode
 dump/write to stdout  and try to reopen stdout in binary mode
 .br
 .TP
+.B \-tracks
+.br
+return the number of tracks on stdout
+.br
+.TP
 .B \-info (string)
 .br
 print movie info (no parameter) or track info with specified ID
+.br
+.TP
+.B \-infon (string)
+.br
+print track info for given track number, 1 being the first track in the file
 .br
 .TP
 .B \-diso
@@ -2031,7 +2041,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2909-g525a3246b-filters
+build: 0.9.0-DEV-rev2910-ga948ced1d-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -1944,7 +1944,7 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 }
 
 
-void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump)
+void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool is_track_num)
 {
 	Float scale;
 	Bool is_od_track = 0;
@@ -1954,7 +1954,10 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump)
 	char szDur[50];
 	char *lang;
 
-	trackNum = gf_isom_get_track_by_id(file, trackID);
+	if (!is_track_num)
+		trackNum = gf_isom_get_track_by_id(file, trackID);
+	else
+		trackNum = trackID;
 	if (!trackNum) {
 		fprintf(stderr, "No track with ID %d found\n", trackID);
 		return;
@@ -2027,8 +2030,10 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump)
 	gf_isom_set_nalu_extract_mode(file, trackNum, GF_ISOM_NALU_EXTRACT_INSPECT);
 
 	msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
+	if (msub_type==GF_ISOM_SUBTYPE_MPEG4_CRYP)
+		gf_isom_get_original_format_type(file, trackNum, 1, &msub_type);
+
 	if ((msub_type==GF_ISOM_SUBTYPE_MPEG4)
-	        || (msub_type==GF_ISOM_SUBTYPE_MPEG4_CRYP)
 	        || (msub_type==GF_ISOM_SUBTYPE_AVC_H264)
 	        || (msub_type==GF_ISOM_SUBTYPE_AVC2_H264)
 	        || (msub_type==GF_ISOM_SUBTYPE_AVC3_H264)
@@ -2524,7 +2529,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump)
 		fprintf(stderr, "\t3GPP QCELP stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_MP3) {
 		fprintf(stderr, "\tMPEG 1/2 Audio stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
-	} else if (msub_type == GF_ISOM_SUBTYPE_AC3) {
+	} else if ((msub_type == GF_ISOM_SUBTYPE_AC3) || (msub_type == GF_ISOM_SUBTYPE_EC3)) {
 		u32 br = 0;
 		Bool lfe = 0;
 		Bool is_ec3 = 0;
@@ -3002,7 +3007,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	print_udta(file, 0);
 	fprintf(stderr, "\n");
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
-		DumpTrackInfo(file, gf_isom_get_track_id(file, i+1), 0);
+		DumpTrackInfo(file, i+1, 0, GF_TRUE);
 	}
 }
 
