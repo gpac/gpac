@@ -2285,7 +2285,7 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 #endif
 
 
-void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
+void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump, Bool is_track_num)
 {
 	Float scale;
 	Bool is_od_track = 0;
@@ -2296,7 +2296,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	char szDur[50];
 	char *lang;
 
-	trackNum = gf_isom_get_track_by_id(file, trackID);
+	if (!is_track_num)
+		trackNum = gf_isom_get_track_by_id(file, trackID);
+	else
+		trackNum = trackID;
 	if (!trackNum) {
 		fprintf(stderr, "No track with ID %d found\n", trackID);
 		return;
@@ -3338,7 +3341,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	print_udta(file, 0);
 	fprintf(stderr, "\n");
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
-		DumpTrackInfo(file, gf_isom_get_track_id(file, i+1), 0);
+		DumpTrackInfo(file, i+1, 0, GF_TRUE);
 	}
 }
 
