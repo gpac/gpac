@@ -542,6 +542,16 @@ Gets the length of a 3D vector
 \return length of the vector
  */
 Fixed gf_vec_len(GF_Vec v);
+
+/*!
+\brief get 3D vector length
+
+Gets the length of a 3D vector
+\param v the target vector
+\return length of the vector
+ */
+Fixed gf_vec_len_p(GF_Vec *v);
+
 /*!
 \brief get 3D vector square length
 
@@ -550,6 +560,15 @@ Gets the square length of a 3D vector
 \return square length of the vector
  */
 Fixed gf_vec_lensq(GF_Vec v);
+
+/*!
+\brief get 3D vector square length
+
+Gets the square length of a 3D vector
+\param v the target vector
+\return square length of the vector
+ */
+Fixed gf_vec_lensq_p(GF_Vec *v);
 /*!
 \brief get 3D vector dot product
 
@@ -559,6 +578,15 @@ Gets the dot product of two vectors
 \return dot product of the vectors
  */
 Fixed gf_vec_dot(GF_Vec v1, GF_Vec v2);
+/*!
+\brief get 3D vector dot product
+
+Gets the dot product of two vectors
+\param v1 first vector
+\param v2 second vector
+\return dot product of the vectors
+ */
+Fixed gf_vec_dot_p(GF_Vec *v1, GF_Vec *v2);
 /*!
 \brief vector normalization
 
@@ -576,6 +604,15 @@ Scales a vector by a given amount
  */
 GF_Vec gf_vec_scale(GF_Vec v, Fixed f);
 /*!
+\brief vector scaling
+
+Scales a vector by a given amount
+\param v vector to scale
+\param f scale factor
+\return scaled vector
+ */
+GF_Vec gf_vec_scale_p(GF_Vec *v, Fixed f);
+/*!
 \brief vector cross product
 
 Gets the cross product of two vectors
@@ -584,6 +621,15 @@ Gets the cross product of two vectors
 \return cross-product vector
  */
 GF_Vec gf_vec_cross(GF_Vec v1, GF_Vec v2);
+/*!
+\brief vector cross product
+
+Gets the cross product of two vectors
+\param v1 first vector
+\param v2 second vector
+\return cross-product vector
+ */
+GF_Vec gf_vec_cross_p(GF_Vec *v1, GF_Vec *v2);
 
 /*!\brief 4D vector
 

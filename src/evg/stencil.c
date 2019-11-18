@@ -1810,8 +1810,7 @@ GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil * st, GF_ColorMatrix *cmat)
 	return GF_OK;
 }
 
-GF_EXPORT
-u32 gf_evg_stencil_get_pixel(GF_EVGStencil *st, s32 x, s32 y)
+static u32 gf_evg_stencil_get_pixel_intern(GF_EVGStencil *st, s32 x, s32 y, Bool want_yuv)
 {
 	u32 col;
 	EVG_Texture *_this = (EVG_Texture *) st;
@@ -1823,17 +1822,27 @@ u32 gf_evg_stencil_get_pixel(GF_EVGStencil *st, s32 x, s32 y)
 	else if (y>=_this->height) y = _this->height-1;
 
 	col = _this->tx_get_pixel(_this, x, y);
-	if (_this->is_yuv) return evg_ayuv_to_argb(NULL, col);
+	if (_this->is_yuv) {
+		if (!want_yuv) return evg_ayuv_to_argb(NULL, col);
+	} else {
+		if (want_yuv) return evg_argb_to_ayuv(NULL, col);
+	}
 	return col;
 }
 
 GF_EXPORT
-u32 gf_evg_stencil_get_pixel_f(GF_EVGStencil *st, Float x, Float y)
+u32 gf_evg_stencil_get_pixel(GF_EVGStencil *st, s32 x, s32 y)
 {
-	u32 col;
-	EVG_Texture *_this = (EVG_Texture *) st;
-	if (!_this || (_this->type != GF_STENCIL_TEXTURE) || !_this->tx_get_pixel) return 0;
+	return gf_evg_stencil_get_pixel_intern(st, x, y, GF_FALSE);
+}
+GF_EXPORT
+u32 gf_evg_stencil_get_pixel_yuv(GF_EVGStencil *st, s32 x, s32 y)
+{
+	return gf_evg_stencil_get_pixel_intern(st, x, y, GF_TRUE);
+}
 
+static GF_Err gf_evg_stencil_get_pixel_f_intern(EVG_Texture *_this, Float x, Float y, Float *r, Float *g, Float *b, Float *a, Bool want_yuv)
+{
 	if (_this->mod & GF_TEXTURE_FLIP_X) x = -x;
 	if (_this->mod & GF_TEXTURE_FLIP_Y) y = -y;
 
@@ -1855,37 +1864,105 @@ u32 gf_evg_stencil_get_pixel_f(GF_EVGStencil *st, Float x, Float y)
 		else if (y>=_this->height) y = _this->height-1;
 	}
 
-	if (_this->filter==GF_TEXTURE_FILTER_HIGH_SPEED) {
-		col = _this->tx_get_pixel(_this, (s32) x, (s32) y);
-	} else {
-		u32 _x = floor(x);
-		u32 _y = floor(y);
-		if (_this->filter==GF_TEXTURE_FILTER_MID) {
-			if ((x - _x > 0.5) && _x+1<_this->width) _x++;
-			if ((y - _y > 0.5) && _y+1<_this->height) _y++;
-			col = _this->tx_get_pixel(_this, _x, _y);
+	if (_this->tx_get_pixel) {
+		u32 col;
+		if (_this->filter==GF_TEXTURE_FILTER_HIGH_SPEED) {
+			col = _this->tx_get_pixel(_this, (s32) x, (s32) y);
 		} else {
-			u32 col01, col11, col10;
-			s32 _x1 = _x+1;
-			s32 _y1 = _y+1;
-			u8 diff_x = 255 * (x - _x);
-			u8 diff_y = 255 * (y - _y);
+			u32 _x = floor(x);
+			u32 _y = floor(y);
+			if (_this->filter==GF_TEXTURE_FILTER_MID) {
+				if ((x - _x > 0.5) && _x+1<_this->width) _x++;
+				if ((y - _y > 0.5) && _y+1<_this->height) _y++;
+				col = _this->tx_get_pixel(_this, _x, _y);
+			} else {
+				u32 col01, col11, col10;
+				s32 _x1 = _x+1;
+				s32 _y1 = _y+1;
+				u8 diff_x = 255 * (x - _x);
+				u8 diff_y = 255 * (y - _y);
 
-			if (_x1>=_this->width) _x1 = _this->width-1;
-			if (_y1>=_this->height) _y1 = _this->height-1;
-			col = _this->tx_get_pixel(_this, _x, _y);
-			col10 = _this->tx_get_pixel(_this, _x1, _y);
-			col01 = _this->tx_get_pixel(_this, _x, _y1);
-			col11 = _this->tx_get_pixel(_this, _x1, _y1);
-			col = EVG_LERP(col, col10, diff_x);
-			col11 = EVG_LERP(col01, col11, diff_x);
-			col = EVG_LERP(col, col11, diff_y);
+				if (_x1>=_this->width) _x1 = _this->width-1;
+				if (_y1>=_this->height) _y1 = _this->height-1;
+				col = _this->tx_get_pixel(_this, _x, _y);
+				col10 = _this->tx_get_pixel(_this, _x1, _y);
+				col01 = _this->tx_get_pixel(_this, _x, _y1);
+				col11 = _this->tx_get_pixel(_this, _x1, _y1);
+				col = EVG_LERP(col, col10, diff_x);
+				col11 = EVG_LERP(col01, col11, diff_x);
+				col = EVG_LERP(col, col11, diff_y);
+			}
 		}
+		if (_this->is_yuv) {
+			if (!want_yuv) col = evg_ayuv_to_argb(NULL, col);
+		} else {
+			if (want_yuv) col = evg_argb_to_ayuv(NULL, col);
+		}
+		*r = ((Float) GF_COL_R(col) ) / 255.0;
+		*g = ((Float) GF_COL_G(col) ) / 255.0;
+		*b = ((Float) GF_COL_B(col) ) / 255.0;
+		*a = ((Float) GF_COL_A(col) ) / 255.0;
+		return GF_OK;
 	}
+	if (_this->tx_get_pixel) {
+		u32 colw;
+		if (_this->filter==GF_TEXTURE_FILTER_HIGH_SPEED) {
+			colw = _this->tx_get_pixel_wide(_this, (s32) x, (s32) y);
+		} else {
+			u32 _x = floor(x);
+			u32 _y = floor(y);
+			if (_this->filter==GF_TEXTURE_FILTER_MID) {
+				if ((x - _x > 0.5) && _x+1<_this->width) _x++;
+				if ((y - _y > 0.5) && _y+1<_this->height) _y++;
+				colw = _this->tx_get_pixel_wide(_this, _x, _y);
+			} else {
+				u64 col01, col11, col10;
+				s32 _x1 = _x+1;
+				s32 _y1 = _y+1;
+				u8 diff_x = 255 * (x - _x);
+				u8 diff_y = 255 * (y - _y);
 
-	if (_this->is_yuv) return evg_ayuv_to_argb(NULL, col);
-	return col;
+				if (_x1>=_this->width) _x1 = _this->width-1;
+				if (_y1>=_this->height) _y1 = _this->height-1;
+				colw = _this->tx_get_pixel_wide(_this, _x, _y);
+				col10 = _this->tx_get_pixel_wide(_this, _x1, _y);
+				col01 = _this->tx_get_pixel_wide(_this, _x, _y1);
+				col11 = _this->tx_get_pixel_wide(_this, _x1, _y1);
+				colw = EVG_LERP_WIDE(colw, col10, diff_x);
+				col11 = EVG_LERP_WIDE(col01, col11, diff_x);
+				colw = EVG_LERP_WIDE(colw, col11, diff_y);
+			}
+		}
+		if (_this->is_yuv) {
+			if (!want_yuv) colw = evg_ayuv_to_argb_wide(NULL, colw);
+		} else {
+			if (want_yuv) colw = evg_argb_to_ayuv_wide(NULL, colw);
+		}
+		*r = ((Float) GF_COL_R(colw) ) / 0xFFFF;
+		*g = ((Float) GF_COL_G(colw) ) / 0xFFFF;
+		*b = ((Float) GF_COL_B(colw) ) / 0xFFFF;
+		*a = ((Float) GF_COL_A(colw) ) / 0xFFFF;
+		return GF_OK;
+	}
+	return GF_BAD_PARAM;
 }
+
+GF_EXPORT
+GF_Err gf_evg_stencil_get_pixel_f(GF_EVGStencil *st, Float x, Float y, Float *r, Float *g, Float *b, Float *a)
+{
+	EVG_Texture *_this = (EVG_Texture *) st;
+	if (!_this || (_this->type != GF_STENCIL_TEXTURE)) return GF_BAD_PARAM;
+	return gf_evg_stencil_get_pixel_f_intern(_this, x, y, r, g, b, a, GF_FALSE);
+}
+
+GF_EXPORT
+GF_Err gf_evg_stencil_get_pixel_yuv_f(GF_EVGStencil *st, Float x, Float y, Float *r, Float *g, Float *b, Float *a)
+{
+	EVG_Texture *_this = (EVG_Texture *) st;
+	if (!_this || (_this->type != GF_STENCIL_TEXTURE)) return GF_BAD_PARAM;
+	return gf_evg_stencil_get_pixel_f_intern(_this, x, y, r, g, b, a, GF_TRUE);
+}
+
 GF_EXPORT
 GF_Err gf_evg_stencil_set_alpha(GF_EVGStencil * st, u8 alpha)
 {

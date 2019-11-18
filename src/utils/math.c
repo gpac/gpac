@@ -1033,87 +1033,109 @@ Bool gf_rect_equal(GF_Rect *rc1, GF_Rect *rc2)
 /* check if dimension is larger than FIX_ONE*/
 #define IS_HIGH_DIM(_v)	((_v > FIX_ONE) || (_v < (s32)0xFFFF0000))
 /* check if any vector dimension is larger than FIX_ONE*/
-#define VEC_HIGH_MAG(_v)	(IS_HIGH_DIM(_v.x) || IS_HIGH_DIM(_v.y) || IS_HIGH_DIM(_v.z) )
+#define VEC_HIGH_MAG(_v)	(IS_HIGH_DIM(_v->x) || IS_HIGH_DIM(_v->y) || IS_HIGH_DIM(_v->z) )
 
 //#define FLOAT_COMPUTE
 
 GF_EXPORT
-Fixed gf_vec_len(GF_Vec v)
+Fixed gf_vec_len_p(GF_Vec *v)
 {
 	/*commented out atm - weird results (not enough precision?)...*/
 //#if defined(GPAC_USE_IGPP_HP) || defined (GPAC_USE_IGPP)
 #if 0
 	Fixed res;
-	gppVec3DLength_16_32s((GPP_VEC3D *) &v, &res);
+	gppVec3DLength_16_32s((GPP_VEC3D *) v, &res);
 	return res;
 #elif defined(FLOAT_COMPUTE)
-	return FLT2FIX( sqrt( FIX2FLT(v.x) * FIX2FLT(v.x) + FIX2FLT(v.y)*FIX2FLT(v.y) + FIX2FLT(v.z)*FIX2FLT(v.z) ) );
+	return FLT2FIX( sqrt( FIX2FLT(v->x) * FIX2FLT(v->x) + FIX2FLT(v->y)*FIX2FLT(v->y) + FIX2FLT(v->z)*FIX2FLT(v->z) ) );
 #else
 
 	/*high-magnitude vector, use low precision on frac part to avoid overflow*/
 	if (VEC_HIGH_MAG(v)) {
-		v.x>>=8;
-		v.y>>=8;
-		v.z>>=8;
-		return gf_sqrt( gf_mulfix(v.x, v.x) + gf_mulfix(v.y, v.y) + gf_mulfix(v.z, v.z) ) << 8;
+		GF_Vec _v = *v;
+		_v.x>>=8;
+		_v.y>>=8;
+		_v.z>>=8;
+		return gf_sqrt( gf_mulfix(_v.x, _v.x) + gf_mulfix(_v.y, _v.y) + gf_mulfix(_v.z, _v.z) ) << 8;
 	}
 	/*low-res vector*/
-	return gf_sqrt( gf_mulfix(v.x, v.x) + gf_mulfix(v.y, v.y) + gf_mulfix(v.z, v.z) );
+	return gf_sqrt( gf_mulfix(v->x, v->x) + gf_mulfix(v->y, v->y) + gf_mulfix(v->z, v->z) );
+#endif
+}
+
+GF_EXPORT
+Fixed gf_vec_len(GF_Vec v)
+{
+	return gf_vec_len_p(&v);
+
+}
+GF_EXPORT
+Fixed gf_vec_lensq_p(GF_Vec *v)
+{
+	/*commented out atm - weird results (not enough precision?)...*/
+//#if defined(GPAC_USE_IGPP_HP) || defined (GPAC_USE_IGPP)
+#if 0
+	Fixed res;
+	gppVec3DLengthSq_16_32s((GPP_VEC3D *) v, &res);
+	return res;
+#elif defined(FLOAT_COMPUTE)
+	return FLT2FIX( FIX2FLT(v->x) * FIX2FLT(v->x) + FIX2FLT(v->y)*FIX2FLT(v->y) + FIX2FLT(v->z)*FIX2FLT(v->z) );
+#else
+
+	/*high-magnitude vector, use low precision on frac part to avoid overflow*/
+	if (VEC_HIGH_MAG(v)) {
+		GF_Vec _v = *v;
+		_v.x>>=8;
+		_v.y>>=8;
+		_v.z>>=8;
+		return ( gf_mulfix(_v.x, _v.x) + gf_mulfix(_v.y, _v.y) + gf_mulfix(_v.z, _v.z) ) << 16;
+	}
+	return gf_mulfix(v->x, v->x) + gf_mulfix(v->y, v->y) + gf_mulfix(v->z, v->z);
+
 #endif
 }
 
 GF_EXPORT
 Fixed gf_vec_lensq(GF_Vec v)
 {
-	/*commented out atm - weird results (not enough precision?)...*/
-//#if defined(GPAC_USE_IGPP_HP) || defined (GPAC_USE_IGPP)
-#if 0
-	Fixed res;
-	gppVec3DLengthSq_16_32s((GPP_VEC3D *) &v, &res);
-	return res;
-#elif defined(FLOAT_COMPUTE)
-	return FLT2FIX( FIX2FLT(v.x) * FIX2FLT(v.x) + FIX2FLT(v.y)*FIX2FLT(v.y) + FIX2FLT(v.z)*FIX2FLT(v.z) );
-#else
+	return gf_vec_lensq_p(&v);
 
-	/*high-magnitude vector, use low precision on frac part to avoid overflow*/
-	if (VEC_HIGH_MAG(v)) {
-		v.x>>=8;
-		v.y>>=8;
-		v.z>>=8;
-		return ( gf_mulfix(v.x, v.x) + gf_mulfix(v.y, v.y) + gf_mulfix(v.z, v.z) ) << 16;
-	}
-	return gf_mulfix(v.x, v.x) + gf_mulfix(v.y, v.y) + gf_mulfix(v.z, v.z);
-
-#endif
 }
 
 GF_EXPORT
-Fixed gf_vec_dot(GF_Vec v1, GF_Vec v2)
+Fixed gf_vec_dot_p(GF_Vec *v1, GF_Vec *v2)
 {
 	/*commented out atm - weird results (not enough precision?)...*/
 //#if defined(GPAC_USE_IGPP_HP) || defined (GPAC_USE_IGPP)
 #if 0
 	Fixed res;
-	gppVec3DDot_16_32s((GPP_VEC3D *) &v1, (GPP_VEC3D *) &v2, &res);
+	gppVec3DDot_16_32s((GPP_VEC3D *) v1, (GPP_VEC3D *) v2, &res);
 	return res;
 #elif defined(FLOAT_COMPUTE)
-	Float fr = FIX2FLT(v1.x)*FIX2FLT(v2.x) + FIX2FLT(v1.y)*FIX2FLT(v2.y) + FIX2FLT(v1.z)*FIX2FLT(v2.z);
+	Float fr = FIX2FLT(v1->x)*FIX2FLT(v2->x) + FIX2FLT(v1->y)*FIX2FLT(v2->y) + FIX2FLT(v1->z)*FIX2FLT(v2->z);
 	return FLT2FIX(fr);
 #else
 	/*both high-magnitude vectors, use low precision on frac part to avoid overflow
 	if only one is, the dot product should still be in proper range*/
 	if (0&&VEC_HIGH_MAG(v1) && VEC_HIGH_MAG(v2)) {
-		v1.x>>=4;
-		v1.y>>=4;
-		v1.z>>=4;
-		v2.x>>=4;
-		v2.y>>=4;
-		v2.z>>=4;
-		return ( gf_mulfix(v1.x, v2.x) + gf_mulfix(v1.y, v2.y) + gf_mulfix(v1.z, v2.z) ) << 8;
+		GF_Vec _v1 = *v1;
+		GF_Vec _v2 = *v2;
+		_v1.x>>=4;
+		_v1.y>>=4;
+		_v1.z>>=4;
+		_v2.x>>=4;
+		_v2.y>>=4;
+		_v2.z>>=4;
+		return ( gf_mulfix(_v1.x, _v2.x) + gf_mulfix(_v1.y, _v2.y) + gf_mulfix(_v1.z, _v2.z) ) << 8;
 	}
-	return gf_mulfix(v1.x, v2.x) + gf_mulfix(v1.y, v2.y) + gf_mulfix(v1.z, v2.z);
+	return gf_mulfix(v1->x, v2->x) + gf_mulfix(v1->y, v2->y) + gf_mulfix(v1->z, v2->z);
 
 #endif
+}
+Fixed gf_vec_dot(GF_Vec v1, GF_Vec v2)
+{
+	return gf_vec_dot_p(&v1, &v2);
+
 }
 
 GF_EXPORT
@@ -1132,6 +1154,16 @@ void gf_vec_norm(GF_Vec *v)
 }
 
 GF_EXPORT
+GF_Vec gf_vec_scale_p(GF_Vec *v, Fixed f)
+{
+	GF_Vec res;
+	res.x = gf_mulfix(v->x, f);
+	res.y = gf_mulfix(v->y, f);
+	res.z = gf_mulfix(v->z, f);
+	return res;
+}
+
+GF_EXPORT
 GF_Vec gf_vec_scale(GF_Vec v, Fixed f)
 {
 	GF_Vec res;
@@ -1142,33 +1174,35 @@ GF_Vec gf_vec_scale(GF_Vec v, Fixed f)
 }
 
 GF_EXPORT
-GF_Vec gf_vec_cross(GF_Vec v1, GF_Vec v2)
+GF_Vec gf_vec_cross_p(GF_Vec *v1, GF_Vec *v2)
 {
 	GF_Vec res;
 	/*commented out atm - weird results (not enough precision?)...*/
 //#if defined(GPAC_USE_IGPP_HP) || defined (GPAC_USE_IGPP)
 #if 0
-	gppVec3DCross_16_32s((GPP_VEC3D *) &v1, (GPP_VEC3D *) &v2, (GPP_VEC3D *) &res);
+	gppVec3DCross_16_32s((GPP_VEC3D *) v1, (GPP_VEC3D *) v2, (GPP_VEC3D *) &res);
 	return res;
 #elif defined(FLOAT_COMPUTE)
-	res.x = FLT2FIX( FIX2FLT(v1.y)*FIX2FLT(v2.z) - FIX2FLT(v2.y)*FIX2FLT(v1.z));
-	res.y = FLT2FIX( FIX2FLT(v2.x)*FIX2FLT(v1.z) - FIX2FLT(v1.x)*FIX2FLT(v2.z));
-	res.z = FLT2FIX( FIX2FLT(v1.x)*FIX2FLT(v2.y) - FIX2FLT(v2.x)*FIX2FLT(v1.y));
+	res.x = FLT2FIX( FIX2FLT(v1->y)*FIX2FLT(v2->z) - FIX2FLT(v2->y)*FIX2FLT(v1->z));
+	res.y = FLT2FIX( FIX2FLT(v2->x)*FIX2FLT(v1->z) - FIX2FLT(v1->x)*FIX2FLT(v2->z));
+	res.z = FLT2FIX( FIX2FLT(v1->x)*FIX2FLT(v2->y) - FIX2FLT(v2->x)*FIX2FLT(v1->y));
 	return res;
 #else
 
 	/*both high-magnitude vectors, use low precision on frac part to avoid overflow
 	if only one is, the cross product should still be in proper range*/
 	if (VEC_HIGH_MAG(v1) && VEC_HIGH_MAG(v2)) {
-		v1.x>>=8;
-		v1.y>>=8;
-		v1.z>>=8;
-		v2.x>>=8;
-		v2.y>>=8;
-		v2.z>>=8;
-		res.x = gf_mulfix(v1.y, v2.z) - gf_mulfix(v2.y, v1.z);
-		res.y = gf_mulfix(v2.x, v1.z) - gf_mulfix(v1.x, v2.z);
-		res.z = gf_mulfix(v1.x, v2.y) - gf_mulfix(v2.x, v1.y);
+		GF_Vec _v1 = *v1;
+		GF_Vec _v2 = *v2;
+		_v1.x>>=8;
+		_v1.y>>=8;
+		_v1.z>>=8;
+		_v2.x>>=8;
+		_v2.y>>=8;
+		_v2.z>>=8;
+		res.x = gf_mulfix(_v1.y, _v2.z) - gf_mulfix(_v2.y, _v1.z);
+		res.y = gf_mulfix(_v2.x, _v1.z) - gf_mulfix(_v1.x, _v2.z);
+		res.z = gf_mulfix(_v1.x, _v2.y) - gf_mulfix(_v2.x, _v1.y);
 		res.x<<=16;
 		res.y<<=16;
 		res.z<<=16;
@@ -1182,19 +1216,37 @@ GF_Vec gf_vec_cross(GF_Vec v1, GF_Vec v2)
 	return res;
 }
 
+GF_EXPORT
+GF_Vec gf_vec_cross(GF_Vec v1, GF_Vec v2)
+{
+	return gf_vec_cross_p(&v1, &v2);
+
+}
 #else
 
 GF_EXPORT
+Fixed gf_vec_len_p(GF_Vec *v) {
+	return gf_sqrt(v->x*v->x + v->y*v->y + v->z*v->z);
+}
+GF_EXPORT
 Fixed gf_vec_len(GF_Vec v) {
-	return gf_sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+	return gf_vec_len_p(&v);
+}
+GF_EXPORT
+Fixed gf_vec_lensq_p(GF_Vec *v) {
+	return v->x*v->x + v->y*v->y + v->z*v->z;
 }
 GF_EXPORT
 Fixed gf_vec_lensq(GF_Vec v) {
-	return v.x*v.x + v.y*v.y + v.z*v.z;
+	return gf_vec_lensq_p(&v);
+}
+GF_EXPORT
+Fixed gf_vec_dot_p(GF_Vec *v1, GF_Vec *v2) {
+	return v1->x*v2->x + v1->y*v2->y + v1->z*v2->z;
 }
 GF_EXPORT
 Fixed gf_vec_dot(GF_Vec v1, GF_Vec v2) {
-	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
+	return gf_vec_dot_p(&v1, &v2);
 }
 GF_EXPORT
 void gf_vec_norm(GF_Vec *v)
@@ -1209,6 +1261,16 @@ void gf_vec_norm(GF_Vec *v)
 }
 
 GF_EXPORT
+GF_Vec gf_vec_scale_p(GF_Vec *v, Fixed f)
+{
+	GF_Vec res;
+	res.x = v->x * f;
+	res.y = v->y * f;
+	res.z = v->z * f;
+	return res;
+}
+
+GF_EXPORT
 GF_Vec gf_vec_scale(GF_Vec v, Fixed f)
 {
 	GF_Vec res = v;
@@ -1219,15 +1281,20 @@ GF_Vec gf_vec_scale(GF_Vec v, Fixed f)
 }
 
 GF_EXPORT
-GF_Vec gf_vec_cross(GF_Vec v1, GF_Vec v2)
+GF_Vec gf_vec_cross_p(GF_Vec *v1, GF_Vec *v2)
 {
 	GF_Vec res;
-	res.x = v1.y*v2.z - v2.y*v1.z;
-	res.y = v2.x*v1.z - v1.x*v2.z;
-	res.z = v1.x*v2.y - v2.x*v1.y;
+	res.x = v1->y*v2->z - v2->y*v1->z;
+	res.y = v2->x*v1->z - v1->x*v2->z;
+	res.z = v1->x*v2->y - v2->x*v1->y;
 	return res;
 }
 
+GF_EXPORT
+GF_Vec gf_vec_cross(GF_Vec v1, GF_Vec v2)
+{
+	return gf_vec_cross_p(&v1, &v2);
+}
 #endif
 
 
