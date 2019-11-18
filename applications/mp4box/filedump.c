@@ -2369,8 +2369,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	gf_isom_set_nalu_extract_mode(file, trackNum, GF_ISOM_NALU_EXTRACT_INSPECT);
 
 	msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
+	if (msub_type==GF_ISOM_SUBTYPE_MPEG4_CRYP)
+		gf_isom_get_original_format_type(file, trackNum, 1, &msub_type);
+
 	if ((msub_type==GF_ISOM_SUBTYPE_MPEG4)
-	        || (msub_type==GF_ISOM_SUBTYPE_MPEG4_CRYP)
 	        || (msub_type==GF_ISOM_SUBTYPE_AVC_H264)
 	        || (msub_type==GF_ISOM_SUBTYPE_AVC2_H264)
 	        || (msub_type==GF_ISOM_SUBTYPE_AVC3_H264)
@@ -2856,7 +2858,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		fprintf(stderr, "\t3GPP QCELP stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_MP3) {
 		fprintf(stderr, "\tMPEG 1/2 Audio stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
-	} else if (msub_type == GF_ISOM_SUBTYPE_AC3) {
+	} else if ((msub_type == GF_ISOM_SUBTYPE_AC3) || (msub_type == GF_ISOM_SUBTYPE_EC3)) {
 		u32 br = 0;
 		Bool lfe = 0;
 		Bool is_ec3 = 0;

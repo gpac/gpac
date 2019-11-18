@@ -291,7 +291,7 @@ GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 
 	entry = (GF_MPEGAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex-1);
 	if (!entry || !entry->cfg_ac3) return NULL;
-	if ( (entry->type!=GF_ISOM_BOX_TYPE_AC3) && (entry->type!=GF_ISOM_BOX_TYPE_EC3) ) return NULL;
+	if (!entry->cfg_ac3) return NULL;
 	if ( (entry->cfg_ac3->type!=GF_ISOM_BOX_TYPE_DAC3) && (entry->cfg_ac3->type!=GF_ISOM_BOX_TYPE_DEC3) ) return NULL;
 
 	res = (GF_AC3Config*)gf_malloc(sizeof(GF_AC3Config));
