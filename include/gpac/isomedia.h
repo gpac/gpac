@@ -331,6 +331,7 @@ enum
 	GF_ISOM_SUBTYPE_3GP_DIMS	= GF_4CC( 'd', 'i', 'm', 's' ),
 
 	GF_ISOM_SUBTYPE_AC3			= GF_4CC( 'a', 'c', '-', '3' ),
+	GF_ISOM_SUBTYPE_EC3			= GF_4CC( 'e', 'c', '-', '3' ),
 	GF_ISOM_SUBTYPE_MP3			= GF_4CC( '.', 'm', 'p', '3' ),
 	GF_ISOM_SUBTYPE_MP4A		= GF_4CC( 'm', 'p', '4', 'a' ),
 
