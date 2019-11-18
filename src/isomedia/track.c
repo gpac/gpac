@@ -451,7 +451,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	if (!DescIndex) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] default sample description set to 0, likely broken ! Fixing to 1\n" ));
 		DescIndex = 1;
-	} else if (DescIndex >= gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes)) {
+	} else if (DescIndex > gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] default sample description set to %d but only %d sample description(s), likely broken ! Fixing to 1\n", DescIndex, gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes)));
 		DescIndex = 1;
 	}
