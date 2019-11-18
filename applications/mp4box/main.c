@@ -134,7 +134,7 @@ void dump_isom_timed_text(GF_ISOFile *file, u32 trackID, char *inName, Bool is_f
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
 
 
-void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump);
+void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump, Bool is_track_num);
 void DumpMovieInfo(GF_ISOFile *file);
 void PrintLanguages();
 
@@ -810,8 +810,10 @@ void PrintDumpUsage()
 	fprintf(stderr, "Dumping Options\n"
 	        " -stdb                dumps/write to stdout and assumes stdout is opened in binary mode\n"
 	        " -std                 dumps/write to stdout and try to reopen stdout in binary mode.\n"
+	        " -tracks              returns the number of tracks on stdout\n"
 	        " -info [tkID]         prints movie info / track info if tkID specified\n"
 	        "                       * Note: for non IsoMedia files, gets import options\n"
+	        " -infon tkN           prints info for track number N\n"
 	        " -bt                  scene to bt format - removes unknown MPEG4 nodes\n"
 	        " -xmt                 scene to XMT-A format - removes unknown MPEG4 nodes\n"
 	        " -wrl                 scene VRML format - removes unknown VRML nodes\n"
@@ -2246,10 +2248,10 @@ GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
-Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, do_mpd_rip;
+Bool print_sdp, open_edit, dump_cr, force_ocr, encode, do_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, do_mpd_rip, get_nb_tracks;
 char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *hdr_filename;
 u32 track_dump_type, dump_isom, dump_timestamps;
-u32 trackID, do_flat;
+u32 trackID, do_flat, print_info;
 Bool comp_lzma=GF_FALSE;
 Double min_buffer = 1.5;
 u32 comp_top_box_version = 0;
@@ -2262,7 +2264,6 @@ u32 nb_mpd_base_urls = 0;
 u32 dash_scale = 1000;
 Bool insert_utc = GF_FALSE;
 const char *udp_dest = NULL;
-
 #ifndef GPAC_DISABLE_MPD
 Bool do_mpd = GF_FALSE;
 #endif
@@ -3335,13 +3336,16 @@ Bool mp4box_parse_args(int argc, char **argv)
 			log_utc_time = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-noprog")) quiet = 1;
-		else if (!stricmp(arg, "-info")) {
+		else if (!stricmp(arg, "-tracks")) get_nb_tracks = 1;
+		else if (!stricmp(arg, "-info") || !stricmp(arg, "-infon")) {
 			print_info = 1;
 			if ((i + 1<(u32)argc) && (sscanf(argv[i + 1], "%u", &info_track_id) == 1)) {
 				char szTk[20];
 				sprintf(szTk, "%u", info_track_id);
 				if (!strcmp(szTk, argv[i + 1])) i++;
 				else info_track_id = 0;
+
+				if (!stricmp(arg, "-infon")) print_info = 2;
 			}
 			else {
 				info_track_id = 0;
@@ -4024,17 +4028,18 @@ int mp4boxMain(int argc, char **argv)
 	split_size = 0;
 	movie_time = 0;
 	dump_nal = dump_saps = dump_saps_mode = 0;
-	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = do_mpd_rip = GF_FALSE;
+	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = do_mpd_rip = get_nb_tracks = GF_FALSE;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	dump_mode = GF_SM_DUMP_NONE;
 #endif
 	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = clean_groups = GF_FALSE;
-	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
+	conv_type = HintIt = needSave = print_sdp = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
 	no_fragments_defaults = GF_FALSE;
 	single_traf_per_moof = GF_FALSE,
     tfdt_per_traf = GF_FALSE,
 	dump_nal_crc = GF_FALSE,
 	dump_isom = dump_timestamps = 0;
+	print_info = 0;
 	/*align cat is the new default behaviour for -cat*/
 	align_cat = GF_TRUE;
 	subsegs_per_sidx = 0;
@@ -4986,11 +4991,14 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	if (!HintIt && print_sdp) dump_isom_sdp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 #endif
+	if (get_nb_tracks) {
+		fprintf(stdout, "%d\n", gf_isom_get_track_count(file));
+	}
 	if (print_info) {
 		if (!file) {
 			fprintf(stderr, "Cannot print info on a non ISOM file (%s)\n", inName);
 		} else {
-			if (info_track_id) DumpTrackInfo(file, info_track_id, 1);
+			if (info_track_id) DumpTrackInfo(file, info_track_id, 1, (print_info==2) ? GF_TRUE : GF_FALSE);
 			else DumpMovieInfo(file);
 		}
 	}
