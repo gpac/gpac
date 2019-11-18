@@ -208,22 +208,32 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
         {
             GF_MPEGAudioSampleEntryBox *ase = (GF_MPEGAudioSampleEntryBox*)entry;
             ESDa = ase->esd;
-            if (ESDa) esd = (GF_ESD *) ESDa->desc;
-            else {
-#ifndef GPAC_DISABLE_AV_PARSERS
-                // Assuming that if no ESD is provided the stream is Basic MPEG-4 AAC LC
-                GF_M4ADecSpecInfo aacinfo;
-                memset(&aacinfo, 0, sizeof(GF_M4ADecSpecInfo));
-                aacinfo.nb_chan = ase->channel_count;
-                aacinfo.base_object_type = GF_M4A_AAC_LC;
-                aacinfo.base_sr = ase->samplerate_hi;
-                *out_esd = gf_odf_desc_esd_new(0);
-                (*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
-                (*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_AAC_MPEG4;
-                gf_m4a_write_config(&aacinfo, &(*out_esd)->decoderConfig->decoderSpecificInfo->data, &(*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
-#endif
+            if (ESDa) {
+				esd = (GF_ESD *) ESDa->desc;
+            } else {
+				Bool make_mp4a = GF_FALSE;
+				GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
 
-			}
+				if (sinf && sinf->original_format) {
+					if (sinf->original_format->data_format==GF_ISOM_BOX_TYPE_MP4A) {
+						make_mp4a = GF_TRUE;
+					}
+				} else {
+					// Assuming that if no ESD is provided the stream is Basic MPEG-4 AAC LC
+					make_mp4a = GF_TRUE;
+				}
+				if (make_mp4a) {
+					GF_M4ADecSpecInfo aacinfo;
+					memset(&aacinfo, 0, sizeof(GF_M4ADecSpecInfo));
+					aacinfo.nb_chan = ase->channel_count;
+					aacinfo.base_object_type = GF_M4A_AAC_LC;
+					aacinfo.base_sr = ase->samplerate_hi;
+					*out_esd = gf_odf_desc_esd_new(0);
+					(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
+					(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_AAC_MPEG4;
+					gf_m4a_write_config(&aacinfo, &(*out_esd)->decoderConfig->decoderSpecificInfo->data, &(*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
+				}
+            }
         }
 		break;
 	case GF_ISOM_BOX_TYPE_MP4S:

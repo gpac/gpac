@@ -253,6 +253,9 @@ default_sync:
 	}
 	//otherwise use the regular mapping
 
+	if (!esd->slConfig)
+		esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
+
 	//this is a desc for a media in the file, let's rewrite some param
 	esd->slConfig->timestampLength = 32;
 	esd->slConfig->timestampResolution = trak->Media->mediaHeader->timeScale;
@@ -269,7 +272,9 @@ default_sync:
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		    moov->mvex &&
 #endif
-		    (esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
+		    esd->decoderConfig->streamType &&
+		    (esd->decoderConfig->streamType==GF_STREAM_VISUAL)
+		) {
 			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 0;
 			esd->slConfig->useRandomAccessPointFlag = 1;
 			if (trak->moov->mov->openMode!=GF_ISOM_OPEN_READ)
@@ -467,10 +472,16 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 
 	if (trak->Header->trackID != traf->tfhd->trackID) return GF_OK;
 
+	if (!traf->trex->track)
+		traf->trex->track = trak;
+		
 	//setup all our defaults
 	DescIndex = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_DESC) ? traf->tfhd->sample_desc_index : traf->trex->def_sample_desc_index;
 	if (!DescIndex) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] default sample description set to 0, likely broken ! Fixing to 1\n" ));
+		DescIndex = 1;
+	} else if (DescIndex > gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] default sample description set to %d but only %d sample description(s), likely broken ! Fixing to 1\n", DescIndex, gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes)));
 		DescIndex = 1;
 	}
 	if (traf->trex->inherit_from_traf_id) {
