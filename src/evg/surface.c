@@ -89,7 +89,8 @@ void gf_evg_surface_delete(GF_EVGSurface *surf)
 	if (surf->uv_alpha) gf_free(surf->uv_alpha);
 
 	if (surf->ext3d) {
-		gf_free(surf->ext3d->depth_buffer);
+		if (surf->ext3d->pix_vals)
+			gf_free(surf->ext3d->pix_vals);
 		gf_free(surf->ext3d);
 	}
 	gf_free(surf);
@@ -483,13 +484,13 @@ GF_Err gf_evg_surface_set_clipper(GF_EVGSurface *surf , GF_IRect *rc)
 }
 
 
-static Bool setup_grey_callback(GF_EVGSurface *surf)
+static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 {
 	u32 a, uv_alpha_size=0;
 	Bool use_const = GF_TRUE;
 
-	//in 3D mode, we only write one pixel at a time
-	if (surf->ext3d) {
+	//in 3D mode, we only write one pixel at a time except in YUV modes
+	if (for_3d) {
 		a = 1;
 		use_const = GF_TRUE;
 	}
@@ -650,7 +651,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 		break;
 	case GF_PIXEL_YUV:
 		surf->is_yuv = GF_TRUE;
-		if (use_const) {
+		if (use_const && !for_3d) {
 			surf->yuv_flush_uv = evg_yuv420p_flush_uv_const;
 
 			if (a!=0xFF) {
@@ -663,6 +664,8 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 			surf->yuv_flush_uv = evg_yuv420p_flush_uv_var;
 			surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv420p_fill_var;
 			uv_alpha_size = 2 * 3*surf->width;
+			if (for_3d)
+				surf->sten = &surf->ext3d->yuv_sten;
 		}
 		break;
 	case GF_PIXEL_NV21:
@@ -678,7 +681,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 			surf->idx_v = 1;
 		}
 
-		if (use_const) {
+		if (use_const && !for_3d) {
 			surf->yuv_flush_uv = evg_nv12_flush_uv_const;
 
 			if (a!=0xFF) {
@@ -696,7 +699,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 	case GF_PIXEL_YUV422:
 		surf->is_yuv = GF_TRUE;
 		surf->is_422 = GF_TRUE;
-		if (use_const) {
+		if (use_const && !for_3d) {
 			surf->yuv_flush_uv = evg_yuv422p_flush_uv_const;
 
 			if (a!=0xFF) {
@@ -728,7 +731,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 	case GF_PIXEL_UYVY:
 	case GF_PIXEL_VYUY:
 		surf->is_yuv = GF_TRUE;
-		if (use_const) {
+		if (use_const && !for_3d) {
 			if (a!=0xFF) {
 				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuyv_fill_const_a;
 			} else {
@@ -743,7 +746,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 
 	case GF_PIXEL_YUV_10:
 		surf->is_yuv = GF_TRUE;
-		if (use_const) {
+		if (use_const && !for_3d) {
 			surf->yuv_flush_uv = evg_yuv420p_10_flush_uv_const;
 
 			if (a!=0xFF) {
@@ -771,7 +774,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 			surf->idx_v = 1;
 		}
 
-		if (use_const) {
+		if (use_const && !for_3d) {
 			surf->yuv_flush_uv = evg_nv12_10_flush_uv_const;
 
 			if (a!=0xFF) {
@@ -789,7 +792,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 	case GF_PIXEL_YUV422_10:
 		surf->is_yuv = GF_TRUE;
 		surf->is_422 = GF_TRUE;
-		if (use_const) {
+		if (use_const && !for_3d) {
 			surf->yuv_flush_uv = evg_yuv422p_10_flush_uv_const;
 
 			if (a!=0xFF) {
@@ -828,6 +831,8 @@ static Bool setup_grey_callback(GF_EVGSurface *surf)
 		}
 		memset(surf->uv_alpha, 0, sizeof(char)*surf->uv_alpha_alloc);
 	}
+	if (surf->is_yuv && for_3d)
+		surf->sten = &surf->ext3d->yuv_sten;
 
 	if (use_const && surf->is_yuv) {
 		u8 y, cb, cr;
@@ -891,7 +896,7 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 	surf->sten = sten;
 
 	/*setup ft raster calllbacks*/
-	if (!setup_grey_callback(surf)) return GF_OK;
+	if (!setup_grey_callback(surf, GF_FALSE)) return GF_OK;
 
 	/*	surf->gray_spans = gray_spans_stub; */
 
@@ -1032,7 +1037,7 @@ GF_Err gf_evg_surface_draw_array(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, 
 	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
 
 	/*setup ft raster calllbacks*/
-	if (!setup_grey_callback(surf)) return GF_OK;
+	if (!setup_grey_callback(surf, GF_TRUE)) return GF_OK;
 
 	if (surf->useClipper) {
 		surf->clip_xMin = surf->clipper.x;
@@ -1057,7 +1062,7 @@ GF_Err gf_evg_surface_draw_path(GF_EVGSurface *surf, GF_Path *path, Float z)
 	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
 
 	/*setup ft raster calllbacks*/
-	if (!setup_grey_callback(surf)) return GF_OK;
+	if (!setup_grey_callback(surf, GF_TRUE)) return GF_OK;
 
 	if (surf->useClipper) {
 		surf->clip_xMin = surf->clipper.x;

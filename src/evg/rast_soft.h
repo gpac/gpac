@@ -99,7 +99,7 @@ typedef struct
 	Float depth_range;
 	Float point_size, line_size;
 	Bool smooth_points;
-	Bool disable_aa, write_depth, early_depth_test;
+	Bool disable_aa, write_depth, early_depth_test, run_write_depth;
 	Bool (*depth_test)(Float depth_buf_value, Float frag_value);
 	Bool mode2d;
 	Bool clip_zero;
@@ -115,6 +115,10 @@ typedef struct
 	Float pt_radius;
 	Float v1v2_length, v1v3_length, v2v3_length;
 	GF_Vec v1v2, v1v3, v2v3;
+
+	struct _gf_evg_base_stencil yuv_sten;
+
+	u32 *pix_vals;
 } EVG_Surface3DExt;
 
 /*the surface object - currently only ARGB/RGB32, RGB/BGR and RGB555/RGB565 supported*/
@@ -495,8 +499,9 @@ typedef struct  TRaster_
 	int cover;
 	u32 idx1, idx2;
 
-	EVG_Span gray_spans[FT_MAX_GRAY_SPANS];
+	EVG_Span *gray_spans;
 	int num_gray_spans;
+	u32 max_gray_spans, alloc_gray_spans;
 	EVG_Raster_Span_Func  render_span;
 	void *render_span_data;
 

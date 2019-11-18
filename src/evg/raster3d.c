@@ -212,31 +212,23 @@ Bool evg3d_get_fragment(GF_EVGSurface *surf, GF_EVGFragmentParam *frag_param, Bo
 	if (!surf->ext3d->frag_shader(surf->ext3d->frag_shader_udta, frag_param))
 		return GF_FALSE;
 
-	if (frag_param->color_type) {
-		if (GF_COL_A(frag_param->color_argb)<0xFF) *is_transparent = GF_TRUE;
-		if (surf->not_8bits) {
-			surf->fill_col_wide = evg_col_to_wide(frag_param->color_argb);
-		} else {
-			surf->fill_col = frag_param->color_argb;
-		}
+#if 0
+	frag_param->color.x = gf_float_clamp(frag_param->color.x, 0.0, 1.0);
+	frag_param->color.y = gf_float_clamp(frag_param->color.y, 0.0, 1.0);
+	frag_param->color.z = gf_float_clamp(frag_param->color.z, 0.0, 1.0);
+	frag_param->color.q = gf_float_clamp(frag_param->color.q, 0.0, 1.0);
+#endif
+
+	if (frag_param->color.q<1.0) *is_transparent = GF_TRUE;
+
+	if (surf->not_8bits) {
+		surf->fill_col_wide = evg_make_col_wide((u16) frag_param->color.q*0xFFFF, (u16) frag_param->color.x*0xFFFF, (u16) frag_param->color.y*0xFFFF, (u16) frag_param->color.z*0xFFFF);
 	} else {
-
-		frag_param->color.x = gf_float_clamp(frag_param->color.x, 0.0, 1.0);
-		frag_param->color.y = gf_float_clamp(frag_param->color.y, 0.0, 1.0);
-		frag_param->color.z = gf_float_clamp(frag_param->color.z, 0.0, 1.0);
-		frag_param->color.q = gf_float_clamp(frag_param->color.q, 0.0, 1.0);
-
-		if (frag_param->color.q<1.0) *is_transparent = GF_TRUE;
-
-		if (surf->not_8bits) {
-			surf->fill_col_wide = evg_make_col_wide((u16) frag_param->color.q*0xFFFF, (u16) frag_param->color.x*0xFFFF, (u16) frag_param->color.y*0xFFFF, (u16) frag_param->color.z*0xFFFF);
-		} else {
-			u8 a = frag_param->color.q*255;
-			u8 r = frag_param->color.x*255;
-			u8 g = frag_param->color.y*255;
-			u8 b = frag_param->color.z*255;
-			surf->fill_col = GF_COL_ARGB(a, r, g, b);
-		}
+		u8 a = frag_param->color.q*255;
+		u8 r = frag_param->color.x*255;
+		u8 g = frag_param->color.y*255;
+		u8 b = frag_param->color.z*255;
+		surf->fill_col = GF_COL_ARGB(a, r, g, b);
 	}
 
 	if (surf->not_8bits) {
@@ -352,7 +344,7 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 	GF_EVGFragmentParam *frag_param = &fcbck->frag_param;
 	EVG_Span fragment;
 	AAScanline *sl = &surf->raster->scanlines[y];
-	Float *depth_line = &s3d->depth_buffer[y*surf->width];
+	Float *depth_line = s3d->depth_buffer ? &s3d->depth_buffer[y*surf->width] : NULL;
 	Float depth_buf_val;
 
 	fragment.len = 1;
@@ -389,8 +381,10 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 			dy = (Float)y - s3d->s_v1.y;
 			dx *=dx;
 			dy *=dy;
-			if (dx+dy > s3d->pt_radius)
+			if (dx+dy > s3d->pt_radius) {
+				spans[i].coverage=0;
 				continue;
+			}
 		}
 		depth = s3d->s_v1.z;
 
@@ -426,7 +420,10 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 		in non-AA mode, coverage is forced to full pixel, and we check if we are or not in the triangle*/
 		if (s3d->disable_aa)
 		{
-			if ((bc1<0) || (bc2<0) || (bc3<0)) continue;
+			if ((bc1<0) || (bc2<0) || (bc3<0)) {
+				spans[i].coverage=0;
+				continue;
+			}
 		}
 		/*if coverage is not full, we are on a line - recompute the weights assuming the pixel is exactly on the line*/
 		else if (coverage!=0xFF) {
@@ -518,10 +515,12 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 	}
 
 	//clip by depth
-	if ((depth<s3d->min_depth) || (depth>s3d->max_depth))
+	if ((depth<s3d->min_depth) || (depth>s3d->max_depth)) {
+		spans[i].coverage=0;
 		continue;
+	}
 
-	depth_buf_val = depth_line[x];
+	depth_buf_val = depth_line ? depth_line[x] : s3d->max_depth;
 	if (prev_partial) {
 		if ((spans[i].idx1==prev_partial->idx1)
 			|| (spans[i].idx1==prev_partial->idx2)
@@ -540,8 +539,10 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 
 	//do depth test except for edges
 	if (! edge_merge && s3d->early_depth_test) {
-		if (! s3d->depth_test(depth_buf_val, depth))
+		if (! s3d->depth_test(depth_buf_val, depth)) {
+			spans[i].coverage=0;
 			continue;
+		}
 	}
 
 	frag_param->screen_x = pix.x;
@@ -551,7 +552,6 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 	frag_param->depth = depth;
 	frag_param->color.q = 1.0;
 	frag_param->frag_valid = 0;
-	frag_param->color_type = 0;
 	/*perspective corrected barycentric, eg bc1/q1, bc2/q2, bc3/q3 - we already have store 1/q in the perspective divide step*/
 	frag_param->pbc1 = bc1*s3d->s_v1.q;
 	frag_param->pbc2 = bc2*s3d->s_v2.q;
@@ -559,12 +559,15 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 
 	frag_param->persp_denum = frag_param->pbc1 + frag_param->pbc2 + frag_param->pbc3;
 
-	if (!evg3d_get_fragment(surf, frag_param, &transparent))
+	if (!evg3d_get_fragment(surf, frag_param, &transparent)) {
+		spans[i].coverage=0;
 		continue;
-
+	}
 	if (!s3d->early_depth_test) {
-		if (! s3d->depth_test(depth_line[x], frag_param->depth))
+		if (! s3d->depth_test(depth_buf_val, frag_param->depth)) {
+			spans[i].coverage=0;
 			continue;
+		}
 	}
 	//we overwrite a partial
 	if (prev_partial) {
@@ -574,16 +577,21 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 			ncov += prev_partial->cover;
 			if (!s3d->depth_test(depth_buf_val, depth)) {
 				remove_patch_pixel(sl, prev_partial->x);
+				spans[i].coverage=0;
 				continue;
 			}
 			if (ncov>=0xFF) {
-				if (prev_partial->cover==0xFF) continue;
+				if (prev_partial->cover==0xFF) {
+					spans[i].coverage=0;
+					continue;
+				}
 				remove_patch_pixel(sl, prev_partial->x);
 				full_cover = GF_TRUE;
 				coverage = 0xFF;
 			} else {
 				prev_partial->cover = ncov;
 				prev_partial->color = surf->fill_col;
+				spans[i].coverage=0;
 				continue;
 			}
 		}
@@ -595,6 +603,7 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 	//partial coverage, store
 	if (!full_cover && !s3d->mode2d) {
 		push_patch_pixel(sl, x, surf->fill_col, coverage, depth, depth_buf_val, spans[i].idx1, spans[i].idx2);
+		spans[i].coverage=0;
 		continue;
 	}
 	//full opacity, write
@@ -606,19 +615,22 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 				surf->fill_single(y, x, surf->fill_col, surf);
 			}
 		} else {
-			fragment.coverage = coverage;
-			fragment.x = x;
-			surf->gray_spans(y, 1, &fragment, surf);
+			spans[i].coverage = 0xFF;
+			s3d->pix_vals[x] = surf->fill_col;
 		}
 	}
 
 	//write depth
-	if (surf->ext3d->write_depth)
+	if (s3d->run_write_depth)
 		depth_line[x] = frag_param->depth;
 
 
 		}	//end span.len loop
 	} //end spans count loop
+
+	if (!surf->fill_single) {
+		surf->gray_spans(y, count, spans, surf);
+	}
 }
 
 static GFINLINE Bool precompute_tri(EVG_Surface3DExt *s3d, EVGFragCallback *frag_ckck, u32 xmin, u32 xmax, u32 ymin, u32 ymax,
@@ -699,7 +711,9 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 	raster->min_ey = surf->clip_yMin;
 	raster->max_ex = surf->clip_xMax;
 	raster->max_ey = surf->clip_yMax;
+	raster->max_gray_spans = 0xFFFFFFFF;
 
+	s3d->run_write_depth = s3d->depth_buffer ? s3d->write_depth : GF_FALSE;
 
 	size_y = (u32) (raster->max_ey - raster->min_ey);
 	if (raster->max_lines < size_y) {
@@ -777,13 +791,18 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 	u32 vidx1, vidx2, vidx3, vidx4, prev_vidx2;
 
 	memset(&vparam, 0, sizeof(GF_EVGVertexParam));
+	vparam.ptype = prim_type;
 
 	nb_comp_1 = nb_comp-1;
 	for (i=0; i<nb_idx; i += idx_inc) {
 		Bool quad_done = glob_quad_done;
 		GF_Vec4 *vx = &vparam.in_vertex;
 
+		if (s3d->vert_shader) {
+			vparam.prim_index = prim_index;
+		}
 		prim_index++;
+		
 #define GETVEC(_name, _idx)\
 		vx->x = vertices[_idx];\
 		vx->y = vertices[_idx+1];\
@@ -812,6 +831,8 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 				vidx1 = vidx2;
 				vidx2 = indices[i];
 				idx2 = vidx2 * nb_comp;
+				vparam.vertex_idx = vidx2;
+				vparam.vertex_idx_in_prim = 1;
 				GETVEC(pt2, idx2)
 				evg3d_ndc_to_raster(surf, &s_pt2, &_x2, &_y2);
 			}
@@ -832,6 +853,8 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 
 					vidx3 = indices[i];
 					idx3 = vidx3 * nb_comp;
+					vparam.vertex_idx = vidx3;
+					vparam.vertex_idx_in_prim = 2;
 					GETVEC(pt3, idx3)
 					evg3d_ndc_to_raster(surf, &s_pt3, &_x3, &_y3);
 				}
@@ -845,6 +868,8 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 
 					vidx4 = indices[i];
 					idx4 = vidx4 * nb_comp;
+					vparam.vertex_idx = vidx4;
+					vparam.vertex_idx_in_prim = 3;
 					GETVEC(pt4, idx4)
 					evg3d_ndc_to_raster(surf, &s_pt4, &_x4, &_y4);
 				}
@@ -859,27 +884,37 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 
 				vidx3 = indices[i];
 				idx3 = vidx3 * nb_comp;
+				vparam.vertex_idx = vidx3;
+				vparam.vertex_idx_in_prim = 2;
 				GETVEC(pt3, idx3)
 				evg3d_ndc_to_raster(surf, &s_pt3, &_x3, &_y3);
 			}
 		} else {
 			vidx1 = indices[i];
 			idx1 = vidx1 * nb_comp;
+			vparam.vertex_idx = vidx1;
+			vparam.vertex_idx_in_prim = 0;
 			GETVEC(pt1, idx1)
 			evg3d_ndc_to_raster(surf, &s_pt1, &_x1, &_y1);
 			if (prim_type>=GF_EVG_LINES) {
 				vidx2 = indices[i+1];
 				idx2 = vidx2 * nb_comp;
+				vparam.vertex_idx = vidx2;
+				vparam.vertex_idx_in_prim = 1;
 				GETVEC(pt2, idx2)
 				evg3d_ndc_to_raster(surf, &s_pt2, &_x2, &_y2);
 				if (prim_type>=GF_EVG_TRIANGLES) {
 					vidx3 = indices[i+2];
 					idx3 = vidx3 * nb_comp;
+					vparam.vertex_idx = vidx3;
+					vparam.vertex_idx_in_prim = 2;
 					GETVEC(pt3, idx3)
 					evg3d_ndc_to_raster(surf, &s_pt3, &_x3, &_y3);
 					if (prim_type==GF_EVG_QUADS) {
 						vidx4 = indices[i+3];
 						idx4 = vidx4 * nb_comp;
+						vparam.vertex_idx = vidx4;
+						vparam.vertex_idx_in_prim = 3;
 						GETVEC(pt4, idx4)
 						evg3d_ndc_to_raster(surf, &s_pt4, &_x4, &_y4);
 					}
@@ -1017,10 +1052,11 @@ restart_quad:
 				span.x = pi->x;
 				surf->gray_spans(li, 1, &span, surf);
 			}
-			if (surf->ext3d->write_depth)
+			if (surf->ext3d->run_write_depth)
 				depth_line[pi->x] = pi->depth;
 		}
 	}
+	raster->max_gray_spans = FT_MAX_GRAY_SPANS;
 	return GF_OK;
 }
 
@@ -1056,6 +1092,7 @@ GF_Err evg_raster_render3d_path(GF_EVGSurface *surf, GF_Path *path, Float z)
 	raster->min_ey = surf->clip_yMin;
 	raster->max_ex = surf->clip_xMax;
 	raster->max_ey = surf->clip_yMax;
+	s3d->run_write_depth = s3d->depth_buffer ? s3d->write_depth : GF_FALSE;
 
 	size_y = (u32) (raster->max_ey - raster->min_ey);
 	if (raster->max_lines < size_y) {
@@ -1158,8 +1195,10 @@ GF_Err evg_raster_render3d_path(GF_EVGSurface *surf, GF_Path *path, Float z)
 }
 GF_Err evg_3d_resize(GF_EVGSurface *surf)
 {
-	surf->ext3d->depth_buffer = gf_realloc(surf->ext3d->depth_buffer, sizeof(Float)*surf->width*surf->height);
+/*	surf->ext3d->depth_buffer = gf_realloc(surf->ext3d->depth_buffer, sizeof(Float)*surf->width*surf->height);
 	if (!surf->ext3d->depth_buffer) return GF_OUT_OF_MEM;
+*/
+	surf->ext3d->depth_buffer = NULL;
 
 	if (!surf->ext3d->vp_w || !surf->ext3d->vp_h) {
 		surf->ext3d->vp_x = 0;
@@ -1167,22 +1206,35 @@ GF_Err evg_3d_resize(GF_EVGSurface *surf)
 		surf->ext3d->vp_w = surf->width;
 		surf->ext3d->vp_h = surf->height;
 	}
+	surf->ext3d->pix_vals = gf_realloc(surf->ext3d->pix_vals, sizeof(u32)*surf->width);
 	return GF_OK;
 }
+
 GF_EXPORT
 GF_Err gf_evg_surface_clear_depth(GF_EVGSurface *surf, Float depth)
 {
-	u32 i, s = surf->width*surf->height;
+	u32 i, lsize,  s = surf->width*surf->height;
 	Float *depths;
+	u8 *depth_p;
 	if (!surf->ext3d) return GF_BAD_PARAM;
 
 	s = surf->width*surf->height;
 	depths = surf->ext3d->depth_buffer;
-	for (i=0;i<s; i++) {
+	if (!depths) return GF_OK; //GF_BAD_PARAM;
+	//copy first line
+	for (i=0; i<surf->width; i++) {
 		depths[i] = depth;
+	}
+	//copy first line
+	depth_p = (u8 *) surf->ext3d->depth_buffer;
+	lsize = sizeof(Float) * surf->width;
+	for (i=1; i<surf->height; i++) {
+		u8 *depth_l = depth_p + i*lsize;
+		memcpy(depth_l, depth_p, lsize);
 	}
 	return GF_OK;
 }
+
 
 GF_EXPORT
 GF_Err gf_evg_surface_viewport(GF_EVGSurface *surf, u32 x, u32 y, u32 w, u32 h)
@@ -1288,6 +1340,14 @@ GF_Err evg_3d_update_depth_range(GF_EVGSurface *surf)
 	return GF_OK;
 }
 
+static void yuv_3d_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32 _y, u32 count)
+{
+	u32 *data = surf->stencil_pix_run;
+	u32 *src = surf->ext3d->pix_vals + _x;
+
+	memcpy(data, src, sizeof(u32)*count);
+}
+
 EVG_Surface3DExt *evg_init_3d_surface(GF_EVGSurface *surf)
 {
 	EVG_Surface3DExt *ext3d;
@@ -1307,6 +1367,7 @@ EVG_Surface3DExt *evg_init_3d_surface(GF_EVGSurface *surf)
 	ext3d->write_depth = GF_TRUE;
 	ext3d->early_depth_test = GF_TRUE;
 	ext3d->depth_test = depth_test_less;
+	ext3d->yuv_sten.fill_run = yuv_3d_fill_run;
 	evg_3d_update_depth_range(surf);
 	return ext3d;
 }
@@ -1402,4 +1463,9 @@ GF_Err gf_evg_surface_write_depth(GF_EVGSurface *surf, Bool do_write)
 	surf->ext3d->write_depth = do_write;
 	return GF_OK;
 }
-
+GF_Err gf_evg_surface_set_depth_buffer(GF_EVGSurface *surf, Float *depth)
+{
+	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
+	surf->ext3d->depth_buffer = depth;
+	return GF_OK;
+}

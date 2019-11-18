@@ -542,13 +542,19 @@ static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos area, int ac
 		return;
 	}
 
-	if (count >= FT_MAX_GRAY_SPANS ) {
+	if (count >= raster->max_gray_spans) {
 		raster->render_span(y, count, raster->gray_spans, raster->render_span_data );
 		raster->num_gray_spans = 0;
 
-		span  = raster->gray_spans;
-	} else
+		span = raster->gray_spans;
+	} else {
+		if (count==raster->alloc_gray_spans) {
+			raster->alloc_gray_spans*=2;
+			raster->gray_spans = gf_realloc(raster->gray_spans, sizeof(EVG_Span)*raster->alloc_gray_spans);
+			span = raster->gray_spans + count - 1;
+		}
 		span++;
+	}
 
 	/* add a gray span to the current list */
 	span->x        = (short)x;
@@ -661,6 +667,8 @@ EVG_Raster evg_raster_new()
 {
 	TRaster *raster;
 	GF_SAFEALLOC(raster , TRaster);
+	raster->max_gray_spans = raster->alloc_gray_spans = FT_MAX_GRAY_SPANS;
+	raster->gray_spans = gf_malloc(sizeof(EVG_Span)* raster->max_gray_spans);
 	return raster;
 }
 
@@ -672,6 +680,8 @@ void evg_raster_del(EVG_Raster raster)
 		if (raster->scanlines[i].pixels)
 			gf_free(raster->scanlines[i].pixels);
 	}
+	gf_free(raster->gray_spans);
+	
 	gf_free(raster->scanlines);
 	gf_free(raster);
 }

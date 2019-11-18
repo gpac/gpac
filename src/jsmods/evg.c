@@ -54,6 +54,8 @@
 #define EVG_GET_FLOAT(_name, _jsval) { Double _v; if (JS_ToFloat64(ctx, &_v, _jsval)) return js_throw_err(ctx, GF_BAD_PARAM); _name = (Float) _v; }
 #define CLAMPCOLF(_name) if (_name<0) _name=0; else if (_name>1.0) _name=1.0;
 
+uint8_t *evg_get_array(JSContext *ctx, JSValueConst obj, u32 *size);
+
 
 typedef struct
 {
@@ -94,7 +96,21 @@ typedef struct
 
 	Float anchors[3][MAX_ATTR_DIM];
 	EVG_VAIRes result;
+
+	Bool normalize;
 } EVG_VAI;
+
+typedef struct
+{
+	u32 nb_comp, att_type;
+	Float *values;
+	u32 nb_values;
+	JSValue ab;
+	JSValue res;
+	u32 interp_type;
+
+	Bool normalize;
+} EVG_VA;
 
 enum
 {
@@ -118,7 +134,7 @@ typedef struct
 	u8 cond_type;
 	u8 left_value_type;
 	u8 right_value_type;
-	s32 left_value, right_value;
+	s32 left_value, right_value, right_value_second;
 	char *uni_name;
 	JSValue tx_ref;
 	GF_JSTexture *tx;
@@ -129,6 +145,10 @@ typedef struct
 			EVG_VAI *vai;
 			JSValue ref;
 		} vai;
+        struct {
+			EVG_VA *va;
+			JSValue ref;
+		} va;
         struct {
 			GF_Matrix *mx;
 			JSValue ref;
@@ -183,6 +203,9 @@ typedef struct
 	JSValue vert_shader;
 	Bool vert_is_cbk;
 
+	JSValue depth_buffer;
+
+
 	EVGShader *frag, *vert;
 
 	JSContext *ctx;
@@ -226,6 +249,7 @@ JSClassID matrix_class_id;
 JSClassID fragment_class_id;
 JSClassID vertex_class_id;
 JSClassID vai_class_id;
+JSClassID va_class_id;
 JSClassID vaires_class_id;
 JSClassID shader_class_id;
 
@@ -273,6 +297,7 @@ static void canvas3d_finalize(JSRuntime *rt, JSValue obj)
 	JS_FreeValueRT(rt, canvas->vert_shader);
 	JS_FreeValueRT(rt, canvas->frag_obj);
 	JS_FreeValueRT(rt, canvas->vert_obj);
+	JS_FreeValueRT(rt, canvas->depth_buffer);
 
 	if (canvas->owns_data)
 		gf_free(canvas->data);
@@ -290,6 +315,7 @@ static void canvas3d_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_
 	JS_MarkValue(rt, canvas->vert_shader, mark_func);
 	JS_MarkValue(rt, canvas->frag_obj, mark_func);
 	JS_MarkValue(rt, canvas->vert_obj, mark_func);
+	JS_MarkValue(rt, canvas->depth_buffer, mark_func);
 }
 
 JSClassDef canvas3d_class = {
@@ -319,6 +345,7 @@ enum
 	GF_EVG_POINTSMOOTH,
 	GF_EVG_LINESIZE,
 	GF_EVG_CLIP_ZERO,
+	GF_EVG_DEPTH_BUFFER,
 	GF_EVG_DEPTH_TEST,
 	GF_EVG_WRITE_DEPTH,
 };
@@ -405,6 +432,7 @@ static JSValue canvas_constructor_internal(JSContext *c, JSValueConst new_target
 	canvas->vert_shader = JS_UNDEFINED;
 	canvas->frag_obj = JS_UNDEFINED;
 	canvas->vert_obj = JS_UNDEFINED;
+	canvas->depth_buffer = JS_UNDEFINED;
 	canvas->ctx = c;
 	if (data) {
 		canvas->data = data;
@@ -725,6 +753,7 @@ static JSValue canvas3d_getProperty(JSContext *c, JSValueConst obj, int magic)
 	switch (magic) {
 	case GF_EVG_FRAG_SHADER: return JS_DupValue(c, canvas->frag_shader);
 	case GF_EVG_VERT_SHADER: return JS_DupValue(c, canvas->vert_shader);
+	case GF_EVG_DEPTH_BUFFER: return JS_DupValue(c, canvas->depth_buffer);
 	}
 	return JS_UNDEFINED;
 }
@@ -801,6 +830,30 @@ static JSValue canvas3d_setProperty(JSContext *ctx, JSValueConst obj, JSValueCon
 	case GF_EVG_ANTIALIAS:
 		e = gf_evg_surface_set_antialias(canvas->surface, JS_ToBool(ctx, value) );
 		break;
+
+	case GF_EVG_DEPTH_BUFFER:
+	{
+		Float *depthb;
+		u32 dsize;
+		JS_FreeValue(ctx, canvas->depth_buffer);
+		canvas->depth_buffer = JS_UNDEFINED;
+		depthb = (Float *) evg_get_array(ctx, value, &dsize);
+		if (!depthb) {
+			canvas->depth_buffer = JS_NULL;
+			e = gf_evg_surface_set_depth_buffer(canvas->surface, NULL);
+		} else {
+			u32 req_size = canvas->width*canvas->height*sizeof(Float);
+			if (req_size>dsize) {
+				e = GF_BAD_PARAM;
+				gf_evg_surface_set_depth_buffer(canvas->surface, NULL);
+			} else {
+				canvas->depth_buffer = JS_DupValue(ctx, value);
+				e = gf_evg_surface_set_depth_buffer(canvas->surface, depthb);
+			}
+		}
+		break;
+	}
+
 	case GF_EVG_MINDEPTH:
 		EVG_GET_FLOAT(f, value);
 		e = gf_evg_surface_set_min_depth(canvas->surface, f);
@@ -1012,7 +1065,15 @@ enum
 	EVG_OP_EQUAL,
 	EVG_OP_NOT_EQUAL,
 	EVG_OP_SAMPLER,
-	EVG_OP_SAMPLER_ARGB,
+	EVG_OP_SAMPLER_YUV,
+
+	EVG_OP_PRINT,
+
+	EVG_OP_NORMALIZE,
+	EVG_OP_LENGTH,
+	EVG_OP_DOT,
+	EVG_OP_CROSS,
+	EVG_OP_POW,
 
 
 	EVG_FIRST_VAR_ID
@@ -1020,8 +1081,8 @@ enum
 
 enum
 {
-	VAR_FRAG_COLOR=1,
-	VAR_FRAG_COLOR_ARGB,
+	VAR_FRAG_ARGB=1,
+	VAR_FRAG_YUV,
 	VAR_FRAG_X,
 	VAR_FRAG_Y,
 	VAR_FRAG_DEPTH,
@@ -1030,6 +1091,7 @@ enum
 	VAR_VERTEX_IN,
 	VAR_VERTEX_OUT,
 	VAR_VAI,
+	VAR_VA,
 	VAR_MATRIX,
 };
 
@@ -1039,20 +1101,19 @@ enum
 
 static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGVertexParam *vert)
 {
-	u32 i, dim;
+	u32 op_idx, dim;
 	GF_Vec4 tmpl, tmpr;
-	GF_Vec4 *left_val, *right_val;
+	GF_Vec4 *left_val, *right_val, *right2_val;
 	u32 if_level=0;
 	u32 nif_level=0;
-	u32 col;
 	Bool cond_res;
 
-	for (i=0; i<shader->nb_ops; i++) {
+	for (op_idx=0; op_idx<shader->nb_ops; op_idx++) {
 		u32 next_idx, idx;
-		Bool has_next;
-		u8 right_val_type, left_val_type;
+		Bool has_next, norm_result=GF_FALSE;
+		u8 right_val_type, left_val_type, right2_val_type;
 		u8 *left_val_type_ptr=NULL;
-		ShaderOp *op = &shader->ops[i];
+		ShaderOp *op = &shader->ops[op_idx];
 
 		if (op->op_type==EVG_OP_ELSE) {
 			if (nif_level) {
@@ -1080,16 +1141,16 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 		}
 
 		dim=4;
-		if (op->left_value==VAR_FRAG_COLOR) {
+		if (op->left_value==VAR_FRAG_ARGB) {
 			assert(frag);
 			left_val = &frag->color;
 			left_val_type = COMP_V4;
-			frag->color_type = 0;
-		} else if (op->left_value==VAR_FRAG_COLOR_ARGB) {
+			frag->frag_valid = GF_EVG_FRAG_RGB;
+		} else if (op->left_value==VAR_FRAG_YUV) {
 			assert(frag);
-			left_val = (GF_Vec4 *) &frag->color_argb;
-			left_val_type = COMP_INT;
-			frag->color_type = 1;
+			left_val = &frag->color;
+			left_val_type = COMP_V4;
+			frag->frag_valid = GF_EVG_FRAG_YUV;
 		} else if (op->left_value==VAR_FRAG_X) {
 			assert(frag);
 			left_val = &tmpl;
@@ -1121,7 +1182,8 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 			assert(vert);
 			left_val = (GF_Vec4 *) &op->vai.vai->anchors[vert->vertex_idx_in_prim];
 			left_val_type = COMP_V4;
-		} else {
+			norm_result = op->vai.vai->normalize;
+		} else if (op->left_value) {
 			assert(op->left_value > EVG_FIRST_VAR_ID);
 			left_val = &shader->vars[op->left_value - EVG_FIRST_VAR_ID-1].vecval;
 			left_val_type = shader->vars[op->left_value - EVG_FIRST_VAR_ID-1].value_type;
@@ -1137,6 +1199,50 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 			dim = MIN(4, op->vai.vai->result.dim);
 			right_val = (GF_Vec4 *) &op->vai.vai->result.values[0];
 			right_val_type = op->vai.vai->result.comp_type;
+		} else if ((op->right_value==VAR_VA) && op->va.va) {
+			u32 va_idx, j, nb_v_per_prim=3;
+			EVG_VA *va = op->va.va;
+			assert(vert);
+			assert(va->values);
+
+			if (vert->ptype == GF_EVG_LINES)
+				nb_v_per_prim=2;
+			else if (vert->ptype == GF_EVG_POINTS)
+				nb_v_per_prim=1;
+
+			if (va->interp_type==GF_EVG_VAI_PRIMITIVE) {
+				va_idx = vert->prim_index * va->nb_comp;
+			}
+			else if (va->interp_type==GF_EVG_VAI_VERTEX_INDEX) {
+				va_idx = vert->vertex_idx * va->nb_comp;
+			} else {
+				va_idx = vert->prim_index * nb_v_per_prim * va->nb_comp;
+			}
+
+			if (va_idx+va->nb_comp > va->nb_values)
+				return GF_FALSE;
+
+			right_val = &tmpr;
+			right_val->y = right_val->z = right_val->q = 0;
+			for (j=0; j<va->nb_comp; j++) {
+				((Float *)right_val)[j] = va->values[va_idx+j];
+			}
+			if (va->normalize) {
+				if (va->nb_comp==2) {
+					Float len;
+					if (!right_val->x) len = ABS(right_val->y);
+					else if (!right_val->y) len = ABS(right_val->x);
+					else len = sqrt(right_val->x*right_val->x + right_val->y*right_val->y);
+					if (len) {
+						right_val->x/=len;
+						right_val->y/=len;
+					}
+				} else {
+					gf_vec_norm((GF_Vec *) right_val);
+				}
+
+			}
+			right_val_type = va->att_type;
 		} else if ((op->right_value==VAR_MATRIX) && op->mx.mx) {
 			if (op->op_type==EVG_OP_MUL) {
 				gf_mx_apply_vec_4x4(op->mx.mx, left_val);
@@ -1145,7 +1251,11 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Shader] Invalid operation for right value matrix\n"));
 			shader->invalid = GF_TRUE;
 			return GF_FALSE;
-		} else if (op->right_value==VAR_FRAG_COLOR) {
+		} else if (op->right_value==VAR_FRAG_ARGB) {
+			assert(frag);
+			right_val = &frag->color;
+			right_val_type = COMP_V4;
+		} else if (op->right_value==VAR_FRAG_YUV) {
 			assert(frag);
 			right_val = &frag->color;
 			right_val_type = COMP_V4;
@@ -1181,12 +1291,12 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 			right_val = (GF_Vec4 *) &op->vec[0];
 			right_val_type = op->right_value_type;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Shader] Invalid right-value in operation %d\n", i));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Shader] Invalid right-value in operation %d\n", op_idx));
 			shader->invalid = GF_TRUE;
 			return GF_FALSE;
 		}
 		if (!right_val_type) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Shader] Invalid right-value type in operation %d\n", i));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Shader] Invalid right-value type in operation %d\n", op_idx));
 			shader->invalid = GF_TRUE;
 			return GF_FALSE;
 		}
@@ -1221,7 +1331,7 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 						left_val->x = *(Float *) right_val;
 						left_val->y = left_val->z = left_val->q = left_val->x;
 					}
-				} else if (right_val_type==COMP_V4) {
+				} else if ((right_val_type==COMP_V4) || (op->right_value_type==COMP_V4)) {
 					*left_val = *right_val;
 					if (dim<4) left_val->q = 1.0;
 				} else {
@@ -1285,6 +1395,8 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 					if (op->left_value_type & COMP_Q) { left_val->q = srcs[idx]; }
 				}
 			}
+			if (norm_result)
+				gf_vec_norm((GF_Vec *)left_val);
 			break;
 
 #define BASE_OP(_opv, _opv2)\
@@ -1438,18 +1550,96 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 			if (left_val_type_ptr) {
 				left_val_type = *left_val_type_ptr = COMP_V4;
 			}
-			col = gf_evg_stencil_get_pixel_f(op->tx->stencil, right_val->x, right_val->y);
-			if (op->left_value_type & COMP_X) { left_val->x = GF_COL_R(col); left_val->x /= 255; }
-			if (op->left_value_type & COMP_Y) { left_val->y = GF_COL_G(col); left_val->y /= 255; }
-			if (op->left_value_type & COMP_Z) { left_val->z = GF_COL_B(col); left_val->z /= 255; }
-			if (op->left_value_type & COMP_Q) { left_val->q = GF_COL_A(col); left_val->q /= 255; }
+			gf_evg_stencil_get_pixel_f(op->tx->stencil, right_val->x, right_val->y, &tmpr.x, &tmpr.y, &tmpr.z, &tmpr.q);
+			if (op->left_value_type & COMP_X) left_val->x = tmpr.x;
+			if (op->left_value_type & COMP_Y) left_val->y = tmpr.y;
+			if (op->left_value_type & COMP_Z) left_val->z = tmpr.z;
+			if (op->left_value_type & COMP_Q) left_val->q = tmpr.q;
+
 			break;
 
-		case EVG_OP_SAMPLER_ARGB:
+		case EVG_OP_SAMPLER_YUV:
+			assert(op->tx);
 			if (left_val_type_ptr) {
-				*left_val_type_ptr = COMP_INT;
+				left_val_type = *left_val_type_ptr = COMP_V4;
 			}
-			* (u32 *) &left_val->x = gf_evg_stencil_get_pixel_f(op->tx->stencil, right_val->x, right_val->y);
+			gf_evg_stencil_get_pixel_yuv_f(op->tx->stencil, right_val->x, right_val->y, &tmpr.x, &tmpr.y, &tmpr.z, &tmpr.q);
+			if (op->left_value_type & COMP_X) left_val->x = tmpr.x;
+			if (op->left_value_type & COMP_Y) left_val->y = tmpr.y;
+			if (op->left_value_type & COMP_Z) left_val->z = tmpr.z;
+			if (op->left_value_type & COMP_Q) left_val->q = tmpr.q;
+			break;
+
+		case EVG_OP_NORMALIZE:
+			if (left_val_type_ptr) {
+				*left_val_type_ptr = COMP_V4;
+			}
+			*left_val = *right_val;
+			gf_vec_norm((GF_Vec *)left_val);
+			break;
+		case EVG_OP_LENGTH:
+			if (left_val_type_ptr) {
+				*left_val_type_ptr = COMP_FLOAT;
+			}
+			left_val->x = gf_vec_len_p( (GF_Vec *) right_val);
+			break;
+		case EVG_OP_DOT:
+			if (left_val_type_ptr) {
+				*left_val_type_ptr = COMP_FLOAT;
+			}
+			right2_val = &shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].vecval;
+			right2_val_type = shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].value_type;
+			left_val->x = gf_vec_dot_p( (GF_Vec *) right_val, (GF_Vec *) right2_val);
+			break;
+		case EVG_OP_CROSS:
+			if (left_val_type_ptr) {
+				*left_val_type_ptr = COMP_V4;
+			}
+			right2_val = &shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].vecval;
+			right2_val_type = shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].value_type;
+			* (GF_Vec *) left_val = gf_vec_cross_p( (GF_Vec *) right_val, (GF_Vec *) right2_val);
+			break;
+
+		case EVG_OP_POW:
+			if (left_val_type_ptr) {
+				*left_val_type_ptr = right_val_type;
+			}
+			right2_val = &shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].vecval;
+			right2_val_type = shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].value_type;
+			if (right_val_type==COMP_FLOAT) {
+				left_val->x = pow(right_val->x, right2_val->x);
+			} else {
+				if (right_val_type&COMP_X) {
+					left_val->x = pow(right_val->x, right2_val->x);
+				}
+				if (right_val_type&COMP_Y) {
+					left_val->y = pow(right_val->y, right2_val->x);
+				}
+				if (right_val_type&COMP_Z) {
+					left_val->z = pow(right_val->z, right2_val->x);
+				}
+				if (right_val_type&COMP_Q) {
+					left_val->q = pow(right_val->z, right2_val->x);
+				}
+			}
+			break;
+
+		case EVG_OP_PRINT:
+			if (op->right_value>EVG_FIRST_VAR_ID) {
+				fprintf(stderr, "%s: ", shader->vars[op->right_value - EVG_FIRST_VAR_ID - 1].name);
+			}
+			if (right_val_type==COMP_FLOAT) {
+				fprintf(stderr, "%g\n", right_val->x);
+			} else if (right_val_type==COMP_INT) {
+				fprintf(stderr, "%d\n", * (s32 *) &right_val);
+			} else {
+				if (right_val_type&COMP_X) fprintf(stderr, "x=%g ", right_val->x);
+				if (right_val_type&COMP_Y) fprintf(stderr, "y=%g ", right_val->y);
+				if (right_val_type&COMP_Z) fprintf(stderr, "z=%g ", right_val->z);
+				if (right_val_type&COMP_Q) fprintf(stderr, "q=%g ", right_val->q);
+				fprintf(stderr, "\n");
+			}
+
 			break;
 		}
 	}
@@ -1479,6 +1669,9 @@ static void shader_reset(JSRuntime *rt, EVGShader *shader)
 		else if (shader->ops[i].right_value==VAR_MATRIX) {
 			JS_FreeValueRT(rt, shader->ops[i].mx.ref);
 		}
+		else if (shader->ops[i].right_value==VAR_VA) {
+			JS_FreeValueRT(rt, shader->ops[i].va.ref);
+		}
 		else if (shader->ops[i].left_value==VAR_VAI) {
 			JS_FreeValueRT(rt, shader->ops[i].vai.ref);
 		}
@@ -1496,9 +1689,14 @@ static void shader_reset(JSRuntime *rt, EVGShader *shader)
 		}
 		shader->ops[i].right_value = 0;
 	}
+	shader->nb_ops = 0;
+	for (i=0; i<shader->nb_vars; i++) {
+		if (shader->vars[i].name) gf_free(shader->vars[i].name);
+		shader->vars[i].name = NULL;
+	}
+	shader->nb_vars = 0;
 	shader->invalid = GF_FALSE;
 	shader->disable_early_z = GF_FALSE;
-	shader->nb_ops = 0;
 }
 static void shader_finalize(JSRuntime *rt, JSValue obj)
 {
@@ -1506,6 +1704,7 @@ static void shader_finalize(JSRuntime *rt, JSValue obj)
 	if (!shader) return;
 	shader_reset(rt, shader);
 	gf_free(shader->ops);
+	gf_free(shader->vars);
 	gf_free(shader);
 }
 
@@ -1515,12 +1714,17 @@ static void shader_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_fu
 	EVGShader *shader = JS_GetOpaque(obj, shader_class_id);
 	if (!shader) return;
 	for (i=0; i<shader->nb_ops; i++) {
-		JS_MarkValue(rt, shader->ops[i].tx_ref, mark_func);
+		if (shader->ops[i].tx)
+			JS_MarkValue(rt, shader->ops[i].tx_ref, mark_func);
+
 		if (shader->ops[i].right_value==VAR_VAI) {
 			JS_MarkValue(rt, shader->ops[i].vai.ref, mark_func);
 		}
 		else if (shader->ops[i].right_value==VAR_MATRIX) {
 			JS_MarkValue(rt, shader->ops[i].mx.ref, mark_func);
+		}
+		else if (shader->ops[i].right_value==VAR_VA) {
+			JS_MarkValue(rt, shader->ops[i].va.ref, mark_func);
 		}
 		else if (shader->ops[i].left_value==VAR_VAI) {
 			JS_MarkValue(rt, shader->ops[i].vai.ref, mark_func);
@@ -1541,8 +1745,8 @@ static u32 get_builtin_var_name(EVGShader *shader, const char *val_name)
 {
 	u32 i;
 	if (shader->mode==GF_EVG_SHADER_FRAGMENT) {
-		if (!strcmp(val_name, "fragColor")) return VAR_FRAG_COLOR;
-		if (!strcmp(val_name, "fragARGB")) return VAR_FRAG_COLOR_ARGB;
+		if (!strcmp(val_name, "fragColor") || !strcmp(val_name, "fragRGBA")) return VAR_FRAG_ARGB;
+		if (!strcmp(val_name, "fragYUVA")) return VAR_FRAG_YUV;
 		if (!strcmp(val_name, "fragDepth") || !strcmp(val_name, "fragZ")) return VAR_FRAG_DEPTH;
 		if (!strcmp(val_name, "fragX")) return VAR_FRAG_X;
 		if (!strcmp(val_name, "fragY")) return VAR_FRAG_Y;
@@ -1581,8 +1785,9 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 	const char *val_name, *arg_str;
 	const char *op_name;
 	char *uni_name=NULL;
+	Bool dual_right_val = GF_FALSE;
 	u32 var_idx=0;
-	u32 left_op_idx=0, right_op_idx=0;
+	u32 left_op_idx=0, right_op_idx=0, right_op2_idx=0;
 	u8 left_value_type=COMP_V4, right_value_type=COMP_V4;
 	u8 op_type=0;
 	u8 cond_type=0;
@@ -1644,6 +1849,12 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 			JS_FreeCString(ctx, arg_str);
 			goto op_parsed;
 		}
+		else if (!strcmp(val_name, "print")) {
+			op_type = EVG_OP_PRINT;
+			JS_FreeCString(ctx, arg_str);
+			var_idx=-1;
+			goto parse_right_val;
+		}
 
 		char *sep = strchr(val_name, '.');
 		if (sep) sep[0] = 0;
@@ -1702,11 +1913,11 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 		cond_type = EVG_OP_EQUAL;
 	} else if (!strcmp(op_name, "!=")) {
 		cond_type = EVG_OP_NOT_EQUAL;
-
-	} else if (!strcmp(op_name, "sampler") || !strcmp(op_name, "samplerARGB")) {
+	} else if (!strcmp(op_name, "sampler") || !strcmp(op_name, "samplerYUV") ) {
 		new_op.tx = JS_GetOpaque(argv[var_idx+2], texture_class_id);
-		if (!strcmp(op_name, "samplerARGB")) op_type = EVG_OP_SAMPLER_ARGB;
+		if (!strcmp(op_name, "samplerYUV")) op_type = EVG_OP_SAMPLER_YUV;
 		else op_type = EVG_OP_SAMPLER;
+
 		if (!new_op.tx) {
 			JS_FreeCString(ctx, val_name);
 			shader->invalid = GF_TRUE;
@@ -1715,6 +1926,19 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 		}
 		new_op.tx_ref = argv[var_idx+2];
 		var_idx++;
+	} else if (!strcmp(op_name, "normalize")) {
+		op_type = EVG_OP_NORMALIZE;
+	} else if (!strcmp(op_name, "length")) {
+		op_type = EVG_OP_LENGTH;
+	} else if (!strcmp(op_name, "dot")) {
+		op_type = EVG_OP_DOT;
+		dual_right_val = GF_TRUE;
+	} else if (!strcmp(op_name, "cross")) {
+		op_type = EVG_OP_CROSS;
+		dual_right_val = GF_TRUE;
+	} else if (!strcmp(op_name, "pow")) {
+		op_type = EVG_OP_POW;
+		dual_right_val = GF_TRUE;
 	} else {
 		JS_FreeCString(ctx, val_name);
 		shader->invalid = GF_TRUE;
@@ -1723,6 +1947,7 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 	}
 	JS_FreeCString(ctx, op_name);
 
+parse_right_val:
 	if (JS_IsString(argv[var_idx+2])) {
 		val_name = JS_ToCString(ctx, argv[var_idx+2]);
 		if (!val_name) {
@@ -1750,25 +1975,61 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 			right_value_type = get_value_type(sep+1);
 		}
 		JS_FreeCString(ctx, val_name);
-	}
-	else if (JS_IsObject(argv[var_idx+2])) {
-		Bool known_type = GF_FALSE;
-		new_op.vai.vai = JS_GetOpaque(argv[var_idx+2], vai_class_id);
-		if (new_op.vai.vai) {
-			new_op.vai.ref = JS_DupValue(ctx, argv[var_idx+2]);
-			known_type = GF_TRUE;
-			right_op_idx = VAR_VAI;
-		} else {
-			new_op.vai.vai = NULL;
-			new_op.mx.mx = JS_GetOpaque(argv[var_idx+2], matrix_class_id);
-			if (new_op.mx.mx) {
-				new_op.mx.ref = JS_DupValue(ctx, argv[var_idx+2]);
-				known_type = GF_TRUE;
-				right_op_idx = VAR_MATRIX;
+
+		if (dual_right_val) {
+			Bool is_ok=GF_FALSE;
+			if (argc<=var_idx+3) {}
+			else {
+				val_name = JS_ToCString(ctx, argv[var_idx+3]);
+				if (val_name) {
+					right_op2_idx = get_builtin_var_name(shader, val_name);
+					if (right_op2_idx >= EVG_FIRST_VAR_ID) {
+						is_ok=GF_TRUE;
+					}
+				}
+				JS_FreeCString(ctx, val_name);
+			}
+			if (!is_ok) {
+				JSValue ret = js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid second right-operand value, only local variable allowed");
+				JS_FreeCString(ctx, val_name);
+				shader->invalid = GF_TRUE;
+				if (uni_name) gf_free(uni_name);
+				return ret;
 			}
 		}
+	}
+	else if (JS_IsArray(ctx, argv[var_idx+2])) {
+		u32 idx, length;
+		JSValue comp = JS_GetPropertyStr(ctx, argv[var_idx+2], "length");
+		if (JS_ToInt32(ctx, &length, comp)) return JS_EXCEPTION;
+		JS_FreeValue(ctx, comp);
+		if (length>4) length=4;
+		right_value_type = 0;
+		for (idx=0;idx<length; idx++) {
+			comp = JS_GetPropertyUint32(ctx, argv[var_idx+2], idx);
+			EVG_GET_FLOAT(new_op.vec[idx], comp);
+			right_value_type |= 1<<idx;
+			JS_FreeValue(ctx, comp);
+		}
+	}
+	else if (JS_IsObject(argv[var_idx+2])) {
+		EVG_VAI *vai = JS_GetOpaque(argv[var_idx+2], vai_class_id);
+		GF_Matrix *mx = JS_GetOpaque(argv[var_idx+2], matrix_class_id);
+		EVG_VA *va = (shader->mode==GF_EVG_SHADER_VERTEX) ? JS_GetOpaque(argv[var_idx+2], va_class_id) : NULL;
 
-		if (!known_type) {
+		if (vai) {
+			new_op.vai.vai = vai;
+			new_op.vai.ref = JS_DupValue(ctx, argv[var_idx+2]);
+			right_op_idx = VAR_VAI;
+		} else if (mx) {
+			new_op.mx.mx = mx;
+			new_op.mx.ref = JS_DupValue(ctx, argv[var_idx+2]);
+			right_op_idx = VAR_MATRIX;
+		} else if (va) {
+			new_op.va.va = va;
+			new_op.va.ref = JS_DupValue(ctx, argv[var_idx+2]);
+			right_op_idx = VAR_VA;
+		} else {
 			shader->invalid = GF_TRUE;
 			if (uni_name) gf_free(uni_name);
 			return js_throw_err_msg(ctx, GF_BAD_PARAM, "unknown object type for right operand");
@@ -1778,17 +2039,18 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 		new_op.bval = JS_ToBool(ctx, argv[var_idx+2]) ? GF_TRUE : GF_FALSE;
 		right_value_type = COMP_BOOL;
 	}
-	else if (JS_IsInteger(argv[var_idx+2])) {
-		JS_ToInt32(ctx, &new_op.ival, argv[var_idx+2]);
-		right_value_type = COMP_INT;
-	}
 	else if (JS_IsNumber(argv[var_idx+2])) {
-		Double v;
-		JS_ToFloat64(ctx, &v, argv[var_idx+2]);
-		new_op.vec[0] = (Float) v;
-		right_value_type = COMP_FLOAT;
+		if (JS_IsInteger(argv[var_idx+2])) {
+			JS_ToInt32(ctx, &new_op.ival, argv[var_idx+2]);
+			right_value_type = COMP_INT;
+		} else {
+			Double v;
+			JS_ToFloat64(ctx, &v, argv[var_idx+2]);
+			new_op.vec[0] = (Float) v;
+			right_value_type = COMP_FLOAT;
+		}
 	}
-
+	
 op_parsed:
 	new_op.op_type = op_type;
 	if (!new_op.op_type) {
@@ -1801,6 +2063,7 @@ op_parsed:
 	new_op.right_value = right_op_idx;
 	new_op.left_value_type = left_value_type;
 	new_op.right_value_type = right_value_type;
+	new_op.right_value_second = right_op2_idx;
 	if (new_op.tx) {
 		new_op.tx_ref = JS_DupValue(ctx, new_op.tx_ref);
 	}
@@ -1838,13 +2101,13 @@ static JSValue shader_update(JSContext *ctx, JSValueConst obj, int argc, JSValue
 			op->right_value_type = COMP_BOOL;
 			op->bval = JS_ToBool(ctx, v) ? GF_TRUE : GF_FALSE;
 		}
+		else if (JS_IsNumber(v)) {
+			op->right_value_type = COMP_FLOAT;
+			EVG_GET_FLOAT(op->vec[0], v)
+		}
 		else if (JS_IsInteger(v)) {
 			op->right_value_type = COMP_INT;
 			if (JS_ToInt32(ctx, &op->ival, v)) return JS_EXCEPTION;
-		}
-		else if (JS_IsInteger(v)) {
-			op->right_value_type = COMP_FLOAT;
-			EVG_GET_FLOAT(op->vec[0], v)
 		}
 		else if (JS_IsArray(ctx, v)) {
 			u32 idx, length;
@@ -1944,6 +2207,7 @@ static const JSCFunctionListEntry canvas3d_funcs[] =
 	JS_CGETSET_MAGIC_DEF("clip_zero", NULL, canvas3d_setProperty, GF_EVG_CLIP_ZERO),
 	JS_CGETSET_MAGIC_DEF("depth_test", NULL, canvas3d_setProperty, GF_EVG_DEPTH_TEST),
 	JS_CGETSET_MAGIC_DEF("write_depth", NULL, canvas3d_setProperty, GF_EVG_WRITE_DEPTH),
+	JS_CGETSET_MAGIC_DEF("depth_buffer", canvas3d_getProperty, canvas3d_setProperty, GF_EVG_DEPTH_BUFFER),
 
 	JS_CFUNC_DEF("clear", 0, canvas3d_clear),
 	JS_CFUNC_DEF("clearf", 0, canvas3d_clearf),
@@ -2171,6 +2435,20 @@ Bool vai_call_lerp(EVG_VAI *vai, GF_EVGFragmentParam *frag)
 			vai->result.values[i] = v / frag->persp_denum;
 		}
 	}
+	if (vai->normalize) {
+		if (vai->nb_comp==2) {
+			Float len;
+			if (!vai->result.values[0]) len = ABS(vai->result.values[1]);
+			else if (!vai->result.values[1]) len = ABS(vai->result.values[0]);
+			else len = sqrt(vai->result.values[0]*vai->result.values[0] + vai->result.values[1]*vai->result.values[1]);
+			if (len) {
+				vai->result.values[0]/=len;
+				vai->result.values[1]/=len;
+			}
+		} else {
+			gf_vec_norm((GF_Vec *) &vai->result.values[0]);
+		}
+	}
 	return GF_TRUE;
 }
 static JSValue vai_lerp(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
@@ -2183,6 +2461,18 @@ static JSValue vai_lerp(JSContext *c, JSValueConst obj, int argc, JSValueConst *
 	if (!vai_call_lerp(vai, frag))
 		return JS_EXCEPTION;
 	return JS_DupValue(c, vai->res);
+}
+
+static JSValue vai_setProperty(JSContext *c, JSValueConst obj, JSValueConst value, int magic)
+{
+	EVG_VAI *vai = JS_GetOpaque(obj, vai_class_id);
+	if (!vai) return JS_EXCEPTION;
+	switch (magic) {
+	case 0:
+		vai->normalize = JS_ToBool(c, value) ? GF_TRUE : GF_FALSE;
+		break;
+	}
+	return JS_UNDEFINED;
 }
 
 static JSValue vai_constructor(JSContext *c, JSValueConst new_target, int argc, JSValueConst *argv)
@@ -2263,8 +2553,89 @@ JSClassDef vai_class = {
 };
 static const JSCFunctionListEntry vai_funcs[] =
 {
+	JS_CGETSET_MAGIC_DEF("normalize", NULL, vai_setProperty, 0),
 	JS_CFUNC_DEF("lerp", 0, vai_lerp),
 };
+
+static JSValue va_constructor(JSContext *c, JSValueConst new_target, int argc, JSValueConst *argv)
+{
+	EVG_VA *va;
+	JSValue obj;
+	u8 *data=NULL;
+	u32 data_size;
+	u32 nb_comp;
+	s32 interp_type = GF_EVG_VAI_VERTEX_INDEX;
+	if (argc<2)
+		return js_throw_err_msg(c, GF_BAD_PARAM, "Missing parameter / data for VertexAttrib");
+
+	data = evg_get_array(c, argv[0], &data_size);
+	if (!data) return JS_EXCEPTION;
+	if (JS_ToInt32(c, &nb_comp, argv[1])) return JS_EXCEPTION;
+	if (nb_comp>MAX_ATTR_DIM)
+		return js_throw_err_msg(c, GF_BAD_PARAM, "Dimension too big, max is %d", MAX_ATTR_DIM);
+
+	if (data_size % sizeof(Float)) return JS_EXCEPTION;
+	data_size /= sizeof(Float);
+	if (data_size % nb_comp) return JS_EXCEPTION;
+
+	if (argc>2) {
+		if (JS_ToInt32(c, &interp_type, argv[2])) return JS_EXCEPTION;
+	}
+
+	GF_SAFEALLOC(va, EVG_VA);
+	if (!va)
+		return js_throw_err(c, GF_OUT_OF_MEM);
+	va->nb_comp = nb_comp;
+	va->values = (Float *)data;
+	va->nb_values = data_size;
+	va->ab = JS_DupValue(c, argv[0]);
+	va->interp_type = interp_type;
+	if (va->nb_comp==1) va->att_type = COMP_FLOAT;
+	else if (va->nb_comp==2) va->att_type = COMP_V2_XY;
+	else if (va->nb_comp==3) va->att_type = COMP_V3;
+	else va->att_type = COMP_V4;
+
+	obj = JS_NewObjectClass(c, va_class_id);
+	JS_SetOpaque(obj, va);
+	return obj;
+}
+
+static JSValue va_setProperty(JSContext *c, JSValueConst obj, JSValueConst value, int magic)
+{
+	EVG_VA *va = JS_GetOpaque(obj, va_class_id);
+	if (!va) return JS_EXCEPTION;
+	switch (magic) {
+	case 0:
+		va->normalize = JS_ToBool(c, value) ? GF_TRUE : GF_FALSE;
+		break;
+	}
+	return JS_UNDEFINED;
+}
+static void va_finalize(JSRuntime *rt, JSValue obj)
+{
+	EVG_VA *va = JS_GetOpaque(obj, va_class_id);
+	if (!va) return;
+	JS_FreeValueRT(rt, va->ab);
+	gf_free(va);
+}
+
+static void va_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
+{
+	EVG_VA *va = JS_GetOpaque(obj, va_class_id);
+	if (!va) return;
+	JS_MarkValue(rt, va->ab, mark_func);
+}
+
+JSClassDef va_class = {
+	.class_name = "VertexAttrib",
+	.finalizer = va_finalize,
+	.gc_mark = va_gc_mark
+};
+static const JSCFunctionListEntry va_funcs[] =
+{
+	JS_CGETSET_MAGIC_DEF("normalize", NULL, va_setProperty, 0),
+};
+
 
 static JSValue vaires_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
@@ -4150,6 +4521,63 @@ static JSValue texture_conv(JSContext *c, JSValueConst obj, int argc, JSValueCon
 }
 
 
+static JSValue texture_update(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	GF_Err e;
+	u32 width=0, height=0, pf=0, stride=0, stride_uv=0;
+	u8 *data=NULL;
+	u8 *p_u=NULL;
+	u8 *p_v=NULL;
+	u8 *p_a=NULL;
+
+	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
+	if (!tx || !tx->stencil || !argc) return JS_EXCEPTION;
+
+	if (JS_IsObject(argv[0])) {
+		//create from canvas object
+		GF_JSCanvas *canvas = JS_GetOpaque(argv[0], canvas_class_id);
+		if (canvas) {
+			width = canvas->width;
+			height = canvas->height;
+			stride = canvas->stride;
+			stride_uv = canvas->stride_uv;
+			data = canvas->data;
+			pf = canvas->pf;
+		}
+		//create from filter packet
+		else if (jsf_is_packet(c, argv[0])) {
+			GF_Err e = jsf_get_filter_packet_planes(c, argv[0], &width, &height, &pf, &stride, &stride_uv, (const u8 **)&data, (const u8 **)&p_u, (const u8 **)&p_v, (const u8 **)&p_a);
+			if (e) return js_throw_err(c, e);
+		} else {
+			return js_throw_err(c, GF_BAD_PARAM);
+		}
+	} else {
+		return js_throw_err(c, GF_BAD_PARAM);
+	}
+
+	tx->owns_data = GF_FALSE;
+	tx->width = width;
+	tx->height = height;
+	tx->pf = pf;
+	tx->stride = stride;
+	tx->stride_uv = stride_uv;
+	tx->data = data;
+	if (p_u || p_v) {
+		e = gf_evg_stencil_set_texture_planes(tx->stencil, tx->width, tx->height, tx->pf, data, tx->stride, p_u, p_v, tx->stride_uv, p_a, tx->stride);
+		 if (e) return js_throw_err(c, e);
+	} else {
+		assert(data);
+		e = gf_evg_stencil_set_texture(tx->stencil, tx->data, tx->width, tx->height, tx->stride, tx->pf);
+		if (e) return js_throw_err(c, e);
+	}
+
+	if (tx->pf) {
+		tx->nb_comp = gf_pixel_get_nb_comp(tx->pf);
+		gf_pixel_get_size_info(tx->pf, tx->width, tx->height, NULL, NULL, NULL, NULL, NULL);
+	}
+	return JS_UNDEFINED;
+}
+
 static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *fileName, Bool rel_to_script)
 {
 	u8 *data;
@@ -4239,6 +4667,8 @@ static const JSCFunctionListEntry texture_funcs[] =
 	JS_CFUNC_DEF("to_RGB", 0, texture_toRGB),
 	JS_CFUNC_DEF("conv", 0, texture_conv),
 	JS_CFUNC_DEF("split", 0, texture_split),
+	JS_CFUNC_DEF("update", 0, texture_update),
+
 };
 
 
@@ -4308,7 +4738,7 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 		goto done;
 	}
 	if (JS_IsObject(argv[0])) {
-		//create from cnavas object
+		//create from canvas object
 		GF_JSCanvas *canvas = JS_GetOpaque(argv[0], canvas_class_id);
 		if (canvas) {
 			width = canvas->width;
@@ -4906,7 +5336,8 @@ static JSValue mx_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		res = JS_NewArray(ctx);
 		for (i=0; i<16; i++)
 			JS_SetPropertyUint32(ctx, res, i, JS_NewFloat64(ctx, mx->m[i]));
-		return res;	}
+		return res;
+	}
 	return JS_UNDEFINED;
 }
 
@@ -5310,6 +5741,9 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 		JS_NewClassID(&vai_class_id);
 		JS_NewClass(rt, vai_class_id, &vai_class);
 
+		JS_NewClassID(&va_class_id);
+		JS_NewClass(rt, va_class_id, &va_class);
+
 		JS_NewClassID(&vaires_class_id);
 		JS_NewClass(rt, vaires_class_id, &vaires_class);
 	}
@@ -5364,6 +5798,10 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 	proto = JS_NewObject(c);
     JS_SetPropertyFunctionList(c, proto, vai_funcs, countof(vai_funcs));
     JS_SetClassProto(c, vai_class_id, proto);
+
+	proto = JS_NewObject(c);
+    JS_SetPropertyFunctionList(c, proto, va_funcs, countof(va_funcs));
+    JS_SetClassProto(c, va_class_id, proto);
 
 	proto = JS_NewObject(c);
     JS_SetPropertyFunctionList(c, proto, vaires_funcs, countof(vaires_funcs));
@@ -5491,6 +5929,8 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
     JS_SetModuleExport(c, m, "Matrix", ctor);
 	ctor = JS_NewCFunction2(c, vai_constructor, "VertexAttribInterpolator", 1, JS_CFUNC_constructor, 0);
     JS_SetModuleExport(c, m, "VertexAttribInterpolator", ctor);
+	ctor = JS_NewCFunction2(c, va_constructor, "VertexAttrib", 1, JS_CFUNC_constructor, 0);
+    JS_SetModuleExport(c, m, "VertexAttrib", ctor);
 
 	return 0;
 }
@@ -5513,6 +5953,7 @@ void qjs_module_init_evg(JSContext *ctx)
 	JS_AddModuleExport(ctx, m, "Matrix");
 	JS_AddModuleExport(ctx, m, "Canvas3D");
     JS_AddModuleExport(ctx, m, "VertexAttribInterpolator");
+    JS_AddModuleExport(ctx, m, "VertexAttrib");
     return;
 }
 

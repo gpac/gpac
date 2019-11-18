@@ -305,13 +305,29 @@ GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil *stencil, GF_ColorMatrix *c
  */
 u32 gf_evg_stencil_get_pixel(GF_EVGStencil *stencil, s32 x, s32 y);
 
-/*! gets pixel at given position as normalize coordinates (between 0 and 1), {0,0} is top-left, {1,1} is bottom-right (still experimental)
+/*! gets ARGB pixel at given position as normalize coordinates (between 0 and 1), {0,0} is top-left, {1,1} is bottom-right (still experimental)
 \param stencil the target stencil
 \param x horizontal coord
 \param y vertical coord
-\return pixel value
+\param r output r component
+\param g output g component
+\param b output b component
+\param a output a component
+\return error if any
  */
-u32 gf_evg_stencil_get_pixel_f(GF_EVGStencil *st, Float x, Float y);
+GF_Err gf_evg_stencil_get_pixel_f(GF_EVGStencil *st, Float x, Float y, Float *r, Float *g, Float *b, Float *a);
+
+/*! gets AYUV pixel at given position as normalize coordinates (between 0 and 1), {0,0} is top-left, {1,1} is bottom-right (still experimental)
+\param stencil the target stencil
+\param x horizontal coord
+\param y vertical coord
+\param Y output y component
+\param U output u component
+\param V output v component
+\param A output a component
+\return error if any
+ */
+GF_Err gf_evg_stencil_get_pixel_yuv_f(GF_EVGStencil *st, Float x, Float y, Float *Y, Float *U, Float *V, Float *A);
 
 /*! creates a canvas surface object
 \param center_coords if GF_TRUE, indicates mathematical-like coord system (0,0) at the center of the canvas, otherwise indicates computer-like coord system (0,0) top-left corner
@@ -512,9 +528,6 @@ typedef struct
 	/*output values*/
 	GF_Vec4 color;
 	GF_EVGFragmentType frag_valid;
-	u32 color_argb;
-	//0: float argb, 1: u32 argb
-	u32 color_type;
 
 	/*vars for lerp*/
 	/*perspective correct interpolation is done according to openGL eq 14.9
@@ -535,6 +548,7 @@ typedef struct
 	u32 prim_index;
 	u32 vertex_idx;
 	u32 vertex_idx_in_prim;
+	u32 ptype;
 
 	/*output values*/
 	GF_Vec4 out_vertex;
@@ -557,6 +571,7 @@ GF_Err gf_evg_surface_set_line_size(GF_EVGSurface *surf, Float size);
 GF_Err gf_evg_surface_set_point_smooth(GF_EVGSurface *surf, Bool smooth);
 GF_Err gf_evg_surface_disable_early_depth(GF_EVGSurface *surf, Bool disable);
 GF_Err gf_evg_surface_write_depth(GF_EVGSurface *surf, Bool do_write);
+GF_Err gf_evg_surface_set_depth_buffer(GF_EVGSurface *surf, Float *depth);
 
 /*! @} */
 
