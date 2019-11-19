@@ -876,7 +876,7 @@ static JSValue canvas3d_setProperty(JSContext *ctx, JSValueConst obj, JSValueCon
 		break;
 	case GF_EVG_LINESIZE:
 		EVG_GET_FLOAT(f, value);
-		e = gf_evg_surface_set_point_size(canvas->surface, f);
+		e = gf_evg_surface_set_line_size(canvas->surface, f);
 		break;
 	case GF_EVG_CLIP_ZERO:
 		e = gf_evg_surface_set_clip_zero(canvas->surface, JS_ToBool(ctx, value) ? GF_TRUE : GF_FALSE);
@@ -1059,6 +1059,7 @@ enum
 	EVG_OP_SUB,
 	EVG_OP_MUL,
 	EVG_OP_DIV,
+	EVG_OP_NEG,
 	EVG_OP_LESS,
 	EVG_OP_LESS_EQUAL,
 	EVG_OP_GREATER,
@@ -1538,6 +1539,9 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 			break;
 		case EVG_OP_SUB:
 			BASE_OP(-=, -)
+			break;
+		case EVG_OP_NEG:
+			BASE_OP(= !, *)
 			break;
 		case EVG_OP_IF:
 #define BASE_COND(_opv)\
@@ -2125,6 +2129,10 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 			shader->disable_early_z = GF_TRUE;
 	} else if (!strcmp(op_name, "/=")) {
 		op_type = EVG_OP_DIV;
+		if (left_op_idx==VAR_FRAG_DEPTH)
+			shader->disable_early_z = GF_TRUE;
+	} else if (!strcmp(op_name, "=!")) {
+		op_type = EVG_OP_NEG;
 		if (left_op_idx==VAR_FRAG_DEPTH)
 			shader->disable_early_z = GF_TRUE;
 	} else if (!strcmp(op_name, "<")) {
