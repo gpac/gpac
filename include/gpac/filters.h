@@ -1918,6 +1918,7 @@ GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_
 /*! Loads a new filter in the session - see \ref gf_fs_load_filter
 \param filter the target filter
 \param name name and arguments of the filter register to instantiate.
+\param err_code error code if any
 \return created filter or NULL if filter register cannot be found
 */
 GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *err_code);

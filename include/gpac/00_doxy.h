@@ -69,7 +69,7 @@
 
 \defgroup filters_grp Filter Management
 
-\defgroup evg_grp 2D Vector Graphics Rendering
+\defgroup evg_grp Vector Graphics Rendering
 
 \defgroup scene_grp Scene Graph
 

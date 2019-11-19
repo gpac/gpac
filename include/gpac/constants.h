@@ -925,9 +925,6 @@ static const unsigned int GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 5
 /*! RFC6381 codec name max length*/
 #define RFC6381_CODEC_NAME_SIZE_MAX 100
 
-/*! @} */
-/*! */
-
 
 /*! ID3v2 tags*/
 typedef enum {

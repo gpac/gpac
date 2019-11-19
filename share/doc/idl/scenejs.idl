@@ -148,10 +148,10 @@ void move_window(unsigned long x, unsigned long y, optional boolean relative=fal
 void set_event_filter(GPACEventFilter filter_event_func);
 /*! moves focus
 \param focus "next" for next element in focus ring, "prev" for previous*/
-set_focus(DOMString focus);
+void set_focus(DOMString focus);
 /*! sets focus on element
 \param elt the node on which focus should be set */
-set_focus(Node elt);
+void set_focus(Node elt);
 /*! gets string for error
 \param e the error code
 \return the corresponding string*/

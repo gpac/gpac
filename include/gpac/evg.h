@@ -44,9 +44,9 @@ This file contains all defined functions for 2D vector graphics of the GPAC fram
 
 /*!
 \addtogroup evg_grp
-\brief 2D Vector Graphics rendering of GPAC.
+\brief Vector Graphics rendering of GPAC.
 
-GPAC uses a software rasterizer for 2D graphics based on FreeType's "ftgray" anti-aliased renderer.
+GPAC uses a software rasterizer for vector graphics based on FreeType's "ftgray" anti-aliased renderer.
 
 The rasterizer supports
 - drawing to RGB, YUV and grayscale surfaces.
@@ -59,6 +59,11 @@ The rasterizer supports
 The rasterizer is only capable of filling a given GF_Path object
 - striking (outlining) of a path must be done by using \ref gf_path_get_outline to the the outline path
 - text must be first converted to GF_Path
+
+The rasterizer also supports experimental drawing of 3D primitives (point, lines, triangles). This is obviously not intended to replace GPU rendering, but can
+be usefull to draw simple primitives over an existing video source. The following constraints apply in 3D mode:
+- stencils are not used
+- path can only be drawn using \ref gf_evg_surface_draw_path
 
 @{
 */
@@ -263,7 +268,7 @@ GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 
 */
 typedef void (*gf_evg_texture_callback)(void *cbk, u32 x, u32 y, Float *r, Float *g, Float *b, Float *a);
 
-/*! sets parametric callback a texture stencil. A parametric texture gets its pixel values from a callback function, the resulting value being blended according to the antialiasing level of the pixel. This allows creating rather complex custom textures, in a fashion similar to fragment shaders.
+/*! sets parametric callback on a texture stencil. A parametric texture gets its pixel values from a callback function, the resulting value being blended according to the antialiasing level of the pixel. This allows creating rather complex custom textures, in a fashion similar to fragment shaders.
 \param stencil the target stencil
 \param width texture width in pixels
 \param height texture height in pixels
@@ -273,7 +278,7 @@ typedef void (*gf_evg_texture_callback)(void *cbk, u32 x, u32 y, Float *r, Float
 \param use_screen_coords if set, the coordinates passed to the callback function are screen coordinates rather than texture coordinates
 \return error if any
 */
-GF_Err gf_evg_stencil_set_texture_parametric(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, gf_evg_texture_callback callback, void *cbk_data, Bool use_screen_coords);
+GF_Err gf_evg_stencil_set_texture_parametric(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, gf_evg_texture_callback callback, void *cbk_udta, Bool use_screen_coords);
 
 /*! sets texture mapping options for a texture stencil
 \param stencil the target stencil
@@ -305,7 +310,8 @@ GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil *stencil, GF_ColorMatrix *c
  */
 u32 gf_evg_stencil_get_pixel(GF_EVGStencil *stencil, s32 x, s32 y);
 
-/*! gets ARGB pixel at given position as normalize coordinates (between 0 and 1), {0,0} is top-left, {1,1} is bottom-right (still experimental)
+/*! gets ARGB pixel at a given position
+ The position is given as normalize coordinates (between 0.0 and 1.0), {0.0,0.0} is top-left, {1.0,1.0} is bottom-right
 \param stencil the target stencil
 \param x horizontal coord
 \param y vertical coord
@@ -315,9 +321,10 @@ u32 gf_evg_stencil_get_pixel(GF_EVGStencil *stencil, s32 x, s32 y);
 \param a output a component
 \return error if any
  */
-GF_Err gf_evg_stencil_get_pixel_f(GF_EVGStencil *st, Float x, Float y, Float *r, Float *g, Float *b, Float *a);
+GF_Err gf_evg_stencil_get_pixel_f(GF_EVGStencil *stencil, Float x, Float y, Float *r, Float *g, Float *b, Float *a);
 
-/*! gets AYUV pixel at given position as normalize coordinates (between 0 and 1), {0,0} is top-left, {1,1} is bottom-right (still experimental)
+/*! gets AYUV pixel at a given position
+  The position is given as normalize coordinates (between 0.0 and 1.0), {0.0,0.0} is top-left, {1.0,1.0} is bottom-right
 \param stencil the target stencil
 \param x horizontal coord
 \param y vertical coord
@@ -327,7 +334,7 @@ GF_Err gf_evg_stencil_get_pixel_f(GF_EVGStencil *st, Float x, Float y, Float *r,
 \param A output a component
 \return error if any
  */
-GF_Err gf_evg_stencil_get_pixel_yuv_f(GF_EVGStencil *st, Float x, Float y, Float *Y, Float *U, Float *V, Float *A);
+GF_Err gf_evg_stencil_get_pixel_yuv_f(GF_EVGStencil *stencil, Float x, Float y, Float *Y, Float *U, Float *V, Float *A);
 
 /*! creates a canvas surface object
 \param center_coords if GF_TRUE, indicates mathematical-like coord system (0,0) at the center of the canvas, otherwise indicates computer-like coord system (0,0) top-left corner
@@ -366,6 +373,7 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 GF_Err gf_evg_surface_set_raster_level(GF_EVGSurface *surf, GF_RasterQuality level);
 
 /*! sets the given matrix as the current transformations for all drawn paths
+\note this is only used for 2D rasterizer, and ignored in 3D mode
 \param surf the surface object
 \param mat the matrix to set; if NULL, resets the current transformation
 \return error if any
@@ -373,7 +381,8 @@ GF_Err gf_evg_surface_set_raster_level(GF_EVGSurface *surf, GF_RasterQuality lev
 GF_Err gf_evg_surface_set_matrix(GF_EVGSurface *surf, GF_Matrix2D *mat);
 
 /*! sets the given matrix as the current transformations for all drawn paths. The matrix shall be a projection matrix (ortho or perspective)
-wuth normalized coordinates in [-1,1]. It may also contain a modelview part
+with normalized coordinates in [-1,1]. It may also contain a modelview part.
+\note this is only used for 2D rasterizer, and ignored in 3D mode
 \param surf the surface object
 \param mat the matrix to set; if NULL, resets the current transformation
 \return error if any
@@ -392,6 +401,7 @@ GF_Err gf_evg_surface_set_clipper(GF_EVGSurface *surf, GF_IRect *rc);
 \warning This will internally copy the path after transformation with the current transfom. Changing the surface transform will have no effect unless calling this function again.
 The clipper and stencil mode may be changed at will
 
+\note this is only used for 2D rasterizer, and ignored in 3D mode
 \param surf the surface object
 \param path the target path to rasterize
 \return error if any
@@ -400,6 +410,7 @@ GF_Err gf_evg_surface_set_path(GF_EVGSurface *surf, GF_Path *path);
 
 /*! draw (filling) the current path on a surface using the given stencil and current clipper if any
 \note this can be called several times with the same current path
+\note this is only used for 2D rasterizer, and ignored in 3D mode
 \param surf the surface object
 \param stencil the stencil to use to fill a path
 \return error if any
@@ -416,6 +427,7 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *stencil);
 GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, GF_Color col);
 
 /*! sets center coord mode of a surface
+\note this is only used for 2D rasterizer, and ignored in 3D mode
 \param surf the surface object
 \param center_coords if GF_TRUE, indicates mathematical-like coord system (0,0) at the center of the canvas, otherwise indicates computer-like coord system (0,0) top-left corner
 */
@@ -449,128 +461,336 @@ typedef enum
 } GF_EVGCompositeMode;
 
 /*! sets surface composite mode, as defined in Canvas2D - only used for ARGB surfaces
+ \warning this is still experimental
 \param surf the surface object
 \param comp_mode the composition mode to use
 */
 void gf_evg_surface_set_composite_mode(GF_EVGSurface *surf, GF_EVGCompositeMode comp_mode);
 
-/*! sets alpha callback function
+/*! callback type for alpha override
+\param udta opaque data passed back to caller
+\param src_alpha alpha value about to be blended
+\param x horizontal coordinate of pixel to be drawn, {0,0} being top-left, positive Y go down
+\param y vertical coordinate of pixel to be drawn, {0,0} being top-left, positive Y go down
+\return final alpha value to use*/
+typedef u8 (*gf_evg_get_alpha)(void *udta, u8 src_alpha, s32 x, s32 y);
+
+/*! sets alpha callback function. This allows finer control over the blending, but does not allow for pixel color modification
 \param surf the surface object
-\param get_alpha the callback function to alter the alpha value. x and y are in pixel coordinates, non-centered mode (0,0) is topleft, positive Y go down
+\param get_alpha the callback function to alter the alpha value
 \param cbk opaque data for the callback function
 */
-void gf_evg_surface_set_alpha_callback(GF_EVGSurface *surf, u8 (*get_alpha)(void *udta, u8 src_alpha, s32 x, s32 y), void *cbk);
+void gf_evg_surface_set_alpha_callback(GF_EVGSurface *surf, gf_evg_get_alpha get_alpha, void *cbk);
 
 
-
+/*! Primitive types for 3D software rasterize - see OpenGL terminology*/
 typedef enum
 {
 	//do NOT modify order
+
+	/*! points, 1 vertex index per primitive */
 	GF_EVG_POINTS=1,
+	/*! polygon, all vertex indices in array are used for a single face*/
 	GF_EVG_POLYGON,
+	/*! lines, 2 vertex indices per primitive*/
 	GF_EVG_LINES,
+	/*! triangles, 3 vertex indices per primitive*/
 	GF_EVG_TRIANGLES,
+	/*! quads, 4 vertex indices per primitive*/
 	GF_EVG_QUADS,
 
+	/*! line strip, 2 vertex indices for first primitive, then one for subsequent ones*/
 	GF_EVG_LINE_STRIP,
+	/*! triangle strip, 3 vertex indices for first primitive, then one for subsequent ones*/
 	GF_EVG_TRIANGLE_STRIP,
+	/*! triangle fan, 3 vertex indices for first primitive, then one for subsequent ones*/
 	GF_EVG_TRIANGLE_FAN,
+	/*! quad strip, 4 vertex indices for first primitive, then one for subsequent ones*/
 	GF_EVG_QUAD_STRIP,
 } GF_EVGPrimitiveType;
 
+/*! creates a new 3D software rasterizer
+ \note use \ref gf_evg_surface_delete for destruction
+ \return NULL if error*/
 GF_EVGSurface *gf_evg_surface3d_new();
+/*! sets projection matrix
+ \note this is only used for 3D rasterizer, and fails 2D mode
+ \param surf the target 3D surface
+ \param mx the target projection matrix
+ \return error if any
+ */
 GF_Err gf_evg_surface_set_projection(GF_EVGSurface *surf, GF_Matrix *mx);
+/*! sets modelview matrix
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param mx the target modelview matrix
+\return error if any
+*/
 GF_Err gf_evg_surface_set_modelview(GF_EVGSurface *surf, GF_Matrix *mx);
-GF_Err gf_evg_surface_draw_array(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float *vertices, u32 nb_vertices, u32 nb_comp, GF_EVGPrimitiveType prim_type);
+/*! draws a set of primitive using vertices and an index buffer modelview matrix
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param indices the array of indices to use in the vertex buffer
+\param nb_indices the number of indices
+\param vertices the array of vertices to use
+\param nb_vertices the number of vertices
+\param nb_comp the number of component per vertices (eg, 2, 3)
+\param prim_type the primitive type to use
+\return error if any
+*/
+GF_Err gf_evg_surface_draw_array(GF_EVGSurface *surf, u32 *indices, u32 nb_indices, Float *vertices, u32 nb_vertices, u32 nb_comp, GF_EVGPrimitiveType prim_type);
+
+/*! clears the depth buffer
+ \note the depth buffer is set by the caller. If no depth buffer is assigned, this function returns GF_OK
+ \note the color buffer is cleared using \ref gf_evg_surface_clear
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param depth the depth value to use
+\return error if any
+*/
 GF_Err gf_evg_surface_clear_depth(GF_EVGSurface *surf, Float depth);
+/*! sets the surface viewport to convert from projected coordiantes to screen coordinates
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param x the top-left coordinate of the viewport in pixels
+\param y the top-left coordinate of the viewport in pixels
+\param w the width  of the viewport in pixels
+\param h the height of the viewport in pixels
+\return error if any
+*/
 GF_Err gf_evg_surface_viewport(GF_EVGSurface *surf, u32 x, u32 y, u32 w, u32 h);
-/*draws path on a 3D surface with the given z. The vertex shader is ignored (surface matrix must be set),
-and the fragment shader is called using perspective interpolation weights derived from the path bounds,
-using path bounds (top-left, top-right, bottom-right) vertices*/
+/*! draws path on a 3D surface with the given z.
+
+The vertex shader is ignored (surface matrix must be set), and the fragment shader is called using perspective interpolation weights derived from the path bounds,
+using path bounds (top-left, top-right, bottom-right) vertices.
+ \note this is only used for 3D rasterizer, and fails 2D mode
+
+\param surf the target 3D surface
+\param path the path to draw
+\param z the z value to assign to the path in local coordinate system
+\return error if any
+*/
 GF_Err gf_evg_surface_draw_path(GF_EVGSurface *surf, GF_Path *path, Float z);
 
+/*! Depth test modes*/
 typedef enum
 {
+	/*! depth test is disabled*/
 	GF_EVGDEPTH_DISABLE,
+	/*! depth test always fails*/
 	GF_EVGDEPTH_NEVER,
+	/*! depth test always succeeds*/
 	GF_EVGDEPTH_ALWAYS,
+	/*! depth test succeeds if fragment depth is == than depth buffer value*/
 	GF_EVGDEPTH_EQUAL,
+	/*! depth test succeeds if fragment depth is != than depth buffer value*/
 	GF_EVGDEPTH_NEQUAL,
+	/*! depth test succeeds if fragment depth is < than depth buffer value*/
 	GF_EVGDEPTH_LESS,
+	/*! depth test succeeds if fragment depth is <= than depth buffer value*/
 	GF_EVGDEPTH_LESS_EQUAL,
+	/*! depth test succeeds if fragment depth is > than depth buffer value*/
 	GF_EVGDEPTH_GREATER,
+	/*! depth test succeeds if fragment depth is >= than depth buffer value*/
 	GF_EVGDEPTH_GREATER_EQUAL
 } GF_EVGDepthTest;
 
+/*! sets depth buffer test
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param mode the desired depth test mode
+\return error if any
+*/
 GF_Err gf_evg_set_depth_test(GF_EVGSurface *surf, GF_EVGDepthTest mode);
 
+/*! fragment color type */
 typedef enum
 {
+	/*! fragment is invalid (discarded or error) */
 	GF_EVG_FRAG_INVALID = 0,
+	/*! fragment is RGB */
 	GF_EVG_FRAG_RGB,
+	/*! fragment is YUV */
 	GF_EVG_FRAG_YUV,
 } GF_EVGFragmentType;
 
+/*! Parameters for the fragment callback */
 typedef struct
 {
-	/*input params*/
+	/*! screen x in pixels - input param*/
 	Float screen_x;
+	/*! screen y in pixels - input param*/
 	Float screen_y;
+	/*! screen z in NDC - input param*/
 	Float screen_z;
+	/*! depth - input and output param*/
 	Float depth;
-
+	/*! primitive index in the current \ref gf_evg_surface_draw_array call, 0 being the first primitive  - input param*/
 	u32 prim_index;
-	/*index of vertices for the primitive in the vertex buffer*/
-	u32 idx1, idx2, idx3;
+	/*! index of first vertex in the current primitive  - input param*/
+	u32 idx1;
+	/*! index of second vertex in the current primitive (for lines or triangles/quads)  - input param*/
+	u32 idx2;
+	/*! index of third vertex in the current primitive (for triangles/quads)  - input param*/
+	u32 idx3;
 
+	/*! primitive type  - input param*/
 	GF_EVGPrimitiveType ptype;
 
-	/*output values*/
+	/*! fragment color, must be written if fragment is not discarded - output value*/
 	GF_Vec4 color;
+	/*! fragment valid state - output value*/
 	GF_EVGFragmentType frag_valid;
 
 	/*vars for lerp*/
 	/*perspective correct interpolation is done according to openGL eq 14.9
 		f = (a*fa/wa + b*fb/wb + c*fc/wc) / (a/w_a + b/w_b + c/w_c)
 	*/
-	/*perspective corrected barycentric, eg bc1/q1, bc2/q2, bc3/q3
+	/*! perspective corrected barycentric, eg bc1/q1, bc2/q2, bc3/q3
 		these are constant throughout the fragment*/
 	Float pbc1, pbc2, pbc3;
-	/* this is alsp 1/W of the fragment, eg opengl gl_fragCoord.w*/
+	/*! perspective divider
+	\note this is also 1/W of the fragment, eg opengl gl_fragCoord.w
+	*/
 	Float persp_denum;
 } GF_EVGFragmentParam;
 
 
+/*! Parameters for the vertex callback */
 typedef struct
 {
-	/*input params*/
+	/*! input vertex - input param*/
 	GF_Vec4 in_vertex;
+	/*! primitive index in the current \ref gf_evg_surface_draw_array call, 0 being the first primitive  - input param*/
 	u32 prim_index;
+	/*! index of the vertex  - input param*/
 	u32 vertex_idx;
+	/*! index of the vertex in the current primitive  - input param*/
 	u32 vertex_idx_in_prim;
+	/*! primitive type  - input param*/
 	u32 ptype;
 
-	/*output values*/
+	/*! transformed vertex to use, must be written  - output values*/
 	GF_Vec4 out_vertex;
 } GF_EVGVertexParam;
 
-typedef Bool (*gf_evg_fragment_shader)(void *udta, GF_EVGFragmentParam *frag);
+/*! callback type for fragment shader
+ \param udta opaque data passed back to caller
+ \param fragp fragment paramters
+ \return GF_TRUE if success; GF_FALSE if error*/
+typedef Bool (*gf_evg_fragment_shader)(void *udta, GF_EVGFragmentParam *fragp);
+/*! assigns fragment shader to the rasterizer
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param shader the fragment shader callback to use
+\param shader_udta opaque data to pass to the callback function
+\return error if any
+ */
 GF_Err gf_evg_surface_set_fragment_shader(GF_EVGSurface *surf, gf_evg_fragment_shader shader, void *shader_udta);
 
-typedef Bool (*gf_evg_vertex_shader)(void *udta, GF_EVGVertexParam *frag);
+/*! callback type for vertex shader
+\param udta opaque data passed back to caller
+\param vertp vertex paramters
+\return GF_TRUE if success; GF_FALSE if error*/
+typedef Bool (*gf_evg_vertex_shader)(void *udta, GF_EVGVertexParam *vertp);
+/*! assigns vertex shader to the rasterizer
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param shader the vertex shader callback to use
+\param shader_udta opaque data to pass to the callback function
+\return error if any
+ */
 GF_Err gf_evg_surface_set_vertex_shader(GF_EVGSurface *surf, gf_evg_vertex_shader shader, void *shader_udta);
 
+/*! sets face orientation for the primitives
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param is_ccw if GF_TRUE, face are given in counter-clockwise order, otherwise in clockwise order
+\return error if any
+ */
 GF_Err gf_evg_surface_set_ccw(GF_EVGSurface *surf, Bool is_ccw);
+/*! enables/disables backface culling
+ \warning not enabling backface culling when anti-aliasing is on may result in visual artefacts
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param backcull if GF_TRUE, faces with normals poiting away from camera will not be drawn
+\return error if any
+ */
 GF_Err gf_evg_surface_set_backcull(GF_EVGSurface *surf, Bool backcull);
+/*! enables/disables anti-aliased rendering
+ \warning not enabling backface culling when anti-aliasing is on may result in visual artefacts
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param antialias if GF_TRUE, edges will be anti-aliased
+\return error if any
+ */
 GF_Err gf_evg_surface_set_antialias(GF_EVGSurface *surf, Bool antialias);
+/*! sets minimum depth value for coordinates normalization - see OpenGL glDepthRange
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param min_depth the minimum depth value
+\return error if any
+ */
 GF_Err gf_evg_surface_set_min_depth(GF_EVGSurface *surf, Float min_depth);
+/*! sets maximum depth value for coordinates normalization - see OpenGL glDepthRange
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param max_depth the maximum depth value
+\return error if any
+ */
 GF_Err gf_evg_surface_set_max_depth(GF_EVGSurface *surf, Float max_depth);
+/*! indicates that the clip space after projection is [0,1] and not [-1, 1]
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param clip_zero if GF_TRUE, the projected vertices depth are in [0, 1], otherwise in [-1, 1]
+\return error if any
+ */
 GF_Err gf_evg_surface_set_clip_zero(GF_EVGSurface *surf, Bool clip_zero);
+/*! sets point size value for points primitives
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param size  the desired point size in pixels
+\return error if any
+ */
 GF_Err gf_evg_surface_set_point_size(GF_EVGSurface *surf, Float size);
+/*! sets line size (width) value for points primitives
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param size  the desired line size in pixels
+\return error if any
+ */
 GF_Err gf_evg_surface_set_line_size(GF_EVGSurface *surf, Float size);
+/*! enables point smoothing.
+ When point smoothing is enabled, the geometry drawn is a circle, otherwise a square
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param smooth if GF_TRUE, point smoothing is enabled
+\return error if any
+ */
 GF_Err gf_evg_surface_set_point_smooth(GF_EVGSurface *surf, Bool smooth);
+/*! disables early depth test
+If your fragment shader modifies the depth of the fragment, you must call this function to avoid early depth test (fragment discarded before calling the shader)
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param disable if GF_TRUE, early depth test is disabled
+\return error if any
+ */
 GF_Err gf_evg_surface_disable_early_depth(GF_EVGSurface *surf, Bool disable);
+/*! disables depth buffer write
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param do_write if GF_TRUE,  depth values are written to the depth buffer (default when creating the rasterizer)
+\return error if any
+ */
 GF_Err gf_evg_surface_write_depth(GF_EVGSurface *surf, Bool do_write);
+/*! sets  depth buffer
+ The 3D rasterizer does not allocate any surface (depth or color buffers), it is the user responsability to set these buffers
+ \warning do NOT forget to resize your depth buffer when resizing the canvas !
+\note this is only used for 3D rasterizer, and fails 2D mode
+\param surf the target 3D surface
+\param depth the depth buffer to use. Its size shall be Float*width*height
+\return error if any
+ */
 GF_Err gf_evg_surface_set_depth_buffer(GF_EVGSurface *surf, Float *depth);
 
 /*! @} */
