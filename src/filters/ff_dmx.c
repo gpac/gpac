@@ -526,7 +526,6 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	while (1) {
 		prev_e = av_dict_get(ctx->options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
 		if (!prev_e) break;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] meta-filter option %s=%s set but not used, see gpac -h ffdmx and gpac -h ffdmx:%s for allowed options\n", ctx->fname, prev_e->key, prev_e->value, ctx->demuxer->iformat->name));
 		gf_filter_report_unused_meta_option(filter, prev_e->key);
 	}
 
@@ -835,7 +834,6 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	while (1) {
 		prev_e = av_dict_get(ctx->options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
 		if (!prev_e) break;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] meta-filter option %s=%s set but not used, see gpac -h ffavin and gpac -h ffavin:%s for allowed options\n", ctx->fname, prev_e->key, prev_e->value, ctx->demuxer->iformat->name));
 		gf_filter_report_unused_meta_option(filter, prev_e->key);
 	}
 

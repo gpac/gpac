@@ -710,7 +710,6 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	while (1) {
 		prev_e = av_dict_get(ctx->options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
 		if (!prev_e) break;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFDEC] meta-filter option %s=%s set but not used, see gpac -h ffdec and gpac -h ffdec:%s for allowed options\n", prev_e->key, prev_e->value, ctx->decoder->codec->priv_class->class_name));
 		gf_filter_report_unused_meta_option(filter, prev_e->key);
 	}
 
