@@ -446,7 +446,7 @@ void evg_gradient_precompute(EVG_BaseGradient *grad, GF_EVGSurface *surf)
 	}
 	grad->updated = 0;
 
-	do_yuv = surf->yuv_type;
+	do_yuv = (surf->yuv_type==EVG_YUV_NONE) ? GF_FALSE : GF_TRUE;
 
 	do_cmat = (grad->cmat.identity) ? GF_FALSE : GF_TRUE;
 	has_a = (grad->alpha==0xFF) ? GF_FALSE : GF_TRUE;
