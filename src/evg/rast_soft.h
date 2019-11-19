@@ -121,6 +121,13 @@ typedef struct
 	u32 *pix_vals;
 } EVG_Surface3DExt;
 
+typedef enum
+{
+	EVG_YUV_NONE=0,
+	EVG_YUV_444,
+	EVG_YUV
+} EVG_YUVType;
+
 /*the surface object - currently only ARGB/RGB32, RGB/BGR and RGB555/RGB565 supported*/
 struct _gf_evg_surface
 {
@@ -175,7 +182,8 @@ struct _gf_evg_surface
 	u8 *uv_alpha;
 	u32 uv_alpha_alloc;
 
-	Bool swap_uv, is_422, is_yuv, not_8bits;
+	Bool swap_uv, not_8bits, is_422;
+	EVG_YUVType yuv_type;
 	u32 yuv_prof;
 
 	u32 idx_y1, idx_u, idx_v, idx_a, idx_g, idx_r, idx_b;

@@ -504,8 +504,8 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 
 	if (use_const && !a) return GF_FALSE;
 
-	surf->is_yuv = GF_FALSE;
 	surf->is_422 = GF_FALSE;
+	surf->yuv_type = 0;
 	surf->swap_uv = GF_FALSE;
 	surf->yuv_flush_uv = NULL;
 
@@ -650,7 +650,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 		}
 		break;
 	case GF_PIXEL_YUV:
-		surf->is_yuv = GF_TRUE;
+		surf->yuv_type = EVG_YUV;
 		if (use_const && !for_3d) {
 			surf->yuv_flush_uv = evg_yuv420p_flush_uv_const;
 
@@ -671,7 +671,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 	case GF_PIXEL_NV21:
 		surf->swap_uv = GF_TRUE;
 	case GF_PIXEL_NV12:
-		surf->is_yuv = GF_TRUE;
+		surf->yuv_type = EVG_YUV;
 
 		if (surf->swap_uv) {
 			surf->idx_u = 1;
@@ -697,7 +697,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 		}
 		break;
 	case GF_PIXEL_YUV422:
-		surf->is_yuv = GF_TRUE;
+		surf->yuv_type = EVG_YUV;
 		surf->is_422 = GF_TRUE;
 		if (use_const && !for_3d) {
 			surf->yuv_flush_uv = evg_yuv422p_flush_uv_const;
@@ -715,7 +715,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 		}
 		break;
 	case GF_PIXEL_YUV444:
-		surf->is_yuv = GF_TRUE;
+		surf->yuv_type = EVG_YUV_444;
 		if (use_const) {
 			if (a!=0xFF) {
 				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_fill_const_a;
@@ -730,7 +730,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 	case GF_PIXEL_YVYU:
 	case GF_PIXEL_UYVY:
 	case GF_PIXEL_VYUY:
-		surf->is_yuv = GF_TRUE;
+		surf->yuv_type = EVG_YUV;
 		if (use_const && !for_3d) {
 			if (a!=0xFF) {
 				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuyv_fill_const_a;
@@ -745,7 +745,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 		break;
 
 	case GF_PIXEL_YUV_10:
-		surf->is_yuv = GF_TRUE;
+		surf->yuv_type = EVG_YUV;
 		if (use_const && !for_3d) {
 			surf->yuv_flush_uv = evg_yuv420p_10_flush_uv_const;
 
@@ -764,7 +764,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 	case GF_PIXEL_NV21_10:
 		surf->swap_uv = GF_TRUE;
 	case GF_PIXEL_NV12_10:
-		surf->is_yuv = GF_TRUE;
+		surf->yuv_type = EVG_YUV;
 
 		if (surf->swap_uv) {
 			surf->idx_u = 1;
@@ -790,7 +790,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 		}
 		break;
 	case GF_PIXEL_YUV422_10:
-		surf->is_yuv = GF_TRUE;
+		surf->yuv_type = EVG_YUV;
 		surf->is_422 = GF_TRUE;
 		if (use_const && !for_3d) {
 			surf->yuv_flush_uv = evg_yuv422p_10_flush_uv_const;
@@ -808,7 +808,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 		}
 		break;
 	case GF_PIXEL_YUV444_10:
-		surf->is_yuv = GF_TRUE;
+		surf->yuv_type = EVG_YUV_444;
 		if (use_const) {
 			if (a!=0xFF) {
 				surf->gray_spans = (EVG_Raster_Span_Func) evg_yuv444p_10_fill_const_a;
@@ -831,10 +831,10 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 		}
 		memset(surf->uv_alpha, 0, sizeof(char)*surf->uv_alpha_alloc);
 	}
-	if (surf->is_yuv && for_3d)
+	if (surf->yuv_type && for_3d)
 		surf->sten = &surf->ext3d->yuv_sten;
 
-	if (use_const && surf->is_yuv) {
+	if (use_const && surf->yuv_type) {
 		u8 y, cb, cr;
 		evg_rgb_to_yuv(surf, surf->fill_col, &y, &cb, &cr);
 		if (surf->swap_uv) {
@@ -889,6 +889,7 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 {
 	GF_Err e;
 	GF_Rect rc;
+	u32 max_gray;
 	GF_Matrix2D mat, st_mat;
 	Bool restore_filter;
 	if (!surf || !sten) return GF_BAD_PARAM;
@@ -974,6 +975,10 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 		break;
 		}
 	}
+	max_gray = surf->raster->max_gray_spans;
+	/*force complete line callback for YUV 420/422*/
+	if (surf->yuv_type==EVG_YUV)
+		surf->raster->max_gray_spans = 0xFFFFFFFF;
 
 	if (surf->useClipper) {
 		surf->clip_xMin = surf->clipper.x;
@@ -992,6 +997,8 @@ GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 		e = evg_raster_render_path_3d(surf);
 	else
 		e = evg_raster_render(surf);
+
+	surf->raster->max_gray_spans = max_gray;
 
 	/*restore stencil matrix*/
 	if (sten->type != GF_STENCIL_SOLID) {
@@ -1034,6 +1041,8 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 
 GF_Err gf_evg_surface_draw_array(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float *vertices, u32 nb_vertices, u32 nb_comp, GF_EVGPrimitiveType prim_type)
 {
+	GF_Err e;
+	u32 max_gray;
 	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
 
 	/*setup ft raster calllbacks*/
@@ -1050,15 +1059,23 @@ GF_Err gf_evg_surface_draw_array(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, 
 		surf->clip_xMax = (surf->width);
 		surf->clip_yMax = (surf->height);
 	}
+	max_gray = surf->raster->max_gray_spans;
+	/*force complete line callback for YUV 420/422*/
+	if (surf->yuv_type==EVG_YUV)
+		surf->raster->max_gray_spans = 0xFFFFFFFF;
 
 	/*and call the raster*/
-	return evg_raster_render3d(surf, indices, nb_idx, vertices, nb_vertices, nb_comp, prim_type);
+	e = evg_raster_render3d(surf, indices, nb_idx, vertices, nb_vertices, nb_comp, prim_type);
+	surf->raster->max_gray_spans =  max_gray;
+	return e;
 }
 
 GF_Err evg_raster_render3d_path(GF_EVGSurface *surf, GF_Path *path, Float z);
 
 GF_Err gf_evg_surface_draw_path(GF_EVGSurface *surf, GF_Path *path, Float z)
 {
+	GF_Err e;
+	u32 max_gray;
 	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
 
 	/*setup ft raster calllbacks*/
@@ -1075,7 +1092,13 @@ GF_Err gf_evg_surface_draw_path(GF_EVGSurface *surf, GF_Path *path, Float z)
 		surf->clip_xMax = (surf->width);
 		surf->clip_yMax = (surf->height);
 	}
+	max_gray = surf->raster->max_gray_spans;
+	/*force complete line callback for YUV 420/422*/
+	if (surf->yuv_type==EVG_YUV)
+		surf->raster->max_gray_spans = 0xFFFFFFFF;
 
 	/*and call the raster*/
-	return evg_raster_render3d_path(surf, path, z);
+	e = evg_raster_render3d_path(surf, path, z);
+	surf->raster->max_gray_spans =  max_gray;
+	return e;
 }

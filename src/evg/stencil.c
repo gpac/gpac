@@ -430,7 +430,7 @@ void evg_gradient_precompute(EVG_BaseGradient *grad, GF_EVGSurface *surf)
 
 	do_yuv = GF_FALSE;
 
-	if (surf->is_yuv) {
+	if (surf->yuv_type) {
 		if (grad->yuv_prof != surf->yuv_prof) {
 			grad->yuv_prof = surf->yuv_prof;
 			has_changed = GF_TRUE;
@@ -446,7 +446,7 @@ void evg_gradient_precompute(EVG_BaseGradient *grad, GF_EVGSurface *surf)
 	}
 	grad->updated = 0;
 
-	do_yuv = surf->is_yuv;
+	do_yuv = surf->yuv_type;
 
 	do_cmat = (grad->cmat.identity) ? GF_FALSE : GF_TRUE;
 	has_a = (grad->alpha==0xFF) ? GF_FALSE : GF_TRUE;
@@ -770,7 +770,7 @@ static void tex_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32 _y, 
 		//move pixel to target pixel format, applying color transform matrix
 		else if (_this->is_yuv) {
 			//if surf is rgb, transform
-			if (!surf->is_yuv) {
+			if (!surf->yuv_type) {
 				pix = evg_ayuv_to_argb(surf, pix);
 				//apply cmat
 				if (has_cmat)
@@ -788,7 +788,7 @@ static void tex_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32 _y, 
 				pix = gf_cmx_apply(&_this->cmat, pix);
 
 			//dest is yuv, transform
-			if (surf->is_yuv)
+			if (surf->yuv_type)
 				pix = evg_argb_to_ayuv(surf, pix);
 		}
 
@@ -858,10 +858,10 @@ static void tex_fill_run_straight(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x,
 			pix = ((__a<<24) | (_this->replace_col & 0x00FFFFFF));
 		}
 		//move pixel to target pixel format
-		else if (_this->is_yuv && !surf->is_yuv) {
+		else if (_this->is_yuv && !surf->yuv_type) {
 			pix = evg_ayuv_to_argb(surf, pix);
 		}
-		else if (!_this->is_yuv && surf->is_yuv) {
+		else if (!_this->is_yuv && surf->yuv_type) {
 			pix = evg_argb_to_ayuv(surf, pix);
 		}
 
@@ -1015,7 +1015,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32
 		//move pixel to target pixel format, applying color transform matrix
 		else if (_this->is_yuv) {
 			//if surf is rgb, transform
-			if (!surf->is_yuv) {
+			if (!surf->yuv_type) {
 				pix = evg_ayuv_to_argb_wide(surf, pix);
 				//apply cmat
 				if (has_cmat)
@@ -1033,7 +1033,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32
 				pix = gf_cmx_apply_wide(&_this->cmat, pix);
 
 			//dest is yuv, transform
-			if (surf->is_yuv)
+			if (surf->yuv_type)
 				pix = evg_argb_to_ayuv_wide(surf, pix);
 		}
 
@@ -1109,10 +1109,10 @@ static void tex_fill_run_straight_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s3
 			pix = ( (_a & 0xFFFF000000000000UL) ) | (_this->replace_col & 0x0000FFFFFFFFFFFFUL);
 		}
 		//move pixel to target pixel format
-		else if (_this->is_yuv && !surf->is_yuv) {
+		else if (_this->is_yuv && !surf->yuv_type) {
 			pix = evg_ayuv_to_argb_wide(surf, pix);
 		}
-		else if (!_this->is_yuv && surf->is_yuv) {
+		else if (!_this->is_yuv && surf->yuv_type) {
 			pix = evg_argb_to_ayuv_wide(surf, pix);
 		}
 
@@ -1744,7 +1744,7 @@ void evg_texture_init(GF_EVGStencil *p, GF_EVGSurface *surf)
 		_this->cmat_is_replace = GF_TRUE;
 		_this->replace_col = GF_COL_ARGB(FIX2INT(_this->cmat.m[18]*255), FIX2INT(_this->cmat.m[4]*255), FIX2INT(_this->cmat.m[9]*255), FIX2INT(_this->cmat.m[14]*255));
 
-		if (surf->is_yuv) {
+		if (surf->yuv_type) {
 			_this->replace_col = evg_argb_to_ayuv(surf, _this->replace_col);
 		}
 	}
@@ -1756,7 +1756,7 @@ void evg_texture_init(GF_EVGStencil *p, GF_EVGSurface *surf)
 			_this->fill_run = tex_fill_run_straight;
 		}
 	} else {
-		if (!_this->cmat.identity && _this->is_yuv && surf->is_yuv) {
+		if (!_this->cmat.identity && _this->is_yuv && surf->yuv_type) {
 			evg_make_ayuv_color_mx(&_this->cmat, &_this->yuv_cmat);
 		}
 		if (surf->not_8bits) {

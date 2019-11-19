@@ -1051,9 +1051,10 @@ enum
 	EVG_OP_IF=1,
 	EVG_OP_ELSE,
 	EVG_OP_ELSEIF,
-	EVG_OP_WHILE,
 	EVG_OP_END,
+	EVG_OP_GOTO,
 	EVG_OP_ASSIGN,
+	EVG_OP_DISCARD,
 	EVG_OP_ADD,
 	EVG_OP_SUB,
 	EVG_OP_MUL,
@@ -1071,10 +1072,33 @@ enum
 
 	EVG_OP_NORMALIZE,
 	EVG_OP_LENGTH,
+	EVG_OP_DISTANCE,
 	EVG_OP_DOT,
 	EVG_OP_CROSS,
 	EVG_OP_POW,
-
+	EVG_OP_SIN,
+	EVG_OP_ASIN,
+	EVG_OP_COS,
+	EVG_OP_ACOS,
+	EVG_OP_TAN,
+	EVG_OP_ATAN,
+	EVG_OP_LOG,
+	EVG_OP_EXP,
+	EVG_OP_LOG2,
+	EVG_OP_EXP2,
+	EVG_OP_SINH,
+	EVG_OP_COSH,
+	EVG_OP_SQRT,
+	EVG_OP_INVERSE_SQRT,
+	EVG_OP_ABS,
+	EVG_OP_SIGN,
+	EVG_OP_FLOOR,
+	EVG_OP_CEIL,
+	EVG_OP_FRACT,
+	EVG_OP_MOD,
+	EVG_OP_MIN,
+	EVG_OP_MAX,
+	EVG_OP_CLAMP,
 
 	EVG_FIRST_VAR_ID
 };
@@ -1095,6 +1119,56 @@ enum
 	VAR_MATRIX,
 };
 
+
+static GFINLINE Float isqrtf(Float v)
+{
+	v = sqrtf(v);
+	if (v) v = 1 / v;
+	return v;
+}
+static GFINLINE Float signf(Float v)
+{
+	if (v==0) return 0;
+	if (v>0) return 1.0;
+	return -1.0;
+}
+static GFINLINE Float fractf(Float v)
+{
+	return v - floorf(v);
+}
+static GFINLINE Float _modf(Float x, Float y)
+{
+	if (!y) return 0.0;
+	return x - y * floorf(x/y);
+}
+
+
+
+#if defined(WIN32) && !defined(__GNUC__)
+# include <intrin.h>
+# define GPAC_HAS_SSE2
+#else
+# ifdef __SSE2__
+#  include <emmintrin.h>
+#  define GPAC_HAS_SSE2
+# endif
+#endif
+
+#ifdef GPAC_HAS_SSE2
+
+static Float evg_float_clamp(Float val, Float minval, Float maxval)
+{
+    _mm_store_ss( &val, _mm_min_ss( _mm_max_ss(_mm_set_ss(val),_mm_set_ss(minval)), _mm_set_ss(maxval) ) );
+    return val;
+}
+#else
+
+#define evg_float_clamp(_val, _minval, _maxval)\
+	(_val<_minval) ? _minval : (_val>_maxval) ? _maxval : _val;
+
+#endif
+
+
 /*
 
 */
@@ -1109,11 +1183,24 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 	Bool cond_res;
 
 	for (op_idx=0; op_idx<shader->nb_ops; op_idx++) {
-		u32 next_idx, idx;
+		u32 next_idx, idx, var_idx;
 		Bool has_next, norm_result=GF_FALSE;
 		u8 right_val_type, left_val_type, right2_val_type;
 		u8 *left_val_type_ptr=NULL;
 		ShaderOp *op = &shader->ops[op_idx];
+
+		if (op->op_type==EVG_OP_GOTO) {
+			u32 stack_idx = op->left_value;
+			if (op->uni_name) stack_idx = op->ival;
+
+			if (!stack_idx || (stack_idx > shader->nb_ops)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Shader] Invalid goto operation, stack index %d not in stack indices [1, %d]\n", op->left_value, shader->nb_ops));
+				shader->invalid = GF_TRUE;
+				return GF_FALSE;
+			}
+			op_idx = stack_idx - 1;
+			op = &shader->ops[op_idx];
+		}
 
 		if (op->op_type==EVG_OP_ELSE) {
 			if (nif_level) {
@@ -1142,59 +1229,50 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 
 		dim=4;
 		if (op->left_value==VAR_FRAG_ARGB) {
-			assert(frag);
 			left_val = &frag->color;
 			left_val_type = COMP_V4;
 			frag->frag_valid = GF_EVG_FRAG_RGB;
 		} else if (op->left_value==VAR_FRAG_YUV) {
-			assert(frag);
 			left_val = &frag->color;
 			left_val_type = COMP_V4;
 			frag->frag_valid = GF_EVG_FRAG_YUV;
 		} else if (op->left_value==VAR_FRAG_X) {
-			assert(frag);
 			left_val = &tmpl;
 			tmpl.x = frag->screen_x;
 			left_val_type = COMP_FLOAT;
 		} else if (op->left_value==VAR_FRAG_Y) {
-			assert(frag);
 			left_val = &tmpl;
 			tmpl.x = frag->screen_y;
 			left_val_type = COMP_FLOAT;
 		} else if (op->left_value==VAR_FRAG_W) {
-			assert(frag);
 			left_val = &tmpl;
 			tmpl.x = frag->persp_denum;
 			left_val_type = COMP_FLOAT;
 		} else if (op->left_value==VAR_FRAG_DEPTH) {
-			assert(frag);
 			left_val = (GF_Vec4 *) &frag->depth;
 			left_val_type = COMP_FLOAT;
 		} else if (op->left_value==VAR_VERTEX_IN) {
-			assert(vert);
 			left_val = (GF_Vec4 *) &vert->in_vertex;
 			left_val_type = COMP_V4;
 		} else if (op->left_value==VAR_VERTEX_OUT) {
-			assert(vert);
 			left_val = (GF_Vec4 *) &vert->out_vertex;
 			left_val_type = COMP_V4;
 		} else if (op->left_value==VAR_VAI) {
-			assert(vert);
 			left_val = (GF_Vec4 *) &op->vai.vai->anchors[vert->vertex_idx_in_prim];
 			left_val_type = COMP_V4;
 			norm_result = op->vai.vai->normalize;
 		} else if (op->left_value) {
-			assert(op->left_value > EVG_FIRST_VAR_ID);
-			left_val = &shader->vars[op->left_value - EVG_FIRST_VAR_ID-1].vecval;
-			left_val_type = shader->vars[op->left_value - EVG_FIRST_VAR_ID-1].value_type;
-			left_val_type_ptr = & shader->vars[op->left_value - EVG_FIRST_VAR_ID-1].value_type;
+			u32 var_idx = op->left_value - EVG_FIRST_VAR_ID-1;
+			left_val = &shader->vars[var_idx].vecval;
+			left_val_type = shader->vars[var_idx].value_type;
+			left_val_type_ptr = & shader->vars[var_idx].value_type;
 		}
 
 		if (op->right_value>EVG_FIRST_VAR_ID) {
-			right_val = &shader->vars[op->right_value - EVG_FIRST_VAR_ID-1].vecval;
-			right_val_type = shader->vars[op->right_value - EVG_FIRST_VAR_ID-1].value_type;
+			var_idx = op->right_value - EVG_FIRST_VAR_ID-1;
+			right_val = &shader->vars[var_idx].vecval;
+			right_val_type = shader->vars[var_idx].value_type;
 		} else if ((op->right_value==VAR_VAI) && op->vai.vai) {
-			assert(frag);
 			vai_call_lerp(op->vai.vai, frag);
 			dim = MIN(4, op->vai.vai->result.dim);
 			right_val = (GF_Vec4 *) &op->vai.vai->result.values[0];
@@ -1202,8 +1280,6 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 		} else if ((op->right_value==VAR_VA) && op->va.va) {
 			u32 va_idx, j, nb_v_per_prim=3;
 			EVG_VA *va = op->va.va;
-			assert(vert);
-			assert(va->values);
 
 			if (vert->ptype == GF_EVG_LINES)
 				nb_v_per_prim=2;
@@ -1252,39 +1328,31 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 			shader->invalid = GF_TRUE;
 			return GF_FALSE;
 		} else if (op->right_value==VAR_FRAG_ARGB) {
-			assert(frag);
 			right_val = &frag->color;
 			right_val_type = COMP_V4;
 		} else if (op->right_value==VAR_FRAG_YUV) {
-			assert(frag);
 			right_val = &frag->color;
 			right_val_type = COMP_V4;
 		} else if (op->right_value==VAR_FRAG_X) {
-			assert(frag);
 			right_val = &tmpr;
 			tmpr.x = frag->screen_x;
 			right_val_type = COMP_FLOAT;
 		} else if (op->right_value==VAR_FRAG_Y) {
-			assert(frag);
 			right_val = &tmpr;
 			tmpr.x = frag->screen_y;
 			right_val_type = COMP_FLOAT;
 		} else if (op->right_value==VAR_FRAG_W) {
-			assert(frag);
 			right_val = &tmpr;
 			tmpr.x = frag->persp_denum;
 			right_val_type = COMP_FLOAT;
 		} else if (op->right_value==VAR_FRAG_DEPTH) {
-			assert(frag);
 			right_val = &tmpr;
 			tmpr.x = frag->depth;
 			right_val_type = COMP_FLOAT;
 		} else if (op->right_value==VAR_VERTEX_IN) {
-			assert(vert);
 			right_val = &vert->in_vertex;
 			right_val_type = COMP_V4;
 		} else if (op->right_value==VAR_VERTEX_OUT) {
-			assert(vert);
 			right_val = &vert->out_vertex;
 			right_val_type = COMP_V4;
 		} else if (!op->right_value || (op->right_value==VAR_UNIFORM) ) {
@@ -1301,6 +1369,30 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 			return GF_FALSE;
 		}
 
+#define GET_FIRST_COMP\
+					idx=0;\
+					while (1) {\
+						if (op->right_value_type & (1<<idx))\
+							break;\
+						if (idx==3)\
+							break;\
+						idx++;\
+					}\
+
+#define GET_NEXT_COMP\
+					has_next = GF_FALSE;\
+					next_idx = idx;\
+					while (1) {\
+						if (next_idx==3)\
+							break;\
+						if (op->right_value_type & (1<< (next_idx+1)) ) {\
+							has_next = GF_TRUE;\
+							next_idx = idx+1;\
+							break;\
+						}\
+						next_idx++;\
+					}\
+					if (has_next) idx = next_idx;\
 
 		switch (op->op_type) {
 		case EVG_OP_ASSIGN:
@@ -1336,30 +1428,6 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 					if (dim<4) left_val->q = 1.0;
 				} else {
 					Float *srcs = (Float *) &right_val->x;
-#define GET_FIRST_COMP\
-					idx=0;\
-					while (1) {\
-						if (op->right_value_type & (1<<idx))\
-							break;\
-						if (idx==3)\
-							break;\
-						idx++;\
-					}\
-
-#define GET_NEXT_COMP\
-					has_next = GF_FALSE;\
-					next_idx = idx;\
-					while (1) {\
-						if (next_idx==3)\
-							break;\
-						if (op->right_value_type & (1<< (next_idx+1)) ) {\
-							has_next = GF_TRUE;\
-							next_idx = idx+1;\
-							break;\
-						}\
-						next_idx++;\
-					}\
-					if (has_next) idx = next_idx;\
 
 					GET_FIRST_COMP
 					if (left_val_type & COMP_X) { left_val->x = srcs[idx]; GET_NEXT_COMP }
@@ -1546,30 +1614,37 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 			break;
 
 		case EVG_OP_SAMPLER:
-			assert(op->tx);
 			if (left_val_type_ptr) {
-				left_val_type = *left_val_type_ptr = COMP_V4;
+				*left_val_type_ptr = COMP_V4;
 			}
-			gf_evg_stencil_get_pixel_f(op->tx->stencil, right_val->x, right_val->y, &tmpr.x, &tmpr.y, &tmpr.z, &tmpr.q);
-			if (op->left_value_type & COMP_X) left_val->x = tmpr.x;
-			if (op->left_value_type & COMP_Y) left_val->y = tmpr.y;
-			if (op->left_value_type & COMP_Z) left_val->z = tmpr.z;
-			if (op->left_value_type & COMP_Q) left_val->q = tmpr.q;
-
+			if (op->left_value_type==COMP_V4) {
+				gf_evg_stencil_get_pixel_f(op->tx->stencil, right_val->x, right_val->y, &left_val->x, &left_val->y, &left_val->z, &left_val->q);
+			} else {
+				gf_evg_stencil_get_pixel_f(op->tx->stencil, right_val->x, right_val->y, &tmpr.x, &tmpr.y, &tmpr.z, &tmpr.q);
+				if (op->left_value_type & COMP_X) left_val->x = tmpr.x;
+				if (op->left_value_type & COMP_Y) left_val->y = tmpr.y;
+				if (op->left_value_type & COMP_Z) left_val->z = tmpr.z;
+				if (op->left_value_type & COMP_Q) left_val->q = tmpr.q;
+			}
 			break;
 
 		case EVG_OP_SAMPLER_YUV:
-			assert(op->tx);
 			if (left_val_type_ptr) {
-				left_val_type = *left_val_type_ptr = COMP_V4;
+				*left_val_type_ptr = COMP_V4;
 			}
-			gf_evg_stencil_get_pixel_yuv_f(op->tx->stencil, right_val->x, right_val->y, &tmpr.x, &tmpr.y, &tmpr.z, &tmpr.q);
-			if (op->left_value_type & COMP_X) left_val->x = tmpr.x;
-			if (op->left_value_type & COMP_Y) left_val->y = tmpr.y;
-			if (op->left_value_type & COMP_Z) left_val->z = tmpr.z;
-			if (op->left_value_type & COMP_Q) left_val->q = tmpr.q;
+			if (op->left_value_type==COMP_V4) {
+				gf_evg_stencil_get_pixel_yuv_f(op->tx->stencil, right_val->x, right_val->y, &left_val->x, &left_val->y, &left_val->z, &left_val->q);
+			} else {
+				gf_evg_stencil_get_pixel_yuv_f(op->tx->stencil, right_val->x, right_val->y, &tmpr.x, &tmpr.y, &tmpr.z, &tmpr.q);
+				if (op->left_value_type & COMP_X) left_val->x = tmpr.x;
+				if (op->left_value_type & COMP_Y) left_val->y = tmpr.y;
+				if (op->left_value_type & COMP_Z) left_val->z = tmpr.z;
+				if (op->left_value_type & COMP_Q) left_val->q = tmpr.q;
+			}
 			break;
-
+		case EVG_OP_DISCARD:
+			frag->frag_valid = 0;
+			return GF_TRUE;
 		case EVG_OP_NORMALIZE:
 			if (left_val_type_ptr) {
 				*left_val_type_ptr = COMP_V4;
@@ -1583,6 +1658,16 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 			}
 			left_val->x = gf_vec_len_p( (GF_Vec *) right_val);
 			break;
+		case EVG_OP_DISTANCE:
+			if (left_val_type_ptr) {
+				*left_val_type_ptr = COMP_FLOAT;
+			}
+			right2_val = &shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].vecval;
+			right2_val_type = shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].value_type;
+			gf_vec_diff(tmpr, *right_val, *right2_val);
+			left_val->x = gf_vec_len_p( (GF_Vec *) &tmpr);
+			break;
+
 		case EVG_OP_DOT:
 			if (left_val_type_ptr) {
 				*left_val_type_ptr = COMP_FLOAT;
@@ -1600,26 +1685,142 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 			* (GF_Vec *) left_val = gf_vec_cross_p( (GF_Vec *) right_val, (GF_Vec *) right2_val);
 			break;
 
+#define BASE_FUN2(__fun) \
+	if (left_val_type_ptr) {\
+		*left_val_type_ptr = right_val_type;\
+	}\
+	var_idx = op->right_value_second - EVG_FIRST_VAR_ID-1;\
+	right2_val = &shader->vars[var_idx].vecval;\
+	right2_val_type = shader->vars[var_idx].value_type;\
+	if (right_val_type==COMP_FLOAT) {\
+		left_val->x = __fun(right_val->x, right2_val->x);\
+	} else {\
+		if (right_val_type&COMP_X) {\
+			left_val->x = __fun(right_val->x, right2_val->x);\
+		}\
+		if (right_val_type&COMP_Y) {\
+			left_val->y = __fun(right_val->y, right2_val->y);\
+		}\
+		if (right_val_type&COMP_Z) {\
+			left_val->z = __fun(right_val->z, right2_val->z);\
+		}\
+		if (right_val_type&COMP_Q) {\
+			left_val->q = __fun(right_val->z, right2_val->q);\
+		}\
+	}\
+
+
+#define BASE_FUN(__fun) \
+		if (left_val_type_ptr) {\
+			*left_val_type_ptr = right_val_type;\
+		}\
+		if (right_val_type==COMP_FLOAT) {\
+			left_val->x = (Float) __fun(right_val->x);\
+		} else {\
+			if (right_val_type&COMP_X) {\
+				left_val->x = (Float) __fun(right_val->x);\
+			}\
+			if (right_val_type&COMP_Y) {\
+				left_val->y = (Float) __fun(right_val->y);\
+			}\
+			if (right_val_type&COMP_Z) {\
+				left_val->z = (Float) __fun(right_val->z);\
+			}\
+			if (right_val_type&COMP_Q) {\
+				left_val->q = (Float) __fun(right_val->z);\
+			}\
+		}\
+
 		case EVG_OP_POW:
+			BASE_FUN2(powf)
+			break;
+		case EVG_OP_SIN:
+			BASE_FUN(sinf)
+			break;
+		case EVG_OP_ASIN:
+			BASE_FUN(asinf)
+			break;
+		case EVG_OP_COS:
+			BASE_FUN(cosf)
+			break;
+		case EVG_OP_ACOS:
+			BASE_FUN(acosf)
+			break;
+		case EVG_OP_TAN:
+			BASE_FUN(tanf)
+			break;
+		case EVG_OP_ATAN:
+			BASE_FUN2(atan2f)
+			break;
+		case EVG_OP_LOG:
+			BASE_FUN(logf)
+			break;
+		case EVG_OP_EXP:
+			BASE_FUN(expf)
+			break;
+		case EVG_OP_LOG2:
+			BASE_FUN(log2f)
+			break;
+		case EVG_OP_EXP2:
+			BASE_FUN(exp2f)
+			break;
+		case EVG_OP_SINH:
+			BASE_FUN(sinhf)
+			break;
+		case EVG_OP_COSH:
+			BASE_FUN(coshf)
+			break;
+		case EVG_OP_SQRT:
+			BASE_FUN(sqrtf)
+			break;
+		case EVG_OP_INVERSE_SQRT:
+			BASE_FUN(isqrtf)
+			break;
+		case EVG_OP_ABS:
+			BASE_FUN(ABS)
+			break;
+		case EVG_OP_SIGN:
+			BASE_FUN(signf)
+			break;
+		case EVG_OP_FLOOR:
+			BASE_FUN(floorf)
+			break;
+		case EVG_OP_CEIL:
+			BASE_FUN(ceilf)
+			break;
+		case EVG_OP_FRACT:
+			BASE_FUN(fractf)
+			break;
+		case EVG_OP_MOD:
+			BASE_FUN2(_modf)
+			break;
+		case EVG_OP_MIN:
+			BASE_FUN2(MIN)
+			break;
+		case EVG_OP_MAX:
+			BASE_FUN2(MAX)
+			break;
+		case EVG_OP_CLAMP:
 			if (left_val_type_ptr) {
 				*left_val_type_ptr = right_val_type;
 			}
-			right2_val = &shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].vecval;
-			right2_val_type = shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].value_type;
+			var_idx = op->right_value_second - EVG_FIRST_VAR_ID-1;
+			right2_val = &shader->vars[var_idx].vecval;
+			right2_val_type = shader->vars[var_idx].value_type;
 			if (right_val_type==COMP_FLOAT) {
-				left_val->x = pow(right_val->x, right2_val->x);
+				left_val->x = evg_float_clamp(left_val->x, right_val->x, right2_val->x);
 			} else {
 				if (right_val_type&COMP_X) {
-					left_val->x = pow(right_val->x, right2_val->x);
+					left_val->x = evg_float_clamp(left_val->x, right_val->x, right2_val->x);
 				}
 				if (right_val_type&COMP_Y) {
-					left_val->y = pow(right_val->y, right2_val->x);
+					left_val->y = evg_float_clamp(left_val->y, right_val->y, right2_val->x);
 				}
 				if (right_val_type&COMP_Z) {
-					left_val->z = pow(right_val->z, right2_val->x);
+					left_val->z = evg_float_clamp(left_val->z, right_val->z, right2_val->x);
 				}
 				if (right_val_type&COMP_Q) {
-					left_val->q = pow(right_val->z, right2_val->x);
+					left_val->q = evg_float_clamp(left_val->q, right_val->z, right2_val->x);
 				}
 			}
 			break;
@@ -1839,11 +2040,37 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 			JS_FreeCString(ctx, arg_str);
 			goto op_parsed;
 		}
+		else if (!strcmp(val_name, "discard")) {
+			if (shader->mode==GF_EVG_SHADER_VERTEX) {
+				shader->invalid = GF_TRUE;
+				return js_throw_err_msg(ctx, GF_BAD_PARAM, "discard is invalid in vertex shader");
+			}
+			op_type = EVG_OP_DISCARD;
+			JS_FreeCString(ctx, arg_str);
+			goto op_parsed;
+		}
 		else if (!strcmp(val_name, "elseif")) {
 			op_type = EVG_OP_ELSEIF;
 			var_idx=1;
 		}
-		else if (!strcmp(val_name, "while")) op_type = EVG_OP_WHILE;
+		else if (!strcmp(val_name, "goto")) {
+			op_type = EVG_OP_GOTO;
+			JS_FreeCString(ctx, arg_str);
+
+			if (JS_IsString(argv[1])) {
+				arg_str = JS_ToCString(ctx, argv[1]);
+				if (arg_str[0] != '.') {
+					shader->invalid = GF_TRUE;
+					return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid goto var, must be a uniform string");
+				}
+				right_op_idx = VAR_UNIFORM;
+				uni_name = gf_strdup(arg_str+1);
+			} else if (JS_ToInt32(ctx, &left_op_idx, argv[1]) ) {
+				shader->invalid = GF_TRUE;
+				return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid goto var, must be a number greater than 1, 1 being the first instruction in the stack");
+			}
+			goto op_parsed;
+		}
 		else if (!strcmp(val_name, "end")) {
 			op_type = EVG_OP_END;
 			JS_FreeCString(ctx, arg_str);
@@ -1878,7 +2105,6 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 	op_name = JS_ToCString(ctx, argv[var_idx+1]);
 	if (!op_name) {
 		shader->invalid = GF_TRUE;
-		if (uni_name) gf_free(uni_name);
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid operand type, must be a string");
 	}
 	if (!strcmp(op_name, "=")) {
@@ -1921,7 +2147,6 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 		if (!new_op.tx) {
 			JS_FreeCString(ctx, val_name);
 			shader->invalid = GF_TRUE;
-			if (uni_name) gf_free(uni_name);
 			return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid texture object for 2D sampler");
 		}
 		new_op.tx_ref = argv[var_idx+2];
@@ -1930,6 +2155,9 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 		op_type = EVG_OP_NORMALIZE;
 	} else if (!strcmp(op_name, "length")) {
 		op_type = EVG_OP_LENGTH;
+	} else if (!strcmp(op_name, "distance")) {
+		op_type = EVG_OP_DISTANCE;
+		dual_right_val = GF_TRUE;
 	} else if (!strcmp(op_name, "dot")) {
 		op_type = EVG_OP_DOT;
 		dual_right_val = GF_TRUE;
@@ -1939,10 +2167,60 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 	} else if (!strcmp(op_name, "pow")) {
 		op_type = EVG_OP_POW;
 		dual_right_val = GF_TRUE;
+	} else if (!strcmp(op_name, "sin")) {
+		op_type = EVG_OP_SIN;
+	} else if (!strcmp(op_name, "asin")) {
+		op_type = EVG_OP_ASIN;
+	} else if (!strcmp(op_name, "cos")) {
+		op_type = EVG_OP_COS;
+	} else if (!strcmp(op_name, "acos")) {
+		op_type = EVG_OP_ACOS;
+	} else if (!strcmp(op_name, "tan")) {
+		op_type = EVG_OP_TAN;
+	} else if (!strcmp(op_name, "atan")) {
+		op_type = EVG_OP_ATAN;
+		dual_right_val = GF_TRUE;
+	} else if (!strcmp(op_name, "log")) {
+		op_type = EVG_OP_LOG;
+	} else if (!strcmp(op_name, "exp")) {
+		op_type = EVG_OP_EXP;
+	} else if (!strcmp(op_name, "log2")) {
+		op_type = EVG_OP_LOG2;
+	} else if (!strcmp(op_name, "exp2")) {
+		op_type = EVG_OP_EXP2;
+	} else if (!strcmp(op_name, "sinh")) {
+		op_type = EVG_OP_SINH;
+	} else if (!strcmp(op_name, "cosh")) {
+		op_type = EVG_OP_COSH;
+	} else if (!strcmp(op_name, "sqrt")) {
+		op_type = EVG_OP_SQRT;
+	} else if (!strcmp(op_name, "inversesqrt")) {
+		op_type = EVG_OP_INVERSE_SQRT;
+	} else if (!strcmp(op_name, "abs")) {
+		op_type = EVG_OP_ABS;
+	} else if (!strcmp(op_name, "sign")) {
+		op_type = EVG_OP_SIGN;
+	} else if (!strcmp(op_name, "floor")) {
+		op_type = EVG_OP_FLOOR;
+	} else if (!strcmp(op_name, "ceil")) {
+		op_type = EVG_OP_CEIL;
+	} else if (!strcmp(op_name, "fract")) {
+		op_type = EVG_OP_FRACT;
+	} else if (!strcmp(op_name, "mod")) {
+		op_type = EVG_OP_MOD;
+		dual_right_val = GF_TRUE;
+	} else if (!strcmp(op_name, "min")) {
+		op_type = EVG_OP_MIN;
+		dual_right_val = GF_TRUE;
+	} else if (!strcmp(op_name, "max")) {
+		op_type = EVG_OP_MAX;
+		dual_right_val = GF_TRUE;
+	} else if (!strcmp(op_name, "clamp")) {
+		op_type = EVG_OP_CLAMP;
+		dual_right_val = GF_TRUE;
 	} else {
 		JS_FreeCString(ctx, val_name);
 		shader->invalid = GF_TRUE;
-		if (uni_name) gf_free(uni_name);
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid operand type, must be a string");
 	}
 	JS_FreeCString(ctx, op_name);
@@ -1952,7 +2230,6 @@ parse_right_val:
 		val_name = JS_ToCString(ctx, argv[var_idx+2]);
 		if (!val_name) {
 			shader->invalid = GF_TRUE;
-			if (uni_name) gf_free(uni_name);
 			return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid right-operand value, must be a string");
 		}
 
@@ -2081,7 +2358,7 @@ op_parsed:
 	shader->ops[shader->nb_ops] = new_op;
 	shader->ops[shader->nb_ops].uni_name = uni_name;
 	shader->nb_ops++;
-	return JS_UNDEFINED;
+	return JS_NewInt32(ctx, shader->nb_ops);
 }
 
 static JSValue shader_update(JSContext *ctx, JSValueConst obj, int argc, JSValueConst *argv)
@@ -2102,12 +2379,13 @@ static JSValue shader_update(JSContext *ctx, JSValueConst obj, int argc, JSValue
 			op->bval = JS_ToBool(ctx, v) ? GF_TRUE : GF_FALSE;
 		}
 		else if (JS_IsNumber(v)) {
-			op->right_value_type = COMP_FLOAT;
-			EVG_GET_FLOAT(op->vec[0], v)
-		}
-		else if (JS_IsInteger(v)) {
-			op->right_value_type = COMP_INT;
-			if (JS_ToInt32(ctx, &op->ival, v)) return JS_EXCEPTION;
+			if (JS_IsInteger(v)) {
+				op->right_value_type = COMP_INT;
+				if (JS_ToInt32(ctx, &op->ival, v)) return JS_EXCEPTION;
+			} else {
+				op->right_value_type = COMP_FLOAT;
+				EVG_GET_FLOAT(op->vec[0], v)
+			}
 		}
 		else if (JS_IsArray(ctx, v)) {
 			u32 idx, length;
