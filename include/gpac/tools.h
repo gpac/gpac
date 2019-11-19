@@ -777,8 +777,6 @@ typedef struct
  */
 GF_Err gf_blob_get_data(const char *blob_url, u8 **out_data, u32 *out_size);
 
-/*!	@} */
-
 /*!
 \addtogroup time_grp
 \brief Time manipulation tools

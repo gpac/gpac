@@ -336,9 +336,8 @@ The YUV to RGB conversion values are currently hardcoded, we will expose them as
 The YUV+alpha is yet to be implemented.
 
 
-
 # Matrices
-The 'webgl' module also comes with a Matrix object to avoid external dependencies for matrix manipulation. The Matrix object is a binding around the native GF_Matrix object.
+The 'evg' module comes with a Matrix object to avoid external dependencies for matrix manipulation.
 @{
 
 */
@@ -363,14 +362,14 @@ interface WebGLContext : implements WebGLRenderingContextBase {
 	/*! activate or deactivate a WebGL context
 	\param activate if true, binds the associated frame buffer. If false, unbinds it
 	*/
-	activate(boolean activate);
+	void activate(boolean activate);
 
 
 	/*! resize the underlying frame buffer to the indicated size
 	\param width new width in pixels
 	\param height new height in pixels
 	*/
-	resize(unsigned long width, unsigned long height);
+	void resize(unsigned long width, unsigned long height);
 
 	/*! uploads the content of the EVG Texture to the bound texture. The bound texture can be a WebGLTexture or a NamedTexture
 	\param target ignored, default to gl.TEXTURE_2D
@@ -380,7 +379,7 @@ interface WebGLContext : implements WebGLRenderingContextBase {
 	\param type ignored, overloaded during upload based on input data
 	\param source the source Texture to use
 	*/
-	texImage2D(GLenum target, GLint level, GLint internalformat, GLenum format, GLenum type, Texture source);
+	void texImage2D(GLenum target, GLint level, GLint internalformat, GLenum format, GLenum type, Texture source);
 
 	/*! uploads the content of the FilterPacket to the bound texture. The bound texture shall be a NamedTexture
 	\param target ignored, default to gl.TEXTURE_2D
@@ -390,7 +389,7 @@ interface WebGLContext : implements WebGLRenderingContextBase {
 	\param type ignored, overloaded during upload based on input data
 	\param source the source FilterPacket to use
 	*/
-	texImage2D(GLenum target, GLint level, GLint internalformat, GLenum format, GLenum type, FilterPacket);
+	void texImage2D(GLenum target, GLint level, GLint internalformat, GLenum format, GLenum type, FilterPacket source);
 
 	/*! creates a named texture
 	\param name the name of the texture
@@ -443,211 +442,6 @@ interface FilterPid {
 \return new packet or null with exception*/
 FilterPacket new_packet(WebGLContext gl, function on_frame_consumed, optional boolean use_depth);
 
-};
-
-
-/*! Matrix 4x4 object. 
-
-
-The Matrix object can be imported using:
-\code
-import {Matrix} from 'webgl'
-
-...
-\endcode
-
-
-Most transformation values return the matrix object so that transformations can be chained:
-\code
-let mat = new Matrix().scale(1, 1, 2).translate(0, -10, 5);
-\endcode
-
-All objects (Vec3f, Vec4f, Rectf) used in the API do not use constructors, their type is inferred if the expected attributes (eg x y, ...) are present in the object
-
-\code
-let res = mat.apply({x:0,y: 0, z:10});
-print(`transformed ${res.x} ${res.y} ${res.z});`
-\endcode
-
-
-*/
-interface Matrix {
-/*! indicates if matrix is identity. If set to true, resets matrix*/
-attribute boolean identity;
-/*! float buffer of coeficients (typically use matrix.m to pass matrices uniforms)*/
-attribute Array<float> m;
-/*! yaw value of matrix*/
-attribute readonly float yaw;
-/*! pitch value of matrix*/
-attribute readonly float pitch;
-/*! roll value of matrix*/
-attribute readonly float roll;
-
-/*! translation value of decomposed matrix*/
-attribute readonly Vec3f dec_translate;
-/*! scale value of decomposed matrix*/
-attribute readonly Vec3f dec_scale;
-/*! rotation value of decomposed matrix*/
-attribute readonly Vec4f dec_rotate;
-/*! shear value of decomposed matrix*/
-attribute readonly Vec3f dec_shear;
-
-/*! copies matrix
-\param from matrix to copy coeficient from
-\return the matrix object
-*/
-Matrix copy(Matrix from);
-/*! check matrices are equal
-\param other matrix to compare with
-\return true if same matrices
-*/
-boolean equal(Matrix other);
-/*! translate a matrix
-\param x X translation value
-\param y Y translation value
-\param z Z translation value
-\return the matrix object
-*/
-Matrix translate(float x, float y, float z);
-
-/*! translate a matrix
-\param v translation vector
-\return the matrix object
-*/
-Matrix translate(Vec3f v);
-
-/*! scale a matrix
-\param x X scale value
-\param y Y scale value
-\param z Z scale value
-\return the matrix object
-*/
-Matrix scale(float x, float y, float z);
-
-/*! scale a matrix
-\param v scale vector
-\return the matrix object
-*/
-Matrix scale(Vec3f v);
-
-
-/*! rotate a matrix
-\param x X value of rotation axis vector
-\param y Y value of rotation axis vector
-\param z Z value of rotation axis vector
-\param angle rotation angle in radians
-\return the matrix object
-*/
-Matrix rotate(float x, float y, float z, float angle);
-
-/*! scale a matrix
-\param v rotation vector+angle
-\return the matrix object
-*/
-Matrix rotate(Vec4f v);
-
-
-/*! multiplies with another matrix (mx = mx * mul)
-\param mul the matrix
-\param do_4x4 if true, performs full multiplication on each row/col, otherwise handles last row as 0 0 0 1
-\return the matrix object
-*/
-Matrix add(Matrix mul, optional boolean do_4x4=false);
-
-/*! inverse the matrix
-\param do_4x4 if true, performs full inversion on each row/col, otherwise handles last row as 0 0 0 1
-\return the matrix object
-*/
-Matrix inverse(optional boolean do_4x4=false);
-
-/*! transposes the matrix
-\return the matrix object
-*/
-Matrix transpose();
-/*! Loads an orthogonal projection matrix
-\param left min horizontal coordinate of viewport
-\param right max horizontal coordinate of viewport
-\param bottom min vertical coordinate of viewport
-\param top max vertical coordinate of viewport
-\param z_near min depth coordinate of viewport
-\param z_far max depth coordinate of viewport
-\return the matrix object
-*/
-Matrix ortho(float left, float right, float top, float bottom, float z_near, float z_far);
-
-/*! loads a perspective projection matrix
-\param fov camera field of view angle in radian
-\param aspect_ratio viewport aspect ratio
-\param z_near min depth coordinate of viewport
-\param z_far max depth coordinate of viewport
-\return the matrix object
-*/
-Matrix perspective(float fov, float aspect_ratio, float z_near, float z_far);
-
-/*! loads a lookat matrix
-\param position position
-\param target look direction
-\param up_vector vector describing the up direction
-\return the matrix object
-*/
-Matrix lookat(Vec3f position, Vec3f target, Vec3f up_vector);
-
-/*! transforms a rectangle
-\param rc the rectangle to transform
-\return the transformed rectangle
-*/
-Rectf apply(Rectf rc);
-
-/*! transforms a 4D vector
-\param v the 4D vector to transform
-\return the transformed 4D vector
-*/
-Vec4f apply(Vec4f v);
-
-/*! transforms a 3D vector
-\param v the 3D vector to transform
-\return the transformed 3D vector
-*/
-Vec3f apply(Vec3f v);
-
-};
-
-/*! 3D vector object*/
-interface Vec3f {
-	/*! X coordinate*/
-	attribute float x;
-	/*! Y coordinate*/
-	attribute float y;
-	/*! Z coordinate*/
-	attribute float z;
-};
-
-/*! rectangle object*/
-interface Rectf {
-	/*! X coordinate*/
-	attribute float x;
-	/*! Y coordinate*/
-	attribute float y;
-	/*! width*/
-	attribute float width;
-	/*! height*/
-	attribute float height;
-};
-
-/*! 4D vector object*/
-interface Vec4f {
-	/*! X coordinate*/
-	attribute float x;
-	/*! Y coordinate*/
-	attribute float y;
-	/*! Z coordinate*/
-	attribute float z;
-	/*! 4th dimension same as 'q' or 'alpha'*/
-	attribute float w;
-	/*! 4th dimension same as 'w' or 'alpha'*/
-	attribute float q;
-	/*! 4th dimension same as 'q' or 'w'*/
-	attribute float alpha;
 };
 
 /*! @} */

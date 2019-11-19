@@ -105,7 +105,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *isom_file, u32 trackNumber, 
 \param rewrite_par aspect ratio is modified in bitstream. Ignored if ar_num or ar_den are not strictly positive
 \return error if any
  */
-GF_Err gf_media_change_par(GF_ISOFile *isom_file, u32 trackNumber, s32 ar_num, s32 ar_den, Bool force_par, Bool rewrite_bs);
+GF_Err gf_media_change_par(GF_ISOFile *isom_file, u32 trackNumber, s32 ar_num, s32 ar_den, Bool force_par, Bool rewrite_par);
 
 /*!
  *Removes all non rap samples (sync and other RAP sample group info) from the track.

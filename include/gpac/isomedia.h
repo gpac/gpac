@@ -1799,17 +1799,29 @@ GF_Err gf_isom_set_interleave_time(GF_ISOFile *isom_file, u32 InterleaveTime);
 */
 GF_Err gf_isom_force_64bit_chunk_offset(GF_ISOFile *isom_file, Bool set_on);
 
+/*! compression mode of top-level boxes*/
 typedef enum
 {
+	/*! no compression is used*/
 	GF_ISO_COMP_NONE=0,
+	/*! only moov box is compressed*/
 	GF_ISO_COMP_MOOV,
+	/*! only moof boxes are compressed*/
 	GF_ISO_COMP_MOOF,
+	/*! only moof and sidx boxes are compressed*/
 	GF_ISO_COMP_MOOF_SIDX,
+	/*! only moof,  sidx and ssix boxes are compressed*/
 	GF_ISO_COMP_MOOF_SSIX,
+	/*! all (moov, moof,  sidx and ssix) boxes are compressed*/
 	GF_ISO_COMP_ALL,
 } GF_ISOCompressMode;
 
-GF_Err gf_isom_enable_compression(GF_ISOFile *file, GF_ISOCompressMode compress_mode);
+/*! sets compression mode of file
+\param isom_file the target ISO file
+\param compress_mode the desired compress mode
+\return error if any
+*/
+GF_Err gf_isom_enable_compression(GF_ISOFile *isom_file, GF_ISOCompressMode compress_mode);
 
 /*! sets the copyright in one language
 \param isom_file the target ISO file
@@ -3261,13 +3273,14 @@ GF_Err gf_isom_new_mj2k_description(GF_ISOFile *isom_file, u32 trackNumber, cons
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 /*! creates a time code metadata sample description
-\note frames_per_counter_tick<0 disables counter flag but signals frames_per_tick - used for ffmpeg compatibility
+\note frames_per_counter_tick<0 disables counter flag but signals frames_per_tick
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param fps_num the frame rate numerator
 \param fps_den the frame rate denumerator (frame rate numerator will be track media timescale)
 \param frames_per_counter_tick if not 0, enables counter mode (sample data is an counter) and use this value as number of frames per counter tick. Otherwise, disables counter mode (sample data write h,m,s,frames)
 \param is_drop indicates that the time code in samples is a drop timecode
+\param is_counter indicates that the counter flag should be set
 \param outDescriptionIndex set to the index of the created sample description
 \return error if any
 */

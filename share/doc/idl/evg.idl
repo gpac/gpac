@@ -19,9 +19,9 @@ import * as evg from 'evg'
 ...
 \endcode
 
-The API supports all 2D Vector Graphics from \ref evg_grp, \ref path_grp, bindings for 2D matrices and text rendering as used by the \ref compose_grp.
+The API supports all Vector Graphics from \ref evg_grp, \ref path_grp, bindings for 2D and 3D matrices and text rendering as used by the \ref compose_grp.
 
-The API is a low level access to the 2D rasterizer and does not follow the Canvas2D API (https://www.w3.org/TR/2dcontext/) but most of the tools required
+The API is a low level access to the software rasterizer and does not follow the Canvas2D API (https://www.w3.org/TR/2dcontext/) but most of the tools required
 to implement Canvas2D are present in the evg API. 
 
 It allows a filter to:
@@ -35,13 +35,13 @@ Whenever pixel coordinates are indicated, 0,0 indicates:
 
 Whenever using an object as a parameter to a function, only the parameter names as listed in the corresponding interface object are checked. The name of the interface is not, and it usually does not define any constructor.
 
-\note Although 10-bit raster is supported for YUV formats, colors are internally handled as 8-bits for solid brush and gradients. This will be updated in the near future.
+\note Although 10-bit raster is supported for YUV formats (framebuffer and textures), colors are internally handled as 8-bits for solid brush and gradients. This will be updated in the near future.
 @{
 
 
 */
 
-/*! The Canvas object is used to draw vectorial path */
+/*! The Canvas object is used to draw vectorial 2D path */
 interface Canvas {
 	/*! Canvas constructor. The canvas memory is owned by the canvas object
 	\param width the width in pixels of the canvas
@@ -916,5 +916,772 @@ interface TextMeasure
 	unsigned long max_advance_v;
 };
 
+
+/*! Matrix 4x4 object. 
+
+
+The Matrix object can be imported using:
+\code
+import {Matrix} from 'webgl'
+
+...
+\endcode
+
+
+Most transformation values return the matrix object so that transformations can be chained:
+\code
+let mat = new Matrix().scale(1, 1, 2).translate(0, -10, 5);
+\endcode
+
+All objects (Vec3f, Vec4f, Rectf) used in the API do not use constructors, their type is inferred if the expected attributes (eg x y, ...) are present in the object
+
+\code
+let res = mat.apply({x:0,y: 0, z:10});
+print(`transformed ${res.x} ${res.y} ${res.z});`
+\endcode
+
+
+*/
+interface Matrix {
+/*! indicates if matrix is identity. If set to true, resets matrix*/
+attribute boolean identity;
+/*! float buffer of coeficients (typically use matrix.m to pass matrices uniforms)*/
+attribute Array<float> m;
+/*! yaw value of matrix*/
+attribute readonly float yaw;
+/*! pitch value of matrix*/
+attribute readonly float pitch;
+/*! roll value of matrix*/
+attribute readonly float roll;
+
+/*! translation value of decomposed matrix*/
+attribute readonly Vec3f dec_translate;
+/*! scale value of decomposed matrix*/
+attribute readonly Vec3f dec_scale;
+/*! rotation value of decomposed matrix*/
+attribute readonly Vec4f dec_rotate;
+/*! shear value of decomposed matrix*/
+attribute readonly Vec3f dec_shear;
+
+/*! copies matrix
+\param from matrix to copy coeficient from
+\return the matrix object
+*/
+Matrix copy(Matrix from);
+/*! check matrices are equal
+\param other matrix to compare with
+\return true if same matrices
+*/
+boolean equal(Matrix other);
+/*! translate a matrix
+\param x X translation value
+\param y Y translation value
+\param z Z translation value
+\return the matrix object
+*/
+Matrix translate(float x, float y, float z);
+
+/*! translate a matrix
+\param v translation vector
+\return the matrix object
+*/
+Matrix translate(Vec3f v);
+
+/*! scale a matrix
+\param x X scale value
+\param y Y scale value
+\param z Z scale value
+\return the matrix object
+*/
+Matrix scale(float x, float y, float z);
+
+/*! scale a matrix
+\param v scale vector
+\return the matrix object
+*/
+Matrix scale(Vec3f v);
+
+
+/*! rotate a matrix
+\param x X value of rotation axis vector
+\param y Y value of rotation axis vector
+\param z Z value of rotation axis vector
+\param angle rotation angle in radians
+\return the matrix object
+*/
+Matrix rotate(float x, float y, float z, float angle);
+
+/*! scale a matrix
+\param v rotation vector+angle
+\return the matrix object
+*/
+Matrix rotate(Vec4f v);
+
+
+/*! multiplies with another matrix (mx = mx * mul)
+\param mul the matrix
+\param do_4x4 if true, performs full multiplication on each row/col, otherwise handles last row as 0 0 0 1
+\return the matrix object
+*/
+Matrix add(Matrix mul, optional boolean do_4x4=false);
+
+/*! inverse the matrix
+\param do_4x4 if true, performs full inversion on each row/col, otherwise handles last row as 0 0 0 1
+\return the matrix object
+*/
+Matrix inverse(optional boolean do_4x4=false);
+
+/*! transposes the matrix
+\return the matrix object
+*/
+Matrix transpose();
+/*! Loads an orthogonal projection matrix
+\param left min horizontal coordinate of viewport
+\param right max horizontal coordinate of viewport
+\param bottom min vertical coordinate of viewport
+\param top max vertical coordinate of viewport
+\param z_near min depth coordinate of viewport
+\param z_far max depth coordinate of viewport
+\return the matrix object
+*/
+Matrix ortho(float left, float right, float top, float bottom, float z_near, float z_far);
+
+/*! loads a perspective projection matrix
+\param fov camera field of view angle in radian
+\param aspect_ratio viewport aspect ratio
+\param z_near min depth coordinate of viewport
+\param z_far max depth coordinate of viewport
+\return the matrix object
+*/
+Matrix perspective(float fov, float aspect_ratio, float z_near, float z_far);
+
+/*! loads a lookat matrix
+\param position position
+\param target look direction
+\param up_vector vector describing the up direction
+\return the matrix object
+*/
+Matrix lookat(Vec3f position, Vec3f target, Vec3f up_vector);
+
+/*! transforms a rectangle
+\param rc the rectangle to transform
+\return the transformed rectangle
+*/
+Rectf apply(Rectf rc);
+
+/*! transforms a 4D vector
+\param v the 4D vector to transform
+\return the transformed 4D vector
+*/
+Vec4f apply(Vec4f v);
+
+/*! transforms a 3D vector
+\param v the 3D vector to transform
+\return the transformed 3D vector
+*/
+Vec3f apply(Vec3f v);
+
+};
+
+/*! 3D vector object*/
+interface Vec3f {
+	/*! X coordinate*/
+	attribute float x;
+	/*! Y coordinate*/
+	attribute float y;
+	/*! Z coordinate*/
+	attribute float z;
+};
+
+/*! rectangle object*/
+interface Rectf {
+	/*! X coordinate*/
+	attribute float x;
+	/*! Y coordinate*/
+	attribute float y;
+	/*! width*/
+	attribute float width;
+	/*! height*/
+	attribute float height;
+};
+
+/*! 4D vector object*/
+interface Vec4f {
+	/*! X coordinate*/
+	attribute float x;
+	/*! Y coordinate*/
+	attribute float y;
+	/*! Z coordinate*/
+	attribute float z;
+	/*! 4th dimension same as 'q' or 'alpha'*/
+	attribute float w;
+	/*! 4th dimension same as 'w' or 'alpha'*/
+	attribute float q;
+	/*! 4th dimension same as 'q' or 'w'*/
+	attribute float alpha;
+};
+
+
+/*! The Canvas3D object is used to draw vectorial 3D meshes and 2D paths. 
+
+\warning The 3D rasterizer is much much slower than WebGL as it is only software and not realy optimized, do not use it for complex 3D scenes.
+
+
+\warning The 3D rasterizer is still an experimental project: it might not be completely stable and its API may change a lot in the near future.
+
+
+The 3D rasterizer can however be useful when drawing simple 3D objects over an existing video, as it avoids GPU transfers of the frame data.
+
+The rasterizer supports:
+- points, lines, triangles, quads, strips and fans
+- 2D texturing using RGBA or YUVA colorspace
+- perspective correct interpolation
+- simple antialiasing
+- depth buffer (float only)
+- rasterizing in YUVA or RGBA space
+- a simple shading language for both vertex and fragment processing
+
+The rasterizer does not claim compliancy to any GPU specification, and will likely produce different results than WebGL.
+
+ */
+interface Canvas3D {
+	/*! Canvas3D constructor. The canvas memory is owned by the canvas object
+	\param width the width in pixels of the canvas
+	\param height the height in pixels of the canvas
+	\param pixfmt the pixel fomat of the canvas
+	 */
+	Canvas3D(unsigned long width, unsigned long height, DOMString pixfmt);
+	/*! Canvas constructor
+	\param width the width in pixels of the canvas
+	\param height the height in pixels of the canvas
+	\param pixfmt the pixel fomat of the canvas
+	\param data the data buffer on which to write. The size shall be greater than the size required for the given size and pixel format.
+	\param stride horizontal stride in pixel of the data
+	\param stride_uv horizontal stride in pixel of the data for the U and V planes
+	 */
+	Canvas3D(unsigned long width, unsigned long height, DOMString pixfmt, ArrayBuffer data, optional unsigned long stride=0, optional unsigned long stride_uv=0);
+
+/*! clipper in pixel coordinates - see \ref gf_evg_surface_set_clipper
+\note A same path can be drawn several times with different clipper, null means no clipper. Clipper applies to both fill and clear functions*/
+writeonly IRect clipper;
+/*! fragment shader to use, set to NULL to disable pixel writing.*/
+Shader fragment;
+/*! vertex shader to use, set to NULL to disable vertex shading, in which case the currently defined projection and modelview matrices will be used*/
+Shader vertex;
+/*! set face orientation to counter-clockwise or clockwise (see \ref gf_evg_surface_set_ccw)*/
+writeonly boolean ccw;
+/*! backface culling enabled (see \ref gf_evg_surface_set_backcull), default is true*/
+writeonly boolean backcull;
+/*! antialiased enabled (see \ref gf_evg_surface_set_antialias), default is true*/
+writeonly boolean antialias;
+/*! min depth (see \ref gf_evg_surface_set_min_depth), default is 0*/
+writeonly float min_depth;
+/*! max depth (see \ref gf_evg_surface_set_max_depth), default is 1.0*/
+writeonly float max_depth;
+/*! point size (see \ref gf_evg_surface_set_point_size), default is 1.0*/
+writeonly float point_size;
+/*! point smoothing enabled (see \ref gf_evg_surface_set_point_smooth), default is false*/
+writeonly boolean point_smooth;
+/*! line size (see \ref gf_evg_surface_set_line_size), default is 1.0*/
+writeonly float line_size;
+/*! clip zero enabled (see \ref gf_evg_surface_set_clip_zero), default is false*/
+writeonly boolean clip_zero;
+/*! depth test mode (see \ref gf_evg_set_depth_test), default is GF_EVGDEPTH_LESS*/
+writeonly GF_EVGDepthTest depth_test;
+/*! write depth buffer enabled (see \ref gf_evg_surface_write_depth), default is true*/
+writeonly boolean write_depth;
+/*! depth buffer (see \ref gf_evg_surface_set_depth_buffer). \warning Default is null*/
+Float32Buffer depth_buffer;
+
+
+/*! clears the canvas with the given color - see \ref gf_evg_surface_clear
+\note Omitting the last values will assume 0xFF for alpha, and 0 for other values. 
+\param rc the rectangle to clear, in pixel coordinates
+\param r red value, between 0 and 255
+\param g green value, between 0 and 255
+\param b blue value, between 0 and 255
+\param a alpha value, between 0 and 255
+*/
+void clear(IRect rc, unsigned long r, unsigned long g, unsigned long b, unsigned long a);
+
+/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+void clear(IRect rc, DOMString color);
+
+/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+void clear(IRect rc, DOMString color);
+
+/*! clears the canvas with the given color
+\note Omitting the last values will assume 1.0 for alpha, and 0.0 for other values. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param r red value, between 0.0 and 1.0
+\param g green value, between 0.0 and 1.0
+\param b blue value, between 0.0 and 1.0
+\param a alpha value, between 0.0 and 1.0
+*/
+void clearf(IRect rc, double r, double g, double b, double a);
+
+/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+void clearf(IRect rc, DOMString color);
+
+
+/*! reassign internal data (typically at each new packet)
+\warning This assumes the data layout has not changed (width, height, pixel format, strides). If these are modified, create a new canvas.
+\param data the buffer to use*/
+void reassign(ArrayBuffer data);
+
+/*! sets current projection matrix to use
+\param projection_matrix the 16 float coeficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
+*/
+void projection(Float32Buffer projection_matrix);
+/*! sets current modelview matrix to use
+\param modelview_matrix the 16 float coeficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
+*/
+void modelview(Float32Buffer modelview_matrix);
+
+/*! draws a set of primitives (see \ref gf_evg_surface_draw_array)
+\param indices array of indices in the vertex buffer for the primitives to draw
+\param vertices the vertices to use
+\param primitive_type the type of primitive to draw
+\param nb_components the number of components per vertex (eg, 2, 3)
+*/
+void draw_array(Int32Buffer indices, Float32Buffer vertices, optional GF_EVGPrimitiveType primitive_type=GF_EVG_TRIANGLES, optional long nb_components=3);
+
+/*! draws a path (see \ref gf_evg_surface_draw_path)
+\param path the path to draw
+\param z the z value to assign to points in the path
+*/
+void draw_path(Path path, optional float z=0);
+/*! draws a text (see \ref gf_evg_surface_draw_path)
+\param text the text to draw
+\param z the z value to assign to points in the text's path
+*/
+void draw_path(Text text, optional float z=0);
+
+/*! clears the depth buffer (see \ref gf_evg_surface_clear_depth)
+\param depth the depth value to set
+*/
+void clear_depth(float depth);
+
+/*! sets the viewport (see \ref gf_evg_surface_viewport)
+\param x the horizontal coordinate of the top-left corner of the viewport
+\param y the vertical coordinate of the top-left corner of the viewport
+\param width the width of the viewport
+\param height the height of the viewport
+
+*/
+void viewport(long x, long y, long width, long height);
+
+/*! sets the viewport to full canvas {0,0,width,height} (see \ref gf_evg_surface_viewport)*/
+void viewport();
+
+/*! creats a new shader
+\return the new shader
+\param shader_type the desired shader type*/
+Shader new_shader(ShaderType shader_type);
+};
+
+/*! defined shader types*/
+typedef enum
+{
+	/*! shader is a fragment shader*/
+	GF_EVG_SHADER_FRAGMENT=1,
+	/*! shader is a vertex*/
+	GF_EVG_SHADER_VERTEX,	
+} ShaderType;
+
+/*! Map type for vertex attributes and vertex attribute interpolators*/
+typedef enum
+{
+	/*! one vertex attribute is given for each vertex index*/
+	GF_EVG_VAI_VERTEX_INDEX=0,
+	/*! one vertex attribute is given for each vertex*/
+	GF_EVG_VAI_VERTEX,
+	/*! one vertex attribute is given for each primitive*/
+	GF_EVG_VAI_PRIMITIVE,
+} AttributeMapType;
+
+/*! Vertex attribute interpolator used by fragment shaders*/
+interface VertexAttribInterpolator
+{
+/*! constructor
+
+This constructor is typically used for vertex attributes that do not need any modification at the vertex shader stage and are directly interpolated in the fragment shader
+\param data float buffer containing the vertex attribute data
+\param nb_components number of floats per attribute
+\param map mapping mode of attribute per vertex or primitive
+*/
+VertexAttribInterpolator(Float32Buffer data, long nb_components, optional AttributeMapType map=GF_EVG_VAI_VERTEX_INDEX);
+
+/*! constructor
+
+This constructor is used for vertex attributes that are fetched through VertexAttrib in the vertex shader and need to be passed to the fragment shader
+\param nb_components number of floats per attribute
+*/
+VertexAttribInterpolator(long nb_components);
+
+/*! if set, the attribute value will be normalized upon fetch by the shader*/
+writeonly boolean normalize;
+	
+};
+
+/*! Vertex attribute buffer used by vertex shaders*/
+interface VertexAttrib
+{
+/*! constructor
+\param data float buffer containing the vertex attribute data
+\param nb_components number of floats per attribute
+\param map mapping mode of attribute per vertex or primitive
+*/
+VertexAttrib(Float32Buffer data, long nb_components, optional AttributeMapType map=GF_EVG_VAI_VERTEX_INDEX);
+
+/*! if set, the attribute value will be normalized upon fetch by the shader*/
+writeonly boolean normalize;
+};
+
+/*! Shader object common to vertex and fragment shaders
+
+Although QuickJS is an amazing piece of software, calling JavaScript for each fragment to compute is currently too much of an overkill. The shader object provides a simple
+set of tools to produce a vertex or fragment output without interacting with JavaScript.
+
+# Generic principles 
+
+The working principles of the shader object is as follows:
+- instructions and variables are pushed onto a stack of instructions
+- live native objects (Matrix, VertexAttrib, VertexAttribInterpolator, Texture) are stored as pointers to the native objects
+- other objects can be defined as uniforms, and updated whenever needed
+- upon executing the shader, the instructions are processed in order
+
+Local variables are untyped, except for reserved variables. The type is infered whenever the variable is assigned or modified, thus a same variable can change type during the execution of the shader. 
+Upon assigning, the type of the source variable is inferred as follows:
+- Javascript bool and integer are converted to integer type
+- Javascript float is converted to float type
+- A javascript object with properties {x, y, z, q/w} or {r,g,b,a} is converted to a 4 component vector
+- A javascript object with properties {x, y, z} or {r,g,b} is converted to a 3 component vector
+- A javascript object with properties {x, y} or {r,g} or {s,t} is converted to a 2 component vector
+- A Matrix object is kept live
+- A VertexAttribInterpolator or VertexAttrib object is converted to a 2D, 3D or 4D vector depending on the number of components in the object
+- A Texture object is converted to a 4D vector
+
+\warning There is no support for structures in the shader instructions.
+
+The assignment of vectors can use masking of components, using a combination of `x`, `y`, `z`, `q` (or `r`, `g`, `b`, `a`) values:
+\code
+shader.push('foo', '=', 'val.xy');
+shader.push('foo.xy', '=', 'val.xz');
+\endcode
+\warning there is no swizzling , `.xy` is equivalent to `.yx`
+
+# Fragment Shader names 
+
+These variables names are reserved in a fragment shader, and their type cannot be modified:
+
+Variable name | type | Semantic
+------------- | ------------- | ------------- 
+fragColor | Vec4f | the fragment output color in RGBA colorspace
+fragRGBA | Vec4f | the fragment output color in RGBA colorspace
+fragYUVA | Vec4f | the fragment output color in YUVA colorspace
+fragX | float | the fragment X coordinate
+fragY | float | the fragment Y coordinate
+fragDepth | float | the fragment depth value
+fragZ | float | the fragment Z coordinate
+fragW | float | the fragment W coordinate
+
+
+# Vertex Shader names 
+
+These variables names are reserved in a vertex shader, and their type cannot be modified:
+
+Variable name | type | Semantic
+------------- | ------------- | ------------- 
+vertex | Vec4f | the input vertex coordinates 
+vertexOut | Vec4f | the output vertex coordinates 
+
+# Uniforms variables
+Uniforms variables are variables whose values need to be updated but do not require a change in the shader logic. Since some of these variables may be true JS values, they cannot be kept by reference in the stack. Instead, these variables are passed by names, and correspond to properties of the shader object. These properties are evaluated whenever the \ref Shader.update function is called.
+
+Uniforms are regular strings prefixed with '.'; for example '.foo' will correspond to the 'foo' property of the shader object.
+The associated JS values can be:
+- boolean
+- integer
+- float
+- array of float, which is converted to Vec2f, Vec3f or Vec4f
+- Float32Array or ArrayBuffer, which is converted to Vec2f, Vec3f or Vec4f
+
+Example:
+
+\code
+//shader creation part
+...
+shader.push('my_var', '=', '.somevar');
+... do something with my_var
+shader.push('fragRGBA', '=', 'myvar');
+
+
+//setup draw
+canvas.fragment = shader
+shader.somevar = [0.5, 0.5, 0.5, 1.0];
+shader.update();
+//draw
+\endcode
+
+
+# Operations
+
+\note in the following table, rv1 means first right value, rv2 means second right value
+
+\note by default, single-dimension operations on vectors are done component-wise, eg res.x = sin(rv1.x), res.y = sin(rv1.y), ... 
+
+The left value can only be:
+- a built-in variable or a local variable in a fragment shader.
+- a built-in variable, a local variable or a VertexAttribInterpolator in a vertex shader.
+
+The first right value can be a built-in variable, a local variable, a uniform, a Texture, a VertexAttrib (vertex shader only), a VertexAttribInterpolator (fragment shader only) or a Matrix.
+
+\note There is currently no support for matrix product in the shaders
+
+Whenever rv2 is allowed, this can only be an already locally defined variable, and cannot be a uniform or a JS Object.
+
+Whenever rv2 is allowed, this can only be an already locally defined variable, and cannot be a uniform or a JS Object.
+
+Both the left value and the right value can be assigned a component mask:
+
+Name | rv1 | rv2 | Semantic
+------------- | ------------- | -------------  | ------------- 
+'=' | any | none | assigns rv1 to left value (1)
+'*=' | any | none | multiplies left value by rv1 (1)
+'*=' | Matrix | none | multiplies left value by the given matrix
+'/=' | any | none | divides left value by rv1 (1)
+'+=' | any | none | adds right value to rv1 (1)
+'=!' | any | none | assigns not rv1 to left value (left = !right) (1)
+'normalize' | Vec3f | none | assigns normalize value of right vector to left value
+'length' | Vec3f | none | assigns length of right vector to left value (float type)
+'distance' | Vec3f | Vec3f | assigns distance between the two right values to left value (float type)
+'dot' | Vec3f | Vec3f | assigns dot product of rv1 by rv2  to left value (float type)
+'cross' | Vec3f | Vec3f | assigns cross product of rv1 by rv2 to left value (Vec3f)
+'pow' | any | same as rv1 | assigns pow of rv1 by rv2 to left value
+'sin' | any | none | assigns sin(rv1) to left value
+'asin' | any | none | assigns asin(rv1) to left value
+'cos' | any | none | assigns cos(rv1) to left value
+'acos' | any | none | assigns acos(rv1) to left value
+'tan' | any | none | assigns tan(rv1) to left value
+'atan' | any | any | assigns atan(rv1, rv2) to left value
+'log' | any | none | assigns log(rv1) to left value
+'exp' | any | none | assigns exp(rv1) to left value
+'log2' | any | none | assigns log2(rv1) to left value
+'exp2' | any | none | assigns exp2(rv1) to left value
+'sinh' | any | none | assigns sinh(rv1) to left value
+'cosh' | any | none | assigns cosh(rv1) to left value
+'sqrt' | any | none | assigns sqrt(rv1) to left value
+'inversesqrt' | any | none | assigns 1/sqrt(rv1) to left value
+'abs' | any | none | assigns absolute value (ABS) of rv1 to left value
+'sign' | any | none | assigns sign vector of rv1 to left value - cf GLSL
+'floor' | any | none | assigns floor(rv1) to left value
+'ceil' | any | none | assigns ceil(rv1) to left value
+'fract' | any | none | assigns fractionnal part of rv1 to left value - cf GLSL
+'mod' | any | any | assigns modulo of rv1 by rv2 to left value - cf GLSL
+'min' | any | any | assigns minimum of rv1 and rv2 to left value - cf GLSL
+'max' | any | any | assigns maximum of rv1 and rv2 to left value - cf GLSL
+'clamp' | any | any | clamps left value with rv1 as minimum and rv2 as maximum
+'sampler' | Texture | Vec2f | sets left value to the pixel value of the texture rv1 at coordinate rv2, as an RGBA Vec4f 
+'samplerYUV' | Texture | Vec2f | sets left value to the pixel value of the texture rv1 at coordinate rv2, as a YUVA Vec4f 
+'discard' | none | none | discards the current fragment and exits shader processing (fragment shader only)
+'print' | any | none | prints the given variable rv1 to stderr
+
+
+ (1): these operations accept component masks on both left value and right value. Example
+ \code
+ shader.push('myval.xy', '*=' 'otherval.zq');
+ \endcode
+
+If the right value has less component indicated in the mask than left value components, the last indicated component of the right value will be used for the remaining left value components.
+Example
+ \code
+ //myval will be assigned to {x:otherval.z, y:otherval.q, z:otherval.q}
+ shader.push('if', 'myval.xyz', '=' 'otherval.zq');
+ \endcode
+
+# Conditions
+
+Conditions are expressed with the following keywords:
+- 'if' : takes 3 additionnal parameters `left`, `operand`and `right` and evaluates the condition
+- 'elseif' : takes 3 additionnal parameters `left`, `operand` and `right` and evaluates the condition
+- 'else': no additional parameters
+- 'end': no additional parameters
+
+Conditions can be nested.
+
+Name | Right Value | Semantic
+------------- | ------------- | ------------- 
+'<' | any | evaluate to true if left is strictly less than right
+'<=' | any | evaluate to true if left is less than or equal to right
+'>' | any | evaluate to true if left is strictly greater than right
+'>=' | any | evaluate to true if left is greater than or equal to right
+'==' | any | evaluate to true if left is equal to right
+'!=' | any | evaluate to true if left is different from right
+
+Example:
+
+\code
+...
+shader.push('if', 'my_var.x', '<=', 0.5);
+shader.push('if', 'my_var.y', '>=', 0.5);
+...
+shader.push('end');
+shader.push('elseif', 'my_var.x', '<=', '.uniform');
+...
+shader.push('else');
+...
+shader.push('end');
+...
+\endcode
+
+
+Conditions accept component masks on both left value and right value, resulting in a per-component of the mask test. 
+Example
+ \code
+ shader.push('if', 'myval.xy', '<' 'otherval.zq');
+ \endcode
+
+If the right value has less component indicated in the mask than left value components, the last indicated component of the right value will be used for the remaining left value components.
+Example
+ \code
+ //myval will be tested against {x:otherval.z, y:otherval.q, z:otherval.q}
+ shader.push('if', 'myval.xyz', '<' 'otherval.zq');
+ \endcode
+
+
+
+# Stack jumping
+
+The `goto` statement allows jumping in the stack. 
+The `goto` statement takes a single parameter which can either be an integer or a uniform name resolving to an integer. This integer gives the 1-based index of the instruction to jump to.
+Example:
+
+\code
+...
+shader.label_start = shader.push('if', 'my_var.x', '<=', 0.5);
+shader.push('if', 'my_var.y', '>=', 0.5);
+...
+shader.push('goto', '.label_end'); //go to the instruction at position label_end
+...
+shader.push('end');
+shader.push('elseif', 'my_var.x', '<=', '.uniform');
+shader.push('goto', '.label_start'); //go to the instruction at position label_start
+shader.push('else');
+shader.push('goto', 0); //go to begining of the instruction stack
+shader.label_end = shader.push('end');
+...
+\endcode
+
+The value of the jump position is not checked while assigning the `goto` instruction, it is checked while processing the fragment: this allows jumping anywhere in the stack. 
+
+\warning You must make sure that your shader state is correct when jumping in the stack of instructions !
+
+\note There is no provision for `while` and `for` statements in the shader. This can however be emulated with the `goto` statement.
+
+
+# Vertex attribute interpolation
+
+The rasterizer performs perspective-correct interpolation of attributes, and provides two objects, VertexAttrib and VertexAttribInterpolator, to handle interpolation. The attribute interpolation can be done:
+- at the fragment shader stage only
+- at both vertex and fragment shader stages
+
+# Fragment-shader only interpolation
+In this configuration, the attributes to interpolate do not depend on the state of the vertex shader (eg for example vertices colors or texture coordinates).
+To interpolate the attribute, a VertexAttribInterpolator object is used to wrap the attributes to interpolate.
+
+Example:
+
+\code
+  let txi = new evg.VertexAttribInterpolator(cube_txcoords, 2, GF_EVG_VAI_VERTEX);
+  frag_shader=canvas.new_shader(GF_EVG_SHADER_FRAGMENT);
+
+  frag_shader.push('txc', '=', txi);
+  frag_shader.push('txc', '*=', 2);
+  frag_shader.push('txval', 'sampler', texture, 'txc');
+  frag_shader.push('fragColor', '=', 'txval');
+
+\endcode
+
+
+# Per-vertex  interpolation
+In this configuration, the attributes to interpolate depend on the state of the vertex shader.
+To interpolate the attribute, a VertexAttrib object is used to wrap the attributes to interpolate at the vertex shader, and a VertexAttribInterpolator object is used to perform the interpolation at the fragment shader.
+
+Example:
+
+\code
+  let ni = new evg.VertexAttribInterpolator(3);
+  ni.normalize=true;
+  let normals = new evg.VertexAttrib(cube_normals_face, 3, GF_EVG_VAI_PRIMITIVE);
+
+  vert_shader=canvas.new_shader(GF_EVG_SHADER_VERTEX);
+  vert_shader.push('normal', '=', normals);
+  vert_shader.push('normal', '*=', normal_matrix);
+  vert_shader.push(ni, '=', 'normal');
+  vert_shader.push('vertex', '*=', matrix);
+  vert_shader.push('vertexOut', '=', 'vertex');
+
+  frag_shader=canvas.new_shader(GF_EVG_SHADER_FRAGMENT);
+
+  frag_shader.push('normal', '=', ni);
+  frag_shader.push('normal.q', '=', 1.0);
+  frag_shader.push('fragColor', '=', 'normal');
+
+\endcode
+
+*/
+interface Shader {
+/*! resets the stack of instructions*/
+void push();
+
+/*! pushes a new instruction on the stack
+\param left_val the name of the left value to be assigned or modified
+\param operand the name of the operand to use
+\param right_val the name of the right value to use by the operand
+\param right_val2 the name of the second right value to use by the operand, if any
+\return the 1-based index of the added instruction
+*/
+long push(DOMString left_val, DOMString operand, DOMString right_val, optional DOMString right_val2 = null);
+
+/*! pushes a new condition instruction on the stack
+\param cond_val the name of the condition. Allowed values are `if`, `elseif`
+\param left_val the name of the left value to be assigned or modified
+\param operand the name of the operand to use
+\param right_val the name of the right value to use by the operand
+\return the 1-based index of the added instruction
+*/
+long push(DOMString cond_val, DOMString left_val, DOMString operand, [DOMString|Object|long|float] right_val);
+
+/*! pushes an end of condition instruction on the stack
+\param end_cond_val the name of the end of condition. Allowed values are `else`, `end`
+\return the 1-based index of the added instruction
+*/
+long push(DOMString end_cond_val);
+
+
+/*! pushes a goto instruction on the stack
+\param goto_val the name of the goto. Allowed values are `goto`
+\param stack_index the 1-based index of the stack instruction to go to
+\return the 1-based index of the added instruction
+*/
+long push(DOMString goto_val, long stack_index);
+
+/*! pushes a goto instruction on the stack
+\param goto_val the name of the goto. Allowed values are `goto`
+\param stack_index_uniform name if the uniform giving the 1-based index of the stack instruction to go to
+\return the 1-based index of the added instruction
+*/
+long push(DOMString goto_val, DOMString stack_index_uniform);
+
+/*! updates uniforms in the shader*/
+void update();
+};
 
 /*! @} */
