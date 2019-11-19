@@ -209,7 +209,8 @@ const char *gpac_doc =
 "- name#P4CC+VAL: accepts only PIDs with property strictly greater than `VAL` (only for 1-dimension number properties).\n"
 "\n"
 "A sourceID name can also use wildcard or be empty to match a property regardless of the source filter:\n"
-"EX fA fB:SID=*#ServiceID=2\nfA fB:SID=#ServiceID=2\n"
+"EX fA fB:SID=*#ServiceID=2\n"
+"EX fA fB:SID=#ServiceID=2\n"
 "This indicates to match connection between `fA` and `fB` only for PIDs with a `ServiceID` property of `2`.\n"
 "These extensions also work with the __LINK__ `@` shortcut\n"
 "EX fA fB @1#video fC\n"
@@ -276,7 +277,7 @@ const char *gpac_doc =
 "EX src=img.heif dst=dump_$ItemID$.jpg:clone\n"
 "In this case, the destination will be cloned for each item, and all will be exported to different JPEGs thanks to URL templating.\n"
 "# Templating filter chains\n"
-"There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the `:clone`option is not enough since the muxer will always accetp the input PIDs.\n"
+"There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the `:clone`option is not enough since the muxer will always accept the input PIDs.\n"
 "To handle this, it is possible to use a PID property name in the sourceID of a filter with the value `*` or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned\n"
 "Warning: This feature should only be called with a single property set to `*` per source ID, results are undefined otherwise.\n"
 "EX src=source.ts dst=file_$ServiceID$.mp4:SID=*#ServiceID=*\n"
@@ -294,8 +295,8 @@ const char *gpac_doc =
 "This will mux the streams in `dump.ts`, using `ServiceID` 4 for PIDs from `v1.mp4` and `ServiceID` 2 for PIDs from `v2.mp4`\n"
 "# External filters\n"
 "GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in "
-"folders listed in GPAC config file section `core` key `mod-dirs`. The files shall be named __gf_*__ and shall export a single function "
-"returning a filter register - see [libgpac documentation](https://doxygen.gpac.io/) for more details.\n"
+"folders listed in GPAC config file section `core` key `mod-dirs`. The files shall be named `gf_*` and shall export"
+" a single function returning a filter register - see [libgpac documentation](https://doxygen.gpac.io/) for more details.\n"
 "\n";
 #endif
 
