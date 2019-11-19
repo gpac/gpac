@@ -40,14 +40,14 @@
 
 #ifdef GPAC_HAS_SSE2
 
-static Float gf_float_clamp(Float val, Float minval, Float maxval)
+static Float float_clamp(Float val, Float minval, Float maxval)
 {
     _mm_store_ss( &val, _mm_min_ss( _mm_max_ss(_mm_set_ss(val),_mm_set_ss(minval)), _mm_set_ss(maxval) ) );
     return val;
 }
 #else
 
-#define gf_float_clamp(_val, _minval, _maxval)\
+#define float_clamp(_val, _minval, _maxval)\
 	(_val<_minval) ? _minval : (_val>_maxval) ? _maxval : _val;
 
 #endif
@@ -213,10 +213,10 @@ Bool evg3d_get_fragment(GF_EVGSurface *surf, GF_EVGFragmentParam *frag_param, Bo
 		return GF_FALSE;
 
 #if 0
-	frag_param->color.x = gf_float_clamp(frag_param->color.x, 0.0, 1.0);
-	frag_param->color.y = gf_float_clamp(frag_param->color.y, 0.0, 1.0);
-	frag_param->color.z = gf_float_clamp(frag_param->color.z, 0.0, 1.0);
-	frag_param->color.q = gf_float_clamp(frag_param->color.q, 0.0, 1.0);
+	frag_param->color.x = float_clamp(frag_param->color.x, 0.0, 1.0);
+	frag_param->color.y = float_clamp(frag_param->color.y, 0.0, 1.0);
+	frag_param->color.z = float_clamp(frag_param->color.z, 0.0, 1.0);
+	frag_param->color.q = float_clamp(frag_param->color.q, 0.0, 1.0);
 #endif
 
 	if (frag_param->color.q<1.0) *is_transparent = GF_TRUE;
@@ -232,7 +232,7 @@ Bool evg3d_get_fragment(GF_EVGSurface *surf, GF_EVGFragmentParam *frag_param, Bo
 	}
 
 	if (surf->not_8bits) {
-		if (surf->is_yuv) {
+		if (surf->yuv_type) {
 			if (frag_param->frag_valid==GF_EVG_FRAG_RGB) {
 				surf->fill_col_wide = evg_argb_to_ayuv_wide(surf, surf->fill_col_wide);
 			}
@@ -242,7 +242,7 @@ Bool evg3d_get_fragment(GF_EVGSurface *surf, GF_EVGFragmentParam *frag_param, Bo
 			}
 		}
 	} else {
-		if (surf->is_yuv) {
+		if (surf->yuv_type) {
 			/*RGB frag*/
 			if (frag_param->frag_valid==GF_EVG_FRAG_RGB) {
 				surf->fill_col = evg_argb_to_ayuv(surf, surf->fill_col);
@@ -398,7 +398,7 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 		gf_vec_diff(pt, pix, s3d->s_v1);
 		bc1 = gf_vec_len(pt);
 		bc1 /= s3d->v1v2_length;
-		bc1 = gf_float_clamp(bc1, 0, 1);
+		bc1 = float_clamp(bc1, 0, 1);
 		bc2 = FIX_ONE - bc1;
 		depth = s3d->s_v1.z * bc1 + s3d->s_v2.z * bc2;
 
@@ -475,7 +475,7 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 					pt.z=0;
 					bc2 = gf_vec_dot(pt, s3d->v2v3);
 					bc2 /= s3d->v2v3_length;
-					bc3 = gf_float_clamp(bc2, 0, 1);
+					bc3 = float_clamp(bc2, 0, 1);
 					bc2 = FIX_ONE - bc3;
 				}
 				//project pixel center on line v1v3
@@ -485,7 +485,7 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 					pt.z=0;
 					bc1 = gf_vec_dot(pt, s3d->v1v3);
 					bc1 /= s3d->v1v3_length;
-					bc3 = gf_float_clamp(bc1, 0, 1);
+					bc3 = float_clamp(bc1, 0, 1);
 					bc1 = FIX_ONE - bc3;
 				}
 				//project pixel center on line v1v2
@@ -495,7 +495,7 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 					pt.z=0;
 					bc1 = gf_vec_dot(pt, s3d->v1v2);
 					bc1 /= s3d->v1v2_length;
-					bc2 = gf_float_clamp(bc1, 0, 1);
+					bc2 = float_clamp(bc1, 0, 1);
 					bc1 = FIX_ONE - bc2;
 				}
 #endif
@@ -503,9 +503,9 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 			} else
 #endif
 			if (!s3d->mode2d) {
-				bc1 = gf_float_clamp(bc1, 0, 1);
-				bc2 = gf_float_clamp(bc2, 0, 1);
-				bc3 = gf_float_clamp(bc3, 0, 1);
+				bc1 = float_clamp(bc1, 0, 1);
+				bc2 = float_clamp(bc2, 0, 1);
+				bc3 = float_clamp(bc3, 0, 1);
 			}
 
 			full_cover = GF_FALSE;
@@ -711,7 +711,6 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 	raster->min_ey = surf->clip_yMin;
 	raster->max_ex = surf->clip_xMax;
 	raster->max_ey = surf->clip_yMax;
-	raster->max_gray_spans = 0xFFFFFFFF;
 
 	s3d->run_write_depth = s3d->depth_buffer ? s3d->write_depth : GF_FALSE;
 
@@ -1056,7 +1055,6 @@ restart_quad:
 				depth_line[pi->x] = pi->depth;
 		}
 	}
-	raster->max_gray_spans = FT_MAX_GRAY_SPANS;
 	return GF_OK;
 }
 
