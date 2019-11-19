@@ -410,8 +410,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				force_fps.num = ticks;
 				force_fps.den = dts_inc;
 			} else {
-				force_fps.num = (u32) (atof(ext+5));
 				force_fps.den = 1000;
+				force_fps.num = (u32) (atof(ext+5) * force_fps.den);
 			}
 		}
 		else if (!stricmp(ext+1, "rap")) rap_only = 1;
