@@ -204,7 +204,7 @@ void PrintUsage()
 	        "\t        \"core\"       : libgpac core\n"
 	        "\t        \"coding\"     : bitstream formats (audio, video, scene)\n"
 	        "\t        \"container\"  : container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
-	        "\t        \"network\"    : network data exept RTP trafic\n"
+	        "\t        \"network\"    : network data except RTP trafic\n"
 	        "\t        \"rtp\"        : rtp trafic\n"
 	        "\t        \"author\"     : authoring tools (hint, import, export)\n"
 	        "\t        \"sync\"       : terminal sync layer\n"
@@ -1499,7 +1499,7 @@ int mp4client_main(int argc, char **argv)
 		test = url_arg ? gf_fopen(url_arg, "rt") : NULL;
 		if (!test) url_arg = NULL;
 		else gf_fclose(test);
-		
+
 		if (!url_arg) {
 			fprintf(stderr, "Missing argument for dump\n");
 			PrintUsage();
