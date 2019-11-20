@@ -2796,7 +2796,7 @@ static JSValue vertex_setProperty(JSContext *ctx, JSValueConst obj, JSValueConst
 static const JSCFunctionListEntry vertex_funcs[] =
 {
 	JS_CGETSET_MAGIC_DEF("vertex", vertex_getProperty, NULL, EVG_VERTEX_IN),
-	JS_CGETSET_MAGIC_DEF("vertexOut", vertex_getProperty, NULL, EVG_VERTEX_OUT),
+	JS_CGETSET_MAGIC_DEF("vertexOut", NULL, vertex_setProperty, EVG_VERTEX_OUT),
 };
 
 Bool vai_call_lerp(EVG_VAI *vai, GF_EVGFragmentParam *frag)
