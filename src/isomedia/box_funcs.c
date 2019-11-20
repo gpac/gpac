@@ -1235,7 +1235,6 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_APCH, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_APCO, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_APCS, video_sample_entry, "stsd", "apple"),
-	BOX_DEFINE_S( GF_QT_BOX_TYPE_APCF, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_APCN, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_AP4X, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_BOX_TYPE_AP4H, video_sample_entry, "stsd", "apple"),

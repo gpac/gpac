@@ -886,7 +886,6 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		case GF_QT_BOX_TYPE_APCO:
 		case GF_QT_BOX_TYPE_APCN:
 		case GF_QT_BOX_TYPE_APCS:
-		case GF_QT_BOX_TYPE_APCF:
 		case GF_QT_BOX_TYPE_AP4X:
 		case GF_QT_BOX_TYPE_AP4H:
 			prores_type=video_subtype;
@@ -941,7 +940,6 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		case GF_QT_BOX_TYPE_APCS: comp_name = "Apple ProRes 422 LT"; break;
 		case GF_QT_BOX_TYPE_AP4X: comp_name = "Apple ProRes 4444 XQ"; break;
 		case GF_QT_BOX_TYPE_AP4H: comp_name = "Apple ProRes 4444"; break;
-		case GF_QT_BOX_TYPE_APCF: break;
 		}
 		gf_isom_update_video_sample_entry_fields(mp4, video_tk, 1, 0, GF_4CC('a','p','p','l'), 0, 0x3FF, 72<<16, 72<<16, 1, comp_name, -1);
 	}
