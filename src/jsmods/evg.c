@@ -5449,8 +5449,6 @@ static void text_update_path(GF_JSText *txt, Bool for_centered)
 			if (!txt->flip)
 				span->flags |= GF_TEXT_SPAN_FLIP;
 		}
-		if (txt->horizontal)
-			span->flags |= GF_TEXT_SPAN_HORIZONTAL;
 
 		path = gf_font_span_create_path(span);
 		gf_path_add_subpath(txt->path, path, &mx);
@@ -5478,8 +5476,12 @@ static void text_set_text_from_value(GF_JSText *txt, GF_Font *font, JSContext *c
 		char *nline = strchr(str, '\n');
 		if (nline) nline[0] = 0;
 		span = gf_font_manager_create_span(txt->fm, font, (char *) str, FLT2FIX(txt->font_size), GF_FALSE, GF_FALSE, GF_FALSE, NULL, GF_FALSE, 0, NULL);
-		if (span)
+		if (span) {
+			if (txt->horizontal)
+				span->flags |= GF_TEXT_SPAN_HORIZONTAL;
 			gf_list_add(txt->spans, span);
+		}
+
 		if (!nline) break;
 		nline[0] = '\n';
 		start = nline + 1;
@@ -5544,9 +5546,9 @@ static JSValue text_set_text(JSContext *c, JSValueConst obj, int argc, JSValueCo
 				txt->min_x = span->bounds.x;
 			if (txt->min_y > span->bounds.y)
 				txt->min_y = span->bounds.y;
-			if (txt->max_w > span->bounds.width)
+			if (txt->max_w < span->bounds.width)
 				txt->max_w = span->bounds.width;
-			if (txt->max_h > span->bounds.height)
+			if (txt->max_h < span->bounds.height)
 				txt->max_h = span->bounds.height;
 			if (txt->max_x < span->bounds.x + span->bounds.width)
 				txt->max_x = span->bounds.x + span->bounds.width;
