@@ -104,7 +104,11 @@ Targets:
 - [ ] filters scriptable through other languages (python) ?
 
 # Testing
-GPAC has a test suite exercicing most features of the framework. Check the [tests readme](testsuite/README.md) for more details. Per-commit [build](https://buildbot.gpac.io/) and [tests results](https://tests.gpac.io) are available.
+GPAC has a test suite exercicing most features of the framework. As of 0.9.0, the test suite is in a separate repository [https://github.com/gpac/testsuite/](https://github.com/gpac/testsuite/), but is available as a submodule of the GPAC main repository. To initialize the testsuite submodule, do `git submodule update --init`.
+
+For more details on the test suite, check the [tests readme](https://github.com/gpac/testsuite/README.md).
+
+Per-commit [build](https://buildbot.gpac.io/) and [tests results](https://tests.gpac.io) are available.
 
 # Compilation and Installation
 

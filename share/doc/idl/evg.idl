@@ -636,11 +636,11 @@ interface Colorf
 
 /*! interface object to solid brush, linear gradient and radial gradient stencils*/
 interface Stencil {
-	/*! constructor*/
+	/*! constructor for solid color stencil*/
 	SolidBrush();
-	/*! constructor*/
+	/*! constructor for linear gradient stencil*/
 	LinearGradient();
-	/*! constructor*/
+	/*! constructor for radial gradient stencil*/
 	RadialGradient();
 
 	/*! padding mode of gradient - see \ref gf_evg_stencil_set_gradient_mode*/
