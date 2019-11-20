@@ -302,7 +302,9 @@ static void jsf_filter_pck_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *ma
 {
     GF_JSPckCtx *pckctx = JS_GetOpaque(val, jsf_pck_class_id);
     if (!pckctx) return;
-	JS_MarkValue(rt, pckctx->jsobj, mark_func);
+
+	if (!(pckctx->flags & GF_JS_PCK_IS_OUTPUT))
+		JS_MarkValue(rt, pckctx->jsobj, mark_func);
 
     if (!JS_IsUndefined(pckctx->ref_val)) {
 		JS_MarkValue(rt, pckctx->ref_val, mark_func);
