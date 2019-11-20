@@ -285,6 +285,7 @@ GF_Err gmin_dump(GF_Box *a, FILE * trace)
 
 GF_Err clef_dump(GF_Box *a, FILE * trace)
 {
+	Float w, h;
 	const char *name = "TrackCleanApertureDimensionsBox";
 	GF_ApertureBox *p = (GF_ApertureBox *)a;
 	if (p->type==GF_QT_BOX_TYPE_PROF)
@@ -293,7 +294,15 @@ GF_Err clef_dump(GF_Box *a, FILE * trace)
 		name = "TrackEncodedPixelsDimensionsBox";
 
 	gf_isom_box_dump_start(a, name, trace);
-	fprintf(trace, " width=\"%d.%d\" height=\"%d.%d\">\n", (p->width>>16), p->width&0xFFFF, p->height>>16, p->height&0xFFFF);
+	w = (p->width&0xFFFF);
+	w /= 0xFFFF;
+	w += (p->width>>16);
+
+	h = (p->height&0xFFFF);
+	h /= 0xFFFF;
+	h += (p->height>>16);
+
+	fprintf(trace, " width=\"%g\" height=\"%g\">\n", w, h);
 	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
@@ -579,6 +588,7 @@ GF_Err trak_dump(GF_Box *a, FILE * trace)
 	} else if (p->size) {
 		fprintf(trace, "<!--INVALID FILE: Missing Track Header-->\n");
 	}
+	if (p->Aperture) gf_isom_box_dump(p->Aperture, trace);
 	if (p->References) gf_isom_box_dump(p->References, trace);
 	if (p->meta) gf_isom_box_dump(p->meta, trace);
 	if (p->editBox) gf_isom_box_dump(p->editBox, trace);
@@ -665,9 +675,18 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, " DataReferenceIndex=\"%d\" Width=\"%d\" Height=\"%d\"", p->dataReferenceIndex, p->Width, p->Height);
 
 	if (full_dump) {
+		Float dpih, dpiv;
 		fprintf(trace, " Version=\"%d\" Revision=\"%d\" Vendor=\"%s\" TemporalQuality=\"%d\" SpatialQuality=\"%d\" FramesPerSample=\"%d\" ColorTableIndex=\"%d\"",
 			p->version, p->revision, gf_4cc_to_str(p->vendor), p->temporal_quality, p->spatial_quality, p->frames_per_sample, p->color_table_index);
-		fprintf(trace, " XDPI=\"%d.%d\" YDPI=\"%d.%d\" BitDepth=\"%d\"", p->horiz_res>>16, p->horiz_res&0xFFFF, p->vert_res>>16, p->vert_res&0xFFFF, p->bit_depth);
+
+		dpih = (p->horiz_res&0xFFFF);
+		dpih /= 0xFFFF;
+		dpih += (p->vert_res>>16);
+		dpiv = (p->vert_res&0xFFFF);
+		dpiv /= 0xFFFF;
+		dpiv += (p->vert_res>>16);
+
+		fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);
 	} else {
 		//dump reserved info
 		fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
