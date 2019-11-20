@@ -65,6 +65,25 @@ static GFINLINE Bool evg3d_persp_divide(GF_Vec4 *pt)
 	return GF_TRUE;
 }
 
+static GFINLINE void evg_ndc_to_raster(GF_EVGSurface *surf, GF_Vec4 *pt, TPos *x, TPos *y)
+{
+	//from [-1, 1] to [0,2] to [0,1] to [0,vp_width] to [vp left, vp right]
+	pt->x = (pt->x + FIX_ONE) / 2 * surf->width;
+	//idem but flip Y
+	pt->y = (FIX_ONE - (pt->y + FIX_ONE)/2) * surf->height;
+
+	//move Z from [-1, 1] to [min_depth, max_depth]
+	pt->z += FIX_ONE;
+	pt->z /= 2;
+
+#ifdef GPAC_FIXED_POINT
+	*x = UPSCALE(pt->x);
+	*y = UPSCALE(pt->y);
+#else
+	*x = (s32) (pt->x * ONE_PIXEL);
+	*y = (s32) (pt->y * ONE_PIXEL);
+#endif
+}
 static GFINLINE void evg3d_ndc_to_raster(GF_EVGSurface *surf, GF_Vec4 *pt, TPos *x, TPos *y)
 {
 	//from [-1, 1] to [0,2] to [0,1] to [0,vp_width] to [vp left, vp right]
@@ -170,7 +189,7 @@ GF_Err evg_raster_render_path_3d(GF_EVGSurface *surf)
 		if (!evg3d_persp_divide(&pt)) {
 			continue;
 		}
-		evg3d_ndc_to_raster(surf, &pt, &_sx, &_sy);
+		evg_ndc_to_raster(surf, &pt, &_sx, &_sy);
 		gray3d_move_to(raster, _sx, _sy);
 		while ( point < limit ) {
 			point++;
@@ -183,7 +202,7 @@ GF_Err evg_raster_render_path_3d(GF_EVGSurface *surf)
 			if (!evg3d_persp_divide(&pt)) {
 				break;
 			}
-			evg3d_ndc_to_raster(surf, &pt, &_x, &_y);
+			evg_ndc_to_raster(surf, &pt, &_x, &_y);
 			gray_render_line(raster, _x, _y);
 		}
 		gray_render_line(raster, _sx, _sy);
