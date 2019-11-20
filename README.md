@@ -106,7 +106,7 @@ Targets:
 # Testing
 GPAC has a test suite exercicing most features of the framework. As of 0.9.0, the test suite is in a separate repository [https://github.com/gpac/testsuite/](https://github.com/gpac/testsuite/), but is available as a submodule of the GPAC main repository. To initialize the testsuite submodule, do `git submodule update --init`.
 
-For more details on the test suite, check the [tests readme](https://github.com/gpac/testsuite/README.md).
+For more details on the test suite, check the [testsuite readme](https://github.com/gpac/testsuite).
 
 Per-commit [build](https://buildbot.gpac.io/) and [tests results](https://tests.gpac.io) are available.
 
