@@ -6392,6 +6392,10 @@ GF_Err trak_on_child_box(GF_Box *s, GF_Box *a)
 		if (ptr->groups) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->groups = (GF_TrackGroupBox *)a;
 		return GF_OK;
+	case GF_QT_BOX_TYPE_TAPT:
+		if (ptr->Aperture) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->Aperture = (GF_Box *)a;
+		return GF_OK;
 	case GF_ISOM_BOX_TYPE_SENC:
 		ptr->sample_encryption = (GF_SampleEncryptionBox*)a;
 		return GF_OK;
@@ -6460,6 +6464,7 @@ GF_Err trak_box_size(GF_Box *s)
 	u32 pos=0;
 	GF_TrackBox *ptr = (GF_TrackBox *)s;
 	gf_isom_check_position(s, (GF_Box *)ptr->Header, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->Aperture, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->References, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->editBox, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->Media, &pos);

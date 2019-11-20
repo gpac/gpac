@@ -2086,6 +2086,14 @@ GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *isom_file, u32 trackNumber, u3
 */
 GF_Err gf_isom_set_clean_aperture(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 cleanApertureWidthN, u32 cleanApertureWidthD, u32 cleanApertureHeightN, u32 cleanApertureHeightD, u32 horizOffN, u32 horizOffD, u32 vertOffN, u32 vertOffD);
 
+/*! updates track aperture information for QT/ProRes
+\param isom_file the target ISO file
+\param trackNumber the target track number
+\param remove if GF_TRUE, remove track aperture information, otherwise updates it
+\return error if any
+*/
+GF_Err gf_isom_update_aperture_info(GF_ISOFile *isom_file, u32 trackNumber, Bool remove);
+
 /*! content light level info*/
 typedef struct  {
 	/*! max content ligth level*/
