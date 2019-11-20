@@ -821,6 +821,8 @@ typedef struct
 	struct __tag_meta_box *meta;
 	GF_TrackGroupBox *groups;
 
+	GF_Box *Aperture;
+	
 	GF_MovieBox *moov;
 	/*private for media padding*/
 	u32 padding_bytes;
