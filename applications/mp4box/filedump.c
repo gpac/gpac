@@ -1229,11 +1229,12 @@ void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool i
 			case GF_ISOM_SUBTYPE_AV01:
 				is_av1 = GF_TRUE;
 				break;
-			case GF_QT_BOX_TYPE_APCH:
-			case GF_QT_BOX_TYPE_APCO:
-			case GF_QT_BOX_TYPE_APCN:
-			case GF_QT_BOX_TYPE_AP4X:
-			case GF_QT_BOX_TYPE_AP4H:
+			case GF_QT_SUBTYPE_APCH:
+			case GF_QT_SUBTYPE_APCO:
+			case GF_QT_SUBTYPE_APCN:
+			case GF_QT_SUBTYPE_APCS:
+			case GF_QT_SUBTYPE_AP4X:
+			case GF_QT_SUBTYPE_AP4H:
 				is_prores = GF_TRUE;
 				break;
 			}
