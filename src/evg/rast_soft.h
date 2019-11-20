@@ -487,14 +487,14 @@ typedef struct
 	 this ensures that a pixel is draw once and only once
 	*/
 	PatchPixel *pixels;
-	int palloc, pnum;
+	u32 palloc, pnum;
 } AAScanline;
 
 
 typedef struct  TRaster_
 {
 	AAScanline *scanlines;
-	int max_lines;
+	u32 max_lines;
 	TPos min_ex, max_ex, min_ey, max_ey;
 	TCoord ex, ey;
 	TPos x,  y, last_ey;

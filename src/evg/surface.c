@@ -328,9 +328,9 @@ GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, u32 color)
 			_y = rc->y - rc->height;
 		}
 		/*clip is outside our bounds, ignore*/
-		if ((_x>=surf->width) || (_x + rc->width < 0))
+		if ((_x>=(s32) surf->width) || (_x + rc->width < 0))
 			return GF_OK;
-		if ((_y>=surf->height) || (_y + rc->height < 0))
+		if ((_y>= (s32) surf->height) || (_y + rc->height < 0))
 			return GF_OK;
 
 		clear.width = (u32) rc->width;
@@ -341,7 +341,7 @@ GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, u32 color)
 			clear.width += _x;
 			clear.x = 0;
 		}
-		if (clear.x + clear.width > surf->width)
+		if (clear.x + clear.width > (s32) surf->width)
 			clear.width = surf->width - clear.x;
 
 		if (!clear.width)
@@ -355,7 +355,7 @@ GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, u32 color)
 			clear.height += _y;
 			clear.y = 0;
 		}
-		if (clear.y + clear.height > surf->height)
+		if (clear.y + clear.height > (s32) surf->height)
 			clear.height = surf->height - clear.y;
 
 		if (!clear.height)

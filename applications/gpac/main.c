@@ -2256,14 +2256,14 @@ static void dump_all_props(void)
 			if (prop_info->flags & GF_PROP_FLAG_PCK) strcat(szFlags, "P");
 
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", prop_info->name);
-			len = strlen(prop_info->name);
+			len = (u32) strlen(prop_info->name);
 			while (len<16) {
 				gf_sys_format_help(helpout, help_flags, " ");
 				len++;
 			}
 			ptype = get_prop_short_type_name(prop_info->data_type);
 			gf_sys_format_help(helpout, help_flags, " (%s %s %s):", gf_4cc_to_str(prop_info->type), ptype, szFlags);
-			len = strlen(ptype);
+			len = (u32) strlen(ptype);
 			while (len<6) {
 				gf_sys_format_help(helpout, help_flags, " ");
 				len++;

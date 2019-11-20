@@ -935,7 +935,7 @@ static JSValue canvas3d_setProperty(JSContext *ctx, JSValueConst obj, JSValueCon
 	case GF_EVG_DEPTHTEST:
 		if (JS_ToInt32(ctx, &ival, value))
 			return js_throw_err(ctx, GF_BAD_PARAM);
-		e = gf_evg_surface_set_max_depth(canvas->surface, ival);
+		e = gf_evg_set_depth_test(canvas->surface, ival);
 		break;
 	case GF_EVG_POINTSIZE:
 		EVG_GET_FLOAT(f, value);
@@ -1381,7 +1381,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 					Float len;
 					if (!right_val->x) len = ABS(right_val->y);
 					else if (!right_val->y) len = ABS(right_val->x);
-					else len = sqrt(right_val->x*right_val->x + right_val->y*right_val->y);
+					else len = sqrtf(right_val->x*right_val->x + right_val->y*right_val->y);
 					if (len) {
 						right_val->x/=len;
 						right_val->y/=len;
@@ -1479,7 +1479,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 					if (left_val_type_ptr) {
 						*((Bool *) left_val) = *((Bool *) right_val) ? GF_TRUE : GF_FALSE;
 					} else {
-						left_val->x = *(Bool *) right_val ? 1.0 : 0.0;
+						left_val->x = (Float) ( *(Bool *) right_val ? 1.0 : 0.0 );
 						left_val->y = left_val->z = left_val->q = left_val->x;
 					}
 				} else if (right_val_type==COMP_INT) {
@@ -2362,7 +2362,7 @@ parse_right_val:
 
 		if (dual_right_val) {
 			Bool is_ok=GF_FALSE;
-			if (argc<=var_idx+3) {}
+			if ((u32) argc<=var_idx+3) {}
 			else {
 				val_name = JS_ToCString(ctx, argv[var_idx+3]);
 				if (val_name) {
@@ -2745,14 +2745,64 @@ JSClassDef vertex_class = {
 	.class_name = "Vertex",
 };
 
+enum {
+	EVG_VERTEX_IN,
+	EVG_VERTEX_OUT,
+};
+
+static JSValue vertex_getProperty(JSContext *c, JSValueConst obj, int magic)
+{
+	JSValue res;
+	GF_EVGVertexParam *vert= JS_GetOpaque(obj, vertex_class_id);
+	if (!vert) return JS_EXCEPTION;
+	switch (magic) {
+	case EVG_VERTEX_IN: 
+		res = JS_NewObject(c);
+		JS_SetPropertyStr(c, res, "x", JS_NewFloat64(c, vert->in_vertex.x));
+		JS_SetPropertyStr(c, res, "y", JS_NewFloat64(c, vert->in_vertex.y));
+		JS_SetPropertyStr(c, res, "z", JS_NewFloat64(c, vert->in_vertex.z));
+		JS_SetPropertyStr(c, res, "q", JS_NewFloat64(c, vert->in_vertex.q));
+		return res;
+	}
+	return JS_UNDEFINED;
+}
+static JSValue vertex_setProperty(JSContext *ctx, JSValueConst obj, JSValueConst value, int magic)
+{
+	Double _f;
+	JSValue v;
+	GF_EVGVertexParam *vert= JS_GetOpaque(obj, vertex_class_id);
+	if (!vert) return JS_EXCEPTION;
+	switch (magic) {
+	case EVG_VERTEX_OUT:
+		v = JS_GetPropertyStr(ctx, value, "x");
+		EVG_GET_FLOAT(_f, v);
+		vert->out_vertex.x = FLT2FIX(_f);
+		v = JS_GetPropertyStr(ctx, value, "y");
+		EVG_GET_FLOAT(_f, v);
+		vert->out_vertex.y = FLT2FIX(_f);
+		v = JS_GetPropertyStr(ctx, value, "z");
+		EVG_GET_FLOAT(_f, v);
+		vert->out_vertex.z = FLT2FIX(_f);
+		v = JS_GetPropertyStr(ctx, value, "q");
+		EVG_GET_FLOAT(_f, v);
+		vert->out_vertex.q = FLT2FIX(_f);
+
+		break;
+	default:
+		return JS_UNDEFINED;
+	}
+	return JS_UNDEFINED;
+}
 static const JSCFunctionListEntry vertex_funcs[] =
 {
+	JS_CGETSET_MAGIC_DEF("vertex", vertex_getProperty, NULL, EVG_VERTEX_IN),
+	JS_CGETSET_MAGIC_DEF("vertexOut", vertex_getProperty, NULL, EVG_VERTEX_OUT),
 };
 
 Bool vai_call_lerp(EVG_VAI *vai, GF_EVGFragmentParam *frag)
 {
 	u32 i;
-
+	
 	//different primitive, setup inperpolation points
 	if (frag->prim_index != vai->prim_idx) {
 		u32 idx;
@@ -2818,7 +2868,7 @@ Bool vai_call_lerp(EVG_VAI *vai, GF_EVGFragmentParam *frag)
 		}
 	} else {
 		for (i=0; i<vai->nb_comp; i++) {
-			Float v = frag->pbc1 * vai->anchors[0][i] + frag->pbc2 * vai->anchors[1][i] + frag->pbc3 * vai->anchors[2][i];
+			Float v = (Float) ( frag->pbc1 * vai->anchors[0][i] + frag->pbc2 * vai->anchors[1][i] + frag->pbc3 * vai->anchors[2][i] );
 			vai->result.values[i] = v / frag->persp_denum;
 		}
 	}
@@ -2827,7 +2877,7 @@ Bool vai_call_lerp(EVG_VAI *vai, GF_EVGFragmentParam *frag)
 			Float len;
 			if (!vai->result.values[0]) len = ABS(vai->result.values[1]);
 			else if (!vai->result.values[1]) len = ABS(vai->result.values[0]);
-			else len = sqrt(vai->result.values[0]*vai->result.values[0] + vai->result.values[1]*vai->result.values[1]);
+			else len = sqrtf(vai->result.values[0]*vai->result.values[0] + vai->result.values[1]*vai->result.values[1]);
 			if (len) {
 				vai->result.values[0]/=len;
 				vai->result.values[1]/=len;
@@ -5140,7 +5190,7 @@ static void evg_param_tex_callback(void *cbk, u32 x, u32 y, Float *r, Float *g, 
 	if (!JS_IsUndefined(v)) {\
 		JS_ToFloat64(tx->ctx, &compv, v);\
 		JS_FreeValue(tx->ctx, v);\
-		*_comp = compv;\
+		*_comp = (Float) compv;\
 	}\
 
 	GETCOMP(r)

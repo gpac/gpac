@@ -149,8 +149,8 @@ GF_Err evg_raster_render_path_3d(GF_EVGSurface *surf)
 	raster->max_ey = surf->clip_yMax;
 
 
-	size_y = (int) (raster->max_ey - raster->min_ey);
-	if (raster->max_lines < size_y) {
+	size_y = (u32) (raster->max_ey - raster->min_ey);
+	if ((u32) raster->max_lines < size_y) {
 		raster->scanlines = (AAScanline*)gf_realloc(raster->scanlines, sizeof(AAScanline)*size_y);
 		memset(&raster->scanlines[raster->max_lines], 0, sizeof(AAScanline)*(size_y-raster->max_lines) );
 		raster->max_lines = size_y;
@@ -243,10 +243,10 @@ Bool evg3d_get_fragment(GF_EVGSurface *surf, GF_EVGFragmentParam *frag_param, Bo
 	if (surf->not_8bits) {
 		surf->fill_col_wide = evg_make_col_wide((u16) frag_param->color.q*0xFFFF, (u16) frag_param->color.x*0xFFFF, (u16) frag_param->color.y*0xFFFF, (u16) frag_param->color.z*0xFFFF);
 	} else {
-		u8 a = frag_param->color.q*255;
-		u8 r = frag_param->color.x*255;
-		u8 g = frag_param->color.y*255;
-		u8 b = frag_param->color.z*255;
+		u8 a = (u8) (frag_param->color.q*255);
+		u8 r = (u8) (frag_param->color.x*255);
+		u8 g = (u8) (frag_param->color.y*255);
+		u8 b = (u8) (frag_param->color.z*255);
 		surf->fill_col = GF_COL_ARGB(a, r, g, b);
 	}
 
@@ -355,7 +355,7 @@ static void remove_patch_pixel(AAScanline *sl, s32 x)
 
 void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 {
-	u32 i;
+	int i;
 	GF_Vec4 pix;
 	EVGFragCallback *fcbck = user;
 	GF_EVGSurface *surf = fcbck->surf;
@@ -390,8 +390,8 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 	else if (!s3d->mode2d)
 		prev_partial = get_patch_pixel(sl, x);
 
-	pix.x = (Float)x + 0.5;
-	pix.y = (Float)y + 0.5;
+	pix.x = (Float)x + 0.5f;
+	pix.y = (Float)y + 0.5f;
 
 	if (s3d->prim_type==GF_EVG_POINTS) {
 		if (s3d->smooth_points) {
@@ -652,7 +652,7 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 	}
 }
 
-static GFINLINE Bool precompute_tri(EVG_Surface3DExt *s3d, EVGFragCallback *frag_ckck, u32 xmin, u32 xmax, u32 ymin, u32 ymax,
+static GFINLINE Bool precompute_tri(EVG_Surface3DExt *s3d, EVGFragCallback *frag_ckck, TPos xmin, TPos xmax, TPos ymin, TPos ymax,
 									TPos _x1, TPos _y1, TPos _x2, TPos _y2, TPos _x3, TPos _y3,
 									GF_Vec4 *s_pt1, GF_Vec4 *s_pt2, GF_Vec4 *s_pt3,
 									u32 vidx1, u32 vidx2, u32 vidx3
@@ -714,7 +714,7 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 	EVG_Surface3DExt *s3d = surf->ext3d;
 	EVGFragCallback frag_ckck;
 	u32 first_patch, last_patch;
-	u32 xmin, xmax, ymin, ymax;
+	TPos xmin, xmax, ymin, ymax;
 	Bool glob_quad_done = GF_TRUE;
 	u32 prim_index=0;
 	GF_EVGVertexParam vparam;
@@ -753,7 +753,7 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 		is_strip_fan = 1;
 	case GF_EVG_LINES:
 		idx_inc = 2;
-		hlw = s3d->line_size*ONE_PIXEL/2;
+		hlw = (int) (s3d->line_size*ONE_PIXEL/2);
 		prim_type = GF_EVG_LINES;
 		break;
 	case GF_EVG_TRIANGLES:
@@ -782,7 +782,7 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 		break;
 	default:
 		idx_inc = 1;
-		hpw = s3d->point_size*ONE_PIXEL/2;
+		hpw = (int) (s3d->point_size*ONE_PIXEL/2);
 		s3d->pt_radius = (Float) (s3d->point_size*s3d->point_size) / 4;
 
 		break;
@@ -825,7 +825,7 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 		vx->x = vertices[_idx];\
 		vx->y = vertices[_idx+1];\
 		if (_idx+nb_comp_1>=nb_vertices) return GF_BAD_PARAM;\
-		vx->z = (nb_comp>2) ? vertices[_idx+2] : 0.0;\
+		vx->z = (nb_comp>2) ? vertices[_idx+2] : 0.0f;\
 		vx->q = 1.0;\
 		if (s3d->vert_shader) {\
 			s3d->vert_shader(s3d->vert_shader_udta, &vparam); \
