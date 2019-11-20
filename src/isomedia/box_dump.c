@@ -658,7 +658,6 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 	case GF_QT_BOX_TYPE_APCO:
 	case GF_QT_BOX_TYPE_APCN:
 	case GF_QT_BOX_TYPE_APCS:
-	case GF_QT_BOX_TYPE_APCF:
 	case GF_QT_BOX_TYPE_AP4X:
 	case GF_QT_BOX_TYPE_AP4H:
 		name = "ProResSampleEntryBox";
