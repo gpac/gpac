@@ -234,22 +234,22 @@ Bool evg3d_get_fragment(GF_EVGSurface *surf, GF_EVGFragmentParam *frag_param, Bo
 	if (surf->not_8bits) {
 		if (surf->yuv_type) {
 			if (frag_param->frag_valid==GF_EVG_FRAG_RGB) {
-				surf->fill_col_wide = evg_argb_to_ayuv_wide(surf, surf->fill_col_wide);
+				surf->fill_col_wide = gf_evg_argb_to_ayuv_wide(surf, surf->fill_col_wide);
 			}
 		} else {
 			if (frag_param->frag_valid==GF_EVG_FRAG_YUV) {
-				surf->fill_col_wide = evg_ayuv_to_argb_wide(surf, surf->fill_col_wide);
+				surf->fill_col_wide = gf_evg_ayuv_to_argb_wide(surf, surf->fill_col_wide);
 			}
 		}
 	} else {
 		if (surf->yuv_type) {
 			/*RGB frag*/
 			if (frag_param->frag_valid==GF_EVG_FRAG_RGB) {
-				surf->fill_col = evg_argb_to_ayuv(surf, surf->fill_col);
+				surf->fill_col = gf_evg_argb_to_ayuv(surf, surf->fill_col);
 			}
 		} else {
 			if (frag_param->frag_valid==GF_EVG_FRAG_YUV) {
-				surf->fill_col = evg_ayuv_to_argb(surf, surf->fill_col);
+				surf->fill_col = gf_evg_ayuv_to_argb(surf, surf->fill_col);
 			}
 		}
 	}

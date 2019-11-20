@@ -662,7 +662,7 @@ static JSValue canvas_rgb_yuv(JSContext *c, JSValueConst obj, int argc, JSValueC
 	if (to_rgb) {
 		e = gf_evg_yuv_to_rgb_f(canvas->surface, r, g, b, &y, &u, &v);
 	} else {
-		e = gf_evg_rgb_to_yuv_f(canvas->surface, r, g, b, &y, &u, &v);
+		e = gf_gf_evg_rgb_to_yuv_f(canvas->surface, r, g, b, &y, &u, &v);
 	}
 	if (e)
 		return JS_EXCEPTION;
@@ -1905,7 +1905,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 				*left_val_type_ptr = right_val_type;
 			}
 			left_val->q = right_val->q;
-			gf_evg_rgb_to_yuv_f(canvas->surface, right_val->x, right_val->y, right_val->z, &left_val->x, &left_val->y, &left_val->z);
+			gf_gf_evg_rgb_to_yuv_f(canvas->surface, right_val->x, right_val->y, right_val->z, &left_val->x, &left_val->y, &left_val->z);
 			break;
 		case EVG_OP_YUV2RGB:
 			if (left_val_type_ptr) {
@@ -2155,6 +2155,7 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 				}
 				right_op_idx = VAR_UNIFORM;
 				uni_name = gf_strdup(arg_str+1);
+				JS_FreeCString(ctx, arg_str);
 			} else if (JS_ToInt32(ctx, &left_op_idx, argv[1]) ) {
 				shader->invalid = GF_TRUE;
 				return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid goto var, must be a number greater than 1, 1 being the first instruction in the stack");
@@ -4666,20 +4667,52 @@ void hsv2rgb(u8 src_h, u8 src_s, u8 src_v, u8 *dst_r, u8 *dst_g, u8 *dst_b)
 	*dst_b = (u8)(b * 255); // dst_r : 0-255
 }
 
+enum
+{
+	EVG_CONV_RGB_TO_HSV=0,
+	EVG_CONV_HSV_TO_RGB,
+	EVG_CONV_YUV_TO_RGB,
+	EVG_CONV_RGB_TO_YUV,
+};
 
-static JSValue texture_RGB_HSV(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, Bool toHSV)
+static JSValue texture_convert(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, u32 conv_type)
 {
 	JSValue nobj;
-	u32 i, j;
+	u32 i, j, dst_pf, nb_comp;
+	GF_JSCanvas *canvas;
 	GF_JSTexture *tx_hsv;
 	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
 	if (!tx || !tx->stencil) return JS_EXCEPTION;
+	if (argc) {
+		canvas = JS_GetOpaque(argv[0], canvas_class_id);
+		if (!canvas)
+			canvas = JS_GetOpaque(argv[0], canvas3d_class_id);
+	}
+	if ((conv_type==EVG_CONV_YUV_TO_RGB) || (conv_type==EVG_CONV_RGB_TO_YUV)) {
+		if (!canvas) return js_throw_err_msg(c, GF_BAD_PARAM, "Missing canvas parameter for RBG/YUV conversion");
+	}
+
+	switch (tx->pf) {
+	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBA:
+	case GF_PIXEL_BGRA:
+	case GF_PIXEL_ABGR:
+	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
+		dst_pf = GF_PIXEL_RGBA;
+		nb_comp = 4;
+		break;
+	default:
+		dst_pf = GF_PIXEL_RGB;
+		nb_comp = 3;
+		break;
+	}
 
 	GF_SAFEALLOC(tx_hsv, GF_JSTexture);
 	tx_hsv->width = tx->width;
 	tx_hsv->height = tx->height;
-	tx_hsv->pf = GF_PIXEL_RGB;
-	tx_hsv->nb_comp = 3;
+	tx_hsv->pf = dst_pf;
+	tx_hsv->nb_comp = nb_comp;
 	gf_pixel_get_size_info(tx_hsv->pf, tx_hsv->width, tx_hsv->height, &tx_hsv->data_size, &tx_hsv->stride, &tx_hsv->stride_uv, NULL, NULL);
 	tx_hsv->data = malloc(sizeof(char)*tx_hsv->data_size);
 	tx_hsv->owns_data = GF_TRUE;
@@ -4687,22 +4720,43 @@ static JSValue texture_RGB_HSV(JSContext *c, JSValueConst obj, int argc, JSValue
 	for (j=0; j<tx_hsv->height; j++) {
 		u8 *dst = tx_hsv->data + j*tx_hsv->stride;
 		for (i=0; i<tx_hsv->width; i++) {
+			u8 a, r, g, b;
 			u32 col = gf_evg_stencil_get_pixel(tx->stencil, i, j);
-			u8 a = GF_COL_A(col);
-			u8 r = GF_COL_R(col);
-			u8 g = GF_COL_G(col);
-			u8 b = GF_COL_B(col);
-			if (!a) {
-				r = g = b = 0;
-			} else if (toHSV) {
+
+			if (conv_type == EVG_CONV_RGB_TO_HSV ) {
+				a = GF_COL_A(col);
+				r = GF_COL_R(col);
+				g = GF_COL_G(col);
+				b = GF_COL_B(col);
 				rgb2hsv(r, g, b, &r, &g, &b);
-			} else {
+			} else if (conv_type == EVG_CONV_HSV_TO_RGB ) {
+				a = GF_COL_A(col);
+				r = GF_COL_R(col);
+				g = GF_COL_G(col);
+				b = GF_COL_B(col);
 				hsv2rgb(r, g, b, &r, &g, &b);
+			} else if (conv_type == EVG_CONV_RGB_TO_YUV ) {
+				col = gf_evg_argb_to_ayuv(canvas->surface, col);
+				a = GF_COL_A(col);
+				r = GF_COL_R(col);
+				g = GF_COL_G(col);
+				b = GF_COL_B(col);
+			} else {
+				col = gf_evg_ayuv_to_argb(canvas->surface, col);
+				a = GF_COL_A(col);
+				r = GF_COL_R(col);
+				g = GF_COL_G(col);
+				b = GF_COL_B(col);
 			}
 			dst[0] = r;
 			dst[1] = g;
 			dst[2] = b;
-			dst += 3;
+			if (nb_comp==4) {
+				dst[3] = a;
+				dst += 4;
+			} else {
+				dst += 3;
+			}
 		}
 	}
 	tx_hsv->stencil = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
@@ -4711,13 +4765,21 @@ static JSValue texture_RGB_HSV(JSContext *c, JSValueConst obj, int argc, JSValue
 	JS_SetOpaque(nobj, tx_hsv);
 	return nobj;
 }
-static JSValue texture_toHSV(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+static JSValue texture_rgb2hsv(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	return texture_RGB_HSV(c, obj, argc, argv, GF_TRUE);
+	return texture_convert(c, obj, argc, argv, EVG_CONV_RGB_TO_HSV);
 }
-static JSValue texture_toRGB(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+static JSValue texture_hsv2rgb(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	return texture_RGB_HSV(c, obj, argc, argv, GF_FALSE);
+	return texture_convert(c, obj, argc, argv, EVG_CONV_HSV_TO_RGB);
+}
+static JSValue texture_rgb2yuv(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return texture_convert(c, obj, argc, argv, EVG_CONV_RGB_TO_YUV);
+}
+static JSValue texture_yuv2rgb(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return texture_convert(c, obj, argc, argv, EVG_CONV_YUV_TO_RGB);
 }
 
 static JSValue texture_split(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
@@ -4788,7 +4850,7 @@ static JSValue texture_split(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	JS_SetOpaque(nobj, tx_split);
 	return nobj;
 }
-static JSValue texture_conv(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+static JSValue texture_convolution(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	JSValue v, k, nobj;
 	u32 i, j, kw=0, kh=0, kl=0, hkh, hkw;
@@ -5049,9 +5111,11 @@ static const JSCFunctionListEntry texture_funcs[] =
 
 	JS_CFUNC_DEF("set_alpha", 0, stencil_set_alpha),
 	JS_CFUNC_DEF("set_alphaf", 0, stencil_set_alphaf),
-	JS_CFUNC_DEF("to_HSV", 0, texture_toHSV),
-	JS_CFUNC_DEF("to_RGB", 0, texture_toRGB),
-	JS_CFUNC_DEF("conv", 0, texture_conv),
+	JS_CFUNC_DEF("rgb2hsv", 0, texture_rgb2hsv),
+	JS_CFUNC_DEF("hsv2rgb", 0, texture_hsv2rgb),
+	JS_CFUNC_DEF("rgb2yuv", 0, texture_rgb2yuv),
+	JS_CFUNC_DEF("yuv2rgb", 0, texture_yuv2rgb),
+	JS_CFUNC_DEF("convolution", 0, texture_convolution),
 	JS_CFUNC_DEF("split", 0, texture_split),
 	JS_CFUNC_DEF("update", 0, texture_update),
 
