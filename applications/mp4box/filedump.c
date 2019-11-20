@@ -1207,10 +1207,12 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 }
 
 void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc);
+void dump_qt_prores(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc);
 
 void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool is_final_name, Bool dump_crc)
 {
 	Bool is_av1 = GF_FALSE;
+	Bool is_prores = GF_FALSE;
 
 	FILE *dump;
 	if (inName) {
@@ -1223,8 +1225,17 @@ void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool i
 		esd = gf_isom_get_esd(file, track, 1);
 
 		if (!esd || !esd->decoderConfig) {
-			if (gf_isom_get_media_subtype(file, track, 1) == GF_ISOM_SUBTYPE_AV01) {
+			switch (gf_isom_get_media_subtype(file, track, 1)) {
+			case GF_ISOM_SUBTYPE_AV01:
 				is_av1 = GF_TRUE;
+				break;
+			case GF_QT_BOX_TYPE_APCH:
+			case GF_QT_BOX_TYPE_APCO:
+			case GF_QT_BOX_TYPE_APCN:
+			case GF_QT_BOX_TYPE_AP4X:
+			case GF_QT_BOX_TYPE_AP4H:
+				is_prores = GF_TRUE;
+				break;
 			}
 		}
 		else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AV1) {
@@ -1244,6 +1255,8 @@ void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool i
 
 	if (is_av1)
 		dump_isom_obu(file, trackID, dump, dump_crc);
+	else if (is_prores)
+		dump_qt_prores(file, trackID, dump, dump_crc);
 	else
 		dump_isom_nal_ex(file, trackID, dump, dump_crc);
 
@@ -1334,6 +1347,143 @@ void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dum
 	fprintf(dump, "</OBUTrack>\n");
 
 	if (av1.config) gf_odf_av1_cfg_del(av1.config);
+#endif
+}
+
+void dump_qt_prores(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
+{
+#ifndef GPAC_DISABLE_AV_PARSERS
+	u32 i, count, track, timescale;
+
+	track = gf_isom_get_track_by_id(file, trackID);
+
+	count = gf_isom_get_sample_count(file, track);
+	timescale = gf_isom_get_media_timescale(file, track);
+
+	fprintf(dump, "<ProResTrack trackID=\"%d\" SampleCount=\"%d\" TimeScale=\"%d\">\n", trackID, count, timescale);
+
+	for (i=0; i<count; i++) {
+		GF_BitStream *bs;
+		u64 dts, cts;
+		GF_ProResFrameInfo prores_frame;
+		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, NULL);
+		if (!samp) {
+			fprintf(dump, "<!-- Unable to fetch sample %d -->\n", i+1);
+			continue;
+		}
+		dts = samp->DTS;
+		cts = dts + (s32) samp->CTS_Offset;
+
+		bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
+
+		gf_media_prores_parse_bs(bs, &prores_frame);
+
+		if (cts!=dts) fprintf(dump, "<!-- Wrong timing info (CTS "LLD" vs DTS "LLD") ! -->\n", cts, dts);
+		if (!samp->IsRAP) fprintf(dump, "<!-- Wrong sync sample info, sample is not SAP1 ! -->\n");
+
+		fprintf(dump, "  <Sample number=\"%d\" CTS=\""LLD"\" size=\"%d\" ", i+1, cts, samp->dataLength);
+
+		fprintf(dump, "framesize=\"%d\" frameID=\"%s\" version=\"%d\""
+			, prores_frame.frame_size
+			, gf_4cc_to_str(prores_frame.frame_identifier)
+			, prores_frame.version
+		);
+		fprintf(dump, " encoderID=\"%s\" width=\"%d\" height=\"%d\""
+			, gf_4cc_to_str(prores_frame.encoder_id)
+			, prores_frame.width
+			, prores_frame.height
+		);
+		switch (prores_frame.chroma_format) {
+		case 0: fprintf(dump, " chromaFormat=\"reserved(0)\""); break;
+		case 1: fprintf(dump, " chromaFormat=\"reserved(1)\""); break;
+		case 2: fprintf(dump, " chromaFormat=\"4:2:2\""); break;
+		case 3: fprintf(dump, " chromaFormat=\"4:4:4\""); break;
+		}
+		switch (prores_frame.interlaced_mode) {
+		case 0: fprintf(dump, " interlacedMode=\"progressive\""); break;
+		case 1: fprintf(dump, " interlacedMode=\"interlaced_top_first\""); break;
+		case 2: fprintf(dump, " interlacedMode=\"interlaced_bottom_first\""); break;
+		case 3: fprintf(dump, " interlacedMode=\"reserved\""); break;
+		}
+		switch (prores_frame.aspect_ratio_information) {
+		case 0: fprintf(dump, " aspectRatio=\"unknown\""); break;
+		case 1: fprintf(dump, " aspectRatio=\"1:1\""); break;
+		case 2: fprintf(dump, " aspectRatio=\"4:3\""); break;
+		default: fprintf(dump, " aspectRatio=\"reserved(%d)\"", prores_frame.aspect_ratio_information); break;
+		}
+		switch (prores_frame.framerate_code) {
+		case 0: fprintf(dump, " framerate=\"unknown\""); break;
+		case 1: fprintf(dump, " framerate=\"23.976\""); break;
+		case 2: fprintf(dump, " framerate=\"24\""); break;
+		case 3: fprintf(dump, " framerate=\"25\""); break;
+		case 4: fprintf(dump, " framerate=\"29.97\""); break;
+		case 5: fprintf(dump, " framerate=\"30\""); break;
+		case 6: fprintf(dump, " framerate=\"50\""); break;
+		case 7: fprintf(dump, " framerate=\"59.94\""); break;
+		case 8: fprintf(dump, " framerate=\"60\""); break;
+		case 9: fprintf(dump, " framerate=\"100\""); break;
+		case 10: fprintf(dump, " framerate=\"119.88\""); break;
+		case 11: fprintf(dump, " framerate=\"120\""); break;
+		default: fprintf(dump, " framerate=\"reserved(%d)\"", prores_frame.framerate_code); break;
+		}
+		switch (prores_frame.color_primaries) {
+		case 0: case 2: fprintf(dump, " colorPrimaries=\"unknown\""); break;
+		case 1: fprintf(dump, " colorPrimaries=\"BT.709\""); break;
+		case 5: fprintf(dump, " colorPrimaries=\"BT.601-625\""); break;
+		case 6: fprintf(dump, " colorPrimaries=\"BT.601-525\""); break;
+		case 9: fprintf(dump, " colorPrimaries=\"BT.2020\""); break;
+		case 11: fprintf(dump, " colorPrimaries=\"P3\""); break;
+		case 12: fprintf(dump, " colorPrimaries=\"P3-D65\""); break;
+		default: fprintf(dump, " colorPrimaries=\"reserved(%d)\"", prores_frame.color_primaries); break;
+		}
+		switch (prores_frame.matrix_coefficients) {
+		case 0: case 2: fprintf(dump, " matrixCoefficients=\"unknown\""); break;
+		case 1: fprintf(dump, " matrixCoefficients=\"BT.709\""); break;
+		case 6: fprintf(dump, " matrixCoefficients=\"BT.601\""); break;
+		case 9: fprintf(dump, " matrixCoefficients=\"BT.2020\""); break;
+		default: fprintf(dump, " matrixCoefficients=\"reserved(%d)\"", prores_frame.matrix_coefficients); break;
+		}
+		switch (prores_frame.alpha_channel_type) {
+		case 0: fprintf(dump, " alphaChannel=\"none\""); break;
+		case 1: fprintf(dump, " alphaChannel=\"8bits\""); break;
+		case 2: fprintf(dump, " alphaChannel=\"16bits\""); break;
+		default: fprintf(dump, " alphaChannel=\"reserved(%d)\"", prores_frame.alpha_channel_type); break;
+		}
+		fprintf(dump, " transferCharacteristics=\"%d\" numPictures=\"%d\"" , prores_frame.transfer_characteristics, prores_frame.nb_pic);
+
+		if (!prores_frame.load_luma_quant_matrix && !prores_frame.load_chroma_quant_matrix) {
+			fprintf(dump, "/>\n");
+		} else {
+			u32 j, k;
+			fprintf(dump, ">\n");
+			if (prores_frame.load_luma_quant_matrix) {
+				fprintf(dump, "   <LumaQuantMatrix coefs=\"");
+				for (j=0; j<8; j++) {
+					for (k=0; k<8; k++) {
+						fprintf(dump, " %02X", prores_frame.luma_quant_matrix[j][k]);
+					}
+				}
+				fprintf(dump, "\">\n");
+			}
+			if (prores_frame.load_chroma_quant_matrix) {
+				fprintf(dump, "   <ChromaQuantMatrix coefs=\"");
+				for (j=0; j<8; j++) {
+					for (k=0; k<8; k++) {
+						fprintf(dump, " %02X", prores_frame.chroma_quant_matrix[j][k]);
+					}
+				}
+				fprintf(dump, "\">\n");
+			}
+			fprintf(dump, "  </Sample>\n");
+		}
+		gf_bs_del(bs);
+
+		gf_isom_sample_del(&samp);
+
+		fprintf(dump, "\n");
+		gf_set_progress("Analysing ProRes Track", i+1, count);
+	}
+	fprintf(dump, "</ProResTrack>\n");
 #endif
 }
 

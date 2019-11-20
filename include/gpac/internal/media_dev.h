@@ -686,6 +686,41 @@ u32 gf_av1_leb128_size(u64 value);
 u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value);
 GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id);
 
+typedef struct
+{
+	u32 picture_size;
+	u16 deprecated_number_of_slices;
+	u8 log2_desired_slice_size_in_mb;
+} GF_ProResPictureInfo;
+
+typedef struct
+{
+	u32 frame_size;
+	u32 frame_identifier;
+	u16 frame_hdr_size;
+	u8 version;
+	u32 encoder_id;
+	u16 width;
+	u16 height;
+	u8 chroma_format;
+	u8 interlaced_mode;
+	u8 aspect_ratio_information;
+	u8 framerate_code;
+	u8 color_primaries;
+	u8 transfer_characteristics;
+	u8 matrix_coefficients;
+	u8 alpha_channel_type;
+	u8 load_luma_quant_matrix, load_chroma_quant_matrix;
+	u8 luma_quant_matrix[8][8];
+	u8 chroma_quant_matrix[8][8];
+
+	u8 nb_pic; //1 or 2
+	//for now we don't parse this
+//	GF_ProResPictureInfo pictures[2];
+} GF_ProResFrameInfo;
+
+GF_Err gf_media_prores_parse_bs(GF_BitStream *bs, GF_ProResFrameInfo *prores_frame);
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 typedef struct
