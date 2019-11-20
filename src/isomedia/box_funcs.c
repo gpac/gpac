@@ -174,7 +174,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 				if (size < comp_hdr)
 					return GF_ISOM_INVALID_FILE;
 
-				compressed_size = size - comp_hdr;
+				compressed_size = (u32) (size - comp_hdr);
 				gf_bs_read_data(bs, compb, compressed_size);
 				gf_gz_decompress_payload(compb, compressed_size, &uncomp_data, &osize);
 #if defined(COMP_SIGNAL_SIZE_TYPE) || defined(COMP_SIGNAL_SIZE)

@@ -91,7 +91,7 @@ void gray_record_cell( TRaster *raster )
 			cell->idx1 = raster->idx1;
 			cell->idx2 = raster->idx2;
 
-			if (raster->first_scanline > y)
+			if (raster->first_scanline > (u32) y)
 				raster->first_scanline = y;
 		}
 	}
@@ -542,7 +542,7 @@ static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos area, int ac
 		return;
 	}
 
-	if (count >= raster->max_gray_spans) {
+	if ((u32) count >= raster->max_gray_spans) {
 		raster->render_span(y, count, raster->gray_spans, raster->render_span_data );
 		raster->num_gray_spans = 0;
 
@@ -610,7 +610,7 @@ void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_non_zero
 int evg_raster_render(GF_EVGSurface *surf)
 {
 	Bool zero_non_zero_rule;
-	int i, size_y;
+	u32 i, size_y;
 	EVG_Raster raster = surf->raster;
 	EVG_Outline*  outline = (EVG_Outline*)&surf->ftoutline;
 
@@ -628,7 +628,7 @@ int evg_raster_render(GF_EVGSurface *surf)
 
 	raster->mx = surf->mx;
 
-	size_y = (int) (raster->max_ey - raster->min_ey);
+	size_y = (u32) (raster->max_ey - raster->min_ey);
 	if (raster->max_lines < size_y) {
 		raster->scanlines = (AAScanline*)gf_realloc(raster->scanlines, sizeof(AAScanline)*size_y);
 		memset(&raster->scanlines[raster->max_lines], 0, sizeof(AAScanline)*(size_y-raster->max_lines) );
@@ -674,7 +674,7 @@ EVG_Raster evg_raster_new()
 
 void evg_raster_del(EVG_Raster raster)
 {
-	int i;
+	u32 i;
 	for (i=0; i<raster->max_lines; i++) {
 		gf_free(raster->scanlines[i].cells);
 		if (raster->scanlines[i].pixels)

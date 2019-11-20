@@ -3772,7 +3772,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					s64 cts = gf_filter_pck_get_cts(pck);
 					s64 cts_o = cts - dts;
 					dts_diff = dts - tkw->sample.DTS;
-					tid_group = cts_o / dts_diff;
+					tid_group = (s32) (cts_o / dts_diff);
 					tid_group = 20 - tid_group;
 					if (tid_group != tkw->prev_tid_group) {
 						tkw->prev_tid_group = tid_group;
