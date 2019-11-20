@@ -858,7 +858,7 @@ GF_EXPORT
 GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 {
 	u32 i, count, timescale, def_dur=0, video_tk=0;
-	Bool is_prores=GF_FALSE;
+	u32 prores_type = 0;
 	GF_Err e;
 	u32 colour_type=0;
 	u16 colour_primaries=0, transfer_characteristics=0, matrix_coefficients=0;
@@ -889,12 +889,12 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		case GF_QT_BOX_TYPE_APCF:
 		case GF_QT_BOX_TYPE_AP4X:
 		case GF_QT_BOX_TYPE_AP4H:
-			is_prores=GF_TRUE;
+			prores_type=video_subtype;
 			break;
 		}
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[QTFF/ProRes] Adjusting %s compliancy\n", is_prores ? "ProRes" : "QTFF"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[QTFF/ProRes] Adjusting %s compliancy\n", prores_type ? "ProRes" : "QTFF"));
 
 	//adjust audio tracks
 	for (i=0; i<count; i++) {
@@ -924,7 +924,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	}
 
 	if (video_tk && (nb_video_tracks>1)) {
-		if (is_prores) {
+		if (prores_type) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("QTFF] cannot adjust params to prores, %d video tracks present\n", nb_video_tracks));
 			return GF_BAD_PARAM;
 		}
@@ -932,8 +932,18 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		return GF_OK;
 	}
 
-	if (is_prores) {
-		gf_isom_update_video_sample_entry_fields(mp4, video_tk, 1, 0, GF_4CC('a','p','p','l'), 0, 0x3FF, 72<<16, 72<<16, 1, NULL, -1);
+	if (prores_type) {
+		char *comp_name = NULL;
+		switch (prores_type) {
+		case GF_QT_BOX_TYPE_APCH: comp_name = "Apple ProRes 422 HQ"; break;
+		case GF_QT_BOX_TYPE_APCO: comp_name = "Apple ProRes 422 Proxy"; break;
+		case GF_QT_BOX_TYPE_APCN: comp_name = "Apple ProRes 422"; break;
+		case GF_QT_BOX_TYPE_APCS: comp_name = "Apple ProRes 422 LT"; break;
+		case GF_QT_BOX_TYPE_AP4X: comp_name = "Apple ProRes 4444 XQ"; break;
+		case GF_QT_BOX_TYPE_AP4H: comp_name = "Apple ProRes 4444"; break;
+		case GF_QT_BOX_TYPE_APCF: break;
+		}
+		gf_isom_update_video_sample_entry_fields(mp4, video_tk, 1, 0, GF_4CC('a','p','p','l'), 0, 0x3FF, 72<<16, 72<<16, 1, comp_name, -1);
 	}
 
 	timescale = gf_isom_get_media_timescale(mp4, video_tk);
@@ -951,8 +961,15 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 
 	gf_isom_get_pixel_aspect_ratio(mp4, video_tk, 1, &hspacing, &vspacing);
 	//force 1:1
-	if ((hspacing<=1) || (vspacing<=1))
+	if ((hspacing<=1) || (vspacing<=1)) {
+		hspacing = vspacing = 1;
 		gf_isom_set_pixel_aspect_ratio(mp4, video_tk, 1, 1, 1, GF_TRUE);
+	}
+
+	//pacth enof/prof/clef
+	if (prores_type) {
+		gf_isom_update_aperture_info(mp4, video_tk, GF_FALSE);
+	}
 
 	//todo: patch colr
 	e = gf_isom_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
@@ -979,7 +996,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	else if (ifps>= 5996 && ifps<=6004) target_ts = 6000; //60
 
 	if (!target_ts) {
-		if (is_prores) {
+		if (prores_type) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] Unrecognized frame rate %g\n", ((Double)timescale)/def_dur ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		} else {

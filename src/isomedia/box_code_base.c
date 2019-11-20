@@ -6867,6 +6867,7 @@ void trak_del(GF_Box *s)
 	if (ptr->meta) gf_isom_box_del((GF_Box *)ptr->meta);
 	if (ptr->name) gf_free(ptr->name);
 	if (ptr->groups) gf_isom_box_del((GF_Box *)ptr->groups);
+	if (ptr->Aperture) gf_isom_box_del((GF_Box *)ptr->Aperture);
 	gf_free(ptr);
 }
 
@@ -7105,6 +7106,10 @@ GF_Err trak_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->groups) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->groups = (GF_TrackGroupBox *)a;
 		return GF_OK;
+	case GF_QT_BOX_TYPE_TAPT:
+		if (ptr->Aperture) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->Aperture = (GF_Box *)a;
+		return GF_OK;
 	case GF_ISOM_BOX_TYPE_SENC:
 		ptr->sample_encryption = (GF_SampleEncryptionBox*)a;
 		return gf_isom_box_add_default((GF_Box *)ptr, a);
@@ -7177,6 +7182,10 @@ GF_Err trak_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->Header, bs);
 		if (e) return e;
 	}
+	if (ptr->Aperture) {
+		e = gf_isom_box_write((GF_Box *) ptr->Aperture, bs);
+		if (e) return e;
+	}
 	if (ptr->References) {
 		e = gf_isom_box_write((GF_Box *) ptr->References, bs);
 		if (e) return e;
@@ -7213,6 +7222,11 @@ GF_Err trak_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->Header);
 		if (e) return e;
 		ptr->size += ptr->Header->size;
+	}
+	if (ptr->Aperture) {
+		e = gf_isom_box_size((GF_Box *) ptr->Aperture);
+		if (e) return e;
+		ptr->size += ptr->Aperture->size;
 	}
 	if (ptr->udta) {
 		e = gf_isom_box_size((GF_Box *) ptr->udta);
