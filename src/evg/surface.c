@@ -836,7 +836,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 
 	if (use_const && surf->yuv_type) {
 		u8 y, cb, cr;
-		evg_rgb_to_yuv(surf, surf->fill_col, &y, &cb, &cr);
+		gf_evg_rgb_to_yuv(surf, surf->fill_col, &y, &cb, &cr);
 		if (surf->swap_uv) {
 			u8 t = cb;
 			cb = cr;

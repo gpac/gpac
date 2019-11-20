@@ -321,11 +321,6 @@ void evg_alphagrey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface
 void evg_alphagrey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
 GF_Err evg_surface_clear_alphagrey(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
-void evg_rgb_to_yuv(GF_EVGSurface *surf, GF_Color col, u8*y, u8*cb, u8*cr);
-GF_Color evg_argb_to_ayuv(GF_EVGSurface *surf, GF_Color col);
-GF_Color evg_ayuv_to_argb(GF_EVGSurface *surf, GF_Color col);
-u64 evg_argb_to_ayuv_wide(GF_EVGSurface *surf, u64 col);
-u64 evg_ayuv_to_argb_wide(GF_EVGSurface *surf, u64 col);
 void evg_make_ayuv_color_mx(GF_ColorMatrix *cmat, GF_ColorMatrix *yuv_cmat);
 
 void evg_yuv420p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);

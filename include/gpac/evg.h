@@ -804,7 +804,7 @@ GF_Err gf_evg_surface_set_depth_buffer(GF_EVGSurface *surf, Float *depth);
 \param cr the output V/Cr component
 \return error if any
  */
-GF_Err gf_evg_rgb_to_yuv_f(GF_EVGSurface *surf, Float r, Float g, Float b, Float *y, Float *cb, Float *cr);
+GF_Err gf_gf_evg_rgb_to_yuv_f(GF_EVGSurface *surf, Float r, Float g, Float b, Float *y, Float *cb, Float *cr);
 
 /*! performs YUV to RGB conversion
 \param surf the target  surface
@@ -817,6 +817,44 @@ GF_Err gf_evg_rgb_to_yuv_f(GF_EVGSurface *surf, Float r, Float g, Float b, Float
 \return error if any
  */
 GF_Err gf_evg_yuv_to_rgb_f(GF_EVGSurface *surf, Float y, Float cb, Float cr, Float *r, Float *g, Float *b);
+
+/*! converts RGB to YUV
+ \param surf the target surface
+ \param col the source RGBA color
+ \param y the output Y value
+ \param cb the output Cb/U value
+ \param cr the output Cr/V value
+ */
+void gf_evg_rgb_to_yuv(GF_EVGSurface *surf, GF_Color col, u8*y, u8*cb, u8*cr);
+
+/*! converts ARGB to AYUV
+\param surf the target surface
+\param col the source ARGB color
+\return the result AYUV color
+*/
+GF_Color gf_evg_argb_to_ayuv(GF_EVGSurface *surf, GF_Color col);
+
+/*! converts AYUV to ARGB
+\param surf the target surface
+\param col the source AYUV  color
+\return the result ARGB color
+*/
+GF_Color gf_evg_ayuv_to_argb(GF_EVGSurface *surf, GF_Color col);
+
+/*! converts ARGB to AYUV for wide colors
+\param surf the target surface
+\param col the source ARGB color
+\return the result AYUV color
+*/
+u64 gf_evg_argb_to_ayuv_wide(GF_EVGSurface *surf, u64 col);
+
+/*! converts AYUV to ARGB for wide color
+\param surf the target surface
+\param col the source AYUV  color
+\return the result ARGB color
+*/
+u64 gf_evg_ayuv_to_argb_wide(GF_EVGSurface *surf, u64 col);
+
 
 /*! @} */
 

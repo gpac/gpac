@@ -462,7 +462,7 @@ void evg_gradient_precompute(EVG_BaseGradient *grad, GF_EVGSurface *surf)
 			argb = gf_cmx_apply(&grad->cmat, argb);
 
 		if (do_yuv)
-			argb = evg_argb_to_ayuv(surf, argb);
+			argb = gf_evg_argb_to_ayuv(surf, argb);
 
 		grad->precomputed_dest[i] = argb;
 	}
@@ -771,13 +771,13 @@ static void tex_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32 _y, 
 		else if (_this->is_yuv) {
 			//if surf is rgb, transform
 			if (!surf->yuv_type) {
-				pix = evg_ayuv_to_argb(surf, pix);
+				pix = gf_evg_ayuv_to_argb(surf, pix);
 				//apply cmat
 				if (has_cmat)
 					pix = gf_cmx_apply(&_this->cmat, pix);
 			} else if (has_cmat) {
 				//yuv->yuv , use color matrix in yuv domain
-				//this is equivalent to  evg_ayuv_to_argb, gf_cmx_apply(&_this->cmat, pix), evg_argb_to_ayuv
+				//this is equivalent to  gf_evg_ayuv_to_argb, gf_cmx_apply(&_this->cmat, pix), gf_evg_argb_to_ayuv
 				pix = gf_cmx_apply(&_this->yuv_cmat, pix);
 			}
 		}
@@ -789,7 +789,7 @@ static void tex_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32 _y, 
 
 			//dest is yuv, transform
 			if (surf->yuv_type)
-				pix = evg_argb_to_ayuv(surf, pix);
+				pix = gf_evg_argb_to_ayuv(surf, pix);
 		}
 
 		*data++ = pix;
@@ -859,10 +859,10 @@ static void tex_fill_run_straight(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x,
 		}
 		//move pixel to target pixel format
 		else if (_this->is_yuv && !surf->yuv_type) {
-			pix = evg_ayuv_to_argb(surf, pix);
+			pix = gf_evg_ayuv_to_argb(surf, pix);
 		}
 		else if (!_this->is_yuv && surf->yuv_type) {
-			pix = evg_argb_to_ayuv(surf, pix);
+			pix = gf_evg_argb_to_ayuv(surf, pix);
 		}
 
 		*data++ = pix;
@@ -1016,13 +1016,13 @@ static void tex_fill_run_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32
 		else if (_this->is_yuv) {
 			//if surf is rgb, transform
 			if (!surf->yuv_type) {
-				pix = evg_ayuv_to_argb_wide(surf, pix);
+				pix = gf_evg_ayuv_to_argb_wide(surf, pix);
 				//apply cmat
 				if (has_cmat)
 					pix = gf_cmx_apply_wide(&_this->cmat, pix);
 			} else if (has_cmat) {
 				//yuv->yuv , use color matrix in yuv domain
-				//this is equivalent to  evg_ayuv_to_argb, gf_cmx_apply(&_this->cmat, pix), evg_argb_to_ayuv
+				//this is equivalent to  gf_evg_ayuv_to_argb, gf_cmx_apply(&_this->cmat, pix), gf_evg_argb_to_ayuv
 				pix = gf_cmx_apply_wide(&_this->yuv_cmat, pix);
 			}
 		}
@@ -1034,7 +1034,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32
 
 			//dest is yuv, transform
 			if (surf->yuv_type)
-				pix = evg_argb_to_ayuv_wide(surf, pix);
+				pix = gf_evg_argb_to_ayuv_wide(surf, pix);
 		}
 
 		*data++ = pix;
@@ -1110,10 +1110,10 @@ static void tex_fill_run_straight_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s3
 		}
 		//move pixel to target pixel format
 		else if (_this->is_yuv && !surf->yuv_type) {
-			pix = evg_ayuv_to_argb_wide(surf, pix);
+			pix = gf_evg_ayuv_to_argb_wide(surf, pix);
 		}
 		else if (!_this->is_yuv && surf->yuv_type) {
-			pix = evg_argb_to_ayuv_wide(surf, pix);
+			pix = gf_evg_argb_to_ayuv_wide(surf, pix);
 		}
 
 		*data++ = pix;
@@ -1745,7 +1745,7 @@ void evg_texture_init(GF_EVGStencil *p, GF_EVGSurface *surf)
 		_this->replace_col = GF_COL_ARGB(FIX2INT(_this->cmat.m[18]*255), FIX2INT(_this->cmat.m[4]*255), FIX2INT(_this->cmat.m[9]*255), FIX2INT(_this->cmat.m[14]*255));
 
 		if (surf->yuv_type) {
-			_this->replace_col = evg_argb_to_ayuv(surf, _this->replace_col);
+			_this->replace_col = gf_evg_argb_to_ayuv(surf, _this->replace_col);
 		}
 	}
 
@@ -1823,9 +1823,9 @@ static u32 gf_evg_stencil_get_pixel_intern(GF_EVGStencil *st, s32 x, s32 y, Bool
 
 	col = _this->tx_get_pixel(_this, x, y);
 	if (_this->is_yuv) {
-		if (!want_yuv) return evg_ayuv_to_argb(NULL, col);
+		if (!want_yuv) return gf_evg_ayuv_to_argb(NULL, col);
 	} else {
-		if (want_yuv) return evg_argb_to_ayuv(NULL, col);
+		if (want_yuv) return gf_evg_argb_to_ayuv(NULL, col);
 	}
 	return col;
 }
@@ -1894,9 +1894,9 @@ static GF_Err gf_evg_stencil_get_pixel_f_intern(EVG_Texture *_this, Float x, Flo
 			}
 		}
 		if (_this->is_yuv) {
-			if (!want_yuv) col = evg_ayuv_to_argb(NULL, col);
+			if (!want_yuv) col = gf_evg_ayuv_to_argb(NULL, col);
 		} else {
-			if (want_yuv) col = evg_argb_to_ayuv(NULL, col);
+			if (want_yuv) col = gf_evg_argb_to_ayuv(NULL, col);
 		}
 		*r = ((Float) GF_COL_R(col) ) / 255.0;
 		*g = ((Float) GF_COL_G(col) ) / 255.0;
@@ -1934,9 +1934,9 @@ static GF_Err gf_evg_stencil_get_pixel_f_intern(EVG_Texture *_this, Float x, Flo
 			}
 		}
 		if (_this->is_yuv) {
-			if (!want_yuv) colw = evg_ayuv_to_argb_wide(NULL, colw);
+			if (!want_yuv) colw = gf_evg_ayuv_to_argb_wide(NULL, colw);
 		} else {
-			if (want_yuv) colw = evg_argb_to_ayuv_wide(NULL, colw);
+			if (want_yuv) colw = gf_evg_argb_to_ayuv_wide(NULL, colw);
 		}
 		*r = ((Float) GF_COL_R(colw) ) / 0xFFFF;
 		*g = ((Float) GF_COL_G(colw) ) / 0xFFFF;

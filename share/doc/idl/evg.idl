@@ -830,18 +830,39 @@ interface Texture {
 	/*! converts texture from RGB/YUV to new HSV texture
 	\warning experimental, slow
 	\return new texture*/
-	Texture to_HSV();
+	Texture rgb2hsv();
 
 	/*! converts texture from HSV to new RGB texture
 	\warning experimental, slow
 	\return new texture*/
-	Texture to_RGB();
+	Texture hsv2rgb();
+
+	/*! converts texture from HSV to new RGB texture
+	\warning experimental, slow
+	\return new texture*/
+	Texture hsv2rgb();
+
+	/*! converts texture from RGB to new YUV texture
+	\warning experimental, slow
+	This function can be used to convert an RGB texture to a YUV one, typically for rasterizing an RGB static texture over a YUV video (avoids performing the RGB to YUV conversion at each frame)
+	\warning the texture format will still be RGB (or RGBA if the source has alpha), in packed format
+	\param surf the target surface, can be a Canvas or a Canvas3D object 
+	\return new texture*/
+	Texture rgb2yuv(Canvas surf);
+
+	/*! converts texture from YUV to new RGB texture
+	\warning experimental, slow
+	This function can be used to convert a YUV texture to an RGB one, typically for rasterizing a YUV static texture over an RGB video (avoids performing the TYV to RGB conversion at each frame)
+	\param surf the target surface, can be a Canvas or a Canvas3D object 
+	\return new texture*/
+	Texture yuv2rgb(Canvas surf);
+
 
 	/*! performs a convolution on the texture
 	\warning experimental, slow
 	\param k the convolution kernel to use
 	\return new texture*/
-	Texture conv(ConvolutionKernel k);
+	Texture convolution(ConvolutionKernel k);
 
 	/*! splits the given component into a new texture
 	\warning experimental, slow (uses pixel by pixel access)

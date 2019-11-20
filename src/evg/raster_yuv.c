@@ -51,7 +51,7 @@ mul255_zero(s32 a, s32 b)
 //RGB <-> YUV full range conversion, using integer (1024 factor)
 #define YUV_USE_INT
 
-void evg_rgb_to_yuv(GF_EVGSurface *surf, GF_Color col, u8*y, u8*cb, u8*cr)
+void gf_evg_rgb_to_yuv(GF_EVGSurface *surf, GF_Color col, u8*y, u8*cb, u8*cr)
 {
 	u32 r = GF_COL_R(col);
 	u32 g = GF_COL_G(col);
@@ -70,7 +70,7 @@ void evg_rgb_to_yuv(GF_EVGSurface *surf, GF_Color col, u8*y, u8*cb, u8*cr)
 	*cr = (u8) (_v >> 10);
 #endif
 }
-GF_Color evg_argb_to_ayuv(GF_EVGSurface *surf, GF_Color col)
+GF_Color gf_evg_argb_to_ayuv(GF_EVGSurface *surf, GF_Color col)
 {
 	u8 a, y, cb, cr;
 	a = GF_COL_A(col);
@@ -93,7 +93,7 @@ GF_Color evg_argb_to_ayuv(GF_EVGSurface *surf, GF_Color col)
 	return GF_COL_ARGB(a, y, cb, cr);
 }
 
-GF_Err gf_evg_rgb_to_yuv_f(GF_EVGSurface *surf, Float r, Float g, Float b, Float *y, Float *cb, Float *cr)
+GF_Err gf_gf_evg_rgb_to_yuv_f(GF_EVGSurface *surf, Float r, Float g, Float b, Float *y, Float *cb, Float *cr)
 {
 	*y = (u8) (0.299*r + 0.587 * g + 0.114 * b);
 	*cb = (u8) (-0.169*(s32)r - 0.331*(s32)g + 0.499*b + 128);
@@ -108,7 +108,7 @@ GF_Err gf_evg_yuv_to_rgb_f(GF_EVGSurface *surf, Float y, Float cb, Float cr, Flo
 	return GF_OK;
 }
 
-GF_Color evg_ayuv_to_argb(GF_EVGSurface *surf, GF_Color col)
+GF_Color gf_evg_ayuv_to_argb(GF_EVGSurface *surf, GF_Color col)
 {
 	u32 a;
 	s32 y, cb, cr;
@@ -145,7 +145,7 @@ GF_Color evg_ayuv_to_argb(GF_EVGSurface *surf, GF_Color col)
 	return GF_COL_ARGB(a, r, g, b);
 }
 
-u64 evg_argb_to_ayuv_wide(GF_EVGSurface *surf, u64 col)
+u64 gf_evg_argb_to_ayuv_wide(GF_EVGSurface *surf, u64 col)
 {
 	u16 a, y, cb, cr;
 	u32 r, g, b;
@@ -171,7 +171,7 @@ u64 evg_argb_to_ayuv_wide(GF_EVGSurface *surf, u64 col)
 
 	return evg_make_col_wide(a, y, cb, cr);
 }
-u64 evg_ayuv_to_argb_wide(GF_EVGSurface *surf, u64 col)
+u64 gf_evg_ayuv_to_argb_wide(GF_EVGSurface *surf, u64 col)
 {
 	u32 a;
 	s64 y, cb, cr;
@@ -576,7 +576,7 @@ GF_Err evg_surface_clear_yuv420p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 	pU = surf->pixels + surf->height * surf->pitch_y + rc.y/2 * surf->pitch_y/2 + rc.x/2;
 	pV = surf->pixels + 5*surf->height * surf->pitch_y/4 + rc.y/2 * surf->pitch_y/2 + rc.x/2;
 
-	evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
+	gf_evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
 
 	for (i = 0; i < rc.height; i++) {
 		memset(pY, cy, rc.width);
@@ -723,7 +723,7 @@ GF_Err evg_surface_clear_nv12(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col, B
 	pU += rc.x/2;
 	pU_first = pU;
 
-	evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
+	gf_evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
 
 	if (swap_uv) {
 		u8 t = cb;
@@ -866,7 +866,7 @@ GF_Err evg_surface_clear_yuv422p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 	pU += rc.x/2;
 	pV += rc.x/2;
 
-	evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
+	gf_evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
 
 	for (i = 0; i < rc.height; i++) {
 		memset(pY, cy, rc.width);
@@ -1042,7 +1042,7 @@ GF_Err evg_surface_clear_yuv444p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 	pU += rc.x;
 	pV += rc.x;
 
-	evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
+	gf_evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
 
 	for (i = 0; i < rc.height; i++) {
 		memset(pY, cy, rc.width);
@@ -1266,7 +1266,7 @@ GF_Err evg_surface_clear_yuyv(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col)
 	pY += rc.y * surf->pitch_y;
 	pY += (rc.x/2) * 4;
 
-	evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
+	gf_evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
 	o_pY = pY;
 	for (i = 0; i <(u32)rc.height; i++) {
 		if (!i) {
@@ -1658,7 +1658,7 @@ GF_Err evg_surface_clear_yuv420p_10(GF_EVGSurface *_surf, GF_IRect rc, GF_Color 
 	pU = (u16 *) (surf->pixels + surf->height * surf->pitch_y + rc.y/2 * surf->pitch_y/2 + rc.x);
 	pV = (u16 *) (surf->pixels + 5*surf->height * surf->pitch_y/4 + rc.y/2 * surf->pitch_y/2 + rc.x);
 
-	evg_rgb_to_yuv(surf, col, &_cy, &_cb, &_cr);
+	gf_evg_rgb_to_yuv(surf, col, &_cy, &_cb, &_cr);
 	cy = ((u16)_cy) << 2;
 	cb = ((u16)_cb) << 2;
 	cr = ((u16)_cr) << 2;
@@ -1830,7 +1830,7 @@ GF_Err evg_surface_clear_nv12_10(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 	pU_first = pU;
 	pY_first = pY;
 
-	evg_rgb_to_yuv(surf, col, &_cy, &_cb, &_cr);
+	gf_evg_rgb_to_yuv(surf, col, &_cy, &_cb, &_cr);
 
 	if (swap_uv) {
 		u8 t = _cb;
@@ -1993,7 +1993,7 @@ GF_Err evg_surface_clear_yuv422p_10(GF_EVGSurface *_surf, GF_IRect rc, GF_Color 
 	o_pY = pY;
 	o_pU = pU;
 	o_pV = pV;
-	evg_rgb_to_yuv(surf, col, &_cy, &_cb, &_cr);
+	gf_evg_rgb_to_yuv(surf, col, &_cy, &_cb, &_cr);
 
 	cy = ((u16)_cy) << 2;
 	cb = ((u16)_cb) << 2;
@@ -2198,7 +2198,7 @@ GF_Err evg_surface_clear_yuv444p_10(GF_EVGSurface *_surf, GF_IRect rc, GF_Color 
 	pU += 2*rc.x;
 	pV += 2*rc.x;
 
-	evg_rgb_to_yuv(surf, col, &_cy, &_cb, &_cr);
+	gf_evg_rgb_to_yuv(surf, col, &_cy, &_cb, &_cr);
 
 	cy = ((u16)_cy) << 2;
 	cb = ((u16)_cb) << 2;
