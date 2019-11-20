@@ -929,7 +929,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 		}
 		if (gf_isom_is_video_handler_type(media_type)) {
-			if ((par_n>=-1) && (par_d>=-1)) {
+			if (((par_n>=0) && (par_d>=0)) || force_par) {
 				e = gf_media_change_par(dest, track, par_n, par_d, force_par, rewrite_bs);
 			}
 			if (has_clap) {
