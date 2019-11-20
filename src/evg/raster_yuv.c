@@ -69,7 +69,6 @@ void evg_rgb_to_yuv(GF_EVGSurface *surf, GF_Color col, u8*y, u8*cb, u8*cr)
 	_v = (511 * r - 428*(s32)g - 83*(s32)b + 131072);
 	*cr = (u8) (_v >> 10);
 #endif
-
 }
 GF_Color evg_argb_to_ayuv(GF_EVGSurface *surf, GF_Color col)
 {
@@ -92,6 +91,21 @@ GF_Color evg_argb_to_ayuv(GF_EVGSurface *surf, GF_Color col)
 	cr = (u8) (_v >> 10);
 #endif
 	return GF_COL_ARGB(a, y, cb, cr);
+}
+
+GF_Err gf_evg_rgb_to_yuv_f(GF_EVGSurface *surf, Float r, Float g, Float b, Float *y, Float *cb, Float *cr)
+{
+	*y = (u8) (0.299*r + 0.587 * g + 0.114 * b);
+	*cb = (u8) (-0.169*(s32)r - 0.331*(s32)g + 0.499*b + 128);
+	*cr = (u8) (0.499 * r - 0.418*(s32)g - 0.0813*(s32)b + 128);
+	return GF_OK;
+}
+GF_Err gf_evg_yuv_to_rgb_f(GF_EVGSurface *surf, Float y, Float cb, Float cr, Float *r, Float *g, Float *b)
+{
+	*r = (s32) (y + 1.402 * (cr - 128));
+	*g = (s32) (y - 0.344136 * (cb - 128) - 0.714136*(cr-128) );
+	*b = (s32) (y + 1.772 * (cb - 128) );
+	return GF_OK;
 }
 
 GF_Color evg_ayuv_to_argb(GF_EVGSurface *surf, GF_Color col)

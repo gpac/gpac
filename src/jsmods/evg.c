@@ -635,6 +635,54 @@ static JSValue canvas_clearf(JSContext *c, JSValueConst obj, int argc, JSValueCo
 {
 	return canvas_clear_ex(c, obj, argc, argv, GF_TRUE, GF_FALSE);
 }
+
+static JSValue canvas_rgb_yuv(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, Bool to_rgb, Bool is_3d)
+{
+	GF_Err e;
+	Double _r=0, _g=0, _b=0, _a=1.0;
+	Float r=0, g=0, b=0, a=1.0;
+	Bool as_array = GF_FALSE;
+	u32 arg_idx=0;
+	Float y, u, v;
+	JSValue ret;
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, is_3d ? canvas3d_class_id : canvas_class_id);
+	if (!canvas || !argc)
+		return JS_EXCEPTION;
+
+	if (JS_IsBool(argv[0])) {
+		as_array = JS_ToBool(c, argv[0]);
+		arg_idx=1;
+	}
+	if (!get_color_from_args(c, argc, argv, arg_idx, &_a, &_r, &_g, &_b))
+		return JS_EXCEPTION;
+	r = (Float) _r;
+	g = (Float) _g;
+	b = (Float) _b;
+	a = (Float) _a;
+	if (to_rgb) {
+		e = gf_evg_yuv_to_rgb_f(canvas->surface, r, g, b, &y, &u, &v);
+	} else {
+		e = gf_evg_rgb_to_yuv_f(canvas->surface, r, g, b, &y, &u, &v);
+	}
+	if (e)
+		return JS_EXCEPTION;
+	if (as_array) {
+		ret = JS_NewArray(c);
+		JS_SetPropertyStr(c, ret, "length", JS_NewInt32(c, 4) );
+		JS_SetPropertyUint32(c, ret, 0, JS_NewFloat64(c, y) );
+		JS_SetPropertyUint32(c, ret, 0, JS_NewFloat64(c, u) );
+		JS_SetPropertyUint32(c, ret, 0, JS_NewFloat64(c, v) );
+		JS_SetPropertyUint32(c, ret, 0, JS_NewFloat64(c, a) );
+	} else {
+		ret = JS_NewObject(c);
+		JS_SetPropertyStr(c, ret, "r", JS_NewFloat64(c, y) );
+		JS_SetPropertyStr(c, ret, "g", JS_NewFloat64(c, u) );
+		JS_SetPropertyStr(c, ret, "b", JS_NewFloat64(c, v) );
+		JS_SetPropertyStr(c, ret, "a", JS_NewFloat64(c, a) );
+	}
+	return ret;
+}
+
 static JSValue canvas_reassign_ex(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, Bool is_3d)
 {
 	GF_Err e;
@@ -663,6 +711,16 @@ static JSValue canvas_reassign_ex(JSContext *c, JSValueConst obj, int argc, JSVa
 static JSValue canvas_reassign(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	return canvas_reassign_ex(c, obj, argc, argv, GF_FALSE);
+}
+
+static JSValue canvas_toYUV(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return canvas_rgb_yuv(c, obj, argc, argv, GF_FALSE, GF_FALSE);
+}
+
+static JSValue canvas_toRGB(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return canvas_rgb_yuv(c, obj, argc, argv, GF_TRUE, GF_FALSE);
 }
 
 static JSValue canvas_fill(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
@@ -697,6 +755,8 @@ static const JSCFunctionListEntry canvas_funcs[] =
 	JS_CFUNC_DEF("clearf", 0, canvas_clearf),
 	JS_CFUNC_DEF("fill", 0, canvas_fill),
 	JS_CFUNC_DEF("reassign", 0, canvas_reassign),
+	JS_CFUNC_DEF("toYUV", 0, canvas_toYUV),
+	JS_CFUNC_DEF("toRGB", 0, canvas_toRGB),
 };
 
 
@@ -711,6 +771,16 @@ static JSValue canvas3d_clearf(JSContext *c, JSValueConst obj, int argc, JSValue
 static JSValue canvas3d_reassign(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	return canvas_reassign_ex(c, obj, argc, argv, GF_TRUE);
+}
+
+static JSValue canvas3d_toYUV(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return canvas_rgb_yuv(c, obj, argc, argv, GF_FALSE, GF_TRUE);
+}
+
+static JSValue canvas3d_toRGB(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return canvas_rgb_yuv(c, obj, argc, argv, GF_TRUE, GF_TRUE);
 }
 
 Bool vai_call_lerp(EVG_VAI *vai, GF_EVGFragmentParam *frag);
@@ -1100,6 +1170,8 @@ enum
 	EVG_OP_MIN,
 	EVG_OP_MAX,
 	EVG_OP_CLAMP,
+	EVG_OP_RGB2YUV,
+	EVG_OP_YUV2RGB,
 
 	EVG_FIRST_VAR_ID
 };
@@ -1174,7 +1246,7 @@ static Float evg_float_clamp(Float val, Float minval, Float maxval)
 
 */
 
-static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGVertexParam *vert)
+static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGVertexParam *vert)
 {
 	u32 op_idx, dim;
 	GF_Vec4 tmpl, tmpr;
@@ -1828,6 +1900,20 @@ static Bool evg_shader_ops(EVGShader *shader, GF_EVGFragmentParam *frag, GF_EVGV
 				}
 			}
 			break;
+		case EVG_OP_RGB2YUV:
+			if (left_val_type_ptr) {
+				*left_val_type_ptr = right_val_type;
+			}
+			left_val->q = right_val->q;
+			gf_evg_rgb_to_yuv_f(canvas->surface, right_val->x, right_val->y, right_val->z, &left_val->x, &left_val->y, &left_val->z);
+			break;
+		case EVG_OP_YUV2RGB:
+			if (left_val_type_ptr) {
+				*left_val_type_ptr = right_val_type;
+			}
+			left_val->q = right_val->q;
+			gf_evg_yuv_to_rgb_f(canvas->surface, right_val->x, right_val->y, right_val->z, &left_val->x, &left_val->y, &left_val->z);
+			break;
 
 		case EVG_OP_PRINT:
 			if (op->right_value>EVG_FIRST_VAR_ID) {
@@ -1855,13 +1941,13 @@ static Bool evg_frag_shader_ops(void *udta, GF_EVGFragmentParam *frag)
 {
 	GF_JSCanvas *canvas = (GF_JSCanvas *)udta;
 	if (!canvas->frag || canvas->frag->invalid) return GF_FALSE;
-	return evg_shader_ops(canvas->frag, frag, NULL);
+	return evg_shader_ops(canvas, canvas->frag, frag, NULL);
 }
 static Bool evg_vert_shader_ops(void *udta, GF_EVGVertexParam *vert)
 {
 	GF_JSCanvas *canvas = (GF_JSCanvas *)udta;
 	if (!canvas->vert || canvas->vert->invalid) return GF_FALSE;
-	return evg_shader_ops(canvas->vert, NULL, vert);
+	return evg_shader_ops(canvas, canvas->vert, NULL, vert);
 }
 
 static void shader_reset(JSRuntime *rt, EVGShader *shader)
@@ -2082,6 +2168,18 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 		}
 		else if (!strcmp(val_name, "print")) {
 			op_type = EVG_OP_PRINT;
+			JS_FreeCString(ctx, arg_str);
+			var_idx=-1;
+			goto parse_right_val;
+		}
+		else if (!strcmp(val_name, "toRGB")) {
+			op_type = EVG_OP_YUV2RGB;
+			JS_FreeCString(ctx, arg_str);
+			var_idx=-1;
+			goto parse_right_val;
+		}
+		else if (!strcmp(val_name, "toYUV")) {
+			op_type = EVG_OP_RGB2YUV;
 			JS_FreeCString(ctx, arg_str);
 			var_idx=-1;
 			goto parse_right_val;
@@ -2505,6 +2603,8 @@ static const JSCFunctionListEntry canvas3d_funcs[] =
 	JS_CFUNC_DEF("clear_depth", 0, canvas3d_clear_depth),
 	JS_CFUNC_DEF("viewport", 0, canvas3d_viewport),
 	JS_CFUNC_DEF("new_shader", 0, canvas3d_new_shader),
+	JS_CFUNC_DEF("toYUV", 0, canvas3d_toYUV),
+	JS_CFUNC_DEF("toRGB", 0, canvas3d_toRGB),
 };
 
 static JSValue canvas3d_constructor(JSContext *c, JSValueConst new_target, int argc, JSValueConst *argv)

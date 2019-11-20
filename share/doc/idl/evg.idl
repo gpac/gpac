@@ -128,6 +128,40 @@ void fill(Texture texture);
 \param data the buffer to use*/
 void reassign(ArrayBuffer data);
 
+/*! converts YUV color to RGB
+\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
+\param y Y component value
+\param u Cb/U component value
+\param v Cr/V component value
+\param a alpha value, not modified
+\return the converted value
+*/
+Object toRGB(optional bool as_array=false, Float y, Float u, Float v, optional Float a=1.0);
+
+/*! converts YUV color to RGB
+\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
+\param color the YUV value to convert
+\return the converted value
+*/
+Object toRGB(optional bool as_array=false, Vec4f color);
+
+/*! converts RGB color to YUV
+\param as_array if true, the return object is an array of 4 components, otherwise it is Vec4f object
+\param r red component value
+\param g green component value
+\param b blue component value
+\param a alpha value, not modified
+\return the converted value
+*/
+Object toYUV(optional bool as_array=false, Float r, Float g, Float b, optional Float a=1.0);
+
+/*! converts RGB color to YUV
+\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
+\param color the RGB value to convert
+\return the converted value
+*/
+Object toYUV(optional bool as_array=false, Vec4f color);
+
 };
 
 
@@ -1193,7 +1227,6 @@ writeonly boolean write_depth;
 /*! depth buffer (see \ref gf_evg_surface_set_depth_buffer). \warning Default is null*/
 Float32Buffer depth_buffer;
 
-
 /*! clears the canvas with the given color - see \ref gf_evg_surface_clear
 \note Omitting the last values will assume 0xFF for alpha, and 0 for other values. 
 \param rc the rectangle to clear, in pixel coordinates
@@ -1229,11 +1262,45 @@ void clearf(IRect rc, double r, double g, double b, double a);
 \param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
 void clearf(IRect rc, DOMString color);
 
-
 /*! reassign internal data (typically at each new packet)
 \warning This assumes the data layout has not changed (width, height, pixel format, strides). If these are modified, create a new canvas.
 \param data the buffer to use*/
 void reassign(ArrayBuffer data);
+
+/*! converts YUV color to RGB
+\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
+\param y Y component value
+\param u Cb/U component value
+\param v Cr/V component value
+\param a alpha value, not modified
+\return the converted value
+*/
+Object toRGB(optional bool as_array=false, Float y, Float u, Float v, optional Float a=1.0);
+
+/*! converts YUV color to RGB
+\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
+\param color the YUV value to convert
+\return the converted value
+*/
+Object toRGB(optional bool as_array=false, Vec4f color);
+
+/*! converts RGB color to YUV
+\param as_array if true, the return object is an array of 4 components, otherwise it is Vec4f object
+\param r red component value
+\param g green component value
+\param b blue component value
+\param a alpha value, not modified
+\return the converted value
+*/
+Object toYUV(optional bool as_array=false, Float r, Float g, Float b, optional Float a=1.0);
+
+/*! converts RGB color to YUV
+\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
+\param color the RGB value to convert
+\return the converted value
+*/
+Object toYUV(optional bool as_array=false, Vec4f color);
+
 
 /*! sets current projection matrix to use
 \param projection_matrix the 16 float coeficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
@@ -1346,15 +1413,16 @@ writeonly boolean normalize;
 
 /*! Shader object common to vertex and fragment shaders
 
-Although QuickJS is an amazing piece of software, calling JavaScript for each fragment to compute is currently too much of an overkill. The shader object provides a simple
-set of tools to produce a vertex or fragment output without interacting with JavaScript.
+Although QuickJS is an amazing piece of software, calling JavaScript for each fragment is just too costly. The shader object provides a simple
+set of tools to produce a vertex or fragment output at reasonnable speed, without interacting with JavaScript.
 
 # Generic principles 
 
 The working principles of the shader object is as follows:
+- no complex language processing (eg GLSL) and basic validation only (at least for the time being)
 - instructions and variables are pushed onto a stack of instructions
-- live native objects (Matrix, VertexAttrib, VertexAttribInterpolator, Texture) are stored as pointers to the native objects
-- other objects can be defined as uniforms, and updated whenever needed
+- native EVG objects (Matrix, VertexAttrib, VertexAttribInterpolator, Texture) are stored as pointers to the native objects
+- variables can be defined as uniforms, and updated whenever needed
 - upon executing the shader, the instructions are processed in order
 
 Local variables are untyped, except for reserved variables. The type is infered whenever the variable is assigned or modified, thus a same variable can change type during the execution of the shader. 
@@ -1364,20 +1432,24 @@ Upon assigning, the type of the source variable is inferred as follows:
 - A javascript object with properties {x, y, z, q/w} or {r,g,b,a} is converted to a 4 component vector
 - A javascript object with properties {x, y, z} or {r,g,b} is converted to a 3 component vector
 - A javascript object with properties {x, y} or {r,g} or {s,t} is converted to a 2 component vector
-- A Matrix object is kept live
-- A VertexAttribInterpolator or VertexAttrib object is converted to a 2D, 3D or 4D vector depending on the number of components in the object
-- A Texture object is converted to a 4D vector
+- A javascript array is converted to a 1, 2, 3 or 4 float vector
+- A Matrix object is kept as a pointer
+- A VertexAttribInterpolator object is converted to a 2D, 3D or 4D vector depending on the number of components in the object
+- A Texture sample is converted to a 4D vector
 
-\warning There is no support for structures in the shader instructions.
+\note There is no support for structures nor arrays in the shader instructions.
 
-The assignment of vectors can use masking of components, using a combination of `x`, `y`, `z`, `q` (or `r`, `g`, `b`, `a`) values:
+\warning A local variable can only be of type bool, integer, float or vector of float (up to 4 dimension). It is not possible to store an EVG object (Matrix, VertexAttrib, VertexAttribInterpolator, Texture) as a local variable.
+
+
+The assignment of vectors can use masking of components, using a combination of `x`, `y`, `z`, `q` (or `r`, `g`, `b`, `a` or `s`,`t) values:
 \code
 shader.push('foo', '=', 'val.xy');
 shader.push('foo.xy', '=', 'val.xz');
 \endcode
 \warning there is no swizzling , `.xy` is equivalent to `.yx`
 
-# Fragment Shader names 
+# Fragment shader reserved variables
 
 These variables names are reserved in a fragment shader, and their type cannot be modified:
 
@@ -1388,12 +1460,12 @@ fragRGBA | Vec4f | the fragment output color in RGBA colorspace
 fragYUVA | Vec4f | the fragment output color in YUVA colorspace
 fragX | float | the fragment X coordinate
 fragY | float | the fragment Y coordinate
-fragDepth | float | the fragment depth value
+fragDepth | float | the fragment depth value - can be overwritten by shader 
 fragZ | float | the fragment Z coordinate
 fragW | float | the fragment W coordinate
 
 
-# Vertex Shader names 
+# Vertex shader reserved variables 
 
 These variables names are reserved in a vertex shader, and their type cannot be modified:
 
@@ -1403,9 +1475,9 @@ vertex | Vec4f | the input vertex coordinates
 vertexOut | Vec4f | the output vertex coordinates 
 
 # Uniforms variables
-Uniforms variables are variables whose values need to be updated but do not require a change in the shader logic. Since some of these variables may be true JS values, they cannot be kept by reference in the stack. Instead, these variables are passed by names, and correspond to properties of the shader object. These properties are evaluated whenever the \ref Shader.update function is called.
+Uniforms variables are variables whose values need to be updated but do not require a change in the shader logic. Since some of these variables may be native JS interpreter types, they cannot be kept by reference in the stack. Instead, these variables are passed by names, and correspond to properties of the shader object. These properties are evaluated whenever the \ref Shader.update function is called.
 
-Uniforms are regular strings prefixed with '.'; for example '.foo' will correspond to the 'foo' property of the shader object.
+Uniforms are referenced in the shader as string variables prefixed with '.'; for example '.foo' will correspond to the 'foo' property of the shader object.
 The associated JS values can be:
 - boolean
 - integer
@@ -1433,9 +1505,8 @@ shader.update();
 
 # Operations
 
-\note in the following table, rv1 means first right value, rv2 means second right value
 
-\note by default, single-dimension operations on vectors are done component-wise, eg res.x = sin(rv1.x), res.y = sin(rv1.y), ... 
+Operations take zero, one or two right values and assign the result to a left value.
 
 The left value can only be:
 - a built-in variable or a local variable in a fragment shader.
@@ -1444,6 +1515,10 @@ The left value can only be:
 The first right value can be a built-in variable, a local variable, a uniform, a Texture, a VertexAttrib (vertex shader only), a VertexAttribInterpolator (fragment shader only) or a Matrix.
 
 \note There is currently no support for matrix product in the shaders
+
+Single-dimension operations on vectors are done component-wise, eg res.x = sin(rv1.x), res.y = sin(rv1.y), ... 
+
+\note in the following table, rv1 means first right value, rv2 means second right value if present for the operation
 
 Whenever rv2 is allowed, this can only be an already locally defined variable, and cannot be a uniform or a JS Object.
 
@@ -1492,6 +1567,8 @@ Name | rv1 | rv2 | Semantic
 'samplerYUV' | Texture | Vec2f | sets left value to the pixel value of the texture rv1 at coordinate rv2, as a YUVA Vec4f 
 'discard' | none | none | discards the current fragment and exits shader processing (fragment shader only)
 'print' | any | none | prints the given variable rv1 to stderr
+'toRGB' | Vec3f, Vec4f | none | converts rv1 to RGB
+'toYUV' | Vec3f, Vec4f | none | converts rv1 to YUV
 
 
  (1): these operations accept component masks on both left value and right value. Example
@@ -1592,7 +1669,7 @@ The rasterizer performs perspective-correct interpolation of attributes, and pro
 - at the fragment shader stage only
 - at both vertex and fragment shader stages
 
-# Fragment-shader only interpolation
+## Fragment-shader only interpolation
 In this configuration, the attributes to interpolate do not depend on the state of the vertex shader (eg for example vertices colors or texture coordinates).
 To interpolate the attribute, a VertexAttribInterpolator object is used to wrap the attributes to interpolate.
 
@@ -1610,7 +1687,7 @@ Example:
 \endcode
 
 
-# Per-vertex  interpolation
+## Per-vertex  interpolation
 In this configuration, the attributes to interpolate depend on the state of the vertex shader.
 To interpolate the attribute, a VertexAttrib object is used to wrap the attributes to interpolate at the vertex shader, and a VertexAttribInterpolator object is used to perform the interpolation at the fragment shader.
 
@@ -1636,6 +1713,20 @@ Example:
 
 \endcode
 
+
+# RGB and YUV color spaces
+The rasterizer can work on both RGB and YUV output color buffers. 
+- When a fragment output value is given in RGB and the output color buffer is in YUV, conversion is performed
+- When a fragment output value is given in YUV and the output color buffer is in RGB, conversion is performed
+- Otherwise, no conversion is done
+
+Texture sampling can also work on both RGB and YUV texture maps.
+- When a `sampler` call is made on a YUV texture, conversion is performed
+- When a `samplerYUV` call is made on a RGB texture, conversion is performed
+- Otherwise, no conversion is done
+
+The `toRGB` and `toYUV` operations can also be used to convert between color space, but precomputed values should be prefered. 
+
 */
 interface Shader {
 /*! resets the stack of instructions*/
@@ -1657,7 +1748,7 @@ long push(DOMString left_val, DOMString operand, DOMString right_val, optional D
 \param right_val the name of the right value to use by the operand
 \return the 1-based index of the added instruction
 */
-long push(DOMString cond_val, DOMString left_val, DOMString operand, [DOMString|Object|long|float] right_val);
+long push(DOMString cond_val, DOMString left_val, DOMString operand, DOMString right_val);
 
 /*! pushes an end of condition instruction on the stack
 \param end_cond_val the name of the end of condition. Allowed values are `else`, `end`

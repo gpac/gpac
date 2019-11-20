@@ -793,6 +793,31 @@ GF_Err gf_evg_surface_write_depth(GF_EVGSurface *surf, Bool do_write);
  */
 GF_Err gf_evg_surface_set_depth_buffer(GF_EVGSurface *surf, Float *depth);
 
+
+/*! performs RGB to YUV conversion
+\param surf the target  surface
+\param r the source red component
+\param g the source green component
+\param b the source blue component
+\param y the output Y component
+\param cb the output U/Cb component
+\param cr the output V/Cr component
+\return error if any
+ */
+GF_Err gf_evg_rgb_to_yuv_f(GF_EVGSurface *surf, Float r, Float g, Float b, Float *y, Float *cb, Float *cr);
+
+/*! performs YUV to RGB conversion
+\param surf the target  surface
+\param y the source Y component
+\param cb the source U/Cb component
+\param cr the source V/Cr component
+\param r the output red component
+\param g the output green component
+\param b the output blue component
+\return error if any
+ */
+GF_Err gf_evg_yuv_to_rgb_f(GF_EVGSurface *surf, Float y, Float cb, Float cr, Float *r, Float *g, Float *b);
+
 /*! @} */
 
 #ifdef __cplusplus
