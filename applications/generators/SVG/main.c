@@ -323,7 +323,7 @@ xmlNodeSetPtr findNodes( xmlXPathContextPtr ctxt, xmlChar * path )
 
 		if ( ctxt->node->doc == NULL ) {
 			/* if one XPaths a node from a fragment, libxml2 will
-			   refuse the lookup. this is not very usefull for XML
+			   refuse the lookup. this is not very useful for XML
 			   scripters. thus we need to create a temporary document
 			   to make libxml2 do it's job correctly.
 			 */

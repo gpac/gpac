@@ -1069,7 +1069,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("overlay-color-key", NULL, "color to use for overlay keying, hex format", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-offscreen", NULL, "openGL mode for offscreen rendering (will soon be deprecated).\n"\
 		"- Window: a hidden window is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work\n"\
-    	"- VisibleWindow: a visible window is used to perform offscreen rendering. This can be usefull while debugging\n"\
+    	"- VisibleWindow: a visible window is used to perform offscreen rendering. This can be useful while debugging\n"\
     	"- Pixmap: an X11 Pixmap is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work and can even crash the player\n"\
     	"- PBuffer: use opengl PBuffers for drawing, not always supported"\
  	, "Window", "Window|VisibleWindow|Pixmap|PBuffer", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),

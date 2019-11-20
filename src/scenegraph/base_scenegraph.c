@@ -366,7 +366,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 	/*remove listeners attached to the doc*/
 	gf_dom_event_remove_all_listeners(sg->dom_evt);
 	/*flush any pending add_listener*/
-	gf_dom_listener_reset_defered(sg);
+	gf_dom_listener_reset_deferred(sg);
 	gf_mx_v(sg->dom_evt_mx);
 #endif
 

@@ -62,7 +62,7 @@
 		* moved span data memory to dynamic allocation
 		* bypassed Y-sorting of cells by using an array of scanlines: a bit more consuming
 		in memory, but faster cell sorting (X-sorting only)
-		* defered coverage push for 3D
+		* deferred coverage push for 3D
 */
 
 #include "rast_soft.h"
@@ -681,7 +681,7 @@ void evg_raster_del(EVG_Raster raster)
 			gf_free(raster->scanlines[i].pixels);
 	}
 	gf_free(raster->gray_spans);
-	
+
 	gf_free(raster->scanlines);
 	gf_free(raster);
 }

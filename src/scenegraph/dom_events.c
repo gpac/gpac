@@ -242,7 +242,7 @@ void gf_dom_listener_process_add(GF_SceneGraph *sg)
 	gf_mx_v(sg->dom_evt_mx);
 }
 
-void gf_dom_listener_reset_defered(GF_SceneGraph *sg)
+void gf_dom_listener_reset_deferred(GF_SceneGraph *sg)
 {
 	gf_mx_p(sg->dom_evt_mx);
 	while (gf_list_count(sg->listeners_to_add)) {

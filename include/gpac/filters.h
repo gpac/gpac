@@ -236,7 +236,7 @@ When set, all subfilters are exposed. This should only be set when inspecting fi
 GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType type, u32 flags, const char *blacklist);
 
 /*! Creates a new filter session, loading parameters from gpac config. This will also load all available filter registers not blacklisted.
-\param flags set of flags for the session. Only \ref GF_FS_FLAG_LOAD_META and  \ref GF_FS_FLAG_NO_MAIN_THREAD are used, other flags 
+\param flags set of flags for the session. Only \ref GF_FS_FLAG_LOAD_META and  \ref GF_FS_FLAG_NO_MAIN_THREAD are used, other flags
 \return the created filter session
 */
 GF_FilterSession *gf_fs_new_defaults(u32 flags);
@@ -2981,7 +2981,7 @@ void gf_filter_pid_init_play_event(GF_FilterPid *PID, GF_FilterEvent *evt, Doubl
 */
 Bool gf_filter_pid_is_playing(GF_FilterPid *PID);
 
-/*! Enables direct dispatch of packets to connected filters. This mode is usefull when a filter may send a very large number of packets
+/*! Enables direct dispatch of packets to connected filters. This mode is useful when a filter may send a very large number of packets
 in one process() call; this is for example the case of the isobmff muxer in interleave mode. Using this mode avoids overloading
 the PID buffer with packets.
 If the session is multi-threaded, this parameter has no effect.
@@ -3030,7 +3030,7 @@ GF_Err gf_filter_pck_ref(GF_FilterPacket **pck);
 void gf_filter_pck_unref(GF_FilterPacket *pck);
 
 /*! Creates a reference to the packet properties, but not to the data.
-This is mostly usefull for encoders/decoders/filters with delay, where the input packet needs to be released before getting the corresponding output (frame reordering & co).
+This is mostly useful for encoders/decoders/filters with delay, where the input packet needs to be released before getting the corresponding output (frame reordering & co).
 This allows merging back packet properties after some delay without blocking the filter chain.
 \param pck the target input packet
 \return error if any

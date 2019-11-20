@@ -56,9 +56,9 @@ typedef struct
 	/* stack of SVG nodes*/
 	GF_List *node_stack;
 
-	GF_List *defered_hrefs;
-	GF_List *defered_animations;
-	GF_List *defered_listeners;
+	GF_List *deferred_hrefs;
+	GF_List *deferred_animations;
+	GF_List *deferred_listeners;
 	/*non-linear parsing*/
 	GF_List *peeked_nodes;
 
@@ -90,7 +90,7 @@ typedef struct {
 		1: resolving begin times
 		2: resolving end times */
 	u32 resolve_stage;
-	/* Animation element being defered */
+	/* Animation element being deferred */
 	SVG_Element *animation_elt;
 	/* anim parent*/
 	SVG_Element *anim_parent;
@@ -105,7 +105,7 @@ typedef struct {
 	char *from;
 	char *by;
 	char *values;
-} SVG_DeferedAnimation;
+} SVG_DeferredAnimation;
 
 typedef struct
 {
@@ -114,7 +114,7 @@ typedef struct
 	/*the current element is animation that cannot be parsed completely
 	  upon reception of start tag of element but for which we may be able
 	  to parse at the end tag of the element (animateMotion)*/
-	SVG_DeferedAnimation *anim;
+	SVG_DeferredAnimation *anim;
 	/*depth of unknown elements being skipped*/
 	u32 unknown_depth;
 	/*last child added, used to speed-up parsing*/
@@ -325,16 +325,16 @@ static void svg_post_process_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *ir
 
 	/*unresolved, queue it...*/
 	if ((iri->type==XMLRI_ELEMENTID) && !iri->target && iri->string) {
-		gf_list_add(parser->defered_hrefs, iri);
+		gf_list_add(parser->deferred_hrefs, iri);
 	}
 	if (iri->type != XMLRI_STRING) return;
 	e = gf_node_store_embedded_data(iri, parser->load->localPath, parser->load->fileName);
 	if (e) svg_report(parser, e, "Error storing embedded IRI data");
 }
 
-static void svg_delete_defered_anim(SVG_DeferedAnimation *anim, GF_List *defered_animations)
+static void svg_delete_deferred_anim(SVG_DeferredAnimation *anim, GF_List *deferred_animations)
 {
-	if (defered_animations) gf_list_del_item(defered_animations, anim);
+	if (deferred_animations) gf_list_del_item(deferred_animations, anim);
 
 	if (anim->target_id) gf_free(anim->target_id);
 	if (anim->to) gf_free(anim->to);
@@ -345,7 +345,7 @@ static void svg_delete_defered_anim(SVG_DeferedAnimation *anim, GF_List *defered
 	gf_free(anim);
 }
 
-static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_DeferedAnimation *anim, const char *nodeID, u32 force_type)
+static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_DeferredAnimation *anim, const char *nodeID, u32 force_type)
 {
 	GF_FieldInfo info;
 	u32 tag;
@@ -514,10 +514,10 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 	u32 count, i;
 
 	/*check unresolved HREF*/
-	count = gf_list_count(parser->defered_hrefs);
+	count = gf_list_count(parser->deferred_hrefs);
 	for (i=0; i<count; i++) {
 		GF_Node *targ;
-		XMLRI *iri = (XMLRI *)gf_list_get(parser->defered_hrefs, i);
+		XMLRI *iri = (XMLRI *)gf_list_get(parser->deferred_hrefs, i);
 		if (nodeID && strcmp(iri->string + 1, nodeID)) continue;
 		targ = gf_sg_find_node_by_name(sg, iri->string + 1);
 		if (targ) {
@@ -526,18 +526,18 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 			gf_node_register_iri(sg, iri);
 			gf_free(iri->string);
 			iri->string = NULL;
-			gf_list_rem(parser->defered_hrefs, i);
+			gf_list_rem(parser->deferred_hrefs, i);
 			i--;
 			count--;
 		}
 	}
 
 	/*check unresolved listeners */
-	count = gf_list_count(parser->defered_listeners);
+	count = gf_list_count(parser->deferred_listeners);
 	for (i=0; i<count; i++) {
 		GF_FieldInfo info;
 		GF_Node *par;
-		SVG_Element *listener = (SVG_Element *)gf_list_get(parser->defered_listeners, i);
+		SVG_Element *listener = (SVG_Element *)gf_list_get(parser->deferred_listeners, i);
 
 		par = NULL;
 		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_observer, GF_FALSE, GF_FALSE, &info) == GF_OK) {
@@ -561,18 +561,18 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 		}
 		assert(par);
 		gf_node_dom_listener_add((GF_Node *)par, (GF_Node *) listener);
-		gf_list_rem(parser->defered_listeners, i);
+		gf_list_rem(parser->deferred_listeners, i);
 		i--;
 		count--;
 	}
 
 	/*check unresolved anims*/
-	count = gf_list_count(parser->defered_animations);
+	count = gf_list_count(parser->deferred_animations);
 	for (i=0; i<count; i++) {
-		SVG_DeferedAnimation *anim = (SVG_DeferedAnimation *)gf_list_get(parser->defered_animations, i);
+		SVG_DeferredAnimation *anim = (SVG_DeferredAnimation *)gf_list_get(parser->deferred_animations, i);
 		/*resolve it - we don't check the name since it may be used in SMIL times, which we don't track at anim level*/
 		if (svg_parse_animation(parser, sg, anim, nodeID, 1)) {
-			svg_delete_defered_anim(anim, parser->defered_animations);
+			svg_delete_deferred_anim(anim, parser->deferred_animations);
 			i--;
 			count--;
 		}
@@ -648,7 +648,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 	SVG_Element *elt = NULL;
 	const char *node_name = NULL;
 	const char *ev_event, *ev_observer;
-	SVG_DeferedAnimation *anim = NULL;
+	SVG_DeferredAnimation *anim = NULL;
 	char *ID = NULL;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[SVG Parsing] Parsing node %s\n", name));
@@ -733,7 +733,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 	needs_init = GF_TRUE;
 
 	if (gf_svg_is_animation_tag(tag)) {
-		GF_SAFEALLOC(anim, SVG_DeferedAnimation);
+		GF_SAFEALLOC(anim, SVG_DeferredAnimation);
 		if (!anim) {
 			parser->last_error = GF_OUT_OF_MEM;
 			return NULL;
@@ -748,9 +748,9 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			anim->target = anim->anim_parent = parent->node;
 		}
 	} else if (gf_svg_is_timing_tag(tag)) {
-		/* warning: we use the SVG_DeferedAnimation structure for some timing nodes which are not
+		/* warning: we use the SVG_DeferredAnimation structure for some timing nodes which are not
 		   animations, but we put the parse stage at 1 (timing) see svg_parse_animation. */
-		GF_SAFEALLOC(anim, SVG_DeferedAnimation);
+		GF_SAFEALLOC(anim, SVG_DeferredAnimation);
 		if (!anim) {
 			parser->last_error = GF_OUT_OF_MEM;
 			return NULL;
@@ -985,17 +985,17 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			((XMLRI *)info.far_ptr)->target = parent->node;
 		}
 		/* if the target was found (already parsed), we are fine, otherwise we need to try to find it again,
-		   we place the listener in the defered listener list */
+		   we place the listener in the deferred listener list */
 		if ( ((XMLRI *)info.far_ptr)->target)
 			gf_node_dom_listener_add(((XMLRI *)info.far_ptr)->target, (GF_Node *) listener);
 		else
-			gf_list_add(parser->defered_listeners, listener);
+			gf_list_add(parser->deferred_listeners, listener);
 	}
 
 	if (!node_name && ID)
 		node_name = ID;
 
-	/* if the new element has an id, we try to resolve defered references (including animations, href and listeners (just above)*/
+	/* if the new element has an id, we try to resolve deferred references (including animations, href and listeners (just above)*/
 	if (node_name) {
 		if (!has_id) {
 			/* if the element was already created before this call, we don't need to get a numerical id, we have it already */
@@ -1011,12 +1011,12 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 //		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
 		needs_init = GF_FALSE;
 		if (svg_parse_animation(parser, parser->load->scene_graph, anim, NULL, 0)) {
-			svg_delete_defered_anim(anim, NULL);
+			svg_delete_deferred_anim(anim, NULL);
 		} else {
-			gf_list_add(parser->defered_animations, anim);
+			gf_list_add(parser->deferred_animations, anim);
 		}
 //		} else {
-//			svg_delete_defered_anim(anim, NULL);
+//			svg_delete_deferred_anim(anim, NULL);
 //		}
 	}
 
@@ -1071,7 +1071,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		}
 
 		if (post_pone) {
-			gf_list_add(parser->defered_listeners, listener);
+			gf_list_add(parser->deferred_listeners, listener);
 		} else {
 			if (!par && parent) par = parent->node;
 			gf_node_dom_listener_add((GF_Node *)par, (GF_Node *) listener);
@@ -1763,16 +1763,16 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 				*/
 			{
 				u32 i, count;
-				SVG_DeferedAnimation *anim = NULL;
-				count = gf_list_count(parser->defered_animations);
+				SVG_DeferredAnimation *anim = NULL;
+				count = gf_list_count(parser->deferred_animations);
 				for (i = 0; i < count; i++) {
-					anim = gf_list_get(parser->defered_animations, i);
+					anim = gf_list_get(parser->deferred_animations, i);
 					if (anim->animation_elt == node) break;
 					else anim = NULL;
 				}
 				if (anim) {
 					if (svg_parse_animation(parser, gf_node_get_graph((GF_Node *)node), anim, NULL, 1)) {
-						svg_delete_defered_anim(anim, parser->defered_animations);
+						svg_delete_deferred_anim(anim, parser->deferred_animations);
 					}
 				}
 			}
@@ -1915,9 +1915,9 @@ static GF_SVG_Parser *svg_new_parser(GF_SceneLoader *load)
 		return NULL;
 	}
 	parser->node_stack = gf_list_new();
-	parser->defered_hrefs = gf_list_new();
-	parser->defered_animations = gf_list_new();
-	parser->defered_listeners = gf_list_new();
+	parser->deferred_hrefs = gf_list_new();
+	parser->deferred_animations = gf_list_new();
+	parser->deferred_listeners = gf_list_new();
 	parser->peeked_nodes = gf_list_new();
 
 	parser->sax_parser = gf_xml_sax_new(svg_node_start, svg_node_end, svg_text_content, parser);
@@ -1940,10 +1940,10 @@ static GF_SVG_Parser *svg_new_parser(GF_SceneLoader *load)
 
 static void svg_flush_animations(GF_SVG_Parser *parser)
 {
-	while (gf_list_count(parser->defered_animations)) {
-		SVG_DeferedAnimation *anim = (SVG_DeferedAnimation *)gf_list_get(parser->defered_animations, 0);
+	while (gf_list_count(parser->deferred_animations)) {
+		SVG_DeferredAnimation *anim = (SVG_DeferredAnimation *)gf_list_get(parser->deferred_animations, 0);
 		svg_parse_animation(parser, parser->load->scene_graph, anim, NULL, 2);
-		svg_delete_defered_anim(anim, parser->defered_animations);
+		svg_delete_deferred_anim(anim, parser->deferred_animations);
 	}
 }
 
@@ -1954,11 +1954,11 @@ static void gf_sm_svg_flush_state(GF_SVG_Parser *parser)
 		gf_list_rem_last(parser->node_stack);
 		gf_free(st);
 	}
-	/*FIXME - if there still are som defered listeners, we should pass them to the scene graph
+	/*FIXME - if there still are som deferred listeners, we should pass them to the scene graph
 	and wait for the parent to be defined*/
-	while (gf_list_count(parser->defered_listeners)) {
-		GF_Node *l = (GF_Node *)gf_list_last(parser->defered_listeners);
-		gf_list_rem_last(parser->defered_listeners);
+	while (gf_list_count(parser->deferred_listeners)) {
+		GF_Node *l = (GF_Node *)gf_list_last(parser->deferred_listeners);
+		gf_list_rem_last(parser->deferred_listeners);
 		/*listeners not resolved are not inserted in the tree - destroy them*/
 		gf_node_register(l, NULL);
 		gf_node_unregister(l, NULL);
@@ -2060,11 +2060,11 @@ static void load_svg_done(GF_SceneLoader *load)
 	gf_sm_svg_flush_state(parser);
 
 	gf_list_del(parser->node_stack);
-	gf_list_del(parser->defered_hrefs);
-	gf_list_del(parser->defered_listeners);
+	gf_list_del(parser->deferred_hrefs);
+	gf_list_del(parser->deferred_listeners);
 	gf_list_del(parser->peeked_nodes);
 	/* reset animations */
-	gf_list_del(parser->defered_animations);
+	gf_list_del(parser->deferred_animations);
 	if (parser->sax_parser) {
 		gf_xml_sax_del(parser->sax_parser);
 	}

@@ -454,7 +454,7 @@ GF_FilterRegister PipeInRegister = {
 		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction\n"\
 		"\n"\
 		"Input pipes can be setup to run forever using [-ka](). In this case, end of stream will never be triggered\n"\
-		"This can be usefull to pipe raw streams from different process into gpac:\n"\
+		"This can be useful to pipe raw streams from different process into gpac:\n"\
 		"Receiver side: `gpac -i pipe://mypipe:ext=.264:mkp:ka`\n"\
 		"Sender side: `cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264`"\
 		"\n"\

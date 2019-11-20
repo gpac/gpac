@@ -53,9 +53,9 @@ GF_LASeRCodec *gf_laser_decoder_new(GF_SceneGraph *graph)
 	if (!tmp) return NULL;
 	tmp->streamInfo = gf_list_new();
 	tmp->font_table = gf_list_new();
-	tmp->defered_hrefs = gf_list_new();
-	tmp->defered_listeners = gf_list_new();
-	tmp->defered_anims = gf_list_new();
+	tmp->deferred_hrefs = gf_list_new();
+	tmp->deferred_listeners = gf_list_new();
+	tmp->deferred_anims = gf_list_new();
 	tmp->unresolved_commands = gf_list_new();
 	tmp->sg = graph;
 	return tmp;
@@ -79,16 +79,16 @@ void gf_laser_decoder_del(GF_LASeRCodec *codec)
 	}
 	gf_list_del(codec->font_table);
 #if 0
-	while (gf_list_count(codec->defered_hrefs)) {
-		XMLRI *iri = (XMLRI *)gf_list_last(codec->defered_hrefs);
-		gf_list_rem_last(codec->defered_hrefs);
+	while (gf_list_count(codec->deferred_hrefs)) {
+		XMLRI *iri = (XMLRI *)gf_list_last(codec->deferred_hrefs);
+		gf_list_rem_last(codec->deferred_hrefs);
 		if (iri->string) gf_free(iri->string);
 		iri->string = NULL;
 	}
 #endif
-	gf_list_del(codec->defered_hrefs);
-	gf_list_del(codec->defered_anims);
-	gf_list_del(codec->defered_listeners);
+	gf_list_del(codec->deferred_hrefs);
+	gf_list_del(codec->deferred_anims);
+	gf_list_del(codec->deferred_listeners);
 	gf_list_del(codec->unresolved_commands);
 	gf_free(codec);
 }
@@ -402,7 +402,7 @@ static void lsr_read_codec_IDREF(GF_LASeRCodec *lsr, XMLRI *href, const char *na
 		sprintf(NodeID, "N%d", nID-1);
 		href->string = gf_strdup(NodeID);
 		if (href->type!=0xFF)
-			gf_list_add(lsr->defered_hrefs, href);
+			gf_list_add(lsr->deferred_hrefs, href);
 		href->type = XMLRI_ELEMENTID;
 		return;
 	}
@@ -719,9 +719,9 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 	}
 
 	/*update all pending HREFs*/
-	count = gf_list_count(lsr->defered_hrefs);
+	count = gf_list_count(lsr->deferred_hrefs);
 	for (i=0; i<count; i++) {
-		XMLRI *href = (XMLRI *)gf_list_get(lsr->defered_hrefs, i);
+		XMLRI *href = (XMLRI *)gf_list_get(lsr->deferred_hrefs, i);
 		char *str_id = href->string;
 		if (str_id[0] == '#') str_id++;
 		/*skip 'N'*/
@@ -730,18 +730,18 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 			href->target = (SVG_Element*) n;
 			gf_free(href->string);
 			href->string = NULL;
-			gf_list_rem(lsr->defered_hrefs, i);
+			gf_list_rem(lsr->deferred_hrefs, i);
 			i--;
 			count--;
 		}
 	}
 
 	/*update unresolved listeners*/
-	count = gf_list_count(lsr->defered_listeners);
+	count = gf_list_count(lsr->deferred_listeners);
 	for (i=0; i<count; i++) {
 		GF_Node *par;
 		XMLRI *observer = NULL;
-		GF_Node *listener = (GF_Node *)gf_list_get(lsr->defered_listeners, i);
+		GF_Node *listener = (GF_Node *)gf_list_get(lsr->deferred_listeners, i);
 
 		par = NULL;
 		if (gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_observer, GF_FALSE, GF_FALSE, &info) == GF_OK) {
@@ -770,17 +770,17 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 
 		assert(par);
 		gf_node_dom_listener_add(par, listener);
-		gf_list_rem(lsr->defered_listeners, i);
+		gf_list_rem(lsr->deferred_listeners, i);
 		i--;
 		count--;
 	}
 
 	/*update all pending animations*/
-	count = gf_list_count(lsr->defered_anims);
+	count = gf_list_count(lsr->deferred_anims);
 	for (i=0; i<count; i++) {
-		SVG_Element *elt = (SVG_Element *)gf_list_get(lsr->defered_anims, i);
+		SVG_Element *elt = (SVG_Element *)gf_list_get(lsr->deferred_anims, i);
 		if (lsr_setup_smil_anim(lsr, elt, NULL)) {
-			gf_list_rem(lsr->defered_anims, i);
+			gf_list_rem(lsr->deferred_anims, i);
 			i--;
 			count--;
 			gf_node_init((GF_Node*)elt);
@@ -3135,7 +3135,7 @@ static GF_Node *lsr_read_animate(GF_LASeRCodec *lsr, SVG_Element *parent, Bool i
 	lsr_read_any_attribute(lsr, elt, 1);
 
 	if (!lsr_setup_smil_anim(lsr, (SVG_Element*)elt, parent)) {
-		gf_list_add(lsr->defered_anims, elt);
+		gf_list_add(lsr->deferred_anims, elt);
 		lsr_read_group_content_post_init(lsr, (SVG_Element*)elt, 1);
 	} else {
 		lsr_read_group_content(lsr, elt, 0);
@@ -3176,7 +3176,7 @@ static GF_Node *lsr_read_animateMotion(GF_LASeRCodec *lsr, SVG_Element *parent)
 	lsr_read_any_attribute(lsr, elt, 1);
 
 	if (!lsr_setup_smil_anim(lsr, (SVG_Element*)elt, parent)) {
-		gf_list_add(lsr->defered_anims, elt);
+		gf_list_add(lsr->deferred_anims, elt);
 		lsr_read_group_content_post_init(lsr, (SVG_Element*)elt, 1);
 	} else {
 		lsr_read_group_content_post_init(lsr, (SVG_Element*)elt, 0);
@@ -3244,7 +3244,7 @@ static GF_Node *lsr_read_animateTransform(GF_LASeRCodec *lsr, SVG_Element *paren
 	lsr_read_any_attribute(lsr, elt, 1);
 
 	if (!lsr_setup_smil_anim(lsr, (SVG_Element*)elt, parent)) {
-		gf_list_add(lsr->defered_anims, elt);
+		gf_list_add(lsr->deferred_anims, elt);
 		lsr_read_group_content_post_init(lsr, (SVG_Element*)elt, 1);
 	} else {
 		lsr_read_group_content(lsr, elt, 0);
@@ -3694,7 +3694,7 @@ static GF_Node *lsr_read_set(GF_LASeRCodec *lsr, SVG_Element *parent)
 	lsr_read_any_attribute(lsr, elt, 1);
 
 	if (!lsr_setup_smil_anim(lsr, (SVG_Element*)elt, parent)) {
-		gf_list_add(lsr->defered_anims, elt);
+		gf_list_add(lsr->deferred_anims, elt);
 		lsr_read_group_content_post_init(lsr, (SVG_Element*)elt, 1);
 	} else {
 		lsr_read_group_content(lsr, elt, 0);
@@ -4074,7 +4074,7 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVG_Element *parent)
 		if (!par) post_pone = 1;
 
 		if (post_pone) {
-			gf_list_add(lsr->defered_listeners, elt);
+			gf_list_add(lsr->deferred_listeners, elt);
 		} else {
 			if (!par) par = parent;
 			gf_node_dom_listener_add((GF_Node *)par, elt);
