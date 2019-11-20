@@ -361,12 +361,10 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, void *user)
 	GF_EVGSurface *surf = fcbck->surf;
 	EVG_Surface3DExt *s3d = surf->ext3d;
 	GF_EVGFragmentParam *frag_param = &fcbck->frag_param;
-	EVG_Span fragment;
 	AAScanline *sl = &surf->raster->scanlines[y];
 	Float *depth_line = s3d->depth_buffer ? &s3d->depth_buffer[y*surf->width] : NULL;
 	Float depth_buf_val;
 
-	fragment.len = 1;
 	pix.z=0;
 	pix.q=1;
 
@@ -1230,12 +1228,11 @@ GF_Err evg_3d_resize(GF_EVGSurface *surf)
 GF_EXPORT
 GF_Err gf_evg_surface_clear_depth(GF_EVGSurface *surf, Float depth)
 {
-	u32 i, lsize,  s = surf->width*surf->height;
+	u32 i, lsize;
 	Float *depths;
 	u8 *depth_p;
 	if (!surf->ext3d) return GF_BAD_PARAM;
 
-	s = surf->width*surf->height;
 	depths = surf->ext3d->depth_buffer;
 	if (!depths) return GF_OK; //GF_BAD_PARAM;
 	//copy first line
