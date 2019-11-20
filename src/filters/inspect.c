@@ -720,6 +720,114 @@ void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, Obu
 	fprintf(dump, "/>\n");
 }
 
+GF_EXPORT
+void gf_inspect_dump_prores(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
+{
+	GF_BitStream *bs;
+	GF_ProResFrameInfo prores_frame;
+	GF_Err e;
+
+	bs = gf_bs_new(ptr, frame_size, GF_BITSTREAM_READ);
+	e = gf_media_prores_parse_bs(bs, &prores_frame);
+	gf_bs_del(bs);
+	if (e) {
+		fprintf(dump, "   <!-- Error reading frame %s -->\n", gf_error_to_string(e) );
+		return;
+	}
+	fprintf(dump, "   <ProResFrame framesize=\"%d\" frameID=\"%s\" version=\"%d\""
+		, prores_frame.frame_size
+		, gf_4cc_to_str(prores_frame.frame_identifier)
+		, prores_frame.version
+	);
+	fprintf(dump, " encoderID=\"%s\" width=\"%d\" height=\"%d\""
+		, gf_4cc_to_str(prores_frame.encoder_id)
+		, prores_frame.width
+		, prores_frame.height
+	);
+	switch (prores_frame.chroma_format) {
+	case 0: fprintf(dump, " chromaFormat=\"reserved(0)\""); break;
+	case 1: fprintf(dump, " chromaFormat=\"reserved(1)\""); break;
+	case 2: fprintf(dump, " chromaFormat=\"4:2:2\""); break;
+	case 3: fprintf(dump, " chromaFormat=\"4:4:4\""); break;
+	}
+	switch (prores_frame.interlaced_mode) {
+	case 0: fprintf(dump, " interlacedMode=\"progressive\""); break;
+	case 1: fprintf(dump, " interlacedMode=\"interlaced_top_first\""); break;
+	case 2: fprintf(dump, " interlacedMode=\"interlaced_bottom_first\""); break;
+	case 3: fprintf(dump, " interlacedMode=\"reserved\""); break;
+	}
+	switch (prores_frame.aspect_ratio_information) {
+	case 0: fprintf(dump, " aspectRatio=\"unknown\""); break;
+	case 1: fprintf(dump, " aspectRatio=\"1:1\""); break;
+	case 2: fprintf(dump, " aspectRatio=\"4:3\""); break;
+	default: fprintf(dump, " aspectRatio=\"reserved(%d)\"", prores_frame.aspect_ratio_information); break;
+	}
+	switch (prores_frame.framerate_code) {
+	case 0: fprintf(dump, " framerate=\"unknown\""); break;
+	case 1: fprintf(dump, " framerate=\"23.976\""); break;
+	case 2: fprintf(dump, " framerate=\"24\""); break;
+	case 3: fprintf(dump, " framerate=\"25\""); break;
+	case 4: fprintf(dump, " framerate=\"29.97\""); break;
+	case 5: fprintf(dump, " framerate=\"30\""); break;
+	case 6: fprintf(dump, " framerate=\"50\""); break;
+	case 7: fprintf(dump, " framerate=\"59.94\""); break;
+	case 8: fprintf(dump, " framerate=\"60\""); break;
+	case 9: fprintf(dump, " framerate=\"100\""); break;
+	case 10: fprintf(dump, " framerate=\"119.88\""); break;
+	case 11: fprintf(dump, " framerate=\"120\""); break;
+	default: fprintf(dump, " framerate=\"reserved(%d)\"", prores_frame.framerate_code); break;
+	}
+	switch (prores_frame.color_primaries) {
+	case 0: case 2: fprintf(dump, " colorPrimaries=\"unknown\""); break;
+	case 1: fprintf(dump, " colorPrimaries=\"BT.709\""); break;
+	case 5: fprintf(dump, " colorPrimaries=\"BT.601-625\""); break;
+	case 6: fprintf(dump, " colorPrimaries=\"BT.601-525\""); break;
+	case 9: fprintf(dump, " colorPrimaries=\"BT.2020\""); break;
+	case 11: fprintf(dump, " colorPrimaries=\"P3\""); break;
+	case 12: fprintf(dump, " colorPrimaries=\"P3-D65\""); break;
+	default: fprintf(dump, " colorPrimaries=\"reserved(%d)\"", prores_frame.color_primaries); break;
+	}
+	switch (prores_frame.matrix_coefficients) {
+	case 0: case 2: fprintf(dump, " matrixCoefficients=\"unknown\""); break;
+	case 1: fprintf(dump, " matrixCoefficients=\"BT.709\""); break;
+	case 6: fprintf(dump, " matrixCoefficients=\"BT.601\""); break;
+	case 9: fprintf(dump, " matrixCoefficients=\"BT.2020\""); break;
+	default: fprintf(dump, " matrixCoefficients=\"reserved(%d)\"", prores_frame.matrix_coefficients); break;
+	}
+	switch (prores_frame.alpha_channel_type) {
+	case 0: fprintf(dump, " alphaChannel=\"none\""); break;
+	case 1: fprintf(dump, " alphaChannel=\"8bits\""); break;
+	case 2: fprintf(dump, " alphaChannel=\"16bits\""); break;
+	default: fprintf(dump, " alphaChannel=\"reserved(%d)\"", prores_frame.alpha_channel_type); break;
+	}
+	fprintf(dump, " transferCharacteristics=\"%d\" numPictures=\"%d\"" , prores_frame.transfer_characteristics, prores_frame.nb_pic);
+
+	if (!prores_frame.load_luma_quant_matrix && !prores_frame.load_chroma_quant_matrix) {
+		fprintf(dump, "/>\n");
+	} else {
+		u32 j, k;
+		fprintf(dump, ">\n");
+		if (prores_frame.load_luma_quant_matrix) {
+			fprintf(dump, "    <LumaQuantMatrix coefs=\"");
+			for (j=0; j<8; j++) {
+				for (k=0; k<8; k++) {
+					fprintf(dump, " %02X", prores_frame.luma_quant_matrix[j][k]);
+				}
+			}
+			fprintf(dump, "\">\n");
+		}
+		if (prores_frame.load_chroma_quant_matrix) {
+			fprintf(dump, "    <ChromaQuantMatrix coefs=\"");
+			for (j=0; j<8; j++) {
+				for (k=0; k<8; k++) {
+					fprintf(dump, " %02X", prores_frame.chroma_quant_matrix[j][k]);
+				}
+			}
+			fprintf(dump, "\">\n");
+		}
+		fprintf(dump, "   </ProResFrame>\n");
+	}
+}
 #endif
 
 
@@ -1373,6 +1481,15 @@ props_done:
 				fputc(data[i], dump);
 			}
 			break;
+		case GF_CODECID_APCH:
+		case GF_CODECID_APCO:
+		case GF_CODECID_APCN:
+		case GF_CODECID_APCS:
+		case GF_CODECID_AP4X:
+		case GF_CODECID_AP4H:
+			gf_inspect_dump_prores(dump, (char *) data, size, ctx->dump_crc);
+			break;
+
 		}
 	}
 #endif
