@@ -90,9 +90,9 @@ struct __tag_laser_codec
 	*/
 	Bool memory_dec;
 
-	GF_List *defered_hrefs;
-	GF_List *defered_anims;
-	GF_List *defered_listeners;
+	GF_List *deferred_hrefs;
+	GF_List *deferred_anims;
+	GF_List *deferred_listeners;
 
 	char *cache_dir, *service_name;
 	GF_List *unresolved_commands;

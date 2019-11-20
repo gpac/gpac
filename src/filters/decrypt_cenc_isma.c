@@ -135,7 +135,7 @@ static GF_Err cenc_dec_get_gpac_kms(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		gf_fclose(t);
 		return gf_ismacryp_gpac_get_info(id, (char *)kms_url, cstr->key, cstr->salt);
 	}
-	/*note that gpac doesn't have TLS support -> not really usefull. As a general remark, ISMACryp
+	/*note that gpac doesn't have TLS support -> not really useful. As a general remark, ISMACryp
 	is supported as a proof of concept, crypto and IPMP being the last priority on gpac...*/
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[CENC/ISMA] Fetching ISMACryp key for channel %d\n", id) );
 

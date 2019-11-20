@@ -1998,7 +1998,7 @@ force_input:
 		gf_term_send_event(term, &evt);
 
 		gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
-		//exercice step clocks
+		//exercise step clocks
 		gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 		root_odm = gf_term_get_root_object(term);
 		gf_term_find_service(term, root_odm, 0);

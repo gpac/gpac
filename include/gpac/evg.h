@@ -61,7 +61,7 @@ The rasterizer is only capable of filling a given GF_Path object
 - text must be first converted to GF_Path
 
 The rasterizer also supports experimental drawing of 3D primitives (point, lines, triangles). This is obviously not intended to replace GPU rendering, but can
-be usefull to draw simple primitives over an existing video source. The following constraints apply in 3D mode:
+be useful to draw simple primitives over an existing video source. The following constraints apply in 3D mode:
 - stencils are not used
 - path can only be drawn using \ref gf_evg_surface_draw_path
 

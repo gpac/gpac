@@ -159,7 +159,7 @@ Bool gf_atsc3_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id);
 Bool gf_atsc3_dmx_find_service(GF_ATSCDmx *atscd, u32 service_id);
 
 /*! Removes all non-signaling objects (ie TSI!=0), keeping only init segments and currently/last downloaded objects
-\note this is mostly usefull in case of looping session, or at MPD switch boundaries
+\note this is mostly useful in case of looping session, or at MPD switch boundaries
 \param atscd the ATSC demultiplexer
 \param service_id ID of the service to cleanup
  */

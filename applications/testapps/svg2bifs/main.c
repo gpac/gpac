@@ -52,7 +52,7 @@ typedef struct {
 		1: resolving begin times
 		2: resolving end times */
 	u32 resolve_stage;
-	/* Animation element being defered */
+	/* Animation element being deferred */
 	SVG_Element *animation_elt;
 	/* anim parent*/
 	SVG_Element *anim_parent;
@@ -67,7 +67,7 @@ typedef struct {
 	char *from;
 	char *by;
 	char *values;
-} SVG_DeferedAnimation;
+} SVG_DeferredAnimation;
 
 
 static GF_Node *create_appearance(SVGPropertiesPointers *svg_props, GF_SceneGraph *sg)
@@ -181,7 +181,7 @@ static GF_Node *add_transform2d(SVG2BIFS_Converter *converter, GF_Node *node)
 	return (GF_Node *)tr;
 }
 
-static void svg_parse_animation(GF_SceneGraph *sg, SVG_DeferedAnimation *anim)
+static void svg_parse_animation(GF_SceneGraph *sg, SVG_DeferredAnimation *anim)
 {
 	GF_FieldInfo info;
 	u32 tag;
@@ -280,7 +280,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 	char *id_string = NULL;
 	u32	tag;
 	SVG_Element *elt;
-	SVG_DeferedAnimation *anim = NULL;
+	SVG_DeferredAnimation *anim = NULL;
 
 	tag = gf_xml_get_element_tag(name, 0);
 	elt = (SVG_Element*)gf_node_new(converter->svg_sg, tag);
@@ -296,7 +296,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 //	if (converter->bifs_parent) fprintf(stdout, "%s\n", gf_node_get_class_name(converter->bifs_parent));
 
 	if (gf_svg_is_animation_tag(tag)) {
-		GF_SAFEALLOC(anim, SVG_DeferedAnimation);
+		GF_SAFEALLOC(anim, SVG_DeferredAnimation);
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
 		if (converter->svg_parent) {

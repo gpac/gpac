@@ -185,7 +185,7 @@ GF_Err gf_xml_sax_suspend(GF_SAXParser *parser, Bool do_suspend);
 \return error code if any
 */
 GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_sax_progress OnProgress);
-/*! Gets current line number, usefull for inspecting errors
+/*! Gets current line number, useful for inspecting errors
 \param parser the SAX parser to use
 \return current line number of SAX parser
 */

@@ -932,7 +932,7 @@ will not be triggered*/
 void gf_sg_listener_post_add(GF_Node *obs, GF_Node *listener);
 /*process all pending add_listener request*/
 void gf_dom_listener_process_add(GF_SceneGraph *sg);
-void gf_dom_listener_reset_defered(GF_SceneGraph *sg);
+void gf_dom_listener_reset_deferred(GF_SceneGraph *sg);
 
 
 void gf_node_delete_attributes(GF_Node *node);

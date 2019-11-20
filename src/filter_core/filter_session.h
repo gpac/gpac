@@ -605,7 +605,7 @@ struct __gf_filter
 	Bool setup_notified;
 	//filter loaded to solve a filter chain
 	Bool dynamic_filter;
-	//sticky filters won't unload if all inputs are deconnected. Usefull for sink filters
+	//sticky filters won't unload if all inputs are deconnected. Useful for sink filters
 	//2 means temporary sticky, used when reconfiguring filter chain
 	u32 sticky;
 	//explicitly loaded filters are usually not cloned, except if this flag is set
