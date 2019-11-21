@@ -1840,6 +1840,14 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		fprintf(dump, " </TextConfig>\n");
 		fprintf(dump, "/>\n");
 		return;
+	case GF_CODECID_APCH:
+	case GF_CODECID_APCN:
+	case GF_CODECID_APCS:
+	case GF_CODECID_APCO:
+	case GF_CODECID_AP4H:
+	case GF_CODECID_AP4X:
+		fprintf(dump, "/>\n");
+		return;
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[Inspect] bitstream analysis for codec %s not supported\n", gf_codecid_name(pctx->codec_id)));
 		fprintf(dump, "/>\n");

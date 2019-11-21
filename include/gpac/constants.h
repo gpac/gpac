@@ -497,7 +497,6 @@ typedef enum
 	GF_CODECID_APCO	= GF_4CC( 'a', 'p', 'c', 'o' ),
 	GF_CODECID_APCN	= GF_4CC( 'a', 'p', 'c', 'n' ),
 	GF_CODECID_APCS	= GF_4CC( 'a', 'p', 'c', 's' ),
-	GF_CODECID_APCF	= GF_4CC( 'a', 'p', 'c', 'f' ),
 	GF_CODECID_AP4X	= GF_4CC( 'a', 'p', '4', 'x' ),
 	GF_CODECID_AP4H	= GF_4CC( 'a', 'p', '4', 'h' ),
 

@@ -229,6 +229,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/reframe_mp3.c \
 	../../../../src/filters/reframe_mpgvid.c \
 	../../../../src/filters/reframe_nalu.c \
+	../../../../src/filters/reframe_prores.c \
 	../../../../src/filters/reframe_qcp.c \
 	../../../../src/filters/reframe_rawpcm.c \
 	../../../../src/filters/reframe_rawvid.c \
