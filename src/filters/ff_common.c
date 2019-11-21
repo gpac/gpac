@@ -277,7 +277,6 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 	{AV_CODEC_ID_PRORES, GF_CODECID_APCO, GF_4CC('o','c','p','a') },
 	{AV_CODEC_ID_PRORES, GF_CODECID_APCN, GF_4CC('n','c','p','a')},
 	{AV_CODEC_ID_PRORES, GF_CODECID_APCS, GF_4CC('s','c','p','a')},
-	{AV_CODEC_ID_PRORES, GF_CODECID_APCF, GF_4CC('f','c','p','a')},
 	{AV_CODEC_ID_PRORES, GF_CODECID_AP4X, GF_4CC('x','4','p','a')},
 	{AV_CODEC_ID_PRORES, GF_CODECID_AP4H, GF_4CC('h','4','p','a')},
 

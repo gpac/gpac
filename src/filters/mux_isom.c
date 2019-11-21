@@ -259,6 +259,8 @@ typedef struct
 	GF_SegmentIndexBox *cloned_sidx;
 	u32 cloned_sidx_index;
 	Double faststart_ts_regulate;
+
+	Bool is_rewind;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw);
@@ -673,7 +675,6 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	case GF_CODECID_APCO:
 	case GF_CODECID_APCN:
 	case GF_CODECID_APCS:
-	case GF_CODECID_APCF:
 	case GF_CODECID_AP4X:
 	case GF_CODECID_AP4H:
 		if (!ctx->make_qt) {
@@ -2355,6 +2356,8 @@ static Bool mp4_mux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	if (evt->base.on_pid && (evt->base.type==GF_FEVT_PLAY) ) {
 		//by default don't cancel event - to rework once we have downloading in place
 		ctx->force_play = GF_TRUE;
+		if (evt->play.speed<0)
+			ctx->is_rewind = GF_TRUE;
 		return GF_FALSE;
 	}
 	//by default don't cancel event - to rework once we have downloading in place
@@ -2635,6 +2638,19 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		tkw->sample.CTS_Offset = (s32) ((s64) cts - (s64) tkw->sample.DTS);
 	}
 
+	//tkw->ts_shift is in source timescale, apply it before rescaling TSs/duration
+	if (tkw->ts_shift) {
+		if (ctx->is_rewind) {
+			assert (tkw->sample.DTS <= tkw->ts_shift);
+			tkw->sample.DTS = tkw->ts_shift - tkw->sample.DTS;
+			cts = tkw->ts_shift - cts;
+		} else {
+			assert (tkw->sample.DTS >= tkw->ts_shift);
+			tkw->sample.DTS -= tkw->ts_shift;
+			cts -= tkw->ts_shift;
+		}
+	}
+
 	duration = gf_filter_pck_get_duration(pck);
 	if (timescale != tkw->tk_timescale) {
 		s64 ctso;
@@ -2655,12 +2671,6 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		tkw->sample.IsRAP = SAP_TYPE_1;
 	else if ( (sap_type == GF_FILTER_SAP_4) && (tkw->stream_type != GF_STREAM_VISUAL) )
 		tkw->sample.IsRAP = SAP_TYPE_1;
-
-	if (tkw->ts_shift) {
-		assert (tkw->sample.DTS >= tkw->ts_shift);
-		tkw->sample.DTS -= tkw->ts_shift;
-		cts -= tkw->ts_shift;
-	}
 
 	tkw->sample.DTS += tkw->dts_patch;
 	if (tkw->nb_samples && (prev_dts >= tkw->sample.DTS) ) {
@@ -3989,8 +3999,9 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		dts_diff *= tkw->src_timescale;
 		dts_diff /= 1000000;
 		dts_diff = (s64) tkw->ts_shift - dts_diff;
+		if (ctx->is_rewind) dts_diff = -dts_diff;
 		//negative could happen due to rounding, ignore them
-		if (dts_diff<=0) continue;
+		if (dts_diff>=0) continue;
 
 		//if dts_diff > 0, we need to delay the track
 		if (dts_diff) {
@@ -4147,7 +4158,10 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		//we need to regulate because sources do not produce packets at the same rate
 		if ((ctx->store==MP4MX_MODE_FASTSTART) && ctx->cdur) {
 			Double cts = (Double) gf_filter_pck_get_cts(pck);
-			cts -= tkw->ts_shift;
+			if (ctx->is_rewind)
+				cts = tkw->ts_shift - cts;
+			else
+				cts -= tkw->ts_shift;
 			cts /= tkw->src_timescale;
 			if (!ctx->faststart_ts_regulate) {
 				ctx->faststart_ts_regulate = ctx->cdur;
