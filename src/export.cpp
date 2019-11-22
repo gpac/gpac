@@ -2201,6 +2201,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_mime) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_codecid_alt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_all_shortnames) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_enum) )

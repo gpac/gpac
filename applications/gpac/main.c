@@ -286,9 +286,10 @@ const char *gpac_doc =
 "# Assigning PID properties\n"
 "It is possible to define properties on output PIDs that will be declared by a filter. This allows tagging parts of the "
 "graph with different properties than other parts (for example `ServiceID`). "
-"The syntax is the same as filter option, and uses the fragment separator to identify properties, eg `#Name=Value`. "
+"The syntax is the same as filter option, and uses the fragment separator to identify properties, eg `#Name=Value`.\n"
 "This sets output PIDs property (4cc, built-in name or any name) to the given value. Value can be omitted for booleans "
-"(defaults to true, eg `:#Alpha`). If a non built-in property is used, the value will be declared as string.\n"
+"(defaults to true, eg `:#Alpha`).\n"
+"If a non built-in property is used, the value will be declared as string or as data for `file@` and `bxml@` property values.\n"
 "Warning: Properties are not filtered and override the properties of the filter's output PIDs, be carefull not to break "
 "the session by overriding core properties such as width/height/samplerate/... !\n"
 "EX -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
@@ -2321,33 +2322,94 @@ static void dump_all_props(void)
 
 static void dump_all_codec(GF_FilterSession *session)
 {
-	GF_PropertyValue rawp;
-	GF_PropertyValue cp;
+	GF_PropertyValue rawp, filep, stp;
+	GF_PropertyValue cp, acp;
+	char szFlags[10], szCap[2];
 	u32 cidx=0;
 	u32 count = gf_fs_filters_registers_count(session);
-	gf_sys_format_help(helpout, help_flags, "Codec names listed as built_in_name[|variant](I: Filter Input support, O: Filter Output support): full_name\n");
+
+	gf_sys_format_help(helpout, help_flags, "Codec support in filters, listed as `built_in_name[|variant] [FLAGS]: full_name (mime)` with possible FLAGS values:\n");
+	gf_sys_format_help(helpout, help_flags, "  - I: Raw format input (demux) support\n");
+	gf_sys_format_help(helpout, help_flags, "  - O: Raw format output (mux) support\n");
+	gf_sys_format_help(helpout, help_flags, "  - D: Decoder support\n");
+	gf_sys_format_help(helpout, help_flags, "  - E: Encoder support\n");
+	gf_sys_format_help(helpout, help_flags, "\nNote: Raw output may still be possible even when no output serializer is given\n\n");
+
 	rawp.type = cp.type = GF_PROP_UINT;
 	rawp.value.uint = GF_CODECID_RAW;
+	filep.type = cp.type = GF_PROP_UINT;
+	filep.value.uint = GF_STREAM_FILE;
+	stp.type = GF_PROP_UINT;
+	cp.type = GF_PROP_UINT;
+	acp.type = GF_PROP_UINT;
+	szCap[1] = 0;
+
 	while (1) {
 		u32 i;
 		const char *lname;
 		const char *sname;
+		const char *mime;
+		u32 rfc4cc;
 		Bool enc_found = GF_FALSE;
 		Bool dec_found = GF_FALSE;
+		Bool dmx_found = GF_FALSE;
+		Bool mx_found = GF_FALSE;
 		cp.value.uint = gf_codecid_enum(cidx, &sname, &lname);
 		cidx++;
 		if (cp.value.uint == GF_CODECID_NONE) break;
 		if (cp.value.uint == GF_CODECID_RAW) continue;
 		if (!sname) break;
 
+		stp.value.uint = gf_codecid_type(cp.value.uint);
+		acp.value.uint = gf_codecid_alt(cp.value.uint);
+
 		for (i=0; i<count; i++) {
 			const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
-			if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_CODECID, &rawp, GF_PROP_PID_CODECID, &cp)) enc_found = GF_TRUE;
-			if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_CODECID, &cp, GF_PROP_PID_CODECID, &rawp)) dec_found = GF_TRUE;
+			if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_STREAM_TYPE, &stp, GF_PROP_PID_STREAM_TYPE, &stp, GF_TRUE)) {
+				if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_CODECID, &rawp, GF_PROP_PID_CODECID, &cp, GF_TRUE)) {
+					enc_found = GF_TRUE;
+				} else if (acp.value.uint && gf_fs_check_filter_register_cap(reg, GF_PROP_PID_CODECID, &rawp, GF_PROP_PID_CODECID, &acp, GF_TRUE)) {
+						enc_found = GF_TRUE;
+				}
+				if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_CODECID, &cp, GF_PROP_PID_CODECID, &rawp, GF_TRUE)) {
+					dec_found = GF_TRUE;
+				} else if (acp.value.uint && gf_fs_check_filter_register_cap(reg, GF_PROP_PID_CODECID, &acp, GF_PROP_PID_CODECID, &rawp, GF_TRUE)) {
+					dec_found = GF_TRUE;
+				}
+			}
+
+			if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_STREAM_TYPE, &filep, GF_PROP_PID_STREAM_TYPE, &stp, GF_TRUE)) {
+				if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_STREAM_TYPE, &filep, GF_PROP_PID_CODECID, &cp, GF_TRUE))
+					dmx_found = GF_TRUE;
+			}
+			if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_STREAM_TYPE, &stp, GF_PROP_PID_STREAM_TYPE, &filep, GF_TRUE)) {
+				if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_CODECID, &cp, GF_PROP_PID_STREAM_TYPE, &filep, GF_TRUE))
+					mx_found = GF_TRUE;
+			}
 		}
 
-		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%c%c)", sname, dec_found ? 'I' : '-', enc_found ? 'O' : '-');
-		gf_sys_format_help(helpout, help_flags, "%s\n", lname);
+		szFlags[0] = 0;
+		if (enc_found || dec_found || dmx_found || mx_found) {
+			strcpy(szFlags, " [");
+			if (dmx_found) { szCap[0] = 'I'; strcat(szFlags, szCap); }
+			if (mx_found) { szCap[0] = 'O'; strcat(szFlags, szCap); }
+			if (dec_found) { szCap[0] = 'D'; strcat(szFlags, szCap); }
+			if (enc_found) { szCap[0] = 'E'; strcat(szFlags, szCap); }
+			strcat(szFlags, "]");
+		}
+
+		mime = gf_codecid_mime(cp.value.uint);
+		rfc4cc = gf_codecid_4cc_type(cp.value.uint);
+		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s%s: ", sname, szFlags);
+		gf_sys_format_help(helpout, help_flags, "%s", lname);
+		if (rfc4cc || mime) {
+			gf_sys_format_help(helpout, help_flags, " (");
+			if (rfc4cc) gf_sys_format_help(helpout, help_flags, "%s", gf_4cc_to_str(rfc4cc) );
+			if (rfc4cc&&mime) gf_sys_format_help(helpout, help_flags, ", ");
+			if (mime) gf_sys_format_help(helpout, help_flags, "%s", mime);
+			gf_sys_format_help(helpout, help_flags, ")");
+		}
+		gf_sys_format_help(helpout, help_flags, "\n");
 	}
 	gf_sys_format_help(helpout, help_flags, "\n");
 }

@@ -444,7 +444,7 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 \param out_cap capability value of output capability to check
 \return GF_TRUE if filter register has such a match, GF_FALSE otherwise
 */
-Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *filter_reg, u32 in_cap_code, GF_PropertyValue *in_cap, u32 out_cap_code, GF_PropertyValue *out_cap);
+Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *filter_reg, u32 in_cap_code, GF_PropertyValue *in_cap, u32 out_cap_code, GF_PropertyValue *out_cap, Bool exact_match_only);
 
 
 /*! Enables or disables filter reporting

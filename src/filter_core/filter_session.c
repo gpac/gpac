@@ -822,7 +822,7 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 }
 
 GF_EXPORT
-Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output)
+Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output, Bool exact_match_only)
 {
 	u32 j;
 	u32 has_raw_in = 0;
@@ -833,7 +833,7 @@ Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *f_reg, u32 incode,
 		const GF_FilterCapability *cap = &f_reg->caps[j];
 		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
 			//CID not excluded, raw in present and CID explicit match or not included in excluded set
-			if (!exclude_cid_out && has_raw_in && (has_cid_match || has_exclude_cid_out) ) {
+			if (!exclude_cid_out && has_raw_in && (has_cid_match || (!exact_match_only && has_exclude_cid_out) ) ) {
 				return GF_TRUE;
 			}
 
@@ -865,7 +865,7 @@ Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *f_reg, u32 incode,
 		}
 	}
 	//CID not excluded, raw in present and CID explicit match or not included in excluded set
-	if (!exclude_cid_out && has_raw_in && (has_cid_match || has_exclude_cid_out) ) {
+	if (!exclude_cid_out && has_raw_in && (has_cid_match || (!exact_match_only && has_exclude_cid_out) ) ) {
 		return GF_TRUE;
 	}
 	return GF_FALSE;
@@ -909,7 +909,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	for (i=0; i<count; i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 
-		if ( gf_fs_check_filter_register_cap(f_reg, GF_PROP_PID_CODECID, &cap_in, GF_PROP_PID_CODECID, &cap_out)) {
+		if ( gf_fs_check_filter_register_cap(f_reg, GF_PROP_PID_CODECID, &cap_in, GF_PROP_PID_CODECID, &cap_out, GF_FALSE)) {
 			if (!candidate || (candidate->priority>f_reg->priority))
 				candidate = f_reg;
 		}
