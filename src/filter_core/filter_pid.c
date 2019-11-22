@@ -3078,9 +3078,13 @@ static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 			gf_props_reset_single(&p);
 		} else if (eq) {
 			GF_PropertyValue p;
-			memset(&p, 0, sizeof(GF_PropertyValue));
-			p.type = GF_PROP_STRING;
-			p.value.string = eq+1;
+			if (!strncmp(eq+1, "bxml@", 5)) {
+				p = gf_props_parse_value(GF_PROP_DATA_NO_COPY, name, eq+1, NULL, pid->filter->session->sep_list);
+			} else {
+				memset(&p, 0, sizeof(GF_PropertyValue));
+				p.type = GF_PROP_STRING;
+				p.value.string = eq+1;
+			}
 			gf_filter_pid_set_property_dyn(pid, name, &p);
 		}
 		if (eq)

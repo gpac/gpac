@@ -2286,6 +2286,11 @@ should not contain any source or destination URL except for sources and sinks.
 */
 GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus);
 
+/*! check if session has been scheduled for destruction
+\param filter target filter
+\return GF_TRUE if session is about to be destroyed
+*/
+Bool gf_filter_end_of_session(GF_Filter *filter);
 
 /*! used by meta-filters (ffmpeg and co) to report an option was set but not used by the filter. This is needed since these filters might not
 know the set of available options at initialize() time.

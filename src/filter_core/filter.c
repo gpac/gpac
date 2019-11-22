@@ -3359,3 +3359,10 @@ GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *er
 	if (!filter) return NULL;
 	return gf_fs_load_filter(filter->session, name, err_code);
 }
+
+GF_EXPORT
+Bool gf_filter_end_of_session(GF_Filter *filter)
+{
+	if (!filter) return GF_TRUE;
+	return filter->session->in_final_flush;
+}
