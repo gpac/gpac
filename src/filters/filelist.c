@@ -539,6 +539,15 @@ GF_Err filelist_process(GF_Filter *filter)
 	if ((nb_inactive!=count) && (nb_done+nb_inactive==count)) {
 		//compute max cts and dts in 1Mhz timescale
 		u64 max_cts = 0, max_dts = 0;
+
+		if (gf_filter_end_of_session(filter)) {
+			for (i=0; i<count; i++) {
+				iopid = gf_list_get(ctx->io_pids, i);
+				gf_filter_pid_set_eos(iopid->opid);
+			}
+			ctx->is_eos = GF_TRUE;
+			return GF_EOS;
+		}
 		ctx->dts_sub_plus_one = 0;
 		for (i=0; i<count; i++) {
 			iopid = gf_list_get(ctx->io_pids, i);
@@ -555,7 +564,6 @@ GF_Err filelist_process(GF_Filter *filter)
 				if (max_dts < ts) max_dts = ts;
 			}
 		}
-//		ctx->cts_offset += max_cts;
 		ctx->cts_offset += max_dts;
 		ctx->dts_offset += max_dts;
 
