@@ -996,6 +996,12 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 
 	cur_extract_mode = gf_isom_get_nalu_extract_mode(file, track);
 
+	nb_descs = gf_isom_get_sample_description_count(file, track);
+	if (!nb_descs) {
+		fprintf(stderr, "Error: Track #%d has no sample description so is likely not NALU-based!\n", trackID);
+		return;
+	}
+
 	fprintf(dump, "<NALUTrack trackID=\"%d\" SampleCount=\"%d\" TimeScale=\"%d\">\n", trackID, count, timescale);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -1029,7 +1035,6 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 
 	nalh_size = 0;
 
-	nb_descs = gf_isom_get_sample_description_count(file, track);
 	for (j=0; j<nb_descs; j++) {
 		GF_AVCConfig *mvccfg;
 		Bool is_svc;
