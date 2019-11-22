@@ -42,6 +42,8 @@ typedef struct
 	const char *rfc_4cc;
 	//mime type of raw format
 	const char *mime_type;
+	//alternate codecid name
+	u32 alt_codecid;
 } CodecIDReg;
 
 CodecIDReg CodecRegistry [] = {
@@ -65,11 +67,11 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_HEVC, GF_CODECID_HEVC, GF_STREAM_VISUAL, "HEVC Video", "hvc|hevc|h265", "hvc1", "video/hevc"},
 	{GF_CODECID_LHVC, GF_CODECID_LHVC, GF_STREAM_VISUAL, "HEVC Video Layered Extensions", "lhvc|shvc|mhvc", "lhc1", "video/lhvc"},
 	{GF_CODECID_MPEG2_SIMPLE, GF_CODECID_MPEG2_SIMPLE, GF_STREAM_VISUAL, "MPEG-2 Visual Simple", "m2vs", "mp2v", "video/mp2v-es"},
-	{GF_CODECID_MPEG2_MAIN, GF_CODECID_MPEG2_MAIN, GF_STREAM_VISUAL, "MPEG-2 Visual Main", "m2v", "mp2v", "video/mp2v-es"},
-	{GF_CODECID_MPEG2_SNR, GF_CODECID_MPEG2_SNR, GF_STREAM_VISUAL, "MPEG-2 Visual SNR", "m2v|m2vsnr", "mp2v", "video/mp2v-es"},
-	{GF_CODECID_MPEG2_SPATIAL, GF_CODECID_MPEG2_SPATIAL, GF_STREAM_VISUAL, "MPEG-2 Visual Spatial", "m2v|m2vspat", "mp2v", "video/mp2v-es"},
-	{GF_CODECID_MPEG2_HIGH, GF_CODECID_MPEG2_HIGH, GF_STREAM_VISUAL, "MPEG-2 Visual High", "m2v|m2vh", "mp2v", "video/mp2v-es"},
-	{GF_CODECID_MPEG2_422, GF_CODECID_MPEG2_422, GF_STREAM_VISUAL, "MPEG-2 Visual 422", "m2v|m2v4", "mp2v", "video/mp2v-es"},
+	{GF_CODECID_MPEG2_MAIN, GF_CODECID_MPEG2_MAIN, GF_STREAM_VISUAL, "MPEG-2 Visual Main", "m2v", "mp2v", "video/mp2v-es", GF_CODECID_MPEG2_SIMPLE},
+	{GF_CODECID_MPEG2_SNR, GF_CODECID_MPEG2_SNR, GF_STREAM_VISUAL, "MPEG-2 Visual SNR", "m2v|m2vsnr", "mp2v", "video/mp2v-es", GF_CODECID_MPEG2_SIMPLE},
+	{GF_CODECID_MPEG2_SPATIAL, GF_CODECID_MPEG2_SPATIAL, GF_STREAM_VISUAL, "MPEG-2 Visual Spatial", "m2v|m2vspat", "mp2v", "video/mp2v-es", GF_CODECID_MPEG2_SIMPLE},
+	{GF_CODECID_MPEG2_HIGH, GF_CODECID_MPEG2_HIGH, GF_STREAM_VISUAL, "MPEG-2 Visual High", "m2v|m2vh", "mp2v", "video/mp2v-es", GF_CODECID_MPEG2_SIMPLE},
+	{GF_CODECID_MPEG2_422, GF_CODECID_MPEG2_422, GF_STREAM_VISUAL, "MPEG-2 Visual 422", "m2v|m2v4", "mp2v", "video/mp2v-es", GF_CODECID_MPEG2_SIMPLE},
 	{GF_CODECID_MPEG1, GF_CODECID_MPEG1, GF_STREAM_VISUAL, "MPEG-1 Video", "m1v", "mp1v", "video/mp1v-es"},
 	{GF_CODECID_JPEG, GF_CODECID_JPEG, GF_STREAM_VISUAL, "JPEG Image", "jpg|jpeg", "jpeg", "image/jpeg"},
 	{GF_CODECID_PNG, GF_CODECID_PNG, GF_STREAM_VISUAL, "PNG Image", "png", "png ", "image/png"},
@@ -80,9 +82,9 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_AAC_MPEG2_SSRP, GF_CODECID_AAC_MPEG2_SSRP, GF_STREAM_AUDIO, "MPEG-2 AAC Audio Scalable Sampling Rate", "aac|aac2s", "mp4a", "audio/aac"},
 	{GF_CODECID_MPEG2_PART3, GF_CODECID_MPEG2_PART3, GF_STREAM_AUDIO, "MPEG-2 Audio", "mp3|m2a", ".mp3", "audio/mp3"},
 	{GF_CODECID_MPEG_AUDIO, GF_CODECID_MPEG_AUDIO, GF_STREAM_AUDIO, "MPEG-1 Audio", "mp3|m1a", ".mp3", "audio/mp3"},
-	{GF_CODECID_S263, 0, GF_STREAM_VISUAL, "H263 Video", "h263", "s263", "video/h263"},
-	{GF_CODECID_H263, 0, GF_STREAM_VISUAL, "H263 Video", "h263", "h263", "video/h263"},
-	{GF_CODECID_HEVC_TILES, 0, GF_STREAM_VISUAL, "HEVC tiles Video", "hvt1", "hvt1", "video/x-hevc-tiles"},
+	{GF_CODECID_S263, 0, GF_STREAM_VISUAL, "H263 Video", "h263", "s263", "video/h263", .alt_codecid=GF_CODECID_H263},
+	{GF_CODECID_H263, 0, GF_STREAM_VISUAL, "H263 Video", "h263", "h263", "video/h263", .alt_codecid=GF_CODECID_S263},
+	{GF_CODECID_HEVC_TILES, 0, GF_STREAM_VISUAL, "HEVC tiles Video", "hvt1", "hvt1", "video/x-hevc-tiles", .alt_codecid=GF_CODECID_HEVC},
 
 	{GF_CODECID_EVRC, 0xA0, GF_STREAM_AUDIO, "EVRC Voice", "evc|evrc", "sevc", "audio/evrc"},
 	{GF_CODECID_SMV, 0xA1, GF_STREAM_AUDIO, "SMV Voice", "smv", "ssmv", "audio/smv"},
@@ -114,12 +116,11 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_TX3G, 0, GF_STREAM_TEXT, "Subtitle/text 3GPP/Apple Stream", "tx3g", "tx3g", "quicktime/text"},
 	{GF_CODECID_THEORA, 0xDF, GF_STREAM_VISUAL, "Theora Video", "theo|theora", NULL, "video/theora"},
 	{GF_CODECID_VORBIS, 0xDD, GF_STREAM_AUDIO, "Vorbis Audio", "vorb|vorbis", NULL, "audio/vorbis"},
-	{GF_CODECID_OPUS, 0xDE, GF_STREAM_AUDIO, "Opus  Audio", "opus", NULL, "audio/opus"},
+	{GF_CODECID_OPUS, 0xDE, GF_STREAM_AUDIO, "Opus Audio", "opus", NULL, "audio/opus"},
 	{GF_CODECID_FLAC, 0, GF_STREAM_AUDIO, "Flac Audio", "flac", "fLaC", "audio/flac"},
 	{GF_CODECID_SPEEX, 0, GF_STREAM_AUDIO, "Speex Audio", "spx|speex", NULL, "audio/speex"},
 	{GF_CODECID_SUBPIC, 0xE0, GF_STREAM_TEXT, "VobSub Subtitle", "vobsub", NULL, "text/x-vobsub"},
 	{GF_CODECID_SUBPIC, 0xE0, GF_STREAM_ND_SUBPIC, "VobSub Subtitle", "vobsub", NULL, "text/x-vobsub"},
-	{GF_CODECID_PCM, 0, GF_STREAM_AUDIO, "PCM", "pcm", NULL, "audio/pcm"},
 	{GF_CODECID_ADPCM, 0, GF_STREAM_AUDIO, "AD-PCM", "adpcm", NULL, "audio/pcm"},
 	{GF_CODECID_IBM_CVSD, 0, GF_STREAM_AUDIO, "IBM CSVD", "csvd", NULL, "audio/pcm"},
 	{GF_CODECID_ALAW, 0, GF_STREAM_AUDIO, "ALAW", "alaw", NULL, "audio/pcm"},
@@ -142,11 +143,11 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_VP10, 0, GF_STREAM_VISUAL, "VP10 Video", "vp10|ivf", NULL, "video/vp10"},
 
 	{GF_CODECID_APCH, 0, GF_STREAM_VISUAL, "ProRes Video 422 HQ", "prores|apch", "apch", "video/prores"},
-	{GF_CODECID_APCO, 0, GF_STREAM_VISUAL, "ProRes Video 422 Proxy", "prores|apco", "apco", "video/prores"},
-	{GF_CODECID_APCN, 0, GF_STREAM_VISUAL, "ProRes Video 422 STD", "prores|apcn", "apcn", "video/prores"},
-	{GF_CODECID_APCS, 0, GF_STREAM_VISUAL, "ProRes Video 422 LT", "prores|apcs", "apcs", "video/prores"},
-	{GF_CODECID_AP4X, 0, GF_STREAM_VISUAL, "ProRes Video 4444 XQ", "prores|ap4x", "ap4x", "video/prores"},
-	{GF_CODECID_AP4H, 0, GF_STREAM_VISUAL, "ProRes Video 4444", "prores|ap4h", "ap4h", "video/prores"},
+	{GF_CODECID_APCO, 0, GF_STREAM_VISUAL, "ProRes Video 422 Proxy", "prores|apco", "apco", "video/prores", GF_CODECID_APCH},
+	{GF_CODECID_APCN, 0, GF_STREAM_VISUAL, "ProRes Video 422 STD", "prores|apcn", "apcn", "video/prores", GF_CODECID_APCH},
+	{GF_CODECID_APCS, 0, GF_STREAM_VISUAL, "ProRes Video 422 LT", "prores|apcs", "apcs", "video/prores", GF_CODECID_APCH},
+	{GF_CODECID_AP4X, 0, GF_STREAM_VISUAL, "ProRes Video 4444 XQ", "prores|ap4x", "ap4x", "video/prores", GF_CODECID_APCH},
+	{GF_CODECID_AP4H, 0, GF_STREAM_VISUAL, "ProRes Video 4444", "prores|ap4h", "ap4h", "video/prores", GF_CODECID_APCH},
 	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFMPEG unmapped codec", "ffmpeg", NULL, NULL},
 
 	{GF_CODECID_TMCD, 0, GF_STREAM_METADATA, "QT TimeCode", "tmcd", NULL, NULL},
@@ -318,6 +319,14 @@ u32 gf_codecid_type(GF_CodecID codecid)
 	CodecIDReg *r = gf_codecid_reg_find(codecid);
 	if (!r) return GF_STREAM_UNKNOWN;
 	return r->stream_type;
+}
+
+GF_EXPORT
+GF_CodecID gf_codecid_alt(GF_CodecID codecid)
+{
+	CodecIDReg *r = gf_codecid_reg_find(codecid);
+	if (!r) return GF_CODECID_NONE;
+	return r->alt_codecid;
 }
 
 GF_EXPORT

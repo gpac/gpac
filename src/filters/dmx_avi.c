@@ -163,6 +163,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 		nb_bits = AVI_audio_bits(ctx->avi);
 		switch (a_fmt) {
 		case WAVE_FORMAT_PCM:
+		case GF_4CC('P','C','M',' '):
 			codecid = GF_CODECID_RAW;
 			switch (nb_bits) {
 			case 8:

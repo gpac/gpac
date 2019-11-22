@@ -308,7 +308,7 @@ typedef enum
 	GF_CODECID_TEXT_MPEG4 = 0x08,
 	/*! codecid for LASeR streams*/
 	GF_CODECID_LASER = 0x09,
-	/*! codecid for SAF streams*/
+	/*! codecid for SAF streams when stored in MP4 ...*/
 	GF_CODECID_SAF = 0x0A,
 
 	/*! codecid for MPEG-4 Video Part 2 streams*/
@@ -453,8 +453,6 @@ typedef enum
 	GF_CODECID_OPUS = GF_4CC('O','p','u','s'),
 	/*! codecid for subpic DVD subtittles - the associated stream type is text*/
 	GF_CODECID_SUBPIC = GF_4CC('s','u','b','p'),
-	/*! codecid for raw audio PCM, as used in AVI*/
-	GF_CODECID_PCM = GF_4CC('P','C','M',' '),
 	/*! codecid for ADPCM audio, as used in AVI*/
 	GF_CODECID_ADPCM = GF_4CC('A','P','C','M'),
 	/*! codecid for IBM CVSD audio, as used in AVI*/
@@ -524,6 +522,12 @@ GF_CodecID gf_codecid_enum(u32 idx, const char **short_name, const char **long_n
 \return stream type if known, GF_STREAM_UNKNOWN otherwise
 */
 u32 gf_codecid_type(GF_CodecID codecid);
+
+/*! Gets alternate ID of codec if any
+\param codecid target codec ID
+\return alternate codec ID if known, GF_CODECID_NONE otherwise
+*/
+GF_CodecID gf_codecid_alt(GF_CodecID codecid);
 
 /*! Gets the associated ObjectTypeIndication if any for the given codecID
 \param codecid target codec ID
