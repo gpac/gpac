@@ -155,7 +155,8 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 		u32 sei_type = 0;
 		u32 sei_size = 0;
 		while (gf_bs_peek_bits(bs, 8, 0) == 0xFF) {
-			sei_type+= 255;
+			sei_type += 255;
+			gf_bs_read_int(bs, 8);
 		}
 		sei_type += gf_bs_read_int(bs, 8);
 		while (gf_bs_peek_bits(bs, 8, 0) == 0xFF) {
