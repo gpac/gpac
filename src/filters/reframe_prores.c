@@ -616,13 +616,13 @@ static const GF_FilterArgs ProResDmxArgs[] =
 	{ OFFS(fps), "import frame rate (0 default to FPS from bitstream or 25 Hz)", GF_PROP_FRACTION, "0/1000", NULL, 0},
 	{ OFFS(findex), "index frames. If true, filter will be able to work in rewind mode", GF_PROP_BOOL, "true", NULL, 0},
 
-	{ OFFS(cid), "sets QT 4CC for the imported media. If not set, defaults to 'ap4h' for YUV444 or 'apch' for YUV422", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(cid), "set QT 4CC for the imported media. If not set, defaults to 'ap4h' for YUV444 or 'apch' for YUV422", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 
 GF_FilterRegister ProResDmxRegister = {
-	.name = "rfav1",
+	.name = "rfprores",
 	GF_FS_SET_DESCRIPTION("ProRes reframer")
 	GF_FS_SET_HELP("This filter parses ProRes raw files/data and outputs corresponding visual PID and frames.")
 	.private_size = sizeof(GF_ProResDmxCtx),

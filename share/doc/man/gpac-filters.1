@@ -406,7 +406,7 @@ Whether the setting is applied or not depends on the graphics module and player 
 .br
 
 .br
-amc (boolean, default: true):            audio multichannel support; if disabled always downmix to stereo. usefull if the multichannel output does not work properly
+amc (boolean, default: true):            audio multichannel support; if disabled always downmix to stereo. Useful if the multichannel output does not work properly
 .br
 asr (unsigned int, default: 0):          force output sample rate - 0 for auto
 .br
@@ -3501,7 +3501,7 @@ On non windows hosts, the created pipe will delete the pipe file upon filter des
 .br
 Input pipes can be setup to run forever using -ka. In this case, end of stream will never be triggered
 .br
-This can be usefull to pipe raw streams from different process into gpac:
+This can be useful to pipe raw streams from different process into gpac:
 .br
 Receiver side: gpac -i pipe://mypipe:ext=.264:mkp:ka
 .br
@@ -3824,7 +3824,7 @@ This filter parses AV1 OBU, AV1 AnnexB or IVF with AV1 or VP9 files/data and out
 .SH Options (expert):
 .LP
 .br
-fps (fraction, default: 0/1000):         import frame rate (0 default to FPS from from bitstream or 25 Hz)
+fps (fraction, default: 0/1000):         import frame rate (0 default to FPS from bitstream or 25 Hz)
 .br
 index (number, default: -1.0):           indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value
 .br
@@ -4192,6 +4192,28 @@ index (number, default: 1.0):            indexing window length
 .br
 
 .br
+.SH rfprores
+.LP
+.br
+Description: ProRes reframer
+.br
+
+.br
+This filter parses ProRes raw files/data and outputs corresponding visual PID and frames.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+fps (fraction, default: 0/1000):         import frame rate (0 default to FPS from bitstream or 25 Hz)
+.br
+findex (boolean, default: true):         index frames. If true, filter will be able to work in rewind mode
+.br
+cid (string, no default):                set QT 4CC for the imported media. If not set, defaults to 'ap4h' for YUV444 or 'apch' for YUV422
+.br
+
+.br
 .SH ffdmx
 .LP
 .br
@@ -4429,7 +4451,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2910-ga948ced1d-filters
+build: 0.9.0-DEV-rev2949-g4988ea49e-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

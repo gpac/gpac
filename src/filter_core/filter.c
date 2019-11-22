@@ -892,77 +892,13 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 	}
 }
 
-static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type, Bool for_script)
+
+static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type, Bool for_script, char *szSrc, char *szDst, char *szEscape, char *szSecName, Bool has_meta_args, u32 argfile_level)
 {
-	u32 i=0;
-	char szSecName[200];
-	char szEscape[7];
-	char szSrc[5], szDst[5];
-	Bool has_meta_args = GF_FALSE;
 	char *szArg=NULL;
+	u32 i=0;
 	u32 alloc_len=1024;
 	const GF_FilterArgs *f_args = NULL;
-	if (!filter) return;
-
-	if (!for_script) {
-		if (!filter->freg->private_size) {
-			if (filter->freg->args && filter->freg->args[0].arg_name) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter with arguments but no private stack size, no arg passing\n"));
-			}
-		} else {
-			filter->filter_udta = gf_malloc(filter->freg->private_size);
-			if (!filter->filter_udta) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate private data stack\n"));
-				return;
-			}
-			memset(filter->filter_udta, 0, filter->freg->private_size);
-		}
-	}
-
-	sprintf(szEscape, "%cgpac%c", filter->session->sep_args, filter->session->sep_args);
-	sprintf(szSrc, "src%c", filter->session->sep_name);
-	sprintf(szDst, "dst%c", filter->session->sep_name);
-
-	snprintf(szSecName, 200, "filter@%s", filter->freg->name);
-
-	//instantiate all args with defauts value
-	f_args = filter->freg->args;
-	if (for_script)
-		f_args = filter->instance_args;
-	i=0;
-	while (f_args) {
-		GF_PropertyValue argv;
-		const char *def_val;
-		const GF_FilterArgs *a = &f_args[i];
-		if (!a || !a->arg_name) break;
-		i++;
-		if (a->flags & GF_FS_ARG_META) {
-			has_meta_args = GF_TRUE;
-			continue;
-		}
-
-		def_val = gf_filter_load_arg_config(filter->session, szSecName, a->arg_name, a->arg_default_val);
-
-		if (!def_val) continue;
-
-		argv = gf_filter_parse_prop_solve_env_var(filter, a->arg_type, a->arg_name, def_val, a->min_max_enum);
-
-		if (argv.type != GF_PROP_FORBIDEN) {
-			if (!for_script && (a->offset_in_private>=0)) {
-				gf_filter_set_arg(filter, a, &argv);
-			} else if (filter->freg->update_arg) {
-				FSESS_CHECK_THREAD(filter)
-				filter->freg->update_arg(filter, a->arg_name, &argv);
-				gf_props_reset_single(&argv);
-			}
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to parse argument %s value %s\n", a->arg_name, a->arg_default_val));
-		}
-	}
-	//handle meta filter options, not exposed in registry
-	if (has_meta_args && filter->freg->update_arg && !for_script)
-		gf_filter_load_meta_args_config(szSecName, filter);
-
 
 	if (args)
 		szArg = gf_malloc(sizeof(char)*1024);
@@ -1233,6 +1169,37 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
+			else if (gf_file_exists(szArg)) {
+				if (!for_script && (argfile_level<5) ) {
+					char szLine[2001];
+					FILE *arg_file = gf_fopen(szArg, "rt");
+					szLine[2000]=0;
+					while (!feof(arg_file)) {
+						u32 llen;
+						char *subarg;
+						fgets(szLine, 2000, arg_file);
+						llen = strlen(szLine);
+						while (llen && strchr(" \n\r\t", szLine[llen-1])) {
+							szLine[llen-1]=0;
+							llen--;
+						}
+						if (!llen)
+							continue;
+
+						subarg = szLine;
+						while (subarg[0] && strchr(" \n\r\t", subarg[0]))
+							subarg++;
+						if ((subarg[0] == '/') && (subarg[1] == '/'))
+							continue;
+
+						filter_parse_dyn_args(filter, subarg, arg_type, for_script, szSrc, szDst, szEscape, szSecName, has_meta_args, argfile_level+1);
+					}
+					gf_fclose(arg_file);
+				} else if (!for_script) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter argument file has too many nested levels of sub-files, maximum allowed is 5\n"));
+				}
+				internal_arg = GF_TRUE;
+			}
 			else if (has_meta_args && filter->freg->update_arg) {
 				if (for_script || !(filter->freg->flags&GF_FS_REG_SCRIPT) ) {
 					GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL, filter->session->sep_list);
@@ -1260,6 +1227,80 @@ skip_arg:
 		}
 	}
 	if (szArg) gf_free(szArg);
+}
+
+
+static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type, Bool for_script)
+{
+	u32 i=0;
+	char szSecName[200];
+	char szEscape[7];
+	char szSrc[5], szDst[5];
+	Bool has_meta_args = GF_FALSE;
+	const GF_FilterArgs *f_args = NULL;
+	if (!filter) return;
+
+	if (!for_script) {
+		if (!filter->freg->private_size) {
+			if (filter->freg->args && filter->freg->args[0].arg_name) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter with arguments but no private stack size, no arg passing\n"));
+			}
+		} else {
+			filter->filter_udta = gf_malloc(filter->freg->private_size);
+			if (!filter->filter_udta) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate private data stack\n"));
+				return;
+			}
+			memset(filter->filter_udta, 0, filter->freg->private_size);
+		}
+	}
+
+	sprintf(szEscape, "%cgpac%c", filter->session->sep_args, filter->session->sep_args);
+	sprintf(szSrc, "src%c", filter->session->sep_name);
+	sprintf(szDst, "dst%c", filter->session->sep_name);
+
+	snprintf(szSecName, 200, "filter@%s", filter->freg->name);
+
+	//instantiate all args with defauts value
+	f_args = filter->freg->args;
+	if (for_script)
+		f_args = filter->instance_args;
+	i=0;
+	while (f_args) {
+		GF_PropertyValue argv;
+		const char *def_val;
+		const GF_FilterArgs *a = &f_args[i];
+		if (!a || !a->arg_name) break;
+		i++;
+		if (a->flags & GF_FS_ARG_META) {
+			has_meta_args = GF_TRUE;
+			continue;
+		}
+
+		def_val = gf_filter_load_arg_config(filter->session, szSecName, a->arg_name, a->arg_default_val);
+
+		if (!def_val) continue;
+
+		argv = gf_filter_parse_prop_solve_env_var(filter, a->arg_type, a->arg_name, def_val, a->min_max_enum);
+
+		if (argv.type != GF_PROP_FORBIDEN) {
+			if (!for_script && (a->offset_in_private>=0)) {
+				gf_filter_set_arg(filter, a, &argv);
+			} else if (filter->freg->update_arg) {
+				FSESS_CHECK_THREAD(filter)
+				filter->freg->update_arg(filter, a->arg_name, &argv);
+				gf_props_reset_single(&argv);
+			}
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to parse argument %s value %s\n", a->arg_name, a->arg_default_val));
+		}
+	}
+	//handle meta filter options, not exposed in registry
+	if (has_meta_args && filter->freg->update_arg && !for_script)
+		gf_filter_load_meta_args_config(szSecName, filter);
+
+
+	filter_parse_dyn_args(filter, args, arg_type, for_script, szSrc, szDst, szEscape, szSecName, has_meta_args, 0);
 }
 
 static void reset_filter_args(GF_Filter *filter)
