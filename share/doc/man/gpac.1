@@ -118,13 +118,13 @@ print help. Use help/-h for basic options, -ha for advanced options, -hx for exp
 .br
 * codecs: print the supported builtin codecs
 .br
-* props: print the supported builtin PID properties
+* props: print the supported builtin PID and packet properties
 .br
 * links: print possible connections between each supported filters.
 .br
 * links FNAME: print sources and sinks for filter FNAME
 .br
-* FNAME: print filter FNAME info (multiple FNAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation. Use * to print info on all filters (_big output!_), *:* to print info on all filters including meta filter instances (really big output!). By default only basic filter options and description are shown. Use -ha to show advanced options and filter IO capabilities, -hx for expert options, -hh for all options and filter capbilities
+* FNAME: print filter FNAME info (multiple FNAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation. Use * to print info on all filters (big output!), *:* to print info on all filters including meta filter instances (really big output!). By default only basic filter options and description are shown. Use -ha to show advanced options and filter IO capabilities, -hx for expert options, -hh for all options and filter capbilities
 .br
 .TP
 .B \-p (string)
@@ -154,7 +154,7 @@ write all core options in the config file unless already set
 .TP
 .B \-we
 .br
-write all file extensions in the config file unless already set (usefull to change some default file extensions)
+write all file extensions in the config file unless already set (useful to change some default file extensions)
 .br
 .TP
 .B \-wf
@@ -263,7 +263,7 @@ gpac -alias="output aout vout"
 .br
 
 .br
-This allows later playback using gpac -i src.mp4 output
+This allows later audio and video playback using gpac -i src.mp4 output
 .br
 
 .br
@@ -695,7 +695,7 @@ openGL mode for offscreen rendering (will soon be deprecated).
 .br
 * Window: a hidden window is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work
 .br
-* VisibleWindow: a visible window is used to perform offscreen rendering. This can be usefull while debugging
+* VisibleWindow: a visible window is used to perform offscreen rendering. This can be useful while debugging
 .br
 * Pixmap: an X11 Pixmap is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work and can even crash the player
 .br
@@ -1248,7 +1248,11 @@ fA fB:SID=*#ServiceID=2
 .br
 
 .br
+Example
+.br
 fA fB:SID=#ServiceID=2
+.br
+
 .br
 This indicates to match connection between fA and fB only for PIDs with a ServiceID property of 2.
 .br
@@ -1388,7 +1392,7 @@ KEYWORD is case sensitive, and may be present multiple times in the string. Supp
 .br
 * OTHER: locates property 4CC for the given name, or property name if no 4CC matches.
 .br
-Templating can be usefull when encoding several qualities in one pass
+Templating can be useful when encoding several qualities in one pass
 .br
 Example
 .br
@@ -1426,7 +1430,7 @@ In this case, the destination will be cloned for each item, and all will be expo
 .SH Templating filter chains
 .LP
 .br
-There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the :cloneoption is not enough since the muxer will always accetp the input PIDs.
+There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the :cloneoption is not enough since the muxer will always accept the input PIDs.
 .br
 To handle this, it is possible to use a PID property name in the sourceID of a filter with the value * or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned
 .br
@@ -1460,6 +1464,27 @@ Example
 
 .br
 This will mux the streams in dump.ts, using ServiceID 4 for PIDs from v1.mp4 and ServiceID 2 for PIDs from v2.mp4
+.br
+.SH Using option files
+.LP
+.br
+It is possible to use a file to define options of a filter, by specifying the target file name as an option, i.e. :myopts.txt.
+.br
+An option file is a simple text file containing one or more options on one or more lines.
+.br
+A line begining with "//" is a comment and is ignored.
+.br
+Options in an option file may point to other option files, with a maximum redirection level of 5.
+.br
+An option file declaration (filter:myopts.txt) follows the same inheritance rules as regular options.
+.br
+Example
+.br
+src=source.mp4:myopts.txt:foo=bar dst
+.br
+
+.br
+Any filter loaded between source.mp4 and dst will inherit both myopts.txt and foo options
 .br
 .SH External filters
 .LP
@@ -2583,7 +2608,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2910-ga948ced1d-filters
+build: 0.9.0-DEV-rev2949-g4988ea49e-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
