@@ -1372,12 +1372,16 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	if (ctx->display_changed) {
 		//if we fill width to display width and height is outside
 		if (ctx->display_width * ctx->height / ctx->width > ctx->display_height) {
-			ctx->dw = (Float) (ctx->display_height * ctx->width * ctx->sar.num / ctx->height / ctx->sar.den);
+			ctx->dw = (Float) (ctx->display_height * ctx->width / ctx->height);
+			ctx->dw *= ctx->sar.num;
+			ctx->dw /= ctx->sar.den;
 			ctx->dh = (Float) ctx->display_height;
 			ctx->oh = (Float) 0;
 			ctx->ow = (Float) (ctx->display_width - ctx->dw ) / 2;
 		} else {
-			ctx->dh = (Float) (ctx->display_width * ctx->height * ctx->sar.den / ctx->width / ctx->sar.num);
+			ctx->dh = (Float) (ctx->display_width * ctx->height / ctx->width);
+			ctx->dh *= ctx->sar.den;
+			ctx->dh /= ctx->sar.num;
 			ctx->dw = (Float) ctx->display_width;
 			ctx->ow = (Float) 0;
 			ctx->oh = (Float) (ctx->display_height - ctx->dh ) / 2;
