@@ -973,6 +973,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 	u32 i, j, count, nb_descs, track, nalh_size, timescale, cur_extract_mode;
 	s32 countRef;
 	Bool is_adobe_protection = GF_FALSE;
+	Bool is_cenc_protection = GF_FALSE;
 	Bool is_hevc = GF_FALSE;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	AVCState avc;
@@ -1144,6 +1145,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 	fprintf(dump, " <NALUSamples>\n");
 	gf_isom_set_nalu_extract_mode(file, track, GF_ISOM_NALU_EXTRACT_INSPECT);
 	is_adobe_protection = gf_isom_is_adobe_protection_media(file, track, 1);
+	is_cenc_protection = gf_isom_is_cenc_media(file, track, 1);
 	for (i=0; i<count; i++) {
 		u64 dts, cts;
 		Bool is_rap;
@@ -1191,7 +1193,12 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 			} else {
 				fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
 #ifndef GPAC_DISABLE_AV_PARSERS
-				gf_inspect_dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);
+				{
+					Bool is_vcl = (ptr[0] & 0x1F) <= 5;
+					/*don't parse vcl as slice header is likely encrypted (we'd need to check clear bytes to be sure)*/
+					if (!(is_cenc_protection && is_vcl))
+						gf_inspect_dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);
+				}
 #endif
 				fprintf(dump, "/>\n");
 			}
