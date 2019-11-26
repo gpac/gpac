@@ -684,9 +684,10 @@ struct __gf_filter
 
 	char *instance_description, *instance_version, *instance_author, *instance_help;
 	GF_FilterArgs *instance_args;
+	char *target_mime;
 };
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err, const char *dst_mime);
 GF_Filter *gf_filter_clone(GF_Filter *filter);
 void gf_filter_del(GF_Filter *filter);
 
@@ -694,7 +695,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter);
 
 GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
 
-GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only);
+GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only, const char *fmt_ext);
 
 void gf_filter_pid_inst_delete_task(GF_FSTask *task);
 

@@ -86,7 +86,7 @@ Targets:
 - [ ] freeze filter API
 - [x] improve filter graph resolver
 - [x] improve filter scheduler
-- [ ] add ffmpeg muxer support
+- [x] add ffmpeg muxer support
 - [ ] add ffmpeg simple avfilter support
 - [ ] add kvazaar/other encoders support?
 - [x] drop SpiderMonkey and move to QuickJS

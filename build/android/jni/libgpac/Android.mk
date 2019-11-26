@@ -187,6 +187,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/ff_dec.c \
 	../../../../src/filters/ff_dmx.c \
 	../../../../src/filters/ff_enc.c \
+	../../../../src/filters/ff_mx.c \
 	../../../../src/filters/ff_rescale.c \
 	../../../../src/filters/filelist.c \
 	../../../../src/filters/hevcmerge.c \

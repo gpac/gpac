@@ -952,6 +952,10 @@ enum
 	GF_PROP_PID_COLR_TRANSFER = GF_4CC('C','T','R','C'),
 	GF_PROP_PID_COLR_MX = GF_4CC('C','M','X','C'),
 	GF_PROP_PID_COLR_RANGE = GF_4CC('C','F','R','A'),
+	GF_PROP_PID_COLR_CHROMALOC = GF_4CC('C','L','O','C'),
+	GF_PROP_PID_COLR_SPACE = GF_4CC('C','S','P','C'),
+
+
 	GF_PROP_PID_SRC_MAGIC = GF_4CC('P','S','M','G'),
 
 	GF_PROP_PCK_FRAG_START = GF_4CC('P','F','R','B'),
@@ -1567,15 +1571,15 @@ void gf_filter_set_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps);
 /*! Filter probe score, used when probing a URL/MIME or when probing formats from data*/
 typedef enum
 {
-	/*! input is not supported*/
+	/*! (de)mux format is not supported*/
 	GF_FPROBE_NOT_SUPPORTED = 0,
-	/*! input is supported with potentially missing features*/
+	/*! (de)mux format is supported with potentially missing features*/
 	GF_FPROBE_MAYBE_SUPPORTED,
-	/*! input is supported*/
+	/*! (de)mux format is supported*/
 	GF_FPROBE_SUPPORTED,
-	/*! input data should be handled by this filter*/
+	/*! demux format should be handled by this filter*/
 	GF_FPROBE_FORCE,
-	/*! used by formats not supporting data prober*/
+	/*! used by demux formats not supporting data prober*/
 	GF_FPROBE_EXT_MATCH,
 } GF_FilterProbeScore;
 
@@ -1624,6 +1628,8 @@ typedef enum
 	GF_FS_REG_DYNAMIC_PIDS = 1<<7,
 	/*! Indicates the filter is a script-based filter. The registry is not valid until the script is loaded*/
 	GF_FS_REG_SCRIPT = 1<<8,
+	/*! Indicates the filter is a meta filter, wrapping various underlying filters (e.g., FFmpeg)*/
+	GF_FS_REG_META = 1<<9,
 
 	/*! flag dynamically set at runtime for registries loaded through shared libraries*/
 	GF_FS_REG_DYNLIB = 0x80000000
@@ -1909,10 +1915,12 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 /*! Connects a destination to this filter
 \param filter the target filter
 \param url url of destination to connect to, with optional arguments.
+\param fmt_mime mime of destination file format, or NULL if guessed from url
+
 \param err return code - can be NULL
 \return the new destination filter instance or NULL if error
 */
-GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err);
+GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, const char *fmt_mime, GF_Err *err);
 
 
 /*! Loads a new filter in the session - see \ref gf_fs_load_filter
@@ -2365,6 +2373,13 @@ GF_Err gf_filter_define_args(GF_Filter *filter, GF_FilterArgs *new_args);
 \return the filter instance args if any, NULL otherwise
 */
 GF_FilterArgs *gf_filter_get_args(GF_Filter *filter);
+
+
+/*! get requested mime type for sink filters, if any
+\param filter target filter
+\return the requested sink mime type if any, NULL otherwise
+*/
+const char *gf_filter_get_target_mime(GF_Filter *filter);
 
 /*! @} */
 

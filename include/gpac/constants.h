@@ -750,6 +750,91 @@ GF_AudioFormat gf_audio_fmt_from_isobmf(u32 msubtype);
 */
 GF_AudioFormat gf_audio_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **desc);
 
+
+/*! Color primaries as defined by ISO/IEC 23001-8 / 23091-2
+  */
+typedef enum
+{
+	GF_COLOR_PRIM_RESERVED0   = 0,
+	GF_COLOR_PRIM_BT709       = 1,
+	GF_COLOR_PRIM_UNSPECIFIED = 2,
+	GF_COLOR_PRIM_RESERVED    = 3,
+	GF_COLOR_PRIM_BT470M      = 4,
+	GF_COLOR_PRIM_BT470BG     = 5,
+	GF_COLOR_PRIM_SMPTE170M   = 6,
+	GF_COLOR_PRIM_SMPTE240M   = 7,
+	GF_COLOR_PRIM_FILM        = 8,
+	GF_COLOR_PRIM_BT2020      = 9,
+	GF_COLOR_PRIM_SMPTE428    = 10,
+	GF_COLOR_PRIM_SMPTE431    = 11,
+	GF_COLOR_PRIM_SMPTE432    = 12,
+	GF_COLOR_PRIM_EBU3213     = 22
+} GF_ColorPrimaries;
+
+/*! Color Transfer Characteristics as defined by ISO/IEC 23001-8 / 23091-2
+*/
+typedef enum
+{
+	GF_COLOR_TRC_RESERVED0    = 0,
+	GF_COLOR_TRC_BT709        = 1,
+	GF_COLOR_TRC_UNSPECIFIED  = 2,
+	GF_COLOR_TRC_RESERVED     = 3,
+	GF_COLOR_TRC_GAMMA22      = 4,
+	GF_COLOR_TRC_GAMMA28      = 5,
+	GF_COLOR_TRC_SMPTE170M    = 6,
+	GF_COLOR_TRC_SMPTE240M    = 7,
+	GF_COLOR_TRC_LINEAR       = 8,
+	GF_COLOR_TRC_LOG          = 9,
+	GF_COLOR_TRC_LOG_SQRT     = 10,
+	GF_COLOR_TRC_IEC61966_2_4 = 11,
+	GF_COLOR_TRC_BT1361_ECG   = 12,
+	GF_COLOR_TRC_IEC61966_2_1 = 13,
+	GF_COLOR_TRC_BT2020_10    = 14,
+	GF_COLOR_TRC_BT2020_12    = 15,
+	GF_COLOR_TRC_SMPTE2084    = 16,
+	GF_COLOR_TRC_SMPTE428     = 17,
+	GF_COLOR_TRC_ARIB_STD_B67 = 18
+} GF_ColorTransferCharacteristic;
+
+/*! MatrixCoefficients as defined by ISO/IEC 23001-8 / 23091-2
+*/
+typedef enum
+{
+    GF_COLOR_MX_RGB         = 0,
+    GF_COLOR_MX_BT709       = 1,
+    GF_COLOR_MX_UNSPECIFIED = 2,
+    GF_COLOR_MX_RESERVED    = 3,
+    GF_COLOR_MX_FCC47         = 4,
+    GF_COLOR_MX_BT470BG     = 5,
+    GF_COLOR_MX_SMPTE170M   = 6,
+    GF_COLOR_MX_SMPTE240M   = 7,
+    GF_COLOR_MX_YCGCO       = 8,
+    GF_COLOR_MX_BT2020_NCL  = 9,
+    GF_COLOR_MX_BT2020_CL   = 10,
+    GF_COLOR_MX_SMPTE2085   = 11,
+} GF_ColorMatrixCoefficients;
+
+/*! Chroma location values, semantics from CoreVideo - direct match of values  to FFmpeg*/
+typedef enum {
+	/*! Chroma location is not known*/
+    GF_CHROMALOC_UNKNOWN=0,
+	/*! Chroma sample is horizontally co-sited with the left column of luma samples, but centered vertically (MPEG-2/4 4:2:0, H.264 default for 4:2:0)*/
+    GF_CHROMALOC_LEFT,
+    /*! The chroma sample is fully centered ( MPEG-1 4:2:0, JPEG 4:2:0, H.263 4:2:0)*/
+    GF_CHROMALOC_CENTER,
+    /*! The chroma sample is co-sited with the top-left luma sample (ITU-R 601, SMPTE 274M 296M S314M(DV 4:1:1), mpeg2 4:2:2)*/
+    GF_CHROMALOC_TOPLEFT,
+    /*! The chroma sample is horizontally centered, but is co-sited with the top row of luma samples*/
+    GF_CHROMALOC_TOP,
+    /*! The chroma sample is co-sited with the bottom-left luma sample*/
+    GF_CHROMALOC_BOTTOMLEFT,
+    /*! The chroma sample is horizontally centered, but is co-sited with the bottom row of luma samples*/
+    GF_CHROMALOC_BOTTOM,
+    /*! The Cr and Cb samples are alternatingly co-sited with the left luma samples of the same field */
+    GF_CHROMALOC_DV420,
+} GF_ChromaLocation;
+
+
 /*DIMS unit flags */
 /*!
 \brief DIMS Unit header flags

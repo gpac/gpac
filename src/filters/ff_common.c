@@ -368,7 +368,6 @@ static const GF_FF_ST FF2GPAC_StreamTypes[] =
 	{0},
 };
 
-/*
 u32 ffmpeg_stream_type_from_gpac(u32 streamtype)
 {
 	u32 i=0;
@@ -380,7 +379,7 @@ u32 ffmpeg_stream_type_from_gpac(u32 streamtype)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC stream type %s, assuming data\n", gf_stream_type_name(streamtype) ));
 	return AVMEDIA_TYPE_DATA;
 }
-*/
+
 
 u32 ffmpeg_stream_type_to_gpac(u32 streamtype)
 {
@@ -601,7 +600,8 @@ void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_r
 	u32 i=0, idx=0, flags=0;
 	const struct AVOption *opt;
 	GF_List *all_filters = gf_list_new();
-	AVInputFormat  *fmt = NULL;
+	AVInputFormat *fmt = NULL;
+	AVOutputFormat *ofmt = NULL;
 	AVCodec *codec = NULL;
 
 	const char *fname = "";
@@ -618,6 +618,9 @@ void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_r
 	else if (type==FF_REG_TYPE_ENCODE) {
 		fname = "ffenc";
 		flags=AV_OPT_FLAG_ENCODING_PARAM;
+	}
+	else if (type==FF_REG_TYPE_MUX) {
+		fname = "ffmx";
 	}
 	else return;
 
@@ -640,7 +643,6 @@ void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_r
 #ifndef GPAC_DISABLE_DOC
 			description = fmt->long_name;
 #endif
-
 		} else if (type==FF_REG_TYPE_DECODE) {
 			codec = av_codec_next(codec);
 			if (!codec) break;
@@ -649,7 +651,6 @@ void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_r
 #ifndef GPAC_DISABLE_DOC
 			description = codec->long_name;
 #endif
-
 		} else if (type==FF_REG_TYPE_DEV_IN) {
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 			fmt = av_input_video_device_next(fmt);
@@ -697,7 +698,14 @@ void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_r
 #ifndef GPAC_DISABLE_DOC
 			description = codec->long_name;
 #endif
-
+		} else if (type==FF_REG_TYPE_MUX) {
+			ofmt = av_oformat_next(ofmt);
+			if (!ofmt) break;
+			av_class = ofmt->priv_class;
+			subname = ofmt->name;
+#ifndef GPAC_DISABLE_DOC
+			description = ofmt->long_name;
+#endif
 		} else {
 			break;
 		}
@@ -779,6 +787,47 @@ void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_r
 #endif
 			//TODO map codec IDs if known ?
 		 	freg->caps =  caps;
+		}
+		else if ((type==FF_REG_TYPE_MUX)
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+			&& (ofmt->mime_type || ofmt->extensions)
+#else
+			&& ofmt->extensions
+#endif
+			){
+			GF_FilterCapability *caps;
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+			freg->nb_caps = (ofmt->mime_type && ofmt->extensions) ? 4 : 2;
+#else
+			freg->nb_caps = 2;
+#endif
+			caps = gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+			memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
+			caps[0].code = GF_PROP_PID_STREAM_TYPE;
+			caps[0].val.type = GF_PROP_UINT;
+			caps[0].val.value.uint = GF_STREAM_FILE;
+			caps[0].flags = GF_CAPS_OUTPUT_STATIC;
+
+			caps[1].code = ofmt->extensions ? GF_PROP_PID_FILE_EXT : GF_PROP_PID_MIME;
+			caps[1].val.type = GF_PROP_NAME;
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+			caps[1].val.value.string = (char *) ( ofmt->extensions ? ofmt->extensions : ofmt->mime_type );
+#else
+			caps[1].val.value.string = (char *) ofmt->extensions;
+#endif
+			caps[1].flags = GF_CAPS_OUTPUT;
+
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+			if (ofmt->mime_type && ofmt->extensions) {
+				caps[2].flags = 0;
+				caps[3].code = GF_PROP_PID_MIME;
+				caps[3].val.type = GF_PROP_NAME;
+				caps[3].val.value.string = (char *) ofmt->mime_type;
+				caps[3].flags = GF_CAPS_OUTPUT;
+			}
+#endif
+			//TODO map codec IDs if known ?
+			freg->caps =  caps;
 		}
 
 		idx=0;

@@ -639,7 +639,8 @@ GF_FilterRegister FFDemuxRegister = {
 	.update_arg = ffdmx_update_arg,
 	.probe_url = ffdmx_probe_url,
 	.probe_data = ffdmx_probe_data,
-	.process_event = ffdmx_process_event
+	.process_event = ffdmx_process_event,
+	.flags = GF_FS_REG_META,
 };
 
 
@@ -658,7 +659,7 @@ static const GF_FilterArgs FFDemuxArgs[] =
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 {
 	GF_FilterArgs *args;
-	u32 i=0;
+	u32 idx, i=0;
 	const struct AVOption *opt;
 	AVFormatContext *dmx_ctx;
 	Bool load_meta_filters = session ? GF_TRUE : GF_FALSE;
@@ -673,10 +674,13 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 	FFDemuxRegister.register_free = ffdmx_regfree;
 	dmx_ctx = avformat_alloc_context();
 
+	idx=0;
 	while (dmx_ctx->av_class->option) {
-		opt = &dmx_ctx->av_class->option[i];
+		opt = &dmx_ctx->av_class->option[idx];
 		if (!opt || !opt->name) break;
-		i++;
+		if (opt->flags & AV_OPT_FLAG_DECODING_PARAM)
+			i++;
+		idx++;
 	}
 	i+=2;
 
@@ -684,12 +688,17 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 	memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
 	FFDemuxRegister.args = args;
 	args[0] = (GF_FilterArgs){ OFFS(src), "location of source content", GF_PROP_STRING, NULL, NULL, 0} ;
+
 	i=0;
+	idx=0;
 	while (dmx_ctx->av_class->option) {
-		opt = &dmx_ctx->av_class->option[i];
+		opt = &dmx_ctx->av_class->option[idx];
 		if (!opt || !opt->name) break;
-		args[i+1] = ffmpeg_arg_translate(opt);
-		i++;
+		if (opt->flags & AV_OPT_FLAG_DECODING_PARAM) {
+			args[i+1] = ffmpeg_arg_translate(opt);
+			i++;
+		}
+		idx++;
 	}
 	args[i+1] = (GF_FilterArgs) { "*", -1, "meta options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
 
@@ -936,7 +945,8 @@ GF_FilterRegister FFAVInRegister = {
 	.process = ffdmx_process,
 	.update_arg = ffdmx_update_arg,
 	.probe_url = ffavin_probe_url,
-	.process_event = ffdmx_process_event
+	.process_event = ffdmx_process_event,
+	.flags = GF_FS_REG_META,
 };
 
 

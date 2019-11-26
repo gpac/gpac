@@ -52,6 +52,7 @@ enum{
 	FF_REG_TYPE_DECODE,
 	FF_REG_TYPE_DEV_IN,
 	FF_REG_TYPE_ENCODE,
+	FF_REG_TYPE_MUX,
 };
 void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 reg_type);
 
@@ -62,7 +63,7 @@ u32 ffmpeg_audio_fmt_to_gpac(u32 sfmt);
 u32 ffmpeg_codecid_from_gpac(u32 codec_id, u32 *ff_codectag);
 u32 ffmpeg_codecid_to_gpac(u32 codec_id);
 
-//u32 ffmpeg_stream_type_from_gpac(u32 streamtype);
+u32 ffmpeg_stream_type_from_gpac(u32 streamtype);
 u32 ffmpeg_stream_type_to_gpac(u32 streamtype);
 
 void ffmpeg_set_enc_dec_flags(const AVDictionary *options, AVCodecContext *ctx);
