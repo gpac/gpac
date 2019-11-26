@@ -243,6 +243,7 @@
 		927AAD0E1E44F492008C8E69 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		927DB14C21A3C7100032D205 /* reframe_latm.c in Sources */ = {isa = PBXBuildFile; fileRef = 927DB14B21A3C7100032D205 /* reframe_latm.c */; };
 		92860707238690D700FDA1ED /* reframe_prores.c in Sources */ = {isa = PBXBuildFile; fileRef = 92860706238690D700FDA1ED /* reframe_prores.c */; };
+		9286070B23884A6B00FDA1ED /* ff_mx.c in Sources */ = {isa = PBXBuildFile; fileRef = 9286070A23884A6B00FDA1ED /* ff_mx.c */; };
 		9288350C1FE82E64002F603D /* write_qcp.c in Sources */ = {isa = PBXBuildFile; fileRef = 9288350B1FE82E63002F603D /* write_qcp.c */; };
 		9288E8641FB1BF07005460C5 /* reframe_mpgvid.c in Sources */ = {isa = PBXBuildFile; fileRef = 9288E8631FB1BF07005460C5 /* reframe_mpgvid.c */; };
 		9289D9F51FDEFFCE00C24F83 /* out_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 9289D9F41FDEFFCD00C24F83 /* out_file.c */; };
@@ -885,6 +886,7 @@
 		927AACFD1E44EEDC008C8E69 /* gpac */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gpac; sourceTree = BUILT_PRODUCTS_DIR; };
 		927DB14B21A3C7100032D205 /* reframe_latm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_latm.c; path = filters/reframe_latm.c; sourceTree = "<group>"; };
 		92860706238690D700FDA1ED /* reframe_prores.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_prores.c; path = filters/reframe_prores.c; sourceTree = "<group>"; };
+		9286070A23884A6B00FDA1ED /* ff_mx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_mx.c; path = filters/ff_mx.c; sourceTree = "<group>"; };
 		9288350B1FE82E63002F603D /* write_qcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_qcp.c; path = filters/write_qcp.c; sourceTree = "<group>"; };
 		9288E8631FB1BF07005460C5 /* reframe_mpgvid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_mpgvid.c; path = filters/reframe_mpgvid.c; sourceTree = "<group>"; };
 		9289D9F41FDEFFCD00C24F83 /* out_file.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_file.c; path = filters/out_file.c; sourceTree = "<group>"; };
@@ -1957,6 +1959,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				9286070A23884A6B00FDA1ED /* ff_mx.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92FE596C2088E52900CF0C5A /* dasher.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
@@ -2760,6 +2763,7 @@
 				92BB9A671F9C827600524E5B /* dmx_dash.c in Sources */,
 				92B9A5A71F8660D700A24FE4 /* texturing_gl.c in Sources */,
 				92B9A5A51F8660D700A24FE4 /* mpeg4_gradients.c in Sources */,
+				9286070B23884A6B00FDA1ED /* ff_mx.c in Sources */,
 				9298677D235A146E008A2CC6 /* gltools.c in Sources */,
 				9288350C1FE82E64002F603D /* write_qcp.c in Sources */,
 				923E89CD20B6F04600F299B2 /* g_crypt.c in Sources */,

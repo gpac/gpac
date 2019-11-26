@@ -285,6 +285,7 @@
     <ClCompile Include="..\..\src\filters\ff_dec.c" />
     <ClCompile Include="..\..\src\filters\ff_dmx.c" />
     <ClCompile Include="..\..\src\filters\ff_enc.c" />
+    <ClCompile Include="..\..\src\filters\ff_mx.c" />
     <ClCompile Include="..\..\src\filters\ff_rescale.c" />
     <ClCompile Include="..\..\src\filters\filelist.c" />
     <ClCompile Include="..\..\src\filters\hevcmerge.c" />

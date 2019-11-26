@@ -820,6 +820,11 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				return e;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure input of sink %s, cannot rebuild graph\n", filter->name));
+				if (pid->filter->freg->process_event) {
+					GF_FilterEvent evt;
+					GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
+					pid->filter->freg->process_event(pid->filter, &evt);
+				}
 			}
 		} else {
 			filter->session->last_connect_error = GF_OK;
@@ -2929,7 +2934,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\t%s\n", freg->name));
 
-			af = gf_filter_new(fsess, freg, args, dst_args, pid->filter->no_dst_arg_inherit ? GF_FILTER_ARG_INHERIT_SOURCE_ONLY : GF_FILTER_ARG_INHERIT, NULL);
+			af = gf_filter_new(fsess, freg, args, dst_args, pid->filter->no_dst_arg_inherit ? GF_FILTER_ARG_INHERIT_SOURCE_ONLY : GF_FILTER_ARG_INHERIT, NULL, NULL);
 			if (!af) goto exit;
 
 			//the other filters shouldn't need any specific init

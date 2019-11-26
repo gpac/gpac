@@ -1341,6 +1341,7 @@ GF_FilterRegister FFEncodeRegister = {
 	.configure_pid = ffenc_configure_pid,
 	.process = ffenc_process,
 	.update_arg = ffenc_update_arg,
+	.flags = GF_FS_REG_META,
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_FFEncodeCtx, _n)

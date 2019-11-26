@@ -64,6 +64,17 @@ enum
 	DASHER_SAP_ON,
 };
 
+enum
+{
+	DASHER_MUX_ISOM=0,
+	DASHER_MUX_TS,
+	DASHER_MUX_MKV,
+	DASHER_MUX_WEBM,
+	DASHER_MUX_OGG,
+	DASHER_MUX_RAW,
+	DASHER_MUX_AUTO,
+};
+
 typedef struct
 {
 	u32 bs_switch, profile, cp, ntp;
@@ -81,6 +92,8 @@ typedef struct
 	char *vpxp;
 	char *template;
 	char *segext;
+	char *initext;
+	u32 muxtype;
 	char *profX;
 	s32 asto;
 	char *ast;
@@ -121,6 +134,7 @@ typedef struct
 
 	Bool is_eos;
 	u32 nb_seg_url_pending;
+	u64 last_evt_check_time;
 	Bool on_demand_done;
 	Bool subdur_done;
 	char *out_path;
@@ -369,7 +383,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 						force_ext = "m3u8";
 					}
 
-					ctx->alt_dst = gf_filter_connect_destination(filter, out_path, &e);
+					ctx->alt_dst = gf_filter_connect_destination(filter, out_path, NULL, &e);
 					if (e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't create secondary manifest output %s: %s\n", out_path, gf_error_to_string(e) ));
 						gf_free(out_path);
@@ -1447,19 +1461,77 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 	return res;
 }
 
+static void dasher_get_mime_and_ext(GF_DasherCtx *ctx, GF_DashStream *ds, const char **out_subtype, const char **out_ext)
+{
+	const char *subtype = NULL;
+	const char *mux_ext = NULL;
+	const char *cstr;
 
+	if (ctx->m2ts) {
+		subtype = "mp2t";
+	} else if (ctx->muxtype!=DASHER_MUX_AUTO) {
+		switch (ctx->muxtype) {
+		case DASHER_MUX_ISOM: subtype = "mp4"; mux_ext = "mp4"; break;
+		case DASHER_MUX_TS: subtype = "mp2t"; mux_ext = "ts"; break;
+		case DASHER_MUX_MKV: subtype = "x-matroska"; mux_ext = "mkv"; break;
+		case DASHER_MUX_WEBM: subtype = "webm"; mux_ext = "webm"; break;
+		case DASHER_MUX_OGG: subtype = "ogg"; mux_ext = "ogg"; break;
+		case DASHER_MUX_RAW:
+			cstr = gf_codecid_mime(ds->codec_id);
+			if (cstr) {
+				subtype = strchr(cstr, '/');
+				if (cstr) cstr++;
+			}
+			if (out_ext) {
+				cstr = gf_codecid_file_ext(ds->codec_id);
+				if (cstr) *out_ext = cstr;
+			}
+			break;
+		}
+	} else if (ctx->initext) {
+		mux_ext = ctx->initext;
+		if (!strcmp(ctx->initext, "ts") || !strcmp(ctx->initext, "m2ts"))
+			subtype = "mp2t";
+		else if (!strcmp(ctx->initext, "mkv") || !strcmp(ctx->initext, "mka") || !strcmp(ctx->initext, "mks") || !strcmp(ctx->initext, "mk3d"))
+			subtype = "x-matroska";
+		else if (!strcmp(ctx->initext, "webm") || !strcmp(ctx->initext, "weba"))
+			subtype = "webm";
+		else if (!strcmp(ctx->initext, "ogg") || !strcmp(ctx->initext, "oga") || !strcmp(ctx->initext, "ogv") || !strcmp(ctx->initext, "spx") || !strcmp(ctx->initext, "oggm") || !strcmp(ctx->initext, "opus"))
+			subtype = "ogg";
+		else if (!strcmp(ctx->initext, "null")) {
+			mux_ext = "mp4";
+		}
+	}
+	if (!subtype) subtype = "mp4";
+	if (out_subtype) *out_subtype = subtype;
+	if (!mux_ext) mux_ext = "mp4";
+	if (out_ext) *out_ext = mux_ext;
+}
 
 static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 {
 	char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
+
+	//Outputs are not yet connected, derive mime from init segment extension
+	if (!ds->rep->mime_type) {
+		const char *subtype = NULL;
+		dasher_get_mime_and_ext(ctx, ds, &subtype, NULL);
+
+		if (ds->stream_type==GF_STREAM_VISUAL)
+			gf_dynstrcat(&ds->rep->mime_type, "video/", NULL);
+		else if (ds->stream_type==GF_STREAM_AUDIO)
+			gf_dynstrcat(&ds->rep->mime_type, "audio/", NULL);
+		else
+			gf_dynstrcat(&ds->rep->mime_type, "application/", NULL);
+
+		gf_dynstrcat(&ds->rep->mime_type, subtype, NULL);
+	}
 
 	ds->rep->bandwidth = ds->bitrate;
 	if (ds->stream_type==GF_STREAM_VISUAL) {
 		ds->rep->width = ds->width;
 		ds->rep->height = ds->height;
 
-		if (!ds->rep->mime_type)
-			ds->rep->mime_type = gf_strdup( ctx->m2ts ? "video/mp2t" : "video/mp4");
 
 		if (!ds->rep->sar) {
 			GF_SAFEALLOC(ds->rep->sar, GF_MPD_Fractional);
@@ -1491,13 +1563,7 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 		gf_mpd_del_list(ds->rep->audio_channels, gf_mpd_descriptor_free, GF_TRUE);
 
 		gf_list_add(ds->rep->audio_channels, desc);
-		if (!ds->rep->mime_type) {
-			ds->rep->mime_type = gf_strdup(ctx->m2ts ? "video/mp2t" : "audio/mp4");
-		}
 	} else {
-		if (!ds->rep->mime_type) {
-			ds->rep->mime_type = gf_strdup(ctx->m2ts ? "video/mp2t" : "application/mp4");
-		}
 	}
 
 	dasher_get_rfc_6381_codec_name(ctx, ds, szCodec, (ctx->bs_switch==DASHER_BS_SWITCH_INBAND) ? GF_TRUE : GF_FALSE, GF_TRUE);
@@ -1895,7 +1961,8 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		sprintf(szSRC, "%ccache", sep_args );
 		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
-
+	sprintf(szSRC, "%cmime=%s", sep_args, rep->mime_type);
+	gf_dynstrcat(&szDST, szSRC, NULL);
 
 	if (ds->moof_sn>1) {
 		sprintf(szSRC, "%cmsn%c%d", sep_args, sep_name, ds->moof_sn);
@@ -1909,11 +1976,12 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		sprintf(szSRC, "%cmoovts%c-1", sep_args, sep_name);
 		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
-	ds->dst_filter = gf_filter_connect_destination(filter, szDST, &e);
+	ds->dst_filter = gf_filter_connect_destination(filter, szDST, rep->mime_type, &e);
 	gf_free(szDST);
 	szDST = NULL;
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't create output file %s: %s\n", szInitURL, gf_error_to_string(e) ));
+		ctx->in_error = GF_TRUE;
 		return;
 	}
 	sprintf(szSRC, "MuxSrc%cdasher_%p", gf_filter_get_sep(filter, GF_FS_SEP_NAME), ds->dst_filter);
@@ -1957,7 +2025,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
 	char szSRC[1024];
 
-	if (ctx->sigfrag)
+	if (ctx->sigfrag || ctx->in_error)
 		return;
 
 	assert(!ds->opid);
@@ -2392,7 +2460,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				idx_ext = "idx";
 		} else {
 			seg_ext = (ctx->segext && !stricmp(ctx->segext, "null")) ? NULL : ctx->segext;
-			init_ext = (ctx->segext && !stricmp(ctx->segext, "null")) ? NULL : "mp4";
+			init_ext = (ctx->initext && !stricmp(ctx->initext, "null")) ? NULL : ctx->initext;
 		}
 
 		is_bs_switch = set->bitstream_switching;
@@ -4766,7 +4834,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 	GF_Err e;
 
 	if (ctx->in_error)
-		return GF_EOS;
+		return GF_SERVICE_ERROR;
 
 	if (ctx->streams_not_ready) {
 		if (! dasher_check_streams_ready(ctx)) return GF_OK;
@@ -5338,8 +5406,17 @@ static GF_Err dasher_process(GF_Filter *filter)
 	//we need to wait for full flush of packets before switching periods in order to get the
 	//proper segment size for segment_list+byte_range mode
 	if (ctx->nb_seg_url_pending) {
-		gf_filter_post_process_task(filter);
-		return GF_OK;
+		u64 diff;
+		if (!ctx->last_evt_check_time) ctx->last_evt_check_time = gf_sys_clock_high_res();
+
+		diff = gf_sys_clock_high_res() - ctx->last_evt_check_time;
+		if (diff < 1000000) {
+			gf_filter_post_process_task(filter);
+			return GF_OK;
+		}
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] timeout %d segment info still pending but no event from muxer after "LLU" us, aborting\n", ctx->nb_seg_url_pending, diff));
+		ctx->nb_seg_url_pending = 0;
+		return GF_SERVICE_ERROR;
 	}
 	if (ctx->sseg && !ctx->on_demand_done && !ctx->sigfrag) {
 		return GF_OK;
@@ -5422,6 +5499,8 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	u32 i, count;
 	Bool flush_mpd = GF_FALSE;
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
+
+	ctx->last_evt_check_time = 0;
 
 	if (evt->base.type == GF_FEVT_RESUME) {
 		dasher_resume_subdur(filter, ctx);
@@ -5767,6 +5846,14 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(vpxp), "profile to use for VP8/9 if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(template), "template string to use to generate segment name - see filter help", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(segext), "file extension to use for segments", GF_PROP_STRING, "m4s", NULL, 0},
+	{ OFFS(initext), "file extension to use for the init segment", GF_PROP_STRING, "mp4", NULL, 0},
+	{ OFFS(muxtype), "muxtype to use for the segments\n"
+		"- mp4: uses ISOBMFF format\n"
+		"- ts: uses MPEG-2 TS format\n"
+		"- mkv: uses Matroska format\n"
+		"- webm: uses WebM format\n"
+		"- raw: uses raw media format (disables muxed representations)\n"
+		"- auto: guess format based on extension", GF_PROP_UINT, "auto", "mp4|ts|mkv|webm|ogg|raw|auto", 0},
 	{ OFFS(asto), "availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(profile), "target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main.\n"
 		"- auto: turns profile to live for dynamic and full for non-dynamic\n"

@@ -888,7 +888,7 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 		segidx_size += 24 +( large_sidx ? 16 : 8) + ctx->nb_sidx_entries*12;
 
 		if (!ctx->idx_opid) {
-			ctx->idx_filter = gf_filter_connect_destination(filter, ctx->idx_file_name, NULL);
+			ctx->idx_filter = gf_filter_connect_destination(filter, ctx->idx_file_name, NULL, NULL);
 			ctx->idx_opid = gf_filter_pid_new(filter);
 			gf_filter_pid_set_property(ctx->idx_opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 			gf_filter_pid_set_property(ctx->idx_opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*") );

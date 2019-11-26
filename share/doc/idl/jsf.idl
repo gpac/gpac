@@ -242,9 +242,10 @@ FilterInstance add_source(DOMString source, optional DOMString parent = null);
 
 /*! adds a destination filter in the media session - see \ref gf_filter_connect_destination
 \param destination URL of destination to instantiate
+\param mux_mime mime identifying destination format. If not set or null, format will be guessed from URL
 \return new loaded destination filter or null
 */
-FilterInstance add_destination(DOMString destination);
+FilterInstance add_destination(DOMString destination, optional DOMString mux_mime=null);
 
 /*! loads a new filter in the media session - see \ref gf_filter_load_filter
 \param args name and arguments of the filter to load

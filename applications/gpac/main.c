@@ -2138,7 +2138,15 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 				fname = arg;
 
 				if (!strcmp(arg, reg->name) ) {
-					print_filter(reg, argmode, NULL);
+					if (reg->flags&GF_FS_REG_SCRIPT) {
+						GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
+						if (f) {
+							print_filter(reg, argmode, f);
+							found = GF_TRUE;
+						}
+					} else {
+						print_filter(reg, argmode, NULL);
+					}
 					found = GF_TRUE;
 				} else {
 					char *sep = strchr(arg, ':');
@@ -2158,13 +2166,6 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 						if (strstr(arg+4, ".js")==NULL)
 							strcat(szJSFArg, ".js");
 						GF_Filter *f = gf_fs_load_filter(session, szJSFArg, NULL);
-						if (f) {
-							print_filter(reg, argmode, f);
-							found = GF_TRUE;
-						}
-					}
-					else if (reg->flags&GF_FS_REG_SCRIPT) {
-						GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
 						if (f) {
 							print_filter(reg, argmode, f);
 							found = GF_TRUE;
