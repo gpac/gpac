@@ -94,15 +94,22 @@ void svg_mark_gc(struct __tag_svg_script_ctx *svg_js)
 	svg_js->force_gc = 1;
 }
 
-void svg_free_node_binding(struct __tag_svg_script_ctx *svg_js, struct _node_js_binding *js_binding)
+void svg_free_node_binding(struct __tag_svg_script_ctx *svg_js, GF_Node *node)
 {
-	JS_FreeValue(svg_js->js_ctx, js_binding->obj);
+	struct _node_js_binding *js_binding = node->sgprivate->interact->js_binding;
+	if (!JS_IsUndefined(js_binding->obj)) {
+		JS_SetOpaque(js_binding->obj, NULL);
+		JS_FreeValue(svg_js->js_ctx, js_binding->obj);
+		js_binding->obj = JS_UNDEFINED;
+		//unregister after destroying JS obj since this is a recursive call and we trigger the GC, we must make sure
+		//all JS opaque is NULL before destroying the node
+		gf_node_unregister(node, NULL);
+	}
+
 	if (svg_js->in_script)
 		svg_js->force_gc = 1;
 	else
-	{
 		gf_js_call_gc(svg_js->js_ctx);
-	}
 }
 
 GF_Err svg_exec_script(struct __tag_svg_script_ctx *svg_js, GF_SceneGraph *sg, const char *com)
@@ -2049,7 +2056,7 @@ Bool is_svg_element_class(JSContext *c, JSValue obj)
 	return GF_FALSE;
 }
 
-#define SETUP_JSCLASS(_class, _name, _proto_funcs, _construct, _finalize) \
+#define SETUP_JSCLASS(_class, _name, _proto_funcs, _construct, _finalize, _proto_class_id) \
 	if (!_class.class_id) {\
 		JS_NewClassID(&(_class.class_id)); \
 		_class.class.class_name = _name; \
@@ -2057,7 +2064,7 @@ Bool is_svg_element_class(JSContext *c, JSValue obj)
 		JS_NewClass(jsrt, _class.class_id, &(_class.class));\
 	}\
 	if (_proto_funcs) { \
-		scene->svg_js->_class.proto = JS_NewObjectClass(c, _class.class_id);\
+		scene->svg_js->_class.proto = JS_NewObjectClass(c, _proto_class_id ? _proto_class_id : _class.class_id);\
     	JS_SetPropertyFunctionList(c, scene->svg_js->_class.proto, _proto_funcs, countof(_proto_funcs));\
     	JS_SetClassProto(c, _class.class_id, scene->svg_js->_class.proto);\
     	if (_construct) {\
@@ -2207,11 +2214,14 @@ static const JSCFunctionListEntry path_Funcs[] =
 	JS_CFUNC_DEF("close", 0, svg_path_close),
 };
 
-JSValue dom_js_get_element_proto(struct JSContext *c);
-JSValue dom_js_get_document_proto(JSContext *c);
+JSClassID dom_js_get_element_proto(struct JSContext *c);
+JSClassID dom_js_get_document_proto(JSContext *c);
 
 /*defines a new global object "document" of type Document*/
 void dom_js_define_document(struct JSContext *c, JSValue global, GF_SceneGraph *doc);
+
+void domDocument_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func);
+void domElement_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func);
 
 static void svg_init_js_api(GF_SceneGraph *scene)
 {
@@ -2219,11 +2229,13 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	JSRuntime *jsrt = JS_GetRuntime(c);
 	JSValue global = JS_GetGlobalObject(scene->svg_js->js_ctx);
 
-	SETUP_JSCLASS(svg_globalClass, "Window", globalFuncs, NULL, NULL);
+	SETUP_JSCLASS(svg_globalClass, "Window", globalFuncs, NULL, NULL, 0);
 	scene->svg_js->global = JS_NewObjectClass(c, svg_globalClass.class_id);
 	JS_SetOpaque(scene->svg_js->global, scene);
 	JS_SetPropertyStr(c, global, "Window", scene->svg_js->global);
 
+ 	JS_SetPropertyStr(c, global, "alert", JS_NewCFunction(c, js_print, "alert", 1));
+ 	
 	/*initialize DOM core */
 	dom_js_load(scene, scene->svg_js->js_ctx);
 
@@ -2234,17 +2246,17 @@ static void svg_init_js_api(GF_SceneGraph *scene)
  	JS_SetPropertyStr(c, console, "log", JS_NewCFunction(c, js_print, "print", 1));
 	JS_SetPropertyStr(c, global, "console", console);
 
-	SETUP_JSCLASS(svgDocument, "SVGDocument", documentFuncs, NULL, dom_document_finalize);
-	JS_SetClassProto(c, svgDocument.class_id, dom_js_get_document_proto(c));
-	SETUP_JSCLASS(svgElement, "SVGElement", svg_elementFuncs, NULL, dom_element_finalize);
-	JS_SetClassProto(c, svgElement.class_id, dom_js_get_element_proto(c));
+	svgDocument.class.gc_mark = domDocument_gc_mark;
+	SETUP_JSCLASS(svgDocument, "SVGDocument", documentFuncs, NULL, dom_document_finalize, dom_js_get_document_proto(c));
+	svgElement.class.gc_mark = domElement_gc_mark;
+	SETUP_JSCLASS(svgElement, "SVGElement", svg_elementFuncs, NULL, dom_element_finalize, dom_js_get_element_proto(c));
 
-	SETUP_JSCLASS(rgbClass, "SVGRGBColor", rgb_Funcs, NULL, baseCI_finalize);
-	SETUP_JSCLASS(rectClass, "SVGRect", rect_Funcs, NULL, baseCI_finalize);
-	SETUP_JSCLASS(pointClass, "SVGPoint", point_Funcs, NULL, baseCI_finalize);
-	SETUP_JSCLASS(matrixClass, "SVGMatrix", matrix_Funcs, NULL, baseCI_finalize);
+	SETUP_JSCLASS(rgbClass, "SVGRGBColor", rgb_Funcs, NULL, baseCI_finalize, 0);
+	SETUP_JSCLASS(rectClass, "SVGRect", rect_Funcs, NULL, baseCI_finalize, 0);
+	SETUP_JSCLASS(pointClass, "SVGPoint", point_Funcs, NULL, baseCI_finalize, 0);
+	SETUP_JSCLASS(matrixClass, "SVGMatrix", matrix_Funcs, NULL, baseCI_finalize, 0);
 
-	SETUP_JSCLASS(pathClass, "SVGPath", path_Funcs, NULL, pathCI_finalize);
+	SETUP_JSCLASS(pathClass, "SVGPath", path_Funcs, NULL, pathCI_finalize, 0);
 
 
 	JS_SetPropertyStr(c, scene->svg_js->pathClass.proto, "MOVE_TO", JS_NewInt32(c, 77));

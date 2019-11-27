@@ -2812,6 +2812,7 @@ GF_EXPORT
 GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, u8 *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid)
 {
 	char tmp_ext[50];
+	u32 ext_len=0;
 	Bool ext_not_trusted, is_new_pid = GF_FALSE;
 	GF_FilterPid *pid = *out_pid;
 	if (!pid) {
@@ -2849,6 +2850,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			strncpy(tmp_ext, fext, 20);
 			strlwr(tmp_ext);
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
+			ext_len = strlen(tmp_ext);
 		} else {
 			char *ext = strrchr(url, '.');
 			if (ext && !stricmp(ext, ".gz")) {
@@ -2867,6 +2869,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 				strncpy(tmp_ext, ext, 20);
 				strlwr(tmp_ext);
 				gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
+				ext_len = strlen(tmp_ext);
 				if (s) s[0] = '#';
 			}
 		}
@@ -2889,13 +2892,21 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			if (score==GF_FPROBE_NOT_SUPPORTED) {
 				u32 k;
 				for (k=0;k<freg->nb_caps && !ext_not_trusted; k++) {
+					const char *value;
 					const GF_FilterCapability *cap = &freg->caps[k];
 					if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) continue;
 					if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
 					if (cap->code != GF_PROP_PID_FILE_EXT) continue;
-
-					if (strstr(cap->val.value.string, tmp_ext))
-						ext_not_trusted = GF_TRUE;
+					value = cap->val.value.string;
+					while (value) {
+						const char *match = strstr(value, tmp_ext);
+						if (!match) break;
+						if (!match[ext_len] || (match[ext_len]=='|')) {
+							ext_not_trusted = GF_TRUE;
+							break;
+						}
+						value = match+ext_len;
+					}
 				}
 			} else if (score==GF_FPROBE_EXT_MATCH) {
 				if (a_mime && strstr(a_mime, tmp_ext)) {

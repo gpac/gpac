@@ -198,6 +198,7 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 	tmp[GF_LOG_TOOL_MAX_NAME_SIZE - 1] = 0;
 
 	while (val && strlen(val)) {
+		void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist);
 		u32 level;
 		const char *next_val = NULL;
 		const char *tools = NULL;
@@ -205,8 +206,6 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 		char *sep_level = strchr(val, '@');
 		if (!sep_level) {
 			if (!strcmp(val, "ncl")) {
-				void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist);
-
 				gpac_no_color_logs = GF_TRUE;
 				gf_log_set_callback(NULL, default_log_callback);
 				if (!val[3]) break;
@@ -267,6 +266,10 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 			if (!stricmp(tools, "all")) {
 				for (i=0; i<GF_LOG_TOOL_MAX; i++)
 					global_log_tools[i].level = level;
+			}
+			else if (!strcmp(val, "ncl")) {
+				gpac_no_color_logs = GF_TRUE;
+				gf_log_set_callback(NULL, default_log_callback);
 			}
 			else {
 				Bool found = GF_FALSE;

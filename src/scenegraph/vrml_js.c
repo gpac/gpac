@@ -4476,8 +4476,8 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 
 			if (gf_list_del_item(sg->objects, node->sgprivate->interact->js_binding)>=0) {
 #ifndef GPAC_DISABLE_SVG
-				void svg_free_node_binding(struct __tag_svg_script_ctx *svg_js, struct _node_js_binding *js_binding);
-				svg_free_node_binding(sg->svg_js, node->sgprivate->interact->js_binding);
+				void svg_free_node_binding(struct __tag_svg_script_ctx *svg_js, GF_Node *node);
+				svg_free_node_binding(sg->svg_js, node);
 #endif
 			}
 			return;
@@ -4495,6 +4495,8 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 					JS_FreeValue(field->js_ctx, obj);
 					gf_free(field);
 					assert( node->sgprivate->interact->js_binding->pf==NULL);
+					//unregister node since we destroyed the binding
+					gf_node_unregister(node, NULL);
 				}
 			}
 			return;

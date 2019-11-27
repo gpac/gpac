@@ -963,6 +963,7 @@ enum
 	GF_PROP_PCK_SIDX_RANGE = GF_4CC('P','F','S','R'),
 	GF_PROP_PCK_MOOF_TEMPLATE = GF_4CC('M','F','T','P'),
 	GF_PROP_PID_RAWGRAB = GF_4CC('P','G','R','B'),
+
 };
 
 /*! Gets readable name of built-in property
@@ -1388,6 +1389,7 @@ it must match the capability requirement (equal, excluded). If no property exist
  the bundle is marked as not matching and the ext capability bundle in the filter is checked.
  A PID property not listed in any capability of the filter does not impact the matching.
 
+The \ref GF_PROP_PID_FILE_EXT and  \ref GF_PROP_PID_MIME are handled as alternate to each other, this allows matching a PID if either its MIME or extension map and avoids failing if the pid has no MIME or extension set.
 @{
  */
 

@@ -305,7 +305,9 @@ static void dom_js_define_document_ex(JSContext *c, JSValue global, GF_SceneGrap
 	obj = JS_NewObjectClass(c, __class);
 	JS_SetOpaque(obj, doc);
 	GF_SAFEALLOC(doc->js_data, GF_DOMJSData);
-	doc->js_data->document = obj;
+	doc->js_data->document = JS_DupValue(c, obj);
+
+	JS_SetPropertyStr(c, global, name, obj);
 }
 
 void dom_js_define_document(JSContext *c, JSValue global, GF_SceneGraph *doc)
@@ -339,7 +341,7 @@ JSValue dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 	new_obj = JS_NewObjectClass(c, __class);
 	JS_SetOpaque(new_obj, sg);
 	GF_SAFEALLOC(sg->js_data, GF_DOMJSData);
-	sg->js_data->document = new_obj;
+	sg->js_data->document = JS_DupValue(c, new_obj);
 	return new_obj;
 }
 
@@ -351,22 +353,15 @@ JSValue dom_document_construct_external(JSContext *c, GF_SceneGraph *sg)
 
 static JSValue dom_base_node_construct(JSContext *c, JSClassID class_id, GF_Node *n)
 {
-	Bool set_rooted;
 	GF_SceneGraph *sg;
 	JSValue new_obj;
 	if (!n || !n->sgprivate->scenegraph) return JS_NULL;
 	if (n->sgprivate->tag<TAG_DOMText) return JS_NULL;
 
 	sg = n->sgprivate->scenegraph;
-	/*if parent doc is not a scene (eg it is a doc being parsed/constructed from script, don't root objects*/
-	set_rooted = sg->reference_count ? GF_FALSE : GF_TRUE;
 
 	if (n->sgprivate->interact && n->sgprivate->interact->js_binding && !JS_IsUndefined(n->sgprivate->interact->js_binding->obj) ) {
-		if (set_rooted && (gf_list_find(sg->objects, n->sgprivate->interact->js_binding)<0)) {
-			n->sgprivate->interact->js_binding->obj = JS_DupValue(c, n->sgprivate->interact->js_binding->obj);
-			gf_list_add(sg->objects, n->sgprivate->interact->js_binding);
-		}
-		return n->sgprivate->interact->js_binding->obj;
+		return JS_DupValue(c, n->sgprivate->interact->js_binding->obj);
 	}
 
 	if (n->sgprivate->scenegraph->reference_count)
@@ -395,13 +390,8 @@ static JSValue dom_base_node_construct(JSContext *c, JSClassID class_id, GF_Node
 			return JS_NULL;
 		}
 	}
-	n->sgprivate->interact->js_binding->obj = new_obj;
-
-	/*don't root the node until inserted in the tree*/
-	if (n->sgprivate->parents && set_rooted) {
-		n->sgprivate->interact->js_binding->obj = JS_DupValue(c, n->sgprivate->interact->js_binding->obj);
-		gf_list_add(sg->objects, n->sgprivate->interact->js_binding);
-	}
+	n->sgprivate->interact->js_binding->obj = JS_DupValue(c, new_obj);
+	gf_list_add(sg->objects, n->sgprivate->interact->js_binding);
 	return new_obj;
 }
 static JSValue dom_node_construct(JSContext *c, GF_Node *n)
@@ -953,13 +943,6 @@ static void dom_node_inserted(JSContext *c, GF_Node *n, GF_Node *parent, s32 pos
 		do_init = (n->sgprivate->UserCallback || n->sgprivate->UserPrivate) ? GF_FALSE : GF_TRUE;
 
 	}
-	/*node is being inserted - if node has a valid binding, re-root it if needed*/
-	if (n->sgprivate->interact && n->sgprivate->interact->js_binding) {
-		if (gf_list_find(n->sgprivate->scenegraph->objects, n->sgprivate->interact->js_binding)<0) {
-			n->sgprivate->interact->js_binding->obj = JS_DupValue(c, n->sgprivate->interact->js_binding->obj);
-			gf_list_add(n->sgprivate->scenegraph->objects, n->sgprivate->interact->js_binding);
-		}
-	}
 
 	if (pos<0) gf_node_list_add_child( & ((GF_ParentNode *)parent)->children, n);
 	else gf_node_list_insert_child( & ((GF_ParentNode *)parent)->children, n, (u32) pos);
@@ -1447,16 +1430,19 @@ void dom_document_finalize(JSRuntime *rt, JSValue obj)
 	/*the JS proto of the svgClass or a destroyed object*/
 	if (!sg) return;
 
-	JS_SetOpaque(sg->js_data->document, NULL);
-	gf_free(sg->js_data);
-	sg->js_data = NULL;
+	if (sg->js_data) {
+		JS_SetOpaque(sg->js_data->document, NULL);
+		JS_FreeValueRT(rt, sg->js_data->document);
+		gf_free(sg->js_data);
+		sg->js_data = NULL;
+	}
 	if (sg->RootNode) {
 		gf_node_unregister(sg->RootNode, NULL);
-		if (sg->reference_count) {
-			sg->reference_count--;
-			if (!sg->reference_count)
-				gf_sg_del(sg);
-		}
+	}
+	if (sg->reference_count) {
+		sg->reference_count--;
+		if (!sg->reference_count)
+			gf_sg_del(sg);
 	}
 }
 
@@ -2174,7 +2160,42 @@ static JSValue xml_element_set_id(JSContext *c, JSValueConst obj, int argc, JSVa
 	JS_FreeCString(c, name);
 	return JS_TRUE;
 }
+static void gather_text(GF_ParentNode *n, char **out_str)
+{
+	if (n->sgprivate->tag==TAG_DOMText) {
+		GF_DOMText *dom_text = (GF_DOMText *)n;
+		if (dom_text->textContent) gf_dynstrcat(out_str, dom_text->textContent, NULL);
+	} else {
+		GF_ChildNodeItem *child = ((GF_ParentNode *) n)->children;
+		while (child) {
+			gather_text((GF_ParentNode *)child->node, out_str);
+			child = child->next;
+		}
+	}
+}
+static JSValue xml_element_to_string(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	JSValue ret;
+	char *out_str = NULL;
+	GF_Node *n = dom_get_node(obj);
+	if (!n) return JS_EXCEPTION;
 
+	GF_ChildNodeItem *child;
+	child = ((GF_ParentNode *) n)->children;
+	while (child) {
+		gather_text((GF_ParentNode *)child->node, &out_str);
+		child = child->next;
+	}
+	if (!out_str) {
+		const char *node_name = gf_node_get_class_name(n);
+		if (node_name)
+			return JS_NewString(c, node_name);
+		return JS_NULL;
+	}
+	ret = JS_NewString(c, out_str);
+	gf_free(out_str);
+	return ret;
+}
 
 /*dom3 character/text/comment*/
 static JSValue dom_text_getProperty(JSContext *c, JSValueConst obj, int magic)
@@ -2517,6 +2538,7 @@ static const JSCFunctionListEntry element_Funcs[] =
 	JS_CFUNC_DEF("getElementsByTagNameNS", 2, xml_element_elements_by_tag),
 	JS_CFUNC_DEF("setIdAttribute", 2, xml_element_set_id),
 	JS_CFUNC_DEF("setIdAttributeNS", 3, xml_element_set_id),
+	JS_CFUNC_DEF("toString", 0, xml_element_to_string),
 	JS_CFUNC_DEF("getAttributeNode", 1, xml_dom3_not_implemented),
 	JS_CFUNC_DEF("setAttributeNode", 1, xml_dom3_not_implemented),
 	JS_CFUNC_DEF("removeAttributeNode", 1, xml_dom3_not_implemented),
@@ -2609,6 +2631,36 @@ static const JSCFunctionListEntry nodeList_Funcs[] =
 };
 
 
+void domDocument_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
+{
+	GF_SceneGraph *sg;
+	sg = (GF_SceneGraph*) JS_GetOpaque_Nocheck(obj);
+	/*the JS proto of the svgClass or a destroyed object*/
+	if (!sg || !sg->js_data) return;
+	if (!JS_IsUndefined(sg->js_data->document))
+		JS_MarkValue(rt, sg->js_data->document, mark_func);
+}
+void domElement_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
+{
+	GF_Node *n = (GF_Node *) JS_GetOpaque_Nocheck(obj);
+	/*the JS proto of the svgClass or a destroyed object*/
+	if (!n) return;
+	if (!n->sgprivate || !n->sgprivate->interact || !n->sgprivate->interact->js_binding) return;
+
+	if (!JS_IsUndefined(n->sgprivate->interact->js_binding->obj))
+		JS_MarkValue(rt, n->sgprivate->interact->js_binding->obj, mark_func);
+}
+void domNode_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
+{
+	GF_Node *n = (GF_Node *) JS_GetOpaque_Nocheck(obj);
+	/*the JS proto of the svgClass or a destroyed object*/
+	if (!n) return;
+	if (!n->sgprivate || !n->sgprivate->interact || !n->sgprivate->interact->js_binding) return;
+
+	if (!JS_IsUndefined(n->sgprivate->interact->js_binding->obj))
+		JS_MarkValue(rt, n->sgprivate->interact->js_binding->obj, mark_func);
+}
+
 
 void dom_js_load(GF_SceneGraph *scene, JSContext *c)
 {
@@ -2625,13 +2677,16 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c)
 
 	define_dom_exception(c, global);
 
+	domNodeClass.class.gc_mark = domNode_gc_mark;
 	SETUP_JSCLASS(domNodeClass, "Node", node_Funcs, NULL, dom_node_finalize, 0);
 	JS_SetPropertyStr(c, proto, "ELEMENT_NODE", JS_NewInt32(c, 1) );
 	JS_SetPropertyStr(c, proto, "TEXT_NODE", JS_NewInt32(c, 3));
 	JS_SetPropertyStr(c, proto, "CDATA_SECTION_NODE", JS_NewInt32(c, 4));
 	JS_SetPropertyStr(c, proto, "DOCUMENT_NODE", JS_NewInt32(c, 9));
 
+	domDocumentClass.class.gc_mark = domDocument_gc_mark;
 	SETUP_JSCLASS(domDocumentClass, "Document", document_Funcs, NULL, dom_document_finalize, domNodeClass.class_id);
+	domElementClass.class.gc_mark = domElement_gc_mark;
 	SETUP_JSCLASS(domElementClass, "Element", element_Funcs, NULL, dom_node_finalize, domNodeClass.class_id);
 	SETUP_JSCLASS(domTextClass, "Text", text_Funcs, NULL, dom_node_finalize, domNodeClass.class_id);
 
@@ -2662,6 +2717,7 @@ void gf_sg_js_dom_pre_destroy(JSRuntime *rt, GF_SceneGraph *sg, GF_Node *n)
 		if (n->sgprivate->interact && n->sgprivate->interact->js_binding && !JS_IsUndefined(n->sgprivate->interact->js_binding->obj) ) {
 			JS_SetOpaque(n->sgprivate->interact->js_binding->obj, NULL);
 			if (gf_list_del_item(sg->objects, n->sgprivate->interact->js_binding)>=0) {
+				JS_SetOpaque(n->sgprivate->interact->js_binding->obj, NULL);
 				JS_FreeValueRT(rt, n->sgprivate->interact->js_binding->obj);
 			}
 			n->sgprivate->interact->js_binding->obj = JS_UNDEFINED;
@@ -2682,9 +2738,9 @@ void gf_sg_js_dom_pre_destroy(JSRuntime *rt, GF_SceneGraph *sg, GF_Node *n)
 #endif
 			}
 			JS_SetOpaque(js_bind->obj, NULL);
-			gf_node_unregister(n, NULL);
 			JS_FreeValueRT(rt, n->sgprivate->interact->js_binding->obj);
 			n->sgprivate->interact->js_binding->obj=JS_UNDEFINED;
+			gf_node_unregister(n, NULL);
 		}
 		gf_list_rem(sg->objects, 0);
 	}
@@ -2746,13 +2802,13 @@ JSValue gf_dom_new_event(JSContext *c)
 	return JS_NewObjectClass(c, domEventClass.class_id);
 }
 
-JSValue dom_js_get_element_proto(JSContext *c)
+JSClassID dom_js_get_element_proto(JSContext *c)
 {
-	return JS_GetClassProto(c, domElementClass.class_id);
+	return domElementClass.class_id;
 }
-JSValue dom_js_get_document_proto(JSContext *c)
+JSClassID dom_js_get_document_proto(JSContext *c)
 {
-	return JS_GetClassProto(c, domDocumentClass.class_id);
+	return domDocumentClass.class_id;
 }
 #endif	/*GPAC_HAS_QJS*/
 

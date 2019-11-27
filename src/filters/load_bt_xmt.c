@@ -862,13 +862,10 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 static const GF_FilterCapability CTXLoadCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-bt|application/x-xmt|model/vrml|x-model/x-vrml|model/x3d+vrml|model/x3d+xml|application/x-shockwave-flash|application/x-LASeR+xml"),
-	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{0},
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "bt|btz|bt.gz|xmt|xmt.gz|xmtz|wrl|wrl.gz|x3dv|x3dv.gz|x3dvz|x3d|x3d.gz|x3dz|swf|xsr"),
-	{0},
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-bt|application/x-xmt|model/vrml|x-model/x-vrml|model/x3d+vrml|model/x3d+xml|application/x-shockwave-flash|application/x-LASeR+xml"),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 

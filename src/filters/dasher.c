@@ -1480,7 +1480,8 @@ static void dasher_get_mime_and_ext(GF_DasherCtx *ctx, GF_DashStream *ds, const 
 			cstr = gf_codecid_mime(ds->codec_id);
 			if (cstr) {
 				subtype = strchr(cstr, '/');
-				if (cstr) cstr++;
+				if (subtype) subtype++;
+				else subtype = "raw";
 			}
 			if (out_ext) {
 				cstr = gf_codecid_file_ext(ds->codec_id);
@@ -2372,6 +2373,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 	for (i=0; i<count; i++) {
 		GF_Err e;
+		char szRawExt[20];
 		Bool use_dash_suffix = GF_FALSE;
 		const char *seg_ext, *init_ext, *idx_ext;
 		Bool skip_init = GF_FALSE;
@@ -2459,8 +2461,31 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (!ctx->do_m3u8 && (ctx->subs_sidx>=0) )
 				idx_ext = "idx";
 		} else {
-			seg_ext = (ctx->segext && !stricmp(ctx->segext, "null")) ? NULL : ctx->segext;
-			init_ext = (ctx->initext && !stricmp(ctx->initext, "null")) ? NULL : ctx->initext;
+			const char *def_ext = NULL;
+			if (ctx->muxtype==DASHER_MUX_TS) def_ext = "ts";
+			else if (ctx->muxtype==DASHER_MUX_MKV) def_ext = "mkv";
+			else if (ctx->muxtype==DASHER_MUX_WEBM) def_ext = "webm";
+			else if (ctx->muxtype==DASHER_MUX_OGG) def_ext = "ogg";
+			else if (ctx->muxtype==DASHER_MUX_RAW) {
+				char *ext = (char *) gf_codecid_file_ext(ds->codec_id);
+				strncpy(szRawExt, ext ? ext : "raw", 19);
+				ext = strchr(szRawExt, '|');
+				if (ext) ext[0] = 0;
+				def_ext = szRawExt;
+			}
+
+			if (ctx->segext && !stricmp(ctx->segext, "null")) {
+				seg_ext = NULL;
+			} else {
+				seg_ext = ctx->segext;
+				if (!seg_ext) seg_ext = def_ext ? def_ext : "m4s";
+			}
+			if (ctx->initext && !stricmp(ctx->initext, "null")) {
+				init_ext = NULL;
+			} else {
+				init_ext = ctx->initext;
+				if (!init_ext) init_ext = def_ext ? def_ext : "mp4";
+			}
 		}
 
 		is_bs_switch = set->bitstream_switching;
@@ -2523,6 +2548,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		//commented for compat with old arch
 		//if (ds->codec_id==GF_CODECID_HEVC_TILES) skip_init = GF_TRUE;
 		if (ctx->m2ts) skip_init = GF_TRUE;
+		else if (ctx->muxtype==DASHER_MUX_RAW) skip_init = GF_TRUE;
+		else if (ctx->muxtype==DASHER_MUX_TS) skip_init = GF_TRUE;
 
 
 		//we use segment template
@@ -5734,10 +5761,12 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 	ctx->pids = gf_list_new();
 	ctx->postponed_pids = gf_list_new();
 
+	if (!ctx->initext && (ctx->muxtype==DASHER_MUX_AUTO))
+		ctx->muxtype = DASHER_MUX_ISOM;
+
 	e = dasher_setup_profile(ctx);
 	if (e) return e;
 
-	if (!ctx->segext) ctx->segext = "m4s";
 	if (ctx->sfile && ctx->tpl)
 		ctx->tpl = GF_FALSE;
 
@@ -5791,7 +5820,8 @@ static const GF_FilterCapability DasherCaps[] =
 	CAP_STRING(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_FILEPATH, "*"),
 
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mpd|m3u8"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mpd|m3u8|3gm|ism"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd|audio/mpegurl|video/mpegurl|application/vnd.ms-sstr+xml"),
 	{0},
 	//anything else (not file and framed) result in manifest PID
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -5799,7 +5829,8 @@ static const GF_FilterCapability DasherCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mpd|m3u8"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mpd|m3u8|3gm|ism"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd|audio/mpegurl|video/mpegurl|application/vnd.ms-sstr+xml"),
 	{0},
 	//anything else (not file and framed) result in media pids not file
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -5845,15 +5876,15 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(av1p), "profile to use for AV1 if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(vpxp), "profile to use for VP8/9 if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(template), "template string to use to generate segment name - see filter help", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(segext), "file extension to use for segments", GF_PROP_STRING, "m4s", NULL, 0},
-	{ OFFS(initext), "file extension to use for the init segment", GF_PROP_STRING, "mp4", NULL, 0},
+	{ OFFS(segext), "file extension to use for segments", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(initext), "file extension to use for the init segment", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(muxtype), "muxtype to use for the segments\n"
 		"- mp4: uses ISOBMFF format\n"
 		"- ts: uses MPEG-2 TS format\n"
 		"- mkv: uses Matroska format\n"
 		"- webm: uses WebM format\n"
 		"- raw: uses raw media format (disables muxed representations)\n"
-		"- auto: guess format based on extension", GF_PROP_UINT, "auto", "mp4|ts|mkv|webm|ogg|raw|auto", 0},
+		"- auto: guess format based on extension, default to mp4 if no extension", GF_PROP_UINT, "auto", "mp4|ts|mkv|webm|ogg|raw|auto", 0},
 	{ OFFS(asto), "availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(profile), "target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main.\n"
 		"- auto: turns profile to live for dynamic and full for non-dynamic\n"
