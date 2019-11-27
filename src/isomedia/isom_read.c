@@ -4303,7 +4303,9 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (traf)
-		return GF_BAD_PARAM;
+		return GF_NOT_SUPPORTED;
+#else
+	sample_number -= trak->sample_count_at_seg_start;
 #endif
 
 	if (trak && trak->Media->information->sampleTable->SampleSize && trak->Media->information->sampleTable->SampleSize->sampleCount>=sample_number) {

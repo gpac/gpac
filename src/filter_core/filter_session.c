@@ -1993,20 +1993,31 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 
 		/* check muxers*/
 		for (j=0; j<reg->nb_caps; j++) {
-			char *match = NULL;
+			char *value=NULL;
+			const char *pattern = NULL;
 			const GF_FilterCapability *cap = &reg->caps[j];
 			if (! (cap->flags & GF_CAPFLAG_OUTPUT) )
 				continue;
 			if (cap->flags & GF_CAPFLAG_EXCLUDED)
 				continue;
 
-			if ((cap->code==GF_PROP_PID_FILE_EXT) && ext) {
-				match = strstr(cap->val.value.string, ext);
-			} else if ((cap->code==GF_PROP_PID_MIME) && mime) {
-				match = strstr(cap->val.value.string, mime);
+			if (cap->code==GF_PROP_PID_FILE_EXT) {
+				if (ext) {
+					value = cap->val.value.string;
+					pattern = ext;
+				}
+			} else if (cap->code==GF_PROP_PID_MIME) {
+				if (mime) {
+					value = cap->val.value.string;
+					pattern = mime;
+				}
 			}
-			if (match && (!match[len] || match[len]=='|')) {
-				return GF_FPROBE_MAYBE_SUPPORTED;
+			while (value) {
+				char *match = strstr(value, pattern);
+				if (!match) break;
+				if (!match[len] || match[len]=='|')
+					return GF_FPROBE_MAYBE_SUPPORTED;
+				value = match+1;
 			}
 		}
 	}
@@ -2061,6 +2072,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			if (strcmp(sURL, "null") && ! gf_file_exists(sURL)) {
 				if (sep) sep[0] = fsess->sep_args;
 				if (err) *err = GF_URL_ERROR;
+				gf_free(sURL);
 				return NULL;
 			}
 			if (sep) sep[0] = fsess->sep_args;

@@ -740,7 +740,7 @@ static const GF_FilterArgs FFMuxArgs[] =
 
 void ffmx_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
 {
-	ffmpeg_register_free(session, reg, 5);
+	ffmpeg_register_free(session, reg, BUILTIN_ARGS-1);
 }
 
 const GF_FilterRegister *ffmx_register(GF_FilterSession *session)

@@ -829,6 +829,7 @@ static const GF_FilterCapability NHMLDumpCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "nhml|dims|dml"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "application/x-nhml|application/dims"),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_NHMLDumpCtx, _n)

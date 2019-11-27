@@ -319,8 +319,12 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.data.size=0;
 			}
 		} else {
-			p.value.data.ptr = gf_strdup(value);
 			p.value.data.size = (u32) strlen(value);
+			if (p.value.data.size)
+				p.value.data.ptr = gf_strdup(value);
+			else
+				p.value.data.ptr = NULL;
+			p.type = GF_PROP_DATA;
 		}
 		break;
 	case GF_PROP_POINTER:

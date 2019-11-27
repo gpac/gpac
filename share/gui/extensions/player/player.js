@@ -180,6 +180,10 @@ extension = {
 
                 //process the error or connect service
                 if (evt.error) {
+                    if (ext.test_mode) {
+                        gpac.exit(1);                    
+                    }
+
                     var notif = gw_new_message(null, 'Error opening file!', 'Failed to open ' + this.url[0] + '\n\nReason: ' + gpac.error_string(evt.error));
                     notif.show();
 

@@ -1258,7 +1258,8 @@ static const GF_FilterCapability TSMuxCaps[] =
 
 	//static output cap file extension
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_FILE_EXT, "ts|m2ts"),
+	CAP_STRING(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_FILE_EXT, "ts|m2t|mts|dmb|trp"),
+	CAP_STRING(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_MIME, "video/mpeg-2|video/mp2t|video/mpeg"),
 	{0},
 	
 	//for now don't accept files as input, although we could store them as items, to refine

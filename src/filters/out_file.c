@@ -50,6 +50,8 @@ typedef struct
 	Bool patch_blocks;
 	Bool is_null;
 	GF_Err is_error;
+	u32 dash_mode;
+	u64 offset_at_seg_start;
 } GF_FileOutCtx;
 
 
@@ -155,6 +157,10 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLE_PROGRESSIVE);
 	if (p && p->value.boolean) ctx->patch_blocks = GF_TRUE;
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
+	if (p && (p->value.uint==1)) {
+		ctx->dash_mode = 1;
+	}
 	return GF_OK;
 }
 
@@ -213,6 +219,7 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 		ctx->in_caps[1].flags = GF_CAPS_INPUT;
 	}
 	gf_filter_override_caps(filter, ctx->in_caps, 2);
+
 	return GF_OK;
 }
 
@@ -249,6 +256,25 @@ static GF_Err fileout_process(GF_Filter *filter)
 				snprintf(szStatus, 1024, "%s: done - wrote "LLU" bytes", gf_file_basename(ctx->szFileName), ctx->nb_write);
 				gf_filter_update_status(filter, 10000, szStatus);
 			}
+
+			if (ctx->dash_mode && ctx->file) {
+				GF_FilterEvent evt;
+				GF_FEVT_INIT(evt, GF_FEVT_SEGMENT_SIZE, ctx->pid);
+				evt.seg_size.seg_url = NULL;
+
+				if (ctx->dash_mode==1) {
+					evt.seg_size.is_init = GF_TRUE;
+					ctx->dash_mode = 2;
+					evt.seg_size.media_range_start = 0;
+					evt.seg_size.media_range_end = 0;
+					gf_filter_pid_send_event(ctx->pid, &evt);
+				} else {
+					evt.seg_size.is_init = GF_FALSE;
+					evt.seg_size.media_range_start = ctx->offset_at_seg_start;
+					evt.seg_size.media_range_end = gf_ftell(ctx->file);
+					gf_filter_pid_send_event(ctx->pid, &evt);
+				}
+			}
 			fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
 			return GF_EOS;
 		}
@@ -270,6 +296,32 @@ static GF_Err fileout_process(GF_Filter *filter)
 
 	if (ctx->file && start && ctx->cat)
 		start = GF_FALSE;
+
+	if (ctx->dash_mode) {
+		const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
+		if (p) {
+			GF_FilterEvent evt;
+
+			GF_FEVT_INIT(evt, GF_FEVT_SEGMENT_SIZE, ctx->pid);
+			evt.seg_size.seg_url = NULL;
+
+			if (ctx->dash_mode==1) {
+				evt.seg_size.is_init = GF_TRUE;
+				ctx->dash_mode = 2;
+				evt.seg_size.media_range_start = 0;
+				evt.seg_size.media_range_end = 0;
+				gf_filter_pid_send_event(ctx->pid, &evt);
+			} else {
+				evt.seg_size.is_init = GF_FALSE;
+				evt.seg_size.media_range_start = ctx->offset_at_seg_start;
+				evt.seg_size.media_range_end = gf_ftell(ctx->file);
+				ctx->offset_at_seg_start = evt.seg_size.media_range_end;
+				gf_filter_pid_send_event(ctx->pid, &evt);
+			}
+			if ( gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME))
+				start = GF_TRUE;
+		}
+	}
 
 	if (start) {
 		const GF_PropertyValue *ext, *fnum;
@@ -453,9 +505,6 @@ static const GF_FilterArgs FileOutArgs[] =
 
 static const GF_FilterCapability FileOutCaps[] =
 {
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT,GF_PROP_PID_MIME, "*"),
-	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT,GF_PROP_PID_FILE_EXT, "*"),
 };

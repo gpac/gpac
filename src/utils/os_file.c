@@ -213,8 +213,8 @@ GF_Err gf_cleanup_dir(const char* DirPathName)
 GF_EXPORT
 GF_Err gf_delete_file(const char *fileName)
 {
-	if (!fileName) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("gf_delete_file deletes nothing - ignoring\n"));
+	if (!fileName || !fileName[0]) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("gf_delete_file with no param - ignoring\n"));
 		return GF_OK;
 	}
 #if defined(_WIN32_WCE)

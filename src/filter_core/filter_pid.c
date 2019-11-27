@@ -775,7 +775,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				filter->num_input_pids = 0;
 				gf_mx_v(filter->tasks_mx);
 
-				if (!filter->session->last_connect_error) filter->session->last_connect_error = e;
+				//do not assign session->last_connect_error since we are retrying a connection
+
 				if (ctype==GF_PID_CONF_CONNECT) {
 					assert(pid->filter->out_pid_connection_pending);
 					safe_int_dec(&pid->filter->out_pid_connection_pending);
@@ -805,6 +806,10 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 						assert(target);
 						if (!target->detached_pid_inst) {
 							target->detached_pid_inst = gf_list_new();
+						}
+						//detach props but don't delete them
+						if (filter->swap_pidinst_dst->props) {
+							filter->swap_pidinst_dst->props = NULL;
 						}
 						filter->swap_pidinst_dst->pid = NULL;
 						if (gf_list_find(target->detached_pid_inst, filter->swap_pidinst_dst)<0)
@@ -1438,6 +1443,17 @@ Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 	return GF_FALSE;
 }
 
+static Bool cap_code_match(u32 c1, u32 c2)
+{
+	if (c1==c2) return GF_TRUE;
+	/*we consider GF_PROP_PID_FILE_EXT and GF_PROP_PID_MIME are the same so that we check
+	if we have at least one match of file ext or mime in a given bundle*/
+	if ((c1==GF_PROP_PID_FILE_EXT) && (c2==GF_PROP_PID_MIME)) return GF_TRUE;
+	if ((c1==GF_PROP_PID_MIME) && (c2==GF_PROP_PID_FILE_EXT)) return GF_TRUE;
+	return GF_FALSE;
+}
+
+
 Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx)
 {
 	u32 i=0;
@@ -1446,6 +1462,8 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 	u32 nb_subcaps=0;
 	Bool skip_explicit_load = GF_FALSE;
 	Bool all_caps_matched = GF_TRUE;
+	Bool mime_matched = GF_FALSE;
+	Bool has_file_ext_cap = GF_FALSE;
 	Bool ext_not_trusted;
 	GF_FilterPid *src_pid = src_pid_or_ipid->pid;
 	Bool forced_cap_found = src_pid->forced_cap ? GF_FALSE : GF_TRUE;
@@ -1503,13 +1521,19 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 		const GF_PropertyValue *pid_cap=NULL;
 		const GF_FilterCapability *cap = &in_caps[i];
 
+		/*end of cap bundle*/
 		if (i && !(cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
+			if (has_file_ext_cap && ext_not_trusted && !mime_matched)
+				all_caps_matched = GF_FALSE;
+
 			if (all_caps_matched && forced_cap_found) {
 				if (dst_bundle_idx)
 					(*dst_bundle_idx) = cap_bundle_idx;
 				return GF_TRUE;
 			}
 			all_caps_matched = GF_TRUE;
+			mime_matched = GF_FALSE;
+			has_file_ext_cap = GF_FALSE;
 			nb_subcaps=0;
 			cur_bundle_start = i;
 			cap_bundle_idx++;
@@ -1543,7 +1567,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 
 			//special case for file ext: the pid will likely have only one file extension defined, and the output as well
 			//we browse all caps of the filter owning the pid, looking for the original file extension property
-			if (pid_cap && (cap->code==GF_PROP_PID_FILE_EXT)) {
+			if (pid_cap && (cap->code==GF_PROP_PID_FILE_EXT) ) {
 				u32 j;
 				for (j=0; j<src_pid->filter->freg->nb_caps; j++) {
 					const GF_FilterCapability *out_cap = &src_pid->filter->freg->caps[j];
@@ -1554,6 +1578,14 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 					break;
 				}
 			}
+			/*if PID prop for this cap is not found and the cap is MIME (resp. file ext), fetch file_ext (resp MIME)
+			 so that we check if we have at least one match of file ext or mime in a given bundle*/
+			if (!pid_cap) {
+				if (cap->code==GF_PROP_PID_FILE_EXT)
+					pid_cap = gf_filter_pid_get_property_first(src_pid_or_ipid, GF_PROP_PID_MIME);
+				else if (cap->code==GF_PROP_PID_MIME)
+					pid_cap = gf_filter_pid_get_property_first(src_pid_or_ipid, GF_PROP_PID_FILE_EXT);
+			}
 		}
 
 		//optional cap
@@ -1563,7 +1595,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 		if (!pid_cap && cap->name) pid_cap = gf_filter_pid_get_property_str_first(src_pid_or_ipid, cap->name);
 
 		if (ext_not_trusted && (cap->code==GF_PROP_PID_FILE_EXT)) {
-			all_caps_matched=GF_FALSE;
+			has_file_ext_cap = GF_TRUE;
 			continue;
 		}
 
@@ -1590,7 +1622,8 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 				}
 
 				if (cap->code) {
-					if (cap->code!=a_cap->code) continue;
+					if (!cap_code_match(cap->code, a_cap->code) )
+						continue;
 				} else if (!cap->name || !a_cap->name || strcmp(cap->name, a_cap->name)) {
 					continue;
 				}
@@ -1624,11 +1657,16 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 			} else if (priority && cap->priority) {
 				(*priority) = cap->priority;
 			}
+			if (ext_not_trusted && prop_equal && (cap->code==GF_PROP_PID_MIME))
+				mime_matched = GF_TRUE;
 		}
 		else if (! (cap->flags & (GF_CAPFLAG_EXCLUDED | GF_CAPFLAG_OPTIONAL) ) ) {
 			all_caps_matched=GF_FALSE;
 		}
 	}
+
+	if (has_file_ext_cap && ext_not_trusted && !mime_matched)
+		all_caps_matched = GF_FALSE;
 
 	if (nb_subcaps && all_caps_matched && forced_cap_found) {
 		if (dst_bundle_idx)
@@ -1682,7 +1720,6 @@ Bool gf_filter_has_out_caps(const GF_FilterCapability *caps, u32 nb_caps)
 	}
 	return GF_FALSE;
 }
-
 
 u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore)
 {
@@ -1774,7 +1811,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 			if (! (an_out_cap->flags & GF_CAPFLAG_OUTPUT) ) {
 				continue;
 			}
-			if (out_cap->code && (out_cap->code==an_out_cap->code) ) {
+			if (out_cap->code && (out_cap->code == an_out_cap->code) ) {
 				already_tested = GF_TRUE;
 				break;
 			}
@@ -1809,8 +1846,9 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 			if (! (an_out_cap->flags & GF_CAPFLAG_OUTPUT) ) {
 				continue;
 			}
-			if (out_cap->code && (out_cap->code!=an_out_cap->code) )
+			if (out_cap->code && !cap_code_match(out_cap->code, an_out_cap->code) )
 				continue;
+
 			if (out_cap->name && (!an_out_cap->name || strcmp(out_cap->name, an_out_cap->name)))
 				continue;
 
@@ -1866,8 +1904,9 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				//prop was matched, no need to check other caps in the current bundle
 				if (matched) continue;
 
-				if (out_cap->code && (out_cap->code!=in_cap->code) )
+				if (out_cap->code && !cap_code_match(out_cap->code, in_cap->code) )
 					continue;
+
 				if (out_cap->name && (!in_cap->name || strcmp(out_cap->name, in_cap->name)))
 					continue;
 
@@ -2074,9 +2113,11 @@ static s32 gf_filter_reg_get_bundle_stream_type(const GF_FilterRegister *freg, u
 		if ((cur_bundle != cap_idx) && !(cap->flags & GF_CAPFLAG_STATIC) ) continue;
 		//output type is file or same media type, allow looking for filter chains
 		if (cap->flags & GF_CAPFLAG_EXCLUDED) continue;
-		if (cap->code == GF_PROP_PID_STREAM_TYPE) cap_stype = cap->val.value.uint;
-		else if (cap->code == GF_PROP_PID_MIME) cap_stype = GF_STREAM_FILE;
-		else if (cap->code == GF_PROP_PID_FILE_EXT) cap_stype = GF_STREAM_FILE;
+
+		if (cap->code == GF_PROP_PID_STREAM_TYPE)
+			cap_stype = cap->val.value.uint;
+		else if ((cap->code == GF_PROP_PID_MIME) || (cap->code == GF_PROP_PID_FILE_EXT) )
+			cap_stype = GF_STREAM_FILE;
 
 		if (!cap_stype) continue;
 
@@ -3534,6 +3575,14 @@ single_retry:
 		found_dest = GF_TRUE;
 		gf_list_add(linked_dest_filters, filter_dst);
 		gf_list_del_item(filter->destination_links, filter_dst);
+		/*we are linking to a mux, check all destination filters registered with the muxer and remove them from our possible destination links*/
+		if (filter_dst->max_extra_pids) {
+			u32 k=0;
+			for (k=0; k<gf_list_count(filter_dst->destination_filters); k++) {
+				GF_Filter *dst_f = gf_list_get(filter_dst->destination_filters, k);
+				gf_list_del_item(filter->destination_links, dst_f);
+			}
+		}
 
 		if (!num_pass) {
 			u32 k=0;
@@ -3563,7 +3612,7 @@ single_retry:
 		num_pass = 1;
 		goto restart;
 	}
-	//we must do the second pass if a filter has an explicit link set through source if
+	//we must do the second pass if a filter has an explicit link set through source ID
 	if (!num_pass && gf_list_count(force_link_resolutions)) {
 		num_pass = 1;
 		goto restart;
@@ -3836,6 +3885,7 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to write property on input PID in filter %s - ignoring\n", pid->filter->name));
 		return GF_BAD_PARAM;
 	}
+
 	//info property, do not request a new property map
 	if (is_info) {
 		if (value && (value->type==GF_PROP_POINTER)) {

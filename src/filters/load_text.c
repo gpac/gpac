@@ -2856,21 +2856,13 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 static const GF_FilterCapability TXTInCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-subtitle/srt|subtitle/srt|text/srt"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-subtitle/sub|subtitle/sub|text/sub"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-subtitle/ttxt|subtitle/ttxt|text/ttxt"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-subtitle/vtt|subtitle/vtt|text/vtt"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-quicktime/text|quicktime/text"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "subtitle/ttml|text/ttml|application/xml+ttml"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-shockwave-flash"),
-	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
-	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_TX3G),
-	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_SIMPLE_TEXT),
-	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_WEBVTT),
-	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_SUBS_XML),
-	{0},
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "srt|ttxt|sub|vtt|txml|ttml|swf"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-subtitle/srt|subtitle/srt|text/srt|x-subtitle/sub|subtitle/sub|text/sub|x-subtitle/ttxt|subtitle/ttxt|text/ttxt|x-subtitle/vtt|subtitle/vtt|text/vtt|x-quicktime/text|quicktime/text|subtitle/ttml|text/ttml|application/xml+ttml|application/x-shockwave-flash"),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_TX3G),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_SIMPLE_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_WEBVTT),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_SUBS_XML),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_TXTIn, _n)

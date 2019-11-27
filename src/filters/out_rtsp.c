@@ -1237,6 +1237,7 @@ static const GF_FilterCapability RTSPOutCaps[] =
 
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "sdp"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "application/sdp"),
 	{0},
 	//anything else (not file and framed) result in media pids not file
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),

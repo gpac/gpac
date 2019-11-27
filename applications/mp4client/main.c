@@ -68,6 +68,7 @@ static void MakeScreenshot(Bool for_coverage);
 static void PrintAVInfo(Bool final);
 
 static u32 gui_mode = 0;
+static int ret_val = 0;
 
 static Bool restart = GF_FALSE;
 static Bool reload = GF_FALSE;
@@ -584,6 +585,8 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	if (gui_mode==1) {
 		if (evt->type==GF_EVENT_QUIT) {
 			Run = 0;
+			if (evt->message.error>0)
+				ret_val = evt->message.error;
 		} else if (evt->type==GF_EVENT_KEYDOWN) {
 			switch (evt->key.key_code) {
 			case GF_KEY_C:
@@ -908,8 +911,10 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	return 1;
 
 	case GF_EVENT_QUIT:
-		if (evt->message.error)  {
+		if (evt->message.error<0)  {
 			fprintf(stderr, "A fatal error was encoutered: %s (%s) - exiting ...\n", evt->message.message ? evt->message.message : "no details", gf_error_to_string(evt->message.error) );
+		} else {
+			ret_val = evt->message.error;
 		}
 		Run = 0;
 		break;
@@ -1057,7 +1062,6 @@ int mp4client_main(int argc, char **argv)
 	char c;
 	MP4C_Command cmdtype;
 	const char *str;
-	int ret_val = 0;
 	GF_Err e;
 	u32 i;
 	u32 simulation_time_in_ms = 0;
