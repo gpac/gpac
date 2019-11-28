@@ -1917,12 +1917,10 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 /*! Connects a destination to this filter
 \param filter the target filter
 \param url url of destination to connect to, with optional arguments.
-\param fmt_mime mime of destination file format, or NULL if guessed from url
-
 \param err return code - can be NULL
 \return the new destination filter instance or NULL if error
 */
-GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, const char *fmt_mime, GF_Err *err);
+GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err);
 
 
 /*! Loads a new filter in the session - see \ref gf_fs_load_filter
@@ -2375,13 +2373,6 @@ GF_Err gf_filter_define_args(GF_Filter *filter, GF_FilterArgs *new_args);
 \return the filter instance args if any, NULL otherwise
 */
 GF_FilterArgs *gf_filter_get_args(GF_Filter *filter);
-
-
-/*! get requested mime type for sink filters, if any
-\param filter target filter
-\return the requested sink mime type if any, NULL otherwise
-*/
-const char *gf_filter_get_target_mime(GF_Filter *filter);
 
 /*! @} */
 

@@ -1438,7 +1438,6 @@ static JSValue jsf_filter_load_filter(JSContext *ctx, JSValueConst this_val, int
 {
 	const char *url=NULL;
 	const char *parent=NULL;
-	const char *mux_mime=NULL;
 	GF_Err e=GF_OK;
 	GF_JSFilterInstanceCtx *f_ctx;
 	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
@@ -1453,18 +1452,10 @@ static JSValue jsf_filter_load_filter(JSContext *ctx, JSValueConst this_val, int
 			return JS_EXCEPTION;
 		}
 	}
-	else if ((mode==JSF_FINST_DEST) && (argc>1)) {
-		mux_mime = JS_ToCString(ctx, argv[1]);
-		if (!mux_mime) {
-			JS_FreeCString(ctx, url);
-			return JS_EXCEPTION;
-		}
-	}
 	GF_SAFEALLOC(f_ctx, GF_JSFilterInstanceCtx);
 	if (!f_ctx) {
 		JS_FreeCString(ctx, url);
 		JS_FreeCString(ctx, parent);
-		JS_FreeCString(ctx, mux_mime);
 		return js_throw_err(ctx, GF_OUT_OF_MEM);
 	}
 
@@ -1472,13 +1463,12 @@ static JSValue jsf_filter_load_filter(JSContext *ctx, JSValueConst this_val, int
 	if (mode==JSF_FINST_SOURCE) {
 		f_ctx->filter = gf_filter_connect_source(jsf->filter, url, parent, &e);
 	} else if (mode==JSF_FINST_DEST) {
-		f_ctx->filter = gf_filter_connect_destination(jsf->filter, url, mux_mime, &e);
+		f_ctx->filter = gf_filter_connect_destination(jsf->filter, url, &e);
 	} else {
 		f_ctx->filter = gf_filter_load_filter(jsf->filter, url, &e);
 	}
 	JS_FreeCString(ctx, url);
 	JS_FreeCString(ctx, parent);
-	JS_FreeCString(ctx, mux_mime);
 	if (!f_ctx->filter) {
 		gf_free(f_ctx);
 		return js_throw_err(ctx, e);

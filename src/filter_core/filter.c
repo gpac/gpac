@@ -114,7 +114,7 @@ char *gf_filter_get_dst_name(GF_Filter *filter)
 	return res;
 }
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *src_args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err, const char *target_mime)
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *src_args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err)
 {
 	char szName[200];
 	const char *dst_striped = NULL;
@@ -132,7 +132,6 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	filter->freg = freg;
 	filter->session = fsess;
 	filter->max_extra_pids = freg->max_extra_pids;
-	if (target_mime) filter->target_mime = gf_strdup(target_mime);
 
 	if (fsess->use_locks) {
 		snprintf(szName, 200, "Filter%sPackets", filter->freg->name);
@@ -233,7 +232,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		} else {
 			sprintf(all_args, "%s%s%s", src_striped, szDBSep, dst_striped);
 		}
-		localarg_marker = strstr(all_args, "locarg");
+		localarg_marker = strstr(all_args, "gfloc");
 		if (localarg_marker) {
 			localarg_marker[0]=0;
 			if (strlen(all_args) && (localarg_marker[-1]==fsess->sep_args))
@@ -273,11 +272,6 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	return filter;
 }
 
-GF_EXPORT
-const char *gf_filter_get_target_mime(GF_Filter *filter)
-{
-	return filter ? filter->target_mime : NULL;
-}
 GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgType arg_type)
 {
 	gf_filter_set_name(filter, NULL);
@@ -402,8 +396,6 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->dst_args) gf_free(filter->dst_args);
 	if (filter->name) gf_free(filter->name);
 	if (filter->status_str) gf_free(filter->status_str);
-	if (filter->target_mime) gf_free(filter->target_mime);
-
 
 	if (!filter->session->in_final_flush && !filter->session->run_status) {
 		u32 i, count;
@@ -905,6 +897,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 	u32 i=0;
 	u32 alloc_len=1024;
 	const GF_FilterArgs *f_args = NULL;
+	Bool opts_optional = GF_FALSE;
 
 	if (args)
 		szArg = gf_malloc(sizeof(char)*1024);
@@ -1175,6 +1168,12 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
+			//codec for generic enc load
+			else if (!strcmp("gfopt", szArg)) {
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
+				opts_optional = GF_TRUE;
+			}
 			else if (gf_file_exists(szArg)) {
 				if (!for_script && (argfile_level<5) ) {
 					char szLine[2001];
@@ -1218,7 +1217,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 			}
 		}
 
-		if (!internal_arg && !opaque_arg)
+		if (!internal_arg && !opaque_arg && !opts_optional)
 			gf_fs_push_arg(filter->session, szArg, found, 0);
 
 skip_arg:
@@ -2049,7 +2048,7 @@ void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name,
 
 GF_Filter *gf_filter_clone(GF_Filter *filter)
 {
-	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, NULL, filter->arg_type, NULL, filter->target_mime);
+	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, NULL, filter->arg_type, NULL);
 	if (!new_filter) return NULL;
 	new_filter->cloned_from = filter;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter cloned (register %s, args %s)\n", filter->freg->name, filter->orig_args ? filter->orig_args : "none"));
@@ -2490,7 +2489,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 
 	target_filter = filter->target_filter;
 	filter->finalized = GF_FALSE;
-	gf_fs_load_source_dest_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit, NULL, NULL);
+	gf_fs_load_source_dest_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit, NULL);
 	//we manage to reassign an input registry
 	if (e==GF_OK) {
 		gf_free(src_url);
@@ -2571,14 +2570,14 @@ Bool gf_filter_is_supported_source(GF_Filter *filter, const char *url, const cha
 {
 	GF_Err e;
 	Bool is_supported = GF_FALSE;
-	gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, &e, NULL, filter, GF_TRUE, GF_TRUE, &is_supported, NULL);
+	gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, &e, NULL, filter, GF_TRUE, GF_TRUE, &is_supported);
 	return is_supported;
 }
 
 GF_EXPORT
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err)
 {
-	GF_Filter *filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE, NULL, NULL);
+	GF_Filter *filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE, NULL);
 	if (!filter_src) return NULL;
 
 	if (!filter->source_filters)
@@ -2588,9 +2587,9 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 }
 
 GF_EXPORT
-GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, const char *fmt_mime, GF_Err *err)
+GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err)
 {
-	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE, GF_FALSE, NULL, fmt_mime);
+	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE, GF_FALSE, NULL);
 }
 
 
