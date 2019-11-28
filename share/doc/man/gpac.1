@@ -1361,15 +1361,27 @@ src=file.mp4 fout:OPTFOO:dst=file.aac:OPTBAR
 .br
 This will pass the :OPTBAR to all filters loaded between file.mp4 source and file.aac destination, but not OPTFOO
 .br
-Arguments inheriting can be stopped by using the keyword locarg: arguments after the keyword will not be inherited
+Arguments inheriting can be stopped by using the keyword gfloc: arguments after the keyword will not be inherited
 .br
 Example
 .br
-src=file.mp4 dst=file.aac:OPTFOO:locarg:OPTBAR dst=file.264
+src=file.mp4 dst=file.aac:OPTFOO:gfloc:OPTBAR dst=file.264
 .br
 
 .br
 This will pass the :OPTFOO to all filters loaded between file.mp4source and file.aac destination, but not OPTBAR
+.br
+Arguments are by default tracked to check if they were used by the filter chain, and a warning is thrown if this is not the case.
+.br
+It may be usefull to specify arguments which may not be consumed depending on the graph resolution; the specific keyword gfopt indicates that arguments after the keyword will not be tracked
+.br
+Example
+.br
+src=file.mp4 dst=file.aac:OPTFOO:gfopt:OPTBAR dst=file.264
+.br
+
+.br
+This will warn if OPTFOO is not consumed, but will not track OPTBAR
 .br
 .SH URL templating
 .LP
@@ -1453,7 +1465,11 @@ In this case, each new ServiceID value found when connecting PIDs to the destina
 .SH Assigning PID properties
 .LP
 .br
-It is possible to define properties on output PIDs that will be declared by a filter. This allows tagging parts of the graph with different properties than other parts (for example ServiceID). The syntax is the same as filter option, and uses the fragment separator to identify properties, eg #Name=Value. This sets output PIDs property (4cc, built-in name or any name) to the given value. Value can be omitted for booleans (defaults to true, eg :#Alpha). If a non built-in property is used, the value will be declared as string.
+It is possible to define properties on output PIDs that will be declared by a filter. This allows tagging parts of the graph with different properties than other parts (for example ServiceID). The syntax is the same as filter option, and uses the fragment separator to identify properties, eg #Name=Value.
+.br
+This sets output PIDs property (4cc, built-in name or any name) to the given value. Value can be omitted for booleans (defaults to true, eg :#Alpha).
+.br
+If a non built-in property is used, the value will be declared as string or as data for file@ and bxml@ property values.
 .br
 Warning: Properties are not filtered and override the properties of the filter's output PIDs, be carefull not to break the session by overriding core properties such as width/height/samplerate/... !
 .br
@@ -2302,22 +2318,27 @@ Indicates this is a primary item in isobmf
 .TP
 .B ColorPrimaries (CPRM,unsigned int,D )
 .br
-Indicate color primaries for a visual pid (see ISO/IEC 23001-8)
+Indicate color primaries for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 .br
 .TP
 .B ColorTransfer (CTRC,unsigned int,D )
 .br
-Indicate color transfer characteristics for a visual pid (see ISO/IEC 23001-8)
+Indicate color transfer characteristics for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 .br
 .TP
 .B ColorMatrixCoef (CMXC,unsigned int,D )
 .br
-Indicate color matrix coeficient for a visual pid (see ISO/IEC 23001-8)
+Indicate color matrix coeficient for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 .br
 .TP
 .B FullRange (CFRA,unsigned int,D )
 .br
-Indicate color full range flag for a visual pid (see ISO/IEC 23001-8)
+Indicate color full range flag for a visual pid (see ISO/IEC 23001-8 / 23091-2)
+.br
+.TP
+.B ChromaLoc (CLOC,unsigned int,D )
+.br
+Indicate chrom location for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 .br
 .TP
 .B SrcMagic (PSMG,unsigned long int,D )
@@ -2608,7 +2629,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2949-g4988ea49e-filters
+build: 0.9.0-DEV-rev2961-g25a6c0147-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

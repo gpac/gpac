@@ -687,20 +687,21 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 	args = gf_malloc(sizeof(GF_FilterArgs)*(i+1));
 	memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
 	FFDemuxRegister.args = args;
-	args[0] = (GF_FilterArgs){ OFFS(src), "location of source content", GF_PROP_STRING, NULL, NULL, 0} ;
-
 	i=0;
+	args[i] = (GF_FilterArgs){ OFFS(src), "location of source content", GF_PROP_STRING, NULL, NULL, 0} ;
+	i++;
+
 	idx=0;
 	while (dmx_ctx->av_class->option) {
 		opt = &dmx_ctx->av_class->option[idx];
 		if (!opt || !opt->name) break;
 		if (opt->flags & AV_OPT_FLAG_DECODING_PARAM) {
-			args[i+1] = ffmpeg_arg_translate(opt);
+			args[i] = ffmpeg_arg_translate(opt);
 			i++;
 		}
 		idx++;
 	}
-	args[i+1] = (GF_FilterArgs) { "*", -1, "meta options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
+	args[i] = (GF_FilterArgs) { "*", -1, "options depend on demuxer type, check `gpac -h ffmdx:*` and FFMPEG doc", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
 
 	avformat_free_context(dmx_ctx);
 

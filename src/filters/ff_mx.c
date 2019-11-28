@@ -727,24 +727,25 @@ GF_FilterRegister FFMuxRegister = {
 
 #define OFFS(_n)	#_n, offsetof(GF_FFMuxCtx, _n)
 
-#define BUILTIN_ARGS	8
 
 static const GF_FilterArgs FFMuxArgs[] =
 {
 	{ OFFS(dst), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(interleave), "write frame in interleave mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nodisc), "ignore stream configuration changes while muxing, may result in broken streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ffiles), "force complete files to be created for each segment in DASH modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ "*", -1, "any possible args defined for AVCodecContext and sub-classes. See `gpac -hx ffdec` and `gpac -hx ffdec:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "any possible args defined for AVFormatContext and sub-classes. See `gpac -hx ffdec` and `gpac -hx ffdec:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
+const int FFMX_STATIC_ARGS = (sizeof (FFMuxArgs) / sizeof (GF_FilterArgs)) - 1;
+
 void ffmx_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
 {
-	ffmpeg_register_free(session, reg, BUILTIN_ARGS-1);
+	ffmpeg_register_free(session, reg, FFMX_STATIC_ARGS);
 }
 
 const GF_FilterRegister *ffmx_register(GF_FilterSession *session)
@@ -775,29 +776,28 @@ const GF_FilterRegister *ffmx_register(GF_FilterSession *session)
 			i++;
 		idx++;
 	}
-	i+=BUILTIN_ARGS;
+	i+=FFMX_STATIC_ARGS;
 
 	args = gf_malloc(sizeof(GF_FilterArgs)*(i+1));
 	memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
 	FFMuxRegister.args = args;
 
-	args[0] = (GF_FilterArgs){ OFFS(dst), "location of destination content", GF_PROP_STRING, NULL, NULL, 0} ;
-	args[1] = (GF_FilterArgs){ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0} ;
-	args[2] = (GF_FilterArgs) { OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_EXPERT} ;
+	for (i=0; i<FFMX_STATIC_ARGS-1; i++) {
+		args[i] = (GF_FilterArgs) FFMuxArgs[i];
+	}
+	//do not reset i
 
-
-	i=0;
 	idx=0;
 	while (mx_ctx->av_class->option) {
 		opt = &mx_ctx->av_class->option[idx];
 		if (!opt || !opt->name) break;
 		if (opt->flags & AV_OPT_FLAG_ENCODING_PARAM) {
-			args[i + BUILTIN_ARGS - 1] = ffmpeg_arg_translate(opt);
+			args[i] = ffmpeg_arg_translate(opt);
 			i++;
 		}
 		idx++;
 	}
-	args[i+BUILTIN_ARGS] = (GF_FilterArgs) { "*", -1, "options depend on codec type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
+	args[i] = (GF_FilterArgs) { "*", -1, "options depend on muxer type, check `gpac -h ffmx:*` and FFMPEG doc", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
 
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 	avformat_free_context(mx_ctx);
