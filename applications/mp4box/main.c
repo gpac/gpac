@@ -340,7 +340,7 @@ void PrintDASHUsage()
 		"- #N: only use the track ID N from the source file (mapped to [-tkid](mp4dmx))\n"
 		"- #video: only use the first video track from the source file\n"
 		"- #audio: only use the first audio track from the source file\n"
-		"- :id=NAME: set the representation ID to NAME. Reserved value `NULL` disales representation ID for multiplexed inputs\n"
+		"- :id=NAME: set the representation ID to NAME. Reserved value `NULL` disables representation ID for multiplexed inputs\n"
 		"- :dur=VALUE: process VALUE seconds from the media. If VALUE is longer than media duration, last sample duration is extended.\n"
 		"- :period=NAME: set the representation's period to NAME. Multiple periods may be used period appear in the MPD in the same order as specified with this option\n"
 		"- :BaseURL=NAME: set the BaseURL. Set multiple times for multiple BaseURLs\nWarning: This does not modify generated files location (see segment template).\n"
@@ -1724,16 +1724,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			if (sep) sep[0] = 0;
 
 			if (!strnicmp(opts, "id=", 3)) {
-				u32 i;
 				di->representationID = gf_strdup(opts+3);
-				/* check to see if this representation Id has already been assigned */
-				for (i=0; i<(*nb_dash_inputs)-1; i++) {
-					GF_DashSegmenterInput *other_di;
-					other_di = &dash_inputs[i];
-					if (!strcmp(other_di->representationID, di->representationID)) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Duplicate Representation ID \"%s\" in command line\n", di->representationID));
-					}
-				}
+				/*we allow the same repID to be set to force muxed representations*/
 			}
 			else if (!strnicmp(opts, "dur=", 4)) di->media_duration = (Double)atof(opts+4);
 			else if (!strnicmp(opts, "period=", 7)) di->periodID = gf_strdup(opts+7);

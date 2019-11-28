@@ -892,6 +892,7 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 			ctx->idx_opid = gf_filter_pid_new(filter);
 			gf_filter_pid_set_property(ctx->idx_opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 			gf_filter_pid_set_property(ctx->idx_opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*") );
+			gf_filter_pid_set_property(ctx->idx_opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
 		}
 		idx_pck = gf_filter_pck_new_alloc(ctx->idx_opid, segidx_size, &output);
 
@@ -1245,7 +1246,6 @@ static const GF_FilterCapability TSMuxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	//unframed streams only
 	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_UINT(GF_CAPS_INPUT_STATIC_OPT, 	GF_PROP_PID_DASH_MODE, 0),
 	//for NAL-based, we want annexB format
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_AVC),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_MVC),

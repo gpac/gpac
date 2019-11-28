@@ -1491,16 +1491,22 @@ static void dasher_get_mime_and_ext(GF_DasherCtx *ctx, GF_DashStream *ds, const 
 		}
 	} else if (ctx->initext) {
 		mux_ext = ctx->initext;
-		if (!strcmp(ctx->initext, "ts") || !strcmp(ctx->initext, "m2ts"))
+		if (!strcmp(ctx->initext, "ts") || !strcmp(ctx->initext, "m2ts")) {
 			subtype = "mp2t";
-		else if (!strcmp(ctx->initext, "mkv") || !strcmp(ctx->initext, "mka") || !strcmp(ctx->initext, "mks") || !strcmp(ctx->initext, "mk3d"))
+			ctx->muxtype = DASHER_MUX_TS;
+		} else if (!strcmp(ctx->initext, "mkv") || !strcmp(ctx->initext, "mka") || !strcmp(ctx->initext, "mks") || !strcmp(ctx->initext, "mk3d")) {
 			subtype = "x-matroska";
-		else if (!strcmp(ctx->initext, "webm") || !strcmp(ctx->initext, "weba"))
+			ctx->muxtype = DASHER_MUX_MKV;
+		} else if (!strcmp(ctx->initext, "webm") || !strcmp(ctx->initext, "weba")) {
 			subtype = "webm";
-		else if (!strcmp(ctx->initext, "ogg") || !strcmp(ctx->initext, "oga") || !strcmp(ctx->initext, "ogv") || !strcmp(ctx->initext, "spx") || !strcmp(ctx->initext, "oggm") || !strcmp(ctx->initext, "opus"))
+			ctx->muxtype = DASHER_MUX_WEBM;
+		} else if (!strcmp(ctx->initext, "ogg") || !strcmp(ctx->initext, "oga") || !strcmp(ctx->initext, "ogv") || !strcmp(ctx->initext, "spx") || !strcmp(ctx->initext, "oggm") || !strcmp(ctx->initext, "opus")) {
 			subtype = "ogg";
+			ctx->muxtype = DASHER_MUX_OGG;
+		}
 		else if (!strcmp(ctx->initext, "null")) {
 			mux_ext = "mp4";
+			ctx->muxtype = DASHER_MUX_ISOM;
 		}
 	}
 	if (!subtype) subtype = "mp4";
@@ -1895,6 +1901,9 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		}
 	}
 
+	sprintf(szSRC, "%cgfopt", sep_args);
+	gf_dynstrcat(&szDST, szSRC, NULL);
+
 	dst_args = gf_filter_get_dst_args(filter);
 	if (dst_args) {
 		char szKey[20];
@@ -1915,9 +1924,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		sprintf(szKey, "%cstrun", sep_args);
 		if (strstr(dst_args, szKey)) has_strun = GF_TRUE;
 	}
-	sprintf(szSRC, "%cgfopt", sep_args);
-	gf_dynstrcat(&szDST, szSRC, NULL);
-	
+
 	if (trash_init) {
 		sprintf(szSRC, "%cnoinit", sep_args);
 		gf_dynstrcat(&szDST, szSRC, NULL);
@@ -2051,6 +2058,8 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	sprintf(szSRC, "dasher_%p", base_ds->dst_filter);
 	ds->opid = gf_filter_pid_new(filter);
 	gf_filter_pid_copy_properties(ds->opid, ds->ipid);
+	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*"));
+	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_MIME, &PROP_STRING(ds->rep->mime_type));
 
 	gf_filter_pid_require_source_id(ds->opid);
 
@@ -2073,8 +2082,6 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		dasher_update_dep_list(ctx, ds, "isom:scal");
 		dasher_update_dep_list(ctx, ds, "isom:sabt");
 	}
-
-	gf_filter_pid_force_cap(ds->opid, GF_PROP_PID_DASH_MODE);
 
 	/*timescale forced (bitstream switching) */
 	if (ds->force_timescale)
@@ -3822,7 +3829,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 				has_deps = GF_TRUE;
 				if (!a_ds->rep->dependency_id) a_ds->rep->dependency_id = gf_strdup(ds->rep->id);
 			}
-			if (!a_ds->muxed_base && !strcmp(a_ds->rep_id, ds->rep_id) ) {
+			if (!a_ds->muxed_base && !strcmp(a_ds->rep_id, ds->rep_id) && (ctx->muxtype!=DASHER_MUX_RAW) ) {
 				a_ds->muxed_base = ds;
 				a_ds->dash_dur = ds->dash_dur;
 				has_muxed_bases = GF_TRUE;
@@ -3853,8 +3860,10 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			for (j=0; j<count; j++) {
 				GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, j);
 				if ((a_ds->muxed_base==ds) || (a_ds==ds)) {
-					if (a_ds == ds_video) a_ds->muxed_base = NULL;
-					else a_ds->muxed_base = ds_video;
+					if (a_ds == ds_video)
+						a_ds->muxed_base = NULL;
+					else
+						a_ds->muxed_base = ds_video;
 				}
 			}
 		}
@@ -6041,7 +6050,6 @@ GF_FilterRegister DasherRegister = {
 			"\n"\
 			"## Muxer development considerations\n"\
 			"Output muxers allowing segmented output must obey the following:\n"\
-			"- add a \"DashMode\" capability to their input caps (value of the cap is ignored, only its presence is required)\n"\
 			"- inspect packet properties\n"\
 			" - FileNumber: if set, indicate the start of a new DASH segment\n"\
 			" - FileName: if set, indicate the file name. If not present, output shall be a single file. "\

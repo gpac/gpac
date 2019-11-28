@@ -158,9 +158,7 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (p && p->value.boolean) ctx->patch_blocks = GF_TRUE;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
-	if (p && (p->value.uint==1)) {
-		ctx->dash_mode = 1;
-	}
+	if (p && p->value.uint) ctx->dash_mode = 1;
 	return GF_OK;
 }
 

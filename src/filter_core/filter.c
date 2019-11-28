@@ -3293,6 +3293,14 @@ GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus)
 void gf_filter_report_unused_meta_option(GF_Filter *filter, const char *arg)
 {
 	if (!filter->session || filter->removed || filter->finalized) return;
+	if (filter->orig_args) {
+		char *opt_arg = strstr(filter->orig_args, "gfopt");
+		if (opt_arg) {
+			char *arg_pos = strstr(filter->orig_args, arg);
+			if (arg_pos && (arg_pos>opt_arg))
+				return;
+		}
+	}
 	gf_mx_p(filter->session->filters_mx);
 	gf_fs_push_arg(filter->session, arg, GF_FALSE, 2);
 	gf_mx_v(filter->session->filters_mx);

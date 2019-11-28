@@ -913,7 +913,7 @@ GF_Err gsfmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ENCRYPTED, NULL );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING( "gsf" ) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING( "*" ) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/x-gpac-sf") );
 	}
 

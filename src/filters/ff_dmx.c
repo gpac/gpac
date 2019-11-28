@@ -476,6 +476,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 {
 	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err e;
+	Bool is_eos = GF_FALSE;
 	s32 res;
 	char *ext;
 	AVInputFormat *av_in = NULL;
@@ -512,6 +513,10 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	case AVERROR_DEMUXER_NOT_FOUND:
 	case -ENOENT:
 		e = GF_URL_ERROR;
+		break;
+	case AVERROR_EOF:
+		e = GF_OK;
+		is_eos = GF_TRUE;
 		break;
 	default:
 		e = GF_NOT_SUPPORTED;
