@@ -1484,9 +1484,11 @@ This will mux the streams in dump.ts, using ServiceID 4 for PIDs from v1.mp4 and
 .SH Using option files
 .LP
 .br
-It is possible to use a file to define options of a filter, by specifying the target file name as an option, i.e. :myopts.txt.
+It is possible to use a file to define options of a filter, by specifying the target file name as an option without value, i.e. :myopts.txt.
 .br
-An option file is a simple text file containing one or more options on one or more lines.
+Warning: Only local files are allowed.
+.br
+An option file is a simple text file containing one or more options or PID properties on one or more lines.
 .br
 A line begining with "//" is a comment and is ignored.
 .br
@@ -1500,7 +1502,7 @@ src=source.mp4:myopts.txt:foo=bar dst
 .br
 
 .br
-Any filter loaded between source.mp4 and dst will inherit both myopts.txt and foo options
+Any filter loaded between source.mp4 and dst will inherit both myopts.txt and foo options and will resolve options given in myopts.txt
 .br
 .SH External filters
 .LP
@@ -2629,7 +2631,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2961-g25a6c0147-filters
+build: 0.9.0-DEV-rev2963-gad00bd07a-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
