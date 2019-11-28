@@ -299,13 +299,14 @@ const char *gpac_doc =
 "EX -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
 "This will mux the streams in `dump.ts`, using `ServiceID` 4 for PIDs from `v1.mp4` and `ServiceID` 2 for PIDs from `v2.mp4`\n"
 "# Using option files\n"
-"It is possible to use a file to define options of a filter, by specifying the target file name as an option, i.e. `:myopts.txt`.\n"
-"An option file is a simple text file containing one or more options on one or more lines.\n"
+"It is possible to use a file to define options of a filter, by specifying the target file name as an option without value, i.e. `:myopts.txt`.\n"
+"Warning: Only local files are allowed.\n"
+"An option file is a simple text file containing one or more options or PID properties on one or more lines.\n"
 "A line begining with \"//\" is a comment and is ignored.\n"
 "Options in an option file may point to other option files, with a maximum redirection level of 5.\n"
 "An option file declaration (`filter:myopts.txt`) follows the same inheritance rules as regular options.\n"
 "EX src=source.mp4:myopts.txt:foo=bar dst\n"
-"Any filter loaded between `source.mp4` and `dst` will inherit both `myopts.txt` and `foo` options\n"
+"Any filter loaded between `source.mp4` and `dst` will inherit both `myopts.txt` and `foo` options and will resolve options given in `myopts.txt`\n"
 "# External filters\n"
 "GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in "
 "folders listed in GPAC config file section `core` key `mod-dirs`. The files shall be named `gf_*` and shall export"
@@ -1707,7 +1708,7 @@ restart:
 		}
 
 		if (!filter) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load filter%s %s\n", is_simple ? "" : " for",  arg));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load filter%s %s: %s\n", is_simple ? "" : " for",  arg, gf_error_to_string(e) ));
 			if (!e) e = GF_FILTER_NOT_FOUND;
 			nb_filters=0;
 
@@ -2036,7 +2037,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 //				gf_sys_format_help(helpout, help_flags, ", no default");
 			}
 			if (a->min_max_enum && !is_enum) {
-				if (!strcmp(a->arg_default_val, "-2147483648-I"))
+				if (!strcmp(a->min_max_enum, "-2147483648-I"))
 					gf_sys_format_help(helpout, help_flags, ", %s: -I-I", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax");
 				else
 					gf_sys_format_help(helpout, help_flags, ", %s: %s", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax", a->min_max_enum);

@@ -3049,11 +3049,8 @@ u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst)
 	return chain_len;
 }
 
-static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
+static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid, char *args, u32 argfile_level)
 {
-	char *args;
-	if (!filter->src_args && !filter->orig_args) return;
-	args = filter->orig_args ? filter->orig_args : filter->src_args;
 	//parse each arg
 	while (args) {
 		u32 p4cc=0;
@@ -3086,8 +3083,40 @@ static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 
 		if (sep) sep[0]=0;
 
-		if (args[0] != filter->session->sep_frag)
+		if (args[0] != filter->session->sep_frag) {
+			if (gf_file_exists(args)) {
+				if (argfile_level<5) {
+					char szLine[2001];
+					FILE *arg_file = gf_fopen(args, "rt");
+					szLine[2000]=0;
+					while (!feof(arg_file)) {
+						u32 llen;
+						char *subarg;
+						szLine[0] = 0;
+						fgets(szLine, 2000, arg_file);
+						llen = strlen(szLine);
+						while (llen && strchr(" \n\r\t", szLine[llen-1])) {
+							szLine[llen-1]=0;
+							llen--;
+						}
+						if (!llen)
+							continue;
+
+						subarg = szLine;
+						while (subarg[0] && strchr(" \n\r\t", subarg[0]))
+							subarg++;
+						if ((subarg[0] == '/') && (subarg[1] == '/'))
+							continue;
+
+						gf_filter_pid_set_args_internal(filter, pid, subarg, argfile_level+1);
+					}
+					gf_fclose(arg_file);
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter argument file has too many nested levels of sub-files, maximum allowed is 5\n"));
+				}
+			}
 			goto skip_arg;
+		}
 
 		value = NULL;
 		eq = strchr(args, filter->session->sep_name);
@@ -3144,6 +3173,16 @@ skip_arg:
 			break;
 		}
 	}
+}
+
+static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
+{
+	char *args;
+	if (!filter->src_args && !filter->orig_args) return;
+	args = filter->orig_args ? filter->orig_args : filter->src_args;
+
+	gf_filter_pid_set_args_internal(filter, pid, args, 0);
+
 }
 static const char *gf_filter_last_id_in_chain(GF_Filter *filter)
 {
