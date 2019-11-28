@@ -737,76 +737,15 @@ static const GF_FilterArgs FFMuxArgs[] =
 	{ OFFS(nodisc), "ignore stream configuration changes while muxing, may result in broken streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ffiles), "force complete files to be created for each segment in DASH modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ "*", -1, "any possible args defined for AVFormatContext and sub-classes. See `gpac -hx ffdec` and `gpac -hx ffdec:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes. See `gpac -hx ffdec` and `gpac -hx ffdec:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
 const int FFMX_STATIC_ARGS = (sizeof (FFMuxArgs) / sizeof (GF_FilterArgs)) - 1;
 
-void ffmx_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
-{
-	ffmpeg_register_free(session, reg, FFMX_STATIC_ARGS);
-}
-
 const GF_FilterRegister *ffmx_register(GF_FilterSession *session)
 {
-	GF_FilterArgs *args;
-	u32 i=0, idx=0;
-	Bool load_meta_filters = session ? GF_TRUE : GF_FALSE;
-	AVFormatContext *mx_ctx;
-	const struct AVOption *opt;
-
-	ffmpeg_initialize();
-
-	//by default no need to load option descriptions, everything is handled by av_set_opt in update_args
-	if (!load_meta_filters) {
-		FFMuxRegister.args = FFMuxArgs;
-		FFMuxRegister.register_free = NULL;
-		return &FFMuxRegister;
-	}
-
-	FFMuxRegister.register_free = ffmx_regfree;
-	mx_ctx = avformat_alloc_context();
-
-	idx=0;
-	while (mx_ctx->av_class->option) {
-		opt = &mx_ctx->av_class->option[idx];
-		if (!opt || !opt->name) break;
-		if (opt->flags & AV_OPT_FLAG_ENCODING_PARAM)
-			i++;
-		idx++;
-	}
-	i+=FFMX_STATIC_ARGS;
-
-	args = gf_malloc(sizeof(GF_FilterArgs)*(i+1));
-	memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
-	FFMuxRegister.args = args;
-
-	for (i=0; i<FFMX_STATIC_ARGS-1; i++) {
-		args[i] = (GF_FilterArgs) FFMuxArgs[i];
-	}
-	//do not reset i
-
-	idx=0;
-	while (mx_ctx->av_class->option) {
-		opt = &mx_ctx->av_class->option[idx];
-		if (!opt || !opt->name) break;
-		if (opt->flags & AV_OPT_FLAG_ENCODING_PARAM) {
-			args[i] = ffmpeg_arg_translate(opt);
-			i++;
-		}
-		idx++;
-	}
-	args[i] = (GF_FilterArgs) { "*", -1, "options depend on muxer type, check `gpac -h ffmx:*` and FFMPEG doc", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
-
-#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
-	avformat_free_context(mx_ctx);
-#else
-	av_free(mx_ctx);
-#endif
-
-	ffmpeg_expand_register(session, &FFMuxRegister, FF_REG_TYPE_MUX);
-
+	ffmpeg_build_register(session, &FFMuxRegister, FFMuxArgs, FFMX_STATIC_ARGS, FF_REG_TYPE_MUX);
 	return &FFMuxRegister;
 }
 

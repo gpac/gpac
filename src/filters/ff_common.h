@@ -42,8 +42,6 @@
 //#define FF_SUB_SUPPORT
 
 
-void ffmpeg_initialize();
-void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *reg, u32 nb_skip_begin);
 GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt);
 void ffmpeg_setup_logs(u32 log_class);
 
@@ -54,7 +52,8 @@ enum{
 	FF_REG_TYPE_ENCODE,
 	FF_REG_TYPE_MUX,
 };
-void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 reg_type);
+
+void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type);
 
 u32 ffmpeg_pixfmt_from_gpac(u32 pfmt);
 u32 ffmpeg_pixfmt_to_gpac(u32 pfmt);

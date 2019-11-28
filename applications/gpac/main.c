@@ -2026,15 +2026,23 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%s", a->arg_name, is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
 			}
 			if (a->arg_default_val) {
-				gf_sys_format_help(helpout, help_flags, ", default: __%s__", a->arg_default_val);
+				if (!strcmp(a->arg_default_val, "2147483647"))
+					gf_sys_format_help(helpout, help_flags, ", default: __+I__");
+				else if (!strcmp(a->arg_default_val, "-2147483648"))
+					gf_sys_format_help(helpout, help_flags, ", default: __-I__");
+				else
+					gf_sys_format_help(helpout, help_flags, ", default: __%s__", a->arg_default_val);
 			} else {
-				gf_sys_format_help(helpout, help_flags, ", no default");
+//				gf_sys_format_help(helpout, help_flags, ", no default");
 			}
 			if (a->min_max_enum && !is_enum) {
-				gf_sys_format_help(helpout, help_flags, ", %s: %s", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax", a->min_max_enum);
+				if (!strcmp(a->arg_default_val, "-2147483648-I"))
+					gf_sys_format_help(helpout, help_flags, ", %s: -I-I", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax");
+				else
+					gf_sys_format_help(helpout, help_flags, ", %s: %s", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax", a->min_max_enum);
 			}
 			if (a->flags & GF_FS_ARG_UPDATE) gf_sys_format_help(helpout, help_flags, ", updatable");
-			if (a->flags & GF_FS_ARG_META) gf_sys_format_help(helpout, help_flags, ", meta");
+//			if (a->flags & GF_FS_ARG_META) gf_sys_format_help(helpout, help_flags, ", meta");
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_OPT_DESC, "): %s\n", a->arg_desc);
 
 			if (a->min_max_enum && strchr(a->min_max_enum, '|'))
