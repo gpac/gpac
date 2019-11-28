@@ -1158,7 +1158,7 @@ GF_FilterRegister MPGVidDmxRegister = {
 	.name = "rfmpgvid",
 	GF_FS_SET_DESCRIPTION("M1V/M2V/M4V reframer")
 	GF_FS_SET_HELP("This filter parses MPEG-1/2 and MPEG-4 part 2 video files/data and outputs corresponding video PID and frames.\n"
-		"Note: The demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS.")
+		"Note: The demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS greater than CTS.")
 	.private_size = sizeof(GF_MPGVidDmxCtx),
 	.args = MPGVidDmxArgs,
 	.initialize = mpgviddmx_initialize,

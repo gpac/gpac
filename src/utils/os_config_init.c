@@ -1499,10 +1499,14 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 	char *line;
 	u32 len;
 	va_list vlist;
+	Bool escape_xml = GF_FALSE;
 	u32 gen_doc = 0;
 	u32 is_app_opts = 0;
-	if (flags & GF_PRINTARG_MD)
+	if (flags & GF_PRINTARG_MD) {
 		gen_doc = 1;
+		if (flags & GF_PRINTARG_ESCAPE_XML)
+			escape_xml = GF_TRUE;
+	}
 	if (flags & GF_PRINTARG_MAN)
 		gen_doc = 2;
 	if (flags & GF_PRINTARG_IS_APP)
@@ -1720,6 +1724,28 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 					line_pos+=4;
 				} else {
 					fprintf(helpout, "%s", line);
+				}
+			} else if (escape_xml) {
+				char *xml_line = line;
+				while (xml_line) {
+					char *xml_start = strchr(xml_line, '<');
+					char *xml_end = strchr(xml_line, '>');
+
+					if (xml_end && (xml_start > xml_end)) xml_start = xml_end;
+					else if (!xml_start && xml_end) xml_start = xml_end;
+					else if (xml_start && xml_end) xml_end = NULL;
+
+					if (xml_start) {
+						u8 c = xml_start[0];
+						xml_start[0] = 0;
+						fprintf(helpout, "%s", xml_line);
+						fprintf(helpout, xml_end ? "&gt;" : "&lt;");
+						xml_start[0] = c;
+						xml_line = xml_start+1;
+					} else {
+						fprintf(helpout, "%s", xml_line);
+						break;
+					}
 				}
 			} else {
 				fprintf(helpout, "%s", line);

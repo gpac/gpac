@@ -192,6 +192,8 @@ typedef enum
 	GF_PRINTARG_MD = 1<<16,
 	/*! the generation is for man pages*/
 	GF_PRINTARG_MAN = 1<<17,
+	/*! XML < and > should be escaped (for  markdown generation only) */
+	GF_PRINTARG_ESCAPE_XML = 1<<18,
 } GF_SysPrintArgFlags;
 
 

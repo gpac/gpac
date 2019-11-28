@@ -3110,7 +3110,7 @@ GF_FilterRegister NALUDmxRegister = {
 	.name = "rfnalu",
 	GF_FS_SET_DESCRIPTION("AVC/HEVC reframer")
 	GF_FS_SET_HELP("This filter parses AVC|H264 and HEVC files/data and outputs corresponding video PID and frames.\n"
-	"This demuxer only produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.\nNote: The demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS.")
+	"This demuxer only produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.\nNote: The demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS greater than CTS.")
 	.private_size = sizeof(GF_NALUDmxCtx),
 	.args = NALUDmxArgs,
 	.initialize = naludmx_initialize,

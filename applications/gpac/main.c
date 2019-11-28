@@ -1948,7 +1948,11 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	} else {
 #ifndef GPAC_DISABLE_DOC
 		if (reg->author) gf_sys_format_help(helpout, help_flags, "Author: %s\n", reg->author);
-		if (reg->help) gf_sys_format_help(helpout, help_flags, "\n%s\n\n", reg->help);
+		if (reg->help) {
+			u32 hf = help_flags;
+			if (gen_doc==1) hf |= GF_PRINTARG_ESCAPE_XML;
+			gf_sys_format_help(helpout, hf, "\n%s\n\n", reg->help);
+		}
 #else
 		gf_sys_format_help(helpout, help_flags, "GPAC compiled without built-in doc\n");
 #endif
