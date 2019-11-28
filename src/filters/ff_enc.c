@@ -1355,73 +1355,15 @@ static const GF_FilterArgs FFEncodeArgs[] =
 	{ OFFS(ls), "output log", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ffc), "ffmpeg codec name. This allows enforcing a given codec if multiple codecs support the codec ID set (eg aac vs vo_aacenc)", GF_PROP_STRING, NULL, NULL, 0},
 
-	{ "*", -1, "any possible args defined for AVCodecContext and sub-classes. see `gpac -hx ffenc` and `gpac -hx ffenc:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "any possible options defined for AVCodecContext and sub-classes. see `gpac -hx ffenc` and `gpac -hx ffenc:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
 const int FFENC_STATIC_ARGS = (sizeof (FFEncodeArgs) / sizeof (GF_FilterArgs)) - 1;
 
-void ffenc_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
-{
-	ffmpeg_register_free(session, reg, FFENC_STATIC_ARGS);
-}
-
 const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
 {
-	GF_FilterArgs *args;
-	u32 i=0, idx=0;
-	Bool load_meta_filters = session ? GF_TRUE : GF_FALSE;
-	AVCodecContext *ctx;
-	const struct AVOption *opt;
-
-	ffmpeg_initialize();
-
-	//by default no need to load option descriptions, everything is handled by av_set_opt in update_args
-	if (!load_meta_filters) {
-		FFEncodeRegister.args = FFEncodeArgs;
-		FFEncodeRegister.register_free = NULL;
-		return &FFEncodeRegister;
-	}
-
-	FFEncodeRegister.register_free = ffenc_regfree;
-	ctx = avcodec_alloc_context3(NULL);
-
-	idx=0;
-	while (ctx->av_class->option) {
-		opt = &ctx->av_class->option[idx];
-		if (!opt || !opt->name) break;
-		if (opt->flags & AV_OPT_FLAG_ENCODING_PARAM)
-			i++;
-		idx++;
-	}
-	i+=FFENC_STATIC_ARGS+1;
-
-	args = gf_malloc(sizeof(GF_FilterArgs)*i);
-	memset(args, 0, sizeof(GF_FilterArgs)*i);
-	FFEncodeRegister.args = args;
-	for (i=0; (s32) i<FFENC_STATIC_ARGS-1; i++)
-		args[i] = FFEncodeArgs[i];
-
-	idx=0;
-	while (ctx->av_class->option) {
-		opt = &ctx->av_class->option[idx];
-		if (!opt || !opt->name) break;
-		if (opt->flags & AV_OPT_FLAG_ENCODING_PARAM) {
-			args[i] = ffmpeg_arg_translate(opt);
-			i++;
-		}
-		idx++;
-	}
-	args[i] = (GF_FilterArgs) { "*", -1, "options depend on encoder type, check `gpac -h ffenc:*` and FFMPEG doc", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
-
-#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
-	avcodec_free_context(&ctx);
-#else
-	av_free(ctx);
-#endif
-
-	ffmpeg_expand_register(session, &FFEncodeRegister, FF_REG_TYPE_ENCODE);
-
+	ffmpeg_build_register(session, &FFEncodeRegister, FFEncodeArgs, FFENC_STATIC_ARGS, FF_REG_TYPE_ENCODE);
 	return &FFEncodeRegister;
 }
 

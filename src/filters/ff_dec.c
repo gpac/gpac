@@ -886,69 +886,13 @@ GF_FilterRegister FFDecodeRegister = {
 
 static const GF_FilterArgs FFDecodeArgs[] =
 {
-	{ "*", -1, "any possible args defined for AVCodecContext and sub-classes. See `gpac -hx ffdec` and `gpac -hx ffdec:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "any possible options defined for AVCodecContext and sub-classes. See `gpac -hx ffdec` and `gpac -hx ffdec:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
-void ffdec_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
-{
-	ffmpeg_register_free(session, reg, 0);
-}
-
 const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
 {
-	GF_FilterArgs *args;
-	u32 i=0, idx=0;
-	Bool load_meta_filters = session ? GF_TRUE : GF_FALSE;
-	AVCodecContext *dec_ctx;
-	const struct AVOption *opt;
-
-	ffmpeg_initialize();
-
-	//by default no need to load option descriptions, everything is handled by av_set_opt in update_args
-	if (!load_meta_filters) {
-		FFDecodeRegister.args = FFDecodeArgs;
-		FFDecodeRegister.register_free = NULL;
-		return &FFDecodeRegister;
-	}
-
-	FFDecodeRegister.register_free = ffdec_regfree;
-	dec_ctx = avcodec_alloc_context3(NULL);
-
-	idx=0;
-	while (dec_ctx->av_class->option) {
-		opt = &dec_ctx->av_class->option[idx];
-		if (!opt || !opt->name) break;
-		if (opt->flags & AV_OPT_FLAG_DECODING_PARAM)
-			i++;
-		idx++;
-	}
-	i+=1;
-
-	args = gf_malloc(sizeof(GF_FilterArgs)*(i+1));
-	memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
-	FFDecodeRegister.args = args;
-	i=0;
-	idx=0;
-	while (dec_ctx->av_class->option) {
-		opt = &dec_ctx->av_class->option[idx];
-		if (!opt || !opt->name) break;
-		if (opt->flags & AV_OPT_FLAG_DECODING_PARAM) {
-			args[i] = ffmpeg_arg_translate(opt);
-			i++;
-		}
-		idx++;
-	}
-	args[i] = (GF_FilterArgs) { "*", -1, "options depend on decoder type, check `gpac -h ffdec:*` and FFMPEG doc", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
-
-#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
-	avcodec_free_context(&dec_ctx);
-#else
-	av_free(dec_ctx);
-#endif
-
-	ffmpeg_expand_register(session, &FFDecodeRegister, FF_REG_TYPE_DECODE);
-
+	ffmpeg_build_register(session, &FFDecodeRegister, FFDecodeArgs, 1, FF_REG_TYPE_DECODE);
 	return &FFDecodeRegister;
 }
 

@@ -644,69 +644,16 @@ GF_FilterRegister FFDemuxRegister = {
 };
 
 
-void ffdmx_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
-{
-	ffmpeg_register_free(session, reg, 1);
-}
-
 static const GF_FilterArgs FFDemuxArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
-	{ "*", -1, "any possible args defined for AVFormatContext and sub-classes. See `gpac -hx ffdmx` and `gpac -hx ffdmx:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes. See `gpac -hx ffdmx` and `gpac -hx ffdmx:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 {
-	GF_FilterArgs *args;
-	u32 idx, i=0;
-	const struct AVOption *opt;
-	AVFormatContext *dmx_ctx;
-	Bool load_meta_filters = session ? GF_TRUE : GF_FALSE;
-	ffmpeg_initialize();
-
-	if (!load_meta_filters) {
-		FFDemuxRegister.args = FFDemuxArgs;
-		FFDemuxRegister.register_free = NULL;
-		return &FFDemuxRegister;
-	}
-
-	FFDemuxRegister.register_free = ffdmx_regfree;
-	dmx_ctx = avformat_alloc_context();
-
-	idx=0;
-	while (dmx_ctx->av_class->option) {
-		opt = &dmx_ctx->av_class->option[idx];
-		if (!opt || !opt->name) break;
-		if (opt->flags & AV_OPT_FLAG_DECODING_PARAM)
-			i++;
-		idx++;
-	}
-	i+=2;
-
-	args = gf_malloc(sizeof(GF_FilterArgs)*(i+1));
-	memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
-	FFDemuxRegister.args = args;
-	i=0;
-	args[i] = (GF_FilterArgs){ OFFS(src), "location of source content", GF_PROP_STRING, NULL, NULL, 0} ;
-	i++;
-
-	idx=0;
-	while (dmx_ctx->av_class->option) {
-		opt = &dmx_ctx->av_class->option[idx];
-		if (!opt || !opt->name) break;
-		if (opt->flags & AV_OPT_FLAG_DECODING_PARAM) {
-			args[i] = ffmpeg_arg_translate(opt);
-			i++;
-		}
-		idx++;
-	}
-	args[i] = (GF_FilterArgs) { "*", -1, "options depend on demuxer type, check `gpac -h ffmdx:*` and FFMPEG doc", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
-
-	avformat_free_context(dmx_ctx);
-
-	ffmpeg_expand_register(session, &FFDemuxRegister, FF_REG_TYPE_DEMUX);
-
+	ffmpeg_build_register(session, &FFDemuxRegister, FFDemuxArgs, 2, FF_REG_TYPE_DEMUX);
 	return &FFDemuxRegister;
 }
 
@@ -957,16 +904,14 @@ static const GF_FilterArgs FFAVInArgs[] =
 	{ OFFS(fmt), "name of device class - see filter help. If not set, defaults to first device class", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(dev), "name of device or index of device - see filter help", GF_PROP_STRING, "0", NULL, 0},
 	{ OFFS(copy), "set copy mode of raw frames\n"
-	"- N: frames are only forwarded (shared memory, no copy)\n"
-	"- A: audio frames are copied, video frames are forwarded\n"
-	"- V: video frames are copied, audio frames are forwarded\n"
-	"- AV: all frames are copied"
-	"", GF_PROP_UINT, "A", "N|A|V|AV", GF_FS_ARG_HINT_ADVANCED},
+		"- N: frames are only forwarded (shared memory, no copy)\n"
+		"- A: audio frames are copied, video frames are forwarded\n"
+		"- V: video frames are copied, audio frames are forwarded\n"
+		"- AV: all frames are copied"
+		"", GF_PROP_UINT, "A", "N|A|V|AV", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sclock), "use system clock (us) instead of device timestamp (for buggy devices)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(probes), "probe a given number of video frames before emitting - this usually helps with bad timing of the first frames", GF_PROP_UINT, "10", "0-100", GF_FS_ARG_HINT_EXPERT},
-
-
-	{ "*", -1, "any possible args defined for AVInputFormat and AVFormatContext. See `gpac -hx ffavin` and `gpac -hx ffavin:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "any possible options defined for AVInputFormat and AVFormatContext. See `gpac -hx ffavin` and `gpac -hx ffavin:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
@@ -974,33 +919,9 @@ static const GF_FilterArgs FFAVInArgs[] =
 //number of arguments defined above
 const int FFAVIN_STATIC_ARGS = (sizeof (FFAVInArgs) / sizeof (GF_FilterArgs)) - 1;
 
-void ffavin_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
-{
-	ffmpeg_register_free(session, reg, FFAVIN_STATIC_ARGS-1);
-}
-
 const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 {
-	GF_FilterArgs *args;
-	u32 i;
-	Bool load_meta_filters = session ? GF_TRUE : GF_FALSE;
-	ffmpeg_initialize();
-
-	if (!load_meta_filters) {
-		FFAVInRegister.args = FFAVInArgs;
-		FFAVInRegister.register_free = NULL;
-		return &FFAVInRegister;
-	}
-
-	FFAVInRegister.register_free = ffavin_regfree;
-	args = gf_malloc(sizeof(GF_FilterArgs)*(FFAVIN_STATIC_ARGS+1));
-	memset(args, 0, sizeof(GF_FilterArgs)*(FFAVIN_STATIC_ARGS+1));
-	for (i=0; (s32) i<FFAVIN_STATIC_ARGS; i++)
-		args[i] = FFAVInArgs[i];
-
-	FFAVInRegister.args = args;
-
-	ffmpeg_expand_register(session, &FFAVInRegister, FF_REG_TYPE_DEV_IN);
+	ffmpeg_build_register(session, &FFAVInRegister, FFAVInArgs, FFAVIN_STATIC_ARGS, FF_REG_TYPE_DEV_IN);
 	return &FFAVInRegister;
 }
 

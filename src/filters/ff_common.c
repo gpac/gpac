@@ -45,6 +45,12 @@ static Bool ffmpeg_init = GF_FALSE;
 
 typedef struct
 {
+	GF_List *all_filters;
+	u32 nb_arg_skip;
+} GF_FFRegistryExt;
+
+typedef struct
+{
 	u32 ff_pf;
 	u32 gpac_pf;
 } GF_FF_PFREG;
@@ -423,10 +429,15 @@ void ffmpeg_initialize()
 	ffmpeg_init = GF_TRUE;
 }
 
-void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *reg, u32 nb_skip_begin)
+static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *reg)
 {
 	u32 i;
-	GF_List *all_filters = reg->udta;
+	GF_FFRegistryExt *ffregext = reg->udta;
+	GF_List *all_filters = ffregext->all_filters;
+	u32 nb_skip_begin = ffregext->nb_arg_skip;
+	gf_free(ffregext);
+	reg->udta = NULL;
+
 	if (all_filters) {
 		while (gf_list_count(all_filters)) {
 			i=0;
@@ -456,6 +467,7 @@ void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *reg, u32
 		i++;
 		if (arg->arg_default_val) gf_free((void *) arg->arg_default_val);
 		if (arg->min_max_enum) gf_free((void *) arg->min_max_enum);
+		if (arg->flags & GF_FS_ARG_META_ALLOC) gf_free((void *) arg->arg_desc);
 	}
 	if (reg->args) gf_free((void *) reg->args);
 
@@ -595,7 +607,7 @@ static u32 ff_streamtype(u32 st)
 	return GF_STREAM_UNKNOWN;
 }
 
-void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type)
+static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type)
 {
 	u32 i=0, idx=0, flags=0;
 	const struct AVOption *opt;
@@ -625,7 +637,7 @@ void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_r
 	else return;
 
 
-	orig_reg->udta = all_filters;
+	((GF_FFRegistryExt *)orig_reg->udta)->all_filters = all_filters;
 
 	while (1) {
 		const AVClass *av_class=NULL;
@@ -919,6 +931,154 @@ void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_r
 	}
 }
 
+void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type)
+{
+	GF_FilterArgs *args;
+	u32 i=0, idx=0;
+	const struct AVOption *opt;
+	u32 opt_type = AV_OPT_FLAG_DECODING_PARAM;
+	Bool load_meta_filters = session ? GF_TRUE : GF_FALSE;
+	AVFormatContext *format_ctx = NULL;
+	AVCodecContext *codec_ctx = NULL;
+	const AVClass *av_class;
+	GF_FFRegistryExt *ffregext;
+
+	ffmpeg_initialize();
+
+	//by default no need to load option descriptions, everything is handled by av_set_opt in update_args
+	if (!load_meta_filters) {
+		orig_reg->args = default_args;
+		orig_reg->register_free = NULL;
+		return;
+	}
+
+
+	if (reg_type==FF_REG_TYPE_ENCODE) opt_type = AV_OPT_FLAG_ENCODING_PARAM;
+	else if (reg_type==FF_REG_TYPE_MUX) opt_type = AV_OPT_FLAG_ENCODING_PARAM;
+
+	if ((reg_type==FF_REG_TYPE_ENCODE) || (reg_type==FF_REG_TYPE_DECODE)) {
+		codec_ctx = avcodec_alloc_context3(NULL);
+		av_class = codec_ctx->av_class;
+	} else {
+		format_ctx = avformat_alloc_context();
+		av_class = format_ctx->av_class;
+	}
+
+	i=0;
+	idx=0;
+	while (av_class->option) {
+		opt = &av_class->option[idx];
+		if (!opt || !opt->name) break;
+
+		if (opt->flags & opt_type) {
+			if (!opt->unit) {
+				i++;
+			} else {
+				u32 k;
+				Bool is_first = GF_TRUE;
+				for (k=0; k<idx; k++) {
+					const struct AVOption *an_opt = &av_class->option[k];
+					if (an_opt && an_opt->unit && !strcmp(opt->unit, an_opt->unit)) {
+						is_first=GF_FALSE;
+						break;
+					}
+				}
+				if (is_first)
+					i++;
+			}
+		}
+		idx++;
+	}
+	i += nb_def_args;
+
+	args = gf_malloc(sizeof(GF_FilterArgs)*(i+1));
+	memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
+	orig_reg->args = args;
+
+	for (i=0; i<nb_def_args-1; i++) {
+		args[i] = (GF_FilterArgs) default_args[i];
+	}
+	//do not reset i
+
+	idx=0;
+	while (av_class->option) {
+		opt = &av_class->option[idx];
+		if (!opt || !opt->name) break;
+
+		if (opt->flags & opt_type) {
+			if (opt->unit) {
+				u32 k;
+				const char *opt_name = NULL;
+				GF_FilterArgs *par_arg=NULL;
+				for (k=0; k<idx; k++) {
+					const struct AVOption *an_opt = &av_class->option[k];
+					if (an_opt && an_opt->unit && !strcmp(opt->unit, an_opt->unit)) {
+						opt_name = an_opt->name;
+						break;
+					}
+				}
+				if (opt_name) {
+					for (k=0; k<i; k++) {
+						par_arg = &args[k];
+						if (!strcmp(par_arg->arg_name, opt_name))
+							break;
+						par_arg = NULL;
+					}
+				}
+
+				if (par_arg) {
+					GF_FilterArgs an_arg = ffmpeg_arg_translate(opt);
+					if (!(par_arg->flags & GF_FS_ARG_META_ALLOC)) {
+						//move from const to allocated memory
+						par_arg->arg_desc = gf_strdup(par_arg->arg_desc ? par_arg->arg_desc : " ");
+						par_arg->flags |= GF_FS_ARG_META_ALLOC;
+						/*trash default values and min_max_enum for flags*/
+						if (par_arg->arg_default_val) {
+							gf_free((char *) par_arg->arg_default_val);
+							par_arg->arg_default_val = NULL;
+						}
+						if (par_arg->min_max_enum) {
+							gf_free((char *) par_arg->min_max_enum);
+							par_arg->min_max_enum = NULL;
+						}
+					}
+					gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_name, "\n- ");
+					gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_desc ? an_arg.arg_desc : "", ": ");
+
+					if (an_arg.arg_default_val)
+						gf_free((void *) an_arg.arg_default_val);
+					if (an_arg.min_max_enum)
+						gf_free((void *) an_arg.min_max_enum);
+
+					idx++;
+					continue;
+				}
+			}
+			args[i] = ffmpeg_arg_translate(opt);
+			i++;
+		}
+		idx++;
+	}
+	args[i] = (GF_FilterArgs) default_args[nb_def_args-1];
+
+	if (codec_ctx) {
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
+		avcodec_free_context(&codec_ctx);
+#else
+		av_free(codec_ctx);
+#endif
+	} else {
+		avformat_free_context(format_ctx);
+	}
+
+	GF_SAFEALLOC(ffregext, GF_FFRegistryExt);
+	orig_reg->udta = ffregext;
+	ffregext->nb_arg_skip = nb_def_args-1;
+	orig_reg->register_free = ffmpeg_register_free;
+
+	ffmpeg_expand_register(session, orig_reg, reg_type);
+
+}
 
 void ffmpeg_set_enc_dec_flags(const AVDictionary *options, AVCodecContext *ctx)
 {
