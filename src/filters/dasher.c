@@ -5933,7 +5933,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(hlsc), "insert clock reference in variant playlist in live HLS", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cues), "set cue file - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strict_cues), "strict mode for cues, complains if spliting is not on SAP type 1/2/3 or if unused cue is found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(strict_sap), "strict mode for sap"
+	{ OFFS(strict_sap), "strict mode for sap\n"
 	"- off: ignore SAP types for PID other than video, enforcing _startsWithSAP=1_\n"
 	"- sig: same as [-off]() but keep _startsWithSAP_ to the true SAP value\n"
 	"- on: warn if any PID uses SAP 3 or 4 and switch to FULL profile", GF_PROP_UINT, "off", "off|sig|on", GF_FS_ARG_HINT_EXPERT},
@@ -6021,6 +6021,7 @@ GF_FilterRegister DasherRegister = {
 			"\n"\
 			"## Cue-driven segmentation\n"\
 			"The segmenter can take a list of instructions, or Cues, to use for the segmentation process, in which case only these are used to derive segment boundaries.\n"
+			"Cue files can be specified for the entire dasher, or per PID using DashCue property.\n"
 			"Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are <Stream> elements, with attributes:\n"\
 			"- id: integer for stream/track/pid ID\n"\
 			"- timescale:integer giving the units of following timestamps\n"\
@@ -6029,7 +6030,7 @@ GF_FilterRegister DasherRegister = {
 			"- sample: integer giving the sample/frame number of a sample at which spliting shall happen\n"\
 			"- dts: long integer giving the decoding time stamp of a sample at which spliting shall happen\n"\
 			"- cts: long integer giving the composition / presentation time stamp of a sample at which spliting shall happen\n"\
-			"Warning: Cues shall be listed in decoding order. Cue files can be specified for the entire dasher, or per PID using DashCue property.\n"\
+			"Warning: Cues shall be listed in decoding order.\n"\
 			"\n"\
 			"## Manifest Generation only mode\n"\
 			"The segmenter can try to generate manifests from already fragmented ISOBMFF inputs using [-sigfrag]().\n"\
