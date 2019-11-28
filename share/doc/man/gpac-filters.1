@@ -2079,6 +2079,8 @@ speed (number, default: 1.0):            set playback speed when vsync is on. If
 .br
 ext (string, no default):                set extension for graph resolution, regardless of file extension
 .br
+mime (string, no default):               set mime type for graph resolution
+.br
 cat (boolean, default: false):           cat each file of input pid rather than creating one file per filename
 .br
 ow (boolean, default: true):             overwrite output if existing
@@ -3318,7 +3320,25 @@ vpxp (string, no default):               profile to use for VP8/9 if no profile 
 .br
 template (string, no default):           template string to use to generate segment name - see filter help
 .br
-segext (string, default: m4s):           file extension to use for segments
+segext (string, no default):             file extension to use for segments
+.br
+initext (string, no default):            file extension to use for the init segment
+.br
+muxtype (enum, default: auto):           muxtype to use for the segments
+.br
+* mp4: uses ISOBMFF format
+.br
+* ts: uses MPEG-2 TS format
+.br
+* mkv: uses Matroska format
+.br
+* webm: uses WebM format
+.br
+* raw: uses raw media format (disables muxed representations)
+.br
+* auto: guess format based on extension, default to mp4 if no extension
+.br
+
 .br
 asto (unsigned int, default: 0):         availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations
 .br
@@ -4384,6 +4404,40 @@ ffc (string, no default):                ffmpeg codec name. This allows enforcin
 .br
 
 .br
+.SH ffmx
+.LP
+.br
+Description: FFMPEG muxer
+.br
+Version: Lavf58.35.100
+.br
+
+.br
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on muxer options
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+dst (string, no default):                location of source content
+.br
+start (number, default: 0.0):            set playback start offset. Negative value means percent of media dur with -1 <=> dur
+.br
+speed (number, default: 1.0):            set playback speed. If speed is negative and start is 0, start is set to -1
+.br
+interleave (boolean, default: true):     write frame in interleave mode
+.br
+nodisc (boolean, default: false):        ignore stream configuration changes while muxing, may result in broken streams
+.br
+mime (string, no default):               set mime type for graph resolution
+.br
+ffiles (boolean, default: false):        force complete files to be created for each segment in DASH modes
+.br
+* (string, no default, meta):            any possible args defined for AVCodecContext and sub-classes. See gpac -hx ffdec and gpac -hx ffdec:*
+.br
+
+.br
 .SH jsf
 .LP
 .br
@@ -4451,7 +4505,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2949-g4988ea49e-filters
+build: 0.9.0-DEV-rev2961-g25a6c0147-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

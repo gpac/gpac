@@ -1399,7 +1399,7 @@ const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
 	args = gf_malloc(sizeof(GF_FilterArgs)*i);
 	memset(args, 0, sizeof(GF_FilterArgs)*i);
 	FFEncodeRegister.args = args;
-	for (i=0; (s32) i<FFENC_STATIC_ARGS; i++)
+	for (i=0; (s32) i<FFENC_STATIC_ARGS-1; i++)
 		args[i] = FFEncodeArgs[i];
 
 	idx=0;
@@ -1412,6 +1412,7 @@ const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
 		}
 		idx++;
 	}
+	args[i] = (GF_FilterArgs) { "*", -1, "options depend on encoder type, check `gpac -h ffenc:*` and FFMPEG doc", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
 
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 	avcodec_free_context(&ctx);

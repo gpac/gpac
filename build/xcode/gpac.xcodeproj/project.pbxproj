@@ -1959,7 +1959,6 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
-				9286070A23884A6B00FDA1ED /* ff_mx.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92FE596C2088E52900CF0C5A /* dasher.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
@@ -1996,6 +1995,7 @@
 				92BB85501F7BFB60009BC9C8 /* ff_dec.c */,
 				92BB85601F7BFB62009BC9C8 /* ff_dmx.c */,
 				92E9167B2073F1DB00EE92FB /* ff_enc.c */,
+				9286070A23884A6B00FDA1ED /* ff_mx.c */,
 				92E318CE20645036007BE021 /* ff_rescale.c */,
 				92754D5F207D24F600170383 /* filelist.c */,
 				92B2A4A8229D64EF002A65A7 /* hevcmerge.c */,
