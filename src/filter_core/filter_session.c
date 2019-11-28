@@ -918,7 +918,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot find any filter providing encoding for %s\n", cid));
 		return NULL;
 	}
-	filter = gf_filter_new(fsess, candidate, args, NULL, GF_FILTER_ARG_EXPLICIT, &e, NULL);
+	filter = gf_filter_new(fsess, candidate, args, NULL, GF_FILTER_ARG_EXPLICIT, &e);
 	if (!filter) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: %s\n", candidate->name, gf_error_to_string(e) ));
 	} else {
@@ -973,7 +973,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 		if ((strlen(f_reg->name)==len) && !strncmp(f_reg->name, name, len)) {
 			GF_FilterArgType argtype = GF_FILTER_ARG_EXPLICIT;
 			if (f_reg->flags & GF_FS_REG_ACT_AS_SOURCE) argtype = GF_FILTER_ARG_EXPLICIT_SOURCE;
-			return gf_filter_new(fsess, f_reg, args, NULL, argtype, err_code, NULL);
+			return gf_filter_new(fsess, f_reg, args, NULL, argtype, err_code);
 		}
 	}
 	/*check JS file*/
@@ -2025,13 +2025,14 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 }
 
 
-GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only, const char *fmt_mime)
+GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only)
 {
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
 	GF_FilterRegister *candidate_freg=NULL;
 	const GF_FilterArgs *src_dst_arg=NULL;
 	u32 i, count, user_args_len, arg_type;
 	char szForceReg[20];
+	char szMime[50];
 	GF_Err e;
 	const char *force_freg = NULL;
 	char *sURL, *mime_type, *args, *sep;
@@ -2041,7 +2042,22 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 	if (err) *err = GF_OK;
 
-	mime_type = for_source ? NULL : (char *) fmt_mime;
+	mime_type = NULL;
+	//destination, extract mime from arguments
+	if (!for_source) {
+		sprintf(szMime, "%cmime=", fsess->sep_args);
+		mime_type = strstr(url, szMime);
+		if (!mime_type && user_args)
+			mime_type = strstr(user_args, szMime);
+
+		if (mime_type) {
+			char *sep;
+			strncpy(szMime, mime_type+6, 49);
+			sep = strchr(szMime, fsess->sep_args);
+			if (sep) sep[0] = 0;
+			mime_type = szMime;
+		}
+	}
 	sURL = NULL;
 	if (!url || !strncmp(url, "\\\\", 2) ) {
 		return NULL;
@@ -2182,7 +2198,7 @@ restart:
 	}
 
 	if (!filter) {
-		filter = gf_filter_new(fsess, candidate_freg, args, NULL, arg_type, err, mime_type);
+		filter = gf_filter_new(fsess, candidate_freg, args, NULL, arg_type, err);
 	} else {
 		filter->freg = candidate_freg;
 		e = gf_filter_new_finalize(filter, args, arg_type);
@@ -2215,13 +2231,13 @@ restart:
 GF_EXPORT
 GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_TRUE, GF_FALSE, NULL, NULL);
+	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_TRUE, GF_FALSE, NULL);
 }
 
 GF_EXPORT
 GF_Filter *gf_fs_load_destination(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_FALSE, GF_FALSE, NULL, NULL);
+	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_FALSE, GF_FALSE, NULL);
 }
 
 

@@ -41,7 +41,7 @@ typedef struct
 typedef struct
 {
 	//options
-	char *dst;
+	char *dst, *mime;
 	Double start, speed;
 	Bool interleave, nodisc, ffiles, noinit;
 
@@ -112,7 +112,7 @@ static GF_Err ffmx_initialize(GF_Filter *filter)
 	ctx->muxer = avformat_alloc_context();
 	if (!ctx->muxer) return GF_OUT_OF_MEM;
 
-	ofmt = av_guess_format(NULL, ctx->dst, gf_filter_get_target_mime(filter));
+	ofmt = av_guess_format(NULL, ctx->dst, ctx->mime);
 	if (!ofmt) return GF_FILTER_NOT_SUPPORTED;
 
 	ctx->muxer->oformat = ofmt;
@@ -682,6 +682,9 @@ static GF_Err ffmx_update_arg(GF_Filter *filter, const char *arg_name, const GF_
 static GF_FilterProbeScore ffmx_probe_url(const char *url, const char *mime)
 {
 	AVOutputFormat *ofmt = av_guess_format(NULL, url, mime);
+	if (!ofmt && mime) ofmt = av_guess_format(NULL, NULL, mime);
+	if (!ofmt && url) ofmt = av_guess_format(NULL, url, NULL);
+
 	if (!ofmt) return GF_FPROBE_NOT_SUPPORTED;
 	return GF_FPROBE_SUPPORTED;
 }
@@ -724,7 +727,7 @@ GF_FilterRegister FFMuxRegister = {
 
 #define OFFS(_n)	#_n, offsetof(GF_FFMuxCtx, _n)
 
-#define BUILTIN_ARGS	7
+#define BUILTIN_ARGS	8
 
 static const GF_FilterArgs FFMuxArgs[] =
 {
@@ -733,6 +736,7 @@ static const GF_FilterArgs FFMuxArgs[] =
 	{ OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(interleave), "write frame in interleave mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nodisc), "ignore stream configuration changes while muxing, may result in broken streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ffiles), "force complete files to be created for each segment in DASH modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ "*", -1, "any possible args defined for AVCodecContext and sub-classes. See `gpac -hx ffdec` and `gpac -hx ffdec:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}

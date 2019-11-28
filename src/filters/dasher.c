@@ -383,7 +383,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 						force_ext = "m3u8";
 					}
 
-					ctx->alt_dst = gf_filter_connect_destination(filter, out_path, NULL, &e);
+					ctx->alt_dst = gf_filter_connect_destination(filter, out_path, &e);
 					if (e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't create secondary manifest output %s: %s\n", out_path, gf_error_to_string(e) ));
 						gf_free(out_path);
@@ -1915,6 +1915,9 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		sprintf(szKey, "%cstrun", sep_args);
 		if (strstr(dst_args, szKey)) has_strun = GF_TRUE;
 	}
+	sprintf(szSRC, "%cgfopt", sep_args);
+	gf_dynstrcat(&szDST, szSRC, NULL);
+	
 	if (trash_init) {
 		sprintf(szSRC, "%cnoinit", sep_args);
 		gf_dynstrcat(&szDST, szSRC, NULL);
@@ -1977,7 +1980,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		sprintf(szSRC, "%cmoovts%c-1", sep_args, sep_name);
 		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
-	ds->dst_filter = gf_filter_connect_destination(filter, szDST, rep->mime_type, &e);
+	ds->dst_filter = gf_filter_connect_destination(filter, szDST, &e);
 	gf_free(szDST);
 	szDST = NULL;
 	if (e) {
