@@ -2184,6 +2184,7 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_bit_depth) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_print_stats) )
 

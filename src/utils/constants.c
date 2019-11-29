@@ -359,64 +359,77 @@ u32 gf_codecid_4cc_type(GF_CodecID codecid)
 	return 0;
 }
 
+typedef struct
+{
+	u32 st;
+	const char *name;
+} GF_StreamTypeDesc;
+
+static const GF_StreamTypeDesc GF_StreamTypes[] =
+{
+	{GF_STREAM_VISUAL, "Visual"},
+	{GF_STREAM_AUDIO, "Audio"},
+	{GF_STREAM_SCENE, "SceneDescription"},
+	{GF_STREAM_TEXT, "Text"},
+	{GF_STREAM_METADATA, "Metadata"},
+	{GF_STREAM_FILE, "File"},
+	{GF_STREAM_ENCRYPTED, "Encrypted"},
+	{GF_STREAM_OD, "ObjectDescriptor"},
+	{GF_STREAM_OCR, "ClockReference"},
+	{GF_STREAM_MPEG7, "MPEG7"},
+	{GF_STREAM_IPMP, "IPMP"},
+	{GF_STREAM_OCI, "OCI"},
+	{GF_STREAM_MPEGJ, "MPEGJ"},
+	{GF_STREAM_INTERACT, "Interaction"},
+	{GF_STREAM_FONT, "Font"}
+};
+
 GF_EXPORT
 const char *gf_stream_type_name(u32 streamType)
 {
-	switch (streamType) {
-	case GF_STREAM_OD:
-		return "ObjectDescriptor";
-	case GF_STREAM_OCR:
-		return "ClockReference";
-	case GF_STREAM_SCENE:
-		return "SceneDescription";
-	case GF_STREAM_VISUAL:
-		return "Visual";
-	case GF_STREAM_AUDIO:
-		return "Audio";
-	case GF_STREAM_MPEG7:
-		return "MPEG7";
-	case GF_STREAM_IPMP:
-		return "IPMP";
-	case GF_STREAM_OCI:
-		return "OCI";
-	case GF_STREAM_MPEGJ:
-		return "MPEGJ";
-	case GF_STREAM_INTERACT:
-		return "Interaction";
-	case GF_STREAM_FONT:
-		return "Font";
-	case GF_STREAM_TEXT:
-		return "Text";
-	case GF_STREAM_METADATA:
-		return "Metadata";
-	case GF_STREAM_FILE:
-		return "File";
-	case GF_STREAM_ENCRYPTED:
-		return "Encrypted";
-	default:
-		return "Unknown";
+	u32 i, nb_st = sizeof(GF_StreamTypes) / sizeof(GF_StreamTypeDesc);
+	for (i=0; i<nb_st; i++) {
+		if (GF_StreamTypes[i].st == streamType)
+			return GF_StreamTypes[i].name;
 	}
+	return "Unknown";
 }
 
 GF_EXPORT
 u32 gf_stream_type_by_name(const char *val)
 {
-	if (!stricmp(val, "ObjectDescriptor")) return GF_STREAM_OD;
-	else if (!stricmp(val, "ClockReference")) return GF_STREAM_OCR;
-	else if (!stricmp(val, "SceneDescription")) return GF_STREAM_SCENE;
-	else if (!stricmp(val, "Visual") || !stricmp(val, "Video")) return GF_STREAM_VISUAL;
-	else if (!stricmp(val, "Audio")) return GF_STREAM_AUDIO;
-	else if (!stricmp(val, "MPEG7")) return GF_STREAM_MPEG7;
-	else if (!stricmp(val, "IPMP")) return GF_STREAM_IPMP;
-	else if (!stricmp(val, "OCI")) return GF_STREAM_OCI;
-	else if (!stricmp(val, "MPEGJ")) return GF_STREAM_MPEGJ;
-	else if (!stricmp(val, "Interaction")) return GF_STREAM_INTERACT;
-	else if (!stricmp(val, "Font")) return GF_STREAM_FONT;
-	else if (!stricmp(val, "Text")) return GF_STREAM_TEXT;
-	else if (!stricmp(val, "Metadata")) return GF_STREAM_METADATA;
-	else if (!stricmp(val, "File")) return GF_STREAM_FILE;
-	else if (!stricmp(val, "Encrypted")) return GF_STREAM_ENCRYPTED;
-	else return GF_STREAM_UNKNOWN;
+	u32 i, nb_st = sizeof(GF_StreamTypes) / sizeof(GF_StreamTypeDesc);
+	for (i=0; i<nb_st; i++) {
+		if (!stricmp(GF_StreamTypes[i].name, val))
+			return GF_StreamTypes[i].st;
+	}
+	return GF_STREAM_UNKNOWN;
+}
+
+static char szAllStreamTypes[500] = {0};
+
+GF_EXPORT
+const char *gf_stream_type_all_names()
+{
+	if (!szAllStreamTypes[0]) {
+		u32 i, nb_st = sizeof(GF_StreamTypes) / sizeof(GF_StreamTypeDesc);
+		u32 tot_len=0;
+		strcpy(szAllStreamTypes, "");
+		for (i=0; i<nb_st; i++) {
+			u32 len = (u32) strlen(GF_StreamTypes[i].name);
+			if (len+tot_len+2>=500) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all stream types!!\n"));
+				break;
+			}
+			if (i) {
+				strcat((char *)szAllStreamTypes, ",");
+				tot_len += 1;
+			}
+			strcat((char *)szAllStreamTypes, GF_StreamTypes[i].name);
+			tot_len += len;
+		}
+	}
+	return szAllStreamTypes;
 }
 
 GF_EXPORT

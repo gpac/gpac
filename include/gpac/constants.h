@@ -119,6 +119,11 @@ const char *gf_stream_type_name(u32 streamType);
  */
 u32 gf_stream_type_by_name(const char *name);
 
+/*! Gets the list of names of all stream types defined
+\return names of all stream types defined
+ */
+const char *gf_stream_type_all_names();
+
 #ifndef GF_4CC
 /*! macro for 4CC*/
 #define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|(d))

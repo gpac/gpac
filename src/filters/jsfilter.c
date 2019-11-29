@@ -3966,7 +3966,7 @@ static const char * jsfilter_probe_data(const u8 *data, u32 size, GF_FilterProbe
 #define OFFS(_n)	#_n, offsetof(GF_JSFilterCtx, _n)
 static GF_FilterArgs JSFilterArgs[] =
 {
-	{ OFFS(js), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(js), "location of script source", GF_PROP_NAME, NULL, NULL, 0},
 	{ "*", -1, "any possible options defined for the script. See `gpac -hx jsf:js=$YOURSCRIPT`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
