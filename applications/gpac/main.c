@@ -2155,15 +2155,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 				fname = arg;
 
 				if (!strcmp(arg, reg->name) ) {
-					if (reg->flags&GF_FS_REG_SCRIPT) {
-						GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
-						if (f) {
-							print_filter(reg, argmode, f);
-							found = GF_TRUE;
-						}
-					} else {
-						print_filter(reg, argmode, NULL);
-					}
+					print_filter(reg, argmode, NULL);
 					found = GF_TRUE;
 				} else {
 					char *sep = strchr(arg, ':');
@@ -2302,6 +2294,8 @@ static void dump_all_props(void)
 				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\tFile extensions: %s", gf_pixel_fmt_all_names(), gf_pixel_fmt_all_shortnames() );
 			} else if (prop_info->data_type==GF_PROP_PCMFMT) {
 				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\tFile extensions: %s", gf_audio_fmt_all_names(), gf_audio_fmt_all_shortnames() );
+			} else if (prop_info->type==GF_PROP_PID_STREAM_TYPE) {
+				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_stream_type_all_names() );
 			}
 			gf_sys_format_help(helpout, help_flags, "\n");
 		}
