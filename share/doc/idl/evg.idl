@@ -772,6 +772,11 @@ interface Texture {
 	\param is_rel_script if true, indicates the file path is relative to the script location. Otherwise it is relative to the current directory
 	*/
 	Texture(DOMString filename, optional boolean is_rel_script=false);
+	
+	/*! ArrayBuffer. Only JPEG and PNG local files are supported. This constructor is used to quickly load an image file without using a filter chain for that
+	\param img_data array buffer containing the compressed image data
+	*/
+	Texture(ArrayBuffer img_data);
 
 	/*! parametric texture constructor. A parametric texture gets its pixel values from a javascript callback function, the resulting value being blended according to the antialiasing level of the pixel. This allows creating rather complex custom textures, in a fashion similar to fragment shaders. 
 	\param width width of the texture
