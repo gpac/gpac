@@ -194,6 +194,8 @@ typedef enum
 	GF_PRINTARG_MAN = 1<<17,
 	/*! XML < and > should be escaped (for  markdown generation only) */
 	GF_PRINTARG_ESCAPE_XML = 1<<18,
+	/*! '|' should be escaped (for  markdown generation only) */
+	GF_PRINTARG_ESCAPE_PIPE = 1<<19,
 } GF_SysPrintArgFlags;
 
 

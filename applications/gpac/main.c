@@ -2317,6 +2317,27 @@ static void dump_all_props(void)
 		while ( gf_audio_fmt_enum(&idx, &name, &fileext, &desc)) {
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s | %s  \n", name, fileext, desc);
 		}
+
+		idx=0;
+		gf_sys_format_help(helpout, help_flags, "# Stream types\n");
+		gf_sys_format_help(helpout, help_flags, " Name | Description  \n");
+		gf_sys_format_help(helpout, help_flags, " --- | ---  \n");
+		while ( gf_stream_types_enum(&idx, &name, &desc)) {
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s  \n", name, desc);
+		}
+
+		idx=0;
+		gf_sys_format_help(helpout, help_flags, "# Codecs\n");
+		gf_sys_format_help(helpout, help_flags, "The codec name identifies a codec within GPAC. There can be several names for a given codec. The first name is used as a default file extension when dumping a raw media stream.\n"
+			"  \n");
+
+		gf_sys_format_help(helpout, help_flags, " Name | Description  \n");
+		gf_sys_format_help(helpout, help_flags, " --- | ---  \n");
+		while ( gf_codecid_enum(idx, &name, &desc)) {
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR | GF_PRINTARG_ESCAPE_PIPE, "%s | %s  \n", name, desc);
+			idx++;
+		}
+
 	} else if (gen_doc==2) {
 		u32 idx=0;
 		const char *name, *fileext, *desc;
@@ -2329,6 +2350,19 @@ static void dump_all_props(void)
 		gf_sys_format_help(helpout, help_flags, "# Audio formats\n");
 		while ( gf_audio_fmt_enum(&idx, &name, &fileext, &desc)) {
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, ".TP\n.B %s (ext *.%s)\n%s\n", name, fileext, desc);
+		}
+
+		idx=0;
+		gf_sys_format_help(helpout, help_flags, "# Stream types\n");
+		while ( gf_stream_types_enum(&idx, &name, &desc)) {
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, ".TP\n.B %s\n%s\n", name, desc);
+		}
+
+		idx=0;
+		gf_sys_format_help(helpout, help_flags, "# Codecs\n");
+		while ( gf_codecid_enum(idx, &name, &desc)) {
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, ".TP\n.B %s\n%s\n", name, desc);
+			idx++;
 		}
 	}}
 
