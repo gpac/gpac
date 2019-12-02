@@ -5076,26 +5076,13 @@ static JSValue texture_update(JSContext *c, JSValueConst obj, int argc, JSValueC
 	return JS_UNDEFINED;
 }
 
-static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *fileName, Bool rel_to_script)
+static GF_Err texture_load_data(JSContext *c, GF_JSTexture *tx, u8 *data, u32 size)
 {
-	u8 *data;
-	u32 size;
 	GF_Err e;
 	GF_BitStream *bs;
-	char *full_url = NULL;
 	u8 *dsi=NULL;
 	u32 codecid, width, height, pf, dsi_len, osize;
 
-	if (rel_to_script) {
-		const char *par_url = jsf_get_script_filename(c);
-		full_url = gf_url_concatenate(par_url, fileName);
-		fileName = full_url;
-	}
-	if (!gf_file_exists(fileName) || (gf_file_load_data(fileName, &data, &size) != GF_OK)) {
-		if (full_url) gf_free(full_url);
-		return GF_URL_ERROR;
-	}
-	if (full_url) gf_free(full_url);
 	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	gf_img_parse(bs, &codecid, &width, &height, &dsi, &dsi_len);
 	gf_bs_del(bs);
@@ -5129,7 +5116,6 @@ static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *file
 			}
 		}
 	}
-	gf_free(data);
 	if (dsi) gf_free(dsi);
 
 	if (e != GF_OK) {
@@ -5142,6 +5128,27 @@ static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *file
 		return e;
 	}
 	return GF_OK;
+}
+static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *fileName, Bool rel_to_script)
+{
+	u8 *data;
+	u32 size;
+	GF_Err e;
+	char *full_url = NULL;
+
+	if (rel_to_script) {
+		const char *par_url = jsf_get_script_filename(c);
+		full_url = gf_url_concatenate(par_url, fileName);
+		fileName = full_url;
+	}
+	if (!gf_file_exists(fileName) || (gf_file_load_data(fileName, &data, &size) != GF_OK)) {
+		if (full_url) gf_free(full_url);
+		return GF_URL_ERROR;
+	}
+	if (full_url) gf_free(full_url);
+	e = texture_load_data(c, tx, data, size);
+	gf_free(data);
+	return e;
 }
 
 static const JSCFunctionListEntry texture_funcs[] =
@@ -5238,6 +5245,7 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 		goto done;
 	}
 	if (JS_IsObject(argv[0])) {
+
 		//create from canvas object
 		GF_JSCanvas *canvas = JS_GetOpaque(argv[0], canvas_class_id);
 		if (canvas) {
@@ -5253,6 +5261,16 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 			GF_Err e = jsf_get_filter_packet_planes(c, argv[0], &width, &height, &pf, &stride, &stride_uv, (const u8 **)&data, (const u8 **)&p_u, (const u8 **)&p_v, (const u8 **)&p_a);
 			if (e) goto error;
 		} else {
+			data = JS_GetArrayBuffer(c, &data_size, argv[0]);
+			if (data) {
+				GF_Err e = texture_load_data(c, tx, data, (u32) data_size);
+				if (e) {
+					if (tx->stencil) gf_evg_stencil_delete(tx->stencil);
+					gf_free(tx);
+					return js_throw_err_msg(c, e, "Failed to load texture: %s", gf_error_to_string(e));
+				}
+				goto done;
+			}
 			goto error;
 		}
 	}
