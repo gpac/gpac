@@ -190,6 +190,8 @@ typedef struct _js_pck_ctx
 	JSValue jsobj;
 	//shared packet, this is a string or an array buffer
 	JSValue ref_val;
+	//shared packet callback
+	JSValue cbck_val;
 	//array buffer
 	JSValue data_ab;
 	u32 flags;
@@ -2128,6 +2130,12 @@ void jsf_pck_shared_del(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *p
 	for (i=0; i<count; i++) {
 		GF_JSPckCtx *pckc = gf_list_get(pctx->shared_pck, i);
 		if (pckc->pck == pck) {
+			if (!JS_IsUndefined(pckc->cbck_val)) {
+				JSValue res = JS_Call(pctx->jsf->ctx, pckc->cbck_val, pctx->jsobj, 0, NULL);
+				JS_FreeValue(pctx->jsf->ctx, res);
+				JS_FreeValue(pctx->jsf->ctx, pckc->cbck_val);
+				pckc->cbck_val = JS_UNDEFINED;
+			}
 			JS_FreeValue(pctx->jsf->ctx, pckc->ref_val);
 			pckc->ref_val = JS_UNDEFINED;
 			jsf_pck_detach_ab(pctx->jsf->ctx, pckc);
@@ -2169,6 +2177,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 	JS_SetOpaque(obj, pckc);
 	pckc->jspid = pctx;
 	pckc->jsobj = obj;
+	pckc->cbck_val = JS_UNDEFINED;
 	pckc->ref_val = JS_UNDEFINED;
 	pckc->data_ab = JS_UNDEFINED;
 
@@ -2202,6 +2211,8 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 			if (!pctx->shared_pck) pctx->shared_pck = gf_list_new();
 			gf_list_add(pctx->shared_pck, pckc);
 			pckc->flags = GF_JS_PCK_IS_SHARED;
+			if ((argc>2) && JS_IsFunction(ctx, argv[2]))
+				pckc->cbck_val = JS_DupValue(ctx, argv[2]);
 		} else {
 			pckc->pck = gf_filter_pck_new_alloc(pctx->pid, len, &data);
 			if (str) {
@@ -2216,6 +2227,8 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 	if (pckc_ref) {
 		if (use_shared) {
 			pckc->pck = gf_filter_pck_new_ref(pctx->pid, NULL, 0, pckc_ref->pck);
+			if ((argc>2) && JS_IsFunction(ctx, argv[2]))
+				pckc->cbck_val = JS_DupValue(ctx, argv[2]);
 		} else {
 			u8 *new_data;
 			if ((argc>2) && JS_ToBool(ctx, argv[2])) {
@@ -2241,6 +2254,8 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 			if (!pctx->shared_pck) pctx->shared_pck = gf_list_new();
 			gf_list_add(pctx->shared_pck, pckc);
 			pckc->flags = GF_JS_PCK_IS_SHARED;
+			if ((argc>2) && JS_IsFunction(ctx, argv[2]))
+				pckc->cbck_val = JS_DupValue(ctx, argv[2]);
 		} else {
 			pckc->pck = gf_filter_pck_new_alloc(pctx->pid, (u32) ab_size, &data);
 			if (!data) {
