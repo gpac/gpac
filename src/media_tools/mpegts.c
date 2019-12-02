@@ -1676,7 +1676,7 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Fail to allocate pmt filter for pid %d\n", pid));
 				return;
 			}
-			pmt->flags = GF_M2TS_ES_IS_SECTION;
+			pmt->flags = GF_M2TS_ES_IS_SECTION | GF_M2TS_ES_IS_PMT;
 			gf_list_add(prog->streams, pmt);
 			pmt->pid = prog->pmt_pid;
 			pmt->program = prog;
@@ -1686,7 +1686,13 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 	}
 
 	evt_type = (status&GF_M2TS_TABLE_UPDATE) ? GF_M2TS_EVT_PAT_UPDATE : GF_M2TS_EVT_PAT_FOUND;
-	if (ts->on_event) ts->on_event(ts, evt_type, NULL);
+	if (ts->on_event) {
+		GF_M2TS_SectionInfo sinfo;
+		sinfo.ex_table_id = ex_table_id;
+		sinfo.table_id = table_id;
+		sinfo.version_number = version_number;
+		ts->on_event(ts, evt_type, &sinfo);
+	}
 }
 
 static void gf_m2ts_process_cat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
@@ -2330,12 +2336,30 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	if (hdr.pid == GF_M2TS_PID_PAT) {
 		gf_m2ts_gather_section(ts, ts->pat, NULL, &hdr, data, payload_size);
 		return GF_OK;
-	} else if (hdr.pid == GF_M2TS_PID_CAT) {
+	}
+
+	es = ts->ess[hdr.pid];
+	//we work in split mode
+	if (ts->split_mode) {
+		GF_M2TS_TSPCK tspck;
+		//process PMT table
+		if (es && (es->flags & GF_M2TS_ES_IS_PMT)) {
+			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
+			if (ses->sec) gf_m2ts_gather_section(ts, ses->sec, ses, &hdr, data, payload_size);
+		}
+		//and forward every packet other than PAT
+		tspck.stream = es;
+		tspck.pid = hdr.pid;
+		tspck.data = data - pos;
+		ts->on_event(ts, GF_M2TS_EVT_PCK, &tspck);
+		return GF_OK;
+	}
+
+	if (hdr.pid == GF_M2TS_PID_CAT) {
 		gf_m2ts_gather_section(ts, ts->cat, NULL, &hdr, data, payload_size);
 		return GF_OK;
 	}
 
-	es = ts->ess[hdr.pid];
 	if (paf && paf->PCR_flag) {
 		if (!es) {
 			u32 i, j;
@@ -2888,8 +2912,6 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 #endif
 }
 #endif
-
-
 
 #define M2TS_PROBE_SIZE	188000
 static Bool gf_m2ts_probe_buffer(char *buf, u32 size)

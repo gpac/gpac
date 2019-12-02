@@ -387,42 +387,44 @@ enum
 /*! Events used by the MPEGTS demuxer*/
 enum
 {
-	/*! PAT has been found (service connection) - no assoctiated parameter*/
+	/*! PAT has been found (service connection) - no associated parameter*/
 	GF_M2TS_EVT_PAT_FOUND = 0,
-	/*! PAT has been updated - no assoctiated parameter*/
+	/*! PAT has been updated - no associated parameter*/
 	GF_M2TS_EVT_PAT_UPDATE,
-	/*! repeated PAT has been found (carousel) - no assoctiated parameter*/
+	/*! repeated PAT has been found (carousel) - no associated parameter*/
 	GF_M2TS_EVT_PAT_REPEAT,
-	/*! PMT has been found (service tune-in) - assoctiated parameter: new PMT*/
+	/*! PMT has been found (service tune-in) - associated parameter: new PMT*/
 	GF_M2TS_EVT_PMT_FOUND,
-	/*! repeated PMT has been found (carousel) - assoctiated parameter: updated PMT*/
+	/*! repeated PMT has been found (carousel) - associated parameter: updated PMT*/
 	GF_M2TS_EVT_PMT_REPEAT,
-	/*! PMT has been changed - assoctiated parameter: updated PMT*/
+	/*! PMT has been changed - associated parameter: updated PMT*/
 	GF_M2TS_EVT_PMT_UPDATE,
-	/*! SDT has been received - assoctiated parameter: none*/
+	/*! SDT has been received - associated parameter: none*/
 	GF_M2TS_EVT_SDT_FOUND,
-	/*! repeated SDT has been found (carousel) - assoctiated parameter: none*/
+	/*! repeated SDT has been found (carousel) - associated parameter: none*/
 	GF_M2TS_EVT_SDT_REPEAT,
-	/*! SDT has been received - assoctiated parameter: none*/
+	/*! SDT has been received - associated parameter: none*/
 	GF_M2TS_EVT_SDT_UPDATE,
-	/*! INT has been received - assoctiated parameter: none*/
+	/*! INT has been received - associated parameter: none*/
 	GF_M2TS_EVT_INT_FOUND,
-	/*! repeated INT has been found (carousel) - assoctiated parameter: none*/
+	/*! repeated INT has been found (carousel) - associated parameter: none*/
 	GF_M2TS_EVT_INT_REPEAT,
-	/*! INT has been received - assoctiated parameter: none*/
+	/*! INT has been received - associated parameter: none*/
 	GF_M2TS_EVT_INT_UPDATE,
-	/*! PES packet has been received - assoctiated parameter: PES packet*/
+	/*! PES packet has been received - associated parameter: PES packet*/
 	GF_M2TS_EVT_PES_PCK,
 	/*! PCR has been received - associated parameter: PES packet with no data*/
 	GF_M2TS_EVT_PES_PCR,
-	/*! PTS/DTS/PCR info - assoctiated parameter: PES packet with no data*/
+	/*! PTS/DTS/PCR info - associated parameter: PES packet with no data*/
 	GF_M2TS_EVT_PES_TIMING,
-	/*! An MPEG-4 SL Packet has been received in a section - assoctiated parameter: SL packet */
+	/*! An MPEG-4 SL Packet has been received in a section - associated parameter: SL packet */
 	GF_M2TS_EVT_SL_PCK,
-	/*! An IP datagram has been received in a section - assoctiated parameter: IP datagram */
+	/*! An IP datagram has been received in a section - associated parameter: IP datagram */
 	GF_M2TS_EVT_IP_DATAGRAM,
-	/*! Duration has been estimated - assoctiated parameter: PES packet with no data, PTS is duration in msec*/
+	/*! Duration has been estimated - associated parameter: PES packet with no data, PTS is duration in msec*/
 	GF_M2TS_EVT_DURATION_ESTIMATED,
+	/*! TS packet processed - associated parameter: pointer to a GF_M2TS_TSPCK structure*/
+	GF_M2TS_EVT_PCK,
 
 	/*! AAC config has been extracted - associated parameter: PES Packet with encoded M4ADecSpecInfo in its data
 		THIS MUST BE CLEANED UP
@@ -446,11 +448,11 @@ enum
 	GF_M2TS_EVT_DVB_GENERAL,
 	/*! MPE / MPE-FEC frame extraction and IP datagrams decryptation */
 	GF_M2TS_EVT_DVB_MPE,
-	/*! CAT has been found (service tune-in) - assoctiated parameter: new CAT*/
+	/*! CAT has been found (service tune-in) - associated parameter: new CAT*/
 	GF_M2TS_EVT_CAT_FOUND,
-	/*! repeated CAT has been found (carousel) - assoctiated parameter: updated CAT*/
+	/*! repeated CAT has been found (carousel) - associated parameter: updated CAT*/
 	GF_M2TS_EVT_CAT_REPEAT,
-	/*! CAT has been changed - assoctiated parameter: updated PMT*/
+	/*! CAT has been changed - associated parameter: updated PMT*/
 	GF_M2TS_EVT_CAT_UPDATE,
 	/*! AIT has been found (carousel) */
 	GF_M2TS_EVT_AIT_FOUND,
@@ -647,6 +649,8 @@ typedef struct
 	GF_M2TS_MetadataPointerDescriptor *metadata_pointer_descriptor;
 	/*! continuity counter check for pure PCR PIDs*/
 	s16 pcr_cc;
+
+	void *user;
 } GF_M2TS_Program;
 
 /*! ES flags*/
@@ -670,6 +674,8 @@ enum
 	GF_M2TS_FAKE_PCR = 1<<7,
 	/*! signals the stream type is a gpac codec id*/
 	GF_M2TS_GPAC_CODEC_ID = 1<<8,
+	/*! signals the stream type is a gpac codec id*/
+	GF_M2TS_ES_IS_PMT = 1<<9,
 
 	/*! all flags above this mask are used by demultiplexer users*/
 	GF_M2TS_ES_STATIC_FLAGS_MASK = 0x0000FFFF,
@@ -986,6 +992,24 @@ typedef struct
 	GF_M2TS_ES *stream;
 } GF_M2TS_SL_PCK;
 
+/*! MPEG-4 SL packet from MPEG-2 TS*/
+typedef struct
+{
+	/*packet start (first byte is TS sync marker)*/
+	u8 *data;
+	/*packet PID*/
+	u32 pid;
+	/*parent stream if any/already declared*/
+	GF_M2TS_ES *stream;
+} GF_M2TS_TSPCK;
+
+typedef struct
+{
+	u8 version_number;
+	u8 table_id;
+	u16 ex_table_id;
+} GF_M2TS_SectionInfo;
+
 /*! MPEG-2 TS demuxer*/
 struct tag_m2ts_demux
 {
@@ -1064,8 +1088,13 @@ struct tag_m2ts_demux
 	char* dsmcc_root_dir;
 	/*! DSM-CC objects*/
 	GF_List* dsmcc_controler;
-	/*! !triggers all table reset*/
+	/*! triggers all table reset*/
 	Bool table_reset;
+
+	/*! raw mode only parses PAT and PMT, and forward each packet as a GF_M2TS_EVT_PCK event, except PAT packets which must be recreated
+	if set, on_event shall be non-null
+	*/
+	Bool split_mode;
 };
 
 //! @endcond
