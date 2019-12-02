@@ -501,7 +501,7 @@ Input media files to dash can use the following modifiers
 .br
 * #audio: only use the first audio track from the source file
 .br
-* :id=NAME: set the representation ID to NAME. Reserved value NULL disales representation ID for multiplexed inputs
+* :id=NAME: set the representation ID to NAME. Reserved value NULL disables representation ID for multiplexed inputs
 .br
 * :dur=VALUE: process VALUE seconds from the media. If VALUE is longer than media duration, last sample duration is extended.
 .br
@@ -1115,6 +1115,11 @@ replace with compressed version all top level box types given as parameter, form
 .B \-bin
 .br
 convert input XML file using NHML bitstream syntax to binary
+.br
+.TP
+.B \-topsize (string)
+.br
+count number of bytes of all top level box types given as parameter, formated as 4cc_1,4cc_2N
 .br
 .SH Importing Options
 .LP
@@ -2041,7 +2046,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2964-g428d82237-filters
+build: 0.9.0-DEV-rev2969-g1666274b3-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

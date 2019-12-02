@@ -3209,8 +3209,6 @@ Muxer development considerations
 .br
 Output muxers allowing segmented output must obey the following:
 .br
-- add a "DashMode" capability to their input caps (value of the cap is ignored, only its presence is required)
-.br
 - inspect packet properties
 .br
  * FileNumber: if set, indicate the start of a new DASH segment
@@ -4456,7 +4454,7 @@ This filter loads the javascript file in -js.
 .SH Options (expert):
 .LP
 .br
-js (string):                             location of source content
+js (string):                             location of script source
 .br
 * (string):                              any possible options defined for the script. See gpac -hx jsf:js=$YOURSCRIPT
 .br
@@ -4509,7 +4507,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2964-g428d82237-filters
+build: 0.9.0-DEV-rev2969-g1666274b3-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
