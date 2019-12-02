@@ -1500,12 +1500,15 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 	u32 len;
 	va_list vlist;
 	Bool escape_xml = GF_FALSE;
+	Bool escape_pipe = GF_FALSE;
 	u32 gen_doc = 0;
 	u32 is_app_opts = 0;
 	if (flags & GF_PRINTARG_MD) {
 		gen_doc = 1;
 		if (flags & GF_PRINTARG_ESCAPE_XML)
 			escape_xml = GF_TRUE;
+		if (flags & GF_PRINTARG_ESCAPE_PIPE)
+			escape_pipe = GF_TRUE;
 	}
 	if (flags & GF_PRINTARG_MAN)
 		gen_doc = 2;
@@ -1744,6 +1747,23 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 						xml_line = xml_start+1;
 					} else {
 						fprintf(helpout, "%s", xml_line);
+						break;
+					}
+				}
+			} else if (escape_pipe) {
+				char *src_line = line;
+				while (src_line) {
+					char *pipe_start = strchr(src_line, '|');
+					if (pipe_start && (pipe_start[1]==' '))
+						pipe_start = NULL;
+
+					if (pipe_start) {
+						pipe_start[0] = 0;
+						fprintf(helpout, "%s,", src_line);
+						pipe_start[0] = '|';
+						src_line = pipe_start+1;
+					} else {
+						fprintf(helpout, "%s", src_line);
 						break;
 					}
 				}

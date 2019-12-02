@@ -363,25 +363,26 @@ typedef struct
 {
 	u32 st;
 	const char *name;
+	const char *desc;
 } GF_StreamTypeDesc;
 
 static const GF_StreamTypeDesc GF_StreamTypes[] =
 {
-	{GF_STREAM_VISUAL, "Visual"},
-	{GF_STREAM_AUDIO, "Audio"},
-	{GF_STREAM_SCENE, "SceneDescription"},
-	{GF_STREAM_TEXT, "Text"},
-	{GF_STREAM_METADATA, "Metadata"},
-	{GF_STREAM_FILE, "File"},
-	{GF_STREAM_ENCRYPTED, "Encrypted"},
-	{GF_STREAM_OD, "ObjectDescriptor"},
-	{GF_STREAM_OCR, "ClockReference"},
-	{GF_STREAM_MPEG7, "MPEG7"},
-	{GF_STREAM_IPMP, "IPMP"},
-	{GF_STREAM_OCI, "OCI"},
-	{GF_STREAM_MPEGJ, "MPEGJ"},
-	{GF_STREAM_INTERACT, "Interaction"},
-	{GF_STREAM_FONT, "Font"}
+	{GF_STREAM_VISUAL, "Visual", "Video or Image stream"},
+	{GF_STREAM_AUDIO, "Audio", "Audio stream"},
+	{GF_STREAM_SCENE, "SceneDescription", "Scene stream"},
+	{GF_STREAM_TEXT, "Text", "Text or subtitle stream"},
+	{GF_STREAM_METADATA, "Metadata", "Metadata stream"},
+	{GF_STREAM_FILE, "File", "Raw file stream"},
+	{GF_STREAM_ENCRYPTED, "Encrypted", "Encrypted media stream"},
+	{GF_STREAM_OD, "ObjectDescriptor", "MPEG-4 ObjectDescriptor stream"},
+	{GF_STREAM_OCR, "ClockReference", "MPEG-4 Clock Reference stream"},
+	{GF_STREAM_MPEG7, "MPEG7", "MPEG-7 description stream"},
+	{GF_STREAM_IPMP, "IPMP", "MPEG-4 IPMP/DRM stream"},
+	{GF_STREAM_OCI, "OCI", "MPEG-4 ObjectContentInformation stream"},
+	{GF_STREAM_MPEGJ, "MPEGJ", "MPEG-4 JAVA stream"},
+	{GF_STREAM_INTERACT, "Interaction", "MPEG-4 Interaction Sensor stream"},
+	{GF_STREAM_FONT, "Font", "MPEG-4 Font stream"}
 };
 
 GF_EXPORT
@@ -430,6 +431,21 @@ const char *gf_stream_type_all_names()
 		}
 	}
 	return szAllStreamTypes;
+}
+
+GF_EXPORT
+u32 gf_stream_types_enum(u32 *idx, const char **name, const char **desc)
+{
+	u32 stype;
+	u32 nb_sfmt = sizeof(GF_StreamTypes) / sizeof(GF_StreamTypeDesc);
+	if (*idx >= nb_sfmt) return GF_STREAM_UNKNOWN;
+	if (!GF_StreamTypes[*idx].st) return GF_STREAM_UNKNOWN;
+
+	*name = GF_StreamTypes[*idx].name;
+	*desc = GF_StreamTypes[*idx].desc;
+	stype = GF_StreamTypes[*idx].st;
+	(*idx)++;
+	return stype;
 }
 
 GF_EXPORT

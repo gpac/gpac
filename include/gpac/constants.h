@@ -124,6 +124,14 @@ u32 gf_stream_type_by_name(const char *name);
  */
 const char *gf_stream_type_all_names();
 
+/*! Enumerates defined stream types
+\param idx index of the stream type, 0-based
+\param name name of the stream type (used when parsing stream type from textual definition)
+\param desc description  of the stream type
+\return stream type, or GF_STREAM_UNKNOWN if no more stream types
+ */
+u32 gf_stream_types_enum(u32 *idx, const char **name, const char **desc);
+
 #ifndef GF_4CC
 /*! macro for 4CC*/
 #define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|(d))

@@ -2622,6 +2622,587 @@ RGBA 32 bits stereo (side-by-side) - to be removed
 .br
 64-bit floating point PCM planar
 .br
+.SH Stream types
+.LP
+.br
+.TP
+.B Visual
+.br
+Video or Image stream
+.br
+.TP
+.B Audio
+.br
+Audio stream
+.br
+.TP
+.B SceneDescription
+.br
+Scene stream
+.br
+.TP
+.B Text
+.br
+Text or subtitle stream
+.br
+.TP
+.B Metadata
+.br
+Metadata stream
+.br
+.TP
+.B File
+.br
+Raw file stream
+.br
+.TP
+.B Encrypted
+.br
+Encrypted media stream
+.br
+.TP
+.B ObjectDescriptor
+.br
+MPEG-4 ObjectDescriptor stream
+.br
+.TP
+.B ClockReference
+.br
+MPEG-4 Clock Reference stream
+.br
+.TP
+.B MPEG7
+.br
+MPEG-7 description stream
+.br
+.TP
+.B IPMP
+.br
+MPEG-4 IPMP/DRM stream
+.br
+.TP
+.B OCI
+.br
+MPEG-4 ObjectContentInformation stream
+.br
+.TP
+.B MPEGJ
+.br
+MPEG-4 JAVA stream
+.br
+.TP
+.B Interaction
+.br
+MPEG-4 Interaction Sensor stream
+.br
+.TP
+.B Font
+.br
+MPEG-4 Font stream
+.br
+.SH Codecs
+.LP
+.br
+.TP
+.B bifs
+.br
+MPEG-4 BIFS v1 Scene Description
+.br
+.TP
+.B bifs2
+.br
+MPEG-4 BIFS v2 Scene Description
+.br
+.TP
+.B bifsX
+.br
+MPEG-4 BIFS Extended Scene Description
+.br
+.TP
+.B od
+.br
+MPEG-4 ObjectDescriptor v1
+.br
+.TP
+.B od2
+.br
+MPEG-4 ObjectDescriptor v2
+.br
+.TP
+.B interact
+.br
+MPEG-4 Interaction Stream
+.br
+.TP
+.B afx
+.br
+MPEG-4 AFX Stream
+.br
+.TP
+.B font
+.br
+MPEG-4 Font Stream
+.br
+.TP
+.B syntex
+.br
+MPEG-4 Synthetized Texture
+.br
+.TP
+.B m4txt
+.br
+MPEG-4 Streaming Text
+.br
+.TP
+.B laser
+.br
+MPEG-4 LASeR
+.br
+.TP
+.B saf
+.br
+MPEG-4 Simple Aggregation Format
+.br
+.TP
+.B cmp|m4vp2
+.br
+MPEG-4 Visual part 2
+.br
+.TP
+.B 264|avc|h264
+.br
+MPEG-4 AVC|H264 Video
+.br
+.TP
+.B avcps
+.br
+MPEG-4 AVC|H264 Video Parameter Sets
+.br
+.TP
+.B svc|avc|264|h264
+.br
+MPEG-4 AVC|H264 Scalable Video Coding
+.br
+.TP
+.B mvc
+.br
+MPEG-4 AVC|H264 Multiview Video Coding
+.br
+.TP
+.B hvc|hevc|h265
+.br
+HEVC Video
+.br
+.TP
+.B lhvc|shvc|mhvc
+.br
+HEVC Video Layered Extensions
+.br
+.TP
+.B m2vs
+.br
+MPEG-2 Visual Simple
+.br
+.TP
+.B m2v
+.br
+MPEG-2 Visual Main
+.br
+.TP
+.B m2v|m2vsnr
+.br
+MPEG-2 Visual SNR
+.br
+.TP
+.B m2v|m2vspat
+.br
+MPEG-2 Visual Spatial
+.br
+.TP
+.B m2v|m2vh
+.br
+MPEG-2 Visual High
+.br
+.TP
+.B m2v|m2v4
+.br
+MPEG-2 Visual 422
+.br
+.TP
+.B m1v
+.br
+MPEG-1 Video
+.br
+.TP
+.B jpg|jpeg
+.br
+JPEG Image
+.br
+.TP
+.B png
+.br
+PNG Image
+.br
+.TP
+.B jp2|j2k
+.br
+JPEG200 Image
+.br
+.TP
+.B aac
+.br
+MPEG-4 AAC Audio
+.br
+.TP
+.B aac|aac2m
+.br
+MPEG-2 AAC Audio Main
+.br
+.TP
+.B aac|aac2l
+.br
+MPEG-2 AAC Audio Low Complexity
+.br
+.TP
+.B aac|aac2s
+.br
+MPEG-2 AAC Audio Scalable Sampling Rate
+.br
+.TP
+.B mp3|m2a
+.br
+MPEG-2 Audio
+.br
+.TP
+.B mp3|m1a
+.br
+MPEG-1 Audio
+.br
+.TP
+.B h263
+.br
+H263 Video
+.br
+.TP
+.B h263
+.br
+H263 Video
+.br
+.TP
+.B hvt1
+.br
+HEVC tiles Video
+.br
+.TP
+.B evc|evrc
+.br
+EVRC Voice
+.br
+.TP
+.B smv
+.br
+SMV Voice
+.br
+.TP
+.B qcp|qcelp
+.br
+QCELP Voice
+.br
+.TP
+.B amr
+.br
+AMR Audio
+.br
+.TP
+.B amr|amrwb
+.br
+AMR WideBand Audio
+.br
+.TP
+.B qcp|evrcpv
+.br
+EVRC (PacketVideo MUX) Audio
+.br
+.TP
+.B vc1
+.br
+SMPTE VC-1 Video
+.br
+.TP
+.B dirac
+.br
+Dirac Video
+.br
+.TP
+.B ac3
+.br
+AC3 Audio
+.br
+.TP
+.B eac3
+.br
+Enhanced AC3 Audio
+.br
+.TP
+.B dra
+.br
+DRA Audio
+.br
+.TP
+.B g719
+.br
+G719 Audio
+.br
+.TP
+.B dstca
+.br
+DTS Coherent Acoustics Audio
+.br
+.TP
+.B dtsh
+.br
+DTS-HD High Resolution Audio
+.br
+.TP
+.B dstm
+.br
+DTS-HD Master Audio
+.br
+.TP
+.B dtsl
+.br
+DTS Express low bit rate Audio
+.br
+.TP
+.B opus
+.br
+Opus Audio
+.br
+.TP
+.B eti
+.br
+DVB Event Information
+.br
+.TP
+.B svgr
+.br
+SVG over RTP
+.br
+.TP
+.B svgzr
+.br
+SVG+gz over RTP
+.br
+.TP
+.B dims
+.br
+3GPP DIMS Scene
+.br
+.TP
+.B vtt
+.br
+WebVTT Text
+.br
+.TP
+.B txt
+.br
+Simple Text Stream
+.br
+.TP
+.B mtxt
+.br
+Metadata Text Stream
+.br
+.TP
+.B mxml
+.br
+Metadata XML Stream
+.br
+.TP
+.B subs
+.br
+Subtitle text Stream
+.br
+.TP
+.B subx
+.br
+Subtitle XML Stream
+.br
+.TP
+.B tx3g
+.br
+Subtitle/text 3GPP/Apple Stream
+.br
+.TP
+.B theo|theora
+.br
+Theora Video
+.br
+.TP
+.B vorb|vorbis
+.br
+Vorbis Audio
+.br
+.TP
+.B opus
+.br
+Opus Audio
+.br
+.TP
+.B flac
+.br
+Flac Audio
+.br
+.TP
+.B spx|speex
+.br
+Speex Audio
+.br
+.TP
+.B vobsub
+.br
+VobSub Subtitle
+.br
+.TP
+.B vobsub
+.br
+VobSub Subtitle
+.br
+.TP
+.B adpcm
+.br
+AD-PCM
+.br
+.TP
+.B csvd
+.br
+IBM CSVD
+.br
+.TP
+.B alaw
+.br
+ALAW
+.br
+.TP
+.B mulaw
+.br
+MULAW
+.br
+.TP
+.B okiadpcm
+.br
+OKI ADPCM
+.br
+.TP
+.B dviadpcm
+.br
+DVI ADPCM
+.br
+.TP
+.B digistd
+.br
+DIGISTD
+.br
+.TP
+.B yamadpcm
+.br
+YAMAHA ADPCM
+.br
+.TP
+.B truespeech
+.br
+DSP TrueSpeech
+.br
+.TP
+.B g610
+.br
+GSM 610
+.br
+.TP
+.B imulaw
+.br
+IBM MULAW
+.br
+.TP
+.B ialaw
+.br
+IBM ALAW
+.br
+.TP
+.B iadpcl
+.br
+IBM ADPCL
+.br
+.TP
+.B swf
+.br
+Adobe Flash
+.br
+.TP
+.B raw
+.br
+Raw media
+.br
+.TP
+.B av1|ivf|obu|av1b
+.br
+AOM AV1 Video
+.br
+.TP
+.B vp8|ivf
+.br
+VP8 Video
+.br
+.TP
+.B vp9|ivf
+.br
+VP9 Video
+.br
+.TP
+.B vp10|ivf
+.br
+VP10 Video
+.br
+.TP
+.B prores|apch
+.br
+ProRes Video 422 HQ
+.br
+.TP
+.B prores|apco
+.br
+ProRes Video 422 Proxy
+.br
+.TP
+.B prores|apcn
+.br
+ProRes Video 422 STD
+.br
+.TP
+.B prores|apcs
+.br
+ProRes Video 422 LT
+.br
+.TP
+.B prores|ap4x
+.br
+ProRes Video 4444 XQ
+.br
+.TP
+.B prores|ap4h
+.br
+ProRes Video 4444
+.br
+.TP
+.B ffmpeg
+.br
+FFMPEG unmapped codec
+.br
+.TP
+.B tmcd
+.br
+QT TimeCode
+.br
 .SH EXAMPLES
 .TP
 Basic and advanced examples are available at https://github.com/gpac/gpac/wiki/Filters
@@ -2631,7 +3212,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2969-g1666274b3-filters
+build: 0.9.0-DEV-rev2970-g9cbe9fd5d-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
