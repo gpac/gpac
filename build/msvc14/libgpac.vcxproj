@@ -343,6 +343,7 @@
     <ClCompile Include="..\..\src\filters\rewrite_nalu.c" />
     <ClCompile Include="..\..\src\filters\rewrite_obu.c" />
     <ClCompile Include="..\..\src\filters\tileagg.c" />
+    <ClCompile Include="..\..\src\filters\tssplit.c" />
     <ClCompile Include="..\..\src\filters\unit_test_filter.c" />
     <ClCompile Include="..\..\src\filters\vcrop.c" />
     <ClCompile Include="..\..\src\filters\vflip.c" />

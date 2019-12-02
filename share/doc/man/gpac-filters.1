@@ -4236,6 +4236,34 @@ cid (string):                            set QT 4CC for the imported media. If n
 .br
 
 .br
+.SH tssplit
+.LP
+.br
+Description: MPEG Transport Stream splitter
+.br
+
+.br
+This filter splits an MPEG-2 transport stream into several single program transport streams.
+.br
+Only the PAT table is rewritten, the CAT table, PMT and all program streams are forwarded as is.
+.br
+In -full mode, global DVB tables of the input multiplex are forwarded to each output mux; otherwise these tables are discarded.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+full (boolean, default: true):           forward all packets from global DVB PIDs
+.br
+mux_id (int, default: -1):               set initial ID of output mux; the first program will use mux_id, the second mux_id+1, etc. If not set, this value will be set to sourceMuxId*255
+.br
+avonly (boolean, default: true):         do not forward programs with no AV component
+.br
+nb_pack (unsigned int, default: 10):     pack N packets before sending
+.br
+
+.br
 .SH ffdmx
 .LP
 .br
@@ -4507,7 +4535,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2970-g9cbe9fd5d-filters
+build: 0.9.0-DEV-rev2971-g6ca360161-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

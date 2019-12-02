@@ -242,6 +242,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/rewrite_nalu.c \
 	../../../../src/filters/rewrite_obu.c \
 	../../../../src/filters/tileagg.c \
+	../../../../src/filters/tssplit.c \
 	../../../../src/filters/unit_test_filter.c \
 	../../../../src/filters/vcrop.c \
 	../../../../src/filters/vflip.c \

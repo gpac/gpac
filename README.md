@@ -96,7 +96,7 @@ Targets:
 - [x] JS modules API documentation
 - [ ] improve mp4 demux from pipe
 - [ ] support for HTTP output (server and put/post)
-- [ ] add TS spliter filter
+- [x] add TS spliter filter
 - [ ] move input sensors to filter ?
 - [ ] split test suite from main repo and handle PRs with attachements
 
