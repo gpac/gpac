@@ -318,7 +318,6 @@ enum
 	GF_QT_SUBTYPE_APCO	= GF_4CC( 'a', 'p', 'c', 'o' ),
 	GF_QT_SUBTYPE_APCN	= GF_4CC( 'a', 'p', 'c', 'n' ),
 	GF_QT_SUBTYPE_APCS	= GF_4CC( 'a', 'p', 'c', 's' ),
-	GF_QT_SUBTYPE_APCF	= GF_4CC( 'a', 'p', 'c', 'f' ),
 	GF_QT_SUBTYPE_AP4X	= GF_4CC( 'a', 'p', '4', 'x' ),
 	GF_QT_SUBTYPE_AP4H	= GF_4CC( 'a', 'p', '4', 'h' ),
 	GF_QT_SUBTYPE_YUV422 	= GF_4CC('y','u','v','2'),

@@ -1848,8 +1848,8 @@ GF_Err gf_isom_update_aperture_info(GF_ISOFile *movie, u32 trackNumber, Bool rem
 	while ( (box = gf_list_enum(trak->Aperture->child_boxes, &j))) {
 		switch (box->type) {
 		case GF_QT_BOX_TYPE_CLEF: clef = box; break;
-		case GF_QT_BOX_TYPE_PROF: clef = box; break;
-		case GF_QT_BOX_TYPE_ENOF: clef = box; break;
+		case GF_QT_BOX_TYPE_PROF: prof = box; break;
+		case GF_QT_BOX_TYPE_ENOF: enof = box; break;
 		}
 	}
 	if (!clef) {
@@ -4852,7 +4852,6 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		case GF_QT_SUBTYPE_APCO:
 		case GF_QT_SUBTYPE_APCN:
 		case GF_QT_SUBTYPE_APCS:
-		case GF_QT_SUBTYPE_APCF:
 		case GF_QT_SUBTYPE_AP4X:
 		case GF_QT_SUBTYPE_AP4H:
 		case GF_QT_SUBTYPE_YUV422:

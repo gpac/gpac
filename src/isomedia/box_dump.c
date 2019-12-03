@@ -589,7 +589,6 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 	case GF_QT_SUBTYPE_APCO:
 	case GF_QT_SUBTYPE_APCN:
 	case GF_QT_SUBTYPE_APCS:
-	case GF_QT_SUBTYPE_APCF:
 	case GF_QT_SUBTYPE_AP4X:
 	case GF_QT_SUBTYPE_AP4H:
 		name = "ProResSampleEntryBox";
@@ -643,8 +642,13 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 		//dump reserved info
 		fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
 	}
-	if (strlen((const char*)p->compressor_name) )
-		fprintf(trace, " CompressorName=\"%s\"\n", p->compressor_name+1);
+	if (strlen((const char*)p->compressor_name) ) {
+		if (isalnum(p->compressor_name[0])) {
+			fprintf(trace, " CompressorName=\"%s\"\n", p->compressor_name);
+		} else {
+			fprintf(trace, " CompressorName=\"%s\"\n", p->compressor_name+1);
+		}
+	}
 
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done(name, a, trace);
@@ -776,7 +780,7 @@ GF_Err gnrv_box_dump(GF_Box *a, FILE * trace)
 
 	gf_isom_box_dump_start(a, "VisualSampleDescriptionBox", trace);
 	fprintf(trace, "DataReferenceIndex=\"%d\" Version=\"%d\" Revision=\"%d\" Vendor=\"%d\" TemporalQuality=\"%d\" SpacialQuality=\"%d\" Width=\"%d\" Height=\"%d\" HorizontalResolution=\"%d\" VerticalResolution=\"%d\" CompressorName=\"%s\" BitDepth=\"%d\">\n",
-	        p->dataReferenceIndex, p->version, p->revision, p->vendor, p->temporal_quality, p->spatial_quality, p->Width, p->Height, p->horiz_res, p->vert_res, p->compressor_name+1, p->bit_depth);
+	        p->dataReferenceIndex, p->version, p->revision, p->vendor, p->temporal_quality, p->spatial_quality, p->Width, p->Height, p->horiz_res, p->vert_res, isalnum(p->compressor_name[0]) ? p->compressor_name : p->compressor_name+1, p->bit_depth);
 	a->type = GF_ISOM_BOX_TYPE_GNRV;
 	gf_isom_box_dump_done("VisualSampleDescriptionBox", a, trace);
 	return GF_OK;
