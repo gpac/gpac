@@ -1573,8 +1573,8 @@ GF_Err gf_isom_update_aperture_info(GF_ISOFile *movie, u32 trackNumber, Bool rem
 	while ( (box = gf_list_enum(trak->Aperture->other_boxes, &j))) {
 		switch (box->type) {
 		case GF_QT_BOX_TYPE_CLEF: clef = box; break;
-		case GF_QT_BOX_TYPE_PROF: clef = box; break;
-		case GF_QT_BOX_TYPE_ENOF: clef = box; break;
+		case GF_QT_BOX_TYPE_PROF: prof = box; break;
+		case GF_QT_BOX_TYPE_ENOF: enof = box; break;
 		}
 	}
 	if (!clef) {
