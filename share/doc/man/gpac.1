@@ -1504,10 +1504,37 @@ src=source.mp4:myopts.txt:foo=bar dst
 .br
 Any filter loaded between source.mp4 and dst will inherit both myopts.txt and foo options and will resolve options given in myopts.txt
 .br
+.SH Specific filter options
+.LP
+.br
+Some specific keywords are replaced when processing filter options.
+.br
+Warning: These keywords do not apply to PID properties. Multiple keywords cannot be defined for a single option.
+.br
+Defined keywords:
+.br
+* $GSHARE: replaced by system path to GPAC shared directory (e.g. /usr/share)
+.br
+* $GJS: replaced by the first path specified by global config option -js-dirs that contains the file name following the macro, e.g. $GJS/source.js
+.br
+* $GLANG: replaced by the global config language option -lang
+.br
+* $GUA: replaced by the global config user agent option -user-agent
+.br
+* $GINC(init_val[,inc]): replaced by init_val and increment init_val by inc (positive or negative number, 1 if not specified) each time a new filter using this string is created. This can be used to dynamically assign numbers in filter chains:
+.br
+Example
+.br
+gpac -i source.ts tssplit @#ServiceID= -o dump_$GINC(10,2).ts
+.br
+
+.br
+This will dump first service in dump_10.ts, second service in dump_12.ts, etc...
+.br
 .SH External filters
 .LP
 .br
-GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in folders listed in GPAC config file section core key mod-dirs. The files shall be named gf_* and shall export a single function returning a filter register - see libgpac documentation for more details.
+GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in folders listed in -mod-dirs option. The files shall be named gf_* and shall export a single function returning a filter register - see libgpac documentation for more details.
 .br
 
 .br
@@ -3212,7 +3239,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2971-g6ca360161-filters
+build: 0.9.0-DEV-rev2974-g04439353e-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

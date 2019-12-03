@@ -1977,7 +1977,7 @@ This filter decodes WebVTT streams directly into a javascript context of the com
 .SH Options (expert):
 .LP
 .br
-script (string, default: $GPAC_SHARED/scripts/webvtt-renderer.js): location of WebVTT SVG JS renderer
+script (string, default: $GSHARE/scripts/webvtt-renderer.js): location of WebVTT SVG JS renderer
 .br
 
 .br
@@ -2037,9 +2037,9 @@ first_packet_drop (unsigned int, default: 0): set number of first RTP packet to 
 .br
 frequency_drop (unsigned int, default: 0): drop 1 out of N packet - 0 disable droping
 .br
-user_agent (string, default: $GPAC_UA):  user agent string, by default solved from GPAC preferences
+user_agent (string, default: $GUA):      user agent string, by default solved from GPAC preferences
 .br
-languages (string, default: $GPAC_LANG): user languages, by default solved from GPAC preferences
+languages (string, default: $GLANG):     user languages, by default solved from GPAC preferences
 .br
 stats (unsigned int, default: 500):      update statistics to the user every given MS, 0 disables reporting
 .br
@@ -4102,7 +4102,7 @@ mounts (string list):                    list of directories to expose in server
 .br
 block_size (unsigned int, default: 4096): block size used to read TCP socket
 .br
-user_agent (string, default: $GPAC_UA):  user agent string, by default solved from GPAC preferences
+user_agent (string, default: $GUA):      user agent string, by default solved from GPAC preferences
 .br
 close (boolean, default: true):          close RTSP connection after each request, except when RTP over RTSP is used
 .br
@@ -4535,7 +4535,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2971-g6ca360161-filters
+build: 0.9.0-DEV-rev2974-g04439353e-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
