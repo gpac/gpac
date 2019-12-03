@@ -895,7 +895,6 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		case GF_QT_SUBTYPE_APCO:
 		case GF_QT_SUBTYPE_APCN:
 		case GF_QT_SUBTYPE_APCS:
-		case GF_QT_SUBTYPE_APCF:
 		case GF_QT_SUBTYPE_AP4X:
 		case GF_QT_SUBTYPE_AP4H:
 			prores_type=video_subtype;
