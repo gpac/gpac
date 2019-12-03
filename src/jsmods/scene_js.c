@@ -833,7 +833,7 @@ static JSValue gpac_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_QUIT;
 	if (argc)
-		JS_ToInt32(ctx, &evt.message.error, argv[0]);
+		JS_ToInt32(ctx, (s32 *) &evt.message.error, argv[0]);
 		
 	gf_sc_send_event(compositor, &evt);
 	return JS_UNDEFINED;

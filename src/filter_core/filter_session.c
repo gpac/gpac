@@ -1966,7 +1966,7 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 	u32 len=0, i, j, count = gf_list_count(fsess->registry);
 	if (ext) {
 		ext++;
-		len = strlen(ext);
+		len = (u32) strlen(ext);
 	}
 
 	if (mime) {

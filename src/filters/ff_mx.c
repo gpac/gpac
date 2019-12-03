@@ -150,7 +150,7 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 		segmux->io_open = ctx->muxer->io_open;
 		segmux->flags = ctx->muxer->flags;
 
-		for (i=0; i< ctx->muxer->nb_streams; i++) {
+		for (i=0; i< (s32) ctx->muxer->nb_streams; i++) {
 			u32 j;
 			AVStream *st;
 			AVCodecParameters *ipar, *opar;

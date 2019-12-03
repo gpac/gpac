@@ -675,7 +675,7 @@ static void filter_translate_autoinc(GF_Filter *filter, char *value)
 		inc_end[0] = 0;
 		inc_end+=1;
 		strcpy(szInt, inc_sep+6);
-		ainc_crc = gf_crc_32(szInt, strlen(szInt) );
+		ainc_crc = (u32) gf_crc_32(szInt, (u32) strlen(szInt) );
 		step_sep = strchr(szInt, ',');
 		if (step_sep) {
 			step_sep[0] = 0;
@@ -1254,7 +1254,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 						char *subarg;
 						szLine[0] = 0;
 						fgets(szLine, 2000, arg_file);
-						llen = strlen(szLine);
+						llen = (u32) strlen(szLine);
 						while (llen && strchr(" \n\r\t", szLine[llen-1])) {
 							szLine[llen-1]=0;
 							llen--;
@@ -2920,7 +2920,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			strncpy(tmp_ext, fext, 20);
 			strlwr(tmp_ext);
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
-			ext_len = strlen(tmp_ext);
+			ext_len = (u32) strlen(tmp_ext);
 		} else {
 			char *ext = strrchr(url, '.');
 			if (ext && !stricmp(ext, ".gz")) {
@@ -2939,7 +2939,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 				strncpy(tmp_ext, ext, 20);
 				strlwr(tmp_ext);
 				gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
-				ext_len = strlen(tmp_ext);
+				ext_len = (u32) strlen(tmp_ext);
 				if (s) s[0] = '#';
 			}
 		}
