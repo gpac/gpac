@@ -652,6 +652,71 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 	}
 }
 
+
+static void filter_translate_autoinc(GF_Filter *filter, char *value)
+{
+	u32 ainc_crc, i;
+	char *step_sep;
+	GF_FSAutoIncNum *auto_int=NULL;
+	u32 inc_count;
+	Bool assigned=GF_FALSE;
+	s32 max_int = 0;
+	s32 increment=1;
+	char szInt[100];
+	char *inc_end, *inc_sep;
+
+	while (1) {
+		inc_sep = strstr(value, "$GINC(");
+		if (!inc_sep) return;
+		inc_end = strstr(inc_sep, ")");
+		if (!inc_end) return;
+
+		inc_sep[0] = 0;
+		inc_end[0] = 0;
+		inc_end+=1;
+		strcpy(szInt, inc_sep+6);
+		ainc_crc = gf_crc_32(szInt, strlen(szInt) );
+		step_sep = strchr(szInt, ',');
+		if (step_sep) {
+			step_sep[0] = 0;
+			sscanf(step_sep+1, "%d", &increment);
+		}
+
+		inc_count = gf_list_count(filter->session->auto_inc_nums);
+		for (i=0; i<inc_count; i++) {
+			auto_int = gf_list_get(filter->session->auto_inc_nums, i);
+			if (auto_int->crc != ainc_crc) {
+				auto_int=NULL;
+				continue;
+			}
+			if (auto_int->filter == filter) {
+				sprintf(szInt, "%d", auto_int->inc_val);
+				break;
+			}
+			if (!assigned)
+				max_int = auto_int->inc_val;
+			else if ((increment>0) && (max_int < auto_int->inc_val))
+				max_int = auto_int->inc_val;
+			else if ((increment<0) && (max_int > auto_int->inc_val))
+				max_int = auto_int->inc_val;
+
+			assigned = GF_TRUE;
+			auto_int = NULL;
+		}
+		if (!auto_int) {
+			GF_SAFEALLOC(auto_int, GF_FSAutoIncNum);
+			auto_int->filter = filter;
+			auto_int->crc = ainc_crc;
+			if (assigned) auto_int->inc_val = max_int + increment;
+			else sscanf(szInt, "%d", &auto_int->inc_val);
+			gf_list_add(filter->session->auto_inc_nums, auto_int);
+		}
+		sprintf(szInt, "%d", auto_int->inc_val);
+		strcat(value, szInt);
+		strcat(value, inc_end);
+	}
+}
+
 static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u32 type, const char *name, const char *value, const char *enum_values)
 {
 	char szPath[GF_MAX_PATH];
@@ -660,9 +725,9 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 	if (!value) return gf_props_parse_value(type, name, NULL, enum_values, filter->session->sep_list);
 
 
-	if (!strnicmp(value, "$GPAC_SHARED", 12)) {
+	if (!strnicmp(value, "$GSHARE", 7)) {
 		if (gf_opts_default_shared_directory(szPath)) {
-			strcat(szPath, value+12);
+			strcat(szPath, value+7);
 			value = szPath;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
@@ -699,13 +764,19 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
 		}
 	}
-	else if (!strnicmp(value, "$GPAC_LANG", 15)) {
+	else if (!strnicmp(value, "$GLANG", 6)) {
 		value = gf_opts_get_key("core", "lang");
 		if (!value) value = "en";
 	}
-	else if (!strnicmp(value, "$GPAC_UA", 15)) {
+	else if (!strnicmp(value, "$GUA", 4)) {
 		value = gf_opts_get_key("core", "user-agent");
 		if (!value) value = "GPAC " GPAC_VERSION;
+	} else if (strstr(value, "$GINC(")) {
+		char *a_value = gf_strdup(value);
+		filter_translate_autoinc(filter, a_value);
+		argv = gf_props_parse_value(type, name, a_value, enum_values, filter->session->sep_list);
+		gf_free(a_value);
+		return argv;
 	}
 	argv = gf_props_parse_value(type, name, value, enum_values, filter->session->sep_list);
 	return argv;
@@ -889,7 +960,6 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		gf_fs_push_arg(filter->session, szArg, (e==GF_OK) ? GF_TRUE : GF_FALSE, 2);
 	}
 }
-
 
 static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type, Bool for_script, char *szSrc, char *szDst, char *szEscape, char *szSecName, Bool has_meta_args, u32 argfile_level)
 {

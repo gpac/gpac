@@ -432,6 +432,7 @@ struct __gf_filter_session
 	const char *blacklist;
 	Bool init_done;
 
+	GF_List *auto_inc_nums;
 #ifndef GPAC_DISABLE_3D
 	GF_List *gl_providers;
 	volatile u32 nb_gl_filters;
@@ -441,6 +442,13 @@ struct __gf_filter_session
 };
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess);
+
+typedef struct
+{
+	u32 crc;
+	s32 inc_val;
+	GF_Filter *filter;
+} GF_FSAutoIncNum;
 
 #ifndef GPAC_DISABLE_3D
 GF_Err gf_fs_check_gl_provider(GF_FilterSession *session);
