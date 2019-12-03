@@ -1900,22 +1900,22 @@ GF_Err gf_isom_update_aperture_info(GF_ISOFile *movie, u32 trackNumber, Bool rem
 	//prof: encoded pixels + pasp in 16.16
 	width = (Float) (ventry->Width * hspacing);
 	width /= vspacing;
-	high = floor(width);
-	low = 0xFFFF * (width - (Double)high);
+	high = (u32) floor((Float)width);
+	low = (u32) ( 0xFFFF * (width - (Double)high) );
 	((GF_ApertureBox *)prof)->width = (high)<<16 | low;
 	((GF_ApertureBox *)prof)->height = (ventry->Height)<<16;
 
 	//clef: encoded pixels + pasp + clap in 16.16
-	width = (Float) (clap_width_num * hspacing);
+	width = (Double) (clap_width_num * hspacing);
 	width /= clap_width_den * vspacing;
 	height = (Float) clap_height_num;
 	height /= clap_height_den;
 
-	high = floor(width);
-	low = 0xFFFF * (width - (Double)high);
+	high = (u32) floor((Float)width);
+	low = (u32) (0xFFFF * (width - (Double)high));
 	((GF_ApertureBox *)clef)->width = (high)<<16 | low;
-	high = floor(height);
-	low = 0xFFFF * (height - (Double)high);
+	high = (u32) floor((Float)height);
+	low = (u32) (0xFFFF * (height - (Double)high));
 	((GF_ApertureBox *)clef)->height = (high)<<16 | low;
 
 

@@ -251,7 +251,7 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 			gf_bs_write_int(ctx->bsw, 0x7, 3);	/*reserved*/
 			gf_bs_write_int(ctx->bsw, prog->pmt_pid, 13);	/*reserved*/
 
-			pck_size = gf_bs_get_position(ctx->bsw);
+			pck_size = (u32) gf_bs_get_position(ctx->bsw);
 			/*write CRC32 starting from first field in section until last before CRC*/
 			crc = gf_crc_32(ctx->tsbuf + offset, pck_size - offset);
 			ctx->tsbuf[pck_size] = (crc >> 24) & 0xFF;

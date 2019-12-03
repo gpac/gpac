@@ -996,7 +996,7 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 	orig_reg->args = args;
 
 	for (i=0; i<nb_def_args-1; i++) {
-		args[i] = (GF_FilterArgs) default_args[i];
+		memcpy(&args[i], &default_args[i], sizeof(GF_FilterArgs));
 	}
 	//do not reset i
 
@@ -1059,7 +1059,7 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 		}
 		idx++;
 	}
-	args[i] = (GF_FilterArgs) default_args[nb_def_args-1];
+	memcpy(&args[i], &default_args[nb_def_args-1], sizeof(GF_FilterArgs));
 
 	if (codec_ctx) {
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)

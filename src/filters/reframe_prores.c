@@ -204,7 +204,7 @@ static Bool proresdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 				proresdmx_check_dur(filter, ctx);
 			}
 			if ((evt->play.speed<0) && (ctx->start_range<0)) {
-				ctx->start_range = ctx->duration.num;
+				ctx->start_range = (Double) ctx->duration.num;
 				ctx->start_range /= ctx->duration.den;
 			}
 
@@ -415,7 +415,7 @@ GF_Err proresdmx_process_buffer(GF_Filter *filter, GF_ProResDmxCtx *ctx, const c
 
 		gf_filter_pck_send(pck);
 		proresdmx_update_cts(ctx);
-		last_frame_end = gf_bs_get_position(ctx->bs);
+		last_frame_end = (u32) gf_bs_get_position(ctx->bs);
 
 		if (ctx->rewind) {
 			ctx->buf_size = 0;
