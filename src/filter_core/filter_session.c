@@ -291,6 +291,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	fsess->decoder_pid_buffer_max_us = 1000000;
 	fsess->default_pid_buffer_max_units = 1;
 	fsess->max_resolve_chain_len = 6;
+	fsess->auto_inc_nums = gf_list_new();
 
 	if (nb_threads)
 		fsess->links_mx = gf_mx_new("FilterRegistryGraph");
@@ -678,6 +679,13 @@ void gf_fs_del(GF_FilterSession *fsess)
 	}
 #endif
 
+	if (fsess->auto_inc_nums) {
+		while(gf_list_count(fsess->auto_inc_nums)) {
+			GF_FSAutoIncNum *aint = gf_list_pop_back(fsess->auto_inc_nums);
+			gf_free(aint);
+		}
+		gf_list_del(fsess->auto_inc_nums);
+	}
 
 	gf_free(fsess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session destroyed\n"));
