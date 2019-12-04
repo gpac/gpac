@@ -29,6 +29,7 @@
 #include <inttypes.h>
 #if defined(_MSC_VER)
 #include <intrin.h>
+#pragma intrinsic(_BitScanReverse)
 #endif
 
 /* set if CPU is big endian */
