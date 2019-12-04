@@ -105,7 +105,8 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 {
 	FILE *stream;
 	GF_BitStream *bs;
-	u64 duration, cur_dur, last_cdur, idx_size;
+	u64 duration, cur_dur, last_cdur;
+	u32 idx_size;
 	const char *filepath=NULL;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
