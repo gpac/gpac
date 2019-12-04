@@ -1219,6 +1219,7 @@ Compresses a data buffer in place using zlib/deflate. Buffer may be reallocated 
  */
 GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *out_size);
 
+#ifndef GPAC_DISABLE_ZLIB
 /**
 Compresses a data buffer in place using zlib/deflate. Buffer may be reallocated in the process.
 \param data pointer to the data buffer to be compressed
@@ -1229,6 +1230,7 @@ Compresses a data buffer in place using zlib/deflate. Buffer may be reallocated 
 \return error if any
  */
 GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *out_size, u8 data_offset, Bool skip_if_larger);
+#endif /*GPAC_DISABLE_ZLIB*/
 
 /**
 Decompresses a data buffer using zlib/deflate.

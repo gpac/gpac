@@ -307,6 +307,9 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 
 GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_type, GF_BitStream *bs, u32 *box_csize)
 {
+#ifdef GPAC_DISABLE_ZLIB
+	return GF_NOT_SUPPORTED;
+#else
 	GF_Err e;
 	GF_BitStream *comp_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	e = gf_isom_box_write(root_box, comp_bs);
@@ -343,6 +346,7 @@ GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_
 	}
 	gf_bs_del(comp_bs);
 	return e;
+#endif /*GPAC_DISABLE_ZLIB*/
 }
 
 //replace the chunk and offset tables...
