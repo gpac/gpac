@@ -1167,12 +1167,12 @@ fi
 #look for FFMPEG support
 
 ffmpeg_cflags=""
-ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lavdevice -lswscale -lswresample $ffmpeg_extra_ldflags"
+ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lavdevice -lswscale -lswresample -lavfilter $ffmpeg_extra_ldflags"
 
 if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
-  if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil libswresample ; then
-    ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libavutil libavdevice libswscale libswresample`
-    ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libavutil libavdevice libswscale libswresample`
+  if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil libswresample libavfilter ; then
+    ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libavutil libavdevice libswscale libswresample libavfilter`
+    ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libavutil libavdevice libswscale libswresample libavfilter`
     has_ffmpeg="system"
   fi
 fi

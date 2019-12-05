@@ -24,16 +24,12 @@
  */
 
 #include <gpac/setup.h>
-/*TODO add win32 support !*/
-#ifdef WIN32
-#undef GPAC_HAS_FFMPEG
-#endif
 
 #ifdef GPAC_HAS_FFMPEG 
 
 #include "ff_common.h"
 #include <gpac/network.h>
-#include <libavfilter/avfiltergraph.h>
+#include <libavfilter/avfilter.h>
 #include <libavfilter/buffersrc.h>
 #include <libavfilter/buffersink.h>
 
@@ -941,7 +937,7 @@ static const GF_FilterCapability FFAVFilterCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
