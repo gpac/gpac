@@ -115,6 +115,7 @@ typedef struct
 	u64 dts_patch;
 
 	Bool is_item;
+	u32 item_id;
 	char status_type;
 	u32 last_import_pc;
 
@@ -125,6 +126,8 @@ typedef struct
 	u64 prog_done, prog_total;
 
 	u32 prev_tid_group;
+
+	Bool box_patched;
 } TrackWriter;
 
 enum
@@ -200,6 +203,7 @@ typedef struct
 	Bool saio32;
 	u32 compress;
 	u32 trun_inter;
+	char *boxpatch;
 
 	//internal
 	Bool owns_mov;
@@ -261,6 +265,7 @@ typedef struct
 	Double faststart_ts_regulate;
 
 	Bool is_rewind;
+	Bool box_patched;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw);
@@ -3115,6 +3120,7 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 
 	//retrieve the final itemID
 	gf_isom_get_meta_item_info(ctx->file, GF_TRUE, 0, nb_items+1, &item_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	tkw->item_id = item_id;
 
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_PRIMARY_ITEM);
 	if (p && p->value.boolean) {
@@ -3323,6 +3329,18 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 		if (inherit_traf_from_track)
 			gf_isom_enable_traf_inherit(ctx->file, tkw->track_id, inherit_traf_from_track);
+
+		if (!tkw->box_patched) {
+			const GF_PropertyValue *p = gf_filter_pid_get_property_str(tkw->ipid, "boxpatch");
+			if (p && p->value.string) {
+				e = gf_isom_apply_box_patch(ctx->file, tkw->track_id, p->value.string);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to apply box patch %s to track %d: %s\n",
+						p->value.string, tkw->track_id, gf_error_to_string(e) ));
+				}
+			}
+			tkw->box_patched = GF_TRUE;
+		}
 	}
 
 	if (max_dur.num) {
@@ -3381,6 +3399,13 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_MSIX, ((ctx->dash_mode==MP4MX_DASH_VOD) && (ctx->subs_sidx>=0)) ? GF_TRUE : GF_FALSE);
 	}
 
+	if (ctx->boxpatch && !ctx->box_patched) {
+		e = gf_isom_apply_box_patch(ctx->file, 0, ctx->boxpatch);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to apply box patch %s: %s\n", ctx->boxpatch, gf_error_to_string(e) ));
+		}
+		ctx->box_patched = GF_TRUE;
+	}
 
 	e = gf_isom_finalize_for_fragment(ctx->file, ctx->dash_mode ? 1 : 0, ctx->mvex);
 	if (e) {
@@ -4613,9 +4638,30 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		//don't update bitrate info for single sample tracks, unless MPEG-4 Systems - compatibility with old arch
 		if (ctx->btrt && !tkw->skip_bitrate_update && ((tkw->nb_samples>1) || ctx->m4sys) )
 			gf_media_update_bitrate(ctx->file, tkw->track_num);
+
+		if (!tkw->box_patched) {
+			const GF_PropertyValue *p = gf_filter_pid_get_property_str(tkw->ipid, "boxpatch");
+			if (p && p->value.string) {
+				e = gf_isom_apply_box_patch(ctx->file, tkw->track_id ? tkw->track_id : tkw->item_id, p->value.string);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to apply box patch %s to track %d: %s\n",
+						p->value.string, tkw->track_id, gf_error_to_string(e) ));
+				}
+			}
+			tkw->box_patched = GF_TRUE;
+		}
 	}
 
 	gf_filter_release_property(pe);
+
+	if (ctx->boxpatch && !ctx->box_patched) {
+		e = gf_isom_apply_box_patch(ctx->file, 0, ctx->boxpatch);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to apply box patch %s: %s\n", ctx->boxpatch, gf_error_to_string(e) ));
+		}
+		ctx->box_patched = GF_TRUE;
+	}
+
 
 	if (ctx->owns_mov) {
 		switch (ctx->store) {
@@ -4787,6 +4833,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 		"- merge: create a single track run with a sample reorder map - EXPERIMENTAL"
 		, GF_PROP_UINT, "no", "no|runs|merge", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(boxpatch), "apply box patch before writing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -4795,7 +4842,8 @@ GF_FilterRegister MP4MuxRegister = {
 	.name = "mp4mx",
 	GF_FS_SET_DESCRIPTION("ISOBMFF/QT muxer")
 	GF_FS_SET_HELP("Muxes file according to ISOBMFF (14496-12 and derived specifications) or QuickTime\n"
-	"\n"
+	"  \n"
+	"# Tracks and Items\n"
 	"By default all input PIDs with ItemID property set are muxed as items, otherwise they are muxed as tracks.\n"
 	"To prevent source items to be muxed as items, use [-itemid](mp4dmx) option from ISOBMF demuxer.\n"
 	"EX -i source.mp4:itemid=false -o file.mp4\n"
@@ -4803,11 +4851,23 @@ GF_FilterRegister MP4MuxRegister = {
 	"To force non-item streams to be muxed as items, use __#ItemID__ option on that PID:\n"
 	"EX -i source.jpg:#ItemID=1 -o file.mp4\n"
 	"  \n"
+	"# Storage\n"
 	"The `store` mode allows controling if the file is fragmented ot not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either `flat` or `fstart` modes.\n"
 	"  \n"
 	"The `cache` mode allows controling how DASH onDemand segments are generated:\n"
 	"-  When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file __before__ the final SIDX.\n"
-	"- When enabled, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.\n")
+	"- When enabled, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.\n"
+	"  \n"
+	"# Custom boxes\n"
+	"Custom boxes can be specified as box patches:\n"
+	"For movie-level patch, the [-boxpatch]() option of the filter should be used.\n"
+	"Per PID box patch can be specified through the PID property `boxpatch`.\n"
+	"EX src=source:#boxpatch=myfile.xml dst=mux.mp4\n"
+	"Per Item box patch can be specified through the PID property `boxpatch`.\n"
+	"EX src=source:1ItemID=1:#boxpatch=myfile.xml dst=mux.mp4\n"
+	"  \n"
+	"The box patch is applied before writing the initial moov box in fragmented mode, or when writing the complete file otherwise.\n"
+	)
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,
 	.initialize = mp4_mux_initialize,

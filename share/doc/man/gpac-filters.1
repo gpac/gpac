@@ -1469,7 +1469,10 @@ Description: ISOBMFF/QT muxer
 .br
 Muxes file according to ISOBMFF (14496-12 and derived specifications) or QuickTime
 .br
-
+  
+.br
+.SH Tracks and Items
+.LP
 .br
 By default all input PIDs with ItemID property set are muxed as items, otherwise they are muxed as tracks.
 .br
@@ -1493,6 +1496,9 @@ Example
 .br
   
 .br
+.SH Storage
+.LP
+.br
 The store mode allows controling if the file is fragmented ot not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either flat or fstart modes.
 .br
   
@@ -1502,6 +1508,35 @@ The cache mode allows controling how DASH onDemand segments are generated:
 -  When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX.
 .br
 - When enabled, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.
+.br
+  
+.br
+.SH Custom boxes
+.LP
+.br
+Custom boxes can be specified as box patches:
+.br
+For movie-level patch, the -boxpatch option of the filter should be used.
+.br
+Per PID box patch can be specified through the PID property boxpatch.
+.br
+Example
+.br
+src=source:#boxpatch=myfile.xml dst=mux.mp4
+.br
+
+.br
+Per Item box patch can be specified through the PID property boxpatch.
+.br
+Example
+.br
+src=source:1ItemID=1:#boxpatch=myfile.xml dst=mux.mp4
+.br
+
+.br
+  
+.br
+The box patch is applied before writing the initial moov box in fragmented mode, or when writing the complete file otherwise.
 .br
 
 .br
@@ -1697,6 +1732,8 @@ trun_inter (enum, default: no):          interleave samples in trun based on the
 
 .br
 block_size (unsigned int, default: 10000): target output block size, 0 for default internal value (10k)
+.br
+boxpatch (string):                       apply box patch before writing
 .br
 
 .br
@@ -4660,7 +4697,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2981-gfe63a4cdd-filters
+build: 0.9.0-DEV-rev2990-g979843cec-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
