@@ -6879,6 +6879,8 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID trackID, const ch
 	for (i=0; i<gf_list_count(root->content); i++) {
 		u32 j;
 		u32 path_len;
+		Bool essential_prop=GF_FALSE;
+		u32 item_id=trackID;
 		char *box_path=NULL;
 		GF_Box *parent_box = NULL;
 		GF_XMLNode *box_edit = gf_list_get(root->content, i);
@@ -6887,6 +6889,12 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID trackID, const ch
 		for (j=0; j<gf_list_count(box_edit->attributes);j++) {
 			GF_XMLAttribute *att = gf_list_get(box_edit->attributes, j);
 			if (!strcmp(att->name, "path")) box_path = att->value;
+			else if (!strcmp(att->name, "essential")) {
+				if (!strcmp(att->value, "yes") || !strcmp(att->value, "true") || !strcmp(att->value, "1")) {
+					essential_prop=GF_TRUE;
+				}
+			}
+			else if (!strcmp(att->name, "itemID")) item_id = atoi(att->value);
 		}
 
 		if (!box_path) continue;
@@ -6990,8 +6998,39 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID trackID, const ch
 					gf_bs_read_data(bs, new_box->data, new_box->dataSize);
 					if (insert_pos<0) {
 						gf_list_add(box->child_boxes, new_box);
+						insert_pos = gf_list_find(box->child_boxes, new_box);
 					} else {
 						gf_list_insert(*parent_list, new_box, insert_pos);
+					}
+
+					if (parent_box && (parent_box->type==GF_ISOM_BOX_TYPE_IPRP)) {
+						GF_ItemPropertyAssociationBox *ipma = (GF_ItemPropertyAssociationBox *) gf_isom_box_find_child(parent_box->child_boxes, GF_ISOM_BOX_TYPE_IPMA);
+						if (!item_id) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMFF] Inserting box in ipco without itemID, no association added\n"));
+						} else if (ipma) {
+							Bool *ess;
+							u32 *prop_index, nb_asso, k;
+							GF_ItemPropertyAssociationEntry *entry = NULL;
+							nb_asso = gf_list_count(ipma->entries);
+							for (k=0; k<nb_asso;k++) {
+								entry = gf_list_get(ipma->entries, k);
+								if (entry->item_id==item_id) break;
+								entry = NULL;
+							}
+							if (!entry) {
+								GF_SAFEALLOC(entry, GF_ItemPropertyAssociationEntry);
+								entry->essential = gf_list_new();
+								entry->property_index = gf_list_new();
+								gf_list_add(ipma->entries, entry);
+								entry->item_id = trackID;
+							}
+							ess = gf_malloc(sizeof(Bool));
+							*ess = essential_prop;
+							gf_list_add(entry->essential, ess);
+							prop_index = gf_malloc(sizeof(u32));
+							*prop_index = 1+insert_pos;
+							gf_list_add(entry->property_index, prop_index);
+						}
 					}
 				} else {
 					u32 box_idx = 0;
@@ -7014,6 +7053,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID trackID, const ch
 					}
 				}
 				gf_bs_del(bs);
+
 			}
 			gf_free(box_data);
 			box_data = NULL;
