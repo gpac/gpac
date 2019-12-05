@@ -300,7 +300,7 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 	}
 
 	if ((item_type == GF_ISOM_SUBTYPE_HVC1) || (item_type == GF_ISOM_SUBTYPE_AVC_H264) ) {
-		u32 j, c2, nb_assoc;
+		u32 j, nb_assoc;
 		GF_HEVCConfigurationBox *hvcc = NULL;
 		GF_AVCConfigurationBox *avcc = NULL;
 		if (! meta->item_props) return GF_NON_COMPLIANT_BITSTREAM;
@@ -316,11 +316,10 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 		for (i=0; i<nb_assoc; i++) {
 			GF_ItemPropertyAssociationEntry *e = gf_list_get(meta->item_props->property_association->entries, i);
 			if (e->item_id!=item_id) continue;
-			c2 = gf_list_count(e->property_index);
-			for (j=0; j<c2; j++) {
-				u32 *idx = gf_list_get(e->property_index, j);
-				if (! (*idx) ) continue;
-				hvcc = gf_list_get(meta->item_props->property_container->child_boxes, (*idx) - 1);
+			for (j=0; j<e->nb_associations; j++) {
+				u32 idx = e->associations[j].index;
+				if (! idx) continue;
+				hvcc = gf_list_get(meta->item_props->property_container->child_boxes, idx - 1);
 				if (!hvcc) {
 					if (item_bs) gf_bs_del(item_bs);
 					return GF_NON_COMPLIANT_BITSTREAM;
@@ -564,7 +563,7 @@ GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_n
 GF_EXPORT
 GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, GF_ImageItemProperties *prop) {
 	u32 count, i;
-	u32 count2, j;
+	u32 j;
 	GF_ItemPropertyAssociationBox *ipma = NULL;
 	GF_ItemPropertyContainerBox *ipco = NULL;
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -580,11 +579,12 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 	for (i = 0; i < count; i++) {
 		GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, i);
 		if (entry->item_id == item_id) {
-			count2 = gf_list_count(entry->property_index);
-			for (j = 0; j < count2; j++) {
-				u32 *index = (u32 *)gf_list_get(entry->property_index, j);
-				GF_Box *b = (GF_Box *)gf_list_get(ipco->child_boxes, *index - 1);
+			for (j = 0; j < entry->nb_associations; j++) {
+				GF_Box *b;
+				u32 index = entry->associations[j].index;
+				b = index ? (GF_Box *)gf_list_get(ipco->child_boxes, index - 1) : NULL;
 				if (!b) continue;
+
 				switch (b->type) {
 				case GF_ISOM_BOX_TYPE_ISPE:
 				{
@@ -700,30 +700,24 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 static void meta_add_item_property_association(GF_ItemPropertyAssociationBox *ipma, u32 item_ID, u32 prop_index, Bool essential) {
 	u32 i, count;
 	GF_ItemPropertyAssociationEntry *found_entry = NULL;
-	Bool *ess = (Bool *)gf_malloc(sizeof(Bool));
-	u32 *index = (u32 *)gf_malloc(sizeof(u32));
 
-	*ess = essential;
-	*index = prop_index;
 	count = gf_list_count(ipma->entries);
 	for (i = 0; i < count; i++) {
-		GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, i);
-		if (entry->item_id == item_ID) {
-			found_entry = entry;
-			break;
-		}
+		found_entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, i);
+		if (found_entry->item_id == item_ID) break;
+		found_entry = NULL;
 	}
 	if (!found_entry) {
 		GF_SAFEALLOC(found_entry, GF_ItemPropertyAssociationEntry);
 		if (!found_entry) return;
-
 		gf_list_add(ipma->entries, found_entry);
 		found_entry->item_id = item_ID;
-		found_entry->essential = gf_list_new();
-		found_entry->property_index= gf_list_new();
 	}
-	gf_list_add(found_entry->essential, ess);
-	gf_list_add(found_entry->property_index, index);
+	found_entry->associations = gf_realloc(found_entry->associations, sizeof(GF_ItemPropertyAssociationSlot) * (found_entry->nb_associations+1));
+
+	found_entry->associations[found_entry->nb_associations].essential = essential;
+	found_entry->associations[found_entry->nb_associations].index = prop_index;
+	found_entry->nb_associations++;
 }
 	
 static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_ImageItemProperties *image_props) {
