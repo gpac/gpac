@@ -4866,6 +4866,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"EX src=source:1ItemID=1:#boxpatch=myfile.xml dst=mux.mp4\n"
 	"  \n"
 	"The box patch is applied before writing the initial moov box in fragmented mode, or when writing the complete file otherwise.\n"
+	"The box patch can either be a filename or the full XML string.\n"
 	)
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,
