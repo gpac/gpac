@@ -2312,6 +2312,7 @@ sample_entry_done:
 	return GF_OK;
 }
 
+static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx);
 
 static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -2323,16 +2324,14 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_list_del_item(ctx->tracks, tkw);
 			gf_free(tkw);
 		}
-		if (ctx->opid && !gf_list_count(ctx->tracks)) {
-			gf_filter_pid_remove(ctx->opid);
-			ctx->opid = NULL;
+		//removing last pid, flush file
+		if (ctx->opid && !gf_list_count(ctx->tracks) && ctx->file) {
+			return mp4_mux_done(filter, ctx);
 		}
 		return GF_OK;
 	}
 	return mp4_mux_setup_pid(filter, pid, GF_TRUE);
 }
-
-static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx);
 
 static Bool mp4_mux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
