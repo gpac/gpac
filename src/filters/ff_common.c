@@ -616,8 +616,10 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 	AVInputFormat *fmt = NULL;
 	AVOutputFormat *ofmt = NULL;
 	AVCodec *codec = NULL;
+#if (LIBAVFILTER_VERSION_MAJOR > 5)
 	void *avf_it = NULL;
 	const AVFilter *avf = NULL;
+#endif
 
 	const char *fname = "";
 	if (type==FF_REG_TYPE_DEMUX) fname = "ffdmx";
@@ -725,12 +727,18 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 			description = ofmt->long_name;
 #endif
 		} else if (type==FF_REG_TYPE_AVF) {
+#if (LIBAVFILTER_VERSION_MAJOR > 5)
 			avf = av_filter_iterate(&avf_it);
 			if (!avf) break;
 			av_class = avf->priv_class;
 			subname = avf->name;
 #ifndef GPAC_DISABLE_DOC
 			description = avf->description;
+#endif
+
+#else
+			break;
+
 #endif
 		} else {
 			break;
@@ -975,7 +983,9 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 		codec_ctx = avcodec_alloc_context3(NULL);
 		av_class = codec_ctx->av_class;
 	} else if (reg_type==FF_REG_TYPE_AVF) {
+#if (LIBAVFILTER_VERSION_MAJOR > 5)
 		av_class = avfilter_get_class();
+#endif
 	} else {
 		format_ctx = avformat_alloc_context();
 		av_class = format_ctx->av_class;

@@ -2063,14 +2063,12 @@ Bool is_svg_element_class(JSContext *c, JSValue obj)
 		_class.class.finalizer = _finalize;\
 		JS_NewClass(jsrt, _class.class_id, &(_class.class));\
 	}\
-	if (_proto_funcs) { \
-		scene->svg_js->_class.proto = JS_NewObjectClass(c, _proto_class_id ? _proto_class_id : _class.class_id);\
+	scene->svg_js->_class.proto = JS_NewObjectClass(c, _proto_class_id ? _proto_class_id : _class.class_id);\
     	JS_SetPropertyFunctionList(c, scene->svg_js->_class.proto, _proto_funcs, countof(_proto_funcs));\
     	JS_SetClassProto(c, _class.class_id, scene->svg_js->_class.proto);\
     	if (_construct) {\
-			scene->svg_js->_class.ctor = JS_NewCFunction2(c, _construct, _name, 1, JS_CFUNC_constructor, 0);\
+		scene->svg_js->_class.ctor = JS_NewCFunction2(c, _construct, _name, 1, JS_CFUNC_constructor, 0);\
     		JS_SetPropertyStr(c, global, _name, scene->svg_js->_class.ctor);\
-		}\
 	}\
 
 

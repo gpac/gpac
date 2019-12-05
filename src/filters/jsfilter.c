@@ -3209,11 +3209,9 @@ static JSValue jsf_pck_get_property(JSContext *ctx, JSValueConst this_val, int a
 static JSValue jsf_pck_ref(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	Bool is_ref_props = GF_FALSE;
-	GF_FilterPacket *pck;
 	GF_JSPckCtx *ref_pckctx;
 	GF_JSPckCtx *pckctx = JS_GetOpaque(this_val, jsf_pck_class_id);
     if (!pckctx || !pckctx->pck) return JS_EXCEPTION;
-    pck = pckctx->pck;
 
     if (argc && JS_ToBool(ctx, argv[0])) is_ref_props = GF_TRUE;
 
@@ -3239,11 +3237,9 @@ static JSValue jsf_pck_ref(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 
 static JSValue jsf_pck_unref(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	GF_FilterPacket *pck;
 	GF_JSPckCtx *pckctx = JS_GetOpaque(this_val, jsf_pck_class_id);
     if (!pckctx || !pckctx->pck) return JS_EXCEPTION;
-    pck = pckctx->pck;
-	if (!(pckctx->flags & GF_JS_PCK_IS_REF))
+ 	if (!(pckctx->flags & GF_JS_PCK_IS_REF))
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Attempt to unref a non-reference packet");
 
 	gf_filter_pck_unref(pckctx->pck);
@@ -3927,7 +3923,6 @@ static Bool jsfilter_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	JSValue argv[2];
 	JSValue ret;
 	Bool canceled=GF_TRUE;
-	GF_Err e = GF_OK;
 	GF_JSFilterCtx *jsf = gf_filter_get_udta(filter);
 	if (!jsf) return GF_TRUE;
 
@@ -3947,7 +3942,6 @@ static Bool jsfilter_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	if (JS_IsException(ret)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[%s] Error processing event\n", jsf->log_name));
 		js_dump_error(jsf->ctx);
-		e = GF_BAD_PARAM;
 	}
 	else {
 		canceled = JS_ToBool(jsf->ctx, ret);

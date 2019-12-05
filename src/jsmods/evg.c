@@ -1258,7 +1258,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 	for (op_idx=0; op_idx<shader->nb_ops; op_idx++) {
 		u32 next_idx, idx, var_idx;
 		Bool has_next, norm_result=GF_FALSE;
-		u8 right_val_type, left_val_type, right2_val_type;
+		u8 right_val_type, left_val_type;
 		u8 *left_val_type_ptr=NULL;
 		ShaderOp *op = &shader->ops[op_idx];
 
@@ -1739,7 +1739,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 				*left_val_type_ptr = COMP_FLOAT;
 			}
 			right2_val = &shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].vecval;
-			right2_val_type = shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].value_type;
+			//right2_val_type = shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].value_type;
 			gf_vec_diff(tmpr, *right_val, *right2_val);
 			left_val->x = gf_vec_len_p( (GF_Vec *) &tmpr);
 			break;
@@ -1749,7 +1749,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 				*left_val_type_ptr = COMP_FLOAT;
 			}
 			right2_val = &shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].vecval;
-			right2_val_type = shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].value_type;
+			//right2_val_type = shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].value_type;
 			left_val->x = gf_vec_dot_p( (GF_Vec *) right_val, (GF_Vec *) right2_val);
 			break;
 		case EVG_OP_CROSS:
@@ -1757,7 +1757,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 				*left_val_type_ptr = COMP_V4;
 			}
 			right2_val = &shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].vecval;
-			right2_val_type = shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].value_type;
+			//right2_val_type = shader->vars[op->right_value_second - EVG_FIRST_VAR_ID-1].value_type;
 			* (GF_Vec *) left_val = gf_vec_cross_p( (GF_Vec *) right_val, (GF_Vec *) right2_val);
 			break;
 
@@ -1767,7 +1767,6 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 	}\
 	var_idx = op->right_value_second - EVG_FIRST_VAR_ID-1;\
 	right2_val = &shader->vars[var_idx].vecval;\
-	right2_val_type = shader->vars[var_idx].value_type;\
 	if (right_val_type==COMP_FLOAT) {\
 		left_val->x = __fun(right_val->x, right2_val->x);\
 	} else {\
@@ -1882,7 +1881,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 			}
 			var_idx = op->right_value_second - EVG_FIRST_VAR_ID-1;
 			right2_val = &shader->vars[var_idx].vecval;
-			right2_val_type = shader->vars[var_idx].value_type;
+			//right2_val_type = shader->vars[var_idx].value_type;
 			if (right_val_type==COMP_FLOAT) {
 				left_val->x = evg_float_clamp(left_val->x, right_val->x, right2_val->x);
 			} else {
@@ -4315,6 +4314,10 @@ Bool get_color_from_args(JSContext *c, int argc, JSValueConst *argv, u32 idx, Do
 		const char *str = JS_ToCString(c, argv[idx]);
 		col = gf_color_parse(str);
 		JS_FreeCString(c, str);
+		*a = ((Double)GF_COL_A(col)) / 255;
+		*r = ((Double)GF_COL_R(col)) / 255;
+		*g = ((Double)GF_COL_G(col)) / 255;
+		*b = ((Double)GF_COL_B(col)) / 255;
 	} else if (JS_IsObject(argv[idx])) {
 		if (!get_color(c, argv[idx], a, r, g, b)) {
 			return GF_FALSE;
@@ -5445,7 +5448,7 @@ static JSValue text_getProperty(JSContext *c, JSValueConst obj, int magic)
 
 static void text_update_path(GF_JSText *txt, Bool for_centered)
 {
-	Fixed cy, fs, ascent, descent, scale_x, ls;
+	Fixed cy, ascent, descent, scale_x, ls;
 	u32 i, nb_lines;
 
 	if ((txt->path_for_centered == for_centered) && txt->path) {
@@ -5460,7 +5463,6 @@ static void text_update_path(GF_JSText *txt, Bool for_centered)
 
 	cy = FLT2FIX((txt->font_size * txt->font->baseline) / txt->font->em_size);
 
-	fs = FLT2FIX(txt->font_size);
 	ascent = FLT2FIX((txt->font_size*txt->font->ascent) / txt->font->em_size);
 	if (txt->lineSpacing)
 		ls = FLT2FIX((txt->lineSpacing*txt->font->line_spacing) / txt->font->em_size);

@@ -33,6 +33,14 @@
 #include <libavfilter/buffersrc.h>
 #include <libavfilter/buffersink.h>
 
+#if (LIBAVFILTER_VERSION_MAJOR <= 5)
+#undef GPAC_HAS_FFMPEG
+#endif
+
+#endif
+
+#ifdef GPAC_HAS_FFMPEG
+
 typedef struct
 {
 	AVFilterContext *io_filter_ctx;
