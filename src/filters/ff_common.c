@@ -1098,11 +1098,6 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 					idx++;
 					continue;
 				}
-				if (0 && opt_name) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFMPEG] arg %s unit %s assigned to arg %s in AVClass but no parent argument defined, not adding to registry!\n", opt->name, opt_name, opt->unit));
-					idx++;
-					continue;
-				}
 			}
 			assert(nb_args>i);
 			args[i] = ffmpeg_arg_translate(opt);
