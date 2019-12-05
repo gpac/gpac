@@ -24,8 +24,12 @@
  */
 
 #include <gpac/setup.h>
+/*TODO add win32 support !*/
+#ifdef WIN32
+#undef GPAC_HAS_FFMPEG
+#endif
 
-#ifdef GPAC_HAS_FFMPEG
+#ifdef GPAC_HAS_FFMPEG 
 
 #include "ff_common.h"
 #include <gpac/network.h>

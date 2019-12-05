@@ -1529,6 +1529,21 @@
     <ClCompile Include="..\..\src\utils\gltools.c">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\ff_mx.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\ff_avf.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\evg\raster3d.c">
+      <Filter>evg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_prores.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\tssplit.c">
+      <Filter>filters</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\filters\dec_vtb_glctx.m">
