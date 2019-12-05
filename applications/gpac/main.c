@@ -522,6 +522,7 @@ GF_GPACArg gpac_args[] =
 			"- log: print the log system help\n"\
 			"- core: print the supported libgpac core options. Use -ha/-hx/-hh for advanced/expert options\n"\
 			"- cfg: print the GPAC configuration help\n"\
+			"- prompt: print the GPAC prompt help when running in interactive mode (see [-k](GPAC) )\n"\
 			"- modules: print available modules\n"\
 			"- filters: print name of all available filters\n"\
 			"- filters:*: print name of all available filters, including meta filters\n"\
@@ -869,11 +870,11 @@ static GPAC_Command get_cmd(u8 char_code)
 
 static void gpac_fsess_task_help()
 {
-	fprintf(stderr, "Available runtime options/keys:\n");
+	gf_sys_format_help(helpout, help_flags, "Available runtime options/keys:\n");
 
 	u32 i=0;
 	while (GPAC_Keys[i].char_code) {
-		fprintf(stderr, "%c: %s\n", GPAC_Keys[i].char_code, GPAC_Keys[i].cmd_help);
+		gf_sys_format_help(helpout, help_flags, "- %c: %s\n", GPAC_Keys[i].char_code, GPAC_Keys[i].cmd_help);
 		i++;
 	}
 }
@@ -1225,7 +1226,7 @@ static void gpac_suggest_filter(char *fname, Bool is_help)
 	}
 	if (!found && is_help) {
 		const char *doc_helps[] = {
-			"log", "core", "modules", "doc", "alias", "props", "cfg", "codecs", "links", "bin", "filters", "filters:*", NULL
+			"log", "core", "modules", "doc", "alias", "props", "cfg", "prompt", "codecs", "links", "bin", "filters", "filters:*", NULL
 		};
 		i=0;
 		while (doc_helps[i]) {
@@ -1456,6 +1457,9 @@ static int gpac_main(int argc, char **argv)
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "cfg")) {
 				gpac_config_help();
+				gpac_exit(0);
+			} else if (!strcmp(argv[i+1], "prompt")) {
+				gpac_fsess_task_help();
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "codecs")) {
 				dump_codecs = GF_TRUE;
