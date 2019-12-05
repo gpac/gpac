@@ -3391,10 +3391,16 @@ typedef struct {
 	u8 angle;
 } GF_ImageRotationBox;
 
+typedef struct
+{
+	u8 essential;
+	u32 index;
+} GF_ItemPropertyAssociationSlot;
+
 typedef struct {
 	u32 item_id;
-	GF_List *essential;
-	GF_List *property_index;
+	GF_ItemPropertyAssociationSlot *associations;
+	u32 nb_associations;
 } GF_ItemPropertyAssociationEntry;
 
 typedef struct __item_association_box {

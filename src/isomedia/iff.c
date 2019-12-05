@@ -454,22 +454,14 @@ void ipma_box_del(GF_Box *a)
 {
 	GF_ItemPropertyAssociationBox *p = (GF_ItemPropertyAssociationBox *)a;
 	if (p->entries) {
-		u32 i, j;
-		u32 count, count2;
+		u32 i;
+		u32 count;
 		count = gf_list_count(p->entries);
 
 		for (i = 0; i < count; i++) {
 			GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(p->entries, i);
 			if (entry) {
-				count2 = gf_list_count(entry->essential);
-				for (j = 0; j < count2; j++) {
-					Bool *essential = (Bool *)gf_list_get(entry->essential, j);
-					Bool *prop_index = (Bool *)gf_list_get(entry->property_index, j);
-					gf_free(essential);
-					gf_free(prop_index);
-				}
-				gf_list_del(entry->essential);
-				gf_list_del(entry->property_index);
+				gf_free(entry->associations);
 				gf_free(entry);
 			}
 		}
@@ -482,36 +474,31 @@ GF_Err ipma_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i, j;
 	GF_ItemPropertyAssociationBox *p = (GF_ItemPropertyAssociationBox *)s;
-	u32 entry_count, association_count;
+	u32 entry_count;
 
 	entry_count = gf_bs_read_u32(bs);
 	for (i = 0; i < entry_count; i++) {
 		GF_ItemPropertyAssociationEntry *entry;
 		GF_SAFEALLOC(entry, GF_ItemPropertyAssociationEntry);
 		if (!entry) return GF_OUT_OF_MEM;
-		entry->essential = gf_list_new();
-		entry->property_index = gf_list_new();
 		gf_list_add(p->entries, entry);
 		if (p->version == 0) {
 			entry->item_id = gf_bs_read_u16(bs);
 		} else {
 			entry->item_id = gf_bs_read_u32(bs);
 		}
-		association_count = gf_bs_read_u8(bs);
-		for (j = 0; j < association_count; j++) {
-			Bool *ess = (Bool *)gf_malloc(sizeof(Bool));
-			u32 *prop_index = (u32 *)gf_malloc(sizeof(u32));
+		entry->nb_associations = gf_bs_read_u8(bs);
+		entry->associations = gf_malloc(sizeof(GF_ItemPropertyAssociationSlot) * entry->nb_associations);
+		for (j = 0; j < entry->nb_associations; j++) {
 			if (p->flags & 1) {
 				u16 tmp = gf_bs_read_u16(bs);
-				*ess = (tmp >> 15) ? GF_TRUE : GF_FALSE;
-				*prop_index = (tmp & 0x7FFF);
+				entry->associations[j].essential = (tmp >> 15) ? GF_TRUE : GF_FALSE;
+				entry->associations[j].index = (tmp & 0x7FFF);
 			} else {
 				u8 tmp = gf_bs_read_u8(bs);
-				*ess = (tmp >> 7) ? GF_TRUE : GF_FALSE;
-				*prop_index = (tmp & 0x7F);
+				entry->associations[j].essential = (tmp >> 7) ? GF_TRUE : GF_FALSE;
+				entry->associations[j].index = (tmp & 0x7F);
 			}
-			gf_list_add(entry->essential, ess);
-			gf_list_add(entry->property_index, prop_index);
 		}
 	}
 	return GF_OK;
@@ -522,7 +509,7 @@ GF_Err ipma_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i, j;
 	GF_Err e;
-	u32 entry_count, association_count;
+	u32 entry_count;
 	GF_ItemPropertyAssociationBox *p = (GF_ItemPropertyAssociationBox*)s;
 
 	e = gf_isom_full_box_write(s, bs);
@@ -536,15 +523,12 @@ GF_Err ipma_box_write(GF_Box *s, GF_BitStream *bs)
 		} else {
 			gf_bs_write_u32(bs, entry->item_id);
 		}
-		association_count = gf_list_count(entry->essential);
-		gf_bs_write_u8(bs, association_count);
-		for (j = 0; j < association_count; j++) {
-			Bool *ess = (Bool *)gf_list_get(entry->essential, j);
-			u32 *prop_index = (u32 *)gf_list_get(entry->property_index, j);
+		gf_bs_write_u8(bs, entry->nb_associations);
+		for (j = 0; j < entry->nb_associations; j++) {
 			if (p->flags & 1) {
-				gf_bs_write_u16(bs, (u16)( ( (*ess ? 1 : 0) << 15) | (*prop_index & 0x7F) ) );
+				gf_bs_write_u16(bs, (u16)( ( (entry->associations[j].essential ? 1 : 0) << 15) | (entry->associations[j].index & 0x7F) ) );
 			} else {
-				gf_bs_write_u8(bs, (u32)(( (*ess ? 1 : 0) << 7) | *prop_index));
+				gf_bs_write_u8(bs, (u32)(( (entry->associations[j].essential ? 1 : 0) << 7) | entry->associations[j].index));
 			}
 		}
 	}
@@ -554,7 +538,7 @@ GF_Err ipma_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err ipma_box_size(GF_Box *s)
 {
 	u32 i;
-	u32 entry_count, association_count;
+	u32 entry_count;
 	GF_ItemPropertyAssociationBox *p = (GF_ItemPropertyAssociationBox*)s;
 
 	entry_count = gf_list_count(p->entries);
@@ -567,11 +551,10 @@ GF_Err ipma_box_size(GF_Box *s)
 	p->size += entry_count;
 	for (i = 0; i < entry_count; i++) {
 		GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(p->entries, i);
-		association_count = gf_list_count(entry->essential);
 		if (p->flags & 1) {
-			p->size += association_count * 2;
+			p->size += entry->nb_associations * 2;
 		} else {
-			p->size += association_count;
+			p->size += entry->nb_associations;
 		}
 	}
 	return GF_OK;

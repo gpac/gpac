@@ -5041,12 +5041,9 @@ GF_Err ipma_box_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "entry_count=\"%d\">\n", entry_count);
 	for (i = 0; i < entry_count; i++) {
 		GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ptr->entries, i);
-		u32 association_count = gf_list_count(entry->essential);
-		fprintf(trace, "<AssociationEntry item_ID=\"%d\" association_count=\"%d\">\n", entry->item_id, association_count);
-		for (j = 0; j < association_count; j++) {
-			Bool *ess = (Bool *)gf_list_get(entry->essential, j);
-			u32 *prop_index = (u32 *)gf_list_get(entry->property_index, j);
-			fprintf(trace, "<Property index=\"%d\" essential=\"%d\"/>\n", *prop_index, *ess);
+		fprintf(trace, "<AssociationEntry item_ID=\"%d\" association_count=\"%d\">\n", entry->item_id, entry->nb_associations);
+		for (j = 0; j < entry->nb_associations; j++) {
+			fprintf(trace, "<Property index=\"%d\" essential=\"%d\"/>\n", entry->associations[j].index, entry->associations[j].essential);
 		}
 		fprintf(trace, "</AssociationEntry>\n");
 	}
