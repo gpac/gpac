@@ -341,7 +341,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				ctx->frame->pict_type = AV_PICTURE_TYPE_I;
 				ctx->nb_forced=1;
 			} else if (cts < ctx->orig_ts) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFEnc] timestamps not increasing monotonuously, reseting forced intra state !\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] timestamps not increasing monotonuously, reseting forced intra state !\n"));
 				ctx->orig_ts = cts;
 				ctx->frame->pict_type = AV_PICTURE_TYPE_I;
 				ctx->nb_forced=1;
@@ -350,7 +350,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				if (ts_diff * ctx->fintra.den >= ctx->nb_forced * ctx->fintra.num * ctx->timescale) {
 					ctx->frame->pict_type = AV_PICTURE_TYPE_I;
 					ctx->nb_forced++;
-					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[FFEnc] Forcing IDR at frame %d (CTS %d / %d)\n", ctx->nb_frames_in, cts, ctx->timescale));
+					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFEnc] Forcing IDR at frame %d (CTS %d / %d)\n", ctx->nb_frames_in, cts, ctx->timescale));
 				}
 			}
 		}
@@ -380,7 +380,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				ctx->reconfig_pending = GF_FALSE;
 				avcodec_close(ctx->encoder);
 				ctx->encoder = NULL;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
 				return ffenc_configure_pid(filter, ctx->in_pid, GF_FALSE);
 			}
 			ctx->flush_done = GF_TRUE;
@@ -701,7 +701,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				ctx->reconfig_pending = GF_FALSE;
 				avcodec_close(ctx->encoder);
 				ctx->encoder = NULL;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
 				return ffenc_configure_pid(filter, ctx->in_pid, GF_FALSE);
 			}
 			ctx->flush_done = GF_TRUE;
@@ -873,7 +873,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	if (!ctx->codecid && !desired_codec) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] No codecid specified\n" ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] No codecid specified\n" ));
 		return GF_BAD_PARAM;
 	}
 
@@ -903,7 +903,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		codec = desired_codec;
 	}
 	if (!codec) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] Cannot find encoder for codec %s\n", gf_codecid_name(ctx->codecid) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Cannot find encoder for codec %s\n", gf_codecid_name(ctx->codecid) ));
 		return GF_NOT_SUPPORTED;
 	}
 	codec_id = codec->id;
@@ -912,7 +912,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	fftype = ffmpeg_stream_type_to_gpac(codec->type);
 	if (fftype != type) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] Mismatch between stream type, codec indicates %s but source type is %s\n", gf_stream_type_name(fftype), gf_stream_type_name(type) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Mismatch between stream type, codec indicates %s but source type is %s\n", gf_stream_type_name(fftype), gf_stream_type_name(type) ));
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -974,7 +974,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			}
 		}
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[FFEnc] codec reconfiguration, begining flush\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec reconfiguration, begining flush\n"));
 		ctx->reconfig_pending = GF_TRUE;
 		return GF_OK;
 	}
@@ -998,7 +998,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				i++;
 			}
 			if (force_pfmt == AV_PIX_FMT_NONE) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFEnc] Requested source format %s not supported by codec, using default one\n", gf_pixel_fmt_name(ctx->pfmt) ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] Requested source format %s not supported by codec, using default one\n", gf_pixel_fmt_name(ctx->pfmt) ));
 			} else {
 				change_input_fmt = force_pfmt;
 			}
@@ -1041,7 +1041,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 							if (codec_alt->pix_fmts[i] == AV_PIX_FMT_NONE) break;
 							if (codec_alt->pix_fmts[i] == ctx->pixel_fmt) {
 								change_input_fmt = ctx->pixel_fmt;
-								GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFEnc] Reassigning codec from %s to %s to match pixel format\n", codec->name, codec_alt->name ));
+								GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] Reassigning codec from %s to %s to match pixel format\n", codec->name, codec_alt->name ));
 								codec = codec_alt;
 								break;
 							}
@@ -1068,7 +1068,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 					i++;
 				}
 				if (ff_pmft == AV_PIX_FMT_NONE) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] Could not find a matching GPAC pixel format for encoder %s\n", codec->name ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Could not find a matching GPAC pixel format for encoder %s\n", codec->name ));
 					return GF_NOT_SUPPORTED;
 				}
 			} else if (ctx->pfmt) {
@@ -1252,7 +1252,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	res = avcodec_open2(ctx->encoder, codec, &ctx->options );
 	if (res < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
 		return GF_BAD_PARAM;
 	}
 	ctx->remap_ts = (ctx->encoder->time_base.den != ctx->timescale) ? GF_TRUE : GF_FALSE;
@@ -1299,11 +1299,11 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 			if (!arg_val_str) arg_val_str = "1";
 			res = av_dict_set(&ctx->options, arg_name, arg_val_str, 0);
 			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] Failed to set option %s:%s\n", arg_name, arg_val ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Failed to set option %s:%s\n", arg_name, arg_val ));
 			}
 			break;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] Failed to set option %s:%s, unrecognized type %d\n", arg_name, arg_val, arg_val->type ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Failed to set option %s:%s, unrecognized type %d\n", arg_name, arg_val, arg_val->type ));
 			return GF_NOT_SUPPORTED;
 		}
 		return GF_OK;
@@ -1329,7 +1329,7 @@ GF_FilterRegister FFEncodeRegister = {
 	.name = "ffenc",
 	.version=LIBAVCODEC_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG encoder")
-	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on encoder options"
+	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details"
 		"\n"
 		"Note: if no codec is explicited through [-ffc]() option and no pixel format is given, codecs will be enumerated to find a matching pixel format.\n"
 

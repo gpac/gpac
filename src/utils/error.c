@@ -774,7 +774,7 @@ GF_Err gf_log_set_tools_levels(const char *val, Bool reset_all)
 }
 #endif
 
-static char szErrMsg[20];
+static char szErrMsg[50];
 
 GF_EXPORT
 const char *gf_error_to_string(GF_Err e)

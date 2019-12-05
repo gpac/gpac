@@ -393,7 +393,7 @@ GF_FilterRegister FFSWSRegister = {
 	GF_FS_SET_HELP("For bicubic, to tune the shape of the basis function, [-p1]() tunes f(1) and [-p2]() f´(1)\n"\
 				"For gauss [-p1]() tunes the exponent and thus cutoff frequency\n"\
 				"For lanczos [-p1]() tunes the width of the window function"\
-				"\nSee FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on rescaler options")
+				"\nSee FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details")
 
 	.private_size = sizeof(GF_FFSWScaleCtx),
 	.args = FFSWSArgs,

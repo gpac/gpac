@@ -370,7 +370,7 @@ static JSValue wgl_getExtension(JSContext *ctx, JSValueConst this_val, int argc,
 	gl_exts = (const char *) glGetString(GL_EXTENSIONS);
 	if (strstr(gl_exts, ext)) {
 		found = GF_TRUE;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[WebGL] getExtension not yet implemented, cannot fetch extension for %s\n", ext));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[WebGL] getExtension not yet implemented, cannot fetch extension for %s\n", ext));
 	}
 
 	JS_FreeCString(ctx, ext);

@@ -87,7 +87,7 @@ Targets:
 - [x] improve filter graph resolver
 - [x] improve filter scheduler
 - [x] add ffmpeg muxer support
-- [ ] add ffmpeg simple avfilter support
+- [x] add ffmpeg avfilter support
 - [ ] add kvazaar/other encoders support?
 - [x] drop SpiderMonkey and move to QuickJS
 - [x] filters scriptable through JS
@@ -98,7 +98,7 @@ Targets:
 - [ ] support for HTTP output (server and put/post)
 - [x] add TS spliter filter
 - [ ] move input sensors to filter ?
-- [ ] split test suite from main repo and handle PRs with attachements
+- [-] split test suite from main repo and handle PRs with attachements
 
 ## Future Roadmap
 - [ ] filters scriptable through other languages (python) ?

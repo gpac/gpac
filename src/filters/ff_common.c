@@ -29,6 +29,7 @@
 
 #include "ff_common.h"
 
+#include <libavfilter/avfilter.h>
 
 #if !defined(__GNUC__)
 # if defined(_WIN32_WCE) || defined (WIN32)
@@ -37,6 +38,7 @@
 #  pragma comment(lib, "avcodec")
 #  pragma comment(lib, "avdevice")
 #  pragma comment(lib, "swscale")
+#  pragma comment(lib, "avfilter")
 # endif
 #endif
 
@@ -488,7 +490,11 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 	switch (opt->type) {
 	case AV_OPT_TYPE_INT64:
 	case AV_OPT_TYPE_INT:
-		arg.arg_type = (opt->type==AV_OPT_TYPE_INT64) ? GF_PROP_LSINT : GF_PROP_SINT;
+	case AV_OPT_TYPE_CHANNEL_LAYOUT:
+		if (opt->type==AV_OPT_TYPE_INT64) arg.arg_type = GF_PROP_LSINT;
+		else if (opt->type==AV_OPT_TYPE_INT) arg.arg_type = GF_PROP_SINT;
+		else arg.arg_type = GF_PROP_UINT; //channel layout, map to int
+
 		sprintf(szDef, LLD, opt->default_val.i64);
 		arg.arg_default_val = gf_strdup(szDef);
 		if (opt->max>=(Double) GF_INT_MAX)
@@ -530,6 +536,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		sprintf(szDef, "%d/%d", opt->default_val.q.num, opt->default_val.q.den);
 		arg.arg_default_val = gf_strdup(szDef);
 		break;
+	case AV_OPT_TYPE_COLOR://color is a string in libavfilter
 	case AV_OPT_TYPE_STRING:
 		arg.arg_type = GF_PROP_STRING;
 		if (opt->default_val.str)
@@ -583,12 +590,6 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 	case AV_OPT_TYPE_DICT:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unhandled option type dict (%d)\n", opt->type));
 		break;
-	case AV_OPT_TYPE_COLOR:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unhandled option type color (%d)\n", opt->type));
-		break;
-	case AV_OPT_TYPE_CHANNEL_LAYOUT:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unhandled option type chanLayout (%d)\n", opt->type));
-		break;
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unknown ffmpeg option type %d\n", opt->type));
 		break;
@@ -615,6 +616,8 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 	AVInputFormat *fmt = NULL;
 	AVOutputFormat *ofmt = NULL;
 	AVCodec *codec = NULL;
+	void *avf_it = NULL;
+	const AVFilter *avf = NULL;
 
 	const char *fname = "";
 	if (type==FF_REG_TYPE_DEMUX) fname = "ffdmx";
@@ -633,6 +636,9 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 	}
 	else if (type==FF_REG_TYPE_MUX) {
 		fname = "ffmx";
+	}
+	else if (type==FF_REG_TYPE_AVF) {
+		fname = "ffavf";
 	}
 	else return;
 
@@ -717,6 +723,14 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 			subname = ofmt->name;
 #ifndef GPAC_DISABLE_DOC
 			description = ofmt->long_name;
+#endif
+		} else if (type==FF_REG_TYPE_AVF) {
+			avf = av_filter_iterate(&avf_it);
+			if (!avf) break;
+			av_class = avf->priv_class;
+			subname = avf->name;
+#ifndef GPAC_DISABLE_DOC
+			description = avf->description;
 #endif
 		} else {
 			break;
@@ -955,10 +969,13 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 
 	if (reg_type==FF_REG_TYPE_ENCODE) opt_type = AV_OPT_FLAG_ENCODING_PARAM;
 	else if (reg_type==FF_REG_TYPE_MUX) opt_type = AV_OPT_FLAG_ENCODING_PARAM;
+	else if (reg_type==FF_REG_TYPE_AVF) opt_type = 0xFFFFFFFF;
 
 	if ((reg_type==FF_REG_TYPE_ENCODE) || (reg_type==FF_REG_TYPE_DECODE)) {
 		codec_ctx = avcodec_alloc_context3(NULL);
 		av_class = codec_ctx->av_class;
+	} else if (reg_type==FF_REG_TYPE_AVF) {
+		av_class = avfilter_get_class();
 	} else {
 		format_ctx = avformat_alloc_context();
 		av_class = format_ctx->av_class;

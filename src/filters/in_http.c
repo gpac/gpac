@@ -339,7 +339,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 				if (ctx->cached) {
 					nb_read = (u32) fread(ctx->block, 1, ctx->block_size, ctx->cached);
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[HTTPIn] Failed to open cached file %s\n", cached));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTPIn] Failed to open cached file %s\n", cached));
 				}
 			}
 			ctx->file_size = total_size;
