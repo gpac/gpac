@@ -954,7 +954,7 @@ interface Text {
 /*! text measurement interface*/
 interface TextMeasure
 {
-	/*! measured with of text*/
+	/*! measured width of text*/
 	double width;
 	/*! measured height of text*/
 	double height;
