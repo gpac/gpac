@@ -2247,6 +2247,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_enable_reporting) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_ui_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_enum_unmapped_options) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_send_update) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_add_event_listener ) )
