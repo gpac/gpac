@@ -552,6 +552,28 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 */
 Bool gf_fs_enum_unmapped_options(GF_FilterSession *session, u32 *idx, char **argname, u32 *argtype);
 
+
+
+/*! Flags for argument update event*/
+typedef enum
+{
+	/*! the update event can be sent down the source chain*/
+	GF_FILTER_UPDATE_DOWNSTREAM = 1<<1,
+	/*! the update event can be sent up the filter chain*/
+	GF_FILTER_UPDATE_UPSTREAM = 1<<2,
+} GF_EventPropagateType;
+
+/*! Enumerates filter and meta-filter arguments not matched in the session
+\param session filter session
+\param fid ID of filter on which to send the update, NULL if filter is set
+\param filter filter on which to send the update, NULL if fid is set
+\param name name of filter option to update
+\param val value of filter option to update
+\param propagate_mask propagation flags - 0 means no propagation
+*/
+
+void gf_fs_send_update(GF_FilterSession *session, const char *fid, GF_Filter *filter, const char *name, const char *val, GF_EventPropagateType propagate_mask);
+
 /*! @} */
 
 
@@ -1691,13 +1713,15 @@ struct __gf_filter_register
 	*/
 	void (*finalize)(GF_Filter *filter);
 
-	/*! optional - callback for arguments update. If GF_OK is returned, the stack is updated accordingly
-	if function is NULL, all updatable arguments will be changed in the stack without the filter being notified
+	/*! optional - callback for arguments update. If GF_OK is returned, the filter private stack is updated accordingly.
+	If function is NULL, all updatable arguments will be changed in the filter private stack without the filter being notified.
+	If argument is a meta argument, it is the filter responsability to handle the update, as meta arguments do not live on the filter provate stack.
+	If the filter is a meta filter and argument is not declared in the argument list, the function is always called.
 
 	\param filter the target filter
 	\param arg_name the name of the argument being set
 	\param new_val the value of the argument being set
-	\return error if any.
+	\return error if any, GF_NOT_FOUND to silently disable argument value change.
 	*/
 	GF_Err (*update_arg)(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val);
 
@@ -2115,15 +2139,6 @@ This is a recursive call on both input and ouput chain
 \param propentry the property reference object to be released
 */
 void gf_filter_release_property(GF_PropertyEntry *propentry);
-
-/*! Flags for argument update event*/
-typedef enum
-{
-	/*! the update event can be sent down the source chain*/
-	GF_FILTER_UPDATE_DOWNSTREAM = 1<<1,
-	/*! the update event can be sent up the filter chain*/
-	GF_FILTER_UPDATE_UPSTREAM = 1<<2,
-} GF_EventPropagateType;
 
 /*! Sends a filter argument update
 \param filter the target filter

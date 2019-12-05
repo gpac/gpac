@@ -1929,6 +1929,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 }
 
 
+GF_EXPORT
 void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filter, const char *name, const char *val, GF_EventPropagateType propagate_mask)
 {
 	GF_FilterUpdate *upd;
@@ -1939,13 +1940,19 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 
 	if (!filter) {
+		GF_Filter *reg_filter = NULL;
 		count = gf_list_count(fsess->filters);
 		for (i=0; i<count; i++) {
 			filter = gf_list_get(fsess->filters, i);
 			if (filter->id && !strcmp(filter->id, fid)) {
 				break;
 			}
+			if (!reg_filter && !strcmp(filter->freg->name, fid))
+				reg_filter = filter;
+			filter = NULL;
 		}
+		if (!filter)
+			filter = reg_filter;
 	}
 
 	removed = (!filter || filter->removed || filter->finalized) ? GF_TRUE : GF_FALSE;
@@ -1954,8 +1961,16 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 	if (removed) return;
 
 	GF_SAFEALLOC(upd, GF_FilterUpdate);
-	upd->name = gf_strdup(name);
-	upd->val = gf_strdup(val);
+	if (!val) {
+		char *sep = strchr(name, fsess->sep_args);
+		if (sep) sep[0] = 0;
+		upd->name = gf_strdup(name);
+		upd->val = sep ? gf_strdup(sep+1) : NULL;
+		if (sep) sep[0] = fsess->sep_args;
+	} else {
+		upd->name = gf_strdup(name);
+		upd->val = gf_strdup(val);
+	}
 	upd->recursive = propagate_mask;
 	gf_fs_post_task(fsess, gf_filter_update_arg_task, filter, NULL, "update_arg", upd);
 }

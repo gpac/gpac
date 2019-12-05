@@ -793,13 +793,19 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 		GF_PropertyValue argv;
 		const GF_FilterArgs *a = &task->filter->freg->args[i];
 		i++;
+		Bool is_meta = GF_FALSE;
 		if (!a || !a->arg_name) break;
 
-		if (strcmp(a->arg_name, arg->name))
+		if ((a->flags & GF_FS_ARG_META) && !strcmp(a->arg_name, "*")) {
+			if (!task->filter->freg->update_arg)
+				continue;
+			is_meta = GF_TRUE;
+		} else if (strcmp(a->arg_name, arg->name)) {
 			continue;
+		}
 
 		found = GF_TRUE;
-		if (! (a->flags & GF_FS_ARG_UPDATE) ) {
+		if (!is_meta && ! (a->flags & GF_FS_ARG_UPDATE) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is not updatable - ignoring\n", a->arg_name, task->filter->name));
 			break;
 		}
@@ -814,8 +820,9 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 				e = task->filter->freg->update_arg(task->filter, arg->name, &argv);
 			}
 			if (e==GF_OK) {
-				gf_filter_set_arg(task->filter, a, &argv);
-			} else {
+				if (!is_meta)
+					gf_filter_set_arg(task->filter, a, &argv);
+			} else if (e!=GF_NOT_FOUND) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s did not accept update of arg %s to value %s: %s\n", task->filter->name, arg->name, arg->val, gf_error_to_string(e) ));
 			}
 		} else {
@@ -1196,6 +1203,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 					} else if (filter->freg->update_arg) {
 						FSESS_CHECK_THREAD(filter)
 						filter->freg->update_arg(filter, a->arg_name, &argv);
+						opaque_arg = GF_FALSE;
 
 						if ((argv.type==GF_PROP_STRING) && argv.value.string)
 							gf_free(argv.value.string);

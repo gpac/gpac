@@ -316,11 +316,11 @@ GF_Err dvblin_initialize(GF_Filter *filter)
 	e = dvblin_setup_demux(ctx);
 
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[DVBLinux] Failed to open %s\n", ctx->src));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[DVBLinux] Failed to open %s\n", ctx->src));
 		gf_filter_setup_failure(filter, e);
 		return GF_URL_ERROR;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[DVBLinux] opening %s\n", ctx->src));
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[DVBLinux] opening %s\n", ctx->src));
 
 	ctx->block = gf_malloc(ctx->block_size +1);
 	return GF_OK;

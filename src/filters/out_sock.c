@@ -176,7 +176,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 
 	ctx->socket = gf_sk_new(sock_type);
 	if (! ctx->socket ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[SockOut] Failed to open socket for %s\n", ctx->dst));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] Failed to open socket for %s\n", ctx->dst));
 		return GF_IO_ERR;
 	}
 

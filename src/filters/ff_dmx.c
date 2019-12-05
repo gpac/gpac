@@ -635,7 +635,7 @@ GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
 	.version=LIBAVFORMAT_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG demuxer")
-	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on demuxers options")
+	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details")
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFDmxCaps),
 	.initialize = ffdmx_initialize,
@@ -890,7 +890,7 @@ GF_FilterRegister FFAVInRegister = {
 		"`Capture screen 0` on OSX (0=first screen), or `screenN` for short\n"\
 		"X display name (eg `:0.0`) on linux"\
 		"\n"\
-		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on capture devices options")
+		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details")
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFAVInCaps),
 	.initialize = ffavin_initialize,

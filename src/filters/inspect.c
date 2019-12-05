@@ -2040,7 +2040,7 @@ GF_Err inspect_initialize(GF_Filter *filter)
 	else {
 		ctx->dump = gf_fopen(ctx->log, "wt");
 		if (!ctx->dump) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[Inspec] Failed to open file %s\n", ctx->log));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Inspec] Failed to open file %s\n", ctx->log));
 			return GF_IO_ERR;
 		}
 	}
@@ -2081,7 +2081,7 @@ static Bool inspect_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 #define OFFS(_n)	#_n, offsetof(GF_InspectCtx, _n)
 static const GF_FilterArgs InspectArgs[] =
 {
-	{ OFFS(log), "set inspect log filename", GF_PROP_STRING, "stderr", "fileName or stderr or stdout", 0},
+	{ OFFS(log), "set inspect log filename", GF_PROP_STRING, "stderr", "fileName, stderr or stdout", 0},
 	{ OFFS(mode), "dump mode\n"
 	"- pck: dump full packet\n"
 	"- blk: dump packets before reconstruction\n"
@@ -2148,23 +2148,23 @@ const GF_FilterRegister InspectRegister = {
 				"- crc: 32 bit CRC of packet\n"\
 				"- lf: insert linefeed\n"\
 				"- cr: insert carriage return\n"\
-				"- data: hex dump of packet - WARNING, THIS IS BIG !!\n"\
+				"- data: hex dump of packet (** WARNING, BIG OUTPUT !! **)\n"\
 				"- lp: leading picture flag\n"\
 				"- depo: depends on other packet flag\n"\
 				"- depf: is depended on other packet flag\n"\
 				"- red: redundant coding flag\n"\
-				"- ck: clock type (used for PCR discontinuities)\n"\
-	 			"- Property name or 4cc.\n"\
-				"- pid.P4CC: PID property 4CC\n"\
-				"- pid.PropName: PID property name\n"\
+				"- ck: clock type used for PCR discontinuities\n"\
+	 			"- P4CC: 4CC of packet property\n"\
+	 			"- PropName: Name of packet property\n"\
+	 			"- pid.P4CC: 4CC of PID property\n"\
+	 			"- pid.PropName: Name of PID property\n"\
 	 			"\n"\
 	 			"EX fmt=\"PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$\"\n"
 	 			"This dumps packet number, cts and dts as follows: `\"PID 1 packet 10 DTS 100 CTS 108 \\n\"`\n"\
 	 			"  \n"\
 	 			"An unrecognized keywork or missing property will resolve to an empty string.\n"\
 	 			"\n"\
-	 			"Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original "
-	 			" sequence order since the inspector fetches one packet at a time on each PID.\n")
+	 			"Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original sequence order since the inspector fetches one packet at a time on each PID.\n")
 	.private_size = sizeof(GF_InspectCtx),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,

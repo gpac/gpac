@@ -51,6 +51,7 @@ enum{
 	FF_REG_TYPE_DEV_IN,
 	FF_REG_TYPE_ENCODE,
 	FF_REG_TYPE_MUX,
+	FF_REG_TYPE_AVF,
 };
 
 void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type);

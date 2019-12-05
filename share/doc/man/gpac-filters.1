@@ -78,7 +78,7 @@ When the option is not present, all properties are dumped. Otherwise, only prope
 .br
 * cr: insert carriage return
 .br
-* data: hex dump of packet - WARNING, THIS IS BIG !!
+* data: hex dump of packet ( WARNING, BIG OUTPUT !! )
 .br
 * lp: leading picture flag
 .br
@@ -88,13 +88,15 @@ When the option is not present, all properties are dumped. Otherwise, only prope
 .br
 * red: redundant coding flag
 .br
-* ck: clock type (used for PCR discontinuities)
+* ck: clock type used for PCR discontinuities
 .br
-- Property name or 4cc.
+* P4CC: 4CC of packet property
 .br
-* pid.P4CC: PID property 4CC
+* PropName: Name of packet property
 .br
-* pid.PropName: PID property name
+* pid.P4CC: 4CC of PID property
+.br
+* pid.PropName: Name of PID property
 .br
 
 .br
@@ -112,7 +114,7 @@ An unrecognized keywork or missing property will resolve to an empty string.
 .br
 
 .br
-Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original  sequence order since the inspector fetches one packet at a time on each PID.
+Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original sequence order since the inspector fetches one packet at a time on each PID.
 .br
 
 .br
@@ -121,7 +123,7 @@ Note: when dumping in interleaved mode, there is no guarantee that the packets w
 .SH Options (expert):
 .LP
 .br
-log (string, default: stderr, minmax: fileName or stderr or stdout): set inspect log filename
+log (string, default: stderr, minmax: fileName, stderr or stdout): set inspect log filename
 .br
 mode (enum, default: pck):               dump mode
 .br
@@ -195,7 +197,7 @@ The filter does not produce any output nor feedback, it is up to the app develop
 .SH Options (expert):
 .LP
 .br
-log (string, default: stderr, minmax: fileName or stderr or stdout): set inspect log filename
+log (string, default: stderr, minmax: fileName, stderr or stdout): set inspect log filename
 .br
 mode (enum, default: pck):               dump mode
 .br
@@ -4273,7 +4275,7 @@ Version: Lavf58.35.100
 .br
 
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on demuxers options
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
 .br
 
 .br
@@ -4295,7 +4297,7 @@ Version: Lavc58.62.100
 .br
 
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on decoder options
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
 .br
 
 .br
@@ -4329,7 +4331,7 @@ Capture screen 0 on OSX (0=first screen), or screenN for short
 .br
 X display name (eg :0.0) on linux
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on capture devices options
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
 .br
 
 .br
@@ -4377,7 +4379,7 @@ For gauss -p1 tunes the exponent and thus cutoff frequency
 .br
 For lanczos -p1 tunes the width of the window function
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on rescaler options
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
 .br
 
 .br
@@ -4407,7 +4409,7 @@ Version: Lavc58.62.100
 .br
 
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on encoder options
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
 .br
 Note: if no codec is explicited through -ffc option and no pixel format is given, codecs will be enumerated to find a matching pixel format.
 .br
@@ -4443,7 +4445,7 @@ Version: Lavf58.35.100
 .br
 
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on muxer options
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
 .br
 
 .br
@@ -4464,7 +4466,130 @@ mime (string):                           set mime type for graph resolution
 .br
 ffiles (boolean, default: false):        force complete files to be created for each segment in DASH modes
 .br
-* (string):                              any possible options defined for AVFormatContext and sub-classes. See gpac -hx ffdec and gpac -hx ffdec:*
+* (string):                              any possible options defined for AVFormatContext and sub-classes. See gpac -hx ffmx and gpac -hx ffmx:*
+.br
+
+.br
+.SH ffavf
+.LP
+.br
+Description: FFMPEG AVFilter
+.br
+Version: Lavf58.35.100
+.br
+
+.br
+This filter provides libavfilter raw audio and video tools. See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
+.br
+
+.br
+.SH Declaring a filter
+.LP
+.br
+The filter loads a filter or a filter chain description from the -f option.
+.br
+Example
+.br
+ffavf:f=showspectrum
+.br
+
+.br
+
+.br
+Unlike other FFMPEG bindings in GPAC, this filter does not parse other libavfilter options, you must specify them directly in the filter chain, and the -f option will have to be escaped.
+.br
+Example
+.br
+ffavf::f=showspectrum=size=320x320 or ffavf::f=showspectrum=size=320x320::pfmt=rgb
+.br
+
+.br
+
+.br
+The filter will automatically create buffer and buffersink AV filters for data exchange between GPAC and libavfilter.
+.br
+The builtin options ( -pfmt, -afmt ...) can be used to configure the buffersink filter to set the output format of the filter.
+.br
+
+.br
+.SH Naming of PIDs
+.LP
+.br
+For simple filter graphs with only one input and one output, the input PID is assigned the avfilter name in and the output PID is assigned the avfilter name out
+.br
+
+.br
+When a graph has several inputs, input PID names shall be assigned by the user using the ffid property, and mapping must be done in the filter.
+.br
+Example
+.br
+src=video:#ffid=a src=logo:#ffid=b ffavf::f=[a][b]overlay=main_w-overlay_w-10:main_h-overlay_h-10
+.br
+
+.br
+In this example:
+.br
+- the video source is identified as a
+.br
+- the logo source is identified as b
+.br
+- the filter declaration maps a to its first input (in this case, main video) and b to its second input (in this case the overlay)
+.br
+
+.br
+When a graph has several outputs, output PIDs will be identified using the ffid property set to the output avfilter name.
+.br
+Example
+.br
+src=source ffavf::f=split inspect:SID=#ffid=out0 vout#SID=out1
+.br
+
+.br
+In this example:
+.br
+- the spliter produces 2 video streams out0 and out1
+.br
+- the inspecter only process stream with ffid out0
+.br
+- the video output only displays stream with ffid out1
+.br
+
+.br
+The name(s) of the final output of the avfilter graph cannot be configured in GPAC. You can however name intermediate output(s) in a complex filter chain as usual.
+.br
+
+.br
+.SH Filter graph commands
+.LP
+.br
+The filter handles option updates as commands passed to the AV filter graph. The syntax expected in the option name is:
+.br
+* com_name=value: sends command com_name with value value to all filters
+.br
+* name#com_name=value: sends command com_name with value value to filter named name
+.br
+
+.br
+
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+f (string):                              filter or filter chain description - see filter help
+.br
+pfmt (pixel format, default: none):      pixel format of output. If not set, let AVFilter decide
+.br
+afmt (audio format, default: none):      audio format of output. If not set, let AVFilter decide
+.br
+sr (unsigned int, default: 0):           sample rate of output. If not set, let AVFilter decide
+.br
+ch (unsigned int, default: 0):           number of channels of output. If not set, let AVFilter decide
+.br
+dump (boolean, default: false, updatable): dump graph as log madia@info or stderr if not set
+.br
+* (string):                              any possible options defined for AVFilter and sub-classes. See gpac -hx ffavf and gpac -hx ffavf:*
 .br
 
 .br
@@ -4535,7 +4660,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev2974-g04439353e-filters
+build: 0.9.0-DEV-rev2981-gfe63a4cdd-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

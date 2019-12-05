@@ -642,17 +642,6 @@ static void gpac_config_help()
 #endif
 }
 
-static void gpac_fsess_task_help()
-{
-	fprintf(stderr, "Available runtime options/keys:\n"
-		"q: flushes all streams and exit\n"
-		"x: exit with no flush (may break output files)\n"
-		"s: prints statistics\n"
-		"g: prints filter graph\n"
-		"h: prints this screen\n"
-	);
-}
-
 
 static Bool logs_to_file=GF_FALSE;
 
@@ -840,29 +829,93 @@ static Bool gpac_event_proc(void *opaque, GF_Event *event)
 	return GF_FALSE;
 }
 
+
+typedef enum
+{
+	GPAC_QUIT = 0,
+	GPAC_EXIT,
+	GPAC_PRINT_STATS,
+	GPAC_PRINT_GRAPH,
+	GPAC_SEND_UPDATE,
+	GPAC_PRINT_HELP
+} GPAC_Command;
+
+struct _gpac_key
+{
+	u8 char_code;
+	GPAC_Command cmd_type;
+	const char *cmd_help;
+	u32 flags;
+} GPAC_Keys[] = {
+	{'q', GPAC_QUIT, "flush all streams and exit", 0},
+	{'x', GPAC_EXIT, "exit with no flush (may break output files)", 0},
+	{'s', GPAC_PRINT_STATS, "print statistics", 0},
+	{'g', GPAC_PRINT_GRAPH, "print filter graph", 0},
+	{'u', GPAC_SEND_UPDATE, "update argument in filter(s)", 0},
+	{'h', GPAC_PRINT_HELP, "print this help", 0},
+	{0}
+};
+
+static GPAC_Command get_cmd(u8 char_code)
+{
+	u32 i=0;
+	while (GPAC_Keys[i].char_code) {
+		if (GPAC_Keys[i].char_code == char_code)
+			return GPAC_Keys[i].cmd_type;
+		i++;
+	}
+	return 0;
+}
+
+static void gpac_fsess_task_help()
+{
+	fprintf(stderr, "Available runtime options/keys:\n");
+
+	u32 i=0;
+	while (GPAC_Keys[i].char_code) {
+		fprintf(stderr, "%c: %s\n", GPAC_Keys[i].char_code, GPAC_Keys[i].cmd_help);
+		i++;
+	}
+}
+
+char szFilter[100];
+char szCom[2048];
 static u64 run_start_time = 0;
 static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 {
 
 	if (enable_prompt && gf_prompt_has_input()) {
-		char c = gf_prompt_get_char();
+		GPAC_Command c = get_cmd(gf_prompt_get_char());
 		switch (c) {
-		case 'q':
+		case GPAC_QUIT:
 			gf_fs_abort(fsess, GF_TRUE);
 			nb_loops = 0;
 			return GF_FALSE;
-		case 'x':
+		case GPAC_EXIT:
 			gf_fs_abort(fsess, GF_FALSE);
 			nb_loops = 0;
 			return GF_FALSE;
-		case 's':
+		case GPAC_PRINT_STATS:
 			gf_fs_print_stats(fsess);
 			break;
-		case 'g':
+		case GPAC_PRINT_GRAPH:
 			gf_fs_print_connections(fsess);
 			break;
-		case 'h':
+		case GPAC_PRINT_HELP:
 			gpac_fsess_task_help();
+			break;
+		case GPAC_SEND_UPDATE:
+			fprintf(stderr, "Sending filter update - enter the target filter ID or press enter for any:\n");
+			if (1 > scanf("%99s", szFilter)) {
+				fprintf(stderr, "Cannot read the filter ID, aborting.\n");
+				break;
+			}
+			fprintf(stderr, "Enter the command to send\n");
+			if (1 > scanf("%2047s", szCom)) {
+				fprintf(stderr, "Cannot read the command, aborting.\n");
+				break;
+			}
+			gf_fs_send_update(fsess, szFilter, NULL, szCom, NULL, 0);
 			break;
 		default:
 			break;

@@ -461,7 +461,7 @@ u8 *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_
 		gf_filter_pid_try_pull(mo->odm->pid);
 	}
 	if (!retry_pull && (force_decode_mode==1)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[ODM%d] At %d could not force a pull from pid - POTENTIAL blank frame after TS %u\n", mo->odm->ID, gf_clock_time(mo->odm->ck), mo->timestamp));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not force a pull from pid - POTENTIAL blank frame after TS %u\n", mo->odm->ID, gf_clock_time(mo->odm->ck), mo->timestamp));
 	}
 
 	/*resync*/
