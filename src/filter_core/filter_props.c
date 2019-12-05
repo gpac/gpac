@@ -272,7 +272,18 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:
 		p.type=GF_PROP_STRING;
-		p.value.string = value ? gf_strdup(value) : NULL;
+		if (!strnicmp(value, "file@", 5) ) {
+			u8 *data;
+			u32 len;
+			GF_Err e = gf_file_load_data(value+5, (u8 **) &data, &len);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot load data from file %s\n", value+5));
+			} else {
+				p.value.string = data;
+			}
+		} else {
+			p.value.string = value ? gf_strdup(value) : NULL;
+		}
 		break;
 	case GF_PROP_DATA:
 	case GF_PROP_CONST_DATA:
@@ -363,7 +374,19 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			nv = gf_malloc(sizeof(char)*(len+1));
 			strncpy(nv, v, sizeof(char)*len);
 			nv[len] = 0;
-			gf_list_add(p.value.string_list, nv);
+			if (!strnicmp(nv, "file@", 5) ) {
+				u8 *data;
+				u32 len;
+				GF_Err e = gf_file_load_data(nv+5, (u8 **) &data, &len);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot load data from file %s\n", nv+5));
+				} else {
+					gf_list_add(p.value.string_list, data);
+				}
+				gf_free(nv);
+			} else {
+				gf_list_add(p.value.string_list, nv);
+			}
 			if (!sep) break;
 			v = sep+1;
 		}
