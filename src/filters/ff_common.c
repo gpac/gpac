@@ -878,7 +878,15 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 					for (k=0; k<idx; k++) {
 						const struct AVOption *an_opt = &av_class->option[k];
 						if (an_opt && an_opt->unit && !strcmp(opt->unit, an_opt->unit)) {
-							is_first=GF_FALSE;
+							//patch some broken AVClass where the option name declaring the option unit is not declared first
+							u32 l;
+							for (l=0; l<k; l++) {
+								const struct AVOption *par_opt = &av_class->option[l];
+								if (!strcmp(par_opt->name, an_opt->name)) {
+									is_first=GF_FALSE;
+									break;
+								}
+							}
 							break;
 						}
 					}
@@ -956,7 +964,7 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type)
 {
 	GF_FilterArgs *args;
-	u32 i=0, idx=0;
+	u32 i=0, idx=0, nb_args;
 	const struct AVOption *opt;
 	u32 opt_type = AV_OPT_FLAG_DECODING_PARAM;
 	Bool load_meta_filters = session ? GF_TRUE : GF_FALSE;
@@ -1006,7 +1014,15 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 				for (k=0; k<idx; k++) {
 					const struct AVOption *an_opt = &av_class->option[k];
 					if (an_opt && an_opt->unit && !strcmp(opt->unit, an_opt->unit)) {
-						is_first=GF_FALSE;
+						//patch some broken AVClass where the option name declaring the option unit is not declared first
+						u32 l;
+						for (l=0; l<k; l++) {
+							const struct AVOption *par_opt = &av_class->option[l];
+							if (!strcmp(par_opt->name, an_opt->name)) {
+								is_first=GF_FALSE;
+								break;
+							}
+						}
 						break;
 					}
 				}
@@ -1018,8 +1034,9 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 	}
 	i += nb_def_args;
 
-	args = gf_malloc(sizeof(GF_FilterArgs)*(i+1));
-	memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
+	nb_args = i+1;
+	args = gf_malloc(sizeof(GF_FilterArgs)*nb_args);
+	memset(args, 0, sizeof(GF_FilterArgs)*nb_args);
 	orig_reg->args = args;
 
 	for (i=0; i<nb_def_args-1; i++) {
@@ -1033,6 +1050,7 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 		if (!opt || !opt->name) break;
 
 		if (opt->flags & opt_type) {
+
 			if (opt->unit) {
 				u32 k;
 				const char *opt_name = NULL;
@@ -1080,7 +1098,13 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 					idx++;
 					continue;
 				}
+				if (0 && opt_name) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFMPEG] arg %s unit %s assigned to arg %s in AVClass but no parent argument defined, not adding to registry!\n", opt->name, opt_name, opt->unit));
+					idx++;
+					continue;
+				}
 			}
+			assert(nb_args>i);
 			args[i] = ffmpeg_arg_translate(opt);
 			i++;
 		}
