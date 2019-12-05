@@ -6858,7 +6858,11 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID trackID, const ch
 	u32 box_data_size;
 	if (!file || !box_patch_filename) return GF_BAD_PARAM;
 	dom = gf_xml_dom_new();
-	e = gf_xml_dom_parse(dom, box_patch_filename, NULL, NULL);
+	if (strstr(box_patch_filename, "<?xml")) {
+		e = gf_xml_dom_parse_string(dom, (char *) box_patch_filename);
+	} else {
+		e = gf_xml_dom_parse(dom, box_patch_filename, NULL, NULL);
+	}
 	if (e) goto err_exit;
 
 	root = gf_xml_dom_get_root(dom);
