@@ -2423,15 +2423,12 @@ static JSValue event_getProperty(JSContext *c, JSValueConst obj, int magic)
 		_class.class.finalizer = _finalize;\
 		JS_NewClass(jsrt, _class.class_id, &(_class.class));\
 	}\
-	proto = JS_UNDEFINED;\
-	if (_proto_funcs) { \
-		proto = JS_NewObjectClass(c, _proto_class_id ? _proto_class_id : _class.class_id);\
+	proto = JS_NewObjectClass(c, _proto_class_id ? _proto_class_id : _class.class_id);\
     	JS_SetPropertyFunctionList(c, proto, _proto_funcs, countof(_proto_funcs));\
     	JS_SetClassProto(c, _class.class_id, proto);\
     	if (_construct) {\
-			JSValue ctor = JS_NewCFunction2(c, _construct, _name, 1, JS_CFUNC_constructor, 0);\
+		JSValue ctor = JS_NewCFunction2(c, _construct, _name, 1, JS_CFUNC_constructor, 0);\
     		JS_SetPropertyStr(c, global, _name, ctor);\
-		}\
 	}\
 
 

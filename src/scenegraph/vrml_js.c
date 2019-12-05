@@ -206,7 +206,7 @@ int qjs_module_set_import_meta(JSContext *ctx, JSValueConst func_val, Bool use_r
     	JS_FreeCString(ctx, module_name);
         return -1;
     }
-    JS_DefinePropertyValueStr(ctx, meta_obj, "url", JS_NewString(ctx, module_name), JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, meta_obj, "url", JS_NewString(ctx, src_file), JS_PROP_C_W_E);
     JS_DefinePropertyValueStr(ctx, meta_obj, "main", JS_NewBool(ctx, is_main), JS_PROP_C_W_E);
     JS_FreeCString(ctx, module_name);
     JS_FreeValue(ctx, meta_obj);
@@ -506,7 +506,7 @@ static GFINLINE GF_ScriptPriv *JS_GetScriptStack(JSContext *c)
 	return script->sgprivate->UserPrivate;
 }
 
-static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 ltool, Bool is_error)
+static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 ltool, u32 error_type)
 {
     int i=0;
     u32 logl = GF_LOG_INFO;
@@ -518,7 +518,7 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 		JS_ToInt32(ctx, &logl, argv[0]);
 		i=1;
 	}
-	if (is_error)
+	if (error_type)
 		logl = GF_LOG_ERROR;
 	g = JS_GetGlobalObject(ctx);
 	v = JS_GetPropertyStr(ctx, g, "_gpac_log_name");
@@ -531,9 +531,9 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	JS_FreeValue(ctx, g);
 
 #ifndef GPAC_DISABLE_LOG
- 	GF_LOG(logl, ltool, ("[%s] ", log_name));
+ 	GF_LOG(logl, ltool, ("[%s] %s", log_name, (error_type==2) ? "Throw " : ""));
 #else
- 	fprintf(stderr, "[%s] ", log_name);
+ 	fprintf(stderr, "[%s] %s", log_name, (error_type==2) ? "Throw " : "");
 #endif
     for (; i < argc; i++) {
         str = JS_ToCString(ctx, argv[i]);
@@ -564,13 +564,13 @@ void js_dump_error(JSContext *ctx)
     JSValue exception_val, val;
     const char *stack;
     Bool is_error;
-	const char *exc = "";
+	u32 err_type = 1;
     exception_val = JS_GetException(ctx);
     is_error = JS_IsError(ctx, exception_val);
-    if (!is_error)
-        exc = "Throw: ";
+    if (!is_error) err_type = 2;
 
-    js_print_ex(ctx, JS_NULL, 1, (JSValueConst *)&exception_val, GF_LOG_SCRIPT, GF_TRUE);
+
+    js_print_ex(ctx, JS_NULL, 1, (JSValueConst *)&exception_val, GF_LOG_SCRIPT, err_type);
 
     if (is_error) {
         val = JS_GetPropertyStr(ctx, exception_val, "stack");
@@ -3160,14 +3160,12 @@ static void field_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_fun
 		_class.class.gc_mark = field_gc_mark;\
 		JS_NewClass(js_rt->js_runtime, _class.class_id, &(_class.class));\
 	}\
-	if (_proto_funcs) { \
-		JSValue _proto_obj = JS_NewObjectClass(sc->js_ctx, _class.class_id);\
+	{ \
+	JSValue _proto_obj = JS_NewObjectClass(sc->js_ctx, _class.class_id);\
     	JS_SetPropertyFunctionList(sc->js_ctx, _proto_obj, _proto_funcs, countof(_proto_funcs));\
     	JS_SetClassProto(sc->js_ctx, _class.class_id, _proto_obj);\
-    	if (_construct) {\
-			sc->_class = JS_NewCFunction2(sc->js_ctx, _construct, _name, 1, JS_CFUNC_constructor, 0);\
-    		JS_SetPropertyStr(sc->js_ctx, sc->js_obj, _name, sc->_class);\
-		}\
+	sc->_class = JS_NewCFunction2(sc->js_ctx, _construct, _name, 1, JS_CFUNC_constructor, 0);\
+	JS_SetPropertyStr(sc->js_ctx, sc->js_obj, _name, sc->_class);\
 	}\
 
 static void vrml_js_init_api(GF_ScriptPriv *sc, GF_Node *script)

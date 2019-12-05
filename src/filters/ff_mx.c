@@ -30,6 +30,14 @@
 #include "ff_common.h"
 #include <gpac/network.h>
 
+#if (LIBAVFORMAT_VERSION_MAJOR <= 56)
+#undef GPAC_HAS_FFMPEG
+#endif
+
+#endif
+
+#ifdef GPAC_HAS_FFMPEG
+
 typedef struct
 {
 	AVStream *stream;
