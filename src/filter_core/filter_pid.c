@@ -3155,6 +3155,9 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 			GF_PropertyValue p;
 			if (!strncmp(eq+1, "bxml@", 5)) {
 				p = gf_props_parse_value(GF_PROP_DATA_NO_COPY, name, eq+1, NULL, pid->filter->session->sep_list);
+			} else if (!strncmp(eq+1, "file@", 5)) {
+				p = gf_props_parse_value(GF_PROP_STRING, name, eq+1, NULL, pid->filter->session->sep_list);
+				p.type = GF_PROP_STRING_NO_COPY;
 			} else {
 				memset(&p, 0, sizeof(GF_PropertyValue));
 				p.type = GF_PROP_STRING;
