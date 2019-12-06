@@ -767,12 +767,12 @@ static GF_Config *gf_cfg_init(const char *profile)
 
 	if (profile && (strchr(profile, '/') || strchr(profile, '\\')) ) {
 		if (!gf_file_exists(profile)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Config file %s does not exist\n", profile));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Config file %s does not exist\n", profile));
 			return NULL;
 		}
 		cfg = gf_cfg_new(NULL, profile);
 		if (!cfg) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to load existing config file %s\n", profile));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Failed to load existing config file %s\n", profile));
 			return NULL;
 		}
 		check_modules_dir(cfg);
@@ -780,7 +780,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 	}
 
 	if (!get_default_install_path(szPath, GF_PATH_CFG)) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Fatal error: Cannot create global config  file in application or user home directory - no write access\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] Fatal error: Cannot create global config file in application or user home directory - no write access\n"));
 		return NULL;
 	}
 
@@ -790,19 +790,38 @@ static GF_Config *gf_cfg_init(const char *profile)
 	}
 
 	cfg = gf_cfg_new(szPath, CFG_FILE_NAME);
-	if (!cfg) {
+	//config file not compatible with old arch, check it:
+	if (cfg) {
+		u32 nb_old_sec = gf_cfg_get_key_count(cfg, "Compositor");
+		nb_old_sec += gf_cfg_get_key_count(cfg, "MimeTypes");
+		nb_old_sec += gf_cfg_get_key_count(cfg, "Video");
+		nb_old_sec += gf_cfg_get_key_count(cfg, "Audio");
+		nb_old_sec += gf_cfg_get_key_count(cfg, "Systems");
+		if (! gf_cfg_get_key_count(cfg, "core"))
+			nb_old_sec += 1;
+
+		if (nb_old_sec) {
+			if (!profile || strcmp(profile, "0")) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[core] Incompatible (0.8.0 or older) config file %s found in %s - creating new file\n", CFG_FILE_NAME, szPath ));
+			}
+			gf_cfg_del(cfg);
+			cfg = create_default_config(szPath, profile);
+		}
+	}
+	//no config file found
+	else {
 		if (!profile || strcmp(profile, "0")) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("GPAC config file %s not found in %s - creating new file\n", CFG_FILE_NAME, szPath ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] Config file %s not found in %s - creating new file\n", CFG_FILE_NAME, szPath ));
 		}
 		cfg = create_default_config(szPath, profile);
 	}
 	if (!cfg) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Cannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath));
 		return NULL;
 	}
 
 #ifndef GPAC_CONFIG_IOS
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Using global config file in %s directory\n", szPath));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[core] Using global config file in %s directory\n", szPath));
 #endif
 
 	check_modules_dir(cfg);
