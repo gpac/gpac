@@ -2344,6 +2344,7 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 	u32 i, j, count, nb_js_caps;
 	GF_List *sources, *sinks;
 	GF_FilterRegister loaded_freg;
+	Bool has_output, has_input;
 
 	js_filter = gf_fs_load_filter(session, filter_name, &e);
 	if (!js_filter) return;
@@ -2359,6 +2360,9 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 	memset(&loaded_freg, 0, sizeof(GF_FilterRegister));
 	loaded_freg.caps = js_filter->forced_caps;
 	loaded_freg.nb_caps = js_filter->nb_forced_caps;
+
+	has_output = gf_filter_has_out_caps(js_filter->forced_caps, js_filter->nb_forced_caps);
+	has_input = gf_filter_has_in_caps(js_filter->forced_caps, js_filter->nb_forced_caps);
 
 	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
 	sources = gf_list_new();
@@ -2380,12 +2384,12 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 				s32 bundle_idx;
 				u32 loaded_filter_only_flags = 0;
 				u32 path_weight;
-				if (!src_match) {
+				if (has_input && !src_match) {
 					path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) &loaded_freg, NULL, &bundle_idx, l, &loaded_filter_only_flags, &capstore);
 					if (path_weight && (bundle_idx == l))
 						src_match = GF_TRUE;
 				}
-				if (!sink_match) {
+				if (has_output && !sink_match) {
 					loaded_filter_only_flags = 0;
 					path_weight = gf_filter_caps_to_caps_match(&loaded_freg, l, a_reg->freg, NULL, &bundle_idx, k, &loaded_filter_only_flags, &capstore);
 

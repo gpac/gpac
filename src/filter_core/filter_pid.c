@@ -1707,18 +1707,32 @@ u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps)
 	return nb_bundles;
 }
 
-
-Bool gf_filter_has_out_caps(const GF_FilterCapability *caps, u32 nb_caps)
+static Bool gf_filter_has_in_out_caps(const GF_FilterCapability *caps, u32 nb_caps, Bool check_in)
 {
 	u32 i;
 	//check all input caps of dst filter, count bundles
 	for (i=0; i<nb_caps; i++) {
-		const GF_FilterCapability *out_cap = &caps[i];
-		if (out_cap->flags & GF_CAPFLAG_OUTPUT) {
-			return GF_TRUE;
+		const GF_FilterCapability *a_cap = &caps[i];
+		if (check_in) {
+			if (a_cap->flags & GF_CAPFLAG_INPUT) {
+				return GF_TRUE;
+			}
+		} else {
+			if (a_cap->flags & GF_CAPFLAG_OUTPUT) {
+				return GF_TRUE;
+			}
 		}
 	}
 	return GF_FALSE;
+
+}
+Bool gf_filter_has_out_caps(const GF_FilterCapability *caps, u32 nb_caps)
+{
+	return gf_filter_has_in_out_caps(caps, nb_caps, GF_FALSE);
+}
+Bool gf_filter_has_in_caps(const GF_FilterCapability *caps, u32 nb_caps)
+{
+	return gf_filter_has_in_out_caps(caps, nb_caps, GF_TRUE);
 }
 
 u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore)
