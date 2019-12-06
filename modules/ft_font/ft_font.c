@@ -305,11 +305,14 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 static GF_Err ft_init_font_engine(GF_FontReader *dr)
 {
 	const char *sOpt;
+	Bool rescan = GF_FALSE;
 	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
 
 	sOpt = gf_opts_get_key("core", "font-dirs");
-	if (!sOpt) return GF_BAD_PARAM;
-
+	if (!sOpt) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FreeType] No fonts directory indicated!"));
+		return GF_BAD_PARAM;
+	}
 	/*inits freetype*/
 	if (FT_Init_FreeType(&ftpriv->library) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FreeType] Cannot initialize FreeType\n"));
@@ -338,9 +341,15 @@ static GF_Err ft_init_font_engine(GF_FontReader *dr)
 		sep[0] = ',';
 		sOpt = sep+1;
 	}
+	if (!gf_opts_get_key_count("FontCache"))
+		rescan = GF_TRUE;
+	else {
+		sOpt = gf_opts_get_key("core", "rescan-fonts");
+		if (!sOpt || !strcmp(sOpt, "yes") )
+			rescan = GF_TRUE;
+	}
 
-	sOpt = gf_opts_get_key("core", "rescan-fonts");
-	if (!sOpt || !strcmp(sOpt, "yes") )
+	if (rescan)
 		ft_rescan_fonts(dr);
 
 	if (!ftpriv->font_serif) {
