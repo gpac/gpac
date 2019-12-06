@@ -2160,7 +2160,7 @@ const GF_FilterRegister InspectRegister = {
 	 			"- pid.PropName: Name of PID property\n"\
 	 			"\n"\
 	 			"EX fmt=\"PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$\"\n"
-	 			"This dumps packet number, cts and dts as follows: `\"PID 1 packet 10 DTS 100 CTS 108 \\n\"`\n"\
+	 			"This dumps packet number, cts and dts as follows: `PID 1 packet 10 DTS 100 CTS 108 \\n`\n"\
 	 			"  \n"\
 	 			"An unrecognized keywork or missing property will resolve to an empty string.\n"\
 	 			"\n"\

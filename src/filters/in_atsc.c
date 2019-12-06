@@ -363,24 +363,26 @@ GF_FilterRegister ATSCInRegister = {
 	.name = "atscin",
 	GF_FS_SET_DESCRIPTION("ATSC input")
 #ifndef GPAC_DISABLE_DOC
-	.help = "This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.\n"\
-	 "The default behaviour is to populate GPAC HTTP Cache with the recieved files, using \"http://gpatsc/serviceN/\" as service root, N being the ATSC service ID.\n"\
-	 "In [-cache]() mode, repeated files are always send.\n"\
-	"The cached MPD is assigned the following headers:\n"\
-	"- x-dash-atsc: integer value, indicates the ATSC service ID\n"\
-	"- x-dash-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast\n"\
-	"- x-atsc-loop: boolean value, if yes indicates a loop in the service has been detected\n"\
-	"The cached files are assigned the following headers:\n"\
-	"- x-atsc: bollean value, if yes indicates the file comes from an ATSC session\n"\
-	 "\n"\
-	 "This behaviour can be changed by disabling the cache, in which case the filter will output files on a single output pid of type \"file\". "\
+	.help = "This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string `atsc://`.\n"
+	"The default behaviour is to populate GPAC HTTP Cache with the recieved files, using `http://gpatsc/serviceN/` as service root, N being the ATSC service ID.\n"
+	"In [-cache]() mode, repeated files are always send.\n"
+	"  \n"
+	"The cached MPD is assigned the following headers:\n"
+	"- x-dash-atsc: integer value, indicates the ATSC service ID\n"
+	"- x-dash-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast\n"
+	"- x-atsc-loop: boolean value, if yes indicates a loop in the service has been detected\n"
+	"  \n"
+	"The cached files are assigned the following headers:\n"
+	"- x-atsc: boolean value, if yes indicates the file comes from an ATSC session\n"
+	"\n"
+	"This behaviour can be changed by disabling the cache, in which case the filter will output files on a single output pid of type `file`. "
 	"The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not repeated unless requested.\n"
 	"If needed, one pid per TSI can be used rather than a single pid. This avoids mixing files of different mime types on the same pid (e.g. mpd and isobmff).\n"
 #ifdef GPAC_CONFIG_DARWIN
 	"\nOn OSX with VM packet replay you will need to force multicast routing on ATSC 3.0 base multicast\n"
-	"EX: route add -net 224.0.23.60/32 -interface vboxnet0\n"
+	"EX route add -net 224.0.23.60/32 -interface vboxnet0\n"
 	"and on each service multicast:\n"
-	"EX: route add -net 239.255.1.4/32 -interface vboxnet0\n"
+	"EX route add -net 239.255.1.4/32 -interface vboxnet0\n"
 #endif
 	"",
 #endif //GPAC_DISABLE_DOC

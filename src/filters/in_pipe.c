@@ -437,23 +437,22 @@ GF_FilterRegister PipeInRegister = {
 	.name = "pin",
 	GF_FS_SET_DESCRIPTION("pipe input")
 	GF_FS_SET_HELP( "This filter handles generic input pipes (mono-directionnal) in blocking or non blocking mode.\n"\
-		"Input pipes cannot seek\n"\
-		"The associated protocol scheme is pipe:// when loaded as a generic input (eg, -i pipe://URL where URL is a relative or absolute pipe name)\n"\
-		"It can be set to run forever (until the session is closed), ignoring any potential pipe close on the writing side\n"\
+		"Warning: Input pipes cannot seek.\n"\
+		"The associated protocol scheme is `pipe://` when loaded as a generic input (eg, `-i pipe://URL` where URL is a relative or absolute pipe name).\n"\
 		"Data format of the pipe should be specified using extension (either in file name or through [-ext]()) or MIME type through [-mime]().\n"\
 		"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.\n"\
 		"\n"\
-		"On Windows hosts, the default pipe prefix is \"\\\\.\\pipe\\gpac\\\" if no prefix is set \n"\
+		"On Windows hosts, the default pipe prefix is `\\\\.\\pipe\\gpac\\` if no prefix is set \n"\
 		"EX dst=mypipe resolves in \\\\.\\pipe\\gpac\\mypipe\n"\
 		"EX dst=\\\\.\\pipe\\myapp\\mypipe resolves in \\\\.\\pipe\\myapp\\mypipe\n"
-		"Any destination name starting with \\\\ is used as is, with \\ translated in /\n"\
+		"Any destination name starting with `\\\\` is used as is, with `\\` translated in `/`.\n"\
 		"\n"\
-		"Input pipes are created by default in non-blocking mode\n"\
+		"Input pipes are created by default in non-blocking mode.\n"\
 		"\n"\
 		"The pipe input can create the pipe if not found using [-mkp](). On windows hosts, this will create a pipe server.\n"\
-		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction\n"\
+		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction.\n"\
 		"\n"\
-		"Input pipes can be setup to run forever using [-ka](). In this case, end of stream will never be triggered\n"\
+		"Input pipes can be setup to run forever using [-ka](). In this case, any potential pipe close on the writing side and end of stream will only be triggered upon session close.\n"\
 		"This can be useful to pipe raw streams from different process into gpac:\n"\
 		"Receiver side: `gpac -i pipe://mypipe:ext=.264:mkp:ka`\n"\
 		"Sender side: `cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264`"\

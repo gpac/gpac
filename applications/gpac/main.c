@@ -600,7 +600,7 @@ const char *gpac_config =
 "This allows different configurations for different usages and simplifies command line typing.\n"
 "EX gpac -p=foo []\n"
 "This will load configuration from $HOME/.gpac/foo/GPAC.cfg, creating it if needed.\n"
-"By default the configuration file only holds a few system specific options and directories. It is possbible to serialize "
+"By default the configuration file only holds a few system specific options and directories. It is possible to serialize "
 "the entire set of options to the configuration file, using [-wc](GPAC) [-wf](GPAC). This should be avoided as the resulting "
 "configuration file size will be quite large, hence larger memory usage for the applications.\n"
 "The options specified in the configuration file may be overriden by the values in __restrict.cfg__ file located in GPAC share system directory (e.g. /usr/share/gpac), "

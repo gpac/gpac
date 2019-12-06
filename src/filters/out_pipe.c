@@ -481,18 +481,18 @@ GF_FilterRegister PipeOutRegister = {
 	.name = "pout",
 	GF_FS_SET_DESCRIPTION("pipe output")
 	GF_FS_SET_HELP("This filter handles generic output pipes (mono-directionnal) in blocking mode only.\n"\
-		"Output pipes do not currently support non blocking mode\n"\
-		"The assoicated protocol scheme is pipe:// when loaded as a generic output (eg, -o pipe://URL where URL is a relative or absolute pipe name)\n"\
+		"Warning: Output pipes do not currently support non blocking mode.\n"\
+		"The assoicated protocol scheme is `pipe://` when loaded as a generic output (eg, -o `pipe://URL` where URL is a relative or absolute pipe name).\n"\
 		"Data format of the pipe **shall** be specified using extension (either in filename or through [-ext]() option) or MIME type through [-mime]()\n"\
-		"The pipe name indicated in [-dst]() can use template mechanisms from gpac, e.g. dst=pipe_$ServiceID$\n"\
+		"The pipe name indicated in [-dst]() can use template mechanisms from gpac, e.g. `dst=pipe_$ServiceID$`\n"\
 		"\n"\
-		"On Windows hosts, the default pipe prefix is \"\\\\.\\pipe\\gpac\\\" if no prefix is set \n"\
+		"On Windows hosts, the default pipe prefix is `\\\\.\\pipe\\gpac\\` if no prefix is set \n"\
 		"EX dst=mypipe resolves in \\\\.\\pipe\\gpac\\mypipe\n"\
 		"EX dst=\\\\.\\pipe\\myapp\\mypipe resolves in \\\\.\\pipe\\myapp\\mypipe\n"
-		"Any destination name starting with \\\\ is used as is, with \\ translated in /\n"\
+		"Any destination name starting with `\\\\` is used as is, with `\\` translated in `/`\n"\
 		"\n"\
 		"The pipe input can create the pipe if not found using [-mkp](). On windows hosts, this will create a pipe server.\n"\
-		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction"\
+		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction."\
 	"")
 	.private_size = sizeof(GF_PipeOutCtx),
 	.args = PipeOutArgs,

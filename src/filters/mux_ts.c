@@ -1329,25 +1329,28 @@ static const GF_FilterArgs TSMuxArgs[] =
 GF_FilterRegister TSMuxRegister = {
 	.name = "m2tsmx",
 	GF_FS_SET_DESCRIPTION("MPEG-2 TS muxer")
-	GF_FS_SET_HELP("GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.\n"\
-	 	"For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.\n"\
-		"Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in the program with service ID as indicated by [-sid]() option.\n"\
-		"[-name]() option is overriden by input PID property ServiceName\n"\
-		"[-provider]() option is overriden by input PID property ServiceProvider\n"\
-		"\n"\
-		"# Time and External Media Information (TEMI)\n"\
+	GF_FS_SET_HELP("GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.\n"
+	 	"For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.\n"
+		"Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in the program with service ID as indicated by [-sid]() option.\n"
+		"[-name]() option is overriden by input PID property `ServiceName`.\n"
+		"[-provider]() option is overriden by input PID property `ServiceProvider`.\n"
+		"\n"
+		"# Time and External Media Information (TEMI)\n"
 		"The [-temi]() option allows specifying a list of URLs or timeline IDs to insert in the program.\n"
 		"Only a single TEMI timeline can be specified per PID.\n"
 		"The syntax is a comma-separated list of one or more TEMI description, each of them separated by '#'\n"
-		"Each TEMI description is formated as #ServiceID#ID_OR_URL, with:\n"\
-		"- ServiceID: optional, number indicating the target serviceID\n"\
-		"- ID_OR_URL: If numbern indicates the TEMI ID to use for external timeline. Otherwise, gives the URL to insert\n"\
+		"Each TEMI description is formated as #ServiceID#ID_OR_URL, with:\n"
+		"- ServiceID: optional, number indicating the target serviceID\n"
+		"- ID_OR_URL: If numbern indicates the TEMI ID to use for external timeline. Otherwise, gives the URL to insert\n"
 		"Each comma-separated description designs a stream index in the target service.\n"
-		"EX temi=\"url\"\nIinserts a TEMI URL+timecode in the first stream of all programs\n"\
-		"EX temi=\"url,4\"\nInserts a TEMI URL+timecode in the first stream of all programs and an external TEMI with ID 4 in the second stream of all programs\n"\
-		"EX temi=\"#20#4,#10#URL\"\nInserts an external TEMI with ID 4 in the first stream of program with ServiceID 20 and a TEMI URL to the second stream of program with ServiceID 10\n"\
-		"EX temi=\"#20#4,,#10#URL\"\nInserts an external TEMI with ID 4 in the first stream of program with ServiceID 20 and a TEMI URL to the third stream of program with ServiceID 10 (and nothing on second stream)\n"\
-		"\n"\
+		"EX temi=\"url\"\nIinserts a TEMI URL+timecode in the first stream of all programs.\n"
+		"EX temi=\"url,4\"\n"
+		"Inserts a TEMI URL+timecode in the first stream of all programs and an external TEMI with ID 4 in the second stream of all programs.\n"
+		"EX temi=\"#20#4,#10#URL\"\n"
+		"Inserts an external TEMI with ID 4 in the first stream of program with ServiceID 20 and a TEMI URL to the second stream of program with ServiceID 10.\n"
+		"EX temi=\"#20#4,,#10#URL\"\n"
+		"Inserts an external TEMI with ID 4 in the first stream of program with ServiceID 20 and a TEMI URL to the third stream of program with ServiceID 10 (and nothing on second stream).\n"
+		"\n"
 		"In DASH mode, the PCR is always initialized at 0, and [-flush_rap]() is automatically set.\n"
 	)
 	.private_size = sizeof(GF_TSMuxCtx),

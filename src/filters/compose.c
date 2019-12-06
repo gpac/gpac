@@ -837,7 +837,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"\n"
 	"# Specific URL syntaxes\n"
 	"The compositor accepts any URL type supported by GPAC. It also accepts the following syntaxes for URLs:\n"
-	"- views: creates an auto-stereo scene of N views from `views://v1:.:vN`. vN can be any type of URL supported by GPAC."
+	"- views: creates an auto-stereo scene of N views from `views://v1:.:vN`. vN can be any type of URL supported by GPAC.\n"
 	"- mosaic: creates a mosaic of N views from `mosaic://v1:.:vN`. vN can be any type of URL supported by GPAC."
 	"\n"
 	)

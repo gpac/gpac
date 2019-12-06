@@ -532,27 +532,27 @@ GF_FilterRegister SockOutRegister = {
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter handles generic output sockets (mono-directionnal) in blocking mode only.\n"
 		"The filter can work in server mode, waiting for source connections, or or in client mode, directly connecting.\n"
-		"In server mode, the filter can be instructed to keep running at the end of the stream\n"
+		"In server mode, the filter can be instructed to keep running at the end of the stream.\n"
 		"In server mode, the default behaviour is to keep input packets when no more clients are connected; "
 		"this can be adjusted though the [-kp]() option, however there is no realtime regulation of how fast packets are droped.\n"
-		"If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter), or set the send [-rate]() option\n"
+		"If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter), or set the send [-rate]() option.\n"
 		"\n"
-		"UDP sockets are used for destinations URLs formatted as udp://NAME\n"
-		"TCP sockets are used for destinations URLs formatted as tcp://NAME\n"
+		"- UDP sockets are used for destinations URLs formatted as `udp://NAME`\n"
+		"- TCP sockets are used for destinations URLs formatted as `tcp://NAME`\n"
 #ifdef GPAC_HAS_SOCK_UN
-		"UDP unix domain sockets are used for destinations URLs formatted as udpu://NAME\n"
-		"TCP unix domain sockets are used for destinations URLs formatted as tcpu://NAME\n"
+		"- UDP unix domain sockets are used for destinations URLs formatted as `udpu://NAME`\n"
+		"- TCP unix domain sockets are used for destinations URLs formatted as `tcpu://NAME`\n"
 #else
 		"Your platform does not supports unix domain sockets"
 #endif
 		"\n"
 		"The socket output can be configured to drop or revert packet order for test purposes.\n"
-		"For both mode, a window size in packets is specified as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator\n"
-		"If the numerator is 0, a packet is randomly chosen in that window\n"
+		"For both mode, a window size in packets is specified as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator/\n"
+		"If the numerator is 0, a packet is randomly chosen in that window.\n"
 		"EX :pckd=4/10\n"\
-		"This drops every 4th packet of each 10 packet window\n"
+		"This drops every 4th packet of each 10 packet window.\n"
 		"EX :pckr=0/100\n"\
-		"This reverts the send order of one random packet in each 100 packet window\n"
+		"This reverts the send order of one random packet in each 100 packet window.\n"
 		"\n",
 #endif //GPAC_DISABLE_DOC
 	.private_size = sizeof(GF_SockOutCtx),
