@@ -1114,7 +1114,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_REMOTE_URL, "RemoteURL", "Remote URL of source - used for MPEG-4 systems", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_REDIRECT_URL, "RedirectURL", "Redirection URL of source", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_FILEPATH, "SourcePath", "Path of source file on file system", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_MIME, "MIME Type", "MIME type of source", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_MIME, "MIMEType", "MIME type of source", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_FILE_EXT, "Extension", "File extension of source", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_FILE_CACHED, "Cached", "indicates the file is completely cached", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DOWN_RATE, "DownloadRate", "Dowload rate of resource in bits per second - changes are signaled through pid info (no reconfigure)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},

@@ -496,13 +496,13 @@ GF_FilterRegister SockInRegister = {
 	GF_FS_SET_DESCRIPTION("UDP/TCP input")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter handles generic TCP and UDP input sockets. It can also probe for MPEG-2 TS over RTP input. Probing of MPEG-2 TS over UDP/RTP is enabled by default but can be turned off.\n"
-		"\nFormat of data can be specified by setting either [-ext]() or [-mime]() options. If not set, the format will be guessed by probing the first data packet\n"
+		"\nData format can be specified by setting either [-ext]() or [-mime]() options. If not set, the format will be guessed by probing the first data packet\n"
 		"\n"
-		"UDP sockets are used for source URLs formatted as udp://NAME\n"
-		"TCP sockets are used for source URLs formatted as tcp://NAME\n"
+		"- UDP sockets are used for source URLs formatted as `udp://NAME`\n"
+		"- TCP sockets are used for source URLs formatted as `tcp://NAME`\n"
 #ifdef GPAC_HAS_SOCK_UN
-		"UDP unix domain sockets are used for source URLs formatted as udpu://NAME\n"
-		"TCP unix domain sockets are used for source URLs formatted as tcpu://NAME\n"
+		"- UDP unix domain sockets are used for source URLs formatted as `udpu://NAME`\n"
+		"- TCP unix domain sockets are used for source URLs formatted as `tcpu://NAME`\n"
 #ifdef GPAC_CONFIG_DARWIN
 	"\nOn OSX with VM packet replay you will need to force multicast routing, eg: route add -net 239.255.1.4/32 -interface vboxnet0"
 #endif

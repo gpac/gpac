@@ -106,7 +106,7 @@ fmt="PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$"
 .br
 
 .br
-This dumps packet number, cts and dts as follows: "PID 1 packet 10 DTS 100 CTS 108 \n"
+This dumps packet number, cts and dts as follows: PID 1 packet 10 DTS 100 CTS 108 \n
 .br
   
 .br
@@ -313,7 +313,9 @@ If 3D graphics are used or display driver is forced, OpenGL will be used on offs
 .br
 The compositor accepts any URL type supported by GPAC. It also accepts the following syntaxes for URLs:
 .br
-* views: creates an auto-stereo scene of N views from views://v1:.:vN. vN can be any type of URL supported by GPAC.- mosaic: creates a mosaic of N views from mosaic://v1:.:vN. vN can be any type of URL supported by GPAC.
+* views: creates an auto-stereo scene of N views from views://v1:.:vN. vN can be any type of URL supported by GPAC.
+.br
+* mosaic: creates a mosaic of N views from mosaic://v1:.:vN. vN can be any type of URL supported by GPAC.
 .br
 
 .br
@@ -743,11 +745,11 @@ Content format can be forced through -mime and file extension can be changed thr
 .br
 Note: Unless disabled at session level (see -no-probe ), file extensions are usually ignored and format probing is done on the first data block.
 .br
-The special file name "null" is used for creating a file with no data, needed by some filters such as dasher.
+The special file name null is used for creating a file with no data, needed by some filters such as dasher.
 .br
-The special file name "rand" is used to generate random data.
+The special file name rand is used to generate random data.
 .br
-The special file name "randsc" is used to generate random data with fake startcodes (0x000001).
+The special file name randsc is used to generate random data with fake startcodes (0x000001).
 .br
 
 .br
@@ -795,7 +797,7 @@ Description: HTTP input
 .br
 
 .br
-This filter dispatch raw blocks from input file into a filter chain.
+This filter dispatch raw blocks from a remote HTTP resource into a filter chain.
 .br
 Block size can be adjusted using -block_size, and disk caching policies can be adjusted.
 .br
@@ -1168,17 +1170,17 @@ This filter handles generic TCP and UDP input sockets. It can also probe for MPE
 .br
 
 .br
-Format of data can be specified by setting either -ext or -mime options. If not set, the format will be guessed by probing the first data packet
+Data format can be specified by setting either -ext or -mime options. If not set, the format will be guessed by probing the first data packet
 .br
 
 .br
-UDP sockets are used for source URLs formatted as udp://NAME
+- UDP sockets are used for source URLs formatted as udp://NAME
 .br
-TCP sockets are used for source URLs formatted as tcp://NAME
+- TCP sockets are used for source URLs formatted as tcp://NAME
 .br
-UDP unix domain sockets are used for source URLs formatted as udpu://NAME
+- UDP unix domain sockets are used for source URLs formatted as udpu://NAME
 .br
-TCP unix domain sockets are used for source URLs formatted as tcpu://NAME
+- TCP unix domain sockets are used for source URLs formatted as tcpu://NAME
 .br
 
 .br
@@ -2097,7 +2099,7 @@ Description: File output
 .br
 
 .br
-The file output filter can work as a null sink when its destination is "null", dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.
+The file output filter can work as a null sink when its destination is null, dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.
 .br
 In regular mode, the filter will dump to file incomming packets (stream type file), starting a new file for each packet having a frame_start flag set, unless operating in -cat mode.
 .br
@@ -2600,9 +2602,9 @@ fullscreen (boolean, default: false):    use fullcreen
 .br
 buffer (unsigned int, default: 100):     set buffer in ms
 .br
-dumpframes (uint list):                  ordered list of frames to dump, 1 being first frame - see filter help
+dumpframes (uint list):                  ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames.
 .br
-out (string, default: dump):             radical of dump frame filenames. If no extension is provided, frames as exported as $OUT_%d.PFMT.
+out (string, default: dump):             radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT.
 .br
 
 .br
@@ -2764,7 +2766,7 @@ Description: Audio/Video rewinder
 .br
 
 .br
-This filter reverses audio and video frames in negative playback spped.
+This filter reverses audio and video frames in negative playback speed.
 .br
 The filter is in passthrough if speed is positive. Otherwise, it reverts decoded GOPs for video, or revert samples in decoded frame for audio (not really nice for most codecs).
 .br
@@ -2784,7 +2786,7 @@ Description: Sources concatenator
 .br
 
 .br
-This filter can be used to play playlist files (extension txt or m3u) or a list of sources using flist:l="f1[,f2]", where f1 can be a file or a directory to enum.
+This filter can be used to play playlist files (extension txt or m3u) or a list of sources using flist:l=f1[,f2], where f1 can be a file or a directory to enum.
 .br
 Syntax for directory is:
 .br
@@ -2816,7 +2818,7 @@ Warning: This may not work with some files/formats not supporting seeking
 .br
 * stop=T: stops source playback after T seconds (double format only)
 .br
-This works on any source (implemented independetly from seek support).
+This works on any source (implemented independently from seek support).
 .br
 
 .br
@@ -2860,9 +2862,9 @@ For example, default config creates the first program with a PMT PID 100, the fi
 .br
 Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in the program with service ID as indicated by -sid option.
 .br
--name option is overriden by input PID property ServiceName
+-name option is overriden by input PID property ServiceName.
 .br
--provider option is overriden by input PID property ServiceProvider
+-provider option is overriden by input PID property ServiceProvider.
 .br
 
 .br
@@ -2889,7 +2891,7 @@ temi="url"
 .br
 
 .br
-Iinserts a TEMI URL+timecode in the first stream of all programs
+Iinserts a TEMI URL+timecode in the first stream of all programs.
 .br
 Example
 .br
@@ -2897,7 +2899,7 @@ temi="url,4"
 .br
 
 .br
-Inserts a TEMI URL+timecode in the first stream of all programs and an external TEMI with ID 4 in the second stream of all programs
+Inserts a TEMI URL+timecode in the first stream of all programs and an external TEMI with ID 4 in the second stream of all programs.
 .br
 Example
 .br
@@ -2905,7 +2907,7 @@ temi="#20#4,#10#URL"
 .br
 
 .br
-Inserts an external TEMI with ID 4 in the first stream of program with ServiceID 20 and a TEMI URL to the second stream of program with ServiceID 10
+Inserts an external TEMI with ID 4 in the first stream of program with ServiceID 20 and a TEMI URL to the second stream of program with ServiceID 10.
 .br
 Example
 .br
@@ -2913,7 +2915,7 @@ temi="#20#4,,#10#URL"
 .br
 
 .br
-Inserts an external TEMI with ID 4 in the first stream of program with ServiceID 20 and a TEMI URL to the third stream of program with ServiceID 10 (and nothing on second stream)
+Inserts an external TEMI with ID 4 in the first stream of program with ServiceID 20 and a TEMI URL to the third stream of program with ServiceID 10 (and nothing on second stream).
 .br
 
 .br
@@ -3034,7 +3036,7 @@ template=Great_$File$_$Width$_$Number$
 .br
 
 .br
-If input is foo.mp4 with 640x360 video, this will resolve in Great_foo_640_$Number$ for the DASH template
+If input is foo.mp4 with 640x360 video, this will resolve in Great_foo_640_$Number$ for the DASH template.
 .br
 Example
 .br
@@ -3042,11 +3044,11 @@ template=Great_$File$_$Width$
 .br
 
 .br
-If input is foo.mp4 with 640x360 video, this will resolve in Great_foo_640.mp4 for onDemand case
+If input is foo.mp4 with 640x360 video, this will resolve in Great_foo_640.mp4 for onDemand case.
 .br
 
 .br
-Standard DASH replacement strings
+Standard DASH replacement strings: 
 .br
 * $Number[%%0Nd]$: replaced by the segment number, possibly prefixed with 0
 .br
@@ -3068,7 +3070,7 @@ Additionnal replacement strings (not DASH, not generic GPAC replacements but may
 .br
 * $Segment=NAME$: replaced by NAME for media segments, ignored for init segments
 .br
-* $DS$ (Dash Suffix): replaced by "_trackN" in case the input is an AV multiplex, or kept empty otherwise
+* $DS$ (Dash Suffix): replaced by _trackN in case the input is an AV multiplex, or kept empty otherwise
 .br
 
 .br
@@ -3104,13 +3106,15 @@ Note: If multiple streams in source, only the first stream will have an AS ID as
 .br
 * Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overriden on input PIDs using the general PID property settings (cf global help).
 .br
+  
+.br
 Example
 .br
 src=test.mp4:#Bitrate=1M dst=test.mpd
 .br
 
 .br
-This will force declaring a bitrate of 1M for the representation, regardless of actual input bitrate
+This will force declaring a bitrate of 1M for the representation, regardless of actual input bitrate.
 .br
 Example
 .br
@@ -3118,7 +3122,7 @@ src=muxav.mp4 dst=test.mpd
 .br
 
 .br
-This will create unmuxed DASH segments
+This will create unmuxed DASH segments.
 .br
 Example
 .br
@@ -3126,7 +3130,7 @@ src=muxav.mp4:#Representation=1 dst=test.mpd
 .br
 
 .br
-This will create muxed DASH segments
+This will create muxed DASH segments.
 .br
 Example
 .br
@@ -3134,7 +3138,7 @@ src=m1.mp4 src=m2.mp4:#Period=Yep dst=test.mpd
 .br
 
 .br
-This will put src m1.mp4 in first period, m2.mp4 in second period
+This will put src m1.mp4 in first period, m2.mp4 in second period.
 .br
 Example
 .br
@@ -3142,7 +3146,7 @@ src=m1.mp4:#BUrl=http://foo/bar dst=test.mpd
 .br
 
 .br
-This will assign a baseURL to src m1.mp4
+This will assign a baseURL to src m1.mp4.
 .br
 Example
 .br
@@ -3152,7 +3156,9 @@ src=m1.mp4:#ASCDesc=<ElemName val="attval">text</ElemName> dst=test.mpd
 .br
 This will assign the specified XML descriptor to the adaptation set.
 .br
-Note:  this can be used to inject most DASH descriptors not natively handled by the dasher. The dasher handles the XML descriptor as a string and does not attempt to validate it. Descriptors, as well as some dasher filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:
+Note:  this can be used to inject most DASH descriptors not natively handled by the dasher.
+.br
+The dasher handles the XML descriptor as a string and does not attempt to validate it.Descriptors, as well as some dasher filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:
 .br
 Example
 .br
@@ -3160,7 +3166,7 @@ src=m1.mp4:#RDesc=<Elem attribute="1"/>,<Elem2>text</Elem2> dst=test.mpd
 .br
 
 .br
-This will insert two descriptors in the representation(s) of m1.mp4
+This will insert two descriptors in the representation(s) of m1.mp4.
 .br
 Example
 .br
@@ -3176,7 +3182,7 @@ src=null:#xlink=http://foo/bar.xml:#PDur=4 src=m.mp4:#PStart=-1
 .br
 
 .br
-This will insert an create an MPD with first a remote period then a regular one
+This will insert an create an MPD with first a remote period then a regular one.
 .br
 Example
 .br
@@ -3184,19 +3190,17 @@ src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4
 .br
 
 .br
-This will insert an create an MPD with first a regular period, dashing ony 6s of content, then a remote one
+This will insert an create an MPD with first a regular period, dashing ony 6s of content, then a remote one.
 .br
 
 .br
-The dasher will request muxing filter chains for each representation and will reassign PID IDs
-.br
-so that each media component (video, audio, ...) in an adaptation set has the same ID
+The dasher will request muxing filter chains for each representation and will reassign PID IDs so that each media component (video, audio, ...) in an adaptation set has the same ID.
 .br
 
 .br
-For HLS, the output pid will deliver the master playlist and the variant playlists
+For HLS, the output pid will deliver the master playlist and the variant playlists.
 .br
-The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant
+The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant.
 .br
 
 .br
@@ -3214,7 +3218,7 @@ Cues are given in an XML file with a root element called <DASHCues>, with curren
 .br
 - timescale:integer giving the units of following timestamps
 .br
-* mode: if present and value is "edit", the timestamp are in presentation time (edit list applied). Otherwise they are in media time
+* mode: if present and value is edit, the timestamp are in presentation time (edit list applied). Otherwise they are in media time
 .br
 The children of <Stream> are <Cue> elements, with attributes:
 .br
@@ -3254,7 +3258,7 @@ Output muxers allowing segmented output must obey the following:
 .br
  * FileNumber: if set, indicate the start of a new DASH segment
 .br
- * FileName: if set, indicate the file name. If not present, output shall be a single file. It is only set for packet carrying the "FileNumber" property, and only on one PID (usually the first) for multiplexed outputs
+ * FileName: if set, indicate the file name. If not present, output shall be a single file. It is only set for packet carrying the FileNumber property, and only on one PID (usually the first) for multiplexed outputs
 .br
  * IDXName: gives the optional index name (if not present, index shall be in the same file as dash segment). Only used for MPEG-2 TS for now
 .br
@@ -3522,11 +3526,9 @@ Description: pipe input
 .br
 This filter handles generic input pipes (mono-directionnal) in blocking or non blocking mode.
 .br
-Input pipes cannot seek
+Warning: Input pipes cannot seek.
 .br
-The associated protocol scheme is pipe:// when loaded as a generic input (eg, -i pipe://URL where URL is a relative or absolute pipe name)
-.br
-It can be set to run forever (until the session is closed), ignoring any potential pipe close on the writing side
+The associated protocol scheme is pipe:// when loaded as a generic input (eg, -i pipe://URL where URL is a relative or absolute pipe name).
 .br
 Data format of the pipe should be specified using extension (either in file name or through -ext) or MIME type through -mime.
 .br
@@ -3534,7 +3536,7 @@ Note: Unless disabled at session level (see -no-probe ), file extensions are usu
 .br
 
 .br
-On Windows hosts, the default pipe prefix is "\\.\pipe\gpac\" if no prefix is set 
+On Windows hosts, the default pipe prefix is \\.\pipe\gpac\ if no prefix is set 
 .br
 Example
 .br
@@ -3548,21 +3550,21 @@ dst=\\.\pipe\myapp\mypipe resolves in \\.\pipe\myapp\mypipe
 .br
 
 .br
-Any destination name starting with \\ is used as is, with \ translated in /
+Any destination name starting with \\ is used as is, with \ translated in /.
 .br
 
 .br
-Input pipes are created by default in non-blocking mode
+Input pipes are created by default in non-blocking mode.
 .br
 
 .br
 The pipe input can create the pipe if not found using -mkp. On windows hosts, this will create a pipe server.
 .br
-On non windows hosts, the created pipe will delete the pipe file upon filter destruction
+On non windows hosts, the created pipe will delete the pipe file upon filter destruction.
 .br
 
 .br
-Input pipes can be setup to run forever using -ka. In this case, end of stream will never be triggered
+Input pipes can be setup to run forever using -ka. In this case, any potential pipe close on the writing side and end of stream will only be triggered upon session close.
 .br
 This can be useful to pipe raw streams from different process into gpac:
 .br
@@ -3604,9 +3606,9 @@ Description: pipe output
 .br
 This filter handles generic output pipes (mono-directionnal) in blocking mode only.
 .br
-Output pipes do not currently support non blocking mode
+Warning: Output pipes do not currently support non blocking mode.
 .br
-The assoicated protocol scheme is pipe:// when loaded as a generic output (eg, -o pipe://URL where URL is a relative or absolute pipe name)
+The assoicated protocol scheme is pipe:// when loaded as a generic output (eg, -o pipe://URL where URL is a relative or absolute pipe name).
 .br
 Data format of the pipe shall be specified using extension (either in filename or through -ext option) or MIME type through -mime
 .br
@@ -3614,7 +3616,7 @@ The pipe name indicated in -dst can use template mechanisms from gpac, e.g. dst=
 .br
 
 .br
-On Windows hosts, the default pipe prefix is "\\.\pipe\gpac\" if no prefix is set 
+On Windows hosts, the default pipe prefix is \\.\pipe\gpac\ if no prefix is set 
 .br
 Example
 .br
@@ -3634,7 +3636,7 @@ Any destination name starting with \\ is used as is, with \ translated in /
 .br
 The pipe input can create the pipe if not found using -mkp. On windows hosts, this will create a pipe server.
 .br
-On non windows hosts, the created pipe will delete the pipe file upon filter destruction
+On non windows hosts, the created pipe will delete the pipe file upon filter destruction.
 .br
 
 .br
@@ -3674,7 +3676,7 @@ It serializes the stream states (config/reconfig/info update/remove/eos) and pac
 .br
 The default behaviour does not insert sequence numbers. When running over general protocols not ensuring packet order, this should be inserted.
 .br
-The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed
+The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed.
 .br
 
 .br
@@ -3754,13 +3756,11 @@ Description: GSF Demuxer
 .br
 
 .br
-Theis filter provides GSF (GPAC Super/Simple/Serialized/Stream/State Format) demultiplexing.
+This filter provides GSF (GPAC Super/Simple/Serialized/Stream/State Format) demultiplexing.
 .br
 It deserializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.
 .br
-This allows either reading a session saved to file, or receiving the state/data of streams from another instance of GPAC
-.br
-using either pipes or sockets
+This allows either reading a session saved to file, or receiving the state/data of streams from another instance of GPAC using either pipes or sockets
 .br
 
 .br
@@ -3792,29 +3792,29 @@ This filter handles generic output sockets (mono-directionnal) in blocking mode 
 .br
 The filter can work in server mode, waiting for source connections, or or in client mode, directly connecting.
 .br
-In server mode, the filter can be instructed to keep running at the end of the stream
+In server mode, the filter can be instructed to keep running at the end of the stream.
 .br
 In server mode, the default behaviour is to keep input packets when no more clients are connected; this can be adjusted though the -kp option, however there is no realtime regulation of how fast packets are droped.
 .br
-If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter), or set the send -rate option
+If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter), or set the send -rate option.
 .br
 
 .br
-UDP sockets are used for destinations URLs formatted as udp://NAME
+- UDP sockets are used for destinations URLs formatted as udp://NAME
 .br
-TCP sockets are used for destinations URLs formatted as tcp://NAME
+- TCP sockets are used for destinations URLs formatted as tcp://NAME
 .br
-UDP unix domain sockets are used for destinations URLs formatted as udpu://NAME
+- UDP unix domain sockets are used for destinations URLs formatted as udpu://NAME
 .br
-TCP unix domain sockets are used for destinations URLs formatted as tcpu://NAME
+- TCP unix domain sockets are used for destinations URLs formatted as tcpu://NAME
 .br
 
 .br
 The socket output can be configured to drop or revert packet order for test purposes.
 .br
-For both mode, a window size in packets is specified as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator
+For both mode, a window size in packets is specified as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator/
 .br
-If the numerator is 0, a packet is randomly chosen in that window
+If the numerator is 0, a packet is randomly chosen in that window.
 .br
 Example
 .br
@@ -3822,7 +3822,7 @@ Example
 .br
 
 .br
-This drops every 4th packet of each 10 packet window
+This drops every 4th packet of each 10 packet window.
 .br
 Example
 .br
@@ -3830,7 +3830,7 @@ Example
 .br
 
 .br
-This reverts the send order of one random packet in each 100 packet window
+This reverts the send order of one random packet in each 100 packet window.
 .br
 
 .br
@@ -3924,9 +3924,11 @@ Description: ATSC input
 .br
 This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.
 .br
-The default behaviour is to populate GPAC HTTP Cache with the recieved files, using "http://gpatsc/serviceN/" as service root, N being the ATSC service ID.
+The default behaviour is to populate GPAC HTTP Cache with the recieved files, using http://gpatsc/serviceN/ as service root, N being the ATSC service ID.
 .br
 In -cache mode, repeated files are always send.
+.br
+  
 .br
 The cached MPD is assigned the following headers:
 .br
@@ -3936,13 +3938,15 @@ The cached MPD is assigned the following headers:
 .br
 * x-atsc-loop: boolean value, if yes indicates a loop in the service has been detected
 .br
+  
+.br
 The cached files are assigned the following headers:
 .br
-* x-atsc: bollean value, if yes indicates the file comes from an ATSC session
+* x-atsc: boolean value, if yes indicates the file comes from an ATSC session
 .br
 
 .br
-This behaviour can be changed by disabling the cache, in which case the filter will output files on a single output pid of type "file". The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not repeated unless requested.
+This behaviour can be changed by disabling the cache, in which case the filter will output files on a single output pid of type file. The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not repeated unless requested.
 .br
 If needed, one pid per TSI can be used rather than a single pid. This avoids mixing files of different mime types on the same pid (e.g. mpd and isobmff).
 .br
@@ -3950,11 +3954,19 @@ If needed, one pid per TSI can be used rather than a single pid. This avoids mix
 .br
 On OSX with VM packet replay you will need to force multicast routing on ATSC 3.0 base multicast
 .br
-EX: route add -net 224.0.23.60/32 -interface vboxnet0
+Example
+.br
+route add -net 224.0.23.60/32 -interface vboxnet0
+.br
+
 .br
 and on each service multicast:
 .br
-EX: route add -net 239.255.1.4/32 -interface vboxnet0
+Example
+.br
+route add -net 239.255.1.4/32 -interface vboxnet0
+.br
+
 .br
 
 .br
@@ -4705,7 +4717,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3000-gd7bc403b7-filters
+build: 0.9.0-DEV-rev3001-g63285188d-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

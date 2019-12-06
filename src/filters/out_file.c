@@ -512,7 +512,7 @@ static const GF_FilterCapability FileOutCaps[] =
 GF_FilterRegister FileOutRegister = {
 	.name = "fout",
 	GF_FS_SET_DESCRIPTION("File output")
-	GF_FS_SET_HELP("The file output filter can work as a null sink when its destination is \"null\", dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.\n"\
+	GF_FS_SET_HELP("The file output filter can work as a null sink when its destination is `null`, dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.\n"\
 	"In regular mode, the filter will dump to file incomming packets (stream type file), starting a new file for each packet having a __frame_start__ flag set, unless operating in [-cat]() mode.\n"\
 	"The ouput file name can use gpac templating mechanism, see gpac help.")
 	.private_size = sizeof(GF_FileOutCtx),

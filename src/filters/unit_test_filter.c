@@ -787,7 +787,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_UnitTestFilter, _n)
 static const GF_FilterArgs UTFilterArgs[] =
 {
-	{ OFFS(pid_att), "set default value for PID \"cust\" attribute", GF_PROP_NAME, "UTSourceData", NULL, 0},
+	{ OFFS(pid_att), "set default value for PID `cust` attribute", GF_PROP_NAME, "UTSourceData", NULL, 0},
 	{ OFFS(max_pck), "maximum number of packets to send in source mode", GF_PROP_UINT, "1000", NULL, 0},
 	{ OFFS(nb_pids), "number of PIDs in source mode", GF_PROP_UINT, "1", "1-+I", 0},
 	{ OFFS(max_out), "maximum number of shared packets not yet released in source/filter mode, no limit if -1", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},

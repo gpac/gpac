@@ -455,9 +455,9 @@ GF_FilterRegister FileInRegister = {
 	"Block size can be adjusted using [-block_size]().\n"
 	"Content format can be forced through [-mime]() and file extension can be changed through [-ext]().\n"
 	"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.\n"
-	"The special file name \"null\" is used for creating a file with no data, needed by some filters such as [dasher](dasher).\n"
-	"The special file name \"rand\" is used to generate random data.\n"
-	"The special file name \"randsc\" is used to generate random data with fake startcodes (0x000001).\n"
+	"The special file name `null` is used for creating a file with no data, needed by some filters such as [dasher](dasher).\n"
+	"The special file name `rand` is used to generate random data.\n"
+	"The special file name `randsc` is used to generate random data with fake startcodes (0x000001).\n"
 	)
 	.private_size = sizeof(GF_FileInCtx),
 	.args = FileInArgs,

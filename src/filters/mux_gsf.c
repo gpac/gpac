@@ -1102,7 +1102,7 @@ GF_FilterRegister GSFMxRegister = {
 			"using either pipes or sockets. Upstream events are not serialized.\n"
 			"\n"
 			"The default behaviour does not insert sequence numbers. When running over general protocols not ensuring packet order, this should be inserted.\n"
-			"The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed\n"
+			"The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed.\n"
 			"\n"
 			"The stream format can be encrypted in AES 128 CBC mode. For all packets, the packet header (header, size, frame size/block offset and optional seq num) are in the clear "
 			"and the followings byte until the last byte of the last multiple of block size (16) fitting in the payload are encrypted.\n"

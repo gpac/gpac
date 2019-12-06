@@ -1893,6 +1893,10 @@ static GF_Err vout_process(GF_Filter *filter)
 		ctx->dump_f_idx = 0;
 
 		for (i=0; i<ctx->dumpframes.nb_items; i++) {
+			if (ctx->dumpframes.vals[i] == 0) {
+				ctx->dump_f_idx = ctx->nb_frames;
+				break;
+			}
 			if (ctx->dumpframes.vals[i] == ctx->nb_frames) {
 				ctx->dump_f_idx = ctx->dumpframes.vals[i];
 				break;
@@ -2200,8 +2204,8 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(hide), "hide output window", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(fullscreen), "use fullcreen", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(buffer), "set buffer in ms", GF_PROP_UINT, "100", NULL, 0},
-	{ OFFS(dumpframes), "ordered list of frames to dump, 1 being first frame - see filter help", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(out), "radical of dump frame filenames. If no extension is provided, frames as exported as $OUT_%d.PFMT.", GF_PROP_STRING, "dump", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dumpframes), "ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames.", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(out), "radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT.", GF_PROP_STRING, "dump", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
