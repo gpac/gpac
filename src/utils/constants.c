@@ -364,11 +364,12 @@ typedef struct
 	u32 st;
 	const char *name;
 	const char *desc;
+	const char *alt_name;
 } GF_StreamTypeDesc;
 
 static const GF_StreamTypeDesc GF_StreamTypes[] =
 {
-	{GF_STREAM_VISUAL, "Visual", "Video or Image stream"},
+	{GF_STREAM_VISUAL, "Visual", "Video or Image stream", "Video"},
 	{GF_STREAM_AUDIO, "Audio", "Audio stream"},
 	{GF_STREAM_SCENE, "SceneDescription", "Scene stream"},
 	{GF_STREAM_TEXT, "Text", "Text or subtitle stream"},
@@ -403,7 +404,10 @@ u32 gf_stream_type_by_name(const char *val)
 	for (i=0; i<nb_st; i++) {
 		if (!stricmp(GF_StreamTypes[i].name, val))
 			return GF_StreamTypes[i].st;
+		if (GF_StreamTypes[i].alt_name && !stricmp(GF_StreamTypes[i].alt_name, val))
+			return GF_StreamTypes[i].st;
 	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unknow stream type %s\n", val));
 	return GF_STREAM_UNKNOWN;
 }
 
