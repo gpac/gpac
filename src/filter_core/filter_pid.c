@@ -2257,8 +2257,8 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 	}
 
 	freg_has_output = gf_filter_has_out_caps(caps, nb_caps);
-	GF_SAFEALLOC(reg_desc, GF_FilterRegDesc);
 
+	GF_SAFEALLOC(reg_desc, GF_FilterRegDesc);
 	reg_desc->freg = freg;
 
 	nb_dst_caps = gf_filter_caps_bundle_count(caps, nb_caps);
@@ -2273,6 +2273,7 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 		u32 nb_src_caps, k, l;
 		u32 path_weight;
 		GF_FilterRegDesc *a_reg = gf_list_get(links, i);
+		if (a_reg->freg == freg) continue;
 
 		//check which cap of this filter matches our destination
 		nb_src_caps = gf_filter_caps_bundle_count(a_reg->freg->caps, a_reg->freg->nb_caps);
@@ -2280,7 +2281,7 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 			for (l=0; l<nb_dst_caps; l++) {
 				s32 bundle_idx;
 
-				if ( gf_filter_has_out_caps(a_reg->freg->caps, a_reg->freg->nb_caps)) {
+				if (gf_filter_has_out_caps(a_reg->freg->caps, a_reg->freg->nb_caps)) {
 					u32 loaded_filter_only_flags = 0;
 
 					path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, dst_filter, &bundle_idx, l, &loaded_filter_only_flags, capstore);

@@ -532,7 +532,7 @@ GF_GPACArg gpac_args[] =
 			"- codecs: print the supported builtin codecs\n"\
 			"- props: print the supported builtin PID and packet properties\n"\
 			"- links: print possible connections between each supported filters.\n"\
-			"- links FNAME: print sources and sinks for filter `FNAME`\n"\
+			"- links FNAME: print sources and sinks for filter `FNAME` (either builtin or JS filter)\n"\
 			"- FNAME: print filter `FNAME` info (multiple FNAME can be given). For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`. Use `*` to print info on all filters (__big output!__), `*:*` to print info on all filters including meta filter instances (__really big output!__). By default only basic filter options and description are shown. Use `-ha` to show advanced options and filter IO capabilities, `-hx` for expert options, `-hh` for all options and filter capbilities"\
 		, NULL, NULL, GF_ARG_STRING, 0),
 
@@ -1994,7 +1994,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 #endif
 
 	} else {
-		gf_sys_format_help(helpout, help_flags, "# %s\n", reg->name);
+		gf_sys_format_help(helpout, help_flags, "# %s\n", filter_inst ? gf_filter_get_name(filter_inst) : reg->name);
 		if (filter_inst)
 			gf_sys_format_help(helpout, help_flags, "Description: %s\n", gf_filter_get_description(filter_inst) );
 		else {
@@ -2239,13 +2239,8 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 						break;
 					}
 					//quick shortcuts
-					else if (!strcmp(reg->name, "jsf") && !strncmp(arg, "jsf:", 3) && !strstr(arg, "js=")) {
-						char szJSFArg[GF_MAX_PATH];
-						strcpy(szJSFArg, "jsf:js=$GJS/");
-						strcat(szJSFArg, arg+4);
-						if (strstr(arg+4, ".js")==NULL)
-							strcat(szJSFArg, ".js");
-						GF_Filter *f = gf_fs_load_filter(session, szJSFArg, NULL);
+					else if (!strcmp(reg->name, "jsf") && (!strncmp(arg, "jsf:", 3) || strstr(arg, ".js")) ) {
+						GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
 						if (f) {
 							print_filter(reg, argmode, f);
 							found = GF_TRUE;

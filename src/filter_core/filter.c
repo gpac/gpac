@@ -443,6 +443,8 @@ GF_EXPORT
 const char * gf_filter_get_name(GF_Filter *filter)
 {
 	assert(filter);
+	if (filter->name)
+		return (const char *)filter->name;
 	return (const char *)filter->freg->name;
 }
 
@@ -756,6 +758,7 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 					found = GF_TRUE;
 					break;
 				}
+				if (!sep) break;
 			}
 			if (!found) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed solve to %s in GPAC script directories %s, file not found\n", value, all_dirs));
