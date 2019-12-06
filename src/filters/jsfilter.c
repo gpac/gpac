@@ -3989,7 +3989,9 @@ static const GF_FilterCapability JSFilterCaps[] =
 GF_FilterRegister JSFilterRegister = {
 	.name = "jsf",
 	GF_FS_SET_DESCRIPTION("JavaScript filter")
-	GF_FS_SET_HELP("This filter loads the javascript file in [-js]().")
+	GF_FS_SET_HELP("This filter runs a javascript file specified in [-js]() defining a new JavaScript filter.\n"
+	"  \n"
+	"For more information on how to use JS filters, please check https://github.com/gpac/gpac/wiki/jsfilter\n")
 	.private_size = sizeof(GF_JSFilterCtx),
 	.flags = GF_FS_REG_SCRIPT,
 	.args = JSFilterArgs,
