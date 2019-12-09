@@ -475,7 +475,7 @@
 	- added support for nero chapters in MP4 ('chpl' box), in MP4Box (-chap file.chp) and selection in players (chapters mapped to MPEG-4 SegmentDescriptors).
 		note regarding chp files: not sure about file syntax, currently support for (one chapter entry per line):
 			 ZoomPlayer syntax: AddChapter (-fps for import framerate selection), AddChapterBySecond and AddChapterByTime
-			 Regular time code  la SRT: HH:MM:SS[:ms or .ms] [Chapter Name]
+			 Regular time code … la SRT: HH:MM:SS[:ms or .ms] [Chapter Name]
 			 SMPTE time code: HH:MM:SS;fr/fps [Chapter Name] - if fps is omitted, use '-fps' if specified or 25 fps default.
 			 
 	- fixed avi packed bitstream flag removal bug with beta versions of DivX.
