@@ -699,7 +699,7 @@ GF_GPACArg m4b_dump_args[] =
 {
  	GF_DEF_ARG("stdb", NULL, "dump/write to stdout and assume stdout is opened in binary mode", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("stdb", NULL, "dump/write to stdout  and try to reopen stdout in binary mode", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("tracks", NULL, "return the number of tracks on stdout", NULL, NULL, GF_ARG_BOOL, 0),
+ 	GF_DEF_ARG("tracks", NULL, "print the number of tracks on stdout", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("info", NULL, "print movie info (no parameter) or track info with specified ID", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("infon", NULL, "print track info for given track number, 1 being the first track in the file", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("diso", NULL, "dump IsoMedia file boxes in XML output", NULL, NULL, GF_ARG_BOOL, 0),
@@ -738,7 +738,8 @@ GF_GPACArg m4b_dump_args[] =
  	GF_DEF_ARG("hash", NULL, "generate SHA-1 Hash of the input file", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("comp", NULL, "replace with compressed version all top level box types given as parameter, formated as `orig_4cc_1=comp_4cc_1[,orig_4cc_2=comp_4cc_2]`", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("bin", NULL, "convert input XML file using NHML bitstream syntax to binary", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("topsize", NULL, "count number of bytes of all top level box types given as parameter, formated as `4cc_1,4cc_2N`", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("topcount", NULL, "print to stdout the number of top-level boxes matching box types given as parameter, formated as `4cc_1,4cc_2N`", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("topsize", NULL, "print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as `4cc_1,4cc_2N`", NULL, NULL, GF_ARG_STRING, 0),
  	{0}
 };
 
@@ -1918,7 +1919,7 @@ static GF_Err xml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 }
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
 
-static u64 do_size_top_boxes(char *inName, char *compress_top_boxes)
+static u64 do_size_top_boxes(char *inName, char *compress_top_boxes, u32 mode)
 {
 	FILE *in;
 	u64 top_size = 0;
@@ -1944,8 +1945,14 @@ static u64 do_size_top_boxes(char *inName, char *compress_top_boxes)
 			lsize = gf_bs_available(bs_in) + 8;
 		}
 		stype = gf_4cc_to_str(type);
-		if (do_all || strstr(compress_top_boxes, stype))
-			top_size += lsize;
+		if (do_all || strstr(compress_top_boxes, stype)) {
+			//only count boxes
+			if (mode==2) {
+				top_size += 1;
+			} else {
+				top_size += lsize;
+			}
+		}
 		gf_bs_skip_bytes(bs_in, lsize - hdr_size);
 	}
 	gf_bs_del(bs_in);
@@ -3719,6 +3726,12 @@ Bool mp4box_parse_args(int argc, char **argv)
 			compress_top_boxes = argv[i + 1];
 			i++;
 		}
+		else if (!strnicmp(arg, "-topcount", 8)) {
+			CHECK_NEXT_ARG
+			size_top_box = 2;
+			compress_top_boxes = argv[i + 1];
+			i++;
+		}
 		else if (!stricmp(arg, "-mpd-rip")) do_mpd_rip = GF_TRUE;
 		else if (!strcmp(arg, "-init-seg")) {
 			CHECK_NEXT_ARG
@@ -4403,7 +4416,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 	if (compress_top_boxes) {
 		if (size_top_box) {
-			u64 top_size = do_size_top_boxes(inName, compress_top_boxes);
+			u64 top_size = do_size_top_boxes(inName, compress_top_boxes, size_top_box);
 			fprintf(stdout, LLU"\n", top_size);
 			return mp4box_cleanup(e ? 1 : 0);
 		} else {
