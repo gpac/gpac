@@ -3693,7 +3693,7 @@ struct __tag_isom {
 	u64 read_byte_offset;
 
 	GF_ISOCompressMode compress_mode;
-
+	Bool force_compress;
 
 	void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total);
 	void *progress_cbk_udta;

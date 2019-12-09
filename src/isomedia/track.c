@@ -694,6 +694,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				//no explicit data offset, continuous data after last data in previous chunk
 				else {
 					data_offset += chunk_size;
+					//data offset of first trun in first traf, adjust if compressed moof
+					if ((i==1) && (trun->data_offset>=0)) {
+						data_offset -= compressed_diff;
+					}
 				}
 
 				final_offset = data_offset;

@@ -924,7 +924,7 @@ dump/write to stdout  and try to reopen stdout in binary mode
 .TP
 .B \-tracks
 .br
-return the number of tracks on stdout
+print the number of tracks on stdout
 .br
 .TP
 .B \-info (string)
@@ -1117,9 +1117,14 @@ replace with compressed version all top level box types given as parameter, form
 convert input XML file using NHML bitstream syntax to binary
 .br
 .TP
+.B \-topcount (string)
+.br
+print to stdout the number of top-level boxes matching box types given as parameter, formated as 4cc_1,4cc_2N
+.br
+.TP
 .B \-topsize (string)
 .br
-count number of bytes of all top level box types given as parameter, formated as 4cc_1,4cc_2N
+print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as 4cc_1,4cc_2N
 .br
 .SH Importing Options
 .LP
@@ -2046,7 +2051,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3001-g63285188d-filters
+build: 0.9.0-DEV-rev3007-g5c01dcb53-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

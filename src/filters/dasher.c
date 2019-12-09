@@ -2058,9 +2058,11 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	sprintf(szSRC, "dasher_%p", base_ds->dst_filter);
 	ds->opid = gf_filter_pid_new(filter);
 	gf_filter_pid_copy_properties(ds->opid, ds->ipid);
-	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*"));
-	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_MIME, &PROP_STRING(ds->rep->mime_type));
-
+	if (!ds->muxed_base) {
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*"));
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_MIME, &PROP_STRING(ds->rep->mime_type));
+	}
+	
 	gf_filter_pid_require_source_id(ds->opid);
 
 	if (ctx->pssh == GF_DASH_PSSH_MPD) {
