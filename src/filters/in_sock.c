@@ -393,12 +393,12 @@ static GF_Err sockin_process(GF_Filter *filter)
 	}
 	else if (e) return e;
 
-	if (gf_sk_group_sock_is_set(ctx->active_sockets, ctx->sock_c.socket)) {
+	if (gf_sk_group_sock_is_set(ctx->active_sockets, ctx->sock_c.socket, GF_SK_SELECT_READ)) {
 		if (!ctx->listen) {
 			return sockin_read_client(filter, ctx, &ctx->sock_c);
 		}
 
-		if (gf_sk_group_sock_is_set(ctx->active_sockets, ctx->sock_c.socket)) {
+		if (gf_sk_group_sock_is_set(ctx->active_sockets, ctx->sock_c.socket, GF_SK_SELECT_READ)) {
 			e = gf_sk_accept(ctx->sock_c.socket, &new_conn);
 			if ((e==GF_OK) && new_conn) {
 				GF_SockInClient *sc;
@@ -421,7 +421,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 	for (i=0; i<count; i++) {
 		GF_SockInClient *sc = gf_list_get(ctx->clients, i);
 
-		if (!gf_sk_group_sock_is_set(ctx->active_sockets, sc->socket)) continue;
+		if (!gf_sk_group_sock_is_set(ctx->active_sockets, sc->socket, GF_SK_SELECT_READ)) continue;
 
 	 	e = sockin_read_client(filter, ctx, sc);
 	 	if (e == GF_IP_CONNECTION_CLOSED) {

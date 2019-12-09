@@ -1184,7 +1184,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 struct __tag_sock_group
 {
 	GF_List *sockets;
-	fd_set group;
+	fd_set rgroup, wgroup;
 };
 
 GF_SockGroup *gf_sk_group_new()
@@ -1192,7 +1192,8 @@ GF_SockGroup *gf_sk_group_new()
 	GF_SockGroup *tmp;
 	GF_SAFEALLOC(tmp, GF_SockGroup);
 	tmp->sockets = gf_list_new();
-	FD_ZERO(&tmp->group);
+	FD_ZERO(&tmp->rgroup);
+	FD_ZERO(&tmp->wgroup);
 	return tmp;
 }
 
@@ -1224,9 +1225,11 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
 	u32 max_fd=0;
 	GF_Socket *sock;
 
-	FD_ZERO(&sg->group);
+	FD_ZERO(&sg->rgroup);
+	FD_ZERO(&sg->wgroup);
 	while ((sock = gf_list_enum(sg->sockets, &i))) {
-		FD_SET(sock->socket, &sg->group);
+		FD_SET(sock->socket, &sg->rgroup);
+		FD_SET(sock->socket, &sg->wgroup);
 		if (max_fd < (u32) sock->socket) max_fd = (u32) sock->socket;
 	}
 	if (usec_wait>=1000000) {
@@ -1236,7 +1239,7 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
 		timeout.tv_sec = 0;
 		timeout.tv_usec = usec_wait;
 	}
-	ready = select((int) max_fd+1, &sg->group, NULL, NULL, &timeout);
+	ready = select((int) max_fd+1, &sg->rgroup, &sg->wgroup, NULL, &timeout);
 
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
@@ -1261,9 +1264,14 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
 	return GF_OK;
 }
 
-Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk)
+Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk, GF_SockSelectMode mode)
 {
-	if (sg && sk && FD_ISSET(sk->socket, &sg->group)) return GF_TRUE;
+	if (sg && sk) {
+		if ((mode==GF_SK_SELECT_READ) && FD_ISSET(sk->socket, &sg->rgroup))
+			return GF_TRUE;
+		if ((mode==GF_SK_SELECT_WRITE) && FD_ISSET(sk->socket, &sg->wgroup))
+			return GF_TRUE;
+	}
 	return GF_FALSE;
 }
 

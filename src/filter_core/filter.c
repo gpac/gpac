@@ -3024,6 +3024,34 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	return GF_OK;
 }
 
+GF_EXPORT
+const char *gf_filter_probe_data(GF_Filter *filter, u8 *data, u32 size)
+{
+	u32 i, count;
+	GF_FilterProbeScore score, max_score = GF_FPROBE_NOT_SUPPORTED;
+	const char *probe_mime = NULL;
+	gf_mx_p(filter->session->filters_mx);
+	count = gf_list_count(filter->session->registry);
+	for (i=0; i<count; i++) {
+		const char *a_mime;
+		const GF_FilterRegister *freg = gf_list_get(filter->session->registry, i);
+		if (!freg || !freg->probe_data) continue;
+		score = GF_FPROBE_NOT_SUPPORTED;
+		a_mime = freg->probe_data(data, size, &score);
+		if (score==GF_FPROBE_NOT_SUPPORTED) {
+		} else if (score==GF_FPROBE_EXT_MATCH) {
+			probe_mime = NULL;
+		} else {
+			if (a_mime && (score > max_score)) {
+				probe_mime = a_mime;
+				max_score = score;
+			}
+		}
+	}
+	gf_mx_v(filter->session->filters_mx);
+	return probe_mime;
+}
+
 static Bool gf_filter_get_arg_internal(GF_Filter *filter, const char *arg_name, GF_PropertyValue *prop, const char **min_max_enum)
 {
 	u32 i=0;
