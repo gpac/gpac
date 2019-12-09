@@ -6210,7 +6210,7 @@ int mp4boxMain(int argc, char **argv)
 		gf_isom_force_64bit_chunk_offset(file, GF_TRUE);
 
 	if (compress_moov)
-		gf_isom_enable_compression(file, GF_ISO_COMP_MOOV);
+		gf_isom_enable_compression(file, GF_ISO_COMP_MOOV, GF_FALSE);
 
 	if (e) goto err_exit;
 

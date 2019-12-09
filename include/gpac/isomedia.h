@@ -1818,9 +1818,10 @@ typedef enum
 /*! sets compression mode of file
 \param isom_file the target ISO file
 \param compress_mode the desired compress mode
+\param force_compress forces compressed box even if compress size is larger than uncompressed size
 \return error if any
 */
-GF_Err gf_isom_enable_compression(GF_ISOFile *isom_file, GF_ISOCompressMode compress_mode);
+GF_Err gf_isom_enable_compression(GF_ISOFile *isom_file, GF_ISOCompressMode compress_mode, Bool force_compress);
 
 /*! sets the copyright in one language
 \param isom_file the target ISO file

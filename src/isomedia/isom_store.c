@@ -323,7 +323,7 @@ GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_
 
 		gf_bs_get_content(comp_bs, &box_data, &box_size);
 		gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, 8, GF_TRUE);
-		if (comp_size + COMP_BOX_COST_BYTES < box_size) {
+		if (mov->force_compress || (comp_size + COMP_BOX_COST_BYTES < box_size)) {
 			if (bs) {
 				gf_bs_write_u32(bs, comp_size+8);
 				gf_bs_write_u32(bs, repl_type);
