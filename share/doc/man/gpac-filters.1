@@ -1725,6 +1725,8 @@ compress (enum, default: no):            set top-level box compression mode
 .br
 
 .br
+fcomp (boolean, default: false):         force using compress box even when compressed size is larger than uncompressed
+.br
 trun_inter (enum, default: no):          interleave samples in trun based on the temporal level, the lowest level are stored first
 .br
 * no: disable sample interleaving
@@ -2230,9 +2232,7 @@ speed (number, default: 1.0):            speed for real-time regulation mode - o
 .br
 raw (boolean, default: false):           force input streams to be in raw format (i.e. forces decoding of input)
 .br
-frames (uint list, minmax: 0|1|2|3|4):   drop all except listed frames (first being 1), off by default
-.br
-
+frames (uint list):                      drop all except listed frames (first being 1), off by default
 .br
 
 .br
@@ -4717,7 +4717,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3001-g63285188d-filters
+build: 0.9.0-DEV-rev3007-g5c01dcb53-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

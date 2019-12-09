@@ -204,6 +204,7 @@ typedef struct
 	u32 compress;
 	u32 trun_inter;
 	char *boxpatch;
+	Bool fcomp;
 
 	//internal
 	Bool owns_mov;
@@ -4385,7 +4386,7 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		}
 	}
 	if (ctx->compress)
-		gf_isom_enable_compression(ctx->file, ctx->compress);
+		gf_isom_enable_compression(ctx->file, ctx->compress, ctx->fcomp);
 	return GF_OK;
 }
 
@@ -4825,6 +4826,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 						"- sidx: compress moof and sidx boxes\n"
 						"- ssix: compress moof, sidx and ssix boxes\n"
 						"- all: compress moov, moof, sidx and ssix boxes", GF_PROP_UINT, "no", "no|moov|moof|sidx|ssix|all", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(fcomp), "force using compress box even when compressed size is larger than uncompressed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(trun_inter), "interleave samples in trun based on the temporal level, the lowest level are stored first\n"
 		"- no: disable sample interleaving\n"
