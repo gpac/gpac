@@ -615,13 +615,21 @@ Performs a select (wait) on the socket group
 \return error if any
  */
 GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 wait_usec);
+
+typedef enum
+{
+	GF_SK_SELECT_READ=0,
+	GF_SK_SELECT_WRITE,
+
+} GF_SockSelectMode;
 /*!
 Checks if given socket is selected and can be read. This shall be called after gf_sk_group_select
 \param sg socket group object
 \param sk socket object to check
+\param mode the operation mode desired
 \return GF_TRUE if socket is ready to read, 0 otherwise
  */
-Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk);
+Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk, GF_SockSelectMode mode);
 
 /*! @} */
 

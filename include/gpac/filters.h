@@ -2389,6 +2389,15 @@ GF_Err gf_filter_define_args(GF_Filter *filter, GF_FilterArgs *new_args);
 */
 GF_FilterArgs *gf_filter_get_args(GF_Filter *filter);
 
+
+/*! probes mime type of a given block of data (should be begining of file )
+\param filter target filter
+\param data buffer to probe
+\param size size of buffer
+\return the mime type probed, or NULL if not recognized
+*/
+const char *gf_filter_probe_data(GF_Filter *filter, u8 *data, u32 size);
+
 /*! @} */
 
 

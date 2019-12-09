@@ -1074,7 +1074,7 @@ static void gpac_load_suggested_filter_args()
 	gf_cfg_del_section(opts, "allopts");
 	gf_cfg_set_key(opts, "version", "version", gf_gpac_version());
 
-	gf_sys_format_help(stderr, 0, "__Constructing all options registry, this may take some time ... ");
+	gf_sys_format_help(stderr, 0, "__Refreshing all options registry, this may take some time ... ");
 
 	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, GF_FS_FLAG_LOAD_META, NULL);
 	if (!fsess) {
