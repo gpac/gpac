@@ -1492,13 +1492,10 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 					clear_bytes = ranges[0].clear;
 					unit_size = clear_bytes + ranges[0].encrypted;
-					if (ranges[0].encrypted >= 16) {
-						//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
-						if (prev_entry && prev_entry->bytes_encrypted_data)
-							prev_entry = NULL;
-					} else {
-						clear_bytes = unit_size;
-					}
+					// A subsample SHALL be created for each tile even if less than 16 bytes. (see https://github.com/AOMediaCodec/av1-isobmff/pull/116#discussion_r340176740)
+					// If previous range had encrypted bytes, create a new one, otherwise merge in prev
+					if (prev_entry && prev_entry->bytes_encrypted_data)
+						prev_entry = NULL;
 					break;
 				default:
 					clear_bytes = (u32) obu_size;
