@@ -1552,6 +1552,11 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 
 
 #ifndef GPAC_DISABLE_AV_PARSERS
+static void dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
+{
+	fprintf(dump, "     <Tile number=\"%d\" start=\"%d\" size=\"%d\"/>\n", idx, tile->obu_start_offset, tile->size);
+}
+
 static void dump_obu(FILE *dump, u32 idx, AV1State *av1, char *obu, u32 obu_length, ObuType obu_type, u32 obu_size, u32 hdr_size, Bool dump_crc)
 {
 #define DUMP_OBU_INT(_v) fprintf(dump, #_v"=\"%d\" ", av1->_v);
@@ -1602,16 +1607,24 @@ static void dump_obu(FILE *dump, u32 idx, AV1State *av1, char *obu, u32 obu_leng
 
 	case OBU_TILE_GROUP:
 		if (av1->frame_state.nb_tiles_in_obu) {
+			u32 i;
 			DUMP_OBU_INT2("nb_tiles", av1->frame_state.nb_tiles_in_obu)
+			fprintf(dump, ">\n");
+			for (i = 0; i < av1->frame_state.nb_tiles_in_obu; i++) {
+				dump_tile(dump, i, &av1->frame_state.tiles[i]);
+			}
 		} else {
 			fprintf(dump, "nb_tiles=\"unknown\" ");
+			fprintf(dump, ">\n");
 		}
+		fprintf(dump, "</OBU>\n");
 		break;
 	default:
 		break;
 
 	}
-	fprintf(dump, "/>\n");
+	if (obu_type != OBU_TILE_GROUP)
+		fprintf(dump, "/>\n");
 }
 #endif
 
