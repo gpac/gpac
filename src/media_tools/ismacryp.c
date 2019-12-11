@@ -1108,7 +1108,7 @@ typedef enum {
 	/*below types may have several ranges (clear/encrypted) per sample*/
 	ENC_NALU, /*NALU-based*/
 	ENC_OBU,  /*OBU-based*/
-	ENC_VP9,  /*custom, see https://www.webmproject.org/vp9/mp4/*/
+	ENC_VP9,  /*custom, see https://www.webmproject.org/vp9/mp4/ */
 } GF_Enc_BsFmt;
 
 static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, GF_ISOSample *samp, GF_Enc_BsFmt bs_type, u32 nalu_size_length_in_bytes, char IV[16], u32 IV_size, char **sai, u32 *saiz,
