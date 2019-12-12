@@ -812,7 +812,7 @@ Note: Unless disabled at session level (see -no-probe ), file extensions are usu
 .br
 src (string):                            location of source content
 .br
-block_size (unsigned int, default: 1000000): block size used to read file
+block_size (unsigned int, default: 100000): block size used to read file
 .br
 cache (enum, default: disk):             set cache mode
 .br
@@ -4153,7 +4153,9 @@ latm (boolean, default: false):          use latm for AAC payload format
 .br
 mounts (string list):                    list of directories to expose in server mode
 .br
-block_size (unsigned int, default: 4096): block size used to read TCP socket
+block_size (unsigned int, default: 10000): block size used to read TCP socket
+.br
+maxc (unsigned int, default: 100):       maximum number of connections
 .br
 user_agent (string, default: $GUA):      user agent string, by default solved from GPAC preferences
 .br
@@ -4172,6 +4174,223 @@ mcast (enum, default: off):              control multicast setup of a session.
 * mirror: clients can create a multicast session. Any later request to the same URL will use that multicast session
 .br
 
+.br
+
+.br
+.SH httpout
+.LP
+.br
+Description: HTTP Server
+.br
+
+.br
+The HTTP output filter can act as:
+.br
+- a simple HTTP server
+.br
+- an HTTP server sink
+.br
+- an HTTP server file sink
+.br
+- an HTTP client sink
+.br
+- an HTTP server source
+.br
+  
+.br
+The server currently handles GET, HEAD, PUT, POST, DELETE methods.
+.br
+Single or multiple byte ranges are supported for both GET and PUT/POST methods.
+.br
+- for GET, the resulting body is a single-part body formed by the concatenated byte ranges as requested (no overlap checking).
+.br
+- for PUT/POST, the received data is pushed to the target file according to the byte ranges specified in the client request.
+.br
+  
+.br
+Listing can be enabled on server using -dlist.
+.br
+When disabled, a GET on a directory will fail.
+.br
+When enabled, a GET on a directory will return a simple HTML listing of the content inspired from Apache.
+.br
+  
+.br
+.SH Simple HTTP server
+.LP
+.br
+In this mode, the filter doesn't need any input connection and exposes all files in the directories given by -rdirs.
+.br
+PUT and POST methods are only supported if a write directory is specified by -wdir option.
+.br
+Example
+.br
+gpac httpout:rdirs=outcoming
+.br
+
+.br
+This sets up a read-only server.
+.br
+  
+.br
+Example
+.br
+gpac httpout:wdir=incoming
+.br
+
+.br
+This sets up a write-only server.
+.br
+  
+.br
+Example
+.br
+gpac httpout:rdirs=outcoming:wdir=incoming:port=8080
+.br
+
+.br
+This sets up a read-write server running on -port 8080.
+.br
+  
+.br
+.SH HTTP server sink
+.LP
+.br
+In this mode, the filter will forward input PIDs to connected clients, trashing the data if no client is connected unless -hold is specified.
+.br
+The filter doesn't use any read directory in this mode.
+.br
+This mode is mostly usefull to setup live HTTP streaming of media sessions such as MP3, MPEG-2 TS or other muxed representations:
+.br
+Example
+.br
+gpac -i MP3_SOURCE -o http://localhost/live.mp3 --hold
+.br
+
+.br
+In this example, the server waits for client requests on /live.mp3 and will then push each input packet to all connected clients.
+.br
+If the source is not real-time, you can inject a reframer filter performing realtime regulation.
+.br
+Example
+.br
+gpac -i MP3_SOURCE reframer:rt=on @ -o http://localhost/live.mp3
+.br
+
+.br
+In this example, the server will push each input packet to all connected clients, or trash the packet if no connected clients.
+.br
+  
+.br
+.SH HTTP server file sink
+.LP
+.br
+In this mode, the filter will write input PIDs to files in the first read directory specified, acting as a file output sink.
+.br
+The filter uses a read directory in this mode, which must be writable.
+.br
+Upon client GET request, the server will check if the requested file matches the name of a file currently being written by the server.
+.br
+If so, the server will keep refreshing the source size until the associated input file is closed.
+.br
+This mode is typically used for origin server in HAS sessions where clients may request files while they are being produced (low latency DASH).
+.br
+Example
+.br
+gpac -i SOURCE -o http://localhost/live.mpd --rdirs=temp
+.br
+
+.br
+  
+.br
+.SH HTTP client sink
+.LP
+.br
+In this mode, the filter will upload input PIDs data to remote server using PUT (or POST if -post is set).
+.br
+This mode must be explicitly activated using -smode.
+.br
+The filter uses no read or write directories in this mode.
+.br
+Example
+.br
+gpac -i SOURCE -o http://targethost:8080/live.mpd:gpac:smode=push
+.br
+
+.br
+In this example, the filter will send PUT methods to the server running on -port 8080 at targethost location (IP address or name).
+.br
+  
+.br
+.SH HTTP server source
+.LP
+.br
+In this mode, the server acts as a source rather than a sink. It declares incoming PUT or POST methods as output PIDs
+.br
+This mode must be explicitly activated using -smode.
+.br
+The filter uses no read or write directories in this mode, and updloaded data is NOT stored by the server.
+.br
+Example
+.br
+gpac httpout:smode=source vout aout
+.br
+
+.br
+In this example, the filter will try to play uploaded files through video and audio output.
+.br
+
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+dst (string):                            location of destination file - see filter help 
+.br
+port (unsigned int, default: 80):        server port
+.br
+ifce (string):                           default network inteface to use
+.br
+rdirs (string list):                     list of directories to expose for read - see filter help
+.br
+wdir (string):                           directory to expose for write - see filter help
+.br
+block_size (unsigned int, default: 10000): block size used to read and write TCP socket
+.br
+user_agent (string, default: $GUA):      user agent string, by default solved from GPAC preferences
+.br
+close (boolean, default: false):         close HTTP connection after each request
+.br
+maxc (unsigned int, default: 100):       maximum number of connections, 0 is unlimited
+.br
+maxp (unsigned int, default: 6):         maximum number of connections for one peer, 0 is unlimited
+.br
+cache_control (string):                  specify the Cache-Control string to add; none disable ETag
+.br
+hold (boolean, default: false):          hold packets until one client connects
+.br
+smode (enum, default: default):          filter operation mode, ignored if -wdir is set. See filter help for more details. Mode can be
+.br
+* default: run in server mode (see filter help)
+.br
+* push: run in client mode using PUT or POST (see filter help)
+.br
+* source: use server as source filter on incoming PUT/POST
+.br
+
+.br
+timeout (unsigned int, default: 4):      timeout in seconds for persistent connections; 0 disable timeout
+.br
+ext (string):                            set extension for graph resolution, regardless of file extension
+.br
+mime (string):                           set mime type for graph resolution
+.br
+quit (boolean, default: false):          exit server once all input PIDs are done and client disconnects (for test purposes)
+.br
+post (boolean, default: false):          use POST instead of PUT for uploading files
+.br
+dlist (boolean, default: false):         enable HTML listing for GET requests on directories
 .br
 
 .br
@@ -4717,7 +4936,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3007-g5c01dcb53-filters
+build: 0.9.0-DEV-rev3010-g9cf182891-httpout
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
