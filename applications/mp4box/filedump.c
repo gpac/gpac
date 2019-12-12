@@ -3481,7 +3481,7 @@ static void revert_cache_file(char *item_path)
 			k++;
 		}
 		if (gf_file_exists(item_path)) {
-			gf_move_file(item_path, dst_name);
+			gf_file_move(item_path, dst_name);
 		}
 
 		gf_free(dst_name);
@@ -3489,7 +3489,7 @@ static void revert_cache_file(char *item_path)
 		fprintf(stderr, "Failed to reverse %s cache file\n", item_path);
 	}
 	gf_cfg_del(cached);
-	gf_delete_file(szPATH);
+	gf_file_delete(szPATH);
 }
 
 GF_Err rip_mpd(const char *mpd_src, const char *output_dir)

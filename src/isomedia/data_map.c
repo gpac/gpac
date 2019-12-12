@@ -348,7 +348,7 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 	tmp->mode = GF_ISOM_DATA_MAP_WRITE;
 
 	if (!sPath) {
-		tmp->stream = gf_temp_file_new(&tmp->temp_file);
+		tmp->stream = gf_file_temp(&tmp->temp_file);
 	} else {
 		char szPath[GF_MAX_PATH];
 		if ((sPath[strlen(sPath)-1] != '\\') && (sPath[strlen(sPath)-1] != '/')) {
@@ -406,7 +406,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	//open a temp file
 	if (!strcmp(sPath, "mp4_tmp_edit")) {
 		//create a temp file (that only occurs in EDIT/WRITE mode)
-		tmp->stream = gf_temp_file_new(&tmp->temp_file);
+		tmp->stream = gf_file_temp(&tmp->temp_file);
 //		bs_mode = GF_BITSTREAM_READ;
 	}
 #endif
@@ -491,7 +491,7 @@ void gf_isom_fdm_del(GF_FileDataMap *ptr)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	if (ptr->temp_file) {
-		gf_delete_file(ptr->temp_file);
+		gf_file_delete(ptr->temp_file);
 		gf_free(ptr->temp_file);
 	}
 #endif

@@ -81,7 +81,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 	FILE *sdp_out;
 	u32 i, count;
 	u64 session_version;
-	sdp_out = gf_temp_file_new(NULL);
+	sdp_out = gf_file_temp(NULL);
 	if (!sdp_out) return GF_IO_ERR;
 	*sdp_tmp = sdp_out;
 

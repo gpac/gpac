@@ -101,9 +101,9 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress_callback) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_delete_file) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_move_file) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_temp_file_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_file_delete) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_file_move) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_file_temp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_modification_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fwrite) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fopen) )

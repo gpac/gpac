@@ -302,7 +302,7 @@ static void pipeout_finalize(GF_Filter *filter)
 	pipeout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
 
 	if (ctx->owns_pipe)
-		gf_delete_file(ctx->szFileName);
+		gf_file_delete(ctx->szFileName);
 }
 
 static GF_Err pipeout_process(GF_Filter *filter)

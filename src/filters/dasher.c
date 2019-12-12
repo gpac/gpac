@@ -2722,7 +2722,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, Double min_valid_mpd_time, 
 			if (time + dur >= min_valid_mpd_time) break;
 			if (sctx->filepath) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] removing segment %s\n", sctx->filename ? sctx->filename : sctx->filepath));
-				gf_delete_file(sctx->filepath);
+				gf_file_delete(sctx->filepath);
 				if (sctx->filename) gf_free(sctx->filename);
 				gf_free(sctx->filepath);
 			}
@@ -2931,7 +2931,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 	max_opid = (ctx->dual && ctx->opid_alt) ? 2 : 1;
 	for (i=0; i < max_opid; i++) {
 		Bool do_m3u8 = GF_FALSE;
-		tmp = gf_temp_file_new(NULL);
+		tmp = gf_file_temp(NULL);
 		GF_FilterPid *opid;
 
 		if (i==0) {

@@ -895,7 +895,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		readonly_playlist = 0;
 		if (!playlist) {
 			readonly_playlist = 0;
-			playlist = gf_temp_file_new(NULL);
+			playlist = gf_file_temp(NULL);
 		}
 		pos = ftell(playlist);
 		i=0;
@@ -2181,7 +2181,7 @@ static void MakeScreenshot(Bool for_coverage)
 			if (dst) gf_free(dst);
 			gf_term_release_screen_buffer(term, &fb);
 
-			if (for_coverage) gf_delete_file(szFileName);
+			if (for_coverage) gf_file_delete(szFileName);
 #endif //GPAC_DISABLE_AV_PARSERS
 		}
 	}

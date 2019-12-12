@@ -179,7 +179,7 @@ Bool delete_cache_files(void *cbck, char *item_name, char *item_path, GF_FileEnu
 	startPattern = (const char *) cbck;
 	sz = (u32) strlen( startPattern );
 	if (!strncmp(startPattern, item_name, sz)) {
-		if (GF_OK != gf_delete_file(item_path))
+		if (GF_OK != gf_file_delete(item_path))
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] : failed to cleanup file %s\n", item_path));
 	}
 	return GF_FALSE;
@@ -705,14 +705,14 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
 		       ("[CACHE] Error while writting %d bytes of data to cache : has written only %d bytes.", size, read));
 		gf_cache_close_write_cache(entry, sess, GF_FALSE);
-		gf_delete_file(entry->cache_filename);
+		gf_file_delete(entry->cache_filename);
 		return GF_IO_ERR;
 	}
 	if (fflush(entry->writeFilePtr)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
 		       ("[CACHE] Error while flushing data bytes to cache file : %s.", entry->cache_filename));
 		gf_cache_close_write_cache(entry, sess, GF_FALSE);
-		gf_delete_file(entry->cache_filename);
+		gf_file_delete(entry->cache_filename);
 		return GF_IO_ERR;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Writing %d bytes to cache\n", size));
@@ -736,7 +736,7 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 #endif
 	if (entry->file_exists && entry->deletableFilesOnDelete) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] url %s cleanup, deleting %s...\n", entry->url, entry->cache_filename));
-		if (GF_OK != gf_delete_file(entry->cache_filename))
+		if (GF_OK != gf_file_delete(entry->cache_filename))
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, failed to delete file %s\n", __LINE__, entry->cache_filename));
 	}
 #ifdef ENABLE_WRITE_MX
@@ -792,7 +792,7 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 		entry->properties = NULL;
 		if (propfile) {
 			//this may fail because the prop file is not yet flushed to disk
-			gf_delete_file( propfile );
+			gf_file_delete( propfile );
 		}
 	}
 	entry->dm = NULL;
