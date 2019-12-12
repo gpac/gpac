@@ -275,7 +275,7 @@ static void gf_term_refresh_cache()
 		file = gf_opts_get_key(name, "cacheFile");
 		opt = gf_opts_get_key(name, "expireAfterNTP");
 		if (!opt) {
-			if (file) gf_delete_file((char*) file);
+			if (file) gf_file_delete((char*) file);
 			gf_opts_del_section(name);
 			i--;
 			count--;
@@ -293,7 +293,7 @@ static void gf_term_refresh_cache()
 		if (exp && (exp<sec)) force_delete=1;
 
 		if (force_delete) {
-			if (file) gf_delete_file((char*) opt);
+			if (file) gf_file_delete((char*) opt);
 
 			gf_opts_del_section(name);
 			i--;

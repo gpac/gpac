@@ -288,7 +288,7 @@ static GF_Err mp4mx_setup_dash_vod(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	}
 	ctx->dash_mode = MP4MX_DASH_VOD;
 	if (ctx->cache && !ctx->tmp_store) {
-		ctx->tmp_store = gf_temp_file_new(NULL);
+		ctx->tmp_store = gf_file_temp(NULL);
 		if (!ctx->tmp_store) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot allocate temp file for VOD sidx generation\n"));
 			return GF_IO_ERR;

@@ -2022,7 +2022,7 @@ retry_cache:
 		}
 		if (test) {
 			gf_fclose(test);
-			gf_delete_file(szTemp);
+			gf_file_delete(szTemp);
 		}
 	}
 
@@ -2088,7 +2088,7 @@ void gf_dm_del(GF_DownloadManager *dm)
 		GF_PartialDownload * entry = (GF_PartialDownload*)gf_list_get( dm->partial_downloads, 0);
 		gf_list_rem( dm->partial_downloads, 0);
 		assert( entry->filename );
-		gf_delete_file( entry->filename );
+		gf_file_delete( entry->filename );
 		gf_free(entry->filename );
 		entry->filename = NULL;
 		entry->url = NULL;
@@ -3851,7 +3851,7 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 
 	if (!url || !out_data || !out_size)
 		return GF_BAD_PARAM;
-	f = gf_temp_file_new(&f_fn);
+	f = gf_file_temp(&f_fn);
 	if (!f) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[WGET] Failed to create temp file for write.\n"));
 		return GF_IO_ERR;
@@ -3860,7 +3860,7 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 	dm = gf_dm_new(NULL);
 	if (!dm) {
 		gf_fclose(f);
-		gf_delete_file(f_fn);
+		gf_file_delete(f_fn);
 		return GF_OUT_OF_MEM;
 	}
 
@@ -3868,7 +3868,7 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 	if (!dnload) {
 		gf_dm_del(dm);
 		gf_fclose(f);
-		gf_delete_file(f_fn);
+		gf_file_delete(f_fn);
 		return GF_BAD_PARAM;
 	}
 	dnload->use_cache_file = GF_FALSE;
@@ -3898,7 +3898,7 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 		}
 	}
 	gf_fclose(f);
-	gf_delete_file(f_fn);
+	gf_file_delete(f_fn);
 	gf_free(f_fn);
 	gf_dm_sess_del(dnload);
 	gf_dm_del(dm);

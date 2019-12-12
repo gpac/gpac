@@ -682,7 +682,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->resource = NULL;
 		sess->file_pos = sess->file_size = 0;
 
-		e = gf_delete_file(full_path);
+		e = gf_file_delete(full_path);
 		if (e) {
 			response = "HTTP/1.1 500 Internal Server Error";
 			gf_dynstrcat(&response_body, "Error while deleting ", NULL);

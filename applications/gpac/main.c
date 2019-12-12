@@ -3265,14 +3265,14 @@ static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_F
 		if (sep) {
 			sep[0]=0;
 			if (gf_file_exists(item_path)) {
-				gf_move_file(item_path, dst_name);
+				gf_file_move(item_path, dst_name);
 			}
 			sep[0]='.';
 		}
 		gf_free(dst_name);
 	}
 	gf_cfg_del(cached);
-	gf_delete_file(item_path);
+	gf_file_delete(item_path);
 	return GF_FALSE;
 }
 

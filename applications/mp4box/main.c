@@ -4539,7 +4539,7 @@ int mp4boxMain(int argc, char **argv)
 			gf_free(mpd_base_url);
 
 		if (remote) {
-			gf_delete_file("tmp_main.m3u8");
+			gf_file_delete("tmp_main.m3u8");
 		}
 		if (e != GF_OK) {
 			fprintf(stderr, "Error converting %s (%s) to MPD (%s): %s\n", (manif_type==1) ? "HLS" : "Smooth",  inName, outfile, gf_error_to_string(e));
@@ -4595,7 +4595,7 @@ int mp4boxMain(int argc, char **argv)
 		if (e) {
 			fprintf(stderr, "Error importing %s: %s\n", inName, gf_error_to_string(e));
 			gf_isom_delete(file);
-			gf_delete_file("ttxt_convert");
+			gf_file_delete("ttxt_convert");
 			return mp4box_cleanup(1);
 		}
 		/* Prepare the export */
@@ -4613,7 +4613,7 @@ int mp4boxMain(int argc, char **argv)
 #endif
 		/* Clean the importer */
 		gf_isom_delete(file);
-		gf_delete_file("ttxt_convert");
+		gf_file_delete("ttxt_convert");
 		if (e) {
 			fprintf(stderr, "Error converting %s: %s\n", inName, gf_error_to_string(e));
 			return mp4box_cleanup(1);
@@ -4903,7 +4903,7 @@ int mp4boxMain(int argc, char **argv)
 			dyn_state_file = GF_TRUE;
 		} else if (dash_ctx_file) {
 			if (force_new)
-				gf_delete_file(dash_ctx_file);
+				gf_file_delete(dash_ctx_file);
 		}
 
 		if (dash_profile==GF_DASH_PROFILE_AUTO)
@@ -5067,13 +5067,13 @@ int mp4boxMain(int argc, char **argv)
 			char szName[1024];
 			fprintf(stderr, "Enter file name to save dash context:\n");
 			if (scanf("%1023s", szName) == 1) {
-				gf_move_file(dash_ctx_file, szName);
+				gf_file_move(dash_ctx_file, szName);
 			}
 		}
 		if (e) fprintf(stderr, "Error DASHing file: %s\n", gf_error_to_string(e));
 		if (file) gf_isom_delete(file);
 		if (del_file)
-			gf_delete_file(inName);
+			gf_file_delete(inName);
 
 		if (e) return mp4box_cleanup(1);
 		goto exit;
@@ -5174,7 +5174,7 @@ int mp4boxMain(int argc, char **argv)
 					if (e) {
 						fprintf(stderr, "Error importing %s: %s\n", inName, gf_error_to_string(e));
 						gf_isom_delete(file);
-						gf_delete_file("ttxt_convert");
+						gf_file_delete("ttxt_convert");
 						return mp4box_cleanup(1);
 					}
 				}
@@ -6128,7 +6128,7 @@ int mp4boxMain(int argc, char **argv)
 			gf_isom_delete(file);
 			file = NULL;
 			if (!outName) {
-				e = gf_move_file(outfile, szName);
+				e = gf_file_move(outfile, szName);
 				if (e) goto err_exit;
 			}
 			goto exit;
@@ -6144,8 +6144,8 @@ int mp4boxMain(int argc, char **argv)
 		e = gf_media_fragment_file(file, outfile, interleaving_time, use_mfra);
 		if (e) fprintf(stderr, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		if (!e && !outName) {
-			if (gf_file_exists(inName) && gf_delete_file(inName)) fprintf(stderr, "Error removing file %s\n", inName);
-			else if (gf_move_file(outfile, inName)) fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
+			if (gf_file_exists(inName) && gf_file_delete(inName)) fprintf(stderr, "Error removing file %s\n", inName);
+			else if (gf_file_move(outfile, inName)) fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
 		}
 		if (e) goto err_exit;
 		gf_isom_delete(file);
@@ -6234,11 +6234,11 @@ int mp4boxMain(int argc, char **argv)
 		file = NULL;
 
 		if (!e && !outName && !encode && !force_new && !pack_file) {
-			e = gf_delete_file(inName);
+			e = gf_file_delete(inName);
 			if (e) {
 				fprintf(stderr, "Error removing file %s\n", inName);
 			} else {
-				e = gf_move_file(outfile, inName);
+				e = gf_file_move(outfile, inName);
 				if (e) {
 					fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
 				}

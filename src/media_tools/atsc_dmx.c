@@ -684,7 +684,7 @@ static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 			sprintf(szFileName, o->rlct->toi_template, o->toi);
 			sprintf(szPath, "%s/%s", s->output_dir, szFileName);
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d deleting file %s (TSI %u TOI %u)\n", s->service_id, szPath, o->tsi, o->toi));
-			gf_delete_file(szPath);
+			gf_file_delete(szPath);
 			i--;
 			count--;
 			gf_atsc3_obj_to_reservoir(atscd, s, o);

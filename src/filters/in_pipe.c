@@ -237,7 +237,7 @@ static void pipein_finalize(GF_Filter *filter)
 	if (ctx->buffer) gf_free(ctx->buffer);
 
 	if (ctx->owns_pipe)
-		gf_delete_file(ctx->src);
+		gf_file_delete(ctx->src);
 
 }
 
