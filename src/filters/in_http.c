@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / HTTP input filter using GPAC http stack
@@ -421,7 +421,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 static const GF_FilterArgs HTTPInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "1000000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cache), "set cache mode\n"
 	"- disk: cache to disk,  discard once session is no longer used\n"
 	"- disk: cache to disk and keep\n"

@@ -538,8 +538,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
+		if (gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT)==NULL)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*") );
+		if (gf_filter_pid_get_property(pid, GF_PROP_PID_MIME)==NULL)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DASH_MODE, NULL);
 
 		switch (ctx->store) {
 		case MP4MX_MODE_FLAT:

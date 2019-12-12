@@ -567,6 +567,12 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	GF_Err e;
 	Bool new_pid_inst=GF_FALSE;
 	GF_FilterPidInst *pidinst=NULL;
+	GF_Filter *alias_orig = NULL;
+
+	if (filter->multi_sink_target) {
+		alias_orig = filter;
+		filter = filter->multi_sink_target;
+	}
 
 	assert(filter->freg->configure_pid);
 	if (filter->finalized) {
@@ -620,6 +626,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		}
 		pidinst = gf_filter_pid_inst_new(filter, pid);
 		new_pid_inst=GF_TRUE;
+		pidinst->alias_orig = alias_orig;
 	}
 
 	//if new, add the PID to input/output before calling configure
@@ -2990,7 +2997,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\t%s\n", freg->name));
 
-			af = gf_filter_new(fsess, freg, args, dst_args, pid->filter->no_dst_arg_inherit ? GF_FILTER_ARG_INHERIT_SOURCE_ONLY : GF_FILTER_ARG_INHERIT, NULL);
+			af = gf_filter_new(fsess, freg, args, dst_args, pid->filter->no_dst_arg_inherit ? GF_FILTER_ARG_INHERIT_SOURCE_ONLY : GF_FILTER_ARG_INHERIT, NULL, NULL);
 			if (!af) goto exit;
 
 			//the other filters shouldn't need any specific init
@@ -5425,6 +5432,10 @@ GF_EXPORT
 void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt)
 {
 	GF_FilterEvent *dup_evt;
+	if (!filter) return;
+	if (filter->multi_sink_target)
+		filter = filter->multi_sink_target;
+
 	//filter is being shut down, prevent any event posting
 	if (filter->finalized) return;
 	if (!evt) return;
@@ -6294,4 +6305,17 @@ GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *pid)
 		return GF_OK;
 	pid->direct_dispatch = GF_TRUE;
 	return GF_OK;
+}
+
+GF_EXPORT
+void *gf_filter_pid_get_alias_udta(GF_FilterPid *_pid)
+{
+	GF_FilterPidInst *pidi;
+	if (PID_IS_OUTPUT(_pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query multi_sink original filter context on output pid %s in filter %s not allowed\n", _pid->pid->name, _pid->filter->name));
+		return NULL;
+	}
+	pidi = (GF_FilterPidInst *) _pid;
+	if (!pidi->alias_orig) return NULL;
+	return pidi->alias_orig->filter_udta;
 }

@@ -691,9 +691,12 @@ struct __gf_filter
 
 	char *instance_description, *instance_version, *instance_author, *instance_help;
 	GF_FilterArgs *instance_args;
+
+	GF_Filter *multi_sink_target;
+
 };
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err, GF_Filter *multi_sink_target);
 GF_Filter *gf_filter_clone(GF_Filter *filter);
 void gf_filter_del(GF_Filter *filter);
 
@@ -786,6 +789,8 @@ struct __gf_filter_pid_inst
 	u32 last_clock_timescale;
 	//last clock type found
 	GF_FilterClockType last_clock_type;
+
+	GF_Filter *alias_orig;
 };
 
 struct __gf_filter_pid
