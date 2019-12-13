@@ -994,7 +994,8 @@ GF_GPACArg GPAC_Args[] = {
 	        "- coding: bitstream formats (audio, video, scene)\n"\
 	        "- container: container formats (ISO File, MPEG-2 TS, AVI, ...)\n"\
 	        "- network: network data except RTP trafic\n"\
-	        "- rtp: rtp trafic\n"\
+	        "- http: HTTP trafic\n"\
+	        "- rtp: RTP trafic\n"\
 	        "- author: authoring tools (hint, import, export)\n"\
 	        "- sync: terminal sync layer\n"\
 	        "- codec: terminal codec messages\n"\

@@ -476,6 +476,13 @@ static GF_Err fileout_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+static Bool fileout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	if (evt->base.type==GF_FEVT_FILE_DELETE) {
+		gf_file_delete(evt->file_del.url);
+	}
+	return GF_TRUE;
+}
 static GF_FilterProbeScore fileout_probe_url(const char *url, const char *mime)
 {
 	if (strstr(url, "://")) {
@@ -522,7 +529,8 @@ GF_FilterRegister FileOutRegister = {
 	.initialize = fileout_initialize,
 	.finalize = fileout_finalize,
 	.configure_pid = fileout_configure_pid,
-	.process = fileout_process
+	.process = fileout_process,
+	.process_event = fileout_process_event
 };
 
 

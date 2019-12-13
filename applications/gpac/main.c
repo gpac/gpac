@@ -967,15 +967,18 @@ static void gpac_sig_handler(int sig)
 			sigint_catched = GF_TRUE;
 			fprintf(stderr, "catched SIGINT - flush session before exit ? (Y/n):\n");
 			res = scanf("%c", &input);
-			sigint_processed = GF_TRUE;
 			if (res!=1) input=0;
 			switch (input) {
 			case 'Y':
 			case 'y':
 			case '\n':
+				sigint_processed = GF_TRUE;
 				gf_fs_abort(session, GF_TRUE);
 				break;
+			case 0:
+				break;
 			default:
+				sigint_processed = GF_TRUE;
 				gf_fs_abort(session, GF_FALSE);
 				break;
 			}

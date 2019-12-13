@@ -576,7 +576,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			GF_FEVT_INIT(evt, GF_FEVT_SOURCE_SWITCH,  NULL);
 			evt.seek.start_offset = -1;
 			evt.seek.source_switch = NULL;
-			gf_filter_send_event(group->seg_filter_src, &evt);
+			gf_filter_send_event(group->seg_filter_src, &evt, GF_FALSE);
 		}
 		return GF_OK;
 	}
@@ -1389,7 +1389,7 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] group %d queuing next init/switching segment %s\n", group->idx, next_url_init_or_switch_segment));
 
 		group->init_switch_seg_sent = GF_TRUE;
-		gf_filter_send_event(group->seg_filter_src, &evt);
+		gf_filter_send_event(group->seg_filter_src, &evt, GF_FALSE);
 		return;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] group %d queuing next media segment %s\n", group->idx, next_url));
@@ -1402,7 +1402,7 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	group->segment_sent = GF_TRUE;
 	group->prev_is_init_segment = GF_FALSE;
 	group->init_switch_seg_sent = GF_FALSE;
-	gf_filter_send_event(group->seg_filter_src, &evt);
+	gf_filter_send_event(group->seg_filter_src, &evt, GF_FALSE);
 }
 
 static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)

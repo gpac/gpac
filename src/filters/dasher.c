@@ -101,7 +101,7 @@ typedef struct
 	char *cues;
 	char *title, *source, *info, *cprt, *lang;
 	GF_List *location, *base;
-	Bool check_dur, skip_seg, loop;
+	Bool check_dur, skip_seg, loop, reschedule;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
 	Bool m2ts;
@@ -157,6 +157,8 @@ typedef struct
 
 	//-1 forces report update, otherwise this is a packet count
 	s32 update_report;
+
+	Bool purge_segments;
 } GF_DasherCtx;
 
 
@@ -443,7 +445,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 		ctx->store_seg_states = GF_FALSE;
 		//in m3u8 mode, always store all seg states. In MPD only if state, not ondemand
-		if ((ctx->state && !ctx->sseg) || ctx->do_m3u8) ctx->store_seg_states = GF_TRUE;
+		if (((ctx->state || ctx->purge_segments) && !ctx->sseg) || ctx->do_m3u8) ctx->store_seg_states = GF_TRUE;
 	}
 
 	ds = gf_filter_pid_get_udta(pid);
@@ -2700,10 +2702,26 @@ static void dahser_purge_segment_timeline(GF_DashStream *ds, GF_MPD_SegmentTimel
 	}
 }
 
-static void dasher_purge_segments(GF_DasherCtx *ctx, Double min_valid_mpd_time, u64 *period_dur)
+static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 {
+	Double min_valid_mpd_time;
 	u64 max_rem_dur = 0;
 	u32 i, count;
+
+	//non-static mode, purge segments
+	if (ctx->dmode == GF_MPD_TYPE_STATIC) return;
+	if (ctx->tsb<0) return;
+
+
+	min_valid_mpd_time = (Double) *period_dur;
+	min_valid_mpd_time /= 1000;
+	min_valid_mpd_time -= ctx->tsb;
+	//negative asto, we produce segments earlier but we don't want to delete them before the asto
+	if (ctx->asto<0) {
+		min_valid_mpd_time += ((Double) ctx->asto)/1000;
+	}
+	if (min_valid_mpd_time<=0) return;
+
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
@@ -2721,8 +2739,13 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, Double min_valid_mpd_time, 
 			dur/= ds->timescale;
 			if (time + dur >= min_valid_mpd_time) break;
 			if (sctx->filepath) {
+				GF_FilterEvent evt;
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] removing segment %s\n", sctx->filename ? sctx->filename : sctx->filepath));
-				gf_file_delete(sctx->filepath);
+
+				GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, ds->opid);
+				evt.file_del.url = sctx->filepath;
+				gf_filter_pid_send_event(ds->opid, &evt);
+
 				if (sctx->filename) gf_free(sctx->filename);
 				gf_free(sctx->filepath);
 			}
@@ -2805,17 +2828,7 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 		}
 	}
 
-	//non-static mode, purge segments
-	if ((ctx->dmode != GF_MPD_TYPE_STATIC) && (ctx->tsb>=0)) {
-		Double min_valid_mpd_time = (Double) pdur;
-		min_valid_mpd_time /= 1000;
-		min_valid_mpd_time -= ctx->tsb;
-		//negative asto, we produce segments earlier but we don't want to delete them before the asto
-		if (ctx->asto<0) {
-			min_valid_mpd_time += ((Double) ctx->asto)/1000;
-		}
-		if (min_valid_mpd_time>0) dasher_purge_segments(ctx, min_valid_mpd_time, &pdur);
-	}
+	dasher_purge_segments(ctx, &pdur);
 
 	if (ctx->current_period->period) {
 		ctx->current_period->period->duration = pdur;
@@ -4873,6 +4886,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 	u32 i, count, nb_init, has_init;
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err e;
+	Bool seg_done = GF_FALSE;
 
 	if (ctx->in_error)
 		return GF_SERVICE_ERROR;
@@ -4944,6 +4958,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 					if (!ds->done) ds->done = ds_done;
 					ds->seg_done = GF_TRUE;
+					seg_done = GF_TRUE;
 					ds->first_cts_in_next_seg = ds->est_first_cts_in_next_seg;
 					ds->est_first_cts_in_next_seg = 0;
 					assert(base_ds->nb_comp_done < base_ds->nb_comp);
@@ -4966,7 +4981,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 						}
 						if (nb_sub_done==count)
 							ctx->subdur_done = GF_TRUE;
-					} else if (!ctx->loop && (ctx->dmode==GF_MPD_TYPE_DYNAMIC) && !strcmp(ds->period_id, DEFAULT_PERIOD_ID) ) {
+					} else if (ctx->reschedule && !ctx->loop && (ctx->dmode==GF_MPD_TYPE_DYNAMIC) && !strcmp(ds->period_id, DEFAULT_PERIOD_ID) ) {
 						if (gf_list_find(ctx->next_period->streams, ds)<0) {
 							gf_list_add(ctx->next_period->streams, ds);
 						}
@@ -5288,6 +5303,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 				if (base_ds->nb_comp_done == base_ds->nb_comp) {
 					dasher_flush_segment(ctx, base_ds);
+					seg_done = GF_TRUE;
 				}
 				break;
 			}
@@ -5421,7 +5437,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 	dasher_format_report(filter, ctx);
 
-	//still some running steams in period
+	if (seg_done && ctx->purge_segments) {
+		dasher_update_period_duration(ctx);
+	}
+
+	//still some running streams in period
 	if (count && (nb_init<count)) {
 		gf_filter_post_process_task(filter);
 		return GF_OK;
@@ -5800,6 +5820,9 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 			ctx->sfile = GF_TRUE;
 		ctx->tpl = GF_FALSE;
 	}
+
+	if ((ctx->tsb>=0) && (ctx->dmode!=GF_DASH_STATIC))
+		ctx->purge_segments = GF_TRUE;
 	return GF_OK;
 }
 
@@ -5956,6 +5979,8 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(sigfrag), "use manifest generation only mode - see filter help", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(_p_mpdtime), "pointer to u64 holding the mpd time in ms of the last generated segment", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(reschedule), "reschedule sources with no period ID assigned once done (dynamic mode only)", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+
 	{0}
 };
 

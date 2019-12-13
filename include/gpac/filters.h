@@ -1213,6 +1213,8 @@ typedef enum
 	GF_FEVT_USER,
 	/*! PLAY hint event, used to signal if block dispatch is needed or not for the source*/
 	GF_FEVT_PLAY_HINT,
+	/*! file delete event, sent upstream by dahser to notify file deletion*/
+	GF_FEVT_FILE_DELETE,
 } GF_FEventType;
 
 /*! type: the type of the event*/
@@ -1332,6 +1334,13 @@ typedef struct
 	GF_Event event;
 } GF_FEVT_Event;
 
+/*! Event structure for GF_FEVT_FILE_DELETE*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+	/*! URL to delete*/
+	const char *url;
+} GF_FEVT_FileDelete;
 
 /*! Event structure for GF_FEVT_VISIBILITY_HINT*/
 typedef struct
@@ -1374,6 +1383,7 @@ union __gf_filter_event
 	GF_FEVT_VisibililityHint visibility_hint;
 	GF_FEVT_BufferRequirement buffer_req;
 	GF_FEVT_SegmentSize seg_size;
+	GF_FEVT_FileDelete file_del;
 };
 
 /*! Gets readable name for event type
@@ -2105,11 +2115,12 @@ const char *gf_filter_get_dst_args(GF_Filter *filter);
 */
 char *gf_filter_get_dst_name(GF_Filter *filter);
 
-/*! Sends an event on all input PIDs
+/*! Sends an event on all input PIDs (downstream) or on all output PIDs (upstream)
 \param filter the target filter
 \param evt the event to send
+\param upstream send the even upstream
 */
-void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt);
+void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream);
 
 /*! Looks for a built-in property value marked as informative on a filter on all PIDs (inputs and output)
 This is a recursive call on both input and ouput chain.
