@@ -158,6 +158,7 @@ static struct log_tool_info {
 	{ GF_LOG_CODING, "coding", GF_LOG_WARNING },
 	{ GF_LOG_CONTAINER, "container", GF_LOG_WARNING },
 	{ GF_LOG_NETWORK, "network", GF_LOG_WARNING },
+	{ GF_LOG_HTTP, "http", GF_LOG_WARNING },
 	{ GF_LOG_RTP, "rtp", GF_LOG_WARNING },
 	{ GF_LOG_AUTHOR, "author", GF_LOG_WARNING },
 	{ GF_LOG_SYNC, "sync", GF_LOG_WARNING },

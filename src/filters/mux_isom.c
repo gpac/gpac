@@ -2329,7 +2329,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_free(tkw);
 		}
 		//removing last pid, flush file
-		if (ctx->opid && !gf_list_count(ctx->tracks) && ctx->file) {
+		if (ctx->opid && !gf_list_count(ctx->tracks) && ctx->file && !ctx->init_movie_done) {
 			return mp4_mux_done(filter, ctx);
 		}
 		return GF_OK;

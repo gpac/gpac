@@ -460,6 +460,8 @@ typedef enum
 	GF_LOG_CONTAINER,
 	/*! Log message from the network/service stack (messages & co)*/
 	GF_LOG_NETWORK,
+	/*! Log message from the HTTP stack*/
+	GF_LOG_HTTP,
 	/*! Log message from the RTP/RTCP stack (TS info) and packet structure & hinting (debug)*/
 	GF_LOG_RTP,
 	/*! Log message from authoring subsystem (file manip, import/export)*/

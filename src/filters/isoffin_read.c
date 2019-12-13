@@ -124,7 +124,7 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	}
 
 	if (e != GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] error while opening %s, error=%s\n", szURL,gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] error while opening %s, error=%s\n", szURL,gf_error_to_string(e)));
 		gf_filter_setup_failure(filter, e);
 		return e;
 	}
@@ -791,7 +791,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		ch->play_state = 1;
 		ch->sample_num = com->play.from_pck;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, com->play.start_range, com->play.end_range));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, com->play.start_range, com->play.end_range));
 
 		if (!read->nb_playing)
 			gf_isom_reset_seq_num(read->mov);

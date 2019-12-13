@@ -164,8 +164,9 @@ void set_name(DOMString name)
 FilterPid new_pid();
 /*! sends an event on the filter - see \ref gf_filter_send_event
 \param evt the event to send
+\param upstream sends the evnet upstream
 */
-void send_event(FilterEvent evt);
+void send_event(FilterEvent evt, optional boolean upstream=false);
 
 /*! queries info on a filter
  an event on the filter - see \ref gf_filter_get_info and \ref gf_filter_get_info_str 
