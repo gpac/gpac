@@ -2107,6 +2107,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 			dumper.dump_file = dump;
 
 			if (mtype == GF_ISOM_MEDIA_HINT) {
+#ifndef GPAC_DISABLE_ISOM_HINTING
 				char *name=NULL;
 				u32 scount;
 				if (msubtype==GF_ISOM_SUBTYPE_RTP) name = "RTPHintTrack";
@@ -2124,6 +2125,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 				}
 				fprintf(dump, "</%s>\n", name);
 				fmt_handled = GF_TRUE;
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
 			}
 			else if (gf_isom_get_avc_svc_type(the_file, i+1, 1) || gf_isom_get_hevc_lhvc_type(the_file, i+1, 1)) {
 				dump_isom_nal_ex(the_file, trackID, dump, GF_FALSE);
