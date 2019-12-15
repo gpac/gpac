@@ -1968,8 +1968,11 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 					ssix->subsegments[cur_index].ranges[0].level = 1;
 					ssix->subsegments[cur_index].ranges[0].range_size = moof_get_first_sap_end(movie->moof);
 
-					ssix->subsegments[cur_index].ranges[1].level = 0xFF;
-					ssix->subsegments[cur_index].ranges[1].range_size = sidx->refs[cur_index].reference_size - ssix->subsegments[count-1].ranges[0].range_size;
+					{
+						u32 last_sseg_range0_size = (count - 1 < ssix->subsegment_count) ? ssix->subsegments[count - 1].ranges[0].range_size : 0;
+						ssix->subsegments[cur_index].ranges[1].level = 0xFF;
+						ssix->subsegments[cur_index].ranges[1].range_size = sidx->refs[cur_index].reference_size - last_sseg_range0_size;
+					}
 
 					if (movie->root_ssix)
 						ssix = NULL;
