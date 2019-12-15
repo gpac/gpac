@@ -96,7 +96,7 @@ GF_Err gf_rmdir(const char *DirPathName)
 	res = RemoveDirectory(swzName);
 	if (! res) {
 		int err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory %s: last error %d\n", DirPathName, err ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory \"%s\": last error %d\n", DirPathName, err ));
 	}
 #elif defined (WIN32)
 	int res;
@@ -107,13 +107,13 @@ GF_Err gf_rmdir(const char *DirPathName)
 	gf_free(wcsDirPathName);
 	if (res == -1) {
 		int err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory %s: last error %d\n", DirPathName, err ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory \"%s\": last error %d\n", DirPathName, err ));
 		return GF_IO_ERR;
 	}
 #else
 	int res = rmdir(DirPathName);
 	if (res==-1) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory %s: last error %d\n", DirPathName, errno  ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory \"%s\": last error %d\n", DirPathName, errno  ));
 		return GF_IO_ERR;
 	}
 #endif
@@ -130,7 +130,7 @@ GF_Err gf_mkdir(const char* DirPathName)
 	res = CreateDirectory(swzName, NULL);
 	if (! res) {
 		int err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory %s: last error %d\n", DirPathName, err ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory \"%s\": last error %d\n", DirPathName, err ));
 	}
 #elif defined (WIN32)
 	int res;
@@ -141,16 +141,16 @@ GF_Err gf_mkdir(const char* DirPathName)
 	gf_free(wcsDirPathName);
 	if (res==-1) {
 		int err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory %s: last error %d\n", DirPathName, err ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory \"%s\": last error %d\n", DirPathName, err ));
 	}
 #else
 	int res = mkdir(DirPathName, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	if (res==-1) {
 		if(errno == 17) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Cannot create directory %s, it already exists: last error %d \n", DirPathName, errno ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Cannot create directory \"%s\", it already exists: last error %d \n", DirPathName, errno ));
 			return GF_OK;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory %s: last error %d\n", DirPathName, errno ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory \"%s\": last error %d\n", DirPathName, errno ));
 			return GF_IO_ERR;
 		}
 	}
@@ -508,7 +508,7 @@ FILE *gf_temp_file_new(char ** const fileName)
 				if (fileName) {
 					*fileName = gf_strdup(mbs_t_file);
 				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Win32] temporary file %s won't be deleted - contact the GPAC team\n", mbs_t_file));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Win32] temporary file \"%s\" won't be deleted - contact the GPAC team\n", mbs_t_file));
 				}
 			}
 			gf_free(mbs_t_file);
@@ -656,7 +656,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 
 	the_dir = opendir(path);
 	if (the_dir == NULL) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot open directory %s for enumeration: %d\n", path, errno));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot open directory \"%s\" for enumeration: %d\n", path, errno));
 		return GF_IO_ERR;
 	}
 	the_file = readdir(the_dir);
@@ -730,7 +730,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #else
 		strcpy(item_path, path);
 		strcat(item_path, the_file->d_name);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Checking file %s for enum\n", item_path));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Checking file \"%s\" for enum\n", item_path));
 
 		if (stat( item_path, &st ) != 0) goto next;
 
@@ -873,7 +873,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 			if (!gf_dir_exists(fname)) {
 				GF_Err e = gf_mkdir(fname);
 				if (e != GF_OK) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Failed to create directory %s: %s\n", file_name, gf_error_to_string(e) ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Failed to create directory \"%s\": %s\n", file_name, gf_error_to_string(e) ));
 					sep[0] = c;
 					gf_free(fname);
 					return NULL;
@@ -912,14 +912,14 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 
 	if (res) {
 		gf_register_file_handle(file_name, res);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] file %s opened in mode %s - %d file handles\n", file_name, mode, gpac_file_handles));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] file \"%s\" opened in mode \"%s\" - %d file handles\n", file_name, mode, gpac_file_handles));
 	} else {
 		if (strchr(mode, 'w') || strchr(mode, 'a')) {
 #if defined(WIN32)
 			u32 err = GetLastError();
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] system failure for file opening of %s in mode %s: 0x%08x\n", file_name, mode, err));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] system failure for file opening of \"%s\" in mode \"%s\": 0x%08x\n", file_name, mode, err));
 #else
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] system failure for file opening of %s in mode %s: %d\n", file_name, mode, errno));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] system failure for file opening of \"%s\" in mode \"%s\": %d\n", file_name, mode, errno));
 #endif
 		}
 	}
