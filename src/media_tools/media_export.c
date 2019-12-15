@@ -1189,7 +1189,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	args = NULL;
 	//except in nhml inband file dump, create a sink filter
 	if (!dumper->dump_file && !(dumper->flags & GF_EXPORT_AVI)) {
-		Bool no_ext = GF_FALSE;
+		Bool no_ext = (dumper->flags & GF_EXPORT_NO_FILE_EXT) ? GF_TRUE : GF_FALSE;
 		char *ext = gf_file_ext_start(dumper->out_name);
 		//mux args, for now we only dump to file
 		e = gf_dynstrcat(&args, "fout:dst=", NULL);
