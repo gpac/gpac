@@ -1098,14 +1098,14 @@ enum
 	/*! indicates QCP file format possible as well as native (EVRC and SMV audio only)*/
 	GF_EXPORT_USE_QCP = (1<<11),
 	/*! indicates full NHML dump*/
-	GF_EXPORT_NHML_FULL = (1<<11),
+	GF_EXPORT_NHML_FULL = (1<<12),
 	/*! exports a single svc layer*/
-	GF_EXPORT_SVC_LAYER = (1<<12),
+	GF_EXPORT_SVC_LAYER = (1<<13),
 	/*! Don't merge identical cues in consecutive samples */
-	GF_EXPORT_WEBVTT_NOMERGE = (1<<13),
+	GF_EXPORT_WEBVTT_NOMERGE = (1<<14),
 
 	/*! Experimental Streaming Instructions */
-	GF_EXPORT_SIX = (1<<14),
+	GF_EXPORT_SIX = (1<<15),
 
 	/*! ony probes extraction format*/
 	GF_EXPORT_PROBE_ONLY = (1<<30),
