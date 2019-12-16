@@ -840,8 +840,8 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 		else if (!strcmp(att->name, "maxWidth")) set->max_width = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "minHeight")) set->min_height = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "maxHeight")) set->max_height = gf_mpd_parse_int(att->value);
-		else if (!strcmp(att->name, "minFrameRate")) set->min_framerate = gf_mpd_parse_int(att->value);
-		else if (!strcmp(att->name, "maxFrameRate")) set->max_framerate = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "minFrameRate")) set->min_framerate = *gf_mpd_parse_frac(att->value, '/');
+		else if (!strcmp(att->name, "maxFrameRate")) set->max_framerate = *gf_mpd_parse_frac(att->value, '/');
 		else if (!strcmp(att->name, "segmentAlignment")) set->segment_alignment = gf_mpd_parse_bool(att->value);
 		else if (!strcmp(att->name, "bitstreamSwitching")) set->bitstream_switching = gf_mpd_parse_bool(att->value);
 		else if (!strcmp(att->name, "subsegmentAlignment")) set->subsegment_alignment = gf_mpd_parse_bool(att->value);
@@ -2823,9 +2823,11 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 	if (as->max_width) fprintf(out, " maxWidth=\"%d\"", as->max_width);
 	if (as->min_height) fprintf(out, " minHeight=\"%d\"", as->min_height);
 	if (as->max_height) fprintf(out, " maxHeight=\"%d\"", as->max_height);
-	if (as->min_framerate) fprintf(out, " minFrameRate=\"%d\"", as->min_framerate);
-	if (as->max_framerate) fprintf(out, " maxFrameRate=\"%d\"", as->max_framerate);	
-	if (as->par && (as->par->num !=0 ) && (as->par->den != 0))
+	if ((as->min_framerate.num != 0) && (as->min_framerate.den != 0))
+		fprintf(out, " minFrameRate=\"%d/%d\"", as->min_framerate.num, as->min_framerate.den);
+	if ((as->max_framerate.num != 0) && (as->max_framerate.den != 0))
+		fprintf(out, " max_framerate=\"%d/%d\"", as->max_framerate.num, as->max_framerate.den);
+	if (as->par && (as->par->num != 0) && (as->par->den != 0))
 		fprintf(out, " par=\"%d:%d\"", as->par->num, as->par->den);
 	if (as->lang) fprintf(out, " lang=\"%s\"", as->lang);	
 	if (as->bitstream_switching) fprintf(out, " bitstreamSwitching=\"true\"");
