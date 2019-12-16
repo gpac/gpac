@@ -1095,17 +1095,19 @@ enum
 	for raw extraction, indicates data shall be appended at the end of output file if present
 	*/
 	GF_EXPORT_MERGE = (1<<10),
+	/*! don't infer file extension */
+	GF_EXPORT_NO_FILE_EXT = (1 << 11),
 	/*! indicates QCP file format possible as well as native (EVRC and SMV audio only)*/
-	GF_EXPORT_USE_QCP = (1<<11),
+	GF_EXPORT_USE_QCP = (1<<12),
 	/*! indicates full NHML dump*/
-	GF_EXPORT_NHML_FULL = (1<<11),
+	GF_EXPORT_NHML_FULL = (1<<13),
 	/*! exports a single svc layer*/
-	GF_EXPORT_SVC_LAYER = (1<<12),
+	GF_EXPORT_SVC_LAYER = (1<<14),
 	/*! Don't merge identical cues in consecutive samples */
-	GF_EXPORT_WEBVTT_NOMERGE = (1<<13),
+	GF_EXPORT_WEBVTT_NOMERGE = (1<<15),
 
 	/*! Experimental Streaming Instructions */
-	GF_EXPORT_SIX = (1<<14),
+	GF_EXPORT_SIX = (1<<16),
 
 	/*! ony probes extraction format*/
 	GF_EXPORT_PROBE_ONLY = (1<<30),

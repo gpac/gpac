@@ -56,7 +56,6 @@ struct __gf_dash_segmenter
 	char *seg_rad_name;
 	const char *seg_ext;
 	const char *seg_init_ext;
-	const char *init_seg_ext;
 	u32 segment_marker_4cc;
 	Bool enable_sidx;
 	u32 subsegs_per_sidx;
@@ -596,6 +595,10 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	}
 	if (dasher->seg_ext) {
 		sprintf(szArg, "segext=%s", dasher->seg_ext);
+		e |= gf_dynstrcat(&args, szArg, ":");
+	}
+	if (dasher->seg_init_ext) {
+		sprintf(szArg, "initext=%s", dasher->seg_init_ext);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->ast_offset_ms) {
