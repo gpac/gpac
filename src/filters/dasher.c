@@ -2209,9 +2209,10 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		if (ds->as_id && !as_id)
 			as_id = ds->as_id;
 
-		if (ds->fps.den && (ds->fps.num > (s32) (set->max_framerate*ds->fps.den))) {
-			set->max_framerate = ds->fps.num;
-			set->max_framerate /= ds->fps.den;
+		if (ds->fps.den && ( (ds->fps.num*set->max_framerate.den) >= (s32) (set->max_framerate.num*ds->fps.den) )) {
+			set->max_framerate.num = ds->fps.num;
+			set->max_framerate.den = ds->fps.den;
+			gf_media_get_reduced_frame_rate(&set->max_framerate.num, &set->max_framerate.den);
 		}
 		if (ds->width && ds->height) {
 			if (!set->par) {
