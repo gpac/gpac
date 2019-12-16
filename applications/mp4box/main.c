@@ -5432,6 +5432,8 @@ int mp4boxMain(int argc, char **argv)
 			} else if (outName) {
 				mdump.out_name = outName;
 				mdump.flags |= GF_EXPORT_MERGE;
+				/*don't infer extension on user-given filename*/
+				mdump.flags |= GF_EXPORT_NO_FILE_EXT;
 			} else if (mdump.trackID) {
 				sprintf(szFile, "%s_track%d", outfile, mdump.trackID);
 				mdump.out_name = szFile;
