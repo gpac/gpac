@@ -959,21 +959,28 @@ GF_Err gf_dasher_enable_cached_inputs(GF_DASHSegmenter *dasher, Bool no_cache);
 */
 GF_Err gf_dasher_enable_loop_inputs(GF_DASHSegmenter *dasher, Bool do_loop);
 
+
+/*!
+DASH selector for segment split mode
+\hideinitializer
+ */
+typedef enum
+{
+	/*! segment start time is greater than or equal to theoretical segment start (segment_duration*segment_number)*/
+	GF_DASH_SPLIT_OUT=0,
+	/*! segment start time is as close as possible to theoretical segment start (segment_duration*segment_number), but may be greater*/
+	GF_DASH_SPLIT_CLOSEST,
+	/*! segment start time is less than or equal to theoretical segment start (segment_duration*segment_number) so that the theoretical start time is always present in the segment*/
+	GF_DASH_SPLIT_IN,
+} GF_DASH_SplitMode;
+
 /*!
  Enable/Disable split on bound mode.
 \param dasher the DASH segmenter object
-\param split_on_bound if true, video streams are segmented with the same method as audio streams
+\param split_mode the desired segmentation mode
 \return error code if any
 */
-GF_Err gf_dasher_set_split_on_bound(GF_DASHSegmenter *dasher, Bool split_on_bound);
-
-/*!
- Enable/Disable split on closest mode.
-\param dasher the DASH segmenter object
-\param split_on_closest if true, video streams are segmented as close to the segment boundary as possible
-\return error code if any
-*/
-GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_closest);
+GF_Err gf_dasher_set_split_mode(GF_DASHSegmenter *dasher, GF_DASH_SplitMode split_mode);
 
 /*!
  Sets m3u8 file name - if not set, no m3u8 output

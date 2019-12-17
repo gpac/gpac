@@ -1124,6 +1124,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_DISABLE_PROGRESSIVE, "DisableProgressive", "stream/file cannot be progressivley uploaded because first blocks need patching upon closing", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_BRANDS, "IsoAltBrands", "indicates ISOBMFF brands associated with PID/file", GF_PROP_UINT_LIST, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_MBRAND, "IsoBrand", "indicates ISOBMFF major brand associated with PID/file", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ISOM_MOVIE_TIME, "MovieTime", "indicates ISOBMFF movie header duration and timescale", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_HAS_SYNC, "HasSync", "indicates ISOBMFF track has sync points", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 
 	{ GF_PROP_SERVICE_WIDTH, "ServiceWidth", "Display width of service", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_SERVICE_HEIGHT, "ServiceHeight", "Display height of service", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},

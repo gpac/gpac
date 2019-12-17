@@ -66,6 +66,13 @@ enum
 
 enum
 {
+	DASHER_BOUNDS_OUT=0,
+	DASHER_BOUNDS_CLOSEST,
+	DASHER_BOUNDS_IN,
+};
+
+enum
+{
 	DASHER_MUX_ISOM=0,
 	DASHER_MUX_TS,
 	DASHER_MUX_MKV,
@@ -108,6 +115,7 @@ typedef struct
 	Bool cmpd, dual;
 	char *styp;
 	Bool sigfrag;
+	u32 sbound;
 
 
 	//internal
@@ -304,6 +312,8 @@ typedef struct _dash_stream
 	Bool reschedule;
 
 	GF_Fraction64 duration;
+	GF_List *packet_queue;
+	u32 nb_sap_in_queue;
 } GF_DashStream;
 
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds);
@@ -454,6 +464,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		ds->complementary_streams = gf_list_new();
 		period_switch = GF_TRUE;
 		gf_filter_pid_set_udta(pid, ds);
+		if (ctx->sbound!=DASHER_BOUNDS_OUT)
+			ds->packet_queue = gf_list_new();
 		//don't create pid at this time
 	}
 
@@ -4869,6 +4881,26 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 	gf_free(szStatus);
 }
 
+static void dasher_drop_input(GF_DasherCtx *ctx, GF_DashStream *ds, Bool discard_all)
+{
+	if (ctx->sbound) {
+		while (gf_list_count(ds->packet_queue)) {
+			GF_FilterPacket *pck = gf_list_pop_front(ds->packet_queue);
+			if (gf_filter_pck_get_sap(pck)) {
+				assert(ds->nb_sap_in_queue);
+				ds->nb_sap_in_queue --;
+			}
+			gf_filter_pck_unref(pck);
+			if (!discard_all) break;
+		}
+	} else {
+		gf_filter_pid_drop_packet(ds->ipid);
+	}
+	if (discard_all) {
+		gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
+	}
+}
+
 static GF_Err dasher_process(GF_Filter *filter)
 {
 	u32 i, count, nb_init, has_init;
@@ -4913,17 +4945,51 @@ static GF_Err dasher_process(GF_Filter *filter)
 			u64 cts, orig_cts, dts, ncts, split_dur_next;
 			Bool seg_over = GF_FALSE;
 			Bool is_packet_split = GF_FALSE;
-			GF_FilterPacket *pck;
+			Bool is_queue_flush = GF_FALSE;
+			GF_FilterPacket *pck = NULL;
 			GF_FilterPacket *dst;
 
 			assert(ds->period == ctx->current_period);
 			pck = gf_filter_pid_get_packet(ds->ipid);
-			//we may change period after a packet fecth (reconfigure of input pid)
+			//we may change period after a packet fetch (reconfigure of input pid)
 			if (ds->period != ctx->current_period) {
-				assert(gf_list_find(ctx->current_period->streams, ds)<0);
-				count = gf_list_count(ctx->current_period->streams);
-				i--;
-				break;
+				//in closest mode, flush queue
+				if (!ctx->sbound || !gf_list_count(ds->packet_queue)) {
+					assert(gf_list_find(ctx->current_period->streams, ds)<0);
+					count = gf_list_count(ctx->current_period->streams);
+					i--;
+					break;
+				}
+				is_queue_flush = GF_TRUE;
+			}
+
+			//queue mode
+			if (ctx->sbound && !ds->seek_to_pck) {
+				if (!is_queue_flush && pck) {
+					gf_filter_pck_ref(&pck);
+					gf_filter_pid_drop_packet(ds->ipid);
+					gf_list_add(ds->packet_queue, pck);
+					if (gf_filter_pck_get_sap(pck))
+						ds->nb_sap_in_queue ++;
+				}
+				if (
+					//we are flushing due to period switch
+					is_queue_flush
+					//we are flushing due to end of stream
+					|| gf_filter_pid_is_eos(ds->ipid) || ds->clamp_done
+				) {
+					pck = gf_list_get(ds->packet_queue, 0);
+					is_queue_flush = GF_TRUE;
+				} else if (
+					//if current segment is not started, always get packet from queue
+					!ds->segment_started
+					//wait until we have more than 2 saps to get packet from queue, to check if next sap will be closer or not
+					|| (ds->nb_sap_in_queue>=2)
+				) {
+					pck = gf_list_get(ds->packet_queue, 0);
+				} else {
+					pck = NULL;
+				}
 			}
 
 
@@ -5007,7 +5073,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				u32 set_start_with_sap;
 				const GF_PropertyValue *p;
 				if (!sap_type) {
-					gf_filter_pid_drop_packet(ds->ipid);
+					dasher_drop_input(ctx, ds, GF_FALSE);
 					break;
 				}
 				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DELAY);
@@ -5229,10 +5295,56 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (!base_ds->period->period->duration && base_ds->force_rep_end) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Inputs duration do not match, %s truncated to %g duration\n", ds->src_url, ((Double)base_ds->force_rep_end)/base_ds->timescale ));
 				}
-				gf_filter_pid_drop_packet(ds->ipid);
-				gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
+				dasher_drop_input(ctx, ds, GF_TRUE);
 				ds->clamp_done = GF_TRUE;
 				continue;
+			}
+			//we have a SAP and we work in closest mode: check the next SAP in the queue, and decide if we
+			//split the segment at this SAP or wait for the next one
+			else if (ds->segment_started && ctx->sbound && sap_type && !is_queue_flush) {
+				u32 idx, nb_queued = gf_list_count(ds->packet_queue);
+				for (idx=1; idx<nb_queued; idx++) {
+					GF_FilterPacket *next = gf_list_get(ds->packet_queue, idx);
+					u32 sap_next = gf_filter_pck_get_sap(next);
+					if (!sap_next) continue;
+					u32 next_dur = gf_filter_pck_get_duration(next);
+					//compute cts next
+					u64 cts_next = gf_filter_pck_get_cts(next);
+					if (ds->ts_offset) {
+						cts_next += ds->ts_offset;
+					}
+					cts_next -= ds->first_cts;
+					//same rule as above
+					if ((cts_next + next_dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) {
+						Bool force_seg_flush = GF_FALSE;
+						s64 diff_next = cts_next * base_ds->timescale / ds->timescale;
+						diff_next -= base_ds->adjusted_next_seg_start;
+						//bounds at closest: if this SAP is closer to the target next segment start than the next SAP, split at this packet
+						if (ctx->sbound==DASHER_BOUNDS_CLOSEST) {
+							s64 diff = cts * base_ds->timescale / ds->timescale;
+							diff -= base_ds->adjusted_next_seg_start;
+							//this one may be negative
+							if (diff<0)
+								diff = -diff;
+							if (diff<diff_next) {
+								force_seg_flush = GF_TRUE;
+							}
+						}
+						//bounds always in: if the next SAP is strictly greater than the target next segment start, split at this packet
+						else {
+							if (diff_next > 0) {
+								force_seg_flush = GF_TRUE;
+							}
+						}
+						if (force_seg_flush) {
+							seg_over = GF_TRUE;
+							if (ds == base_ds) {
+								base_ds->adjusted_next_seg_start = cts;
+							}
+							break;
+						}
+					}
+				}
 			}
 			//we exceed segment duration - if segment was started, check if we need to stop segment
 			//if segment was not started we insert the packet anyway
@@ -5270,11 +5382,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 					}
 				}
 			}
-			if (ds->muxed_base && ds->muxed_base->done)
-				seg_over = GF_FALSE;
 
+
+			if (ds->muxed_base && ds->muxed_base->done) {
+				seg_over = GF_FALSE;
 			//temp hack: if flushing now will result in a one sample fragment afterwards, don't flush unless we have an asto set (low latency)
-			else if (seg_over && ds->nb_samples_in_source && !ctx->loop && (ds->nb_pck+1 == ds->nb_samples_in_source) && !ctx->asto) {
+			} else if (seg_over && ds->nb_samples_in_source && !ctx->loop && (ds->nb_pck+1 == ds->nb_samples_in_source) && !ctx->asto) {
 				seg_over = GF_FALSE;
 			}
 			//if dur=0 (some text streams), don't flush segment
@@ -5405,7 +5518,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			//drop packet if not spliting
 			if (!ds->split_dur_next)
-				gf_filter_pid_drop_packet(ds->ipid);
+				dasher_drop_input(ctx, ds, GF_FALSE);
 		}
 	}
 	nb_init  = 0;
@@ -5801,6 +5914,8 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 			ctx->sfile = GF_TRUE;
 		ctx->tpl = GF_FALSE;
 	}
+	if (!ctx->sap || ctx->sigfrag || ctx->cues)
+		ctx->sbound = DASHER_BOUNDS_OUT;
 	return GF_OK;
 }
 
@@ -5957,6 +6072,10 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(sigfrag), "use manifest generation only mode - see filter help", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(_p_mpdtime), "pointer to u64 holding the mpd time in ms of the last generated segment", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(sbound), "indicate how the theoretical segment start `TSS (= segment_number * duration)` should be handled\n"
+				"- out: segment split as soon as `TSS` is exceeded (`TSS` <= segment_start)\n"
+				"- closest: segment split at closest SAP to theoretical bound\n"
+				"- in: `TSS` is always in segment (`TSS` >= segment_start)", GF_PROP_UINT, "out", "out|closest|in", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -5965,6 +6084,14 @@ GF_FilterRegister DasherRegister = {
 	.name = "dasher",
 	GF_FS_SET_DESCRIPTION("DASH and HLS segmenter")
 	GF_FS_SET_HELP("# GPAC DASH and HLS segmenter\n"
+			"This filter provides segmentation and manifest generation for MPEG-DASH and HLS formats.\n"
+			"The segmenter currently supports:\n"
+			"- MPD and m3u8 generation (potentially in parallel)\n"
+			"- ISOBMFF, MPEG-2 TS, MKV and raw bitstream segment formats\n"
+			"- override of profiles and levels in manifest for common codecs (aac, hevc, vp9, av1, aac)\n"
+			"- most MPEG-DASH profiles\n"
+			"- static and dynamic (live) manifest offering\n"
+			"- context store and reload for batch processing of live/dynamic sessions\n"
 			"## Template strings\n"
 			"The segmenter uses templates to derive output file names, regardless of the DASH mode (even when templates are not used). "
 			"The default one is `$File$_dash` for ondemand and single file modes, and `$File$_$Number$` for seperate segment files\n"
@@ -5978,6 +6105,7 @@ GF_FilterRegister DasherRegister = {
 	        "- $RepresentationID$: replaced by representation name\n"
 	        "- $Time$: replaced by segment start time\n"
 	        "- $Bandwidth$: replaced by representation bandwidth.\n"
+	        "Note: these strings are not replaced in the manifest templates elements.\n"
 			"\n"
 			"Additionnal replacement strings (not DASH, not generic GPAC replacements but may occur multiple times in template):\n"
 	        "- $Init=NAME$: replaced by NAME for init segment, ignored otherwise\n"
@@ -5985,9 +6113,10 @@ GF_FilterRegister DasherRegister = {
 	        "- $Path=PATH$: replaced by PATH when creating segments, ignored otherwise\n"
 	        "- $Segment=NAME$: replaced by NAME for media segments, ignored for init segments\n"
 	        "- $DS$ (Dash Suffix): replaced by `_trackN` in case the input is an AV multiplex, or kept empty otherwise\n"
+	        "Note: these strings are replaced in the manifest templates elements.\n"
 			"\n"
 			"## PID assignment\n"
-			"To assign PIDs into periods and adaptation sets and configure the session, the dasher looks for the following properties on each input pid:\n"
+			"To assign PIDs into periods and adaptation sets and configure the session, the segmenter looks for the following properties on each input pid:\n"
 			"- Representation: assigns representation ID to input pid. If not set, the default behaviour is to have each media component in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)\n"
 			"- Period: assigns period ID to input pid. If not set, the default behaviour is to have all media in the same period with the same start time\n"
 			"- PStart: assigns period start. If not set, 0 is assumed, and periods appear in the Period ID declaration order. If negative, this gives the period order (-1 first, then -2 ...). If positive, this gives the true start time and will abort DASHing at period end\n"
@@ -5996,9 +6125,9 @@ GF_FilterRegister DasherRegister = {
 			"Note: If multiple streams in source, only the first stream will have an AS ID assigned\n"
 			"- xlink: for remote periods, only checked for null pid\n"
 			"- Role, PDesc, ASDesc, ASCDesc, RDesc: various descriptors to set for period, AS or representation\n"
-			"- BUrl: overrides dasher [-base] with a set of BaseURLs to use for the pid (per representation)\n"
-			"- Template: overrides dasher [-template]() for this PID\n"
-			"- DashDur: overrides dasher segment duration for this PID\n"
+			"- BUrl: overrides segmenter [-base] with a set of BaseURLs to use for the pid (per representation)\n"
+			"- Template: overrides segmenter [-template]() for this PID\n"
+			"- DashDur: overrides segmenter segment duration for this PID\n"
 			"- StartNumber: sets the start number for the first segment in the PID, default is 1\n"
 			"- Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overriden on input PIDs using the general PID property settings (cf global help).\n"
 			"  \n"
@@ -6014,9 +6143,8 @@ GF_FilterRegister DasherRegister = {
 			"This will assign a baseURL to src m1.mp4.\n"
 			"EX src=m1.mp4:#ASCDesc=<ElemName val=\"attval\">text</ElemName> dst=test.mpd\n"
 			"This will assign the specified XML descriptor to the adaptation set.\n"
-			"Note:  this can be used to inject most DASH descriptors not natively handled by the dasher.\n"
-			"The dasher handles the XML descriptor as a string and does not attempt to validate it."
-			"Descriptors, as well as some dasher filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:\n"
+			"Note:  this can be used to inject most DASH descriptors not natively handled by the segmenter.\n"
+			"The segmenter handles the XML descriptor as a string and does not attempt to validate it. Descriptors, as well as some segmenter filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:\n"
 			"EX src=m1.mp4:#RDesc=<Elem attribute=\"1\"/>,<Elem2>text</Elem2> dst=test.mpd\n"
 			"This will insert two descriptors in the representation(s) of m1.mp4.\n"
 			"EX src=video.mp4:#Template=foo$Number$ src=audio.mp4:#Template=bar$Number$ dst=test.mpd\n"
@@ -6024,21 +6152,31 @@ GF_FilterRegister DasherRegister = {
 			"EX src=null:#xlink=http://foo/bar.xml:#PDur=4 src=m.mp4:#PStart=-1\n"
 			"This will insert an create an MPD with first a remote period then a regular one.\n"
 			"EX src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4\n"
-			"This will insert an create an MPD with first a regular period, dashing ony 6s of content, then a remote one.\n"
+			"This will create an MPD with first a regular period, dashing ony 6s of content, then a remote one.\n"
 			"\n"
-			"The dasher will request muxing filter chains for each representation and will reassign PID IDs so that each media component (video, audio, ...) in an adaptation set has the same ID.\n"
+			"The segmenter will create muxing filter chains for each representation and will reassign PID IDs so that each media component (video, audio, ...) in an adaptation set has the same ID.\n"
 			"\n"
-			"For HLS, the output pid will deliver the master playlist and the variant playlists.\n"
+			"For HLS, the output pid will deliver the master playlist **and** the variant playlists.\n"
 			"The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant.\n"
+			"\n"
+			"## Segmentation\n"
+			"The default behavior of the segmenter is to estimate the theoretical start time of each segment based on target segment duration, and start a new segment when a packet with SAP type 1,2,3 or 4 with time greater than the theoretical time is found.\n"
+			"This behavior can be changed to find the best SAP packet around a segment theoretical boundary using [-sbound]():\n"
+			"- closest mode: the segment will start at the closest SAP of the theoretical boundary\n"
+			"- in mode: the segment will start at or before the theoretical boundary\n"
+			"Warning: These modes will introduce delay in the segmenter (typically buffering of one GOP) and should not be used for low-latency modes.\n"
+			"The segmenter can also be configured to:\n"
+			"- completely ignore SAP when segmenting using [-sap]().\n"
+			"- ignore SAP on non-video streams when segmenting using [-strict_sap]().\n"
 			"\n"
 			"## Cue-driven segmentation\n"
 			"The segmenter can take a list of instructions, or Cues, to use for the segmentation process, in which case only these are used to derive segment boundaries.\n"
-			"Cue files can be specified for the entire dasher, or per PID using DashCue property.\n"
+			"Cue files can be specified for the entire segmenter, or per PID using DashCue property.\n"
 			"Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are <Stream> elements, with attributes:\n"
 			"- id: integer for stream/track/pid ID\n"
-			"- timescale:integer giving the units of following timestamps\n"
+			"- timescale: integer giving the units of following timestamps\n"
 			"- mode: if present and value is `edit`, the timestamp are in presentation time (edit list applied). Otherwise they are in media time\n"
-			"The children of <Stream> are <Cue> elements, with attributes:\n"
+			"\nThe children of <Stream> are <Cue> elements, with attributes:\n"
 			"- sample: integer giving the sample/frame number of a sample at which spliting shall happen\n"
 			"- dts: long integer giving the decoding time stamp of a sample at which spliting shall happen\n"
 			"- cts: long integer giving the composition / presentation time stamp of a sample at which spliting shall happen\n"
@@ -6049,17 +6187,15 @@ GF_FilterRegister DasherRegister = {
 			"In this case, segment boundaries are attached to each packet starting a segment and used to drive the segmentation.\n"
 			"This should only be used with single-track ISOBMFF sources. If onDemand [-profile]() is requested, sources have to be formatted as a DASH self-initializing media segment with the proper sidx.\n"
 			"This mode automatically disables templates and forces [-sseg]() for all profiles except onDemand ones.\n"
-			"The manifest generation only mode supports both MPD and HLS generation.\n"
+			"The manifest generation-only mode supports both MPD and HLS generation.\n"
 			"\n"
 			"## Muxer development considerations\n"
 			"Output muxers allowing segmented output must obey the following:\n"
 			"- inspect packet properties\n"
 			" - FileNumber: if set, indicate the start of a new DASH segment\n"
-			" - FileName: if set, indicate the file name. If not present, output shall be a single file. "
-			"It is only set for packet carrying the `FileNumber` property, and only on one PID (usually the first) for multiplexed outputs\n"
+			" - FileName: if set, indicate the file name. If not present, output shall be a single file. This is only set for packet carrying the `FileNumber` property, and only on one PID (usually the first) for multiplexed outputs\n"
 			" - IDXName: gives the optional index name (if not present, index shall be in the same file as dash segment). Only used for MPEG-2 TS for now\n"
-			" - EODS: property is set on packets with no payload and no timestamp to signal the end of a DASH segment. "
-			"This is only used when stoping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see [-subdur]() )\n"
+			" - EODS: property is set on packets with no payload and no timestamp to signal the end of a DASH segment. This is only used when stoping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see [-subdur]() )\n"
 			"- for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any\n"
 			"- for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any\n"
 			"- the following filter options are passed to muxers, which should declare them as arguments:\n"
@@ -6069,8 +6205,8 @@ GF_FilterRegister DasherRegister = {
 			" - xps_inband=all|no: indicates AVC/HEVC/... parameter sets shall be sent inband or out of band\n"
 			" - nofragdef: indicates fragment defaults should be set in each segment rather than in init segment\n"
 			"\n"
-			"The dasher will add the following properties to the output PIDs:\n"
-			"- DashMode: identifies VoD (single file with global index) or regular DASH mode used by dasher\n"
+			"The segmenter will add the following properties to the output PIDs:\n"
+			"- DashMode: identifies VoD (single file with global index) or regular DASH mode used by segmenter\n"
 			"- DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example\n"
 			)
 	.private_size = sizeof(GF_DasherCtx),

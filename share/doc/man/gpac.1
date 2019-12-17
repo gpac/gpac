@@ -1977,6 +1977,16 @@ indicates ISOBMFF brands associated with PID/file
 indicates ISOBMFF major brand associated with PID/file
 .br
 .TP
+.B MovieTime (MHTS,64-bit fraction,D )
+.br
+indicates ISOBMFF movie header duration and timescale
+.br
+.TP
+.B HasSync (PSYN,boolean,D )
+.br
+indicates ISOBMFF track has sync points
+.br
+.TP
 .B ServiceWidth (DWDT,unsigned int,D )
 .br
 Display width of service
@@ -3247,7 +3257,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3007-g5c01dcb53-filters
+build: 0.9.0-DEV-rev3015-g5b6fa170b-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

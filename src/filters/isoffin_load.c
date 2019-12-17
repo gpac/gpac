@@ -499,6 +499,12 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 #endif
 
+		GF_Fraction64 moov_time;
+		moov_time.num = gf_isom_get_duration(read->mov);
+		moov_time.den = gf_isom_get_timescale(read->mov);
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_MOVIE_TIME, &PROP_FRAC64(moov_time) );
+
+
 		u32 i;
 		s32 tx, ty;
 		s16 l;

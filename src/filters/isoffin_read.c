@@ -620,6 +620,7 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 		ch->has_edit_list = GF_FALSE;
 
 	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? GF_TRUE : GF_FALSE;
+	gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap) );
 	ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
 
 	ts_shift = gf_isom_get_cts_to_dts_shift(ch->owner->mov, ch->track);
