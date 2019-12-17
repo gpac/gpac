@@ -516,7 +516,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 	}
 
 
-	/*fecth data on udp*/
+	/*fetch data on udp*/
 	u32 tot_read=0;
 	while (1) {
 		u32 read=0;
