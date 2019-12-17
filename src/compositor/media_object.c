@@ -532,7 +532,7 @@ u8 *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_
 
 		//we are in no resync mode, drop current frame once played and object time just matured
 		//do it only if clock is started or if compositor step mode is set
-		//the time threshold for fecthing is given by the caller
+		//the time threshold for fetching is given by the caller
 		if ( (gf_clock_is_started(mo->odm->ck) || mo->odm->parentscene->compositor->use_step_mode)
 			&& (mo->timestamp==pck_ts) && next_ts && ( (next_ts <= 1 + obj_time + upload_time_ms) || (next_ts <= 1 + obj_time_orig + upload_time_ms) ) )
 		{
