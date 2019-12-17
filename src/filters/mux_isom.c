@@ -205,6 +205,7 @@ typedef struct
 	u32 trun_inter;
 	char *boxpatch;
 	Bool fcomp;
+	Bool deps;
 
 	//internal
 	Bool owns_mov;
@@ -785,7 +786,13 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				ctx->moovts = target_timescale;
 				gf_isom_set_timescale(ctx->file, target_timescale);
 			} else if (ctx->moovts>=0) {
-				gf_isom_set_timescale(ctx->file, ctx->moovts);
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_MOVIE_TIME);
+				if (p && p->value.lfrac.den) {
+					gf_isom_set_timescale(ctx->file, p->value.lfrac.den);
+					ctx->moovts = p->value.lfrac.den;
+				} else {
+					gf_isom_set_timescale(ctx->file, ctx->moovts);
+				}
 			}
 			if (ctx->store==MP4MX_MODE_FASTSTART) {
 				gf_isom_make_interleave(ctx->file, ctx->cdur);
@@ -3240,6 +3247,8 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		u32 def_is_rap, tscale;
 		u32 inherit_traf_from_track = 0;
 		u64 dts;
+		const GF_PropertyValue *p;
+
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 
 		if (tkw->fake_track) {
@@ -3280,6 +3289,9 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		case GF_STREAM_AUDIO:
 		case GF_STREAM_TEXT:
 			def_is_rap = GF_TRUE;
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_HAS_SYNC);
+			if (p && p->value.boolean)
+				def_is_rap = GF_FALSE;
 			break;
 		case GF_STREAM_VISUAL:
 			switch (tkw->codecid) {
@@ -3532,9 +3544,9 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 		//fragment at sap boundaries for video, but not in dash mode (compatibility with old arch)
 		else if (ctx->fsap && (tkw->stream_type == GF_STREAM_VISUAL) && !ctx->dash_mode) {
 			e = gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_RANDOM_ACCESS, 1);
-			if (e) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unable set fragment options: %s\n", gf_error_to_string(e) ));
-			}
+		}
+		if (e) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unable set fragment options: %s\n", gf_error_to_string(e) ));
 		}
 		tkw->fragment_done = GF_FALSE;
 		tkw->insert_tfdt = (has_tfdt || ctx->tfdt_traf) ? GF_TRUE : ctx->insert_tfdt;
@@ -4781,7 +4793,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(tfdt_traf), "set TFDT in each traf", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(nofragdef), "disable default flags in fragments", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(straf), "use a single traf per moov (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(strun), "use a single traf per moov (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(strun), "use a single trun per traf (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(psshs), "set PSSH boxes store mode\n"
 	"- moof: in first moof of each segments\n"
 	"- moov: in movie box\n"
@@ -4835,6 +4847,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 		, GF_PROP_UINT, "no", "no|runs|merge", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(boxpatch), "apply box patch before writing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(deps), "add samples dependencies information", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

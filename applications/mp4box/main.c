@@ -2341,8 +2341,7 @@ static u32 run_for=0;
 static u32 dash_cumulated_time,dash_prev_time,dash_now_time;
 static Bool no_cache=GF_FALSE;
 static Bool no_loop=GF_FALSE;
-static Bool split_on_bound=GF_FALSE;
-static Bool split_on_closest=GF_FALSE;
+static GF_DASH_SplitMode dash_split_mode = GF_DASH_SPLIT_OUT;
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -3989,10 +3988,10 @@ Bool mp4box_parse_args(int argc, char **argv)
 			hls_clock = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-bound")) {
-			split_on_bound = GF_TRUE;
+			dash_split_mode = GF_DASH_SPLIT_IN;
 		}
 		else if (!stricmp(arg, "-closest")) {
-			split_on_closest = GF_TRUE;
+			dash_split_mode = GF_DASH_SPLIT_CLOSEST;
 		}
 		else if (!stricmp(arg, "-segment-ext")) {
 			CHECK_NEXT_ARG
@@ -4971,8 +4970,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_profile_extension(dasher, dash_profile_extension);
 		if (!e) e = gf_dasher_enable_cached_inputs(dasher, no_cache);
 		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
-		if (!e) e = gf_dasher_set_split_on_bound(dasher, split_on_bound);
-		if (!e) e = gf_dasher_set_split_on_closest(dasher, split_on_closest);
+		if (!e) e = gf_dasher_set_split_mode(dasher, dash_split_mode);
 		if (!e) e = gf_dasher_set_hls_clock(dasher, hls_clock);
 		if (!e && dash_cues) e = gf_dasher_set_cues(dasher, dash_cues, strict_cues);
 		if (!e && fs_dump_flags) e = gf_dasher_print_session_info(dasher, fs_dump_flags);

@@ -89,12 +89,7 @@ struct __gf_dash_segmenter
 	Bool no_cache;
 
 	Bool disable_loop;
-
-	/* NOT YET BACKPORTED indicates if a segment must contain its theorical boundary */
-	Bool split_on_bound;
-
-	/* NOT YET BACKPORTED  used to segment video as close to the boundary as possible */
-	Bool split_on_closest;
+	GF_DASH_SplitMode split_mode;
 
 	Bool mvex_after_traks;
 
@@ -442,18 +437,10 @@ GF_Err gf_dasher_set_hls_clock(GF_DASHSegmenter *dasher, Bool insert_clock)
 }
 
 GF_EXPORT
-GF_Err gf_dasher_set_split_on_bound(GF_DASHSegmenter *dasher, Bool split_on_bound)
+GF_Err gf_dasher_set_split_mode(GF_DASHSegmenter *dasher, GF_DASH_SplitMode split_mode)
 {
 	if (!dasher) return GF_BAD_PARAM;
-	dasher->split_on_bound = split_on_bound;
-	return GF_OK;
-}
-
-GF_EXPORT
-GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_closest)
-{
-	if (!dasher) return GF_BAD_PARAM;
-	dasher->split_on_closest = split_on_closest;
+	dasher->split_mode = split_mode;
 	return GF_OK;
 }
 
@@ -784,6 +771,10 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 	if (dasher->mvex_after_traks) e |= gf_dynstrcat(&args, "mvex", ":");
 
+	if (dasher->split_mode==GF_DASH_SPLIT_CLOSEST)
+		e |= gf_dynstrcat(&args, "sbound=closest", ":");
+	else if (dasher->split_mode==GF_DASH_SPLIT_IN)
+		e |= gf_dynstrcat(&args, "sbound=in", ":");
 
 	dasher->dash_mode_changed = GF_FALSE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Instantiating dasher filter for dst %s with args %s\n", dasher->mpd_name, args));

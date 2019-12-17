@@ -440,7 +440,10 @@ GF_Err gf_isom_set_timescale(GF_ISOFile *movie, u32 timeScale)
 			}
 		}
 	}
-
+	if (movie->moov->mvex && movie->moov->mvex->mehd) {
+		movie->moov->mvex->mehd->fragment_duration *= timeScale;
+		movie->moov->mvex->mehd->fragment_duration /= movie->moov->mvhd->timeScale;
+	}
 	movie->moov->mvhd->timeScale = timeScale;
 	movie->interleavingTime = timeScale;
 	return GF_OK;

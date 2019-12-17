@@ -1631,7 +1631,7 @@ nofragdef (boolean, default: false):     disable default flags in fragments
 .br
 straf (boolean, default: false):         use a single traf per moov (smooth streaming and co)
 .br
-strun (boolean, default: false):         use a single traf per moov (smooth streaming and co)
+strun (boolean, default: false):         use a single trun per traf (smooth streaming and co)
 .br
 psshs (enum, default: moov):             set PSSH boxes store mode
 .br
@@ -1740,6 +1740,8 @@ trun_inter (enum, default: no):          interleave samples in trun based on the
 block_size (unsigned int, default: 10000): target output block size, 0 for default internal value (10k)
 .br
 boxpatch (string):                       apply box patch before writing
+.br
+deps (boolean, default: true):           add samples dependencies information
 .br
 
 .br
@@ -3024,6 +3026,22 @@ Description: DASH and HLS segmenter
 .SH GPAC DASH and HLS segmenter
 .LP
 .br
+This filter provides segmentation and manifest generation for MPEG-DASH and HLS formats.
+.br
+The segmenter currently supports:
+.br
+- MPD and m3u8 generation (potentially in parallel)
+.br
+- ISOBMFF, MPEG-2 TS, MKV and raw bitstream segment formats
+.br
+- override of profiles and levels in manifest for common codecs (aac, hevc, vp9, av1, aac)
+.br
+- most MPEG-DASH profiles
+.br
+- static and dynamic (live) manifest offering
+.br
+- context store and reload for batch processing of live/dynamic sessions
+.br
 .P
 .B
 Template strings
@@ -3058,6 +3076,8 @@ Standard DASH replacement strings:
 .br
 * $Bandwidth$: replaced by representation bandwidth.
 .br
+Note: these strings are not replaced in the manifest templates elements.
+.br
 
 .br
 Additionnal replacement strings (not DASH, not generic GPAC replacements but may occur multiple times in template):
@@ -3072,13 +3092,15 @@ Additionnal replacement strings (not DASH, not generic GPAC replacements but may
 .br
 * $DS$ (Dash Suffix): replaced by _trackN in case the input is an AV multiplex, or kept empty otherwise
 .br
+Note: these strings are replaced in the manifest templates elements.
+.br
 
 .br
 .P
 .B
 PID assignment
 .br
-To assign PIDs into periods and adaptation sets and configure the session, the dasher looks for the following properties on each input pid:
+To assign PIDs into periods and adaptation sets and configure the session, the segmenter looks for the following properties on each input pid:
 .br
 * Representation: assigns representation ID to input pid. If not set, the default behaviour is to have each media component in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)
 .br
@@ -3096,11 +3118,11 @@ Note: If multiple streams in source, only the first stream will have an AS ID as
 .br
 * Role, PDesc, ASDesc, ASCDesc, RDesc: various descriptors to set for period, AS or representation
 .br
-* BUrl: overrides dasher [-base] with a set of BaseURLs to use for the pid (per representation)
+* BUrl: overrides segmenter [-base] with a set of BaseURLs to use for the pid (per representation)
 .br
-* Template: overrides dasher -template for this PID
+* Template: overrides segmenter -template for this PID
 .br
-* DashDur: overrides dasher segment duration for this PID
+* DashDur: overrides segmenter segment duration for this PID
 .br
 * StartNumber: sets the start number for the first segment in the PID, default is 1
 .br
@@ -3156,9 +3178,9 @@ src=m1.mp4:#ASCDesc=<ElemName val="attval">text</ElemName> dst=test.mpd
 .br
 This will assign the specified XML descriptor to the adaptation set.
 .br
-Note:  this can be used to inject most DASH descriptors not natively handled by the dasher.
+Note:  this can be used to inject most DASH descriptors not natively handled by the segmenter.
 .br
-The dasher handles the XML descriptor as a string and does not attempt to validate it.Descriptors, as well as some dasher filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:
+The segmenter handles the XML descriptor as a string and does not attempt to validate it. Descriptors, as well as some segmenter filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:
 .br
 Example
 .br
@@ -3190,11 +3212,11 @@ src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4
 .br
 
 .br
-This will insert an create an MPD with first a regular period, dashing ony 6s of content, then a remote one.
+This will create an MPD with first a regular period, dashing ony 6s of content, then a remote one.
 .br
 
 .br
-The dasher will request muxing filter chains for each representation and will reassign PID IDs so that each media component (video, audio, ...) in an adaptation set has the same ID.
+The segmenter will create muxing filter chains for each representation and will reassign PID IDs so that each media component (video, audio, ...) in an adaptation set has the same ID.
 .br
 
 .br
@@ -3206,19 +3228,43 @@ The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of th
 .br
 .P
 .B
+Segmentation
+.br
+The default behavior of the segmenter is to estimate the theoretical start time of each segment based on target segment duration, and start a new segment when a packet with SAP type 1,2,3 or 4 with time greater than the theoretical time is found.
+.br
+This behavior can be changed to find the best SAP packet around a segment theoretical boundary using -sbound:
+.br
+* closest mode: the segment will start at the closest SAP of the theoretical boundary
+.br
+* in mode: the segment will start at or before the theoretical boundary
+.br
+Warning: These modes will introduce delay in the segmenter (typically buffering of one GOP) and should not be used for low-latency modes.
+.br
+The segmenter can also be configured to:
+.br
+- completely ignore SAP when segmenting using -sap.
+.br
+- ignore SAP on non-video streams when segmenting using -strict_sap.
+.br
+
+.br
+.P
+.B
 Cue-driven segmentation
 .br
 The segmenter can take a list of instructions, or Cues, to use for the segmentation process, in which case only these are used to derive segment boundaries.
 .br
-Cue files can be specified for the entire dasher, or per PID using DashCue property.
+Cue files can be specified for the entire segmenter, or per PID using DashCue property.
 .br
 Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are <Stream> elements, with attributes:
 .br
 * id: integer for stream/track/pid ID
 .br
-- timescale:integer giving the units of following timestamps
+* timescale: integer giving the units of following timestamps
 .br
 * mode: if present and value is edit, the timestamp are in presentation time (edit list applied). Otherwise they are in media time
+.br
+
 .br
 The children of <Stream> are <Cue> elements, with attributes:
 .br
@@ -3244,7 +3290,7 @@ This should only be used with single-track ISOBMFF sources. If onDemand -profile
 .br
 This mode automatically disables templates and forces -sseg for all profiles except onDemand ones.
 .br
-The manifest generation only mode supports both MPD and HLS generation.
+The manifest generation-only mode supports both MPD and HLS generation.
 .br
 
 .br
@@ -3258,7 +3304,7 @@ Output muxers allowing segmented output must obey the following:
 .br
  * FileNumber: if set, indicate the start of a new DASH segment
 .br
- * FileName: if set, indicate the file name. If not present, output shall be a single file. It is only set for packet carrying the FileNumber property, and only on one PID (usually the first) for multiplexed outputs
+ * FileName: if set, indicate the file name. If not present, output shall be a single file. This is only set for packet carrying the FileNumber property, and only on one PID (usually the first) for multiplexed outputs
 .br
  * IDXName: gives the optional index name (if not present, index shall be in the same file as dash segment). Only used for MPEG-2 TS for now
 .br
@@ -3282,9 +3328,9 @@ Output muxers allowing segmented output must obey the following:
 .br
 
 .br
-The dasher will add the following properties to the output PIDs:
+The segmenter will add the following properties to the output PIDs:
 .br
-* DashMode: identifies VoD (single file with global index) or regular DASH mode used by dasher
+* DashMode: identifies VoD (single file with global index) or regular DASH mode used by segmenter
 .br
 * DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example
 .br
@@ -3496,6 +3542,16 @@ styp (string):                           indicate the 4CC to use for styp boxes 
 dual (boolean):                          indicate to produce both MPD and M3U files
 .br
 sigfrag (boolean):                       use manifest generation only mode - see filter help
+.br
+sbound (enum, default: out):             indicate how the theoretical segment start TSS (= segment_number * duration) should be handled
+.br
+* out: segment split as soon as TSS is exceeded (TSS <= segment_start)
+.br
+* closest: segment split at closest SAP to theoretical bound
+.br
+* in: TSS is always in segment (TSS >= segment_start)
+.br
+
 .br
 
 .br
@@ -4717,7 +4773,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3007-g5c01dcb53-filters
+build: 0.9.0-DEV-rev3015-g5b6fa170b-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

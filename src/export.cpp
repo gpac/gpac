@@ -2031,8 +2031,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_start_date) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_cached_inputs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_loop_inputs) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_split_on_bound) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_split_on_closest) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_split_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_cues) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_print_session_info) )
 
