@@ -967,15 +967,18 @@ static void gpac_sig_handler(int sig)
 			sigint_catched = GF_TRUE;
 			fprintf(stderr, "catched SIGINT - flush session before exit ? (Y/n):\n");
 			res = scanf("%c", &input);
-			sigint_processed = GF_TRUE;
 			if (res!=1) input=0;
 			switch (input) {
 			case 'Y':
 			case 'y':
 			case '\n':
+				sigint_processed = GF_TRUE;
 				gf_fs_abort(session, GF_TRUE);
 				break;
+			case 0:
+				break;
 			default:
+				sigint_processed = GF_TRUE;
 				gf_fs_abort(session, GF_FALSE);
 				break;
 			}
@@ -1074,7 +1077,7 @@ static void gpac_load_suggested_filter_args()
 	gf_cfg_del_section(opts, "allopts");
 	gf_cfg_set_key(opts, "version", "version", gf_gpac_version());
 
-	gf_sys_format_help(stderr, 0, "__Constructing all options registry, this may take some time ... ");
+	gf_sys_format_help(stderr, 0, "__Refreshing all options registry, this may take some time ... ");
 
 	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, GF_FS_FLAG_LOAD_META, NULL);
 	if (!fsess) {
@@ -3265,14 +3268,14 @@ static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_F
 		if (sep) {
 			sep[0]=0;
 			if (gf_file_exists(item_path)) {
-				gf_move_file(item_path, dst_name);
+				gf_file_move(item_path, dst_name);
 			}
 			sep[0]='.';
 		}
 		gf_free(dst_name);
 	}
 	gf_cfg_del(cached);
-	gf_delete_file(item_path);
+	gf_file_delete(item_path);
 	return GF_FALSE;
 }
 

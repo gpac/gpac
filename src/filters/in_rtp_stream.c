@@ -672,7 +672,7 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 	u32 size, tot_size = 0;
 
 	if (!stream->rtp_ch) return 0;
-	if (gf_sk_group_sock_is_set(stream->rtpin->sockgroup, stream->rtp_ch->rtcp)) {
+	if (gf_sk_group_sock_is_set(stream->rtpin->sockgroup, stream->rtp_ch->rtcp, GF_SK_SELECT_READ)) {
 		size = gf_rtp_read_rtcp(stream->rtp_ch, stream->buffer, stream->rtpin->block_size);
 		if (size) {
 			tot_size += size;
@@ -680,7 +680,7 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 		}
 	}
 
-	if (gf_sk_group_sock_is_set(stream->rtpin->sockgroup, stream->rtp_ch->rtp)) {
+	if (gf_sk_group_sock_is_set(stream->rtpin->sockgroup, stream->rtp_ch->rtp, GF_SK_SELECT_READ)) {
 		size = gf_rtp_read_rtp(stream->rtp_ch, stream->buffer, stream->rtpin->block_size);
 		if (size) {
 			tot_size += size;

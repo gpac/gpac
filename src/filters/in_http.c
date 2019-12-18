@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / HTTP input filter using GPAC http stack
@@ -181,7 +181,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 			ctx->last_state = GF_OK;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTPIn] Requested seek outside file range !\n") );
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Requested seek outside file range !\n") );
 			ctx->is_end = GF_TRUE;
 			gf_filter_pid_set_eos(ctx->pid);
 		}
@@ -226,7 +226,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		if (!e) e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTPIn] Cannot resetup session from URL %s: %s\n", ctx->src, gf_error_to_string(e) ) );
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Cannot resetup session from URL %s: %s\n", ctx->src, gf_error_to_string(e) ) );
 			httpin_notify_error(filter, ctx, e);
 			ctx->is_end = GF_TRUE;
 			if (ctx->src) gf_free(ctx->src);
@@ -339,7 +339,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 				if (ctx->cached) {
 					nb_read = (u32) fread(ctx->block, 1, ctx->block_size, ctx->cached);
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTPIn] Failed to open cached file %s\n", cached));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Failed to open cached file %s\n", cached));
 				}
 			}
 			ctx->file_size = total_size;
@@ -421,7 +421,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 static const GF_FilterArgs HTTPInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "1000000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cache), "set cache mode\n"
 	"- disk: cache to disk,  discard once session is no longer used\n"
 	"- disk: cache to disk and keep\n"

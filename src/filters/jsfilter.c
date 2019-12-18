@@ -1189,15 +1189,20 @@ static JSValue jsf_filter_new_pid(JSContext *ctx, JSValueConst this_val, int arg
 
 static JSValue jsf_filter_send_event(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+	Bool upstream = GF_FALSE;
 	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
 	GF_JSFilterInstanceCtx *jsfi = JS_GetOpaque(this_val, jsf_filter_inst_class_id);
     if (!jsf && !jsfi) return JS_EXCEPTION;
 	GF_FilterEvent *evt = JS_GetOpaque(argv[0], jsf_event_class_id);
     if (!evt) return JS_EXCEPTION;
+    if (argc>1) {
+		upstream = JS_ToBool(ctx, argv[1]);
+	}
+
 	if (jsf)
-		gf_filter_send_event(jsf->filter, evt);
+		gf_filter_send_event(jsf->filter, evt, upstream);
 	else
-		gf_filter_send_event(jsfi->filter, evt);
+		gf_filter_send_event(jsfi->filter, evt, upstream);
     return JS_UNDEFINED;
 }
 

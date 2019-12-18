@@ -684,7 +684,7 @@ static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 			sprintf(szFileName, o->rlct->toi_template, o->toi);
 			sprintf(szPath, "%s/%s", s->output_dir, szFileName);
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d deleting file %s (TSI %u TOI %u)\n", s->service_id, szPath, o->tsi, o->toi));
-			gf_delete_file(szPath);
+			gf_file_delete(szPath);
 			i--;
 			count--;
 			gf_atsc3_obj_to_reservoir(atscd, s, o);
@@ -1670,7 +1670,7 @@ GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd)
 	e = gf_sk_group_select(atscd->active_sockets, 10);
 	if (e) return e;
 
-	if (gf_sk_group_sock_is_set(atscd->active_sockets, atscd->sock)) {
+	if (gf_sk_group_sock_is_set(atscd->active_sockets, atscd->sock, GF_SK_SELECT_READ)) {
 		e = gf_atsc3_dmx_process_lls(atscd);
 		if (e) return e;
 	}
@@ -1682,7 +1682,7 @@ GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd)
 		GF_ATSCService *s = (GF_ATSCService *)gf_list_get(atscd->services, i);
 		if (s->tune_mode==GF_ATSC_TUNE_OFF) continue;
 
-		if (gf_sk_group_sock_is_set(atscd->active_sockets, s->sock)) {
+		if (gf_sk_group_sock_is_set(atscd->active_sockets, s->sock, GF_SK_SELECT_READ)) {
 			e = gf_atsc3_dmx_process_service(atscd, s, NULL);
 			if (e) return e;
 		}
@@ -1691,7 +1691,7 @@ GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd)
 
 		j=0;
 		while ((rsess = (GF_ATSCRouteSession *)gf_list_enum(s->route_sessions, &j) )) {
-			if (gf_sk_group_sock_is_set(atscd->active_sockets, rsess->sock)) {
+			if (gf_sk_group_sock_is_set(atscd->active_sockets, rsess->sock, GF_SK_SELECT_READ)) {
 				e = gf_atsc3_dmx_process_service(atscd, s, rsess);
 				if (e) return e;
 			}

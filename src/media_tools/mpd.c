@@ -1729,7 +1729,7 @@ retry_import:
 				}
 
 				if (tmp_file)
-					gf_delete_file(tmp_file);
+					gf_file_delete(tmp_file);
 
 				if (!pe->codecs) {
 					char szCodecs[1024];
@@ -2007,7 +2007,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		return e;
 	}
 	if (mpd_file == NULL) {
-		if (!keep_files) gf_delete_file(m3u8_file);
+		if (!keep_files) gf_file_delete(m3u8_file);
 		mpd_file = m3u8_file;
 	}
 
@@ -2072,7 +2072,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Download failed for %s\n", suburl));
 						e = GF_OK;
 					}
-					gf_delete_file("tmp.m3u8");
+					gf_file_delete("tmp.m3u8");
 				} else {
 					e = gf_m3u8_parse_sub_playlist(suburl, &pl, suburl, stream, pe);
 				}
@@ -3016,7 +3016,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		if (!out) return GF_IO_ERR;
 		close_file = GF_TRUE;
 	} else {
-		out = gf_temp_file_new(NULL);
+		out = gf_file_temp(NULL);
 		if (rep->m3u8_var_file) gf_fclose(rep->m3u8_var_file);
 		rep->m3u8_var_file = out;
 	}
@@ -4750,7 +4750,7 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 				continue;
 			}
 			while (gf_list_count(set->representations)>1) {
-				FILE *f = gf_temp_file_new(NULL);
+				FILE *f = gf_file_temp(NULL);
 				u32 size;
 				char *data, szAdd[100];
 				GF_Blob blob;

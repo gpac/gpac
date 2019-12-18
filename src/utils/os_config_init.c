@@ -204,7 +204,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	f = fopen(szPath, "wb");
 	if (f != NULL) {
 		fclose(f);
-		gf_delete_file(szPath);
+		gf_file_delete(szPath);
 		return GF_TRUE;
 	}
 #ifdef _WIN32_WCE
@@ -223,7 +223,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	if (!f) return GF_FALSE;
 
 	fclose(f);
-	gf_delete_file(szPath);
+	gf_file_delete(szPath);
 	return GF_TRUE;
 #endif
 }
@@ -310,7 +310,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		if (check_file_exists(".gpacrc", file_path, file_path)) {
 			strcpy(app_path, file_path);
 			strcat(app_path, "/.gpacrc");
-			gf_delete_file(app_path);
+			gf_file_delete(app_path);
 		}
 
 		strcat(file_path, "/.gpac");
@@ -528,7 +528,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 #ifndef GPAC_CONFIG_IOS
 	if (! get_default_install_path(szPath, GF_PATH_MODULES)) {
-		gf_delete_file(szPath);
+		gf_file_delete(szPath);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] default modules not found\n"));
 		return NULL;
 	}
@@ -994,7 +994,8 @@ GF_GPACArg GPAC_Args[] = {
 	        "- coding: bitstream formats (audio, video, scene)\n"\
 	        "- container: container formats (ISO File, MPEG-2 TS, AVI, ...)\n"\
 	        "- network: network data except RTP trafic\n"\
-	        "- rtp: rtp trafic\n"\
+	        "- http: HTTP trafic\n"\
+	        "- rtp: RTP trafic\n"\
 	        "- author: authoring tools (hint, import, export)\n"\
 	        "- sync: terminal sync layer\n"\
 	        "- codec: terminal codec messages\n"\

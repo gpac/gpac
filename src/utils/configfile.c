@@ -334,7 +334,7 @@ void gf_cfg_del(GF_Config *iniFile)
 void gf_cfg_remove(GF_Config *iniFile)
 {
 	if (!iniFile) return;
-	gf_delete_file(iniFile->fileName);
+	gf_file_delete(iniFile->fileName);
 	gf_cfg_clear(iniFile);
 	gf_free(iniFile);
 }

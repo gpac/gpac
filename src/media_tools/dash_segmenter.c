@@ -550,7 +550,11 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->single_file) e |= gf_dynstrcat(&args, "sfile", ":");
 	if (dasher->use_url_template) e |= gf_dynstrcat(&args, "tpl", ":");
 	if (dasher->use_segment_timeline) e |= gf_dynstrcat(&args, "stl", ":");
-	if (dasher->dash_mode) e |= gf_dynstrcat(&args, (dasher->dash_mode == GF_DASH_DYNAMIC_LAST) ? "dynlast" : "dynamic", ":");
+	if (dasher->dash_mode) {
+		e |= gf_dynstrcat(&args, (dasher->dash_mode == GF_DASH_DYNAMIC_LAST) ? "dynlast" : "dynamic", ":");
+		//make dasher reschedule by default for MP4Box
+		e |= gf_dynstrcat(&args, "reschedule", ":");
+	}
 	if (dasher->disable_segment_alignment) e |= gf_dynstrcat(&args, "!align", ":");
 	if (dasher->enable_mix_codecs) e |= gf_dynstrcat(&args, "mix_codecs", ":");
 	if (dasher->insert_utc) e |= gf_dynstrcat(&args, "ntp=yes", ":");
@@ -1050,7 +1054,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 	if (need_seek) {
 		GF_FilterEvent evt;
 		GF_FEVT_INIT(evt, GF_FEVT_RESUME, NULL);
-		gf_filter_send_event(dasher->output, &evt);
+		gf_filter_send_event(dasher->output, &evt, GF_FALSE);
 	}
 
 	e = gf_fs_run(dasher->fsess);

@@ -289,7 +289,7 @@ static GF_Err mp4mx_setup_dash_vod(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	}
 	ctx->dash_mode = MP4MX_DASH_VOD;
 	if (ctx->cache && !ctx->tmp_store) {
-		ctx->tmp_store = gf_temp_file_new(NULL);
+		ctx->tmp_store = gf_file_temp(NULL);
 		if (!ctx->tmp_store) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot allocate temp file for VOD sidx generation\n"));
 			return GF_IO_ERR;
@@ -539,8 +539,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
+		if (gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT)==NULL)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*") );
+		if (gf_filter_pid_get_property(pid, GF_PROP_PID_MIME)==NULL)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DASH_MODE, NULL);
 
 		switch (ctx->store) {
 		case MP4MX_MODE_FLAT:
@@ -2333,7 +2336,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_free(tkw);
 		}
 		//removing last pid, flush file
-		if (ctx->opid && !gf_list_count(ctx->tracks) && ctx->file) {
+		if (ctx->opid && !gf_list_count(ctx->tracks) && ctx->file && !ctx->init_movie_done) {
 			return mp4_mux_done(filter, ctx);
 		}
 		return GF_OK;

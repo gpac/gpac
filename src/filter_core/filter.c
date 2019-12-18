@@ -114,7 +114,7 @@ char *gf_filter_get_dst_name(GF_Filter *filter)
 	return res;
 }
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *src_args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err)
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *src_args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err, GF_Filter *multi_sink_target)
 {
 	char szName[200];
 	const char *dst_striped = NULL;
@@ -164,6 +164,8 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 	gf_list_add(fsess->filters, filter);
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
+
+	filter->multi_sink_target = multi_sink_target;
 
 	src_striped = src_args;
 	dst_striped = NULL;
@@ -1287,7 +1289,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 				}
 				internal_arg = GF_TRUE;
 			}
-			else if (has_meta_args && filter->freg->update_arg) {
+			else if (has_meta_args && filter->freg->update_arg && value) {
 				if (for_script || !(filter->freg->flags&GF_FS_REG_SCRIPT) ) {
 					GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL, filter->session->sep_list);
 					FSESS_CHECK_THREAD(filter)
@@ -1952,6 +1954,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		return;
 	}
 	assert(filter->process_task_queued);
+	assert(!filter->multi_sink_target);
 
 	//the following breaks demuxers where PIDs are not all known from start: if we filter some pids due to user request,
 	//we may end up with the following test true but not all PIDs yet declared, hence no more processing
@@ -2070,7 +2073,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 void gf_filter_process_inline(GF_Filter *filter)
 {
 	GF_Err e;
-	if (filter->out_pid_connection_pending || filter->removed || filter->stream_reset_pending) {
+	if (filter->out_pid_connection_pending || filter->removed || filter->stream_reset_pending || filter->multi_sink_target) {
 		return;
 	}
 	if (filter->would_block && (filter->would_block == filter->num_output_pids) ) {
@@ -2130,7 +2133,7 @@ void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name,
 
 GF_Filter *gf_filter_clone(GF_Filter *filter)
 {
-	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, NULL, filter->arg_type, NULL);
+	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, NULL, filter->arg_type, NULL, NULL);
 	if (!new_filter) return NULL;
 	new_filter->cloned_from = filter;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter cloned (register %s, args %s)\n", filter->freg->name, filter->orig_args ? filter->orig_args : "none"));
@@ -3024,6 +3027,35 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	return GF_OK;
 }
 
+GF_EXPORT
+const char *gf_filter_probe_data(GF_Filter *filter, u8 *data, u32 size)
+{
+	u32 i, count;
+	GF_FilterProbeScore score, max_score = GF_FPROBE_NOT_SUPPORTED;
+	const char *probe_mime = NULL;
+	if (!size) return NULL;
+	gf_mx_p(filter->session->filters_mx);
+	count = gf_list_count(filter->session->registry);
+	for (i=0; i<count; i++) {
+		const char *a_mime;
+		const GF_FilterRegister *freg = gf_list_get(filter->session->registry, i);
+		if (!freg || !freg->probe_data) continue;
+		score = GF_FPROBE_NOT_SUPPORTED;
+		a_mime = freg->probe_data(data, size, &score);
+		if (score==GF_FPROBE_NOT_SUPPORTED) {
+		} else if (score==GF_FPROBE_EXT_MATCH) {
+			probe_mime = NULL;
+		} else {
+			if (a_mime && (score > max_score)) {
+				probe_mime = a_mime;
+				max_score = score;
+			}
+		}
+	}
+	gf_mx_v(filter->session->filters_mx);
+	return probe_mime;
+}
+
 static Bool gf_filter_get_arg_internal(GF_Filter *filter, const char *arg_name, GF_PropertyValue *prop, const char **min_max_enum)
 {
 	u32 i=0;
@@ -3471,4 +3503,11 @@ Bool gf_filter_end_of_session(GF_Filter *filter)
 {
 	if (!filter) return GF_TRUE;
 	return filter->session->in_final_flush;
+}
+
+GF_EXPORT
+Bool gf_filter_is_alias(GF_Filter *filter)
+{
+	if (filter && filter->multi_sink_target) return GF_TRUE;
+	return GF_FALSE;
 }
