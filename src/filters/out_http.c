@@ -216,7 +216,7 @@ static Bool httpout_dir_file_enum(void *cbck, char *item_name, char *item_path, 
 	else
 		gf_dynstrcat(listing, "   <a href=\"", NULL);
 
-	name_len = strlen(item_name);
+	name_len = (u32) strlen(item_name);
 	if (is_dir) name_len++;
 	gf_dynstrcat(listing, item_name, NULL);
 	if (is_dir) gf_dynstrcat(listing, "/", NULL);
@@ -272,7 +272,7 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
 	gf_dynstrcat(&listing, name, NULL);
 	gf_dynstrcat(&listing, "</h1>\n<pre>Name                                                                Last modified      Size\n<hr>\n", NULL);
 
-	len = strlen(full_path);
+	len = (u32) strlen(full_path);
 	if (len && strchr("/\\", full_path[len-1]))
 		full_path[len-1] = 0;
 	has_par = strrchr(full_path, '/');
@@ -284,7 +284,7 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
 		gf_dynstrcat(&listing, ".. <a href=\"", NULL);
 		for (i=0; i<count; i++) {
 			dir = gf_list_get(ctx->rdirs, i);
-			u32 len = strlen(dir);
+			u32 len = (u32) strlen(dir);
 			if (!strncmp(dir, name, len) && ((name[len]=='/') || (name[len]==0))) {
 				gf_dynstrcat(&listing, "/", NULL);
 				if (count==1) name = NULL;
@@ -352,7 +352,7 @@ static void httpout_set_local_path(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 
 	dir = gf_list_get(ctx->rdirs, 0);
 	if (!dir) return;
-	len = strlen(dir);
+	len = (u32) strlen(dir);
 	if (in->local_path) gf_free(in->local_path);
 	in->local_path = NULL;
 	gf_dynstrcat(&in->local_path, dir, NULL);
@@ -392,7 +392,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 		range += 6;
 		sep = strchr(range, '/');
 		if (sep) sep[0] = 0;
-		len = strlen(range);
+		len = (u32) strlen(range);
 		start = end = -1;
 		if (!len) {
 			request_ok = GF_FALSE;
@@ -450,16 +450,16 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 				sess->ranges[i].end = known_file_size;
 			}
 
-			if (sess->ranges[i].end>=known_file_size) {
+			if (sess->ranges[i].end>= (s64) known_file_size) {
 				request_ok = GF_FALSE;
 				break;
 			}
-			if (sess->ranges[i].start>=known_file_size) {
+			if (sess->ranges[i].start>= (s64) known_file_size) {
 				request_ok = GF_FALSE;
 				break;
 			}
 		} else {
-			if (sess->ranges[i].end > known_file_size) {
+			if (sess->ranges[i].end > (s64) known_file_size) {
 				request_ok = GF_FALSE;
 				break;
 			}
@@ -524,7 +524,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			goto exit;
 		}
 		if (sess->ctx->wdir) {
-			u32 len = strlen(sess->ctx->wdir);
+			u32 len = (u32) strlen(sess->ctx->wdir);
 			gf_dynstrcat(&full_path, sess->ctx->wdir, NULL);
 			if (!strchr("/\\", sess->ctx->wdir[len-1]))
 				gf_dynstrcat(&full_path, "/", NULL);
@@ -635,7 +635,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		count = gf_list_count(sess->ctx->rdirs);
 		for (i=0; i<count; i++) {
 			char *mdir = gf_list_get(sess->ctx->rdirs, i);
-			u32 len = strlen(mdir);
+			u32 len = (u32) strlen(mdir);
 			if (!len) continue;
 			if (count==1) {
 				gf_dynstrcat(&full_path, mdir, NULL);
@@ -757,7 +757,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 			if (!sess->in_source) {
 				u8 probe_buf[5001];
-				u32 read = fread(probe_buf, 1, 5000, sess->resource);
+				u32 read = (u32) fread(probe_buf, 1, 5000, sess->resource);
 				if ((s32) read < 0) {
 					response = "HTTP/1.1 500 Internal Server Error\r\n";
 					gf_dynstrcat(&response_body, "File opened but read operation failed", NULL);
@@ -819,7 +819,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 
 	if (response_body) {
-		body_size = strlen(response_body);
+		body_size = (u32) strlen(response_body);
 		gf_dynstrcat(&rsp_buf, "Content-Type: text/html\r\n", NULL);
 		gf_dynstrcat(&rsp_buf, "Content-Length: ", NULL);
 		sprintf(szFmt, "%d", body_size);
@@ -876,7 +876,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Sending response to %s: %s\n", sess->peer_address, rsp_buf));
-	gf_sk_send(sess->socket, rsp_buf, strlen(rsp_buf));
+	gf_sk_send(sess->socket, rsp_buf, (u32) strlen(rsp_buf));
 	gf_free(rsp_buf);
 	if (!sess->buffer) {
 		sess->buffer = gf_malloc(sizeof(u8)*sess->ctx->block_size);
@@ -910,7 +910,7 @@ exit:
 	httpout_insert_date(gf_net_get_utc(), &rsp_buf, GF_FALSE);
 	gf_dynstrcat(&rsp_buf, "Connection: close\r\n", NULL);
 	if (response_body) {
-		body_size = strlen(response_body);
+		body_size = (u32) strlen(response_body);
 		gf_dynstrcat(&rsp_buf, "Content-Type: text/html\r\n", NULL);
 		gf_dynstrcat(&rsp_buf, "Content-Length: ", NULL);
 		sprintf(szFmt, "%d", body_size);
@@ -923,7 +923,7 @@ exit:
 		gf_free(response_body);
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Sending response to %s: %s\n", sess->peer_address, rsp_buf));
-	gf_sk_send(sess->socket, rsp_buf, strlen(rsp_buf));
+	gf_sk_send(sess->socket, rsp_buf, (u32) strlen(rsp_buf));
 	gf_free(rsp_buf);
 	sess->upload_type = 0;
 	httpout_reset_socket(sess);
@@ -1298,7 +1298,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 		assert(0);
 	}
 	if (!sess->nb_ranges) {
-		write = fwrite(data, 1, size, sess->resource);
+		write = (u32) fwrite(data, 1, size, sess->resource);
 		if (write != size) {
 			return GF_IO_ERR;
 		}
@@ -1308,10 +1308,10 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 	}
 	remain = size;
 	while (remain) {
-		to_write = sess->ranges[sess->range_idx].end - sess->file_pos;
+		to_write = (u32) (sess->ranges[sess->range_idx].end - sess->file_pos);
 		if (to_write>=remain) {
 			to_write = remain;
-			write = fwrite(data, 1, remain, sess->resource);
+			write = (u32) fwrite(data, 1, remain, sess->resource);
 			if (write != remain) {
 				return GF_IO_ERR;
 			}
@@ -1320,7 +1320,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 			remain = 0;
 			break;
 		}
-		write = fwrite(data, 1, to_write, sess->resource);
+		write = (u32) fwrite(data, 1, to_write, sess->resource);
 		sess->nb_bytes += write;
 		remain -= to_write;
 		sess->range_idx++;
@@ -1421,7 +1421,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		}
 		gf_dynstrcat(&rsp_buf, "\r\n", NULL);
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Sending PUT response to %s: %s\n", sess->peer_address,  rsp_buf));
-		gf_sk_send(sess->socket, rsp_buf, strlen(rsp_buf));
+		gf_sk_send(sess->socket, rsp_buf, (u32) strlen(rsp_buf));
 		gf_free(rsp_buf);
 
 		sess->last_active_time = gf_sys_clock();
@@ -1488,7 +1488,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 	//we have ranges
 	if (sess->nb_ranges) {
 		//current range is done
-		if (sess->file_pos >= sess->ranges[sess->range_idx].end) {
+		if ((s64) sess->file_pos >= sess->ranges[sess->range_idx].end) {
 			sess->range_idx++;
 			//load next range, seeking file
 			if (sess->range_idx<sess->nb_ranges) {
@@ -1497,10 +1497,10 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			}
 		}
 		if (sess->range_idx<sess->nb_ranges) {
-			to_read = sess->ranges[sess->range_idx].end + 1 - sess->file_pos;
+			to_read = (u32) (sess->ranges[sess->range_idx].end + 1 - sess->file_pos);
 		}
 	} else if (sess->file_pos < sess->file_size) {
-		to_read = sess->file_size - sess->file_pos;
+		to_read = (u32) (sess->file_size - sess->file_pos);
 	}
 
 	if (to_read) {
@@ -1509,14 +1509,14 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		if (to_read > sess->ctx->block_size)
 			to_read = sess->ctx->block_size;
 
-		read = fread(sess->buffer, 1, to_read, sess->resource);
+		read = (u32) fread(sess->buffer, 1, to_read, sess->resource);
 
 		//transfer of file being uploaded, use chunk transfer
 		if (sess->use_chunk_transfer) {
 			char szHdr[100];
 			u32 len;
 			sprintf(szHdr, "%X\r\n", read);
-			len = strlen(szHdr);
+			len = (u32) strlen(szHdr);
 
 			e = gf_sk_send(sess->socket, szHdr, len);
 			e |= gf_sk_send(sess->socket, sess->buffer, read);
@@ -1618,7 +1618,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 
 	dir = gf_list_get(ctx->rdirs, 0);
 	if (!dir) return GF_FALSE;
-	len = strlen(dir);
+	len = (u32) strlen(dir);
 	if (!len) return GF_FALSE;
 
 	if (in->path && !strcmp(in->path, sep)) {
@@ -1699,7 +1699,7 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 	if (!in->is_open) return 0;
 
 	sprintf(szHdr, "%X\r\n", pck_size);
-	len = strlen(szHdr);
+	len = (u32) strlen(szHdr);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Writing %d bytes to output file %s\n", pck_size, in->local_path ? in->local_path : in->path));
 
@@ -1731,7 +1731,7 @@ retry:
 		u32 i, count = gf_list_count(ctx->active_sessions);
 
 		if (in->resource) {
-			out = gf_fwrite(pck_data, 1, pck_size, in->resource);
+			out = (u32) fwrite(pck_data, 1, pck_size, in->resource);
 		}
 
 		for (i=0; i<count; i++) {
@@ -2081,7 +2081,7 @@ static Bool httpout_use_alias(GF_Filter *filter, const char *url, const char *mi
 		if (!strcmp(ctx->dst, url)) return GF_TRUE;
 		return GF_FALSE;
 	}
-	len = sep - url;
+	len = (u32) (sep - url);
 	if (!strncmp(ctx->dst, url, len)) return GF_TRUE;
 	return GF_FALSE;
 }
@@ -2091,7 +2091,7 @@ static const GF_FilterCapability HTTPOutCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT,GF_PROP_PID_FILE_EXT, "*"),
 	CAP_STRING(GF_CAPS_INPUT,GF_PROP_PID_MIME, "*"),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 };
 

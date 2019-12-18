@@ -667,7 +667,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			}
 			if (update_props) {
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(frame->sample_rate));
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(frame->channel_layout));
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT((u32) frame->channel_layout));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(frame->channels));
 				opid->gf_pfmt = ffmpeg_audio_fmt_to_gpac(frame->format);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(opid->gf_pfmt));
@@ -913,7 +913,7 @@ static GF_Err ffavf_update_arg(GF_Filter *filter, const char *arg_name, const GF
 		char szCommandRes[1025];
 		char *target = strchr(arg_name, gf_filter_get_sep(filter, GF_FS_SEP_FRAG));
 		if (target) {
-			u32 len = target-arg_name;
+			u32 len = (u32) (target - arg_name);
 			if (len>=100) len=100;
 			strncpy(szTargetName, arg_name, len);
 			arg = target+1;

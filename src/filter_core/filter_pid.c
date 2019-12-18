@@ -5151,7 +5151,7 @@ static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 	memcpy(an_evt, evt, sizeof(GF_FilterEvent));
 
 	if (evt->base.type==GF_FEVT_FILE_DELETE) {
-		u32 len = evt->file_del.url ? strlen(evt->file_del.url) : 0;
+		u32 len = evt->file_del.url ? (u32) strlen(evt->file_del.url) : 0;
 		GF_RefString *rstr = gf_malloc(sizeof(GF_RefString) + sizeof(char)*len);
 		rstr->ref_count=1;
 		strcpy( (char *) &rstr->string[0], evt->file_del.url ? evt->file_del.url : "");
