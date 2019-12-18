@@ -465,7 +465,7 @@ void gf_fs_lock_filters(GF_FilterSession *session, Bool do_lock);
 */
 u32 gf_fs_get_filters_count(GF_FilterSession *session);
 
-/*! Type of multimedia filter*/
+/*! Type of filter*/
 typedef enum
 {
 	/*! Unknown filter type*/
@@ -1215,6 +1215,8 @@ typedef enum
 	GF_FEVT_USER,
 	/*! PLAY hint event, used to signal if block dispatch is needed or not for the source*/
 	GF_FEVT_PLAY_HINT,
+	/*! file delete event, sent upstream by dahser to notify file deletion*/
+	GF_FEVT_FILE_DELETE,
 } GF_FEventType;
 
 /*! type: the type of the event*/
@@ -1334,6 +1336,13 @@ typedef struct
 	GF_Event event;
 } GF_FEVT_Event;
 
+/*! Event structure for GF_FEVT_FILE_DELETE*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+	/*! URL to delete*/
+	const char *url;
+} GF_FEVT_FileDelete;
 
 /*! Event structure for GF_FEVT_VISIBILITY_HINT*/
 typedef struct
@@ -1376,6 +1385,7 @@ union __gf_filter_event
 	GF_FEVT_VisibililityHint visibility_hint;
 	GF_FEVT_BufferRequirement buffer_req;
 	GF_FEVT_SegmentSize seg_size;
+	GF_FEVT_FileDelete file_del;
 };
 
 /*! Gets readable name for event type
@@ -1775,6 +1785,28 @@ struct __gf_filter_register
 	/*! user data of register loader, not inspected/modified by filter session*/
 	void *udta;
 
+	/*! optional. Used by sink filters offering multiple sink support
+		GPAC instantiates filter chains based on filter capabilities and arguments of source and destination. When a sink/destination filter can handle
+		multiple file inputs of various formats/types, temporary filters called alias are needed to instantiate the proper chain.
+		If the return value is true, an alias filter of the same type as this filter will be created with the proper arguments and initialized (in order to modify the
+		 alias filter capabilities if needed), and finalized when no longer needed. All other callbacks will however be made on the main filter, not the alias.
+
+		A good example is HTTP output of a DASH session:
+		- the first PID will be a FILE stream for the manifest (MPD, M3U8), and the http output capabilities will be set to accept the manifest file extension.mime
+		- the other PIDs will be media PIDs (mp4, ts, mkv ...) and won't match the filter instance, creating a new instance which we don't want
+
+		By creating filter alias, a temprary HTTP output (alias) will be created, holding the arguments for the chain (including destination type). Overloading the alias filter capabilities
+		with the desired file extension or MIME will trigger the proper chain resolution. The alias will be switched to the final filter upon connecting the PIDs
+
+		To access original arguments of the chain, see \ref gf_filter_pid_get_alias_udta
+		To check if an initialize callback targets the main filter or the temporary one, see \ref gf_filter_is_alias
+	\param filter the target filter
+	\param url the url of the target destination, never NULL.
+	\param mime the MIME type of the target destination. Can be NULL if mime not available
+	\return GF_TRUE if this filter instance should be used to handle the given URL, in which case an alias filter will be created
+	*/
+	Bool (*use_alias)(GF_Filter *filter, const char *url, const char *mime);
+
 
 	/*! version of the filter, usually only for external libs*/
 	const char *version;
@@ -2085,11 +2117,12 @@ const char *gf_filter_get_dst_args(GF_Filter *filter);
 */
 char *gf_filter_get_dst_name(GF_Filter *filter);
 
-/*! Sends an event on all input PIDs
+/*! Sends an event on all input PIDs (downstream) or on all output PIDs (upstream)
 \param filter the target filter
 \param evt the event to send
+\param upstream send the even upstream
 */
-void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt);
+void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream);
 
 /*! Looks for a built-in property value marked as informative on a filter on all PIDs (inputs and output)
 This is a recursive call on both input and ouput chain.
@@ -2390,6 +2423,21 @@ GF_Err gf_filter_define_args(GF_Filter *filter, GF_FilterArgs *new_args);
 \return the filter instance args if any, NULL otherwise
 */
 GF_FilterArgs *gf_filter_get_args(GF_Filter *filter);
+
+
+/*! probes mime type of a given block of data (should be begining of file )
+\param filter target filter
+\param data buffer to probe
+\param size size of buffer
+\return the mime type probed, or NULL if not recognized
+*/
+const char *gf_filter_probe_data(GF_Filter *filter, u8 *data, u32 size);
+
+/*! checks if the given filter is an alias filter created by a multiple sink filter
+\param filter target filter
+\return GF_TRUE if this is an alias  filter created by a multiple sink filter, GF_FALSE otherwise
+*/
+Bool gf_filter_is_alias(GF_Filter *filter);
 
 /*! @} */
 
@@ -3019,6 +3067,14 @@ If the session is multi-threaded, this parameter has no effect.
 \return GF_TRUE if PID is currently playing, GF_FALSE otherwise
 */
 GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *PID);
+
+/*! Gets the private stack of the alias filter associated with an input PID, if any
+
+ \note The filter type of the alias is always the type of the filter holding the input PID connection.
+\param PID the target filter PID
+\return the temporary alias filter private stack, NULL otherwise
+*/
+void *gf_filter_pid_get_alias_udta(GF_FilterPid *PID);
 
 /*! @} */
 

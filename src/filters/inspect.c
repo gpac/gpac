@@ -1975,7 +1975,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	pctx->idx = gf_list_find(ctx->src_pids, pctx) + 1;
 
 	if (! ctx->interleave && !pctx->tmp) {
-		pctx->tmp = gf_temp_file_new(NULL);
+		pctx->tmp = gf_file_temp(NULL);
 		if (ctx->xml)
 			fprintf(ctx->dump, "<PIDInspect ID=\"%d\" name=\"%s\">\n", pctx->idx, gf_filter_pid_get_name(pid) );
 	}

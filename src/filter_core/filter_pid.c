@@ -567,6 +567,12 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	GF_Err e;
 	Bool new_pid_inst=GF_FALSE;
 	GF_FilterPidInst *pidinst=NULL;
+	GF_Filter *alias_orig = NULL;
+
+	if (filter->multi_sink_target) {
+		alias_orig = filter;
+		filter = filter->multi_sink_target;
+	}
 
 	assert(filter->freg->configure_pid);
 	if (filter->finalized) {
@@ -620,6 +626,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		}
 		pidinst = gf_filter_pid_inst_new(filter, pid);
 		new_pid_inst=GF_TRUE;
+		pidinst->alias_orig = alias_orig;
 	}
 
 	//if new, add the PID to input/output before calling configure
@@ -2990,7 +2997,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\t%s\n", freg->name));
 
-			af = gf_filter_new(fsess, freg, args, dst_args, pid->filter->no_dst_arg_inherit ? GF_FILTER_ARG_INHERIT_SOURCE_ONLY : GF_FILTER_ARG_INHERIT, NULL);
+			af = gf_filter_new(fsess, freg, args, dst_args, pid->filter->no_dst_arg_inherit ? GF_FILTER_ARG_INHERIT_SOURCE_ONLY : GF_FILTER_ARG_INHERIT, NULL, NULL);
 			if (!af) goto exit;
 
 			//the other filters shouldn't need any specific init
@@ -5107,6 +5114,52 @@ static void gf_filter_pid_reset_stop_task(GF_FSTask *task)
 	pidi->pid->has_seen_eos = was_eos_pid;
 }
 
+typedef struct
+{
+	u32 ref_count;
+	char string[1];
+} GF_RefString;
+
+#define TO_REFSTRING(_v) (GF_RefString *) (_v - offsetof(GF_RefString, string))
+
+static GF_FilterEvent *dup_evt(GF_FilterEvent *evt)
+{
+	GF_FilterEvent *an_evt;
+	an_evt = gf_malloc(sizeof(GF_FilterEvent));
+	memcpy(an_evt, evt, sizeof(GF_FilterEvent));
+	if (evt->base.type == GF_FEVT_FILE_DELETE) {
+		GF_RefString *rstr = TO_REFSTRING(evt->file_del.url);
+		safe_int_inc(&rstr->ref_count);
+	}
+	return an_evt;
+}
+
+static void free_evt(GF_FilterEvent *evt)
+{
+	if (evt->base.type == GF_FEVT_FILE_DELETE) {
+		GF_RefString *rstr = TO_REFSTRING(evt->file_del.url);
+		if (safe_int_dec(&rstr->ref_count) == 0) {
+			gf_free(rstr);
+		}
+	}
+	gf_free(evt);
+}
+
+static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
+{
+	GF_FilterEvent *an_evt = gf_malloc(sizeof(GF_FilterEvent));
+	memcpy(an_evt, evt, sizeof(GF_FilterEvent));
+
+	if (evt->base.type==GF_FEVT_FILE_DELETE) {
+		u32 len = evt->file_del.url ? strlen(evt->file_del.url) : 0;
+		GF_RefString *rstr = gf_malloc(sizeof(GF_RefString) + sizeof(char)*len);
+		rstr->ref_count=1;
+		strcpy( (char *) &rstr->string[0], evt->file_del.url ? evt->file_del.url : "");
+		an_evt->file_del.url = (char *) &rstr->string[0];
+	}
+	return an_evt;
+}
+
 void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 {
 	u32 i, count;
@@ -5135,7 +5188,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 	if (evt->base.type == GF_FEVT_BUFFER_REQ) {
 		if (!evt->base.on_pid) {
-			gf_free(evt);
+			free_evt(evt);
 			return;
 		}
 		if (evt->base.on_pid->nb_decoder_inputs || evt->base.on_pid->raw_media || evt->buffer_req.pid_only) {
@@ -5152,7 +5205,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		}
 	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_PLAY) && evt->base.on_pid->pid->is_playing) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is already playing, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
-		gf_free(evt);
+		free_evt(evt);
 		return;
 	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_STOP) && !evt->base.on_pid->pid->is_playing) {
 		GF_FilterPid *pid = (GF_FilterPid *) evt->base.on_pid->pid;
@@ -5169,7 +5222,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			}
 		}
 
-		gf_free(evt);
+		free_evt(evt);
 		if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
 			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);
 		}
@@ -5277,7 +5330,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	if (count==0) canceled = GF_TRUE;
 
 	if (canceled) {
-		gf_free(evt);
+		free_evt(evt);
 		return;
 	}
 	if (!task->pid) dispatched_filters = gf_list_new();
@@ -5303,8 +5356,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		}
 		//allocate a copy except for the last PID where we use the one from the input
 		if (evt_reused) {
-			an_evt = gf_malloc(sizeof(GF_FilterEvent));
-			memcpy(an_evt, evt, sizeof(GF_FilterEvent));
+			an_evt = dup_evt(evt);
 		} else {
 			an_evt = evt;
 			evt_reused = GF_TRUE;
@@ -5316,7 +5368,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		gf_fs_post_task(pid->filter->session, gf_filter_pid_send_event_downstream, pid->filter, task->pid ? pid : NULL, "downstream_event", an_evt);
 	}
 	if (dispatched_filters) gf_list_del(dispatched_filters);
-	if (!evt_reused) gf_free(evt);
+	if (!evt_reused) free_evt(evt);
 	return;
 }
 
@@ -5332,29 +5384,26 @@ void gf_filter_pid_send_event_upstream(GF_FSTask *task)
 		return;
 	}
 
-	assert(! evt->base.on_pid);
-
 	canceled = f->freg->process_event ? f->freg->process_event(f, evt) : GF_TRUE;
 	if (!canceled) {
 		for (i=0; i<f->num_output_pids; i++) {
 			GF_FilterPid *apid = gf_list_get(f->output_pids, i);
 			for (j=0; j<apid->num_destinations; j++) {
-				GF_FilterEvent *dup_evt;
+				GF_FilterEvent *an_evt;
 				GF_FilterPidInst *pidi = gf_list_get(apid->destinations, j);
 
-				dup_evt = gf_malloc(sizeof(GF_FilterEvent));
-				memcpy(dup_evt, evt, sizeof(GF_FilterEvent));
-				dup_evt->base.on_pid = NULL;
-				gf_fs_post_task(pidi->filter->session, gf_filter_pid_send_event_upstream, pidi->filter, NULL, "upstream_event", dup_evt);
+				an_evt = dup_evt(evt);
+				an_evt->base.on_pid = (GF_FilterPid *)pidi;
+				gf_fs_post_task(pidi->filter->session, gf_filter_pid_send_event_upstream, pidi->filter, NULL, "upstream_event", an_evt);
 			}
 		}
 	}
-	gf_free(evt);
+	free_evt(evt);
 }
 
 void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, Bool force_downstream)
 {
-	GF_FilterEvent *dup_evt;
+	GF_FilterEvent *an_evt;
 	GF_FilterPid *target_pid=NULL;
 	Bool upstream=GF_FALSE;
 	if (!pid) {
@@ -5364,6 +5413,8 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 	//filter is being shut down, prevent any event posting
 	if (pid->filter->finalized) return;
 
+	if ((evt->base.type==GF_FEVT_FILE_DELETE) && !evt->file_del.url) return;
+
 	if (!force_downstream && PID_IS_OUTPUT(pid)) {
 		upstream = GF_TRUE;
 	}
@@ -5372,17 +5423,22 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 
 	if (upstream) {
 		u32 i, j;
+
+		an_evt = init_evt(evt);
+
 		for (i=0; i<pid->filter->num_output_pids; i++) {
 			GF_FilterPid *apid = gf_list_get(pid->filter->output_pids, i);
 			if (evt->base.on_pid && (apid != evt->base.on_pid)) continue;
 			for (j=0; j<apid->num_destinations; j++) {
+				GF_FilterEvent *up_evt;
 				GF_FilterPidInst *pidi = gf_list_get(apid->destinations, j);
-				dup_evt = gf_malloc(sizeof(GF_FilterEvent));
-				memcpy(dup_evt, evt, sizeof(GF_FilterEvent));
-				dup_evt->base.on_pid = NULL;
-				gf_fs_post_task(pidi->filter->session, gf_filter_pid_send_event_upstream, pidi->filter, NULL, "upstream_event", dup_evt);
+
+				up_evt = dup_evt(an_evt);
+				up_evt->base.on_pid = (GF_FilterPid *)pidi;
+				gf_fs_post_task(pidi->filter->session, gf_filter_pid_send_event_upstream, pidi->filter, NULL, "upstream_event", up_evt);
 			}
 		}
+		free_evt(an_evt);
 		return;
 	}
 
@@ -5402,14 +5458,13 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 		}
 	}
 
-	dup_evt = gf_malloc(sizeof(GF_FilterEvent));
-	memcpy(dup_evt, evt, sizeof(GF_FilterEvent));
+	an_evt = init_evt(evt);
 	if (evt->base.on_pid) {
 		target_pid = evt->base.on_pid->pid;
-		dup_evt->base.on_pid = target_pid;
+		an_evt->base.on_pid = target_pid;
 		safe_int_inc(&target_pid->filter->num_events_queued);
 	}
-	gf_fs_post_task(pid->pid->filter->session, gf_filter_pid_send_event_downstream, pid->pid->filter, target_pid, "downstream_event", dup_evt);
+	gf_fs_post_task(pid->pid->filter->session, gf_filter_pid_send_event_downstream, pid->pid->filter, target_pid, "downstream_event", an_evt);
 }
 
 GF_EXPORT
@@ -5422,18 +5477,23 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 }
 
 GF_EXPORT
-void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt)
+void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream)
 {
-	GF_FilterEvent *dup_evt;
+	GF_FilterEvent *an_evt;
+	if (!filter) return;
+	if (filter->multi_sink_target)
+		filter = filter->multi_sink_target;
+
 	//filter is being shut down, prevent any event posting
 	if (filter->finalized) return;
 	if (!evt) return;
+	if ((evt->base.type==GF_FEVT_FILE_DELETE) && !evt->file_del.url) return;
 
 	if (evt->base.type==GF_FEVT_RESET_SCENE)
 		return;
 
 	if (evt->base.on_pid && PID_IS_OUTPUT(evt->base.on_pid)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Sending filter events upstream not yet implemented (PID %s in filter %s)\n", evt->base.on_pid->pid->name, filter->name));
+		gf_filter_pid_send_event_internal(evt->base.on_pid, evt, GF_FALSE);
 		return;
 	}
 
@@ -5445,14 +5505,13 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt)
 		}
 	}
 
-	dup_evt = gf_malloc(sizeof(GF_FilterEvent));
-	memcpy(dup_evt, evt, sizeof(GF_FilterEvent));
+	an_evt = init_evt(evt);
 
 	if (evt->base.on_pid) {
 		safe_int_inc(&evt->base.on_pid->filter->num_events_queued);
 	}
 
-	gf_fs_post_task(filter->session, gf_filter_pid_send_event_downstream, filter, evt->base.on_pid, "downstream_event", dup_evt);
+	gf_fs_post_task(filter->session, gf_filter_pid_send_event_downstream, filter, evt->base.on_pid, "downstream_event", an_evt);
 }
 
 
@@ -6294,4 +6353,17 @@ GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *pid)
 		return GF_OK;
 	pid->direct_dispatch = GF_TRUE;
 	return GF_OK;
+}
+
+GF_EXPORT
+void *gf_filter_pid_get_alias_udta(GF_FilterPid *_pid)
+{
+	GF_FilterPidInst *pidi;
+	if (PID_IS_OUTPUT(_pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query multi_sink original filter context on output pid %s in filter %s not allowed\n", _pid->pid->name, _pid->filter->name));
+		return NULL;
+	}
+	pidi = (GF_FilterPidInst *) _pid;
+	if (!pidi->alias_orig) return NULL;
+	return pidi->alias_orig->filter_udta;
 }

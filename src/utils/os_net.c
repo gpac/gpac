@@ -431,8 +431,10 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn)
 static void gf_sk_free(GF_Socket *sock)
 {
 	assert( sock );
+	if (!sock->socket) return;
+
 	/*leave multicast*/
-	if (sock->socket && (sock->flags & GF_SOCK_IS_MULTICAST) ) {
+	if (sock->flags & GF_SOCK_IS_MULTICAST) {
 		struct ip_mreq mreq;
 #ifdef GPAC_HAS_IPV6
 		struct sockaddr *addr = (struct sockaddr *)&sock->dest_addr;
@@ -452,7 +454,7 @@ static void gf_sk_free(GF_Socket *sock)
 		setsockopt(sock->socket, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char *) &mreq, sizeof(mreq));
 #endif
 	}
-	if (sock->socket) closesocket(sock->socket);
+	closesocket(sock->socket);
 	sock->socket = (SOCKET) 0L;
 }
 
@@ -572,6 +574,9 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 				continue;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connected to %s:%d\n", PeerName, PortNumber));
+
+			int value = 1;
+			setsockopt(sock->socket, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
 		}
 		memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
 		sock->dest_addr_len = (u32) aip->ai_addrlen;
@@ -925,8 +930,14 @@ GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length)
 #ifndef __SYMBIAN32__
 			case ENOTCONN:
 			case ECONNRESET:
+			case EPIPE:
 				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] send failure: %s\n", gf_errno_str(LASTSOCKERROR)));
 				return GF_IP_CONNECTION_CLOSED;
+#endif
+
+#ifndef __DARWIN__
+			case EPROTOTYPE:
+				return GF_IP_SOCK_WOULD_BLOCK;
 #endif
 			case ENOBUFS:
 				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] send failure: %s\n", gf_errno_str(LASTSOCKERROR)));
@@ -1184,7 +1195,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 struct __tag_sock_group
 {
 	GF_List *sockets;
-	fd_set group;
+	fd_set rgroup, wgroup;
 };
 
 GF_SockGroup *gf_sk_group_new()
@@ -1192,7 +1203,8 @@ GF_SockGroup *gf_sk_group_new()
 	GF_SockGroup *tmp;
 	GF_SAFEALLOC(tmp, GF_SockGroup);
 	tmp->sockets = gf_list_new();
-	FD_ZERO(&tmp->group);
+	FD_ZERO(&tmp->rgroup);
+	FD_ZERO(&tmp->wgroup);
 	return tmp;
 }
 
@@ -1224,9 +1236,11 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
 	u32 max_fd=0;
 	GF_Socket *sock;
 
-	FD_ZERO(&sg->group);
+	FD_ZERO(&sg->rgroup);
+	FD_ZERO(&sg->wgroup);
 	while ((sock = gf_list_enum(sg->sockets, &i))) {
-		FD_SET(sock->socket, &sg->group);
+		FD_SET(sock->socket, &sg->rgroup);
+		FD_SET(sock->socket, &sg->wgroup);
 		if (max_fd < (u32) sock->socket) max_fd = (u32) sock->socket;
 	}
 	if (usec_wait>=1000000) {
@@ -1236,7 +1250,7 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
 		timeout.tv_sec = 0;
 		timeout.tv_usec = usec_wait;
 	}
-	ready = select((int) max_fd+1, &sg->group, NULL, NULL, &timeout);
+	ready = select((int) max_fd+1, &sg->rgroup, &sg->wgroup, NULL, &timeout);
 
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
@@ -1261,9 +1275,14 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
 	return GF_OK;
 }
 
-Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk)
+Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk, GF_SockSelectMode mode)
 {
-	if (sg && sk && FD_ISSET(sk->socket, &sg->group)) return GF_TRUE;
+	if (sg && sk) {
+		if ((mode==GF_SK_SELECT_READ) && FD_ISSET(sk->socket, &sg->rgroup))
+			return GF_TRUE;
+		if ((mode==GF_SK_SELECT_WRITE) && FD_ISSET(sk->socket, &sg->wgroup))
+			return GF_TRUE;
+	}
 	return GF_FALSE;
 }
 
@@ -1618,6 +1637,30 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 }
 #endif
 
+#if 0
+GF_EXPORT
+GF_Err gf_sk_probe(GF_Socket *sock)
+{
+	s32 res;
+	u8 buffer[1];
+	if (!sock) return GF_BAD_PARAM;
+
+	res = (s32) recv(sock->socket, buffer, 1, MSG_PEEK | MSG_DONTWAIT);
+	if (res == SOCKET_ERROR) {
+		switch (LASTSOCKERROR) {
+		case EAGAIN:
+			return GF_OK;
+		case EPIPE:
+		case ECONNRESET:
+			return GF_IP_CONNECTION_CLOSED;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] select error: %s\n", gf_errno_str(LASTSOCKERROR)));
+			return GF_IP_NETWORK_FAILURE;
+		}
+	}
+	return GF_OK;
+}
+#endif
 
 GF_EXPORT
 GF_Err gf_sk_receive_wait(GF_Socket *sock, u8 *buffer, u32 length, u32 *BytesRead, u32 Second )
@@ -1629,8 +1672,8 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, u8 *buffer, u32 length, u32 *BytesRea
 	fd_set Group;
 #endif
 
+	if (!sock || !sock->socket || !buffer || !BytesRead) return GF_BAD_PARAM;
 	*BytesRead = 0;
-	if (!sock || !sock->socket) return GF_BAD_PARAM;
 
 #ifndef __SYMBIAN32__
 	//can we read?
@@ -1653,7 +1696,6 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, u8 *buffer, u32 length, u32 *BytesRea
 		return GF_IP_NETWORK_EMPTY;
 	}
 #endif
-
 
 	res = (s32) recv(sock->socket, (char *) buffer, length, 0);
 	if (res == SOCKET_ERROR) {

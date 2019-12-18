@@ -316,6 +316,7 @@
     <ClCompile Include="..\..\src\filters\mux_ts.c" />
     <ClCompile Include="..\..\src\filters\out_audio.c" />
     <ClCompile Include="..\..\src\filters\out_file.c" />
+    <ClCompile Include="..\..\src\filters\out_http.c" />
     <ClCompile Include="..\..\src\filters\out_pipe.c" />
     <ClCompile Include="..\..\src\filters\out_rtp.c" />
     <ClCompile Include="..\..\src\filters\out_rtsp.c" />

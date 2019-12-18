@@ -306,7 +306,7 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 		}
 	}
 	/*if desired delete input*/
-	if (mux->delete_file) gf_delete_file(mux->file_name);
+	if (mux->delete_file) gf_file_delete(mux->file_name);
 	return GF_OK;
 }
 

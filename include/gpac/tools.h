@@ -460,6 +460,8 @@ typedef enum
 	GF_LOG_CONTAINER,
 	/*! Log message from the network/service stack (messages & co)*/
 	GF_LOG_NETWORK,
+	/*! Log message from the HTTP stack*/
+	GF_LOG_HTTP,
 	/*! Log message from the RTP/RTCP stack (TS info) and packet structure & hinting (debug)*/
 	GF_LOG_RTP,
 	/*! Log message from authoring subsystem (file manip, import/export)*/
@@ -1147,7 +1149,7 @@ Deletes a file from the disk.
 \param fileName absolute name of the file or name relative to the current working directory.
 \return error if any
 */
-GF_Err gf_delete_file(const char *fileName);
+GF_Err gf_file_delete(const char *fileName);
 
 /*!
 \brief File Move
@@ -1157,7 +1159,7 @@ Moves or renames a file or directory.
 \param newFileName absolute new path/name of the file / directory
 \return error if any
 */
-GF_Err gf_move_file(const char *fileName, const char *newFileName);
+GF_Err gf_file_move(const char *fileName, const char *newFileName);
 
 /*!
 \brief Temporary File Creation
@@ -1166,7 +1168,7 @@ Creates a new temporary file in binary mode
 \param fileName if not NULL, strdup() of the temporary filename when created by GPAC (NULL otherwise as the system automatically removes its own tmp files)
 \return stream handle to the new file ressoucre
  */
-FILE *gf_temp_file_new(char ** const fileName);
+FILE *gf_file_temp(char ** const fileName);
 
 
 /*!

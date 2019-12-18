@@ -250,7 +250,7 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 				if (!exp || (exp>sec)) delete_file=GF_FALSE;
 			}
 			if (delete_file) {
-				if (file) gf_delete_file((char*)file);
+				if (file) gf_file_delete((char*)file);
 				gf_opts_del_section(section);
 			}
 
@@ -448,7 +448,7 @@ void compositor_init_imagetexture(GF_Compositor *compositor, GF_Node *node)
 			opt = gf_opts_get_key(name, "cacheName");
 			if (opt && ct->cacheURL.buffer && !stricmp(opt, ct->cacheURL.buffer)) {
 				opt = gf_opts_get_key(name, "cacheFile");
-				if (opt) gf_delete_file((char*)opt);
+				if (opt) gf_file_delete((char*)opt);
 				gf_opts_del_section(name);
 				break;
 			}

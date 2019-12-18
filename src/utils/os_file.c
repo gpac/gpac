@@ -192,7 +192,7 @@ static Bool delete_dir(void *cbck, char *item_name, char *item_path, GF_FileEnum
 		gf_cleanup_dir(item_path);
 		gf_rmdir(item_path);
 	} else {
-		gf_delete_file(item_path);
+		gf_file_delete(item_path);
 	}
 	return GF_FALSE;
 }
@@ -211,10 +211,10 @@ GF_Err gf_cleanup_dir(const char* DirPathName)
 }
 
 GF_EXPORT
-GF_Err gf_delete_file(const char *fileName)
+GF_Err gf_file_delete(const char *fileName)
 {
 	if (!fileName || !fileName[0]) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("gf_delete_file with no param - ignoring\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("gf_file_delete with no param - ignoring\n"));
 		return GF_OK;
 	}
 #if defined(_WIN32_WCE)
@@ -297,7 +297,7 @@ Bool gf_file_exists(const char *fileName)
 }
 
 GF_EXPORT
-GF_Err gf_move_file(const char *fileName, const char *newFileName)
+GF_Err gf_file_move(const char *fileName, const char *newFileName)
 {
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
@@ -472,7 +472,7 @@ static void gf_unregister_file_handle(FILE *ptr)
 }
 
 GF_EXPORT
-FILE *gf_temp_file_new(char ** const fileName)
+FILE *gf_file_temp(char ** const fileName)
 {
 	FILE *res = NULL;
 #if defined(_WIN32_WCE)

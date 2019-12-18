@@ -336,6 +336,7 @@
 		921FEBA51CF881DE00B437C2 /* sensors_def.h in Headers */ = {isa = PBXBuildFile; fileRef = 921FEBA21CF881DE00B437C2 /* sensors_def.h */; };
 		921FEBA61CF881DE00B437C2 /* sensors.h in Headers */ = {isa = PBXBuildFile; fileRef = 921FEBA31CF881DE00B437C2 /* sensors.h */; };
 		921FEBA71CF881DE00B437C2 /* sensors.m in Sources */ = {isa = PBXBuildFile; fileRef = 921FEBA41CF881DE00B437C2 /* sensors.m */; };
+		92261A89239E326900C14199 /* out_http.c in Sources */ = {isa = PBXBuildFile; fileRef = 92261A88239E326900C14199 /* out_http.c */; };
 		922EB5801AAE13C500DF46D0 /* dash.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5781AAE13C500DF46D0 /* dash.h */; };
 		922EB5811AAE13C500DF46D0 /* html5_media.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5791AAE13C500DF46D0 /* html5_media.h */; };
 		922EB5821AAE13C500DF46D0 /* html5_mse.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57A1AAE13C500DF46D0 /* html5_mse.h */; };
@@ -914,6 +915,7 @@
 		921FEBA21CF881DE00B437C2 /* sensors_def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sensors_def.h; path = ../../applications/osmo4_ios/sensors_def.h; sourceTree = "<group>"; };
 		921FEBA31CF881DE00B437C2 /* sensors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sensors.h; path = ../../applications/osmo4_ios/sensors.h; sourceTree = "<group>"; };
 		921FEBA41CF881DE00B437C2 /* sensors.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = sensors.m; path = ../../applications/osmo4_ios/sensors.m; sourceTree = "<group>"; };
+		92261A88239E326900C14199 /* out_http.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_http.c; path = ../../src/filters/out_http.c; sourceTree = "<group>"; };
 		922EB5781AAE13C500DF46D0 /* dash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dash.h; sourceTree = "<group>"; };
 		922EB5791AAE13C500DF46D0 /* html5_media.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_media.h; sourceTree = "<group>"; };
 		922EB57A1AAE13C500DF46D0 /* html5_mse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_mse.h; sourceTree = "<group>"; };
@@ -1916,6 +1918,7 @@
 				92EB6D6F20E4E19200A97A49 /* mux_ts.c */,
 				92EB6D8720E4E19300A97A49 /* out_audio.c */,
 				92EB6D7020E4E19200A97A49 /* out_file.c */,
+				92261A88239E326900C14199 /* out_http.c */,
 				8959AC81211C9C3C004D2C87 /* out_pipe.c */,
 				92C0F37F21EDFA8D002961C8 /* out_rtp.c */,
 				92B2A4A6229C0F47002A65A7 /* out_rtsp.c */,
@@ -2230,6 +2233,7 @@
 				92EB6DFB20E4E19700A97A49 /* write_nhnt.c in Sources */,
 				8959AC8F211C9C77004D2C87 /* Remotery.c in Sources */,
 				92EB6E0D20E4E19700A97A49 /* tileagg.c in Sources */,
+				92261A89239E326900C14199 /* out_http.c in Sources */,
 				92EB6E1D20E4E19700A97A49 /* in_rtp_signaling.c in Sources */,
 				92EB6D6820E4E17F00A97A49 /* filter_props.c in Sources */,
 				92BC210316EF8E7A000E0620 /* audio.c in Sources */,

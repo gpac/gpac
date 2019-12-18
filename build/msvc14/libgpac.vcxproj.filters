@@ -1316,6 +1316,9 @@
     <ClCompile Include="..\..\src\filters\out_file.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\out_http.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\out_video.c">
       <Filter>filters</Filter>
     </ClCompile>

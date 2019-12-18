@@ -1704,7 +1704,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	} else {
 		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
 		if (local_url) {
-			gf_delete_file(local_url);
+			gf_file_delete(local_url);
 		}
 		//use the redirected url stored in base URL - DO NOT USE the redirected URL of the session since
 		//the session may have been reused for period XLINK dowload.
@@ -3929,7 +3929,7 @@ static void gf_dash_group_reset(GF_DashClient *dash, GF_DASH_Group *group)
 	while (group->nb_cached_segments) {
 		group->nb_cached_segments --;
 		if (!dash->keep_files && !group->local_files)
-			gf_delete_file(group->cached[group->nb_cached_segments].cache);
+			gf_file_delete(group->cached[group->nb_cached_segments].cache);
 
 		gf_dash_group_reset_cache_entry(&group->cached[group->nb_cached_segments]);
 	}
@@ -6931,7 +6931,7 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double
 	while (group->nb_cached_segments) {
 		group->nb_cached_segments --;
 		if (!dash->keep_files && !group->local_files && !group->segment_must_be_streamed)
-			gf_delete_file(group->cached[group->nb_cached_segments].cache);
+			gf_file_delete(group->cached[group->nb_cached_segments].cache);
 
 		gf_dash_group_reset_cache_entry(&group->cached[group->nb_cached_segments]);
 	}
@@ -7527,7 +7527,7 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Switching quality - delete cached segment: %s\n", group->cached[group->nb_cached_segments].url));
 
 						if (!group->local_files && group->cached[group->nb_cached_segments].cache) {
-							gf_delete_file( group->cached[group->nb_cached_segments].cache );
+							gf_file_delete( group->cached[group->nb_cached_segments].cache );
 						}
 						gf_dash_group_reset_cache_entry(&group->cached[group->nb_cached_segments]);
 
@@ -7558,7 +7558,7 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Switching quality - delete cached segment: %s\n", group->cached[group->nb_cached_segments].url));
 
 							if (!group->local_files && group->cached[group->nb_cached_segments].cache) {
-								gf_delete_file( group->cached[group->nb_cached_segments].cache );
+								gf_file_delete( group->cached[group->nb_cached_segments].cache );
 							}
 
 							gf_dash_group_reset_cache_entry(&group->cached[group->nb_cached_segments]);
