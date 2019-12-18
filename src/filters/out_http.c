@@ -1570,7 +1570,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 
 static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const char *name, Bool is_delete)
 {
-	Bool reassign_clients = GF_TRUE;
+//	Bool reassign_clients = GF_TRUE;
 	u32 len;
 	const char *dir;
 	const char *sep = name ? strstr(name, "://") : NULL;
@@ -1622,7 +1622,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 	if (!len) return GF_FALSE;
 
 	if (in->path && !strcmp(in->path, sep)) {
-		reassign_clients = GF_FALSE;
+//		reassign_clients = GF_FALSE;
 	} else {
 		if (in->path) gf_free(in->path);
 		in->path = gf_strdup(sep);
@@ -1864,7 +1864,6 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 
 		if (start) {
 			const GF_PropertyValue *ext, *fnum, *fname;
-			Bool explicit_overwrite = GF_FALSE;
 			const char *name = NULL;
 			fname = ext = NULL;
 			//file num increased per packet, open new file
@@ -1887,9 +1886,6 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 				if (!orig_ctx) orig_ctx = ctx;
 				name = orig_ctx->dst;
 			}
-
-			if (end && gf_filter_pck_get_seek_flag(pck))
-				explicit_overwrite = GF_TRUE;
 
 			httpout_open_input(ctx, in, name, GF_FALSE);
 		}
