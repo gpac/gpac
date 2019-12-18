@@ -791,8 +791,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			} else if (ctx->moovts>=0) {
 				p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_MOVIE_TIME);
 				if (p && p->value.lfrac.den) {
-					gf_isom_set_timescale(ctx->file, p->value.lfrac.den);
-					ctx->moovts = p->value.lfrac.den;
+					gf_isom_set_timescale(ctx->file, (u32) p->value.lfrac.den);
+					ctx->moovts = (u32) p->value.lfrac.den;
 				} else {
 					gf_isom_set_timescale(ctx->file, ctx->moovts);
 				}

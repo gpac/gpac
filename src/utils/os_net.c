@@ -575,8 +575,10 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connected to %s:%d\n", PeerName, PortNumber));
 
+#ifdef SO_NOSIGPIPE
 			int value = 1;
 			setsockopt(sock->socket, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
+#endif
 		}
 		memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
 		sock->dest_addr_len = (u32) aip->ai_addrlen;
@@ -918,7 +920,11 @@ GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length)
 		if (sock->flags & GF_SOCK_HAS_PEER) {
 			res = (s32) sendto(sock->socket, (char *) buffer+count,  length - count, 0, (struct sockaddr *) &sock->dest_addr, sock->dest_addr_len);
 		} else {
-			res = (s32) send(sock->socket, (char *) buffer+count, length - count, 0);
+			int sflags = 0;
+#ifdef MSG_NOSIGNAL
+			sflags = MSG_NOSIGNAL;
+#endif
+			res = (s32) send(sock->socket, (char *) buffer+count, length - count, sflags);
 		}
 		if (res == SOCKET_ERROR) {
 			if (not_ready)
