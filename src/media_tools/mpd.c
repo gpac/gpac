@@ -2824,10 +2824,18 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 	if (as->max_width) fprintf(out, " maxWidth=\"%d\"", as->max_width);
 	if (as->min_height) fprintf(out, " minHeight=\"%d\"", as->min_height);
 	if (as->max_height) fprintf(out, " maxHeight=\"%d\"", as->max_height);
-	if ((as->min_framerate.num != 0) && (as->min_framerate.den != 0))
-		fprintf(out, " minFrameRate=\"%d/%d\"", as->min_framerate.num, as->min_framerate.den);
-	if ((as->max_framerate.num != 0) && (as->max_framerate.den != 0))
-		fprintf(out, " maxFrameRate=\"%d/%d\"", as->max_framerate.num, as->max_framerate.den);
+	if ((as->min_framerate.num != 0) && (as->min_framerate.den != 0)) {
+		if (as->min_framerate.den==1)
+			fprintf(out, " minFrameRate=\"%d\"", as->min_framerate.num);
+		else
+			fprintf(out, " minFrameRate=\"%d/%d\"", as->min_framerate.num, as->min_framerate.den);
+	}
+	if ((as->max_framerate.num != 0) && (as->max_framerate.den != 0)) {
+		if (as->max_framerate.den==1)
+			fprintf(out, " maxFrameRate=\"%d\"", as->max_framerate.num);
+		else
+			fprintf(out, " maxFrameRate=\"%d/%d\"", as->max_framerate.num, as->max_framerate.den);
+	}
 	if (as->par && (as->par->num != 0) && (as->par->den != 0))
 		fprintf(out, " par=\"%d:%d\"", as->par->num, as->par->den);
 	if (as->lang) fprintf(out, " lang=\"%s\"", as->lang);	
