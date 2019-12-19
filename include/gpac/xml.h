@@ -288,6 +288,15 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **out_data, u32 *out_d
  */
 GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expected_node_name, const char *expected_ns_prefix);
 
+/*
+ *\brief Writes a string to an xml file and replaces forbidden chars with xml entities
+ *\param file       the xml output file
+ *\param before     optional string prefix (assumed xml-valid, pass NULL if not needed)
+ *\param str        the string to dump and escape
+ *\param before     optional string suffix (assumed xml-valid, pass NULL if not needed)
+ */
+void gf_xml_dump_string(FILE* file, const char* before, const char* str, const char* after);
+
 /*! @} */
 
 #ifdef __cplusplus
