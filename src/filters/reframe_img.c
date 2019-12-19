@@ -223,7 +223,7 @@ GF_Err img_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_SERVICE_ERROR;
 		}
-		if (!ctx->fps.num*ctx->fps.den) {
+		if (!ctx->fps.num || !ctx->fps.den) {
 			ctx->fps.num = 1000;
 			ctx->fps.den = 1000;
 		}

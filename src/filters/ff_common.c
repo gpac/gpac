@@ -503,7 +503,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 			sprintf(szDef, LLD"-"LLD, (s64) opt->min, (s64) opt->max);
 		arg.min_max_enum = gf_strdup(szDef);
 		break;
-#if LIBAVCODEC_VERSION_MAJOR >= 58
+#if LIBAVCODEC_VERSION_MAJOR >= 57
 	case AV_OPT_TYPE_UINT64:
 //	case AV_OPT_TYPE_UINT:
 		arg.arg_type = GF_PROP_LUINT;
@@ -617,8 +617,10 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 	AVOutputFormat *ofmt = NULL;
 	AVCodec *codec = NULL;
 #if (LIBAVFILTER_VERSION_MAJOR > 5)
-	void *avf_it = NULL;
 	const AVFilter *avf = NULL;
+#if (LIBAVFILTER_VERSION_MAJOR > 6)
+	void *avf_it = NULL;
+#endif
 #endif
 
 	const char *fname = "";
@@ -728,7 +730,11 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 #endif
 		} else if (type==FF_REG_TYPE_AVF) {
 #if (LIBAVFILTER_VERSION_MAJOR > 5)
+#if (LIBAVFILTER_VERSION_MAJOR > 6)
 			avf = av_filter_iterate(&avf_it);
+#else
+			avf = avfilter_next(avf);
+#endif
 			if (!avf) break;
 			av_class = avf->priv_class;
 			subname = avf->name;

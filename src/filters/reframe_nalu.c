@@ -862,7 +862,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 			}
 
 			/*disable frame rate scan, most bitstreams have wrong values there*/
-			if (!ctx->timescale && first && !ctx->fps.num*ctx->fps.den && sps->has_timing_info
+			if (!ctx->timescale && first && (!ctx->fps.num || !ctx->fps.den) && sps->has_timing_info
 				/*if detected FPS is greater than 1000, assume wrong timing info*/
 				&& (sps->time_scale <= 1000*sps->num_units_in_tick)
 			) {
@@ -990,7 +990,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 			}
 
 			/*disable frame rate scan, most bitstreams have wrong values there*/
-			if (first && !ctx->fps.num*ctx->fps.den && sps->vui.timing_info_present_flag
+			if (first && (!ctx->fps.num || !ctx->fps.den) && sps->vui.timing_info_present_flag
 				/*if detected FPS is greater than 1000, assume wrong timing info*/
 				&& (sps->vui.time_scale <= 1000*sps->vui.num_units_in_tick)
 			) {
@@ -1103,7 +1103,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 	if (!ctx->timescale) {
 		ctx->cur_fps = ctx->fps;
-		if (!ctx->cur_fps.num*ctx->cur_fps.den) {
+		if (!ctx->cur_fps.num && !ctx->cur_fps.den) {
 			ctx->cur_fps.num = 25000;
 			ctx->cur_fps.den = 1000;
 		}

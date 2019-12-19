@@ -314,8 +314,8 @@ static void proresdmx_check_pid(GF_Filter *filter, GF_ProResDmxCtx *ctx, GF_ProR
 	}
 
 	ctx->cur_fps = ctx->fps;
-	if (!ctx->fps.num*ctx->fps.den) {
-		if (fps.num * fps.den) {
+	if (!ctx->fps.num || !ctx->fps.den) {
+		if (fps.num && fps.den) {
 			ctx->cur_fps = fps;
 		} else {
 			ctx->cur_fps.num = 25000;

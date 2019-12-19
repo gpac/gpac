@@ -233,8 +233,8 @@ GF_Err wvtt_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err boxstring_box_size(GF_Box *s)
 {
 	GF_StringBox *box = (GF_StringBox *)s;
-    if (box->string)
-        box->size += strlen(box->string);
+	if (box->string)
+		box->size += strlen(box->string);
 	return GF_OK;
 }
 

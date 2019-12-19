@@ -1899,16 +1899,16 @@ GF_Err sdp_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	//don't write the NULL char!!!
-    if (ptr->sdpText)
-        gf_bs_write_data(bs, ptr->sdpText, (u32) strlen(ptr->sdpText));
+	if (ptr->sdpText)
+		gf_bs_write_data(bs, ptr->sdpText, (u32) strlen(ptr->sdpText));
 	return GF_OK;
 }
 GF_Err sdp_box_size(GF_Box *s)
 {
 	GF_SDPBox *ptr = (GF_SDPBox *)s;
 	//don't count the NULL char!!!
-    if (ptr->sdpText)
-        ptr->size += strlen(ptr->sdpText);
+	if (ptr->sdpText)
+		ptr->size += strlen(ptr->sdpText);
 	return GF_OK;
 }
 

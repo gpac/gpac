@@ -104,7 +104,7 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 
 	ctx->ipid = pid;
 	ctx->cur_fps = ctx->fps;
-	if (!ctx->fps.num*ctx->fps.den) {
+	if (!ctx->fps.num || !ctx->fps.den) {
 		ctx->cur_fps.num = 25000;
 		ctx->cur_fps.den = 1000;
 	}

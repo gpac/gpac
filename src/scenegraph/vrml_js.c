@@ -168,48 +168,48 @@ static GF_JSRuntime *js_rt = NULL;
 
 int qjs_module_set_import_meta(JSContext *ctx, JSValueConst func_val, Bool use_realpath, Bool is_main)
 {
-    JSModuleDef *m;
-    char buf[GF_MAX_PATH + 16];
-    JSValue meta_obj;
-    JSAtom module_name_atom;
-    const char *module_name, *src_file;
+	JSModuleDef *m;
+	char buf[GF_MAX_PATH + 16];
+	JSValue meta_obj;
+	JSAtom module_name_atom;
+	const char *module_name, *src_file;
 
-    assert(JS_VALUE_GET_TAG(func_val) == JS_TAG_MODULE);
-    m = JS_VALUE_GET_PTR(func_val);
+	assert(JS_VALUE_GET_TAG(func_val) == JS_TAG_MODULE);
+	m = JS_VALUE_GET_PTR(func_val);
 
-    module_name_atom = JS_GetModuleName(ctx, m);
-    module_name = JS_AtomToCString(ctx, module_name_atom);
-    JS_FreeAtom(ctx, module_name_atom);
-    if (!module_name)
-        return -1;
+	module_name_atom = JS_GetModuleName(ctx, m);
+	module_name = JS_AtomToCString(ctx, module_name_atom);
+	JS_FreeAtom(ctx, module_name_atom);
+	if (!module_name)
+		return -1;
 	src_file = module_name;
-    if (!strchr(module_name, ':')) {
-        strcpy(buf, "file://");
+	if (!strchr(module_name, ':')) {
+		strcpy(buf, "file://");
 #if !defined(_WIN32)
-        /* realpath() cannot be used with modules compiled with qjsc
-           because the corresponding module source code is not
-           necessarily present */
-        if (use_realpath) {
-            char *res = realpath(module_name, buf + strlen(buf));
-            if (!res) {
-                JS_ThrowTypeError(ctx, "realpath failure");
-                JS_FreeCString(ctx, module_name);
-                return -1;
-            }
-            src_file = res;
-        } 
+		/* realpath() cannot be used with modules compiled with qjsc
+		because the corresponding module source code is not
+		necessarily present */
+		if (use_realpath) {
+			char *res = realpath(module_name, buf + strlen(buf));
+			if (!res) {
+				JS_ThrowTypeError(ctx, "realpath failure");
+				JS_FreeCString(ctx, module_name);
+				return -1;
+			}
+			src_file = res;
+		} 
 #endif
-    }
+	}
 
-    meta_obj = JS_GetImportMeta(ctx, m);
-    if (JS_IsException(meta_obj)) {
-    	JS_FreeCString(ctx, module_name);
-        return -1;
-    }
-    JS_DefinePropertyValueStr(ctx, meta_obj, "url", JS_NewString(ctx, src_file), JS_PROP_C_W_E);
-    JS_DefinePropertyValueStr(ctx, meta_obj, "main", JS_NewBool(ctx, is_main), JS_PROP_C_W_E);
-    JS_FreeCString(ctx, module_name);
-    JS_FreeValue(ctx, meta_obj);
+	meta_obj = JS_GetImportMeta(ctx, m);
+	if (JS_IsException(meta_obj)) {
+		JS_FreeCString(ctx, module_name);
+		return -1;
+	}
+	JS_DefinePropertyValueStr(ctx, meta_obj, "url", JS_NewString(ctx, src_file), JS_PROP_C_W_E);
+	JS_DefinePropertyValueStr(ctx, meta_obj, "main", JS_NewBool(ctx, is_main), JS_PROP_C_W_E);
+	JS_FreeCString(ctx, module_name);
+	JS_FreeValue(ctx, meta_obj);
     return 0;
 }
 

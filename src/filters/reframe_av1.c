@@ -145,7 +145,7 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 	if (ctx->vp_cfg) gf_odf_vp_cfg_del(ctx->vp_cfg);
 	ctx->vp_cfg = NULL;
 	ctx->cur_fps = ctx->fps;
-	if (!ctx->fps.num*ctx->fps.den) {
+	if (!ctx->fps.num || !ctx->fps.den) {
 		ctx->cur_fps.num = 25000;
 		ctx->cur_fps.den = 1000;
 	}
@@ -196,7 +196,7 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		ctx->state.tb_num = frame_rate; //time_base.numerator
 		ctx->state.tb_den = time_scale; //time_base.denominator
 
-		if (!ctx->fps.num*ctx->fps.den && ctx->state.tb_num && ctx->state.tb_den && ! ( (ctx->state.tb_num<=1) && (ctx->state.tb_den<=1) ) ) {
+		if ((!ctx->fps.num || !ctx->fps.den) && ctx->state.tb_num && ctx->state.tb_den && ! ( (ctx->state.tb_num<=1) && (ctx->state.tb_den<=1) ) ) {
 			ctx->cur_fps.num = ctx->state.tb_num;
 			ctx->cur_fps.den = ctx->state.tb_den;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[AV1Dmx] Detected IVF format FPS %d/%d\n", ctx->cur_fps.num, ctx->cur_fps.den));
@@ -477,7 +477,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		}
 		gf_odf_av1_cfg_write(ctx->state.config, &dsi, &dsi_size);
 
-		if (!ctx->fps.num*ctx->fps.den && ctx->state.tb_num && ctx->state.tb_den && ! ( (ctx->state.tb_num<=1) && (ctx->state.tb_den<=1) ) ) {
+		if ((!ctx->fps.num || !ctx->fps.den) && ctx->state.tb_num && ctx->state.tb_den && ! ( (ctx->state.tb_num<=1) && (ctx->state.tb_den<=1) ) ) {
 			ctx->cur_fps.num = ctx->state.tb_num;
 			ctx->cur_fps.den = ctx->state.tb_den;
 		}
