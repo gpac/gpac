@@ -36,6 +36,10 @@
 
 #define GF_VENDOR_GPAC		GF_4CC('G','P','A','C')
 
+
+#define ISOM_FILE_EXT "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic|avci|mj2|mov|qt"
+#define ISOM_FILE_MIME "application/x-isomedia|application/mp4|video/mp4|audio/mp4|video/3gpp|audio/3gpp|video/3gp2|audio/3gp2|video/iso.segment|audio/iso.segment|image/heif|image/heic|image/avci|video/quicktime"
+
 enum{
 	NALU_NONE,
 	NALU_AVC,
@@ -539,9 +543,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-		if (gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT)==NULL)
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
+		if (!p || !strstr(ISOM_FILE_EXT, p->value.string))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*") );
-		if (gf_filter_pid_get_property(pid, GF_PROP_PID_MIME)==NULL)
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
+		if (!p || !strstr(ISOM_FILE_MIME, p->value.string))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DASH_MODE, NULL);
 
@@ -4742,8 +4748,8 @@ static const GF_FilterCapability MP4MuxCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	//and any codecid
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
-	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic|avci|mj2|mov|qt"),
-	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_MIME, "application/x-isomedia|application/mp4|video/mp4|audio/mp4|video/3gpp|audio/3gpp|video/3gp2|audio/3gp2|video/iso.segment|audio/iso.segment|image/heif|image/heic|image/avci|video/quicktime"),
+	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_FILE_EXT, ISOM_FILE_EXT),
+	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_MIME, ISOM_FILE_MIME),
 	{0},
 	//for scene / OD / text, we don't want raw codecid (filters modifying a scene graph we don't expose)
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
