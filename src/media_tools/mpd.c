@@ -110,13 +110,14 @@ static Double gf_mpd_parse_double(const char * const attr)
 	return atof(attr);
 }
 
-static GF_MPD_Fractional *gf_mpd_parse_frac(const char * const attr, const char sep)
+static GF_MPD_Fractional *gf_mpd_parse_frac(const char * const attr, const char sep, GF_MPD_Fractional *res)
 {
 	char str[6];
-	GF_MPD_Fractional *res;
-	GF_SAFEALLOC(res, GF_MPD_Fractional);
+	if (res==NULL) {
+		GF_SAFEALLOC(res, GF_MPD_Fractional);
+		res->den = 1;
+	}
 	snprintf(str, sizeof(str), "%%d%c%%d", sep);
-	res->den = 1;
 	sscanf(attr, str, &res->num, &res->den);
 	return res;
 }
@@ -583,11 +584,11 @@ static void gf_mpd_parse_common_representation(GF_MPD *mpd, GF_MPD_CommonAttribu
 		else if (!strcmp(att->name, "height")) com->height = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "sar")) {
 			if (com->sar) gf_free(com->sar);
-			com->sar = gf_mpd_parse_frac(att->value, ':');
+			com->sar = gf_mpd_parse_frac(att->value, ':', NULL);
 		}
 		else if (!strcmp(att->name, "frameRate")) {
 			if (com->framerate) gf_free(com->framerate);
-			com->framerate = gf_mpd_parse_frac(att->value, '/');
+			com->framerate = gf_mpd_parse_frac(att->value, '/', NULL);
 		}
 		else if (!strcmp(att->name, "audioSamplingRate")) com->samplerate = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "mimeType")) com->mime_type = gf_mpd_parse_string(att->value);
@@ -832,7 +833,7 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 		else if (!strcmp(att->name, "contentType")) set->content_type = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "par")) {
 			if (set->par) gf_free(set->par);
-			set->par = gf_mpd_parse_frac(att->value, ':');
+			set->par = gf_mpd_parse_frac(att->value, ':', NULL);
 		}
 		else if (!strcmp(att->name, "minBandwidth")) set->min_bandwidth = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "maxBandwidth")) set->max_bandwidth = gf_mpd_parse_int(att->value);
@@ -840,8 +841,8 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 		else if (!strcmp(att->name, "maxWidth")) set->max_width = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "minHeight")) set->min_height = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "maxHeight")) set->max_height = gf_mpd_parse_int(att->value);
-		else if (!strcmp(att->name, "minFrameRate")) set->min_framerate = *gf_mpd_parse_frac(att->value, '/');
-		else if (!strcmp(att->name, "maxFrameRate")) set->max_framerate = *gf_mpd_parse_frac(att->value, '/');
+		else if (!strcmp(att->name, "minFrameRate")) gf_mpd_parse_frac(att->value, '/', &set->min_framerate);
+		else if (!strcmp(att->name, "maxFrameRate")) gf_mpd_parse_frac(att->value, '/', &set->max_framerate);
 		else if (!strcmp(att->name, "segmentAlignment")) set->segment_alignment = gf_mpd_parse_bool(att->value);
 		else if (!strcmp(att->name, "bitstreamSwitching")) set->bitstream_switching = gf_mpd_parse_bool(att->value);
 		else if (!strcmp(att->name, "subsegmentAlignment")) set->subsegment_alignment = gf_mpd_parse_bool(att->value);
