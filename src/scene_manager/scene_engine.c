@@ -291,7 +291,7 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 #endif
 	GF_Err e;
 	char rad_name[4096];
-	char file_name[4096];
+	char file_name[4096+100];
 	u32 fsize;
 	u8 *buffer = NULL;
 	GF_BitStream *bs = NULL;

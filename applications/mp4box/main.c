@@ -2232,7 +2232,7 @@ static GF_Err hash_file(char *name, u32 dump_std)
 }
 
 
-char outfile[5000];
+char outfile[GF_MAX_PATH];
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 GF_SMEncodeOptions smenc_opts;
 #endif
@@ -4810,7 +4810,7 @@ int mp4boxMain(int argc, char **argv)
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_SCENE_ENCODER) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 		FILE *logs = NULL;
 		if (do_log) {
-			char alogfile[5000];
+			char alogfile[GF_MAX_PATH];
 			strcpy(alogfile, inName);
 			if (strchr(alogfile, '.')) {
 				while (alogfile[strlen(alogfile)-1] != '.') alogfile[strlen(alogfile)-1] = 0;
@@ -5250,7 +5250,7 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 	if (track_dump_type & GF_EXPORT_AVI_NATIVE) {
-		char szFile[1024];
+		char szFile[GF_MAX_PATH+24];
 		GF_MediaExporter mdump;
 		memset(&mdump, 0, sizeof(mdump));
 		mdump.in_name = inName;
@@ -5275,7 +5275,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 	if (!open_edit  && track_dump_type && !gf_isom_probe_file(inName)) {
 		GF_MediaExporter mdump;
-		char szFile[1024];
+		char szFile[GF_MAX_PATH+24];
 		for (i=0; i<nb_track_act; i++) {
 			TrackAction *tka = &tracks[i];
 			if (tka->act_type != TRAC_ACTION_RAW_EXTRACT) continue;
@@ -5379,7 +5379,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!iod) {
 			fprintf(stderr, "File %s has no IOD", inName);
 		} else {
-			char szName[GF_MAX_PATH];
+			char szName[GF_MAX_PATH+10];
 			FILE *iodf;
 			GF_BitStream *bs = NULL;
 
@@ -5415,7 +5415,7 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 	if (track_dump_type) {
-		char szFile[1024];
+		char szFile[GF_MAX_PATH+24];
 		GF_MediaExporter mdump;
 		for (i=0; i<nb_track_act; i++) {
 			TrackAction *tka = &tracks[i];

@@ -552,7 +552,7 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char szPayloadName[
 GF_EXPORT
 GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, char *dsi, u32 dsi_size)
 {
-	char buffer[20000], dsiString[20000];
+	char buffer[20100], dsiString[20000];
 	u32 i, k;
 	Bool is_first = GF_TRUE;
 

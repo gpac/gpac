@@ -1264,7 +1264,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	GF_ISOSample *samp;
 	GF_Err e;
 	TKInfo *tks, *tki;
-	char *ext, szName[1000], szFile[1000];
+	char *ext, szName[GF_MAX_PATH], szFile[GF_MAX_PATH+100];
 	Double chunk_start = (Double) chunk_start_time;
 
 	chunk_extraction = (chunk_start>=0) ? 1 : 0;
@@ -2840,7 +2840,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	GF_BIFSConfig *bcfg;
 	GF_AUContext		*au;
 	char szRad[GF_MAX_PATH], *ext;
-	char szName[1024];
+	char szName[GF_MAX_PATH+100];
 	FILE *f;
 
 	strcpy(szRad, bifsOutputFile);

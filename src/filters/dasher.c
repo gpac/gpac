@@ -822,7 +822,7 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 	}
 
 	if (ctx->profX) {
-		char profiles_w_ext[256];
+		char profiles_w_ext[GF_MAX_PATH+256];
 		sprintf(profiles_w_ext, "%s,%s", profiles_string, ctx->profX);
 		if (ctx->mpd->profiles) gf_free(ctx->mpd->profiles);
 		ctx->mpd->profiles = gf_strdup(profiles_w_ext);
@@ -2186,7 +2186,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	char szInitSegmentTemplate[GF_MAX_PATH];
 	char szInitSegmentFilename[GF_MAX_PATH];
 	char szIndexSegmentName[GF_MAX_PATH];
-	char szSetFileSuffix[200], szDASHSuffix[200];
+	char szSetFileSuffix[200], szDASHSuffix[220];
 	const char *template;
 	u32 as_id = 0;
 	Bool single_template = GF_TRUE;
