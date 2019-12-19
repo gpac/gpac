@@ -228,7 +228,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				}
 			}
 			else if (!stricmp(att->name, "keyRoll")) {
-				if (!strnicmp(att->value, "idx=", 4))
+				if (!strncmp(att->value, "idx=", 4))
 					tkc->defaultKeyIdx = atoi(att->value+4);
 				else if (!strncmp(att->value, "roll=", 5))
 					tkc->keyRoll = atoi(att->value+5);
