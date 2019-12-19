@@ -613,7 +613,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 	/*locate GUI*/
 	if ( get_default_install_path(szPath, GF_PATH_SHARE) ) {
-		char gui_path[GF_MAX_PATH];
+		char gui_path[GF_MAX_PATH+100];
 		sprintf(gui_path, "%s%cgui%cgui.bt", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		if (gf_file_exists(gui_path)) {
 			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);

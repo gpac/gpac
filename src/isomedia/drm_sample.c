@@ -1633,8 +1633,7 @@ GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 d
 	if (sinf->info->adkm->header->std_enc_params->enc_info->enc_algo)
 		gf_free(sinf->info->adkm->header->std_enc_params->enc_info->enc_algo);
 	sinf->info->adkm->header->std_enc_params->enc_info->enc_algo = (char *)gf_malloc(8*sizeof(char));
-	strncpy(sinf->info->adkm->header->std_enc_params->enc_info->enc_algo, "AES-CBC", 7);
-	sinf->info->adkm->header->std_enc_params->enc_info->enc_algo[7] = 0;
+	strcpy(sinf->info->adkm->header->std_enc_params->enc_info->enc_algo, "AES-CBC");
 	sinf->info->adkm->header->std_enc_params->enc_info->key_length = 16;
 
 	sinf->info->adkm->header->std_enc_params->key_info = (GF_AdobeKeyInfoBox *)gf_isom_box_new_parent(&sinf->info->adkm->header->std_enc_params->child_boxes, GF_ISOM_BOX_TYPE_AKEY);

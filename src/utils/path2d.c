@@ -1355,8 +1355,9 @@ u32 gf_polygone2d_get_convexity(GF_Point2D *pts, u32 len)
 	pThird = pts[0];
 	dcur.x = pThird.x - pSecond.x;
 	dcur.y = pThird.y - pSecond.y;
-	if ( ConvexCompare(dcur) ) ConvexCheckTriple;
-
+	if ( ConvexCompare(dcur) ) {
+		ConvexCheckTriple;
+	}
 	/* and check for direction changes back to second vertex */
 	dcur.x = pSaveSecond.x - pSecond.x;
 	dcur.y = pSaveSecond.y - pSecond.y;

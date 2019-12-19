@@ -1092,7 +1092,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 	GF_ISOSample *samp;
 	Bool remove_ocr;
 	u8 *buffer;
-	char buf64[5000], sdpLine[2300];
+	char buf64[5000], sdpLine[5100];
 
 
 	gf_isom_sdp_clean(file);
