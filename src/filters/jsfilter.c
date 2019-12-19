@@ -796,8 +796,8 @@ static JSValue jsf_filter_prop_set(JSContext *ctx, JSValueConst this_val, JSValu
 	u32 ival;
 	GF_FilterSessionCaps caps;
 	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
-    if (!jsf)
-        return JS_EXCEPTION;
+	if (!jsf)
+		return JS_EXCEPTION;
 
 	if (magic < JSF_EVT_LAST_DEFINED) {
 		if (JS_IsFunction(ctx, value) || JS_IsUndefined(value) || JS_IsNull(value)) {
@@ -867,11 +867,11 @@ static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int ma
 	GF_FilterSessionCaps caps;
 	JSValue res;
 	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
-    if (!jsf)
-        return JS_EXCEPTION;
+	if (!jsf)
+		return JS_EXCEPTION;
 
 	if (magic<JSF_EVT_LAST_DEFINED)
-    	return JS_DupValue(jsf->ctx, jsf->funcs[magic]);
+		return JS_DupValue(jsf->ctx, jsf->funcs[magic]);
 
 	switch (magic) {
 	case JSF_FILTER_MAX_PIDS:
@@ -2662,8 +2662,8 @@ static JSValue jsf_event_set_prop(JSContext *ctx, JSValueConst this_val, JSValue
 	const char *str=NULL;
 	GF_FilterEvent *evt = JS_GetOpaque(this_val, jsf_event_class_id);
     if (!evt) return JS_EXCEPTION;
-    if (!jsf_check_evt(evt->base.type, 0, magic))
-    	return JS_EXCEPTION;
+	if (!jsf_check_evt(evt->base.type, 0, magic))
+		return JS_EXCEPTION;
 
 	switch (magic) {
 	case JSF_EVENT_TYPE:
@@ -2760,8 +2760,8 @@ static JSValue jsf_event_get_prop(JSContext *ctx, JSValueConst this_val, int mag
 {
 	GF_FilterEvent *evt = JS_GetOpaque(this_val, jsf_event_class_id);
     if (!evt) return JS_EXCEPTION;
-    if (!jsf_check_evt(evt->base.type, evt->user_event.event.type, magic))
-    	return JS_EXCEPTION;
+	if (!jsf_check_evt(evt->base.type, evt->user_event.event.type, magic))
+		return JS_EXCEPTION;
 	switch (magic) {
 	/*PLAY*/
 	case JSF_EVENT_TYPE: return JS_NewInt32(ctx, evt->base.type);
@@ -2895,8 +2895,8 @@ static JSValue jsf_event_constructor(JSContext *ctx, JSValueConst new_target, in
     s32 type;
 	if (argc!=1)
 		return JS_EXCEPTION;
-    if (JS_ToInt32(ctx, &type, argv[0]))
-    	return JS_EXCEPTION;
+	if (JS_ToInt32(ctx, &type, argv[0]))
+		return JS_EXCEPTION;
 	if (!type)
     	return JS_EXCEPTION;
     obj = JS_NewObjectClass(ctx, jsf_event_class_id);
@@ -3401,8 +3401,8 @@ static JSValue jsf_pck_copy_props(JSContext *ctx, JSValueConst this_val, int arg
 {
 	GF_Err e;
 	GF_JSPckCtx *pck_dst = JS_GetOpaque(this_val, jsf_pck_class_id);
-    if (!pck_dst || !pck_dst->pck || !argc)
-    	return JS_EXCEPTION;
+	if (!pck_dst || !pck_dst->pck || !argc)
+		return JS_EXCEPTION;
 	GF_JSPckCtx *pck_from = JS_GetOpaque(argv[0], jsf_pck_class_id);
     if (!pck_from || !pck_from->pck)
     	return JS_EXCEPTION;

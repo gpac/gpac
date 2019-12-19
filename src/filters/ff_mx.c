@@ -201,8 +201,8 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 		ctx->muxer->pb = NULL;
 	}
 
-	av_freep(&ctx->muxer->url);
-	ctx->muxer->url = av_strdup(seg_name);
+//	av_freep(&ctx->muxer->url);
+//	ctx->muxer->url = av_strdup(seg_name);
 	strncpy(ctx->muxer->filename, seg_name, 1023);
 	ctx->offset_at_seg_start = 0;
 
@@ -213,9 +213,9 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 			gf_fclose(f);
 		}
 
-		res = ctx->muxer->io_open(ctx->muxer, &ctx->muxer->pb, ctx->muxer->url, AVIO_FLAG_WRITE, NULL);
+		res = ctx->muxer->io_open(ctx->muxer, &ctx->muxer->pb, /*ctx->muxer->url*/seg_name, AVIO_FLAG_WRITE, NULL);
 		if (res < 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to open new segment %s - error %s\n", ctx->muxer->url, av_err2str(res) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to open new segment %s - error %s\n", seg_name, av_err2str(res) ));
 			return GF_IO_ERR;
 		}
 	}
@@ -231,7 +231,7 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
         res = avformat_write_header(ctx->muxer, &options);
         av_dict_free(&options);
         if (res < 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to configure segment %s - error %s\n", ctx->muxer->url, av_err2str(res) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to configure segment %s - error %s\n", seg_name, av_err2str(res) ));
 			return GF_IO_ERR;
 		}
     }
@@ -254,13 +254,13 @@ static GF_Err ffmx_close_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, Bool send_evt_
 			if (ctx->status==1) {
 				res = av_write_trailer(ctx->muxer);
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Invalid state %d for segment %s close\n", ctx->status, ctx->muxer->url));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Invalid state %d for segment %s close\n", ctx->status, /*ctx->muxer->url*/ctx->muxer->filename));
 				return GF_SERVICE_ERROR;
 			}
 		}
 
 		if (res<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to flush segment %s - error %s\n", ctx->muxer->url, av_err2str(res) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to flush segment %s - error %s\n", /*ctx->muxer->url*/ctx->muxer->filename, av_err2str(res) ));
 			return GF_SERVICE_ERROR;
 		}
 		ctx->status = 2;
@@ -396,7 +396,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 				res = av_write_frame(ctx->muxer, &ffpck);
 			}
 			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write packet to %s - error %s\n", ctx->muxer->url, av_err2str(res) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write packet to %s - error %s\n", /*ctx->muxer->url*/ctx->muxer->filename, av_err2str(res) ));
 				e = GF_IO_ERR;
 			}
 
