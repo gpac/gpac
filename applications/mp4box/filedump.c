@@ -2454,10 +2454,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump, Bool is_track_
 	char szDur[50];
 	char *lang;
 
-	if (!is_track_num)
+	if (!is_track_num) {
 		trackNum = gf_isom_get_track_by_id(file, trackID);
-	else
+	} else {
 		trackNum = trackID;
+		trackID = gf_isom_get_track_id(file, trackNum);
+	}
 	if (!trackNum) {
 		fprintf(stderr, "No track with ID %d found\n", trackID);
 		return;
