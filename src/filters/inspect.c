@@ -921,14 +921,42 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				if (pname_no_space[i]==' ') pname_no_space[i]='_';
 				i++;
 			}
-			fprintf(dump, " %s=\"%s\"", pname_no_space, gf_prop_dump(p4cc, att, szDump, ctx->dump_data));
+
+			if (att->type==GF_PROP_UINT_LIST) {
+				for (u32 k = 0; k < att->value.uint_list.nb_items; k++) {
+					if (k) fprintf(dump, ", ");
+					fprintf(dump, "%d", att->value.uint_list.vals[k]);
+				}
+			} else if (att->type==GF_PROP_STRING_LIST) {
+				u32 plist_count = gf_list_count(att->value.string_list);
+				for (u32 k = 0; k < plist_count; k++) {
+					if (k) fprintf(dump, ", ");
+					fprintf(dump, "%s", gf_list_get(att->value.string_list, k));
+				}
+			}else{
+				fprintf(dump, " %s=\"%s\"", pname_no_space, gf_prop_dump(p4cc, att, szDump, ctx->dump_data));
+			}
 			gf_free(pname_no_space);
 		} else {
 			fprintf(dump, " %s=\"%s\"", pname ? pname : gf_4cc_to_str(p4cc), gf_prop_dump(p4cc, att, szDump, ctx->dump_data));
 		}
 	} else {
 		fprintf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
-		fprintf(dump, "%s", gf_prop_dump(p4cc, att, szDump, ctx->dump_data) );
+
+		if (att->type==GF_PROP_UINT_LIST) {
+			for (u32 k = 0; k < att->value.uint_list.nb_items; k++) {
+				if (k) fprintf(dump, ", ");
+				fprintf(dump, "%d", att->value.uint_list.vals[k]);
+			}
+		} else if (att->type==GF_PROP_STRING_LIST) {
+			u32 plist_count = gf_list_count(att->value.string_list);
+			for (u32 k = 0; k < plist_count; k++) {
+				if (k) fprintf(dump, ", ");
+				fprintf(dump, "%s", gf_list_get(att->value.string_list, k));
+			}
+		}else{
+			fprintf(dump, "%s", gf_prop_dump(p4cc, att, szDump, ctx->dump_data) );
+		}
 		fprintf(dump, "\n");
 	}
 }
