@@ -1879,6 +1879,15 @@ Position and size of the video in the referential given by SRDRef
 Width and Height of the SRD referential
 .br
 .TP
+.B SRDMap (SRDM,uint list,  )
+.br
+Mapping of input videos in reconstructed video, expressed as {Ox,Oy,Ow,Oh,Dx,Dy,Dw,Dh} per input, with:
+.br
+* Ox,Oy,Ow,Oh: position and size of the input video (usually matching its SRD property), expressed in the output referential given by SRDRef
+.br
+* Dx,Dy,Dw,Dh: Position and Size of the input video in the reconstructed output, expressed in the output referential given by SRDRef
+.br
+.TP
 .B Alpha (VALP,boolean,  )
 .br
 Indicates the video in this pid is an alpha map
@@ -3259,7 +3268,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3018-g0dd7312bd-filters
+build: 0.9.0-DEV-rev3042-gc417e654e-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

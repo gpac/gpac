@@ -1104,6 +1104,10 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_ORIG_SIZE, "OriginalSize", "Original resolution of video", GF_PROP_VEC2I},
 	{ GF_PROP_PID_SRD, "SRD", "Position and size of the video in the referential given by SRDRef", GF_PROP_VEC4I},
 	{ GF_PROP_PID_SRD_REF, "SRDRef", "Width and Height of the SRD referential", GF_PROP_VEC2I},
+	{ GF_PROP_PID_SRD_MAP, "SRDMap", "Mapping of input videos in reconstructed video, expressed as {Ox,Oy,Ow,Oh,Dx,Dy,Dw,Dh} per input, with:\n"
+	"- Ox,Oy,Ow,Oh: position and size of the input video (usually matching its `SRD` property), expressed in the output referential given by `SRDRef`\n"
+	"- Dx,Dy,Dw,Dh: Position and Size of the input video in the reconstructed output, expressed in the output referential given by `SRDRef`", GF_PROP_UINT_LIST},
+
 	{ GF_PROP_PID_ALPHA, "Alpha", "Indicates the video in this pid is an alpha map", GF_PROP_BOOL},
 	{ GF_PROP_PID_BITRATE, "Bitrate", "Bitrate in bps", GF_PROP_UINT},
 	{ GF_PROP_PID_MAXRATE, "Maxrate", "Max bitrate in bps", GF_PROP_UINT},

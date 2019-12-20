@@ -576,7 +576,7 @@ static char *hevcsplit_rewrite_nal(GF_Filter *filter, GF_HEVCSplitCtx *ctx, char
 
 	gf_media_hevc_parse_nalu(in_nal, in_nal_size, hevc, &nal_unit_type, &temporal_id, &layer_id);
 	switch (nal_unit_type) {
-	//all VCL nal, remove slice adress
+	//all VCL nal, remove slice address
 	case GF_HEVC_NALU_SLICE_TRAIL_N:
 	case GF_HEVC_NALU_SLICE_TRAIL_R:
 	case GF_HEVC_NALU_SLICE_TSA_N:
@@ -937,7 +937,8 @@ static const GF_FilterArgs HEVCSplitArgs[] =
 GF_FilterRegister HEVCSplitRegister = {
 	.name = "hevcsplit",
 	GF_FS_SET_DESCRIPTION("HEVC tile spliter")
-	GF_FS_SET_HELP("This filter splits a motion-constrained tiled HEVC PID into N independent HEVC PIDs.")
+	GF_FS_SET_HELP("This filter splits a motion-constrained tiled HEVC PID into N independent HEVC PIDs.\n"
+			"Use hevcmerge filter to merge initially motion-constrained tiled HEVC PID in a single output.")
 	.private_size = sizeof(GF_HEVCSplitCtx),
 	SETCAPS(HEVCSplitCaps),
 	//hevc split shall be explicitly loaded
