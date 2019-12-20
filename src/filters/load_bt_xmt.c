@@ -603,7 +603,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 
 				ts_offset = (Double) au->timing;
 				ts_offset /= sc->timeScale;
-				gf_sc_sys_frame_pending(priv->scene->compositor, ts_offset, stream_time);
+				gf_sc_sys_frame_pending(priv->scene->compositor, ts_offset, stream_time, filter);
 				break;
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[CtxLoad] %s applying AU time %d\n", priv->file_name, au_time ));

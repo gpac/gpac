@@ -7,12 +7,16 @@ var DEBUG = false;
 var rect = document.documentElement.getRectPresentationTrait("viewBox");
 var width = rect.width;
 var height = rect.height;
+
+//filter-assignable variables - if changing names, also do it in filters/dec_webvtt.c
 var xOffset = 5;
 var yOffset = 5;
 var fontSize = 20;
 var textColor = "white";
 var fontFamily = "SANS";
-var lineIncrement = fontSize;
+var lineSpaceFactor = 1.0;
+//end of filter-assignable variables
+
 var nbCues = 0;
 
 var cueArea = document.createElement("g");
@@ -45,7 +49,7 @@ function createTextArea(settingsObj) {
 	t.setAttribute("font-size", fontSize);
 	t.setAttribute("font-family", fontFamily);
 	t.setAttribute("text-align", settingsObj.align);
-	t.setAttribute("line-increment", lineIncrement);
+	t.setAttribute("line-increment", lineSpaceFactor*fontSize);
 	cueArea.appendChild(t);
 	reportMessage("textArea created: "+t);
 	return t;
@@ -101,14 +105,14 @@ function parseCueSettings(cueSettings){
 		if (compositeCueSettings.line.match(/\%/)) {
 			obj.linePosition = parseFloat(compositeCueSettings.line.replace(/\%/ig,""));
 			if (isNaN(obj.linePosition)) {
-				obj.linePosition = nbCues*lineIncrement;
+				obj.linePosition = nbCues*lineSpaceFactor*fontSize;
 			} else {
 				obj.linePosition *= height/100;
 			}
 		} else {
 			obj.linePosition = parseFloat(compositeCueSettings.line)*lineIncrement;
 			if (isNaN(obj.linePosition)) {
-				obj.linePosition = nbCues*lineIncrement;
+				obj.linePosition = nbCues*lineSpaceFactor*fontSize;
 			} else {
 				if (obj.linePosition > 0) {
 					obj.fromTop = true;
@@ -119,7 +123,7 @@ function parseCueSettings(cueSettings){
 			}
 		}
 	} else {
-		obj.linePosition = nbCues*lineIncrement;
+		obj.linePosition = nbCues*lineSpaceFactor*fontSize;
 	}
 	reportMessage("linePosition: "+obj.linePosition);
 	if (compositeCueSettings.position !== undefined) {

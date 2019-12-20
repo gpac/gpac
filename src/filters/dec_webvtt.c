@@ -41,7 +41,9 @@
 typedef struct
 {
 	//opts
-	const char *script;
+	char *script;
+	char *color, *font;
+	Float fontSize, lineSpacing, x, y;
 
 	GF_FilterPid *ipid, *opid;
 
@@ -64,6 +66,8 @@ typedef struct
 
 	/* Scene graph for the subtitle content */
 	GF_SceneGraph *scenegraph;
+
+	Bool update_args;
 } GF_VTTDec;
 
 void vttd_update_size_info(GF_VTTDec *ctx)
@@ -262,15 +266,36 @@ static Bool vttd_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	 return GF_TRUE;
 }
 
-JSContext *svg_script_get_context(GF_SceneGraph *sg);
 void js_dump_error(JSContext *ctx);
 
-static GF_Err vttd_js_add_cue(GF_Node *node, const char *id, const char *start, const char *end, const char *settings, const char *payload)
+JSContext *vtt_script_get_context(GF_VTTDec *ctx, GF_SceneGraph *sg)
+{
+	JSContext *svg_script_get_context(GF_SceneGraph *sg);
+	JSContext *c = svg_script_get_context(sg);
+
+	if (ctx->update_args) {
+		JSValue global = JS_GetGlobalObject(c);
+
+		JS_SetPropertyStr(c, global, "fontSize", JS_NewFloat64(c, ctx->fontSize));
+		JS_SetPropertyStr(c, global, "fontFamily", JS_NewString(c, ctx->font));
+		JS_SetPropertyStr(c, global, "textColor", JS_NewString(c, ctx->color));
+		JS_SetPropertyStr(c, global, "lineSpaceFactor", JS_NewFloat64(c, ctx->lineSpacing));
+		JS_SetPropertyStr(c, global, "xOffset", JS_NewFloat64(c, ctx->x));
+		JS_SetPropertyStr(c, global, "yOffset", JS_NewFloat64(c, ctx->y));
+
+		JS_FreeValue(c, global);
+		ctx->update_args = GF_FALSE;
+	}
+	return c;
+}
+
+
+static GF_Err vttd_js_add_cue(GF_VTTDec *ctx, GF_Node *node, const char *id, const char *start, const char *end, const char *settings, const char *payload)
 {
 	GF_Err e=GF_OK;
 	JSValue fun_val;
 	JSValue global;
-	JSContext *c = svg_script_get_context(node->sgprivate->scenegraph);
+	JSContext *c = vtt_script_get_context(ctx, node->sgprivate->scenegraph);
 	if (!c) return GF_SERVICE_ERROR;
 
 	gf_js_lock(c, GF_TRUE);
@@ -306,12 +331,12 @@ static GF_Err vttd_js_add_cue(GF_Node *node, const char *id, const char *start, 
 	return e;
 }
 
-static GF_Err vttd_js_remove_cues(GF_Node *node)
+static GF_Err vttd_js_remove_cues(GF_VTTDec *ctx, GF_Node *node)
 {
 	GF_Err e = GF_OK;
 	JSValue fun_val;
 	JSValue global;
-	JSContext *c = svg_script_get_context(node->sgprivate->scenegraph);
+	JSContext *c = vtt_script_get_context(ctx, node->sgprivate->scenegraph);
 	if (!c) return GF_SERVICE_ERROR;
 
 	gf_js_lock(c, GF_TRUE);
@@ -374,25 +399,20 @@ static GF_Err vttd_process(GF_Filter *filter)
 	//we still process any frame before our clock time even when buffering
 	obj_time = gf_clock_time(ctx->odm->ck);
 	if (cts * 1000 > obj_time * timescale) {
-		u32 wait_ms = (u32) (cts * 1000 / timescale - obj_time);
-		if (!ctx->scene->compositor->ms_until_next_frame || ((s32) wait_ms < ctx->scene->compositor->ms_until_next_frame))
-			ctx->scene->compositor->ms_until_next_frame = (s32) wait_ms;
-
+		gf_sc_sys_frame_pending(ctx->scene->compositor, ((Double) cts / timescale), obj_time, filter);
 		return GF_OK;
 	}
-	ctx->scene->compositor->ms_until_next_frame = 0;
-
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 
 	cues = gf_webvtt_parse_cues_from_data(pck_data, pck_size, 0);
-	vttd_js_remove_cues(ctx->scenegraph->RootNode);
+	vttd_js_remove_cues(ctx, ctx->scenegraph->RootNode);
 	if (gf_list_count(cues)) {
 		while (gf_list_count(cues)) {
 			GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, 0);
 			gf_list_rem(cues, 0);
 			sprintf(start, "%02d:%02d:%02d.%03d", cue->start.hour, cue->start.min, cue->start.sec, cue->start.ms);
 			sprintf(end, "%02d:%02d:%02d.%03d", cue->end.hour, cue->end.min, cue->end.sec, cue->end.ms);
-			vttd_js_add_cue(ctx->scenegraph->RootNode, cue->id, start, end, cue->settings, cue->text);
+			vttd_js_add_cue(ctx, ctx->scenegraph->RootNode, cue->id, start, end, cue->settings, cue->text);
 
 			gf_webvtt_cue_del(cue);
 		}
@@ -414,6 +434,7 @@ static GF_Err vttd_initialize(GF_Filter *filter)
 		return GF_URL_ERROR;
 	}
 	ctx->cues = gf_list_new();
+	ctx->update_args = GF_TRUE;
 	return GF_OK;
 }
 
@@ -424,11 +445,23 @@ void vttd_finalize(GF_Filter *filter)
 	if (ctx->dsi) gf_free(ctx->dsi);
 }
 
+static GF_Err vtt_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
+{
+	GF_VTTDec *ctx = gf_filter_get_udta(filter);
+	ctx->update_args = GF_TRUE;
+	return GF_OK;
+}
 
 #define OFFS(_n)	#_n, offsetof(GF_VTTDec, _n)
 static const GF_FilterArgs VTTDecArgs[] =
 {
 	{ OFFS(script), "location of WebVTT SVG JS renderer", GF_PROP_STRING, "$GSHARE/scripts/webvtt-renderer.js", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(font), "font to use", GF_PROP_STRING, "SANS", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(fontSize), "font size to use", GF_PROP_FLOAT, "20", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(color), "color to use", GF_PROP_STRING, "white", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(lineSpacing), "line spacing as scaling factor to font size", GF_PROP_FLOAT, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(x), "horizontal offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(y), "vertical offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{0}
 };
 
@@ -444,7 +477,9 @@ static const GF_FilterCapability VTTDecCaps[] =
 GF_FilterRegister VTTDecRegister = {
 	.name = "vttdec",
 	GF_FS_SET_DESCRIPTION("WebVTT decoder")
-	GF_FS_SET_HELP("This filter decodes WebVTT streams directly into a javascript context of the compositor. It cannot be used to dump WebVTT content.")
+	GF_FS_SET_HELP("This filter decodes WebVTT streams into a javascript context of the compositor.\n"
+		"Warning: It cannot be used to dump WebVTT content.\n"
+		"The filter options are used to override the JS global variables of the WebVTT renderer.")
 	.private_size = sizeof(GF_VTTDec),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = VTTDecArgs,
@@ -455,6 +490,7 @@ GF_FilterRegister VTTDecRegister = {
 	.process = vttd_process,
 	.configure_pid = vttd_configure_pid,
 	.process_event = vttd_process_event,
+	.update_arg = vtt_update_arg
 };
 
 #endif
