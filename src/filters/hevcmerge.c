@@ -24,7 +24,7 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
- 
+
 #include <gpac/bitstream.h>
 #include <gpac/filters.h>
 #include <gpac/avparse.h>
@@ -52,10 +52,10 @@ typedef struct
 	u32 timescale;
 	u32 nb_pck;
 
-	//true if positionning in pixel is given
+	//true if positioning in pixel is given
 	Bool has_pos;
-	// >=0: positionning in pixel in the Y plane as given by CropOrigin
-	// <=0: positionning relative to top-left tile
+	// >=0: positioning in pixel in the Y plane as given by CropOrigin
+	// <=0: positioning relative to top-left tile
 	s32 pos_x, pos_y;
 } HEVCTilePidCtx;
 
@@ -87,8 +87,8 @@ typedef struct
 	GF_BitStream *bs_nal_in;
 	GF_BitStream *bs_nal_out;
 
- 	HEVCGridInfo *grid;
- 	u32 nb_cols;
+	HEVCGridInfo *grid;
+	u32 nb_cols;
 
 	u8 *sei_suffix_buf;
 	u32 sei_suffix_len, sei_suffix_alloc;
@@ -324,7 +324,7 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, char
 		}
 		gf_bs_write_int(ctx->bs_nal_out, tile_pid->slice_segment_address, ctx->nb_bits_per_adress_dst);
 	}
-	//else first slice in pic, no adress
+	//else first slice in pic, no address
 
 	//copy over bits until start of slice_qp_delta
 	while (slice_qp_delta_start != (gf_bs_get_position(ctx->bs_nal_in) - 1) * 8 + gf_bs_get_bit_position(ctx->bs_nal_in)) {
@@ -366,7 +366,7 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, char
 	//get the final slice header
 	gf_bs_get_content_no_truncate(ctx->bs_nal_out, &ctx->buffer_nal_no_epb, &out_slice_size_no_epb, &ctx->buffer_nal_no_epb_alloc);
 
- 	//get the slice payload size (no EPB in it) and offset in payload
+	//get the slice payload size (no EPB in it) and offset in payload
 	slice_size = (u32) gf_bs_available(ctx->bs_nal_in);
 	slice_offset_orig = (u32) gf_bs_get_position(ctx->bs_nal_in);
 	//slice data offset in output slice
@@ -456,7 +456,7 @@ static u32 hevcmerge_compute_address(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_
 
 	if (use_y_coord) {
 		sum_height = tile_pid->pos_y / ctx->max_CU_height;
- 	} else {
+	} else {
 		nb_pids = gf_list_count(ctx->pids);
 		for (i=0; i<nb_pids; i++) {
 			HEVCTilePidCtx *actx = gf_list_get(ctx->pids, i);
@@ -470,7 +470,107 @@ static u32 hevcmerge_compute_address(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_
 	return sum_height * (ctx->out_width / ctx->max_CU_width) + sum_width;
 }
 
-static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
+void hevcmerge_build_srdmap(GF_HEVCMergeCtx *ctx, Bool use_abs_pos)
+{
+	GF_PropertyValue srdmap;
+	u32 i, nb_pids;
+	Bool srd_map_valid = GF_TRUE;
+
+	if (!ctx->out_width || !ctx->out_height) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD_MAP, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD_REF, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD, NULL);
+		return;
+	}
+
+	nb_pids = gf_list_count(ctx->ordered_pids);
+
+
+	memset(&srdmap, 0, sizeof(GF_PropertyValue));
+	srdmap.type = GF_PROP_UINT_LIST;
+	//8 integers per PID
+	srdmap.value.uint_list.nb_items = nb_pids*8;
+	srdmap.value.uint_list.vals = gf_malloc(sizeof(s32)*nb_pids*8);
+
+	s32 *vals = srdmap.value.uint_list.vals;
+
+	for (i=0; i<nb_pids; i++) {
+		s32 tile_x, tile_y;
+		u32 width_in_CU, nb_cols, nb_rows;
+		s32 x=0, y=0, w=0, h=0, srd_x, srd_y, srd_w, srd_h;
+		HEVCTilePidCtx *tile = gf_list_get(ctx->ordered_pids, i);
+
+		const GF_PropertyValue *srd = gf_filter_pid_get_property(tile->pid, GF_PROP_PID_SRD);
+		const GF_PropertyValue *srd_ref = gf_filter_pid_get_property(tile->pid, GF_PROP_PID_SRD_REF);
+		const GF_PropertyValue *crop_pos = gf_filter_pid_get_property(tile->pid, GF_PROP_PID_CROP_POS);
+
+		//get original SRD of the PID, translate into output referential {out_width,out_height}
+		if (srd && srd_ref) {
+			srd_x = srd->value.vec4i.x;
+			srd_y = srd->value.vec4i.y;
+			srd_w = srd->value.vec4i.z;
+			srd_h = srd->value.vec4i.w;
+
+			if (srd_ref->value.vec2i.x != 0) {
+				x = (srd_x * ctx->out_width) / srd_ref->value.vec2i.x;
+				w = (srd_w * ctx->out_width) / srd_ref->value.vec2i.x;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[HEVCMerge] width=0 in source pid SRD referential, cannot output SRD map\n" ));
+				srd_map_valid = GF_FALSE;
+				break;
+			}
+			if (srd_ref->value.vec2i.y != 0) {
+				y = (srd_y * ctx->out_height) / srd_ref->value.vec2i.y;
+				h = (srd_h * ctx->out_height) / srd_ref->value.vec2i.y;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[HEVCMerge] height=0 in source pid SRD referential, undefined results\n" ));
+				srd_map_valid = GF_FALSE;
+				break;
+			}
+		} else if (crop_pos) {
+			x = crop_pos->value.vec2i.x;
+			y = crop_pos->value.vec2i.y;
+			w = (s32)(tile->width);
+			h = (s32)(tile->height);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[HEVCMerge] SRD, SRD_REF and CROP_POS are not defined for source pid, undefined results\n" ));
+			srd_map_valid = GF_FALSE;
+			break;
+		}
+		vals[8*i] = x;
+		vals[8*i+1] = y;
+		vals[8*i+2] = w;
+		vals[8*i+3] = h;
+
+		//get final position in the recomputed video, expressed in output referential {out_width,out_height}
+		//we recompute the position directly from the slice segment adress
+		width_in_CU = ctx->out_width / ctx->max_CU_width;
+		nb_cols = tile->slice_segment_address % width_in_CU;
+		nb_rows = (tile->slice_segment_address - nb_cols) / width_in_CU;
+
+		assert(tile->slice_segment_address == (nb_rows * width_in_CU + nb_cols));
+
+		//tile_x and tile_y should start at zero
+		tile_x = use_abs_pos ? nb_cols * ctx->max_CU_width  : nb_cols;
+		tile_y = use_abs_pos ? nb_rows * ctx->max_CU_height : nb_rows;
+
+		vals[8*i+4] = (tile_x * ctx->out_width) / ctx->out_width;
+		vals[8*i+5] = (tile_y * ctx->out_height) / ctx->out_height;
+		vals[8*i+6] = (tile->width * ctx->out_width) / ctx->out_width;
+		vals[8*i+7] = (tile->height * ctx->out_height) / ctx->out_height;
+	}
+	if (srd_map_valid)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD_MAP, &srdmap);
+
+	gf_free(srdmap.value.uint_list.vals);
+
+	//assign reference space
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD_REF, &PROP_VEC2I_INT(ctx->out_width, ctx->out_height));
+	//remove any SRD copied from inputs - we could also create an SRD {0,0,out_width,out_height}
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD, NULL);
+}
+
+static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 {
 	u32 nb_cols=0;
 	u32 nb_rows=0;
@@ -505,11 +605,11 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 		return GF_BAD_PARAM;
 	}
 	if (nb_has_pos && nb_no_pos) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Cannot merge tiles with explicit positionning and tiles with implicit positioning, not supported\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Cannot merge tiles with explicit positioning and tiles with implicit positioning, not supported\n"));
 		return GF_BAD_PARAM;
 	}
 	if (nb_rel_pos && nb_abs_pos) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Cannot merge tiles with both relative explicit positionning and absolute explicit positioning, not supported\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Cannot merge tiles with both relative explicit positioning and absolute explicit positioning, not supported\n"));
 		return GF_BAD_PARAM;
 	}
 	if (ctx->grid) gf_free(ctx->grid);
@@ -662,7 +762,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 			if (nb_rel_pos) {
 				ctx->grid[j].height = 0;
 			}
-			//check non-last colums are multiple of max CU width
+			//check non-last columns are multiple of max CU width
 			if ((j+1<max_cols) && (ctx->grid[j].width % ctx->max_CU_height) ) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Invalid grid specification, column %d width %d not a multiple of max CU width and not the last one\n", j+1, ctx->grid[j].width));
 				return GF_BAD_PARAM;
@@ -711,7 +811,6 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 		//gather tiles per columns
 		ctx->grid = gf_malloc(sizeof(HEVCGridInfo)*nb_pids);
 		memset(ctx->grid, 0, sizeof(HEVCGridInfo)*nb_pids);
-
 
 		nb_cols=0;
 		nb_rows=0;
@@ -772,7 +871,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 		//this ensures that slices with non multiple of maxCTU height are always at the bottom of the grid
 		if (reorder_rows) {
 			for (i=0; i<nb_cols; i++) {
-				if (!ctx->grid[j].last_row_idx) continue;
+				if (!ctx->grid[i].last_row_idx) continue;
 
 				for (j=0; j<nb_pids; j++) {
 					HEVCTilePidCtx *apidctx = gf_list_get(ctx->pids, j);
@@ -799,20 +898,20 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 	}
 	ctx->nb_cols = nb_cols;
 
-	//recompute slice adresses
+	//recompute slice addresses
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[HEVCMerge] Grid reconfigured, output size %dx%d, %d input pids:\n", ctx->out_width, ctx->out_height, nb_pids));
 	for (i=0; i<nb_pids; i++) {
 		HEVCTilePidCtx *pidctx = gf_list_get(ctx->pids, i);
 		pidctx->slice_segment_address = hevcmerge_compute_address(ctx, pidctx, nb_abs_pos ? GF_TRUE : GF_FALSE);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("- pid %s (pos %dx%d) size %dx%d new adress %d\n",
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("- pid %s (pos %dx%d) size %dx%d new address %d\n",
 				gf_filter_pid_get_name(pidctx->pid),
 				nb_has_pos ? pidctx->pos_x : pidctx->pos_col,
 				nb_has_pos ? pidctx->pos_y : pidctx->pos_row,
 				pidctx->width, pidctx->height, pidctx->slice_segment_address));
 	}
 
-	//check if we can use a mult-row frid
+	//check if we can use a multi-row grid
 	ctx->enable_multi_rows = GF_FALSE;
 	if (ctx->mrows) {
 		ctx->enable_multi_rows = GF_TRUE;
@@ -841,7 +940,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 		}
 	}
 
-	//sort pids according to columns (tiles) and slice adresses to be conformant with spec
+	//sort pids according to columns (tiles) and slice addresses to be conformant with spec
 	gf_list_reset(ctx->ordered_pids);
 	for (i=0; i<nb_cols; i++) {
 		for (j=0; j<nb_pids; j++) {
@@ -887,6 +986,10 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx)
 	}
 
 	assert(gf_list_count(ctx->ordered_pids) == gf_list_count(ctx->pids));
+
+	//build SRD map
+	hevcmerge_build_srdmap(ctx, nb_abs_pos ? GF_TRUE : GF_FALSE);
+
 	return GF_OK;
 }
 
@@ -1051,6 +1154,7 @@ static GF_Err hevcmerge_check_sps_pps(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *pid_
 	return GF_BAD_PARAM;
 }
 
+
 static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	Bool grid_config_changed = GF_FALSE;
@@ -1067,7 +1171,7 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	if (ctx->in_error)
 		return GF_BAD_PARAM;
-	
+
 	if (is_remove) {
 		tile_pid = gf_filter_pid_get_udta(pid);
 		gf_list_del_item(ctx->pids, tile_pid);
@@ -1128,10 +1232,10 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	tile_pid->nalu_size_length = hvcc->nal_unit_size;
 	ctx->hevc_nalu_size_length = 4;
 	e = GF_OK;
-	for (i = 0; i < gf_list_count(hvcc->param_array); i++) { 
+	for (i = 0; i < gf_list_count(hvcc->param_array); i++) {
 		GF_HEVCParamArray *ar = (GF_HEVCParamArray *) gf_list_get(hvcc->param_array, i);
 		for (j = 0; j < gf_list_count(ar->nalus); j++) {
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j); 
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
 			s32 idx = 0;
 
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
@@ -1220,11 +1324,10 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		tile_pid->pos_x = tile_pid->pos_y = 0;
 	}
 
-
 reconfig_grid:
 	// Update grid
 	if (grid_config_changed) {
-		e = hevcmerge_rebuild_grid(ctx);
+		e = hevcmerge_rebuild_grid(ctx, pid);
 		if (e) {
 			ctx->in_error = GF_TRUE;
 			return e;
@@ -1270,7 +1373,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 	u32 nb_eos, nb_ipid;
 	Bool found_sei_prefix=GF_FALSE, found_sei_suffix=GF_FALSE;
 	u64 min_dts = GF_FILTER_NO_TS;
-	u32 min_dts_timecale=0;
+	u32 min_dts_timescale=0;
 	GF_FilterPacket *output_pck = NULL;
 	GF_HEVCMergeCtx *ctx = (GF_HEVCMergeCtx*) gf_filter_get_udta (filter);
 
@@ -1299,15 +1402,16 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 		}
 		dts = gf_filter_pck_get_dts(pck_src);
 
-		if (dts * min_dts_timecale < min_dts * tile_pid->timescale) {
+		if (dts * min_dts_timescale < min_dts * tile_pid->timescale) {
 			min_dts = dts;
-			min_dts_timecale = tile_pid->timescale;
+			min_dts_timescale = tile_pid->timescale;
 		}
 	}
 	if (nb_eos == nb_ipid) {
 		gf_filter_pid_set_eos(ctx->opid);
 		return GF_EOS;
 	}
+
 	//reassemble based on the ordered list of pids
 	for (i = 0; i < nb_ipid; i++) {
 		u64 dts;
@@ -1331,8 +1435,8 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 		}
 
 		dts = gf_filter_pck_get_dts(pck_src);
-		if (dts * min_dts_timecale != min_dts * tile_pid->timescale) continue;
-		data = (char *)gf_filter_pck_get_data(pck_src, &data_size); // data contains only a packet 
+		if (dts * min_dts_timescale != min_dts * tile_pid->timescale) continue;
+		data = (char *)gf_filter_pck_get_data(pck_src, &data_size); // data contains only a packet
 		// TODO: this is a clock signaling, for now just trash ..
 		if (!data) {
 			gf_filter_pid_drop_packet(tile_pid->pid);
@@ -1353,7 +1457,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 			gf_media_hevc_parse_nalu(data + pos, nal_length, &tile_pid->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
 			gf_bs_skip_bytes(ctx->bs_au_in, nal_length); //skip nal in bs
 
-			//VCL nal, rewrite dlice header
+			//VCL nal, rewrite slice header
 			if (nal_unit_type < 32) {
 				if (!i) current_poc = tile_pid->hevc_state.s_info.poc;
 				else if (current_poc != tile_pid->hevc_state.s_info.poc) {
@@ -1393,7 +1497,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 			else {
 				u8 *data_start;
 				u32 new_size;
- 				gf_filter_pck_expand(output_pck, ctx->hevc_nalu_size_length + nal_pck_size, &data_start, &output_nal, &new_size);
+				gf_filter_pck_expand(output_pck, ctx->hevc_nalu_size_length + nal_pck_size, &data_start, &output_nal, &new_size);
 			}
 			hevcmerge_write_nal(ctx, output_nal, nal_pck, nal_pck_size);
 		}
@@ -1425,7 +1529,6 @@ static GF_Err hevcmerge_initialize(GF_Filter *filter)
 	GF_HEVCMergeCtx *ctx = (GF_HEVCMergeCtx *)gf_filter_get_udta(filter);
 	ctx->bs_au_in = gf_bs_new((char *)ctx, 1, GF_BITSTREAM_READ);
 	ctx->bs_nal_in = gf_bs_new((char *)ctx, 1, GF_BITSTREAM_READ);
-
 	ctx->pids = gf_list_new();
 	ctx->ordered_pids = gf_list_new();
 	return GF_OK;
@@ -1453,18 +1556,6 @@ static void hevcmerge_finalize(GF_Filter *filter)
 
 	if (ctx->sei_suffix_buf) gf_free(ctx->sei_suffix_buf);
 
-//	// Mecanism to ensure the file creation for each execution of the program
-//	int r = rename("LuT.txt", "LuT.txt");
-//	if (r == 0) remove("LuT.txt");
-//
-//	FILE *LuT = NULL;
-//	LuT = fopen("LuT.txt", "a");
-//	for (int i = 0; i < ctx->nb_ipid; i++) {
-//		HEVCTilePidCtx *tile_pid = ctx->addr_tile_pid[i];
-//		fprintf(LuT,"%d %d %d %d\n", tile_pid->sum_width * 64, tile_pid->sum_height * 64, tile_pid->width, tile_pid->height);
-//		gf_free(ctx->addr_tile_pid[i]);
-//	}
-//	fclose(LuT);
 }
 
 static const GF_FilterCapability HEVCMergeCaps[] =
@@ -1500,12 +1591,38 @@ GF_FilterRegister HEVCMergeRegister = {
 		"## Explicit Positioning\n"
 		"In explicit positioning, the `CropOrigin` property on input PIDs is used to setup the tile grid. In this case, tiles shall not overlap in the final output.\n"
 		"If `CropOrigin` is used, it shall be set on all input sources.\n"
-		"If positive coordinates are used, they specify absolute positionning in pixels of the tiles. The coordinates are automatically adjusted to the next multiple of max CU width and height.\n"
+		"If positive coordinates are used, they specify absolute positioning in pixels of the tiles. The coordinates are automatically adjusted to the next multiple of max CU width and height.\n"
 		"If negative coordinates are used, they specify relative positioning (eg `0x-1` indicates to place the tile below the tile 0x0).\n"
-		"In this mode, it is the caller responsability to set coordinates so that all tiles in a column have the same width and only the last row/column uses non-multiple of max CU width/height values. The filter will complain and abort if this is not respected.\n"
+		"In this mode, it is the caller responsibility to set coordinates so that all tiles in a column have the same width and only the last row/column uses non-multiple of max CU width/height values. The filter will complain and abort if this is not respected.\n"
 		"- If an horizontal blank is detected in the layout, an empty column in the tiling grid will be inserted.\n"
 		"- If a vertical blank is detected in the layout, it is ignored.\n"
-		)
+		"  \n"
+		"## Spatial Relationship Description (SRD)\n"
+		"\n"
+		"The filter will create an `SRDMap` property in the output PID if `SRDRef` and `SRD`or `CropOrigin` are set on all input PIDs.\n"
+		"The `SRDMap` allows forwarding the logical sources `SRD` in the merged PID.\n"
+		"The output pid `SRDRef` is set to the output video size.\n"
+		"The input `SRDRef` and `SRD` are usually specified in DASH MPD, but can be manually assigned to inputs.\n"
+		"- `SRDRef` gives the size of the referential used for the input `SRD` (usually matches the original video size, but not always)\n"
+		"- `SRD` gives the size and position of the input in the original video, expressed in `SRDRef` referential of the input.\n"
+		"The inputs do not need to have matching `SRDRef`."
+		"EX src1:SRD=0x0x640x480:SRDRef=1280x720\n"
+		"This indicates that `src1` contains a video located at 0,0, with a size of 640x480 pixels in a virtual source of 1280x720 pixels.\n"
+		"EX src2:SRD=640x0x640x480:SRDRef=1280x720\n"
+		"This indicates that `src1` contains a video located at 640,0, with a size of 640x480 pixels in a virtual source of 1280x720 pixels.\n"
+		" \n"
+		"Each merged input is described by 8 intergers in the output `SRDMap`:\n"
+		"- the source `SRD` is rescaled in the output `SRDRef` to form the first part (4 integers) of the `SRDMap` (i.e. __where was the input ?__)\n"
+		"- the source location in the reconstructed video forms the second part (4 integers) of the `SRDMap` (i.e. __where are the input pixels in the output ?__)\n"
+		"Assuming the two sources are encoded at 320x240 and merged as src2 above src1, the output will be a 320x480 video with a `SRDMap` of {0,160,160,240,0,0,320,240,0,0,160,240,0,240,320,240}\n"
+		"Note: merged inputs are always listed in `SRDMap` in their tile order in the output bitstream.\n"
+		"\n"
+		"Alternatively to using `SRD` and `SRDRef`, it is possible to specify `CropOrigin` property on the inputs, in which case:\n"
+		"- the `CropOrigin` gives the location in the source\n"
+		"- the input size gives the size in the source, and no rescaling of referential is done\n"
+		"EX src1:CropOrigin=0x0  src1:CropOrigin=640x0 \n"
+		"Assuming the two sources are encoded at 320x240 and merged as src1 above src2, the output will be a 320x480 video with a `SRDMap` of {0,0,320,240,0,0,320,240,640,0,320,240,0,240,320,240}\n"
+	)
 	.private_size = sizeof(GF_HEVCMergeCtx),
 	SETCAPS(HEVCMergeCaps),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,

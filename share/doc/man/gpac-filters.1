@@ -2017,7 +2017,11 @@ Description: WebVTT decoder
 .br
 
 .br
-This filter decodes WebVTT streams directly into a javascript context of the compositor. It cannot be used to dump WebVTT content.
+This filter decodes WebVTT streams into a javascript context of the compositor.
+.br
+Warning: It cannot be used to dump WebVTT content.
+.br
+The filter options are used to override the JS global variables of the WebVTT renderer.
 .br
 
 .br
@@ -2025,6 +2029,18 @@ This filter decodes WebVTT streams directly into a javascript context of the com
 .LP
 .br
 script (string, default: $GSHARE/scripts/webvtt-renderer.js): location of WebVTT SVG JS renderer
+.br
+font (string, default: SANS, updatable): font to use
+.br
+fontSize (float, default: 20, updatable): font size to use
+.br
+color (string, default: white, updatable): color to use
+.br
+lineSpacing (float, default: 1.0, updatable): line spacing as scaling factor to font size
+.br
+x (float, default: 5, updatable):        horizontal offset
+.br
+y (float, default: 5, updatable):        vertical offset
 .br
 
 .br
@@ -4469,6 +4485,8 @@ Description: HEVC tile spliter
 .br
 This filter splits a motion-constrained tiled HEVC PID into N independent HEVC PIDs.
 .br
+Use hevcmerge filter to merge initially motion-constrained tiled HEVC PID in a single output.
+.br
 
 .br
 .SH Options (expert):
@@ -4511,15 +4529,75 @@ In explicit positioning, the CropOrigin property on input PIDs is used to setup 
 .br
 If CropOrigin is used, it shall be set on all input sources.
 .br
-If positive coordinates are used, they specify absolute positionning in pixels of the tiles. The coordinates are automatically adjusted to the next multiple of max CU width and height.
+If positive coordinates are used, they specify absolute positioning in pixels of the tiles. The coordinates are automatically adjusted to the next multiple of max CU width and height.
 .br
 If negative coordinates are used, they specify relative positioning (eg 0x-1 indicates to place the tile below the tile 0x0).
 .br
-In this mode, it is the caller responsability to set coordinates so that all tiles in a column have the same width and only the last row/column uses non-multiple of max CU width/height values. The filter will complain and abort if this is not respected.
+In this mode, it is the caller responsibility to set coordinates so that all tiles in a column have the same width and only the last row/column uses non-multiple of max CU width/height values. The filter will complain and abort if this is not respected.
 .br
 - If an horizontal blank is detected in the layout, an empty column in the tiling grid will be inserted.
 .br
 - If a vertical blank is detected in the layout, it is ignored.
+.br
+  
+.br
+.P
+.B
+Spatial Relationship Description (SRD)
+.br
+
+.br
+The filter will create an SRDMap property in the output PID if SRDRef and SRDor CropOrigin are set on all input PIDs.
+.br
+The SRDMap allows forwarding the logical sources SRD in the merged PID.
+.br
+The output pid SRDRef is set to the output video size.
+.br
+The input SRDRef and SRD are usually specified in DASH MPD, but can be manually assigned to inputs.
+.br
+- SRDRef gives the size of the referential used for the input SRD (usually matches the original video size, but not always)
+.br
+- SRD gives the size and position of the input in the original video, expressed in SRDRef referential of the input.
+.br
+The inputs do not need to have matching SRDRef.EX src1:SRD=0x0x640x480:SRDRef=1280x720
+.br
+This indicates that src1 contains a video located at 0,0, with a size of 640x480 pixels in a virtual source of 1280x720 pixels.
+.br
+Example
+.br
+src2:SRD=640x0x640x480:SRDRef=1280x720
+.br
+
+.br
+This indicates that src1 contains a video located at 640,0, with a size of 640x480 pixels in a virtual source of 1280x720 pixels.
+.br
+ 
+.br
+Each merged input is described by 8 intergers in the output SRDMap:
+.br
+- the source SRD is rescaled in the output SRDRef to form the first part (4 integers) of the SRDMap (i.e. where was the input ?)
+.br
+- the source location in the reconstructed video forms the second part (4 integers) of the SRDMap (i.e. where are the input pixels in the output ?)
+.br
+Assuming the two sources are encoded at 320x240 and merged as src2 above src1, the output will be a 320x480 video with a SRDMap of {0,160,160,240,0,0,320,240,0,0,160,240,0,240,320,240}
+.br
+Note: merged inputs are always listed in SRDMap in their tile order in the output bitstream.
+.br
+
+.br
+Alternatively to using SRD and SRDRef, it is possible to specify CropOrigin property on the inputs, in which case:
+.br
+- the CropOrigin gives the location in the source
+.br
+- the input size gives the size in the source, and no rescaling of referential is done
+.br
+Example
+.br
+src1:CropOrigin=0x0  src1:CropOrigin=640x0 
+.br
+
+.br
+Assuming the two sources are encoded at 320x240 and merged as src1 above src2, the output will be a 320x480 video with a SRDMap of {0,0,320,240,0,0,320,240,640,0,320,240,0,240,320,240}
 .br
 
 .br
@@ -4958,9 +5036,13 @@ js (string):                             location of script source
 .SH ohevcdec
 .LP
 .br
-Version: OpenHEVC decoder
+Description: OpenHEVC decoder
 .br
-Author: This filter decodes HEVC and LHVC (HEVC scalable extensions) from one or more PIDs through the OpenHEVC library
+
+.br
+This filter decodes HEVC and LHVC (HEVC scalable extensions) from one or more PIDs through the OpenHEVC library
+.br
+
 .br
 .SH Options (expert):
 .LP
@@ -4998,7 +5080,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3018-g0dd7312bd-filters
+build: 0.9.0-DEV-rev3042-gc417e654e-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
