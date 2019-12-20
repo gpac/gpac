@@ -378,7 +378,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 	u32 i, count;
 	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
 
-	e = gf_sk_group_select(ctx->active_sockets, 10);
+	e = gf_sk_group_select(ctx->active_sockets, 10, GF_SK_SELECT_READ);
 	if (e==GF_IP_NETWORK_EMPTY) {
 		if (ctx->is_udp) {
 			if (sockin_check_eos(ctx) )

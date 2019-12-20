@@ -520,7 +520,8 @@ static GF_Err rtpin_process(GF_Filter *filter)
 	u32 tot_read=0;
 	while (1) {
 		u32 read=0;
-		GF_Err e = gf_sk_group_select(ctx->sockgroup, 10);
+		//select both read and write
+		GF_Err e = gf_sk_group_select(ctx->sockgroup, 10, GF_SK_SELECT_BOTH);
 		if (e) break;
 
 		ctx->eos_probe_start = 0;

@@ -1234,7 +1234,7 @@ void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk)
 	}
 }
 
-GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
+GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mode)
 {
 	s32 ready;
 	u32 i=0;
@@ -1245,8 +1245,18 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
 	FD_ZERO(&sg->rgroup);
 	FD_ZERO(&sg->wgroup);
 	while ((sock = gf_list_enum(sg->sockets, &i))) {
-		FD_SET(sock->socket, &sg->rgroup);
-		FD_SET(sock->socket, &sg->wgroup);
+		switch (mode) {
+		case GF_SK_SELECT_BOTH:
+			FD_SET(sock->socket, &sg->rgroup);
+			FD_SET(sock->socket, &sg->wgroup);
+			break;
+		case GF_SK_SELECT_READ:
+			FD_SET(sock->socket, &sg->rgroup);
+			break;
+		case GF_SK_SELECT_WRITE:
+			FD_SET(sock->socket, &sg->wgroup);
+			break;
+		}
 		if (max_fd < (u32) sock->socket) max_fd = (u32) sock->socket;
 	}
 	if (usec_wait>=1000000) {
@@ -1284,9 +1294,9 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
 Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk, GF_SockSelectMode mode)
 {
 	if (sg && sk) {
-		if ((mode==GF_SK_SELECT_READ) && FD_ISSET(sk->socket, &sg->rgroup))
+		if ((mode!=GF_SK_SELECT_WRITE) && FD_ISSET(sk->socket, &sg->rgroup))
 			return GF_TRUE;
-		if ((mode==GF_SK_SELECT_WRITE) && FD_ISSET(sk->socket, &sg->wgroup))
+		if ((mode!=GF_SK_SELECT_READ) && FD_ISSET(sk->socket, &sg->wgroup))
 			return GF_TRUE;
 	}
 	return GF_FALSE;

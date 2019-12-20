@@ -1667,7 +1667,7 @@ GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd)
 	GF_Err e;
 
 	//check all active sockets
-	e = gf_sk_group_select(atscd->active_sockets, 10);
+	e = gf_sk_group_select(atscd->active_sockets, 10, GF_SK_SELECT_READ);
 	if (e) return e;
 
 	if (gf_sk_group_sock_is_set(atscd->active_sockets, atscd->sock, GF_SK_SELECT_READ)) {

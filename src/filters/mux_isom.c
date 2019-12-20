@@ -537,6 +537,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	}
 	//copy properties at init or reconfig
 	if (ctx->opid && is_true_pid) {
+		Bool found=GF_FALSE;
 		gf_filter_pid_copy_properties(ctx->opid, pid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
@@ -544,11 +545,29 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
-		if (!p || !strstr(ISOM_FILE_EXT, p->value.string))
+		if (p) {
+			char *match = strstr(ISOM_FILE_EXT, p->value.string);
+			if (match) {
+				u32 slen = strlen(match);
+				if (!match[slen-1] || (match[slen-1]=='|'))
+					found = GF_TRUE;
+			}
+		}
+		if (!found)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*") );
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
-		if (!p || !strstr(ISOM_FILE_MIME, p->value.string))
+		found = GF_FALSE;
+		if (p) {
+			char *match = strstr(ISOM_FILE_MIME, p->value.string);
+			if (match) {
+				u32 slen = strlen(match);
+				if (!match[slen-1] || (match[slen-1]=='|'))
+					found = GF_TRUE;
+			}
+		}
+		if (!found)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
+
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DASH_MODE, NULL);
 
 		switch (ctx->store) {
@@ -4048,19 +4067,20 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		dts_diff = (s64) tkw->ts_shift - dts_diff;
 		if (ctx->is_rewind) dts_diff = -dts_diff;
 		//negative could happen due to rounding, ignore them
-		if (dts_diff>=0) continue;
+		if (dts_diff<=0) continue;
 
 		//if dts_diff > 0, we need to delay the track
 		if (dts_diff) {
 			s64 dur = dts_diff;
 			dur *= (u32) ctx->moovts;
 			dur /= tkw->src_timescale;
+			if (dur) {
+				gf_isom_remove_edits(ctx->file, tkw->track_num);
 
-			gf_isom_remove_edits(ctx->file, tkw->track_num);
-
-			gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, dts_diff, GF_ISOM_EDIT_EMPTY);
-			gf_isom_set_edit(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
-			tkw->empty_init_dur = (u64) dur;
+				gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, dts_diff, GF_ISOM_EDIT_EMPTY);
+				gf_isom_set_edit(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
+				tkw->empty_init_dur = (u64) dur;
+			}
 		}
 	}
 

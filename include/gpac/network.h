@@ -608,20 +608,26 @@ Unregisters a socket from a socket group
  */
 void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk);
 
+/*! socket selection mode*/
+typedef enum
+{
+	/*! select for both read and write operations */
+	GF_SK_SELECT_BOTH=0,
+	/*! select for both read operations */
+	GF_SK_SELECT_READ,
+	/*! select for both write operations */
+	GF_SK_SELECT_WRITE,
+} GF_SockSelectMode;
+
 /*!
 Performs a select (wait) on the socket group
 \param sg socket group object
 \param wait_usec microseconds to wait (can be larger than one second)
+\param mode the operation mode desired
 \return error if any
  */
-GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 wait_usec);
+GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 wait_usec, GF_SockSelectMode mode);
 
-typedef enum
-{
-	GF_SK_SELECT_READ=0,
-	GF_SK_SELECT_WRITE,
-
-} GF_SockSelectMode;
 /*!
 Checks if given socket is selected and can be read. This shall be called after gf_sk_group_select
 \param sg socket group object

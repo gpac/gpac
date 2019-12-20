@@ -1979,7 +1979,7 @@ static GF_Err httpout_process(GF_Filter *filter)
 	//wakeup every 50ms when inactive
 	ctx->next_wake_us = 50000;
 
-	gf_sk_group_select(ctx->sg, 10);
+	gf_sk_group_select(ctx->sg, 10, GF_SK_SELECT_BOTH);
 	if ((e==GF_OK) && ctx->server_sock) {
 		//server mode, check pending connections
 		if (gf_sk_group_sock_is_set(ctx->sg, ctx->server_sock, GF_SK_SELECT_READ)) {
@@ -2040,7 +2040,8 @@ static Bool httpout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_HTTPOutInput *in;
 	GF_HTTPOutCtx *ctx = (GF_HTTPOutCtx *) gf_filter_get_udta(filter);
-	if (evt->base.type!=GF_FEVT_FILE_DELETE) return GF_TRUE;
+	if (evt->base.type!=GF_FEVT_FILE_DELETE)
+		return GF_FALSE;
 
 	if (!evt->base.on_pid) return GF_TRUE;
 	in = gf_filter_pid_get_udta(evt->base.on_pid);
