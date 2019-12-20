@@ -470,8 +470,6 @@ static void gf_filter_set_id(GF_Filter *filter, const char *ID)
 GF_EXPORT
 void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 {
-	u32 old_len, len;
-	char szS[2];
 	assert(filter);
 	if (!sources_ID) {
 		if (filter->source_ids) gf_free(filter->source_ids);
@@ -482,14 +480,7 @@ void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 		filter->source_ids = gf_strdup(sources_ID);
 		return;
 	}
-	old_len = (u32) strlen(filter->source_ids);
-	len = old_len + (u32) strlen(sources_ID) + 2;
-	filter->source_ids = gf_realloc(filter->source_ids, len);
-	filter->source_ids[old_len] = 0;
-	szS[0] = filter->session->sep_list;
-	szS[1] = 0;
-	strcat(filter->source_ids, szS);
-	strcat(filter->source_ids, sources_ID);
+	gf_dynstrcat(&filter->source_ids, sources_ID, ",");
 }
 
 static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv)
@@ -2208,8 +2199,10 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s request for real-time reschedule but filter is not in process\n", filter->name));
 		return;
 	}
-	if (!us_until_next)
+	if (!us_until_next) {
+		filter->nb_pck_io++;
 		return;
+	}
 	filter->schedule_next_time = 1+us_until_next + gf_sys_clock_high_res();
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Filter %s real-time reschedule in %d us (at "LLU" sys clock)\n", filter->name, us_until_next, filter->schedule_next_time));
 }
@@ -2790,10 +2783,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 {
 	char szID[1024];
 	if (!filter || !link_from) return GF_BAD_PARAM;
-	if (filter == link_from) return GF_BAD_PARAM;
-	if (filter->num_input_pids) return GF_BAD_PARAM;
-	//link from may have input pids declared but pending if source filter
-	if (filter->num_output_pids) return GF_BAD_PARAM;
+	if (filter == link_from) return GF_OK;
 	//don't allow loops
 	if (filter_in_parent_chain(filter, link_from)) return GF_BAD_PARAM;
 

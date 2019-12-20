@@ -1224,10 +1224,9 @@ static GF_Err ttd_process(GF_Filter *filter)
 		Double ts_offset = (Double) cts;
 		ts_offset /= timescale;
 
-		gf_sc_sys_frame_pending(ctx->scene->compositor, ts_offset, obj_time);
+		gf_sc_sys_frame_pending(ctx->scene->compositor, ts_offset, obj_time, filter);
 		return GF_OK;
 	}
-	ctx->scene->compositor->ms_until_next_frame = 0;
 
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 	gf_bs_reassign_buffer(ctx->bs_r, pck_data, pck_size);

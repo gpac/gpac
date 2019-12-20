@@ -203,10 +203,7 @@ static GF_Err lsrdec_process(GF_Filter *filter)
 		//we still process any frame before our clock time even when buffering
 		obj_time = gf_clock_time(odm->ck);
 		if (ts_offset * 1000 > obj_time) {
-			u32 wait_ms = (u32) (ts_offset * 1000 - obj_time);
-			if (!scene->compositor->ms_until_next_frame || ((s32) wait_ms<scene->compositor->ms_until_next_frame))
-				scene->compositor->ms_until_next_frame = (s32) wait_ms;
-
+			gf_sc_sys_frame_pending(ctx->scene->compositor, ts_offset, obj_time, filter);
 			continue;
 		}
 

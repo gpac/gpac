@@ -3977,15 +3977,21 @@ GF_DownloadManager *gf_sc_get_downloader(GF_Compositor *compositor)
 	return gf_filter_get_download_manager(compositor->filter);
 }
 
-void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 obj_time)
+void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 obj_time, GF_Filter *from_filter)
 {
 	if (!compositor->player) {
 		compositor->sys_frames_pending = GF_TRUE;
+		if (from_filter)
+			gf_filter_ask_rt_reschedule(from_filter, 0);
 	} else {
 		u32 wait_ms = (u32) (ts_offset * 1000 - obj_time);
 
-		if (!compositor->ms_until_next_frame || ((s32) wait_ms < compositor->ms_until_next_frame))
+		if (!compositor->ms_until_next_frame || ((s32) wait_ms < compositor->ms_until_next_frame)) {
 			compositor->ms_until_next_frame = (s32) wait_ms;
+			if (from_filter) {
+				gf_filter_ask_rt_reschedule(from_filter, wait_ms*500);
+			}
+		}
 	}
 }
 

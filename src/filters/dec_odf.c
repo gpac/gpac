@@ -335,7 +335,7 @@ GF_Err odf_dec_process(GF_Filter *filter)
 		//we still process any frame before our clock time even when buffering
 		obj_time = gf_clock_time(odm->ck);
 		if (ts_offset * 1000 > obj_time) {
-			gf_sc_sys_frame_pending(scene->compositor, ts_offset, obj_time);
+			gf_sc_sys_frame_pending(scene->compositor, ts_offset, obj_time, filter);
 			continue;
 		}
 
