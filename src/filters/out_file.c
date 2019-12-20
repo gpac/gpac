@@ -480,8 +480,9 @@ static Bool fileout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	if (evt->base.type==GF_FEVT_FILE_DELETE) {
 		gf_file_delete(evt->file_del.url);
+		return GF_TRUE;
 	}
-	return GF_TRUE;
+	return GF_FALSE;
 }
 static GF_FilterProbeScore fileout_probe_url(const char *url, const char *mime)
 {
