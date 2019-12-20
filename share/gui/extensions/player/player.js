@@ -1084,7 +1084,7 @@ extension = {
         gpac.navigation_supported(GF_NAVIGATE_EXAMINE);
         gpac.move_window(0,0, true);
         gpac.error_string(-1);
-        gpac.show_keyboard();
+        gpac.show_keyboard(true);
         gpac.switch_quality(true);
         var z = gpac.zoom;
         z = gpac.text_selection;
@@ -1094,12 +1094,11 @@ extension = {
         m.disable_main_addon();
         m.select_service(0);
         m.addon_layout(0,0);
-        m.declare_addon();
-        m.enable_addon();
+        m.declare_addon('gtest');
+        m.enable_addon('gtest');
         m.select();
         m.select_quality('0', 0);
         m.select_quality('auto', 0);
-
     },
 
     create_event_filter: function (__anobj) {
