@@ -3093,6 +3093,13 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 	ds->moof_sn = 0;
 	ds->seg_done = 0;
 	ds->subdur_done = 0;
+	if (ds->packet_queue) {
+		while (gf_list_count(ds->packet_queue)) {
+			GF_FilterPacket *pck = gf_list_pop_front(ds->packet_queue);
+			gf_filter_pck_unref(pck);
+		}
+		ds->nb_sap_in_queue = 0;
+	}
 }
 
 void dasher_context_update_period_end(GF_DasherCtx *ctx)
@@ -4978,7 +4985,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 
 			//queue mode
-			if (ctx->sbound && !ds->seek_to_pck) {
+			if (ctx->sbound) {
 				if (!is_queue_flush && pck) {
 					gf_filter_pck_ref(&pck);
 					gf_filter_pid_drop_packet(ds->ipid);
@@ -5064,7 +5071,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				u32 sn = gf_filter_pck_get_seq_num(pck);
 				if (sn) {
 					if (sn <= ds->seek_to_pck) {
-						gf_filter_pid_drop_packet(ds->ipid);
+						dasher_drop_input(ctx, ds, GF_FALSE);
 						continue;
 					}
 					ds->nb_pck = sn-1;
@@ -5072,7 +5079,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					//no sn signaled, this implies we played from the begining
 					if (ds->nb_pck < ds->seek_to_pck) {
 						ds->nb_pck ++;
-						gf_filter_pid_drop_packet(ds->ipid);
+						dasher_drop_input(ctx, ds, GF_FALSE);
 						continue;
 					}
 				}
@@ -5574,7 +5581,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			gf_filter_pck_set_property(eods_pck, GF_PROP_PCK_EODS, &PROP_BOOL(GF_TRUE) );
 			gf_filter_pck_send(eods_pck);
 
-			gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
+			dasher_drop_input(ctx, ds, GF_TRUE);
 		}
 	}
 
@@ -5953,6 +5960,7 @@ static void dasher_finalize(GF_Filter *filter)
 	while (gf_list_count(ctx->pids)) {
 		GF_DashStream *ds = gf_list_pop_back(ctx->pids);
 		dasher_reset_stream(filter, ds, GF_TRUE);
+		if (ds->packet_queue) gf_list_del(ds->packet_queue);
 		gf_free(ds);
 	}
 	gf_list_del(ctx->pids);
@@ -5967,6 +5975,9 @@ static void dasher_finalize(GF_Filter *filter)
 	gf_list_del(ctx->postponed_pids);
 }
 
+#define MPD_EXTS "mpd|m3u8|3gm|ism"
+#define MPD_MIMES "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd|audio/mpegurl|video/mpegurl|application/vnd.ms-sstr+xml"
+
 static const GF_FilterCapability DasherCaps[] =
 {
 	//we accept files as input, but only for NULL file (no source)
@@ -5976,17 +5987,30 @@ static const GF_FilterCapability DasherCaps[] =
 	CAP_STRING(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_FILEPATH, "*"),
 
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mpd|m3u8|3gm|ism"),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd|audio/mpegurl|video/mpegurl|application/vnd.ms-sstr+xml"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, MPD_EXTS),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, MPD_MIMES),
 	{0},
-	//anything else (not file and framed) result in manifest PID
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	//anything AV pid framed result in manifest PID
+	CAP_UINT(GF_CAPS_INPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mpd|m3u8|3gm|ism"),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd|audio/mpegurl|video/mpegurl|application/vnd.ms-sstr+xml"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, MPD_EXTS),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, MPD_MIMES),
+	{0},
+	//anything else (not file, not AV and framed) in compressed format result in manifest PID
+	//we cannot handle RAW format for such streams as these are in-memory data (scene graph, decoded text, etc ..)
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, MPD_EXTS),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, MPD_MIMES),
 	{0},
 	//anything else (not file and framed) result in media pids not file
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
