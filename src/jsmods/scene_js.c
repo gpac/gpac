@@ -445,7 +445,7 @@ static JSValue gpac_setProperty(JSContext *ctx, JSValueConst this_val, JSValueCo
 		break;
 
 	case GJS_GPAC_PROP_NAVIGATION:
-		if (!JS_ToInt32(ctx, &ival, value)) return JS_EXCEPTION;
+		if (JS_ToInt32(ctx, &ival, value)) return JS_EXCEPTION;
 		gf_sc_set_option(compositor, GF_OPT_NAVIGATION, (u32) ival);
 		break;
 	case GJS_GPAC_PROP_NAVIGATION_TYPE:
@@ -640,7 +640,7 @@ static JSValue gpac_navigation_supported(JSContext *ctx, JSValueConst this_val, 
 	if (! JS_IsInteger(argv[0]) ) {
 		return JS_NewBool(ctx, 0);
 	}
-	if (!JS_ToInt32(ctx, &type, argv[0]))
+	if (JS_ToInt32(ctx, &type, argv[0]))
 		return JS_EXCEPTION;
 	return JS_NewBool(ctx, gf_sc_navigation_supported(compositor, type) ? 1 : 0 );
 }
@@ -1023,11 +1023,14 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 	case GJS_OM_PROP_NB_QUALITIES:
 		//use HAS qualities
 		if (odm->pid) {
+			u32 nb_qualities = 0;
 			GF_PropertyEntry *pe=NULL;
 			const GF_PropertyValue *prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities", &pe);
-			if (prop)
-				return JS_NewInt32(ctx, gf_list_count( prop->value.string_list) );
+			if (prop) nb_qualities = gf_list_count( prop->value.string_list);
 			gf_filter_release_property(pe);
+
+			if (nb_qualities)
+				return JS_NewInt32(ctx, nb_qualities);
 		}
 		//use input channels
 		if (odm->extra_pids) {
@@ -1555,7 +1558,7 @@ static JSValue gjs_odm_declare_addon(JSContext *ctx, JSValueConst this_val, int 
 	if (! JS_IsString(argv[0]) ) return JS_EXCEPTION;
 
 	addon_url = JS_ToCString(ctx, argv[0]);
-	if (addon_url) {
+	if (addon_url && strcmp(addon_url, "gtest")) {
 		do_enable_addon(odm, (char *)addon_url, GF_FALSE, GF_FALSE);
 	}
 	JS_FreeCString(ctx, addon_url);
