@@ -272,7 +272,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:
 		p.type=GF_PROP_STRING;
-		if (!strnicmp(value, "file@", 5) ) {
+		if (value && !strnicmp(value, "file@", 5) ) {
 			u8 *data;
 			u32 len;
 			GF_Err e = gf_file_load_data(value+5, (u8 **) &data, &len);
