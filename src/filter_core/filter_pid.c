@@ -576,7 +576,11 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 	assert(filter->freg->configure_pid);
 	if (filter->finalized) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to configure PID %s in filnalized filter %s\n",  pid->name, filter->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to configure PID %s in finalized filter %s\n",  pid->name, filter->name));
+		if (ctype==GF_PID_CONF_CONNECT) {
+			assert(pid->filter->out_pid_connection_pending);
+			safe_int_dec(&pid->filter->out_pid_connection_pending);
+		}
 		return GF_SERVICE_ERROR;
 	}
 
@@ -3332,7 +3336,6 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	if (filter->user_pid_props)
 		gf_filter_pid_set_args(filter, pid);
 
-
 	//since we may have inserted filters in the middle (demuxers typically), get the last explicitely
 	//loaded ID in the chain
 	filter_id = gf_filter_last_id_in_chain(filter);
@@ -3397,7 +3400,11 @@ single_retry:
 
 		if (num_pass && gf_list_count(filter->destination_links)) {
 			s32 ours = gf_list_find(pid->filter->destination_links, filter_dst);
-			if (ours<0) continue;
+			if (ours<0) {
+				ours = gf_list_find(possible_linked_resolutions, filter_dst);
+				if (ours<0)
+					continue;
+			}
 			pid->filter->dst_filter = NULL;
 		}
 
@@ -3560,6 +3567,9 @@ single_retry:
 			if (!num_pass) {
 				//we have an explicit link instruction so we must try dynamic link even if we connect to another filter
 				if (filter_dst->source_ids) {
+					if(! strcmp(filter_dst->freg->name, "dashin") )
+						num_pass = 0;
+
 					gf_list_add(force_link_resolutions, filter_dst);
 				} else {
 					//register as possible destination link. If a filter already registered is a destination of this possible link
@@ -3628,9 +3638,11 @@ single_retry:
 					continue;
 				}
 			}
+			gf_list_del_item(filter->destination_links, filter_dst);
 			filter_dst = new_f;
 			gf_list_add(loaded_filters, new_f);
 		}
+
 		assert(pid->pid->filter->freg != filter_dst->freg);
 
 		safe_int_inc(&pid->filter->out_pid_connection_pending);
