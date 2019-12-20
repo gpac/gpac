@@ -113,12 +113,17 @@ static Double gf_mpd_parse_double(const char * const attr)
 static GF_MPD_Fractional *gf_mpd_parse_frac(const char * const attr, const char sep, GF_MPD_Fractional *res)
 {
 	char str[6];
+	int ok;
 	if (res==NULL) {
 		GF_SAFEALLOC(res, GF_MPD_Fractional);
 		res->den = 1;
 	}
 	snprintf(str, sizeof(str), "%%d%c%%d", sep);
-	sscanf(attr, str, &res->num, &res->den);
+	ok = sscanf(attr, str, &res->num, &res->den);
+	if (ok!=2) {
+		res->den = 1;
+		res->num = atoi(attr);
+	}
 	return res;
 }
 
