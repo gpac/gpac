@@ -5947,7 +5947,7 @@ int mp4boxMain(int argc, char **argv)
 					if (itag<nb_itunes_tags) {
 						break;
 					}
-					sep = gf_url_colon_suffix(sep);
+					sep = gf_url_colon_suffix(sep+1);
 				}
 				if (sep) sep[0] = 0;
 			}
