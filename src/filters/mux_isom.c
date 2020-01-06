@@ -548,7 +548,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		if (p) {
 			char *match = strstr(ISOM_FILE_EXT, p->value.string);
 			if (match) {
-				u32 slen = strlen(match);
+				u32 slen = (u32) strlen(match);
 				if (!match[slen-1] || (match[slen-1]=='|'))
 					found = GF_TRUE;
 			}
@@ -560,7 +560,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		if (p) {
 			char *match = strstr(ISOM_FILE_MIME, p->value.string);
 			if (match) {
-				u32 slen = strlen(match);
+				u32 slen = (u32) strlen(match);
 				if (!match[slen-1] || (match[slen-1]=='|'))
 					found = GF_TRUE;
 			}

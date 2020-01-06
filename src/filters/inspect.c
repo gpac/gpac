@@ -931,7 +931,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				u32 plist_count = gf_list_count(att->value.string_list);
 				for (u32 k = 0; k < plist_count; k++) {
 					if (k) fprintf(dump, ", ");
-					fprintf(dump, "%s", gf_list_get(att->value.string_list, k));
+					fprintf(dump, "%s", (const char *) gf_list_get(att->value.string_list, k));
 				}
 			}else{
 				fprintf(dump, " %s=\"%s\"", pname_no_space, gf_prop_dump(p4cc, att, szDump, ctx->dump_data));
@@ -952,7 +952,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			u32 plist_count = gf_list_count(att->value.string_list);
 			for (u32 k = 0; k < plist_count; k++) {
 				if (k) fprintf(dump, ", ");
-				fprintf(dump, "%s", gf_list_get(att->value.string_list, k));
+				fprintf(dump, "%s", (const char *) gf_list_get(att->value.string_list, k));
 			}
 		}else{
 			fprintf(dump, "%s", gf_prop_dump(p4cc, att, szDump, ctx->dump_data) );
