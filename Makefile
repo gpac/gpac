@@ -88,7 +88,7 @@ lcov_only:
 	@echo "Generating lcov info in coverage.info"
 	@rm -f ./gpac-conf-* > /dev/null
 	@lcov -q -capture --directory . --output-file all.info
-	@lcov --remove all.info '*/usr/*' '*/opt/*' '*/include/*' '*/validator/*' --output coverage.info
+	@lcov --remove all.info '*/usr/*' '*/opt/*' '*/include/*' '*/validator/*' '*/quickjs/*' --output coverage.info
 	@rm all.info
 	@echo "Purging lcov info"
 	@cd src ; for dir in * ; do cd .. ; sed -i -- "s/$$dir\/$$dir\//$$dir\//g" coverage.info; cd src; done ; cd ..
