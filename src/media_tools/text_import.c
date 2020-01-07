@@ -1005,6 +1005,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 		goto exit;
 	}
 	gf_isom_set_track_enabled(import->dest, track, 1);
+	import->final_trackID = gf_isom_get_track_id(import->dest, track);
 
 	/*some MPEG-4 setup*/
 	if (import->esd) {
@@ -1628,6 +1629,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		gf_fclose(sub_in);
 		return gf_import_message(import, gf_isom_last_error(import->dest), "Error creating text track");
 	}
+	import->final_trackID = gf_isom_get_track_id(import->dest, track);
 	gf_isom_set_track_enabled(import->dest, track, 1);
 	if (import->esd && !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 
@@ -1915,6 +1917,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 		e = gf_isom_last_error(import->dest);
 		goto exit;
 	}
+	import->final_trackID = gf_isom_get_track_id(import->dest, track);
 	gf_isom_set_track_enabled(import->dest, track, 1);
 	/*some MPEG-4 setup*/
 	if (import->esd) {
@@ -2329,6 +2332,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 		e = gf_isom_last_error(import->dest);
 		goto exit;
 	}
+	import->final_trackID = gf_isom_get_track_id(import->dest, track);
 	gf_isom_set_track_enabled(import->dest, track, 1);
 	/*some MPEG-4 setup*/
 	if (import->esd) {
