@@ -997,6 +997,8 @@ GF_Err tenc_Read(GF_Box *s, GF_BitStream *bs)
 
 	if ((ptr->isProtected == 1) && !ptr->Per_Sample_IV_Size) {
 		ptr->constant_IV_size = gf_bs_read_u8(bs);
+		if (ptr->constant_IV_size > sizeof(ptr->constant_IV))
+			return GF_ISOM_INVALID_FILE;
 		gf_bs_read_data(bs, (char *) ptr->constant_IV, ptr->constant_IV_size);
 		ISOM_DECREASE_SIZE(ptr, (1 + ptr->constant_IV_size) );
 
@@ -1375,7 +1377,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				for (j = 0; j < sai->subsample_count; j++) {
 					if (gf_bs_get_size(bs) - gf_bs_get_position(bs) < 6) {
 						gf_isom_cenc_samp_aux_info_del(sai);
-						if (trak->moov->mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
+						if (trak && trak->moov && trak->moov->mov && trak->moov->mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
 							gf_bs_seek(bs, pos);
 							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] Failed to parse SENC box, invalid SAI size\n" ));
 							return GF_OK;
