@@ -1513,7 +1513,7 @@ static GF_Err ReadGF_IPMPX_WatermarkingInit(GF_BitStream *bs, GF_IPMPX_Data *_p,
 	}
 	if (has_opaque_data) {
 		p->opaqueDataSize = gf_bs_read_int(bs, 16);
-		p->opaqueData = (char*)gf_malloc(sizeof(u8) * p->wmPayloadLen);
+		p->opaqueData = (char*)gf_malloc(sizeof(u8) * p->opaqueDataSize);
 		gf_bs_read_data(bs, p->opaqueData, p->opaqueDataSize);
 	}
 	return GF_OK;
