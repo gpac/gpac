@@ -33,6 +33,7 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 {
 	GF_TrackBox *trak;
 	u32 i;
+	Bool is_qt_text = GF_FALSE;
 	GF_Tx3gSampleEntryBox *txt;
 
 	if (!descriptionIndex || !out_desc) return GF_BAD_PARAM;
@@ -52,7 +53,9 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 	if (!txt) return GF_BAD_PARAM;
 	switch (txt->type) {
 	case GF_ISOM_BOX_TYPE_TX3G:
+		break;
 	case GF_ISOM_BOX_TYPE_TEXT:
+		is_qt_text = GF_TRUE;
 		break;
 	default:
 		return GF_BAD_PARAM;
@@ -66,12 +69,21 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 	(*out_desc)->displayFlags = txt->displayFlags;
 	(*out_desc)->vert_justif = txt->vertical_justification;
 	(*out_desc)->horiz_justif = txt->horizontal_justification;
-	(*out_desc)->font_count = txt->font_table->entry_count;
-	(*out_desc)->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * txt->font_table->entry_count);
-	for (i=0; i<txt->font_table->entry_count; i++) {
-		(*out_desc)->fonts[i].fontID = txt->font_table->fonts[i].fontID;
-		if (txt->font_table->fonts[i].fontName)
-		 	(*out_desc)->fonts[i].fontName = gf_strdup(txt->font_table->fonts[i].fontName);
+	if (is_qt_text) {
+		GF_TextSampleEntryBox *qt_txt = (GF_TextSampleEntryBox *) txt;
+		if (qt_txt->textName) {
+			(*out_desc)->font_count = 1;
+			(*out_desc)->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord));
+			(*out_desc)->fonts[0].fontName = gf_strdup(qt_txt->textName);
+		}
+	} else {
+		(*out_desc)->font_count = txt->font_table->entry_count;
+		(*out_desc)->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * txt->font_table->entry_count);
+		for (i=0; i<txt->font_table->entry_count; i++) {
+			(*out_desc)->fonts[i].fontID = txt->font_table->fonts[i].fontID;
+			if (txt->font_table->fonts[i].fontName)
+				(*out_desc)->fonts[i].fontName = gf_strdup(txt->font_table->fonts[i].fontName);
+		}
 	}
 	return GF_OK;
 }
@@ -82,6 +94,7 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 {
 	GF_TrackBox *trak;
 	GF_Err e;
+	Bool is_qt_text = GF_FALSE;
 	u32 i;
 	GF_Tx3gSampleEntryBox *txt;
 
@@ -104,7 +117,9 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 	if (!txt) return GF_BAD_PARAM;
 	switch (txt->type) {
 	case GF_ISOM_BOX_TYPE_TX3G:
+		break;
 	case GF_ISOM_BOX_TYPE_TEXT:
+		is_qt_text = GF_TRUE;
 		break;
 	default:
 		return GF_BAD_PARAM;
@@ -119,14 +134,23 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 	txt->displayFlags = desc->displayFlags;
 	txt->vertical_justification = desc->vert_justif;
 	txt->horizontal_justification = desc->horiz_justif;
-	if (txt->font_table) gf_isom_box_del_parent(&txt->child_boxes, (GF_Box*)txt->font_table);
+	if (is_qt_text) {
+		GF_TextSampleEntryBox *qtt = (GF_TextSampleEntryBox *) txt;
+		if (qtt->textName) gf_free(qtt->textName);
+		qtt->textName = NULL;
+		if (desc->font_count) {
+			qtt->textName = gf_strdup(desc->fonts[0].fontName);
+		}
+	} else {
+		if (txt->font_table) gf_isom_box_del_parent(&txt->child_boxes, (GF_Box*)txt->font_table);
 
-	txt->font_table = (GF_FontTableBox *)gf_isom_box_new_parent(&txt->child_boxes, GF_ISOM_BOX_TYPE_FTAB);
-	txt->font_table->entry_count = desc->font_count;
-	txt->font_table->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * desc->font_count);
-	for (i=0; i<desc->font_count; i++) {
-		txt->font_table->fonts[i].fontID = desc->fonts[i].fontID;
-		if (desc->fonts[i].fontName) txt->font_table->fonts[i].fontName = gf_strdup(desc->fonts[i].fontName);
+		txt->font_table = (GF_FontTableBox *)gf_isom_box_new_parent(&txt->child_boxes, GF_ISOM_BOX_TYPE_FTAB);
+		txt->font_table->entry_count = desc->font_count;
+		txt->font_table->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * desc->font_count);
+		for (i=0; i<desc->font_count; i++) {
+			txt->font_table->fonts[i].fontID = desc->fonts[i].fontID;
+			if (desc->fonts[i].fontName) txt->font_table->fonts[i].fontName = gf_strdup(desc->fonts[i].fontName);
+		}
 	}
 	return e;
 }
@@ -666,6 +690,8 @@ GF_TextSample *gf_isom_parse_text_sample_from_data(u8 *data, u32 dataLength)
 static void gf_isom_write_tx3g(GF_Tx3gSampleEntryBox *a, GF_BitStream *bs, u32 sidx, u32 sidx_offset)
 {
 	u32 size, j, fount_count;
+	Bool is_qt_text = (a->type==GF_ISOM_BOX_TYPE_TEXT) ? GF_TRUE : GF_FALSE;
+	const char *qt_fontname = NULL;
 	void gpp_write_rgba(GF_BitStream *bs, u32 col);
 	void gpp_write_box(GF_BitStream *bs, GF_BoxRecord *rec);
 	void gpp_write_style(GF_BitStream *bs, GF_StyleRecord *rec);
@@ -677,11 +703,19 @@ static void gf_isom_write_tx3g(GF_Tx3gSampleEntryBox *a, GF_BitStream *bs, u32 s
 	size = 8 + 18 + 8 + 12;
 	size += 8 + 2;
 	fount_count = 0;
-	if (a->font_table) {
-		fount_count = a->font_table->entry_count;
-		for (j=0; j<fount_count; j++) {
-			size += 3;
-			if (a->font_table->fonts[j].fontName) size += (u32) strlen(a->font_table->fonts[j].fontName);
+	if (is_qt_text) {
+		GF_TextSampleEntryBox *qt = (GF_TextSampleEntryBox *)a;
+		if (qt->textName) {
+			qt_fontname = qt->textName;
+			fount_count = 1;
+		}
+	} else {
+		if (a->font_table) {
+			fount_count = a->font_table->entry_count;
+			for (j=0; j<fount_count; j++) {
+				size += 3;
+				if (a->font_table->fonts[j].fontName) size += (u32) strlen(a->font_table->fonts[j].fontName);
+			}
 		}
 	}
 	/*write TextSampleEntry box*/
@@ -702,13 +736,24 @@ static void gf_isom_write_tx3g(GF_Tx3gSampleEntryBox *a, GF_BitStream *bs, u32 s
 
 	gf_bs_write_u16(bs, fount_count);
 	for (j=0; j<fount_count; j++) {
-		gf_bs_write_u16(bs, a->font_table->fonts[j].fontID);
-		if (a->font_table->fonts[j].fontName) {
-			u32 len = (u32) strlen(a->font_table->fonts[j].fontName);
-			gf_bs_write_u8(bs, len);
-			gf_bs_write_data(bs, a->font_table->fonts[j].fontName, len);
+		if (is_qt_text) {
+			gf_bs_write_u16(bs, 0);
+			if (qt_fontname) {
+				u32 len = (u32) strlen(qt_fontname);
+				gf_bs_write_u8(bs, len);
+				gf_bs_write_data(bs, qt_fontname, len);
+			} else {
+				gf_bs_write_u8(bs, 0);
+			}
 		} else {
-			gf_bs_write_u8(bs, 0);
+			gf_bs_write_u16(bs, a->font_table->fonts[j].fontID);
+			if (a->font_table->fonts[j].fontName) {
+				u32 len = (u32) strlen(a->font_table->fonts[j].fontName);
+				gf_bs_write_u8(bs, len);
+				gf_bs_write_data(bs, a->font_table->fonts[j].fontName, len);
+			} else {
+				gf_bs_write_u8(bs, 0);
+			}
 		}
 	}
 }
