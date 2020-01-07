@@ -1495,6 +1495,7 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 	}
 	gf_isom_set_track_enabled(import->dest,	track, 1);
 	if (import->esd	&& !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+	import->final_trackID = gf_isom_get_track_id(import->dest, track);
 
 	if (OCR_ES_ID) gf_isom_set_track_reference(import->dest, track,	GF_ISOM_REF_OCR, OCR_ES_ID);
 
