@@ -1146,7 +1146,7 @@ static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 in
 		/*duration*/
 		sample_duration = gf_bs_read_u24(bs);
 		/*txt length is parsed with the sample*/
-		txt = gf_isom_parse_texte_sample(bs);
+		txt = gf_isom_parse_text_sample(bs);
 		TTD_ApplySample(priv, txt, sample_index, is_utf_16, sample_duration);
 		gf_isom_delete_text_sample(txt);
 		/*since we support only TTU(1), no need to go on*/

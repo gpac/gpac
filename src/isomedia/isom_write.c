@@ -2411,16 +2411,11 @@ GF_Err gf_isom_remove_chapter(GF_ISOFile *movie, u32 trackNumber, u32 index)
 	if (trackNumber) {
 		GF_TrackBox *trak = gf_isom_get_track_from_file(movie, trackNumber);
 		if (!trak) return GF_BAD_PARAM;
-		if (!trak->udta) {
-			e = trak_AddBox((GF_Box*)trak, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
-			if (e) return e;
-		}
+		if (!trak->udta) return GF_OK;
+
 		udta = trak->udta;
 	} else {
-		if (!movie->moov->udta) {
-			e = moov_AddBox((GF_Box*)movie->moov, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
-			if (e) return e;
-		}
+		if (!movie->moov->udta) return GF_OK;
 		udta = movie->moov->udta;
 	}
 

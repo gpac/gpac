@@ -1021,7 +1021,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 	if (chapter_name) {
 		if (is_chap_file) {
-			e = gf_media_import_chapters(import.dest, chapter_name, 0);
+			e = gf_media_import_chapters(import.dest, chapter_name, 0, GF_FALSE);
 		} else {
 			e = gf_isom_add_chapter(import.dest, 0, 0, chapter_name);
 		}

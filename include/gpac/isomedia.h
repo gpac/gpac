@@ -1251,7 +1251,7 @@ if trackNumber is 0, the chapter info is added to the movie, otherwise to the tr
 */
 GF_Err gf_isom_add_chapter(GF_ISOFile *the_file, u32 trackNumber, u64 timestamp, char *name);
 
-/*deletes copyright (1-based index, index 0 for all)*/
+/*deletes chapter (1-based index, index 0 for all)*/
 GF_Err gf_isom_remove_chapter(GF_ISOFile *the_file, u32 trackNumber, u32 index);
 
 /*set watermark info for movie*/
