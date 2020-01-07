@@ -7270,8 +7270,13 @@ GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 	}
 
 	if (ptr->sample_order) {
+		u32 nb_bits = 8;
+		if (ptr->sample_count>0xFFFFFF) nb_bits = 32;
+		else if (ptr->sample_count>0xFFFF) nb_bits = 24;
+		else if (ptr->sample_count>0xFF) nb_bits = 16;
+
 		for (i=0; i<ptr->sample_count; i++) {
-			gf_bs_write_u8(bs, ptr->sample_order[i]);
+			gf_bs_write_int(bs, ptr->sample_order[i], nb_bits);
 		}
 	}
 	return GF_OK;
@@ -7453,7 +7458,13 @@ GF_Err trun_box_size(GF_Box *s)
 	if (ptr->flags & GF_ISOM_TRUN_DATA_OFFSET) ptr->size += 4;
 	if (ptr->flags & GF_ISOM_TRUN_FIRST_FLAG) ptr->size += 4;
 
-	if (ptr->sample_order) ptr->size += ptr->sample_count;
+	if (ptr->sample_order) {
+		u32 nb_bytes = 1;
+		if (ptr->sample_count>0xFFFFFF) nb_bytes = 4;
+		else if (ptr->sample_count>0xFFFF) nb_bytes = 3;
+		else if (ptr->sample_count>0xFF) nb_bytes = 2;
+		ptr->size += ptr->sample_count*nb_bytes;
+	}
 
 	if (! (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) ) ) {
 		return GF_OK;
