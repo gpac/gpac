@@ -11054,7 +11054,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (gf_m2ts_probe_file(importer->in_name))
 		return gf_import_mpeg_ts(importer);
 
-	return gf_import_message(importer, e, "[Importer] Unknown input file type for \"%s\"", importer->in_name);
+	return gf_import_message(importer, GF_NOT_SUPPORTED, "[Importer] Unknown input file type for \"%s\"", importer->in_name);
 }
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
