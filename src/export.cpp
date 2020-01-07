@@ -1092,7 +1092,7 @@
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /*isomedia_dev.h exports*/
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_parse_texte_sample) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_parse_text_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_delete_text_sample) )
 
 #ifndef GPAC_DISABLE_STREAMING

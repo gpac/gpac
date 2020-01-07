@@ -140,7 +140,8 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("ab", NULL, "add given brand to file's alternate brand list", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("rb", NULL, "remove given brand to file's alternate brand list", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("cprt", NULL, "add copyright string to file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("chap", NULL, "add chapter information from given file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("chap", NULL, "set chapter information from given file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("chapqt", NULL, "set chapter information from given file, using QT signaling for text tracks", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("set-track-id `id1:id2`", NULL, "change id of track with id1 to id2", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("swap-track-id `id1:id2`", NULL, "swap the id between tracks with id1 to id2", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("rem", NULL, "remove given track from file", NULL, NULL, GF_ARG_INT, 0),
@@ -2262,6 +2263,7 @@ GF_ISOTrackID trackID;
 u32 do_flat, box_patch_trackID=0, print_info;
 Bool comp_lzma=GF_FALSE;
 Bool freeze_box_order=GF_FALSE;
+Bool chap_qt=GF_FALSE;
 Double min_buffer = 1.5;
 u32 comp_top_box_version = 0;
 u32 size_top_box = 0;
@@ -3904,10 +3906,12 @@ Bool mp4box_parse_args(int argc, char **argv)
 			i++;
 			if (!dash_duration) open_edit = GF_TRUE;
 		}
-		else if (!stricmp(arg, "-chap")) {
-			CHECK_NEXT_ARG chap_file = argv[i + 1];
+		else if (!stricmp(arg, "-chap") || !stricmp(arg, "-chapqt")) {
+			CHECK_NEXT_ARG
+			chap_file = argv[i + 1];
 			i++;
 			open_edit = GF_TRUE;
+			if (!stricmp(arg, "-chapqt")) chap_qt = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
 			CHECK_NEXT_ARG
@@ -6067,7 +6071,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 	if (chap_file) {
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-		e = gf_media_import_chapters(file, chap_file, import_fps);
+		e = gf_media_import_chapters(file, chap_file, import_fps, chap_qt);
 		needSave = GF_TRUE;
 #else
 		fprintf(stderr, "Warning: GPAC compiled without Media Import, chapters can't be imported\n");

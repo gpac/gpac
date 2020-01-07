@@ -1667,6 +1667,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 			dumper.dump_file = dump;
 
 			if (mtype == GF_ISOM_MEDIA_HINT) {
+#ifndef GPAC_DISABLE_ISOM_HINTING
 				char *name=NULL;
 				if (msubtype==GF_ISOM_SUBTYPE_RTP) name = "RTPHintTrack";
 				else if (msubtype==GF_ISOM_SUBTYPE_SRTP) name = "SRTPHintTrack";
@@ -1685,6 +1686,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 #endif
 				fprintf(dump, "</%s>\n", name);
 				fmt_handled = GF_TRUE;
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
 			}
 			else if (gf_isom_get_avc_svc_type(the_file, i+1, 1) || gf_isom_get_hevc_lhvc_type(the_file, i+1, 1)) {
 				dump_isom_nal_ex(the_file, trackID, dump, GF_FALSE);
@@ -1836,7 +1838,26 @@ GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, Bo
 {
 	FILE *t;
 	u32 i, count;
+	u32 chap_tk = 0;
 	count = gf_isom_get_chapter_count(file, 0);
+
+	if (!count) {
+		for (i=0; i<gf_isom_get_track_count(file); i++) {
+			if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_CHAP)) {
+				GF_Err e = gf_isom_get_reference(file, i+1, GF_ISOM_REF_CHAP, 1, &chap_tk);
+				if (!e) break;
+			}
+		}
+		if (!chap_tk) {
+			fprintf(stderr, "No chapters or chapters track found in file\n");
+			return GF_OK;
+		}
+
+		fprintf(stderr, "Chapter track found, dumping to ttxt\n");
+		dump_isom_timed_text(file, gf_isom_get_track_id(file, chap_tk), inName, is_final_name, GF_FALSE, GF_TEXTDUMPTYPE_TTXT);
+		return GF_OK;
+
+	}
 	if (inName) {
 		char szName[1024];
 		strcpy(szName, inName);

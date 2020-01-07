@@ -1204,9 +1204,11 @@ static struct box_registry_entry {
 	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_COLL, CoLL, "vp08 vp09 encv resv", 1, 0, "vp"),
 
 	//Opus in ISOBMFF boxes
+#ifndef GPAC_DISABLE_OGG
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_OPUS, audio_sample_entry, "stsd", "Opus"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DOPS, dOps, "Opus", "Opus"),
-		
+#endif
+
 	//part20 boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LSR1, lsr1, "stsd", "p20"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LSRC, lsrc, "lsr1", "p20"),

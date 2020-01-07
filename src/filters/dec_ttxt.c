@@ -1255,7 +1255,7 @@ static GF_Err ttd_process(GF_Filter *filter)
 			sample_duration = gf_filter_pck_get_duration(pck);
 		}
 		/*txt length is parsed with the sample*/
-		txt = gf_isom_parse_texte_sample(ctx->bs_r);
+		txt = gf_isom_parse_text_sample(ctx->bs_r);
 		if (!txt) return GF_NON_COMPLIANT_BITSTREAM;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[TTXTDec] Applying new sample - duration %d text \"%s\"\n", sample_duration, txt->text ? txt->text : ""));
 		ttd_apply_sample(ctx, txt, sample_index, is_utf_16, sample_duration);

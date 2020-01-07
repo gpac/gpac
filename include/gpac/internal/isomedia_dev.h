@@ -4213,8 +4213,8 @@ struct _3gpp_text_sample
 	GF_TextKaraokeBox *cur_karaoke;
 };
 
-GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs);
-GF_TextSample *gf_isom_parse_texte_sample_from_data(u8 *data, u32 dataLength);
+GF_TextSample *gf_isom_parse_text_sample(GF_BitStream *bs);
+GF_TextSample *gf_isom_parse_text_sample_from_data(u8 *data, u32 dataLength);
 
 struct _generic_subtitle_sample
 {

@@ -1435,7 +1435,7 @@ const char *gf_isom_get_segment_name(GF_ISOFile *movie)
 
 static void compute_seg_size(GF_ISOFile *movie, u64 *out_seg_size)
 {
-	u64 final_size=0;
+	u64 final_size = 0;
 	if (out_seg_size) {
 		if (movie->append_segment) {
 			final_size = gf_bs_get_position(movie->movieFileMap->bs);
