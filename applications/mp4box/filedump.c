@@ -2278,7 +2278,26 @@ GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, Bo
 	char szName[1024];
 	FILE *t;
 	u32 i, count;
+	u32 chap_tk = 0;
 	count = gf_isom_get_chapter_count(file, 0);
+
+	if (!count) {
+		for (i=0; i<gf_isom_get_track_count(file); i++) {
+			if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_CHAP)) {
+				GF_Err e = gf_isom_get_reference(file, i+1, GF_ISOM_REF_CHAP, 1, &chap_tk);
+				if (!e) break;
+			}
+		}
+		if (!chap_tk) {
+			fprintf(stderr, "No chapters or chapters track found in file\n");
+			return GF_OK;
+		}
+
+		fprintf(stderr, "Chapter track found, dumping to ttxt\n");
+		dump_isom_timed_text(file, gf_isom_get_track_id(file, chap_tk), inName, is_final_name, GF_FALSE, GF_TEXTDUMPTYPE_TTXT);
+		return GF_OK;
+
+	}
 	if (inName) {
 		strcpy(szName, inName);
 		if (!is_final_name) {

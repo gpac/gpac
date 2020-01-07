@@ -469,7 +469,7 @@ void gf_isom_delete_text_sample(GF_TextSample * tx_samp)
 }
 
 GF_EXPORT
-GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs)
+GF_TextSample *gf_isom_parse_text_sample(GF_BitStream *bs)
 {
 	GF_TextSample *s = gf_isom_new_text_sample();
 
@@ -539,7 +539,7 @@ GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs)
 	return s;
 }
 
-GF_TextSample *gf_isom_parse_texte_sample_from_data(char *data, u32 dataLength)
+GF_TextSample *gf_isom_parse_text_sample_from_data(char *data, u32 dataLength)
 {
 	GF_TextSample *s;
 	GF_BitStream *bs;
@@ -549,7 +549,7 @@ GF_TextSample *gf_isom_parse_texte_sample_from_data(char *data, u32 dataLength)
 	}
 
 	bs = gf_bs_new(data, dataLength, GF_BITSTREAM_READ);
-	s = gf_isom_parse_texte_sample(bs);
+	s = gf_isom_parse_text_sample(bs);
 	gf_bs_del(bs);
 	return s;
 }

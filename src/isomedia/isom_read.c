@@ -1010,7 +1010,7 @@ GF_Err gf_isom_get_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceTy
 	if (e) return e;
 	if (!dpnd) return GF_BAD_PARAM;
 
-	if (referenceIndex > dpnd->trackIDCount) return GF_BAD_PARAM;
+	if (!referenceIndex || (referenceIndex > dpnd->trackIDCount)) return GF_BAD_PARAM;
 
 	//the spec allows a NULL reference
 	//(ex, to force desync of a track, set a sync ref with ID = 0)

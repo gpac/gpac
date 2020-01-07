@@ -400,9 +400,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer);
  \param file target movie
  \param chap_file target chapter file
  \param import_fps specifies the chapter frame rate (optional, ignored if 0 - defaults to 25). Most formats don't use this feature
+ \param for_qt use QT signaling for chapter tracks
  \return error if any
  */
-GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import_fps);
+GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import_fps, Bool for_qt);
 
 /*!
   Make the file ISMA compliant: creates ISMA BIFS / OD tracks if needed, and update audio/video IDs

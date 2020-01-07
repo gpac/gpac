@@ -251,7 +251,8 @@ void PrintGeneralUsage()
 	        " -ab ABCD             adds given brand to file's alternate brand list\n"
 	        " -rb ABCD             removes given brand from file's alternate brand list\n"
 	        " -cprt string         adds copyright string to movie\n"
-	        " -chap file           adds chapter information contained in file\n"
+	        " -chap CHAP_FILE      sets chapter information contained in CHAP_FILE\n"
+	        " -chapqt CHAP_FILE    sets chapter information contained in CHAP_FILE, using QT signaling for text tracks\n"
 	        " -set-track-id id1:id2 changes the ID of a track from id1 to id2\n"
 	        " -swap-track-id id1:id2 swaps the IDs of the identified tracks\n"
 	        " -rem tkID            removes track from file\n"
@@ -2253,6 +2254,7 @@ char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *d
 u32 track_dump_type, dump_isom, dump_timestamps;
 u32 trackID, do_flat, print_info;
 Bool comp_lzma=GF_FALSE;
+Bool chap_qt=GF_FALSE;
 Double min_buffer = 1.5;
 u32 comp_top_box_version = 0;
 s32 ast_offset_ms = 0;
@@ -3710,10 +3712,12 @@ Bool mp4box_parse_args(int argc, char **argv)
 			i++;
 			if (!dash_duration) open_edit = GF_TRUE;
 		}
-		else if (!stricmp(arg, "-chap")) {
-			CHECK_NEXT_ARG chap_file = argv[i + 1];
+		else if (!stricmp(arg, "-chap") || !stricmp(arg, "-chapqt")) {
+			CHECK_NEXT_ARG
+			chap_file = argv[i + 1];
 			i++;
 			open_edit = GF_TRUE;
+			if (!stricmp(arg, "-chapqt")) chap_qt = GF_TRUE;
 		}
 		else if (!strcmp(arg, "-strict-error")) {
 			gf_log_set_strict_error(1);
@@ -5757,7 +5761,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 	if (chap_file) {
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-		e = gf_media_import_chapters(file, chap_file, import_fps);
+		e = gf_media_import_chapters(file, chap_file, import_fps, chap_qt);
 		needSave = GF_TRUE;
 #else
 		fprintf(stderr, "Warning: GPAC compiled without Media Import, chapters can't be imported\n");
