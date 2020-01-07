@@ -3500,7 +3500,8 @@ GF_Err minf_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_array_read(s, bs, minf_AddBox);
 	if (! ptr->dataInformation) {
 		GF_Box *dinf, *dref, *url;
-		Bool dump_mode = GF_FALSE;
+		extern Bool use_dump_mode;
+		Bool dump_mode = use_dump_mode;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing DataInformationBox\n"));
 		//commented on purpose, we are still able to handle the file, we only throw an error but keep processing
 //		e = GF_ISOM_INVALID_FILE;
