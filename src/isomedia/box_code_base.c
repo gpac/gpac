@@ -5312,7 +5312,9 @@ GF_Err stbl_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_CO64:
 	case GF_ISOM_BOX_TYPE_STCO:
 		if (ptr->ChunkOffset) {
-			gf_isom_box_del(ptr->ChunkOffset);
+			extern Bool use_dump_mode;
+			if (!use_dump_mode)
+				gf_isom_box_del(ptr->ChunkOffset);
 		}
 		ptr->ChunkOffset = a;
 		return GF_OK;
