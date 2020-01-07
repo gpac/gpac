@@ -2555,7 +2555,8 @@ GF_Err gf_isom_add_desc_to_description(GF_ISOFile *isom_file, u32 trackNumber, u
 */
 GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig_file, GF_ISOFile *dest_file);
 
-
+/*deletes chapter (1-based index, index 0 for all)*/
+GF_Err gf_isom_remove_chapter(GF_ISOFile *the_file, u32 trackNumber, u32 index);
 
 /*! associates a given SL config with a given ESD while extracting the OD information
 This is useful while reading the IOD / OD stream of an MP4 file. Note however that

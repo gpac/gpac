@@ -989,15 +989,56 @@ err_exit:
 }
 
 GF_EXPORT
-GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, GF_Fraction import_fps)
+GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, GF_Fraction import_fps, Bool use_qt)
 {
+	GF_Err e;
+	u32 i;
 	GF_MediaImporter import;
+	//remove all chapter info
+	gf_isom_remove_chapter(file, 0, 0);
+
+restart_check:
+	//remove all chapter tracks
+	for (i=0; i<gf_isom_get_track_count(file); i++) {
+		if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_CHAP)) {
+			u32 chap_track=0;
+			gf_isom_get_reference(file, i+1, GF_ISOM_REF_CHAP, 1, &chap_track);
+			if (chap_track) {
+				gf_isom_remove_track(file, chap_track);
+				goto restart_check;
+			}
+		}
+	}
+
 	memset(&import, 0, sizeof(GF_MediaImporter));
 	import.dest = file;
 	import.in_name = chap_file;
 	import.video_fps = import_fps;
 	import.streamFormat = "CHAP";
-	return gf_media_import(&import);
+	e = gf_media_import(&import);
+	if (e) return e;
+
+	if (!import.final_trackID) return GF_OK;
+	if (use_qt) {
+		u32 chap_track = gf_isom_get_track_by_id(file, import.final_trackID);
+		u32 nb_sdesc = gf_isom_get_sample_description_count(file, chap_track);
+		for (i=0; i<nb_sdesc; i++) {
+			gf_isom_set_media_subtype(file, chap_track, i+1, GF_ISOM_SUBTYPE_TEXT);
+		}
+	}
+	//imported chapter is a track, set reference
+	for (i=0; i<gf_isom_get_track_count(file); i++) {
+		u32 mtype = gf_isom_get_media_type(file, i+1);
+		switch (mtype) {
+		case GF_ISOM_MEDIA_VISUAL:
+		case GF_ISOM_MEDIA_AUXV:
+		case GF_ISOM_MEDIA_PICT:
+		case GF_ISOM_MEDIA_AUDIO:
+			gf_isom_set_track_reference(file, i+1, GF_ISOM_REF_CHAP, import.final_trackID);
+			break;
+		}
+	}
+	return GF_OK;
 }
 
 static void on_import_setup_failure(GF_Filter *f, void *on_setup_error_udta, GF_Err e)

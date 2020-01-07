@@ -1078,7 +1078,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	if (chapter_name) {
 		if (is_chap_file) {
 			GF_Fraction a_fps = {0,0};
-			e = gf_media_import_chapters(dest, chapter_name, a_fps);
+			e = gf_media_import_chapters(dest, chapter_name, a_fps, GF_FALSE);
 		} else {
 			e = gf_isom_add_chapter(dest, 0, 0, chapter_name);
 		}

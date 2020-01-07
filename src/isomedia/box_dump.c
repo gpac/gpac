@@ -2891,7 +2891,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 
 		fprintf(dump, "<TextSample sampleTime=\"%s\" sampleDescriptionIndex=\"%d\"", tx3g_format_time(s->DTS, trak->Media->mediaHeader->timeScale, szDur, GF_FALSE), di);
 		bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
-		s_txt = gf_isom_parse_texte_sample(bs);
+		s_txt = gf_isom_parse_text_sample(bs);
 		gf_bs_del(bs);
 
 		if (!box_dump) {
@@ -3150,7 +3150,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			continue;
 		}
 		bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
-		txt = gf_isom_parse_texte_sample(bs);
+		txt = gf_isom_parse_text_sample(bs);
 		gf_bs_del(bs);
 
 		txtd = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, di-1);
@@ -3315,7 +3315,7 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 		cur_frame++;
 		bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
-		txt = gf_isom_parse_texte_sample(bs);
+		txt = gf_isom_parse_text_sample(bs);
 		gf_bs_del(bs);
 
 		if (!txt->len) continue;
