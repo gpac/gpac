@@ -425,7 +425,7 @@ GF_Err gf_isom_set_timescale(GF_ISOFile *movie, u32 timeScale)
 		movie->moov->mvex->mehd->fragment_duration *= timeScale;
 		movie->moov->mvex->mehd->fragment_duration /= movie->moov->mvhd->timeScale;
 	}
-	
+
 	i=0;
 	while ((trak = (GF_TrackBox*)gf_list_enum(movie->moov->trackList, &i))) {
 		trak->Header->duration *= timeScale;
@@ -7075,5 +7075,3 @@ GF_Err gf_isom_set_track_magic(GF_ISOFile *movie, u32 trackNumber, u64 magic)
 }
 
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
-
-
