@@ -3818,6 +3818,9 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 
 	gf_bs_align(bs);
 
+	if (tg_end >= ARRAY_LENGTH(state->frame_state.tiles))
+		return GF_NON_COMPLIANT_BITSTREAM;
+
 	state->frame_state.nb_tiles_in_obu = 0;
 	for (TileNum = tg_start; TileNum <= tg_end; TileNum++) {
 		u32 tile_start_offset, tile_size;
