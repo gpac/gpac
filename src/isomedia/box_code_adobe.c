@@ -76,7 +76,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_AdobeBootstrapInfoBox *ptr = (GF_AdobeBootstrapInfoBox *)s;
 	int i;
-	u32 tmp_strsize;
+	u32 tmp_strsize, strsize;
 	char *tmp_str;
 	GF_Err e;
 
@@ -91,7 +91,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 
 	i=0;
 	if (ptr->size<8) return GF_ISOM_INVALID_FILE;
-	tmp_strsize=(u32)ptr->size-8;
+	strsize = tmp_strsize=(u32)ptr->size-8;
 	tmp_str = gf_malloc(sizeof(char)*tmp_strsize);
 
 	while (tmp_strsize) {
@@ -101,8 +101,10 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 			break;
 		i++;
 	}
-	if (i)
+	if (i) {
+		tmp_str[strsize-1] = 0;
 		ptr->movie_identifier = gf_strdup(tmp_str);
+	}
 
 	ptr->server_entry_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->server_entry_count; i++) {
@@ -115,6 +117,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 				break;
 			j++;
 		}
+		tmp_str[strsize-1] = 0;
 		gf_list_insert(ptr->server_entry_table, gf_strdup(tmp_str), i);
 	}
 
@@ -129,6 +132,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 				break;
 			j++;
 		}
+		tmp_str[strsize-1] = 0;
 		gf_list_insert(ptr->quality_entry_table, gf_strdup(tmp_str), i);
 	}
 
@@ -141,8 +145,10 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 			break;
 		i++;
 	}
-	if (i)
+	if (i) {
+		tmp_str[strsize-1] = 0;
 		ptr->drm_data = gf_strdup(tmp_str);
+	}
 
 	i=0;
 	tmp_strsize=(u32)ptr->size-8;
@@ -153,8 +159,10 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 			break;
 		i++;
 	}
-	if (i)
+	if (i) {
+		tmp_str[strsize-1] = 0;
 		ptr->meta_data = gf_strdup(tmp_str);
+	}
 
 	ptr->segment_run_table_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->segment_run_table_count; i++) {
