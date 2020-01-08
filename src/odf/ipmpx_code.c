@@ -1065,6 +1065,8 @@ static GF_Err ReadGF_IPMPX_AddToolNotificationListener(GF_BitStream *bs, GF_IPMP
 	p->scope = gf_bs_read_int(bs, 3);
 	gf_bs_read_int(bs, 5);
 	p->eventTypeCount = gf_bs_read_int(bs, 8);
+	if (p->eventTypeCount > ARRAY_LENGTH(p->eventType))
+		return GF_ISOM_INVALID_FILE;
 	for (i=0; i<p->eventTypeCount; i++) p->eventType[i] = gf_bs_read_int(bs, 8);
 	return GF_OK;
 }
