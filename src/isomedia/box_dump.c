@@ -294,11 +294,11 @@ GF_Err clef_dump(GF_Box *a, FILE * trace)
 		name = "TrackEncodedPixelsDimensionsBox";
 
 	gf_isom_box_dump_start(a, name, trace);
-	w = (p->width&0xFFFF);
+	w = (Float)(p->width&0xFFFF);
 	w /= 0xFFFF;
 	w += (p->width>>16);
 
-	h = (p->height&0xFFFF);
+	h = (Float)(p->height&0xFFFF);
 	h /= 0xFFFF;
 	h += (p->height>>16);
 
@@ -678,10 +678,10 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, " Version=\"%d\" Revision=\"%d\" Vendor=\"%s\" TemporalQuality=\"%d\" SpatialQuality=\"%d\" FramesPerSample=\"%d\" ColorTableIndex=\"%d\"",
 			p->version, p->revision, gf_4cc_to_str(p->vendor), p->temporal_quality, p->spatial_quality, p->frames_per_sample, p->color_table_index);
 
-		dpih = (p->horiz_res&0xFFFF);
+		dpih = (Float)(p->horiz_res&0xFFFF);
 		dpih /= 0xFFFF;
 		dpih += (p->vert_res>>16);
-		dpiv = (p->vert_res&0xFFFF);
+		dpiv = (Float)(p->vert_res&0xFFFF);
 		dpiv /= 0xFFFF;
 		dpiv += (p->vert_res>>16);
 

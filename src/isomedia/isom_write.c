@@ -394,7 +394,7 @@ GF_Err gf_isom_set_timescale(GF_ISOFile *movie, u32 timeScale)
 		movie->moov->mvex->mehd->fragment_duration *= timeScale;
 		movie->moov->mvex->mehd->fragment_duration /= movie->moov->mvhd->timeScale;
 	}
-	
+
 	i=0;
 	while ((trak = (GF_TrackBox*)gf_list_enum(movie->moov->trackList, &i))) {
 		trak->Header->duration *= timeScale;
@@ -1622,8 +1622,8 @@ GF_Err gf_isom_update_aperture_info(GF_ISOFile *movie, u32 trackNumber, Bool rem
 	//prof: encoded pixels + pasp in 16.16
 	width = (Float) (ventry->Width * hspacing);
 	width /= vspacing;
-	high = floor(width);
-	low = 0xFFFF * (width - (Double)high);
+	high = (u32)floor(width);
+	low = (u32)(0xFFFF * (width - (Double)high));
 	((GF_ApertureBox *)prof)->width = (high)<<16 | low;
 	((GF_ApertureBox *)prof)->height = (ventry->Height)<<16;
 
@@ -1633,11 +1633,11 @@ GF_Err gf_isom_update_aperture_info(GF_ISOFile *movie, u32 trackNumber, Bool rem
 	height = (Float) clap_height_num;
 	height /= clap_height_den;
 
-	high = floor(width);
-	low = 0xFFFF * (width - (Double)high);
+	high = (u32)floor(width);
+	low = (u32)(0xFFFF * (width - (Double)high));
 	((GF_ApertureBox *)clef)->width = (high)<<16 | low;
-	high = floor(height);
-	low = 0xFFFF * (height - (Double)high);
+	high = (u32)floor(height);
+	low = (u32)(0xFFFF * (height - (Double)high));
 	((GF_ApertureBox *)clef)->height = (high)<<16 | low;
 
 
@@ -6280,5 +6280,3 @@ GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *file, u32 track, u32
 }
 
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
-
-
