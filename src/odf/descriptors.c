@@ -512,6 +512,8 @@ GF_Err gf_odf_avc_cfg_write_bs(GF_AVCConfig *cfg, GF_BitStream *bs)
 {
 	u32 i, count;
 
+	if (!cfg) return GF_BAD_PARAM;
+
 	count = gf_list_count(cfg->sequenceParameterSets);
 
 	if (!cfg->write_annex_b) {

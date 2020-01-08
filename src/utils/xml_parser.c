@@ -2265,4 +2265,44 @@ GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expec
 	return GF_BAD_PARAM;
 }
 
+void gf_xml_dump_string(FILE* file, const char *before, const char *str, const char *after) {
+	size_t i;
+	size_t len=str?strlen(str):0;
+
+	if (before) {
+		fprintf(file, "%s", before);
+	}
+
+	for (i = 0; i < len; i++) {
+		switch (str[i]) {
+		case '&':
+			fprintf(file, "%s", "&amp;");
+			break;
+		case '<':
+			fprintf(file, "%s", "&lt;");
+			break;
+		case '>':
+			fprintf(file, "%s", "&gt;");
+			break;
+		case '\'':
+			fprintf(file, "&apos;");
+			break;
+		case '\"':
+			fprintf(file, "&quot;");
+			break;
+
+		default:
+			fprintf(file, "%c", str[i]);
+			break;
+		}
+	}
+
+	if (after) {
+		fprintf(file, "%s", after);
+	}
+
+
+
+}
+
 #endif /*GPAC_DISABLE_CORE_TOOLS*/

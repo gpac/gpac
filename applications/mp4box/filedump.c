@@ -1187,7 +1187,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 			nal_size = read_nal_size_hdr(ptr, nalh_size);
 			ptr += nalh_size;
 
-			if (nalh_size + nal_size > size) {
+			if (nal_size >= UINT_MAX-nalh_size || nalh_size + nal_size > size) {
 				fprintf(dump, "   <!-- NALU number %d is corrupted: size is %d but only %d remains -->\n", idx, nal_size, size);
 				break;
 			} else {
@@ -2110,7 +2110,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 		gf_isom_get_visual_bit_depth(file, trackNum, 1, &bit_depth);
 		fprintf(stderr, "Visual Info: width=%d height=%d (depth=%d bits)\n", w, h, (int)bit_depth);
-		
+
 		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, NULL);
 		fprintf(stderr, "Visual Track layout: x=%d y=%d width=%d height=%d\n", tx, ty, w, h);
 	}

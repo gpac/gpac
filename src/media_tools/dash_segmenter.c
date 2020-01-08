@@ -28,7 +28,6 @@
 #include <gpac/mpd.h>
 #include <gpac/filters.h>
 
-
 struct __gf_dash_segmenter
 {
 	GF_FilterSession *fsess;

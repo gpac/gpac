@@ -96,7 +96,8 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	u32 compressed_size=0;
 	GF_Box *newBox;
 	Bool skip_logs = (gf_bs_get_cookie(bs) & 1 ) ? GF_TRUE : GF_FALSE;
-
+	Bool is_special = GF_TRUE;
+	
 	if ((bs == NULL) || (outBox == NULL) ) return GF_BAD_PARAM;
 	*outBox = NULL;
 	if (gf_bs_available(bs) < 8) {
@@ -248,12 +249,13 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		((GF_EntityToGroupTypeBox*)newBox)->grouping_type = type;
 	} else {
 		//OK, create the box based on the type
+		is_special = GF_FALSE;
 		newBox = gf_isom_box_new_ex(uuid_type ? uuid_type : type, parent_type, skip_logs, is_root_box);
 		if (!newBox) return GF_OUT_OF_MEM;
 	}
 
 	//OK, init and read this box
-	if (type==GF_ISOM_BOX_TYPE_UUID) {
+	if (type==GF_ISOM_BOX_TYPE_UUID && !is_special) {
 		memcpy(((GF_UUIDBox *)newBox)->uuid, uuid, 16);
 		((GF_UUIDBox *)newBox)->internal_4cc = uuid_type;
 	}

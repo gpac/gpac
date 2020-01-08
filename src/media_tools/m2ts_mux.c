@@ -727,6 +727,8 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 		u32 info_length = 0, es_info_length = 0;
 		GF_BitStream *bs;
 
+		if (!stream->program->pcr)
+			abort();
 
 		bs = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);
 		gf_bs_write_int(bs,	0x7, 3); // reserved
@@ -2321,7 +2323,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 				base_st = gf_m2ts_find_stream(program, 0, ifce->depends_on_stream);
 				if (base_st) base_st->force_single_au = GF_TRUE;
 			}
-			
+
 			/*make sure we send AU delim NALU in same PES as first VCL NAL: 7 bytes (4 start code + 2 nal header + 1 AU delim)
 			+ 4 byte start code + first nal header*/
 			stream->min_bytes_copy_from_next = 12;
@@ -3061,4 +3063,3 @@ send_pck:
 }
 
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
-

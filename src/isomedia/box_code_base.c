@@ -3700,19 +3700,23 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 		ptr->cfg_3gpp = (GF_3GPPConfigBox *) a;
 		/*for 3GP config, remember sample entry type in config*/
 		ptr->cfg_3gpp->cfg.type = ptr->type;
+		ptr->is_qtff = 0;
 		break;
 
 	case GF_ISOM_BOX_TYPE_DOPS:
 		if (ptr->cfg_opus) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_opus = (GF_OpusSpecificBox *)a;
+		ptr->is_qtff = 0;
 		break;
 	case GF_ISOM_BOX_TYPE_DAC3:
 		if (ptr->cfg_ac3) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
+		ptr->is_qtff = 0;
 		break;
 	case GF_ISOM_BOX_TYPE_DEC3:
 		if (ptr->cfg_ac3) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
+		ptr->is_qtff = 0;
 		break;
 	case GF_ISOM_BOX_TYPE_MHA1:
 	case GF_ISOM_BOX_TYPE_MHA2:
@@ -3720,6 +3724,7 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_MHM2:
 		if (ptr->cfg_mha) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_mha = (GF_MHAConfigBox *) a;
+		ptr->is_qtff = 0;
 		break;
 	case GF_ISOM_BOX_TYPE_DFLA:
 		if (ptr->cfg_flac) ERROR_ON_DUPLICATED_BOX(a, ptr)
