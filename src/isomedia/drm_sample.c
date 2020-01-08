@@ -1210,12 +1210,12 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf, u32 s
 		if (!saio_aux_info_type) saio_aux_info_type = sinf_fmt;
 
 		if (!saio_aux_info_type) {
-			GF_SampleEntryBox *entry = NULL;
+			/*GF_SampleEntryBox *entry = NULL;*/
 			GF_ProtectionSchemeInfoBox *sinf = NULL;
 			if (stbl) {
-				entry = gf_list_get(stbl->SampleDescription->other_boxes, 0);
+				/*entry = */gf_list_get(stbl->SampleDescription->other_boxes, 0);
 			} else {
-				entry = gf_list_get(traf->trex->track->Media->information->sampleTable->SampleDescription->other_boxes, 0);
+				/*entry = */gf_list_get(traf->trex->track->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 			}
 
 			if (sinf && sinf->scheme_type) {
