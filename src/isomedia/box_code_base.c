@@ -3890,22 +3890,27 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 		ptr->cfg_3gpp = (GF_3GPPConfigBox *) a;
 		/*for 3GP config, remember sample entry type in config*/
 		ptr->cfg_3gpp->cfg.type = ptr->type;
+		ptr->is_qtff = 0;
 		break;
 
 	case GF_ISOM_BOX_TYPE_DOPS:
 		ptr->cfg_opus = (GF_OpusSpecificBox *)a;
+		ptr->is_qtff = 0;
 		break;
 	case GF_ISOM_BOX_TYPE_DAC3:
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
+		ptr->is_qtff = 0;
 		break;
 	case GF_ISOM_BOX_TYPE_DEC3:
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
+		ptr->is_qtff = 0;
 		break;
 	case GF_ISOM_BOX_TYPE_MHA1:
 	case GF_ISOM_BOX_TYPE_MHA2:
 	case GF_ISOM_BOX_TYPE_MHM1:
 	case GF_ISOM_BOX_TYPE_MHM2:
 		ptr->cfg_mha = (GF_MHAConfigBox *) a;
+		ptr->is_qtff = 0;
 		break;
 
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
