@@ -435,7 +435,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			pck.cts += + priv->cts_dts_shift;
 			pck.flags |= GF_ESI_DATA_HAS_DTS;
 		}
-		
+
 		if (priv->sample->CTS_Offset) {
 			pck.cts += priv->sample->CTS_Offset;
 			pck.flags |= GF_ESI_DATA_HAS_DTS;
@@ -618,6 +618,7 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 	ifce->timescale = gf_isom_get_media_timescale(mp4, track_num);
 	ifce->duration = gf_isom_get_media_timescale(mp4, track_num);
 	avg_rate = gf_isom_get_media_data_size(mp4, track_num);
+	if (!avg_rate) return;
 	avg_rate *= ifce->timescale * 8;
 	if (0!=(duration=gf_isom_get_media_duration(mp4, track_num)))
 		avg_rate /= duration;
@@ -633,7 +634,7 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate interface SLConfig\n"));
 		return;
 	}
-	
+
 	ifce->sl_config->tag = GF_ODF_SLC_TAG;
 	ifce->sl_config->useAccessUnitStartFlag = 1;
 	ifce->sl_config->useAccessUnitEndFlag = 1;
@@ -1516,6 +1517,7 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 				continue;
 
 			fill_isom_es_ifce(source, &source->streams[i], source->mp4, i+1, bifs_use_pes, compute_max_size);
+			if (!source->streams[i].input_udta) continue;
 			if (min_offset > ((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset) {
 				min_offset = ((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset;
 				min_offset_timescale = source->streams[i].timescale;
@@ -1805,7 +1807,7 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate audio input handler\n"));
 					return 0;
 				}
-				
+
 				((GF_ESIStream*)source->streams[source->nb_streams].input_udta)->vers_inc = 1;	/*increment version number at every audio update*/
 				assert( source );
 				//assert( source->iod);
@@ -2941,4 +2943,3 @@ exit:
 #endif
 	return 0;
 }
-
