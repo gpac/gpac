@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA encrypt module
@@ -421,14 +421,12 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 					is_pssh = GF_TRUE;
 			} else if (!strcmp(att->name, "version")) {
 				version = atoi(att->value);
-			} else if (!strcmp(att->name, "cypher-mode")) {
-				/*cypher-mode: 0: data (default mode) -  1: all - 2: clear*/
-				if (!strcmp(att->value, "data"))
+			} else if (!strcmp(att->name, "cypherMode")) {
+				/*cypher-mode: 0: ctr (default mode) -  1: cbc - 2: clear*/
+				if (!strcmp(att->value, "yes"))
 					cypherMode = 0;
-				else if (!strcmp(att->value, "all"))
+				else if (!strcmp(att->value, "no"))
 					cypherMode = 1;
-				else if (!strcmp(att->value, "clear"))
-					cypherMode = 2;
 			} else if (!strcmp(att->name, "cypherKey")) {
 				e = gf_bin128_parse(att->value, cypherKey);
                 if (e != GF_OK) {
@@ -481,7 +479,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 		data = (char *)gf_malloc(len*sizeof(char));
 		gf_bs_read_data(bs, data, len);
 
-		if (has_key && has_IV && (cypherOffset >= 0) && (cypherMode != 2)) {
+		if (has_key && has_IV && (cypherOffset >= 0) && (cypherMode != 1)) {
 			GF_Crypt *gc = gf_crypt_open(GF_AES_128, GF_CTR);
 			if (!gc) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
