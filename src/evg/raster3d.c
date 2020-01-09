@@ -800,11 +800,11 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 	ymax = raster->max_ey * ONE_PIXEL;
 
 	//raster coordinates of points
-	TPos _x1, _y1, _x2, _y2, _x3, _y3, _x4, _y4, _prev_x2, _prev_y2;
+	TPos _x1=0, _y1=0, _x2=0, _y2=0, _x3=0, _y3=0, _x4=0, _y4=0, _prev_x2=0, _prev_y2=0;
 	/*vertices in raster/window space: x and y are in pixel space, z is [min_depth, max_depth]*/
 	GF_Vec4 s_pt1, s_pt2, s_pt3, s_pt4, prev_s_pt2;
-	u32 idx1, idx2, idx3, idx4;
-	u32 vidx1, vidx2, vidx3, vidx4, prev_vidx2;
+	u32 idx1=0, idx2=0, idx3=0, idx4=0;
+	u32 vidx1=0, vidx2=0, vidx3=0, vidx4=0, prev_vidx2=0;
 
 	memset(&vparam, 0, sizeof(GF_EVGVertexParam));
 	vparam.ptype = prim_type;

@@ -1028,7 +1028,7 @@ static JSValue canvas3d_draw_array(JSContext *c, JSValueConst obj, int argc, JSV
 {
 	uint8_t *indices=NULL;
 	uint8_t *vertices=NULL;
-	u32 idx_size, vx_size, nb_comp=3;
+	u32 idx_size=0, vx_size, nb_comp=3;
 	GF_Err e;
 	GF_EVGPrimitiveType prim_type=GF_EVG_TRIANGLES;
 	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas3d_class_id);
@@ -1250,7 +1250,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 {
 	u32 op_idx, dim;
 	GF_Vec4 tmpl, tmpr;
-	GF_Vec4 *left_val, *right_val, *right2_val;
+	GF_Vec4 *left_val=NULL, *right_val, *right2_val;
 	u32 if_level=0;
 	u32 nif_level=0;
 	Bool cond_res;
@@ -1258,7 +1258,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 	for (op_idx=0; op_idx<shader->nb_ops; op_idx++) {
 		u32 next_idx, idx, var_idx;
 		Bool has_next, norm_result=GF_FALSE;
-		u8 right_val_type, left_val_type;
+		u8 right_val_type, left_val_type=0;
 		u8 *left_val_type_ptr=NULL;
 		ShaderOp *op = &shader->ops[op_idx];
 
@@ -2072,7 +2072,7 @@ static u8 get_value_type(const char *comp)
 
 static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	const char *val_name, *arg_str;
+	const char *val_name=NULL, *arg_str;
 	const char *op_name;
 	char *uni_name=NULL;
 	Bool dual_right_val = GF_FALSE;
@@ -2916,7 +2916,7 @@ static JSValue vai_constructor(JSContext *c, JSValueConst new_target, int argc, 
 	EVG_VAI *vai;
 	JSValue obj;
 	u8 *data=NULL;
-	u32 data_size;
+	u32 data_size=0;
 	u32 nb_comp;
 	s32 interp_type = GF_EVG_VAI_VERTEX_INDEX;
 	if (argc<1)
@@ -3261,7 +3261,7 @@ static JSValue mx2d_skew_y(JSContext *c, JSValueConst obj, int argc, JSValueCons
 
 static JSValue mx2d_apply(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	Fixed x, y, w, h;
+	Fixed x, y, w=0, h=0;
 	Double d;
 	JSValue v;
 	int res;
@@ -4712,7 +4712,9 @@ void hsv2rgb(u8 src_h, u8 src_s, u8 src_v, u8 *dst_r, u8 *dst_g, u8 *dst_b)
 	case 2: r = p; g = v; b = t; break;
 	case 3: r = p; g = q; b = v; break;
 	case 4: r = t; g = p; b = v; break;
-	case 5: r = v; g = p; b = q; break;
+	case 5:
+	default:
+		r = v; g = p; b = q; break;
 	}
 
 	*dst_r = (u8)(r * 255); // dst_r : 0-255
@@ -4732,7 +4734,7 @@ static JSValue texture_convert(JSContext *c, JSValueConst obj, int argc, JSValue
 {
 	JSValue nobj;
 	u32 i, j, dst_pf, nb_comp;
-	GF_JSCanvas *canvas;
+	GF_JSCanvas *canvas=NULL;
 	GF_JSTexture *tx_hsv;
 	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
 	if (!tx || !tx->stencil) return JS_EXCEPTION;

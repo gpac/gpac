@@ -482,7 +482,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	char *response = NULL;
 	char szFmt[100];
 	char szETag[100];
-	u64 modif_time;
+	u64 modif_time=0;
 	u32 body_size=0;
 	const char *etag, *range;
 	const char *mime = NULL;
