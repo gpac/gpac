@@ -366,6 +366,11 @@ void GetGhostNum(GF_StscEntry *ent, u32 EntryIndex, u32 count, GF_SampleTableBox
 	GF_ChunkLargeOffsetBox *co64;
 	u32 ghostNum = 1;
 
+	if (!ent) {
+		stbl->SampleToChunk->ghostNumber = 0;
+		return;
+	}
+
 	if (!ent->nextChunk) {
 		if (EntryIndex+1 == count) {
 			//not specified in the spec, what if the last sample to chunk is no written?
@@ -471,7 +476,7 @@ sample_found:
 	(*chunkNumber) = ent->firstChunk + stbl->SampleToChunk->currentChunk - 1;
 	if (out_ent) *out_ent = ent;
 	assert((*chunkNumber));
-	
+
 	//ok, get the size of all the previous samples in the chunk
 	offsetInChunk = 0;
 	//constant size
