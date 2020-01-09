@@ -5739,8 +5739,11 @@ GF_Err stsc_Read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	ptr->alloc_size = ptr->nb_entries;
-	ptr->entries = gf_malloc(sizeof(GF_StscEntry)*ptr->alloc_size);
-	if (!ptr->entries) return GF_OUT_OF_MEM;
+	ptr->entries = NULL;
+	if (ptr->nb_entries) {
+		ptr->entries = gf_malloc(sizeof(GF_StscEntry)*ptr->alloc_size);
+		if (!ptr->entries) return GF_OUT_OF_MEM;
+	}
 
 	for (i = 0; i < ptr->nb_entries; i++) {
 		ptr->entries[i].firstChunk = gf_bs_read_u32(bs);
