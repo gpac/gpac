@@ -1037,6 +1037,23 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_KMS_URI);
 	if (prop) kms_uri = prop->value.string;
 
+	if (ctx->cinfo) {
+		u32 stream_id=0;
+		u32 i, count = gf_list_count(ctx->cinfo->tcis);
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+		if (!prop) prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
+		if (prop) stream_id = prop->value.uint;
+
+		for (i=0; i<count; i++) {
+			GF_TrackCryptInfo *tci = (GF_TrackCryptInfo *) gf_list_get(ctx->cinfo->tcis, i);
+			if ((ctx->cinfo->has_common_key && !tci->trackID) || (tci->trackID == stream_id) ) {
+				if (tci->force_type) scheme_type = tci->scheme_type;
+				break;
+			}
+		}
+
+	}
+
 	switch (scheme_type) {
 	case GF_ISOM_ISMACRYP_SCHEME:
 		e = cenc_dec_setup_isma(ctx, cstr, scheme_type, scheme_version, scheme_uri, kms_uri);
