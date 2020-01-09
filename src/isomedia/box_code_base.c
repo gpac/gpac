@@ -3524,9 +3524,8 @@ GF_Err minf_Read(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_add_default(dref, url);
 
 		if (dump_mode) {
-			gf_list_add(ptr->other_boxes, ptr->dataInformation);
-			if (!dinf->other_boxes) dinf->other_boxes = gf_list_new();
-			gf_list_add(dinf->other_boxes, dref);
+			gf_isom_box_add_for_dump_mode((GF_Box*)ptr, (GF_Box*)ptr->dataInformation);
+			gf_isom_box_add_for_dump_mode((GF_Box*)dinf, (GF_Box*)dref);
 		}
 	}
 	return e;
