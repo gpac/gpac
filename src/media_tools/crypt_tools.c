@@ -87,12 +87,6 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 		tkc->scheme_type = info->def_crypt_type;
 		gf_list_add(info->tcis, tkc);
 
-		if (!strcmp(node_name, "OMATrack")) {
-			tkc->scheme_type = GF_ISOM_OMADRM_SCHEME;
-			/*default to AES 128 in OMA*/
-			tkc->encryption = 2;
-		}
-
 		for (i=0; i<nb_attributes; i++) {
 			att = (GF_XMLAttribute *) &attributes[i];
 			if (!stricmp(att->name, "trackID") || !stricmp(att->name, "ID")) {
@@ -104,6 +98,9 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			}
 			else if (!stricmp(att->name, "type")) {
 				tkc->scheme_type = cryptinfo_get_crypt_type(att->value);
+			}
+			else if (!stricmp(att->name, "forceType")) {
+				tkc->force_type = GF_TRUE;
 			}
 			else if (!stricmp(att->name, "key")) {
 				GF_Err e;
@@ -308,6 +305,11 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				}
 			}
 		}
+		if (tkc->scheme_type == GF_ISOM_OMADRM_SCHEME) {
+			/*default to AES 128 in OMA*/
+			tkc->encryption = 2;
+		}
+
 	}
 
 	if (!strcmp(node_name, "key")) {

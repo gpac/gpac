@@ -164,6 +164,9 @@ typedef struct
 
 	/*! adobe metadata in base64*/
 	char *metadata;
+
+	/*! force using type set in XML rather than type indicated in file when decrypting*/
+	Bool force_type;
 } GF_TrackCryptInfo;
 
 /*! Crypto information*/
