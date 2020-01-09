@@ -9689,7 +9689,11 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		*total_bytes = 20;
 		if ((ptr->IsProtected == 1) && !ptr->Per_Sample_IV_size) {
 			ptr->constant_IV_size = gf_bs_read_u8(bs);
-			assert((ptr->constant_IV_size == 8) || (ptr->constant_IV_size == 16));
+			if ((ptr->constant_IV_size != 8) && (ptr->constant_IV_size != 16)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] seig sample group have invalid constant_IV size\n"));
+				gf_free(ptr);
+				return NULL;
+			}
 			gf_bs_read_data(bs, (char *)ptr->constant_IV, ptr->constant_IV_size);
 			*total_bytes += 1 + ptr->constant_IV_size;
 		}
