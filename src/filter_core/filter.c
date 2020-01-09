@@ -1255,9 +1255,10 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 					szLine[2000]=0;
 					while (!feof(arg_file)) {
 						u32 llen;
-						char *subarg;
+						char *subarg, *res_line;
 						szLine[0] = 0;
-						fgets(szLine, 2000, arg_file);
+						res_line = fgets(szLine, 2000, arg_file);
+						if (!res_line) break;
 						llen = (u32) strlen(szLine);
 						while (llen && strchr(" \n\r\t", szLine[llen-1])) {
 							szLine[llen-1]=0;

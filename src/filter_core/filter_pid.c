@@ -3117,9 +3117,10 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 					szLine[2000]=0;
 					while (!feof(arg_file)) {
 						u32 llen;
-						char *subarg;
+						char *subarg, *res;
 						szLine[0] = 0;
-						fgets(szLine, 2000, arg_file);
+						res = fgets(szLine, 2000, arg_file);
+						if (!res) break;
 						llen = (u32) strlen(szLine);
 						while (llen && strchr(" \n\r\t", szLine[llen-1])) {
 							szLine[llen-1]=0;
