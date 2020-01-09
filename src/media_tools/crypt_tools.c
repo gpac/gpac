@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -49,6 +49,8 @@ static u32 cryptinfo_get_crypt_type(char *cr_type)
 		return GF_CRYPT_TYPE_CENS;
 	else if (!stricmp(cr_type, "CENC AES-CBC Pattern") || !stricmp(cr_type, "cbcs"))
 		return GF_CRYPT_TYPE_CBCS;
+	else if (!stricmp(cr_type, "OMA"))
+		return GF_ISOM_OMADRM_SCHEME;
 
 	GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Unrecognized crypto type %s\n", cr_type));
 	return 0;
@@ -125,6 +127,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 					sprintf(szV, "%c%c", sKey[j], sKey[j+1]);
 					sscanf(szV, "%x", &v);
 					tkc->first_IV[j/2] = v;
+					if (j>=30) break;
 				}
 			}
 			else if (!stricmp(att->name, "kms_URI") || !stricmp(att->name, "rightsIssuerURL")) {
@@ -157,6 +160,8 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 					char *sep = strchr(att->value, '=');
 					if (sep) tkc->sel_enc_range = atoi(sep+1);
 					tkc->sel_enc_type = GF_CRYPT_SELENC_CLEAR_FORCED;
+				}
+				else if (!stricmp(att->value, "None")) {
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unrecognized selective mode %s, ignoring\n", att->value));
 				}
@@ -192,7 +197,6 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			}
 			else if (!stricmp(att->name, "textualHeaders")) {
 			}
-			/*CENC extensions*/
 			else if (!stricmp(att->name, "IsEncrypted")) {
 				if (!stricmp(att->value, "1"))
 					tkc->IsEncrypted = 1;
