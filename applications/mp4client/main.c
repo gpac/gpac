@@ -225,7 +225,7 @@ void PrintUsage(Bool show_all)
 			"Specific URLs shortcuts are available, see [GPAC Compositor (gpac -h compositor)](compositor)\n"
 			"Version: %s\n"
 			"%s\n"
-			"For more info on GPAC configuration, use `gpac ` [-h](GPAC) `bin`)  \n  \n",
+			"For more info on GPAC configuration, use `gpac ` [-h](GPAC) `bin`)  \n  \n"
 			"# Options  \n  \n",
 			gf_gpac_version(),
 			gf_gpac_copyright()
@@ -1063,7 +1063,7 @@ int mp4client_main(int argc, char **argv)
 	MP4C_Command cmdtype;
 	const char *str;
 	GF_Err e;
-	u32 i;
+	u32 i, ll;
 	u32 simulation_time_in_ms = 0;
 	u32 initial_service_id = 0;
 	Bool auto_exit = GF_FALSE;
@@ -1842,10 +1842,14 @@ force_input:
 			ResetCaption();
 			break;
 		case MP4C_DISP_STATS:
-			gf_term_print_stats(term);
-			break;
 		case MP4C_DISP_GRAPH:
-			gf_term_print_graph(term);
+			ll = gf_log_get_tool_level(GF_LOG_APP);
+			gf_log_set_tool_level(GF_LOG_APP, GF_LOG_INFO);
+			if (cmdtype==MP4C_DISP_STATS)
+				gf_term_print_stats(term);
+			else
+				gf_term_print_graph(term);
+			gf_log_set_tool_level(GF_LOG_APP, ll);
 			break;
 		case MP4C_UPDATE:
 		{
@@ -1968,10 +1972,15 @@ force_input:
 		gf_log_set_strict_error(0);
 	}
 
-	if (print_graph)
-		gf_term_print_graph(term);
-	if (print_stats)
-		gf_term_print_stats(term);
+	if (print_graph || print_stats) {
+		u32 ll = gf_log_get_tool_level(GF_LOG_APP);
+		gf_log_set_tool_level(GF_LOG_APP, GF_LOG_INFO);
+		if (print_graph)
+			gf_term_print_graph(term);
+		if (print_stats)
+			gf_term_print_stats(term);
+		gf_log_set_tool_level(GF_LOG_APP, ll);
+	}
 
 #ifdef GPAC_ENABLE_COVERAGE
 	if (do_coverage) {
