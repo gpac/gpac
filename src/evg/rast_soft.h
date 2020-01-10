@@ -137,6 +137,7 @@ struct _gf_evg_surface
 	u32 width, height;
 	s32 pitch_x, pitch_y;
 	Bool center_coords;
+	Bool is_transparent;
 
 	/*color buffer for variable stencils - size of width * 32 bit for 8 bit surface or width * 64 otherwise*/
 	void *stencil_pix_run;

@@ -224,6 +224,7 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 	Bool size_changed=GF_FALSE;
 	if (!surf || !pixels) return GF_BAD_PARAM;
 
+	surf->is_transparent = GF_FALSE;
 	surf->not_8bits = GF_FALSE;
 	switch (pixelFormat) {
 	case GF_PIXEL_GREYSCALE:
@@ -232,6 +233,7 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_GREYALPHA:
 		BPP = 2;
+		surf->is_transparent = GF_TRUE;
 		break;
 	case GF_PIXEL_RGB_444:
 	case GF_PIXEL_RGB_555:
@@ -242,6 +244,7 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 	case GF_PIXEL_BGRA:
 	case GF_PIXEL_RGBA:
 	case GF_PIXEL_ABGR:
+		surf->is_transparent = GF_TRUE;
 	case GF_PIXEL_RGBX:
 	case GF_PIXEL_BGRX:
 	case GF_PIXEL_XRGB:
@@ -502,7 +505,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 		use_const = GF_FALSE;
 	}
 
-	if (use_const && !a) return GF_FALSE;
+	if (use_const && !a && !surf->is_transparent) return GF_FALSE;
 
 	surf->is_422 = GF_FALSE;
 	surf->yuv_type = 0;
