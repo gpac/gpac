@@ -3358,7 +3358,6 @@ restart:
 
 	if (num_pass) {
 		loaded_filters = gf_list_new();
-
 	}
 
 	found_matching_sourceid = GF_FALSE;
@@ -3522,6 +3521,13 @@ single_retry:
 			u32 k, alt_count = gf_list_count(possible_linked_resolutions);
 			for (k=0; k<alt_count; k++) {
 				GF_Filter *adest = gf_list_get(possible_linked_resolutions, k);
+				//we only apply this if the destination filter has the GF_FS_REG_DYNAMIC_REDIRECT flag set.
+				//Not doing so could results in broken link resolution:
+				//PID1(AVC) -> decoder1 -> compositor
+				//PID2(PNG) -> decoder2 -> compositor
+				//However this algo would force a connection of PID2 to decoder1 if decoder1 accepts multiple input, regardless of PID2 caps
+				if (! (adest->freg->flags & GF_FS_REG_DYNAMIC_REDIRECT))
+					continue;
 				if ((gf_list_find(adest->destination_filters, filter_dst)>=0) || (gf_list_find(adest->destination_links, filter_dst)>=0) ) {
 					filter_dst = adest;
 					gf_list_rem(possible_linked_resolutions, k);
@@ -3568,9 +3574,6 @@ single_retry:
 			if (!num_pass) {
 				//we have an explicit link instruction so we must try dynamic link even if we connect to another filter
 				if (filter_dst->source_ids) {
-					if(! strcmp(filter_dst->freg->name, "dashin") )
-						num_pass = 0;
-
 					gf_list_add(force_link_resolutions, filter_dst);
 				} else {
 					//register as possible destination link. If a filter already registered is a destination of this possible link

@@ -1121,6 +1121,7 @@ GF_FilterRegister GSFMxRegister = {
 	.private_size = sizeof(GSFMxCtx),
 	.max_extra_pids = (u32) -1,
 	.args = GSFMxArgs,
+	.flags = GF_FS_REG_DYNAMIC_REDIRECT,
 	SETCAPS(GSFMxCaps),
 	.initialize = gsfmx_initialize,
 	.finalize = gsfmx_finalize,

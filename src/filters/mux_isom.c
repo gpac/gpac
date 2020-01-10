@@ -4916,6 +4916,7 @@ GF_FilterRegister MP4MuxRegister = {
 	.args = MP4MuxArgs,
 	.initialize = mp4_mux_initialize,
 	.finalize = mp4_mux_finalize,
+	.flags = GF_FS_REG_DYNAMIC_REDIRECT,
 	SETCAPS(MP4MuxCaps),
 	.configure_pid = mp4_mux_configure_pid,
 	.process = mp4_mux_process,
