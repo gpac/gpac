@@ -86,14 +86,14 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_modify_tools_levels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_tools_levels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_tool_level) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_log_get_tool_level) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_strict_error) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_get_tools_levels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_reset_file) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_log_tool_level_on) )
 
 #ifndef GPAC_DISABLE_LOG
-#pragma comment (linker, EXPORT_SYMBOL(gf_log_tool_level_on) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_va_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_lt) )
