@@ -281,6 +281,25 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			} else {
 				p.value.string = data;
 			}
+		} else if (value && !strnicmp(value, "bxml@", 5) ) {
+			GF_Err e = GF_OK;
+			GF_DOMParser *dom = gf_xml_dom_new();
+			e = gf_xml_dom_parse(dom, value+5, NULL, NULL);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot parse XML from file %s\n", value+5));
+			} else {
+				GF_XMLNode *root = gf_xml_dom_get_root_idx(dom, 0);
+				//if no root, assume NULL
+				if (root) {
+					e = gf_xml_parse_bit_sequence(root, value+5, &p.value.data.ptr, &p.value.data.size);
+				}
+				if (e<0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to binarize XML file %s: %s\n", value+5, gf_error_to_string(e) ));
+				} else {
+					p.type=GF_PROP_DATA;
+				}
+			}
+			gf_xml_dom_del(dom);
 		} else {
 			p.value.string = value ? gf_strdup(value) : NULL;
 		}
