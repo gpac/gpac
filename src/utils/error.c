@@ -754,25 +754,35 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
 {
 	return NULL;
 }
+
+GF_EXPORT
 void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level)
 {
-
 }
 
+GF_EXPORT
 char *gf_log_get_tools_levels()
 {
 	return "all@disabled";
 }
 
+GF_EXPORT
 u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
 {
 	return 0;
 }
 
+GF_EXPORT
 GF_Err gf_log_set_tools_levels(const char *val, Bool reset_all)
 {
 	return GF_OK;
 }
+GF_EXPORT
+Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
+{
+	return GF_FALSE;
+}
+
 #endif
 
 static char szErrMsg[50];
