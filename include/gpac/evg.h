@@ -408,7 +408,8 @@ The clipper and stencil mode may be changed at will
 */
 GF_Err gf_evg_surface_set_path(GF_EVGSurface *surf, GF_Path *path);
 
-/*! draw (filling) the current path on a surface using the given stencil and current clipper if any
+/*! draw (filling) the current path on a surface using the given stencil and current clipper if any.
+If the stencil is a solid brush and its alpha value is 0, the surface is cleared if it has an alpha component, otherwise the call is ignored.
 \note this can be called several times with the same current path
 \note this is only used for 2D rasterizer, and ignored in 3D mode
 \param surf the surface object
