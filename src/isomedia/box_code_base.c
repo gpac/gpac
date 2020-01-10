@@ -3583,6 +3583,7 @@ GF_Err moov_on_child_box(GF_Box *s, GF_Box *a)
 		ptr->iods = (GF_ObjectDescriptorBox *)a;
 		//if no IOD, delete the box
 		if (!ptr->iods->descriptor) {
+			extern Bool use_dump_mode;
 			ptr->iods = NULL;
 			gf_isom_box_del_parent(&s->child_boxes, a);
 		}
@@ -5091,8 +5092,11 @@ GF_Err stsc_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	ptr->alloc_size = ptr->nb_entries;
-	ptr->entries = gf_malloc(sizeof(GF_StscEntry)*ptr->alloc_size);
-	if (!ptr->entries) return GF_OUT_OF_MEM;
+	ptr->entries = NULL;
+	if (ptr->nb_entries) {
+		ptr->entries = gf_malloc(sizeof(GF_StscEntry)*ptr->alloc_size);
+		if (!ptr->entries) return GF_OUT_OF_MEM;
+	}
 
 	for (i = 0; i < ptr->nb_entries; i++) {
 		ptr->entries[i].firstChunk = gf_bs_read_u32(bs);
@@ -8618,7 +8622,10 @@ GF_Err ssix_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->subsegment_count = gf_bs_read_u32(bs);
 	ptr->size -= 4;
 
-	ptr->subsegments = gf_malloc(ptr->subsegment_count*sizeof(GF_SubsegmentInfo));
+	if (ptr->subsegment_count > UINT_MAX / sizeof(GF_SubsegmentInfo))
+		return GF_ISOM_INVALID_FILE;
+
+	GF_SAFE_ALLOC_N(ptr->subsegments, ptr->subsegment_count, GF_SubsegmentInfo);
 	if (!ptr->subsegments)
 	    return GF_OUT_OF_MEM;
 	for (i = 0; i < ptr->subsegment_count; i++) {
@@ -9243,7 +9250,11 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		*total_bytes = 20;
 		if ((ptr->IsProtected == 1) && !ptr->Per_Sample_IV_size) {
 			ptr->constant_IV_size = gf_bs_read_u8(bs);
-			assert((ptr->constant_IV_size == 8) || (ptr->constant_IV_size == 16));
+			if ((ptr->constant_IV_size != 8) && (ptr->constant_IV_size != 16)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] seig sample group have invalid constant_IV size\n"));
+				gf_free(ptr);
+				return NULL;
+			}
 			gf_bs_read_data(bs, (char *)ptr->constant_IV, ptr->constant_IV_size);
 			*total_bytes += 1 + ptr->constant_IV_size;
 		}
@@ -10174,6 +10185,8 @@ GF_Err fpar_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, (ptr->version ? 4 : 2) );
 	ptr->nb_entries = gf_bs_read_int(bs, ptr->version ? 32 : 16);
+	if (ptr->nb_entries > UINT_MAX / 6)
+		return GF_ISOM_INVALID_FILE;
 	ISOM_DECREASE_SIZE(ptr, ptr->nb_entries * 6 );
 	GF_SAFE_ALLOC_N(ptr->entries, ptr->nb_entries, FilePartitionEntry);
 	for (i=0;i < ptr->nb_entries; i++) {
