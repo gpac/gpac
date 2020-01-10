@@ -3700,8 +3700,12 @@ GF_Err moov_AddBox(GF_Box *s, GF_Box *a)
 			ptr->iods = (GF_ObjectDescriptorBox *)a;
 		//if no IOD, delete the box
 		if (!ptr->iods->descriptor) {
+			extern Bool use_dump_mode;
 			ptr->iods = NULL;
-			gf_isom_box_del(a);
+
+			// don't actually delete in dump mode, it will be done in other_boxes
+			if (!use_dump_mode)
+				gf_isom_box_del(a);
 		}
 		return GF_OK;
 
@@ -9061,7 +9065,10 @@ GF_Err ssix_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->subsegment_count = gf_bs_read_u32(bs);
 	ptr->size -= 4;
 
-	ptr->subsegments = gf_malloc(ptr->subsegment_count*sizeof(GF_SubsegmentInfo));
+	if (ptr->subsegment_count > UINT32_MAX / sizeof(GF_SubsegmentInfo))
+		return GF_ISOM_INVALID_FILE;
+
+	GF_SAFE_ALLOC_N(ptr->subsegments, ptr->subsegment_count, GF_SubsegmentInfo);
 	if (!ptr->subsegments)
 	    return GF_OUT_OF_MEM;
 	for (i = 0; i < ptr->subsegment_count; i++) {
@@ -10700,6 +10707,8 @@ GF_Err fpar_Read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, (ptr->version ? 4 : 2) );
 	ptr->nb_entries = gf_bs_read_int(bs, ptr->version ? 32 : 16);
+	if (ptr->nb_entries > UINT32_MAX / 6)
+		return GF_ISOM_INVALID_FILE;
 	ISOM_DECREASE_SIZE(ptr, ptr->nb_entries * 6 );
 	GF_SAFE_ALLOC_N(ptr->entries, ptr->nb_entries, FilePartitionEntry);
 	for (i=0;i < ptr->nb_entries; i++) {

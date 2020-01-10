@@ -1465,9 +1465,7 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 				else if (a->type==GF_ISOM_BOX_TYPE_UUID) parent_OK = GF_TRUE;
 			}
 			if (! parent_OK && !skip_logs) {
-				char szName[5];
-				strcpy(szName, parent_code);
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" is invalid in container %s\n", gf_4cc_to_str(a->type), szName));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" is invalid in container %s\n", gf_4cc_to_str(a->type), parent_code));
 			}
 		}
 
