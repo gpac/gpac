@@ -9065,7 +9065,7 @@ GF_Err ssix_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->subsegment_count = gf_bs_read_u32(bs);
 	ptr->size -= 4;
 
-	if (ptr->subsegment_count > UINT32_MAX / sizeof(GF_SubsegmentInfo))
+	if (ptr->subsegment_count > UINT_MAX / sizeof(GF_SubsegmentInfo))
 		return GF_ISOM_INVALID_FILE;
 
 	GF_SAFE_ALLOC_N(ptr->subsegments, ptr->subsegment_count, GF_SubsegmentInfo);
@@ -10707,7 +10707,7 @@ GF_Err fpar_Read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, (ptr->version ? 4 : 2) );
 	ptr->nb_entries = gf_bs_read_int(bs, ptr->version ? 32 : 16);
-	if (ptr->nb_entries > UINT32_MAX / 6)
+	if (ptr->nb_entries > UINT_MAX / 6)
 		return GF_ISOM_INVALID_FILE;
 	ISOM_DECREASE_SIZE(ptr, ptr->nb_entries * 6 );
 	GF_SAFE_ALLOC_N(ptr->entries, ptr->nb_entries, FilePartitionEntry);
