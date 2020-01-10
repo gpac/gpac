@@ -418,7 +418,7 @@ void visual_2d_flush_hybgl_canvas(GF_VisualManager *visual, GF_TextureHandler *t
 void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx, GF_TraverseState *tr_state)
 {
 	GF_Rect clipper;
-	GF_Matrix mx;
+	GF_Matrix mx, bck_mx;
 	u32 prev_mode = tr_state->traversing_mode;
 	u32 prev_type_3d = tr_state->visual->type_3d;
 
@@ -427,6 +427,7 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	tr_state->visual->type_3d = 4;
 	tr_state->appear = ctx->appear;
 	if (ctx->col_mat) gf_cmx_copy(&tr_state->color_mat, ctx->col_mat);//
+	gf_mx_copy(bck_mx, tr_state->model_matrix);
 
 	tr_state->traversing_mode=TRAVERSE_DRAW_3D;
 	//in hybridGL the 2D camera is always setup as centered-coords, we have to insert flip+translation in case of top-left origin 
@@ -457,6 +458,7 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	ctx->flags |= CTX_PATH_FILLED;
 
 	visual_3d_reset_clipper_2d(tr_state->visual);
+	gf_mx_copy(tr_state->model_matrix, bck_mx);
 }
 #endif
 
