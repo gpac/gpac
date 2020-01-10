@@ -56,7 +56,7 @@ typedef struct
 	Bool v_in_use;
 	u32 nb_frames, cur_frame, nb_frame_sent;
 	u32 dummy, nvops;
-
+	Bool stop_seen;
 	const char *src_url;
 	avi_t *avi;
 
@@ -141,6 +141,8 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_WIDTH, &PROP_UINT( w ) );
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_HEIGHT, &PROP_UINT( h ) );
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_DURATION, &PROP_FRAC64( dur ) );
+
+		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_SEEK ) );
 
 		if (pfmt) {
 			u32 stride=0;
@@ -268,6 +270,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( sync_id ) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, &PROP_FRAC64( dur ) );
 
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_SEEK ) );
 			st->audio_bps = 0;
 			if (unframed) {
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL( GF_TRUE ) );
@@ -338,6 +341,8 @@ GF_Err avidmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
+	u64 file_pos;
+	u32 frame_idx, i;
 	GF_AVIDmxCtx *ctx = gf_filter_get_udta(filter);
 
 	switch (evt->base.type) {
@@ -346,15 +351,33 @@ static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			return GF_TRUE;
 		}
 		ctx->nb_playing++;
+		frame_idx = 0;
+		if ((evt->play.start_range>0) || ctx->stop_seen)
+			frame_idx = ctx->avi->fps * evt->play.start_range;
 
-		if (evt->play.start_range>0.5) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AVIDmx] Seeking is not supported, ignoring\n"));
+		ctx->stop_seen = GF_FALSE;
+		if (frame_idx) {
+			AVI_set_video_position(ctx->avi, frame_idx);
+		} else {
+			AVI_seek_start(ctx->avi);
+			gf_filter_post_process_task(filter);
+		}
+		ctx->cur_frame = frame_idx;
+		file_pos = (u64) AVI_get_video_position(ctx->avi, ctx->cur_frame);
+		for (i=0; i<gf_list_count(ctx->audios); i++) {
+			AVIAstream *st = gf_list_get(ctx->audios, i);
+			AVI_set_audio_track(ctx->avi, st->stream_num);
+			AVI_set_audio_position(ctx->avi, file_pos);
 		}
 		//cancel play event, we work with full file
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
-		ctx->nb_playing --;
+		if (ctx->nb_playing) {
+			ctx->nb_playing --;
+			if (!ctx->nb_playing) ctx->stop_seen = GF_TRUE;
+		}
+
 		//don't cancel event
 		return GF_FALSE;
 
@@ -380,8 +403,9 @@ GF_Err avidmx_process(GF_Filter *filter)
 			return GF_OK;
 		}
 		gf_filter_pck_get_framing(pck, &start, &end);
+		gf_filter_pid_drop_packet(ctx->ipid);
+
 		if (!end) {
-			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
 		}
 
@@ -474,8 +498,6 @@ GF_Err avidmx_process(GF_Filter *filter)
 			AVIAstream *st = gf_list_get(ctx->audios, i);
 			gf_filter_pid_set_eos(st->opid);
 		}
-
-		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_EOS;
 	}
 	return GF_OK;
@@ -537,8 +559,6 @@ GF_FilterRegister AVIDmxRegister = {
 	.configure_pid = avidmx_configure_pid,
 	.process = avidmx_process,
 	.process_event = avidmx_process_event,
-	//this filter is not very reliable, prefer ffmpeg when available
-	.priority = 255
 };
 
 #endif // GPAC_DISABLE_AVILIB

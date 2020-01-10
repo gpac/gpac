@@ -2845,7 +2845,6 @@ u64 AVI_get_video_position(avi_t *AVI, int frame)
 }
 
 
-#if 0 //unused
 int AVI_seek_start(avi_t *AVI)
 {
 	if(AVI->mode==AVI_MODE_WRITE) {
@@ -2874,6 +2873,7 @@ int AVI_set_video_position(avi_t *AVI, int frame)
 	return 0;
 }
 
+#if 0 //unused
 int AVI_set_audio_bitrate(avi_t *AVI, int bitrate)
 {
 	if(AVI->mode==AVI_MODE_READ) {
@@ -2957,6 +2957,7 @@ int AVI_set_audio_position_index(avi_t *AVI, int indexpos)
 
 	return 0;
 }
+#endif
 
 
 int AVI_set_audio_position(avi_t *AVI, int byte)
@@ -2993,7 +2994,6 @@ int AVI_set_audio_position(avi_t *AVI, int byte)
 
 	return 0;
 }
-#endif
 
 
 int AVI_read_audio(avi_t *AVI, u8 *audbuf, int bytes, int *continuous)
