@@ -64,7 +64,7 @@ typedef struct
 
 	Bool raw_pck_out;
 	u32 nb_playing;
-
+	Bool stop_seen;
 	u64 first_sample_clock, last_frame_ts;
 	u32 probe_frames;
 
@@ -359,6 +359,10 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 
 		if (is_grab)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_RAWGRAB, &PROP_BOOL(GF_TRUE) );
+		else if (ctx->demuxer->iformat) {
+			if ((ctx->demuxer->iformat->flags & AVFMT_SEEK_TO_PTS) || ctx->demuxer->iformat->read_seek)
+				gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_SEEK ) );
+		}
 
 		//force reframer for the following formats if no DSI is found
 		if (!codec->extradata_size) {
@@ -551,19 +555,26 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 
 	switch (com->base.type) {
 	case GF_FEVT_PLAY:
-		if (!ctx->nb_playing && !ctx->raw_data && (com->play.start_range>0) ) {
+		if (!ctx->nb_playing && !ctx->raw_data
+			&& (ctx->stop_seen || (com->play.start_range>0))
+		) {
 			int res = av_seek_frame(ctx->demuxer, -1, (s64) (AV_TIME_BASE*com->play.start_range), AVSEEK_FLAG_BACKWARD);
 			if (res<0) {
 				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Fail to seek %s to %g - error %s\n", ctx->fname, ctx->src, com->play.start_range, av_err2str(res) ));
 			}
 		}
 		ctx->nb_playing++;
+		ctx->stop_seen = GF_FALSE;
 
 		//cancel event
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
-		if (ctx->nb_playing) ctx->nb_playing--;
+		if (ctx->nb_playing) {
+			ctx->nb_playing--;
+			if (!ctx->nb_playing)
+				ctx->stop_seen = GF_TRUE;
+		}
 		//cancel event
 		return GF_TRUE;
 
