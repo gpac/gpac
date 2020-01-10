@@ -3065,12 +3065,12 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 			/*watchout for default BIFS stream*/
 			if (parser->bifs_es && !parser->base_bifs_id && (esd->decoderConfig->streamType==GF_STREAM_SCENE)) {
 				parser->bifs_es->ESID = parser->base_bifs_id = esd->ESID;
-				parser->bifs_es->timeScale = esd->slConfig ? esd->slConfig->timestampResolution : 1000;
+				parser->bifs_es->timeScale = (esd->slConfig && esd->slConfig->timestampResolution) ? esd->slConfig->timestampResolution : 1000;
 				sc = parser->bifs_es;
 			} else {
 				sc = gf_sm_stream_new(parser->load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 				/*set default timescale for systems tracks (ignored for other)*/
-				if (sc) sc->timeScale = esd->slConfig ? esd->slConfig->timestampResolution : 1000;
+				if (sc) sc->timeScale = (esd->slConfig && esd->slConfig->timestampResolution) ? esd->slConfig->timestampResolution : 1000;
 				/*assign base OD*/
 				if (!parser->base_od_id && (esd->decoderConfig->streamType==GF_STREAM_OD)) parser->base_od_id = esd->ESID;
 			}
