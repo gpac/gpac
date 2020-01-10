@@ -1667,6 +1667,10 @@ typedef enum
 	GF_FS_REG_SCRIPT = 1<<8,
 	/*! Indicates the filter is a meta filter, wrapping various underlying filters (e.g., FFmpeg)*/
 	GF_FS_REG_META = 1<<9,
+	/*! Indicates that this filter, when dynamically loaded, allows the link resolver to redirect PID connection to this filter rather than to its next explicetly loaded filter in the chain.
+		This is typically used by mux filters
+	*/
+	GF_FS_REG_DYNAMIC_REDIRECT = 1<<10,
 
 	/*! flag dynamically set at runtime for registries loaded through shared libraries*/
 	GF_FS_REG_DYNLIB = 0x80000000

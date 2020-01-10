@@ -1357,6 +1357,7 @@ GF_FilterRegister TSMuxRegister = {
 	.args = TSMuxArgs,
 	.initialize = tsmux_initialize,
 	.finalize = tsmux_finalize,
+	.flags = GF_FS_REG_DYNAMIC_REDIRECT,
 	SETCAPS(TSMuxCaps),
 	.configure_pid = tsmux_configure_pid,
 	.process = tsmux_process,
