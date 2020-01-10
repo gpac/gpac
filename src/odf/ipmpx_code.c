@@ -399,7 +399,7 @@ static GF_Err ReadGF_IPMPX_MutualAuthentication(GF_BitStream *bs, GF_IPMPX_Data 
 	if (requestNegotiation) {
 		count = gf_bs_read_int(bs, 8);
 		for (i=0; i<count; i++) {
-			GF_IPMPX_Authentication *auth;
+			GF_IPMPX_Authentication *auth = NULL;
 			e = GF_IPMPX_AUTH_Parse(bs, &auth);
 			if (e) return e;
 			gf_list_add(p->candidateAlgorithms, auth);

@@ -1300,6 +1300,11 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 
 		//subsample info is only signaled for encrypted samples
 		if (is_encrypted) {
+			if (sai->IV_size > GF_ARRAY_LENGTH(sai->IV)) {
+				gf_isom_cenc_samp_aux_info_del(sai);
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] Failed to parse SENC box, invalid SAI size\n" ));
+				return GF_ISOM_INVALID_FILE;
+			}
 			if (sai->IV_size) {
 				gf_bs_read_data(bs, (char *)sai->IV, sai->IV_size);
 				senc_size -= sai->IV_size;
