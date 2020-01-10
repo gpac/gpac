@@ -110,7 +110,7 @@ A named texture is a texture created with a name:
 let tx = gl.createTexture('myVidTex');
 \endcode
 
-Texture data is associated using upload():
+The texture data is then associated using upload():
 \code
 //source data is in system memory or already in OpenGL textures
 let pck = input_pid.get_packet();

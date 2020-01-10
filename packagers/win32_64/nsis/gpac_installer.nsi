@@ -250,11 +250,8 @@ Section "GPAC Core" SecGPAC
   File /oname=ReadMe.txt "${GPAC_ROOT}\README.md"
   File /oname=License.txt "${GPAC_ROOT}\COPYING"
   File /oname=Changelog.txt "${GPAC_ROOT}\Changelog"
-  File "${GPAC_ROOT}\share\doc\configuration.html"
-  File "${GPAC_ROOT}\share\doc\gpac.mp4"
   File "${GPAC_ROOT}\share\doc\osmo4.ico"
   File "${GPAC_BIN}\libgpac.dll"
-  File "${GPAC_BIN}\js.dll"
   File "${GPAC_BIN}\libcryptoMD.dll"
   File "${GPAC_BIN}\libsslMD.dll"
 
@@ -292,6 +289,8 @@ Section "GPAC Player" SecOsmo4
 
   ;copy GUI
   SetOutPath $INSTDIR\share
+  File "${GPAC_ROOT}\share\doc\gpac.mp4"
+  File "${GPAC_ROOT}\share\doc\gpac_cfg_test.mp4"
   SetOutPath $INSTDIR\share\gui
   File "${GPAC_ROOT}\share\gui\gui.bt"
   File "${GPAC_ROOT}\share\gui\gui.js"
@@ -377,7 +376,6 @@ Section "GPAC SDK" SecSDK
   File /r ${GPAC_ROOT}\include\*.h
   SetOutPath $INSTDIR\sdk\lib
   File ${GPAC_BIN}\libgpac.lib
-  File ${GPAC_EXTRA_LIB}\js.lib
 SectionEnd
 
 !if /FileExists "${GPAC_BIN}\GPAX.dll"

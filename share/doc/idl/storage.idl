@@ -10,8 +10,8 @@
 \ingroup jsapi_grp
 \brief Storage API.
 
-This storage API exposes the one or more configuration file to the script, for persistent storage of data.
-See GF_Config for more info on the config file.
+This storage API allows creating a configuration file in JS for persistent storage of data.
+See \ref cfg_grp for more info on the config file.
 
 This API shall be loaded by a scene script using:
 \code
