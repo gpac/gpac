@@ -3583,7 +3583,6 @@ GF_Err moov_on_child_box(GF_Box *s, GF_Box *a)
 		ptr->iods = (GF_ObjectDescriptorBox *)a;
 		//if no IOD, delete the box
 		if (!ptr->iods->descriptor) {
-			extern Bool use_dump_mode;
 			ptr->iods = NULL;
 			gf_isom_box_del_parent(&s->child_boxes, a);
 		}

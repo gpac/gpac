@@ -976,7 +976,7 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 	Bool load_meta_filters = session ? GF_TRUE : GF_FALSE;
 	AVFormatContext *format_ctx = NULL;
 	AVCodecContext *codec_ctx = NULL;
-	const AVClass *av_class;
+	const AVClass *av_class = NULL;
 	GF_FFRegistryExt *ffregext;
 
 	ffmpeg_initialize();
@@ -1007,7 +1007,7 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 
 	i=0;
 	idx=0;
-	while (av_class->option) {
+	while (av_class && av_class->option) {
 		opt = &av_class->option[idx];
 		if (!opt || !opt->name) break;
 
