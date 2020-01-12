@@ -847,7 +847,7 @@ Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 		//OSX/ios don't support sem_timedwait, so we sleep until the sem is notified or the timeout is done
 		//don't be too greedy, use 5ms sleep
 		//another approach would be to spawn a thread, use sem_wait and send an interrupt on the sema after the timeout ...
-		gf_sleep(5);
+		gf_sleep(1);
 	} while (gf_sys_clock() < TimeOut);
 	return GF_FALSE;
 #else
