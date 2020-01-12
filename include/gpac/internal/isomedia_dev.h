@@ -2305,6 +2305,7 @@ typedef struct
 	u32 def_sample_flags;
 	u32 EmptyDuration;
 	u8 IFrameSwitching;
+	u8 use_sdtp;
 } GF_TrackFragmentHeaderBox;
 
 
