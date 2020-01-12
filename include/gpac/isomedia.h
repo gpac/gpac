@@ -3904,7 +3904,7 @@ GF_Err gf_isom_enable_traf_inherit(GF_ISOFile *isom_file, GF_ISOTrackID TrackID,
 /*! Track fragment options*/
 typedef enum
 {
-	/*i! ndicates that the track fragment has no samples but still has a duration
+	/*! indicates that the track fragment has no samples but still has a duration
 	(silence-detection in audio codecs, ...).
 	param: indicates duration*/
 	GF_ISOM_TRAF_EMPTY,
@@ -3920,7 +3920,8 @@ typedef enum
 	/*! forces moof base offsets when traf based offsets would be chosen
 	param: on/off (0/1)*/
 	GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET,
-
+	/*! use sdtp box in traf rather than storing sample deps in trun entry*/
+	GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX,
 	/*! forces new trun at next sample add
 	param: ignored*/
 	GF_ISOM_TRUN_FORCE,
@@ -3943,7 +3944,6 @@ lifetime of the fragment
 \return error if any
 */
 GF_Err gf_isom_set_fragment_option(GF_ISOFile *isom_file, GF_ISOTrackID TrackID, GF_ISOTrackFragmentOption Code, u32 param);
-
 
 /*! adds a sample to a fragmented track
 

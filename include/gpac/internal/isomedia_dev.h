@@ -2476,7 +2476,7 @@ typedef struct
 	u8 use_sample_interleave;
 	u8 force_new_trun;
 	u8 IFrameSwitching;
-
+	u8 use_sdtp;
 } GF_TrackFragmentBox;
 
 /*FLAGS for TRUN : specify what is written in the SampleTable of TRUN*/
