@@ -287,6 +287,7 @@ GF_GPACArg m4b_dash_args[] =
 	"- mf, fm: in movie fragments and MPD", NULL, "v|f|m|mv|vm|mf|fm", GF_ARG_INT, 0),
 	GF_DEF_ARG("sample-groups-traf", NULL, "store sample group descriptions in traf (duplicated for each traf). If not set, sample group descriptions are stored in the initial movie", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("mvex-after-traks", NULL, "store `mvex` box after `trak` boxes within the moov box. If not set, `mvex` is before", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("sdtp-traf", NULL, "use `sdtp` box in `traf` rather than storing dependency info in trun entry (Smooth-like)", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("no-cache", NULL, "disable file cache for dash inputs", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("no-loop", NULL, "disable looping content in live mode and uses period switch instead", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("hlsc", NULL, "insert UTC in variant playlists for live HLS", NULL, NULL, GF_ARG_BOOL, 0),
@@ -2304,6 +2305,7 @@ Bool dump_iod = GF_FALSE;
 GF_DASHPSSHMode pssh_mode = 0;
 Bool samplegroups_in_traf = GF_FALSE;
 Bool mvex_after_traks = GF_FALSE;
+Bool sdtp_in_traf = GF_FALSE;
 Bool daisy_chain_sidx = GF_FALSE;
 Bool use_ssix = GF_FALSE;
 Bool single_segment = GF_FALSE;
@@ -4149,6 +4151,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-mvex-after-traks")) {
 			mvex_after_traks = GF_TRUE;
 		}
+		else if (!stricmp(arg, "-sdtp-traf")) {
+			sdtp_in_traf = GF_TRUE;
+		}
 		else if (!stricmp(arg, "-dash-profile") || !stricmp(arg, "-profile")) {
 			CHECK_NEXT_ARG
 			if (!stricmp(argv[i + 1], "live") || !stricmp(argv[i + 1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
@@ -4967,7 +4972,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_ast_offset(dasher, ast_offset_ms);
 		if (!e) e = gf_dasher_enable_memory_fragmenting(dasher, memory_frags);
 		if (!e) e = gf_dasher_set_initial_isobmf(dasher, initial_moof_sn, initial_tfdt);
-		if (!e) e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_mode, samplegroups_in_traf, single_traf_per_moof, tfdt_per_traf, mvex_after_traks);
+		if (!e) e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_mode, samplegroups_in_traf, single_traf_per_moof, tfdt_per_traf, mvex_after_traks, sdtp_in_traf);
 		if (!e) e = gf_dasher_enable_utc_ref(dasher, insert_utc);
 		if (!e) e = gf_dasher_enable_real_time(dasher, frag_real_time);
 		if (!e) e = gf_dasher_set_content_protection_location_mode(dasher, cp_location_mode);

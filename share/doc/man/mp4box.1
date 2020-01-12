@@ -174,7 +174,12 @@ add copyright string to file
 .TP
 .B \-chap (string)
 .br
-add chapter information from given file
+set chapter information from given file
+.br
+.TP
+.B \-chapqt (string)
+.br
+set chapter information from given file, using QT signaling for text tracks
 .br
 .TP
 .B \-set-track-id  id1:id2 (string)
@@ -762,6 +767,11 @@ store sample group descriptions in traf (duplicated for each traf). If not set, 
 .B \-mvex-after-traks
 .br
 store mvex box after trak boxes within the moov box. If not set, mvex is before
+.br
+.TP
+.B \-sdtp-traf
+.br
+use sdtp box in traf rather than storing dependency info in trun entry (Smooth-like)
 .br
 .TP
 .B \-no-cache
@@ -2051,7 +2061,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3042-gc417e654e-filters
+build: 0.9.0-DEV-rev3106-g4f89b69d1-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -494,6 +494,11 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_
 	case GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET:
 		movie->force_moof_base_offset = Param;
 		break;
+	case GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX:
+		traf = GetTraf(movie, TrackID);
+		if (!traf) return GF_BAD_PARAM;
+		traf->use_sdtp = Param;
+		break;
 	case GF_ISOM_TRUN_FORCE:
 		traf = GetTraf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
@@ -2931,7 +2936,25 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, GF_ISOTrackID TrackID, 
 		if (e) return e;
 
 		GF_ISOM_RESET_FRAG_DEPEND_FLAGS(ent->flags);
-		ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(0, dependsOn, dependedOn, redundant);
+
+		if (traf->tfhd->use_sdtp) {
+			u8 sflags=0;
+			if (!traf->sdtp) {
+				traf->sdtp = (GF_SampleDependencyTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SDTP);
+				if (!traf->sdtp) return GF_OUT_OF_MEM;
+			}
+			sflags |= isLeading << 6;
+			sflags |= dependsOn << 4;
+			sflags |= dependedOn << 2;
+			sflags |= redundant;
+
+			traf->sdtp->sample_info = gf_realloc(traf->sdtp->sample_info, sizeof(u8)*(traf->sdtp->sampleCount+1));
+			traf->sdtp->sample_info[traf->sdtp->sampleCount] = (u8) sflags;
+			traf->sdtp->sampleCount++;
+
+		} else {
+			ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(isLeading, dependsOn, dependedOn, redundant);
+		}
 	}
 
 	/*copy subsample info if any*/
@@ -3039,8 +3062,24 @@ GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, GF_ISOTrackID trackI
 	ent = (GF_TrunEntry *)gf_list_get(trun->entries, count-1);
 
 	GF_ISOM_RESET_FRAG_DEPEND_FLAGS(ent->flags);
-	ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(is_leading, dependsOn, dependedOn, redundant);
 
+	if (traf->use_sdtp) {
+		u8 sflags=0;
+		if (!traf->sdtp) {
+			traf->sdtp = (GF_SampleDependencyTypeBox *) gf_isom_box_new_parent(&traf->child_boxes, GF_ISOM_BOX_TYPE_SDTP);
+			if (!traf->sdtp) return GF_OUT_OF_MEM;
+		}
+		sflags |= is_leading << 6;
+		sflags |= dependsOn << 4;
+		sflags |= dependedOn << 2;
+		sflags |= redundant;
+
+		traf->sdtp->sample_info = gf_realloc(traf->sdtp->sample_info, sizeof(u8)*(traf->sdtp->sampleCount+1));
+		traf->sdtp->sample_info[traf->sdtp->sampleCount] = (u8) sflags;
+		traf->sdtp->sampleCount++;
+	} else {
+		ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(is_leading, dependsOn, dependedOn, redundant);
+	}
 	return GF_OK;
 }
 
