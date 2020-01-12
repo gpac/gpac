@@ -1659,7 +1659,8 @@ enum
 	GF_ISOM_TRAF_DATA_CACHE,
 	/*forces moof base offsets when traf based offsets would be chosen
 	param: on/off (0/1)*/
-	GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET
+	GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET,
+	GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX,
 };
 
 /*set options. Options can be set at the beginning of each new fragment only, and for the

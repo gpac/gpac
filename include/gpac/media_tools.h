@@ -960,9 +960,10 @@ GF_Err gf_dasher_set_cues(GF_DASHSegmenter *dasher, const char *cues_file, Bool 
  Sets ISOBMFF options.
  *	\param dasher the DASH segmenter object
  *	\param mvex_after_traks if true the mvex box will be after the trak boxes
+ *	\param sdtp_in_traf if true the sdtp box will be used in traf instead of trun entry (smooth-like)
  *	\return error code if any
  */
-GF_Err gf_dasher_set_isobmff_options(GF_DASHSegmenter *dasher, Bool mvex_after_traks);
+GF_Err gf_dasher_set_isobmff_options(GF_DASHSegmenter *dasher, Bool mvex_after_traks, Bool sdtp_in_traf);
 
 /*!
  Adds a media input to the DASHer
