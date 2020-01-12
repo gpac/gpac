@@ -776,7 +776,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 			 	fprintf(stderr, "(%s) ", gf_codecid_name(stats.codecid) );
 
 			if ((stats.nb_pid_in == stats.nb_pid_out) && (stats.nb_pid_in==1)) {
-				Double pck_per_sec = (Double) stats.nb_pck_sent;
+				Double pck_per_sec = (Double) stats.nb_hw_pck_sent ? stats.nb_hw_pck_sent : stats.nb_pck_sent;
 				pck_per_sec *= 1000000;
 				pck_per_sec /= (stats.time_process+1);
 
