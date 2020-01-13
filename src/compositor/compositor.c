@@ -2876,7 +2876,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 						compositor->frame_ifce.get_gl_texture = gf_sc_frame_ifce_get_gl_texture;
 					}
 #endif
-					compositor->frame_ifce.blocking = GF_TRUE;
+					compositor->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
 					pck = gf_filter_pck_new_frame_interface(compositor->vout, &compositor->frame_ifce, gf_sc_frame_ifce_done);
 				}
 

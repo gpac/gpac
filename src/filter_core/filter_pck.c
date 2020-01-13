@@ -1620,7 +1620,7 @@ Bool gf_filter_pck_is_blocking_ref(GF_FilterPacket *pck)
 
 	while (pck) {
 		if (pck->destructor && pck->filter_owns_mem) return GF_TRUE;
-		if (pck->frame_ifce && pck->frame_ifce->blocking) return GF_TRUE;
+		if (pck->frame_ifce && (pck->frame_ifce->flags & GF_FRAME_IFCE_BLOCKING) ) return GF_TRUE;
 		pck = pck->reference;
 	}
 	return GF_FALSE;

@@ -54,6 +54,7 @@ typedef struct
     WebGLPowerPreference powerPreference;
     Bool failIfMajorPerformanceCaveat;
     Bool desynchronized;
+    Bool primary;
 } GF_WebGLContextAttributes;
 
 typedef struct

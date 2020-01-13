@@ -1113,7 +1113,7 @@ static GF_Err mcdec_send_frame(GF_MCDecCtx *ctx, u8 *frame_buffer, u64 cts)
 	}
 
 	if (ctx->frame_size_changed) {
-		mc_frame->frame_ifce.blocking = GF_TRUE;
+		mc_frame->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
 	}
 	ctx->decoded_frames_pending++;
 
