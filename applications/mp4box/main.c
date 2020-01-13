@@ -195,7 +195,7 @@ GF_GPACArg m4b_gen_args[] =
 	        "- src=FILE: location of the udta data (will be stored in a single box of type CODE)\n"
 	        "- src=base64,DATA: base64 encoded udta data (will be stored in a single box of type CODE)\n"
 	        "Note: If no source is set, UDTA of type CODE will be removed\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("patch", NULL, "apply box patch in the given file\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("patch [tkID=]FILE", NULL, "apply box patch described in FILE, for given trackID if set\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("bo", NULL, "freeze the order of boxes in input file\n", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("init-seg", NULL, "use the given file as an init segment for dumping or for encryption\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("zmov", NULL, "compress movie box according to ISOBMFF box compression\n", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
