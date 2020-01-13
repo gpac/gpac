@@ -6846,7 +6846,7 @@ GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 tra
 
 #include <gpac/xml.h>
 GF_EXPORT
-GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID trackID, const char *box_patch_filename)
+GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, const char *box_patch_filename)
 {
 	GF_Err e;
 	GF_DOMParser *dom;
@@ -6882,6 +6882,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID trackID, const ch
 		u32 j;
 		u32 path_len;
 		Bool essential_prop=GF_FALSE;
+		u32 trackID=globalTrackID;
 		u32 item_id=trackID;
 		char *box_path=NULL;
 		GF_Box *parent_box = NULL;
@@ -6896,7 +6897,10 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID trackID, const ch
 					essential_prop=GF_TRUE;
 				}
 			}
-			else if (!strcmp(att->name, "itemID")) item_id = atoi(att->value);
+			else if (!strcmp(att->name, "itemID"))
+				item_id = atoi(att->value);
+			else if (!globalTrackID && !strcmp(att->name, "trackID"))
+				trackID = atoi(att->value);
 		}
 
 		if (!box_path) continue;
@@ -7021,7 +7025,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID trackID, const ch
 							if (!entry) {
 								GF_SAFEALLOC(entry, GF_ItemPropertyAssociationEntry);
 								gf_list_add(ipma->entries, entry);
-								entry->item_id = trackID;
+								entry->item_id = item_id;
 							}
 							entry->associations = gf_realloc(entry->associations, sizeof(GF_ItemPropertyAssociationSlot) * (entry->nb_associations+1));
 							entry->associations[entry->nb_associations].essential = essential_prop;
