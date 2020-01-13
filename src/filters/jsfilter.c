@@ -3803,12 +3803,14 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
 
 static void jsfilter_finalize(GF_Filter *filter)
 {
-	u32 i;
+	u32 i, count;
 	GF_JSFilterCtx *jsf = gf_filter_get_udta(filter);
 	if (!jsf->ctx) return;
 
-	while (gf_list_count(jsf->pids)) {
-		GF_JSPidCtx *pctx = gf_list_pop_back(jsf->pids);
+	//reset references but do not destroy PIDs yet
+	count = gf_list_count(jsf->pids);
+	for (i=0; i<count; i++) {
+		GF_JSPidCtx *pctx = gf_list_get(jsf->pids, i);
 		JS_FreeValue(jsf->ctx, pctx->jsobj);
 		if (pctx->shared_pck) {
 			while (gf_list_count(pctx->shared_pck)) {
@@ -3819,19 +3821,23 @@ static void jsfilter_finalize(GF_Filter *filter)
 
 				//do not free here since pck->jsobj may already have been GCed/destroyed
 			}
-			gf_list_del(pctx->shared_pck);
 		}
-		gf_free(pctx);
 	}
-	gf_list_del(jsf->pids);
 
 	for (i=0; i<JSF_EVT_LAST_DEFINED; i++) {
 		JS_FreeValue(jsf->ctx, jsf->funcs[i]);
 	}
 
 	JS_SetOpaque(jsf->filter_obj, NULL);
-//	JS_FreeValue(jsf->ctx, jsf->filter_obj);
 	gf_js_delete_context(jsf->ctx);
+
+	while (gf_list_count(jsf->pids)) {
+		GF_JSPidCtx *pctx = gf_list_pop_back(jsf->pids);
+		if (pctx->shared_pck)
+			gf_list_del(pctx->shared_pck);
+		gf_free(pctx);
+	}
+	gf_list_del(jsf->pids);
 
 	if (jsf->log_name) gf_free(jsf->log_name);
 

@@ -1348,6 +1348,10 @@ static JSValue webgl_setup_fbo(JSContext *ctx, GF_WebGLContext *glc, u32 width, 
 {
 	glc->width = width;
 	glc->height = height;
+
+	if (glc->creation_attrs.primary) {
+		return JS_UNDEFINED;
+	}
 	/*create fbo*/
 	glGenTextures(1, &glc->tex_id);
 	if (!glc->tex_id) {
@@ -1474,6 +1478,7 @@ static JSValue webgl_constructor(JSContext *ctx, JSValueConst new_target, int ar
 		GET_BOOL(preserveDrawingBuffer)
 		GET_BOOL(failIfMajorPerformanceCaveat)
 		GET_BOOL(desynchronized)
+		GET_BOOL(primary)
 #undef GET_BOOL
 
 		v = JS_GetPropertyStr(ctx, argv[idx], "depth");
@@ -1492,6 +1497,11 @@ static JSValue webgl_constructor(JSContext *ctx, JSValueConst new_target, int ar
 			}
 		}
 		JS_FreeValue(ctx, v);
+
+		if (glc->creation_attrs.primary && (glc->creation_attrs.depth == WGL_DEPTH_TEXTURE)) {
+			gf_free(glc);
+			return js_throw_err_msg(ctx, GF_BAD_PARAM, "Cannot setup WebGL context as primary and output depth texture at the same time");
+		}
 
 		v = JS_GetPropertyStr(ctx, argv[idx], "powerPreference");
 		if (!JS_IsUndefined(v)) {
@@ -1512,12 +1522,14 @@ static JSValue webgl_constructor(JSContext *ctx, JSValueConst new_target, int ar
 	v = JS_NewObjectClass(ctx, WebGLRenderingContextBase_class_id);
 	JS_SetOpaque(v, glc);
 
-	glc->tex_f_ifce.blocking = GF_TRUE;
+	glc->tex_f_ifce.flags = GF_FRAME_IFCE_BLOCKING;
+	if (glc->creation_attrs.primary)
+		glc->tex_f_ifce.flags |= GF_FRAME_IFCE_MAIN_GLFB;
 	glc->tex_f_ifce.get_gl_texture = webgl_get_texture;
 	glc->tex_f_ifce.user_data = glc;
 	glc->tex_frame_flush = JS_UNDEFINED;
 
-	glc->depth_f_ifce.blocking = GF_TRUE;
+	glc->depth_f_ifce.flags = GF_FRAME_IFCE_BLOCKING;
 	glc->depth_f_ifce.get_gl_texture = webgl_get_depth;
 	glc->depth_f_ifce.user_data = glc;
 	glc->depth_frame_flush = JS_UNDEFINED;
@@ -1544,15 +1556,21 @@ static JSValue wgl_activate_gl(JSContext *ctx, GF_WebGLContext *glc, Bool activa
 		u32 i, count;
 		GL_CHECK_ERR()
 		jsf_set_gl_active(ctx);
-		glBindFramebuffer(GL_FRAMEBUFFER, glc->fbo_id);
 
-		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		switch (status) {
-		case GL_FRAMEBUFFER_COMPLETE:
-			break;
-		default:
-			return js_throw_err_msg(ctx, GF_IO_ERR, "Failed to bind OpenGL FBO:  %08x", status );
+		if (glc->creation_attrs.primary) {
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		} else {
+			glBindFramebuffer(GL_FRAMEBUFFER, glc->fbo_id);
+
+			GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			switch (status) {
+			case GL_FRAMEBUFFER_COMPLETE:
+				break;
+			default:
+				return js_throw_err_msg(ctx, GF_IO_ERR, "Failed to bind OpenGL FBO:  %08x", status );
+			}
 		}
+
 		count = gf_list_count(glc->named_textures);
 		for (i=0; i<count; i++) {
 			GF_WebGLNamedTexture *named_tx = gf_list_get(glc->named_textures, i);

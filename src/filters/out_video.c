@@ -1362,6 +1362,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	Float hw, hh;
 	u32 wsize, stride_luma, stride_chroma;
 	char *pY=NULL, *pU=NULL, *pV=NULL;
+	GF_FilterFrameInterface *frame_ifce;
 
 	if (!ctx->glsl_program) return;
 
@@ -1393,6 +1394,14 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 		ctx->display_changed = GF_FALSE;
 	}
+
+
+	frame_ifce = gf_filter_pck_get_frame_interface(pck);
+	if (frame_ifce && (frame_ifce->flags & GF_FRAME_IFCE_MAIN_GLFB)) {
+		ctx->video_out->Flush(ctx->video_out, NULL);
+		return;
+	}
+
 	glViewport(0, 0, ctx->display_width, ctx->display_height);
 
 	gf_mx_init(mx);
@@ -1436,8 +1445,9 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	data = (char*) gf_filter_pck_get_data(pck, &wsize);
 	if (!data) {
 		GF_Err e;
-		GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
-		if (frame_ifce->blocking) ctx->force_release = GF_TRUE;
+		if (frame_ifce->flags & GF_FRAME_IFCE_BLOCKING)
+			ctx->force_release = GF_TRUE;
+
 		if (frame_ifce->get_gl_texture) {
 			vout_draw_gl_hw_textures(ctx, frame_ifce);
 			return;
@@ -1713,7 +1723,8 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		u32 stride_luma;
 		u32 stride_chroma;
 		GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
-		if (frame_ifce->blocking) ctx->force_release = GF_TRUE;
+		if (frame_ifce->flags & GF_FRAME_IFCE_BLOCKING)
+			ctx->force_release = GF_TRUE;
 		if (! frame_ifce->get_plane) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Hardware GL texture blit not supported with non-GL blitter\n"));
 			return;

@@ -728,7 +728,7 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 	ctx->frame_ifce.user_data = ctx;
 	ctx->frame_ifce.get_plane = ohevcframe_get_plane;
 	//we only keep one frame out, force releasing it
-	ctx->frame_ifce.blocking = GF_TRUE;
+	ctx->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
 	oh_output_update(ctx->codec, 1, &ctx->frame_ptr);
 
 	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &ctx->frame_ifce, ohevcframe_release);

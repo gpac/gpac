@@ -45,7 +45,7 @@ A filter is responsible for deciding when to issue GL calls: this can be in a pr
 \warning it is unsafe to assume that your filter is owning the OpenGL context, there may be other filters operating on the context. This means that context state (viewport, clearColor, etc...) shall be restored when reactivating the context.
 \note WebGL filters always run on the main process to avoid concurrent usage of the OpenGL context, but this might change in the future.
 
-The WebGL API in GPAC exlusively work on offscreen framebuffer objects: 
+The WebGL API in GPAC work by default on offscreen framebuffer objects: 
 - the color attachment is always a texture object, RGBA 32 bits or RGB 24 bits (see WebGLContextAttributes)
 - the depth attachment is a renderbuffer by default and cannot be exported; this behaviour can be changed by setting the "depth" attribute of the WebGLContextAttributes object to "texture" before creation, thereby creating a depth texture attachment; the format is 24 bit precision integer (desktop) or 16 bit precision integer (iOS, Android). 
 
@@ -54,6 +54,10 @@ The underlying framebuffer color texture attachment and if enabled, depth textur
 When forwarding a framebuffer, it is recommended not to draw anything nor activate GL context until all references of the packet holding the framebuffer are consummed. A callback function is used for that, see example below.
 
 \note you can always use glReadPixels to read back the framebuffer and send packets using the usual FilterPacket tools.
+
+The WebGL API in GPAC can also be configured to run on the primary frame buffer; this is achieved by adding a "primary" attribute set to true to the WebGLContextAttributes object at creation. In this case:
+- depth buffer cannot be delivered as a texture 
+- video output SHALL be created before WebGL context creation (typically by loading the video output filter before the JS filter)
 
 
 
@@ -150,7 +154,7 @@ void main(void) {
 }
 \endcode
 
-The resulting fragment shader may contain one or more sampler2D and a few additionals uniforms, but they are managed for you by GPAC!
+The resulting fragment shader may contain one or more sampler2D and a few additional uniforms, but they are managed for you by GPAC!
 
 The named texture is then used as usual:
 \code

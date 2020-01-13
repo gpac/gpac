@@ -1838,6 +1838,7 @@ static GF_Err gf_filter_process_check_alloc(GF_Filter *filter)
 
 static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_reconnection)
 {
+	GF_Err out_e = e;
 	Bool kill_filter = GF_FALSE;
 	if (e>GF_OK) e = GF_OK;
 	else if (e==GF_IP_NETWORK_EMPTY) e = GF_OK;
@@ -1857,15 +1858,18 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[Filter] %s in error / not responding properly: %d consecutive errors in "LLU" us with no packet discarded or sent\n\tdiscarding all inputs and notifying end of stream on all outputs\n", filter->name, filter->nb_consecutive_errors, diff));
 			kill_filter = GF_TRUE;
 		}
-	} else {
+	} else{
 		if ((!filter->nb_pck_io && filter->pending_packets && (filter->nb_pids_playing>0) ) || for_reconnection) {
 			filter->nb_consecutive_errors++;
 
+			out_e = GF_SERVICE_ERROR;
 			if (filter->nb_consecutive_errors >= 100000) {
 				if (for_reconnection) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[Filter] %s not responding properly: %d consecutive attempts at reconfiguring\n\tdiscarding all inputs and notifying end of stream on all outputs\n", filter->name, filter->nb_consecutive_errors));
-				} else {
+				} else if (!filter->session->in_final_flush) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[Filter] %s not responding properly: %d consecutive process with no packet discarded or sent, but %d packets pending\n\tdiscarding all inputs and notifying end of stream on all outputs\n", filter->name, filter->nb_consecutive_errors, filter->pending_packets));
+				} else {
+					out_e = GF_OK;
 				}
 				kill_filter = GF_TRUE;
 			}
@@ -1885,7 +1889,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 			GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 			gf_filter_pid_set_eos(pid);
 		}
-		filter->session->last_process_error = GF_SERVICE_ERROR;
+		filter->session->last_process_error = out_e;
 		filter->disabled = GF_TRUE;
 	}
 }

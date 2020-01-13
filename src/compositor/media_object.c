@@ -377,7 +377,7 @@ u8 *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_
 		return mo->frame;
 	}
 
-	if (mo->pck && mo->frame_ifce && mo->frame_ifce->blocking) {
+	if (mo->pck && mo->frame_ifce && (mo->frame_ifce->flags & GF_FRAME_IFCE_BLOCKING) ) {
 		gf_filter_pck_unref(mo->pck);
 		mo->pck = NULL;
 	}

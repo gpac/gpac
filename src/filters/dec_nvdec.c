@@ -1176,7 +1176,7 @@ GF_Err nvdec_send_hw_frame(NVDecCtx *ctx)
 
 
 	if (!gf_list_count(ctx->frames) && ctx->needs_resetup)
-		f->gframe.blocking = GF_TRUE;
+		f->gframe.flags = GF_FRAME_IFCE_BLOCKING;
 
 	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &f->gframe, nvframe_release);
 

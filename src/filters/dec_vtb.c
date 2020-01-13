@@ -1791,7 +1791,7 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 #endif
 
 	if (!gf_list_count(ctx->frames) && ctx->reconfig_needed)
-		vtb_frame->frame_ifce.blocking = GF_TRUE;
+		vtb_frame->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
 
 	ctx->decoded_frames_pending++;
 
