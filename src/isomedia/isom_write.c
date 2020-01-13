@@ -5906,11 +5906,10 @@ static GF_Err gf_isom_set_sample_group_info(GF_ISOFile *movie, u32 track, u32 tr
 
 	if (trafID) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-		GF_TrackFragmentBox *GetTraf(GF_ISOFile *mov, GF_ISOTrackID TrackID);
 		if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) )
 			return GF_BAD_PARAM;
 
-		traf = GetTraf(movie, trafID);
+		traf = gf_isom_get_traf(movie, trafID);
 #else
 		return GF_NOT_SUPPORTED;
 #endif
@@ -6846,7 +6845,7 @@ GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 tra
 
 #include <gpac/xml.h>
 GF_EXPORT
-GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, const char *box_patch_filename)
+GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, const char *box_patch_filename, Bool for_fragments)
 {
 	GF_Err e;
 	GF_DOMParser *dom;
@@ -6869,12 +6868,23 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 		goto err_exit;
 	}
 
-	//compute size of each boxes
-	for (i=0; i<gf_list_count(file->TopBoxes); i++) {
-		GF_Box *box = gf_list_get(file->TopBoxes, i);
-		if (!(box->internal_flags & GF_ISOM_ORDER_FREEZE)) {
-			gf_isom_box_size(box);
-			gf_isom_box_freeze_order(box);
+	//compute size of each child boxes to freeze the order
+	if (for_fragments) {
+		u32 count = file->moof ? gf_list_count(file->moof->child_boxes) : 0;
+		for (i=0; i<count; i++) {
+			GF_Box *box = gf_list_get(file->moof->child_boxes, i);
+			if (!(box->internal_flags & GF_ISOM_ORDER_FREEZE)) {
+				gf_isom_box_size(box);
+				gf_isom_box_freeze_order(box);
+			}
+		}
+	} else {
+		for (i=0; i<gf_list_count(file->TopBoxes); i++) {
+			GF_Box *box = gf_list_get(file->TopBoxes, i);
+			if (!(box->internal_flags & GF_ISOM_ORDER_FREEZE)) {
+				gf_isom_box_size(box);
+				gf_isom_box_freeze_order(box);
+			}
 		}
 	}
 
@@ -6884,6 +6894,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 		Bool essential_prop=GF_FALSE;
 		u32 trackID=globalTrackID;
 		u32 item_id=trackID;
+		Bool is_frag_box;
 		char *box_path=NULL;
 		GF_Box *parent_box = NULL;
 		GF_XMLNode *box_edit = gf_list_get(root->content, i);
@@ -6906,6 +6917,11 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 		if (!box_path) continue;
 		path_len = box_path ? (u32) strlen(box_path) : 0;
 
+		is_frag_box = !strncmp(box_path, "traf", 4) ? GF_TRUE : GF_FALSE;
+
+		if (for_fragments && !is_frag_box) continue;
+		else if (!for_fragments && is_frag_box) continue;
+
 		gf_xml_parse_bit_sequence(box_edit, box_patch_filename, &box_data, &box_data_size);
 		if (box_data_size && (box_data_size<4) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Wrong BS specification for box, shall either be empty or at least 4 bytes for box type\n"));
@@ -6924,24 +6940,34 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 
 			if (!parent_box) {
 				box=gf_isom_box_find_child(file->TopBoxes, box_type);
-				if (!box && (box_type==GF_ISOM_BOX_TYPE_TRAK)) {
-					if (trackID) {
-						box = (GF_Box *) gf_isom_get_track_from_file(file, gf_isom_get_track_by_id(file, trackID) );
+				if (!box) {
+					if (box_type==GF_ISOM_BOX_TYPE_TRAK) {
+						if (trackID) {
+							box = (GF_Box *) gf_isom_get_track_from_file(file, gf_isom_get_track_by_id(file, trackID) );
+						}
+						if (!box && gf_list_count(file->moov->trackList)==1) {
+							box = gf_list_get(file->moov->trackList, 0);
+						}
 					}
-					if (!box && gf_list_count(file->moov->trackList)==1) {
-						box = gf_list_get(file->moov->trackList, 0);
+					else if (box_type==GF_ISOM_BOX_TYPE_TRAF) {
+						if (trackID) {
+							box = (GF_Box *) gf_isom_get_traf(file, trackID);
+						}
+						if (!box && file->moof && gf_list_count(file->moof->TrackList)==1) {
+							box = gf_list_get(file->moof->TrackList, 0);
+						}
 					}
 				}
 				if (!box) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Cannot locate box type %s at root or as track\n", gf_4cc_to_str(box_type) ));
-					e = GF_NON_COMPLIANT_BITSTREAM;
+					e = GF_BAD_PARAM;
 					goto err_exit;
 				}
 			} else {
 				box = gf_isom_box_find_child(parent_box->child_boxes, box_type);
 				if (!box) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Cannot locate box type %s at child of %s\n", gf_4cc_to_str(box_type), gf_4cc_to_str(parent_box->type)));
-					e = GF_NON_COMPLIANT_BITSTREAM;
+					e = GF_BAD_PARAM;
 					goto err_exit;
 				}
 			}

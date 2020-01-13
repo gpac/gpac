@@ -6098,7 +6098,7 @@ int mp4boxMain(int argc, char **argv)
 		needSave = GF_TRUE;
 	}
 	if (box_patch_filename) {
-		e = gf_isom_apply_box_patch(file, box_patch_trackID, box_patch_filename);
+		e = gf_isom_apply_box_patch(file, box_patch_trackID, box_patch_filename, GF_FALSE);
 		if (e) {
 			fprintf(stderr, "Failed to apply box patch %s: %s\n", box_patch_filename, gf_error_to_string(e) );
 			goto err_exit;

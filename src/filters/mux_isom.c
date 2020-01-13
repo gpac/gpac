@@ -3374,7 +3374,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		if (!tkw->box_patched) {
 			const GF_PropertyValue *p = gf_filter_pid_get_property_str(tkw->ipid, "boxpatch");
 			if (p && p->value.string) {
-				e = gf_isom_apply_box_patch(ctx->file, tkw->track_id, p->value.string);
+				e = gf_isom_apply_box_patch(ctx->file, tkw->track_id, p->value.string, GF_FALSE);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to apply box patch %s to track %d: %s\n",
 						p->value.string, tkw->track_id, gf_error_to_string(e) ));
@@ -3441,7 +3441,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	}
 
 	if (ctx->boxpatch && !ctx->box_patched) {
-		e = gf_isom_apply_box_patch(ctx->file, 0, ctx->boxpatch);
+		e = gf_isom_apply_box_patch(ctx->file, 0, ctx->boxpatch, GF_FALSE);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to apply box patch %s: %s\n", ctx->boxpatch, gf_error_to_string(e) ));
 		}
@@ -3593,7 +3593,6 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 
 		if (ctx->insert_pssh)
 			mp4_mux_cenc_insert_pssh(ctx, tkw);
-
 	}
 	ctx->fragment_started = GF_TRUE;
 	ctx->insert_tfdt = GF_FALSE;
@@ -3629,6 +3628,36 @@ static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	return GF_OK;
 }
 
+static void mp4mx_frag_box_patch(GF_MP4MuxCtx *ctx)
+{
+	GF_Err e;
+	u32 i, count = gf_list_count(ctx->tracks);
+	for (i=0; i<count; i++) {
+		const GF_PropertyValue *p;
+		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+		if (!tkw->track_id) continue;
+		//no box patched set (todo, do we want to allow changing boxpatch props ?)
+		if (!tkw->box_patched) continue;
+
+		p = gf_filter_pid_get_property_str(tkw->ipid, "boxpatch");
+		if (p && p->value.string) {
+			e = gf_isom_apply_box_patch(ctx->file, tkw->track_id ? tkw->track_id : tkw->item_id, p->value.string, GF_TRUE);
+			if (e) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unable to apply box patch %s to track fragment %d: %s\n",
+					p->value.string, tkw->track_id, gf_error_to_string(e) ));
+			}
+		}
+	}
+
+	if (ctx->boxpatch) {
+		e = gf_isom_apply_box_patch(ctx->file, 0, ctx->boxpatch, GF_TRUE);
+		if (e) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unable to apply box patch %s to fragment: %s\n", ctx->boxpatch, gf_error_to_string(e) ));
+		}
+		ctx->box_patched = GF_TRUE;
+	}
+
+}
 static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 {
 	GF_Err e = GF_OK;
@@ -3898,6 +3927,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		}
 		ctx->adjusted_next_frag_start = ctx->next_frag_start;
 		ctx->fragment_started = GF_FALSE;
+
+		mp4mx_frag_box_patch(ctx);
 
 		//end of DASH segment
 		if (ctx->dash_mode && (ctx->flush_seg || is_eos) ) {
@@ -4689,7 +4720,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		if (!tkw->box_patched) {
 			const GF_PropertyValue *p = gf_filter_pid_get_property_str(tkw->ipid, "boxpatch");
 			if (p && p->value.string) {
-				e = gf_isom_apply_box_patch(ctx->file, tkw->track_id ? tkw->track_id : tkw->item_id, p->value.string);
+				e = gf_isom_apply_box_patch(ctx->file, tkw->track_id ? tkw->track_id : tkw->item_id, p->value.string, GF_FALSE);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to apply box patch %s to track %d: %s\n",
 						p->value.string, tkw->track_id, gf_error_to_string(e) ));
@@ -4702,7 +4733,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	gf_filter_release_property(pe);
 
 	if (ctx->boxpatch && !ctx->box_patched) {
-		e = gf_isom_apply_box_patch(ctx->file, 0, ctx->boxpatch);
+		e = gf_isom_apply_box_patch(ctx->file, 0, ctx->boxpatch, GF_FALSE);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to apply box patch %s: %s\n", ctx->boxpatch, gf_error_to_string(e) ));
 		}

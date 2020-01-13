@@ -2479,6 +2479,8 @@ typedef struct
 	u8 use_sdtp;
 } GF_TrackFragmentBox;
 
+GF_TrackFragmentBox *gf_isom_get_traf(GF_ISOFile *mov, GF_ISOTrackID TrackID);
+
 /*FLAGS for TRUN : specify what is written in the SampleTable of TRUN*/
 enum
 {
