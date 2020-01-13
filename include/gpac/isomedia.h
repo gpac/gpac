@@ -2247,10 +2247,11 @@ GF_ISOTrackID gf_isom_get_last_created_track_id(GF_ISOFile *isom_file);
 /*! applies a box patch to the file. See examples in gpac test suite, media/boxpatch/
 \param isom_file the target ISO file
 \param trackID the ID of the track to patch, in case one of the box patch applies to a track
-\param box_patch_filename the name of the file containing the box patches.
+\param box_patch_filename the name of the file containing the box patches
+\param for_fragments indicates if the patch targets movie fragments or regular moov
 \return error if any
 */
-GF_Err gf_isom_apply_box_patch(GF_ISOFile *isom_file, GF_ISOTrackID trackID, const char *box_patch_filename);
+GF_Err gf_isom_apply_box_patch(GF_ISOFile *isom_file, GF_ISOTrackID trackID, const char *box_patch_filename, Bool for_fragments);
 
 /*! sets track magic number
 \param isom_file the target ISO file

@@ -51,7 +51,7 @@ GF_TrackExtensionPropertiesBox *GetTrep(GF_MovieBox *moov, GF_ISOTrackID TrackID
 	return NULL;
 }
 
-GF_TrackFragmentBox *GetTraf(GF_ISOFile *mov, GF_ISOTrackID TrackID)
+GF_TrackFragmentBox *gf_isom_get_traf(GF_ISOFile *mov, GF_ISOTrackID TrackID)
 {
 	u32 i;
 	if (!mov->moof) return NULL;
@@ -476,17 +476,17 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_
 
 	switch (Code) {
 	case GF_ISOM_TRAF_EMPTY:
-		traf = GetTraf(movie, TrackID);
+		traf = gf_isom_get_traf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
 		traf->tfhd->EmptyDuration = Param;
 		break;
 	case GF_ISOM_TRAF_RANDOM_ACCESS:
-		traf = GetTraf(movie, TrackID);
+		traf = gf_isom_get_traf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
 		traf->IFrameSwitching = Param;
 		break;
 	case GF_ISOM_TRAF_DATA_CACHE:
-		traf = GetTraf(movie, TrackID);
+		traf = gf_isom_get_traf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
 		//don't cache only one sample ...
 		traf->DataCache = Param > 1 ? Param : 0;
@@ -495,22 +495,22 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_
 		movie->force_moof_base_offset = Param;
 		break;
 	case GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX:
-		traf = GetTraf(movie, TrackID);
+		traf = gf_isom_get_traf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
 		traf->use_sdtp = Param;
 		break;
 	case GF_ISOM_TRUN_FORCE:
-		traf = GetTraf(movie, TrackID);
+		traf = gf_isom_get_traf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
 		traf->force_new_trun = 1;
 		break;
 	case GF_ISOM_TRUN_MERGE_INTERLEAVE:
-		traf = GetTraf(movie, TrackID);
+		traf = gf_isom_get_traf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
 		traf->merge_sample_interleave = 1;
 		break;
 	case GF_ISOM_TRUN_SET_INTERLEAVE_ID:
-		traf = GetTraf(movie, TrackID);
+		traf = gf_isom_get_traf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
 		traf->DataCache = 1;
 		traf->use_sample_interleave = 1;
@@ -2528,7 +2528,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) || !sample)
 		return GF_BAD_PARAM;
 
-	traf = GetTraf(movie, TrackID);
+	traf = gf_isom_get_traf(movie, TrackID);
 	if (!traf)
 		return GF_BAD_PARAM;
 
@@ -2685,7 +2685,7 @@ GF_EXPORT
 GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, u32 IV_size, u8 *sai_b, u32 sai_b_size, Bool use_subsamples, Bool use_saio_32bit)
 {
 	GF_CENCSampleAuxInfo *sai;
-	GF_TrackFragmentBox  *traf = GetTraf(output, TrackID);
+	GF_TrackFragmentBox  *traf = gf_isom_get_traf(output, TrackID);
 	u32 i;
 	GF_SampleEncryptionBox *senc;
 
@@ -2778,7 +2778,7 @@ GF_Err gf_isom_fragment_append_data(GF_ISOFile *movie, GF_ISOTrackID TrackID, u8
 	GF_TrackFragmentRunBox *trun;
 	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
 
-	traf = GetTraf(movie, TrackID);
+	traf = gf_isom_get_traf(movie, TrackID);
 	if (!traf || !traf->tfhd->sample_desc_index) return GF_BAD_PARAM;
 
 	//add TRUN entry
@@ -2813,7 +2813,7 @@ GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, GF_ISOTrackID TrackID, 
 	GF_SubSampleInformationBox *subs = NULL;
 	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
 
-	traf = GetTraf(movie, TrackID);
+	traf = gf_isom_get_traf(movie, TrackID);
 	if (!traf || !traf->tfhd->sample_desc_index) return GF_BAD_PARAM;
 
 	/*compute last sample number in traf*/
@@ -2914,7 +2914,7 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, GF_ISOTrackID TrackID, 
 	GF_TrackFragmentRunBox *trun;
 	if (!dest->moof || !(dest->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
 
-	traf = GetTraf(dest, TrackID);
+	traf = gf_isom_get_traf(dest, TrackID);
 	if (!traf || !traf->tfhd->sample_desc_index) return GF_BAD_PARAM;
 
 	trak = gf_isom_get_track_from_file(orig, track);
@@ -3050,7 +3050,7 @@ GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, GF_ISOTrackID trackI
 	GF_TrackFragmentRunBox *trun;
 	if (!movie || !movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
 
-	traf = GetTraf(movie, trackID);
+	traf = gf_isom_get_traf(movie, trackID);
 	if (!traf->tfhd->sample_desc_index) return GF_BAD_PARAM;
 
 	count = gf_list_count(traf->TrackRuns);
@@ -3108,7 +3108,7 @@ GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, GF_ISOTrackID 
 	GF_TrackFragmentBox *traf;
 	if (!movie || !movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
 
-	traf = GetTraf(movie, TrackID);
+	traf = gf_isom_get_traf(movie, TrackID);
 	if (!traf) return GF_BAD_PARAM;
 
 	if (!traf->tfdt) {
