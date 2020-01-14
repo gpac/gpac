@@ -374,9 +374,9 @@ Note: If no source is set, UDTA of type CODE will be removed
 
 .br
 .TP
-.B \-patch (string)
+.B \-patch  [tkID=]FILE (string)
 .br
-apply box patch in the given file
+apply box patch described in FILE, for given trackID if set
 .br
 
 .br
@@ -769,9 +769,17 @@ store sample group descriptions in traf (duplicated for each traf). If not set, 
 store mvex box after trak boxes within the moov box. If not set, mvex is before
 .br
 .TP
-.B \-sdtp-traf
+.B \-sdtp-traf (Enum)
 .br
-use sdtp box in traf rather than storing dependency info in trun entry (Smooth-like)
+use sdtp box in traf (Smooth-like).
+.br
+* no: do not use sdtp
+.br
+* sdtp: use sdtp box to indicate sample dependencies and don't write info in trun sample flags
+.br
+* both: use sdtp box to indicate sample dependencies and also write info in trun sample flags
+.br
+
 .br
 .TP
 .B \-no-cache
@@ -2061,7 +2069,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3106-g4f89b69d1-filters
+build: 0.9.0-DEV-rev3118-g296842381-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

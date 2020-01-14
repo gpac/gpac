@@ -96,7 +96,7 @@ specify an output file - see filters help (-h doc)
 .TP
 .B \-h -help -ha -hx -hh (string)
 .br
-print help. Use help/-h for basic options, -ha for advanced options, -hx for expert options and -hh for all. String parameter can be:
+print help. Use help or -h for basic options, -ha for advanced options, -hx for expert options and -hh for all. String parameter can be:
 .br
 * empty: print command line options help
 .br
@@ -167,6 +167,14 @@ write all filter options in the config file unless already set
 .B \-wfx
 .br
 write all filter options and all meta filter arguments in the config file unless already set (large config file !)
+.br
+
+.br
+  
+.br
+The following libgpac core options allow customizing the filter session:
+.br
+  
 .br
 .TP
 .B \-dbg-edges
@@ -353,6 +361,8 @@ gpac -p=foo []
 
 .br
 This will load configuration from $HOME/.gpac/foo/GPAC.cfg, creating it if needed.
+.br
+The reserved name 0 is used to disable configuration file writing.
 .br
 By default the configuration file only holds a few system specific options and directories. It is possible to serialize the entire set of options to the configuration file, using -wc -wf. This should be avoided as the resulting configuration file size will be quite large, hence larger memory usage for the applications.
 .br
@@ -949,9 +959,15 @@ Filters are configurable processing units consuming and producing data packets. 
 .br
 Note: When a PID cannot be connected to any filter, a warning is thrown and all packets dispatched on this PID will be destroyed. The session may however still run.
 .br
+  
+.br
 Each output PID carries a set of properties describing the data it delivers (eg width, height, codec, ...). Properties can be built-in (identified by a 4 character code abcd, see properties (-h props) ), or user-defined (identified by a string). Each PID tracks its properties changes and triggers filter reconfiguration during packet processing. This allows the filter chain to be reconfigured at run time, potentially reloading part of the chain (eg unload a video decoder when switching from compressed to uncompressed sources).
 .br
+  
+.br
 Each filter exposes one or more sets of capabilities, called capability bundle, which are property type and values that must be matched or excluded by connecting PIDs.
+.br
+  
 .br
 Each filter exposes a set of argument to configure itself, using property types and values described as strings formated with separators. This help is given with default separator sets :=#,@ to specify filters, properties and options. Use -seps to change them.
 .br
@@ -976,6 +992,8 @@ Each filter exposes a set of argument to configure itself, using property types 
 .br
  * `file@FILE`: load string from local FILE (opened in binary mode).
 .br
+ * `bxml@FILE`: binarize XML from local FILE and move property type to data - see https://github.com/gpac/gpac/wiki/NHML-Format.
+.br
 * data: formatted as:
 .br
  * `size@address`: constant data block, not internally copied; size gives the size of the block, address the data pointer.
@@ -984,7 +1002,7 @@ Each filter exposes a set of argument to configure itself, using property types 
 .br
  * `file@FILE`: load data from local FILE (opened in binary mode).
 .br
- * `bxml@FILE`: binarize XML from local FILE, see https://github.com/gpac/gpac/wiki/NHML-Format.
+ * `bxml@FILE`: binarize XML from local FILE - see https://github.com/gpac/gpac/wiki/NHML-Format.
 .br
 * pointer: are formatted as address giving the pointer address (32 or 64 bit depending on platforms).
 .br
@@ -1006,6 +1024,10 @@ Filters are listed by name, with options appended as a list of colon-separated n
 * boolean: value can be omitted, defaulting to true (eg :noedit). Using ! before the name negates the result (eg :!moof_first)
 .br
 * enumerations: name can be omitted (eg :disp=pbo is equivalent to :pbo), provided that filter developers pay attention to not reuse enumeration names in the same filter.
+.br
+
+.br
+  
 .br
 When string parameters are used (eg URLs), it is recommended to escape the string using the keyword gpac.  
 .br
@@ -1051,7 +1073,7 @@ Note: one trick to avoid the escape sequence is to declare the URLs option at th
 .B
 Source and Sink filters
 .br
-Source and sink filters do not need to be addressed by the filter name, specifying src= or dst= instead is enough. You can also use the syntax -src URL or -i URL for sources and -dst URL or -o URL for destination, this allows prompt completion in shells
+Source and sink filters do not need to be addressed by the filter name, specifying src= or dst= instead is enough. You can also use the syntax -src URL or -i URL for sources and -dst URL or -o URL for destination, this allows prompt completion in shells.
 .br
 Example
 .br
@@ -1059,7 +1081,7 @@ src=file.mp4 -src file.mp4 -i file.mp4
 .br
 
 .br
-This will find a filter (for example fin) able to load file.mp4. The same result can be achieved by using fin:src=file.mp4
+This will find a filter (for example fin) able to load file.mp4. The same result can be achieved by using fin:src=file.mp4.
 .br
 Example
 .br
@@ -1075,7 +1097,7 @@ Specific source or sink filters may also be specified using filterName:src=URL o
 .B
 Forcing specific filters
 .br
-There is a special option called gfreg which allows specifying preferred filters to use when handling URLs
+There is a special option called gfreg which allows specifying preferred filters to use when handling URLs.
 .br
 Example
 .br
@@ -1103,7 +1125,11 @@ By default filters chain will be resolved without any decoding/encoding if the d
 .br
 * all_intra=BOOL: indicates all frames should be intra frames, if supported by codec
 .br
-Other options will be passed to the filter if it accepts generic argument parsing (as is the case for ffmpeg)
+
+.br
+  
+.br
+Other options will be passed to the filter if it accepts generic argument parsing (as is the case for ffmpeg).
 .br
 Example
 .br
@@ -1111,7 +1137,7 @@ src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true dst
 .br
 
 .br
-This creates a 25 fps AVC at 175kbps with a gop duration of 2 seconds, using closed gop and fast encoding settings for ffmpeg
+This creates a 25 fps AVC at 175kbps with a gop duration of 2 seconds, using closed gop and fast encoding settings for ffmpeg.
 .br
 
 .br
@@ -1135,7 +1161,7 @@ f:a=foo:b=bar
 .br
 
 .br
-This will set option a to foo and option b to bar on the filter
+This will set option a to foo and option b to bar on the filter.
 .br
 Example
 .br
@@ -1143,7 +1169,7 @@ f::a=foo:b=bar
 .br
 
 .br
-This will set option a to foo:b=bar on the filter
+This will set option a to foo:b=bar on the filter.
 .br
 Example
 .br
@@ -1151,7 +1177,7 @@ f:a=foo::b=bar:c::d=fun
 .br
 
 .br
-This will set option a to foo, b to bar:c and the option d to fun on the filter
+This will set option a to foo, b to bar:c and the option d to fun on the filter.
 .br
 .SH Expliciting links between filters [LINK]
 .LP
@@ -1168,7 +1194,7 @@ fA fB @1 fC
 .br
 
 .br
-This indicates to direct fA outputs to fC
+This indicates to direct fA outputs to fC.
 .br
 Example
 .br
@@ -1176,7 +1202,7 @@ fA fB @1 @0 fC
 .br
 
 .br
-This indicates to direct fB outputs to fC, @1 is ignored
+This indicates to direct fB outputs to fC, @1 is ignored.
 .br
 If no link directives are given, the links will be dynamically solved to fullfill as many connections as possible (see below).
 .br
@@ -1200,7 +1226,7 @@ fA fB @1 fC
 .br
 
 .br
-This is equivalent to fA:FID=1 fB fC:SID=1 
+This is equivalent to fA:FID=1 fB fC:SID=1.
 .br
 Link directives specify which source a filter can accept connections from. They do not specifiy which destination a filter can connect to.
 .br
@@ -1240,7 +1266,7 @@ If the property is not defined on the PID, the property is matched. Otherwise, i
 .br
 
 .br
-The following modifiers for comparisons are allowed (for both P4CC=, PName= and AnyName=)
+The following modifiers for comparisons are allowed (for both P4CC=, PName= and AnyName=):
 .br
 * name#P4CC=!VAL: accepts only PIDs with property NOT matching VAL.
 .br
@@ -1250,7 +1276,7 @@ The following modifiers for comparisons are allowed (for both P4CC=, PName= and 
 .br
 
 .br
-A sourceID name can also use wildcard or be empty to match a property regardless of the source filter:
+A sourceID name can also use wildcard or be empty to match a property regardless of the source filter.
 .br
 Example
 .br
@@ -1266,7 +1292,7 @@ fA fB:SID=#ServiceID=2
 .br
 This indicates to match connection between fA and fB only for PIDs with a ServiceID property of 2.
 .br
-These extensions also work with the LINK @ shortcut
+These extensions also work with the LINK @ shortcut.
 .br
 Example
 .br
@@ -1274,7 +1300,7 @@ fA fB @1#video fC
 .br
 
 .br
-This indicates to direct fA video outputs to fC
+This indicates to direct fA video outputs to fC.
 .br
 Example
 .br
@@ -1282,7 +1308,7 @@ src=img.heif @#ItemID=200 vout
 .br
 
 .br
-This indicates to connect to vout only PIDs with ItemID property equal to 200
+This indicates to connect to vout only PIDs with ItemID property equal to 200.
 .br
 Example
 .br
@@ -1290,7 +1316,7 @@ src=vid.mp4 @#PID=1 vout
 .br
 
 .br
-This indicates to connect to vout only PIDs with ID property equal to 1
+This indicates to connect to vout only PIDs with ID property equal to 1.
 .br
 Example
 .br
@@ -1298,7 +1324,7 @@ src=vid.mp4 @#Width=640 vout
 .br
 
 .br
-This indicates to connect to vout only PIDs with Width property equal to 640
+This indicates to connect to vout only PIDs with Width property equal to 640.
 .br
 Example
 .br
@@ -1310,7 +1336,7 @@ This indicates to connect to vout only PIDs with Width property less than 640
 .br
 
 .br
-Multiple fragment can be specified to check for multiple PID properties
+Multiple fragment can be specified to check for multiple PID properties.
 .br
 Example
 .br
@@ -1318,7 +1344,7 @@ src=vid.mp4 @#Width=640#Height+380 vout
 .br
 
 .br
-This indicates to connect to vout only PIDs with Width property equal to 640 and Height greater than 380
+This indicates to connect to vout only PIDs with Width property equal to 640 and Height greater than 380.
 .br
 
 .br
@@ -1351,7 +1377,7 @@ src=file.mp4:OPT dst=file.aac dst=file.264
 .br
 
 .br
-This will pass the :OPT to all filters loaded between the source and the two destinations
+This will pass the :OPT to all filters loaded between the source and the two destinations.
 .br
 Example
 .br
@@ -1359,7 +1385,7 @@ src=file.mp4 dst=file.aac:OPT dst=file.264
 .br
 
 .br
-This will pass the :OPT to all filters loaded between the source and the file.aac destination
+This will pass the :OPT to all filters loaded between the source and the file.aac destination.
 .br
 Note: the destination arguments inherited are the arguments placed AFTER the dst= option.
 .br
@@ -1369,9 +1395,9 @@ src=file.mp4 fout:OPTFOO:dst=file.aac:OPTBAR
 .br
 
 .br
-This will pass the :OPTBAR to all filters loaded between file.mp4 source and file.aac destination, but not OPTFOO
+This will pass the :OPTBAR to all filters loaded between file.mp4 source and file.aac destination, but not OPTFOO.
 .br
-Arguments inheriting can be stopped by using the keyword gfloc: arguments after the keyword will not be inherited
+Arguments inheriting can be stopped by using the keyword gfloc: arguments after the keyword will not be inherited.
 .br
 Example
 .br
@@ -1383,7 +1409,7 @@ This will pass the :OPTFOO to all filters loaded between file.mp4source and file
 .br
 Arguments are by default tracked to check if they were used by the filter chain, and a warning is thrown if this is not the case.
 .br
-It may be usefull to specify arguments which may not be consumed depending on the graph resolution; the specific keyword gfopt indicates that arguments after the keyword will not be tracked
+It may be usefull to specify arguments which may not be consumed depending on the graph resolution; the specific keyword gfopt indicates that arguments after the keyword will not be tracked.
 .br
 Example
 .br
@@ -1391,7 +1417,7 @@ src=file.mp4 dst=file.aac:OPTFOO:gfopt:OPTBAR dst=file.264
 .br
 
 .br
-This will warn if OPTFOO is not consumed, but will not track OPTBAR
+This will warn if OPTFOO is not consumed, but will not track OPTBAR.
 .br
 .SH URL templating
 .LP
@@ -1414,7 +1440,11 @@ KEYWORD is case sensitive, and may be present multiple times in the string. Supp
 .br
 * OTHER: locates property 4CC for the given name, or property name if no 4CC matches.
 .br
-Templating can be useful when encoding several qualities in one pass
+
+.br
+  
+.br
+Templating can be useful when encoding several qualities in one pass.
 .br
 Example
 .br
@@ -1454,7 +1484,7 @@ In this case, the destination will be cloned for each item, and all will be expo
 .br
 There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the :cloneoption is not enough since the muxer will always accept the input PIDs.
 .br
-To handle this, it is possible to use a PID property name in the sourceID of a filter with the value * or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned
+To handle this, it is possible to use a PID property name in the sourceID of a filter with the value * or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned.
 .br
 Warning: This feature should only be called with a single property set to * per source ID, results are undefined otherwise.
 .br
@@ -1489,7 +1519,7 @@ Example
 .br
 
 .br
-This will mux the streams in dump.ts, using ServiceID 4 for PIDs from v1.mp4 and ServiceID 2 for PIDs from v2.mp4
+This will mux the streams in dump.ts, using ServiceID 4 for PIDs from v1.mp4 and ServiceID 2 for PIDs from v2.mp4.
 .br
 .SH Using option files
 .LP
@@ -1512,7 +1542,7 @@ src=source.mp4:myopts.txt:foo=bar dst
 .br
 
 .br
-Any filter loaded between source.mp4 and dst will inherit both myopts.txt and foo options and will resolve options given in myopts.txt
+Any filter loaded between source.mp4 and dst will inherit both myopts.txt and foo options and will resolve options given in myopts.txt.
 .br
 .SH Specific filter options
 .LP
@@ -1532,6 +1562,10 @@ Defined keywords:
 * $GUA: replaced by the global config user agent option -user-agent
 .br
 * $GINC(init_val[,inc]): replaced by init_val and increment init_val by inc (positive or negative number, 1 if not specified) each time a new filter using this string is created. This can be used to dynamically assign numbers in filter chains:
+.br
+
+.br
+  
 .br
 Example
 .br
@@ -3268,7 +3302,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3106-g4f89b69d1-filters
+build: 0.9.0-DEV-rev3118-g296842381-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
