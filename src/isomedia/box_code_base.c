@@ -6772,10 +6772,6 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->tfdt, bs);
 		if (e) return e;
 	}
-	if (ptr->sdtp) {
-		e = gf_isom_box_write((GF_Box *) ptr->sdtp, bs);
-		if (e) return e;
-	}
 	if (ptr->sampleGroupsDescription) {
 		e = gf_isom_box_array_write(s, ptr->sampleGroupsDescription, bs);
 		if (e) return e;
@@ -6801,6 +6797,11 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_array_write(s, ptr->TrackRuns, bs);
 	if (e) return e;
 
+	//when sdtp is present (smooth-like) write it after the trun box
+	if (ptr->sdtp) {
+		e = gf_isom_box_write((GF_Box *) ptr->sdtp, bs);
+		if (e) return e;
+	}
 	//tfxd should be last ...
 	if (ptr->tfxd) {
 		e = gf_isom_box_write((GF_Box *) ptr->tfxd, bs);
