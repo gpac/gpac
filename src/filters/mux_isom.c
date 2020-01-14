@@ -210,15 +210,15 @@ typedef struct
 	char *boxpatch;
 	Bool fcomp;
 	Bool deps;
+	Bool mvex;
+	u32 sdtp_traf;
+	Bool ctrn;
+	Bool ctrni;
 
 	//internal
 	Bool owns_mov;
 	GF_FilterPid *opid;
 	Bool first_pck_sent;
-	Bool mvex;
-	Bool sdtp;
-	Bool ctrn;
-	Bool ctrni;
 
 	GF_List *tracks;
 
@@ -3587,8 +3587,8 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 				gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRUN_MERGE_INTERLEAVE, 0);
 		}
 
-		if (ctx->sdtp)
-			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX, 1);
+		if (ctx->sdtp_traf)
+			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX, ctx->sdtp_traf);
 
 
 		if (ctx->insert_pssh)
@@ -3908,8 +3908,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to start new fragment: %s\n", gf_error_to_string(e) ));
 				return e;
 			}
-			if (ctx->sdtp)
-				gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX, 1);
+			if (ctx->sdtp_traf)
+				gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX, ctx->sdtp_traf);
 		}
 	}
 	if (nb_done==count) {
@@ -4877,7 +4877,10 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- udta: only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tmpd), "set temp directory for intermediate file(s)", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mvex), "set mvex after tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sdtp), "use sdtp in traf rather than using flags in trun sample entries", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sdtp_traf), "use sdtp in traf rather than using flags in trun sample entries\n"
+		"- no: do not use sdtp\n"
+		"- sdtp: use sdtp box to indicate sample dependencies and don't write info in trun sample flags\n"
+		"- both: use sdtp box to indicate sample dependencies and also write info in trun sample flags", GF_PROP_UINT, "no", "no|sdtp|both", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tkid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fdur), "fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(btrt), "set btrt box in sample description", GF_PROP_BOOL, "true", NULL, 0},

@@ -497,7 +497,7 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_
 	case GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX:
 		traf = gf_isom_get_traf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
-		traf->use_sdtp = Param;
+		traf->use_sdtp = (u8) Param;
 		break;
 	case GF_ISOM_TRUN_FORCE:
 		traf = gf_isom_get_traf(movie, TrackID);
@@ -2937,7 +2937,7 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, GF_ISOTrackID TrackID, 
 
 		GF_ISOM_RESET_FRAG_DEPEND_FLAGS(ent->flags);
 
-		if (traf->tfhd->use_sdtp) {
+		if (traf->use_sdtp) {
 			u8 sflags=0;
 			if (!traf->sdtp) {
 				traf->sdtp = (GF_SampleDependencyTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SDTP);
@@ -2952,6 +2952,9 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, GF_ISOTrackID TrackID, 
 			traf->sdtp->sample_info[traf->sdtp->sampleCount] = (u8) sflags;
 			traf->sdtp->sampleCount++;
 
+			if (traf->use_sdtp==2) {
+				ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(isLeading, dependsOn, dependedOn, redundant);
+			}
 		} else {
 			ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(isLeading, dependsOn, dependedOn, redundant);
 		}
@@ -3077,6 +3080,9 @@ GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, GF_ISOTrackID trackI
 		traf->sdtp->sample_info = gf_realloc(traf->sdtp->sample_info, sizeof(u8)*(traf->sdtp->sampleCount+1));
 		traf->sdtp->sample_info[traf->sdtp->sampleCount] = (u8) sflags;
 		traf->sdtp->sampleCount++;
+		if (traf->use_sdtp==2) {
+			ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(is_leading, dependsOn, dependedOn, redundant);
+		}
 	} else {
 		ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(is_leading, dependsOn, dependedOn, redundant);
 	}

@@ -91,7 +91,7 @@ struct __gf_dash_segmenter
 	GF_DASH_SplitMode split_mode;
 
 	Bool mvex_after_traks;
-	Bool sdtp_in_traf;
+	u32 sdtp_in_traf;
 	
 	//some HLS options
 	Bool hls_clock;
@@ -368,7 +368,7 @@ GF_Err gf_dasher_set_initial_isobmf(GF_DASHSegmenter *dasher, u32 initial_moof_s
 }
 
 GF_EXPORT
-GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, GF_DASHPSSHMode pssh_mode, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf, Bool mvex_after_traks, Bool sdtp_in_traf)
+GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, GF_DASHPSSHMode pssh_mode, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf, Bool mvex_after_traks, u32 sdtp_in_traf)
 {
 	if (!dasher) return GF_BAD_PARAM;
 	dasher->no_fragments_defaults = no_fragments_defaults;
@@ -775,7 +775,8 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->strict_cues) e |= gf_dynstrcat(&args, "strict_cues", ":");
 
 	if (dasher->mvex_after_traks) e |= gf_dynstrcat(&args, "mvex", ":");
-	if (dasher->sdtp_in_traf) e |= gf_dynstrcat(&args, "sdtp", ":");
+	if (dasher->sdtp_in_traf==1) e |= gf_dynstrcat(&args, "sdtp_traf=sdtp", ":");
+	else if (dasher->sdtp_in_traf==2) e |= gf_dynstrcat(&args, "sdtp_traf=both", ":");
 
 	if (dasher->split_mode==GF_DASH_SPLIT_CLOSEST)
 		e |= gf_dynstrcat(&args, "sbound=closest", ":");

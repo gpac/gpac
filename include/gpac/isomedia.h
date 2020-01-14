@@ -3921,7 +3921,11 @@ typedef enum
 	/*! forces moof base offsets when traf based offsets would be chosen
 	param: on/off (0/1)*/
 	GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET,
-	/*! use sdtp box in traf rather than storing sample deps in trun entry*/
+	/*! use sdtp box in traf rather than storing sample deps in trun entry. param values are:
+		0: disables sdtp
+		1: enables sdtp and disables sample dependency flags in trun
+		2: enables sdtp and also use sample dependency flags in trun
+	*/
 	GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX,
 	/*! forces new trun at next sample add
 	param: ignored*/
