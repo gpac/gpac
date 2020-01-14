@@ -287,7 +287,10 @@ GF_GPACArg m4b_dash_args[] =
 	"- mf, fm: in movie fragments and MPD", NULL, "v|f|m|mv|vm|mf|fm", GF_ARG_INT, 0),
 	GF_DEF_ARG("sample-groups-traf", NULL, "store sample group descriptions in traf (duplicated for each traf). If not set, sample group descriptions are stored in the initial movie", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("mvex-after-traks", NULL, "store `mvex` box after `trak` boxes within the moov box. If not set, `mvex` is before", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("sdtp-traf", NULL, "use `sdtp` box in `traf` rather than storing dependency info in trun entry (Smooth-like)", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("sdtp-traf", NULL, "use `sdtp` box in `traf` (Smooth-like).\n"
+	"- no: do not use sdtp\n"
+	"- sdtp: use sdtp box to indicate sample dependencies and don't write info in trun sample flags\n"
+	"- both: use sdtp box to indicate sample dependencies and also write info in trun sample flags\n", NULL, "no|sdtp|both", GF_ARG_INT, 0),
 	GF_DEF_ARG("no-cache", NULL, "disable file cache for dash inputs", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("no-loop", NULL, "disable looping content in live mode and uses period switch instead", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("hlsc", NULL, "insert UTC in variant playlists for live HLS", NULL, NULL, GF_ARG_BOOL, 0),
@@ -2305,7 +2308,7 @@ Bool dump_iod = GF_FALSE;
 GF_DASHPSSHMode pssh_mode = 0;
 Bool samplegroups_in_traf = GF_FALSE;
 Bool mvex_after_traks = GF_FALSE;
-Bool sdtp_in_traf = GF_FALSE;
+u32 sdtp_in_traf = 0;
 Bool daisy_chain_sidx = GF_FALSE;
 Bool use_ssix = GF_FALSE;
 Bool single_segment = GF_FALSE;
@@ -4152,7 +4155,11 @@ Bool mp4box_parse_args(int argc, char **argv)
 			mvex_after_traks = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-sdtp-traf")) {
-			sdtp_in_traf = GF_TRUE;
+			CHECK_NEXT_ARG
+			if (!stricmp(argv[i + 1], "both")) sdtp_in_traf = 2;
+			else if (!stricmp(argv[i + 1], "sdtp")) sdtp_in_traf = 1;
+			else sdtp_in_traf = 0;
+			i++;
 		}
 		else if (!stricmp(arg, "-dash-profile") || !stricmp(arg, "-profile")) {
 			CHECK_NEXT_ARG
