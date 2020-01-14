@@ -1673,7 +1673,15 @@ tmpd (string):                           set temp directory for intermediate fil
 .br
 mvex (boolean, default: false):          set mvex after tracks
 .br
-sdtp (boolean, default: false):          use sdtp in traf rather than using flags in trun sample entries
+sdtp_traf (enum, default: no):           use sdtp in traf rather than using flags in trun sample entries
+.br
+* no: do not use sdtp
+.br
+* sdtp: use sdtp box to indicate sample dependencies and don't write info in trun sample flags
+.br
+* both: use sdtp box to indicate sample dependencies and also write info in trun sample flags
+.br
+
 .br
 tkid (unsigned int, default: 0):         track ID of created track for single track. Default 0 uses next available trackID
 .br
@@ -2296,7 +2304,7 @@ frame (boolean, default: false):         force single frame dump with no rewrite
 .br
 sstart (unsigned int, default: 0):       start number of frame to dump. If 0, all samples are dumped
 .br
-send (unsigned int, default: 0):         end number of frame to dump. If start<end, all samples after start are dumped
+send (unsigned int, default: 0):         end number of frame to dump. If less than start frame, all samples after start are dumped
 .br
 
 .br
@@ -5082,7 +5090,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3106-g4f89b69d1-filters
+build: 0.9.0-DEV-rev3118-g296842381-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
