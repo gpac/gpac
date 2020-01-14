@@ -972,7 +972,7 @@ static GF_FilterArgs GenDumpArgs[] =
 	{ OFFS(split), "force one file per decoded frame.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frame), "force single frame dump with no rewrite. In this mode, all codecids are supported", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(sstart), "start number of frame to dump. If 0, all samples are dumped", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(send), "end number of frame to dump. If start<end, all samples after start are dumped", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(send), "end number of frame to dump. If less than start frame, all samples after start are dumped", GF_PROP_UINT, "0", NULL, 0},
 	{0}
 };
 
