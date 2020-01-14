@@ -445,7 +445,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 	if (!traf->trex->track)
 		traf->trex->track = trak;
-		
+
 	//setup all our defaults
 	DescIndex = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_DESC) ? traf->tfhd->sample_desc_index : traf->trex->def_sample_desc_index;
 	if (!DescIndex) {
@@ -1199,7 +1199,11 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
                 //OK, delete the previous ESD
                 gf_odf_desc_del((GF_Descriptor *) entry_a->esd->desc);
                 entry_a->esd->desc = esd;
-            }
+            } else {
+				// can't return OK here otherwise we can't know if esd hasn't been used
+				// and need to be freed
+				return GF_ISOM_INVALID_MEDIA;
+			}
 			break;
 		case GF_ISOM_BOX_TYPE_AVC1:
 		case GF_ISOM_BOX_TYPE_AVC2:

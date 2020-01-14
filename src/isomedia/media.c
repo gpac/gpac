@@ -214,7 +214,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
             ESDa = ase->esd;
             if (ESDa) {
 				esd = (GF_ESD *) ESDa->desc;
-            } else {
+            } else if (!true_desc_only) {
 				Bool make_mp4a = GF_FALSE;
 				GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_list_get(entry->protections, 0);
 				if (sinf && sinf->original_format) {
@@ -711,6 +711,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 		if (Track_IsMPEG4Stream(trak->Media->handler->handlerType)) {
 			Media_GetESD(trak->Media, 1, &esd, 1);
 			if (esd && esd->URLString) trak->Media->mediaHeader->duration = (u64) -1;
+
 		}
 		return GF_OK;
 

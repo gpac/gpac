@@ -4043,6 +4043,7 @@ GF_Err audio_sample_entry_Read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<size-8; i++) {
 		if (GF_4CC((u32)data[i+4], (u8)data[i+5], (u8)data[i+6], (u8)data[i+7]) == GF_ISOM_BOX_TYPE_ESDS) {
 			GF_BitStream *mybs = gf_bs_new(data + i, size - i, GF_BITSTREAM_READ);
+			if (ptr->esd) gf_isom_box_del((GF_Box *)ptr->esd);
 			e = gf_isom_box_parse((GF_Box **)&ptr->esd, mybs);
 			if (!e) gf_isom_box_add_for_dump_mode((GF_Box*)ptr, (GF_Box*)ptr->esd);
 			gf_bs_del(mybs);
