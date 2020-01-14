@@ -11513,7 +11513,11 @@ GF_Err dvcC_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_int(bs, ptr->DOVIConfig.rpu_present_flag, 1);
 	gf_bs_write_int(bs, ptr->DOVIConfig.el_present_flag, 1);
 	gf_bs_write_int(bs, ptr->DOVIConfig.bl_present_flag, 1);
-	gf_bs_write_int(bs, 0, 5*32);
+	{
+		u32 data[5];
+		memset(data, 0, sizeof(data));
+		gf_bs_write_data(bs, (char*)data, sizeof(data));
+	}
 
 	return GF_OK;
 }
