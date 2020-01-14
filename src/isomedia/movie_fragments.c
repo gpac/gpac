@@ -412,7 +412,7 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, u32 TrackID, u32 Code, u32
 		movie->force_moof_base_offset = Param;
 		break;
 	case GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX:
-		traf->tfhd->use_sdtp = Param;
+		traf->tfhd->use_sdtp = (u8) Param;
 		break;
 	}
 	return GF_OK;
@@ -2404,6 +2404,9 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 			traf->sdtp->sample_info[traf->sdtp->sampleCount] = (u8) sflags;
 			traf->sdtp->sampleCount++;
 
+			if (traf->tfhd->use_sdtp==2) {
+				ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(isLeading, dependsOn, dependedOn, redundant);
+			}
 		} else {
 			ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(isLeading, dependsOn, dependedOn, redundant);
 		}

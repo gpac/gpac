@@ -425,7 +425,10 @@ void PrintDASHUsage()
 	        " -pssh=MODE           sets pssh store mode. Mode can be v (moov), f (frag), m (mpd) mv/vm (moov+mpd) mf/fm (moof+mpd).\n"
 	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box.\n"
 			" -mvex-after-traks    stores mvex box after trak boxes within the moov box. If not used, mvex is before.\n"
-			" -sdtp-traf           use sdtp box in traf rather than storing dependency info in trun entry (Smooth-like)\n"
+			" -sdtp-traf VAL       uses sdtp box in traf (Smooth-like). VAL can be:\n"
+			"   \"no\":            use only trun sample flags (default)\n"
+			"   \"sdtp\":          use sdtp box to indicate sample dependencies and don't write info in trun sample flags\n"
+			"   \"both\":          use sdtp box to indicate sample dependencies and also write info in trun sample flags\n"
 	        " -no-cache            disable file cache for dash inputs .\n"
 	        " -no-loop             disables looping content in live mode and uses period switch instead.\n"
 	        " -bound               enables video segmentation with same method as audio (i.e.: always try to split before or at the segment boundary - not after)\n"
@@ -2296,7 +2299,7 @@ Bool dump_iod = GF_FALSE;
 GF_DASHPSSHMode pssh_mode = 0;
 Bool samplegroups_in_traf = GF_FALSE;
 Bool mvex_after_traks = GF_FALSE;
-Bool sdtp_in_traf = GF_FALSE;
+u32 sdtp_in_traf = 0;
 Bool daisy_chain_sidx = GF_FALSE;
 Bool use_ssix = GF_FALSE;
 Bool single_segment = GF_FALSE;
@@ -3958,7 +3961,11 @@ Bool mp4box_parse_args(int argc, char **argv)
 			mvex_after_traks = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-sdtp-traf")) {
-			sdtp_in_traf = GF_TRUE;
+			CHECK_NEXT_ARG
+			if (!stricmp(argv[i + 1], "both")) sdtp_in_traf = 2;
+			else if (!stricmp(argv[i + 1], "sdtp")) sdtp_in_traf = 1;
+			else sdtp_in_traf = 0;
+			i++;
 		}
 		else if (!stricmp(arg, "-dash-profile") || !stricmp(arg, "-profile")) {
 			CHECK_NEXT_ARG

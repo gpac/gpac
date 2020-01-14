@@ -155,7 +155,7 @@ struct __gf_dash_segmenter
 	Bool strict_cues;
 
 	Bool mvex_after_traks;
-	Bool sdtp_in_traf;
+	u32 sdtp_in_traf;
 };
 
 struct _dash_segment_input
@@ -1958,7 +1958,7 @@ restart_fragmentation_pass:
 				if (!SegmentDuration) tf->min_cts_in_segment = (u64)-1;
 
 				if (dasher->sdtp_in_traf)
-					gf_isom_set_fragment_option(output, tf->TrackID, GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX, 1);
+					gf_isom_set_fragment_option(output, tf->TrackID, GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX, dasher->sdtp_in_traf);
 
 				if (!mpd_timeline_bs && use_url_template) {
 					Double sdur = ((Double)MaxSegmentDuration) / dasher->dash_scale;
@@ -6529,7 +6529,7 @@ GF_Err gf_dasher_set_cues(GF_DASHSegmenter *dasher, const char *cues_file, Bool 
 }
 
 GF_EXPORT
-GF_Err gf_dasher_set_isobmff_options(GF_DASHSegmenter *dasher, Bool mvex_after_traks, Bool sdtp_in_traf)
+GF_Err gf_dasher_set_isobmff_options(GF_DASHSegmenter *dasher, Bool mvex_after_traks, u32 sdtp_in_traf)
 {
 	dasher->mvex_after_traks = mvex_after_traks;
 	dasher->sdtp_in_traf = sdtp_in_traf;
