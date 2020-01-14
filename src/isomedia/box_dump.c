@@ -739,8 +739,19 @@ void base_audio_entry_dump(GF_AudioSampleEntryBox *p, FILE * trace)
 		fprintf(trace, " Version=\"%d\"", p->version);
 	fprintf(trace, " SampleRate=\"%d\"", p->samplerate_hi);
 	fprintf(trace, " Channels=\"%d\" BitsPerSample=\"%d\"", p->channel_count, p->bitspersample);
-	if (p->is_qtff)
+	if (p->is_qtff) {
 		fprintf(trace, " isQTFF=\"%d\"", p->is_qtff);
+		fprintf(trace, " qtRevisionLevel=\"%d\"", p->revision);
+		fprintf(trace, " qtVendor=\"%d\"", p->vendor);
+		fprintf(trace, " qtCompressionId=\"%d\"", p->compression_id);
+		fprintf(trace, " qtPacketSize=\"%d\"", p->packet_size);
+		if (p->version == 1) {
+			fprintf(trace, " qtSamplesPerPacket=\"%d\"", p->extensions[0]<<24 | p->extensions[1]<<16 | p->extensions[2]<<8 | p->extensions[3]);
+			fprintf(trace, " qtBytesPerPacket=\"%d\"", p->extensions[4]<<24 | p->extensions[5]<<16 | p->extensions[6]<<8 | p->extensions[7]);
+			fprintf(trace, " qtBytesPerFrame=\"%d\"", p->extensions[8]<<24 | p->extensions[9]<<16 | p->extensions[10]<<8 | p->extensions[11]);
+			fprintf(trace, " qtBytesPerSample=\"%d\"", p->extensions[12]<<24 | p->extensions[13]<<16 | p->extensions[14]<<8 | p->extensions[15]);
+		}
+	}
 
 }
 
