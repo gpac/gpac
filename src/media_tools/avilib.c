@@ -1790,6 +1790,8 @@ int AVI_close(avi_t *AVI)
 	for (j = 0; j < AVI->anum; j++)
 		if (AVI->wave_format_ex[j])
 			gf_free(AVI->wave_format_ex[j]);
+	if (AVI->extradata)
+		gf_free(AVI->extradata);
 
 	gf_free(AVI);
 	return ret;
@@ -2079,6 +2081,12 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 						memcpy(AVI->compressor2, hdrl_data+i+16, 4);
 						AVI->compressor2[4] = 0;
+
+						if (n>40) {
+							AVI->extradata_size = n - 40;
+							AVI->extradata = gf_malloc(sizeof(u8)* AVI->extradata_size);
+							memcpy(AVI->extradata, hdrl_data + i + 40, AVI->extradata_size);
+						}
 
 					}
 					else if(lasttag == 2)
