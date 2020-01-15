@@ -1896,7 +1896,6 @@ static GF_Err vout_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-
 	if (ctx->dumpframes.nb_items) {
 		u32 i;
 
@@ -1963,6 +1962,21 @@ static GF_Err vout_process(GF_Filter *filter)
 		Double media_ts;
 		s64 delay;
 
+		if (ctx->dur.num) {
+			if ((cts - ctx->first_cts) * ctx->dur.den > ctx->dur.num * ctx->timescale) {
+				GF_FilterEvent evt;
+				if (ctx->last_pck) {
+					gf_filter_pck_unref(ctx->last_pck);
+					ctx->last_pck = NULL;
+				}
+				ctx->aborted = GF_TRUE;
+				GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->pid);
+				gf_filter_pid_send_event(ctx->pid, &evt);
+				gf_filter_pid_set_discard(ctx->pid, GF_TRUE);
+				return GF_EOS;
+			}
+		}
+
 		delay = ctx->pid_delay;
 		if (ctx->delay.den)
 			delay += ctx->delay.num * (s32)ctx->timescale / (s32)ctx->delay.den;
@@ -1990,6 +2004,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			assert(diff>=0);
 			//ref stream hypothetical timestamp at now
 			ref_ts += diff;
+			ctx->first_cts = cts;
 			cts *= 1000;
 			cts/=ctx->timescale;
 			ref_ts *= 1000;
@@ -2204,7 +2219,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	"- blit: 2D hardware blit\n"
 	"- soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(dur), "only play the specified duration", GF_PROP_FRACTION, "0", NULL, 0},
+	{ OFFS(dur), "only play the specified duration", GF_PROP_FRACTION64, "0", NULL, 0},
 	{ OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(hold), "number of seconds to hold display for single-frame streams. A negative value force a hold on last frame for single or multi-frames streams", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(linear), "use linear filtering instead of nearest pixel for GL mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
