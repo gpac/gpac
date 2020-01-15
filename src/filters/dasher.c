@@ -5739,6 +5739,16 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if ((ctx->sfile || ctx->sseg) && (evt->seg_size.is_init==1))  {
 			GF_MPD_URL *url, **s_url;
 
+			if (ds->rep->segment_list) {
+				if (!evt->seg_size.media_range_start && !evt->seg_size.media_range_end) {
+					if (ds->rep->segment_list->initialization_segment) {
+						gf_mpd_url_free(ds->rep->segment_list->initialization_segment);
+						ds->rep->segment_list->initialization_segment = NULL;
+					}
+					continue;
+				}
+			}
+
 			if (ds->rep->segment_base && !evt->seg_size.media_range_end) {
 				if (! ds->rep->segment_base->index_range) {
 					GF_SAFEALLOC(ds->rep->segment_base->index_range, GF_MPD_ByteRange);
@@ -5870,6 +5880,10 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 	default:
 		break;
 	}
+
+	if (ctx->sseg)
+		ctx->tpl = GF_FALSE;
+
 		//commented out, not sure why we had inband by default in live
 	if (ctx->bs_switch == DASHER_BS_SWITCH_DEF) {
 #if 0
@@ -6065,7 +6079,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- webm: uses WebM format\n"
 		"- raw: uses raw media format (disables muxed representations)\n"
 		"- auto: guess format based on extension, default to mp4 if no extension", GF_PROP_UINT, "auto", "mp4|ts|mkv|webm|ogg|raw|auto", 0},
-	{ OFFS(asto), "availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(asto), "availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(profile), "target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main.\n"
 		"- auto: turns profile to live for dynamic and full for non-dynamic\n"
 		"- live: DASH live profile, using segment template\n"
