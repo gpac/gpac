@@ -269,7 +269,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 				} else {
 					evt.seg_size.is_init = GF_FALSE;
 					evt.seg_size.media_range_start = ctx->offset_at_seg_start;
-					evt.seg_size.media_range_end = gf_ftell(ctx->file);
+					evt.seg_size.media_range_end = gf_ftell(ctx->file)-1;
 					gf_filter_pid_send_event(ctx->pid, &evt);
 				}
 			}
@@ -312,7 +312,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 			} else {
 				evt.seg_size.is_init = GF_FALSE;
 				evt.seg_size.media_range_start = ctx->offset_at_seg_start;
-				evt.seg_size.media_range_end = gf_ftell(ctx->file);
+				evt.seg_size.media_range_end = gf_ftell(ctx->file)-1;
 				ctx->offset_at_seg_start = evt.seg_size.media_range_end;
 				gf_filter_pid_send_event(ctx->pid, &evt);
 			}
