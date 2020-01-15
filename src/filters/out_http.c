@@ -1232,6 +1232,7 @@ static void httpout_del_session(GF_HTTPOutSession *s)
 	if (s->http_sess) gf_dm_sess_del(s->http_sess);
 	if (s->opid) gf_filter_pid_remove(s->opid);
 	if (s->resource) gf_fclose(s->resource);
+	if (s->ranges) gf_free(s->ranges);
 	gf_free(s);
 }
 
@@ -1282,11 +1283,12 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 		GF_FilterPacket *pck;
 		u8 *buffer;
 		Bool is_first = GF_FALSE;
-		if (!sess->reconfigure_output) {
+		if (sess->reconfigure_output) {
 			sess->reconfigure_output = GF_FALSE;
 			gf_filter_pid_raw_new(sess->ctx->filter, sess->path, NULL, sess->mime, NULL, (u8 *) data, size, GF_FALSE, &sess->opid);
 			is_first = GF_TRUE;
 		}
+		if (!sess->opid) return GF_SERVICE_ERROR;
 		pck = gf_filter_pck_new_alloc(sess->opid, size, &buffer);
 		if (!pck) return GF_IO_ERR;
 		memcpy(buffer, data, size);
@@ -1530,9 +1532,9 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		sess->nb_bytes += read;
 
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending data to %s: %s\n", sess->peer_address, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending data to %s for: %s\n", sess->peer_address, sess->path, gf_error_to_string(e) ));
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] sending data to %s: "LLU"/"LLU" bytes\n", sess->peer_address, sess->nb_bytes, sess->bytes_in_req));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] sending data to %s for %s: "LLU"/"LLU" bytes\n", sess->peer_address, sess->path, sess->nb_bytes, sess->bytes_in_req));
 		}
 		return;
 	}
@@ -1779,6 +1781,27 @@ static Bool httpout_input_write_ready(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	return count ? GF_TRUE : GF_FALSE;
 }
 
+static void httpin_send_seg_info(GF_HTTPOutInput *in)
+{
+	GF_FilterEvent evt;
+	GF_FEVT_INIT(evt, GF_FEVT_SEGMENT_SIZE, in->ipid);
+	evt.seg_size.seg_url = NULL;
+
+	if (in->dash_mode==1) {
+		evt.seg_size.is_init = GF_TRUE;
+		in->dash_mode = 2;
+		evt.seg_size.media_range_start = 0;
+		evt.seg_size.media_range_end = 0;
+		gf_filter_pid_send_event(in->ipid, &evt);
+	} else {
+		evt.seg_size.is_init = GF_FALSE;
+		evt.seg_size.media_range_start = in->offset_at_seg_start;
+		evt.seg_size.media_range_end = in->nb_write-1;
+		in->offset_at_seg_start = 1+evt.seg_size.media_range_end;
+		gf_filter_pid_send_event(in->ipid, &evt);
+	}
+}
+
 static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 {
 	u32 i, nb_eos=0, count = gf_list_count(ctx->inputs);
@@ -1805,23 +1828,8 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			//check end of PID state
 			if (gf_filter_pid_is_eos(in->ipid)) {
 				nb_eos++;
-				if (in->dash_mode && in->upload) {
-					GF_FilterEvent evt;
-					GF_FEVT_INIT(evt, GF_FEVT_SEGMENT_SIZE, in->ipid);
-					evt.seg_size.seg_url = NULL;
-
-					if (in->dash_mode==1) {
-						evt.seg_size.is_init = GF_TRUE;
-						in->dash_mode = 2;
-						evt.seg_size.media_range_start = 0;
-						evt.seg_size.media_range_end = 0;
-						gf_filter_pid_send_event(in->ipid, &evt);
-					} else {
-						evt.seg_size.is_init = GF_FALSE;
-						evt.seg_size.media_range_start = in->offset_at_seg_start;
-						evt.seg_size.media_range_end = in->nb_write;
-						gf_filter_pid_send_event(in->ipid, &evt);
-					}
+				if (in->dash_mode && in->is_open) {
+					httpin_send_seg_info(in);
 				}
 				httpout_close_input(ctx, in);
 			}
@@ -1839,24 +1847,8 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		if (in->dash_mode) {
 			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 			if (p) {
-				GF_FilterEvent evt;
+				httpin_send_seg_info(in);
 
-				GF_FEVT_INIT(evt, GF_FEVT_SEGMENT_SIZE, in->ipid);
-				evt.seg_size.seg_url = NULL;
-
-				if (in->dash_mode==1) {
-					evt.seg_size.is_init = GF_TRUE;
-					in->dash_mode = 2;
-					evt.seg_size.media_range_start = 0;
-					evt.seg_size.media_range_end = 0;
-					gf_filter_pid_send_event(in->ipid, &evt);
-				} else {
-					evt.seg_size.is_init = GF_FALSE;
-					evt.seg_size.media_range_start = in->offset_at_seg_start;
-					evt.seg_size.media_range_end = in->nb_write;
-					in->offset_at_seg_start = evt.seg_size.media_range_end;
-					gf_filter_pid_send_event(in->ipid, &evt);
-				}
 				if ( gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME))
 					start = GF_TRUE;
 			}
@@ -1866,12 +1858,16 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			const GF_PropertyValue *ext, *fnum, *fname;
 			const char *name = NULL;
 			fname = ext = NULL;
+
+			if (in->is_open)
+				httpout_close_input(ctx, in);
+
 			//file num increased per packet, open new file
 			fnum = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 			if (fnum) {
 				fname = gf_filter_pid_get_property(in->ipid, GF_PROP_PID_OUTPATH);
 				ext = gf_filter_pid_get_property(in->ipid, GF_PROP_PID_FILE_EXT);
-				if (!fname) name = ctx->dst;
+				//if (!fname) name = ctx->dst;
 			}
 			//filename change at packet start, open new file
 			if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
