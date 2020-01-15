@@ -39,8 +39,8 @@ typedef struct
 	u32 stream_num;
 	Bool in_use;
 	u32 aud_frame, audio_bps, nb_channels, freq;
-	u64 audio_ts;
-	Bool audio_done;
+	u64 audio_ts, seek_to_ts;
+	Bool audio_done, is_aac, playing, init_play_done;
 } AVIAstream;
 
 
@@ -56,13 +56,13 @@ typedef struct
 	Bool v_in_use;
 	u32 nb_frames, cur_frame, nb_frame_sent;
 	u32 dummy, nvops;
-	Bool stop_seen;
 	const char *src_url;
 	avi_t *avi;
 
 	Bool use_file_fps;
 	GF_Fraction64 duration;
-	u32 nb_playing;
+	Bool v_playing;
+	Bool v_init_play_done;
 
 	GF_List *audios;
 } GF_AVIDmxCtx;
@@ -73,7 +73,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 	u32 sync_id = 0;
 	u32 codecid = 0;
 	u32 a_fmt = 0;
-	Bool unframed = GF_FALSE;
+	Bool unframed;
 	u32 i, count, pfmt=0;
 	GF_Fraction64 dur;
 	char *comp;
@@ -86,6 +86,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 	dur.den = ctx->fps.num;
 	dur.num = (u64) (ctx->fps.den * AVI_video_frames(ctx->avi));
 
+	unframed = GF_TRUE;
 	comp = AVI_video_compressor(ctx->avi);
 	if (!comp) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIDmx] Cannot retrieve video compressor name, ignoring video stream\n"));
@@ -109,6 +110,9 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 		|| !stricmp(comp, "X264") /*not tested*/
 	) {
 		codecid = GF_CODECID_AVC;
+	} else if ( !stricmp(comp, "avc1") ) {
+		codecid = GF_CODECID_AVC;
+		unframed = GF_FALSE;
 	} else if (!stricmp(comp, "DIV3") || !stricmp(comp, "DIV4")) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIDmx] Video format %s not compliant with MPEG-4 Visual - please recompress the file first\n", comp));
 	} else if (!comp[0]) {
@@ -149,12 +153,16 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			gf_pixel_get_size_info(pfmt, w, h, NULL, &stride, NULL, NULL, NULL);
 			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_STRIDE, &PROP_UINT( stride ) );
 			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_PIXFMT, &PROP_UINT( pfmt ) );
-		} else {
+		} else if (unframed) {
 			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 			gf_filter_pid_set_property_str(ctx->v_opid, "nocts", &PROP_BOOL( GF_TRUE ) );
+		} else if (ctx->avi->extradata_size && ctx->avi->extradata) {
+			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(ctx->avi->extradata, ctx->avi->extradata_size) );
+
 		}
 	}
 
+	unframed = GF_FALSE;
 	count = AVI_audio_tracks(ctx->avi);
 	for (i=0; i<count; i++) {
 		u32 afmt=0, nb_bits;
@@ -233,6 +241,9 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			codecid = GF_CODECID_AAC_MPEG4;
 			unframed = GF_TRUE;
 			break;
+		case 255:
+			codecid = GF_CODECID_AAC_MPEG4;
+			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIDmx] Audio format %d not supported, patch welcome\n", a_fmt));
 			break;
@@ -264,7 +275,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT( st->nb_channels ) );
 			brate = AVI_audio_mp3rate(ctx->avi);
 			//for mp3 and aac
-			if (brate && unframed)
+			if (brate && (unframed || (codecid == GF_CODECID_AAC_MPEG4)))
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT( brate ) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT( 2 + st->stream_num) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( sync_id ) );
@@ -281,6 +292,24 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 				}
 				st->audio_bps = AVI_audio_bits(ctx->avi);
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(st->freq) );
+
+				if (codecid == GF_CODECID_AAC_MPEG4) {
+#ifndef GPAC_DISABLE_AV_PARSERS
+					GF_M4ADecSpecInfo acfg;
+					u8 *dsi=NULL;
+					u32 dsi_len=0;
+					memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
+					acfg.base_object_type = GF_M4A_AAC_LC;
+					acfg.base_sr = st->freq;
+					acfg.nb_chan = st->nb_channels;
+					acfg.sbr_object_type = 0;
+					acfg.audioPL = gf_m4a_get_profile(&acfg);
+					gf_m4a_write_config(&acfg, &dsi, &dsi_len);
+					gf_filter_pid_set_property(st->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_len) );
+#endif
+					st->audio_bps = 0;
+					st->is_aac = GF_TRUE;
+				}
 			}
 
 		}
@@ -341,43 +370,57 @@ GF_Err avidmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	u64 file_pos;
-	u32 frame_idx, i;
 	GF_AVIDmxCtx *ctx = gf_filter_get_udta(filter);
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-		if (ctx->nb_playing) {
-			return GF_TRUE;
-		}
-		ctx->nb_playing++;
-		frame_idx = 0;
-		if ((evt->play.start_range>0) || ctx->stop_seen)
+		gf_filter_post_process_task(filter);
+		if (evt->base.on_pid==ctx->v_opid) {
+			u32 frame_idx = 0;
+			ctx->v_playing = GF_TRUE;
+			if ((evt->play.start_range==0) && !ctx->v_init_play_done) {
+				ctx->v_init_play_done = GF_TRUE;
+				return GF_TRUE;
+			}
+			ctx->v_init_play_done = GF_TRUE;
 			frame_idx = ctx->avi->fps * evt->play.start_range;
-
-		ctx->stop_seen = GF_FALSE;
-		if (frame_idx) {
-			AVI_set_video_position(ctx->avi, frame_idx);
+			if (frame_idx) {
+				AVI_set_video_position(ctx->avi, frame_idx);
+			} else {
+				AVI_seek_start(ctx->avi);
+				gf_filter_post_process_task(filter);
+			}
+			ctx->cur_frame = frame_idx;
 		} else {
-			AVI_seek_start(ctx->avi);
-			gf_filter_post_process_task(filter);
+			u32 i;
+			for (i=0; i<gf_list_count(ctx->audios); i++) {
+				AVIAstream *st = gf_list_get(ctx->audios, i);
+				if (st->opid != evt->base.on_pid) continue;
+				st->playing = GF_TRUE;
+				if ((evt->play.start_range==0) && !st->init_play_done) {
+					st->init_play_done = GF_TRUE;
+					return GF_TRUE;
+				}
+				st->init_play_done = GF_TRUE;
+				AVI_set_audio_position(ctx->avi, 0);
+				st->seek_to_ts = evt->play.start_range * st->freq;
+			}
 		}
-		ctx->cur_frame = frame_idx;
-		file_pos = (u64) AVI_get_video_position(ctx->avi, ctx->cur_frame);
-		for (i=0; i<gf_list_count(ctx->audios); i++) {
-			AVIAstream *st = gf_list_get(ctx->audios, i);
-			AVI_set_audio_track(ctx->avi, st->stream_num);
-			AVI_set_audio_position(ctx->avi, file_pos);
-		}
+
 		//cancel play event, we work with full file
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
-		if (ctx->nb_playing) {
-			ctx->nb_playing --;
-			if (!ctx->nb_playing) ctx->stop_seen = GF_TRUE;
+		if (evt->base.on_pid==ctx->v_opid) {
+			ctx->v_playing = GF_FALSE;
+		} else {
+			u32 i;
+			for (i=0; i<gf_list_count(ctx->audios); i++) {
+				AVIAstream *st = gf_list_get(ctx->audios, i);
+				if (st->opid != evt->base.on_pid) continue;
+				st->playing = GF_TRUE;
+			}
 		}
-
 		//don't cancel event
 		return GF_FALSE;
 
@@ -395,7 +438,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 {
 	GF_AVIDmxCtx *ctx = gf_filter_get_udta(filter);
 	u32 i, count, nb_done;
-	Bool start, end;
+	Bool start, end, video_done;
 
 	if (!ctx->avi) {
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -419,7 +462,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 		avidmx_setup(filter, ctx);
 	}
 
-	if (ctx->v_in_use && (ctx->cur_frame < ctx->nb_frames) && !gf_filter_pid_would_block(ctx->v_opid) ) {
+	if (ctx->v_in_use && ctx->v_playing && (ctx->cur_frame < ctx->nb_frames) && !gf_filter_pid_would_block(ctx->v_opid) ) {
 		u32 key;
 		u64 file_offset, cts;
 		u8 *pck_data;
@@ -449,6 +492,15 @@ GF_Err avidmx_process(GF_Filter *filter)
 			}
 		}
 		ctx->cur_frame++;
+		if (ctx->cur_frame < ctx->nb_frames)
+			gf_filter_post_process_task(filter);
+	}
+	video_done = GF_FALSE;
+	if (ctx->v_in_use && ctx->v_playing) {
+		if (ctx->cur_frame >= ctx->nb_frames)
+			video_done = GF_TRUE;
+	} else {
+		video_done = GF_TRUE;
 	}
 
 	nb_done = 0;
@@ -460,7 +512,8 @@ GF_Err avidmx_process(GF_Filter *filter)
 			nb_done++;
 			continue;
 		}
-		if (gf_filter_pid_would_block(st->opid) ) continue;
+		if (!st->playing || gf_filter_pid_would_block(st->opid) )
+			continue;
 		AVI_set_audio_track(ctx->avi, st->stream_num);
 
 		size = AVI_audio_size(ctx->avi, st->aud_frame);
@@ -478,6 +531,10 @@ GF_Err avidmx_process(GF_Filter *filter)
 				gf_filter_pck_set_cts(dst_pck, st->audio_ts);
 				gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 				st->audio_ts += nb_samples;
+			} else if (st->is_aac) {
+				gf_filter_pck_set_cts(dst_pck, st->audio_ts);
+				gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+				st->audio_ts += 1024;
 			}
 
 			if (continuous)
@@ -491,7 +548,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 			nb_done++;
 		}
 	}
-	if ((ctx->cur_frame == ctx->nb_frames) && (nb_done==count) ) {
+	if (video_done && (nb_done==count) ) {
 		if (ctx->v_opid && ctx->v_in_use) gf_filter_pid_set_eos(ctx->v_opid);
 
 		for (i=0; i<count;i++) {
@@ -500,6 +557,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 		}
 		return GF_EOS;
 	}
+	gf_filter_post_process_task(filter);
 	return GF_OK;
 }
 
