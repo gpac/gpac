@@ -382,7 +382,6 @@ static GF_Err httpin_process(GF_Filter *filter)
 	} else if (e==GF_EOS) {
 		ctx->is_end = GF_TRUE;
 	}
-	assert(!ctx->file_size || (ctx->nb_read <= ctx->file_size));
 
 	pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, nb_read, httpin_rel_pck);
 	if (!pck) return GF_OK;

@@ -1467,9 +1467,9 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			return;
 		}
 	}
-
 	if (!sess->socket) return;
 	if (sess->done) return;
+	if (sess->in_source) return;
 
 	if (!gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_WRITE))
 		return;
@@ -1999,6 +1999,8 @@ static GF_Err httpout_process(GF_Filter *filter)
 				httpout_del_session(sess);
 				i--;
 				count--;
+				if (!count && ctx->quit)
+					ctx->done = GF_TRUE;
 			}
 		}
 	}
