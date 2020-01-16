@@ -282,7 +282,8 @@ GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixe
 		gf_jpeg_skip_input_data(NULL, 0);
 	}
 #endif
-
+	if (!dst) *dst_size = 0;
+	
 	jpx.cinfo.err = jpeg_std_error(&(jper.pub));
 	jper.pub.error_exit = gf_jpeg_fatal_error;
 	jper.pub.output_message = gf_jpeg_output_message;
@@ -332,11 +333,13 @@ GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixe
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	if (*dst_size < *height **width * jpx.cinfo.num_components) {
-		*dst_size = *height **width * jpx.cinfo.num_components;
+	if (*dst_size < *height * *width * jpx.cinfo.num_components) {
+		*dst_size = *height * *width * jpx.cinfo.num_components;
 		jpeg_destroy_decompress(&jpx.cinfo);
+		fprintf(stderr, "jpg header: %d x %d, size %d\n", *width, *height, *dst_size);
 		return GF_BUFFER_TOO_SMALL;
 	}
+	fprintf(stderr, "jpg header: %d x %d\n", *width, *height);
 	if (!dst_nb_comp) dst_nb_comp = jpx.cinfo.num_components;
 
 	scan_line = NULL;
