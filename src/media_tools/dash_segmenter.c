@@ -398,7 +398,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		if (sep) {
 			char c = sep[0];
 			sep[0] = 0;
-			if (!gf_dir_exists(segment_name)) {
+			if (!gf_dir_exists(segment_name) && strlen(segment_name)) {
 				gf_mkdir(segment_name);
 			}
 			sep[0] = c;
