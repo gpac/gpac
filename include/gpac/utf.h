@@ -115,6 +115,16 @@ static const size_t UTF8_MAX_BYTES_PER_CHAR = 4;
  */
 u32 utf8_to_ucs4 (u32 *ucs4_buf, u32 utf8_len, unsigned char *utf8_buf);
 
+
+
+
+#if defined(WIN32)
+
+wchar_t* gf_utf8_to_wcs(const char* str);
+char* gf_wcs_to_utf8(const wchar_t* str);
+
+#endif
+
 /*! @} */
 
 #ifdef __cplusplus

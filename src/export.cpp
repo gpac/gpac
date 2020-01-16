@@ -356,6 +356,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_wcstombs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_mbstowcs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_wcslen) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_utf8_to_wcs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_wcs_to_utf8) )
 #ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_is_right_to_left) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_reorder_bidi) )
