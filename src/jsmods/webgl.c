@@ -165,6 +165,7 @@ static void NamedTexture_finalize(JSRuntime *rt, JSValue obj)
 		gf_list_del_item(named_tx->par_ctx->named_textures, named_tx);
 
 	if (named_tx->nb_textures) glDeleteTextures(named_tx->nb_textures, named_tx->textures);
+	if (named_tx->tx_name) gf_free(named_tx->tx_name);
 	gf_free(named_tx);
 }
 JSClassDef NamedTexture_class =
