@@ -33,6 +33,7 @@
 
 #ifndef _WIN32_WCE
 #include <direct.h>  /*for _mkdir*/
+#include <gpac/utf.h>
 #include <shlobj.h>  /*for getting user-dir*/
 
 #ifndef SHGFP_TYPE_CURRENT
@@ -127,6 +128,9 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	FILE *f;
 	char szPath[GF_MAX_PATH];
 
+	wchar_t wtmp_file_path[GF_MAX_PATH];
+	char* tmp_file_path;
+
 
 #ifdef _WIN32_WCE
 	TCHAR w_szPath[GF_MAX_PATH];
@@ -211,18 +215,22 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	return 0;
 #else
 	/*no write access, get user home directory*/
-	SHGetFolderPath(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, file_path);
+	SHGetSpecialFolderPathW(NULL, wtmp_file_path, CSIDL_APPDATA, 1);
+	tmp_file_path = gf_wcs_to_utf8(wtmp_file_path);
+	strncpy(file_path, tmp_file_path, GF_MAX_PATH);
+	gf_free(tmp_file_path);
+
 	if (file_path[strlen(file_path)-1] != '\\') strcat(file_path, "\\");
 	strcat(file_path, "GPAC");
 	/*create GPAC dir*/
-	_mkdir(file_path);
+	gf_mkdir(file_path);
 	strcpy(szPath, file_path);
 	strcat(szPath, "\\gpaccfgtest.txt");
-	f = fopen(szPath, "wb");
+	f = gf_fopen(szPath, "wb");
 	/*COMPLETE FAILURE*/
 	if (!f) return GF_FALSE;
 
-	fclose(f);
+	gf_fclose(f);
 	gf_file_delete(szPath);
 	return GF_TRUE;
 #endif

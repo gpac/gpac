@@ -53,39 +53,6 @@
 #endif
 
 
-#if defined(WIN32)
-static wchar_t* utf8_to_wcs(const char* str)
-{
-	size_t source_len;
-	wchar_t* result;
-	if (str == 0) return 0;
-	source_len = strlen(str);
-	result = gf_calloc(source_len + 1, sizeof(wchar_t));
-	if (!result)
-		return 0;
-	if (gf_utf8_mbstowcs(result, source_len, &str) < 0) {
-		gf_free(result);
-		return 0;
-	}
-	return result;
-}
-static char* wcs_to_utf8(const wchar_t* str)
-{
-	size_t source_len;
-	char* result;
-	if (str == 0) return 0;
-	source_len = wcslen(str);
-	result = gf_calloc(source_len + 1, UTF8_MAX_BYTES_PER_CHAR);
-	if (!result)
-		return 0;
-	if (gf_utf8_wcstombs(result, source_len * UTF8_MAX_BYTES_PER_CHAR, &str) < 0) {
-		gf_free(result);
-		return 0;
-	}
-	return result;
-}
-#endif
-
 GF_EXPORT
 GF_Err gf_rmdir(const char *DirPathName)
 {
@@ -100,7 +67,7 @@ GF_Err gf_rmdir(const char *DirPathName)
 	}
 #elif defined (WIN32)
 	int res;
-	wchar_t* wcsDirPathName = utf8_to_wcs(DirPathName);
+	wchar_t* wcsDirPathName = gf_utf8_to_wcs(DirPathName);
 	if (!wcsDirPathName)
 		return GF_IO_ERR;
 	res = _wrmdir(wcsDirPathName);
@@ -134,14 +101,17 @@ GF_Err gf_mkdir(const char* DirPathName)
 	}
 #elif defined (WIN32)
 	int res;
-	wchar_t* wcsDirPathName = utf8_to_wcs(DirPathName);
+	wchar_t* wcsDirPathName = gf_utf8_to_wcs(DirPathName);
 	if (!wcsDirPathName)
 		return GF_IO_ERR;
 	res = _wmkdir(wcsDirPathName);
 	gf_free(wcsDirPathName);
 	if (res==-1) {
 		int err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory \"%s\": last error %d\n", DirPathName, err ));
+		if (err != 183) {
+			// don't throw error if dir already exists
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory \"%s\": last error %d\n", DirPathName, err));
+		}
 	}
 #else
 	int res = mkdir(DirPathName, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -170,7 +140,7 @@ Bool gf_dir_exists(const char* DirPathName)
 	return (att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY)) ? GF_TRUE : GF_FALSE;
 #elif defined (WIN32)
 	DWORD att;
-	wchar_t* wcsDirPathName = utf8_to_wcs(DirPathName);
+	wchar_t* wcsDirPathName = gf_utf8_to_wcs(DirPathName);
 	if (!wcsDirPathName)
 		return GF_FALSE;
 	att = GetFileAttributesW(wcsDirPathName);
@@ -225,7 +195,7 @@ GF_Err gf_file_delete(const char *fileName)
 	/* success if != 0 */
 	{
 		BOOL op_result;
-		wchar_t* wcsFileName = utf8_to_wcs(fileName);
+		wchar_t* wcsFileName = gf_utf8_to_wcs(fileName);
 		if (!wcsFileName)
 			return GF_IO_ERR;
 		op_result = DeleteFileW(wcsFileName);
@@ -274,7 +244,7 @@ Bool gf_file_exists(const char *fileName)
 {
 #if defined(WIN32)
 	Bool res;
-	wchar_t* wname = utf8_to_wcs(fileName);
+	wchar_t* wname = gf_utf8_to_wcs(fileName);
 	if (!wname) return GF_FALSE;
  	res = (_waccess(wname, 4) == -1) ? GF_FALSE : GF_TRUE;
 	gf_free(wname);
@@ -308,8 +278,8 @@ GF_Err gf_file_move(const char *fileName, const char *newFileName)
 #elif defined(WIN32)
 	/* success if != 0 */
 	BOOL op_result;
-	wchar_t* wcsFileName = utf8_to_wcs(fileName);
-	wchar_t* wcsNewFileName = utf8_to_wcs(newFileName);
+	wchar_t* wcsFileName = gf_utf8_to_wcs(fileName);
+	wchar_t* wcsNewFileName = gf_utf8_to_wcs(newFileName);
 	if (!wcsFileName || !wcsNewFileName)
 	{
 		if (wcsFileName) gf_free(wcsFileName);
@@ -375,7 +345,7 @@ u64 gf_file_modification_time(const char *filename)
 #elif defined(WIN32) && !defined(__GNUC__)
 	struct _stat64 sb;
 	int op_result;
-	wchar_t* wcsFilename = utf8_to_wcs(filename);
+	wchar_t* wcsFilename = gf_utf8_to_wcs(filename);
 	if (!wcsFilename)
 		return 0;
 	op_result = _wstat64(wcsFilename, &sb);
@@ -499,7 +469,7 @@ FILE *gf_file_temp(char ** const fileName)
 			gf_rand_init(GF_FALSE);
 			swprintf(tmp2, MAX_PATH, L"gpac_%d_%08x_", _getpid(), gf_rand());
 			t_file = _wtempnam(tmp, tmp2);
-			mbs_t_file = wcs_to_utf8(t_file);
+			mbs_t_file = gf_wcs_to_utf8(t_file);
 			if (!mbs_t_file)
 				return 0;
 			res = gf_fopen(mbs_t_file, "w+b");
@@ -765,8 +735,8 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #endif
 
 #ifdef WIN32
-		mbs_file = wcs_to_utf8(file);
-		mbs_item_path = wcs_to_utf8(item_path);
+		mbs_file = gf_wcs_to_utf8(file);
+		mbs_item_path = gf_wcs_to_utf8(item_path);
 		if (!mbs_file || !mbs_item_path)
 		{
 			if (mbs_file) gf_free(mbs_file);
@@ -891,8 +861,8 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 	wchar_t *wname;
 	wchar_t *wmode;
 
-	wname = utf8_to_wcs(file_name);
-	wmode = utf8_to_wcs(mode);
+	wname = gf_utf8_to_wcs(file_name);
+	wmode = gf_utf8_to_wcs(mode);
 	if (!wname || !wmode)
 	{
 		if (wname) gf_free(wname);
