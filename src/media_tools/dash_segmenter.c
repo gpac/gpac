@@ -222,6 +222,10 @@ struct _dash_segment_input
 	//spatial info for tiling
 	u32 x, y, w, h;
 
+	//HDR
+	Bool isHdrPq10;
+	Bool isHdrHlg;
+
 	Bool disable_inband_param_set;
 	//0: PID specified, 1 or more: specified, indicates the number of time the period was instantiated
 	u32 period_id_not_specified;
@@ -3016,6 +3020,19 @@ write_rep_only:
 		}
 	}
 
+	if (dash_input->isHdrHlg) {
+		fprintf(dasher->mpd, "    <EssentialProperty schemeIdUri=\"urn:mpeg:mpegB:cicp:ColourPrimaries\" value=\"9\"/>\n");
+		fprintf(dasher->mpd, "    <EssentialProperty schemeIdUri=\"urn:mpeg:mpegB:cicp:MatrixCoefficients\" value=\"9\"/>\n");
+		fprintf(dasher->mpd, "    <EssentialProperty schemeIdUri=\"urn:mpeg:mpegB:cicp:TransferCharacteristics\" value=\"14\"/>\n");
+		fprintf(dasher->mpd, "    <SupplementalProperty schemeIdUri=\"urn:mpeg:mpegB:cicp:TransferCharacteristics\" value=\"18\"/>\n");
+	}
+
+	if (dash_input->isHdrPq10) {
+		fprintf(dasher->mpd, "    <EssentialProperty schemeIdUri=\"urn:mpeg:mpegB:cicp:ColourPrimaries\" value=\"9\"/>\n");
+		fprintf(dasher->mpd, "    <EssentialProperty schemeIdUri=\"urn:mpeg:mpegB:cicp:MatrixCoefficients\" value=\"9\"/>\n");
+		fprintf(dasher->mpd, "    <EssentialProperty schemeIdUri=\"urn:mpeg:mpegB:cicp:TransferCharacteristics\" value=\"16\"/>\n");
+	}
+
 	/* Write content protection element in representation */
 	if (protected_track && (dasher->cp_location_mode != GF_DASH_CPMODE_ADAPTATION_SET)) {
 		gf_isom_write_content_protection(input, dasher->mpd, protected_track, dasher, 4);
@@ -5184,7 +5201,8 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 		Bool has_tiling = GF_FALSE;
 		u32 nb_track, j, k, max_nb_deps, cur_idx, rep_idx;
 		const char *dep_representation_id;
-		const char *dep_representation_file=NULL;
+		const char *dep_representation_file = NULL;
+		GF_ESD* esd = NULL;
 
 		strcpy(dash_input->szMime, "video/mp4");
 		dash_input->dasher_create_init_segment = dasher_isom_create_init_segment;
@@ -5234,6 +5252,31 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				if (nb_track==1) dash_input->single_track_num = 0;
 			}
 			dash_input->protection_scheme_type = gf_isom_is_media_encrypted(file, track_num, 0);
+
+			//HEVC HDR
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
+			for (j = 0; j < nb_track; j++) {
+				esd = gf_isom_get_esd(file, j+1, 1);
+				if (esd && (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_HEVC || esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_LHVC)) {
+					GF_HEVCConfig* hevccfg = gf_isom_hevc_config_get(file, j+1, 1);
+					if (hevccfg) {
+						HEVCState hevc;
+						HEVC_SPS* sps = NULL;
+						memset(&hevc, 0, sizeof(HEVCState));
+						gf_media_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_VID_PARAM);
+						gf_media_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_SEQ_PARAM);
+						sps = &hevc.sps[hevc.sps_active_idx];
+						if (sps && sps->colour_description_present_flag) {
+							if (sps->colour_primaries == 9 && sps->matrix_coeffs == 9) {
+								if (sps->transfer_characteristic == 14) dash_input->isHdrHlg = GF_TRUE; //TODO: parse alternative_transfer_characteristics SEI
+								if (sps->transfer_characteristic == 16) dash_input->isHdrPq10 = GF_TRUE;
+							}
+						}
+					}
+				}
+				gf_odf_desc_del((GF_Descriptor*)esd);
+			}
+#endif
 
 			dash_input->moof_seqnum_increase = 0;
 
