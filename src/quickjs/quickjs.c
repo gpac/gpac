@@ -770,17 +770,13 @@ typedef struct JSShapeProperty {
 } JSShapeProperty;
 
 struct JSShape {
-#if 0 //GPAC
-    union {
-        JSRefCountHeader header; /* must come first, 32-bit */
-        uint32_t prop_hash_end[1];
-    };
-    JSGCHeader gc_header; /* must come after JSRefCountHeader, 8-bit */
-#else //QJS-2020-01-05
-    uint32_t prop_hash_end[0]; /* hash table of size hash_mask + 1
+#ifdef _MSC_VER
+	uint32_t prop_hash_end[1]; 
+#else
+	uint32_t prop_hash_end[0]; /* hash table of size hash_mask + 1
                                   before the start of the structure. */
-    JSGCObjectHeader header;
 #endif
+	JSGCObjectHeader header;
     /* true if the shape is inserted in the shape hash table. If not,
        JSShape.hash is not valid */
     uint8_t is_hashed;
@@ -40108,8 +40104,13 @@ static JSValue js_math_min_max(JSContext *ctx, JSValueConst this_val,
     uint32_t tag;
 
     if (unlikely(argc == 0)) {
-        return __JS_NewFloat64(ctx, is_max ? -1.0 / 0.0 : 1.0 / 0.0);
-    }
+#if defined(_MSC_VER)
+		double const zero = 0.0;
+		return __JS_NewFloat64(ctx, is_max ? -1.0 / zero : 1.0 / zero);
+#else
+		return __JS_NewFloat64(ctx, is_max ? -1.0 / 0.0 : 1.0 / 0.0);
+#endif
+	}
 
     tag = JS_VALUE_GET_TAG(argv[0]);
     if (tag == JS_TAG_INT) {
