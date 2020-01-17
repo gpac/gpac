@@ -138,7 +138,7 @@ LIBGPAC_FILTERS=filter_core/filter_pck.o filter_core/filter_pid.o filter_core/fi
 
 LIBGPAC_QUICKJS=
 ifeq ($(CONFIG_JS), yes)
-LIBGPAC_QUICKJS=quickjs/cutils.o quickjs/libregexp.o quickjs/libunicode.o quickjs/quickjs.o
+LIBGPAC_QUICKJS=quickjs/cutils.o quickjs/libbf.o quickjs/libregexp.o quickjs/libunicode.o quickjs/quickjs.o
 LIBGPAC_QUICKJS+=jsmods/evg.o jsmods/scene_js.o jsmods/storage.o jsmods/webgl.o jsmods/webgl_pixfmt.o jsmods/xhr.o
 endif
 

@@ -349,6 +349,7 @@
 		92334CDA2333AB9A00DA6051 /* cutils.c in Sources */ = {isa = PBXBuildFile; fileRef = 92334CC92333AB9900DA6051 /* cutils.c */; };
 		92334CDB2333AB9A00DA6051 /* libregexp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92334CCA2333AB9A00DA6051 /* libregexp.c */; };
 		92334CDD2333AB9A00DA6051 /* quickjs.h in Headers */ = {isa = PBXBuildFile; fileRef = 92334CCC2333AB9A00DA6051 /* quickjs.h */; };
+		923EB53423D1B87E00E1FFA1 /* libbf.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53323D1B87E00E1FFA1 /* libbf.c */; };
 		925730A21A0916D20057FF04 /* libiconv.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A11A0916D20057FF04 /* libiconv.dylib */; };
 		925730A41A0916DB0057FF04 /* libbz2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A31A0916DB0057FF04 /* libbz2.dylib */; };
 		925FF2A51ABC53F30085B04C /* odf_parse_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A31ABC53F30085B04C /* odf_parse_common.h */; };
@@ -929,6 +930,7 @@
 		92334CCA2333AB9A00DA6051 /* libregexp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libregexp.c; path = ../../src/quickjs/libregexp.c; sourceTree = "<group>"; };
 		92334CCC2333AB9A00DA6051 /* quickjs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = quickjs.h; path = ../../src/quickjs/quickjs.h; sourceTree = "<group>"; };
 		9236FDEF1DD23F1400B3E86F /* iTunesArtwork */ = {isa = PBXFileReference; lastKnownFileType = file; name = iTunesArtwork; path = ../../applications/osmo4_ios/Resources/iTunesArtwork; sourceTree = "<group>"; };
+		923EB53323D1B87E00E1FFA1 /* libbf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libbf.c; path = ../../src/quickjs/libbf.c; sourceTree = "<group>"; };
 		925730A11A0916D20057FF04 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		925730A31A0916DB0057FF04 /* libbz2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.dylib; path = usr/lib/libbz2.dylib; sourceTree = SDKROOT; };
 		925FF2A31ABC53F30085B04C /* odf_parse_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = odf_parse_common.h; sourceTree = "<group>"; };
@@ -1767,6 +1769,7 @@
 		92334CBB2333AB8200DA6051 /* quickjs */ = {
 			isa = PBXGroup;
 			children = (
+				923EB53323D1B87E00E1FFA1 /* libbf.c */,
 				92334CC92333AB9900DA6051 /* cutils.c */,
 				92334CCA2333AB9A00DA6051 /* libregexp.c */,
 				92334CBE2333AB9900DA6051 /* libunicode.c */,
@@ -2400,6 +2403,7 @@
 				71CCF2B41277045100339E12 /* drm_sample.c in Sources */,
 				92EB6DCD20E4E19700A97A49 /* reframe_nalu.c in Sources */,
 				9210BA1D234A909400ED2DFF /* evg.c in Sources */,
+				923EB53423D1B87E00E1FFA1 /* libbf.c in Sources */,
 				71CCF2B51277045100339E12 /* isom_intern.c in Sources */,
 				71CCF2B61277045100339E12 /* isom_read.c in Sources */,
 				92EB6DCF20E4E19700A97A49 /* dmx_mpegps.c in Sources */,

@@ -205,6 +205,7 @@
 		923E89CE20B6F04600F299B2 /* tiny_aes.c in Sources */ = {isa = PBXBuildFile; fileRef = 923E89C920B6F04600F299B2 /* tiny_aes.c */; };
 		923E89CF20B6F04600F299B2 /* g_crypt_tinyaes.c in Sources */ = {isa = PBXBuildFile; fileRef = 923E89CA20B6F04600F299B2 /* g_crypt_tinyaes.c */; };
 		923E89D020B6F2D300F299B2 /* filter_props.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D4721F71642E00616F7C /* filter_props.c */; };
+		923EB53223D1B78D00E1FFA1 /* libbf.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53123D1B78D00E1FFA1 /* libbf.c */; };
 		92493D8020E2A64000203C2C /* crypt_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = 92493D7F20E2A64000203C2C /* crypt_tools.c */; };
 		92493D8220E2A81700203C2C /* crypt_tools.h in Headers */ = {isa = PBXBuildFile; fileRef = 92493D8120E2A81700203C2C /* crypt_tools.h */; };
 		924E805D206D357A00AB580F /* reframe_rawvid.c in Sources */ = {isa = PBXBuildFile; fileRef = 924E805C206D357A00AB580F /* reframe_rawvid.c */; };
@@ -851,6 +852,7 @@
 		923E89C820B6F04600F299B2 /* g_crypt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = g_crypt.c; path = crypto/g_crypt.c; sourceTree = "<group>"; };
 		923E89C920B6F04600F299B2 /* tiny_aes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tiny_aes.c; path = crypto/tiny_aes.c; sourceTree = "<group>"; };
 		923E89CA20B6F04600F299B2 /* g_crypt_tinyaes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = g_crypt_tinyaes.c; path = crypto/g_crypt_tinyaes.c; sourceTree = "<group>"; };
+		923EB53123D1B78D00E1FFA1 /* libbf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libbf.c; path = quickjs/libbf.c; sourceTree = "<group>"; };
 		92493D7F20E2A64000203C2C /* crypt_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = crypt_tools.c; sourceTree = "<group>"; };
 		92493D8120E2A81700203C2C /* crypt_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = crypt_tools.h; path = ../include/gpac/crypt_tools.h; sourceTree = "<group>"; };
 		924E805C206D357A00AB580F /* reframe_rawvid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_rawvid.c; path = filters/reframe_rawvid.c; sourceTree = "<group>"; };
@@ -1631,6 +1633,7 @@
 		92334C8E2333A8B800DA6051 /* quickjs */ = {
 			isa = PBXGroup;
 			children = (
+				923EB53123D1B78D00E1FFA1 /* libbf.c */,
 				92910FA7233536620052365D /* cutils.c */,
 				92910FA52335363F0052365D /* libregexp.c */,
 				92334C932333A8C800DA6051 /* libunicode.c */,
@@ -2759,6 +2762,7 @@
 				9201018F18D5A445003D1ACA /* x3d_nodes.c in Sources */,
 				92B9A5681F8660D700A24FE4 /* mpeg4_layer_3d.c in Sources */,
 				9201019118D5A445003D1ACA /* xml_ns.c in Sources */,
+				923EB53223D1B78D00E1FFA1 /* libbf.c in Sources */,
 				92B9A59F1F8660D700A24FE4 /* mpeg4_inline.c in Sources */,
 				92F8D4781F71642E00616F7C /* filter_pid.c in Sources */,
 				92BB85701F7BFB63009BC9C8 /* in_file.c in Sources */,
