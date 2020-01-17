@@ -355,22 +355,6 @@ static GF_Err adobe_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 	return GF_OK;
 }
 
-#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
-static void hevc_parse_ps(GF_HEVCConfig *hevccfg, HEVCState *hevc, u32 nal_type)
-{
-	u32 i, j;
-	for (i=0; i<gf_list_count(hevccfg->param_array); i++) {
-		GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, i);
-		if (ar->type!=nal_type) continue;
-		for (j=0; j<gf_list_count(ar->nalus); j++) {
-			u8 ntype, tid, lid;
-			GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
-			gf_media_hevc_parse_nalu(sl->data, sl->size, hevc, &ntype, &tid, &lid);
-		}
-	}
-}
-#endif
-
 static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const char *cfile_name)
 {
 	GF_DOMParser *parser;
@@ -606,9 +590,9 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			if (hevccfg) cstr->nalu_size_length = hevccfg->nal_unit_size;
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
-			hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_VID_PARAM);
-			hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_SEQ_PARAM);
-			hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_PIC_PARAM);
+			gf_media_hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_VID_PARAM);
+			gf_media_hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_SEQ_PARAM);
+			gf_media_hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_PIC_PARAM);
 #endif
 
 			//mandatory for HEVC
