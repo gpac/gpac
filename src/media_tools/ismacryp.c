@@ -1666,22 +1666,6 @@ exit:
 	return e;
 }
 
-#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
-static void hevc_parse_ps(GF_HEVCConfig *hevccfg, HEVCState *hevc, u32 nal_type)
-{
-	u32 i, j;
-	for (i=0; i<gf_list_count(hevccfg->param_array); i++) {
-		GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, i);
-		if (ar->type!=nal_type) continue;
-		for (j=0; j<gf_list_count(ar->nalus); j++) {
-			u8 ntype, tid, lid;
-			GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
-			gf_media_hevc_parse_nalu(sl->data, sl->size, hevc, &ntype, &tid, &lid);
-		}
-	}
-}
-#endif
-
 /*encrypts track - logs, progress: info callbacks, NULL for default*/
 GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk)
 {
@@ -1769,9 +1753,9 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				nalu_size_length = hevccfg->nal_unit_size;
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
-			hevc_parse_ps(hevccfg, &tci->hevc, GF_HEVC_NALU_VID_PARAM);
-			hevc_parse_ps(hevccfg, &tci->hevc, GF_HEVC_NALU_SEQ_PARAM);
-			hevc_parse_ps(hevccfg, &tci->hevc, GF_HEVC_NALU_PIC_PARAM);
+			gf_media_hevc_parse_ps(hevccfg, &tci->hevc, GF_HEVC_NALU_VID_PARAM);
+			gf_media_hevc_parse_ps(hevccfg, &tci->hevc, GF_HEVC_NALU_SEQ_PARAM);
+			gf_media_hevc_parse_ps(hevccfg, &tci->hevc, GF_HEVC_NALU_PIC_PARAM);
 #endif
 			//mandatory for HEVC
 			tci->slice_header_clear = GF_TRUE;
