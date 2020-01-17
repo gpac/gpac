@@ -192,6 +192,7 @@ typedef struct _dash_stream
 	const char *hls_vp_name;
 	u32 ch_layout, nb_surround, nb_lfe;
 	GF_PropVec4i srd;
+	Bool hdr_hlg, hdr_pq10;
 	Bool sscale;
 
 	//TODO: get the values for all below
@@ -553,6 +554,33 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					ds->tile_base = GF_TRUE;
 				}
 			}
+
+			//HDR
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+			if (p && p->value.data.ptr && p->value.data.size) {
+				//GF_DecoderConfig* dcd = (GF_DecoderConfig*)p->value.data.ptr;
+				if (ds->codec_id == GF_CODECID_LHVC || ds->codec_id == GF_CODECID_HEVC_TILES || ds->codec_id == GF_CODECID_HEVC) {
+					GF_HEVCConfig* hevccfg = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_FALSE);
+					if (hevccfg) {
+						HEVCState hevc;
+						HEVC_SPS* sps = NULL;
+						memset(&hevc, 0, sizeof(HEVCState));
+						gf_media_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_VID_PARAM);
+						gf_media_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_SEQ_PARAM);
+						sps = &hevc.sps[hevc.sps_active_idx];
+						if (sps && sps->colour_description_present_flag) {
+							if (sps->colour_primaries == 9 && sps->matrix_coeffs == 9) {
+								if (sps->transfer_characteristic == 14) ds->hdr_hlg = GF_TRUE; //TODO: parse alternative_transfer_characteristics SEI
+								if (sps->transfer_characteristic == 16) ds->hdr_pq10 = GF_TRUE;
+							}
+						}
+
+						gf_odf_hevc_cfg_del(hevccfg);
+					}
+				}
+			}
+#endif /*!GPAC_DISABLE_AV_PARSERS && !GPAC_DISABLE_HEVC*/
 
 		} else if (ds->stream_type==GF_STREAM_AUDIO) {
 			CHECK_PROP(GF_PROP_PID_SAMPLE_RATE, ds->sr, GF_EOS)
@@ -1810,6 +1838,32 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				sprintf(value, "1,0,0,0,0"); //compat with old arch, don't set W and H
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:srd:2014", value);
 				gf_list_add(set->essential_properties, desc);
+			}
+		}
+		//set HDR
+		if (ds->hdr_hlg || ds->hdr_pq10) {
+			char value[256];
+			GF_MPD_Descriptor* desc = NULL;
+			sprintf(value, "9");
+			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:ColourPrimaries", value);
+			gf_list_add(set->essential_properties, desc);
+			sprintf(value, "9");
+			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:MatrixCoefficients", value);
+			gf_list_add(set->essential_properties, desc);
+
+			if (ds->hdr_pq10) {
+				sprintf(value, "16");
+				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
+				gf_list_add(set->essential_properties, desc);
+			}
+
+			if (ds->hdr_hlg) {
+				sprintf(value, "14");
+				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
+				gf_list_add(set->essential_properties, desc);
+				sprintf(value, "18");
+				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
+				gf_list_add(set->supplemental_properties, desc);
 			}
 		}
 	}
