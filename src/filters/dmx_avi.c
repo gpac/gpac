@@ -383,7 +383,7 @@ static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				return GF_TRUE;
 			}
 			ctx->v_init_play_done = GF_TRUE;
-			frame_idx = ctx->avi->fps * evt->play.start_range;
+			frame_idx = (u32) (ctx->avi->fps * evt->play.start_range);
 			if (frame_idx) {
 				AVI_set_video_position(ctx->avi, frame_idx);
 			} else {
@@ -403,7 +403,7 @@ static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				}
 				st->init_play_done = GF_TRUE;
 				AVI_set_audio_position(ctx->avi, 0);
-				st->seek_to_ts = evt->play.start_range * st->freq;
+				st->seek_to_ts = (u32) (evt->play.start_range * st->freq);
 			}
 		}
 
