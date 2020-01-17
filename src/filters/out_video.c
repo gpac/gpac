@@ -1963,7 +1963,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		s64 delay;
 
 		if (ctx->dur.num) {
-			if ((cts - ctx->first_cts) * ctx->dur.den > ctx->dur.num * ctx->timescale) {
+			if ((cts - ctx->first_cts) * ctx->dur.den > (u64) (ctx->dur.num * ctx->timescale)) {
 				GF_FilterEvent evt;
 				if (ctx->last_pck) {
 					gf_filter_pck_unref(ctx->last_pck);

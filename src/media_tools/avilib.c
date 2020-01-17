@@ -2083,7 +2083,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						AVI->compressor2[4] = 0;
 
 						if (n>40) {
-							AVI->extradata_size = n - 40;
+							AVI->extradata_size = (u32) (n - 40);
 							AVI->extradata = gf_malloc(sizeof(u8)* AVI->extradata_size);
 							memcpy(AVI->extradata, hdrl_data + i + 40, AVI->extradata_size);
 						}
