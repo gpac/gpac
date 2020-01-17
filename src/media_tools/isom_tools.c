@@ -947,9 +947,9 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	timescale = gf_isom_get_media_timescale(mp4, video_tk);
 	def_dur = gf_isom_get_constant_sample_duration(mp4, video_tk);
 	if (!def_dur) {
-		gf_isom_get_sample_duration(mp4, video_tk, 2);
+		def_dur = gf_isom_get_sample_duration(mp4, video_tk, 2);
 		if (!def_dur) {
-			gf_isom_get_sample_duration(mp4, video_tk, 1);
+			def_dur = gf_isom_get_sample_duration(mp4, video_tk, 1);
 		}
 	}
 	if (!def_dur) {
