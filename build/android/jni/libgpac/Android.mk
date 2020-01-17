@@ -340,6 +340,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/odf/qos.c \
 	../../../../src/odf/slc.c \
 	../../../../src/quickjs/cutils.c \
+	../../../../src/quickjs/libbf.c \
 	../../../../src/quickjs/libregexp.c \
 	../../../../src/quickjs/libunicode.c \
 	../../../../src/quickjs/quickjs.c \
