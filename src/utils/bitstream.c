@@ -768,19 +768,26 @@ static void BS_WriteBit(GF_BitStream *bs, u32 bit)
 	}
 }
 
+static s32 bs_handle_nbits_overflow(GF_BitStream* bs, s32 nBits, s32 max_shift)
+{
+	if (nBits > max_shift) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to write %d bits, when max is %d\n", nBits, max_shift));
+	}
+	while (nBits > max_shift) {
+		gf_bs_write_long_int(bs, 0, max_shift);
+		nBits -= max_shift;
+	}
+
+	return nBits;
+}
+
 GF_EXPORT
 void gf_bs_write_int(GF_BitStream *bs, s32 _value, s32 nBits)
 {
 	u32 value, nb_shift;
 	s32 max_shift = sizeof(s32) * 8;
 	if (!nBits) return;
-	if (nBits > max_shift) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to write %d bits, when max is %d\n", nBits, max_shift));
-	}
-	while (nBits > max_shift) {
-		gf_bs_write_int(bs, 0, max_shift);
-		nBits -= max_shift;
-	}
+	nBits = bs_handle_nbits_overflow(bs, nBits, max_shift);
 	//move to unsigned to avoid sanitizer warnings when we pass a value not codable on the given number of bits
 	//we do this when setting bit fields to all 1's
 	value = (u32) _value;
@@ -800,20 +807,14 @@ void gf_bs_write_long_int(GF_BitStream *bs, s64 _value, s32 nBits)
 {
 	s32 max_shift = sizeof(s64) * 8;
 	if (!nBits) return;
-	if (nBits > max_shift) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to write %d bits, when max is %d\n", nBits, max_shift));
-		while (nBits > max_shift) {
-			gf_bs_write_long_int(bs, 0, max_shift);
-			nBits -= max_shift;
-		}
-	} else if (nBits) {
-		//cf note in gf_bs_write_int
-		u64 value = (u64) _value;
-		value <<= sizeof (s64) * 8 - nBits;
-		while (--nBits >= 0) {
-			BS_WriteBit (bs, ((s64)value) < 0);
-			value <<= 1;
-		}
+	nBits = bs_handle_nbits_overflow(bs, nBits, max_shift);
+
+	//cf note in gf_bs_write_int
+	u64 value = (u64) _value;
+	value <<= max_shift - nBits;
+	while (--nBits >= 0) {
+		BS_WriteBit (bs, ((s64)value) < 0);
+		value <<= 1;
 	}
 }
 
