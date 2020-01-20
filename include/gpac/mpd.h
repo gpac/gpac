@@ -315,7 +315,7 @@ typedef struct
 typedef enum
 {
 	/*! unknown*/
-	GF_MPD_SCANTYPE_UNKNWON,
+	GF_MPD_SCANTYPE_UNKNOWN,
 	/*! progressive*/
 	GF_MPD_SCANTYPE_PROGRESSIVE,
 	/*! interlaced*/
