@@ -5275,6 +5275,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 								if (sps->transfer_characteristic == 16) dash_input->isHdrPq10 = GF_TRUE;
 							}
 						}
+						gf_odf_hevc_cfg_del(hevccfg);
 					}
 				}
 				gf_odf_desc_del((GF_Descriptor*)esd);
