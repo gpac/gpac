@@ -2972,6 +2972,9 @@ write_rep_only:
 			if (!sar_h) sar_h = 1;
 			fprintf(dasher->mpd, " sar=\"%d:%d\"", sar_w, sar_h);
 		}
+
+		if (dasher->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE)
+			fprintf(dasher->mpd, " scanType=\"progressive\"");
 	}
 	if (sample_rate) fprintf(dasher->mpd, " audioSamplingRate=\"%d\"", sample_rate);
 
