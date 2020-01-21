@@ -46767,13 +46767,14 @@ static JSValue get_date_string(JSContext *ctx, JSValueConst this_val,
 
 /* OS dependent: return the UTC time in ms since 1970. */
 #if defined(_MSC_VER)
-#include <gpac/network.h>
+#include <time.h>
+#include <sys/timeb.h>
 #endif
 static int64_t date_now(void) {
 #if defined(_MSC_VER)
-	uint32_t sec, msec;
-	gf_utc_time_since_1970(&sec, &msec);
-	return (int64_t)sec*1000 + (msec);
+	struct _timeb	tb;
+	_ftime(&tb);
+	return (int64_t)tb.time *1000 + (tb.millitm);
 #else
     struct timeval tv;
     gettimeofday(&tv, NULL);
