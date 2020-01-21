@@ -127,8 +127,6 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
-return;
-
 	if (ctx->index<=0) {
 		ctx->file_loaded = GF_TRUE;
 		return;
