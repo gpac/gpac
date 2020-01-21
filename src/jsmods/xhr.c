@@ -164,15 +164,12 @@ struct __xhr_context
 
 GF_JSClass xhrClass;
 
+#if 0 //unused
 GF_SceneGraph *xml_http_get_scenegraph(XMLHTTPContext *ctx)
 {
 	return ctx->owning_graph;
 }
-
-GF_DOMEventTarget *xml_http_get_event_target(XMLHTTPContext *ctx)
-{
-	return ctx->event_target;
-}
+#endif
 
 static void xml_http_reset_recv_hdr(XMLHTTPContext *ctx)
 {
@@ -380,11 +377,13 @@ static GFINLINE GF_SceneGraph *xml_get_scenegraph(JSContext *c)
 
 void xhr_get_event_target(JSContext *c, JSValue obj, GF_SceneGraph **sg, GF_DOMEventTarget **target)
 {
-	/*XHR interface*/
-	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
 	if (c) {
+		/*XHR interface*/
+		XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
+		if (!ctx) return;
+
 		*sg = xml_get_scenegraph(c);
-		*target = xml_http_get_event_target(ctx);
+		*target = ctx->event_target;
 	}
 
 }
@@ -761,6 +760,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 					gf_xml_sax_del(ctx->sax);
 					ctx->sax = NULL;
 				}
+				return;
 			}
 
 			/*detach arraybuffer if any*/
@@ -803,9 +803,6 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 		return;
 	case GF_NETIO_DATA_TRANSFERED:
-		if (ctx->sax) {
-			gf_xml_sax_init(ctx->sax, (unsigned char *) ctx->data);
-		}
 		/* No return, go till the end of the function */
 		break;
 	case GF_NETIO_DISCONNECTED:
@@ -826,6 +823,7 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	/* For XML Http Requests to files, we fake the processing by calling the HTTP callbacks */
 	GF_NETIO_Parameter par;
 	u64 fsize;
+	char contentLengthHeader[256];
 	FILE *responseFile;
 
 	/*opera-style local host*/
@@ -866,21 +864,31 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	memset(&par, 0, sizeof(GF_NETIO_Parameter));
 	par.msg_type = GF_NETIO_PARSE_HEADER;
 	par.name = "Content-Type";
-	if (ctx->responseType == XHR_RESPONSETYPE_DOCUMENT) {
+	if (ctx->responseType == XHR_RESPONSETYPE_SAX) {
+		par.value = "application/xml";
+	} else if (ctx->responseType == XHR_RESPONSETYPE_DOCUMENT) {
 		par.value = "application/xml";
 	} else {
 		par.value = "application/octet-stream";
 	}
 	xml_http_on_data(ctx, &par);
 
-	{
-		char contentLengthHeader[256];
+	memset(&par, 0, sizeof(GF_NETIO_Parameter));
+	par.msg_type = GF_NETIO_PARSE_HEADER;
+	par.name = "Content-Length";
+	sprintf(contentLengthHeader, "%d", ctx->size);
+	par.value = contentLengthHeader;
+	xml_http_on_data(ctx, &par);
+
+
+	if (ctx->sax) {
 		memset(&par, 0, sizeof(GF_NETIO_Parameter));
-		par.msg_type = GF_NETIO_PARSE_HEADER;
-		par.name = "Content-Length";
-		sprintf(contentLengthHeader, "%d", ctx->size);
-		par.value = contentLengthHeader;
+		par.msg_type = GF_NETIO_DATA_EXCHANGE;
+		par.data = ctx->data;
+		par.size = ctx->size;
+		ctx->size = 0;
 		xml_http_on_data(ctx, &par);
+		ctx->size = par.size;
 	}
 
 	memset(&par, 0, sizeof(GF_NETIO_Parameter));
@@ -992,8 +1000,8 @@ static JSValue xml_http_wait(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	if (!ctx) return JS_EXCEPTION;
 	if (argc)
 		JS_ToInt32(ctx->c, &ms, argv[0]);
-	if (ms<1000) ms=1000;
-	gf_sleep(1000);
+	if (ms>1000) ms=1000;
+	gf_sleep(ms);
 	return JS_TRUE;
 }
 
@@ -1047,12 +1055,12 @@ static JSValue xml_http_get_header(JSContext *c, JSValueConst obj, int argc, JSV
 			nb_hdr+=2;
 		}
 	}
+	JS_FreeCString(c, hdr);
 	if (!szVal) {
 		return JS_NULL;
 	}
 	JSValue res = JS_NewString(c, szVal);
 	gf_free(szVal);
-	JS_FreeCString(c, hdr);
 	return res;
 }
 
@@ -1450,8 +1458,10 @@ static JSValue xhr_load_class(JSContext *c)
 
 void qjs_module_init_xhr_global(JSContext *c, JSValue global)
 {
-	JSValue ctor = xhr_load_class(c);
-	JS_SetPropertyStr(c, global, "XMLHttpRequest", ctor);
+	if (c) {
+		JSValue ctor = xhr_load_class(c);
+		JS_SetPropertyStr(c, global, "XMLHttpRequest", ctor);
+	}
 }
 
 static int js_xhr_load_module(JSContext *c, JSModuleDef *m)
@@ -1469,6 +1479,13 @@ void qjs_module_init_xhr(JSContext *ctx)
 	if (!m) return;
 
 	JS_AddModuleExport(ctx, m, "XMLHttpRequest");
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode()) {
+		qjs_module_init_xhr_global(NULL, JS_TRUE);
+		xhr_get_event_target(NULL, JS_TRUE, NULL, NULL);
+	}
+#endif
 	return;
 }
 
