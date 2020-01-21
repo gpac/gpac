@@ -191,7 +191,7 @@ static JSValue wgl_bufferSubData(JSContext *ctx, JSValueConst this_val, int argc
 	} else {
 		data = wgl_GetArrayBuffer(ctx, &data_size, argv[2]);
 	}
-	glBufferSubData(target, offset, data_size, data);
+	glBufferSubData(target, (size_t) offset, data_size, data);
 	return ret_val_js;
 }
 

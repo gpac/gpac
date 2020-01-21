@@ -644,7 +644,7 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 				}
 			} else {
 				prop->value.uint_list.nb_items = (u32) len;
-				prop->value.uint_list.vals = gf_malloc(sizeof(s32)*len);
+				prop->value.uint_list.vals = gf_malloc((u32) (sizeof(s32)*len));
 			}
 			if (type==1) {
 				const char *str = JS_ToCString(ctx, v);
