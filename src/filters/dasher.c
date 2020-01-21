@@ -2792,6 +2792,8 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			Double time, dur;
 			GF_DASH_SegmentContext *sctx = gf_list_get(ds->rep->state_seg_list, 0);
 			if (!sctx) break;
+			/*not yet flushed*/
+			if (gf_list_find(ds->pending_segment_states, sctx)>=0) break;
 			time = (Double) sctx->time;
 			time /= ds->mpd_timescale;
 			dur = (Double) sctx->dur;
@@ -2828,6 +2830,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 
 			ds->nb_segments_purged ++;
 			ds->dur_purged += dur;
+			assert(gf_list_find(ds->pending_segment_states, sctx)<0);
 			gf_free(sctx);
 			gf_list_rem(ds->rep->state_seg_list, 0);
 		}
@@ -4675,7 +4678,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				cts = gf_filter_pck_get_cts(pck);
 				cts -= ds->first_cts;
 			}
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] First CTS "LLU" in segment %d drifting by %g (more than half a second duration) from segment time, consider reencoding or using segment timeline\n", cts, ds->seg_number,  drift));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] First CTS "LLU" in segment %d drifting by %g (more than half a segment duration) from segment time, consider reencoding or using segment timeline\n", cts, ds->seg_number,  drift));
 		}
 	}
 
