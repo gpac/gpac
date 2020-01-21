@@ -104,6 +104,8 @@ GLDECL_FUNC(glDetachShader);
 GLDECL_FUNC(glGetShaderiv);
 GLDECL_FUNC(glGetInfoLogARB);
 GLDECL_FUNC(glGetUniformLocation);
+GLDECL_FUNC(glGetUniformfv);
+GLDECL_FUNC(glGetUniformiv);
 GLDECL_FUNC(glUniform1f);
 GLDECL_FUNC(glUniform2f);
 GLDECL_FUNC(glUniform3f);
@@ -239,6 +241,8 @@ void gf_opengl_init()
 	GET_GLFUN(glGetShaderiv);
 	GET_GLFUN(glGetInfoLogARB);
 	GET_GLFUN(glGetUniformLocation);
+	GET_GLFUN(glGetUniformfv);
+	GET_GLFUN(glGetUniformiv);
 	GET_GLFUN(glUniform1f);
 	GET_GLFUN(glUniform2f);
 	GET_GLFUN(glUniform3f);
