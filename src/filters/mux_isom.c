@@ -1770,15 +1770,7 @@ sample_entry_setup:
 		memset(&ac3cfg, 0, sizeof(GF_AC3Config));
 
 		if (dsi) {
-			GF_BitStream *bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
-			ac3cfg.nb_streams = 1;
-			ac3cfg.streams[0].fscod = gf_bs_read_int(bs, 2);
-			ac3cfg.streams[0].bsid = gf_bs_read_int(bs, 5);
-			ac3cfg.streams[0].bsmod = gf_bs_read_int(bs, 3);
-			ac3cfg.streams[0].acmod = gf_bs_read_int(bs, 3);
-			ac3cfg.streams[0].lfon = gf_bs_read_int(bs, 1);
-			ac3cfg.brcode = gf_bs_read_int(bs, 5);
-			gf_bs_del(bs);
+			gf_isom_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, (codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3cfg);
 		}
 		e = gf_isom_ac3_config_new(ctx->file, tkw->track_num, &ac3cfg, (char *)src_url, NULL, &tkw->stsd_idx);
 		if (e) {

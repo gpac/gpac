@@ -699,19 +699,11 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				}
 				break;
 			case GF_CODECID_AC3:
+			case GF_CODECID_EAC3:
 				if (dsi) {
 					u32 i;
 					GF_AC3Config ac3;
-					GF_BitStream *bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
-					memset(&ac3, 0, sizeof(GF_AC3Config));
-					ac3.nb_streams = 1;
-					ac3.streams[0].fscod = gf_bs_read_int(bs, 2);
-					ac3.streams[0].bsid = gf_bs_read_int(bs, 5);
-					ac3.streams[0].bsmod = gf_bs_read_int(bs, 3);
-					ac3.streams[0].acmod = gf_bs_read_int(bs, 3);
-					ac3.streams[0].lfon = gf_bs_read_int(bs, 1);
-					ac3.brcode = gf_bs_read_int(bs, 5);
-					gf_bs_del(bs);
+					gf_isom_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, (ds->codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3);
 
 					ds->nb_lfe = ac3.streams[0].lfon ? 1 : 0;
 					_nb_ch = gf_ac3_get_channels(ac3.streams[0].acmod);

@@ -258,6 +258,10 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			stype = GF_STREAM_METADATA;
 			codecid = GF_CODECID_SIMPLE_TEXT;
 			break;
+		case 0xA1:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_EAC3;
+			break;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type %d not supported - ignoring pid\n", stream->stream_type));
 			return;

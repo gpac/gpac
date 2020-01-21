@@ -613,13 +613,24 @@ const char *gf_m4a_get_profile_name(u8 audio_pl);
 /*! AC-3 header*/
 typedef struct
 {
+	u8 fscod, bsid, bsmod, acmod, lfon, brcode;
+	u8 asvc, num_dep_sub;
+	u16 chan_loc;
+} GF_AC3StreamInfo;
+
+/*! AC-3 header*/
+typedef struct
+{
 	u32 bitrate;
 	u32 sample_rate;
 	u32 framesize;
 	u32 channels;
 	u16 substreams; //bit-mask, used for channel map > 5.1
 	/*only set if full parse*/
-	u8 fscod, bsid, bsmod, acmod, lfon, brcode;
+	GF_AC3StreamInfo streams[8]; //0->7 sibstream ids
+	u8 nb_streams; //main and substream, only independent ones
+	//data rate in kbps
+	u32 data_rate;
 } GF_AC3Header;
 
 /*! parses an AC-3 header from a buffer
