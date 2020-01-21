@@ -143,7 +143,7 @@ typedef struct
 	JSValue tx_ref;
 	GF_JSTexture *tx;
 
-	//we seperate VAI/MX from base value in order to be able to assign a VAI value
+	//we separate VAI/MX from base value in order to be able to assign a VAI value
 	union {
         struct {
 			EVG_VAI *vai;

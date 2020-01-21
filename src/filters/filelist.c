@@ -701,7 +701,7 @@ static const GF_FilterCapability FileListCaps[] =
 GF_FilterRegister FileListRegister = {
 	.name = "flist",
 	GF_FS_SET_DESCRIPTION("Sources concatenator")
-	GF_FS_SET_HELP("This filter can be used to play playlist files (extension txt or m3u) or a list of sources using `flist:l=f1[,f2]`, where f1 can be a file or a directory to enum.\n"\
+	GF_FS_SET_HELP("This filter can be used to play playlist files (extension txt or m3u) or a list of sources using `flist:srcs=f1[,f2]`, where f1 can be a file or a directory to enum.\n"\
 		"Syntax for directory is:\n"\
 		"- dir/*: enumerates everything in dir\n"\
 		"- foo/*.png: enumerates all files with extension png in foo\n"\

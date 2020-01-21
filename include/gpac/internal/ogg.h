@@ -83,7 +83,7 @@ typedef struct {
 	s64  packetno;      /* sequence number for decode; the framing
                              knows where there's a hole in the data,
                              but we need coupling so that the codec
-                             (which is in a seperate abstraction
+                             (which is in a separate abstraction
                              layer) also knows about the gap */
 	s64   granulepos;
 
@@ -103,7 +103,7 @@ typedef struct {
 	s64  packetno;     /* sequence number for decode; the framing
 				knows where there's a hole in the data,
 				but we need coupling so that the codec
-				(which is in a seperate abstraction
+				(which is in a separate abstraction
 				layer) also knows about the gap */
 } ogg_packet;
 

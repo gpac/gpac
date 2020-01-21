@@ -1758,7 +1758,10 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 
 static GFINLINE void print_filter_name(GF_Filter *f, Bool skip_id)
 {
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s", f->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s", f->freg->name));
+	if (strcmp(f->name, f->freg->name)) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" \"%s\"", f->name));
+	}
 	if (!skip_id && f->id) GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" ID %s", f->id));
 	if (f->dynamic_filter) return;
 

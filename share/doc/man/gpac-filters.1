@@ -1410,7 +1410,7 @@ noxlink (boolean, default: no):          disable xlink if period has both xlink 
 .br
 query (string):                          set query string (without initial '?') to append to xlink of periods
 .br
-split_as (boolean, default: no):         seperate all qualities into different adaptation sets and stream all qualities
+split_as (boolean, default: no):         separate all qualities into different adaptation sets and stream all qualities
 .br
 
 .br
@@ -2814,7 +2814,7 @@ Description: Sources concatenator
 .br
 
 .br
-This filter can be used to play playlist files (extension txt or m3u) or a list of sources using flist:l=f1[,f2], where f1 can be a file or a directory to enum.
+This filter can be used to play playlist files (extension txt or m3u) or a list of sources using flist:srcs=f1[,f2], where f1 can be a file or a directory to enum.
 .br
 Syntax for directory is:
 .br
@@ -3072,7 +3072,7 @@ The segmenter currently supports:
 .B
 Template strings
 .br
-The segmenter uses templates to derive output file names, regardless of the DASH mode (even when templates are not used). The default one is $File$_dash for ondemand and single file modes, and $File$_$Number$ for seperate segment files
+The segmenter uses templates to derive output file names, regardless of the DASH mode (even when templates are not used). The default one is $File$_dash for ondemand and single file modes, and $File$_$Number$ for separate segment files
 .br
 Example
 .br
@@ -3533,7 +3533,7 @@ refresh (number, default: 0):            refresh rate for dynamic manifests, in 
 .br
 tsb (number, default: 30):               time-shift buffer depth in seconds. A negative value means infinity
 .br
-subdur (number, default: 0):             maximum duration of the input file to be segmentated. This does not change the segment duration, segmentation stops once segments produced exceeded the duration.
+subdur (number, default: 0):             maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration.
 .br
 ast (string):                            set start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ) for live mode. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!
 .br
@@ -5090,7 +5090,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3148-g113fc4271-filters
+build: 0.9.0-DEV-rev3149-g09064203a-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

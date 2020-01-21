@@ -438,7 +438,7 @@ GF_ProtoFieldInterface *gf_sg_proto_new_field_interface(u32 FieldType);
 GF_Err gf_bifs_proto_field_set_aq_info(GF_ProtoFieldInterface *field, u32 QP_Type, u32 hasMinMax, u32 QPSFType, void *qp_min_value, void *qp_max_value, u32 QP13_NumBits);
 
 /*proto field instance. since it is useless to duplicate all coding info, names and the like
-we seperate proto declaration and proto instanciation*/
+we separate proto declaration and proto instanciation*/
 typedef struct
 {
 	u8 EventType;

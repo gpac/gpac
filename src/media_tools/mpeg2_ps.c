@@ -1222,7 +1222,7 @@ static void get_info_for_all_streams (mpeg2ps_t *ps)
 			if (av == 0) sptr = ps->video_streams[stream_ix];
 			else sptr = ps->audio_streams[stream_ix];
 
-			// we don't open a seperate file descriptor yet (only when they
+			// we don't open a separate file descriptor yet (only when they
 			// start reading or seeking).  Use the one from the ps.
 			sptr->m_fd = ps->fd; // for now
 			clear_stream_buffer(sptr);

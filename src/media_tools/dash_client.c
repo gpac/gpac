@@ -4329,7 +4329,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 	return GF_OK;
 }
 
-static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bool seperate_index, u64 sidx_offset)
+static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bool separate_index, u64 sidx_offset)
 {
 #ifdef GPAC_DISABLE_ISOM
 	return GF_NOT_SUPPORTED;
@@ -4352,7 +4352,7 @@ static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bo
 	gf_bs_seek(bs, sidx_offset);
 
 	anchor_position = sidx_offset + size;
-	if (seperate_index)
+	if (separate_index)
 		anchor_position = 0;
 
 	e = gf_isom_box_parse((GF_Box **) &sidx, bs);
@@ -4364,7 +4364,7 @@ static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bo
 	rep->segment_list->timescale = sidx->timescale;
 	for (i=0; i<sidx->nb_refs; i++) {
 		if (sidx->refs[i].reference_type) {
-			e = gf_dash_load_sidx(bs, rep, seperate_index, offset);
+			e = gf_dash_load_sidx(bs, rep, separate_index, offset);
 			if (e) {
 				break;
 			}
@@ -4390,7 +4390,7 @@ static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bo
 #endif
 }
 
-static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Representation *rep, const char *cache_name, Bool seperate_index, Bool needs_mov_range)
+static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Representation *rep, const char *cache_name, Bool separate_index, Bool needs_mov_range)
 {
 	GF_Err e;
 	GF_BitStream *bs;
@@ -4421,7 +4421,7 @@ static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Repr
 			continue;
 		}
 		gf_bs_seek(bs, gf_bs_get_position(bs)-8);
-		e = gf_dash_load_sidx(bs, rep, seperate_index, gf_bs_get_position(bs) );
+		e = gf_dash_load_sidx(bs, rep, separate_index, gf_bs_get_position(bs) );
 
 		/*we could also parse the sub sidx*/
 		break;
