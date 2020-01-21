@@ -5034,7 +5034,7 @@ int mp4boxMain(int argc, char **argv)
 				u32 slept = gf_sys_clock();
 				u32 sleep_for = gf_dasher_next_update_time(dasher, &ms_in_session);
 				fprintf(stderr, "Next generation scheduled in %u ms (DASH time "LLU" ms)\r", sleep_for, ms_in_session);
-				if (ms_in_session>=run_for) {
+				if (run_for && (ms_in_session>=run_for)) {
 					dash_cumulated_time = 1+run_for;
 					continue;
 				}
