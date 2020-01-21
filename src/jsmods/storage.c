@@ -72,6 +72,11 @@ static JSValue js_storage_get_option(JSContext *ctx, JSValueConst this_val, int 
 	if (!JS_IsString(argv[1]) && !JS_IsInteger(argv[1])) return JS_EXCEPTION;
 
 	sec_name = JS_ToCString(ctx, argv[0]);
+	if (!strcmp(sec_name, "GPAC")) {
+		JS_FreeCString(ctx, sec_name);
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Cannot access section 'GPAC' from script\n");
+	}
+
 	key_name = NULL;
 	if (JS_IsInteger(argv[1])) {
 		JS_ToInt32(ctx, &idx, argv[1]);
@@ -107,6 +112,10 @@ static JSValue js_storage_set_option(JSContext *ctx, JSValueConst this_val, int 
 	if (!JS_IsString(argv[1])) return JS_EXCEPTION;
 
 	sec_name = JS_ToCString(ctx, argv[0]);
+	if (!strcmp(sec_name, "GPAC")) {
+		JS_FreeCString(ctx, sec_name);
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Cannot access section 'GPAC' from script\n");
+	}
 	key_name = JS_ToCString(ctx, argv[1]);
 	key_val = NULL;
 	if (JS_IsString(argv[2]))
