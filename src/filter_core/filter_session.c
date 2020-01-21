@@ -981,9 +981,17 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if ((strlen(f_reg->name)==len) && !strncmp(f_reg->name, name, len)) {
+			GF_Filter *filter;
 			GF_FilterArgType argtype = GF_FILTER_ARG_EXPLICIT;
 			if (f_reg->flags & GF_FS_REG_ACT_AS_SOURCE) argtype = GF_FILTER_ARG_EXPLICIT_SOURCE;
-			return gf_filter_new(fsess, f_reg, args, NULL, argtype, err_code, NULL);
+			filter = gf_filter_new(fsess, f_reg, args, NULL, argtype, err_code, NULL);
+			if (!filter) return NULL;
+			if (filter && !filter->num_output_pids) {
+				const char *src_url = strstr(name, "src");
+				if (src_url && (src_url[3]==fsess->sep_name))
+					gf_filter_post_process_task(filter);
+			}
+			return filter;
 		}
 	}
 	/*check JS file*/
