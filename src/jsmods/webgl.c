@@ -269,7 +269,7 @@ static JSValue WebGLRenderingContextBase_getProperty(JSContext *ctx, JSValueCons
 	return JS_UNDEFINED;
 }
 
-static JSValue webgl_getActiveAttriborUniform(JSContext *ctx, GLuint program, u32 index, Bool is_attr)
+static JSValue webgl_getActiveAttribOrUniform(JSContext *ctx, GLuint program, u32 index, Bool is_attr)
 {
 	char szAttName[1001];
 	GLint size, att_len=0;
@@ -290,11 +290,11 @@ static JSValue webgl_getActiveAttriborUniform(JSContext *ctx, GLuint program, u3
 }
 JSValue webgl_getActiveAttrib(JSContext *ctx, GLuint program, u32 index)
 {
-	return webgl_getActiveAttriborUniform(ctx, program, index, GF_TRUE);
+	return webgl_getActiveAttribOrUniform(ctx, program, index, GF_TRUE);
 }
 JSValue webgl_getActiveUniform(JSContext *ctx, GLuint program, u32 index)
 {
-	return webgl_getActiveAttriborUniform(ctx, program, index, GF_FALSE);
+	return webgl_getActiveAttribOrUniform(ctx, program, index, GF_FALSE);
 }
 JSValue webgl_getAttachedShaders(JSContext *ctx, GF_WebGLContext *glc, GLuint program)
 {
@@ -317,7 +317,7 @@ JSValue webgl_getAttachedShaders(JSContext *ctx, GF_WebGLContext *glc, GLuint pr
 			}
 		}
 	}
-	return JS_UNDEFINED;
+	return ret;
 }
 
 /*WebGL 1.0 autogen code*/
@@ -352,11 +352,27 @@ static JSValue wgl_isContextLost(JSContext *ctx, JSValueConst this_val, int argc
 }
 static JSValue wgl_getSupportedExtensions(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	const char *gl_exts;
+	char *gl_exts;
 	GF_WebGLContext *glc = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
 	if (!glc) return js_throw_err(ctx, WGL_INVALID_OPERATION);
-	gl_exts = (const char *) glGetString(GL_EXTENSIONS);
-	return JS_NewString(ctx, gl_exts);
+	if (argc && JS_ToBool(ctx, argv[0])) {
+		JSValue res;
+		u32 idx=0;
+		gl_exts = (char *) glGetString(GL_EXTENSIONS);
+		res = JS_NewArray(ctx);
+		while (gl_exts) {
+			char *sep = strchr(gl_exts, ' ');
+			if (sep) sep[0] = 0;
+			JS_SetPropertyUint32(ctx, res, idx, JS_NewString(ctx, gl_exts));
+			idx++;
+			if (!sep) break;
+			if (sep) sep[0] = ' ';
+			gl_exts = sep+1;
+		}
+		JS_SetPropertyStr(ctx, res, "length", JS_NewInt32(ctx, idx));
+		return res;
+	}
+	return JS_NewArray(ctx);
 }
 
 static JSValue wgl_getExtension(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -753,8 +769,114 @@ static JSValue wgl_getTexParameter(JSContext *ctx, JSValueConst this_val, int ar
 }
 static JSValue wgl_getUniform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	return js_throw_err_msg(ctx, WGL_INVALID_VALUE, "[WebGL] getUniform not yet implemented, patch welcome");
+	GLint program_shader=0;
+	GLint location=0;
+	GLint i, j, activeUniforms=0;
+	GLsizei len;
+	GLint size, length;
+	GLenum type, base_type;
+	Bool found = GF_FALSE;
+	GLfloat values_f[16];
+	GLint values_i[4];
+	GLuint values_ui[4];
+	JSValue res;
+	char name[1024], sname[1150];
+
+	WGL_CHECK_CONTEXT
+	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
+	WGL_GET_GLID(program_shader, argv[0], WebGLProgram_class_id);
+	WGL_GET_GLID(location, argv[1], WebGLUniformLocation_class_id);
+
+	//openGL doesn't provide a way to get a uniform type from its location
+	//we need to browse all active uniforms by name in the program
+	//then look for the location of each uniform and check against the desired location
+
+	glGetProgramiv(program_shader, GL_ACTIVE_UNIFORMS, &activeUniforms);
+	for (i=0; i<activeUniforms; i++) {
+		glGetActiveUniform(program_shader, i, 1024, &len, &size, &type, name);
+		if ((len>3) && !strcmp(name+len-3, "[0]")) {
+			len -= 3;
+			name[len] = 0;
+		}
+
+		for (j=0; j<size; j++) {
+			strcpy(sname, name);
+			if ((size > 1) && (j >= 1)) {
+				char szIdx[100];
+                sprintf(szIdx, "[%d]", j);
+                strcat(sname, szIdx);
+            }
+			GLint loc = glGetUniformLocation(program_shader, sname);
+			if (loc == location) {
+				found = GF_TRUE;
+				break;
+			}
+		}
+		if (found) break;
+	}
+	if (!found) {
+		return js_throw_err_msg(ctx, WGL_INVALID_VALUE, "[WebGL] uniform not found");
+	}
+	switch (type) {
+	case GL_BOOL: base_type = GL_BOOL; length = 1; break;
+	case GL_BOOL_VEC2: base_type = GL_BOOL; length = 2; break;
+	case GL_BOOL_VEC3: base_type = GL_BOOL; length = 3; break;
+	case GL_BOOL_VEC4: base_type = GL_BOOL; length = 4; break;
+	case GL_INT: base_type = GL_INT; length = 1; break;
+	case GL_INT_VEC2: base_type = GL_INT; length = 2; break;
+	case GL_INT_VEC3: base_type = GL_INT; length = 3; break;
+	case GL_INT_VEC4: base_type = GL_INT; length = 4; break;
+	case GL_FLOAT: base_type = GL_FLOAT; length = 1; break;
+	case GL_FLOAT_VEC2: base_type = GL_FLOAT; length = 2; break;
+	case GL_FLOAT_VEC3: base_type = GL_FLOAT; length = 3; break;
+	case GL_FLOAT_VEC4: base_type = GL_FLOAT; length = 4; break;
+	case GL_FLOAT_MAT2: base_type = GL_FLOAT; length = 4; break;
+	case GL_FLOAT_MAT3: base_type = GL_FLOAT; length = 9; break;
+	case GL_FLOAT_MAT4: base_type = GL_FLOAT; length = 16; break;
+	case GL_SAMPLER_2D:
+	case GL_SAMPLER_CUBE:
+		base_type = GL_INT;
+		length = 1;
+		break;
+	default:
+		return js_throw_err_msg(ctx, WGL_INVALID_VALUE, "[WebGL] uniform type not supported");
+	}
+
+#define RETURN_SINGLE_OR_ARRAY(__fun, __arr) \
+		if (length == 1) return __fun(ctx, __arr[0]);\
+		res = JS_NewArray(ctx);\
+		JS_SetPropertyStr(ctx, res, "length", JS_NewInt32(ctx, length));\
+		for (i=0; i<length; i++)\
+			JS_SetPropertyUint32(ctx, res, i, __fun(ctx, __arr[i]) );\
+		return res;
+
+	switch (base_type) {
+	case GL_FLOAT:
+		glGetUniformfv(program_shader, location, values_f);
+		RETURN_SINGLE_OR_ARRAY(JS_NewFloat64, values_f);
+
+	case GL_INT:
+		glGetUniformiv(program_shader, location, values_i);
+		RETURN_SINGLE_OR_ARRAY(JS_NewInt32, values_i);
+
+	case GL_UNSIGNED_INT:
+		//TODO - support for GLES3 is needed for this one, for now use the integer version
+		glGetUniformiv(program_shader, location, values_ui);
+		RETURN_SINGLE_OR_ARRAY(JS_NewInt64, values_ui);
+
+	case GL_BOOL:
+		glGetUniformiv(program_shader, location, values_i);
+		RETURN_SINGLE_OR_ARRAY(JS_NewBool, values_i);
+
+	default:
+		break;
+	}
+
+#undef RETURN_GLANY_SINGLE_OR_ARRAY
+
+	return js_throw_err_msg(ctx, WGL_INVALID_VALUE, "[WebGL] uniform type not supported");
 }
+
 static JSValue wgl_getVertexAttrib(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	JSValue ret;
@@ -1103,7 +1225,8 @@ static JSValue wgl_texSubImage2D(JSContext *ctx, JSValueConst this_val, int argc
 	u32 height = 0;
 	u32 format = 0;
 	u32 type = 0;
-	u8 *pix_buf;
+	u32 pixfmt, stride, stride_uv;
+	u8 *pix_buf, *p_u, *p_v, *p_a;
 	u32 pix_buf_size=0;
 	WGL_CHECK_CONTEXT
 	if (argc<7) return js_throw_err(ctx, WGL_INVALID_VALUE);
@@ -1131,6 +1254,33 @@ static JSValue wgl_texSubImage2D(JSContext *ctx, JSValueConst this_val, int argc
 		pix_buf = wgl_GetArrayBuffer(ctx, &pix_buf_size, argv[8]);
 		if (!pix_buf) return js_throw_err(ctx, WGL_INVALID_VALUE);
 
+		glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pix_buf);
+		return JS_UNDEFINED;
+	}
+
+	/*check if this is an EVG texture*/
+	if (js_evg_get_texture_info(ctx, argv[6], &width, &height, &pixfmt, &pix_buf, &stride, &p_u, &p_v, &stride_uv, &p_a)) {
+		switch (pixfmt) {
+		case GF_PIXEL_GREYSCALE:
+			format = GL_LUMINANCE;
+			type = GL_TEXTURE_2D;
+			break;
+		case GF_PIXEL_ALPHAGREY:
+		case GF_PIXEL_GREYALPHA:
+			format = GL_LUMINANCE_ALPHA;
+			type = GL_UNSIGNED_BYTE;
+			break;
+		case GF_PIXEL_RGB:
+			format = GL_RGB;
+			type = GL_UNSIGNED_BYTE;
+			break;
+		case GF_PIXEL_RGBA:
+			format = GL_RGBA;
+			type = GL_UNSIGNED_BYTE;
+			break;
+		default:
+			return js_throw_err_msg(ctx, WGL_INVALID_ENUM, "[WebGL] Pixel format %s not yet mapped to texImage2D", gf_pixel_fmt_name(pixfmt) );
+		}
 		glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pix_buf);
 		return JS_UNDEFINED;
 	}
@@ -1710,7 +1860,7 @@ static const JSCFunctionListEntry webgl_named_tx_funcs[] =
 	JS_CGETSET_MAGIC_DEF("nb_textures", wgl_named_tx_getProperty, NULL, WGL_GPTX_NB_TEXTURES),
 	JS_CGETSET_MAGIC_DEF("is_gl_input", wgl_named_tx_getProperty, wgl_named_tx_setProperty, WGL_GPTX_GLTX_IN),
 	JS_CGETSET_MAGIC_DEF("name", wgl_named_tx_getProperty, wgl_named_tx_setProperty, WGL_GPTX_NAME),
-	JS_CGETSET_MAGIC_DEF("pbo", wgl_named_tx_getProperty, NULL, WGL_GPTX_PBO),
+	JS_CGETSET_MAGIC_DEF("pbo", wgl_named_tx_getProperty, wgl_named_tx_setProperty, WGL_GPTX_PBO),
 	JS_CFUNC_DEF("reconfigure", 0, wgl_named_tx_reconfigure),
 	JS_CFUNC_DEF("upload", 0, wgl_named_tx_upload),
 };
