@@ -1755,7 +1755,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 				gf_mpd_del(new_mpd);
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-		} else if (!gf_dash_is_dash_mime(mime)) {
+		} else if (strlen(mime) && !gf_dash_is_dash_mime(mime)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] mime '%s' should be m3u8 or mpd\n", mime));
 		}
 
