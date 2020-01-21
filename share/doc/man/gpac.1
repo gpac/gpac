@@ -9,9 +9,29 @@ gpac \- GPAC command-line filter session manager
 .RI [options] FILTER [LINK] FILTER [...]
 .br
 .
-gpac is GPAC's command line tool for setting up and running filter chains. Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.
+gpac is GPAC's command line tool for setting up and running filter chains.
+.br
+
+.br
+FILTER: a single filter declaration (eg, -i file, -o dump, inspect, ...), see gpac -h doc.
+.br
+[LINK]: a link instruction (eg, @, @2, @2#StreamType=Visual, ...), see gpac -h doc.
+.br
+[options]: one or more option strings, each starting with a - character.
+.br
+  - an option using a single - indicates an option of gpac (see gpac -hx -OPT=VAL) or of libgpac (see gpac -hx core)
+.br
+  - an option using -- indicates a global filter option, for example --block_size=1000 (see gpac -h doc)
+.br
+  - an option using -+ indicates a global meta-filter filter (eg FFMPEG) option, for example -+profile=Baseline (see gpac -h doc)
+.br
+Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.
 .br
 boolean values do not need any value specified. Other types shall be formatted as opt=val, except -i, src, -o, dst and -h options.
+.br
+
+.br
+The possible options are:
 .br
 
 .br
@@ -94,9 +114,9 @@ specify an input file - see filters help (-h doc)
 specify an output file - see filters help (-h doc)
 .br
 .TP
-.B \-h -help -ha -hx -hh (string)
+.B \-h -help,-ha,-hx,-hh (string)
 .br
-print help. Use help or -h for basic options, -ha for advanced options, -hx for expert options and -hh for all. String parameter can be:
+print help. Use -help or -h for basic options, -ha for advanced options, -hx for expert options and -hh for all. String parameter can be:
 .br
 * empty: print command line options help
 .br
@@ -1019,7 +1039,7 @@ Note: The special characters in property formats (0x,/,-,+I,-I,x) cannot be conf
 .B
 Generic declaration
 .br
-Filters are listed by name, with options appended as a list of colon-separated name=value pairs. Additionnal syntax is provided for:
+Each filter is declared by its name, with optionnal filter arguments appended as a list of colon-separated name=value pairs. Additionnal syntax is provided for:
 .br
 * boolean: value can be omitted, defaulting to true (eg :noedit). Using ! before the name negates the result (eg :!moof_first)
 .br
@@ -1077,7 +1097,7 @@ Source and sink filters do not need to be addressed by the filter name, specifyi
 .br
 Example
 .br
-src=file.mp4 -src file.mp4 -i file.mp4
+"src=file.mp4" or "-src file.mp4" or  "-i file.mp4"
 .br
 
 .br
@@ -1085,13 +1105,19 @@ This will find a filter (for example fin) able to load file.mp4. The same result
 .br
 Example
 .br
-src=file.mp4 dst=dump.yuv
+"dst=dump.yuv" or "-dst dump.yuv" or "-o dump.yuv"
 .br
 
 .br
-This will dump the video content of file.mp4 in dump.yuv.
+This will dump the video content in dump.yuv. The same result can be achieved by using fout:dst=dump.yuv.
+.br
+
 .br
 Specific source or sink filters may also be specified using filterName:src=URL or filterName:dst=URL.
+.br
+
+.br
+The src= and dst= syntaxes can also be used in alias for dynamic argument cloning (see gpac -hx alias).
 .br
 .P
 .B
@@ -1186,7 +1212,8 @@ This will set option a to foo, b to bar:c and the option d to fun on the filter.
 .B
 Quick links
 .br
-Link between filters may be manually specified. The syntax is an @ character optionaly followed by an integer (0 if omitted). This indicates which previous (0-based) filters should be link to the next filter listed. Only the last link directive occuring before a filter is used to setup links for that filter.
+Link between filters may be manually specified. The syntax is an @ character optionaly followed by an integer (0 if omitted). This indicates which filter previous specified at prompt should be link to the next filter listed. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous delaration, ...)
+.Only the last link directive occuring before a filter is used to setup links for that filter.
 .br
 Example
 .br
@@ -3302,7 +3329,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3125-g8a2dcf0b0-filters
+build: 0.9.0-DEV-rev3148-g113fc4271-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

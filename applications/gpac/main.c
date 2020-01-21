@@ -117,7 +117,7 @@ const char *gpac_doc =
 "Note: The special characters in property formats (0x,/,-,+I,-I,x) cannot be configured.\n"
 "# Filter declaration [__FILTER__]\n"
 "## Generic declaration\n"
-"Filters are listed by name, with options appended as a list of colon-separated `name=value` pairs. Additionnal syntax is provided for:\n"
+"Each filter is declared by its name, with optionnal filter arguments appended as a list of colon-separated `name=value` pairs. Additionnal syntax is provided for:\n"
 "- boolean: `value` can be omitted, defaulting to `true` (eg `:noedit`). Using `!` before the name negates the result (eg `:!moof_first`)\n"
 "- enumerations: name can be omitted (eg `:disp=pbo` is equivalent to `:pbo`), provided that filter developers pay attention to not reuse enumeration names in the same filter.\n"
 "\n  \n"
@@ -137,11 +137,14 @@ const char *gpac_doc =
 "## Source and Sink filters\n"
 "Source and sink filters do not need to be addressed by the filter name, specifying `src=` or `dst=` instead is enough. "
 "You can also use the syntax `-src URL` or `-i URL` for sources and `-dst URL` or `-o URL` for destination, this allows prompt completion in shells.\n"
-"EX src=file.mp4 -src file.mp4 -i file.mp4\n"
+"EX \"src=file.mp4\" or \"-src file.mp4\" or  \"-i file.mp4\"\n"
 "This will find a filter (for example `fin`) able to load `file.mp4`. The same result can be achieved by using `fin:src=file.mp4`.\n"
-"EX src=file.mp4 dst=dump.yuv\n"
-"This will dump the video content of `file.mp4` in `dump.yuv`.\n"
+"EX \"dst=dump.yuv\" or \"-dst dump.yuv\" or \"-o dump.yuv\"\n"
+"This will dump the video content in `dump.yuv`. The same result can be achieved by using `fout:dst=dump.yuv`.\n"
+"\n"
 "Specific source or sink filters may also be specified using `filterName:src=URL` or `filterName:dst=URL`.\n"
+"\n"
+"The `src=` and `dst=` syntaxes can also be used in alias for dynamic argument cloning (see `gpac -hx alias`).\n"
 "## Forcing specific filters\n"
 "There is a special option called `gfreg` which allows specifying preferred filters to use when handling URLs.\n"
 "EX src=file.mp4:gfreg=ffdmx,ffdec\n"
@@ -178,7 +181,7 @@ const char *gpac_doc =
 "# Expliciting links between filters [__LINK__]\n"
 "## Quick links\n"
 "Link between filters may be manually specified. The syntax is an `@` character optionaly followed by an integer (0 if omitted). "
-"This indicates which previous (0-based) filters should be link to the next filter listed. "
+"This indicates which filter previous specified at prompt should be link to the next filter listed. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous delaration, ...)\n."
 "Only the last link directive occuring before a filter is used to setup links for that filter.\n"
 "EX fA fB @1 fC\n"
 "This indicates to direct `fA` outputs to `fC`.\n"
@@ -521,7 +524,7 @@ GF_GPACArg gpac_args[] =
 
 	GF_DEF_ARG("i", "src", "specify an input file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("o", "dst", "specify an output file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("h", "help -ha -hx -hh", "print help. Use `help` or `-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all. String parameter can be:\n"\
+	GF_DEF_ARG("h", "help,-ha,-hx,-hh", "print help. Use `-help` or `-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all. String parameter can be:\n"\
 			"- empty: print command line options help\n"\
 			"- doc: print the general filter info\n"\
 			"- alias: print the gpac alias syntax\n"\
@@ -562,8 +565,20 @@ static void gpac_usage(GF_SysArgMode argmode)
 		if (gen_doc!=2)
 			gf_sys_format_help(helpout, help_flags, "Usage: gpac [options] FILTER [LINK] FILTER [...] \n");
 
-		gf_sys_format_help(helpout, help_flags, "gpac is GPAC's command line tool for setting up and running filter chains. Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.\n"
-			"boolean values do not need any value specified. Other types shall be formatted as `opt=val`, except [-i](), `src`, [-o](), `dst` and [-h]() options.\n\n"
+		gf_sys_format_help(helpout, help_flags, "gpac is GPAC's command line tool for setting up and running filter chains.\n\n"
+		"__FILTER__: a single filter declaration (eg, `-i file`, `-o dump`, `inspect`, ...), see %s.\n"
+		"__[LINK]__: a link instruction (eg, `@`, `@2`, `@2#StreamType=Visual`, ...), see %s.\n"
+		"__[options]__: one or more option strings, each starting with a `-` character.\n"
+		"  - an option using a single `-` indicates an option of gpac (see `gpac -hx` -OPT=VAL) or of libgpac (see `gpac -hx core`)\n"
+		"  - an option using `--` indicates a global filter option, for example `--block_size=1000` (see `gpac -h doc`)\n"
+		"  - an option using `-+` indicates a global meta-filter filter (eg FFMPEG) option, for example `-+profile=Baseline` (see `gpac -h doc`)\n"
+
+		"Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.\n"
+		"boolean values do not need any value specified. Other types shall be formatted as `opt=val`, except [-i](), `src`, [-o](), `dst` and [-h]() options.\n\n"
+		"The possible options are:\n\n",
+			(gen_doc==1) ? "[here](filters_general#filter-declaration-filter)" : "`gpac -h doc`",
+			(gen_doc==1) ? "[here](filters_general#expliciting-links-between-filters-link)" : "`gpac -h doc`"
+
 		);
 	}
 
