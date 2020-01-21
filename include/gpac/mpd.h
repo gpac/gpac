@@ -908,7 +908,7 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
 \param segment_list the segment list to delete*/
 void gf_mpd_delete_segment_list(GF_MPD_SegmentList *segment_list);
 
-/*! deletes a list content and optionnaly destructs the list
+/*! deletes a list content and optionaly destructs the list
 \param list the target list
 \param __destructor the destructor function to use to destroy list items
 \param reset_only  if GF_TRUE, does not destroy the target list

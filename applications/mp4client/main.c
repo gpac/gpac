@@ -1179,7 +1179,7 @@ int mp4client_main(int argc, char **argv)
 	 		PrintUsage(GF_TRUE);
 			PrintHelp();
 
-			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://github.com/gpac/gpac/wiki/mp4client\n");
+			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/mp4client\n");
 			fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
 			".br\nFor bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac\n"
 			".br\nbuild: %s\n"

@@ -720,7 +720,7 @@ GF_FilterRegister FileListRegister = {
 		"This works on any source (implemented independently from seek support).\n"
 		"\n"\
 		"The source lines follow the usual source syntax, see `gpac -h`.\n"\
-		"Additionnal pid properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"
+		"Additional pid properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"
 		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.\n"\
 		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.\n")
 	.private_size = sizeof(GF_FileListCtx),

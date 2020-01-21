@@ -989,7 +989,7 @@ void gf_svg_parse_style(GF_Node *n, char *style);
 \return the textural representation of the value - shall be destroyed by caller
 */
 char *gf_svg_dump_attribute(GF_Node *n, GF_FieldInfo *info);
-/*! dumps an SVG indexed attribute (special 1-D version of a N dimensionnal attribute, used by LASeR and DOM updates)
+/*! dumps an SVG indexed attribute (special 1-D version of a N dimensional attribute, used by LASeR and DOM updates)
 \param n the target node
 \param info the attribute information
 \return the textural representation of the value - shall be destroyed by caller

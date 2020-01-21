@@ -1233,7 +1233,9 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			} else if (!strcmp("N", szArg)) {
-				gf_filter_set_name(filter, value);
+				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT) || (arg_type==GF_FILTER_ARG_EXPLICIT_SOURCE))
+
+					gf_filter_set_name(filter, value);
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}

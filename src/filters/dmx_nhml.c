@@ -1379,7 +1379,7 @@ GF_FilterRegister NHMLDmxRegister = {
 	.name = "nhmlr",
 	GF_FS_SET_DESCRIPTION("NHML parser")
 	GF_FS_SET_HELP("This filter reads NHML files/data to produce a media PID and frames.\n"
-	"NHML documentation is available at https://github.com/gpac/gpac/wiki/NHML-Format\n")
+	"NHML documentation is available at https://wiki.gpac.io/NHML-Format\n")
 	.private_size = sizeof(GF_NHMLDmxCtx),
 	.args = GF_NHMLDmxArgs,
 	.initialize = nhmldmx_initialize,

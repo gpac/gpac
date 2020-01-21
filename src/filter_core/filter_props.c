@@ -1219,7 +1219,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_DASH_MULTI_TRACK, NULL, "Pointer to the GF_List of input pids for multi-tracks segments, set by dasher", GF_PROP_POINTER, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ROLE, "Role", "List of roles for this pid", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_PERIOD_DESC, "PDesc", "List of descriptors for the DASH period containing this pid", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_AS_COND_DESC, "ASDesc", "List of conditionnal descriptors for the DASH AdaptationSet containing this pid. If a pid with the same property type but different value is found, the pids will be in different AdaptationSets", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_AS_COND_DESC, "ASDesc", "List of conditional descriptors for the DASH AdaptationSet containing this pid. If a pid with the same property type but different value is found, the pids will be in different AdaptationSets", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_AS_ANY_DESC, "ASCDesc", "List of common descriptors for the DASH AdaptationSet containing this pid", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_REP_DESC, "RDesc", "List of descriptors for the DASH Representation containing this pid", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_BASE_URL, "BUrl", "List of base URLs for this pid", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},

@@ -471,7 +471,7 @@ GF_FilterRegister NHNTDmxRegister = {
 	.name = "nhntr",
 	GF_FS_SET_DESCRIPTION("NHNT reader")
 	GF_FS_SET_HELP("This filter reads NHNT files/data to produce a media PID and frames.\n"
-	"NHNT documentation is available at https://github.com/gpac/gpac/wiki/NHNT-Format\n")
+	"NHNT documentation is available at https://wiki.gpac.io/NHNT-Format\n")
 	.private_size = sizeof(GF_NHNTDmxCtx),
 	.args = GF_NHNTDmxArgs,
 	.initialize = nhntdmx_initialize,

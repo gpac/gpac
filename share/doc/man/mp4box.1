@@ -283,17 +283,17 @@ print the set of supported iTunes tags
 split in files of given max duration. Set [-rap] to start each file at RAP
 .br
 .TP
-.B \-split-size -splits (string)
+.B \-split-size,-splits (string)
 .br
 split in files of given max size (in kb)
 .br
 .TP
-.B \-split-rap -splitr (string)
+.B \-split-rap,-splitr (string)
 .br
 split in files at each new RAP
 .br
 .TP
-.B \-split-chunk -splitx  S:E (string)
+.B \-split-chunk,-splitx  S:E (string)
 .br
 extract a new file from S (number of seconds) to E with E a number (in seconds), end or end-N, N being the desired number of seconds before the end
 .br
@@ -559,7 +559,7 @@ convert given HLS or smooth manifest (local or remote http) to MPD.
 Warning: This is not compatible with other DASH options and does not convert associated segments
 .br
 .TP
-.B \-dash --dash-strict (number)
+.B \-dash,--dash-strict (number)
 .br
 create DASH from input files with given segment (subsegment for onDemand profile) duration in ms
 .br
@@ -1410,7 +1410,7 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
 * :tc=VAL: inject a single QT timecode. VAL is formated as:
 .br
-  * [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optionnal drop flag, framerate (integer or fractionnal), hours, minutes, seconds and frame number
+  * [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number
 .br
   * : d is an optional flag used to indicate that the counter is in drop-frame format
 .br
@@ -1420,9 +1420,9 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
 * :fgraph: print filter session graph after import
 .br
-* :sopt:[OPTS]: set OPTS as additionnal arguments to source filter. OPTS can be any usual filter argument, see filter doc `gpac -h doc`
+* :sopt:[OPTS]: set OPTS as additional arguments to source filter. OPTS can be any usual filter argument, see filter doc `gpac -h doc`
 .br
-* :dopt:[OPTS]: * set OPTS as additionnal arguments to destination filter. OPTS can be any usual filter argument, see filter doc `gpac -h doc`
+* :dopt:[OPTS]: * set OPTS as additional arguments to destination filter. OPTS can be any usual filter argument, see filter doc `gpac -h doc`
 .br
 * @@f1[:args][@@fN:args]: set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see filter doc `gpac -h doc`. If several filters are set, they will be chained in the given order. The last filter shall not have any Filter ID specified
 .br
@@ -1646,7 +1646,7 @@ MP4Box supports encoding and decoding of of BT, XMT, VRML and (partially) X3D fo
 .br
 Any media track specified through a MuxInfo element will be imported in the resulting MP4 file.
 .br
-See https://github.com/gpac/gpac/wiki/MPEG-4-BIFS-Textual-Format and related pages.
+See https://wiki.gpac.io/MPEG-4-BIFS-Textual-Format and related pages.
 .br
 .P
 .B
@@ -1735,7 +1735,7 @@ resolution is given as if using -resolution but coord-bits and scale-bits are in
 .br
 MP4Box supports encryption and decryption of ISMA, OMA and CENC content, see encryption filter `gpac -h cecrypt`.
 .br
-It requires a specific XML file called CryptFile, whose syntax is available at https://github.com/gpac/gpac/wiki/Common-Encryption
+It requires a specific XML file called CryptFile, whose syntax is available at https://wiki.gpac.io/Common-Encryption
 .br
   
 .br
@@ -2062,14 +2062,14 @@ Runtime options:
 .br
 .SH EXAMPLES
 .TP
-Basic and advanced examples are available at https://github.com/gpac/gpac/wiki/MP4Box-Introduction
+Basic and advanced examples are available at https://wiki.gpac.io/MP4Box-Introduction
 .SH MORE
 .LP
 Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3149-g09064203a-filters
+build: 0.9.0-DEV-rev3158-g2307d3209-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

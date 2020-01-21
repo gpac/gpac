@@ -1650,7 +1650,7 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 		glEnable(iLight);
 
 		switch (li->type) {
-		//directionnal light
+		//directional light
 		case 0:
 		case 3:
 #if defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)

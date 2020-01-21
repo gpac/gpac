@@ -436,7 +436,7 @@ static const GF_FilterCapability PipeInCaps[] =
 GF_FilterRegister PipeInRegister = {
 	.name = "pin",
 	GF_FS_SET_DESCRIPTION("pipe input")
-	GF_FS_SET_HELP( "This filter handles generic input pipes (mono-directionnal) in blocking or non blocking mode.\n"\
+	GF_FS_SET_HELP( "This filter handles generic input pipes (mono-directional) in blocking or non blocking mode.\n"\
 		"Warning: Input pipes cannot seek.\n"\
 		"The associated protocol scheme is `pipe://` when loaded as a generic input (eg, `-i pipe://URL` where URL is a relative or absolute pipe name).\n"\
 		"Data format of the pipe should be specified using extension (either in file name or through [-ext]()) or MIME type through [-mime]().\n"\

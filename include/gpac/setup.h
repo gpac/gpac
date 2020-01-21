@@ -45,7 +45,7 @@ This file contains the base data types of GPAC, depending on the platform.
 \addtogroup setup_grp
 \brief Base data types of GPAC.
 
-This section documents the base data types of GPAC, as well as some macros wrapping platform-specific functionnalities.
+This section documents the base data types of GPAC, as well as some macros wrapping platform-specific functionalities.
 For better portability, only use the base data types defined here.
 
 @{

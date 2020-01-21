@@ -55,7 +55,7 @@ extern "C" {
 typedef struct __gf_download_manager GF_DownloadManager;
 /*!the download manager session.*/
 typedef struct __gf_download_session GF_DownloadSession;
-/*!the optionnal filter session.*/
+/*!the optional filter session.*/
 typedef struct __gf_filter_session GF_DownloadFilterSession;
 
 /*! URL information object*/
