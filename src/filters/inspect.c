@@ -1388,7 +1388,36 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 			fprintf(dump, "%02X", (unsigned char) data[i]);
 		}
 		if (ctx->xml) fprintf(dump, "\"");
-	} else {
+	} else if (fifce) {
+		u32 i;
+		char *name = fifce->get_gl_texture ? "Interface_GLTexID" : "Interface_NumPlanes";
+		if (ctx->xml) {
+			fprintf(dump, " %s=\"", name);
+		} else {
+			fprintf(dump, " %s ", name);
+		}
+		for (i=0; i<4; i++) {
+			if (fifce->get_gl_texture) {
+				u32 gl_tex_format, gl_tex_id;
+				if (fifce->get_gl_texture(fifce, i, &gl_tex_format, &gl_tex_id, NULL) != GF_OK)
+					break;
+				if (i) fprintf(dump, ",");
+				fprintf(dump, "%d", gl_tex_id);
+			} else {
+				u32 stride;
+				const u8 *plane;
+				if (fifce->get_plane(fifce, i, &plane, &stride) != GF_OK)
+					break;
+			}
+		}
+		if (!fifce->get_gl_texture) {
+			fprintf(dump, "%d", i);
+		}
+
+		if (ctx->xml) {
+			fprintf(dump, "\"");
+		}
+	} else if (data) {
 		DUMP_ATT_X("CRC32", gf_crc_32(data, size) )
 	}
 	if (ctx->xml) {
