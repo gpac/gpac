@@ -31,7 +31,6 @@ import {WebGLContext} from 'webgl'
 The API implements most of WebGL 1.0 context calls. What is not supported:
 - premultiplied alpha (gl.GL_UNPACK_PREMULTIPLY_ALPHA_WEBGL & co)
 - flip (gl.UNPACK_FLIP_Y_WEBGL), this must be done in the shader
-- gl.getUniform
 - WebGL extensions (gl.getExtension)
 
 # WebGL Context 
@@ -406,6 +405,13 @@ interface WebGLContext : implements WebGLRenderingContextBase {
 	\param texture the named texture to bind, or null to unbind textures
 	*/
 	void bindTexture(GLenum target, NamedTexture texture);
+
+
+  /*!
+  \param use_gl_exts if true, queries all extensions supported by the underlying openGL implementation. Otherwise, queries only supported WebGL extensions (none at the moment)
+  \return an array of strings, each entry being the name of a supported extension
+  */
+  sequence<DOMString>? getSupportedExtensions(optional boolean use_gl_exts=false);
 };
 
 /*! Named texture object, see \ref webgl_grp*/
