@@ -1423,7 +1423,7 @@ Description: CENC decryptor
 .br
 The CENC decryptor supports decrypting CENC, ISMA and Adobe streams. It uses a configuration file for retrieving keys.
 .br
-The syntax is available at https://github.com/gpac/gpac/wiki/Common-Encryption
+The syntax is available at https://wiki.gpac.io/Common-Encryption
 .br
 The file can be set per PID using the property DecryptFile (highest priority), CryptFile (lower priority) or set at the filter level using -cfile (lowest priority).
 .br
@@ -1447,7 +1447,7 @@ Description: CENC  encryptor
 .br
 The CENC encryptor supports CENC, ISAM and Adobe encryption. It uses a configuration file for declaring keys.
 .br
-The syntax is available at https://github.com/gpac/gpac/wiki/Common-Encryption
+The syntax is available at https://wiki.gpac.io/Common-Encryption
 .br
 The file can be set per PID using the property CryptFile, or set at the filter option level.
 .br
@@ -1828,7 +1828,7 @@ Description: NHNT reader
 .br
 This filter reads NHNT files/data to produce a media PID and frames.
 .br
-NHNT documentation is available at https://github.com/gpac/gpac/wiki/NHNT-Format
+NHNT documentation is available at https://wiki.gpac.io/NHNT-Format
 .br
 
 .br
@@ -1852,7 +1852,7 @@ Description: NHML parser
 .br
 This filter reads NHML files/data to produce a media PID and frames.
 .br
-NHML documentation is available at https://github.com/gpac/gpac/wiki/NHML-Format
+NHML documentation is available at https://wiki.gpac.io/NHML-Format
 .br
 
 .br
@@ -1957,7 +1957,7 @@ Description: Subtitle loader
 .br
 This filter reads subtitle data (srt/webvtt/ttxt/sub) to produce media PIDs and frames.
 .br
-The TTXT documentation is available at https://github.com/gpac/gpac/wiki/TTXT-Format-Documentation
+The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Documentation
 .br
 
 .br
@@ -2001,7 +2001,7 @@ Description: TTXT/TX3G decoder
 .br
 This filter decodes TTXT/TX3G streams directly into the scene graph of the compositor. It cannot be used to dump TTXT/TX3G content.
 .br
-The TTXT documentation is available at https://github.com/gpac/gpac/wiki/TTXT-Format-Documentation
+The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Documentation
 .br
 
 .br
@@ -2385,7 +2385,7 @@ Description: NHNT writer
 .br
 This filter converts a single stream to an NHNT output file.
 .br
-NHNT documentation is available at https://github.com/gpac/gpac/wiki/NHNT-Format
+NHNT documentation is available at https://wiki.gpac.io/NHNT-Format
 .br
 
 .br
@@ -2409,7 +2409,7 @@ Description: NHML writer
 .br
 This filter converts a single stream to an NHML output file.
 .br
-NHML documentation is available at https://github.com/gpac/gpac/wiki/NHML-Format
+NHML documentation is available at https://wiki.gpac.io/NHML-Format
 .br
 
 .br
@@ -2852,7 +2852,7 @@ This works on any source (implemented independently from seek support).
 .br
 The source lines follow the usual source syntax, see gpac -h.
 .br
-Additionnal pid properties can be added per source (see gpac -h doc), but are valid only for the current source, and reset at next source.
+Additional pid properties can be added per source (see gpac -h doc), but are valid only for the current source, and reset at next source.
 .br
 The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.
 .br
@@ -3106,7 +3106,7 @@ Note: these strings are not replaced in the manifest templates elements.
 .br
 
 .br
-Additionnal replacement strings (not DASH, not generic GPAC replacements but may occur multiple times in template):
+Additional replacement strings (not DASH, not generic GPAC replacements but may occur multiple times in template):
 .br
 * $Init=NAME$: replaced by NAME for init segment, ignored otherwise
 .br
@@ -3608,7 +3608,7 @@ Description: pipe input
 .br
 
 .br
-This filter handles generic input pipes (mono-directionnal) in blocking or non blocking mode.
+This filter handles generic input pipes (mono-directional) in blocking or non blocking mode.
 .br
 Warning: Input pipes cannot seek.
 .br
@@ -3688,7 +3688,7 @@ Description: pipe output
 .br
 
 .br
-This filter handles generic output pipes (mono-directionnal) in blocking mode only.
+This filter handles generic output pipes (mono-directional) in blocking mode only.
 .br
 Warning: Output pipes do not currently support non blocking mode.
 .br
@@ -3872,7 +3872,7 @@ Description: UDP/TCP output
 .br
 
 .br
-This filter handles generic output sockets (mono-directionnal) in blocking mode only.
+This filter handles generic output sockets (mono-directional) in blocking mode only.
 .br
 The filter can work in server mode, waiting for source connections, or or in client mode, directly connecting.
 .br
@@ -5028,7 +5028,7 @@ This filter runs a javascript file specified in -js defining a new JavaScript fi
 .br
   
 .br
-For more information on how to use JS filters, please check https://github.com/gpac/gpac/wiki/jsfilter
+For more information on how to use JS filters, please check https://wiki.gpac.io/jsfilter
 .br
 
 .br
@@ -5083,14 +5083,14 @@ reset_switch (boolean, default: false):  reset decoder at config change
 .br
 .SH EXAMPLES
 .TP
-Basic and advanced examples are available at https://github.com/gpac/gpac/wiki/Filters
+Basic and advanced examples are available at https://wiki.gpac.io/Filters
 .SH MORE
 .LP
 Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3149-g09064203a-filters
+build: 0.9.0-DEV-rev3158-g2307d3209-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

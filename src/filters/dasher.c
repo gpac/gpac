@@ -4023,7 +4023,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 		//add non-conditional adaptation set descriptors
 		dasher_add_descriptors(&ds->set->other_descriptors, ds->p_as_any_desc);
-		//new AS, add conditionnal adaptation set descriptors
+		//new AS, add conditional adaptation set descriptors
 		dasher_add_descriptors(&ds->set->other_descriptors, ds->p_as_desc);
 
 		if (ds->as_id) has_as_id = GF_TRUE;
@@ -6221,7 +6221,7 @@ GF_FilterRegister DasherRegister = {
 	        "- $Bandwidth$: replaced by representation bandwidth.\n"
 	        "Note: these strings are not replaced in the manifest templates elements.\n"
 			"\n"
-			"Additionnal replacement strings (not DASH, not generic GPAC replacements but may occur multiple times in template):\n"
+			"Additional replacement strings (not DASH, not generic GPAC replacements but may occur multiple times in template):\n"
 	        "- $Init=NAME$: replaced by NAME for init segment, ignored otherwise\n"
 	        "- $Index=NAME$: replaced by NAME for index segments, ignored otherwise\n"
 	        "- $Path=PATH$: replaced by PATH when creating segments, ignored otherwise\n"

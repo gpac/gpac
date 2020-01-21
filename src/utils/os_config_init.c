@@ -1417,7 +1417,7 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg_name ? arg_name : arg->name);
 	}
 	if (arg->altname) {
-		gf_sys_format_help(helpout, flags, " ");
+		gf_sys_format_help(helpout, flags, ",");
 		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg->altname);
 	}
 	if (syntax) {

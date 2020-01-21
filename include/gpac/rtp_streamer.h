@@ -206,7 +206,7 @@ GF_Err gf_rtp_streamer_send_bye(GF_RTPStreamer *streamer);
 \param rtp_ts the force RTP timestamp to use
 \param force_ntp_type if 0, computes NTP while sending. If 1 or 2, uses ntp_sec and ntp_frac for report. If 2, forces sending reports right away
 \param ntp_sec NTP seconds
-\param ntp_frac NTP fractionnal part
+\param ntp_frac NTP fractional part
 \return error if any
 */
 GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rtp_ts, u32 force_ntp_type, u32 ntp_sec, u32 ntp_frac);

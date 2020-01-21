@@ -530,7 +530,7 @@ GF_FilterRegister SockOutRegister = {
 	.name = "sockout",
 	GF_FS_SET_DESCRIPTION("UDP/TCP output")
 #ifndef GPAC_DISABLE_DOC
-	.help = "This filter handles generic output sockets (mono-directionnal) in blocking mode only.\n"
+	.help = "This filter handles generic output sockets (mono-directional) in blocking mode only.\n"
 		"The filter can work in server mode, waiting for source connections, or or in client mode, directly connecting.\n"
 		"In server mode, the filter can be instructed to keep running at the end of the stream.\n"
 		"In server mode, the default behaviour is to keep input packets when no more clients are connected; "

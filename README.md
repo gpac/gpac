@@ -38,16 +38,16 @@ GPAC is being developped at [Telecom Paris](https://www.telecom-paris.fr/), in t
 
 GPAC includes the following applications built by default:
 ## MP4Box
-MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See `MP4Box -h`, `man MP4Box` or [our wiki](https://github.com/gpac/gpac/wiki/MP4Box-Introduction).
+MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See `MP4Box -h`, `man MP4Box` or [our wiki](https://wiki.gpac.io/MP4Box-Introduction).
 
 
 ## MP4Client
 MP4Client is a media player built upon libgpac, featuring a rich media interactive composition engine with MPEG-4 BIFS, SVG, VRML/X3D support.
-For GPAC configuration instruction, check `MP4Client -h` ,  `man MP4Client` or [our wiki](https://github.com/gpac/gpac/wiki/mp4client).
+For GPAC configuration instruction, check `MP4Client -h` ,  `man MP4Client` or [our wiki](https://wiki.gpac.io/mp4client).
 
 ## gpac 
-As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [check this](https://github.com/gpac/gpac/wiki/Rearchitecture) for more dicussion on how this impacts MP4Box and MP4Client.
-The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://github.com/gpac/gpac/wiki/Filters) for more details.
+As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [check this](https://wiki.gpac.io/Rearchitecture) for more dicussion on how this impacts MP4Box and MP4Client.
+The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://wiki.gpac.io/Filters) for more details.
 
 
 # Roadmap
@@ -112,7 +112,7 @@ Per-commit [build](https://buildbot.gpac.io/) and [tests results](https://tests.
 
 # Compilation and Installation
 
-Please visit the [build section](https://github.com/gpac/gpac/wiki/Build-Introduction) of our wiki.
+Please visit the [build section](https://wiki.gpac.io/Build-Introduction) of our wiki.
 
 # Source code tree
 This is a short overview of the gpac source repository. 
@@ -155,6 +155,6 @@ This is a short overview of the gpac source repository.
 
 For more information, visit:
 - the GPAC website: http://gpac.io
-- the GPAC wiki: https://github.com/gpac/gpac/wiki
+- the GPAC wiki: https://wiki.gpac.io
 - the libgpac documentation wiki: https://doxygen.gpac.io
 

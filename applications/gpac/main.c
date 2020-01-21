@@ -105,19 +105,19 @@ const char *gpac_doc =
 "- string: formatted as:\n"
 " - `value`: copies value to string.\n"
 " - `file@FILE`: load string from local `FILE` (opened in binary mode).\n"
-" - `bxml@FILE`: binarize XML from local `FILE` and move property type to data - see https://github.com/gpac/gpac/wiki/NHML-Format.\n"
+" - `bxml@FILE`: binarize XML from local `FILE` and set property type to data - see https://wiki.gpac.io/NHML-Format.\n"
 "- data: formatted as:\n"
 " - `size@address`: constant data block, not internally copied; `size` gives the size of the block, `address` the data pointer.\n"
 " - `0xBYTESTRING`: data block specified in hexadecimal, internally copied.\n"
 " - `file@FILE`: load data from local `FILE` (opened in binary mode).\n"
-" - `bxml@FILE`: binarize XML from local `FILE` - see https://github.com/gpac/gpac/wiki/NHML-Format.\n"
+" - `bxml@FILE`: binarize XML from local `FILE` - see https://wiki.gpac.io/NHML-Format.\n"
 "- pointer: are formatted as `address` giving the pointer address (32 or 64 bit depending on platforms).\n"
-"- string lists: formatted as `val1,val2[,...]. Each value can also use `file@FILE` syntax.\n"
+"- string lists: formatted as `val1,val2[,...]`. Each value can also use `file@FILE` syntax.\n"
 "- integer lists: formatted as `val1,val2[,...]`\n"
 "Note: The special characters in property formats (0x,/,-,+I,-I,x) cannot be configured.\n"
 "# Filter declaration [__FILTER__]\n"
 "## Generic declaration\n"
-"Each filter is declared by its name, with optionnal filter arguments appended as a list of colon-separated `name=value` pairs. Additionnal syntax is provided for:\n"
+"Each filter is declared by its name, with optional filter arguments appended as a list of colon-separated `name=value` pairs. Additional syntax is provided for:\n"
 "- boolean: `value` can be omitted, defaulting to `true` (eg `:noedit`). Using `!` before the name negates the result (eg `:!moof_first`)\n"
 "- enumerations: name can be omitted (eg `:disp=pbo` is equivalent to `:pbo`), provided that filter developers pay attention to not reuse enumeration names in the same filter.\n"
 "\n  \n"
@@ -130,10 +130,12 @@ const char *gpac_doc =
 "It is also not needed for builtin procotol handlers (`avin://`, `video://`, `audio://`, `pipe://`)\n"
 "For `tcp://` and `udp://` protocols, the escape is not needed if a trailing `/` is appended after the port number.\n"
 "EX -i tcp://127.0.0.1:1234:OPT\n"
-"This will fail to extract the URL and options/\n"
+"This will fail to extract the URL and options.\n"
 "EX -i tcp://127.0.0.1:1234/:OPT\n"
 "This will extract the URL and options.\n"
 "Note: one trick to avoid the escape sequence is to declare the URLs option at the end, eg `f1:opt1=foo:url=http://bar`, provided you have only one URL parameter to specify on the filter.\n"
+"\n"
+"A filter may be assigned a name (for inspection purposes) using `:N=name` option. This name is not used in link resolution and may be changed at runtime by the filter instance.\n"
 "## Source and Sink filters\n"
 "Source and sink filters do not need to be addressed by the filter name, specifying `src=` or `dst=` instead is enough. "
 "You can also use the syntax `-src URL` or `-i URL` for sources and `-dst URL` or `-o URL` for destination, this allows prompt completion in shells.\n"
@@ -181,16 +183,17 @@ const char *gpac_doc =
 "# Expliciting links between filters [__LINK__]\n"
 "## Quick links\n"
 "Link between filters may be manually specified. The syntax is an `@` character optionaly followed by an integer (0 if omitted). "
-"This indicates which filter previous specified at prompt should be link to the next filter listed. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous delaration, ...)\n."
+"This indicates which filter previously specified at prompt should be link to the next filter listed. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous delaration, ...).\n"
 "Only the last link directive occuring before a filter is used to setup links for that filter.\n"
 "EX fA fB @1 fC\n"
 "This indicates to direct `fA` outputs to `fC`.\n"
 "EX fA fB @1 @0 fC\n"
 "This indicates to direct `fB` outputs to `fC`, `@1` is ignored.\n"
-"If no link directives are given, the links will be dynamically solved to fullfill as many connections as possible (__see below__).\n"
+"\nIf no link directives are given, the links will be dynamically solved to fullfill as many connections as possible (__see below__).\n"
+"Warning: This means that `fA fB fC` and `fA fB @ fC` will likely not give the same result.\n"
 "\n"
 "## Complex links\n"
-"The link directive is just a quick shortcut to set the following filter arguments:\n"
+"The link directive is just a quick shortcut to set the following arguments:\n"
 "- FID=name, which assigns an identifier to the filter\n"
 "- SID=name1[,name2...], which set a list of filter identifiers , or __sourceIDs__, restricting the list of possible inputs for a filter.\n"
 "\n"
@@ -413,8 +416,8 @@ const char *gpac_alias =
 "- `@{a:b}`: replaced by the value of the arguments between index `a` and `b`\n"
 "- `@{-a,b}`: replaced by the value of the arguments with index `a` and `b`, inserting a list separator (comma by default) between them\n"
 "- `@{-a:b}`: replaced by the value of the arguments between index `a` and `b`, inserting a list separator (comma by default) between them\n"
-"- `@{+a,b}`: clones the alias for each value listed, replacing in each clone with the corresponding argument\n"
-"- `@{+a:b}`: clones the alias for each value listed, replacing in each clone with the corresponding argument\n"
+"- `@{+a,b}`: clones the parent word in the alias for `a` and `b`, replacing this pattern in each clone by the corresponding argument\n"
+"- `@{+a:b}`: clones the parent word in the alias for each argument between index `a` and `b`, replacing this pattern in each clone by the corresponding argument\n"
 "\n"
 "The specified index can be:\n"
 "- forward index: a strictly positive integer, 1 being the first argument after the alias\n"
@@ -428,7 +431,7 @@ const char *gpac_alias =
 "The command `gpac list f1 f2 f3` expands to `gpac inspect src=f1 src=f2 src=f3`\n"
 "EX -alias=\"list inspect src=@{+2:N}\"\n"
 "The command `gpac list f1 f2 f3` expands to `gpac inspect src=f2 src=f3 f1`\n"
-"EX -alias=\"plist aout vout flist:srcs=@{-:N}\"\n"
+"EX -alias=\"plist aout vout flist:srcs=@{-,N}\"\n"
 "The command `gpac plist f1 f2 f3` expands to `gpac aout vout plist:srcs=\"f1,f2,f3\"`  \n"
 "\n"
 "Alias documentation can be set using `gpac -aliasdoc=\"NAME VALUE\"`, with `NAME` the alias name and `VALUE` the documentation.\n"
@@ -569,16 +572,19 @@ static void gpac_usage(GF_SysArgMode argmode)
 		"__FILTER__: a single filter declaration (eg, `-i file`, `-o dump`, `inspect`, ...), see %s.\n"
 		"__[LINK]__: a link instruction (eg, `@`, `@2`, `@2#StreamType=Visual`, ...), see %s.\n"
 		"__[options]__: one or more option strings, each starting with a `-` character.\n"
-		"  - an option using a single `-` indicates an option of gpac (see `gpac -hx` -OPT=VAL) or of libgpac (see `gpac -hx core`)\n"
-		"  - an option using `--` indicates a global filter option, for example `--block_size=1000` (see `gpac -h doc`)\n"
-		"  - an option using `-+` indicates a global meta-filter filter (eg FFMPEG) option, for example `-+profile=Baseline` (see `gpac -h doc`)\n"
-
+		"  - an option using a single `-` indicates an option of gpac (see %s) or of libgpac (see %s)\n"
+		"  - an option using `--` indicates a global filter option, for example `--block_size=1000` (see %s)\n"
+		"  - an option using `-+` indicates a global meta-filter filter (eg FFMPEG) option, for example `-+profile=Baseline` (see %s)\n"
+		"\n  "
 		"Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.\n"
-		"boolean values do not need any value specified. Other types shall be formatted as `opt=val`, except [-i](), `src`, [-o](), `dst` and [-h]() options.\n\n"
-		"The possible options are:\n\n",
-			(gen_doc==1) ? "[here](filters_general#filter-declaration-filter)" : "`gpac -h doc`",
-			(gen_doc==1) ? "[here](filters_general#expliciting-links-between-filters-link)" : "`gpac -h doc`"
-
+		"boolean values do not need any value specified. Other types shall be formatted as `opt=val`, except [-i](), `-src`, [-o](), `-dst` and [-h]() options.\n\n"
+		"The possible options for gpac are:\n\n",
+			(gen_doc==1) ? "[gpac -h doc](filters_general#filter-declaration-filter)" : "`gpac -h doc`",
+			(gen_doc==1) ? "[gpac -h doc](filters_general#expliciting-links-between-filters-link)" : "`gpac -h doc`",
+			(gen_doc==1) ? "[gpac -hx](gpac_general#h)" : "`gpac -hx`",
+			(gen_doc==1) ? "[gpac -hx core](core_options)" : "`gpac -hx core`",
+			(gen_doc==1) ? "[gpac -h doc](core_config#global-filter-options)" : "`gpac -h doc`",
+			(gen_doc==1) ? "[gpac -h doc](core_config#global-filter-options)" : "`gpac -h doc`"
 		);
 	}
 
@@ -1037,7 +1043,7 @@ static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
 	if (log_buf) gf_free(log_buf);
 	if ((helpout != stdout) && (helpout != stderr)) {
 		if (gen_doc==2) {
-			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://github.com/gpac/gpac/wiki/Filters\n");
+			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/Filters\n");
 			fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
 			".br\nFor bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac\n"
 			".br\nbuild: %s\n"
@@ -1588,7 +1594,7 @@ static int gpac_main(int argc, char **argv)
 //			dump_codecs = GF_TRUE;
 
 			if (gen_doc==2) {
-				fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://github.com/gpac/gpac/wiki/Filters\n");
+				fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/Filters\n");
 				fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
 				".br\nFor bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac\n"
 				".br\nbuild: %s\n"

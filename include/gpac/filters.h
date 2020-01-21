@@ -432,7 +432,7 @@ void gf_fs_print_connections(GF_FilterSession *session);
 /*! Prints all possible connections between filter registries to logs using \code LOG_APP@LOG_INFO \endcode
 \param session filter session
 \param filter_name if not null, only prints input connection for this filter register
-\param print_fn optionnal callback function for print, otherwise print to stderr
+\param print_fn optional callback function for print, otherwise print to stderr
 */
 void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, void (*print_fn)(FILE *output, GF_SysPrintArgFlags flags, const char *fmt, ...) );
 
@@ -1033,7 +1033,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 \param att property value
 \param dump buffer holding the resulting value for types requiring string conversions (integers, ...)
 \param dump_data if set data will be dumped in hexadecimal. Otherwise, data buffer is not dumped
-\param min_max_enum optionnal, gives the min/max or enum string when the property is a filter argument
+\param min_max_enum optional, gives the min/max or enum string when the property is a filter argument
 \return string
 */
 const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum);
@@ -1420,7 +1420,7 @@ Several capability bundles can be used if needed. A good example is the writegen
 stream_type/codecID to file extension and MIME type - cf gpac/src/filters/write_generic.c
 
 When resolving a chain, PID properties are checked against these capabilities. If a property of the same type exists in the PID than in the capability,
-it must match the capability requirement (equal, excluded). If no property exists for a given non-optionnal capability type,
+it must match the capability requirement (equal, excluded). If no property exists for a given non-optional capability type,
  the bundle is marked as not matching and the ext capability bundle in the filter is checked.
  A PID property not listed in any capability of the filter does not impact the matching.
 
@@ -1562,7 +1562,7 @@ enum
 #define GF_CAPS_OUTPUT_STATIC_EXCLUDED	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_EXCLUDED|GF_CAPFLAG_STATIC)
 /*! Shortcut macro to set for input and output capability flags*/
 #define GF_CAPS_INPUT_OUTPUT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_OUTPUT)
-/*! Shortcut macro to set for optionnal input and output capability flags*/
+/*! Shortcut macro to set for optional input and output capability flags*/
 #define GF_CAPS_INPUT_OUTPUT_OPT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_OPTIONAL)
 
 /*! Filter capability description*/

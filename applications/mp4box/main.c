@@ -536,15 +536,15 @@ void PrintImportUsage()
 		"  - prof,path: with path indicating the file containing the ICC color profile\n"
 		"  - rICC,path: with path indicating the file containing the restricted ICC color profile\n"
 		"- :tc=VAL: inject a single QT timecode. `VAL` is formated as:\n"
-		"  - [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optionnal drop flag, framerate (integer or fractionnal), hours, minutes, seconds and frame number\n"
+		"  - [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number\n"
 		"  - : `d` is an optional flag used to indicate that the counter is in drop-frame format\n"
 		"  - : the `framespertick` is optional and defaults to round(framerate); it indicates the number of frames per counter tick\n"
 
 
 		"- :fstat: print filter session stats after import\n"
 		"- :fgraph: print filter session graph after import\n"
-		"- :sopt:[OPTS]: set `OPTS` as additionnal arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
-		"- :dopt:[OPTS]: `*` set `OPTS` as additionnal arguments to [destination filter](mp4mx). OPTS can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
+		"- :sopt:[OPTS]: set `OPTS` as additional arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
+		"- :dopt:[OPTS]: `*` set `OPTS` as additional arguments to [destination filter](mp4mx). OPTS can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
 		"- @@f1[:args][@@fN:args]: set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). If several filters are set, they will be chained in the given order. The last filter shall not have any Filter ID specified\n"
 		"\n"
 		"Note: `sopt`, `dopt` and `@@f` must be placed after all other options.\n"
@@ -582,7 +582,7 @@ void PrintEncodeUsage()
 		"## General considerations\n"
 		"MP4Box supports encoding and decoding of of BT, XMT, VRML and (partially) X3D formats int MPEG-4 BIFS, and encoding and decoding of XSR and SVG into MPEG-4 LASeR\n"
 		"Any media track specified through a `MuxInfo` element will be imported in the resulting MP4 file.\n"
-		"See https://github.com/gpac/gpac/wiki/MPEG-4-BIFS-Textual-Format and related pages.\n"
+		"See https://wiki.gpac.io/MPEG-4-BIFS-Textual-Format and related pages.\n"
 		"## Scene Random Access\n"
 		"MP4Box can encode BIFS or LASeR streams and insert random access points at a given frequency. This is useful when packaging content for broadcast, where users will not turn in the scene at the same time. In MPEG-4 terminology, this is called the __scene carousel__."
 		"## BIFS Chunk Processing\n"
@@ -614,7 +614,7 @@ void PrintEncryptUsage()
 	u32 i=0;
 	gf_sys_format_help(helpout, help_flags, "# Encryption/Decryption Options\n"
 	"MP4Box supports encryption and decryption of ISMA, OMA and CENC content, see [encryption filter `gpac -h cecrypt`](cecrypt).\n"
-	"It requires a specific XML file called `CryptFile`, whose syntax is available at https://github.com/gpac/gpac/wiki/Common-Encryption\n"
+	"It requires a specific XML file called `CryptFile`, whose syntax is available at https://wiki.gpac.io/Common-Encryption\n"
 	"  \n"
 	"Options:\n"
 	);
@@ -2206,13 +2206,13 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 		fprintf(stderr, "Log format:\nname\torig\tcomp\tgain\tadded_bytes\torate\tcrate\tsamples\tduration\tobbps\tcbbps\n");
 		fprintf(stdout, "%s\t%d\t%d\t%g\t%d\t%g\t%g\t%d\t%g\t%g\t%g\n", inName, bytes_uncomp, bytes_comp, ((Double)(bytes_uncomp-bytes_comp)*100)/bytes_uncomp, nb_added_box_bytes, rate, new_rate, nb_samples, duration, ((Double)orig_box_overhead)/nb_samples, ((Double)final_box_overhead)/nb_samples );
 
-		fprintf(stderr, "%s Compressing top-level boxes saved %d bytes out of %d (reduced by %g %%) additionnal bytes %d original rate %g kbps new rate %g kbps, orig %g box bytes/sample final %g bytes/sample\n", inName, bytes_uncomp-bytes_comp, bytes_uncomp, ((Double)(bytes_uncomp-bytes_comp)*100)/bytes_uncomp, nb_added_box_bytes, rate, new_rate, ((Double)orig_box_overhead)/nb_samples, ((Double)final_box_overhead)/nb_samples );
+		fprintf(stderr, "%s Compressing top-level boxes saved %d bytes out of %d (reduced by %g %%) additional bytes %d original rate %g kbps new rate %g kbps, orig %g box bytes/sample final %g bytes/sample\n", inName, bytes_uncomp-bytes_comp, bytes_uncomp, ((Double)(bytes_uncomp-bytes_comp)*100)/bytes_uncomp, nb_added_box_bytes, rate, new_rate, ((Double)orig_box_overhead)/nb_samples, ((Double)final_box_overhead)/nb_samples );
 
 	} else {
 		fprintf(stderr, "Log format:\nname\torig\tcomp\tgain\tadded_bytes\n");
 		fprintf(stdout, "%s\t%d\t%d\t%g\t%d\n", inName, bytes_uncomp, bytes_comp, ((Double) (bytes_uncomp - bytes_comp)*100)/(bytes_uncomp), nb_added_box_bytes);
 
-		fprintf(stderr, "%s Compressing top-level boxes saved %d bytes out of %d (reduced by %g %%) additionnal bytes %d\n", inName, bytes_uncomp-bytes_comp, bytes_uncomp, ((Double)(bytes_uncomp-bytes_comp)*100)/bytes_uncomp, nb_added_box_bytes);
+		fprintf(stderr, "%s Compressing top-level boxes saved %d bytes out of %d (reduced by %g %%) additional bytes %d\n", inName, bytes_uncomp-bytes_comp, bytes_uncomp, ((Double)(bytes_uncomp-bytes_comp)*100)/bytes_uncomp, nb_added_box_bytes);
 
 	}
 	return GF_OK;
@@ -3432,7 +3432,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			PrintLiveUsage();
 #endif
 
-			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://github.com/gpac/gpac/wiki/MP4Box-Introduction\n");
+			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/MP4Box-Introduction\n");
 			fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
 			".br\nFor bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac\n"
 			".br\nbuild: %s\n"

@@ -19,19 +19,21 @@ FILTER: a single filter declaration (eg, -i file, -o dump, inspect, ...), see gp
 .br
 [options]: one or more option strings, each starting with a - character.
 .br
-  - an option using a single - indicates an option of gpac (see gpac -hx -OPT=VAL) or of libgpac (see gpac -hx core)
+  - an option using a single - indicates an option of gpac (see gpac -hx) or of libgpac (see gpac -hx core)
 .br
   - an option using -- indicates a global filter option, for example --block_size=1000 (see gpac -h doc)
 .br
   - an option using -+ indicates a global meta-filter filter (eg FFMPEG) option, for example -+profile=Baseline (see gpac -h doc)
 .br
-Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.
+
 .br
-boolean values do not need any value specified. Other types shall be formatted as opt=val, except -i, src, -o, dst and -h options.
+  Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.
+.br
+boolean values do not need any value specified. Other types shall be formatted as opt=val, except -i, -src, -o, -dst and -h options.
 .br
 
 .br
-The possible options are:
+The possible options for gpac are:
 .br
 
 .br
@@ -104,17 +106,17 @@ set the default character sets used to separate various arguments
 - the sixth char, if present, is used for LINK directives (see filters help (-h doc))
 .br
 .TP
-.B \-i -src (string)
+.B \-i,-src (string)
 .br
 specify an input file - see filters help (-h doc)
 .br
 .TP
-.B \-o -dst (string)
+.B \-o,-dst (string)
 .br
 specify an output file - see filters help (-h doc)
 .br
 .TP
-.B \-h -help,-ha,-hx,-hh (string)
+.B \-h,-help,-ha,-hx,-hh (string)
 .br
 print help. Use -help or -h for basic options, -ha for advanced options, -hx for expert options and -hh for all. String parameter can be:
 .br
@@ -309,9 +311,9 @@ Aliases can use arguments from the command line. The allowed syntaxes are:
 .br
 * `@{-a:b}`: replaced by the value of the arguments between index a and b, inserting a list separator (comma by default) between them
 .br
-* `@{+a,b}`: clones the alias for each value listed, replacing in each clone with the corresponding argument
+* `@{+a,b}`: clones the parent word in the alias for a and b, replacing this pattern in each clone by the corresponding argument
 .br
-* `@{+a:b}`: clones the alias for each value listed, replacing in each clone with the corresponding argument
+* `@{+a:b}`: clones the parent word in the alias for each argument between index a and b, replacing this pattern in each clone by the corresponding argument
 .br
 
 .br
@@ -353,7 +355,7 @@ The command gpac list f1 f2 f3 expands to gpac inspect src=f2 src=f3 f1
 .br
 Example
 .br
--alias="plist aout vout flist:srcs=@{-:N}"
+-alias="plist aout vout flist:srcs=@{-,N}"
 .br
 
 .br
@@ -469,7 +471,7 @@ disable progress messages
 disable all messages, including errors
 .br
 .TP
-.B \-strict-error -se
+.B \-strict-error,-se
 .br
 exit after the first error is reported
 .br
@@ -504,7 +506,7 @@ set default multicast interface through interface IP address
 set preferred language
 .br
 .TP
-.B \-cfg -opt (string)
+.B \-cfg,-opt (string)
 .br
 set configuration file value. The string parameter can be formatted as:
 .br
@@ -590,17 +592,17 @@ set HTTP/RTSP request timeout in milliseconds
 enable accepting broken SSL certificates
 .br
 .TP
-.B \-user-agent -ua (string)
+.B \-user-agent,-ua (string)
 .br
 set user agent name for HTTP/RTSP
 .br
 .TP
-.B \-user-profileid -upid (string)
+.B \-user-profileid,-upid (string)
 .br
 set user profile ID (through X-UserProfileID entity header)
 .br
 .TP
-.B \-user-profile -up (string)
+.B \-user-profile,-up (string)
 .br
 set user profile filename. Content of file is appended as body to HEAD/GET requests
 .br
@@ -867,17 +869,17 @@ disable progress messages
 disable all messages, including errors
 .br
 .TP
-.B \-log-file -lf (string)
+.B \-log-file,-lf (string)
 .br
 set output log file
 .br
 .TP
-.B \-log-clock -lc
+.B \-log-clock,-lc
 .br
 log time in micro sec since start time of GPAC before each log line
 .br
 .TP
-.B \-log-utc -lu
+.B \-log-utc,-lu
 .br
 log UTC time in ms before each log line
 .br
@@ -1012,7 +1014,7 @@ Each filter exposes a set of argument to configure itself, using property types 
 .br
  * `file@FILE`: load string from local FILE (opened in binary mode).
 .br
- * `bxml@FILE`: binarize XML from local FILE and move property type to data - see https://github.com/gpac/gpac/wiki/NHML-Format.
+ * `bxml@FILE`: binarize XML from local FILE and set property type to data - see https://wiki.gpac.io/NHML-Format.
 .br
 * data: formatted as:
 .br
@@ -1022,7 +1024,7 @@ Each filter exposes a set of argument to configure itself, using property types 
 .br
  * `file@FILE`: load data from local FILE (opened in binary mode).
 .br
- * `bxml@FILE`: binarize XML from local FILE - see https://github.com/gpac/gpac/wiki/NHML-Format.
+ * `bxml@FILE`: binarize XML from local FILE - see https://wiki.gpac.io/NHML-Format.
 .br
 * pointer: are formatted as address giving the pointer address (32 or 64 bit depending on platforms).
 .br
@@ -1039,7 +1041,7 @@ Note: The special characters in property formats (0x,/,-,+I,-I,x) cannot be conf
 .B
 Generic declaration
 .br
-Each filter is declared by its name, with optionnal filter arguments appended as a list of colon-separated name=value pairs. Additionnal syntax is provided for:
+Each filter is declared by its name, with optional filter arguments appended as a list of colon-separated name=value pairs. Additional syntax is provided for:
 .br
 * boolean: value can be omitted, defaulting to true (eg :noedit). Using ! before the name negates the result (eg :!moof_first)
 .br
@@ -1077,7 +1079,7 @@ Example
 .br
 
 .br
-This will fail to extract the URL and options/
+This will fail to extract the URL and options.
 .br
 Example
 .br
@@ -1088,6 +1090,10 @@ Example
 This will extract the URL and options.
 .br
 Note: one trick to avoid the escape sequence is to declare the URLs option at the end, eg f1:opt1=foo:url=http://bar, provided you have only one URL parameter to specify on the filter.
+.br
+
+.br
+A filter may be assigned a name (for inspection purposes) using :N=name option. This name is not used in link resolution and may be changed at runtime by the filter instance.
 .br
 .P
 .B
@@ -1212,8 +1218,9 @@ This will set option a to foo, b to bar:c and the option d to fun on the filter.
 .B
 Quick links
 .br
-Link between filters may be manually specified. The syntax is an @ character optionaly followed by an integer (0 if omitted). This indicates which filter previous specified at prompt should be link to the next filter listed. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous delaration, ...)
-.Only the last link directive occuring before a filter is used to setup links for that filter.
+Link between filters may be manually specified. The syntax is an @ character optionaly followed by an integer (0 if omitted). This indicates which filter previously specified at prompt should be link to the next filter listed. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous delaration, ...).
+.br
+Only the last link directive occuring before a filter is used to setup links for that filter.
 .br
 Example
 .br
@@ -1231,7 +1238,11 @@ fA fB @1 @0 fC
 .br
 This indicates to direct fB outputs to fC, @1 is ignored.
 .br
+
+.br
 If no link directives are given, the links will be dynamically solved to fullfill as many connections as possible (see below).
+.br
+Warning: This means that fA fB fC and fA fB @ fC will likely not give the same result.
 .br
 
 .br
@@ -1239,7 +1250,7 @@ If no link directives are given, the links will be dynamically solved to fullfil
 .B
 Complex links
 .br
-The link directive is just a quick shortcut to set the following filter arguments:
+The link directive is just a quick shortcut to set the following arguments:
 .br
 - FID=name, which assigns an identifier to the filter
 .br
@@ -2372,7 +2383,7 @@ List of descriptors for the DASH period containing this pid
 .TP
 .B ASDesc (ACDS,string list,D )
 .br
-List of conditionnal descriptors for the DASH AdaptationSet containing this pid. If a pid with the same property type but different value is found, the pids will be in different AdaptationSets
+List of conditional descriptors for the DASH AdaptationSet containing this pid. If a pid with the same property type but different value is found, the pids will be in different AdaptationSets
 .br
 .TP
 .B ASCDesc (AADS,string list,D )
@@ -3322,14 +3333,14 @@ QT TimeCode
 .br
 .SH EXAMPLES
 .TP
-Basic and advanced examples are available at https://github.com/gpac/gpac/wiki/Filters
+Basic and advanced examples are available at https://wiki.gpac.io/Filters
 .SH MORE
 .LP
 Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3149-g09064203a-filters
+build: 0.9.0-DEV-rev3158-g2307d3209-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

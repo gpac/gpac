@@ -117,7 +117,7 @@ enum
 	/*! thumbnail track*/
 	GF_ISOM_REF_THUMB = GF_4CC( 't', 'h', 'm', 'b' ),
 	/*DRC*/
-	/*! additionnal audio track*/
+	/*! additional audio track*/
 	GF_ISOM_REF_ADDA = GF_4CC( 'a', 'd', 'd', 'a' ),
 	/*! DRC metadata*/
 	GF_ISOM_REF_ADRC = GF_4CC( 'a', 'd', 'r', 'c' ),
@@ -3086,7 +3086,7 @@ typedef enum {
 	GF_ISOM_LEHVC_ONLY = 0,
 	//! changes track type to HVC2/HEV2: base and extractors/enh. in track
 	GF_ISOM_LEHVC_WITH_BASE,
-	//! changes track type to HVC1/HEV1 with additionnal cfg: base and enh. in track no extractors
+	//! changes track type to HVC1/HEV1 with additional cfg: base and enh. in track no extractors
 	GF_ISOM_LEHVC_WITH_BASE_BACKWARD,
 	//! changes track type to HVC2/HEV2 for tile base tracks
 	GF_ISOM_HEVC_TILE_BASE,
@@ -3846,7 +3846,7 @@ GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *isom_file, GF_ISOTrackID referen
 \param segment_marker_4cc a four character code used to insert an empty box at the end of the saegment with the given type. If 0, no such box is inserted
 \param index_start_range set to the start offset in bytes of the segment in the media file
 \param index_end_range set to the end offset in bytes of the segment in the media file
-\param out_seg_size set to the segment size in bytes (optionnal, can be NULL)
+\param out_seg_size set to the segment size in bytes (optional, can be NULL)
 \return error if any
 */
 GF_Err gf_isom_close_segment(GF_ISOFile *isom_file, s32 subsegs_per_sidx, GF_ISOTrackID referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool use_ssix, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size);
