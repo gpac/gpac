@@ -1508,10 +1508,10 @@ GF_Err dashdmx_process(GF_Filter *filter)
 
 					//wait until all our inputs are done
 					if (group->nb_eos == group->nb_pids) {
-						u32 nb_block = 0;
+						u32 j, nb_block = 0;
 						//check all pids in this group, postpone segment switch if blocking
-						for (i=0; i<count; i++) {
-							GF_FilterPid *an_ipid = gf_filter_get_ipid(filter, i);
+						for (j=0; j<count; j++) {
+							GF_FilterPid *an_ipid = gf_filter_get_ipid(filter, j);
 							GF_FilterPid *an_opid = gf_filter_pid_get_udta(an_ipid);
 							GF_DASHGroup *agroup;
 							if (an_ipid == ctx->mpd_pid) continue;
@@ -1530,8 +1530,8 @@ GF_Err dashdmx_process(GF_Filter *filter)
 
 						//good to switch, cancel all end of stream signals on pids from this group and switch
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d, updating stats and switching segment\n", group->idx));
-						for (i=0; i<count; i++) {
-							GF_FilterPid *an_ipid = gf_filter_get_ipid(filter, i);
+						for (j=0; j<count; j++) {
+							GF_FilterPid *an_ipid = gf_filter_get_ipid(filter, j);
 							GF_FilterPid *an_opid = gf_filter_pid_get_udta(an_ipid);
 							GF_DASHGroup *agroup;
 							if (an_ipid == ctx->mpd_pid) continue;
