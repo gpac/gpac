@@ -158,7 +158,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 				u32 orig_size;
 #endif
 				u32 comp_hdr=8;
-				compb = gf_malloc(sizeof(u8) * (size-8));
+				compb = gf_malloc((u32) (size-8));
 
 #if defined(COMP_SIGNAL_SIZE_TYPE)
 				u32 comp_type = gf_bs_read_u32(bs);
