@@ -771,12 +771,15 @@ typedef struct JSShapeProperty {
 
 struct JSShape {
 #ifdef _MSC_VER
-	uint32_t prop_hash_end[1]; 
+	union {
+		JSGCObjectHeader header; /* must come first, 32-bit */
+		uint32_t prop_hash_end[1];
+	};
 #else
 	uint32_t prop_hash_end[0]; /* hash table of size hash_mask + 1
                                   before the start of the structure. */
+	JSGCObjectHeader header; /* must come first, 32-bit */
 #endif
-	JSGCObjectHeader header;
     /* true if the shape is inserted in the shape hash table. If not,
        JSShape.hash is not valid */
     uint8_t is_hashed;
@@ -46763,9 +46766,15 @@ static JSValue get_date_string(JSContext *ctx, JSValueConst this_val,
 }
 
 /* OS dependent: return the UTC time in ms since 1970. */
+#if defined(_MSC_VER) // FIXME: implement this
+#include <time.h>
+#endif
 static int64_t date_now(void) {
 #if defined(_MSC_VER) // FIXME: implement this
-    return 42;
+	uint32_t sec, msec;
+	gf_utc_time_since_1970(&sec, &msec);
+	return (int64_t)sec*1000 + (msec);
+
 #else
     struct timeval tv;
     gettimeofday(&tv, NULL);
