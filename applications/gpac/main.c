@@ -113,7 +113,7 @@ const char *gpac_doc =
 " - `bxml@FILE`: binarize XML from local `FILE` - see https://github.com/gpac/gpac/wiki/NHML-Format.\n"
 "- pointer: are formatted as `address` giving the pointer address (32 or 64 bit depending on platforms).\n"
 "- string lists: formatted as `val1,val2[,...]. Each value can also use `file@FILE` syntax.\n"
-"- interget lists: formatted as `val1,val2[,...]`\n"
+"- integer lists: formatted as `val1,val2[,...]`\n"
 "Note: The special characters in property formats (0x,/,-,+I,-I,x) cannot be configured.\n"
 "# Filter declaration [__FILTER__]\n"
 "## Generic declaration\n"
@@ -514,10 +514,10 @@ GF_GPACArg gpac_args[] =
 			"- r=FA[,FB]: runtime reporting but only print given filters, eg `r=mp4mx`for ISOBMFF muxer only\n"
 			"- r=: only print final report"
 			, NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("seps", NULL, "set the default character sets used to seperate various arguments\n"\
-		"- the first char is used to seperate argument names\n"\
-		"- the second char, if present, is used to seperate names and values\n"\
-		"- the third char, if present, is used to seperate fragments for PID sources\n"\
+	GF_DEF_ARG("seps", NULL, "set the default character sets used to separate various arguments\n"\
+		"- the first char is used to separate argument names\n"\
+		"- the second char, if present, is used to separate names and values\n"\
+		"- the third char, if present, is used to separate fragments for PID sources\n"\
 		"- the fourth char, if present, is used for list separators (__sourceIDs__, __gfreg__, ...)\n"\
 		"- the fifth char, if present, is used for boolean negation\n"\
 		"- the sixth char, if present, is used for LINK directives (see [filters help (-h doc)](filters_general))", GF_FS_DEFAULT_SEPS, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),

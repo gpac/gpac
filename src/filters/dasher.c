@@ -6162,7 +6162,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(base), "set base URLs of MPD", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(refresh), "refresh rate for dynamic manifests, in seconds. A negative value sets the MPD duration. If 0, uses dash duration", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tsb), "time-shift buffer depth in seconds. A negative value means infinity", GF_PROP_DOUBLE, "30", NULL, 0},
-	{ OFFS(subdur), "maximum duration of the input file to be segmentated. This does not change the segment duration, segmentation stops once segments produced exceeded the duration.", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(subdur), "maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration.", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ast), "set start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ) for live mode. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(state), "path to file used to store/reload state info when simulating live. This is stored as a valid MPD with GPAC XML extensions", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(loop), "loop sources when dashing with subdur and state. If not set, a new period is created once the sources are over", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -6205,7 +6205,7 @@ GF_FilterRegister DasherRegister = {
 			"- context store and reload for batch processing of live/dynamic sessions\n"
 			"## Template strings\n"
 			"The segmenter uses templates to derive output file names, regardless of the DASH mode (even when templates are not used). "
-			"The default one is `$File$_dash` for ondemand and single file modes, and `$File$_$Number$` for seperate segment files\n"
+			"The default one is `$File$_dash` for ondemand and single file modes, and `$File$_$Number$` for separate segment files\n"
 			"EX template=Great_$File$_$Width$_$Number$\n"
 			"If input is foo.mp4 with 640x360 video, this will resolve in Great_foo_640_$Number$ for the DASH template.\n"
 			"EX template=Great_$File$_$Width$\n"

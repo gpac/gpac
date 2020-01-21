@@ -139,7 +139,7 @@ typedef struct
 	Bool is_pixel_metrics;
 
 	/*BIFS encoding - these is needed for:
-	- protos in protos which define subscene graph, hence seperate namespace, but are coded with the same IDs
+	- protos in protos which define subscene graph, hence separate namespace, but are coded with the same IDs
 	- route insertions which are not tracked by the scene graph
 	we could do this by hand (counting protos & route insert) but let's be lazy
 	*/
