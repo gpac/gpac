@@ -65,7 +65,7 @@ The thread object allows executing some code independently of the main process o
 /*!
 \brief Thread states
  *
- *Inidcates the execution status of a thread
+ *Indicates the execution status of a thread
  */
 enum
 {

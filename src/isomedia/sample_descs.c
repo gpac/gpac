@@ -209,7 +209,7 @@ GF_Err gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream
 	ptr->samplerate_lo = gf_bs_read_u16(bs);
 
 	ptr->size -= 28;
-	if (!ptr->is_qtff) return GF_OK;
+	if (!ptr->qtff_mode) return GF_OK;
 	//QT only
 	if (ptr->version==1) {
 		if (ptr->size<16) return GF_ISOM_INVALID_FILE;
@@ -240,9 +240,9 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 	gf_bs_write_u16(bs, ptr->samplerate_hi);
 	gf_bs_write_u16(bs, ptr->samplerate_lo);
 
-	if (ptr->is_qtff) {
+	if (ptr->qtff_mode) {
 		GF_Box *esds = NULL;
-		if (ptr->is_qtff==1) {
+		if (ptr->qtff_mode==GF_ISOM_AUDIO_QTFF_ON_NOEXT) {
 			if ((ptr->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)ptr)->esd) {
 				esds = (GF_Box *) ((GF_MPEGAudioSampleEntryBox*)ptr)->esd;
 			}
@@ -250,7 +250,7 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 
 		if (ptr->version==1) {
 			//direct copy of data
-			if (ptr->is_qtff==2) {
+			if (ptr->qtff_mode==GF_ISOM_AUDIO_QTFF_ON_EXT_VALID) {
 				gf_bs_write_data(bs,  (char *) ptr->extensions, 16);
 			} else {
 				gf_bs_write_u32(bs, esds ? 1024 : 1);
@@ -267,7 +267,7 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 void gf_isom_audio_sample_entry_size(GF_AudioSampleEntryBox *ptr)
 {
 	ptr->size += 28;
-	if (ptr->is_qtff) {
+	if (ptr->qtff_mode) {
 		if (ptr->version==1) {
 			ptr->size+=16;
 		} else if (ptr->version==2) {

@@ -967,7 +967,7 @@ GF_Err dinf_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 	dinf = (GF_DataInformationBox *)s;
 	if (!dinf->dref) {
-		if (! (gf_bs_get_cookie(bs) & 1) ) {
+		if (! (gf_bs_get_cookie(bs) & GF_ISOM_BS_COOKIE_NO_LOGS) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing dref box in dinf\n"));
 		}
 		dinf->dref = (GF_DataReferenceBox *) gf_isom_box_new_parent(&dinf->child_boxes, GF_ISOM_BOX_TYPE_DREF);
@@ -1635,9 +1635,9 @@ GF_Err hdlr_box_read(GF_Box *s, GF_BitStream *bs)
 
 	cookie = gf_bs_get_cookie(bs);
 	if (ptr->handlerType==GF_ISOM_MEDIA_VISUAL)
-		cookie |= 2;
+		cookie |= GF_ISOM_BS_COOKIE_VISUAL_TRACK;
 	else
-		cookie &= ~2;
+		cookie &= ~GF_ISOM_BS_COOKIE_VISUAL_TRACK;
 	gf_bs_set_cookie(bs, cookie);
 
 	ISOM_DECREASE_SIZE(ptr, 20);
@@ -3014,7 +3014,7 @@ GF_Err mdia_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u64 cookie = gf_bs_get_cookie(bs);
-	cookie &= ~2;
+	cookie &= ~GF_ISOM_BS_COOKIE_VISUAL_TRACK;
 	gf_bs_set_cookie(bs, cookie);
 	e = gf_isom_box_array_read(s, bs, mdia_on_child_box);
 	gf_bs_set_cookie(bs, cookie);
@@ -3685,11 +3685,12 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 	GF_UnknownBox *wave = NULL;
 	Bool drop_wave=GF_FALSE;
 	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
+
+	ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_ESDS:
 		if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->esd = (GF_ESDBox *)a;
-		ptr->is_qtff = 0;
 		break;
 
 	case GF_ISOM_BOX_TYPE_DAMR:
@@ -3700,23 +3701,19 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 		ptr->cfg_3gpp = (GF_3GPPConfigBox *) a;
 		/*for 3GP config, remember sample entry type in config*/
 		ptr->cfg_3gpp->cfg.type = ptr->type;
-		ptr->is_qtff = 0;
 		break;
 
 	case GF_ISOM_BOX_TYPE_DOPS:
 		if (ptr->cfg_opus) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_opus = (GF_OpusSpecificBox *)a;
-		ptr->is_qtff = 0;
 		break;
 	case GF_ISOM_BOX_TYPE_DAC3:
 		if (ptr->cfg_ac3) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
-		ptr->is_qtff = 0;
 		break;
 	case GF_ISOM_BOX_TYPE_DEC3:
 		if (ptr->cfg_ac3) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
-		ptr->is_qtff = 0;
 		break;
 	case GF_ISOM_BOX_TYPE_MHA1:
 	case GF_ISOM_BOX_TYPE_MHA2:
@@ -3724,7 +3721,6 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_MHM2:
 		if (ptr->cfg_mha) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_mha = (GF_MHAConfigBox *) a;
-		ptr->is_qtff = 0;
 		break;
 	case GF_ISOM_BOX_TYPE_DFLA:
 		if (ptr->cfg_flac) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -3744,7 +3740,7 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
                     GF_Box *inner_box = (GF_Box *)gf_list_get(wave->child_boxes, i);
                     if (inner_box->type == GF_ISOM_BOX_TYPE_ESDS) {
                         ptr->esd = (GF_ESDBox *)inner_box;
- 						if (ptr->is_qtff & 1<<16) {
+ 						if (ptr->qtff_mode & GF_ISOM_AUDIO_QTFF_CONVERT_FLAG) {
                         	gf_list_rem(a->child_boxes, i);
                         	drop_wave=GF_TRUE;
                         	ptr->compression_id = 0;
@@ -3754,21 +3750,21 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
                 }
 				if (drop_wave) {
 					gf_isom_box_del_parent(&ptr->child_boxes, a);
-                	ptr->is_qtff = 0;
+                	ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 					ptr->version = 0;
 					return GF_OK;
 				}
-                ptr->is_qtff = 2; //inidcate data in extensions() is valid
+                ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_EXT_VALID;
                 return GF_OK;
             }
             gf_isom_box_del_parent(&ptr->child_boxes, a);
             return GF_ISOM_INVALID_MEDIA;
 
 		}
- 		ptr->is_qtff &= ~(1<<16);
+ 		ptr->qtff_mode &= ~GF_ISOM_AUDIO_QTFF_CONVERT_FLAG;
 
  		if ((wave->original_4cc == GF_QT_BOX_TYPE_WAVE) && gf_list_count(wave->child_boxes)) {
-			ptr->is_qtff = 1;
+			ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_NOEXT;
 		}
 		return GF_OK;
 	case GF_QT_BOX_TYPE_WAVE:
@@ -3782,7 +3778,7 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
                     GF_Box *inner_box = (GF_Box *)gf_list_get(a->child_boxes, i);
                     if (inner_box->type == GF_ISOM_BOX_TYPE_ESDS) {
                         ptr->esd = (GF_ESDBox *)inner_box;
- 						if (ptr->is_qtff & 1<<16) {
+ 						if (ptr->qtff_mode & GF_ISOM_AUDIO_QTFF_CONVERT_FLAG) {
                         	gf_list_rem(a->child_boxes, i);
                         	drop_wave=GF_TRUE;
                         	gf_list_add(ptr->child_boxes, inner_box);
@@ -3792,16 +3788,16 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
                 }
 				if (drop_wave) {
 					gf_isom_box_del_parent(&ptr->child_boxes, a);
-                	ptr->is_qtff = 0;
+                	ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 					ptr->compression_id = 0;
 					ptr->version = 0;
 					return GF_OK;
 				}
-                ptr->is_qtff = 2; //indicate data in extensions() is valid
+                ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_EXT_VALID;
                 return GF_OK;
             }
 		}
- 		ptr->is_qtff = 2;
+ 		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_EXT_VALID;
 		return GF_OK;
 	}
 	return GF_OK;
@@ -3821,7 +3817,7 @@ GF_Err audio_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_seek(bs, start + 8);
 	v = gf_bs_read_u16(bs);
 	if (v)
-		ptr->is_qtff = 1;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_NOEXT;
 
 	//try to disambiguate QTFF v1 and MP4 v1 audio sample entries ...
 	if (v==1) {
@@ -3836,7 +3832,7 @@ GF_Err audio_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 		if (isalnum(b)) nb_alnum++;
 		if (isalnum(c)) nb_alnum++;
 		if (isalnum(d)) nb_alnum++;
-		if (nb_alnum>2) ptr->is_qtff = 0;
+		if (nb_alnum>2) ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 	}
 
 	gf_bs_seek(bs, start);
@@ -3847,8 +3843,8 @@ GF_Err audio_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 
 	//when cookie is set on bs, always convert qtff-style mp4a to isobmff-style
 	//since the conversion is done in addBox and we don't have the bitstream there (arg...), flag the box
- 	if (gf_bs_get_cookie(bs) & 1) {
- 		ptr->is_qtff |= 1<<16;
+ 	if (gf_bs_get_cookie(bs) & GF_ISOM_BS_COOKIE_QT_CONV) {
+ 		ptr->qtff_mode |= GF_ISOM_AUDIO_QTFF_CONVERT_FLAG;
  	}
 
 	e = gf_isom_box_array_read(s, bs, audio_sample_entry_on_child_box);
@@ -3907,7 +3903,7 @@ GF_Err audio_sample_entry_box_size(GF_Box *s)
 	u32 pos=0;
 	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
 	gf_isom_audio_sample_entry_size((GF_AudioSampleEntryBox*)s);
-	if (ptr->is_qtff)
+	if (ptr->qtff_mode)
 		return GF_OK;
 
 	gf_isom_check_position(s, (GF_Box *)ptr->esd, &pos);
@@ -6290,7 +6286,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		if (gf_bs_available(bs)) { \
 			u64 pos = gf_bs_get_position(bs); \
 			u32 count_subb = 0; \
-			gf_bs_set_cookie(bs, 1);\
+			gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_NO_LOGS);\
 			e = gf_isom_box_array_read((GF_Box *) _box, bs, NULL); \
 			count_subb = _box->child_boxes ? gf_list_count(_box->child_boxes) : 0; \
 			if (!count_subb || e) { \

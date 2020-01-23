@@ -644,7 +644,7 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32
 
 	if (tk_box) {
 		GF_BitStream *bs = gf_bs_new(tk_box, tk_box_size, GF_BITSTREAM_READ);
-		gf_bs_set_cookie(bs, 1);
+		gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_NO_LOGS);
 
 		e = gf_isom_box_parse_ex((GF_Box**)&trak, bs, GF_ISOM_BOX_TYPE_MOOV, GF_FALSE);
 		gf_bs_del(bs);
@@ -2003,7 +2003,7 @@ GF_EXPORT
 GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample, GF_AudioSampleEntryImportMode asemode)
 {
 	GF_Err e;
-	u32 i, was_qtff=0;
+	u32 i, old_qtff_mode=GF_ISOM_AUDIO_QTFF_NONE;
 	GF_TrackBox *trak;
 	GF_SampleEntryBox *entry;
 	GF_AudioSampleEntryBox*aud_entry;
@@ -2045,28 +2045,28 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2:
 		stsd->version = 0;
 		aud_entry->version = 0;
-		aud_entry->is_qtff = 0;
+		aud_entry->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		aud_entry->channel_count = 2;
 		break;
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET:
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS:
 		stsd->version = 0;
 		aud_entry->version = 0;
-		aud_entry->is_qtff = 0;
+		aud_entry->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		aud_entry->channel_count = nbChannels;
 		break;
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG:
 		stsd->version = 1;
 		aud_entry->version = 1;
-		aud_entry->is_qtff = 0;
+		aud_entry->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		aud_entry->channel_count = nbChannels;
 		break;
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF:
 		stsd->version = 0;
 		aud_entry->version = 1;
 		aud_entry->channel_count = nbChannels;
-		was_qtff = aud_entry->is_qtff;
-		aud_entry->is_qtff = 1;
+		old_qtff_mode = aud_entry->qtff_mode;
+		aud_entry->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_NOEXT;
 		break;
 	}
 
@@ -2131,7 +2131,7 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	if (!wave_box->child_boxes) wave_box->child_boxes = gf_list_new();
 
 	//do not use new_parent, we do this manually to ensure the order
-	aud_entry->is_qtff = was_qtff ? was_qtff : 1;
+	aud_entry->qtff_mode = old_qtff_mode ? old_qtff_mode : GF_ISOM_AUDIO_QTFF_ON_NOEXT;
 	if (!frma) {
 		frma = (GF_OriginalFormatBox *)gf_isom_box_new(GF_QT_BOX_TYPE_FRMA);
 	} else {
@@ -3748,7 +3748,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	gf_bs_del(bs);
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	if (flags & GF_ISOM_CLONE_TRACK_NO_QT)
-		gf_bs_set_cookie(bs, 1);
+		gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_QT_CONV);
 	e = gf_isom_box_parse((GF_Box **) &new_tk, bs);
 	gf_bs_del(bs);
 	gf_free(data);
@@ -4035,7 +4035,7 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		gena->channel_count = udesc->nb_channels ? udesc->nb_channels : 2;
 		gena->samplerate_hi = udesc->samplerate;
 		gena->samplerate_lo = 0;
-		gena->is_qtff = udesc->is_qtff;
+		gena->qtff_mode = udesc->is_qtff ? GF_ISOM_AUDIO_QTFF_ON_NOEXT : GF_ISOM_AUDIO_QTFF_NONE;
 
 		if (udesc->extension_buf && udesc->extension_buf_size) {
 			gena->data = (char*)gf_malloc(sizeof(char) * udesc->extension_buf_size);
