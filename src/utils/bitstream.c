@@ -542,7 +542,8 @@ static void BS_WriteBit(GF_BitStream *bs, u32 bit)
 GF_EXPORT
 void gf_bs_write_int(GF_BitStream *bs, s32 _value, s32 nBits)
 {
-	u32 value, nb_shift, max_shift = sizeof (s32) * 8;
+	u32 value, nb_shift;
+	s32 max_shift = sizeof(s32) * 8;
 	if (!nBits) return;
 	if (nBits > max_shift) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to write %d bits, when max is %d\n", nBits, max_shift));
@@ -568,7 +569,7 @@ void gf_bs_write_int(GF_BitStream *bs, s32 _value, s32 nBits)
 GF_EXPORT
 void gf_bs_write_long_int(GF_BitStream *bs, s64 _value, s32 nBits)
 {
-	u32 max_shift = sizeof(s64) * 8;
+	s32 max_shift = sizeof(s64) * 8;
 	if (!nBits) return;
 	if (nBits > max_shift) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to write %d bits, when max is %d\n", nBits, max_shift));
