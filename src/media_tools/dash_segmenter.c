@@ -623,10 +623,6 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		e |= gf_dynstrcat(&args, "profile=dashavc264.onDemand", ":");
 		break;
 	}
-	if (dasher->dash_profile_extension) {
-		sprintf(szArg, "profX=%s", dasher->dash_profile_extension);
-		e |= gf_dynstrcat(&args, szArg, ":");
-	}
 	if (dasher->cp_location_mode==GF_DASH_CPMODE_REPRESENTATION) e |= gf_dynstrcat(&args, "cp=rep", ":");
 	else if (dasher->cp_location_mode==GF_DASH_CPMODE_BOTH) e |= gf_dynstrcat(&args, "cp=both", ":");
 
@@ -641,34 +637,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (!dasher->check_duration) e |= gf_dynstrcat(&args, "!check_dur", ":");
 	//skip_seg not exposed
 
-	if (dasher->title) {
-		sprintf(szArg, "title=%s", dasher->title);
-		e |= gf_dynstrcat(&args, szArg, ":");
-	}
-	if (dasher->sourceInfo) {
-		sprintf(szArg, "source=%s", dasher->sourceInfo);
-		e |= gf_dynstrcat(&args, szArg, ":");
-	}
-	if (dasher->moreInfoURL) {
-		sprintf(szArg, "info=%s", dasher->moreInfoURL);
-		e |= gf_dynstrcat(&args, szArg, ":");
-	}
-	if (dasher->copyright) {
-		sprintf(szArg, "cprt=%s", dasher->copyright);
-		e |= gf_dynstrcat(&args, szArg, ":");
-	}
-	if (dasher->lang) {
-		sprintf(szArg, "lang=%s", dasher->lang);
-		e |= gf_dynstrcat(&args, szArg, ":");
-	}
-	if (dasher->locations) {
-		sprintf(szArg, "location=%s", dasher->locations);
-		e |= gf_dynstrcat(&args, szArg, ":");
-	}
-	if (dasher->base_urls) {
-		sprintf(szArg, "base=%s", dasher->base_urls);
-		e |= gf_dynstrcat(&args, szArg, ":");
-	}
+
 
 	if (dasher->dash_mode >= GF_DASH_DYNAMIC) {
 		if (dasher->time_shift_depth<0) e |= gf_dynstrcat(&args, "tsb=-1", ":");
@@ -782,6 +751,40 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		e |= gf_dynstrcat(&args, "sbound=closest", ":");
 	else if (dasher->split_mode==GF_DASH_SPLIT_IN)
 		e |= gf_dynstrcat(&args, "sbound=in", ":");
+
+	//finally append profiles/info/etc with double separators as these may contain ':'
+	if (dasher->dash_profile_extension) {
+		sprintf(szArg, "profX=%s", dasher->dash_profile_extension);
+		e |= gf_dynstrcat(&args, szArg, "::");
+	}
+	if (dasher->title) {
+		sprintf(szArg, "title=%s", dasher->title);
+		e |= gf_dynstrcat(&args, szArg, "::");
+	}
+	if (dasher->sourceInfo) {
+		sprintf(szArg, "source=%s", dasher->sourceInfo);
+		e |= gf_dynstrcat(&args, szArg, "::");
+	}
+	if (dasher->moreInfoURL) {
+		sprintf(szArg, "info=%s", dasher->moreInfoURL);
+		e |= gf_dynstrcat(&args, szArg, "::");
+	}
+	if (dasher->copyright) {
+		sprintf(szArg, "cprt=%s", dasher->copyright);
+		e |= gf_dynstrcat(&args, szArg, "::");
+	}
+	if (dasher->lang) {
+		sprintf(szArg, "lang=%s", dasher->lang);
+		e |= gf_dynstrcat(&args, szArg, "::");
+	}
+	if (dasher->locations) {
+		sprintf(szArg, "location=%s", dasher->locations);
+		e |= gf_dynstrcat(&args, szArg, "::");
+	}
+	if (dasher->base_urls) {
+		sprintf(szArg, "base=%s", dasher->base_urls);
+		e |= gf_dynstrcat(&args, szArg, "::");
+	}
 
 	dasher->dash_mode_changed = GF_FALSE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Instantiating dasher filter for dst %s with args %s\n", dasher->mpd_name, args));
