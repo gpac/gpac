@@ -6258,6 +6258,24 @@ static JSValue mx_constructor(JSContext *ctx, JSValueConst new_target, int argc,
 }
 
 
+static JSValue evg_pixel_size(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 pfmt=0;
+	if (!argc) return js_throw_err_msg(ctx, GF_BAD_PARAM, "missing pixel format parameter");
+	if (JS_IsString(argv[0])) {
+		const char *s = JS_ToCString(ctx, argv[0]);
+		if (s) {
+			pfmt = gf_pixel_fmt_parse(s);
+			JS_FreeCString(ctx, s);
+		}
+	} else if (JS_IsNumber(argv[0])) {
+		JS_ToInt32(ctx, &pfmt, argv[0]);
+	}
+	if (!pfmt) return js_throw_err_msg(ctx, GF_BAD_PARAM, "missing pixel format parameter");
+	return JS_NewInt32(ctx, gf_pixel_get_bytes_per_pixel(pfmt));
+}
+
+
 static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 {
 	JSValue ctor;
@@ -6502,6 +6520,9 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 	ctor = JS_NewCFunction2(c, va_constructor, "VertexAttrib", 1, JS_CFUNC_constructor, 0);
     JS_SetModuleExport(c, m, "VertexAttrib", ctor);
 
+	ctor = JS_NewCFunction2(c, evg_pixel_size, "PixelSize", 1, JS_CFUNC_generic, 0);
+    JS_SetModuleExport(c, m, "PixelSize", ctor);
+
 	return 0;
 }
 
@@ -6524,6 +6545,7 @@ void qjs_module_init_evg(JSContext *ctx)
 	JS_AddModuleExport(ctx, m, "Canvas3D");
     JS_AddModuleExport(ctx, m, "VertexAttribInterpolator");
     JS_AddModuleExport(ctx, m, "VertexAttrib");
+    JS_AddModuleExport(ctx, m, "PixelSize");
     return;
 }
 
