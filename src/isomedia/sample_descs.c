@@ -188,9 +188,9 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 				gf_bs_write_data(bs,  (char *) ptr->extensions, 16);
 			} else {
 				gf_bs_write_u32(bs, esds ? 1024 : 1);
-				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample);
-				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample*ptr->channel_count);
 				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample/8);
+				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample/8*ptr->channel_count);
+				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample <= 16 ? ptr->bitspersample/8 : 2);
 			}
 		} else if (ptr->version==2) {
 			gf_bs_write_data(bs,  (char *) ptr->extensions, 36);
