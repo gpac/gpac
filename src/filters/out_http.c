@@ -2184,7 +2184,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"# HTTP server source\n"
 		"In this mode, the server acts as a source rather than a sink. It declares incoming PUT or POST methods as output PIDs\n"
 		"This mode must be explicitly activated using [-hmode]().\n"
-		"The filter uses no read or write directories in this mode, and updloaded data is NOT stored by the server.\n"
+		"The filter uses no read or write directories in this mode, and uploaded data is NOT stored by the server.\n"
 		"EX gpac httpout:hmode=source vout aout\n"
 		"In this example, the filter will try to play uploaded files through video and audio output.\n"
 		)
