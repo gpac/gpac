@@ -515,6 +515,12 @@ enum
 	GF_ISOM_SAMPLE_ENTRY_AUDIO = GF_4CC('a','u','d','i')
 };
 
+
+/* bitstream cookies used by isobmff lib*/
+#define GF_ISOM_BS_COOKIE_NO_LOGS		1
+#define GF_ISOM_BS_COOKIE_VISUAL_TRACK	2
+#define GF_ISOM_BS_COOKIE_QT_CONV		4
+
 #ifndef GPAC_DISABLE_ISOM
 
 
@@ -1460,6 +1466,15 @@ typedef struct
 	u32 data_size;
 } GF_GenericVisualSampleEntryBox;
 
+enum
+{
+	GF_ISOM_AUDIO_QTFF_NONE = 0,
+	//sample entry is QTFF and data in extensions() is NOT valid (conversion done by libisomedia)
+	GF_ISOM_AUDIO_QTFF_ON_NOEXT,
+	//sample entry is QTFF and data in extensions() is valid (import from QT)
+	GF_ISOM_AUDIO_QTFF_ON_EXT_VALID,
+	GF_ISOM_AUDIO_QTFF_CONVERT_FLAG = 1<<16
+};
 
 #define GF_ISOM_AUDIO_SAMPLE_ENTRY	\
 	GF_ISOM_SAMPLE_ENTRY_FIELDS		\
@@ -1469,7 +1484,7 @@ typedef struct
 	u16 bitspersample;				\
 	u16 compression_id;				\
 	u16 packet_size;				\
-	u32 is_qtff;					\
+	u32 qtff_mode;					\
 	u16 samplerate_hi;				\
 	u16 samplerate_lo;				\
 	u8 extensions[36];				\

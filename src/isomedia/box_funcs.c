@@ -95,7 +95,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	u8 *uncomp_data = NULL;
 	u32 compressed_size=0;
 	GF_Box *newBox;
-	Bool skip_logs = (gf_bs_get_cookie(bs) & 1 ) ? GF_TRUE : GF_FALSE;
+	Bool skip_logs = (gf_bs_get_cookie(bs) & GF_ISOM_BS_COOKIE_NO_LOGS ) ? GF_TRUE : GF_FALSE;
 	Bool is_special = GF_TRUE;
 	
 	if ((bs == NULL) || (outBox == NULL) ) return GF_BAD_PARAM;
@@ -223,7 +223,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	if ((parent_type==GF_ISOM_BOX_TYPE_STSD) && (type==GF_QT_SUBTYPE_RAW) ) {
 		u64 cookie = gf_bs_get_cookie(bs);
 		restore_type = type;
-		if (cookie&2)
+		if (cookie & GF_ISOM_BS_COOKIE_VISUAL_TRACK)
 			type = GF_QT_SUBTYPE_RAW_VID;
 		else
 			type = GF_QT_SUBTYPE_RAW_AUD;
@@ -1559,7 +1559,7 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*chec
 {
 	GF_Err e;
 	GF_Box *a = NULL;
-	Bool skip_logs = (gf_bs_get_cookie(bs) & 1 ) ? GF_TRUE : GF_FALSE;
+	Bool skip_logs = (gf_bs_get_cookie(bs) & GF_ISOM_BS_COOKIE_NO_LOGS ) ? GF_TRUE : GF_FALSE;
 
 	//we may have terminators in some QT files (4 bytes set to 0 ...)
 	while (parent->size>=8) {
