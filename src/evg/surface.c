@@ -185,18 +185,22 @@ static void evg_surface_set_components_idx(GF_EVGSurface *surf)
 		surf->idx_r=0;
 		surf->idx_g=1;
 		surf->idx_b=2;
+		surf->idx_a=3;
 		break;
 	case GF_PIXEL_BGRX:
 		surf->idx_r=2;
 		surf->idx_g=1;
 		surf->idx_b=0;
+		surf->idx_a=3;
 		break;
 	case GF_PIXEL_XRGB:
+		surf->idx_a=0;
 		surf->idx_r=1;
 		surf->idx_g=2;
 		surf->idx_b=3;
 		break;
 	case GF_PIXEL_XBGR:
+		surf->idx_a=0;
 		surf->idx_r=3;
 		surf->idx_g=2;
 		surf->idx_b=1;
