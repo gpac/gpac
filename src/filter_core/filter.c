@@ -1054,7 +1054,6 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 						} else {
 							//get root /
 							sep = strchr(sep+3, '/');
-							if (sep2)
 							//get first : after root
 							if (sep) sep = strchr(sep+1, ':');
 						}
