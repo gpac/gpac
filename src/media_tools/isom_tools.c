@@ -934,12 +934,12 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	if (prores_type) {
 		char *comp_name = NULL;
 		switch (prores_type) {
-		case GF_QT_BOX_TYPE_APCH: comp_name = "Apple ProRes 422 HQ"; break;
-		case GF_QT_BOX_TYPE_APCO: comp_name = "Apple ProRes 422 Proxy"; break;
-		case GF_QT_BOX_TYPE_APCN: comp_name = "Apple ProRes 422"; break;
-		case GF_QT_BOX_TYPE_APCS: comp_name = "Apple ProRes 422 LT"; break;
-		case GF_QT_BOX_TYPE_AP4X: comp_name = "Apple ProRes 4444 XQ"; break;
-		case GF_QT_BOX_TYPE_AP4H: comp_name = "Apple ProRes 4444"; break;
+		case GF_QT_BOX_TYPE_APCH: comp_name = "\x0013""Apple ProRes 422 HQ"; break;
+		case GF_QT_BOX_TYPE_APCO: comp_name = "\x0016""Apple ProRes 422 Proxy"; break;
+		case GF_QT_BOX_TYPE_APCN: comp_name = "\x0010""Apple ProRes 422"; break;
+		case GF_QT_BOX_TYPE_APCS: comp_name = "\x0013""Apple ProRes 422 LT"; break;
+		case GF_QT_BOX_TYPE_AP4X: comp_name = "\x0014""Apple ProRes 4444 XQ"; break;
+		case GF_QT_BOX_TYPE_AP4H: comp_name = "\x0011""Apple ProRes 4444"; break;
 		}
 		gf_isom_update_video_sample_entry_fields(mp4, video_tk, 1, 0, GF_4CC('a','p','p','l'), 0, 0x3FF, 72<<16, 72<<16, 1, comp_name, -1);
 	}
