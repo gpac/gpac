@@ -1919,7 +1919,10 @@ GF_Err gf_odf_read_cc_name(GF_BitStream *bs, GF_CC_Name *cnd, u32 DescSize)
 		nbBytes += 4;
 
 		e = OD_ReadUTF8String(bs, & tmp->contentCreatorName, tmp->isUTF8, &len);
-		if (e) return e;
+		if (e) {
+			gf_free(tmp);
+			return e;
+		}
 		nbBytes += len;
 		e = gf_list_add(cnd->ContentCreators, tmp);
 		if (e) return e;

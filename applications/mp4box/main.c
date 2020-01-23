@@ -3761,7 +3761,20 @@ Bool mp4box_parse_args(int argc, char **argv)
 			else {
 				code = argv[i + 1];
 			}
-			dump_udta_type = GF_4CC(code[0], code[1], code[2], code[3]);
+			if (strlen(code) == 4) {
+				dump_udta_type = GF_4CC(code[0], code[1], code[2], code[3]);
+			} else if (strlen(code) == 8) {
+				// hex representation on 8 chars
+				int hex1, hex2, hex3, hex4;
+				if (sscanf(code, "%02x%02x%02x%02x", &hex1, &hex2, &hex3, &hex4) != 4) {
+					fprintf(stderr, "udta code is either a 4CC or 8 hex chars for non-printable 4CC\n");
+					return mp4box_cleanup(1);
+				}
+				dump_udta_type = GF_4CC(hex1, hex2, hex3, hex4);
+			} else {
+				fprintf(stderr, "udta code is either a 4CC or 8 hex chars for non-printable 4CC\n");
+				return mp4box_cleanup(1);
+			}
 			i++;
 		}
 		else if (!stricmp(arg, "-dmp4")) {

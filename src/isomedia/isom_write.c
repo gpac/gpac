@@ -3775,7 +3775,11 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	stbl_temp->CompositionToDecode = NULL;
 	gf_isom_box_del((GF_Box *)stbl_temp);
 
-	if (e) return e;
+	if (e) {
+		if (new_tk) gf_isom_box_del((GF_Box *)new_tk);
+		return e;
+	}
+
 
 
 	/*create default boxes*/
