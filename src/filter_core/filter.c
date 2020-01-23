@@ -1047,10 +1047,17 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 						}
 
 					} else {
-						//get root /
-						sep = strchr(sep+3, '/');
-						//get first : after root
-						if (sep) sep = strchr(sep+1, ':');
+						char *sep2 = strstr(sep+3, "::");
+						//escape sequence present after this argument, use it
+						if (sep2) {
+							sep = sep2;
+						} else {
+							//get root /
+							sep = strchr(sep+3, '/');
+							if (sep2)
+							//get first : after root
+							if (sep) sep = strchr(sep+1, ':');
+						}
 					}
 				}
 
