@@ -419,6 +419,9 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT( codec->framerate.num, codec->framerate.den ) );
 #endif
 
+		if (codec->field_order>AV_FIELD_PROGRESSIVE)
+			gf_filter_pid_set_property(pid, GF_PROP_PID_INTERLACED, &PROP_BOOL(GF_TRUE) );
+
 		if (codec->pix_fmt>0) {
 			u32 pfmt = 0;
 			switch (codec->pix_fmt) {

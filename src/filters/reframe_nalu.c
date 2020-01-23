@@ -205,6 +205,8 @@ typedef struct
 
 	Bool has_initial_aud;
 	char init_aud[3];
+
+	Bool interlaced;
 } GF_NALUDmxCtx;
 
 
@@ -855,6 +857,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 			cfg->chromaFormat = sps->chroma_format_idc;
 			cfg->luma_bit_depth = sps->bit_depth_luma;
 			cfg->chroma_bit_depth = sps->bit_depth_chroma;
+			ctx->interlaced = cfg->interlaced_source_flag ? GF_TRUE : GF_FALSE;
 
 			if (sps->aspect_ratio_info_present_flag && sps->sar_width && sps->sar_height) {
 				sar->num = sps->sar_width;
@@ -988,6 +991,8 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 				sar->num = sps->vui.par_num;
 				sar->den = sps->vui.par_den;
 			}
+			ctx->interlaced = sps->frame_mbs_only_flag ? GF_FALSE : GF_TRUE;
+
 
 			/*disable frame rate scan, most bitstreams have wrong values there*/
 			if (first && (!ctx->fps.num || !ctx->fps.den) && sps->vui.timing_info_present_flag
@@ -1184,6 +1189,8 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	if (ctx->is_file /* && ctx->index*/) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
+	//set interlaced or remove interlaced property
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED, ctx->interlaced ? & PROP_UINT(GF_TRUE) : NULL);
 
 	if (ctx->is_hevc) {
 		HEVC_SPS *sps = &ctx->hevc_state->sps[ctx->hevc_state->sps_active_idx];
