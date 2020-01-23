@@ -4175,7 +4175,11 @@ Bool mp4box_parse_args(int argc, char **argv)
 				dash_profile = GF_DASH_PROFILE_AVC264_ONDEMAND;
 			}
 			else if (!stricmp(argv[i + 1], "main")) dash_profile = GF_DASH_PROFILE_MAIN;
-			else dash_profile = GF_DASH_PROFILE_FULL;
+			else if (!stricmp(argv[i + 1], "full")) dash_profile = GF_DASH_PROFILE_FULL;
+			else {
+				fprintf(stderr, "\tWARNING: Unrecognized DASH profile \"%s\" - please check usage\n", argv[i + 1]);
+				return 2;
+			}
 			i++;
 		}
 		else if (!stricmp(arg, "-profile-ext")) {
