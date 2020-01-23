@@ -1801,4 +1801,11 @@ long push(DOMString goto_val, DOMString stack_index_uniform);
 void update();
 };
 
+/*! queries size in bytes of a pixel for a given pixel format
+\param pixel_format the desired pixel format
+\return the size in bytes
+*/
+long PixelSize(DOMString pixel_format);
+
+
 /*! @} */
