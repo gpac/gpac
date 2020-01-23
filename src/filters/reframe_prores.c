@@ -374,6 +374,9 @@ static void proresdmx_check_pid(GF_Filter *filter, GF_ProResDmxCtx *ctx, GF_ProR
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_PRIMARIES, & PROP_UINT(finfo->color_primaries) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, & PROP_UINT(finfo->transfer_characteristics) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(finfo->matrix_coefficients) );
+
+	//set interlaced or remove interlaced property
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED, ctx->cur_cfg.interlaced_mode ? & PROP_UINT(GF_TRUE) : NULL);
 }
 
 

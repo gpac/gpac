@@ -169,6 +169,12 @@ typedef struct
 	Bool purge_segments;
 } GF_DasherCtx;
 
+typedef enum
+{
+	DASHER_HDR_NONE=0,
+	DASHER_HDR_PQ10,
+	DASHER_HDR_HLG,
+} DasherHDRType;
 
 typedef struct _dash_stream
 {
@@ -192,7 +198,7 @@ typedef struct _dash_stream
 	const char *hls_vp_name;
 	u32 ch_layout, nb_surround, nb_lfe;
 	GF_PropVec4i srd;
-	Bool hdr_hlg, hdr_pq10;
+	DasherHDRType hdr_type;
 	Bool sscale;
 
 	//TODO: get the values for all below
@@ -554,34 +560,6 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					ds->tile_base = GF_TRUE;
 				}
 			}
-
-			//HDR
-#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-			if (p && p->value.data.ptr && p->value.data.size) {
-				//GF_DecoderConfig* dcd = (GF_DecoderConfig*)p->value.data.ptr;
-				if (ds->codec_id == GF_CODECID_LHVC || ds->codec_id == GF_CODECID_HEVC_TILES || ds->codec_id == GF_CODECID_HEVC) {
-					GF_HEVCConfig* hevccfg = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_FALSE);
-					if (hevccfg) {
-						HEVCState hevc;
-						HEVC_SPS* sps = NULL;
-						memset(&hevc, 0, sizeof(HEVCState));
-						gf_media_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_VID_PARAM);
-						gf_media_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_SEQ_PARAM);
-						sps = &hevc.sps[hevc.sps_active_idx];
-						if (sps && sps->colour_description_present_flag) {
-							if (sps->colour_primaries == 9 && sps->matrix_coeffs == 9) {
-								if (sps->transfer_characteristic == 14) ds->hdr_hlg = GF_TRUE; //TODO: parse alternative_transfer_characteristics SEI
-								if (sps->transfer_characteristic == 16) ds->hdr_pq10 = GF_TRUE;
-							}
-						}
-
-						gf_odf_hevc_cfg_del(hevccfg);
-					}
-				}
-			}
-#endif /*!GPAC_DISABLE_AV_PARSERS && !GPAC_DISABLE_HEVC*/
-
 		} else if (ds->stream_type==GF_STREAM_AUDIO) {
 			CHECK_PROP(GF_PROP_PID_SAMPLE_RATE, ds->sr, GF_EOS)
 			CHECK_PROP(GF_PROP_PID_NUM_CHANNELS, ds->nb_ch, GF_EOS)
@@ -678,6 +656,53 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		ds->clamped_dur = 0;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAMP_DUR);
 		if (p) ds->clamped_dur = p->value.number;
+
+		//HDR
+#if !defined(GPAC_DISABLE_AV_PARSERS)
+		if (dsi) {
+#if !defined(GPAC_DISABLE_HEVC)
+			if (ds->codec_id == GF_CODECID_LHVC || ds->codec_id == GF_CODECID_HEVC_TILES || ds->codec_id == GF_CODECID_HEVC) {
+				GF_HEVCConfig* hevccfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
+				if (hevccfg) {
+					Bool is_interlaced;
+					HEVCState hevc;
+					HEVC_SPS* sps = NULL;
+					memset(&hevc, 0, sizeof(HEVCState));
+					gf_media_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_VID_PARAM);
+					gf_media_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_SEQ_PARAM);
+					sps = &hevc.sps[hevc.sps_active_idx];
+					if (sps && sps->colour_description_present_flag) {
+						DasherHDRType old_hdr_type = ds->hdr_type;
+						if (sps->colour_primaries == 9 && sps->matrix_coeffs == 9) {
+							if (sps->transfer_characteristic == 14) ds->hdr_type = DASHER_HDR_HLG; //TODO: parse alternative_transfer_characteristics SEI
+							if (sps->transfer_characteristic == 16) ds->hdr_type = DASHER_HDR_PQ10;
+						}
+						if (old_hdr_type != ds->hdr_type) period_switch = GF_TRUE;
+					}
+					is_interlaced = hevccfg->interlaced_source_flag ? GF_TRUE : GF_FALSE;
+					if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
+					ds->interlaced = is_interlaced;
+
+					gf_odf_hevc_cfg_del(hevccfg);
+				}
+			}
+#endif
+			else if (ds->codec_id == GF_CODECID_AVC || ds->codec_id == GF_CODECID_SVC || ds->codec_id == GF_CODECID_MVC) {
+				AVCState avc;
+				GF_AVCConfig* avccfg = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(avccfg->sequenceParameterSets, 0);
+				s32 idx;
+				memset(&avc, 0, sizeof(AVCState));
+				idx = gf_media_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
+				if (idx>=0) {
+					Bool is_interlaced = avc.sps[idx].frame_mbs_only_flag ? GF_FALSE : GF_TRUE;
+					if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
+					ds->interlaced = is_interlaced;
+				}
+				gf_odf_avc_cfg_del(avccfg);
+			}
+		}
+#endif /*!GPAC_DISABLE_AV_PARSERS*/
 
 		if (ds->stream_type==GF_STREAM_AUDIO) {
 			u32 _sr=0, _nb_ch=0;
@@ -1613,6 +1638,14 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 
 	if (ds->interlaced) ds->rep->scan_type = GF_MPD_SCANTYPE_INTERLACED;
+	else {
+		//profiles forcing scanType=progressive for progressive
+		switch (ctx->profile) {
+		case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE:
+			ds->rep->scan_type = GF_MPD_SCANTYPE_PROGRESSIVE;
+			break;
+		}
+	}
 
 	if (ctx->cp!=GF_DASH_CPMODE_ADAPTATION_SET) {
 		gf_mpd_del_list(ds->rep->content_protection, gf_mpd_descriptor_free, 0);
@@ -1833,7 +1866,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 			}
 		}
 		//set HDR
-		if (ds->hdr_hlg || ds->hdr_pq10) {
+		if (ds->hdr_type > DASHER_HDR_NONE) {
 			char value[256];
 			GF_MPD_Descriptor* desc = NULL;
 			sprintf(value, "9");
@@ -1843,13 +1876,13 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:MatrixCoefficients", value);
 			gf_list_add(set->essential_properties, desc);
 
-			if (ds->hdr_pq10) {
+			if (ds->hdr_type==DASHER_HDR_PQ10) {
 				sprintf(value, "16");
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
 				gf_list_add(set->essential_properties, desc);
 			}
 
-			if (ds->hdr_hlg) {
+			if (ds->hdr_type == DASHER_HDR_HLG) {
 				sprintf(value, "14");
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
 				gf_list_add(set->essential_properties, desc);
