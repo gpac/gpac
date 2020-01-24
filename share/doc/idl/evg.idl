@@ -874,6 +874,23 @@ interface Texture {
 	\param idx the component index. 0 is red or greyscale, 1 is alpha (alhpagrey formats) or green, 2 is green and 4 is alpha
 	\return new texture*/
 	Texture split(unsigned long idx);
+
+
+	/*! gets RGB pixel value in a texture
+	\param s horizontal normalized texture coordinate of pixel, between 0 (left) and 1.0 (right)
+	\param t vertical normalized texture coordinate of pixel, between 0 (top) and 1.0 (bottom)
+	\param as_array if true, the return object is an array of 4 components, otherwise it is a Color object
+	\return the converted value
+	*/
+	Object get_pixelf(Float s, Float t, optional bool as_array=false);
+
+	/*! gets RGB pixel value in a texture
+	\param x horizontal coordinate of pixel, between 0 (left) and width (right)
+	\param y vertical coordinate of pixel, between 0 (top) and height (bottom)
+	\param as_array if true, the return object is an array of 4 components, otherwise it is a Color object
+	\return the converted value
+	*/
+	Object get_pixel(Float s, Float t, optional bool as_array=false);
 };
 
 /*! convolution kernel interface*/

@@ -686,9 +686,9 @@ static JSValue canvas_rgb_yuv(JSContext *c, JSValueConst obj, int argc, JSValueC
 		ret = JS_NewArray(c);
 		JS_SetPropertyStr(c, ret, "length", JS_NewInt32(c, 4) );
 		JS_SetPropertyUint32(c, ret, 0, JS_NewFloat64(c, y) );
-		JS_SetPropertyUint32(c, ret, 0, JS_NewFloat64(c, u) );
-		JS_SetPropertyUint32(c, ret, 0, JS_NewFloat64(c, v) );
-		JS_SetPropertyUint32(c, ret, 0, JS_NewFloat64(c, a) );
+		JS_SetPropertyUint32(c, ret, 1, JS_NewFloat64(c, u) );
+		JS_SetPropertyUint32(c, ret, 2, JS_NewFloat64(c, v) );
+		JS_SetPropertyUint32(c, ret, 3, JS_NewFloat64(c, a) );
 	} else {
 		ret = JS_NewObject(c);
 		JS_SetPropertyStr(c, ret, "r", JS_NewFloat64(c, y) );
@@ -5121,6 +5121,57 @@ static JSValue texture_update(JSContext *c, JSValueConst obj, int argc, JSValueC
 	return JS_UNDEFINED;
 }
 
+static JSValue texture_get_pixel_internal(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, Bool is_float)
+{
+	Bool as_array=GF_FALSE;
+	JSValue ret;
+	Double x, y;
+	Float r, g, b, a;
+
+	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
+	if (!tx || !tx->stencil || (argc<2) ) return JS_EXCEPTION;
+
+	if (is_float) {
+		if (JS_ToFloat64(c, &x, argv[0])) return JS_EXCEPTION;
+		if (JS_ToFloat64(c, &y, argv[1])) return JS_EXCEPTION;
+	} else {
+		s32 _x, _y;
+		if (JS_ToInt32(c, &_x, argv[0])) return JS_EXCEPTION;
+		if (JS_ToInt32(c, &_y, argv[1])) return JS_EXCEPTION;
+		x = ((Float)_x) / tx->width;
+		y = ((Float)_y) / tx->height;
+	}
+	if ((argc>2) && JS_ToBool(c, argv[2]))
+		as_array = GF_TRUE;
+
+	gf_evg_stencil_get_pixel_f(tx->stencil, (Float) x, (Float) y, &r, &g, &b, &a);
+
+	if (as_array) {
+		ret = JS_NewArray(c);
+		JS_SetPropertyStr(c, ret, "length", JS_NewInt32(c, 4) );
+		JS_SetPropertyUint32(c, ret, 0, JS_NewFloat64(c, r) );
+		JS_SetPropertyUint32(c, ret, 1, JS_NewFloat64(c, g) );
+		JS_SetPropertyUint32(c, ret, 2, JS_NewFloat64(c, b) );
+		JS_SetPropertyUint32(c, ret, 3, JS_NewFloat64(c, a) );
+	} else {
+		ret = JS_NewObject(c);
+		JS_SetPropertyStr(c, ret, "r", JS_NewFloat64(c, r) );
+		JS_SetPropertyStr(c, ret, "g", JS_NewFloat64(c, g) );
+		JS_SetPropertyStr(c, ret, "b", JS_NewFloat64(c, b) );
+		JS_SetPropertyStr(c, ret, "a", JS_NewFloat64(c, a) );
+	}
+	return ret;
+}
+static JSValue texture_get_pixel(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return texture_get_pixel_internal(c, obj, argc, argv, GF_FALSE);
+}
+
+static JSValue texture_get_pixelf(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	return texture_get_pixel_internal(c, obj, argc, argv, GF_TRUE);
+}
+
 static GF_Err texture_load_data(JSContext *c, GF_JSTexture *tx, u8 *data, u32 size)
 {
 	GF_Err e;
@@ -5220,6 +5271,8 @@ static const JSCFunctionListEntry texture_funcs[] =
 	JS_CFUNC_DEF("convolution", 0, texture_convolution),
 	JS_CFUNC_DEF("split", 0, texture_split),
 	JS_CFUNC_DEF("update", 0, texture_update),
+	JS_CFUNC_DEF("pixelf", 0, texture_get_pixelf),
+	JS_CFUNC_DEF("pixel", 0, texture_get_pixel),
 
 };
 
