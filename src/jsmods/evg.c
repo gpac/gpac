@@ -5271,8 +5271,8 @@ static const JSCFunctionListEntry texture_funcs[] =
 	JS_CFUNC_DEF("convolution", 0, texture_convolution),
 	JS_CFUNC_DEF("split", 0, texture_split),
 	JS_CFUNC_DEF("update", 0, texture_update),
-	JS_CFUNC_DEF("pixelf", 0, texture_get_pixelf),
-	JS_CFUNC_DEF("pixel", 0, texture_get_pixel),
+	JS_CFUNC_DEF("get_pixelf", 0, texture_get_pixelf),
+	JS_CFUNC_DEF("get_pixel", 0, texture_get_pixel),
 
 };
 
