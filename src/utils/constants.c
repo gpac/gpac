@@ -724,6 +724,7 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_NV21_10, "nv2l", "Semi-planar YUV 420 8 bit, Y plane and VU plane"},
 	{GF_PIXEL_YUVA, "yuva", "Planar YUV+alpha 420 8 bit"},
 	{GF_PIXEL_YUVD, "yuvd", "Planar YUV+depth  420 8 bit"},
+	{GF_PIXEL_YUVA444, "yuv444a", "Planar YUV+alpha 444 8 bit", "yp4a"},
 	{GF_PIXEL_GREYSCALE, "grey", "Greyscale 8 bit"},
 	{GF_PIXEL_ALPHAGREY, "algr", "Alpha+Grey 8 bit"},
 	{GF_PIXEL_GREYALPHA, "gral", "Grey+Alpha 8 bit"},
@@ -971,6 +972,13 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		planes=3;
 		size = stride * height * 3;
 		break;
+	case GF_PIXEL_YUVA444:
+		stride = no_in_stride ? width : *out_stride;
+		uv_height = height;
+		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
+		planes=4;
+		size = stride * height * 4;
+		break;
 	case GF_PIXEL_YUV444_10:
 		stride = no_in_stride ? 2*width : *out_stride;
 		uv_height = height;
@@ -1046,6 +1054,7 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 		return 3;
 	case GF_PIXEL_YUV:
 	case GF_PIXEL_YUVA:
+	case GF_PIXEL_YUVA444:
 	case GF_PIXEL_YUVD:
 		return 1;
 	case GF_PIXEL_YUV_10:
@@ -1114,6 +1123,7 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 	case GF_PIXEL_YUV:
 		return 3;
 	case GF_PIXEL_YUVA:
+	case GF_PIXEL_YUVA444:
 		return 4;
 	case GF_PIXEL_YUVD:
 		return 4;

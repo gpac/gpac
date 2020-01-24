@@ -139,6 +139,15 @@ typedef u32 GF_Color;
 /*!\hideinitializer 15-bits color formating macro from red, green and blue components*/
 #define GF_COL_555(r, g, b) (u16) (((r & 248)<<7) + ((g & 248)<<2)  + (b>>3))
 
+/*!\hideinitializer gets alpha component of a wide color*/
+#define GF_COLW_A(c) (u16) ((c)>>48)
+/*!\hideinitializer gets red component of a wide color*/
+#define GF_COLW_R(c) (u16) ( ((c)>>32) & 0xFFFF)
+/*!\hideinitializer gets green component of a wide color*/
+#define GF_COLW_G(c) (u16) ( ((c)>>16) & 0xFFFF)
+/*!\hideinitializer gets blue component of a wide color*/
+#define GF_COLW_B(c) (u16) ( (c) & 0xFFFF)
+
 /*!Parses color from HTML name or hexa representation
 \param name name of the color to parse
 \return GF_Color value with alpha set to 0xFF if successfull, 0 otherwise
