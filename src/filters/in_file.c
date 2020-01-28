@@ -47,6 +47,7 @@ typedef struct
 	//only one output pid declared
 	GF_FilterPid *pid;
 
+	GF_FileIO *gfio;
 	FILE *file;
 	u64 file_size;
 	u64 file_pos, end_pos;
@@ -94,7 +95,9 @@ static GF_Err filein_initialize(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	if (strnicmp(ctx->src, "file:/", 6) && strstr(ctx->src, "://"))  {
+
+
+	if (strnicmp(ctx->src, "file:/", 6) && strnicmp(ctx->src, "gfio:/", 6) && strstr(ctx->src, "://"))  {
 		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
 		return GF_NOT_SUPPORTED;
 	}
@@ -118,27 +121,7 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	if (!strnicmp(ctx->src, "file://", 7)) src += 7;
 	else if (!strnicmp(ctx->src, "file:", 5)) src += 5;
 
-	if (!ctx->file)
-		ctx->file = gf_fopen(src, "rb");
-
-	if (!ctx->file) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileIn] Failed to open %s\n", src));
-
-		if (frag_par) frag_par[0] = '#';
-		if (cgi_par) cgi_par[0] = '?';
-
-		gf_filter_setup_failure(filter, GF_URL_ERROR);
-#ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_test_mode() && !strcmp(src, "blob"))
-			return GF_OK;
-#endif
-		return GF_URL_ERROR;
-	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] opening %s\n", src));
-	gf_fseek(ctx->file, 0, SEEK_END);
-	ctx->file_size = gf_ftell(ctx->file);
 	ctx->file_pos = ctx->range.num;
-	gf_fseek(ctx->file, ctx->file_pos, SEEK_SET);
 	if (ctx->range.den) {
 		ctx->end_pos = ctx->range.den;
 		if (ctx->end_pos>ctx->file_size) {
@@ -146,6 +129,52 @@ static GF_Err filein_initialize(GF_Filter *filter)
 		}
 	}
 	ctx->is_end = GF_FALSE;
+
+	if (!strnicmp(ctx->src, "gfio://", 7) || ctx->gfio) {
+		Bool update_src = GF_TRUE;
+		if (!strnicmp(ctx->src, "gfio://", 7)) {
+			ctx->gfio = gf_fileio_from_url(ctx->src);
+			update_src = GF_FALSE;
+		}
+
+		if (!ctx->gfio || !gf_fileio_read_mode(ctx->gfio)) {
+			gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
+			return GF_NOT_SUPPORTED;
+		}
+		gf_fileio_open_url(ctx->gfio, ctx->src, "rb");
+		gf_fileio_seek(ctx->gfio, ctx->file_pos, SEEK_END);
+		ctx->file_size = gf_fileio_tell(ctx->gfio);
+		gf_fileio_seek(ctx->gfio, ctx->file_pos, SEEK_SET);
+		if (update_src) {
+			gf_free(ctx->src);
+			ctx->src = gf_strdup(gf_fileio_url(ctx->gfio));
+		}
+	} else {
+		if (ctx->gfio) {
+			gf_fileio_open_url(ctx->gfio, NULL, "deref");
+			ctx->gfio = NULL;
+		}
+		if (!ctx->file)
+			ctx->file = gf_fopen(src, "rb");
+
+		if (!ctx->file) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileIn] Failed to open %s\n", src));
+
+			if (frag_par) frag_par[0] = '#';
+			if (cgi_par) cgi_par[0] = '?';
+
+			gf_filter_setup_failure(filter, GF_URL_ERROR);
+	#ifdef GPAC_ENABLE_COVERAGE
+			if (gf_sys_is_test_mode() && !strcmp(src, "blob"))
+				return GF_OK;
+	#endif
+			return GF_URL_ERROR;
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] opening %s\n", src));
+		gf_fseek(ctx->file, 0, SEEK_END);
+		ctx->file_size = gf_ftell(ctx->file);
+		gf_fseek(ctx->file, ctx->file_pos, SEEK_SET);
+	}
 
 	if (frag_par) frag_par[0] = '#';
 	if (cgi_par) cgi_par[0] = '?';
@@ -165,6 +194,7 @@ static void filein_finalize(GF_Filter *filter)
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
 	if (ctx->file) gf_fclose(ctx->file);
+	if (ctx->gfio) gf_fileio_open_url(ctx->gfio, NULL, "deref");
 	if (ctx->block) gf_free(ctx->block);
 
 }
@@ -182,6 +212,12 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 	if (!strcmp(url, "null")) return GF_FPROBE_SUPPORTED;
 	if (!strcmp(url, "rand")) return GF_FPROBE_SUPPORTED;
 	if (!strcmp(url, "randsc")) return GF_FPROBE_SUPPORTED;
+	if (!strncmp(url, "gfio://", 7)) {
+		GF_FileIO *gfio = gf_fileio_from_url(url);
+		if (gfio && gf_fileio_read_mode(gfio))
+			return GF_FPROBE_SUPPORTED;
+		return GF_FPROBE_NOT_SUPPORTED;
+	}
 
 	//strip any fragment identifer
 	ext_start = gf_file_ext_start(url);
@@ -218,14 +254,21 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_SOURCE_SEEK:
 		if (ctx->is_random)
 			return GF_TRUE;
-		if (evt->seek.start_offset >= ctx->file_size) {
+		if (ctx->file_size && (evt->seek.start_offset >= ctx->file_size)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileIn] Seek request outside of file %s range ("LLU" vs size "LLU")\n", ctx->src, evt->seek.start_offset, ctx->file_size));
 			return GF_TRUE;
 		}
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] Asked to seek source to range "LLU"-"LLU"\n", evt->seek.start_offset, evt->seek.end_offset));
 		ctx->is_end = GF_FALSE;
-		if (ctx->file)
+		if (ctx->gfio) {
+			GF_Err e = gf_fileio_seek(ctx->gfio, evt->seek.start_offset, SEEK_SET);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileIn] Seek on FileIO object failed: %s\n", gf_error_to_string(e) ));
+				return GF_TRUE;
+			}
+		}
+		else if (ctx->file)
 			gf_fseek(ctx->file, evt->seek.start_offset, SEEK_SET);
 
 		ctx->file_pos = evt->seek.start_offset;
@@ -252,6 +295,8 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				ctx->src = gf_strdup(evt->seek.source_switch);
 				if (ctx->file) gf_fclose(ctx->file);
 				ctx->file = NULL;
+
+				if (ctx->gfio) gf_fileio_open_url(ctx->gfio, NULL, "r");
 			}
 			ctx->do_reconfigure = GF_TRUE;
 		}
@@ -368,13 +413,20 @@ static GF_Err filein_process(GF_Filter *filter)
 
 	if (ctx->end_pos > ctx->file_pos)
 		to_read = (u32) (ctx->end_pos - ctx->file_pos);
-	else
+	else if (ctx->file_size)
 		to_read = (u32) (ctx->file_size - ctx->file_pos);
-
+	else
+		to_read = ctx->block_size;
+	
 	if (to_read > ctx->block_size)
 		to_read = ctx->block_size;
 
-	nb_read = (u32) fread(ctx->block, 1, to_read, ctx->file);
+	if (ctx->gfio) {
+		nb_read = gf_fileio_read(ctx->gfio, ctx->block, to_read);
+		if (!nb_read) ctx->file_size = ctx->file_pos;
+	} else {
+		nb_read = (u32) fread(ctx->block, 1, to_read, ctx->file);
+	}
 
 	ctx->block[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
@@ -382,7 +434,8 @@ static GF_Err filein_process(GF_Filter *filter)
 		e = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, ctx->mime, ctx->ext, ctx->block, nb_read, GF_TRUE, &ctx->pid);
 		if (e) return e;
 		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
-		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
+
+		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_DOWN_SIZE, ctx->file_size ? &PROP_LONGUINT(ctx->file_size) : NULL);
 		if (ctx->range.num || ctx->range.den)
 			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_RANGE, &PROP_FRAC64(ctx->range) );
 	}
@@ -392,13 +445,17 @@ static GF_Err filein_process(GF_Filter *filter)
 
 	gf_filter_pck_set_byte_offset(pck, ctx->file_pos);
 
-	if (ctx->file_pos + nb_read == ctx->file_size) {
+	if (ctx->file_size && (ctx->file_pos + nb_read == ctx->file_size)) {
 		ctx->is_end = GF_TRUE;
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_size) );
 	} else {
 		if (nb_read < to_read) {
+			Bool is_eof=GF_FALSE;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileIn] Asked to read %d but got only %d\n", to_read, nb_read));
-			if (feof(ctx->file)) {
+			if (ctx->gfio) is_eof = gf_fileio_eof(ctx->gfio);
+			else is_eof = feof(ctx->file);
+
+			if (is_eof) {
 				gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_size) );
 				ctx->is_end = GF_TRUE;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileIn] IO error EOF found after reading %d bytes but file %s size is %d\n", ctx->file_pos+nb_read, ctx->src, ctx->file_size));
@@ -458,6 +515,8 @@ GF_FilterRegister FileInRegister = {
 	"The special file name `null` is used for creating a file with no data, needed by some filters such as [dasher](dasher).\n"
 	"The special file name `rand` is used to generate random data.\n"
 	"The special file name `randsc` is used to generate random data with fake startcodes (0x000001).\n"
+	"\n"
+	"The filter handles both files and GF_FileIO objects as input URL.\n"
 	)
 	.private_size = sizeof(GF_FileInCtx),
 	.args = FileInArgs,

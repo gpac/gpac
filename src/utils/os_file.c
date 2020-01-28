@@ -784,12 +784,12 @@ GF_EXPORT
 u64 gf_ftell(FILE *fp)
 {
 #if defined(_WIN32_WCE)
-	return (u64) ftell(fp);
+	return (u64) gf_ftell(fp);
 #elif defined(GPAC_CONFIG_WIN32) && defined(__CYGWIN__)	/* mingw or cygwin */
 #if (_FILE_OFFSET_BITS >= 64)
 	return (u64) ftello64(fp);
 #else
-	return (u64) ftell(fp);
+	return (u64) gf_ftell(fp);
 #endif
 #elif defined(WIN32)
 	return (u64) _ftelli64(fp);
@@ -798,7 +798,7 @@ u64 gf_ftell(FILE *fp)
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
 	return (u64) ftello(fp);
 #else
-	return (u64) ftell(fp);
+	return (u64) gf_ftell(fp);
 #endif
 }
 
@@ -995,6 +995,10 @@ char* gf_url_colon_suffix(const char *path)
 	if ((path[1]==':') && ( (path[2]=='/') || (path[2]=='\\') ) )
 		return gf_url_colon_suffix(path+2);
 
+	if (!strncmp(path, "gfio://", 7) || !strncmp(path, "gmem://", 7)) {
+		return strchr(path+7, ':');
+	}
+	
 	//handle PROTO://ADD:PORT/
 	if ((sep[1]=='/') && (sep[2]=='/')) {
 		char *next_colon, *next_slash;

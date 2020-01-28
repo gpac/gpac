@@ -386,9 +386,19 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				GF_Err e;
 				if (!ctx->alt_dst) {
 					char szSRC[100];
-					u32 len = (u32) strlen(ctx->out_path);
+					GF_FileIO *gfio = NULL;
+					char *mpath = ctx->out_path;
+					u32 len;
+					if (!strncmp(mpath, "gfio://", 7)) {
+						gfio = gf_fileio_from_url(mpath);
+						if (!gfio) return GF_BAD_PARAM;
+						//only use basename as we will create the new resource through factory
+						mpath = (char *) gf_file_basename(gf_fileio_resource_url(gfio));
+					}
+
+					len = (u32) strlen(mpath);
 					char *out_path = gf_malloc(len+10);
-					memcpy(out_path, ctx->out_path, len);
+					memcpy(out_path, mpath, len);
 					out_path[len]=0;
 					char *sep = gf_file_ext_start(out_path);
 					if (sep) sep[0] = 0;
@@ -400,6 +410,11 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 						ctx->do_m3u8 = GF_TRUE;
 						strcat(out_path, ".m3u8");
 						force_ext = "m3u8";
+					}
+					if (gfio) {
+						const char *rel = gf_fileio_factory(gfio, out_path);
+						gf_free(out_path);
+						out_path = gf_strdup(rel);
 					}
 
 					ctx->alt_dst = gf_filter_connect_destination(filter, out_path, &e);
@@ -443,7 +458,14 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				gf_filter_pid_set_property(opid, GF_PROP_PID_FILE_EXT, p );
 				segext = p->value.string;
 			} else {
-				segext = ctx->out_path ? strrchr(ctx->out_path, '.') : NULL;
+				segext = NULL;
+				if (ctx->out_path) {
+					char *mpath = ctx->out_path;
+					if (!strncmp(mpath, "gfio://", 7)) {
+						mpath = (char *) gf_fileio_translate_url(mpath);
+					}
+					segext = strrchr(mpath, '.');
+				}
 				if (!segext) segext = "mpd";
 				else segext++;
 				if (force_ext)
@@ -1978,19 +2000,30 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 
 	gf_dynstrcat(&szDST, szInitURL, NULL);
 	if (ctx->out_path) {
-		char *rel = NULL;
-		if (ctx->do_m3u8 && ds->hls_vp_name) {
-			char *tmp = gf_url_concatenate(ctx->out_path, ds->hls_vp_name);
-			if (tmp) {
-				rel = gf_url_concatenate(tmp, szInitURL);
-				gf_free(tmp);
+		if (!strncmp(ctx->out_path, "gfio://", 7)) {
+			GF_FileIO *gfio = gf_fileio_from_url(ctx->out_path);
+			if (gfio) {
+				const char *rel = gf_fileio_factory(gfio, szInitURL);
+				if (rel) {
+					gf_free(szDST);
+					szDST = gf_strdup(rel);
+				}
 			}
-		}
-		if (!rel)
-			rel = gf_url_concatenate(ctx->out_path, szInitURL);
-		if (rel) {
-			gf_free(szDST);
-			szDST = rel;
+		} else {
+			char *rel = NULL;
+			if (ctx->do_m3u8 && ds->hls_vp_name) {
+				char *tmp = gf_url_concatenate(ctx->out_path, ds->hls_vp_name);
+				if (tmp) {
+					rel = gf_url_concatenate(tmp, szInitURL);
+					gf_free(tmp);
+				}
+			}
+			if (!rel)
+				rel = gf_url_concatenate(ctx->out_path, szInitURL);
+			if (rel) {
+				gf_free(szDST);
+				szDST = rel;
+			}
 		}
 	}
 

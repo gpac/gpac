@@ -557,7 +557,7 @@ u32 gf_isom_probe_file(const char *fileName);
 \param fileName the target local file name or path to probe
 \param start_range the offset in the file to start probing from
 \param end_range the offset in the file at which probing shall stop
-\return 1 if it is a non-special file, 2 if an init segment, 3 if a media segment, 0 otherwise
+\return 1 if it is a non-special file, 2 if an init segment, 3 if a media segment, 4 if empty or no file, 0 otherwise
 */
 u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_range);
 

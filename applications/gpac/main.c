@@ -47,6 +47,10 @@ static GF_List *args_alloc = NULL;
 static u32 gen_doc = 0;
 static u32 help_flags = 0;
 
+//coverage for FileIO
+static const char *make_fileio(const char *inargs, const char **out_arg, Bool is_input, GF_Err *e);
+static void del_fileio();
+
 FILE *sidebar_md=NULL;
 static FILE *helpout = NULL;
 
@@ -1690,7 +1694,10 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-unit-tests")) {
 			do_unit_tests = GF_TRUE;
 		} else if (arg[0]=='-') {
-			if (!strcmp(arg, "-i") || !strcmp(arg, "-src") || !strcmp(arg, "-o") || !strcmp(arg, "-dst") ) {
+			if (!strcmp(arg, "-i") || !strcmp(arg, "-src")
+				|| !strcmp(arg, "-o") || !strcmp(arg, "-dst")
+				|| !strcmp(arg, "-ib") || !strcmp(arg, "-ob")
+			) {
 			} else if (!gf_sys_is_gpac_arg(arg) ) {
 				gpac_suggest_arg(arg);
 				gpac_exit(1);
@@ -1761,13 +1768,27 @@ restart:
 		Bool f_loaded = GF_FALSE;
 		char *arg = argv[i];
 
-		if (!strcmp(arg, "-src") || !strcmp(arg, "-i") ) {
-			filter = gf_fs_load_source(session, argv[i+1], NULL, NULL, &e);
+		if (!strcmp(arg, "-src") || !strcmp(arg, "-i") || !strcmp(arg, "-ib") ) {
+			if (!strcmp(arg, "-ib")) {
+				const char *fargs=NULL;
+				const char *fio_url = make_fileio(argv[i+1], &fargs, GF_TRUE, &e);
+				if (fio_url)
+					filter = gf_fs_load_source(session, fio_url, fargs, NULL, &e);
+			} else {
+				filter = gf_fs_load_source(session, argv[i+1], NULL, NULL, &e);
+			}
 			arg = argv[i+1];
 			i++;
 			f_loaded = GF_TRUE;
-		} else if (!strcmp(arg, "-dst") || !strcmp(arg, "-o") ) {
-			filter = gf_fs_load_destination(session, argv[i+1], NULL, NULL, &e);
+		} else if (!strcmp(arg, "-dst") || !strcmp(arg, "-o")  || !strcmp(arg, "-ob") ) {
+			if (!strcmp(arg, "-ob")) {
+				const char *fargs=NULL;
+				const char *fio_url = make_fileio(argv[i+1], &fargs, GF_FALSE, &e);
+				if (fio_url)
+					filter = gf_fs_load_destination(session, fio_url, fargs, NULL, &e);
+			} else {
+				filter = gf_fs_load_destination(session, argv[i+1], NULL, NULL, &e);
+			}
 			arg = argv[i+1];
 			i++;
 			f_loaded = GF_TRUE;
@@ -1905,6 +1926,8 @@ exit:
 	gf_fs_del(tmp_sess);
 	if (loaded_filters) gf_list_del(loaded_filters);
 
+	del_fileio();
+
 	if (!e && nb_loops) {
 		if (nb_loops>0) nb_loops--;
 		loops_done++;
@@ -1981,11 +2004,11 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 						char *read = fgets(szLine, 1024, sidebar_md);
 						if (!read) break;
 						if (!strncmp(szLine, "**Filters Help**", 16)) {
-							end_pos = ftell(sidebar_md);
+							end_pos = gf_ftell(sidebar_md);
 							break;
 						}
 					}
-					if (!end_pos) end_pos = ftell(sidebar_md);
+					if (!end_pos) end_pos = gf_ftell(sidebar_md);
 					if (end_pos) {
 						sbbuf = gf_malloc(end_pos+1);
 						gf_fseek(sidebar_md, 0, SEEK_SET);
@@ -3305,3 +3328,98 @@ static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_F
 	return GF_FALSE;
 }
 
+
+typedef struct
+{
+	FILE *filep;
+	char *path;
+	Bool write;
+} FileIOCtx;
+
+static GF_Err fio_open(GF_FileIO *fileio, const char *url, const char *mode)
+{
+	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+
+	if (ioctx->filep) gf_fclose(ioctx->filep);
+	ioctx->filep = NULL;
+	if (!url)
+		return GF_OK;
+
+	if (strnicmp(url, "gfio://", 7)) {
+		char *out_path = gf_url_concatenate(ioctx->path, url);
+		ioctx->filep = gf_fopen(out_path, mode);
+		gf_free(out_path);
+	} else {
+		ioctx->filep = gf_fopen(ioctx->path, mode);
+	}
+	if (!ioctx->filep) return GF_IO_ERR;
+	return GF_OK;
+}
+static GF_Err fio_seek(GF_FileIO *fileio, u64 offset, s32 whence)
+{
+	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx->filep) return GF_BAD_PARAM;
+	gf_fseek(ioctx->filep, offset, whence);
+	return GF_OK;
+}
+static u32 fio_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
+{
+	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx->filep) return 0;
+	return fread(buffer, 1, bytes, ioctx->filep);
+}
+static u32 fio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
+{
+	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx->filep) return GF_BAD_PARAM;
+	return fwrite(buffer, 1, bytes, ioctx->filep);
+}
+static s64 fio_tell(GF_FileIO *fileio)
+{
+	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx->filep) return -1;
+	return gf_ftell(ioctx->filep);
+}
+static Bool fio_eof(GF_FileIO *fileio)
+{
+	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx->filep) return GF_BAD_PARAM;
+	return feof(ioctx->filep);
+}
+
+static const char *fio_factory(GF_FileIO *fileio, const char *new_res)
+{
+	FileIOCtx *ioctx, *parent_ioctx = gf_fileio_get_udta(fileio);
+
+	GF_SAFEALLOC(ioctx, FileIOCtx);
+	ioctx->path = gf_url_concatenate(parent_ioctx->path, new_res);
+	GF_FileIO *an_outio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_factory);
+	return an_outio ? gf_fileio_url(an_outio) : NULL;
+}
+
+static const char *make_fileio(const char *inargs, const char **out_arg, Bool is_input, GF_Err *e)
+{
+	FileIOCtx *octx;
+	GF_FileIO *fio;
+	char *sep = (char *) gf_url_colon_suffix(inargs);
+	*out_arg = NULL;
+	if (sep) sep[0] = 0;
+
+	GF_SAFEALLOC(octx, FileIOCtx);
+	octx->path = gf_strdup(inargs);
+	if (sep) {
+		sep[0] = ':';
+		*out_arg = sep+1;
+	}
+	fio = gf_fileio_new(octx->path, octx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_factory);
+	if (!fio) {
+		*e = GF_OUT_OF_MEM;
+		return NULL;
+	}
+	return gf_fileio_url(fio);
+}
+
+static void del_fileio()
+{
+
+}

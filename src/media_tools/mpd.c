@@ -3169,7 +3169,14 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 		fprintf(out, "#EXT-X-INDEPENDENT-SEGMENTS\n");
 	fprintf(out, "\n");
 
-	m3u8_name_rad = gf_strdup(m3u8_name);
+	if (!strncmp(m3u8_name, "gfio://", 7)) {
+		const char *fpath = gf_fileio_translate_url(m3u8_name);
+		if (!fpath) return GF_BAD_PARAM;
+		//use basename since this file will be created throught GF_FileIO factory (relative to the original gfio://)
+		m3u8_name_rad = gf_strdup(gf_file_basename(fpath));
+	} else {
+		m3u8_name_rad = gf_strdup(m3u8_name);
+	}
 	sep = strrchr(m3u8_name_rad, '.');
 	if (sep) sep[0] = 0;
 	szVariantName = gf_malloc(sizeof(char) * (100 + strlen(m3u8_name_rad)) );

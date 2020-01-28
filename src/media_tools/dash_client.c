@@ -2568,6 +2568,9 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 	GF_MPD_Period *period = group->period;
 	u32 timescale;
 
+	if (!strncmp(mpd_url, "gfio://", 7))
+		mpd_url = gf_file_basename(gf_fileio_translate_url(mpd_url));
+
 	if (!group->timeline_setup) {
 		gf_dash_group_timeline_setup(mpd, group, 0);
 		//we must wait for ATSC 3.0 clock to initialize, even if first period is static remote (we need to know when to tune)
@@ -3461,6 +3464,23 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	group->buffer_occupancy_at_last_seg = group->buffer_occupancy_ms;
 }
 
+static char *gf_dash_get_fileio_url(const char *base_url, char *res_url)
+{
+	const char *new_res;
+	char *mpath;
+	GF_FileIO *gfio;
+	if (strncmp(base_url, "gfio://", 7))
+		return res_url;
+
+	gfio = gf_fileio_from_url(base_url);
+	mpath = (char *) gf_file_basename(gf_fileio_resource_url(gfio));
+
+	new_res = gf_fileio_factory(gfio, res_url);
+	if (!new_res) return res_url;
+	gf_free(res_url);
+	return gf_strdup(new_res);
+}
+
 static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *group)
 {
 	GF_Err e;
@@ -3475,6 +3495,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	u32 nb_segment_read = 0;
 	u32 file_size=0, Bps= 0;
 	char *base_url=NULL;
+	char *base_url_orig=NULL;
 	char *key_url=NULL;
 	bin128 key_iv;
 
@@ -3490,6 +3511,12 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	start_range = end_range = 0;
 	base_url = dash->base_url;
 	if (group->period->origin_base_url) base_url = group->period->origin_base_url;
+
+	base_url_orig = base_url;
+	if (base_url && !strncmp(base_url, "gfio://", 7)) {
+		GF_FileIO *gfio = gf_fileio_from_url(base_url);
+		base_url = (char *) gf_file_basename(gf_fileio_resource_url(gfio));
+	}
 
 	e = gf_dash_resolve_url(dash->mpd, rep, group, base_url, GF_MPD_RESOLVE_URL_INIT, 0, &base_init_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL, &key_url, &key_iv, &data_url_processed);
 	if (e) {
@@ -3516,10 +3543,15 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		group->dont_delete_first_segment = 1;
 	}
 
+	base_url = base_url_orig;
+	base_init_url = gf_dash_get_fileio_url(base_url, base_init_url);
+
 	if (!strstr(base_init_url, "://") || !strnicmp(base_init_url, "file://", 7) || !strnicmp(base_init_url, "gmem://", 7)
-		|| !strnicmp(base_init_url, "views://", 8) || !strnicmp(base_init_url, "mosaic://", 9) || !strnicmp(base_init_url, "isobmff://", 10)) {
+		|| !strnicmp(base_init_url, "views://", 8) || !strnicmp(base_init_url, "mosaic://", 9)
+		|| !strnicmp(base_init_url, "isobmff://", 10) || !strnicmp(base_init_url, "gfio://", 7)
+	) {
 		//if file-based, check if file exists, if not switch base URL
-		if ( strnicmp(base_init_url, "gmem://", 7)) {
+		if ( strnicmp(base_init_url, "gmem://", 7) && strnicmp(base_init_url, "gfio://", 7)) {
 			FILE *ftest = gf_fopen(base_init_url, "rb");
 			if (!ftest) {
 				if (group->current_base_url_idx + 1 < gf_mpd_get_base_url_count(dash->mpd, group->period, group->adaptation_set, rep) ){
@@ -4665,9 +4697,9 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 						FILE *t = gf_fopen(cache_name, "rb");
 						if (t) {
 							s32 res;
-							fseek(t, 0, SEEK_END);
+							gf_fseek(t, 0, SEEK_END);
 							rep->playback.init_segment.size = (u32) gf_ftell(t);
-							fseek(t, 0, SEEK_SET);
+							gf_fseek(t, 0, SEEK_SET);
 
 							rep->playback.init_segment.data = gf_malloc(sizeof(char) * rep->playback.init_segment.size);
 							res = (s32) fread(rep->playback.init_segment.data, sizeof(char), rep->playback.init_segment.size, t);
@@ -5810,7 +5842,9 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	}
 
 	/*local file*/
-	if (!strstr(new_base_seg_url, "://") || (!strnicmp(new_base_seg_url, "file://", 7) || !strnicmp(new_base_seg_url, "gmem://", 7)) ) {
+	if (strnicmp(base_url, "gfio://", 7)
+		&& (!strstr(new_base_seg_url, "://") || (!strnicmp(new_base_seg_url, "file://", 7) || !strnicmp(new_base_seg_url, "gmem://", 7) ) )
+	) {
 		FILE *ftest;
 		resource_name = local_file_name = (char *) new_base_seg_url;
 		e = GF_OK;
@@ -7069,7 +7103,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		if (strstr(manifest_url, ".m3u8")) {
 			dash->is_m3u8 = GF_TRUE;
 		}
-	} else if (strstr(manifest_url, "://")) {
+	} else if (strstr(manifest_url, "://") && strncmp(manifest_url, "gfio://", 7)) {
 		const char *reloc_url, *mtype;
 		char mime[128];
 		e = gf_dash_download_resource(dash, &(dash->mpd_dnload), manifest_url, 0, 0, 1, NULL);
@@ -7117,7 +7151,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			dash->is_m3u8 = 1;
 	}
 
-	if (is_local) {
+	if (is_local && strncmp(manifest_url, "gfio://", 7)) {
 		FILE *f = gf_fopen(local_url, "rt");
 		if (!f) {
 			sep_cgi = strrchr(local_url, '?');

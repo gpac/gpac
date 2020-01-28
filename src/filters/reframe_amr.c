@@ -143,16 +143,16 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 	if (i != 20) return;
 
 	if (!strnicmp(magic, "#!AMR\n", 6)) {
-		fseek(stream, 6, SEEK_SET);
+		gf_fseek(stream, 6, SEEK_SET);
 		ctx->codecid = GF_CODECID_AMR;
 	}
 	else if (!strnicmp(magic, "#!EVRC\n", 7)) {
-		fseek(stream, 7, SEEK_SET);
+		gf_fseek(stream, 7, SEEK_SET);
 		ctx->start_offset = 7;
 		ctx->codecid = GF_CODECID_EVRC;
 	}
 	else if (!strnicmp(magic, "#!SMV\n", 6)) {
-		fseek(stream, 6, SEEK_SET);
+		gf_fseek(stream, 6, SEEK_SET);
 		ctx->codecid = GF_CODECID_SMV;
 	}
 	else if (!strnicmp(magic, "#!AMR-WB\n", 9)) {
@@ -160,7 +160,7 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 		ctx->start_offset = 9;
 		ctx->sample_rate = 16000;
 		ctx->block_size = 320;
-		fseek(stream, 9, SEEK_SET);
+		gf_fseek(stream, 9, SEEK_SET);
 	}
 	else if (!strnicmp(magic, "#!AMR_MC1.0\n", 12)) return;
 	else if (!strnicmp(magic, "#!AMR-WB_MC1.0\n", 15)) return;

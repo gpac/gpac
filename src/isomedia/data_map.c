@@ -143,7 +143,7 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 #else
 		return GF_NOT_SUPPORTED;
 #endif
-	} else if (!strncmp(location, "gmem://", 7)) {
+	} else if (!strncmp(location, "gmem://", 7) || !strncmp(location, "gfio://", 7)) {
 		*outDataMap = gf_isom_fdm_new(location, GF_ISOM_DATA_MAP_READ);
 		if (! (*outDataMap)) {
 			return GF_IO_ERR;
@@ -416,6 +416,16 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 		if (gf_blob_get_data(sPath, &mem_address, &size) != GF_OK)
 			return NULL;
 		tmp->bs = gf_bs_new((const char *)mem_address, size, GF_BITSTREAM_READ);
+		if (!tmp->bs) {
+			gf_free(tmp);
+			return NULL;
+		}
+		return (GF_DataMap *)tmp;
+	}
+	if (!strncmp(sPath, "gfio://", 7)) {
+		GF_BitStream *gf_bs_from_gfio(const char *url, u32 mode);
+
+		tmp->bs = gf_bs_from_gfio(sPath, GF_BITSTREAM_READ);
 		if (!tmp->bs) {
 			gf_free(tmp);
 			return NULL;

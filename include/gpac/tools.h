@@ -1065,7 +1065,7 @@ s32 gf_fclose(FILE *file);
 \brief large file position query
 
 Queries the current read/write position in a large file
-\param f Same semantics as ftell
+\param f Same semantics as gf_ftell
 \return position in the file
 \note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 */
@@ -1081,6 +1081,7 @@ Seeks the current read/write position in a large file
 \note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 */
 u64 gf_fseek(FILE *f, s64 pos, s32 whence);
+
 
 /*! gets basename from filename/path
 \param filename Path of the file, can be an absolute path
@@ -1389,6 +1390,37 @@ const char *gf_opts_get_filename();
 Bool gf_opts_default_shared_directory(char *path_buffer);
 
 /*! @} */
+
+
+typedef struct __gf_file_io GF_FileIO;
+
+GF_FileIO *gf_fileio_new(char *url, void *udta,
+  GF_Err (*open)(GF_FileIO *fileio, const char *url, const char *mode),
+  GF_Err (*seek)(GF_FileIO *fileio, u64 offset, s32 whence),
+  u32 (*read)(GF_FileIO *fileio, u8 *buffer, u32 bytes),
+  u32 (*write)(GF_FileIO *fileio, u8 *buffer, u32 bytes),
+  s64 (*tell)(GF_FileIO *fileio),
+  Bool (*eof)(GF_FileIO *fileio),
+  const char *(*new_fileio)(GF_FileIO *gfio, const char *new_res_url)
+);
+
+void gf_fileio_del(GF_FileIO *gfio);
+void *gf_fileio_get_udta(GF_FileIO *gfio);
+const char * gf_fileio_url(GF_FileIO *gfio);
+GF_Err gf_fileio_open_url(GF_FileIO *gfio, const char *url, const char *mode);
+GF_Err gf_fileio_seek(GF_FileIO *gfio, u64 offset, s32 whence);
+u32 gf_fileio_read(GF_FileIO *gfio, u8 *buffer, u32 nb_bytes);
+u32 gf_fileio_write(GF_FileIO *gfio, u8 *buffer, u32 nb_bytes);
+Bool gf_fileio_write_mode(GF_FileIO *gfio);
+Bool gf_fileio_read_mode(GF_FileIO *gfio);
+GF_FileIO *gf_fileio_from_url(const char *url);
+s64 gf_fileio_tell(GF_FileIO *fileio);
+Bool gf_fileio_eof(GF_FileIO *fileio);
+
+const char *gf_fileio_factory(GF_FileIO *gfio, const char *new_res_url);
+const char * gf_fileio_translate_url(const char *url);
+const char * gf_fileio_resource_url(GF_FileIO *gfio);
+
 
 
 //! @cond Doxygen_Suppress

@@ -897,7 +897,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			readonly_playlist = 0;
 			playlist = gf_file_temp(NULL);
 		}
-		pos = ftell(playlist);
+		pos = gf_ftell(playlist);
 		i=0;
 		while (i<evt->open_file.nb_files) {
 			if (evt->open_file.files[i] != NULL) {
@@ -905,7 +905,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			}
 			i++;
 		}
-		fseek(playlist, pos, SEEK_SET);
+		gf_fseek(playlist, pos, SEEK_SET);
 		request_next_playlist_item = 1;
 	}
 	return 1;
@@ -1603,7 +1603,7 @@ force_input:
 
 				res = fscanf(playlist, "%1023s", the_url);
 				if ((res == EOF) && loop_at_end) {
-					fseek(playlist, 0, SEEK_SET);
+					gf_fseek(playlist, 0, SEEK_SET);
 					res = fscanf(playlist, "%1023s", the_url);
 				}
 				if (res == EOF) {

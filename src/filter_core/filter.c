@@ -1025,6 +1025,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 						|| !strncmp(args+4, "tcpu://", 7)
 						|| !strncmp(args+4, "udpu://", 7)
 						|| !strncmp(args+4, "atsc://", 7)
+						|| !strncmp(args+4, "gfio://", 7)
 						)
 					) {
 						internal_url = GF_TRUE;
@@ -2978,7 +2979,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			a_mime = freg->probe_data(probe_data, probe_size, &score);
 			if (score==GF_FPROBE_NOT_SUPPORTED) {
 				u32 k;
-				for (k=0;k<freg->nb_caps && !ext_not_trusted; k++) {
+				for (k=0;k<freg->nb_caps && !ext_not_trusted && ext_len; k++) {
 					const char *value;
 					const GF_FilterCapability *cap = &freg->caps[k];
 					if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) continue;
@@ -2996,7 +2997,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 					}
 				}
 			} else if (score==GF_FPROBE_EXT_MATCH) {
-				if (a_mime && strstr(a_mime, tmp_ext)) {
+				if (a_mime && ext_len && strstr(a_mime, tmp_ext)) {
 					ext_not_trusted = GF_FALSE;
 					probe_mime = NULL;
 					break;

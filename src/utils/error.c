@@ -1751,3 +1751,143 @@ GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep)
 	strcat((*str), to_append);
 	return GF_OK;
 }
+
+
+struct __gf_file_io
+{
+	GF_Err (*open)(GF_FileIO *fileio, const char *url, const char *mode);
+	GF_Err (*seek)(GF_FileIO *fileio, u64 offset, s32 whence);
+	u32 (*read)(GF_FileIO *fileio, u8 *buffer, u32 bytes);
+	u32 (*write)(GF_FileIO *fileio, u8 *buffer, u32 bytes);
+	s64 (*tell)(GF_FileIO *fileio);
+	Bool (*eof)(GF_FileIO *fileio);
+	const char *(*new_fileio)(GF_FileIO *gfio, const char *new_res_url);
+
+	char *url;
+	char *res_url;
+	void *udta;
+};
+
+GF_FileIO *gf_fileio_new(char *url, void *udta,
+	  GF_Err (*open)(GF_FileIO *fileio, const char *url, const char *mode),
+	  GF_Err (*seek)(GF_FileIO *fileio, u64 offset, s32 whence),
+	  u32 (*read)(GF_FileIO *fileio, u8 *buffer, u32 bytes),
+	  u32 (*write)(GF_FileIO *fileio, u8 *buffer, u32 bytes),
+	  s64 (*tell)(GF_FileIO *fileio),
+	  Bool (*eof)(GF_FileIO *fileio),
+	  const char *(*new_fileio)(GF_FileIO *gfio, const char *new_res_url)
+	)
+{
+	char szURL[100];
+	GF_FileIO *tmp;
+	if (!write && !read) return NULL;
+	GF_SAFEALLOC(tmp, GF_FileIO);
+	if (!tmp) return NULL;
+	tmp->open = open;
+	tmp->seek = seek;
+	tmp->write = write;
+	tmp->read = read;
+	tmp->tell = tell;
+	tmp->eof = eof;
+	tmp->new_fileio = new_fileio;
+
+	tmp->udta = udta;
+	if (url)
+		tmp->res_url = gf_strdup(url);
+
+	sprintf(szURL, "gfio://%p", tmp);
+	tmp->url = gf_strdup(szURL);
+	return tmp;
+}
+
+const char * gf_fileio_url(GF_FileIO *gfio)
+{
+	return gfio ? gfio->url : NULL;
+}
+const char * gf_fileio_resource_url(GF_FileIO *gfio)
+{
+	return gfio ? gfio->res_url : NULL;
+}
+
+void gf_fileio_del(GF_FileIO *gfio)
+{
+	if (!gfio) return;
+	if (gfio->url) gf_free(gfio->url);
+	gf_free(gfio);
+}
+void *gf_fileio_get_udta(GF_FileIO *gfio)
+{
+	return gfio ? gfio->udta : NULL;
+}
+GF_Err gf_fileio_open_url(GF_FileIO *gfio, const char *url, const char *mode)
+{
+	if (!gfio) return GF_BAD_PARAM;
+	if (!gfio->open) return url ? GF_NOT_SUPPORTED : GF_OK;
+	return gfio->open(gfio, url, mode);
+}
+GF_Err gf_fileio_seek(GF_FileIO *gfio, u64 offset, s32 whence)
+{
+	if (!gfio) return GF_BAD_PARAM;
+	if (gfio->seek) return gfio->seek(gfio, offset, whence);
+	return GF_NOT_SUPPORTED;
+}
+
+u32 gf_fileio_read(GF_FileIO *gfio, u8 *buffer, u32 nb_bytes)
+{
+	if (!gfio) return GF_BAD_PARAM;
+	if (gfio->read)
+		return gfio->read(gfio, buffer, nb_bytes);
+	return 0;
+}
+
+u32 gf_fileio_write(GF_FileIO *gfio, u8 *buffer, u32 nb_bytes)
+{
+	if (!gfio) return GF_BAD_PARAM;
+	if (!gfio->write) return 0;
+	return gfio->write(gfio, buffer, nb_bytes);
+}
+Bool gf_fileio_write_mode(GF_FileIO *gfio)
+{
+	return (gfio && gfio->write) ? GF_TRUE : GF_FALSE;
+}
+Bool gf_fileio_read_mode(GF_FileIO *gfio)
+{
+	return (gfio && gfio->read) ? GF_TRUE : GF_FALSE;
+}
+GF_FileIO *gf_fileio_from_url(const char *url)
+{
+	char szURL[100];
+	GF_FileIO *ptr=NULL;
+	sscanf(url, "gfio://%p", &ptr);
+	sprintf(szURL, "gfio://%p", ptr);
+	if (strcmp(url, szURL))
+		return NULL;
+		
+	if (ptr && ptr->url && !strcmp(ptr->url, url) ) {
+		return ptr;
+	}
+	return NULL;
+}
+const char * gf_fileio_translate_url(const char *url)
+{
+	GF_FileIO *gfio = gf_fileio_from_url(url);
+	return gfio ? gfio->res_url : NULL;
+}
+
+s64 gf_fileio_tell(GF_FileIO *fileio)
+{
+	if (!fileio || !fileio->tell) return -1;
+	return fileio->tell(fileio);
+}
+Bool gf_fileio_eof(GF_FileIO *fileio)
+{
+	if (!fileio || !fileio->tell) return GF_TRUE;
+	return fileio->eof(fileio);
+}
+
+const char *gf_fileio_factory(GF_FileIO *gfio, const char *new_res_url)
+{
+	if (!gfio || !gfio->new_fileio) return NULL;
+	return gfio->new_fileio(gfio, new_res_url);
+}
+

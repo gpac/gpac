@@ -418,8 +418,8 @@ static GF_FilterProbeScore avimux_probe_url(const char *url, const char *mime)
 	char *fext = strrchr(url, '.');
 	if (fext && !stricmp(fext, ".avi")) return GF_FPROBE_FORCE;
 	if (mime) {
-		if (!stricmp(fext, "video/avi")) return GF_FPROBE_FORCE;
-		if (!stricmp(fext, "video/x-avi")) return GF_FPROBE_FORCE;
+		if (!stricmp(mime, "video/avi")) return GF_FPROBE_FORCE;
+		if (!stricmp(mime, "video/x-avi")) return GF_FPROBE_FORCE;
 	}
 	return GF_FPROBE_NOT_SUPPORTED;
 }

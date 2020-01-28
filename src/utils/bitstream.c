@@ -40,7 +40,10 @@ struct __tag_bitstream
 	/*original stream data*/
 	FILE *stream;
 
-	/*original data*/
+	/*or original GF_FileIO data*/
+	GF_FileIO *gfio;
+
+	/*or original data*/
 	char *original;
 	/*the size of our buffer in bytes*/
 	u64 size;
@@ -123,10 +126,7 @@ GF_BitStream *gf_bs_new(const u8 *buffer, u64 BufferSize, u32 mode)
 	tmp->original = (char*)buffer;
 	tmp->size = BufferSize;
 
-	tmp->position = 0;
-	tmp->current = 0;
 	tmp->bsmode = mode;
-	tmp->stream = NULL;
 
 	switch (tmp->bsmode) {
 	case GF_BITSTREAM_READ:
@@ -189,6 +189,33 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode)
 	return tmp;
 }
 
+GF_EXPORT
+GF_BitStream *gf_bs_from_gfio(const char *url, u32 mode)
+{
+	GF_BitStream *tmp;
+	GF_FileIO *gfio = gf_fileio_from_url(url);
+	if (!gfio) return NULL;
+
+	tmp = (GF_BitStream *)gf_malloc(sizeof(GF_BitStream));
+	if (!tmp) return NULL;
+	memset(tmp, 0, sizeof(GF_BitStream));
+	/*switch to internal mode*/
+	mode = (mode==GF_BITSTREAM_READ) ? GF_BITSTREAM_FILE_READ : GF_BITSTREAM_FILE_WRITE;
+	tmp->bsmode = mode;
+	tmp->current = 0;
+	tmp->nbBits = (mode == GF_BITSTREAM_FILE_READ) ? 8 : 0;
+	tmp->original = NULL;
+	tmp->position = 0;
+	tmp->gfio = gfio;
+
+	/*get the size of this file (for read streams)*/
+	tmp->position = gf_fileio_tell(gfio);
+	gf_fileio_seek(gfio, 0, SEEK_END);
+	tmp->size = gf_fileio_tell(gfio);
+	gf_fileio_seek(gfio, tmp->position, SEEK_SET);
+	return tmp;
+}
+
 GF_BitStream *gf_bs_new_cbk_buffer(GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size), void *usr_data, u8 *buffer, u32 buffer_size)
 {
 	GF_BitStream *tmp;
@@ -199,10 +226,6 @@ GF_BitStream *gf_bs_new_cbk_buffer(GF_Err (*on_block_out)(void *cbk, u8 *data, u
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_BitStream));
 
-	tmp->position = 0;
-	tmp->current = 0;
-	tmp->stream = NULL;
-	tmp->nbBits = 0;
 	if (buffer && buffer_size) {
 		tmp->size = buffer_size;
 		tmp->original = buffer;
@@ -248,7 +271,12 @@ void gf_bs_prevent_dispatch(GF_BitStream *bs, Bool prevent_dispatch)
 static void bs_flush_cache(GF_BitStream *bs)
 {
 	if (bs->buffer_written) {
-		u32 nb_write = (u32) fwrite(bs->buffer_io, 1, bs->buffer_written, bs->stream);
+		u32 nb_write;
+		if (bs->gfio) {
+			nb_write = (u32) gf_fileio_write(bs->gfio, bs->buffer_io, bs->buffer_written);
+		} else {
+			nb_write = (u32) fwrite(bs->buffer_io, 1, bs->buffer_written, bs->stream);
+		}
 		bs->size += nb_write;
 		bs->position += nb_write;
 		bs->buffer_written = 0;
@@ -259,7 +287,7 @@ static void bs_flush_cache(GF_BitStream *bs)
 GF_EXPORT
 GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size)
 {
-	if (!bs->stream) return GF_OK;
+	if (!bs->stream && !bs->gfio) return GF_OK;
 	if (bs->bsmode != GF_BITSTREAM_FILE_WRITE) {
 		return GF_OK;
 	}
@@ -319,6 +347,7 @@ Bool gf_bs_is_align(GF_BitStream *bs)
 /*fetch a new byte in the bitstream switch between packets*/
 static u8 BS_ReadByte(GF_BitStream *bs)
 {
+	Bool is_eos;
 	if (bs->bsmode == GF_BITSTREAM_READ) {
 		u8 res;
 		if (bs->position >= bs->size) {
@@ -340,16 +369,32 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 	if (bs->buffer_io)
 		bs_flush_cache(bs);
 
+	is_eos = GF_FALSE;
+	if (bs->gfio) is_eos = gf_fileio_eof(bs->gfio);
+	else is_eos = feof(bs->stream);
+
 	/*we are in FILE mode, test for end of file*/
-	if (!feof(bs->stream)) {
+	if (!is_eos) {
 		u8 res;
 		assert(bs->position<=bs->size);
 		bs->position++;
-		res = fgetc(bs->stream);
+
+		if (bs->gfio) {
+			gf_fileio_read(bs->gfio, &res, 1);
+		} else {
+			res = fgetc(bs->stream);
+		}
 
 		if (bs->remove_emul_prevention_byte) {
 			if ((bs->nb_zeros==2) && (res==0x03) && (bs->position<bs->size)) {
-				u8 next = fgetc(bs->stream);
+				u8 next;
+
+				if (bs->gfio) {
+					gf_fileio_read(bs->gfio, &next, 1);
+				} else {
+					next = fgetc(bs->stream);
+				}
+
 				if (next < 0x04) {
 					bs->nb_zeros = 0;
 					res = next;
@@ -566,7 +611,12 @@ u32 gf_bs_read_data(GF_BitStream *bs, u8 *data, u32 nbBytes)
 		case GF_BITSTREAM_FILE_WRITE:
 			if (bs->buffer_io)
 				bs_flush_cache(bs);
-			bytes_read = (s32) fread(data, 1, nbBytes, bs->stream);
+
+			if (bs->gfio) {
+				bytes_read = (s32) gf_fileio_read(bs->gfio, data, nbBytes);
+			} else {
+				bytes_read = (s32) fread(data, 1, nbBytes, bs->stream);
+			}
 			if (bytes_read<0) return 0;
 			bs->position += bytes_read;
 			return bytes_read;
@@ -591,7 +641,7 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to write on read bitstream\n"));
 		return;
 	}
-	if (!bs->original && !bs->stream) {
+	if (!bs->original && !bs->stream && !bs->gfio) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to write on unassigned bitstream\n"));
 		return;
 	}
@@ -637,7 +687,11 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 		return;
 	}
 	/*we are in FILE mode, no pb for any gf_realloc...*/
-	fputc(val, bs->stream);
+	if (bs->gfio) {
+		gf_fileio_write(bs->gfio, &val, 1);
+	} else {
+		fputc(val, bs->stream);
+	}
 	/*check we didn't rewind the stream*/
 	if (bs->size == bs->position) bs->size++;
 	bs->position += 1;
@@ -784,8 +838,11 @@ u32 gf_bs_write_byte(GF_BitStream *bs, u8 byte, u32 repeat_count)
 		return repeat_count;
 	case GF_BITSTREAM_FILE_READ:
 	case GF_BITSTREAM_FILE_WRITE:
-
-		if (gf_fwrite(&byte, 1, repeat_count, bs->stream) != repeat_count) return 0;
+		if (bs->gfio) {
+			if (gf_fileio_write(bs->gfio, &byte, repeat_count) != repeat_count) return 0;
+		} else {
+			if (gf_fwrite(&byte, 1, repeat_count, bs->stream) != repeat_count) return 0;
+		}
 		if (bs->size == bs->position) bs->size += repeat_count;
 		bs->position += repeat_count;
 		return repeat_count;
@@ -893,7 +950,11 @@ u32 gf_bs_write_data(GF_BitStream *bs, const u8 *data, u32 nbBytes)
 				bs->buffer_written+=nbBytes;
 				return nbBytes;
 			}
-			if (gf_fwrite(data, nbBytes, 1, bs->stream) != 1) return 0;
+			if (bs->gfio) {
+				if (gf_fileio_write(bs->gfio, (u8 *) data, nbBytes) != 1) return 0;
+			} else {
+				if (gf_fwrite(data, nbBytes, 1, bs->stream) != 1) return 0;
+			}
 			if (bs->size == bs->position) bs->size += nbBytes;
 			bs->position += nbBytes;
 			return nbBytes;
@@ -956,10 +1017,17 @@ u64 gf_bs_available(GF_BitStream *bs)
 	if (bs->buffer_io)
 		bs_flush_cache(bs);
 
-	cur = gf_ftell(bs->stream);
-	gf_fseek(bs->stream, 0, SEEK_END);
-	end = gf_ftell(bs->stream);
-	gf_fseek(bs->stream, cur, SEEK_SET);
+	if (bs->gfio) {
+		cur = gf_fileio_tell(bs->gfio);
+		gf_fileio_seek(bs->gfio, 0, SEEK_END);
+		end = gf_fileio_tell(bs->gfio);
+		gf_fileio_seek(bs->gfio, cur, SEEK_SET);
+	} else {
+		cur = gf_ftell(bs->stream);
+		gf_fseek(bs->stream, 0, SEEK_END);
+		end = gf_ftell(bs->stream);
+		gf_fseek(bs->stream, cur, SEEK_SET);
+	}
 	return (u64) (end - cur);
 }
 
@@ -1049,7 +1117,11 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 	if ((bs->bsmode == GF_BITSTREAM_FILE_WRITE) || (bs->bsmode == GF_BITSTREAM_FILE_READ)) {
 		if (bs->buffer_io)
 			bs_flush_cache(bs);
-		gf_fseek(bs->stream, nbBytes, SEEK_CUR);
+		if (bs->gfio) {
+			gf_fileio_seek(bs->gfio, nbBytes, SEEK_CUR);
+		} else {
+			gf_fseek(bs->stream, nbBytes, SEEK_CUR);
+		}
 		bs->position += nbBytes;
 		return;
 	}
@@ -1121,7 +1193,11 @@ static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 	if (bs->buffer_io)
 		bs_flush_cache(bs);
 
-	gf_fseek(bs->stream, offset, SEEK_SET);
+	if (bs->gfio) {
+		gf_fileio_seek(bs->gfio, offset, SEEK_SET);
+	} else {
+		gf_fseek(bs->stream, offset, SEEK_SET);
+	}
 
 	bs->position = offset;
 	bs->current = 0;
@@ -1205,10 +1281,18 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 	default:
 		if (bs->buffer_io)
 			bs_flush_cache(bs);
-		offset = gf_ftell(bs->stream);
-		gf_fseek(bs->stream, 0, SEEK_END);
-		bs->size = gf_ftell(bs->stream);
-		gf_fseek(bs->stream, offset, SEEK_SET);
+
+		if (bs->gfio) {
+			offset = gf_fileio_tell(bs->gfio);
+			gf_fileio_seek(bs->gfio, 0, SEEK_END);
+			bs->size = gf_fileio_tell(bs->gfio);
+			gf_fileio_seek(bs->gfio, offset, SEEK_SET);
+		} else {
+			offset = gf_ftell(bs->stream);
+			gf_fseek(bs->stream, 0, SEEK_END);
+			bs->size = gf_ftell(bs->stream);
+			gf_fseek(bs->stream, offset, SEEK_SET);
+		}
 		return bs->size;
 	}
 }
@@ -1323,7 +1407,7 @@ void gf_bs_write_u16_le(GF_BitStream *bs, u32 val)
 GF_EXPORT
 u32 gf_bs_get_bit_offset(GF_BitStream *bs)
 {
-	if (bs->stream) return 0;
+	if (bs->stream || bs->gfio) return 0;
 	if (bs->bsmode==GF_BITSTREAM_READ) return (u32) ( (bs->position - 1) * 8 + bs->nbBits);
 	return (u32) ( (bs->position ) * 8 + bs->nbBits);
 }
@@ -1331,7 +1415,7 @@ u32 gf_bs_get_bit_offset(GF_BitStream *bs)
 GF_EXPORT
 u32 gf_bs_get_bit_position(GF_BitStream *bs)
 {
-	if (bs->stream) return 0;
+	if (bs->stream || bs->gfio) return 0;
 	return bs->nbBits;
 }
 

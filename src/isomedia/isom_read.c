@@ -145,20 +145,43 @@ u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_rang
 		if (gf_blob_get_data(fileName, &mem_address, &size) != GF_OK) {
 			return 0;
 		}
+		if (!size) return 4;
 		if (size > start_range + 8)
 			type = GF_4CC(mem_address[start_range + 4], mem_address[start_range + 5], mem_address[start_range + 6], mem_address[start_range + 7]);
+	} else if (!strncmp(fileName, "gfio://", 7)) {
+		s64 pos;
+		u8 buf[8];
+		GF_FileIO *gfio = gf_fileio_from_url(fileName);
+		if (!gfio) return 0;
+		pos = gf_fileio_tell(gfio);
+		if (pos>=0) {
+			u32 nb_read;
+			gf_fileio_seek(gfio, 0, SEEK_SET);
+			nb_read = gf_fileio_read(gfio, buf, 8);
+			if (nb_read >= 8) {
+				type = GF_4CC(buf[4], buf[5], buf[6], buf[7]);
+			}
+			gf_fileio_seek(gfio, pos, SEEK_SET);
+			if (!nb_read)
+				return 4;
+		} else {
+			return 4;
+		}
 	} else {
+		u32 nb_read;
 		unsigned char data[4];
 		FILE *f = gf_fopen(fileName, "rb");
-		if (!f) return 0;
+		if (!f) return 4;
 		if (start_range) gf_fseek(f, start_range, SEEK_SET);
 		type = 0;
-		if (fread(data, 1, 4, f) == 4) {
+		nb_read = fread(data, 1, 4, f);
+		if (nb_read == 4) {
 			if (fread(data, 1, 4, f) == 4) {
 				type = GF_4CC(data[0], data[1], data[2], data[3]);
 			}
 		}
 		gf_fclose(f);
+		if (!nb_read) return 4;
 	}
 	return gf_isom_probe_type(type);
 }
