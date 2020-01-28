@@ -422,32 +422,43 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 		if (codec->field_order>AV_FIELD_PROGRESSIVE)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_INTERLACED, &PROP_BOOL(GF_TRUE) );
 
-		if (codec->pix_fmt>0) {
+		if ((codec->codec_type==AVMEDIA_TYPE_VIDEO)
+			&& (codec->pix_fmt || ((codec->codec_id==AV_CODEC_ID_RAWVIDEO) && codec->codec_tag))
+		) {
 			u32 pfmt = 0;
-			switch (codec->pix_fmt) {
-			case AV_PIX_FMT_YUV420P: pfmt = GF_PIXEL_YUV; break;
-			case AV_PIX_FMT_YUV420P10LE: pfmt = GF_PIXEL_YUV_10; break;
-			case AV_PIX_FMT_YUV422P: pfmt = GF_PIXEL_YUV422; break;
-			case AV_PIX_FMT_YUV422P10LE: pfmt = GF_PIXEL_YUV422_10; break;
-			case AV_PIX_FMT_YUV444P: pfmt = GF_PIXEL_YUV444; break;
-			case AV_PIX_FMT_YUV444P10LE: pfmt = GF_PIXEL_YUV444_10; break;
-			case AV_PIX_FMT_RGBA: pfmt = GF_PIXEL_RGBA; break;
-			case AV_PIX_FMT_RGB24: pfmt = GF_PIXEL_RGB; break;
-			case AV_PIX_FMT_BGR24: pfmt = GF_PIXEL_BGR; break;
-			case AV_PIX_FMT_UYVY422: pfmt = GF_PIXEL_UYVY; break;
-			case AV_PIX_FMT_YUYV422: pfmt = GF_PIXEL_YUYV; break;
-			case AV_PIX_FMT_NV12: pfmt = GF_PIXEL_NV12; break;
-			case AV_PIX_FMT_NV21: pfmt = GF_PIXEL_NV21; break;
-			case AV_PIX_FMT_0RGB: pfmt = GF_PIXEL_XRGB; break;
-			case AV_PIX_FMT_RGB0: pfmt = GF_PIXEL_RGBX; break;
-			case AV_PIX_FMT_0BGR: pfmt = GF_PIXEL_XBGR; break;
-			case AV_PIX_FMT_BGR0: pfmt = GF_PIXEL_BGRX; break;
 
-			default:
+#define CHECK_FF_PFMT(__ff_cid, __gp_cid)\
+			if ((codec->pix_fmt && (codec->pix_fmt==__ff_cid)) \
+				|| (codec->codec_tag && (avcodec_pix_fmt_to_codec_tag(__ff_cid) == codec->codec_tag))) { \
+				pfmt = __gp_cid; \
+			} \
+
+			CHECK_FF_PFMT(AV_PIX_FMT_YUV420P, GF_PIXEL_YUV)
+			else CHECK_FF_PFMT(AV_PIX_FMT_YUV420P10LE, GF_PIXEL_YUV_10)
+			else CHECK_FF_PFMT(AV_PIX_FMT_YUV422P, GF_PIXEL_YUV422)
+			else CHECK_FF_PFMT(AV_PIX_FMT_YUV422P10LE, GF_PIXEL_YUV422_10)
+			else CHECK_FF_PFMT(AV_PIX_FMT_YUV444P, GF_PIXEL_YUV444)
+			else CHECK_FF_PFMT(AV_PIX_FMT_YUV444P10LE, GF_PIXEL_YUV444_10)
+			else CHECK_FF_PFMT(AV_PIX_FMT_RGBA, GF_PIXEL_RGBA)
+			else CHECK_FF_PFMT(AV_PIX_FMT_RGB24, GF_PIXEL_RGB)
+			else CHECK_FF_PFMT(AV_PIX_FMT_BGR24, GF_PIXEL_BGR)
+			else CHECK_FF_PFMT(AV_PIX_FMT_UYVY422, GF_PIXEL_UYVY)
+			else CHECK_FF_PFMT(AV_PIX_FMT_YUYV422, GF_PIXEL_YUYV)
+			else CHECK_FF_PFMT(AV_PIX_FMT_NV12, GF_PIXEL_NV12)
+			else CHECK_FF_PFMT(AV_PIX_FMT_NV21, GF_PIXEL_NV21)
+			else CHECK_FF_PFMT(AV_PIX_FMT_0RGB, GF_PIXEL_XRGB)
+			else CHECK_FF_PFMT(AV_PIX_FMT_RGB0, GF_PIXEL_RGBX)
+			else CHECK_FF_PFMT(AV_PIX_FMT_0BGR, GF_PIXEL_XBGR)
+			else CHECK_FF_PFMT(AV_PIX_FMT_BGR0, GF_PIXEL_BGRX)
+			else {
 				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Unsupported pixel format %d\n", ctx->fname, codec->pix_fmt));
 			}
 			gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT( pfmt) );
+
+#undef CHECK_FF_PFMT
 		}
+
+
 		if (codec->sample_fmt>0) {
 			u32 sfmt = 0;
 			switch (codec->sample_fmt) {

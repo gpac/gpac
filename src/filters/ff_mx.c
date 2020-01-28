@@ -105,6 +105,7 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 	res = avformat_write_header(ctx->muxer, NULL);
 	if (res<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write %s header - error %s\n", ctx->dst, av_err2str(res) ));
+		ctx->status = 4;
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	return GF_OK;
@@ -467,8 +468,49 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	codec_id = p->value.uint;
 
 	ff_st = ffmpeg_stream_type_from_gpac(streamtype);
-	ff_codec_id = ffmpeg_codecid_from_gpac(codec_id, &ff_codec_tag);
+	if (codec_id==GF_CODECID_RAW) {
+		ff_codec_tag = 0;
+		if (streamtype==GF_STREAM_VISUAL) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
+			if (!p) return GF_NOT_SUPPORTED;
+			switch (p->value.uint) {
+			default:
+				ff_codec_id = AV_CODEC_ID_RAWVIDEO;
+				break;
+			}
+		} else {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+			if (!p) return GF_NOT_SUPPORTED;
 
+			switch (p->value.uint) {
+			case GF_AUDIO_FMT_U8:
+			case GF_AUDIO_FMT_U8P:
+				ff_codec_id = AV_CODEC_ID_PCM_U8;
+				break;
+			case GF_AUDIO_FMT_S16:
+			case GF_AUDIO_FMT_S16P:
+				ff_codec_id = AV_CODEC_ID_PCM_S16LE;
+				break;
+			case GF_AUDIO_FMT_S24:
+			case GF_AUDIO_FMT_S24P:
+				ff_codec_id = AV_CODEC_ID_PCM_S24LE;
+				break;
+			case GF_AUDIO_FMT_S32:
+			case GF_AUDIO_FMT_S32P:
+				ff_codec_id = AV_CODEC_ID_PCM_S32LE;
+				break;
+			case GF_AUDIO_FMT_FLT:
+			case GF_AUDIO_FMT_FLTP:
+				ff_codec_id = AV_CODEC_ID_PCM_F32LE;
+				break;
+			default:
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Unmapped raw audio format %s to FFMPEG, patch welcome\n", gf_audio_fmt_name(p->value.uint) ));
+				return GF_NOT_SUPPORTED;
+			}
+		}
+	} else {
+		ff_codec_id = ffmpeg_codecid_from_gpac(codec_id, &ff_codec_tag);
+	}
 
 	if (ctx->muxer->oformat->query_codec) {
 		res = ctx->muxer->oformat->query_codec(ff_codec_id, 1);
@@ -561,7 +603,10 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 		if (codec_id==GF_CODECID_RAW) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
-			if (p) avst->codecpar->format =  ffmpeg_pixfmt_from_gpac(p->value.uint);
+			if (p) {
+				avst->codecpar->format = ffmpeg_pixfmt_from_gpac(p->value.uint);
+				avst->codecpar->codec_tag = avcodec_pix_fmt_to_codec_tag(avst->codecpar->format);
+			}
 		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
