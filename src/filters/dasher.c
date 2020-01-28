@@ -4115,13 +4115,16 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			if (!dasher_template_use_source_url(a_ds->template ? a_ds->template : ctx->template))
 				continue;
 
-			p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_FILEPATH);
-			p2 = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_FILEPATH);
-			if (gf_props_equal(p1, p2)) split_init = GF_TRUE;
 			p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_URL);
 			p2 = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_URL);
-			if (gf_props_equal(p1, p2)) split_init = GF_TRUE;
-
+			if (p1 && p2) {
+				if (gf_props_equal(p1, p2)) split_init = GF_TRUE;
+			} else {
+				p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_FILEPATH);
+				p2 = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_FILEPATH);
+				if (p1 && p2 && gf_props_equal(p1, p2)) split_init = GF_TRUE;
+			}
+			
 			if (split_init) {
 				ds->split_set_names = GF_TRUE;
 				a_ds->split_set_names = GF_TRUE;
