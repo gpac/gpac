@@ -294,7 +294,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 	//TODO: to support files with BOM we would need to serialize on the fly the callback from the sax parser
 	read = (u32) fread(szBOM, 1, 3, xml);
 	if (read==3) {
-		fseek(xml, 0, SEEK_SET);
+		gf_fseek(xml, 0, SEEK_SET);
 		if ((szBOM[0]==0xFF) || (szBOM[0]==0xFE) || (szBOM[0]==0xEF)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] import failure: XML file %s uses unsupported BOM, please convert to plain UTF-8 or ANSI first", xml_file));
 			goto exit;

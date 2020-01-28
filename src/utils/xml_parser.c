@@ -1255,6 +1255,51 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 		return e;
 	}
 
+	if (!strncmp(fileName, "gfio://", 7)) {
+		u32 size, pos;
+		u8 buffer[1026];
+		GF_FileIO *gfio = gf_fileio_from_url(fileName);
+		if (!gfio) return GF_BAD_PARAM;
+
+		pos = gf_fileio_seek(gfio, 0, SEEK_SET);
+		size = gf_fileio_read(gfio, buffer, 4);
+		if (size != 4) return GF_NON_COMPLIANT_BITSTREAM;
+
+		parser->file_size = 4;
+		//copy possible BOM
+		buffer[4] = buffer[5] = 0;
+
+		parser->file_pos = 0;
+		parser->elt_start_pos = 0;
+		parser->current_pos = 0;
+
+		e = gf_xml_sax_init(parser, buffer);
+		if (e) return e;
+		parser->file_pos = 4;
+
+		while (1) {
+			size = gf_fileio_read(gfio, buffer, 1024);
+			if (!size) break;
+			buffer[1024] = buffer[1025] = 0;
+			parser->file_size += size;
+
+			e = gf_xml_sax_parse(parser, buffer);
+			if (e) break;
+			if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
+			parser->file_pos += size;
+		}
+		parser->elt_start_pos = parser->elt_end_pos = 0;
+		parser->elt_name_start = parser->elt_name_end = 0;
+		parser->att_name_start = 0;
+		parser->current_pos = 0;
+		parser->line_size = 0;
+		parser->att_sep = 0;
+		parser->file_pos = 0;
+		parser->file_size = 0;
+		parser->line_size = 0;
+		return e;
+	}
+
 	/*check file exists and gets its size (zlib doesn't support SEEK_END)*/
 	test = gf_fopen(fileName, "rb");
 	if (!test) return GF_URL_ERROR;

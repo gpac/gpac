@@ -3877,11 +3877,11 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 		e = gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
 
 	if (!e) {
-		u32 size = (u32) ftell(f);
+		u32 size = (u32) gf_ftell(f);
 		s32 read;
 		*out_size = size;
 		*out_data = (char*)gf_malloc(sizeof(char)* ( 1 + size));
-		fseek(f, 0, SEEK_SET);
+		gf_fseek(f, 0, SEEK_SET);
 		read = (s32) fread(*out_data, 1, size, f);
 		if (read != size) {
 			gf_free(*out_data);
