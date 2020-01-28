@@ -532,7 +532,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		e = GF_URL_ERROR;
 		break;
 	case AVERROR_EOF:
-		e = GF_OK;
+		e = GF_EOS;
 		break;
 	default:
 		e = GF_NOT_SUPPORTED;
