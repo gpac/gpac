@@ -7757,7 +7757,6 @@ GF_Err void_box_size(GF_Box *s)
 GF_Box *pdin_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_ProgressiveDownloadBox, GF_ISOM_BOX_TYPE_PDIN);
-	tmp->flags = 1;
 	return (GF_Box *)tmp;
 }
 
@@ -7819,7 +7818,6 @@ GF_Err pdin_box_size(GF_Box *s)
 GF_Box *sdtp_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_SampleDependencyTypeBox, GF_ISOM_BOX_TYPE_SDTP);
-	tmp->flags = 1;
 	return (GF_Box *)tmp;
 }
 
