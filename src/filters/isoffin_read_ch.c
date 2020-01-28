@@ -127,6 +127,7 @@ static void init_reader(ISOMChannel *ch)
 		} else {
 			ch->sample_num = 1;
 			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample);
+			if (!ch->sample) ch->last_state = GF_EOS;
 		}
 		if (ch->last_state) {
 			ch->sample = NULL;

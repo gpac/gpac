@@ -723,7 +723,9 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 	if (!cstr->crypt) return GF_SERVICE_ERROR;
 
-	if (! gf_filter_pck_get_crypt_flags(in_pck)) {
+	gf_filter_pck_get_data(in_pck, &data_size);
+
+	if (!data_size || ! gf_filter_pck_get_crypt_flags(in_pck)) {
 		out_pck = gf_filter_pck_new_ref(cstr->opid, NULL, 0, in_pck);
 		gf_filter_pck_merge_properties(in_pck, out_pck);
 		gf_filter_pck_set_property(out_pck, GF_PROP_PCK_CENC_SAI, NULL);
@@ -745,7 +747,6 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		gf_bs_reassign_buffer(ctx->bs_r, sai_payload, saiz);
 	}
 
-	gf_filter_pck_get_data(in_pck, &data_size);
 	//CENC can use inplace processing for decryption
 	out_pck = gf_filter_pck_new_clone(cstr->opid, in_pck, &out_data);
 	if (!out_pck) {

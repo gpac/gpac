@@ -488,8 +488,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 		gf_isom_get_cenc_info(ch->owner->mov, ch->track, stsd_idx, NULL, &scheme_type, &scheme_version, NULL);
 
 		PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
-		//if no PSSH declared, don't update the properties
-		if (!PSSH_count) return;
+		//if no PSSH declared, DO update the properties (PSSH is not mandatory)
 	} else if (gf_isom_is_adobe_protection_media(mov, track, stsd_idx)) {
 		u32 ofmt;
 		scheme_version = 1;

@@ -1434,6 +1434,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_fragment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_decrypt_file) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_decrypt_fragment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_info_load) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_info_del) )
 
