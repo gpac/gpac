@@ -620,6 +620,7 @@ static const char * h263dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	u32 nb_frames=0;
 	u32 max_nb_frames=0;
 	u32 prev_fmt=0;
+	u32 nb_fail=0;
 	s32 current = h263dmx_next_start_code((u8*)data, size);
 	while (size && (current>=0) && (current< (s32) size)) {
 		u32 fmt=0;
@@ -647,6 +648,7 @@ static const char * h263dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 			prev_fmt=fmt;
 		} else {
 			nb_frames=0;
+			nb_fail++;
 			break;
 		}
 		current = h263dmx_next_start_code((u8*)data+1, size-1);
@@ -654,10 +656,12 @@ static const char * h263dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		current++;
 		if ((s32) size < current) break;
 	}
+	if (nb_fail) return GF_FPROBE_NOT_SUPPORTED;
 	if (nb_frames>max_nb_frames) {
 		max_nb_frames = nb_frames;
 	}
-	if (max_nb_frames) {
+
+	if (max_nb_frames>1) {
 		// *score = max_nb_frames>4 ? GF_FPROBE_SUPPORTED : GF_FPROBE_MAYBE_SUPPORTED;
 		//above fails the following test:
 		//gpac -mem-track -mem-track-stack -blacklist=nvdec  -i results/temp/hevc-split-merge/high_832x0.hvc  @ vout
