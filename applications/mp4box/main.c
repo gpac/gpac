@@ -5127,8 +5127,8 @@ int mp4boxMain(int argc, char **argv)
 			omode =  (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) );
 
 			if (crypt) {
-				if (crypt==1)
-					omode = GF_ISOM_OPEN_CAT_FRAGMENTS;
+				//keep fragment signaling in moov
+				omode = GF_ISOM_OPEN_CAT_FRAGMENTS;
 				if (use_init_seg)
 					file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ, tmpdir);
 			}
@@ -6149,7 +6149,11 @@ int mp4boxMain(int argc, char **argv)
 				e = gf_crypt_file(file, drm_file, outfile, interleaving_time, fs_dump_flags);
 			}
 		} else if (crypt ==2) {
-			e = gf_decrypt_file(file, drm_file, outfile, interleaving_time, fs_dump_flags);
+			if (use_init_seg) {
+				e = gf_decrypt_fragment(file, drm_file, outfile, inName, fs_dump_flags);
+			} else {
+				e = gf_decrypt_file(file, drm_file, outfile, interleaving_time, fs_dump_flags);
+			}
 		}
 		if (e) goto err_exit;
 		needSave = outName ? GF_FALSE : GF_TRUE;
