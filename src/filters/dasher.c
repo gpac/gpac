@@ -1299,6 +1299,10 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 	default:
 		subtype = gf_codecid_4cc_type(ds->codec_id);
 		if (!subtype) {
+			const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_ISOM_SUBTYPE);
+			if (p) subtype = p->value.uint;
+		}
+		if (!subtype) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[Dasher] codec parameters not known, cannot set codec string\n" ));
 			strcpy(szCodec, "unkn");
 			return GF_OK;
