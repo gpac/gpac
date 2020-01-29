@@ -495,6 +495,11 @@ enum
 	GF_ISOM_BOX_TYPE_MHM2 	= GF_4CC('m','h','m','2'),
 	GF_ISOM_BOX_TYPE_MHAC 	= GF_4CC('m','h','a','C'),
 
+	GF_ISOM_BOX_TYPE_IPCM 	= GF_4CC('i','p','c','m'),
+	GF_ISOM_BOX_TYPE_FPCM 	= GF_4CC('f','p','c','m'),
+	GF_ISOM_BOX_TYPE_PCMC 	= GF_4CC('p','c','m','C'),
+
+	GF_ISOM_BOX_TYPE_CHNL 	= GF_4CC('c','h','n','l'),
 
 	GF_ISOM_BOX_TYPE_AUXV 	= GF_4CC('A','U','X','V'),
 
@@ -1169,6 +1174,13 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
+
+	GF_AudioChannelLayout layout;
+} GF_ChannelLayoutBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
 	GF_ESD *desc;
 } GF_ESDBox;
 
@@ -1546,6 +1558,14 @@ typedef struct
 	u16 mha_config_size;
 	char *mha_config;
 } GF_MHAConfigBox;
+
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8 format_flags;
+	u8 PCM_sample_size;
+} GF_PCMConfigBox;
 
 
 typedef struct

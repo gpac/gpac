@@ -526,7 +526,7 @@ static Bool audiobuffer_get_config(GF_AudioInterface *aifc, Bool for_reconf)
 			st->buffer_size = 0;
 		}
 
-		gf_mixer_get_config(st->am, &aifc->samplerate, &aifc->chan, &aifc->afmt, &aifc->ch_cfg);
+		gf_mixer_get_config(st->am, &aifc->samplerate, &aifc->chan, &aifc->afmt, &aifc->ch_layout);
 		//we only work with packed formats
 		switch (aifc->afmt) {
 		case GF_AUDIO_FMT_U8P:
@@ -552,11 +552,11 @@ static Bool audiobuffer_get_config(GF_AudioInterface *aifc, Bool for_reconf)
 			break;
 		}
 		if (force_config) {
-			gf_mixer_set_config(st->am, aifc->samplerate, aifc->chan, aifc->afmt, aifc->ch_cfg);
+			gf_mixer_set_config(st->am, aifc->samplerate, aifc->chan, aifc->afmt, aifc->ch_layout);
 		}
 		st->is_init = (aifc->samplerate && aifc->chan && aifc->afmt) ? GF_TRUE : GF_FALSE;
 		assert(st->is_init);
-		if (!st->is_init) aifc->samplerate = aifc->chan = aifc->afmt = aifc->ch_cfg = 0;
+		if (!st->is_init) aifc->samplerate = aifc->chan = aifc->afmt = aifc->ch_layout = 0;
 		/*this will force invalidation*/
 		return (for_reconf && st->is_init) ? GF_TRUE : GF_FALSE;
 	}

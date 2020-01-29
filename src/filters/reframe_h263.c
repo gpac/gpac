@@ -656,7 +656,7 @@ static const char * h263dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		current++;
 		if ((s32) size < current) break;
 	}
-	if (nb_fail) return GF_FPROBE_NOT_SUPPORTED;
+	if (nb_fail) return NULL;
 	if (nb_frames>max_nb_frames) {
 		max_nb_frames = nb_frames;
 	}

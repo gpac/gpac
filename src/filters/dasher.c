@@ -196,7 +196,8 @@ typedef struct _dash_stream
 	const char *template;
 	const char *xlink;
 	const char *hls_vp_name;
-	u32 ch_layout, nb_surround, nb_lfe;
+	u32 nb_surround, nb_lfe;
+	u64 ch_layout;
 	GF_PropVec4i srd;
 	DasherHDRType hdr_type;
 	Bool sscale;
@@ -486,6 +487,12 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (p && (p->value.uint != _mem) && _mem) period_switch = GF_TRUE; \
 	if (p) _mem = p->value.uint; \
 
+#define CHECK_PROPL(_type, _mem, _e) \
+	p = gf_filter_pid_get_property(pid, _type); \
+	if (!p && (_e<=0) ) return _e; \
+	if (p && (p->value.longuint != _mem) && _mem) period_switch = GF_TRUE; \
+	if (p) _mem = p->value.longuint; \
+
 #define CHECK_PROP_BOOL(_type, _mem, _e) \
 	p = gf_filter_pid_get_property(pid, _type); \
 	if (!p && (_e<=0) ) return _e; \
@@ -563,7 +570,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		} else if (ds->stream_type==GF_STREAM_AUDIO) {
 			CHECK_PROP(GF_PROP_PID_SAMPLE_RATE, ds->sr, GF_EOS)
 			CHECK_PROP(GF_PROP_PID_NUM_CHANNELS, ds->nb_ch, GF_EOS)
-			CHECK_PROP(GF_PROP_PID_CHANNEL_LAYOUT, ds->ch_layout, GF_EOS)
+			CHECK_PROPL(GF_PROP_PID_CHANNEL_LAYOUT, ds->ch_layout, GF_EOS)
 		}
 
 		CHECK_PROP(GF_PROP_PID_ID, ds->id, GF_EOS)
@@ -955,37 +962,6 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 		gf_list_add(ctx->mpd->base_URLs, base);
 	}
 	return dasher_update_mpd(ctx);
-}
-
-
-static u32 dasher_cicp_get_channel_config(u32 nb_chan,u32 nb_surr, u32 nb_lfe)
-{
-	if ( !nb_chan && !nb_surr && !nb_lfe) return 0;
-	else if ((nb_chan==1) && !nb_surr && !nb_lfe) return 1;
-	else if ((nb_chan==2) && !nb_surr && !nb_lfe) return 2;
-	else if ((nb_chan==3) && !nb_surr && !nb_lfe) return 3;
-	else if ((nb_chan==3) && (nb_surr==1) && !nb_lfe) return 4;
-	else if ((nb_chan==3) && (nb_surr==2) && !nb_lfe) return 5;
-	else if ((nb_chan==3) && (nb_surr==2) && (nb_lfe==1)) return 6;
-	else if ((nb_chan==5) && (nb_surr==0) && (nb_lfe==1)) return 6;
-
-	else if ((nb_chan==5) && (nb_surr==2) && (nb_lfe==1)) return 7;
-	else if ((nb_chan==2) && (nb_surr==1) && !nb_lfe) return 9;
-	else if ((nb_chan==2) && (nb_surr==2) && !nb_lfe) return 10;
-	else if ((nb_chan==3) && (nb_surr==3) && (nb_lfe==1)) return 11;
-	else if ((nb_chan==3) && (nb_surr==4) && (nb_lfe==1)) return 12;
-	else if ((nb_chan==11) && (nb_surr==11) && (nb_lfe==2)) return 13;
-	//we miss left / right front center vs left / right front vertical to signal this one
-//	else if ((nb_chan==5) && (nb_surr==2) && (nb_lfe==1)) return 14;
-	else if ((nb_chan==5) && (nb_surr==5) && (nb_lfe==2)) return 15;
-	else if ((nb_chan==5) && (nb_surr==4) && (nb_lfe==1)) return 16;
-	else if ((nb_surr==5) && (nb_lfe==1) && (nb_chan==6)) return 17;
-	else if ((nb_surr==7) && (nb_lfe==1) && (nb_chan==6)) return 18;
-	else if ((nb_chan==5) && (nb_surr==6) && (nb_lfe==1)) return 19;
-	else if ((nb_chan==7) && (nb_surr==6) && (nb_lfe==1)) return 20;
-
-	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("Unkown CICP mapping for channel config %d/%d.%d\n", nb_chan, nb_surr, nb_lfe));
-	return 0;
 }
 
 static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *ds, char *szCodec, Bool force_inband, Bool force_sbr)
@@ -1626,7 +1602,7 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			sprintf(value, "%d", ds->nb_ch);
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:23003:3:audio_channel_configuration:2011", value);
 		} else {
-			sprintf(value, "%d", dasher_cicp_get_channel_config(ds->nb_ch, ds->nb_surround, ds->nb_lfe));
+			sprintf(value, "%d", gf_audio_fmt_get_cicp_layout(ds->nb_ch, ds->nb_surround, ds->nb_lfe));
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:ChannelConfiguration", value);
 		}
 

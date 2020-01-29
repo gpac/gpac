@@ -272,7 +272,8 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 {
 	const GF_PropertyValue *p;
 	GF_PropertyEntry *pe=NULL;
-	u32 sr, nb_ch, afmt, ch_cfg, timescale;
+	u32 sr, nb_ch, afmt, timescale;
+	u64 ch_cfg;
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -294,7 +295,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (p) nb_ch = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
-	if (p) ch_cfg = p->value.uint;
+	if (p) ch_cfg = p->value.longuint;
 
 	if (ctx->audio_out->SetVolume) {
 		p = gf_filter_pid_get_info(pid, GF_PROP_PID_AUDIO_VOLUME, &pe);

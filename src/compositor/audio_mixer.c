@@ -63,7 +63,7 @@ struct __audiomix
 	u32 sample_rate;
 	u32 nb_channels;
 	u32 afmt, bit_depth;
-	u32 channel_cfg;
+	u64 channel_layout;
 	GF_Mutex *mx;
 	/*if set forces stereo/mono*/
 	Bool force_channel_out;
@@ -233,19 +233,19 @@ static GF_Err get_best_samplerate(GF_AudioMixer *am, u32 *out_sr, u32 *out_ch, u
 }
 
 GF_EXPORT
-void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outFMT, u32 *outChCfg)
+void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outFMT, u64 *outChCfg)
 {
 	(*outFMT) = am->afmt;
 	(*outCH) = am->nb_channels;
 	(*outSR) = am->sample_rate;
-	(*outChCfg) = am->channel_cfg;
+	(*outChCfg) = am->channel_layout;
 }
 
 GF_EXPORT
-void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, u32 outChCfg)
+void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, u64 outChCfg)
 {
 	if ((am->afmt == outFMT) && (am->nb_channels == outCH)
-	        && (am->sample_rate==outSR) && (am->channel_cfg == outChCfg)) return;
+	        && (am->sample_rate==outSR) && (am->channel_layout == outChCfg)) return;
 
 	gf_mixer_lock(am, GF_TRUE);
 	am->afmt = outFMT;
@@ -253,9 +253,9 @@ void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, u3
 	if (!am->force_channel_out) am->nb_channels = outCH;
 	if (get_best_samplerate(am, &outSR, &outCH, &outFMT) == GF_OK) {
 		am->sample_rate = outSR;
-		if (outCH>2) am->channel_cfg = outChCfg;
-		else if (outCH==2) am->channel_cfg = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
-		else am->channel_cfg = GF_AUDIO_CH_FRONT_LEFT;
+		if (outCH>2) am->channel_layout = outChCfg;
+		else if (outCH==2) am->channel_layout = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
+		else am->channel_layout = GF_AUDIO_CH_FRONT_LEFT;
 	}
 	/*if main mixer recfg output*/
 	if (am->ar)	am->ar->need_reconfig = GF_TRUE;
@@ -398,7 +398,8 @@ static void gf_am_configure_source(MixerInput *in)
 GF_EXPORT
 Bool gf_mixer_reconfig(GF_AudioMixer *am)
 {
-	u32 i, count, numInit, max_sample_rate, max_channels, max_afmt, cfg_changed, ch_cfg;
+	u32 i, count, numInit, max_sample_rate, max_channels, max_afmt, cfg_changed;
+	u64 ch_layout;
 	gf_mixer_lock(am, GF_TRUE);
 	if (am->isEmpty || !am->must_reconfig) {
 		gf_mixer_lock(am, GF_FALSE);
@@ -418,7 +419,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 //	max_sample_rate = am->sample_rate;
 	max_sample_rate = 0;
 
-	ch_cfg = 0;
+	ch_layout = 0;
 
 	count = gf_list_count(am->sources);
 	assert(count);
@@ -453,23 +454,23 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 				cfg_changed = 1;
 				max_channels = in->src->chan;
 //				if (in->src->forced_layout)
-					ch_cfg |= in->src->ch_cfg;
+					ch_layout |= in->src->ch_layout;
 			}
 			else {
 				u32 nb_ch = in->src->chan;
 				if (in->src->forced_layout) {
-					u32 cfg = in->src->ch_cfg;
+					u64 cfg = in->src->ch_layout;
 					nb_ch = 0;
 					while (cfg) {
 						nb_ch++;
 						cfg >>= 1;
 					}
-					ch_cfg |= in->src->ch_cfg;
+					ch_layout |= in->src->ch_layout;
 				}
 				if (max_channels < nb_ch) {
 					cfg_changed = 1;
 					max_channels = nb_ch;
-					if (nb_ch > 2) ch_cfg |= in->src->ch_cfg;
+					if (nb_ch > 2) ch_layout |= in->src->ch_layout;
 				}
 			}
 		}
@@ -486,26 +487,26 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 
 	if (cfg_changed || (max_sample_rate && (max_sample_rate != am->sample_rate)) ) {
 		if (max_channels>2) {
-			if (!ch_cfg) {
+			if (!ch_layout) {
 				//TODO pickup default layout ?
-			} else if (ch_cfg != am->channel_cfg) {
+			} else if (ch_layout != am->channel_layout) {
 				/*recompute num channel based on all input channels*/
 				max_channels = 0;
-				if (ch_cfg & GF_AUDIO_CH_FRONT_LEFT) max_channels ++;
-				if (ch_cfg & GF_AUDIO_CH_FRONT_RIGHT) max_channels ++;
-				if (ch_cfg & GF_AUDIO_CH_FRONT_CENTER) max_channels ++;
-				if (ch_cfg & GF_AUDIO_CH_LFE) max_channels ++;
-				if (ch_cfg & GF_AUDIO_CH_BACK_LEFT) max_channels ++;
-				if (ch_cfg & GF_AUDIO_CH_BACK_RIGHT) max_channels ++;
-				if (ch_cfg & GF_AUDIO_CH_BACK_CENTER) max_channels ++;
-				if (ch_cfg & GF_AUDIO_CH_SIDE_LEFT) max_channels ++;
-				if (ch_cfg & GF_AUDIO_CH_SIDE_RIGHT) max_channels ++;
+				if (ch_layout & GF_AUDIO_CH_FRONT_LEFT) max_channels ++;
+				if (ch_layout & GF_AUDIO_CH_FRONT_RIGHT) max_channels ++;
+				if (ch_layout & GF_AUDIO_CH_FRONT_CENTER) max_channels ++;
+				if (ch_layout & GF_AUDIO_CH_LFE) max_channels ++;
+				if (ch_layout & GF_AUDIO_CH_SURROUND_LEFT) max_channels ++;
+				if (ch_layout & GF_AUDIO_CH_SURROUND_RIGHT) max_channels ++;
+				if (ch_layout & GF_AUDIO_CH_REAR_CENTER) max_channels ++;
+				if (ch_layout & GF_AUDIO_CH_REAR_SURROUND_LEFT) max_channels ++;
+				if (ch_layout & GF_AUDIO_CH_REAR_SURROUND_RIGHT) max_channels ++;
 			}
 		} else {
-			ch_cfg = GF_AUDIO_CH_FRONT_LEFT;
-			if (max_channels==2) ch_cfg |= GF_AUDIO_CH_FRONT_RIGHT;
+			ch_layout = GF_AUDIO_CH_FRONT_LEFT;
+			if (max_channels==2) ch_layout |= GF_AUDIO_CH_FRONT_RIGHT;
 		}
-		gf_mixer_set_config(am, max_sample_rate, max_channels, max_afmt, ch_cfg);
+		gf_mixer_set_config(am, max_sample_rate, max_channels, max_afmt, ch_layout);
 	}
 
 	if (numInit == count) am->must_reconfig = GF_FALSE;
@@ -530,18 +531,18 @@ static GFINLINE u32 get_channel_out_pos(u32 in_ch, u32 out_cfg)
 }
 
 /*this is crude, we'd need a matrix or something*/
-static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u32 in_cfg, Bool forced_layout, u32 nb_out, u32 out_cfg)
+static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u64 in_ch_layout, Bool forced_layout, u32 nb_out, u32 out_cfg)
 {
 	u32 i;
 	if (nb_in==1) {
 		/*mono to stereo*/
 		if (nb_out==2) {
 			//layout forced, don't copy
-			if (in_cfg && forced_layout) {
+			if (in_ch_layout && forced_layout) {
 				u32 idx = 0;
 				while (1) {
-					in_cfg >>= 1;
-					if (!in_cfg) break;
+					in_ch_layout >>= 1;
+					if (!in_ch_layout) break;
 					idx++;
 				}
 				if (idx) {
@@ -580,7 +581,7 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u32 in_cfg, B
 	else if (nb_in<nb_out) {
 		s32 bckup[GF_AUDIO_MIXER_MAX_CHANNELS];
 		u32 pos;
-		u32 cfg = in_cfg;
+		u32 cfg = in_ch_layout;
 		u32 ch = 0;
 		memcpy(bckup, inChan, sizeof(s32)*nb_in);
 		for (i=0; i<nb_in; i++) {
@@ -603,7 +604,7 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u32 in_cfg, B
 	else if (nb_in>nb_out) {
 		s32 bckup[GF_AUDIO_MIXER_MAX_CHANNELS];
 		u32 pos;
-		u32 cfg = in_cfg;
+		u32 cfg = in_ch_layout;
 		u32 ch = 0;
 		memcpy(bckup, inChan, sizeof(s32)*nb_in);
 		for (i=0; i<nb_in; i++) {
@@ -623,16 +624,16 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u32 in_cfg, B
 				switch (1<<ch) {
 				case GF_AUDIO_CH_FRONT_CENTER:
 				case GF_AUDIO_CH_LFE:
-				case GF_AUDIO_CH_BACK_CENTER:
+				case GF_AUDIO_CH_REAR_CENTER:
 					inChan[0] += bckup[i]/2;
 					inChan[1] += bckup[i]/2;
 					break;
-				case GF_AUDIO_CH_BACK_LEFT:
-				case GF_AUDIO_CH_SIDE_LEFT:
+				case GF_AUDIO_CH_SURROUND_LEFT:
+				case GF_AUDIO_CH_REAR_SURROUND_LEFT:
 					inChan[0] += bckup[i];
 					break;
-				case GF_AUDIO_CH_BACK_RIGHT:
-				case GF_AUDIO_CH_SIDE_RIGHT:
+				case GF_AUDIO_CH_SURROUND_RIGHT:
+				case GF_AUDIO_CH_REAR_SURROUND_RIGHT:
 					inChan[1] += bckup[i];
 					break;
 				}
@@ -705,7 +706,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 
 
 		//map inChannel to the output channel config
-		gf_mixer_map_channels(inChan, in_ch, in->src->ch_cfg, in->src->forced_layout, out_ch, am->channel_cfg);
+		gf_mixer_map_channels(inChan, in_ch, in->src->ch_layout, in->src->forced_layout, out_ch, am->channel_layout);
 
 		for (j=0; j<out_ch ; j++) {
 			*(in->ch_buf[j] + in->out_samples_written) = (s32) inChan[j];

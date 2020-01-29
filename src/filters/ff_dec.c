@@ -36,6 +36,11 @@
 		ctx->_name = (u32) ctx->decoder->_ffname;	\
 	} \
 
+#define FF_CHECK_PROPL(_name, _ffname, _type)	if (ctx->_name != ctx->decoder->_ffname) { \
+	gf_filter_pid_set_property(ctx->out_pid, _type, &PROP_LONGUINT( (u32) ctx->decoder->_ffname ) );	\
+	ctx->_name = (u32) ctx->decoder->_ffname;	\
+} \
+
 #define FF_CHECK_PROP_VAL(_name, _val, _type)	if (ctx->_name != _val) { \
 		gf_filter_pid_set_property(ctx->out_pid, _type, &PROP_UINT( _val ) );	\
 		ctx->_name = _val;	\
@@ -69,7 +74,8 @@ typedef struct _gf_ffdec_ctx
 	//for now we don't share the data
 	AVFrame *frame;
 	//audio state
-	u32 channels, sample_rate, sample_fmt, channel_layout, bytes_per_sample;
+	u32 channels, sample_rate, sample_fmt, bytes_per_sample;
+	u64 channel_layout;
 	u32 frame_start;
 	u32 nb_samples_already_in_frame;
 
@@ -429,7 +435,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	}
 
 	FF_CHECK_PROP(channels, channels, GF_PROP_PID_NUM_CHANNELS)
-	FF_CHECK_PROP(channel_layout, channel_layout, GF_PROP_PID_CHANNEL_LAYOUT)
+	FF_CHECK_PROPL(channel_layout, channel_layout, GF_PROP_PID_CHANNEL_LAYOUT)
 	FF_CHECK_PROP(sample_rate, sample_rate, GF_PROP_PID_SAMPLE_RATE)
 
 	output_size = frame->nb_samples*ctx->channels*ctx->bytes_per_sample;
@@ -784,9 +790,9 @@ reuse_codec_context:
 			FF_CHECK_PROP(channels, channels, GF_PROP_PID_NUM_CHANNELS)
 		}
 		if (ctx->decoder->channel_layout) {
-			u32 ch_lay = ffmpeg_channel_layout_to_gpac((u32) ctx->decoder->channel_layout);
+			u64 ch_lay = ffmpeg_channel_layout_to_gpac(ctx->decoder->channel_layout);
 			if (ctx->channel_layout != ch_lay) {
-				gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ch_lay ) );
+				gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_lay ) );
 				ctx->channel_layout = ch_lay;
 			}
 		}
