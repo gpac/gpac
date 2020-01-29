@@ -855,6 +855,8 @@ ISOM_BOX_IMPL_DECL(dvcC)
 ISOM_BOX_IMPL_DECL(dvhe)
 ISOM_BOX_IMPL_DECL(dfla)
 
+ISOM_BOX_IMPL_DECL(pcmC)
+ISOM_BOX_IMPL_DECL(chnl)
 
 
 
@@ -1069,6 +1071,9 @@ static struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_METT, metx, "stsd"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_STVI, stvi, "schi", 0),
 
+
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_CHNL, chnl, "audio_sample_entry", 0),
+
 	//FEC
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_FIIN, fiin, "meta", 0),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_PAEN, paen, "fiin"),
@@ -1193,6 +1198,10 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHM1, audio_sample_entry, "stsd", "mpegh3Daudio"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHM2, audio_sample_entry, "stsd", "mpegh3Daudio"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHAC, mhac, "mha1 mha2 mhm1 mhm2", "mpegh3Daudio"),
+
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IPCM, audio_sample_entry, "stsd", "23003_5"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_FPCM, audio_sample_entry, "stsd", "23003_5"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_PCMC, pcmC, "ipcm fpcm", 0, "23003_5"),
 
 	//AV1 in ISOBMFF boxes
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_AV01, video_sample_entry, "stsd", "av1"),

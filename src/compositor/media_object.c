@@ -238,7 +238,7 @@ void gf_mo_get_nb_layers(GF_MediaObject *mo, u32 *nb_layers)
 }
 
 GF_EXPORT
-Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config, Bool *forced_layout)
+Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u64 *channel_config, Bool *forced_layout)
 {
 	if (!mo->odm || (mo->type != GF_MEDIA_OBJECT_AUDIO)) return GF_FALSE;
 
@@ -325,7 +325,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_NUM_CHANNELS);
 		if (v) mo->num_channels = v->value.uint;
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_CHANNEL_LAYOUT);
-		if (v) mo->channel_config = v->value.uint;
+		if (v) mo->channel_config = v->value.longuint;
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_AUDIO_FORMAT);
 		if (v) mo->afmt = v->value.uint;
 		else mo->afmt = GF_AUDIO_FMT_S16;

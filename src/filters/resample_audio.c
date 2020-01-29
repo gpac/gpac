@@ -38,7 +38,8 @@ typedef struct
 	GF_AudioMixer *mixer;
 	Bool cfg_forced;
 	//output config
-	u32 freq, nb_ch, afmt, ch_cfg;
+	u32 freq, nb_ch, afmt;
+	u64 ch_cfg;
 	//source is planar
 	Bool src_is_planar;
 	GF_AudioInterface input_ai;
@@ -138,7 +139,8 @@ static void resample_finalize(GF_Filter *filter)
 static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	u32 sr, nb_ch, ch_cfg, afmt;
+	u32 sr, nb_ch, afmt;
+	u64 ch_cfg;
 	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
 	if (is_remove) {
 		if (ctx->opid) {
@@ -177,7 +179,7 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	ch_cfg = ctx->ch_cfg;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
-	if (p) ch_cfg = p->value.uint;
+	if (p) ch_cfg = p->value.longuint;
 	if (!ch_cfg) ch_cfg = (nb_ch==1) ? GF_AUDIO_CH_FRONT_CENTER : (GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT);
 
 	//initial config
@@ -191,13 +193,13 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 	//input reconfig
 	if ((sr != ctx->input_ai.samplerate) || (nb_ch != ctx->input_ai.chan)
-		|| (afmt != ctx->input_ai.afmt) || (ch_cfg != ctx->input_ai.ch_cfg)
+		|| (afmt != ctx->input_ai.afmt) || (ch_cfg != ctx->input_ai.ch_layout)
 		|| (ctx->src_is_planar != gf_audio_fmt_is_planar(afmt))
 	) {
 		ctx->input_ai.samplerate = sr;
 		ctx->input_ai.afmt = afmt;
 		ctx->input_ai.chan = nb_ch;
-		ctx->input_ai.ch_cfg = ch_cfg;
+		ctx->input_ai.ch_layout = ch_cfg;
 		ctx->src_is_planar = gf_audio_fmt_is_planar(afmt);
 	}
 
@@ -210,7 +212,7 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->freq));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->afmt));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->nb_ch));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ctx->ch_cfg));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ctx->ch_cfg));
 	return GF_OK;
 }
 
@@ -275,7 +277,8 @@ static GF_Err resample_process(GF_Filter *filter)
 
 static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 {
-	u32 sr, nb_ch, afmt, ch_cfg;
+	u32 sr, nb_ch, afmt;
+	u64 ch_cfg;
 	const GF_PropertyValue *p;
 	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->opid != pid) return GF_BAD_PARAM;
@@ -294,7 +297,7 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 
 	ch_cfg = ctx->ch_cfg;
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_CHANNEL_LAYOUT);
-	if (p) ch_cfg = p->value.uint;
+	if (p) ch_cfg = p->value.longuint;
 
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_AUDIO_SPEED);
 	if (p) {
@@ -320,7 +323,7 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ch_cfg));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_cfg));
 
 	if (ctx->speed > FIX_ONE) {
 		GF_FilterEvent evt;

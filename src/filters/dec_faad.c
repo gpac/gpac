@@ -75,19 +75,19 @@ static void faaddec_check_mc_config(GF_FAADCtx *ctx)
 			channel_mask |= GF_AUDIO_CH_FRONT_RIGHT;
 			break;
 		case SIDE_CHANNEL_LEFT:
-			channel_mask |= GF_AUDIO_CH_SIDE_LEFT;
+			channel_mask |= GF_AUDIO_CH_REAR_SURROUND_LEFT;
 			break;
 		case SIDE_CHANNEL_RIGHT:
-			channel_mask |= GF_AUDIO_CH_SIDE_RIGHT;
+			channel_mask |= GF_AUDIO_CH_REAR_SURROUND_RIGHT;
 			break;
 		case BACK_CHANNEL_LEFT:
-			channel_mask |= GF_AUDIO_CH_BACK_LEFT;
+			channel_mask |= GF_AUDIO_CH_SURROUND_LEFT;
 			break;
 		case BACK_CHANNEL_RIGHT:
-			channel_mask |= GF_AUDIO_CH_BACK_RIGHT;
+			channel_mask |= GF_AUDIO_CH_SURROUND_RIGHT;
 			break;
 		case BACK_CHANNEL_CENTER:
-			channel_mask |= GF_AUDIO_CH_BACK_CENTER;
+			channel_mask |= GF_AUDIO_CH_REAR_CENTER;
 			break;
 		case LFE_CHANNEL:
 			channel_mask |= GF_AUDIO_CH_LFE;
@@ -98,7 +98,7 @@ static void faaddec_check_mc_config(GF_FAADCtx *ctx)
 	}
 	if (ctx->channel_mask != channel_mask) {
 		ctx->channel_mask = channel_mask;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(channel_mask) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(channel_mask) );
 	}
 }
 
@@ -237,19 +237,19 @@ static s8 faaddec_get_channel_pos(GF_FAADCtx *ffd, u32 ch_cfg)
 			if (ch_cfg==GF_AUDIO_CH_FRONT_RIGHT) return i;
 			break;
 		case SIDE_CHANNEL_LEFT:
-			if (ch_cfg==GF_AUDIO_CH_SIDE_LEFT) return i;
+			if (ch_cfg==GF_AUDIO_CH_REAR_SURROUND_LEFT) return i;
 			break;
 		case SIDE_CHANNEL_RIGHT:
-			if (ch_cfg==GF_AUDIO_CH_SIDE_RIGHT) return i;
+			if (ch_cfg==GF_AUDIO_CH_REAR_SURROUND_RIGHT) return i;
 			break;
 		case BACK_CHANNEL_LEFT:
-			if (ch_cfg==GF_AUDIO_CH_BACK_LEFT) return i;
+			if (ch_cfg==GF_AUDIO_CH_SURROUND_LEFT) return i;
 			break;
 		case BACK_CHANNEL_RIGHT:
-			if (ch_cfg==GF_AUDIO_CH_BACK_RIGHT) return i;
+			if (ch_cfg==GF_AUDIO_CH_SURROUND_RIGHT) return i;
 			break;
 		case BACK_CHANNEL_CENTER:
-			if (ch_cfg==GF_AUDIO_CH_BACK_CENTER) return i;
+			if (ch_cfg==GF_AUDIO_CH_REAR_CENTER) return i;
 			break;
 		case LFE_CHANNEL:
 			if (ch_cfg==GF_AUDIO_CH_LFE) return i;
@@ -329,27 +329,27 @@ static GF_Err faaddec_process(GF_Filter *filter)
 			ctx->ch_reorder[idx] = ch;
 			idx++;
 		}
-		ch = faaddec_get_channel_pos(ctx, GF_AUDIO_CH_BACK_LEFT);
+		ch = faaddec_get_channel_pos(ctx, GF_AUDIO_CH_SURROUND_LEFT);
 		if (ch>=0) {
 			ctx->ch_reorder[idx] = ch;
 			idx++;
 		}
-		ch = faaddec_get_channel_pos(ctx, GF_AUDIO_CH_BACK_RIGHT);
+		ch = faaddec_get_channel_pos(ctx, GF_AUDIO_CH_SURROUND_RIGHT);
 		if (ch>=0) {
 			ctx->ch_reorder[idx] = ch;
 			idx++;
 		}
-		ch = faaddec_get_channel_pos(ctx, GF_AUDIO_CH_BACK_CENTER);
+		ch = faaddec_get_channel_pos(ctx, GF_AUDIO_CH_REAR_CENTER);
 		if (ch>=0) {
 			ctx->ch_reorder[idx] = ch;
 			idx++;
 		}
-		ch = faaddec_get_channel_pos(ctx, GF_AUDIO_CH_SIDE_LEFT);
+		ch = faaddec_get_channel_pos(ctx, GF_AUDIO_CH_REAR_SURROUND_LEFT);
 		if (ch>=0) {
 			ctx->ch_reorder[idx] = ch;
 			idx++;
 		}
-		ch = faaddec_get_channel_pos(ctx, GF_AUDIO_CH_SIDE_RIGHT);
+		ch = faaddec_get_channel_pos(ctx, GF_AUDIO_CH_REAR_SURROUND_RIGHT);
 		if (ch>=0) {
 			ctx->ch_reorder[idx] = ch;
 			idx++;

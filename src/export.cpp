@@ -2185,10 +2185,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odm_get_object_info) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_bit_depth) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_cicp_layout) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_layout_from_cicp) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_layout_name_from_cicp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_types_enum) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_print_stats) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_afx_name) )

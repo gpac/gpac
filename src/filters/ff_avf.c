@@ -667,7 +667,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			}
 			if (update_props) {
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(frame->sample_rate));
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT((u32) frame->channel_layout));
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(frame->channel_layout));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(frame->channels));
 				opid->gf_pfmt = ffmpeg_audio_fmt_to_gpac(frame->format);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(opid->gf_pfmt));
@@ -789,7 +789,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		u64 ch_layout=0;
 		u32 sr, afmt, nb_ch;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
-		if (p) ch_layout = p->value.uint;
+		if (p) ch_layout = p->value.longuint;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 		if (!p) return GF_OK; //not ready yet

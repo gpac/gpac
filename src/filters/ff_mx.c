@@ -638,7 +638,8 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	}
 	else if (streamtype==GF_STREAM_AUDIO) {
-		u32 ch_layout, samplerate=0;
+		u64 ch_layout;
+		u32 samplerate=0;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 		if (p) avst->codecpar->sample_rate = samplerate = p->value.uint;
@@ -656,7 +657,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ch_layout = AV_CH_LAYOUT_MONO;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (p)
-			ch_layout = p->value.uint;
+			ch_layout = p->value.longuint;
 		else if (avst->codecpar->channels==2)
 			ch_layout = AV_CH_LAYOUT_STEREO;
 		avst->codecpar->channel_layout = ffmpeg_channel_layout_from_gpac(ch_layout);

@@ -483,8 +483,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool is_text_subs = GF_FALSE;
 	Bool force_colr = GF_FALSE;
 	u32 m_subtype=0;
+	u32 m_subtype_alt_raw=0;
+	u32 raw_bitdepth=0;
 	u32 override_stype=0;
 	u32 width, height, sr, nb_chan, nb_bps, z_order, txt_fsize;
+	u64 ch_layout;
 	GF_Fraction fps, sar;
 	GF_List *multi_pid_stsd = NULL;
 	u32 multi_pid_idx = 0;
@@ -1006,6 +1009,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 	width = height = sr = nb_chan = z_order = txt_fsize = 0;
 	nb_bps = 16;
+	ch_layout = 0;
 	fps.num = 25;
 	fps.den = 1;
 	sar.num = sar.den = 1;
@@ -1051,6 +1055,8 @@ sample_entry_setup:
 	if (p) nb_chan = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_BPS);
 	if (p) nb_bps = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
+	if (p) ch_layout = p->value.longuint;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
 	if (p) lang_name = p->value.string;
@@ -1306,26 +1312,31 @@ sample_entry_setup:
 			 	req_non_planar_type = GF_AUDIO_FMT_S16;
 			case GF_AUDIO_FMT_S16:
 				m_subtype = GF_QT_SUBTYPE_SOWT;
+				m_subtype_alt_raw = GF_ISOM_SUBTYPE_IPCM;
 				break;
 			case GF_AUDIO_FMT_S24P:
 			 	req_non_planar_type = GF_AUDIO_FMT_S24;
 			case GF_AUDIO_FMT_S24:
 				m_subtype = GF_QT_SUBTYPE_IN24;
+				m_subtype_alt_raw = GF_ISOM_SUBTYPE_IPCM;
 				break;
 			case GF_AUDIO_FMT_S32P:
 			 	req_non_planar_type = GF_AUDIO_FMT_S32P;
 			case GF_AUDIO_FMT_S32:
 				m_subtype = GF_QT_SUBTYPE_IN32;
+				m_subtype_alt_raw = GF_ISOM_SUBTYPE_IPCM;
 				break;
 			case GF_AUDIO_FMT_FLTP:
 			 	req_non_planar_type = GF_AUDIO_FMT_FLTP;
 			case GF_AUDIO_FMT_FLT:
 				m_subtype = GF_QT_SUBTYPE_FL32;
+				m_subtype_alt_raw = GF_ISOM_SUBTYPE_FPCM;
 				break;
 			case GF_AUDIO_FMT_DBLP:
 			 	req_non_planar_type = GF_AUDIO_FMT_DBL;
 			case GF_AUDIO_FMT_DBL:
 				m_subtype = GF_QT_SUBTYPE_FL64;
+				m_subtype_alt_raw = GF_ISOM_SUBTYPE_FPCM;
 				break;
 			default:
 				unknown_generic = GF_TRUE;
@@ -1340,7 +1351,8 @@ sample_entry_setup:
 					return GF_NOT_SUPPORTED;
 				}
 			}
-			tkw->raw_audio_bytes_per_sample = gf_audio_fmt_bit_depth(p->value.uint);
+			raw_bitdepth = gf_audio_fmt_bit_depth(p->value.uint);
+			tkw->raw_audio_bytes_per_sample = raw_bitdepth;
 			tkw->raw_audio_bytes_per_sample *= nb_chan;
 			tkw->raw_audio_bytes_per_sample /= 8;
 		}
@@ -1906,10 +1918,11 @@ sample_entry_setup:
 		}
 
 	} else if (use_gen_sample_entry) {
+		u8 isor_ext_buf[14];
 		u32 len = 0;
 		GF_GenericSampleDescription udesc;
 		memset(&udesc, 0, sizeof(GF_GenericSampleDescription));
-		udesc.codec_tag = m_subtype;
+
 		if (!comp_name) comp_name = "Unknown";
 		len = (u32) strlen(comp_name);
 		if (len>32) len = 32;
@@ -1921,11 +1934,25 @@ sample_entry_setup:
 		udesc.samplerate = sr;
 		udesc.nb_channels = nb_chan;
 		if (codec_id==GF_CODECID_RAW) {
-			udesc.is_qtff = GF_TRUE;
-			udesc.version = 1;
-			ase_mode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF;
+			if (ase_mode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) {
+				m_subtype = m_subtype_alt_raw;
+				udesc.extension_buf_size = 14;
+				udesc.extension_buf = isor_ext_buf;
+				memset(isor_ext_buf, 0, sizeof(u8)*14);
+				isor_ext_buf[3] = 14;
+				isor_ext_buf[4] = 'p';
+				isor_ext_buf[5] = 'c';
+				isor_ext_buf[6] = 'm';
+				isor_ext_buf[7] = 'C';
+				isor_ext_buf[12] = 1; //little endian only for now
+				isor_ext_buf[13] = raw_bitdepth; //little endian only for now
+			} else {
+				udesc.is_qtff = GF_TRUE;
+				udesc.version = 1;
+				ase_mode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF;
+			}
 		}
-
+		udesc.codec_tag = m_subtype;
 		udesc.width = width;
 		udesc.height = height;
 		if (width) {
@@ -2160,6 +2187,17 @@ sample_entry_done:
 				}
 			}
 			gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps, ctx->make_qt ? GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF : ase_mode);
+			if ((m_subtype==GF_ISOM_SUBTYPE_IPCM) || (m_subtype==GF_ISOM_SUBTYPE_FPCM)) {
+				GF_AudioChannelLayout layout;
+				memset(&layout, 0, sizeof(GF_AudioChannelLayout));
+				layout.stream_structure = 1;
+				layout.channels_count = nb_chan;
+				if (ch_layout)
+					layout.definedLayout = ch_layout;
+				else
+					layout.definedLayout = gf_audio_fmt_get_cicp_layout(nb_chan, 0, 0);
+				gf_isom_set_audio_layout(ctx->file, tkw->track_num, tkw->stsd_idx, &layout);
+			}
 		}
 		else if (width) {
 			u32 colour_type=0;
@@ -4881,7 +4919,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(ase), "set audio sample entry mode for more than stereo layouts\n"\
 			"- v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"\
 			"- v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"\
-			"- v1: use v1 signaling, ISOBMFF style\n"\
+			"- v1: use v1 signaling, ISOBMFF style (will mux raw PCM as ISOBMFF style)\n"\
 			"- v1qt: use v1 signaling, QTFF style"\
 		, GF_PROP_UINT, "v0", "|v0|v0s|v1|v1qt", 0},
 	{ OFFS(ssix), "create ssix when sidx is present, level 1 mappping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

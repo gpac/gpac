@@ -1427,6 +1427,28 @@ GF_Err gf_isom_get_tmcd_config(GF_ISOFile *movie, u32 trackNumber, u32 descripti
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_get_pcm_config(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, u32 *flags, u32 *pcm_size)
+{
+	GF_AudioSampleEntryBox *aent;
+	GF_PCMConfigBox *pcmC;
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !descriptionIndex) return GF_BAD_PARAM;
+
+	aent = (GF_AudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, descriptionIndex-1);
+	if (!aent) return GF_BAD_PARAM;
+	if ((aent->type != GF_ISOM_BOX_TYPE_IPCM) && (aent->type != GF_ISOM_BOX_TYPE_FPCM))
+		return GF_BAD_PARAM;
+
+	pcmC = (GF_PCMConfigBox *) gf_isom_box_find_child(aent->child_boxes, GF_ISOM_BOX_TYPE_PCMC);
+	if (!pcmC) return GF_NON_COMPLIANT_BITSTREAM;
+
+	if (flags) *flags = pcmC->format_flags;
+	if (pcm_size) *pcm_size = pcmC->PCM_sample_size;
+	return GF_OK;
+}
+
 GF_Err gf_isom_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg)
 {
 	if (!cfg || !bs) return GF_BAD_PARAM;

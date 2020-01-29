@@ -1096,7 +1096,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_SAMPLES_PER_FRAME, "SamplesPerFrame", "Number of audio sample in one coded frame", GF_PROP_UINT},
 	{ GF_PROP_PID_NUM_CHANNELS, "NumChannels", "Number of audio channels", GF_PROP_UINT},
 	{ GF_PROP_PID_AUDIO_BPS, "BPS", "Number of bits per sample in compressed source", GF_PROP_UINT},
-	{ GF_PROP_PID_CHANNEL_LAYOUT, "ChannelLayout", "Channel Layout", GF_PROP_UINT},
+	{ GF_PROP_PID_CHANNEL_LAYOUT, "ChannelLayout", "Channel Layout mask", GF_PROP_LUINT},
 	{ GF_PROP_PID_AUDIO_FORMAT, "AudioFormat", "Audio sample format", GF_PROP_PCMFMT},
 	{ GF_PROP_PID_AUDIO_SPEED, "AudioPlaybackSpeed", "Audio playback speed, only used for audio output reconfiguration", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DELAY, "Delay", "Delay of presentation compared to composition timestamps, in media timescale. Positive value imply holding (delaying) the stream. Negative value imply skipping the beginning of stream", GF_PROP_SINT},

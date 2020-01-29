@@ -196,7 +196,7 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 		vorbis_synthesis_blockin(&ctx->vd, &ctx->vb) ;
 
 	if ( (ctx->vi.channels != ctx->nb_chan) || (ctx->vi.rate != ctx->sample_rate) ) {
-		u32 chan_mask = 0;
+		u64 chan_mask = 0;
 		ctx->nb_chan = ctx->vi.channels;
 		ctx->sample_rate = ctx->vi.rate;
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->sample_rate) );
@@ -214,16 +214,16 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 			chan_mask = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER;
 			break;
 		case 4:
-			chan_mask = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_BACK_LEFT | GF_AUDIO_CH_BACK_RIGHT;
+			chan_mask = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT;
 			break;
 		case 5:
-			chan_mask = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_BACK_LEFT | GF_AUDIO_CH_BACK_RIGHT;
+			chan_mask = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT;
 			break;
 		case 6:
-			chan_mask = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_BACK_LEFT | GF_AUDIO_CH_BACK_RIGHT | GF_AUDIO_CH_LFE;
+			chan_mask = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT | GF_AUDIO_CH_LFE;
 			break;
 		}
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(chan_mask) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(chan_mask) );
 
 	}
 	size = (ctx->vd.pcm_current - ctx->vd.pcm_returned) * 2 * ctx->vi.channels;
