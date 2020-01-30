@@ -1483,6 +1483,7 @@ GF_Err gf_isom_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *
 		cfg->streams[0].acmod = gf_bs_read_int(bs, 3);
 		cfg->streams[0].lfon = gf_bs_read_int(bs, 1);
 		cfg->brcode = gf_bs_read_int(bs, 5);
+		gf_bs_read_int(bs, 5);
 	}
 	return GF_OK;
 }
