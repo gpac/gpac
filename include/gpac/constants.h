@@ -697,16 +697,17 @@ enum
 	/*!Left surround bottom Channel*/
 	GF_AUDIO_CH_SURROUND_BOTTOM_LEFT = (1 << 30),
 	/*!Right surround bottom Channel*/
-	GF_AUDIO_CH_SURROUND_BOTTOM_RIGHT = 0x80000000, //(1 << 31)
-	/*!Left edge of screen Channel*/
-	GF_AUDIO_CH_SCREEN_EDGE_LEFT = 0x2000000000ULL,
-	/*!Right edge of screen Channel*/
-	GF_AUDIO_CH_SCREEN_EDGE_RIGHT = 0x4000000000ULL,
-	/*!left back surround Channel*/
-	GF_AUDIO_CH_BACK_SURROUND_LEFT = 0x20000000000ULL, //(1 << 31)
-	/*!right back surround Channel*/
-	GF_AUDIO_CH_BACK_SURROUND_RIGHT = 0x40000000000ULL //(1 << 31)
+	GF_AUDIO_CH_SURROUND_BOTTOM_RIGHT = 0x80000000 //(1 << 31)
 };
+/*64 bit flags are defined as macro to avoid msvc compil warnings*/
+/*!Left edge of screen Channel*/
+#define GF_AUDIO_CH_SCREEN_EDGE_LEFT	0x2000000000ULL
+/*!Right edge of screen Channel*/
+#define GF_AUDIO_CH_SCREEN_EDGE_RIGHT	0x4000000000ULL
+/*!left back surround Channel*/
+#define GF_AUDIO_CH_BACK_SURROUND_LEFT	0x20000000000ULL
+/*!right back surround Channel*/
+#define GF_AUDIO_CH_BACK_SURROUND_RIGHT	0x40000000000ULL 
 
 
 /*!
@@ -818,6 +819,12 @@ u64 gf_audio_fmt_get_layout_from_cicp(u32 cicp_layout);
 \return name of layout of "unknown" if unknown
 */
 const char *gf_audio_fmt_get_layout_name_from_cicp(u32 cicp_layout);
+
+/*! get CICP layout value from channel layout mask 
+\param chan_layout channel layout mask
+\return CICP code point or 255 if unknown
+*/
+u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout);
 
 /*! Color primaries as defined by ISO/IEC 23001-8 / 23091-2
   */

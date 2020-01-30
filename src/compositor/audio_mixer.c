@@ -516,13 +516,13 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 	return cfg_changed;
 }
 
-static GFINLINE u32 get_channel_out_pos(u32 in_ch, u32 out_cfg)
+static GFINLINE u32 get_channel_out_pos(u32 in_ch, u64 out_ch_layout)
 {
 	u32 i, cfg, pos;
 	pos = 0;
 	for (i=0; i<9; i++) {
 		cfg = 1<<(i);
-		if (out_cfg & cfg) {
+		if (out_ch_layout & cfg) {
 			if (cfg == in_ch) return pos;
 			pos++;
 		}
@@ -531,7 +531,7 @@ static GFINLINE u32 get_channel_out_pos(u32 in_ch, u32 out_cfg)
 }
 
 /*this is crude, we'd need a matrix or something*/
-static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u64 in_ch_layout, Bool forced_layout, u32 nb_out, u32 out_cfg)
+static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u64 in_ch_layout, Bool forced_layout, u32 nb_out, u64 out_ch_layout)
 {
 	u32 i;
 	if (nb_in==1) {
@@ -558,7 +558,7 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u64 in_ch_lay
 		}
 		else if (nb_out>2) {
 			/*if center channel use it (we assume we always have stereo channels)*/
-			if (out_cfg & GF_AUDIO_CH_FRONT_CENTER) {
+			if (out_ch_layout & GF_AUDIO_CH_FRONT_CENTER) {
 				inChan[2] = inChan[0];
 				inChan[0] = 0;
 				for (i=3; i<nb_out; i++) inChan[i] = 0;
@@ -581,7 +581,7 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u64 in_ch_lay
 	else if (nb_in<nb_out) {
 		s32 bckup[GF_AUDIO_MIXER_MAX_CHANNELS];
 		u32 pos;
-		u32 cfg = in_ch_layout;
+		u64 cfg = in_ch_layout;
 		u32 ch = 0;
 		memcpy(bckup, inChan, sizeof(s32)*nb_in);
 		for (i=0; i<nb_in; i++) {
@@ -592,7 +592,7 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u64 in_ch_lay
 				/*done*/
 				if (ch==10) return;
 			}
-			pos = get_channel_out_pos((1<<ch), out_cfg);
+			pos = get_channel_out_pos((1<<ch), out_ch_layout);
 			assert(pos != GF_AUDIO_MIXER_MAX_CHANNELS);
 			inChan[pos] = bckup[i];
 			ch++;
@@ -604,7 +604,7 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u64 in_ch_lay
 	else if (nb_in>nb_out) {
 		s32 bckup[GF_AUDIO_MIXER_MAX_CHANNELS];
 		u32 pos;
-		u32 cfg = in_ch_layout;
+		u64 cfg = in_ch_layout;
 		u32 ch = 0;
 		memcpy(bckup, inChan, sizeof(s32)*nb_in);
 		for (i=0; i<nb_in; i++) {
@@ -615,7 +615,7 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u64 in_ch_lay
 				/*done*/
 				if (ch==10) return;
 			}
-			pos = get_channel_out_pos( (1<<ch), out_cfg);
+			pos = get_channel_out_pos( (1<<ch), out_ch_layout);
 			/*this channel is present in output, copy over*/
 			if (pos < GF_AUDIO_MIXER_MAX_CHANNELS) {
 				inChan[pos] = bckup[i];

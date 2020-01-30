@@ -2200,7 +2200,7 @@ GF_Err gf_isom_set_audio_layout(GF_ISOFile *movie, u32 trackNumber, u32 sampleDe
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return GF_BAD_PARAM;
 	aud_entry = (GF_AudioSampleEntryBox*) entry;
 	if (aud_entry->qtff_mode) {
-		e = gf_isom_set_audio_info(movie, trackNumber, sampleDescriptionIndex, aud_entry->samplerate_hi, aud_entry->channel_count, aud_entry->bitspersample, GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG);
+		e = gf_isom_set_audio_info(movie, trackNumber, sampleDescriptionIndex, aud_entry->samplerate_hi, aud_entry->channel_count, (u8) aud_entry->bitspersample, GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG);
 		if (e) return e;
 	}
 	chnl = (GF_ChannelLayoutBox *) gf_isom_box_find_child(aud_entry->child_boxes, GF_ISOM_BOX_TYPE_CHNL);

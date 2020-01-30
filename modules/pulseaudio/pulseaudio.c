@@ -98,7 +98,7 @@ PulseAudio_Shutdown (GF_AudioOutput * dr)
 }
 
 static GF_Err
-PulseAudio_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u32 channel_cfg)
+PulseAudio_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u64 channel_cfg)
 {
 	int pa_error = 0;
 	PulseAudioContext *ctx = (PulseAudioContext *) dr->opaque;

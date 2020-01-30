@@ -174,7 +174,7 @@ static void WAV_Shutdown(GF_AudioOutput *dr)
 
 /*we assume what was asked is what we got*/
 /* Called by the audio thread */
-static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
+static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u64 channel_cfg)
 {
 	JNIEnv* env = NULL;
 	u32 i;

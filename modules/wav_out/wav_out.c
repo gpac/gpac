@@ -195,7 +195,7 @@ static void WAV_Shutdown(GF_AudioOutput *dr)
 
 
 /*we assume what was asked is what we got*/
-static GF_Err WAV_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u32 channel_cfg)
+static GF_Err WAV_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u64 channel_cfg)
 {
 	u32 i, retry;
 	HRESULT	hr;
@@ -251,11 +251,11 @@ static GF_Err WAV_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels
 		if (channel_cfg & GF_AUDIO_CH_FRONT_RIGHT) format_ex.dwChannelMask |= SPEAKER_FRONT_RIGHT;
 		if (channel_cfg & GF_AUDIO_CH_FRONT_CENTER) format_ex.dwChannelMask |= SPEAKER_FRONT_CENTER;
 		if (channel_cfg & GF_AUDIO_CH_LFE) format_ex.dwChannelMask |= SPEAKER_LOW_FREQUENCY;
-		if (channel_cfg & GF_AUDIO_CH_BACK_LEFT) format_ex.dwChannelMask |= SPEAKER_BACK_LEFT;
-		if (channel_cfg & GF_AUDIO_CH_BACK_RIGHT) format_ex.dwChannelMask |= SPEAKER_BACK_RIGHT;
-		if (channel_cfg & GF_AUDIO_CH_BACK_CENTER) format_ex.dwChannelMask |= SPEAKER_BACK_CENTER;
-		if (channel_cfg & GF_AUDIO_CH_SIDE_LEFT) format_ex.dwChannelMask |= SPEAKER_SIDE_LEFT;
-		if (channel_cfg & GF_AUDIO_CH_SIDE_RIGHT) format_ex.dwChannelMask |= SPEAKER_SIDE_RIGHT;
+		if (channel_cfg & GF_AUDIO_CH_SURROUND_LEFT) format_ex.dwChannelMask |= SPEAKER_BACK_LEFT;
+		if (channel_cfg & GF_AUDIO_CH_SURROUND_RIGHT) format_ex.dwChannelMask |= SPEAKER_BACK_RIGHT;
+		if (channel_cfg & GF_AUDIO_CH_REAR_CENTER) format_ex.dwChannelMask |= SPEAKER_BACK_CENTER;
+		if (channel_cfg & GF_AUDIO_CH_SIDE_SURROUND_LEFT) format_ex.dwChannelMask |= SPEAKER_SIDE_LEFT;
+		if (channel_cfg & GF_AUDIO_CH_SIDE_SURROUND_RIGHT) format_ex.dwChannelMask |= SPEAKER_SIDE_RIGHT;
 		fmt = (WAVEFORMATEX *) &format_ex;
 	}
 #endif

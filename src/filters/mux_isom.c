@@ -2193,7 +2193,7 @@ sample_entry_done:
 				layout.stream_structure = 1;
 				layout.channels_count = nb_chan;
 				if (ch_layout)
-					layout.definedLayout = ch_layout;
+					layout.definedLayout = gf_audio_fmt_get_cicp_from_layout(ch_layout);
 				else
 					layout.definedLayout = gf_audio_fmt_get_cicp_layout(nb_chan, 0, 0);
 				gf_isom_set_audio_layout(ctx->file, tkw->track_num, tkw->stsd_idx, &layout);

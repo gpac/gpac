@@ -40,8 +40,8 @@ typedef struct
 	u32 vol, pan, buffer;
 	
 	GF_FilterPid *pid;
-	u32 sr, afmt, nb_ch, ch_cfg, timescale;
-
+	u32 sr, afmt, nb_ch, timescale;
+	u64 ch_cfg;
 	GF_AudioOutput *audio_out;
 	GF_Thread *th;
 	u32 audio_th_state;
@@ -62,7 +62,8 @@ typedef struct
 
 void aout_reconfig(GF_AudioOutCtx *ctx)
 {
-	u32 sr, afmt, old_afmt, nb_ch, ch_cfg;
+	u32 sr, afmt, old_afmt, nb_ch;
+	u64 ch_cfg;
 	GF_Err e = GF_OK;
 	sr = ctx->sr;
 
@@ -284,7 +285,8 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	assert(!ctx->pid || (ctx->pid==pid));
 	gf_filter_pid_check_caps(pid);
 
-	sr = afmt = nb_ch = ch_cfg = timescale = 0;
+	sr = afmt = nb_ch = timescale = 0;
+	ch_cfg = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) timescale = p->value.uint;
 
