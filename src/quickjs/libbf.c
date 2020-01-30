@@ -7855,7 +7855,7 @@ static no_inline void ntt_to_limb(BFNTTState *s, limb_t *tabr, limb_t r_len,
 {
     const limb_t *mods = ntt_mods + NB_MODS - nb_mods;
     const limb_t *mods_cr, *mods_cr_inv;
-    limb_t y[NB_MODS], u[NB_MODS], carry[NB_MODS], fft_len, base_mask1, r;
+    limb_t y[NB_MODS], u[NB_MODS+2], carry[NB_MODS], fft_len, base_mask1, r;
     slimb_t i, len, pos;
     int j, k, l, shift, n_limb1;
     dlimb_t t;

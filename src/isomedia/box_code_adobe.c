@@ -77,7 +77,7 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_AdobeBootstrapInfoBox *ptr = (GF_AdobeBootstrapInfoBox *)s;
 	int i;
-	u32 tmp_strsize, strsize;
+	u32 tmp_strsize;
 	char *tmp_str;
 	GF_Err e;
 
@@ -92,7 +92,7 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 
 	i=0;
 	if (ptr->size<8) return GF_ISOM_INVALID_FILE;
-	strsize = tmp_strsize=(u32)ptr->size-8;
+	tmp_strsize =(u32)ptr->size-8;
 	tmp_str = gf_malloc(sizeof(char)*tmp_strsize);
 	memset(tmp_str, 0, sizeof(char)*tmp_strsize);
 
