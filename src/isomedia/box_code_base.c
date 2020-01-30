@@ -3686,11 +3686,11 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 	Bool drop_wave=GF_FALSE;
 	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
 
-	ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_ESDS:
 		if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->esd = (GF_ESDBox *)a;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
 
 	case GF_ISOM_BOX_TYPE_DAMR:
@@ -3701,15 +3701,18 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 		ptr->cfg_3gpp = (GF_3GPPConfigBox *) a;
 		/*for 3GP config, remember sample entry type in config*/
 		ptr->cfg_3gpp->cfg.type = ptr->type;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
 
 	case GF_ISOM_BOX_TYPE_DOPS:
 		if (ptr->cfg_opus) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_opus = (GF_OpusSpecificBox *)a;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
 	case GF_ISOM_BOX_TYPE_DAC3:
 		if (ptr->cfg_ac3) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
 	case GF_ISOM_BOX_TYPE_DEC3:
 		if (ptr->cfg_ac3) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -3721,10 +3724,12 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_MHM2:
 		if (ptr->cfg_mha) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_mha = (GF_MHAConfigBox *) a;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
 	case GF_ISOM_BOX_TYPE_DFLA:
 		if (ptr->cfg_flac) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_flac = (GF_FLACConfigBox *) a;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
 
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
