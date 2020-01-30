@@ -446,7 +446,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 		break;
 	default:
 	{
-		char szT[5];
+		char szT[GF_4CC_MSIZE];
 		mstype = gf_isom_get_mpeg4_subtype(import->orig, track_in, di);
 		if (!mstype) mstype = gf_isom_get_media_subtype(import->orig, track_in, di);
 		strcpy(szT, gf_4cc_to_str(mtype));
@@ -1387,6 +1387,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		return GF_OK;
 
 	gf_fs_run(fsess);
+
 	if (!importer->last_error) importer->last_error = gf_fs_get_last_connect_error(fsess);
 	if (!importer->last_error) importer->last_error = gf_fs_get_last_process_error(fsess);
 
@@ -1412,10 +1413,12 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 	}
 
-
 	if (importer->print_stats_graph & 1) gf_fs_print_stats(fsess);
 	if (importer->print_stats_graph & 2) gf_fs_print_connections(fsess);
 	gf_fs_del(fsess);
+	if (!importer->final_trackID) {
+		return gf_import_message(importer, GF_NOT_SUPPORTED, "[Importer] No valid track to import in input file \"%s\"", importer->in_name);
+	}
 	return GF_OK;
 }
 

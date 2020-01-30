@@ -75,7 +75,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 {
 	u32 cid, chan, sr, w, h, stype, pf, sfmt, av1mode, nb_bps;
 	const char *name, *mimetype;
-	char szExt[10], szCodecExt[30], *sep;
+	char szExt[GF_4CC_MSIZE], szCodecExt[30], *sep;
 	const GF_PropertyValue *p;
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 

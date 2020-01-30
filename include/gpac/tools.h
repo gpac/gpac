@@ -73,6 +73,8 @@ Macro formating a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
 #define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|((u32)d))
 #endif
 
+/*! minimum buffer size to hold any 4CC in string format*/
+#define GF_4CC_MSIZE	10
 
 /*! converts four character code to string
 \param type a four character code
