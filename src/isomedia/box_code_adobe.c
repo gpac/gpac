@@ -94,6 +94,7 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size<8) return GF_ISOM_INVALID_FILE;
 	strsize = tmp_strsize=(u32)ptr->size-8;
 	tmp_str = gf_malloc(sizeof(char)*tmp_strsize);
+	memset(tmp_str, 0, sizeof(char)*tmp_strsize);
 
 	while (tmp_strsize) {
 		tmp_str[i] = gf_bs_read_u8(bs);
@@ -103,7 +104,6 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 		i++;
 	}
 	if (i) {
-		tmp_str[strsize-1] = 0;
 		ptr->movie_identifier = gf_strdup(tmp_str);
 	}
 
@@ -118,8 +118,9 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 				break;
 			j++;
 		}
-		tmp_str[strsize-1] = 0;
-		gf_list_insert(ptr->server_entry_table, gf_strdup(tmp_str), i);
+		if (j) {
+			gf_list_insert(ptr->server_entry_table, gf_strdup(tmp_str), i);
+		}
 	}
 
 	ptr->quality_entry_count = gf_bs_read_u8(bs);
@@ -133,8 +134,10 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 				break;
 			j++;
 		}
-		tmp_str[strsize-1] = 0;
-		gf_list_insert(ptr->quality_entry_table, gf_strdup(tmp_str), i);
+
+		if (j) {
+			gf_list_insert(ptr->quality_entry_table, gf_strdup(tmp_str), i);
+		}
 	}
 
 	i=0;
@@ -147,7 +150,6 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 		i++;
 	}
 	if (i) {
-		tmp_str[strsize-1] = 0;
 		ptr->drm_data = gf_strdup(tmp_str);
 	}
 
@@ -161,7 +163,6 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 		i++;
 	}
 	if (i) {
-		tmp_str[strsize-1] = 0;
 		ptr->meta_data = gf_strdup(tmp_str);
 	}
 

@@ -3431,7 +3431,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	if (!ctx->abs_offset) {
 		u32 mval = ctx->dash_mode ? '6' : '5';
 		u32 mbrand, mcount, found=0;
-		u8 szB[5];
+		u8 szB[GF_4CC_MSIZE];
 		gf_isom_set_fragment_option(ctx->file, 0, GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET, 1);
 
 		gf_isom_get_brand_info(ctx->file, &mbrand, NULL, &mcount);

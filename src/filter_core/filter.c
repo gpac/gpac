@@ -2985,7 +2985,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 					if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
 					if (cap->code != GF_PROP_PID_FILE_EXT) continue;
 					value = cap->val.value.string;
-					while (value) {
+					while (value && ext_len) {
 						const char *match = strstr(value, tmp_ext);
 						if (!match) break;
 						if (!match[ext_len] || (match[ext_len]=='|')) {

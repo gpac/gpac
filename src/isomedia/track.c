@@ -664,8 +664,19 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			ent->CTS_Offset = cts_offset;
 
 			//add size first
+			if (!trak->Media->information->sampleTable->SampleSize) {
+				trak->Media->information->sampleTable->SampleSize = (GF_SampleSizeBox *) gf_isom_box_new_parent(&trak->Media->information->sampleTable->child_boxes, GF_ISOM_BOX_TYPE_STSZ);
+				if (!trak->Media->information->sampleTable->SampleSize)
+					return GF_OUT_OF_MEM;
+			}
 			stbl_AppendSize(trak->Media->information->sampleTable, size, ent->nb_pack);
+
 			//then TS
+			if (!trak->Media->information->sampleTable->TimeToSample) {
+				trak->Media->information->sampleTable->TimeToSample = (GF_TimeToSampleBox *) gf_isom_box_new_parent(&trak->Media->information->sampleTable->child_boxes, GF_ISOM_BOX_TYPE_STTS);
+				if (!trak->Media->information->sampleTable->TimeToSample)
+					return GF_OUT_OF_MEM;
+			}
 			stbl_AppendTime(trak->Media->information->sampleTable, duration, ent->nb_pack);
 
 			//add chunk on first sample
@@ -706,8 +717,19 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				if (trak->moov->compressed_diff) {
 					final_offset += trak->moov->compressed_diff;
 				}
+
+				if (!trak->Media->information->sampleTable->ChunkOffset) {
+					trak->Media->information->sampleTable->ChunkOffset = gf_isom_box_new_parent(&trak->Media->information->sampleTable->child_boxes, GF_ISOM_BOX_TYPE_STCO);
+					if (!trak->Media->information->sampleTable->ChunkOffset)
+						return GF_OUT_OF_MEM;
+				}
 				stbl_AppendChunk(trak->Media->information->sampleTable, final_offset);
 				//then sampleToChunk
+				if (!trak->Media->information->sampleTable->SampleToChunk) {
+					trak->Media->information->sampleTable->SampleToChunk = (GF_SampleToChunkBox *) gf_isom_box_new_parent(&trak->Media->information->sampleTable->child_boxes, GF_ISOM_BOX_TYPE_STSC);
+					if (!trak->Media->information->sampleTable->SampleToChunk)
+						return GF_OUT_OF_MEM;
+				}
 				stbl_AppendSampleToChunk(trak->Media->information->sampleTable,
 				                         DescIndex, trun->sample_count);
 			}

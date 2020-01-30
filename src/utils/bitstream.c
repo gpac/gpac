@@ -1205,10 +1205,12 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 	default:
 		if (bs->buffer_io)
 			bs_flush_cache(bs);
-		offset = gf_ftell(bs->stream);
-		gf_fseek(bs->stream, 0, SEEK_END);
-		bs->size = gf_ftell(bs->stream);
-		gf_fseek(bs->stream, offset, SEEK_SET);
+		if (bs->stream) {
+			offset = gf_ftell(bs->stream);
+			gf_fseek(bs->stream, 0, SEEK_END);
+			bs->size = gf_ftell(bs->stream);
+			gf_fseek(bs->stream, offset, SEEK_SET);
+		}
 		return bs->size;
 	}
 }

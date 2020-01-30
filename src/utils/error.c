@@ -28,7 +28,7 @@
 
 //ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
 #define NB_4CC_BUF	10
-static char szTYPE_BUF[NB_4CC_BUF][9];
+static char szTYPE_BUF[NB_4CC_BUF][GF_4CC_MSIZE];
 static u32 buf_4cc_idx=0;
 
 GF_EXPORT

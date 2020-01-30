@@ -4729,18 +4729,18 @@ int mp4boxMain(int argc, char **argv)
 						gf_free(margs);
 					}
 
-					if (sep) {
-						sep[0] = '+';
-						src = sep+1;
-					} else {
-						break;
-					}
 					if (e) {
 						fprintf(stderr, "Error importing %s: %s\n", argv[i+1], gf_error_to_string(e));
 						gf_isom_delete(file);
 						if (fs)
 							gf_fs_del(fs);
 						return mp4box_cleanup(1);
+					}
+					if (sep) {
+						sep[0] = '+';
+						src = sep+1;
+					} else {
+						break;
 					}
 				}
 				i++;
