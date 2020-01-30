@@ -556,7 +556,10 @@ static Bool audiobuffer_get_config(GF_AudioInterface *aifc, Bool for_reconf)
 		}
 		st->is_init = (aifc->samplerate && aifc->chan && aifc->afmt) ? GF_TRUE : GF_FALSE;
 		assert(st->is_init);
-		if (!st->is_init) aifc->samplerate = aifc->chan = aifc->afmt = aifc->ch_layout = 0;
+		if (!st->is_init) {
+			aifc->samplerate = aifc->chan = aifc->afmt = 0;
+			aifc->ch_layout = 0;
+		}
 		/*this will force invalidation*/
 		return (for_reconf && st->is_init) ? GF_TRUE : GF_FALSE;
 	}

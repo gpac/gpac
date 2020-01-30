@@ -2189,6 +2189,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_cicp_layout) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_layout_from_cicp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_layout_name_from_cicp) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_cicp_from_layout) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_types_enum) )

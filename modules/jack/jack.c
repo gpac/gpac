@@ -253,8 +253,7 @@ Jack_Shutdown (GF_AudioOutput * dr)
 #define JACK_PORT_NAME_MAX_SZ 128
 
 static GF_Err
-Jack_Configure(GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels,
-                      u32 *audioFormat, u32 channel_cfg)
+Jack_Configure(GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels, u32 *audioFormat, u64 channel_cfg)
 {
 	u32 channels;
 	u32 i;

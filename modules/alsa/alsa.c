@@ -78,7 +78,7 @@ static void ALSA_Shutdown(GF_AudioOutput*dr)
 	ctx->wav_buf = NULL;
 }
 
-static GF_Err ALSA_Configure(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u32 channel_cfg)
+static GF_Err ALSA_Configure(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u64 channel_cfg)
 {
 	snd_pcm_hw_params_t *hw_params = NULL;
 	int err;

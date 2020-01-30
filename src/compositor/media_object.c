@@ -257,7 +257,7 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d]: tagged as ambisonic channel %d but has %d channels, ignoring ambisonic tag\n",  mo->odm->ID, mo->odm->ambi_ch_id, mo->num_channels ));
 		} else {
 			if (num_channels) *num_channels = 1;
-			if (channel_config) *channel_config = 1 << (mo->odm->ambi_ch_id - 1);
+			if (channel_config) *channel_config = (u64) ( 1 << (mo->odm->ambi_ch_id - 1) );
 			if (forced_layout) *forced_layout = GF_TRUE;
 
 		}
