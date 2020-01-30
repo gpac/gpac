@@ -437,7 +437,7 @@ static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 GF_Err avidmx_process(GF_Filter *filter)
 {
 	GF_AVIDmxCtx *ctx = gf_filter_get_udta(filter);
-	u32 i, count, nb_done;
+	u32 i, count, nb_done, nb_active=0;
 	Bool start, end, video_done;
 
 	if (!ctx->avi) {
@@ -460,8 +460,9 @@ GF_Err avidmx_process(GF_Filter *filter)
 			return GF_NOT_SUPPORTED;
 		}
 		avidmx_setup(filter, ctx);
+		return GF_OK;
 	}
-
+	video_done = GF_FALSE;
 	if (ctx->v_in_use && ctx->v_playing && (ctx->cur_frame < ctx->nb_frames) && !gf_filter_pid_would_block(ctx->v_opid) ) {
 		u32 key;
 		u64 file_offset, cts;
@@ -491,18 +492,17 @@ GF_Err avidmx_process(GF_Filter *filter)
 				ctx->nvops++;
 			}
 		}
+		nb_active++;
+
 		ctx->cur_frame++;
 		if (ctx->cur_frame < ctx->nb_frames)
 			gf_filter_post_process_task(filter);
-	}
-	video_done = GF_FALSE;
-	if (ctx->v_in_use && ctx->v_playing) {
-		if (ctx->cur_frame >= ctx->nb_frames)
+		else
 			video_done = GF_TRUE;
-	} else {
+	} else if (!ctx->v_in_use) {
 		video_done = GF_TRUE;
 	}
-
+	
 	nb_done = 0;
 	count = gf_list_count(ctx->audios);
 	for (i=0; i<count; i++) {
@@ -515,6 +515,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 		if (!st->playing || gf_filter_pid_would_block(st->opid) )
 			continue;
 		AVI_set_audio_track(ctx->avi, st->stream_num);
+		nb_active++;
 
 		size = AVI_audio_size(ctx->avi, st->aud_frame);
 		if (size>0) {
@@ -548,6 +549,8 @@ GF_Err avidmx_process(GF_Filter *filter)
 			nb_done++;
 		}
 	}
+	if (!nb_active)
+		return GF_OK;
 	if (video_done && (nb_done==count) ) {
 		if (ctx->v_opid && ctx->v_in_use) gf_filter_pid_set_eos(ctx->v_opid);
 
