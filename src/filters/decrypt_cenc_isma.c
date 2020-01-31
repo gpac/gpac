@@ -192,7 +192,6 @@ static Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 
 static GF_Err cenc_dec_setup_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
 {
-	GF_Err e;
 	u32 kms_crc=0;
 	const GF_PropertyValue *p;
 	cstr->state = DECRYPT_STATE_ERROR;
