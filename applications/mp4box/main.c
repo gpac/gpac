@@ -279,7 +279,7 @@ GF_GPACArg m4b_dash_args[] =
 	GF_DEF_ARG("ast-offset", NULL, "specify MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative", "0", NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("dash-scale", NULL, "specify that timing for [-dash]() and [-frag]() are expressed in given timexale (units per seconds)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("mem-frags", NULL, "fragmentation happens in memory rather than on disk before flushing to disk", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("pssh", NULL, "set pssh store mode.\n"
+	GF_DEF_ARG("pssh=", NULL, "set pssh store mode.\n"
 	"- v: initial movie\n"
 	"- f: movie fragments\n"
 	"- m: MPD\n"
