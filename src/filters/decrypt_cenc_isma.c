@@ -32,6 +32,7 @@
 
 #ifndef GPAC_DISABLE_CRYPTO
 
+//#define OLD_KEY_FETCHERS
 
 enum
 {
@@ -84,6 +85,7 @@ typedef struct
 } GF_CENCDecCtx;
 
 
+#ifdef OLD_KEY_FETCHERS
 static void cenc_dec_kms_netio(void *cbck, GF_NETIO_Parameter *par)
 {
 }
@@ -115,10 +117,10 @@ static GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key
 static GF_Err cenc_dec_get_gpac_kms(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, const char *kms_url)
 {
 	const GF_PropertyValue *prop;
-	GF_Err e;
 	FILE *t;
 	u32 id = 0;
 	GF_FilterPid *pid = cstr->ipid;
+	GF_Err e;
 	GF_DownloadSession * sess;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
@@ -185,6 +187,7 @@ static Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 	}
 	return 0;
 }
+#endif
 
 
 static GF_Err cenc_dec_setup_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
@@ -236,14 +239,22 @@ static GF_Err cenc_dec_setup_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	}
 	/*MPEG4-IP KMS*/
 	else if (!stricmp(kms_uri, "AudioKey") || !stricmp(kms_uri, "VideoKey")) {
+#ifdef OLD_KEY_FETCHERS
 		if (!gf_ismacryp_mpeg4ip_get_info((char *) kms_uri, cstr->key, cstr->salt)) {
 			return GF_BAD_PARAM;
 		}
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 	/*gpac default scheme is used, fetch file from KMS and load keys*/
 	else if (scheme_uri && !stricmp(scheme_uri, "urn:gpac:isma:encryption_scheme")) {
+#ifdef OLD_KEY_FETCHERS
 		e = cenc_dec_get_gpac_kms(ctx, cstr, kms_uri);
 		if (e) return e;
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 	/*hardcoded keys*/
 	else {
@@ -413,6 +424,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	return GF_OK;
 }
 
+#ifdef OLD_KEY_FETCHERS
 
 static GF_Err cenc_dec_setup_oma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
 {
@@ -437,6 +449,7 @@ static GF_Err cenc_dec_setup_oma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32
 
 	return GF_NOT_SUPPORTED;
 }
+#endif
 
 static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
 {
@@ -1060,7 +1073,11 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		e = cenc_dec_setup_isma(ctx, cstr, scheme_type, scheme_version, scheme_uri, kms_uri);
 		break;
 	case GF_ISOM_OMADRM_SCHEME:
+#ifdef OLD_KEY_FETCHERS
 		e = cenc_dec_setup_oma(ctx, cstr, scheme_type, scheme_version, scheme_uri, kms_uri);
+#else
+		e = GF_NOT_SUPPORTED;
+#endif
 		break;
 	case GF_ISOM_CENC_SCHEME:
 	case GF_ISOM_CBC_SCHEME:
