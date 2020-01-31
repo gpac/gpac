@@ -2827,7 +2827,9 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			if (ds->rep->segment_list) {
 				GF_MPD_SegmentURL *surl = gf_list_pop_front(ds->rep->segment_list->segment_URLs);
 				gf_mpd_segment_url_free(surl);
-			} else if (ds->owns_set && ds->set->segment_list) {
+			}
+			//not an else due to inheritance
+			if (ds->owns_set && ds->set->segment_list) {
 				GF_MPD_SegmentURL *surl = gf_list_pop_front(ds->set->segment_list->segment_URLs);
 				gf_mpd_segment_url_free(surl);
 			}
@@ -2835,7 +2837,9 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 				if (ds->rep->segment_template->segment_timeline) {
 					dahser_purge_segment_timeline(ds, ds->rep->segment_template->segment_timeline, sctx);
 				}
-			} else if (ds->owns_set && ds->set->segment_template) {
+			}
+			//not an else due to inheritance
+			if (ds->owns_set && ds->set->segment_template) {
 				if (ds->set->segment_template->segment_timeline) {
 					dahser_purge_segment_timeline(ds, ds->set->segment_template->segment_timeline, sctx);
 				}
@@ -4457,7 +4461,9 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 		if (ctx->subdur_done) return;
 		for (i=0; i<count; i++) {
 			GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
-			if (a_ds->muxed_base) a_ds = a_ds->muxed_base;
+			if (a_ds->muxed_base) {
+				if (a_ds->muxed_base->subdur_done) a_ds->subdur_done = GF_TRUE;
+			}
 
 			if (a_ds->subdur_done) {
 				nb_sub_done++;
@@ -4739,29 +4745,6 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	}
 	if (pck)
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(szSegmentFullPath) );
-}
-
-static void dasher_update_pck_times(GF_DashStream *ds, GF_FilterPacket *dst)
-{
-	u64 ts;
-	ts = gf_filter_pck_get_dts(dst);
-	if (ts!=GF_FILTER_NO_TS) {
-		ts *= ds->force_timescale;
-		ts /= ds->timescale;
-		gf_filter_pck_set_dts(dst, ts);
-	}
-	ts = gf_filter_pck_get_cts(dst);
-	if (ts!=GF_FILTER_NO_TS) {
-		ts *= ds->force_timescale;
-		ts /= ds->timescale;
-		gf_filter_pck_set_cts(dst, ts);
-	}
-	ts = (u64) gf_filter_pck_get_duration(dst);
-	if (ts!=GF_FILTER_NO_TS) {
-		ts *= ds->force_timescale;
-		ts /= ds->timescale;
-		gf_filter_pck_set_duration(dst, (u32) ts);
-	}
 }
 
 static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
@@ -5484,6 +5467,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->first_cts_in_next_seg = cts;
 				assert(base_ds->nb_comp_done < base_ds->nb_comp);
 				base_ds->nb_comp_done ++;
+
 				if (split_dur_next)
 					ds->split_dur_next = (u32) split_dur_next;
 
@@ -5591,7 +5575,25 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			//change packet times
 			if (ds->force_timescale) {
-				dasher_update_pck_times(ds, dst);
+				u64 ats;
+				ats = gf_filter_pck_get_dts(dst);
+				if (ats!=GF_FILTER_NO_TS) {
+					ats *= ds->force_timescale;
+					ats /= ds->timescale;
+					gf_filter_pck_set_dts(dst, ats);
+				}
+				ats = gf_filter_pck_get_cts(dst);
+				if (ats!=GF_FILTER_NO_TS) {
+					ats *= ds->force_timescale;
+					ats /= ds->timescale;
+					gf_filter_pck_set_cts(dst, ats);
+				}
+				ats = (u64) gf_filter_pck_get_duration(dst);
+				if (ats) {
+					ats *= ds->force_timescale;
+					ats /= ds->timescale;
+					gf_filter_pck_set_duration(dst, (u32) ats);
+				}
 			}
 
 			ds->cumulated_dur += dur;
@@ -5775,7 +5777,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->store_seg_states && !evt->seg_size.is_init) {
 			GF_DASH_SegmentContext *sctx = gf_list_pop_front(ds->pending_segment_states);
 			if (!sctx || !ctx->nb_seg_url_pending) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Received segment size info event but no pending segments )\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Received segment size info event but no pending segments\n"));
 				return GF_TRUE;
 			}
 			assert(sctx);

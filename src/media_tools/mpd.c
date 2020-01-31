@@ -706,6 +706,7 @@ static GF_List *gf_mpd_parse_segments_context(GF_MPD *mpd, GF_XMLNode *root)
 	u32 i, j;
 	GF_XMLAttribute *att;
 	GF_XMLNode *child;
+	i=0;
 	while ((child = gf_list_enum(root->content, &i))) {
 		GF_DASH_SegmentContext *sctx;
 		if (!gf_mpd_valid_child(mpd, child)) continue;
