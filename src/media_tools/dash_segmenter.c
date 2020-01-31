@@ -1021,18 +1021,26 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 	/*first run, we need to extract the next gen time from context*/
 	if (dasher->dash_state && gf_file_exists(dasher->dash_state) && (dasher->dash_mode>=GF_DASH_DYNAMIC) && !dasher->next_gen_ntp_ms) {
 		GF_DOMParser *mpd_parser;
-		GF_MPD *mpd;
 
-		/* parse the MPD */
+		/* parse the MPD XML */
 		mpd_parser = gf_xml_dom_new();
 		e = gf_xml_dom_parse(mpd_parser, dasher->dash_state, NULL, NULL);
 		if (!e) {
-			mpd = gf_mpd_new();
-			e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), mpd, dasher->dash_state);
+			GF_XMLNode *root = gf_xml_dom_get_root(mpd_parser);
+			GF_XMLAttribute *att;
+			u32 i=0;
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			//extract "gpac:next_gen_time" but don't load a full MPD, not needed
+			while (root && (att = gf_list_enum(root->attributes, &i))) {
+				if (!strcmp(att->name, "gpac:next_gen_time")) {
+					sscanf(att->value, LLU, &dasher->next_gen_ntp_ms);
+					e = GF_OK;
+					break;
+				}
+			}
 			gf_xml_dom_del(mpd_parser);
-			gf_mpd_del(mpd);
-			dasher->next_gen_ntp_ms = mpd->gpac_next_ntp_ms;
 		}
+		if (e) return e;
 
 		if (dasher->next_gen_ntp_ms) {
 			u64 ntp_ms = gf_net_get_ntp_ms();
