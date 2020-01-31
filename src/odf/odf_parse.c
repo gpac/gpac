@@ -153,7 +153,9 @@ void OD_ParseBinData(u8 *val, u8 **out_data, u32 *out_data_size)
 
 GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 {
+#ifndef GPAC_MINIMAL_ODF
 	Bool OD_ParseUIConfig(u8 *val, u8 **out_data, u32 *out_data_size);
+#endif
 	u32 ret = 0;
 
 	if (!stricmp(val, "auto")) return GF_OK;
@@ -497,7 +499,11 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 				gf_file_load_data(val+5, (u8 **) &uic->ui_data, &uic->ui_data_length);
 				ret = 1;
 			} else {
+#ifndef GPAC_MINIMAL_ODF
 				ret = OD_ParseUIConfig(val, &uic->ui_data, &uic->ui_data_length);
+#else
+				ret= GF_FALSE;
+#endif
 			}
 		}
 	}
@@ -655,9 +661,9 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	return ret ? GF_OK : GF_BAD_PARAM;
 }
 
+#ifndef GPAC_MINIMAL_ODF
 Bool OD_ParseUIConfig(u8 *val, u8 **out_data, u32 *out_data_size)
 {
-#ifndef GPAC_MINIMAL_ODF
 	GF_BitStream *bs;
 	if (!strnicmp(val, "HTK:", 4)) {
 		char szItem[100];
@@ -722,6 +728,6 @@ Bool OD_ParseUIConfig(u8 *val, u8 **out_data, u32 *out_data_size)
 		gf_bs_del(bs);
 		return GF_TRUE;
 	}
-#endif
 	return GF_FALSE;
 }
+#endif
