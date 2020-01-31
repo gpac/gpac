@@ -501,6 +501,8 @@ GF_Err avidmx_process(GF_Filter *filter)
 			video_done = GF_TRUE;
 	} else if (!ctx->v_in_use) {
 		video_done = GF_TRUE;
+	} else if (ctx->cur_frame >= ctx->nb_frames) {
+		video_done = GF_TRUE;
 	}
 	
 	nb_done = 0;
