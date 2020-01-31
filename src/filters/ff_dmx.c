@@ -119,6 +119,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	ctx->pkt.stream_index = -1;
 	/*EOF*/
 	if (av_read_frame(ctx->demuxer, &ctx->pkt) <0) {
+		av_free_packet(&ctx->pkt);
 		if (!ctx->raw_data) {
 			for (i=0; i<ctx->demuxer->nb_streams; i++) {
 				if (ctx->pids[i]) gf_filter_pid_set_eos(ctx->pids[i]);
