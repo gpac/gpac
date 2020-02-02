@@ -814,7 +814,7 @@ typedef struct _gf_sc_texture_handler
 	/*image data for natural media*/
 	u8 *data;
 	//we need a local copy of width/height/etc since some textures may be defined without a stream object
-	u32 size, width, height, pixelformat, pixel_ar, stride, stride_chroma, nb_planes;
+	u32 size, width, height, pixelformat, pixel_ar, stride, stride_chroma, nb_planes, orig_pixelformat;
 	Bool is_flipped;
 
 	GF_FilterFrameInterface *frame_ifce;

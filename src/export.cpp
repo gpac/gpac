@@ -553,7 +553,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_color_write_yuv444_10_to_yuv) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_set) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_cmx_set_all) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_copy) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_multiply) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_apply) )

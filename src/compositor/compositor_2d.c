@@ -918,30 +918,6 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	if (!alpha) return GF_TRUE;
 
 	switch (ctx->aspect.fill_texture->pixelformat) {
-	case GF_PIXEL_ALPHAGREY:
-	case GF_PIXEL_GREYALPHA:
-	case GF_PIXEL_GREYSCALE:
-	case GF_PIXEL_RGB:
-	case GF_PIXEL_BGR:
-	case GF_PIXEL_RGB_555:
-	case GF_PIXEL_RGB_565:
-	case GF_PIXEL_ARGB:
-	case GF_PIXEL_RGBA:
-	case GF_PIXEL_YUV:
-	case GF_PIXEL_YVYU:
-	case GF_PIXEL_YUYV:
-	case GF_PIXEL_NV21:
-	case GF_PIXEL_NV12:
-	case GF_PIXEL_NV12_10:
-	case GF_PIXEL_YUVA:
-	case GF_PIXEL_RGBS:
-	case GF_PIXEL_RGBAS:
-	case GF_PIXEL_YUV422:
-	case GF_PIXEL_YUV444:
-	case GF_PIXEL_YUV444_10:
-	case GF_PIXEL_YUV422_10:
-	case GF_PIXEL_YUV_10:
-		break;
 	case GF_PIXEL_YUVD:
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGBDS:
@@ -952,10 +928,9 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 			return GF_TRUE;
 		}
 #endif
-		break;
-	/*the rest has to be displayed through brush for now, we only use YUV and RGB pool*/
+		//fallthrought
 	default:
-		return GF_FALSE;
+		break;
 	}
 
 	/*direct drawing, no clippers */

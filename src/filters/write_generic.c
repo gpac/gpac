@@ -581,7 +581,7 @@ GF_Err writegen_process(GF_Filter *filter)
 	if (!ctx->ipid) return GF_EOS;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
-	if (!pck) {
+	if (!pck || !ctx->codecid) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (ctx->is_wav) writegen_write_wav_header(ctx);
 			gf_filter_pid_set_eos(ctx->opid);
