@@ -638,44 +638,36 @@ void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const 
 	/*handle YUV input*/
 	if (get_yuv_base(src_s->pixel_format)==GF_PIXEL_YUV) {
 		if (format_is_yuv(dst_s->pixel_format)) {
-			/*generic YV planar to YUV (planar or not) */
-			write_yv12_to_yuv(dst_s, src_s->video_buffer, src_s->pitch_y, src_s->pixel_format, src_s->width, src_s->height, src_wnd, src_s->u_ptr, src_s->v_ptr);
+			gf_stretch_bits(dst_s, src_s, NULL, src_wnd, 0xFF, GF_FALSE, NULL, NULL);
 			return;
 		}
 	} else if (get_yuv_base(src_s->pixel_format)==GF_PIXEL_YUV_10) {
 		if (format_is_yuv(dst_s->pixel_format)) {
-			/*generic YV planar to YUV (planar or not) */
-			gf_color_write_yv12_10_to_yuv(dst_s, src_s->video_buffer, src_s->u_ptr, src_s->v_ptr, src_s->pitch_y, src_s->width, src_s->height, src_wnd, 1);
+			gf_stretch_bits(dst_s, src_s, NULL, src_wnd, 0xFF, GF_FALSE, NULL, NULL);
 			return;
 		}
 	}
 	else if (get_yuv_base(src_s->pixel_format) == GF_PIXEL_YUV444) {
 		if (format_is_yuv(dst_s->pixel_format)) {
-			/*generic YV planar to YUV (planar or not) */
-			write_yuv444_to_yuv(dst_s, src_s->video_buffer, src_s->pitch_y, src_s->pixel_format, src_s->width, src_s->height, src_wnd, src_s->u_ptr, src_s->v_ptr);
+			gf_stretch_bits(dst_s, src_s, NULL, src_wnd, 0xFF, GF_FALSE, NULL, NULL);
 			return;
 		}
 	}
 	else if (get_yuv_base(src_s->pixel_format) == GF_PIXEL_YUV422) {
 		if (format_is_yuv(dst_s->pixel_format)) {
-			/*generic YV planar to YUV (planar or not) */
-			write_yuv422_to_yuv(dst_s, src_s->video_buffer, src_s->pitch_y, src_s->pixel_format, src_s->width, src_s->height, src_wnd, src_s->u_ptr, src_s->v_ptr);
+			gf_stretch_bits(dst_s, src_s, NULL, src_wnd, 0xFF, GF_FALSE, NULL, NULL);
 			return;
 		}
 	}
 	else if (get_yuv_base(src_s->pixel_format) == GF_PIXEL_YUV422_10) {
 		if (format_is_yuv(dst_s->pixel_format)) {
-			/*generic YV planar to YUV (planar or not) */
-			gf_color_write_yuv422_10_to_yuv(dst_s, src_s->video_buffer, src_s->u_ptr, src_s->v_ptr, src_s->pitch_y, src_s->width, src_s->height, src_wnd, 1);
-
+			gf_stretch_bits(dst_s, src_s, NULL, src_wnd, 0xFF, GF_FALSE, NULL, NULL);
 			return;
 		}
 	}
 	else if (get_yuv_base(src_s->pixel_format) == GF_PIXEL_YUV444_10) {
 		if (format_is_yuv(dst_s->pixel_format)) {
-			/*generic YV planar to YUV (planar or not) */
-			gf_color_write_yuv444_10_to_yuv(dst_s, src_s->video_buffer, src_s->u_ptr, src_s->v_ptr, src_s->pitch_y, src_s->width, src_s->height, src_wnd, 1);
-
+			gf_stretch_bits(dst_s, src_s, NULL, src_wnd, 0xFF, GF_FALSE, NULL, NULL);
 			return;
 		}
 	}
