@@ -1215,6 +1215,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_remote_address) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_session_port) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_session_write_interleaved) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_http_tunnel_start) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_setup_transport) )
@@ -1258,6 +1259,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_builder_process) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_builder_format_sdp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_builder_get_payload_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gp_rtp_builder_set_cryp_info) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_depacketizer_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_depacketizer_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_depacketizer_reset) )

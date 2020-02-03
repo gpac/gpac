@@ -1941,9 +1941,9 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 s
 	avc_src = gf_isom_avc_config_get(orig, src_track, 1);
 	avc_dst = gf_isom_avc_config_get(dest, dst_tk, 1);
 
-	if (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication) {
+	if (!force_cat && (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication)) {
 		dst_tk = 0;
-	} else if (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication) {
+	} else if (!force_cat && (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication)) {
 		dst_tk = 0;
 	}
 	else {

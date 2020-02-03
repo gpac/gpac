@@ -760,7 +760,8 @@ exit:
 
 #endif /*defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)*/
 
-#ifndef GPAC_DISABLE_ATSC
+
+#if !defined(GPAC_ENABLE_COVERAGE) && !defined(GPAC_DISABLE_ATSC)
 
 #include <gpac/atsc.h>
 
@@ -887,4 +888,4 @@ u32 grab_atsc3_session(const char *dir, s32 serviceID, s32 atsc_max_segs, u32 st
 	return 0;
 }
 
-#endif /* GPAC_DISABLE_ATSC */
+#endif // !defined(GPAC_ENABLE_COVERAGE) && !defined(GPAC_DISABLE_ATSC)
