@@ -36,6 +36,12 @@ static GF_Err color_write_yuv422_10_to_yuv422(GF_VideoSurface *vs_dst, GF_VideoS
 static GF_Err color_write_yuv422_10_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd, Bool swap_up);
 static GF_Err color_write_yuv444_10_to_yuv444(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd, Bool swap_up);
 static GF_Err color_write_yuv444_10_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd, Bool swap_up);
+static GF_Err color_write_yuv420_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd, Bool swap_uv);
+static GF_Err color_write_yuv422_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd, Bool swap_uv);
+static GF_Err color_write_yuv444_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd, Bool swap_uv);
+static GF_Err color_write_yvyu_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd, Bool swap_uv);
+static GF_Err color_write_rgb_to_24(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd);
+static GF_Err color_write_rgb_to_32(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd);
 
 
 static GFINLINE u8 colmask(s32 a, s32 n)
@@ -1805,6 +1811,27 @@ static void gf_cmx_apply_argb(GF_ColorMatrix *_this, u8 *a_, u8 *r_, u8 *g_, u8 
 
 //#define COLORKEY_MPEG4_STRICT
 
+static Bool format_is_yuv(u32 in_pf)
+{
+	switch (in_pf) {
+	case GF_PIXEL_YUYV:
+	case GF_PIXEL_YVYU:
+	case GF_PIXEL_UYVY:
+	case GF_PIXEL_VYUY:
+	case GF_PIXEL_YUV:
+	case GF_PIXEL_YUV_10:
+	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_YUV444:
+	case GF_PIXEL_YUV444_10:
+		return GF_TRUE;
+		/*not supported yet*/
+	case GF_PIXEL_YUVA:
+	default:
+		return GF_FALSE;
+	}
+}
+
 GF_EXPORT
 GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, u8 alpha, Bool flip, GF_ColorKey *key, GF_ColorMatrix *cmat)
 {
@@ -1827,9 +1854,13 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	if (cmat && (cmat->m[15] || cmat->m[16] || cmat->m[17] || (cmat->m[18]!=FIX_ONE) || cmat->m[19] )) has_alpha = GF_TRUE;
 	else if (key && (key->alpha<0xFF)) has_alpha = GF_TRUE;
 
-	//check 10->8 routines
+	//check if we have a dedicated copy/conv when no stretch nor blending (avoids line load while copying)
 	if ((alpha==0xFF) && !flip && !key && !cmat) {
 		Bool no_stretch = GF_FALSE;
+		Bool output_yuv = format_is_yuv(dst->pixel_format);
+		u32 src_pf = src->pixel_format;
+		GF_Err e = GF_NOT_SUPPORTED;
+
 		if (!dst_wnd) no_stretch = GF_TRUE;
 		else if (src_wnd) {
 			if (!dst_wnd->x && !dst_wnd->y && (dst_wnd->w==src_wnd->w) && (dst_wnd->h==src_wnd->h))
@@ -1838,23 +1869,70 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 			if ((dst_wnd->w==src->width) && (dst_wnd->h==src->height))
 				no_stretch = GF_TRUE;
 		}
-		if (no_stretch) {
-			if ((src->pixel_format==GF_PIXEL_NV12_10) && (dst->pixel_format==GF_PIXEL_YUV))
-				return color_write_nv12_10_to_yuv(dst, src, src_wnd, GF_FALSE);
-			if ((src->pixel_format==GF_PIXEL_NV21_10) && (dst->pixel_format==GF_PIXEL_YUV))
-				return color_write_nv12_10_to_yuv(dst, src, src_wnd, GF_FALSE);
-			if ((src->pixel_format==GF_PIXEL_YUV_10) && (dst->pixel_format==GF_PIXEL_YUV))
-				return color_write_yv12_10_to_yuv(dst, src, src_wnd, GF_FALSE);
-			if ((src->pixel_format==GF_PIXEL_YUV422_10) && (dst->pixel_format==GF_PIXEL_YUV422))
-				return color_write_yuv422_10_to_yuv422(dst, src, src_wnd, GF_FALSE);
-			if ((src->pixel_format==GF_PIXEL_YUV422_10) && (dst->pixel_format==GF_PIXEL_YUV))
-				return color_write_yuv422_10_to_yuv(dst, src, src_wnd, GF_FALSE);
-			if ((src->pixel_format==GF_PIXEL_YUV444_10) && (dst->pixel_format==GF_PIXEL_YUV444))
-				return color_write_yuv444_10_to_yuv444(dst, src, src_wnd, GF_FALSE);
-			if ((src->pixel_format==GF_PIXEL_YUV444_10) && (dst->pixel_format==GF_PIXEL_YUV))
-				return color_write_yuv444_10_to_yuv(dst, src, src_wnd, GF_FALSE);
+		if (no_stretch && output_yuv) {
+			//check YUV10->8, YUV->YUV
+			switch (src->pixel_format) {
+			case GF_PIXEL_NV12_10:
+				e = color_write_nv12_10_to_yuv(dst, src, src_wnd, GF_FALSE);
+				break;
+			case GF_PIXEL_NV21_10:
+				e = color_write_nv12_10_to_yuv(dst, src, src_wnd, GF_TRUE);
+				break;
+			case GF_PIXEL_YUV_10:
+				e = color_write_yv12_10_to_yuv(dst, src, src_wnd, GF_FALSE);
+				break;
+			case GF_PIXEL_YUV422_10:
+				if (dst->pixel_format == GF_PIXEL_YUV422)
+					e = color_write_yuv422_10_to_yuv422(dst, src, src_wnd, GF_FALSE);
+				else if (dst->pixel_format == GF_PIXEL_YUV)
+					e = color_write_yuv422_10_to_yuv(dst, src, src_wnd, GF_FALSE);
+				break;
+			case GF_PIXEL_YUV444_10:
+				if (dst->pixel_format == GF_PIXEL_YUV444)
+					e = color_write_yuv444_10_to_yuv444(dst, src, src_wnd, GF_FALSE);
+				else if (dst->pixel_format == GF_PIXEL_YUV)
+					e = color_write_yuv444_10_to_yuv(dst, src, src_wnd, GF_FALSE);
+				break;
+			case GF_PIXEL_YUV:
+				e = color_write_yuv420_to_yuv(dst, src, src_wnd, GF_FALSE);
+				break;
+			case GF_PIXEL_YUV422:
+				e = color_write_yuv422_to_yuv(dst, src, src_wnd, GF_FALSE);
+				break;
+			case GF_PIXEL_YUV444:
+				e = color_write_yuv444_to_yuv(dst, src, src_wnd, GF_FALSE);
+				break;
+			case GF_PIXEL_YUYV:
+			case GF_PIXEL_YVYU:
+			case GF_PIXEL_UYVY:
+			case GF_PIXEL_VYUY:
+				e = color_write_yvyu_to_yuv(dst, src, src_wnd, GF_FALSE);
+				break;
+			}
 		}
+		else if (no_stretch && !output_yuv) {
+			//check rgb->rgb copy
+			switch (dst->pixel_format) {
+			case GF_PIXEL_RGB:
+			case GF_PIXEL_RGBS:
+			case GF_PIXEL_BGR:
+				e = color_write_rgb_to_24(dst, src, src_wnd);
+				break;
+			case GF_PIXEL_RGBX:
+			case GF_PIXEL_XRGB:
+			case GF_PIXEL_RGBD:
+			case GF_PIXEL_RGBDS:
+			case GF_PIXEL_BGRX:
+			case GF_PIXEL_XBGR:
+				e = color_write_rgb_to_32(dst, src, src_wnd);
+				break;
+			default:
+				break;
+			}
+		}
+		if (e == GF_OK) return GF_OK;
 	}
+	
 	
 	switch (src->pixel_format) {
 	case GF_PIXEL_GREYSCALE:
@@ -2540,7 +2618,7 @@ static GF_Err color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsigne
 	
 }
 
-static GF_Err gf_color_write_yuv422_10_to_yuv422_intrin(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
+static GF_Err color_write_yuv422_10_to_yuv422_intrin(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
 	__m128i val1, val2, val_dst, *src1, *src2, *dst;
@@ -2618,7 +2696,7 @@ static GF_Err gf_color_write_yuv422_10_to_yuv422_intrin(GF_VideoSurface *vs_dst,
 	
 }
 
-static GF_Err gf_color_write_yuv444_10_to_yuv444_intrin(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
+static GF_Err color_write_yuv444_10_to_yuv444_intrin(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
 	__m128i val1, val2, val_dst, *src1, *src2, *dst;
@@ -2695,7 +2773,7 @@ static GF_Err gf_color_write_yuv444_10_to_yuv444_intrin(GF_VideoSurface *vs_dst,
 	return GF_OK;
 	
 }
-static GF_Err gf_color_write_yuv422_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
+static GF_Err color_write_yuv422_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
 	__m128i val1, val2, val_dst, *src1, *src2, *dst;
@@ -2773,7 +2851,7 @@ static GF_Err gf_color_write_yuv422_10_to_yuv_intrin(GF_VideoSurface *vs_dst, un
 	return GF_OK;
 
 }
-static GF_Err gf_color_write_yuv444_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
+static GF_Err color_write_yuv444_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
 	__m128i val1, val2,val3,val4, val12, val34, val_dst, *src1, *src2,*src3,*src4, *dst;
@@ -3091,7 +3169,7 @@ static GF_Err color_write_yuv422_10_to_yuv422(GF_VideoSurface *vs_dst, GF_VideoS
 	        && (GFINTCAST (pU + vs_src->pitch_y/2)%8 == 0)
 	        && (GFINTCAST (pV + vs_src->pitch_y/2)%8 == 0)
 	   ) {
-		return gf_color_write_yuv422_10_to_yuv422_intrin(vs_dst, pY, pU, pV, vs_src->pitch_y, vs_src->width, vs_src->height, _src_wnd, swap_uv);
+		return color_write_yuv422_10_to_yuv422_intrin(vs_dst, pY, pU, pV, vs_src->pitch_y, vs_src->width, vs_src->height, _src_wnd, swap_uv);
 	}
 #endif
 
@@ -3173,7 +3251,7 @@ static GF_Err color_write_yuv444_10_to_yuv444(GF_VideoSurface *vs_dst, GF_VideoS
 	        && (GFINTCAST (pU + vs_src->pitch_y)%8 == 0)
 	        && (GFINTCAST (pV + vs_src->pitch_y)%8 == 0)
 	   ) {
-		return gf_color_write_yuv444_10_to_yuv444_intrin(vs_dst, pY, pU, pV, vs_src->pitch_y, vs_src->width, vs_src->height, _src_wnd, swap_uv);
+		return color_write_yuv444_10_to_yuv444_intrin(vs_dst, pY, pU, pV, vs_src->pitch_y, vs_src->width, vs_src->height, _src_wnd, swap_uv);
 	}
 #endif
 
@@ -3254,7 +3332,7 @@ static GF_Err color_write_yuv422_10_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurf
 		&& (GFINTCAST(pU + vs_src->pitch_y / 2) % 8 == 0)
 		&& (GFINTCAST(pV + vs_src->pitch_y / 2) % 8 == 0)
 		) {
-		return gf_color_write_yuv422_10_to_yuv_intrin(vs_dst, pY, pU, pV, vs_src->pitch_y, vs_src->width, vs_src->height, _src_wnd, swap_uv);
+		return color_write_yuv422_10_to_yuv_intrin(vs_dst, pY, pU, pV, vs_src->pitch_y, vs_src->width, vs_src->height, _src_wnd, swap_uv);
 	}
 #endif
 	
@@ -3343,7 +3421,7 @@ static GF_Err color_write_yuv444_10_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurf
 		&& (GFINTCAST(pU + vs_src->pitch_y) % 8 == 0)
 		&& (GFINTCAST(pV + vs_src->pitch_y) % 8 == 0)
 		) {
-		return gf_color_write_yuv444_10_to_yuv_intrin(vs_dst, pY, pU, pV, vs_src->pitch_y, vs_src->width, vs_src->height, _src_wnd, swap_uv);
+		return color_write_yuv444_10_to_yuv_intrin(vs_dst, pY, pU, pV, vs_src->pitch_y, vs_src->width, vs_src->height, _src_wnd, swap_uv);
 	}
 #endif
 
@@ -3397,6 +3475,656 @@ static GF_Err color_write_yuv444_10_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurf
 			*dst = (*src) >> 2;
 			dst++;
 			src+= 2;
+		}
+	}
+	return GF_OK;
+}
+
+static Bool is_planar_yuv(u32 pf)
+{
+	switch (pf) {
+	case GF_PIXEL_YUV:
+	case GF_PIXEL_YUV_10:
+	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_YUV444:
+	case GF_PIXEL_YUV444_10:
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+
+static GF_Err color_write_yuv420_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd, Bool swap_uv)
+{
+	u32 w, h, x, y;
+	u8 *pY = vs_src->video_buffer;
+	u8 *pU = vs_src->u_ptr;
+	u8 *pV = vs_src->v_ptr;
+
+	if (_src_wnd) {
+		w = _src_wnd->w;
+		h = _src_wnd->h;
+		x = _src_wnd->x;
+		y = _src_wnd->y;
+	} else {
+		w = vs_src->width;
+		h = vs_src->height;
+		x = y = 0;
+	}
+
+	if (!pU) {
+		pU = pY + vs_src->pitch_y * vs_src->height;
+		pV = pY + 5 * vs_src->pitch_y * vs_src->height / 4;
+	}
+
+
+	pY = pY + vs_src->pitch_y * y + x;
+	/*because of U and V downsampling by 2x2, working with odd Y offset will lead to a half-line shift between Y and UV components. We
+	therefore force an even Y offset for U and V planes.*/
+	pU = pU + (vs_src->pitch_y * (y / 2) + x) / 2;
+	pV = pV + (vs_src->pitch_y * (y / 2) + x) / 2;
+
+
+	if (is_planar_yuv(vs_dst->pixel_format)) {
+		/*complete source copy*/
+		if ((vs_dst->pitch_y == (s32)vs_src->pitch_y) && (w == vs_src->width) && (h == vs_src->height)) {
+			assert(!x);
+			assert(!y);
+			memcpy(vs_dst->video_buffer, pY, sizeof(u8)*w*h);
+			if (vs_dst->pixel_format == GF_PIXEL_YUV) {
+				memcpy(vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height, pV, sizeof(u8)*w*h/ 4);
+				memcpy(vs_dst->video_buffer + 5 * vs_dst->pitch_y * vs_dst->height / 4, pU, sizeof(u8)*w*h/ 4);
+			}
+			else {
+				memcpy(vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height, pU, sizeof(u8)*w*h / 4);
+				memcpy(vs_dst->video_buffer + 5 * vs_dst->pitch_y * vs_dst->height / 4, pV, sizeof(u8)*w*h/ 4);
+			}
+		} else {
+			u32 i;
+			u8 *dst, *src, *dst2, *src2, *dst3, *src3;
+
+			src = pY;
+			dst = (u8*)vs_dst->video_buffer;
+
+			src2 = (vs_dst->pixel_format != GF_PIXEL_YUV) ? pU : pV;
+			dst2 = (u8*)vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height;
+			src3 = (vs_dst->pixel_format != GF_PIXEL_YUV) ? pV : pU;
+			dst3 = (u8*)vs_dst->video_buffer + 5 * vs_dst->pitch_y * vs_dst->height / 4;
+			for (i = 0; i<h; i++) {
+				memcpy(dst, src, w);
+				src += vs_src->pitch_y;
+				dst += vs_dst->pitch_y;
+				if (i<h / 2) {
+					memcpy(dst2, src2, w / 2);
+					src2 += vs_src->pitch_y/ 2;
+					dst2 += vs_dst->pitch_y / 2;
+					memcpy(dst3, src3, w / 2);
+					src3 += vs_src->pitch_y / 2;
+					dst3 += vs_dst->pitch_y / 2;
+				}
+			}
+		}
+	}
+	else if (vs_dst->pixel_format == GF_PIXEL_UYVY) {
+		u32 i, j;
+		for (i = 0; i<h; i++) {
+			u8 *dst, *y, *u, *v;
+			y = pY + i*vs_src->pitch_y;
+			u = pU + (i / 2) * vs_src->pitch_y  / 2;
+			v = pV + (i / 2) * vs_src->pitch_y / 2;
+			dst = (u8 *)vs_dst->video_buffer + i*vs_dst->pitch_y;
+
+			for (j = 0; j<w / 2; j++) {
+				*dst = *u;
+				dst++;
+				u++;
+				*dst = *y;
+				dst++;
+				y++;
+				*dst = *v;
+				dst++;
+				v++;
+				*dst = *y;
+				dst++;
+				y++;
+			}
+		}
+	}
+	else if (vs_dst->pixel_format == GF_PIXEL_VYUY) {
+		u32 i, j;
+		for (i = 0; i<h; i++) {
+			u8 *dst, *y, *u, *v;
+			y = pY + i*vs_src->pitch_y;
+			u = pU + (i / 2) * vs_src->pitch_y / 2;
+			v = pV + (i / 2) * vs_src->pitch_y / 2;
+			dst = (u8 *)vs_dst->video_buffer + i*vs_dst->pitch_y;
+
+			for (j = 0; j<w / 2; j++) {
+				*dst = *v;
+				dst++;
+				v++;
+				*dst = *y;
+				dst++;
+				y++;
+				*dst = *u;
+				dst++;
+				u++;
+				*dst = *y;
+				dst++;
+				y++;
+			}
+		}
+	}
+	else if (vs_dst->pixel_format == GF_PIXEL_YUYV) {
+		u32 i, j;
+		for (i = 0; i<h; i++) {
+			u8 *dst, *y, *u, *v;
+			y = pY + i*vs_src->pitch_y;
+			u = pU + (i / 2) * vs_src->pitch_y / 2;
+			v = pV + (i / 2) * vs_src->pitch_y / 2;
+			dst = (u8*)vs_dst->video_buffer + i*vs_dst->pitch_y;
+
+			for (j = 0; j<w / 2; j++) {
+				*dst = *y;
+				dst++;
+				y++;
+				*dst = *u;
+				dst++;
+				u++;
+				*dst = *y;
+				dst++;
+				y++;
+				*dst = *v;
+				dst++;
+				v++;
+			}
+		}
+	}
+	else if (vs_dst->pixel_format == GF_PIXEL_YVYU) {
+		u32 i, j;
+		for (i = 0; i<h; i++) {
+			u8 *dst, *y, *u, *v;
+			y = pY + i*vs_src->pitch_y;
+			u = pU + (i / 2) * vs_src->pitch_y / 2;
+			v = pV + (i / 2) * vs_src->pitch_y / 2;
+			dst = (u8*)vs_dst->video_buffer + i*vs_dst->pitch_y;
+
+			for (j = 0; j<w / 2; j++) {
+				*dst = *y;
+				dst++;
+				y++;
+				*dst = *v;
+				dst++;
+				v++;
+				*dst = *y;
+				dst++;
+				y++;
+				*dst = *u;
+				dst++;
+				u++;
+			}
+		}
+	}
+	else {
+		return GF_NOT_SUPPORTED;
+	}
+	return GF_OK;
+}
+
+static GF_Err color_write_yuv422_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd, Bool swap_uv)
+{
+	u32 w, h, x, y;
+	u8 *pY = vs_src->video_buffer;
+	u8 *pU = vs_src->u_ptr;
+	u8 *pV = vs_src->v_ptr;
+
+	if (_src_wnd) {
+		w = _src_wnd->w;
+		h = _src_wnd->h;
+		x = _src_wnd->x;
+		y = _src_wnd->y;
+	}
+	else {
+		w = vs_src->width;
+		h = vs_src->height;
+		x = y = 0;
+	}
+
+	if (!pU) {
+		pU = pY + vs_src->pitch_y * vs_src->height;
+		pV = pY + 3 * vs_src->pitch_y * vs_src->height / 2;
+	}
+
+
+	pY = pY + vs_src->pitch_y * y + x;
+	pU = pU + (vs_src->pitch_y * y + x) / 2;
+	pV = pV + (vs_src->pitch_y * y + x) / 2;
+
+
+	if (is_planar_yuv(vs_dst->pixel_format)) {
+		/*complete source copy*/
+		u32 i;
+		u8 *dst, *src, *dst2, *src2, *dst3, *src3, *_src2, *_src3;
+
+		src = pY;
+		_src2 = (vs_dst->pixel_format != GF_PIXEL_YUV) ? pU : pV;
+		_src3 = (vs_dst->pixel_format != GF_PIXEL_YUV) ? pV : pU;
+		dst = (u8*)vs_dst->video_buffer;
+		dst2 = (u8*)vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height;
+		dst3 = (u8*)vs_dst->video_buffer + 5 * vs_dst->pitch_y * vs_dst->height / 4;
+		for (i = 0; i<h; i++) {
+			memcpy(dst, src, w);
+			src += vs_src->pitch_y;
+			dst += vs_dst->pitch_y;
+			if (i < h / 2) {
+				src2 = _src2 + i*vs_src->pitch_y;
+				src3 = _src3 + i*vs_src->pitch_y;
+				memcpy(dst2, src2, w / 2);
+				memcpy(dst3, src3, w / 2);
+				dst2 += vs_dst->pitch_y / 2;
+				dst3 += vs_dst->pitch_y / 2;
+			}
+		}
+		return GF_OK;
+	}
+	return GF_NOT_SUPPORTED;
+}
+
+
+static GF_Err color_write_yuv444_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd, Bool swap_uv)
+{
+	u32 w, h, x, y;
+	u8 *pY = vs_src->video_buffer;
+	u8 *pU = vs_src->u_ptr;
+	u8 *pV = vs_src->v_ptr;
+
+	if (_src_wnd) {
+		w = _src_wnd->w;
+		h = _src_wnd->h;
+		x = _src_wnd->x;
+		y = _src_wnd->y;
+	}
+	else {
+		w = vs_src->width;
+		h = vs_src->height;
+		x = y = 0;
+	}
+
+	if (!pU) {
+		pU = pY + vs_src->pitch_y* vs_src->height;
+		pV = pY + 2 * vs_src->pitch_y * vs_src->height;
+	}
+
+	pY = pY + vs_src->pitch_y * y + x;
+	pU = pU + vs_src->pitch_y * y + x;
+	pV = pV + vs_src->pitch_y * y + x;
+
+	if (is_planar_yuv(vs_dst->pixel_format)) {
+		/*complete source copy*/
+		u32 i, j;
+		u8 *dst, *src, *_src2, *_src3;
+
+		src = pY;
+		_src2 = (vs_dst->pixel_format != GF_PIXEL_YUV) ? pU : pV;
+		_src3 = (vs_dst->pixel_format != GF_PIXEL_YUV) ? pV : pU;
+		dst = (u8*)vs_dst->video_buffer;
+
+		for (i = 0; i<h; i++) {
+			memcpy(dst, src, w);
+			src += vs_src->pitch_y;
+			dst += vs_dst->pitch_y;
+
+		}
+		for (i = 0; i < h / 2; i++) {
+			u8 *dst2, *src2, *dst3, *src3;
+			src2 = _src2 + 2 * i*vs_src->pitch_y;
+			dst2 = (u8*)vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + i* vs_dst->pitch_y / 2;
+			src3 = _src3 + 2 * i*vs_src->pitch_y;
+			dst3 = (u8*)vs_dst->video_buffer + 5 * vs_dst->pitch_y * vs_dst->height / 4 + i* vs_dst->pitch_y / 2;
+			for (j = 0; j<w / 2; j++) {
+				*dst2 = *src2;
+				dst2++;
+				src2 += 2;
+
+				*dst3 = *src3;
+				dst3++;
+				src3 += 2;
+			}
+		}
+		return GF_OK;
+	}
+	return GF_NOT_SUPPORTED;
+}
+
+static GF_Err color_write_yvyu_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd, Bool swap_uv)
+{
+	u32 i, j;
+	u32 w, h, x, y;
+	u8 *pY, *pU, *pV;
+	
+	if (_src_wnd) {
+		w = _src_wnd->w;
+		h = _src_wnd->h;
+		x = _src_wnd->x;
+		y = _src_wnd->y;
+	}
+	else {
+		w = vs_src->width;
+		h = vs_src->height;
+		x = y = 0;
+	}
+
+	switch (vs_src->pixel_format) {
+	case GF_PIXEL_UYVY:
+		pU = vs_src->video_buffer + vs_src->pitch_y* y + x;
+		pY = vs_src->video_buffer + vs_src->pitch_y * y + x + 1;
+		pV = vs_src->video_buffer + vs_src->pitch_y * y + x + 3;
+		break;
+	case GF_PIXEL_YUYV:
+		pY = vs_src->video_buffer + vs_src->pitch_y * y + x;
+		pU = vs_src->video_buffer + vs_src->pitch_y * y + x + 1;
+		pV = vs_src->video_buffer + vs_src->pitch_y * y + x + 3;
+		break;
+	case GF_PIXEL_YVYU:
+		pY = vs_src->video_buffer + vs_src->pitch_y * y + x;
+		pV = vs_src->video_buffer + vs_src->pitch_y * y + x + 1;
+		pU = vs_src->video_buffer + vs_src->pitch_y * y + x + 3;
+		break;
+	case GF_PIXEL_VYUY:
+		pV = vs_src->video_buffer + vs_src->pitch_y* y + x;
+		pY = vs_src->video_buffer + vs_src->pitch_y * y + x + 1;
+		pU = vs_src->video_buffer + vs_src->pitch_y * y + x + 3;
+		break;
+	default:
+		return GF_NOT_SUPPORTED;
+	}
+
+	if (is_planar_yuv(vs_dst->pixel_format)) {
+		u8 *dst_y, *dst_u, *dst_v;
+
+		dst_y = (u8*)vs_dst->video_buffer;
+		if (vs_dst->pixel_format == GF_PIXEL_YUV) {
+			dst_v = (u8*)vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height;
+			dst_u = (u8*)vs_dst->video_buffer + 5 * vs_dst->pitch_y * vs_dst->height / 4;
+		}
+		else {
+			dst_u = (u8*)vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height;
+			dst_v = (u8*)vs_dst->video_buffer + 5 * vs_dst->pitch_y * vs_dst->height / 4;
+		}
+		for (i = 0; i<h; i++) {
+			for (j = 0; j<w; j += 2) {
+				*dst_y = *pY;
+				*(dst_y + 1) = *(pY + 2);
+				dst_y += 2;
+				pY += 4;
+				if (i % 2) continue;
+
+				*dst_u = (*pU + *(pU + vs_src->pitch_y)) / 2;
+				*dst_v = (*pV + *(pV + vs_src->pitch_y)) / 2;
+				dst_u++;
+				dst_v++;
+				pU += 4;
+				pV += 4;
+			}
+			if (i % 2) {
+				pU += vs_src->pitch_y;
+				pV += vs_src->pitch_y;
+			}
+		}
+		return GF_OK;
+	}
+
+	if (vs_src->pixel_format == vs_dst->pixel_format) {
+		for (i = 0; i<h; i++) {
+			char *dst = vs_dst->video_buffer + i*vs_dst->pitch_y;
+			pY = vs_src->video_buffer + vs_src->pitch_y * (i + y) + x;
+			memcpy(dst, pY, sizeof(char) * 2 * w);
+		}
+		return GF_OK;
+	}
+
+	for (i = 0; i<h; i++) {
+		char *dst = vs_dst->video_buffer + i*vs_dst->pitch_y;
+		char *y = (char*)pY + vs_src->pitch_y * i;
+		char *u = (char*)pU + vs_src->pitch_y * i;
+		char *v = (char*)pV + vs_src->pitch_y * i;
+		switch (vs_dst->pixel_format) {
+		case GF_PIXEL_UYVY:
+			for (j = 0; j<w; j += 2) {
+				dst[0] = *u;
+				dst[1] = *y;
+				dst[2] = *v;
+				dst[3] = *(y + 2);
+				dst += 4;
+				y += 4;
+				u += 4;
+				v += 4;
+			}
+			break;
+		case GF_PIXEL_YVYU:
+			for (j = 0; j<w; j += 2) {
+				dst[0] = *y;
+				dst[1] = *v;
+				dst[2] = *(y + 2);
+				dst[3] = *u;
+				dst += 4;
+				y += 4;
+				u += 4;
+				v += 4;
+			}
+			break;
+		case GF_PIXEL_YUYV:
+			for (j = 0; j<w; j += 2) {
+				dst[0] = *y;
+				dst[1] = *u;
+				dst[2] = *(y + 2);
+				dst[3] = *v;
+				dst += 4;
+				y += 4;
+				u += 4;
+				v += 4;
+			}
+			break;
+		case GF_PIXEL_VYUY:
+			for (j = 0; j<w; j += 2) {
+				dst[0] = *v;
+				dst[1] = *y;
+				dst[2] = *u;
+				dst[3] = *(y + 2);
+				dst += 4;
+				y += 4;
+				u += 4;
+				v += 4;
+			}
+			break;
+		default:
+			return GF_NOT_SUPPORTED;
+		}
+	}
+	return GF_OK;
+}
+
+
+u32 get_bpp(u32 pf)
+{
+	switch (pf) {
+	case GF_PIXEL_RGB_555:
+	case GF_PIXEL_RGB_565:
+		return 2;
+	case GF_PIXEL_RGB:
+	case GF_PIXEL_RGBS:
+	case GF_PIXEL_BGR:
+		return 3;
+	case GF_PIXEL_RGBX:
+	case GF_PIXEL_BGRX:
+	case GF_PIXEL_XRGB:
+	case GF_PIXEL_XBGR:
+	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBAS:
+	case GF_PIXEL_RGBD:
+	case GF_PIXEL_RGBDS:
+		return 4;
+	}
+	return 0;
+}
+
+static GF_Err color_write_rgb_to_24(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd)
+{
+	u32 i;
+	u32 w, h, x, y;
+	u8 *src;
+	u32 BPP;
+
+	if (vs_src->pixel_format != vs_dst->pixel_format) return GF_NOT_SUPPORTED;
+	BPP = get_bpp(vs_src->pixel_format);
+	if (!BPP) return GF_NOT_SUPPORTED;
+
+	if (_src_wnd) {
+		w = _src_wnd->w;
+		h = _src_wnd->h;
+		x = _src_wnd->x;
+		y = _src_wnd->y;
+	} else {
+		w = vs_src->width;
+		h = vs_src->height;
+		x = y = 0;
+	}
+
+	/*go to start of src*/
+	src = vs_src->video_buffer + vs_src->pitch_x * y + BPP * x;
+
+	for (i = 0; i<h; i++) {
+		memcpy(vs_dst->video_buffer + i*vs_dst->pitch_y, src, sizeof(u8) * BPP * w);
+		src += vs_src->pitch_y;
+	}
+	return GF_OK;
+}
+
+
+static GF_Err color_write_rgb_to_32(GF_VideoSurface *vs_dst, GF_VideoSurface *vs_src, GF_Window *_src_wnd)
+{
+	u32 i, j, w, h, x, y;
+	u8 *src;
+	Bool isBGR;
+	u8 *dst, *cur;
+	u32 BPP;
+
+//	if (vs_src->pixel_format != vs_dst->pixel_format) return GF_NOT_SUPPORTED;
+	BPP = get_bpp(vs_src->pixel_format);
+	if (!BPP) return GF_NOT_SUPPORTED;
+
+	if (_src_wnd) {
+		w = _src_wnd->w;
+		h = _src_wnd->h;
+		x = _src_wnd->x;
+		y = _src_wnd->y;
+	}
+	else {
+		w = vs_src->width;
+		h = vs_src->height;
+		x = y = 0;
+	}
+
+	/*go to start of src*/
+	src = vs_src->video_buffer + vs_src->pitch_y * y + BPP * vs_src->pitch_x;
+
+	if (vs_src->pixel_format == vs_dst->pixel_format) {
+		for (i = 0; i<h; i++) {
+			memcpy(vs_dst->video_buffer + i*vs_dst->pitch_y, src, sizeof(u8) * BPP * w);
+		}
+		return GF_OK;
+	}
+	/*get all pixels*/
+	isBGR = (vs_dst->pixel_format == GF_PIXEL_BGRX) ? GF_TRUE : GF_FALSE;
+	if (isBGR) {
+		switch (vs_src->pixel_format) {
+		case GF_PIXEL_RGB:
+		case GF_PIXEL_RGBS:
+			for (i = 0; i<h; i++) {
+				dst = (u8*)vs_dst->video_buffer + i*vs_dst->pitch_y;
+				cur = src + i*vs_src->pitch_y;
+				for (j = 0; j<w; j++) {
+					dst[0] = *cur++;
+					dst[1] = *cur++;
+					dst[2] = *cur++;
+					dst += 4;
+				}
+			}
+			break;
+		case GF_PIXEL_RGBDS:
+		case GF_PIXEL_RGBD:
+			for (i = 0; i<h; i++) {
+				dst = (u8*)vs_dst->video_buffer + i*vs_dst->pitch_y;
+				cur = src + i*vs_src->pitch_y;
+				for (j = 0; j<w; j++) {
+					dst[0] = *cur++;
+					dst[1] = *cur++;
+					dst[2] = *cur++;
+					cur++;
+					dst += 4;
+				}
+			}
+			break;
+		case GF_PIXEL_BGR:
+			for (i = 0; i<h; i++) {
+				dst = (u8*)vs_dst->video_buffer + i*vs_dst->pitch_y;
+				cur = src + i*vs_src->pitch_y;
+				for (j = 0; j<w; j++) {
+					dst[2] = *cur++;
+					dst[1] = *cur++;
+					dst[0] = *cur++;
+					dst += 4;
+				}
+			}
+			break;
+		default:
+			return GF_NOT_SUPPORTED;
+		}
+	}
+	else {
+		switch (vs_src->pixel_format) {
+		case GF_PIXEL_RGB:
+		case GF_PIXEL_RGBS:
+			for (i = 0; i<h; i++) {
+				dst = (u8*)vs_dst->video_buffer + i*vs_dst->pitch_y;
+				cur = src + i*vs_src->pitch_y;
+				for (j = 0; j<w; j++) {
+					dst[2] = *cur++;
+					dst[1] = *cur++;
+					dst[0] = *cur++;
+					dst += 4;
+				}
+			}
+			break;
+		case GF_PIXEL_RGBD:
+		case GF_PIXEL_RGBDS:
+			for (i = 0; i<h; i++) {
+				dst = (u8*)vs_dst->video_buffer + i*vs_dst->pitch_y;
+				cur = src + i*vs_src->pitch_y;
+				for (j = 0; j<w; j++) {
+					dst[2] = *cur++;
+					dst[1] = *cur++;
+					dst[0] = *cur++;
+					cur++;
+					dst += 4;
+				}
+			}
+			break;
+		case GF_PIXEL_BGR:
+			for (i = 0; i<h; i++) {
+				dst = (u8*)vs_dst->video_buffer + i*vs_dst->pitch_y;
+				cur = src + i*vs_src->pitch_y;
+				for (j = 0; j<w; j++) {
+					dst[0] = *cur++;
+					dst[1] = *cur++;
+					dst[2] = *cur++;
+					dst += 4;
+				}
+			}
+			break;
+		default:
+			return GF_NOT_SUPPORTED;
 		}
 	}
 	return GF_OK;
