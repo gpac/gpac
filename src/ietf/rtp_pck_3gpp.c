@@ -190,7 +190,6 @@ GF_Err gp_rtp_builder_do_qcelp(GP_RTPPacketizer *builder, u8 *data, u32 data_siz
 	return GF_OK;
 }
 
-
 static void rtp_evrc_smv_flush(GP_RTPPacketizer *builder)
 {
 	if (!builder->bytesInPacket) return;

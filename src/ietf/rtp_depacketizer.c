@@ -1751,6 +1751,11 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, gf_rtp_packet_cb
 	/*check RTP map. For now we only support 1 RTPMap*/
 	if (!sl_packet_cbk || !media || (gf_list_count(media->RTPMaps) > 1)) return NULL;
 
+#ifdef GPAC_ENABEL_COVERAGE
+	if (gf_sys_is_test_mode())
+		gf_rtp_is_valid_static_payt(22);
+#endif
+
 	/*check payload type*/
 	map = (GF_RTPMap *)gf_list_get(media->RTPMaps, 0);
 	if (!map) {

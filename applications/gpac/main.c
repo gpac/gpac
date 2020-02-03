@@ -1217,7 +1217,9 @@ retry_char:
 static void gpac_suggest_arg(char *aname)
 {
 	u32 k;
-	const GF_GPACArg *args = gf_sys_get_options();
+	const GF_GPACArg *args;
+	if (!aname) return;
+	args = gf_sys_get_options();
 	Bool found=GF_FALSE;
 	for (k=0; k<2; k++) {
 		u32 i=0;
@@ -1244,7 +1246,9 @@ static void gpac_suggest_arg(char *aname)
 static void gpac_suggest_filter(char *fname, Bool is_help)
 {
 	Bool found = GF_FALSE;
-	u32 i, count = gf_fs_filters_registers_count(session);
+	u32 i, count;
+	if (!fname) return;
+	count = gf_fs_filters_registers_count(session);
 	for (i=0; i<count; i++) {
 		const GF_FilterRegister *freg = gf_fs_get_filter_register(session, i);
 
@@ -3245,11 +3249,17 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 
 	gf_rtp_reset_ssrc(NULL);
 	gf_rtp_enable_nat_keepalive(NULL, 0);
-//	gf_rtp_stop(NULL);
-//	gf_rtp_get_current_time(NULL);
-//	gf_rtp_is_unicast(NULL);
+	gf_rtp_stop(NULL);
 	gf_rtp_streamer_get_payload_type(NULL);
 	gf_rtsp_unregister_interleave(NULL, 0);
+	gf_rtsp_reset_aggregation(NULL);
+	gf_rtsp_http_tunnel_start(NULL, NULL);
+	gp_rtp_builder_set_cryp_info(NULL);
+
+
+	get_cmd('h');
+	gpac_suggest_arg("blcksize");
+	gpac_suggest_filter("outf", GF_FALSE);
 
 #endif
 	return 0;

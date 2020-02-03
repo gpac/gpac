@@ -744,7 +744,7 @@ GF_GPACArg m4b_dump_args[] =
  	GF_DEF_ARG("comp", NULL, "replace with compressed version all top level box types given as parameter, formated as `orig_4cc_1=comp_4cc_1[,orig_4cc_2=comp_4cc_2]`", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("bin", NULL, "convert input XML file using NHML bitstream syntax to binary", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("topcount", NULL, "print to stdout the number of top-level boxes matching box types given as parameter, formated as `4cc_1,4cc_2N`", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("topsize", NULL, "print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as `4cc_1,4cc_2N`", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("topsize", NULL, "print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as `4cc_1,4cc_2N` or `all` for all boxes", NULL, NULL, GF_ARG_STRING, 0),
  	{0}
 };
 
@@ -4345,7 +4345,7 @@ int mp4boxMain(int argc, char **argv)
 	if (!inName && dump_std)
 		inName = "std";
 
-#ifndef GPAC_DISABLE_ATSC
+#if !defined(GPAC_ENABLE_COVERAGE) && !defined(GPAC_DISABLE_ATSC)
 	if (grab_atsc) {
 		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 		gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);

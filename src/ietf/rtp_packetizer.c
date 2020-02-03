@@ -415,6 +415,7 @@ check_header:
 
 void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_indicator, Bool is_encrypted)
 {
+	if (!builder) return;
 	if (!key_indicator) {
 		if (builder->key_indicator) {
 			/*force flush if no provision for keyIndicator per AU*/

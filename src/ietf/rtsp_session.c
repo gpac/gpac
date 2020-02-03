@@ -284,7 +284,9 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 	if (sess->SockBufferSize) gf_sk_set_buffer_size(sess->connection, GF_FALSE, sess->SockBufferSize);
 
 	if (!sess->http && sess->HasTunnel) {
-		e = gf_rtsp_http_tunnel_start(sess, "GPAC the king of RTSP");
+		const char *ua = gf_opts_get_key("core", "user-agent");
+		if (!ua) ua = "GPAC " GPAC_VERSION;
+		e = gf_rtsp_http_tunnel_start(sess, (char *)ua);
 		if (e) return e;
 	}
 	sess->NeedConnection = 0;
@@ -509,6 +511,7 @@ static Bool HTTP_RandInit = GF_TRUE;
 
 
 //http tunnelling start.
+GF_EXPORT
 GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 {
 	GF_Err e;
@@ -516,6 +519,8 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	s32 pos;
 	u32 i, num, temp;
 	char buffer[GF_RTSP_DEFAULT_BUFFER];
+
+	if (!sess) return GF_BAD_PARAM;
 
 	//generate http cookie
 	if (HTTP_RandInit) {
