@@ -1858,7 +1858,6 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	if ((alpha==0xFF) && !flip && !key && !cmat) {
 		Bool no_stretch = GF_FALSE;
 		Bool output_yuv = format_is_yuv(dst->pixel_format);
-		u32 src_pf = src->pixel_format;
 		GF_Err e = GF_NOT_SUPPORTED;
 
 		if (!dst_wnd) no_stretch = GF_TRUE;
