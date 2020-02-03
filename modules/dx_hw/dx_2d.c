@@ -591,9 +591,9 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 	if (e) return e;
 
 	/*copy pixels to pool*/
-	dx_copy_pixels(&temp_surf, video_src, src_wnd);
+	e = gf_stretch_bits(&temp_surf, video_src, NULL, src_wnd, 0xFF, GF_FALSE, NULL, NULL);
 
-	e = DD_UnlockSurface(dd, pool->pSurface);
+	DD_UnlockSurface(dd, pool->pSurface);
 	if (e) return e;
 
 	if (overlay_type) {

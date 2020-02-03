@@ -213,8 +213,6 @@ GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height, Bool use_
 
 GF_Err DD_FlushEx(GF_VideoOutput *dr, GF_Window *dest, Bool wait_for_sync);
 
-void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const GF_Window *src_wnd);
-
 #define MAKERECT(rc, dest)	{ rc.left = dest->x; rc.top = dest->y; rc.right = rc.left + dest->w; rc.bottom = rc.top + dest->h;	}
 
 /*this is REALLY ugly, to pass the HWND to DSound when we create the window in this module*/
