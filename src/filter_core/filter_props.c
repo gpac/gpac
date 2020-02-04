@@ -319,10 +319,12 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			p.value.data.ptr = gf_malloc(sizeof(char)*p.value.data.size);
 			for (i=0; i<p.value.data.size; i++) {
 				char szV[3];
+				u32 res;
 				szV[0] = value[2*i];
 				szV[1] = value[2*i + 1];
 				szV[2] = 0;
-				sscanf(szV, "%c", &p.value.data.ptr[i]);
+				sscanf(szV, "%x", &res);
+				p.value.data.ptr[i] = res;
 			}
 		} else if (!strnicmp(value, "bxml@", 5) ) {
 			GF_Err e = GF_OK;

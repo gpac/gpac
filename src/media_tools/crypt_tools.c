@@ -408,6 +408,7 @@ static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 {
 	Double progress;
 	u32 *prev_progress = (u32 *)_udta;
+	if (!_udta) return GF_FALSE;
 	if (evt->type != GF_EVENT_PROGRESS) return GF_FALSE;
 	if (!evt->progress.total) return GF_FALSE;
 
@@ -478,6 +479,11 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 		gf_fs_enable_reporting(fsess, GF_TRUE);
 		gf_fs_set_ui_callback(fsess, on_decrypt_event, &progress);
 	}
+#ifdef GPAC_ENABLE_COVERAGE
+	else if (gf_sys_is_test_mode()) {
+		on_decrypt_event(NULL, NULL);
+	}
+#endif //GPAC_ENABLE_COVERAGE
 #endif
 
 	e = gf_fs_run(fsess);
@@ -506,6 +512,7 @@ static Bool on_crypt_event(void *_udta, GF_Event *evt)
 {
 	Double progress;
 	u32 *prev_progress = (u32 *)_udta;
+	if (!_udta) return GF_FALSE;
 	if (evt->type != GF_EVENT_PROGRESS) return GF_FALSE;
 	if (!evt->progress.total) return GF_FALSE;
 
@@ -596,6 +603,11 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 		gf_fs_enable_reporting(fsess, GF_TRUE);
 		gf_fs_set_ui_callback(fsess, on_crypt_event, &progress);
 	}
+#ifdef GPAC_ENABLE_COVERAGE
+	else if (gf_sys_is_test_mode()) {
+		on_crypt_event(NULL, NULL);
+	}
+#endif //GPAC_ENABLE_COVERAGE
 #endif
 	e = gf_fs_run(fsess);
 	if (e>GF_OK) e = GF_OK;
