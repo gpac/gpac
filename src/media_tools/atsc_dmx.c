@@ -508,6 +508,7 @@ static const char *get_lct_obj_status_name(GF_LCTObjectStatus status)
 	case GF_LCT_OBJ_DONE: return "done";
 	case GF_LCT_OBJ_DISPATCHED: return "dispatched";
 	}
+	return "unknown";
 }
 
 static void gf_atsc3_obj_to_reservoir(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTObject *obj)
