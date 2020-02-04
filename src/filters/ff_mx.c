@@ -44,6 +44,7 @@ typedef struct
 	Bool ts_rescale;
 	AVRational in_scale;
 	Bool in_seg_flush;
+	u32 cts_shift;
 } GF_FFMuxStream;
 
 typedef struct
@@ -382,6 +383,13 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			ffpck.stream_index = st->stream->index;
 			ffpck.dts = gf_filter_pck_get_dts(ipck);
 			ffpck.pts = gf_filter_pck_get_cts(ipck);
+			if (st->cts_shift) ffpck.pts += st->cts_shift;
+
+			if (ffpck.dts > ffpck.pts) {
+				st->cts_shift = ffpck.dts - ffpck.pts;
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMux] Negative CTS offset -%d found, adjusting offset\n", st->cts_shift));
+				ffpck.pts = ffpck.dts;
+			}
 			ffpck.duration = gf_filter_pck_get_duration(ipck);
 			sap = gf_filter_pck_get_sap(ipck);
 			if (sap==GF_FILTER_SAP_1) ffpck.flags = AV_PKT_FLAG_KEY;
@@ -588,6 +596,9 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_BITRATE);
 	if (p) avst->codecpar->bit_rate = p->value.uint;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CTS_SHIFT);
+	if (p) st->cts_shift = p->value.uint;
 
 	if (streamtype==GF_STREAM_VISUAL) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
