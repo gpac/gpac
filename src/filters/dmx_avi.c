@@ -520,6 +520,16 @@ GF_Err avidmx_process(GF_Filter *filter)
 		nb_active++;
 
 		size = AVI_audio_size(ctx->avi, st->aud_frame);
+
+		if (st->seek_to_ts && size) {
+			if (st->seek_to_ts > st->audio_ts) {
+				st->aud_frame ++;
+				continue;
+			}
+			else
+				st->seek_to_ts = 0;
+		}
+
 		if (size>0) {
 			int continuous;
 			u8 *pck_data;
