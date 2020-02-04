@@ -2899,6 +2899,8 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 			if (pdur < ds_dur) pdur = ds_dur;
 		}
 	}
+	if (!count && ctx->current_period->period->duration)
+		pdur = ctx->current_period->period->duration;
 
 	if (!ctx->check_dur) {
 		s32 diff = (s32) ((s64) pdur - (s64) min_dur);
@@ -3634,6 +3636,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	Bool has_muxed_bases=GF_FALSE;
 	char *period_id;
 	const char *remote_xlink = NULL;
+	u64 remote_dur = 0;
 	Bool empty_period = GF_FALSE;
 	Bool is_restore = GF_FALSE;
 	Bool has_as_id = GF_FALSE;
@@ -3772,6 +3775,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		if (ds->stream_type == GF_STREAM_FILE) {
 			if (ds->xlink) remote_xlink = ds->xlink;
 			else empty_period = GF_TRUE;
+			remote_dur = ds->period_dur * 1000;
 		} else if (!is_restore) {
 			//setup representation - the representation is created independently from the period
 			dasher_setup_rep(ctx, ds, &srd_rep_idx);
@@ -3816,6 +3820,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	if (remote_xlink) {
 		ctx->current_period->period->xlink_href = gf_strdup(remote_xlink);
+		ctx->current_period->period->duration = remote_dur;
 	}
 
 	assert(period_id);
