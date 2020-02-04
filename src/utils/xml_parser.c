@@ -2265,7 +2265,8 @@ GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expec
 	return GF_BAD_PARAM;
 }
 
-void gf_xml_dump_string(FILE* file, const char *before, const char *str, const char *after) {
+void gf_xml_dump_string(FILE* file, const char *before, const char *str, const char *after)
+{
 	size_t i;
 	size_t len=str?strlen(str):0;
 
@@ -2300,9 +2301,6 @@ void gf_xml_dump_string(FILE* file, const char *before, const char *str, const c
 	if (after) {
 		fprintf(file, "%s", after);
 	}
-
-
-
 }
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
