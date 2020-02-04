@@ -4008,7 +4008,10 @@ Description: ATSC input
 .br
 This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.
 .br
-The filter can work in cached mode, source mode or standalone mode.# Cached mode
+The filter can work in cached mode, source mode or standalone mode.
+.br
+.SH Cached mode
+.LP
 .br
 The cached mode is the default filter behaviour. It populates GPAC HTTP Cache with the recieved files, using http://gpatsc/serviceN/ as service root, N being the ATSC service ID.
 .br
@@ -4018,17 +4021,17 @@ In cached mode, repeated files are always send.
 .br
 The cached MPD is assigned the following headers:
 .br
-* x-dash-atsc: integer value, indicates the ATSC service ID
+* x-dash-atsc: integer value, indicates the ATSC service ID.
 .br
-* x-dash-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast
+* x-dash-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast.
 .br
-* x-atsc-loop: boolean value, if yes indicates a loop in the service has been detected
+* x-atsc-loop: boolean value, if yes indicates a loop in the service has been detected (usually pcap replay loop).
 .br
   
 .br
 The cached files are assigned the following headers:
 .br
-* x-atsc: boolean value, if yes indicates the file comes from an ATSC session
+* x-atsc: boolean value, if yes indicates the file comes from an ATSC session.
 .br
 
 .br
@@ -4067,7 +4070,7 @@ This will grab the files and write them to output directory.
 .SH Interface setup
 .LP
 .br
-On some systems (OSX), when using VM packet replay you may need to force multicast routing on your local interface.
+On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.
 .br
 You will have to do this for the base ATSC3 multicast (224.0.23.60):
 .br
@@ -5135,7 +5138,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3218-g61adcb596-filters
+build: 0.9.0-DEV-rev3222-g395ff9c1b-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
