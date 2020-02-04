@@ -256,7 +256,10 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 		}
 
 		e = gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, GF_FALSE, NULL, NULL);
-
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D] Failed to convert 10-bits to 8-bit texture: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
 		if (txh->pixelformat == GF_PIXEL_YUV) {
 			p_y = dst.video_buffer;
 			p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
