@@ -1241,22 +1241,30 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mod
 	struct timeval timeout;
 	u32 max_fd=0;
 	GF_Socket *sock;
+	fd_set *rgroup=NULL, *wgroup=NULL;
 
 	FD_ZERO(&sg->rgroup);
 	FD_ZERO(&sg->wgroup);
+
+	switch (mode) {
+	case GF_SK_SELECT_BOTH:
+		rgroup = &sg->rgroup;
+		wgroup = &sg->wgroup;
+		break;
+	case GF_SK_SELECT_READ:
+		rgroup = &sg->rgroup;
+		break;
+	case GF_SK_SELECT_WRITE:
+		wgroup = &sg->wgroup;
+		break;
+	}
 	while ((sock = gf_list_enum(sg->sockets, &i))) {
-		switch (mode) {
-		case GF_SK_SELECT_BOTH:
-			FD_SET(sock->socket, &sg->rgroup);
-			FD_SET(sock->socket, &sg->wgroup);
-			break;
-		case GF_SK_SELECT_READ:
-			FD_SET(sock->socket, &sg->rgroup);
-			break;
-		case GF_SK_SELECT_WRITE:
-			FD_SET(sock->socket, &sg->wgroup);
-			break;
-		}
+		if (rgroup)
+			FD_SET(sock->socket, rgroup);
+
+		if (wgroup)
+			FD_SET(sock->socket, wgroup);
+
 		if (max_fd < (u32) sock->socket) max_fd = (u32) sock->socket;
 	}
 	if (usec_wait>=1000000) {
@@ -1266,7 +1274,7 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mod
 		timeout.tv_sec = 0;
 		timeout.tv_usec = usec_wait;
 	}
-	ready = select((int) max_fd+1, &sg->rgroup, &sg->wgroup, NULL, &timeout);
+	ready = select((int) max_fd+1, rgroup, wgroup, NULL, &timeout);
 
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {

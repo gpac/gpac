@@ -38,10 +38,16 @@ typedef struct
 
 typedef struct
 {
+	GF_FilterPid *opid;
+	char *seg_name;
+} SegInfo;
+
+typedef struct
+{
 	//options
-	char *src, *ifce;
-	Bool cache, kc, sr;
-	u32 buffer, timeout;
+	char *src, *ifce, *odir;
+	Bool cache, kc, sr, reorder;
+	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout;
 	s32 tunein, stsi;
 	
 	//internal
@@ -57,6 +63,9 @@ typedef struct
 	u32 start_time, tune_time;
 	GF_FilterPid *opid;
 	GF_List *tsi_outs;
+
+	u32 nb_stats;
+	GF_List *received_seg_names;
 } ATSCInCtx;
 
 
@@ -79,6 +88,14 @@ static void atscin_finalize(GF_Filter *filter)
 			gf_free(tsio);
 		}
 		gf_list_del(ctx->tsi_outs);
+	}
+	if (ctx->received_seg_names) {
+		while (gf_list_count(ctx->received_seg_names)) {
+			SegInfo *si = gf_list_pop_back(ctx->received_seg_names);
+			gf_free(si->seg_name);
+			gf_free(si);
+		}
+		gf_list_del(ctx->received_seg_names);
 	}
 }
 
@@ -131,11 +148,31 @@ static void atscin_send_file(ATSCInCtx *ctx, u32 service_id, GF_ATSCEventFileInf
 		memcpy(output, finfo->data, finfo->size);
 		if (finfo->corrupted) gf_filter_pck_set_corrupted(pck, GF_TRUE);
 		gf_filter_pck_send(pck);
+
+		if (ctx->received_seg_names && (evt_type==GF_ATSC_EVT_SEG)) {
+			SegInfo *si;
+			GF_SAFEALLOC(si, SegInfo);
+			si->opid = pid;
+			si->seg_name = gf_strdup(finfo->filename);
+			gf_list_add(ctx->received_seg_names, si);
+		}
 	}
 
 	while (gf_atsc3_dmx_get_object_count(ctx->atsc_dmx, service_id)>1) {
 		if (! gf_atsc3_dmx_remove_first_object(ctx->atsc_dmx, service_id))
 			break;
+	}
+
+	if (ctx->max_segs) {
+		while (gf_list_count(ctx->received_seg_names) > ctx->max_segs) {
+			GF_FilterEvent evt;
+			SegInfo *si = gf_list_pop_front(ctx->received_seg_names);
+			GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, si->opid);
+			evt.file_del.url = si->seg_name;
+			gf_filter_pid_send_event(si->opid, &evt);
+			gf_free(si->seg_name);
+			gf_free(si);
+		}
 	}
 }
 
@@ -156,7 +193,7 @@ void atscin_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 	case GF_ATSC_EVT_SERVICE_SCAN:
 		if (ctx->tune_service_id && !gf_atsc3_dmx_find_service(ctx->atsc_dmx, ctx->tune_service_id)) {
 
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSCDmx] Asked to tune to service %d but no such service, tuning to first one\n", ctx->tune_service_id));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ATSC, ("[ATSCDmx] Asked to tune to service %d but no such service, tuning to first one\n", ctx->tune_service_id));
 
 			ctx->tune_service_id = 0;
 			gf_atsc3_tune_in(ctx->atsc_dmx, (u32) -2, GF_TRUE);
@@ -213,7 +250,7 @@ void atscin_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 			ctx->last_toi = finfo->toi;
 		} else if (ctx->sync_tsi == finfo->tsi) {
 			if (ctx->last_toi > finfo->toi) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSCDmx] Loop detected on service %d for TSI %u: prev TOI %u this toi %u\n", ctx->tune_service_id, finfo->tsi, ctx->last_toi, finfo->toi));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ATSC, ("[ATSCDmx] Loop detected on service %d for TSI %u: prev TOI %u this toi %u\n", ctx->tune_service_id, finfo->tsi, ctx->last_toi, finfo->toi));
 
 				gf_atsc3_dmx_purge_objects(ctx->atsc_dmx, evt_param);
 				is_loop = GF_TRUE;
@@ -243,7 +280,7 @@ void atscin_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 
 		if (cache_entry) gf_dm_force_headers(ctx->dm, cache_entry, "x-atsc: yes\r\n");
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSCDmx] Pushing file %s to cache\n", szPath));
+		GF_LOG(GF_LOG_INFO, GF_LOG_ATSC, ("[ATSCDmx] Pushing file %s to cache\n", szPath));
 
 		if (is_loop) break;
 
@@ -274,7 +311,7 @@ static Bool atscin_local_cache_probe(void *par, char *url, Bool is_destroy)
 	if (is_destroy) {
 		gf_atsc3_dmx_remove_object_by_name(ctx->atsc_dmx, sid, subr+1, GF_TRUE);
 	} else if (sid && (sid != ctx->tune_service_id)) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSCDmx] Request on service %d but tuned on service %d, retuning\n", sid, ctx->tune_service_id));
+		GF_LOG(GF_LOG_INFO, GF_LOG_ATSC, ("[ATSCDmx] Request on service %d but tuned on service %d, retuning\n", sid, ctx->tune_service_id));
 		ctx->tune_service_id = sid;
 		ctx->sync_tsi = 0;
 		ctx->last_toi = 0;
@@ -292,18 +329,43 @@ static GF_Err atscin_process(GF_Filter *filter)
 	while (1) {
 		GF_Err e = gf_atsc3_dmx_process(ctx->atsc_dmx);
 		if (e == GF_IP_NETWORK_EMPTY) {
-			gf_filter_ask_rt_reschedule(filter, 2000);
+			gf_filter_ask_rt_reschedule(filter, 1000);
 			break;
 		}
 	}
 	if (!ctx->tune_time) {
 	 	u32 diff = gf_sys_clock() - ctx->start_time;
 	 	if (diff>ctx->timeout) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSCDmx] No data for %d ms, aborting\n", diff));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ATSC, ("[ATSCDmx] No data for %d ms, aborting\n", diff));
 			gf_filter_setup_failure(filter, GF_SERVICE_ERROR);
 			return GF_EOS;
 		}
 	}
+
+	if (ctx->stats) {
+		u32 now = gf_sys_clock() - ctx->start_time;
+		if (now >= ctx->nb_stats*ctx->stats) {
+			ctx->nb_stats+=1;
+			if (gf_filter_reporting_enabled(filter)) {
+				Double rate=0.0;
+				char szRpt[1024];
+
+				u64 st = gf_atsc3_dmx_get_first_packet_time(ctx->atsc_dmx);
+				u64 et = gf_atsc3_dmx_get_last_packet_time(ctx->atsc_dmx);
+				u64 nb_pck = gf_atsc3_dmx_get_nb_packets(ctx->atsc_dmx);
+				u64 nb_bytes = gf_atsc3_dmx_get_recv_bytes(ctx->atsc_dmx);
+
+				et -= st;
+				if (et) {
+					rate = (Double)nb_bytes*8;
+					rate /= et;
+				}
+				sprintf(szRpt, "[%us] "LLU" bytes "LLU" packets in "LLU" ms rate %.02f mbps", now/1000, nb_bytes, nb_pck, et/1000, rate);
+				gf_filter_update_status(filter, 0, szRpt);
+			}
+		}
+	}
+
 	return GF_OK;
 }
 
@@ -316,13 +378,25 @@ static GF_Err atscin_initialize(GF_Filter *filter)
 	if (!ctx->src) return GF_BAD_PARAM;
 	if (strcmp(ctx->src, "atsc://")) return GF_BAD_PARAM;
 
+	if (ctx->odir)
+		ctx->cache = GF_FALSE;
+
 	if (ctx->cache) {
 		ctx->dm = gf_filter_get_download_manager(filter);
 		if (!ctx->dm) return GF_SERVICE_ERROR;
 		gf_dm_set_localcache_provider(ctx->dm, atscin_local_cache_probe, ctx);
 	}
 
-	ctx->atsc_dmx = gf_atsc3_dmx_new(ctx->ifce, NULL, ctx->buffer);
+	ctx->atsc_dmx = gf_atsc3_dmx_new(ctx->ifce, ctx->odir, ctx->buffer);
+	if (ctx->odir && ctx->max_segs) {
+		gf_atsc3_set_max_objects_store(ctx->atsc_dmx, (u32) ctx->max_segs);
+	}
+
+	gf_atsc3_set_reorder(ctx->atsc_dmx, ctx->reorder, ctx->rtimeout);
+
+	if (ctx->tsidbg) {
+		gf_atsc3_dmx_debug_tsi(ctx->atsc_dmx, ctx->tsidbg);
+	}
 
 	gf_atsc3_set_callback(ctx->atsc_dmx, atscin_on_event, ctx);
 	if (ctx->tunein>0) ctx->tune_service_id = ctx->tunein;
@@ -335,6 +409,8 @@ static GF_Err atscin_initialize(GF_Filter *filter)
 	ctx->start_time = gf_sys_clock();
 
 	if (ctx->stsi) ctx->tsi_outs = gf_list_new();
+	if (ctx->max_segs)
+		ctx->received_seg_names = gf_list_new();
 
 	return GF_OK;
 }
@@ -351,6 +427,12 @@ static const GF_FilterArgs ATSCInArgs[] =
 	{ OFFS(kc), "keep corrupted file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sr), "skip repeated files - ignored in [-cache]() mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stsi), "define one output pid per tsi/serviceID - ignored in [-cache]() mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(stats), "log statistics at the given rate in ms (0 disables stats)", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(tsidbg), "gather only objects with given TSI (debug)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(max_segs), "maximum number of segments to keep - ignored in [-cache]() mode", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(odir), "output directory for stand-alone mode - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(reorder), "ignore order flag in ROUTE/LCT packets, avoiding considering object done when TOI changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(rtimeout), "default timeout in ms to wait when gathering out-of-order packets", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -364,8 +446,10 @@ GF_FilterRegister ATSCInRegister = {
 	GF_FS_SET_DESCRIPTION("ATSC input")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string `atsc://`.\n"
-	"The default behaviour is to populate GPAC HTTP Cache with the recieved files, using `http://gpatsc/serviceN/` as service root, N being the ATSC service ID.\n"
-	"In [-cache]() mode, repeated files are always send.\n"
+	"The filter can work in cached mode, source mode or standalone mode."
+	"# Cached mode\n"
+	"The cached mode is the default filter behaviour. It populates GPAC HTTP Cache with the recieved files, using `http://gpatsc/serviceN/` as service root, N being the ATSC service ID.\n"
+	"In cached mode, repeated files are always send.\n"
 	"  \n"
 	"The cached MPD is assigned the following headers:\n"
 	"- x-dash-atsc: integer value, indicates the ATSC service ID\n"
@@ -375,15 +459,24 @@ GF_FilterRegister ATSCInRegister = {
 	"The cached files are assigned the following headers:\n"
 	"- x-atsc: boolean value, if yes indicates the file comes from an ATSC session\n"
 	"\n"
-	"This behaviour can be changed by disabling the cache, in which case the filter will output files on a single output pid of type `file`. "
-	"The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not repeated unless requested.\n"
+	"# Source mode\n"
+	"In source mode, the filter outputs files on a single output pid of type `file`. "
+	"The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not sent unless requested.\n"
 	"If needed, one pid per TSI can be used rather than a single pid. This avoids mixing files of different mime types on the same pid (e.g. mpd and isobmff).\n"
-#ifdef GPAC_CONFIG_DARWIN
-	"\nOn OSX with VM packet replay you will need to force multicast routing on ATSC 3.0 base multicast\n"
+	"EX gpac -i atsc://cache=false -o $ServiceID$/$File$:dynext\n"
+	"This will grab the files and forward them as output PIDs, consumed by the [fout](fout) filter.\n"
+	"\n"
+	"# Standalone mode\n"
+	"In standalone mode, the filter does not produce any output pid and writes received files to the [-odir]() directory.\n"
+	"EX gpac -i atsc://odir=output\n"
+	"This will grab the files and write them to `output` directory.\n"
+	"\n"
+	"# Interface setup\n"
+	"On some systems (OSX), when using VM packet replay you may need to force multicast routing on your local interface.\n"
+	"You will have to do this for the base ATSC3 multicast (224.0.23.60):\n"
 	"EX route add -net 224.0.23.60/32 -interface vboxnet0\n"
 	"and on each service multicast:\n"
 	"EX route add -net 239.255.1.4/32 -interface vboxnet0\n"
-#endif
 	"",
 #endif //GPAC_DISABLE_DOC
 	.private_size = sizeof(ATSCInCtx),

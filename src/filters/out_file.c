@@ -58,6 +58,7 @@ typedef struct
 static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite)
 {
 	if (ctx->file && !ctx->is_std) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] closing output file %s\n", ctx->szFileName));
 		gf_fclose(ctx->file);
 	}
 	ctx->file = NULL;
@@ -101,10 +102,11 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 			if ((szRes[0] == 'a') || (szRes[0] == 'A')) ctx->ow = GF_TRUE;
 		}
 
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] opening output file %s\n", szFinalName));
 		ctx->file = gf_fopen(szFinalName, append ? "a+b" : "w+b");
 
 		if (!strcmp(szFinalName, ctx->szFileName) && !ctx->append && ctx->nb_write && !explicit_overwrite) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite\n", filename));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite\n", szFinalName));
 		}
 		strcpy(ctx->szFileName, szFinalName);
 	}
@@ -279,17 +281,36 @@ static GF_Err fileout_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	if (ctx->is_null) {
-		gf_filter_pid_drop_packet(ctx->pid);
-		return fileout_process(filter);
-	}
-
 	gf_filter_pck_get_framing(pck, &start, &end);
 	dep_flags = gf_filter_pck_get_dependency_flags(pck);
 	//redundant packet, do not store
 	if ((dep_flags & 0x3) == 1) {
 		gf_filter_pid_drop_packet(ctx->pid);
 		return GF_OK;
+	}
+
+	if (ctx->is_null) {
+		if (start) {
+			u32 fnum=0;
+			const char *fname=NULL;
+			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
+			if (p) fnum = p->value.uint;
+			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_URL);
+			if (!p) p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_OUTPATH);
+			if (!p) p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
+			if (p) fname = p->value.string;
+			if (fname) {
+				strcpy(ctx->szFileName, fname);
+			} else {
+				sprintf(ctx->szFileName, "%d", fnum);
+			}
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] null open (file name is %s)\n", ctx->szFileName));
+		}
+		if (end) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] null close (file name was %s)\n", ctx->szFileName));
+		}
+		gf_filter_pid_drop_packet(ctx->pid);
+		return fileout_process(filter);
 	}
 
 	if (ctx->file && start && ctx->cat)
@@ -356,9 +377,9 @@ static GF_Err fileout_process(GF_Filter *filter)
 			if (ctx->patch_blocks && gf_filter_pck_get_seek_flag(pck)) {
 				u64 bo = gf_filter_pck_get_byte_offset(pck);
 				if (ctx->is_std) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[FileOut] Cannot patch file, output is stdout\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Cannot patch file, output is stdout\n"));
 				} else if (bo==GF_FILTER_NO_BO) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[FileOut] Cannot patch file, wrong byte offset\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Cannot patch file, wrong byte offset\n"));
 				} else {
 					u32 ilaced = gf_filter_pck_get_interlaced(pck);
 					u64 pos = gf_ftell(ctx->file);
@@ -479,7 +500,12 @@ static GF_Err fileout_process(GF_Filter *filter)
 static Bool fileout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	if (evt->base.type==GF_FEVT_FILE_DELETE) {
-		gf_file_delete(evt->file_del.url);
+		GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
+		if (ctx->is_null) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] null delete (file name was %s)\n", evt->file_del.url));
+		} else {
+			gf_file_delete(evt->file_del.url);
+		}
 		return GF_TRUE;
 	}
 	return GF_FALSE;
