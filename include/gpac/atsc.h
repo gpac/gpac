@@ -120,6 +120,14 @@ GF_Err gf_atsc3_set_callback(GF_ATSCDmx *atscd, void (*on_event)(void *udta, GF_
  */
 GF_Err gf_atsc3_set_max_objects_store(GF_ATSCDmx *atscd, u32 max_segs);
 
+/*! Sets reordering on.
+\param atscd the ATSC demultiplexer
+\param force_reorder if TRUE,  the order flag in ROUTE/LCT is ignored and objects are gathered for the given time. Otherwise, if order flag is set in ROUTE/LCT, an object is considered done as soon as a new object starts
+\param timeout_ms maximum delay to wait before considering the object is done when ROUTE/LCT order is not used. A value of 0 implies waiting forever (default value is 5s).
+\return error code if any
+ */
+GF_Err gf_atsc3_set_reorder(GF_ATSCDmx *atscd, Bool force_reorder, u32 timeout_ms);
+
 /*! Sets the maximum number of objects to store on disk per TSI
 \param atscd the ATSC demultiplexer
 \param service_id ID of the service to tune in. 0 means no service, 0xFFFFFFFF means all services and 0xFFFFFFFE means first service found
@@ -147,7 +155,7 @@ void gf_atsc3_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char 
 /*! Removes the first object loaded in the service
 \param atscd the ATSC demultiplexer
 \param service_id ID of the service to query
-\return GF_TRUE if success, GF_FALSE if error
+\return GF_TRUE if success, GF_FALSE if no object could be removed (the object is in download)
  */
 Bool gf_atsc3_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id);
 

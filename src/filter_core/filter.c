@@ -2173,6 +2173,12 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 {
 	if (filter->finalized || filter->removed)
 		return;
+
+	if (!use_direct_dispatch && filter->in_process) {
+		filter->schedule_next_time = 1 + gf_sys_clock_high_res();
+		return;
+	}
+
 	//lock task mx to take the decision whether to post a new task or not (cf gf_filter_check_pending_tasks)
 	gf_mx_p(filter->tasks_mx);
 	assert((s32)filter->process_task_queued>=0);

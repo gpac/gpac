@@ -508,6 +508,8 @@ typedef enum
 	GF_LOG_FILTER,
 	/*! Log for filter scheduler only */
 	GF_LOG_SCHEDULER,
+	/*! Log for all ATSC3 message */
+	GF_LOG_ATSC,
 	/*! Log for all messages coming from GF_Terminal or script alert()*/
 	GF_LOG_CONSOLE,
 	/*! Log for all messages coming the application, not used by libgpac or the modules*/

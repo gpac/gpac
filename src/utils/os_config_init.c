@@ -1024,6 +1024,7 @@ GF_GPACArg GPAC_Args[] = {
 	        "- filter: filters debugging\n"\
 	        "- sched: filter session scheduler debugging\n"\
 	        "- mutex: log all mutex calls\n"\
+	        "- atsc: ATSC3 debugging\n"\
 	        "- all: all tools logged - other tools can be specified afterwards.  \n"\
 	        "The special keyword `ncl` can be set to disable color logs.  \n"\
 	        "The special keyword `strict` can be set to exit at first error.  \n"\

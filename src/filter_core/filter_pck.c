@@ -110,16 +110,21 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 		return NULL;
 
 	count = gf_fq_count(pid->filter->pcks_alloc_reservoir);
-	pck_enum_state.data_size = data_size;
-	pck_enum_state.closest = NULL;
-	pck_enum_state.pck = NULL;
-	gf_fq_enum(pid->filter->pcks_alloc_reservoir, pck_queue_enum, &pck_enum_state);
-
-	pck = pck_enum_state.pck;
-	closest = pck_enum_state.closest;
+	if (count) {
+		pck_enum_state.data_size = data_size;
+		pck_enum_state.closest = NULL;
+		pck_enum_state.pck = NULL;
+		gf_fq_enum(pid->filter->pcks_alloc_reservoir, pck_queue_enum, &pck_enum_state);
+		pck = pck_enum_state.pck;
+		closest = pck_enum_state.closest;
+	}
 
 	//stop allocating after a while - TODO we for sur can design a better algo...
 	max_reservoir_size = pid->num_destinations ? 10 : 1;
+	//if pid is file, force 1 max
+	if (!pck && (pid->stream_type==GF_STREAM_FILE))
+		max_reservoir_size = 1;
+
 	if (!pck && (count>=max_reservoir_size)) {
 		assert(closest);
 		closest->alloc_size = data_size;

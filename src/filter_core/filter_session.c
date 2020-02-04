@@ -2849,7 +2849,8 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 		if (!stats->stream_type)
 			stats->stream_type = pid->stream_type;
 
-		if (set_name) {
+		//set name if PID name is not a default generated one
+		if (set_name && strncmp(pid->name, "PID", 3)) {
 			stats->name = pid->name;
 			set_name = GF_FALSE;
 		}
