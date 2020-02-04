@@ -1477,7 +1477,6 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 	Bool has_file_ext_cap = GF_FALSE;
 	Bool ext_not_trusted;
 	GF_FilterPid *src_pid = src_pid_or_ipid->pid;
-	Bool forced_cap_found = src_pid->forced_cap ? GF_FALSE : GF_TRUE;
 	const GF_FilterCapability *in_caps;
 	u32 nb_in_caps;
 
@@ -1537,7 +1536,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 			if (has_file_ext_cap && ext_not_trusted && !mime_matched)
 				all_caps_matched = GF_FALSE;
 
-			if (all_caps_matched && forced_cap_found) {
+			if (all_caps_matched) {
 				if (dst_bundle_idx)
 					(*dst_bundle_idx) = cap_bundle_idx;
 				return GF_TRUE;
@@ -1571,9 +1570,6 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 		if (!all_caps_matched) continue;
 
 		if (cap->code) {
-			if (!forced_cap_found && (cap->code==src_pid->forced_cap))
-				forced_cap_found = GF_TRUE;
-
 			pid_cap = gf_filter_pid_get_property_first(src_pid_or_ipid, cap->code);
 
 			//special case for file ext: the pid will likely have only one file extension defined, and the output as well
@@ -1679,27 +1675,13 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 	if (has_file_ext_cap && ext_not_trusted && !mime_matched)
 		all_caps_matched = GF_FALSE;
 
-	if (nb_subcaps && all_caps_matched && forced_cap_found) {
+	if (nb_subcaps && all_caps_matched) {
 		if (dst_bundle_idx)
 			(*dst_bundle_idx) = cap_bundle_idx;
 		return GF_TRUE;
 	}
 
 	return GF_FALSE;
-}
-
-GF_Err gf_filter_pid_force_cap(GF_FilterPid *pid, u32 cap4cc)
-{
-	if (PID_IS_INPUT(pid)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot force PID cap on input PID\n"));
-		return GF_BAD_PARAM;
-	}
-	if (pid->num_destinations) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Cannot force PID cap on already connected pid\n"));
-		return GF_BAD_PARAM;
-	}
-	pid->forced_cap = cap4cc;
-	return GF_OK;
 }
 
 u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps)

@@ -159,7 +159,6 @@ enum
 	JSF_PID_TIMESCALE,
 	JSF_PID_CLOCK_MODE,
 	JSF_PID_DISCARD,
-	JSF_PID_FORCED_CAP,
 	JSF_PID_SRC_URL,
 	JSF_PID_DST_URL,
 	JSF_PID_REQUIRE_SOURCEID,
@@ -1741,11 +1740,6 @@ static JSValue jsf_pid_set_prop(JSContext *ctx, JSValueConst this_val, JSValueCo
 	case JSF_PID_DISCARD:
 		gf_filter_pid_set_discard(pctx->pid, JS_ToBool(ctx, value) );
 		break;
-	case JSF_PID_FORCED_CAP:
-		if (JS_ToInt32(ctx, &ival, value))
-			return JS_EXCEPTION;
-		gf_filter_pid_force_cap(pctx->pid, ival);
-		break;
 	case JSF_PID_REQUIRE_SOURCEID:
 		if (JS_ToBool(ctx, value))
 			gf_filter_pid_require_source_id(pctx->pid);
@@ -2448,7 +2442,6 @@ static const JSCFunctionListEntry jsf_pid_funcs[] = {
     JS_CGETSET_MAGIC_DEF("timescale", jsf_pid_get_prop, NULL, JSF_PID_TIMESCALE),
     JS_CGETSET_MAGIC_DEF("clock_mode", NULL, jsf_pid_set_prop, JSF_PID_CLOCK_MODE),
     JS_CGETSET_MAGIC_DEF("discard", NULL, jsf_pid_set_prop, JSF_PID_DISCARD),
-    JS_CGETSET_MAGIC_DEF("forced_cap", NULL, jsf_pid_set_prop, JSF_PID_FORCED_CAP),
     JS_CGETSET_MAGIC_DEF("src_url", jsf_pid_get_prop, NULL, JSF_PID_SRC_URL),
     JS_CGETSET_MAGIC_DEF("dst_url", jsf_pid_get_prop, NULL, JSF_PID_DST_URL),
     JS_CGETSET_MAGIC_DEF("require_source_id", NULL, jsf_pid_set_prop, JSF_PID_REQUIRE_SOURCEID),

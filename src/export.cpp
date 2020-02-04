@@ -2408,6 +2408,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_all_sinks_done) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_has_pid_connection_pending) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_reporting_enabled) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negociate_property_str) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negociate_property_dyn) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_enable_emulation_byte_removal ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_del ) )
