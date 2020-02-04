@@ -176,15 +176,15 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		case GF_4CC('V', 'P', '1', '0'):
 			ctx->codecid = GF_CODECID_VP10;
 			ctx->vp_cfg = gf_odf_vp_cfg_new();
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IVF] %s parsing not implemented, import might be uncomplete or broken\n", gf_4cc_to_str(codec_fourcc) ));
 			break;
 		default:
 			ctx->codecid = codec_fourcc;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IVF] Unsupported codec FourCC %s, import might be uncomplete or broken\n", gf_4cc_to_str(codec_fourcc) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IVF] Unsupported codec FourCC %s\n", gf_4cc_to_str(codec_fourcc) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		if (ctx->vp_cfg && !ctx->is_vp9) {
 			ctx->is_vpX = GF_TRUE;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IVF] %s parsing not implemented, import might be uncomplete or broken\n", gf_4cc_to_str(codec_fourcc) ));
 			ctx->vp_cfg->profile = 1;
 			ctx->vp_cfg->level = 10;
 			ctx->vp_cfg->bit_depth = 8;
@@ -551,8 +551,7 @@ GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		ctx->last_pts = pts;
 	}
 
-	pck_size = (u32)(gf_bs_get_position(ctx->bs) - pos);
-	assert(pck_size == frame_size);
+	pck_size = frame_size;
 
 	//check pid state
 	av1dmx_check_pid(filter, ctx);
@@ -578,11 +577,15 @@ GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	} else {
 		gf_filter_pck_set_cts(pck, ctx->cts);
 	}
-	//no clue what is inside the packet, signal as SAP1
-	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 
 	gf_bs_seek(ctx->bs, pos);
 	gf_bs_read_data(ctx->bs, output, pck_size);
+
+	if (output[0] & 0x80)
+		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+	else
+		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_NONE);
+
 	gf_filter_pck_send(pck);
 
 	av1dmx_update_cts(ctx);
