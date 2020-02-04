@@ -513,7 +513,8 @@ struct __gf_filter
 	Bool has_out_caps;
 
 	Bool disabled;
-
+	//set to true before calling filter process() callback, and reset to false right after
+	Bool in_process_callback;
 	Bool no_probe;
 	Bool no_inputs;
 	

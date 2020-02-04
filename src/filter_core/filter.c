@@ -1910,6 +1910,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	assert(task->filter);
 	assert(filter->freg);
 	assert(filter->freg->process);
+	assert(filter->in_process);
 	task->can_swap = GF_TRUE;
 
 	filter->schedule_next_time = 0;
@@ -1998,6 +1999,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
 	gf_rmt_begin_hash(filter->name, GF_RMT_AGGREGATE, &filter->rmt_hash);
 
+	filter->in_process_callback = GF_TRUE;
+
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs)
 		e = gf_filter_process_check_alloc(filter);
@@ -2005,6 +2008,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 #endif
 		e = filter->freg->process(filter);
 
+	filter->in_process_callback = GF_FALSE;
 	gf_rmt_end();
 
 	//flush all pending pid init requests following the call to init
@@ -2174,7 +2178,9 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 	if (filter->finalized || filter->removed)
 		return;
 
-	if (!use_direct_dispatch && filter->in_process) {
+	//if regular posting (not direct) and our caller is the main process function, no need to lock task mutex, just increase
+	//the next scheduled time
+	if (!use_direct_dispatch && filter->in_process_callback) {
 		filter->schedule_next_time = 1 + gf_sys_clock_high_res();
 		return;
 	}
