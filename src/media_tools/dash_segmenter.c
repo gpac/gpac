@@ -509,6 +509,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	u32 i, count;
 	char *sep_ext;
 	char *args=NULL, szArg[1024];
+	Bool multi_period = GF_FALSE;
 
 	if (!dasher->mpd_name) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Missing MPD name\n"));
@@ -809,6 +810,39 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 	//and setup sources
 	count = gf_list_count(dasher->inputs);
+
+	for (i=0; i<count; i++) {
+		GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
+		if (di->periodID || di->period_duration || di->xlink) {
+			multi_period = GF_TRUE;
+		}
+		di->period_order=0;
+	}
+	if (multi_period) {
+		u32 cur_period_order = 1;
+		for (i=0; i<count; i++) {
+			u32 j;
+			GF_DashSegmenterInput *a_di = NULL;
+			GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
+			if (!di->periodID) {
+				di->period_order = 0;
+				continue;
+			}
+			for (j=0; j<count; j++) {
+				a_di = gf_list_get(dasher->inputs, j);
+				if ((a_di != di) && a_di->periodID && !strcmp(a_di->periodID, di->periodID))
+					break;
+				a_di = NULL;
+			}
+			if (a_di) {
+				di->period_order = a_di->period_order;
+				continue;
+			}
+			di->period_order = cur_period_order;
+			cur_period_order++;
+		}
+	}
+
 	for (i=0; i<count; i++) {
 		u32 j;
 		GF_Filter *src = NULL;
@@ -861,7 +895,11 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			sprintf(szArg, "#ASID=%d", di->asID );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
-		//period start not exposed
+		//period start as negative to keep declaration order
+		if (multi_period && di->period_order) {
+			sprintf(szArg, "#PStart=-%d", di->period_order);
+			e |= gf_dynstrcat(&args, szArg, ":");
+		}
 		if (di->period_duration) {
 			if (!url) {
 				sprintf(szArg, "#PDur=%g", di->period_duration );
@@ -870,6 +908,11 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 				sprintf(szArg, "#DashDur=%g", di->period_duration );
 				e |= gf_dynstrcat(&args, szArg, ":");
 			}
+		}
+
+		if (di->dash_duration) {
+			sprintf(szArg, "#DashDur=%g", di->period_duration );
+			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 		if (url && di->media_duration) {
 			sprintf(szArg, "#CDur=%g", di->media_duration );

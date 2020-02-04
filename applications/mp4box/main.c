@@ -347,10 +347,10 @@ void PrintDASHUsage()
 		"- #audio: only use the first audio track from the source file\n"
 		"- :id=NAME: set the representation ID to NAME. Reserved value `NULL` disables representation ID for multiplexed inputs\n"
 		"- :dur=VALUE: process VALUE seconds from the media. If VALUE is longer than media duration, last sample duration is extended.\n"
-		"- :period=NAME: set the representation's period to NAME. Multiple periods may be used period appear in the MPD in the same order as specified with this option\n"
+		"- :period=NAME: set the representation's period to NAME. Multiple periods may be used. Periods appear in the MPD in the same order as specified with this option\n"
 		"- :BaseURL=NAME: set the BaseURL. Set multiple times for multiple BaseURLs\nWarning: This does not modify generated files location (see segment template).\n"
 		"- :bandwidth=VALUE: set the representation's bandwidth to a given value\n"
-		"- :period_duration=VALUE: increase the duration of this period by the given duration in seconds. This is only used when no input media is specified (remote period insertion), eg `:period=X:xlink=Z:duration=Y`\n"
+		"- :pdur=VALUE: increase the duration of this period by the given duration in seconds (alias for period_duration:VALUE). This is only used when no input media is specified (remote period insertion), eg `:period=X:xlink=Z:pdur=Y`\n"
 		"- :duration=VALUE: override target DASH segment duration for this input\n"
 		"- :xlink=VALUE: set the xlink value for the period containing this element. Only the xlink declared on the first rep of a period will be used\n"
 		"- :asID=VALUE: set the AdaptationSet ID to NAME\n"
@@ -1672,7 +1672,9 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				        !strnicmp(sep, ":role=", 6) ||
 				        !strnicmp(sep, ":desc", 5) ||
 				        !strnicmp(sep, ":sscale", 7) ||
-				        !strnicmp(sep, ":duration=", 10) || /*legacy*/!strnicmp(sep, ":period_duration=", 10) ||
+				        !strnicmp(sep, ":duration=", 10) ||
+				        !strnicmp(sep, ":period_duration=", 10) ||
+				        !strnicmp(sep, ":pdur=", 6) ||
 				        !strnicmp(sep, ":xlink=", 7) ||
 				        !strnicmp(sep, ":asID=", 6) ||
 				        !strnicmp(sep, ":sn=", 4) ||
@@ -1746,11 +1748,9 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			}
 			else if (!strnicmp(opts, "xlink=", 6)) di->xlink = gf_strdup(opts+6);
 			else if (!strnicmp(opts, "sscale", 6)) di->sscale = GF_TRUE;
-			else if (!strnicmp(opts, "period_duration=", 16)) {
-				di->period_duration = (Double) atof(opts+16);
-			}	else if (!strnicmp(opts, "duration=", 9)) {
-				di->period_duration = (Double) atof(opts+9); /*legacy: use period_duration instead*/
-			}
+			else if (!strnicmp(opts, "pdur=", 5)) di->period_duration = (Double) atof(opts+5);
+			else if (!strnicmp(opts, "period_duration=", 16)) di->period_duration = (Double) atof(opts+16);
+			else if (!strnicmp(opts, "duration=", 9)) di->dash_duration = (Double) atof(opts+9);
 			else if (!strnicmp(opts, "asID=", 5)) di->asID = atoi(opts+5);
 			else if (!strnicmp(opts, "sn=", 3)) di->startNumber = atoi(opts+3);
 			else if (!strnicmp(opts, "tpl=", 4)) di->seg_template = gf_strdup(opts+4);
