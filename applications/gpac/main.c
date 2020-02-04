@@ -3257,7 +3257,8 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	get_cmd('h');
 	gpac_suggest_arg("blcksize");
 	gpac_suggest_filter("outf", GF_FALSE);
-
+	gf_filter_pid_negociate_property_str(NULL, NULL, NULL);
+	gf_filter_pid_negociate_property_dyn(NULL, NULL, NULL);
 #endif
 	return 0;
 }

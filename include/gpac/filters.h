@@ -3001,15 +3001,6 @@ the following process() call.
 */
 void gf_filter_pid_discard_block(GF_FilterPid *PID);
 
-/*! Force a built-in cap props on the output PID.
-A PID may hold one forced cap at most. When set it acts as a virtual property checked against filter caps.
-This is currently only used by DASH segmenter to enforce loading muxers with dashing capability - likely to change in the near future.
-\param PID the target filter PID
-\param cap_4cc of built-in property to force in linked filters
-\return error if any
-*/
-GF_Err gf_filter_pid_force_cap(GF_FilterPid *PID, u32 cap_4cc);
-
 /*! Gets URL argument of first destination of PID if any - memory shall be freed by caller.
 \param PID the target filter PID
 \return destination URL string or NULL if error

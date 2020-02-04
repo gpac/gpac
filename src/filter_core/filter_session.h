@@ -858,8 +858,6 @@ struct __gf_filter_pid
 	GF_List *adapters_blacklist;
 	GF_Filter *caps_dst_filter;
 
-	u32 forced_cap;
-
 	Bool ext_not_trusted;
 
 	Bool require_source_id;
