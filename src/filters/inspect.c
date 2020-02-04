@@ -26,6 +26,7 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 #include <gpac/list.h>
+#include <gpac/xml.h>
 #include <gpac/internal/media_dev.h>
 
 typedef struct
@@ -931,9 +932,11 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				u32 plist_count = gf_list_count(att->value.string_list);
 				for (u32 k = 0; k < plist_count; k++) {
 					if (k) fprintf(dump, ", ");
-					fprintf(dump, "%s", (const char *) gf_list_get(att->value.string_list, k));
+					gf_xml_dump_string(dump, NULL, (char *) gf_list_get(att->value.string_list, k), NULL);
 				}
-			}else{
+			} else if ((att->type==GF_PROP_STRING) || (att->type==GF_PROP_STRING_NO_COPY)) {
+				gf_xml_dump_string(dump, NULL, att->value.string, NULL);
+			} else {
 				fprintf(dump, " %s=\"%s\"", pname_no_space, gf_prop_dump(p4cc, att, szDump, ctx->dump_data));
 			}
 			gf_free(pname_no_space);

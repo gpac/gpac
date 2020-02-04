@@ -225,10 +225,11 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 {
 #ifndef GPAC_DISABLE_3D
 	u32 y_stride = txh->stride;
+u8 *p_y=NULL, *p_u=NULL, *p_v=NULL;
 #endif
-	u8 *p_y=NULL, *p_u=NULL, *p_v=NULL;
 	txh->tx_io->flags |= TX_NEEDS_RASTER_LOAD | TX_NEEDS_HW_LOAD;
 
+#ifndef GPAC_DISABLE_3D
 	//10->8 bit conversion
 	if (txh->tx_io->conv_to_8bit) {
 		GF_VideoSurface dst, src;
@@ -276,7 +277,6 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 			p_v = (u8*) dst.video_buffer + 2 * dst.pitch_y * txh->height;
 		}
 	}
-#ifndef GPAC_DISABLE_3D
 	else if (txh->tx_io->pbo_id && txh->frame_ifce) {
 		u32 src_stride;
 		txh->frame_ifce->get_plane(txh->frame_ifce, 0, (const u8 **) &p_y, &y_stride);

@@ -3098,6 +3098,9 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	data = (u8 *) gf_log_get_tools_levels();
 	if (data) gf_free(data);
 
+	gf_sys_is_quiet();
+	gf_sys_get_argv();
+	gf_mx_get_num_locks(NULL);
 	sigint_catched = GF_TRUE;
 
 #ifdef WIN32
@@ -3139,6 +3142,8 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_mx_init(mat);
 	Fixed yaw, pitch, roll;
 	gf_mx_get_yaw_pitch_roll(&mat, &yaw, &pitch, &roll);
+	gf_mx_ortho_reverse_z(&mat, -20, 20, -20, 20, 0.1, 100.0);
+	gf_mx_perspective_reverse_z(&mat, 0.76, 1.0, 0.1, 100.0);
 
 	GF_Ray ray;
 	GF_Vec center, outPoint;
@@ -3165,6 +3170,10 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	GF_BBox bbox;
 	memset(&bbox, 0, sizeof(GF_BBox));
 	gf_bbox_equal(&bbox, &bbox);
+
+	GF_Vec v;
+	v.x = v.y = v.z = 0;
+	gf_vec_scale_p(&v, 2*FIX_ONE);
 
 	//token.c
 	char container[1024];
@@ -3259,6 +3268,11 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gpac_suggest_filter("outf", GF_FALSE);
 	gf_filter_pid_negociate_property_str(NULL, NULL, NULL);
 	gf_filter_pid_negociate_property_dyn(NULL, NULL, NULL);
+
+	gf_audio_fmt_get_cicp_layout(2, 1, 1);
+	gf_audio_fmt_get_layout_from_cicp(3);
+	gf_audio_fmt_get_layout_name_from_cicp(3);
+	gf_audio_fmt_get_cicp_from_layout(GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT);
 #endif
 	return 0;
 }
