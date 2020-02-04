@@ -99,7 +99,6 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 {
 	GF_FilterPacket *pck=NULL;
 	GF_FilterPacket *closest=NULL;
-	GF_PckQueueEnum pck_enum_state;
 	u32 count, max_reservoir_size;
 
 	if (PID_IS_INPUT(pid)) {
@@ -111,9 +110,9 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 
 	count = gf_fq_count(pid->filter->pcks_alloc_reservoir);
 	if (count) {
+		GF_PckQueueEnum pck_enum_state;
+		memset(&pck_enum_state, 0, sizeof(GF_PckQueueEnum));
 		pck_enum_state.data_size = data_size;
-		pck_enum_state.closest = NULL;
-		pck_enum_state.pck = NULL;
 		gf_fq_enum(pid->filter->pcks_alloc_reservoir, pck_queue_enum, &pck_enum_state);
 		pck = pck_enum_state.pck;
 		closest = pck_enum_state.closest;
