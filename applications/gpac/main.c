@@ -3253,9 +3253,6 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_rtp_streamer_get_payload_type(NULL);
 	gf_rtsp_unregister_interleave(NULL, 0);
 	gf_rtsp_reset_aggregation(NULL);
-	gf_rtsp_http_tunnel_start(NULL, NULL);
-	gp_rtp_builder_set_cryp_info(NULL);
-
 
 	get_cmd('h');
 	gpac_suggest_arg("blcksize");
