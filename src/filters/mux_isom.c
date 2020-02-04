@@ -4550,11 +4550,31 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 void gf_media_update_bitrate(GF_ISOFile *file, u32 track);
 
 
-static void mp4_mux_set_lhvc_base_layer(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
+static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 {
 	u32 avc_base_track, hevc_base_track, ref_track_id;
 	avc_base_track = hevc_base_track = 0;
 	u32 i;
+	GF_PropertyEntry *pe=NULL;
+	const GF_PropertyValue *p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:oinf", &pe);
+	if (p) {
+		u32 gi=0;
+		gf_isom_add_sample_group_info(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_OINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
+
+		p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:linf", &pe);
+		if (p) {
+			gf_isom_add_sample_group_info(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_LINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
+			gf_isom_set_track_group(ctx->file, tkw->track_num, 1000+gf_isom_get_track_id(ctx->file, tkw->track_num), GF_ISOM_BOX_TYPE_CSTG, GF_TRUE);
+		}
+	}
+
+	gf_filter_release_property(pe);
+
+	p = gf_filter_pid_get_property_str(tkw->ipid, "hevc:min_lid");
+	if ((!p || !p->value.uint) && (tkw->codecid!=GF_CODECID_LHVC)) {
+		return;
+	}
+	//set linf
 	for (i=0; i < gf_isom_get_track_count(ctx->file); i++) {
 		u32 subtype = gf_isom_get_media_subtype(ctx->file, i+1, 1);
 		switch (subtype) {
@@ -4593,31 +4613,6 @@ static void mp4_mux_set_lhvc_base_layer(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 			ref_track_id = gf_isom_get_track_id(ctx->file, hevc_base_track);
 			gf_isom_set_track_reference(ctx->file, tkw->track_num, GF_ISOM_REF_OREF, ref_track_id);
 		}
-	}
-}
-
-static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
-{
-	GF_PropertyEntry *pe=NULL;
-	const GF_PropertyValue *p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:oinf", &pe);
-	if (p) {
-		u32 gi=0;
-		gf_isom_add_sample_group_info(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_OINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
-
-		p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:linf", &pe);
-		if (p) {
-			gf_isom_add_sample_group_info(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_LINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
-			gf_isom_set_track_group(ctx->file, tkw->track_num, 1000+gf_isom_get_track_id(ctx->file, tkw->track_num), GF_ISOM_BOX_TYPE_CSTG, GF_TRUE);
-		}
-	}
-
-	gf_filter_release_property(pe);
-
-	p = gf_filter_pid_get_property_str(tkw->ipid, "hevc:min_lid");
-	if (p && p->value.uint) {
-		mp4_mux_set_lhvc_base_layer(ctx, tkw);
-	} else if (tkw->codecid==GF_CODECID_LHVC) {
-		mp4_mux_set_lhvc_base_layer(ctx, tkw);
 	}
 }
 
