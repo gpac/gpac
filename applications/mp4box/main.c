@@ -848,39 +848,6 @@ void PrintSWFUsage()
 	}
 }
 
-GF_GPACArg m4b_atsc_args[] =
-{
- 	GF_DEF_ARG("atsc", NULL, "enable ATSC 3.0 reader", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("ifce", NULL, "IP address of network interface to use", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("dir", NULL, "local filesystem path to which the files are written. If not set, nothing is written to disk", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("service", NULL, "ID of the service to grab\n"
- 	"- not set or -1: all services are dumped\n"
- 	"- 0: no services are dumped\n"
- 	"- -2: the first service found is used\n"
- 	"- positive: tunes to given service ID", NULL, NULL, GF_ARG_INT, 0),
- 	GF_DEF_ARG("nb-segs", NULL, "set max segments to keep on disk per stream, `-1` keeps all", "-1", NULL, GF_ARG_INT, 0),
- 	GF_DEF_ARG("atsc-stats", NULL, "print stats every N seconds", NULL, NULL, GF_ARG_INT, 0),
- 	{0}
-};
-
-void PrintATSCUsage()
-{
-	u32 i=0;
-	gf_sys_format_help(helpout, help_flags, "# ATSC 3.0 Grabber Options\n"
-	        "MP4Box can be used to grab files from an ATSC 3.0 ROUTE session and records them to disk.\n"
-	        "  \n"
-	        "Note: On OSX with VM packet replay you will need to force mcast routing\n"
-	        "EX route add -net 239.255.1.4/32 -interface vboxnet0\n"
-	        "  \n"
-	        "Options\n"
-	);
-	while (m4b_atsc_args[i].name) {
-		GF_GPACArg *arg = &m4b_atsc_args[i];
-		i++;
-		gf_sys_print_arg(helpout, help_flags, arg, "mp4box-extract");
-	}
-}
-
 GF_GPACArg m4b_liveenc_args[] =
 {
  	GF_DEF_ARG("dst", NULL, "destination IP", NULL, NULL, GF_ARG_STRING, 0),
@@ -944,7 +911,6 @@ GF_GPACArg m4b_usage_args[] =
 		"- crypt: ISMA E&A options help\n"
 		"- format: supported formats help\n"
 		"- live: BIFS streamer help\n"
-		"- atsc: ATSC3 reader help\n"
 		"- core: libgpac core options\n"
 		"- all: all options are printed\n", NULL, NULL, GF_ARG_STRING, 0),
 
@@ -2325,14 +2291,6 @@ Bool frag_at_rap = GF_FALSE;
 Bool adjust_split_end = GF_FALSE;
 Bool memory_frags = GF_TRUE;
 Bool keep_utc = GF_FALSE;
-#ifndef GPAC_DISABLE_ATSC
-Bool grab_atsc = GF_FALSE;
-s32 atsc_max_segs = -1;
-u32 atsc_stats_rate = 0;
-u32 atsc_debug_tsi = 0;
-const char *atsc_output_dir = NULL;
-s32 atsc_service = -1;
-#endif
 u32 timescale = 0;
 const char *do_wget = NULL;
 GF_DashSegmenterInput *dash_inputs = NULL;
@@ -3308,9 +3266,6 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			else if (!strcmp(argv[i + 1], "crypt")) PrintEncryptUsage();
 			else if (!strcmp(argv[i + 1], "meta")) PrintMetaUsage();
 			else if (!strcmp(argv[i + 1], "swf")) PrintSWFUsage();
-#ifndef GPAC_DISABLE_ATSC
-			else if (!strcmp(argv[i + 1], "atsc")) PrintATSCUsage();
-#endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 			else if (!strcmp(argv[i + 1], "rtp")) fprintf(stderr, "RTP streaming deprecated in MP4Box, use gpac applications\n");
 			else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
@@ -3327,9 +3282,6 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				PrintEncryptUsage();
 				PrintMetaUsage();
 				PrintSWFUsage();
-#ifndef GPAC_DISABLE_ATSC
-				PrintATSCUsage();
-#endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 				PrintLiveUsage();
 #endif
@@ -3400,9 +3352,6 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 	 		fprintf(helpout, "[**HOME**](Home) » [**MP4Box**](MP4Box) » Other Features");
 	 		fprintf(helpout, "<!-- automatically generated - do not edit, patch gpac/applications/mp4box/main.c -->\n");
 			PrintHintUsage();
-#ifndef GPAC_DISABLE_ATSC
-			PrintATSCUsage();
-#endif
 			gf_fclose(helpout);
 
 			gf_sys_close();
@@ -3425,9 +3374,6 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			PrintEncryptUsage();
 			PrintMetaUsage();
 			PrintSWFUsage();
-#ifndef GPAC_DISABLE_ATSC
-			PrintATSCUsage();
-#endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 			PrintLiveUsage();
 #endif
@@ -3535,42 +3481,14 @@ Bool mp4box_parse_args(int argc, char **argv)
 				info_track_id = 0;
 			}
 		}
-#if !defined(GPAC_DISABLE_STREAMING)
 		else if (!stricmp(arg, "-grab-ts")) {
 			fprintf(stderr, "Deprecated option - use gpac application\n");
 			return mp4box_cleanup(2);
 		}
-#endif
-#ifndef GPAC_DISABLE_ATSC
 		else if (!stricmp(arg, "-atsc")) {
-			grab_atsc = GF_TRUE;
+			fprintf(stderr, "Deprecated option - use gpac application\n");
+			return mp4box_cleanup(2);
 		}
-		else if (!stricmp(arg, "-dir")) {
-			CHECK_NEXT_ARG
-			atsc_output_dir = argv[i + 1];
-			i++;
-		}
-		else if (!stricmp(arg, "-service")) {
-			CHECK_NEXT_ARG
-			atsc_service = atoi(argv[i + 1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-nb-segs")) {
-			CHECK_NEXT_ARG
-			atsc_max_segs = atoi(argv[i + 1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-atsc-stats")) {
-			CHECK_NEXT_ARG
-			atsc_stats_rate = atoi(argv[i + 1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-tsi")) {
-			CHECK_NEXT_ARG
-			atsc_debug_tsi = atoi(argv[i + 1]);
-			i++;
-		}
-#endif
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
 		else if (!stricmp(arg, "-wget")) {
 			CHECK_NEXT_ARG
@@ -4344,21 +4262,6 @@ int mp4boxMain(int argc, char **argv)
 
 	if (!inName && dump_std)
 		inName = "std";
-
-#if !defined(GPAC_ENABLE_COVERAGE) && !defined(GPAC_DISABLE_ATSC)
-	if (grab_atsc) {
-		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
-		gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);
-
-		e = gf_sys_set_args(argc, (const char **) argv);
-		if (e) {
-			fprintf(stderr, "Error assigning libgpac arguments: %s\n", gf_error_to_string(e) );
-			return mp4box_cleanup(1);
-		}
-
-		return grab_atsc3_session(atsc_output_dir, atsc_service, atsc_max_segs, atsc_stats_rate, atsc_debug_tsi);
-	}
-#endif
 
 	if (!inName) {
 		PrintUsage();

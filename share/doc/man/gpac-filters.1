@@ -4008,9 +4008,11 @@ Description: ATSC input
 .br
 This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.
 .br
-The default behaviour is to populate GPAC HTTP Cache with the recieved files, using http://gpatsc/serviceN/ as service root, N being the ATSC service ID.
+The filter can work in cached mode, source mode or standalone mode.# Cached mode
 .br
-In -cache mode, repeated files are always send.
+The cached mode is the default filter behaviour. It populates GPAC HTTP Cache with the recieved files, using http://gpatsc/serviceN/ as service root, N being the ATSC service ID.
+.br
+In cached mode, repeated files are always send.
 .br
   
 .br
@@ -4030,13 +4032,44 @@ The cached files are assigned the following headers:
 .br
 
 .br
-This behaviour can be changed by disabling the cache, in which case the filter will output files on a single output pid of type file. The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not repeated unless requested.
+.SH Source mode
+.LP
+.br
+In source mode, the filter outputs files on a single output pid of type file. The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not sent unless requested.
 .br
 If needed, one pid per TSI can be used rather than a single pid. This avoids mixing files of different mime types on the same pid (e.g. mpd and isobmff).
 .br
+Example
+.br
+gpac -i atsc://cache=false -o $ServiceID$/$File$:dynext
+.br
 
 .br
-On OSX with VM packet replay you will need to force multicast routing on ATSC 3.0 base multicast
+This will grab the files and forward them as output PIDs, consumed by the fout filter.
+.br
+
+.br
+.SH Standalone mode
+.LP
+.br
+In standalone mode, the filter does not produce any output pid and writes received files to the -odir directory.
+.br
+Example
+.br
+gpac -i atsc://odir=output
+.br
+
+.br
+This will grab the files and write them to output directory.
+.br
+
+.br
+.SH Interface setup
+.LP
+.br
+On some systems (OSX), when using VM packet replay you may need to force multicast routing on your local interface.
+.br
+You will have to do this for the base ATSC3 multicast (224.0.23.60):
 .br
 Example
 .br
@@ -4076,6 +4109,18 @@ kc (boolean, default: false):            keep corrupted file
 sr (boolean, default: true):             skip repeated files - ignored in -cache mode
 .br
 stsi (boolean, default: false):          define one output pid per tsi/serviceID - ignored in -cache mode, see filter help
+.br
+stats (unsigned int, default: 1000):     log statistics at the given rate in ms (0 disables stats)
+.br
+tsidbg (unsigned int, default: 0):       gather only objects with given TSI (debug)
+.br
+max_segs (unsigned int, default: 0):     maximum number of segments to keep - ignored in -cache mode
+.br
+odir (string):                           output directory for stand-alone mode - see filter help
+.br
+reorder (boolean, default: false):       ignore order flag in ROUTE/LCT packets, avoiding considering object done when TOI changes
+.br
+rtimeout (unsigned int, default: 5000):  default timeout in ms to wait when gathering out-of-order packets
 .br
 
 .br
@@ -5090,7 +5135,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3207-g0c2e226f4-filters
+build: 0.9.0-DEV-rev3218-g61adcb596-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

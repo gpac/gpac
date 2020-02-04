@@ -1142,7 +1142,7 @@ print to stdout the number of top-level boxes matching box types given as parame
 .TP
 .B \-topsize (string)
 .br
-print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as 4cc_1,4cc_2N
+print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as 4cc_1,4cc_2N or all for all boxes
 .br
 .SH Importing Options
 .LP
@@ -1924,63 +1924,6 @@ support for lines transparency and scalability
 .br
 complementary angle below which 2 lines are merged, value 0means no flattening
 .br
-.SH ATSC 3.0 Grabber Options
-.LP
-.br
-MP4Box can be used to grab files from an ATSC 3.0 ROUTE session and records them to disk.
-.br
-  
-.br
-Note: On OSX with VM packet replay you will need to force mcast routing
-.br
-Example
-.br
-route add -net 239.255.1.4/32 -interface vboxnet0
-.br
-
-.br
-  
-.br
-Options
-.br
-.TP
-.B \-atsc
-.br
-enable ATSC 3.0 reader
-.br
-.TP
-.B \-ifce (string)
-.br
-IP address of network interface to use
-.br
-.TP
-.B \-dir (string)
-.br
-local filesystem path to which the files are written. If not set, nothing is written to disk
-.br
-.TP
-.B \-service (int)
-.br
-ID of the service to grab
-.br
-* not set or -1: all services are dumped
-.br
-* 0: no services are dumped
-.br
-* -2: the first service found is used
-.br
-* positive: tunes to given service ID
-.br
-.TP
-.B \-nb-segs (int, default: -1)
-.br
-set max segments to keep on disk per stream, -1 keeps all
-.br
-.TP
-.B \-atsc-stats (int)
-.br
-print stats every N seconds
-.br
 .SH Live Scene Encoder Options
 .LP
 .br
@@ -2069,7 +2012,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3207-g0c2e226f4-filters
+build: 0.9.0-DEV-rev3218-g61adcb596-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

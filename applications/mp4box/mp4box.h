@@ -137,8 +137,6 @@ void PrintLiveUsage();
 u32 grab_live_m2ts(const char *grab_m2ts, const char *outName);
 #endif
 
-u32 grab_atsc3_session(const char *dir, s32 serviceID, s32 max_segs, u32 stats_rate, u32 debug_tsi);
-
 GF_Err rip_mpd(const char *mpd, const char *dst_file);
 
 GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
