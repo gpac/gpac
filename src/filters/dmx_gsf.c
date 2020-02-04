@@ -1160,7 +1160,8 @@ static const char *gsfdmx_probe_data(const u8 *data, u32 data_size, GF_FilterPro
 static void gsfdmx_not_enough_bytes(void *par)
 {
 	GSF_DemuxCtx *ctx = (GSF_DemuxCtx *)par;
-	ctx->buffer_too_small = GF_TRUE;
+	if (ctx)
+		ctx->buffer_too_small = GF_TRUE;
 }
 
 static GF_Err gsfdmx_initialize(GF_Filter *filter)
@@ -1170,6 +1171,11 @@ static GF_Err gsfdmx_initialize(GF_Filter *filter)
 	if (!ctx->streams) return GF_OUT_OF_MEM;
 	ctx->bs_r = gf_bs_new((char *) ctx, 1, GF_BITSTREAM_READ);
 	gf_bs_set_eos_callback(ctx->bs_r, gsfdmx_not_enough_bytes, ctx);
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode())
+		gsfdmx_not_enough_bytes(NULL);
+#endif
 
 	ctx->bs_pck = gf_bs_new((char *) ctx, 1, GF_BITSTREAM_READ);
 	ctx->pck_res = gf_list_new();
