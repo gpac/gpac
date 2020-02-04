@@ -4007,10 +4007,7 @@ static GF_Err color_write_rgb_to_32(GF_VideoSurface *vs_dst, GF_VideoSurface *vs
 	u8 *src;
 	Bool isBGR;
 	u8 *dst, *cur;
-	u32 BPP;
-
-//	if (vs_src->pixel_format != vs_dst->pixel_format) return GF_NOT_SUPPORTED;
-	BPP = get_bpp(vs_src->pixel_format);
+	u32 BPP = get_bpp(vs_src->pixel_format);
 	if (!BPP) return GF_NOT_SUPPORTED;
 
 	if (_src_wnd) {
@@ -4026,7 +4023,7 @@ static GF_Err color_write_rgb_to_32(GF_VideoSurface *vs_dst, GF_VideoSurface *vs
 	}
 
 	/*go to start of src*/
-	src = vs_src->video_buffer + vs_src->pitch_y * y + BPP * vs_src->pitch_x;
+	src = vs_src->video_buffer + vs_src->pitch_y * y + BPP * x;
 
 	if (vs_src->pixel_format == vs_dst->pixel_format) {
 		for (i = 0; i<h; i++) {
