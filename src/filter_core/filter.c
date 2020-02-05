@@ -2179,12 +2179,15 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 	if (filter->finalized || filter->removed)
 		return;
 
+	//although this is theoretically coorect, it breaks quite some tests. Need further investigation
+#if 0
 	//if regular posting (not direct) and our caller is the main process function, no need to lock task mutex, just increase
 	//the next scheduled time
 	if (!use_direct_dispatch && filter->in_process_callback) {
 		filter->schedule_next_time = 1 + gf_sys_clock_high_res();
 		return;
 	}
+#endif
 
 	//lock task mx to take the decision whether to post a new task or not (cf gf_filter_check_pending_tasks)
 	gf_mx_p(filter->tasks_mx);
