@@ -485,13 +485,13 @@ static GF_Err gsfdmx_tune(GF_Filter *filter, GSF_DemuxCtx *ctx, char *pck_data, 
 		if (!ctx->key.size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] stream is encrypted but no key provided\n" ));
 			ctx->tune_error = GF_TRUE;
-			return GF_NOT_SUPPORTED;
+			return GF_BAD_PARAM;
 		}
 		ctx->crypt = gf_crypt_open(GF_AES_128, GF_CBC);
 		if (!ctx->crypt) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] failed to create decryptor\n" ));
 			ctx->tune_error = GF_TRUE;
-			return GF_NOT_SUPPORTED;
+			return GF_IO_ERR;
 		}
 		gf_crypt_init(ctx->crypt, ctx->key.ptr, ctx->crypt_IV);
 
@@ -873,7 +873,7 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 	GF_Err e;
 
 	if (ctx->tune_error) {
-		return GF_OK;
+		return GF_SERVICE_ERROR;
 	}
 	while (1) {
 		gpck = gf_list_get(gst->packets, 0);
@@ -1081,9 +1081,8 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		}
 
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] error decoding packet %s:\n", gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] error decoding packet: %s\n", gf_error_to_string(e) ));
 			if (ctx->tune_error) return e;
-
 		}
 		gf_bs_skip_bytes(ctx->bs_r, pck_len);
 		last_pck_end = (u32) gf_bs_get_position(ctx->bs_r);
@@ -1109,6 +1108,7 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 	Bool is_eos = GF_FALSE;
 
 	if (ctx->wait_for_play) return GF_OK;
+	if (ctx->tune_error) return GF_SERVICE_ERROR;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
@@ -1135,6 +1135,9 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 	data = gf_filter_pck_get_data(pck, &pkt_size);
 	e = gsfdmx_demux(filter, ctx, (char *) data, pkt_size);
 	gf_filter_pid_drop_packet(ctx->ipid);
+	if (ctx->tune_error)
+		gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
+
 	return e;
 }
 
