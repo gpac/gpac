@@ -78,7 +78,7 @@ GF_SceneGraph *gf_sg_new()
 #endif
 	tmp->on_node_modified = node_modif_stub;
 
-	//test some functions only used in weird smil anim or dom JS, and not adressed in test suite
+	//test some functions only used in weird smil anim or dom JS, and not addressed in test suite
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_test_mode()) {
 		node_modif_stub(NULL, NULL, NULL, NULL);

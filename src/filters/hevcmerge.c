@@ -78,7 +78,7 @@ typedef struct
 
 	GF_FilterPid *opid;
 	s32 base_pps_init_qp_delta_minus26;
-	u32 nb_bits_per_adress_dst;
+	u32 nb_bits_per_address_dst;
 	u32 out_width, out_height;
 	u8 *buffer_nal, *buffer_nal_no_epb, *buffer_nal_in_no_epb;
 	u32 buffer_nal_alloc, buffer_nal_no_epb_alloc, buffer_nal_in_no_epb_alloc;
@@ -322,7 +322,7 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, char
 		if (pps->dependent_slice_segments_enabled_flag) {
 			gf_bs_write_int(ctx->bs_nal_out, dependent_slice_segment_flag, 1);
 		}
-		gf_bs_write_int(ctx->bs_nal_out, tile_pid->slice_segment_address, ctx->nb_bits_per_adress_dst);
+		gf_bs_write_int(ctx->bs_nal_out, tile_pid->slice_segment_address, ctx->nb_bits_per_address_dst);
 	}
 	//else first slice in pic, no address
 
@@ -543,7 +543,7 @@ void hevcmerge_build_srdmap(GF_HEVCMergeCtx *ctx, Bool use_abs_pos)
 		vals[8*i+3] = h;
 
 		//get final position in the recomputed video, expressed in output referential {out_width,out_height}
-		//we recompute the position directly from the slice segment adress
+		//we recompute the position directly from the slice segment address
 		width_in_CU = ctx->out_width / ctx->max_CU_width;
 		nb_cols = tile->slice_segment_address % width_in_CU;
 		nb_rows = (tile->slice_segment_address - nb_cols) / width_in_CU;
@@ -1353,9 +1353,9 @@ reconfig_grid:
 	ctx->base_pps_init_qp_delta_minus26 = tile_pid->hevc_state.pps->pic_init_qp_minus26;
 
 	u32 nb_CTUs = ((ctx->out_width + ctx->max_CU_width - 1) / ctx->max_CU_width) * ((ctx->out_height + ctx->max_CU_height - 1) / ctx->max_CU_height);
-	ctx->nb_bits_per_adress_dst = 0;
-	while (nb_CTUs > (u32)(1 << ctx->nb_bits_per_adress_dst)) {
-		ctx->nb_bits_per_adress_dst++;
+	ctx->nb_bits_per_address_dst = 0;
+	while (nb_CTUs > (u32)(1 << ctx->nb_bits_per_address_dst)) {
+		ctx->nb_bits_per_address_dst++;
 	}
 
 	dsi = gf_filter_pid_get_property(tile_pid->pid, GF_PROP_PID_DECODER_CONFIG);

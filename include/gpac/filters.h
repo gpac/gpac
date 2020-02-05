@@ -2049,7 +2049,7 @@ void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media
 void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp);
 
 /*! Explicitly assigns a source ID to a filter. This shall be called before connecting the link_from filter
-If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (using the filter mem adress) will be used
+If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (using the filter mem address) will be used
 \param filter the target filter
 \param link_from the filter to link from
 \param link_ext any link extensions allowed in link syntax:
@@ -3593,7 +3593,7 @@ typedef struct _gf_filter_frame_interface
 	/*! get video frame plane
 	\param frame interface object for the video frame
 	\param plane_idx plane index, 0: Y or full plane, 1: U or UV plane, 2: V plane
-	\param outPlane adress of target color plane
+	\param outPlane address of target color plane
 	\param outStride stride in bytes of target color plane
 	\return error code if any
 	*/

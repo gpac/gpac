@@ -2179,7 +2179,7 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 	if (filter->finalized || filter->removed)
 		return;
 
-	//although this is theoretically coorect, it breaks quite some tests. Need further investigation
+	//although this is theoretically OK, it breaks quite some tests. Need further investigation
 #if 0
 	//if regular posting (not direct) and our caller is the main process function, no need to lock task mutex, just increase
 	//the next scheduled time

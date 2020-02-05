@@ -681,7 +681,7 @@ client channel, the client_port_* info designing the REMOTE client and port_* de
 the server channel
 \param ch the target RTP channel
 \param trans_info the transport info for this channel
-\param remote_address the remote / destination adress of the channel
+\param remote_address the remote / destination address of the channel
 \return error if any
 */
 GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, const char *remote_address);

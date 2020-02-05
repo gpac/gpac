@@ -182,7 +182,7 @@ GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *streamer, u8 *data, u32 size, u
 
 /*! formats a generic SDP header
 \param app_name application name, may be NULL
-\param ip_dest destination IP adress, shall NOT be NULL
+\param ip_dest destination IP address, shall NOT be NULL
 \param session_name session name, may be NULL
 \param iod64 base64 encoded MPEG-4 IOD, may be NULL
 \return the SDP header - shall be destroyed by caller
@@ -221,7 +221,7 @@ u8 gf_rtp_streamer_get_payload_type(GF_RTPStreamer *streamer);
 \param streamer the target RTP streamer
 \param path_mtu MTU path size in bytes
 \param tr the RTSP transport description
-\param ifce_addr IP adress of network interface to use
+\param ifce_addr IP address of network interface to use
 \return error if any
 */
 GF_Err gf_rtp_streamer_init_rtsp(GF_RTPStreamer *streamer, u32 path_mtu, GF_RTSPTransport *tr, const char *ifce_addr);
