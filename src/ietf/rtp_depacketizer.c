@@ -1227,21 +1227,18 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 
 
 	/*then process all FMTPs*/
-	i=0;
-	while ((fmtp = (GF_SDP_FMTP*)gf_list_enum(media->FMTP, &i))) {
-		GF_X_Attribute *att;
-		//we work with only one PayloadType for now
-		if (map && (fmtp->PayloadType != map->PayloadType)) continue;
-		j=0;
-		while ((att = (GF_X_Attribute *)gf_list_enum(fmtp->Attributes, &j))) {
-			payt_set_param(rtp, att->Name, att->Value);
+	if (media) {
+		i=0;
+		while ((fmtp = (GF_SDP_FMTP*)gf_list_enum(media->FMTP, &i))) {
+			GF_X_Attribute *att;
+			//we work with only one PayloadType for now
+			if (map && (fmtp->PayloadType != map->PayloadType)) continue;
+			j=0;
+			while ((att = (GF_X_Attribute *)gf_list_enum(fmtp->Attributes, &j))) {
+				payt_set_param(rtp, att->Name, att->Value);
+			}
 		}
 	}
-#ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
-		gf_rtp_parse_pass_through(NULL, NULL, NULL, 0);
-	}
-#endif
 
 	switch (rtp->payt) {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -1739,41 +1736,51 @@ static const GF_RTPStaticMap *gf_rtp_is_valid_static_payt(u32 payt)
 
 
 GF_EXPORT
-GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, gf_rtp_packet_cbk sl_packet_cbk, void *udta)
+GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf_rtp_packet_cbk sl_packet_cbk, void *udta)
 {
 	GF_Err e;
-	GF_RTPMap *map;
+	GF_RTPMap *map = NULL;
 	u32 payt;
 	GF_RTPDepacketizer *tmp;
 	u32 clock_rate;
 	const GF_RTPStaticMap *static_map = NULL;
 
 	/*check RTP map. For now we only support 1 RTPMap*/
-	if (!sl_packet_cbk || !media || (gf_list_count(media->RTPMaps) > 1)) return NULL;
+	if (!sl_packet_cbk || (!media && !hdr_payt)) return NULL;
+	if (media && (gf_list_count(media->RTPMaps) > 1)) return NULL;
 
 #ifdef GPAC_ENABEL_COVERAGE
 	if (gf_sys_is_test_mode())
 		gf_rtp_is_valid_static_payt(22);
 #endif
 
-	/*check payload type*/
-	map = (GF_RTPMap *)gf_list_get(media->RTPMaps, 0);
-	if (!map) {
-
-		//we deal with at most one format
-		if (!media->fmt_list || strchr(media->fmt_list, ' ')) return NULL;
-
-		payt = atoi(media->fmt_list);
-		static_map = gf_rtp_is_valid_static_payt(payt);
+	if (!media) {
+		static_map = gf_rtp_is_valid_static_payt(hdr_payt);
 		if (!static_map) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("RTP: Invalid static payload type %d\n", payt));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("RTP: Invalid/unsupported static payload type %d\n", hdr_payt));
 			return NULL;
 		}
 		clock_rate = static_map->clock_rate;
+		payt = hdr_payt;
 	} else {
-		payt = gf_rtp_get_payload_type(map, media);
-		if (!payt) return NULL;
-		clock_rate = map->ClockRate;
+		/*check payload type*/
+		map = (GF_RTPMap *)gf_list_get(media->RTPMaps, 0);
+		if (!map) {
+			//we deal with at most one format
+			if (!media->fmt_list || strchr(media->fmt_list, ' ')) return NULL;
+
+			payt = atoi(media->fmt_list);
+			static_map = gf_rtp_is_valid_static_payt(payt);
+			if (!static_map) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("RTP: Invalid static payload type %d\n", payt));
+				return NULL;
+			}
+			clock_rate = static_map->clock_rate;
+		} else {
+			payt = gf_rtp_get_payload_type(map, media);
+			if (!payt) return NULL;
+			clock_rate = map->ClockRate;
+		}
 	}
 
 	GF_SAFEALLOC(tmp, GF_RTPDepacketizer);
@@ -1786,6 +1793,7 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, gf_rtp_packet_cb
 		gf_free(tmp);
 		return NULL;
 	}
+
 	assert(tmp->depacketize);
 	tmp->clock_rate = clock_rate;
 	tmp->on_sl_packet = sl_packet_cbk;

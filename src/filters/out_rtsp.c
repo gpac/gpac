@@ -316,7 +316,7 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	payt = ctx->payt + gf_list_find(sess->streams, stream);
 
-	e = rtpout_init_streamer(stream, ctx->ifce ? ctx->ifce : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_TRUE, &sess->base_pid_id);
+	e = rtpout_init_streamer(stream, ctx->ifce ? ctx->ifce : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_TRUE, &sess->base_pid_id, 0);
 	if (e) return e;
 
 	if (ctx->loop) {

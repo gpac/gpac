@@ -2765,6 +2765,17 @@ u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer)
 }
 
 GF_EXPORT
+u32 gf_m2ts_get_ts_clock_90k(GF_M2TS_Mux *muxer)
+{
+	u64 now, init;
+	init = ((u64)muxer->init_ts_time.sec) * 90000;
+	init += ((u64) muxer->init_ts_time.nanosec/1000) * 9 / 100;
+	now = ((u64) muxer->time.sec)*90000;
+	now += ((u64) muxer->time.nanosec/1000) * 9 / 100;
+	return now - init;
+}
+
+GF_EXPORT
 GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, GF_M2TS_PackMode au_pes_mode)
 {
 	if (!muxer) return GF_BAD_PARAM;
@@ -3043,7 +3054,8 @@ send_pck:
 		}
 		/*if a stream was found, use it*/
 		else if (stream_to_process) {
-			muxer->time = time;
+			if (gf_m2ts_time_less_or_equal(&muxer->time, &time))
+				muxer->time = time;
 		}
 
 		muxer->pck_sent_over_br_window++;

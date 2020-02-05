@@ -2061,7 +2061,17 @@ Description: RTP/RTSP/SDP input
 .br
 
 .br
-This filter handles SDP file reading, rtp direct url and RTSP session and produces media PIDs and frames.
+This filter handles SDP/RTSP/RTP input reading. It supports:
+.br
+- SDP file reading
+.br
+- RTP direct url through rtp:// protocol scheme
+.br
+- RTSP session processing through rtsp:// and satip:// protocol schemes
+.br
+ 
+.br
+The filter produces either media PIDs and compressed media frames, or file PIDs and multiplex data (e.g., MPEG-2 TS).
 .br
 
 .br
@@ -4134,11 +4144,46 @@ Description: RTP Streamer
 .br
 
 .br
-The RTP streamer outputs an SDP on a file pid and streams RTP packets over UDP, starting from the indicated port.
+The RTP streamer handles SDP/RTP output streaming.
+.br
+.SH SDP mode
+.LP
+.br
+When the destination url is an SDP, the filter outputs an SDP on a file pid and streams RTP packets over UDP, starting from the indicated -port.
+.br
+.SH Direct RTP mode
+.LP
+.br
+When the destination url uses the protocol scheme rtp://IP:PORT, the filter does not output any SDP and streams a single input over RTP, using PORT indicated in the destination URL, or the first -port configured.
+.br
+In this mode, it is usually needed to specify the desired format usig -ext or -mime.
+.br
+Example
+.br
+gpac -i src -o rtp://localhost:1234/:ext=ts
+.br
+
+.br
+This will indicate that the RTP streamer expects a MPEG-2 TS mux as an input.
+.br
+.SH RTP Packets
+.LP
 .br
 The RTP packets produced have a maximum payload set by the -mtu option (IP packet will be MTU + 40 bytes of IP+UDP+RTP headers).
 .br
-The real-time scheduling algorithm first initializes the clock by computing the smallest timestamp for all input pids and mapping this media time to the system clock. It then determines the earliest packet to send next on each input pid, adding -delay if any. It finally compares the packet mapped timestamp TS to the system clock SC. When TS - SC is less than -tt, the RTP packets for the source packet are sent.
+The real-time scheduling algorithm works as follows:
+.br
+- first initialize the clock by:
+.br
+ - computing the smallest timestamp for all input pids
+.br
+ - mapping this media time to the system clock
+.br
+- determine the earliest packet to send next on each input pid, adding -delay if any
+.br
+- finally compare the packet mapped timestamp TS to the system clock SC. When TS - SC is less than -tt, the RTP packets for the source packet are sent
+.br
+
 .br
 
 .br
@@ -4172,6 +4217,12 @@ tso (int, default: -1):                  set timestamp offset in microsecs. Nega
 xps (boolean, default: false):           force parameter set injection at each SAP. If not set, only inject if different from SDP ones
 .br
 latm (boolean, default: false):          use latm for AAC payload format
+.br
+dst (string):                            URL for direct RTP mode - see filter help
+.br
+ext (string):                            file extension for direct RTP mode - see filter help
+.br
+mime (string):                           set mime type for direct RTP mode - see filter help
 .br
 
 .br
@@ -5138,7 +5189,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3222-g395ff9c1b-filters
+build: 0.9.0-DEV-rev3233-g733968e5d-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
