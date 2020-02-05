@@ -422,6 +422,13 @@ static GF_Err vttd_process(GF_Filter *filter)
 	return e;
 }
 
+static GF_Err vtt_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
+{
+	GF_VTTDec *ctx = gf_filter_get_udta(filter);
+	ctx->update_args = GF_TRUE;
+	return GF_OK;
+}
+
 static GF_Err vttd_initialize(GF_Filter *filter)
 {
 	GF_VTTDec *ctx = gf_filter_get_udta(filter);
@@ -435,6 +442,9 @@ static GF_Err vttd_initialize(GF_Filter *filter)
 	}
 	ctx->cues = gf_list_new();
 	ctx->update_args = GF_TRUE;
+#ifdef GPAC_ENABLE_COVERAGE
+	vtt_update_arg(filter, NULL, NULL);
+#endif
 	return GF_OK;
 }
 
@@ -443,13 +453,6 @@ void vttd_finalize(GF_Filter *filter)
 	GF_VTTDec *ctx = (GF_VTTDec *) gf_filter_get_udta(filter);
 	if (ctx->cues) gf_list_del(ctx->cues);
 	if (ctx->dsi) gf_free(ctx->dsi);
-}
-
-static GF_Err vtt_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
-{
-	GF_VTTDec *ctx = gf_filter_get_udta(filter);
-	ctx->update_args = GF_TRUE;
-	return GF_OK;
 }
 
 #define OFFS(_n)	#_n, offsetof(GF_VTTDec, _n)

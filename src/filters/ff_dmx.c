@@ -504,6 +504,9 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	ffmpeg_setup_logs(ctx->log_class);
 
 	ctx->initialized = GF_TRUE;
+#ifdef GPAC_ENABLE_COVERAGE
+	ffdmx_update_arg(filter, NULL, NULL);
+#endif
 	if (!ctx->src) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Missing file name, cannot open\n", ctx->fname));
 		return GF_SERVICE_ERROR;
