@@ -81,7 +81,7 @@ typedef enum
 \param start_time start time of the segment in MPD timescale
 \param bandwidth bandwidth used for the representation
 \param segment_number number of the target segment
-\param use_segment_timeline indicates if segmentTimeline is used for segment adressing in the MPD
+\param use_segment_timeline indicates if segmentTimeline is used for segment addressing in the MPD
 \return error if any
 */
 GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline);

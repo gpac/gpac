@@ -172,7 +172,7 @@ u32 gf_net_has_ipv6();
 \brief checks address type
 
 Checks if an address is an IPV6 or IPV4 one.
-\param address Adress to check
+\param address address to check
 \return true 1 if address is IPV6 one, 0 otherwise
  */
 Bool gf_net_is_ipv6(const char *address);
@@ -299,7 +299,7 @@ enum
 	GF_SOCK_REUSE_PORT = 1,
 	/*!Forces IPV6 if available.*/
 	GF_SOCK_FORCE_IPV6 = 1<<1,
-	/*!Does not perfom the actual bind, only keeps adress and port.*/
+	/*!Does not perfom the actual bind, only keeps address and port.*/
 	GF_SOCK_FAKE_BIND = 1<<2
 };
 

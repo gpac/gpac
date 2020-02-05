@@ -975,7 +975,7 @@ This section documents time functionalities and CPU management in GPAC.
 
 Reads a local file into memory, in binary open mode.
 \param file_name path on disk of the file to read
-\param out_data pointer to allocted adress, to be freed by caller
+\param out_data pointer to allocted address, to be freed by caller
 \param out_size pointer to allocted size
 \return error code if any
  */

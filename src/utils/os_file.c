@@ -1010,7 +1010,7 @@ char* gf_url_colon_suffix(const char *path)
 		if ((sep[1]==':') && ( (sep[2]=='/') || (sep[2]=='\\') ) ) {
 			return gf_url_colon_suffix(sep+2);
 		}
-		//find closest : or /, if : is before / consider this is a port or an IPv6 adress and check next : after /
+		//find closest : or /, if : is before / consider this is a port or an IPv6 address and check next : after /
 		next_colon = strchr(sep, ':');
 		next_slash = strchr(sep, '/');
 		if (next_colon && next_slash && ((next_slash - sep) > (next_colon - sep)) ) {

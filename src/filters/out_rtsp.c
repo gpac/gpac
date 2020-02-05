@@ -779,7 +779,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 
 				if (cmd_path && sname && !strncmp(cmd_path, sname, strlen(sname))) {
 					if (a_sess->service_name) {
-						//no session ID, match based on peer adress
+						//no session ID, match based on peer address
 						if (!strcmp(sess->peer_address, a_sess->peer_address))
 							swap_sess = GF_TRUE;
 					} else {

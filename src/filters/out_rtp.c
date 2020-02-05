@@ -1111,7 +1111,7 @@ static const GF_FilterCapability RTPOutCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_RTPOutCtx, _n)
 static const GF_FilterArgs RTPOutArgs[] =
 {
-	{ OFFS(ip), "destination IP adress (NULL is 127.0.0.1)", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(ip), "destination IP address (NULL is 127.0.0.1)", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(port), "port for first stream in session", GF_PROP_UINT, "7000", NULL, 0},
 	{ OFFS(loop), "loop all streams in session (not always possible depending on source type)", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(mpeg4), "send all streams using MPEG-4 generic payload format if posible", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -1140,7 +1140,7 @@ GF_FilterRegister RTPOutRegister = {
 	"When the destination url is an SDP, the filter outputs an SDP on a file pid and streams RTP packets over UDP, starting from the indicated [-port]().\n"
 	"# Direct RTP mode\n"
 	"When the destination url uses the protocol scheme `rtp://IP:PORT`, the filter does not output any SDP and streams a single input over RTP, using PORT indicated in the destination URL, or the first [-port]() configured.\n"
-	"In this mode, it is usually needed to specify the desired format usig [-ext]() or [-mime]().\n"
+	"In this mode, it is usually needed to specify the desired format using [-ext]() or [-mime]().\n"
 	"EX gpac -i src -o rtp://localhost:1234/:ext=ts\n"
 	"This will indicate that the RTP streamer expects a MPEG-2 TS mux as an input.\n"
 	"# RTP Packets\n"
