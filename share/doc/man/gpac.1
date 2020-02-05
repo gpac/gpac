@@ -2478,6 +2478,11 @@ Indicate chrom location for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 Indicate a magic number to store in the track, only used by importers
 .br
 .TP
+.B NoTSLoop (NTSL,boolean,  )
+.br
+Indicate the timestamps on this PID are adjusted in case of loops (used by TS muxer output)
+.br
+.TP
 .B FragStart (PFRB,unsigned int,D )
 .br
 Indicate if packet is a fragment start (value 1) or a segment start (value 2)
@@ -3347,7 +3352,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3222-g395ff9c1b-filters
+build: 0.9.0-DEV-rev3233-g733968e5d-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

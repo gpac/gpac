@@ -337,6 +337,42 @@ GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 	return GF_OK;
 }
 
+GF_Err gp_rtp_builder_do_mp2t(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
+{
+	u32 offset, size, max_size;
+
+	builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
+
+	if (!data) return GF_OK;
+
+	max_size = builder->Path_MTU;
+	offset = 0;
+	while (data_size > 0) {
+		if (data_size > max_size) {
+			size = max_size / 188;
+			size *= 188;
+		} else {
+			size = data_size;
+		}
+
+		data_size -= size;
+
+		/*create new RTP Packet */
+		builder->rtp_header.SequenceNumber += 1;
+		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
+
+		/*add payload*/
+		if (builder->OnDataReference)
+			builder->OnDataReference(builder->cbk_obj, size, offset);
+		else
+			builder->OnData(builder->cbk_obj, data + offset, size, GF_TRUE);
+
+		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+
+		offset += size;
+	}
+	return GF_OK;
+}
 GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex)
 {
 	GF_BitStream *bs;

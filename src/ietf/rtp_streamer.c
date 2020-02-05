@@ -381,6 +381,11 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 		/*fixme - this works cos there's only one PL for text in mpeg4 at the current time*/
 		PL_ID = 0x10;
 		break;
+	case GF_CODECID_FAKE_MP2T:
+		rtp_type = GF_RTP_PAYT_MP2T;
+		PayloadType = OfficialPayloadType = GF_RTP_PAYT_MP2T;
+		required_rate = 90000;
+		break;
 
 	default:
 		if (!rtp_type) {

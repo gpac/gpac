@@ -38,18 +38,6 @@ static Bool rtpin_stream_is_valid(GF_RTPIn *rtp, GF_RTPInStream *stream)
 	return GF_FALSE;
 }
 
-static void rtpin_stream_stop(GF_RTPInStream *stream)
-{
-	if (!stream || !stream->rtsp) return;
-
-	stream->flags &= ~RTP_SKIP_NEXT_COM;
-	//stream->status = RTP_Disconnected;
-	//remove interleaved
-	if (gf_rtp_is_interleaved(stream->rtp_ch)) {
-		gf_rtsp_unregister_interleave(stream->rtsp->session, gf_rtp_get_low_interleave_id(stream->rtp_ch));
-	}
-}
-
 /*this prevent sending teardown on session with running channels*/
 static Bool rtpin_rtsp_is_active(GF_RTPInStream *stream)
 {
@@ -241,6 +229,10 @@ void rtpin_rtsp_setup_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e)
 
 		gf_rtp_set_interleave_callbacks(stream->rtp_ch, rtpin_rtsp_tcp_send_report, stream, stream);
 		sess->flags |= RTSP_TCP_FLUSH;
+#ifdef GPAC_ENABLE_COVERAGE
+		if (gf_sys_is_test_mode())
+			rtpin_rtsp_tcp_send_report(NULL, NULL, GF_FALSE, NULL, 0);
+#endif
 	}
 
 	if (sess->satip) {
@@ -792,7 +784,12 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 		/*if server only support aggregation on pause, skip the command or issue
 		a teardown if last active stream*/
 		if (stream->rtsp->flags & RTSP_AGG_ONLY) {
-			rtpin_stream_stop(stream);
+			stream->flags &= ~RTP_SKIP_NEXT_COM;
+			//remove interleaved
+			if (gf_rtp_is_interleaved(stream->rtp_ch)) {
+				gf_rtsp_unregister_interleave(stream->rtsp->session, gf_rtp_get_low_interleave_id(stream->rtp_ch));
+			}
+
 			if (com) gf_rtsp_command_del(com);
 			if (!rtpin_rtsp_is_active(stream))
 				rtpin_rtsp_teardown(sess, stream);

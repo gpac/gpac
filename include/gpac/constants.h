@@ -513,7 +513,10 @@ typedef enum
 
 	GF_CODECID_TMCD = GF_4CC('t','m','c','d'),
 
-	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D')
+	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D'),
+
+	//fake codec IDs for RTP
+	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T')
 } GF_CodecID;
 
 /*! Gets a textual description for the given codecID

@@ -1024,6 +1024,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 						|| !strncmp(args+4, "udp://", 6)
 						|| !strncmp(args+4, "tcpu://", 7)
 						|| !strncmp(args+4, "udpu://", 7)
+						|| !strncmp(args+4, "rtp://", 6)
 						|| !strncmp(args+4, "atsc://", 7)
 						)
 					) {
@@ -1033,6 +1034,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 							|| !strncmp(args+4, "udp://", 6)
 							|| !strncmp(args+4, "tcpu://", 7)
 							|| !strncmp(args+4, "udpu://", 7)
+							|| !strncmp(args+4, "rtp://", 6)
 						) {
 							char *sep2 = sep ? strchr(sep+1, ':') : NULL;
 							if (sep2) {
@@ -1866,7 +1868,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[Filter] %s in error / not responding properly: %d consecutive errors in "LLU" us with no packet discarded or sent\n\tdiscarding all inputs and notifying end of stream on all outputs\n", filter->name, filter->nb_consecutive_errors, diff));
 			kill_filter = GF_TRUE;
 		}
-	} else{
+	} else {
 		if ((!filter->nb_pck_io && filter->pending_packets && (filter->nb_pids_playing>0) ) || for_reconnection) {
 			filter->nb_consecutive_errors++;
 
@@ -2022,7 +2024,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (filter->session->run_status != GF_OK) {
 		return;
 	}
-	//if eos but we still have pending packets or proocess tasts queued, move to GF_OK so that
+	//if eos but we still have pending packets or process tasks queued, move to GF_OK so that
 	//we evaluate the blocking state
 	if (e==GF_EOS) {
 		if (filter->postponed_packets) {

@@ -1862,6 +1862,12 @@ u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer);
 */
 u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer);
 
+/*! gets the multiplexer clock (computed from mux rate and packet sent)
+\param muxer the target MPEG-2 TS multiplexer
+\return multiplexer clock in 90kHz scale
+*/
+u32 gf_m2ts_get_ts_clock_90k(GF_M2TS_Mux *muxer);
+
 /*! set AU per PES packetization mode
 \param muxer the target MPEG-2 TS multiplexer
 \param au_pes_mode AU packetization mode to use

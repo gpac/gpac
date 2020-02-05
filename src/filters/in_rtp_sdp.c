@@ -145,7 +145,7 @@ static GF_Err rtpin_sdp_load_iod(GF_RTPIn *rtp, char *iod_str)
 	return GF_OK;
 }
 
-static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx, u32 *ocr_es_id)
+void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx, u32 *ocr_es_id)
 {
 	GP_RTPSLMap *sl_map;
 	const GF_RTPStaticMap *static_map;
@@ -204,9 +204,11 @@ static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx
 	}
 	if (!stream->ES_ID)
 		stream->ES_ID = ch_idx;
-	if (! *ocr_es_id) *ocr_es_id = stream->ES_ID;
 
-	gf_filter_pid_set_property(stream->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( *ocr_es_id) );
+	if (ocr_es_id) {
+		if (! *ocr_es_id) *ocr_es_id = stream->ES_ID;
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( *ocr_es_id) );
+	}
 
 	sl_map = &stream->depacketizer->sl_map;
 	static_map = stream->depacketizer->static_map;

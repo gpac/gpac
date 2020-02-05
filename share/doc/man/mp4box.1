@@ -510,7 +510,7 @@ Input media files to dash can use the following modifiers
 .br
 * :dur=VALUE: process VALUE seconds from the media. If VALUE is longer than media duration, last sample duration is extended.
 .br
-* :period=NAME: set the representation's period to NAME. Multiple periods may be used period appear in the MPD in the same order as specified with this option
+* :period=NAME: set the representation's period to NAME. Multiple periods may be used. Periods appear in the MPD in the same order as specified with this option
 .br
 * :BaseURL=NAME: set the BaseURL. Set multiple times for multiple BaseURLs
 .br
@@ -518,7 +518,7 @@ Warning: This does not modify generated files location (see segment template).
 .br
 * :bandwidth=VALUE: set the representation's bandwidth to a given value
 .br
-* :period_duration=VALUE: increase the duration of this period by the given duration in seconds. This is only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:duration=Y
+* :pdur=VALUE: increase the duration of this period by the given duration in seconds (alias for period_duration:VALUE). This is only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:pdur=Y
 .br
 * :duration=VALUE: override target DASH segment duration for this input
 .br
@@ -2012,7 +2012,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3222-g395ff9c1b-filters
+build: 0.9.0-DEV-rev3233-g733968e5d-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
