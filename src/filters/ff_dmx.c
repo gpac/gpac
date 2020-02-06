@@ -85,6 +85,10 @@ static void ffdmx_finalize(GF_Filter *filter)
 		av_dict_free(&ctx->options);
 	if (ctx->probe_times)
 		gf_free(ctx->probe_times);
+	if (ctx->demuxer) {
+		avformat_close_input(&ctx->demuxer);
+		avformat_free_context(ctx->demuxer);
+	}
 	return;
 }
 
