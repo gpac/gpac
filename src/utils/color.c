@@ -2525,13 +2525,16 @@ void gf_cmx_apply_fixed(GF_ColorMatrix *_this, Fixed *a, Fixed *r, Fixed *g, Fix
 
 
 
-#if defined(WIN32) && !defined(__GNUC__)
-# include <intrin.h>
-# define GPAC_HAS_SSE2
-#else
-# ifdef __SSE2__
-#  include <emmintrin.h>
+//intrinsic code segfaults on 32 bit, need to check why
+#if defined(GPAC_64_BITS)
+# if defined(WIN32) && !defined(__GNUC__)
+#  include <intrin.h>
 #  define GPAC_HAS_SSE2
+# else
+#  ifdef __SSE2__
+#   include <emmintrin.h>
+#   define GPAC_HAS_SSE2
+#  endif
 # endif
 #endif
 
