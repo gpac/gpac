@@ -333,7 +333,21 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		if (ext2) ext2[0] = 0;
 
 		/*all extensions for track-based importing*/
-		if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32)( (atof(ext+5) * 1000) + 0.5 );
+		if (!strnicmp(ext+1, "dur=", 4)) {
+			s32 dur_n=0, dur_d=0;
+			if (strchr(ext, '/')) {
+				sscanf(ext+5, "%d/%d", &dur_n, &dur_d);
+			} else if (strchr(ext, '-')) {
+				dur_n = atoi(ext+5);
+				dur_d = 1;
+			} else {
+				//use 1/10 of millisecond precision
+				dur_n = (u32)( (atof(ext+5) * 10000) + 0.5 );
+				dur_d = 10000;
+			}
+			import.duration.num = dur_n;
+			import.duration.den = dur_d;
+		}
 		else if (!strnicmp(ext+1, "lang=", 5)) {
 			/* prevent leak if param is set twice */
 			if (szLan)
@@ -729,7 +743,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	/*check duration import (old syntax)*/
 	ext = strrchr(szName, '%');
 	if (ext) {
-		import.duration = (u32) (atof(ext+1) * 1000);
+		import.duration.num = (u32) (atof(ext+1) * 1000000);
+		import.duration.den = 1000000;
 		ext[0] = 0;
 	}
 

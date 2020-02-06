@@ -322,7 +322,7 @@ typedef struct __track_import
 	/*! media source - selects importer type based on extension*/
 	char *in_name;
 	/*! import duration if any*/
-	u32 duration;
+	GF_Fraction duration;
 	/*! importer flags*/
 	u32 flags;
 	/*! importer swf flags*/
