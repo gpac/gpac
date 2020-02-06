@@ -525,11 +525,13 @@ static void rtspout_send_event(GF_RTSPOutSession *sess, Bool send_stop, Bool sen
 		if (!stream->selected) continue;
 
 		fevt.base.on_pid = stream->pid;
-		if (send_stop) {
+		if (send_stop && stream->is_playing) {
+			stream->is_playing = GF_FALSE;
 			fevt.base.type = GF_FEVT_STOP;
 			gf_filter_pid_send_event(stream->pid, &fevt);
 		}
-		if (send_play) {
+		if (send_play && !stream->is_playing) {
+			stream->is_playing = GF_TRUE;
 			fevt.base.type = GF_FEVT_PLAY;
 			fevt.play.start_range = start_range;
 			gf_filter_pid_send_event(stream->pid, &fevt);
