@@ -56,6 +56,7 @@ typedef struct
 	u32 streamtype;
 	u32 timescale;
 	u32 nb_aus;
+	Bool is_playing;
 
 	u32 depends_on;
 	u32 cfg_crc;

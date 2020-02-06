@@ -348,6 +348,8 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 		break;
 	}
 
+	gf_filter_pid_set_framing_mode(stream->pid, (stream->streamtype==GF_STREAM_FILE) ? GF_FALSE : GF_TRUE);
+
 	/*get sample info*/
 	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_MAX_FRAME_SIZE);
 	max_size = p ? p->value.uint : 0;
@@ -809,6 +811,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 
 			/*load next AU*/
 			if (!stream->pck) {
+				u64 ts;
 				stream->pck = gf_filter_pid_get_packet(stream->pid);
 
 				if (!stream->pck) {
@@ -824,7 +827,11 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 					continue;
 				}
 				stream->current_dts = gf_filter_pck_get_dts(stream->pck);
-				stream->current_cts = gf_filter_pck_get_cts(stream->pck);
+				//if CTS is not set, use prev packet CTS
+				ts = gf_filter_pck_get_cts(stream->pck);
+				if (ts==GF_FILTER_NO_TS) ts = stream->current_cts;
+				stream->current_cts = ts;
+
 				stream->current_sap = gf_filter_pck_get_sap(stream->pck);
 				duration = gf_filter_pck_get_duration(stream->pck);
 				if (duration) stream->current_duration = duration;
