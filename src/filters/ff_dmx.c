@@ -151,7 +151,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 			av_free_packet(&ctx->pkt);
 			return GF_OK;
 		}
-		
+
 		ctx->probe_times[ctx->probe_frames] = ctx->sclock ? sample_time : ctx->pkt.pts;
 		ctx->probe_frames++;
 		if (ctx->probe_frames==ctx->probes) {
@@ -392,7 +392,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 			if (!strcmp(ctx->demuxer->iformat->name, "h264") || !strcmp(ctx->demuxer->iformat->name, "hevc")) {
 				force_reframer = GF_TRUE;
 			}
-			
+
 			if (!force_reframer) {
 				//expose as const data
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)codec->extradata, codec->extradata_size) );
@@ -544,8 +544,11 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	}
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Fail to open %s - error %s\n", ctx->fname, ctx->src, av_err2str(res) ));
+		avformat_close_input(&ctx->demuxer);
+		avformat_free_context(ctx->demuxer);
 		return e;
 	}
+
 
 	AVDictionaryEntry *prev_e = NULL;
 	while (1) {
@@ -555,10 +558,11 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	}
 
 	res = avformat_find_stream_info(ctx->demuxer, ctx->options ? &ctx->options : NULL);
-
 	if (res <0) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] cannot locate streams - error %s\n", ctx->fname, av_err2str(res)));
 		e = GF_NOT_SUPPORTED;
+		avformat_close_input(&ctx->demuxer);
+		avformat_free_context(ctx->demuxer);
 		return e;
 	}
 	GF_LOG(GF_LOG_DEBUG, ctx->log_class, ("[%s] file %s opened - %d streams\n", ctx->fname, ctx->src, ctx->demuxer->nb_streams));
@@ -966,7 +970,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 	return NULL;
 }
 
-const GF_FilterRegister *ffavin_register(GF_FilterSession *session) 
+const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 {
 	return NULL;
 }
