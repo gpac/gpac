@@ -474,8 +474,11 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 
 	cdur = gf_isom_get_constant_sample_duration(import->orig, track_in);
 	gf_isom_enable_raw_pack(import->orig, track_in, 2048);
-	
-	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
+
+	duration = 0;
+	if ((import->duration.num>0) && import->duration.den) {
+		duration = (u64) (((Double)import->duration.num * gf_isom_get_media_timescale(import->orig, track_in)) / import->duration.den);
+	}
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
 
 	if (import->xps_inband) {
@@ -1245,8 +1248,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 
-	if (importer->duration) {
-		sprintf(szSubArg, "idur=%d/1000", importer->duration);
+	if (importer->duration.den) {
+		sprintf(szSubArg, "idur=%d/%d", importer->duration.num, importer->duration.den);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->frames_per_sample) {

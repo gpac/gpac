@@ -2961,19 +2961,34 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, duration);
 
 	if (ctx->idur.num) {
-		u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
+		Bool abort = GF_FALSE;
+		if (ctx->idur.num>0) {
+			u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
 
-		/*patch to align to old arch */
-		if (tkw->stream_type==GF_STREAM_VISUAL) {
-			mdur = tkw->sample.DTS;
+			/*patch to align to old arch */
+			if (gf_sys_is_test_mode() && (tkw->stream_type==GF_STREAM_VISUAL)) {
+				mdur = tkw->sample.DTS;
+			}
+
+			if (ctx->importer) {
+				tkw->prog_done = mdur * ctx->idur.den;
+				tkw->prog_total =  ((u64)tkw->tk_timescale) * ctx->idur.num;
+			}
+
+			/*patch to align to old arch */
+			if (gf_sys_is_test_mode()) {
+				if (mdur * (u64) ctx->idur.den > tkw->tk_timescale * (u64) ctx->idur.num)
+					abort = GF_TRUE;
+			} else {
+				if (mdur * (u64) ctx->idur.den >= tkw->tk_timescale * (u64) ctx->idur.num)
+					abort = GF_TRUE;
+			}
+		} else {
+			if (tkw->nb_samples >= -ctx->idur.num)
+				abort = GF_TRUE;
 		}
 
-		if (ctx->importer) {
-			tkw->prog_done = mdur * ctx->idur.den;
-			tkw->prog_total =  ((u64)tkw->tk_timescale) * ctx->idur.num;
-		}
-
-		if (mdur * (u64) ctx->idur.den > tkw->tk_timescale * (u64) ctx->idur.num) {
+		if (abort) {
 			GF_FilterEvent evt;
 			GF_FEVT_INIT(evt, GF_FEVT_STOP, tkw->ipid);
 			gf_filter_pid_send_event(tkw->ipid, &evt);
@@ -3292,7 +3307,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
 		if (p && p->value.lfrac.num>0 && p->value.lfrac.den) {
 			tkw->pid_dur = p->value.lfrac;
-			if (max_dur.num * p->value.lfrac.den < max_dur.den * (u64) p->value.lfrac.num) {
+			if (max_dur.num * (s64) p->value.lfrac.den < (s64) max_dur.den * p->value.lfrac.num) {
 				max_dur.num = p->value.lfrac.num;
 				max_dur.den = p->value.lfrac.den;
 			}
@@ -4205,10 +4220,14 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 			if (tkw->aborted) {
 				pc=10000;
 			} else if (ctx->idur.num) {
-				u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
-				u64 tk_done = mdur * ctx->idur.den;
-				u64 tk_total = ((u64)tkw->tk_timescale) * ctx->idur.num;
-				pc = (u32) ((tk_done*10000)/tk_total);
+				if (ctx->idur.num>0) {
+					u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
+					u64 tk_done = mdur * ctx->idur.den;
+					u64 tk_total = ((u64)tkw->tk_timescale) * ctx->idur.num;
+					pc = (u32) ((tk_done*10000)/tk_total);
+				} else {
+					pc = (u32) ( (10000 * (u64) tkw->nb_samples) / (-ctx->idur.num) );
+				}
 			} else {
 				if (tkw->nb_frames) {
 					pc = (u32) ( (10000 * (u64) tkw->nb_samples) / tkw->nb_frames);
@@ -4687,7 +4706,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		if (tkw->has_append)
 			gf_isom_refresh_size_info(ctx->file, tkw->track_num);
 
-		if ((tkw->nb_samples == 1) && ctx->idur.num && ctx->idur.den) {
+		if ((tkw->nb_samples == 1) && (ctx->idur.num>0) && ctx->idur.den) {
 			u32 dur = tkw->tk_timescale * ctx->idur.num;
 			dur /= ctx->idur.den;
 			gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, dur);
@@ -4851,7 +4870,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- edit: uses edit lists to shift first frame to presentation time 0\n"
 	"- noedit: ignore edit lists and does not shift timeline\n"
 	"- negctts: uses ctts v1 with possibly negative offsets and no edit lists", GF_PROP_UINT, "edit", "edit|noedit|negctts", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(idur), "only import the specified duration", GF_PROP_FRACTION, "0", NULL, 0},
+	{ OFFS(idur), "only import the specified duration. If negative, specify the number of coded frames to import", GF_PROP_FRACTION, "0", NULL, 0},
 	{ OFFS(pack3gp), "pack a given number of 3GPP audio frames in one sample", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import progress", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pack_nal), "repack NALU size length to minimum possible size for AVC/HEVC/...", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},

@@ -508,7 +508,13 @@ Input media files to dash can use the following modifiers
 .br
 * :id=NAME: set the representation ID to NAME. Reserved value NULL disables representation ID for multiplexed inputs
 .br
-* :dur=VALUE: process VALUE seconds from the media. If VALUE is longer than media duration, last sample duration is extended.
+* :dur=VALUE: import only the specified duration from the media. If duration is longer than media duration, last sample duration is extended. VALUE can be:
+.br
+ * positive float: specifies duration in seconds
+.br
+ * fraction: specifies duration as NUM/DEN fraction
+.br
+ * negative integer: specifies duration in number of coded frames
 .br
 * :period=NAME: set the representation's period to NAME. Multiple periods may be used. Periods appear in the MPD in the same order as specified with this option
 .br
@@ -2012,7 +2018,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3233-g733968e5d-filters
+build: 0.9.0-DEV-rev3240-g767df3335-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

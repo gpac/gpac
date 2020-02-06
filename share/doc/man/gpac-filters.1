@@ -1563,7 +1563,7 @@ ctmode (enum, default: edit):            set composition offset mode for video t
 .br
 
 .br
-idur (fraction, default: 0):             only import the specified duration
+idur (fraction, default: 0):             only import the specified duration. If negative, specify the number of coded frames to import
 .br
 pack3gp (unsigned int, default: 1):      pack a given number of 3GPP audio frames in one sample
 .br
@@ -4156,7 +4156,7 @@ When the destination url is an SDP, the filter outputs an SDP on a file pid and 
 .br
 When the destination url uses the protocol scheme rtp://IP:PORT, the filter does not output any SDP and streams a single input over RTP, using PORT indicated in the destination URL, or the first -port configured.
 .br
-In this mode, it is usually needed to specify the desired format usig -ext or -mime.
+In this mode, it is usually needed to specify the desired format using -ext or -mime.
 .br
 Example
 .br
@@ -4190,7 +4190,7 @@ The real-time scheduling algorithm works as follows:
 .SH Options (expert):
 .LP
 .br
-ip (string):                             destination IP adress (NULL is 127.0.0.1)
+ip (string):                             destination IP address (NULL is 127.0.0.1)
 .br
 port (unsigned int, default: 7000):      port for first stream in session
 .br
@@ -5189,7 +5189,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3233-g733968e5d-filters
+build: 0.9.0-DEV-rev3240-g767df3335-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
