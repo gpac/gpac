@@ -508,6 +508,7 @@ static GF_Err rawvout_evt(struct _video_out *vout, GF_Event *evt)
 		return compositor_3d_setup_fbo(evt->setup.width, evt->setup.height, &compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
 #endif
 
+	evt->setup.opengl_mode = 0;
 	return GF_OK;
 }
 
