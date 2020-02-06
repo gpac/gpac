@@ -1348,8 +1348,9 @@ reconfig_grid:
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->out_width));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->out_height));
 
-	//recreate DSI based on first pid we have
-	tile_pid = gf_list_get(ctx->pids, 0);
+	//recreate DSI based on first in the ordered set of pid we have
+	//this avoids cases where the input pid order changes due to scheduling, and they don't have exactly the same xPS
+	tile_pid = gf_list_get(ctx->ordered_pids, 0);
 	ctx->base_pps_init_qp_delta_minus26 = tile_pid->hevc_state.pps->pic_init_qp_minus26;
 
 	u32 nb_CTUs = ((ctx->out_width + ctx->max_CU_width - 1) / ctx->max_CU_width) * ((ctx->out_height + ctx->max_CU_height - 1) / ctx->max_CU_height);
@@ -1359,8 +1360,7 @@ reconfig_grid:
 	}
 
 	dsi = gf_filter_pid_get_property(tile_pid->pid, GF_PROP_PID_DECODER_CONFIG);
-	if (!dsi) return GF_OK;
-
+	assert(dsi);
 	return hevcmerge_rewrite_config(ctx, ctx->opid, dsi->value.data.ptr, dsi->value.data.size);
 }
 
