@@ -371,6 +371,8 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			if (ctx->avc.sps[idx].vui.par_num && ctx->avc.sps[idx].vui.par_den) {
 				ctx->pixel_ar.num = ctx->avc.sps[idx].vui.par_num;
 				ctx->pixel_ar.den = ctx->avc.sps[idx].vui.par_den;
+			} else {
+				ctx->pixel_ar.num = ctx->pixel_ar.den = 1;
 			}
 			ctx->chroma_format = ctx->avc.sps[idx].chroma_format;
 			ctx->luma_bit_depth = 8 + ctx->avc.sps[idx].luma_bit_depth_m8;
@@ -490,6 +492,8 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			if (ctx->hevc.sps[idx].aspect_ratio_info_present_flag && ctx->hevc.sps[idx].sar_width && ctx->hevc.sps[idx].sar_height) {
 				ctx->pixel_ar.num = ctx->hevc.sps[idx].sar_width;
 				ctx->pixel_ar.den = ctx->hevc.sps[idx].sar_height;
+			} else {
+				ctx->pixel_ar.num = ctx->pixel_ar.den = 1;
 			}
 			ctx->chroma_format = ctx->hevc.sps[idx].chroma_format_idc;
 			ctx->luma_bit_depth = ctx->hevc.sps[idx].bit_depth_luma;
