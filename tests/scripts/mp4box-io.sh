@@ -62,6 +62,8 @@ mp4_test ()
   do_hint=0 ;;
  *.obu )
   do_hint=0 ;;
+ *vp80* )
+  return ;;
  *.ivf )
   do_hint=0 ;;
  *.png )
