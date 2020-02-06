@@ -2553,7 +2553,7 @@ static void gf_mpd_extensible_print_nodes(FILE *out, GF_MPD_ExtensibleVirtual *i
 		while ((child = (GF_XMLNode *)gf_list_enum(item->children, &j))) {
 			char *txt = gf_xml_dom_serialize(child, 0);
 			gf_mpd_nl(out, indent+1);
-			gf_xml_dump_string(out, NULL, txt, NULL);
+			fprintf(out, "%s", txt);
 			gf_free(txt);
 			gf_mpd_lf(out, indent);
 		}
