@@ -3367,29 +3367,32 @@ static GF_Err color_write_yuv422_10_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurf
 		}
 	}
 
-	for (i = 0; i<h / 2; i++) {
-		u16 *src = (u16 *)(pU +  i*vs_src->pitch_y);
-		u8 *dst = (u8 *)vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y / 2;
-		if (vs_dst->u_ptr) dst = (u8 *)(vs_dst->u_ptr + i*vs_dst->pitch_y / 2);
+	for (i = 0; i<h/2; i++) {
+		u16 *srcu = (u16 *)(pU +  i*vs_src->pitch_y);
+		u16 *srcv = (u16 *)(pV +  i*vs_src->pitch_y);
+		u8 *dstu, *dstv;
+
+		if (vs_dst->u_ptr)
+			dstu = (u8 *)(vs_dst->u_ptr + i*vs_dst->pitch_y / 2);
+		else
+			dstu = (u8 *)vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y / 2;
+
+		if (vs_dst->v_ptr)
+			dstv = (u8 *)(vs_dst->v_ptr + i*vs_dst->pitch_y / 2);
+		else
+			dstv = (u8 *)vs_dst->video_buffer + 5 * vs_dst->pitch_y * vs_dst->height / 4 + i*vs_dst->pitch_y / 2;
 
 		for (j = 0; j<w / 2; j++) {
-			*dst = (*src) >> 2;
-			dst++;
-			src++;
+			*dstu = ( (srcu[0] + srcu[1]) / 2) >> 2;
+			dstu++;
+			srcu+=2;
+
+			*dstv = ( (srcv[0] + srcv[1]) / 2) >> 2;
+			dstv++;
+			srcv+=2;
 		}
 	}
 
-	for (i = 0; i<h / 2; i++) {
-		u16 *src = (u16 *)(pV +  i*vs_src->pitch_y);
-		u8 *dst = (u8 *)vs_dst->video_buffer + 5 * vs_dst->pitch_y * vs_dst->height / 4 + i*vs_dst->pitch_y / 2;
-		if (vs_dst->v_ptr) dst = (u8 *)(vs_dst->v_ptr + i*vs_dst->pitch_y / 2);
-
-		for (j = 0; j<w / 2; j++) {
-			*dst = (*src) >> 2;
-			dst++;
-			src++;
-		}
-	}
 	return GF_OK;
 }
 
@@ -3417,7 +3420,7 @@ static GF_Err color_write_yuv444_10_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurf
 #define GFINTCAST  (u32)
 #endif
 
-	if ((w % 32 == 0)
+	if ( (w % 32 == 0)
 		&& (GFINTCAST(vs_dst->video_buffer + vs_dst->pitch_y) % 8 == 0)
 		&& (GFINTCAST(vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + vs_dst->pitch_y) % 8 == 0)
 		&& (GFINTCAST(pU + vs_src->pitch_y) % 8 == 0)
@@ -3457,26 +3460,35 @@ static GF_Err color_write_yuv444_10_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurf
 	}
 
 	for (i = 0; i<h/2; i++) {
-		u16 *src = (u16 *)(pU + 2*i*vs_src->pitch_y );
-		u8 *dst = (u8 *)vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y / 2;
-		if (vs_dst->u_ptr) dst = (u8 *)(vs_dst->u_ptr + i*vs_dst->pitch_y / 2);
+		u16 *srcu1 = (u16 *)(pU + 2*i*vs_src->pitch_y );
+		u16 *srcu2 = (u16 *)(pU + 2*(i+1)*vs_src->pitch_y );
+		u16 *srcv1 = (u16 *)(pV + 2*i*vs_src->pitch_y );
+		u16 *srcv2 = (u16 *)(pV + 2*(i+1)*vs_src->pitch_y );
+		u8 *dstu, *dstv;
+
+		if (vs_dst->u_ptr)
+			dstu = (u8 *)(vs_dst->u_ptr + i*vs_dst->pitch_y / 2);
+		else
+			dstu = (u8 *)vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y / 2;
+
+		if (vs_dst->v_ptr)
+			dstv = (u8 *)(vs_dst->v_ptr + i*vs_dst->pitch_y / 2);
+		else
+			dstv = (u8 *)vs_dst->video_buffer + 5 * vs_dst->pitch_y * vs_dst->height / 4 + i*vs_dst->pitch_y / 2;
 
 		for (j = 0; j<w/2 ;j++) {
-			*dst = (*src) >> 2;
-			dst++;
-			src+=2;
-		}
-	}
+			u32 u, v;
+			u = (srcu1[0] + srcu1[1] + srcu2[0] + srcu2[1] ) / 4;
+			*dstu = u>>2;
+			dstu++;
+			srcu1+=2;
+			srcu2+=2;
 
-	for (i = 0; i<h/2 ; i++) {
-		u16 *src = (u16 *)(pV + 2*i*vs_src->pitch_y );
-		u8 *dst = (u8 *)vs_dst->video_buffer + 5 * vs_dst->pitch_y * vs_dst->height / 4 + i*vs_dst->pitch_y / 2;
-		if (vs_dst->v_ptr) dst = (u8 *)(vs_dst->v_ptr + i*vs_dst->pitch_y / 2);
-
-		for (j = 0; j<w/2 ; j++) {
-			*dst = (*src) >> 2;
-			dst++;
-			src+= 2;
+			v = (srcv1[0] + srcv1[1] + srcv2[0] + srcv2[1] ) / 4;
+			*dstv = v>>2;
+			dstv++;
+			srcv1+=2;
+			srcv2+=2;
 		}
 	}
 	return GF_OK;
