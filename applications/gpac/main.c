@@ -2284,7 +2284,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 					if (sep && sepd) {
 						char *subf = strstr(reg->name, sep+1);
 						if (subf) {
-							u32 slen = strlen(sep+1);
+							u32 slen = (u32) strlen(sep+1);
 							if ((subf[slen]==0) || (subf[slen]==','))
 								patch_meta = GF_TRUE;
 						}

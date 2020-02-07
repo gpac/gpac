@@ -49,7 +49,7 @@ typedef struct
 	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir;
 	GF_List *rdirs;
 	Bool close, hold, quit, post, dlist;
-	u32 port, block_size, maxc, maxp, timeout, hmode, sutc;
+	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors;
 
 	//internal
 	GF_Filter *filter;
@@ -802,6 +802,10 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	gf_dynstrcat(&rsp_buf, sess->ctx->user_agent, NULL);
 	gf_dynstrcat(&rsp_buf, "\r\n", NULL);
 	httpout_insert_date(gf_net_get_utc(), &rsp_buf, GF_FALSE);
+	if (sess->ctx->cors) {
+		gf_dynstrcat(&rsp_buf, "Access-Control-Allow-Origin: *\r\n", NULL);
+		gf_dynstrcat(&rsp_buf, "Access-Control-Expose-Headers: *\r\n", NULL);
+	}
 	if (sess->ctx->sutc) {
 		sprintf(szFmt, "Server-UTC: "LLU"\r\n", gf_net_get_utc());
 		gf_dynstrcat(&rsp_buf, szFmt, NULL);
@@ -2123,6 +2127,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(post), "use POST instead of PUT for uploading files", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dlist), "enable HTML listing for GET requests on directories", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sutc), "insert server UTC in response headers as `Server-UTC: VAL_IN_MS`", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cors), "insert CORS header allowing all domains", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{0}
 };
