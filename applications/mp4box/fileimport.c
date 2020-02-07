@@ -230,7 +230,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 	}
 }
 
-GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, char **mux_args_if_first_pass)
+GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, char **mux_args_if_first_pass, u32 tk_idx)
 {
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale_num, rescale_den, svc_mode, txt_flags, split_tile_mode, temporal_mode, nb_tracks;
 	s32 par_d, par_n, prog_id, delay, force_rate, moov_timescale;
@@ -882,6 +882,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		import.prog_id = prog_id;
 		import.trackID = track_id;
 		import.source_magic = source_magic;
+		import.track_index = tk_idx;
 
 		import.run_in_session = fsess;
 		import.update_mux_args = NULL;
@@ -2084,7 +2085,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 
 	if (!is_isom || opts) {
 		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, tmp_dir);
-		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample, NULL, NULL);
+		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample, NULL, NULL, 0);
 		if (e) return e;
 	} else {
 		/*we open the original file in edit mode since we may have to rewrite AVC samples*/
@@ -2095,7 +2096,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		char *sep = strchr(multi_cat, '+');
 		if (sep) sep[0] = 0;
 
-		e = import_file(orig, multi_cat, import_flags, force_fps, frames_per_sample, NULL, NULL);
+		e = import_file(orig, multi_cat, import_flags, force_fps, frames_per_sample, NULL, NULL, 0);
 		if (e) {
 			gf_isom_delete(orig);
 			return e;
