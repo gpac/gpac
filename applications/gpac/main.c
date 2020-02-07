@@ -84,7 +84,7 @@ const char *gpac_doc =
 "and passing the packets to the destination filter(s). A filter output PID may be connected to zero or more filters. "
 "This fan-out is handled internally by GPAC (no such thing as a tee filter in GPAC).\n"
 "Note: When a PID cannot be connected to any filter, a warning is thrown and all packets dispatched on "
-"this PID will be destroyed. The session may however still run.\n"
+"this PID will be destroyed. The session may however still run, unless [-full-link](CORE) is set.\n"
 "  \nEach output PID carries a set of properties describing the data it delivers (eg __width__, __height__, __codec__, ...). Properties "
 "can be built-in (identified by a 4 character code **abcd**, see [properties (-h props)](filters_properties) ), or user-defined (identified by a string). Each PID tracks "
 "its properties changes and triggers filter reconfiguration during packet processing. This allows the filter chain to be "
@@ -1873,15 +1873,19 @@ restart:
 
 	e = gf_fs_run(session);
 	if (e>0) e = GF_OK;
-	if (!e) {
+
+	if (e) {
+		fprintf(stderr, "session error %s\n", gf_error_to_string(e) );
+	} else {
 		e = gf_fs_get_last_connect_error(session);
 		if (e<0) fprintf(stderr, "session last connect error %s\n", gf_error_to_string(e) );
+
+		if (!e) {
+			e = gf_fs_get_last_process_error(session);
+			if (e<0) fprintf(stderr, "session last process error %s\n", gf_error_to_string(e) );
+		}
+		gpac_check_session_args();
 	}
-	if (!e) {
-		e = gf_fs_get_last_process_error(session);
-		if (e<0) fprintf(stderr, "session last process error %s\n", gf_error_to_string(e) );
-	}
-	gpac_check_session_args();
 
 	if (enable_reports) {
 		if (enable_reports==2) {

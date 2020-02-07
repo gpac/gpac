@@ -225,6 +225,8 @@ When set, all subfilters are exposed. This should only be set when inspecting fi
 #define GF_FS_FLAG_NO_ARG_CHECK	(1<<9)
 /*! Disables reservoir for packets and properties, uses much less memory but much more alloc/free*/
 #define GF_FS_FLAG_NO_RESERVOIR (1<<10)
+/*! Throws an error if any PID in the filter graph cannot be linked. The default behaviour is tu run the session even when some PIDs are not connected*/
+#define GF_FS_FLAG_FULL_LINK (1<<11)
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
 \param nb_threads number of extra threads to allocate. A negative value means all core used by session (eg nb_cores-1 extra threads)
@@ -2064,6 +2066,14 @@ If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (
 */
 GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char *link_ext);
 
+/*! Explicitly reset sourceID of a filter. This shall be called before connecting the filter (eg creating PIDs).
+
+ This is mostly used to reset a source ID of a filter created from a destination (e.g., dasher creating muxers from the MPD URL) where the destination arguments could have sourceIDs specified/
+
+\param filter the target filter
+*/
+void gf_filter_reset_source(GF_Filter *filter);
+
 /*! Explicitly assigns an ID to a filter. This shall be called before running the session, and cannot be called on a filter with ID assign
 \param filter the target filter
 \param filter_id the ID to assign. If NULL, a dynmic ID is generated
@@ -2330,6 +2340,14 @@ NOTE: this does not guarantee that no other PID remove or configure will happen 
 */
 Bool gf_filter_has_pid_connection_pending(GF_Filter *filter, GF_Filter *stop_at_filter);
 
+/*! checks if the some PID connection tasks are still pending at the session level
+
+This can be needed by some filters needing to make sure all their inputs are known before starting producing packets.
+
+\param filter target filter
+\return GF_TRUE if some connection tasks are pending, GF_FALSE otherwise
+*/
+Bool gf_filter_connections_pending(GF_Filter *filter);
 
 /*! Checks if reporting is turned on at session level.
 \param filter target filter

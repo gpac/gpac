@@ -402,6 +402,9 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 	if (gf_opts_get_bool("core", "dbg-edges"))
 		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
 
+	if (gf_opts_get_bool("core", "full-link"))
+		flags |= GF_FS_FLAG_FULL_LINK;
+
 	if (gf_opts_get_bool("core", "no-reg"))
 		flags |= GF_FS_FLAG_NO_REGULATION;
 

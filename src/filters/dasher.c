@@ -412,8 +412,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 						break;
 					}
 					gf_free(out_path);
+
+					//reset any sourceID given in the dst_arg and assign sourceID to be the dasher filter
+					gf_filter_reset_source(ctx->alt_dst);
 					snprintf(szSRC, 100, "MuxSrc%cdasher_%p", gf_filter_get_sep(filter, GF_FS_SEP_NAME), ctx->alt_dst);
-					//assign sourceID to be this
 					gf_filter_set_source(ctx->alt_dst, filter, szSRC);
 
 					ctx->opid_alt = gf_filter_pid_new(filter);
@@ -1994,6 +1996,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		char szKey[20];
 		sprintf(szSRC, "%c", sep_args);
 		gf_dynstrcat(&szDST, szSRC, NULL);
+		
 		gf_dynstrcat(&szDST, dst_args, NULL);
 		//look for frag arg
 		sprintf(szKey, "%cfrag", sep_args);
@@ -2080,8 +2083,9 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		ctx->in_error = GF_TRUE;
 		return;
 	}
-	sprintf(szSRC, "MuxSrc%cdasher_%p", gf_filter_get_sep(filter, GF_FS_SEP_NAME), ds->dst_filter);
-	//assign sourceID to be this
+	//reset any sourceID given in the dst_arg and assign sourceID to be the dasher filter
+	sprintf(szSRC, "MuxSrc%cdasher_%p", sep_name, ds->dst_filter);
+	gf_filter_reset_source(ds->dst_filter);
 	gf_filter_set_source(ds->dst_filter, filter, szSRC);
 }
 
@@ -4998,6 +5002,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 	if (ctx->streams_not_ready) {
 		if (! dasher_check_streams_ready(ctx)) return GF_OK;
+		if (gf_filter_connections_pending(filter))
+			return GF_OK;
 	}
 
 	if (ctx->is_eos)
@@ -6117,6 +6123,7 @@ static const GF_FilterCapability DasherCaps[] =
 	{0},
 	//anything else (not file and framed) result in media pids not file
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 

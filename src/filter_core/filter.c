@@ -468,7 +468,15 @@ static void gf_filter_set_id(GF_Filter *filter, const char *ID)
 }
 
 GF_EXPORT
-void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
+void gf_filter_reset_source(GF_Filter *filter)
+{
+	if (filter && filter->source_ids) {
+		gf_free(filter->source_ids);
+		filter->source_ids = NULL;
+	}
+}
+
+static void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 {
 	assert(filter);
 	if (!sources_ID) {
@@ -2334,7 +2342,9 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 			GF_Filter *sfilter = pidinst->pid->filter;				
 			gf_list_del_item(filter->input_pids, pidinst);
 			pidinst->filter = NULL;
+			gf_mx_p(filter->tasks_mx);
 			filter->num_input_pids = gf_list_count(filter->input_pids);
+			gf_mx_v(filter->tasks_mx);
 
 			//post a pid_delete task to also trigger removal of the filter if needed
 			gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, sfilter, pidinst->pid, "pid_inst_delete", pidinst);
@@ -2558,7 +2568,9 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 		pid->destroyed = GF_TRUE;
 		gf_fs_post_task(filter->session, gf_filter_pid_del_task, filter, pid, "pid_delete", NULL);
 	}
+	gf_mx_p(filter->tasks_mx);
 	filter->num_output_pids = 0;
+	gf_mx_v(filter->tasks_mx);
 
 	if (filter->freg->finalize) {
 		FSESS_CHECK_THREAD(filter)
@@ -3530,3 +3542,37 @@ Bool gf_filter_is_alias(GF_Filter *filter)
 	if (filter && filter->multi_sink_target) return GF_TRUE;
 	return GF_FALSE;
 }
+
+/*! checks if the some PID connection tasks are still pending at the session level
+\param filter target filter
+\return GF_TRUE if some connection tasks are pending, GF_FALSE otherwise
+*/
+Bool gf_filter_connections_pending(GF_Filter *filter)
+{
+	u32 i, count;
+	Bool res = GF_FALSE;
+	if (!filter) return GF_FALSE;
+	if (filter->session->pid_connect_tasks_pending) return GF_TRUE;
+	gf_mx_p(filter->session->filters_mx);
+	count = gf_list_count(filter->session->filters);
+	for (i=0; i<count; i++) {
+		GF_Filter *f = gf_list_get(filter->session->filters, i);
+		if (f==filter) continue;
+
+		gf_mx_p(filter->tasks_mx);
+		if (f->num_input_pids && ! f->num_output_pids) {
+			if (f->forced_caps) {
+				res = gf_filter_has_out_caps(f->forced_caps, f->nb_forced_caps);
+			} else {
+				res = gf_filter_has_out_caps(f->freg->caps, f->freg->nb_caps);
+			}
+		}
+		gf_mx_v(filter->tasks_mx);
+		if (res)
+			break;
+	}
+	gf_mx_v(filter->session->filters_mx);
+
+	return res;
+}
+
