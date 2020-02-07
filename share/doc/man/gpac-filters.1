@@ -3467,7 +3467,7 @@ muxtype (enum, default: auto):           muxtype to use for the segments
 .br
 
 .br
-asto (int, default: 0):                  availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations
+asto (number, default: 0):               availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations
 .br
 profile (enum, default: auto):           target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main.
 .br
@@ -4583,6 +4583,8 @@ post (boolean, default: false):          use POST instead of PUT for uploading f
 .br
 dlist (boolean, default: false):         enable HTML listing for GET requests on directories
 .br
+sutc (boolean, default: false):          insert server UTC in response headers as Server-UTC: VAL_IN_MS
+.br
 
 .br
 .SH hevcsplit
@@ -5189,7 +5191,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3264-g2f49f7879-filters
+build: 0.9.0-DEV-rev3268-g84d014fc5-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
