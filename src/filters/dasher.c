@@ -3791,7 +3791,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		if (ds->stream_type == GF_STREAM_FILE) {
 			if (ds->xlink) remote_xlink = ds->xlink;
 			else empty_period = GF_TRUE;
-			remote_dur = ds->period_dur * 1000;
+			remote_dur = (u64) (ds->period_dur * 1000);
 		} else if (!is_restore) {
 			//setup representation - the representation is created independently from the period
 			dasher_setup_rep(ctx, ds, &srd_rep_idx);
