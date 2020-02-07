@@ -2307,6 +2307,16 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *isom_file, GF_ISOTrackID trackID, con
 */
 GF_Err gf_isom_set_track_magic(GF_ISOFile *isom_file, u32 trackNumber, u64 magic);
 
+/*! sets track index in moov
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param index the 1-based index to set. Tracks will be reordered after this!
+\param track_num_changed callback function used to notify track changes during the call to this function
+\param udta opaque user data for the callback function
+\return error if any
+*/
+GF_Err gf_isom_set_track_index(GF_ISOFile *movie, u32 trackNumber, u32 index, void (*track_num_changed)(void *udta, u32 old_track_num, u32 new_track_num), void *udta);
+
 /*! removes a sample description with the given index
 \warning This does not remove any added samples for that stream description, nor rewrite the sample to chunk and other boxes referencing the sample description index !
 \param isom_file the target ISO file

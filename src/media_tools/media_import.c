@@ -1364,6 +1364,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		sprintf(szSubArg, "#SrcMagic="LLU, importer->source_magic);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
+	if (importer->track_index) {
+		sprintf(szSubArg, "#TrackIndex=%d", importer->track_index);
+		e |= gf_dynstrcat(&args, szSubArg, ":");
+	}
 
 	if (e) {
 		if (!importer->run_in_session)

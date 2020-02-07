@@ -4617,6 +4617,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 
 		for (ipass=0; ipass<nb_pass; ipass++) {
+			u32 tk_idx = 1;
 			for (i=0; i<(u32) argc; i++) {
 				char *src, *margs=NULL;
 				if (strcmp(argv[i], "-add")) continue;
@@ -4628,7 +4629,8 @@ int mp4boxMain(int argc, char **argv)
 						sep[0] = 0;
 					}
 
-					e = import_file(file, src, import_flags, import_fps, agg_samples, fs, (fs && (ipass==0)) ? &margs : NULL);
+					e = import_file(file, src, import_flags, import_fps, agg_samples, fs, (fs && (ipass==0)) ? &margs : NULL, tk_idx);
+					tk_idx++;
 
 					if (margs) {
 						gf_dynstrcat(&mux_args, margs, ":");
@@ -5441,7 +5443,7 @@ int mp4boxMain(int argc, char **argv)
 		{
 			u32 old_tk_count = gf_isom_get_track_count(file);
 			GF_Fraction _frac = {0,0};
-			e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL);
+			e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL, 0);
 			if (e == GF_OK) {
 				u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
 				if (!meta_type) {

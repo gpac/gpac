@@ -852,6 +852,7 @@ typedef struct
 	u32 pack_num_samples;
 
 	u64 magic;
+	u32 index;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	u64 first_dts_chunk;

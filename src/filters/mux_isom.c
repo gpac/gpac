@@ -459,6 +459,44 @@ static void mp4_mux_write_track_refs(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 	}
 }
 
+static void mp4mux_track_reorder(void *udta, u32 old_track_num, u32 new_track_num)
+{
+	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) udta;
+	u32 i, count;
+	count = gf_list_count(ctx->tracks);
+	for (i=0; i<count; i++) {
+		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+		if (tkw->track_num==old_track_num) {
+			tkw->track_num = new_track_num;
+			return;
+		}
+	}
+}
+
+static void mp4mux_reorder_tracks(GF_MP4MuxCtx *ctx)
+{
+	u32 i, count, prev_num, prev_pos;
+	GF_List *new_tracks = gf_list_new();
+	prev_num = prev_pos = 0;
+	count = gf_list_count(ctx->tracks);
+	for (i=0; i<count; i++) {
+		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+		if (tkw->track_num<prev_num) {
+			gf_list_insert(new_tracks, tkw, prev_pos);
+		} else {
+			gf_list_add(new_tracks, tkw);
+		}
+		prev_pos = gf_list_count(new_tracks) - 1;
+		prev_num = tkw->track_num;
+	}
+	if (gf_list_count(new_tracks)!=count) {
+		gf_list_del(new_tracks);
+		return;
+	}
+	gf_list_del(ctx->tracks);
+	ctx->tracks = new_tracks;
+}
+
 
 static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_true_pid)
 {
@@ -790,6 +828,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 	if (needs_track) {
 		u32 tkid=0;
+		u32 tk_idx=0;
 		u32 mtype=0;
 		u32 target_timescale = 0;
 
@@ -869,6 +908,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			gf_isom_set_timescale(ctx->file, (u32) ctx->moovts);
 		}
 
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_TRACK_INDEX);
+		if (p) {
+			tk_idx = p->value.uint;
+		}
+
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_TRACK_TEMPLATE);
 		if (ctx->tktpl && p && p->value.data.ptr) {
 			Bool udta_only = (ctx->tktpl==2) ? GF_TRUE : GF_FALSE;
@@ -887,6 +931,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				mtype = GF_4CC('u','n','k','n');
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unable to find ISOM media type for stream type %s codec %s\n", gf_stream_type_name(tkw->stream_type), gf_codecid_name(tkw->codecid) ));
 			}
+			if (!tkid) tkid = tk_idx;
+
 			tkw->track_num = gf_isom_new_track(ctx->file, tkid, mtype, tkw->tk_timescale);
 			if (!tkw->track_num) {
 				tkw->track_num = gf_isom_new_track(ctx->file, 0, mtype, tkw->tk_timescale);
@@ -939,6 +985,10 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_SRC_MAGIC);
 		if (p) {
 			gf_isom_set_track_magic(ctx->file, tkw->track_num, p->value.longuint);
+		}
+		if (tk_idx) {
+			gf_isom_set_track_index(ctx->file, tkw->track_num, tk_idx, mp4mux_track_reorder, ctx);
+			mp4mux_reorder_tracks(ctx);
 		}
 
 		//by default use cttsv1 (negative ctts)
