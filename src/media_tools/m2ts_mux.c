@@ -2765,7 +2765,7 @@ u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer)
 }
 
 GF_EXPORT
-u32 gf_m2ts_get_ts_clock_90k(GF_M2TS_Mux *muxer)
+u64 gf_m2ts_get_ts_clock_90k(GF_M2TS_Mux *muxer)
 {
 	u64 now, init;
 	init = ((u64)muxer->init_ts_time.sec) * 90000;

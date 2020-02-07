@@ -551,7 +551,6 @@ GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		ctx->last_pts = pts;
 	}
 
-	pck_size = frame_size;
 
 	//check pid state
 	av1dmx_check_pid(filter, ctx);
@@ -565,6 +564,7 @@ GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		return GF_EOS;
 	}
 
+	pck_size = (u32)frame_size;
 	pck = gf_filter_pck_new_alloc(ctx->opid, pck_size, &output);
 	if (!pck) {
 		gf_bs_seek(ctx->bs, pos_ivf_hdr);

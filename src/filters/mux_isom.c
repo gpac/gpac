@@ -2984,7 +2984,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 					abort = GF_TRUE;
 			}
 		} else {
-			if (tkw->nb_samples >= -ctx->idur.num)
+			if ((s32) tkw->nb_samples >= -ctx->idur.num)
 				abort = GF_TRUE;
 		}
 

@@ -2400,7 +2400,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_init_play_event ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_name ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_name ) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_sources ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_reset_source ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negociate_property ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_register_opengl_provider) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_request_opengl) )
