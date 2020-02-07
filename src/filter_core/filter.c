@@ -890,8 +890,16 @@ static const char *gf_filter_load_arg_config(GF_FilterSession *session, const ch
 			const char *arg = gf_sys_get_arg(i);
 			if (arg[0]!='-') continue;
 			if (arg[1]!='-') continue;
+
 			if (!strncmp(arg+2, arg_name, alen)) {
+				u32 len=0;
 				char *sep = strchr(arg, '=');
+				if (sep) {
+					len = (u32) (sep - (arg+2));
+				} else {
+					len = (u32) strlen(arg+2);
+				}
+				if (len != alen) continue;
 				gf_fs_push_arg(session, arg_name, GF_TRUE, 0);
 
 				if (sep) return sep+1;
