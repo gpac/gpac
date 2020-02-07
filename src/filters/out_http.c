@@ -87,7 +87,6 @@ typedef struct
 	GF_List *file_deletes;
 
 	//for PUT mode, NULL in server mode
-//	GF_Socket *socket;
 	GF_DownloadSession *upload;
 	u32 cur_header;
 
@@ -578,7 +577,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			else
 				sess->upload_type = 1;
 
-			sess->resource = gf_fopen(sess->path, range ? "r+" : "w");
+			sess->resource = gf_fopen(sess->path, range ? "rb+" : "wb");
 			if (!sess->resource) {
 				response = "HTTP/1.1 403 Forbidden\r\n";
 				gf_dynstrcat(&response_body, "File exists but cannot be open", NULL);
@@ -747,7 +746,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				goto exit;
 			}
 		} else {
-			sess->resource = gf_fopen(full_path, "r");
+			sess->resource = gf_fopen(full_path, "rb");
 			//we may not have the file if it is currently being created
 			if (!sess->resource && !sess->in_source) {
 				response = "HTTP/1.1 500 Internal Server Error\r\n";
@@ -883,6 +882,9 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 	if (response_body) {
 		gf_free(response_body);
+		sess->done = GF_TRUE;
+		if (sess->ctx->quit)
+			httpout_reset_socket(sess);
 	} else if (parameter->reply == GF_HTTP_HEAD) {
 		sess->done = GF_FALSE;
 		sess->file_pos = sess->file_size;
@@ -1482,7 +1484,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			sess->last_active_time = gf_sys_clock();
 			return;
 		}
-		sess->resource = gf_fopen(sess->path, "r");
+		sess->resource = gf_fopen(sess->path, "rb");
 		if (!sess->resource) return;
 		sess->last_active_time = gf_sys_clock();
 		gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
@@ -1637,7 +1639,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		in->is_open = GF_FALSE;
 		in->is_delete = GF_FALSE;
 	} else {
-		in->resource = gf_fopen(in->local_path, "w");
+		in->resource = gf_fopen(in->local_path, "wb");
 		if (!in->resource)
 			in->is_open = GF_FALSE;
 	}
