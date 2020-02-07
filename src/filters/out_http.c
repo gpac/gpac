@@ -49,7 +49,7 @@ typedef struct
 	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir;
 	GF_List *rdirs;
 	Bool close, hold, quit, post, dlist;
-	u32 port, block_size, maxc, maxp, timeout, hmode;
+	u32 port, block_size, maxc, maxp, timeout, hmode, sutc;
 
 	//internal
 	GF_Filter *filter;
@@ -802,6 +802,10 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	gf_dynstrcat(&rsp_buf, sess->ctx->user_agent, NULL);
 	gf_dynstrcat(&rsp_buf, "\r\n", NULL);
 	httpout_insert_date(gf_net_get_utc(), &rsp_buf, GF_FALSE);
+	if (sess->ctx->sutc) {
+		sprintf(szFmt, "Server-UTC: "LLU"\r\n", gf_net_get_utc());
+		gf_dynstrcat(&rsp_buf, szFmt, NULL);
+	}
 
 	sess->is_head = (parameter->reply == GF_HTTP_HEAD) ? GF_TRUE : GF_FALSE;
 
@@ -2118,6 +2122,8 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(quit), "exit server once all input PIDs are done and client disconnects (for test purposes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(post), "use POST instead of PUT for uploading files", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dlist), "enable HTML listing for GET requests on directories", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sutc), "insert server UTC in response headers as `Server-UTC: VAL_IN_MS`", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+
 	{0}
 };
 
