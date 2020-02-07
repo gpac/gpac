@@ -102,6 +102,7 @@ enum
 	JSF_FILTER_NB_EVTS_QUEUED,
 	JSF_FILTER_CLOCK_HINT_TIME,
 	JSF_FILTER_CLOCK_HINT_MEDIATIME,
+	JSF_FILTER_CONNECTIONS_PENDING,
 };
 
 enum
@@ -943,6 +944,8 @@ static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int ma
 	case JSF_FILTER_CLOCK_HINT_MEDIATIME:
 		gf_filter_get_clock_hint(jsf->filter, NULL, &dval);
 		return JS_NewFloat64(ctx, dval);
+	case JSF_FILTER_CONNECTIONS_PENDING:
+		return JS_NewBool(ctx, gf_filter_connections_pending(jsf->filter) );
 	}
 
     return JS_UNDEFINED;
@@ -1507,6 +1510,7 @@ static JSValue jsf_filter_make_sticky(JSContext *ctx, JSValueConst this_val, int
 	return JS_UNDEFINED;
 }
 
+
 static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CGETSET_MAGIC_DEF("initialize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_INITIALIZE),
     JS_CGETSET_MAGIC_DEF("finalize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_FINALIZE),
@@ -1540,6 +1544,8 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CGETSET_MAGIC_DEF("events_queued", jsf_filter_prop_get, NULL, JSF_FILTER_NB_EVTS_QUEUED),
     JS_CGETSET_MAGIC_DEF("clock_hint_us", jsf_filter_prop_get, NULL, JSF_FILTER_CLOCK_HINT_TIME),
     JS_CGETSET_MAGIC_DEF("clock_hint_mediatime", jsf_filter_prop_get, NULL, JSF_FILTER_CLOCK_HINT_MEDIATIME),
+    JS_CGETSET_MAGIC_DEF("connections_pending", jsf_filter_prop_get, NULL, JSF_FILTER_CONNECTIONS_PENDING),
+
 
     JS_CFUNC_DEF("set_desc", 0, jsf_filter_set_desc),
     JS_CFUNC_DEF("set_version", 0, jsf_filter_set_version),
@@ -1589,6 +1595,14 @@ static JSValue jsf_filter_set_source_id(JSContext *ctx, JSValueConst this_val, i
 
 	JS_FreeCString(ctx, source_id);
 	if (e) return js_throw_err(ctx, e);
+	return JS_UNDEFINED;
+}
+
+static JSValue jsf_filter_reset_source(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_JSFilterInstanceCtx *jsfi = JS_GetOpaque(this_val, jsf_filter_inst_class_id);
+	if (!jsfi) return JS_EXCEPTION;
+	gf_filter_reset_source(jsfi->jsf->filter);
 	return JS_UNDEFINED;
 }
 
@@ -1703,6 +1717,8 @@ static const JSCFunctionListEntry jsf_filter_inst_funcs[] = {
     JS_CFUNC_DEF("get_arg", 0, jsf_filter_inst_get_arg),
     JS_CFUNC_DEF("disable_probe", 0, jsf_filter_inst_disable_probe),
     JS_CFUNC_DEF("disable_inputs", 0, jsf_filter_inst_disable_inputs),
+    JS_CFUNC_DEF("reset_source", 0, jsf_filter_reset_source),
+
 };
 
 

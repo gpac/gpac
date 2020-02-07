@@ -959,6 +959,7 @@ typedef struct
 	u8 status;
 	u8 priority;
 	u8 loaded_filter_only;
+	u32 disabled_depth;
 	//stream type of the output cap of src. Might be:
 	// -1 if multiple stream types are defined in the cap (demuxers, encoders/decoders bundles)
 	// 0 if not specified
