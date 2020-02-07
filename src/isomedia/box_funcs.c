@@ -1772,7 +1772,6 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	return a->registry->size_fn(a);
 }
 
-static u32 in_size = 0;
 GF_EXPORT
 GF_Err gf_isom_box_size(GF_Box *a)
 {
@@ -1781,22 +1780,7 @@ GF_Err gf_isom_box_size(GF_Box *a)
 		a->size = 0;
 		return GF_OK;
 	}
-	if (in_size) {
-		switch (in_size) {
-		case GF_ISOM_BOX_TYPE_UDTA:
-		case GF_ISOM_BOX_TYPE_EXTR:
-		case GF_ISOM_BOX_TYPE_ABST:
-			break;
-		default:
-			assert(!in_size);
-			break;
-		}
-	}
-
-	in_size = a->type;
-
 	e = gf_isom_box_size_listing(a);
-	in_size = 0;
 	if (e) return e;
 	//box size set to 0 (not even a header), abort traversal
 	if (!a->size) return GF_OK;
