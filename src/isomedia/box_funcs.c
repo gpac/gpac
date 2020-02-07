@@ -1722,7 +1722,6 @@ void gf_isom_check_position_list(GF_Box *s, GF_List *childlist, u32 *pos)
 }
 
 
-u32 in_write=0;
 GF_EXPORT
 GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 {
@@ -1737,22 +1736,8 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 		return GF_OK;
 	}
 
-	if (in_write) {
-		switch (in_write) {
-		case GF_ISOM_BOX_TYPE_UDTA:
-		case GF_ISOM_BOX_TYPE_EXTR:
-		case GF_ISOM_BOX_TYPE_ABST:
-			break;
-		default:
-			assert(!in_write);
-			break;
-		}
-	}
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box %s size %d write\n", gf_4cc_to_str(a->type), a->size));
-	in_write = a->type;
 	e = gf_isom_box_write_listing(a, bs);
-	in_write = 0;
 	if (e) return e;
 	if (a->child_boxes) {
 		e = gf_isom_box_array_write(a, a->child_boxes, bs);
