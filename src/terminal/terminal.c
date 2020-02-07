@@ -40,7 +40,6 @@
 #include <gpac/terminal.h>
 #include <gpac/scene_manager.h>
 
-void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID);
 void gf_filter_reconnect_output(GF_Filter *filter);
 
 
