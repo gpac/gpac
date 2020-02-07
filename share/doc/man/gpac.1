@@ -2488,6 +2488,11 @@ Indicate chrom location for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 Indicate a magic number to store in the track, only used by importers
 .br
 .TP
+.B TrackIndex (TIDX,unsigned long int,D )
+.br
+Indicate target track index in destination file, stored by lowest value first (not set by demuxers)
+.br
+.TP
 .B NoTSLoop (NTSL,boolean,  )
 .br
 Indicate the timestamps on this PID are adjusted in case of loops (used by TS muxer output)
@@ -3362,7 +3367,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3259-g6c29eafdd-filters
+build: 0.9.0-DEV-rev3264-g2f49f7879-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

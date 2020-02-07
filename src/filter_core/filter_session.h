@@ -988,6 +988,8 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 //get next option after path, NULL if not found
 const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path);
 
+void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load);
+
 #endif //_GF_FILTER_SESSION_H_
 
 
