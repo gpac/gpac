@@ -102,7 +102,7 @@ typedef struct
 	char *initext;
 	u32 muxtype;
 	char *profX;
-	s32 asto;
+	Double asto;
 	char *ast;
 	char *state;
 	char *cues;
@@ -2677,7 +2677,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->start_number = ds->startNumber ? ds->startNumber : 1;
 					seg_template->duration = (u64)(ds->dash_dur * ds->mpd_timescale);
 					if (ctx->asto>0) {
-						seg_template->availability_time_offset = (Double) ctx->asto / 1000.0;
+						seg_template->availability_time_offset = ctx->asto;
 					}
 				} else if (seg_template) {
 					seg_template->start_number = (u32)-1;
@@ -2699,7 +2699,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				seg_template->timescale = ds->mpd_timescale;
 				seg_template->start_number = ds->startNumber ? ds->startNumber : 1;
 				if (ctx->asto > 0) {
-					seg_template->availability_time_offset = (Double) ctx->asto / 1000.0;
+					seg_template->availability_time_offset = ctx->asto;
 				}
 				rep->segment_template = seg_template;
 			}
@@ -2806,7 +2806,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 	min_valid_mpd_time -= ctx->tsb;
 	//negative asto, we produce segments earlier but we don't want to delete them before the asto
 	if (ctx->asto<0) {
-		min_valid_mpd_time += ((Double) ctx->asto)/1000;
+		min_valid_mpd_time += ctx->asto;
 	}
 	if (min_valid_mpd_time<=0) return;
 
@@ -2961,7 +2961,7 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 
 	ctx->mpd->gpac_next_ntp_ms = ctx->mpd->gpac_init_ntp_ms + ctx->mpd->gpac_mpd_time;
 	if (ctx->asto<0)
-		ctx->mpd->gpac_next_ntp_ms -= (u64) (-ctx->asto);
+		ctx->mpd->gpac_next_ntp_ms -= (u64) (-ctx->asto * 1000);
 	if (ctx->_p_gentime) (*ctx->_p_gentime) = ctx->mpd->gpac_next_ntp_ms;
 	if (ctx->_p_mpdtime) (*ctx->_p_mpdtime) = ctx->mpd->gpac_mpd_time;
 
@@ -6175,7 +6175,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- webm: uses WebM format\n"
 		"- raw: uses raw media format (disables muxed representations)\n"
 		"- auto: guess format based on extension, default to mp4 if no extension", GF_PROP_UINT, "auto", "mp4|ts|mkv|webm|ogg|raw|auto", 0},
-	{ OFFS(asto), "availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(asto), "availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(profile), "target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main.\n"
 		"- auto: turns profile to live for dynamic and full for non-dynamic\n"
 		"- live: DASH live profile, using segment template\n"
