@@ -1522,6 +1522,8 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst)
 	}
 	filter_dst = dst_pidinst->filter;
 
+	gf_fs_check_graph_load(cur_filter->session, GF_TRUE);
+
 	//walk down the filter chain and find the shortest path to our destination
 	//stop when the current filter is not a one-to-one filter
 	while (1) {
@@ -1545,8 +1547,11 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst)
 		}
 		cur_filter = an_inpid->pid->filter;
 	}
-	if (!link_from_pid) return;
 
+	if (!link_from_pid) {
+		gf_fs_check_graph_load(cur_filter->session, GF_FALSE);
+		return;
+	}
 	//detach the pidinst, and relink from the new input pid
 	gf_filter_renegociate_output_dst(link_from_pid, link_from_pid->filter, filter_dst, dst_pidinst, src_pidinst);
 }
@@ -1581,11 +1586,16 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	}
 	//we are inserting a new chain
 	else if (reconfig_only) {
+		gf_fs_check_graph_load(filter_dst->session, GF_TRUE);
 		new_f = gf_filter_pid_resolve_link_for_caps(pid, filter_dst);
 	} else {
 		Bool reassigned;
+		gf_fs_check_graph_load(filter_dst->session, GF_TRUE);
 		new_f = gf_filter_pid_resolve_link(pid, filter_dst, &reassigned);
 	}
+
+	gf_fs_check_graph_load(filter_dst->session, GF_FALSE);
+
 	if (! new_f) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter to adapt caps between pid %s in filter %s to filter %s, disconnecting pid!\n", pid->name, filter->name, filter_dst->name));
 		filter->session->last_connect_error = GF_FILTER_NOT_FOUND;

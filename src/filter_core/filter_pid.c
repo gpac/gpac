@@ -2402,7 +2402,8 @@ void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister
 void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg)
 {
 	gf_mx_p(fsess->links_mx);
-	if (freg) {
+	//explicit registry removal and not destroying the session
+	if (freg && fsess->filters) {
 		s32 reg_idx=-1;
 		u32 i, count = gf_list_count(fsess->links);
 		for (i=0; i<count; i++) {
@@ -3351,6 +3352,8 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 			return;
 	}
 
+	gf_fs_check_graph_load(filter->session, GF_TRUE);
+
 	if (filter->user_pid_props)
 		gf_filter_pid_set_args(filter, pid);
 
@@ -3762,6 +3765,7 @@ single_retry:
 		gf_list_del(linked_dest_filters);
 		gf_list_del(force_link_resolutions);
 		gf_list_del(possible_linked_resolutions);
+		gf_fs_check_graph_load(filter->session, GF_FALSE);
 		return;
 	}
 
@@ -3795,6 +3799,8 @@ single_retry:
 			goto restart;
 		}
 	}
+
+	gf_fs_check_graph_load(filter->session, GF_FALSE);
 
 	gf_list_del(linked_dest_filters);
 	gf_list_del(force_link_resolutions);

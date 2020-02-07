@@ -1160,8 +1160,16 @@ static Bool word_match(const char *orig, const char *dst)
 	u32 olen = (u32) strlen(orig);
 	u32 dlen = (u32) strlen(dst);
 	u32 *run;
-	if (olen*2 < dlen) return GF_FALSE;
+	if (olen*2 < dlen) {
+		char *s1 = strchr(orig, ':');
+		char *s2 = strchr(dst, ':');
+		if (s1 && !s2) return GF_FALSE;
+		if (!s1 && s2) return GF_FALSE;
 
+		if (strstr(dst, orig))
+			return GF_TRUE;
+		return GF_FALSE;
+	}
 	run = gf_malloc(sizeof(u32) * olen);
 	memset(run, 0, sizeof(u32) * olen);
 
@@ -1499,6 +1507,7 @@ static int gpac_main(int argc, char **argv)
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "codecs")) {
 				dump_codecs = GF_TRUE;
+				sflags |= GF_FS_FLAG_LOAD_META | GF_FS_FLAG_NO_GRAPH_CACHE;
 				i++;
 			} else if (!strcmp(argv[i+1], "links")) {
 				view_filter_conn = GF_TRUE;
@@ -1518,12 +1527,15 @@ static int gpac_main(int argc, char **argv)
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "filters")) {
 				list_filters = 1;
+				sflags |= GF_FS_FLAG_NO_GRAPH_CACHE;
 				i++;
 			} else if (!strcmp(argv[i+1], "filters:*")) {
 				list_filters = 2;
+				sflags |= GF_FS_FLAG_NO_GRAPH_CACHE;
 				i++;
 			} else {
 				print_filter_info = 1;
+				sflags |= GF_FS_FLAG_NO_GRAPH_CACHE;
 			}
 		}
 		else if (!strcmp(arg, "-genmd") || !strcmp(arg, "-genman")) {
@@ -2267,9 +2279,20 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 					found = GF_TRUE;
 				} else {
 					char *sep = strchr(arg, ':');
+					char *sepd = strchr(reg->name, ':');
+					Bool patch_meta = GF_FALSE;
+					if (sep && sepd) {
+						char *subf = strstr(reg->name, sep+1);
+						if (subf) {
+							u32 slen = strlen(sep+1);
+							if ((subf[slen]==0) || (subf[slen]==','))
+								patch_meta = GF_TRUE;
+						}
+					}
 					if (!strcmp(arg, "*:*")
 						|| (!sep && !strcmp(arg, "*"))
 					 	|| (sep && !strcmp(sep, ":*") && !strncmp(reg->name, arg, 1+sep - arg) )
+					 	|| patch_meta
 					) {
 						print_filter(reg, argmode, NULL);
 						found = GF_TRUE;

@@ -107,7 +107,7 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 	}
 	gf_list_add(fsess->registry, (void *) freg);
 
-	if (fsess->init_done) {
+	if (fsess->init_done && fsess->links && gf_list_count( fsess->links)) {
 		gf_filter_sess_build_graph(fsess, freg);
 	}
 }
@@ -301,7 +301,8 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	fsess->gl_providers = gf_list_new();
 #endif
 
-	gf_filter_sess_build_graph(fsess, NULL);
+	if (! (fsess->flags & GF_FS_FLAG_NO_GRAPH_CACHE))
+		gf_filter_sess_build_graph(fsess, NULL);
 
 	fsess->init_done = GF_TRUE;
 
@@ -398,6 +399,9 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 
 	if (inflags & GF_FS_FLAG_NO_MAIN_THREAD)
 		flags |= GF_FS_FLAG_NO_MAIN_THREAD;
+
+	if (inflags & GF_FS_FLAG_NO_GRAPH_CACHE)
+		flags |= GF_FS_FLAG_NO_GRAPH_CACHE;
 
 	if (gf_opts_get_bool("core", "dbg-edges"))
 		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
@@ -599,6 +603,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 			gf_filter_del(filter);
 		}
 		gf_list_del(fsess->filters);
+		fsess->filters = NULL;
 	}
 
 	if (fsess->download_manager) gf_dm_del(fsess->download_manager);
@@ -2890,6 +2895,17 @@ Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt)
 	ret = session->ui_event_proc(session->ui_opaque, uievt);
 	gf_mx_v(session->ui_mx);
 	return ret;
+}
+
+void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load)
+{
+	if (for_load) {
+		if (!fsess->links || ! gf_list_count( fsess->links))
+			gf_filter_sess_build_graph(fsess, NULL);
+	} else {
+		if (fsess->flags & GF_FS_FLAG_NO_GRAPH_CACHE)
+			gf_filter_sess_reset_graph(fsess, NULL);
+	}
 }
 
 #ifndef GPAC_DISABLE_3D
