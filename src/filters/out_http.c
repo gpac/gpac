@@ -1215,6 +1215,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		ctx->hold = GF_FALSE;
 		return GF_OK;
 	}
+	ctx->port = port;
 
 	ctx->server_sock = gf_sk_new(GF_SOCK_TYPE_TCP);
 	e = gf_sk_bind(ctx->server_sock, NULL, port, ip, 0, GF_SOCK_REUSE_PORT);
