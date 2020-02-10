@@ -318,6 +318,10 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 
 	if (!strcmp(node_name, "key")) {
 		tkc = (GF_TrackCryptInfo *)gf_list_last(info->tcis);
+		if (!tkc) {
+			// CrypTrack was not found, so can't modify it
+			return;
+		}
 		tkc->KIDs = (bin128 *)gf_realloc(tkc->KIDs, sizeof(bin128)*(tkc->KID_count+1));
 		tkc->keys = (bin128 *)gf_realloc(tkc->keys, sizeof(bin128)*(tkc->KID_count+1));
 
@@ -363,6 +367,12 @@ void isma_ea_text(void *sax_cbck, const char *text, Bool is_cdata)
 	if (!info->in_text_header) return;
 
 	tkc = (GF_TrackCryptInfo *) gf_list_last(info->tcis);
+	if (!tkc)
+	{
+		// CrypTrack was not found, so we can't add to it
+		return;
+	}
+
 	len = (u32) strlen(text);
 	if (len+tkc->TextualHeadersLen > 5000) return;
 
@@ -389,16 +399,31 @@ static void del_crypt_info(GF_CryptInfo *info)
 	gf_free(info);
 }
 
-static GF_CryptInfo *load_crypt_file(const char *file)
+static GF_CryptInfo *load_crypt_file(const char *file, GF_Err * pErrorCode, char ** pErrorMessage)
 {
 	GF_Err e;
 	GF_CryptInfo *info;
 	GF_SAXParser *sax;
 	GF_SAFEALLOC(info, GF_CryptInfo);
-	if (!info) return NULL;
+	if (!info)
+	{
+		*pErrorCode = GF_OUT_OF_MEM;
+		*pErrorMessage = NULL;
+		return NULL;
+	}
+
 	info->tcis = gf_list_new();
 	sax = gf_xml_sax_new(isma_ea_node_start, isma_ea_node_end, isma_ea_text, info);
 	e = gf_xml_sax_parse_file(sax, file, NULL);
+
+	*pErrorCode = e;
+	char* error_message = gf_xml_sax_get_error(sax);
+	if (error_message)
+	{
+		*pErrorMessage = gf_malloc(strlen(error_message) + 1);
+		strcpy(*pErrorMessage, error_message);
+	}
+
 	gf_xml_sax_del(sax);
 	if (e>=0) e = info->parse_error;
 	if (e<0) {
@@ -416,10 +441,16 @@ GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char 
 	u32 i, count;
 	GF_CryptInfo *info;
 	GF_TrackCryptInfo *tci;
+	char* errorMessage;
 
 	e = GF_OK;
-	info = load_crypt_file(drm_file);
-	if (!info) return GF_NOT_SUPPORTED;
+	info = load_crypt_file(drm_file, &e, &errorMessage);
+	if (!info)
+	{
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open or validate xml file %s\n%s\n", drm_file, errorMessage));
+		if (errorMessage) gf_free(errorMessage);
+		return e;
+	}
 	count = gf_list_count(info->tcis);
 	for (i=0; i<count; i++) {
 		tci = (GF_TrackCryptInfo *) gf_list_get(info->tcis, i);
@@ -2685,15 +2716,17 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 	GF_CryptInfo *info;
 	Bool is_oma, is_cenc;
 	GF_TrackCryptInfo *a_tci, tci;
+	char* errorMessage;
 
 	is_oma = is_cenc = GF_FALSE;
 	count = 0;
 	info = NULL;
 	if (drm_file) {
-		info = load_crypt_file(drm_file);
+		info = load_crypt_file(drm_file, &e, &errorMessage);
 		if (!info) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open or validate xml file %s\n", drm_file));
-			return GF_NOT_SUPPORTED;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open or validate xml file %s\n%s\n", drm_file, errorMessage));
+			if (errorMessage) gf_free(errorMessage);
+			return e;
 		}
 		count = gf_list_count(info->tcis);
 	}
@@ -2982,12 +3015,14 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	Bool is_oma, is_encrypted=GF_FALSE;
 	GF_TrackCryptInfo *tci;
 	Bool check_pssh = GF_FALSE;
+	char* errorMessage;
 	is_oma = 0;
 
-	info = load_crypt_file(drm_file);
+	info = load_crypt_file(drm_file, &e, &errorMessage);
 	if (!info) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open or validate xml file %s\n", drm_file));
-		return GF_BAD_PARAM;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open or validate xml file %s\n%s\n", drm_file, errorMessage));
+		if (errorMessage) gf_free(errorMessage);
+		return e;
 	}
 
 	e = GF_OK;
