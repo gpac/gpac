@@ -121,11 +121,6 @@ CFLAGS+=-DGPAC_HAS_ALSA
 EXTRALIBS+= -lasound
 endif
 
-ifneq ($(CONFIG_JS), no)
-CFLAGS+=$(JS_FLAGS)
-OBJS+=../modules/gpac_js/gpac_js.o
-endif
-
 OBJS+=../modules/validator/validator.o
 
 ifneq ($(CONFIG_FT), no)
