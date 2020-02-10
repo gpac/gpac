@@ -401,17 +401,19 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 			if (has_file_end) request_ok = GF_FALSE;
 			has_file_end = GF_TRUE;
 			start = -1;
-			sscanf(range+1, LLD, &end);
+			if (sscanf(range+1, LLD, &end) != 1)
+				request_ok = GF_FALSE;
 		}
 		//start -> EOF
 		else if (range[len-1] == '-') {
 			if (has_open_start) request_ok = GF_FALSE;
 			has_open_start = GF_TRUE;
-			sscanf(range, LLD"-", &start);
 			end = -1;
-			start = atoi(range+1);
+			if (sscanf(range, LLD"-", &start) != 1)
+				request_ok = GF_FALSE;
 		} else {
-			sscanf(range, LLD"-"LLD, &start, &end);
+			if (sscanf(range, LLD"-"LLD, &start, &end) != 2)
+				request_ok = GF_FALSE;
 		}
 		if ((start==-1) && (end==-1)) {
 			request_ok = GF_FALSE;
@@ -445,19 +447,22 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 	sess->bytes_in_req = 0;
 	for (i=0; i<sess->nb_ranges; i++) {
 		if (sess->ranges[i].start>=0) {
+			//if start, end is a pos in bytes in size (0-based)
 			if (sess->ranges[i].end==-1) {
-				sess->ranges[i].end = known_file_size;
+				sess->ranges[i].end = known_file_size-1;
 			}
+			sess->ranges[i].end+=1;
 
-			if (sess->ranges[i].end>= (s64) known_file_size) {
+			if (sess->ranges[i].end > (s64) known_file_size) {
 				request_ok = GF_FALSE;
 				break;
 			}
-			if (sess->ranges[i].start>= (s64) known_file_size) {
+			if (sess->ranges[i].start > (s64) known_file_size) {
 				request_ok = GF_FALSE;
 				break;
 			}
 		} else {
+			//no start, end is a file size
 			if (sess->ranges[i].end > (s64) known_file_size) {
 				request_ok = GF_FALSE;
 				break;
@@ -1543,7 +1548,13 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		sess->nb_bytes += read;
 
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending data to %s for: %s\n", sess->peer_address, sess->path, gf_error_to_string(e) ));
+			if (e==GF_IP_CONNECTION_CLOSED) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Connection to %s for %s closed\n", sess->peer_address, sess->path));
+				sess->done = GF_TRUE;
+				httpout_reset_socket(sess);
+				return;
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending data to %s for %s: %s\n", sess->peer_address, sess->path, gf_error_to_string(e) ));
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] sending data to %s for %s: "LLU"/"LLU" bytes\n", sess->peer_address, sess->path, sess->nb_bytes, sess->bytes_in_req));
 		}
