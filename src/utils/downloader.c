@@ -187,6 +187,8 @@ struct __gf_download_session
 
 	Bool chunked;
 	u32 nb_left_in_chunk;
+	u32 current_chunk_size;
+	u64 current_chunk_start;
 
 	u64 request_start_time;
 	/*private extension*/
@@ -728,11 +730,7 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 	assert( sess );
 	if (sess->connection_close) force_close = GF_TRUE;
 	sess->connection_close = GF_FALSE;
-	if (sess->remaining_data && sess->remaining_data_size) {
-		gf_free(sess->remaining_data);
-		sess->remaining_data = NULL;
-		sess->remaining_data_size = 0;
-	}
+	sess->remaining_data_size = 0;
 
 	if (sess->status >= GF_NETIO_DISCONNECTED) {
 		if (force_close && sess->use_cache_file && sess->cache_entry) {
@@ -808,6 +806,8 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 	/* Credentials are stored into the sess->dm */
 	if (sess->creds) sess->creds = NULL;
 	if (sess->init_data) gf_free(sess->init_data);
+	if (sess->remaining_data) gf_free(sess->remaining_data);
+
 	sess->orig_url = sess->server_name = sess->remote_path;
 	sess->creds = NULL;
 	if (sess->sock && !sess->server_mode)
@@ -1196,8 +1196,8 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 #endif
 
 	}
-	sess->total_size=0;
-	sess->bytes_done=0;
+	sess->total_size = 0;
+	sess->bytes_done = 0;
 	assert(sess->remaining_data_size==0);
 
 	sess->local_cache_only = GF_FALSE;
@@ -2286,11 +2286,14 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, Bool first_chunk_in_
 	if (sep) sep[0] = ';';
 	*payload_size = size;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP] Chunk Start: Header \"%s\" - header size %d - payload size %d at UTC "LLD"\n", body_start, 2+strlen(body_start), size, gf_net_get_utc()));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP] Chunk Start: Header \"%s\" - header size %d - payload size %d (bytes done %d) at UTC "LLD"\n", body_start, 2+strlen(body_start), size, sess->bytes_done, gf_net_get_utc()));
 
 	te_header[0] = '\r';
 	if (!size)
 		sess->last_chunk_found = GF_TRUE;
+
+	sess->current_chunk_size = size;
+	sess->current_chunk_start = gf_sys_clock_high_res();
 	return te_header+2;
 }
 
@@ -2338,9 +2341,8 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		//first_chunk_in_payload = GF_FALSE;
 		if (!hdr_size && !data) {
 			/* keep the data and wait for the rest */
-			if (sess->remaining_data) gf_free(sess->remaining_data);
 			sess->remaining_data_size = nbBytes;
-			sess->remaining_data = (char *)gf_malloc(nbBytes * sizeof(char));
+			sess->remaining_data = (char *)gf_realloc(sess->remaining_data, nbBytes * sizeof(char));
 			memcpy(sess->remaining_data, payload, nbBytes);
 			payload_size = 0;
 			payload = NULL;
@@ -2395,7 +2397,6 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 			par.reply = flush_chunk;
 			gf_dm_sess_user_io(sess, &par);
 		}
-
 	}
 	//and we're done
 	if (sess->total_size && (sess->bytes_done == sess->total_size)) {
@@ -2422,8 +2423,8 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 			}
 		}
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] url %s (%d bytes) downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", gf_cache_get_url(sess->cache_entry), sess->bytes_done,
-		                                     run_time, 8*sess->bytes_per_sec/1000, sess->total_time_since_req, sess->reply_time ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] url %s (%d bytes) downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us - active time %d us)\n", gf_cache_get_url(sess->cache_entry), sess->bytes_done,
+		                                     run_time, 8*sess->bytes_per_sec/1000, sess->total_time_since_req, sess->reply_time, sess->active_time ? sess->active_time : sess->reply_time ));
 
 		if (sess->chunked && (payload_size==2))
 			payload_size=0;
@@ -2499,44 +2500,25 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			e = GF_OK;
 		}
 	} else {
-#if 0
-		u32 single_read;
-		u32 nb_read = 0;
-		*read_size = 0;
-		while (1) {
-			single_read=0;
-			if (nb_read>=buffer_size)
-				break;
-			e = gf_dm_read_data(sess, buffer+nb_read, buffer_size-nb_read, &single_read);
-			if (e<0) {
-				break;
+		u32 remaining_data_size=0;
+		if (sess->remaining_data && sess->remaining_data_size) {
+			if (sess->remaining_data_size >= buffer_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP] No HTTP chunk header found for %d bytes, assuming broken chunk transfer and aborting\n", sess->remaining_data_size));
+				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-
-			size = single_read;
-			single_read = 0;
-
-			gf_dm_data_received(sess, (u8 *) buffer+nb_read, size, GF_FALSE, &single_read, (u8 *) buffer+nb_read);
-			if (!sess->chunked)
-				single_read = size;
-
-			nb_read+=single_read;
-			*read_size += single_read;
-
-			if (e) break;
+			memcpy(buffer, sess->remaining_data, sess->remaining_data_size);
+			remaining_data_size = sess->remaining_data_size;
 		}
-		if (*read_size && (e<0)) e = GF_OK;
-		nb_read = 0;
-#else
-		e = gf_dm_read_data(sess, buffer, buffer_size, read_size);
+
+		e = gf_dm_read_data(sess, buffer + sess->remaining_data_size, buffer_size - sess->remaining_data_size, read_size);
 		if (!e) {
-			size = *read_size;
+			size = sess->remaining_data_size + *read_size;
+			sess->remaining_data_size = 0;
 			*read_size = 0;
 			gf_dm_data_received(sess, (u8 *) buffer, size, GF_FALSE, read_size, buffer);
 			if (!sess->chunked)
 				*read_size = size;
 		}
-#endif
-
 	}
 	sess->active_time += gf_sys_clock_high_res() - sess->in_time;
 
@@ -3004,11 +2986,8 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 		}
 
 		remaining_data_size = sess->remaining_data_size;
-		if (sess->remaining_data && sess->remaining_data_size) {
-			gf_free(sess->remaining_data);
-			sess->remaining_data = NULL;
-			sess->remaining_data_size = 0;
-		}
+		sess->remaining_data_size = 0;
+
 		sHTTP[size + remaining_data_size] = 0;
 
 		gf_dm_data_received(sess, (u8 *) sHTTP, size + remaining_data_size, GF_FALSE, NULL, NULL);
@@ -3957,6 +3936,8 @@ GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
 	sess->total_size = 0;
 	sess->start_time = 0;
 	sess->start_time_utc = 0;
+	sess->max_chunk_size = 0;
+	sess->max_chunk_bytes_per_sec = 0;
 	return GF_OK;
 }
 
