@@ -2500,19 +2500,17 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			e = GF_OK;
 		}
 	} else {
-		u32 remaining_data_size=0;
 		if (sess->remaining_data && sess->remaining_data_size) {
 			if (sess->remaining_data_size >= buffer_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP] No HTTP chunk header found for %d bytes, assuming broken chunk transfer and aborting\n", sess->remaining_data_size));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			memcpy(buffer, sess->remaining_data, sess->remaining_data_size);
-			remaining_data_size = sess->remaining_data_size;
 		}
 
 		e = gf_dm_read_data(sess, buffer + sess->remaining_data_size, buffer_size - sess->remaining_data_size, read_size);
 		if (!e) {
-			size = sess->remaining_data_size + *read_size;
+			size = sess->remaining_data_size + (*read_size);
 			sess->remaining_data_size = 0;
 			*read_size = 0;
 			gf_dm_data_received(sess, (u8 *) buffer, size, GF_FALSE, read_size, buffer);
