@@ -770,7 +770,7 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 GF_EXPORT
 void gf_dm_sess_del(GF_DownloadSession *sess)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[Downloader] gf_dm_sess_del(%p) URL %s\n", sess, sess->orig_url));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[Downloader] %s session (%p) URL %s\n", sess->server_mode ? "Detach" : "Destroy", sess, sess->orig_url));
 	if (!sess)
 		return;
 	/*self-destruction, let the download manager destroy us*/
@@ -818,9 +818,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 		sess->ftask->sess = NULL;
 		sess->ftask = NULL;
 	}
-
 	gf_free(sess);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[Downloader] gf_dm_sess_del(%p) : DONE\n", sess ));
 }
 
 void http_do_requests(GF_DownloadSession *sess);

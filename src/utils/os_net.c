@@ -1482,6 +1482,11 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	memset(&sock->dest_addr, 0, sizeof(struct sockaddr_in));
 #endif
 
+#ifdef SO_NOSIGPIPE
+	int value = 1;
+	setsockopt((*newConnection)->socket, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
+#endif
+
 #if defined(WIN32) || defined(_WIN32_WCE)
 	wsa_init++;
 #endif
