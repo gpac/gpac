@@ -1087,10 +1087,14 @@ static void gpac_load_suggested_filter_args()
 	u32 i, count, k;
 	GF_Config *opts = NULL;
 	GF_FilterSession *fsess;
+	const char *version, *cfg_path;
+	char *all_opts;
 
-	const char *version;
-	const char *cfg_path = gf_opts_get_filename();
-	char *all_opts = gf_url_concatenate(cfg_path, "all_opts.txt");
+	if (gf_opts_get_bool("core", "no-argchk"))
+		return;
+
+	cfg_path = gf_opts_get_filename();
+	all_opts = gf_url_concatenate(cfg_path, "all_opts.txt");
 
 	opts = gf_cfg_force_new(NULL, all_opts);
 	gf_free(all_opts);
@@ -1299,6 +1303,9 @@ static void gpac_suggest_filter_arg(GF_Config *opts, char *argname, u32 atype)
 	u32 i, count, len, nb_filters, j;
 	Bool f_found = GF_FALSE;
 	char szSep[2];
+
+	if (gf_opts_get_bool("core", "no-argchk"))
+		return;
 
 	szSep[0] = separator_set[0];
 	szSep[1] = 0;
