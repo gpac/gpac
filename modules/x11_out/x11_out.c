@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2020
  *					All rights reserved
  *
  *  This file is part of GPAC /  X11 video output module
@@ -284,7 +284,7 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
 	if (!xWindow->is_init) return GF_OK;
 	cur_wnd = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
 
-	if (xWindow->output_3d_mode==1) {
+	if (xWindow->output_3d) {
 #ifdef GPAC_HAS_OPENGL
 		XSync(xWindow->display, False);
 		glFlush();
@@ -963,7 +963,6 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 		xWin->glx_context = glXCreateContext(xWin->display,xWin->glx_visualinfo, NULL, True);
 		XSync(xWin->display, False);
 		if (!xWin->glx_context) return GF_IO_ERR;
-		if (xWin->output_3d_mode==2)  return GF_IO_ERR;
 
 		evt.setup.hw_reset = 1;
 	}
@@ -992,61 +991,6 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 	evt.type = GF_EVENT_VIDEO_SETUP;
 	vout->on_event (vout->evt_cbk_hdl,&evt);
 	xWin->is_init = 1;
-	return GF_OK;
-}
-
-static GF_Err X11_SetupGLPixmap(GF_VideoOutput *vout, u32 width, u32 height)
-{
-	XWindow *xWin = (XWindow *)vout->opaque;
-
-	if (xWin->glx_context) {
-		if (xWin->gl_offscreen) glXMakeCurrent(xWin->display, xWin->gl_offscreen, NULL);
-		else glXMakeCurrent(xWin->display, None, NULL);
-
-		glXDestroyContext(xWin->display, xWin->glx_context);
-		xWin->glx_context = NULL;
-	}
-	if (xWin->gl_offscreen) glXDestroyGLXPixmap(xWin->display, xWin->gl_offscreen);
-	xWin->gl_offscreen = 0;
-	if (xWin->gl_pixmap) XFreePixmap(xWin->display, xWin->gl_pixmap);
-	xWin->gl_pixmap = 0;
-
-	if (xWin->offscreen_type) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using offscreen GL context through XWindow\n"));
-		if (xWin->offscreen_type==2) {
-			XSync(xWin->display, False);
-			XMapWindow (xWin->display, (Window) xWin->gl_wnd);
-			XSync(xWin->display, False);
-//		XSetWMNormalHints (xWin->display, xWin->gl_wnd, Hints);
-			XStoreName (xWin->display, xWin->gl_wnd, "GPAC Offscreeen Window - debug mode");
-		}
-
-		XSync(xWin->display, False);
-		xWin->glx_context = glXCreateContext(xWin->display,xWin->glx_visualinfo, NULL, True);
-		XSync(xWin->display, False);
-		if (!xWin->glx_context) return GF_IO_ERR;
-		if ( ! glXMakeCurrent(xWin->display, xWin->gl_wnd, xWin->glx_context) ) return GF_IO_ERR;
-		XSync(xWin->display, False);
-
-	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using offscreen GL context through glXPixmap\n"));
-		xWin->gl_pixmap = XCreatePixmap(xWin->display, xWin->gl_wnd, width, height, xWin->depth);
-		if (!xWin->gl_pixmap) return GF_IO_ERR;
-
-		xWin->gl_offscreen = glXCreateGLXPixmap(xWin->display, xWin->glx_visualinfo, xWin->gl_pixmap);
-		if (!xWin->gl_offscreen) return GF_IO_ERR;
-
-		XSync(xWin->display, False);
-		xWin->glx_context = glXCreateContext(xWin->display, xWin->glx_visualinfo, 0, GL_FALSE);
-		XSync(xWin->display, False);
-		if (!xWin->glx_context) return GF_IO_ERR;
-
-		XSync(xWin->display, False);
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[X11] Activating GLContext on GLPixmap - this may crash !!\n"));
-		glXMakeCurrent(xWin->display, xWin->gl_offscreen, xWin->glx_context);
-	}
-
-	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Offscreen GL context setup\n"));
 	return GF_OK;
 }
 
@@ -1239,20 +1183,16 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 			}
 			break;
 		case GF_EVENT_VIDEO_SETUP:
-			switch (evt->setup.opengl_mode) {
+			if (evt->setup.use_opengl) {
 #ifdef GPAC_HAS_OPENGL
-			case 1:
-				xWindow->output_3d_mode = 1;
+				xWindow->output_3d = GF_TRUE;
 				return X11_SetupGL(vout);
-			case 2:
-				xWindow->output_3d_mode = 2;
-				return X11_SetupGLPixmap(vout, evt->setup.width, evt->setup.height);
-#endif
-			case 0:
-				xWindow->output_3d_mode = 0;
-				return X11_ResizeBackBuffer(vout, evt->setup.width, evt->setup.height);
-			default:
+#else
 				return GF_NOT_SUPPORTED;
+#endif
+			} else {
+				xWindow->output_3d = GF_FALSE;
+				return X11_ResizeBackBuffer(vout, evt->setup.width, evt->setup.height);
 			}
 		}
 	} else {
@@ -1268,7 +1208,7 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 	X11VID ();
 	xWindow->fullscreen = bFullScreenOn;
 #ifdef GPAC_HAS_OPENGL
-//	if (xWindow->output_3d_mode==1) X11_ReleaseGL(xWindow);
+//	if (xWindow->output_3d) X11_ReleaseGL(xWindow);
 #endif
 
 	if (bFullScreenOn) {
@@ -1306,7 +1246,7 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 		/*backbuffer resize will be done right after this is called */
 	}
 #ifdef GPAC_HAS_OPENGL
-	if (xWindow->output_3d_mode==1) X11_SetupGL(vout);
+	if (xWindow->output_3d) X11_SetupGL(vout);
 #endif
 	return GF_OK;
 }

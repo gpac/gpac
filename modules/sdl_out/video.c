@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Jean Le Feuvre - Romain Bouqueau
-*			Copyright (c) Telecom ParisTech 2000-2012
+*			Copyright (c) Telecom ParisTech 2000-2020
 *					All rights reserved
 *
 *  This file is part of GPAC / SDL audio and video module
@@ -661,7 +661,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Resizing window %dx%d\n", width, height));
 
-	if (ctx->output_3d_type) {
+	if (ctx->output_3d) {
 		u32 flags, nb_bits;
 		const char *opt;
 
@@ -1243,7 +1243,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 
 	ctx->os_handle = os_handle;
 	ctx->is_init = GF_FALSE;
-	ctx->output_3d_type = 0;
+	ctx->output_3d = GF_FALSE;
 	ctx->force_alpha = (init_flags & GF_TERM_WINDOW_TRANSPARENT) ? GF_TRUE : GF_FALSE;
 	ctx->hidden = (init_flags & GF_TERM_INIT_HIDE) ? GF_TRUE : GF_FALSE;
 
@@ -1337,7 +1337,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 
 	if (ctx->fullscreen) {
 #if ! ( SDL_VERSION_ATLEAST(2,0,0) )
-		u32 flags = (ctx->output_3d_type==1) ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
+		u32 flags = ctx->output_3d ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
 #endif
 		Bool switch_res = GF_FALSE;
 		switch_res = gf_opts_get_bool("core", "switch-vres");
@@ -1392,11 +1392,11 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 		*screen_width = ctx->fs_width;
 		*screen_height = ctx->fs_height;
 		/*GL has changed*/
-		if (ctx->output_3d_type==1) {
+		if (ctx->output_3d) {
 			GF_Event evt;
 			memset(&evt, 0, sizeof(GF_Event));
 			evt.type = GF_EVENT_VIDEO_SETUP;
-			evt.setup.opengl_mode = 3;
+			evt.setup.use_opengl = GF_TRUE;
 			dr->on_event(dr->evt_cbk_hdl, &evt);
 		}
 	} else {
@@ -1422,7 +1422,7 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 	u32 col;
 #endif
 
-	if (ctx->output_3d_type==1) return GF_BAD_PARAM;
+	if (ctx->output_3d) return GF_BAD_PARAM;
 
 	opt = gf_opts_get_key("core", "hwvmem");
 	if (system_mem) {
@@ -1556,7 +1556,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] swapping video buffers\n"));
 
-	if (ctx->output_3d_type==1) {
+	if (ctx->output_3d) {
 		//with SDL2 we have to disable vsync by overriding swap interval
 #if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
 		if (ctx->disable_vsync) {
@@ -1600,7 +1600,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 	//GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Flush\n"));
 
-	if (ctx->output_3d_type==1) {
+	if (ctx->output_3d) {
 		SDL_GL_SwapBuffers();
 		return GF_OK;
 	}
@@ -1739,12 +1739,11 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	{
 		SDLVID();
 		ctx->disable_vsync=evt->setup.disable_vsync;
-		switch (evt->setup.opengl_mode) {
-		case 0:
+		if (!evt->setup.use_opengl) {
 			/*force a resetup of the window*/
-			if (ctx->output_3d_type) {
+			if (ctx->output_3d) {
 				ctx->width = ctx->height = 0;
-				ctx->output_3d_type = 0;
+				ctx->output_3d = GF_FALSE;
 				SDLVid_ResetWindow(ctx);
 				SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 			} else {
@@ -1752,15 +1751,15 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 				SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 #endif
 			}
-			ctx->output_3d_type = 0;
+			ctx->output_3d = GF_FALSE;
 			return SDLVid_SetBackbufferSize(dr, evt->setup.width, evt->setup.height, evt->setup.system_memory);
-		case 1:
+		} else {
 			/*force a resetup of the window*/
-			if (!ctx->output_3d_type) {
+			if (!ctx->output_3d) {
 				ctx->width = ctx->height = 0;
 				SDLVid_ResetWindow(ctx);
 			}
-			ctx->output_3d_type = 1;
+			ctx->output_3d = GF_TRUE;
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Setting up 3D in SDL.\n"));
 #ifdef GPAC_CONFIG_IOS
 //            return SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
@@ -1768,16 +1767,8 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 #else
 			return SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 #endif
-		case 2:
-			/*find a way to do that in SDL*/
-			ctx->output_3d_type = 2;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] 3D not supported with SDL.\n"));
-			return GF_NOT_SUPPORTED;
 		}
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Trying to set an Unknown Mode %d !\n", evt->setup.opengl_mode));
-			return GF_NOT_SUPPORTED;
-		}
+	}
 		break;
 	case GF_EVENT_SYS_COLORS:
 #ifdef WIN32

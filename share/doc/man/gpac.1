@@ -735,19 +735,6 @@ indicate if offscreen yuv->rgb is enabled. can be set to false to force disablin
 color to use for overlay keying, hex format
 .br
 .TP
-.B \-gl-offscreen (Enum, default: Window)
-.br
-openGL mode for offscreen rendering (will soon be deprecated).
-.br
-* Window: a hidden window is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work
-.br
-* VisibleWindow: a visible window is used to perform offscreen rendering. This can be useful while debugging
-.br
-* Pixmap: an X11 Pixmap is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work and can even crash the player
-.br
-* PBuffer: use opengl PBuffers for drawing, not always supported
-.br
-.TP
 .B \-gl-bits-comp (int, default: 8)
 .br
 number of bits per color component in openGL
@@ -3369,7 +3356,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3285-g312c37a1e-filters
+build: 0.9.0-DEV-rev3291-gcab89e8f5-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
