@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / DirectX audio and video render module
@@ -530,9 +530,6 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 	case WM_ACTIVATE:
 		if (!ctx->on_secondary_screen && ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE)
 		        && (hWnd==ctx->fs_hwnd)
-#ifndef GPAC_DISABLE_3D
-		        && (ctx->output_3d_type!=2)
-#endif
 		   ) {
 			evt.type = GF_EVENT_SHOWHIDE_NOTIF;
 			vout->on_event(vout->evt_cbk_hdl, &evt);
@@ -1133,10 +1130,6 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 #endif
 	}
 
-#ifndef GPAC_DISABLE_3D
-	if (ctx->gl_hwnd) dd_closewindow(ctx->gl_hwnd);
-#endif
-
 	if (ctx->th) {
 		while (ctx->th_state!=2)
 			gf_sleep(10);
@@ -1164,9 +1157,6 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 #endif
 	ctx->os_hwnd = NULL;
 	ctx->fs_hwnd = NULL;
-#ifndef GPAC_DISABLE_3D
-	ctx->gl_hwnd = NULL;
-#endif
 	the_video_output = NULL;
 }
 
@@ -1317,32 +1307,23 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 			DestroyObjects(ctx);
 		}
 		ctx->is_setup = GF_TRUE;
-		switch (evt->setup.opengl_mode) {
-		case 0:
+		if (!evt->setup.use_opengl) {
 #ifndef GPAC_DISABLE_3D
-			ctx->output_3d_type = 0;
+			ctx->output_3d = GF_FALSE;
 #endif
 			return DD_SetBackBufferSize(dr, evt->setup.width, evt->setup.height, evt->setup.system_memory);
+		} else {
 #ifndef GPAC_DISABLE_3D
-		case 1:
-			ctx->output_3d_type = 1;
+			ctx->output_3d = GF_TRUE;
 			ctx->width = evt->setup.width;
 			ctx->height = evt->setup.height;
 			ctx->gl_double_buffer = evt->setup.back_buffer;
 			return DD_SetupOpenGL(dr, 0, 0);
-		case 2:
-			ctx->output_3d_type = 2;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Attempting to resize Offscreen OpenGL window to %d x %d\n", evt->size.width, evt->size.height));
-			if (ctx->gl_hwnd)
-				SetWindowPos(ctx->gl_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Resizing Offscreen OpenGL window to %d x %d\n", evt->size.width, evt->size.height));
-			SetForegroundWindow(ctx->cur_hwnd);
-			ctx->gl_double_buffer = evt->setup.back_buffer;
-			return DD_SetupOpenGL(dr, evt->size.width, evt->size.height);
 #else
 			return GF_NOT_SUPPORTED;
 #endif
 		}
+
 	case GF_EVENT_SYS_COLORS:
 		evt->sys_cols.sys_colors[0] = get_sys_col(COLOR_ACTIVEBORDER);
 		evt->sys_cols.sys_colors[1] = get_sys_col(COLOR_ACTIVECAPTION);

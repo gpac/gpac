@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -145,7 +145,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 
 #ifndef GPAC_DISABLE_3D
 			if (compositor->hybrid_opengl || compositor->force_opengl_2d) {
-				evt.setup.opengl_mode = 1;
+				evt.setup.use_opengl = GF_TRUE;
 				evt.setup.system_memory = GF_FALSE;
 				evt.setup.back_buffer = GF_TRUE;
 			}
@@ -153,7 +153,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 #endif
 			compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 
-			if (evt.setup.opengl_mode) {
+			if (evt.setup.use_opengl) {
 				gf_opengl_init();
 			}
 
@@ -508,7 +508,7 @@ static GF_Err rawvout_evt(struct _video_out *vout, GF_Event *evt)
 		return compositor_3d_setup_fbo(evt->setup.width, evt->setup.height, &compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
 #endif
 
-	evt->setup.opengl_mode = 0;
+	evt->setup.use_opengl = GF_FALSE;
 	return GF_OK;
 }
 

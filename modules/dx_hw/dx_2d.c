@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / DirectX audio and video render module
@@ -865,7 +865,7 @@ GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height, Bool use_
 	GF_Err e;
 	DDCONTEXT;
 #ifndef GPAC_DISABLE_3D
-	if (dd->output_3d_type) return GF_BAD_PARAM;
+	if (dd->output_3d) return GF_BAD_PARAM;
 #endif
 	if (!dd->ddraw_init) {
 		e = InitDirectDraw(dr, width, height);

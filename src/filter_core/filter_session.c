@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2019
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -2956,13 +2956,13 @@ GF_Err gf_fs_check_gl_provider(GF_FilterSession *session)
 	evt.type = GF_EVENT_VIDEO_SETUP;
 	evt.setup.width = 128;
 	evt.setup.height = 128;
-	evt.setup.opengl_mode = 1;
+	evt.setup.use_opengl = GF_TRUE;
 	evt.setup.back_buffer = 1;
 	//we anyway should'nt call swapBuffer/flush on this object
 	evt.setup.disable_vsync = GF_TRUE;
 	session->gl_driver->ProcessEvent(session->gl_driver, &evt);
 
-	if (evt.setup.opengl_mode) {
+	if (evt.setup.use_opengl) {
 		gf_opengl_init();
 	}
 	return GF_OK;

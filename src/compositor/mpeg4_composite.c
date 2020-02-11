@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -431,29 +431,9 @@ static void composite_update(GF_TextureHandler *txh)
 				if (!compositor->fbo_id
 					&& ((compositor->offscreen_width < st->txh.width) || (compositor->offscreen_height < st->txh.height))
 				) {
-#ifndef GPAC_USE_TINYGL
-					GF_Err e;
-					GF_Event evt;
-					compositor->offscreen_width = MAX(compositor->offscreen_width, st->txh.width);
-					compositor->offscreen_height = MAX(compositor->offscreen_height, st->txh.height);
 
-					evt.type = GF_EVENT_VIDEO_SETUP;
-					evt.setup.width = compositor->offscreen_width;
-					evt.setup.height = compositor->offscreen_height;
-					evt.setup.back_buffer = 0;
-					evt.setup.opengl_mode = 2;
-					e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
-					if (e) {
-						gf_sc_texture_release(txh);
-						st->unsupported = 1;
-						return;
-					}
-					if (evt.setup.opengl_mode) {
-						gf_opengl_init();
-					}
-					/*reload openGL ext*/
-					gf_sc_load_opengl_extensions(compositor, GF_TRUE);
-#endif
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Offscreen OpenGL is not possible if no openGL context is created - use hybridGL mode for compositor\n"));
+					st->unsupported = GF_TRUE;
 				}
 			} else {
 				needs_stencil = 0;

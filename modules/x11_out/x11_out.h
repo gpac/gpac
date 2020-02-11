@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / X11 video output module
@@ -111,7 +111,7 @@ typedef struct
 
 	u32 w_width, w_height;
 	u32 depth, bpp, pixel_format;
-	u32 output_3d_mode;
+	Bool output_3d;
 
 #ifdef GPAC_HAS_OPENGL
 	XVisualInfo *glx_visualinfo;

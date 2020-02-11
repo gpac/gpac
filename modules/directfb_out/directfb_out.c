@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Romain Bouqueau - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2012
+ *			Copyright (c) Telecom ParisTech 2010-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / DirectFB video output module
@@ -187,7 +187,7 @@ static GF_Err DirectFBVid_ProcessEvent(GF_VideoOutput *driv, GF_Event *evt)
 		return GF_OK;
 
 	case GF_EVENT_VIDEO_SETUP:
-		if (evt->setup.opengl_mode) return GF_NOT_SUPPORTED;
+		if (evt->setup.use_opengl) return GF_NOT_SUPPORTED;
 
 		if ((DirectFBVid_CtxGetWidth(ctx) !=evt->setup.width) || (DirectFBVid_CtxGetHeight(ctx) != evt->setup.height)) {
 			GF_Event gpac_evt;

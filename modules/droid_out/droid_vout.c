@@ -757,7 +757,6 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		switch (evt->type) {
 		case GF_EVENT_SIZE:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("GF_EVENT_SIZE( %d x %d)", evt->setup.width, evt->setup.height));
-			//if (evt->setup.opengl_mode) return GF_OK;
 			//in fullscreen mode: do not change viewport; just update perspective
 			if (rc->fullscreen) {
 #ifdef GPAC_USE_GLES2
@@ -786,21 +785,15 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 				return droid_Resize(dr, evt->setup.width, evt->setup.height);
 
 		case GF_EVENT_VIDEO_SETUP:
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Android OpenGL mode: %d", evt->setup.opengl_mode));
-			switch (evt->setup.opengl_mode)
-			{
-			case 0:
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Android OpenGL mode: %d", evt->setup.use_opengl));
+			if (!evt->setup.use_opengl)
 				rc->out_3d_type = 0;
 //					initGL(rc);
 				droid_Resize(dr, evt->setup.width, evt->setup.height);
-				return GF_OK;
-			case 1:
+			} else {
 				rc->out_3d_type = 1;
 				droid_Resize(dr, evt->setup.width, evt->setup.height);
-				return GF_OK;
-			case 2:
-				rc->out_3d_type = 2;
-				droid_Resize(dr, evt->setup.width, evt->setup.height);
+			}
 				return GF_OK;
 			case GF_EVENT_SET_CURSOR:
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("GF_EVENT_SET_CURSOR"));

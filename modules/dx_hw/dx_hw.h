@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / DirectX audio and video render module
@@ -176,8 +176,8 @@ typedef struct
 	void *pbuffer;
 	Bool glext_init;
 #endif
-	u32 output_3d_type;
-	HWND gl_hwnd, bound_hwnd;
+	Bool output_3d;
+	HWND bound_hwnd;
 	Bool gl_double_buffer;
 	/*0: not init, 1: used, 2: not used*/
 	u32 mode_high_bpp;

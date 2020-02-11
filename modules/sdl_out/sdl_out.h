@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / SDL audio and video module
@@ -97,7 +97,7 @@ typedef struct
 
 	SDL_Surface *offscreen_gl;
 
-	u32 output_3d_type;
+	Bool output_3d;
 	void *os_handle;
 
 	Bool force_alpha, hidden;

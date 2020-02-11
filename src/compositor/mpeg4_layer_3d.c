@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -130,163 +130,6 @@ static void l3d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 	tr_state->traversing_mode = mode;
 }
 
-
-u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *tr_state, Fixed width, Fixed height)
-{
-	GF_EVGStencil * stencil;
-	u32 new_pixel_format, w, h;
-	GF_Compositor *compositor = (GF_Compositor *)st->visual->compositor;
-
-	if (st->unsupported) return 0;
-
-#ifndef GPAC_USE_TINYGL
-	/*no support for offscreen rendering*/
-	if (!(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) {
-		st->unsupported = 1;
-		return 0;
-	}
-#endif
-
-	/*
-		if (tr_state->visual->compositor->recompute_ar) {
-			gf_node_dirty_set(node, 0, 0);
-			return 0;
-		}
-	*/
-
-	new_pixel_format = GF_PIXEL_RGBA;
-#ifndef GPAC_USE_TINYGL
-//	if (!compositor_background_transparent(gf_list_get(tr_state->backgrounds, 0)) )
-//		new_pixel_format = GF_PIXEL_RGB;
-
-	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
-#ifdef GPAC_USE_GLES1X
-	new_pixel_format = GF_PIXEL_RGBA;
-#else
-	/*no support for alpha in offscreen rendering*/
-	if (!(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
-		new_pixel_format = GF_PIXEL_RGB;
-#endif
-
-#endif
-
-	/*FIXME - we assume RGB+Depth+bitshape, we should check with the video out module*/
-#if defined(GF_SR_USE_DEPTH) && !defined(GPAC_DISABLE_3D)
-	if (st->visual->type_3d && (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_DEPTH) ) new_pixel_format = GF_PIXEL_RGBDS;
-#endif
-
-	w = (u32) FIX2INT(gf_ceil(width));
-	h = (u32) FIX2INT(gf_ceil(height));
-
-	/*1- some implementation of glReadPixel crash if w||h are not multiple of 4*/
-	/*2- some implementation of glReadPixel don't behave properly here when texture is not a power of 2*/
-	w = gf_get_next_pow2(w);
-	if (w>1024) w = 1024;
-	h = gf_get_next_pow2(h);
-	if (h>1024) h = 1024;
-
-
-	if (!w || !h) return 0;
-
-	if (st->txh.tx_io
-	        && (new_pixel_format == st->txh.pixelformat)
-	        && (w == st->txh.width)
-	        && (h == st->txh.height)
-	        && (compositor->offscreen_width >= w)
-	        && (compositor->offscreen_height >= h)
-	   )
-		return 2;
-
-	if (st->txh.tx_io) {
-#ifdef GPAC_USE_TINYGL
-		if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
-#endif
-		gf_sc_texture_release(&st->txh);
-		if (st->txh.data) gf_free(st->txh.data);
-		st->txh.data = NULL;
-	}
-
-	st->vp = gf_rect_center(INT2FIX(w), INT2FIX(h) );
-
-	st->txh.width = w;
-	st->txh.height = h;
-
-	gf_sc_texture_allocate(&st->txh);
-	st->txh.pixelformat = new_pixel_format;
-
-	if (new_pixel_format==GF_PIXEL_RGBA) {
-		st->txh.stride = w * 4;
-		st->txh.transparent = 1;
-	}
-	else if (new_pixel_format==GF_PIXEL_RGBDS) {
-		st->txh.stride = w * 4;
-		st->txh.transparent = 1;
-	}
-	else {
-		st->txh.stride = w * 3;
-		st->txh.transparent = 0;
-	}
-
-	st->visual->width = w;
-	st->visual->height = h;
-
-
-	stencil = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
-
-#ifndef GPAC_USE_TINYGL
-	/*create an offscreen window for OpenGL rendering*/
-	if ((compositor->offscreen_width < w) || (compositor->offscreen_height < h)) {
-		GF_Err e;
-		GF_Event evt;
-		compositor->offscreen_width = MAX(compositor->offscreen_width, w);
-		compositor->offscreen_height = MAX(compositor->offscreen_height, h);
-
-		evt.type = GF_EVENT_VIDEO_SETUP;
-		evt.setup.width = tr_state->visual->compositor->offscreen_width;
-		evt.setup.height = tr_state->visual->compositor->offscreen_height;
-		evt.setup.back_buffer = 0;
-		evt.setup.opengl_mode = 2;
-		e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
-		if (e) {
-			gf_sc_texture_release(&st->txh);
-			st->unsupported = 1;
-			return 0;
-		}
-		visual_3d_reset_graphics(compositor->visual);
-		if (evt.setup.opengl_mode) {
-			gf_opengl_init();
-		}
-		/*reload openGL ext*/
-		gf_sc_load_opengl_extensions(compositor, GF_TRUE);
-		/*load openGL shaders*/
-		visual_3d_init_shaders(compositor->visual);
-			if (evt.setup.opengl_mode) {
-				gf_opengl_init();
-			}
-	}
-#endif
-	st->txh.data = (char*)gf_malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);
-	memset(st->txh.data, 0, sizeof(unsigned char) * st->txh.stride * st->txh.height);
-
-	/*set stencil texture - we don't check error as an image could not be supported by the rasterizer
-	but still supported by the blitter (case of RGBD/RGBDS)*/
-	gf_evg_stencil_set_texture(stencil, st->txh.data, st->txh.width, st->txh.height, st->txh.stride, st->txh.pixelformat);
-
-#ifdef GPAC_USE_TINYGL
-	/*create TinyGL offscreen context*/
-	st->tgl_ctx = ostgl_create_context(st->txh.width, st->txh.height, st->txh.transparent ? 32 : 24, &st->txh.data, 1);
-
-	st->scale_x = st->scale_y = FIX_ONE;
-#else
-	st->scale_x = INT2FIX(w) / tr_state->visual->compositor->offscreen_width;
-	st->scale_y = INT2FIX(h) / tr_state->visual->compositor->offscreen_height;
-#endif
-
-	gf_sc_texture_set_stencil(&st->txh, stencil);
-	drawable_reset_path(st->drawable);
-	gf_path_add_rect_center(st->drawable->path, 0, 0, st->clip.width, st->clip.height);
-	return 1;
-}
 
 static void layer3d_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 {
@@ -485,26 +328,10 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		if (gf_node_dirty_get(node)) changed = 1;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY|GF_SG_VRML_BINDABLE_DIRTY);
 
-		/*!! we were in a 2D mode, setup associated texture !!*/
+		/*!! we were in a 2D mode without hybridGL, not supported !*/
 		if (!prev_cam) {
-			switch (layer3d_setup_offscreen(node, st, tr_state, rc.width, rc.height)) {
-			case 0:
-				goto l3d_exit;
-			case 2:
-				if (!changed && !(st->visual->camera.flags & CAM_IS_DIRTY) && !st->visual->camera.anim_len) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer3D] No changes found , skipping 3D draw\n"));
-					goto layer3d_unchanged_2d;
-				}
-			default:
-				break;
-			}
-#ifdef GPAC_USE_TINYGL
-			if (st->tgl_ctx) ostgl_make_current(st->tgl_ctx, 0);
-#endif
-
-			rc = st->vp;
-			/*setup GL*/
-			visual_3d_setup(tr_state->visual);
+			st->unsupported = GF_TRUE;
+			goto l3d_exit;
 		}
 		/*note that we don't backup the state as a layer3D cannot be declared in a layer3D*/
 		tr_state->layer3d = node;
@@ -567,8 +394,6 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 			gf_sc_texture_set_stencil(&st->txh, gf_sc_texture_get_stencil(&st->txh) );
 			changed = 1;
-
-layer3d_unchanged_2d:
 
 			/*restore visual*/
 			tr_state->visual = old_visual;

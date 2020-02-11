@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -108,9 +108,9 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.setup.back_buffer = GF_TRUE;
 	evt.setup.disable_vsync = compositor->bench_mode ? GF_TRUE : GF_FALSE;
 #ifdef GPAC_USE_TINYGL
-	evt.setup.opengl_mode = 0;
+	evt.setup.use_opengl = GF_FALSE;
 #else
-	evt.setup.opengl_mode = 1;
+	evt.setup.use_opengl = GF_TRUE;
 	compositor->is_opengl = GF_TRUE;
 #endif
 
@@ -118,7 +118,7 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 		gf_sc_reset_graphics(compositor);
 		return GF_OK;
 	}
-	if (evt.setup.opengl_mode) {
+	if (evt.setup.use_opengl) {
 		gf_opengl_init();
 	}
 
