@@ -2764,10 +2764,10 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		strcat(sHTTP, "X-UserProfileID: ");
 		strcat(sHTTP, user_profile);
 		strcat(sHTTP, "\r\n");
-	} else {
+	} else if ((sess->http_read_type == GET) || (sess->http_read_type == HEAD) ) {
 		user_profile = gf_opts_get_key("core", "user-profile");
-		if (user_profile) {
-			FILE *profile = gf_fopen(user_profile, "rt");
+		if (user_profile && gf_file_exists(user_profile)) {
+			FILE *profile = gf_fopen(user_profile, "rb");
 			if (profile) {
 				gf_fseek(profile, 0, SEEK_END);
 				par.size = (u32) gf_ftell(profile);
