@@ -2054,17 +2054,19 @@ static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname,
 		const GF_FilterArgs *a = & args[idx];
 		if (!a || !a->arg_name) break;
 		idx++;
-		if (word_match(optname, a->arg_name)) {
+		if (word_match(optname, a->arg_name)
+			|| (a->arg_desc && strstr(a->arg_desc, optname))
+		) {
 			if (!found) {
 				found = GF_TRUE;
 				fprintf(stderr, "No such option %s for filter %s - did you mean:\n", optname, filter_inst ? gf_filter_get_name(filter_inst) : reg->name);
 			}
-			fprintf(stderr, " - %s\n", a->arg_name);
+			fprintf(stderr, " - %s: %s\n", a->arg_name, a->arg_desc);
 		}
 	}
-	if (!found) {
-		fprintf(stderr, "No such option %s for filter %s\n", optname, filter_inst ? gf_filter_get_name(filter_inst) : reg->name);
-	}
+	if (found) return;
+
+	fprintf(stderr, "No such option %s for filter %s\n", optname, filter_inst ? gf_filter_get_name(filter_inst) : reg->name);
 }
 
 static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF_Filter *filter_inst)
