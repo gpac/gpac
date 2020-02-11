@@ -253,11 +253,16 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	filter->dst_args = dst_args ? gf_strdup(dst_args) : NULL;
 
 	if (e) {
-		if (!filter->setup_notified) {
+		if (!filter->setup_notified && (e<0) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e),freg->name));
 			gf_filter_setup_failure(filter, e);
 		}
 		if (err) *err = e;
+		//filter requested cancelation of filter session upon init
+		if (e==GF_EOS) {
+			fsess->run_status = GF_EOS;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s requested cancelation of filter session\n", freg->name));
+		}
 		return NULL;
 	}
 	if (filter && src_striped) filter->orig_args = gf_strdup(src_striped);
