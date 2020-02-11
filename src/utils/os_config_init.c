@@ -1272,13 +1272,8 @@ Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_n
 		arg = &GPAC_Args[i];
 		i++;
 		if (!strcmp(arg->name, arg_name)) break;
-		if (arg->altname) {
-			char *alt = strstr(arg->altname, arg_name);
-			if (alt) {
-				char c = alt[strlen(arg_name)];
-				if (!c || (c==' ')) break;
-			}
-		}
+		if (arg->altname && !strcmp(arg->altname, arg_name)) break;
+
 		arg = NULL;
 	}
 	if (!arg) return GF_FALSE;
