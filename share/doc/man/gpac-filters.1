@@ -2844,9 +2844,9 @@ At each new source, the filter tries to remap input PIDs to already declared out
 .br
 
 .br
-When using a playlist, directives can be given in a comment line (starting with '#' before the file name).
+When using a playlist, directives can be given in a comment line (line starting with '#' before line with the file name).
 .br
-The following directives (separated with space or comma) are supported:
+The following directives, separated with space or comma, are supported:
 .br
 * repeat=N: repeats N times the content (hence played N+1)
 .br
@@ -2875,7 +2875,7 @@ If the last URL played cannot be found in the playlist, the first URL in the pla
 .SH Options (expert):
 .LP
 .br
-loop (boolean, default: false):          continuously loop playlist/list of files - see filter help
+floop (boolean, default: false):         continuously loop playlist/list of files - see filter help
 .br
 srcs (string list):                      list of files to play - see filter help
 .br
@@ -3590,6 +3590,8 @@ sbound (enum, default: out):             indicate how the theoretical segment st
 
 .br
 reschedule (boolean):                    reschedule sources with no period ID assigned once done (dynamic mode only)
+.br
+sreg (boolean, default: false):          regulate the session when using subdur to only generate segments from the past up to live edge
 .br
 
 .br
@@ -5193,7 +5195,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3281-g918136557-filters
+build: 0.9.0-DEV-rev3285-g312c37a1e-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -54,7 +54,7 @@ typedef struct
 typedef struct
 {
 	//opts
-	Bool loop, revert;
+	Bool floop, revert;
 	GF_List *srcs;
 	GF_Fraction dur;
 	u32 timescale;
@@ -271,14 +271,14 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		char *url;
 		if (ctx->revert) {
 			if (!ctx->file_list_idx) {
-				if (!ctx->loop) return GF_FALSE;
+				if (!ctx->floop) return GF_FALSE;
 				ctx->file_list_idx = gf_list_count(ctx->file_list);
 			}
 			ctx->file_list_idx --;
 		} else {
 			ctx->file_list_idx ++;
 			if (ctx->file_list_idx >= (s32) gf_list_count(ctx->file_list)) {
-				if (!ctx->loop) return GF_FALSE;
+				if (!ctx->floop) return GF_FALSE;
 				ctx->file_list_idx = 0;
 			}
 		}
@@ -293,7 +293,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		u32 crc;
 		char *l = fgets(szURL, GF_MAX_PATH, f);
 		if (!l || feof(f)) {
-			if (ctx->loop) {
+			if (ctx->floop) {
 				gf_fseek(f, 0, SEEK_SET);
 				//load first line
 				last_found = GF_TRUE;
@@ -369,7 +369,11 @@ GF_Err filelist_process(GF_Filter *filter)
 		return GF_EOS;
 
 	if (!ctx->file_path && !ctx->file_list) {
-		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->file_pid);
+		GF_FilterPacket *pck;
+		if (!ctx->file_pid) {
+			return GF_EOS;
+		}
+		pck = gf_filter_pid_get_packet(ctx->file_pid);
 		if (!pck) return GF_OK;
 		gf_filter_pck_get_framing(pck, &start, &end);
 		gf_filter_pid_drop_packet(ctx->file_pid);
@@ -616,6 +620,10 @@ GF_Err filelist_initialize(GF_Filter *filter)
 
 	if (!ctx->srcs || !gf_list_count(ctx->srcs)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
+		if (!gf_filter_connections_pending(filter)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No source specified and no input PIDs pending, cannot instantiate\n"));
+			return GF_BAD_PARAM;
+		}
 		return GF_OK;
 	}
 	ctx->file_list = gf_list_new();
@@ -681,7 +689,7 @@ void filelist_finalize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_FileListCtx, _n)
 static const GF_FilterArgs GF_FileListArgs[] =
 {
-	{ OFFS(loop), "continuously loop playlist/list of files - see filter help", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(floop), "continuously loop playlist/list of files - see filter help", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(srcs), "list of files to play - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(dur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, 0},
 	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -711,8 +719,8 @@ GF_FilterRegister FileListRegister = {
 		"The filter forces input demultiplex (no streamtype FILE) and recomputes the input timestamps into a continuous timeline.\n"\
 		"At each new source, the filter tries to remap input PIDs to already declared output PIDs of the same type, if any, or declares new output PIDs otherwise. If no input PID matches the type of an output, no packets are send for that PID.\n"\
 		"\n"\
-		"When using a playlist, directives can be given in a comment line (starting with '#' before the file name).\n"\
-		"The following directives (separated with space or comma) are supported:\n"\
+		"When using a playlist, directives can be given in a comment line (line starting with '#' before line with the file name).\n"\
+		"The following directives, separated with space or comma, are supported:\n"\
 		"- repeat=N: repeats N times the content (hence played N+1)\n"\
 		"- start=T: tries to play the file from start time T seconds (double format only)\n"\
 		"Warning: This may not work with some files/formats not supporting seeking\n"
