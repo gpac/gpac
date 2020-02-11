@@ -3652,6 +3652,17 @@ single_retry:
 				if (skipped) {
 					continue;
 				}
+				if (pid->filter->session->run_status!=GF_OK) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s init canceled (session abort)\n", pid->filter->name, pid->name));
+					if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
+					assert(pid->init_task_pending);
+					safe_int_dec(&pid->init_task_pending);
+					if (loaded_filters) gf_list_del(loaded_filters);
+					gf_list_del(linked_dest_filters);
+					gf_list_del(force_link_resolutions);
+					gf_list_del(possible_linked_resolutions);
+					return;
+				}
 
 				//filter was reassigned (pid is destroyed), return
 				if (reassigned) {

@@ -1722,7 +1722,7 @@ struct __gf_filter_register
 
 	/*! optional - callback for filter initialization -  private stack of filter is allocated by framework)
 	\param filter the target filter
-	\return error if any.
+	\return error if any. A filter may return GF_EOS to indicate the filter session shall not be run, but that no error should be thrown (used by dasher in realtime regulation mode)
 	*/
 	GF_Err (*initialize)(GF_Filter *filter);
 
