@@ -1082,7 +1082,8 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 	sess->allow_direct_reuse = allow_direct_reuse;
 	gf_dm_url_info_init(&info);
 
-	if (!sess->sock) socket_changed = GF_TRUE;
+	if (!sess->sock)
+		socket_changed = GF_TRUE;
 	else if (sess->status>GF_NETIO_DISCONNECTED)
 		socket_changed = GF_TRUE;
 
@@ -2494,7 +2495,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			memcpy(buffer, sess->init_data, sizeof(char)*buffer_size);
 			*read_size = buffer_size;
 			sess->init_data_size -= buffer_size;
-			memcpy(sess->init_data, sess->init_data+buffer_size, sizeof(char)*sess->init_data_size);
+			memmove(sess->init_data, sess->init_data+buffer_size, sizeof(char)*sess->init_data_size);
 			e = GF_OK;
 		}
 	} else {
@@ -3076,7 +3077,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	sess->chunked = GF_FALSE;
 	sess->chunk_run_time = 0;
 	sess->last_chunk_found = GF_FALSE;
-	gf_sk_reset(sess->sock);
+//	gf_sk_reset(sess->sock);
 	sHTTP[0] = 0;
 	
 	while (1) {
@@ -3571,6 +3572,12 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			sess->status = GF_NETIO_SETUP;
 			return GF_OK;
 		}
+	case 204:
+		gf_dm_sess_user_io(sess, &par);
+		notify_headers(sess, sHTTP, bytesRead, BodyStart);
+		e = GF_EOS;
+		goto exit;
+
 	default:
 		gf_dm_sess_user_io(sess, &par);
 		notify_headers(sess, sHTTP, bytesRead, BodyStart);
@@ -3654,12 +3661,19 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	}
 exit:
 	if (e) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP] Error parsing reply: %s for URL %s\nReply was:\n%s\n", gf_error_to_string(e), sess->orig_url, sHTTP ));
+		if (e<0) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP] Error parsing reply: %s for URL %s\nReply was:\n%s\n", gf_error_to_string(e), sess->orig_url, sHTTP ));
+		} else {
+			e = GF_OK;
+		}
 		gf_cache_entry_set_delete_files_when_deleted(sess->cache_entry);
 		gf_dm_remove_cache_entry_from_session(sess);
 		sess->cache_entry = NULL;
 		gf_dm_disconnect(sess, GF_FALSE);
-		sess->status = GF_NETIO_STATE_ERROR;
+		if (connection_closed)
+			sess->status = GF_NETIO_STATE_ERROR;
+		else
+			sess->status = GF_NETIO_DATA_TRANSFERED;
 		sess->last_error = e;
 		gf_dm_sess_notify_state(sess, sess->status, e);
 		return e;

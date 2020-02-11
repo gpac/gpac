@@ -5775,7 +5775,11 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	ctx->last_evt_check_time = 0;
 
 	if (evt->base.type == GF_FEVT_RESUME) {
-		dasher_resume_subdur(filter, ctx);
+		//only process resume event when coming from main output PID, but always cancel it
+		//this is needed in case the output filter where the resume event was initiated consumes both
+		//manifest and segment PIDs, as is the case with httpout
+		if (evt->base.on_pid == ctx->opid)
+			dasher_resume_subdur(filter, ctx);
 		return GF_TRUE;
 	}
 	if (evt->base.type == GF_FEVT_CONNECT_FAIL) {
