@@ -173,7 +173,6 @@ typedef struct
 #else
 	HDC gl_HDC, pb_HDC;
 	HGLRC gl_HRC, pb_HRC;
-	void *pbuffer;
 	Bool glext_init;
 #endif
 	Bool output_3d;
