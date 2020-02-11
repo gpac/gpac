@@ -542,7 +542,8 @@ GF_GPACArg gpac_args[] =
 			"- props: print the supported builtin PID and packet properties\n"\
 			"- links: print possible connections between each supported filters.\n"\
 			"- links FNAME: print sources and sinks for filter `FNAME` (either builtin or JS filter)\n"\
-			"- FNAME: print filter `FNAME` info (multiple FNAME can be given). For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`. Use `*` to print info on all filters (__big output!__), `*:*` to print info on all filters including meta filter instances (__really big output!__). By default only basic filter options and description are shown. Use `-ha` to show advanced options and filter IO capabilities, `-hx` for expert options, `-hh` for all options and filter capbilities"\
+			"- FNAME: print filter `FNAME` info (multiple FNAME can be given). For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`. Use `*` to print info on all filters (__big output!__), `*:*` to print info on all filters including meta filter instances (__really big output!__). By default only basic filter options and description are shown. Use `-ha` to show advanced options and filter IO capabilities, `-hx` for expert options, `-hh` for all options and filter capbilities\n"\
+			"- FNAME.OPT: print option `OPT` in filter `FNAME`"
 		, NULL, NULL, GF_ARG_STRING, 0),
 
  	GF_DEF_ARG("p", NULL, "use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name `0` means a new profile, not stored to disk", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
@@ -1201,7 +1202,12 @@ retry_char:
 	}
 	if (match*2<olen) {
 		gf_free(run);
-		return 0;
+		return GF_FALSE;
+	}
+	//if 4/5 of characters are matched, suggest it
+	if (match * 5 >= 4 * dlen ) {
+		gf_free(run);
+		return GF_TRUE;
 	}
 /*	if ((olen<=4) && (match>=3) && (dlen*2<olen*3) ) {
 		gf_free(run);
@@ -1984,6 +1990,83 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 	}
 }
 
+static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
+{
+	Bool is_enum = GF_FALSE;
+
+	if ((a->arg_type==GF_PROP_UINT) && a->min_max_enum && strchr(a->min_max_enum, '|')) {
+		is_enum = GF_TRUE;
+	}
+
+	if (gen_doc==1) {
+		gf_sys_format_help(helpout, help_flags, "<a id=\"%s\">", a->arg_name);
+		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", a->arg_name);
+		gf_sys_format_help(helpout, help_flags, "</a> (%s", is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
+	} else {
+		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%s", a->arg_name, is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
+	}
+	if (a->arg_default_val) {
+		if (!strcmp(a->arg_default_val, "2147483647"))
+			gf_sys_format_help(helpout, help_flags, ", default: __+I__");
+		else if (!strcmp(a->arg_default_val, "-2147483648"))
+			gf_sys_format_help(helpout, help_flags, ", default: __-I__");
+		else
+			gf_sys_format_help(helpout, help_flags, ", default: __%s__", a->arg_default_val);
+	} else {
+//		gf_sys_format_help(helpout, help_flags, ", no default");
+	}
+	if (a->min_max_enum && !is_enum) {
+		if (!strcmp(a->min_max_enum, "-2147483648-I"))
+			gf_sys_format_help(helpout, help_flags, ", %s: -I-I", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax");
+		else
+			gf_sys_format_help(helpout, help_flags, ", %s: %s", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax", a->min_max_enum);
+	}
+	if (a->flags & GF_FS_ARG_UPDATE) gf_sys_format_help(helpout, help_flags, ", updatable");
+//		if (a->flags & GF_FS_ARG_META) gf_sys_format_help(helpout, help_flags, ", meta");
+	gf_sys_format_help(helpout, help_flags | GF_PRINTARG_OPT_DESC, "): %s\n", a->arg_desc);
+
+	if (a->min_max_enum && strchr(a->min_max_enum, '|'))
+		gf_sys_format_help(helpout, help_flags, "\n");
+}
+
+static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname, GF_Filter *filter_inst)
+{
+	u32 idx=0;
+	Bool found = GF_FALSE;
+	const GF_FilterArgs *args = NULL;
+	if (filter_inst) args = gf_filter_get_args(filter_inst);
+	else args = reg->args;
+
+	while (args) {
+		const GF_FilterArgs *a = & args[idx];
+		if (!a || !a->arg_name) break;
+		idx++;
+		if (strcmp(a->arg_name, optname)) continue;
+
+		print_filter_arg(a, 0);
+		found = GF_TRUE;
+		break;
+	}
+	if (found) return;
+
+	idx = 0;
+	while (args) {
+		const GF_FilterArgs *a = & args[idx];
+		if (!a || !a->arg_name) break;
+		idx++;
+		if (word_match(optname, a->arg_name)) {
+			if (!found) {
+				found = GF_TRUE;
+				fprintf(stderr, "No such option %s for filter %s - did you mean:\n", optname, filter_inst ? gf_filter_get_name(filter_inst) : reg->name);
+			}
+			fprintf(stderr, " - %s\n", a->arg_name);
+		}
+	}
+	if (!found) {
+		fprintf(stderr, "No such option %s for filter %s\n", optname, filter_inst ? gf_filter_get_name(filter_inst) : reg->name);
+	}
+}
+
 static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF_Filter *filter_inst)
 {
 	const GF_FilterArgs *args = NULL;
@@ -2127,7 +2210,6 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		}
 
 		while (1) {
-			Bool is_enum = GF_FALSE;
 			const GF_FilterArgs *a = & args[idx];
 			if (!a || !a->arg_name) break;
 			idx++;
@@ -2146,39 +2228,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 			 	break;
 			}
 
-			if ((a->arg_type==GF_PROP_UINT) && a->min_max_enum && strchr(a->min_max_enum, '|')) {
-				is_enum = GF_TRUE;
-			}
-
-			if (gen_doc==1) {
-				gf_sys_format_help(helpout, help_flags, "<a id=\"%s\">", a->arg_name);
-				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", a->arg_name);
-				gf_sys_format_help(helpout, help_flags, "</a> (%s", is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
-			} else {
-				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%s", a->arg_name, is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
-			}
-			if (a->arg_default_val) {
-				if (!strcmp(a->arg_default_val, "2147483647"))
-					gf_sys_format_help(helpout, help_flags, ", default: __+I__");
-				else if (!strcmp(a->arg_default_val, "-2147483648"))
-					gf_sys_format_help(helpout, help_flags, ", default: __-I__");
-				else
-					gf_sys_format_help(helpout, help_flags, ", default: __%s__", a->arg_default_val);
-			} else {
-//				gf_sys_format_help(helpout, help_flags, ", no default");
-			}
-			if (a->min_max_enum && !is_enum) {
-				if (!strcmp(a->min_max_enum, "-2147483648-I"))
-					gf_sys_format_help(helpout, help_flags, ", %s: -I-I", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax");
-				else
-					gf_sys_format_help(helpout, help_flags, ", %s: %s", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax", a->min_max_enum);
-			}
-			if (a->flags & GF_FS_ARG_UPDATE) gf_sys_format_help(helpout, help_flags, ", updatable");
-//			if (a->flags & GF_FS_ARG_META) gf_sys_format_help(helpout, help_flags, ", meta");
-			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_OPT_DESC, "): %s\n", a->arg_desc);
-
-			if (a->min_max_enum && strchr(a->min_max_enum, '|'))
-				gf_sys_format_help(helpout, help_flags, "\n");
+			print_filter_arg(a, gen_doc);
 
 			if (!gen_doc) continue;
 
@@ -2278,11 +2328,22 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 			//all good to go, load filters
 			for (k=1; k<(u32) argc; k++) {
 				char *arg = argv[k];
+				char *sep;
+				char *optname = NULL;
 				if (arg[0]=='-') continue;
+
+				sep = strchr(arg, '.');
+				if (sep) {
+					sep[0] = 0;
+					optname = sep+1;
+				}
 				fname = arg;
 
 				if (!strcmp(arg, reg->name) ) {
-					print_filter(reg, argmode, NULL);
+					if (optname)
+						print_filter_single_opt(reg, optname, NULL);
+					else
+						print_filter(reg, argmode, NULL);
 					found = GF_TRUE;
 				} else {
 					char *sep = strchr(arg, ':');
@@ -2301,7 +2362,10 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 					 	|| (sep && !strcmp(sep, ":*") && !strncmp(reg->name, arg, 1+sep - arg) )
 					 	|| patch_meta
 					) {
-						print_filter(reg, argmode, NULL);
+						if (optname)
+							print_filter_single_opt(reg, optname, NULL);
+						else
+							print_filter(reg, argmode, NULL);
 						found = GF_TRUE;
 						break;
 					}
@@ -2309,11 +2373,15 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 					else if (!strcmp(reg->name, "jsf") && (!strncmp(arg, "jsf:", 3) || strstr(arg, ".js")) ) {
 						GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
 						if (f) {
-							print_filter(reg, argmode, f);
+							if (optname)
+								print_filter_single_opt(reg, optname, f);
+							else
+								print_filter(reg, argmode, f);
 							found = GF_TRUE;
 						}
 					}
 				}
+				if (sep) sep[0] = '.';
 			}
 		} else {
 #ifndef GPAC_DISABLE_DOC
