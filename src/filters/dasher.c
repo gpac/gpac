@@ -2885,7 +2885,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 	}
 }
 
-static void dasher_update_period_duration(GF_DasherCtx *ctx)
+static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_switch)
 {
 	u32 i, count;
 	u64 pdur = 0;
@@ -2897,8 +2897,9 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		if (ds->muxed_base) continue;
 
-		if (ds->xlink) pdur = (u32) (1000*ds->period_dur);
-		else {
+		if (ds->xlink) {
+			pdur = (u32) (1000*ds->period_dur);
+		} else {
 			u64 ds_dur = ds->max_period_dur;
 			if (ds->clamped_dur && !ctx->loop) {
 				u64 clamp_dur = (u64) (ds->clamped_dur * 1000);
@@ -2928,15 +2929,23 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 	dasher_purge_segments(ctx, &pdur);
 
 	if (ctx->current_period->period) {
-		u64 old_pdur = ctx->current_period->period->duration;
 		ctx->current_period->period->duration = pdur;
 
 		//update MPD duration in any case
 		if (ctx->current_period->period->start) {
 			ctx->mpd->media_presentation_duration = ctx->current_period->period->start + pdur;
 		} else {
-			ctx->mpd->media_presentation_duration += pdur;
-			ctx->mpd->media_presentation_duration -= old_pdur;
+			u32 i, count = gf_list_count(ctx->mpd->periods);
+			ctx->mpd->media_presentation_duration = 0;
+			for (i=0; i<count; i++) {
+				GF_MPD_Period *p = gf_list_get(ctx->mpd->periods, i);
+				if (p->start)
+					ctx->mpd->media_presentation_duration = p->start + p->duration;
+				else
+					ctx->mpd->media_presentation_duration += p->duration;
+				if (p==ctx->current_period->period)
+					break;
+			}
 		}
 	}
 
@@ -3637,7 +3646,7 @@ static void dasher_udpate_periods_and_manifest(GF_Filter *filter, GF_DasherCtx *
 		ctx->next_pid_id_in_period = 0;
 	}
 	//update duration
-	dasher_update_period_duration(ctx);
+	dasher_update_period_duration(ctx, GF_TRUE);
 
 	if (ctx->state)
 		dasher_context_update_period_end(ctx);
@@ -5664,7 +5673,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 		}
 
 		if (update_period)
-			dasher_update_period_duration(ctx);
+			dasher_update_period_duration(ctx, GF_FALSE);
 
 		if (update_manifest)
 			dasher_send_manifest(filter, ctx, GF_FALSE);
