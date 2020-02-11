@@ -112,7 +112,7 @@ typedef struct
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
 	Bool m2ts;
-	Bool cmpd, dual;
+	Bool cmpd, dual, sreg;
 	char *styp;
 	Bool sigfrag;
 	u32 sbound;
@@ -2928,6 +2928,7 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 	dasher_purge_segments(ctx, &pdur);
 
 	if (ctx->current_period->period) {
+		u64 old_pdur = ctx->current_period->period->duration;
 		ctx->current_period->period->duration = pdur;
 
 		//update MPD duration in any case
@@ -2935,6 +2936,7 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 			ctx->mpd->media_presentation_duration = ctx->current_period->period->start + pdur;
 		} else {
 			ctx->mpd->media_presentation_duration += pdur;
+			ctx->mpd->media_presentation_duration -= old_pdur;
 		}
 	}
 
@@ -5648,8 +5650,24 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 	dasher_format_report(filter, ctx);
 
-	if (seg_done && ctx->purge_segments) {
-		dasher_update_period_duration(ctx);
+	if (seg_done) {
+		Bool update_period = GF_FALSE;
+		Bool update_manifest = GF_FALSE;
+		if (ctx->purge_segments) update_period = GF_TRUE;
+		if (ctx->mpd) {
+			if (ctx->stl) update_manifest = GF_TRUE;
+			else if (ctx->mpd->minimum_update_period) {
+				u64 diff = gf_net_get_utc() - ctx->mpd->publishTime;
+				if (diff >= ctx->mpd->minimum_update_period)
+					update_manifest = GF_TRUE;
+			}
+		}
+
+		if (update_period)
+			dasher_update_period_duration(ctx);
+
+		if (update_manifest)
+			dasher_send_manifest(filter, ctx, GF_FALSE);
 	}
 
 	//still some running streams in period
@@ -6062,6 +6080,18 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 	if ((ctx->tsb>=0) && (ctx->dmode!=GF_DASH_STATIC))
 		ctx->purge_segments = GF_TRUE;
 
+	if (ctx->state && ctx->sreg) {
+		u32 diff;
+		u64 next_gen_ntp;
+		GF_Err dash_state_check_timing(const char *dash_state, u64 *next_gen_ntp_ms, u32 *next_time_ms);
+
+		e = dash_state_check_timing(ctx->state, &next_gen_ntp, &diff);
+		if (e<0) return e;
+		if (e==GF_EOS) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] generation called too early by %d ms\n", (s32) diff));
+			return e;
+		}
+	}
 	return GF_OK;
 }
 
@@ -6241,6 +6271,7 @@ static const GF_FilterArgs DasherArgs[] =
 				"- closest: segment split at closest SAP to theoretical bound\n"
 				"- in: `TSS` is always in segment (`TSS` >= segment_start)", GF_PROP_UINT, "out", "out|closest|in", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(reschedule), "reschedule sources with no period ID assigned once done (dynamic mode only)", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sreg), "regulate the session when using subdur to only generate segments from the past up to live edge", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

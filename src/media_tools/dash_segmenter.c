@@ -1055,6 +1055,47 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	return GF_OK;
 }
 
+GF_Err dash_state_check_timing(const char *dash_state, u64 *next_gen_ntp_ms, u32 *next_time_ms)
+{
+	u64 next_gen_ntp = 0;
+	GF_Err e = GF_OK;
+	GF_DOMParser *mpd_parser;
+
+	*next_gen_ntp_ms = 0;
+	*next_time_ms = 0;
+	if (!gf_file_exists(dash_state))
+		return GF_OK;
+
+	/* parse the MPD XML */
+	mpd_parser = gf_xml_dom_new();
+	e = gf_xml_dom_parse(mpd_parser, dash_state, NULL, NULL);
+	if (!e) {
+		GF_XMLNode *root = gf_xml_dom_get_root(mpd_parser);
+		GF_XMLAttribute *att;
+		u32 i=0;
+		e = GF_NON_COMPLIANT_BITSTREAM;
+		//extract "gpac:next_gen_time" but don't load a full MPD, not needed
+		while (root && (att = gf_list_enum(root->attributes, &i))) {
+			if (!strcmp(att->name, "gpac:next_gen_time")) {
+				sscanf(att->value, LLU, &next_gen_ntp);
+				e = GF_OK;
+				break;
+			}
+		}
+		gf_xml_dom_del(mpd_parser);
+	}
+	if (e) return e;
+
+	if (next_gen_ntp) {
+		u64 ntp_ms = gf_net_get_ntp_ms();
+		if (ntp_ms < next_gen_ntp) {
+			*next_time_ms = (u32) (next_gen_ntp - ntp_ms);
+			return GF_EOS;
+		}
+	}
+	return GF_OK;
+}
+
 GF_EXPORT
 GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 {
@@ -1063,35 +1104,12 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 
 	/*first run, we need to extract the next gen time from context*/
 	if (dasher->dash_state && gf_file_exists(dasher->dash_state) && (dasher->dash_mode>=GF_DASH_DYNAMIC) && !dasher->next_gen_ntp_ms) {
-		GF_DOMParser *mpd_parser;
-
-		/* parse the MPD XML */
-		mpd_parser = gf_xml_dom_new();
-		e = gf_xml_dom_parse(mpd_parser, dasher->dash_state, NULL, NULL);
-		if (!e) {
-			GF_XMLNode *root = gf_xml_dom_get_root(mpd_parser);
-			GF_XMLAttribute *att;
-			u32 i=0;
-			e = GF_NON_COMPLIANT_BITSTREAM;
-			//extract "gpac:next_gen_time" but don't load a full MPD, not needed
-			while (root && (att = gf_list_enum(root->attributes, &i))) {
-				if (!strcmp(att->name, "gpac:next_gen_time")) {
-					sscanf(att->value, LLU, &dasher->next_gen_ntp_ms);
-					e = GF_OK;
-					break;
-				}
-			}
-			gf_xml_dom_del(mpd_parser);
-		}
-		if (e) return e;
-
-		if (dasher->next_gen_ntp_ms) {
-			u64 ntp_ms = gf_net_get_ntp_ms();
-			if (ntp_ms < dasher->next_gen_ntp_ms) {
-				s64 diff = dasher->next_gen_ntp_ms - ntp_ms;
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] generation called too early by %d ms\n", (s32) diff));
-				return GF_EOS;
-			}
+		u32 diff;
+		e = dash_state_check_timing(dasher->dash_state, &dasher->next_gen_ntp_ms, &diff);
+		if (e<0) return e;
+		if (e==GF_EOS) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] generation called too early by %d ms\n", (s32) diff));
+			return e;
 		}
 	}
 
