@@ -158,10 +158,6 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 		ReleaseDC(dd->bound_hwnd, dd->pb_HDC);
 		dd->pb_HDC = NULL;
 	}
-	if (dd->pbuffer) {
-		wglDestroyPbufferARB(dd->pbuffer);
-		dd->pbuffer = NULL;
-	}
 
 	if (dd->gl_HRC) {
 		//wglMakeCurrent(NULL, NULL);
