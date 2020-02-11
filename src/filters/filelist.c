@@ -620,10 +620,13 @@ GF_Err filelist_initialize(GF_Filter *filter)
 
 	if (!ctx->srcs || !gf_list_count(ctx->srcs)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
+		//not completely correct, needs further testing
+#if 0
 		if (!gf_filter_connections_pending(filter)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No source specified and no input PIDs pending, cannot instantiate\n"));
 			return GF_BAD_PARAM;
 		}
+#endif
 		return GF_OK;
 	}
 	ctx->file_list = gf_list_new();
