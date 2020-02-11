@@ -269,55 +269,64 @@ Bool gf_file_exists(const char *fileName)
 GF_EXPORT
 GF_Err gf_file_move(const char *fileName, const char *newFileName)
 {
+	GF_Err e = GF_OK;
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
 	TCHAR swzNewName[MAX_PATH];
 	CE_CharToWide((char*)fileName, swzName);
 	CE_CharToWide((char*)newFileName, swzNewName);
-	return (MoveFile(swzName, swzNewName) == 0 ) ? GF_IO_ERR : GF_OK;
+	if (MoveFile(swzName, swzNewName) == 0 )
+		e = GF_IO_ERR;
 #elif defined(WIN32)
 	/* success if != 0 */
 	BOOL op_result;
 	wchar_t* wcsFileName = gf_utf8_to_wcs(fileName);
 	wchar_t* wcsNewFileName = gf_utf8_to_wcs(newFileName);
-	if (!wcsFileName || !wcsNewFileName)
-	{
+	if (!wcsFileName || !wcsNewFileName) {
 		if (wcsFileName) gf_free(wcsFileName);
 		if (wcsNewFileName) gf_free(wcsNewFileName);
-		return GF_IO_ERR;
+		e = GF_IO_ERR;
+	} else {
+		op_result = MoveFileW(wcsFileName, wcsNewFileName);
+		gf_free(wcsFileName);
+		gf_free(wcsNewFileName);
+		if ( op_result == 0 )
+			e = GF_IO_ERR;
 	}
-	op_result = MoveFileW(wcsFileName, wcsNewFileName);
-	gf_free(wcsFileName);
-	gf_free(wcsNewFileName);
-	return ( op_result == 0 ) ? GF_IO_ERR : GF_OK;
 #else
-	GF_Err e = GF_IO_ERR;
+	e = GF_IO_ERR;
 	char cmd[1024], *arg1, *arg2;
-	if (!fileName || !newFileName)
-		return GF_IO_ERR;
-	arg1 = gf_sanetize_single_quoted_string(fileName);
-	arg2 = gf_sanetize_single_quoted_string(newFileName);
-	if (snprintf(cmd, sizeof cmd, "mv %s %s", arg1, arg2) >= sizeof cmd) goto error;
+	if (!fileName || !newFileName) {
+		e = GF_IO_ERR;
+	} else {
+		arg1 = gf_sanetize_single_quoted_string(fileName);
+		arg2 = gf_sanetize_single_quoted_string(newFileName);
+		if (snprintf(cmd, sizeof cmd, "mv %s %s", arg1, arg2) >= sizeof cmd) goto error;
 
 #if defined(GPAC_CONFIG_IOS) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= 80000)
-	{
-		pid_t pid;
-		char *argv[3];
-		argv[0] = "mv";
-		argv[1] = cmd;
-		argv[2] = NULL;
-		posix_spawn(&pid, argv[0], NULL, NULL, argv, environ);
-		waitpid(pid, NULL, 0);
-	}
+		{
+			pid_t pid;
+			char *argv[3];
+			argv[0] = "mv";
+			argv[1] = cmd;
+			argv[2] = NULL;
+			posix_spawn(&pid, argv[0], NULL, NULL, argv, environ);
+			waitpid(pid, NULL, 0);
+		}
 #else
-	e = (system(cmd) == 0) ? GF_OK : GF_IO_ERR;
+		e = (system(cmd) == 0) ? GF_OK : GF_IO_ERR;
 #endif
 
 error:
-	gf_free(arg1);
-	gf_free(arg2);
-	return e;
+		gf_free(arg1);
+		gf_free(arg2);
+	}
 #endif
+
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Failed to move file %s to %s: %s\n", fileName, newFileName, gf_error_to_string(e) ));
+	}
+	return e;
 }
 
 GF_EXPORT
