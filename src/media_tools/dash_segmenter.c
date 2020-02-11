@@ -1111,6 +1111,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 	if (need_seek) {
 		GF_FilterEvent evt;
 		GF_FEVT_INIT(evt, GF_FEVT_RESUME, NULL);
+		evt.base.on_pid = gf_filter_get_ipid(dasher->output, 0);
 		gf_filter_send_event(dasher->output, &evt, GF_FALSE);
 	}
 
