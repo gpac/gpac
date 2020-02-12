@@ -3399,7 +3399,10 @@ static Bool on_frag_event(void *_udta, GF_Event *evt)
 	u32 i, count;
 	GF_FilterStats stats;
 	FragCallback *fc = (FragCallback *)_udta;
-	if (evt && (evt->type != GF_EVENT_PROGRESS)) return GF_FALSE;
+	if (!_udta)
+		return GF_FALSE;
+	if (evt && (evt->type != GF_EVENT_PROGRESS))
+		return GF_FALSE;
 
 	stats.report_updated = GF_FALSE;
 	if (!fc->filter_idx_plus_one) {
@@ -3461,6 +3464,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 		gf_fs_enable_reporting(fsess, GF_TRUE);
 		gf_fs_set_ui_callback(fsess, on_frag_event, &fc);
 	}
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode())
+		on_frag_event(NULL, NULL);
+#endif
+
 #endif
 
 	e = gf_fs_run(fsess);
