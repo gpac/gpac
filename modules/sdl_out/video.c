@@ -331,7 +331,7 @@ static SDLKeyToGPAC SDLKeys[] =
 	{SDLK_PRINTSCREEN, GF_KEY_PRINTSCREEN, 0}
 };
 
-u32 num_sdl_keys = sizeof(SDLKeys) / sizeof(SDLKeyToGPAC);
+static u32 num_sdl_keys = sizeof(SDLKeys) / sizeof(SDLKeyToGPAC);
 
 static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 {

@@ -453,7 +453,7 @@ static X11KeyToGPAC X11Keys[] =
 	{'|', GF_KEY_PIPE, 0},
 };
 
-u32 num_x11_keys = sizeof(X11Keys) / sizeof(X11KeyToGPAC);
+static u32 num_x11_keys = sizeof(X11Keys) / sizeof(X11KeyToGPAC);
 
 /*
  * Translate X_Key to GF_Key
@@ -483,7 +483,7 @@ static void x11_translate_key(u32 X11Key, GF_EventKey *evt)
 		evt->key_code = GF_KEY_A + X11Key - 'a';
 		evt->hw_code = X11Key - 'a' + 'A';
 	} else {
-		evt->key_code = 0;
+		evt->key_code = GF_KEY_UNIDENTIFIED;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[X11] Unrecognized key %X\n", X11Key));
 	}
 }
