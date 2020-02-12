@@ -251,6 +251,8 @@ static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		ctx->nb_playing++;
 		ctx->start_range = evt->play.start_range;
+		gf_filter_post_process_task(filter);
+
 		if (!ctx->initial_play_done) {
 			ctx->initial_play_done = GF_TRUE;
 			//seek will not change the current source state, don't send a seek
@@ -260,6 +262,8 @@ static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		for (i=0; i<gf_list_count(ctx->streams); i++) {
 			M2PSStream *pss = gf_list_get(ctx->streams, i);
+			if (pss->opid == evt->base.on_pid)
+				pss->in_use = GF_TRUE;
 			if (!pss->in_use) continue;
 
 			if (pss->stream_type==GF_STREAM_VISUAL) {
@@ -273,6 +277,11 @@ static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	case GF_FEVT_STOP:
 		ctx->nb_playing--;
+		for (i=0; i<gf_list_count(ctx->streams); i++) {
+			M2PSStream *pss = gf_list_get(ctx->streams, i);
+			if (pss->opid == evt->base.on_pid)
+				pss->in_use = GF_FALSE;
+		}
 		//cancel event if not last stream playing
 		if (ctx->nb_playing) return GF_TRUE;
 
@@ -294,17 +303,18 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	Bool start, end;
 	u32 i, count, nb_done;
-	pck = gf_filter_pid_get_packet(ctx->ipid);
-	if (!pck) {
-		return GF_OK;
-	}
-	gf_filter_pck_get_framing(pck, &start, &end);
-	if (!end) {
-		gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_OK;
-	}
-
 	if (!ctx->ps) {
+		pck = gf_filter_pid_get_packet(ctx->ipid);
+		if (!pck) {
+			return GF_OK;
+		}
+		gf_filter_pck_get_framing(pck, &start, &end);
+		if (!end) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_OK;
+		}
+		gf_filter_pid_drop_packet(ctx->ipid);
+
 		ctx->ps = mpeg2ps_init(ctx->src_url);
 		if (!ctx->ps) {
 			GF_Err e = GF_NON_COMPLIANT_BITSTREAM;
@@ -404,7 +414,6 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 			M2PSStream *st = gf_list_get(ctx->streams, i);
 			gf_filter_pid_set_eos(st->opid);
 		}
-		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_EOS;
 	}
 	return GF_OK;
