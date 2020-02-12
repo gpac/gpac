@@ -993,7 +993,7 @@ GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clone
 			n_src = (GF_DOMFullNode *)orig;
 			n_dst = (GF_DOMFullNode *)clone;
 			n_dst->ns = n_src->ns;
-			n_dst->name = gf_strdup(n_dst->name);
+			n_dst->name = gf_strdup(n_src->name);
 		}
 
 		att = ((GF_DOMNode *)orig)->attributes;
