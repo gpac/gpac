@@ -794,7 +794,7 @@ u64 gf_ftell(FILE *fp)
 {
 #if defined(_WIN32_WCE)
 	return (u64) ftell(fp);
-#elif defined(GPAC_CONFIG_WIN32) && defined(__CYGWIN__)	/* mingw or cygwin */
+#elif defined(GPAC_CONFIG_WIN32) && (defined(__CYGWIN__) || defined(__MINGW32__))
 #if (_FILE_OFFSET_BITS >= 64)
 	return (u64) ftello64(fp);
 #else
