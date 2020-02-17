@@ -2945,7 +2945,7 @@ write_rep_only:
 		if (dasher->ast_offset_ms<0) {
 			fprintf(dasher->mpd, " availabilityTimeOffset=\"%g\"", - (Double) dasher->ast_offset_ms / 1000.0);
 		}
-		fprintf(dasher->mpd, "\n");
+		fprintf(dasher->mpd, ">\n");
 
 		gf_bs_get_content(mpd_timeline_bs, &mpd_seg_info, &size);
 		gf_fwrite(mpd_seg_info, 1, size, dasher->mpd);
