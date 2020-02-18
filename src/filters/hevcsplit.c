@@ -762,7 +762,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	for (i = 0; i < rows; i++) {
 		for (j = 0; j < cols; j++) {
-			u32 tile_idx = i * rows + j;
+			u32 tile_idx = i * cols + j;
 			HEVCTilePid *tpid = gf_list_get(ctx->outputs, tile_idx);
 			if (!tpid) {
 				assert(gf_list_count(ctx->outputs) == tile_idx);
