@@ -58,8 +58,6 @@ COMPOSITOR_CFLAGS=
 
 ## Add prefix before every lib
 ifneq ($(prefix), /usr/local)
-EXTRALIBS+=-L$(prefix)/lib
-else
 ifneq ($(prefix), /usr)
 EXTRALIBS+=-L$(prefix)/lib
 endif

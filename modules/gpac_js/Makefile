@@ -29,7 +29,7 @@ LOCAL_LIB+=-L../../extra_lib/lib/gcc
 else
 ifeq ($(CONFIG_JS),prefix)
 NEED_LOCAL_LIB="yes"
-LOCAL_LIB+=-L$(prefix)/lib
+LOCAL_LIB+=-L$(prefix)/$(libdir)
 endif
 LINKLIBS+= $(JS_LIBS)
 endif
