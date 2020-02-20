@@ -561,7 +561,7 @@ EOF
         js_flags=-DXP_MAC
         xul_flags=-DXP_MAC
         CFLAGS_DIR="-I$prefix/include"
-        LDFLAGS="-L$prefix/lib"
+        LDFLAGS="-L$prefix/$libdir"
         if test -d /sw/bin ; then
             alt_macosx_dir="/sw"
             CFLAGS_DIR="-I/sw/include $CFLAGS_DIR"
@@ -844,7 +844,7 @@ EOF
             #try prefix (DC)
             js_inc="$prefix/include/js"
             js_flags="-DXP_UNIX -I$prefix/include/js"
-            if docc $js_flags -L$prefix/lib -ljs -lpthread ; then
+            if docc $js_flags -L$prefix/$libdir -ljs -lpthread ; then
                 has_js="prefix"
                 #dc added end
             else
@@ -905,7 +905,7 @@ EOF
         #try prefix (DC)
         js_inc="$prefix/include/js"
         js_flags="-DXP_UNIX -I$prefix/include/js"
-        if docc $js_flags -L$prefix/lib -ljs ; then
+        if docc $js_flags -L$prefix/$libdir -ljs ; then
             has_js="prefix"
             #dc added end
         elif test "$pkg_config" != "no"; then
@@ -1125,7 +1125,7 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 ft_cflags="-I$prefix/include "
-ft_lflags="-L$prefix/lib -lfreetype"
+ft_lflags="-L$prefix/$libdir -lfreetype"
 if docc $CFLAGS_DIR $ft_cflags $ft_lflags $LDFLAGS ; then
     has_ft="system"
 fi
@@ -1195,7 +1195,7 @@ if test "$cross_prefix" = "" ; then
             fi
         else
             jpeg_cflags="-I$prefix/include"
-            jpeg_lflags="-L$prefix/lib -ljpeg"
+            jpeg_lflags="-L$prefix/$libdir -ljpeg"
             if docc $jpeg_cflags $jpeg_lflags $LDFLAGS ; then
                 has_jpeg="system"
             fi
@@ -1247,7 +1247,7 @@ int main( void ) { return 0; }
 EOF
 
 png_cflags="-I$prefix/include"
-png_lflags="-L$prefix/lib -lpng -lz"
+png_lflags="-L$prefix/$libdir -lpng -lz"
 if docc $png_cflags $png_lflags $LDFLAGS ; then
     has_png="system"
 elif docc $LDFLAGS -lpng -lz ; then
@@ -1332,7 +1332,7 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if docc -I$prefix/include -L$prefix/lib $LDFLAGS -lxvidcore -lpthread ; then
+if docc -I$prefix/include -L$prefix/$libdir $LDFLAGS -lxvidcore -lpthread ; then
     has_xvid="system"
 elif docc $LDFLAGS -lxvidcore -lpthread ; then
     has_xvid="system"
@@ -1434,11 +1434,11 @@ int main(void) {
 }
 EOF
 
-if docc -I$prefix/include -L$prefix/lib $ffmpeg_lflags $LDFLAGS ; then
+if docc -I$prefix/include -L$prefix/$libdir $ffmpeg_lflags $LDFLAGS ; then
     has_ffmpeg="system"
     ffmpeg_cflags="-I$prefix/include"
-    ffmpeg_lflags="-L$prefix/lib $ffmpeg_lflags"
-    ffmpeg_lflags_dashcast="-L$prefix/lib $ffmpeg_lflags_dashcast"
+    ffmpeg_lflags="-L$prefix/$libdir $ffmpeg_lflags"
+    ffmpeg_lflags_dashcast="-L$prefix/$libdir $ffmpeg_lflags_dashcast"
 elif docc $ffmpeg_lflags $LDFLAGS ; then
     has_ffmpeg="system"
 fi
