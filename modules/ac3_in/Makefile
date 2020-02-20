@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/ac3_in
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -20,12 +20,12 @@ OBJS= ac3_in.o
 SRCS := $(OBJS:.o=.c) 
 
 #faad config
-ifeq ($(CONFIG_A52), no)
+ifeq ($(CONFIG_A52),no)
 else
 OBJS+=liba52_dec.o
 CFLAGS+=-DGPAC_HAS_LIBA52
 #local faad lib
-ifeq ($(CONFIG_FAAD), local)
+ifeq ($(CONFIG_FAAD),local)
 EXTRALIBS+=-L../../extra_lib/lib/gcc
 CFLAGS+= -I"$(LOCAL_INC_PATH)"
 endif

@@ -6,12 +6,12 @@ vpath %.c $(SRC_PATH)/modules/amr_dec
 CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include" -D__MSDOS__ -DMMS_IO -DWMOPS=0 -DVAD1
 
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g -DDEBUG
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -21,7 +21,7 @@ OBJS=amr_in.o
 NAME=amr_in
 AMRLIBS=
 
-ifeq ($(CONFIG_AMR_NB), yes)
+ifeq ($(CONFIG_AMR_NB),yes)
 NAME=amr_dec
 OBJS+= amr_dec.o
 AMRLIBS=-L../../extra_lib/lib/gcc -lopencore-amrnb -lopencore-amrwb

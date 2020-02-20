@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/nvdec
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -20,12 +20,12 @@ OBJS=nvdec.o cuda_sdk.o
 SRCS := $(OBJS:.o=.c) 
 
 
-ifeq ($(CONFIG_WIN32), yes)
+ifeq ($(CONFIG_WIN32),yes)
 else
 EXTRALIBS+=-ldl
 endif
 
-ifeq ($(HAS_OPENGL), yes)
+ifeq ($(HAS_OPENGL),yes)
 CFLAGS+=$(OGL_INCLS)
 EXTRALIBS+=$(OGL_LIBS)
 

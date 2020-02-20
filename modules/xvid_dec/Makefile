@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/xvid_dec
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -18,7 +18,7 @@ endif
 OBJS=xvid_dec.o
 
 #local xvid lib
-ifeq ($(CONFIG_XVID), local)
+ifeq ($(CONFIG_XVID),local)
 CFLAGS+= -I"$(LOCAL_INC_PATH)"
 EXTRALIBS+= -L../../extra_lib/lib/gcc
 endif
@@ -32,8 +32,8 @@ ifeq ($(CONFIG_WIN32),yes)
 endif
 
 
-ifneq ($(prefix), /usr/local)
-ifneq ($(prefix), /usr)
+ifneq ($(prefix),/usr/local)
+ifneq ($(prefix),/usr)
 EXTRALIBS+=-L$(prefix)/$(libdir)
 endif
 endif

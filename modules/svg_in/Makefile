@@ -4,21 +4,21 @@ vpath %.c $(SRC_PATH)/modules/svg_in
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-ifeq ($(CONFIG_ZLIB), local)
+ifeq ($(CONFIG_ZLIB),local)
 CFLAGS+= -I"$(LOCAL_INC_PATH)/zlib"
 EXTRALIBS+=-L../../extra_lib/lib/gcc
 endif
-ifneq ($(CONFIG_ZLIB), no)
+ifneq ($(CONFIG_ZLIB),no)
 EXTRALIBS+=-lz
 endif
 

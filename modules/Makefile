@@ -3,7 +3,7 @@ include ../config.mak
 #all OS and lib independent
 PLUGDIRS=aac_in ac3_in amr_dec atsc_in audio_filter bifs_dec dummy_in soft_raster mp3_in isom_in odf_dec rtp_in timedtext img_in saf_in ismacryp raw_out validator netctrl
 
-ifeq ($(DISABLE_DASH_CLIENT), no)
+ifeq ($(DISABLE_DASH_CLIENT),no)
 PLUGDIRS+=mpd_in
 ifeq ($(CONFIG_JS),no)
 else
@@ -11,21 +11,21 @@ PLUGDIRS+=mse_in
 endif
 endif
 
-ifeq ($(DISABLE_MEDIA_IMPORT), no)
+ifeq ($(DISABLE_MEDIA_IMPORT),no)
 PLUGDIRS+=mpegts_in 
 endif
 
-ifeq ($(DISABLE_SMGR), no)
+ifeq ($(DISABLE_SMGR),no)
 PLUGDIRS+=ctx_load svg_in
 endif
 
-ifeq ($(DISABLE_SVG), no)
+ifeq ($(DISABLE_SVG),no)
 PLUGDIRS+=laser_dec svg_in 
-ifeq ($(DISABLE_TTXT), no)
+ifeq ($(DISABLE_TTXT),no)
 PLUGDIRS+=vtt_in
 endif
 
-ifneq ($(CONFIG_ZLIB), no)
+ifneq ($(CONFIG_ZLIB),no)
 PLUGDIRS+=widgetman
 ifeq ($(DISABLE_VRML),no)
 ifeq ($(DISABLE_LOADER_BT),no)
@@ -35,43 +35,43 @@ endif
 endif
 endif
 
-ifeq ($(CONFIG_FT), no)
+ifeq ($(CONFIG_FT),no)
 else
 PLUGDIRS+=ft_font
 endif
 
-ifeq ($(CONFIG_XVID), no)
+ifeq ($(CONFIG_XVID),no)
 else
 PLUGDIRS+=xvid_dec
 endif
 
-ifeq ($(CONFIG_OGG), no)
+ifeq ($(CONFIG_OGG),no)
 else
 PLUGDIRS+=ogg
 endif
 
-ifeq ($(CONFIG_FREENECT), no)
+ifeq ($(CONFIG_FREENECT),no)
 else
 PLUGDIRS+=freenect
 endif
 
-ifeq ($(CONFIG_OSS_AUDIO), no)
+ifeq ($(CONFIG_OSS_AUDIO),no)
 else
 PLUGDIRS+=oss_audio
 endif
 
-ifeq ($(CONFIG_ALSA), yes)
+ifeq ($(CONFIG_ALSA),yes)
 PLUGDIRS+=alsa
 endif
 
-ifeq ($(CONFIG_JACK), yes)
+ifeq ($(CONFIG_JACK),yes)
 PLUGDIRS+=jack
 endif
 
-ifeq ($(CONFIG_SDL), yes)
+ifeq ($(CONFIG_SDL),yes)
 PLUGDIRS+=sdl_out
 endif
-ifeq ($(CONFIG_PULSEAUDIO), yes)
+ifeq ($(CONFIG_PULSEAUDIO),yes)
 PLUGDIRS+=pulseaudio
 endif
 
@@ -120,11 +120,11 @@ PLUGDIRS+=nvdec
 endif
 endif
 
-ifneq ($(CONFIG_FFMPEG), no)
+ifneq ($(CONFIG_FFMPEG),no)
 ifeq ($(CONFIG_OPENHEVC),no)
 PLUGDIRS+=ffmpeg_in
 else
-ifneq ($(STATIC_MODULES), yes)
+ifneq ($(STATIC_MODULES),yes)
 PLUGDIRS+=ffmpeg_in
 endif
 endif
@@ -133,7 +133,7 @@ endif
 #openHEVC is disabled in static build
 
 #if static modules are used, disable all previous modules (built-in in libgpac)
-ifeq ($(STATIC_MODULES), yes)
+ifeq ($(STATIC_MODULES),yes)
 PLUGDIRS=
 
 else 
@@ -147,10 +147,10 @@ endif
 
 #all modules below are not (yet) included in static build
 
-ifeq ($(CONFIG_AMR_NB_FT), yes)
+ifeq ($(CONFIG_AMR_NB_FT),yes)
 PLUGDIRS+=amr_float_dec
 else
-ifeq ($(CONFIG_AMR_WB_FT), yes)
+ifeq ($(CONFIG_AMR_WB_FT),yes)
 PLUGDIRS+=amr_float_dec
 endif
 endif
@@ -169,7 +169,7 @@ PLUGDIRS+=avcap
 endif
 
 
-ifeq ($(DISABLE_PLAYER), yes)
+ifeq ($(DISABLE_PLAYER),yes)
 PLUGDIRS=
 endif
 

@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/redirect_av
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" $(ffmpeg_cflags)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -20,7 +20,7 @@ LOCAL_LIB=../../bin/gcc
 #common objects
 OBJS=redirect_av.o
 
-ifeq ($(CONFIG_DARWIN), yes)
+ifeq ($(CONFIG_DARWIN),yes)
 #fixme - use proper detection of libavdevice dependencies
 LINKLIBS+=-lbz2 
 endif

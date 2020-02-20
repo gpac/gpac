@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/x11_out
 
 CFLAGS= $(OPTFLAGS) -Wno-deprecated-declarations
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -17,28 +17,28 @@ endif
 CFLAGS+=-I"$(SRC_PATH)/include"
 
 
-ifeq ($(X11_INC_PATH), )
+ifeq ($(X11_INC_PATH),)
 else
 CFLAGS+=-I$(X11_INC_PATH)
 endif
 
-ifeq ($(X11_LIB_PATH), )
+ifeq ($(X11_LIB_PATH),)
 else
 EXTRALIBS+=-L$(X11_LIB_PATH)
 endif
 
-ifeq ($(USE_X11_XV), yes)
+ifeq ($(USE_X11_XV),yes)
 CFLAGS+=-DGPAC_HAS_X11_XV
 EXTRALIBS+=-lXv
 endif
 
-ifeq ($(USE_X11_SHM), yes)
+ifeq ($(USE_X11_SHM),yes)
 CFLAGS+=-DGPAC_HAS_X11_SHM
 EXTRALIBS+=-lXext
 endif
 
-ifeq ($(HAS_OPENGL), yes)
-ifeq ($(GPAC_USE_TINYGL), yes)
+ifeq ($(HAS_OPENGL),yes)
+ifeq ($(GPAC_USE_TINYGL),yes)
 else
 CFLAGS+=$(OGL_INCLS)
 EXTRALIBS+=$(OGL_LIBS)

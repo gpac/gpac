@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/mp3_in
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -20,12 +20,12 @@ OBJS= mp3_in.o
 
 
 #mad config
-ifeq ($(CONFIG_MAD), no)
+ifeq ($(CONFIG_MAD),no)
 else
 OBJS+=mad_dec.o
 CFLAGS+=-DGPAC_HAS_MAD
 #local mad lib
-ifeq ($(CONFIG_MAD), local)
+ifeq ($(CONFIG_MAD),local)
 EXTRALIBS+=-L../../extra_lib/lib/gcc
 CFLAGS+= -I"$(LOCAL_INC_PATH)"
 endif

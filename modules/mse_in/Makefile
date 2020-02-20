@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/mse_in
 
 CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include" -Wall
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g -DDEBUG
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif

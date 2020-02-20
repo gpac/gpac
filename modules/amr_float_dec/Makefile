@@ -5,12 +5,12 @@ vpath %.c $(SRC_PATH)/modules/amr_float_dec
 #note: __MSDOS__ defined is the same cfg as linux. There may be some pbs on other platforms, to check...
 CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include" -D__MSDOS__
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g -DDEBUG
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -20,14 +20,14 @@ OBJS=amr_float_dec.o
 
 #AMR NB obj
 CFLAGS+=-DGPAC_HAS_AMR_FT
-# ifeq ($(CONFIG_AMR_NB_FT), yes)
+# ifeq ($(CONFIG_AMR_NB_FT),yes)
 # OBJS+=./amr_nb_ft/interf_dec.o ./amr_nb_ft/interf_enc.o ./amr_nb_ft/sp_dec.o ./amr_nb_ft/sp_enc.o
 # endif
 
 
 #AMR WB obj
 CFLAGS+=-DGPAC_HAS_AMR_FT_WB
-#ifeq ($(CONFIG_AMR_WB_FT), yes)
+#ifeq ($(CONFIG_AMR_WB_FT),yes)
 # OBJS+=./amr_wb_ft/dec_acelp.o ./amr_wb_ft/dec_dtx.o ./amr_wb_ft/dec_gain.o ./amr_wb_ft/dec_if.o ./amr_wb_ft/dec_lpc.o ./amr_wb_ft/dec_main.o \
 # 	./amr_wb_ft/dec_rom.o ./amr_wb_ft/dec_util.o ./amr_wb_ft/enc_acelp.o ./amr_wb_ft/enc_dtx.o ./amr_wb_ft/enc_gain.o ./amr_wb_ft/enc_if.o \
 # 	./amr_wb_ft/enc_lpc.o ./amr_wb_ft/enc_main.o ./amr_wb_ft/enc_rom.o ./amr_wb_ft/enc_util.o ./amr_wb_ft/if_rom.o

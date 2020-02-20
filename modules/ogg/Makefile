@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/ogg
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -19,39 +19,39 @@ OBJS= ogg_in.o ogg_load.o
 
 SRCS := $(OBJS:.o=.c) 
 
-NEED_LOCAL_LIB="no"
+NEED_LOCAL_LIB=no
 LOCAL_LIB=../../bin/gcc
 LINKLIBS= -lgpac -logg
 
-ifeq ($(CONFIG_OGG), local)
-NEED_LOCAL_LIB="yes"
+ifeq ($(CONFIG_OGG),local)
+NEED_LOCAL_LIB=yes
 endif
 
-ifeq ($(CONFIG_VORBIS), no)
+ifeq ($(CONFIG_VORBIS),no)
 else
 OBJS+= vorbis_dec.o
 LINKLIBS+= -lvorbis
 CFLAGS+=-DGPAC_HAS_VORBIS
-ifeq ($(CONFIG_VORBIS), local)
-NEED_LOCAL_LIB="yes"
+ifeq ($(CONFIG_VORBIS),local)
+NEED_LOCAL_LIB=yes
 CFLAGS+= -I"$(LOCAL_INC_PATH)"
 endif
 endif
 
-ifeq ($(CONFIG_THEORA), no)
+ifeq ($(CONFIG_THEORA),no)
 else
 OBJS+= theora_dec.o
 LINKLIBS+= -ltheora
 CFLAGS+=-DGPAC_HAS_THEORA
-ifeq ($(CONFIG_THEORA), local)
-NEED_LOCAL_LIB="yes"
+ifeq ($(CONFIG_THEORA),local)
+NEED_LOCAL_LIB=yes
 CFLAGS+= -I"$(LOCAL_INC_PATH)"
 endif
 endif
 
 
 #add local lib path
-ifeq ($(NEED_LOCAL_LIB), "yes")
+ifeq ($(NEED_LOCAL_LIB),yes)
 LOCAL_LIB+=-L../../extra_lib/lib/gcc
 endif
 

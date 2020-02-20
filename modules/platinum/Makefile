@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/platinum
 
 CFLAGS= $(CXXFLAGS) -I"$(SRC_PATH)/include" -I$(SRC_PATH)/extra_lib/include/platinum/ -DGPAC_HAVE_CONFIG_H -I../..
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -39,7 +39,7 @@ ifeq ($(CONFIG_WIN32),yes)
 LINKLIBS+= -lwsock32 -lws2_32 -static-libstdc++ -static-libgcc
 endif
 
-ifeq ($(CONFIG_DARWIN), yes)
+ifeq ($(CONFIG_DARWIN),yes)
 LDFLAGS+=-framework Foundation
 endif
 

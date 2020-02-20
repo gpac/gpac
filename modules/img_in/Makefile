@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/img_in
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -26,13 +26,13 @@ endif
 OBJS=img_dec.o img_in.o bmp_dec.o png_dec.o jpeg_dec.o
 
 #openjpeg config
-ifeq ($(CONFIG_JP2), no)
+ifeq ($(CONFIG_JP2),no)
 else
 OBJS+=jp2_dec.o
 LINKLIBS+= -lopenjpeg -lm
 CFLAGS+=-DGPAC_HAS_JP2
 #local openjpeg lib
-ifeq ($(CONFIG_JP2), local)
+ifeq ($(CONFIG_JP2),local)
 NEED_LOCAL_LIB="yes"
 CFLAGS+= -DOPJ_STATIC -I"$(LOCAL_INC_PATH)/openjpeg"
 endif
@@ -40,7 +40,7 @@ endif
 
 
 #add local lib path
-ifeq ($(NEED_LOCAL_LIB), "yes")
+ifeq ($(NEED_LOCAL_LIB),yes)
 LOCAL_LIB+=-L../../extra_lib/lib/gcc
 endif
 

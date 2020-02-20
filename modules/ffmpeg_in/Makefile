@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/ffmpeg_in
 
 CFLAGS=-fPIC $(OPTFLAGS) -Wno-deprecated-declarations -I"$(SRC_PATH)/include" $(ffmpeg_cflags)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -37,19 +37,19 @@ LINKFLAGS+=-lbz2
 endif
 
 #old ffmpeg lib
-ifeq ($(CONFIG_FFMPEG_OLD), yes)
+ifeq ($(CONFIG_FFMPEG_OLD),yes)
 CFLAGS+=-DFFMPEG_OLD_HEADERS -I/usr/include
 else
 LINKFLAGS+=-lswscale
 endif
 
 #local ffmpeg lib
-ifeq ($(CONFIG_FFMPEG), local)
+ifeq ($(CONFIG_FFMPEG),local)
 LOCAL_LIB=-L../../extra_lib/lib/gcc
 CFLAGS+= -I"$(LOCAL_INC_PATH)"
 endif
 
-ifeq ($(CONFIG_ZLIB), local)
+ifeq ($(CONFIG_ZLIB),local)
 LOCAL_LIB=-L../../extra_lib/lib/gcc
 endif
 

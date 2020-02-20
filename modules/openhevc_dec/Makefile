@@ -4,16 +4,16 @@ vpath %.c $(SRC_PATH)/modules/openhevc_dec
 
 CFLAGS=$(OPTFLAGS) -I"$(SRC_PATH)/include" $(OHEVC_CFLAGS)
 
-ifeq ($(CONFIG_LINUX), yes)
+ifeq ($(CONFIG_LINUX),yes)
 LDFLAGS+=-Wl,-Bsymbolic
 endif
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif

@@ -6,20 +6,20 @@ ifeq ($(MP4BOX_STATIC),yes)
 APPDIRS+=mp4box 
 else
 
-ifeq ($(DISABLE_PLAYER), no)
+ifeq ($(DISABLE_PLAYER),no)
 APPDIRS+=mp4client 
 endif
 
-ifeq ($(DISABLE_ISOFF), no)
+ifeq ($(DISABLE_ISOFF),no)
 APPDIRS+=mp4box 
-ifeq ($(DISABLE_M2TS_MUX), no)
+ifeq ($(DISABLE_M2TS_MUX),no)
 APPDIRS+=mp42ts 
 endif
 
-ifneq ($(CONFIG_WIN32), yes)
-ifneq ($(CONFIG_FFMPEG), no)
-ifneq ($(DISABLE_CORE_TOOLS), yes)
-ifneq ($(DISABLE_AV_PARSERS), yes)
+ifneq ($(CONFIG_WIN32),yes)
+ifneq ($(CONFIG_FFMPEG),no)
+ifneq ($(DISABLE_CORE_TOOLS),yes)
+ifneq ($(DISABLE_AV_PARSERS),yes)
 APPDIRS+=dashcast
 endif
 endif
@@ -38,7 +38,7 @@ else
 endif
 
 #disable due to version incompatibilities
-ifeq ($(USE_WXWIDGETS), yes)
+ifeq ($(USE_WXWIDGETS),yes)
 #APPDIRS+=osmo4_wx
 #V4STUDIODIR=V4Studio
 #INSTDIRS+=osmo4_wx
