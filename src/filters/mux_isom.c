@@ -615,7 +615,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		switch (ctx->store) {
 		case MP4MX_MODE_FLAT:
 		case MP4MX_MODE_FASTSTART:
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_BOOL(GF_TRUE) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_UINT(GF_PID_FILE_PATCH_INSERT) );
 			break;
 		case MP4MX_MODE_INTER:
 		case MP4MX_MODE_TIGHT:
@@ -1022,6 +1022,18 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 		if (ctx->noroll) {
 			gf_isom_remove_sample_group(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_ROLL);
+		}
+
+
+		if (ctx->dash_mode==MP4MX_DASH_VOD) {
+			Bool use_cache = ctx->cache;
+			if (!ctx->cache && (!ctx->media_dur || !ctx->dash_dur) ) {
+				use_cache = GF_TRUE;
+			}
+
+			if (!use_cache) {
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_UINT(GF_PID_FILE_PATCH_REPLACE) );
+			}
 		}
 	}
 
@@ -3617,7 +3629,6 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			gf_bs_write_data(bs, msg, len );
 			gf_bs_del(bs);
 			gf_filter_pck_send(pck);
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_BOOL(GF_TRUE));
 		} else {
 			ctx->store_output = GF_TRUE;
 		}

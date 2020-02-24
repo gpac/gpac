@@ -5811,6 +5811,9 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	}
 	if (evt->base.type == GF_FEVT_CONNECT_FAIL) {
 		ctx->in_error = GF_TRUE;
+		gf_filter_pid_set_eos(ctx->opid);
+		if (ctx->opid_alt)
+			gf_filter_pid_set_eos(ctx->opid_alt);
 		return GF_TRUE;
 	}
 

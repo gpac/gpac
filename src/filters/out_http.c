@@ -83,7 +83,7 @@ typedef struct
 	u32 nb_dest;
 
 	Bool is_open, done, is_delete;
-
+	Bool patch_blocks;
 	GF_List *file_deletes;
 
 	//for PUT mode, NULL in server mode
@@ -91,7 +91,8 @@ typedef struct
 	u32 cur_header;
 
 	u64 offset_at_seg_start;
-	u64 nb_write;
+	u64 nb_write, write_start_range, write_end_range;
+	char range_hdr[100];
 
 	//for server mode, recording
 	char *local_path;
@@ -990,7 +991,19 @@ static void httpout_in_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		case 1:
 			parameter->name = "Content-Type";
 			parameter->value = in->mime;
-			in->cur_header = 2;
+			in->cur_header = 3;
+			if (in->write_start_range)
+				in->cur_header = 2;
+			break;
+		case 2:
+			parameter->name = "Range";
+			if (in->write_end_range) {
+				sprintf(in->range_hdr, "bytes="LLU"-"LLU, in->write_start_range, in->write_end_range);
+			} else {
+				sprintf(in->range_hdr, "bytes="LLU"-", in->write_start_range);
+			}
+			parameter->value = in->range_hdr;
+			in->cur_header = 3;
 			break;
 		default:
 			parameter->name = NULL;
@@ -1015,12 +1028,21 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	pctx = gf_filter_pid_get_udta(pid);
 	if (!pctx) {
+		Bool patch_blocks = GF_FALSE;
 		GF_FilterEvent evt;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLE_PROGRESSIVE);
-		if (p && p->value.boolean) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Cannot process PIDs width progressive download disabled\n"));
-			return GF_BAD_PARAM;
+		if (p && p->value.uint) {
+			if (ctx->hmode==MODE_PUSH) {
+				if (p->value.uint==GF_PID_FILE_PATCH_INSERT) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Push cannot be used to insert blocks in remote files (not supported by HTTP)\n"));
+					return GF_FILTER_NOT_SUPPORTED;
+				}
+				patch_blocks = GF_TRUE;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Server cannot deliver PIDs with progressive download disabled\n"));
+				return GF_FILTER_NOT_SUPPORTED;
+			}
 		}
 
 		/*if PID was connected to an alias, get the alias context to get the destination
@@ -1036,6 +1058,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		GF_SAFEALLOC(pctx, GF_HTTPOutInput);
 		pctx->ipid = pid;
 		pctx->ctx = ctx;
+		pctx->patch_blocks = patch_blocks;
 
 		if (ctx_orig->dst) {
 			char *path = strstr(ctx_orig->dst, "://");
@@ -1344,7 +1367,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 	}
 	remain = size;
 	while (remain) {
-		to_write = (u32) (sess->ranges[sess->range_idx].end - sess->file_pos);
+		to_write = (u32) (sess->ranges[sess->range_idx].end + 1 - sess->file_pos);
 		if (to_write>=remain) {
 			to_write = remain;
 			write = (u32) fwrite(data, 1, remain, sess->resource);
@@ -1935,8 +1958,39 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		pck_data = gf_filter_pck_get_data(pck, &pck_size);
 		if (in->upload || ctx->single_mode || in->resource) {
 			GF_FilterFrameInterface *hwf = gf_filter_pck_get_frame_interface(pck);
-			if (pck_data) {
-				if (pck_size) {
+			if (pck_data && pck_size) {
+
+				if (in->patch_blocks && gf_filter_pck_get_seek_flag(pck)) {
+					u64 bo = gf_filter_pck_get_byte_offset(pck);
+					if (bo==GF_FILTER_NO_BO) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] Cannot patch file, wrong byte offset\n"));
+					} else {
+						if (gf_filter_pck_get_interlaced(pck)) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] Cannot patch file by byte insertion, not supported by HTTP\n"));
+						} else {
+							u64 pos = in->nb_write;
+							//close file
+							httpout_close_input(ctx, in);
+							//re-open file
+							in->write_start_range = bo;
+							in->write_end_range = bo + pck_size - 1;
+							httpout_open_input(ctx, in, in->path, GF_FALSE);
+
+							nb_write = httpout_write_input(ctx, in, pck_data, pck_size, start);
+							if (nb_write!=pck_size) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+							}
+							httpout_close_input(ctx, in);
+
+							in->write_start_range = pos;
+							in->write_end_range = 0;
+						}
+					}
+				} else {
+					if (in->write_start_range) {
+						httpout_open_input(ctx, in, in->path, GF_FALSE);
+					}
+
 					nb_write = httpout_write_input(ctx, in, pck_data, pck_size, start);
 					if (nb_write!=pck_size) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
